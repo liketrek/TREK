@@ -23,30 +23,40 @@ const STUDIO = 'src/components/Studio/bookFontFaces.ts'
 // Vitest runs with the client package as its root, so cwd is stable here.
 const read = (rel: string) => readFileSync(resolve(process.cwd(), rel), 'utf8')
 
-/** Every `@fontsource/<package>/<weight>.css` a file imports. */
+/** Every `@fontsource/<package>/<weight>[-italic][.css]` a file imports (see bookFontFaces.ts for the bare form). */
 function facesIn(rel: string): string[] {
-  return [...read(rel).matchAll(/@fontsource\/([a-z0-9-]+)\/(\d+)\.css/g)]
+  return [...read(rel).matchAll(/@fontsource\/([a-z0-9-]+)\/(\d+(?:-italic)?)(?:\.css)?'/g)]
     .map(m => `${m[1]}/${m[2]}`)
 }
 
-/** @fontsource names its packages after the family, lowercased and hyphenated. */
-function faceOf(id: BookFontId, weight: number): string {
-  return `${BOOK_FONTS[id].name.toLowerCase().replace(/ /g, '-')}/${weight}`
+/** A face as the import names it: the family's package, the weight and the italic. */
+function faceOf(id: BookFontId, weight: number, italic = false): string {
+  return `${BOOK_FONTS[id].pkg}/${weight}${italic ? '-italic' : ''}`
 }
+
+/** Every face the catalogue declares: each weight upright and each real italic. */
+const declared = BOOK_FONTS_IDS.flatMap(id => [
+  ...BOOK_FONTS[id].weights.map(w => faceOf(id, w)),
+  ...BOOK_FONTS[id].italics.map(w => faceOf(id, w, true)),
+])
 
 describe('the bundled faces', () => {
   it('loads every family the picker offers, in the weights it offers', () => {
     const loaded = [...facesIn(APP), ...facesIn(STUDIO)]
+    for (const face of declared) {
+      expect(loaded, face).toContain(face)
+    }
+  })
+
+  /* @fontsource names its packages after the family, lowercased and hyphenated. */
+  it('takes every family from the package named after it', () => {
     for (const id of BOOK_FONTS_IDS) {
-      for (const weight of BOOK_FONTS[id].weights) {
-        expect(loaded, `${BOOK_FONTS[id].name} ${weight}`).toContain(faceOf(id, weight))
-      }
+      expect(BOOK_FONTS[id].pkg, id).toBe(BOOK_FONTS[id].name.toLowerCase().replace(/ /g, '-'))
     }
   })
 
   /* A weight nothing can ask for is a download nobody wanted. */
   it('loads no weight the registry does not declare', () => {
-    const declared = BOOK_FONTS_IDS.flatMap(id => BOOK_FONTS[id].weights.map(w => faceOf(id, w)))
     for (const face of facesIn(STUDIO)) {
       expect(declared, face).toContain(face)
     }

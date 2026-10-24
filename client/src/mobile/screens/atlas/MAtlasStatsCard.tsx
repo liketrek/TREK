@@ -13,18 +13,18 @@ interface MAtlasStatsCardProps {
 export default function MAtlasStatsCard({ stats }: MAtlasStatsCardProps) {
   const { t } = useTranslation()
   const cols: [number, string][] = [
-    [stats.totalCountries, t('atlas.countries')],
-    [stats.totalTrips, t('atlas.trips')],
-    [stats.totalPlaces, t('atlas.places')],
-    [stats.totalCities || 0, t('atlas.cities')],
-    [stats.totalDays, t('atlas.days')],
+    [stats.totalCountries, t('atlas.countries', { count: stats.totalCountries })],
+    [stats.totalTrips, t('atlas.trips', { count: stats.totalTrips })],
+    [stats.totalPlaces, t('atlas.places', { count: stats.totalPlaces })],
+    [stats.totalCities || 0, t('atlas.cities', { count: stats.totalCities || 0 })],
+    [stats.totalDays, t('atlas.days', { count: stats.totalDays })],
   ]
   // All five columns are spoken for, so the planned count rides along with the country
   // number as a superscript rather than claiming a sixth column.
   const planned = stats.totalCountriesPlanned || 0
 
   return (
-    <div className="absolute bottom-[calc(var(--bottom-nav-h,84px)+16px)] left-4 right-4 z-[5]">
+    <div className="absolute bottom-[calc(var(--bottom-nav-h,84px)+16px)] inset-x-4 z-[5]">
       <div className="flex w-full rounded-[22px] border border-[color:var(--m-shbr)] bg-[color:var(--m-sheet)] px-3 py-[14px] shadow-[0_18px_44px_-20px_rgba(0,0,0,.4)]">
         {cols.map(([n, l], i) => (
           <div key={l} className="flex-1 text-center">

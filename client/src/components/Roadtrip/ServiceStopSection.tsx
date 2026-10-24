@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useId, useMemo } from 'react'
 import CustomSelect from '../shared/CustomSelect'
 import { useTranslation } from '../../i18n/TranslationContext'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -33,12 +33,14 @@ const ROW = 'flex flex-wrap gap-1.5'
 /**
  * What holds the pieces of one option apart.
  *
- * A separator rather than a sentence, and deliberately not a word: the caption above
- * already says these are the stretches to add between, so a row only has to name the two
- * stops and how far off them the place lies. It also reads the same way in a language
- * written right to left, which an arrow would not.
+ * Space rather than a sentence, and deliberately not a word or a glyph: the caption
+ * above already says these are the stretches to add between, so a row only has to name
+ * the two stops and how far off them the place lies. It also reads the same way in a
+ * language written right to left, which an arrow would not. An em space, because an
+ * option label is plain text and a single space would run a stop's name into the next
+ * one's.
  */
-const SEP = ' · '
+const GAP = ' '
 
 interface ServiceStopSectionProps {
   mode: ServiceStopMode
@@ -62,6 +64,9 @@ export default function ServiceStopSection({
   const { t } = useTranslation()
   const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
   const choice = useMemo(() => serviceStopChoice(mode, lat, lng, leg), [mode, lat, lng, leg])
+  const kindId = useId()
+  const stayId = useId()
+  const legId = useId()
 
   /**
    * The stretches on offer, each naming what it is and how far the place lies from it.
@@ -73,11 +78,11 @@ export default function ServiceStopSection({
   const options = useMemo(() => [
     ...choice.legs.map(item => ({
       value: item.value,
-      label: item.offRouteKm === null
-        ? `${item.from}${SEP}${item.to}`
-        : `${item.from}${SEP}${item.to}${SEP}${t('roadtrip.poi.offRoute', {
-            distance: formatDistance(item.offRouteKm, distanceUnit),
-          })}`,
+      label: [
+        item.from,
+        item.to,
+        item.offRouteKm === null ? null : t('roadtrip.poi.offRoute', { distance: formatDistance(item.offRouteKm, distanceUnit) }),
+      ].filter(Boolean).join(GAP),
       badge: t('roadtrip.day', { number: item.dayNumber }),
     })),
     ...(choice.end
@@ -93,17 +98,19 @@ export default function ServiceStopSection({
   return (
     <div className="space-y-3">
       <div>
-        <label className={LABEL}>{t('roadtrip.stop.kind')}</label>
+        <label id={kindId} className={LABEL}>{t('roadtrip.stop.kind')}</label>
         <StopKindChips
           value={stopType}
           onPick={(kind, wasChosen) => { if (!wasChosen) onStopType(kind) }}
           className={ROW}
+          labelledBy={kindId}
+          white
         />
       </div>
 
       <div>
-        <label className={LABEL}>{t('roadtrip.stop.stay')}</label>
-        <StopStayChips value={minutes} onPick={onMinutes} className={ROW} />
+        <label id={stayId} className={LABEL}>{t('roadtrip.stop.stay')}</label>
+        <StopStayChips value={minutes} onPick={onMinutes} className={ROW} labelledBy={stayId} white />
       </div>
 
       {/* Where it goes. Preselected from the projection, and changeable.
@@ -115,8 +122,11 @@ export default function ServiceStopSection({
           {t('roadtrip.poi.manualNoCoords')}
         </p>
       ) : choice.legs.length > 0 ? (
-        <div>
-          <label className={LABEL}>{t('roadtrip.poi.addBetween')}</label>
+        // A group named by the caption rather than a label pointing at the trigger: a
+        // label would replace the trigger's name, which is the stretch chosen, and a
+        // click on it would open the menu.
+        <div role="group" aria-labelledby={legId}>
+          <label id={legId} className={LABEL}>{t('roadtrip.poi.addBetween')}</label>
           <CustomSelect
             value={choice.legValue}
             onChange={value => onLeg(String(value))}

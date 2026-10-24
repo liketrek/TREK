@@ -60,6 +60,12 @@ export const dawarichRepo = {
     return dawarichBucketScanSchema.parse(await dawarichApi.scanBucketList())
   },
 
+  /** Asks for a sync now instead of at the next tick; a second one while it runs is answered, not started. */
+  async syncNow() {
+    requireOnline()
+    return await dawarichApi.syncNow()
+  },
+
   async atlasSuggestions(from: string, to: string) {
     requireOnline()
     return dawarichAtlasSuggestionsSchema.parse(await dawarichApi.atlasSuggestions(from, to))

@@ -19,6 +19,9 @@ const admin: TranslationStrings = {
   'admin.notifications.testNtfyFailed': 'Test ntfy misslyckades',
   'admin.notifications.emailPanel.title': 'E-post (SMTP)',
   'admin.notifications.webhookPanel.title': 'Webhook',
+  'admin.notifications.webPushPanel.title': 'Web Push',
+  'admin.notifications.webPushPanel.hint':
+    'Låter användare ta emot meddelanden på sina telefoner och datorer via webbläsaren, även när TREK är stängt. Kräver HTTPS; på iPhone och iPad måste TREK läggas till på hemskärmen.',
   'admin.notifications.inappPanel.title': 'I-App',
   'admin.notifications.inappPanel.hint': 'Meddelanden i appen är alltid aktiva och kan inte inaktiveras generellt.',
   'admin.notifications.adminWebhookPanel.title': 'Webhook för administratörer',
@@ -29,15 +32,15 @@ const admin: TranslationStrings = {
   'admin.notifications.adminWebhookPanel.testFailed': 'Test webhook misslyckades',
   'admin.notifications.adminWebhookPanel.alwaysOnHint':
     'Webhook för administratör aktiveras alltid när en URL konfigureras',
-  'admin.notifications.adminNtfyPanel.title': 'Admin Ntfy',
+  'admin.notifications.adminNtfyPanel.title': 'Admin Ntfy', // same-as-en
   'admin.notifications.adminNtfyPanel.hint':
     'Detta ntfy-ämne används uteslutande för administratörsmeddelanden (t.ex. versionsvarningar). Det är separat från ämnena för enskilda användare och aktiveras alltid när det är konfigurerat.',
-  'admin.notifications.adminNtfyPanel.serverLabel': 'Ntfy Server URL',
+  'admin.notifications.adminNtfyPanel.serverLabel': 'Ntfy-server-URL',
   'admin.notifications.adminNtfyPanel.serverHint':
     'Används även som standardserver för ntfy-meddelanden till användare. Lämna fältet tomt för att använda ntfy.sh som standard. Användare kan ändra detta i sina egna inställningar.',
   'admin.notifications.adminNtfyPanel.serverPlaceholder': 'https://ntfy.sh',
   'admin.notifications.adminNtfyPanel.topicLabel': 'Admin Ämne',
-  'admin.notifications.adminNtfyPanel.topicPlaceholder': 'trek-admin-alerts',
+  'admin.notifications.adminNtfyPanel.topicPlaceholder': 'trek-admin-alerts', // same-as-en
   'admin.notifications.adminNtfyPanel.tokenLabel': 'Åtkomsttoken (valfritt)',
   'admin.notifications.adminNtfyPanel.tokenCleared': 'Administratörens åtkomsttoken har raderats',
   'admin.notifications.adminNtfyPanel.saved': 'Admin ntfy inställningar sparade',
@@ -47,6 +50,13 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNtfyPanel.alwaysOnHint': 'Admin ntfy utlöses alltid när ett ämne konfigureras',
   'admin.notifications.adminNotificationsHint':
     'Ställ in vilka kanaler som ska skicka meddelanden som endast är avsedda för administratörer (t.ex. versionsvarningar).',
+  'admin.notificationDefaults.title': 'Standardval för användare',
+  'admin.notificationDefaults.hint':
+    'Så börjar varje användares aviseringar. "Av" kan användaren själv slå på; "Blockerad" stänger av för alla och visas låst i deras inställningar. Gäller alla som inte själva ändrat rutan.',
+  'admin.notificationDefaults.on': 'På',
+  'admin.notificationDefaults.off': 'Av',
+  'admin.notificationDefaults.blocked': 'Blockerad',
+  'admin.notificationDefaults.cycle': 'Klicka för: {next}',
   'admin.notifications.tripReminders.title': 'Påminnelser inför resan',
   'admin.notifications.tripReminders.hint':
     'Skicka en påminnelse innan resan börjar (kräver att påminnelsedagar har angetts för resan).',
@@ -58,7 +68,7 @@ const admin: TranslationStrings = {
   'admin.webhook.hint': 'Låt användarna ställa in sina egna webhook-URL:er för aviseringar (Discord, Slack m.fl.).',
   'admin.smtp.testSuccess': 'Test e-postmeddelandet har skickats',
   'admin.smtp.testFailed': 'Test e-postmeddelandet misslyckades',
-  'admin.title': 'Administration',
+  'admin.title': 'Administration', // same-as-en
   'admin.subtitle': 'Användarhantering och systeminställningar',
   'admin.tabs.users': 'Användare',
   'admin.tabs.categories': 'Kategorier',
@@ -66,21 +76,26 @@ const admin: TranslationStrings = {
   'admin.tabs.notifications': 'Meddelanden',
   'admin.tabs.audit': 'Revision',
   'admin.stats.users': 'Användare',
+  'admin.stats.users.one': 'Användare',
   'admin.stats.trips': 'Resor',
+  'admin.stats.trips.one': 'Resa',
   'admin.stats.places': 'Platser',
+  'admin.stats.places.one': 'Plats',
   'admin.stats.photos': 'Foton',
   'admin.stats.files': 'Filer',
+  'admin.stats.files.one': 'Fil',
   'admin.table.user': 'Användare',
   'admin.table.email': 'E-post',
   'admin.table.role': 'Roll',
   'admin.table.created': 'Skapad',
-  'admin.table.lastLogin': 'Senast inloggad',
+  'admin.table.lastActive': 'Senast aktiv',
   'admin.table.actions': 'Åtgärder',
   'admin.you': '(Du)',
   'admin.editUser': 'Redigera anvädnare',
   'admin.newPassword': 'Nytt lösenord',
   'admin.newPasswordHint': 'Lämna fältet tomt för att behålla det nuvarande lösenordet',
-  'admin.deleteUser': 'Ta bort användare "{name}"? Alla resor kommer att raderas permanent.',
+  'admin.deleteUser':
+    'Ta bort användaren "{name}"? Kontot och alla resor och journaler som användaren äger tas bort permanent, även resor som delas med andra medlemmar, som förlorar åtkomsten. Resor som ägs av andra finns kvar.',
   'admin.deleteUserTitle': 'Ta bort användare',
   'admin.newPasswordPlaceholder': 'Ange nytt lösenord…',
   'admin.toast.loadError': 'Det gick inte att ladda administratörsdata',
@@ -130,43 +145,31 @@ const admin: TranslationStrings = {
   'admin.requireMfaHint':
     'Användare som inte har tvåfaktorsautentisering måste slutföra inställningarna under inställningar innan de använder appen.',
   'admin.apiKeys': 'API Nycklar',
-  'admin.apiKeysHint': 'Var platsdata kommer ifrån. TREK-indexet behöver ingen nyckel; de två leverantörerna nedan är valfria.',
+  'admin.apiKeysHint':
+    'Var platsdata kommer ifrån. TREK-indexet behöver ingen nyckel; de två leverantörerna nedan är valfria.',
   'admin.trekApi.badgeDefault': 'Rekommenderad standardkälla',
   'admin.googleCaveat.badge': 'Avrådes',
   'admin.googleCaveat.body':
     'TREK är öppen källkod och vi är inte neutrala här. I den här skalan finns omdömen och foton på vanliga verksamheter bara hos Google, och det är ett monopol. Fältet finns i brist på alternativ, inte för att vi rekommenderar det. Varje uppslagning går då till Google.',
   'admin.trekApi.tagline':
     'TREK:s eget platsregister. Sök utan Google-nyckel, utan kvot och utan att någon räknar dina sökningar.',
-  'admin.trekApi.factPlaces':
-    '73,6 miljoner platser i världen',
-  'admin.trekApi.factNoKey':
-    'Ingen nyckel, ingen kvot',
-  'admin.trekApi.factOffline':
-    'Landpaket fungerar offline',
-  'admin.trekApi.factPrivacy':
-    'Sökningar loggas aldrig',
-  'admin.trekApi.more':
-    'Vad som ingår',
-  'admin.trekApi.fieldPhone':
-    'Telefon',
-  'admin.trekApi.fieldStableId':
-    'Stabilt id',
+  'admin.trekApi.factPlaces': '73,6 miljoner platser i världen',
+  'admin.trekApi.factNoKey': 'Ingen nyckel, ingen kvot',
+  'admin.trekApi.factOffline': 'Landpaket fungerar offline',
+  'admin.trekApi.factPrivacy': 'Sökningar loggas aldrig',
+  'admin.trekApi.more': 'Vad som ingår',
+  'admin.trekApi.fieldPhone': 'Telefon',
+  'admin.trekApi.fieldStableId': 'Stabilt id',
   'admin.trekApi.includedNote':
     'Beskrivningar kommer från platsens egen webbplats, öppettider från OpenStreetMap där de är ifyllda.',
-  'admin.trekApi.notRatings':
-    'Omdömen',
-  'admin.trekApi.notPhotos':
-    'Foton på vanliga verksamheter',
+  'admin.trekApi.notRatings': 'Omdömen',
+  'admin.trekApi.notPhotos': 'Foton på vanliga verksamheter',
   'admin.trekApi.notIncludedNote':
     'Ingen öppen källa har någotdera, till något pris. En Google-nyckel förblir enda vägen till de två.',
-  'admin.trekApi.sourcesLabel':
-    'Källor',
-  'admin.trekApi.sourcesNote':
-    'Varje fält i ett svar anger vilken av dem det kommer från.',
-  'admin.trekApi.included':
-    'Ingår',
-  'admin.trekApi.notIncluded':
-    'Ingår inte',
+  'admin.trekApi.sourcesLabel': 'Källor',
+  'admin.trekApi.sourcesNote': 'Varje fält i ett svar anger vilken av dem det kommer från.',
+  'admin.trekApi.included': 'Ingår',
+  'admin.trekApi.notIncluded': 'Ingår inte',
   'admin.mapsKey': 'Google Maps API Nyckel',
   'admin.mapsKeyHint': 'Krävs för att söka efter platser. Hämta på console.cloud.google.com',
   'admin.mapsKeyHintLong':
@@ -179,17 +182,18 @@ const admin: TranslationStrings = {
   'admin.amapKey': 'Amap (高德地图) API-nyckel',
   'admin.amapKeyHint':
     'För platssökning i Fastlandskina, där Google inte går att nå och OpenStreetMap har tunn täckning. Kräver en "Web 服务"-nyckel (webbtjänst), inte en JS API-nyckel. Skaffa en på console.amap.com.',
+  'admin.keyFromEnv': 'Satt via {name}',
   'admin.placesProvider.title': 'Leverantör för platssökning',
   'admin.placesProvider.subtitle':
     'TREK:s egen indexering och OpenStreetMap svarar på varje sökning. Här väljs vem som frågas därutöver när de inte hittar något: Automatiskt föredrar Google om en nyckel finns, sedan Amap.',
   'admin.placesProvider.auto': 'Automatisk',
   'admin.placesProvider.google': 'Google Places',
-  'admin.placesProvider.amap': 'Amap (高德地图)',
+  'admin.placesProvider.amap': 'Amap (高德地图)', // same-as-en
   'admin.placesProvider.openstreetmap': 'OpenStreetMap',
   'admin.placesProvider.missingKey':
     'Den valda leverantören saknar API-nyckel, så platssökningen besvaras enbart av TREK:s index och OpenStreetMap.',
   'admin.placesProvider.saved': 'Leverantör för platssökning sparad',
-  'admin.validateKey': 'Test',
+  'admin.validateKey': 'Testa',
   'admin.keyValid': 'Ansluten',
   'admin.keyInvalid': 'Felaktig',
   'admin.keySaved': 'API nycklar sparade',
@@ -222,17 +226,32 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.subtitle':
     'Visar bilder och en beskrivning när du lägger till en plats. Wikipedia och OpenStreetMap används alltid; Google tillkommer när Platsfoton eller Platsdetaljer är på.',
   'admin.placesGoogleOnly.title': 'Sök bara med Google',
-  'admin.placesGoogleOnly.subtitle': 'Varje sökning och varje förslag går till Google Places. Av svarar TREK:s eget index och OpenStreetMap först, och Google tillfrågas bara när de inte hittar något.',
-  'admin.placesGoogleOnly.missingKey': 'Kräver en Google Maps API-nyckel. Utan nyckel söker TREK via sitt eget index och OpenStreetMap, oavsett hur den här brytaren står.',
-  'admin.placesGoogleOnly.otherProvider': 'Kräver Google som platsleverantör. Med Amap eller OpenStreetMap valt går ingen sökning till Google, oavsett hur den här väljaren står.',
+  'admin.placesGoogleOnly.subtitle':
+    'Varje sökning och varje förslag går till Google Places. Av svarar TREK:s eget index och OpenStreetMap först, och Google tillfrågas bara när de inte hittar något.',
+  'admin.placesGoogleOnly.missingKey':
+    'Kräver en Google Maps API-nyckel. Utan nyckel söker TREK via sitt eget index och OpenStreetMap, oavsett hur den här brytaren står.',
+  'admin.placesGoogleOnly.otherProvider':
+    'Kräver Google som platsleverantör. Med Amap eller OpenStreetMap valt går ingen sökning till Google, oavsett hur den här väljaren står.',
+  'admin.googleQuota.title': 'Daglig gräns för Google-anrop',
+  'admin.googleQuota.subtitle':
+    'När gränsen nås slutar TREK anropa Google till nästa dag (UTC) och söker med OpenStreetMap i stället. Tomt betyder ingen gräns.',
+  'admin.googleQuota.placeholder': 'Ingen gräns',
+  'admin.googleQuota.usedToday': 'Idag: {used}',
+  'admin.googleQuota.usedOfLimit': 'Idag: {used} av {limit}',
+  'admin.googleQuota.reached': 'Gränsen nådd ({used}), Google pausad till i morgon',
+  'admin.googleQuota.saved': 'Daglig gräns sparad',
   'admin.transitProvider.title': 'Kollektivtrafikleverantör',
   'admin.transitProvider.subtitle': 'Vilken tjänst som besvarar sökningar i kollektivtrafiken.',
   'admin.transitProvider.transitous': 'Transitous (gratis)',
   'admin.transitProvider.google': 'Google',
-  'admin.transitProvider.transitousHint': 'GTFS-flöden från communityn. Gratis och utan nyckel, med bäst täckning i Europa.',
-  'admin.transitProvider.googleHint': 'Använder Google-nyckeln ovan, för regioner som Transitous saknar data för. Debiteras per sökning – så länge ingen nyckel är angiven används Transitous.',
-  'admin.transitProvider.noKeyWarning': 'Google är valt, men ingen Google-nyckel är konfigurerad – kollektivtrafiksökningen använder fortfarande Transitous. Lägg till en nyckel under API-nycklar ovan.',
-  'admin.transitProvider.personalKeyWarning': 'Bara din egen Google-nyckel är angiven, så andra medlemmars sökningar faller fortfarande tillbaka på Transitous. Spara nyckeln ovan som administratör för att den ska gälla hela instansen.',
+  'admin.transitProvider.transitousHint':
+    'GTFS-flöden från communityn. Gratis och utan nyckel, med bäst täckning i Europa.',
+  'admin.transitProvider.googleHint':
+    'Använder Google-nyckeln ovan, för regioner som Transitous saknar data för. Debiteras per sökning; så länge ingen nyckel är angiven används Transitous.',
+  'admin.transitProvider.noKeyWarning':
+    'Google är valt, men ingen Google-nyckel är konfigurerad; kollektivtrafiksökningen använder fortfarande Transitous. Lägg till en nyckel under API-nycklar ovan.',
+  'admin.transitProvider.personalKeyWarning':
+    'Bara din egen Google-nyckel är angiven, så andra medlemmars sökningar faller fortfarande tillbaka på Transitous. Spara nyckeln ovan som administratör för att den ska gälla hela instansen.',
   'admin.placeShadow.title': 'Logg över platssökningar',
   'admin.placeShadow.subtitle':
     'Registrera vilket sökresultat som valdes, så att ett annat platsindex senare kan mätas mot verkliga sökningar. Ingenting lämnar den här instansen och en administratör kan när som helst exportera eller radera loggen.',
@@ -277,7 +296,9 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.namePlaceholder': 'Mallnamn (t.ex. Strandsemester)',
   'admin.packingTemplates.empty': 'Inga mallar har skapats ännu',
   'admin.packingTemplates.items': 'föremål',
+  'admin.packingTemplates.items.one': 'föremål',
   'admin.packingTemplates.categories': 'kategorier',
+  'admin.packingTemplates.categories.one': 'kategori',
   'admin.packingTemplates.itemName': 'Föremålsnamn',
   'admin.packingTemplates.itemCategory': 'Kategori',
   'admin.packingTemplates.categoryName': 'Kategorinamn (t.ex. Kläder)',
@@ -291,7 +312,7 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.deleteItemError': 'Det gick inte att ta bort objektet',
   'admin.packingTemplates.saveError': 'Det gick inte att spara',
   'admin.tabs.addons': 'Tillägg',
-  'admin.tabs.plugins': 'Plugins',
+  'admin.tabs.plugins': 'Plugin',
   'admin.tabs.storage': 'Lagring',
   'admin.plugins.rescan': 'Skanna om',
   'admin.plugins.rescanned': 'Plugin-mappen har skannats om',
@@ -327,6 +348,7 @@ const admin: TranslationStrings = {
   'admin.plugins.allowedHosts.restartNote': 'Att spara startar om pluginet så att den nya listan används.',
   'admin.plugins.allowedHosts.add': 'Lägg till tillåten värd',
   'admin.plugins.allowedHosts.count': '{n} tillåtna värdar',
+  'admin.plugins.allowedHosts.count.one': '{n} tillåten värd',
   'admin.plugins.operatorEgressPill': '+ värdar du lägger till',
   'admin.plugins.operatorEgressHint':
     'Detta plugin pratar med en tjänst som bara du kan namnge (en självhostad server). Lägg efter installation till värdarna under ⋯ → Tillåtna värdar. Inga andra nås.',
@@ -336,9 +358,9 @@ const admin: TranslationStrings = {
   'admin.plugins.uninstallBody':
     'Detta stoppar pluginet, tar bort dess kod och raderar alla dess data. Detta kan inte ångras.',
   'admin.plugins.status.starting': 'Startar…',
-  'admin.plugins.type.widget': 'Widget',
+  'admin.plugins.type.widget': 'Widget', // same-as-en
   'admin.plugins.type.page': 'Sida',
-  'admin.plugins.type.integration': 'Integration',
+  'admin.plugins.type.integration': 'Integration', // same-as-en
   'admin.plugins.type.trip-page': 'Ressida',
   'admin.plugins.reviewed': 'Granskad',
   'admin.plugins.unreviewed': 'Ej granskad',
@@ -346,8 +368,8 @@ const admin: TranslationStrings = {
   'admin.plugins.updateTo': 'Uppdatera → v{version}',
   'admin.plugins.enabledToggle': 'Aktivera plugin',
   'plugins.notFound': 'Pluginet hittades inte',
-  'plugins.frameLoadFailed': 'This plugin could not be loaded.',
-  'admin.plugins.title': 'Plugins',
+  'plugins.frameLoadFailed': 'Pluginet kunde inte laddas.',
+  'admin.plugins.title': 'Plugin',
   'admin.plugins.subtitle': 'Installera och hantera tredjepartsplugins på din instans.',
   'admin.plugins.disabledTitle': 'Plugins är inaktiverade',
   'admin.plugins.disabledBody':
@@ -446,6 +468,8 @@ const admin: TranslationStrings = {
     'Bidra med extra detaljer (recensioner, betyg, länkar) till en plats',
   'admin.plugins.perm.hook:search-provider':
     'Besvara platssökningar från ett eget index, vid sidan av TREK:s egna resultat',
+  'admin.plugins.perm.hook:poi-category-provider':
+    'Lägga till egna platskategorier i ”Utforska platser på kartan”; väljer du en får tillägget det kartområde du tittar på',
   'admin.plugins.perm.hook:trip-warning-provider': 'Visa valideringsvarningar på en resa (visas i planeraren)',
   'admin.plugins.perm.hook:table-contributor':
     'Lägga till kolumner och åtgärder i rese­vyer (bokningar, platser, dagar)',
@@ -459,7 +483,9 @@ const admin: TranslationStrings = {
     'Färgkoda dagar i dagsplanen (till exempel vilken etapp av resan en dag tillhör)',
   'admin.plugins.cap.mcpTools': 'Publicerar AI-verktyg',
   'admin.plugins.mcpToolsTitle': 'Publicerade AI-verktyg',
-  'admin.plugins.mcpToolsHint': 'En assistent kan köra dem åt en användare. Varje verktyg agerar med de rättigheter som getts ovan.',
+  'admin.plugins.mcpToolsHint':
+    'En assistent kan köra dem åt en användare. Varje verktyg agerar med de rättigheter som getts ovan.',
+  'admin.plugins.poiCategoriesTitle': 'Kartkategorier som tillägget lägger till',
   'admin.plugins.perm.mcp:tools':
     'Publicera verktyg som en AI-assistent kan köra åt dig (det agerar med de rättigheter du ger tillägget här, inte med assistentens egna)',
   'admin.plugins.perm.geolocation:read':
@@ -544,7 +570,7 @@ const admin: TranslationStrings = {
   'admin.plugins.tabDiscover': 'Upptäck',
   'admin.plugins.searchPlaceholder': 'Sök plugins…',
   'admin.plugins.filterType': 'Typ',
-  'admin.plugins.filterStatus': 'Status',
+  'admin.plugins.filterStatus': 'Status', // same-as-en
   'admin.plugins.sortBy': 'Sortera',
   'admin.plugins.allTypes': 'Alla typer',
   'admin.plugins.allStatuses': 'Alla',
@@ -555,6 +581,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sortUpdates': 'Uppdateringar först',
   'admin.plugins.sortDownloads': 'Mest nedladdade',
   'admin.plugins.updatesAvailable': '{count} uppdateringar tillgängliga för dina plugins.',
+  'admin.plugins.updatesAvailable.one': '{count} uppdatering tillgänglig för dina plugins.',
   'admin.plugins.newerNeedsTrek': 'v{version} tillgänglig — kräver TREK {range}',
   'admin.plugins.versionsTitle': 'Versioner',
   'admin.plugins.versionPickerTitle': 'Byt version — {name}',
@@ -563,7 +590,8 @@ const admin: TranslationStrings = {
   'admin.plugins.changeVersion': 'Byt version…',
   'admin.plugins.noVersions': 'Inga publicerade versioner hittades i registret.',
   'admin.plugins.downgradeTitle': 'Rulla tillbaka detta tillägg?',
-  'admin.plugins.downgradeBody': 'Byte från v{from} till v{to}: data som skrivits av den nyare versionen finns kvar, och den äldre versionen kanske inte förstår dem.',
+  'admin.plugins.downgradeBody':
+    'Byte från v{from} till v{to}: data som skrivits av den nyare versionen finns kvar, och den äldre versionen kanske inte förstår dem.',
   'admin.plugins.downgradeConfirm': 'Rulla tillbaka',
   'admin.plugins.updatesHeld': 'Uppdateringar pausade vid v{version}',
   'admin.plugins.resumeUpdates': 'Återuppta uppdateringar',
@@ -603,6 +631,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Tillhandahåller kalenderhändelser',
   'admin.plugins.cap.placeDetails': 'Berikar platser',
   'admin.plugins.cap.search': 'Besvarar sökningar',
+  'admin.plugins.cap.poiCategories': 'Lägger till kartkategorier',
   'admin.plugins.cap.warnings': 'Flaggar problem',
   'admin.plugins.cap.mapLayers': 'Ritar på kartan',
   'admin.plugins.cap.routing': 'Erbjuder ruttplanering',
@@ -613,7 +642,9 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.requiresAddon': 'Kräver {addon}',
   'admin.plugins.cap.dependsOn': 'Kräver {id} {version}',
   'admin.plugins.dep.addonDisabledToast': 'Aktivera de nödvändiga tilläggen först: {addons}',
+  'admin.plugins.dep.addonDisabledToast.one': 'Aktivera det nödvändiga tillägget först: {addons}',
   'admin.plugins.dep.autoEnabled': 'Aktiverade nödvändiga plugin först: {plugins}',
+  'admin.plugins.dep.autoEnabled.one': 'Aktiverade nödvändigt plugin först: {plugins}',
   'admin.plugins.dep.downloaded': 'Laddade ner {id}',
   'admin.plugins.dep.resolveTitle': 'Saknade beroenden',
   'admin.plugins.dep.resolveBody': '”{name}” behöver dessa plugin installerade innan det kan aktiveras.',
@@ -635,15 +666,14 @@ const admin: TranslationStrings = {
     '”{name}” anger stöd för TREK {range}, och den här servern kör {host}. TREK släpper igenom det bara för att TREK_PLUGINS_IGNORE_TREK_RANGE är satt. Upphovspersonen har inte uppdaterat pluginets versionsintervall för den här TREK-versionen, så det finns ingen garanti att det fungerar — och i sällsynta fall kan ett plugin som inte passar skada TREK-data. Fortsätt bara om du accepterar den risken.',
   'admin.plugins.rangeBypass.bodyUnknown':
     '”{name}” anger inte vilka TREK-versioner det stöder; den här servern kör {host}. TREK släpper igenom det bara för att TREK_PLUGINS_IGNORE_TREK_RANGE är satt. Inget tyder på att upphovspersonen har testat det på den här TREK-versionen, så det finns ingen garanti att det fungerar — och i sällsynta fall kan ett plugin som inte passar skada TREK-data. Fortsätt bara om du accepterar den risken.',
-  'admin.plugins.dep.trekBypassed':
-    'Utanför sitt TREK-intervall ({range}) — versionskontroller av',
+  'admin.plugins.dep.trekBypassed': 'Utanför sitt TREK-intervall ({range}) — versionskontroller av',
   'admin.plugins.dep.trekBypassedUnknown': 'Anger inget TREK-intervall — versionskontroller av',
   'admin.plugins.incompatible': 'Inkompatibel',
   'admin.plugins.accessTitle': 'Vad det har åtkomst till',
   'admin.plugins.connectsTitle': 'Ansluter till',
   'admin.plugins.detailsTitle': 'Detaljer',
   'admin.plugins.noAccess': 'Behöver ingen särskild åtkomst.',
-  'admin.plugins.metaVersion': 'Version',
+  'admin.plugins.metaVersion': 'Version', // same-as-en
   'admin.plugins.metaSize': 'Storlek',
   'admin.plugins.metaRequires': 'Kräver',
   'admin.plugins.metaReviewed': 'Granskad',
@@ -663,14 +693,17 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.collab.name': 'Samarbete',
   'admin.addons.catalog.collab.description': 'Anteckningar, omröstningar, chatt och förslag för gemensam planering',
   'admin.addons.catalog.roadtrip.name': 'Bilresa',
-  'admin.addons.catalog.roadtrip.description': 'Planera körningar med stopp – körtider och ankomsttider räknas om automatiskt',
+  'admin.addons.catalog.roadtrip.description':
+    'Planera körningar med stopp – körtider och ankomsttider räknas om automatiskt',
+  'admin.addons.catalog.tours.name': 'Turer',
+  'admin.addons.catalog.tours.description': 'Vandringar, cykelturer och andra turer längs en rutt',
   'admin.addons.catalog.memories.name': 'Foton (Immich)',
   'admin.addons.catalog.memories.description': 'Dela resefoton via din Immich-instans',
   'admin.addons.catalog.mcp.name': 'MCP',
   'admin.addons.catalog.mcp.description': 'Modellkontextprotokoll för integration av AI-assistenter',
   'admin.addons.subtitleBefore': 'Aktivera eller inaktivera funktioner för att anpassa din ',
   'admin.addons.subtitleAfter': ' erfarenhet.',
-  'admin.addons.catalog.naver_list_import.name': 'Naver List Import',
+  'admin.addons.catalog.naver_list_import.name': 'Importera Naver-listor',
   'admin.addons.catalog.naver_list_import.description': 'Importera platser från en delad Naver Maps-lista',
   'admin.addons.catalog.airtrail.name': 'AirTrail',
   'admin.addons.catalog.airtrail.description': 'Synkronisera flyg från din AirTrail-instans',
@@ -678,18 +711,48 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.dawarich.description':
     'Läs vistelser och inspelade rutter från en Dawarich-instans som varje läsare ansluter själv',
   'admin.addons.catalog.llm_parsing.name': 'AI-tolkning',
-  'admin.addons.catalog.llm_parsing.description': 'Läser bokningar som den inbyggda tolken inte klarar, med en AI-modell du väljer',
+  'admin.addons.catalog.llm_parsing.description':
+    'Läser bokningar som den inbyggda tolken inte klarar, med en AI-modell du väljer',
+  'admin.addons.catalog.ai_assistant.name': 'AI-assistent',
+  'admin.addons.catalog.ai_assistant.description':
+    'En chatt i varje resa som svarar på frågor och föreslår ändringar som du bekräftar',
+  'admin.addons.llm.vision.auto': 'Automatiskt',
+  'admin.addons.llm.vision.on': 'Ja',
+  'admin.addons.llm.vision.off': 'Nej',
+  'admin.addons.llm.vision.hintLocal': 'Automatiskt frågar Ollama-servern om modellen läser bilder.',
+  'admin.addons.llm.vision.hintCloud': 'Automatiskt betyder nej för en molnmodell. Välj Ja om modellen läser bilder.',
   'admin.addons.enabled': 'Aktiverad',
   'admin.addons.disabled': 'Inaktiverad',
   'admin.addons.type.trip': 'Resa',
-  'admin.addons.type.global': 'Global',
-  'admin.addons.type.integration': 'Integration',
+  'admin.addons.type.global': 'Global', // same-as-en
+  'admin.addons.type.integration': 'Integration', // same-as-en
   'admin.addons.tripHint': 'Finns som en flik i varje resa',
   'admin.addons.globalHint': 'Finns som en fristående sektion i huvudnavigeringen',
   'admin.addons.integrationHint': 'Backend-tjänster och API-integrationer utan egen sida',
   'admin.addons.toast.updated': 'Tillägget har uppdaterats',
   'admin.addons.toast.error': 'Det gick inte att uppdatera tillägget',
   'admin.addons.group.count': '{enabled} av {total} aktiverade',
+  'admin.addons.search': 'Sök tillägg',
+  'admin.addons.filter': 'Visa',
+  'admin.addons.filter.all': 'Alla',
+  'admin.addons.filter.on': 'På',
+  'admin.addons.filter.off': 'Av',
+  'admin.addons.noMatch': 'Inget tillägg matchar sökningen eller filtret.',
+  'admin.addons.subOptions': '{count} alternativ',
+  'admin.addons.subOptions.one': '{count} alternativ',
+  'admin.addons.subOptionsOn': '{count} aktiva',
+  'admin.addons.subOptionsOn.one': '{count} aktiv',
+  'admin.toursWanderer.title': 'wanderer',
+  'admin.toursWanderer.subtitle': 'Användare kan ansluta sin egen wanderer-instans och importera dess leder som turer',
+  'admin.toursHikingMap.title': 'Vandringskarta (OpenHikingMap)',
+  'admin.toursHikingMap.subtitle':
+    'Erbjuder OpenHikingMap som baskarta i turplaneraren. Gratis för icke-kommersiella installationer upp till 500 000 rutor i månaden; en kommersiell eller större installation behöver först ett avtal med openmaps.fr',
+  'admin.toursCycleMap.title': 'Cykelkarta (CyclOSM)',
+  'admin.toursCycleMap.subtitle':
+    'Erbjuder CyclOSM som baskarta för cykelturer i turplaneraren. OpenStreetMap France tillhandahåller den för måttlig användning; en tungt använd eller kommersiell installation stänger av den eller kommer först överens med operatören',
+  'admin.toursSkiRouting.title': 'Pistrouter',
+  'admin.toursSkiRouting.subtitle':
+    'Planerar skidturer längs backar, liftar och spår på pistdatan från Places-servern. Avstängd ritas en skidturs etapper raka',
   'admin.addons.noAddons': 'Inga tillägg tillgängliga',
   'admin.weather.title': 'Väderdata',
   'admin.weather.badge': 'Sedan den 24 mars 2026',
@@ -737,7 +800,8 @@ const admin: TranslationStrings = {
   'admin.audit.empty': 'Inga revisionsposter ännu.',
   'admin.audit.refresh': 'Uppdatera',
   'admin.audit.loadMore': 'Ladda fler',
-  'admin.audit.showing': '{count} laddad · {total} totalt',
+  'admin.audit.showing': '{count} laddade, {total} totalt',
+  'admin.audit.showing.one': '{count} laddad, {total} totalt',
   'admin.audit.col.time': 'Tid',
   'admin.audit.col.user': 'Användare',
   'admin.audit.col.action': 'Åtgärd',
@@ -779,7 +843,7 @@ const admin: TranslationStrings = {
   'admin.update.wikiLink': 'Öppna uppdateringsguiden',
   'admin.update.reloadHint': 'Vänligen uppdatera sidan om några sekunder.',
   'admin.tabs.permissions': 'Behörigheter',
-  'admin.addons.catalog.journey.name': 'Journey',
+  'admin.addons.catalog.journey.name': 'Journey', // same-as-en
   'admin.addons.catalog.journey.description': 'Resespårning och resedagbok med incheckningar, foton och dagliga inlägg',
   'admin.addons.catalog.collections.name': 'Samlingar',
   'admin.addons.catalog.collections.description': 'Samla platser från alla resor i namngivna listor och återanvänd dem',
@@ -790,10 +854,10 @@ const admin: TranslationStrings = {
     'Visa alternativet ”Logga in med en inloggningsnyckel och låt användarna registrera inloggningsnycklar i sina inställningar.',
   'admin.passkey.notConfigured':
     'Det finns ännu ingen WebAuthn-domän för denna distribution. Ange APP_URL eller Relying Party ID nedan – inloggningsnycklar förblir dolda tills dess.',
-  'admin.passkey.rpId': 'Relying Party ID (domain)',
+  'admin.passkey.rpId': 'Relying Party-ID (domän)',
   'admin.passkey.rpIdHint':
     'De rena domän inloggningsnycklarna är kopplade till t.ex. trek.example.org. Lämna fältet tomt om du vill att nyckeln ska härledas från APP_URL. Om du ändrar detta senare blir befintliga nycklar ogiltiga.',
-  'admin.passkey.origins': 'Allowed origins',
+  'admin.passkey.origins': 'Tillåtna ursprung',
   'admin.passkey.originsHint':
     'Fullständiga ursprungsadresser separerade med kommatecken, t.ex. https://trek.example.org. Lämna fältet tomt för att använda APP_URL.',
   'admin.passkey.reset': 'Återställ inloggningsnycklar',
@@ -801,10 +865,11 @@ const admin: TranslationStrings = {
     'Ta bort alla den här användarens inloggningsnycklar (t.ex. om enheten har försvunnit). Användaren kan fortfarande logga in med sitt lösenord.',
   'admin.passkey.resetConfirm': 'Ta bort alla åtkomstnycklar för {name}?',
   'admin.passkey.resetDone': 'Tog bort {count} inloggningsnycklar',
-  'admin.group.users': 'Users',
-  'admin.group.config': 'Configuration',
-  'admin.group.integration': 'Integrations',
-  'admin.group.maintenance': 'Maintenance',
+  'admin.passkey.resetDone.one': 'Tog bort {count} inloggningsnyckel',
+  'admin.group.users': 'Användare',
+  'admin.group.config': 'Konfiguration',
+  'admin.group.integration': 'Integrationer',
+  'admin.group.maintenance': 'Underhåll',
   'admin.invite.tripLabel': 'Lägg till i resa (valfritt)',
   'admin.invite.tripNone': 'Ingen resa',
   'admin.invite.tripHint':
@@ -814,5 +879,129 @@ const admin: TranslationStrings = {
   'admin.mapsKeyHintShort': 'Lägger till foton, betyg och öppettider. Varje sökning går då till Google.',
   'admin.amapKeyHintShort': 'För platssökning i Fastlandskina. Kräver en webbtjänstnyckel, inte en JS API-nyckel.',
   'admin.collab.links.subtitle': 'Delade länkar och bokmärken',
+  'admin.paddleRegions.title': 'Vattendata för paddling',
+  'admin.paddleRegions.hint':
+    'Fördämningar, slussar och paddlingsregler från OpenStreetMap, inlästa per region och på nytt varje månad.',
+  'admin.paddleRegions.search': 'Lägg till en region',
+  'admin.paddleRegions.searchPlaceholder': 'Sök i Geofabrik, till exempel Oberpfalz',
+  'admin.paddleRegions.noHits': 'Ingen region med det namnet',
+  'admin.paddleRegions.added': 'Tillagd',
+  'admin.paddleRegions.empty': 'Ingen region än. Paddelturer visar då att inga hinderdata är kända.',
+  'admin.paddleRegions.status.queued': 'Väntar',
+  'admin.paddleRegions.status.importing': 'Läser in',
+  'admin.paddleRegions.status.ready': 'Klar',
+  'admin.paddleRegions.status.failed': 'Misslyckades',
+  'admin.paddleRegions.phase.download': 'Laddar ner',
+  'admin.paddleRegions.phase.read': 'Läser in',
+  'admin.paddleRegions.objects': '{count} objekt',
+  'admin.paddleRegions.objects.one': '{count} objekt',
+  'admin.paddleRegions.asOf': 'Data från {date}',
+  'admin.paddleRegions.keptData': 'Tidigare inlästa data används fortfarande.',
+  'admin.paddleRegions.refresh': 'Läs in igen',
+  'admin.paddleRegions.remove': 'Ta bort region',
+  'admin.paddleRegions.removeMessage': '{name} och dess hinderdata tas bort. Paddelturer där visar då inga data.',
+  'admin.paddleRegions.retry': 'Försök igen',
+  'admin.paddleRegions.offline': 'Regioner kan bara hanteras med en anslutning.',
+  'admin.paddleRegions.catalogUnavailable': 'Geofabrik går inte att nå just nu. Försök igen senare.',
+  'admin.paddleRegions.attribution':
+    'Data © OpenStreetMap-bidragsgivare (ODbL), regionala utdrag från Geofabrik. Läses in igen den 3:e varje månad.',
+  'admin.paddleRegions.toast.added': 'Region tillagd. TREK läser in den i bakgrunden.',
+  'admin.paddleRegions.toast.removed': 'Region borttagen',
+  'admin.paddleRegions.phase.build': 'Bygger vattennätet',
+  'admin.paddleRegions.network.km': '{km} km vatten',
+  'admin.paddleRegions.network.lakes': '{count} sjöar',
+  'admin.paddleRegions.network.lakes.one': '{count} sjö',
+  'admin.paddleRegions.network.portages': '{count} kartlagda bärningar',
+  'admin.paddleRegions.network.portages.one': '{count} kartlagd bärning',
+  'admin.paddleRegions.network.inferred': '{count} antagna bärningar',
+  'admin.paddleRegions.network.inferred.one': '{count} antagen bärning',
+  'admin.paddleRegions.network.locks': '{count} slussar',
+  'admin.paddleRegions.network.locks.one': '{count} sluss',
+  'admin.paddleRegions.network.gaps': '{count} överbryggade luckor',
+  'admin.paddleRegions.network.gaps.one': '{count} överbryggad lucka',
+  'admin.paddleRegions.network.missing': 'Inget vattennät',
+  'admin.paddleRegions.network.missingHint': 'Läs in regionen igen för att bygga nätet som paddelrutten följer.',
+  'admin.paddleRegions.auto.title': 'Läs in regioner automatiskt',
+  'admin.paddleRegions.auto.mode.auto': 'Automatiskt',
+  'admin.paddleRegions.auto.mode.ask': 'På begäran',
+  'admin.paddleRegions.auto.mode.off': 'Av',
+  'admin.paddleRegions.auto.modeHint.auto':
+    'När någon planerar en paddeltur där det ännu inte finns vattendata läser TREK direkt in den minsta passande regionen, upp till storleksgränsen och bara några om dagen. Större väntar här som förfrågan. Bara regionens namn går till Geofabrik, aldrig platsen.',
+  'admin.paddleRegions.auto.modeHint.ask':
+    'Varje ny region väntar här tills en administratör släpper igenom den. När en administratör planerar läses den in direkt.',
+  'admin.paddleRegions.auto.modeHint.off':
+    'TREK läser inte in något av sig själv och frågar inte efter något. Lägg till regioner här för hand.',
+  'admin.paddleRegions.auto.maxSize': 'Största region som läses in automatiskt',
+  'admin.paddleRegions.auto.maxSizeHint':
+    'Större regioner väntar här som förfrågan. Att läsa in en region tar några minuter och tar minne under tiden.',
+  'admin.paddleRegions.requests.title': 'Efterfrågade',
+  'admin.paddleRegions.requests.reason.ask': 'På begäran',
+  'admin.paddleRegions.requests.reason.too_large': 'För stor',
+  'admin.paddleRegions.requests.reason.limit': 'Dagsgräns',
+  'admin.paddleRegions.requests.declined': 'Avböjd',
+  'admin.paddleRegions.requests.by': 'av {user}',
+  'admin.paddleRegions.requests.approve': 'Läs in',
+  'admin.paddleRegions.requests.decline': 'Avböj',
+  'admin.paddleRegions.origin.auto': 'Automatiskt',
+  'admin.paddleRegions.origin.autoHint':
+    'TREK läste in den här regionen av sig själv för en paddeltur som planeras där.',
+  'admin.mfa.reset': 'Återställ 2FA',
+  'admin.mfa.resetHint':
+    'Stänger av tvåfaktorsautentiseringen för den här användaren, till exempel efter en förlorad telefon. Användaren loggas ut överallt och kan ställa in den igen efter inloggning med lösenordet.',
+  'admin.mfa.resetConfirm': 'Stänga av tvåfaktorsautentiseringen för {name}?',
+  'admin.mfa.resetDone': 'Tvåfaktorsautentiseringen har återställts',
+  'admin.danger.title': 'Farozon',
+  'admin.rotateJwt.title': 'Rotera JWT-hemlighet',
+  'admin.rotateJwt.hint': 'Skapar en ny JWT-signeringshemlighet. Alla aktiva sessioner ogiltigförklaras omedelbart.',
+  'admin.rotateJwt.confirm': 'Rotera och logga ut',
+  'admin.rotateJwt.warning': 'Varning: detta ogiltigförklarar alla sessioner och loggar ut dig.',
+  'admin.rotateJwt.body':
+    'En ny JWT-hemlighet skapas direkt. Alla inloggade användare, du inräknad, loggas ut och måste logga in igen.',
+  'admin.oidcDisplayNamePlaceholder': 't.ex. Google, Authentik, Keycloak',
+  'admin.oidcDiscoveryUrl': 'Discovery-URL (valfritt)',
+  'admin.oidcDiscoveryUrlHint':
+    'Åsidosätter den automatiskt skapade discovery-URL:en. Krävs för leverantörer som Authentik där slutpunkten inte finns på {path}.',
+  'admin.smtp.skipTls': 'Hoppa över kontroll av TLS-certifikat',
+  'admin.smtp.skipTlsHint': 'Aktivera för självsignerade certifikat på lokala mejlservrar',
+  'admin.demoBaseline.title': 'Demobaslinje',
+  'admin.demoBaseline.hint':
+    'Sparar nuvarande tillstånd som återställningspunkt varje timme. Alla administratörens resor och inställningar bevaras.',
+  'admin.demoBaseline.button': 'Spara baslinje',
+  'admin.demoBaseline.saved': 'Baslinjen sparad! Återställningar går tillbaka till det här tillståndet.',
+  'admin.demoBaseline.failed': 'Det gick inte att spara baslinjen',
+  'admin.invite.deleteTitle': 'Ta bort inbjudningslänk',
+  'admin.invite.deleteConfirm':
+    'Ta bort den här inbjudningslänken? Den som inte har använt den ännu kan inte längre registrera sig med den.',
+  'admin.packingTemplates.deleteTemplateTitle': 'Ta bort mall',
+  'admin.packingTemplates.deleteTemplateConfirm': 'Ta bort mallen "{name}" med alla kategorier och objekt?',
+  'admin.packingTemplates.deleteCategoryTitle': 'Ta bort kategori',
+  'admin.packingTemplates.deleteCategoryConfirm': 'Ta bort kategorin "{name}" och alla dess objekt?',
+  'admin.rotateJwt.button': 'Rotera',
+  'admin.addons.ai.name': 'AI', // same-as-en
+  'admin.addons.ai.description':
+    'En anslutning för assistenten och bokningsimporten. Med MCP kan andra AI-appar använda TREK.',
+  'admin.addons.ai.setup': 'Konfigurera AI',
+  'admin.addons.ai.dialogSub': 'Anslutningen som assistenten och AI-tolkningen delar, och vad var och en får göra.',
+  'admin.addons.ai.tab.connection': 'Anslutning',
+  'admin.addons.ai.parsing.readsWith': 'Läser bokningar med',
+  'admin.addons.ai.parsing.own': 'Egen anslutning',
+  'admin.addons.ai.parsing.ownHint': 'Används i stället för den delade anslutningen.',
+  'admin.addons.ai.parsing.useShared': 'Använd den delade anslutningen',
+  'admin.addons.ai.parsing.sharedTag': 'Delad',
+  'admin.addons.ai.parsing.perUser': 'Var och en läser med sin egen anslutning från sina inställningar.',
+  'admin.addons.ai.parsing.none': 'Ingen anslutning ännu. Konfigurera en för alla eller ge AI-tolkningen en egen.',
+  'admin.addons.ai.parsing.setupOwn': 'Använd en annan',
+  'admin.addons.ai.parsing.installed': 'Installerade på servern',
+  'admin.addons.ai.parsing.refresh': 'Uppdatera',
+  'admin.addons.ai.parsing.noModels': 'Inga modeller installerade ännu. Hämta en nedan.',
+  'admin.addons.ai.parsing.pullTitle': 'Hämta en rekommenderad modell',
+  'admin.addons.ai.parsing.pull': 'Hämta',
+  'admin.addons.ai.parsing.pulling': 'Hämtar…',
+  'admin.addons.ai.parsing.use': 'Använd',
+  'admin.addons.ai.parsing.selected': 'Vald',
+  'admin.addons.ai.parsing.pulled': 'Modellen hämtad',
+  'admin.addons.ai.parsing.pullFailed': 'Det gick inte att hämta modellen',
+  'admin.addons.ai.parsing.unreachable': 'Den lokala servern går inte att nå',
+  'admin.addons.ai.parsing.apiKeyOptional': 'Behövs oftast inte',
 };
 export default admin;

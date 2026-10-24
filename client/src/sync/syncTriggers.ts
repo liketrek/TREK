@@ -15,8 +15,9 @@
 import { mutationQueue } from './mutationQueue'
 import { tripSyncManager } from './tripSyncManager'
 import { isEffectivelyOnline, onNetworkModeChange } from './networkMode'
-import { setPreReconnectHook, setRefetchCallback, getActiveTrips } from '../api/websocket'
+import { setPreReconnectHook, setRefetchCallback, getActiveTrips, reconnectNow } from '../api/websocket'
 import { useTripStore } from '../store/tripStore'
+import { reloadTourVisits } from '../store/tourVisitStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { useAuthStore } from '../store/authStore'
 
@@ -41,11 +42,15 @@ function ensureSettingsLoaded() {
   useSettingsStore.getState().loadSettings().catch(console.error)
 }
 
-/** Pull the latest server state for every open trip into the Zustand store. */
+/**
+ * Pull the latest server state for every open trip into the Zustand store,
+ * and the visits of its city walks, now that the queued marks were sent.
+ */
 function rehydrateActiveTrips() {
   const store = useTripStore.getState()
   for (const tripId of getActiveTrips()) {
     store.hydrateActiveTrip(tripId).catch(console.error)
+    reloadTourVisits(tripId)
   }
 }
 
@@ -61,6 +66,7 @@ function onOnline() {
   // routes through onNetworkMode → here with the force flag already cleared).
   if (!isEffectivelyOnline()) return
   ensureSettingsLoaded()
+  reconnectNow()
   mutationQueue.flush()
     .catch(console.error)
     .finally(() => {
@@ -73,6 +79,7 @@ function onOnline() {
 function onVisibility() {
   if (!document.hidden && isEffectivelyOnline()) {
     ensureSettingsLoaded()
+    reconnectNow()
     mutationQueue.flush().catch(console.error)
   }
 }
@@ -105,9 +112,11 @@ export function registerSyncTriggers(): void {
   // limiters when the socket drops and reconnects while the device is online.
   setPreReconnectHook(() => mutationQueue.flush())
   // After the reconnect flush, pull canonical state for the open trip back into
-  // the store (the WS layer awaits the flush hook before invoking this).
+  // the store (the WS layer awaits the flush hook before invoking this), and
+  // the walk visits, so a mark the replay dropped or failed leaves the day plan.
   setRefetchCallback(tripId => {
     useTripStore.getState().hydrateActiveTrip(tripId).catch(console.error)
+    reloadTourVisits(tripId)
   })
 
   window.addEventListener('online', onOnline)

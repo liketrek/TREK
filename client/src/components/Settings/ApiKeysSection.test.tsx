@@ -113,7 +113,7 @@ describe('ApiKeysSection', () => {
     renderSection();
 
     await user.click(await screen.findByRole('button', { name: /Create key/ }));
-    await user.type(screen.getByPlaceholderText('e.g. Dawarich'), 'Dawarich');
+    await user.type(screen.getByPlaceholderText('e.g. Home dashboard'), 'Dawarich');
     await user.click(screen.getByRole('button', { name: /^Create$/ }));
 
     expect(await screen.findByText('trek_thefullsecretvalue')).toBeInTheDocument();
@@ -126,7 +126,7 @@ describe('ApiKeysSection', () => {
     renderSection();
 
     await user.click(await screen.findByRole('button', { name: /Create key/ }));
-    await user.type(screen.getByPlaceholderText('e.g. Dawarich'), 'Dawarich');
+    await user.type(screen.getByPlaceholderText('e.g. Home dashboard'), 'Dawarich');
     await user.click(screen.getByRole('button', { name: /^Create$/ }));
     await screen.findByText('trek_thefullsecretvalue');
     await user.click(screen.getByRole('button', { name: /Done/ }));
@@ -155,14 +155,14 @@ describe('ApiKeysSection', () => {
     const user = userEvent.setup();
     renderSection();
 
-    await user.click(await screen.findByTitle('Delete key'));
+    await user.click(await screen.findByRole('button', { name: 'Delete key' }));
     expect(deleted).toBe(0);
     expect(screen.getByText(/stops working immediately/)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /^Cancel$/ }));
     expect(deleted).toBe(0);
 
-    await user.click(await screen.findByTitle('Delete key'));
+    await user.click(await screen.findByRole('button', { name: 'Delete key' }));
     const [, confirm] = screen.getAllByRole('button', { name: /Delete key/ });
     await user.click(confirm);
     await waitFor(() => expect(deleted).toBe(1));
@@ -175,7 +175,7 @@ describe('ApiKeysSection', () => {
     renderSection();
 
     await user.click(await screen.findByRole('button', { name: /Create key/ }));
-    await user.type(screen.getByPlaceholderText('e.g. Dawarich'), 'Dawarich');
+    await user.type(screen.getByPlaceholderText('e.g. Home dashboard'), 'Dawarich');
     await user.click(screen.getByRole('button', { name: /^Create$/ }));
 
     expect(await screen.findByText(/Could not create the key/)).toBeInTheDocument();
@@ -188,7 +188,7 @@ describe('ApiKeysSection', () => {
     renderSection();
 
     await user.click(await screen.findByRole('button', { name: /Create key/ }));
-    await user.type(screen.getByPlaceholderText('e.g. Dawarich'), 'Dawarich');
+    await user.type(screen.getByPlaceholderText('e.g. Home dashboard'), 'Dawarich');
     await user.click(screen.getByRole('button', { name: /^Create$/ }));
     const secret = await screen.findByText('trek_thefullsecretvalue');
     // The section's endpoint row has a copy button of its own; this one sits beside the key.
@@ -215,7 +215,7 @@ describe('ApiKeysSection', () => {
     expect(screen.getByText(/Pick at least one area/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Create$/ })).toBeDisabled();
 
-    await user.type(screen.getByPlaceholderText('e.g. Dawarich'), 'Dawarich{Enter}');
+    await user.type(screen.getByPlaceholderText('e.g. Home dashboard'), 'Dawarich{Enter}');
 
     // An empty list would be dropped from the request, and the server stores
     // "no list" as a key with full access, so nothing may go out at all.
@@ -242,7 +242,7 @@ describe('ApiKeysSection', () => {
     await user.click(screen.getByRole('checkbox', { name: 'Days' }));
     expect(trips).toHaveAttribute('aria-checked', 'true');
 
-    await user.type(screen.getByPlaceholderText('e.g. Dawarich'), 'Dawarich');
+    await user.type(screen.getByPlaceholderText('e.g. Home dashboard'), 'Dawarich');
     await user.click(screen.getByRole('button', { name: /^Create$/ }));
 
     await waitFor(() => expect(posts).toHaveLength(1));
@@ -264,7 +264,7 @@ describe('ApiKeysSection', () => {
     // Off and back on again: the result is "everything", not a limited key that lists it all.
     await user.click(screen.getByRole('button', { name: 'Deselect all' }));
     await user.click(screen.getByRole('button', { name: 'Select all' }));
-    await user.type(screen.getByPlaceholderText('e.g. Dawarich'), 'Dawarich');
+    await user.type(screen.getByPlaceholderText('e.g. Home dashboard'), 'Dawarich');
     await user.click(screen.getByRole('button', { name: /^Create$/ }));
 
     await waitFor(() => expect(posts).toHaveLength(1));
@@ -346,7 +346,7 @@ describe('ApiKeysSection', () => {
     renderSection();
 
     await user.click(await screen.findByRole('button', { name: /Create key/ }));
-    await user.type(screen.getByPlaceholderText('e.g. Dawarich'), 'Dawarich');
+    await user.type(screen.getByPlaceholderText('e.g. Home dashboard'), 'Dawarich');
     await user.click(screen.getByRole('button', { name: /^Create$/ }));
     await screen.findByText('trek_thefullsecretvalue');
 

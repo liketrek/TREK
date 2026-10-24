@@ -19,6 +19,9 @@ const admin: TranslationStrings = {
   'admin.notifications.testNtfyFailed': 'Test ntfy başarısız',
   'admin.notifications.emailPanel.title': 'E-posta (SMTP)',
   'admin.notifications.webhookPanel.title': 'Web kancası',
+  'admin.notifications.webPushPanel.title': 'Web anlık bildirimleri',
+  'admin.notifications.webPushPanel.hint':
+    "Kullanıcıların, TREK kapalıyken bile tarayıcı üzerinden telefon ve bilgisayarlarında bildirim almasını sağlar. HTTPS gerekir; iPhone ve iPad'de TREK'in Ana Ekran'a eklenmesi gerekir.",
   'admin.notifications.inappPanel.title': 'Uygulama içi',
   'admin.notifications.inappPanel.hint': 'Uygulama içi bildirimler her zaman açıktır ve genel olarak kapatılamaz.',
   'admin.notifications.adminWebhookPanel.title': 'Yönetici Webhook',
@@ -46,6 +49,13 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNtfyPanel.alwaysOnHint': 'Konu yapılandırıldığında yönetici ntfy her zaman tetiklenir',
   'admin.notifications.adminNotificationsHint':
     'Yalnızca yönetici bildirimlerinin hangi kanallardan iletileceğini yapılandırın.',
+  'admin.notificationDefaults.title': 'Kullanıcılar için varsayılanlar',
+  'admin.notificationDefaults.hint':
+    'Her kullanıcının bildirimlerinin başlangıç durumu. "Kapalı"yı kullanıcı kendisi açabilir; "Engelli" herkes için kapatır ve ayarlarında kilitli görünür. Hücreyi kendisi değiştirmemiş herkes için geçerlidir.',
+  'admin.notificationDefaults.on': 'Açık',
+  'admin.notificationDefaults.off': 'Kapalı',
+  'admin.notificationDefaults.blocked': 'Engelli',
+  'admin.notificationDefaults.cycle': 'Değiştirmek için tıklayın: {next}',
   'admin.notifications.tripReminders.title': 'Seyahat Hatırlatıcıları',
   'admin.notifications.tripReminders.hint':
     'Seyahat başlamadan önce hatırlatma gönderir (seyahatte hatırlatma günü ayarlı olmalıdır).',
@@ -65,22 +75,27 @@ const admin: TranslationStrings = {
   'admin.tabs.backup': 'Yedekleme',
   'admin.tabs.notifications': 'Bildirimler',
   'admin.tabs.audit': 'Denetim',
-  'admin.stats.users': 'Kullanıcılar',
-  'admin.stats.trips': 'Seyahatler',
-  'admin.stats.places': 'Yerler',
+  'admin.stats.users': 'Kullanıcı',
+  'admin.stats.users.one': 'Kullanıcı',
+  'admin.stats.trips': 'Seyahat',
+  'admin.stats.trips.one': 'Seyahat',
+  'admin.stats.places': 'Yer',
+  'admin.stats.places.one': 'Yer',
   'admin.stats.photos': 'Fotoğraflar',
-  'admin.stats.files': 'Dosyalar',
+  'admin.stats.files': 'Dosya',
+  'admin.stats.files.one': 'Dosya',
   'admin.table.user': 'Kullanıcı',
   'admin.table.email': 'E-posta',
   'admin.table.role': 'Rol',
   'admin.table.created': 'Oluşturulma',
-  'admin.table.lastLogin': 'Son Giriş',
+  'admin.table.lastActive': 'Son Etkinlik',
   'admin.table.actions': 'İşlemler',
   'admin.you': '(Siz)',
   'admin.editUser': 'Kullanıcıyı Düzenle',
   'admin.newPassword': 'Yeni Şifre',
   'admin.newPasswordHint': 'Mevcut şifreyi korumak için boş bırakın',
-  'admin.deleteUser': '"{name}" kullanıcısı silinsin mi? Tüm geziler kalıcı olarak silinecek.',
+  'admin.deleteUser':
+    '"{name}" kullanıcısı silinsin mi? Hesabı ile sahibi olduğu tüm geziler ve günlükler kalıcı olarak silinir; diğer üyelerle paylaşılan geziler de buna dahildir ve bu üyeler erişimi kaybeder. Başkalarına ait geziler kalır.',
   'admin.deleteUserTitle': 'Kullanıcıyı sil',
   'admin.newPasswordPlaceholder': 'Yeni şifreyi girin…',
   'admin.toast.loadError': 'Yönetici verileri yüklenemedi',
@@ -130,43 +145,31 @@ const admin: TranslationStrings = {
   'admin.requireMfaHint':
     "2FA'sı olmayan kullanıcıların uygulamayı kullanmadan önce Ayarlar'da kurulumu tamamlaması gerekir.",
   'admin.apiKeys': 'API Anahtarları',
-  'admin.apiKeysHint': 'Yer verilerinin nereden geldiği. TREK dizini anahtar istemez; aşağıdaki iki sağlayıcı isteğe bağlıdır.',
+  'admin.apiKeysHint':
+    'Yer verilerinin nereden geldiği. TREK dizini anahtar istemez; aşağıdaki iki sağlayıcı isteğe bağlıdır.',
   'admin.trekApi.badgeDefault': 'Önerilen varsayılan',
   'admin.googleCaveat.badge': 'Önerilmez',
   'admin.googleCaveat.body':
     "TREK açık kaynaklıdır ve burada tarafsız değiliz. Bu ölçekte değerlendirmeler ve sıradan işletme fotoğrafları yalnızca Google'da vardır; tekel budur. Alan, başka seçenek olmadığı için burada; önerdiğimiz için değil. O zaman her sorgu Google'a gider.",
   'admin.trekApi.tagline':
-    'TREK\'in kendi yer dizini. Google anahtarı olmadan, kota olmadan ve kimse aramalarınızı saymadan arama.',
-  'admin.trekApi.factPlaces':
-    'Dünya genelinde 73,6 milyon yer',
-  'admin.trekApi.factNoKey':
-    'Anahtar yok, kota yok',
-  'admin.trekApi.factOffline':
-    'Ülke paketleri çevrimdışı da çalışır',
-  'admin.trekApi.factPrivacy':
-    'Aramalar hiçbir zaman kaydedilmez',
-  'admin.trekApi.more':
-    'İçinde ne var',
-  'admin.trekApi.fieldPhone':
-    'Telefon',
-  'admin.trekApi.fieldStableId':
-    'Kalıcı kimlik',
+    "TREK'in kendi yer dizini. Google anahtarı olmadan, kota olmadan ve kimse aramalarınızı saymadan arama.",
+  'admin.trekApi.factPlaces': 'Dünya genelinde 73,6 milyon yer',
+  'admin.trekApi.factNoKey': 'Anahtar yok, kota yok',
+  'admin.trekApi.factOffline': 'Ülke paketleri çevrimdışı da çalışır',
+  'admin.trekApi.factPrivacy': 'Aramalar hiçbir zaman kaydedilmez',
+  'admin.trekApi.more': 'İçinde ne var',
+  'admin.trekApi.fieldPhone': 'Telefon',
+  'admin.trekApi.fieldStableId': 'Kalıcı kimlik',
   'admin.trekApi.includedNote':
-    'Açıklamalar yerin kendi sitesinden, çalışma saatleri girilmiş olduğu yerlerde OpenStreetMap\'ten gelir.',
-  'admin.trekApi.notRatings':
-    'Değerlendirmeler',
-  'admin.trekApi.notPhotos':
-    'Sıradan işletmelerin fotoğrafları',
+    "Açıklamalar yerin kendi sitesinden, çalışma saatleri girilmiş olduğu yerlerde OpenStreetMap'ten gelir.",
+  'admin.trekApi.notRatings': 'Değerlendirmeler',
+  'admin.trekApi.notPhotos': 'Sıradan işletmelerin fotoğrafları',
   'admin.trekApi.notIncludedNote':
     'İkisini de hiçbir açık kaynak hiçbir fiyata sunmuyor. Bu ikisi için Google anahtarı tek yol olmayı sürdürüyor.',
-  'admin.trekApi.sourcesLabel':
-    'Kaynaklar',
-  'admin.trekApi.sourcesNote':
-    'Yanıttaki her alan, bunlardan hangisinden geldiğini söyler.',
-  'admin.trekApi.included':
-    'Dahil',
-  'admin.trekApi.notIncluded':
-    'Dahil değil',
+  'admin.trekApi.sourcesLabel': 'Kaynaklar',
+  'admin.trekApi.sourcesNote': 'Yanıttaki her alan, bunlardan hangisinden geldiğini söyler.',
+  'admin.trekApi.included': 'Dahil',
+  'admin.trekApi.notIncluded': 'Dahil değil',
   'admin.mapsKey': 'Google Haritalar API Anahtarı',
   'admin.mapsKeyHint': 'Yer arama için gereklidir. console.cloud.google.com adresinden erişin',
   'admin.mapsKeyHintLong':
@@ -179,14 +182,16 @@ const admin: TranslationStrings = {
   'admin.amapKey': 'Amap (高德地图) API Anahtarı',
   'admin.amapKeyHint':
     'Google’ın erişilemediği ve OpenStreetMap verisinin çok az olduğu Çin anakarasında yer arama için. «Web 服务» (web servisi) türünde bir anahtar gerekir, JS API anahtarı değil. console.amap.com adresinden alınır.',
+  'admin.keyFromEnv': '{name} ile ayarlandı',
   'admin.placesProvider.title': 'Yer arama sağlayıcısı',
   'admin.placesProvider.subtitle':
     "TREK'in kendi dizini ve OpenStreetMap her aramayı yanıtlar. Burada, onlar bir şey bulamadığında başka kime sorulacağı seçilir: Otomatik, anahtar varsa Google'ı, sonra Amap'i tercih eder.",
   'admin.placesProvider.auto': 'Otomatik',
   'admin.placesProvider.google': 'Google Places',
-  'admin.placesProvider.amap': 'Amap (高德地图)',
+  'admin.placesProvider.amap': 'Amap (高德地图)', // same-as-en
   'admin.placesProvider.openstreetmap': 'OpenStreetMap',
-  'admin.placesProvider.missingKey': 'Seçilen sağlayıcı için API anahtarı tanımlı değil; yer aramasını yalnızca TREK dizini ve OpenStreetMap yanıtlar.',
+  'admin.placesProvider.missingKey':
+    'Seçilen sağlayıcı için API anahtarı tanımlı değil; yer aramasını yalnızca TREK dizini ve OpenStreetMap yanıtlar.',
   'admin.placesProvider.saved': 'Yer arama sağlayıcısı kaydedildi',
   'admin.validateKey': 'Test et',
   'admin.keyValid': 'Bağlı',
@@ -222,17 +227,31 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.subtitle':
     'Bir yer eklerken görseller ve açıklama gösterir. Wikipedia ve OpenStreetMap her zaman kullanılır; Yer Fotoğrafları veya Yer Ayrıntıları açıkken Google da eklenir.',
   'admin.placesGoogleOnly.title': 'Yalnızca Google ile ara',
-  'admin.placesGoogleOnly.subtitle': 'Her arama ve her öneri Google Places\'e gider. Kapalıyken önce TREK dizini ve OpenStreetMap yanıtlar, Google yalnızca hiçbir şey bulamadıklarında sorulur.',
-  'admin.placesGoogleOnly.missingKey': 'Google Maps API anahtarı gerektirir. Anahtar yoksa arama, bu anahtar ne olursa olsun TREK dizini ve OpenStreetMap üzerinden çalışır.',
-  'admin.placesGoogleOnly.otherProvider': 'Yer sağlayıcısı olarak Google gerekir. Amap veya OpenStreetMap seçiliyken bu anahtar ne derse desin hiçbir arama Google\'a gitmez.',
+  'admin.placesGoogleOnly.subtitle':
+    "Her arama ve her öneri Google Places'e gider. Kapalıyken önce TREK dizini ve OpenStreetMap yanıtlar, Google yalnızca hiçbir şey bulamadıklarında sorulur.",
+  'admin.placesGoogleOnly.missingKey':
+    'Google Maps API anahtarı gerektirir. Anahtar yoksa arama, bu anahtar ne olursa olsun TREK dizini ve OpenStreetMap üzerinden çalışır.',
+  'admin.placesGoogleOnly.otherProvider':
+    "Yer sağlayıcısı olarak Google gerekir. Amap veya OpenStreetMap seçiliyken bu anahtar ne derse desin hiçbir arama Google'a gitmez.",
+  'admin.googleQuota.title': 'Google çağrıları için günlük sınır',
+  'admin.googleQuota.subtitle':
+    "Sınıra ulaşıldığında TREK ertesi güne (UTC) kadar Google'ı çağırmaz ve OpenStreetMap ile arar. Boş bırakılırsa sınır yoktur.",
+  'admin.googleQuota.placeholder': 'Sınırsız',
+  'admin.googleQuota.usedToday': 'Bugün: {used}',
+  'admin.googleQuota.usedOfLimit': 'Bugün: {used} / {limit}',
+  'admin.googleQuota.reached': 'Sınıra ulaşıldı ({used}), Google yarına kadar duraklatıldı',
+  'admin.googleQuota.saved': 'Günlük sınır kaydedildi',
   'admin.transitProvider.title': 'Toplu taşıma sağlayıcısı',
   'admin.transitProvider.subtitle': 'Toplu taşıma aramasını hangi hizmetin yanıtlayacağı.',
   'admin.transitProvider.transitous': 'Transitous (ücretsiz)',
   'admin.transitProvider.google': 'Google',
-  'admin.transitProvider.transitousHint': 'Topluluk GTFS akışları. Ücretsiz ve anahtarsız, Avrupa\'da en iyi kapsama.',
-  'admin.transitProvider.googleHint': 'Transitous\'un verisi olmayan bölgeler için yukarıdaki Google anahtarını kullanır. Arama başına ücretlendirilir — anahtar ayarlanmadığı sürece Transitous kullanılır.',
-  'admin.transitProvider.noKeyWarning': 'Google seçili, ancak yapılandırılmış bir Google anahtarı yok — toplu taşıma araması hâlâ Transitous kullanıyor. Yukarıdaki API Anahtarları bölümünden bir anahtar ekleyin.',
-  'admin.transitProvider.personalKeyWarning': 'Yalnızca kendi Google anahtarınız ayarlı, bu yüzden diğer üyelerin araması hâlâ Transitous\'a düşüyor. Tüm kuruluma uygulamak için anahtarı yukarıda yönetici olarak kaydedin.',
+  'admin.transitProvider.transitousHint': "Topluluk GTFS akışları. Ücretsiz ve anahtarsız, Avrupa'da en iyi kapsama.",
+  'admin.transitProvider.googleHint':
+    "Transitous'un verisi olmayan bölgeler için yukarıdaki Google anahtarını kullanır. Arama başına ücretlendirilir; anahtar ayarlanmadığı sürece Transitous kullanılır.",
+  'admin.transitProvider.noKeyWarning':
+    'Google seçili, ancak yapılandırılmış bir Google anahtarı yok; toplu taşıma araması hâlâ Transitous kullanıyor. Yukarıdaki API Anahtarları bölümünden bir anahtar ekleyin.',
+  'admin.transitProvider.personalKeyWarning':
+    "Yalnızca kendi Google anahtarınız ayarlı, bu yüzden diğer üyelerin araması hâlâ Transitous'a düşüyor. Tüm kuruluma uygulamak için anahtarı yukarıda yönetici olarak kaydedin.",
   'admin.placeShadow.title': 'Yer arama günlüğü',
   'admin.placeShadow.subtitle':
     'Hangi arama sonucunun seçildiğini kaydeder, böylece başka bir yer dizini daha sonra gerçek aramalarla ölçülebilir. Hiçbir şey bu sunucudan çıkmaz ve bir yönetici günlüğü istediği zaman dışa aktarabilir veya silebilir.',
@@ -244,7 +263,7 @@ const admin: TranslationStrings = {
   'admin.collab.notes.subtitle': 'Paylaşılan notlar ve belgeler',
   'admin.collab.polls.title': 'Anketler',
   'admin.collab.polls.subtitle': 'Grup anketleri ve oylama',
-  'admin.collab.whatsnext.title': "What's Next",
+  'admin.collab.whatsnext.title': 'Sırada ne var',
   'admin.collab.whatsnext.subtitle': 'Etkinlik önerileri ve sonraki adımlar',
   'admin.tabs.config': 'Kişiselleştirme',
   'admin.tabs.defaults': 'Kullanıcı Varsayılanları',
@@ -260,8 +279,10 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.create': 'Yeni Şablon',
   'admin.packingTemplates.namePlaceholder': 'Şablon adı (ör. Plaj Tatili)',
   'admin.packingTemplates.empty': 'Henüz şablon oluşturulmadı',
-  'admin.packingTemplates.items': 'öğeler',
-  'admin.packingTemplates.categories': 'kategoriler',
+  'admin.packingTemplates.items': 'öğe',
+  'admin.packingTemplates.items.one': 'öğe',
+  'admin.packingTemplates.categories': 'kategori',
+  'admin.packingTemplates.categories.one': 'kategori',
   'admin.packingTemplates.itemName': 'Öğe adı',
   'admin.packingTemplates.itemCategory': 'Kategori',
   'admin.packingTemplates.categoryName': 'Kategori adı (ör. Giyim)',
@@ -275,7 +296,7 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.deleteItemError': 'Öğe silinemedi',
   'admin.packingTemplates.saveError': 'Kaydedilemedi',
   'admin.tabs.addons': 'Eklentiler',
-  'admin.tabs.plugins': 'Plugins',
+  'admin.tabs.plugins': "Plugin'ler",
   'admin.tabs.storage': 'Depolama',
   'admin.plugins.rescan': 'Yeniden tara',
   'admin.plugins.rescanned': 'Eklenti klasörü yeniden tarandı',
@@ -310,7 +331,8 @@ const admin: TranslationStrings = {
     'Bu eklenti operatör tarafından verilen ana bilgisayarları kullanmaz. İzin verilenler manifestinde sabittir.',
   'admin.plugins.allowedHosts.restartNote': 'Kaydetmek, yeni listeyi alması için eklentiyi yeniden başlatır.',
   'admin.plugins.allowedHosts.add': 'İzin verilen ana bilgisayar ekle',
-  'admin.plugins.allowedHosts.count': '{n} izin verilen ana bilgisayar',
+  'admin.plugins.allowedHosts.count': 'İzin verilen {n} ana bilgisayar',
+  'admin.plugins.allowedHosts.count.one': 'İzin verilen {n} ana bilgisayar',
   'admin.plugins.operatorEgressPill': '+ eklediğiniz ana bilgisayarlar',
   'admin.plugins.operatorEgressHint':
     'Bu eklenti yalnızca sizin adlandırabileceğiniz bir hizmete bağlanır (kendi barındırdığınız sunucu). Kurulumdan sonra ⋯ → İzin verilen ana bilgisayarlar altından ekleyin. Başkasına erişemez.',
@@ -320,7 +342,7 @@ const admin: TranslationStrings = {
   'admin.plugins.uninstallBody':
     'Bu, eklentiyi durdurur, kodunu kaldırır ve tüm verilerini siler. Bu işlem geri alınamaz.',
   'admin.plugins.status.starting': 'Başlatılıyor…',
-  'admin.plugins.type.widget': 'Widget',
+  'admin.plugins.type.widget': 'Widget', // same-as-en
   'admin.plugins.type.page': 'Sayfa',
   'admin.plugins.type.integration': 'Entegrasyon',
   'admin.plugins.type.trip-page': 'Gezi sayfası',
@@ -330,8 +352,8 @@ const admin: TranslationStrings = {
   'admin.plugins.updateTo': 'Güncelle → v{version}',
   'admin.plugins.enabledToggle': 'Eklentiyi etkinleştir',
   'plugins.notFound': 'Eklenti bulunamadı',
-  'plugins.frameLoadFailed': 'This plugin could not be loaded.',
-  'admin.plugins.title': 'Plugins',
+  'plugins.frameLoadFailed': 'Bu plugin yüklenemedi.',
+  'admin.plugins.title': "Plugin'ler",
   'admin.plugins.subtitle': 'Örneğinizde üçüncü taraf eklentileri yükleyin ve yönetin.',
   'admin.plugins.disabledTitle': 'Eklentiler devre dışı',
   'admin.plugins.disabledBody':
@@ -431,6 +453,8 @@ const admin: TranslationStrings = {
     'Bir yere ek ayrıntılar (yorumlar, puanlar, bağlantılar) katkıda bulunur',
   'admin.plugins.perm.hook:search-provider':
     "Yer aramalarını kendi dizininden yanıtlama, TREK'in kendi sonuçlarının yanında",
+  'admin.plugins.perm.hook:poi-category-provider':
+    'Kendi yer kategorilerini “Haritada yerleri keşfet” alanına ekler; birini seçtiğinde eklentiye görüntülediğin harita alanı gönderilir',
   'admin.plugins.perm.hook:trip-warning-provider': 'Bir gezide doğrulama uyarıları oluşturur (planlayıcıda gösterilir)',
   'admin.plugins.perm.hook:table-contributor':
     'Seyahat görünümlerine sütunlar ve eylemler ekler (rezervasyonlar, yerler, günler)',
@@ -445,7 +469,9 @@ const admin: TranslationStrings = {
     'Gün planındaki günleri renklendirir (örneğin bir günün yolculuğun hangi etabına ait olduğu)',
   'admin.plugins.cap.mcpTools': 'Yapay zekâ araçları yayımlar',
   'admin.plugins.mcpToolsTitle': 'Yayımlanan yapay zekâ araçları',
-  'admin.plugins.mcpToolsHint': 'Bir asistan bunları kullanıcı adına çalıştırabilir. Her biri yukarıda verilen yetkilerle çalışır.',
+  'admin.plugins.mcpToolsHint':
+    'Bir asistan bunları kullanıcı adına çalıştırabilir. Her biri yukarıda verilen yetkilerle çalışır.',
+  'admin.plugins.poiCategoriesTitle': 'Eklediği harita kategorileri',
   'admin.plugins.perm.mcp:tools':
     'Bir yapay zekâ asistanının sizin adınıza çalıştırabileceği araçlar yayımlamak (burada eklentiye verdiğiniz yetkilerle çalışır, asistanın kendi yetkileriyle değil)',
   'admin.plugins.perm.geolocation:read':
@@ -540,6 +566,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sortUpdates': 'Önce güncellemeler',
   'admin.plugins.sortDownloads': 'En çok indirilen',
   'admin.plugins.updatesAvailable': 'Eklentileriniz için {count} güncelleme mevcut.',
+  'admin.plugins.updatesAvailable.one': 'Eklentileriniz için {count} güncelleme mevcut.',
   'admin.plugins.newerNeedsTrek': 'v{version} mevcut — TREK {range} gerektirir',
   'admin.plugins.versionsTitle': 'Sürümler',
   'admin.plugins.versionPickerTitle': 'Sürüm değiştir — {name}',
@@ -548,7 +575,8 @@ const admin: TranslationStrings = {
   'admin.plugins.changeVersion': 'Sürüm değiştir…',
   'admin.plugins.noVersions': 'Kayıt defterinde yayımlanmış sürüm bulunamadı.',
   'admin.plugins.downgradeTitle': 'Bu eklenti geri alınsın mı?',
-  'admin.plugins.downgradeBody': 'v{from} sürümünden v{to} sürümüne geçiş: daha yeni sürümün yazdığı veriler yerinde kalır ve eski sürüm bunları anlamayabilir.',
+  'admin.plugins.downgradeBody':
+    'v{from} sürümünden v{to} sürümüne geçiş: daha yeni sürümün yazdığı veriler yerinde kalır ve eski sürüm bunları anlamayabilir.',
   'admin.plugins.downgradeConfirm': 'Geri al',
   'admin.plugins.updatesHeld': 'Güncellemeler v{version} sürümünde duraklatıldı',
   'admin.plugins.resumeUpdates': 'Güncellemeleri sürdür',
@@ -588,6 +616,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Takvim etkinlikleri sağlar',
   'admin.plugins.cap.placeDetails': 'Yerleri zenginleştirir',
   'admin.plugins.cap.search': 'Aramaları yanıtlar',
+  'admin.plugins.cap.poiCategories': 'Haritaya kategori ekler',
   'admin.plugins.cap.warnings': 'Sorunları işaretler',
   'admin.plugins.cap.mapLayers': 'Haritada çizim yapar',
   'admin.plugins.cap.routing': 'Rota sunar',
@@ -598,7 +627,9 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.requiresAddon': '{addon} gerekir',
   'admin.plugins.cap.dependsOn': '{id} {version} gerekir',
   'admin.plugins.dep.addonDisabledToast': 'Önce gerekli eklentileri etkinleştirin: {addons}',
+  'admin.plugins.dep.addonDisabledToast.one': 'Önce gerekli eklentiyi etkinleştirin: {addons}',
   'admin.plugins.dep.autoEnabled': 'Önce gerekli eklentiler etkinleştirildi: {plugins}',
+  'admin.plugins.dep.autoEnabled.one': 'Önce gerekli eklenti etkinleştirildi: {plugins}',
   'admin.plugins.dep.downloaded': '{id} indirildi',
   'admin.plugins.dep.resolveTitle': 'Eksik bağımlılıklar',
   'admin.plugins.dep.resolveBody': '“{name}” etkinleştirilebilmesi için bu eklentilerin kurulu olması gerekir.',
@@ -647,7 +678,10 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.collab.name': 'İş birliği',
   'admin.addons.catalog.collab.description': 'Birlikte planlamak için notlar, anketler, sohbet ve öneriler',
   'admin.addons.catalog.roadtrip.name': 'Yol gezisi',
-  'admin.addons.catalog.roadtrip.description': 'Duraklı sürüşler planlayın; sürüş ve varış saatleri kendiliğinden yeniden hesaplanır',
+  'admin.addons.catalog.roadtrip.description':
+    'Duraklı sürüşler planlayın; sürüş ve varış saatleri kendiliğinden yeniden hesaplanır',
+  'admin.addons.catalog.tours.name': 'Turlar',
+  'admin.addons.catalog.tours.description': 'Bir rotayı izleyen yürüyüşler, bisiklet ve diğer turlar',
   'admin.addons.catalog.memories.name': 'Fotoğraflar (Immich)',
   'admin.addons.catalog.memories.description': 'Immich örneğiniz aracılığıyla gezi fotoğraflarını paylaşın',
   'admin.addons.catalog.mcp.name': 'MCP',
@@ -655,15 +689,26 @@ const admin: TranslationStrings = {
   'admin.addons.subtitleBefore':
     'Kişiselleştirmenizi özelleştirmek için özellikleri etkinleştirin veya devre dışı bırakın.',
   'admin.addons.subtitleAfter': 'deneyim.',
-  'admin.addons.catalog.naver_list_import.name': 'Naver List Import',
-  'admin.addons.catalog.naver_list_import.description': 'Paylaşılan bir Naver Haritalar listesinden yerleri içe aktarın',
+  'admin.addons.catalog.naver_list_import.name': 'Naver liste içe aktarma',
+  'admin.addons.catalog.naver_list_import.description':
+    'Paylaşılan bir Naver Haritalar listesinden yerleri içe aktarın',
   'admin.addons.catalog.airtrail.name': 'AirTrail',
   'admin.addons.catalog.airtrail.description': 'AirTrail örneğinizden uçuşları eşitleyin',
   'admin.addons.catalog.dawarich.name': 'Dawarich',
   'admin.addons.catalog.dawarich.description':
     'Her kullanıcının kendi bağladığı bir Dawarich sunucusundan ziyaretleri ve kaydedilen rotaları okuyun',
   'admin.addons.catalog.llm_parsing.name': 'Yapay zekâ ile ayrıştırma',
-  'admin.addons.catalog.llm_parsing.description': 'Yerleşik ayrıştırıcının okuyamadığı rezervasyonları, seçtiğiniz yapay zekâ modeliyle okur',
+  'admin.addons.catalog.llm_parsing.description':
+    'Yerleşik ayrıştırıcının okuyamadığı rezervasyonları, seçtiğiniz yapay zekâ modeliyle okur',
+  'admin.addons.catalog.ai_assistant.name': 'Yapay zekâ asistanı',
+  'admin.addons.catalog.ai_assistant.description':
+    'Her gezide soruları yanıtlayan ve onayladığın değişiklikleri öneren bir sohbet',
+  'admin.addons.llm.vision.auto': 'Otomatik',
+  'admin.addons.llm.vision.on': 'Evet',
+  'admin.addons.llm.vision.off': 'Hayır',
+  'admin.addons.llm.vision.hintLocal': 'Otomatik, bu modelin görselleri okuyup okumadığını Ollama sunucusuna sorar.',
+  'admin.addons.llm.vision.hintCloud':
+    'Bulut modeli için Otomatik, hayır anlamına gelir. Bu model görselleri okuyorsa Evet’i seç.',
   'admin.addons.enabled': 'Etkinleştirilmiş',
   'admin.addons.disabled': 'Engelli',
   'admin.addons.type.trip': 'Seyahat',
@@ -675,6 +720,28 @@ const admin: TranslationStrings = {
   'admin.addons.toast.updated': 'Eklenti güncellendi',
   'admin.addons.toast.error': 'Eklenti güncellenemedi',
   'admin.addons.group.count': '{total} eklentiden {enabled} tanesi etkin',
+  'admin.addons.search': 'Eklentilerde ara',
+  'admin.addons.filter': 'Göster',
+  'admin.addons.filter.all': 'Tümü',
+  'admin.addons.filter.on': 'Açık',
+  'admin.addons.filter.off': 'Kapalı',
+  'admin.addons.noMatch': 'Aramaya veya filtreye uyan eklenti yok.',
+  'admin.addons.subOptions': '{count} seçenek',
+  'admin.addons.subOptions.one': '{count} seçenek',
+  'admin.addons.subOptionsOn': '{count} açık',
+  'admin.addons.subOptionsOn.one': '{count} açık',
+  'admin.toursWanderer.title': 'wanderer',
+  'admin.toursWanderer.subtitle':
+    'Kullanıcılar kendi wanderer sunucularını bağlayıp parkurlarını tur olarak içe aktarabilir',
+  'admin.toursHikingMap.title': 'Yürüyüş haritası (OpenHikingMap)',
+  'admin.toursHikingMap.subtitle':
+    "OpenHikingMap'i tur planlayıcısında temel harita olarak sunar. Ticari olmayan kurulumlar için ayda 500.000 karoya kadar ücretsizdir; ticari veya daha büyük bir kurulum önce openmaps.fr ile anlaşma gerektirir",
+  'admin.toursCycleMap.title': 'Bisiklet haritası (CyclOSM)',
+  'admin.toursCycleMap.subtitle':
+    "Tur planlayıcısında bisiklet turları için CyclOSM'i temel harita olarak sunar. OpenStreetMap France onu ölçülü kullanım için sağlar; yoğun veya ticari bir kurulum onu kapatır ya da önce işletmeciyle anlaşır",
+  'admin.toursSkiRouting.title': 'Pist rotalayıcı',
+  'admin.toursSkiRouting.subtitle':
+    'Kayak turlarını Places sunucusunun pist verileriyle pistler, liftler ve parkurlar boyunca planlar. Kapalıyken kayak turunun etapları düz çizilir',
   'admin.addons.noAddons': 'Kullanılabilir eklenti yok',
   'admin.weather.title': 'Hava Durumu Verileri',
   'admin.weather.badge': "24 Mart 2026'dan beri",
@@ -721,7 +788,8 @@ const admin: TranslationStrings = {
   'admin.audit.empty': 'Henüz denetim girişi yok.',
   'admin.audit.refresh': 'Yenile',
   'admin.audit.loadMore': 'Daha fazlasını yükle',
-  'admin.audit.showing': '{count} yüklendi · {total} toplam',
+  'admin.audit.showing': '{count} yüklendi, {total} toplam',
+  'admin.audit.showing.one': '{count} yüklendi, {total} toplam',
   'admin.audit.col.time': 'Zaman',
   'admin.audit.col.user': 'Kullanıcı',
   'admin.audit.col.action': 'Aksiyon',
@@ -767,7 +835,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.description':
     'Check-in, fotoğraf ve günlük hikâyelerle seyahat takibi ve seyahat günlüğü',
   'admin.addons.catalog.collections.name': 'Koleksiyonlar',
-  'admin.addons.catalog.collections.description': 'Her geziden yerleri adlandırılmış listelerde toplayın ve yeniden kullanın',
+  'admin.addons.catalog.collections.description':
+    'Her geziden yerleri adlandırılmış listelerde toplayın ve yeniden kullanın',
   'admin.passkey.title': 'Passkey ile oturum açma',
   'admin.passkey.cardHint':
     'Kullanıcıların passkey (WebAuthn) ile oturum açmasına izin verin. Varsayılan olarak kapalı.',
@@ -787,6 +856,7 @@ const admin: TranslationStrings = {
     'Bu kullanıcının tüm passkey’lerini kaldırın (ör. kaybolan bir cihazda). Yine de şifreleriyle oturum açabilirler.',
   'admin.passkey.resetConfirm': '{name} için tüm passkey’ler kaldırılsın mı?',
   'admin.passkey.resetDone': '{count} passkey kaldırıldı',
+  'admin.passkey.resetDone.one': '{count} passkey kaldırıldı',
   'admin.defaultSettings.mapProvider': 'Harita motoru',
   'admin.defaultSettings.mapProviderHint':
     'Bu örnekteki herkes için varsayılan harita. Her kullanıcı bunu yine de kendi ayarlarında değiştirebilir.',
@@ -803,10 +873,10 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.cartoKey': 'Paylaşılan CARTO anahtarı',
   'admin.defaultSettings.cartoKeyHint':
     'Kendi anahtarını girmemiş her kullanıcı için kullanılır, böylece tüm örnek filigransız CARTO döşemeleri alır. Şifrelenmiş olarak saklanır.',
-  'admin.group.users': 'Users',
-  'admin.group.config': 'Configuration',
-  'admin.group.integration': 'Integrations',
-  'admin.group.maintenance': 'Maintenance',
+  'admin.group.users': 'Kullanıcılar',
+  'admin.group.config': 'Yapılandırma',
+  'admin.group.integration': 'Entegrasyonlar',
+  'admin.group.maintenance': 'Bakım',
   'admin.invite.tripLabel': 'Seyahate ekle (isteğe bağlı)',
   'admin.invite.tripNone': 'Seyahat yok',
   'admin.invite.tripHint': 'Yeni kullanıcı bağlantı üzerinden kaydolduğunda otomatik olarak bu seyahate eklenir.',
@@ -815,5 +885,131 @@ const admin: TranslationStrings = {
   'admin.mapsKeyHintShort': "Fotoğraf, puan ve çalışma saatleri ekler. Her sorgu bundan sonra Google'a gider.",
   'admin.amapKeyHintShort': 'Çin anakarasında yer araması için. JS API anahtarı değil, web servis anahtarı gerekir.',
   'admin.collab.links.subtitle': 'Paylaşılan bağlantılar ve yer imleri',
+  'admin.paddleRegions.title': 'Kürek için su verileri',
+  'admin.paddleRegions.hint':
+    'OpenStreetMap’ten savaklar, kilitler ve kürek çekme kuralları; bölge bölge okunur ve her ay yeniden okunur.',
+  'admin.paddleRegions.search': 'Bölge ekle',
+  'admin.paddleRegions.searchPlaceholder': 'Geofabrik’te arayın, örneğin Oberpfalz',
+  'admin.paddleRegions.noHits': 'Bu adla bir bölge yok',
+  'admin.paddleRegions.added': 'Eklendi',
+  'admin.paddleRegions.empty': 'Henüz bölge yok. Kürek turları bu durumda engel verisinin bilinmediğini gösterir.',
+  'admin.paddleRegions.status.queued': 'Bekliyor',
+  'admin.paddleRegions.status.importing': 'Okunuyor',
+  'admin.paddleRegions.status.ready': 'Hazır',
+  'admin.paddleRegions.status.failed': 'Başarısız',
+  'admin.paddleRegions.phase.download': 'İndiriliyor',
+  'admin.paddleRegions.phase.read': 'Okunuyor',
+  'admin.paddleRegions.objects': '{count} nesne',
+  'admin.paddleRegions.objects.one': '{count} nesne',
+  'admin.paddleRegions.asOf': '{date} itibarıyla',
+  'admin.paddleRegions.keptData': 'Daha önce okunan veriler kullanılmaya devam eder.',
+  'admin.paddleRegions.refresh': 'Yeniden oku',
+  'admin.paddleRegions.remove': 'Bölgeyi kaldır',
+  'admin.paddleRegions.removeMessage':
+    '{name} ve ona ait engel verileri kaldırılır. Oradaki kürek turları bundan sonra veri göstermez.',
+  'admin.paddleRegions.retry': 'Yeniden dene',
+  'admin.paddleRegions.offline': 'Bölgeler yalnızca bağlantı varken yönetilebilir.',
+  'admin.paddleRegions.catalogUnavailable': 'Geofabrik’e şu anda ulaşılamıyor. Daha sonra yeniden deneyin.',
+  'admin.paddleRegions.attribution':
+    'Veriler © OpenStreetMap katkıda bulunanlar (ODbL), bölgesel kesitler Geofabrik’ten. Her ayın 3’ünde yeniden okunur.',
+  'admin.paddleRegions.toast.added': 'Bölge eklendi. TREK onu arka planda okuyor.',
+  'admin.paddleRegions.toast.removed': 'Bölge kaldırıldı',
+  'admin.paddleRegions.phase.build': 'Su ağı oluşturuluyor',
+  'admin.paddleRegions.network.km': '{km} km su',
+  'admin.paddleRegions.network.lakes': '{count} göl',
+  'admin.paddleRegions.network.lakes.one': '{count} göl',
+  'admin.paddleRegions.network.portages': '{count} haritalanmış taşıma yeri',
+  'admin.paddleRegions.network.portages.one': '{count} haritalanmış taşıma yeri',
+  'admin.paddleRegions.network.inferred': '{count} varsayılan taşıma',
+  'admin.paddleRegions.network.inferred.one': '{count} varsayılan taşıma',
+  'admin.paddleRegions.network.locks': '{count} kanal kilidi',
+  'admin.paddleRegions.network.locks.one': '{count} kanal kilidi',
+  'admin.paddleRegions.network.gaps': '{count} birleştirilmiş boşluk',
+  'admin.paddleRegions.network.gaps.one': '{count} birleştirilmiş boşluk',
+  'admin.paddleRegions.network.missing': 'Su ağı yok',
+  'admin.paddleRegions.network.missingHint': 'Kürek rotasının izlediği ağı oluşturmak için bölgeyi yeniden oku.',
+  'admin.paddleRegions.auto.title': 'Bölgeleri otomatik yükle',
+  'admin.paddleRegions.auto.mode.auto': 'Otomatik',
+  'admin.paddleRegions.auto.mode.ask': 'İstek üzerine',
+  'admin.paddleRegions.auto.mode.off': 'Kapalı',
+  'admin.paddleRegions.auto.modeHint.auto':
+    "Biri henüz su verisi olmayan bir yerde kürek turu planladığında TREK uygun en küçük bölgeyi hemen yükler, boyut sınırına kadar ve günde yalnızca birkaç tane. Daha büyükler burada istek olarak bekler. Geofabrik'e yalnızca bölgenin adı gider, konum asla gitmez.",
+  'admin.paddleRegions.auto.modeHint.ask':
+    'Her yeni bölge bir yönetici izin verene kadar burada bekler. Yönetici kendisi planlarsa hemen yüklenir.',
+  'admin.paddleRegions.auto.modeHint.off':
+    'TREK kendiliğinden hiçbir şey yüklemez ve hiçbir şey istemez. Bölgeleri buradan elle ekle.',
+  'admin.paddleRegions.auto.maxSize': 'Otomatik yüklenen en büyük bölge',
+  'admin.paddleRegions.auto.maxSizeHint':
+    'Daha büyük bölgeler burada istek olarak bekler. Bir bölgeyi okumak birkaç dakika sürer ve bu sırada bellek kullanır.',
+  'admin.paddleRegions.requests.title': 'İstenenler',
+  'admin.paddleRegions.requests.reason.ask': 'İstek üzerine',
+  'admin.paddleRegions.requests.reason.too_large': 'Çok büyük',
+  'admin.paddleRegions.requests.reason.limit': 'Günlük sınır',
+  'admin.paddleRegions.requests.declined': 'Reddedildi',
+  'admin.paddleRegions.requests.by': '{user} tarafından',
+  'admin.paddleRegions.requests.approve': 'Yükle',
+  'admin.paddleRegions.requests.decline': 'Reddet',
+  'admin.paddleRegions.origin.auto': 'Otomatik',
+  'admin.paddleRegions.origin.autoHint': 'TREK bu bölgeyi orada planlanan bir kürek turu için kendiliğinden yükledi.',
+  'admin.mfa.reset': '2FA’yı sıfırla',
+  'admin.mfa.resetHint':
+    'Bu kullanıcının iki faktörlü kimlik doğrulamasını kapatır, örneğin telefon kaybedildiğinde. Kullanıcının tüm oturumları kapatılır ve parolasıyla giriş yaptıktan sonra yeniden kurabilir.',
+  'admin.mfa.resetConfirm': '{name} için iki faktörlü kimlik doğrulama kapatılsın mı?',
+  'admin.mfa.resetDone': 'İki faktörlü kimlik doğrulama sıfırlandı',
+  'admin.danger.title': 'Tehlikeli Bölge',
+  'admin.rotateJwt.title': 'JWT sırrını yenile',
+  'admin.rotateJwt.hint': 'Yeni bir JWT imzalama sırrı oluşturur. Tüm etkin oturumlar hemen geçersiz kılınır.',
+  'admin.rotateJwt.confirm': 'Yenile ve çıkış yap',
+  'admin.rotateJwt.warning': 'Uyarı: bu işlem tüm oturumları geçersiz kılar ve sizi de oturumdan çıkarır.',
+  'admin.rotateJwt.body':
+    'Yeni bir JWT sırrı hemen oluşturulur. Siz dahil oturum açmış tüm kullanıcıların oturumu kapatılır ve yeniden giriş yapmaları gerekir.',
+  'admin.oidcDisplayNamePlaceholder': 'örn. Google, Authentik, Keycloak',
+  'admin.oidcDiscoveryUrl': 'Discovery URL (isteğe bağlı)',
+  'admin.oidcDiscoveryUrlHint':
+    'Otomatik oluşturulan discovery URL’sinin yerine geçer. Uç noktanın {path} adresinde olmadığı Authentik gibi sağlayıcılar için gereklidir.',
+  'admin.smtp.skipTls': 'TLS sertifika denetimini atla',
+  'admin.smtp.skipTlsHint': 'Yerel posta sunucularındaki kendinden imzalı sertifikalar için etkinleştirin',
+  'admin.demoBaseline.title': 'Demo Başlangıç Durumu',
+  'admin.demoBaseline.hint':
+    'Geçerli durumu saatlik sıfırlama noktası olarak kaydeder. Yöneticinin tüm gezileri ve ayarları korunur.',
+  'admin.demoBaseline.button': 'Başlangıç Durumunu Kaydet',
+  'admin.demoBaseline.saved': 'Başlangıç durumu kaydedildi! Sıfırlamalar bu duruma dönecek.',
+  'admin.demoBaseline.failed': 'Başlangıç durumu kaydedilemedi',
+  'admin.invite.deleteTitle': 'Davet bağlantısını sil',
+  'admin.invite.deleteConfirm': 'Bu davet bağlantısı silinsin mi? Henüz kullanmamış olanlar artık bununla kaydolamaz.',
+  'admin.packingTemplates.deleteTemplateTitle': 'Şablonu sil',
+  'admin.packingTemplates.deleteTemplateConfirm':
+    '"{name}" şablonu tüm kategorileri ve öğeleriyle birlikte silinsin mi?',
+  'admin.packingTemplates.deleteCategoryTitle': 'Kategoriyi sil',
+  'admin.packingTemplates.deleteCategoryConfirm': '"{name}" kategorisi ve tüm öğeleri silinsin mi?',
+  'admin.rotateJwt.button': 'Döndür',
+  'admin.addons.ai.name': 'Yapay zekâ',
+  'admin.addons.ai.description':
+    'Asistan ve rezervasyon içe aktarma için tek bağlantı. MCP, diğer yapay zekâ uygulamalarının TREK kullanmasını sağlar.',
+  'admin.addons.ai.setup': 'Yapay zekâyı ayarla',
+  'admin.addons.ai.dialogSub':
+    'Asistanın ve yapay zekâ ayrıştırmanın paylaştığı bağlantı ve her birinin neler yapabileceği.',
+  'admin.addons.ai.tab.connection': 'Bağlantı',
+  'admin.addons.ai.parsing.readsWith': 'Rezervasyonları şununla okur',
+  'admin.addons.ai.parsing.own': 'Kendi bağlantısı',
+  'admin.addons.ai.parsing.ownHint': 'Paylaşılan bağlantının yerine kullanılır.',
+  'admin.addons.ai.parsing.useShared': 'Paylaşılan bağlantıyı kullan',
+  'admin.addons.ai.parsing.sharedTag': 'Paylaşılan',
+  'admin.addons.ai.parsing.perUser': 'Herkes kendi ayarlarındaki bağlantıyla okur.',
+  'admin.addons.ai.parsing.none':
+    'Henüz bağlantı yok. Herkes için bir tane kurun ya da yapay zekâ ayrıştırmaya kendi bağlantısını verin.',
+  'admin.addons.ai.parsing.setupOwn': 'Başka birini kullan',
+  'admin.addons.ai.parsing.installed': 'Sunucuda kurulu',
+  'admin.addons.ai.parsing.refresh': 'Yenile',
+  'admin.addons.ai.parsing.noModels': 'Henüz kurulu model yok. Aşağıdan birini indirin.',
+  'admin.addons.ai.parsing.pullTitle': 'Önerilen bir modeli indir',
+  'admin.addons.ai.parsing.pull': 'İndir',
+  'admin.addons.ai.parsing.pulling': 'İndiriliyor…',
+  'admin.addons.ai.parsing.use': 'Kullan',
+  'admin.addons.ai.parsing.selected': 'Seçildi',
+  'admin.addons.ai.parsing.pulled': 'Model indirildi',
+  'admin.addons.ai.parsing.pullFailed': 'Model indirilemedi',
+  'admin.addons.ai.parsing.unreachable': 'Yerel sunucuya ulaşılamıyor',
+  'admin.addons.ai.parsing.apiKeyOptional': 'Çoğu zaman gerekmez',
 };
 export default admin;

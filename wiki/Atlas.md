@@ -40,9 +40,15 @@ Visits detected automatically from your trips are shown in addition to any count
 
 At zoom level 5 and above, the map switches to a sub-national region view (states, provinces, etc.). You can mark individual regions as visited or add them to your bucket list. Marking a region also counts the parent country as visited if it was not already.
 
+A region on your bucket list is drawn with the same diagonal hatch as a wished-for country, so a state or province you want to see stands out on the region view too.
+
+### A country's places
+
+Clicking a visited country opens its card, with the flag, the number of trips and, once you have been to any, the number of regions. The **Places** badge (*Show the places in this country*) opens every place counted for that country as a list grouped by trip, with a **Search places** box to narrow it. Clicking a place opens the trip it belongs to, so a place imported into the wrong country can be found and fixed.
+
 ## Bucket list
 
-The bucket list is separate from "visited". Use it to track countries or places you want to visit in the future. Each bucket list item can have a name, coordinates, country code, optional notes, and a target date.
+The bucket list is separate from "visited". Use it to track countries or places you want to visit in the future. Each bucket list item can have a name, coordinates, country code, optional notes, and a target date. An entry can also be a region rather than a whole country.
 
 ## Dawarich
 
@@ -58,6 +64,7 @@ Nothing reaches your Atlas until you confirm it. See [Dawarich](Dawarich) for th
 Your Atlas statistics panel shows:
 
 - **Countries visited** — total number of distinct countries you have actually been to. Countries from upcoming trips are counted separately and shown next to this number.
+- **Regions**: the number of sub-national regions (states, provinces) you have visited.
 - **Trips** — total number of trips across all time.
 - **Places** — total number of individual places logged in trips.
 - **Cities** — total number of distinct cities visited, derived from the addresses of your places. TREK drops the last comma-separated part (the country), then walks back through the remaining parts and takes the first one that is still non-empty once digits, hyphens and postal marks are stripped, lower-cased so spelling variants collapse into a single entry. This is a heuristic over a formatted address string rather than a lookup, so the figure is approximate: a short address such as `Osteria Francescana, Italy` leaves nothing but the place's own name, and an address whose administrative tail ends on a state or prefecture (`…, Shibuya, Tokyo, 150-0002, Japan`) counts that region rather than the city.
@@ -65,6 +72,18 @@ Your Atlas statistics panel shows:
 - **Continent breakdown** — number of countries visited per continent (Europe, Asia, North America, South America, Africa, Oceania). Antarctica joins the row once you have been.
 - **Travel streak** — number of consecutive years in which you have taken at least one trip.
 - **Trips this year** — number of trips in the current calendar year.
+
+## Tour activities
+
+With the Tours addon on, the desktop panel has a third tab, **Tours**, next to **Stats** and **Bucket List**: what you have done on your tours across all your trips. Pick a **period** (all time, this year, the last 12 months or an earlier year) and a **tour type**, and the tab shows the distance with the number of tours at its corner, the ascent and descent, and the types with their distance. **Show tours** opens every tour of the period as a list.
+
+- **When a tour counts.** A tour counts once the day it is on in a trip is over; a tour on several days once the last of them is over. A tour on no day, a tour only on days without a date and a tour whose day is still ahead do not count; the tab says how many of each there are.
+- **Planned or recorded.** Until you link the track you actually took in the tour's detail, a tour counts with the values of your planning, and it says so with a **Planned** badge: they are not measured. A linked actual track replaces those values for that tour, marked **Recorded**; it is never added on top, and the track itself is not counted as a tour of its own.
+- **Only your own part.** A day of a tour counts for you when it names you among its participants, or names nobody, which in the planner means everyone of the trip. A day that names only others counts for them, not for you.
+- **No double counting.** A tour planned on several days counts once. A whole route that the stages of a multi-day tour were planned from does not count beside them while one of those stages counts; a stage still ahead or left out does not hide it. A paddle tour adds no ascent or descent, and a value a tour does not know stays out of the sum, which then reads "at least".
+- **Leave a tour out.** A tour that fell through can be left out in the list with **Leave out**. It stays in the plan, its route and days do not change, it stays in the list dimmed, and **Count again** brings it back. Leaving it out changes only your own numbers.
+
+The tab reads live and needs a connection.
 
 ## Visual effect
 

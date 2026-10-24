@@ -1,17 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { NotFoundException } from '@nestjs/common';
-
-// --- hoisted mock fns so the vi.mock factories can reference them -----------------
-const h = vi.hoisted(() => ({
-  verifyJwtAndLoadUser: vi.fn(),
-  dbPrepare: vi.fn(),
-  exists: vi.fn(),
-  sendToResponse: vi.fn(),
-}));
-
-vi.mock('../../../src/nest/auth/jwt-verify', () => ({ verifyJwtAndLoadUser: h.verifyJwtAndLoadUser }));
-vi.mock('../../../src/db/database', () => ({ db: { prepare: h.dbPrepare } }));
-
+import { Photos } from '../../../src/db/entities/Photos.entity';
+import { ShareTokens } from '../../../src/db/entities/ShareTokens.entity';
 import {
   applyPlatformUploads,
   applyPlatformSpa,
@@ -21,8 +9,27 @@ import {
   PUBLIC_DIR,
 } from '../../../src/nest/platform/platform.routes';
 import { SpaFallbackFilter } from '../../../src/nest/platform/spa-fallback.filter';
-import { StorageNotFoundError, StorageInvalidKeyError } from '../../../src/nest/storage/storage.types';
 import type { StorageService } from '../../../src/nest/storage/storage.service';
+import { StorageNotFoundError, StorageInvalidKeyError } from '../../../src/nest/storage/storage.types';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { createUser, createTrip } from '../../helpers/factories';
+import { deleteRows, insertRow } from '../../helpers/factories/rows';
+import { makeShareToken } from '../../helpers/factories/trips';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { NotFoundException } from '@nestjs/common';
+
+import { describe, it, expect, vi, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
+
+// --- hoisted mock fns so the vi.mock factories can reference them -----------------
+const h = vi.hoisted(() => ({
+  verifyJwtAndLoadUser: vi.fn(),
+  dbPrepare: vi.fn(),
+  exists: vi.fn(),
+  sendToResponse: vi.fn(),
+}));
+
+vi.mock('../../../src/nest/auth-core/jwt-verify', () => ({ verifyJwtAndLoadUser: h.verifyJwtAndLoadUser }));
+vi.mock('../../../src/db/database', () => ({ db: { prepare: h.dbPrepare } }));
 
 // The serving swap addresses files as (category, name) on the injected facade;
 // these unit tests only assert routing/auth/error mapping, so a two-method stub
@@ -46,13 +53,15 @@ type Handler = (...args: unknown[]) => unknown;
  */
 function fakeApp() {
   const calls: Array<{ method: string; path?: string; handlers: Handler[] }> = [];
-  const record = (method: string) => (...args: unknown[]) => {
-    if (typeof args[0] === 'string' || args[0] instanceof RegExp) {
-      calls.push({ method, path: String(args[0]), handlers: args.slice(1) as Handler[] });
-    } else {
-      calls.push({ method, handlers: args as Handler[] });
-    }
-  };
+  const record =
+    (method: string) =>
+    (...args: unknown[]) => {
+      if (typeof args[0] === 'string' || args[0] instanceof RegExp) {
+        calls.push({ method, path: String(args[0]), handlers: args.slice(1) as Handler[] });
+      } else {
+        calls.push({ method, handlers: args as Handler[] });
+      }
+    };
   const app = {
     use: record('use'),
     get: record('get'),
@@ -67,15 +76,49 @@ function makeRes() {
     statusCode: 200,
     body: undefined as unknown,
     headers: {} as Record<string, string>,
-    status: vi.fn(function (this: typeof res, c: number) { this.statusCode = c; return this; }),
-    json: vi.fn(function (this: typeof res, b: unknown) { this.body = b; return this; }),
-    send: vi.fn(function (this: typeof res, b: unknown) { this.body = b; return this; }),
-    end: vi.fn(function (this: typeof res) { return this; }),
-    sendFile: vi.fn(function (this: typeof res, p: string) { this.body = `FILE:${p}`; return this; }),
-    setHeader: vi.fn(function (this: typeof res, k: string, v: string) { this.headers[k] = v; return this; }),
+    status: vi.fn(function (this: typeof res, c: number) {
+      this.statusCode = c;
+      return this;
+    }),
+    json: vi.fn(function (this: typeof res, b: unknown) {
+      this.body = b;
+      return this;
+    }),
+    send: vi.fn(function (this: typeof res, b: unknown) {
+      this.body = b;
+      return this;
+    }),
+    end: vi.fn(function (this: typeof res) {
+      return this;
+    }),
+    sendFile: vi.fn(function (this: typeof res, p: string) {
+      this.body = `FILE:${p}`;
+      return this;
+    }),
+    setHeader: vi.fn(function (this: typeof res, k: string, v: string) {
+      this.headers[k] = v;
+      return this;
+    }),
   };
   return res;
 }
+
+// Task 0 (D6): applyPlatformUploads now wraps servePhoto in withRequestContext,
+// so every call site below needs a real `{ em }` to hand it — none of these
+// cases touch the ORM (jwt-verify and db/database are both mocked above), but
+// RequestContext.create needs a genuine EntityManager to open the ALS scope
+// around, not a hand-built stub.
+const uploadsTestDb = createSnapshotTestDb();
+let uploadsOrm: TestOrm;
+
+beforeAll(async () => {
+  uploadsOrm = await createTestOrm(uploadsTestDb);
+});
+
+afterAll(async () => {
+  await uploadsOrm.close();
+  uploadsTestDb.close();
+});
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -84,7 +127,7 @@ beforeEach(() => {
 describe('applyPlatformUploads', () => {
   it('registers the four static mounts + the files block', () => {
     const { app, calls } = fakeApp();
-    applyPlatformUploads(app, storage);
+    applyPlatformUploads(app, storage, uploadsOrm.orm);
     const paths = calls.filter((c) => c.method === 'use').map((c) => c.path);
     expect(paths).toEqual(
       expect.arrayContaining([
@@ -99,7 +142,7 @@ describe('applyPlatformUploads', () => {
 
   it('the /uploads/files block always answers 401', () => {
     const { app, calls } = fakeApp();
-    applyPlatformUploads(app, storage);
+    applyPlatformUploads(app, storage, uploadsOrm.orm);
     const filesBlock = calls.find((c) => c.path === '/uploads/files')!.handlers[0];
     const res = makeRes();
     filesBlock({}, res);
@@ -110,7 +153,7 @@ describe('applyPlatformUploads', () => {
   describe('GET /uploads/photos/:filename', () => {
     function photoHandler() {
       const { app, calls } = fakeApp();
-      applyPlatformUploads(app, storage);
+      applyPlatformUploads(app, storage, uploadsOrm.orm);
       return calls.find((c) => c.method === 'get' && c.path === '/uploads/photos/:filename')!.handlers[0];
     }
     const next = vi.fn();
@@ -161,7 +204,12 @@ describe('applyPlatformUploads', () => {
         res,
         next,
       );
-      expect(h.verifyJwtAndLoadUser).toHaveBeenCalledWith('jwt123');
+      expect(h.verifyJwtAndLoadUser).toHaveBeenCalledWith(
+        'jwt123',
+        expect.objectContaining({ findByIdWithPasswordVersion: expect.any(Function) }),
+        // the session gate's lookup (UserSessionsRepository)
+        expect.objectContaining({ findActive: expect.any(Function), touchLastSeen: expect.any(Function) }),
+      );
       expect(h.sendToResponse).toHaveBeenCalledWith('photos', 'a.jpg', res);
     });
 
@@ -171,7 +219,12 @@ describe('applyPlatformUploads', () => {
       h.verifyJwtAndLoadUser.mockReturnValue({ id: 1 });
       const res = makeRes();
       await photoHandler()({ params: { filename: 'a.jpg' }, headers: {}, query: { token: 'qtok' } }, res, next);
-      expect(h.verifyJwtAndLoadUser).toHaveBeenCalledWith('qtok');
+      expect(h.verifyJwtAndLoadUser).toHaveBeenCalledWith(
+        'qtok',
+        expect.objectContaining({ findByIdWithPasswordVersion: expect.any(Function) }),
+        // the session gate's lookup (UserSessionsRepository)
+        expect.objectContaining({ findActive: expect.any(Function), touchLastSeen: expect.any(Function) }),
+      );
       expect(h.sendToResponse).toHaveBeenCalledWith('photos', 'a.jpg', res);
     });
 
@@ -184,42 +237,134 @@ describe('applyPlatformUploads', () => {
       expect(res.statusCode).toBe(401);
     });
 
+    // R1/R5 (Plan 3h Task 6, R1 (Plan 4 Task 1)): both the share-token lookup
+    // AND the sibling `photos` read now go through the SAME real ORM
+    // (`ShareTokensRepository.findTripIdByToken` / `PhotosRepository
+    // .findTripIdByFilename`, `orm.em.getRepository(...)` inside the SAME
+    // `withRequestContext` wrap `applyPlatformUploads` already uses) — so
+    // every case here seeds REAL rows in `uploadsTestDb` (bound to
+    // `uploadsOrm.orm`) rather than mocking `db.prepare`'s return value; the
+    // `h.dbPrepare` stub is dead for this whole describe block now.
+    async function insertShareToken(tripId: number, userId: number, token: string, expiresAt: string | null = null) {
+      await makeShareToken(uploadsOrm, tripId, userId, { token, expires_at: expiresAt });
+    }
+
+    async function insertPhoto(tripId: number, filename: string) {
+      await insertRow(uploadsOrm, Photos, { trip: tripId, filename, original_name: filename });
+    }
+
     it('401 when a share token does not cover the photo trip', async () => {
+      const { user } = createUser(uploadsTestDb);
+      const photoTrip = createTrip(uploadsTestDb, user.id);
+      const otherTrip = createTrip(uploadsTestDb, user.id);
+      await insertShareToken(otherTrip.id, user.id, 'share-mismatch');
       h.exists.mockResolvedValue(true);
       h.verifyJwtAndLoadUser.mockReturnValue(null);
-      const photoStmt = { get: vi.fn().mockReturnValue({ trip_id: 7 }) };
-      const shareStmt = { get: vi.fn().mockReturnValue({ trip_id: 8 }) };
-      h.dbPrepare.mockImplementationOnce(() => photoStmt).mockImplementationOnce(() => shareStmt);
-      const res = makeRes();
-      await photoHandler()({ params: { filename: 'a.jpg' }, headers: {}, query: { token: 'share1' } }, res, next);
-      expect(res.statusCode).toBe(401);
-    });
-
-    it('401 when there is no matching share token at all', async () => {
-      h.exists.mockResolvedValue(true);
-      h.verifyJwtAndLoadUser.mockReturnValue(null);
-      const photoStmt = { get: vi.fn().mockReturnValue({ trip_id: 7 }) };
-      const shareStmt = { get: vi.fn().mockReturnValue(undefined) };
-      h.dbPrepare.mockImplementationOnce(() => photoStmt).mockImplementationOnce(() => shareStmt);
-      const res = makeRes();
-      await photoHandler()({ params: { filename: 'a.jpg' }, headers: {}, query: { token: 'share1' } }, res, next);
-      expect(res.statusCode).toBe(401);
-    });
-
-    it('serves the file when the share token covers the photo trip', async () => {
-      h.exists.mockResolvedValue(true);
-      h.sendToResponse.mockResolvedValue(undefined);
-      h.verifyJwtAndLoadUser.mockReturnValue(null);
-      const photoStmt = { get: vi.fn().mockReturnValue({ trip_id: 7 }) };
-      const shareStmt = { get: vi.fn().mockReturnValue({ trip_id: 7 }) };
-      h.dbPrepare.mockImplementationOnce(() => photoStmt).mockImplementationOnce(() => shareStmt);
+      await insertPhoto(photoTrip.id, 'photo-mismatch.jpg');
       const res = makeRes();
       await photoHandler()(
-        { params: { filename: 'a.jpg' }, headers: { authorization: 'Bearer share1' }, query: {} },
+        { params: { filename: 'photo-mismatch.jpg' }, headers: {}, query: { token: 'share-mismatch' } },
         res,
         next,
       );
-      expect(h.sendToResponse).toHaveBeenCalledWith('photos', 'a.jpg', res);
+      expect(res.statusCode).toBe(401);
+    });
+
+    it('R5: 401 when there is no matching share token at all (unknown)', async () => {
+      const { user } = createUser(uploadsTestDb);
+      const photoTrip = createTrip(uploadsTestDb, user.id);
+      h.exists.mockResolvedValue(true);
+      h.verifyJwtAndLoadUser.mockReturnValue(null);
+      await insertPhoto(photoTrip.id, 'photo-unknown-token.jpg');
+      const res = makeRes();
+      await photoHandler()(
+        { params: { filename: 'photo-unknown-token.jpg' }, headers: {}, query: { token: 'never-issued' } },
+        res,
+        next,
+      );
+      expect(res.statusCode).toBe(401);
+    });
+
+    it('R5: 401 when the token is revoked (deleted, not merely unknown)', async () => {
+      const { user } = createUser(uploadsTestDb);
+      const photoTrip = createTrip(uploadsTestDb, user.id);
+      await insertShareToken(photoTrip.id, user.id, 'share-revoked');
+      await deleteRows(uploadsOrm, ShareTokens, { token: 'share-revoked' });
+      h.exists.mockResolvedValue(true);
+      h.verifyJwtAndLoadUser.mockReturnValue(null);
+      await insertPhoto(photoTrip.id, 'photo-revoked.jpg');
+      const res = makeRes();
+      await photoHandler()(
+        { params: { filename: 'photo-revoked.jpg' }, headers: {}, query: { token: 'share-revoked' } },
+        res,
+        next,
+      );
+      expect(res.statusCode).toBe(401);
+    });
+
+    it('R5: 401 when the token is expired', async () => {
+      const { user } = createUser(uploadsTestDb);
+      const photoTrip = createTrip(uploadsTestDb, user.id);
+      await insertShareToken(photoTrip.id, user.id, 'share-expired', '2020-01-01 00:00:00');
+      h.exists.mockResolvedValue(true);
+      h.verifyJwtAndLoadUser.mockReturnValue(null);
+      await insertPhoto(photoTrip.id, 'photo-expired.jpg');
+      const res = makeRes();
+      await photoHandler()(
+        { params: { filename: 'photo-expired.jpg' }, headers: {}, query: { token: 'share-expired' } },
+        res,
+        next,
+      );
+      expect(res.statusCode).toBe(401);
+    });
+
+    it('R5: 401 for a wrong-case token — no case-folding is introduced', async () => {
+      const { user } = createUser(uploadsTestDb);
+      const photoTrip = createTrip(uploadsTestDb, user.id);
+      await insertShareToken(photoTrip.id, user.id, 'share-CaseSensitive');
+      h.exists.mockResolvedValue(true);
+      h.verifyJwtAndLoadUser.mockReturnValue(null);
+      await insertPhoto(photoTrip.id, 'photo-case.jpg');
+      const res = makeRes();
+      await photoHandler()(
+        { params: { filename: 'photo-case.jpg' }, headers: {}, query: { token: 'share-casesensitive' } },
+        res,
+        next,
+      );
+      expect(res.statusCode).toBe(401);
+    });
+
+    it('R5: 401 for a token with an embedded NUL byte', async () => {
+      const { user } = createUser(uploadsTestDb);
+      const photoTrip = createTrip(uploadsTestDb, user.id);
+      await insertShareToken(photoTrip.id, user.id, 'share-nul');
+      h.exists.mockResolvedValue(true);
+      h.verifyJwtAndLoadUser.mockReturnValue(null);
+      await insertPhoto(photoTrip.id, 'photo-nul.jpg');
+      const res = makeRes();
+      await photoHandler()(
+        { params: { filename: 'photo-nul.jpg' }, headers: {}, query: { token: 'share-nul\0extra' } },
+        res,
+        next,
+      );
+      expect(res.statusCode).toBe(401);
+    });
+
+    it('serves the file when the share token covers the photo trip (R1 valid-token case)', async () => {
+      const { user } = createUser(uploadsTestDb);
+      const photoTrip = createTrip(uploadsTestDb, user.id);
+      await insertShareToken(photoTrip.id, user.id, 'share-valid');
+      h.exists.mockResolvedValue(true);
+      h.sendToResponse.mockResolvedValue(undefined);
+      h.verifyJwtAndLoadUser.mockReturnValue(null);
+      await insertPhoto(photoTrip.id, 'photo-valid.jpg');
+      const res = makeRes();
+      await photoHandler()(
+        { params: { filename: 'photo-valid.jpg' }, headers: { authorization: 'Bearer share-valid' }, query: {} },
+        res,
+        next,
+      );
+      expect(h.sendToResponse).toHaveBeenCalledWith('photos', 'photo-valid.jpg', res);
     });
 
     it('404 when the object vanishes between the exists check and the send', async () => {
@@ -357,7 +502,9 @@ describe('storageStaticHandler', () => {
 
 describe('applyPlatformStatic', () => {
   const original = process.env.NODE_ENV;
-  afterEach(() => { process.env.NODE_ENV = original; });
+  afterEach(() => {
+    process.env.NODE_ENV = original;
+  });
 
   it('is a no-op outside production', () => {
     process.env.NODE_ENV = 'development';
@@ -391,13 +538,15 @@ describe('applyPlatformStatic', () => {
 
 describe('applyPlatformSpa', () => {
   const original = process.env.NODE_ENV;
-  afterEach(() => { process.env.NODE_ENV = original; });
+  afterEach(() => {
+    process.env.NODE_ENV = original;
+  });
 
   it('only serves statics (no catch-all) outside production', () => {
     process.env.NODE_ENV = 'development';
     const { app, calls } = fakeApp();
     applyPlatformSpa(app);
-    expect(calls.some((c) => c.method === 'get' && c.path === '/.*/' )).toBe(false);
+    expect(calls.some((c) => c.method === 'get' && c.path === '/.*/')).toBe(false);
   });
 
   it('registers the index.html catch-all in production', () => {
@@ -462,7 +611,9 @@ describe('isBuildFilePath', () => {
 
 describe('SpaFallbackFilter', () => {
   const original = process.env.NODE_ENV;
-  afterEach(() => { process.env.NODE_ENV = original; });
+  afterEach(() => {
+    process.env.NODE_ENV = original;
+  });
 
   function host(req: { method: string; path?: string }, res: ReturnType<typeof makeRes>) {
     return { switchToHttp: () => ({ getRequest: () => req, getResponse: () => res }) } as never;

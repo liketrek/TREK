@@ -1,165 +1,45 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useState } from 'react'
 import { ChevronDown, Settings2 } from 'lucide-react'
-import { adminApi } from '../../../api/client'
 import { useTranslation } from '../../../i18n'
-import { useToast } from '../../../components/shared/Toast'
 import { MapView } from '../../../components/Map/MapView'
 import { SYMBOLS, currenciesWith } from '../../../components/Budget/BudgetPanel.constants'
-import { getApiErrorMessage, type DistanceUnit, type Place } from '../../../types'
-import { normalizeTileUrl, withTileApiKey } from '../../../utils/tileUrl'
-import {
-  MAPBOX_DEFAULT_STYLE,
-  defaultStyleForProvider,
-  getStylePresets,
-  isOpenFreeMapStyle,
-  normalizeStyleForProvider,
-  styleSettingKey,
-  type GlMapProvider,
-} from '../../../components/Map/glProviders'
-import { useAuthStore } from '../../../store/authStore'
+import { getApiErrorMessage, type DistanceUnit, type WeekStart } from '../../../types'
+import { weekStartOptions } from '../../../utils/calendarWeek'
+import { withTileApiKey } from '../../../utils/tileUrl'
+import { defaultStyleForProvider } from '../../../components/Map/glProviders'
+import { MAP_PRESETS, type MapProvider } from '../../../components/Settings/mapSettingsModel'
+import { useDefaultUserSettings, type Defaults } from '../../../components/Admin/useDefaultUserSettings'
 import MToggle from '../../components/MToggle'
 import MSegmented from '../../components/MSegmented'
 import { MAdminCard, MAdminCardHead, MAdminField, MAdminInput, MAdminRow } from './MAdminUi'
 import { MSetSelectRow } from '../settings/MSettingsUi'
 import MSetPickerSheet from '../settings/MSetPickerSheet'
-import RoutingInstanceFields, { type RoutingDefaults } from '../../../components/Admin/RoutingInstanceFields'
-
-const MAP_PRESETS = [
-  { name: 'OpenStreetMap', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png' },
-  { name: 'OpenStreetMap DE', url: 'https://tile.openstreetmap.de/{z}/{x}/{y}.png' },
-  // The app default, and a vector style rather than a {z}/{x}/{y} template: no
-  // key, no registration, no request limits.
-  { name: 'OpenFreeMap Positron', url: 'https://tiles.openfreemap.org/styles/positron' },
-  { name: 'OpenFreeMap Bright', url: 'https://tiles.openfreemap.org/styles/bright' },
-  // CARTO watermarks keyless tiles since 26.08.2026 and issues keys by mail, so
-  // these two need one; without it the map falls back to the default (#2054).
-  { name: 'CartoDB Light', url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png' },
-  { name: 'CartoDB Dark', url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' },
-  { name: 'Stadia Smooth', url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png' },
-]
-
-type Defaults = RoutingDefaults & {
-  temperature_unit?: string
-  distance_unit?: DistanceUnit
-  dark_mode?: string | boolean
-  time_format?: string
-  default_currency?: string
-  blur_booking_codes?: boolean
-  map_tile_url?: string
-  carto_api_key?: string
-  map_provider?: string
-  mapbox_access_token?: string
-  mapbox_style?: string
-  maplibre_style?: string
-  mapbox_3d_enabled?: boolean
-  mapbox_quality_mode?: boolean
-}
-
-type MapProvider = 'leaflet' | GlMapProvider
-
-function normalizeProvider(value: unknown): MapProvider {
-  return value === 'mapbox-gl' || value === 'maplibre-gl' ? value : 'leaflet'
-}
-
-function styleForProvider(provider: MapProvider, style?: string | null): string {
-  if (provider === 'leaflet') return style || MAPBOX_DEFAULT_STYLE
-  if (provider === 'mapbox-gl' && isOpenFreeMapStyle(style)) return MAPBOX_DEFAULT_STYLE
-  return normalizeStyleForProvider(provider, style)
-}
+import RoutingInstanceFields from '../../../components/Admin/RoutingInstanceFields'
 
 // Mobile-native rebuild of the desktop DefaultUserSettingsTab. Identical data
 // layer (adminApi defaults, per-change auto-save, reset-to-built-in) — only the
 // presentation is relaid on the admin mobile design system.
 export default function MAdminDefaultUserSettings(): React.ReactElement {
-  const { t } = useTranslation()
-  const toast = useToast()
-  const [defaults, setDefaults] = useState<Defaults>({})
-  const [loaded, setLoaded] = useState(false)
-  const [mapTileUrl, setMapTileUrl] = useState('')
-  const managed = useAuthStore((s) => s.managed)
-  const [mapboxToken, setMapboxToken] = useState('')
-  const [cartoKey, setCartoKey] = useState('')
-  const [mapboxStyle, setMapboxStyle] = useState('')
+  const { t, locale } = useTranslation()
+  const {
+    defaults, loaded, managed, isSet, save, reset, mapTileUrl, setMapTileUrl, mapboxToken, setMapboxToken,
+    cartoKey, setCartoKey, mapboxStyle, setMapboxStyle, mapPreviewPlaces, mapProvider, glStylePresets, styleKey,
+    saveMapProvider, pickTilePreset, pickStylePreset, commitStyle,
+  } = useDefaultUserSettings({ errorMessage: getApiErrorMessage, previewCreatedAt: () => new Date().toISOString() })
   const [currencyOpen, setCurrencyOpen] = useState(false)
   const [presetOpen, setPresetOpen] = useState(false)
   const [styleOpen, setStyleOpen] = useState(false)
-
-  useEffect(() => {
-    adminApi.getDefaultUserSettings().then((data: Defaults) => {
-      const provider = normalizeProvider(data.map_provider)
-      setDefaults(data)
-      setMapTileUrl(normalizeTileUrl(data.map_tile_url || ''))
-      setMapboxToken(data.mapbox_access_token || '')
-      setCartoKey(data.carto_api_key || '')
-      setMapboxStyle(provider === 'leaflet' ? (data.mapbox_style || '') : styleForProvider(provider, provider === 'maplibre-gl' ? data.maplibre_style : data.mapbox_style))
-      setLoaded(true)
-    }).catch(() => setLoaded(true))
-  }, [])
-
-  const save = async (patch: Partial<Defaults>) => {
-    try {
-      const updated = await adminApi.updateDefaultUserSettings(patch as Record<string, unknown>)
-      setDefaults(updated)
-      toast.success(t('admin.defaultSettings.saved'))
-    } catch (err: unknown) {
-      toast.error(getApiErrorMessage(err, t('common.error')))
-    }
-  }
-
-  const reset = async (key: keyof Defaults) => {
-    try {
-      const updated = await adminApi.updateDefaultUserSettings({ [key]: null })
-      setDefaults(updated)
-      if (key === 'map_tile_url') setMapTileUrl('')
-      if (key === 'mapbox_access_token') setMapboxToken('')
-      if (key === 'carto_api_key') setCartoKey('')
-      if (key === 'mapbox_style' || key === 'maplibre_style') {
-        const provider = normalizeProvider(defaults.map_provider)
-        setMapboxStyle(provider === 'leaflet' ? '' : defaultStyleForProvider(provider))
-      }
-      toast.success(t('admin.defaultSettings.reset'))
-    } catch (err: unknown) {
-      toast.error(getApiErrorMessage(err, t('common.error')))
-    }
-  }
-
-  const isSet = (key: keyof Defaults) => defaults[key] !== undefined
 
   const ResetButton = ({ field }: { field: keyof Defaults }) =>
     isSet(field) ? (
       <button
         type="button"
         onClick={() => reset(field)}
-        className="ml-2 font-geist text-[0.625rem] font-medium text-m-faint underline"
+        className="ms-2 font-geist text-[0.625rem] font-medium text-m-faint underline"
       >
         {t('admin.defaultSettings.resetToBuiltIn')}
       </button>
     ) : null
-
-  const mapPreviewPlaces = useMemo((): Place[] => [{
-    id: 1,
-    trip_id: 1,
-    name: 'Preview center',
-    description: null,
-    notes: null,
-    lat: 48.8566,
-    lng: 2.3522,
-    address: null,
-    category_id: null,
-    price: null,
-    currency: null,
-    image_url: null,
-    google_place_id: null,
-    osm_id: null,
-    route_geometry: null,
-    place_time: null,
-    end_time: null,
-    duration_minutes: null,
-    transport_mode: null,
-    website: null,
-    phone: null,
-    created_at: new Date().toISOString(),
-  }], [])
 
   if (!loaded) {
     return (
@@ -170,21 +50,6 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
   }
 
   const darkMode = defaults.dark_mode
-  const mapProvider = normalizeProvider(defaults.map_provider)
-  const glStylePresets = mapProvider === 'leaflet' ? [] : getStylePresets(mapProvider)
-  const styleKey: keyof Defaults = mapProvider === 'maplibre-gl' ? 'maplibre_style' : 'mapbox_style'
-  const saveMapProvider = (nextProvider: MapProvider) => {
-    const patch: Partial<Defaults> = { map_provider: nextProvider }
-    if (nextProvider !== 'leaflet') {
-      // Load + save the new provider's own style slot so the other provider's style is kept.
-      const slot = nextProvider === 'maplibre-gl' ? defaults.maplibre_style : defaults.mapbox_style
-      const nextStyle = styleForProvider(nextProvider, slot)
-      setMapboxStyle(nextStyle)
-      patch[styleSettingKey(nextProvider)] = nextStyle
-    }
-    save(patch)
-  }
-
   // No active value when the setting is unset → segmented shows no pill, matching
   // the desktop tab (which only highlights a button once a default is chosen).
   const colorModeValue =
@@ -251,6 +116,11 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
           {/* Time Format */}
           <MAdminField label={<>{t('settings.timeFormat')} <ResetButton field="time_format" /></>}>
             <MSegmented value={defaults.time_format || ''} onChange={(v) => save({ time_format: v })} options={timeOptions} />
+          </MAdminField>
+
+          {/* Week start (#2029) */}
+          <MAdminField label={<>{t('settings.weekStart')} <ResetButton field="week_start" /></>}>
+            <MSegmented value={defaults.week_start || ''} onChange={(v) => save({ week_start: v as WeekStart })} options={weekStartOptions(locale)} />
           </MAdminField>
 
           {/* Default Currency */}
@@ -381,11 +251,7 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
                   className="mt-[6px]"
                   value={mapboxStyle}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMapboxStyle(e.target.value)}
-                  onBlur={() => {
-                    const nextStyle = normalizeStyleForProvider(mapProvider, mapboxStyle)
-                    setMapboxStyle(nextStyle)
-                    save({ [styleKey]: nextStyle })
-                  }}
+                  onBlur={commitStyle}
                   placeholder={defaultStyleForProvider(mapProvider)}
                 />
               </MAdminField>
@@ -426,7 +292,7 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
         onClose={() => setCurrencyOpen(false)}
         title={t('settings.currency')}
         value={defaults.default_currency || ''}
-        onSelect={(value) => { if (value) save({ default_currency: value }) }}
+        onSelect={(value) => { if (value) void save({ default_currency: value }) }}
         options={currenciesWith(defaults.default_currency).map((c) => ({ value: c, label: SYMBOLS[c] ? `${c}  ${SYMBOLS[c]}` : c }))}
       />
 
@@ -435,7 +301,7 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
         onClose={() => setPresetOpen(false)}
         title={t('settings.mapTemplate')}
         value={mapTileUrl}
-        onSelect={(value) => { if (value) { setMapTileUrl(value); save({ map_tile_url: value }) } }}
+        onSelect={pickTilePreset}
         options={MAP_PRESETS.map((p) => ({ value: p.url, label: p.name }))}
       />
 
@@ -444,7 +310,7 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
         onClose={() => setStyleOpen(false)}
         title={t('admin.defaultSettings.mapboxStyle')}
         value={mapboxStyle}
-        onSelect={(value) => { if (value) { setMapboxStyle(value); save({ [styleKey]: value }) } }}
+        onSelect={pickStylePreset}
         options={glStylePresets.map((p) => ({ value: p.url, label: p.name }))}
       />
     </div>

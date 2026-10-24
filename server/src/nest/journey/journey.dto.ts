@@ -1,4 +1,3 @@
-import { createZodDto } from 'nestjs-zod';
 import {
   journeyAddTripRequestSchema,
   journeyContributorRequestSchema,
@@ -13,10 +12,13 @@ import {
   journeyPreferencesRequestSchema,
   journeyProviderPhotosRequestSchema,
   journeyReorderEntriesRequestSchema,
+  journeyReorderEntryPhotosRequestSchema,
   journeyShareLinkRequestSchema,
   journeyUpdateRequestSchema,
   bookSaveRequestSchema,
 } from '@trek/shared';
+
+import { createZodDto } from 'nestjs-zod';
 
 /**
  * Server-side createZodDto wrappers over the @trek/shared journey contracts.
@@ -41,6 +43,7 @@ export class JourneyAddTripDto extends createZodDto(journeyAddTripRequestSchema)
 export class JourneyEntryCreateDto extends createZodDto(journeyEntryCreateRequestSchema) {}
 export class JourneyEntryUpdateDto extends createZodDto(journeyEntryUpdateRequestSchema) {}
 export class JourneyReorderEntriesDto extends createZodDto(journeyReorderEntriesRequestSchema) {}
+export class JourneyReorderEntryPhotosDto extends createZodDto(journeyReorderEntryPhotosRequestSchema) {}
 export class JourneyContributorAddDto extends createZodDto(journeyContributorRequestSchema) {}
 export class JourneyContributorUpdateDto extends createZodDto(journeyContributorUpdateRequestSchema) {}
 export class JourneyPreferencesDto extends createZodDto(journeyPreferencesRequestSchema) {}

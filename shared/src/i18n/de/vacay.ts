@@ -39,7 +39,7 @@ const vacay: TranslationStrings = {
   'vacay.removePerson': 'Person entfernen',
   'vacay.removePersonConfirm': '{name} wirklich entfernen?',
   'vacay.removePersonHint': 'Alle Urlaubseinträge dieser Person werden unwiderruflich gelöscht.',
-  'vacay.personName': 'Name',
+  'vacay.personName': 'Name', // same-as-en
   'vacay.personNamePlaceholder': 'Name eingeben',
   'vacay.color': 'Farbe',
   'vacay.add': 'Hinzufügen',
@@ -90,6 +90,7 @@ const vacay: TranslationStrings = {
   'vacay.carryOverHint': 'Resturlaub automatisch ins Folgejahr übertragen',
   'vacay.carriedOverPrevPeriod': 'aus der Vorperiode',
   'vacay.compUsedCount': '{count} Ausgleich',
+  'vacay.compUsedCount.one': '{count} Ausgleich',
   'vacay.yearType': 'Urlaubsjahr',
   'vacay.yearTypeHint': 'Wann dein Urlaubsjahr beginnt — Anspruch, Verbrauch und Übertrag richten sich danach',
   'vacay.yearTypeCalendar': 'Kalenderjahr',

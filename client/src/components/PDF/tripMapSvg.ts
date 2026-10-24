@@ -53,8 +53,8 @@ function niceDistanceKm(roughKm: number): number {
  */
 export function buildTripMapSvg(days: TripOverviewDay[], opts: TripMapSvgOptions): string | null {
   const { width, height } = opts
-  const drawn = days.filter(d => d.lines.some(line => line.length > 1))
-  const points = drawn.flatMap(d => d.lines.flat()).map(([lat, lng]) => projectMercator(lng, lat))
+  const drawn = days.filter(d => [...d.lines, ...(d.tourLines ?? [])].some(line => line.length > 1))
+  const points = drawn.flatMap(d => [...d.lines, ...(d.tourLines ?? [])].flat()).map(([lat, lng]) => projectMercator(lng, lat))
   if (points.length < 2) return null
 
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
@@ -135,7 +135,7 @@ export interface RouteOverlayOptions {
 export function buildRouteOverlay(days: TripOverviewDay[], opts: RouteOverlayOptions): string {
   const { project, width, height, metresPerPx } = opts
   const round = (n: number) => Math.round(n * 10) / 10
-  const drawn = days.filter(d => d.lines.some(line => line.length > 1))
+  const drawn = days.filter(d => [...d.lines, ...(d.tourLines ?? [])].some(line => line.length > 1))
 
   const routes = drawn.flatMap(day => day.lines.filter(l => l.length > 1).map(line => {
     const pts = line.map(([lat, lng]) => project(lat, lng).map(round).join(',')).join(' ')
@@ -146,6 +146,12 @@ export function buildRouteOverlay(days: TripOverviewDay[], opts: RouteOverlayOpt
   }))
 
   // Where each run starts and ends — the stops, rather than every vertex of the road.
+  const tours = drawn.flatMap(day => (day.tourLines ?? []).filter(line => line.length > 1).map(line => {
+    const pts = line.map(([lat, lng]) => project(lat, lng).map(round).join(',')).join(' ')
+    return `<polyline points="${pts}" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>`
+      + `<polyline points="${pts}" fill="none" stroke="#14805e" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>`
+  }))
+
   const stops = drawn.flatMap(day => day.lines.filter(l => l.length > 1).flatMap(line => {
     const ends = [line[0], line[line.length - 1]]
     return ends.map(([lat, lng]) => {
@@ -165,7 +171,7 @@ export function buildRouteOverlay(days: TripOverviewDay[], opts: RouteOverlayOpt
       + ` font-family="Poppins, system-ui, sans-serif">${escapeText(opts.formatDistance(barKm))}</text>`
     : ''
 
-  return routes.join('') + stops.join('') + scaleBar
+  return routes.join('') + tours.join('') + stops.join('') + scaleBar
 }
 
 /** The scale label is the only text here, and it is a number and a unit — but it comes

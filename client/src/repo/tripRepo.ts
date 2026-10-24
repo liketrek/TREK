@@ -1,8 +1,31 @@
 import { tripsApi } from '../api/client'
 import { offlineDb, upsertTrip } from '../db/offlineDb'
+import { generateUUID, mutationQueue } from '../sync/mutationQueue'
+import { isEffectivelyOffline } from '../sync/networkMode'
 import { onlineThenCache } from './withOfflineFallback'
 import type { Trip } from '../types'
-import type { ActiveTripResponse } from '@trek/shared'
+import type { ActiveTripResponse, TripUpdateRequest } from '@trek/shared'
+
+/** A trip change refused offline because only the server can carry it out. */
+export class TripNeedsConnectionError extends Error {
+  constructor() {
+    super('Changing the dates, the number of days, the currency or the cover needs a connection')
+    this.name = 'TripNeedsConnectionError'
+  }
+}
+
+/**
+ * Does this change need the server? New dates or a day count rebuild the days,
+ * another currency rebases the costs, a cover is stored there. A field sent
+ * with the value the trip already has changes nothing, so the edit form, which
+ * always sends every field, can still save a new name offline.
+ */
+export function tripChangeNeedsConnection(trip: Pick<Trip, 'start_date' | 'end_date' | 'currency'> | undefined, data: TripUpdateRequest): boolean {
+  const differs = (key: 'start_date' | 'end_date' | 'currency') =>
+    data[key] !== undefined && (!trip || (data[key] ?? null) !== (trip[key] ?? null))
+  return differs('start_date') || differs('end_date') || differs('currency')
+    || data.day_count !== undefined || data.cover_image !== undefined
+}
 
 /**
  * Offline stand-in for GET /trips/active. Mirrors the server's ranking
@@ -71,11 +94,42 @@ export const tripRepo = {
     )
   },
 
+  /**
+   * A change to the trip itself. Its name, description, reminder and the archive
+   * flag wait in the queue offline, and online too while an older write to the
+   * trip still waits, since trip writes carry no version token. New dates, a new
+   * day count, another currency or a cover need the server (it rebuilds the days,
+   * rebases the costs or stores the image), so offline they are refused with
+   * TripNeedsConnectionError and nothing is written.
+   */
+  async update(tripId: number | string, data: TripUpdateRequest): Promise<{ trip: Trip }> {
+    const id = Number(tripId)
+    if (!(await mutationQueue.mustQueue('trips', id))) {
+      const result: { trip: Trip } = await tripsApi.update(tripId, data)
+      const cached = await offlineDb.trips.get(id)
+      void upsertTrip({ ...cached, ...result.trip })
+      return result
+    }
+    const cached = await offlineDb.trips.get(id)
+    if (isEffectivelyOffline() && tripChangeNeedsConnection(cached, data)) throw new TripNeedsConnectionError()
+    const { date_shift_mode: _mode, ...fields } = data
+    const trip = { ...(cached ?? { id }), ...fields } as Trip
+    await offlineDb.transaction('rw', offlineDb.trips, offlineDb.mutationQueue, async () => {
+      await offlineDb.trips.put(trip)
+      await mutationQueue.enqueue({
+        id: generateUUID(), tripId: id, method: 'PUT', url: `/trips/${id}`,
+        body: data, resource: 'trips', entityId: id,
+      })
+    })
+    mutationQueue.sendSoon()
+    return { trip }
+  },
+
   async get(tripId: number | string): Promise<{ trip: Trip }> {
     return onlineThenCache(
       async () => {
         const result = await tripsApi.get(tripId)
-        upsertTrip(result.trip)
+        void upsertTrip(result.trip)
         return result
       },
       async () => {

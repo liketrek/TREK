@@ -219,7 +219,7 @@ describe('CollabPolls', () => {
     await screen.findByText('Best destination?');
 
     // Delete button has a title with "delete"
-    const deleteBtn = screen.getByTitle(/delete/i);
+    const deleteBtn = screen.getByRole('button', { name: /delete/i });
     await user.click(deleteBtn);
 
     await waitFor(() => expect(deleteCalled).toBe(true));
@@ -420,18 +420,13 @@ describe('CollabPolls details', () => {
     expect(screen.getByText('?')).toBeInTheDocument();
   });
 
-  it('FE-W5CPL-012: hovering an open option scales it, a closed one stays put', async () => {
+  it('FE-W5CPL-012: an open option can be voted on, a closed one cannot', async () => {
     servePolls({ polls: [buildPoll({ id: 1 }), buildPoll({ id: 2, question: 'Done?', is_closed: true })] });
     render(<CollabPolls {...defaultProps} />);
     await screen.findByText('Done?');
     const [openOption, closedOption] = screen.getAllByText('Paris').map(el => el.closest('button')!);
-    fireEvent.mouseEnter(openOption);
-    expect(openOption.style.transform).toBe('scale(1.01)');
-    fireEvent.mouseLeave(openOption);
-    expect(openOption.style.transform).toBe('scale(1)');
-
-    fireEvent.mouseEnter(closedOption);
-    expect(closedOption.style.transform).toBe('');
+    expect(openOption).toBeEnabled();
+    expect(closedOption).toBeDisabled();
   });
 
   it('FE-W5CPL-013: the closed section heading only appears next to active polls', async () => {
@@ -461,22 +456,15 @@ describe('CollabPolls details', () => {
     render(<CollabPolls {...defaultProps} />);
     await screen.findByText('Stays open?');
 
-    // Both action buttons highlight on hover
-    const closeBtn = screen.getAllByTitle('Close')[0];
-    fireEvent.mouseEnter(closeBtn);
-    expect(closeBtn.style.color).toBe('var(--text-primary)');
-    fireEvent.mouseLeave(closeBtn);
-    expect(closeBtn.style.color).toBe('var(--text-faint)');
-    const deleteBtn = screen.getAllByTitle('Delete')[0];
-    fireEvent.mouseEnter(deleteBtn);
-    expect(deleteBtn.style.color).toBe('rgb(239, 68, 68)');
-    fireEvent.mouseLeave(deleteBtn);
-    expect(deleteBtn.style.color).toBe('var(--text-faint)');
+    // Both actions sit on each poll's head band
+    const closeBtn = screen.getAllByRole('button', { name: 'Close' })[0];
+    const deleteBtn = screen.getAllByRole('button', { name: 'Delete' })[0];
+    expect(deleteBtn).toBeInTheDocument();
 
     await user.click(closeBtn);
     await waitFor(() => expect(closeCalled).toBe(true));
     await waitFor(() => expect(screen.getAllByText('Closed')).toHaveLength(2));
-    expect(screen.getAllByTitle('Close')).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: 'Close' })).toHaveLength(1);
   });
 
   it('FE-W5CPL-027: a failing poll request falls back to the empty state', async () => {
@@ -501,9 +489,9 @@ describe('CollabPolls details', () => {
     const user = userEvent.setup();
     render(<CollabPolls {...defaultProps} />);
     await screen.findByText('Best destination?');
-    await user.click(screen.getByTitle(/close/i));
+    await user.click(screen.getByRole('button', { name: /close/i }));
     await waitFor(() => expect(addToast).toHaveBeenCalledWith('Error', 'error', undefined));
-    expect(screen.getByTitle(/close/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
   });
 
   it('FE-W5CPL-016: a failing delete shows an error and keeps the poll', async () => {
@@ -514,7 +502,7 @@ describe('CollabPolls details', () => {
     const user = userEvent.setup();
     render(<CollabPolls {...defaultProps} />);
     await screen.findByText('Best destination?');
-    await user.click(screen.getByTitle(/delete/i));
+    await user.click(screen.getByRole('button', { name: /delete/i }));
     await waitFor(() => expect(addToast).toHaveBeenCalledWith('Error', 'error', undefined));
     expect(screen.getByText('Best destination?')).toBeInTheDocument();
   });
@@ -637,10 +625,10 @@ describe('CollabPolls details', () => {
     await screen.findByText(/no polls yet|collab\.polls\.empty/i);
     await user.click(screen.getByRole('button', { name: /new/i }));
 
-    const toggle = screen.getByText(/multiple|multi/i).previousElementSibling as HTMLElement;
-    expect(toggle.style.background).toBe('var(--border-primary)');
+    const toggle = screen.getByRole('switch');
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
     await user.click(toggle);
-    expect(toggle.style.background).toBe('rgb(0, 122, 255)');
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
 
     await user.type(screen.getByPlaceholderText(/what should we do/i), 'Multi?');
     const optionInputs = screen.getAllByPlaceholderText(/option/i);

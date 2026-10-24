@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types';
+
+const tourPacking: TranslationStrings = {
+  'tours.packing.label': 'Lista de mala',
+  'tours.packing.none': 'Nenhuma lista de mala vinculada',
+  'tours.packing.link': 'Vincular uma lista de mala',
+  'tours.packing.change': 'Alterar',
+  'tours.packing.whole': 'Lista de mala inteira',
+  'tours.packing.packed': '{packed} de {count} na mala',
+  'tours.packing.packed.one': '{packed} de {count} na mala',
+  'tours.packing.more': '+{count} a mais',
+  'tours.packing.more.one': '+{count} a mais',
+  'tours.packing.items': '{count} objetos',
+  'tours.packing.items.one': '{count} objeto',
+  'tours.packing.allPacked': 'Tudo na mala',
+  'tours.packing.open': 'Abrir a lista de mala',
+  'tours.packing.missing': '“{name}” não tem mais objetos que você possa ver.',
+  'tours.packing.emptyList': 'A lista de mala ainda está vazia.',
+  'tours.packing.emptyCategory': '“{name}” ainda não tem objetos.',
+  'tours.packing.addonOff': 'As listas de mala estão desativadas, então a lista não pode ser exibida.',
+  'tours.packing.loadFailed': 'Não foi possível carregar o vínculo com a lista de mala.',
+  'tours.packing.dialogSub': 'Apenas um vínculo. A lista e seus objetos ficam onde estão.',
+  'tours.packing.choose': 'Vincular a',
+  'tours.packing.confirm': 'Vincular',
+  'tours.packing.unlink': 'Remover vínculo',
+  'tours.packing.unlinkHint': 'A lista de mala e seus objetos ficam como estão',
+  'tours.packing.linked': 'Lista de mala vinculada.',
+  'tours.packing.unlinked': 'Vínculo removido. A lista de mala fica como está.',
+  'tours.packing.failed': 'Não foi possível salvar o vínculo.',
+};
+export default tourPacking;

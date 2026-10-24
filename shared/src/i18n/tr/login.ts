@@ -16,7 +16,7 @@ const login: TranslationStrings = {
   'login.createAccount': 'Hesap Oluşturmak',
   'login.createAccountHint': 'Yeni bir hesap kaydedin.',
   'login.creating': 'Oluşturuluyor…',
-  'login.noAccount': "Don't have an account?",
+  'login.noAccount': 'Hesabın yok mu?',
   'login.hasAccount': 'Zaten bir hesabınız var mı?',
   'login.register': 'Kayıt olmak',
   'login.emailPlaceholder': 'sizin@e-postanız.com',
@@ -25,10 +25,16 @@ const login: TranslationStrings = {
   'login.oidc.noEmail': 'Sağlayıcıdan e-posta alınmadı.',
   'login.oidc.tokenFailed': 'Kimlik doğrulama başarısız oldu.',
   'login.oidc.invalidState': 'Geçersiz oturum. Lütfen tekrar deneyin.',
+  'login.oidc.emailNotVerified':
+    'Oturum açma sağlayıcınız bu e-posta adresini doğrulamadı, bu yüzden mevcut bir hesaba bağlanamaz.',
+  'login.oidc.emailLinkBlocked':
+    'Bu oturum açma, bu e-postaya sahip mevcut hesaba bağlanamadı. Adresi doğrulaması için yöneticinize başvurun.',
   'login.demoFailed': 'Demo girişi başarısız oldu',
   'login.oidcSignIn': '{name} ile oturum açın',
   'login.oidcOnly': 'Parola kimlik doğrulaması devre dışı. Lütfen SSO sağlayıcınızı kullanarak oturum açın.',
   'login.oidcLoggedOut': 'Çıkış yaptınız. SSO sağlayıcınızı kullanarak tekrar oturum açın.',
+  'login.oidcRedirecting': '{name} adresine yönlendiriliyorsunuz…',
+  'login.oidcRedirectSlow': 'Hâlâ burada mısınız? {name} ile devam edin',
   'login.demoHint': 'Demoyu deneyin; kayıt olmanıza gerek yok',
   'login.mfaTitle': 'İki faktörlü kimlik doğrulama',
   'login.mfaSubtitle': 'Kimlik doğrulayıcı uygulamanızdan 6 haneli kodu girin.',
@@ -45,13 +51,13 @@ const login: TranslationStrings = {
   'login.rememberMe': 'Beni hatırla',
   'login.forgotPasswordTitle': 'Şifrenizi sıfırlayın',
   'login.forgotPasswordBody':
-    "Enter the email address you signed up with. If an account exists, we'll send a reset link.",
+    'Kaydolurken kullandığın e-posta adresini gir. Hesap varsa sana bir sıfırlama bağlantısı göndeririz.',
   'login.forgotPasswordSubmit': 'Sıfırlama bağlantısını gönder',
   'login.forgotPasswordSentTitle': 'E-postanızı kontrol edin',
   'login.forgotPasswordSentBody':
     'Söz konusu e-posta için bir hesap mevcutsa sıfırlama bağlantısı yolda olacaktır. 60 dakika içinde sona erer.',
   'login.forgotPasswordSmtpHintOff':
-    "Heads up: your administrator hasn't configured SMTP, so the reset link will be written to the server console instead of being emailed.",
+    "Not: yöneticin SMTP'yi yapılandırmamış, bu yüzden sıfırlama bağlantısı e-postayla gönderilmek yerine sunucu konsoluna yazılır.",
   'login.backToLogin': 'Oturum açmak için geri dön',
   'login.newPassword': 'Yeni Şifre',
   'login.confirmPassword': 'Yeni şifreyi onayla',
@@ -69,9 +75,9 @@ const login: TranslationStrings = {
   'login.resetPasswordFailed': 'Sıfırlama başarısız oldu. Bağlantının süresi dolmuş olabilir.',
   'login.passkey.signIn': 'Passkey ile oturum açın',
   'login.passkey.failed': 'Passkey ile oturum açma başarısız oldu. Lütfen tekrar deneyin.',
-  'login.insecureCookie.title': "Login won't stick over HTTP",
+  'login.insecureCookie.title': 'Giriş HTTP üzerinden kalıcı olmaz',
   'login.insecureCookie.body':
-    'You’re connecting over plain HTTP, so your browser drops TREK’s secure session cookie — the next request fails with "Access token required". Fix: use HTTPS, or for a home-lab set COOKIE_SECURE=false.',
-  'login.insecureCookie.link': 'Open the Troubleshooting guide',
+    'Düz HTTP ile bağlanıyorsun, bu yüzden tarayıcın TREK\'in güvenli oturum çerezini atıyor ve sonraki istek "Access token required" hatasıyla başarısız oluyor. Çözüm: HTTPS kullan ya da ev sunucusu için COOKIE_SECURE=false ayarla.',
+  'login.insecureCookie.link': 'Sorun giderme kılavuzunu aç',
 };
 export default login;

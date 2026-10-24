@@ -69,5 +69,6 @@ const backup: TranslationStrings = {
     'Tüm mevcut veriler (seyahatler, yerler, kullanıcılar, yüklemeler) yedekle kalıcı olarak değiştirilecek. Bu işlem geri alınamaz.',
   'backup.restoreTip': 'İpucu: Geri yüklemeden önce mevcut durumun yedeğini oluşturun.',
   'backup.restoreConfirm': 'Evet, geri yükle',
+  'backup.auto.hourHintTz': 'Sunucu yerel saati ({format} biçimi), saat dilimi {timezone}',
 };
 export default backup;

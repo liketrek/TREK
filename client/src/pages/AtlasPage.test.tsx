@@ -8,6 +8,7 @@ import { resetAllStores, seedStore } from '../../tests/helpers/store';
 import { buildUser, buildSettings } from '../../tests/helpers/factories';
 import { useAuthStore } from '../store/authStore';
 import { useSettingsStore } from '../store/settingsStore';
+import { useAddonStore } from '../store/addonStore';
 import AtlasPage from './AtlasPage';
 import { maplibreGL } from '@maplibre/maplibre-gl-leaflet';
 
@@ -256,7 +257,7 @@ describe('AtlasPage', () => {
         // totalCountries = 1 — appears in both mobile bar and desktop panel
         expect(screen.getAllByText('1').length).toBeGreaterThan(0);
       });
-      expect(screen.getAllByText(/countries/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/countr(y|ies)/i).length).toBeGreaterThan(0);
     });
   });
 
@@ -278,7 +279,7 @@ describe('AtlasPage', () => {
     it('keeps the trip out of the stats bar even when the API still returns one', async () => {
       render(<AtlasPage />);
       // The row is stats only now; the trip lives in the country detail below.
-      await waitFor(() => expect(screen.getAllByText(/countries/i).length).toBeGreaterThan(0));
+      await waitFor(() => expect(screen.getAllByText(/countr(y|ies)/i).length).toBeGreaterThan(0));
       expect(screen.queryByText('Paris Trip')).not.toBeInTheDocument();
     });
   });
@@ -289,7 +290,7 @@ describe('AtlasPage', () => {
 
       await waitFor(() => {
         // Both "Countries" labels (mobile + desktop) should be present
-        expect(screen.getAllByText(/countries/i).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/countr(y|ies)/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/trips/i).length).toBeGreaterThan(0);
       });
     });
@@ -335,7 +336,7 @@ describe('AtlasPage', () => {
       await user.click(screen.getByText('Stats'));
 
       await waitFor(() => {
-        expect(screen.getAllByText(/countries/i).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/countr(y|ies)/i).length).toBeGreaterThan(0);
       });
     });
   });
@@ -362,7 +363,7 @@ describe('AtlasPage', () => {
 
       await waitFor(() => {
         // Mobile bar always renders; check for the stats labels
-        const countryLabels = screen.getAllByText(/countries/i);
+        const countryLabels = screen.getAllByText(/countr(y|ies)/i);
         expect(countryLabels.length).toBeGreaterThan(0);
       });
     });
@@ -505,7 +506,7 @@ describe('AtlasPage', () => {
       render(<AtlasPage />);
 
       // Wait for data to load so geoData is set and search input is rendered
-      await waitFor(() => expect(screen.getAllByText(/countries/i).length).toBeGreaterThan(0));
+      await waitFor(() => expect(screen.getAllByText(/countr(y|ies)/i).length).toBeGreaterThan(0));
 
       const searchInput = screen.getByPlaceholderText(/search a country/i);
       await user.type(searchInput, 'fr');
@@ -552,7 +553,7 @@ describe('AtlasPage', () => {
       render(<AtlasPage />);
 
       // Wait for both atlas data and geoData to load (search input renders after load)
-      await waitFor(() => expect(screen.getAllByText(/countries/i).length).toBeGreaterThan(0));
+      await waitFor(() => expect(screen.getAllByText(/countr(y|ies)/i).length).toBeGreaterThan(0));
 
       const searchInput = screen.getByPlaceholderText(/search a country/i);
 
@@ -589,7 +590,7 @@ describe('AtlasPage', () => {
 
       // Eventually loads
       await waitFor(() => {
-        expect(screen.getAllByText(/countries/i).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/countr(y|ies)/i).length).toBeGreaterThan(0);
       });
     });
   });
@@ -598,7 +599,7 @@ describe('AtlasPage', () => {
     it('mouseMove and mouseLeave events on the desktop panel work without errors', async () => {
       render(<AtlasPage />);
 
-      await waitFor(() => expect(screen.getAllByText(/countries/i).length).toBeGreaterThan(0));
+      await waitFor(() => expect(screen.getAllByText(/countr(y|ies)/i).length).toBeGreaterThan(0));
 
       // Find the desktop panel container and fire events
       const panel = document.querySelector('.hidden.md\\:flex') as HTMLElement | null;
@@ -608,7 +609,7 @@ describe('AtlasPage', () => {
       }
 
       // No error thrown; DOM is still intact
-      expect(screen.getAllByText(/countries/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/countr(y|ies)/i).length).toBeGreaterThan(0);
     });
   });
 
@@ -622,7 +623,7 @@ describe('AtlasPage', () => {
       render(<AtlasPage />);
 
       // Wait for data and search input to be ready
-      await waitFor(() => expect(screen.getAllByText(/countries/i).length).toBeGreaterThan(0));
+      await waitFor(() => expect(screen.getAllByText(/countr(y|ies)/i).length).toBeGreaterThan(0));
 
       const searchInput = screen.getByPlaceholderText(/search a country/i);
       await user.type(searchInput, 'fr');
@@ -900,8 +901,8 @@ describe('AtlasPage', () => {
         async () => {
           const popup = screen.queryByText(/mark as visited/i);
           if (popup) {
-            // Click the backdrop (fixed overlay div)
-            const backdrop = document.querySelector('[style*="position: fixed"][style*="inset: 0"]') as HTMLElement | null;
+            // Click the backdrop: the DialogShell overlay around the dialog panel
+            const backdrop = screen.queryByRole('dialog')?.parentElement ?? null;
             if (backdrop) {
               await user.click(backdrop);
               await waitFor(() => {
@@ -922,7 +923,7 @@ describe('AtlasPage', () => {
       render(<AtlasPage />);
 
       await waitFor(() => {
-        expect(screen.getAllByText(/countries/i).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/countr(y|ies)/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/trips/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/places/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/days/i).length).toBeGreaterThan(0);
@@ -1005,11 +1006,11 @@ describe('AtlasPage', () => {
       // FR is in atlasStatsResponse.countries → visited branch
       // DE is not → unvisited else branch in onEachFeature
       await waitFor(() => {
-        expect(screen.getAllByText(/countries/i).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/countr(y|ies)/i).length).toBeGreaterThan(0);
       });
 
       // Both branches covered via Leaflet mock calling onEachFeature for each feature
-      expect(screen.getAllByText(/countries/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/countr(y|ies)/i).length).toBeGreaterThan(0);
     });
   });
 
@@ -1406,11 +1407,11 @@ describe('AtlasPage', () => {
       render(<AtlasPage />);
 
       await waitFor(() => {
-        expect(screen.getAllByText(/countries/i).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/countr(y|ies)/i).length).toBeGreaterThan(0);
       });
 
       // XK is not in A2_TO_A3_BASE, so the geoJSON loop covers the `A2_TO_A3[a2] = a3` line
-      expect(screen.getAllByText(/countries/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/countr(y|ies)/i).length).toBeGreaterThan(0);
     });
   });
 
@@ -1595,7 +1596,7 @@ describe('AtlasPage', () => {
 
       // Wait for initial data to load and geoJSON layer to be built
       await waitFor(() => {
-        expect(screen.getAllByText(/countries/i).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/countr(y|ies)/i).length).toBeGreaterThan(0);
       });
 
       // Change dark mode setting — this re-triggers the map init useEffect [dark]
@@ -1605,7 +1606,7 @@ describe('AtlasPage', () => {
 
       // After dark mode change, the page re-renders and map re-initializes
       await waitFor(() => {
-        expect(screen.getAllByText(/countries/i).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/countr(y|ies)/i).length).toBeGreaterThan(0);
       });
     });
   });
@@ -1726,7 +1727,7 @@ describe('AtlasPage', () => {
       }, { timeout: 3000 }).catch(() => {});
 
       // Page is still rendered
-      expect(screen.getAllByText(/countries/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/countr(y|ies)/i).length).toBeGreaterThan(0);
     });
   });
 
@@ -1760,7 +1761,7 @@ describe('AtlasPage', () => {
       // mode re-initializes the map, re-registers zoomend, and by then FR's country layer
       // already exists, so loadRegionsForViewport actually fetches /regions/geo this time.
       await waitFor(() => {
-        expect(screen.getAllByText(/countries/i).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/countr(y|ies)/i).length).toBeGreaterThan(0);
       });
       seedStore(useSettingsStore, { settings: buildSettings({ dark_mode: true }) });
 
@@ -1781,7 +1782,7 @@ describe('AtlasPage', () => {
         expect(screen.queryAllByRole('button').some((b) => b.textContent?.trim() === 'Remove')).toBe(false);
       }, { timeout: 3000 }).catch(() => {});
 
-      expect(screen.getAllByText(/countries/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/countr(y|ies)/i).length).toBeGreaterThan(0);
     });
   });
 
@@ -1811,6 +1812,33 @@ describe('AtlasPage', () => {
       // target_date renders as formatted date
       // The item is in the bucket list — also verifies the bucket list useEffect ran (lat/lng → marker)
       expect(screen.getByText('Machu Picchu')).toBeInTheDocument();
+    });
+  });
+
+  describe('FE-PAGE-ATLAS-052: the Tours tab shows the own tour activities (STA-02)', () => {
+    it('offers the tab only with the Tours addon and reads the activities once it is opened', async () => {
+      let reads = 0;
+      server.use(
+        http.get('/api/tours/activity-stats', () => {
+          reads += 1;
+          return HttpResponse.json({ entries: [], uncounted: { unassigned: 0, undated: 0 } });
+        }),
+      );
+      const first = render(<AtlasPage />);
+      await waitFor(() => expect(screen.getByText('Bucket List')).toBeInTheDocument());
+      expect(screen.queryByRole('button', { name: 'Tours' })).not.toBeInTheDocument();
+      first.unmount();
+
+      seedStore(useAddonStore, {
+        addons: [{ id: 'tours', name: 'Tours', type: 'trip', icon: 'route', enabled: true }],
+      });
+      const user = userEvent.setup();
+      render(<AtlasPage />);
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Tours' })).toBeInTheDocument());
+      expect(reads).toBe(0);
+      await user.click(screen.getByRole('button', { name: 'Tours' }));
+      await waitFor(() => expect(screen.getByText('No completed tours yet')).toBeInTheDocument());
+      expect(reads).toBe(1);
     });
   });
 });

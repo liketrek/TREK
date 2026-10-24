@@ -1,6 +1,6 @@
+import { ADDON_IDS } from '../../addons';
 import type { McpContext } from '../../nest-mcp';
 import type { AddonsService } from './addons.service';
-import { ADDON_IDS } from '../../addons';
 
 /**
  * The `when:` gates for addon-scoped MCP surfaces.
@@ -27,7 +27,7 @@ export interface HasAddons {
 
 /** Gate an MCP entry on an addon being enabled. */
 export function addonGate(addonId: string) {
-  return (_ctx: McpContext, self: HasAddons): boolean => self.addons.isAddonEnabled(addonId);
+  return (_ctx: McpContext, self: HasAddons): Promise<boolean> => self.addons.isAddonEnabled(addonId);
 }
 
 /**
@@ -35,6 +35,6 @@ export function addonGate(addonId: string) {
  * addon toggle and its own flag — notes, polls or chat.
  */
 export function collabFeatureGate(feature: 'chat' | 'notes' | 'polls') {
-  return (_ctx: McpContext, self: HasAddons): boolean =>
-    self.addons.isAddonEnabled(ADDON_IDS.COLLAB) && self.addons.getCollabFeatures()[feature];
+  return async (_ctx: McpContext, self: HasAddons): Promise<boolean> =>
+    (await self.addons.isAddonEnabled(ADDON_IDS.COLLAB)) && (await self.addons.getCollabFeatures())[feature];
 }

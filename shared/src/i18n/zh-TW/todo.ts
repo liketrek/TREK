@@ -11,6 +11,7 @@ const todo: TranslationStrings = {
   'todo.uncategorized': '無清單',
   'todo.namePlaceholder': '任務名稱',
   'todo.descriptionPlaceholder': '說明（可選）',
+  'todo.editDescription': '點擊即可編輯，連結可直接開啟',
   'todo.unassigned': '未指派',
   'todo.noCategory': '無清單',
   'todo.hasDescription': '有說明',

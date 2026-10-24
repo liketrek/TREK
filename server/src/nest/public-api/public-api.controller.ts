@@ -1,5 +1,14 @@
+import { RateLimitService } from '../common/rate-limit.service';
+import { ApiTokenGuard } from './api-token.guard';
+import {
+  enforcePublicApiRateLimit,
+  grantedScopes,
+  narrowToGrant,
+  requireScope,
+  requireUserId,
+} from './public-api-request';
+import { PublicApiService } from './public-api.service';
 import { Controller, Get, HttpException, Param, Query, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
 import {
   PUBLIC_API_INCLUDES,
   publicApiIncludeQuerySchema,
@@ -8,16 +17,8 @@ import {
   type PublicApiTrip,
   type PublicApiTripList,
 } from '@trek/shared';
-import { ApiTokenGuard } from './api-token.guard';
-import { PublicApiService } from './public-api.service';
-import {
-  enforcePublicApiRateLimit,
-  grantedScopes,
-  narrowToGrant,
-  requireScope,
-  requireUserId,
-} from './public-api-request';
-import { RateLimitService } from '../common/rate-limit.service';
+
+import type { Request } from 'express';
 
 /**
  * `/api/v1` — the versioned, read-only surface for third-party integrations.
@@ -46,16 +47,16 @@ export class PublicApiController {
     private readonly rl: RateLimitService,
   ) {}
 
-  private limit(req: Request): void {
-    enforcePublicApiRateLimit(this.rl, req);
+  private limit(req: Request): Promise<void> {
+    return enforcePublicApiRateLimit(this.rl, req);
   }
 
   /** Every trip the token's owner can reach, without itineraries. */
   @Get('trips')
-  listTrips(@Req() req: Request): PublicApiTripList {
-    this.limit(req);
+  async listTrips(@Req() req: Request): Promise<PublicApiTripList> {
+    await this.limit(req);
     requireScope(req, 'trips');
-    return { trips: this.api.listTrips(requireUserId(req)) };
+    return { trips: await this.api.listTrips(requireUserId(req)) };
   }
 
   /**
@@ -66,10 +67,10 @@ export class PublicApiController {
    * this is the one list in TREK it can answer questions about.
    */
   @Get('bucket-list')
-  listBucketList(@Req() req: Request): PublicApiBucketList {
-    this.limit(req);
+  async listBucketList(@Req() req: Request): Promise<PublicApiBucketList> {
+    await this.limit(req);
     requireScope(req, 'bucket-list');
-    return { items: this.api.listBucketList(requireUserId(req)) };
+    return { items: await this.api.listBucketList(requireUserId(req)) };
   }
 
   /**
@@ -80,12 +81,12 @@ export class PublicApiController {
    * endpoint into a way to count someone else's trips.
    */
   @Get('trips/:id')
-  getTrip(
+  async getTrip(
     @Req() req: Request,
     @Param('id') id: string,
     @Query('include') include?: string,
-  ): PublicApiTrip {
-    this.limit(req);
+  ): Promise<PublicApiTrip> {
+    await this.limit(req);
     requireScope(req, 'trips');
     const tripId = parseTripId(id);
 
@@ -102,7 +103,7 @@ export class PublicApiController {
     // The grant goes in as well as the narrowed include: days are implied by any
     // section that hangs off them, and the implied block must still be measured
     // against what the key may read.
-    const trip = this.api.getTrip(tripId, requireUserId(req), allowed, grantedScopes(req));
+    const trip = await this.api.getTrip(tripId, requireUserId(req), allowed, grantedScopes(req));
     if (!trip) {
       throw new HttpException({ error: 'Trip not found' }, 404);
     }

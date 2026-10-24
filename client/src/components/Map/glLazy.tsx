@@ -1,4 +1,10 @@
+import type { ComponentType } from 'react'
 import { lazyWithRetry } from '../../utils/lazyWithRetry'
+import type { GlMapProvider } from './glProviders'
+import type { MapViewProps } from './mapViewContract'
+
+/** What a caller hands the GL trip map: the shared map contract and which provider's style to load. */
+export type MapViewGLProps = MapViewProps & { glProvider?: GlMapProvider }
 
 /**
  * The six ways into a GL map, one chunk per engine.
@@ -21,15 +27,15 @@ import { lazyWithRetry } from '../../utils/lazyWithRetry'
 export const MapViewGLMapbox = lazyWithRetry(async () => {
   const [component, engine] = await Promise.all([import('./MapViewGL'), import('./engines/mapbox')])
   const MapViewGL = component.MapViewGL
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return { default: (props: any) => <MapViewGL {...props} gl={engine.default} /> }
+  const bound = (props: MapViewGLProps) => <MapViewGL {...props} gl={engine.default} />
+  return { default: bound satisfies ComponentType<MapViewGLProps> }
 })
 
 export const MapViewGLMaplibre = lazyWithRetry(async () => {
   const [component, engine] = await Promise.all([import('./MapViewGL'), import('./engines/maplibre')])
   const MapViewGL = component.MapViewGL
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return { default: (props: any) => <MapViewGL {...props} gl={engine.default} /> }
+  const bound = (props: MapViewGLProps) => <MapViewGL {...props} gl={engine.default} />
+  return { default: bound satisfies ComponentType<MapViewGLProps> }
 })
 
 export const JourneyMapGLMapbox = lazyWithRetry(async () => {

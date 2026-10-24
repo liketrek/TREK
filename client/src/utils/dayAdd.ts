@@ -33,5 +33,5 @@ export function datedDayOption(
 ): Pick<DayAddControls, 'nextDate' | 'datedBlocked'> {
   const plan = trip ? planDatedAppend(trip, days.map(d => d.date)) : null
   if (!plan) return { nextDate: null, datedBlocked: null }
-  return { nextDate: plan.date, datedBlocked: plan.fits ? null : t('dashboard.tripTooLong', { days: MAX_TRIP_DAYS }) }
+  return { nextDate: plan.date, datedBlocked: plan.fits ? null : t('dashboard.tripTooLong', { count: MAX_TRIP_DAYS }) }
 }

@@ -1,16 +1,21 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { ChevronsDown, ChevronsUp, Copy, Lock, RotateCcw, RotateCw, Trash2, Unlock } from 'lucide-react'
 import type { BookElement, BookPageSetup, BookSpread } from '@trek/shared'
 import { SpreadFold, SpreadView } from './SpreadView'
 import { PeerCursors } from './PeerCursors'
 import type { PeerCursor } from './useBookPresence'
-import { elementId } from './bookIds'
-import { fontStack } from './bookFonts'
-import { useSpreadInteraction, type HandleId } from './useSpreadInteraction'
+import { bookElementId as elementId } from '@trek/shared'
+import { fontStack, nearestWeight } from './bookFonts'
+import { LineHandles } from './LineHandles'
+import { useSpreadInteraction } from './useSpreadInteraction'
+import { useStudioKeys } from './useStudioKeys'
+import { selectClass, selectionShape } from './studioGestures'
+import { MarqueeRect, ResizeHandles, SelectionBox } from './StudioSelectionChrome'
+import '../../styles/studio-layers.css'
 import { useStudioStore } from '../../store/studioStore'
 import { useTranslation } from '../../i18n'
+import { STICKER_DRAG_TYPE, stickerDropped } from './stickerLibrary'
 
-const HANDLES: HandleId[] = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w']
 
 /**
  * What a delete may actually take out of the selection.
@@ -36,17 +41,6 @@ const ROTATE_CORNERS = [
   { id: 'se', left: '100%', top: '100%' },
   { id: 'sw', left: '0%', top: '100%' },
 ] as const
-
-const HANDLE_POS: Record<HandleId, { left: string; top: string; cursor: string }> = {
-  nw: { left: '0%', top: '0%', cursor: 'nwse-resize' },
-  n: { left: '50%', top: '0%', cursor: 'ns-resize' },
-  ne: { left: '100%', top: '0%', cursor: 'nesw-resize' },
-  e: { left: '100%', top: '50%', cursor: 'ew-resize' },
-  se: { left: '100%', top: '100%', cursor: 'nwse-resize' },
-  s: { left: '50%', top: '100%', cursor: 'ns-resize' },
-  sw: { left: '0%', top: '100%', cursor: 'nesw-resize' },
-  w: { left: '0%', top: '50%', cursor: 'ew-resize' },
-}
 
 /**
  * The sheet plus everything you do to it.
@@ -98,6 +92,8 @@ export function StudioCanvas({
   const removeElements = useStudioStore(s => s.removeElements)
   const duplicate = useStudioStore(s => s.duplicate)
   const raise = useStudioStore(s => s.raise)
+  const enteredGroup = useStudioStore(s => s.enteredGroup)
+  const enterGroup = useStudioStore(s => s.enterGroup)
   const commit = useStudioStore(s => s.commit)
   const addElement = useStudioStore(s => s.addElement)
   const [dropTarget, setDropTarget] = useState<string | null>(null)
@@ -137,34 +133,25 @@ export function StudioCanvas({
   const frameUnder = (x: number, y: number) => spread?.elements.find(el =>
     el.kind === 'photo'
     && !el.locked
+    && !el.hidden
     && x >= el.frame.x && x <= el.frame.x + el.frame.w
     && y >= el.frame.y && y <= el.frame.y + el.frame.h,
   ) ?? null
   const scaled = pxPerMm * zoom
 
-  const { guides, dragging, startMove, startResize, startRotate, onPointerMove, finish } = useSpreadInteraction({
+  const { guides, dragging, marquee, startMove, startPaper, startResize, startRotate, onPointerMove, finish } = useSpreadInteraction({
     spread, spreadIndex, page, pxPerMm: scaled,
   })
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName
-      if (tag === 'INPUT' || tag === 'TEXTAREA') return
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selection.length) {
-        e.preventDefault()
-        const ids = deletable(spread, selection)
-        if (ids.length) removeElements(spreadIndex, ids)
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [selection, spread, spreadIndex, removeElements])
+  useStudioKeys({ spreadIndex, editing: editing !== null })
 
   if (!spread) return null
 
   const single = spread.role !== 'inner'
   const sheetW = single ? page.pageWidth : page.pageWidth * 2
-  const sel = spread.elements.filter(e => selection.includes(e.id))
+  const sel = spread.elements.filter(e => selection.includes(e.id) && !e.hidden)
+  /** One box with handles around a multi-selection; a whole group reads as one thing. */
+  const { many, box, asGroup, anyMovable } = selectionShape(spread, sel)
 
   return (
     <div
@@ -182,6 +169,12 @@ export function StudioCanvas({
       onPointerUp={finish}
       onPointerCancel={finish}
       onDragOver={e => {
+        // A sticker from its panel lands where it is let go; it fills no frame.
+        if (e.dataTransfer.types.includes(STICKER_DRAG_TYPE)) {
+          e.preventDefault()
+          e.dataTransfer.dropEffect = 'copy'
+          return
+        }
         const fromPanel = e.dataTransfer.types.includes('application/x-trek-photo')
         // A file drag is only claimed when somebody is there to take it; for a
         // viewer the browser keeps its default and opens the picture itself.
@@ -195,6 +188,12 @@ export function StudioCanvas({
       }}
       onDragLeave={() => { setDropTarget(null); setFileOver(false) }}
       onDrop={e => {
+        const sticker = stickerDropped(e.dataTransfer.getData(STICKER_DRAG_TYPE), page, single, pointInMm(e))
+        if (sticker) {
+          e.preventDefault()
+          addElement(spreadIndex, sticker)
+          return
+        }
         const raw = e.dataTransfer.getData('application/x-trek-photo')
         const files = Array.from(e.dataTransfer.files ?? [])
         if (!raw && !(files.length && onDropFiles)) return
@@ -236,7 +235,6 @@ export function StudioCanvas({
           photoId, fit: 'cover', focalX: 0.5, focalY: 0.5, radius: 0, filter: 'none',
           mask: null, frameStyle: 'none',
         } as BookElement)
-        select([id])
       }}
     >
       {/*
@@ -257,7 +255,8 @@ export function StudioCanvas({
           height: `${page.pageHeight}mm`,
           transform: `scale(${zoom})`,
         }}
-        onPointerDown={() => select([])}
+        // A press on bare paper draws a marquee; without a drag it clears the selection.
+        onPointerDown={startPaper}
       >
         <SpreadView spread={spread} page={page} folios={folios} big={zoom > 0.34} showGuides dropLabel={dropLabel} />
 
@@ -267,11 +266,15 @@ export function StudioCanvas({
 
         {/* Hit targets sit above the page so a photo's own <img> never eats the
             gesture, and so a locked element simply is not grabbable. */}
-        {spread.elements.map(el => (
+        {spread.elements.filter(el => !el.hidden).map(el => (
           <div
             key={el.id}
             onPointerDown={e => { if (editing !== el.id) startMove(e, el) }}
-            onDoubleClick={() => { if (el.kind === 'text' && !el.locked) setEditing(el.id) }}
+            onDoubleClick={() => {
+              // Into the group first, the way design tools do it; a second one edits a text.
+              if (el.group && enteredGroup !== el.group) { enterGroup(spreadIndex, el.id); return }
+              if (el.kind === 'text' && !el.locked) setEditing(el.id)
+            }}
             style={{
               position: 'absolute',
               left: `${el.frame.x}mm`,
@@ -311,7 +314,7 @@ export function StudioCanvas({
               // The document is in pt; the overlay is on screen at the same zoom.
               fontSize: `${el.size * (96 / 72) * zoom}px`,
               fontFamily: fontStack(el.font),
-              fontWeight: el.weight,
+              fontWeight: nearestWeight(el.font, el.weight),
               fontStyle: el.italic ? 'italic' : undefined,
               lineHeight: el.leading,
               letterSpacing: `${el.tracking}em`,
@@ -365,7 +368,7 @@ export function StudioCanvas({
         {sel.map(el => (
           <div
             key={el.id}
-            className="st-select"
+            className={selectClass(many, el, enteredGroup)}
             style={{
               left: el.frame.x * scaled,
               top: el.frame.y * scaled,
@@ -405,16 +408,26 @@ export function StudioCanvas({
               </div>
             ))}
 
-            {sel.length === 1 && !dragging && !el.locked && HANDLES.map(h => (
-              <span
-                key={h}
-                className={`st-handle ${h.length === 2 ? 'is-corner' : h === 'n' || h === 's' ? 'is-h' : 'is-v'}`}
-                style={{ left: HANDLE_POS[h].left, top: HANDLE_POS[h].top, cursor: HANDLE_POS[h].cursor }}
-                onPointerDown={e => startResize(e, h)}
-              />
-            ))}
+            {/* A line is shaped by its points rather than its box. */}
+            {sel.length === 1 && !el.locked && el.kind === 'line' && (
+              <LineHandles el={el} spreadIndex={spreadIndex} scaled={scaled} t={t} />
+            )}
+
+            {sel.length === 1 && !dragging && !el.locked && el.kind !== 'line' && <ResizeHandles onResize={startResize} />}
           </div>
         ))}
+
+        {/*
+          A multi-selection as one box: one set of handles that resizes them
+          together (Shift keeps the proportions), the members outlined lightly
+          inside it. A whole group's box is dashed, so a group reads as a group
+          before anything is done to it.
+        */}
+        {box && (
+          <SelectionBox box={box} scaled={scaled} asGroup={asGroup} handles={!dragging && anyMovable} onResize={startResize} />
+        )}
+
+        {marquee && <MarqueeRect rect={marquee} scaled={scaled} />}
 
         {/*
           The quick bar, the way Canva and Figma do it: the three or four things
@@ -436,12 +449,12 @@ export function StudioCanvas({
               <button type="button" onClick={() => duplicate(spreadIndex, selection)} title={t('journey.studio.duplicate')}>
                 <Copy size={14} />
               </button>
-              {sel.length === 1 && (
+              {(sel.length === 1 || asGroup) && (
                 <>
-                  <button type="button" onClick={() => raise(spreadIndex, sel[0].id, 'front')} title={t('journey.studio.toFront')}>
+                  <button type="button" onClick={() => raise(spreadIndex, selection, 'front')} title={t('journey.studio.toFront')}>
                     <ChevronsUp size={14} />
                   </button>
-                  <button type="button" onClick={() => raise(spreadIndex, sel[0].id, 'back')} title={t('journey.studio.toBack')}>
+                  <button type="button" onClick={() => raise(spreadIndex, selection, 'back')} title={t('journey.studio.toBack')}>
                     <ChevronsDown size={14} />
                   </button>
                 </>

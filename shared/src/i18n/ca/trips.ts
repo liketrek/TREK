@@ -12,6 +12,6 @@ const trips: TranslationStrings = {
   'trips.memberAddError': 'Error en afegir',
   'trips.reminderDaysBefore': 'dies abans de la sortida',
   'trips.reminderDisabledHint':
-    "Els recordatoris de viatge estan desactivats. Activa'ls a Admin > Configuració > Notificacions.",
+    "Els recordatoris de viatge estan desactivats. Activa'ls a Admin > Notificacions > Recordatoris de viatge.",
 };
 export default trips;

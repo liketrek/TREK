@@ -7,7 +7,7 @@ const categories: TranslationStrings = {
   'categories.empty': 'Aún no hay categorías',
   'categories.namePlaceholder': 'Nombre de la categoría',
   'categories.icon': 'Icono',
-  'categories.color': 'Color',
+  'categories.color': 'Color', // same-as-en
   'categories.customColor': 'Elegir color personalizado',
   'categories.preview': 'Vista previa',
   'categories.defaultName': 'Categoría',

@@ -1,7 +1,7 @@
 import React from 'react'
 import type { CollectionStatus } from '@trek/shared'
 import type { TranslationFn } from '../../types'
-import { STATUS_META, nextStatus } from '../../pages/collections/collectionsModel'
+import { STATUS_META, nextStatus } from './collectionStatus'
 
 interface StatusBadgeProps {
   status: CollectionStatus

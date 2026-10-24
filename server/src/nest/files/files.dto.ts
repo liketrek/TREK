@@ -1,9 +1,6 @@
+import { fileUploadRequestSchema, fileUpdateRequestSchema, fileLinkRequestSchema } from '@trek/shared';
+
 import { createZodDto } from 'nestjs-zod';
-import {
-  fileUploadRequestSchema,
-  fileUpdateRequestSchema,
-  fileLinkRequestSchema,
-} from '@trek/shared';
 
 /**
  * Server-side createZodDto wrappers over the @trek/shared file contracts. The

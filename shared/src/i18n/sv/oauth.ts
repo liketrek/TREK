@@ -7,14 +7,14 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.atlas': 'Atlas',
   'oauth.scope.group.packing': 'Packning',
   'oauth.scope.group.todos': 'Att göra',
-  'oauth.scope.group.budget': 'Budget',
+  'oauth.scope.group.budget': 'Budget', // same-as-en
   'oauth.scope.group.reservations': 'Bokningar',
   'oauth.scope.group.collab': 'Samarbete',
   'oauth.scope.group.notifications': 'Meddelanden',
   'oauth.scope.group.vacay': 'Semester',
-  'oauth.scope.group.geo': 'Geo',
+  'oauth.scope.group.geo': 'Geo', // same-as-en
   'oauth.scope.group.weather': 'Väder',
-  'oauth.scope.group.journey': 'Journey',
+  'oauth.scope.group.journey': 'Journey', // same-as-en
   'oauth.scope.trips:read.label': 'Visa resor och resplaner',
   'oauth.scope.trips:read.description': 'Läs om resor, dagar, daganteckningar och medlemmar',
   'oauth.scope.trips:write.label': 'Redigera resor och resplaner',
@@ -88,10 +88,11 @@ const oauth: TranslationStrings = {
   'oauth.authorize.loginButton': 'Logga in på TREK',
   'oauth.authorize.requestLabel': 'Begäran om behörighet',
   'oauth.authorize.requestDescription': 'Den här applikationen begär åtkomst till ditt TREK konto.',
+  'oauth.authorize.verifiedHost': 'Verifierad domän: {host}',
   'oauth.authorize.trustNote': 'Ge endast åtkomst till applikationer som du litar på. Dina data förblir på din server.',
   'oauth.authorize.selectScope': 'Välj minst ett tillämpningsområde',
-  'oauth.authorize.approveOneScope': 'Godkänn ({count} tillämpningsområde)',
-  'oauth.authorize.approveManyScopes': 'Godkänn ({count} tillämpningsområden)',
+  'oauth.authorize.approveScopes': 'Godkänn ({count} tillämpningsområden)',
+  'oauth.authorize.approveScopes.one': 'Godkänn ({count} tillämpningsområde)',
   'oauth.authorize.approveAccess': 'Godkänn åtkomst',
   'oauth.authorize.deny': 'Neka',
   'oauth.authorize.choosePermissions': 'Välj vilka behörigheter du vill bevilja',
@@ -103,17 +104,22 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.files': 'Filer',
   'oauth.scope.group.settings': 'Inställningar',
   'oauth.scope.files:read.label': 'Visa resans filer',
-  'oauth.scope.files:read.description': 'Lista dokumenten på en resa: namn, storlek, vem som laddade upp dem och vad de är kopplade till',
+  'oauth.scope.files:read.description':
+    'Lista dokumenten på en resa: namn, storlek, vem som laddade upp dem och vad de är kopplade till',
   'oauth.scope.files:write.label': 'Hantera resans filer',
-  'oauth.scope.files:write.description': 'Byt namn på och beskriv filer, koppla dem till bokningar och platser, stjärnmärk och släng dem',
+  'oauth.scope.files:write.description':
+    'Byt namn på och beskriv filer, koppla dem till bokningar och platser, stjärnmärk och släng dem',
   'oauth.scope.files:content.label': 'Läsa filinnehåll',
-  'oauth.scope.files:content.description': 'Läsa innehållet i ett uppladdat dokument, till exempel en boknings-PDF eller en biljett',
+  'oauth.scope.files:content.description':
+    'Läsa innehållet i ett uppladdat dokument, till exempel en boknings-PDF eller en biljett',
   'oauth.scope.settings:read.label': 'Visa dina inställningar',
   'oauth.scope.settings:read.description': 'Läsa enheter, tidsformat, språk, standardvaluta och startsida',
   'oauth.scope.settings:write.label': 'Ändra dina inställningar',
-  'oauth.scope.settings:write.description': 'Ändra enheter, tidsformat, språk, standardvaluta och startsida. Aldrig sparade API-nycklar',
+  'oauth.scope.settings:write.description':
+    'Ändra enheter, tidsformat, språk, standardvaluta och startsida. Aldrig sparade API-nycklar',
   'oauth.scope.group.plugins': 'Tillägg',
   'oauth.scope.plugins:use.label': 'Kör tilläggsverktyg',
-  'oauth.scope.plugins:use.description': 'Låter den här klienten anropa verktyg som publiceras av de tillägg en administratör har installerat och godkänt. Varje tillägg agerar med de rättigheter det redan har fått, inte med det här tokenets omfattningar',
+  'oauth.scope.plugins:use.description':
+    'Låter den här klienten anropa verktyg som publiceras av de tillägg en administratör har installerat och godkänt. Varje tillägg agerar med de rättigheter det redan har fått, inte med det här tokenets omfattningar',
 };
 export default oauth;

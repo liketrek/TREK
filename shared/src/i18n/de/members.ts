@@ -1,14 +1,13 @@
 import type { TranslationStrings } from '../types';
 
 const members: TranslationStrings = {
-  'members.shareTrip': 'Reise teilen',
   'members.inviteUser': 'Benutzer einladen',
   'members.selectUser': 'Benutzer auswählen…',
   'members.invite': 'Einladen',
   'members.allHaveAccess': 'Alle Benutzer haben bereits Zugriff.',
   'members.access': 'Zugriff',
-  'members.person': 'Person',
   'members.persons': 'Personen',
+  'members.persons.one': 'Person',
   'members.you': 'du',
   'members.owner': 'Eigentümer',
   'members.leaveTrip': 'Reise verlassen',
@@ -33,6 +32,9 @@ const members: TranslationStrings = {
   'members.guestAddError': 'Gast konnte nicht hinzugefügt werden',
   'members.guestRenameError': 'Gast konnte nicht umbenannt werden',
   'members.guestRemoved': 'Gast entfernt',
-  'members.confirmRemoveGuest': 'Diesen Gast entfernen? Seine Zuweisungen und Kostenanteile werden ebenfalls entfernt.',
+  'members.confirmRemoveGuest':
+    'Diesen Gast entfernen? Seine Zuweisungen werden entfernt, sein Anteil an jeder Ausgabe geht an die anderen Beteiligten.',
+  'members.guestHasPayments':
+    'Dieser Gast hat eine Ausgabe bezahlt oder ist an einer erfassten Zahlung beteiligt. Ändere zuerst den Zahler oder lösche die Zahlung.',
 };
 export default members;

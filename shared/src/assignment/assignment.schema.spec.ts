@@ -3,10 +3,46 @@ import {
   assignmentEndDayRequestSchema,
   assignmentMoveRequestSchema,
   assignmentParticipantsRequestSchema,
+  assignmentSchema,
   assignmentTransportRequestSchema,
 } from './assignment.schema';
 
 import { describe, it, expect } from 'vitest';
+
+describe('assignment Tours read-model merge', () => {
+  const ordinary = { id: 1, day_id: 2, place_id: 3, order_index: 0, place: { id: 3, name: 'Place' } };
+
+  it('keeps ordinary and legacy track places non-Tours without a facet identity', () => {
+    expect(assignmentSchema.parse(ordinary).tour_place_id).toBeUndefined();
+    const legacy = assignmentSchema.parse({ ...ordinary, tour_place_id: null, tour_route_geometry: null });
+    expect(legacy.tour_place_id).toBeNull();
+    expect(legacy.tour_route_geometry).toBeNull();
+  });
+
+  it('preserves nullable Tour fields, exclusion and incoming/outgoing segment modes', () => {
+    const fields = {
+      tour_place_id: 3,
+      tour_route_geometry: '[[48,11],[49,12]]',
+      route_excluded: true,
+      leg_transport_mode: 'walking',
+      incoming_leg_transport_mode: 'cycling',
+    };
+    expect(assignmentSchema.parse({ ...ordinary, ...fields })).toMatchObject(fields);
+    // MDT-02: the stage of a multi-day tour the day holds, null for the whole tour.
+    expect(assignmentSchema.parse({ ...ordinary, tour_stage_key: 'stop-1xx' }).tour_stage_key).toBe('stop-1xx');
+    expect(assignmentSchema.parse({ ...ordinary, tour_stage_key: null }).tour_stage_key).toBeNull();
+    expect(assignmentSchema.parse({ ...ordinary, tour_place_id: null, tour_route_geometry: null })).toMatchObject({
+      tour_place_id: null,
+      tour_route_geometry: null,
+    });
+  });
+
+  it('does not copy read-only joined Tours fields into create or move requests', () => {
+    const joined = { tour_place_id: 3, tour_route_geometry: '[[48,11],[49,12]]' };
+    expect(assignmentCreateRequestSchema.parse({ place_id: 3, ...joined })).toEqual({ place_id: 3 });
+    expect(assignmentMoveRequestSchema.parse({ new_day_id: 2, ...joined })).toEqual({ new_day_id: 2 });
+  });
+});
 
 it('requires a boolean for an explicit day end', () => {
   expect(assignmentEndDayRequestSchema.parse({ end_day: true })).toEqual({ end_day: true });
@@ -21,6 +57,16 @@ describe('assignmentCreateRequestSchema', () => {
     expect(assignmentCreateRequestSchema.safeParse({ place_id: 2 }).success).toBe(true);
     expect(assignmentCreateRequestSchema.safeParse({ place_id: '2', notes: null }).success).toBe(true);
     expect(assignmentCreateRequestSchema.safeParse({}).success).toBe(false);
+  });
+
+  it('MDT-SH-012: takes the stage of a multi-day tour by the key of the stop it starts at', () => {
+    expect(assignmentCreateRequestSchema.parse({ place_id: 2, tour_stage_key: 'stop-1xx' })).toEqual({
+      place_id: 2,
+      tour_stage_key: 'stop-1xx',
+    });
+    for (const tour_stage_key of ['', 'short', 'not a key!', null, 3]) {
+      expect(assignmentCreateRequestSchema.safeParse({ place_id: 2, tour_stage_key }).success).toBe(false);
+    }
   });
 });
 

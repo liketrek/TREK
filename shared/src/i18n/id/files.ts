@@ -6,7 +6,7 @@ const files: TranslationStrings = {
   'files.linkTitle': 'Tautkan file',
   'files.linkEmpty': 'Belum ada tempat atau reservasi untuk ditautkan',
   'files.menu': 'Opsi lainnya',
-  'files.uploadErrorSize': 'File terlalu besar (maks. 50 MB)',
+  'files.uploadErrorSize': 'File terlalu besar (maks. {max} MB)',
   'files.title': 'File',
   'files.pageTitle': 'File & Dokumen',
   'files.subtitle': '{count} file untuk {trip}',
@@ -14,7 +14,6 @@ const files: TranslationStrings = {
   'files.openError': 'Tidak dapat membuka file',
   'files.downloadPdf': 'Unduh PDF',
   'files.count': '{count} file',
-  'files.countSingular': '1 berkas',
   'files.uploaded': '{count} diunggah',
   'files.uploadError': 'Gagal mengunggah',
   'files.uploadErrorType': 'Tipe file ini tidak didukung',
@@ -62,5 +61,11 @@ const files: TranslationStrings = {
   'files.confirm.emptyTrash': 'Hapus semua file di sampah secara permanen? Tindakan ini tidak bisa dibatalkan.',
   'files.noteLabel': 'Catatan',
   'files.notePlaceholder': 'Tambahkan catatan...',
+  'files.uploadNeedsConnection': 'Mengunggah butuh koneksi. Coba lagi setelah TREK kembali online.',
+  'files.linkNeedsConnection': 'Menghapus tautan ini butuh koneksi. Coba lagi setelah TREK kembali online.',
+  'files.placeFilesNeedConnection':
+    'File butuh koneksi untuk diunggah. Hapus file baru untuk menyimpan tempat secara offline, atau simpan setelah kamu online lagi.',
+  'files.maxSize': 'Maks. {count} MB',
+  'files.toast.starError': 'Gagal mengubah bintang',
 };
 export default files;

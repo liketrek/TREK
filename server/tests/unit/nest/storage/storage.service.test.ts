@@ -1,10 +1,3 @@
-import { describe, it, expect, afterEach } from 'vitest';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-import { EventEmitter } from 'node:events';
-import { PassThrough, Readable } from 'node:stream';
-import type { Response } from 'express';
 import { LocalDriver } from '../../../../src/nest/storage/drivers/local.driver';
 import type { ReplicaFailure } from '../../../../src/nest/storage/drivers/mirror.driver';
 import type { StorageRegistryService, ResolvedCategory } from '../../../../src/nest/storage/storage-registry.service';
@@ -16,6 +9,14 @@ import {
   type ObjectStat,
   type StorageDriver,
 } from '../../../../src/nest/storage/storage.types';
+
+import type { Response } from 'express';
+import { EventEmitter } from 'node:events';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { PassThrough, Readable } from 'node:stream';
+import { describe, it, expect, afterEach } from 'vitest';
 
 // Facade over a stub registry (the weather.controller.test.ts casting style)
 // backed by a REAL LocalDriver, so key composition, prefix stripping, and both
@@ -51,7 +52,10 @@ function makeFixture(keyPrefix = 'files/'): Fixture {
 }
 
 /** A driver with no getLocalPath — the remote-driver branch every helper must handle. */
-function makeStreamOnlyFixture(contents: string, body = (bytes: Buffer): Readable => Readable.from(bytes)): Fixture & { driverCalls: string[] } {
+function makeStreamOnlyFixture(
+  contents: string,
+  body = (bytes: Buffer): Readable => Readable.from(bytes),
+): Fixture & { driverCalls: string[] } {
   const fx = makeFixture('');
   const driverCalls: string[] = [];
   const bytes = Buffer.from(contents);
@@ -218,15 +222,21 @@ describe('StorageService withLocalFile', () => {
 
   it('leaves nothing in tempDir when the download itself fails midway', async () => {
     const cut = new Error('socket hang up');
-    const remote = makeStreamOnlyFixture('first half of the bytes', bytes =>
-      Readable.from((async function* () {
-        yield bytes;
-        throw cut;
-      })()),
+    const remote = makeStreamOnlyFixture('first half of the bytes', (bytes) =>
+      Readable.from(
+        (async function* () {
+          yield bytes;
+          throw cut;
+        })(),
+      ),
     );
     let called = false;
 
-    await expect(remote.storage.withLocalFile('files', 'remote.bin', async () => { called = true; })).rejects.toBe(cut);
+    await expect(
+      remote.storage.withLocalFile('files', 'remote.bin', async () => {
+        called = true;
+      }),
+    ).rejects.toBe(cut);
 
     expect(called).toBe(false);
     expect(fs.readdirSync(remote.tempDir)).toEqual([]);
@@ -390,9 +400,7 @@ describe('StorageService sendToResponse', () => {
       disposition: 'inline',
     });
 
-    expect(mock.sendFileCalls).toEqual([
-      { name: 'doc.pdf', root: path.join(fs.realpathSync(fx.root), 'files') },
-    ]);
+    expect(mock.sendFileCalls).toEqual([{ name: 'doc.pdf', root: path.join(fs.realpathSync(fx.root), 'files') }]);
     expect(mock.headers['Content-Type']).toBe('application/pdf');
     expect(mock.headers['Content-Disposition']).toBe('inline');
   });

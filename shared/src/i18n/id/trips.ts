@@ -11,6 +11,7 @@ const trips: TranslationStrings = {
   'trips.reminderDays': 'hari',
   'trips.reminderCustom': 'Kustom',
   'trips.reminderDaysBefore': 'hari sebelum keberangkatan',
-  'trips.reminderDisabledHint': 'Pengingat perjalanan dinonaktifkan. Aktifkan di Admin > Pengaturan > Notifikasi.',
+  'trips.reminderDisabledHint':
+    'Pengingat perjalanan dinonaktifkan. Aktifkan di Admin > Notifikasi > Pengingat Perjalanan.',
 };
 export default trips;

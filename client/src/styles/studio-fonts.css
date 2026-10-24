@@ -1,0 +1,191 @@
+/* ============================================================================
+   TREK Studio: the typeface picker and the weight slider.
+
+   Its own file beside studio.css, which is at its size ceiling. Same rules as
+   there: every selector is scoped under `.trek-dash` (dashboard.css resets
+   `button` at a specificity a bare class loses to), and every colour is one of
+   the dashboard tokens, so the picker follows the user's theme and accent.
+
+   The family names are set in their own faces and at the user's text size,
+   which is why they scale with --fs-scale-body rather than sitting at a fixed
+   pixel size: a picker is read, and a name too small to read is a name that
+   tells you nothing about its face.
+   ============================================================================ */
+
+.trek-dash .st-fontpick {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.trek-dash .st-fontpick-current,
+.trek-dash .st-fontpick-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  text-align: start;
+  color: var(--ink);
+  transition:
+    background 0.14s,
+    border-color 0.14s,
+    color 0.14s;
+}
+
+.trek-dash .st-fontpick-current {
+  height: 40px;
+  padding-inline: 10px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--line-2);
+  background: var(--surface);
+}
+.trek-dash .st-fontpick-current:hover {
+  border-color: color-mix(in oklch, var(--accent) 40%, var(--line-2));
+}
+.trek-dash .st-fontpick-current:focus-visible,
+.trek-dash .st-fontpick-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.trek-dash .st-fontpick.is-open .st-fontpick-current {
+  border-color: var(--accent);
+}
+
+.trek-dash .st-fontpick-face {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.25;
+  font-size: calc(16px * var(--fs-scale-body, 1));
+}
+
+.trek-dash .st-fontpick-span {
+  flex: none;
+  font-size: calc(11px * var(--fs-scale-caption, 1));
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* In the closed picker the face's name comes first: the kind gives way, cut
+   short and then gone, before a letter of the name is lost. */
+.trek-dash .st-fontpick-current .st-fontpick-face {
+  flex: 0 1 auto;
+}
+.trek-dash .st-fontpick-current .st-fontpick-span {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: end;
+}
+
+.trek-dash .st-fontpick-caret {
+  flex: none;
+  color: var(--ink-3);
+  transition: transform 0.18s;
+}
+.trek-dash .st-fontpick.is-open .st-fontpick-caret {
+  transform: rotate(180deg);
+}
+
+/* The open list. It sits in the inspector's flow and scrolls on its own, so
+   the inspector around it keeps its place. */
+.trek-dash .st-fontpick-panel {
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: color-mix(in oklch, var(--surface) 70%, transparent);
+  overflow: hidden;
+}
+.trek-dash .st-fontpick-search {
+  margin: 8px 8px 4px;
+}
+
+.trek-dash .st-fontpick-list {
+  max-height: 320px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px 4px 6px;
+}
+
+.trek-dash .st-fontpick-group + .st-fontpick-group {
+  margin-top: 4px;
+}
+.trek-dash .st-fontpick-label {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 8px 8px 4px;
+  font-size: calc(10.5px * var(--fs-scale-caption, 1));
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  background: color-mix(in oklch, var(--surface) 92%, transparent);
+}
+
+.trek-dash .st-fontpick-row {
+  min-height: 38px;
+  padding-inline: 8px;
+  border-radius: 8px;
+  color: var(--ink-2);
+}
+.trek-dash .st-fontpick-row:hover {
+  background: var(--surface);
+  color: var(--ink);
+}
+.trek-dash .st-fontpick-row.is-on {
+  color: var(--ink);
+  background: color-mix(in oklch, var(--accent) 10%, transparent);
+}
+.trek-dash .st-fontpick-tick {
+  flex: none;
+  width: 14px;
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+}
+
+.trek-dash .st-fontpick-none {
+  padding: 10px 8px;
+  margin: 0;
+}
+
+/* ----------------- weight ----------------- */
+.trek-dash .st-weight {
+  width: 100%;
+}
+.trek-dash .st-weight > .st-weight-slider {
+  flex: 1;
+  min-width: 0;
+}
+.trek-dash .st-weight > .st-weight-value,
+.trek-dash .st-weight > .st-weight-only {
+  font-size: calc(11.5px * var(--fs-scale-caption, 1));
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.trek-dash .st-weight > .st-weight-value {
+  flex: none;
+  min-width: 84px;
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+.trek-dash .st-weight > .st-weight-only {
+  flex: 1;
+  color: var(--ink-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trek-dash .st-fontpick-caret,
+  .trek-dash .st-fontpick-current,
+  .trek-dash .st-fontpick-row {
+    transition: none;
+  }
+}

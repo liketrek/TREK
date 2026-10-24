@@ -58,9 +58,22 @@ const ja: NotificationLocale = {
         `レプリカ '${p.backend}' への書き込みに失敗しました：${p.op} / ${p.key} — ${p.error}。` +
         (p.suppressed !== '0' ? `前回の通知以降、${p.suppressed}件の追加の失敗が抑制されました。` : ''),
     }),
+    paddle_region_requested: (p) => ({
+      title: 'パドル地域のリクエスト',
+      body: `${p.actor}が${p.region}でパドルツアーを計画しています。管理画面のアドオンで水域データを読み込むか却下してください。`,
+    }),
     synology_session_cleared: () => ({
       title: 'Synologyセッションがクリアされました',
       body: 'SynologyアカウントまたはURLが変更されました。Synology Photosからログアウトされました。',
+    }),
+    wanderer_source_hint: (p) => ({
+      title: `wanderer のトレイル: ${p.tour}`,
+      body:
+        p.state === 'changed'
+          ? `「${p.trip}」の「${p.tour}」が wanderer で変更されました。ツアーを開いてソースを確認すると、すべての変更を確認できます。旅行の内容が勝手に変わることはありません。`
+          : p.state === 'unverifiable'
+            ? `「${p.trip}」の「${p.tour}」は wanderer で確認できなくなりました。旅行内のツアーはそのまま残ります。`
+            : `「${p.trip}」の「${p.tour}」が wanderer で変更された可能性があります。ツアーを開いてソースを確認してください。旅行の内容が勝手に変わることはありません。`,
     }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },

@@ -1,7 +1,21 @@
 import admin from './admin';
-import dawarich from './dawarich';
-import docsync from './docsync';
 import airport from './airport';
+import assistant from './assistant';
+import assistantAtlas from './assistantAtlas';
+import assistantBook from './assistantBook';
+import assistantBookArt from './assistantBookArt';
+import assistantBookDesign from './assistantBookDesign';
+import assistantBooking from './assistantBooking';
+import assistantBudget from './assistantBudget';
+import assistantCard from './assistantCard';
+import assistantCollab from './assistantCollab';
+import assistantCollection from './assistantCollection';
+import assistantHome from './assistantHome';
+import assistantJourney from './assistantJourney';
+import assistantPacking from './assistantPacking';
+import assistantRoadtrip from './assistantRoadtrip';
+import assistantTour from './assistantTour';
+import assistantVacay from './assistantVacay';
 import atlas from './atlas';
 import backup from './backup';
 import budget from './budget';
@@ -10,8 +24,11 @@ import collab from './collab';
 import collection from './collection';
 import common from './common';
 import dashboard from './dashboard';
+import dawarich from './dawarich';
 import day from './day';
 import dayplan from './dayplan';
+import docsync from './docsync';
+import ferratas from './ferratas';
 import files from './files';
 import help from './help';
 import inspector from './inspector';
@@ -35,24 +52,36 @@ import oauth from './oauth';
 import packing from './packing';
 import pdf from './pdf';
 import perm from './perm';
-import photos from './photos';
 import places from './places';
 import planner from './planner';
-import register from './register';
-import roadtrip from './roadtrip';
 import reservations from './reservations';
+import roadtrip from './roadtrip';
 import settings from './settings';
 import share from './share';
 import shared from './shared';
-import stats from './stats';
 import storage from './storage';
+import studioFonts from './studioFonts';
+import studioLayers from './studioLayers';
+import studioPaint from './studioPaint';
+import studioPanels from './studioPanels';
+import studioPhoto from './studioPhoto';
+import studioShapes from './studioShapes';
+import studioStickers from './studioStickers';
+import studioTemplates from './studioTemplates';
+import studioText from './studioText';
+import studioThemes from './studioThemes';
 import system_notice from './system_notice';
 import todo from './todo';
+import tourCollection from './tourCollection';
+import tourPacking from './tourPacking';
+import tours from './tours';
 import transport from './transport';
 import trip from './trip';
 import trips from './trips';
 import undo from './undo';
 import vacay from './vacay';
+import wanderer from './wanderer';
+import wandererWatch from './wandererWatch';
 
 const locale = {
   ...common,
@@ -60,13 +89,17 @@ const locale = {
   ...nav,
   ...dashboard,
   ...roadtrip,
+  ...tours,
+  ...tourCollection,
+  ...tourPacking,
+  ...wanderer,
+  ...wandererWatch,
   ...settings,
   ...admin,
   ...dayplan,
   ...share,
   ...shared,
   ...login,
-  ...register,
   ...vacay,
   ...collection,
   ...atlas,
@@ -82,10 +115,8 @@ const locale = {
   ...members,
   ...categories,
   ...backup,
-  ...photos,
   ...pdf,
   ...planner,
-  ...stats,
   ...day,
   ...memories,
   ...collab,
@@ -94,6 +125,12 @@ const locale = {
   ...todo,
   ...notifications,
   ...journey,
+  ...studioFonts,
+  ...studioPaint,
+  ...studioStickers,
+  ...studioPhoto,
+  ...studioShapes,
+  ...studioText,
   ...notif,
   ...oauth,
   ...system_notice,
@@ -110,5 +147,26 @@ const locale = {
   ...storage,
   ...dawarich,
   ...docsync,
+  ...ferratas,
+  ...assistant,
+  ...assistantCard,
+  ...assistantTour,
+  ...assistantRoadtrip,
+  ...assistantBudget,
+  ...assistantBook,
+  ...assistantBookDesign,
+  ...assistantBookArt,
+  ...studioThemes,
+  ...assistantBooking,
+  ...assistantCollab,
+  ...assistantCollection,
+  ...assistantAtlas,
+  ...assistantVacay,
+  ...assistantHome,
+  ...assistantJourney,
+  ...assistantPacking,
+  ...studioLayers,
+  ...studioTemplates,
+  ...studioPanels,
 };
 export default locale;

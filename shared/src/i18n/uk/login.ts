@@ -61,16 +61,22 @@ const login: TranslationStrings = {
   'login.resetPasswordFailed': 'Скидання не вдалося. Можливо, термін дії посилання минув.',
   'login.oidc.tokenFailed': 'Автентифікація не вдалася.',
   'login.oidc.invalidState': 'Недійсна сесія. Спробуйте знову.',
+  'login.oidc.emailNotVerified':
+    'Ваш провайдер входу не підтвердив цю адресу електронної пошти, тому її не можна пов’язати з наявним обліковим записом.',
+  'login.oidc.emailLinkBlocked':
+    'Не вдалося пов’язати цей вхід із наявним обліковим записом з цією адресою. Попросіть адміністратора підтвердити адресу.',
   'login.demoFailed': 'Помилка демо-входу',
   'login.oidcSignIn': 'Увійти через {name}',
   'login.oidcOnly': 'Вхід за паролем вимкнено. Використайте вашого SSO-провайдера для входу.',
   'login.oidcLoggedOut': 'Ви вийшли з системи. Увійдіть знову через вашого SSO-провайдера.',
+  'login.oidcRedirecting': 'Переходимо до {name}…',
+  'login.oidcRedirectSlow': 'Досі тут? Перейти до {name}',
   'login.demoHint': 'Спробуйте демо — реєстрація не потрібна',
   'login.passkey.signIn': 'Увійти за допомогою passkey',
   'login.passkey.failed': 'Не вдалося увійти за допомогою passkey. Спробуйте ще раз.',
-  'login.insecureCookie.title': "Login won't stick over HTTP",
+  'login.insecureCookie.title': 'Вхід не збережеться через HTTP',
   'login.insecureCookie.body':
-    'You’re connecting over plain HTTP, so your browser drops TREK’s secure session cookie — the next request fails with "Access token required". Fix: use HTTPS, or for a home-lab set COOKIE_SECURE=false.',
-  'login.insecureCookie.link': 'Open the Troubleshooting guide',
+    'Ти підключаєшся через звичайний HTTP, тому браузер відкидає захищений сеансовий cookie TREK, і наступний запит завершується помилкою «Access token required». Рішення: використай HTTPS або, для домашньої лабораторії, встанови COOKIE_SECURE=false.',
+  'login.insecureCookie.link': 'Відкрити посібник з усунення несправностей',
 };
 export default login;

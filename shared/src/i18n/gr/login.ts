@@ -25,11 +25,17 @@ const login: TranslationStrings = {
   'login.oidc.noEmail': 'Δεν ελήφθη email από τον πάροχο.',
   'login.oidc.tokenFailed': 'Ο έλεγχος ταυτότητας απέτυχε.',
   'login.oidc.invalidState': 'Μη έγκυρη συνεδρία. Παρακαλώ δοκιμάστε ξανά.',
+  'login.oidc.emailNotVerified':
+    'Ο πάροχος σύνδεσης δεν έχει επιβεβαιώσει αυτή τη διεύθυνση email, επομένως δεν μπορεί να συνδεθεί με υπάρχοντα λογαριασμό.',
+  'login.oidc.emailLinkBlocked':
+    'Αυτή η σύνδεση δεν ήταν δυνατό να συνδεθεί με τον υπάρχοντα λογαριασμό με αυτό το email. Ζητήστε από τον διαχειριστή να επιβεβαιώσει τη διεύθυνση.',
   'login.demoFailed': 'Η σύνδεση demo απέτυχε',
   'login.oidcSignIn': 'Σύνδεση με {name}',
   'login.oidcOnly':
     'Ο έλεγχος ταυτότητας με κωδικό είναι απενεργοποιημένος. Παρακαλώ συνδεθείτε χρησιμοποιώντας τον πάροχο SSO σας.',
   'login.oidcLoggedOut': 'Έχετε αποσυνδεθεί. Συνδεθείτε ξανά χρησιμοποιώντας τον πάροχο SSO σας.',
+  'login.oidcRedirecting': 'Ανακατεύθυνση στο {name}…',
+  'login.oidcRedirectSlow': 'Ακόμα εδώ; Συνέχεια στο {name}',
   'login.demoHint': 'Δοκιμάστε το demo — δεν απαιτείται εγγραφή',
   'login.mfaTitle': 'Έλεγχος ταυτότητας δύο παραγόντων',
   'login.mfaSubtitle': 'Εισάγετε τον 6ψήφιο κωδικό από την εφαρμογή authenticator σας.',
@@ -71,9 +77,9 @@ const login: TranslationStrings = {
   'login.resetPasswordFailed': 'Η επαναφορά απέτυχε. Ο σύνδεσμος μπορεί να έχει λήξει.',
   'login.passkey.signIn': 'Σύνδεση με passkey',
   'login.passkey.failed': 'Η σύνδεση με passkey απέτυχε. Παρακαλώ δοκιμάστε ξανά.',
-  'login.insecureCookie.title': "Login won't stick over HTTP",
+  'login.insecureCookie.title': 'Η σύνδεση δεν διατηρείται μέσω HTTP',
   'login.insecureCookie.body':
-    'You’re connecting over plain HTTP, so your browser drops TREK’s secure session cookie — the next request fails with "Access token required". Fix: use HTTPS, or for a home-lab set COOKIE_SECURE=false.',
-  'login.insecureCookie.link': 'Open the Troubleshooting guide',
+    'Συνδέεστε μέσω απλού HTTP, γι\' αυτό ο browser απορρίπτει το ασφαλές cookie συνεδρίας του TREK και το επόμενο αίτημα αποτυγχάνει με το μήνυμα "Access token required". Λύση: χρησιμοποιήστε HTTPS ή, για home-lab, ορίστε COOKIE_SECURE=false.',
+  'login.insecureCookie.link': 'Άνοιγμα του οδηγού αντιμετώπισης προβλημάτων',
 };
 export default login;

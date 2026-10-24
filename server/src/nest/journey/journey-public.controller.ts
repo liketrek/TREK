@@ -1,12 +1,15 @@
-import { Controller, Get, HttpException, Param, Res, UseGuards } from '@nestjs/common';
-import type { Response } from 'express';
-import path from 'node:path';
-import { JourneyService } from './journey.service';
-import { StorageService } from '../storage/storage.service';
+import { ADDON_IDS } from '../../addons';
 import { AddonGuard } from '../addons/addon.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';
-import { ADDON_IDS } from '../../addons';
-import { Public } from '../auth/public.decorator';
+import { Public } from '../auth-core/public.decorator';
+import { ResponseContract } from '../common/response-contract';
+import { StorageService } from '../storage/storage.service';
+import { JourneyService } from './journey.service';
+import { Controller, Get, HttpException, Param, Res, UseGuards } from '@nestjs/common';
+import { journeyPublicMapLayersResponseSchema } from '@trek/shared';
+
+import type { Response } from 'express';
+import path from 'node:path';
 
 /**
  * /api/public/journey — unauthenticated, share-token validated read + photo
@@ -33,21 +36,45 @@ export class JourneyPublicController {
   ) {}
 
   @Get(':token')
-  get(@Param('token') token: string) {
-    const data = this.journey.getPublicJourney(token);
+  async get(@Param('token') token: string) {
+    const data = await this.journey.getPublicJourney(token);
     if (!data) {
       throw new HttpException({ error: 'Not found' }, 404);
     }
     return data;
   }
 
+  /**
+   * What the shared map shows beside the entries and photos (JRN-04), cut to
+   * the link's flags on the server: nothing while the map is not shared.
+   */
+  @Get(':token/map-layers')
+  @ResponseContract(journeyPublicMapLayersResponseSchema)
+  async mapLayers(@Param('token') token: string) {
+    const layers = await this.journey.getPublicMapLayers(token);
+    if (!layers) {
+      throw new HttpException({ error: 'Not found' }, 404);
+    }
+    return layers;
+  }
+
   @Get(':token/photos/:photoId/:kind')
-  async photo(@Param('token') token: string, @Param('photoId') photoId: string, @Param('kind') kind: string, @Res() res: Response): Promise<void> {
-    const valid = this.journey.validateShareTokenForPhoto(token, Number(photoId));
+  async photo(
+    @Param('token') token: string,
+    @Param('photoId') photoId: string,
+    @Param('kind') kind: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    const valid = await this.journey.validateShareTokenForPhoto(token, Number(photoId));
     if (!valid) {
       throw new HttpException({ error: 'Not found' }, 404);
     }
-    await this.journey.streamPhoto(res, valid.ownerId, Number(photoId), kind === 'thumbnail' ? 'thumbnail' : 'original');
+    await this.journey.streamPhoto(
+      res,
+      valid.ownerId,
+      Number(photoId),
+      kind === 'thumbnail' ? 'thumbnail' : 'original',
+    );
   }
 
   @Get(':token/photo/:provider/:assetId/:ownerId/:kind')
@@ -58,7 +85,7 @@ export class JourneyPublicController {
     @Param('kind') kind: string,
     @Res() res: Response,
   ): Promise<void> {
-    const valid = this.journey.validateShareTokenForAsset(token, assetId);
+    const valid = await this.journey.validateShareTokenForAsset(token, assetId);
     if (!valid) {
       throw new HttpException({ error: 'Not found' }, 404);
     }

@@ -1,12 +1,33 @@
 import { daysApi } from '../api/client'
-import { offlineDb, upsertDays, upsertTrip } from '../db/offlineDb'
+import { offlineDb, replaceTripRows, upsertTrip } from '../db/offlineDb'
+import { generateUUID, mutationQueue } from '../sync/mutationQueue'
 import { isEffectivelyOffline } from '../sync/networkMode'
 import { onlineThenCache } from './withOfflineFallback'
 import type { Day, Trip } from '../types'
+import type { DayUpdateRequest } from '@trek/shared'
 
 /** A cache write after the server already answered: its failure is logged, not the caller's. */
-function cacheAfterWrite(write: Promise<unknown>, what: string): void {
+export function cacheAfterWrite(write: Promise<unknown>, what: string): void {
   write.catch((err: unknown) => console.warn(`Offline cache not updated after ${what}:`, err))
+}
+
+/**
+ * The cached day with the fields of a write laid over it. The day answers carry
+ * no notes of the day, so the ones the cache holds stay.
+ */
+async function cacheDayFields(dayId: number, fields: Partial<Day>): Promise<void> {
+  await offlineDb.days.where('id').equals(dayId).modify(day => { Object.assign(day, fields) })
+}
+
+/** Queue a write to one day, held behind any older write to it. */
+async function enqueueDayWrite(tripId: number | string, dayId: number, url: string, body: unknown, fields: Partial<Day>): Promise<void> {
+  await offlineDb.transaction('rw', offlineDb.days, offlineDb.mutationQueue, async () => {
+    await mutationQueue.enqueue({
+      id: generateUUID(), tripId: Number(tripId), method: 'PUT', url, body, resource: 'days', entityId: dayId,
+    })
+    await cacheDayFields(dayId, fields)
+  })
+  mutationQueue.sendSoon()
 }
 
 export const dayRepo = {
@@ -14,7 +35,7 @@ export const dayRepo = {
     return onlineThenCache(
       async () => {
         const result = await daysApi.list(tripId)
-        upsertDays(result.days)
+        void replaceTripRows('days', Number(tripId), result.days)
         return result
       },
       async () => ({
@@ -24,6 +45,35 @@ export const dayRepo = {
           .sortBy('day_number' as keyof Day)) as Day[],
       }),
     )
+  },
+
+  /**
+   * A day's title or its notes text. The server keeps the field a write leaves
+   * out, so each goes on its own. Day writes carry no version token, so offline,
+   * and online while an older write to the day still waits, it joins the queue.
+   */
+  async update(tripId: number | string, dayId: number, data: DayUpdateRequest): Promise<void> {
+    const fields: Partial<Day> = {
+      ...('title' in data ? { title: data.title ?? null } : {}),
+      ...('notes' in data ? { notes: data.notes || null } : {}),
+    }
+    if (!(await mutationQueue.mustQueue('days', dayId))) {
+      await daysApi.update(tripId, dayId, data)
+      cacheAfterWrite(cacheDayFields(dayId, fields), 'renaming a day')
+      return
+    }
+    await enqueueDayWrite(tripId, dayId, `/trips/${tripId}/days/${dayId}`, data, fields)
+  },
+
+  /** The whole-day default route mode, queued the same way as update. */
+  async setTransport(tripId: number | string, dayId: number, mode: string | null): Promise<void> {
+    const fields: Partial<Day> = { default_transport_mode: mode }
+    if (!(await mutationQueue.mustQueue('days', dayId))) {
+      await daysApi.updateTransport(tripId, dayId, mode)
+      cacheAfterWrite(cacheDayFields(dayId, fields), 'changing the travel mode of a day')
+      return
+    }
+    await enqueueDayWrite(tripId, dayId, `/trips/${tripId}/days/${dayId}/transport`, { transport_mode: mode }, fields)
   },
 
   /**
@@ -43,6 +93,24 @@ export const dayRepo = {
     cacheAfterWrite(offlineDb.days.delete(dayId), 'deleting a day')
     if (result.trip) cacheAfterWrite(upsertTrip(result.trip), 'deleting a day')
     return { trip: result.trip }
+  },
+
+  /**
+   * Put the days in a new order. Online only, like remove: on a trip with dates
+   * the server moves the dates of the bookings along with their days, which the
+   * cache cannot follow.
+   */
+  async reorder(tripId: number | string, orderedIds: number[]): Promise<void> {
+    if (isEffectivelyOffline()) throw new Error('Reordering days needs a connection')
+    await daysApi.reorder(tripId, orderedIds)
+  },
+
+  /** An empty day at a 1-based position, or at the end. Online only, like appendDated. */
+  async insert(tripId: number | string, position?: number): Promise<{ day: Day; trip?: Trip }> {
+    if (isEffectivelyOffline()) throw new Error('Adding a day needs a connection')
+    const result = await daysApi.create(tripId, { position })
+    if (result.trip) cacheAfterWrite(upsertTrip(result.trip), 'adding a day')
+    return result
   },
 
   /**

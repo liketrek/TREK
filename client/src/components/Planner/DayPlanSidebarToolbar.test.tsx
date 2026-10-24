@@ -197,15 +197,16 @@ describe('DayPlanSidebarToolbar', () => {
     expect(setUndoHover).toHaveBeenCalledWith(false)
   })
 
-  it('FE-PLANNER-DPTOOLBAR-017: the undo tooltip names the last action when there is one', () => {
-    render(<DayPlanSidebarToolbar {...makeProps({ onUndo: vi.fn(), canUndo: true, undoHover: true, lastActionLabel: 'Reorder' })} />)
-    expect(screen.getByText('undo.tooltip|Reorder')).toBeInTheDocument()
+  it('FE-PLANNER-DPTOOLBAR-017: the undo tooltip names the last action when there is one', async () => {
+    const user = userEvent.setup()
+    render(<DayPlanSidebarToolbar {...makeProps({ onUndo: vi.fn(), canUndo: true, lastActionLabel: 'Reorder' })} />)
+    await user.hover(screen.getByRole('button', { name: 'undo.button' }))
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('undo.tooltip|Reorder')
   })
 
-  it('FE-PLANNER-DPTOOLBAR-018: the undo tooltip falls back to the plain label with nothing to undo', () => {
-    render(<DayPlanSidebarToolbar {...makeProps({ onUndo: vi.fn(), canUndo: false, undoHover: true, lastActionLabel: 'Reorder' })} />)
-    // Both the aria-label and the tooltip carry the same text here.
-    expect(screen.getAllByText('undo.button').length + screen.getAllByLabelText('undo.button').length).toBeGreaterThan(1)
+  it('FE-PLANNER-DPTOOLBAR-018: with nothing to undo the button is off and names no action', () => {
+    render(<DayPlanSidebarToolbar {...makeProps({ onUndo: vi.fn(), canUndo: false, lastActionLabel: 'Reorder' })} />)
+    expect(screen.getByRole('button', { name: 'undo.button' })).toBeDisabled()
     expect(screen.queryByText('undo.tooltip|Reorder')).not.toBeInTheDocument()
   })
 
@@ -301,22 +302,13 @@ describe('DayPlanSidebarToolbar', () => {
     expect(screen.getByRole('button', { name: 'map.hideAllConnections' })).toHaveAttribute('aria-pressed', 'true')
   })
 
-  it('FE-PLANNER-DPTOOLBAR-023: the icon buttons paint a hover background and clear it again', async () => {
-    const user = userEvent.setup()
+  it('FE-PLANNER-DPTOOLBAR-023: the icon buttons rise like an active tab while they are on', () => {
     const days = [buildDay({ id: 10 })]
-    render(<DayPlanSidebarToolbar {...makeProps({ days, onToggleAllConnections: vi.fn(), reservations: [routableReservation()] })} />)
-
-    const expandBtn = screen.getByRole('button', { name: 'dayplan.expandAll' })
-    await user.hover(expandBtn)
-    expect(expandBtn.style.background).toBe('var(--bg-hover)')
-    await user.unhover(expandBtn)
-    expect(expandBtn.style.background).toBe('transparent')
-
+    const { rerender } = render(<DayPlanSidebarToolbar {...makeProps({ days, onToggleAllConnections: vi.fn(), reservations: [routableReservation()] })} />)
     const routeBtn = screen.getByRole('button', { name: 'map.showAllConnections' })
-    await user.hover(routeBtn)
-    expect(routeBtn.style.background).toBe('var(--bg-hover)')
-    await user.unhover(routeBtn)
-    expect(routeBtn.style.background).toBe('transparent')
+    expect(routeBtn).not.toHaveClass('shadow-sm')
+    rerender(<DayPlanSidebarToolbar {...makeProps({ days, onToggleAllConnections: vi.fn(), reservations: [routableReservation()], allConnectionsShown: true })} />)
+    expect(screen.getByRole('button', { name: 'map.hideAllConnections' })).toHaveClass('bg-surface-card', 'shadow-sm')
   })
 
 })

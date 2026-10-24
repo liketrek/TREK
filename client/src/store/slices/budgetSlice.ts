@@ -1,4 +1,3 @@
-import { budgetApi } from '../../api/client'
 import { budgetRepo } from '../../repo/budgetRepo'
 import type { StoreApi } from 'zustand'
 import type { TripStoreState } from '../tripStore'
@@ -7,6 +6,7 @@ import type { BudgetCreateItemRequest, BudgetFallbackFx, BudgetFreezeRatesRespon
 import { getApiErrorMessage } from '../../types'
 import { withFallbackFx } from '../../hooks/useExchangeRates'
 import { notify } from '../notify'
+import { orderBudgetByCategories } from './budgetOrder'
 
 type SetState = StoreApi<TripStoreState>['setState']
 type GetState = StoreApi<TripStoreState>['getState']
@@ -46,8 +46,10 @@ export const createBudgetSlice = (set: SetState, get: GetState): BudgetSlice => 
     try {
       // A foreign currency goes out with the rate the browser holds for it, so the server
       // can freeze one even when its own fetch fails.
-      const result = await budgetApi.create(tripId, withFallbackFx(data, openTripCurrency(get, tripId)))
+      const result = await budgetRepo.create(tripId, withFallbackFx(data, openTripCurrency(get, tripId)))
       set(state => ({ budgetItems: [...state.budgetItems, result.item] }))
+      // The booking mirrors its expenses' total (#2084), so a new one on it changes its card.
+      if (result.item.reservation_id) get().loadReservations(tripId)
       return result.item
     } catch (err: unknown) {
       throw new Error(getApiErrorMessage(err, 'Error adding budget item'))
@@ -56,11 +58,13 @@ export const createBudgetSlice = (set: SetState, get: GetState): BudgetSlice => 
 
   updateBudgetItem: async (tripId, id, data) => {
     try {
-      const result = await budgetApi.update(tripId, id, withFallbackFx(data, openTripCurrency(get, tripId)))
+      const result = await budgetRepo.update(tripId, id, withFallbackFx(data, openTripCurrency(get, tripId)))
       set(state => ({
         budgetItems: state.budgetItems.map(item => item.id === id ? result.item : item)
       }))
-      if (result.item.reservation_id && data.total_price !== undefined) {
+      // The booking mirrors its expenses' total, so any edit of an expense on one
+      // (total, currency, payers) or a link that moved (#2084) changes its card.
+      if (result.item.reservation_id || data.reservation_id !== undefined) {
         get().loadReservations(tripId)
       }
       return result.item
@@ -73,7 +77,7 @@ export const createBudgetSlice = (set: SetState, get: GetState): BudgetSlice => 
     const prev = get().budgetItems
     set(state => ({ budgetItems: state.budgetItems.filter(item => item.id !== id) }))
     try {
-      await budgetApi.delete(tripId, id)
+      await budgetRepo.delete(tripId, id)
     } catch (err: unknown) {
       set({ budgetItems: prev })
       throw new Error(getApiErrorMessage(err, 'Error deleting budget item'))
@@ -81,7 +85,7 @@ export const createBudgetSlice = (set: SetState, get: GetState): BudgetSlice => 
   },
 
   setBudgetItemMembers: async (tripId, itemId, userIds) => {
-    const result = await budgetApi.setMembers(tripId, itemId, userIds);
+    const result = await budgetRepo.setMembers(tripId, itemId, userIds);
     set(state => ({
       budgetItems: state.budgetItems.map(item =>
         item.id === itemId ? { ...item, members: result.members, persons: result.item.persons } : item
@@ -91,7 +95,7 @@ export const createBudgetSlice = (set: SetState, get: GetState): BudgetSlice => 
   },
 
   toggleBudgetMemberPaid: async (tripId, itemId, userId, paid) => {
-    await budgetApi.togglePaid(tripId, itemId, userId, paid);
+    await budgetRepo.togglePaid(tripId, itemId, userId, paid);
     set(state => ({
       budgetItems: state.budgetItems.map(item =>
         item.id === itemId
@@ -119,13 +123,13 @@ export const createBudgetSlice = (set: SetState, get: GetState): BudgetSlice => 
       return { budgetItems: [...reordered, ...remaining] }
     })
     try {
-      await budgetApi.reorderItems(tripId, orderedIds)
+      await budgetRepo.reorderItems(tripId, orderedIds)
     } catch (err: unknown) {
       // Reload on failure to restore the server's ordering, and tell the user
       // their reorder didn't stick (the caller fires this without awaiting, so
       // a failing reload must not escape as an unhandled rejection).
       try {
-        const data = await budgetApi.list(tripId)
+        const data = await budgetRepo.list(tripId)
         set({ budgetItems: data.items })
       } catch { /* offline too — the next successful load restores the order */ }
       notify(getApiErrorMessage(err, 'Error reordering budget items'), 'error')
@@ -134,31 +138,15 @@ export const createBudgetSlice = (set: SetState, get: GetState): BudgetSlice => 
 
   reorderBudgetCategories: async (tripId, orderedCategories) => {
     // Optimistic: reorder items by new category order (Map preserves insertion order for numeric keys)
-    set(state => {
-      const grouped = new Map<string, BudgetItem[]>()
-      for (const item of state.budgetItems) {
-        const cat = item.category || 'Other'
-        if (!grouped.has(cat)) grouped.set(cat, [])
-        grouped.get(cat)!.push(item)
-      }
-      const reordered: BudgetItem[] = []
-      for (const cat of orderedCategories) {
-        const items = grouped.get(cat)
-        if (items) reordered.push(...items)
-      }
-      for (const [cat, items] of grouped) {
-        if (!orderedCategories.includes(cat)) reordered.push(...items)
-      }
-      return { budgetItems: reordered }
-    })
+    set(state => ({ budgetItems: orderBudgetByCategories(state.budgetItems, orderedCategories) }))
     try {
-      await budgetApi.reorderCategories(tripId, orderedCategories)
+      await budgetRepo.reorderCategories(tripId, orderedCategories)
     } catch (err: unknown) {
       // Reload on failure to restore the server's ordering, and tell the user
       // their reorder didn't stick (the caller fires this without awaiting, so
       // a failing reload must not escape as an unhandled rejection).
       try {
-        const data = await budgetApi.list(tripId)
+        const data = await budgetRepo.list(tripId)
         set({ budgetItems: data.items })
       } catch { /* offline too — the next successful load restores the order */ }
       notify(getApiErrorMessage(err, 'Error reordering budget items'), 'error')
@@ -168,7 +156,7 @@ export const createBudgetSlice = (set: SetState, get: GetState): BudgetSlice => 
   // Freezes a rate onto the rows the settlement could not count (see useFreezeMissingRates).
   // Not optimistic: nothing changes locally until the server says which rows it froze.
   freezeMissingRates: async (tripId, fallback) => {
-    const result = await budgetApi.freezeRates(tripId, fallback ? { fallback_fx: fallback } : {})
+    const result = await budgetRepo.freezeRates(tripId, fallback ? { fallback_fx: fallback } : {})
     if (result.items.length > 0) {
       const healed = new Map(result.items.map(item => [item.id, item]))
       set(state => ({ budgetItems: state.budgetItems.map(item => healed.get(item.id) ?? item) }))

@@ -1,7 +1,7 @@
-// FE-STORE-PLUGIN-001 to 006
+// FE-STORE-PLUGIN-001 to 009
 import { http, HttpResponse } from 'msw';
 import { server } from '../../tests/helpers/msw/server';
-import { usePluginStore, clearAllPluginSessions } from './pluginStore';
+import { usePluginStore, clearAllPluginSessions, readPoiCategories } from './pluginStore';
 
 const initial = usePluginStore.getState();
 
@@ -98,5 +98,65 @@ describe('pluginStore', () => {
     expect(usePluginStore.getState().plugins.map((p) => p.id)).toEqual(['active']);
     expect(usePluginStore.getState().loaded).toBe(true);
     key.mockRestore();
+  });
+
+  // Plugin POI categories (#1781) end up in the explore pill and their colour in
+  // marker markup, so the store re-reads them against the shared schema.
+  const trailheads = { id: 'trailheads', label: 'Trailheads', labels: { de: 'Wanderparkplätze' }, icon: 'Signpost', color: '#2f855a' };
+
+  it('FE-STORE-PLUGIN-007: carries the POI categories the feed sends and leaves the key off without them', async () => {
+    server.use(
+      http.get('/api/plugins', () =>
+        HttpResponse.json({
+          plugins: [
+            { id: 'trail-finder', name: 'Trail finder', type: 'integration', icon: null, poiCategories: [trailheads] },
+            { id: 'flights', name: 'Flights', type: 'widget', icon: 'Plane' },
+          ],
+        }),
+      ),
+    );
+
+    await usePluginStore.getState().loadPlugins();
+
+    const [trail, flights] = usePluginStore.getState().plugins;
+    expect(trail.poiCategories).toEqual([trailheads]);
+    expect(flights).not.toHaveProperty('poiCategories');
+  });
+
+  it('FE-STORE-PLUGIN-008: drops a malformed category instead of rendering it, and the key when none survive', async () => {
+    server.use(
+      http.get('/api/plugins', () =>
+        HttpResponse.json({
+          plugins: [
+            {
+              id: 'trail-finder', name: 'Trail finder', type: 'integration', icon: null,
+              poiCategories: [
+                { ...trailheads, id: 'bad-colour', color: 'red;background:url(https://x)' },
+                { ...trailheads, id: 'bad-icon', icon: 'Skull' },
+                trailheads,
+                { ...trailheads, label: 'Duplicate id' },
+                null,
+              ],
+            },
+            { id: 'broken', name: 'Broken', type: 'integration', icon: null, poiCategories: [{ id: 'x' }] },
+          ],
+        }),
+      ),
+    );
+
+    await usePluginStore.getState().loadPlugins();
+
+    const [trail, broken] = usePluginStore.getState().plugins;
+    expect(trail.poiCategories).toEqual([trailheads]);
+    expect(broken).not.toHaveProperty('poiCategories');
+  });
+
+  it('FE-STORE-PLUGIN-009: readPoiCategories keeps the cap and refuses what cannot become a pill key', () => {
+    const many = ['a1', 'a2', 'a3', 'a4', 'a5'].map((id) => ({ ...trailheads, id }));
+    expect(readPoiCategories('trail-finder', many).map((c) => c.id)).toEqual(['a1', 'a2', 'a3', 'a4']);
+    expect(readPoiCategories('trail-finder', 'not a list')).toEqual([]);
+    // Nothing parses back out of `plugin:TF/trailheads`, so its chip could never be searched.
+    expect(readPoiCategories('TF', [trailheads])).toEqual([]);
+    expect(readPoiCategories(undefined as unknown as string, [trailheads])).toEqual([]);
   });
 });

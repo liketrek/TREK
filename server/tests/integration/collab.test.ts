@@ -5,63 +5,32 @@
  * Note: File upload to collab notes (COLLAB-005/006/007) requires physical file I/O.
  *       Link preview (COLLAB-025/026) would need fetch mocking — skipped here.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
-import type { INestApplication } from '@nestjs/common';
-import path from 'path';
-import fs from 'fs';
-
-const { testDb, dbMock } = vi.hoisted(() => {
-  const Database = require('better-sqlite3');
-  const db = new Database(':memory:');
-  db.exec('PRAGMA journal_mode = WAL');
-  db.exec('PRAGMA foreign_keys = ON');
-  db.exec('PRAGMA busy_timeout = 5000');
-  const mock = {
-    db,
-    closeDb: () => {},
-    reinitialize: () => {},
-    getPlaceWithTags: (placeId: number) => {
-      const place: any = db.prepare(`SELECT p.*, c.name as category_name, c.color as category_color, c.icon as category_icon FROM places p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?`).get(placeId);
-      if (!place) return null;
-      const tags = db.prepare(`SELECT t.* FROM tags t JOIN place_tags pt ON t.id = pt.tag_id WHERE pt.place_id = ?`).all(placeId);
-      return { ...place, category: place.category_id ? { id: place.category_id, name: place.category_name, color: place.category_color, icon: place.category_icon } : null, tags };
-    },
-    canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`).get(userId, tripId, userId),
-    isOwner: (tripId: any, userId: number) =>
-      !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
-  };
-  return { testDb: db, dbMock: mock };
-});
-
-vi.mock('../../src/db/database', () => dbMock);
-vi.mock('../../src/config', () => ({
-  JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  updateJwtSecret: () => {},
-  SESSION_DURATION: '24h',
-  SESSION_DURATION_MS: 86400000,
-  SESSION_DURATION_SECONDS: 86400,
-  DEFAULT_LANGUAGE: 'en',
-}));
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
-
 import { buildApp } from '../../src/bootstrap';
-import { createTables } from '../../src/db/schema';
-import { runMigrations } from '../../src/db/migrations';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createUser, createTrip, addTripMember } from '../helpers/factories';
-import { authCookie, generateToken } from '../helpers/auth';
+import { db as testDb } from '../../src/db/database';
 import { CollabService } from '../../src/nest/collab/collab.service';
+import { authCookie, generateToken } from '../helpers/auth';
+import { createUser, createTrip, addTripMember } from '../helpers/factories';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import fs from 'fs';
+import path from 'path';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+
+vi.mock('../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
+});
 
 // Spy on the DI-native service's linkPreview so the SSRF-guarded fetch never
 // runs; the rest of CollabService exercises its real SQL through the container.
 // The original is kept so the guard cases below can put it back for one call —
 // mockRestore would drop the spy for every test declared after them.
 const realLinkPreview = CollabService.prototype.linkPreview;
-const linkPreviewSpy = vi.spyOn(CollabService.prototype, 'linkPreview')
+const linkPreviewSpy = vi
+  .spyOn(CollabService.prototype, 'linkPreview')
   .mockResolvedValue({ title: null, description: null, image: null, url: '' });
 
 let nestApp: INestApplication;
@@ -72,16 +41,14 @@ const FIXTURE_PDF = path.join(__dirname, '../fixtures/test.pdf');
 const uploadsDir = path.join(__dirname, '../../uploads/files');
 
 beforeAll(async () => {
-  createTables(testDb);
-  runMigrations(testDb);
   nestApp = await buildApp();
   app = nestApp.getHttpAdapter().getInstance();
   if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 });
 
-beforeEach(() => {
+beforeEach(async () => {
   resetTestDb(testDb);
-  resetRateLimits(nestApp);
+  await resetRateLimits(nestApp);
 });
 
 afterAll(async () => {
@@ -143,9 +110,7 @@ describe('Collab notes', () => {
       .set('Cookie', authCookie(user.id))
       .send({ title: 'Note B' });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/collab/notes`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/collab/notes`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.notes).toHaveLength(2);
   });
@@ -196,9 +161,7 @@ describe('Collab notes', () => {
     expect(del.status).toBe(200);
     expect(del.body.success).toBe(true);
 
-    const list = await request(app)
-      .get(`/api/trips/${trip.id}/collab/notes`)
-      .set('Cookie', authCookie(user.id));
+    const list = await request(app).get(`/api/trips/${trip.id}/collab/notes`).set('Cookie', authCookie(user.id));
     expect(list.body.notes).toHaveLength(0);
   });
 
@@ -283,9 +246,7 @@ describe('Collab notes', () => {
       .attach('file', FIXTURE_PDF);
     expect(upload.status).toBe(201);
 
-    const list = await request(app)
-      .get(`/api/trips/${trip.id}/collab/notes`)
-      .set('Cookie', authCookie(user.id));
+    const list = await request(app).get(`/api/trips/${trip.id}/collab/notes`).set('Cookie', authCookie(user.id));
     const note = list.body.notes.find((n: any) => n.id === noteId);
     expect(note.attachments[0].filename).toMatch(/^[0-9a-f-]{36}\.pdf$/);
     expect(note.attachments[0].url).toMatch(/^\/api\/trips\/\d+\/files\/\d+\/download$/);
@@ -378,9 +339,7 @@ describe('Collab notes', () => {
       .set('Cookie', authCookie(user.id))
       .attach('file', FIXTURE_PDF);
 
-    const list = await request(app)
-      .get(`/api/trips/${trip.id}/collab/notes`)
-      .set('Cookie', authCookie(user.id));
+    const list = await request(app).get(`/api/trips/${trip.id}/collab/notes`).set('Cookie', authCookie(user.id));
     expect(list.status).toBe(200);
 
     const note = list.body.notes.find((n: any) => n.id === noteId);
@@ -478,9 +437,7 @@ describe('Polls', () => {
       .set('Cookie', authCookie(user.id))
       .send({ question: 'Beach or mountains?', options: ['Beach', 'Mountains'] });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/collab/polls`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/collab/polls`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.polls).toHaveLength(1);
   });
@@ -530,9 +487,7 @@ describe('Polls', () => {
       .send({ question: 'Closed?', options: ['Yes', 'No'] });
     const pollId = create.body.poll.id;
 
-    await request(app)
-      .put(`/api/trips/${trip.id}/collab/polls/${pollId}/close`)
-      .set('Cookie', authCookie(user.id));
+    await request(app).put(`/api/trips/${trip.id}/collab/polls/${pollId}/close`).set('Cookie', authCookie(user.id));
 
     const vote = await request(app)
       .post(`/api/trips/${trip.id}/collab/polls/${pollId}/vote`)
@@ -612,9 +567,7 @@ describe('Messages', () => {
       .set('Cookie', authCookie(user.id))
       .send({ text: 'Second message' });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/collab/messages`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/collab/messages`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.messages.length).toBeGreaterThanOrEqual(2);
   });
@@ -654,7 +607,7 @@ describe('Messages', () => {
     expect(del.body.success).toBe(true);
   });
 
-  it('COLLAB-017 — cannot delete another user\'s message', async () => {
+  it("COLLAB-017 — cannot delete another user's message", async () => {
     const { user: owner } = createUser(testDb);
     const { user: member } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
@@ -764,9 +717,7 @@ describe('Link preview', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/collab/link-preview`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/collab/link-preview`).set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/url/i);
@@ -902,7 +853,8 @@ describe('Message reactions toggle', () => {
     expect(res.body.reactions).toBeDefined();
     const thumbsUp = res.body.reactions.find((r: any) => r.emoji === '👍');
     // After toggling off, either the entry is absent or the user is no longer in it
-    const userStillReacted = thumbsUp && thumbsUp.users && thumbsUp.users.some((u: any) => u.user_id === user.id || u === user.id);
+    const userStillReacted =
+      thumbsUp && thumbsUp.users && thumbsUp.users.some((u: any) => u.user_id === user.id || u === user.id);
     expect(userStillReacted).toBeFalsy();
   });
 });

@@ -1,0 +1,30 @@
+import type { TranslationStrings } from '../types';
+
+const assistantBudget: TranslationStrings = {
+  'assistant.change.verb.addPayment': 'Fizetés rögzítése',
+  'assistant.change.verb.updatePayment': 'Fizetés módosítása',
+  'assistant.tool.create_budget_item_with_members': 'Kiadás hozzáadása',
+  'assistant.tool.set_budget_item_members': 'Annak módosítása, kik osztoznak a költségen',
+  'assistant.tool.toggle_budget_member_paid': 'Annak frissítése, ki fizetett',
+  'assistant.tool.create_settlement': 'Fizetés rögzítése',
+  'assistant.tool.update_settlement': 'A fizetés módosítása',
+  'assistant.tool.delete_settlement': 'A fizetés törlése',
+  'assistant.tool.freeze_budget_rates': 'A mai árfolyamok rögzítése',
+  'assistant.followUp.whoOwes': 'Ki kinek tartozik?',
+  'assistant.followUp.recordPayments': 'Ezeknek a fizetéseknek a rögzítése',
+  'assistant.card.budget.open': 'Megnyitás a Költségekben',
+  'assistant.card.budget.paidBy': '{name} fizetett',
+  'assistant.card.budget.notPaid': 'Nincs fizetve',
+  'assistant.card.budget.split.equal': 'Egyenlően elosztva',
+  'assistant.card.budget.split.custom': 'Nem egyenlően elosztva',
+  'assistant.card.budget.split.none': 'Csak tervezés, nincs elosztva',
+  'assistant.card.budget.together': 'Összesen {amount}',
+  'assistant.card.budget.markedPaid': '{amount} fizetettként jelölve',
+  'assistant.card.budget.receipts': '{count} bizonylat',
+  'assistant.card.budget.receipts.one': '{count} bizonylat',
+  'assistant.card.budget.leftOut': '{count} devizás kiadás nem számít bele az összegbe: még nincs árfolyam.',
+  'assistant.card.budget.leftOut.one': '{count} devizás kiadás nem számít bele az összegbe: még nincs árfolyam.',
+  'assistant.card.budget.unconverted': '{count} tétel {currencies} pénznemben nem számít bele: még nincs árfolyam.',
+  'assistant.card.budget.unconverted.one': '{count} tétel {currencies} pénznemben nem számít bele: még nincs árfolyam.',
+};
+export default assistantBudget;

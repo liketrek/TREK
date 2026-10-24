@@ -1,0 +1,51 @@
+import type { TranslationStrings } from '../types';
+
+/** TREK Studio: paint, gradients, patterns and the page background. */
+const studioPaint: TranslationStrings = {
+  'journey.studio.paint.kind': 'Opvulling',
+  'journey.studio.paint.none': 'Geen',
+  'journey.studio.paint.solid': 'Effen',
+  'journey.studio.paint.gradient': 'Verloop',
+  'journey.studio.paint.pattern': 'Patroon',
+  'journey.studio.paint.linear': 'Lineair',
+  'journey.studio.paint.radial': 'Radiaal',
+  'journey.studio.paint.reverse': 'Verloop omdraaien',
+  'journey.studio.paint.addStopHint': 'Klik op de balk om een kleurpunt toe te voegen',
+  'journey.studio.paint.stopAt': 'Kleurpunt op {pos}%',
+  'journey.studio.paint.removeStop': 'Kleurpunt verwijderen',
+  'journey.studio.paint.angle': 'Hoek',
+  'journey.studio.paint.centre': 'Midden',
+  'journey.studio.paint.radius': 'Straal',
+  'journey.studio.paint.ink': 'Patroonkleur',
+  'journey.studio.paint.ground': 'Achtergrondkleur',
+  'journey.studio.paint.seeThrough': 'Doorzichtig',
+  'journey.studio.paint.scale': 'Grootte',
+  'journey.studio.paint.opacity': 'Dekking',
+  'journey.studio.paint.bookColours': 'Kleuren in dit boek',
+  'journey.studio.paint.photoColours': 'Kleuren uit de foto’s',
+  'journey.studio.paint.recentColours': 'Recente kleuren',
+  'journey.studio.paint.background': 'Paginaachtergrond',
+  'journey.studio.paint.paper': 'Papier',
+  'journey.studio.paint.applyAll': 'Op alle pagina’s toepassen',
+  'journey.studio.paint.appliedAll': 'Op alle pagina’s toegepast',
+  'journey.studio.paint.photoBackground': 'Foto als achtergrond',
+  'journey.studio.paint.photoBackgroundHint':
+    'Legt de foto over de hele pagina, afloop inbegrepen, vergrendeld achteraan. Kies hem opnieuw om hem weg te halen.',
+  'journey.studio.paint.removePhotoBackground': 'Achtergrondfoto verwijderen',
+  'journey.studio.paint.noPhotos': 'Voeg foto’s aan de reis toe om er een als achtergrond te gebruiken.',
+  'journey.studio.pattern.checker': 'Ruiten',
+  'journey.studio.pattern.gingham': 'Boerenbont',
+  'journey.studio.pattern.stripes': 'Strepen',
+  'journey.studio.pattern.pinstripe': 'Krijtstreep',
+  'journey.studio.pattern.dots': 'Stippen',
+  'journey.studio.pattern.polka': 'Noppen',
+  'journey.studio.pattern.zigzag': 'Zigzag', // same-as-en
+  'journey.studio.pattern.waves': 'Golven',
+  'journey.studio.pattern.grid': 'Raster',
+  'journey.studio.pattern.scales': 'Schubben',
+  'journey.studio.pattern.sunburst': 'Zonnestralen',
+  'journey.studio.pattern.confetti': 'Confetti', // same-as-en
+  'journey.studio.pattern.linen': 'Linnen',
+  'journey.studio.pattern.grain': 'Papierkorrel',
+};
+export default studioPaint;

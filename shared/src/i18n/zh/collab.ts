@@ -89,7 +89,6 @@ const collab: TranslationStrings = {
   'collab.polls.close': '关闭',
   'collab.polls.closed': '已关闭',
   'collab.polls.votes': '{n} 票',
-  'collab.polls.vote': '{n} 票',
   'collab.polls.multipleChoice': '多选',
   'collab.polls.multiChoice': '多选',
   'collab.polls.deadline': '截止时间',
@@ -97,10 +96,14 @@ const collab: TranslationStrings = {
   'collab.polls.options': '选项',
   'collab.polls.delete': '删除',
   'collab.polls.closedSection': '已关闭',
-  'collab.chat.imageLimit': '每条消息最多可附加 {max} 张图片',
+  'collab.chat.imageLimit': '每条消息最多可附加 {count} 张图片',
   'collab.chat.uploading': '上传中 {percent}%',
   'collab.chat.attachImages': '附加图片',
   'collab.chat.attachedImage': '附加的图片',
   'collab.chat.closeImage': '关闭图片',
+  'collab.notes.categoryInUse': '仍有笔记在使用该分类。请先移动或删除这些笔记,再删除分类。',
+  'collab.notes.categoriesLocalHint': '没有笔记的分类只保存在此浏览器中。有笔记使用后,其他成员才能看到。',
+  'collab.chat.fromAssistant': '来自助手',
+  'collab.chat.fromAssistantHint': '{name} 分享了助手的这条回答',
 };
 export default collab;

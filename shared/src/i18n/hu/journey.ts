@@ -6,6 +6,11 @@ const journey: TranslationStrings = {
   'journey.title': 'Útinaplók',
   'journey.subtitle': 'Kövesse nyomon utazásait valós időben',
   'journey.new': 'Új útinapló',
+  'journey.lightbox.zoomIn': 'Nagyítás',
+  'journey.lightbox.zoomOut': 'Kicsinyítés',
+  'journey.lightbox.zoomReset': 'Vissza a teljes fotóhoz',
+  'journey.lightbox.previous': 'Előző fotó',
+  'journey.lightbox.next': 'Következő fotó',
   'journey.create': 'Létrehozás',
   'journey.titlePlaceholder': 'Hová utazol?',
   'journey.empty': 'Még nincsenek útinaplók',
@@ -57,6 +62,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.latestJourney': 'Legutóbbi útinapló',
   'journey.frontpage.allJourneys': 'Összes útinapló',
   'journey.frontpage.journeys': 'útinapló',
+  'journey.frontpage.journeys.one': 'útinapló',
   'journey.frontpage.createNew': 'Új útinapló létrehozása',
   'journey.frontpage.createNewSub': 'Válassz utakat, írj történeteket, oszd meg kalandjaidat',
   'journey.frontpage.live': 'Élő',
@@ -66,6 +72,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.suggestionLabel': 'Az út épp véget ért',
   'journey.frontpage.suggestionText': 'Alakítsd a(z) <strong>{title}</strong> útinaplóvá',
   'journey.frontpage.dismiss': 'Elvetés',
+  'journey.frontpage.dismissError': 'Nem sikerült elrejteni ezt a javaslatot',
   'journey.frontpage.journeyName': 'Útinapló neve',
   'journey.frontpage.namePlaceholder': 'pl. Délkelet-Ázsia 2026',
   'journey.frontpage.selectTrips': 'Utak kiválasztása',
@@ -73,11 +80,15 @@ const journey: TranslationStrings = {
   'journey.frontpage.trips': 'út',
   'journey.frontpage.placesImported': 'helyszín importálásra kerül',
   'journey.frontpage.places': 'helyszín',
+  'journey.frontpage.places.one': 'helyszín',
   'journey.detail.backToJourney': 'Vissza az útinaplóhoz',
   'journey.detail.syncedWithTrips': 'Szinkronizálva az utakkal',
   'journey.detail.addEntry': 'Bejegyzés hozzáadása',
   'journey.detail.jumpToTop': 'Vissza a tetejére',
   'journey.detail.jumpToLast': 'Ugrás az utolsó bejegyzéshez',
+  'journey.detail.dayJump': 'Ugrás egy napra',
+  'journey.detail.dayJumpCount': '{count} nap',
+  'journey.detail.dayJumpCount.one': '{count} nap',
   'journey.detail.newEntry': 'Új bejegyzés',
   'journey.detail.editEntry': 'Bejegyzés szerkesztése',
   'journey.detail.noEntries': 'Még nincsenek bejegyzések',
@@ -90,7 +101,8 @@ const journey: TranslationStrings = {
   'journey.detail.contributors': 'Közreműködők',
   'journey.detail.readMore': 'Tovább olvasás',
   'journey.detail.prosCons': 'Előnyök és hátrányok',
-  'journey.detail.photos': 'fotók',
+  'journey.detail.photos': 'fotó',
+  'journey.detail.photos.one': 'fotó',
   'journey.detail.day': '{number}. nap',
   'journey.detail.places': 'helyek',
   'journey.stats.days': 'Napok',
@@ -103,6 +115,7 @@ const journey: TranslationStrings = {
   'journey.verdict.lovedIt': 'Imádtam',
   'journey.verdict.couldBeBetter': 'Lehetne jobb',
   'journey.synced.places': 'helyszín',
+  'journey.synced.places.one': 'helyszín',
   'journey.synced.synced': 'szinkronizálva',
   'journey.editor.discardChangesConfirm': 'Mentetlen módosításaid vannak. Elveted?',
   'journey.editor.uploadFailed': 'A fotók feltöltése sikertelen',
@@ -191,8 +204,22 @@ const journey: TranslationStrings = {
   'journey.settings.subtitle': 'Alcím',
   'journey.settings.subtitlePlaceholder': 'pl. Thaiföld, Vietnam és Kambodzsa',
   'journey.settings.tracks': 'GPX-nyomvonalak',
+  'journey.settings.recordings': 'Rögzített napok',
   'journey.settings.showTripTracks': 'Az utazások összes GPX-nyomvonalának megjelenítése',
-  'journey.settings.showTripTracksHint': 'A kapcsolt utazások rögzített útvonalait rajzolja a térképre.',
+  'journey.settings.showTripTracksHint':
+    'A térképen megrajzolja a kapcsolt utazások tervezett útvonalait (GPX-nyomvonalak).',
+  'journey.settings.autoPrepare': 'Rögzített napok automatikus előkészítése',
+  'journey.settings.autoPrepareHint':
+    'Amíg egy kapcsolt utazás tart, a Dawarich tartózkodásaid a napjuknál várnak ellenőrzésre. A saját kapcsolattal rendelkező szerkesztők a sajátjukat kapják. A naplóba semmi nem kerül magától.',
+  'journey.settings.status': 'Állapot',
+  'journey.settings.statusAuto': 'Automatikus',
+  'journey.settings.statusAutoHint': 'A kapcsolt utak dátumait követi. Út nélkül a napló piszkozat marad.',
+  'journey.settings.statusManualHint':
+    'Kézzel beállítva. Az út dátumai nem változtatják meg, amíg vissza nem váltasz automatikusra.',
+  'journey.settings.photosSection': 'Fotók',
+  'journey.settings.photoLocation': 'Bejegyzések helye a fotóik alapján',
+  'journey.settings.photoLocationHint':
+    'A hely nélküli bejegyzés az első GPS-es fotója készítési helyét kapja. A kézzel megadott helyek sosem mozdulnak.',
   'journey.settings.endJourney': 'Út archiválása',
   'journey.settings.reopenJourney': 'Út visszaállítása',
   'journey.settings.archived': 'Út archiválva',
@@ -207,9 +234,14 @@ const journey: TranslationStrings = {
   'journey.settings.coverFailed': 'A feltöltés sikertelen',
   'journey.settings.failedToDelete': 'Törlés sikertelen',
   'journey.entries.deleteTitle': 'Bejegyzés törlése',
+  'journey.gallery.deleteTitle': 'Fotó törlése',
+  'journey.gallery.deleteMessage':
+    'A fotó eltűnik a galériából és minden bejegyzésből, amelyben szerepel. Ez nem vonható vissza.',
   'journey.photosUploaded': '{count} fotó feltöltve',
+  'journey.photosUploaded.one': '{count} fotó feltöltve',
   'journey.photosUploadFailed': 'Néhány fotót nem sikerült feltölteni',
   'journey.photosAdded': '{count} fotó hozzáadva',
+  'journey.photosAdded.one': '{count} fotó hozzáadva',
   'journey.public.notFound': 'Nem található',
   'journey.public.notFoundMessage': 'Ez az útinapló nem létezik vagy a link lejárt.',
   'journey.public.readOnly': 'Csak olvasható · Nyilvános útinapló',
@@ -234,36 +266,38 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'Nem található album',
   'journey.picker.selectDate': 'Dátum választása',
   'journey.picker.search': 'Keresés',
-  'journey.detail.journeyTab': 'Journey', // en-fallback
-  'journey.contributors.remove': 'Remove contributor', // en-fallback
-  'journey.contributors.removeConfirm': 'Remove {username} from this journey?', // en-fallback
-  'journey.contributors.removed': 'Contributor removed', // en-fallback
-  'journey.contributors.removeFailed': 'Failed to remove contributor', // en-fallback
-  'journey.editor.externalPhotos': 'External photos', // en-fallback
-  'journey.editor.externalPhotosFor': 'Photos for {date}', // en-fallback
-  'journey.editor.externalPhotosNearby': 'Nearby photos first', // en-fallback
-  'journey.editor.externalPhotosNoLocation': 'All photos from this day', // en-fallback
-  'journey.editor.externalPhotosQueued': 'queued', // en-fallback
-  'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
-  'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
-  'journey.picker.day': 'This day', // en-fallback
-  'journey.studio.title': 'TREK Studio', // en-fallback
-  'journey.studio.open': 'Studio', // en-fallback
-  'journey.studio.openAria': 'Open the photo book studio', // en-fallback
-  'journey.studio.backToJourney': 'Back to the journey', // en-fallback
-  'journey.studio.format': 'Page format', // en-fallback
-  'journey.studio.formatA4Landscape': 'A4 landscape', // en-fallback
-  'journey.studio.formatA4Portrait': 'A4 portrait', // en-fallback
-  'journey.studio.formatSquare21': 'Square 21 × 21 cm', // en-fallback
-  'journey.studio.formatSquare30': 'Square 30 × 30 cm', // en-fallback
-  'journey.studio.pages': 'Pages', // en-fallback
-  'journey.studio.cover': 'Cover', // en-fallback
-  'journey.studio.inspector': 'Properties', // en-fallback
-  'journey.studio.inspectorEmpty': 'Select something on the page to edit it.', // en-fallback
-  'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
-  'journey.studio.autoLayout': 'Auto layout', // en-fallback
-  'journey.studio.export': 'Export', // en-fallback
-  'journey.studio.day': 'NAP',
+  'journey.detail.journeyTab': 'Útinapló',
+  'journey.contributors.remove': 'Közreműködő eltávolítása',
+  'journey.contributors.removeConfirm': 'Eltávolítod {username} felhasználót ebből az útinaplóból?',
+  'journey.contributors.removed': 'Közreműködő eltávolítva',
+  'journey.contributors.removeFailed': 'A közreműködő eltávolítása nem sikerült',
+  'journey.contributors.viaTrips': 'Utazásokon át',
+  'journey.contributors.viaTripsHint':
+    'Azért nyithatják meg ezt a naplót, mert egy utazás kapcsolja. Ezt az utazás beállításaiban módosíthatod.',
+  'journey.contributors.viaTrip': '{trip} útján',
+  'journey.editor.externalPhotos': 'Külső fotók',
+  'journey.editor.externalPhotosFor': 'Fotók ehhez a naphoz: {date}',
+  'journey.editor.externalPhotosNearby': 'Közeli fotók elöl',
+  'journey.editor.externalPhotosNoLocation': 'Az összes fotó erről a napról',
+  'journey.editor.externalPhotosQueued': 'sorban áll',
+  'journey.editor.externalPhotosUnavailable': 'Nincs elérhető csatlakoztatott fotószolgáltató.',
+  'journey.editor.externalPhotosPartialFailed': '{failed} fotócsoport sikertelen: mentsd újra az újrapróbáláshoz',
+  'journey.picker.day': 'Ez a nap',
+  'journey.studio.title': 'TREK Studio', // same-as-en
+  'journey.studio.open': 'Studio', // same-as-en
+  'journey.studio.openAria': 'Fotókönyv-studio megnyitása',
+  'journey.studio.backToJourney': 'Vissza az útinaplóhoz',
+  'journey.studio.format': 'Oldalformátum',
+  'journey.studio.formatA4Landscape': 'A4 fekvő',
+  'journey.studio.formatA4Portrait': 'A4 álló',
+  'journey.studio.formatSquare21': 'Négyzet 21 × 21 cm',
+  'journey.studio.formatSquare30': 'Négyzet 30 × 30 cm',
+  'journey.studio.pages': 'Oldalak',
+  'journey.studio.cover': 'Borító',
+  'journey.studio.inspectorEmpty': 'Válassz ki valamit',
+  'journey.studio.autoLayout': 'Automatikus elrendezés',
+  'journey.studio.export': 'Exportálás',
+  'journey.studio.day': '{day}. NAP',
   'journey.studio.stations': 'Állomások',
   'journey.studio.peersHere': 'itt',
   'journey.studio.folioAuto': 'Automatikus',
@@ -275,105 +309,107 @@ const journey: TranslationStrings = {
   'journey.studio.exportFinishing': 'Kikészítés',
   'journey.studio.exportMarks': 'Vágójelek',
   'journey.studio.exportMarksHint': 'Minden élhez {bleed} mm kifutót ad, és megjelöli a vágás helyét',
-  'journey.studio.exportNote': '{sheets} ív, {width} × {height} mm. A böngésző PDF-et készít a nyomtatási nézetből.',
+  'journey.studio.exportNote': '{count} ív, {width} × {height} mm. A böngésző PDF-et készít a nyomtatási nézetből.',
+  'journey.studio.exportNote.one': '{count} ív, {width} × {height} mm. A böngésző PDF-et készít a nyomtatási nézetből.',
   'journey.studio.exportOpen': 'Nyomtatási nézet',
   'journey.studio.exportSave': 'Mentés PDF-ként',
   'journey.studio.exportPreparing': 'Előkészítés',
   'journey.studio.exportSheetCount': '{count} ív',
-  'journey.studio.undo': 'Undo', // en-fallback
-  'journey.studio.redo': 'Redo', // en-fallback
-  'journey.studio.zoomIn': 'Zoom in', // en-fallback
-  'journey.studio.zoomOut': 'Zoom out', // en-fallback
-  'journey.studio.zoomFit': 'Fit to view', // en-fallback
+  'journey.studio.exportSheetCount.one': '{count} ív',
+  'journey.studio.undo': 'Visszavonás',
+  'journey.studio.redo': 'Újra',
+  'journey.studio.zoomIn': 'Nagyítás',
+  'journey.studio.zoomOut': 'Kicsinyítés',
+  'journey.studio.zoomFit': 'Illesztés a nézethez',
   'journey.studio.downloadSpread': 'Oldalpár letöltése',
-  'journey.studio.downloadSpreadHint': 'Fájlba menti az oldalpár elrendezését, a fényképek nélkül, megosztáshoz vagy újrafelhasználáshoz',
+  'journey.studio.downloadSpreadHint':
+    'Fájlba menti az oldalpár elrendezését, a fényképek nélkül, megosztáshoz vagy újrafelhasználáshoz',
   'journey.studio.importSpread': 'Importálás',
   'journey.studio.importSpreadHint': 'Oldalpár hozzáadása letöltött elrendezésfájlból',
   'journey.studio.importSpreadFailed': 'Ez a fájl nem TREK Studio oldalpár',
-  'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Egy könyv tördeléséhez hely kell, ezért a Studio csak asztali gépen érhető el, és a PDF is. Az utazás minden más része itt a megszokott módon működik.', // en-fallback
-  'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
-  'journey.studio.bookView': 'Book view', // en-fallback
-  'journey.studio.multiple': 'Several', // en-fallback
-  'journey.studio.kind.photo': 'Photo', // en-fallback
-  'journey.studio.kind.text': 'Text', // en-fallback
-  'journey.studio.kind.shape': 'Shape', // en-fallback
-  'journey.studio.position': 'Position', // en-fallback
-  'journey.studio.width': 'W', // en-fallback
-  'journey.studio.height': 'H', // en-fallback
-  'journey.studio.text': 'Text', // en-fallback
-  'journey.studio.typography': 'Type', // en-fallback
-  'journey.studio.leading': 'Line', // en-fallback
-  'journey.studio.colour': 'Colour', // en-fallback
+  'journey.studio.desktopOnly': 'A Studióhoz nagyobb képernyő kell',
+  'journey.studio.desktopOnlyHint':
+    'Egy könyv tördeléséhez hely kell, ezért a Studio csak asztali gépen érhető el, és a PDF is. Az utazás minden más része itt a megszokott módon működik.',
+  'journey.studio.formatA5Landscape': 'A5 fekvő',
+  'journey.studio.bookView': 'Könyvnézet',
+  'journey.studio.multiple': 'Több',
+  'journey.studio.kind.photo': 'Fotó',
+  'journey.studio.kind.text': 'Szöveg',
+  'journey.studio.kind.shape': 'Alakzat',
+  'journey.studio.position': 'Pozíció',
+  'journey.studio.width': 'Szél.',
+  'journey.studio.height': 'Mag.',
+  'journey.studio.text': 'Szöveg',
+  'journey.studio.typography': 'Betű',
+  'journey.studio.leading': 'Sorköz',
+  'journey.studio.colour': 'Szín',
   'journey.studio.autoColour': 'Automatikus',
   'journey.studio.countryNames': 'Nevek',
-  'journey.studio.crop': 'Crop', // en-fallback
-  'journey.studio.look': 'Look', // en-fallback
-  'journey.studio.radius': 'Corner', // en-fallback
-  'journey.studio.shape': 'Shape', // en-fallback
-  'journey.studio.arrange': 'Arrange', // en-fallback
-  'journey.studio.toFront': 'Bring to front', // en-fallback
-  'journey.studio.forward': 'Bring forward', // en-fallback
-  'journey.studio.backward': 'Send backward', // en-fallback
-  'journey.studio.toBack': 'Send to back', // en-fallback
-  'journey.studio.lock': 'Lock', // en-fallback
-  'journey.studio.unlock': 'Unlock', // en-fallback
-  'journey.studio.delete': 'Delete', // en-fallback
-  'journey.studio.pageHint': 'Page', // en-fallback
-  'journey.studio.boundHint': 'Follows the journal entry. Editing it here breaks that link.', // en-fallback
-  'journey.studio.fit.cover': 'Fill', // en-fallback
-  'journey.studio.fit.contain': 'Fit', // en-fallback
-  'journey.studio.filter.none': 'Original', // en-fallback
-  'journey.studio.filter.bw': 'Black & white', // en-fallback
-  'journey.studio.filter.warm': 'Warm', // en-fallback
-  'journey.studio.shapeKind.rect': 'Rectangle', // en-fallback
-  'journey.studio.shapeKind.ellipse': 'Ellipse', // en-fallback
-  'journey.studio.focalHint': 'Drag the point to choose what stays in frame.', // en-fallback
-  'journey.studio.backCover': 'Back cover', // en-fallback
-  'journey.studio.sections': 'Sections', // en-fallback
-  'journey.studio.content': 'Content', // en-fallback
-  'journey.studio.elements': 'Elements', // en-fallback
-  'journey.studio.templates': 'Layouts', // en-fallback
-  'journey.studio.photos': 'Photos', // en-fallback
-  'journey.studio.entries': 'Entries', // en-fallback
-  'journey.studio.addToPage': 'Add to this page', // en-fallback
-  'journey.studio.noPhotos': 'This journey has no photos yet.', // en-fallback
-  'journey.studio.untitled': 'Untitled', // en-fallback
-  'journey.studio.addTitle': 'Title', // en-fallback
-  'journey.studio.addStory': 'Story', // en-fallback
-  'journey.studio.addPlace': 'Place', // en-fallback
-  'journey.studio.shapes': 'Shapes', // en-fallback
-  'journey.studio.frames': 'Keretek', // en-fallback
-  'journey.studio.emptyFrame': 'Empty frame', // en-fallback
-  'journey.studio.frameHint': 'An empty frame marks where a picture goes. Drop one on it from Content.', // en-fallback
-  'journey.studio.shapeKind.line': 'Line', // en-fallback
-  'journey.studio.styleTitle': 'Heading', // en-fallback
-  'journey.studio.styleSubtitle': 'Subheading', // en-fallback
-  'journey.studio.styleBody': 'Body text', // en-fallback
-  'journey.studio.styleCaption': 'Caption', // en-fallback
-  'journey.studio.sampleHeading': 'A heading', // en-fallback
-  'journey.studio.sampleSubheading': 'A subheading', // en-fallback
-  'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
-  'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
-  'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
-  'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
-  'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
-  'journey.studio.tpl.grid4': 'Four up', // en-fallback
-  'journey.studio.tpl.grid6': 'Six up', // en-fallback
-  'journey.studio.tpl.strip': 'Strip and text', // en-fallback
-  'journey.studio.tpl.quietText': 'Text only', // en-fallback
-  'journey.studio.tpl.portraitPair': 'A pair', // en-fallback
+  'journey.studio.crop': 'Vágás',
+  'journey.studio.look': 'Megjelenés',
+  'journey.studio.radius': 'Sarok',
+  'journey.studio.shape': 'Alakzat',
+  'journey.studio.arrange': 'Rendezés',
+  'journey.studio.toFront': 'Előtérbe hozás',
+  'journey.studio.forward': 'Egy szinttel előre',
+  'journey.studio.backward': 'Egy szinttel hátra',
+  'journey.studio.toBack': 'Háttérbe küldés',
+  'journey.studio.lock': 'Zárolás',
+  'journey.studio.unlock': 'Feloldás',
+  'journey.studio.delete': 'Törlés',
+  'journey.studio.pageHint': 'Oldal',
+  'journey.studio.boundHint': 'Az útinapló-bejegyzést követi. Itt szerkesztve megszakad ez a kapcsolat.',
+  'journey.studio.fit.cover': 'Kitöltés',
+  'journey.studio.fit.contain': 'Illesztés',
+  'journey.studio.filter.none': 'Eredeti',
+  'journey.studio.filter.bw': 'Fekete-fehér',
+  'journey.studio.filter.warm': 'Meleg',
+  'journey.studio.shapeKind.rect': 'Téglalap',
+  'journey.studio.shapeKind.ellipse': 'Ellipszis',
+  'journey.studio.focalHint': 'Húzd a pontot, hogy kiválaszd, mi maradjon a képen.',
+  'journey.studio.backCover': 'Hátsó borító',
+  'journey.studio.coverInside': 'A borító belső oldala, üresen marad',
+  'journey.studio.backCoverInside': 'A hátsó borító belső oldala, üresen marad',
+  'journey.studio.sections': 'Szakaszok',
+  'journey.studio.content': 'Tartalom',
+  'journey.studio.elements': 'Elemek',
+  'journey.studio.templates': 'Elrendezések',
+  'journey.studio.photos': 'Fotók',
+  'journey.studio.entries': 'Bejegyzések',
+  'journey.studio.addToPage': 'Hozzáadás ehhez az oldalhoz',
+  'journey.studio.noPhotos': 'Ebben az útinaplóban még nincsenek fotók.',
+  'journey.studio.untitled': 'Névtelen',
+  'journey.studio.addTitle': 'Cím',
+  'journey.studio.addStory': 'Történet',
+  'journey.studio.addPlace': 'Hely',
+  'journey.studio.shapes': 'Alakzatok',
+  'journey.studio.frames': 'Keretek',
+  'journey.studio.emptyFrame': 'Üres keret',
+  'journey.studio.frameHint': 'Az üres keret jelzi, hová kerül egy kép. Húzz rá egyet a Tartalomból.',
+  'journey.studio.shapeKind.line': 'Vonal',
+  'journey.studio.styleTitle': 'Címsor',
+  'journey.studio.styleSubtitle': 'Alcím',
+  'journey.studio.styleBody': 'Törzsszöveg',
+  'journey.studio.styleCaption': 'Képaláírás',
+  'journey.studio.sampleHeading': 'Egy címsor',
+  'journey.studio.sampleSubheading': 'Egy alcím',
+  'journey.studio.sampleBody': 'Írj valamit erről a napról.',
+  'journey.studio.sampleCaption': 'Képaláírás',
+  'journey.studio.tpl.heroStory': 'Nagy kép és történet',
+  'journey.studio.tpl.fullBleed': 'Egy kép, teljes kihajtó',
+  'journey.studio.tpl.twoUp': 'Két teljes oldal',
+  'journey.studio.tpl.grid4': 'Négy kép',
+  'journey.studio.tpl.grid6': 'Hat kép',
+  'journey.studio.tpl.strip': 'Képsáv és szöveg',
+  'journey.studio.tpl.quietText': 'Csak szöveg',
+  'journey.studio.tpl.portraitPair': 'Egy pár',
   'journey.studio.dropPhotoHere': 'Húzd ide\na fotódat',
-  'journey.studio.searchContent': 'Search photos and entries', // en-fallback
-  'journey.studio.noMatches': 'Nothing matches that.', // en-fallback
-  'journey.studio.decorations': 'Decoration', // en-fallback
-  'journey.studio.quoteMark': 'Quotation mark', // en-fallback
-  'journey.studio.circleOutline': 'Outlined circle', // en-fallback
-  'journey.studio.roundFrame': 'Rounded frame', // en-fallback
-  'journey.studio.shapeKind.rounded': 'Rounded rectangle', // en-fallback
-  'journey.studio.shapeKind.triangle': 'Triangle', // en-fallback
-  'journey.studio.shapeKind.outline': 'Outline only', // en-fallback
+  'journey.studio.searchContent': 'Fotók és bejegyzések keresése',
+  'journey.studio.noMatches': 'Nincs találat.',
+  'journey.studio.quoteMark': 'Idézőjel',
+  'journey.studio.shapeKind.rounded': 'Lekerekített téglalap',
+  'journey.studio.shapeKind.triangle': 'Háromszög',
+  'journey.studio.shapeKind.outline': 'Csak körvonal',
   'journey.studio.travel': 'Utazás',
   'journey.studio.travelEmpty': 'Ennek az utazásnak a számai még nincsenek készen.',
   'journey.studio.grids': 'Rácsok',
@@ -385,7 +421,7 @@ const journey: TranslationStrings = {
   'journey.studio.polaroidFrame': 'Polaroid',
   'journey.studio.whiteFrame': 'Fehér szegély',
   'journey.studio.shadowFrame': 'Vetett árnyék',
-  'journey.studio.filmFrame': 'Film',
+  'journey.studio.filmFrame': 'Film', // same-as-en
   'journey.studio.tapeFrame': 'Ragasztószalag',
   'journey.studio.shapeGroup.basic': 'Alapformák',
   'journey.studio.shapeGroup.polygons': 'Sokszögek',
@@ -396,23 +432,17 @@ const journey: TranslationStrings = {
   'journey.studio.shapeGroup.decor': 'Dísz',
   'journey.studio.shapeGroup.banners': 'Szalagok',
   'journey.studio.summary': 'Összegzés',
-  'journey.studio.tripSummary': 'Utazás összegzése',
-  'journey.studio.statsRow': 'Egy sor',
-  'journey.studio.statsFull': 'Minden',
   'journey.studio.routeMap': 'Útvonaltérkép',
   'journey.studio.mapStyle.minimal': 'Minimál',
   'journey.studio.mapStyle.outline': 'Körvonal',
   'journey.studio.mapStyle.paper': 'Papír',
   'journey.studio.mapStyle.dark': 'Sötét',
   'journey.studio.countries': 'Országok',
-  'journey.studio.countryList': 'Országlista',
-  'journey.studio.countryGrid': 'Országrács',
   'journey.studio.noCountries': 'Ehhez az utazáshoz még nem határoztunk meg országokat.',
   'journey.studio.noRoute': 'Még nincs koordinátás megálló.',
   'journey.studio.marks': 'Jelek',
   'journey.studio.dateMark': 'Dátum',
   'journey.studio.dayMark': 'Napszámláló',
-  'journey.studio.dayWord': 'NAP',
   'journey.studio.coordsMark': 'Koordináták',
   'journey.studio.coordsDms': 'Fok',
   'journey.studio.coordsDecimal': 'Tizedes',
@@ -432,6 +462,20 @@ const journey: TranslationStrings = {
   'journey.studio.kind.list': 'Lista',
   'journey.studio.kind.icon': 'Ikon',
   'journey.studio.duplicate': 'Duplikálás',
+  'journey.studio.copyToPage': 'Másolás, bármelyik oldalra beilleszthető (Ctrl+C)',
+  'journey.studio.paste': 'Beillesztés (Ctrl+V)',
+  'journey.studio.pasteEmpty': 'Előbb másoljon ki valamit, aztán illessze be bármelyik oldalra',
+  'journey.studio.pageFull':
+    'Ez az oldal megtelt: több elem nem fér egy oldalra. Előbb távolíts el valamit, vagy használj másik oldalt.',
+  'journey.studio.myLayouts': 'Saját elrendezéseim',
+  'journey.studio.myLayoutsEmpty':
+    'Mentsen el egy elrendezett oldalt, és rendezzen el más oldalakat is ugyanígy. Azok fotói és szövegei megmaradnak.',
+  'journey.studio.saveLayout': 'Oldal mentése elrendezésként',
+  'journey.studio.saveLayoutHint': 'Megtartja az elrendezést fotók nélkül, a könyv minden szerkesztője számára',
+  'journey.studio.saveLayoutFull': 'Ez a könyv legfeljebb 24 elrendezést tárol. Töröljön egyet, hogy újat menthessen.',
+  'journey.studio.deleteLayout': 'Elrendezés törlése',
+  'journey.studio.layoutName': 'Elrendezés',
+  'journey.studio.builtInLayouts': 'Beépített',
   'journey.studio.style': 'Stílus',
   'journey.studio.shows': 'Megjelenítés',
   'journey.studio.size': 'Méret',
@@ -441,12 +485,8 @@ const journey: TranslationStrings = {
   'journey.studio.rotation': 'Forgatás',
   'journey.studio.opacity': 'Átlátszatlanság',
   'journey.studio.fill': 'Kitöltés',
-  'journey.studio.fillOn': 'Kitöltve',
   'journey.studio.stroke': 'Körvonal',
   'journey.studio.strokeWidth': 'Vastagság',
-  'journey.studio.gradient': 'Színátmenet',
-  'journey.studio.gradientDown': 'Lefelé',
-  'journey.studio.gradientUp': 'Felfelé',
   'journey.studio.showIcons': 'Ikonok',
   'journey.studio.mapFit': 'Terület',
   'journey.studio.mapPadding': 'Ráhagyás',
@@ -458,6 +498,35 @@ const journey: TranslationStrings = {
   'journey.studio.markStyle.chip': 'Címke',
   'journey.studio.markStyle.outline': 'Körvonalas',
   'journey.studio.markStyle.stacked': 'Egymás alatt',
+  'journey.studio.statsLook.classic': 'Klasszikus',
+  'journey.studio.statsLook.poster': 'Plakát',
+  'journey.studio.statsLook.ticket': 'Jegy',
+  'journey.studio.statsLook.tiles': 'Csempék',
+  'journey.studio.statsLook.band': 'Sáv',
+  'journey.studio.statsLook.medal': 'Érem',
+  'journey.studio.statsLook.odometer': 'Kilométeróra',
+  'journey.studio.statsLook.sign': 'Útjelző tábla',
+  'journey.studio.statsLook.note': 'Jegyzet',
+  'journey.studio.statsLook.sketch': 'Vázlat',
+  'journey.studio.countryLook.visa': 'Vízum',
+  'journey.studio.countryLook.flag': 'Zászló',
+  'journey.studio.countryLook.pin': 'Gombostű',
+  'journey.studio.countryLook.label': 'Bőröndcímke',
+  'journey.studio.countryLook.sketch': 'Vázlat',
+  'journey.studio.markStyle.ribbon': 'Szalag',
+  'journey.studio.markStyle.sticker': 'Matrica',
+  'journey.studio.markStyle.patch': 'Felvarró',
+  'journey.studio.markStyle.sketch': 'Vázlat',
+  'journey.studio.travelFigures': 'Számok',
+  'journey.studio.travelMaps': 'Térképek',
+  'journey.studio.countryLook.classic': 'Klasszikus',
+  'journey.studio.countryLook.stamp': 'Pecsét',
+  'journey.studio.countryLook.postcard': 'Képeslap',
+  'journey.studio.markStyle.stamp': 'Pecsét',
+  'journey.studio.markStyle.tag': 'Címke',
+  'journey.studio.markStyle.pill': 'Kapszula',
+  'journey.studio.pinNumbered': 'Számok',
+  'journey.studio.pinEnds': 'Indulás és érkezés',
   'journey.studio.icon': 'Ikon',
   'journey.studio.iconAndLabel': 'Ikon és szöveg',
   'journey.studio.iconOnly': 'Csak ikon',
@@ -499,19 +568,17 @@ const journey: TranslationStrings = {
   'journey.studio.strokeDotted': 'Pontozott',
   'journey.studio.singleFigures': 'Egyes számok',
   'journey.studio.addPage': 'Oldal hozzáadása',
+  'journey.studio.addPageShort': 'Oldal',
   'journey.studio.addPageAfter': 'Oldal beszúrása ez után',
   'journey.studio.duplicatePage': 'Oldal duplikálása',
   'journey.studio.deletePage': 'Oldal törlése',
   'journey.studio.movePageUp': 'Előrébb',
   'journey.studio.movePageDown': 'Hátrébb',
-  'journey.studio.beta': 'Beta',
   'journey.studio.addProsCons': 'Előnyök és hátrányok',
   'journey.studio.showMarks': 'Jelek',
   'journey.studio.formatCustom': 'Egyéni méret',
   'journey.studio.document': 'Dokumentum',
   'journey.studio.pageNumbers': 'Oldalszámok',
-  'journey.studio.pageNumbersOn': 'Be',
-  'journey.studio.pageNumbersOff': 'Ki',
   'journey.studio.folio.outer': 'Külső',
   'journey.studio.folio.inner': 'Belső',
   'journey.studio.folio.centre': 'Középre',
@@ -532,22 +599,20 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.mosaic': 'Mozaik',
   'journey.studio.tpl.bandQuote': 'Szavak középen',
   'journey.studio.tpl.staggerFour': 'Négy eltolva',
-  'journey.studio.weightMissing': 'Ennek a betűtípusnak nincs ilyen vastagsága',
   'journey.studio.mapSource': 'Térkép forrása',
   'journey.studio.mapSourceVector': 'Körvonalak',
   'journey.studio.mapSourceRelief': 'Domborzat',
   'journey.studio.routeLook': 'A vonal',
   'journey.studio.roads': 'Utak',
-  'journey.studio.roadsFetch': 'Kövesse az utakat',
   'journey.studio.roadsFollow': 'Utakon',
   'journey.studio.roadsDirect': 'Légvonalban',
   'journey.studio.recommended': 'ajánlott',
   'journey.studio.bleed': 'Kifutó',
   'journey.studio.safeArea': 'Védőzóna',
   'journey.studio.roadsAgain': 'Kérje le újra',
-  'journey.studio.roadsClear': 'Törlés',
   'journey.studio.roadsBusy': 'Lekérés',
-  'journey.studio.roadsHint': 'Megkérdezi egy útvonaltervező szolgáltatástól, merre vezet az egyes szakaszok útja. A hosszú szakaszok változatlanok maradnak.',
+  'journey.studio.roadsHint':
+    'Megkérdezi egy útvonaltervező szolgáltatástól, merre vezet az egyes szakaszok útja. A hosszú szakaszok változatlanok maradnak.',
   'journey.studio.roadsHave': 'Az utak ebben a könyvben vannak elmentve, így offline is ugyanaz a vonal nyomtatódik.',
   'journey.studio.routeStyle': 'Megjelenés',
   'journey.studio.routePlain': 'Sima',
@@ -561,8 +626,10 @@ const journey: TranslationStrings = {
   'journey.studio.pinPhoto': 'Fotók',
   'journey.studio.pinPhotoNone': 'Ezeken az állomásokon még nincs fénykép, ezért pontként jelennek meg.',
   'journey.studio.mapSourceSatellite': 'Műhold',
-  'journey.studio.mapSourceSatelliteHint': 'Felhőmentes Sentinel-2, forrásmegjelöléssel szabadon nyomtatható. Utcaszintig éles.',
-  'journey.studio.mapSourceReliefHint': 'NASA árnyékolt domborzat, szabadon nyomtatható. Országhoz vagy kontinenshez ideális, egyetlen városhoz túl durva.',
+  'journey.studio.mapSourceSatelliteHint':
+    'Felhőmentes Sentinel-2, forrásmegjelöléssel szabadon nyomtatható. Utcaszintig éles.',
+  'journey.studio.mapSourceReliefHint':
+    'NASA árnyékolt domborzat, szabadon nyomtatható. Országhoz vagy kontinenshez ideális, egyetlen városhoz túl durva.',
   'journey.studio.mapPrintDpi': 'Nyomtatásban körülbelül',
   'journey.studio.mapPrintDpiLow': 'ebben a méretben életlen, próbáljon tágabb nézetet vagy másik forrást',
   'journey.studio.mapPerTrip': 'Egyszerre egy út',
@@ -582,8 +649,6 @@ const journey: TranslationStrings = {
   'journey.studio.mapClipRect': 'Keretben',
   'journey.studio.mapClipCountry': 'Alakra vágva',
   'journey.studio.mapClipNeedsCountry': 'A vágáshoz ország kell',
-  'journey.studio.mapCutVector': 'Kivágás',
-  'journey.studio.mapCutTiles': 'Kivágott térkép',
   'journey.studio.mapZoomAuto': 'Igazítás',
   'journey.studio.saving': 'Mentés',
   'journey.studio.saved': 'Mentve',
@@ -596,6 +661,8 @@ const journey: TranslationStrings = {
   'journey.studio.rotateLeft': 'Forgatás balra',
   'journey.studio.rotateRight': 'Forgatás jobbra',
   'journey.studio.saveReadOnly': 'Csak olvasható, nem mentődik',
+  'journey.studio.saveNewer': 'Ezt a könyvet a Studio egy újabb verziója mentette. Töltsd újra a szerkesztéshez.',
+  'journey.studio.saveReload': 'Újratöltés',
   'journey.studio.filterPhotos': 'Fotók szűrése',
   'journey.studio.filterAll': 'Összes fotó',
   'journey.studio.filterLoose': 'Nincs bejegyzésben',
@@ -605,12 +672,15 @@ const journey: TranslationStrings = {
   'journey.studio.noEntryPhotos': 'Ehhez a bejegyzéshez még nincs fotó.',
   'journey.studio.noLoosePhotos': 'Itt minden fotó egy bejegyzéshez tartozik.',
   'journey.studio.uploadPhotos': 'Fotók feltöltése',
+  'journey.studio.fromProvider': 'Innen: {name}',
+  'journey.studio.fromProviderHint': 'Fotók választása innen: {name}, oda, ahová a feltöltés kerülne',
   'journey.studio.uploadHint': 'Húzd ide a képeket, vagy kattints a kiválasztáshoz',
   'journey.studio.uploadToEntry': 'Az új képek ebbe a bejegyzésbe kerülnek',
   'journey.studio.uploadToGallery': 'Az új képek a galériába kerülnek',
   'journey.studio.uploading': 'Feltöltés: {done} / {total}',
   'journey.studio.dropFilesHere': 'Engedd el a képek hozzáadásához',
   'journey.studio.videosSkipped': '{count} videó kimaradt. A könyvbe képek kerülnek.',
+  'journey.studio.videosSkipped.one': '{count} videó kimaradt. A könyvbe képek kerülnek.',
   'journey.studio.fillPage': 'Oldal kitöltése',
   'journey.studio.fillSpread': 'Oldalpár kitöltése',
   'journey.studio.fillHint': 'A képet a teljes oldalra nyújtja, kifutóval együtt, és minden más mögé teszi.',
@@ -625,21 +695,235 @@ const journey: TranslationStrings = {
   'journey.editor.statsExcludedHint':
     'A megálló a naplóban marad, de nem számít bele a távolságba, az országokba és a Studio térképébe.',
   'journey.entry.offRoute': 'Útvonalon kívül',
+  'journey.entry.draft': 'Piszkozat',
+  'journey.editor.draft': 'Piszkozat',
+  'journey.editor.draftHint':
+    'Ezt a bejegyzést csak Ön és a többi közreműködő látja. A megosztott útinapló kihagyja, amíg ki nem kapcsolja ezt.',
+  'journey.editor.tripSuggestionHint':
+    'Ez a nap ebbe az utazásba esik. Kapcsolja össze, és a helyei bekerülnek ebbe az útinaplóba.',
+  'journey.editor.tripSuggestionLater': 'Most nem',
   'journey.suggestions.dismiss': 'Javaslat elvetése',
   'journey.suggestions.dismissed': 'Javaslat elvetve',
   'journey.suggestions.restore': 'Elvetett javaslatok visszahozása',
   'journey.suggestions.restoreCount': 'Elvetett javaslatok ({count})',
-  'journey.suggestions.restored': '{count} javaslat visszatért',
+  'journey.suggestions.restoreCount.one': 'Elvetett javaslatok ({count})',
+  'journey.suggestions.restored': '{count} javaslat visszahozva',
+  'journey.suggestions.restored.one': '{count} javaslat visszahozva',
   'journey.detail.addOnThisDay': 'Bejegyzés hozzáadása ehhez a naphoz',
   'journey.detail.jumpToDay': 'Ugrás ide: {date}',
   'journey.detail.searchPlaceholder': 'Keresés ebben az útinaplóban',
   'journey.detail.searchEmpty': 'Egyetlen bejegyzés sem illik erre: „{query}”',
   'journey.settings.entryFields': 'A bejegyzés mezői',
-  'journey.settings.entryFieldsHint': 'Kapcsold ki, amit ez az útinapló nem használ. A már megírtakból semmi sem vész el.',
+  'journey.settings.entryFieldsHint':
+    'Kapcsold ki, amit ez az útinapló nem használ. A már megírtakból semmi sem vész el.',
   'journey.settings.showVerdict': 'Előnyök és hátrányok',
   'journey.settings.showMood': 'Hangulat',
   'journey.settings.showWeather': 'Időjárás',
   'journey.entry.suggestion': 'Javaslat',
   'journey.editor.addDetails': '+ Részletek',
+  'journey.recording.mapLine': 'Rögzítve: {date}',
+  'journey.recording.keptBy': 'Rögzített útvonal elmentve: {distance}, átvette {name}, {date}.',
+  'journey.recording.keptOn': 'Rögzített útvonal elmentve: {distance}, átvéve: {date}.',
+  'journey.recording.keptRunning': 'A nap akkor még tartott.',
+  'journey.recording.takeOver': 'Felvétel átvétele',
+  'journey.recording.takeOverDay': 'Felvétel: {date}',
+  'journey.recording.sub': 'Csak ez a nap, a Dawarichodból. Semmi sem mentődik, amíg meg nem erősíted.',
+  'journey.recording.zone': 'A nap időzónája',
+  'journey.recording.zoneHint': 'A nap ebben a zónában éjféltől éjfélig tart. Válaszd azt, amelyikben utaztál.',
+  'journey.recording.zoneSource': 'A Dawarichból',
+  'journey.recording.zoneDevice': 'Ez az eszköz',
+  'journey.recording.scope': 'Felvétel',
+  'journey.recording.loading': 'A nap beolvasása a Dawarichból…',
+  'journey.recording.keptStays': 'Az utazásban elmentett útvonal változatlan marad.',
+  'journey.recording.retry': 'Újra',
+  'journey.recording.empty': 'A Dawarich ezen a napon ebben az időzónában nem rögzített semmit.',
+  'journey.recording.span': '{from} és {to} között',
+  'journey.recording.pieces': '{count} szakasz',
+  'journey.recording.pieces.one': '{count} szakasz',
+  'journey.recording.gaps': '{count} kimaradás',
+  'journey.recording.gaps.one': '{count} kimaradás',
+  'journey.recording.gapsHint':
+    'Ahol a felvétel megszakad, ott a vonal is. Nem rajzolódik ki olyan út, amelyet nem rögzítettek.',
+  'journey.recording.sourceHint':
+    'A nyomvonalakat a Dawarich már közlekedési mód szerint felosztotta. A pontok a nyers pozíciók, napi 600-ra ritkítva.',
+  'journey.recording.sourceTracks': 'Nyomvonalak',
+  'journey.recording.sourcePoints': 'Pontok',
+  'journey.recording.changedSincePreview':
+    'A felvétel megváltozott a Dawarichban, miközben nézted. Nézd át még egyszer, aztán mentsd el.',
+  'journey.recording.truncated': 'A Dawarich csak a nap egy részét küldte el, az útvonal hiányos.',
+  'journey.recording.provisional':
+    'Ez a nap ebben az időzónában még nem ért véget. Később lecserélheted az útvonalat az egész napra.',
+  'journey.recording.same': 'Ez az utazás már pontosan ezt a felvételt tárolja.',
+  'journey.recording.differs':
+    'Ez az utazás egy másik változatot tárol ({date}, {distance}). A csere nem módosít bejegyzést vagy szöveget.',
+  'journey.recording.audience':
+    'Az utazás további {count} résztvevője látja az útvonalat a térképen. A megosztott linkek nem mutatják.',
+  'journey.recording.audience.one':
+    'Az utazás további {count} résztvevője látja az útvonalat a térképen. A megosztott linkek nem mutatják.',
+  'journey.recording.replace': 'Csere',
+  'journey.recording.alreadyKept': 'Már elmentve',
+  'journey.recording.keep': 'Útvonal mentése',
+  'journey.recording.remove': 'Útvonal eltávolítása',
+  'journey.recording.removeTitle': 'Eltávolítod az elmentett útvonalat?',
+  'journey.recording.removeMessage':
+    'A nap útvonala eltűnik az utazás térképéről. A bejegyzések és szövegek maradnak, a Dawarich pedig megtartja a saját felvételét.',
+  'journey.recording.keptToast': 'Útvonal elmentve az utazásban',
+  'journey.recording.replacedToast': 'Útvonal lecserélve',
+  'journey.recording.removedToast': 'Útvonal eltávolítva az utazásból',
+  'journey.recording.error.recording_exists': 'Ez az utazás már tárol egy másik felvételt arról a napról.',
+  'journey.recording.error.recording_changed': 'A felvétel az előnézet óta megváltozott.',
+  'journey.recording.error.recording_empty': 'A Dawarich azon a napon nem rögzített semmit.',
+  'journey.recording.mode.walking': 'Gyalog',
+  'journey.recording.mode.running': 'Futás',
+  'journey.recording.mode.cycling': 'Kerékpár',
+  'journey.recording.mode.driving': 'Autó',
+  'journey.recording.mode.motorcycle': 'Motor',
+  'journey.recording.mode.bus': 'Busz',
+  'journey.recording.mode.train': 'Vonat',
+  'journey.recording.mode.flying': 'Repülés',
+  'journey.recording.mode.boat': 'Hajó',
+  'journey.recording.mode.stationary': 'Egy helyben',
+  'journey.recording.mode.unknown': 'Ismeretlen mód',
+  'journey.dayImport.open': 'Nap átvétele',
+  'journey.dayImport.openHint': 'Ennek a napnak az átvétele a tartózkodásokkal',
+  'journey.dayImport.openOn': '{date} átvétele a tartózkodásokkal',
+  'journey.dayImport.pending': '{count} tartózkodás vár ellenőrzésre',
+  'journey.dayImport.pending.one': '{count} tartózkodás vár ellenőrzésre',
+  'journey.dayImport.sub':
+    'A Dawarichban rögzített tartózkodásaid ezen a napon. Válaszd ki, nevezd át és vond össze őket; piszkozatok lesznek belőlük.',
+  'journey.dayImport.loading': 'A nap tartózkodásainak beolvasása a Dawarichból…',
+  'journey.dayImport.map': 'A nap a térképen',
+  'journey.dayImport.stays': 'Tartózkodások',
+  'journey.dayImport.modeEntries': 'Bejegyzések',
+  'journey.dayImport.modeReport': 'Napi beszámoló',
+  'journey.dayImport.reportDefault': 'A(z) {date} napja',
+  'journey.dayImport.reportHint':
+    'A kiválasztott tartózkodásokból egy bejegyzés lesz, amely időpontjaikkal együtt felsorolja őket. Minden hely megmarad a térképhez.',
+  'journey.dayImport.reportNeedsTwo': 'Napi beszámolóhoz válassz legalább két tartózkodást.',
+  'journey.dayImport.groupTitle': 'A bejegyzés címe',
+  'journey.dayImport.groupPin': 'Hely a térképen',
+  'journey.dayImport.noPin': 'Nincs hely a térképen',
+  'journey.dayImport.join': 'Összevonás egy bejegyzésbe',
+  'journey.dayImport.split': 'Külön marad',
+  'journey.dayImport.choose': '{name} átvétele',
+  'journey.dayImport.name': '{name} neve',
+  'journey.dayImport.unconfirmed': 'Nem megerősített',
+  'journey.dayImport.noPlace': 'Hely nélkül',
+  'journey.dayImport.noPlaceHint':
+    'A Dawarich nem rögzített helyet ehhez a tartózkodáshoz, ezért a bejegyzése nem jelenik meg a térképen.',
+  'journey.dayImport.statusHere': 'Itt: {title}',
+  'journey.dayImport.statusHereUntitled': 'A naplóban',
+  'journey.dayImport.statusElsewhere': 'Átvéve',
+  'journey.dayImport.statusElsewhereHint': 'Már átvéve helyként, kívánságként vagy egy másik naplóba.',
+  'journey.dayImport.statusSkipped': 'Kihagyva',
+  'journey.dayImport.keepRoute': 'A nap útvonalának mentése is',
+  'journey.dayImport.keepRouteHint': '{distance} rögzítve. Az utazás minden tagja látja a térképen.',
+  'journey.dayImport.routeNone': 'A Dawarich ezen a napon nem rögzített útvonalat.',
+  'journey.dayImport.routeKept': 'Útvonal mentve',
+  'journey.dayImport.routeDiffers':
+    'A Dawarichban most az útvonal egy másik változata van. Cseréld le a nap útvonal gombjával.',
+  'journey.dayImport.existing': 'Már ezen a napon',
+  'journey.dayImport.untitled': 'Cím nélküli bejegyzés',
+  'journey.dayImport.draft': 'Piszkozat',
+  'journey.dayImport.audience':
+    'A piszkozatok nem jelennek meg a megosztott linkeken. Az utazás {count} további tagja látja őket.',
+  'journey.dayImport.audience.one':
+    'A piszkozatok nem jelennek meg a megosztott linkeken. Az utazás {count} további tagja látja őket.',
+  'journey.dayImport.draftsNote':
+    'A piszkozatok nem jelennek meg a megosztott linkeken, amíg közzé nem teszed őket. Fotókat és szöveget utána adhatsz hozzá.',
+  'journey.dayImport.submit': '{count} piszkozat átvétele',
+  'journey.dayImport.submit.one': '{count} piszkozat átvétele',
+  'journey.dayImport.skipped': '{count} kihagyva',
+  'journey.dayImport.skipped.one': '{count} kihagyva',
+  'journey.dayImport.skipHint':
+    'A kihagyott tartózkodások ezen a napon már nem várnak. Visszaállíthatod őket a Dawarich tartózkodáslistájában.',
+  'journey.dayImport.problem.nothing': 'Válassz legalább egy tartózkodást.',
+  'journey.dayImport.problem.name': 'Minden kiválasztott tartózkodásnak kell név.',
+  'journey.dayImport.problem.title': 'Minden összevont bejegyzésnek és a napi beszámolónak kell cím.',
+  'journey.dayImport.done': '{count} piszkozat átvéve',
+  'journey.dayImport.done.one': '{count} piszkozat átvéve',
+  'journey.dayImport.alreadyTaken': '{count} tartózkodást már korábban átvettek. Semmi sem lett kétszer felvéve.',
+  'journey.dayImport.alreadyTaken.one': '{count} tartózkodást már korábban átvettek. Semmi sem lett kétszer felvéve.',
+  'journey.dayImport.failed':
+    'Semmi sem lett átvéve: {reason} A lista azt mutatja, mi van most a naplóban; az újrapróbálás semmit sem ír kétszer.',
+  'journey.dayImport.routeFailed': 'A piszkozatok elkészültek, de az útvonal nem lett mentve: {reason}',
+  'journey.dayImport.routeRetry': 'Útvonal mentése újra',
+  'journey.dayImport.stale':
+    'A Dawarich nem válaszolt: {reason} A legutóbbi, {date} időpontú szinkronizálás tartózkodásai látszanak.',
+  'journey.dayImport.staleNever': 'A Dawarich nem válaszolt: {reason} A TREK által már ismert tartózkodások látszanak.',
+  'journey.dayImport.truncated': 'A Dawarich csak a nap egy részét küldte el. Hiányozhatnak tartózkodások.',
+  'journey.dayImport.empty': 'A Dawarich nem talált tartózkodást ezen a napon.',
+  'journey.prep.lastSuccess': 'Utoljára lekérve: {time}.',
+  'journey.prep.never': 'Még nincs lekérve. A következő háttérszinkronizálás elindítja.',
+  'journey.prep.failed': 'A legutóbbi frissítés nem sikerült: {reason} A {time} lekért állapot látható.',
+  'journey.prep.failedNever': 'Az első lekérés nem sikerült: {reason}',
+  'journey.prep.notConnected': 'Kapcsold össze a Dawarichot a beállításokban, hogy a napjaid előkészíthetők legyenek.',
+  'journey.prep.noPeriods': 'Kapcsolj hozzá egy dátumos utazást: csak annak napjai készülnek elő.',
+  'journey.prep.syncOff':
+    'A háttérszinkronizálás ki van kapcsolva a Dawarich-beállításaidban, a napok csak kérésre töltődnek le.',
+  'journey.prep.fetchNow': 'Lekérés most',
+  'journey.prep.fetching': 'Lekérés folyamatban…',
+  'journey.prep.fetchFailed': 'A Dawarich most nem volt elérhető.',
+  'journey.prep.dayRunning': 'A nap még tart, további tartózkodások jöhetnek.',
+  'journey.prep.dayPending': 'Még nincs lekérve.',
+  'journey.prep.dayProvisional': 'Lekérve {time}, a nap vége előtt, hiányozhatnak tartózkodások.',
+  'journey.prep.dayFailed': 'A legutóbbi frissítés nem sikerült, ez a régebbi állapot.',
+  'journey.prep.outOfReach':
+    'A több mint {count} napja véget ért utak nem készülnek elő a háttérben. Nyisd meg az egyik napjukat, hogy kézzel lekérd.',
+  'journey.prep.outOfReach.one':
+    'A több mint {count} napja véget ért utak nem készülnek elő a háttérben. Nyisd meg az egyik napjukat, hogy kézzel lekérd.',
+  'journey.prep.alreadyRunning': 'A háttérben már fut egy lekérés. A megállói megjelennek, amint végzett.',
+  'journey.dayImport.running':
+    'Ez a nap még tart. A később rögzített tartózkodások megjelennek, amint a Dawarich megkapja őket.',
+  'journey.map.layers': 'Térképrétegek',
+  'journey.map.layer.plan': 'Terv',
+  'journey.map.layer.recorded': 'Rögzített',
+  'journey.map.layer.entries': 'Bejegyzések',
+  'journey.map.layer.photos': 'Fotók',
+  'journey.map.layer.loading': 'betöltés',
+  'journey.map.layer.planEmpty': 'a kapcsolt utaknak nincsenek helyei a napjaikon',
+  'journey.map.layer.planUnavailable': 'a tervet nem sikerült betölteni, a térkép többi része látható marad',
+  'journey.map.layer.recordedEmpty': 'még nincs rögzített útvonal',
+  'journey.map.layer.recordedUnavailable': 'a rögzített napokat nem sikerült betölteni',
+  'journey.map.layer.entriesEmpty': 'még egyetlen bejegyzésnek sincs helye',
+  'journey.map.layer.entriesUnavailable':
+    'a napi beszámolók megállóit nem sikerült betölteni, a bejegyzések láthatók maradnak',
+  'journey.map.layer.photosEmpty': 'még nincs helyadattal rendelkező fotó',
+  'journey.map.legend': 'Jelmagyarázat',
+  'journey.map.legend.planned': 'Tervezett hely',
+  'journey.map.legend.entry': 'Naplóbejegyzés',
+  'journey.map.legend.plannedWritten': 'Tervezett és megírt',
+  'journey.map.legend.stay': 'Napi beszámoló megállója',
+  'journey.map.legend.several': 'Több egy helyen',
+  'journey.map.legend.lines': 'Útvonalak',
+  'journey.map.legend.plannedRoute': 'Tervezett útvonal (egy út GPX-e)',
+  'journey.map.legend.recordedRoute': 'Rögzített útvonal',
+  'journey.map.legend.planIsNoVisit':
+    'Egy tervezett hely nem bizonyítja a látogatást. Csak a bejegyzések, fotók és felvételek mutatják, hol jártál.',
+  'journey.map.pick.openEntry': 'Bejegyzés megnyitása',
+  'journey.map.pick.planned': 'Tervezett',
+  'journey.map.pick.notWritten': 'Még semmit sem írtál róla.',
+  'journey.map.pick.stay': 'Megálló',
+  'journey.map.pick.partOf': 'A(z) „{title}” része',
+  'journey.map.pick.here': 'Ezen a helyen',
+  'journey.map.pick.back': 'Vissza a listához',
+  'journey.map.pick.timeRange': '{from} és {to} között',
+  'journey.share.plan': 'Úti terv',
+  'journey.share.planHint': 'A kapcsolt utak tervezett helyei és GPX-útvonalai a térképen',
+  'journey.share.recordings': 'Rögzített útvonalak',
+  'journey.share.recordingsHint':
+    'Rögzített napok és a belőlük átvett megállók azokon a napokon, amelyekhez közzétett bejegyzés tartozik. Megmutatják, hol és mikor jártál, a szállásodat is.',
+  'journey.share.needsMap': 'Oszd meg a térképet a bekapcsoláshoz',
+  'journey.editor.tags': 'Címkék',
+  'journey.studio.assistant.toggle': 'Asszisztens',
+  'journey.studio.assistant.toggleHint': 'Tervezd meg a könyvet az asszisztenssel',
+  'journey.studio.assistant.panel': 'Könyvasszisztens',
+  'journey.studio.assistant.welcome': 'Milyen legyen a könyv?',
+  'journey.studio.assistant.readOnly':
+    'Ezt a könyvet csak megtekintheted, ezért kérdésekre válaszolok, de semmit nem módosítok.',
+  'journey.studio.assistant.notice':
+    'Az asszisztens megnézheti az oldalt, amelyen dolgozol. Csak ez az oldal kerül a(z) {provider} szolgáltatóhoz, képként, amelyen csak a saját magad által hozzáadott fotók látszanak. Azt, hogy ki szerepel a fotóidon, nem lehet felismerni.',
+  'journey.studio.assistant.noticeAllow': 'Oldalak megmutatása',
+  'journey.studio.assistant.noticeLater': 'Most nem',
 };
 export default journey;

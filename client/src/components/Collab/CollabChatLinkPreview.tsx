@@ -43,8 +43,8 @@ export function LinkPreview({ url, tripId, own, onLoad }: LinkPreviewProps) {
   return (
     <a href={url} target="_blank" rel="noopener noreferrer" style={{
       display: 'block', textDecoration: 'none', marginTop: 6, borderRadius: 12, overflow: 'hidden',
-      border: own ? '1px solid rgba(255,255,255,0.15)' : '1px solid var(--border-faint)',
-      background: own ? 'rgba(255,255,255,0.1)' : 'var(--bg-secondary)',
+      border: own ? '1px solid color-mix(in srgb, var(--accent-text) 15%, transparent)' : '1px solid var(--border-faint)',
+      background: own ? 'color-mix(in srgb, var(--accent-text) 10%, transparent)' : 'var(--bg-secondary)',
       maxWidth: 280, transition: 'opacity 0.15s',
     }}
       onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
@@ -56,17 +56,17 @@ export function LinkPreview({ url, tripId, own, onLoad }: LinkPreviewProps) {
       )}
       <div style={{ padding: '8px 10px' }}>
         {domain && (
-          <div style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: own ? 'rgba(255,255,255,0.5)' : 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 2 }}>
+          <div style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: own ? 'color-mix(in srgb, var(--accent-text) 55%, transparent)' : 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 2 }}>
             {data.site_name || domain}
           </div>
         )}
         {data.title && (
-          <div style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, color: own ? '#fff' : 'var(--text-primary)', lineHeight: 1.3, marginBottom: 2, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+          <div style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, color: own ? 'var(--accent-text)' : 'var(--text-primary)', lineHeight: 1.3, marginBottom: 2, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
             {data.title}
           </div>
         )}
         {data.description && (
-          <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: own ? 'rgba(255,255,255,0.7)' : 'var(--text-muted)', lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+          <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: own ? 'color-mix(in srgb, var(--accent-text) 75%, transparent)' : 'var(--text-muted)', lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
             {data.description}
           </div>
         )}

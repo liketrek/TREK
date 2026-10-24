@@ -1,0 +1,3 @@
+# Written by scripts/generate-entities.ts and held byte for byte to its output
+# by check:entities, so Prettier must not rewrite them.
+src/db/entities/

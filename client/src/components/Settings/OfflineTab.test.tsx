@@ -1,4 +1,4 @@
-// FE-COMP-OFFLINETAB-001 to FE-COMP-OFFLINETAB-028
+// FE-COMP-OFFLINETAB-001 to FE-COMP-OFFLINETAB-031
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -44,6 +44,8 @@ const h = vi.hoisted(() => {
     conflicts: vi.fn(),
     resolveKeepMine: vi.fn(),
     resolveKeepServer: vi.fn(),
+    retryFailed: vi.fn(),
+    discardFailed: vi.fn(),
     clearTileCache: vi.fn(),
   };
 });
@@ -68,6 +70,8 @@ vi.mock('../../sync/mutationQueue', async (importOriginal) => {
       conflicts: h.conflicts,
       resolveKeepMine: h.resolveKeepMine,
       resolveKeepServer: h.resolveKeepServer,
+      retryFailed: h.retryFailed,
+      discardFailed: h.discardFailed,
     },
   };
 });
@@ -116,7 +120,7 @@ function setOnLine(value: boolean): void {
 }
 
 /** The Section wrapper card that carries the given heading. */
-const card = (title: string) => screen.getByText(title).closest('div.rounded-xl') as HTMLElement;
+const card = (title: string) => screen.getByText(title).closest('section') as HTMLElement;
 
 /** The Stat tile that carries the given label. */
 const stat = (label: string) => screen.getByText(label).parentElement as HTMLElement;
@@ -187,8 +191,8 @@ describe('OfflineTab', () => {
     await waitFor(() => expect(within(cacheCard).getByText('Paris')).toBeInTheDocument());
     const titles = within(cacheCard).getAllByText(/^(Paris|Tokyo)$/).map(el => el.textContent);
     expect(titles).toEqual(['Paris', 'Tokyo']);
-    expect(within(cacheCard).getByText(/Jun 1, 2025 – Jun 5, 2025/)).toHaveTextContent('7');
-    expect(within(cacheCard).getByText(/Sep 1, 2025 – Sep 15, 2025/)).toHaveTextContent('3');
+    expect(within(cacheCard).getByText('Jun 1, 2025 to Jun 5, 2025, 7 places, 2 files')).toBeInTheDocument();
+    expect(within(cacheCard).getByText('Sep 1, 2025 to Sep 15, 2025, 3 places, 1 file')).toBeInTheDocument();
     expect(within(stat('Cached trips')).getByText('2')).toBeInTheDocument();
     // Never synced → the time column shows a dash.
     expect(within(cacheCard).getAllByText('—')).toHaveLength(2);
@@ -200,7 +204,8 @@ describe('OfflineTab', () => {
 
     const cacheCard = card('Offline cache');
     await waitFor(() => expect(within(cacheCard).getByText('Someday')).toBeInTheDocument());
-    expect(within(cacheCard).getByText(/— – —/)).toBeInTheDocument();
+    // No dates: the row names only what is stored, with its nouns.
+    expect(within(cacheCard).getByText(/^\d+ places?, \d+ files?$/)).toBeInTheDocument();
   });
 
   it('FE-COMP-OFFLINETAB-005: a sync-meta row without its trip in Dexie is dropped', async () => {
@@ -234,6 +239,21 @@ describe('OfflineTab', () => {
     expect(within(stat('Pending changes')).getByText('4')).toBeInTheDocument();
     expect(within(stat('Failed changes')).getByText('2')).toBeInTheDocument();
     expect(within(stat('Conflicts')).getByText('1')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-OFFLINETAB-030: failed changes offer to try them again or discard them', async () => {
+    h.failedCount.mockResolvedValue(2);
+    h.retryFailed.mockResolvedValue(undefined);
+    h.discardFailed.mockResolvedValue(undefined);
+    h.syncAll.mockResolvedValue([]);
+    const user = userEvent.setup();
+    render(<OfflineTab />);
+
+    await user.click(await screen.findByRole('button', { name: 'Try again' }));
+    expect(h.retryFailed).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByRole('button', { name: 'Discard' }));
+    expect(h.discardFailed).toHaveBeenCalledTimes(1);
+    expect(screen.getByText(/never reached the server/)).toBeInTheDocument();
   });
 
   it('FE-COMP-OFFLINETAB-008: conflicts are named from the queued body, the server copy or the entity id', async () => {
@@ -272,12 +292,14 @@ describe('OfflineTab', () => {
     render(<OfflineTab />);
 
     await screen.findByText('When a conflict happens');
-    const select = screen.getByRole('combobox') as HTMLSelectElement;
-    expect(select.value).toBe('ask');
-
-    await user.selectOptions(select, 'server');
+    // A CustomSelect: the row's label names the trigger, the options open in a portal.
+    const trigger = screen.getByRole('button', { name: 'When a conflict happens' });
+    expect(trigger).toHaveTextContent('Ask me each time');
+    await user.click(trigger);
+    const choices = await screen.findAllByRole('button', { name: 'Always keep the server version' });
+    await user.click(choices[choices.length - 1]);
     expect(getOfflinePrefs().conflictStrategy).toBe('server');
-    await waitFor(() => expect(select.value).toBe('server'));
+    await waitFor(() => expect(trigger).toHaveTextContent('Always keep the server version'));
   });
 
   it('FE-COMP-OFFLINETAB-011: Prepare renders live progress and the done marker', async () => {
@@ -294,11 +316,11 @@ describe('OfflineTab', () => {
     await screen.findByText('No trips cached yet. Connect to the internet to sync.');
     await user.click(screen.getByRole('button', { name: 'Download for offline use' }));
 
-    expect(await screen.findByText('Documents · 1/4 · Paris')).toBeInTheDocument();
+    expect(await screen.findByText('Documents: 1/4, Paris')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Downloading…' })).toBeDisabled();
 
     await act(async () => { release(); });
-    expect(await screen.findByText('Stored 4 trip(s) on this device')).toBeInTheDocument();
+    expect(await screen.findByText('Stored 4 trips on this device')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Download for offline use' })).toBeEnabled();
   });
 
@@ -315,7 +337,7 @@ describe('OfflineTab', () => {
     await screen.findByText('No trips cached yet. Connect to the internet to sync.');
     await user.click(screen.getByRole('button', { name: 'Download for offline use' }));
 
-    const label = await screen.findByText('Map tiles · 0/0');
+    const label = await screen.findByText('Map tiles: 0/0');
     const bar = label.previousElementSibling?.firstElementChild as HTMLElement;
     expect(bar).toHaveStyle({ width: '100%' });
     await act(async () => { release(); });
@@ -334,7 +356,7 @@ describe('OfflineTab', () => {
     await screen.findByText('No trips cached yet. Connect to the internet to sync.');
     await user.click(screen.getByRole('button', { name: 'Download for offline use' }));
 
-    const label = await screen.findByText('Trip data · 1/4');
+    const label = await screen.findByText('Trip data: 1/4');
     const bar = label.previousElementSibling?.firstElementChild as HTMLElement;
     expect(bar).toHaveStyle({ width: '25%' });
     await act(async () => { release(); });
@@ -422,7 +444,7 @@ describe('OfflineTab', () => {
     // switch has to read "off" rather than promising storage that never happens.
     const toggle = await screen.findByRole('button', { name: 'Tokyo' });
     expect(toggle).toHaveAttribute('aria-pressed', 'false');
-    expect(screen.getAllByText(/Not stored · Finished/)).toHaveLength(2);
+    expect(screen.getAllByText(/Not stored\. Finished/)).toHaveLength(2);
 
     await user.click(toggle);
     await waitFor(() => expect(h.syncAll).toHaveBeenCalledTimes(1));
@@ -479,6 +501,22 @@ describe('OfflineTab', () => {
     expect(screen.queryByText('No trips cached yet. Connect to the internet to sync.')).not.toBeInTheDocument();
   });
 
+  it('FE-COMP-OFFLINETAB-031: an archived trip still stored here gets a switch that takes it off', async () => {
+    const user = userEvent.setup();
+    const soon = new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
+    const archived = buildTrip({ id: 9, title: 'Rome', start_date: '2025-01-01', end_date: soon, is_archived: 1 });
+    // The server's list leaves archived trips out; the device still holds Rome.
+    h.tripsToArray.mockResolvedValue([archived, paris]);
+    render(<OfflineTab />);
+
+    const toggle = await screen.findByRole('button', { name: 'Rome' });
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getAllByRole('button', { name: 'Paris' })).toHaveLength(1);
+
+    await user.click(toggle);
+    expect(h.clearTripData).toHaveBeenCalledWith(9);
+  });
+
   it('FE-COMP-OFFLINETAB-020: the per-trip section disappears when there are no trips at all', async () => {
     server.use(http.get('/api/trips', () => HttpResponse.json({ trips: [] })));
     render(<OfflineTab />);
@@ -510,23 +548,24 @@ describe('OfflineTab', () => {
     expect(screen.queryByText('Trips')).not.toBeInTheDocument();
   });
 
-  it('FE-COMP-OFFLINETAB-023: Clear cache asks first and a declined confirm keeps the data', async () => {
+  it('FE-COMP-OFFLINETAB-023: Clear cache asks first and a cancelled confirm keeps the data', async () => {
     const user = userEvent.setup();
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
     cache([{ trip: paris }]);
     render(<OfflineTab />);
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Clear cache' })).toBeEnabled());
     await user.click(screen.getByRole('button', { name: 'Clear cache' }));
 
-    expect(confirmSpy).toHaveBeenCalledWith('Clear all offline trip data? You can re-sync anytime while online.');
+    expect(await screen.findByText('Clear all offline trip data? You can re-sync anytime while online.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.queryByText('Clear all offline trip data? You can re-sync anytime while online.')).not.toBeInTheDocument();
     expect(h.clearAll).not.toHaveBeenCalled();
     expect(within(card('Offline cache')).getByText('Paris')).toBeInTheDocument();
   });
 
   it('FE-COMP-OFFLINETAB-024: confirming Clear cache wipes the database and reloads', async () => {
     const user = userEvent.setup();
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     cache([{ trip: paris }]);
     render(<OfflineTab />);
 
@@ -534,6 +573,11 @@ describe('OfflineTab', () => {
     h.syncMetaToArray.mockResolvedValue([]);
     h.tripsCount.mockResolvedValue(0);
     await user.click(screen.getByRole('button', { name: 'Clear cache' }));
+    await screen.findByText('Clear all offline trip data? You can re-sync anytime while online.');
+    expect(h.clearAll).not.toHaveBeenCalled();
+    // The dialog's own confirm button is the last "Clear cache" in the document.
+    const confirmButtons = screen.getAllByRole('button', { name: 'Clear cache' });
+    await user.click(confirmButtons[confirmButtons.length - 1]!);
 
     expect(h.clearAll).toHaveBeenCalledTimes(1);
     await screen.findByText('No trips cached yet. Connect to the internet to sync.');

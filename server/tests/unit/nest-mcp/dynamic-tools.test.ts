@@ -7,7 +7,14 @@
  * and nothing a contributor does can make attach() throw. Hosts call attach()
  * outside their request try block, so an escape is a 500 on every initialize.
  */
-import { McpController, Tool, createTestRegistry, type McpAccessPolicy, type McpDynamicTool, type McpContext } from '../../../src/nest-mcp';
+import {
+  McpController,
+  Tool,
+  createTestRegistry,
+  type McpAccessPolicy,
+  type McpDynamicTool,
+  type McpContext,
+} from '../../../src/nest-mcp';
 import { createAttachHarness, type TestCtx } from './harness';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -46,8 +53,7 @@ class Ungated {
 }
 
 /** Grants read to everyone, write only to a ctx that asked for it. */
-const policy: McpAccessPolicy = ({ mode }, ctx) =>
-  mode === 'read' ? true : (ctx as TestCtx).canWrite === true;
+const policy: McpAccessPolicy = ({ mode }, ctx) => (mode === 'read' ? true : (ctx as TestCtx).canWrite === true);
 
 function makeRegistry() {
   return createTestRegistry([new Builtins()], { accessPolicy: policy });
@@ -82,9 +88,13 @@ afterEach(() => {
 
 describe('dynamic tools: the happy path', () => {
   it('DYNTOOL-001: registers a contributed tool and calls it', async () => {
-    const h = await createAttachHarness(makeRegistry(), { canWrite: true }, {
-      dynamicTools: () => [dynamicTool()],
-    });
+    const h = await createAttachHarness(
+      makeRegistry(),
+      { canWrite: true },
+      {
+        dynamicTools: () => [dynamicTool()],
+      },
+    );
 
     expect(await listNames(h.client)).toContain('plugin_demo_echo');
     const res = await h.client.callTool({ name: 'plugin_demo_echo', arguments: { value: 'x' } });
@@ -95,16 +105,20 @@ describe('dynamic tools: the happy path', () => {
 
   it('DYNTOOL-002: binds owner as `this` on the handler', async () => {
     const owner = { marker: 'the-owner' };
-    const h = await createAttachHarness(makeRegistry(), {}, {
-      dynamicTools: () => [
-        dynamicTool({
-          owner,
-          handler: function (this: typeof owner) {
-            return { content: [{ type: 'text', text: this.marker }] };
-          },
-        }),
-      ],
-    });
+    const h = await createAttachHarness(
+      makeRegistry(),
+      {},
+      {
+        dynamicTools: () => [
+          dynamicTool({
+            owner,
+            handler: function (this: typeof owner) {
+              return { content: [{ type: 'text', text: this.marker }] };
+            },
+          }),
+        ],
+      },
+    );
 
     const res = await h.client.callTool({ name: 'plugin_demo_echo', arguments: { value: 'x' } });
     expect((res.content as Array<{ text: string }>)[0].text).toBe('the-owner');
@@ -115,22 +129,26 @@ describe('dynamic tools: the happy path', () => {
   it('DYNTOOL-003: hands the owner to when(ctx, self)', async () => {
     const owner = { enabled: false };
     const seen: object[] = [];
-    const h = await createAttachHarness(makeRegistry(), {}, {
-      dynamicTools: () => [
-        dynamicTool({
-          owner,
-          options: {
-            name: 'plugin_demo_gated',
-            description: 'Gated.',
-            access: { group: 'thing', mode: 'read' },
-            when: (_ctx, self) => {
-              seen.push(self);
-              return (self as typeof owner).enabled;
-            },
-          } as unknown as McpDynamicTool['options'],
-        }),
-      ],
-    });
+    const h = await createAttachHarness(
+      makeRegistry(),
+      {},
+      {
+        dynamicTools: () => [
+          dynamicTool({
+            owner,
+            options: {
+              name: 'plugin_demo_gated',
+              description: 'Gated.',
+              access: { group: 'thing', mode: 'read' },
+              when: (_ctx, self) => {
+                seen.push(self);
+                return (self as typeof owner).enabled;
+              },
+            } as unknown as McpDynamicTool['options'],
+          }),
+        ],
+      },
+    );
 
     expect(seen).toEqual([owner]);
     expect(await listNames(h.client)).not.toContain('plugin_demo_gated');
@@ -140,10 +158,14 @@ describe('dynamic tools: the happy path', () => {
 
   it('DYNTOOL-004: fires onInvoke, so the host audit trail sees the call', async () => {
     const onInvoke = vi.fn();
-    const h = await createAttachHarness(makeRegistry(), {}, {
-      onInvoke,
-      dynamicTools: () => [dynamicTool()],
-    });
+    const h = await createAttachHarness(
+      makeRegistry(),
+      {},
+      {
+        onInvoke,
+        dynamicTools: () => [dynamicTool()],
+      },
+    );
 
     await h.client.callTool({ name: 'plugin_demo_echo', arguments: { value: 'x' } });
 
@@ -153,9 +175,13 @@ describe('dynamic tools: the happy path', () => {
   });
 
   it('DYNTOOL-005: registers contributed tools after every registered entry', async () => {
-    const h = await createAttachHarness(makeRegistry(), { canWrite: true }, {
-      dynamicTools: () => [dynamicTool()],
-    });
+    const h = await createAttachHarness(
+      makeRegistry(),
+      { canWrite: true },
+      {
+        dynamicTools: () => [dynamicTool()],
+      },
+    );
 
     const names = await listNames(h.client);
     expect(names.indexOf('plugin_demo_echo')).toBeGreaterThan(names.indexOf('write_thing'));
@@ -166,9 +192,13 @@ describe('dynamic tools: the happy path', () => {
 
 describe('dynamic tools: name reservation', () => {
   it('DYNTOOL-006: cannot take the name of a registered entry', async () => {
-    const h = await createAttachHarness(makeRegistry(), { canWrite: true }, {
-      dynamicTools: () => [dynamicTool({ options: { name: 'read_thing' } as McpDynamicTool['options'] })],
-    });
+    const h = await createAttachHarness(
+      makeRegistry(),
+      { canWrite: true },
+      {
+        dynamicTools: () => [dynamicTool({ options: { name: 'read_thing' } as McpDynamicTool['options'] })],
+      },
+    );
 
     const names = await listNames(h.client);
     expect(names.filter((n) => n === 'read_thing')).toHaveLength(1);
@@ -182,9 +212,13 @@ describe('dynamic tools: name reservation', () => {
     // canWrite is false, so write_thing is NOT attached for this session. The
     // name is still reserved: otherwise a contributor could occupy a built-in
     // for exactly the callers who hold no scope for it.
-    const h = await createAttachHarness(makeRegistry(), { canWrite: false }, {
-      dynamicTools: () => [dynamicTool({ options: { name: 'write_thing' } as McpDynamicTool['options'] })],
-    });
+    const h = await createAttachHarness(
+      makeRegistry(),
+      { canWrite: false },
+      {
+        dynamicTools: () => [dynamicTool({ options: { name: 'write_thing' } as McpDynamicTool['options'] })],
+      },
+    );
 
     expect(await listNames(h.client)).not.toContain('write_thing');
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('reserved by a registered entry'));
@@ -193,20 +227,24 @@ describe('dynamic tools: name reservation', () => {
   });
 
   it('DYNTOOL-008: first wins on a duplicate within one source, and a denied entry still holds its name', async () => {
-    const h = await createAttachHarness(makeRegistry(), {}, {
-      dynamicTools: () => [
-        // Denied by `when`, but it has claimed the name.
-        dynamicTool({
-          options: {
-            name: 'plugin_demo_echo',
-            description: 'First, denied.',
-            access: { group: 'thing', mode: 'read' },
-            when: () => false,
-          } as unknown as McpDynamicTool['options'],
-        }),
-        dynamicTool({ options: { name: 'plugin_demo_echo', description: 'Second.' } as McpDynamicTool['options'] }),
-      ],
-    });
+    const h = await createAttachHarness(
+      makeRegistry(),
+      {},
+      {
+        dynamicTools: () => [
+          // Denied by `when`, but it has claimed the name.
+          dynamicTool({
+            options: {
+              name: 'plugin_demo_echo',
+              description: 'First, denied.',
+              access: { group: 'thing', mode: 'read' },
+              when: () => false,
+            } as unknown as McpDynamicTool['options'],
+          }),
+          dynamicTool({ options: { name: 'plugin_demo_echo', description: 'Second.' } as McpDynamicTool['options'] }),
+        ],
+      },
+    );
 
     expect(await listNames(h.client)).not.toContain('plugin_demo_echo');
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('duplicate name in this source'));
@@ -217,11 +255,15 @@ describe('dynamic tools: name reservation', () => {
 
 describe('dynamic tools: containment', () => {
   it('DYNTOOL-009: a throwing source costs the dynamic tools, not the session', async () => {
-    const h = await createAttachHarness(makeRegistry(), { canWrite: true }, {
-      dynamicTools: () => {
-        throw new Error('the runtime is down');
+    const h = await createAttachHarness(
+      makeRegistry(),
+      { canWrite: true },
+      {
+        dynamicTools: () => {
+          throw new Error('the runtime is down');
+        },
       },
-    });
+    );
 
     expect(await listNames(h.client)).toEqual(['read_thing', 'write_thing']);
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('the runtime is down'));
@@ -230,12 +272,23 @@ describe('dynamic tools: containment', () => {
   });
 
   it('DYNTOOL-010: one bad entry is skipped and the rest still register', async () => {
-    const h = await createAttachHarness(makeRegistry(), {}, {
-      dynamicTools: () => [
-        { options: { name: 'plugin_demo_broken', description: 'No handler.', access: { group: 'thing', mode: 'read' } }, handler: undefined } as unknown as McpDynamicTool,
-        dynamicTool(),
-      ],
-    });
+    const h = await createAttachHarness(
+      makeRegistry(),
+      {},
+      {
+        dynamicTools: () => [
+          {
+            options: {
+              name: 'plugin_demo_broken',
+              description: 'No handler.',
+              access: { group: 'thing', mode: 'read' },
+            },
+            handler: undefined,
+          } as unknown as McpDynamicTool,
+          dynamicTool(),
+        ],
+      },
+    );
 
     const names = await listNames(h.client);
     expect(names).not.toContain('plugin_demo_broken');
@@ -245,11 +298,18 @@ describe('dynamic tools: containment', () => {
   });
 
   it('DYNTOOL-011: an entry with no access marker is skipped, never registered ungated', async () => {
-    const h = await createAttachHarness(makeRegistry(), {}, {
-      dynamicTools: () => [
-        { options: { name: 'plugin_demo_ungated', description: 'No access.' }, handler: () => ({ content: [] }) } as unknown as McpDynamicTool,
-      ],
-    });
+    const h = await createAttachHarness(
+      makeRegistry(),
+      {},
+      {
+        dynamicTools: () => [
+          {
+            options: { name: 'plugin_demo_ungated', description: 'No access.' },
+            handler: () => ({ content: [] }),
+          } as unknown as McpDynamicTool,
+        ],
+      },
+    );
 
     expect(await listNames(h.client)).not.toContain('plugin_demo_ungated');
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('access is required'));

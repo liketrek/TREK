@@ -960,3 +960,99 @@ describe('collectionStore — view state', () => {
     expect(store().selectMode).toBe(false)
   })
 })
+
+describe('collectionStore — "All saved" load pressure (#2559)', () => {
+  /** A get() the test settles by hand, counting how many are open at once. */
+  function deferredGets() {
+    const pending: Array<{ id: number; resolve: (d: CollectionDetailResponse) => void }> = []
+    let open = 0
+    let peak = 0
+    vi.mocked(collectionsApi.get).mockImplementation((id: number) => {
+      open++
+      peak = Math.max(peak, open)
+      return new Promise<CollectionDetailResponse>(resolve => {
+        pending.push({ id, resolve: (d) => { open--; resolve(d) } })
+      })
+    })
+    return {
+      pending,
+      peak: () => peak,
+      /** Answer everything that is open now, each list with one place of its own id. */
+      async flush() {
+        const batch = pending.splice(0)
+        for (const p of batch) p.resolve(detail({ places: [buildPlace({ id: p.id * 100, collection_id: p.id })] }))
+        await Promise.resolve()
+        await new Promise(r => setTimeout(r, 0))
+      },
+    }
+  }
+
+  it('FE-STORE-COLLECTION-064: the union reads at most four lists at a time', async () => {
+    const lists = Array.from({ length: 10 }, (_, i) => ({ id: i + 1, owner_id: 1, name: `L${i + 1}` }))
+    useCollectionStore.setState({ collections: lists })
+    const gets = deferredGets()
+
+    const run = store().setActive(ALL_SAVED)
+    while (gets.pending.length > 0) await gets.flush()
+    await run
+
+    expect(collectionsApi.get).toHaveBeenCalledTimes(10)
+    expect(gets.peak()).toBeLessThanOrEqual(4)
+    expect(store().places.map(p => p.id)).toEqual(lists.map(l => l.id * 100))
+    expect(store().placesLoading).toBe(false)
+  })
+
+  it('FE-STORE-COLLECTION-065: reloads asked for while the union is loading fold into one more pass', async () => {
+    useCollectionStore.setState({ collections: [listA, listB] })
+    const gets = deferredGets()
+
+    const first = store().setActive(ALL_SAVED)
+    await Promise.resolve()
+    const again = [store().refreshActive(), store().refreshActive(), store().setActive(ALL_SAVED)]
+    while (gets.pending.length > 0) await gets.flush()
+    await Promise.all([first, ...again])
+
+    // One pass for the first load and exactly one for the three that came in during it.
+    expect(collectionsApi.get).toHaveBeenCalledTimes(4)
+    expect(store().placesLoading).toBe(false)
+  })
+
+  it('FE-STORE-COLLECTION-066: a union that lands after the user opened a list does not overwrite it', async () => {
+    useCollectionStore.setState({ collections: [listA, listB] })
+    const unionGets: Array<() => void> = []
+    vi.mocked(collectionsApi.get).mockImplementation((id: number) => {
+      if (id === 2) return Promise.resolve(detail({ collection: listB, places: [buildPlace({ id: 77, collection_id: 2 })] }))
+      return new Promise(resolve => unionGets.push(() => resolve(detail({ places: [buildPlace({ id: 10 })] }))))
+    })
+
+    const union = store().setActive(ALL_SAVED)
+    await Promise.resolve()
+    await store().setActive(2)
+    expect(store().places.map(p => p.id)).toEqual([77])
+
+    unionGets.forEach(r => r())
+    await union
+
+    expect(store().activeId).toBe(2)
+    expect(store().places.map(p => p.id)).toEqual([77])
+  })
+
+  it('FE-STORE-COLLECTION-067: a list read that lands after switching to "All saved" does not take over again', async () => {
+    useCollectionStore.setState({ collections: [listA, listB] })
+    const listOneReads: Array<() => void> = []
+    vi.mocked(collectionsApi.get).mockImplementation((id: number) => {
+      if (id === 1) return new Promise(resolve => listOneReads.push(() => resolve(detail({ places: [buildPlace({ id: 10 })] }))))
+      return Promise.resolve(detail({ collection: listB, places: [buildPlace({ id: 20, collection_id: 2 })] }))
+    })
+
+    const list = store().setActive(1)
+    await Promise.resolve()
+    // The union reads list 1 as well, so both reads are answered together.
+    const union = store().setActive(ALL_SAVED)
+    await Promise.resolve()
+    listOneReads.forEach(r => r())
+    await Promise.all([list, union])
+
+    expect(store().activeId).toBe(ALL_SAVED)
+  })
+})

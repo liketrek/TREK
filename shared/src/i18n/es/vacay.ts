@@ -40,7 +40,7 @@ const vacay: TranslationStrings = {
   'vacay.removePersonHint': 'Todas las vacaciones de esta persona se borrarán permanentemente.',
   'vacay.personName': 'Nombre',
   'vacay.personNamePlaceholder': 'Introduce un nombre',
-  'vacay.color': 'Color',
+  'vacay.color': 'Color', // same-as-en
   'vacay.add': 'Añadir',
   'vacay.legend': 'Leyenda',
   'vacay.publicHoliday': 'Festivo',
@@ -70,9 +70,9 @@ const vacay: TranslationStrings = {
   'vacay.sat': 'Sáb',
   'vacay.sun': 'Dom',
   'vacay.publicHolidays': 'Festivos',
-  'vacay.publicHolidaysHint': 'Mark public holidays in the calendar',
-  'vacay.schoolHolidays': 'School Holidays',
-  'vacay.schoolHolidaysHint': 'Mark school holidays as a visual calendar layer',
+  'vacay.publicHolidaysHint': 'Marca los festivos en el calendario',
+  'vacay.schoolHolidays': 'Vacaciones escolares',
+  'vacay.schoolHolidaysHint': 'Marca las vacaciones escolares como capa visual del calendario',
   'vacay.selectCountry': 'Seleccionar país',
   'vacay.selectRegion': 'Seleccionar región (obligatorio)',
   'vacay.companyHolidays': 'Festivos de empresa',
@@ -84,6 +84,7 @@ const vacay: TranslationStrings = {
   'vacay.carryOverHint': 'Trasladar automáticamente los días restantes al año siguiente',
   'vacay.carriedOverPrevPeriod': 'del periodo anterior',
   'vacay.compUsedCount': '{count} compensación',
+  'vacay.compUsedCount.one': '{count} compensación',
   'vacay.yearType': 'Año de vacaciones',
   'vacay.yearTypeHint':
     'Cuándo empieza tu año de vacaciones — el derecho, los días usados y el arrastre se rigen por esa fecha',
@@ -146,7 +147,7 @@ const vacay: TranslationStrings = {
   'vacay.addCalendar': 'Añadir calendario',
   'vacay.calendarColor': 'Color del calendario',
   'vacay.calendarLabel': 'Etiqueta',
-  'vacay.noCalendars': 'No holiday calendars added yet',
-  'vacay.noSchoolCalendars': 'No school holiday calendars added yet',
+  'vacay.noCalendars': 'Aún no se han añadido calendarios de festivos',
+  'vacay.noSchoolCalendars': 'Aún no se han añadido calendarios de vacaciones escolares',
 };
 export default vacay;

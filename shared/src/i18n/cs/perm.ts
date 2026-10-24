@@ -32,6 +32,7 @@ const perm: TranslationStrings = {
   'perm.action.collab_edit': 'Spolupráce (poznámky, hlasování, chat)',
   'perm.action.share_manage': 'Spravovat odkazy ke sdílení',
   'perm.actionHint.trip_create': 'Kdo může vytvářet nové výlety',
+  'perm.action.journal_link': 'Propojit deník',
   'perm.actionHint.trip_edit': 'Kdo může měnit název, data, popis a měnu výletu',
   'perm.actionHint.trip_delete': 'Kdo může trvale smazat výlet',
   'perm.actionHint.trip_archive': 'Kdo může archivovat nebo odarchivovat výlet',
@@ -47,5 +48,6 @@ const perm: TranslationStrings = {
   'perm.actionHint.packing_edit': 'Kdo může spravovat položky balení a tašky',
   'perm.actionHint.collab_edit': 'Kdo může vytvářet poznámky, hlasování a posílat zprávy',
   'perm.actionHint.share_manage': 'Kdo může vytvářet nebo mazat veřejné odkazy ke sdílení',
+  'perm.actionHint.journal_link': 'Kdo může k cestě připojit deník z Journey a zpřístupnit ho jejím členům',
 };
 export default perm;

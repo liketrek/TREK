@@ -16,7 +16,10 @@ const memories: TranslationStrings = {
   'memories.sharing': 'Udostępnianie',
   'memories.reviewTitle': 'Przejrzyj swoje zdjęcia',
   'memories.reviewHint': 'Kliknij w zdjęcia, aby wykluczyć je z udostępnienia.',
-  'memories.shareCount': 'Udostępnij {count} zdjęć',
+  'memories.shareCount': 'Udostępnij {count} zdjęcia',
+  'memories.shareCount.one': 'Udostępnij {count} zdjęcie',
+  'memories.shareCount.few': 'Udostępnij {count} zdjęcia',
+  'memories.shareCount.many': 'Udostępnij {count} zdjęć',
   'memories.providerUrl': 'URL serwera',
   'memories.providerApiKey': 'Klucz API',
   'memories.providerUsername': 'Nazwa użytkownika',
@@ -26,7 +29,7 @@ const memories: TranslationStrings = {
   'memories.immichAutoUpload': 'Przy przesyłaniu kopiuj zdjęcia journey także do Immich',
   'memories.providerUrlHintSynology': 'Uwzględnij ścieżkę aplikacji Photos w URL, np. https://nas:5001/photo',
   'memories.testConnection': 'Test',
-  'memories.testShort': 'Test',
+  'memories.testShort': 'Test', // same-as-en
   'memories.connected': 'Połączono',
   'memories.disconnected': 'Nie połączono',
   'memories.connectionSuccess': 'Połączono z {provider_name}',
@@ -40,7 +43,10 @@ const memories: TranslationStrings = {
   'memories.selectPhotosMultiple': 'Wybierz zdjęcia',
   'memories.selectHint': 'Dotknij zdjęć, aby je zaznaczyć.',
   'memories.selected': 'wybranych',
-  'memories.addSelected': 'Dodaj {count} zdjęć',
+  'memories.addSelected': 'Dodaj {count} zdjęcia',
+  'memories.addSelected.one': 'Dodaj {count} zdjęcie',
+  'memories.addSelected.few': 'Dodaj {count} zdjęcia',
+  'memories.addSelected.many': 'Dodaj {count} zdjęć',
   'memories.alreadyAdded': 'Dodano',
   'memories.private': 'Prywatne',
   'memories.stopSharing': 'Przestań udostępniać',
@@ -51,6 +57,12 @@ const memories: TranslationStrings = {
   'memories.allPhotos': 'Wszystkie zdjęcia',
   'memories.confirmShareTitle': 'Udostępnić członkom podróży?',
   'memories.confirmShareHint':
+    '{count} zdjęć będzie widocznych dla wszystkich członków tej podróży. Możesz później ustawić poszczególne zdjęcia jako prywatne.',
+  'memories.confirmShareHint.one':
+    '{count} zdjęcie będzie widoczne dla wszystkich członków tej podróży. Możesz później ustawić je jako prywatne.',
+  'memories.confirmShareHint.few':
+    '{count} zdjęcia będą widoczne dla wszystkich członków tej podróży. Możesz później ustawić poszczególne zdjęcia jako prywatne.',
+  'memories.confirmShareHint.many':
     '{count} zdjęć będzie widocznych dla wszystkich członków tej podróży. Możesz później ustawić poszczególne zdjęcia jako prywatne.',
   'memories.confirmShareButton': 'Udostępnij zdjęcia',
   'memories.testFirst': 'Najpierw przetestuj połączenie',

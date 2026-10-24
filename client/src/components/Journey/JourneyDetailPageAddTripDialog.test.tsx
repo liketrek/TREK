@@ -48,7 +48,7 @@ describe('AddTripDialog', () => {
   it('FE-JRN-ADDTRIP-002: renders destination and start date as the trip subtitle', async () => {
     mountDialog()
 
-    expect(await screen.findByText('Rome · 2026-03-14')).toBeInTheDocument()
+    expect(await screen.findByText('Rome, 2026-03-14')).toBeInTheDocument()
     // Trips without a start date only show the destination.
     expect(screen.getByText('Tromso')).toBeInTheDocument()
   })
@@ -140,9 +140,7 @@ describe('AddTripDialog', () => {
 
     expect(await screen.findByText('No trips available')).toBeInTheDocument()
 
-    const headerClose = screen.getByRole('heading', { name: 'Link Trip' })
-      .parentElement!.querySelector('button')!
-    act(() => { headerClose.click() })
+    act(() => { screen.getByRole('button', { name: 'Close' }).click() })
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 })

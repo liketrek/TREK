@@ -91,7 +91,7 @@ function SheetView({
           height: `${sheet.height + box.bleed * 2}mm`,
           // The spread's own paper colour, carried out into the bleed. Without
           // it a coloured page would be cut with a white edge on three sides.
-          background: sheet.spread.background ?? '#ffffff', // theme-lint-disable — paper, not app chrome
+          background: (sheet.spread.backgroundPaint ? null : sheet.spread.background) ?? '#ffffff', // theme-lint-disable: paper, not app chrome
           overflow: 'hidden',
         }}
       >

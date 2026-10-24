@@ -41,7 +41,7 @@ export default function OfflineBanner(): React.ReactElement | null {
         setConflictCount(conflicts)
       }
     }
-    poll()
+    void poll()
     const id = setInterval(poll, POLL_MS)
     return () => { cancelled = true; clearInterval(id) }
   }, [])

@@ -31,7 +31,7 @@ const backup: TranslationStrings = {
   'backup.auto.subtitle': 'Automatische back-up volgens schema',
   'backup.auto.enable': 'Auto-back-up inschakelen',
   'backup.auto.enableHint': 'Back-ups worden automatisch aangemaakt volgens het gekozen schema',
-  'backup.auto.interval': 'Interval',
+  'backup.auto.interval': 'Interval', // same-as-en
   'backup.auto.hour': 'Uitvoeren om',
   'backup.auto.hourHint': 'Lokale servertijd ({format}-notatie)',
   'backup.auto.dayOfWeek': 'Dag van de week',
@@ -69,5 +69,6 @@ const backup: TranslationStrings = {
     'Alle huidige gegevens (reizen, plaatsen, gebruikers, uploads) worden permanent vervangen door de back-up. Deze actie kan niet ongedaan worden gemaakt.',
   'backup.restoreTip': 'Tip: Maak een back-up van de huidige status voordat je herstelt.',
   'backup.restoreConfirm': 'Ja, herstellen',
+  'backup.auto.hourHintTz': 'Lokale servertijd ({format}-notatie), tijdzone {timezone}',
 };
 export default backup;

@@ -226,6 +226,7 @@ describe('useDawarichJournalTrail', () => {
         name: DAY_ONE,
         color: DAWARICH_DAY_COLORS[0],
         points: [[53.5, 10.0], [53.6, 10.1]],
+        kind: 'dawarich_live',
       },
       {
         place_id: -2,
@@ -235,6 +236,7 @@ describe('useDawarichJournalTrail', () => {
         // in the first day's colour would read as one continuous recording.
         color: DAWARICH_DAY_COLORS[1],
         points: [[48.1, 11.5], [48.2, 11.6], [48.3, 11.7]],
+        kind: 'dawarich_live',
       },
     ])
     // The journey map keys its polylines on place_id. Real places are positive,

@@ -1,10 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import type { BookPageSetup, BookSpread } from '@trek/shared'
-import { bookPageSetupSchema, normalizeBookDocument } from '@trek/shared'
+import { bookPageSetupSchema, normalizeBookDocument, relayoutSpread, type AutoInput } from '@trek/shared'
 import { render } from '../../helpers/render'
 import { SpreadView } from '../../../src/components/Studio/SpreadView'
 import { PAGE_MAX_MM, PAGE_MIN_MM, PAGE_PRESETS, clampPageSize } from '../../../src/components/Studio/pagePresets'
-import { relayoutSpread, type AutoInput } from '../../../src/components/Studio/autoLayout'
 
 /**
  * A free trim size, page numbers, and laying out again (#1973).

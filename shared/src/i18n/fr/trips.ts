@@ -12,6 +12,6 @@ const trips: TranslationStrings = {
   'trips.reminderCustom': 'Personnalisé',
   'trips.reminderDaysBefore': 'jours avant le départ',
   'trips.reminderDisabledHint':
-    'Les rappels de voyage sont désactivés. Activez-les dans Admin > Paramètres > Notifications.',
+    'Les rappels de voyage sont désactivés. Activez-les dans Admin > Notifications > Rappels de voyage.',
 };
 export default trips;

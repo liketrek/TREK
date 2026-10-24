@@ -32,6 +32,7 @@ const perm: TranslationStrings = {
   'perm.action.collab_edit': 'Kolaborasi (catatan, polling, chat)',
   'perm.action.share_manage': 'Kelola tautan berbagi',
   'perm.actionHint.trip_create': 'Siapa yang bisa membuat perjalanan baru',
+  'perm.action.journal_link': 'Tautkan jurnal',
   'perm.actionHint.trip_edit': 'Siapa yang bisa mengubah nama, tanggal, deskripsi, dan mata uang perjalanan',
   'perm.actionHint.trip_delete': 'Siapa yang bisa menghapus perjalanan secara permanen',
   'perm.actionHint.trip_archive': 'Siapa yang bisa mengarsipkan atau membatalkan arsip perjalanan',
@@ -47,5 +48,7 @@ const perm: TranslationStrings = {
   'perm.actionHint.packing_edit': 'Siapa yang bisa mengelola item perlengkapan dan tas',
   'perm.actionHint.collab_edit': 'Siapa yang bisa membuat catatan, polling, dan mengirim pesan',
   'perm.actionHint.share_manage': 'Siapa yang bisa membuat atau menghapus tautan berbagi publik',
+  'perm.actionHint.journal_link':
+    'Siapa yang dapat menautkan jurnal dari Journey ke perjalanan dan membukanya untuk anggotanya',
 };
 export default perm;

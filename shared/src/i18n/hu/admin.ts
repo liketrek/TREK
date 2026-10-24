@@ -22,22 +22,27 @@ const admin: TranslationStrings = {
   'admin.tabs.users': 'Felhasználók',
   'admin.tabs.categories': 'Kategóriák',
   'admin.tabs.backup': 'Biztonsági mentés',
-  'admin.stats.users': 'Felhasználók',
-  'admin.stats.trips': 'Utazások',
-  'admin.stats.places': 'Helyek',
+  'admin.stats.users': 'Felhasználó',
+  'admin.stats.users.one': 'Felhasználó',
+  'admin.stats.trips': 'Utazás',
+  'admin.stats.trips.one': 'Utazás',
+  'admin.stats.places': 'Hely',
+  'admin.stats.places.one': 'Hely',
   'admin.stats.photos': 'Fotók',
-  'admin.stats.files': 'Fájlok',
+  'admin.stats.files': 'Fájl',
+  'admin.stats.files.one': 'Fájl',
   'admin.table.user': 'Felhasználó',
   'admin.table.email': 'E-mail',
   'admin.table.role': 'Szerepkör',
   'admin.table.created': 'Létrehozva',
-  'admin.table.lastLogin': 'Utolsó belépés',
+  'admin.table.lastActive': 'Utoljára aktív',
   'admin.table.actions': 'Műveletek',
   'admin.you': '(Te)',
   'admin.editUser': 'Felhasználó szerkesztése',
   'admin.newPassword': 'Új jelszó',
   'admin.newPasswordHint': 'Hagyd üresen a jelenlegi jelszó megtartásához',
-  'admin.deleteUser': '"{name}" felhasználó törlése? Minden utazás véglegesen törlődik.',
+  'admin.deleteUser':
+    'Törlöd a(z) "{name}" felhasználót? A fiókja, valamint minden általa birtokolt utazás és napló véglegesen törlődik, azokat az utazásokat is beleértve, amelyeket más tagokkal osztott meg; ők elveszítik a hozzáférést. Mások utazásai megmaradnak.',
   'admin.deleteUserTitle': 'Felhasználó törlése',
   'admin.newPasswordPlaceholder': 'Új jelszó megadása…',
   'admin.toast.loadError': 'Nem sikerült betölteni az admin adatokat',
@@ -71,59 +76,47 @@ const admin: TranslationStrings = {
   'admin.tabs.settings': 'Beállítások',
   'admin.allowRegistration': 'Regisztráció engedélyezése',
   'admin.allowRegistrationHint': 'Új felhasználók regisztrálhatják magukat',
-  'admin.authMethods': 'Authentication Methods',
-  'admin.passwordLogin': 'Password Login',
-  'admin.passwordLoginHint': 'Allow users to sign in with email and password',
-  'admin.passwordRegistration': 'Password Registration',
-  'admin.passwordRegistrationHint': 'Allow new users to register with email and password',
-  'admin.oidcLogin': 'SSO Login',
-  'admin.oidcLoginHint': 'Allow users to sign in with SSO',
+  'admin.authMethods': 'Hitelesítési módok',
+  'admin.passwordLogin': 'Bejelentkezés jelszóval',
+  'admin.passwordLoginHint': 'A felhasználók e-maillel és jelszóval jelentkezhetnek be',
+  'admin.passwordRegistration': 'Regisztráció jelszóval',
+  'admin.passwordRegistrationHint': 'Az új felhasználók e-maillel és jelszóval regisztrálhatnak',
+  'admin.oidcLogin': 'SSO-bejelentkezés',
+  'admin.oidcLoginHint': 'A felhasználók SSO-val jelentkezhetnek be',
   'admin.oidcRegistration': 'SSO Auto-Provisioning',
-  'admin.oidcRegistrationHint': 'Automatically create accounts for new SSO users',
+  'admin.oidcRegistrationHint': 'Fiók automatikus létrehozása az új SSO-felhasználóknak',
   'admin.envOverrideHint':
-    'Password login settings are controlled by the OIDC_ONLY environment variable and cannot be changed here.',
-  'admin.lockoutWarning': 'At least one login method must remain enabled',
+    'A jelszavas bejelentkezés beállításait az OIDC_ONLY környezeti változó vezérli, itt nem módosíthatók.',
+  'admin.lockoutWarning': 'Legalább egy bejelentkezési módnak engedélyezve kell maradnia',
   'admin.requireMfa': 'Kétlépcsős hitelesítés (2FA) kötelezővé tétele',
   'admin.requireMfaHint':
     'A 2FA nélküli felhasználóknak a Beállításokban kell befejezniük a beállítást az alkalmazás használata előtt.',
   'admin.apiKeys': 'API kulcsok',
-  'admin.apiKeysHint': 'Honnan jönnek a helyadatok. A TREK-indexhez nem kell kulcs; az alábbi két szolgáltató nem kötelező.',
+  'admin.apiKeysHint':
+    'Honnan jönnek a helyadatok. A TREK-indexhez nem kell kulcs; az alábbi két szolgáltató nem kötelező.',
   'admin.trekApi.badgeDefault': 'Ajánlott alapértelmezés',
   'admin.googleCaveat.badge': 'Nem ajánlott',
   'admin.googleCaveat.body':
     'A TREK nyílt forráskódú, és ebben nem vagyunk semlegesek. Ebben a méretben az értékelések és a hétköznapi üzletek fotói csak a Google-nél léteznek, és ez a monopólium. A mező alternatíva híján van itt, nem mert ajánljuk. Minden lekérdezés ilyenkor a Google-höz megy.',
   'admin.trekApi.tagline':
     'A TREK saját helyindexe. Keresés Google-kulcs nélkül, kvóta nélkül, és anélkül, hogy bárki számolná a lekérdezéseidet.',
-  'admin.trekApi.factPlaces':
-    '73,6 millió hely világszerte',
-  'admin.trekApi.factNoKey':
-    'Nincs kulcs, nincs kvóta',
-  'admin.trekApi.factOffline':
-    'Az országcsomagok offline is működnek',
-  'admin.trekApi.factPrivacy':
-    'A kereséseket soha nem naplózzuk',
-  'admin.trekApi.more':
-    'Mi van benne',
-  'admin.trekApi.fieldPhone':
-    'Telefon',
-  'admin.trekApi.fieldStableId':
-    'Állandó azonosító',
+  'admin.trekApi.factPlaces': '73,6 millió hely világszerte',
+  'admin.trekApi.factNoKey': 'Nincs kulcs, nincs kvóta',
+  'admin.trekApi.factOffline': 'Az országcsomagok offline is működnek',
+  'admin.trekApi.factPrivacy': 'A kereséseket soha nem naplózzuk',
+  'admin.trekApi.more': 'Mi van benne',
+  'admin.trekApi.fieldPhone': 'Telefon',
+  'admin.trekApi.fieldStableId': 'Állandó azonosító',
   'admin.trekApi.includedNote':
     'A leírások a hely saját webhelyéről jönnek, a nyitvatartás az OpenStreetMapből, ahol be van írva.',
-  'admin.trekApi.notRatings':
-    'Értékelések',
-  'admin.trekApi.notPhotos':
-    'Hétköznapi üzletek fotói',
+  'admin.trekApi.notRatings': 'Értékelések',
+  'admin.trekApi.notPhotos': 'Hétköznapi üzletek fotói',
   'admin.trekApi.notIncludedNote':
     'Egyiket sem kínálja nyílt forrás, semmilyen áron. Ehhez a kettőhöz a Google-kulcs marad az egyetlen út.',
-  'admin.trekApi.sourcesLabel':
-    'Források',
-  'admin.trekApi.sourcesNote':
-    'A válasz minden mezője megmondja, melyikükből származik.',
-  'admin.trekApi.included':
-    'Tartalmazza',
-  'admin.trekApi.notIncluded':
-    'Nem tartalmazza',
+  'admin.trekApi.sourcesLabel': 'Források',
+  'admin.trekApi.sourcesNote': 'A válasz minden mezője megmondja, melyikükből származik.',
+  'admin.trekApi.included': 'Tartalmazza',
+  'admin.trekApi.notIncluded': 'Nem tartalmazza',
   'admin.mapsKey': 'Google Maps API kulcs',
   'admin.mapsKeyHint': 'Helykereséshez szükséges. Létrehozás: console.cloud.google.com',
   'admin.mapsKeyHintLong':
@@ -136,14 +129,16 @@ const admin: TranslationStrings = {
   'admin.amapKey': 'Amap (高德地图) API-kulcs',
   'admin.amapKeyHint':
     'Helykereséshez Kína szárazföldi részén, ahol a Google nem érhető el, az OpenStreetMap adatai pedig hiányosak. „Web 服务" (webszolgáltatás) típusú kulcs kell hozzá, nem JS API-kulcs. A console.amap.com oldalon kérhető.',
+  'admin.keyFromEnv': 'Beállítva: {name}',
   'admin.placesProvider.title': 'Helykeresési szolgáltató',
   'admin.placesProvider.subtitle':
     'A TREK saját indexe és az OpenStreetMap minden keresésre válaszol. Itt választod ki, kit kérdezünk még, ha ők nem találnak semmit: az Automatikus a Google-t részesíti előnyben, ha van kulcs, utána az Amapot.',
   'admin.placesProvider.auto': 'Automatikus',
   'admin.placesProvider.google': 'Google Places',
-  'admin.placesProvider.amap': 'Amap (高德地图)',
+  'admin.placesProvider.amap': 'Amap (高德地图)', // same-as-en
   'admin.placesProvider.openstreetmap': 'OpenStreetMap',
-  'admin.placesProvider.missingKey': 'A kiválasztott szolgáltatóhoz nincs API-kulcs beállítva, ezért a helykeresésre csak a TREK indexe és az OpenStreetMap válaszol.',
+  'admin.placesProvider.missingKey':
+    'A kiválasztott szolgáltatóhoz nincs API-kulcs beállítva, ezért a helykeresésre csak a TREK indexe és az OpenStreetMap válaszol.',
   'admin.placesProvider.saved': 'Helykeresési szolgáltató elmentve',
   'admin.validateKey': 'Teszt',
   'admin.keyValid': 'Csatlakozva',
@@ -152,7 +147,7 @@ const admin: TranslationStrings = {
   'admin.oidcTitle': 'Egyszeri bejelentkezés (OIDC)',
   'admin.oidcSubtitle': 'Bejelentkezés külső szolgáltatókon keresztül, pl. Google, Apple, Authentik vagy Keycloak.',
   'admin.oidcDisplayName': 'Megjelenítendő név',
-  'admin.oidcIssuer': 'Issuer URL',
+  'admin.oidcIssuer': 'Kibocsátó URL',
   'admin.oidcIssuerHint': 'A szolgáltató OpenID Connect Issuer URL-je. pl. https://accounts.google.com',
   'admin.oidcSaved': 'OIDC konfiguráció mentve',
   'admin.oidcOnlyMode': 'Jelszavas hitelesítés letiltása',
@@ -178,23 +173,38 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.subtitle':
     'Képeket és leírást mutat hely hozzáadásakor. A Wikipédia és az OpenStreetMap mindig használatban van; a Google akkor jön hozzá, ha a Helyfotók vagy a Helyadatok be vannak kapcsolva.',
   'admin.placesGoogleOnly.title': 'Keresés csak a Google-lel',
-  'admin.placesGoogleOnly.subtitle': 'Minden keresés és minden javaslat a Google Places-hez megy. Kikapcsolva előbb a TREK saját indexe és az OpenStreetMap válaszol, a Google-t csak akkor kérdezzük, ha ők nem találnak semmit.',
-  'admin.placesGoogleOnly.missingKey': 'Google Maps API-kulcs kell hozzá. Nélküle a keresés a TREK indexén és az OpenStreetMapen fut, bárhogy áll is ez a kapcsoló.',
-  'admin.placesGoogleOnly.otherProvider': 'A Google-t igényli helyszolgáltatóként. Amap vagy OpenStreetMap kiválasztásával egyetlen keresés sem megy a Google-höz, bárhogy áll is ez a kapcsoló.',
+  'admin.placesGoogleOnly.subtitle':
+    'Minden keresés és minden javaslat a Google Places-hez megy. Kikapcsolva előbb a TREK saját indexe és az OpenStreetMap válaszol, a Google-t csak akkor kérdezzük, ha ők nem találnak semmit.',
+  'admin.placesGoogleOnly.missingKey':
+    'Google Maps API-kulcs kell hozzá. Nélküle a keresés a TREK indexén és az OpenStreetMapen fut, bárhogy áll is ez a kapcsoló.',
+  'admin.placesGoogleOnly.otherProvider':
+    'A Google-t igényli helyszolgáltatóként. Amap vagy OpenStreetMap kiválasztásával egyetlen keresés sem megy a Google-höz, bárhogy áll is ez a kapcsoló.',
+  'admin.googleQuota.title': 'Napi korlát a Google-hívásokra',
+  'admin.googleQuota.subtitle':
+    'Elérésekor a TREK a következő napig (UTC) nem hívja a Google-t, és OpenStreetMappel keres. Üresen hagyva nincs korlát.',
+  'admin.googleQuota.placeholder': 'Nincs korlát',
+  'admin.googleQuota.usedToday': 'Ma: {used}',
+  'admin.googleQuota.usedOfLimit': 'Ma: {used} / {limit}',
+  'admin.googleQuota.reached': 'Korlát elérve ({used}), a Google holnapig szünetel',
+  'admin.googleQuota.saved': 'Napi korlát mentve',
   'admin.transitProvider.title': 'Tömegközlekedési szolgáltató',
   'admin.transitProvider.subtitle': 'Melyik szolgáltatás válaszol a tömegközlekedési keresésre.',
   'admin.transitProvider.transitous': 'Transitous (ingyenes)',
   'admin.transitProvider.google': 'Google',
-  'admin.transitProvider.transitousHint': 'Közösségi GTFS adatforrások. Ingyenes és kulcs nélküli, Európában a legjobb lefedettséggel.',
-  'admin.transitProvider.googleHint': 'A fenti Google-kulcsot használja azokhoz a régiókhoz, amelyekhez a Transitousnak nincs adata. Keresésenként számlázódik – amíg nincs kulcs, a Transitous fut.',
-  'admin.transitProvider.noKeyWarning': 'A Google van kiválasztva, de nincs beállítva Google-kulcs – a közlekedési keresés továbbra is a Transitous-t használja. Adj hozzá kulcsot a fenti API-kulcsoknál.',
-  'admin.transitProvider.personalKeyWarning': 'Csak a saját Google-kulcsod van beállítva, így a többi tag keresése továbbra is a Transitous-ra esik vissza. Mentsd a kulcsot fent adminként, hogy az egész példányra érvényes legyen.',
+  'admin.transitProvider.transitousHint':
+    'Közösségi GTFS adatforrások. Ingyenes és kulcs nélküli, Európában a legjobb lefedettséggel.',
+  'admin.transitProvider.googleHint':
+    'A fenti Google-kulcsot használja azokhoz a régiókhoz, amelyekhez a Transitousnak nincs adata. Keresésenként számlázódik; amíg nincs kulcs, a Transitous fut.',
+  'admin.transitProvider.noKeyWarning':
+    'A Google van kiválasztva, de nincs beállítva Google-kulcs; a közlekedési keresés továbbra is a Transitous-t használja. Adj hozzá kulcsot a fenti API-kulcsoknál.',
+  'admin.transitProvider.personalKeyWarning':
+    'Csak a saját Google-kulcsod van beállítva, így a többi tag keresése továbbra is a Transitous-ra esik vissza. Mentsd a kulcsot fent adminként, hogy az egész példányra érvényes legyen.',
   'admin.placeShadow.title': 'Helykeresési napló',
   'admin.placeShadow.subtitle':
     'Rögzíti, melyik találatot választották ki, hogy egy másik helyindexet később valódi kereséseken lehessen mérni. Semmi nem hagyja el ezt a példányt, és egy rendszergazda bármikor exportálhatja vagy törölheti a naplót.',
   'admin.bagTracking.title': 'Poggyászkövetés',
   'admin.bagTracking.subtitle': 'Súly- és táskahozzárendelés engedélyezése csomagolási tételeknél',
-  'admin.collab.chat.title': 'Chat',
+  'admin.collab.chat.title': 'Chat', // same-as-en
   'admin.collab.chat.subtitle': 'Valós idejű üzenetküldés az együttműködéshez',
   'admin.collab.notes.title': 'Jegyzetek',
   'admin.collab.notes.subtitle': 'Megosztott jegyzetek és dokumentumok',
@@ -217,7 +227,9 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.namePlaceholder': 'Sablon neve (pl. Tengerparti nyaralás)',
   'admin.packingTemplates.empty': 'Még nincsenek sablonok',
   'admin.packingTemplates.items': 'tétel',
+  'admin.packingTemplates.items.one': 'tétel',
   'admin.packingTemplates.categories': 'kategória',
+  'admin.packingTemplates.categories.one': 'kategória',
   'admin.packingTemplates.itemName': 'Tétel neve',
   'admin.packingTemplates.itemCategory': 'Kategória',
   'admin.packingTemplates.categoryName': 'Kategória neve (pl. Ruházat)',
@@ -267,6 +279,7 @@ const admin: TranslationStrings = {
   'admin.plugins.allowedHosts.restartNote': 'A mentés újraindítja a bővítményt, hogy átvegye az új listát.',
   'admin.plugins.allowedHosts.add': 'Engedélyezett hoszt hozzáadása',
   'admin.plugins.allowedHosts.count': '{n} engedélyezett hoszt',
+  'admin.plugins.allowedHosts.count.one': '{n} engedélyezett hoszt',
   'admin.plugins.operatorEgressPill': '+ általad hozzáadott hosztok',
   'admin.plugins.operatorEgressHint':
     'Ez a bővítmény olyan szolgáltatással kommunikál, amelyet csak te tudsz megnevezni (saját üzemeltetésű kiszolgáló). Telepítés után add meg a hosztokat a ⋯ → Engedélyezett hosztok alatt. Másokat nem ér el.',
@@ -276,7 +289,7 @@ const admin: TranslationStrings = {
   'admin.plugins.uninstallBody':
     'Ez leállítja a plugint, eltávolítja a kódját, és törli az összes adatát. Ez nem vonható vissza.',
   'admin.plugins.status.starting': 'Indítás…',
-  'admin.plugins.type.widget': 'Widget',
+  'admin.plugins.type.widget': 'Widget', // same-as-en
   'admin.plugins.type.page': 'Oldal',
   'admin.plugins.type.integration': 'Integráció',
   'admin.plugins.type.trip-page': 'Útvonal-oldal',
@@ -286,7 +299,7 @@ const admin: TranslationStrings = {
   'admin.plugins.updateTo': 'Frissítés → v{version}',
   'admin.plugins.enabledToggle': 'Plugin engedélyezése',
   'plugins.notFound': 'A plugin nem található',
-  'plugins.frameLoadFailed': 'This plugin could not be loaded.',
+  'plugins.frameLoadFailed': 'Ezt a bővítményt nem sikerült betölteni.',
   'admin.plugins.title': 'Pluginok',
   'admin.plugins.subtitle': 'Harmadik féltől származó pluginok telepítése és kezelése a példányodon.',
   'admin.plugins.disabledTitle': 'A pluginok le vannak tiltva',
@@ -390,6 +403,8 @@ const admin: TranslationStrings = {
     'További részletek (értékelések, minősítések, hivatkozások) hozzáadása egy helyhez',
   'admin.plugins.perm.hook:search-provider':
     'Helykeresések megválaszolása saját indexből, a TREK saját találatai mellett',
+  'admin.plugins.perm.hook:poi-category-provider':
+    'Saját helykategóriák hozzáadása a „Helyek felfedezése a térképen” sávhoz; ha kiválasztasz egyet, a bővítmény megkapja a térképnek azt a részét, amelyet éppen nézel',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Ellenőrzési figyelmeztetések megjelenítése egy utazáson (a tervezőben látható)',
   'admin.plugins.perm.hook:table-contributor':
@@ -405,7 +420,9 @@ const admin: TranslationStrings = {
     'A napok színezése a napi tervben (például hogy az út melyik szakaszához tartozik egy nap)',
   'admin.plugins.cap.mcpTools': 'MI-eszközöket tesz közzé',
   'admin.plugins.mcpToolsTitle': 'Közzétett MI-eszközök',
-  'admin.plugins.mcpToolsHint': 'Egy asszisztens futtathatja őket a felhasználó nevében. Mindegyik a fent megadott jogosultságokkal működik.',
+  'admin.plugins.mcpToolsHint':
+    'Egy asszisztens futtathatja őket a felhasználó nevében. Mindegyik a fent megadott jogosultságokkal működik.',
+  'admin.plugins.poiCategoriesTitle': 'Térképkategóriák, amelyeket hozzáad',
   'admin.plugins.perm.mcp:tools':
     'Olyan eszközök közzététele, amelyeket egy MI-asszisztens futtathat a nevedben (a bővítménynek itt adott jogosultságokkal működik, nem a sajátjával)',
   'admin.plugins.perm.geolocation:read':
@@ -501,6 +518,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sortUpdates': 'Frissítések elöl',
   'admin.plugins.sortDownloads': 'Legtöbb letöltés',
   'admin.plugins.updatesAvailable': '{count} frissítés érhető el a pluginjaidhoz.',
+  'admin.plugins.updatesAvailable.one': '{count} frissítés érhető el a pluginjaidhoz.',
   'admin.plugins.newerNeedsTrek': 'v{version} elérhető — TREK {range} szükséges',
   'admin.plugins.versionsTitle': 'Verziók',
   'admin.plugins.versionPickerTitle': 'Verzióváltás — {name}',
@@ -509,7 +527,8 @@ const admin: TranslationStrings = {
   'admin.plugins.changeVersion': 'Verzióváltás…',
   'admin.plugins.noVersions': 'Nem található publikált verzió a jegyzékben.',
   'admin.plugins.downgradeTitle': 'Visszaállítod ezt a bővítményt?',
-  'admin.plugins.downgradeBody': 'Váltás v{from} verzióról v{to} verzióra: az újabb verzió által írt adatok megmaradnak, és a régebbi verzió lehet, hogy nem érti őket.',
+  'admin.plugins.downgradeBody':
+    'Váltás v{from} verzióról v{to} verzióra: az újabb verzió által írt adatok megmaradnak, és a régebbi verzió lehet, hogy nem érti őket.',
   'admin.plugins.downgradeConfirm': 'Visszaállítás',
   'admin.plugins.updatesHeld': 'Frissítések szüneteltetve a v{version} verzión',
   'admin.plugins.resumeUpdates': 'Frissítések folytatása',
@@ -549,6 +568,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Naptáreseményeket biztosít',
   'admin.plugins.cap.placeDetails': 'Helyeket gazdagít',
   'admin.plugins.cap.search': 'Válaszol a keresésekre',
+  'admin.plugins.cap.poiCategories': 'Térképkategóriákat ad hozzá',
   'admin.plugins.cap.warnings': 'Problémákat jelez',
   'admin.plugins.cap.mapLayers': 'Rajzol a térképre',
   'admin.plugins.cap.routing': 'Útvonaltervezést biztosít',
@@ -558,8 +578,10 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.events': 'Reagál a tevékenységre',
   'admin.plugins.cap.requiresAddon': '{addon} szükséges',
   'admin.plugins.cap.dependsOn': '{id} {version} szükséges',
-  'admin.plugins.dep.addonDisabledToast': 'Előbb engedélyezze a szükséges bővítmény(eke)t: {addons}',
-  'admin.plugins.dep.autoEnabled': 'Előbb engedélyezett szükséges pluginek: {plugins}',
+  'admin.plugins.dep.addonDisabledToast': 'Előbb engedélyezze a szükséges bővítményeket: {addons}',
+  'admin.plugins.dep.addonDisabledToast.one': 'Előbb engedélyezze a szükséges bővítményt: {addons}',
+  'admin.plugins.dep.autoEnabled': 'A szükséges pluginek előbb engedélyezve: {plugins}',
+  'admin.plugins.dep.autoEnabled.one': 'A szükséges plugin előbb engedélyezve: {plugins}',
   'admin.plugins.dep.downloaded': '{id} letöltve',
   'admin.plugins.dep.resolveTitle': 'Hiányzó függőségek',
   'admin.plugins.dep.resolveBody': 'A(z) „{name}” engedélyezéséhez előbb telepíteni kell ezeket a plugineket.',
@@ -581,8 +603,7 @@ const admin: TranslationStrings = {
     'A(z) „{name}” a TREK {range} verzióihoz készült, ez a szerver pedig {host}-t futtat. A TREK csak azért engedi át, mert a TREK_PLUGINS_IGNORE_TREK_RANGE be van állítva. A szerző nem frissítette a bővítmény verziótartományát ehhez a TREK-hez, így nincs garancia, hogy működik — és ritka esetben egy nem illeszkedő bővítmény megsértheti a TREK adatait. Csak akkor folytasd, ha vállalod ezt a kockázatot.',
   'admin.plugins.rangeBypass.bodyUnknown':
     'A(z) „{name}” nem adja meg, mely TREK-verziókat támogatja; ez a szerver {host}-t futtat. A TREK csak azért engedi át, mert a TREK_PLUGINS_IGNORE_TREK_RANGE be van állítva. Semmi sem jelzi, hogy a szerző ezen a TREK-en tesztelte volna, így nincs garancia, hogy működik — és ritka esetben egy nem illeszkedő bővítmény megsértheti a TREK adatait. Csak akkor folytasd, ha vállalod ezt a kockázatot.',
-  'admin.plugins.dep.trekBypassed':
-    'A TREK-tartományán kívül ({range}) — verzióellenőrzés kikapcsolva',
+  'admin.plugins.dep.trekBypassed': 'A TREK-tartományán kívül ({range}) — verzióellenőrzés kikapcsolva',
   'admin.plugins.dep.trekBypassedUnknown': 'Nem ad meg TREK-tartományt — verzióellenőrzés kikapcsolva',
   'admin.plugins.incompatible': 'Nem kompatibilis',
   'admin.plugins.accessTitle': 'Mihez fér hozzá',
@@ -609,14 +630,17 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.collab.name': 'Együttműködés',
   'admin.addons.catalog.collab.description': 'Jegyzetek, szavazások, csevegés és javaslatok a közös tervezéshez',
   'admin.addons.catalog.roadtrip.name': 'Autós út',
-  'admin.addons.catalog.roadtrip.description': 'Tervezz megállókkal tarkított utakat – a vezetési és érkezési idők maguktól újraszámolódnak',
+  'admin.addons.catalog.roadtrip.description':
+    'Tervezz megállókkal tarkított utakat – a vezetési és érkezési idők maguktól újraszámolódnak',
+  'admin.addons.catalog.tours.name': 'Túrák',
+  'admin.addons.catalog.tours.description': 'Gyalog-, kerékpár- és más túrák, amelyek útvonalat követnek',
   'admin.addons.catalog.memories.name': 'Fotók (Immich)',
   'admin.addons.catalog.memories.description': 'Utazási fotók megosztása az Immich példányon keresztül',
   'admin.addons.catalog.mcp.name': 'MCP',
   'admin.addons.catalog.mcp.description': 'Model Context Protocol AI asszisztens integrációhoz',
   'admin.addons.subtitleBefore': 'Funkciók engedélyezése vagy letiltása a ',
   'admin.addons.subtitleAfter': ' testreszabásához.',
-  'admin.addons.catalog.naver_list_import.name': 'Naver List Import',
+  'admin.addons.catalog.naver_list_import.name': 'Naver-lista importálása',
   'admin.addons.catalog.naver_list_import.description': 'Helyek importálása megosztott Naver Maps-listából',
   'admin.addons.catalog.airtrail.name': 'AirTrail',
   'admin.addons.catalog.airtrail.description': 'Járatok szinkronizálása az AirTrail-példányodból',
@@ -624,7 +648,18 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.dawarich.description':
     'Tartózkodások és rögzített útvonalak olvasása egy Dawarich-példányból, amelyet minden olvasó maga köt be',
   'admin.addons.catalog.llm_parsing.name': 'MI-elemzés',
-  'admin.addons.catalog.llm_parsing.description': 'Beolvassa azokat a foglalásokat, amelyeket a beépített értelmező nem tud, az általad választott MI-modellel',
+  'admin.addons.catalog.llm_parsing.description':
+    'Beolvassa azokat a foglalásokat, amelyeket a beépített értelmező nem tud, az általad választott MI-modellel',
+  'admin.addons.catalog.ai_assistant.name': 'MI-asszisztens',
+  'admin.addons.catalog.ai_assistant.description':
+    'Csevegés minden utazásban, amely válaszol a kérdésekre, és módosításokat javasol, amelyeket te hagysz jóvá',
+  'admin.addons.llm.vision.auto': 'Automatikus',
+  'admin.addons.llm.vision.on': 'Igen',
+  'admin.addons.llm.vision.off': 'Nem',
+  'admin.addons.llm.vision.hintLocal':
+    'Az Automatikus megkérdezi az Ollama-szervert, hogy ez a modell olvas-e képeket.',
+  'admin.addons.llm.vision.hintCloud':
+    'Felhőalapú modellnél az Automatikus nemet jelent. Válaszd az Igent, ha ez a modell olvas képeket.',
   'admin.addons.enabled': 'Engedélyezve',
   'admin.addons.disabled': 'Letiltva',
   'admin.addons.type.trip': 'Utazás',
@@ -636,6 +671,28 @@ const admin: TranslationStrings = {
   'admin.addons.toast.updated': 'Bővítmény frissítve',
   'admin.addons.toast.error': 'Nem sikerült frissíteni a bővítményt',
   'admin.addons.group.count': '{total} közül {enabled} bekapcsolva',
+  'admin.addons.search': 'Bővítmények keresése',
+  'admin.addons.filter': 'Megjelenítés',
+  'admin.addons.filter.all': 'Mind',
+  'admin.addons.filter.on': 'Be',
+  'admin.addons.filter.off': 'Ki',
+  'admin.addons.noMatch': 'Egy bővítmény sem felel meg a keresésnek vagy a szűrőnek.',
+  'admin.addons.subOptions': '{count} beállítás',
+  'admin.addons.subOptions.one': '{count} beállítás',
+  'admin.addons.subOptionsOn': '{count} bekapcsolva',
+  'admin.addons.subOptionsOn.one': '{count} bekapcsolva',
+  'admin.toursWanderer.title': 'wanderer',
+  'admin.toursWanderer.subtitle':
+    'A felhasználók csatlakoztathatják saját wanderer-példányukat, és túraként importálhatják annak túraútvonalait',
+  'admin.toursHikingMap.title': 'Túratérkép (OpenHikingMap)',
+  'admin.toursHikingMap.subtitle':
+    'Az OpenHikingMapet alaptérképként kínálja a túratervezőben. Nem kereskedelmi telepítéseknek havi 500 000 csempéig ingyenes; kereskedelmi vagy nagyobb telepítéshez előbb megállapodás kell az openmaps.fr-rel',
+  'admin.toursCycleMap.title': 'Kerékpáros térkép (CyclOSM)',
+  'admin.toursCycleMap.subtitle':
+    'A CyclOSM-et kínálja alaptérképként a kerékpártúrákhoz a túratervezőben. Az OpenStreetMap France mérsékelt használatra biztosítja; egy erősen használt vagy kereskedelmi telepítés kikapcsolja, vagy előbb megállapodik az üzemeltetővel',
+  'admin.toursSkiRouting.title': 'Pályaútvonal-tervező',
+  'admin.toursSkiRouting.subtitle':
+    'Sítúrákat tervez pályák, felvonók és nyomvonalak mentén a Places-szerver pályaadatain. Kikapcsolva a sítúra szakaszai egyenesen rajzolódnak',
   'admin.addons.noAddons': 'Nincsenek elérhető bővítmények',
   'admin.weather.title': 'Időjárás adatok',
   'admin.weather.badge': '2026. március 24. óta',
@@ -649,12 +706,13 @@ const admin: TranslationStrings = {
   'admin.weather.requestsDesc': 'Ingyenes, nincs szükség API kulcsra',
   'admin.weather.locationHint':
     'Az időjárás az adott nap első koordinátákkal rendelkező helye alapján készül. Ha nincs hely hozzárendelve a naphoz, a helylista bármelyik helye szolgál referenciául.',
-  'admin.tabs.audit': 'Audit',
+  'admin.tabs.audit': 'Audit', // same-as-en
   'admin.audit.subtitle': 'Biztonsági és adminisztrációs események (mentések, felhasználók, 2FA, beállítások).',
   'admin.audit.empty': 'Még nincsenek audit bejegyzések.',
   'admin.audit.refresh': 'Frissítés',
   'admin.audit.loadMore': 'Továbbiak betöltése',
-  'admin.audit.showing': '{count} betöltve · {total} összesen',
+  'admin.audit.showing': '{count} betöltve, {total} összesen',
+  'admin.audit.showing.one': '{count} betöltve, {total} összesen',
   'admin.audit.col.time': 'Időpont',
   'admin.audit.col.user': 'Felhasználó',
   'admin.audit.col.action': 'Művelet',
@@ -725,8 +783,11 @@ const admin: TranslationStrings = {
   'admin.update.wikiLink': 'Frissítési útmutató megnyitása',
   'admin.update.reloadHint': 'Kérjük, töltsd újra az oldalt néhány másodperc múlva.',
   'admin.tabs.permissions': 'Jogosultságok',
-  'admin.notifications.emailPanel.title': 'Email (SMTP)',
+  'admin.notifications.emailPanel.title': 'E-mail (SMTP)',
   'admin.notifications.webhookPanel.title': 'Webhook',
+  'admin.notifications.webPushPanel.title': 'Web Push',
+  'admin.notifications.webPushPanel.hint':
+    'Lehetővé teszi a felhasználóknak, hogy a böngészőn keresztül értesítéseket kapjanak telefonjukon és számítógépükön, akkor is, ha a TREK be van zárva. HTTPS szükséges; iPhone-on és iPaden a TREK-et hozzá kell adni a Főképernyőhöz.',
   'admin.notifications.inappPanel.title': 'In-App',
   'admin.notifications.inappPanel.hint':
     'Az alkalmazáson belüli értesítések mindig aktívak, és globálisan nem kapcsolhatók ki.',
@@ -743,7 +804,7 @@ const admin: TranslationStrings = {
   'admin.notifications.testNtfy': 'Teszt Ntfy küldése',
   'admin.notifications.testNtfySuccess': 'Teszt Ntfy sikeresen elküldve',
   'admin.notifications.testNtfyFailed': 'Teszt Ntfy sikertelen',
-  'admin.notifications.adminNtfyPanel.title': 'Admin Ntfy',
+  'admin.notifications.adminNtfyPanel.title': 'Admin Ntfy', // same-as-en
   'admin.notifications.adminNtfyPanel.hint':
     'Ez az Ntfy téma kizárólag admin értesítésekhez használatos (pl. verziófrissítési figyelmeztetések). Független a felhasználói témáktól, és mindig küld, ha konfigurálva van.',
   'admin.notifications.adminNtfyPanel.serverLabel': 'Ntfy szerver URL',
@@ -751,7 +812,7 @@ const admin: TranslationStrings = {
     'Alapértelmezett szerverként is szolgál a felhasználói ntfy értesítésekhez. Üresen hagyva ntfy.sh-t használ. A felhasználók felülírhatják saját beállításaikban.',
   'admin.notifications.adminNtfyPanel.serverPlaceholder': 'https://ntfy.sh',
   'admin.notifications.adminNtfyPanel.topicLabel': 'Admin téma',
-  'admin.notifications.adminNtfyPanel.topicPlaceholder': 'trek-admin-alerts',
+  'admin.notifications.adminNtfyPanel.topicPlaceholder': 'trek-admin-alerts', // same-as-en
   'admin.notifications.adminNtfyPanel.tokenLabel': 'Hozzáférési token (opcionális)',
   'admin.notifications.adminNtfyPanel.tokenCleared': 'Admin hozzáférési token törölve',
   'admin.notifications.adminNtfyPanel.saved': 'Admin Ntfy beállítások mentve',
@@ -761,6 +822,13 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNtfyPanel.alwaysOnHint': 'Az admin Ntfy mindig küld, ha egy téma konfigurálva van',
   'admin.notifications.adminNotificationsHint':
     'Állítsa be, hogy mely csatornák szállítsák az admin értesítéseket (pl. verziófrissítési figyelmeztetések). A webhook automatikusan küld, ha admin webhook URL van megadva.',
+  'admin.notificationDefaults.title': 'Alapértelmezések a felhasználóknak',
+  'admin.notificationDefaults.hint':
+    'Így indulnak a felhasználók értesítései. A „Ki” állapotot bárki visszakapcsolhatja, a „Tiltva” mindenkinek kikapcsolja, és zárolva jelenik meg a beállításaikban. Mindenkire vonatkozik, aki nem módosította a cellát.',
+  'admin.notificationDefaults.on': 'Be',
+  'admin.notificationDefaults.off': 'Ki',
+  'admin.notificationDefaults.blocked': 'Tiltva',
+  'admin.notificationDefaults.cycle': 'Kattints: {next}',
   'admin.notifications.tripReminders.title': 'Utazási emlékeztetők',
   'admin.notifications.tripReminders.hint':
     'Emlékeztető értesítést küld az utazás kezdete előtt (az utazásnál megadott emlékeztető napok szükségesek).',
@@ -771,7 +839,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.description':
     'Utazáskövetés és útinapló bejelentkezésekkel, fotókkal és napi történetekkel',
   'admin.addons.catalog.collections.name': 'Gyűjtemények',
-  'admin.addons.catalog.collections.description': 'Gyűjtsd össze bármely utazás helyeit elnevezett listákba, és használd fel őket újra',
+  'admin.addons.catalog.collections.description':
+    'Gyűjtsd össze bármely utazás helyeit elnevezett listákba, és használd fel őket újra',
   'admin.passkey.title': 'Passkey-bejelentkezés',
   'admin.passkey.cardHint':
     'Engedélyezd a felhasználóknak a bejelentkezést passkey-vel (WebAuthn). Alapból kikapcsolva.',
@@ -780,7 +849,7 @@ const admin: TranslationStrings = {
     'Jeleníts meg egy „Bejelentkezés passkey-jel" lehetőséget, és engedd, hogy a felhasználók passkey-ket regisztráljanak a beállításaikban.',
   'admin.passkey.notConfigured':
     'Ehhez a telepítéshez még nem oldódik fel WebAuthn-domain. Állítsd be az APP_URL-t vagy a lenti Relying Party ID-t — addig a passkey-k rejtve maradnak.',
-  'admin.passkey.rpId': 'Relying Party ID (domain)',
+  'admin.passkey.rpId': 'Relying Party azonosító (domain)',
   'admin.passkey.rpIdHint':
     'A csupasz domain, amelyhez a passkey-k kötődnek, pl. trek.example.org. Hagyd üresen, hogy az APP_URL-ből legyen levezetve. Későbbi módosítása érvényteleníti a meglévő passkey-ket.',
   'admin.passkey.origins': 'Engedélyezett origók',
@@ -791,6 +860,7 @@ const admin: TranslationStrings = {
     'Eltávolítja a felhasználó összes passkey-jét (pl. elveszett eszköz esetén). A jelszavukkal továbbra is be tudnak jelentkezni.',
   'admin.passkey.resetConfirm': 'Eltávolítod {name} összes passkey-jét?',
   'admin.passkey.resetDone': '{count} passkey eltávolítva',
+  'admin.passkey.resetDone.one': '{count} passkey eltávolítva',
   'admin.defaultSettings.mapProvider': 'Térképmotor',
   'admin.defaultSettings.mapProviderHint':
     'Az alapértelmezett térkép mindenkinek ezen a példányon. Minden felhasználó felülírhatja a saját beállításaiban.',
@@ -807,18 +877,147 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.cartoKey': 'Megosztott CARTO-kulcs',
   'admin.defaultSettings.cartoKeyHint':
     'Minden olyan felhasználóhoz használatos, aki nem adta meg a saját kulcsát, így az egész példány vízjel nélküli CARTO-csempéket kap. Titkosítva tárolódik.',
-  'admin.group.users': 'Users',
-  'admin.group.config': 'Configuration',
-  'admin.group.integration': 'Integrations',
-  'admin.group.maintenance': 'Maintenance',
+  'admin.group.users': 'Felhasználók',
+  'admin.group.config': 'Konfiguráció',
+  'admin.group.integration': 'Integrációk',
+  'admin.group.maintenance': 'Karbantartás',
   'admin.invite.tripLabel': 'Hozzáadás utazáshoz (opcionális)',
   'admin.invite.tripNone': 'Nincs utazás',
   'admin.invite.tripHint':
     'Az új felhasználó automatikusan hozzáadódik ehhez az utazáshoz, amikor a linken keresztül regisztrál.',
   'admin.invite.boundTo': 'hozzáadja a következőhöz: {trip}',
   'admin.placesUsageTitle': 'Mire használjuk a kulcsot',
-  'admin.mapsKeyHintShort': 'Fényképeket, értékeléseket és nyitvatartást ad hozzá. Minden lekérdezés a Google-höz megy.',
+  'admin.mapsKeyHintShort':
+    'Fényképeket, értékeléseket és nyitvatartást ad hozzá. Minden lekérdezés a Google-höz megy.',
   'admin.amapKeyHintShort': 'Helykereséshez a szárazföldi Kínában. Webszolgáltatás-kulcs kell, nem JS API-kulcs.',
   'admin.collab.links.subtitle': 'Megosztott linkek és könyvjelzők',
+  'admin.paddleRegions.title': 'Vízi adatok evezéshez',
+  'admin.paddleRegions.hint':
+    'Bukógátak, zsilipek és evezési szabályok az OpenStreetMapből, régiónként beolvasva és minden hónapban újraolvasva.',
+  'admin.paddleRegions.search': 'Régió hozzáadása',
+  'admin.paddleRegions.searchPlaceholder': 'Keresés a Geofabrikon, például Oberpfalz',
+  'admin.paddleRegions.noHits': 'Nincs ilyen nevű régió',
+  'admin.paddleRegions.added': 'Hozzáadva',
+  'admin.paddleRegions.empty':
+    'Még nincs régió. Az evezős túrák így azt mutatják, hogy nincsenek ismert akadályadatok.',
+  'admin.paddleRegions.status.queued': 'Várakozik',
+  'admin.paddleRegions.status.importing': 'Beolvasás',
+  'admin.paddleRegions.status.ready': 'Kész',
+  'admin.paddleRegions.status.failed': 'Sikertelen',
+  'admin.paddleRegions.phase.download': 'Letöltés',
+  'admin.paddleRegions.phase.read': 'Beolvasás',
+  'admin.paddleRegions.objects': '{count} objektum',
+  'admin.paddleRegions.objects.one': '{count} objektum',
+  'admin.paddleRegions.asOf': 'Állapot: {date}',
+  'admin.paddleRegions.keptData': 'A korábban beolvasott adatok használatban maradnak.',
+  'admin.paddleRegions.refresh': 'Újraolvasás',
+  'admin.paddleRegions.remove': 'Régió eltávolítása',
+  'admin.paddleRegions.removeMessage':
+    'A(z) {name} régió és akadályadatai törlődnek. Az ottani evezős túrák ezután nem mutatnak adatot.',
+  'admin.paddleRegions.retry': 'Próbáld újra',
+  'admin.paddleRegions.offline': 'A régiók csak kapcsolat mellett kezelhetők.',
+  'admin.paddleRegions.catalogUnavailable': 'A Geofabrik most nem érhető el. Próbáld újra később.',
+  'admin.paddleRegions.attribution':
+    'Adatok © OpenStreetMap-közreműködők (ODbL), regionális kivonatok: Geofabrik. Újraolvasás minden hónap 3-án.',
+  'admin.paddleRegions.toast.added': 'Régió hozzáadva. A TREK a háttérben olvassa be.',
+  'admin.paddleRegions.toast.removed': 'Régió eltávolítva',
+  'admin.paddleRegions.phase.build': 'Vízhálózat építése',
+  'admin.paddleRegions.network.km': '{km} km víz',
+  'admin.paddleRegions.network.lakes': '{count} tó',
+  'admin.paddleRegions.network.lakes.one': '{count} tó',
+  'admin.paddleRegions.network.portages': '{count} térképezett átemelőhely',
+  'admin.paddleRegions.network.portages.one': '{count} térképezett átemelőhely',
+  'admin.paddleRegions.network.inferred': '{count} feltételezett átemelés',
+  'admin.paddleRegions.network.inferred.one': '{count} feltételezett átemelés',
+  'admin.paddleRegions.network.locks': '{count} zsilip',
+  'admin.paddleRegions.network.locks.one': '{count} zsilip',
+  'admin.paddleRegions.network.gaps': '{count} áthidalt hiány',
+  'admin.paddleRegions.network.gaps.one': '{count} áthidalt hiány',
+  'admin.paddleRegions.network.missing': 'Nincs vízhálózat',
+  'admin.paddleRegions.network.missingHint':
+    'Olvasd be újra a régiót, hogy felépüljön a hálózat, amelyet az evezős útvonal követ.',
+  'admin.paddleRegions.auto.title': 'Régiók automatikus betöltése',
+  'admin.paddleRegions.auto.mode.auto': 'Automatikus',
+  'admin.paddleRegions.auto.mode.ask': 'Kérésre',
+  'admin.paddleRegions.auto.mode.off': 'Ki',
+  'admin.paddleRegions.auto.modeHint.auto':
+    'Ha valaki olyan helyen tervez evezős túrát, ahol még nincs vízadat, a TREK azonnal betölti a legkisebb megfelelő régiót, a méretkorlátig és naponta csak néhányat. A nagyobbak itt várnak kérésként. A Geofabrik csak a régió nevét kapja meg, a helyet soha.',
+  'admin.paddleRegions.auto.modeHint.ask':
+    'Minden új régió itt vár, amíg egy admin jóvá nem hagyja. Ha admin tervez, azonnal betöltődik.',
+  'admin.paddleRegions.auto.modeHint.off':
+    'A TREK magától semmit nem tölt be és nem kér. A régiókat itt add hozzá kézzel.',
+  'admin.paddleRegions.auto.maxSize': 'Az automatikusan betöltött legnagyobb régió',
+  'admin.paddleRegions.auto.maxSizeHint':
+    'A nagyobb régiók itt várnak kérésként. Egy régió beolvasása néhány percig tart, és közben memóriát foglal.',
+  'admin.paddleRegions.requests.title': 'Kért',
+  'admin.paddleRegions.requests.reason.ask': 'Kérésre',
+  'admin.paddleRegions.requests.reason.too_large': 'Túl nagy',
+  'admin.paddleRegions.requests.reason.limit': 'Napi korlát',
+  'admin.paddleRegions.requests.declined': 'Elutasítva',
+  'admin.paddleRegions.requests.by': '{user} kérte',
+  'admin.paddleRegions.requests.approve': 'Betöltés',
+  'admin.paddleRegions.requests.decline': 'Elutasítás',
+  'admin.paddleRegions.origin.auto': 'Automatikus',
+  'admin.paddleRegions.origin.autoHint': 'A TREK magától töltötte be ezt a régiót egy ott tervezett evezős túrához.',
+  'admin.mfa.reset': '2FA visszaállítása',
+  'admin.mfa.resetHint':
+    'Kikapcsolja a felhasználó kétlépcsős hitelesítését, például elveszett telefon esetén. Mindenhonnan kijelentkezik, és a jelszavával való belépés után újra beállíthatja.',
+  'admin.mfa.resetConfirm': 'Kikapcsolod {name} kétlépcsős hitelesítését?',
+  'admin.mfa.resetDone': 'A kétlépcsős hitelesítés visszaállítva',
+  'admin.danger.title': 'Veszélyzóna',
+  'admin.rotateJwt.title': 'JWT-titok cseréje',
+  'admin.rotateJwt.hint': 'Új JWT-aláírási titkot hoz létre. Az összes aktív munkamenet azonnal érvénytelenné válik.',
+  'admin.rotateJwt.confirm': 'Csere és kijelentkezés',
+  'admin.rotateJwt.warning': 'Figyelem: ez az összes munkamenetet érvényteleníti, és téged is kijelentkeztet.',
+  'admin.rotateJwt.body':
+    'Azonnal új JWT-titok jön létre. Minden bejelentkezett felhasználó, te is, kijelentkezik, és újra be kell lépnie.',
+  'admin.oidcDisplayNamePlaceholder': 'pl. Google, Authentik, Keycloak',
+  'admin.oidcDiscoveryUrl': 'Discovery URL (opcionális)',
+  'admin.oidcDiscoveryUrlHint':
+    'Felülírja az automatikusan képzett discovery URL-t. Olyan szolgáltatóknál szükséges, mint az Authentik, ahol a végpont nem a következő címen van: {path}.',
+  'admin.smtp.skipTls': 'TLS-tanúsítvány ellenőrzésének kihagyása',
+  'admin.smtp.skipTlsHint': 'Kapcsold be helyi levelezőszervereken lévő önaláírt tanúsítványokhoz',
+  'admin.demoBaseline.title': 'Demó alapállapot',
+  'admin.demoBaseline.hint':
+    'Az aktuális állapotot menti óránkénti visszaállítási pontként. Az adminisztrátor összes utazása és beállítása megmarad.',
+  'admin.demoBaseline.button': 'Alapállapot mentése',
+  'admin.demoBaseline.saved': 'Alapállapot mentve! A visszaállítások erre az állapotra térnek vissza.',
+  'admin.demoBaseline.failed': 'Az alapállapot mentése sikertelen',
+  'admin.invite.deleteTitle': 'Meghívó link törlése',
+  'admin.invite.deleteConfirm': 'Törlöd ezt a meghívó linket? Aki még nem használta, már nem tud vele regisztrálni.',
+  'admin.packingTemplates.deleteTemplateTitle': 'Sablon törlése',
+  'admin.packingTemplates.deleteTemplateConfirm':
+    'Törlöd a(z) "{name}" sablont az összes kategóriájával és elemével együtt?',
+  'admin.packingTemplates.deleteCategoryTitle': 'Kategória törlése',
+  'admin.packingTemplates.deleteCategoryConfirm': 'Törlöd a(z) "{name}" kategóriát és az összes elemét?',
+  'admin.rotateJwt.button': 'Megújítás',
+  'admin.addons.ai.name': 'MI',
+  'admin.addons.ai.description':
+    'Egy kapcsolat az asszisztensnek és a foglalások beolvasásának. Az MCP-vel más MI-alkalmazások is használhatják a TREK-et.',
+  'admin.addons.ai.setup': 'MI beállítása',
+  'admin.addons.ai.dialogSub':
+    'A kapcsolat, amelyen az asszisztens és az MI-feldolgozás osztozik, és hogy melyik mit tehet.',
+  'admin.addons.ai.tab.connection': 'Kapcsolat',
+  'admin.addons.ai.parsing.readsWith': 'A foglalásokat ezzel olvassa',
+  'admin.addons.ai.parsing.own': 'Saját kapcsolat',
+  'admin.addons.ai.parsing.ownHint': 'A közös kapcsolat helyett használja.',
+  'admin.addons.ai.parsing.useShared': 'A közös kapcsolat használata',
+  'admin.addons.ai.parsing.sharedTag': 'Közös',
+  'admin.addons.ai.parsing.perUser': 'Mindenki a saját beállításaiban megadott kapcsolattal olvas.',
+  'admin.addons.ai.parsing.none':
+    'Még nincs kapcsolat. Állíts be egyet mindenkinek, vagy adj az MI-feldolgozásnak sajátot.',
+  'admin.addons.ai.parsing.setupOwn': 'Másik használata',
+  'admin.addons.ai.parsing.installed': 'A szerverre telepítve',
+  'admin.addons.ai.parsing.refresh': 'Frissítés',
+  'admin.addons.ai.parsing.noModels': 'Még nincs telepített modell. Tölts le egyet lent.',
+  'admin.addons.ai.parsing.pullTitle': 'Ajánlott modell letöltése',
+  'admin.addons.ai.parsing.pull': 'Letöltés',
+  'admin.addons.ai.parsing.pulling': 'Letöltés…',
+  'admin.addons.ai.parsing.use': 'Használat',
+  'admin.addons.ai.parsing.selected': 'Kiválasztva',
+  'admin.addons.ai.parsing.pulled': 'Modell letöltve',
+  'admin.addons.ai.parsing.pullFailed': 'A modellt nem sikerült letölteni',
+  'admin.addons.ai.parsing.unreachable': 'A helyi szerver nem érhető el',
+  'admin.addons.ai.parsing.apiKeyOptional': 'Általában nem kell',
 };
 export default admin;

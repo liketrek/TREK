@@ -12,7 +12,7 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.collab': 'Együttműködés',
   'oauth.scope.group.notifications': 'Értesítések',
   'oauth.scope.group.vacay': 'Szabadság',
-  'oauth.scope.group.geo': 'Geo',
+  'oauth.scope.group.geo': 'Geo', // same-as-en
   'oauth.scope.group.weather': 'Időjárás',
   'oauth.scope.group.journey': 'Útinaplók',
   'oauth.scope.trips:read.label': 'Utazások és útvonalak megtekintése',
@@ -78,39 +78,47 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:share.label': 'Útinapló-linkek kezelése',
   'oauth.scope.journey:share.description':
     'Nyilvános megosztási linkek létrehozása, frissítése és visszavonása útinaplókhoz',
-  'oauth.authorize.authorizing': 'Authorizing…', // en-fallback
-  'oauth.authorize.loading': 'Loading…', // en-fallback
-  'oauth.authorize.errorTitle': 'Authorization Error', // en-fallback
-  'oauth.authorize.loginTitle': 'Sign in to continue', // en-fallback
-  'oauth.authorize.loginDescription': '{client} wants access to your TREK account. Please sign in first.', // en-fallback
-  'oauth.authorize.loginButton': 'Sign in to TREK', // en-fallback
-  'oauth.authorize.requestLabel': 'Authorization Request', // en-fallback
-  'oauth.authorize.requestDescription': 'This application is requesting access to your TREK account.', // en-fallback
-  'oauth.authorize.trustNote': 'Only grant access to applications you trust. Your data stays on your server.', // en-fallback
-  'oauth.authorize.selectScope': 'Select at least one scope', // en-fallback
-  'oauth.authorize.approveOneScope': 'Approve ({count} scope)', // en-fallback
-  'oauth.authorize.approveManyScopes': 'Approve ({count} scopes)', // en-fallback
-  'oauth.authorize.approveAccess': 'Approve Access', // en-fallback
-  'oauth.authorize.deny': 'Deny', // en-fallback
-  'oauth.authorize.choosePermissions': 'Choose which permissions to grant', // en-fallback
-  'oauth.authorize.permissionsRequested': 'Permissions requested', // en-fallback
-  'oauth.authorize.alwaysIncluded': 'Always included', // en-fallback
-  'oauth.authorize.alwaysTool.listTrips': 'List your trips so the AI can discover trip IDs', // en-fallback
-  'oauth.authorize.alwaysTool.getTripSummary': 'Read a trip overview needed to use any other tool', // en-fallback
+  'oauth.authorize.authorizing': 'Engedélyezés…',
+  'oauth.authorize.loading': 'Betöltés…',
+  'oauth.authorize.errorTitle': 'Engedélyezési hiba',
+  'oauth.authorize.loginTitle': 'Jelentkezz be a folytatáshoz',
+  'oauth.authorize.loginDescription': 'A(z) {client} hozzáférést kér a TREK-fiókodhoz. Előbb jelentkezz be.',
+  'oauth.authorize.loginButton': 'Bejelentkezés a TREK-be',
+  'oauth.authorize.requestLabel': 'Engedélykérés',
+  'oauth.authorize.requestDescription': 'Ez az alkalmazás hozzáférést kér a TREK-fiókodhoz.',
+  'oauth.authorize.verifiedHost': 'Ellenőrzött domain: {host}',
+  'oauth.authorize.trustNote':
+    'Csak megbízható alkalmazásoknak adj hozzáférést. Az adataid a saját szervereden maradnak.',
+  'oauth.authorize.selectScope': 'Válassz ki legalább egy hatókört',
+  'oauth.authorize.approveScopes': 'Jóváhagyás ({count} jogosultság)',
+  'oauth.authorize.approveScopes.one': 'Jóváhagyás ({count} jogosultság)',
+  'oauth.authorize.approveAccess': 'Hozzáférés jóváhagyása',
+  'oauth.authorize.deny': 'Elutasítás',
+  'oauth.authorize.choosePermissions': 'Válaszd ki, mely engedélyeket adod meg',
+  'oauth.authorize.permissionsRequested': 'Kért engedélyek',
+  'oauth.authorize.alwaysIncluded': 'Mindig benne van',
+  'oauth.authorize.alwaysTool.listTrips': 'Utazásaid listázása, hogy az AI megtalálja az utazásazonosítókat',
+  'oauth.authorize.alwaysTool.getTripSummary': 'Utazás-áttekintés olvasása, amely bármely más eszközhöz kell',
   'oauth.scope.group.files': 'Fájlok',
   'oauth.scope.group.settings': 'Beállítások',
   'oauth.scope.files:read.label': 'Az utazás fájljainak megtekintése',
-  'oauth.scope.files:read.description': 'Az utazás dokumentumainak listázása: nevek, méretek, ki töltötte fel és mihez kapcsolódnak',
+  'oauth.scope.files:read.description':
+    'Az utazás dokumentumainak listázása: nevek, méretek, ki töltötte fel és mihez kapcsolódnak',
   'oauth.scope.files:write.label': 'Az utazás fájljainak kezelése',
-  'oauth.scope.files:write.description': 'Fájlok átnevezése és leírása, foglalásokhoz és helyekhez kapcsolása, megjelölése és kukába helyezése',
+  'oauth.scope.files:write.description':
+    'Fájlok átnevezése és leírása, foglalásokhoz és helyekhez kapcsolása, megjelölése és kukába helyezése',
   'oauth.scope.files:content.label': 'Fájltartalom olvasása',
-  'oauth.scope.files:content.description': 'Feltöltött dokumentum tartalmának olvasása, például egy foglalási PDF vagy jegy',
+  'oauth.scope.files:content.description':
+    'Feltöltött dokumentum tartalmának olvasása, például egy foglalási PDF vagy jegy',
   'oauth.scope.settings:read.label': 'Beállítások megtekintése',
-  'oauth.scope.settings:read.description': 'Mértékegységek, időformátum, nyelv, alapértelmezett pénznem és kezdőoldal olvasása',
+  'oauth.scope.settings:read.description':
+    'Mértékegységek, időformátum, nyelv, alapértelmezett pénznem és kezdőoldal olvasása',
   'oauth.scope.settings:write.label': 'Beállítások módosítása',
-  'oauth.scope.settings:write.description': 'Mértékegységek, időformátum, nyelv, alapértelmezett pénznem és kezdőoldal módosítása. Soha nem a tárolt API-kulcsok',
+  'oauth.scope.settings:write.description':
+    'Mértékegységek, időformátum, nyelv, alapértelmezett pénznem és kezdőoldal módosítása. Soha nem a tárolt API-kulcsok',
   'oauth.scope.group.plugins': 'Bővítmények',
   'oauth.scope.plugins:use.label': 'Bővítményeszközök futtatása',
-  'oauth.scope.plugins:use.description': 'Engedélyezi, hogy ez az ügyfél meghívja a rendszergazda által telepített és jóváhagyott bővítmények eszközeit. Minden bővítmény a már megkapott jogosultságaival működik, nem a token hatóköreivel',
+  'oauth.scope.plugins:use.description':
+    'Engedélyezi, hogy ez az ügyfél meghívja a rendszergazda által telepített és jóváhagyott bővítmények eszközeit. Minden bővítmény a már megkapott jogosultságaival működik, nem a token hatóköreivel',
 };
 export default oauth;

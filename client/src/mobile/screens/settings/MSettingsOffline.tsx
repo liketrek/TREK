@@ -9,7 +9,7 @@
  */
 import { useState } from 'react'
 import { RefreshCw, Trash2, Database, CloudOff, Download, Check, GitMerge, Map as MapIcon, AlertTriangle } from 'lucide-react'
-import { useOfflineSettings, offlineNoticeKey, isOfflineNoticeWarning } from '../../../components/Settings/useOfflineSettings'
+import { useOfflineSettings, offlineNoticeKey, isOfflineNoticeWarning, offlineProgressLabel, offlineRowMeta } from '../../../components/Settings/useOfflineSettings'
 import { useTranslation } from '../../../i18n'
 import type { ConflictStrategy } from '../../../sync/offlinePrefs'
 import type { QueuedMutation } from '../../../db/offlineDb'
@@ -26,7 +26,7 @@ function conflictName(m: QueuedMutation): string {
 }
 
 export default function MSettingsOffline() {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   const [showClearConfirm, setShowClearConfirm] = useState(false)
   const {
     offline, forced,
@@ -34,7 +34,7 @@ export default function MSettingsOffline() {
     syncing, clearing, loading, preparing, progress, notice, prefs, canClear,
     runPrepare, handleToggleForce, handleResync, handleClear,
     handleToggleTiles, tripStorageState, handleToggleTrip, resolveConflict,
-    handleConflictStrategy,
+    handleConflictStrategy, retryFailed, discardFailed,
   } = useOfflineSettings()
 
   async function doClear() {
@@ -42,12 +42,7 @@ export default function MSettingsOffline() {
     setShowClearConfirm(false)
   }
 
-  const formatDate = (d: string | null | undefined) =>
-    d ? new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
-
-  const progressLabel = progress
-    ? `${t(`settings.offline.prepare.phase.${progress.phase === 'done' ? 'trips' : progress.phase}`)} · ${progress.current}/${progress.total}`
-    : ''
+  const progressLabel = offlineProgressLabel(progress, t)
 
   const strategyOptions: { value: ConflictStrategy; label: string }[] = [
     { value: 'ask', label: t('settings.offline.conflicts.strategy.ask') },
@@ -97,7 +92,7 @@ export default function MSettingsOffline() {
                 />
               </div>
               <div className="mt-1 font-geist text-[0.625rem] text-m-muted">
-                {progressLabel}{progress.label ? ` · ${progress.label}` : ''}
+                {progressLabel}
               </div>
             </div>
           )}
@@ -177,7 +172,7 @@ export default function MSettingsOffline() {
                     key={trip.id}
                     first={i === 0}
                     label={<span className="block truncate">{trip.title}</span>}
-                    sub={dateEligible ? sub : `${sub} · ${t('settings.offline.storage.tripFinished')}`}
+                    sub={dateEligible ? sub : `${sub}. ${t('settings.offline.storage.tripFinished')}`}
                     trailing={<MToggle checked={on} onChange={() => handleToggleTrip(trip)} ariaLabel={trip.title} />}
                   />
                 )
@@ -195,6 +190,22 @@ export default function MSettingsOffline() {
           {conflicts.length > 0 && <MStat label={t('settings.offline.stats.conflicts')} value={conflicts.length} danger />}
           {failedCount > 0 && <MStat label={t('settings.offline.stats.failed')} value={failedCount} danger />}
         </div>
+
+        {failedCount > 0 && (
+          <div className="mt-3 flex flex-col gap-2">
+            <p className="m-0 font-geist text-[0.6875rem] leading-relaxed text-m-muted">{t('settings.offline.failed.hint')}</p>
+            <div className="flex gap-2">
+              <MSetButton disabled={offline} onClick={() => void retryFailed()}>
+                <RefreshCw size={14} />
+                {t('settings.offline.failed.retry')}
+              </MSetButton>
+              <MSetButton variant="danger" onClick={() => void discardFailed()}>
+                <Trash2 size={14} />
+                {t('settings.offline.failed.discard')}
+              </MSetButton>
+            </div>
+          </div>
+        )}
 
         <div className="mt-3">
           <MSetButton variant="danger" disabled={clearing || !canClear} onClick={() => setShowClearConfirm(true)}>
@@ -225,8 +236,7 @@ export default function MSettingsOffline() {
                   </span>
                 </div>
                 <span className="font-geist text-[0.6875rem] text-m-muted">
-                  {formatDate(trip.start_date)} – {formatDate(trip.end_date)}
-                  {' · '}{placeCount}{' · '}{fileCount}
+                  {offlineRowMeta({ trip, placeCount, fileCount }, t, locale)}
                 </span>
               </div>
             ))}

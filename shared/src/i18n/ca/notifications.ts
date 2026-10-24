@@ -29,8 +29,13 @@ const notifications: TranslationStrings = {
   'notifications.test.adminText': '{actor} va enviar una notificació de prova a tots els administradors.',
   'notifications.test.tripTitle': '{actor} va publicar al teu viatge',
   'notifications.test.tripText': 'Notificació de prova per al viatge "{trip}".',
+  'notifications.countLabel': 'notificacions',
+  'notifications.countLabel.one': 'notificació',
   'notifications.versionAvailable.title': 'Actualització disponible',
   'notifications.versionAvailable.text': 'TREK {version} ja està disponible.',
   'notifications.versionAvailable.button': 'Mostra els detalls',
+  'notifications.deleteAllConfirmTitle': 'Vols eliminar totes les notificacions?',
+  'notifications.deleteAllConfirmText':
+    'Totes les notificacions s’eliminen definitivament. Aquesta acció no es pot desfer.',
 };
 export default notifications;

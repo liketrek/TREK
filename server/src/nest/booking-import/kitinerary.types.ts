@@ -3,8 +3,8 @@
 /** KDE's custom date/time wrapper — used when timezone info is present */
 export interface KiDateTime {
   '@type': 'QDateTime';
-  '@value': string;    // ISO 8601 local time (KDE serializes as @value)
-  timezone?: string;   // IANA timezone id
+  '@value': string; // ISO 8601 local time (KDE serializes as @value)
+  timezone?: string; // IANA timezone id
 }
 
 export type KiDateTimeish = string | KiDateTime | null | undefined;

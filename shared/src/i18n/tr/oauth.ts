@@ -79,39 +79,46 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:share.label': 'Journey bağlantılarını yönet',
   'oauth.scope.journey:share.description':
     "Journey'ler için herkese açık paylaşım bağlantıları oluştur, güncelle ve iptal et",
-  'oauth.authorize.authorizing': 'Authorizing…', // en-fallback
-  'oauth.authorize.loading': 'Loading…', // en-fallback
-  'oauth.authorize.errorTitle': 'Authorization Error', // en-fallback
-  'oauth.authorize.loginTitle': 'Sign in to continue', // en-fallback
-  'oauth.authorize.loginDescription': '{client} wants access to your TREK account. Please sign in first.', // en-fallback
-  'oauth.authorize.loginButton': 'Sign in to TREK', // en-fallback
-  'oauth.authorize.requestLabel': 'Authorization Request', // en-fallback
-  'oauth.authorize.requestDescription': 'This application is requesting access to your TREK account.', // en-fallback
-  'oauth.authorize.trustNote': 'Only grant access to applications you trust. Your data stays on your server.', // en-fallback
-  'oauth.authorize.selectScope': 'Select at least one scope', // en-fallback
-  'oauth.authorize.approveOneScope': 'Approve ({count} scope)', // en-fallback
-  'oauth.authorize.approveManyScopes': 'Approve ({count} scopes)', // en-fallback
-  'oauth.authorize.approveAccess': 'Approve Access', // en-fallback
-  'oauth.authorize.deny': 'Deny', // en-fallback
-  'oauth.authorize.choosePermissions': 'Choose which permissions to grant', // en-fallback
-  'oauth.authorize.permissionsRequested': 'Permissions requested', // en-fallback
-  'oauth.authorize.alwaysIncluded': 'Always included', // en-fallback
-  'oauth.authorize.alwaysTool.listTrips': 'List your trips so the AI can discover trip IDs', // en-fallback
-  'oauth.authorize.alwaysTool.getTripSummary': 'Read a trip overview needed to use any other tool', // en-fallback
+  'oauth.authorize.authorizing': 'Yetkilendiriliyor…',
+  'oauth.authorize.loading': 'Yükleniyor…',
+  'oauth.authorize.errorTitle': 'Yetkilendirme hatası',
+  'oauth.authorize.loginTitle': 'Devam etmek için giriş yap',
+  'oauth.authorize.loginDescription': '{client}, TREK hesabına erişmek istiyor. Lütfen önce giriş yap.',
+  'oauth.authorize.loginButton': "TREK'e giriş yap",
+  'oauth.authorize.requestLabel': 'Yetkilendirme isteği',
+  'oauth.authorize.requestDescription': 'Bu uygulama TREK hesabına erişim istiyor.',
+  'oauth.authorize.verifiedHost': 'Doğrulanmış alan adı: {host}',
+  'oauth.authorize.trustNote': 'Erişimi yalnızca güvendiğin uygulamalara ver. Verilerin sunucunda kalır.',
+  'oauth.authorize.selectScope': 'En az bir kapsam seç',
+  'oauth.authorize.approveScopes': 'Onayla ({count} kapsam)',
+  'oauth.authorize.approveScopes.one': 'Onayla ({count} kapsam)',
+  'oauth.authorize.approveAccess': 'Erişimi onayla',
+  'oauth.authorize.deny': 'Reddet',
+  'oauth.authorize.choosePermissions': 'Hangi izinlerin verileceğini seç',
+  'oauth.authorize.permissionsRequested': 'İstenen izinler',
+  'oauth.authorize.alwaysIncluded': 'Her zaman dahil',
+  'oauth.authorize.alwaysTool.listTrips': 'Yapay zekanın gezi kimliklerini bulabilmesi için gezilerini listele',
+  'oauth.authorize.alwaysTool.getTripSummary': 'Diğer araçları kullanmak için gereken gezi özetini oku',
   'oauth.scope.group.files': 'Dosyalar',
   'oauth.scope.group.settings': 'Ayarlar',
   'oauth.scope.files:read.label': 'Gezi dosyalarını görüntüle',
-  'oauth.scope.files:read.description': 'Bir gezinin belgelerini listele: adlar, boyutlar, kimin yüklediği ve neye bağlı oldukları',
+  'oauth.scope.files:read.description':
+    'Bir gezinin belgelerini listele: adlar, boyutlar, kimin yüklediği ve neye bağlı oldukları',
   'oauth.scope.files:write.label': 'Gezi dosyalarını yönet',
-  'oauth.scope.files:write.description': 'Dosyaları yeniden adlandır ve açıkla, rezervasyonlara ve yerlere bağla, yıldızla ve çöpe taşı',
+  'oauth.scope.files:write.description':
+    'Dosyaları yeniden adlandır ve açıkla, rezervasyonlara ve yerlere bağla, yıldızla ve çöpe taşı',
   'oauth.scope.files:content.label': 'Dosya içeriğini oku',
-  'oauth.scope.files:content.description': 'Yüklenmiş bir belgenin içeriğini oku, örneğin bir rezervasyon PDF’i veya bir bilet',
+  'oauth.scope.files:content.description':
+    'Yüklenmiş bir belgenin içeriğini oku, örneğin bir rezervasyon PDF’i veya bir bilet',
   'oauth.scope.settings:read.label': 'Tercihlerini görüntüle',
-  'oauth.scope.settings:read.description': 'Birimleri, saat biçimini, dili, varsayılan para birimini ve başlangıç sayfasını oku',
+  'oauth.scope.settings:read.description':
+    'Birimleri, saat biçimini, dili, varsayılan para birimini ve başlangıç sayfasını oku',
   'oauth.scope.settings:write.label': 'Tercihlerini değiştir',
-  'oauth.scope.settings:write.description': 'Birimleri, saat biçimini, dili, varsayılan para birimini ve başlangıç sayfasını değiştir. Kayıtlı API anahtarlarını asla',
+  'oauth.scope.settings:write.description':
+    'Birimleri, saat biçimini, dili, varsayılan para birimini ve başlangıç sayfasını değiştir. Kayıtlı API anahtarlarını asla',
   'oauth.scope.group.plugins': 'Eklentiler',
   'oauth.scope.plugins:use.label': 'Eklenti araçlarını çalıştır',
-  'oauth.scope.plugins:use.description': 'Bu istemcinin, bir yöneticinin kurup onayladığı eklentilerin sunduğu araçları çağırmasına izin verir. Her eklenti, bu belirtecin kapsamlarıyla değil, kendisine önceden verilmiş yetkilerle çalışır',
+  'oauth.scope.plugins:use.description':
+    'Bu istemcinin, bir yöneticinin kurup onayladığı eklentilerin sunduğu araçları çağırmasına izin verir. Her eklenti, bu belirtecin kapsamlarıyla değil, kendisine önceden verilmiş yetkilerle çalışır',
 };
 export default oauth;

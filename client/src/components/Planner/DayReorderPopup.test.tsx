@@ -1,4 +1,4 @@
-// FE-PLANNER-DAYREORDER-001 to FE-PLANNER-DAYREORDER-028
+// FE-PLANNER-DAYREORDER-001 to FE-PLANNER-DAYREORDER-030
 import { render, screen, fireEvent } from '../../../tests/helpers/render'
 import userEvent from '@testing-library/user-event'
 import { MapPin } from 'lucide-react'
@@ -140,6 +140,15 @@ describe('DayReorderPopup', () => {
     expect(onAddDay).toHaveBeenCalled()
     await user.click(screen.getByText('common.close'))
     expect(onClose).toHaveBeenCalled()
+  })
+
+  it('FE-PLANNER-DAYREORDER-029: it is a dialog named by its title, and Escape closes it', async () => {
+    const user = userEvent.setup()
+    const onClose = vi.fn()
+    render(<DayReorderPopup {...makeProps({ days: threeDays(), onClose })} />)
+    expect(screen.getByRole('dialog', { name: 'dayplan.reorderTitle' })).toBeInTheDocument()
+    await user.keyboard('{Escape}')
+    expect(onClose).toHaveBeenCalledTimes(1)
   })
 
   describe('deleting a day', () => {
@@ -310,14 +319,23 @@ describe('DayReorderPopup', () => {
       expect(onClose).not.toHaveBeenCalled()
     })
 
+    it('FE-PLANNER-DAYREORDER-030: a press on the backdrop leaves the question and the dialog alone', async () => {
+      const user = userEvent.setup()
+      const q = question()
+      const onClose = vi.fn()
+      render(<DayReorderPopup {...makeProps({ days: threeDays(), onDeleteDay: vi.fn(), deleteQuestion: q, onClose })} />)
+      await user.click(screen.getByRole('dialog').parentElement as HTMLElement)
+      expect(q.onCancel).not.toHaveBeenCalled()
+      expect(onClose).not.toHaveBeenCalled()
+    })
+
     it('FE-PLANNER-DAYREORDER-025: closing the dialog also drops an open question', async () => {
       const user = userEvent.setup()
       const q = question()
       const onClose = vi.fn()
       const { rerender } = render(<DayReorderPopup {...makeProps({ days: threeDays(), onDeleteDay: vi.fn(), deleteQuestion: q, onClose })} />)
-      const closeX = document.querySelector<HTMLButtonElement>('h2 + button')
-      expect(closeX).not.toBeNull()
-      await user.click(closeX as HTMLButtonElement)
+      // The head band's close button: named "Close" by the shared dialog, not by the `t` prop.
+      await user.click(screen.getByRole('button', { name: 'Close' }))
       expect(q.onCancel).toHaveBeenCalledTimes(1)
       expect(onClose).toHaveBeenCalledTimes(1)
 

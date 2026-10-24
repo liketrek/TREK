@@ -1,6 +1,7 @@
+import { isBlockedIp } from '../runtime/egress-policy';
+
 import { createHash } from 'node:crypto';
 import dns from 'node:dns/promises';
-import { isBlockedIp } from '../runtime/egress-policy';
 
 /**
  * SSRF-hardened download for the plugin installer (#plugins, M4). The primary
@@ -13,6 +14,8 @@ import { isBlockedIp } from '../runtime/egress-policy';
 
 const MAX_REDIRECTS = 5;
 const MAX_BYTES = 50 * 1024 * 1024;
+/** The whole download, every hop and the body included. */
+const DOWNLOAD_TIMEOUT_MS = 120_000;
 
 export class DownloadError extends Error {}
 
@@ -51,9 +54,10 @@ async function assertSafeHost(urlStr: string): Promise<void> {
 
 export async function safeDownload(urlStr: string, maxBytes = MAX_BYTES): Promise<{ bytes: Buffer; sha256: string }> {
   let current = urlStr;
+  const signal = AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS);
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     await assertSafeHost(current);
-    const resp = await fetch(current, { redirect: 'manual', headers: { 'User-Agent': 'TREK-Server' } });
+    const resp = await fetch(current, { redirect: 'manual', headers: { 'User-Agent': 'TREK-Server' }, signal });
     if (resp.status >= 300 && resp.status < 400) {
       const loc = resp.headers.get('location');
       if (!loc) throw new DownloadError('redirect without a location');

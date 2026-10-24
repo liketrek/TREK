@@ -6,7 +6,7 @@ const files: TranslationStrings = {
   'files.linkTitle': '파일 연결',
   'files.linkEmpty': '연결할 장소나 예약이 아직 없습니다',
   'files.menu': '추가 옵션',
-  'files.uploadErrorSize': '파일이 너무 큽니다 (최대 50MB)',
+  'files.uploadErrorSize': '파일이 너무 큽니다 (최대 {max}MB)',
   'files.title': '파일',
   'files.pageTitle': '파일 및 서류',
   'files.subtitle': '{trip}의 파일 {count}개',
@@ -14,7 +14,6 @@ const files: TranslationStrings = {
   'files.openError': '파일을 열 수 없습니다',
   'files.downloadPdf': 'PDF 다운로드',
   'files.count': '파일 {count}개',
-  'files.countSingular': '파일 1개',
   'files.uploaded': '{count}개 업로드됨',
   'files.uploadError': '업로드 실패',
   'files.uploadErrorType': '지원되지 않는 파일 형식입니다',
@@ -62,5 +61,12 @@ const files: TranslationStrings = {
   'files.confirm.emptyTrash': '휴지통의 모든 파일을 영구 삭제할까요? 이 작업은 취소할 수 없습니다.',
   'files.noteLabel': '메모',
   'files.notePlaceholder': '메모 추가...',
+  'files.uploadNeedsConnection': '업로드하려면 연결이 필요합니다. TREK이 다시 온라인이 되면 다시 시도하세요.',
+  'files.linkNeedsConnection':
+    '이 연결을 해제하려면 인터넷 연결이 필요합니다. TREK이 다시 온라인이 되면 다시 시도하세요.',
+  'files.placeFilesNeedConnection':
+    '파일을 업로드하려면 연결이 필요합니다. 새 파일을 빼고 장소를 오프라인으로 저장하거나, 다시 온라인이 되면 저장하세요.',
+  'files.maxSize': '최대 {count} MB',
+  'files.toast.starError': '별표를 변경하지 못했습니다',
 };
 export default files;

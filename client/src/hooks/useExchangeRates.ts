@@ -240,7 +240,7 @@ function useRatesFor(base: string | null): Record<string, number> | null {
     if (cached) setRates(cached.rates)
     if (cached && Date.now() - cached.ts < TTL_MS) return
     let cancelled = false
-    fetchExchangeRates(base).then(r => {
+    void fetchExchangeRates(base).then(r => {
       if (!cancelled && r) setRates(r)
     })
     return () => { cancelled = true }

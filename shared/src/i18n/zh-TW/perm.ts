@@ -32,6 +32,7 @@ const perm: TranslationStrings = {
   'perm.action.collab_edit': '協作（筆記、投票、聊天）',
   'perm.action.share_manage': '管理分享連結',
   'perm.actionHint.trip_create': '誰可以建立新旅行',
+  'perm.action.journal_link': '連結日誌',
   'perm.actionHint.trip_edit': '誰可以更改旅行名稱、日期、描述和貨幣',
   'perm.actionHint.trip_delete': '誰可以永久刪除旅行',
   'perm.actionHint.trip_archive': '誰可以歸檔或取消歸檔旅行',
@@ -47,5 +48,6 @@ const perm: TranslationStrings = {
   'perm.actionHint.packing_edit': '誰可以管理行李物品和包袋',
   'perm.actionHint.collab_edit': '誰可以建立筆記、投票和傳送訊息',
   'perm.actionHint.share_manage': '誰可以建立或刪除公開分享連結',
+  'perm.actionHint.journal_link': '誰可以將 Journey 中的日誌連結到旅程並向成員開放',
 };
 export default perm;

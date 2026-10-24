@@ -20,7 +20,7 @@ const planner: TranslationStrings = {
   'planner.reservationDeleted': 'Reservasi dihapus',
   'planner.days': 'Hari',
   'planner.allPlaces': 'Semua Tempat',
-  'planner.totalPlaces': '{n} tempat total',
+  'planner.totalPlaces': 'Total {n} tempat',
   'planner.noDaysPlanned': 'Belum ada hari yang direncanakan',
   'planner.editTrip': 'Edit perjalanan →',
   'planner.placeOne': '1 tempat',

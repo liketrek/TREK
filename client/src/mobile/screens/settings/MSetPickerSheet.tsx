@@ -35,7 +35,7 @@ export default function MSetPickerSheet({ open, onClose, title, options, value, 
                 onSelect(opt.value)
                 onClose()
               }}
-              className={`flex w-full items-center gap-2 rounded-xl px-3 py-[11px] text-left text-[0.8125rem] ${
+              className={`flex w-full items-center gap-2 rounded-xl px-3 py-[11px] text-start text-[0.8125rem] ${
                 active ? 'bg-[color:var(--m-ic)] font-bold' : 'font-semibold'
               } text-m-ink`}
             >

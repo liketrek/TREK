@@ -27,6 +27,8 @@ export interface DayVisualContext {
   todayStr: string
   entryMap: Record<string, VacayEntry[]>
   companyHolidaySet: Set<string>
+  /** Half company holidays (#2439): half-filled, still open for half a day of leave. */
+  companyHalfSet?: Set<string>
   companyHolidaysEnabled: boolean
   holidays: HolidaysMap
   weekendDays: number[]
@@ -125,6 +127,9 @@ function baseDayVisual(dateStr: string, dayOfWeek: number, ctx: DayVisualContext
     if (entries.some(e => (e.fraction ?? 1) === 0.5)) visual.half = true
     return withSchool(visual)
   }
+  if (ctx.companyHolidaysEnabled && ctx.companyHalfSet?.has(dateStr)) {
+    return withSchool({ background: 'linear-gradient(135deg, #F5D9A6 50%, transparent 50%)', numColor: '#8A5A00' })
+  }
   if (publicHoliday) {
     return withSchool({ background: publicHoliday.color, numColor: holidayInk(publicHoliday.color) })
   }
@@ -162,13 +167,4 @@ export function dayVisual(dateStr: string, dayOfWeek: number, ctx: DayVisualCont
     visual.boxShadow = shadows.join(', ')
   }
   return visual
-}
-
-/** Empty leading cells before the 1st, honoring the configured week start. */
-export function monthLead(year: number, month: number, weekStart: number): number {
-  return (new Date(year, month, 1).getDay() - weekStart + 7) % 7
-}
-
-export function localDateStr(year: number, month: number, day: number): string {
-  return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }

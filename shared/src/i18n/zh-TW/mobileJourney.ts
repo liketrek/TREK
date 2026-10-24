@@ -3,7 +3,7 @@ import type { TranslationStrings } from '../types';
 const mobileJourney: TranslationStrings = {
   'mobileJourney.latestJourney': '最新遊記',
   'mobileJourney.otherJourneys': '其他遊記',
-  'mobileJourney.entriesCount': '{count} 篇記錄',
+  'mobileJourney.entriesCount': '{count} 篇紀錄',
   'mobileJourney.photosCount': '{count} 張照片',
   'mobileJourney.placesCount': '{count} 個地點',
   'mobileJourney.daysCount': '{count} 天',

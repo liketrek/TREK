@@ -1,4 +1,4 @@
-// FE-ADMNOT-001 to FE-ADMNOT-043
+// FE-ADMNOT-001 to FE-ADMNOT-046
 import { http, HttpResponse } from 'msw';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -37,9 +37,9 @@ function replaySmtp(spy: Spy, callIndex: number, base: SmtpValues = {}): SmtpVal
   return updater(base);
 }
 
-/** The card element whose <h2> matches the given heading text. */
+/** The card (its section) whose <h2> matches the given heading text. */
 function card(heading: string | RegExp): HTMLElement {
-  return screen.getByRole('heading', { name: heading }).closest<HTMLElement>('.rounded-xl')!;
+  return screen.getByRole('heading', { name: heading }).closest<HTMLElement>('section')!;
 }
 
 const EMAIL_ON: SmtpValues = { notification_channels: 'email', smtp_host: 'mail.example.com' };
@@ -98,7 +98,7 @@ describe('AdminNotificationsTab', () => {
   it('FE-ADMNOT-004: greys out the SMTP body while the email channel is off', () => {
     renderTab({ smtpValues: { notification_channels: 'none' } });
 
-    const body = screen.getByPlaceholderText('mail.example.com').closest<HTMLElement>('.p-6')!;
+    const body = screen.getByTestId('smtp-fields');
     expect(body.className).toContain('pointer-events-none');
   });
 
@@ -162,7 +162,7 @@ describe('AdminNotificationsTab', () => {
   it('FE-ADMNOT-009: falls back to the legacy singular notification_channel key', () => {
     renderTab({ smtpValues: { notification_channel: 'email', smtp_host: 'mail.example.com' } });
 
-    const body = screen.getByPlaceholderText('mail.example.com').closest<HTMLElement>('.p-6')!;
+    const body = screen.getByTestId('smtp-fields');
     expect(body.className).not.toContain('pointer-events-none');
   });
 
@@ -179,8 +179,8 @@ describe('AdminNotificationsTab', () => {
   it('FE-ADMNOT-011: the TLS toggle flips smtp_skip_tls_verify', () => {
     const admin = renderTab({ smtpValues: { ...EMAIL_ON, smtp_skip_tls_verify: 'false' } });
 
-    const tlsRow = screen.getByText('Skip TLS certificate check').closest<HTMLElement>('div[style]')!;
-    fireEvent.click(within(tlsRow).getByRole('button'));
+    const tlsToggle = screen.getByRole('button', { name: 'Skip TLS certificate check' });
+    fireEvent.click(tlsToggle);
 
     expect(replaySmtp(admin.setSmtpValues, 0).smtp_skip_tls_verify).toBe('true');
   });
@@ -188,8 +188,8 @@ describe('AdminNotificationsTab', () => {
   it('FE-ADMNOT-012: the TLS toggle flips back when already enabled', () => {
     const admin = renderTab({ smtpValues: { ...EMAIL_ON, smtp_skip_tls_verify: 'true' } });
 
-    const tlsRow = screen.getByText('Skip TLS certificate check').closest<HTMLElement>('div[style]')!;
-    fireEvent.click(within(tlsRow).getByRole('button'));
+    const tlsToggle = screen.getByRole('button', { name: 'Skip TLS certificate check' });
+    fireEvent.click(tlsToggle);
 
     expect(replaySmtp(admin.setSmtpValues, 0).smtp_skip_tls_verify).toBe('false');
   });
@@ -570,5 +570,48 @@ describe('AdminNotificationsTab', () => {
     expect(screen.queryByRole('heading', { name: 'Email (SMTP)' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Admin Webhook' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Admin Ntfy' })).not.toBeInTheDocument();
+  });
+
+  it('FE-ADMNOT-044: Web Push has its own card after Ntfy, before In-App', () => {
+    renderTab({ smtpValues: { notification_channels: 'email' } });
+
+    const headings = screen.getAllByRole('heading').map(h => h.textContent);
+    expect(headings.indexOf('Web Push')).toBe(headings.indexOf('Ntfy') + 1);
+    expect(headings.indexOf('In-App')).toBe(headings.indexOf('Web Push') + 1);
+    expect(within(card('Web Push')).getByText(/receive notifications on their phones/)).toBeInTheDocument();
+    expect(within(card('Web Push')).getByRole('button', { name: 'Web Push' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('FE-ADMNOT-045: switching Web Push on adds push to the list and keeps the rest', async () => {
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.put('/api/auth/app-settings', async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({});
+      })
+    );
+    const admin = renderTab({ smtpValues: { notification_channels: 'email,plugin-gotify' } });
+
+    fireEvent.click(within(card('Web Push')).getByRole('button', { name: 'Web Push' }));
+
+    await waitFor(() => expect(body).toEqual({ notification_channels: 'email,push,plugin-gotify' }));
+    expect(replaySmtp(admin.setSmtpValues, 0).notification_channels).toBe('email,push,plugin-gotify');
+  });
+
+  it('FE-ADMNOT-046: an active push channel shows its switch on, and switching it off keeps email', async () => {
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.put('/api/auth/app-settings', async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({});
+      })
+    );
+    renderTab({ smtpValues: { notification_channels: 'email,push' } });
+
+    const toggle = within(card('Web Push')).getByRole('button', { name: 'Web Push' });
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(toggle);
+
+    await waitFor(() => expect(body).toEqual({ notification_channels: 'email' }));
   });
 });

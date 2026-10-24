@@ -6,7 +6,7 @@ const storage: TranslationStrings = {
   'storage.field.endpoint': 'URL del endpoint',
   'storage.help.endpoint':
     'URL base del servicio compatible con S3, p. ej. https://s3.example.com o http://127.0.0.1:9000.',
-  'storage.field.bucket': 'Bucket',
+  'storage.field.bucket': 'Bucket', // same-as-en
   'storage.field.accessKeyId': 'ID de clave de acceso',
   'storage.field.secretAccessKey': 'Clave de acceso secreta',
   'storage.field.region': 'Región',
@@ -29,15 +29,15 @@ const storage: TranslationStrings = {
   'storage.discardAndReload': 'Descartar mis cambios y recargar',
   'storage.configError.banner':
     'No se pudieron cargar los ajustes de almacenamiento guardados — guardar los reemplazará: {error}',
-  'storage.backends.title': 'Backends',
+  'storage.backends.title': 'Backends', // same-as-en
   'storage.backends.add': 'Añadir backend',
   'storage.backends.usedBy': 'Usado por: {categories}',
   'storage.backends.unused': 'No asignado a ninguna categoría',
-  'storage.backends.envReadOnly': 'Definido por una variable de entorno — solo lectura',
+  'storage.backends.envReadOnly': 'Definido por una variable de entorno (solo lectura)',
   'storage.source.built-in': 'Integrado',
   'storage.source.env': 'Entorno',
   'storage.source.settings': 'Configuración',
-  'storage.type.local': 'Local',
+  'storage.type.local': 'Local', // same-as-en
   'storage.type.s3': 'S3',
   'storage.type.mirror': 'Espejo',
   'storage.actions.test': 'Probar',
@@ -116,7 +116,8 @@ const storage: TranslationStrings = {
   'storage.sync.error': 'Error en la sincronización: {error}',
   'storage.sync.prompt': 'Los objetos existentes aún no se han replicado — ¿sincronizar ahora?',
   'storage.sync.dismiss': 'Descartar',
-  'storage.usage.line': '{objects} objetos · {size}',
+  'storage.usage.line': '{count} objetos · {size}',
+  'storage.usage.line.one': '{count} objeto · {size}',
   'storage.usage.computed': 'Uso calculado {age}',
   'storage.usage.never': 'Uso aún no calculado',
   'storage.usage.refresh': 'Actualizar',
@@ -125,7 +126,8 @@ const storage: TranslationStrings = {
 
   // Category migration (copy → flip → delta sweep)
   'storage.migrate.promptTitle': '¿Mover los objetos existentes al nuevo backend?',
-  'storage.migrate.promptLine': '{category}: {objects} objetos ({size}) de {from} a {to}',
+  'storage.migrate.promptLine': '{category}: {count} objetos ({size}) de {from} a {to}',
+  'storage.migrate.promptLine.one': '{category}: {count} objeto ({size}) de {from} a {to}',
   'storage.migrate.promptLineUnknown': '{category}: tamaño desconocido (uso aún no calculado) de {from} a {to}',
   'storage.migrate.move': 'Mover objetos existentes',
   'storage.migrate.routeOnly': 'Solo enrutar las escrituras nuevas',
@@ -134,7 +136,8 @@ const storage: TranslationStrings = {
   'storage.migrate.doneFailures': '{failed} fallaron — esos objetos no se copiaron al nuevo backend',
   'storage.migrate.failed': 'Error al mover: {error} — la categoría no se cambió',
   'storage.migrate.cancelled': 'Movimiento cancelado — no se cambió nada',
-  'storage.migrate.reclaimable': '{objects} objetos ({size}) permanecen en {from} — recupéralos manualmente',
+  'storage.migrate.reclaimable': '{count} objetos ({size}) permanecen en {from}, recupéralos manualmente',
+  'storage.migrate.reclaimable.one': '{count} objeto ({size}) permanece en {from}, recupéralo manualmente',
   'storage.migrate.cancel': 'Cancelar movimiento',
   'storage.migrate.promptCancel': 'Cancelar',
   'storage.migrate.queued': 'En cola: {categories}',

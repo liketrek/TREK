@@ -1,26 +1,18 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Calendar, Check, ChevronRight, Flag, Plus } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
 import { useAuthStore } from '../../../../store/authStore'
 import { useTranslation } from '../../../../i18n'
 import { avatarSrc } from '../../../../utils/avatarSrc'
 import { formatDate } from '../../../../utils/formatters'
-import { localToday } from '../../../../components/Planner/today'
 import type { TodoItem, TripMember } from '../../../../types'
 import type { TripPlanner } from '../MTripShell'
 import { TabScroller } from './tabChrome'
-import {
-  PRIORITY_COLOR, PRIORITY_LABEL, filterTodoItems, filterTodoItemsByCategory, isTodoOverdue,
-  sortTodoRows, todoCategories, todoCategoryOpenCount, todoCounts, type TodoSmartFilter,
-} from './listsModel'
+import { PRIORITY_COLOR, PRIORITY_LABEL } from './listsModel'
+import { TODO_SMART_FILTERS, isTodoOverdue, type TodoSmartFilter } from '../../../../components/Todo/todoListModel'
+import { useTodoView } from '../../../../components/Todo/useTodoList'
 import MTaskSheet from './MTaskSheet'
-
-const BUILTIN_FILTERS: TodoSmartFilter[] = ['all', 'my', 'overdue', 'done']
-
-// The rail holds two kinds of bucket: the four built-ins, addressed by id, and
-// the category buckets, addressed by name — so a category a user called "all"
-// or "done" gets its own bucket instead of the built-in one.
-type ActiveFilter = { kind: 'smart'; id: TodoSmartFilter } | { kind: 'category'; name: string }
+import MarkdownText from '../../../../components/shared/MarkdownText'
 
 /**
  * To-do sub-tab (spec 03 §4.5-4.7): progress card with "New task", the
@@ -35,26 +27,12 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
   const currentUserId = useAuthStore(s => s.user?.id) ?? null
   const tripMembers = planner.tripMembers
 
-  const [active, setActive] = useState<ActiveFilter>({ kind: 'smart', id: 'all' })
-  const [sortBy, setSortBy] = useState<'priority' | 'due' | null>(null)
+  // The rail addresses a category by name, so a category a user called "all"
+  // or "done" gets its own bucket instead of the built-in one.
+  const { active, setActive, sortBy, toggleSort, today, categories, rows, counts, catCount } =
+    useTodoView(items, currentUserId, { rankByStatus: true, pinToday: true })
   const [editingItemId, setEditingItemId] = useState<number | null>(null)
   const [creatingTask, setCreatingTask] = useState(false)
-
-  // The user's calendar day, not UTC's — an overdue task must turn overdue at
-  // the traveller's midnight, not eight hours either side of it.
-  const today = useMemo(() => localToday(), [])
-  const categories = useMemo(() => todoCategories(items), [items])
-  const counts = todoCounts(items, currentUserId, today)
-  const rows = useMemo(
-    () => sortTodoRows(
-      active.kind === 'category'
-        ? filterTodoItemsByCategory(items, active.name)
-        : filterTodoItems(items, active.id, currentUserId, today),
-      sortBy,
-      today,
-    ),
-    [items, active, currentUserId, today, sortBy],
-  )
 
   const pct = items.length > 0 ? Math.round((counts.done / items.length) * 100) : 0
   const defaultCategoryForNew = active.kind === 'category' ? active.name : null
@@ -85,7 +63,7 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
             <button
               type="button"
               onClick={openCreate}
-              className="ml-auto flex items-center gap-1 rounded-full bg-m-act px-[12px] py-[5px] text-[0.6875rem] font-semibold text-m-actfg"
+              className="ms-auto flex items-center gap-1 rounded-full bg-m-act px-[12px] py-[5px] text-[0.6875rem] font-semibold text-m-actfg"
             >
               <Plus size={11} strokeWidth={2.4} />
               {t('todo.newItem')}
@@ -100,7 +78,7 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
       {/* ── Filters (spec §4.6) ── */}
       {items.length > 0 && (
         <div className="mt-[10px] flex items-center gap-[6px] overflow-x-auto whitespace-nowrap">
-          {BUILTIN_FILTERS.map(f => (
+          {TODO_SMART_FILTERS.map(f => (
             <button
               key={f}
               type="button"
@@ -113,7 +91,7 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
           ))}
           <button
             type="button"
-            onClick={() => setSortBy(v => v === 'priority' ? null : 'priority')}
+            onClick={() => toggleSort('priority')}
             aria-pressed={sortBy === 'priority'}
             className={filterPill(sortBy === 'priority')}
           >
@@ -122,7 +100,7 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
           </button>
           <button
             type="button"
-            onClick={() => setSortBy(v => v === 'due' ? null : 'due')}
+            onClick={() => toggleSort('due')}
             aria-pressed={sortBy === 'due'}
             className={filterPill(sortBy === 'due')}
           >
@@ -138,7 +116,7 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
               className={filterPill(active.kind === 'category' && active.name === cat)}
             >
               {cat}
-              <span className="font-geist text-[0.5625rem] opacity-70">{todoCategoryOpenCount(items, cat)}</span>
+              <span className="font-geist text-[0.5625rem] opacity-70">{catCount(cat)}</span>
             </button>
           ))}
         </div>
@@ -213,13 +191,13 @@ function TaskCard({ item, members, today, onToggle, onOpen }: {
         <Check size={12} strokeWidth={3} />
       </button>
 
-      <button type="button" onClick={() => onOpen(item.id)} className="flex min-w-0 flex-1 items-start gap-[8px] text-left">
+      <button type="button" onClick={() => onOpen(item.id)} className="flex min-w-0 flex-1 items-start gap-[8px] text-start">
         <div className="min-w-0 flex-1">
           <div className={`truncate text-[0.8125rem] font-semibold ${done ? 'text-m-faint line-through opacity-45' : 'text-m-ink'}`}>
             {item.name}
           </div>
           {item.description && (
-            <div className="mt-[1px] truncate font-geist text-[0.625rem] text-m-faint">{item.description}</div>
+            <MarkdownText clamp className="mt-[1px] font-geist text-[0.625rem] text-m-faint">{item.description}</MarkdownText>
           )}
           {(item.priority > 0 || item.due_date || assignee) && (
             <div className="mt-[5px] flex flex-wrap items-center gap-[5px]">
@@ -240,7 +218,7 @@ function TaskCard({ item, members, today, onToggle, onOpen }: {
                 </span>
               )}
               {assignee && (
-                <span className="inline-flex items-center gap-[4px] rounded-full bg-[color:var(--m-ic)] py-[2px] pl-[3px] pr-2 font-geist text-[0.59375rem] font-bold text-m-muted">
+                <span className="inline-flex items-center gap-[4px] rounded-full bg-[color:var(--m-ic)] py-[2px] ps-[3px] pe-2 font-geist text-[0.59375rem] font-bold text-m-muted">
                   <span className="flex h-[13px] w-[13px] flex-none items-center justify-center overflow-hidden rounded-full bg-m-act text-[0.4375rem] font-extrabold text-m-actfg">
                     {avatarSrcUrl ? <img src={avatarSrcUrl} alt="" className="h-full w-full object-cover" /> : assignee.username[0]?.toUpperCase()}
                   </span>

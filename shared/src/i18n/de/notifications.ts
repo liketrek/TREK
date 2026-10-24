@@ -12,7 +12,7 @@ const notifications: TranslationStrings = {
   'notifications.markRead': 'Als gelesen markieren',
   'notifications.markUnread': 'Als ungelesen markieren',
   'notifications.delete': 'Löschen',
-  'notifications.system': 'System',
+  'notifications.system': 'System', // same-as-en
   'notifications.synologySessionCleared.title': 'Synology Photos getrennt',
   'notifications.synologySessionCleared.text':
     'Dein Server oder Konto hat sich geändert — gehe zu Einstellungen, um deine Verbindung erneut zu testen.',
@@ -29,8 +29,13 @@ const notifications: TranslationStrings = {
   'notifications.test.adminText': '{actor} hat eine Testbenachrichtigung an alle Admins gesendet.',
   'notifications.test.tripTitle': '{actor} hat in Ihrer Reise gepostet',
   'notifications.test.tripText': 'Testbenachrichtigung für Reise "{trip}".',
+  'notifications.countLabel': 'Benachrichtigungen',
+  'notifications.countLabel.one': 'Benachrichtigung',
   'notifications.versionAvailable.title': 'Update verfügbar',
   'notifications.versionAvailable.text': 'TREK {version} ist jetzt verfügbar.',
   'notifications.versionAvailable.button': 'Details anzeigen',
+  'notifications.deleteAllConfirmTitle': 'Alle Benachrichtigungen löschen?',
+  'notifications.deleteAllConfirmText':
+    'Alle Benachrichtigungen werden endgültig entfernt. Das lässt sich nicht rückgängig machen.',
 };
 export default notifications;

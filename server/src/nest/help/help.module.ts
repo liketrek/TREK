@@ -1,6 +1,6 @@
-import { Module } from '@nestjs/common';
 import { HelpController } from './help.controller';
 import { HelpMcp } from './help.mcp';
+import { Module } from '@nestjs/common';
 
 /**
  * /api/help serves the bundled `wiki/` directory, read via ./wiki. HelpMcp puts the

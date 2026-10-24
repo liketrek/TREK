@@ -1,118 +1,51 @@
+import {
+  BOOK_FONT_CATEGORIES, BOOK_FONT_FACES, BOOK_FONTS_IDS, bookFontHasItalic, bookFontHasWeight, bookLighterWeight,
+  nearestBookWeight,
+  type BookFontCategory, type BookFontFace, type BookFontFamily,
+} from '@trek/shared'
+
 /**
- * The book's typefaces.
+ * The book's typefaces, as the Studio draws them.
  *
  * ── Why this file exists ──────────────────────────────────────────────────
  *
  * The font stack used to name Georgia for its serif. Georgia is a system font:
  * it is on most desktops and on no Linux container, so the print renderer would
  * quietly substitute something else and a book proofread in one typeface would
- * print in another. The existing Journey PDF export has the same bug today — it
- * asks for Inter while only Poppins, Geist and MuseoModerno are bundled.
+ * print in another.
  *
- * So every family here is self-hosted through @fontsource, all of them OFL, and
+ * So every family is self-hosted through @fontsource, OFL or Apache 2.0, and
  * every stack ends in a generic rather than in another named font nobody
  * shipped. What the editor draws is what the renderer has.
  *
- * The faces themselves are loaded next door in bookFontFaces.ts. A family named
- * here and not imported there falls back to exactly the system font this file
- * was written against, which is how five of the seven shipped (#2183).
- *
- * ── Why these seven ───────────────────────────────────────────────────────
- *
- * A photo book needs more than one voice and fewer than a menu. Two workhorse
- * sans faces, three serifs across the range from bookish to high-contrast, and
- * two display faces for a cover. Anything past that is a font picker rather
- * than a design decision.
+ * The catalogue itself (names, stacks, weights, italics, roles) lives in
+ * @trek/shared (book-fonts.data.ts), because the findings, the design engine
+ * and the assistant read the same families. This file only gives the Studio
+ * its view of it; the faces are loaded next door in bookFontFaces.ts.
  */
 
-export interface BookFont {
+export type BookFontId = BookFontFamily
+
+export interface BookFont extends BookFontFace {
   id: BookFontId
-  /** What it is called, shown as itself in the picker. */
-  name: string
-  /** The CSS stack. Ends generic — never in a font that is not bundled. */
-  stack: string
-  /** Where it belongs, for grouping the picker. */
-  kind: 'sans' | 'serif' | 'display'
-  /**
-   * Weights actually loaded. Asking for 700 on a family that ships one weight
-   * gets a synthesised bold, which prints as a smeared version of the regular.
-   */
-  weights: number[]
 }
 
-export type BookFontId =
-  | 'sans' | 'serif' | 'display'
-  | 'inter' | 'garamond' | 'playfair' | 'bebas'
-
-/**
- * `sans`, `serif` and `display` keep their names because documents already
- * contain them — the three original slots, now pointing at bundled families
- * rather than at whatever the machine happened to have.
- */
-export const BOOK_FONTS: Record<BookFontId, BookFont> = {
-  sans: {
-    id: 'sans',
-    name: 'Poppins',
-    stack: '"Poppins", system-ui, sans-serif',
-    kind: 'sans',
-    weights: [400, 500, 600, 700],
-  },
-  inter: {
-    id: 'inter',
-    name: 'Inter',
-    stack: '"Inter", system-ui, sans-serif',
-    kind: 'sans',
-    weights: [400, 500, 600, 700],
-  },
-  serif: {
-    id: 'serif',
-    name: 'Lora',
-    stack: '"Lora", Georgia, serif',
-    kind: 'serif',
-    weights: [400, 500, 600, 700],
-  },
-  garamond: {
-    id: 'garamond',
-    name: 'EB Garamond',
-    stack: '"EB Garamond", Georgia, serif',
-    kind: 'serif',
-    weights: [400, 500, 600, 700],
-  },
-  playfair: {
-    id: 'playfair',
-    name: 'Playfair Display',
-    stack: '"Playfair Display", Georgia, serif',
-    kind: 'serif',
-    weights: [400, 500, 600, 700],
-  },
-  display: {
-    id: 'display',
-    name: 'MuseoModerno',
-    stack: '"MuseoModerno", "Poppins", system-ui, sans-serif',
-    kind: 'display',
-    weights: [400, 500, 600, 700],
-  },
-  bebas: {
-    id: 'bebas',
-    name: 'Bebas Neue',
-    stack: '"Bebas Neue", Impact, sans-serif',
-    kind: 'display',
-    // One weight only. Asking for bold gets a synthesised one, which is why
-    // the inspector greys the weights this family does not have.
-    weights: [400],
-  },
-}
+export const BOOK_FONTS = Object.fromEntries(
+  BOOK_FONTS_IDS.map(id => [id, { id, ...BOOK_FONT_FACES[id] }]),
+) as unknown as Record<BookFontId, BookFont>
 
 // Geist Sans is deliberately absent: it is TREK's own subtext face, part of the
 // app's voice rather than the book's, and a book set in the interface font
 // reads as a screenshot of the app.
 
-/** The picker's order: workhorses first, display last. */
-export const BOOK_FONT_ORDER: BookFontId[] = [
-  'sans', 'inter',
-  'serif', 'garamond', 'playfair',
-  'display', 'bebas',
-]
+/** The picker's order: by category (sans first, mono last), the catalogue's order within one. */
+export const BOOK_FONT_ORDER: BookFontId[] = BOOK_FONT_CATEGORIES.flatMap(category =>
+  BOOK_FONTS_IDS.filter(id => BOOK_FONT_FACES[id].category === category))
+
+/** The families of one picker group, in picker order. */
+export function fontsIn(category: BookFontCategory): BookFontId[] {
+  return BOOK_FONT_ORDER.filter(id => BOOK_FONTS[id].category === category)
+}
 
 /**
  * The CSS stack for a font id.
@@ -126,20 +59,20 @@ export function fontStack(id: string): string {
 }
 
 /** Whether a family actually ships the weight being asked for. */
-export function hasWeight(id: string, weight: number): boolean {
-  const font = BOOK_FONTS[id as BookFontId]
-  return font ? font.weights.includes(weight) : true
-}
+export const hasWeight = bookFontHasWeight
+
+/** Whether a family has a real italic at that weight, rather than the browser's slant. */
+export const hasItalic = bookFontHasItalic
 
 /**
  * The nearest weight a family really has.
  *
  * A synthesised bold is a smeared regular in print, so a family with one weight
- * gets that weight rather than a request the renderer has to fake.
+ * gets that weight rather than a request the renderer has to fake. The
+ * renderer draws every element through this as well, so a book whose weight
+ * was set before its family changed still prints in a face that exists.
  */
-export function nearestWeight(id: string, weight: number): number {
-  const font = BOOK_FONTS[id as BookFontId]
-  if (!font || font.weights.includes(weight)) return weight
-  return font.weights.reduce((best, w) =>
-    (Math.abs(w - weight) < Math.abs(best - weight) ? w : best), font.weights[0])
-}
+export const nearestWeight = nearestBookWeight
+
+/** The lighter weight a travel element sets beside its figures, one the family has. */
+export const lighterWeight = bookLighterWeight

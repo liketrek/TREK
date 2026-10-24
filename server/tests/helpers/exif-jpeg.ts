@@ -32,7 +32,12 @@ const ASCII = 2;
 const LONG = 4;
 const RATIONAL = 5;
 
-interface Entry { tag: number; type: number; count: number; data: Buffer }
+interface Entry {
+  tag: number;
+  type: number;
+  count: number;
+  data: Buffer;
+}
 
 function ascii(tag: number, value: string): Entry {
   const data = Buffer.from(`${value}\0`, 'latin1');
@@ -59,7 +64,11 @@ function dms(deg: number): Array<[number, number]> {
   const d = Math.floor(abs);
   const m = Math.floor((abs - d) * 60);
   const s = Math.round(((abs - d) * 60 - m) * 60 * 10000);
-  return [[d, 1], [m, 1], [s, 10000]];
+  return [
+    [d, 1],
+    [m, 1],
+    [s, 10000],
+  ];
 }
 
 function ifdSize(entries: Entry[]): number {

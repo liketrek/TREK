@@ -11,6 +11,7 @@ const trips: TranslationStrings = {
   'trips.reminderDays': 'dni',
   'trips.reminderCustom': 'Niestandardowe',
   'trips.reminderDaysBefore': 'dni przed wyjazdem',
-  'trips.reminderDisabledHint': 'Przypomnienia o podróżach są wyłączone.',
+  'trips.reminderDisabledHint':
+    'Przypomnienia o podróżach są wyłączone. Włącz je w Administracja > Powiadomienia > Przypomnienia o podróżach.',
 };
 export default trips;

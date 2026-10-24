@@ -5,7 +5,7 @@ import { haversineKm } from '../../utils/geo'
 import { formatDistance } from '../../utils/units'
 import { countRoute } from './routeUsageCounter'
 import { valhallaRouteAvoiding, valhallaRun, valhallaAvailable, valhallaAlternates, valhallaSpacing, legAvoids, type AvoidClass, type ValhallaLeg } from './valhallaRoute'
-import type { RouteUsageSurface } from '@trek/shared'
+import { furthestFrom, sameRoad, type RouteUsageSurface } from '@trek/shared'
 
 // FOSSGIS hosts OSRM with real per-profile routing (car/foot/bike) — the
 // project-osrm.org demo is car-only (it ignores the profile in the URL). Use
@@ -470,20 +470,29 @@ export async function calculateSegments(
   if (data.code !== 'Ok' || !data.routes?.[0]) throw new Error('No route found')
 
   const legs = data.routes[0].legs
-  return legs.map((leg: { distance: number; duration: number }, i: number): RouteSegment => {
-    const from: [number, number] = [waypoints[i].lat, waypoints[i].lng]
-    const to: [number, number] = [waypoints[i + 1].lat, waypoints[i + 1].lng]
-    const mid: [number, number] = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2]
-    const walkingDuration = leg.distance / (5000 / 3600)
-    return {
-      mid, from, to,
-      distance: leg.distance,
-      duration: leg.duration,
-      walkingText: formatDuration(walkingDuration),
-      drivingText: formatDuration(leg.duration),
-      distanceText: formatRouteDistance(leg.distance),
-    }
-  })
+  return legs.map((leg: OsrmLeg, i: number): RouteSegment => osrmLegSegment(leg, i, waypoints))
+}
+
+interface OsrmLeg { distance: number; duration: number }
+
+/**
+ * The connector data for OSRM leg i, which runs from waypoint i to waypoint i + 1:
+ * both ends, the midpoint the label sits on, and the walking time at 5 km/h next to
+ * the driving time OSRM measured.
+ */
+export function osrmLegSegment(leg: OsrmLeg, i: number, waypoints: Waypoint[]): RouteSegment {
+  const from: [number, number] = [waypoints[i].lat, waypoints[i].lng]
+  const to: [number, number] = [waypoints[i + 1].lat, waypoints[i + 1].lng]
+  const mid: [number, number] = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2]
+  const walkingDuration = leg.distance / (5000 / 3600)
+  return {
+    mid, from, to,
+    distance: leg.distance,
+    duration: leg.duration,
+    walkingText: formatDuration(walkingDuration),
+    drivingText: formatDuration(leg.duration),
+    distanceText: formatRouteDistance(leg.distance),
+  }
 }
 
 /**
@@ -617,22 +626,12 @@ async function osrmWithLegs(
   const coordinates: [number, number][] = route.geometry.coordinates.map(
     ([lng, lat]: [number, number]) => [lat, lng]
   )
+  // The day plan's connectors also show the leg's own duration line.
   const legs: RouteSegment[] = (route.legs || []).map(
-    (leg: { distance: number; duration: number }, i: number): RouteSegment => {
-      const from: [number, number] = [waypoints[i].lat, waypoints[i].lng]
-      const to: [number, number] = [waypoints[i + 1].lat, waypoints[i + 1].lng]
-      const mid: [number, number] = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2]
-      const walkingDuration = leg.distance / (5000 / 3600)
-      return {
-        mid, from, to,
-        distance: leg.distance,
-        duration: leg.duration,
-        walkingText: formatDuration(walkingDuration),
-        drivingText: formatDuration(leg.duration),
-        distanceText: formatRouteDistance(leg.distance),
-        durationText: formatDuration(leg.duration),
-      }
-    }
+    (leg: OsrmLeg, i: number): RouteSegment => ({
+      ...osrmLegSegment(leg, i, waypoints),
+      durationText: formatDuration(leg.duration),
+    })
   )
 
   const snapped = readSnapped(data, waypoints)
@@ -804,41 +803,6 @@ export type RoadLine = Pick<RouteAlternative, 'coordinates' | 'distance' | 'dura
  */
 const EXCLUDABLE_CLASSES = ['motorway', 'toll', 'ferry'] as const
 
-/**
- * How far two lines may stray from each other and still be the same road, in kilometres.
- *
- * Parallel carriageways, a different slip road onto the same motorway and the noise
- * between two engines' idea of where a road is all sit well under this. A way somebody
- * would call an alternative leaves it by kilometres: the ferry-free run from Hamburg to
- * Copenhagen, which is a genuinely different road, peaks 2.3 km off the default.
- */
-const SAME_ROAD_KM = 0.5
-
-/**
- * Two lines are the same road.
- *
- * Length and duration used to decide this, and stopped being enough when a second engine
- * started answering. Valhalla prices roads differently: measured over twelve European
- * legs its distances ran 1.8 % above OSRM's, so on a 470 km leg the same road comes back
- * thirteen kilometres apart and a 200 m tolerance calls it a discovery. Two identical
- * blue lines on the map is exactly what that looks like. Duration is the worse of the
- * two to lean on: over the same twelve legs it ranged from 14.7 % under OSRM's to 13.2 %
- * over, with the sign set by the region rather than by the road.
- *
- * The geometry does not care which engine drew it, so it decides whenever there is one.
- * The numbers stay as the fallback for a line with no shape to compare.
- *
- * Measured both ways round. Asked only whether `b` stays near `a`, a road that runs the
- * whole of `b` and then turns off to a point and back passed as `b`, because every point
- * of `b` is on it; that is exactly the shape of a leg bent by a via, and the picker and
- * the check behind a choice both have to tell it from the plain road.
- */
-export function sameRoad(a: RoadLine, b: RoadLine): boolean {
-  const there = furthestFrom(b.coordinates, a.coordinates)
-  const back = furthestFrom(a.coordinates, b.coordinates)
-  if (there && back) return Math.max(there.km, back.km) < SAME_ROAD_KM
-  return Math.abs(a.distance - b.distance) < 200 && Math.abs(a.duration - b.duration) < 60
-}
 
 /**
  * Hosts that have already answered "I do not do exclude", by base URL.
@@ -1103,88 +1067,4 @@ async function alternativesFromOsrm(
 function furthestPointFrom(line: [number, number][], reference: [number, number][]): { lat: number; lng: number } | null {
   const furthest = furthestFrom(line, reference)
   return furthest ? { lat: furthest.lat, lng: furthest.lng } : null
-}
-
-/**
- * The same point, plus how far off it actually is.
- *
- * The search itself stays in squared degrees with a cosine on the longitude: it only has
- * to ORDER the candidates, and a haversine per pair of a 200-by-200 comparison buys
- * nothing for it. The winner is converted once at the end, because `sameRoad` needs a
- * real distance rather than a rank, and half a degree is a different number of metres in
- * Andalusia than in Lapland.
- *
- * `index` is where on `line` the point sits, so points taken off one line can be put back
- * in the order that line drives through them.
- */
-export function furthestFrom(
-  line: [number, number][],
-  reference: [number, number][],
-): { index: number; lat: number; lng: number; km: number } | null {
-  if (!line.length || !reference.length) return null
-  // Every tenth vertex is plenty: alternatives differ over kilometres, not metres, and a
-  // full cross product of two thousand-point lines is not worth the milliseconds.
-  const step = Math.max(1, Math.floor(reference.length / 200))
-  let bestIndex = -1
-  let bestNeighbour: [number, number] | null = null
-  let bestDist = -1
-  for (let i = 0; i < line.length; i += Math.max(1, Math.floor(line.length / 200))) {
-    const near = nearestOn(line[i], reference, step)
-    if (near.d > bestDist) { bestDist = near.d; bestIndex = i; bestNeighbour = near.at }
-  }
-  if (bestIndex < 0) return null
-  const [lat, lng] = line[bestIndex]
-  const km = bestNeighbour ? haversineKm({ lat, lng }, { lat: bestNeighbour[0], lng: bestNeighbour[1] }) : 0
-  return { index: bestIndex, lat, lng, km }
-}
-
-/**
- * Where `reference` passes closest to `point`, as a squared distance in the same scaled
- * degrees and the spot on the line it was measured to.
- *
- * Coarse, then fine. The sampled vertices find the stretch, and the segments either side
- * of the nearest one find the road itself. Measured to the sampled vertex alone, a point
- * on the very same road sat up to half a sample apart from it, which on a thousand
- * kilometre leg is kilometres: two engines' lines of one motorway then read as two roads.
- */
-function nearestOn(
-  point: [number, number],
-  reference: [number, number][],
-  step: number,
-): { d: number; at: [number, number] } {
-  const cos = Math.cos((point[0] * Math.PI) / 180)
-  const squared = (p: [number, number]): number => {
-    const dLat = point[0] - p[0]
-    const dLng = (point[1] - p[1]) * cos
-    return dLat * dLat + dLng * dLng
-  }
-  let nearestIndex = 0
-  let nearest = Infinity
-  for (let j = 0; j < reference.length; j += step) {
-    const d = squared(reference[j])
-    if (d < nearest) { nearest = d; nearestIndex = j }
-  }
-  let at = reference[nearestIndex]
-  const last = Math.min(reference.length - 1, nearestIndex + step)
-  for (let k = Math.max(0, nearestIndex - step); k < last; k++) {
-    const on = closestOnSegment(point, reference[k], reference[k + 1], cos)
-    const d = squared(on)
-    if (d < nearest) { nearest = d; at = on }
-  }
-  return { d: nearest, at }
-}
-
-/** The point of segment a-b closest to `p`, with longitude scaled by `cos` so the plane is fair. */
-function closestOnSegment(
-  p: [number, number],
-  a: [number, number],
-  b: [number, number],
-  cos: number,
-): [number, number] {
-  const dx = (b[1] - a[1]) * cos
-  const dy = b[0] - a[0]
-  const length = dx * dx + dy * dy
-  if (length === 0) return a
-  const t = Math.max(0, Math.min(1, (((p[1] - a[1]) * cos) * dx + (p[0] - a[0]) * dy) / length))
-  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]
 }

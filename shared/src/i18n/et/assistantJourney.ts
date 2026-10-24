@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types';
+
+const assistantJourney: TranslationStrings = {
+  'assistant.card.journey.label': 'Päeviku sissekanded',
+  'assistant.card.journey.open': 'Ava päevikus',
+  'assistant.card.journey.entries': '{count} sissekannet',
+  'assistant.card.journey.entries.one': '{count} sissekanne',
+  'assistant.card.journey.more': 'päevikus veel {count}',
+  'assistant.card.journey.more.one': 'päevikus veel {count}',
+  'assistant.card.journey.photos': '{count} fotot',
+  'assistant.card.journey.photos.one': '{count} foto',
+  'assistant.card.journey.toSuggestion': 'Muutub taas soovituseks',
+  'assistant.card.journey.video': 'Algab videoga',
+  'assistant.card.journey.typeEntry': 'Kirjutatud sissekanne',
+  'assistant.card.journey.typeCheckin': 'Kohal registreerimine',
+  'assistant.card.journey.notDraft': 'Pole enam mustand',
+  'assistant.card.journey.onRoute': 'Taas marsruudil',
+  'assistant.card.journey.restored': 'Soovitus taastatud',
+  'assistant.change.verb.addJournalEntry': 'Lisa päevikusse sissekanne',
+  'assistant.change.verb.updateJournalEntry': 'Muuda päeviku sissekannet',
+  'assistant.change.verb.removeJournalEntry': 'Kustuta päeviku sissekanne',
+  'assistant.step.readingJournal': 'Loen päevikut',
+  'assistant.tool.create_journey': 'Alusta päevikut',
+  'assistant.tool.update_journey': 'Muuda päevikut',
+  'assistant.tool.add_journey_trip': 'Lisa reis päevikusse',
+  'assistant.tool.link_trip_journal': 'Näita päevikut selles reisis',
+  'assistant.tool.reorder_journey_entries': 'Järjesta päevik ümber',
+  'assistant.followUp.journalToday': 'Kirjuta tänane sissekanne',
+  'assistant.followUp.journalSummary': 'Võta need päevad kokku',
+};
+export default assistantJourney;

@@ -4,6 +4,7 @@ import { LogOut, Moon, Settings2, Shield, Sun, SunMoon } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
 import { useAuthStore } from '../../../store/authStore'
+import { useIsDark } from '../../../hooks/useIsDark'
 import { useSettingsStore } from '../../../store/settingsStore'
 import MDropdownPanel from '../../components/MDropdownPanel'
 import MListRow from '../../components/MListRow'
@@ -33,14 +34,16 @@ interface MUserMenuProps {
 
 /**
  * Avatar popover of the mobile top bar: profile header (with admin badge),
- * settings, admin panel (admins only), the dark/light/auto theme cycle and
- * sign out.
+ * settings, admin panel (admins only), the dark/light/auto theme cycle, sign
+ * out and the app version as a footer, like the desktop account menu.
  */
 export default function MUserMenu({ open, onClose }: MUserMenuProps): React.ReactElement {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const user = useAuthStore(s => s.user)
   const logout = useAuthStore(s => s.logout)
+  const appVersion = useAuthStore(s => s.appVersion)
+  const dark = useIsDark()
   const darkMode = useSettingsStore(s => s.settings.dark_mode)
   const updateSetting = useSettingsStore(s => s.updateSetting)
 
@@ -57,7 +60,7 @@ export default function MUserMenu({ open, onClose }: MUserMenuProps): React.Reac
   }
 
   return (
-    <MDropdownPanel open={open} onClose={onClose} className="right-4 top-[calc(var(--m-safe-top,12px)+68px)]">
+    <MDropdownPanel open={open} onClose={onClose} className="end-4 top-[calc(var(--m-safe-top,12px)+68px)]">
       <div className="flex items-center gap-[10px] p-[10px_10px_12px]">
         <span className="flex h-10 w-10 flex-none items-center justify-center overflow-hidden rounded-full bg-[image:linear-gradient(135deg,#6A6A74,#1A1A1E)] text-[0.9375rem] font-bold text-white">
           {user?.avatar_url
@@ -88,6 +91,17 @@ export default function MUserMenu({ open, onClose }: MUserMenuProps): React.Reac
       />
       <div className="mx-2 my-1 h-px bg-[color:var(--m-rowbr)]" />
       <MListRow icon={LogOut} danger label={t('nav.bottomLogout')} onClick={signOut} />
+      {appVersion && (
+        <>
+          <div className="mx-2 my-1 h-px bg-[color:var(--m-rowbr)]" />
+          <div className="flex justify-center pb-1 pt-[6px]">
+            <span className="inline-flex items-center gap-[5px] rounded-full bg-[color:var(--m-ic)] px-3 py-1 font-geist text-caption font-bold text-m-muted">
+              <img src={dark ? '/text-light.svg' : '/text-dark.svg'} alt="TREK" className="h-[10px] opacity-50" />
+              v{appVersion}
+            </span>
+          </div>
+        </>
+      )}
     </MDropdownPanel>
   )
 }

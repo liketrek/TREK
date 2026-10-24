@@ -605,7 +605,10 @@ describe('DawarichSuggestionsPanel: the desktop tooltip', () => {
       S = hookState({ suggestions: [stay({ id: 1, localDate: '2026-09-10' })] })
       panel({ trips: TRIPS })
 
-      fireEvent.focus(screen.getByRole('button', { name: 'Not a place I visited' }))
+      const action = screen.getByRole('button', { name: 'Not a place I visited' })
+      // Focus from the keyboard: the tooltip ignores focus handed back by a closing dialog.
+      vi.spyOn(action, 'matches').mockImplementation(sel => sel === ':focus-visible')
+      fireEvent.focus(action)
       act(() => { vi.advanceTimersByTime(300) })
 
       // The icon is the whole button, so without this a square is a mystery to

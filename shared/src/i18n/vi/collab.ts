@@ -89,7 +89,6 @@ const collab: TranslationStrings = {
   'collab.polls.close': 'Đóng',
   'collab.polls.closed': 'Đã đóng',
   'collab.polls.votes': '{n} phiếu bầu',
-  'collab.polls.vote': '{n} bầu chọn',
   'collab.polls.multipleChoice': 'Nhiều lựa chọn',
   'collab.polls.multiChoice': 'Nhiều lựa chọn',
   'collab.polls.deadline': 'Thời hạn',
@@ -97,10 +96,16 @@ const collab: TranslationStrings = {
   'collab.polls.options': 'Tùy chọn',
   'collab.polls.delete': 'Xóa bỏ',
   'collab.polls.closedSection': 'Đã đóng',
-  'collab.chat.imageLimit': 'Bạn có thể đính kèm tối đa {max} ảnh cho mỗi tin nhắn',
+  'collab.chat.imageLimit': 'Bạn có thể đính kèm tối đa {count} ảnh cho mỗi tin nhắn',
   'collab.chat.uploading': 'Đang tải lên {percent}%',
   'collab.chat.attachImages': 'Đính kèm ảnh',
   'collab.chat.attachedImage': 'Ảnh đính kèm',
   'collab.chat.closeImage': 'Đóng ảnh',
+  'collab.notes.categoryInUse':
+    'Vẫn còn ghi chú dùng danh mục này. Hãy chuyển hoặc xóa các ghi chú đó trước để gỡ danh mục.',
+  'collab.notes.categoriesLocalHint':
+    'Danh mục không có ghi chú chỉ được lưu trong trình duyệt này. Các thành viên khác sẽ thấy nó khi có ghi chú dùng đến.',
+  'collab.chat.fromAssistant': 'từ trợ lý',
+  'collab.chat.fromAssistantHint': '{name} đã chia sẻ câu trả lời này của trợ lý',
 };
 export default collab;

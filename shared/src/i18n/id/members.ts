@@ -1,13 +1,11 @@
 import type { TranslationStrings } from '../types';
 
 const members: TranslationStrings = {
-  'members.shareTrip': 'Bagikan Perjalanan',
   'members.inviteUser': 'Undang Pengguna',
   'members.selectUser': 'Pilih pengguna…',
   'members.invite': 'Undang',
   'members.allHaveAccess': 'Semua pengguna sudah punya akses.',
   'members.access': 'Akses',
-  'members.person': 'orang',
   'members.persons': 'orang',
   'members.you': 'kamu',
   'members.owner': 'Pemilik',
@@ -33,6 +31,9 @@ const members: TranslationStrings = {
   'members.guestAddError': 'Gagal menambahkan tamu',
   'members.guestRenameError': 'Gagal mengganti nama tamu',
   'members.guestRemoved': 'Tamu dihapus',
-  'members.confirmRemoveGuest': 'Hapus tamu ini? Penugasan dan bagian biayanya juga akan dihapus.',
+  'members.confirmRemoveGuest':
+    'Hapus tamu ini? Penugasannya akan dihapus dan bagiannya di setiap pengeluaran dibagi ke peserta lainnya.',
+  'members.guestHasPayments':
+    'Tamu ini telah membayar pengeluaran atau terlibat dalam pembayaran yang tercatat. Ubah pembayar atau hapus pembayaran terlebih dahulu.',
 };
 export default members;

@@ -14,7 +14,7 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.vacay': '휴가',
   'oauth.scope.group.geo': '지리',
   'oauth.scope.group.weather': '날씨',
-  'oauth.scope.group.journey': 'Journey',
+  'oauth.scope.group.journey': '여정',
   'oauth.scope.trips:read.label': '여행 및 일정 보기',
   'oauth.scope.trips:read.description': '여행, 날, 일별 메모, 멤버 읽기',
   'oauth.scope.trips:write.label': '여행 및 일정 편집',
@@ -73,25 +73,25 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:write.description': 'Journey 및 항목 만들기, 업데이트, 삭제',
   'oauth.scope.journey:share.label': 'Journey 링크 관리',
   'oauth.scope.journey:share.description': 'Journey의 공개 공유 링크 만들기, 업데이트, 취소',
-  'oauth.authorize.authorizing': 'Authorizing…', // en-fallback
-  'oauth.authorize.loading': 'Loading…', // en-fallback
-  'oauth.authorize.errorTitle': 'Authorization Error', // en-fallback
-  'oauth.authorize.loginTitle': 'Sign in to continue', // en-fallback
-  'oauth.authorize.loginDescription': '{client} wants access to your TREK account. Please sign in first.', // en-fallback
-  'oauth.authorize.loginButton': 'Sign in to TREK', // en-fallback
-  'oauth.authorize.requestLabel': 'Authorization Request', // en-fallback
-  'oauth.authorize.requestDescription': 'This application is requesting access to your TREK account.', // en-fallback
-  'oauth.authorize.trustNote': 'Only grant access to applications you trust. Your data stays on your server.', // en-fallback
-  'oauth.authorize.selectScope': 'Select at least one scope', // en-fallback
-  'oauth.authorize.approveOneScope': 'Approve ({count} scope)', // en-fallback
-  'oauth.authorize.approveManyScopes': 'Approve ({count} scopes)', // en-fallback
-  'oauth.authorize.approveAccess': 'Approve Access', // en-fallback
-  'oauth.authorize.deny': 'Deny', // en-fallback
-  'oauth.authorize.choosePermissions': 'Choose which permissions to grant', // en-fallback
-  'oauth.authorize.permissionsRequested': 'Permissions requested', // en-fallback
-  'oauth.authorize.alwaysIncluded': 'Always included', // en-fallback
-  'oauth.authorize.alwaysTool.listTrips': 'List your trips so the AI can discover trip IDs', // en-fallback
-  'oauth.authorize.alwaysTool.getTripSummary': 'Read a trip overview needed to use any other tool', // en-fallback
+  'oauth.authorize.authorizing': '승인하는 중…',
+  'oauth.authorize.loading': '불러오는 중…',
+  'oauth.authorize.errorTitle': '승인 오류',
+  'oauth.authorize.loginTitle': '계속하려면 로그인하세요',
+  'oauth.authorize.loginDescription': '{client}이(가) TREK 계정에 접근하려고 합니다. 먼저 로그인해 주세요.',
+  'oauth.authorize.loginButton': 'TREK에 로그인',
+  'oauth.authorize.requestLabel': '승인 요청',
+  'oauth.authorize.requestDescription': '이 애플리케이션이 TREK 계정에 대한 접근을 요청하고 있습니다.',
+  'oauth.authorize.verifiedHost': '확인된 도메인: {host}',
+  'oauth.authorize.trustNote': '신뢰하는 애플리케이션에만 접근을 허용하세요. 데이터는 내 서버에 그대로 남습니다.',
+  'oauth.authorize.selectScope': '권한 범위를 하나 이상 선택하세요',
+  'oauth.authorize.approveScopes': '승인 (권한 범위 {count}개)',
+  'oauth.authorize.approveAccess': '접근 허용',
+  'oauth.authorize.deny': '거부',
+  'oauth.authorize.choosePermissions': '허용할 권한을 선택하세요',
+  'oauth.authorize.permissionsRequested': '요청된 권한',
+  'oauth.authorize.alwaysIncluded': '항상 포함',
+  'oauth.authorize.alwaysTool.listTrips': 'AI가 여행 ID를 찾을 수 있도록 여행 목록 표시',
+  'oauth.authorize.alwaysTool.getTripSummary': '다른 도구를 사용하는 데 필요한 여행 개요 읽기',
   'oauth.scope.group.files': '파일',
   'oauth.scope.group.settings': '설정',
   'oauth.scope.files:read.label': '여행 파일 보기',
@@ -106,6 +106,7 @@ const oauth: TranslationStrings = {
   'oauth.scope.settings:write.description': '단위, 시간 형식, 언어, 기본 통화, 시작 페이지 변경. 저장된 API 키는 제외',
   'oauth.scope.group.plugins': '플러그인',
   'oauth.scope.plugins:use.label': '플러그인 도구 실행',
-  'oauth.scope.plugins:use.description': '관리자가 설치하고 승인한 플러그인이 제공하는 도구를 이 클라이언트가 호출할 수 있도록 허용합니다. 각 플러그인은 이 토큰의 범위가 아니라 이미 부여받은 권한으로 동작합니다',
+  'oauth.scope.plugins:use.description':
+    '관리자가 설치하고 승인한 플러그인이 제공하는 도구를 이 클라이언트가 호출할 수 있도록 허용합니다. 각 플러그인은 이 토큰의 범위가 아니라 이미 부여받은 권한으로 동작합니다',
 };
 export default oauth;

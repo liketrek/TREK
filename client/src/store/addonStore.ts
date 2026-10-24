@@ -25,6 +25,14 @@ interface Addon {
 interface AddonState {
   addons: Addon[]
   bagTracking: boolean
+  /** Tours is on and the admin allows wanderer under it. */
+  toursWanderer: boolean
+  /** Tours is on and the admin offers OpenHikingMap in its planner (MAP-01). */
+  toursHikingMap: boolean
+  /** Tours is on and the admin offers CyclOSM in its planner (BIK-06). */
+  toursCycleMap: boolean
+  /** The collab chat is on: the admin can switch it off inside the collab addon. */
+  collabChat: boolean
   loaded: boolean
   loadAddons: () => Promise<void>
   isEnabled: (id: string) => boolean
@@ -33,12 +41,22 @@ interface AddonState {
 export const useAddonStore = create<AddonState>((set, get) => ({
   addons: [],
   bagTracking: false,
+  toursWanderer: false,
+  toursHikingMap: false,
+  toursCycleMap: false,
+  collabChat: true,
   loaded: false,
 
   loadAddons: async () => {
     try {
       const data = await addonsApi.enabled()
-      set({ addons: data.addons || [], bagTracking: !!data.bagTracking, loaded: true })
+      set({ addons: data.addons || [], bagTracking: !!data.bagTracking,
+        toursWanderer: !!data.toursWanderer,
+        toursHikingMap: !!data.toursHikingMap,
+        toursCycleMap: !!data.toursCycleMap,
+        collabChat: data.collabFeatures?.chat !== false,
+        loaded: true,
+      })
     } catch {
       set({ loaded: true })
     }

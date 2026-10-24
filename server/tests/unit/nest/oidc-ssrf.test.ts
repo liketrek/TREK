@@ -14,14 +14,11 @@
  * on http://localhost:9000 must keep working, so loopback and LAN stay allowed
  * while link-local and the cloud-metadata range never are.
  */
-import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { describe, it, expect } from 'vitest';
 
-const SOURCE = readFileSync(
-  join(__dirname, '../../../src/nest/oidc/oidc.service.ts'),
-  'utf8',
-);
+const SOURCE = readFileSync(join(__dirname, '../../../src/nest/oidc/oidc.service.ts'), 'utf8');
 
 describe('OIDC outbound calls', () => {
   it('OIDC-SSRF-001: no bare fetch( is left in the service', () => {
@@ -45,7 +42,7 @@ describe('OIDC outbound calls', () => {
   it('OIDC-SSRF-003: the token exchange follows no redirect at all', () => {
     // A redirect there would hand client_secret to a second host, and the
     // platform default is to follow. The third argument is the hop budget.
-    const tokenCall = /safeFetchAdminConfigured\(\s*doc\.token_endpoint[\s\S]*?\}\s*,\s*0\s*\)/.test(SOURCE);
+    const tokenCall = /safeFetchAdminConfigured\(\s*doc\.token_endpoint[\s\S]*?\}\s*,\s*0\s*,?\s*\)/.test(SOURCE);
 
     expect(tokenCall).toBe(true);
   });

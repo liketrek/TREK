@@ -8,7 +8,7 @@ import { isEffectivelyOffline } from '../sync/networkMode'
  * and must NOT be treated as a network failure — the server spoke, so the caller
  * needs to see it. Non-Axios errors are surfaced too.
  */
-function isNetworkError(err: unknown): boolean {
+export function isNetworkError(err: unknown): boolean {
   const e = err as { isAxiosError?: boolean; response?: unknown } | null
   return !!e && e.isAxiosError === true && e.response == null
 }

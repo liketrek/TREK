@@ -7,6 +7,7 @@ const common: TranslationStrings = {
   'common.cancel': 'キャンセル',
   'common.clear': 'クリア',
   'common.delete': '削除',
+  'common.remove': '削除',
   'common.preview': 'プレビュー',
   'common.edit': '編集',
   'common.add': '追加',
@@ -35,6 +36,9 @@ const common: TranslationStrings = {
   'common.rename': '名前を変更',
   'common.discardChanges': '変更をキャンセル',
   'common.discard': 'キャンセル',
+  'common.unsavedTitle': '変更を破棄しますか？',
+  'common.unsavedMessage': 'ここで入力した内容はまだ保存されていません。',
+  'common.keepEditing': '編集を続ける',
   'common.name': '名前',
   'common.email': 'メールアドレス',
   'common.password': 'パスワード',
@@ -52,18 +56,18 @@ const common: TranslationStrings = {
   'common.collapse': '折りたたむ',
   'common.copy': 'コピー',
   'common.copied': 'コピーしました',
-  'common.datepicker.prevMonth': 'Previous month', // en-fallback
-  'common.datepicker.nextMonth': 'Next month', // en-fallback
-  'common.datepicker.prevYear': 'Previous year', // en-fallback
-  'common.datepicker.nextYear': 'Next year', // en-fallback
-  'common.datepicker.prevYears': 'Previous years', // en-fallback
-  'common.datepicker.nextYears': 'Next years', // en-fallback
-  'common.datepicker.selectMonth': 'Select month', // en-fallback
-  'common.datepicker.selectYear': 'Select year', // en-fallback
-  'common.datepicker.enterManually': 'Enter date manually', // en-fallback
-  'common.datepicker.typeDate': 'Type a date', // en-fallback
-  'common.datepicker.dialog': 'Date picker', // en-fallback
-  'common.datepicker.clearDate': 'Clear date', // en-fallback
+  'common.datepicker.prevMonth': '前の月',
+  'common.datepicker.nextMonth': '次の月',
+  'common.datepicker.prevYear': '前の年',
+  'common.datepicker.nextYear': '次の年',
+  'common.datepicker.prevYears': '前の年代',
+  'common.datepicker.nextYears': '次の年代',
+  'common.datepicker.selectMonth': '月を選択',
+  'common.datepicker.selectYear': '年を選択',
+  'common.datepicker.enterManually': '日付を手入力',
+  'common.datepicker.typeDate': '日付を入力',
+  'common.datepicker.dialog': '日付ピッカー',
+  'common.datepicker.clearDate': '日付をクリア',
   'common.errorTitle': '問題が発生しました',
   'common.errorBody': 'アプリのこの部分が動作しなくなりました。データは安全です。',
   'common.errorPanelTitle': 'このセクションを表示できませんでした',
@@ -71,7 +75,9 @@ const common: TranslationStrings = {
   'common.errorRetry': '再試行',
   'common.errorReload': 'ページを再読み込み',
   'common.errorUpdateTitle': '新しいバージョンがあります',
-  'common.errorUpdateBody': 'このタブを開いている間に TREK が更新されました。再読み込みして新しいバージョンを取得してください。',
+  'common.errorUpdateBody':
+    'このタブを開いている間に TREK が更新されました。再読み込みして新しいバージョンを取得してください。',
   'common.errorPluginTitle': 'このプラグインを表示できませんでした',
+  'common.needsConnection': 'この操作には接続が必要です。TREK がオンラインに戻ってから、もう一度お試しください。',
 };
 export default common;

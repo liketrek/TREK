@@ -343,7 +343,36 @@ describe('offlineDb — clearTripData', () => {
     expect(await offlineDb.areaPlaces.where('tripId').equals(2).count()).toBe(1);
   });
 
-  it('preserves unsynced (pending/conflict) writes but drops dead failed ones (#1135)', async () => {
+  it("takes the trip's city walk visits with it, and leaves another trip its own", async () => {
+    await upsertTrip(makeTrip(1));
+    await upsertTrip(makeTrip(2));
+    await offlineDb.tourStationVisits.bulkPut([
+      { assignment_id: 71, station_key: 'stop-01', status: 'visited', trip_id: 1 },
+      { assignment_id: 71, station_key: 'stop-02', status: 'skipped', trip_id: 1 },
+      { assignment_id: 81, station_key: 'stop-01', status: 'visited', trip_id: 2 },
+    ]);
+
+    await clearTripData(1);
+
+    expect(await offlineDb.tourStationVisits.where('trip_id').equals(1).count()).toBe(0);
+    expect(await offlineDb.tourStationVisits.get([81, 'stop-01'])).toMatchObject({ trip_id: 2 });
+  });
+
+  it("takes the trip's cached tour draft with it, and leaves another trip its own", async () => {
+    await upsertTrip(makeTrip(1));
+    await upsertTrip(makeTrip(2));
+    await offlineDb.tourDrafts.bulkPut([
+      { tripId: 1, draft: { payload: '{"name":"One"}', updated_at: '2026-10-22 09:00:00' } },
+      { tripId: 2, draft: { payload: '{"name":"Two"}', updated_at: '2026-10-22 09:00:00' } },
+    ]);
+
+    await clearTripData(1);
+
+    expect(await offlineDb.tourDrafts.get(1)).toBeUndefined();
+    expect((await offlineDb.tourDrafts.get(2))?.draft.payload).toBe('{"name":"Two"}');
+  });
+
+  it('preserves unsynced, conflicting and parked failed writes (#1135)', async () => {
     await upsertTrip(makeTrip(1));
     await offlineDb.mutationQueue.bulkPut([
       { id: 'p1', tripId: 1, method: 'PUT', url: '/trips/1/places/10', body: { name: 'X' }, createdAt: 1, status: 'pending', attempts: 0, lastError: null, resource: 'places', entityId: 10 },
@@ -353,10 +382,11 @@ describe('offlineDb — clearTripData', () => {
 
     await clearTripData(1);
 
-    // The trip's cached read data is gone, but the unsynced work survives.
+    // The trip's cached read data is gone, but the unsynced work survives. A
+    // parked change waits for the user's Try again or Discard.
     expect(await offlineDb.mutationQueue.get('p1')).toBeDefined();
     expect(await offlineDb.mutationQueue.get('c1')).toBeDefined();
-    expect(await offlineDb.mutationQueue.get('f1')).toBeUndefined();
+    expect(await offlineDb.mutationQueue.get('f1')).toBeDefined();
   });
 });
 

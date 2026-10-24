@@ -3,12 +3,12 @@ import type { TranslationStrings } from '../types';
 const day: TranslationStrings = {
   'day.precipProb': 'Regenwahrscheinlichkeit',
   'day.precipitation': 'Niederschlag',
-  'day.wind': 'Wind',
+  'day.wind': 'Wind', // same-as-en
   'day.sunrise': 'Sonnenaufgang',
   'day.sunset': 'Sonnenuntergang',
   'day.hourlyForecast': 'Stündliche Vorhersage',
   'day.climateHint':
-    'Historische Durchschnittswerte — echte Vorhersage verfügbar innerhalb von 16 Tagen vor diesem Datum.',
+    'Historische Durchschnittswerte: echte Vorhersage verfügbar innerhalb von 16 Tagen vor diesem Datum.',
   'day.noWeather': 'Keine Wetterdaten verfügbar. Füge einen Ort mit Koordinaten hinzu.',
   'day.weatherFor': 'Vorhersage für {name}',
   'day.overview': 'Tagesübersicht',
@@ -17,9 +17,10 @@ const day: TranslationStrings = {
   'day.hotelDayRange': 'Auf Tage anwenden',
   'day.noPlacesForHotel': 'Füge zuerst Orte zu deiner Reise hinzu',
   'day.allDays': 'Alle',
-  'day.checkIn': 'Check-in',
+  'day.checkIn': 'Check-in', // same-as-en
   'day.checkInUntil': 'Bis',
-  'day.checkOut': 'Check-out',
+  'day.checkOut': 'Check-out', // same-as-en
+  'day.openStayBooking': 'Buchung öffnen',
   'day.confirmation': 'Bestätigung',
   'day.editAccommodation': 'Unterkunft bearbeiten',
   'day.reservations': 'Reservierungen',

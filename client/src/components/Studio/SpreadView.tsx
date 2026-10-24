@@ -1,13 +1,21 @@
 import type { CSSProperties } from 'react'
 import type {
-  BookElement, BookIconElement, BookPageSetup, BookPhotoElement, BookShapeElement, BookSpread,
+  BookElement, BookIconElement, BookPageSetup, BookShapeElement, BookSpread,
 } from '@trek/shared'
-import { photoSrc } from './bookRender'
-import { fontStack } from './bookFonts'
+import { fontStack, nearestWeight } from './bookFonts'
 import { iconComponent } from './iconLibrary'
-import { HOLED_SHAPES, SHAPE_PATHS, scalePath, unitPath } from './shapes'
+import { PhotoView } from './PhotoView'
+import { HOLED_SHAPES } from './shapes'
+import { hasEdge, shapeOutline } from './shapeOutline'
+import { LineView } from './LineView'
 import { TravelElementView } from './TravelElements'
+import { TextEffectsView } from './TextEffectsView'
+import { hasTextEffects } from './textEffects'
 import { PageNumbers } from './PageNumbers'
+import { PaintedShapeView } from './paint/PaintedShape'
+import { SpreadPaint } from './paint/paintRender'
+import { usePaintId } from './paint/usePaintId'
+import { StickerView } from './StickerView'
 
 /**
  * One spread, drawn.
@@ -34,40 +42,10 @@ function frameStyle(el: BookElement): CSSProperties {
   }
 }
 
-/** Two decimals of a millimetre, matching what the document itself stores. */
-const round2 = (n: number) => Math.round(n * 100) / 100
-
 /** #rrggbb plus an alpha, for the fades a cover panel needs. */
 function hexToRgba(hex: string, alpha: number): string {
   const n = Number.parseInt(hex.slice(1), 16)
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`
-}
-
-const FILTERS: Record<string, string | undefined> = {
-  none: undefined,
-  bw: 'grayscale(1) contrast(1.05)',
-  warm: 'saturate(1.1) sepia(0.16)',
-  cool: 'saturate(1.05) hue-rotate(-8deg) brightness(1.02)',
-  // Faded, the way a print left in the light goes: lifted blacks, less colour.
-  fade: 'saturate(0.72) contrast(0.88) brightness(1.08)',
-  contrast: 'contrast(1.22) saturate(1.06)',
-}
-
-/**
- * How much of the frame the decoration around a picture eats, as a fraction of
- * the shorter side.
- *
- * A Polaroid's chin is the reason this is a table rather than one number: the
- * bottom border is roughly three times the others, and getting that ratio wrong
- * is the difference between a Polaroid and a photo with a white edge.
- */
-const FRAME_INSET: Record<string, { pad: number; bottom: number }> = {
-  none: { pad: 0, bottom: 0 },
-  polaroid: { pad: 0.055, bottom: 0.17 },
-  white: { pad: 0.035, bottom: 0.035 },
-  shadow: { pad: 0, bottom: 0 },
-  film: { pad: 0.075, bottom: 0.075 },
-  tape: { pad: 0, bottom: 0 },
 }
 
 /**
@@ -86,10 +64,11 @@ const FRAME_INSET: Record<string, { pad: number; bottom: number }> = {
  */
 function ShapeView({ el }: { el: BookShapeElement }) {
   const fill = el.fill ?? 'transparent'
-  const gradientId = `g-${el.id}`
+  // Per mounted copy: page mode draws a spread twice (paint/paintRender.tsx).
+  const gradientId = usePaintId(`g-${el.id}`)
   const gradient = el.gradient !== 'none' && el.fill
 
-  if (el.shape === 'rect' || el.shape === 'ellipse') {
+  if ((el.shape === 'rect' || el.shape === 'ellipse') && !hasEdge(el, el.shape)) {
     const background = !gradient
       ? fill
       : `linear-gradient(${el.gradient === 'up' ? 'to top' : 'to bottom'},`
@@ -112,7 +91,7 @@ function ShapeView({ el }: { el: BookShapeElement }) {
   const sw = el.stroke ? el.strokeWidth : 0
   const w = Math.max(0.01, el.frame.w - sw)
   const h = Math.max(0.01, el.frame.h - sw)
-  const d = scalePath(SHAPE_PATHS[el.shape], w, h)
+  const d = shapeOutline(el, w, h)
 
   // Proportional to the stroke, so a dashed outline keeps its rhythm whether it
   // is a hairline on a caption rule or a 2mm band around a cover panel.
@@ -154,203 +133,6 @@ function ShapeView({ el }: { el: BookShapeElement }) {
 }
 
 /**
- * A picture — possibly cut to a shape, possibly sitting in something.
- *
- * The mask and the decoration are independent on purpose: a heart in a Polaroid
- * is a silly thing to want and there is no reason to stop anyone wanting it, and
- * keeping them separate means neither has to know about the other.
- */
-function PhotoView({ el, big, print, dropLabel }: {
-  el: BookPhotoElement; big: boolean; print: boolean; dropLabel: string
-}) {
-  const deco = FRAME_INSET[el.frameStyle] ?? FRAME_INSET.none
-  const side = Math.min(el.frame.w, el.frame.h)
-  // Rounded to a hundredth of a millimetre — the same precision the document
-  // stores. Without it a fraction of the frame lands in the CSS as
-  // `10.200000000000001mm`, which is not wrong but is float noise in a
-  // stylesheet that a person may well end up reading.
-  const pad = round2(deco.pad * side)
-  const bottom = round2(deco.bottom * side)
-  const clipId = `c-${el.id}`
-  const clipped = el.mask && el.mask !== 'rect'
-
-  /*
-   * An empty frame is a template's promise: it says where a picture goes before
-   * anyone has chosen which — and it says it *in the frame it will wear*.
-   *
-   * This used to render on its own, ignoring frameStyle entirely, so a Polaroid
-   * placeholder was an ordinary dashed rectangle until a photograph landed in
-   * it and the chin appeared from nowhere. The two branches have been folded
-   * together: the surround is drawn once, and only what goes inside it differs.
-   */
-  const empty = el.photoId == null
-
-  // In the printed book an unfilled frame is nothing at all — a hatch and an
-  // instruction on a page someone paid to have bound would be a defect.
-  if (empty && print) return null
-
-  // The label is sized in millimetres so it scales with the zoom exactly as the
-  // page does, and it steps aside on a frame too small to hold it.
-  const labelSize = Math.max(2.4, Math.min(4.6, side * 0.085))
-  const roomy = side - pad * 2 > 22 && el.frame.w - pad * 2 > 34
-
-  const hatch = (
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        /*
-         * Opaque, and that is the point.
-         *
-         * The hatch used to be laid over nothing, so an empty frame showed
-         * whatever was behind it and every attempt to arrange a shape *under*
-         * one looked like it had done nothing: the frame appeared to sit at the
-         * bottom of the stack no matter where it was, right up until a
-         * photograph landed in it and it suddenly covered things. A frame is a
-         * promise that a picture goes here, and a picture is not see-through.
-         */
-        background:
-          'repeating-linear-gradient(45deg, rgba(0,0,0,.055) 0 6px, rgba(0,0,0,.025) 6px 12px), #ffffff', // theme-lint-disable — paper, not app chrome
-        // A dashed border would be cut in half lengthwise by the clip, so a
-        // masked placeholder shows its shape through the hatch alone.
-        border: clipped ? undefined : '1px dashed rgba(0,0,0,.16)',
-        boxSizing: 'border-box',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '2mm',
-      }}
-    >
-      {roomy && dropLabel && (
-        <span
-          style={{
-            fontFamily: fontStack('sans'),
-            fontSize: `${labelSize}mm`,
-            fontWeight: 600,
-            letterSpacing: '0.16em',
-            lineHeight: 1.5,
-            textAlign: 'center',
-            textTransform: 'uppercase',
-            color: 'rgba(0,0,0,.34)',
-            whiteSpace: 'pre-line',
-            userSelect: 'none',
-          }}
-        >
-          {dropLabel}
-        </span>
-      )}
-    </div>
-  )
-
-  const picture = (
-    <div
-      style={{
-        position: 'absolute',
-        left: `${pad}mm`,
-        top: `${pad}mm`,
-        right: `${pad}mm`,
-        bottom: `${bottom || pad}mm`,
-        overflow: 'hidden',
-        borderRadius: !clipped && el.radius ? `${el.radius}mm` : undefined,
-        clipPath: clipped ? `url(#${clipId})` : undefined,
-      }}
-    >
-      {empty ? hatch : (
-        <img
-          src={photoSrc(el.photoId!, big)}
-          alt=""
-          draggable={false}
-          loading="lazy"
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: el.fit,
-            objectPosition: `${el.focalX * 100}% ${el.focalY * 100}%`,
-            filter: FILTERS[el.filter],
-            display: 'block',
-          }}
-        />
-      )}
-    </div>
-  )
-
-  return (
-    <div
-      style={{
-        ...frameStyle(el),
-        background: el.frameStyle === 'polaroid' || el.frameStyle === 'white' ? '#ffffff'
-          : el.frameStyle === 'film' ? '#141414'
-          : undefined,
-        // A photograph lying on a page, rather than printed into it. Soft and
-        // low: a hard shadow reads as a UI card, not as paper.
-        boxShadow: el.frameStyle === 'shadow' || el.frameStyle === 'polaroid'
-          ? '0 1.2mm 3mm rgba(0,0,0,.22)'
-          : undefined,
-      }}
-    >
-      {clipped && (
-        <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden>
-          <defs>
-            <clipPath id={clipId} clipPathUnits="objectBoundingBox">
-              <path d={unitPath(SHAPE_PATHS[el.mask!])} />
-            </clipPath>
-          </defs>
-        </svg>
-      )}
-
-      {picture}
-
-      {/* Sprocket holes. Drawn as a repeating gradient rather than as elements
-          so the count follows the width instead of being fixed at a size that
-          only looks right on one frame. */}
-      {el.frameStyle === 'film' && [0, 1].map(row => (
-        <div
-          key={row}
-          style={{
-            position: 'absolute',
-            left: `${pad * 0.35}mm`,
-            right: `${pad * 0.35}mm`,
-            [row ? 'bottom' : 'top']: `${pad * 0.22}mm`,
-            height: `${pad * 0.42}mm`,
-            background: 'repeating-linear-gradient(90deg,'
-              + ` #f4f4f4 0 ${pad * 0.5}mm, transparent ${pad * 0.5}mm ${pad * 1.1}mm)`,
-          }}
-        />
-      ))}
-
-      {/* Two strips of tape, held at an angle across opposite corners. */}
-      {/*
-        Two strips, one over each top corner, each centred *on* its corner so it
-        overhangs the picture evenly on both sides — which is what a piece of
-        tape does. Offsetting by a fraction of the strip instead left them
-        sitting beside the corners rather than across them.
-      */}
-      {el.frameStyle === 'tape' && ([-1, 1] as const).map(dir => {
-        const tapeW = side * 0.26
-        const tapeH = side * 0.075
-        return (
-          <div
-            key={dir}
-            style={{
-              position: 'absolute',
-              [dir < 0 ? 'left' : 'right']: `${round2(-tapeW / 2)}mm`,
-              top: `${round2(-tapeH / 2)}mm`,
-              width: `${round2(tapeW)}mm`,
-              height: `${round2(tapeH)}mm`,
-              background: 'rgba(236,228,206,.82)',
-              boxShadow: '0 .3mm .6mm rgba(0,0,0,.12)',
-              // Away from the corner on each side: anticlockwise on the left,
-              // clockwise on the right, so the pair reads as symmetric.
-              transform: `rotate(${dir * 45}deg)`,
-            }}
-          />
-        )
-      })}
-    </div>
-  )
-}
-
-/**
  * A lucide drawing, at the size the frame gives it.
  *
  * Kept proportional rather than stretched to the box. A shape is scaled by
@@ -376,17 +158,30 @@ function IconView({ el }: { el: BookIconElement }) {
 }
 
 export function ElementView({
-  el, big, print = false, dropLabel = '',
-}: { el: BookElement; big: boolean; print?: boolean; dropLabel?: string }) {
+  el, big, print = false, dropLabel = '', hiddenPhotoIds,
+}: {
+  el: BookElement; big: boolean; print?: boolean; dropLabel?: string
+  /** Photos drawn as empty frames instead of themselves. */
+  hiddenPhotoIds?: ReadonlySet<number>
+}) {
   if (el.kind === 'photo') {
-    return <PhotoView el={el} big={big} print={print} dropLabel={dropLabel} />
+    // A photo left out is drawn as its empty frame, kept even in print, so the
+    // page still shows where a picture sits without showing the picture.
+    if (el.photoId != null && hiddenPhotoIds?.has(el.photoId)) {
+      return <PhotoView el={{ ...el, photoId: null }} big={big} print={false} dropLabel="" frameStyle={frameStyle(el)} />
+    }
+    return <PhotoView el={el} big={big} print={print} dropLabel={dropLabel} frameStyle={frameStyle(el)} />
   }
 
-  if (el.kind === 'shape') return <ShapeView el={el} />
+  if (el.kind === 'shape') {
+    return el.paint ? <PaintedShapeView el={el} paint={el.paint} frameStyle={frameStyle(el)} /> : <ShapeView el={el} />
+  }
 
   // Above the catch-all below, which routes everything that is not text into
   // the travel elements and draws null for anything they do not know.
   if (el.kind === 'icon') return <IconView el={el} />
+  if (el.kind === 'sticker') return <StickerView el={el} frameStyle={frameStyle(el)} />
+  if (el.kind === 'line') return <LineView el={el} frameStyle={frameStyle(el)} />
 
   if (el.kind !== 'text') {
     // map, stats, countries, badge — the elements drawn from the journey's own
@@ -395,6 +190,9 @@ export function ElementView({
     // with one property set.
     return <TravelElementView el={el} frameStyle={frameStyle(el)} big={big} />
   }
+
+  // Outlines, shadows, bands, curves and fills draw in their own file; a plain text stays here, as it always drew.
+  if (hasTextEffects(el)) return <TextEffectsView el={el} frameStyle={frameStyle(el)} big={big} />
 
   return (
     <div
@@ -405,7 +203,7 @@ export function ElementView({
         // the conversion exactly.
         fontSize: `${el.size}pt`,
         fontFamily: fontStack(el.font),
-        fontWeight: el.weight,
+        fontWeight: nearestWeight(el.font, el.weight),
         fontStyle: el.italic ? 'italic' : undefined,
         lineHeight: el.leading,
         letterSpacing: `${el.tracking}em`,
@@ -432,6 +230,7 @@ export function SpreadView({
   showGuides = false,
   print = false,
   dropLabel = '',
+  hiddenPhotoIds,
 }: {
   spread: BookSpread
   page: BookPageSetup
@@ -447,6 +246,11 @@ export function SpreadView({
   /** The print renderer passes this: no guides, no placeholders, no chrome. */
   print?: boolean
   dropLabel?: string
+  /**
+   * Photos to leave out, drawn as empty frames: a page drawn for the
+   * assistant shows only the asking user's own photos (journey-studio.md 3.4).
+   */
+  hiddenPhotoIds?: ReadonlySet<number>
 }) {
   const isSingle = spread.role !== 'inner'
   const w = isSingle ? page.pageWidth : page.pageWidth * 2
@@ -456,7 +260,8 @@ export function SpreadView({
       style={{
         position: 'absolute',
         inset: 0,
-        background: spread.background ?? '#ffffff', // theme-lint-disable — paper, not app chrome
+        // Under a paint the sheet is the paper, which a see-through paint lets show.
+        background: (spread.backgroundPaint ? null : spread.background) ?? '#ffffff', // theme-lint-disable: paper, not app chrome
         /*
          * On screen the page ends at the trim, so anything past it is clipped.
          * In print it must not be: the bleed is the part that runs off the edge
@@ -467,8 +272,20 @@ export function SpreadView({
         overflow: print ? 'visible' : 'hidden',
       }}
     >
-      {spread.elements.map(el => (
-        <ElementView key={el.id} el={el} big={big} print={print} dropLabel={dropLabel} />
+      {spread.backgroundPaint && (
+        <SpreadPaint paint={spread.backgroundPaint} width={w} height={page.pageHeight} bleed={page.bleed} idPrefix={spread.id} />
+      )}
+
+      {/* A hidden layer stays in the layers panel and off the page, here and in print. */}
+      {spread.elements.filter(el => !el.hidden).map(el => (
+        <ElementView
+          key={el.id}
+          el={el}
+          big={big}
+          print={print}
+          dropLabel={dropLabel}
+          hiddenPhotoIds={hiddenPhotoIds}
+        />
       ))}
 
       <PageNumbers spread={spread} page={page} folios={folios} />

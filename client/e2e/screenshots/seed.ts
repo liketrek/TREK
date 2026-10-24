@@ -1,5 +1,7 @@
 import path from 'node:path'
 import type { APIRequestContext } from '@playwright/test'
+import { at, day, ordinal, short } from '../dates'
+import { setTripCover } from './photos'
 
 /**
  * Demo data for the documentation screenshots.
@@ -15,15 +17,16 @@ import type { APIRequestContext } from '@playwright/test'
  *    settle-up) — the reader would see nothing new.
  *  - Two extra members exist so splits, avatars and sharing tiers render with
  *    real names instead of a lonely single-user state.
- *  - Dates sit ~2 months out so "upcoming" surfaces (What's Next, reservations)
- *    have something to show.
+ *  - Dates are relative to the run day (e2e/dates.ts): the trip ends today, so
+ *    the running surfaces (boarding pass, What's Next, forecast, reminders) have
+ *    something to show whenever the seed runs.
  */
 
 const TRIP = {
   title: 'Autumn in Japan',
   description: 'Two weeks chasing momiji season from Tokyo down to Kyoto.',
-  start_date: '2026-09-12',
-  end_date: '2026-09-21',
+  start_date: day(-9),
+  end_date: day(0),
   currency: 'JPY',
   reminder_days: 3,
 }
@@ -37,54 +40,113 @@ const MEMBERS = [
 const PLACES = [
   { name: 'Senso-ji Temple', lat: 35.7148, lng: 139.7967, address: '2-3-1 Asakusa, Taito City, Tokyo',
     description: "Tokyo's oldest temple, approached through the Nakamise shopping street.",
-    notes: 'Go before 08:00 — the gate is empty and the light is better.',
-    duration_minutes: 90, price: 0, currency: 'JPY', day: 0 },
+    notes: 'Early is best: the gate is still empty and the light is softer.',
+    duration_minutes: 90, price: 0, currency: 'JPY', day: 0, start: '09:30', end: '11:00', category: 'Attraction' },
   { name: 'teamLab Planets', lat: 35.6486, lng: 139.7900, address: '6-1-16 Toyosu, Koto City, Tokyo',
     description: 'Immersive digital art museum you walk through barefoot.',
-    notes: 'Timed entry — book at least a week ahead.',
-    duration_minutes: 120, price: 3800, currency: 'JPY', day: 0 },
+    notes: 'Timed entry, book at least a week ahead.',
+    duration_minutes: 120, price: 3800, currency: 'JPY', day: 0, start: '14:00', end: '16:00', category: 'Activity' },
   { name: 'Shibuya Crossing', lat: 35.6595, lng: 139.7005, address: 'Shibuya City, Tokyo',
     description: 'The scramble. Best viewed from the Shibuya Sky observation deck.',
-    duration_minutes: 45, price: 0, currency: 'JPY', day: 1 },
+    duration_minutes: 45, price: 0, currency: 'JPY', day: 1, start: '18:30', end: '19:15', category: 'Attraction' },
   { name: 'Meiji Jingu', lat: 35.6764, lng: 139.6993, address: '1-1 Yoyogikamizonocho, Shibuya City, Tokyo',
     description: 'Forest shrine in the middle of the city.',
-    duration_minutes: 75, price: 0, currency: 'JPY', day: 1 },
+    duration_minutes: 75, price: 0, currency: 'JPY', day: 1, start: '09:30', end: '10:45', category: 'Attraction' },
   { name: 'Fushimi Inari Taisha', lat: 34.9671, lng: 135.7727, address: '68 Fukakusa Yabunouchicho, Fushimi Ward, Kyoto',
     description: 'Thousands of vermilion torii gates climbing Mount Inari.',
     notes: 'The crowds thin out after the first 20 minutes of climbing.',
-    duration_minutes: 150, price: 0, currency: 'JPY', day: 4 },
+    duration_minutes: 150, price: 0, currency: 'JPY', day: 4, start: '07:45', end: '10:15', category: 'Attraction' },
   { name: 'Arashiyama Bamboo Grove', lat: 35.0170, lng: 135.6716, address: 'Ukyo Ward, Kyoto',
     description: 'Bamboo path leading to the Okochi Sanso villa gardens.',
-    duration_minutes: 60, price: 0, currency: 'JPY', day: 5 },
+    duration_minutes: 60, price: 0, currency: 'JPY', day: 5, start: '08:00', end: '09:00', category: 'Nature' },
   { name: 'Nishiki Market', lat: 35.0050, lng: 135.7649, address: 'Nakagyo Ward, Kyoto',
-    description: "Five covered blocks of food stalls — 'Kyoto's kitchen'.",
+    description: "Five covered blocks of food stalls, known as Kyoto's kitchen.",
     notes: 'Come hungry. Try the tamagoyaki.',
-    duration_minutes: 90, price: 2500, currency: 'JPY', day: 5 },
+    duration_minutes: 90, price: 2500, currency: 'JPY', day: 5, start: '12:30', end: '14:00', category: 'Shopping' },
+  { name: 'Lake Ashi', lat: 35.2009, lng: 139.0247, address: 'Motohakone, Hakone, Kanagawa',
+    description: 'Pirate-ship ferry across the crater lake, Fuji in view on a clear morning.',
+    duration_minutes: 60, price: 1200, currency: 'JPY', day: 2, start: '10:00', end: '11:00', category: 'Activity' },
+  { name: 'Hakone Open-Air Museum', lat: 35.2446, lng: 139.0503, address: '1121 Ninotaira, Hakone, Kanagawa',
+    description: 'Sculpture park on a hillside, with a Picasso pavilion and a foot bath.',
+    duration_minutes: 150, price: 2000, currency: 'JPY', day: 2, start: '13:00', end: '15:30', category: 'Attraction' },
+  { name: 'Owakudani', lat: 35.2440, lng: 139.0196, address: 'Sengokuhara, Hakone, Kanagawa',
+    description: 'Volcanic valley with sulphur vents and the famous black eggs.',
+    notes: 'Take the ropeway up, the bus back down.',
+    duration_minutes: 90, price: 0, currency: 'JPY', day: 3, start: '09:00', end: '10:30', category: 'Nature' },
+  { name: 'Todai-ji', lat: 34.6890, lng: 135.8398, address: '406-1 Zoshicho, Nara',
+    description: 'The Great Buddha Hall, still one of the largest wooden buildings in the world.',
+    duration_minutes: 90, price: 800, currency: 'JPY', day: 6, start: '09:30', end: '11:00', category: 'Attraction' },
+  { name: 'Nara Park', lat: 34.6851, lng: 135.8430, address: 'Zoshicho, Nara',
+    description: 'Open park with over a thousand free-roaming deer.',
+    notes: 'Deer crackers are sold at the stands, 200 yen a bundle.',
+    duration_minutes: 90, price: 0, currency: 'JPY', day: 6, start: '11:00', end: '12:30', category: 'Nature' },
+  { name: 'Kinkaku-ji', lat: 35.0394, lng: 135.7292, address: '1 Kinkakujicho, Kita Ward, Kyoto',
+    description: 'The Golden Pavilion, mirrored in its pond.',
+    duration_minutes: 60, price: 500, currency: 'JPY', day: 7, start: '09:00', end: '10:00', category: 'Attraction' },
+  { name: 'Ryoan-ji', lat: 35.0345, lng: 135.7185, address: '13 Ryoanji Goryonoshitacho, Ukyo Ward, Kyoto',
+    description: 'The rock garden: fifteen stones, never all visible at once.',
+    duration_minutes: 60, price: 600, currency: 'JPY', day: 7, start: '10:30', end: '11:30', category: 'Attraction' },
+  { name: 'Hanamikoji Street', lat: 35.0027, lng: 135.7751, address: 'Gionmachi Minamigawa, Higashiyama Ward, Kyoto',
+    description: 'Lantern-lit street of teahouses in Gion.',
+    notes: 'Respect the no-photo signs on the private side streets.',
+    duration_minutes: 90, price: 0, currency: 'JPY', day: 8, start: '18:00', end: '19:30', category: 'Attraction' },
 ]
 
-const EXPENSES = [
+/** Who paid, so the balances in Costs are not all one-sided. */
+type Payer = 'admin' | 'mira' | 'jonas'
+
+const EXPENSES: Array<{ name: string; category: string; total_price: number; currency: string; expense_date: string; note?: string; paidBy?: Payer }> = [
   { name: 'Flights FRA → HND', category: 'transport', total_price: 890, currency: 'EUR',
-    expense_date: '2026-09-12', note: 'Booked with miles, taxes only.' },
+    expense_date: day(-9), note: 'Booked with miles, taxes only.' },
   { name: 'Ryokan in Hakone', category: 'accommodation', total_price: 48000, currency: 'JPY',
-    expense_date: '2026-09-15', note: '2 nights, kaiseki dinner included.' },
+    expense_date: day(-6), note: '2 nights, kaiseki dinner included.' },
   { name: 'JR Pass (14 days)', category: 'transport', total_price: 80000, currency: 'JPY',
-    expense_date: '2026-09-12', note: 'Green car, activated on arrival.' },
+    expense_date: day(-9), note: 'Green car, activated on arrival.' },
   { name: 'teamLab Planets tickets', category: 'activities', total_price: 11400, currency: 'JPY',
-    expense_date: '2026-09-13' },
+    expense_date: day(-8) },
   { name: 'Dinner at Nishiki', category: 'food', total_price: 7200, currency: 'JPY',
-    expense_date: '2026-09-17' },
+    expense_date: day(-4), paidBy: 'mira' },
+  { name: 'Shinkansen seat reservations', category: 'transport', total_price: 4320, currency: 'JPY',
+    expense_date: day(-5), note: 'Covered by the JR Pass, only the reserved seats.', paidBy: 'jonas' },
+  { name: 'Sushi breakfast at Tsukiji', category: 'food', total_price: 9600, currency: 'JPY',
+    expense_date: day(-8), paidBy: 'jonas' },
+  { name: 'Suica cards, three top-ups', category: 'transport', total_price: 9000, currency: 'JPY',
+    expense_date: day(-8), paidBy: 'mira' },
+  { name: 'Shibuya Sky tickets', category: 'activities', total_price: 6600, currency: 'JPY',
+    expense_date: day(-8) },
+  { name: 'Ramen in Shinjuku', category: 'food', total_price: 3450, currency: 'JPY',
+    expense_date: day(-7), paidBy: 'jonas' },
+  { name: 'Kaiseki dinner in Gion', category: 'food', total_price: 36000, currency: 'JPY',
+    expense_date: day(-3), paidBy: 'mira' },
+  { name: 'Matcha and wagashi souvenirs', category: 'shopping', total_price: 5400, currency: 'JPY',
+    expense_date: day(-2), paidBy: 'jonas' },
+  { name: 'Travel insurance', category: 'other', total_price: 74, currency: 'EUR',
+    expense_date: day(-30), note: 'Group policy, two weeks.' },
 ]
 
-const PACKING = [
-  { category: 'Documents', items: ['Passport', 'JR Pass voucher', 'Travel insurance'] },
-  { category: 'Clothing', items: ['Rain jacket', 'Walking shoes', 'Light layers'] },
-  { category: 'Electronics', items: ['Type-A adapter', 'Power bank', 'Camera'] },
+/** Most of it packed already: the trip is running, the list is nearly done. */
+const PACKING: Array<{ category: string; items: Array<string | [string, 'open']> }> = [
+  { category: 'Documents', items: ['Passport', 'JR Pass voucher', 'Travel insurance', 'Printed hotel confirmations', 'Credit card and some yen'] },
+  { category: 'Clothing', items: ['Rain jacket', 'Walking shoes', 'Light layers', 'Merino socks', 'Warm fleece for Hakone', ['Slip-on shoes for temples', 'open']] },
+  { category: 'Electronics', items: ['Type-A adapter', 'Power bank', 'Camera', 'Spare SD card', ['eSIM activation code', 'open']] },
+  { category: 'Toiletries', items: ['Toothbrush and paste', 'Sunscreen', 'Small towel for the onsen', ['Travel-size shampoo', 'open']] },
+  { category: 'Health', items: ['Plasters', 'Ibuprofen', 'Hand sanitiser', 'Face masks'] },
+  { category: 'Day bag', items: ['Water bottle', 'Coin purse', 'Folding umbrella', ['Goshuin book', 'open']] },
 ]
 
-const TODOS = [
-  { name: 'Book teamLab Planets slot', category: 'Before departure', due_date: '2026-08-15', priority: 2 },
-  { name: 'Activate JR Pass', category: 'On arrival', due_date: '2026-09-12', priority: 1 },
-  { name: 'Reserve ryokan dinner', category: 'Before departure', due_date: '2026-08-20' },
+/** Chat lines the collab guides look for by their text. */
+export const SEED_CHAT = {
+  teamlab: `Booked the teamLab slot for the ${ordinal(-8)}, 14:00. Tickets are in the Files tab.`,
+}
+
+const TODOS: Array<{ name: string; category: string; due_date?: string; priority?: number; done?: boolean }> = [
+  { name: 'Book teamLab Planets slot', category: 'Before departure', due_date: day(-37), priority: 2, done: true },
+  { name: 'Activate JR Pass', category: 'On arrival', due_date: day(-9), priority: 1, done: true },
+  { name: 'Reserve ryokan dinner', category: 'Before departure', due_date: day(-32), done: true },
+  { name: 'Order yen at the bank', category: 'Before departure', due_date: day(-14), done: true },
+  { name: 'Reserve Shinkansen seats on the Fuji side', category: 'On arrival', due_date: day(-6), priority: 2, done: true },
+  { name: 'Send postcards home', category: 'During the trip', due_date: day(-1) },
+  { name: 'Buy a goshuin book at Senso-ji', category: 'During the trip' },
 ]
 
 export interface SeedResult {
@@ -143,6 +205,7 @@ export async function seedDemoData(
   // 3. The trip, in JPY.
   const { trip } = await call<{ trip: { id: number } }>(api, 'post', '/api/trips', TRIP)
   const tripId = trip.id
+  await setTripCover(api, tripId, 'japan')
 
   for (const m of MEMBERS) {
     await call(api, 'post', `/api/trips/${tripId}/members`, { identifier: m.email }).catch(() => {})
@@ -154,16 +217,25 @@ export async function seedDemoData(
   const dayIds = (Array.isArray(days) ? days : days.days).map(d => d.id)
 
   // 5. Places, then pin each onto its day.
+  const categories = await call<{ categories: { id: number; name: string }[] }>(api, 'get', '/api/categories')
+    .then(r => r.categories).catch(() => [] as { id: number; name: string }[])
   const placeIds: number[] = []
   for (const p of PLACES) {
-    const { day, ...payload } = p
+    const { day, start, end, category, ...payload } = p
+    const categoryId = categories.find(c => c.name === category)?.id
     const { place } = await call<{ place: { id: number } }>(
-      api, 'post', `/api/trips/${tripId}/places`, payload)
+      api, 'post', `/api/trips/${tripId}/places`, categoryId ? { ...payload, category_id: categoryId } : payload)
     placeIds.push(place.id)
     const dayId = dayIds[day]
     if (dayId) {
-      await call(api, 'post', `/api/trips/${tripId}/days/${dayId}/assignments`,
-                 { place_id: place.id }).catch(() => {})
+      const created = await call<{ assignment: { id: number } }>(
+        api, 'post', `/api/trips/${tripId}/days/${dayId}/assignments`, { place_id: place.id }).catch(() => null)
+      // A day plan with times reads like a real one: the timeline, the gaps
+      // and the order all come from them.
+      if (created) {
+        await call(api, 'put', `/api/trips/${tripId}/assignments/${created.assignment.id}/time`,
+                   { place_time: start, end_time: end }).catch(() => {})
+      }
     }
   }
 
@@ -179,10 +251,12 @@ export async function seedDemoData(
   //    NOTE: never send exchange_rate — the server freezes the FX rate itself,
   //    and a hand-supplied one fights the settlement maths.
   const allMembers = [1, ...memberIds]
-  for (const e of EXPENSES) {
+  const payerId = (who: Payer | undefined): number =>
+    who === 'mira' ? (memberIds[0] ?? 1) : who === 'jonas' ? (memberIds[1] ?? 1) : 1
+  for (const { paidBy, ...e } of EXPENSES) {
     await call(api, 'post', `/api/trips/${tripId}/budget`, {
       ...e,
-      payers: [{ user_id: 1, amount: e.total_price }],
+      payers: [{ user_id: payerId(paidBy), amount: e.total_price }],
       member_ids: allMembers,
     }).catch(() => {})
   }
@@ -196,15 +270,22 @@ export async function seedDemoData(
 
   // 8. Packing — category is free text on the item, there is no category resource.
   for (const group of PACKING) {
-    for (const name of group.items) {
-      await call(api, 'post', `/api/trips/${tripId}/packing`, {
+    for (const entry of group.items) {
+      const [name, state] = typeof entry === 'string' ? [entry, 'packed'] : entry
+      const created = await call<{ item: { id: number } }>(api, 'post', `/api/trips/${tripId}/packing`, {
         name, category: group.category, visibility: 'common',
-      }).catch(() => {})
+      }).catch(() => null)
+      if (created && state === 'packed') {
+        await call(api, 'put', `/api/trips/${tripId}/packing/${created.item.id}`, { checked: true }).catch(() => {})
+      }
     }
   }
 
-  for (const t of TODOS) {
-    await call(api, 'post', `/api/trips/${tripId}/todo`, t).catch(() => {})
+  for (const { done, ...todo } of TODOS) {
+    const created = await call<{ item: { id: number } }>(api, 'post', `/api/trips/${tripId}/todo`, todo).catch(() => null)
+    if (created && done) {
+      await call(api, 'put', `/api/trips/${tripId}/todo/${created.item.id}`, { checked: true }).catch(() => {})
+    }
   }
 
   // 9. A multi-leg flight. Coordinates are mandatory — endpoints without them
@@ -212,8 +293,8 @@ export async function seedDemoData(
   await call(api, 'post', `/api/trips/${tripId}/reservations`, {
     title: 'LH716 FRA → HND',
     type: 'flight',
-    reservation_time: '2026-09-12T13:05:00',
-    reservation_end_time: '2026-09-13T08:25:00',
+    reservation_time: at(-9, '13:05'),
+    reservation_end_time: at(-8, '08:25'),
     confirmation_number: 'X7K2QP',
     status: 'confirmed',
     location: 'Frankfurt Airport',
@@ -222,10 +303,10 @@ export async function seedDemoData(
     endpoints: [
       { role: 'from', sequence: 0, name: 'Frankfurt Airport', code: 'FRA',
         lat: 50.0379, lng: 8.5622, timezone: 'Europe/Berlin',
-        local_date: '2026-09-12', local_time: '13:05' },
+        local_date: day(-9), local_time: '13:05' },
       { role: 'to', sequence: 1, name: 'Tokyo Haneda', code: 'HND',
         lat: 35.5494, lng: 139.7798, timezone: 'Asia/Tokyo',
-        local_date: '2026-09-13', local_time: '08:25' },
+        local_date: day(-8), local_time: '08:25' },
     ],
   }).catch(() => {})
 
@@ -237,7 +318,7 @@ export async function seedDemoData(
       { name: 'Kyoto shortlist', description: 'Places we want to reach on the second week.',
         color: '#ef4444', icon: 'MapPin' })
     collectionId = 'id' in created ? created.id : created.collection.id
-    for (const placeId of placeIds.slice(4)) {
+    for (const placeId of placeIds.slice(4, 7)) {
       await call(api, 'post', '/api/addons/collections/places/from-trip', {
         collection_id: collectionId, source_trip_id: tripId, source_place_id: placeId, force: true,
       }).catch(() => {})
@@ -281,9 +362,9 @@ export async function seedDemoData(
 
   for (const n of [
     { title: 'Rail passes', category: 'Transport', color: '#3b82f6',
-      content: 'The 14-day JR Pass covers the Tokyo–Kyoto legs. Activate it at the airport counter on arrival, not before.' },
+      content: 'The 14-day JR Pass covers the Tokyo to Kyoto legs. Activate it at the airport counter on arrival, not before.' },
     { title: 'Ryokan etiquette', category: 'Accommodation', color: '#ef4444',
-      content: 'Shoes off at the entrance, yukata for dinner. Dinner is served at 18:30 sharp — being late is genuinely rude.' },
+      content: 'Shoes off at the entrance, yukata for dinner. Dinner is served at 18:30 sharp, and being late is genuinely rude.' },
     { title: 'Rainy-day alternatives', category: 'Ideas', color: '#22c55e',
       content: 'teamLab Planets, the Kyoto Railway Museum and Nishiki Market all work in bad weather.' },
   ]) {
@@ -293,7 +374,7 @@ export async function seedDemoData(
   const pollRes = await api.post(`${collab}/polls`, {
     data: {
       question: 'Which day should we keep free for Nara?',
-      options: ['Wed, Sep 16', 'Thu, Sep 17', 'Sat, Sep 19'],
+      options: [short(-5), short(-4), short(-2)],
       multiple: false,
     },
   })
@@ -308,13 +389,13 @@ export async function seedDemoData(
   }).catch(() => {})
 
   const conversation: Array<[string, string]> = [
-    ['admin', 'Flights are booked — we land at Haneda 08:25 on the 13th.'],
+    ['admin', `Flights are booked, we land at Haneda 08:25 on the ${ordinal(-8)}.`],
     ['mira', 'Nice. Should we go straight to the hotel or drop bags and head out?'],
     ['jonas', 'Drop bags. I want to be at Senso-ji before the crowds.'],
     ['admin', "Agreed. I've put it on day 1 with a note to go before 08:00."],
-    ['mira', 'Booked the teamLab slot for the 13th, 14:00. Tickets are in the Files tab.'],
+    ['mira', SEED_CHAT.teamlab],
     ['jonas', 'Do we need to reserve the ryokan dinner separately?'],
-    ['admin', "It's included — kaiseki, 18:30. Added it to the to-dos so we don't forget to confirm."],
+    ['admin', "It's included: kaiseki, 18:30. Added it to the to-dos so we don't forget to confirm."],
   ]
   for (const [who, text] of conversation) {
     const ctx = who === 'admin' ? api : as(who)

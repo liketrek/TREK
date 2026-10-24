@@ -1,0 +1,51 @@
+import type { TranslationStrings } from '../types';
+
+/** TREK Studio: paint, gradients, patterns and the page background. */
+const studioPaint: TranslationStrings = {
+  'journey.studio.paint.kind': 'Tipo de preenchimento',
+  'journey.studio.paint.none': 'Nenhum',
+  'journey.studio.paint.solid': 'Sólido',
+  'journey.studio.paint.gradient': 'Gradiente',
+  'journey.studio.paint.pattern': 'Padrão',
+  'journey.studio.paint.linear': 'Linear', // same-as-en
+  'journey.studio.paint.radial': 'Radial', // same-as-en
+  'journey.studio.paint.reverse': 'Inverter o gradiente',
+  'journey.studio.paint.addStopHint': 'Clique na barra para adicionar uma parada de cor',
+  'journey.studio.paint.stopAt': 'Parada em {pos}%',
+  'journey.studio.paint.removeStop': 'Remover parada',
+  'journey.studio.paint.angle': 'Ângulo',
+  'journey.studio.paint.centre': 'Centro',
+  'journey.studio.paint.radius': 'Raio',
+  'journey.studio.paint.ink': 'Cor do padrão',
+  'journey.studio.paint.ground': 'Cor de fundo',
+  'journey.studio.paint.seeThrough': 'Transparente',
+  'journey.studio.paint.scale': 'Tamanho',
+  'journey.studio.paint.opacity': 'Opacidade',
+  'journey.studio.paint.bookColours': 'Cores deste livro',
+  'journey.studio.paint.photoColours': 'Cores das fotos',
+  'journey.studio.paint.recentColours': 'Cores recentes',
+  'journey.studio.paint.background': 'Fundo da página',
+  'journey.studio.paint.paper': 'Papel',
+  'journey.studio.paint.applyAll': 'Aplicar a todas as páginas',
+  'journey.studio.paint.appliedAll': 'Aplicado a todas as páginas',
+  'journey.studio.paint.photoBackground': 'Foto como fundo',
+  'journey.studio.paint.photoBackgroundHint':
+    'Coloca a foto sobre a página inteira, sangria incluída, travada ao fundo. Escolha de novo para tirá-la.',
+  'journey.studio.paint.removePhotoBackground': 'Remover a foto de fundo',
+  'journey.studio.paint.noPhotos': 'Adicione fotos à viagem para usar uma como fundo.',
+  'journey.studio.pattern.checker': 'Xadrez',
+  'journey.studio.pattern.gingham': 'Vichy',
+  'journey.studio.pattern.stripes': 'Listras',
+  'journey.studio.pattern.pinstripe': 'Risca de giz',
+  'journey.studio.pattern.dots': 'Pontos',
+  'journey.studio.pattern.polka': 'Bolinhas',
+  'journey.studio.pattern.zigzag': 'Zigue-zague',
+  'journey.studio.pattern.waves': 'Ondas',
+  'journey.studio.pattern.grid': 'Grade',
+  'journey.studio.pattern.scales': 'Escamas',
+  'journey.studio.pattern.sunburst': 'Raios de sol',
+  'journey.studio.pattern.confetti': 'Confete',
+  'journey.studio.pattern.linen': 'Linho',
+  'journey.studio.pattern.grain': 'Textura de papel',
+};
+export default studioPaint;

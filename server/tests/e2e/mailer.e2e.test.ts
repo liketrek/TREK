@@ -10,30 +10,39 @@
  * broken image. These cases pin the replacement: a PNG part inside the message,
  * next to the HTML in multipart/related, that the HTML addresses by Content-ID.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import request from 'supertest';
-import type { Server } from 'http';
+import { db } from '../../src/db/database';
+import { AuthModule } from '../../src/nest/auth/auth.module';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+import { createUser } from '../helpers/factories';
+import { setAppSetting } from '../helpers/factories/settings';
+import { createTestMikroOrmModule, createTestOrm } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
 import { Test } from '@nestjs/testing';
 
-const { db } = vi.hoisted(() => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const Database = require('better-sqlite3');
-  const tmp = new Database(':memory:');
-  tmp.exec('PRAGMA journal_mode = WAL');
-  tmp.exec('PRAGMA foreign_keys = ON');
-  return { db: tmp };
-});
+import type { Server } from 'http';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
-vi.mock('../../src/db/database', () => ({
-  db,
-  closeDb: () => {},
-  reinitialize: () => {},
-  getPlaceWithTags: () => null,
-  canAccessTrip: () => undefined,
-  isOwner: () => false,
+vi.mock('../../src/db/database', async () => {
+  const { createSnapshotTestDb } = await import('../helpers/db-mock');
+  const db = createSnapshotTestDb();
+  return {
+    db,
+    closeDb: () => {},
+    reinitialize: () => {},
+    getPlaceWithTags: () => null,
+    canAccessTrip: () => undefined,
+    isOwner: () => false,
+  };
+});
+vi.mock('../../src/nest/audit/audit-log.logger', () => ({
+  LOG_LEVEL: 'error',
+  logInfo: vi.fn(),
+  logDebug: vi.fn(),
+  logError: vi.fn(),
+  logWarn: vi.fn(),
 }));
-vi.mock('../../src/websocket', () => ({ broadcastToUser: vi.fn(), broadcast: vi.fn() }));
-vi.mock('../../src/nest/audit/audit-log.logger', () => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logDebug: vi.fn(), logError: vi.fn(), logWarn: vi.fn() }));
 vi.mock('../../src/app-config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../src/app-config')>();
   return { ...actual, getAppUrl: () => 'https://trek.example' };
@@ -59,14 +68,6 @@ vi.mock('nodemailer', async (importOriginal) => {
   };
 });
 
-import { createTables } from '../../src/db/schema';
-import { runMigrations } from '../../src/db/migrations';
-import { createUser } from '../helpers/factories';
-import { AuthModule } from '../../src/nest/auth/auth.module';
-import { DatabaseModule } from '../../src/nest/database/database.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
-
 interface MimePart {
   headers: string;
   body: string;
@@ -82,7 +83,7 @@ function leafParts(raw: string): MimePart[] {
   return body
     .split(`--${boundary}`)
     .slice(1, -1)
-    .flatMap(chunk => leafParts(chunk.replace(/^\r\n/, '')));
+    .flatMap((chunk) => leafParts(chunk.replace(/^\r\n/, '')));
 }
 
 /** The decoded text of a text/* part, honouring its transfer encoding. */
@@ -100,7 +101,9 @@ describe('Mailer e2e: the header logo in a mail on the wire (#2507)', () => {
   let email: string;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, AuthModule] }).compile();
+    const moduleRef = await Test.createTestingModule({
+      imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), AuthModule],
+    }).compile();
     const nest = moduleRef.createNestApplication();
     nest.useGlobalFilters(new TrekExceptionFilter());
     nest.useGlobalPipes(new ZodValidationPipe());
@@ -109,13 +112,12 @@ describe('Mailer e2e: the header logo in a mail on the wire (#2507)', () => {
   }
 
   beforeAll(async () => {
-    createTables(db as never);
-    runMigrations(db as never);
     email = createUser(db as never, { username: 'mail-e2e', email: 'mail-e2e@example.test' }).user.email;
-    const setting = db.prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)');
-    setting.run('smtp_host', 'mail.internal.example');
-    setting.run('smtp_port', '587');
-    setting.run('smtp_from', 'trek@example.test');
+    const orm = await createTestOrm(db);
+    await setAppSetting(orm, 'smtp_host', 'mail.internal.example');
+    await setAppSetting(orm, 'smtp_port', '587');
+    await setAppSetting(orm, 'smtp_from', 'trek@example.test');
+    await orm.close();
     app = await build();
     server = app.getHttpServer();
 
@@ -136,14 +138,14 @@ describe('Mailer e2e: the header logo in a mail on the wire (#2507)', () => {
 
   it('the HTML addresses the logo by Content-ID and carries no data: URI', () => {
     const parts = leafParts(wire[0]);
-    const htmlPart = parts.find(p => /^Content-Type: text\/html/im.test(p.headers))!;
+    const htmlPart = parts.find((p) => /^Content-Type: text\/html/im.test(p.headers))!;
     const html = partText(htmlPart);
     expect(html).not.toContain('data:');
 
     const cid = /<img src="cid:([^"]+)"/.exec(html)?.[1];
     expect(cid).toBeTruthy();
 
-    const logo = parts.find(p => p.headers.includes(`Content-ID: <${cid}>`));
+    const logo = parts.find((p) => p.headers.includes(`Content-ID: <${cid}>`));
     expect(logo, `no MIME part with Content-ID <${cid}>`).toBeDefined();
     expect(logo!.headers).toMatch(/^Content-Type: image\/png/im);
     expect(logo!.headers).toMatch(/^Content-Disposition: inline/im);

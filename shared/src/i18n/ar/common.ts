@@ -7,6 +7,7 @@ const common: TranslationStrings = {
   'common.cancel': 'إلغاء',
   'common.clear': 'مسح',
   'common.delete': 'حذف',
+  'common.remove': 'إزالة',
   'common.preview': 'معاينة',
   'common.edit': 'تعديل',
   'common.add': 'إضافة',
@@ -35,6 +36,9 @@ const common: TranslationStrings = {
   'common.rename': 'إعادة تسمية',
   'common.discardChanges': 'تجاهل التغييرات',
   'common.discard': 'تجاهل',
+  'common.unsavedTitle': 'تجاهل تغييراتك؟',
+  'common.unsavedMessage': 'ما أدخلته هنا لم يُحفظ بعد.',
+  'common.keepEditing': 'متابعة التعديل',
   'common.name': 'الاسم',
   'common.email': 'البريد الإلكتروني',
   'common.password': 'كلمة المرور',
@@ -49,21 +53,31 @@ const common: TranslationStrings = {
   'common.collapse': 'طي',
   'common.copy': 'نسخ',
   'common.copied': 'تم النسخ',
-  'common.justNow': 'just now', // en-fallback
-  'common.hoursAgo': '{count}h ago', // en-fallback
-  'common.daysAgo': '{count}d ago', // en-fallback
-  'common.datepicker.prevMonth': 'Previous month', // en-fallback
-  'common.datepicker.nextMonth': 'Next month', // en-fallback
-  'common.datepicker.prevYear': 'Previous year', // en-fallback
-  'common.datepicker.nextYear': 'Next year', // en-fallback
-  'common.datepicker.prevYears': 'Previous years', // en-fallback
-  'common.datepicker.nextYears': 'Next years', // en-fallback
-  'common.datepicker.selectMonth': 'Select month', // en-fallback
-  'common.datepicker.selectYear': 'Select year', // en-fallback
-  'common.datepicker.enterManually': 'Enter date manually', // en-fallback
-  'common.datepicker.typeDate': 'Type a date', // en-fallback
-  'common.datepicker.dialog': 'Date picker', // en-fallback
-  'common.datepicker.clearDate': 'Clear date', // en-fallback
+  'common.justNow': 'الآن',
+  'common.hoursAgo': 'منذ {count} ساعة',
+  'common.hoursAgo.zero': 'منذ {count} ساعة',
+  'common.hoursAgo.one': 'منذ ساعة واحدة',
+  'common.hoursAgo.two': 'منذ ساعتين',
+  'common.hoursAgo.few': 'منذ {count} ساعات',
+  'common.hoursAgo.many': 'منذ {count} ساعة',
+  'common.daysAgo': 'منذ {count} يوم',
+  'common.daysAgo.zero': 'منذ {count} يوم',
+  'common.daysAgo.one': 'منذ يوم واحد',
+  'common.daysAgo.two': 'منذ يومين',
+  'common.daysAgo.few': 'منذ {count} أيام',
+  'common.daysAgo.many': 'منذ {count} يومًا',
+  'common.datepicker.prevMonth': 'الشهر السابق',
+  'common.datepicker.nextMonth': 'الشهر التالي',
+  'common.datepicker.prevYear': 'السنة السابقة',
+  'common.datepicker.nextYear': 'السنة التالية',
+  'common.datepicker.prevYears': 'السنوات السابقة',
+  'common.datepicker.nextYears': 'السنوات التالية',
+  'common.datepicker.selectMonth': 'اختر الشهر',
+  'common.datepicker.selectYear': 'اختر السنة',
+  'common.datepicker.enterManually': 'أدخل التاريخ يدويًا',
+  'common.datepicker.typeDate': 'اكتب تاريخًا',
+  'common.datepicker.dialog': 'منتقي التاريخ',
+  'common.datepicker.clearDate': 'مسح التاريخ',
   'common.errorTitle': 'حدث خطأ ما',
   'common.errorBody': 'توقف هذا الجزء من التطبيق عن العمل. بياناتك آمنة.',
   'common.errorPanelTitle': 'تعذّر عرض هذا القسم',
@@ -73,5 +87,6 @@ const common: TranslationStrings = {
   'common.errorUpdateTitle': 'يتوفر إصدار جديد',
   'common.errorUpdateBody': 'تم تحديث TREK أثناء فتح علامة التبويب هذه. أعد التحميل للحصول على الإصدار الجديد.',
   'common.errorPluginTitle': 'تعذّر عرض هذه الإضافة',
+  'common.needsConnection': 'يتطلب هذا اتصالاً. حاول مرة أخرى عندما يعود TREK للاتصال.',
 };
 export default common;

@@ -1,3 +1,12 @@
+import { BOOK_FONTS_IDS, BOOK_WEIGHTS, type BookFontFamily } from './book-fonts.data';
+import { BOOK_LINE_FIELDS } from './book-line.schema';
+import { bookPaintFieldSchema } from './book-paint.schema';
+import { BOOK_PHOTO_LOOK_FIELDS } from './book-photo-look.schema';
+import { BOOK_EDGE_FIELDS, BOOK_SHAPES_MORE } from './book-shapes-more';
+import { BOOK_TEXT_EFFECT_FIELDS, MAX_BOOK_TEXT_SIZE } from './book-text-effects.schema';
+import { MAX_STICKER_SLOTS } from './stickers/sticker-types';
+import * as themed from './theme/book-theme.schema';
+
 import { z } from 'zod';
 
 /**
@@ -34,7 +43,12 @@ import { z } from 'zod';
  * millimetre, and the editor and the PDF renderer both try to draw a sheet a
  * thousand kilometres wide.
  */
-const mm = z.number().finite().min(-10000).max(10000).transform(v => Math.round(v * 100) / 100);
+const mm = z
+  .number()
+  .finite()
+  .min(-10000)
+  .max(10000)
+  .transform((v) => Math.round(v * 100) / 100);
 
 const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'expected #rrggbb');
 
@@ -77,49 +91,118 @@ export const MAX_PATH_POINTS = 1200;
  * editor still parses.
  */
 export const BOOK_SHAPES = [
-  'rect', 'ellipse', 'line', 'triangle',
+  'rect',
+  'ellipse',
+  'line',
+  'triangle',
 
-  'triangle-down', 'diamond', 'parallelogram', 'trapezoid',
-  'pentagon', 'hexagon', 'hexagon-flat', 'heptagon', 'octagon',
-  'arch', 'half-circle', 'quarter-circle', 'capsule', 'squircle',
+  'triangle-down',
+  'diamond',
+  'parallelogram',
+  'trapezoid',
+  'pentagon',
+  'hexagon',
+  'hexagon-flat',
+  'heptagon',
+  'octagon',
+  'arch',
+  'half-circle',
+  'quarter-circle',
+  'capsule',
+  'squircle',
 
-  'star-4', 'star-5', 'star-6', 'star-8', 'star-12', 'burst', 'seal', 'sparkle',
+  'star-4',
+  'star-5',
+  'star-6',
+  'star-8',
+  'star-12',
+  'burst',
+  'seal',
+  'sparkle',
 
-  'arrow-right', 'arrow-left', 'arrow-up', 'arrow-down', 'arrow-both',
-  'chevron-right', 'chevron-left', 'arrow-bent',
+  'arrow-right',
+  'arrow-left',
+  'arrow-up',
+  'arrow-down',
+  'arrow-both',
+  'chevron-right',
+  'chevron-left',
+  'arrow-bent',
 
-  'bubble-round', 'bubble-square', 'bubble-oval', 'bubble-think',
+  'bubble-round',
+  'bubble-square',
+  'bubble-oval',
+  'bubble-think',
 
-  'heart', 'cloud', 'cloud-puffy', 'drop', 'moon', 'sun',
-  'flower-5', 'flower-6', 'leaf', 'cross', 'plus', 'shield', 'gear',
-  'ticket', 'wave', 'mountain', 'compass', 'pin',
+  'heart',
+  'cloud',
+  'cloud-puffy',
+  'drop',
+  'moon',
+  'sun',
+  'flower-5',
+  'flower-6',
+  'leaf',
+  'cross',
+  'plus',
+  'shield',
+  'gear',
+  'ticket',
+  'wave',
+  'mountain',
+  'compass',
+  'pin',
 
-  'blob-1', 'blob-2', 'blob-3', 'blob-4',
+  'blob-1',
+  'blob-2',
+  'blob-3',
+  'blob-4',
 
-  'banner-ribbon', 'banner-pennant', 'banner-bookmark', 'banner-flag',
+  'banner-ribbon',
+  'banner-pennant',
+  'banner-bookmark',
+  'banner-flag',
+
+  ...BOOK_SHAPES_MORE,
 ] as const;
 export type BookShapeId = (typeof BOOK_SHAPES)[number];
 
 /**
- * The families a book may be set in.
+ * A field that takes one id out of a long catalogue: a typeface, a shape.
+ *
+ * A tool's JSON schema shows it as a plain string, and the parse holds it to
+ * the catalogue, refusing an id it lacks with the ids it has. Spelled out as an
+ * enum it would be repeated wherever the field appears, on every element kind
+ * of a page, because the tool schemas carry no `$ref` to share it, and that
+ * repetition is what held the book tools over their size ceiling
+ * (MCP-SCHEMA-003 and 004 on the server). Where a model has to choose an id,
+ * the described enums of book-op-enums.ts still list them.
+ */
+export const bookCatalogueIdSchema = <const T extends readonly [string, ...string[]]>(ids: T) =>
+  z.string().pipe(z.enum(ids));
+
+/**
+ * The families a book may be set in, and the weights type is set at. The
+ * catalogue is book-fonts.data.ts: which face each id names, its weights, its
+ * real italics and what it is for.
  *
  * `sans`, `serif` and `display` are the three the format started with and are
- * kept by name, so every document written so far still parses — they now point
- * at bundled faces rather than at whatever the rendering machine happened to
- * have installed. See client/src/components/Studio/bookFonts.ts.
+ * kept by name, so every document written so far still parses.
  */
-export const BOOK_FONTS_IDS = [
-  'sans', 'inter', 'serif', 'garamond', 'playfair', 'display', 'bebas',
-] as const;
-export type BookFontFamily = (typeof BOOK_FONTS_IDS)[number];
+export { BOOK_FONTS_IDS, type BookFontFamily };
+const bookWeightSchema = z.literal(BOOK_WEIGHTS);
+
+/** How long a group id and a layer's name may be. */
+export const BOOK_GROUP_ID_MAX = 40;
+export const BOOK_LAYER_NAME_MAX = 60;
 
 export const bookFrameSchema = z.object({
   /** Millimetres from the left edge of the spread. Negative means bleed. */
   x: mm,
   /** Millimetres from the top edge of the spread. */
   y: mm,
-  w: mm.refine(v => v > 0, 'width must be positive'),
-  h: mm.refine(v => v > 0, 'height must be positive'),
+  w: mm.refine((v) => v > 0, 'width must be positive'),
+  h: mm.refine((v) => v > 0, 'height must be positive'),
 });
 export type BookFrame = z.infer<typeof bookFrameSchema>;
 
@@ -130,6 +213,16 @@ const elementBase = {
   rotation: z.number().finite().default(0),
   opacity: z.number().min(0).max(1).default(1),
   locked: z.boolean().default(false),
+  /**
+   * The group the element belongs to on its spread, by the group's id (see
+   * book-groups.ts). Absent for an element on its own. Optional rather than
+   * defaulted, so a book without groups stores what it stored before.
+   */
+  group: z.string().min(1).max(BOOK_GROUP_ID_MAX).optional(),
+  /** What the layers panel calls it. Absent means the name of its kind. */
+  name: z.string().max(BOOK_LAYER_NAME_MAX).optional(),
+  /** Kept in the layers panel but left off the page, on screen and in print. */
+  hidden: z.boolean().optional(),
 };
 
 export const bookPhotoElementSchema = z.object({
@@ -158,7 +251,7 @@ export const bookPhotoElementSchema = z.object({
    * makes a frame usable: you place a wide star across a spread and it is wide.
    * A shape you cannot resize freely is an ornament, not a frame.
    */
-  mask: z.enum(BOOK_SHAPES).nullable().default(null),
+  mask: bookCatalogueIdSchema(BOOK_SHAPES).nullable().default(null),
   /**
    * Decoration *around* the picture — a Polaroid's thick chin, a print's white
    * border, the shadow of a photo lying on a page.
@@ -167,27 +260,40 @@ export const bookPhotoElementSchema = z.object({
    * and it is the one thing you cannot express with either.
    */
   frameStyle: z.enum(['none', 'polaroid', 'white', 'shadow', 'film', 'tape']).default('none'),
+  /** Border, hard shadow, zoom, mirror, adjustments, duotone and cutout (book-photo-look.schema.ts). */
+  ...BOOK_PHOTO_LOOK_FIELDS,
+  /** A cut edge along the mask, or along the rectangle (book-shapes-more.ts). */
+  ...BOOK_EDGE_FIELDS,
 });
 
 export const bookTextElementSchema = z.object({
   ...elementBase,
   kind: z.literal('text'),
   text: z.string().max(MAX_TEXT_LENGTH).default(''),
-  font: z.enum(BOOK_FONTS_IDS).default('sans'),
-  /** Points. */
-  size: z.number().min(4).max(200).default(11),
-  weight: z.union([z.literal(400), z.literal(500), z.literal(600), z.literal(700)]).default(400),
+  font: bookCatalogueIdSchema(BOOK_FONTS_IDS).default('sans'),
+  /** Points, up to a word across a whole cover. */
+  size: z.number().min(4).max(MAX_BOOK_TEXT_SIZE).default(11),
+  weight: bookWeightSchema.default(400),
   italic: z.boolean().default(false),
   align: z.enum(['left', 'center', 'right', 'justify']).default('left'),
   /** Multiple of the font size. */
   leading: z.number().min(0.7).max(3).default(1.45),
-  /** Ems, may be negative. */
-  tracking: z.number().min(-0.2).max(1).default(0),
+  /** Ems, may be negative; wide enough for very spaced capitals. */
+  tracking: z.number().min(-0.2).max(1.5).default(0),
   color: hex.default('#1a1a1a'),
+  ...themed.THEMED_TEXT,
   /** Where this text came from, when it came from the journey. */
   binding: z
     .object({
-      source: z.enum(['journey.title', 'journey.subtitle', 'entry.title', 'entry.story', 'entry.location', 'entry.date', 'photo.caption']),
+      source: z.enum([
+        'journey.title',
+        'journey.subtitle',
+        'entry.title',
+        'entry.story',
+        'entry.location',
+        'entry.date',
+        'photo.caption',
+      ]),
       entryId: z.number().int().optional(),
       photoId: z.number().int().optional(),
       /**
@@ -222,12 +328,14 @@ export const bookTextElementSchema = z.object({
     .default(null),
   /** True once a human edited the text; stops it re-reading its source. */
   overridden: z.boolean().default(false),
+  /** Outline, shadow, band, curve, fill, case, vertical place and fit (book-text-effects.schema.ts). */
+  ...BOOK_TEXT_EFFECT_FIELDS,
 });
 
 export const bookShapeElementSchema = z.object({
   ...elementBase,
   kind: z.literal('shape'),
-  shape: z.enum(BOOK_SHAPES).default('rect'),
+  shape: bookCatalogueIdSchema(BOOK_SHAPES).default('rect'),
   fill: hex.nullable().default('#111827'),
   /**
    * Fade the fill out towards one edge. A cover almost always needs this: a
@@ -235,7 +343,10 @@ export const bookShapeElementSchema = z.object({
    * the picture keep going and still leaves the words readable.
    */
   gradient: z.enum(['none', 'up', 'down']).default('none'),
+  /** A fill beyond one flat colour (book-paint.schema.ts); `fill` keeps the colour that stands for it. */
+  paint: bookPaintFieldSchema,
   stroke: hex.nullable().default(null),
+  ...themed.THEMED_SHAPE,
   strokeWidth: mm.default(0),
   /**
    * A dashed rule is a different thing from a solid one — it reads as a fold, a
@@ -244,7 +355,12 @@ export const bookShapeElementSchema = z.object({
    */
   strokeStyle: z.enum(['solid', 'dashed', 'dotted']).default('solid'),
   radius: mm.default(0),
+  /** A cut edge along the outline (book-shapes-more.ts). */
+  ...BOOK_EDGE_FIELDS,
 });
+
+/** A drawn line with two or more points (book-line.schema.ts). */
+export const bookLineElementSchema = z.object({ ...elementBase, ...BOOK_LINE_FIELDS });
 
 /**
  * ── The travel elements ────────────────────────────────────────────────────
@@ -276,7 +392,7 @@ export const bookShapeElementSchema = z.object({
 
 /** What the travel elements share with text: they are typeset, not drawn. */
 const typeset = {
-  font: z.enum(BOOK_FONTS_IDS).default('sans'),
+  font: bookCatalogueIdSchema(BOOK_FONTS_IDS).default('sans'),
   color: hex.default('#1a1a1a'),
   /**
    * The one colour that carries emphasis — the figure in a stat, the route on
@@ -300,9 +416,10 @@ const typeset = {
    * together, the way `textScale` moves their size. Without it the only way to
    * lighten a stats block was to not use one.
    */
-  weight: z.union([z.literal(400), z.literal(500), z.literal(600), z.literal(700)]).default(700),
+  weight: bookWeightSchema.default(700),
   /** Set when the journey has moved on since these values were taken. */
   stale: z.boolean().default(false),
+  ...themed.THEMED_TYPESET,
 };
 
 /** Kilometres or miles. Stored metric; the element converts when it draws. */
@@ -387,8 +504,12 @@ export const bookMapElementSchema = z.object({
    * That fallback is the designed state rather than a failure: a printed page
    * with a few plain dots between the pictures reads as a route, and one with
    * empty rings reads as a bug.
+   *
+   * `numbered` draws every stop as its number in the order travelled, the way
+   * a guidebook's map refers to its text. `ends` marks where the journey began
+   * and where it ended, and leaves the stops between them as small dots.
    */
-  pinStyle: z.enum(['dot', 'photo']).default('dot'),
+  pinStyle: z.enum(['dot', 'photo', 'numbered', 'ends']).default('dot'),
   /** ISO-3166-1 alpha-2, the countries whose outlines to draw. */
   countries: z.array(z.string().length(2)).max(MAX_BOOK_COUNTRIES).default([]),
   /**
@@ -396,19 +517,21 @@ export const bookMapElementSchema = z.object({
    * points — a book page cannot resolve four hundred stops anyway.
    */
   points: z
-    .array(z.object({
-      lat: z.number().min(-90).max(90),
-      lng: z.number().min(-180).max(180),
-      label: z.string().max(MAX_MAP_POINT_LABEL).default(''),
-      /**
-       * One photograph from this stop, for a marker that shows it.
-       *
-       * `trek_photos.id`, never a resolved URL, for the same reason a photo
-       * element stores an id: a book has to survive a provider change. Null is
-       * ordinary and means the marker is a dot.
-       */
-      photoId: z.number().int().positive().nullable().default(null),
-    }))
+    .array(
+      z.object({
+        lat: z.number().min(-90).max(90),
+        lng: z.number().min(-180).max(180),
+        label: z.string().max(MAX_MAP_POINT_LABEL).default(''),
+        /**
+         * One photograph from this stop, for a marker that shows it.
+         *
+         * `trek_photos.id`, never a resolved URL, for the same reason a photo
+         * element stores an id: a book has to survive a provider change. Null is
+         * ordinary and means the marker is a dot.
+         */
+        photoId: z.number().int().positive().nullable().default(null),
+      }),
+    )
     .max(MAX_MAP_POINTS)
     .default([]),
   /**
@@ -453,7 +576,12 @@ export const bookMapElementSchema = z.object({
    * road is rerouted, and prints empty when the export runs offline.
    */
   roads: z
-    .array(z.array(z.tuple([z.number().min(-90).max(90), z.number().min(-180).max(180)])).max(200).nullable())
+    .array(
+      z
+        .array(z.tuple([z.number().min(-90).max(90), z.number().min(-180).max(180)]))
+        .max(200)
+        .nullable(),
+    )
     .max(400)
     .default([]),
   /**
@@ -512,6 +640,47 @@ export const bookMapElementSchema = z.object({
   tripId: z.number().int().positive().nullable().default(null),
 });
 
+/** The looks of a summary, `classic` first: what every summary drew before there were looks. */
+export const BOOK_STATS_LOOKS = [
+  'classic',
+  'poster',
+  'ticket',
+  'tiles',
+  'band',
+  'medal',
+  'odometer',
+  'sign',
+  'note',
+  'sketch',
+] as const;
+export type BookStatsLook = (typeof BOOK_STATS_LOOKS)[number];
+
+/** The looks of a country, `classic` first for the same reason. */
+export const BOOK_COUNTRY_LOOKS = ['classic', 'stamp', 'postcard', 'visa', 'flag', 'pin', 'label', 'sketch'] as const;
+export type BookCountryLook = (typeof BOOK_COUNTRY_LOOKS)[number];
+
+/**
+ * How a mark is set. The first four are what marks have always been; `stamp`
+ * is an inked passport stamp, `tag` a luggage label with its eyelet, `pill`
+ * the icon in a disc at the start of a capsule, `ribbon` a banner with forked
+ * tails, `sticker` a die-cut sticker with its white edge, and `patch` an
+ * embroidered patch with its stitching, and `sketch` a frame drawn by hand.
+ */
+export const BOOK_BADGE_STYLES = [
+  'plain',
+  'chip',
+  'outline',
+  'stacked',
+  'stamp',
+  'tag',
+  'pill',
+  'ribbon',
+  'sticker',
+  'patch',
+  'sketch',
+] as const;
+export type BookBadgeStyle = (typeof BOOK_BADGE_STYLES)[number];
+
 export const BOOK_METRICS = ['distance', 'days', 'steps', 'photos', 'countries', 'places', 'furthest'] as const;
 export type BookMetric = (typeof BOOK_METRICS)[number];
 
@@ -522,6 +691,17 @@ export const bookStatsElementSchema = z.object({
   /** Which figures, in the order they are drawn. */
   metrics: z.array(z.enum(BOOK_METRICS)).max(7).default(['distance', 'days', 'steps', 'photos']),
   layout: z.enum(['grid', 'row', 'column']).default('grid'),
+  /**
+   * How the figures are drawn. Absent, or `classic`, is the icon, figure and
+   * caption every summary placed so far draws: optional rather than defaulted,
+   * so a stored book reads and saves exactly as it did. The others are newer
+   * compositions: one figure set as a poster with the rest beside it, a ticket
+   * stub, a tile per figure, a band of figures between hairlines, a round
+   * medal per figure with its name running round the rim, the drums of an
+   * odometer, a road sign listing them, a handwritten note, and a pencil
+   * sketch with a hand-drawn frame.
+   */
+  look: z.enum(BOOK_STATS_LOOKS).optional(),
   showIcons: z.boolean().default(true),
   units: bookUnitsSchema.default('metric'),
   /**
@@ -535,10 +715,12 @@ export const bookStatsElementSchema = z.object({
    * required and every stats element written so far would fail, then be thrown
    * away as unreadable.
    */
-  values: z.record(z.string(), z.number().finite()).default({})
-    .transform(v => Object.fromEntries(
-      Object.entries(v).filter(([k]) => (BOOK_METRICS as readonly string[]).includes(k)),
-    )),
+  values: z
+    .record(z.string(), z.number().finite())
+    .default({})
+    .transform((v) =>
+      Object.fromEntries(Object.entries(v).filter(([k]) => (BOOK_METRICS as readonly string[]).includes(k))),
+    ),
 });
 
 export const bookCountriesElementSchema = z.object({
@@ -555,10 +737,27 @@ export const bookCountriesElementSchema = z.object({
   showFlag: z.boolean().default(false),
   showName: z.boolean().default(true),
   align: z.enum(['left', 'center', 'right']).default('center'),
+  /**
+   * How a country is drawn. Absent, or `classic`, is the name over its
+   * silhouette that every country placed so far draws, so a stored book stays
+   * as it was. `stamp` sets it as a round passport stamp, `postcard` as
+   * an airmail card, `visa` as an entry stamp with cut corners, `flag` as the
+   * flag in cloth, `pin` as a map pin carrying the flag, and `label` as an old
+   * luggage label with the name on a ribbon, `sketch` as the outline drawn by
+   * hand and hatched, with the name written under it.
+   */
+  look: z.enum(BOOK_COUNTRY_LOOKS).optional(),
 });
 
 export const BOOK_BADGES = [
-  'flag', 'date', 'day', 'coords', 'country', 'distance', 'weather', 'altitude',
+  'flag',
+  'date',
+  'day',
+  'coords',
+  'country',
+  'distance',
+  'weather',
+  'altitude',
   'mood',
 ] as const;
 export type BookBadgeVariant = (typeof BOOK_BADGES)[number];
@@ -591,7 +790,7 @@ export const bookBadgeElementSchema = z.object({
    * characters; the field is simply no longer only that.
    */
   code: z.string().max(24).nullable().default(null),
-  style: z.enum(['plain', 'chip', 'outline', 'stacked']).default('plain'),
+  style: z.enum(BOOK_BADGE_STYLES).default('plain'),
   /**
    * Let the mark pick its own text colour.
    *
@@ -647,8 +846,12 @@ export const bookIconElementSchema = z.object({
   ...elementBase,
   kind: z.literal('icon'),
   /** A lucide export name, PascalCase — "Compass", "Plane", "MountainSnow". */
-  name: z.string().regex(/^[A-Z][A-Za-z0-9]*$/, 'expected a lucide icon name').max(60),
+  name: z
+    .string()
+    .regex(/^[A-Z][A-Za-z0-9]*$/, 'expected a lucide icon name')
+    .max(60),
   color: hex.default('#111827'),
+  ...themed.THEMED_ICON,
   /**
    * How heavy the drawing is, against lucide's own 24-unit grid — not
    * millimetres, which is why it is not called `strokeWidth`: three separate
@@ -656,6 +859,27 @@ export const bookIconElementSchema = z.object({
    * spread moves between books, and an icon's weight is not a length.
    */
   lineWidth: z.number().min(0.25).max(4).default(2),
+});
+
+/**
+ * An illustration from the Studio's sticker library (stickers/, book-sticker.ts).
+ *
+ * The drawing is not in the document, only its id: the library is code that
+ * ships with the app, so a book stays small and every copy of a sticker draws
+ * the same. Like an icon, an id this build does not know draws nothing and
+ * costs the page nothing else. `colors` repaints the sticker's slots in order,
+ * empty for its own colours; `flipX` mirrors it, for a bird facing the other
+ * way or an arrow pointing back.
+ */
+export const bookStickerElementSchema = z.object({
+  ...elementBase,
+  kind: z.literal('sticker'),
+  stickerId: z
+    .string()
+    .regex(/^[a-z][A-Za-z0-9]*$/, 'expected a sticker id')
+    .max(48),
+  colors: z.array(hex).max(MAX_STICKER_SLOTS).default([]),
+  flipX: z.boolean().default(false),
 });
 
 /**
@@ -671,11 +895,13 @@ export const bookListElementSchema = z.object({
   ...typeset,
   kind: z.literal('list'),
   items: z
-    .array(z.object({
-      text: z.string().max(400),
-      /** Which column the line belongs to, and which mark it gets. */
-      tone: z.enum(['pro', 'con', 'plain']).default('plain'),
-    }))
+    .array(
+      z.object({
+        text: z.string().max(400),
+        /** Which column the line belongs to, and which mark it gets. */
+        tone: z.enum(['pro', 'con', 'plain']).default('plain'),
+      }),
+    )
     .max(60)
     .default([]),
   /** Pros beside cons, or one column with the marks inline. */
@@ -705,7 +931,7 @@ export const bookListElementSchema = z.object({
  */
 export const MAX_SPREAD_ELEMENTS = 90;
 
-export const bookElementSchema = z.discriminatedUnion('kind', [
+const bookElementUnion = z.discriminatedUnion('kind', [
   bookPhotoElementSchema,
   bookTextElementSchema,
   bookShapeElementSchema,
@@ -715,9 +941,25 @@ export const bookElementSchema = z.discriminatedUnion('kind', [
   bookBadgeElementSchema,
   bookListElementSchema,
   bookIconElementSchema,
+  bookStickerElementSchema,
+  bookLineElementSchema,
 ]);
+type BookElementUnion = typeof bookElementUnion;
+/**
+ * The element contract under a name of its own. The declarations of every
+ * schema that holds elements (a spread, a document, the assistant's cards and
+ * renders) then refer to it rather than spelling out all eleven kinds again;
+ * those copies made the server's typecheck run out of memory. The one member
+ * keeps the interface from being empty; it is the union's own.
+ */
+export interface BookElementSchema extends BookElementUnion {
+  readonly options: BookElementUnion['options'];
+}
+export const bookElementSchema: BookElementSchema = bookElementUnion;
 export type BookElement = z.infer<typeof bookElementSchema>;
 export type BookIconElement = z.infer<typeof bookIconElementSchema>;
+export type BookStickerElement = z.infer<typeof bookStickerElementSchema>;
+export type BookLineElement = z.infer<typeof bookLineElementSchema>;
 export type BookPhotoElement = z.infer<typeof bookPhotoElementSchema>;
 export type BookTextElement = z.infer<typeof bookTextElementSchema>;
 export type BookShapeElement = z.infer<typeof bookShapeElementSchema>;
@@ -728,7 +970,14 @@ export type BookBadgeElement = z.infer<typeof bookBadgeElementSchema>;
 export type BookListElement = z.infer<typeof bookListElementSchema>;
 export type BookUnits = z.infer<typeof bookUnitsSchema>;
 
-export const bookSpreadSchema = z.object({
+/** A named group of a spread. */
+export const bookGroupSchema = z.object({
+  id: z.string().min(1).max(BOOK_GROUP_ID_MAX),
+  name: z.string().max(BOOK_LAYER_NAME_MAX).optional(),
+});
+export type BookGroup = z.infer<typeof bookGroupSchema>;
+
+const bookSpreadObject = z.object({
   id: z.string().min(1),
   /**
    * Which leaf of the bound book this is.
@@ -742,6 +991,9 @@ export const bookSpreadSchema = z.object({
    */
   role: z.enum(['cover', 'first', 'inner', 'last', 'back']).default('inner'),
   background: hex.nullable().default(null),
+  /** A page painted beyond one flat colour; `background` keeps the colour that stands for it. */
+  backgroundPaint: bookPaintFieldSchema,
+  ...themed.THEMED_SPREAD,
   /** Back to front. */
   elements: z.array(bookElementSchema).max(MAX_SPREAD_ELEMENTS).default([]),
   /**
@@ -756,7 +1008,19 @@ export const bookSpreadSchema = z.object({
   parked: z.array(bookElementSchema).max(MAX_SPREAD_ELEMENTS).default([]),
   /** The journey entry this spread was generated from, if any. */
   entryId: z.number().int().nullable().default(null),
+  /**
+   * The names of the spread's groups. Membership is on the elements (`group`);
+   * a group without a row here is simply unnamed. A list that does not read is
+   * dropped rather than the page.
+   */
+  groups: z.array(bookGroupSchema).max(MAX_SPREAD_ELEMENTS).optional().catch(undefined),
 });
+type BookSpreadObject = typeof bookSpreadObject;
+/** The spread contract under a name of its own, for the same reason as `BookElementSchema`. */
+export interface BookSpreadSchema extends BookSpreadObject {
+  readonly shape: BookSpreadObject['shape'];
+}
+export const bookSpreadSchema: BookSpreadSchema = bookSpreadObject;
 export type BookSpread = z.infer<typeof bookSpreadSchema>;
 
 /**
@@ -789,12 +1053,14 @@ export const bookPageNumbersSchema = z.object({
    */
   autoColor: z.boolean().default(true),
   color: hex.default('#8a8578'),
-  font: z.enum(BOOK_FONTS_IDS).default('sans'),
+  font: bookCatalogueIdSchema(BOOK_FONTS_IDS).default('sans'),
 });
 export type BookPageNumbers = z.infer<typeof bookPageNumbersSchema>;
 
 export const bookPageSetupSchema = z.object({
-  preset: z.enum(['square-210', 'square-300', 'a4-landscape', 'a4-portrait', 'a5-landscape', 'custom']).default('square-210'),
+  preset: z
+    .enum(['square-210', 'square-300', 'a4-landscape', 'a4-portrait', 'a5-landscape', 'custom'])
+    .default('square-210'),
   /**
    * A single page. A double spread is drawn twice this wide.
    *
@@ -804,74 +1070,68 @@ export const bookPageSetupSchema = z.object({
    * book is what the server writes back. A nonsense dimension degrading to the
    * preset is the smaller loss by a long way.
    */
-  pageWidth: mm.refine(v => v > 0, 'page width must be positive').catch(210).default(210),
-  pageHeight: mm.refine(v => v > 0, 'page height must be positive').catch(210).default(210),
-  bleed: mm.refine(v => v >= 0, 'bleed cannot be negative').catch(3).default(3),
-  safe: mm.refine(v => v >= 0, 'safe margin cannot be negative').catch(5).default(5),
+  pageWidth: mm
+    .refine((v) => v > 0, 'page width must be positive')
+    .catch(210)
+    .default(210),
+  pageHeight: mm
+    .refine((v) => v > 0, 'page height must be positive')
+    .catch(210)
+    .default(210),
+  bleed: mm
+    .refine((v) => v >= 0, 'bleed cannot be negative')
+    .catch(3)
+    .default(3),
+  safe: mm
+    .refine((v) => v >= 0, 'safe margin cannot be negative')
+    .catch(5)
+    .default(5),
   pageNumbers: bookPageNumbersSchema.default(() => bookPageNumbersSchema.parse({})),
 });
 export type BookPageSetup = z.infer<typeof bookPageSetupSchema>;
 
-export const bookDocumentSchema = z.object({
+/** How many layouts a book keeps for reuse (#2316). */
+export const MAX_BOOK_LAYOUTS = 24;
+
+/**
+ * A spread's arrangement, kept to lay other pages out with (#2316).
+ *
+ * The design as drawn, in the millimetres of the page it was drawn on, with the
+ * pictures taken out: applying it to another page pours that page's photos and
+ * words into it, and the page size it came from scales it onto a book whose
+ * trim changed since. Stored in the book rather than per person, so everyone
+ * editing the book sees and uses the same set.
+ */
+export const bookLayoutSchema = z.object({
+  id: z.string().min(1).max(40),
+  name: z.string().trim().min(1).max(60),
+  /** Double spread or single page: a layout only fits the kind it was drawn on. */
+  role: z.enum(['inner', 'single']).default('inner'),
+  pageWidth: z.number().positive().max(2000),
+  pageHeight: z.number().positive().max(2000),
+  background: hex.nullable().default(null),
+  backgroundPaint: bookPaintFieldSchema,
+  elements: z.array(bookElementSchema).max(MAX_SPREAD_ELEMENTS).default([]),
+});
+export type BookLayout = z.infer<typeof bookLayoutSchema>;
+
+const bookDocumentObject = z.object({
   /** In the document, not in a column: a format bump must not need a migration. */
   version: z.literal(1).catch(1).default(1),
+  /** The format revision that wrote it (book-schema-rev.ts); absent, or unreadable and so dropped, reads as 1. */
+  schemaRev: z.number().int().min(1).optional().catch(undefined),
   title: z.string().max(MAX_BOOK_TITLE).default(''),
   page: bookPageSetupSchema.default(() => bookPageSetupSchema.parse({})),
   spreads: z.array(bookSpreadSchema).max(MAX_SPREADS).default([]),
+  /** The book's own layouts (#2316). Optional so a document from before still reads. */
+  layouts: z.array(bookLayoutSchema).max(MAX_BOOK_LAYOUTS).optional(),
+  /** Palette, typefaces and motifs; elements link to it through the fields of theme/book-theme.schema.ts. */
+  theme: themed.bookThemeFieldSchema,
 });
+type BookDocumentObject = typeof bookDocumentObject;
+/** The document contract under a name of its own, for the same reason as `BookElementSchema`. */
+export interface BookDocumentSchema extends BookDocumentObject {
+  readonly shape: BookDocumentObject['shape'];
+}
+export const bookDocumentSchema: BookDocumentSchema = bookDocumentObject;
 export type BookDocument = z.infer<typeof bookDocumentSchema>;
-
-/**
- * Read a stored document without ever throwing.
- *
- * Same shape as `normalizeAppearance`: a book that cannot be parsed must still
- * open — an editor that refuses to load someone's work because one field drifted
- * is worse than one that drops the field.
- *
- * ── Why there are two attempts ───────────────────────────────────────────
- *
- * Dropping *the field* was the intent; dropping the whole book was what the
- * code did. `elements` is an array of a discriminated union, so one element the
- * contract cannot read fails its spread, fails the array, fails the document —
- * and this function then handed back an empty book. It is not hypothetical: a
- * mood mark carried the journal's key in a field capped at two characters, so
- * every book with one on a page refused to save, and would have opened blank.
- * Both the client's load seam and the server's read *and* write path run
- * through here, which means the empty book was also what got written down.
- *
- * So a document that fails whole is tried again with the unreadable elements
- * removed, and only a document that fails even then is given up on. Losing one
- * decoration to a version skew is a shrug; losing the book is not.
- */
-export function normalizeBookDocument(raw: unknown): BookDocument {
-  const parsed = bookDocumentSchema.safeParse(raw);
-  if (parsed.success) return parsed.data;
-
-  const salvaged = bookDocumentSchema.safeParse(withoutUnreadableElements(raw));
-  if (salvaged.success) return salvaged.data;
-
-  return bookDocumentSchema.parse({});
-}
-
-function withoutUnreadableElements(raw: unknown): unknown {
-  if (!raw || typeof raw !== 'object') return raw;
-  const doc = raw as { spreads?: unknown };
-  if (!Array.isArray(doc.spreads)) return raw;
-
-  const readable = (list: unknown) =>
-    (Array.isArray(list)
-      // Trimmed to the cap as well as filtered: a spread that grew past 60
-      // fails the array the same way an unreadable element fails the union, and
-      // losing the sixty-first decoration beats losing the book.
-      ? list.filter(el => bookElementSchema.safeParse(el).success).slice(0, MAX_SPREAD_ELEMENTS)
-      : list);
-
-  return {
-    ...doc,
-    spreads: doc.spreads.map(sp => {
-      if (!sp || typeof sp !== 'object') return sp;
-      const spread = sp as { elements?: unknown; parked?: unknown };
-      return { ...spread, elements: readable(spread.elements), parked: readable(spread.parked) };
-    }),
-  };
-}

@@ -32,7 +32,7 @@ export default function MCollCategoryPicker({ categories, value, onChange, t }: 
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
-        className="flex w-full items-center gap-[9px] rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] px-[13px] py-[11px] text-left"
+        className="flex w-full items-center gap-[9px] rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] px-[13px] py-[11px] text-start"
       >
         <span
           className="flex h-[26px] w-[26px] flex-none items-center justify-center rounded-lg"
@@ -46,7 +46,7 @@ export default function MCollCategoryPicker({ categories, value, onChange, t }: 
         <Chevron size={15} strokeWidth={2.2} className="flex-none text-m-faint" />
       </button>
       {open && (
-        <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-[5] max-h-[210px] overflow-y-auto rounded-[14px] border border-[color:var(--m-rowbr)] bg-m-sheetop shadow-[0_20px_44px_-18px_rgba(0,0,0,.45)]">
+        <div className="absolute inset-x-0 top-[calc(100%+6px)] z-[5] max-h-[210px] overflow-y-auto rounded-[14px] border border-[color:var(--m-rowbr)] bg-m-sheetop shadow-[0_20px_44px_-18px_rgba(0,0,0,.45)]">
           {options.map((opt, i) => {
             const cat = opt.id != null ? categories.find(c => c.id === opt.id) ?? null : null
             const meta = (cat && categoryMeta(cat)) || NO_CATEGORY_META
@@ -57,7 +57,7 @@ export default function MCollCategoryPicker({ categories, value, onChange, t }: 
                 key={opt.id ?? 'none'}
                 type="button"
                 onClick={() => { onChange(opt.id); setOpen(false) }}
-                className={`flex w-full items-center gap-[10px] px-[13px] py-[10px] text-left ${i > 0 ? 'border-t border-[color:var(--m-rowbr)]' : ''}`}
+                className={`flex w-full items-center gap-[10px] px-[13px] py-[10px] text-start ${i > 0 ? 'border-t border-[color:var(--m-rowbr)]' : ''}`}
                 style={sel ? { background: tint(meta.color, '10') } : undefined}
               >
                 <span

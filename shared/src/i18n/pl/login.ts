@@ -23,10 +23,16 @@ const login: TranslationStrings = {
   'login.oidc.noEmail': 'Nie otrzymano e-maila od dostawcy.',
   'login.oidc.tokenFailed': 'Nie udało się uwierzytelnić.',
   'login.oidc.invalidState': 'Nieprawidłowa sesja. Spróbuj ponownie.',
+  'login.oidc.emailNotVerified':
+    'Twój dostawca logowania nie potwierdził tego adresu e-mail, więc nie można go powiązać z istniejącym kontem.',
+  'login.oidc.emailLinkBlocked':
+    'Nie udało się powiązać tego logowania z istniejącym kontem o tym adresie e-mail. Poproś administratora o potwierdzenie adresu.',
   'login.demoFailed': 'Nie udało się zalogować do wersji demonstracyjnej',
   'login.oidcSignIn': 'Zaloguj się z {name}',
   'login.oidcOnly': 'Uwierzytelnianie hasłem jest wyłączone. Zaloguj się za pomocą swojego dostawcy SSO.',
   'login.oidcLoggedOut': 'Zostałeś wylogowany. Zaloguj się ponownie za pomocą swojego dostawcy SSO.',
+  'login.oidcRedirecting': 'Przekierowanie do {name}…',
+  'login.oidcRedirectSlow': 'Nadal tutaj? Przejdź do {name}',
   'login.demoHint': 'Wypróbuj demo — nie wymaga rejestracji',
   'login.mfaTitle': 'Uwierzytelnianie dwuskładnikowe',
   'login.mfaSubtitle': 'Wprowadź 6-cyfrowy kod z aplikacji uwierzytelniającej.',
@@ -68,9 +74,9 @@ const login: TranslationStrings = {
   'login.setNewPasswordHint': 'Musisz zmienić hasło.',
   'login.passkey.signIn': 'Zaloguj się kluczem dostępu',
   'login.passkey.failed': 'Logowanie kluczem dostępu nie powiodło się. Spróbuj ponownie.',
-  'login.insecureCookie.title': "Login won't stick over HTTP",
+  'login.insecureCookie.title': 'Logowanie nie utrzyma się przez HTTP',
   'login.insecureCookie.body':
-    'You’re connecting over plain HTTP, so your browser drops TREK’s secure session cookie — the next request fails with "Access token required". Fix: use HTTPS, or for a home-lab set COOKIE_SECURE=false.',
-  'login.insecureCookie.link': 'Open the Troubleshooting guide',
+    'Łączysz się przez zwykłe HTTP, więc przeglądarka odrzuca bezpieczne ciasteczko sesji TREK i następne żądanie kończy się błędem "Access token required". Rozwiązanie: użyj HTTPS lub w domowym serwerze ustaw COOKIE_SECURE=false.',
+  'login.insecureCookie.link': 'Otwórz poradnik rozwiązywania problemów',
 };
 export default login;

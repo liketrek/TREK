@@ -6,16 +6,18 @@ const files: TranslationStrings = {
   'files.linkTitle': 'Bestand koppelen',
   'files.linkEmpty': 'Nog geen plaatsen of boekingen om te koppelen',
   'files.menu': 'Meer opties',
-  'files.uploadErrorSize': 'Bestand is te groot (max. 50 MB)',
+  'files.uploadErrorSize': 'Bestand is te groot (max. {max} MB)',
   'files.title': 'Bestanden',
   'files.pageTitle': 'Bestanden en documenten',
   'files.subtitle': '{count} bestanden voor {trip}',
+  'files.subtitle.one': '{count} bestand voor {trip}',
   'files.download': 'Downloaden',
   'files.openError': 'Bestand kon niet worden geopend',
   'files.downloadPdf': 'PDF downloaden',
   'files.count': '{count} bestanden',
-  'files.countSingular': '1 bestand',
+  'files.count.one': '{count} bestand',
   'files.uploaded': '{count} geüpload',
+  'files.uploaded.one': '{count} geüpload',
   'files.uploadError': 'Uploaden mislukt',
   'files.uploadErrorType': 'Dit bestandstype wordt niet ondersteund',
   'files.dropzone': 'Sleep bestanden hierheen',
@@ -36,7 +38,7 @@ const files: TranslationStrings = {
   'files.toast.deleteError': 'Bestand verwijderen mislukt',
   'files.sourcePlan': 'Dagplan',
   'files.sourceBooking': 'Boeking',
-  'files.sourceTransport': 'Transport',
+  'files.sourceTransport': 'Transport', // same-as-en
   'files.attach': 'Bijvoegen',
   'files.pasteHint': 'Je kunt ook afbeeldingen plakken vanuit het klembord (Ctrl+V)',
   'files.trash': 'Prullenbak',
@@ -49,7 +51,7 @@ const files: TranslationStrings = {
   'files.assignTitle': 'Bestand toewijzen',
   'files.assignPlace': 'Plaats',
   'files.assignBooking': 'Boeking',
-  'files.assignTransport': 'Transport',
+  'files.assignTransport': 'Transport', // same-as-en
   'files.unassigned': 'Niet toegewezen',
   'files.unlink': 'Koppeling verwijderen',
   'files.toast.trashed': 'Naar prullenbak verplaatst',
@@ -63,5 +65,13 @@ const files: TranslationStrings = {
     'Alle bestanden in de prullenbak permanent verwijderen? Dit kan niet ongedaan worden gemaakt.',
   'files.noteLabel': 'Notitie',
   'files.notePlaceholder': 'Notitie toevoegen...',
+  'files.uploadNeedsConnection': 'Uploaden heeft een verbinding nodig. Probeer het opnieuw zodra TREK weer online is.',
+  'files.linkNeedsConnection':
+    'Deze koppeling verwijderen heeft een verbinding nodig. Probeer het opnieuw zodra TREK weer online is.',
+  'files.placeFilesNeedConnection':
+    'Bestanden hebben een verbinding nodig om te uploaden. Verwijder de nieuwe om de plek offline op te slaan, of sla op zodra je weer online bent.',
+  'files.maxSize': 'Max. {count} MB',
+  'files.maxSize.one': 'Max. {count} MB',
+  'files.toast.starError': 'De ster kon niet worden gewijzigd',
 };
 export default files;

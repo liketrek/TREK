@@ -52,6 +52,8 @@ function open(journeyStats: JourneyStats, over: { canEdit?: boolean; onToggleSto
       canEdit={over.canEdit ?? true} onToggleStop={onToggleStop}
     />,
   )
+  // The stops sit under the maps they are drawn from.
+  fireEvent.click(screen.getByRole('tab', { name: 'journey.studio.travelMaps' }))
   // The section opens folded, since a fortnight of rows is longer than the
   // rest of the panel together. Every case below is about those rows, so
   // unfold unless the case is about the fold itself.
@@ -60,8 +62,8 @@ function open(journeyStats: JourneyStats, over: { canEdit?: boolean; onToggleSto
   return { onToggleStop, head }
 }
 
-const rows = () => Array.from(document.querySelectorAll('.st-stop'))
-const labels = () => rows().map(r => r.querySelector('.st-stop-label')?.textContent)
+const rows = () => Array.from(document.querySelectorAll('.st-route-stop'))
+const labels = () => rows().map(r => r.querySelector('.st-route-stop-label')?.textContent)
 const switches = () => screen.queryAllByRole('button', { name: 'journey.studio.stopToggle' })
 /** The switch of a row reads its state from the title, since it draws a mark. */
 const stateOf = (row: Element) => row.querySelector('.st-chip')?.getAttribute('title') ?? ''

@@ -148,6 +148,113 @@ outside `bounds` are dropped, and so is a hit whose own `category` names a diffe
 of those seven kinds. Both fields are absent on ordinary searches, so read them as
 optional.
 
+### Suggestions while the user types
+
+Implement `suggest` beside `search`, and your places also show up in the dropdown under
+the search box while the person is still typing: after TREK's own suggestions, marked
+with your plugin's name. It gets the same request as `search`, from the second typed
+character on, with `limit` 3 and 800 ms to answer. The dropdown keeps at most three
+plugin rows, all search plugins together, so send your best few.
+
+Leave it out when every call costs you something, such as a rate-limited API. `search`
+alone works as before, and your places then appear once the search is run. `suggest` is
+for an index you hold yourself, for example an [All the Places](https://alltheplaces.xyz/)
+extract in your plugin's own database, where a prefix match per keystroke is cheap. `near`
+tells you where the person is planning, so an index kept per country only has to load the
+country they are looking at.
+
+```js
+module.exports = {
+  hooks: {
+    searchProvider: {
+      async search(request, ctx) {
+        return lookUp(request, ctx)
+      },
+      async suggest({ query, limit }, ctx) {
+        const rows = await ctx.db.query(
+          'SELECT ref, name, lat, lng, address, website FROM places WHERE name LIKE ? LIMIT ?',
+          `${query}%`,
+          limit,
+        )
+        return rows.map(r => ({ id: r.ref, name: r.name, lat: r.lat, lng: r.lng, address: r.address, website: r.website }))
+      },
+    },
+  },
+}
+```
+
+(`ctx.db` needs `db:own`.) Picking one of your rows takes it as it is: TREK does not look
+the place up again, because no details service knows your ids. So send the address,
+website and phone with the row rather than later. TREK finds out whether your hook has
+`suggest` when the plugin starts, from the hook object itself, so a class instance with a
+`suggest` method counts as well as an object literal.
+
+## Add your own place categories to the map
+
+**Needs:** `hook:poi-category-provider` and `capabilities.poiCategories` (+
+`http:outbound:<host>` and a matching `egress` when the data lives on somebody else's
+server)
+
+The trip map has a row of category buttons (restaurants, sights, museums and so on).
+Declare up to four of your own and they appear after the built-in ones, behind a thin
+divider: trailheads, EV chargers, step-free places, drinking water, campsites, a
+community's own list. When somebody picks one, TREK asks your plugin, and only yours,
+for the places in the part of the map they are looking at.
+
+```json
+"permissions": ["hook:poi-category-provider", "http:outbound:api.example-trails.org"],
+"egress": ["api.example-trails.org"],
+"capabilities": {
+  "poiCategories": [
+    { "id": "trailheads", "label": "Trailheads",
+      "labels": { "de": "Wanderparkplätze", "fr": "Départs de randonnée" },
+      "icon": "Signpost", "color": "#2f855a" }
+  ]
+}
+```
+
+```js
+hooks: {
+  poiCategoryProvider: {
+    async getPois({ category, bounds, lang, limit }, ctx) {
+      // category is one of your declared ids, bounds is { south, west, north, east }
+      const { south, west, north, east } = bounds
+      const res = await fetch(
+        `https://api.example-trails.org/${category}?bbox=${west},${south},${east},${north}&n=${limit}&lang=${lang ?? 'en'}`,
+      )
+      const { items } = await res.json()
+      return items.map(t => ({
+        id: t.ref,                    // namespaced host-side to plugin:<yourId>:<ref>
+        name: t.name,
+        lat: t.lat,
+        lng: t.lon,
+        website: t.url,               // http/https only
+        details: [                    // at most 6 rows, label 40 and value 120 characters
+          { label: 'Length', value: `${t.km} km` },
+          { label: 'Surface', value: t.surface },
+        ],
+      }))
+    },
+  },
+},
+```
+
+`icon` is one of a fixed list of lucide names (`POI_CATEGORY_ICONS` in the SDK) and
+`color` is `#rrggbb` only. The button and every marker use exactly those, whatever your
+answer says. The button is named `labels[<user's language>]` when you ship one, `label`
+otherwise.
+
+`bounds` is the viewport, narrowed to at most 0.5 degrees a side. The host keeps at most
+60 places inside it, caps every string and gives you 8 seconds; a timeout or a throw
+puts an error dot on your button only, and the built-in buttons never wait for it. You
+are called when somebody picks the button or presses **Search this area**, never on a
+pan. The hook runs as that user, so `ctx.settings.get(key)` reads their own settings (a
+wheelchair profile, say), and nothing is cached. The `details` rows show in the marker's
+hover card on the desktop, and a click on a marker opens the place form filled in from
+your answer. A declaration without the permission still installs, but no button ever
+appears; `trek-plugin validate` tells you. The full contract is under
+[Provider hooks](Plugin-Development#provider-hooks).
+
 ## Raise validation warnings on a trip
 
 **Needs:** `hook:trip-warning-provider`
@@ -270,7 +377,7 @@ The recipient is **forced** by the host: `scope:'user'` can only reach the actin
 **Needs:** `hook:notification-channel` + `http:outbound:<host>` (and a matching `egress`)
 
 The recipe above *produces* a notification. This one **delivers** one — your plugin becomes a
-channel next to email / webhook / ntfy in the user's notification preferences.
+channel next to email / webhook / ntfy / Web Push in the user's notification preferences.
 
 ```bash
 npx create-trek-plugin my-gotify --type integration --template notification-channel

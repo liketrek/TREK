@@ -6,7 +6,7 @@ const notifications: TranslationStrings = {
   'notifications.deleteAll': 'Tümünü sil',
   'notifications.showAll': 'Tüm bildirimleri göster',
   'notifications.empty': 'Bildirim yok',
-  'notifications.emptyDescription': "You're all caught up!",
+  'notifications.emptyDescription': 'Her şeyi gördün!',
   'notifications.all': 'Tümü',
   'notifications.unreadOnly': 'Okunmamış',
   'notifications.markRead': 'Okundu işaretle',
@@ -32,5 +32,9 @@ const notifications: TranslationStrings = {
   'notifications.test.adminText': '{actor} tüm yöneticilere test bildirimi gönderdi.',
   'notifications.test.tripTitle': '{actor} seyahatinizde bir şey paylaştı',
   'notifications.test.tripText': '"{trip}" seyahati için test bildirimi.',
+  'notifications.countLabel': 'bildirim',
+  'notifications.countLabel.one': 'bildirim',
+  'notifications.deleteAllConfirmTitle': 'Tüm bildirimler silinsin mi?',
+  'notifications.deleteAllConfirmText': 'Tüm bildirimler kalıcı olarak silinir. Bu işlem geri alınamaz.',
 };
 export default notifications;

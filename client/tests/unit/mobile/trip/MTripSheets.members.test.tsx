@@ -11,9 +11,8 @@ import { render, screen, waitFor } from '../../../helpers/render'
 
 // FE-MOB-SHOST-030 to FE-MOB-SHOST-031 (001 to 029 and 032 live in MTripSheets.test.tsx)
 //
-// The phone has no share sheet of its own: the Mehr sheet opens the desktop
-// TripMembersModal through this host. Every other sheet is stubbed away so the real
-// modal is what the phone user gets (#2478).
+// The Mehr sheet opens the phone's own MTripSettingsSheet through this host. Every
+// other sheet is stubbed away so the real sheet is what the phone user gets (#2478).
 
 vi.mock('../../../../src/mobile/screens/trip/sheets/MPlaceSheet', () => ({ default: () => null }))
 vi.mock('../../../../src/mobile/screens/trip/sheets/MDaySheet', () => ({ default: () => null }))
@@ -39,7 +38,7 @@ vi.mock('../../../../src/mobile/screens/settings/MConfirmSheet', () => ({ defaul
 vi.mock('../../../../src/components/Planner/BookingImportModal', () => ({ default: () => null }))
 vi.mock('../../../../src/components/Planner/AirTrailImportModal', () => ({ default: () => null }))
 vi.mock('../../../../src/components/Planner/TransitJourneyModal', () => ({ default: () => null }))
-vi.mock('../../../../src/components/Trips/TripFormModal', () => ({ default: () => null }))
+vi.mock('../../../../src/mobile/screens/dashboard/MNewTripSheet', () => ({ default: () => null }))
 
 import MTripSheets from '../../../../src/mobile/screens/trip/sheets/MTripSheets'
 

@@ -31,5 +31,13 @@ const notifications: TranslationStrings = {
   'notifications.test.adminText': 'أرسل {actor} إشعاراً تجريبياً لجميع المسؤولين.',
   'notifications.test.tripTitle': 'نشر {actor} في رحلتك',
   'notifications.test.tripText': 'إشعار تجريبي للرحلة "{trip}".',
+  'notifications.countLabel': 'إشعار',
+  'notifications.countLabel.zero': 'إشعارات',
+  'notifications.countLabel.one': 'إشعار',
+  'notifications.countLabel.two': 'إشعاران',
+  'notifications.countLabel.few': 'إشعارات',
+  'notifications.countLabel.many': 'إشعارًا',
+  'notifications.deleteAllConfirmTitle': 'حذف كل الإشعارات؟',
+  'notifications.deleteAllConfirmText': 'ستُحذف كل الإشعارات نهائيًا. لا يمكن التراجع عن ذلك.',
 };
 export default notifications;

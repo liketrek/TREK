@@ -1,73 +1,42 @@
 #!/usr/bin/env node
 /*
- * theme:lint — guards the appearance token system.
+ * theme:lint: styling that bypasses the appearance tokens may only go down.
  *
- * Flags styling that bypasses the design tokens and therefore won't follow a
- * user's chosen scheme / transparency / text-size:
- *   - inline color literals  (color: '#111', background: 'rgba(...)', boxShadow: '...rgba...')
- *   - inline numeric fontSize (fontSize: 13)
- *   - arbitrary-value Tailwind color classes (bg-[#..], text-[rgba(..)])
+ * A user picks a colour scheme, an accent, transparency and a text size, and
+ * applyAppearance() turns that into CSS variables. A colour literal, a palette
+ * class, a raw text size or a z-index of its own never hears about any of it,
+ * so the surface stays light in a dark scheme, keeps indigo under a red
+ * accent, or ignores the text size setting. The contract is in
+ * src/theme/README.md; this counts what of it source shows, per file under
+ * src/ (tests excluded):
  *
- * ALLOWED (never flagged): var(--token) inline styles, bg-[var(--..)] classes,
- * and genuinely dynamic values (data-driven colors, computed sizes/positions).
+ *   arbitrary-color   bg-[#..], text-[rgba(..)] and the like
+ *   inline-color      color: '#111', background: 'rgba(...)' in a style
+ *   inline-font-size  fontSize: 13
+ *   palette-class     bg-gray-100, text-indigo-600, bg-white, text-black
+ *   raw-text-size     text-xs, text-sm ... text-9xl instead of the type tiers
+ *   z-index-literal   z-[9999], zIndex: 10000 above Tailwind's z-50, instead of
+ *                     a step of the layering scale (--z-bar ... --z-toast)
+ *   dark-mode-read    reading settings.dark_mode instead of the .dark class
  *
- * Mirrors the i18n:parity gate. Default mode reports a baseline and exits 0;
- * `--strict` exits non-zero when any violations remain (for once the backlog is
- * burned down, or wired to changed files only). Add `theme-lint-disable` in a
- * line comment to suppress an intentional exception (map/PDF/brand colors).
+ * Each file may hold no more hits than its entry in scripts/theme-baseline.json
+ * (a file without an entry holds none). A line that is literal on purpose (map
+ * paint, PDF, brand colours) carries `theme-lint-disable` in a comment; those
+ * lines are counted against scripts/theme-disable-baseline.json, so the marker
+ * cannot quietly take the place of the tokens. An entry of either baseline
+ * above what its file holds now, or for a file that is gone, fails as well
+ * until --update lowers it.
+ *
+ *   npm run theme:lint              check against the baselines (CI)
+ *   npm run theme:lint -- --list    print every hit, file by file
+ *   npm run theme:lint -- --update  lower both baselines to what the files hold now;
+ *                                   it never raises an entry
+ *
+ * The matching lives in scripts/lib/theme.mjs.
  */
-import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { runCli } from './lib/ratchet.mjs';
+import { check } from './lib/theme.mjs';
 
-let SRC = new URL('../src', import.meta.url).pathname;
-if (process.platform === 'win32' && SRC.startsWith('/')) SRC = SRC.slice(1);
-
-// Surfaces where CSS variables genuinely cannot reach (injected map HTML, WebGL
-// paint, standalone PDF documents) — colors there must stay literal.
-const EXEMPT = [
-  /Mapbox/i, /placePopup/i, /marker/i, /popup/i, /TripPDF/, /JourneyBookPDF/,
-  /MapViewGL/, /MapView\./, /JourneyMapGL/, /reservationsMapbox/, /useAtlas/,
-  /ReservationOverlay/, /\.test\./, /\.spec\./,
-];
-
-const ARB_CLASS = /\b(?:bg|text|border|ring|fill|stroke|from|via|to|shadow|outline|decoration|divide|caret)-\[\s*(?:#|rgba?\(|hsla?\(|oklch\()/;
-const INLINE_COLOR = /(?:color|background|backgroundColor|borderColor|border|borderTop|borderBottom|borderLeft|borderRight|boxShadow|fill|stroke|outline|textDecorationColor)\s*:\s*['"`]?\s*(?:#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(|oklch\()/;
-const INLINE_FONTSIZE = /fontSize\s*:\s*['"`]?\d/;
-
-function walk(dir, files = []) {
-  for (const name of readdirSync(dir)) {
-    const p = join(dir, name);
-    if (statSync(p).isDirectory()) walk(p, files);
-    else if (/\.(ts|tsx)$/.test(name)) files.push(p);
-  }
-  return files;
-}
-
-const strict = process.argv.includes('--strict');
-const offenders = [];
-let total = 0;
-
-for (const f of walk(SRC)) {
-  if (EXEMPT.some((re) => re.test(f))) continue;
-  let count = 0;
-  for (const line of readFileSync(f, 'utf8').split('\n')) {
-    if (line.includes('theme-lint-disable')) continue;
-    if (ARB_CLASS.test(line) || INLINE_COLOR.test(line) || INLINE_FONTSIZE.test(line)) count++;
-  }
-  if (count) {
-    offenders.push([relative(SRC, f).replace(/\\/g, '/'), count]);
-    total += count;
-  }
-}
-
-offenders.sort((a, b) => b[1] - a[1]);
-console.log(`theme:lint — ${total} hardcoded-style hits across ${offenders.length} files (map/PDF excluded).`);
-for (const [f, c] of offenders.slice(0, 20)) console.log(`  ${String(c).padStart(4)}  ${f}`);
-if (offenders.length > 20) console.log(`  … and ${offenders.length - 20} more files.`);
-console.log('\nNew/changed code must use tokens (bg-surface / text-content / bg-accent / var(--..)) and the');
-console.log('text-title/subtitle/body/caption tiers — never inline #hex, never bg-[#..]. See src/theme/README.md.');
-
-if (strict && total > 0) {
-  console.error(`\n✖ theme:lint:strict — ${total} violations remain.`);
-  process.exit(1);
-}
+const root = fileURLToPath(new URL('..', import.meta.url));
+await runCli('theme:lint', (args) => check({ root, update: args.includes('--update'), list: args.includes('--list') }));

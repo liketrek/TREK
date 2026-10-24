@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types';
+
+const tourPacking: TranslationStrings = {
+  'tours.packing.label': "Llista d'equipatge",
+  'tours.packing.none': "Cap llista d'equipatge vinculada",
+  'tours.packing.link': "Vincula una llista d'equipatge",
+  'tours.packing.change': 'Canvia',
+  'tours.packing.whole': "Tota la llista d'equipatge",
+  'tours.packing.packed': '{packed} de {count} empaquetats',
+  'tours.packing.packed.one': '{packed} de {count} empaquetat',
+  'tours.packing.more': '+{count} més',
+  'tours.packing.more.one': '+{count} més',
+  'tours.packing.items': '{count} articles',
+  'tours.packing.items.one': '{count} article',
+  'tours.packing.allPacked': 'Tot empaquetat',
+  'tours.packing.open': "Obre la llista d'equipatge",
+  'tours.packing.missing': '«{name}» ja no té articles que puguis veure.',
+  'tours.packing.emptyList': "La llista d'equipatge encara és buida.",
+  'tours.packing.emptyCategory': '«{name}» encara no té articles.',
+  'tours.packing.addonOff': "Les llistes d'equipatge estan desactivades, així que la llista no es pot mostrar.",
+  'tours.packing.loadFailed': "No s'ha pogut carregar el vincle amb la llista d'equipatge.",
+  'tours.packing.dialogSub': 'Només un vincle. La llista i els seus articles es queden on són.',
+  'tours.packing.choose': 'Vincula amb',
+  'tours.packing.confirm': 'Vincula',
+  'tours.packing.unlink': 'Treu el vincle',
+  'tours.packing.unlinkHint': "La llista d'equipatge i els seus articles queden com són",
+  'tours.packing.linked': "Llista d'equipatge vinculada.",
+  'tours.packing.unlinked': "Vincle tret. La llista d'equipatge queda com és.",
+  'tours.packing.failed': "No s'ha pogut desar el vincle.",
+};
+export default tourPacking;

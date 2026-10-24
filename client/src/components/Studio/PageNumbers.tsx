@@ -1,5 +1,5 @@
 import type { BookPageSetup, BookSpread } from '@trek/shared'
-import { fontStack } from './bookFonts'
+import { fontStack, nearestWeight } from './bookFonts'
 import { folioInk } from './folioColour'
 import { isNumbered } from './bookSheets'
 
@@ -94,7 +94,7 @@ export function PageNumbers({
               textAlign: at.align,
               fontFamily: fontStack(cfg.font),
               fontSize: `${size}pt`,
-              fontWeight: 500,
+              fontWeight: nearestWeight(cfg.font, 500),
               letterSpacing: '0.08em',
               lineHeight: 1,
               color: ink.color,

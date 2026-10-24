@@ -123,6 +123,8 @@ function buildTl(over: Record<string, unknown> = {}): MPlanTimelineController {
     setLegMode: vi.fn(),
     transitLegFor: vi.fn(() => null),
     planTransitLeg: vi.fn(),
+    journeyLate: vi.fn(() => null),
+    tourOverrun: vi.fn(() => null),
     ...over,
   } as unknown as MPlanTimelineController
 }
@@ -331,6 +333,13 @@ describe('MPlanTimeline', () => {
       expect(screen.getByText('transit.min:15')).toBeInTheDocument()
     })
 
+    it('FE-MOB-PLTL-014b: a transit row says when it now arrives after the next city walk starts (CW-08)', () => {
+      renderTimeline({ journeyLate: vi.fn(() => ({ walk: 'Harbour', time: '13:00' })) })
+
+      expect(mocks.tl.journeyLate).toHaveBeenCalledWith(expect.objectContaining({ type: 'transport' }))
+      expect(screen.getByTestId('transit-walk-late')).toBeInTheDocument()
+    })
+
     it('FE-MOB-PLTL-015: a note row opens the note sheet with its note in edit mode', () => {
       const { shell } = renderTimeline({}, {}, { mode: 'edit' })
 
@@ -355,6 +364,41 @@ describe('MPlanTimeline', () => {
 
       expect(mocks.tl.moveRow).toHaveBeenNthCalledWith(1, M_PLACE, 'down')
       expect(mocks.tl.moveRow).toHaveBeenNthCalledWith(2, M_PLACE2, 'up')
+    })
+  })
+
+  describe('Tours read-only timeline integration', () => {
+    const tour = { ...MUSEUM, id: 91, place_id: 901,
+      place: { ...MUSEUM.place, id: 901, name: 'Assigned Tour' }, tour_place_id: 901 } as Assignment
+    const item: MergedItem = { type: 'place', sortKey: 0, data: tour }
+    const row: PlanRow = { key: 'pl-91', kind: 'place', item, assignment: tour, linkedReservations: [], invalidTour: true }
+
+    it('shows one localized invalid-endpoint warning and selects the Tour through the shared Place path', () => {
+      const { planner } = renderTimeline({ rows: [row], merged: [item], upNext: null }, { toursEnabled: true, tours: [] })
+
+      expect(screen.getAllByText('tours.dayRoute.endpointUnknown')).toHaveLength(1)
+      fireEvent.click(screen.getByText('Assigned Tour'))
+      expect(planner.handlePlaceClick).toHaveBeenCalledWith(901, 91)
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      expect(screen.queryByText('tour-planner')).not.toBeInTheDocument()
+    })
+
+    it('does not show the warning for valid status or with Tours disabled', () => {
+      const validRow: PlanRow = { ...row, invalidTour: false }
+      const first = renderTimeline({ rows: [validRow], merged: [item], upNext: null }, { toursEnabled: true, tours: [] })
+      expect(screen.queryByText('tours.dayRoute.endpointUnknown')).not.toBeInTheDocument()
+      first.unmount()
+
+      renderTimeline({ rows: [row], merged: [item], upNext: null }, { toursEnabled: false })
+      expect(screen.queryByText('tours.dayRoute.endpointUnknown')).not.toBeInTheDocument()
+    })
+
+    it('TIME-02-020: a tour row says when its end runs into the next timed item, read from the shared timeline logic', () => {
+      const validRow: PlanRow = { ...row, invalidTour: false }
+      const tourOverrun = vi.fn(() => ({ name: 'Lunch', time: '12:00', end: '13:00' }))
+      renderTimeline({ rows: [validRow], merged: [item], upNext: null, tourOverrun }, { toursEnabled: true, tours: [] })
+      expect(tourOverrun).toHaveBeenCalledWith(item)
+      expect(screen.getByTestId('tour-day-overrun')).toBeInTheDocument()
     })
   })
 
@@ -400,7 +444,7 @@ describe('MPlanTimeline', () => {
       expect(mocks.tl.transitLegFor).toHaveBeenCalledWith(SEG)
       fireEvent.click(screen.getByText('transit.title'))
 
-      expect(mocks.tl.planTransitLeg).toHaveBeenCalledWith(leg)
+      expect(mocks.tl.planTransitLeg).toHaveBeenCalledWith(leg, 11)
       expect(mocks.tl.setLegMode).not.toHaveBeenCalled()
     })
 

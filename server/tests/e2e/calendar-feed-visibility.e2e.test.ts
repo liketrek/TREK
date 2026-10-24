@@ -8,42 +8,35 @@
  * real migrated SQLite instead, and asserts on the bytes a calendar client
  * would receive.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import request from 'supertest';
-import type { Server } from 'http';
+import { db } from '../../src/db/database';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { FeedsModule } from '../../src/nest/feeds/feeds.module';
+import { makeReservation } from '../helpers/factories/reservations';
+import { makeTrip, readTripDays } from '../helpers/factories/trips';
+import { makeUser } from '../helpers/factories/users';
+import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
 import { Test } from '@nestjs/testing';
 
-const { db } = vi.hoisted(() => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const Database = require('better-sqlite3');
-  const tmp = new Database(':memory:');
-  tmp.exec('PRAGMA journal_mode = WAL');
-  return { db: tmp };
+import type { Server } from 'http';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+
+vi.mock('../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
 });
-
-vi.mock('../../src/db/database', () => ({
-  db,
-  canAccessTrip: (tripId: number | string, userId: number) =>
-    db.prepare('SELECT id, user_id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
-  isOwner: () => true,
-  getPlaceWithTags: () => null,
-  closeDb: () => {},
-  reinitialize: () => {},
-}));
-
-import { createTables } from '../../src/db/schema';
-import { runMigrations } from '../../src/db/migrations';
-import { DatabaseModule } from '../../src/nest/database/database.module';
-import { FeedsModule } from '../../src/nest/feeds/feeds.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 
 describe('Calendar feed visibility e2e (real CalendarService over temp SQLite)', () => {
   let server: Server;
   let app: Awaited<ReturnType<typeof build>>;
   let feedToken: string;
+  let orm: TestOrm;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, FeedsModule] }).compile();
+    const moduleRef = await Test.createTestingModule({
+      imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), FeedsModule],
+    }).compile();
     const nest = moduleRef.createNestApplication();
     nest.useGlobalFilters(new TrekExceptionFilter());
     await nest.init();
@@ -51,20 +44,34 @@ describe('Calendar feed visibility e2e (real CalendarService over temp SQLite)',
   }
 
   beforeAll(async () => {
-    createTables(db);
-    runMigrations(db);
-    db.prepare(
-      "INSERT INTO users (id, username, email, password_hash, role) VALUES (1, 'e2e-user', 'e2e@example.test', 'x', 'user')",
-    ).run();
+    // Seeded through MikroORM (tests/helpers/factories), not raw SQL.
+    orm = await createTestOrm(db);
+    const { user } = await makeUser(orm, { username: 'e2e-user', email: 'e2e@example.test' });
     feedToken = 'feed-token-visibility';
-    db.prepare(
-      "INSERT INTO trips (id, user_id, title, start_date, end_date, feed_token) VALUES (1, 1, 'Kyoto', '2026-09-01', '2026-09-05', ?)",
-    ).run(feedToken);
-    db.prepare("INSERT INTO days (id, trip_id, day_number, date) VALUES (1, 1, 1, '2026-09-01')").run();
-    db.prepare(`INSERT INTO reservations (trip_id, day_id, title, type, status, reservation_time, confirmation_number, ingest_state)
-      VALUES (1, 1, 'Parked Flight', 'flight', 'confirmed', '2026-09-01T08:00', 'SECRET1', 'staged')`).run();
-    db.prepare(`INSERT INTO reservations (trip_id, day_id, title, type, status, reservation_time, confirmation_number)
-      VALUES (1, 1, 'Booked Flight', 'flight', 'confirmed', '2026-09-01T12:00', 'OPEN1')`).run();
+    const trip = await makeTrip(orm, user.id, {
+      title: 'Kyoto',
+      start_date: '2026-09-01',
+      end_date: '2026-09-05',
+      feed_token: feedToken,
+    });
+    const [firstDay] = await readTripDays(orm, trip.id);
+    await makeReservation(orm, trip.id, {
+      day: firstDay.id,
+      title: 'Parked Flight',
+      type: 'flight',
+      status: 'confirmed',
+      reservation_time: '2026-09-01T08:00',
+      confirmation_number: 'SECRET1',
+      ingest_state: 'staged',
+    });
+    await makeReservation(orm, trip.id, {
+      day: firstDay.id,
+      title: 'Booked Flight',
+      type: 'flight',
+      status: 'confirmed',
+      reservation_time: '2026-09-01T12:00',
+      confirmation_number: 'OPEN1',
+    });
 
     app = await build();
     server = app.getHttpServer();
@@ -72,6 +79,7 @@ describe('Calendar feed visibility e2e (real CalendarService over temp SQLite)',
 
   afterAll(async () => {
     await app.close();
+    await orm.close();
   });
 
   it('the public feed serves the live booking and neither the staged one nor its confirmation number', async () => {

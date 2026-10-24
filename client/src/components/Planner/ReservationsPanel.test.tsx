@@ -1,5 +1,5 @@
 // FE-COMP-RES-001 to FE-COMP-RES-040, FE-PLANNER-RESP-016 to FE-PLANNER-RESP-080
-import { render, screen, fireEvent, waitFor, act } from '../../../tests/helpers/render';
+import { render, screen, fireEvent, waitFor, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
@@ -11,10 +11,15 @@ import { usePluginStore } from '../../store/pluginStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildTrip, buildReservation, buildDay, buildPlace } from '../../../tests/helpers/factories';
 import { openFile } from '../../utils/fileDownload';
+import { formatMoney } from '../../utils/formatters';
 import ReservationsPanel from './ReservationsPanel';
 
 vi.mock('../../api/authUrl', () => ({ getAuthUrl: vi.fn().mockResolvedValue('http://test/file') }));
 vi.mock('../../utils/fileDownload', () => ({ openFile: vi.fn(async () => {}) }));
+
+// A card shows a price the way formatMoney writes it; getByText collapses the
+// no-break space Intl puts between amount and symbol, so the expectation does too.
+const money = (amount: number, currency: string) => formatMoney(amount, currency, 'en').replace(/\s/g, ' ');
 
 const defaultProps = {
   tripId: 1,
@@ -27,6 +32,23 @@ const defaultProps = {
   onDelete: vi.fn(),
   onNavigateToFiles: vi.fn(),
 };
+
+/** The question a delete asks sits in its own portal; its Delete is the last one on the page. */
+const confirmDeleteButton = () => {
+  const buttons = screen.getAllByRole('button', { name: 'Delete' });
+  return buttons[buttons.length - 1];
+};
+
+/** A card's head band carries its own Edit and Delete, named by their tooltips. */
+const cardAction = (title: string, name: 'Edit' | 'Delete') =>
+  within(screen.getByRole('article', { name: title })).getByRole('button', { name });
+
+/** The filters sit behind the Filter button in the bar. */
+async function openFilters(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('button', { name: 'Filter' }));
+}
+
+const FILTER_KEY = 'trek-bookings-filters-bookings-1';
 
 beforeEach(() => {
   resetAllStores();
@@ -137,8 +159,7 @@ describe('ReservationsPanel', () => {
     const onEdit = vi.fn();
     const res = buildReservation({ id: 77, title: 'Editable Res', type: 'hotel', status: 'confirmed' });
     render(<ReservationsPanel {...defaultProps} reservations={[res]} onEdit={onEdit} />);
-    const editBtn = screen.getByTitle('Edit');
-    await user.click(editBtn);
+    await user.click(cardAction('Editable Res', 'Edit'));
     expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ id: 77 }));
   });
 
@@ -147,10 +168,9 @@ describe('ReservationsPanel', () => {
     const onDelete = vi.fn().mockResolvedValue(undefined);
     const res = buildReservation({ id: 88, title: 'Delete Me', type: 'hotel', status: 'confirmed' });
     render(<ReservationsPanel {...defaultProps} reservations={[res]} onDelete={onDelete} />);
-    await user.click(screen.getByTitle('Delete'));
-    // Confirm dialog appears — click the Confirm button
-    const confirmBtn = await screen.findByText('Confirm');
-    await user.click(confirmBtn);
+    await user.click(cardAction('Delete Me', 'Delete'));
+    await screen.findByText(/will be permanently deleted/i);
+    await user.click(confirmDeleteButton());
     await waitFor(() => expect(onDelete).toHaveBeenCalledWith(88));
   });
 
@@ -225,19 +245,17 @@ describe('ReservationsPanel', () => {
     seedStore(useSettingsStore, { settings: { time_format: '24h', blur_booking_codes: true, temperature_unit: 'celsius', language: 'en', dark_mode: false, default_currency: 'USD', map_tile_url: '', show_place_description: false } });
     const res = buildReservation({ confirmation_number: 'ABC123', status: 'confirmed' });
     render(<ReservationsPanel {...defaultProps} reservations={[res]} />);
-    const codeEl = screen.getByText('ABC123');
-    expect(codeEl.style.filter).toContain('blur');
+    expect(screen.getByText('ABC123').className).toContain('blur-[4px]');
   });
 
-  it('FE-PLANNER-RESP-023: confirmation code revealed on hover when blurred', async () => {
-    const user = userEvent.setup();
+  it('FE-PLANNER-RESP-023: a blurred confirmation code uncovers on hover', () => {
     seedStore(useSettingsStore, { settings: { time_format: '24h', blur_booking_codes: true, temperature_unit: 'celsius', language: 'en', dark_mode: false, default_currency: 'USD', map_tile_url: '', show_place_description: false } });
     const res = buildReservation({ confirmation_number: 'ABC123', status: 'confirmed' });
     render(<ReservationsPanel {...defaultProps} reservations={[res]} />);
     const codeEl = screen.getByText('ABC123');
-    expect(codeEl.style.filter).toContain('blur');
-    await user.hover(codeEl);
-    expect(codeEl.style.filter).toBe('none');
+    expect(codeEl.className).toContain('blur-[4px]');
+    // The hover reveal is the stylesheet's: the blur drops while the pointer rests on it.
+    expect(codeEl.className).toContain('hover:blur-none');
   });
 
   const layoverFlight = () => buildReservation({
@@ -261,16 +279,17 @@ describe('ReservationsPanel', () => {
     expect(screen.queryByText('BER → HND')).not.toBeInTheDocument();
   });
 
-  it('FE-PLANNER-RESP-078: a segment code obeys blur_booking_codes and reveals with the card', async () => {
+  it('FE-PLANNER-RESP-078: a segment code obeys blur_booking_codes and uncovers on its own', async () => {
     const user = userEvent.setup();
     seedStore(useSettingsStore, { settings: { time_format: '24h', blur_booking_codes: true, temperature_unit: 'celsius', language: 'en', dark_mode: false, default_currency: 'USD', map_tile_url: '', show_place_description: false } });
     render(<ReservationsPanel {...defaultProps} reservations={[layoverFlight()]} />);
     const legCode = screen.getByText('ABC123');
-    expect(legCode.style.filter).toContain('blur');
-    // One reveal per card, not per segment: the booking's own cell uncovers too.
-    await user.hover(legCode);
-    expect(legCode.style.filter).toBe('none');
-    expect(screen.getByText('BOOK1').style.filter).toBe('none');
+    expect(legCode.className).toContain('blur-[4px]');
+    await user.click(legCode);
+    expect(legCode).toHaveAttribute('aria-pressed', 'true');
+    expect(legCode.className).not.toContain('blur-[4px]');
+    // Each code is its own reveal: the booking's reference stays covered.
+    expect(screen.getByText('BOOK1').className).toContain('blur-[4px]');
   });
 
   it('FE-PLANNER-RESP-024: reservation notes are shown', () => {
@@ -359,8 +378,8 @@ describe('ReservationsPanel', () => {
     seedStore(usePermissionsStore, { permissions: { reservation_edit: 'admin' } });
     const res = buildReservation({ title: 'Read Only', status: 'confirmed' });
     render(<ReservationsPanel {...defaultProps} reservations={[res]} />);
-    expect(screen.queryByTitle('Edit')).not.toBeInTheDocument();
-    expect(screen.queryByTitle('Delete')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument();
   });
 
   // ── Delete confirmation ─────────────────────────────────────────────────────
@@ -369,8 +388,7 @@ describe('ReservationsPanel', () => {
     const user = userEvent.setup();
     const res = buildReservation({ id: 99, title: 'Paris Hotel', status: 'confirmed' });
     render(<ReservationsPanel {...defaultProps} reservations={[res]} />);
-    await user.click(screen.getByTitle('Delete'));
-    // The dialog body contains the title in the delete message
+    await user.click(cardAction('Paris Hotel', 'Delete'));
     const dialogBody = await screen.findByText(/will be permanently deleted/i);
     expect(dialogBody.textContent).toContain('Paris Hotel');
   });
@@ -380,24 +398,22 @@ describe('ReservationsPanel', () => {
     const onDelete = vi.fn();
     const res = buildReservation({ id: 100, title: 'Cancel Test', status: 'confirmed' });
     render(<ReservationsPanel {...defaultProps} reservations={[res]} onDelete={onDelete} />);
-    await user.click(screen.getByTitle('Delete'));
-    const cancelBtn = await screen.findByText('Cancel');
-    await user.click(cancelBtn);
+    await user.click(cardAction('Cancel Test', 'Delete'));
+    await user.click(await screen.findByRole('button', { name: 'Cancel' }));
     expect(onDelete).not.toHaveBeenCalled();
-    expect(screen.queryByText('Cancel')).not.toBeInTheDocument();
+    expect(screen.queryByText(/will be permanently deleted/i)).not.toBeInTheDocument();
   });
 
   it('FE-PLANNER-RESP-036: clicking backdrop closes delete confirm dialog', async () => {
     const user = userEvent.setup();
     const res = buildReservation({ id: 101, title: 'Backdrop Test', status: 'confirmed' });
     render(<ReservationsPanel {...defaultProps} reservations={[res]} />);
-    await user.click(screen.getByTitle('Delete'));
-    // Dialog is visible
-    await screen.findByText('Cancel');
-    // Click the fixed backdrop (the outermost div of the portal)
-    const backdrop = document.querySelector('[style*="position: fixed"]') as HTMLElement;
-    await user.click(backdrop!);
-    await waitFor(() => expect(screen.queryByText('Cancel')).not.toBeInTheDocument());
+    await user.click(cardAction('Backdrop Test', 'Delete'));
+    const body = await screen.findByText(/will be permanently deleted/i);
+    // The dimmed layer around the question is the outermost element of its portal.
+    const backdrop = body.closest('.fixed.inset-0') as HTMLElement;
+    fireEvent.click(backdrop);
+    await waitFor(() => expect(screen.queryByText(/will be permanently deleted/i)).not.toBeInTheDocument());
   });
 
   // ── Files ───────────────────────────────────────────────────────────────────
@@ -508,14 +524,22 @@ describe('ReservationsPanel', () => {
   });
 
   // AirTrail sync badge — three states (#1646)
-  it('FE-PLANNER-RESP-046: a synced AirTrail flight shows the AirTrail badge', () => {
+  /** Hovers the AirTrail badge and returns the tooltip it raises. */
+  async function airTrailTooltip(user: ReturnType<typeof userEvent.setup>, badgeText: string) {
+    await user.hover(screen.getByText(badgeText));
+    return screen.findByRole('tooltip');
+  }
+
+  it('FE-PLANNER-RESP-046: a synced AirTrail flight shows the AirTrail badge', async () => {
+    const user = userEvent.setup();
     const res = buildReservation({ title: 'Synced flight', type: 'flight', external_source: 'airtrail', sync_enabled: 1 } as any);
     render(<ReservationsPanel {...defaultProps} reservations={[res]} />);
-    expect(screen.getByTitle('Synced from AirTrail — edits stay in sync both ways.')).toBeInTheDocument();
     expect(screen.queryByText('Not synced')).not.toBeInTheDocument();
+    expect(await airTrailTooltip(user, 'AirTrail')).toHaveTextContent('Synced from AirTrail — edits stay in sync both ways.');
   });
 
-  it('FE-PLANNER-RESP-047: a multi-leg import shows the layover hint, not the "removed" message', () => {
+  it('FE-PLANNER-RESP-047: a multi-leg import shows the layover hint, not the "removed" message', async () => {
+    const user = userEvent.setup();
     const res = buildReservation({
       title: 'Layover flight', type: 'flight', external_source: 'airtrail', sync_enabled: 0,
       metadata: JSON.stringify({ legs: [{ from: 'AMS' }, { from: 'IST' }] }),
@@ -524,19 +548,20 @@ describe('ReservationsPanel', () => {
     // Not falsely labelled "Not synced" / "removed in AirTrail"…
     expect(screen.queryByText('Not synced')).not.toBeInTheDocument();
     // …and carries the truthful layover explanation.
-    expect(
-      screen.getByTitle('Imported from AirTrail. A multi-leg flight with a layover has no single AirTrail flight to sync back to, so it stays as a one-time import.'),
-    ).toBeInTheDocument();
+    expect(await airTrailTooltip(user, 'AirTrail')).toHaveTextContent(
+      'Imported from AirTrail. A multi-leg flight with a layover has no single AirTrail flight to sync back to, so it stays as a one-time import.',
+    );
   });
 
-  it('FE-PLANNER-RESP-048: a single-leg flight removed upstream still shows "Not synced"', () => {
+  it('FE-PLANNER-RESP-048: a single-leg flight removed upstream still shows "Not synced"', async () => {
+    const user = userEvent.setup();
     const res = buildReservation({ title: 'Removed flight', type: 'flight', external_source: 'airtrail', sync_enabled: 0 } as any);
     render(<ReservationsPanel {...defaultProps} reservations={[res]} />);
-    expect(screen.getByText('Not synced')).toBeInTheDocument();
-    expect(screen.getByTitle('This flight was removed in AirTrail and no longer syncs.')).toBeInTheDocument();
+    expect(await airTrailTooltip(user, 'Not synced')).toHaveTextContent('This flight was removed in AirTrail and no longer syncs.');
   });
 
-  it('FE-PLANNER-RESP-049: a flight grown into multiple legs locally (endpoints > 2, no legs array) shows the layover hint, not "Not synced"', () => {
+  it('FE-PLANNER-RESP-049: a flight grown into multiple legs locally (endpoints > 2, no legs array) shows the layover hint, not "Not synced"', async () => {
+    const user = userEvent.setup();
     // Matches the server's second hasLocalMultiLegShape criterion (endpoint count > 2).
     const res = buildReservation({
       title: 'Grown multi-leg', type: 'flight', external_source: 'airtrail', sync_enabled: 0,
@@ -544,61 +569,61 @@ describe('ReservationsPanel', () => {
     } as any);
     render(<ReservationsPanel {...defaultProps} reservations={[res]} />);
     expect(screen.queryByText('Not synced')).not.toBeInTheDocument();
-    expect(
-      screen.getByTitle('Imported from AirTrail. A multi-leg flight with a layover has no single AirTrail flight to sync back to, so it stays as a one-time import.'),
-    ).toBeInTheDocument();
+    expect(await airTrailTooltip(user, 'AirTrail')).toHaveTextContent(
+      'Imported from AirTrail. A multi-leg flight with a layover has no single AirTrail flight to sync back to, so it stays as a one-time import.',
+    );
   });
 
   // ── Type + traveler filters ─────────────────────────────────────────────────
 
-  it('FE-PLANNER-RESP-050: a type chip narrows the list and "All" restores it', async () => {
+  it('FE-PLANNER-RESP-050: a type filter narrows the list and resetting restores it', async () => {
     const user = userEvent.setup();
     const flight = buildReservation({ id: 1, title: 'Flight out', type: 'flight', status: 'confirmed' });
     const hotel = buildReservation({ id: 2, title: 'Hotel stay', type: 'hotel', status: 'confirmed' });
     render(<ReservationsPanel {...defaultProps} reservations={[flight, hotel]} />);
+    await openFilters(user);
     await user.click(screen.getByRole('button', { name: /^Flight\s*1$/ }));
     expect(screen.getByText('Flight out')).toBeInTheDocument();
     expect(screen.queryByText('Hotel stay')).not.toBeInTheDocument();
-    // The choice is remembered for this trip.
-    expect(JSON.parse(sessionStorage.getItem('trek-reservation-filters-1') || '[]')).toEqual(['flight']);
+    // The choice is remembered for this trip and this tab.
+    expect(JSON.parse(sessionStorage.getItem(FILTER_KEY) || '{}').types).toEqual(['flight']);
 
-    await user.click(screen.getByRole('button', { name: /^All\s*2$/ }));
+    await user.click(screen.getByRole('button', { name: 'Reset filters' }));
     expect(screen.getByText('Hotel stay')).toBeInTheDocument();
-    expect(sessionStorage.getItem('trek-reservation-filters-1')).toBeNull();
+    expect(JSON.parse(sessionStorage.getItem(FILTER_KEY) || '{}').types).toEqual([]);
   });
 
-  it('FE-PLANNER-RESP-051: clicking an active type chip clears it again', async () => {
+  it('FE-PLANNER-RESP-051: clicking an active type filter clears it again', async () => {
     const user = userEvent.setup();
     const flight = buildReservation({ id: 1, title: 'Flight out', type: 'flight', status: 'confirmed' });
     const hotel = buildReservation({ id: 2, title: 'Hotel stay', type: 'hotel', status: 'confirmed' });
     render(<ReservationsPanel {...defaultProps} reservations={[flight, hotel]} />);
-    const chip = screen.getByRole('button', { name: /^Flight\s*1$/ });
-    await user.click(chip);
+    await openFilters(user);
+    await user.click(screen.getByRole('button', { name: /^Flight\s*1$/ }));
+    expect(screen.queryByText('Hotel stay')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /^Flight\s*1$/ }));
     expect(screen.getByText('Hotel stay')).toBeInTheDocument();
-    expect(chip).toBeInTheDocument();
   });
 
   it('FE-PLANNER-RESP-052: a filter that matches nothing shows the "none found" hint, not the empty state', () => {
     // A stored filter for a type this trip no longer has.
-    sessionStorage.setItem('trek-reservation-filters-1', JSON.stringify(['bus']));
+    sessionStorage.setItem(FILTER_KEY, JSON.stringify({ types: ['bus'], status: 'all', travelers: [] }));
     const flight = buildReservation({ id: 1, title: 'Flight out', type: 'flight', status: 'confirmed' });
     render(<ReservationsPanel {...defaultProps} reservations={[flight]} />);
-    expect(screen.getByText('No places found')).toBeInTheDocument();
+    expect(screen.getByText('Nothing matches these filters')).toBeInTheDocument();
     expect(screen.queryByText('Flight out')).not.toBeInTheDocument();
     expect(document.querySelector('.trek--bookings')).toBeNull();
   });
 
   it('FE-PLANNER-RESP-053: corrupt stored filters are ignored instead of crashing the panel', () => {
-    sessionStorage.setItem('trek-reservation-filters-1', '{not json');
-    sessionStorage.setItem('trek-reservation-filters-1-travelers', '{not json');
+    sessionStorage.setItem(FILTER_KEY, '{not json');
     const res = buildReservation({ id: 1, title: 'Still here', type: 'flight', status: 'confirmed' });
     render(<ReservationsPanel {...defaultProps} reservations={[res]} />);
     expect(screen.getByText('Still here')).toBeInTheDocument();
   });
 
   it('FE-PLANNER-RESP-054: a persisted type filter is restored on mount', () => {
-    sessionStorage.setItem('trek-reservation-filters-1', JSON.stringify(['hotel']));
+    sessionStorage.setItem(FILTER_KEY, JSON.stringify({ types: ['hotel'], status: 'all', travelers: [] }));
     const flight = buildReservation({ id: 1, title: 'Flight out', type: 'flight', status: 'confirmed' });
     const hotel = buildReservation({ id: 2, title: 'Hotel stay', type: 'hotel', status: 'confirmed' });
     render(<ReservationsPanel {...defaultProps} reservations={[flight, hotel]} />);
@@ -612,12 +637,14 @@ describe('ReservationsPanel', () => {
     const adas = buildReservation({ id: 1, title: 'Ada flight', type: 'flight', status: 'confirmed', travelers: [{ user_id: 1, username: 'ada', avatar_url: null }] } as any);
     const bobs = buildReservation({ id: 2, title: 'Bob hotel', type: 'hotel', status: 'confirmed', travelers: [{ user_id: 2, username: 'bob', avatar_url: null }] } as any);
     render(<ReservationsPanel {...defaultProps} reservations={[adas, bobs]} tripMembers={members} />);
-    await user.click(screen.getByTitle('ada'));
+    await openFilters(user);
+    const ada = screen.getByRole('button', { name: /ada/, pressed: false });
+    await user.click(ada);
     expect(screen.getByText('Ada flight')).toBeInTheDocument();
     expect(screen.queryByText('Bob hotel')).not.toBeInTheDocument();
-    expect(JSON.parse(sessionStorage.getItem('trek-reservation-filters-1-travelers') || '[]')).toEqual([1]);
+    expect(JSON.parse(sessionStorage.getItem(FILTER_KEY) || '{}').travelers).toEqual([1]);
 
-    await user.click(screen.getByTitle('ada'));
+    await user.click(screen.getByRole('button', { name: /ada/, pressed: true }));
     expect(screen.getByText('Bob hotel')).toBeInTheDocument();
   });
 
@@ -635,31 +662,21 @@ describe('ReservationsPanel', () => {
     const onAirTrailImport = vi.fn();
     const { rerender } = render(<ReservationsPanel {...defaultProps} onImport={onImport} onAirTrailImport={onAirTrailImport} />);
     // Both handlers given but the server features are off — nothing rendered.
-    expect(screen.queryByTitle('Import booking confirmations')).not.toBeInTheDocument();
-    expect(screen.queryByTitle('Import from AirTrail')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Import booking confirmations' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Import from AirTrail' })).not.toBeInTheDocument();
 
     rerender(<ReservationsPanel {...defaultProps} onImport={onImport} bookingImportAvailable onAirTrailImport={onAirTrailImport} airTrailAvailable />);
-    const importBtn = screen.getByTitle('Import booking confirmations');
-    const airtrailBtn = screen.getByTitle('Import from AirTrail');
-    for (const btn of [importBtn, airtrailBtn]) {
-      act(() => { btn.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
-      expect(btn.style.opacity).toBe('0.75');
-      act(() => { btn.dispatchEvent(new MouseEvent('mouseout', { bubbles: true })); });
-      expect(btn.style.opacity).toBe('1');
-    }
-    await user.click(importBtn);
-    await user.click(airtrailBtn);
+    await user.click(screen.getByRole('button', { name: 'Import booking confirmations' }));
+    await user.click(screen.getByRole('button', { name: 'Import from AirTrail' }));
     expect(onImport).toHaveBeenCalled();
     expect(onAirTrailImport).toHaveBeenCalled();
   });
 
-  it('FE-PLANNER-RESP-058: the add button dims on hover and restores on leave', () => {
+  it('FE-PLANNER-RESP-058: the add button is the accent button of the bar and dims on hover', () => {
     render(<ReservationsPanel {...defaultProps} />);
     const add = screen.getAllByText('Manual Booking')[0].closest('button') as HTMLButtonElement;
-    act(() => { add.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
-    expect(add.style.opacity).toBe('0.88');
-    act(() => { add.dispatchEvent(new MouseEvent('mouseout', { bubbles: true })); });
-    expect(add.style.opacity).toBe('1');
+    expect(add.className).toContain('bg-accent');
+    expect(add.className).toContain('hover:opacity-90');
   });
 
   // ── Card details ────────────────────────────────────────────────────────────
@@ -673,33 +690,35 @@ describe('ReservationsPanel', () => {
       reservation_time: '2025-07-01T15:00',
     } as any);
     render(<ReservationsPanel {...defaultProps} reservations={[hotel]} days={[day1, day3]} />);
-    expect(screen.getByText('Day 1')).toBeInTheDocument();
-    expect(screen.getByText('Day 3')).toBeInTheDocument();
+    expect(screen.getByText(/Day 1 → Day 3/)).toBeInTheDocument();
     // The stamped time row is suppressed for an accommodation-backed hotel.
     expect(screen.queryByText('15:00')).not.toBeInTheDocument();
   });
 
   it('FE-PLANNER-RESP-060: clicking a blurred booking code toggles it open and closed', () => {
     seedStore(useSettingsStore, { settings: { time_format: '24h', blur_booking_codes: true, temperature_unit: 'celsius', language: 'en', dark_mode: false, default_currency: 'USD', map_tile_url: '', show_place_description: false } });
+    const onEdit = vi.fn();
     const res = buildReservation({ id: 1, confirmation_number: 'TOGGLE1', status: 'confirmed' });
-    render(<ReservationsPanel {...defaultProps} reservations={[res]} />);
+    render(<ReservationsPanel {...defaultProps} reservations={[res]} onEdit={onEdit} />);
     const code = screen.getByText('TOGGLE1');
-    expect(code.style.filter).toContain('blur');
+    expect(code.className).toContain('blur-[4px]');
     // A bare click (no hover) flips it open, a second one hides it again.
     fireEvent.click(code);
-    expect(code.style.filter).toBe('none');
+    expect(code.className).not.toContain('blur-[4px]');
     fireEvent.click(code);
-    expect(code.style.filter).toContain('blur');
+    expect(code.className).toContain('blur-[4px]');
+    // Revealing the code never opens the booking it sits on.
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(onEdit).not.toHaveBeenCalled();
   });
 
-  it('FE-PLANNER-RESP-061: the edit button restores its idle styling after hover', () => {
+  it('FE-PLANNER-RESP-061: the card actions stay quiet until the card is hovered or focused', () => {
     const res = buildReservation({ id: 1, title: 'Hover me', status: 'confirmed' });
     render(<ReservationsPanel {...defaultProps} reservations={[res]} />);
-    const edit = screen.getByTitle('Edit');
-    act(() => { edit.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
-    expect(edit.style.color).toBe('var(--text-primary)');
-    act(() => { edit.dispatchEvent(new MouseEvent('mouseout', { bubbles: true })); });
-    expect(edit.style.color).toBe('var(--text-faint)');
+    const edit = cardAction('Hover me', 'Edit');
+    expect(edit.className).toContain('opacity-60');
+    expect(edit.className).toContain('group-hover:opacity-100');
+    expect(edit.className).toContain('group-focus-within:opacity-100');
   });
 
   it('FE-PLANNER-RESP-062: a failing delete surfaces an error instead of throwing', async () => {
@@ -707,11 +726,12 @@ describe('ReservationsPanel', () => {
     const onDelete = vi.fn().mockRejectedValue(new Error('nope'));
     const res = buildReservation({ id: 5, title: 'Undeletable', status: 'confirmed' });
     render(<ReservationsPanel {...defaultProps} reservations={[res]} onDelete={onDelete} />);
-    await user.click(screen.getByTitle('Delete'));
-    await user.click(await screen.findByText('Confirm'));
+    await user.click(cardAction('Undeletable', 'Delete'));
+    await screen.findByText(/will be permanently deleted/i);
+    await user.click(confirmDeleteButton());
     await waitFor(() => expect(onDelete).toHaveBeenCalledWith(5));
-    // The dialog closed and the card is still there.
-    expect(screen.queryByText('Confirm')).not.toBeInTheDocument();
+    // The question closed, the card is still there, and the failure is said out loud.
+    expect(screen.queryByText(/will be permanently deleted/i)).not.toBeInTheDocument();
     expect(screen.getByText('Undeletable')).toBeInTheDocument();
   });
 
@@ -730,8 +750,23 @@ describe('ReservationsPanel', () => {
     expect(screen.getByText('Reykjavik')).toBeInTheDocument();
     // The raw airport codes are dropped in favour of the route line…
     expect(screen.queryByText('AMS')).not.toBeInTheDocument();
-    // …but the price still gets its own cell.
-    expect(screen.getByText('320 EUR')).toBeInTheDocument();
+    // …but the price still gets its own cell, formatted as money in its own currency.
+    expect(screen.getByText(money(320, 'EUR'))).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-RESP-063b: a price without a currency is shown in the trip currency, a non-numeric one as written', () => {
+    seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: 'CHF' }) });
+    const priced = buildReservation({
+      id: 1, title: 'Lake cruise', type: 'cruise', status: 'confirmed',
+      metadata: JSON.stringify({ price: '45' }),
+    });
+    const vague = buildReservation({
+      id: 2, title: 'Mountain hut', type: 'other', status: 'confirmed',
+      metadata: JSON.stringify({ price: 'on request', priceCurrency: 'EUR' }),
+    });
+    render(<ReservationsPanel {...defaultProps} reservations={[priced, vague]} />);
+    expect(screen.getByText(money(45, 'CHF'))).toBeInTheDocument();
+    expect(screen.getByText('on request EUR')).toBeInTheDocument();
   });
 
   it('FE-PLANNER-RESP-064: an attached file opens through the download helper', async () => {
@@ -740,7 +775,9 @@ describe('ReservationsPanel', () => {
     const files = [{ id: 1, trip_id: 1, reservation_id: 7, original_name: 'ticket.pdf', url: '/uploads/ticket.pdf', filename: 'ticket.pdf', mime_type: 'application/pdf', created_at: '2025-01-01T00:00:00.000Z' }];
     render(<ReservationsPanel {...defaultProps} reservations={[res]} files={files} />);
     await user.click(screen.getByText('ticket.pdf'));
-    expect(vi.mocked(openFile)).toHaveBeenCalledWith('/uploads/ticket.pdf');
+    expect(vi.mocked(openFile)).toHaveBeenCalledWith('/uploads/ticket.pdf', 'ticket.pdf');
+    // Opening the file does not open the booking as well.
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('FE-PLANNER-RESP-065: an assignment without a place is skipped by the day/place lookup', () => {
@@ -761,7 +798,7 @@ describe('ReservationsPanel', () => {
   // ── Section state ───────────────────────────────────────────────────────────
 
   it('FE-PLANNER-RESP-066: a section collapsed in a previous session stays collapsed', () => {
-    localStorage.setItem('trek:bookings-confirmed-open:1', '0');
+    localStorage.setItem('trek:bookings-bookings-collapsed:1', JSON.stringify({ 'status:confirmed': true }));
     const res = buildReservation({ id: 1, title: 'Hidden card', status: 'confirmed' });
     render(<ReservationsPanel {...defaultProps} reservations={[res]} />);
     expect(screen.queryByText('Hidden card')).not.toBeInTheDocument();
@@ -790,21 +827,31 @@ describe('ReservationsPanel', () => {
     ...over,
   } as any);
 
-  it('FE-PLANNER-RESP-067: a transit journey renders its own section with legs, day and duration', () => {
+  it('FE-PLANNER-RESP-067: a transit journey shows its legs, day and time, and its own section on request', () => {
     const day = buildDay({ id: 501, date: '2025-06-01', day_number: 2, title: 'Travel day' } as any);
-    render(<ReservationsPanel {...defaultProps} reservations={[transitJourney()]} days={[day]} />);
-    expect(screen.getByText('Automated public transit')).toBeInTheDocument();
+    const { unmount } = render(<ReservationsPanel {...defaultProps} reservations={[transitJourney()]} days={[day]} />);
     expect(screen.getByText('U2')).toBeInTheDocument();
     expect(screen.getByText('ICE 599')).toBeInTheDocument();
     expect(screen.getByText('Travel day')).toBeInTheDocument();
     expect(screen.getByText(/08:00/)).toBeInTheDocument();
+    // By default a journey sorts in among the confirmed bookings.
+    expect(screen.queryByText('Automated public transit')).not.toBeInTheDocument();
+    unmount();
+
+    // The view option puts journeys in a section of their own.
+    localStorage.setItem('trek:bookings-bookings-transitApart', 'true');
+    render(<ReservationsPanel {...defaultProps} reservations={[transitJourney()]} days={[day]} />);
+    expect(screen.getByText('Automated public transit')).toBeInTheDocument();
   });
 
-  it('FE-PLANNER-RESP-068: clicking a transit journey opens it through onEdit', async () => {
+  it('FE-PLANNER-RESP-068: clicking a transit journey opens its detail, and Edit hands it to onEdit', async () => {
     const user = userEvent.setup();
     const onEdit = vi.fn();
     render(<ReservationsPanel {...defaultProps} reservations={[transitJourney()]} onEdit={onEdit} />);
-    await user.click(screen.getByText(/Hamburg Hbf/));
+    await user.click(screen.getByRole('article', { name: /Hamburg Hbf/ }));
+    const detail = await screen.findByRole('dialog');
+    expect(onEdit).not.toHaveBeenCalled();
+    await user.click(within(detail).getByRole('button', { name: 'Edit' }));
     expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ id: 900 }));
   });
 
@@ -812,18 +859,20 @@ describe('ReservationsPanel', () => {
     const user = userEvent.setup();
     const onDelete = vi.fn();
     const onEdit = vi.fn();
+    const title = 'Berlin Hbf → Hamburg Hbf';
     render(<ReservationsPanel {...defaultProps} reservations={[transitJourney()]} onDelete={onDelete} onEdit={onEdit} />);
-    await user.click(screen.getByTitle('Delete'));
+    await user.click(cardAction(title, 'Delete'));
     expect(onEdit).not.toHaveBeenCalled();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
     // Cancel first — nothing is deleted.
-    await user.click(await screen.findByText('Cancel'));
+    await user.click(await screen.findByRole('button', { name: 'Cancel' }));
     expect(onDelete).not.toHaveBeenCalled();
 
-    await user.click(screen.getByTitle('Delete'));
-    const dialogButtons = (await screen.findByText('Cancel')).parentElement!.querySelectorAll('button');
-    await user.click(dialogButtons[1]);
-    expect(onDelete).toHaveBeenCalledWith(900);
+    await user.click(cardAction(title, 'Delete'));
+    await screen.findByText(/will be permanently deleted/i);
+    await user.click(confirmDeleteButton());
+    await waitFor(() => expect(onDelete).toHaveBeenCalledWith(900));
   });
 
   it('FE-PLANNER-RESP-070: a transit journey with unreadable metadata still renders its header', () => {
@@ -832,14 +881,14 @@ describe('ReservationsPanel', () => {
     expect(screen.queryByText('U2')).not.toBeInTheDocument();
   });
 
-  it('FE-PLANNER-RESP-071: a transit journey shows its first note line and traveler avatars', () => {
+  it('FE-PLANNER-RESP-071: a transit journey shows its notes as markdown and its travelers', () => {
     const res = transitJourney({
       notes: '**Reserve** a seat\nsecond line',
       travelers: [{ user_id: 1, username: 'ada', avatar_url: null }],
     });
     render(<ReservationsPanel {...defaultProps} reservations={[res]} />);
-    expect(screen.getByText('Reserve')).toBeInTheDocument();
-    expect(screen.queryByText(/second line/)).not.toBeInTheDocument();
+    expect(screen.getByText('Reserve').tagName).toBe('STRONG');
+    expect(screen.getByText('ada')).toBeInTheDocument();
   });
 
   // ── Reservation-detail plugin slot ──────────────────────────────────────────
@@ -874,22 +923,25 @@ describe('ReservationsPanel', () => {
     const user = userEvent.setup();
     const onDelete = vi.fn();
     render(<ReservationsPanel {...defaultProps} reservations={[transitJourney()]} onDelete={onDelete} />);
-    await user.click(screen.getByTitle('Delete'));
-    const backdrop = await waitFor(() => document.querySelector('[style*="z-index: 3000"]') as HTMLElement);
-    fireEvent.click(backdrop);
-    await waitFor(() => expect(document.querySelector('[style*="z-index: 3000"]')).toBeNull());
+    await user.click(cardAction('Berlin Hbf → Hamburg Hbf', 'Delete'));
+    const body = await screen.findByText(/will be permanently deleted/i);
+    fireEvent.click(body.closest('.fixed.inset-0') as HTMLElement);
+    await waitFor(() => expect(screen.queryByText(/will be permanently deleted/i)).not.toBeInTheDocument());
     expect(onDelete).not.toHaveBeenCalled();
   });
 
-  it('FE-PLANNER-RESP-075: hovering a blurred code reveals it and leaving hides it again', () => {
+  it('FE-PLANNER-RESP-075: a revealed code covers up again once hidden, and keeps its hover reveal', () => {
     seedStore(useSettingsStore, { settings: { time_format: '24h', blur_booking_codes: true, temperature_unit: 'celsius', language: 'en', dark_mode: false, default_currency: 'USD', map_tile_url: '', show_place_description: false } });
     const res = buildReservation({ id: 1, confirmation_number: 'HOVER1', status: 'confirmed' });
     render(<ReservationsPanel {...defaultProps} reservations={[res]} />);
     const code = screen.getByText('HOVER1');
-    fireEvent.mouseEnter(code);
-    expect(code.style.filter).toBe('none');
-    fireEvent.mouseLeave(code);
-    expect(code.style.filter).toContain('blur');
+    expect(code).toHaveAttribute('aria-pressed', 'false');
+    expect(code.className).toContain('hover:blur-none');
+    fireEvent.click(code);
+    expect(code).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(code);
+    expect(code).toHaveAttribute('aria-pressed', 'false');
+    expect(code.className).toContain('blur-[4px]');
   });
 
   it('FE-PLANNER-RESP-076: entries with no resolvable date sink below the dated ones', () => {
@@ -914,7 +966,7 @@ describe('ReservationsPanel', () => {
     render(<ReservationsPanel {...defaultProps} reservations={[res]} />);
     // The stored value stays readable, but nothing is clickable.
     const shown = screen.getByText('javascript:alert(1)');
-    expect(shown.tagName).toBe('SPAN');
+    expect(shown.closest('a')).toBeNull();
     expect(document.querySelector('a[href^="javascript:"]')).toBeNull();
   });
 });

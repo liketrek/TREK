@@ -2,7 +2,7 @@
 import React from 'react'
 import type { Mock } from 'vitest'
 import { http, HttpResponse } from 'msw'
-import { render, screen, fireEvent, waitFor } from '../../../tests/helpers/render'
+import { render, screen, fireEvent, waitFor, within } from '../../../tests/helpers/render'
 import { server } from '../../../tests/helpers/msw/server'
 import type { Category } from '@trek/shared'
 import { useTranslation } from '../../i18n/TranslationContext'
@@ -66,6 +66,11 @@ function setup(over: Partial<Omit<Props, 't'>> = {}) {
 /** Fills the one field the save button waits on. */
 function typeName(value: string): void {
   fireEvent.change(screen.getByPlaceholderText('Name'), { target: { value } })
+}
+
+/** The results panel's own close button; the dialog's head band has one of the same name. */
+function dismissResultsButton(): HTMLElement {
+  return within(screen.getByRole('group', { name: 'Search' })).getByRole('button', { name: 'Close' })
 }
 
 describe('AddPlaceToCollectionModal', () => {
@@ -151,7 +156,7 @@ describe('AddPlaceToCollectionModal', () => {
     fireEvent.click(screen.getByRole('button', { name: /Search/ }))
     await screen.findByText('Kissa Sakaiki')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    fireEvent.click(dismissResultsButton())
     expect(screen.queryByText('Kissa Sakaiki')).not.toBeInTheDocument()
   })
 
@@ -182,7 +187,7 @@ describe('AddPlaceToCollectionModal', () => {
     fireEvent.click(screen.getByRole('button', { name: /Search/ }))
     await screen.findByText('No places found')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    fireEvent.click(dismissResultsButton())
     expect(screen.queryByText('No places found')).not.toBeInTheDocument()
   })
 

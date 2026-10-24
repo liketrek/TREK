@@ -25,6 +25,26 @@ describe('MNotifications', () => {
     expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument();
   });
 
+  it('FE-MOB-NOTIF-001b: Delete all asks for confirmation before it clears the list', async () => {
+    const user = userEvent.setup();
+    render(<MNotifications />);
+    await waitFor(() => {
+      expect(screen.getAllByText('notif.title')).toHaveLength(20);
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Delete all' }));
+    expect(screen.getAllByText('notif.title')).toHaveLength(20);
+
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.getAllByText('notif.title')).toHaveLength(20);
+
+    await user.click(screen.getByRole('button', { name: 'Delete all' }));
+    await user.click(screen.getAllByRole('button', { name: 'Delete all' }).slice(-1)[0]);
+    await waitFor(() => {
+      expect(screen.queryAllByText('notif.title')).toHaveLength(0);
+    });
+  });
+
   it('FE-MOB-NOTIF-002: the unread segment filters out read notifications', async () => {
     const user = userEvent.setup();
     render(<MNotifications />);

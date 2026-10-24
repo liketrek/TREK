@@ -37,8 +37,8 @@ const en: NotificationLocale = {
       body: `${p.actor} đã mời bạn chia sẻ một bộ sưu tập. Mở TREK để chấp nhận hoặc từ chối.`,
     }),
     photos_shared: (p) => ({
-      title: `${p.count} đã chia sẻ hình ảnh`,
-      body: `${p.actor} đã chi sẻ ${p.count} ảnh trong "${p.trip}".`,
+      title: `Đã chia sẻ ${p.count} ảnh`,
+      body: `${p.actor} đã chia sẻ ${p.count} ảnh trong "${p.trip}".`,
     }),
     collab_message: (p) => ({
       title: `Tin nhắn mới trong "${p.trip}"`,
@@ -56,11 +56,26 @@ const en: NotificationLocale = {
       title: 'Lỗi bản sao lưu trữ',
       body:
         `Ghi vào bản sao '${p.backend}' thất bại: ${p.op} của ${p.key} — ${p.error}.` +
-        (p.suppressed !== '0' ? ` ${p.suppressed} lỗi khác đã bị bỏ qua kể từ thông báo trước đó.` : ''),
+        (p.suppressed !== '0'
+          ? ` Kể từ lần thông báo trước, có thêm ${p.suppressed} lỗi nhưng không được thông báo riêng.`
+          : ''),
+    }),
+    paddle_region_requested: (p) => ({
+      title: 'Có yêu cầu vùng chèo thuyền',
+      body: `${p.actor} đang lên kế hoạch chèo thuyền ở ${p.region}. Tải hoặc từ chối dữ liệu nước trong khu quản trị, mục Tiện ích bổ sung.`,
     }),
     synology_session_cleared: () => ({
       title: 'Đã xóa phiên Synology',
       body: 'Tài khoản Synology của bạn hoặc URL đã thay đổi. Bạn đã đăng xuất khỏi Synology Photos.',
+    }),
+    wanderer_source_hint: (p) => ({
+      title: `Tuyến wanderer: ${p.tour}`,
+      body:
+        p.state === 'changed'
+          ? `“${p.tour}” trong “${p.trip}” đã được thay đổi trên wanderer. Hãy mở chuyến đi và kiểm tra nguồn để xem mọi thay đổi. Không có gì trong chuyến du lịch tự thay đổi.`
+          : p.state === 'unverifiable'
+            ? `“${p.tour}” trong “${p.trip}” không còn kiểm tra được trên wanderer. Chuyến đi trong chuyến du lịch của bạn vẫn giữ nguyên.`
+            : `“${p.tour}” trong “${p.trip}” có thể đã thay đổi trên wanderer. Hãy mở chuyến đi và kiểm tra nguồn của nó. Không có gì trong chuyến du lịch tự thay đổi.`,
     }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },

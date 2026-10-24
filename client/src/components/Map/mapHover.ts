@@ -9,5 +9,7 @@ export interface MapHoverInfo {
   /** Everyone's average, where the surface keeps ratings. On the collections map it
    *  is the one thing a round photo cannot tell you: which of these you liked. */
   rating_avg?: number | null
+  /** The picture its marker wears, so the hover card can show the same one. */
+  photo?: string | null
   routeVia?: RouteVia
 }

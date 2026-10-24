@@ -1,6 +1,9 @@
 import { TRACK_COLOR_FALLBACK } from '@trek/shared'
 import type { Place } from '../../types'
 
+/** The light rim under a track that carries a picked colour, and under the track picked on the map. */
+export const TRACK_CASING_COLOR = '#ffffff'
+
 /**
  * The colour a track's polyline is drawn in (#776): a manually picked colour
  * wins, then the category colour, then the blue every imported track used to

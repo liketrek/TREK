@@ -89,6 +89,31 @@ describe('useJoinTrip', () => {
     expect(navigate).not.toHaveBeenCalled();
   });
 
+  // GHSA-wr4c-964p-39jg: somebody another member took off the trip is told so,
+  // not offered a join that fails.
+  it('FE-PAGE-JOIN-012: a removed user sees the removal instead of the join prompt', async () => {
+    vi.mocked(tripInviteApi.preview).mockRejectedValue({ response: { status: 403, data: { error: 'removed', removed: true } } });
+    const { result } = renderHook(() => useJoinTrip());
+    await waitFor(() => expect(result.current.state).toBe('removed'));
+  });
+
+  it('FE-PAGE-JOIN-013: a removal refused at accept also shows the removal', async () => {
+    vi.mocked(tripInviteApi.accept).mockRejectedValue({ response: { status: 403, data: { error: 'removed', removed: true } } });
+    const { result } = renderHook(() => useJoinTrip());
+    await waitFor(() => expect(result.current.state).toBe('ready'));
+
+    act(() => result.current.accept());
+    await waitFor(() => expect(result.current.state).toBe('removed'));
+    expect(navigate).not.toHaveBeenCalled();
+    expect(addToast).not.toHaveBeenCalled();
+  });
+
+  it('FE-PAGE-JOIN-014: any other 403 at preview stays an unavailable invite', async () => {
+    vi.mocked(tripInviteApi.preview).mockRejectedValue({ response: { status: 403, data: { error: 'MFA required' } } });
+    const { result } = renderHook(() => useJoinTrip());
+    await waitFor(() => expect(result.current.state).toBe('invalid'));
+  });
+
   // A rate limit or a 500 is not an expired invite: saying so burns a link that
   // still works, and the invalid screen offers no way back.
   it('FE-PAGE-JOIN-010: a server failure reports itself and leaves the invite retryable', async () => {

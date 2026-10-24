@@ -1,8 +1,10 @@
-import { daysApi, dayNotesApi } from '../../api/client'
+import { dayRepo } from '../../repo/dayRepo'
+import { dayNoteRepo } from '../../repo/dayNoteRepo'
 import type { StoreApi } from 'zustand'
 import type { TripStoreState } from '../tripStore'
 import type { DayNote } from '../../types'
 import { getApiErrorMessage } from '../../types'
+import { nextTempId } from '../../sync/mutationQueue'
 
 type SetState = StoreApi<TripStoreState>['setState']
 type GetState = StoreApi<TripStoreState>['getState']
@@ -19,7 +21,7 @@ export interface DayNotesSlice {
 export const createDayNotesSlice = (set: SetState, get: GetState): DayNotesSlice => ({
   updateDayNotes: async (tripId, dayId, notes) => {
     try {
-      await daysApi.update(tripId, dayId, { notes })
+      await dayRepo.update(tripId, Number(dayId), { notes })
       set(state => ({
         days: state.days.map(d => d.id === Number.parseInt(String(dayId)) ? { ...d, notes } : d)
       }))
@@ -30,7 +32,7 @@ export const createDayNotesSlice = (set: SetState, get: GetState): DayNotesSlice
 
   updateDayTitle: async (tripId, dayId, title) => {
     try {
-      await daysApi.update(tripId, dayId, { title })
+      await dayRepo.update(tripId, Number(dayId), { title })
       set(state => ({
         days: state.days.map(d => d.id === Number.parseInt(String(dayId)) ? { ...d, title } : d)
       }))
@@ -40,7 +42,7 @@ export const createDayNotesSlice = (set: SetState, get: GetState): DayNotesSlice
   },
 
   addDayNote: async (tripId, dayId, data) => {
-    const tempId = Date.now() * -1
+    const tempId = nextTempId()
     const tempNote: DayNote = { id: tempId, day_id: dayId as number, ...data, created_at: new Date().toISOString() } as DayNote
     set(state => ({
       dayNotes: {
@@ -49,7 +51,7 @@ export const createDayNotesSlice = (set: SetState, get: GetState): DayNotesSlice
       }
     }))
     try {
-      const result = await dayNotesApi.create(tripId, dayId, data)
+      const result = await dayNoteRepo.create(tripId, Number(dayId), data)
       set(state => ({
         dayNotes: {
           ...state.dayNotes,
@@ -70,7 +72,8 @@ export const createDayNotesSlice = (set: SetState, get: GetState): DayNotesSlice
 
   updateDayNote: async (tripId, dayId, id, data) => {
     try {
-      const result = await dayNotesApi.update(tripId, dayId, id, data)
+      const before = (get().dayNotes[String(dayId)] || []).find(n => n.id === id) ?? ({ id, day_id: Number(dayId), text: '' } as DayNote)
+      const result = await dayNoteRepo.update(tripId, Number(dayId), before, data)
       set(state => ({
         dayNotes: {
           ...state.dayNotes,
@@ -92,7 +95,7 @@ export const createDayNotesSlice = (set: SetState, get: GetState): DayNotesSlice
       }
     }))
     try {
-      await dayNotesApi.delete(tripId, dayId, id)
+      await dayNoteRepo.delete(tripId, Number(dayId), id)
     } catch (err: unknown) {
       set({ dayNotes: prev })
       throw new Error(getApiErrorMessage(err, 'Error deleting note'))
@@ -119,14 +122,15 @@ export const createDayNotesSlice = (set: SetState, get: GetState): DayNotesSlice
       // written: a move is a delete plus a create, so anything omitted here is
       // silently dropped — which is how a coloured note lost its colour on the
       // way to another day (#1629).
-      const result = await dayNotesApi.create(tripId, toDayId, {
+      // Offline both halves wait in the queue in this order, so the replay keeps it.
+      const result = await dayNoteRepo.create(tripId, Number(toDayId), {
         text: note.text, time: note.time, icon: note.icon, color: note.color ?? null, sort_order,
       })
       try {
-        await dayNotesApi.delete(tripId, fromDayId, noteId)
+        await dayNoteRepo.delete(tripId, Number(fromDayId), noteId)
       } catch (delErr: unknown) {
         // The source survived, so drop the copy rather than leave a duplicate behind.
-        await dayNotesApi.delete(tripId, toDayId, result.note.id).catch(() => {})
+        await dayNoteRepo.delete(tripId, Number(toDayId), result.note.id).catch(() => {})
         throw delErr
       }
       set(s => ({

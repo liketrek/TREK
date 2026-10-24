@@ -1,0 +1,24 @@
+/* ============================================================================
+   Via ferratas on the maps: the line colours and the hit path's focus.
+   Global, since the 2D, GL and 3D maps and the tour planner's badges all read
+   the tokens.
+   ========================================================================== */
+
+/* A violet nothing else on the map uses, on a white halo. */
+:root {
+  --map-ferrata: #7c3aed;
+  --map-ferrata-lit: #5b21b6;
+  --map-ferrata-casing: #ffffff;
+}
+
+.dark {
+  --map-ferrata: #a78bfa;
+  --map-ferrata-lit: #c4b5fd;
+  --map-ferrata-casing: #ffffff;
+}
+
+/* A clicked via ferrata opens a card with its own focus; the path's focus ring would only linger on the map. */
+.leaflet-interactive.trek-ferrata-hit:focus,
+.leaflet-interactive.trek-ferrata-hit:focus-visible {
+  outline: none;
+}

@@ -24,10 +24,16 @@ const login: TranslationStrings = {
   'login.oidc.noEmail': 'プロバイダーからメールが取得できませんでした。',
   'login.oidc.tokenFailed': '認証に失敗しました。',
   'login.oidc.invalidState': 'セッションが無効です。もう一度お試しください。',
+  'login.oidc.emailNotVerified':
+    'サインインプロバイダーがこのメールアドレスを確認していないため、既存のアカウントにリンクできません。',
+  'login.oidc.emailLinkBlocked':
+    'このサインインを、このメールアドレスの既存アカウントにリンクできませんでした。管理者にアドレスの確認を依頼してください。',
   'login.demoFailed': 'デモログインに失敗しました',
   'login.oidcSignIn': '{name}でサインイン',
   'login.oidcOnly': 'パスワード認証は無効です。SSOプロバイダーでサインインしてください。',
   'login.oidcLoggedOut': 'ログアウトしました。SSOプロバイダーで再度サインインしてください。',
+  'login.oidcRedirecting': '{name} に移動しています…',
+  'login.oidcRedirectSlow': 'まだこの画面ですか？{name} に進む',
   'login.demoHint': 'デモを試す — 登録不要',
   'login.mfaTitle': '二要素認証',
   'login.mfaSubtitle': '認証アプリの6桁コードを入力してください。',
@@ -68,9 +74,9 @@ const login: TranslationStrings = {
   'login.resetPasswordFailed': 'リセットに失敗しました。リンクの有効期限が切れている可能性があります。',
   'login.passkey.signIn': 'パスキーでサインイン',
   'login.passkey.failed': 'パスキーでのサインインに失敗しました。もう一度お試しください。',
-  'login.insecureCookie.title': "Login won't stick over HTTP",
+  'login.insecureCookie.title': 'HTTP ではログインが保持されません',
   'login.insecureCookie.body':
-    'You’re connecting over plain HTTP, so your browser drops TREK’s secure session cookie — the next request fails with "Access token required". Fix: use HTTPS, or for a home-lab set COOKIE_SECURE=false.',
-  'login.insecureCookie.link': 'Open the Troubleshooting guide',
+    '暗号化されていない HTTP で接続しているため、ブラウザーが TREK のセキュアなセッション Cookie を破棄し、次のリクエストが「Access token required」で失敗します。対処法: HTTPS を使うか、ホームラボなら COOKIE_SECURE=false を設定してください。',
+  'login.insecureCookie.link': 'トラブルシューティングガイドを開く',
 };
 export default login;

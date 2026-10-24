@@ -140,7 +140,7 @@ describe('AuditLogPanel', () => {
     );
     render(<AuditLogPanel serverTimezone="UTC" />);
     await screen.findByText('trip.create');
-    expect(screen.getByText('1 loaded · 50 total')).toBeInTheDocument();
+    expect(screen.getByText('1 loaded, 50 total')).toBeInTheDocument();
   });
 
   it('FE-ADMIN-AUDIT-007: "Load more" appends entries', async () => {

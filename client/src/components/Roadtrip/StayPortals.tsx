@@ -25,10 +25,10 @@ export default function StayPortals({ name, camping, lat, lng, arrival, departur
   }
 
   return (
-    <aside className="flex min-w-0 flex-col gap-3 rounded-xl bg-surface-secondary p-4">
+    <aside className="flex min-w-0 flex-col gap-3 rounded-[14px] border border-edge-faint bg-surface-secondary p-3.5">
       <p className="text-body font-semibold text-content">{t('roadtrip.stay.portals')}</p>
       <p className="text-caption text-content-muted">{t('roadtrip.stay.portalHint')}</p>
-      <div className="flex items-center gap-2 rounded-lg border border-edge bg-surface px-3 py-2">
+      <div className="flex items-center gap-2 rounded-[10px] border border-edge bg-surface-input px-3 py-2">
         <span className="min-w-0 flex-1 select-text break-words text-caption text-content-secondary">{name}</span>
         <button type="button" onClick={() => void copy()} aria-label={t(copied ? 'common.copied' : 'common.copy')}
           className="shrink-0 rounded-md p-1 text-content-muted hover:bg-surface-hover hover:text-content">
@@ -39,7 +39,7 @@ export default function StayPortals({ name, camping, lat, lng, arrival, departur
       <div className="flex flex-col gap-2">
         {(camping ? CAMPING_PORTALS : HOTEL_PORTALS).map(portal => (
           <a key={portal.name} href={portal.name === 'trivago' ? trivagoSearchHref(name, arrival, departure) : portal.name === 'PiNCAMP' || portal.name === 'Pitchup' ? campingSearchHref(portal.name, name, lat, lng, arrival, departure) : portal.href} target="_blank" rel="noopener noreferrer"
-            className="flex items-center justify-between gap-3 rounded-lg border border-edge bg-surface px-3 py-2.5 text-body font-medium text-content transition-colors hover:bg-surface-hover">
+            className="flex items-center justify-between gap-3 rounded-[10px] bg-surface-card px-3 py-2.5 text-body font-medium text-content shadow-sm ring-1 ring-inset ring-edge-faint transition-colors hover:bg-surface-hover">
             <span className="flex min-w-0 items-center gap-2.5">
               <img src={portal.icon} alt="" width={20} height={20} className="h-5 w-5 shrink-0 rounded object-contain" />
               {portal.name}

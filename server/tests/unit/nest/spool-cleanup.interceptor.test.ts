@@ -1,12 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { SpoolCleanupInterceptor } from '../../../src/nest/common/spool-cleanup.interceptor';
+import type { CallHandler, ExecutionContext } from '@nestjs/common';
+
 import { firstValueFrom, of, throwError } from 'rxjs';
 import type { Observable } from 'rxjs';
-import type { CallHandler, ExecutionContext } from '@nestjs/common';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const fsMock = vi.hoisted(() => ({ unlinkSync: vi.fn() }));
 vi.mock('fs', () => ({ ...fsMock, default: fsMock }));
-
-import { SpoolCleanupInterceptor } from '../../../src/nest/common/spool-cleanup.interceptor';
 
 function context(req: Record<string, unknown>): ExecutionContext {
   return { switchToHttp: () => ({ getRequest: () => req }) } as unknown as ExecutionContext;
@@ -34,28 +34,34 @@ describe('SpoolCleanupInterceptor', () => {
     const req = { files: [{ path: '/tmp/a.png' }, { path: '/tmp/b.png' }] };
     const boom = new Error('body rejected');
 
-    await expect(firstValueFrom(interceptor.intercept(context(req), handler(throwError(() => boom)))))
-      .rejects.toBe(boom);
-    expect(fsMock.unlinkSync.mock.calls.map(c => c[0])).toEqual(['/tmp/a.png', '/tmp/b.png']);
+    await expect(firstValueFrom(interceptor.intercept(context(req), handler(throwError(() => boom))))).rejects.toBe(
+      boom,
+    );
+    expect(fsMock.unlinkSync.mock.calls.map((c) => c[0])).toEqual(['/tmp/a.png', '/tmp/b.png']);
   });
 
   it('SPOOL-003: covers the single-file shape and skips a part with no path', async () => {
     const req = { file: { path: '/tmp/one.png' }, files: [{ path: undefined }] };
-    await expect(firstValueFrom(interceptor.intercept(context(req), handler(throwError(() => new Error('x'))))))
-      .rejects.toThrow('x');
-    expect(fsMock.unlinkSync.mock.calls.map(c => c[0])).toEqual(['/tmp/one.png']);
+    await expect(
+      firstValueFrom(interceptor.intercept(context(req), handler(throwError(() => new Error('x'))))),
+    ).rejects.toThrow('x');
+    expect(fsMock.unlinkSync.mock.calls.map((c) => c[0])).toEqual(['/tmp/one.png']);
   });
 
   it('SPOOL-004: a file the handler already moved does not turn into a second failure', async () => {
-    fsMock.unlinkSync.mockImplementation(() => { throw new Error('ENOENT'); });
+    fsMock.unlinkSync.mockImplementation(() => {
+      throw new Error('ENOENT');
+    });
     const req = { files: [{ path: '/tmp/gone.png' }] };
-    await expect(firstValueFrom(interceptor.intercept(context(req), handler(throwError(() => new Error('original'))))))
-      .rejects.toThrow('original');
+    await expect(
+      firstValueFrom(interceptor.intercept(context(req), handler(throwError(() => new Error('original'))))),
+    ).rejects.toThrow('original');
   });
 
   it('SPOOL-005: a request that carried no files at all is a no-op', async () => {
-    await expect(firstValueFrom(interceptor.intercept(context({}), handler(throwError(() => new Error('x'))))))
-      .rejects.toThrow('x');
+    await expect(
+      firstValueFrom(interceptor.intercept(context({}), handler(throwError(() => new Error('x'))))),
+    ).rejects.toThrow('x');
     expect(fsMock.unlinkSync).not.toHaveBeenCalled();
   });
 });

@@ -8,6 +8,8 @@ interface MListRowProps {
   danger?: boolean
   onClick?: () => void
   className?: string
+  /** The row is the one open now (a chat in a history list), said so to a screen reader too. */
+  current?: boolean
 }
 
 /** Menu/list row (user menu style): icon 16 in --m-muted, 13.5px semibold label. */
@@ -18,12 +20,14 @@ export default function MListRow({
   danger = false,
   onClick,
   className = '',
+  current = false,
 }: MListRowProps) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-center gap-[11px] rounded-xl px-[10px] py-[11px] text-left text-[0.84375rem] font-semibold active:bg-[color:var(--m-ic)] ${
+      aria-current={current || undefined}
+      className={`flex w-full items-center gap-[11px] rounded-xl px-[10px] py-[11px] text-start text-[0.84375rem] font-semibold active:bg-[color:var(--m-ic)] ${
         danger ? 'text-[color:var(--m-st-danger)]' : 'text-m-ink'
       } ${className}`}
     >

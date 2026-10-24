@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types';
+
+const tourPacking: TranslationStrings = {
+  'tours.packing.label': 'Packliste',
+  'tours.packing.none': 'Keine Packliste verknüpft',
+  'tours.packing.link': 'Packliste verknüpfen',
+  'tours.packing.change': 'Ändern',
+  'tours.packing.whole': 'Ganze Packliste',
+  'tours.packing.packed': '{packed} von {count} gepackt',
+  'tours.packing.packed.one': '{packed} von {count} gepackt',
+  'tours.packing.more': '+{count} weitere',
+  'tours.packing.more.one': '+{count} weiteres',
+  'tours.packing.items': '{count} Gegenstände',
+  'tours.packing.items.one': '{count} Gegenstand',
+  'tours.packing.allPacked': 'Alles gepackt',
+  'tours.packing.open': 'Packliste öffnen',
+  'tours.packing.missing': '„{name}“ hat keine Gegenstände mehr, die du sehen kannst.',
+  'tours.packing.emptyList': 'Die Packliste ist noch leer.',
+  'tours.packing.emptyCategory': '„{name}“ hat noch keine Gegenstände.',
+  'tours.packing.addonOff': 'Packlisten sind ausgeschaltet, deshalb kann die Liste nicht angezeigt werden.',
+  'tours.packing.loadFailed': 'Die Verknüpfung zur Packliste konnte nicht geladen werden.',
+  'tours.packing.dialogSub': 'Nur eine Verknüpfung. Die Liste und ihre Gegenstände bleiben, wo sie sind.',
+  'tours.packing.choose': 'Verknüpfen mit',
+  'tours.packing.confirm': 'Verknüpfen',
+  'tours.packing.unlink': 'Verknüpfung lösen',
+  'tours.packing.unlinkHint': 'Die Packliste und ihre Gegenstände bleiben unverändert',
+  'tours.packing.linked': 'Packliste verknüpft.',
+  'tours.packing.unlinked': 'Verknüpfung gelöst. Die Packliste bleibt unverändert.',
+  'tours.packing.failed': 'Die Verknüpfung konnte nicht gespeichert werden.',
+};
+export default tourPacking;

@@ -7,7 +7,7 @@ const day: TranslationStrings = {
   'day.sunrise': 'Alba',
   'day.sunset': 'Tramonto',
   'day.hourlyForecast': 'Previsione oraria',
-  'day.climateHint': 'Medie storiche — previsioni reali disponibili entro 16 giorni da questa data.',
+  'day.climateHint': 'Medie storiche: previsioni reali disponibili entro 16 giorni da questa data.',
   'day.noWeather': 'Nessun dato meteo disponibile. Aggiungi un luogo con coordinate.',
   'day.weatherFor': 'Previsioni per {name}',
   'day.overview': 'Panoramica giornaliera',
@@ -16,9 +16,10 @@ const day: TranslationStrings = {
   'day.hotelDayRange': 'Applica ai giorni',
   'day.noPlacesForHotel': 'Aggiungi prima i luoghi al tuo viaggio',
   'day.allDays': 'Tutti',
-  'day.checkIn': 'Check-in',
+  'day.checkIn': 'Check-in', // same-as-en
   'day.checkInUntil': 'Fino a',
-  'day.checkOut': 'Check-out',
+  'day.checkOut': 'Check-out', // same-as-en
+  'day.openStayBooking': 'Apri prenotazione',
   'day.confirmation': 'Conferma',
   'day.editAccommodation': 'Modifica alloggio',
   'day.reservations': 'Prenotazioni',

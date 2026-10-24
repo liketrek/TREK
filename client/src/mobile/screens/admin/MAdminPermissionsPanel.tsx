@@ -1,91 +1,13 @@
-import React, { useEffect, useState, useMemo } from 'react'
-import { adminApi } from '../../../api/client'
+import React from 'react'
 import { useTranslation } from '../../../i18n'
-import { usePermissionsStore, PermissionLevel } from '../../../store/permissionsStore'
-import { useToast } from '../../../components/shared/Toast'
+import { PermissionLevel } from '../../../store/permissionsStore'
+import { CATEGORIES, LEVEL_LABELS, usePermissionsAdmin } from '../../../components/Admin/usePermissionsAdmin'
 import { Save, RotateCcw } from 'lucide-react'
 import { MAdminButton, MAdminCard } from './MAdminUi'
 
-interface PermissionEntry {
-  key: string
-  level: PermissionLevel
-  defaultLevel: PermissionLevel
-  allowedLevels: PermissionLevel[]
-}
-
-const LEVEL_LABELS: Record<string, string> = {
-  admin: 'perm.level.admin',
-  trip_owner: 'perm.level.tripOwner',
-  trip_member: 'perm.level.tripMember',
-  everybody: 'perm.level.everybody',
-}
-
-const CATEGORIES = [
-  { id: 'trip', keys: ['trip_create', 'trip_edit', 'trip_delete', 'trip_archive', 'trip_cover_upload'] },
-  { id: 'members', keys: ['member_manage'] },
-  { id: 'files', keys: ['file_upload', 'file_edit', 'file_delete'] },
-  { id: 'content', keys: ['place_edit', 'day_edit', 'reservation_edit'] },
-  { id: 'extras', keys: ['budget_edit', 'packing_edit', 'collab_edit', 'share_manage'] },
-]
-
 export default function MAdminPermissionsPanel(): React.ReactElement {
   const { t } = useTranslation()
-  const toast = useToast()
-  const [entries, setEntries] = useState<PermissionEntry[]>([])
-  const [values, setValues] = useState<Record<string, PermissionLevel>>({})
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [dirty, setDirty] = useState(false)
-
-  useEffect(() => {
-    loadPermissions()
-  }, [])
-
-  const loadPermissions = async () => {
-    setLoading(true)
-    try {
-      const data = await adminApi.getPermissions()
-      setEntries(data.permissions)
-      const vals: Record<string, PermissionLevel> = {}
-      for (const p of data.permissions) vals[p.key] = p.level
-      setValues(vals)
-      setDirty(false)
-    } catch {
-      toast.error(t('common.error'))
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleChange = (key: string, level: PermissionLevel) => {
-    setValues(prev => ({ ...prev, [key]: level }))
-    setDirty(true)
-  }
-
-  const handleSave = async () => {
-    setSaving(true)
-    try {
-      const data = await adminApi.updatePermissions(values)
-      if (data.permissions) {
-        usePermissionsStore.getState().setPermissions(data.permissions)
-      }
-      setDirty(false)
-      toast.success(t('perm.saved'))
-    } catch {
-      toast.error(t('common.error'))
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleReset = () => {
-    const defaults: Record<string, PermissionLevel> = {}
-    for (const p of entries) defaults[p.key] = p.defaultLevel
-    setValues(defaults)
-    setDirty(true)
-  }
-
-  const entryMap = useMemo(() => new Map(entries.map(e => [e.key, e])), [entries])
+  const { entryMap, values, loading, saving, dirty, handleChange, handleSave, handleReset } = usePermissionsAdmin()
 
   if (loading) {
     return (
@@ -99,23 +21,21 @@ export default function MAdminPermissionsPanel(): React.ReactElement {
 
   return (
     <MAdminCard>
-      <div className="mb-1 flex items-center gap-2">
-        <div className="min-w-0 flex-1">
-          <div className="text-[0.875rem] font-extrabold text-m-ink">{t('perm.title')}</div>
-          <div className="mt-[2px] font-geist text-[0.625rem] leading-relaxed text-m-muted">{t('perm.subtitle')}</div>
+      {/* The title gets the full width and the actions a row of their own: beside a
+          long title they ran into its second line. */}
+      <div className="mb-1">
+        <div className="text-[length:calc(14px*var(--fs-scale-body,1))] font-extrabold text-m-ink">{t('perm.title')}</div>
+        <div className="mt-[2px] font-geist text-[length:calc(10px*var(--fs-scale-caption,1))] leading-relaxed text-m-muted">{t('perm.subtitle')}</div>
+        <div className="mt-2.5 flex items-center justify-end gap-2">
+          <MAdminButton variant="ghost" disabled={saving} onClick={handleReset}>
+            <RotateCcw size={12} strokeWidth={2.2} />
+            {t('perm.resetDefaults')}
+          </MAdminButton>
+          <MAdminButton busy={saving} disabled={saving || !dirty} onClick={handleSave}>
+            {!saving && <Save size={12} strokeWidth={2.2} />}
+            {t('common.save')}
+          </MAdminButton>
         </div>
-        <MAdminButton
-          variant="ghost"
-          disabled={saving}
-          title={t('perm.resetDefaults')}
-          onClick={handleReset}
-        >
-          <RotateCcw size={12} strokeWidth={2.2} />
-        </MAdminButton>
-        <MAdminButton busy={saving} disabled={saving || !dirty} onClick={handleSave}>
-          {!saving && <Save size={12} strokeWidth={2.2} />}
-          {t('common.save')}
-        </MAdminButton>
       </div>
 
       <div>

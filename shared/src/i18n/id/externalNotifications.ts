@@ -56,11 +56,24 @@ const id: NotificationLocale = {
       title: 'Kegagalan replika penyimpanan',
       body:
         `Penulisan replika gagal pada '${p.backend}': ${p.op} dari ${p.key} — ${p.error}.` +
-        (p.suppressed !== '0' ? ` ${p.suppressed} kegagalan lainnya diabaikan sejak notifikasi terakhir.` : ''),
+        (p.suppressed !== '0' ? ` ${p.suppressed} kegagalan lainnya tidak dilaporkan sejak notifikasi terakhir.` : ''),
+    }),
+    paddle_region_requested: (p) => ({
+      title: 'Wilayah dayung diminta',
+      body: `${p.actor} merencanakan tur dayung di ${p.region}. Muat atau tolak data airnya di area admin pada Add-on.`,
     }),
     synology_session_cleared: () => ({
       title: 'Sesi Synology dihapus',
       body: 'Akun atau URL Synology Anda berubah. Anda telah keluar dari Synology Photos.',
+    }),
+    wanderer_source_hint: (p) => ({
+      title: `Jalur wanderer: ${p.tour}`,
+      body:
+        p.state === 'changed'
+          ? `“${p.tour}” di “${p.trip}” telah diubah di wanderer. Buka tur dan periksa sumbernya untuk melihat semua perubahan. Tidak ada yang berubah sendiri di perjalanan.`
+          : p.state === 'unverifiable'
+            ? `“${p.tour}” di “${p.trip}” tidak dapat diperiksa lagi di wanderer. Tur di perjalanan Anda tetap seperti semula.`
+            : `“${p.tour}” di “${p.trip}” mungkin berubah di wanderer. Buka tur dan periksa sumbernya. Tidak ada yang berubah sendiri di perjalanan.`,
     }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },

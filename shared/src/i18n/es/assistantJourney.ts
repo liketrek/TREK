@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types';
+
+const assistantJourney: TranslationStrings = {
+  'assistant.card.journey.label': 'Entradas del diario',
+  'assistant.card.journey.open': 'Abrir en el diario',
+  'assistant.card.journey.entries': '{count} entradas',
+  'assistant.card.journey.entries.one': '{count} entrada',
+  'assistant.card.journey.more': '{count} más en el diario',
+  'assistant.card.journey.more.one': '{count} más en el diario',
+  'assistant.card.journey.photos': '{count} fotos',
+  'assistant.card.journey.photos.one': '{count} foto',
+  'assistant.card.journey.toSuggestion': 'Vuelve a ser una sugerencia',
+  'assistant.card.journey.video': 'Empieza con un vídeo',
+  'assistant.card.journey.typeEntry': 'Entrada escrita',
+  'assistant.card.journey.typeCheckin': 'Registro de llegada',
+  'assistant.card.journey.notDraft': 'Ya no es un borrador',
+  'assistant.card.journey.onRoute': 'De nuevo en la ruta',
+  'assistant.card.journey.restored': 'Sugerencia recuperada',
+  'assistant.change.verb.addJournalEntry': 'Añadir una entrada al diario',
+  'assistant.change.verb.updateJournalEntry': 'Cambiar la entrada del diario',
+  'assistant.change.verb.removeJournalEntry': 'Eliminar la entrada del diario',
+  'assistant.step.readingJournal': 'Leyendo el diario',
+  'assistant.tool.create_journey': 'Crear un diario',
+  'assistant.tool.update_journey': 'Cambiar el diario',
+  'assistant.tool.add_journey_trip': 'Añadir el viaje al diario',
+  'assistant.tool.link_trip_journal': 'Mostrar el diario en este viaje',
+  'assistant.tool.reorder_journey_entries': 'Reordenar el diario',
+  'assistant.followUp.journalToday': 'Escribir una entrada para hoy',
+  'assistant.followUp.journalSummary': 'Resumir estos días',
+};
+export default assistantJourney;

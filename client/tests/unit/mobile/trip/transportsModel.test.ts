@@ -1,14 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import {
-  TRANSPORT_TYPE_COLOR,
-  groupTransports,
-  orderedEndpoints,
-  parseTransportMeta,
-} from '../../../../src/mobile/screens/trip/tabs/transportsModel';
+import { cardWhen, parseTransportMeta } from '../../../../src/mobile/screens/trip/tabs/transportsModel';
+import { TRANSPORT_TYPE_COLOR, groupTransports } from '../../../../src/components/Planner/bookings/bookingsModel';
+import { orderedEndpoints } from '../../../../src/utils/flightLegs';
 import { buildDay, buildReservation } from '../../../helpers/factories';
 import type { Day, Reservation } from '../../../../src/types';
 
-// FE-MOB-TRPM-001 to FE-MOB-TRPM-014
+// FE-MOB-TRPM-001 to FE-MOB-TRPM-017
 
 function res(overrides: Partial<Reservation> = {}): Reservation {
   return buildReservation({ type: 'flight', status: 'confirmed', ...overrides });
@@ -153,5 +150,55 @@ describe('transportsModel — groupTransports', () => {
     const b = { ...res({ id: 2, reservation_time: '2026-07-02T09:00' }), created_at: undefined };
 
     expect(groupTransports([a, b], days).confirmed.map(r => r.id)).toEqual([1, 2]);
+  });
+});
+
+describe('transportsModel — cardWhen', () => {
+  const t = (key: string, params?: Record<string, string | number | null>) => `${key}:${params?.n}`;
+  const day1 = buildDay({ id: 100, day_number: 1, title: null, date: '2026-07-01' });
+  const day3 = buildDay({ id: 102, day_number: 3, title: 'Coast', date: '2026-07-03' });
+
+  it('FE-MOB-TRPM-015: names the day or the day range and the time or time range', () => {
+    const r = res({ reservation_time: '2026-07-01T09:05', reservation_end_time: '2026-07-03T18:30' });
+    expect(cardWhen(r, day1, day3, t, 'en-US', '24h')).toEqual({
+      dayValue: 'dayplan.dayN:1 – Coast',
+      dayDate: 'Jul 1 – Jul 3',
+      dayRange: true,
+      timeValue: '09:05 – 18:30',
+    });
+    expect(cardWhen(r, day1, day1, t, 'en-US', '24h')).toMatchObject({ dayValue: 'dayplan.dayN:1', dayDate: 'Wed, Jul 1', dayRange: false });
+  });
+
+  it('FE-MOB-TRPM-016: without a day the booking date stands in, then a dash', () => {
+    expect(cardWhen(res({ reservation_time: '2026-07-04' }), undefined, undefined, t, 'en-US', '24h')).toEqual({
+      dayValue: 'Jul 4',
+      dayDate: null,
+      dayRange: false,
+      timeValue: '—',
+    });
+    expect(cardWhen(res({ reservation_time: null }), undefined, undefined, t, 'en-US', '24h')).toEqual({
+      dayValue: '—',
+      dayDate: null,
+      dayRange: false,
+      timeValue: '—',
+    });
+  });
+
+  it('FE-MOB-TRPM-017: a start time alone shows on its own, in the chosen clock', () => {
+    const r = res({ reservation_time: '2026-07-01T14:00', reservation_end_time: null });
+    expect(cardWhen(r, day1, undefined, t, 'en-US', '12h').timeValue).toBe('2:00 PM');
+  });
+
+  it('FE-MOB-TRPM-018: a day without a date shows the booking date beside its title (#2590)', () => {
+    const departure = buildDay({ id: 200, day_number: 1, title: 'Germany Departure Flight', date: null });
+    const arrival = buildDay({ id: 201, day_number: 2, title: 'Korea Arrival', date: null });
+    const r = res({ reservation_time: '2026-10-21T15:35', reservation_end_time: '2026-10-22T09:55' });
+    expect(cardWhen(r, departure, arrival, t, 'en-US', '24h')).toEqual({
+      dayValue: 'Germany Departure Flight – Korea Arrival',
+      dayDate: 'Oct 21 – Oct 22',
+      dayRange: true,
+      timeValue: '15:35 – 09:55',
+    });
+    expect(cardWhen(res({ reservation_time: null }), departure, undefined, t, 'en-US', '24h').dayDate).toBeNull();
   });
 });

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { BOOK_FONTS_IDS, bookTextElementSchema } from '@trek/shared'
 import {
-  BOOK_FONTS, BOOK_FONT_ORDER, fontStack, hasWeight, nearestWeight,
+  BOOK_FONTS, BOOK_FONT_ORDER, fontStack, fontsIn, hasItalic, hasWeight, nearestWeight,
 } from '../../../src/components/Studio/bookFonts'
 
 /**
@@ -21,9 +21,13 @@ describe('the registry', () => {
     }
   })
 
-  it('offers every family in the picker, in one order', () => {
+  it('offers every family in the picker, in one order, grouped by category', () => {
     expect([...BOOK_FONT_ORDER].sort()).toEqual([...BOOK_FONTS_IDS].sort())
     expect(new Set(BOOK_FONT_ORDER).size).toBe(BOOK_FONT_ORDER.length)
+    expect(BOOK_FONT_ORDER[0]).toBe('sans')
+    expect(BOOK_FONT_ORDER[BOOK_FONT_ORDER.length - 1]).toBe('mono')
+    expect(fontsIn('script')).toContain('caveat')
+    expect(fontsIn('script').every(id => BOOK_FONTS[id].category === 'script')).toBe(true)
   })
 
   /*
@@ -34,17 +38,17 @@ describe('the registry', () => {
   it('ends every stack in a generic family', () => {
     for (const id of BOOK_FONTS_IDS) {
       const last = BOOK_FONTS[id].stack.split(',').pop()!.trim()
-      expect(['sans-serif', 'serif', 'monospace'], `${id}: ${last}`).toContain(last)
+      expect(['sans-serif', 'serif', 'cursive', 'monospace'], `${id}: ${last}`).toContain(last)
     }
   })
 
   it('names a bundled family first in every stack', () => {
     // The first entry is the one that will actually be used, so it is the one
     // that has to be self-hosted.
-    const bundled = ['Poppins', 'Inter', 'Lora', 'EB Garamond', 'Playfair Display', 'MuseoModerno', 'Bebas Neue']
+    // bookFontFaces.test.ts holds every family to the package it is loaded from.
     for (const id of BOOK_FONTS_IDS) {
       const first = BOOK_FONTS[id].stack.split(',')[0].replace(/"/g, '').trim()
-      expect(bundled, `${id}: ${first}`).toContain(first)
+      expect(first, id).toBe(BOOK_FONTS[id].name)
     }
   })
 
@@ -98,6 +102,12 @@ describe('weights', () => {
   it('moves to the nearest weight a family really has', () => {
     expect(nearestWeight('bebas', 700)).toBe(400)
     expect(nearestWeight('sans', 700)).toBe(700)
+    expect(nearestWeight('oswald', 900)).toBe(700)
+  })
+
+  it('knows which families have a real italic', () => {
+    expect(hasItalic('garamond', 400)).toBe(true)
+    expect(hasItalic('sans', 400)).toBe(false)
   })
 
   it('leaves an unknown family alone rather than guessing', () => {

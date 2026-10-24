@@ -1,10 +1,10 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
 import { ADDON_IDS } from '../../addons';
 import { AddonGuard } from '../addons/addon.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { TripAccessGuard } from '../permissions/trip-access.guard';
 import { RoadtripHazardsService } from './roadtrip-hazards.service';
+import { Controller, Get, UseGuards } from '@nestjs/common';
 
 @Controller('api/trips/:tripId/roadtrip/hazards')
 @UseGuards(AddonGuard, JwtAuthGuard, TripAccessGuard)
@@ -12,5 +12,7 @@ import { RoadtripHazardsService } from './roadtrip-hazards.service';
 export class RoadtripHazardsController {
   constructor(private readonly hazards: RoadtripHazardsService) {}
   @Get()
-  read() { return this.hazards.read(); }
+  read() {
+    return this.hazards.read();
+  }
 }

@@ -89,3 +89,33 @@ describe('bag weights on the packing panels (#2191)', () => {
     expect(screen.getByText('400 g')).toBeInTheDocument()
   })
 })
+
+describe('packed weight and per-person loads (#1131)', () => {
+  it('FE-COMP-BAGWEIGHT-1131-1: the foot shows what of the total is already packed', () => {
+    const items = [{ ...ITEMS[0], checked: 1 }, { ...ITEMS[1], quantity: 2, packed_quantity: 1 }]
+    const { container } = render(<BagSidebar {...buildState({ items: items as never })} />)
+    // 300 g ticked + one of two 150 g sandwiches.
+    const packed = within(container).getByText('packing.packedWeight').parentElement as HTMLElement
+    expect(packed).toHaveTextContent('450 g')
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '30')
+  })
+
+  it('FE-COMP-BAGWEIGHT-1131-2: each bag member carries an even share of the bag', () => {
+    const bags = [
+      { id: 10, trip_id: 1, name: 'Duffel', color: '#6366f1', sort_order: 0, members: [{ user_id: 1, username: 'Ana' }, { user_id: 2, username: 'Ben' }], total_weight_grams: 1000 },
+      { id: 11, trip_id: 1, name: 'Daypack', color: '#10b981', sort_order: 1, members: [{ user_id: 2, username: 'Ben' }], total_weight_grams: 800 },
+    ]
+    render(<BagModal {...buildState({ bags: bags as never })} />)
+    expect(screen.getByText('packing.perPerson')).toBeInTheDocument()
+    // Ben: half the duffel plus the daypack. Ana: the other half of the duffel.
+    const row = (name: string) => screen.getAllByText(name).map(el => el.parentElement?.textContent ?? '').find(text => text.endsWith(' g') || text.endsWith(' kg'))
+    expect(row('Ben')).toBe('BBen1.3 kg')
+    expect(row('Ana')).toBe('AAna500 g')
+  })
+
+  it('FE-COMP-BAGWEIGHT-1131-3: no per-person block while no bag has anyone on it', () => {
+    render(<BagSidebar {...buildState()} />)
+    expect(screen.queryByText('packing.perPerson')).not.toBeInTheDocument()
+  })
+})
+

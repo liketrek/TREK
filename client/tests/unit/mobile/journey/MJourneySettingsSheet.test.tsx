@@ -1,10 +1,11 @@
-// FE-MOB-JSET-001 to FE-MOB-JSET-034
+// FE-MOB-JSET-001 to FE-MOB-JSET-037
 import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '../../../helpers/render';
 import MJourneySettingsSheet from '../../../../src/mobile/screens/journey/MJourneySettingsSheet';
 import { journeyApi } from '../../../../src/api/client';
 import { useJourneyStore } from '../../../../src/store/journeyStore';
 import type { JourneyDetail } from '../../../../src/store/journeyStore';
+import type { JourneyRecordingPrepState } from '../../../../src/components/Journey/useJourneyRecordingPrep';
 
 const mockNavigate = vi.fn();
 vi.mock('react-router', async () => {
@@ -42,13 +43,14 @@ function buildJourney(over: Partial<JourneyDetail> = {}): JourneyDetail {
   };
 }
 
-function setup(over: Partial<JourneyDetail> = {}) {
+function setup(over: Partial<JourneyDetail> = {}, recordingPrep?: JourneyRecordingPrepState) {
   const props = {
     journey: buildJourney(over),
     onClose: vi.fn(),
     onSaved: vi.fn(),
     onOpenInvite: vi.fn(),
     onRefresh: vi.fn(),
+    recordingPrep,
   };
   const view = render(<MJourneySettingsSheet {...props} />);
   return { ...view, props };
@@ -87,6 +89,17 @@ describe('MJourneySettingsSheet', () => {
     expect(screen.getByDisplayValue('Tokyo & Kyoto')).toBeInTheDocument();
     expect(screen.getByText('Tokyo trip')).toBeInTheDocument();
     expect(screen.getByText('8 places')).toBeInTheDocument();
+  });
+
+  it('FE-MOB-JSET-2683: lists the people a linked trip lets in, and nothing without', async () => {
+    const { unmount } = setup();
+    expect(screen.queryByText('Through trips')).not.toBeInTheDocument();
+    unmount();
+
+    setup({ trip_access: [{ user_id: 7, role: 'editor', username: 'lena', avatar: null, trip_id: 3, trip_title: 'Tokyo trip' }] });
+    expect(await screen.findByText('Through trips')).toBeInTheDocument();
+    expect(screen.getByText('lena')).toBeInTheDocument();
+    expect(screen.getByText('via Tokyo trip')).toBeInTheDocument();
   });
 
   it('FE-MOB-JSET-002: shows the empty hint when no trip is linked', async () => {
@@ -437,5 +450,52 @@ describe('MJourneySettingsSheet', () => {
     await waitFor(() => expect(addToast).toHaveBeenCalledWith('Failed to save', 'error', undefined));
     expect(props.onRefresh).not.toHaveBeenCalled();
     expect(props.onClose).not.toHaveBeenCalled();
+  });
+
+  it('FE-MOB-JSET-035: the owner switches the preparation of recorded days and fetches by hand under its status (JRN-03)', async () => {
+    const recordingPrep: JourneyRecordingPrepState = {
+      prep: { enabled: true, connection: 'ready', lastAttemptAt: null, lastSuccessAt: null, lastError: null },
+      saving: false,
+      fetching: false,
+      statusLine: { text: 'Not fetched yet. The next background sync starts it.', tone: 'muted' },
+      canFetch: true,
+      setEnabled: vi.fn(async () => {}),
+      fetchNow: vi.fn(async () => {}),
+      dayPrep: () => null,
+    };
+    setup({ auto_prepare_recordings: 1 }, recordingPrep);
+
+    const prepSwitch = await screen.findByRole('switch', { name: 'Prepare recorded days automatically' });
+    expect(prepSwitch).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByText('Not fetched yet. The next background sync starts it.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fetch now' }));
+    expect(recordingPrep.fetchNow).toHaveBeenCalledTimes(1);
+    fireEvent.click(prepSwitch);
+    expect(recordingPrep.setEnabled).toHaveBeenCalledWith(false);
+  });
+
+  it('FE-MOB-JSET-036: without the Dawarich addon the sheet offers no such switch', async () => {
+    setup();
+    await screen.findByRole('switch', { name: /GPX/i });
+    expect(screen.queryByRole('switch', { name: 'Prepare recorded days automatically' })).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-JSET-037: the trip plan and the recorded routes switch under a shared map and wait for it otherwise (JRN-04)', async () => {
+    vi.mocked(journeyApi.getShareLink).mockResolvedValue({
+      link: { token: 'tok-9', share_timeline: true, share_gallery: true, share_map: true },
+    });
+    const create = vi.spyOn(journeyApi, 'createShareLink').mockResolvedValue({ token: 'tok-9' });
+    setup();
+
+    const plan = await screen.findByRole('switch', { name: 'Trip plan' });
+    expect(plan).toHaveAttribute('aria-checked', 'false');
+    fireEvent.click(plan);
+    await waitFor(() => expect(create).toHaveBeenCalledWith(12, expect.objectContaining({ share_plan: true })));
+    expect(screen.getByRole('switch', { name: 'Trip plan' })).toHaveAttribute('aria-checked', 'true');
+
+    fireEvent.click(screen.getByRole('switch', { name: 'Map' }));
+    await waitFor(() => expect(screen.getByRole('switch', { name: 'Recorded routes' })).toBeDisabled());
+    expect(screen.getAllByText('Share the map to switch this on')).toHaveLength(2);
   });
 });

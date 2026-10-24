@@ -3,9 +3,14 @@ import type { TranslationStrings } from '../types';
 const journey: TranslationStrings = {
   'journey.search.placeholder': 'Cari perjalanan…',
   'journey.search.noResults': 'Tidak ada perjalanan yang cocok dengan "{query}"',
-  'journey.title': 'Journey',
+  'journey.title': 'Jurnal perjalanan',
   'journey.subtitle': 'Lacak perjalananmu saat terjadi',
   'journey.new': 'Journey Baru',
+  'journey.lightbox.zoomIn': 'Perbesar',
+  'journey.lightbox.zoomOut': 'Perkecil',
+  'journey.lightbox.zoomReset': 'Kembali ke foto utuh',
+  'journey.lightbox.previous': 'Foto sebelumnya',
+  'journey.lightbox.next': 'Foto berikutnya',
   'journey.create': 'Buat',
   'journey.titlePlaceholder': 'Ke mana kamu pergi?',
   'journey.empty': 'Belum ada journey',
@@ -25,7 +30,7 @@ const journey: TranslationStrings = {
   'journey.status.completed': 'Selesai',
   'journey.status.upcoming': 'Mendatang',
   'journey.status.archived': 'Diarsipkan',
-  'journey.checkin.add': 'Check in',
+  'journey.checkin.add': 'Check-in',
   'journey.checkin.namePlaceholder': 'Nama lokasi',
   'journey.checkin.notesPlaceholder': 'Catatan (opsional)',
   'journey.checkin.save': 'Simpan',
@@ -66,6 +71,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.suggestionLabel': 'Perjalanan baru saja selesai',
   'journey.frontpage.suggestionText': 'Ubah <strong>{title}</strong> menjadi Journey',
   'journey.frontpage.dismiss': 'Tutup',
+  'journey.frontpage.dismissError': 'Saran ini tidak dapat disembunyikan',
   'journey.frontpage.journeyName': 'Nama Journey',
   'journey.frontpage.namePlaceholder': 'mis. Asia Tenggara 2026',
   'journey.frontpage.selectTrips': 'Pilih Perjalanan',
@@ -78,6 +84,8 @@ const journey: TranslationStrings = {
   'journey.detail.addEntry': 'Tambah Entri',
   'journey.detail.jumpToTop': 'Kembali ke atas',
   'journey.detail.jumpToLast': 'Ke entri terakhir',
+  'journey.detail.dayJump': 'Lompat ke hari',
+  'journey.detail.dayJumpCount': '{count} hari',
   'journey.detail.newEntry': 'Entri Baru',
   'journey.detail.editEntry': 'Edit Entri',
   'journey.detail.noEntries': 'Belum ada entri',
@@ -179,7 +187,7 @@ const journey: TranslationStrings = {
   'journey.share.updateFailed': 'Gagal memperbarui',
   'journey.invite.role': 'Peran',
   'journey.invite.viewer': 'Penonton',
-  'journey.invite.editor': 'Editor',
+  'journey.invite.editor': 'Editor', // same-as-en
   'journey.invite.invite': 'Undang',
   'journey.invite.inviting': 'Mengundang...',
   'journey.settings.title': 'Pengaturan Journey',
@@ -190,8 +198,23 @@ const journey: TranslationStrings = {
   'journey.settings.subtitle': 'Subjudul',
   'journey.settings.subtitlePlaceholder': 'mis. Thailand, Vietnam & Kamboja',
   'journey.settings.tracks': 'Jalur GPX',
+  'journey.settings.recordings': 'Hari yang terekam',
   'journey.settings.showTripTracks': 'Tampilkan semua jalur GPX perjalanan',
-  'journey.settings.showTripTracksHint': 'Menggambar rute terekam dari perjalanan yang tertaut pada peta.',
+  'journey.settings.showTripTracksHint':
+    'Menggambar rute yang direncanakan (jejak GPX) dari perjalanan tertaut di peta.',
+  'journey.settings.autoPrepare': 'Siapkan hari yang terekam secara otomatis',
+  'journey.settings.autoPrepareHint':
+    'Selama perjalanan yang ditautkan berlangsung, persinggahan dari Dawarich-mu menunggu di harinya untuk ditinjau. Editor dengan koneksi sendiri mendapatkan miliknya. Tidak ada yang ditulis ke jurnal dengan sendirinya.',
+  'journey.settings.status': 'Status', // same-as-en
+  'journey.settings.statusAuto': 'Otomatis',
+  'journey.settings.statusAutoHint':
+    'Mengikuti tanggal perjalanan yang ditautkan. Tanpa perjalanan, jurnal tetap berupa draf.',
+  'journey.settings.statusManualHint':
+    'Diatur manual. Tanggal perjalanan tidak lagi mengubahnya sampai kamu kembali ke otomatis.',
+  'journey.settings.photosSection': 'Foto',
+  'journey.settings.photoLocation': 'Tentukan lokasi entri dari fotonya',
+  'journey.settings.photoLocationHint':
+    'Entri tanpa lokasi memakai titik tempat foto pertamanya yang ber-GPS diambil. Lokasi yang kamu atur sendiri tidak pernah dipindah.',
   'journey.settings.endJourney': 'Arsipkan Perjalanan',
   'journey.settings.reopenJourney': 'Pulihkan Perjalanan',
   'journey.settings.archived': 'Perjalanan diarsipkan',
@@ -206,6 +229,9 @@ const journey: TranslationStrings = {
   'journey.settings.coverFailed': 'Unggah gagal',
   'journey.settings.failedToDelete': 'Gagal menghapus',
   'journey.entries.deleteTitle': 'Hapus Entri',
+  'journey.gallery.deleteTitle': 'Hapus foto',
+  'journey.gallery.deleteMessage':
+    'Foto ini akan dihapus dari galeri dan dari setiap entri yang memakainya. Tindakan ini tidak dapat dibatalkan.',
   'journey.photosUploaded': '{count} foto diunggah',
   'journey.photosUploadFailed': 'Beberapa foto gagal diunggah',
   'journey.photosAdded': '{count} foto ditambahkan',
@@ -233,36 +259,38 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'Tidak ada album ditemukan',
   'journey.picker.selectDate': 'Pilih tanggal',
   'journey.picker.search': 'Cari',
-  'journey.detail.journeyTab': 'Journey', // en-fallback
-  'journey.contributors.remove': 'Remove contributor', // en-fallback
-  'journey.contributors.removeConfirm': 'Remove {username} from this journey?', // en-fallback
-  'journey.contributors.removed': 'Contributor removed', // en-fallback
-  'journey.contributors.removeFailed': 'Failed to remove contributor', // en-fallback
-  'journey.editor.externalPhotos': 'External photos', // en-fallback
-  'journey.editor.externalPhotosFor': 'Photos for {date}', // en-fallback
-  'journey.editor.externalPhotosNearby': 'Nearby photos first', // en-fallback
-  'journey.editor.externalPhotosNoLocation': 'All photos from this day', // en-fallback
-  'journey.editor.externalPhotosQueued': 'queued', // en-fallback
-  'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
-  'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
-  'journey.picker.day': 'This day', // en-fallback
-  'journey.studio.title': 'TREK Studio', // en-fallback
-  'journey.studio.open': 'Studio', // en-fallback
-  'journey.studio.openAria': 'Open the photo book studio', // en-fallback
-  'journey.studio.backToJourney': 'Back to the journey', // en-fallback
-  'journey.studio.format': 'Page format', // en-fallback
-  'journey.studio.formatA4Landscape': 'A4 landscape', // en-fallback
-  'journey.studio.formatA4Portrait': 'A4 portrait', // en-fallback
-  'journey.studio.formatSquare21': 'Square 21 × 21 cm', // en-fallback
-  'journey.studio.formatSquare30': 'Square 30 × 30 cm', // en-fallback
-  'journey.studio.pages': 'Pages', // en-fallback
-  'journey.studio.cover': 'Cover', // en-fallback
-  'journey.studio.inspector': 'Properties', // en-fallback
-  'journey.studio.inspectorEmpty': 'Select something on the page to edit it.', // en-fallback
-  'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
-  'journey.studio.autoLayout': 'Auto layout', // en-fallback
-  'journey.studio.export': 'Export', // en-fallback
-  'journey.studio.day': 'HARI',
+  'journey.detail.journeyTab': 'Jurnal',
+  'journey.contributors.remove': 'Hapus kontributor',
+  'journey.contributors.removeConfirm': 'Hapus {username} dari jurnal perjalanan ini?',
+  'journey.contributors.removed': 'Kontributor dihapus',
+  'journey.contributors.removeFailed': 'Gagal menghapus kontributor',
+  'journey.contributors.viaTrips': 'Melalui perjalanan',
+  'journey.contributors.viaTripsHint':
+    'Mereka bisa membuka jurnal ini karena sebuah perjalanan menautkannya. Ubah di pengaturan perjalanan.',
+  'journey.contributors.viaTrip': 'melalui {trip}',
+  'journey.editor.externalPhotos': 'Foto eksternal',
+  'journey.editor.externalPhotosFor': 'Foto untuk {date}',
+  'journey.editor.externalPhotosNearby': 'Foto terdekat lebih dulu',
+  'journey.editor.externalPhotosNoLocation': 'Semua foto dari hari ini',
+  'journey.editor.externalPhotosQueued': 'dalam antrean',
+  'journey.editor.externalPhotosUnavailable': 'Tidak ada penyedia foto terhubung yang tersedia.',
+  'journey.editor.externalPhotosPartialFailed': '{failed} grup foto gagal, simpan lagi untuk mencoba ulang',
+  'journey.picker.day': 'Hari ini',
+  'journey.studio.title': 'TREK Studio',
+  'journey.studio.open': 'Studio',
+  'journey.studio.openAria': 'Buka studio buku foto',
+  'journey.studio.backToJourney': 'Kembali ke jurnal perjalanan',
+  'journey.studio.format': 'Format halaman',
+  'journey.studio.formatA4Landscape': 'A4 lanskap',
+  'journey.studio.formatA4Portrait': 'A4 potret',
+  'journey.studio.formatSquare21': 'Persegi 21 × 21 cm',
+  'journey.studio.formatSquare30': 'Persegi 30 × 30 cm',
+  'journey.studio.pages': 'Halaman',
+  'journey.studio.cover': 'Sampul',
+  'journey.studio.inspectorEmpty': 'Pilih sesuatu untuk diedit',
+  'journey.studio.autoLayout': 'Tata letak otomatis',
+  'journey.studio.export': 'Ekspor',
+  'journey.studio.day': 'HARI {day}',
   'journey.studio.stations': 'Persinggahan',
   'journey.studio.peersHere': 'di sini',
   'journey.studio.folioAuto': 'Otomatis',
@@ -274,105 +302,107 @@ const journey: TranslationStrings = {
   'journey.studio.exportFinishing': 'Penyelesaian',
   'journey.studio.exportMarks': 'Tanda potong',
   'journey.studio.exportMarksHint': 'Menambahkan bleed {bleed} mm di setiap tepi dan menandai tempat pemotongan',
-  'journey.studio.exportNote': '{sheets} lembar {width} × {height} mm. Peramban mengubah tampilan cetak menjadi PDF.',
+  'journey.studio.exportNote':
+    '{count} lembar berukuran {width} × {height} mm. Peramban mengubah tampilan cetak menjadi PDF.',
   'journey.studio.exportOpen': 'Tampilan cetak',
   'journey.studio.exportSave': 'Simpan sebagai PDF',
   'journey.studio.exportPreparing': 'Menyiapkan',
   'journey.studio.exportSheetCount': '{count} lembar',
-  'journey.studio.undo': 'Undo', // en-fallback
-  'journey.studio.redo': 'Redo', // en-fallback
-  'journey.studio.zoomIn': 'Zoom in', // en-fallback
-  'journey.studio.zoomOut': 'Zoom out', // en-fallback
-  'journey.studio.zoomFit': 'Fit to view', // en-fallback
+  'journey.studio.undo': 'Urungkan',
+  'journey.studio.redo': 'Ulangi',
+  'journey.studio.zoomIn': 'Perbesar',
+  'journey.studio.zoomOut': 'Perkecil',
+  'journey.studio.zoomFit': 'Sesuaikan tampilan',
   'journey.studio.downloadSpread': 'Unduh halaman ganda ini',
-  'journey.studio.downloadSpreadHint': 'Menyimpan desain halaman ganda ini sebagai berkas, tanpa foto, untuk dibagikan atau dipakai lagi',
+  'journey.studio.downloadSpreadHint':
+    'Menyimpan desain halaman ganda ini sebagai berkas, tanpa foto, untuk dibagikan atau dipakai lagi',
   'journey.studio.importSpread': 'Impor',
   'journey.studio.importSpreadHint': 'Menambahkan halaman ganda dari berkas desain yang diunduh',
   'journey.studio.importSpreadFailed': 'Berkas itu bukan halaman ganda TREK Studio',
-  'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Menyusun buku butuh ruang kerja, jadi Studio hanya ada di desktop, begitu juga pembuatan PDF. Bagian lain dari perjalananmu tetap berjalan seperti biasa di sini.', // en-fallback
-  'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
-  'journey.studio.bookView': 'Book view', // en-fallback
-  'journey.studio.multiple': 'Several', // en-fallback
-  'journey.studio.kind.photo': 'Photo', // en-fallback
-  'journey.studio.kind.text': 'Text', // en-fallback
-  'journey.studio.kind.shape': 'Shape', // en-fallback
-  'journey.studio.position': 'Position', // en-fallback
-  'journey.studio.width': 'W', // en-fallback
-  'journey.studio.height': 'H', // en-fallback
-  'journey.studio.text': 'Text', // en-fallback
-  'journey.studio.typography': 'Type', // en-fallback
-  'journey.studio.leading': 'Line', // en-fallback
-  'journey.studio.colour': 'Colour', // en-fallback
+  'journey.studio.desktopOnly': 'Studio butuh layar yang lebih besar',
+  'journey.studio.desktopOnlyHint':
+    'Menyusun buku butuh ruang kerja, jadi Studio hanya ada di desktop, begitu juga pembuatan PDF. Bagian lain dari jurnal perjalananmu tetap berjalan seperti biasa di sini.',
+  'journey.studio.formatA5Landscape': 'A5 lanskap',
+  'journey.studio.bookView': 'Tampilan buku',
+  'journey.studio.multiple': 'Beberapa',
+  'journey.studio.kind.photo': 'Foto',
+  'journey.studio.kind.text': 'Teks',
+  'journey.studio.kind.shape': 'Bentuk',
+  'journey.studio.position': 'Posisi',
+  'journey.studio.width': 'L',
+  'journey.studio.height': 'T',
+  'journey.studio.text': 'Teks',
+  'journey.studio.typography': 'Huruf',
+  'journey.studio.leading': 'Baris',
+  'journey.studio.colour': 'Warna',
   'journey.studio.autoColour': 'Otomatis',
   'journey.studio.countryNames': 'Nama',
-  'journey.studio.crop': 'Crop', // en-fallback
-  'journey.studio.look': 'Look', // en-fallback
-  'journey.studio.radius': 'Corner', // en-fallback
-  'journey.studio.shape': 'Shape', // en-fallback
-  'journey.studio.arrange': 'Arrange', // en-fallback
-  'journey.studio.toFront': 'Bring to front', // en-fallback
-  'journey.studio.forward': 'Bring forward', // en-fallback
-  'journey.studio.backward': 'Send backward', // en-fallback
-  'journey.studio.toBack': 'Send to back', // en-fallback
-  'journey.studio.lock': 'Lock', // en-fallback
-  'journey.studio.unlock': 'Unlock', // en-fallback
-  'journey.studio.delete': 'Delete', // en-fallback
-  'journey.studio.pageHint': 'Page', // en-fallback
-  'journey.studio.boundHint': 'Follows the journal entry. Editing it here breaks that link.', // en-fallback
-  'journey.studio.fit.cover': 'Fill', // en-fallback
-  'journey.studio.fit.contain': 'Fit', // en-fallback
-  'journey.studio.filter.none': 'Original', // en-fallback
-  'journey.studio.filter.bw': 'Black & white', // en-fallback
-  'journey.studio.filter.warm': 'Warm', // en-fallback
-  'journey.studio.shapeKind.rect': 'Rectangle', // en-fallback
-  'journey.studio.shapeKind.ellipse': 'Ellipse', // en-fallback
-  'journey.studio.focalHint': 'Drag the point to choose what stays in frame.', // en-fallback
-  'journey.studio.backCover': 'Back cover', // en-fallback
-  'journey.studio.sections': 'Sections', // en-fallback
-  'journey.studio.content': 'Content', // en-fallback
-  'journey.studio.elements': 'Elements', // en-fallback
-  'journey.studio.templates': 'Layouts', // en-fallback
-  'journey.studio.photos': 'Photos', // en-fallback
-  'journey.studio.entries': 'Entries', // en-fallback
-  'journey.studio.addToPage': 'Add to this page', // en-fallback
-  'journey.studio.noPhotos': 'This journey has no photos yet.', // en-fallback
-  'journey.studio.untitled': 'Untitled', // en-fallback
-  'journey.studio.addTitle': 'Title', // en-fallback
-  'journey.studio.addStory': 'Story', // en-fallback
-  'journey.studio.addPlace': 'Place', // en-fallback
-  'journey.studio.shapes': 'Shapes', // en-fallback
-  'journey.studio.frames': 'Bingkai', // en-fallback
-  'journey.studio.emptyFrame': 'Empty frame', // en-fallback
-  'journey.studio.frameHint': 'An empty frame marks where a picture goes. Drop one on it from Content.', // en-fallback
-  'journey.studio.shapeKind.line': 'Line', // en-fallback
-  'journey.studio.styleTitle': 'Heading', // en-fallback
-  'journey.studio.styleSubtitle': 'Subheading', // en-fallback
-  'journey.studio.styleBody': 'Body text', // en-fallback
-  'journey.studio.styleCaption': 'Caption', // en-fallback
-  'journey.studio.sampleHeading': 'A heading', // en-fallback
-  'journey.studio.sampleSubheading': 'A subheading', // en-fallback
-  'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
-  'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
-  'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
-  'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
-  'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
-  'journey.studio.tpl.grid4': 'Four up', // en-fallback
-  'journey.studio.tpl.grid6': 'Six up', // en-fallback
-  'journey.studio.tpl.strip': 'Strip and text', // en-fallback
-  'journey.studio.tpl.quietText': 'Text only', // en-fallback
-  'journey.studio.tpl.portraitPair': 'A pair', // en-fallback
+  'journey.studio.crop': 'Pangkas',
+  'journey.studio.look': 'Tampilan',
+  'journey.studio.radius': 'Sudut',
+  'journey.studio.shape': 'Bentuk',
+  'journey.studio.arrange': 'Susun',
+  'journey.studio.toFront': 'Bawa ke depan',
+  'journey.studio.forward': 'Maju satu lapis',
+  'journey.studio.backward': 'Mundur satu lapis',
+  'journey.studio.toBack': 'Kirim ke belakang',
+  'journey.studio.lock': 'Kunci',
+  'journey.studio.unlock': 'Buka kunci',
+  'journey.studio.delete': 'Hapus',
+  'journey.studio.pageHint': 'Halaman',
+  'journey.studio.boundHint': 'Mengikuti entri jurnal. Mengeditnya di sini memutus tautan itu.',
+  'journey.studio.fit.cover': 'Penuhi',
+  'journey.studio.fit.contain': 'Muat',
+  'journey.studio.filter.none': 'Asli',
+  'journey.studio.filter.bw': 'Hitam putih',
+  'journey.studio.filter.warm': 'Hangat',
+  'journey.studio.shapeKind.rect': 'Persegi panjang',
+  'journey.studio.shapeKind.ellipse': 'Elips',
+  'journey.studio.focalHint': 'Seret titik untuk memilih bagian yang tetap terlihat.',
+  'journey.studio.backCover': 'Sampul belakang',
+  'journey.studio.coverInside': 'Bagian dalam sampul, dibiarkan kosong',
+  'journey.studio.backCoverInside': 'Bagian dalam sampul belakang, dibiarkan kosong',
+  'journey.studio.sections': 'Bagian',
+  'journey.studio.content': 'Konten',
+  'journey.studio.elements': 'Elemen',
+  'journey.studio.templates': 'Tata letak',
+  'journey.studio.photos': 'Foto',
+  'journey.studio.entries': 'Catatan',
+  'journey.studio.addToPage': 'Tambahkan ke halaman ini',
+  'journey.studio.noPhotos': 'Jurnal perjalanan ini belum punya foto.',
+  'journey.studio.untitled': 'Tanpa judul',
+  'journey.studio.addTitle': 'Judul',
+  'journey.studio.addStory': 'Cerita',
+  'journey.studio.addPlace': 'Tempat',
+  'journey.studio.shapes': 'Bentuk',
+  'journey.studio.frames': 'Bingkai',
+  'journey.studio.emptyFrame': 'Bingkai kosong',
+  'journey.studio.frameHint':
+    'Bingkai kosong menandai tempat gambar diletakkan. Jatuhkan satu gambar ke dalamnya dari Konten.',
+  'journey.studio.shapeKind.line': 'Garis',
+  'journey.studio.styleTitle': 'Judul',
+  'journey.studio.styleSubtitle': 'Subjudul',
+  'journey.studio.styleBody': 'Teks isi',
+  'journey.studio.styleCaption': 'Keterangan',
+  'journey.studio.sampleHeading': 'Sebuah judul',
+  'journey.studio.sampleSubheading': 'Sebuah subjudul',
+  'journey.studio.sampleBody': 'Tulis sesuatu tentang hari ini.',
+  'journey.studio.sampleCaption': 'Keterangan',
+  'journey.studio.tpl.heroStory': 'Gambar utama dan cerita',
+  'journey.studio.tpl.fullBleed': 'Satu gambar, dua halaman penuh',
+  'journey.studio.tpl.twoUp': 'Dua halaman penuh',
+  'journey.studio.tpl.grid4': 'Empat gambar',
+  'journey.studio.tpl.grid6': 'Enam gambar',
+  'journey.studio.tpl.strip': 'Jajaran dan teks',
+  'journey.studio.tpl.quietText': 'Hanya teks',
+  'journey.studio.tpl.portraitPair': 'Sepasang',
   'journey.studio.dropPhotoHere': 'Seret fotomu\nke sini',
-  'journey.studio.searchContent': 'Search photos and entries', // en-fallback
-  'journey.studio.noMatches': 'Nothing matches that.', // en-fallback
-  'journey.studio.decorations': 'Decoration', // en-fallback
-  'journey.studio.quoteMark': 'Quotation mark', // en-fallback
-  'journey.studio.circleOutline': 'Outlined circle', // en-fallback
-  'journey.studio.roundFrame': 'Rounded frame', // en-fallback
-  'journey.studio.shapeKind.rounded': 'Rounded rectangle', // en-fallback
-  'journey.studio.shapeKind.triangle': 'Triangle', // en-fallback
-  'journey.studio.shapeKind.outline': 'Outline only', // en-fallback
+  'journey.studio.searchContent': 'Cari foto dan entri',
+  'journey.studio.noMatches': 'Tidak ada yang cocok.',
+  'journey.studio.quoteMark': 'Tanda kutip',
+  'journey.studio.shapeKind.rounded': 'Persegi panjang bersudut bulat',
+  'journey.studio.shapeKind.triangle': 'Segitiga',
+  'journey.studio.shapeKind.outline': 'Hanya garis tepi',
   'journey.studio.travel': 'Perjalanan',
   'journey.studio.travelEmpty': 'Angka untuk perjalanan ini belum siap.',
   'journey.studio.grids': 'Kisi',
@@ -384,7 +414,7 @@ const journey: TranslationStrings = {
   'journey.studio.polaroidFrame': 'Polaroid',
   'journey.studio.whiteFrame': 'Tepi putih',
   'journey.studio.shadowFrame': 'Bayangan',
-  'journey.studio.filmFrame': 'Film',
+  'journey.studio.filmFrame': 'Film', // same-as-en
   'journey.studio.tapeFrame': 'Berselotip',
   'journey.studio.shapeGroup.basic': 'Dasar',
   'journey.studio.shapeGroup.polygons': 'Poligon',
@@ -395,23 +425,17 @@ const journey: TranslationStrings = {
   'journey.studio.shapeGroup.decor': 'Dekorasi',
   'journey.studio.shapeGroup.banners': 'Spanduk',
   'journey.studio.summary': 'Ringkasan',
-  'journey.studio.tripSummary': 'Ringkasan perjalanan',
-  'journey.studio.statsRow': 'Satu baris',
-  'journey.studio.statsFull': 'Semua',
   'journey.studio.routeMap': 'Peta rute',
-  'journey.studio.mapStyle.minimal': 'Minimal',
+  'journey.studio.mapStyle.minimal': 'Minimal', // same-as-en
   'journey.studio.mapStyle.outline': 'Garis luar',
   'journey.studio.mapStyle.paper': 'Kertas',
   'journey.studio.mapStyle.dark': 'Gelap',
   'journey.studio.countries': 'Negara',
-  'journey.studio.countryList': 'Daftar negara',
-  'journey.studio.countryGrid': 'Kisi negara',
   'journey.studio.noCountries': 'Belum ada negara yang ditentukan untuk perjalanan ini.',
   'journey.studio.noRoute': 'Belum ada perhentian berkoordinat.',
   'journey.studio.marks': 'Tanda',
   'journey.studio.dateMark': 'Tanggal',
   'journey.studio.dayMark': 'Penghitung hari',
-  'journey.studio.dayWord': 'HARI',
   'journey.studio.coordsMark': 'Koordinat',
   'journey.studio.coordsDms': 'Derajat',
   'journey.studio.coordsDecimal': 'Desimal',
@@ -431,6 +455,20 @@ const journey: TranslationStrings = {
   'journey.studio.kind.list': 'Daftar',
   'journey.studio.kind.icon': 'Ikon',
   'journey.studio.duplicate': 'Duplikat',
+  'journey.studio.copyToPage': 'Salin, untuk ditempel di halaman mana pun (Ctrl+C)',
+  'journey.studio.paste': 'Tempel (Ctrl+V)',
+  'journey.studio.pasteEmpty': 'Salin sesuatu dulu, lalu tempel di halaman mana pun',
+  'journey.studio.pageFull':
+    'Halaman ini penuh: sudah berisi elemen sebanyak yang muat dalam satu halaman. Hapus sesuatu dulu atau gunakan halaman lain.',
+  'journey.studio.myLayouts': 'Tata letakku',
+  'journey.studio.myLayoutsEmpty':
+    'Simpan halaman yang sudah kamu susun dan tata halaman lain dengan cara yang sama. Foto dan teksnya tetap.',
+  'journey.studio.saveLayout': 'Simpan halaman ini sebagai tata letak',
+  'journey.studio.saveLayoutHint': 'Menyimpan susunannya tanpa foto, untuk semua editor buku ini',
+  'journey.studio.saveLayoutFull': 'Buku ini menyimpan hingga 24 tata letak. Hapus satu untuk menyimpan yang lain.',
+  'journey.studio.deleteLayout': 'Hapus tata letak',
+  'journey.studio.layoutName': 'Tata letak',
+  'journey.studio.builtInLayouts': 'Bawaan',
   'journey.studio.style': 'Gaya',
   'journey.studio.shows': 'Tampilkan',
   'journey.studio.size': 'Ukuran',
@@ -440,12 +478,8 @@ const journey: TranslationStrings = {
   'journey.studio.rotation': 'Rotasi',
   'journey.studio.opacity': 'Opasitas',
   'journey.studio.fill': 'Isi',
-  'journey.studio.fillOn': 'Terisi',
   'journey.studio.stroke': 'Garis luar',
   'journey.studio.strokeWidth': 'Tebal',
-  'journey.studio.gradient': 'Pudar',
-  'journey.studio.gradientDown': 'Ke bawah',
-  'journey.studio.gradientUp': 'Ke atas',
   'journey.studio.showIcons': 'Ikon',
   'journey.studio.mapFit': 'Cakupan',
   'journey.studio.mapPadding': 'Ruang',
@@ -457,6 +491,35 @@ const journey: TranslationStrings = {
   'journey.studio.markStyle.chip': 'Kapsul',
   'journey.studio.markStyle.outline': 'Kapsul garis',
   'journey.studio.markStyle.stacked': 'Bertumpuk',
+  'journey.studio.statsLook.classic': 'Klasik',
+  'journey.studio.statsLook.poster': 'Poster', // same-as-en
+  'journey.studio.statsLook.ticket': 'Tiket',
+  'journey.studio.statsLook.tiles': 'Ubin',
+  'journey.studio.statsLook.band': 'Pita',
+  'journey.studio.statsLook.medal': 'Medali',
+  'journey.studio.statsLook.odometer': 'Odometer', // same-as-en
+  'journey.studio.statsLook.sign': 'Papan jalan',
+  'journey.studio.statsLook.note': 'Catatan',
+  'journey.studio.statsLook.sketch': 'Sketsa',
+  'journey.studio.countryLook.visa': 'Visa', // same-as-en
+  'journey.studio.countryLook.flag': 'Bendera',
+  'journey.studio.countryLook.pin': 'Pin', // same-as-en
+  'journey.studio.countryLook.label': 'Label koper',
+  'journey.studio.countryLook.sketch': 'Sketsa',
+  'journey.studio.markStyle.ribbon': 'Pita',
+  'journey.studio.markStyle.sticker': 'Stiker',
+  'journey.studio.markStyle.patch': 'Emblem',
+  'journey.studio.markStyle.sketch': 'Sketsa',
+  'journey.studio.travelFigures': 'Angka',
+  'journey.studio.travelMaps': 'Peta',
+  'journey.studio.countryLook.classic': 'Klasik',
+  'journey.studio.countryLook.stamp': 'Stempel',
+  'journey.studio.countryLook.postcard': 'Kartu pos',
+  'journey.studio.markStyle.stamp': 'Stempel',
+  'journey.studio.markStyle.tag': 'Label',
+  'journey.studio.markStyle.pill': 'Kapsul',
+  'journey.studio.pinNumbered': 'Nomor',
+  'journey.studio.pinEnds': 'Awal dan akhir',
   'journey.studio.icon': 'Ikon',
   'journey.studio.iconAndLabel': 'Ikon & teks',
   'journey.studio.iconOnly': 'Hanya ikon',
@@ -493,29 +556,27 @@ const journey: TranslationStrings = {
   'journey.studio.filter.fade': 'Pudar',
   'journey.studio.filter.contrast': 'Tajam',
   'journey.studio.strokeStyle': 'Goresan',
-  'journey.studio.strokeSolid': 'Solid',
+  'journey.studio.strokeSolid': 'Solid', // same-as-en
   'journey.studio.strokeDashed': 'Putus-putus',
   'journey.studio.strokeDotted': 'Titik-titik',
   'journey.studio.singleFigures': 'Angka tunggal',
   'journey.studio.addPage': 'Tambah halaman',
+  'journey.studio.addPageShort': 'Halaman',
   'journey.studio.addPageAfter': 'Sisipkan halaman setelah ini',
   'journey.studio.duplicatePage': 'Duplikat halaman',
   'journey.studio.deletePage': 'Hapus halaman',
   'journey.studio.movePageUp': 'Pindah ke depan',
   'journey.studio.movePageDown': 'Pindah ke belakang',
-  'journey.studio.beta': 'Beta',
   'journey.studio.addProsCons': 'Pro & Kontra',
   'journey.studio.showMarks': 'Tanda',
   'journey.studio.formatCustom': 'Ukuran sendiri',
   'journey.studio.document': 'Dokumen',
   'journey.studio.pageNumbers': 'Nomor halaman',
-  'journey.studio.pageNumbersOn': 'Aktif',
-  'journey.studio.pageNumbersOff': 'Mati',
   'journey.studio.folio.outer': 'Luar',
   'journey.studio.folio.inner': 'Dalam',
   'journey.studio.folio.centre': 'Tengah',
   'journey.studio.folioStart': 'Mulai dari',
-  'journey.studio.folioMargin': 'Margin',
+  'journey.studio.folioMargin': 'Margin', // same-as-en
   'journey.studio.relayoutSpread': 'Halaman ini',
   'journey.studio.relayoutSpreadHint': 'Bangun ulang dari catatannya',
   'journey.studio.relayoutSpreadNone': 'Halaman ini bukan dari catatan',
@@ -531,12 +592,12 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.mosaic': 'Mozaik',
   'journey.studio.tpl.bandQuote': 'Kata di tengah',
   'journey.studio.tpl.staggerFour': 'Empat berselang',
-  'journey.studio.weightMissing': 'Huruf ini tidak punya ketebalan itu',
   'journey.studio.mapSource': 'Sumber peta',
   'journey.studio.mapSourceVector': 'Garis luar',
-  'journey.studio.mapSourceRelief': 'Relief',
+  'journey.studio.mapSourceRelief': 'Relief', // same-as-en
   'journey.studio.mapSourceSatellite': 'Satelit',
-  'journey.studio.mapSourceSatelliteHint': 'Sentinel-2 bebas awan, bebas dicetak dengan atribusi. Tajam sampai ke jalan kota.',
+  'journey.studio.mapSourceSatelliteHint':
+    'Sentinel-2 bebas awan, bebas dicetak dengan atribusi. Tajam sampai ke jalan kota.',
   'journey.studio.routeLook': 'Garis rute',
   'journey.studio.routeStyle': 'Gaya garis',
   'journey.studio.routePlain': 'Biasa',
@@ -550,23 +611,23 @@ const journey: TranslationStrings = {
   'journey.studio.pinPhoto': 'Foto',
   'journey.studio.pinPhotoNone': 'Belum ada foto di perhentian ini, jadi digambar sebagai titik.',
   'journey.studio.roads': 'Jalan',
-  'journey.studio.roadsFetch': 'Ikuti jalan',
   'journey.studio.roadsFollow': 'Lewat jalan',
   'journey.studio.roadsDirect': 'Tanpa jalan',
   'journey.studio.recommended': 'disarankan',
-  'journey.studio.bleed': 'Bleed',
+  'journey.studio.bleed': 'Bleed', // same-as-en
   'journey.studio.safeArea': 'Aman',
   'journey.studio.roadsAgain': 'Ambil lagi',
-  'journey.studio.roadsClear': 'Hapus',
   'journey.studio.roadsBusy': 'Meminta',
-  'journey.studio.roadsHint': 'Minta layanan rute untuk jalur yang dilalui tiap segmen. Segmen panjang dibiarkan apa adanya.',
+  'journey.studio.roadsHint':
+    'Minta layanan rute untuk jalur yang dilalui tiap segmen. Segmen panjang dibiarkan apa adanya.',
   'journey.studio.roadsHave': 'Jalannya tersimpan di buku ini, jadi garis yang tercetak sama walau offline.',
   'journey.studio.mapPerTrip': 'Perjalanan satu per satu',
   'journey.studio.mapWholeJourney': 'Seluruh Journey',
   'journey.studio.mapScope': 'Tampilkan',
   'journey.studio.mapPrintDpi': 'Hasil cetak sekitar',
   'journey.studio.mapPrintDpiLow': 'kurang tajam pada ukuran ini, coba tampilan lebih lebar atau sumber lain',
-  'journey.studio.mapSourceReliefHint': 'Relief berbayang NASA, bebas dicetak. Cocok untuk negara atau benua, terlalu kasar untuk satu kota.',
+  'journey.studio.mapSourceReliefHint':
+    'Relief berbayang NASA, bebas dicetak. Cocok untuk negara atau benua, terlalu kasar untuk satu kota.',
   'journey.studio.mapSourceTiles': 'Ubin peta',
   'journey.studio.mapSourceStatic': 'Mapbox',
   'journey.studio.mapSourceHint': 'Diambil saat render dan dicetak dengan atribusinya',
@@ -575,14 +636,12 @@ const journey: TranslationStrings = {
   'journey.studio.mapFitStops': 'Perhentian',
   'journey.studio.mapFitCountry': 'Seluruh negara',
   'journey.studio.mapPadTight': 'Rapat',
-  'journey.studio.mapPadNormal': 'Normal',
+  'journey.studio.mapPadNormal': 'Normal', // same-as-en
   'journey.studio.mapPadWide': 'Lebar',
   'journey.studio.mapPadFar': 'Sangat lebar',
   'journey.studio.mapClipRect': 'Dalam kotak',
   'journey.studio.mapClipCountry': 'Dipotong bentuk',
   'journey.studio.mapClipNeedsCountry': 'Perlu negara untuk memotong',
-  'journey.studio.mapCutVector': 'Potongan',
-  'journey.studio.mapCutTiles': 'Peta potongan',
   'journey.studio.mapZoomAuto': 'Sesuaikan',
   'journey.studio.saving': 'Menyimpan',
   'journey.studio.saved': 'Tersimpan',
@@ -595,6 +654,8 @@ const journey: TranslationStrings = {
   'journey.studio.rotateLeft': 'Putar ke kiri',
   'journey.studio.rotateRight': 'Putar ke kanan',
   'journey.studio.saveReadOnly': 'Hanya baca, tidak disimpan',
+  'journey.studio.saveNewer': 'Buku ini disimpan oleh versi Studio yang lebih baru. Muat ulang untuk mengeditnya.',
+  'journey.studio.saveReload': 'Muat ulang',
   'journey.studio.filterPhotos': 'Filter foto',
   'journey.studio.filterAll': 'Semua foto',
   'journey.studio.filterLoose': 'Tidak dalam entri',
@@ -604,12 +665,14 @@ const journey: TranslationStrings = {
   'journey.studio.noEntryPhotos': 'Entri ini belum punya foto.',
   'journey.studio.noLoosePhotos': 'Semua foto di sini milik sebuah entri.',
   'journey.studio.uploadPhotos': 'Unggah foto',
+  'journey.studio.fromProvider': 'Dari {name}',
+  'journey.studio.fromProviderHint': 'Pilih foto dari {name} dan tambahkan ke tempat unggahan masuk',
   'journey.studio.uploadHint': 'Letakkan gambar di sini atau klik untuk memilih',
   'journey.studio.uploadToEntry': 'Gambar baru akan masuk ke entri ini',
   'journey.studio.uploadToGallery': 'Gambar baru akan masuk ke galeri',
   'journey.studio.uploading': 'Mengunggah {done} dari {total}',
   'journey.studio.dropFilesHere': 'Lepaskan untuk menambahkan gambar',
-  'journey.studio.videosSkipped': '{count} video dilewati. Buku berisi gambar.',
+  'journey.studio.videosSkipped': '{count} video tidak disertakan. Buku hanya berisi gambar.',
   'journey.studio.fillPage': 'Isi halaman',
   'journey.studio.fillSpread': 'Isi halaman ganda',
   'journey.studio.fillHint':
@@ -625,11 +688,18 @@ const journey: TranslationStrings = {
   'journey.editor.statsExcludedHint':
     'Perhentian tetap ada di jurnal tetapi tidak dihitung untuk jarak, negara, atau peta di Studio.',
   'journey.entry.offRoute': 'Di luar rute',
+  'journey.entry.draft': 'Draf',
+  'journey.editor.draft': 'Draf',
+  'journey.editor.draftHint':
+    'Hanya kamu dan kontributor lain yang melihat entri ini. Journey yang dibagikan tidak menampilkannya sampai kamu mematikan opsi ini.',
+  'journey.editor.tripSuggestionHint':
+    'Hari ini termasuk dalam perjalanan ini. Tautkan, dan tempat-tempatnya akan masuk ke journey ini.',
+  'journey.editor.tripSuggestionLater': 'Nanti saja',
   'journey.suggestions.dismiss': 'Abaikan saran ini',
   'journey.suggestions.dismissed': 'Saran diabaikan',
   'journey.suggestions.restore': 'Kembalikan saran yang diabaikan',
   'journey.suggestions.restoreCount': 'Saran yang diabaikan ({count})',
-  'journey.suggestions.restored': '{count} saran telah kembali',
+  'journey.suggestions.restored': '{count} saran dikembalikan',
   'journey.detail.addOnThisDay': 'Tambahkan catatan pada hari ini',
   'journey.detail.jumpToDay': 'Lompat ke {date}',
   'journey.detail.searchPlaceholder': 'Cari di perjalanan ini',
@@ -641,5 +711,196 @@ const journey: TranslationStrings = {
   'journey.settings.showWeather': 'Cuaca',
   'journey.entry.suggestion': 'Saran',
   'journey.editor.addDetails': '+ Detail',
+  'journey.recording.mapLine': 'Direkam pada {date}',
+  'journey.recording.keptBy': 'Rute rekaman disimpan: {distance}, diambil oleh {name} pada {date}.',
+  'journey.recording.keptOn': 'Rute rekaman disimpan: {distance}, diambil pada {date}.',
+  'journey.recording.keptRunning': 'Hari itu masih berlangsung saat itu.',
+  'journey.recording.takeOver': 'Ambil rekaman',
+  'journey.recording.takeOverDay': 'Rekaman {date}',
+  'journey.recording.sub': 'Hanya hari ini, dari Dawarich kamu. Tidak ada yang disimpan sebelum kamu mengonfirmasi.',
+  'journey.recording.zone': 'Zona waktu hari ini',
+  'journey.recording.zoneHint':
+    'Hari berjalan dari tengah malam ke tengah malam di zona ini. Pilih zona tempat kamu bepergian.',
+  'journey.recording.zoneSource': 'Dari Dawarich',
+  'journey.recording.zoneDevice': 'Perangkat ini',
+  'journey.recording.scope': 'Rekaman',
+  'journey.recording.loading': 'Membaca hari dari Dawarich…',
+  'journey.recording.keptStays': 'Rute yang disimpan perjalanan ini tetap seperti semula.',
+  'journey.recording.retry': 'Coba lagi',
+  'journey.recording.empty': 'Dawarich tidak merekam apa pun pada hari ini di zona waktu ini.',
+  'journey.recording.span': '{from} sampai {to}',
+  'journey.recording.pieces': '{count} bagian',
+  'journey.recording.gaps': '{count} jeda',
+  'journey.recording.gapsHint':
+    'Di tempat rekaman berhenti, garis juga berhenti. Tidak ada jalan yang digambar jika tidak direkam.',
+  'journey.recording.sourceHint':
+    'Jejak adalah rute yang sudah dibagi Dawarich menurut moda. Titik adalah posisi mentahnya, dikurangi menjadi 600 per hari.',
+  'journey.recording.sourceTracks': 'Jejak',
+  'journey.recording.sourcePoints': 'Titik',
+  'journey.recording.changedSincePreview':
+    'Rekaman berubah di Dawarich saat kamu melihatnya. Periksa sekali lagi, lalu simpan.',
+  'journey.recording.truncated': 'Dawarich hanya mengirim sebagian hari ini, rutenya tidak lengkap.',
+  'journey.recording.provisional':
+    'Hari ini belum selesai di zona waktu ini. Nanti kamu bisa mengganti rute dengan hari penuh.',
+  'journey.recording.same': 'Perjalanan ini sudah menyimpan rekaman yang persis sama.',
+  'journey.recording.differs':
+    'Perjalanan ini menyimpan versi lain dari {date} ({distance}). Menggantinya tidak mengubah entri atau teks.',
+  'journey.recording.audience':
+    '{count} orang lain di perjalanan ini akan melihat rute di petanya. Tautan bersama tidak menampilkannya.',
+  'journey.recording.replace': 'Ganti',
+  'journey.recording.alreadyKept': 'Sudah disimpan',
+  'journey.recording.keep': 'Simpan rute',
+  'journey.recording.remove': 'Hapus rute',
+  'journey.recording.removeTitle': 'Hapus rute yang disimpan?',
+  'journey.recording.removeMessage':
+    'Rute hari ini hilang dari peta perjalanan. Entri dan teks tetap ada, dan Dawarich menyimpan rekamannya sendiri.',
+  'journey.recording.keptToast': 'Rute disimpan di perjalanan',
+  'journey.recording.replacedToast': 'Rute diganti',
+  'journey.recording.removedToast': 'Rute dihapus dari perjalanan',
+  'journey.recording.error.recording_exists': 'Perjalanan ini sudah menyimpan rekaman lain untuk hari itu.',
+  'journey.recording.error.recording_changed': 'Rekaman berubah sejak pratinjau.',
+  'journey.recording.error.recording_empty': 'Dawarich tidak merekam apa pun pada hari itu.',
+  'journey.recording.mode.walking': 'Jalan kaki',
+  'journey.recording.mode.running': 'Lari',
+  'journey.recording.mode.cycling': 'Bersepeda',
+  'journey.recording.mode.driving': 'Mobil',
+  'journey.recording.mode.motorcycle': 'Sepeda motor',
+  'journey.recording.mode.bus': 'Bus', // same-as-en
+  'journey.recording.mode.train': 'Kereta',
+  'journey.recording.mode.flying': 'Penerbangan',
+  'journey.recording.mode.boat': 'Perahu',
+  'journey.recording.mode.stationary': 'Diam',
+  'journey.recording.mode.unknown': 'Moda tidak dikenal',
+  'journey.dayImport.open': 'Ambil hari',
+  'journey.dayImport.openHint': 'Ambil hari ini beserta persinggahannya',
+  'journey.dayImport.openOn': 'Ambil {date} beserta persinggahannya',
+  'journey.dayImport.pending': '{count} persinggahan untuk ditinjau',
+  'journey.dayImport.sub':
+    'Persinggahanmu dari Dawarich pada hari ini. Pilih, ganti nama, dan gabungkan; semuanya menjadi draf.',
+  'journey.dayImport.loading': 'Membaca persinggahan hari ini dari Dawarich…',
+  'journey.dayImport.map': 'Hari di peta',
+  'journey.dayImport.stays': 'Persinggahan',
+  'journey.dayImport.modeEntries': 'Catatan',
+  'journey.dayImport.modeReport': 'Laporan harian',
+  'journey.dayImport.reportDefault': 'Hari {date}',
+  'journey.dayImport.reportHint':
+    'Semua persinggahan yang dipilih menjadi satu catatan yang mencantumkannya beserta waktunya. Setiap tempat tetap tersimpan untuk peta.',
+  'journey.dayImport.reportNeedsTwo': 'Pilih dua persinggahan atau lebih untuk laporan harian.',
+  'journey.dayImport.groupTitle': 'Judul catatan',
+  'journey.dayImport.groupPin': 'Posisi di peta',
+  'journey.dayImport.noPin': 'Tanpa posisi di peta',
+  'journey.dayImport.join': 'Gabungkan jadi satu catatan',
+  'journey.dayImport.split': 'Biarkan terpisah',
+  'journey.dayImport.choose': 'Ambil {name}',
+  'journey.dayImport.name': 'Nama {name}',
+  'journey.dayImport.unconfirmed': 'Belum dikonfirmasi',
+  'journey.dayImport.noPlace': 'Tanpa posisi',
+  'journey.dayImport.noPlaceHint':
+    'Dawarich tidak mencatat posisi untuk persinggahan ini, jadi catatannya tidak muncul di peta.',
+  'journey.dayImport.statusHere': 'Di {title}',
+  'journey.dayImport.statusHereUntitled': 'Di jurnal',
+  'journey.dayImport.statusElsewhere': 'Sudah diambil',
+  'journey.dayImport.statusElsewhereHint': 'Sudah diambil sebagai tempat, keinginan, atau ke jurnal lain.',
+  'journey.dayImport.statusSkipped': 'Dilewati',
+  'journey.dayImport.keepRoute': 'Simpan juga rute hari ini',
+  'journey.dayImport.keepRouteHint': '{distance} tercatat. Semua orang di perjalanan melihatnya di peta.',
+  'journey.dayImport.routeNone': 'Dawarich tidak mencatat rute pada hari ini.',
+  'journey.dayImport.routeKept': 'Rute disimpan',
+  'journey.dayImport.routeDiffers':
+    'Dawarich sekarang punya versi lain dari rute ini. Ganti lewat tombol rute hari itu.',
+  'journey.dayImport.existing': 'Sudah ada di hari ini',
+  'journey.dayImport.untitled': 'Catatan tanpa judul',
+  'journey.dayImport.draft': 'Draf',
+  'journey.dayImport.audience':
+    'Draf tidak tampil di tautan yang dibagikan. {count} orang lain di perjalanan ini melihatnya.',
+  'journey.dayImport.draftsNote':
+    'Draf tidak tampil di tautan yang dibagikan sampai kamu menerbitkannya. Tambahkan foto dan teks setelahnya.',
+  'journey.dayImport.submit': 'Ambil {count} draf',
+  'journey.dayImport.skipped': '{count} dilewati',
+  'journey.dayImport.skipHint':
+    'Persinggahan yang kamu lewati tidak lagi menunggu di hari ini. Kamu bisa memulihkannya di daftar persinggahan Dawarich.',
+  'journey.dayImport.problem.nothing': 'Pilih setidaknya satu persinggahan.',
+  'journey.dayImport.problem.name': 'Setiap persinggahan yang dipilih perlu nama.',
+  'journey.dayImport.problem.title': 'Setiap catatan gabungan dan laporan harian perlu judul.',
+  'journey.dayImport.done': '{count} draf diambil',
+  'journey.dayImport.alreadyTaken': '{count} persinggahan sudah pernah diambil alih. Tidak ada yang ditulis dua kali.',
+  'journey.dayImport.failed':
+    'Tidak ada yang diambil: {reason} Daftar menunjukkan isi jurnal sekarang; mencoba lagi tidak menulis apa pun dua kali.',
+  'journey.dayImport.routeFailed': 'Draf sudah dibuat, tetapi rute tidak disimpan: {reason}',
+  'journey.dayImport.routeRetry': 'Simpan rute lagi',
+  'journey.dayImport.stale':
+    'Dawarich tidak menjawab: {reason} Menampilkan persinggahan dari sinkronisasi terakhir pada {date}.',
+  'journey.dayImport.staleNever':
+    'Dawarich tidak menjawab: {reason} Menampilkan persinggahan yang sudah diketahui TREK.',
+  'journey.dayImport.truncated': 'Dawarich hanya mengirim sebagian hari ini. Beberapa persinggahan mungkin hilang.',
+  'journey.dayImport.empty': 'Dawarich tidak menemukan persinggahan pada hari ini.',
+  'journey.prep.lastSuccess': 'Terakhir diambil {time}.',
+  'journey.prep.never': 'Belum diambil. Sinkronisasi latar berikutnya akan memulainya.',
+  'journey.prep.failed': 'Penyegaran terakhir gagal: {reason} Menampilkan yang diambil {time}.',
+  'journey.prep.failedNever': 'Pengambilan pertama gagal: {reason}',
+  'journey.prep.notConnected': 'Hubungkan Dawarich di pengaturan agar harimu bisa disiapkan.',
+  'journey.prep.noPeriods': 'Tautkan perjalanan bertanggal: hanya harinya yang disiapkan.',
+  'journey.prep.syncOff': 'Sinkronisasi latar mati di pengaturan Dawarich-mu, hari hanya diambil saat kamu memintanya.',
+  'journey.prep.fetchNow': 'Ambil sekarang',
+  'journey.prep.fetching': 'Mengambil…',
+  'journey.prep.fetchFailed': 'Dawarich tidak bisa ditanya saat ini.',
+  'journey.prep.dayRunning': 'Hari ini masih berlangsung, persinggahan lain mungkin menyusul.',
+  'journey.prep.dayPending': 'Belum diambil.',
+  'journey.prep.dayProvisional': 'Diambil {time}, sebelum hari berakhir, beberapa persinggahan mungkin belum ada.',
+  'journey.prep.dayFailed': 'Penyegaran terakhir gagal, ini keadaan yang lebih lama.',
+  'journey.prep.outOfReach':
+    'Perjalanan yang berakhir lebih dari {count} hari lalu tidak disiapkan di latar belakang. Buka salah satu harinya untuk mengambilnya secara manual.',
+  'journey.prep.alreadyRunning': 'Pengambilan sudah berjalan di latar belakang. Persinggahannya muncul begitu selesai.',
+  'journey.dayImport.running':
+    'Hari ini masih berlangsung. Persinggahan yang terekam kemudian muncul begitu Dawarich memilikinya.',
+  'journey.map.layers': 'Lapisan peta',
+  'journey.map.layer.plan': 'Rencana',
+  'journey.map.layer.recorded': 'Terekam',
+  'journey.map.layer.entries': 'Catatan',
+  'journey.map.layer.photos': 'Foto',
+  'journey.map.layer.loading': 'memuat',
+  'journey.map.layer.planEmpty': 'perjalanan tertaut tidak punya tempat di hari-harinya',
+  'journey.map.layer.planUnavailable': 'rencana tidak dapat dimuat, bagian peta lainnya tetap tampil',
+  'journey.map.layer.recordedEmpty': 'belum ada rute terekam',
+  'journey.map.layer.recordedUnavailable': 'hari terekam tidak dapat dimuat',
+  'journey.map.layer.entriesEmpty': 'belum ada catatan yang punya tempat',
+  'journey.map.layer.entriesUnavailable': 'persinggahan laporan harian tidak dapat dimuat, catatan tetap tampil',
+  'journey.map.layer.photosEmpty': 'belum ada foto berlokasi',
+  'journey.map.legend': 'Keterangan peta',
+  'journey.map.legend.planned': 'Tempat yang direncanakan',
+  'journey.map.legend.entry': 'Catatan jurnal',
+  'journey.map.legend.plannedWritten': 'Direncanakan dan ditulis',
+  'journey.map.legend.stay': 'Persinggahan laporan harian',
+  'journey.map.legend.several': 'Beberapa di satu titik',
+  'journey.map.legend.lines': 'Rute',
+  'journey.map.legend.plannedRoute': 'Rute yang direncanakan (GPX perjalanan)',
+  'journey.map.legend.recordedRoute': 'Rute terekam',
+  'journey.map.legend.planIsNoVisit':
+    'Tempat yang direncanakan bukan bukti kunjungan. Hanya catatan, foto, dan rekaman yang menunjukkan di mana kamu berada.',
+  'journey.map.pick.openEntry': 'Buka catatan',
+  'journey.map.pick.planned': 'Direncanakan',
+  'journey.map.pick.notWritten': 'Belum ada yang ditulis tentangnya.',
+  'journey.map.pick.stay': 'Persinggahan',
+  'journey.map.pick.partOf': 'Bagian dari “{title}”',
+  'journey.map.pick.here': 'Di titik ini',
+  'journey.map.pick.back': 'Kembali ke daftar',
+  'journey.map.pick.timeRange': '{from} sampai {to}',
+  'journey.share.plan': 'Rencana perjalanan',
+  'journey.share.planHint': 'Tempat yang direncanakan dan rute GPX dari perjalanan tertaut di peta',
+  'journey.share.recordings': 'Rute terekam',
+  'journey.share.recordingsHint':
+    'Hari terekam dan persinggahan yang diambil darinya, pada hari yang punya catatan terbit. Menunjukkan di mana dan kapan kamu berada, termasuk penginapanmu.',
+  'journey.share.needsMap': 'Bagikan peta untuk mengaktifkan ini',
+  'journey.editor.tags': 'Tag',
+  'journey.studio.assistant.toggle': 'Asisten',
+  'journey.studio.assistant.toggleHint': 'Rancang buku bersama asisten',
+  'journey.studio.assistant.panel': 'Asisten buku',
+  'journey.studio.assistant.welcome': 'Seperti apa bukunya nanti?',
+  'journey.studio.assistant.readOnly':
+    'Kamu hanya bisa melihat buku ini, jadi aku bisa menjawab pertanyaan tapi tidak bisa mengubah apa pun.',
+  'journey.studio.assistant.notice':
+    'Asisten dapat melihat halaman yang sedang Anda kerjakan. Hanya halaman itu yang dikirim ke {provider}, sebagai gambar yang hanya menampilkan foto yang Anda tambahkan sendiri. Siapa yang ada di foto Anda tidak dapat dideteksi.',
+  'journey.studio.assistant.noticeAllow': 'Tunjukkan halaman',
+  'journey.studio.assistant.noticeLater': 'Nanti saja',
 };
 export default journey;

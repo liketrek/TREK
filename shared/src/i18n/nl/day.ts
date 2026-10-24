@@ -3,11 +3,11 @@ import type { TranslationStrings } from '../types';
 const day: TranslationStrings = {
   'day.precipProb': 'Regenkans',
   'day.precipitation': 'Neerslag',
-  'day.wind': 'Wind',
+  'day.wind': 'Wind', // same-as-en
   'day.sunrise': 'Zonsopgang',
   'day.sunset': 'Zonsondergang',
   'day.hourlyForecast': 'Uurlijkse voorspelling',
-  'day.climateHint': 'Historische gemiddelden — echte voorspelling beschikbaar binnen 16 dagen voor deze datum.',
+  'day.climateHint': 'Historische gemiddelden: echte voorspelling beschikbaar binnen 16 dagen voor deze datum.',
   'day.noWeather': 'Geen weergegevens beschikbaar. Voeg een plaats met coördinaten toe.',
   'day.weatherFor': 'Voorspelling voor {name}',
   'day.overview': 'Dagoverzicht',
@@ -19,6 +19,7 @@ const day: TranslationStrings = {
   'day.checkIn': 'Inchecken',
   'day.checkInUntil': 'Tot',
   'day.checkOut': 'Uitchecken',
+  'day.openStayBooking': 'Boeking openen',
   'day.confirmation': 'Bevestiging',
   'day.editAccommodation': 'Accommodatie bewerken',
   'day.reservations': 'Reserveringen',

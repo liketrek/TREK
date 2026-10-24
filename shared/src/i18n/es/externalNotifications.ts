@@ -1,4 +1,5 @@
 import type { NotificationLocale } from '../externalNotifications/types';
+import { pluralForm } from '../plural';
 
 const es: NotificationLocale = {
   email: {
@@ -37,8 +38,11 @@ const es: NotificationLocale = {
       body: `${p.actor} te invitó a compartir una colección. Abre TREK para aceptar o rechazar.`,
     }),
     photos_shared: (p) => ({
-      title: `${p.count} fotos compartidas`,
-      body: `${p.actor} compartió ${p.count} foto(s) en "${p.trip}".`,
+      title: pluralForm(p.count, 'es', { one: `${p.count} foto compartida`, other: `${p.count} fotos compartidas` }),
+      body: pluralForm(p.count, 'es', {
+        one: `${p.actor} compartió ${p.count} foto en "${p.trip}".`,
+        other: `${p.actor} compartió ${p.count} fotos en "${p.trip}".`,
+      }),
     }),
     collab_message: (p) => ({
       title: `Nuevo mensaje en "${p.trip}"`,
@@ -56,11 +60,29 @@ const es: NotificationLocale = {
       title: 'Fallo de réplica de almacenamiento',
       body:
         `Error al escribir en la réplica '${p.backend}': ${p.op} de ${p.key} — ${p.error}.` +
-        (p.suppressed !== '0' ? ` Se suprimieron ${p.suppressed} errores más desde la última notificación.` : ''),
+        (p.suppressed !== '0'
+          ? pluralForm(p.suppressed, 'es', {
+              one: ` Se suprimió ${p.suppressed} error más desde la última notificación.`,
+              other: ` Se suprimieron ${p.suppressed} errores más desde la última notificación.`,
+            })
+          : ''),
+    }),
+    paddle_region_requested: (p) => ({
+      title: 'Región de kayak pedida',
+      body: `${p.actor} está planificando una ruta en kayak en ${p.region}. Carga o rechaza sus datos de agua en la administración, en Complementos.`,
     }),
     synology_session_cleared: () => ({
       title: 'Sesión de Synology cerrada',
       body: 'Tu cuenta o URL de Synology ha cambiado. Has cerrado sesión en Synology Photos.',
+    }),
+    wanderer_source_hint: (p) => ({
+      title: `Ruta de wanderer: ${p.tour}`,
+      body:
+        p.state === 'changed'
+          ? `«${p.tour}» en «${p.trip}» se cambió en wanderer. Abre el recorrido y comprueba su fuente para ver todos los cambios. Nada del viaje cambia por sí solo.`
+          : p.state === 'unverifiable'
+            ? `«${p.tour}» en «${p.trip}» ya no se puede comprobar en wanderer. El recorrido de tu viaje se queda como está.`
+            : `«${p.tour}» en «${p.trip}» puede haber cambiado en wanderer. Abre el recorrido y comprueba su fuente para saberlo. Nada del viaje cambia por sí solo.`,
     }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },

@@ -26,5 +26,8 @@
 *.eot  binary
 *.pdf  binary
 *.zip  binary
+# Ski area graphs (SGR1) as the Places host writes them, byte for byte
+*.sgr  binary
+*.gz   binary
 # A GPX fixture whose byte-order mark and CRLF line endings are what it tests
 server/tests/fixtures/gpx/bom-crlf.gpx -text

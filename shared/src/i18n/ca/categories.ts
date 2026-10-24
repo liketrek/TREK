@@ -1,13 +1,13 @@
 import type { TranslationStrings } from '../types';
 
 const categories: TranslationStrings = {
-  'categories.title': 'Categories',
+  'categories.title': 'Categories', // same-as-en
   'categories.subtitle': 'Gestiona categories per a llocs',
   'categories.new': 'Categoria nova',
   'categories.empty': 'Encara no hi ha categories',
   'categories.namePlaceholder': 'Nom de la categoria',
   'categories.icon': 'Icona',
-  'categories.color': 'Color',
+  'categories.color': 'Color', // same-as-en
   'categories.customColor': 'Tria un color personalitzat',
   'categories.preview': 'Vista prèvia',
   'categories.defaultName': 'Categoria',

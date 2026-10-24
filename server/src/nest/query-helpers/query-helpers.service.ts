@@ -1,17 +1,12 @@
-import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../database/database.service';
+import { AssignmentParticipants } from '../../db/entities/AssignmentParticipants.entity';
+import { PlaceRatings } from '../../db/entities/PlaceRatings.entity';
+import { Tags } from '../../db/entities/Tags.entity';
+import type { AssignmentParticipantsRepository } from '../../db/repositories/AssignmentParticipants.repository';
+import type { PlaceRatingsRepository } from '../../db/repositories/PlaceRatings.repository';
+import type { TagsRepository, TagForPlaceRow } from '../../db/repositories/Tags.repository';
 import type { Tag, Participant } from '../../types';
-
-interface TagRow extends Tag {
-  place_id: number;
-}
-
-interface ParticipantRow {
-  assignment_id: number;
-  user_id: number;
-  username: string;
-  avatar: string | null;
-}
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 
 export interface PlaceRatingRow {
   user_id: number;
@@ -22,8 +17,11 @@ export interface PlaceRatingRow {
 
 /**
  * The batch loaders that keep the list endpoints off N+1 queries — one query per
- * collection instead of one per row. Moved 1:1 from services/queryHelpers.ts
- * (same SQL, same indexing) onto the injected connection.
+ * collection instead of one per row. Plan 3c Task 1: onto `TagsRepository`
+ * (QH1), `PlaceRatingsRepository` (QH2, a Plan 3c-owned table per the
+ * inventory §14.6) and `AssignmentParticipantsRepository` (QH3) — this
+ * service's own first repository test file, since it had none before
+ * (inventory §15c).
  *
  * Only the loaders live here. The two pure reshaping functions that shipped in
  * the same legacy file touch no database and stayed free functions in
@@ -31,63 +29,46 @@ export interface PlaceRatingRow {
  */
 @Injectable()
 export class QueryHelpersService {
-  constructor(private readonly db: DatabaseService) {}
+  constructor(
+    @InjectRepository(Tags) private readonly tags: TagsRepository,
+    @InjectRepository(PlaceRatings) private readonly placeRatings: PlaceRatingsRepository,
+    @InjectRepository(AssignmentParticipants) private readonly assignmentParticipants: AssignmentParticipantsRepository,
+  ) {}
 
   /** Batch-load tags for multiple places in a single query, indexed by place ID. */
-  loadTagsByPlaceIds(placeIds: number[], { compact }: { compact?: boolean } = {}): Record<number, Partial<Tag>[]> {
+  async loadTagsByPlaceIds(
+    placeIds: number[],
+    { compact }: { compact?: boolean } = {},
+  ): Promise<Record<number, Partial<Tag>[]>> {
     const tagsByPlaceId: Record<number, Partial<Tag>[]> = {};
-    if (placeIds.length > 0) {
-      const placeholders = placeIds.map(() => '?').join(',');
-      const allTags = this.db.all<TagRow>(`
-      SELECT t.*, pt.place_id FROM tags t
-      JOIN place_tags pt ON t.id = pt.tag_id
-      WHERE pt.place_id IN (${placeholders})
-    `, ...placeIds);
-
-      for (const tag of allTags) {
-        const pid = tag.place_id;
-        if (!tagsByPlaceId[pid]) tagsByPlaceId[pid] = [];
-        if (compact) {
-          tagsByPlaceId[pid].push({ id: tag.id, name: tag.name, color: tag.color, created_at: tag.created_at });
-        } else {
-          const { place_id, ...rest } = tag;
-          tagsByPlaceId[pid].push(rest);
-        }
-      }
+    const rows = await this.tags.listForPlaces(placeIds, { compact });
+    for (const tag of rows as TagForPlaceRow[]) {
+      const pid = tag.place_id;
+      if (!tagsByPlaceId[pid]) tagsByPlaceId[pid] = [];
+      const { place_id, ...rest } = tag;
+      tagsByPlaceId[pid].push(rest);
     }
     return tagsByPlaceId;
   }
 
   /** Batch-load collaborative ratings (#1435) for multiple places in one query, indexed by place ID. */
-  loadRatingsByPlaceIds(placeIds: number[]): Record<number, PlaceRatingRow[]> {
+  async loadRatingsByPlaceIds(placeIds: number[]): Promise<Record<number, PlaceRatingRow[]>> {
     const ratingsByPlaceId: Record<number, PlaceRatingRow[]> = {};
-    if (placeIds.length > 0) {
-      const rows = this.db.all<PlaceRatingRow & { place_id: number }>(`
-      SELECT pr.place_id, pr.user_id, u.username, u.avatar, pr.rating FROM place_ratings pr
-      JOIN users u ON pr.user_id = u.id
-      WHERE pr.place_id IN (${placeIds.map(() => '?').join(',')})
-      ORDER BY pr.created_at
-    `, ...placeIds);
-      for (const { place_id, ...rest } of rows) {
-        if (!ratingsByPlaceId[place_id]) ratingsByPlaceId[place_id] = [];
-        ratingsByPlaceId[place_id].push(rest);
-      }
+    const rows = await this.placeRatings.listForPlaces(placeIds);
+    for (const { place_id, ...rest } of rows) {
+      if (!ratingsByPlaceId[place_id]) ratingsByPlaceId[place_id] = [];
+      ratingsByPlaceId[place_id].push(rest);
     }
     return ratingsByPlaceId;
   }
 
   /** Batch-load participants for multiple day-assignments in a single query, indexed by assignment ID. */
-  loadParticipantsByAssignmentIds(assignmentIds: number[]): Record<number, Participant[]> {
+  async loadParticipantsByAssignmentIds(assignmentIds: number[]): Promise<Record<number, Participant[]>> {
     const participantsByAssignment: Record<number, Participant[]> = {};
-    if (assignmentIds.length > 0) {
-      const allParticipants = this.db.all<ParticipantRow>(
-        `SELECT ap.assignment_id, ap.user_id, u.username, u.avatar FROM assignment_participants ap JOIN users u ON ap.user_id = u.id WHERE ap.assignment_id IN (${assignmentIds.map(() => '?').join(',')})`,
-        ...assignmentIds,
-      );
-      for (const p of allParticipants) {
-        if (!participantsByAssignment[p.assignment_id]) participantsByAssignment[p.assignment_id] = [];
-        participantsByAssignment[p.assignment_id].push({ user_id: p.user_id, username: p.username, avatar: p.avatar });
-      }
+    const rows = await this.assignmentParticipants.listForAssignments(assignmentIds);
+    for (const p of rows) {
+      if (!participantsByAssignment[p.assignment_id]) participantsByAssignment[p.assignment_id] = [];
+      participantsByAssignment[p.assignment_id].push({ user_id: p.user_id, username: p.username, avatar: p.avatar });
     }
     return participantsByAssignment;
   }

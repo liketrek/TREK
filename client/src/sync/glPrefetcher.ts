@@ -44,10 +44,26 @@ const VECTOR_CACHE = 'gl-map-offline'
  */
 const GLYPH_RANGES = ['0-255', '256-511', '512-767', '768-1023', '1024-1279', '1280-1535', '1536-1791', '8192-8447', '8448-8703']
 
+interface StyleSource {
+  type?: string
+  url?: string
+  tiles?: string[]
+  minzoom?: number
+  maxzoom?: number
+}
+
+/** One tiled source of the style, with the zooms it actually serves. */
+interface TileSource {
+  template: string
+  minZoom: number
+  maxZoom: number
+  vector: boolean
+}
+
 interface StyleDoc {
   sprite?: string
   glyphs?: string
-  sources?: Record<string, { url?: string; tiles?: string[] }>
+  sources?: Record<string, StyleSource>
   layers?: { layout?: { 'text-font'?: string[] } }[]
 }
 
@@ -100,28 +116,73 @@ async function openVectorCache(): Promise<Cache | null> {
   }
 }
 
-/** Tile coordinates covering the box, low zoom first so a truncated run is still useful. */
-function enumerateVectorTiles(bbox: TileBbox, minZoom: number, maxZoom: number): [number, number, number][] {
-  const out: [number, number, number][] = []
-  for (let z = minZoom; z <= maxZoom; z++) {
-    // Same screen-widened rectangle as the raster side: the opening fitBounds
-    // view shows more than the places extent on the non-limiting axis (#2180).
-    const { minX, maxX, minY, maxY } = tileRange(bbox, z)
-    for (let x = minX; x <= maxX; x++) {
-      for (let y = minY; y <= maxY; y++) {
-        out.push([z, x, y])
-        if (out.length >= MAX_VECTOR_TILES) return out
-      }
+/**
+ * Tile URLs covering the box, vector sources first and low zoom first within
+ * each, so a truncated run is still useful. A source is only asked for the
+ * zooms it serves: OpenFreeMap's shaded relief stops at z6 and answers 404
+ * above it.
+ */
+function enumerateTileUrls(bbox: TileBbox, sources: TileSource[]): string[] {
+  const out: string[] = []
+  for (const source of sources) {
+    for (let z = Math.max(source.minZoom, VECTOR_MIN_ZOOM); z <= Math.min(source.maxZoom, VECTOR_MAX_ZOOM); z++) {
+      if (!pushZoomTiles(out, source.template, bbox, z)) return out
     }
   }
   return out
 }
 
+/** One zoom's tiles of a source onto `out`; false once the run is full. */
+function pushZoomTiles(out: string[], template: string, bbox: TileBbox, z: number): boolean {
+  // Same screen-widened rectangle as the raster side: the opening fitBounds
+  // view shows more than the places extent on the non-limiting axis (#2180).
+  const { minX, maxX, minY, maxY } = tileRange(bbox, z)
+  for (let x = minX; x <= maxX; x++) {
+    for (let y = minY; y <= maxY; y++) {
+      out.push(template.replace('{z}', String(z)).replace('{x}', String(x)).replace('{y}', String(y)))
+      if (out.length >= MAX_VECTOR_TILES) return false
+    }
+  }
+  return true
+}
+
+/**
+ * The style's tiled sources, vector first. A source given as a TileJSON
+ * reference gets its template and zooms from there: the tile path carries a
+ * planet version, and asking without that segment answers 200 with an empty
+ * body, so it cannot be guessed. A source without tiles (GeoJSON) is skipped.
+ */
+async function readTileSources(style: StyleDoc, cache: Cache | null): Promise<TileSource[]> {
+  const out: TileSource[] = []
+  for (const source of Object.values(style.sources ?? {})) {
+    let { tiles, minzoom, maxzoom } = source
+    if (!tiles?.[0] && source.url) {
+      await warm(cache, source.url)
+      const tileJson = await fetchJson<{ tiles?: string[]; minzoom?: number; maxzoom?: number }>(source.url)
+      tiles = tileJson?.tiles
+      minzoom ??= tileJson?.minzoom
+      maxzoom ??= tileJson?.maxzoom
+    }
+    if (!tiles?.[0]) continue
+    out.push({
+      template: tiles[0],
+      minZoom: minzoom ?? VECTOR_MIN_ZOOM,
+      maxZoom: maxzoom ?? VECTOR_MAX_ZOOM,
+      vector: source.type !== 'raster' && source.type !== 'raster-dem',
+    })
+  }
+  return out.sort((a, b) => Number(b.vector) - Number(a.vector))
+}
+
 /**
  * The device-wide half: the style, its TileJSON, the sprite and the glyphs.
- * Returns the tile URL template, or null when the style could not be read.
+ * Returns the vector tile URL template, or null when the style could not be read.
  */
 export async function prefetchStyleAssets(styleUrl: string): Promise<string | null> {
+  return (await prefetchStyle(styleUrl))?.[0]?.template ?? null
+}
+
+async function prefetchStyle(styleUrl: string): Promise<TileSource[] | null> {
   const cache = await openVectorCache()
   const style = await fetchJson<StyleDoc>(styleUrl)
   if (!style) return null
@@ -148,19 +209,7 @@ export async function prefetchStyleAssets(styleUrl: string): Promise<string | nu
     )
   }
 
-  // The vector source is a TileJSON reference, and the tile path it hands back
-  // carries a planet version. Asking without that segment answers 200 with an
-  // empty body, so the template has to come from the TileJSON rather than be
-  // guessed.
-  for (const source of Object.values(style.sources ?? {})) {
-    if (source.tiles?.[0]) return source.tiles[0]
-    if (source.url) {
-      await warm(cache, source.url)
-      const tileJson = await fetchJson<{ tiles?: string[] }>(source.url)
-      if (tileJson?.tiles?.[0]) return tileJson.tiles[0]
-    }
-  }
-  return null
+  return readTileSources(style, cache)
 }
 
 export interface VectorPrefetchResult {
@@ -184,25 +233,21 @@ export async function prefetchVectorForPlaces(
   const bbox = computeBbox(places)
   if (!bbox) return { tiles: 0, template: null }
 
-  const template = await prefetchStyleAssets(styleUrl)
-  if (!template || isCancelled()) return { tiles: 0, template }
+  const sources = await prefetchStyle(styleUrl)
+  const template = sources?.[0]?.template ?? null
+  if (!sources?.length || isCancelled()) return { tiles: 0, template }
 
   const cache = await openVectorCache()
-  const coords = enumerateVectorTiles(bbox, VECTOR_MIN_ZOOM, VECTOR_MAX_ZOOM)
+  const urls = enumerateTileUrls(bbox, sources)
 
   let cursor = 0
   let fetched = 0
 
   async function worker(): Promise<void> {
-    while (cursor < coords.length) {
+    while (cursor < urls.length) {
       if (isCancelled() || !navigator.onLine) return
-      const next = coords[cursor++]
-      if (!next) return
-      const [z, x, y] = next
-      const url = template!
-        .replace('{z}', String(z))
-        .replace('{x}', String(x))
-        .replace('{y}', String(y))
+      const url = urls[cursor++]
+      if (!url) return
       if (await warm(cache, url)) fetched++
     }
   }

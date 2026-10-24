@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types';
+
+const assistantJourney: TranslationStrings = {
+  'assistant.card.journey.label': 'Entrades del diari',
+  'assistant.card.journey.open': 'Obre al diari',
+  'assistant.card.journey.entries': '{count} entrades',
+  'assistant.card.journey.entries.one': '{count} entrada',
+  'assistant.card.journey.more': '{count} més al diari',
+  'assistant.card.journey.more.one': '{count} més al diari',
+  'assistant.card.journey.photos': '{count} fotos',
+  'assistant.card.journey.photos.one': '{count} foto',
+  'assistant.card.journey.toSuggestion': 'Torna a ser un suggeriment',
+  'assistant.card.journey.video': 'Comença amb un vídeo',
+  'assistant.card.journey.typeEntry': 'Entrada escrita',
+  'assistant.card.journey.typeCheckin': 'Registre d’arribada',
+  'assistant.card.journey.notDraft': 'Ja no és un esborrany',
+  'assistant.card.journey.onRoute': 'De nou a la ruta',
+  'assistant.card.journey.restored': 'Suggeriment recuperat',
+  'assistant.change.verb.addJournalEntry': 'Afegeix una entrada al diari',
+  'assistant.change.verb.updateJournalEntry': 'Canvia l’entrada del diari',
+  'assistant.change.verb.removeJournalEntry': 'Suprimeix l’entrada del diari',
+  'assistant.step.readingJournal': 'Llegint el diari',
+  'assistant.tool.create_journey': 'Comença un diari',
+  'assistant.tool.update_journey': 'Canvia el diari',
+  'assistant.tool.add_journey_trip': 'Afegeix el viatge al diari',
+  'assistant.tool.link_trip_journal': 'Mostra el diari en aquest viatge',
+  'assistant.tool.reorder_journey_entries': 'Reordena el diari',
+  'assistant.followUp.journalToday': 'Escriu una entrada per a avui',
+  'assistant.followUp.journalSummary': 'Resumeix aquests dies',
+};
+export default assistantJourney;

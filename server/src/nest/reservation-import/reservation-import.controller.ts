@@ -1,3 +1,16 @@
+import { ADDON_IDS } from '../../addons';
+import type { User } from '../../types';
+import { AddonGuard } from '../addons/addon.guard';
+import { RequireAddon } from '../addons/require-addon.decorator';
+import { CurrentUser } from '../auth-core/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { BookingImportService } from '../booking-import/booking-import.service';
+import { ImportJobsService } from '../booking-import/import-jobs.service';
+import { AirtrailImportService } from '../integrations/airtrail-import.service';
+import { AirtrailImportDto } from '../integrations/airtrail.dto';
+import { IMAGE_EXTENSIONS, imageMimeType } from '../llm-parse/image-input';
+import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
+import { BookingImportConfirmDto, BookingImportPreviewDto } from './reservation-import.dto';
 import {
   Controller,
   Post,
@@ -11,24 +24,23 @@ import {
   UploadedFiles,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { memoryStorage } from 'multer';
-import type { User } from '../../types';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
-import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
-import { AddonGuard } from '../addons/addon.guard';
-import { RequireAddon } from '../addons/require-addon.decorator';
-import { ADDON_IDS } from '../../addons';
-import { BookingImportService } from '../booking-import/booking-import.service';
-import { ImportJobsService } from '../booking-import/import-jobs.service';
-import { AirtrailImportService } from '../integrations/airtrail-import.service';
-import { AirtrailImportDto } from '../integrations/airtrail.dto';
 import type { AirtrailImportResult } from '@trek/shared';
 import { bookingImportModeSchema } from '@trek/shared';
-import type { BookingImportPreviewItem, BookingImportPreviewResponse, BookingImportConfirmResponse, BookingImportMode } from '@trek/shared';
-import { BookingImportConfirmDto, BookingImportPreviewDto } from './reservation-import.dto';
+import type {
+  BookingImportPreviewItem,
+  BookingImportPreviewResponse,
+  BookingImportConfirmResponse,
+  BookingImportMode,
+} from '@trek/shared';
 
-const ACCEPTED_EXTS = new Set(['.eml', '.pdf', '.pkpass', '.html', '.htm', '.txt']);
+import { memoryStorage } from 'multer';
+
+const ACCEPTED_EXTS = new Set(['.eml', '.pdf', '.pkpass', '.html', '.htm', '.txt', ...IMAGE_EXTENSIONS]);
+/**
+ * The formats as the 400 names them. The photo formats come from the list the
+ * check itself reads, so a format added there is named here too.
+ */
+const ACCEPTED_LABEL = `EML, PDF, PKPass, HTML, TXT, ${IMAGE_EXTENSIONS.map((ext) => ext.slice(1).toUpperCase()).join(', ')} (photos when the AI model reads images)`;
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const MAX_FILES = 5;
 
@@ -90,22 +102,30 @@ export class ReservationImportController {
     @Headers('x-socket-id') socketId?: string,
   ): Promise<AirtrailImportResult> {
     try {
-      return await this.airtrailImport.importAirtrailFlights(tripId, user.id, body.flightIds, socketId, body.connections ?? []);
+      return await this.airtrailImport.importAirtrailFlights(
+        tripId,
+        user.id,
+        body.flightIds,
+        socketId,
+        body.connections ?? [],
+      );
     } catch (err: any) {
       throw new HttpException({ error: err?.message || 'AirTrail import failed' }, err?.status === 400 ? 400 : 502);
     }
   }
 
-
-
   /** Shared validation for both the sync and async import endpoints; returns the parsed mode. */
-  private validateImport(tripId: string, user: User, files: Express.Multer.File[] | undefined, rawMode?: string): BookingImportMode {
-
+  private async validateImport(
+    tripId: string,
+    user: User,
+    files: Express.Multer.File[] | undefined,
+    rawMode?: string,
+  ): Promise<BookingImportMode> {
     const modeResult = bookingImportModeSchema.safeParse(rawMode ?? 'no-ai');
     if (!modeResult.success) throw new HttpException({ error: 'Invalid mode' }, 400);
     const mode = modeResult.data;
 
-    if (mode === 'force-ai' && !this.bookingImport.aiAvailable(user.id)) {
+    if (mode === 'force-ai' && !(await this.bookingImport.aiAvailable(user.id))) {
       throw new HttpException({ error: 'AI parsing is not configured' }, 409);
     }
     if (mode === 'no-ai' && !this.bookingImport.isAvailable()) {
@@ -115,15 +135,28 @@ export class ReservationImportController {
     for (const f of files) {
       const ext = f.originalname.toLowerCase().slice(f.originalname.lastIndexOf('.'));
       if (!ACCEPTED_EXTS.has(ext)) {
-        throw new HttpException({ error: `Unsupported file type: ${f.originalname}. Accepted: EML, PDF, PKPass, HTML, TXT` }, 400);
+        throw new HttpException(
+          { error: `Unsupported file type: ${f.originalname}. Accepted: ${ACCEPTED_LABEL}` },
+          400,
+        );
       }
+    }
+    // A photo has no text layer and no structure: only a model that reads images
+    // can do anything with it, so it is refused up front rather than coming back
+    // as an empty preview.
+    if (
+      files.some((f) => imageMimeType(f.originalname)) &&
+      (mode === 'no-ai' || !(await this.bookingImport.readsImages(user.id)))
+    ) {
+      throw new HttpException({ error: 'The configured AI model does not read photos' }, 400);
     }
     return mode;
   }
 
   /**
    * POST /api/trips/:tripId/reservations/import/booking
-   * Accepts up to 5 booking confirmation files (EML, PDF, PKPass, HTML, TXT).
+   * Accepts up to 5 booking confirmation files (EML, PDF, PKPass, HTML, TXT, and
+   * photos when the AI model reads images).
    * Returns a preview list without persisting anything.
    */
   @RequirePermission('reservation_edit')
@@ -135,7 +168,7 @@ export class ReservationImportController {
     @UploadedFiles() files: Express.Multer.File[] | undefined,
     @Body() body: BookingImportPreviewDto,
   ): Promise<BookingImportPreviewResponse> {
-    const mode = this.validateImport(tripId, user, files, body?.mode);
+    const mode = await this.validateImport(tripId, user, files, body?.mode);
     return this.bookingImport.preview(files!, mode, user.id);
   }
 
@@ -155,7 +188,7 @@ export class ReservationImportController {
     @UploadedFiles() files: Express.Multer.File[] | undefined,
     @Body() body: BookingImportPreviewDto,
   ): Promise<{ jobId: string }> {
-    const mode = this.validateImport(tripId, user, files, body?.mode);
+    const mode = await this.validateImport(tripId, user, files, body?.mode);
     const jobId = this.importJobs.start(tripId, files!, mode, user.id);
     return { jobId };
   }
@@ -184,7 +217,6 @@ export class ReservationImportController {
     @Body() body: BookingImportConfirmDto,
     @Headers('x-socket-id') socketId?: string,
   ): Promise<BookingImportConfirmResponse> {
-
     const items = body?.items;
     if (!Array.isArray(items) || items.length === 0) {
       throw new HttpException({ error: 'items must be a non-empty array' }, 400);

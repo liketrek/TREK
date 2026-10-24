@@ -1,15 +1,23 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { DatabaseService } from '../../database/database.service';
-import { PluginRpcHost } from './rpc-host';
-import type { PluginRpcRegistry } from './rpc-kit/registry';
-import { PluginRpcRegistryService } from './rpc-kit/registry.service';
+import { PluginCapabilityAudit } from '../../../db/entities/PluginCapabilityAudit.entity';
+import type { PluginCapabilityAuditRepository } from '../../../db/repositories/PluginCapabilityAudit.repository';
+import type { PluginRpcRegistry } from '../../../nest-rpc/rpc-kit/registry';
+import { PluginRpcRegistryService } from '../../../nest-rpc/rpc-kit/registry.service';
 import { appendAudit } from './plugin-audit';
 import { getPluginDataDb } from './plugin-host-state';
+import { PluginRpcHost } from './rpc-host';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Inject, Injectable } from '@nestjs/common';
 
 /** Routes inter-plugin calls/events; supplied by PluginRuntimeService (owns the supervisor). */
 export interface PluginCallRouter {
-  callPlugin(callerId: string, targetId: string, fn: string, args: unknown, actingUserId: number | undefined): Promise<unknown>;
-  emitPluginEvent(sourceId: string, event: string, payload: unknown): void;
+  callPlugin(
+    callerId: string,
+    targetId: string,
+    fn: string,
+    args: unknown,
+    actingUserId: number | undefined,
+  ): Promise<unknown>;
+  emitPluginEvent(sourceId: string, event: string, payload: unknown): Promise<void>;
 }
 
 /**
@@ -25,7 +33,7 @@ export interface PluginCallRouter {
 @Injectable()
 export class PluginRpcHostFactory {
   constructor(
-    private readonly db: DatabaseService,
+    @InjectRepository(PluginCapabilityAudit) private readonly audit: PluginCapabilityAuditRepository,
     // Injected by its concrete token, held as the base class: a no-Nest test can then
     // hand in a createTestPluginRegistry() built from the instances it cares about.
     @Inject(PluginRpcRegistryService) private readonly registry: PluginRpcRegistry,
@@ -51,7 +59,7 @@ export class PluginRpcHostFactory {
         // The router binds this host's plugin id as the caller/source.
         callPlugin: (targetId, fn, args, actingUserId) => router.callPlugin(id, targetId, fn, args, actingUserId),
         emitPluginEvent: (event, payload) => router.emitPluginEvent(id, event, payload),
-        audit: (entry) => appendAudit(this.db.connection, entry),
+        audit: (entry) => appendAudit(this.audit, entry),
       },
       this.registry,
     );

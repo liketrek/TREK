@@ -12,6 +12,6 @@ const trips: TranslationStrings = {
   'trips.reminderCustom': 'Egyéni',
   'trips.reminderDaysBefore': 'nappal indulás előtt',
   'trips.reminderDisabledHint':
-    'Az utazási emlékeztetők ki vannak kapcsolva. Kapcsold be az Admin > Beállítások > Értesítések menüben.',
+    'Az utazási emlékeztetők ki vannak kapcsolva. Kapcsold be az Admin > Értesítések > Utazási emlékeztetők menüben.',
 };
 export default trips;

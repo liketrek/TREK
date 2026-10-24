@@ -43,6 +43,9 @@ export function SaveIndicator({
     )
   }
 
+  // A book a newer Studio saved is the shell's to say, over everything (NewerBookOverlay).
+  if (state.status === 'newer') return null
+
   if (state.status === 'readonly') {
     /*
      * Not an error and not retryable: this person was invited to read the
@@ -85,4 +88,35 @@ export function SaveIndicator({
   }
 
   return null
+}
+
+/**
+ * A book a newer Studio saved, said over the whole Studio rather than in the
+ * bar: this tab cannot write the book without losing what the newer one
+ * added, and only a reload brings the newer Studio here. Until then nothing
+ * done here would be kept, so nothing can be done: the overlay takes every
+ * click and offers the one way out there is.
+ */
+export function NewerBookOverlay({ t, onReload = reloadStudio }: {
+  t: (k: string) => string
+  onReload?: () => void
+}) {
+  return (
+    <div className="st-newer" role="alertdialog" aria-modal="true" aria-labelledby="st-newer-text">
+      <div className="st-newer-card">
+        <span className="st-newer-icon"><RefreshCw size={22} strokeWidth={2.2} /></span>
+        <p id="st-newer-text" className="st-newer-text">{t('journey.studio.saveNewer')}</p>
+        {/* Focused on arrival, so Enter reloads and nothing behind the overlay takes the keyboard. */}
+        <button type="button" className="st-newer-reload" onClick={onReload} autoFocus>
+          <RefreshCw size={15} />
+          {t('journey.studio.saveReload')}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/** The default way back to a current Studio: the page again, which loads the newest build. */
+function reloadStudio() {
+  window.location.reload()
 }

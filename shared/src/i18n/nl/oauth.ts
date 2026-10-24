@@ -7,12 +7,12 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.atlas': 'Atlas',
   'oauth.scope.group.packing': 'Paklijst',
   'oauth.scope.group.todos': 'Taken',
-  'oauth.scope.group.budget': 'Budget',
+  'oauth.scope.group.budget': 'Budget', // same-as-en
   'oauth.scope.group.reservations': 'Reserveringen',
   'oauth.scope.group.collab': 'Samenwerking',
   'oauth.scope.group.notifications': 'Meldingen',
   'oauth.scope.group.vacay': 'Vakantie',
-  'oauth.scope.group.geo': 'Geo',
+  'oauth.scope.group.geo': 'Geo', // same-as-en
   'oauth.scope.group.weather': 'Weer',
   'oauth.scope.group.journey': 'Reisverslag',
   'oauth.scope.trips:read.label': 'Reizen en reisplannen bekijken',
@@ -77,39 +77,46 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:write.description': 'Reisverslagen en hun vermeldingen aanmaken, bijwerken en verwijderen',
   'oauth.scope.journey:share.label': 'Reisverslag-links beheren',
   'oauth.scope.journey:share.description': 'Publieke deellinks voor reisverslagen aanmaken, bijwerken en intrekken',
-  'oauth.authorize.authorizing': 'Authorizing…', // en-fallback
-  'oauth.authorize.loading': 'Loading…', // en-fallback
-  'oauth.authorize.errorTitle': 'Authorization Error', // en-fallback
-  'oauth.authorize.loginTitle': 'Sign in to continue', // en-fallback
-  'oauth.authorize.loginDescription': '{client} wants access to your TREK account. Please sign in first.', // en-fallback
-  'oauth.authorize.loginButton': 'Sign in to TREK', // en-fallback
-  'oauth.authorize.requestLabel': 'Authorization Request', // en-fallback
-  'oauth.authorize.requestDescription': 'This application is requesting access to your TREK account.', // en-fallback
-  'oauth.authorize.trustNote': 'Only grant access to applications you trust. Your data stays on your server.', // en-fallback
-  'oauth.authorize.selectScope': 'Select at least one scope', // en-fallback
-  'oauth.authorize.approveOneScope': 'Approve ({count} scope)', // en-fallback
-  'oauth.authorize.approveManyScopes': 'Approve ({count} scopes)', // en-fallback
-  'oauth.authorize.approveAccess': 'Approve Access', // en-fallback
-  'oauth.authorize.deny': 'Deny', // en-fallback
-  'oauth.authorize.choosePermissions': 'Choose which permissions to grant', // en-fallback
-  'oauth.authorize.permissionsRequested': 'Permissions requested', // en-fallback
-  'oauth.authorize.alwaysIncluded': 'Always included', // en-fallback
-  'oauth.authorize.alwaysTool.listTrips': 'List your trips so the AI can discover trip IDs', // en-fallback
-  'oauth.authorize.alwaysTool.getTripSummary': 'Read a trip overview needed to use any other tool', // en-fallback
+  'oauth.authorize.authorizing': 'Autoriseren…',
+  'oauth.authorize.loading': 'Laden…',
+  'oauth.authorize.errorTitle': 'Autorisatiefout',
+  'oauth.authorize.loginTitle': 'Log in om door te gaan',
+  'oauth.authorize.loginDescription': '{client} wil toegang tot je TREK-account. Log eerst in.',
+  'oauth.authorize.loginButton': 'Inloggen bij TREK',
+  'oauth.authorize.requestLabel': 'Autorisatieverzoek',
+  'oauth.authorize.requestDescription': 'Deze toepassing vraagt toegang tot je TREK-account.',
+  'oauth.authorize.verifiedHost': 'Geverifieerd domein: {host}',
+  'oauth.authorize.trustNote':
+    'Geef alleen toegang aan toepassingen die je vertrouwt. Je gegevens blijven op je eigen server.',
+  'oauth.authorize.selectScope': 'Selecteer minstens één scope',
+  'oauth.authorize.approveScopes': 'Goedkeuren ({count} machtigingen)',
+  'oauth.authorize.approveScopes.one': 'Goedkeuren ({count} machtiging)',
+  'oauth.authorize.approveAccess': 'Toegang goedkeuren',
+  'oauth.authorize.deny': 'Weigeren',
+  'oauth.authorize.choosePermissions': 'Kies welke rechten je verleent',
+  'oauth.authorize.permissionsRequested': 'Gevraagde rechten',
+  'oauth.authorize.alwaysIncluded': 'Altijd inbegrepen',
+  'oauth.authorize.alwaysTool.listTrips': "Je reizen weergeven zodat de AI reis-ID's kan vinden",
+  'oauth.authorize.alwaysTool.getTripSummary': 'Een reisoverzicht lezen dat nodig is voor elk ander hulpmiddel',
   'oauth.scope.group.files': 'Bestanden',
   'oauth.scope.group.settings': 'Instellingen',
   'oauth.scope.files:read.label': 'Reisbestanden bekijken',
-  'oauth.scope.files:read.description': 'De documenten van een reis tonen: namen, groottes, wie ze heeft geüpload en waaraan ze gekoppeld zijn',
+  'oauth.scope.files:read.description':
+    'De documenten van een reis tonen: namen, groottes, wie ze heeft geüpload en waaraan ze gekoppeld zijn',
   'oauth.scope.files:write.label': 'Reisbestanden beheren',
-  'oauth.scope.files:write.description': 'Bestanden hernoemen en beschrijven, koppelen aan boekingen en plaatsen, markeren en naar de prullenbak verplaatsen',
+  'oauth.scope.files:write.description':
+    'Bestanden hernoemen en beschrijven, koppelen aan boekingen en plaatsen, markeren en naar de prullenbak verplaatsen',
   'oauth.scope.files:content.label': 'Bestandsinhoud lezen',
-  'oauth.scope.files:content.description': 'De inhoud van een geüpload document lezen, zoals een boekings-PDF of een ticket',
+  'oauth.scope.files:content.description':
+    'De inhoud van een geüpload document lezen, zoals een boekings-PDF of een ticket',
   'oauth.scope.settings:read.label': 'Je voorkeuren bekijken',
   'oauth.scope.settings:read.description': 'Eenheden, tijdnotatie, taal, standaardvaluta en startpagina lezen',
   'oauth.scope.settings:write.label': 'Je voorkeuren wijzigen',
-  'oauth.scope.settings:write.description': 'Eenheden, tijdnotatie, taal, standaardvaluta en startpagina wijzigen. Nooit opgeslagen API-sleutels',
+  'oauth.scope.settings:write.description':
+    'Eenheden, tijdnotatie, taal, standaardvaluta en startpagina wijzigen. Nooit opgeslagen API-sleutels',
   'oauth.scope.group.plugins': 'Plug-ins',
   'oauth.scope.plugins:use.label': 'Plug-intools uitvoeren',
-  'oauth.scope.plugins:use.description': 'Laat deze client tools aanroepen die worden aangeboden door de plug-ins die een beheerder heeft geïnstalleerd en goedgekeurd. Elke plug-in handelt met de rechten die deze al had, niet met de scopes van dit token',
+  'oauth.scope.plugins:use.description':
+    'Laat deze client tools aanroepen die worden aangeboden door de plug-ins die een beheerder heeft geïnstalleerd en goedgekeurd. Elke plug-in handelt met de rechten die deze al had, niet met de scopes van dit token',
 };
 export default oauth;

@@ -32,6 +32,7 @@ const perm: TranslationStrings = {
   'perm.action.collab_edit': 'Cộng tác (ghi chú, thăm dò ý kiến, trò chuyện)',
   'perm.action.share_manage': 'Quản lý liên kết chia sẻ',
   'perm.actionHint.trip_create': 'Ai có thể tạo chuyến đi mới',
+  'perm.action.journal_link': 'Liên kết nhật ký',
   'perm.actionHint.trip_edit': 'Ai có thể thay đổi tên chuyến đi, ngày tháng, mô tả và đơn vị tiền tệ',
   'perm.actionHint.trip_delete': 'Ai có thể xóa vĩnh viễn chuyến đi',
   'perm.actionHint.trip_archive': 'Ai có thể lưu trữ hoặc hủy lưu trữ chuyến đi',
@@ -47,5 +48,6 @@ const perm: TranslationStrings = {
   'perm.actionHint.packing_edit': 'Ai có thể quản lý các mặt hàng đóng gói và túi xách',
   'perm.actionHint.collab_edit': 'Ai có thể tạo ghi chú, thăm dò ý kiến ​​và gửi tin nhắn',
   'perm.actionHint.share_manage': 'Ai có thể tạo hoặc xóa liên kết chia sẻ công khai',
+  'perm.actionHint.journal_link': 'Ai có thể liên kết một nhật ký từ Journey với chuyến đi và mở nó cho các thành viên',
 };
 export default perm;

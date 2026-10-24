@@ -70,5 +70,6 @@ const backup: TranslationStrings = {
     'Toutes les données actuelles (voyages, lieux, utilisateurs, importations) seront définitivement remplacées par la sauvegarde. Cette action est irréversible.',
   'backup.restoreTip': "Conseil : créez une sauvegarde de l'état actuel avant de restaurer.",
   'backup.restoreConfirm': 'Oui, restaurer',
+  'backup.auto.hourHintTz': 'Heure locale du serveur (format {format}), fuseau horaire {timezone}',
 };
 export default backup;

@@ -6,7 +6,7 @@ const files: TranslationStrings = {
   'files.linkTitle': 'ファイルをリンク',
   'files.linkEmpty': 'リンクできる場所や予約がまだありません',
   'files.menu': 'その他のオプション',
-  'files.uploadErrorSize': 'ファイルが大きすぎます（最大50MB）',
+  'files.uploadErrorSize': 'ファイルが大きすぎます（最大{max}MB）',
   'files.title': 'ファイル',
   'files.pageTitle': 'ファイル・ドキュメント',
   'files.subtitle': '{trip} のファイル {count} 件',
@@ -14,8 +14,7 @@ const files: TranslationStrings = {
   'files.openError': 'ファイルを開けませんでした',
   'files.downloadPdf': 'PDFをダウンロード',
   'files.count': '{count}件のファイル',
-  'files.countSingular': '1件のファイル',
-  'files.uploaded': '{count}件アップロード',
+  'files.uploaded': '{count}件アップロードしました',
   'files.uploadError': 'アップロードに失敗しました',
   'files.uploadErrorType': 'このファイル形式はサポートされていません',
   'files.dropzone': 'ここにファイルをドロップ',
@@ -62,5 +61,11 @@ const files: TranslationStrings = {
   'files.confirm.emptyTrash': 'ゴミ箱内のファイルをすべて完全に削除しますか？元に戻せません。',
   'files.noteLabel': 'メモ',
   'files.notePlaceholder': 'メモを追加...',
+  'files.uploadNeedsConnection': 'アップロードには接続が必要です。TREKがオンラインに戻ったらもう一度お試しください。',
+  'files.linkNeedsConnection': 'このリンクの解除には接続が必要です。TREKがオンラインに戻ったらもう一度お試しください。',
+  'files.placeFilesNeedConnection':
+    'ファイルのアップロードには接続が必要です。新しいファイルを外して場所をオフラインで保存するか、オンラインに戻ってから保存してください。',
+  'files.maxSize': '最大 {count} MB',
+  'files.toast.starError': 'スターを変更できませんでした',
 };
 export default files;

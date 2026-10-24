@@ -105,6 +105,39 @@ const texts: Record<string, DemoTexts> = {
     selfHostLink: 'self-host it',
     close: 'Got it',
   },
+  et: {
+    titleBefore: 'Tere tulemast ',
+    titleAfter: 'i',
+    title: 'Tere tulemast TREKi demosse',
+    description: 'Saad reise vaadata, muuta ja luua. Kõik muudatused lähtestatakse automaatselt iga tunni järel.',
+    resetIn: 'Järgmise lähtestamiseni',
+    minutes: 'minutit',
+    uploadNote: 'Failide (fotode, dokumentide ja kaanepiltide) üleslaadimine on demorežiimis keelatud.',
+    fullVersionTitle: 'Täisversioonis lisaks:',
+    features: [
+      'Failide üleslaadimine (fotod, dokumendid, kaanepildid)',
+      'API-võtmete haldus (Google Maps, ilm)',
+      'Kasutajate ja õiguste haldus',
+      'Automaatsed varukoopiad',
+      'Lisamoodulite haldus (lubamine/keelamine)',
+      'OIDC / SSO ühekordne sisselogimine',
+    ],
+    addonsTitle: 'Lisamoodulid (täisversioonis saab välja lülitada)',
+    addons: [
+      ['Vacay', 'Puhkuseplaneerija kalendri, pühade ja kasutajate plaanide ühendamisega'],
+      ['Atlas', 'Maailmakaart külastatud riikide ja reisistatistikaga'],
+      ['Pakkimine', 'Iga reisi kontrollnimekirjad'],
+      ['Eelarve', 'Kulude jälgimine ja jagamine'],
+      ['Dokumendid', 'Lisa reisidele faile'],
+      ['Vidinad', 'Valuutakalkulaator ja ajavööndid'],
+    ],
+    whatIs: 'Mis on TREK?',
+    whatIsDesc:
+      'Ise majutatav reisiplaneerija reaalajas koostöö, interaktiivsete kaartide, OIDC sisselogimise ja tumeda režiimiga.',
+    selfHost: 'Avatud lähtekood — ',
+    selfHostLink: 'majuta ise',
+    close: 'Selge',
+  },
   es: {
     titleBefore: 'Bienvenido a ',
     titleAfter: '',
@@ -299,8 +332,7 @@ export default function DemoBanner(): React.ReactElement | null {
         justifyContent: 'center',
         paddingTop: 'max(16px, env(safe-area-inset-top))',
         paddingBottom: 'max(16px, calc(env(safe-area-inset-bottom) + 80px))',
-        paddingLeft: 16,
-        paddingRight: 16,
+        paddingInline: 16,
         overflow: 'auto',
         fontFamily: 'var(--font-system)',
       }}
@@ -475,7 +507,7 @@ export default function DemoBanner(): React.ReactElement | null {
                     color: '#94a3b8',
                     margin: 0,
                     lineHeight: 1.3,
-                    paddingLeft: 18,
+                    paddingInlineStart: 18,
                   }}
                 >
                   {desc}

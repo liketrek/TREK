@@ -1,36 +1,38 @@
 # What's Next Widget
 
-The What's Next widget shows the upcoming assigned places across all days of your trip at a glance — useful for quickly orienting the group before heading out.
+The What's Next card lists the next stops planned on the trip, across all days, so the group can see at a glance where it is heading and who is going.
 
-![The What's Next widget listing the next scheduled activities per day](assets/WhatsNext.png)
+![The What's Next card: the next stops as cards under Today, each with its time (or TBD), its address and the members going](assets/WhatsNext.png)
 
 ## Where to find it
 
-Open the trip planner → **Collab** tab. On **desktop** (window 1024px and wider) the widget appears as a panel alongside Chat, Notes, Links and Polls. In a narrower window the five panels collapse into a tab bar and it becomes a tab labeled "What's Next". On a **phone** (under 768px) the mobile trip planner takes over, and its Collab tab only offers Chat, Notes, Links and Polls — the widget is not available there. The Collab addon must be enabled and the What's Next sub-feature must be turned on. See [Real-Time-Collaboration](Real-Time-Collaboration).
+Open the trip planner and select the **Collab** tab. On a **desktop** (a window 1024 px wide or more) What's Next is a card of its own; with every sub-feature on, it sits next to Polls under Notes and Links, with Chat on the left. In a narrower window the Collab panels turn into a tab bar with one panel at a time, and this one is the tab labelled **What's Next**. On a **phone** (under 768 px) the mobile trip planner takes over, and its Collab tab offers Chat, Notes, Links and Polls only: the widget is not there.
+
+The Collab addon must be enabled and the What's Next sub-feature must be turned on. See [Real-Time-Collaboration](Real-Time-Collaboration).
 
 ## What it shows
 
-The widget displays the next **8** upcoming place assignments across all trip days, sorted by date and time. Entries are included if they fall on a future day, or if they fall on today and either have no time set (TBD) or have a start time that is still in the future. Past entries are excluded.
+The card lists the next **8** places planned on the trip's days, sorted by date and time. The head band shows how many there are. A place is listed when its day is still ahead, or when its day is today and it either has no time yet or its start time has not passed. Earlier stops drop off the list on their own, and days without a date are left out.
 
-Each entry shows:
+The stops are grouped under a heading per day: **Today**, **Tomorrow**, or the short weekday and date for days further out, followed by the day's title when it has one. Each stop is a small card with:
 
-- **Time** — the scheduled start time (or "TBD" if none is set), and the end time if one is set
-- **Place name**
-- **Address** — if one is stored on the place
-- **Participant chips** — the members assigned to this place. If no specific participants are assigned, all trip members are shown instead.
+- **Time** on the left: the start time, or **TBD** when none is set, and under it *to* and the end time when there is one. Times follow your 12 or 24 hour setting.
+- **Name** of the place.
+- **Address**, with a pin, when the place has one.
+- **Who is going**, as chips with avatar and name: the members assigned to that stop, or everyone on the trip when nobody in particular is.
 
-Entries are grouped by date with day headers: **Today**, **Tomorrow**, or the formatted weekday and date for further-out days. If a day has a title set, it appears after the date label.
+With nothing ahead the card reads *No upcoming activities*.
 
 ## When it updates
 
-The widget reflects the current trip data in real time — when you or another member adds, edits, or removes a day assignment, the list updates automatically without a page refresh.
+The card follows the trip live: when you or anyone else adds, moves, times or removes a stop in the day plan, the list changes without a reload.
 
 ## Requirements
 
-- Collab addon enabled (admin)
-- What's Next sub-feature enabled (admin)
-- The trip must have days with place assignments that have future dates or times
+- Collab addon enabled (admin).
+- What's Next sub-feature enabled (admin).
+- Places planned on dated days that are still ahead.
 
 ## Related pages
 
-[Real-Time-Collaboration](Real-Time-Collaboration) · [Collab-Chat](Collab-Chat) · [Day-Plans-and-Notes](Day-Plans-and-Notes)
+[Real-Time-Collaboration](Real-Time-Collaboration) · [Collab-Chat](Collab-Chat) · [Collab-Notes](Collab-Notes) · [Collab-Polls](Collab-Polls) · [Day-Plans-and-Notes](Day-Plans-and-Notes)

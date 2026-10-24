@@ -126,9 +126,9 @@ describe('SaveToCollectionModal', () => {
     render(<SaveToCollectionModal />);
 
     const favorites = await screen.findByRole('button', { name: /Favorites/ });
-    expect(favorites).toHaveClass('border-accent');
+    expect(favorites).toHaveAttribute('aria-pressed', 'true');
     expect(favorites.querySelector('.lucide-bookmark-check')).not.toBeNull();
-    expect(screen.getByRole('button', { name: /Wishlist/ })).not.toHaveClass('border-accent');
+    expect(screen.getByRole('button', { name: /Wishlist/ })).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('FE-COMP-SAVETOCOL-007: a failing membership lookup degrades to "saved nowhere"', async () => {
@@ -248,7 +248,7 @@ describe('SaveToCollectionModal', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Wishlist/ }));
 
     await waitFor(() => expect(useSaveToCollectionStore.getState().version).toBe(1));
-    expect(screen.getByRole('button', { name: /Wishlist/ })).not.toHaveClass('border-accent');
+    expect(screen.getByRole('button', { name: /Wishlist/ })).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('FE-COMP-SAVETOCOL-016: a response landing after the picker closed is dropped', async () => {

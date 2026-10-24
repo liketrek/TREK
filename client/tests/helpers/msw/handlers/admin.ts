@@ -76,6 +76,33 @@ export const adminHandlers = [
     return HttpResponse.json({ enabled: body.enabled });
   }),
 
+  http.get('/api/admin/tours-wanderer', () => {
+    return HttpResponse.json({ enabled: false });
+  }),
+
+  http.put('/api/admin/tours-wanderer', async ({ request }) => {
+    const body = await request.json() as Record<string, unknown>;
+    return HttpResponse.json({ enabled: body.enabled });
+  }),
+
+  http.get('/api/admin/tours-hiking-map', () => {
+    return HttpResponse.json({ enabled: true });
+  }),
+
+  http.put('/api/admin/tours-hiking-map', async ({ request }) => {
+    const body = await request.json() as Record<string, unknown>;
+    return HttpResponse.json({ enabled: body.enabled });
+  }),
+
+  http.get('/api/admin/tours-ski-routing', () => {
+    return HttpResponse.json({ enabled: true });
+  }),
+
+  http.put('/api/admin/tours-ski-routing', async ({ request }) => {
+    const body = await request.json() as Record<string, unknown>;
+    return HttpResponse.json({ enabled: body.enabled });
+  }),
+
   http.get('/api/admin/addons', () => {
     return HttpResponse.json({ addons: [] });
   }),

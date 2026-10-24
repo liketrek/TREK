@@ -19,6 +19,13 @@ beforeEach(() => {
   seedStore(useAuthStore, { user: buildUser({ role: 'admin' }), isAuthenticated: true });
 });
 
+/** Answers the confirm dialog: its Delete is the last one in the document (portal). */
+async function confirmDelete(user: ReturnType<typeof userEvent.setup>) {
+  await screen.findByText('Delete category? Places in this category will not be deleted.');
+  const deletes = screen.getAllByRole('button', { name: 'Delete' });
+  await user.click(deletes[deletes.length - 1]);
+}
+
 describe('CategoryManager', () => {
   it('FE-COMP-CAT-001: renders without crashing', () => {
     render(<CategoryManager />);
@@ -116,15 +123,15 @@ describe('CategoryManager', () => {
         return HttpResponse.json({ success: true });
       })
     );
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     render(<><ToastContainer /><CategoryManager /></>);
     await screen.findByText('Parks');
-    // Delete button is icon-only (Trash2, no title) — find the second action button
-    const buttons = screen.getAllByRole('button');
-    const actionBtns = buttons.filter(b => !b.textContent?.includes('New Category'));
-    await user.click(actionBtns[1]);
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+    // Nothing goes before the confirm dialog is answered
+    expect(await screen.findByText('Delete category? Places in this category will not be deleted.')).toBeInTheDocument();
+    expect(deleteCalled).toBe(false);
+    await confirmDelete(user);
     await waitFor(() => expect(deleteCalled).toBe(true));
-    vi.restoreAllMocks();
+    await waitFor(() => expect(screen.queryByText('Parks')).not.toBeInTheDocument());
   });
 
   it('FE-COMP-CAT-010: shows subtitle text', async () => {
@@ -209,23 +216,23 @@ describe('CategoryManager', () => {
     expect(screen.getByDisplayValue('Parks')).toBeInTheDocument();
   });
 
-  it('FE-COMP-CAT-016: declining the delete confirm keeps the category', async () => {
+  it('FE-COMP-CAT-016: cancelling the delete confirm keeps the category', async () => {
     const user = userEvent.setup();
     let deleteCalled = false;
     server.use(
       http.get('/api/categories', () => HttpResponse.json({ categories: [buildCategory({ id: 9, name: 'Parks' })] })),
       http.delete('/api/categories/9', () => { deleteCalled = true; return HttpResponse.json({ success: true }); }),
     );
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
     render(<CategoryManager />);
     await screen.findByText('Parks');
 
-    const actionBtns = screen.getAllByRole('button').filter(b => !b.textContent?.includes('New Category'));
-    await user.click(actionBtns[1]);
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+    await screen.findByText('Delete category? Places in this category will not be deleted.');
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
+    expect(screen.queryByText('Delete category? Places in this category will not be deleted.')).not.toBeInTheDocument();
     expect(deleteCalled).toBe(false);
     expect(screen.getByText('Parks')).toBeInTheDocument();
-    vi.restoreAllMocks();
   });
 
   it('FE-COMP-CAT-017: a failing delete toasts and keeps the row', async () => {
@@ -234,16 +241,14 @@ describe('CategoryManager', () => {
       http.get('/api/categories', () => HttpResponse.json({ categories: [buildCategory({ id: 9, name: 'Parks' })] })),
       http.delete('/api/categories/9', () => HttpResponse.json({ error: 'category in use' }, { status: 409 })),
     );
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     render(<><ToastContainer /><CategoryManager /></>);
     await screen.findByText('Parks');
 
-    const actionBtns = screen.getAllByRole('button').filter(b => !b.textContent?.includes('New Category'));
-    await user.click(actionBtns[1]);
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+    await confirmDelete(user);
 
     expect(await screen.findByText('category in use')).toBeInTheDocument();
     expect(screen.getByText('Parks')).toBeInTheDocument();
-    vi.restoreAllMocks();
   });
 
   it('FE-COMP-CAT-018: picking an icon and a preset colour updates the live preview', async () => {
@@ -293,7 +298,7 @@ describe('CategoryManager', () => {
     await user.click(screen.getByText('New Category'));
     expect(screen.getByPlaceholderText('Category name')).toHaveValue('');
 
-    const row = screen.getByText('Hotels').closest('.p-3') as HTMLElement;
+    const row = screen.getByText('Hotels').closest('[data-category-row]') as HTMLElement;
     await user.click(within(row).getAllByRole('button')[0]);
 
     // Only the inline edit form remains, pre-filled with the row's name

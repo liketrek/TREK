@@ -5,6 +5,26 @@
  * fetch is stubbed rather than hit: the point is the contract, and a unit test
  * that depends on a live service tells you about the service.
  */
+import {
+  DEFAULT_TREK_PLACES_URL,
+  POI_CATEGORY_TO_TREK,
+  indexRowTerm,
+  toPlaceRecord,
+  trekPlacesArea,
+  trekPlacesBaseUrl,
+  trekPlacesById,
+  trekPlacesHighlights,
+  trekPlacesMiss,
+  trekPlacesNearby,
+  trekPlacesRoutes,
+  trekPlacesSearch,
+  trekPlacesWays,
+  resetTrekPlacesBreaker,
+  serviceLang,
+  type TrekPlace,
+} from '../../../src/nest/maps/trek-places.client';
+import { oneByOne } from '../../helpers/one-by-one';
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mutable, so the instance URL and the operator's own index can be set per test.
@@ -25,28 +45,25 @@ vi.mock('../../../src/app-config', () => ({
   getAppUrl: () => {
     const strip = (v: string) => v.replace(/\/+$/, '');
     if (env.app.appUrl) {
-      try { new URL(env.app.appUrl); return strip(env.app.appUrl); } catch { /* fall through */ }
+      try {
+        new URL(env.app.appUrl);
+        return strip(env.app.appUrl);
+      } catch {
+        /* fall through */
+      }
     }
     const first = env.http.allowedOriginsRaw.split(',')[0]?.trim();
     if (first) {
-      try { new URL(first); return strip(first); } catch { /* fall through */ }
+      try {
+        new URL(first);
+        return strip(first);
+      } catch {
+        /* fall through */
+      }
     }
     return `http://localhost:${env.app.port}`;
   },
 }));
-
-import {
-  DEFAULT_TREK_PLACES_URL,
-  POI_CATEGORY_TO_TREK,
-  toPlaceRecord,
-  trekPlacesArea,
-  trekPlacesBaseUrl,
-  trekPlacesById,
-  trekPlacesNearby,
-  trekPlacesSearch,
-  resetTrekPlacesBreaker,
-  type TrekPlace,
-} from '../../../src/nest/maps/trek-places.client';
 
 const PLACE: TrekPlace = {
   gers: 'abc-123',
@@ -69,15 +86,18 @@ let calls: { url: string; init?: RequestInit }[] = [];
 
 function stubFetch(body: unknown, status = 200) {
   calls = [];
-  vi.stubGlobal('fetch', vi.fn(async (url: URL | string, init?: RequestInit) => {
-    calls.push({ url: String(url), init });
-    return {
-      ok: status >= 200 && status < 300,
-      status,
-      body: null,
-      text: async () => JSON.stringify(body),
-    } as unknown as Response;
-  }));
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: URL | string, init?: RequestInit) => {
+      calls.push({ url: String(url), init });
+      return {
+        ok: status >= 200 && status < 300,
+        status,
+        body: null,
+        text: async () => JSON.stringify(body),
+      } as unknown as Response;
+    }),
+  );
 }
 
 const encoder = new TextEncoder();
@@ -89,22 +109,29 @@ function stubStreamingFetch(chunks: (string | Uint8Array)[], status = 200) {
   calls = [];
   streamCancelled = false;
   const queue = chunks.map((c) => (typeof c === 'string' ? encoder.encode(c) : c));
-  vi.stubGlobal('fetch', vi.fn(async (url: URL | string, init?: RequestInit) => {
-    calls.push({ url: String(url), init });
-    return {
-      ok: status >= 200 && status < 300,
-      status,
-      body: new ReadableStream<Uint8Array>({
-        pull(controller) {
-          const next = queue.shift();
-          if (next) controller.enqueue(next);
-          else controller.close();
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: URL | string, init?: RequestInit) => {
+      calls.push({ url: String(url), init });
+      return {
+        ok: status >= 200 && status < 300,
+        status,
+        body: new ReadableStream<Uint8Array>({
+          pull(controller) {
+            const next = queue.shift();
+            if (next) controller.enqueue(next);
+            else controller.close();
+          },
+          cancel() {
+            streamCancelled = true;
+          },
+        }),
+        text: async () => {
+          throw new Error('read the stream, not text()');
         },
-        cancel() { streamCancelled = true; },
-      }),
-      text: async () => { throw new Error('read the stream, not text()'); },
-    } as unknown as Response;
-  }));
+      } as unknown as Response;
+    }),
+  );
 }
 
 beforeEach(() => {
@@ -118,7 +145,12 @@ beforeEach(() => {
   env.http.allowedOriginsRaw = '';
   // Nothing in this file may reach the real service: a test that forgets to
   // stub gets a thrown request rather than a request.
-  vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('unstubbed fetch'); }));
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => {
+      throw new Error('unstubbed fetch');
+    }),
+  );
 });
 afterEach(() => vi.unstubAllGlobals());
 
@@ -235,6 +267,68 @@ describe('trekPlacesSearch', () => {
   it('survives a malformed results field', async () => {
     stubFetch({ query: 'x', results: 'not an array' });
     await expect(trekPlacesSearch('x')).resolves.toEqual([]);
+  });
+});
+
+describe('the reader language (#2592)', () => {
+  it('sends TREK codes as the tags the service reads, and nothing it would refuse', () => {
+    expect(serviceLang('de')).toBe('de');
+    // Brazilian Portuguese and Greek have codes of their own in TREK.
+    expect(serviceLang('br')).toBe('pt-BR');
+    expect(serviceLang('gr')).toBe('el');
+    // Passed as it is: the service maps a region onto the script OSM keys by.
+    expect(serviceLang('zh-TW')).toBe('zh-TW');
+    expect(serviceLang(undefined)).toBeUndefined();
+    expect(serviceLang('  ')).toBeUndefined();
+    expect(serviceLang('not a locale!')).toBeUndefined();
+  });
+
+  it('asks search, nearby and the place lookup in it', async () => {
+    stubFetch({ query: 'x', results: [], place: PLACE });
+    await trekPlacesSearch('x', { lang: 'br' });
+    await trekPlacesNearby(54.1, 12.1, { lang: 'gr' });
+    await trekPlacesById('abc-123', { lang: 'ja' });
+    expect(calls.map((c) => new URL(c.url).searchParams.get('lang'))).toEqual(['pt-BR', 'el', 'ja']);
+  });
+
+  it('leaves the parameter off without a language, so the answer is the one it always was', async () => {
+    stubFetch({ query: 'x', results: [], place: PLACE, count: 0 });
+    await trekPlacesSearch('x');
+    await trekPlacesNearby(54.1, 12.1);
+    await trekPlacesById('abc-123');
+    await trekPlacesSearch('x', { lang: 'not a locale!' });
+    await trekPlacesArea(BOX);
+    expect(calls.every((c) => !new URL(c.url).searchParams.has('lang'))).toBe(true);
+  });
+
+  it('keeps a layer row locality only when it is a name', async () => {
+    const osm = (locality: unknown) => ({
+      id: 'osm:node/1',
+      osm_type: 'node',
+      osm_id: 1,
+      name: 'Kirby Cafe',
+      local_name: 'カービィカフェ',
+      lat: 35.71,
+      lng: 139.81,
+      category: null,
+      source: 'openstreetmap',
+      locality,
+    });
+    stubFetch({ query: 'x', results: [osm(' Sumida '), osm(''), osm(42), osm(null), { ...PLACE }] });
+
+    const found = await trekPlacesSearch('x', { lang: 'en', sources: 'index,osm' });
+
+    expect(found.map((h) => ('locality' in h ? h.locality : 'index row'))).toEqual([
+      'Sumida',
+      null,
+      null,
+      null,
+      'index row',
+    ]);
+    // A row the service sent without the field, which is every row asked
+    // without a language, is left without it.
+    stubFetch({ query: 'x', results: [{ ...osm(null), locality: undefined }] });
+    expect((await trekPlacesSearch('x'))[0]).not.toHaveProperty('locality');
   });
 });
 
@@ -375,13 +469,16 @@ describe('getJson request shape', () => {
     vi.useFakeTimers();
     try {
       calls = [];
-      vi.stubGlobal('fetch', vi.fn((url: URL | string, init?: RequestInit) => {
-        calls.push({ url: String(url), init });
-        // Answers only when the caller gives up.
-        return new Promise((_resolve, reject) => {
-          init?.signal?.addEventListener('abort', () => reject(new Error('aborted')));
-        }) as Promise<Response>;
-      }));
+      vi.stubGlobal(
+        'fetch',
+        vi.fn((url: URL | string, init?: RequestInit) => {
+          calls.push({ url: String(url), init });
+          // Answers only when the caller gives up.
+          return new Promise((_resolve, reject) => {
+            init?.signal?.addEventListener('abort', () => reject(new Error('aborted')));
+          }) as Promise<Response>;
+        }),
+      );
 
       const pending = trekPlacesSearch('never answered');
       const failed = expect(pending).rejects.toThrow('aborted');
@@ -402,12 +499,15 @@ describe('getJson request shape', () => {
     vi.useFakeTimers();
     try {
       calls = [];
-      vi.stubGlobal('fetch', vi.fn((url: URL | string, init?: RequestInit) => {
-        calls.push({ url: String(url), init });
-        return new Promise((_resolve, reject) => {
-          init?.signal?.addEventListener('abort', () => reject(new Error('aborted')));
-        }) as Promise<Response>;
-      }));
+      vi.stubGlobal(
+        'fetch',
+        vi.fn((url: URL | string, init?: RequestInit) => {
+          calls.push({ url: String(url), init });
+          return new Promise((_resolve, reject) => {
+            init?.signal?.addEventListener('abort', () => reject(new Error('aborted')));
+          }) as Promise<Response>;
+        }),
+      );
 
       const pending = trekPlacesArea(BOX, 3000);
       const failed = expect(pending).rejects.toThrow('aborted');
@@ -503,6 +603,78 @@ describe('trekPlacesNearby', () => {
   it('survives a malformed results field', async () => {
     stubFetch({ results: { 0: PLACE } });
     await expect(trekPlacesNearby(54.1, 12.1)).resolves.toEqual([]);
+  });
+});
+
+describe('trekPlacesHighlights', () => {
+  const SQUARE = {
+    osmType: 'way',
+    osmId: 4_567,
+    name: 'Piazza San Marco',
+    lat: 45.4341,
+    lng: 12.3388,
+    category: 'sehenswuerdigkeit',
+    osmTag: 'place=square',
+    wikidata: 'Q190092',
+    qrank: 912_345,
+    distanceMetres: 42,
+  };
+
+  it('TREK-PLACES-HL-01: asks /v1/highlights around a point in the reader language and reads its rows', async () => {
+    stubFetch({ highlights: [SQUARE], qrankRelease: '2026-10-01' });
+    const out = await trekPlacesHighlights(45.434, 12.338, { radius: 812.6, limit: 12, lang: 'de' });
+    const url = new URL(calls[0].url);
+    expect(url.pathname).toBe('/v1/highlights');
+    expect(url.searchParams.get('lat')).toBe('45.434');
+    expect(url.searchParams.get('lng')).toBe('12.338');
+    expect(url.searchParams.get('radius')).toBe('813');
+    expect(url.searchParams.get('limit')).toBe('12');
+    expect(url.searchParams.get('lang')).toBe('de');
+    expect(out).toEqual({ highlights: [SQUARE], qrankRelease: '2026-10-01' });
+  });
+
+  it('TREK-PLACES-HL-02: keeps every request inside the bounds the service takes, and asks nothing for no coordinate', async () => {
+    stubFetch({ highlights: [] });
+    await trekPlacesHighlights(45.4, 12.3);
+    await trekPlacesHighlights(45.4, 12.3, { radius: 1, limit: 0 });
+    await trekPlacesHighlights(45.4, 12.3, { radius: 90_000, limit: 500 });
+    await trekPlacesHighlights(45.4, 12.3, { radius: Number.NaN, limit: Number.POSITIVE_INFINITY });
+    const asked = calls.map((call) => new URL(call.url).searchParams);
+    expect(asked.map((params) => [params.get('radius'), params.get('limit')])).toEqual([
+      ['1000', '30'],
+      ['10', '1'],
+      ['20000', '100'],
+      ['10', '1'],
+    ]);
+    expect(asked[0]?.has('lang')).toBe(false);
+    await expect(trekPlacesHighlights(Number.NaN, 12.3)).resolves.toEqual({ highlights: [], qrankRelease: null });
+    await expect(trekPlacesHighlights(91, 12.3)).resolves.toEqual({ highlights: [], qrankRelease: null });
+    expect(calls).toHaveLength(4);
+  });
+
+  it('TREK-PLACES-HL-03: drops a row of another shape on its own, and reads an old layer without ranks as none', async () => {
+    stubFetch({
+      highlights: [SQUARE, { ...SQUARE, osmId: 5, wikidata: 'L12' }, { ...SQUARE, osmId: 6, qrank: -1 }, 'row'],
+      qrankRelease: 20261001,
+    });
+    expect(await trekPlacesHighlights(45.4, 12.3)).toEqual({ highlights: [SQUARE], qrankRelease: null });
+    stubFetch({ highlights: { 0: SQUARE } });
+    expect(await trekPlacesHighlights(45.4, 12.3)).toEqual({ highlights: [], qrankRelease: null });
+    stubFetch(null);
+    expect(await trekPlacesHighlights(45.4, 12.3)).toEqual({ highlights: [], qrankRelease: null });
+  });
+
+  it('TREK-PLACES-HL-04: throws on an error status and when the index is switched off, so the caller goes on without', async () => {
+    stubFetch({}, 503);
+    await expect(trekPlacesHighlights(45.4, 12.3)).rejects.toThrow('TREK Places API 503');
+    env.maps.trekPlacesEnabled = false;
+    await expect(trekPlacesHighlights(45.4, 12.3)).rejects.toThrow('switched off');
+    expect(calls).toHaveLength(1);
+  });
+
+  it('TREK-PLACES-HL-05: a service older than the endpoint answers 404, read as no highlights', async () => {
+    stubFetch({}, 404);
+    await expect(trekPlacesHighlights(45.4, 12.3)).resolves.toEqual({ highlights: [], qrankRelease: null });
   });
 });
 
@@ -604,7 +776,8 @@ describe('toPlaceRecord', () => {
 
   // #2483: Overture keeps a website the way the operator typed it.
   it('TREK-PLACES-2483-01: a website without a scheme gains https, one that is no website becomes null', () => {
-    const withSite = (website: string | null) => toPlaceRecord({ ...PLACE, contact: { ...PLACE.contact, website } }).website;
+    const withSite = (website: string | null) =>
+      toPlaceRecord({ ...PLACE, contact: { ...PLACE.contact, website } }).website;
     expect(withSite('fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët')).toBe(
       'https://fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët',
     );
@@ -622,14 +795,32 @@ describe('toPlaceRecord', () => {
 });
 
 describe('POI_CATEGORY_TO_TREK', () => {
-  it('covers every pill the planner offers', () => {
+  it('covers every pill the planner offers, and the kinds of the search along a tour it holds', () => {
     // The keys are the contract with the client's POI_CATEGORIES. A missing one
     // silently drops that pill back to Overpass, which is the slow path — and
     // for the four a drive needs that is the worst path of all, because the
-    // corridor search asks for them sixteen boxes at a time.
+    // corridor search asks for them sixteen boxes at a time. Museums and
+    // galleries, park, market and peak are asked along a tour (PLN-02,
+    // CW-05), each path checked against a live answer of the index.
     expect(Object.keys(POI_CATEGORY_TO_TREK).sort()).toEqual([
-      'activity', 'bar', 'cafe', 'campsite', 'charging', 'fuel', 'hotel', 'museum',
-      'nature', 'rest_area', 'restaurant', 'shopping', 'sights', 'supermarket',
+      'activity',
+      'bar',
+      'cafe',
+      'campsite',
+      'charging',
+      'fuel',
+      'hotel',
+      'market',
+      'museum',
+      'museum_gallery',
+      'nature',
+      'park',
+      'peak',
+      'rest_area',
+      'restaurant',
+      'shopping',
+      'sights',
+      'supermarket',
     ]);
   });
 
@@ -637,5 +828,294 @@ describe('POI_CATEGORY_TO_TREK', () => {
     for (const [pill, terms] of Object.entries(POI_CATEGORY_TO_TREK)) {
       expect(terms.length, pill).toBeGreaterThan(0);
     }
+  });
+
+  it('names every category by its full path, so no bare word matches inside another (#2663)', () => {
+    // A bare `park` is inside `parking`, `bar` inside `barber`, `market` inside
+    // `marketing_agency`. Only the top-level `shopping` stands alone, and it is
+    // a whole branch on purpose.
+    for (const [pill, terms] of Object.entries(POI_CATEGORY_TO_TREK)) {
+      for (const term of terms) {
+        if (term === 'shopping' || term === 'lodging') continue;
+        expect(term, pill).toContain('>');
+      }
+    }
+  });
+});
+
+describe('indexRowTerm (#2663)', () => {
+  const nature = POI_CATEGORY_TO_TREK.nature;
+
+  it('takes a place whose path is the term or lies under it', () => {
+    expect(indexRowTerm(nature, 'park', 'sports_and_recreation>park')).toBe('sports_and_recreation>park');
+    expect(indexRowTerm(nature, 'national_park', 'sports_and_recreation>park>national_park')).toBe(
+      'sports_and_recreation>park',
+    );
+  });
+
+  it('leaves out a place whose path only contains the word', () => {
+    expect(indexRowTerm(nature, 'parking', 'travel_and_transportation>parking')).toBeUndefined();
+    expect(indexRowTerm(nature, 'beer_garden', 'food_and_drink>alcoholic_beverage_venue>beer_garden')).toBeUndefined();
+    expect(
+      indexRowTerm(
+        nature,
+        'furniture_store',
+        'shopping>specialty_store>hardware_home_and_garden_store>furniture_store',
+      ),
+    ).toBeUndefined();
+  });
+
+  it('judges a place without a path by its leaf', () => {
+    expect(indexRowTerm(nature, 'beach', null)).toBe('geographic_entities>land_feature>beach');
+    expect(indexRowTerm(nature, 'beach_bar', null)).toBeUndefined();
+    expect(indexRowTerm(nature, null, null)).toBeUndefined();
+  });
+
+  it('picks the most specific term when several fit', () => {
+    const terms = [...POI_CATEGORY_TO_TREK.nature, ...POI_CATEGORY_TO_TREK.activity];
+    expect(indexRowTerm(terms, 'water_park', 'sports_and_recreation>park>water_park')).toBe(
+      'sports_and_recreation>park>water_park',
+    );
+  });
+});
+
+// TREK-PLACES-WAYS-01 to 06, TREK-PLACES-ROUTES-01 to 05, TREK-PLACES-MISS-01, TREK-PLACES-BREAKER-01 to 03
+
+/** A fetch answering each call with the next of `answers`, the last one again once they run out. */
+function stubFetchSequence(answers: { body: unknown; status?: number }[]) {
+  calls = [];
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: URL | string, init?: RequestInit) => {
+      calls.push({ url: String(url), init });
+      const next = answers[Math.min(calls.length, answers.length) - 1];
+      const status = next?.status ?? 200;
+      return {
+        ok: status >= 200 && status < 300,
+        status,
+        body: null,
+        text: async () => JSON.stringify(next?.body),
+      } as unknown as Response;
+    }),
+  );
+}
+
+const askedIds = (call: { url: string }) => new URL(call.url).searchParams.get('ids');
+
+describe('trekPlacesWays', () => {
+  it('TREK-PLACES-WAYS-01: asks /v1/ways for the ids and reads the ways in Overpass form', async () => {
+    stubFetch({
+      elements: [
+        { type: 'way', id: 11, tags: { 'mtb:scale': '2', highway: 'path' } },
+        { type: 'way', id: 12 },
+      ],
+      missing: [13],
+      keys: ['highway', 'mtb:scale'],
+    });
+    const answer = await trekPlacesWays([11, 12, 13]);
+    const url = new URL(calls[0].url);
+    expect(url.pathname).toBe('/v1/ways');
+    expect(url.searchParams.get('ids')).toBe('11,12,13');
+    expect((calls[0].init?.headers as Record<string, string>)['X-TREK-Instance']).toMatch(/^trek-/);
+    expect(calls[0].init?.signal).toBeInstanceOf(AbortSignal);
+    // A way without tags reads as one without tags, never as a malformed row.
+    expect(answer).toEqual({
+      complete: true,
+      ways: [
+        { type: 'way', id: 11, tags: { 'mtb:scale': '2', highway: 'path' } },
+        { type: 'way', id: 12, tags: {} },
+      ],
+    });
+  });
+
+  it('TREK-PLACES-WAYS-02: asks in batches of 500, one after another, each id once, and nothing for no id', async () => {
+    stubFetch({ elements: [] });
+    const ids = Array.from({ length: 1200 }, (_, index) => index + 1);
+    await trekPlacesWays([...ids, 1, 2, 0, -3, 1.5, Number.NaN]);
+    expect(calls.map((call) => askedIds(call)?.split(',').length)).toEqual([500, 500, 200]);
+    expect(askedIds(calls[0])?.startsWith('1,2,3,')).toBe(true);
+    expect(askedIds(calls[2])?.endsWith(',1200')).toBe(true);
+    calls = [];
+    await expect(trekPlacesWays([])).resolves.toEqual({ complete: true, ways: [] });
+    await expect(trekPlacesWays([0, -1])).resolves.toEqual({ complete: true, ways: [] });
+    expect(calls).toHaveLength(0);
+  });
+
+  it('TREK-PLACES-WAYS-03: drops a row of another shape or for a way not asked, keeping the others', async () => {
+    stubFetch({
+      elements: [
+        { type: 'way', id: 1, tags: { surface: 'gravel' } },
+        { type: 'node', id: 2, tags: {} },
+        { type: 'way', id: 3, tags: { surface: 4 } },
+        { type: 'way', id: 99, tags: { surface: 'asphalt' } },
+        'row',
+      ],
+    });
+    expect((await trekPlacesWays([1, 2, 3])).ways).toEqual([{ type: 'way', id: 1, tags: { surface: 'gravel' } }]);
+  });
+
+  it('TREK-PLACES-WAYS-04: an answer without elements fails rather than reading as ways without tags', async () => {
+    stubFetch({ ways: [] });
+    await expect(trekPlacesWays([1])).rejects.toThrow('without elements');
+    stubFetch(null);
+    await expect(trekPlacesWays([1])).rejects.toThrow('without elements');
+  });
+
+  it('TREK-PLACES-WAYS-05: a later batch that fails stops there and names the ids still open', async () => {
+    stubFetchSequence([
+      { body: { elements: [{ type: 'way', id: 2, tags: { surface: 'gravel' } }] } },
+      { body: { detail: 'busy' }, status: 503 },
+      { body: { elements: [] } },
+    ]);
+    const ids = Array.from({ length: 1400 }, (_, index) => index + 1);
+    const answer = await trekPlacesWays(ids);
+    expect(calls).toHaveLength(2);
+    if (answer.complete !== false) throw new Error('expected an answer that stopped part way');
+    expect(answer.ways).toEqual([{ type: 'way', id: 2, tags: { surface: 'gravel' } }]);
+    expect(answer.unanswered).toEqual(ids.slice(500));
+    expect(trekPlacesMiss(answer.failure)).toBe('failed');
+  });
+
+  it('TREK-PLACES-WAYS-06: a first batch that fails fails the call and asks no further, and the off switch asks nothing', async () => {
+    stubFetchSequence([{ body: {}, status: 503 }, { body: { elements: [] } }]);
+    const ids = Array.from({ length: 1400 }, (_, index) => index + 1);
+    const failure = await trekPlacesWays(ids).catch((err: unknown) => err);
+    expect(trekPlacesMiss(failure)).toBe('failed');
+    expect(calls).toHaveLength(1);
+    stubFetch({}, 404);
+    expect(trekPlacesMiss(await trekPlacesWays([1]).catch((err: unknown) => err))).toBe('not_built');
+    env.maps.trekPlacesEnabled = false;
+    calls = [];
+    expect(trekPlacesMiss(await trekPlacesWays([1]).catch((err: unknown) => err))).toBe('off');
+    expect(calls).toHaveLength(0);
+  });
+});
+
+describe('trekPlacesRoutes', () => {
+  const VIEW = { south: 47.1, west: 11.2, north: 47.2, east: 11.3 };
+  const CAPS = { relations: 60, ways: 4000 };
+  const RELATION = {
+    type: 'relation',
+    id: 7,
+    tags: { route: 'horse', name: 'Reitweg' },
+    members: [
+      { type: 'way', ref: 1, role: '' },
+      { type: 'node', ref: 5, role: 'guidepost' },
+    ],
+  };
+  const WAY = {
+    type: 'way',
+    id: 1,
+    tags: { horse: 'designated' },
+    nodes: [10, 11],
+    geometry: [
+      { lat: 47.15, lon: 11.25 },
+      { lat: 47.16, lon: 11.25 },
+    ],
+  };
+
+  it('TREK-PLACES-ROUTES-01: asks /v1/routes for the box, the type and the caps, kept inside the service bounds', async () => {
+    stubFetch({ elements: [RELATION, WAY], truncated: false });
+    const routes = await trekPlacesRoutes(VIEW, 'horse', CAPS);
+    const url = new URL(calls[0].url);
+    expect(url.pathname).toBe('/v1/routes');
+    expect(url.searchParams.get('bbox')).toBe('47.1,11.2,47.2,11.3');
+    expect(url.searchParams.get('type')).toBe('horse');
+    expect(url.searchParams.get('limitRelations')).toBe('60');
+    expect(url.searchParams.get('limitWays')).toBe('4000');
+    expect(routes).toEqual({ elements: [RELATION, WAY], truncated: false });
+    await trekPlacesRoutes(VIEW, 'horse', { relations: 999, ways: 0 });
+    const clamped = new URL(calls[1].url).searchParams;
+    expect([clamped.get('limitRelations'), clamped.get('limitWays')]).toEqual(['200', '1']);
+  });
+
+  it('TREK-PLACES-ROUTES-02: drops an element of another shape on its own, and fills the tags one left off', async () => {
+    stubFetch({
+      elements: [
+        RELATION,
+        { ...RELATION, id: 8, members: [{ type: 'area', ref: 1, role: '' }] },
+        { ...WAY, id: 2, nodes: [10] },
+        { ...WAY, id: 3, geometry: [{ lat: 95, lon: 11 }, WAY.geometry[1]] },
+        { ...WAY, id: 4, tags: undefined },
+        { type: 'node', id: 5 },
+      ],
+      truncated: true,
+    });
+    const routes = await trekPlacesRoutes(VIEW, 'horse', CAPS);
+    expect(routes.elements.map((element) => element.id)).toEqual([7, 4]);
+    expect(routes.elements[1]).toMatchObject({ id: 4, tags: {} });
+    expect(routes.truncated).toBe(true);
+  });
+
+  it('TREK-PLACES-ROUTES-03: reads truncated only when the service says true', async () => {
+    stubFetch({ elements: [], truncated: 'yes' });
+    expect(await trekPlacesRoutes(VIEW, 'horse', CAPS)).toEqual({ elements: [], truncated: false });
+    stubFetch({ elements: [] });
+    expect((await trekPlacesRoutes(VIEW, 'horse', CAPS)).truncated).toBe(false);
+  });
+
+  it('TREK-PLACES-ROUTES-04: an answer without elements fails, and a type not built is a 404', async () => {
+    stubFetch({ routes: [] });
+    await expect(trekPlacesRoutes(VIEW, 'horse', CAPS)).rejects.toThrow('without elements');
+    stubFetch({ detail: 'route type horse not built' }, 404);
+    const failure = await trekPlacesRoutes(VIEW, 'horse', CAPS).catch((err: unknown) => err);
+    expect(trekPlacesMiss(failure)).toBe('not_built');
+  });
+
+  it('TREK-PLACES-ROUTES-05: reads an answer past the search cap, since a view of routes carries their lines', async () => {
+    const payload = JSON.stringify({ elements: [RELATION, WAY], truncated: false, pad: 'x'.repeat(1_500_000) });
+    stubStreamingFetch([encoder.encode(payload)]);
+    const routes = await trekPlacesRoutes(VIEW, 'horse', CAPS);
+    expect(routes.elements).toHaveLength(2);
+    expect(streamCancelled).toBe(false);
+  });
+});
+
+describe('trekPlacesMiss', () => {
+  it('TREK-PLACES-MISS-01: tells a missing layer, the off switch and any other failure apart', async () => {
+    const notBuilt = Object.assign(new Error('TREK Places API 404'), { status: 404 });
+    expect(trekPlacesMiss(notBuilt)).toBe('not_built');
+    env.maps.trekPlacesEnabled = false;
+    expect(trekPlacesMiss(await trekPlacesSearch('x').catch((err: unknown) => err))).toBe('off');
+    expect(trekPlacesMiss(Object.assign(new Error('TREK Places API 500'), { status: 500 }))).toBe('failed');
+    expect(trekPlacesMiss(new Error('aborted'))).toBe('failed');
+    expect(trekPlacesMiss(null)).toBe('failed');
+    expect(trekPlacesMiss('nope')).toBe('failed');
+  });
+});
+
+describe('the layers breaker', () => {
+  const VIEW = { south: 47.1, west: 11.2, north: 47.2, east: 11.3 };
+  const CAPS = { relations: 60, ways: 4000 };
+
+  it('TREK-PLACES-BREAKER-01: busy layer answers never stop place search', async () => {
+    stubFetch({ detail: 'busy' }, 503);
+    await oneByOne(Array.from({ length: 4 }), () =>
+      expect(trekPlacesRoutes(VIEW, 'horse', CAPS)).rejects.toThrow(/503/),
+    );
+    stubFetch({ query: 'x', results: [PLACE] });
+    await expect(trekPlacesSearch('x')).resolves.toHaveLength(1);
+    expect(calls).toHaveLength(1);
+  });
+
+  it('TREK-PLACES-BREAKER-02: the layers stop dialling on their own after a few failures', async () => {
+    stubFetch({ detail: 'busy' }, 503);
+    await oneByOne(Array.from({ length: 4 }), () => expect(trekPlacesWays([1])).rejects.toThrow(/503/));
+    const dialled = calls.length;
+    await expect(trekPlacesRoutes(VIEW, 'horse', CAPS)).rejects.toThrow('unreachable, not retrying yet');
+    await expect(trekPlacesWays([1])).rejects.toThrow('unreachable, not retrying yet');
+    expect(calls).toHaveLength(dialled);
+  });
+
+  it('TREK-PLACES-BREAKER-03: a layer not built yet does not clear the count of search failures', async () => {
+    stubFetch({}, 503);
+    await oneByOne(Array.from({ length: 3 }), () => expect(trekPlacesSearch('x')).rejects.toThrow(/503/));
+    stubFetch({ detail: 'not built' }, 404);
+    await expect(trekPlacesWays([1])).rejects.toThrow(/404/);
+    stubFetch({}, 503);
+    await expect(trekPlacesSearch('x')).rejects.toThrow(/503/);
+    calls = [];
+    await expect(trekPlacesSearch('x')).rejects.toThrow('unreachable, not retrying yet');
+    expect(calls).toHaveLength(0);
   });
 });

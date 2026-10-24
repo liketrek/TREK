@@ -32,6 +32,7 @@ const perm: TranslationStrings = {
   'perm.action.collab_edit': 'Samarbete (anteckningar, omröstningar, chatt)',
   'perm.action.share_manage': 'Hantera delningslänkar',
   'perm.actionHint.trip_create': 'Vem kan skapa nya resor',
+  'perm.action.journal_link': 'Koppla en dagbok',
   'perm.actionHint.trip_edit': 'Vem kan ändra resans namn, datum, beskrivning och valuta',
   'perm.actionHint.trip_delete': 'Vem kan radera en resa permanent',
   'perm.actionHint.trip_archive': 'Vem kan lägga till en resa i arkivet eller ta bort den därifrån',
@@ -47,5 +48,6 @@ const perm: TranslationStrings = {
   'perm.actionHint.packing_edit': 'Vem kan sköta packningen av föremål och väskor',
   'perm.actionHint.collab_edit': 'Vem kan skapa anteckningar, omröstningar och skicka meddelanden',
   'perm.actionHint.share_manage': 'Vem kan skapa eller ta bort länkar till offentliga delningar',
+  'perm.actionHint.journal_link': 'Vem som kan koppla en dagbok från Journey till resan och öppna den för medlemmarna',
 };
 export default perm;

@@ -9,8 +9,9 @@ import MRtAlternativesBar from './MRtAlternativesBar'
 import { RtAutoRow, RtBookendRow, RtBookingChips, RtDryRow, RtLegRow, RtRideRow, RtSpillRow, RtStopRow, type RowChrome } from './MRoadtripRows'
 import MBadge from '../../../components/MBadge'
 import MDancingTrek from '../../../components/MDancingTrek'
+import MPlanOnDesktopBadge from '../../../components/MPlanOnDesktopBadge'
 import { formatDurationShort } from '../../../../components/Roadtrip/roadtripModel'
-import { getNavigationTargets } from '../../../../components/Planner/placeNavigation'
+import { navigationTargetLabel, getNavigationTargets } from '../../../../components/Planner/placeNavigation'
 import { useSettingsStore } from '../../../../store/settingsStore'
 import { formatDistance } from '../../../../utils/units'
 import { formatClockTime } from '../../../../utils/formatters'
@@ -19,6 +20,7 @@ import type { MTripTabPanelProps } from '../MTripShell'
 import { arrivingReroutable, legReroutable, type StopRow } from '../../../../components/Roadtrip/roadtripRowModel'
 import { ARRIVING_DRIVE, type RailDrive } from '../../../../components/Roadtrip/useRouteAlternatives'
 import { dayBookings } from '../../../../components/Roadtrip/stopBookings'
+import { stopDayIds } from '../../../../utils/dayMerge'
 import { bookendBooking } from '../../../../components/Roadtrip/nightBookend'
 import { getDayOrder } from '../../../../utils/dayOrder'
 import { undatedRides } from '@trek/shared/roadtrip'
@@ -99,12 +101,14 @@ export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
   // by the stop's assignment because the rows carry no index. Opened the way the place
   // sheet opens its linked bookings: a transport in its sheet, anything else in its
   // editor.
+  // A booking pinned to a stop on another day is listed at that stop only (#2604).
+  const stopDays = useMemo(() => stopDayIds(planner.assignments), [planner.assignments])
   const bookings = useMemo(() => {
-    const byIndex = stage ? dayBookings(stage, planner.reservations, dayOrder) : null
+    const byIndex = stage ? dayBookings(stage, planner.reservations, dayOrder, stopDays) : null
     const atStop = new Map<number, Reservation[]>()
     if (stage && byIndex) for (const [i, list] of byIndex.atStop) atStop.set(stage.stops[i]!.assignmentId, list)
     return { atStop, loose: byIndex?.loose ?? [] }
-  }, [stage, planner.reservations, dayOrder])
+  }, [stage, planner.reservations, dayOrder, stopDays])
   // The rides on no day, which the drive leaves out: listed above the stage, whichever it is.
   const undated = useMemo(() => undatedRides(planner.reservations), [planner.reservations])
   // A chip that may not be opened is not a button in the first place (`bookingOpens`),
@@ -138,7 +142,7 @@ export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
   // fall back to the trip's first routed day, which is not the one on screen, and every
   // distance it answered with would be measured against a road nobody is looking at.
   const searchBar = stage && (
-    <div className="pointer-events-auto absolute left-4 right-4 top-[calc(var(--m-safe-top,12px)+96px)] z-[26]">
+    <div className="pointer-events-auto absolute inset-x-4 top-[calc(var(--m-safe-top,12px)+96px)] z-[26]">
       <MRtCorridorBar planner={planner} corridor={corridor} onOpen={() => shell.openSheet('rtsearch')} />
     </div>
   )
@@ -165,7 +169,7 @@ export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
             Mounted only while the picker is open, so nothing invisible lies over the map's
             own buttons the rest of the time. */}
         {alts.open && (
-          <div className="pointer-events-auto absolute left-4 right-4 bottom-[calc(var(--bottom-nav-h,84px)+4px)]">
+          <div className="pointer-events-auto absolute inset-x-4 bottom-[calc(var(--bottom-nav-h,84px)+4px)]">
             <MRtAlternativesBar planner={planner} alts={alts} />
           </div>
         )}
@@ -180,7 +184,7 @@ export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
       {searchBar}
       <div
         ref={cardRef}
-        className={`absolute inset-0 overflow-y-auto overscroll-contain px-4 pb-[calc(var(--bottom-nav-h,84px)+22px)] ${
+        className={`absolute inset-0 overflow-x-hidden overflow-y-auto overscroll-contain px-4 pb-[calc(var(--bottom-nav-h,84px)+22px)] ${
           searchBar ? 'pt-[calc(var(--m-safe-top,12px)+150px)]' : 'pt-[calc(var(--m-safe-top,12px)+102px)]'
         }`}
       >
@@ -243,7 +247,7 @@ export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
                     {rt.clocks.start ? formatClockTime(rt.clocks.start, is12h) : '-'}
                   </span>
                 </span>
-                <span className="min-w-0 text-right">
+                <span className="min-w-0 text-end">
                   <span className="block font-geist text-[0.5625rem] font-bold uppercase tracking-[.08em] text-m-faint">
                     {t('roadtrip.stay.arrive')}
                   </span>
@@ -386,7 +390,7 @@ function UpNext({ planner, shell, rt, stageDayId, onOpen }: {
 
   return (
     <section className="mt-2.5 rounded-[22px] border border-[color:var(--m-inbr)] bg-[color:var(--m-inner)] px-4 py-3.5 shadow-[0_18px_44px_-18px_rgba(0,0,0,.3)]">
-      <button type="button" onClick={() => onOpen(next.row)} className="w-full text-left">
+      <button type="button" onClick={() => onOpen(next.row)} className="w-full text-start">
         <span className="flex items-center justify-between gap-2">
           <span className="font-geist text-[0.65625rem] font-bold uppercase tracking-[.08em] text-m-muted">
             {t('mobileTrip.upNext')}
@@ -419,7 +423,7 @@ function UpNext({ planner, shell, rt, stageDayId, onOpen }: {
           className={`flex h-11 flex-1 items-center justify-center gap-[7px] rounded-full bg-m-act text-[0.8125rem] font-semibold text-m-actfg shadow-[0_10px_24px_-10px_rgba(0,0,0,.45)] ${targets.length ? '' : 'pointer-events-none opacity-40'}`}
         >
           <Navigation size={15} strokeWidth={2.2} aria-hidden="true" />
-          {targets.length === 1 ? targets[0].label : t('inspector.navigation')}
+          {targets.length === 1 ? navigationTargetLabel(targets[0], t) : t('inspector.navigation')}
         </a>
         <button
           type="button"
@@ -482,9 +486,12 @@ function EmptyStage({ planner, loading }: { planner: MTripTabPanelProps['planner
         {loading ? t('roadtrip.summary.partial') : t('roadtrip.empty.title')}
       </p>
       {!loading && (
-        <p className="mt-1.5 max-w-[27ch] font-geist text-[0.78125rem] leading-[1.5] text-m-muted">
-          {t('mobileTrip.rtPlanOnDesktop')}
-        </p>
+        <>
+          <p className="mt-1.5 max-w-[27ch] font-geist text-[length:calc(12.5px*var(--fs-scale-body,1))] leading-[1.5] text-m-muted">
+            {t('mobileTrip.rtDriveOnTwoPlaces')}
+          </p>
+          <MPlanOnDesktopBadge className="mt-3" />
+        </>
       )}
     </div>
   )

@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types';
+
+const tourPacking: TranslationStrings = {
+  'tours.packing.label': 'Lista de equipaje',
+  'tours.packing.none': 'Ninguna lista de equipaje vinculada',
+  'tours.packing.link': 'Vincular una lista de equipaje',
+  'tours.packing.change': 'Cambiar',
+  'tours.packing.whole': 'Toda la lista de equipaje',
+  'tours.packing.packed': '{packed} de {count} empacados',
+  'tours.packing.packed.one': '{packed} de {count} empacado',
+  'tours.packing.more': '+{count} más',
+  'tours.packing.more.one': '+{count} más',
+  'tours.packing.items': '{count} artículos',
+  'tours.packing.items.one': '{count} artículo',
+  'tours.packing.allPacked': 'Todo empacado',
+  'tours.packing.open': 'Abrir la lista de equipaje',
+  'tours.packing.missing': '«{name}» ya no tiene artículos que puedas ver.',
+  'tours.packing.emptyList': 'La lista de equipaje aún está vacía.',
+  'tours.packing.emptyCategory': '«{name}» aún no tiene artículos.',
+  'tours.packing.addonOff': 'Las listas de equipaje están desactivadas, así que la lista no se puede mostrar.',
+  'tours.packing.loadFailed': 'No se pudo cargar el vínculo con la lista de equipaje.',
+  'tours.packing.dialogSub': 'Solo un vínculo. La lista y sus artículos se quedan donde están.',
+  'tours.packing.choose': 'Vincular con',
+  'tours.packing.confirm': 'Vincular',
+  'tours.packing.unlink': 'Quitar vínculo',
+  'tours.packing.unlinkHint': 'La lista de equipaje y sus artículos quedan como están',
+  'tours.packing.linked': 'Lista de equipaje vinculada.',
+  'tours.packing.unlinked': 'Vínculo quitado. La lista de equipaje queda como está.',
+  'tours.packing.failed': 'No se pudo guardar el vínculo.',
+};
+export default tourPacking;

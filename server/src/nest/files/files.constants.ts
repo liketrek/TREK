@@ -1,3 +1,6 @@
+import { readEnv } from '../../app-config';
+import { resolveDataPaths } from '../../app-config/data-paths';
+
 import path from 'path';
 
 /**
@@ -9,8 +12,11 @@ import path from 'path';
  * files.bridge.ts.
  */
 
-export const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
-export const DEFAULT_ALLOWED_EXTENSIONS = 'jpg,jpeg,png,gif,webp,heic,pdf,doc,docx,xls,xlsx,txt,csv,pkpass,pkpasses,md,markdown';
+// FILE_UPLOAD_LIMIT_MB, 50 MB by default (#1364). Read once at load, like the
+// backup cap: the multer configs that use it are built before the container.
+export const MAX_FILE_SIZE = readEnv().files.uploadLimitMb * 1024 * 1024;
+export const DEFAULT_ALLOWED_EXTENSIONS =
+  'jpg,jpeg,png,gif,webp,heic,pdf,doc,docx,xls,xlsx,txt,csv,pkpass,pkpasses,md,markdown';
 
 // Video support (#823). Gallery/media uploads accept these in addition to images,
 // independent of the admin doc-types allowlist. Videos are stored as-is and
@@ -34,13 +40,51 @@ export const BLOCKED_EXTENSIONS = [
   // Server-rendered / scripted content that could XSS a viewer. Downloads are
   // served inline with an extension-derived Content-Type, so every spelling a
   // browser renders as a document has to be listed, not just the common ones.
-  '.svg', '.svgz', '.html', '.htm', '.shtml', '.shtm', '.xml', '.xhtml', '.xht',
+  '.svg',
+  '.svgz',
+  '.html',
+  '.htm',
+  '.shtml',
+  '.shtm',
+  '.xml',
+  '.xhtml',
+  '.xht',
   // Scripts
-  '.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.php', '.py', '.rb', '.pl',
+  '.js',
+  '.jsx',
+  '.ts',
+  '.tsx',
+  '.mjs',
+  '.cjs',
+  '.php',
+  '.py',
+  '.rb',
+  '.pl',
   // Executables
-  '.exe', '.bat', '.sh', '.cmd', '.msi', '.dll', '.com', '.vbs', '.ps1', '.app',
+  '.exe',
+  '.bat',
+  '.sh',
+  '.cmd',
+  '.msi',
+  '.dll',
+  '.com',
+  '.vbs',
+  '.ps1',
+  '.app',
 ];
-// One directory level deeper than the legacy src/services/fileService.ts, so
-// the extra '..' keeps the same absolute <server>/uploads/files under both the
-// src (vitest) and dist (runtime) layouts.
-export const filesDir = path.join(__dirname, '../../../uploads/files');
+/** `<server>/uploads/files`, from the one data layout. */
+export const filesDir = path.join(resolveDataPaths().uploadsDir, 'files');
+
+/**
+ * Whether a trip-file upload named `originalname` passes the extension rules:
+ * never a blocked extension or an SVG, otherwise on the operator's list (or `*`),
+ * and video regardless of that list (#823). Shared by the multipart filter and
+ * the MCP upload tool so the two ingestion paths cannot drift apart.
+ */
+export function isUploadTypeAllowed(originalname: string, mimetype: string, allowedList: string): boolean {
+  const ext = path.extname(originalname).toLowerCase();
+  if (BLOCKED_EXTENSIONS.includes(ext) || mimetype.includes('svg')) return false;
+  const allowed = allowedList.split(',').map((e) => e.trim().toLowerCase());
+  const fileExt = ext.replace('.', '');
+  return allowed.includes(fileExt) || isVideoExtension(fileExt) || allowed.includes('*');
+}

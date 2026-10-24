@@ -95,6 +95,99 @@ async function handOver(reg: ServiceWorkerRegistration, version: string, runsIt:
 }
 
 /**
+ * A version is a short release tag and nothing else. It arrives over the wire
+ * and is written to this device's storage, so only a value made of the
+ * characters a tag may contain is taken, as the match itself. Anything else is
+ * null, which also keeps a malformed value from being compared against the
+ * stored marker and starting an update on every launch.
+ */
+export function asReleaseTag(value: unknown): string | null {
+  return /^[\w.+-]{1,64}$/.exec(typeof value === 'string' ? value : '')?.[0] ?? null
+}
+
+/**
+ * True when the server runs `version`, this page runs another build, and a
+ * reload can still bring the page onto it: once this session has reloaded for
+ * that version, another reload would only show the same build again (a proxy
+ * or the server reporting a version its bundle was not built as).
+ */
+export function offersNewBuild(version: string | null): boolean {
+  if (!version || !BUNDLE_VERSION || version === BUNDLE_VERSION) return false
+  try {
+    return sessionStorage.getItem(RELOAD_KEY) !== version
+  } catch {
+    // No session storage, no reload guard, and reloadOnce does not reload.
+    return false
+  }
+}
+
+/** How long a reload the user asked for waits for the new worker to take over. */
+const SWITCH_WAIT_MS = 20_000
+
+/**
+ * The user asked for the build the server runs now, from the notice a release
+ * deployed during the session raises. The same handover as a launch, but the
+ * reload is theirs to ask for, so it always comes: once the new worker has
+ * taken over, or when there is none to wait for, or after SWITCH_WAIT_MS.
+ *
+ * Only a reload that should land on the new build spends the session's reload
+ * guard: after a takeover, without a worker, or with an unchanged sw.js. One
+ * that comes before the new worker could take over (a slow precache, a failed
+ * update) leaves it free, so the launch on the other side finishes the
+ * handover and reloads by itself, as any launch does. The marker only moves on
+ * a takeover.
+ */
+export async function switchToServerVersion(version: string): Promise<void> {
+  let reg: ServiceWorkerRegistration | undefined
+  try {
+    reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : undefined
+  } catch {
+    reg = undefined
+  }
+  // Without a worker the reload goes to the network. A worker that replaced the
+  // one that served this page answers it with the new build already; one that
+  // only claimed a page served from the network holds this page's own build.
+  const replaced = servedBy !== null && currentController() !== servedBy
+  if (!reg || replaced) {
+    reloadOnce(version)
+    return
+  }
+  const outcome = await waitForTakeover(reg, version)
+  if (outcome === 'stalled') reloadFresh()
+  else reloadOnce(version)
+}
+
+/** How a requested handover ended: the new worker took over, there was none, or it did not get there. */
+type Takeover = 'took-over' | 'unchanged' | 'stalled'
+
+function waitForTakeover(reg: ServiceWorkerRegistration, version: string): Promise<Takeover> {
+  return new Promise(resolve => {
+    let settled = false
+    const done = (outcome: Takeover): void => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      resolve(outcome)
+    }
+    const timer = setTimeout(() => done('stalled'), SWITCH_WAIT_MS)
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      markApplied(version)
+      done('took-over')
+    }, { once: true })
+    reg.update().then(() => {
+      const incoming = reg.installing ?? reg.waiting
+      if (!incoming) {
+        done('unchanged')
+        return
+      }
+      incoming.addEventListener('statechange', () => {
+        if (incoming.state === 'redundant') done('stalled')
+      })
+    }, () => done('stalled'))
+  })
+}
+
+/**
  * Compares the version the server reports with the one this device last ran
  * and, when they differ, moves the app onto the new build. It never deletes a
  * cache or unregisters a worker. That used to leave the device without an app
@@ -103,14 +196,8 @@ async function handOver(reg: ServiceWorkerRegistration, version: string, runsIt:
  * away the map tiles and files the user had downloaded on purpose.
  */
 export async function reconcileAppVersion(reported: unknown): Promise<void> {
-  // A version is a short release tag and nothing else. It arrives over the
-  // wire and is written to this device's storage, so only a value made of
-  // the characters a tag may contain is taken, as the match itself. Anything
-  // else is ignored, which also keeps a malformed value from being compared
-  // against the stored marker and starting an update on every launch.
-  const releaseTag = /^[\w.+-]{1,64}$/.exec(typeof reported === 'string' ? reported : '')
-  if (!releaseTag) return
-  const version = releaseTag[0]
+  const version = asReleaseTag(reported)
+  if (!version) return
 
   let storedVersion: string | null
   try {

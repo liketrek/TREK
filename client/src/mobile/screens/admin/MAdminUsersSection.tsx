@@ -1,9 +1,11 @@
 import { Copy, Link2, Trash2, UserPlus } from 'lucide-react'
 import type { TranslationFn } from '../../../types'
 import type { useAdmin } from '../../../pages/admin/useAdmin'
+import { inviteMeta, inviteStatus } from '../../../pages/admin/adminModel'
 import MAdminPermissionsPanel from './MAdminPermissionsPanel'
 import MSheet from '../../components/MSheet'
 import MChip from '../../components/MChip'
+import MConfirmSheet from '../settings/MConfirmSheet'
 import { MAdminButton, MAdminCard, MAdminField, MAdminSheetFrame } from './MAdminUi'
 
 interface MAdminUsersSectionProps {
@@ -28,7 +30,7 @@ export default function MAdminUsersSection({ admin, t, locale }: MAdminUsersSect
     currentUser, users, isLoading,
     setShowCreateUser, handleEditUser,
     invites, inviteTrips, showCreateInvite, setShowCreateInvite, inviteForm, setInviteForm,
-    copyInviteLink, handleCreateInvite, handleDeleteInvite,
+    copyInviteLink, handleCreateInvite, handleDeleteInvite, inviteToDelete, setInviteToDelete,
   } = admin
 
   return (
@@ -37,9 +39,9 @@ export default function MAdminUsersSection({ admin, t, locale }: MAdminUsersSect
         <div className="mb-1 flex items-center gap-2">
           <span className="text-[0.875rem] font-extrabold text-m-ink">{t('admin.tabs.users')}</span>
           <span className="font-geist text-[0.625rem] font-bold text-m-faint">
-            {users.length} {t('admin.stats.users').toLowerCase()}
+            {users.length} {t('admin.stats.users', { count: users.length })}
           </span>
-          <MAdminButton className="ml-auto" onClick={() => setShowCreateUser(true)}>
+          <MAdminButton className="ms-auto" onClick={() => setShowCreateUser(true)}>
             <UserPlus size={12} strokeWidth={2.2} />
             {t('mobileAdmin.create')}
           </MAdminButton>
@@ -55,7 +57,7 @@ export default function MAdminUsersSection({ admin, t, locale }: MAdminUsersSect
               key={u.id}
               type="button"
               onClick={() => handleEditUser(u)}
-              className="flex w-full items-center gap-[11px] border-t border-[color:var(--m-rowbr)] py-[11px] text-left"
+              className="flex w-full items-center gap-[11px] border-t border-[color:var(--m-rowbr)] py-[11px] text-start"
             >
               {u.avatar_url ? (
                 <img src={u.avatar_url} alt="" className="h-[34px] w-[34px] flex-none rounded-full object-cover" />
@@ -100,9 +102,7 @@ export default function MAdminUsersSection({ admin, t, locale }: MAdminUsersSect
           <div className="py-4 text-center font-geist text-[0.6875rem] text-m-faint">{t('admin.invite.empty')}</div>
         ) : (
           invites.map((inv) => {
-            const isExpired = inv.expires_at && new Date(inv.expires_at) < new Date()
-            const isUsedUp = inv.max_uses > 0 && inv.used_count >= inv.max_uses
-            const isActive = !isExpired && !isUsedUp
+            const { isActive, labelKey } = inviteStatus(inv)
             return (
               <div
                 key={inv.id}
@@ -119,14 +119,11 @@ export default function MAdminUsersSection({ admin, t, locale }: MAdminUsersSect
                           : 'bg-[color:var(--m-ic)] text-m-faint'
                       }`}
                     >
-                      {isUsedUp ? t('admin.invite.usedUp') : isExpired ? t('admin.invite.expired') : t('admin.invite.active')}
+                      {t(labelKey)}
                     </span>
                   </div>
                   <div className="mt-[2px] truncate font-geist text-[0.59375rem] text-m-muted">
-                    {inv.used_count}/{inv.max_uses === 0 ? '∞' : inv.max_uses} {t('admin.invite.uses')}
-                    {inv.expires_at && ` · ${t('admin.invite.expiresAt')} ${new Date(inv.expires_at).toLocaleDateString(locale)}`}
-                    {inv.trip_title && ` · ${t('admin.invite.boundTo', { trip: inv.trip_title })}`}
-                    {` · ${t('admin.invite.createdBy')} ${inv.created_by_name}`}
+                    {inviteMeta(inv, t, locale)}
                   </div>
                 </div>
                 {isActive && (
@@ -142,7 +139,7 @@ export default function MAdminUsersSection({ admin, t, locale }: MAdminUsersSect
                 <button
                   type="button"
                   title={t('common.delete')}
-                  onClick={() => handleDeleteInvite(inv.id)}
+                  onClick={() => setInviteToDelete(inv.id)}
                   className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-[color:var(--m-st-danger)]"
                 >
                   <Trash2 size={13} strokeWidth={2} />
@@ -154,6 +151,18 @@ export default function MAdminUsersSection({ admin, t, locale }: MAdminUsersSect
       </MAdminCard>
 
       <MAdminPermissionsPanel />
+
+      {/* Delete invite confirm */}
+      <MConfirmSheet
+        open={inviteToDelete !== null}
+        onClose={() => setInviteToDelete(null)}
+        title={t('admin.invite.deleteTitle')}
+        message={t('admin.invite.deleteConfirm')}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
+        danger
+        onConfirm={() => inviteToDelete !== null && handleDeleteInvite(inviteToDelete)}
+      />
 
       {/* Create invite sheet */}
       <MSheet open={showCreateInvite} onClose={() => setShowCreateInvite(false)} ariaLabel={t('admin.invite.create')}>

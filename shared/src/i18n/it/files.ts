@@ -6,16 +6,18 @@ const files: TranslationStrings = {
   'files.linkTitle': 'Collega file',
   'files.linkEmpty': 'Nessun luogo o prenotazione da collegare per ora',
   'files.menu': 'Altre opzioni',
-  'files.uploadErrorSize': 'Il file è troppo grande (max 50 MB)',
+  'files.uploadErrorSize': 'Il file è troppo grande (max {max} MB)',
   'files.title': 'File',
   'files.pageTitle': 'File e documenti',
   'files.subtitle': '{count} file per {trip}',
+  'files.subtitle.one': '{count} file per {trip}',
   'files.download': 'Scarica',
   'files.openError': 'Impossibile aprire il file',
   'files.downloadPdf': 'Scarica PDF',
   'files.count': '{count} file',
-  'files.countSingular': '1 documento',
+  'files.count.one': '{count} file', // same-as-en
   'files.uploaded': '{count} caricati',
+  'files.uploaded.one': '{count} caricato',
   'files.uploadError': 'Caricamento non riuscito',
   'files.uploadErrorType': 'Questo tipo di file non è supportato',
   'files.dropzone': 'Trascina qui i file',
@@ -64,5 +66,13 @@ const files: TranslationStrings = {
     'Eliminare in modo permanente tutti i file nel cestino? Questa operazione non può essere annullata.',
   'files.noteLabel': 'Nota',
   'files.notePlaceholder': 'Aggiungi una nota...',
+  'files.uploadNeedsConnection': 'Il caricamento richiede una connessione. Riprova quando TREK sarà di nuovo online.',
+  'files.linkNeedsConnection':
+    'Rimuovere questo collegamento richiede una connessione. Riprova quando TREK sarà di nuovo online.',
+  'files.placeFilesNeedConnection':
+    'I file richiedono una connessione per essere caricati. Rimuovi quelli nuovi per salvare il luogo offline, oppure salva quando sei di nuovo online.',
+  'files.maxSize': 'Massimo {count} MB',
+  'files.maxSize.one': 'Massimo {count} MB',
+  'files.toast.starError': 'Impossibile cambiare la stella',
 };
 export default files;

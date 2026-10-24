@@ -8,6 +8,12 @@
  * switches on it and the search log writes it into the corpus a future index
  * gets scored against.
  */
+import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
+import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+import { noGoogleQuota } from '../../helpers/google-quota';
+import { buildMapsService } from '../../helpers/maps-service';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { mockSearch, mockNominatim } = vi.hoisted(() => ({
@@ -28,11 +34,10 @@ vi.mock('../../../src/nest/geo/nominatim.client', async (importOriginal) => ({
   nominatimFetch: mockNominatim,
 }));
 
-vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KEY: '0'.repeat(64) }));
-
-import { MapsService } from '../../../src/nest/maps/maps.service';
-import type { DatabaseService } from '../../../src/nest/database/database.service';
-import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+// keyedProvider/resolveMapsKey (maps.service.ts) go through instance-api-keys.ts
+// on every call now. No per-user key is configured anywhere here; the instance
+// rows a case needs come from make()'s `rows`, read through AppSettingsRepository.
+const noUsers = { getApiKeyColumn: async () => null } as unknown as UsersRepository;
 
 // The index switch is an environment variable now, not an admin row: it decides
 // whether a search leaves the instance at all, so it is pinned by the operator
@@ -48,7 +53,6 @@ vi.mock('../../../src/app-config', async (importOriginal) => {
     },
   };
 });
-
 
 /** An index row, far enough from the OSM one below not to be deduped. */
 const indexHit = (name: string, lat = 35.31, lng = 139.53) => ({
@@ -82,18 +86,23 @@ const osmAnswer = (rows: unknown[]) => ({ ok: true, json: async () => rows });
  */
 function make(enabled = true, rows: Record<string, string> = {}) {
   trekPlaces.on = enabled;
-  const database = {
-    get: vi.fn((sql: string, key?: unknown) =>
-      typeof key === 'string' && sql.includes('app_settings') && rows[key] !== undefined ? { value: rows[key] } : undefined,
-    ),
-  } as unknown as DatabaseService;
-  return new MapsService(database, {} as PlacePhotoCacheService);
+  const appSettings = {
+    getValue: async (key: string) => (rows[key] !== undefined ? rows[key] : null),
+  } as unknown as AppSettingsRepository;
+  return buildMapsService({} as PlacePhotoCacheService, appSettings, noUsers, {} as never, {} as never, noGoogleQuota);
 }
 
 const googleAnswer = (name: string) => ({
   ok: true,
   json: async () => ({
-    places: [{ id: 'g1', displayName: { text: name }, formattedAddress: 'Tokyo', location: { latitude: 35.68, longitude: 139.77 } }],
+    places: [
+      {
+        id: 'g1',
+        displayName: { text: name },
+        formattedAddress: 'Tokyo',
+        location: { latitude: 35.68, longitude: 139.77 },
+      },
+    ],
   }),
 });
 
@@ -118,6 +127,14 @@ describe('MapsService.searchPlaces — the merged path', () => {
     // position two, not at position eleven behind ten shops.
     expect(out.places[0].name).toBe('Shop by the gate');
     expect(out.places[1].name).toBe('長谷寺');
+  });
+
+  it('MAPS-SEARCH-014: the index is asked in the language of the search, like OpenStreetMap is (#2592)', async () => {
+    mockSearch.mockResolvedValue([indexHit('Kirby Cafe Hakata')]);
+
+    await make().searchPlaces(1, 'kirby cafe', 'de');
+
+    expect(mockSearch).toHaveBeenCalledWith('kirby cafe', expect.objectContaining({ lang: 'de' }));
   });
 
   it('MAPS-SEARCH-002: an index answer with nothing from OSM is named as index only', async () => {
@@ -194,9 +211,7 @@ describe('MapsService.searchPlaces — the merged path', () => {
   });
 
   it('MAPS-SEARCH-006: ten results at most, alternating so neither source is buried', async () => {
-    mockSearch.mockResolvedValue(
-      Array.from({ length: 12 }, (_, i) => indexHit(`Index ${i}`, 35.31 + i / 100)),
-    );
+    mockSearch.mockResolvedValue(Array.from({ length: 12 }, (_, i) => indexHit(`Index ${i}`, 35.31 + i / 100)));
     mockNominatim.mockResolvedValue(
       osmAnswer(Array.from({ length: 12 }, (_, i) => osmRow(`Osm ${i}`, 36.5 + i / 100))),
     );
@@ -236,8 +251,11 @@ describe('MapsService.searchPlaces — the merged path', () => {
     // A key, but the admin picked OpenStreetMap as the provider: Google holds
     // no slot, so there is nothing for the switch to hand the search to.
     mockSearch.mockClear();
-    const osmOnly = await make(true, { maps_api_key: 'key', places_google_only: 'true', places_provider: 'openstreetmap' })
-      .searchPlaces(1, "L'Osteria");
+    const osmOnly = await make(true, {
+      maps_api_key: 'key',
+      places_google_only: 'true',
+      places_provider: 'openstreetmap',
+    }).searchPlaces(1, "L'Osteria");
     expect(mockSearch).toHaveBeenCalled();
     expect(osmOnly.source).toBe('trek-places+openstreetmap');
 
@@ -253,7 +271,9 @@ describe('MapsService.searchPlaces — the merged path', () => {
     mockNominatim.mockResolvedValue(osmAnswer([osmRow('Some station')]));
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(googleAnswer('Tokyo Station')));
 
-    const asked = await make(true, { maps_api_key: 'key' }).searchPlaces(1, 'Tokyo Station', undefined, undefined, { googleOnly: true });
+    const asked = await make(true, { maps_api_key: 'key' }).searchPlaces(1, 'Tokyo Station', undefined, undefined, {
+      googleOnly: true,
+    });
     expect(mockSearch).not.toHaveBeenCalled();
     expect(asked.source).toBe('google');
 
@@ -299,7 +319,7 @@ describe('MapsService.searchPlaces — the merged path', () => {
 
     await make().searchPlaces(1, "L'Osteria", 'de', { lat: 54.0879, lng: 12.1408, radius: 5000 });
 
-    expect(mockSearch).toHaveBeenCalledWith("L'Osteria", { lat: 54.0879, lng: 12.1408, limit: 10 });
+    expect(mockSearch).toHaveBeenCalledWith("L'Osteria", { lat: 54.0879, lng: 12.1408, limit: 10, lang: 'de' });
     // Without the viewbox, "Hase-dera" answers with the temple in Nara rather
     // than the one the user is standing beside in Kamakura.
     const params = mockNominatim.mock.calls[0][1] as URLSearchParams;

@@ -1,19 +1,9 @@
-import { useState, type HTMLAttributes } from 'react'
-import { useNavigate } from 'react-router'
-import { ArrowRight, Bell, Check, Trash2, X } from 'lucide-react'
+import type { HTMLAttributes } from 'react'
+import { ArrowRight, Bell, Check, Mail, Trash2, X } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
-import { useInAppNotificationStore, InAppNotification } from '../../../store/inAppNotificationStore'
+import type { InAppNotification } from '../../../store/inAppNotificationStore'
+import { compactTime, useNotificationItemActions } from '../../../components/Notifications/useNotificationItemActions'
 import MChip from '../../components/MChip'
-
-/** Compact relative timestamp ("5m" / "3h" / "2d"), locale-neutral like the desktop item. */
-function compactTime(dateStr: string, justNow: string): string {
-  const minutes = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000)
-  if (minutes < 1) return justNow
-  if (minutes < 60) return `${minutes}m`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h`
-  return `${Math.floor(hours / 24)}d`
-}
 
 interface MNotificationRowProps {
   notification: InAppNotification
@@ -26,24 +16,10 @@ interface MNotificationRowProps {
  */
 export default function MNotificationRow({ notification }: MNotificationRowProps) {
   const { t } = useTranslation()
-  const navigate = useNavigate()
-  const [responding, setResponding] = useState(false)
-  const { markRead, deleteNotification, respondToBoolean } = useInAppNotificationStore()
+  const { handleRespond, handleNavigate, markRead, markUnread, deleteNotification } = useNotificationItemActions(notification)
 
   const title = t(notification.title_key, notification.title_params)
   const body = t(notification.text_key, notification.text_params)
-
-  const handleRespond = async (response: 'positive' | 'negative') => {
-    if (responding || notification.response !== null) return
-    setResponding(true)
-    await respondToBoolean(notification.id, response)
-    setResponding(false)
-  }
-
-  const handleNavigate = async () => {
-    if (!notification.is_read) await markRead(notification.id)
-    if (notification.navigate_target) navigate(notification.navigate_target)
-  }
 
   // Tapping an unread row marks it read; a row that is already read carries no
   // action, so it neither takes focus nor claims a role. It stays a div because
@@ -116,6 +92,16 @@ export default function MNotificationRow({ notification }: MNotificationRowProps
             {compactTime(notification.created_at, t('common.justNow'))}
           </span>
         </div>
+        {notification.is_read && (
+          <button
+            type="button"
+            aria-label={t('notifications.markUnread')}
+            onClick={e => { e.stopPropagation(); markUnread(notification.id) }}
+            className="flex h-7 w-7 items-center justify-center rounded-full text-m-faint active:bg-[color:var(--m-ic)]"
+          >
+            <Mail size={14} strokeWidth={2} />
+          </button>
+        )}
         <button
           type="button"
           aria-label={t('notifications.delete')}

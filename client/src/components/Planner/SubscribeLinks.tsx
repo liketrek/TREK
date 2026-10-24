@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Copy, Check, CalendarPlus, Calendar } from 'lucide-react'
+import { useTranslation } from '../../i18n'
 
 interface SubscribeLinksProps {
   httpsUrl: string
@@ -12,6 +13,7 @@ interface SubscribeLinksProps {
  * Used by both the per-trip and all-trips subscribe modals.
  */
 export function SubscribeLinks({ httpsUrl, webcalUrl }: SubscribeLinksProps) {
+  const { t } = useTranslation()
   const [copied, setCopied] = useState<'https' | 'webcal' | null>(null)
 
   // Google Calendar's add-by-URL deep link. The cid must carry the webcal://
@@ -55,7 +57,7 @@ export function SubscribeLinks({ httpsUrl, webcalUrl }: SubscribeLinksProps) {
           }}
         >
           <CalendarPlus size={14} strokeWidth={2} />
-          Add to Google Calendar
+          {t('dashboard.ics.addGoogle')}
         </a>
         <a
           href={webcalUrl}
@@ -67,24 +69,26 @@ export function SubscribeLinks({ httpsUrl, webcalUrl }: SubscribeLinksProps) {
           }}
         >
           <Calendar size={14} strokeWidth={2} />
-          Add to Apple Calendar / Outlook
+          {t('dashboard.ics.addApple')}
         </a>
       </div>
 
       {/* Manual fallback — raw URLs for any other client / "From URL" boxes */}
       <details style={{ fontSize: 11, color: 'var(--text-muted)' }}>
         <summary style={{ cursor: 'pointer', userSelect: 'none', marginBottom: 8 }}>
-          Or copy a link manually
+          {t('dashboard.ics.copyManually')}
         </summary>
         <UrlRow
           label="Google Calendar"
-          hint="paste into “From URL”"
+          copyLabel={t('common.copy')}
+          hint={t('dashboard.ics.pasteFromUrl')}
           url={httpsUrl}
           copied={copied === 'https'}
           onCopy={() => copy(httpsUrl, 'https')}
         />
         <UrlRow
           label="Apple Calendar / Outlook"
+          copyLabel={t('common.copy')}
           hint="webcal://"
           url={webcalUrl}
           copied={copied === 'webcal'}
@@ -95,8 +99,8 @@ export function SubscribeLinks({ httpsUrl, webcalUrl }: SubscribeLinksProps) {
   )
 }
 
-function UrlRow({ label, hint, url, copied, onCopy }: {
-  label: string; hint: string; url: string; copied: boolean; onCopy: () => void
+function UrlRow({ label, hint, url, copied, onCopy, copyLabel }: {
+  label: string; hint: string; copyLabel: string; url: string; copied: boolean; onCopy: () => void
 }) {
   return (
     <div style={{ marginBottom: 12 }}>
@@ -116,7 +120,8 @@ function UrlRow({ label, hint, url, copied, onCopy }: {
         </div>
         <button type="button"
           onClick={onCopy}
-          title="Copy"
+          title={copyLabel}
+          aria-label={copyLabel}
           style={{
             flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
             width: 28, height: 28, borderRadius: 6,

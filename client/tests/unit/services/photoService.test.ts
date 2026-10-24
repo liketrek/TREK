@@ -385,7 +385,7 @@ describe('fetchPhoto — stable proxy URL', () => {
     svc.onThumbReady('k', thumbFn);
     svc.fetchPhoto('k', '/api/maps/place-photo/abc123', undefined, undefined, undefined, cb);
 
-    // Synchronous — no request slot, no API call.
+    // The entry is there synchronously, without an API call.
     expect(mockPlacePhoto).not.toHaveBeenCalled();
     expect(cb).toHaveBeenCalledWith({ photoUrl: '/api/maps/place-photo/abc123', thumbDataUrl: null });
 
@@ -453,6 +453,40 @@ describe('fetchPhoto — concurrency limiter', () => {
     await flush();
 
     expect(mockPlacePhoto).toHaveBeenCalledTimes(6);
+  });
+
+  it('FE-COMP-PHOTO-026: proxy URL thumbs share the same limit, so a big list does not load every picture at once (#2559)', async () => {
+    // Images that only load when the test says so.
+    const pending: Array<() => void> = [];
+    Object.defineProperty(HTMLImageElement.prototype, 'src', {
+      configurable: true,
+      set(url: string) {
+        (this as HTMLImageElement & { _src: string })._src = url;
+        pending.push(() => { if (typeof this.onload === 'function') this.onload(new Event('load')); });
+      },
+      get() {
+        return (this as HTMLImageElement & { _src: string })._src ?? '';
+      },
+    });
+
+    for (let i = 0; i < 12; i += 1) {
+      svc.fetchPhoto(`p${i}`, `/api/maps/place-photo/p${i}`);
+    }
+    await flush();
+
+    // The entries are there at once, only the picture downloads wait their turn.
+    expect(svc.getCached('p11')?.photoUrl).toBe('/api/maps/place-photo/p11');
+    expect(pending).toHaveLength(5);
+
+    pending.splice(0, 2).forEach((load) => load());
+    await flush();
+    expect(pending).toHaveLength(5);
+
+    while (pending.length > 0) {
+      pending.splice(0).forEach((load) => load());
+      await flush();
+    }
+    expect(Object.keys(svc.getAllThumbs())).toHaveLength(12);
   });
 });
 

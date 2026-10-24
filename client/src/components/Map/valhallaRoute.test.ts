@@ -1,8 +1,8 @@
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, afterEach, vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../../tests/helpers/msw/server'
 import { useSettingsStore } from '../../store/settingsStore'
-import { valhallaBase, valhallaAvailable, valhallaRouteAvoiding, valhallaRun, valhallaAlternates, alternatesFrom, runFrom, legAvoids } from './valhallaRoute'
+import { valhallaBase, valhallaAvailable, valhallaTurn, resetValhallaTurns, valhallaRouteAvoiding, valhallaRun, valhallaRunOnFoot, valhallaAlternates, alternatesFrom, runFrom, legAvoids, valhallaTraceAttributes } from './valhallaRoute'
 
 const FOSSGIS_VALHALLA = 'https://valhalla1.openstreetmap.de/route'
 
@@ -37,6 +37,55 @@ const setSettings = (patch: Record<string, string>) =>
 
 afterEach(() => {
   setSettings({ routing_base_url: '', valhalla_base_url: '' })
+  resetValhallaTurns()
+})
+
+describe('valhallaTurn', () => {
+  const PUBLIC = 'https://valhalla1.openstreetmap.de'
+
+  afterEach(() => vi.useRealTimers())
+
+  it('spaces questions to the public instance a little over a second apart, across callers', async () => {
+    vi.useFakeTimers()
+    const done: number[] = []
+    const start = Date.now()
+    await valhallaTurn(PUBLIC)
+    done.push(Date.now() - start)
+    const second = valhallaTurn(PUBLIC).then(() => done.push(Date.now() - start))
+    const third = valhallaTurn(PUBLIC).then(() => done.push(Date.now() - start))
+
+    await vi.advanceTimersByTimeAsync(5000)
+    await Promise.all([second, third])
+
+    expect(done[0]).toBe(0)
+    expect(done[1]).toBeGreaterThanOrEqual(1100)
+    expect(done[2] - done[1]).toBeGreaterThanOrEqual(1100)
+  })
+
+  it("does not pace an operator's own host", async () => {
+    vi.useFakeTimers()
+    await valhallaTurn('https://valhalla.example.org')
+    let through = false
+    void valhallaTurn('https://valhalla.example.org').then(() => { through = true })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(through).toBe(true)
+  })
+
+  it('lets a caller that gives up go without taking the turn', async () => {
+    vi.useFakeTimers()
+    await valhallaTurn(PUBLIC)
+    const controller = new AbortController()
+    const waiting = valhallaTurn(PUBLIC, controller.signal)
+    controller.abort()
+    await vi.advanceTimersByTimeAsync(0)
+    await waiting
+    // The abandoned wait claimed nothing, so the next caller only waits out the first turn.
+    const start = Date.now()
+    const next = valhallaTurn(PUBLIC)
+    await vi.advanceTimersByTimeAsync(1100)
+    await next
+    expect(Date.now() - start).toBeLessThanOrEqual(1100)
+  })
 })
 
 const HAMBURG = { lat: 53.5511, lng: 9.9937 }
@@ -264,6 +313,49 @@ describe('valhallaRun over a whole day', () => {
   const stops = (n: number) =>
     Array.from({ length: n }, (_, i) => ({ lat: 53 - i * 0.1, lng: 10 + i * 0.1 }))
 
+  it('retains Tours costing options through the upstream spaced retry', async () => {
+    const bodies: unknown[] = []
+    const times: number[] = []
+    server.use(http.post(FOSSGIS_VALHALLA, async ({ request }) => {
+      bodies.push(await request.json())
+      times.push(Date.now())
+      return bodies.length === 1 ? new HttpResponse(null, { status: 429 }) : HttpResponse.json(chain(1))
+    }))
+    const result = await valhallaRun(stops(2), 'walking', [], undefined, { max_hiking_difficulty: 6 })
+    expect(result).not.toBeNull()
+    expect(bodies).toHaveLength(2)
+    expect(bodies[1]).toEqual(bodies[0])
+    expect(bodies[1]).toMatchObject({ costing_options: { pedestrian: { max_hiking_difficulty: 6 } } })
+    expect(times[1] - times[0]).toBeGreaterThanOrEqual(1000)
+  })
+
+  it('does not send another Tours request when aborted during the retry pause', async () => {
+    const controller = new AbortController()
+    let calls = 0
+    server.use(http.post(FOSSGIS_VALHALLA, () => {
+      calls++
+      setTimeout(() => controller.abort(), 25)
+      return new HttpResponse(null, { status: 429 })
+    }))
+    await expect(valhallaRun(stops(2), 'walking', [], controller.signal, { max_hiking_difficulty: 4 })).resolves.toBeNull()
+    expect(calls).toBe(1)
+  })
+
+  it.each([1, 2, 3, 4, 5, 6])('keeps Tours T%i options in the exact pedestrian request with avoidance', async difficulty => {
+    let body: unknown
+    server.use(http.post(FOSSGIS_VALHALLA, async ({ request }) => {
+      body = await request.json()
+      return HttpResponse.json(chain(1))
+    }))
+    await valhallaRun(stops(2), 'walking', ['ferry'], undefined, { max_hiking_difficulty: difficulty })
+    expect(body).toEqual({
+      locations: stops(2).map(point => ({ lat: point.lat, lon: point.lng, radius: 50 })),
+      costing: 'pedestrian',
+      costing_options: { pedestrian: { max_hiking_difficulty: difficulty, use_ferry: 0 } },
+      directions_options: { units: 'kilometers' },
+    })
+  })
+
   it('VALHALLA-RUN-001: a day inside the cap goes out as one request, one leg per pair', async () => {
     let calls = 0
     server.use(http.post(FOSSGIS_VALHALLA, async ({ request }) => {
@@ -277,6 +369,21 @@ describe('valhallaRun over a whole day', () => {
     expect(calls).toBe(1)
     expect(run!.legs).toHaveLength(5)
     expect(run!.total.distance).toBe(50000)
+  })
+
+  it('VALHALLA-RUN-008: forwards caller-specific costing options only when supplied', async () => {
+    let body: Record<string, unknown> | null = null
+    server.use(http.post(FOSSGIS_VALHALLA, async ({ request }) => {
+      body = await request.json() as Record<string, unknown>
+      return HttpResponse.json(chain(1))
+    }))
+
+    await valhallaRun(stops(2), 'walking', [], undefined, { max_hiking_difficulty: 2 })
+
+    expect(body).toMatchObject({
+      costing: 'pedestrian',
+      costing_options: { pedestrian: { max_hiking_difficulty: 2 } },
+    })
   })
 
   it('VALHALLA-RUN-002: a day over the cap is split on a shared point, and the legs still line up', async () => {
@@ -412,6 +519,23 @@ describe('valhallaAlternates', () => {
     expect(bodies[1]).not.toHaveProperty('alternates')
   })
 
+  it('VALHALLA-ALT-005: a section of a hike is offered ways on foot under its own limit and preferences (RTE-02)', async () => {
+    const bodies: Record<string, unknown>[] = []
+    server.use(http.post(FOSSGIS_VALHALLA, async ({ request }) => {
+      bodies.push(await request.json() as Record<string, unknown>)
+      return HttpResponse.json(withAlternates([answer({ time: 12_000 })]))
+    }))
+
+    const ways = await valhallaAlternates(HAMBURG, BERLIN, 'walking', [], 3, undefined, { max_hiking_difficulty: 4, use_hills: 0.2 })
+
+    expect(ways).toHaveLength(2)
+    expect(bodies[0]).toMatchObject({
+      alternates: 3,
+      costing: 'pedestrian',
+      costing_options: { pedestrian: { max_hiking_difficulty: 4, use_hills: 0.2 } },
+    })
+  })
+
   it('VALHALLA-ALT-004: a refusal is asked once more, then is no answer; an instance with its own OSRM asks nothing', async () => {
     let calls = 0
     server.use(http.post(FOSSGIS_VALHALLA, () => { calls++; return new HttpResponse(null, { status: 429 }) }))
@@ -422,5 +546,162 @@ describe('valhallaAlternates', () => {
     setSettings({ routing_base_url: 'https://osrm.example.org' })
     await expect(valhallaAlternates(HAMBURG, BERLIN, 'driving', ['toll'], 2)).resolves.toBeNull()
     expect(calls).toBe(2)
+  })
+})
+
+describe('valhallaTraceAttributes (BIK-01)', () => {
+  const TRACE = 'https://valhalla1.openstreetmap.de/trace_attributes'
+
+  it('VALHALLA-TRACE-001: asks for the ways under the line, matched as a mountain bike rides, and hands the answer on', async () => {
+    const bodies: Record<string, unknown>[] = []
+    server.use(http.post(TRACE, async ({ request }) => {
+      bodies.push(await request.json() as Record<string, unknown>)
+      return HttpResponse.json({ shape: SHAPE, edges: [] })
+    }))
+    await expect(valhallaTraceAttributes(SHAPE_POINTS)).resolves.toEqual({ shape: SHAPE, edges: [] })
+    expect(bodies[0]).toMatchObject({
+      costing: 'bicycle',
+      costing_options: { bicycle: { bicycle_type: 'Mountain' } },
+      shape_match: 'map_snap',
+      filters: { action: 'include' },
+    })
+    expect(bodies[0].shape).toEqual(SHAPE_POINTS.map(([lat, lon]) => ({ lat, lon })))
+  })
+
+  it('VALHALLA-TRACE-005: a run is matched on foot without a hiking limit, and every line is asked its hiking grades (RUN-02)', async () => {
+    const bodies: Record<string, unknown>[] = []
+    server.use(http.post(TRACE, async ({ request }) => {
+      bodies.push(await request.json() as Record<string, unknown>)
+      return HttpResponse.json({ shape: SHAPE, edges: [] })
+    }))
+    await valhallaTraceAttributes(SHAPE_POINTS, undefined, 'run')
+    expect(bodies[0]).toMatchObject({
+      costing: 'pedestrian',
+      costing_options: { pedestrian: { max_hiking_difficulty: 6 } },
+      shape_match: 'map_snap',
+    })
+    expect((bodies[0].filters as { attributes: string[] }).attributes).toContain('edge.sac_scale')
+  })
+
+  it('VALHALLA-TRACE-002: a long line is thinned evenly to what one request carries, its ends kept', async () => {
+    let shape: unknown[] = []
+    server.use(http.post(TRACE, async ({ request }) => {
+      shape = ((await request.json()) as { shape: unknown[] }).shape
+      return HttpResponse.json({})
+    }))
+    const line = Array.from({ length: 9001 }, (_, i): [number, number] => [47 + i / 1e5, 11])
+    await valhallaTraceAttributes(line)
+    expect(shape.length).toBeLessThanOrEqual(4001)
+    expect(shape[0]).toEqual({ lat: 47, lon: 11 })
+    expect(shape[shape.length - 1]).toEqual({ lat: line[9000][0], lon: 11 })
+  })
+
+  it('VALHALLA-TRACE-003: null for a refusal, a network failure, a line of one point or a router that is not Valhalla', async () => {
+    server.use(http.post(TRACE, () => new HttpResponse(null, { status: 400 })))
+    await expect(valhallaTraceAttributes(SHAPE_POINTS)).resolves.toBeNull()
+    server.use(http.post(TRACE, () => HttpResponse.error()))
+    await expect(valhallaTraceAttributes(SHAPE_POINTS)).resolves.toBeNull()
+    await expect(valhallaTraceAttributes(SHAPE_POINTS.slice(0, 1))).resolves.toBeNull()
+    setSettings({ routing_base_url: 'https://osrm.example' })
+    await expect(valhallaTraceAttributes(SHAPE_POINTS)).resolves.toBeNull()
+  })
+
+  it('VALHALLA-TRACE-006: a hike is matched on foot with every grade of path open, never by its routing limit (MAP-03)', async () => {
+    const bodies: Record<string, unknown>[] = []
+    server.use(http.post(TRACE, async ({ request }) => {
+      bodies.push(await request.json() as Record<string, unknown>)
+      return HttpResponse.json({ shape: SHAPE, edges: [] })
+    }))
+    await valhallaTraceAttributes(SHAPE_POINTS, undefined, 'foot')
+    expect(bodies[0]).toMatchObject({
+      costing: 'pedestrian',
+      costing_options: { pedestrian: { max_hiking_difficulty: 6 } },
+      shape_match: 'map_snap',
+    })
+    expect(JSON.stringify(bodies[0])).not.toContain('sac_scale')
+  })
+
+  it('VALHALLA-TRACE-004: a caller gone before its turn asks nothing', async () => {
+    let asked = false
+    server.use(http.post(TRACE, () => { asked = true; return HttpResponse.json({}) }))
+    const controller = new AbortController()
+    controller.abort()
+    await expect(valhallaTraceAttributes(SHAPE_POINTS, controller.signal)).resolves.toBeNull()
+    expect(asked).toBe(false)
+  })
+})
+
+describe('crossings by boat on a walk (CW-12)', () => {
+  /** A walk's leg as the public instance answers one: the boat boards at point 1 and lands at point 2. */
+  const ferryLeg = (maneuvers?: unknown[]) => ({
+    shape: SHAPE,
+    summary: { length: 1.5, time: 900, has_ferry: true },
+    ...(maneuvers ? { maneuvers } : {}),
+  })
+  // The San Tomà to Ca' Rezzonico crossing as measured on Venice, laid onto the test shape.
+  const boarding = [
+    { type: 1, begin_shape_index: 0, end_shape_index: 1, time: 100, length: 0.2 },
+    { type: 28, ferry: true, begin_shape_index: 1, end_shape_index: 2, time: 744.959, length: 1.236 },
+  ]
+  const walked = { shape: SHAPE, summary: { length: 1, time: 700, has_ferry: false } }
+
+  it('VALHALLA-FERRY-001: reads where a leg goes by boat off its maneuvers, with the crossing\'s own length and time', () => {
+    const run = runFrom({ trip: { legs: [ferryLeg(boarding)] } })
+    expect(run?.legs[0].ferrySpans).toEqual([{ from: 1, to: 2, metres: 1236, seconds: 744.959 }])
+  })
+
+  it('VALHALLA-FERRY-002: the joined line keeps each crossing on its own points', () => {
+    const run = runFrom({ trip: { legs: [walked, ferryLeg(boarding)] } })
+    // The second leg does not start where the first ends, so its three points follow the first three.
+    expect(run?.total.coordinates).toHaveLength(6)
+    expect(run?.total.ferrySpans).toEqual([{ from: 4, to: 5, metres: 1236, seconds: 744.959 }])
+    expect(run?.legs[0]).not.toHaveProperty('ferrySpans')
+  })
+
+  it('VALHALLA-FERRY-003: a ferry the maneuvers do not place takes the whole leg, its time unknown', () => {
+    const run = runFrom({ trip: { legs: [ferryLeg()] } })
+    expect(run?.legs[0].ferrySpans).toEqual([{ from: 0, to: 2, metres: 0, seconds: null }])
+  })
+
+  it('VALHALLA-FERRY-004: crossings that touch are one, and a crossing with no time leaves the sum unknown', () => {
+    const run = runFrom({
+      trip: {
+        legs: [ferryLeg([
+          { type: 28, ferry: true, begin_shape_index: 0, end_shape_index: 1, time: 60, length: 0.1 },
+          { type: 28, ferry: true, begin_shape_index: 1, end_shape_index: 2, length: 0.2 },
+        ])],
+      },
+    })
+    expect(run?.legs[0].ferrySpans).toEqual([{ from: 0, to: 2, metres: 300, seconds: null }])
+  })
+
+  it('VALHALLA-FERRY-005: binds no point to a boat line when asked, and only then', async () => {
+    const bodies: Array<{ locations: Array<Record<string, unknown>> }> = []
+    server.use(http.post(FOSSGIS_VALHALLA, async ({ request }) => {
+      bodies.push(await request.json() as { locations: Array<Record<string, unknown>> })
+      return HttpResponse.json({ trip: { legs: [walked] } })
+    }))
+    const points = [{ lat: 45.4342798, lng: 12.338111 }, { lat: 45.4367609, lng: 12.3287531 }]
+    await valhallaRunOnFoot(points, undefined, { use_ferry: 0 }, { exclude_ferry: true })
+    await valhallaRun(points, 'walking', [], undefined, { use_ferry: 0 })
+    expect(bodies[0].locations.map(location => location.search_filter)).toEqual([{ exclude_ferry: true }, { exclude_ferry: true }])
+    expect(bodies[1].locations.every(location => !('search_filter' in location))).toBe(true)
+  })
+
+  it('VALHALLA-FERRY-006: a "no path" from the router reads apart from a refusal about anything else, asked once', async () => {
+    const points = [{ lat: 45.4342798, lng: 12.338111 }, { lat: 45.4367609, lng: 12.3287531 }]
+    let calls = 0
+    setSettings({ valhalla_base_url: 'https://valhalla.test' })
+    server.use(http.post('https://valhalla.test/route', () => {
+      calls++
+      return HttpResponse.json({ error_code: 442, error: 'No path could be found for input', status_code: 400 }, { status: 400 })
+    }))
+    expect(await valhallaRunOnFoot(points, undefined, { use_ferry: 0 }, { exclude_ferry: true })).toEqual({ noPath: true })
+    expect(calls).toBe(1)
+    expect(await valhallaRun(points, 'walking', [])).toBeNull()
+
+    server.use(http.post('https://valhalla.test/route', () =>
+      HttpResponse.json({ error_code: 154, error: 'Path distance exceeds the max distance limit' }, { status: 400 })))
+    expect(await valhallaRunOnFoot(points, undefined, { use_ferry: 0 }, { exclude_ferry: true })).toBeNull()
   })
 })

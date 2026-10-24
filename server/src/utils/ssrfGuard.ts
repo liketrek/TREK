@@ -1,7 +1,8 @@
-import dns from 'node:dns/promises';
-import { Agent } from 'undici';
 import { readEnv } from '../app-config';
 import { embeddedTransitionIpv4, expandIpv6 } from './ipv6';
+
+import dns from 'node:dns/promises';
+import { Agent, ProxyAgent, type Dispatcher } from 'undici';
 
 // Frozen at import on purpose (legacy timing; tests reload the module to change it).
 const ALLOW_INTERNAL_NETWORK = readEnv().net.allowInternalNetwork;
@@ -9,6 +10,8 @@ const ALLOW_INTERNAL_NETWORK = readEnv().net.allowInternalNetwork;
 // host gateway being the reason (#2400). The parser never lets a cloud metadata
 // address in, so the rest of 169.254.0.0/16 stays blocked. Frozen the same way.
 const ALLOWED_LINK_LOCAL = new Set(readEnv().net.allowLinkLocalIps);
+// HTTP_PROXY / HTTPS_PROXY / NO_PROXY (#1754). Frozen like the two above.
+const PROXY = readEnv().net.proxy;
 
 export interface SsrfResult {
   allowed: boolean;
@@ -48,8 +51,9 @@ async function resolveAll(hostname: string): Promise<{ address: string; family: 
     throw error;
   }
   const family = (entry: { address: string; family: number }) => entry.family || (entry.address.includes(':') ? 6 : 4);
-  return [...list.filter((entry) => family(entry) === 4), ...list.filter((entry) => family(entry) !== 4)]
-    .map((entry) => ({ address: entry.address, family: family(entry) }));
+  return [...list.filter((entry) => family(entry) === 4), ...list.filter((entry) => family(entry) !== 4)].map(
+    (entry) => ({ address: entry.address, family: family(entry) }),
+  );
 }
 
 /**
@@ -96,9 +100,9 @@ function isAlwaysBlocked(ip: string): boolean {
     // reaches a local service without naming one, and it has enough spellings
     // (`::`, `::0`, `0:0:0:0:0:0:0:0`) that only the expanded hextets settle it.
     // The `0.` check above never saw any of them: they begin with a colon.
-    if (hextets.every(h => h === 0)) return true;
+    if (hextets.every((h) => h === 0)) return true;
     // Loopback in any spelling, not only the `::1` a resolver prints.
-    if (hextets.slice(0, 7).every(h => h === 0) && hextets[7] === 1) return true;
+    if (hextets.slice(0, 7).every((h) => h === 0) && hextets[7] === 1) return true;
     // fe80::/10 spans fe80: through febf:, not just the four characters 'fe80'.
     if ((hextets[0] & 0xffc0) === 0xfe80) return true;
     // A mapped or compatible address inherits the verdict of the IPv4 it carries.
@@ -254,17 +258,20 @@ function isLinkLocal(ip: string): boolean {
  * works because the check re-runs per hop rather than locking to the first IP.
  *
  * `responseTimeoutMs` raises undici's own five-minute ceiling for callers that
- * legitimately wait longer (see safeFetchLlm). Left unset it keeps undici's
- * default, which is what every other admin-configured endpoint wants.
+ * legitimately wait longer (see safeFetchLlm). Left unset, the caller's own
+ * signal governs, and a call without one waits DEFAULT_RESPONSE_TIMEOUT_MS for
+ * the response headers. `maxBytes` caps the body as in SafeFetchOptions.
  */
 export async function safeFetchAdminConfigured(
   url: string,
   init?: RequestInit,
   maxRedirects = 5,
   responseTimeoutMs?: number,
+  maxBytes: number | null = DEFAULT_MAX_RESPONSE_BYTES,
 ): Promise<Response> {
   let currentUrl = url;
   let hopInit = init;
+  const headersTimeoutMs = responseTimeoutMs || init?.signal ? undefined : DEFAULT_RESPONSE_TIMEOUT_MS;
 
   for (let hop = 0; ; hop++) {
     let parsed: URL;
@@ -291,14 +298,14 @@ export async function safeFetchAdminConfigured(
       throw new SsrfBlockedError('Requests to link-local / cloud-metadata addresses are not allowed');
     }
 
-    const dispatcher = createPinnedDispatcher(usableIps, true, responseTimeoutMs);
+    const dispatcher = createOutboundDispatcher(currentUrl, usableIps, true, responseTimeoutMs, headersTimeoutMs);
     const response = await fetch(currentUrl, { ...hopInit, redirect: 'manual', dispatcher } as any);
 
     // Only a 3xx WITH a Location header is a redirect we follow; anything else
     // (2xx/4xx/5xx, or a 3xx with no Location) is the final response.
     const status = typeof response.status === 'number' ? response.status : 0;
     const location = status >= 300 && status < 400 ? (response.headers?.get('location') ?? null) : null;
-    if (!location) return response;
+    if (!location) return capResponse(response, maxBytes);
 
     if (hop >= maxRedirects) {
       throw new SsrfBlockedError('Too many redirects');
@@ -329,8 +336,13 @@ export async function safeFetchAdminConfigured(
  * The ceiling is read once per call rather than per hop, so a redirect chain is
  * measured against one value even if the variable changes mid-chain.
  */
-export function safeFetchLlm(url: string, init?: RequestInit, maxRedirects = 5): Promise<Response> {
-  return safeFetchAdminConfigured(url, init, maxRedirects, readEnv().integrations.llmTimeoutMs);
+export function safeFetchLlm(
+  url: string,
+  init?: RequestInit,
+  maxRedirects = 5,
+  maxBytes: number | null = DEFAULT_MAX_RESPONSE_BYTES,
+): Promise<Response> {
+  return safeFetchAdminConfigured(url, init, maxRedirects, readEnv().integrations.llmTimeoutMs, maxBytes);
 }
 
 /**
@@ -343,8 +355,93 @@ export class SsrfBlockedError extends Error {
   }
 }
 
+/**
+ * Thrown when a guarded response is larger than its cap: up front when the
+ * declared Content-Length says so, otherwise by the body read that passes it.
+ */
+export class ResponseTooLargeError extends Error {
+  constructor(readonly maxBytes: number) {
+    super(`Response body exceeds ${maxBytes} bytes`);
+    this.name = 'ResponseTooLargeError';
+  }
+}
+
+/**
+ * What a guarded response may hold when the caller does not say. Sized for the
+ * largest JSON a user's own server sends back (an Immich album lists every
+ * asset it holds), and still small enough that one answer cannot take the
+ * process's memory with it.
+ */
+export const DEFAULT_MAX_RESPONSE_BYTES = 64 * 1024 * 1024;
+
+/**
+ * How long a guarded request waits for the response headers when the caller
+ * passes no signal of its own. Only the headers: the body stays under undici's
+ * idle timeout, so a proxied video that pauses with its player is not cut off.
+ */
+export const DEFAULT_RESPONSE_TIMEOUT_MS = 30_000;
+
 export interface SafeFetchOptions {
   rejectUnauthorized?: boolean;
+  /**
+   * A deadline for the whole exchange, body included. Combined with the init's
+   * own signal when there is one. Without either, the request waits
+   * DEFAULT_RESPONSE_TIMEOUT_MS for the response headers.
+   */
+  timeoutMs?: number;
+  /**
+   * The most bytes the body may hold; DEFAULT_MAX_RESPONSE_BYTES when left out.
+   * `null` lifts the cap, for a caller that streams the body on without holding
+   * it (a proxied original) or counts the bytes itself.
+   */
+  maxBytes?: number | null;
+}
+
+/** The caller's signal, joined with the deadline from `timeoutMs` when one is asked for. */
+function deadlineSignal(
+  signal: AbortSignal | null | undefined,
+  timeoutMs: number | undefined,
+): AbortSignal | undefined {
+  if (!timeoutMs) return signal ?? undefined;
+  const deadline = AbortSignal.timeout(timeoutMs);
+  return signal ? AbortSignal.any([signal, deadline]) : deadline;
+}
+
+/**
+ * The response with its body held to `maxBytes`. A declared length over the cap
+ * is refused before anything is read; a body without one (chunked, compressed)
+ * errors as soon as the bytes passing through cross it, so `json()`,
+ * `arrayBuffer()` or a pipe reject instead of buffering the rest. Anything that
+ * is not a platform Response with a stream (a test stub) is returned as it is.
+ */
+export function capResponse(response: Response, maxBytes: number | null): Response {
+  if (maxBytes === null) return response;
+  const declared = Number(response.headers?.get?.('content-length') ?? 0);
+  if (declared > maxBytes) {
+    void response.body?.cancel().catch(() => {});
+    throw new ResponseTooLargeError(maxBytes);
+  }
+  const body = response.body;
+  if (!(response instanceof Response) || !body || typeof body.pipeThrough !== 'function') return response;
+  let received = 0;
+  const counted = body.pipeThrough(
+    new TransformStream<Uint8Array, Uint8Array>({
+      transform(chunk, controller) {
+        received += chunk.byteLength;
+        if (received > maxBytes) controller.error(new ResponseTooLargeError(maxBytes));
+        else controller.enqueue(chunk);
+      },
+    }),
+  );
+  const capped = new Response(counted, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers,
+  });
+  // A constructed Response has an empty url; callers read the final hop from it.
+  Object.defineProperty(capped, 'url', { value: response.url });
+  Object.defineProperty(capped, 'redirected', { value: response.redirected });
+  return capped;
 }
 
 /**
@@ -357,8 +454,9 @@ export interface SafeFetchOptions {
  * applies — only the TLS certificate check is relaxed.
  *
  * Redirects are followed through safeFetchFollow, so every hop is re-checked and
- * re-pinned. It used to hand the platform a `redirect: 'follow'` with a
- * dispatcher pinned to the FIRST hop only — the same shape as
+ * re-pinned, with safeFetchFollow's defaults: a body cap and, for a call without
+ * a signal, a bounded wait for the headers. It used to hand the platform a
+ * `redirect: 'follow'` with a dispatcher pinned to the FIRST hop only, the same shape as
  * GHSA-8mw6-xphx-886m, and pinning does not help there because Node skips the
  * pinned lookup for an IP-literal host. Sixteen callers ride on this, several
  * with a URL out of a per-user setting (Immich, Synology, AirTrail), and one
@@ -379,8 +477,13 @@ export async function safeFetch(url: string, init?: RequestInit, options?: SafeF
  * a different page than the one its coordinates are parsed out of.
  */
 const CREDENTIAL_HEADERS = [
-  'authorization', 'proxy-authorization', 'cookie', 'cookie2',
-  'x-api-key', 'api-key', 'x-auth-token',
+  'authorization',
+  'proxy-authorization',
+  'cookie',
+  'cookie2',
+  'x-api-key',
+  'api-key',
+  'x-auth-token',
 ];
 
 /** Headers that describe the body, and go when the body does. */
@@ -394,7 +497,12 @@ const BODY_HEADERS = ['content-type', 'content-length', 'content-encoding', 'con
  */
 function isCrossOriginHop(from: string, to: string): boolean {
   let a: URL, b: URL;
-  try { a = new URL(from); b = new URL(to); } catch { return true; }
+  try {
+    a = new URL(from);
+    b = new URL(to);
+  } catch {
+    return true;
+  }
   if (a.origin === b.origin) return false;
   return !(a.hostname === b.hostname && a.protocol === 'http:' && b.protocol === 'https:');
 }
@@ -465,7 +573,8 @@ export interface SafeFetchFollowOptions extends SafeFetchOptions {
  *
  * The returned Response is the first non-redirect response (or the last redirect
  * if the hop limit is reached). `response.url` reflects the final hop so callers
- * relying on the resolved URL keep working.
+ * relying on the resolved URL keep working. Its body is capped and the wait is
+ * bounded as SafeFetchOptions describes.
  */
 export async function safeFetchFollow(
   url: string,
@@ -475,9 +584,13 @@ export async function safeFetchFollow(
   const maxRedirects = options?.maxRedirects ?? 5;
   const rejectUnauthorized = options?.rejectUnauthorized ?? true;
   const bypassInternalIpAllowed = options?.bypassInternalIpAllowed ?? false;
+  const maxBytes = options?.maxBytes === undefined ? DEFAULT_MAX_RESPONSE_BYTES : options.maxBytes;
+  // One signal for the whole chain, so a redirect does not restart the deadline.
+  const signal = deadlineSignal(init?.signal, options?.timeoutMs);
+  const headersTimeoutMs = signal ? undefined : DEFAULT_RESPONSE_TIMEOUT_MS;
 
   let currentUrl = url;
-  let hopInit = init;
+  let hopInit = signal ? { ...init, signal } : init;
 
   for (let hop = 0; ; hop++) {
     const ssrf = await checkSsrf(currentUrl, bypassInternalIpAllowed);
@@ -485,7 +598,13 @@ export async function safeFetchFollow(
       throw new SsrfBlockedError(ssrf.error ?? 'Request blocked by SSRF guard');
     }
 
-    const dispatcher = createPinnedDispatcher(ssrf.resolvedIps ?? [ssrf.resolvedIp!], rejectUnauthorized);
+    const dispatcher = createOutboundDispatcher(
+      currentUrl,
+      ssrf.resolvedIps ?? [ssrf.resolvedIp!],
+      rejectUnauthorized,
+      undefined,
+      headersTimeoutMs,
+    );
     const response = await fetch(currentUrl, {
       ...hopInit,
       redirect: 'manual',
@@ -498,7 +617,7 @@ export async function safeFetchFollow(
     const isRedirectStatus = status >= 300 && status < 400;
     const location = isRedirectStatus ? (response.headers?.get('location') ?? null) : null;
     if (!location) {
-      return response;
+      return capResponse(response, maxBytes);
     }
 
     if (hop >= maxRedirects) {
@@ -521,6 +640,74 @@ export async function safeFetchFollow(
 }
 
 /**
+ * The proxy a guarded request to this URL goes through, or null (#1754).
+ *
+ * The guarded fetches below use their own dispatcher, so they never saw the
+ * environment proxy Node applies to everything else, and on a server that can
+ * only reach the internet through a proxy every place photo, link preview and
+ * webhook simply failed. NO_PROXY works the way curl and Node read it: `*`
+ * matches every host, an entry matches the host itself and its subdomains
+ * (a leading dot is optional), and `host:port` narrows it to one port.
+ */
+export function proxyFor(rawUrl: string, proxy = PROXY): string | null {
+  let url: URL;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    return null;
+  }
+  const target = url.protocol === 'https:' ? (proxy.https ?? proxy.http) : proxy.http;
+  if (!target) return null;
+  const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  const port = url.port || (url.protocol === 'https:' ? '443' : '80');
+  const bypass = proxy.noProxy.some((entry) => {
+    if (entry === '*') return true;
+    const [name, entryPort] = entry.replace(/(?:^\[)|(?:\](?=:|$))/g, '').split(/:(?=\d+$)/);
+    if (entryPort && entryPort !== port) return false;
+    const bare = name.replace(/^\*?\./, '');
+    return host === bare || host.endsWith(`.${bare}`);
+  });
+  return bypass ? null : target;
+}
+
+/**
+ * The dispatcher one guarded hop goes out through. Without a proxy it is the
+ * pinned agent below. With one, the proxy makes the connection, so the address
+ * cannot be pinned on our side: the guard has already refused a private or
+ * loopback target before this point, and the proxy the operator chose is the
+ * network boundary from there on.
+ */
+export function createOutboundDispatcher(
+  url: string,
+  resolved: string | readonly string[],
+  rejectUnauthorized = true,
+  responseTimeoutMs?: number,
+  headersTimeoutMs?: number,
+): Dispatcher {
+  const proxy = proxyFor(url);
+  if (!proxy) return createPinnedDispatcher(resolved, rejectUnauthorized, responseTimeoutMs, headersTimeoutMs);
+  return new ProxyAgent({
+    uri: proxy,
+    requestTls: { rejectUnauthorized },
+    ...dispatcherTimeouts(responseTimeoutMs, headersTimeoutMs),
+  });
+}
+
+/**
+ * undici's timeouts for one dispatcher. `responseTimeoutMs` bounds both the
+ * wait for the headers and each pause in the body; `headersTimeoutMs` bounds
+ * the headers only. Neither leaves undici its five-minute defaults.
+ */
+function dispatcherTimeouts(
+  responseTimeoutMs?: number,
+  headersTimeoutMs?: number,
+): { headersTimeout?: number; bodyTimeout?: number } {
+  if (responseTimeoutMs) return { headersTimeout: responseTimeoutMs, bodyTimeout: responseTimeoutMs };
+  if (headersTimeoutMs) return { headersTimeout: headersTimeoutMs };
+  return {};
+}
+
+/**
  * Returns an undici Agent whose connect.lookup is pinned to the already-validated
  * addresses. This prevents DNS rebinding (TOCTOU) by ensuring the outbound
  * connection goes to an address we checked, not a re-resolved one.
@@ -535,6 +722,7 @@ export function createPinnedDispatcher(
   resolved: string | readonly string[],
   rejectUnauthorized = true,
   responseTimeoutMs?: number,
+  headersTimeoutMs?: number,
 ): Agent {
   const addresses = (typeof resolved === 'string' ? [resolved] : [...resolved]).map((address) => ({
     address,
@@ -544,9 +732,7 @@ export function createPinnedDispatcher(
     // undici caps the wait for response headers at 5 minutes by default, and
     // that cap is invisible from the call site: an AbortController set to
     // fifteen still dies at five.
-    ...(responseTimeoutMs
-      ? { headersTimeout: responseTimeoutMs, bodyTimeout: responseTimeoutMs }
-      : {}),
+    ...dispatcherTimeouts(responseTimeoutMs, headersTimeoutMs),
     connect: {
       rejectUnauthorized,
       lookup: (_hostname: string, opts: Record<string, unknown>, callback: Function) => {

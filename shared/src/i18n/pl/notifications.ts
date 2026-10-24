@@ -12,7 +12,7 @@ const notifications: TranslationStrings = {
   'notifications.markRead': 'Oznacz jako przeczytane',
   'notifications.markUnread': 'Oznacz jako nieprzeczytane',
   'notifications.delete': 'Usuń',
-  'notifications.system': 'System',
+  'notifications.system': 'System', // same-as-en
   'notifications.synologySessionCleared.title': 'Synology Photos rozłączone',
   'notifications.synologySessionCleared.text':
     'Twój serwer lub konto zostało zmienione — przejdź do Ustawień, aby ponownie przetestować połączenie.',
@@ -32,5 +32,12 @@ const notifications: TranslationStrings = {
   'notifications.test.adminText': '{actor} wysłał testowe powiadomienie.',
   'notifications.test.tripTitle': '{actor} opublikował w Twojej podróży',
   'notifications.test.tripText': 'Testowe powiadomienie dla podróży "{trip}".',
+  'notifications.countLabel': 'powiadomienia',
+  'notifications.countLabel.one': 'powiadomienie',
+  'notifications.countLabel.few': 'powiadomienia',
+  'notifications.countLabel.many': 'powiadomień',
+  'notifications.deleteAllConfirmTitle': 'Usunąć wszystkie powiadomienia?',
+  'notifications.deleteAllConfirmText':
+    'Wszystkie powiadomienia zostaną usunięte na stałe. Tej operacji nie można cofnąć.',
 };
 export default notifications;

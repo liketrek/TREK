@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import request from 'supertest';
-import type { INestApplication } from '@nestjs/common';
 import { buildApp } from '../../src/bootstrap';
+import type { INestApplication } from '@nestjs/common';
+
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 /**
  * A book is bigger than a form post (#1973).
@@ -38,9 +39,7 @@ describe('the size of a book', () => {
   });
 
   it('takes a document larger than the API-wide limit rather than refusing it', async () => {
-    const res = await request(app.getHttpServer())
-      .put('/api/journeys/1/book')
-      .send(bigBody());
+    const res = await request(app.getHttpServer()).put('/api/journeys/1/book').send(bigBody());
 
     /*
      * Unauthenticated, so 401 is the expected answer and the point of the test

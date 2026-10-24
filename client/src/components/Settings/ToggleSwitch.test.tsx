@@ -64,4 +64,26 @@ describe('ToggleSwitch', () => {
     rerender(<ToggleSwitch on={true} onToggle={() => {}} />);
     expect(button.querySelector('span')!.style.left).toBe('22px');
   });
+
+  it('FE-COMP-TOGGLESWITCH-009: a disabled switch is out of reach and says so', async () => {
+    const user = userEvent.setup();
+    const onToggle = vi.fn();
+    render(<ToggleSwitch on={false} onToggle={onToggle} disabled />);
+    const button = screen.getByRole('button');
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute('aria-disabled', 'true');
+    expect(button.style.cursor).toBe('not-allowed');
+    await user.click(button);
+    await user.tab();
+    expect(onToggle).not.toHaveBeenCalled();
+    expect(button).not.toHaveFocus();
+  });
+
+  it('FE-COMP-TOGGLESWITCH-010: an enabled switch keeps the pointer and no aria-disabled', () => {
+    render(<ToggleSwitch on={false} onToggle={() => {}} />);
+    const button = screen.getByRole('button');
+    expect(button).toBeEnabled();
+    expect(button).not.toHaveAttribute('aria-disabled');
+    expect(button.style.cursor).toBe('pointer');
+  });
 });

@@ -13,46 +13,25 @@
  * Loopback stands in for the LAN address, being the one address a test can
  * reach; the admin lane OIDC rides on treats the two alike.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
-import request from 'supertest';
-import http from 'node:http';
-import crypto from 'node:crypto';
-import type { AddressInfo } from 'node:net';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { createUser } from '../helpers/factories';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import type { INestApplication } from '@nestjs/common';
 
-const { testDb, dbMock, answers } = vi.hoisted(() => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const Database = require('better-sqlite3');
-  const db = new Database(':memory:');
-  db.exec('PRAGMA journal_mode = WAL');
-  db.exec('PRAGMA foreign_keys = ON');
-  db.exec('PRAGMA busy_timeout = 5000');
-  const mock = {
-    db,
-    closeDb: () => {},
-    reinitialize: () => {},
-    getPlaceWithTags: () => null,
-    canAccessTrip: () => undefined,
-    isOwner: () => false,
-  };
-  return { testDb: db, dbMock: mock, answers: new Map<string, { address: string; family: number }[]>() };
-});
+import type { Application } from 'express';
+import crypto from 'node:crypto';
+import http from 'node:http';
+import type { AddressInfo } from 'node:net';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
 
-vi.mock('../../src/db/database', () => dbMock);
-vi.mock('../../src/config', () => ({
-  JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  updateJwtSecret: () => {},
-  SESSION_DURATION: '24h',
-  SESSION_DURATION_MS: 86400000,
-  SESSION_DURATION_SECONDS: 86400,
-  SESSION_DURATION_REMEMBER: '30d',
-  SESSION_DURATION_REMEMBER_MS: 2592000000,
-  SESSION_DURATION_REMEMBER_SECONDS: 2592000,
-  DEFAULT_LANGUAGE: 'en',
-}));
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
+const { answers } = vi.hoisted(() => ({ answers: new Map<string, { address: string; family: number }[]>() }));
+
+vi.mock('../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
+});
 // The provider's names are answered here; every other name goes to the real resolver.
 vi.mock('dns/promises', async (importOriginal) => {
   const real = await importOriginal<typeof import('dns/promises')>();
@@ -64,12 +43,6 @@ vi.mock('dns/promises', async (importOriginal) => {
   return { ...real, default: { ...real, lookup }, lookup };
 });
 
-import { buildApp } from '../../src/bootstrap';
-import { createTables } from '../../src/db/schema';
-import { runMigrations } from '../../src/db/migrations';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createUser } from '../helpers/factories';
-
 const CLIENT_ID = 'trek-local';
 const CLIENT_SECRET = 'local-secret';
 const EMAIL = 'lan-admin@home.test';
@@ -78,7 +51,11 @@ const EMAIL = 'lan-admin@home.test';
 function readCookie(res: request.Response, name: string): string | undefined {
   const raw = res.headers['set-cookie'];
   const all: string[] = Array.isArray(raw) ? raw : raw ? [raw as unknown as string] : [];
-  const value = all.filter((c) => c.startsWith(`${name}=`)).pop()?.split(';')[0].slice(name.length + 1);
+  const value = all
+    .filter((c) => c.startsWith(`${name}=`))
+    .pop()
+    ?.split(';')[0]
+    .slice(name.length + 1);
   return value ? decodeURIComponent(value) : undefined;
 }
 
@@ -96,7 +73,13 @@ const b64 = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('bas
 function signIdToken(issuer: string): string {
   const now = Math.floor(Date.now() / 1000);
   const signingInput = `${b64({ alg: 'RS256', kid: 'k1', typ: 'JWT' })}.${b64({
-    iss: issuer, sub: 'lan-sub-1', aud: CLIENT_ID, iat: now, exp: now + 300, email: EMAIL, email_verified: true,
+    iss: issuer,
+    sub: 'lan-sub-1',
+    aud: CLIENT_ID,
+    iat: now,
+    exp: now + 300,
+    email: EMAIL,
+    email_verified: true,
   })}`;
   return `${signingInput}.${crypto.sign('RSA-SHA256', Buffer.from(signingInput), privateKey).toString('base64url')}`;
 }
@@ -159,15 +142,13 @@ beforeAll(async () => {
   provider = http.createServer(handle);
   await new Promise<void>((resolve) => provider.listen(0, '127.0.0.1', resolve));
   port = (provider.address() as AddressInfo).port;
-  createTables(testDb);
-  runMigrations(testDb);
   nestApp = await buildApp();
   app = nestApp.getHttpAdapter().getInstance();
 });
 
-beforeEach(() => {
+beforeEach(async () => {
   resetTestDb(testDb);
-  resetRateLimits(nestApp);
+  await resetRateLimits(nestApp);
   seen.length = 0;
   answers.clear();
   process.env.OIDC_CLIENT_ID = CLIENT_ID;
@@ -215,7 +196,9 @@ describe('OIDC login against a provider whose name has an fe80:: record (#2506)'
     expect(authorize.searchParams.get('state')).toBe(state);
 
     // The browser's leg: the provider sends it back to /callback with a code.
-    const back = await fetch(`http://127.0.0.1:${port}${authorize.pathname}${authorize.search}`, { redirect: 'manual' });
+    const back = await fetch(`http://127.0.0.1:${port}${authorize.pathname}${authorize.search}`, {
+      redirect: 'manual',
+    });
     const callbackUrl = new URL(back.headers.get('location')!);
     const cb = await request(app)
       .get(`${callbackUrl.pathname}${callbackUrl.search}`)

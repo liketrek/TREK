@@ -1,4 +1,4 @@
-// FE-COMP-JMAPGL-001 to FE-COMP-JMAPGL-026
+// FE-COMP-JMAPGL-001 to FE-COMP-JMAPGL-040, FE-COMP-JMAPGL-2453
 
 type Spy = ReturnType<typeof vi.fn>
 
@@ -32,6 +32,11 @@ interface BoundsStub {
 const gl = vi.hoisted(() => {
   const map = {
     on: vi.fn(),
+    off: vi.fn(),
+    once: vi.fn(),
+    loaded: vi.fn(() => true),
+    // Container pixels from lng/lat, ten per degree: enough to tell near from far.
+    project: vi.fn(([lng, lat]: [number, number]) => ({ x: lng * 10, y: lat * 10 })),
     remove: vi.fn(),
     resize: vi.fn(),
     flyTo: vi.fn(),
@@ -43,6 +48,7 @@ const gl = vi.hoisted(() => {
     getSource: vi.fn((): unknown => null),
     setTerrain: vi.fn(),
     setConfigProperty: vi.fn(),
+    setLayoutProperty: vi.fn(),
   }
   const markers: MarkerStub[] = []
   const popups: PopupStub[] = []
@@ -265,11 +271,49 @@ describe('JourneyMapGL', () => {
     expect(setData).toHaveBeenCalledWith(expect.objectContaining({ type: 'Feature' }))
   })
 
+  it('FE-COMP-JMAPGL-038: a planned GPX track goes on the dashed layer, a recorded route on the solid one (JRN-01)', () => {
+    withToken()
+    render(
+      <JourneyMapGL
+        checkins={[]}
+        entries={singleEntry}
+        tracks={[
+          { place_id: 1, trip_id: 1, name: 'Ridge', color: '#aa0000', points: [[47, 11], [47.1, 11.1]] },
+          { place_id: -100001, trip_id: 0, name: 'Recorded on 14 May', color: '#00aa00', points: [[47, 11], [47.2, 11.2]], kind: 'day_recording' },
+        ]}
+      />,
+    )
+
+    const source = vi.mocked(gl.map.addSource).mock.calls.find(c => c[0] === 'journey-tracks')?.[1] as
+      | { data: { features: Array<{ properties: { planned: boolean } }> } }
+      | undefined
+    expect(source?.data.features.map(f => f.properties.planned)).toEqual([true, false])
+    expect(gl.map.addLayer).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'journey-tracks-planned',
+      filter: ['==', ['get', 'planned'], true],
+      paint: expect.objectContaining({ 'line-dasharray': [2.2, 2] }),
+    }))
+    expect(gl.map.addLayer).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'journey-tracks-line',
+      filter: ['!=', ['get', 'planned'], true],
+    }))
+  })
+
   it('FE-COMP-JMAPGL-009: a single entry draws no route line', () => {
     withToken()
     render(<JourneyMapGL checkins={[]} entries={singleEntry} />)
     expect(gl.map.addSource).not.toHaveBeenCalled()
     expect(gl.map.addLayer).not.toHaveBeenCalled()
+  })
+
+  it('FE-COMP-JMAPGL-037: the fullScreen map draws the route once the entries arrive after mount', () => {
+    withToken()
+    const { rerender } = render(<JourneyMapGL checkins={[]} entries={[]} fullScreen />)
+    expect(gl.map.addSource).not.toHaveBeenCalledWith('journey-route', expect.anything())
+
+    rerender(<JourneyMapGL checkins={[]} entries={entries} fullScreen />)
+    expect(gl.map.addSource).toHaveBeenCalledWith('journey-route', expect.objectContaining({ type: 'geojson' }))
+    expect(gl.map.addLayer).toHaveBeenCalledWith(expect.objectContaining({ id: 'journey-route-line' }))
   })
 
   it('FE-COMP-JMAPGL-010: the camera fits entries and trail with the requested bottom padding', () => {
@@ -424,7 +468,7 @@ describe('JourneyMapGL', () => {
 
     const firstInner = gl.markers[0].element.querySelector('.trek-journey-marker-inner') as HTMLElement
     expect(firstInner.style.transform).toBe('scale(1)')
-    expect(gl.markers[0].element.style.zIndex).toBe('0')
+    expect(gl.markers[0].element.style.zIndex).toBe('1')
   })
 
   it('FE-COMP-JMAPGL-019: dark mode tags the popup class on creation', () => {
@@ -450,7 +494,7 @@ describe('JourneyMapGL', () => {
     render(<JourneyMapGL ref={ref} checkins={[]} entries={entries} />)
     act(() => { ref.current!.highlightMarker('ghost') })
     expect(gl.popups).toHaveLength(0)
-    expect(gl.markers[0].element.style.zIndex).toBe('')
+    expect(gl.markers[0].element.style.zIndex).toBe('1')
   })
 
   it('FE-COMP-JMAPGL-022: the popup stylesheet is injected exactly once', () => {
@@ -498,6 +542,24 @@ describe('JourneyMapGL', () => {
 
     expect(() => act(() => { ref.current!.focusMarker('e1') })).not.toThrow()
     expect(gl.map.flyTo).not.toHaveBeenCalled()
+  })
+
+  it('FE-COMP-JMAPGL-2453: geotagged photos become clustered thumbnails under the pins and open on a tap', () => {
+    withToken()
+    const onPhotoClick = vi.fn()
+    const photos = [
+      { id: 'a', lat: 45, lng: 5, thumbUrl: '/api/photos/1/thumbnail' },
+      { id: 'b', lat: 45.1, lng: 5.1, thumbUrl: '/api/photos/2/thumbnail' },
+      { id: 'c', lat: 48, lng: 11, thumbUrl: '/api/photos/3/thumbnail' },
+    ]
+    render(<JourneyMapGL checkins={[]} entries={entries} photos={photos} onPhotoClick={onPhotoClick} />)
+    const thumbs = gl.markers.filter(m => m.element.innerHTML.includes('/api/photos/'))
+    // a and b fall in one 64px bucket at ten pixels a degree, c in its own.
+    expect(thumbs).toHaveLength(2)
+    expect(thumbs[0].element.innerHTML).toContain('>2<')
+    thumbs[0].element.click()
+    expect(onPhotoClick).toHaveBeenCalledWith(['a', 'b'])
+    expect(gl.map.on).toHaveBeenCalledWith('moveend', expect.any(Function))
   })
 
   it('FE-COMP-JMAPGL-026: focusMarker on an unknown id is a no-op', () => {
@@ -624,5 +686,39 @@ describe('JourneyMapGL', () => {
   it('FE-COMP-JMAPGL-036: the token placeholder honours the height prop', () => {
     const { container } = render(<JourneyMapGL checkins={[]} entries={entries} height={9999} />)
     expect((container.firstChild as HTMLElement).style.height).toBe('100%')
+  })
+
+  it('FE-COMP-JMAPGL-039: the plan has its own casing, and a layer switched off is added hidden (JRN-04)', () => {
+    withToken()
+    render(
+      <JourneyMapGL
+        checkins={[]}
+        entries={entries}
+        tracks={[{ place_id: 1, trip_id: 1, name: 'Ridge', color: '#aa0000', points: [[47, 11], [47.1, 11.1]] }]}
+        layerVisibility={{ plan: false, recorded: true, entries: false }}
+      />,
+    )
+
+    const layer = (id: string) => vi.mocked(gl.map.addLayer).mock.calls.map(c => c[0] as { id: string; layout: Record<string, unknown>; filter?: unknown }).find(l => l.id === id)
+    expect(layer('journey-tracks-planned-casing')?.filter).toEqual(['==', ['get', 'planned'], true])
+    expect(layer('journey-tracks-planned-casing')?.layout.visibility).toBe('none')
+    expect(layer('journey-tracks-planned')?.layout.visibility).toBe('none')
+    expect(layer('journey-tracks-line')?.layout.visibility).toBeUndefined()
+    expect(layer('journey-route-line')?.layout.visibility).toBe('none')
+    expect(gl.markers.every(m => m.element.style.display === 'none')).toBe(true)
+  })
+
+  it('FE-COMP-JMAPGL-040: a switch shows and hides its layers in place, and the check follows the plan', () => {
+    withToken()
+    const shown = { plan: true, recorded: true, entries: true }
+    const { rerender } = render(<JourneyMapGL checkins={[]} entries={entries} layerVisibility={shown} />)
+    expect(gl.markers[0].element.innerHTML).not.toContain('#16a34a')
+
+    rerender(<JourneyMapGL checkins={[]} entries={entries} layerVisibility={{ ...shown, recorded: false }} plannedEntryIds={new Set(['e1'])} />)
+    expect(gl.map.setLayoutProperty).toHaveBeenCalledWith('journey-tracks-line', 'visibility', 'none')
+    expect(gl.map.setLayoutProperty).toHaveBeenCalledWith('journey-tracks-casing', 'visibility', 'none')
+    expect(gl.map.setLayoutProperty).not.toHaveBeenCalledWith('journey-tracks-planned', 'visibility', expect.anything())
+    expect(gl.markers[0].element.innerHTML).toContain('#16a34a')
+    expect(mapboxgl.Map).toHaveBeenCalledTimes(1)
   })
 })

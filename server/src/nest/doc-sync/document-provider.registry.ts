@@ -1,5 +1,5 @@
-import { Inject, Injectable } from '@nestjs/common';
 import { DOCUMENT_PROVIDERS, type DocumentProvider } from './document-provider';
+import { Inject, Injectable } from '@nestjs/common';
 
 /**
  * The one dispatch site for document providers.

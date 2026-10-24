@@ -1,0 +1,275 @@
+/* ============================================================================
+   TREK Studio: groups, multi-selection and the layers panel.
+
+   Beside studio.css rather than in it, which has reached its size budget. The
+   same rules apply: every selector is scoped under `.trek-dash`, colours come
+   from the dashboard tokens, and selection chrome is drawn in screen pixels
+   above the page, never on it.
+   ============================================================================ */
+
+/* ----------------- multi-selection on the sheet ----------------- */
+
+/*
+ * A member of a multi-selection: a single quiet ring, so the box around all
+ * of them is the one thing that reads as "this is what you are holding".
+ */
+.trek-dash .st-select.is-member {
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--accent) 70%, transparent),
+    0 0 0 2px rgba(255, 255, 255, 0.7); /* the light ring keeps the line findable on a dark photo */
+}
+
+/* The one element picked inside a group stands out against its dashed box. */
+.trek-dash .st-select.is-inside:not(.is-member) {
+  box-shadow:
+    0 0 0 1.5px var(--accent),
+    0 0 0 2.5px rgba(255, 255, 255, 0.92),
+    0 0 0 6px color-mix(in oklch, var(--accent) 18%, transparent);
+}
+
+.trek-dash .st-select-box {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 1px;
+  box-shadow:
+    0 0 0 1.5px var(--accent),
+    0 0 0 2.5px rgba(255, 255, 255, 0.92);
+}
+
+/* A whole group: dashed, so it reads as a group before anything is done to it. */
+.trek-dash .st-select-box.is-group {
+  box-shadow: 0 0 0 2.5px rgba(255, 255, 255, 0.85);
+  outline: 1.5px dashed var(--accent);
+  outline-offset: 0;
+}
+
+.trek-dash .st-marquee {
+  position: absolute;
+  pointer-events: none;
+  border: 1px solid var(--accent);
+  background: color-mix(in oklch, var(--accent) 10%, transparent);
+  border-radius: 1px;
+}
+
+/* ----------------- inspector: align and arrange ----------------- */
+
+.trek-dash .st-section-body > .st-arrange-hint {
+  padding: 8px 0 0;
+}
+.trek-dash .st-chip:disabled {
+  opacity: 0.4;
+  cursor: default;
+  background: transparent;
+}
+
+/* ----------------- the layers panel ----------------- */
+
+.trek-dash .st-layers-scroll {
+  flex: 1;
+}
+.trek-dash .st-layers-hint {
+  padding: 0 2px 8px;
+}
+
+.trek-dash .st-layers {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.trek-dash .st-layers.is-dragging {
+  cursor: grabbing;
+}
+
+.trek-dash .st-layer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding-inline: 4px 2px;
+  border-radius: 8px;
+  color: var(--ink-2);
+  font-size: calc(12.5px * var(--fs-scale-caption, 1));
+  cursor: default;
+  transition:
+    background 0.12s,
+    color 0.12s,
+    opacity 0.12s;
+}
+.trek-dash .st-layer:hover {
+  background: color-mix(in oklch, var(--ink) 6%, transparent);
+  color: var(--ink);
+}
+.trek-dash .st-layer.is-on {
+  background: color-mix(in oklch, var(--accent) 13%, transparent);
+  color: var(--ink);
+}
+.trek-dash .st-layer.is-inside {
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--accent) 45%, transparent);
+}
+.trek-dash .st-layer.is-group {
+  font-weight: 600;
+  color: var(--ink);
+}
+.trek-dash .st-layer.is-member {
+  padding-inline-start: 22px;
+}
+/* The line that joins a group's members to its row. */
+.trek-dash .st-layer.is-member::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 13px;
+  width: 1px;
+  background: var(--line-2);
+}
+/* Dimmed, not removed: this panel is the way back to a hidden layer. */
+.trek-dash .st-layer.is-hidden .st-layer-name,
+.trek-dash .st-layer.is-hidden .st-layer-icon {
+  opacity: 0.45;
+}
+.trek-dash .st-layer.is-dragged {
+  opacity: 0.4;
+}
+
+/* Where the drop lands: a line on the edge it goes to. */
+.trek-dash .st-layer.is-drop-above::after,
+.trek-dash .st-layer.is-drop-below::after {
+  content: '';
+  position: absolute;
+  inset-inline: 4px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+  pointer-events: none;
+}
+.trek-dash .st-layer.is-drop-above::after {
+  top: -1.5px;
+}
+.trek-dash .st-layer.is-drop-below::after {
+  bottom: -1.5px;
+}
+
+.trek-dash .st-layer-grip {
+  flex: none;
+  color: var(--ink-3);
+  opacity: 0;
+  cursor: grab;
+  transition: opacity 0.12s;
+}
+.trek-dash .st-layer:hover .st-layer-grip {
+  opacity: 0.8;
+}
+.trek-dash .st-layer-caret {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  color: var(--ink-3);
+  transition:
+    transform 0.16s cubic-bezier(0.23, 1, 0.32, 1),
+    background 0.12s;
+}
+.trek-dash .st-layer-caret:hover {
+  background: color-mix(in oklch, var(--ink) 9%, transparent);
+  color: var(--ink);
+}
+.trek-dash .st-layer-caret.is-open {
+  transform: rotate(90deg);
+}
+[dir='rtl'] .trek-dash .st-layer-caret:not(.is-open) {
+  transform: scaleX(-1);
+}
+.trek-dash .st-layer-icon {
+  flex: none;
+  color: var(--ink-3);
+}
+.trek-dash .st-layer.is-on .st-layer-icon {
+  color: var(--accent);
+}
+.trek-dash .st-layer-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.trek-dash .st-layer-name.is-auto {
+  font-weight: inherit;
+}
+.trek-dash .st-layer-input {
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  padding: 0 7px;
+  font-size: inherit;
+}
+.trek-dash .st-layer-count {
+  flex: none;
+  font-size: calc(11px * var(--fs-scale-caption, 1));
+  font-weight: 500;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.trek-dash .st-layer-acts {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+.trek-dash .st-layer-acts .st-act {
+  width: 24px;
+  height: 24px;
+  opacity: 0;
+  transition:
+    opacity 0.12s,
+    background 0.12s,
+    color 0.12s;
+}
+/* Shown on hover and while focused, and always when on, so a locked or hidden layer reads at a glance. */
+.trek-dash .st-layer:hover .st-layer-acts .st-act,
+.trek-dash .st-layer:focus-visible .st-layer-acts .st-act,
+.trek-dash .st-layer-acts .st-act:focus-visible,
+.trek-dash .st-layer-acts .st-act.is-kept {
+  opacity: 1;
+}
+/* The row the keyboard is on, ringed: the tree is walked with the arrow keys. */
+.trek-dash .st-layer:focus {
+  outline: none;
+}
+.trek-dash .st-layer:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.trek-dash .st-layers-foot {
+  flex: none;
+  display: flex;
+  gap: 6px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--line);
+}
+.trek-dash .st-layers-foot .st-chip {
+  flex: 1;
+  justify-content: center;
+  gap: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trek-dash .st-layer,
+  .trek-dash .st-layer-caret,
+  .trek-dash .st-layer-acts .st-act {
+    transition: none;
+  }
+}
+
+/* Touch has no hover: the row's tools stay in view. */
+@media (hover: none) {
+  .trek-dash .st-layer-acts .st-act,
+  .trek-dash .st-layer-grip {
+    opacity: 1;
+  }
+}

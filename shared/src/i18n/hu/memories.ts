@@ -17,6 +17,7 @@ const memories: TranslationStrings = {
   'memories.reviewTitle': 'Nézd át a fotóidat',
   'memories.reviewHint': 'Kattints a fotókra a megosztásból való kizáráshoz.',
   'memories.shareCount': '{count} fotó megosztása',
+  'memories.shareCount.one': '{count} fotó megosztása',
   'memories.providerUrl': 'Szerver URL',
   'memories.providerApiKey': 'API kulcs',
   'memories.providerUsername': 'Felhasználónév',
@@ -50,6 +51,7 @@ const memories: TranslationStrings = {
   'memories.selectHint': 'Koppints a fotókra a kijelölésükhöz.',
   'memories.selected': 'kijelölve',
   'memories.addSelected': '{count} fotó hozzáadása',
+  'memories.addSelected.one': '{count} fotó hozzáadása',
   'memories.alreadyAdded': 'Hozzáadva',
   'memories.private': 'Privát',
   'memories.stopSharing': 'Megosztás leállítása',
@@ -61,6 +63,7 @@ const memories: TranslationStrings = {
   'memories.confirmShareTitle': 'Megosztás az utazótársakkal?',
   'memories.confirmShareHint':
     '{count} fotó lesz látható az utazás összes tagja számára. Később egyenként is priváttá teheted őket.',
+  'memories.confirmShareHint.one': '{count} fotó lesz látható az utazás összes tagja számára. Később priváttá teheted.',
   'memories.confirmShareButton': 'Fotók megosztása',
   'memories.error.loadAlbums': 'Az albumok betöltése sikertelen',
   'memories.error.linkAlbum': 'Az album csatolása sikertelen',

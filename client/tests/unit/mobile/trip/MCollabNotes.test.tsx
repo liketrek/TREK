@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import MCollabNotes from '../../../../src/mobile/screens/trip/tabs/MCollabNotes'
-import type { CollabNoteData } from '../../../../src/mobile/screens/trip/tabs/collabModel'
+import type { CollabNoteData } from '../../../../src/components/Collab/collabModel'
 import type { TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
 import { addListener, removeListener } from '../../../../src/api/websocket'
 import { openFile } from '../../../../src/utils/fileDownload'
@@ -393,7 +393,7 @@ describe('MCollabNotes', () => {
     await waitFor(() => expect(getCalls).toBe(2))
   })
 
-  it('FE-MOB-CNOTE-019: removing an existing attachment calls the file endpoint', async () => {
+  it('FE-MOB-CNOTE-019: removing an existing attachment calls the file endpoint on save', async () => {
     serveNotes([note(1, {
       title: 'Visa',
       attachments: [{ id: 5, filename: 'p', original_name: 'passport.pdf', url: '/uploads/p' }],
@@ -405,8 +405,31 @@ describe('MCollabNotes', () => {
     const chip = screen.getByText('passport.pdf')
     fireEvent.click(within(chip).getByRole('button'))
 
+    // The chip goes at once, but the server only hears about it on Save so that
+    // closing the sheet leaves the note untouched.
+    expect(screen.queryByText('passport.pdf')).not.toBeInTheDocument()
+    expect(deletedFiles).toEqual([])
+
+    fireEvent.click(screen.getByRole('button', { name: 'collab.notes.save' }))
     await waitFor(() => expect(deletedFiles).toEqual(['1/5']))
-    await waitFor(() => expect(screen.queryByText('passport.pdf')).not.toBeInTheDocument())
+  })
+
+  it('FE-MOB-CNOTE-019b: closing the sheet after removing an attachment keeps the file', async () => {
+    serveNotes([note(1, {
+      title: 'Visa',
+      attachments: [{ id: 5, filename: 'p', original_name: 'passport.pdf', url: '/uploads/p' }],
+    })])
+    serveWrites()
+    await renderNotes()
+
+    fireEvent.click(screen.getByText('Visa'))
+    fireEvent.click(within(screen.getByText('passport.pdf')).getByRole('button'))
+    fireEvent.click(screen.getByRole('button', { name: 'collab.notes.cancel' }))
+
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'collab.notes.save' })).not.toBeInTheDocument())
+    fireEvent.click(screen.getByText('Visa'))
+    expect(await screen.findByText('passport.pdf')).toBeInTheDocument()
+    expect(deletedFiles).toEqual([])
   })
 
   it('FE-MOB-CNOTE-020: a new note uploads its queued files against the created id', async () => {
@@ -437,8 +460,13 @@ describe('MCollabNotes', () => {
 
     fireEvent.click(screen.getByText('Visa'))
     fireEvent.click(within(screen.getByText('passport.pdf')).getByRole('button'))
+    fireEvent.click(screen.getByRole('button', { name: 'collab.notes.save' }))
     await waitFor(() => expect(planner.toast.error).toHaveBeenCalledWith('common.error'))
-    expect(screen.getByText('passport.pdf')).toBeInTheDocument()
+
+    // The rejected detach leaves the attachment on the note, so it is back on reopen.
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'collab.notes.save' })).not.toBeInTheDocument())
+    fireEvent.click(screen.getByText('Visa'))
+    expect(await screen.findByText('passport.pdf')).toBeInTheDocument()
   })
 
   it('FE-MOB-CNOTE-022: the attach tile opens the hidden file picker', async () => {
@@ -606,5 +634,38 @@ describe('MCollabNotes', () => {
     const links = screen.getAllByRole('link', { name: 'collab.notes.website' })
     expect(links).toHaveLength(1)
     expect(links[0]).toHaveAttribute('href', 'https://visa.test')
+  })
+
+  it('FE-MOB-CNOTE-034: attaching, detaching and deleting tell the Files tab to reload', async () => {
+    let filesChanged = 0
+    const onFilesChanged = () => { filesChanged += 1 }
+    window.addEventListener('collab-files-changed', onFilesChanged)
+    try {
+      serveNotes([note(1, {
+        title: 'Visa',
+        attachments: [{ id: 5, filename: 'p', original_name: 'passport.pdf', url: '/uploads/p' }],
+      })])
+      serveWrites()
+      await renderNotes()
+
+      fireEvent.click(screen.getByText('Visa'))
+      fireEvent.click(within(screen.getByText('passport.pdf')).getByRole('button'))
+      fireEvent.click(screen.getByRole('button', { name: 'collab.notes.save' }))
+      await waitFor(() => expect(deletedFiles).toEqual(['1/5']))
+      await waitFor(() => expect(filesChanged).toBe(1))
+
+      fireEvent.click(await screen.findByText('Visa'))
+      fireEvent.change(fileInput(), { target: { files: [new File(['a'], 'x.pdf')] } })
+      fireEvent.click(screen.getByRole('button', { name: 'collab.notes.save' }))
+      await waitFor(() => expect(uploadedTo).toEqual(['1']))
+      await waitFor(() => expect(filesChanged).toBe(2))
+
+      fireEvent.click(await screen.findByRole('button', { name: 'collab.notes.delete' }))
+      fireEvent.click(screen.getByRole('button', { name: 'common.delete' }))
+      await waitFor(() => expect(deletedIds).toEqual(['1']))
+      await waitFor(() => expect(filesChanged).toBe(3))
+    } finally {
+      window.removeEventListener('collab-files-changed', onFilesChanged)
+    }
   })
 })

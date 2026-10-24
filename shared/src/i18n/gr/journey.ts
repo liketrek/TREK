@@ -6,6 +6,11 @@ const journey: TranslationStrings = {
   'journey.title': 'Ταξίδι',
   'journey.subtitle': 'Παρακολουθήστε τα ταξίδια σας καθώς συμβαίνουν',
   'journey.new': 'Νέο Ταξίδι',
+  'journey.lightbox.zoomIn': 'Μεγέθυνση',
+  'journey.lightbox.zoomOut': 'Σμίκρυνση',
+  'journey.lightbox.zoomReset': 'Επιστροφή σε ολόκληρη τη φωτογραφία',
+  'journey.lightbox.previous': 'Προηγούμενη φωτογραφία',
+  'journey.lightbox.next': 'Επόμενη φωτογραφία',
   'journey.create': 'Δημιουργία',
   'journey.titlePlaceholder': 'Πού πηγαίνετε;',
   'journey.empty': 'Δεν υπάρχουν ταξίδια ακόμα',
@@ -57,6 +62,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.latestJourney': 'Πρόσφατο Ταξίδι',
   'journey.frontpage.allJourneys': 'Όλα τα Ταξίδια',
   'journey.frontpage.journeys': 'ταξίδια',
+  'journey.frontpage.journeys.one': 'ταξίδι',
   'journey.frontpage.createNew': 'Δημιουργία νέου Ταξιδιού',
   'journey.frontpage.createNewSub': 'Επιλέξτε ταξίδια, γράψτε ιστορίες, μοιραστείτε τις περιπέτειές σας',
   'journey.frontpage.live': 'Ζωντανά',
@@ -66,6 +72,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.suggestionLabel': 'Το ταξίδι μόλις τελείωσε',
   'journey.frontpage.suggestionText': 'Μετατρέψτε το <strong>{title}</strong> σε Ταξίδι',
   'journey.frontpage.dismiss': 'Απόρριψη',
+  'journey.frontpage.dismissError': 'Δεν ήταν δυνατή η απόκρυψη αυτής της πρότασης',
   'journey.frontpage.journeyName': 'Όνομα Ταξιδιού',
   'journey.frontpage.namePlaceholder': 'π.χ. Νοτιοανατολική Ασία 2026',
   'journey.frontpage.selectTrips': 'Επιλογή Ταξιδιών',
@@ -73,11 +80,15 @@ const journey: TranslationStrings = {
   'journey.frontpage.trips': 'ταξίδια',
   'journey.frontpage.placesImported': 'τοποθεσίες θα εισαχθούν',
   'journey.frontpage.places': 'τοποθεσίες',
+  'journey.frontpage.places.one': 'τοποθεσία',
   'journey.detail.backToJourney': 'Πίσω στο Ταξίδι',
   'journey.detail.syncedWithTrips': 'Συγχρονισμένο με Ταξίδια',
   'journey.detail.addEntry': 'Προσθήκη Καταχώρησης',
   'journey.detail.jumpToTop': 'Επιστροφή στην κορυφή',
   'journey.detail.jumpToLast': 'Μετάβαση στην τελευταία καταχώρηση',
+  'journey.detail.dayJump': 'Μετάβαση σε ημέρα',
+  'journey.detail.dayJumpCount': '{count} ημέρες',
+  'journey.detail.dayJumpCount.one': '{count} ημέρα',
   'journey.detail.newEntry': 'Νέα Καταχώρηση',
   'journey.detail.editEntry': 'Επεξεργασία Καταχώρησης',
   'journey.detail.noEntries': 'Δεν υπάρχουν καταχωρήσεις ακόμα',
@@ -93,6 +104,7 @@ const journey: TranslationStrings = {
   'journey.detail.readMore': 'Διαβάστε περισσότερα',
   'journey.detail.prosCons': 'Υπέρ & Κατά',
   'journey.detail.photos': 'φωτογραφίες',
+  'journey.detail.photos.one': 'φωτογραφία',
   'journey.detail.day': 'Ημέρα {number}',
   'journey.detail.places': 'τοποθεσίες',
   'journey.stats.days': 'Ημέρες',
@@ -105,6 +117,7 @@ const journey: TranslationStrings = {
   'journey.verdict.lovedIt': 'Το λάτρεψα',
   'journey.verdict.couldBeBetter': 'Θα μπορούσε να ήταν καλύτερο',
   'journey.synced.places': 'τοποθεσίες',
+  'journey.synced.places.one': 'τοποθεσία',
   'journey.synced.synced': 'συγχρονισμένα',
   'journey.editor.discardChangesConfirm': 'Έχετε μη αποθηκευμένες αλλαγές. Απόρριψη;',
   'journey.editor.uploadFailed': 'Η μεταφόρτωση φωτογραφίας απέτυχε',
@@ -172,6 +185,10 @@ const journey: TranslationStrings = {
   'journey.contributors.removeConfirm': 'Αφαίρεση {username} από αυτό το ταξίδι;',
   'journey.contributors.removed': 'Ο συνεισφέρων αφαιρέθηκε',
   'journey.contributors.removeFailed': 'Αποτυχία αφαίρεσης συνεισφέροντα',
+  'journey.contributors.viaTrips': 'Μέσω ταξιδιών',
+  'journey.contributors.viaTripsHint':
+    'Μπορούν να ανοίξουν αυτό το ημερολόγιο επειδή ένα ταξίδι το συνδέει. Αλλάξτε το στις ρυθμίσεις του ταξιδιού.',
+  'journey.contributors.viaTrip': 'μέσω {trip}',
   'journey.share.publicShare': 'Δημόσια Κοινοποίηση',
   'journey.share.createLink': 'Δημιουργία συνδέσμου κοινής χρήσης',
   'journey.share.linkCreated': 'Ο σύνδεσμος κοινής χρήσης δημιουργήθηκε',
@@ -198,8 +215,23 @@ const journey: TranslationStrings = {
   'journey.settings.subtitle': 'Υπότιτλος',
   'journey.settings.subtitlePlaceholder': 'π.χ. Ταϊλάνδη, Βιετνάμ & Καμπότζη',
   'journey.settings.tracks': 'Διαδρομές GPX',
+  'journey.settings.recordings': 'Καταγεγραμμένες ημέρες',
   'journey.settings.showTripTracks': 'Εμφάνιση όλων των διαδρομών GPX των ταξιδιών',
-  'journey.settings.showTripTracksHint': 'Σχεδιάζει στον χάρτη τις καταγεγραμμένες διαδρομές από τα συνδεδεμένα ταξίδια.',
+  'journey.settings.showTripTracksHint':
+    'Σχεδιάζει στον χάρτη τις προγραμματισμένες διαδρομές (ίχνη GPX) των συνδεδεμένων ταξιδιών.',
+  'journey.settings.autoPrepare': 'Αυτόματη προετοιμασία καταγεγραμμένων ημερών',
+  'journey.settings.autoPrepareHint':
+    'Όσο ένα συνδεδεμένο ταξίδι βρίσκεται σε εξέλιξη, οι στάσεις από το Dawarich σου περιμένουν στη μέρα τους για έλεγχο. Οι συντάκτες με δική τους σύνδεση παίρνουν τις δικές τους. Τίποτα δεν γράφεται μόνο του στο ημερολόγιο.',
+  'journey.settings.status': 'Κατάσταση',
+  'journey.settings.statusAuto': 'Αυτόματα',
+  'journey.settings.statusAutoHint':
+    'Ακολουθεί τις ημερομηνίες των συνδεδεμένων ταξιδιών. Χωρίς ταξίδι, το ημερολόγιο μένει πρόχειρο.',
+  'journey.settings.statusManualHint':
+    'Ορισμένη χειροκίνητα. Οι ημερομηνίες του ταξιδιού δεν την αλλάζουν μέχρι να επιστρέψετε στο αυτόματο.',
+  'journey.settings.photosSection': 'Φωτογραφίες',
+  'journey.settings.photoLocation': 'Τοποθέτηση καταχωρίσεων από τις φωτογραφίες τους',
+  'journey.settings.photoLocationHint':
+    'Μια καταχώριση χωρίς τοποθεσία παίρνει το σημείο όπου τραβήχτηκε η πρώτη της φωτογραφία με GPS. Οι τοποθεσίες που ορίζετε εσείς δεν μετακινούνται ποτέ.',
   'journey.settings.endJourney': 'Αρχειοθέτηση Ταξιδιού',
   'journey.settings.reopenJourney': 'Επαναφορά Ταξιδιού',
   'journey.settings.archived': 'Το ταξίδι αρχειοθετήθηκε',
@@ -214,9 +246,14 @@ const journey: TranslationStrings = {
   'journey.settings.coverFailed': 'Η μεταφόρτωση απέτυχε',
   'journey.settings.failedToDelete': 'Αποτυχία διαγραφής',
   'journey.entries.deleteTitle': 'Διαγραφή Καταχώρησης',
+  'journey.gallery.deleteTitle': 'Διαγραφή φωτογραφίας',
+  'journey.gallery.deleteMessage':
+    'Η φωτογραφία θα αφαιρεθεί από τη συλλογή και από κάθε καταχώρηση στην οποία εμφανίζεται. Αυτό δεν μπορεί να αναιρεθεί.',
   'journey.photosUploaded': '{count} φωτογραφίες μεταφορτώθηκαν',
+  'journey.photosUploaded.one': '{count} φωτογραφία μεταφορτώθηκε',
   'journey.photosUploadFailed': 'Ορισμένες φωτογραφίες απέτυχαν να μεταφορτωθούν',
   'journey.photosAdded': '{count} φωτογραφίες προστέθηκαν',
+  'journey.photosAdded.one': '{count} φωτογραφία προστέθηκε',
   'journey.public.notFound': 'Δεν Βρέθηκε',
   'journey.public.notFoundMessage': 'Αυτό το ταξίδι δεν υπάρχει ή ο σύνδεσμος έχει λήξει.',
   'journey.public.readOnly': 'Μόνο ανάγνωση · Δημόσιο Ταξίδι',
@@ -241,31 +278,30 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'Δεν βρέθηκαν άλμπουμ',
   'journey.picker.selectDate': 'Επιλογή ημερομηνίας',
   'journey.picker.search': 'Αναζήτηση',
-  'journey.editor.externalPhotos': 'External photos', // en-fallback
-  'journey.editor.externalPhotosFor': 'Photos for {date}', // en-fallback
-  'journey.editor.externalPhotosNearby': 'Nearby photos first', // en-fallback
-  'journey.editor.externalPhotosNoLocation': 'All photos from this day', // en-fallback
-  'journey.editor.externalPhotosQueued': 'queued', // en-fallback
-  'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
-  'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
-  'journey.picker.day': 'This day', // en-fallback
-  'journey.studio.title': 'TREK Studio', // en-fallback
-  'journey.studio.open': 'Studio', // en-fallback
-  'journey.studio.openAria': 'Open the photo book studio', // en-fallback
-  'journey.studio.backToJourney': 'Back to the journey', // en-fallback
-  'journey.studio.format': 'Page format', // en-fallback
-  'journey.studio.formatA4Landscape': 'A4 landscape', // en-fallback
-  'journey.studio.formatA4Portrait': 'A4 portrait', // en-fallback
-  'journey.studio.formatSquare21': 'Square 21 × 21 cm', // en-fallback
-  'journey.studio.formatSquare30': 'Square 30 × 30 cm', // en-fallback
-  'journey.studio.pages': 'Pages', // en-fallback
-  'journey.studio.cover': 'Cover', // en-fallback
-  'journey.studio.inspector': 'Properties', // en-fallback
-  'journey.studio.inspectorEmpty': 'Select something on the page to edit it.', // en-fallback
-  'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
-  'journey.studio.autoLayout': 'Auto layout', // en-fallback
-  'journey.studio.export': 'Export', // en-fallback
-  'journey.studio.day': 'ΗΜΕΡΑ',
+  'journey.editor.externalPhotos': 'Εξωτερικές φωτογραφίες',
+  'journey.editor.externalPhotosFor': 'Φωτογραφίες για {date}',
+  'journey.editor.externalPhotosNearby': 'Πρώτα οι κοντινές φωτογραφίες',
+  'journey.editor.externalPhotosNoLocation': 'Όλες οι φωτογραφίες αυτής της ημέρας',
+  'journey.editor.externalPhotosQueued': 'στην ουρά',
+  'journey.editor.externalPhotosUnavailable': 'Δεν υπάρχουν διαθέσιμοι συνδεδεμένοι πάροχοι φωτογραφιών.',
+  'journey.editor.externalPhotosPartialFailed':
+    '{failed} ομάδες φωτογραφιών απέτυχαν: αποθηκεύστε ξανά για να δοκιμάσετε πάλι',
+  'journey.picker.day': 'Αυτή η ημέρα',
+  'journey.studio.title': 'TREK Studio',
+  'journey.studio.open': 'Studio',
+  'journey.studio.openAria': 'Άνοιγμα του studio φωτογραφικού βιβλίου',
+  'journey.studio.backToJourney': 'Επιστροφή στο ταξίδι',
+  'journey.studio.format': 'Μορφή σελίδας',
+  'journey.studio.formatA4Landscape': 'A4 οριζόντιο',
+  'journey.studio.formatA4Portrait': 'A4 κάθετο',
+  'journey.studio.formatSquare21': 'Τετράγωνο 21 × 21 εκ.',
+  'journey.studio.formatSquare30': 'Τετράγωνο 30 × 30 εκ.',
+  'journey.studio.pages': 'Σελίδες',
+  'journey.studio.cover': 'Εξώφυλλο',
+  'journey.studio.inspectorEmpty': 'Επιλέξτε κάτι για επεξεργασία',
+  'journey.studio.autoLayout': 'Αυτόματη διάταξη',
+  'journey.studio.export': 'Εξαγωγή',
+  'journey.studio.day': 'ΗΜΕΡΑ {day}',
   'journey.studio.stations': 'Στάσεις',
   'journey.studio.peersHere': 'εδώ',
   'journey.studio.folioAuto': 'Αυτόματα',
@@ -277,109 +313,116 @@ const journey: TranslationStrings = {
   'journey.studio.exportFinishing': 'Φινίρισμα',
   'journey.studio.exportMarks': 'Σημάδια κοπής',
   'journey.studio.exportMarksHint': 'Προσθέτει {bleed} mm μακετών σε κάθε ακμή και σημειώνει πού κόβεται',
-  'journey.studio.exportNote': '{sheets} φύλλα {width} × {height} mm. Ο browser μετατρέπει την προεπισκόπηση εκτύπωσης σε PDF.',
+  'journey.studio.exportNote':
+    '{count} φύλλα {width} × {height} mm. Ο browser μετατρέπει την προεπισκόπηση εκτύπωσης σε PDF.',
+  'journey.studio.exportNote.one':
+    '{count} φύλλο {width} × {height} mm. Ο browser μετατρέπει την προεπισκόπηση εκτύπωσης σε PDF.',
   'journey.studio.exportOpen': 'Προεπισκόπηση εκτύπωσης',
   'journey.studio.exportSave': 'Αποθήκευση ως PDF',
   'journey.studio.exportPreparing': 'Προετοιμασία',
   'journey.studio.exportSheetCount': '{count} φύλλα',
-  'journey.studio.undo': 'Undo', // en-fallback
-  'journey.studio.redo': 'Redo', // en-fallback
-  'journey.studio.zoomIn': 'Zoom in', // en-fallback
-  'journey.studio.zoomOut': 'Zoom out', // en-fallback
-  'journey.studio.zoomFit': 'Fit to view', // en-fallback
+  'journey.studio.exportSheetCount.one': '{count} φύλλο',
+  'journey.studio.undo': 'Αναίρεση',
+  'journey.studio.redo': 'Επανάληψη',
+  'journey.studio.zoomIn': 'Μεγέθυνση',
+  'journey.studio.zoomOut': 'Σμίκρυνση',
+  'journey.studio.zoomFit': 'Προσαρμογή στην προβολή',
   'journey.studio.downloadSpread': 'Λήψη αυτού του δισέλιδου',
-  'journey.studio.downloadSpreadHint': 'Αποθηκεύει τη σχεδίαση του δισέλιδου ως αρχείο, χωρίς τις φωτογραφίες, για κοινή χρήση ή επαναχρησιμοποίηση',
+  'journey.studio.downloadSpreadHint':
+    'Αποθηκεύει τη σχεδίαση του δισέλιδου ως αρχείο, χωρίς τις φωτογραφίες, για κοινή χρήση ή επαναχρησιμοποίηση',
   'journey.studio.importSpread': 'Εισαγωγή',
   'journey.studio.importSpreadHint': 'Προσθέτει ένα δισέλιδο από αρχείο σχεδίασης που έχετε κατεβάσει',
   'journey.studio.importSpreadFailed': 'Αυτό το αρχείο δεν είναι δισέλιδο του TREK Studio',
-  'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Η σχεδίαση βιβλίου θέλει χώρο, γι\' αυτό το Studio υπάρχει μόνο στον υπολογιστή, όπως και η δημιουργία του PDF. Όλα τα άλλα του ταξιδιού σου δουλεύουν εδώ κανονικά.', // en-fallback
-  'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
-  'journey.studio.bookView': 'Book view', // en-fallback
-  'journey.studio.multiple': 'Several', // en-fallback
-  'journey.studio.kind.photo': 'Photo', // en-fallback
-  'journey.studio.kind.text': 'Text', // en-fallback
-  'journey.studio.kind.shape': 'Shape', // en-fallback
-  'journey.studio.position': 'Position', // en-fallback
-  'journey.studio.width': 'W', // en-fallback
-  'journey.studio.height': 'H', // en-fallback
-  'journey.studio.text': 'Text', // en-fallback
-  'journey.studio.typography': 'Type', // en-fallback
-  'journey.studio.leading': 'Line', // en-fallback
-  'journey.studio.colour': 'Colour', // en-fallback
+  'journey.studio.desktopOnly': 'Το Studio χρειάζεται μεγαλύτερη οθόνη',
+  'journey.studio.desktopOnlyHint':
+    "Η σχεδίαση βιβλίου θέλει χώρο, γι' αυτό το Studio υπάρχει μόνο στον υπολογιστή, όπως και η δημιουργία του PDF. Όλα τα άλλα του ταξιδιού σου δουλεύουν εδώ κανονικά.",
+  'journey.studio.formatA5Landscape': 'A5 οριζόντιο',
+  'journey.studio.bookView': 'Προβολή βιβλίου',
+  'journey.studio.multiple': 'Πολλά',
+  'journey.studio.kind.photo': 'Φωτογραφία',
+  'journey.studio.kind.text': 'Κείμενο',
+  'journey.studio.kind.shape': 'Σχήμα',
+  'journey.studio.position': 'Θέση',
+  'journey.studio.width': 'Π',
+  'journey.studio.height': 'Υ',
+  'journey.studio.text': 'Κείμενο',
+  'journey.studio.typography': 'Γραμματοσειρά',
+  'journey.studio.leading': 'Διάστιχο',
+  'journey.studio.colour': 'Χρώμα',
   'journey.studio.autoColour': 'Αυτόματο',
   'journey.studio.countryNames': 'Ονόματα',
-  'journey.studio.crop': 'Crop', // en-fallback
-  'journey.studio.look': 'Look', // en-fallback
-  'journey.studio.radius': 'Corner', // en-fallback
-  'journey.studio.shape': 'Shape', // en-fallback
-  'journey.studio.arrange': 'Arrange', // en-fallback
-  'journey.studio.toFront': 'Bring to front', // en-fallback
-  'journey.studio.forward': 'Bring forward', // en-fallback
-  'journey.studio.backward': 'Send backward', // en-fallback
-  'journey.studio.toBack': 'Send to back', // en-fallback
-  'journey.studio.lock': 'Lock', // en-fallback
-  'journey.studio.unlock': 'Unlock', // en-fallback
-  'journey.studio.delete': 'Delete', // en-fallback
-  'journey.studio.pageHint': 'Page', // en-fallback
-  'journey.studio.boundHint': 'Follows the journal entry. Editing it here breaks that link.', // en-fallback
-  'journey.studio.fit.cover': 'Fill', // en-fallback
-  'journey.studio.fit.contain': 'Fit', // en-fallback
-  'journey.studio.filter.none': 'Original', // en-fallback
-  'journey.studio.filter.bw': 'Black & white', // en-fallback
-  'journey.studio.filter.warm': 'Warm', // en-fallback
-  'journey.studio.shapeKind.rect': 'Rectangle', // en-fallback
-  'journey.studio.shapeKind.ellipse': 'Ellipse', // en-fallback
-  'journey.studio.focalHint': 'Drag the point to choose what stays in frame.', // en-fallback
-  'journey.studio.backCover': 'Back cover', // en-fallback
-  'journey.studio.sections': 'Sections', // en-fallback
-  'journey.studio.content': 'Content', // en-fallback
-  'journey.studio.elements': 'Elements', // en-fallback
-  'journey.studio.templates': 'Layouts', // en-fallback
-  'journey.studio.photos': 'Photos', // en-fallback
-  'journey.studio.entries': 'Entries', // en-fallback
-  'journey.studio.addToPage': 'Add to this page', // en-fallback
-  'journey.studio.noPhotos': 'This journey has no photos yet.', // en-fallback
-  'journey.studio.untitled': 'Untitled', // en-fallback
-  'journey.studio.addTitle': 'Title', // en-fallback
-  'journey.studio.addStory': 'Story', // en-fallback
-  'journey.studio.addPlace': 'Place', // en-fallback
-  'journey.studio.shapes': 'Shapes', // en-fallback
-  'journey.studio.frames': 'Πλαίσια', // en-fallback
-  'journey.studio.emptyFrame': 'Empty frame', // en-fallback
-  'journey.studio.frameHint': 'An empty frame marks where a picture goes. Drop one on it from Content.', // en-fallback
-  'journey.studio.shapeKind.line': 'Line', // en-fallback
-  'journey.studio.styleTitle': 'Heading', // en-fallback
-  'journey.studio.styleSubtitle': 'Subheading', // en-fallback
-  'journey.studio.styleBody': 'Body text', // en-fallback
-  'journey.studio.styleCaption': 'Caption', // en-fallback
-  'journey.studio.sampleHeading': 'A heading', // en-fallback
-  'journey.studio.sampleSubheading': 'A subheading', // en-fallback
-  'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
-  'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
-  'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
-  'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
-  'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
-  'journey.studio.tpl.grid4': 'Four up', // en-fallback
-  'journey.studio.tpl.grid6': 'Six up', // en-fallback
-  'journey.studio.tpl.strip': 'Strip and text', // en-fallback
-  'journey.studio.tpl.quietText': 'Text only', // en-fallback
-  'journey.studio.tpl.portraitPair': 'A pair', // en-fallback
+  'journey.studio.crop': 'Περικοπή',
+  'journey.studio.look': 'Εμφάνιση',
+  'journey.studio.radius': 'Γωνία',
+  'journey.studio.shape': 'Σχήμα',
+  'journey.studio.arrange': 'Τακτοποίηση',
+  'journey.studio.toFront': 'Μεταφορά μπροστά',
+  'journey.studio.forward': 'Μία θέση μπροστά',
+  'journey.studio.backward': 'Μία θέση πίσω',
+  'journey.studio.toBack': 'Μεταφορά πίσω',
+  'journey.studio.lock': 'Κλείδωμα',
+  'journey.studio.unlock': 'Ξεκλείδωμα',
+  'journey.studio.delete': 'Διαγραφή',
+  'journey.studio.pageHint': 'Σελίδα',
+  'journey.studio.boundHint':
+    'Ακολουθεί την καταχώριση του ημερολογίου. Αν το επεξεργαστείτε εδώ, η σύνδεση διακόπτεται.',
+  'journey.studio.fit.cover': 'Γέμισμα',
+  'journey.studio.fit.contain': 'Προσαρμογή',
+  'journey.studio.filter.none': 'Πρωτότυπο',
+  'journey.studio.filter.bw': 'Ασπρόμαυρο',
+  'journey.studio.filter.warm': 'Ζεστό',
+  'journey.studio.shapeKind.rect': 'Ορθογώνιο',
+  'journey.studio.shapeKind.ellipse': 'Έλλειψη',
+  'journey.studio.focalHint': 'Σύρετε το σημείο για να επιλέξετε τι μένει στο κάδρο.',
+  'journey.studio.backCover': 'Οπισθόφυλλο',
+  'journey.studio.coverInside': 'Εσωτερικό του εξωφύλλου, μένει κενό',
+  'journey.studio.backCoverInside': 'Εσωτερικό του οπισθόφυλλου, μένει κενό',
+  'journey.studio.sections': 'Ενότητες',
+  'journey.studio.content': 'Περιεχόμενο',
+  'journey.studio.elements': 'Στοιχεία',
+  'journey.studio.templates': 'Διατάξεις',
+  'journey.studio.photos': 'Φωτογραφίες',
+  'journey.studio.entries': 'Καταχωρίσεις',
+  'journey.studio.addToPage': 'Προσθήκη σε αυτή τη σελίδα',
+  'journey.studio.noPhotos': 'Αυτό το ταξίδι δεν έχει φωτογραφίες ακόμη.',
+  'journey.studio.untitled': 'Χωρίς τίτλο',
+  'journey.studio.addTitle': 'Τίτλος',
+  'journey.studio.addStory': 'Ιστορία',
+  'journey.studio.addPlace': 'Μέρος',
+  'journey.studio.shapes': 'Σχήματα',
+  'journey.studio.frames': 'Πλαίσια',
+  'journey.studio.emptyFrame': 'Κενό πλαίσιο',
+  'journey.studio.frameHint':
+    'Ένα κενό πλαίσιο δείχνει πού μπαίνει μια εικόνα. Σύρετε μία πάνω του από το Περιεχόμενο.',
+  'journey.studio.shapeKind.line': 'Γραμμή',
+  'journey.studio.styleTitle': 'Επικεφαλίδα',
+  'journey.studio.styleSubtitle': 'Υπότιτλος',
+  'journey.studio.styleBody': 'Κείμενο',
+  'journey.studio.styleCaption': 'Λεζάντα',
+  'journey.studio.sampleHeading': 'Μια επικεφαλίδα',
+  'journey.studio.sampleSubheading': 'Ένας υπότιτλος',
+  'journey.studio.sampleBody': 'Γράψτε κάτι για αυτή την ημέρα.',
+  'journey.studio.sampleCaption': 'Λεζάντα',
+  'journey.studio.tpl.heroStory': 'Κεντρική εικόνα και ιστορία',
+  'journey.studio.tpl.fullBleed': 'Μία εικόνα σε όλο το άνοιγμα',
+  'journey.studio.tpl.twoUp': 'Δύο ολόκληρες σελίδες',
+  'journey.studio.tpl.grid4': 'Τέσσερις εικόνες',
+  'journey.studio.tpl.grid6': 'Έξι εικόνες',
+  'journey.studio.tpl.strip': 'Λωρίδα και κείμενο',
+  'journey.studio.tpl.quietText': 'Μόνο κείμενο',
+  'journey.studio.tpl.portraitPair': 'Ζευγάρι',
   'journey.studio.dropPhotoHere': 'Σύρε τη φωτογραφία\nσου εδώ',
-  'journey.studio.searchContent': 'Search photos and entries', // en-fallback
-  'journey.studio.noMatches': 'Nothing matches that.', // en-fallback
-  'journey.studio.decorations': 'Decoration', // en-fallback
-  'journey.studio.quoteMark': 'Quotation mark', // en-fallback
-  'journey.studio.circleOutline': 'Outlined circle', // en-fallback
-  'journey.studio.roundFrame': 'Rounded frame', // en-fallback
-  'journey.studio.shapeKind.rounded': 'Rounded rectangle', // en-fallback
-  'journey.studio.shapeKind.triangle': 'Triangle', // en-fallback
-  'journey.studio.shapeKind.outline': 'Outline only', // en-fallback
+  'journey.studio.searchContent': 'Αναζήτηση φωτογραφιών και καταχωρίσεων',
+  'journey.studio.noMatches': 'Δεν βρέθηκε τίποτα.',
+  'journey.studio.quoteMark': 'Εισαγωγικά',
+  'journey.studio.shapeKind.rounded': 'Στρογγυλεμένο ορθογώνιο',
+  'journey.studio.shapeKind.triangle': 'Τρίγωνο',
+  'journey.studio.shapeKind.outline': 'Μόνο περίγραμμα',
   'journey.studio.travel': 'Ταξίδι',
   'journey.studio.travelEmpty': 'Τα στοιχεία αυτού του ταξιδιού δεν είναι ακόμη έτοιμα.',
   'journey.studio.grids': 'Πλέγματα',
-  'journey.studio.gridHint': 'Ένα πλέγμα τοποθετεί μπλοκ κενών πλαισίων. Σύρετε πάνω τους φωτογραφίες από το Περιεχόμενο.',
+  'journey.studio.gridHint':
+    'Ένα πλέγμα τοποθετεί μπλοκ κενών πλαισίων. Σύρετε πάνω τους φωτογραφίες από το Περιεχόμενο.',
   'journey.studio.lines': 'Γραμμές',
   'journey.studio.frameStyles': 'Στυλ πλαισίου',
   'journey.studio.frameShapes': 'Σχήματα πλαισίου',
@@ -398,23 +441,17 @@ const journey: TranslationStrings = {
   'journey.studio.shapeGroup.decor': 'Διακόσμηση',
   'journey.studio.shapeGroup.banners': 'Πανό',
   'journey.studio.summary': 'Σύνοψη',
-  'journey.studio.tripSummary': 'Σύνοψη ταξιδιού',
-  'journey.studio.statsRow': 'Μία σειρά',
-  'journey.studio.statsFull': 'Όλα',
   'journey.studio.routeMap': 'Χάρτης διαδρομής',
   'journey.studio.mapStyle.minimal': 'Ελάχιστο',
   'journey.studio.mapStyle.outline': 'Περίγραμμα',
   'journey.studio.mapStyle.paper': 'Χαρτί',
   'journey.studio.mapStyle.dark': 'Σκούρο',
   'journey.studio.countries': 'Χώρες',
-  'journey.studio.countryList': 'Λίστα χωρών',
-  'journey.studio.countryGrid': 'Πλέγμα χωρών',
   'journey.studio.noCountries': 'Δεν έχουν προσδιοριστεί ακόμη χώρες για αυτό το ταξίδι.',
   'journey.studio.noRoute': 'Δεν υπάρχουν ακόμη στάσεις με συντεταγμένες.',
   'journey.studio.marks': 'Σημάνσεις',
   'journey.studio.dateMark': 'Ημερομηνία',
   'journey.studio.dayMark': 'Μετρητής ημερών',
-  'journey.studio.dayWord': 'ΗΜΕΡΑ',
   'journey.studio.coordsMark': 'Συντεταγμένες',
   'journey.studio.coordsDms': 'Μοίρες',
   'journey.studio.coordsDecimal': 'Δεκαδικές',
@@ -434,6 +471,20 @@ const journey: TranslationStrings = {
   'journey.studio.kind.list': 'Λίστα',
   'journey.studio.kind.icon': 'Εικονίδιο',
   'journey.studio.duplicate': 'Διπλασιασμός',
+  'journey.studio.copyToPage': 'Αντιγραφή, για επικόλληση σε οποιαδήποτε σελίδα (Ctrl+C)',
+  'journey.studio.paste': 'Επικόλληση (Ctrl+V)',
+  'journey.studio.pasteEmpty': 'Αντιγράψτε πρώτα κάτι και μετά επικολλήστε το σε οποιαδήποτε σελίδα',
+  'journey.studio.pageFull':
+    'Αυτή η σελίδα είναι γεμάτη: έχει ήδη τα περισσότερα στοιχεία που χωρά μια σελίδα. Αφαιρέστε πρώτα κάτι ή χρησιμοποιήστε άλλη σελίδα.',
+  'journey.studio.myLayouts': 'Οι διατάξεις μου',
+  'journey.studio.myLayoutsEmpty':
+    'Κρατήστε μια σελίδα που έχετε διαμορφώσει και στήστε άλλες σελίδες με τον ίδιο τρόπο. Οι φωτογραφίες και τα κείμενά τους παραμένουν.',
+  'journey.studio.saveLayout': 'Αποθήκευση αυτής της σελίδας ως διάταξη',
+  'journey.studio.saveLayoutHint': 'Κρατά τη διάταξη χωρίς τις φωτογραφίες, για όλους τους συντάκτες αυτού του βιβλίου',
+  'journey.studio.saveLayoutFull': 'Αυτό το βιβλίο χωρά έως 24 διατάξεις. Διαγράψτε μία για να αποθηκεύσετε άλλη.',
+  'journey.studio.deleteLayout': 'Διαγραφή διάταξης',
+  'journey.studio.layoutName': 'Διάταξη',
+  'journey.studio.builtInLayouts': 'Ενσωματωμένες',
   'journey.studio.style': 'Στυλ',
   'journey.studio.shows': 'Εμφάνιση',
   'journey.studio.size': 'Μέγεθος',
@@ -443,12 +494,8 @@ const journey: TranslationStrings = {
   'journey.studio.rotation': 'Περιστροφή',
   'journey.studio.opacity': 'Αδιαφάνεια',
   'journey.studio.fill': 'Γέμισμα',
-  'journey.studio.fillOn': 'Με γέμισμα',
   'journey.studio.stroke': 'Γραμμή',
   'journey.studio.strokeWidth': 'Πάχος',
-  'journey.studio.gradient': 'Διαβάθμιση',
-  'journey.studio.gradientDown': 'Κάτω',
-  'journey.studio.gradientUp': 'Πάνω',
   'journey.studio.showIcons': 'Εικονίδια',
   'journey.studio.mapFit': 'Προσαρμογή',
   'journey.studio.mapPadding': 'Περιθώριο',
@@ -460,6 +507,35 @@ const journey: TranslationStrings = {
   'journey.studio.markStyle.chip': 'Πλακίδιο',
   'journey.studio.markStyle.outline': 'Περίγραμμα',
   'journey.studio.markStyle.stacked': 'Σε στήλη',
+  'journey.studio.statsLook.classic': 'Κλασική',
+  'journey.studio.statsLook.poster': 'Αφίσα',
+  'journey.studio.statsLook.ticket': 'Εισιτήριο',
+  'journey.studio.statsLook.tiles': 'Πλακίδια',
+  'journey.studio.statsLook.band': 'Ταινία',
+  'journey.studio.statsLook.medal': 'Μετάλλιο',
+  'journey.studio.statsLook.odometer': 'Χιλιομετρητής',
+  'journey.studio.statsLook.sign': 'Πινακίδα δρόμου',
+  'journey.studio.statsLook.note': 'Σημείωση',
+  'journey.studio.statsLook.sketch': 'Σκίτσο',
+  'journey.studio.countryLook.visa': 'Βίζα',
+  'journey.studio.countryLook.flag': 'Σημαία',
+  'journey.studio.countryLook.pin': 'Πινέζα',
+  'journey.studio.countryLook.label': 'Ετικέτα αποσκευών',
+  'journey.studio.countryLook.sketch': 'Σκίτσο',
+  'journey.studio.markStyle.ribbon': 'Κορδέλα',
+  'journey.studio.markStyle.sticker': 'Αυτοκόλλητο',
+  'journey.studio.markStyle.patch': 'Κεντητό σήμα',
+  'journey.studio.markStyle.sketch': 'Σκίτσο',
+  'journey.studio.travelFigures': 'Αριθμοί',
+  'journey.studio.travelMaps': 'Χάρτες',
+  'journey.studio.countryLook.classic': 'Κλασική',
+  'journey.studio.countryLook.stamp': 'Σφραγίδα',
+  'journey.studio.countryLook.postcard': 'Καρτ ποστάλ',
+  'journey.studio.markStyle.stamp': 'Σφραγίδα',
+  'journey.studio.markStyle.tag': 'Ετικέτα',
+  'journey.studio.markStyle.pill': 'Κάψουλα',
+  'journey.studio.pinNumbered': 'Αριθμοί',
+  'journey.studio.pinEnds': 'Αφετηρία και τερματισμός',
   'journey.studio.icon': 'Εικονίδιο',
   'journey.studio.iconAndLabel': 'Εικονίδιο & κείμενο',
   'journey.studio.iconOnly': 'Μόνο εικονίδιο',
@@ -501,19 +577,17 @@ const journey: TranslationStrings = {
   'journey.studio.strokeDotted': 'Με τελείες',
   'journey.studio.singleFigures': 'Μεμονωμένα στοιχεία',
   'journey.studio.addPage': 'Προσθήκη σελίδας',
+  'journey.studio.addPageShort': 'Σελίδα',
   'journey.studio.addPageAfter': 'Εισαγωγή σελίδας μετά',
   'journey.studio.duplicatePage': 'Διπλασιασμός σελίδας',
   'journey.studio.deletePage': 'Διαγραφή σελίδας',
   'journey.studio.movePageUp': 'Μετακίνηση νωρίτερα',
   'journey.studio.movePageDown': 'Μετακίνηση αργότερα',
-  'journey.studio.beta': 'Beta',
   'journey.studio.addProsCons': 'Υπέρ & Κατά',
   'journey.studio.showMarks': 'Σήματα',
   'journey.studio.formatCustom': 'Δικό σας μέγεθος',
   'journey.studio.document': 'Έγγραφο',
   'journey.studio.pageNumbers': 'Αριθμοί σελίδων',
-  'journey.studio.pageNumbersOn': 'Ναι',
-  'journey.studio.pageNumbersOff': 'Όχι',
   'journey.studio.folio.outer': 'Εξωτερικά',
   'journey.studio.folio.inner': 'Εσωτερικά',
   'journey.studio.folio.centre': 'Κεντρικά',
@@ -534,12 +608,12 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.mosaic': 'Ψηφιδωτό',
   'journey.studio.tpl.bandQuote': 'Λέξεις ανάμεσα',
   'journey.studio.tpl.staggerFour': 'Τέσσερις σε κλιμάκωση',
-  'journey.studio.weightMissing': 'Αυτή η γραμματοσειρά δεν έχει αυτό το βάρος',
   'journey.studio.mapSource': 'Πηγή χάρτη',
   'journey.studio.mapSourceVector': 'Περιγράμματα',
   'journey.studio.mapSourceRelief': 'Ανάγλυφο',
   'journey.studio.mapSourceSatellite': 'Δορυφόρος',
-  'journey.studio.mapSourceSatelliteHint': 'Sentinel-2 χωρίς σύννεφα, ελεύθερο για εκτύπωση με αναφορά. Ευκρινές μέχρι και τον δρόμο μιας πόλης.',
+  'journey.studio.mapSourceSatelliteHint':
+    'Sentinel-2 χωρίς σύννεφα, ελεύθερο για εκτύπωση με αναφορά. Ευκρινές μέχρι και τον δρόμο μιας πόλης.',
   'journey.studio.routeLook': 'Η γραμμή',
   'journey.studio.routeStyle': 'Μορφή',
   'journey.studio.routePlain': 'Λιτή',
@@ -551,20 +625,22 @@ const journey: TranslationStrings = {
   'journey.studio.mapStops': 'Στάσεις',
   'journey.studio.pinDot': 'Κουκκίδες',
   'journey.studio.pinPhoto': 'Φωτογραφίες',
-  'journey.studio.pinPhotoNone': 'Δεν υπάρχουν ακόμη φωτογραφίες σε αυτές τις στάσεις, οπότε σχεδιάζονται ως κουκκίδες.',
+  'journey.studio.pinPhotoNone':
+    'Δεν υπάρχουν ακόμη φωτογραφίες σε αυτές τις στάσεις, οπότε σχεδιάζονται ως κουκκίδες.',
   'journey.studio.roads': 'Δρόμοι',
-  'journey.studio.roadsFetch': 'Ακολούθηση δρόμων',
   'journey.studio.roadsFollow': 'Οδικά',
   'journey.studio.roadsDirect': 'Απευθείας',
   'journey.studio.recommended': 'συνιστάται',
   'journey.studio.bleed': 'Διαφυγή',
   'journey.studio.safeArea': 'Ασφαλής',
   'journey.studio.roadsAgain': 'Νέα λήψη',
-  'journey.studio.roadsClear': 'Καθαρισμός',
   'journey.studio.roadsBusy': 'Λήψη',
-  'journey.studio.roadsHint': 'Ζητήστε από μια υπηρεσία δρομολόγησης τον δρόμο που ακολούθησε κάθε σκέλος. Τα μεγάλα σκέλη μένουν ως έχουν.',
-  'journey.studio.roadsHave': 'Οι δρόμοι αποθηκεύονται σε αυτό το βιβλίο, ώστε να τυπώνεται η ίδια γραμμή και εκτός σύνδεσης.',
-  'journey.studio.mapSourceReliefHint': 'Σκιασμένο ανάγλυφο NASA, ελεύθερο για εκτύπωση. Ιδανικό για μια χώρα ή μια ήπειρο, πολύ αδρό για μία πόλη.',
+  'journey.studio.roadsHint':
+    'Ζητήστε από μια υπηρεσία δρομολόγησης τον δρόμο που ακολούθησε κάθε σκέλος. Τα μεγάλα σκέλη μένουν ως έχουν.',
+  'journey.studio.roadsHave':
+    'Οι δρόμοι αποθηκεύονται σε αυτό το βιβλίο, ώστε να τυπώνεται η ίδια γραμμή και εκτός σύνδεσης.',
+  'journey.studio.mapSourceReliefHint':
+    'Σκιασμένο ανάγλυφο NASA, ελεύθερο για εκτύπωση. Ιδανικό για μια χώρα ή μια ήπειρο, πολύ αδρό για μία πόλη.',
   'journey.studio.mapPrintDpi': 'Εκτύπωση περίπου',
   'journey.studio.mapPrintDpiLow': 'θολό σε αυτό το μέγεθος, δοκιμάστε ευρύτερη προβολή ή άλλη πηγή',
   'journey.studio.mapPerTrip': 'Ένα ταξίδι τη φορά',
@@ -584,8 +660,6 @@ const journey: TranslationStrings = {
   'journey.studio.mapClipRect': 'Σε πλαίσιο',
   'journey.studio.mapClipCountry': 'Κομμένο σχήμα',
   'journey.studio.mapClipNeedsCountry': 'Χρειάζεται χώρα για την κοπή',
-  'journey.studio.mapCutVector': 'Κοπή',
-  'journey.studio.mapCutTiles': 'Κομμένος χάρτης',
   'journey.studio.mapZoomAuto': 'Προσαρμογή',
   'journey.studio.saving': 'Αποθήκευση',
   'journey.studio.saved': 'Αποθηκεύτηκε',
@@ -598,6 +672,8 @@ const journey: TranslationStrings = {
   'journey.studio.rotateLeft': 'Περιστροφή αριστερά',
   'journey.studio.rotateRight': 'Περιστροφή δεξιά',
   'journey.studio.saveReadOnly': 'Μόνο για ανάγνωση, δεν αποθηκεύεται',
+  'journey.studio.saveNewer': 'Μια νεότερη έκδοση του Studio αποθήκευσε αυτό το βιβλίο. Φορτώστε ξανά για επεξεργασία.',
+  'journey.studio.saveReload': 'Επαναφόρτωση',
   'journey.studio.filterPhotos': 'Φιλτράρισμα φωτογραφιών',
   'journey.studio.filterAll': 'Όλες οι φωτογραφίες',
   'journey.studio.filterLoose': 'Χωρίς καταχώρηση',
@@ -607,12 +683,16 @@ const journey: TranslationStrings = {
   'journey.studio.noEntryPhotos': 'Αυτή η καταχώρηση δεν έχει ακόμη φωτογραφίες.',
   'journey.studio.noLoosePhotos': 'Κάθε φωτογραφία εδώ ανήκει σε μια καταχώρηση.',
   'journey.studio.uploadPhotos': 'Μεταφόρτωση φωτογραφιών',
+  'journey.studio.fromProvider': 'Από {name}',
+  'journey.studio.fromProviderHint':
+    'Επιλέξτε φωτογραφίες από {name} και προσθέστε τες εκεί όπου θα πήγαινε μια μεταφόρτωση',
   'journey.studio.uploadHint': 'Αφήστε εικόνες εδώ ή κάντε κλικ για να επιλέξετε',
   'journey.studio.uploadToEntry': 'Οι νέες εικόνες θα μπουν σε αυτή την καταχώρηση',
   'journey.studio.uploadToGallery': 'Οι νέες εικόνες θα μπουν στη συλλογή',
   'journey.studio.uploading': 'Μεταφόρτωση {done} από {total}',
   'journey.studio.dropFilesHere': 'Αφήστε για να προσθέσετε τις εικόνες',
-  'journey.studio.videosSkipped': '{count} βίντεο παραλείφθηκαν. Ένα βιβλίο περιέχει εικόνες.',
+  'journey.studio.videosSkipped': '{count} βίντεο παραλείφθηκαν. Ένα βιβλίο περιέχει μόνο εικόνες.',
+  'journey.studio.videosSkipped.one': '{count} βίντεο παραλείφθηκε. Ένα βιβλίο περιέχει μόνο εικόνες.',
   'journey.studio.fillPage': 'Γέμισμα σελίδας',
   'journey.studio.fillSpread': 'Γέμισμα δισέλιδου',
   'journey.studio.fillHint':
@@ -628,21 +708,237 @@ const journey: TranslationStrings = {
   'journey.editor.statsExcludedHint':
     'Η στάση παραμένει στο ημερολόγιο, αλλά δεν μετράει στην απόσταση, τις χώρες ή τον χάρτη στο Studio.',
   'journey.entry.offRoute': 'Εκτός διαδρομής',
+  'journey.entry.draft': 'Πρόχειρο',
+  'journey.editor.draft': 'Πρόχειρο',
+  'journey.editor.draftHint':
+    'Αυτή την καταχώριση τη βλέπετε μόνο εσείς και οι άλλοι συντελεστές. Το κοινόχρηστο Ταξίδι την παραλείπει μέχρι να το απενεργοποιήσετε.',
+  'journey.editor.tripSuggestionHint':
+    'Αυτή η ημέρα ανήκει σε αυτό το ταξίδι. Συνδέστε το και τα μέρη του θα προστεθούν σε αυτό το Ταξίδι.',
+  'journey.editor.tripSuggestionLater': 'Όχι τώρα',
   'journey.suggestions.dismiss': 'Απόρριψη αυτής της πρότασης',
   'journey.suggestions.dismissed': 'Η πρόταση απορρίφθηκε',
   'journey.suggestions.restore': 'Επαναφορά των απορριμμένων προτάσεων',
   'journey.suggestions.restoreCount': 'Απορριμμένες προτάσεις ({count})',
+  'journey.suggestions.restoreCount.one': 'Απορριμμένες προτάσεις ({count})',
   'journey.suggestions.restored': 'Επέστρεψαν {count} προτάσεις',
+  'journey.suggestions.restored.one': 'Επέστρεψε {count} πρόταση',
   'journey.detail.addOnThisDay': 'Προσθήκη καταχώρισης σε αυτήν την ημέρα',
   'journey.detail.jumpToDay': 'Μετάβαση στις {date}',
   'journey.detail.searchPlaceholder': 'Αναζήτηση σε αυτό το ταξίδι',
   'journey.detail.searchEmpty': 'Καμία καταχώριση δεν ταιριάζει με «{query}»',
   'journey.settings.entryFields': 'Πεδία της καταχώρισης',
-  'journey.settings.entryFieldsHint': 'Απενεργοποιήστε ό,τι δεν χρησιμοποιεί αυτό το ταξίδι. Τίποτα από όσα έχουν γραφτεί δεν χάνεται.',
+  'journey.settings.entryFieldsHint':
+    'Απενεργοποιήστε ό,τι δεν χρησιμοποιεί αυτό το ταξίδι. Τίποτα από όσα έχουν γραφτεί δεν χάνεται.',
   'journey.settings.showVerdict': 'Υπέρ και κατά',
   'journey.settings.showMood': 'Διάθεση',
   'journey.settings.showWeather': 'Καιρός',
   'journey.entry.suggestion': 'Πρόταση',
   'journey.editor.addDetails': '+ Λεπτομέρειες',
+  'journey.recording.mapLine': 'Καταγράφηκε στις {date}',
+  'journey.recording.keptBy': 'Καταγεγραμμένη διαδρομή αποθηκεύτηκε: {distance}, από {name} στις {date}.',
+  'journey.recording.keptOn': 'Καταγεγραμμένη διαδρομή αποθηκεύτηκε: {distance}, στις {date}.',
+  'journey.recording.keptRunning': 'Η μέρα δεν είχε τελειώσει ακόμη.',
+  'journey.recording.takeOver': 'Μεταφορά καταγραφής',
+  'journey.recording.takeOverDay': 'Καταγραφή της {date}',
+  'journey.recording.sub': 'Μόνο αυτή η μέρα, από το Dawarich σου. Τίποτα δεν αποθηκεύεται πριν το επιβεβαιώσεις.',
+  'journey.recording.zone': 'Ζώνη ώρας της μέρας',
+  'journey.recording.zoneHint':
+    'Η μέρα διαρκεί από μεσάνυχτα σε μεσάνυχτα σε αυτή τη ζώνη. Διάλεξε εκείνη στην οποία ταξίδευες.',
+  'journey.recording.zoneSource': 'Από το Dawarich',
+  'journey.recording.zoneDevice': 'Αυτή η συσκευή',
+  'journey.recording.scope': 'Καταγραφή',
+  'journey.recording.loading': 'Ανάγνωση της μέρας από το Dawarich…',
+  'journey.recording.keptStays': 'Η διαδρομή που κρατά αυτό το ταξίδι μένει ως έχει.',
+  'journey.recording.retry': 'Δοκίμασε ξανά',
+  'journey.recording.empty': 'Το Dawarich δεν κατέγραψε τίποτα αυτή τη μέρα σε αυτή τη ζώνη ώρας.',
+  'journey.recording.span': '{from} έως {to}',
+  'journey.recording.pieces': '{count} τμήματα',
+  'journey.recording.pieces.one': '{count} τμήμα',
+  'journey.recording.gaps': '{count} κενά',
+  'journey.recording.gaps.one': '{count} κενό',
+  'journey.recording.gapsHint':
+    'Όπου σταματά η καταγραφή, σταματά και η γραμμή. Δεν σχεδιάζεται δρόμος που δεν καταγράφηκε.',
+  'journey.recording.sourceHint':
+    'Οι διαδρομές είναι τμήματα που το Dawarich έχει ήδη χωρίσει ανά μέσο. Τα σημεία είναι οι ακατέργαστες θέσεις, αραιωμένες σε 600 τη μέρα.',
+  'journey.recording.sourceTracks': 'Διαδρομές',
+  'journey.recording.sourcePoints': 'Σημεία',
+  'journey.recording.changedSincePreview':
+    'Η καταγραφή άλλαξε στο Dawarich ενώ την κοίταζες. Έλεγξέ τη άλλη μία φορά και μετά αποθήκευσέ τη.',
+  'journey.recording.truncated': 'Το Dawarich έστειλε μόνο μέρος αυτής της μέρας, η διαδρομή είναι ελλιπής.',
+  'journey.recording.provisional':
+    'Αυτή η μέρα δεν έχει τελειώσει ακόμη σε αυτή τη ζώνη. Μπορείς αργότερα να αντικαταστήσεις τη διαδρομή με ολόκληρη τη μέρα.',
+  'journey.recording.same': 'Αυτό το ταξίδι κρατά ήδη ακριβώς αυτή την καταγραφή.',
+  'journey.recording.differs':
+    'Αυτό το ταξίδι κρατά άλλη έκδοση από {date} ({distance}). Η αντικατάσταση δεν αλλάζει καταχωρίσεις ή κείμενα.',
+  'journey.recording.audience':
+    'Άλλα {count} άτομα αυτού του ταξιδιού θα δουν τη διαδρομή στον χάρτη. Οι κοινόχρηστοι σύνδεσμοι δεν τη δείχνουν.',
+  'journey.recording.audience.one':
+    'Άλλο {count} άτομο αυτού του ταξιδιού θα δει τη διαδρομή στον χάρτη. Οι κοινόχρηστοι σύνδεσμοι δεν τη δείχνουν.',
+  'journey.recording.replace': 'Αντικατάσταση',
+  'journey.recording.alreadyKept': 'Ήδη αποθηκευμένη',
+  'journey.recording.keep': 'Αποθήκευση διαδρομής',
+  'journey.recording.remove': 'Αφαίρεση διαδρομής',
+  'journey.recording.removeTitle': 'Αφαίρεση της αποθηκευμένης διαδρομής;',
+  'journey.recording.removeMessage':
+    'Η διαδρομή αυτής της μέρας φεύγει από τον χάρτη του ταξιδιού. Οι καταχωρίσεις και τα κείμενα μένουν, και το Dawarich κρατά τη δική του καταγραφή.',
+  'journey.recording.keptToast': 'Η διαδρομή αποθηκεύτηκε στο ταξίδι',
+  'journey.recording.replacedToast': 'Η διαδρομή αντικαταστάθηκε',
+  'journey.recording.removedToast': 'Η διαδρομή αφαιρέθηκε από το ταξίδι',
+  'journey.recording.error.recording_exists': 'Αυτό το ταξίδι κρατά ήδη άλλη καταγραφή εκείνης της μέρας.',
+  'journey.recording.error.recording_changed': 'Η καταγραφή άλλαξε από την προεπισκόπηση.',
+  'journey.recording.error.recording_empty': 'Το Dawarich δεν κατέγραψε τίποτα εκείνη τη μέρα.',
+  'journey.recording.mode.walking': 'Με τα πόδια',
+  'journey.recording.mode.running': 'Τρέξιμο',
+  'journey.recording.mode.cycling': 'Ποδήλατο',
+  'journey.recording.mode.driving': 'Αυτοκίνητο',
+  'journey.recording.mode.motorcycle': 'Μοτοσικλέτα',
+  'journey.recording.mode.bus': 'Λεωφορείο',
+  'journey.recording.mode.train': 'Τρένο',
+  'journey.recording.mode.flying': 'Πτήση',
+  'journey.recording.mode.boat': 'Πλοίο',
+  'journey.recording.mode.stationary': 'Ακίνητος',
+  'journey.recording.mode.unknown': 'Άγνωστο μέσο',
+  'journey.dayImport.open': 'Μεταφορά ημέρας',
+  'journey.dayImport.openHint': 'Μεταφορά αυτής της ημέρας με τις στάσεις της',
+  'journey.dayImport.openOn': 'Μεταφορά της {date} με τις στάσεις της',
+  'journey.dayImport.pending': '{count} στάσεις για έλεγχο',
+  'journey.dayImport.pending.one': '{count} στάση για έλεγχο',
+  'journey.dayImport.sub':
+    'Οι στάσεις σου από το Dawarich αυτή την ημέρα. Διάλεξε, μετονόμασε και ένωσέ τες· γίνονται πρόχειρα.',
+  'journey.dayImport.loading': 'Ανάγνωση των στάσεων της ημέρας από το Dawarich…',
+  'journey.dayImport.map': 'Η ημέρα στον χάρτη',
+  'journey.dayImport.stays': 'Στάσεις',
+  'journey.dayImport.modeEntries': 'Καταχωρίσεις',
+  'journey.dayImport.modeReport': 'Αναφορά ημέρας',
+  'journey.dayImport.reportDefault': 'Ημέρα {date}',
+  'journey.dayImport.reportHint':
+    'Όλες οι επιλεγμένες στάσεις γίνονται μία καταχώριση που τις παραθέτει με τις ώρες τους. Κάθε τόπος μένει καταγεγραμμένος για τον χάρτη.',
+  'journey.dayImport.reportNeedsTwo': 'Διάλεξε δύο ή περισσότερες στάσεις για αναφορά ημέρας.',
+  'journey.dayImport.groupTitle': 'Τίτλος καταχώρισης',
+  'journey.dayImport.groupPin': 'Θέση στον χάρτη',
+  'journey.dayImport.noPin': 'Χωρίς θέση στον χάρτη',
+  'journey.dayImport.join': 'Ένωση σε μία καταχώριση',
+  'journey.dayImport.split': 'Να μείνουν χωριστά',
+  'journey.dayImport.choose': 'Μεταφορά {name}',
+  'journey.dayImport.name': 'Όνομα του {name}',
+  'journey.dayImport.unconfirmed': 'Ανεπιβεβαίωτη',
+  'journey.dayImport.noPlace': 'Χωρίς θέση',
+  'journey.dayImport.noPlaceHint':
+    'Το Dawarich δεν κατέγραψε θέση για αυτή τη στάση, οπότε η καταχώρισή της δεν εμφανίζεται στον χάρτη.',
+  'journey.dayImport.statusHere': 'Στο {title}',
+  'journey.dayImport.statusHereUntitled': 'Στο ημερολόγιο',
+  'journey.dayImport.statusElsewhere': 'Μεταφέρθηκε',
+  'journey.dayImport.statusElsewhereHint': 'Έχει ήδη μεταφερθεί ως μέρος, ως επιθυμία ή σε άλλο ημερολόγιο.',
+  'journey.dayImport.statusSkipped': 'Παραλείφθηκε',
+  'journey.dayImport.keepRoute': 'Αποθήκευση και της διαδρομής της ημέρας',
+  'journey.dayImport.keepRouteHint': '{distance} καταγεγραμμένα. Όλοι στο ταξίδι τη βλέπουν στον χάρτη.',
+  'journey.dayImport.routeNone': 'Το Dawarich δεν κατέγραψε διαδρομή αυτή την ημέρα.',
+  'journey.dayImport.routeKept': 'Η διαδρομή αποθηκεύτηκε',
+  'journey.dayImport.routeDiffers':
+    'Το Dawarich έχει τώρα άλλη έκδοση της διαδρομής. Αντικατάστησέ τη με το κουμπί διαδρομής της ημέρας.',
+  'journey.dayImport.existing': 'Ήδη σε αυτή την ημέρα',
+  'journey.dayImport.untitled': 'Καταχώριση χωρίς τίτλο',
+  'journey.dayImport.draft': 'Πρόχειρο',
+  'journey.dayImport.audience':
+    'Τα πρόχειρα δεν εμφανίζονται σε κοινόχρηστους συνδέσμους. Άλλα {count} άτομα αυτού του ταξιδιού τα βλέπουν.',
+  'journey.dayImport.audience.one':
+    'Τα πρόχειρα δεν εμφανίζονται σε κοινόχρηστους συνδέσμους. {count} άλλο άτομο αυτού του ταξιδιού τα βλέπει.',
+  'journey.dayImport.draftsNote':
+    'Τα πρόχειρα δεν εμφανίζονται σε κοινόχρηστους συνδέσμους μέχρι να τα δημοσιεύσεις. Πρόσθεσε φωτογραφίες και κείμενο μετά.',
+  'journey.dayImport.submit': 'Μεταφορά {count} πρόχειρων',
+  'journey.dayImport.submit.one': 'Μεταφορά {count} πρόχειρου',
+  'journey.dayImport.skipped': '{count} παραλείφθηκαν',
+  'journey.dayImport.skipped.one': '{count} παραλείφθηκε',
+  'journey.dayImport.skipHint':
+    'Οι στάσεις που παραλείπεις δεν περιμένουν πια σε αυτή την ημέρα. Μπορείς να τις επαναφέρεις στη λίστα στάσεων του Dawarich.',
+  'journey.dayImport.problem.nothing': 'Διάλεξε τουλάχιστον μία στάση.',
+  'journey.dayImport.problem.name': 'Κάθε επιλεγμένη στάση χρειάζεται όνομα.',
+  'journey.dayImport.problem.title': 'Κάθε ενωμένη καταχώριση και η αναφορά ημέρας χρειάζονται τίτλο.',
+  'journey.dayImport.done': '{count} πρόχειρα μεταφέρθηκαν',
+  'journey.dayImport.done.one': '{count} πρόχειρο μεταφέρθηκε',
+  'journey.dayImport.alreadyTaken': '{count} στάσεις είχαν ήδη μεταφερθεί. Τίποτα δεν γράφτηκε δύο φορές.',
+  'journey.dayImport.alreadyTaken.one': '{count} στάση είχε ήδη μεταφερθεί. Τίποτα δεν γράφτηκε δύο φορές.',
+  'journey.dayImport.failed':
+    'Δεν μεταφέρθηκε τίποτα: {reason} Η λίστα δείχνει τι περιέχει τώρα το ημερολόγιο· μια νέα προσπάθεια δεν γράφει τίποτα δύο φορές.',
+  'journey.dayImport.routeFailed': 'Τα πρόχειρα δημιουργήθηκαν, αλλά η διαδρομή δεν αποθηκεύτηκε: {reason}',
+  'journey.dayImport.routeRetry': 'Νέα αποθήκευση διαδρομής',
+  'journey.dayImport.stale':
+    'Το Dawarich δεν απάντησε: {reason} Εμφανίζονται οι στάσεις του τελευταίου συγχρονισμού στις {date}.',
+  'journey.dayImport.staleNever':
+    'Το Dawarich δεν απάντησε: {reason} Εμφανίζονται οι στάσεις που ήδη γνωρίζει το TREK.',
+  'journey.dayImport.truncated': 'Το Dawarich έστειλε μόνο μέρος αυτής της ημέρας. Μπορεί να λείπουν στάσεις.',
+  'journey.dayImport.empty': 'Το Dawarich δεν βρήκε στάσεις αυτή την ημέρα.',
+  'journey.prep.lastSuccess': 'Τελευταία λήψη {time}.',
+  'journey.prep.never': 'Δεν έχει γίνει λήψη ακόμη. Ο επόμενος συγχρονισμός στο παρασκήνιο την ξεκινά.',
+  'journey.prep.failed': 'Η τελευταία ανανέωση απέτυχε: {reason} Εμφανίζεται ό,τι λήφθηκε {time}.',
+  'journey.prep.failedNever': 'Η πρώτη λήψη απέτυχε: {reason}',
+  'journey.prep.notConnected': 'Σύνδεσε το Dawarich στις ρυθμίσεις σου ώστε να προετοιμάζονται οι μέρες σου.',
+  'journey.prep.noPeriods': 'Σύνδεσε ένα ταξίδι με ημερομηνίες: προετοιμάζονται μόνο οι μέρες του.',
+  'journey.prep.syncOff':
+    'Ο συγχρονισμός στο παρασκήνιο είναι απενεργοποιημένος στις ρυθμίσεις Dawarich, οι μέρες λαμβάνονται μόνο όταν το ζητάς.',
+  'journey.prep.fetchNow': 'Λήψη τώρα',
+  'journey.prep.fetching': 'Λήψη…',
+  'journey.prep.fetchFailed': 'Δεν ήταν δυνατή η επικοινωνία με το Dawarich αυτή τη στιγμή.',
+  'journey.prep.dayRunning': 'Η μέρα δεν έχει τελειώσει, μπορεί να ακολουθήσουν κι άλλες στάσεις.',
+  'journey.prep.dayPending': 'Δεν έχει γίνει λήψη ακόμη.',
+  'journey.prep.dayProvisional': 'Λήφθηκε {time}, πριν τελειώσει η μέρα, μπορεί να λείπουν στάσεις.',
+  'journey.prep.dayFailed': 'Η τελευταία ανανέωση απέτυχε, αυτή είναι η παλαιότερη κατάσταση.',
+  'journey.prep.outOfReach':
+    'Τα ταξίδια που τελείωσαν πριν από περισσότερες από {count} ημέρες δεν προετοιμάζονται στο παρασκήνιο. Άνοιξε μία από τις ημέρες τους για να τη φέρεις χειροκίνητα.',
+  'journey.prep.outOfReach.one':
+    'Τα ταξίδια που τελείωσαν πριν από περισσότερη από {count} ημέρα δεν προετοιμάζονται στο παρασκήνιο. Άνοιξε μία από τις ημέρες τους για να τη φέρεις χειροκίνητα.',
+  'journey.prep.alreadyRunning': 'Μια λήψη τρέχει ήδη στο παρασκήνιο. Οι στάσεις της θα εμφανιστούν μόλις ολοκληρωθεί.',
+  'journey.dayImport.running':
+    'Αυτή η μέρα δεν έχει τελειώσει. Στάσεις που καταγράφονται αργότερα εμφανίζονται μόλις τις έχει το Dawarich.',
+  'journey.map.layers': 'Επίπεδα χάρτη',
+  'journey.map.layer.plan': 'Σχέδιο',
+  'journey.map.layer.recorded': 'Καταγεγραμμένα',
+  'journey.map.layer.entries': 'Καταχωρίσεις',
+  'journey.map.layer.photos': 'Φωτογραφίες',
+  'journey.map.layer.loading': 'φόρτωση',
+  'journey.map.layer.planEmpty': 'τα συνδεδεμένα ταξίδια δεν έχουν μέρη στις μέρες τους',
+  'journey.map.layer.planUnavailable': 'το σχέδιο δεν φορτώθηκε, ο υπόλοιπος χάρτης παραμένει ορατός',
+  'journey.map.layer.recordedEmpty': 'καμία καταγεγραμμένη διαδρομή ακόμα',
+  'journey.map.layer.recordedUnavailable': 'οι καταγεγραμμένες μέρες δεν φορτώθηκαν',
+  'journey.map.layer.entriesEmpty': 'καμία καταχώριση δεν έχει ακόμα μέρος',
+  'journey.map.layer.entriesUnavailable':
+    'οι στάσεις των ημερήσιων αναφορών δεν φορτώθηκαν, οι καταχωρίσεις παραμένουν ορατές',
+  'journey.map.layer.photosEmpty': 'καμία φωτογραφία με τοποθεσία ακόμα',
+  'journey.map.legend': 'Υπόμνημα',
+  'journey.map.legend.planned': 'Προγραμματισμένο μέρος',
+  'journey.map.legend.entry': 'Καταχώριση ημερολογίου',
+  'journey.map.legend.plannedWritten': 'Προγραμματισμένο και γραμμένο',
+  'journey.map.legend.stay': 'Στάση ημερήσιας αναφοράς',
+  'journey.map.legend.several': 'Πολλά στο ίδιο σημείο',
+  'journey.map.legend.lines': 'Διαδρομές',
+  'journey.map.legend.plannedRoute': 'Προγραμματισμένη διαδρομή (GPX ταξιδιού)',
+  'journey.map.legend.recordedRoute': 'Καταγεγραμμένη διαδρομή',
+  'journey.map.legend.planIsNoVisit':
+    'Ένα προγραμματισμένο μέρος δεν αποδεικνύει επίσκεψη. Μόνο οι καταχωρίσεις, οι φωτογραφίες και οι καταγραφές δείχνουν πού ήσουν.',
+  'journey.map.pick.openEntry': 'Άνοιγμα καταχώρισης',
+  'journey.map.pick.planned': 'Προγραμματισμένο',
+  'journey.map.pick.notWritten': 'Δεν έχει γραφτεί τίποτα ακόμα γι’ αυτό.',
+  'journey.map.pick.stay': 'Στάση',
+  'journey.map.pick.partOf': 'Μέρος του «{title}»',
+  'journey.map.pick.here': 'Σε αυτό το σημείο',
+  'journey.map.pick.back': 'Πίσω στη λίστα',
+  'journey.map.pick.timeRange': 'από {from} έως {to}',
+  'journey.share.plan': 'Σχέδιο ταξιδιού',
+  'journey.share.planHint': 'Προγραμματισμένα μέρη και διαδρομές GPX των συνδεδεμένων ταξιδιών στον χάρτη',
+  'journey.share.recordings': 'Καταγεγραμμένες διαδρομές',
+  'journey.share.recordingsHint':
+    'Καταγεγραμμένες μέρες και οι στάσεις που προέρχονται από αυτές, σε μέρες με δημοσιευμένη καταχώριση. Δείχνουν πού και πότε ήσουν, και το κατάλυμά σου.',
+  'journey.share.needsMap': 'Μοιράσου τον χάρτη για να το ενεργοποιήσεις',
+  'journey.editor.tags': 'Ετικέτες',
+  'journey.studio.assistant.toggle': 'Βοηθός',
+  'journey.studio.assistant.toggleHint': 'Σχεδιάστε το βιβλίο μαζί με τον βοηθό',
+  'journey.studio.assistant.panel': 'Βοηθός βιβλίου',
+  'journey.studio.assistant.welcome': 'Πώς πρέπει να είναι το βιβλίο;',
+  'journey.studio.assistant.readOnly':
+    'Μπορείτε μόνο να δείτε αυτό το βιβλίο, οπότε απαντώ σε ερωτήσεις αλλά δεν αλλάζω τίποτα.',
+  'journey.studio.assistant.notice':
+    'Ο βοηθός μπορεί να δει τη σελίδα στην οποία δουλεύετε. Μόνο αυτή η σελίδα στέλνεται στο {provider}, ως εικόνα που δείχνει μόνο τις φωτογραφίες που προσθέσατε εσείς. Δεν είναι δυνατό να αναγνωριστεί ποιος εμφανίζεται στις φωτογραφίες σας.',
+  'journey.studio.assistant.noticeAllow': 'Εμφάνιση σελίδων',
+  'journey.studio.assistant.noticeLater': 'Όχι τώρα',
 };
 export default journey;

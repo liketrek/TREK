@@ -1,0 +1,141 @@
+/*
+ * The photo look in the Studio inspector: the zoom and mirror row beside the
+ * crop, the print resolution, the border, shadow and cutout parts, the
+ * adjustment sliders and the duotone pairs. Everything reads the inspector's
+ * own tokens from studio.css, so it follows the user's scheme and accent.
+ */
+
+/* ----------------- a slider with its value ----------------- */
+/* The name and the value on one line, the track under them across the whole
+   width: a name has the line to itself ("Насыщенность", "Átlátszatlanság")
+   instead of a column it would have to fit, and the tracks of a group line up. */
+.trek-dash .st-slider {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'label value'
+    'track track';
+  align-items: center;
+  gap: 2px 8px;
+}
+.trek-dash .st-slider + .st-slider {
+  margin-top: 8px;
+}
+.trek-dash .st-slider-label {
+  grid-area: label;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+  font-size: calc(11px * var(--fs-scale-caption, 1));
+  color: var(--ink-3);
+  line-height: 1.25;
+}
+.trek-dash .st-slider input[type='range'] {
+  grid-area: track;
+  width: 100%;
+  min-width: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.trek-dash .st-slider-value {
+  grid-area: value;
+  font-size: calc(11px * var(--fs-scale-caption, 1));
+  color: var(--ink-2);
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ----------------- beside the crop ----------------- */
+.trek-dash .st-photo-crop {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+}
+.trek-dash .st-photo-crop > .st-slider {
+  width: 100%;
+}
+
+/* The print resolution: quiet when it is fine, a warning tint when it is not. */
+.trek-dash .st-photo-dpi {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: color-mix(in oklch, var(--ink) 4%, transparent);
+  color: var(--ink-2);
+}
+.trek-dash .st-photo-dpi svg {
+  flex: none;
+  margin-top: 1px;
+}
+.trek-dash .st-photo-dpi.is-low {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+.trek-dash .st-photo-dpi-value {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.trek-dash .st-photo-dpi-hint {
+  margin-top: 2px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+/* ----------------- one part of the look: a switch and what it opens ----------------- */
+.trek-dash .st-photo-part + .st-photo-part {
+  border-top: 1px solid var(--line);
+  margin-top: 4px;
+  padding-top: 4px;
+}
+.trek-dash .st-photo-part-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 6px 0 8px;
+}
+.trek-dash .st-photo-part-body .st-line + .st-line {
+  margin-top: 0;
+}
+
+.trek-dash .st-photo-reset {
+  margin-top: 10px;
+}
+
+/* ----------------- duotone pairs ----------------- */
+.trek-dash .st-photo-duos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.trek-dash .st-photo-duo {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--line-2);
+  box-shadow: var(--sh-xs);
+  cursor: pointer;
+  transition:
+    transform 0.14s,
+    box-shadow 0.14s;
+}
+.trek-dash .st-photo-duo:hover {
+  transform: scale(1.06);
+}
+.trek-dash .st-photo-duo.is-on {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.trek-dash .st-photo-duo:focus {
+  outline: none;
+}
+.trek-dash .st-photo-duo:focus-visible {
+  box-shadow:
+    0 0 0 2px var(--accent-soft),
+    0 0 0 3px var(--accent);
+}

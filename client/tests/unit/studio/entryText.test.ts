@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatBookCoords, formatBookDate } from '../../../src/components/Studio/entryText'
+import { formatBookCoords, formatBookDate } from '@trek/shared'
 
 /**
  * The strings a journal entry lends to a page (#1973).

@@ -32,6 +32,7 @@ const perm: TranslationStrings = {
   'perm.action.collab_edit': 'Colaboración (notas, encuestas, chat)',
   'perm.action.share_manage': 'Gestionar enlaces compartidos',
   'perm.actionHint.trip_create': 'Quién puede crear nuevos viajes',
+  'perm.action.journal_link': 'Vincular un diario',
   'perm.actionHint.trip_edit': 'Quién puede cambiar el nombre, fechas, descripción y moneda del viaje',
   'perm.actionHint.trip_delete': 'Quién puede eliminar permanentemente un viaje',
   'perm.actionHint.trip_archive': 'Quién puede archivar o desarchivar un viaje',
@@ -47,5 +48,6 @@ const perm: TranslationStrings = {
   'perm.actionHint.packing_edit': 'Quién puede gestionar artículos de equipaje y bolsas',
   'perm.actionHint.collab_edit': 'Quién puede crear notas, encuestas y enviar mensajes',
   'perm.actionHint.share_manage': 'Quién puede crear o eliminar enlaces compartidos públicos',
+  'perm.actionHint.journal_link': 'Quién puede vincular un diario de Journey al viaje y abrirlo a sus miembros',
 };
 export default perm;

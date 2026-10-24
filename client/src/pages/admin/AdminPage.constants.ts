@@ -3,6 +3,7 @@
 export const ADMIN_EVENT_LABEL_KEYS: Record<string, string> = {
   version_available: 'settings.notifyVersionAvailable',
   replica_failure: 'settings.notifyReplicaFailure',
+  paddle_region_requested: 'settings.notifyPaddleRegionRequested',
 }
 
 export const ADMIN_CHANNEL_LABEL_KEYS: Record<string, string> = {

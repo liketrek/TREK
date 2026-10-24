@@ -55,6 +55,7 @@ A check covers the dates of your trips, not your whole history:
 
 - every trip you own or are a member of that has a start date, is not archived, has begun (or begins tomorrow) and ended no more than 400 days ago
 - for each of them, from three days before the start to one day after the end, but never past the present moment
+- the trips linked to a journal that prepares its recorded days (see [Journey-Journal](Journey-Journal)), when you own that journal or write in it, also when you are not on the trip yourself; their stays are fetched within the same limits and wait at their day in that journal
 
 Stays outside those windows are never fetched. Dawarich's confirmed and unconfirmed visits both come in, because since Dawarich 1.12 an unconfirmed visit is the normal state of one.
 
@@ -118,7 +119,7 @@ Both come with the sentence *What you wrote in TREK is untouched*, and that is a
 The Dawarich button on the trip map switches the recorded route on and off. On the desktop it sits in the bottom right corner of the map, on a phone among the map controls. It stays available in road trip mode, where the route you actually drove is the thing you most want beside the planned one.
 
 - The route is drawn dashed, one colour per day, underneath the planned route so the plan stays readable. Days are cut at local midnight, not at midnight UTC, so an evening walk stays on the evening it happened.
-- On or off is remembered per trip for the browser session.
+- On or off is remembered per trip on your account, so it is the same in every browser and on every device.
 - While it is on, TREK fetches the route for the trip's dates and refreshes it every two minutes, so a trip in progress catches up without a reload.
 - Collapsing a day in the day plan, or in the road trip sidebar, takes that day's route off the map together with its places.
 - The button's label says why a map has no line: *Loading the recorded route…*, *Nothing was recorded on these dates*, *The recorded route could not be loaded*, or *The recorded route needs a connection*.
@@ -129,9 +130,11 @@ The route is drawn, never applied: TREK does not correct your plan from it.
 
 A journal draws the same route on its own map, from the first to the last date of the trips linked to it, when **Show all trip GPX tracks** is on in the journal's **Journey Settings**.
 
-### Nothing is stored
+### Nothing is stored, unless you keep a day
 
 The route is read from Dawarich when a map asks for it and then discarded. TREK's server holds it in memory for one minute, so panning and toggling do not ask your instance again, and forgets it on a restart or when you change the connection. No position is written to TREK's database, so the route is not in backups and is not available offline.
+
+The one exception is asked for: in a journal you can keep the route of one day on purpose, after a preview you confirm. That day is thinned the same way, keeps the gaps and modes of the recording, and belongs to the journal from then on, so it stays drawn when the connection is gone. See [Keeping a recorded day](Journey-Journal#keeping-a-recorded-day).
 
 TREK prefers the tracks Dawarich has already generated, which arrive split into segments with a travel mode. On an instance that has not generated tracks yet, it falls back to the raw points and thins them to 600 per day, so a month-long trip stays drawable.
 
@@ -172,8 +175,18 @@ With the [MCP](MCP-Overview) addon on as well, an assistant can review your stay
 | `accept_dawarich_suggestion_as_place` | Turns a stay into a place on a trip, optionally on one of its days, with a corrected name, notes or coordinates. | `places:write` |
 | `accept_dawarich_suggestion_as_journal_entry` | Turns a stay into a dated journal entry, with a title, a story, a date and a time. | `journey:write` |
 | `mark_bucket_list_item_visited_from_dawarich` | Ticks off the wish a stay was linked to, or another wish of yours. | `atlas:write` |
+| `scan_bucket_list_visits` | Checks your wishlist against your recordings, as **Check wishlist** does: per wish the longest stay that counts, or none. Ticks nothing off. If your Dawarich does not answer, the check stops with that error. | `atlas:read` |
+| `confirm_bucket_list_visits` | Ticks off the wishes you confirmed, dated with the stay that matched, or a date you name. | `atlas:write` |
+| `clear_bucket_list_visit` | Takes the tick off one of your wishes again. | `atlas:write` |
+| `suggest_atlas_countries` | Lists the countries and cities your recordings cover between two dates (at most 400 days apart) and which of them your Atlas has already. Marks nothing. | `atlas:read` |
+| `accept_atlas_countries` | Marks the countries you confirmed as visited in your Atlas, recorded as coming from Dawarich. | `atlas:write` |
 | `dismiss_dawarich_suggestion` | Dismisses a stay, or puts a dismissed one back. | `journey:write` |
 | `get_dawarich_trip_track` | Summarises a trip's recorded route per day: segments, times, travel mode and distance. The line itself stays on the map. | `journey:read` |
+| `preview_journey_recorded_day` | Reads one day of your recording and says what a journal would keep, without keeping it. Needs the Journey addon too. | `journey:read` |
+| `save_journey_recorded_day` | Keeps that day in a journal after you confirmed the preview, or replaces a different version when asked. Needs the Journey addon too. | `journey:write` |
+| `review_journey_day_stays` | Reads the stays of one day from your Dawarich and says which a journal holds already. Needs the Journey addon too. | `journey:read` |
+| `take_over_journey_day_stays` | Takes the stays you chose into a journal as drafts: one by one, joined per place or as one day report. Needs the Journey addon too. | `journey:write` |
+| `get_journey_recording_prep` | Says whether a journal prepares its recorded days and how your own last checks over it went. Needs the Journey addon too. | `journey:read` |
 
 The same rules apply as in the browser: nothing is added until a tool is called, and the permissions for adding a place are checked the same way. See [MCP-Addon-Tools](MCP-Addon-Tools) and [MCP-Scopes](MCP-Scopes).
 

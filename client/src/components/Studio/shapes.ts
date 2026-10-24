@@ -1,4 +1,6 @@
-import type { BookShapeId } from '@trek/shared'
+import { BOOK_FRAME_SHAPES, BOOK_SHAPE_GROUPS, type BookShapeId } from '@trek/shared'
+import { K, circle, polygon, r2, roundRect, scallop, star } from './shapePrimitives'
+import { MORE_SHAPE_PATHS } from './shapes-more'
 
 /**
  * Every shape Studio can draw, as a path on a 0..100 square.
@@ -34,121 +36,6 @@ import type { BookShapeId } from '@trek/shared'
  * Curves are cubics because a cubic through a quarter circle is exact to within
  * 0.03%, which is far below what a printer resolves.
  */
-
-/** Circle-to-cubic constant: the handle length that makes a quarter arc. */
-const K = 0.5523
-
-const r2 = (n: number) => Math.round(n * 100) / 100
-
-/**
- * Stretch a ring of points to fill the 0..100 box exactly.
- *
- * A regular hexagon inscribed in a circle is 86.6 units wide and 100 tall, and
- * drawn that way it would leave 7 units of nothing down each side of its own
- * frame. In an editor that is a real problem rather than a cosmetic one: the
- * selection outline, the resize handles and every snap target follow the frame,
- * so a shape that does not fill its frame cannot be aligned to anything you can
- * see. Filling the box is also what Canva does, and it costs a regularity
- * nobody can spot — a hexagon in a square frame still reads as a hexagon.
- */
-function fit(points: [number, number][]): string {
-  const xs = points.map(p => p[0])
-  const ys = points.map(p => p[1])
-  const minX = Math.min(...xs), maxX = Math.max(...xs)
-  const minY = Math.min(...ys), maxY = Math.max(...ys)
-  const sx = maxX > minX ? 100 / (maxX - minX) : 1
-  const sy = maxY > minY ? 100 / (maxY - minY) : 1
-  return `M${points
-    .map(([x, y]) => `${r2((x - minX) * sx)} ${r2((y - minY) * sy)}`)
-    .join('L')}Z`
-}
-
-/** A regular polygon, first point at the top, stretched to fill the box. */
-function polygon(sides: number, rotation = -90): string {
-  const pts: [number, number][] = []
-  for (let i = 0; i < sides; i++) {
-    const a = ((rotation + (360 / sides) * i) * Math.PI) / 180
-    pts.push([50 + 50 * Math.cos(a), 50 + 50 * Math.sin(a)])
-  }
-  return fit(pts)
-}
-
-/**
- * A star, `points` tips alternating with `points` valleys.
- *
- * `inner` is the valley radius as a fraction of the tip radius, and it is the
- * only number that decides whether a star looks like a star or like a gear:
- * roughly 0.38 for five points, higher as the count grows, or the tips get so
- * thin they disappear at print size.
- */
-function star(points: number, inner: number, rotation = -90): string {
-  const pts: [number, number][] = []
-  for (let i = 0; i < points * 2; i++) {
-    const rad = i % 2 === 0 ? 50 : 50 * inner
-    const a = ((rotation + (180 / points) * i) * Math.PI) / 180
-    pts.push([50 + rad * Math.cos(a), 50 + rad * Math.sin(a)])
-  }
-  return fit(pts)
-}
-
-/**
- * A scalloped edge — a wax seal, a sticker, a burst.
- *
- * Not a star with a soft inner radius: the lobes have to bulge *outwards*
- * between the points, which needs a curve through each valley rather than a
- * straight line to it.
- */
-function scallop(lobes: number, depth: number): string {
-  const step = (Math.PI * 2) / lobes
-  /*
-   * The petal tip is the curve's midpoint, not its control point.
-   *
-   * A quadratic at t=0.5 sits a quarter of the way to each end and half the way
-   * to the control, so the furthest the outline actually reaches is
-   * `0.5·R·cos(Δ/2) + 0.5·rm` — well short of `rm` itself. Sizing from `rm`
-   * would draw a flower that overflows its box by a tenth and gets clipped;
-   * solving for that midpoint instead makes the drawn petals touch the edge
-   * exactly, which is what "normalised to 0..100" has to mean.
-   */
-  const reach = 0.5 * Math.cos(step / 2) + 0.5 * (1 + depth)
-  const R = 50 / reach
-  const rm = R * (1 + depth)
-  let d = ''
-  for (let i = 0; i < lobes; i++) {
-    const a0 = -Math.PI / 2 + step * i
-    const a1 = a0 + step
-    const am = (a0 + a1) / 2
-    const x0 = r2(50 + R * Math.cos(a0)), y0 = r2(50 + R * Math.sin(a0))
-    const x1 = r2(50 + R * Math.cos(a1)), y1 = r2(50 + R * Math.sin(a1))
-    const xm = r2(50 + rm * Math.cos(am)), ym = r2(50 + rm * Math.sin(am))
-    d += i === 0 ? `M${x0} ${y0}` : ''
-    d += `Q${xm} ${ym} ${x1} ${y1}`
-  }
-  return `${d}Z`
-}
-
-/** A circle as four cubics. */
-function circle(cx = 50, cy = 50, rx = 50, ry = 50): string {
-  const kx = rx * K, ky = ry * K
-  return `M${r2(cx)} ${r2(cy - ry)}`
-    + `C${r2(cx + kx)} ${r2(cy - ry)} ${r2(cx + rx)} ${r2(cy - ky)} ${r2(cx + rx)} ${r2(cy)}`
-    + `C${r2(cx + rx)} ${r2(cy + ky)} ${r2(cx + kx)} ${r2(cy + ry)} ${r2(cx)} ${r2(cy + ry)}`
-    + `C${r2(cx - kx)} ${r2(cy + ry)} ${r2(cx - rx)} ${r2(cy + ky)} ${r2(cx - rx)} ${r2(cy)}`
-    + `C${r2(cx - rx)} ${r2(cy - ky)} ${r2(cx - kx)} ${r2(cy - ry)} ${r2(cx)} ${r2(cy - ry)}Z`
-}
-
-/** A rounded rectangle, corner radius in the same 0..100 units. */
-function roundRect(r: number, x = 0, y = 0, w = 100, h = 100): string {
-  const k = r * (1 - K)
-  return `M${r2(x + r)} ${r2(y)}L${r2(x + w - r)} ${r2(y)}`
-    + `C${r2(x + w - k)} ${r2(y)} ${r2(x + w)} ${r2(y + k)} ${r2(x + w)} ${r2(y + r)}`
-    + `L${r2(x + w)} ${r2(y + h - r)}`
-    + `C${r2(x + w)} ${r2(y + h - k)} ${r2(x + w - k)} ${r2(y + h)} ${r2(x + w - r)} ${r2(y + h)}`
-    + `L${r2(x + r)} ${r2(y + h)}`
-    + `C${r2(x + k)} ${r2(y + h)} ${r2(x)} ${r2(y + h - k)} ${r2(x)} ${r2(y + h - r)}`
-    + `L${r2(x)} ${r2(y + r)}`
-    + `C${r2(x)} ${r2(y + k)} ${r2(x + k)} ${r2(y)} ${r2(x + r)} ${r2(y)}Z`
-}
 
 /**
  * The shape table.
@@ -284,6 +171,10 @@ export const SHAPE_PATHS: Record<BookShapeId, string> = {
   'banner-pennant': 'M0 0L100 0L100 62L50 100L0 62Z',
   'banner-bookmark': 'M0 0L100 0L100 100L50 68L0 100Z',
   'banner-flag': 'M0 0L100 0L86 30L100 60L0 60Z',
+
+  // The second shelf (shapes-more.ts): arches, cut-outs, stamps, ribbons,
+  // drawn arrows, hearts, frames and ornaments.
+  ...MORE_SHAPE_PATHS,
 }
 
 /**
@@ -430,71 +321,17 @@ export function unitPath(path: string): string {
  * subpaths too, and under `evenodd` any overlap between them and the body
  * would knock a hole in it.
  */
-export const HOLED_SHAPES = new Set<BookShapeId>(['gear'])
+export const HOLED_SHAPES = new Set<BookShapeId>(['gear', 'postmark', 'label-tab'])
 
-export interface ShapeGroup {
-  /** i18n key under `journey.studio.shapeGroup`. */
-  id: string
-  shapes: BookShapeId[]
+/**
+ * How the panel is divided and which shapes it offers as picture frames: the
+ * one list in @trek/shared (book-shape-catalogue.ts), which the assistant's
+ * asset listing reads too.
+ */
+export const SHAPE_GROUPS = BOOK_SHAPE_GROUPS
+export const FRAME_SHAPES = BOOK_FRAME_SHAPES
+
+/** A shape's name in the reader's language, for its tooltip and a screen reader. */
+export function shapeName(shape: BookShapeId, t: (k: string) => string): string {
+  return t(`journey.studio.shapeName.${shape}`)
 }
-
-/**
- * How the panel is divided.
- *
- * Grouped the way you go looking for them — "I want an arrow", "I want
- * something round and soft" — rather than by how they are built. Sixty
- * unlabelled tiles in one grid is a wall; six groups of ten is a menu.
- */
-export const SHAPE_GROUPS: ShapeGroup[] = [
-  {
-    id: 'basic',
-    shapes: ['rect', 'squircle', 'ellipse', 'capsule', 'triangle', 'triangle-down',
-      'diamond', 'parallelogram', 'trapezoid', 'arch', 'half-circle', 'quarter-circle'],
-  },
-  {
-    id: 'polygons',
-    shapes: ['pentagon', 'hexagon', 'hexagon-flat', 'heptagon', 'octagon'],
-  },
-  {
-    id: 'stars',
-    shapes: ['star-4', 'star-5', 'star-6', 'star-8', 'star-12', 'burst', 'seal', 'sparkle'],
-  },
-  {
-    id: 'arrows',
-    shapes: ['arrow-right', 'arrow-left', 'arrow-up', 'arrow-down', 'arrow-both',
-      'chevron-right', 'chevron-left', 'arrow-bent'],
-  },
-  {
-    id: 'speech',
-    shapes: ['bubble-round', 'bubble-square', 'bubble-oval', 'bubble-think'],
-  },
-  {
-    id: 'travel',
-    shapes: ['pin', 'compass', 'mountain', 'sun', 'moon', 'cloud', 'cloud-puffy',
-      'drop', 'wave', 'leaf', 'shield', 'ticket'],
-  },
-  {
-    id: 'decor',
-    shapes: ['heart', 'flower-5', 'flower-6', 'cross', 'plus', 'gear',
-      'blob-1', 'blob-2', 'blob-3', 'blob-4'],
-  },
-  {
-    id: 'banners',
-    shapes: ['banner-ribbon', 'banner-pennant', 'banner-bookmark', 'banner-flag'],
-  },
-]
-
-/**
- * The shapes offered as picture frames.
- *
- * A subset, and the subset is the point: a photograph cut to a speech bubble's
- * tail or to a hairline is a photograph you cannot read. What is here holds an
- * image at book size — broad, mostly convex, no thin limbs.
- */
-export const FRAME_SHAPES: BookShapeId[] = [
-  'rect', 'squircle', 'ellipse', 'capsule', 'arch', 'half-circle',
-  'triangle', 'diamond', 'pentagon', 'hexagon', 'octagon',
-  'heart', 'star-5', 'star-6', 'seal', 'flower-5', 'flower-6',
-  'blob-1', 'blob-2', 'blob-3', 'blob-4',
-  'shield', 'drop', 'leaf', 'pin', 'banner-pennant', 'banner-bookmark',
-]

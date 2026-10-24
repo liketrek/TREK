@@ -25,10 +25,16 @@ const login: TranslationStrings = {
   'login.oidc.noEmail': 'Nem érkezett e-mail a szolgáltatótól.',
   'login.oidc.tokenFailed': 'Hitelesítés sikertelen.',
   'login.oidc.invalidState': 'Érvénytelen munkamenet. Kérjük, próbáld újra.',
+  'login.oidc.emailNotVerified':
+    'A bejelentkezési szolgáltatód nem erősítette meg ezt az e-mail-címet, ezért nem kapcsolható meglévő fiókhoz.',
+  'login.oidc.emailLinkBlocked':
+    'Ezt a bejelentkezést nem sikerült összekapcsolni az ehhez az e-mailhez tartozó meglévő fiókkal. Kérd meg az adminisztrátort, hogy erősítse meg a címet.',
   'login.demoFailed': 'Demo bejelentkezés sikertelen',
   'login.oidcSignIn': 'Bejelentkezés ezzel: {name}',
   'login.oidcOnly': 'A jelszavas hitelesítés le van tiltva. Kérjük, jelentkezz be az SSO szolgáltatódon keresztül.',
   'login.oidcLoggedOut': 'Kijelentkeztél. Jelentkezz be újra az SSO szolgáltatódon keresztül.',
+  'login.oidcRedirecting': 'Átirányítás ide: {name}…',
+  'login.oidcRedirectSlow': 'Még mindig itt? Tovább ide: {name}',
   'login.demoHint': 'Próbáld ki a demót — regisztráció nélkül',
   'login.mfaTitle': 'Kétfaktoros hitelesítés',
   'login.mfaSubtitle': 'Add meg a 6 jegyű kódot a hitelesítő alkalmazásból.',
@@ -69,9 +75,9 @@ const login: TranslationStrings = {
   'login.resetPasswordFailed': 'A visszaállítás nem sikerült. A link lehet, hogy lejárt.',
   'login.passkey.signIn': 'Bejelentkezés passkey-jel',
   'login.passkey.failed': 'A passkey-bejelentkezés sikertelen. Kérjük, próbáld újra.',
-  'login.insecureCookie.title': "Login won't stick over HTTP",
+  'login.insecureCookie.title': 'A bejelentkezés HTTP-n nem marad meg',
   'login.insecureCookie.body':
-    'You’re connecting over plain HTTP, so your browser drops TREK’s secure session cookie — the next request fails with "Access token required". Fix: use HTTPS, or for a home-lab set COOKIE_SECURE=false.',
-  'login.insecureCookie.link': 'Open the Troubleshooting guide',
+    'Egyszerű HTTP-n csatlakozol, ezért a böngésző eldobja a TREK biztonságos munkamenet-sütijét, és a következő kérés ezzel a hibával elbukik: "Access token required". Megoldás: használj HTTPS-t, vagy otthoni labor esetén állítsd be: COOKIE_SECURE=false.',
+  'login.insecureCookie.link': 'Hibaelhárítási útmutató megnyitása',
 };
 export default login;

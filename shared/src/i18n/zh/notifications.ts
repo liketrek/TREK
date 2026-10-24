@@ -28,8 +28,11 @@ const notifications: TranslationStrings = {
   'notifications.test.adminText': '{actor} 向所有管理员发送了测试通知。',
   'notifications.test.tripTitle': '{actor} 在您的行程中发帖',
   'notifications.test.tripText': '行程"{trip}"的测试通知。',
+  'notifications.countLabel': '条通知',
   'notifications.versionAvailable.title': '有可用更新',
   'notifications.versionAvailable.text': 'TREK {version} 现已可用。',
   'notifications.versionAvailable.button': '查看详情',
+  'notifications.deleteAllConfirmTitle': '删除所有通知？',
+  'notifications.deleteAllConfirmText': '所有通知将被永久删除，且无法撤销。',
 };
 export default notifications;

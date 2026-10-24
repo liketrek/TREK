@@ -1,0 +1,52 @@
+/* ============================================================================
+   TREK Studio: the decorated templates in the Templates panel.
+
+   Scoped under `.trek-dash` like every Studio rule (see the head of
+   studio.css for why), in the dashboard tokens. A card is the page renderer
+   at a small scale inside the page thumbnail's own button and sheet
+   (`.st-thumb`, `.st-thumb-sheet`), so a template card and a page in the rail
+   look like the same object.
+   ============================================================================ */
+
+.trek-dash .st-tpl-section {
+  padding-top: 4px;
+}
+
+.trek-dash .st-tpl-section > .st-row {
+  margin-bottom: 12px;
+}
+
+/* Covers two to a row, so a set reads at a glance; a double spread takes the width. */
+.trek-dash .st-tpl-grid {
+  display: grid;
+  gap: 10px 8px;
+  align-items: start;
+}
+.trek-dash .st-tpl-grid.is-pages {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.trek-dash .st-tpl-grid.is-spreads {
+  grid-template-columns: minmax(0, 1fr);
+}
+/* The book's own layouts and the built-in ones lie in the same grid as the designed pages. */
+.trek-dash .st-thumbs.st-tpl-grid {
+  display: grid;
+}
+
+.trek-dash .st-tpl-card {
+  min-width: 0;
+}
+
+.trek-dash .st-tpl-art {
+  display: block;
+}
+
+/* A name wraps onto a second line rather than being cut off at the card's edge. */
+.trek-dash .st-tpl-label {
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.trek-dash .st-tpl-section > .st-hint {
+  margin-top: 10px;
+}

@@ -291,4 +291,20 @@ describe('dawarichRepo contract enforcement', () => {
 
     expect(calls).toBe(2)
   })
+
+  it('FE-DAWARICH-API-029: a sync by hand is asked online and answered as the server sent it, and never offline', async () => {
+    let calls = 0
+    server.use(
+      http.post(`${BASE}/sync`, () => {
+        calls += 1
+        return HttpResponse.json({ state: 'ok', created: 2, updated: 0, missing: 0 })
+      }),
+    )
+
+    expect(await dawarichRepo.syncNow()).toEqual({ state: 'ok', created: 2, updated: 0, missing: 0 })
+
+    setForcedOffline(true)
+    await expect(dawarichRepo.syncNow()).rejects.toBeInstanceOf(DawarichOfflineError)
+    expect(calls).toBe(1)
+  })
 })

@@ -1,15 +1,7 @@
 import { useTripStore } from './tripStore'
-import type { Assignment } from '../types'
+import type { StayStopsResult } from '../repo/accommodationRepo'
 
-/** The day-plan half of what an accommodation write answers with. */
-export interface StayStopsResult {
-  assignment?: Assignment | null
-  /** The booking's own stop, carried to the day the booking now covers. */
-  movedAssignment?: { assignment: Assignment; oldDayId: number } | null
-  /** Stops the booking let go of but left standing (a night dropped, the place kept). */
-  updatedAssignments?: Assignment[]
-  removedAssignments?: { id: number; dayId: number }[]
-}
+export type { StayStopsResult }
 
 /**
  * Fold the day stop a stay write reported back into the store.

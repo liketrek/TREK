@@ -7,6 +7,7 @@ const common: TranslationStrings = {
   'common.cancel': 'Mégse',
   'common.clear': 'Törlés',
   'common.delete': 'Törlés',
+  'common.remove': 'Eltávolítás',
   'common.preview': 'Előnézet',
   'common.edit': 'Szerkesztés',
   'common.add': 'Hozzáadás',
@@ -35,6 +36,9 @@ const common: TranslationStrings = {
   'common.rename': 'Átnevezés',
   'common.discardChanges': 'Változtatások elvetése',
   'common.discard': 'Elveti',
+  'common.unsavedTitle': 'Elveted a módosításokat?',
+  'common.unsavedMessage': 'Amit itt megadtál, még nincs elmentve.',
+  'common.keepEditing': 'Szerkesztés folytatása',
   'common.name': 'Név',
   'common.email': 'E-mail',
   'common.password': 'Jelszó',
@@ -51,19 +55,21 @@ const common: TranslationStrings = {
   'common.copied': 'Másolva',
   'common.justNow': 'az imént',
   'common.hoursAgo': '{count} órája',
+  'common.hoursAgo.one': '{count} órája',
   'common.daysAgo': '{count} napja',
-  'common.datepicker.prevMonth': 'Previous month', // en-fallback
-  'common.datepicker.nextMonth': 'Next month', // en-fallback
-  'common.datepicker.prevYear': 'Previous year', // en-fallback
-  'common.datepicker.nextYear': 'Next year', // en-fallback
-  'common.datepicker.prevYears': 'Previous years', // en-fallback
-  'common.datepicker.nextYears': 'Next years', // en-fallback
-  'common.datepicker.selectMonth': 'Select month', // en-fallback
-  'common.datepicker.selectYear': 'Select year', // en-fallback
-  'common.datepicker.enterManually': 'Enter date manually', // en-fallback
-  'common.datepicker.typeDate': 'Type a date', // en-fallback
-  'common.datepicker.dialog': 'Date picker', // en-fallback
-  'common.datepicker.clearDate': 'Clear date', // en-fallback
+  'common.daysAgo.one': '{count} napja',
+  'common.datepicker.prevMonth': 'Előző hónap',
+  'common.datepicker.nextMonth': 'Következő hónap',
+  'common.datepicker.prevYear': 'Előző év',
+  'common.datepicker.nextYear': 'Következő év',
+  'common.datepicker.prevYears': 'Korábbi évek',
+  'common.datepicker.nextYears': 'Későbbi évek',
+  'common.datepicker.selectMonth': 'Hónap kiválasztása',
+  'common.datepicker.selectYear': 'Év kiválasztása',
+  'common.datepicker.enterManually': 'Dátum megadása kézzel',
+  'common.datepicker.typeDate': 'Írj be egy dátumot',
+  'common.datepicker.dialog': 'Dátumválasztó',
+  'common.datepicker.clearDate': 'Dátum törlése',
   'common.errorTitle': 'Valami hiba történt',
   'common.errorBody': 'Az alkalmazás ezen része leállt. Az adatai biztonságban vannak.',
   'common.errorPanelTitle': 'Ezt a szakaszt nem sikerült megjeleníteni',
@@ -73,5 +79,6 @@ const common: TranslationStrings = {
   'common.errorUpdateTitle': 'Új verzió érhető el',
   'common.errorUpdateBody': 'A TREK frissült, amíg ez a lap nyitva volt. Töltse újra az új verzióért.',
   'common.errorPluginTitle': 'Ezt a bővítményt nem sikerült megjeleníteni',
+  'common.needsConnection': 'Ehhez kapcsolat kell. Próbáld újra, amint a TREK újra online lesz.',
 };
 export default common;

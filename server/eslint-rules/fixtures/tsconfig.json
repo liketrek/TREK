@@ -1,0 +1,16 @@
+{
+  // Fixture project for the RuleTester in tests/unit/eslint-rules/. It exists so
+  // typescript-eslint can build a real program for the virtual `file.ts` the
+  // tester feeds it. Kept outside src/ and tests/ on purpose: files here must not
+  // reach `tsc --noEmit`, `tsc -p tsconfig.tests.json` or the type-aware lint
+  // blocks, since the invalid cases are deliberately broken code.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "lib": ["ES2022"],
+    "strict": false,
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": ["file.ts"]
+}

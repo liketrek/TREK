@@ -1,12 +1,13 @@
-import { describe, beforeAll, it, expect } from 'vitest';
+import { MULTIPART_THRESHOLD, S3Driver } from '../../../../src/nest/storage/drivers/s3.driver';
+import { describeStorageDriver, type DriverHarness } from './storage-driver.contract';
+import awsLite from '@aws-lite/client';
+
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { Readable } from 'node:stream';
-import awsLite from '@aws-lite/client';
-import { MULTIPART_THRESHOLD, S3Driver } from '../../../../src/nest/storage/drivers/s3.driver';
-import { describeStorageDriver, type DriverHarness } from './storage-driver.contract';
+import { describe, beforeAll, it, expect } from 'vitest';
 
 /**
  * Env-gated: engages only when TREK_TEST_S3_* is set (manual-only, via
@@ -75,21 +76,17 @@ describe.skipIf(!endpoint)('S3Driver against MinIO', () => {
   // is load-bearing: upstream Upload leaks it into its CompleteMultipartUpload
   // headers, which (unworked-around) turns the parts XML into JSON and draws
   // 400 MalformedXML — the exact shape of every real backup/photo put.
-  it(
-    'round-trips a multipart put carrying a contentType (upstream MalformedXML regression)',
-    async () => {
-      const harness = await makeHarness();
-      try {
-        const chunk = Buffer.alloc(MULTIPART_THRESHOLD / 2 + 1024 * 1024, 9);
-        await harness.driver.put('mp/big.zip', Readable.from([chunk, chunk, chunk]), {
-          contentType: 'application/zip',
-        });
-        const stat = await harness.driver.stat('mp/big.zip');
-        expect(stat?.size).toBe(3 * chunk.length);
-      } finally {
-        await harness.cleanup();
-      }
-    },
-    60_000,
-  );
+  it('round-trips a multipart put carrying a contentType (upstream MalformedXML regression)', async () => {
+    const harness = await makeHarness();
+    try {
+      const chunk = Buffer.alloc(MULTIPART_THRESHOLD / 2 + 1024 * 1024, 9);
+      await harness.driver.put('mp/big.zip', Readable.from([chunk, chunk, chunk]), {
+        contentType: 'application/zip',
+      });
+      const stat = await harness.driver.stat('mp/big.zip');
+      expect(stat?.size).toBe(3 * chunk.length);
+    } finally {
+      await harness.cleanup();
+    }
+  }, 60_000);
 });

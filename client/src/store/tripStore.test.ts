@@ -98,6 +98,7 @@ describe('tripStore', () => {
         selectedDayId: 1,
         placesFilter: 'unplanned',
         placesCategoryFilter: new Set(['3']),
+        planMapViewport: { tripId: 1, south: 1, west: 1, north: 2, east: 2 },
         error: 'stale error',
       });
 
@@ -117,6 +118,8 @@ describe('tripStore', () => {
       expect(state.selectedDayId).toBeNull();
       expect(state.placesFilter).toBe('all');
       expect(state.placesCategoryFilter.size).toBe(0);
+      // The next trip's search must not lean on where this trip's map was.
+      expect(state.planMapViewport).toBeNull();
       expect(state.error).toBeNull();
       // Global lookups survive a trip switch.
       expect(state.tags.map(t => t.id)).toEqual([5]);
@@ -513,6 +516,19 @@ describe('tripStore', () => {
       });
 
       expect(listener).toHaveBeenCalledTimes(1);
+      window.removeEventListener('accommodations:refresh', listener);
+    });
+
+    it('FE-TSTORE-019d: asks the planner to reload accommodations when a place or a stay is deleted elsewhere', () => {
+      // A deleted place takes the night booked at it along, and the stays live in the planner.
+      seedStore(useTripStore, { places: [buildPlace({ id: 500, trip_id: 1 })] });
+      const listener = vi.fn();
+      window.addEventListener('accommodations:refresh', listener);
+
+      useTripStore.getState().handleRemoteEvent({ type: 'place:deleted', placeId: 500 });
+      useTripStore.getState().handleRemoteEvent({ type: 'accommodation:deleted', accommodationId: 70 });
+
+      expect(listener).toHaveBeenCalledTimes(2);
       window.removeEventListener('accommodations:refresh', listener);
     });
 

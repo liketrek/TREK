@@ -1,6 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router'
 import PageShell from '../components/Layout/PageShell'
+import HelpAnchor from '../components/Help/HelpAnchor'
 import { PageSpinner } from '../components/shared/Spinner'
 import FileManager from '../components/Files/FileManager'
 import { ArrowLeft } from 'lucide-react'
@@ -23,6 +24,7 @@ export default function FilesPage(): React.ReactElement {
 
   return (
     <PageShell className="bg-slate-50" navbar={{ tripTitle: trip?.title, tripId, showBack: true, onBack: () => navigate(`/trips/${tripId}`) }}>
+      <HelpAnchor id="trip-files" />
         <div className="max-w-5xl mx-auto px-4 py-6">
           <div className="flex items-center gap-3 mb-6">
             <Link

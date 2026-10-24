@@ -1,4 +1,5 @@
-import { sanitizeInlineHtml, sanitizeRichTextHtml, escapeHtml } from './sanitize';
+import { escapeHtml } from './escape';
+import { sanitizeInlineHtml, sanitizeRichTextHtml } from './sanitize';
 
 import { describe, it, expect } from 'vitest';
 

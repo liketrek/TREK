@@ -4,13 +4,14 @@
  * without a createZodDto metatype must refuse boot unless allow-listed, and
  * stale allow-list entries must refuse boot too (the list only ratchets down).
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { Body, Controller, Delete, Get, Post, Put } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
-import type { INestApplication } from '@nestjs/common';
-import { createZodDto } from 'nestjs-zod';
-import { z } from 'zod';
 import { validateBodyContracts } from '../../../src/nest/common/validate-body-contracts';
+import { Body, Controller, Delete, Get, Post, Put } from '@nestjs/common';
+import type { INestApplication } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
+
+import { createZodDto } from 'nestjs-zod';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { z } from 'zod';
 
 class GoodDto extends createZodDto(z.object({ name: z.string() })) {}
 
@@ -89,7 +90,7 @@ describe('validateBodyContracts (fail-closed boot gate)', () => {
     expect(() => validateBodyContracts(badApp, [])).toThrow(/BadController\.update/);
   });
 
-  it('GATE-003 — @Body(\'field\') sub-reads are unvalidated and flagged too', () => {
+  it("GATE-003 — @Body('field') sub-reads are unvalidated and flagged too", () => {
     expect(() => validateBodyContracts(subfieldApp, [])).toThrow(/SubfieldController\.reorder/);
   });
 

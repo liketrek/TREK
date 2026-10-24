@@ -1,17 +1,27 @@
-import { Body, Controller, Get, HttpCode, HttpException, Post, Put, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
-import { MASKED_SETTING_VALUE } from '@trek/shared';
 import type { User } from '../../types';
-import { SettingsService, isAdminOnlyEndpointSetting } from './settings.service';
-import { SettingUpsertDto, SettingsBulkDto } from './settings.dto';
-import { AdminDefaultUserSettingsDto } from '../admin/admin.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { AdminGuard } from '../auth/admin.guard';
+import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { AuditService } from '../audit/audit.service';
 import { getClientIp } from '../audit/client-ip';
-import { CurrentUser } from '../auth/current-user.decorator';
-import { RuntimeEnvService } from '../app-config/runtime-env.service';
+import { AdminGuard } from '../auth-core/admin.guard';
+import { CurrentUser } from '../auth-core/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { isManagedLockedKey, splitManagedKeys } from '../common/managed';
+import { ResponseContract } from '../common/response-contract';
+import { SettingsWritesService } from './settings-writes.service';
+import { AdminDefaultUserSettingsDto, SettingUpsertDto, SettingsBulkDto } from './settings.dto';
+import { SettingsService, isAdminOnlyEndpointSetting } from './settings.service';
+import { Body, Controller, Get, Headers, HttpCode, HttpException, Post, Put, Req, UseGuards } from '@nestjs/common';
+import {
+  MASKED_SETTING_VALUE,
+  PLANNER_TRIP_VIEWS_KEY,
+  adminDefaultUserSettingsResponseSchema,
+  plannerTripViewsSchema,
+  settingUpsertResponseSchema,
+  settingsBulkResponseSchema,
+  settingsListResponseSchema,
+} from '@trek/shared';
+
+import type { Request } from 'express';
 
 /**
  * /api/settings — per-user key/value preferences: get-all, single upsert
@@ -31,6 +41,8 @@ export class SettingsController {
   constructor(
     private readonly settings: SettingsService,
     private readonly env: RuntimeEnvService,
+    // The writes, which tell the user's other tabs which keys changed.
+    private readonly writes: SettingsWritesService,
   ) {}
 
   /**
@@ -54,14 +66,33 @@ export class SettingsController {
     }
   }
 
+  /**
+   * The one value with a shape the route checks (#2639): the planner's view
+   * switches per trip. Clearing it stays open, like every other key.
+   */
+  private assertValidValues(settings: Record<string, unknown>) {
+    const value = settings[PLANNER_TRIP_VIEWS_KEY];
+    if (value === undefined || value === null) return;
+    const parsed = plannerTripViewsSchema.safeParse(value);
+    if (!parsed.success) {
+      throw new HttpException(
+        { error: `Invalid value for ${PLANNER_TRIP_VIEWS_KEY}: ${parsed.error.issues[0]?.message ?? 'not accepted'}` },
+        400,
+      );
+    }
+  }
+
   @Get()
-  list(@CurrentUser() user: User) {
-    return { settings: this.settings.getUserSettings(user.id) };
+  @ResponseContract(settingsListResponseSchema)
+  async list(@CurrentUser() user: User) {
+    return { settings: await this.settings.getUserSettings(user.id) };
   }
 
   @Put()
-  upsert(@CurrentUser() user: User, @Body() body: SettingUpsertDto) {
+  @ResponseContract(settingUpsertResponseSchema)
+  async upsert(@CurrentUser() user: User, @Body() body: SettingUpsertDto, @Headers('x-socket-id') socketId?: string) {
     this.assertMayWriteInstanceEndpoint({ [body.key]: body.value });
+    this.assertValidValues({ [body.key]: body.value });
     // assertMayWriteInstanceEndpoint only covers llm_base_url and provider 'local'.
     // llm_api_key and llm_model are writable by every user, and on a managed
     // install both cost the operator money, so the key list decides here.
@@ -72,17 +103,19 @@ export class SettingsController {
     if (body.value === MASKED_SETTING_VALUE) {
       return { success: true, key: body.key, unchanged: true };
     }
-    this.settings.upsertSetting(user.id, body.key, body.value);
+    await this.writes.saveOne(user.id, body.key, body.value, socketId);
     return { success: true, key: body.key, value: body.value };
   }
 
   @Post('bulk')
   @HttpCode(200) // Express answers bulk with res.json (200), not the POST-default 201.
-  bulk(@CurrentUser() user: User, @Body() body: SettingsBulkDto) {
+  @ResponseContract(settingsBulkResponseSchema)
+  async bulk(@CurrentUser() user: User, @Body() body: SettingsBulkDto, @Headers('x-socket-id') socketId?: string) {
     this.assertMayWriteInstanceEndpoint(body.settings);
+    this.assertValidValues(body.settings);
     const { allowed, blocked } = splitManagedKeys(body.settings, this.env.isManaged());
     try {
-      const updated = this.settings.bulkUpsertSettings(user.id, allowed);
+      const updated = await this.writes.saveMany(user.id, allowed, socketId);
       return { success: true, updated, ...(blocked.length ? { managed_keys: blocked } : {}) };
     } catch (err) {
       console.error('Error saving settings:', err);
@@ -108,23 +141,22 @@ export class AdminDefaultUserSettingsController {
   ) {}
 
   @Get()
-  get() {
+  @ResponseContract(adminDefaultUserSettingsResponseSchema)
+  async get() {
     return this.settings.getAdminUserDefaults();
   }
 
   @Put()
-  update(@CurrentUser() user: User, @Body() body: AdminDefaultUserSettingsDto, @Req() req: Request) {
+  @ResponseContract(adminDefaultUserSettingsResponseSchema)
+  async update(@CurrentUser() user: User, @Body() body: AdminDefaultUserSettingsDto, @Req() req: Request) {
     try {
       // Deliberately no managed_keys in the response here: the route answers
       // with the raw defaults map the admin panel renders from, so an extra
       // field would sit inside the key namespace. The audit row below and the
       // client's capability filter carry the message instead.
-      const { allowed } = splitManagedKeys(
-        body as unknown as Record<string, unknown>,
-        this.env.isManaged(),
-      );
-      this.settings.setAdminUserDefaults(allowed);
-      this.audit.writeAudit({
+      const { allowed } = splitManagedKeys(body as unknown as Record<string, unknown>, this.env.isManaged());
+      await this.settings.setAdminUserDefaults(allowed);
+      await this.audit.writeAudit({
         userId: user.id,
         action: 'admin.default_user_settings_update',
         ip: getClientIp(req),
@@ -132,7 +164,7 @@ export class AdminDefaultUserSettingsController {
       });
       // Answer with the stored defaults, not the request body: the service normalises
       // and drops unknown keys, and the admin panel renders straight from this.
-      return this.settings.getAdminUserDefaults();
+      return await this.settings.getAdminUserDefaults();
     } catch (err) {
       throw new HttpException({ error: err instanceof Error ? err.message : String(err) }, 400);
     }

@@ -12,7 +12,7 @@ const notifications: TranslationStrings = {
   'notifications.markRead': 'Markera som läst',
   'notifications.markUnread': 'Markera som oläst',
   'notifications.delete': 'Radera',
-  'notifications.system': 'System',
+  'notifications.system': 'System', // same-as-en
   'notifications.synologySessionCleared.title': 'Synology Photos har kopplats bort',
   'notifications.synologySessionCleared.text':
     'Din server eller ditt konto har ändrats – gå till Inställningar för att testa din anslutning igen.',
@@ -32,5 +32,9 @@ const notifications: TranslationStrings = {
   'notifications.test.adminText': '{actor} skickade ett testmeddelande till alla administratörer.',
   'notifications.test.tripTitle': '{actor} publicerat i din resa',
   'notifications.test.tripText': 'Testmeddelande för resan "{trip}".',
+  'notifications.countLabel': 'meddelanden',
+  'notifications.countLabel.one': 'meddelande',
+  'notifications.deleteAllConfirmTitle': 'Radera alla aviseringar?',
+  'notifications.deleteAllConfirmText': 'Alla aviseringar tas bort permanent. Det går inte att ångra.',
 };
 export default notifications;

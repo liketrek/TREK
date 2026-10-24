@@ -12,6 +12,6 @@ const trips: TranslationStrings = {
   'trips.memberAddError': 'Hinzufügen fehlgeschlagen',
   'trips.reminderDaysBefore': 'Tage vor Abreise',
   'trips.reminderDisabledHint':
-    'Reiseerinnerungen sind deaktiviert. Aktivieren Sie sie unter Admin > Einstellungen > Benachrichtigungen.',
+    'Reiseerinnerungen sind deaktiviert. Aktivieren Sie sie unter Admin > Benachrichtigungen > Reiseerinnerungen.',
 };
 export default trips;

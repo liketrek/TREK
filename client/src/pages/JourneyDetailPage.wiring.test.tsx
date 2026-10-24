@@ -1,4 +1,4 @@
-// FE-JRN-DETWIRE-001 to FE-JRN-DETWIRE-028
+// FE-JRN-DETWIRE-001 to FE-JRN-DETWIRE-047
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '../../tests/helpers/render';
 import { journeyApi } from '../api/client';
@@ -49,6 +49,7 @@ vi.mock('../components/Journey/JourneyDetailPageGalleryView', () => ({ GalleryVi
 vi.mock('../components/Journey/JourneyDetailPageEntryEditor', () => ({ EntryEditor: capture('editor', 'entry-editor') }));
 vi.mock('../components/Journey/JourneyDetailPageAddTripDialog', () => ({ AddTripDialog: capture('addTrip', 'add-trip-dialog') }));
 vi.mock('../components/Journey/JourneyDetailPageSettingsDialog', () => ({ JourneySettingsDialog: capture('settings', 'settings-dialog') }));
+vi.mock('../components/Journey/JourneyDayImportDialog', () => ({ default: capture('dayImport', 'day-import-dialog') }));
 vi.mock('../components/Journey/JourneyDetailPageEntryCard', () => ({
   EntryCard: capture('entryCard', 'entry-card'),
   SkeletonCard: capture('skeletonCard', 'skeleton-card'),
@@ -104,14 +105,24 @@ function buildHook(over: Record<string, unknown> = {}): Record<string, unknown> 
     // carries has its own suite (FE-JRN-DAYDAW), and what this file pins is the wiring.
     dawarichByDate: new Map(), dawarichBusyId: null,
     acceptDawarich: vi.fn(async () => {}), dismissDawarich: vi.fn(),
+    // The recorded days a journey keeps (JRN-01) and the day take-over (JRN-02): none here,
+    // their dialogs have suites of their own.
+    recordings: { byDate: new Map(), dialog: null, open: vi.fn() },
+    canTakeOverRecording: false, recordingNeedsConnection: false,
+    dayImport: { open: vi.fn(), dialog: null },
+    // Preparing the recorded days (JRN-03): not read here, so nothing is marked and the settings
+    // get no switch; the model and the hook have suites of their own.
+    recordingPrep: { prep: null, dayPrep: () => null },
     mapRef: { current: null }, fullMapRef: { current: null }, galleryUploadRef: { current: null },
     galleryProviders: [], setGalleryProviders: vi.fn(), galleryBrowseRef: { current: null },
+    galleryUploadProgress: null, setGalleryUploadProgress: vi.fn(),
     activeLocationId: null, handleMarkerClick: vi.fn(), handleLocationClick: vi.fn(),
     mapEntries: [], sidebarMapItems: [], tripDates: new Set<string>(), isMobile: false,
     feedEdge: { atTop: true, atBottom: true }, scrollFeedTo: vi.fn(),
     loadJourney: vi.fn(), updateEntry: vi.fn(async () => {}), deleteEntry: vi.fn(async () => {}),
     reorderEntries: vi.fn(async () => {}), uploadPhotos: vi.fn(async () => ({ succeeded: [], failed: [] })),
     deletePhoto: vi.fn(async () => {}),
+    addPickedProviderPhotos: vi.fn(async () => {}), addEntryProviderPhotos: vi.fn(async () => {}),
     ...over,
   };
 }
@@ -300,6 +311,8 @@ describe('JourneyDetailPage wiring', () => {
 
     (mocks.captured.gallery.onRefresh as () => void)();
     expect(hook.loadJourney).toHaveBeenCalledWith(7);
+    // The picker's Add is the hook's, the one the phone screen uses too (#1587).
+    expect(mocks.captured.gallery.onAddProviderPhotos).toBe(hook.addPickedProviderPhotos);
   });
 
   it('FE-JRN-DETWIRE-016: the entry editor creates a new entry and updates an existing one', async () => {
@@ -311,11 +324,9 @@ describe('JourneyDetailPage wiring', () => {
     await (mocks.captured.editor.onUploadPhotos as (id: number, f: File[]) => Promise<unknown>)(88, []);
     expect(hook.uploadPhotos).toHaveBeenCalledWith(88, [], undefined);
 
-    const addProvider = vi.spyOn(journeyApi, 'addProviderPhotos').mockResolvedValue({ added: 1 });
-    await (mocks.captured.editor.onAddProviderPhotos as (id: number, g: Record<string, unknown>) => Promise<void>)(
-      88, { provider: 'immich', assetIds: ['a1'], passphrase: 'pw', mediaTypes: ['image'] },
-    );
-    expect(addProvider).toHaveBeenCalledWith(88, 'immich', ['a1'], undefined, 'pw', ['image']);
+    // Shared with the phone entry sheet, so a group that fails part way is
+    // handled once for both shells (#1587).
+    expect(mocks.captured.editor.onAddProviderPhotos).toBe(hook.addEntryProviderPhotos);
 
     (mocks.captured.editor.onDone as () => void)();
     expect(hook.setEditingEntry).toHaveBeenCalledWith(null);
@@ -580,5 +591,92 @@ describe('JourneyDetailPage wiring', () => {
     setup({ isMobile: true, view: 'timeline', galleryProviders: immich });
     expect(screen.queryByText('common.upload')).not.toBeInTheDocument();
     expect(screen.queryByText('Immich')).not.toBeInTheDocument();
+  });
+
+  it('FE-JRN-DETWIRE-042: a rejected suggestions preference keeps the local flip and rejects nothing', async () => {
+    const unhandled = vi.fn();
+    process.on('unhandledRejection', unhandled);
+    try {
+      const update = vi.spyOn(journeyApi, 'updatePreferences').mockRejectedValue(new Error('offline'));
+      const { hook } = setup({ isMobile: true });
+
+      fireEvent.click(screen.getByRole('button', { name: 'journey.skeletons.hide' }));
+
+      expect(hook.setHideSkeletons).toHaveBeenCalledWith(true);
+      await waitFor(() => expect(update).toHaveBeenCalledWith(7, { hide_skeletons: true }));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(unhandled).not.toHaveBeenCalled();
+      expect(toast.error).not.toHaveBeenCalled();
+    } finally {
+      process.off('unhandledRejection', unhandled);
+    }
+  });
+
+  it('FE-JRN-DETWIRE-043: the gallery upload button counts the files up while they go', () => {
+    const { hook } = setup({ view: 'gallery', galleryUploadProgress: { done: 1, total: 3 } });
+    expect(mocks.captured.gallery.onUploadProgress).toBe(hook.setGalleryUploadProgress);
+    const button = screen.getByText('journey.editor.uploadingProgress').closest('button')!;
+    expect(button).toBeDisabled();
+    expect(screen.queryByText('common.upload')).not.toBeInTheDocument();
+  });
+
+  it('FE-JRN-DETWIRE-044: a day takes over with its stays from its header, and the open day shows its dialog (JRN-02)', () => {
+    const open = vi.fn();
+    setup({ canTakeOverRecording: true, dayImport: { open, dialog: null } });
+
+    const [firstDay] = screen.getAllByTestId('journey-day-import');
+    fireEvent.click(firstDay as HTMLElement);
+    expect(open).toHaveBeenCalledWith('2026-05-01');
+    expect(screen.queryByTestId('day-import-dialog')).not.toBeInTheDocument();
+
+    const dialog = { journeyId: 7, date: '2026-05-01', dayColor: '#123456' };
+    setup({ canTakeOverRecording: true, dayImport: { open, dialog } });
+    expect(screen.getByTestId('day-import-dialog')).toBeInTheDocument();
+    expect(mocks.captured.dayImport).toMatchObject(dialog);
+  });
+
+  it('FE-JRN-DETWIRE-045: a prepared day is marked in its header, and the settings get the switch once it is read (JRN-03)', () => {
+    const dayPrep = vi.fn((date: string) =>
+      date === '2026-05-01' ? { state: 'provisional' as const, failed: false, lastSuccessAt: '2026-05-01T12:00:00Z' } : null,
+    );
+    const recordingPrep = { prep: { enabled: true }, dayPrep };
+    setup({ canTakeOverRecording: true, showSettings: true, recordingPrep });
+
+    expect(dayPrep).toHaveBeenCalledWith('2026-05-01');
+    expect(screen.getAllByTestId('journey-day-prep-unsettled')).toHaveLength(1);
+    expect(mocks.captured.settings.recordingPrep).toBe(recordingPrep);
+  });
+
+  it('FE-JRN-DETWIRE-046: an editor without the settings gets the status of their own preparation in the day dialog (JRN-03)', () => {
+    const recordingPrep = { prep: { enabled: true }, dayPrep: () => null };
+    const dialog = { journeyId: 7, date: '2026-05-01', dayColor: '#123456' };
+    setup({
+      canEditJourney: false,
+      myRole: 'editor',
+      canTakeOverRecording: true,
+      dayImport: { open: vi.fn(), dialog },
+      recordingPrep,
+    });
+
+    expect(screen.getByTestId('day-import-dialog')).toBeInTheDocument();
+    expect(mocks.captured.dayImport.prep).toBe(recordingPrep);
+  });
+
+  it('FE-JRN-DETWIRE-047: the sidebar map draws the layers of the hook, its switches above it (JRN-04)', () => {
+    const mapLayers = {
+      visibility: { plan: true, recorded: false, entries: true, photos: true },
+      toggle: vi.fn(),
+      controls: [{ layer: 'plan', count: 3, state: 'ready' }],
+      tracks: [],
+      marks: [],
+      plannedEntryIds: new Set(['1']),
+    };
+    setup({ mapLayers, entryTitleOf: () => null });
+
+    expect(mocks.captured.map.layerVisibility).toBe(mapLayers.visibility);
+    expect(mocks.captured.map.plannedEntryIds).toBe(mapLayers.plannedEntryIds);
+    expect(mocks.captured.map.tracks).toBe(mapLayers.tracks);
+    fireEvent.click(screen.getByTestId('journey-map-layer-plan'));
+    expect(mapLayers.toggle).toHaveBeenCalledWith('plan');
   });
 });

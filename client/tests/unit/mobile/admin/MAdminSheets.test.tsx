@@ -1,4 +1,4 @@
-// FE-MOB-ASHEET-001 to FE-MOB-ASHEET-024
+// FE-MOB-ASHEET-001 to FE-MOB-ASHEET-026
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
@@ -213,7 +213,7 @@ describe('MAdminSheets', () => {
 
     await user.click(screen.getAllByRole('button', { name: 'Reset passkeys' })[1]);
 
-    await waitFor(() => expect(admin.toast.success).toHaveBeenCalledWith('Removed 3 passkey(s)'));
+    await waitFor(() => expect(admin.toast.success).toHaveBeenCalledWith('Removed 3 passkeys'));
     expect(hitId).toBe('2');
   });
 
@@ -426,5 +426,32 @@ describe('MAdminSheets', () => {
 
     expect(called).toBe(false);
     expect(screen.getByRole('dialog', { name: 'Reset passkeys' })).toBeInTheDocument();
+  });
+
+  it('FE-MOB-ASHEET-025: resetting 2FA confirms, calls the API and reports it', async () => {
+    const user = userEvent.setup();
+    let hitId = '';
+    server.use(
+      http.delete('/api/admin/users/:id/mfa', ({ params }) => {
+        hitId = String(params.id);
+        return HttpResponse.json({ success: true });
+      }),
+    );
+    const admin = renderSheets({ editingUser: ALICE });
+
+    await user.click(screen.getByRole('button', { name: 'Reset 2FA' }));
+    expect(screen.getByRole('dialog', { name: 'Reset 2FA' })).toBeInTheDocument();
+    expect(screen.getByText('Turn off two-factor authentication for alice?')).toBeInTheDocument();
+    expect(hitId).toBe('');
+
+    await user.click(screen.getAllByRole('button', { name: 'Reset 2FA' })[1]);
+
+    await waitFor(() => expect(admin.toast.success).toHaveBeenCalledWith('Two-factor authentication reset'));
+    expect(hitId).toBe('2');
+  });
+
+  it('FE-MOB-ASHEET-026: the 2FA reset is not offered on your own account', () => {
+    renderSheets({ editingUser: ME });
+    expect(screen.queryByRole('button', { name: 'Reset 2FA' })).not.toBeInTheDocument();
   });
 });

@@ -162,3 +162,18 @@ export const activeTripResponseSchema = z.object({
   trip: activeTripSchema.nullable(),
 });
 export type ActiveTripResponse = z.infer<typeof activeTripResponseSchema>;
+
+/**
+ * Trips whose places match a dashboard search (#2190), so "that diner in
+ * Philly" finds the trip it was on. A few matching place names per trip ride
+ * along for the card; title and date matching stays on the client.
+ */
+export const tripSearchResponseSchema = z.object({
+  matches: z.array(
+    z.object({
+      trip_id: z.number(),
+      places: z.array(z.string()),
+    }),
+  ),
+});
+export type TripSearchResponse = z.infer<typeof tripSearchResponseSchema>;

@@ -1,4 +1,4 @@
-// FE-MOB-MDUS-001 to FE-MOB-MDUS-027
+// FE-MOB-MDUS-001 to FE-MOB-MDUS-028
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor, within, fireEvent } from '../../../helpers/render';
 import userEvent from '@testing-library/user-event';
@@ -450,5 +450,18 @@ describe('MAdminDefaultUserSettings', () => {
     await screen.findByText('Map style');
 
     expect(screen.queryByText('Shared Mapbox token')).not.toBeInTheDocument();
+  });
+});
+
+describe('MAdminDefaultUserSettings week start (#2029)', () => {
+  it('FE-MOB-MDUS-028: the week-start segment saves its own key', async () => {
+    const user = userEvent.setup();
+    const { puts } = stubDefaults();
+    render(<MAdminDefaultUserSettings />);
+    await screen.findByText('Default User Settings');
+
+    await user.click(screen.getByRole('tab', { name: 'Saturday' }));
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Saturday' })).toHaveAttribute('aria-selected', 'true'));
+    expect(puts).toEqual([{ week_start: 'saturday' }]);
   });
 });

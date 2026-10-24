@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types';
+
+const tourPacking: TranslationStrings = {
+  'tours.packing.label': 'Csomagolási lista',
+  'tours.packing.none': 'Nincs csatolt csomagolási lista',
+  'tours.packing.link': 'Csomagolási lista csatolása',
+  'tours.packing.change': 'Módosítás',
+  'tours.packing.whole': 'A teljes csomagolási lista',
+  'tours.packing.packed': '{packed}/{count} becsomagolva',
+  'tours.packing.packed.one': '{packed}/{count} becsomagolva',
+  'tours.packing.more': 'További {count}',
+  'tours.packing.more.one': 'További {count}',
+  'tours.packing.items': '{count} tétel',
+  'tours.packing.items.one': '{count} tétel',
+  'tours.packing.allPacked': 'Minden becsomagolva',
+  'tours.packing.open': 'Csomagolási lista megnyitása',
+  'tours.packing.missing': 'A(z) „{name}” már nem tartalmaz látható tételt.',
+  'tours.packing.emptyList': 'A csomagolási lista még üres.',
+  'tours.packing.emptyCategory': 'A(z) „{name}” még nem tartalmaz tételt.',
+  'tours.packing.addonOff': 'A csomagolási listák ki vannak kapcsolva, ezért a lista nem jeleníthető meg.',
+  'tours.packing.loadFailed': 'A csomagolási lista csatolását nem sikerült betölteni.',
+  'tours.packing.dialogSub': 'Csak egy csatolás. A lista és a tételei maradnak, ahol vannak.',
+  'tours.packing.choose': 'Csatolás ehhez',
+  'tours.packing.confirm': 'Csatolás',
+  'tours.packing.unlink': 'Csatolás megszüntetése',
+  'tours.packing.unlinkHint': 'A csomagolási lista és a tételei változatlanok maradnak',
+  'tours.packing.linked': 'Csomagolási lista csatolva.',
+  'tours.packing.unlinked': 'Csatolás megszüntetve. A csomagolási lista változatlan marad.',
+  'tours.packing.failed': 'A csatolást nem sikerült menteni.',
+};
+export default tourPacking;

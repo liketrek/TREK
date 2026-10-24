@@ -1,8 +1,7 @@
-// FE-MOB-AADD-001 to FE-MOB-AADD-032
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
-import { render, screen, waitFor, within } from '../../../helpers/render';
+import { act, render, screen, waitFor, within } from '../../../helpers/render';
 import { server } from '../../../helpers/msw/server';
 import { resetAllStores, seedStore } from '../../../helpers/store';
 import { buildSettings } from '../../../helpers/factories';
@@ -49,13 +48,6 @@ function llmAddon(config: Record<string, unknown> = {}): AddonFixture {
   });
 }
 
-function modelsRoute(names: string[], seen?: (string | null)[]) {
-  return http.get('/api/admin/llm/local/models', ({ request }) => {
-    seen?.push(new URL(request.url).searchParams.get('baseUrl'));
-    return HttpResponse.json({ models: names.map(name => ({ name, size: 1 })) });
-  });
-}
-
 let loadAddonsSpy: ReturnType<typeof vi.spyOn>;
 
 beforeEach(() => {
@@ -67,6 +59,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  document.documentElement.classList.remove('dark');
 });
 
 describe('MAdminAddonManager', () => {
@@ -92,29 +85,25 @@ describe('MAdminAddonManager', () => {
     expect(screen.getByAltText('TREK')).toHaveAttribute('src', '/text-dark.svg');
   });
 
-  it('FE-MOB-AADD-003: dark mode and auto+prefers-dark swap the wordmark', async () => {
-    seedStore(useSettingsStore, { settings: buildSettings({ dark_mode: 'dark' }) });
-    const { unmount } = render(<MAdminAddonManager />);
-    await screen.findByText('No addons available');
-    expect(screen.getByAltText('TREK')).toHaveAttribute('src', '/text-light.svg');
-    unmount();
-
-    const matchMedia = vi.fn().mockReturnValue({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() });
-    vi.stubGlobal('matchMedia', matchMedia);
-    seedStore(useSettingsStore, { settings: buildSettings({ dark_mode: 'auto' }) });
+  it('FE-MOB-AADD-003: the dark palette swaps the wordmark', async () => {
+    // The wordmark reads the .dark class, the same source applyAppearance() writes
+    // for dark and for auto under a dark OS theme.
+    document.documentElement.classList.add('dark');
     render(<MAdminAddonManager />);
     await screen.findByText('No addons available');
     expect(screen.getByAltText('TREK')).toHaveAttribute('src', '/text-light.svg');
-    expect(matchMedia).toHaveBeenCalledWith('(prefers-color-scheme: dark)');
-    vi.unstubAllGlobals();
   });
 
   it('FE-MOB-AADD-004: a failing load toasts the addon error', async () => {
-    server.use(http.get('/api/admin/addons', () => HttpResponse.error()));
+    // A server error, not a dropped connection: a network error starts the client's
+    // connectivity probe, and whether the app then counts itself offline (and stays
+    // quiet, as it should offline) raced the toast on a loaded runner.
+    server.use(http.get('/api/admin/addons', () => HttpResponse.json({ error: 'boom' }, { status: 500 })));
     render(<><ToastContainer /><MAdminAddonManager /></>);
 
     await screen.findByText('Failed to update addon');
-    expect(screen.getByText('No addons available')).toBeInTheDocument();
+    // The empty state follows the toast once loading has ended, not in the same render.
+    expect(await screen.findByText('No addons available')).toBeInTheDocument();
   });
 
   it('FE-MOB-AADD-005: trip addons render with the section band, catalog label and type badge', async () => {
@@ -122,9 +111,10 @@ describe('MAdminAddonManager', () => {
     render(<MAdminAddonManager />);
 
     await screen.findByText('Lists');
-    expect(screen.getByText('Trip — Available as a tab within each trip')).toBeInTheDocument();
+    // The band names the type and says what it means on a line of its own, no dash between them.
+    expect(screen.getByText('Available as a tab within each trip')).toBeInTheDocument();
     expect(screen.getByText('Packing lists and to-do tasks for your trips')).toBeInTheDocument();
-    expect(screen.getByText('Trip')).toBeInTheDocument();
+    expect(screen.getAllByText('Trip')).toHaveLength(2);
     expect(screen.getByRole('switch', { name: 'Lists' })).toHaveAttribute('aria-checked', 'true');
   });
 
@@ -279,13 +269,14 @@ describe('MAdminAddonManager', () => {
     render(<MAdminAddonManager />);
 
     await screen.findByText('Immich');
-    expect(screen.getByText('Global — Available as a standalone section in the main navigation')).toBeInTheDocument();
+    expect(screen.getByText('Available as a standalone section in the main navigation')).toBeInTheDocument();
     expect(screen.getByText('Synology Photos')).toBeInTheDocument();
     expect(screen.getByText('Unsplash')).toBeInTheDocument();
     expect(screen.getByRole('switch', { name: 'Immich' })).toHaveAttribute('aria-checked', 'true');
     // Journey + three providers, and providers are not shown as top-level rows.
     expect(screen.getAllByRole('switch')).toHaveLength(4);
-    expect(screen.queryByText('Global')).toBeInTheDocument();
+    // The band and the addon's type badge both say Global.
+    expect(screen.getAllByText('Global')).toHaveLength(2);
   });
 
   it('FE-MOB-AADD-015: toggling a provider persists it and rolls back on failure', async () => {
@@ -314,6 +305,33 @@ describe('MAdminAddonManager', () => {
     await user.click(screen.getByRole('switch', { name: 'Unsplash' }));
     await screen.findByText('Failed to update addon');
     await waitFor(() => expect(screen.getByRole('switch', { name: 'Unsplash' })).toHaveAttribute('aria-checked', 'false'));
+  });
+
+  it('FE-MOB-AADD-034: a failing provider toggle keeps a provider toggled while it was in flight', async () => {
+    const user = userEvent.setup();
+    server.use(
+      addonsRoute([
+        buildAddon({ id: 'journey', name: 'Journey', type: 'global', icon: 'Compass', enabled: true }),
+        buildAddon({ id: 'immich', name: 'Immich', description: 'Self-hosted photos', type: 'photo_provider', enabled: false }),
+        buildAddon({ id: 'unsplash', name: 'Unsplash', description: 'Stock photos', type: 'photo_provider', enabled: false }),
+      ]),
+      http.put('/api/admin/addons/immich', () => HttpResponse.json({ success: true })),
+      http.put('/api/admin/addons/unsplash', async () => {
+        await delay(150);
+        return HttpResponse.error();
+      }),
+    );
+    render(<><ToastContainer /><MAdminAddonManager /></>);
+    await screen.findByText('Immich');
+
+    // Unsplash is still saving when Immich goes on and through.
+    await user.click(screen.getByRole('switch', { name: 'Unsplash' }));
+    await user.click(screen.getByRole('switch', { name: 'Immich' }));
+    await screen.findByText('Addon updated');
+
+    await screen.findByText('Failed to update addon');
+    await waitFor(() => expect(screen.getByRole('switch', { name: 'Unsplash' })).toHaveAttribute('aria-checked', 'false'));
+    expect(screen.getByRole('switch', { name: 'Immich' })).toHaveAttribute('aria-checked', 'true');
   });
 
   it('FE-MOB-AADD-026: switching the journey addon off and on again shows the cascaded providers as off', async () => {
@@ -395,7 +413,8 @@ describe('MAdminAddonManager', () => {
       expect(screen.getByRole('switch', { name: 'Nextcloud' })).toHaveAttribute('aria-checked', 'true');
       // Documents plus two providers, and neither provider carries a type badge of its own.
       expect(screen.getAllByRole('switch')).toHaveLength(3);
-      expect(screen.getAllByText('Trip')).toHaveLength(1);
+      // The band and the addon's type badge.
+      expect(screen.getAllByText('Trip')).toHaveLength(2);
     });
 
     it('FE-MOB-AADD-029: the shelf stays hidden while Documents is off', async () => {
@@ -471,204 +490,84 @@ describe('MAdminAddonManager', () => {
     });
   });
 
-  it('FE-MOB-AADD-016: a disabled AI-parsing addon renders the integration row without its config', async () => {
-    server.use(addonsRoute([llmAddon({ provider: 'local' })].map(a => ({ ...a, enabled: false }))));
-    render(<MAdminAddonManager />);
-
-    await screen.findByText('AI Parsing');
-    expect(screen.getByText('Integration — Backend services and API integrations with no dedicated page')).toBeInTheDocument();
-    expect(screen.queryByText('Connection')).not.toBeInTheDocument();
-  });
-
-  it('FE-MOB-AADD-017: the local provider lists installed models and selecting a chip fills the model field', async () => {
-    const user = userEvent.setup();
-    const urls: (string | null)[] = [];
-    server.use(addonsRoute([llmAddon({ provider: 'local' })]), modelsRoute(['qwen3.5:4b', 'llama3:8b'], urls));
-    render(<MAdminAddonManager />);
-
-    await screen.findByText('Installed on the server');
-    await screen.findByRole('button', { name: 'llama3:8b' });
-    expect(urls[0]).toBe('http://localhost:11434/v1');
-
-    await user.click(screen.getByRole('button', { name: 'llama3:8b' }));
-    expect(screen.getByPlaceholderText('select or pull below')).toHaveValue('llama3:8b');
-
-    // qwen3.5:4b is installed, so the recommended row offers "Use" instead of "Pull".
-    await user.click(screen.getByRole('button', { name: 'Use' }));
-    expect(screen.getByPlaceholderText('select or pull below')).toHaveValue('qwen3.5:4b');
-    expect(screen.getByRole('button', { name: 'Selected' })).toBeDisabled();
-  });
-
-  it('FE-MOB-AADD-018: an unreachable Ollama shows the error, Refresh retries', async () => {
-    const user = userEvent.setup();
-    let calls = 0;
+  it('FE-MOB-AADD-016: the AI addons head the integration card as one group with a switch each', async () => {
     server.use(
-      addonsRoute([llmAddon({ provider: 'local' })]),
-      http.get('/api/admin/llm/local/models', () => {
-        calls += 1;
-        return calls === 1
-          ? HttpResponse.json({ error: 'down' }, { status: 500 })
-          : HttpResponse.json({ models: [] });
-      }),
+      addonsRoute([
+        buildAddon({ id: 'mcp', name: 'MCP', icon: 'Terminal', type: 'integration', enabled: false }),
+        { ...llmAddon(), enabled: false },
+        buildAddon({ id: 'ai_assistant', name: 'AI Assistant', icon: 'Sparkles', type: 'integration', enabled: false }),
+      ]),
     );
     render(<MAdminAddonManager />);
 
-    await screen.findByText(/Request failed with status code 500/);
-
-    await user.click(screen.getByRole('button', { name: 'Refresh' }));
-    await screen.findByText('No models installed yet — pull one below.');
-    expect(calls).toBe(2);
+    await screen.findByText('AI');
+    const names = screen.getAllByRole('switch').map(s => s.getAttribute('aria-label'));
+    expect(names).toEqual(['AI Assistant', 'AI Parsing', 'MCP']);
+    expect(screen.getByText('0/3')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Set up AI' })).not.toBeInTheDocument();
   });
 
-  it('FE-MOB-AADD-019: the base URL is used for model lookups on blur', async () => {
+  it('FE-MOB-AADD-017: with the assistant on, the group opens the AI settings dialog', async () => {
     const user = userEvent.setup();
-    const urls: (string | null)[] = [];
-    server.use(addonsRoute([llmAddon({ provider: 'local' })]), modelsRoute([], urls));
+    server.use(
+      addonsRoute([buildAddon({ id: 'ai_assistant', name: 'AI Assistant', icon: 'Sparkles', type: 'integration', enabled: true })]),
+      http.get('/api/admin/ai/settings', () =>
+        HttpResponse.json({ policy: 'instance_or_user', dailyTurns: 50, retention: { mode: 'days', days: 90 } }),
+      ),
+      http.get('/api/admin/ai/connection', () => HttpResponse.json({ connection: null, prefill: null })),
+      http.get('/api/ai/status', () => HttpResponse.json({ error: 'not needed' }, { status: 404 })),
+    );
     render(<MAdminAddonManager />);
 
-    await screen.findByText('Installed on the server');
-    const baseUrl = screen.getByPlaceholderText('http://localhost:11434/v1');
-    await user.type(baseUrl, 'http://ollama.lan:11434/v1');
-    await user.tab();
-
-    await waitFor(() => expect(urls).toContain('http://ollama.lan:11434/v1'));
+    await user.click(await screen.findByRole('button', { name: 'Set up AI' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByRole('button', { name: 'AI Assistant' })).toBeInTheDocument();
+    expect(within(dialog).queryByRole('button', { name: 'AI Parsing' })).not.toBeInTheDocument();
   });
 
-  it('FE-MOB-AADD-020: switching providers swaps the base URL field and the model hint', async () => {
-    const user = userEvent.setup();
-    server.use(addonsRoute([llmAddon({ provider: 'local', apiKey: '••••••••' })]), modelsRoute([]));
+  it('FE-MOB-AADD-036: collab and AI parsing show their own icons, not the puzzle fallback', async () => {
+    server.use(
+      addonsRoute([
+        buildAddon({ id: 'collab', name: 'Collab', icon: 'Users', enabled: true }),
+        buildAddon({ id: 'llm_parsing', name: 'AI Parsing', icon: 'Sparkles', type: 'integration', enabled: false }),
+      ]),
+    );
     render(<MAdminAddonManager />);
 
-    await screen.findByText('Installed on the server');
-    expect(screen.getByPlaceholderText('••••••••')).toBeInTheDocument();
-
-    await user.type(screen.getByPlaceholderText('select or pull below'), 'mistral:7b');
-    expect(screen.getByDisplayValue('mistral:7b')).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: 'OpenAI' }));
-    expect(screen.getByPlaceholderText('https://api.openai.com/v1')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('gpt-4o')).toBeInTheDocument();
-    expect(screen.queryByText('Installed on the server')).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: 'Anthropic' }));
-    expect(screen.queryByPlaceholderText('https://api.openai.com/v1')).not.toBeInTheDocument();
-    expect(screen.getByPlaceholderText('claude-opus-4-8')).toBeInTheDocument();
-    expect(screen.getByText(/Anthropic reads PDFs/)).toBeInTheDocument();
+    await screen.findByRole('switch', { name: 'Collab' });
+    expect(document.querySelector('svg.lucide-users')).toBeInTheDocument();
+    // The AI group carries the sparkles; AI parsing its own glyph, keyed by id.
+    expect(document.querySelector('svg.lucide-sparkles')).toBeInTheDocument();
+    expect(document.querySelector('svg.lucide-scan-text')).toBeInTheDocument();
+    expect(document.querySelector('svg.lucide-puzzle')).not.toBeInTheDocument();
   });
 
-  it('FE-MOB-AADD-021: pulling a model streams progress, then selects it', async () => {
+  it('FE-MOB-AADD-037: under auto the wordmark follows an OS theme switch without a re-render', async () => {
+    seedStore(useSettingsStore, { settings: buildSettings({ dark_mode: 'auto' }) });
+    render(<MAdminAddonManager />);
+    await screen.findByText('No addons available');
+    expect(screen.getByAltText('TREK')).toHaveAttribute('src', '/text-dark.svg');
+
+    // applyAppearance() flips the .dark class when the OS theme changes under auto.
+    act(() => document.documentElement.classList.add('dark'));
+    await waitFor(() => expect(screen.getByAltText('TREK')).toHaveAttribute('src', '/text-light.svg'));
+  });
+  it('FE-MOB-AADD-030: wanderer hangs off an enabled Tours addon and saves its switch', async () => {
     const user = userEvent.setup();
-    let pulled: unknown = null;
-    let modelCalls = 0;
+    const puts: unknown[] = [];
     server.use(
-      addonsRoute([llmAddon({ provider: 'local' })]),
-      http.get('/api/admin/llm/local/models', () => {
-        modelCalls += 1;
-        return HttpResponse.json({ models: modelCalls === 1 ? [] : [{ name: 'qwen3.5:4b', size: 1 }] });
-      }),
-      http.post('/api/admin/llm/local/pull', async ({ request }) => {
-        pulled = await request.json();
-        await delay(150);
-        return new HttpResponse(
-          '{"status":"pulling manifest"}\n{"status":"downloading","total":100,"completed":40}\nnot-json\n',
-          { headers: { 'Content-Type': 'application/x-ndjson' } },
-        );
-      }),
+      addonsRoute([buildAddon({ id: 'tours', name: 'Tours', icon: 'Mountain', enabled: true })]),
+      http.get('/api/admin/tours-wanderer', () => HttpResponse.json({ enabled: false })),
+      http.put('/api/admin/tours-wanderer', async ({ request }) => {
+        puts.push(await request.json());
+        return HttpResponse.json({ enabled: true });
+      })
     );
-    render(<><ToastContainer /><MAdminAddonManager /></>);
-
-    await screen.findByText('No models installed yet — pull one below.');
-    await user.click(screen.getByRole('button', { name: 'Pull' }));
-
-    // While the request is in flight the row shows the busy label and status line.
-    await screen.findByText('Pulling…');
-    expect(screen.getByText('starting…')).toBeInTheDocument();
-
-    await screen.findByText('Model pulled');
-    expect(pulled).toEqual({ baseUrl: 'http://localhost:11434/v1', model: 'qwen3.5:4b' });
-    expect(screen.getByPlaceholderText('select or pull below')).toHaveValue('qwen3.5:4b');
-    // Reloaded models now contain the pulled one, so the row switches to "Selected".
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Selected' })).toBeDisabled());
-  });
-
-  it('FE-MOB-AADD-022: a failing pull surfaces the server error', async () => {
-    const user = userEvent.setup();
-    server.use(
-      addonsRoute([llmAddon({ provider: 'local' })]),
-      modelsRoute([]),
-      http.post('/api/admin/llm/local/pull', () => HttpResponse.json({ error: 'no disk space' }, { status: 500 })),
-    );
-    render(<><ToastContainer /><MAdminAddonManager /></>);
-
-    await screen.findByText('No models installed yet — pull one below.');
-    await user.click(screen.getByRole('button', { name: 'Pull' }));
-
-    await screen.findByText('no disk space');
-    expect(screen.getByRole('button', { name: 'Pull' })).toBeEnabled();
-  });
-
-  it('FE-MOB-AADD-025: an error frame in the pull stream aborts the pull', async () => {
-    const user = userEvent.setup();
-    server.use(
-      addonsRoute([llmAddon({ provider: 'local' })]),
-      modelsRoute([]),
-      http.post('/api/admin/llm/local/pull', () => new HttpResponse(
-        '{"status":"pulling manifest"}\n{"error":"manifest not found"}\n',
-        { headers: { 'Content-Type': 'application/x-ndjson' } },
-      )),
-    );
-    render(<><ToastContainer /><MAdminAddonManager /></>);
-
-    await screen.findByText('No models installed yet — pull one below.');
-    await user.click(screen.getByRole('button', { name: 'Pull' }));
-
-    await screen.findByText('manifest not found');
-    expect(screen.queryByText('Model pulled')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Pull' })).toBeEnabled();
-  });
-
-  it('FE-MOB-AADD-023: saving posts the whole config and reports both outcomes', async () => {
-    const user = userEvent.setup();
-    const bodies: unknown[] = [];
-    server.use(
-      addonsRoute([llmAddon({ provider: 'openai', model: 'gpt-4o', baseUrl: 'https://api.openai.com/v1', apiKey: '••••••••', multimodal: true })]),
-      http.put('/api/admin/addons/llm_parsing', async ({ request }) => {
-        bodies.push(await request.json());
-        return bodies.length === 1 ? HttpResponse.json({ success: true }) : HttpResponse.error();
-      }),
-    );
-    render(<><ToastContainer /><MAdminAddonManager /></>);
-
-    const save = await screen.findByRole('button', { name: 'Save' });
-    await user.click(save);
-
-    await screen.findByText('Saved');
-    expect(bodies[0]).toEqual({
-      config: {
-        provider: 'openai',
-        model: 'gpt-4o',
-        baseUrl: 'https://api.openai.com/v1',
-        apiKey: '••••••••',
-        multimodal: true,
-      },
-    });
-
-    await user.click(screen.getByRole('button', { name: 'Save' }));
-    await screen.findByText('Failed to save');
-  });
-
-  it('FE-MOB-AADD-024: the API key field can be revealed', async () => {
-    const user = userEvent.setup();
-    server.use(addonsRoute([llmAddon({ provider: 'anthropic', apiKey: 'sk-secret' })]));
     render(<MAdminAddonManager />);
 
-    const field = await screen.findByDisplayValue('sk-secret');
-    expect(field).toHaveAttribute('type', 'password');
-
-    await user.click(within(field.parentElement as HTMLElement).getByRole('button', { name: 'Show or hide' }));
-    expect(screen.getByDisplayValue('sk-secret')).toHaveAttribute('type', 'text');
-
-    await user.type(screen.getByDisplayValue('sk-secret'), '-rotated');
-    expect(screen.getByDisplayValue('sk-secret-rotated')).toBeInTheDocument();
+    const toggle = await screen.findByRole('switch', { name: 'wanderer' });
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    await user.click(toggle);
+    await waitFor(() => expect(puts).toEqual([{ enabled: true }]));
   });
 });

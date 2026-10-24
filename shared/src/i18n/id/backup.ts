@@ -30,7 +30,7 @@ const backup: TranslationStrings = {
   'backup.auto.subtitle': 'Pencadangan otomatis sesuai jadwal',
   'backup.auto.enable': 'Aktifkan cadangan otomatis',
   'backup.auto.enableHint': 'Cadangan akan dibuat secara otomatis sesuai jadwal yang dipilih',
-  'backup.auto.interval': 'Interval',
+  'backup.auto.interval': 'Interval', // same-as-en
   'backup.auto.hour': 'Jalankan pada jam',
   'backup.auto.hourHint': 'Waktu lokal server (format {format})',
   'backup.auto.dayOfWeek': 'Hari dalam seminggu',
@@ -68,5 +68,6 @@ const backup: TranslationStrings = {
     'Semua data saat ini (perjalanan, tempat, pengguna, unggahan) akan digantikan secara permanen oleh cadangan ini. Tindakan ini tidak dapat dibatalkan.',
   'backup.restoreTip': 'Tips: Buat cadangan kondisi saat ini sebelum memulihkan.',
   'backup.restoreConfirm': 'Ya, pulihkan',
+  'backup.auto.hourHintTz': 'Waktu lokal server (format {format}), zona waktu {timezone}',
 };
 export default backup;

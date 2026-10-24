@@ -80,39 +80,49 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:share.label': 'Διαχείριση συνδέσμων ταξιδιών',
   'oauth.scope.journey:share.description':
     'Δημιουργία, ενημέρωση και ανάκληση δημόσιων συνδέσμων κοινής χρήσης για ταξίδια',
-  'oauth.authorize.authorizing': 'Authorizing…', // en-fallback
-  'oauth.authorize.loading': 'Loading…', // en-fallback
-  'oauth.authorize.errorTitle': 'Authorization Error', // en-fallback
-  'oauth.authorize.loginTitle': 'Sign in to continue', // en-fallback
-  'oauth.authorize.loginDescription': '{client} wants access to your TREK account. Please sign in first.', // en-fallback
-  'oauth.authorize.loginButton': 'Sign in to TREK', // en-fallback
-  'oauth.authorize.requestLabel': 'Authorization Request', // en-fallback
-  'oauth.authorize.requestDescription': 'This application is requesting access to your TREK account.', // en-fallback
-  'oauth.authorize.trustNote': 'Only grant access to applications you trust. Your data stays on your server.', // en-fallback
-  'oauth.authorize.selectScope': 'Select at least one scope', // en-fallback
-  'oauth.authorize.approveOneScope': 'Approve ({count} scope)', // en-fallback
-  'oauth.authorize.approveManyScopes': 'Approve ({count} scopes)', // en-fallback
-  'oauth.authorize.approveAccess': 'Approve Access', // en-fallback
-  'oauth.authorize.deny': 'Deny', // en-fallback
-  'oauth.authorize.choosePermissions': 'Choose which permissions to grant', // en-fallback
-  'oauth.authorize.permissionsRequested': 'Permissions requested', // en-fallback
-  'oauth.authorize.alwaysIncluded': 'Always included', // en-fallback
-  'oauth.authorize.alwaysTool.listTrips': 'List your trips so the AI can discover trip IDs', // en-fallback
-  'oauth.authorize.alwaysTool.getTripSummary': 'Read a trip overview needed to use any other tool', // en-fallback
+  'oauth.authorize.authorizing': 'Εξουσιοδότηση…',
+  'oauth.authorize.loading': 'Φόρτωση…',
+  'oauth.authorize.errorTitle': 'Σφάλμα εξουσιοδότησης',
+  'oauth.authorize.loginTitle': 'Συνδεθείτε για να συνεχίσετε',
+  'oauth.authorize.loginDescription':
+    'Η εφαρμογή {client} ζητά πρόσβαση στον λογαριασμό σας στο TREK. Συνδεθείτε πρώτα.',
+  'oauth.authorize.loginButton': 'Σύνδεση στο TREK',
+  'oauth.authorize.requestLabel': 'Αίτημα εξουσιοδότησης',
+  'oauth.authorize.requestDescription': 'Αυτή η εφαρμογή ζητά πρόσβαση στον λογαριασμό σας στο TREK.',
+  'oauth.authorize.verifiedHost': 'Επαληθευμένος τομέας: {host}',
+  'oauth.authorize.trustNote':
+    'Δώστε πρόσβαση μόνο σε εφαρμογές που εμπιστεύεστε. Τα δεδομένα σας μένουν στον διακομιστή σας.',
+  'oauth.authorize.selectScope': 'Επιλέξτε τουλάχιστον μία εμβέλεια',
+  'oauth.authorize.approveScopes': 'Έγκριση ({count} δικαιώματα)',
+  'oauth.authorize.approveScopes.one': 'Έγκριση ({count} δικαίωμα)',
+  'oauth.authorize.approveAccess': 'Έγκριση πρόσβασης',
+  'oauth.authorize.deny': 'Απόρριψη',
+  'oauth.authorize.choosePermissions': 'Επιλέξτε ποια δικαιώματα θα δοθούν',
+  'oauth.authorize.permissionsRequested': 'Δικαιώματα που ζητούνται',
+  'oauth.authorize.alwaysIncluded': 'Πάντα συμπεριλαμβάνονται',
+  'oauth.authorize.alwaysTool.listTrips': 'Εμφάνιση των ταξιδιών σας ώστε η AI να βρίσκει τα ID των ταξιδιών',
+  'oauth.authorize.alwaysTool.getTripSummary':
+    'Ανάγνωση της επισκόπησης ενός ταξιδιού, απαραίτητη για κάθε άλλο εργαλείο',
   'oauth.scope.group.files': 'Αρχεία',
   'oauth.scope.group.settings': 'Ρυθμίσεις',
   'oauth.scope.files:read.label': 'Προβολή αρχείων ταξιδιού',
-  'oauth.scope.files:read.description': 'Λίστα των εγγράφων ενός ταξιδιού: ονόματα, μεγέθη, ποιος τα ανέβασε και με τι συνδέονται',
+  'oauth.scope.files:read.description':
+    'Λίστα των εγγράφων ενός ταξιδιού: ονόματα, μεγέθη, ποιος τα ανέβασε και με τι συνδέονται',
   'oauth.scope.files:write.label': 'Διαχείριση αρχείων ταξιδιού',
-  'oauth.scope.files:write.description': 'Μετονομασία και περιγραφή αρχείων, σύνδεσή τους με κρατήσεις και τοποθεσίες, επισήμανση και διαγραφή',
+  'oauth.scope.files:write.description':
+    'Μετονομασία και περιγραφή αρχείων, σύνδεσή τους με κρατήσεις και τοποθεσίες, επισήμανση και διαγραφή',
   'oauth.scope.files:content.label': 'Ανάγνωση περιεχομένου αρχείων',
-  'oauth.scope.files:content.description': 'Ανάγνωση του περιεχομένου ενός ανεβασμένου εγγράφου, όπως ένα PDF κράτησης ή ένα εισιτήριο',
+  'oauth.scope.files:content.description':
+    'Ανάγνωση του περιεχομένου ενός ανεβασμένου εγγράφου, όπως ένα PDF κράτησης ή ένα εισιτήριο',
   'oauth.scope.settings:read.label': 'Προβολή προτιμήσεων',
-  'oauth.scope.settings:read.description': 'Ανάγνωση μονάδων, μορφής ώρας, γλώσσας, προεπιλεγμένου νομίσματος και αρχικής σελίδας',
+  'oauth.scope.settings:read.description':
+    'Ανάγνωση μονάδων, μορφής ώρας, γλώσσας, προεπιλεγμένου νομίσματος και αρχικής σελίδας',
   'oauth.scope.settings:write.label': 'Αλλαγή προτιμήσεων',
-  'oauth.scope.settings:write.description': 'Αλλαγή μονάδων, μορφής ώρας, γλώσσας, προεπιλεγμένου νομίσματος και αρχικής σελίδας. Ποτέ αποθηκευμένων κλειδιών API',
+  'oauth.scope.settings:write.description':
+    'Αλλαγή μονάδων, μορφής ώρας, γλώσσας, προεπιλεγμένου νομίσματος και αρχικής σελίδας. Ποτέ αποθηκευμένων κλειδιών API',
   'oauth.scope.group.plugins': 'Πρόσθετα',
   'oauth.scope.plugins:use.label': 'Εκτέλεση εργαλείων προσθέτων',
-  'oauth.scope.plugins:use.description': 'Επιτρέπει σε αυτήν την εφαρμογή να καλεί εργαλεία που δημοσιεύουν τα πρόσθετα που εγκατέστησε και ενέκρινε ένας διαχειριστής. Κάθε πρόσθετο ενεργεί με τα δικαιώματα που του έχουν ήδη δοθεί, όχι με τα εύρη αυτού του διακριτικού',
+  'oauth.scope.plugins:use.description':
+    'Επιτρέπει σε αυτήν την εφαρμογή να καλεί εργαλεία που δημοσιεύουν τα πρόσθετα που εγκατέστησε και ενέκρινε ένας διαχειριστής. Κάθε πρόσθετο ενεργεί με τα δικαιώματα που του έχουν ήδη δοθεί, όχι με τα εύρη αυτού του διακριτικού',
 };
 export default oauth;

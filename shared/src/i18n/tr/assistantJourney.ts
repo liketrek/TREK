@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types';
+
+const assistantJourney: TranslationStrings = {
+  'assistant.card.journey.label': 'Günlük kayıtları',
+  'assistant.card.journey.open': 'Günlükte aç',
+  'assistant.card.journey.entries': '{count} kayıt',
+  'assistant.card.journey.entries.one': '{count} kayıt',
+  'assistant.card.journey.more': 'günlükte {count} tane daha',
+  'assistant.card.journey.more.one': 'günlükte {count} tane daha',
+  'assistant.card.journey.photos': '{count} fotoğraf',
+  'assistant.card.journey.photos.one': '{count} fotoğraf',
+  'assistant.card.journey.toSuggestion': 'Yeniden öneriye döner',
+  'assistant.card.journey.video': 'Bir videoyla başlar',
+  'assistant.card.journey.typeEntry': 'Yazılmış kayıt',
+  'assistant.card.journey.typeCheckin': 'Giriş kaydı',
+  'assistant.card.journey.notDraft': 'Artık taslak değil',
+  'assistant.card.journey.onRoute': 'Yeniden rotada',
+  'assistant.card.journey.restored': 'Öneri geri getirildi',
+  'assistant.change.verb.addJournalEntry': 'Günlüğe kayıt ekle',
+  'assistant.change.verb.updateJournalEntry': 'Günlük kaydını değiştir',
+  'assistant.change.verb.removeJournalEntry': 'Günlük kaydını sil',
+  'assistant.step.readingJournal': 'Günlük okunuyor',
+  'assistant.tool.create_journey': 'Günlük başlat',
+  'assistant.tool.update_journey': 'Günlüğü değiştir',
+  'assistant.tool.add_journey_trip': 'Geziyi günlüğe ekle',
+  'assistant.tool.link_trip_journal': 'Günlüğü bu gezide göster',
+  'assistant.tool.reorder_journey_entries': 'Günlüğü yeniden sırala',
+  'assistant.followUp.journalToday': 'Bugün için bir kayıt yaz',
+  'assistant.followUp.journalSummary': 'Bu günleri özetle',
+};
+export default assistantJourney;

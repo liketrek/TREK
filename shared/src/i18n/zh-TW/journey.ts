@@ -6,6 +6,11 @@ const journey: TranslationStrings = {
   'journey.title': '旅程',
   'journey.subtitle': '即時記錄你的旅行',
   'journey.new': '新建旅程',
+  'journey.lightbox.zoomIn': '放大',
+  'journey.lightbox.zoomOut': '縮小',
+  'journey.lightbox.zoomReset': '回到完整照片',
+  'journey.lightbox.previous': '上一張照片',
+  'journey.lightbox.next': '下一張照片',
   'journey.create': '建立',
   'journey.titlePlaceholder': '你要去哪裡？',
   'journey.empty': '還沒有旅程',
@@ -66,6 +71,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.suggestionLabel': '旅行剛結束',
   'journey.frontpage.suggestionText': '將 <strong>{title}</strong> 變成一段旅程',
   'journey.frontpage.dismiss': '忽略',
+  'journey.frontpage.dismissError': '無法忽略此建議',
   'journey.frontpage.journeyName': '旅程名稱',
   'journey.frontpage.namePlaceholder': '例如 東南亞 2026',
   'journey.frontpage.selectTrips': '選擇旅行',
@@ -78,6 +84,8 @@ const journey: TranslationStrings = {
   'journey.detail.addEntry': '新增條目',
   'journey.detail.jumpToTop': '回到頂部',
   'journey.detail.jumpToLast': '跳到最後一則',
+  'journey.detail.dayJump': '跳到某一天',
+  'journey.detail.dayJumpCount': '{count} 天',
   'journey.detail.newEntry': '新建條目',
   'journey.detail.editEntry': '編輯條目',
   'journey.detail.noEntries': '還沒有條目',
@@ -90,7 +98,7 @@ const journey: TranslationStrings = {
   'journey.detail.contributors': '貢獻者',
   'journey.detail.readMore': '閱讀更多',
   'journey.detail.prosCons': '優缺點',
-  'journey.detail.photos': '照片',
+  'journey.detail.photos': '張照片',
   'journey.detail.day': '第{number}天',
   'journey.detail.places': '個地點',
   'journey.stats.days': '天',
@@ -189,8 +197,20 @@ const journey: TranslationStrings = {
   'journey.settings.subtitle': '副標題',
   'journey.settings.subtitlePlaceholder': '例如 泰國、越南和柬埔寨',
   'journey.settings.tracks': 'GPX 軌跡',
+  'journey.settings.recordings': '已記錄的日子',
   'journey.settings.showTripTracks': '顯示所有行程的 GPX 軌跡',
-  'journey.settings.showTripTracksHint': '在地圖上繪製關聯行程中的已記錄路線。',
+  'journey.settings.showTripTracksHint': '在地圖上繪製已連結行程的規劃路線(GPX 軌跡)。',
+  'journey.settings.autoPrepare': '自動準備記錄的日子',
+  'journey.settings.autoPrepareHint':
+    '連結的行程進行期間，你 Dawarich 中的停留點會在對應的日子等待查看。有自己連線的編輯者會收到各自的停留點。不會自動寫入日誌。',
+  'journey.settings.status': '狀態',
+  'journey.settings.statusAuto': '自動',
+  'journey.settings.statusAutoHint': '跟隨連結行程的日期。沒有行程時，旅記維持為草稿。',
+  'journey.settings.statusManualHint': '已手動設定。在切回自動之前，行程日期不會再改變它。',
+  'journey.settings.photosSection': '照片',
+  'journey.settings.photoLocation': '依照片定位條目',
+  'journey.settings.photoLocationHint':
+    '沒有地點的條目會使用其第一張帶 GPS 照片的拍攝位置。你手動設定的地點永遠不會被更動。',
   'journey.settings.endJourney': '封存旅程',
   'journey.settings.reopenJourney': '還原旅程',
   'journey.settings.archived': '旅程已封存',
@@ -205,6 +225,8 @@ const journey: TranslationStrings = {
   'journey.settings.coverFailed': '上傳失敗',
   'journey.settings.failedToDelete': '刪除失敗',
   'journey.entries.deleteTitle': '刪除條目',
+  'journey.gallery.deleteTitle': '刪除照片',
+  'journey.gallery.deleteMessage': '這張照片將從相簿以及所有使用它的條目中移除。此操作無法復原。',
   'journey.photosUploaded': '{count} 張照片已上傳',
   'journey.photosUploadFailed': '部分照片上傳失敗',
   'journey.photosAdded': '{count} 張照片已新增',
@@ -232,36 +254,37 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': '未找到相簿',
   'journey.picker.selectDate': '選擇日期',
   'journey.picker.search': '搜尋',
-  'journey.detail.journeyTab': 'Journey', // en-fallback
-  'journey.contributors.remove': 'Remove contributor', // en-fallback
-  'journey.contributors.removeConfirm': 'Remove {username} from this journey?', // en-fallback
-  'journey.contributors.removed': 'Contributor removed', // en-fallback
-  'journey.contributors.removeFailed': 'Failed to remove contributor', // en-fallback
-  'journey.editor.externalPhotos': 'External photos', // en-fallback
-  'journey.editor.externalPhotosFor': 'Photos for {date}', // en-fallback
-  'journey.editor.externalPhotosNearby': 'Nearby photos first', // en-fallback
-  'journey.editor.externalPhotosNoLocation': 'All photos from this day', // en-fallback
-  'journey.editor.externalPhotosQueued': 'queued', // en-fallback
-  'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
-  'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
-  'journey.picker.day': 'This day', // en-fallback
-  'journey.studio.title': 'TREK Studio', // en-fallback
-  'journey.studio.open': 'Studio', // en-fallback
-  'journey.studio.openAria': 'Open the photo book studio', // en-fallback
-  'journey.studio.backToJourney': 'Back to the journey', // en-fallback
-  'journey.studio.format': 'Page format', // en-fallback
-  'journey.studio.formatA4Landscape': 'A4 landscape', // en-fallback
-  'journey.studio.formatA4Portrait': 'A4 portrait', // en-fallback
-  'journey.studio.formatSquare21': 'Square 21 × 21 cm', // en-fallback
-  'journey.studio.formatSquare30': 'Square 30 × 30 cm', // en-fallback
-  'journey.studio.pages': 'Pages', // en-fallback
-  'journey.studio.cover': 'Cover', // en-fallback
-  'journey.studio.inspector': 'Properties', // en-fallback
-  'journey.studio.inspectorEmpty': 'Select something on the page to edit it.', // en-fallback
-  'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
-  'journey.studio.autoLayout': 'Auto layout', // en-fallback
-  'journey.studio.export': 'Export', // en-fallback
-  'journey.studio.day': '第',
+  'journey.detail.journeyTab': '旅程',
+  'journey.contributors.remove': '移除參與者',
+  'journey.contributors.removeConfirm': '要將 {username} 從此旅程中移除嗎？',
+  'journey.contributors.removed': '已移除參與者',
+  'journey.contributors.removeFailed': '無法移除參與者',
+  'journey.contributors.viaTrips': '透過旅行',
+  'journey.contributors.viaTripsHint': '因為某個旅行連結了此日誌，他們可以開啟它。請在該旅行的設定中變更。',
+  'journey.contributors.viaTrip': '透過 {trip}',
+  'journey.editor.externalPhotos': '外部照片',
+  'journey.editor.externalPhotosFor': '{date} 的照片',
+  'journey.editor.externalPhotosNearby': '附近照片優先',
+  'journey.editor.externalPhotosNoLocation': '當天的所有照片',
+  'journey.editor.externalPhotosQueued': '已排入佇列',
+  'journey.editor.externalPhotosUnavailable': '沒有可用的已連線相片服務。',
+  'journey.editor.externalPhotosPartialFailed': '{failed} 組照片失敗，請再次儲存以重試',
+  'journey.picker.day': '這一天',
+  'journey.studio.title': 'TREK Studio',
+  'journey.studio.open': 'Studio',
+  'journey.studio.openAria': '開啟相簿書 Studio',
+  'journey.studio.backToJourney': '返回旅程',
+  'journey.studio.format': '頁面格式',
+  'journey.studio.formatA4Landscape': 'A4 橫向',
+  'journey.studio.formatA4Portrait': 'A4 直向',
+  'journey.studio.formatSquare21': '正方形 21 × 21 公分',
+  'journey.studio.formatSquare30': '正方形 30 × 30 公分',
+  'journey.studio.pages': '頁面',
+  'journey.studio.cover': '封面',
+  'journey.studio.inspectorEmpty': '選取要編輯的項目',
+  'journey.studio.autoLayout': '自動排版',
+  'journey.studio.export': '匯出',
+  'journey.studio.day': '第{day}天',
   'journey.studio.stations': '途經地',
   'journey.studio.peersHere': '在線',
   'journey.studio.folioAuto': '自動',
@@ -273,105 +296,104 @@ const journey: TranslationStrings = {
   'journey.studio.exportFinishing': '後製',
   'journey.studio.exportMarks': '裁切標記',
   'journey.studio.exportMarksHint': '每條邊加 {bleed} 公釐出血，並標出裁切位置',
-  'journey.studio.exportNote': '{sheets} 張 {width} × {height} 公釐。瀏覽器會把列印檢視轉成 PDF。',
+  'journey.studio.exportNote': '共 {count} 張，每張 {width} × {height} 公釐。瀏覽器會把列印檢視轉成 PDF。',
   'journey.studio.exportOpen': '列印檢視',
   'journey.studio.exportSave': '另存為 PDF',
   'journey.studio.exportPreparing': '正在準備',
   'journey.studio.exportSheetCount': '{count} 張',
-  'journey.studio.undo': 'Undo', // en-fallback
-  'journey.studio.redo': 'Redo', // en-fallback
-  'journey.studio.zoomIn': 'Zoom in', // en-fallback
-  'journey.studio.zoomOut': 'Zoom out', // en-fallback
-  'journey.studio.zoomFit': 'Fit to view', // en-fallback
+  'journey.studio.undo': '復原',
+  'journey.studio.redo': '重做',
+  'journey.studio.zoomIn': '放大',
+  'journey.studio.zoomOut': '縮小',
+  'journey.studio.zoomFit': '符合視窗',
   'journey.studio.downloadSpread': '下載這個跨頁',
   'journey.studio.downloadSpreadHint': '將這個跨頁的設計存成檔案（不含照片），方便分享或再次使用',
   'journey.studio.importSpread': '匯入',
   'journey.studio.importSpreadHint': '從下載的設計檔案加入一個跨頁',
   'journey.studio.importSpreadFailed': '這個檔案不是 TREK Studio 的跨頁',
-  'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': '排一本書需要足夠的空間，所以 Studio 只在電腦上使用，製作 PDF 也是。旅程的其他功能在這裡照常可用。', // en-fallback
-  'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
-  'journey.studio.bookView': 'Book view', // en-fallback
-  'journey.studio.multiple': 'Several', // en-fallback
-  'journey.studio.kind.photo': 'Photo', // en-fallback
-  'journey.studio.kind.text': 'Text', // en-fallback
-  'journey.studio.kind.shape': 'Shape', // en-fallback
-  'journey.studio.position': 'Position', // en-fallback
-  'journey.studio.width': 'W', // en-fallback
-  'journey.studio.height': 'H', // en-fallback
-  'journey.studio.text': 'Text', // en-fallback
-  'journey.studio.typography': 'Type', // en-fallback
-  'journey.studio.leading': 'Line', // en-fallback
-  'journey.studio.colour': 'Colour', // en-fallback
+  'journey.studio.desktopOnly': 'Studio 需要較大的螢幕',
+  'journey.studio.desktopOnlyHint':
+    '排一本書需要足夠的空間，所以 Studio 只在電腦上使用，製作 PDF 也是。旅程的其他功能在這裡照常可用。',
+  'journey.studio.formatA5Landscape': 'A5 橫向',
+  'journey.studio.bookView': '書本檢視',
+  'journey.studio.multiple': '多個',
+  'journey.studio.kind.photo': '照片',
+  'journey.studio.kind.text': '文字',
+  'journey.studio.kind.shape': '圖形',
+  'journey.studio.position': '位置',
+  'journey.studio.width': '寬',
+  'journey.studio.height': '高',
+  'journey.studio.text': '文字',
+  'journey.studio.typography': '字型',
+  'journey.studio.leading': '行距',
+  'journey.studio.colour': '顏色',
   'journey.studio.autoColour': '自動',
   'journey.studio.countryNames': '名稱',
-  'journey.studio.crop': 'Crop', // en-fallback
-  'journey.studio.look': 'Look', // en-fallback
-  'journey.studio.radius': 'Corner', // en-fallback
-  'journey.studio.shape': 'Shape', // en-fallback
-  'journey.studio.arrange': 'Arrange', // en-fallback
-  'journey.studio.toFront': 'Bring to front', // en-fallback
-  'journey.studio.forward': 'Bring forward', // en-fallback
-  'journey.studio.backward': 'Send backward', // en-fallback
-  'journey.studio.toBack': 'Send to back', // en-fallback
-  'journey.studio.lock': 'Lock', // en-fallback
-  'journey.studio.unlock': 'Unlock', // en-fallback
-  'journey.studio.delete': 'Delete', // en-fallback
-  'journey.studio.pageHint': 'Page', // en-fallback
-  'journey.studio.boundHint': 'Follows the journal entry. Editing it here breaks that link.', // en-fallback
-  'journey.studio.fit.cover': 'Fill', // en-fallback
-  'journey.studio.fit.contain': 'Fit', // en-fallback
-  'journey.studio.filter.none': 'Original', // en-fallback
-  'journey.studio.filter.bw': 'Black & white', // en-fallback
-  'journey.studio.filter.warm': 'Warm', // en-fallback
-  'journey.studio.shapeKind.rect': 'Rectangle', // en-fallback
-  'journey.studio.shapeKind.ellipse': 'Ellipse', // en-fallback
-  'journey.studio.focalHint': 'Drag the point to choose what stays in frame.', // en-fallback
-  'journey.studio.backCover': 'Back cover', // en-fallback
-  'journey.studio.sections': 'Sections', // en-fallback
-  'journey.studio.content': 'Content', // en-fallback
-  'journey.studio.elements': 'Elements', // en-fallback
-  'journey.studio.templates': 'Layouts', // en-fallback
-  'journey.studio.photos': 'Photos', // en-fallback
-  'journey.studio.entries': 'Entries', // en-fallback
-  'journey.studio.addToPage': 'Add to this page', // en-fallback
-  'journey.studio.noPhotos': 'This journey has no photos yet.', // en-fallback
-  'journey.studio.untitled': 'Untitled', // en-fallback
-  'journey.studio.addTitle': 'Title', // en-fallback
-  'journey.studio.addStory': 'Story', // en-fallback
-  'journey.studio.addPlace': 'Place', // en-fallback
-  'journey.studio.shapes': 'Shapes', // en-fallback
-  'journey.studio.frames': '相框', // en-fallback
-  'journey.studio.emptyFrame': 'Empty frame', // en-fallback
-  'journey.studio.frameHint': 'An empty frame marks where a picture goes. Drop one on it from Content.', // en-fallback
-  'journey.studio.shapeKind.line': 'Line', // en-fallback
-  'journey.studio.styleTitle': 'Heading', // en-fallback
-  'journey.studio.styleSubtitle': 'Subheading', // en-fallback
-  'journey.studio.styleBody': 'Body text', // en-fallback
-  'journey.studio.styleCaption': 'Caption', // en-fallback
-  'journey.studio.sampleHeading': 'A heading', // en-fallback
-  'journey.studio.sampleSubheading': 'A subheading', // en-fallback
-  'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
-  'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
-  'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
-  'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
-  'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
-  'journey.studio.tpl.grid4': 'Four up', // en-fallback
-  'journey.studio.tpl.grid6': 'Six up', // en-fallback
-  'journey.studio.tpl.strip': 'Strip and text', // en-fallback
-  'journey.studio.tpl.quietText': 'Text only', // en-fallback
-  'journey.studio.tpl.portraitPair': 'A pair', // en-fallback
+  'journey.studio.crop': '裁切',
+  'journey.studio.look': '外觀',
+  'journey.studio.radius': '圓角',
+  'journey.studio.shape': '形狀',
+  'journey.studio.arrange': '排列',
+  'journey.studio.toFront': '移到最上層',
+  'journey.studio.forward': '上移一層',
+  'journey.studio.backward': '下移一層',
+  'journey.studio.toBack': '移到最下層',
+  'journey.studio.lock': '鎖定',
+  'journey.studio.unlock': '解除鎖定',
+  'journey.studio.delete': '刪除',
+  'journey.studio.pageHint': '頁面',
+  'journey.studio.boundHint': '內容會跟隨日誌條目。在此編輯會中斷連結。',
+  'journey.studio.fit.cover': '填滿',
+  'journey.studio.fit.contain': '符合',
+  'journey.studio.filter.none': '原始',
+  'journey.studio.filter.bw': '黑白',
+  'journey.studio.filter.warm': '暖色',
+  'journey.studio.shapeKind.rect': '矩形',
+  'journey.studio.shapeKind.ellipse': '橢圓',
+  'journey.studio.focalHint': '拖曳圓點來選擇要保留在畫面內的部分。',
+  'journey.studio.backCover': '封底',
+  'journey.studio.coverInside': '封面內側，保持空白',
+  'journey.studio.backCoverInside': '封底內側，保持空白',
+  'journey.studio.sections': '章節',
+  'journey.studio.content': '內容',
+  'journey.studio.elements': '元素',
+  'journey.studio.templates': '版面',
+  'journey.studio.photos': '照片',
+  'journey.studio.entries': '紀錄',
+  'journey.studio.addToPage': '加入此頁',
+  'journey.studio.noPhotos': '此旅程還沒有照片。',
+  'journey.studio.untitled': '未命名',
+  'journey.studio.addTitle': '標題',
+  'journey.studio.addStory': '故事',
+  'journey.studio.addPlace': '地點',
+  'journey.studio.shapes': '形狀',
+  'journey.studio.frames': '相框',
+  'journey.studio.emptyFrame': '空白相框',
+  'journey.studio.frameHint': '空白相框標示圖片的位置。從「內容」把圖片拖到上面即可。',
+  'journey.studio.shapeKind.line': '線條',
+  'journey.studio.styleTitle': '標題',
+  'journey.studio.styleSubtitle': '副標題',
+  'journey.studio.styleBody': '內文',
+  'journey.studio.styleCaption': '圖說',
+  'journey.studio.sampleHeading': '標題範例',
+  'journey.studio.sampleSubheading': '副標題範例',
+  'journey.studio.sampleBody': '寫下這一天的故事。',
+  'journey.studio.sampleCaption': '圖說',
+  'journey.studio.tpl.heroStory': '主視覺與故事',
+  'journey.studio.tpl.fullBleed': '單張圖片，跨頁滿版',
+  'journey.studio.tpl.twoUp': '兩張滿版',
+  'journey.studio.tpl.grid4': '四格',
+  'journey.studio.tpl.grid6': '六格',
+  'journey.studio.tpl.strip': '長條與文字',
+  'journey.studio.tpl.quietText': '純文字',
+  'journey.studio.tpl.portraitPair': '一對',
   'journey.studio.dropPhotoHere': '將照片拖放\n到這裡',
-  'journey.studio.searchContent': 'Search photos and entries', // en-fallback
-  'journey.studio.noMatches': 'Nothing matches that.', // en-fallback
-  'journey.studio.decorations': 'Decoration', // en-fallback
-  'journey.studio.quoteMark': 'Quotation mark', // en-fallback
-  'journey.studio.circleOutline': 'Outlined circle', // en-fallback
-  'journey.studio.roundFrame': 'Rounded frame', // en-fallback
-  'journey.studio.shapeKind.rounded': 'Rounded rectangle', // en-fallback
-  'journey.studio.shapeKind.triangle': 'Triangle', // en-fallback
-  'journey.studio.shapeKind.outline': 'Outline only', // en-fallback
+  'journey.studio.searchContent': '搜尋照片和條目',
+  'journey.studio.noMatches': '沒有符合的項目。',
+  'journey.studio.quoteMark': '引號',
+  'journey.studio.shapeKind.rounded': '圓角矩形',
+  'journey.studio.shapeKind.triangle': '三角形',
+  'journey.studio.shapeKind.outline': '僅外框',
   'journey.studio.travel': '旅程',
   'journey.studio.travelEmpty': '這趟旅程的數據尚未就緒。',
   'journey.studio.grids': '格線',
@@ -394,23 +416,17 @@ const journey: TranslationStrings = {
   'journey.studio.shapeGroup.decor': '裝飾',
   'journey.studio.shapeGroup.banners': '橫幅',
   'journey.studio.summary': '總覽',
-  'journey.studio.tripSummary': '旅程總覽',
-  'journey.studio.statsRow': '一列',
-  'journey.studio.statsFull': '全部',
   'journey.studio.routeMap': '路線地圖',
   'journey.studio.mapStyle.minimal': '極簡',
   'journey.studio.mapStyle.outline': '輪廓',
   'journey.studio.mapStyle.paper': '紙質',
   'journey.studio.mapStyle.dark': '深色',
   'journey.studio.countries': '國家',
-  'journey.studio.countryList': '國家清單',
-  'journey.studio.countryGrid': '國家格線',
   'journey.studio.noCountries': '尚未判定這趟旅程的國家。',
   'journey.studio.noRoute': '尚無附座標的停留點。',
   'journey.studio.marks': '標記',
   'journey.studio.dateMark': '日期',
   'journey.studio.dayMark': '天數計數',
-  'journey.studio.dayWord': 'DAY',
   'journey.studio.coordsMark': '座標',
   'journey.studio.coordsDms': '度分秒',
   'journey.studio.coordsDecimal': '十進位',
@@ -430,6 +446,18 @@ const journey: TranslationStrings = {
   'journey.studio.kind.list': '清單',
   'journey.studio.kind.icon': '圖示',
   'journey.studio.duplicate': '複製',
+  'journey.studio.copyToPage': '複製，可貼到任何頁面 (Ctrl+C)',
+  'journey.studio.paste': '貼上 (Ctrl+V)',
+  'journey.studio.pasteEmpty': '請先複製內容，再貼到任何頁面',
+  'journey.studio.pageFull': '此頁面已滿：單頁已放滿元素。請先刪除一些內容，或使用其他頁面。',
+  'journey.studio.myLayouts': '我的版面',
+  'journey.studio.myLayoutsEmpty': '保存你排好的頁面，讓其他頁面套用相同的版面。它們的照片與文字會保留。',
+  'journey.studio.saveLayout': '將此頁面儲存為版面',
+  'journey.studio.saveLayoutHint': '保存不含照片的排列方式，供這本手冊的所有編輯者使用',
+  'journey.studio.saveLayoutFull': '這本手冊最多可保存 24 個版面。刪除一個後才能儲存新的。',
+  'journey.studio.deleteLayout': '刪除版面',
+  'journey.studio.layoutName': '版面',
+  'journey.studio.builtInLayouts': '內建',
   'journey.studio.style': '樣式',
   'journey.studio.shows': '顯示',
   'journey.studio.size': '字級',
@@ -439,12 +467,8 @@ const journey: TranslationStrings = {
   'journey.studio.rotation': '旋轉',
   'journey.studio.opacity': '不透明度',
   'journey.studio.fill': '填色',
-  'journey.studio.fillOn': '填滿',
   'journey.studio.stroke': '描邊色',
   'journey.studio.strokeWidth': '粗細',
-  'journey.studio.gradient': '漸隱',
-  'journey.studio.gradientDown': '向下',
-  'journey.studio.gradientUp': '向上',
   'journey.studio.showIcons': '圖示',
   'journey.studio.mapFit': '範圍',
   'journey.studio.mapPadding': '留白',
@@ -456,6 +480,35 @@ const journey: TranslationStrings = {
   'journey.studio.markStyle.chip': '實心',
   'journey.studio.markStyle.outline': '線框',
   'journey.studio.markStyle.stacked': '堆疊',
+  'journey.studio.statsLook.classic': '經典',
+  'journey.studio.statsLook.poster': '海報',
+  'journey.studio.statsLook.ticket': '票根',
+  'journey.studio.statsLook.tiles': '卡片',
+  'journey.studio.statsLook.band': '橫條',
+  'journey.studio.statsLook.medal': '獎章',
+  'journey.studio.statsLook.odometer': '里程表',
+  'journey.studio.statsLook.sign': '路牌',
+  'journey.studio.statsLook.note': '便條',
+  'journey.studio.statsLook.sketch': '手繪',
+  'journey.studio.countryLook.visa': '簽證',
+  'journey.studio.countryLook.flag': '旗幟',
+  'journey.studio.countryLook.pin': '圖釘',
+  'journey.studio.countryLook.label': '行李貼',
+  'journey.studio.countryLook.sketch': '手繪',
+  'journey.studio.markStyle.ribbon': '緞帶',
+  'journey.studio.markStyle.sticker': '貼紙',
+  'journey.studio.markStyle.patch': '刺繡徽章',
+  'journey.studio.markStyle.sketch': '手繪',
+  'journey.studio.travelFigures': '數字',
+  'journey.studio.travelMaps': '地圖',
+  'journey.studio.countryLook.classic': '經典',
+  'journey.studio.countryLook.stamp': '印章',
+  'journey.studio.countryLook.postcard': '明信片',
+  'journey.studio.markStyle.stamp': '印章',
+  'journey.studio.markStyle.tag': '行李吊牌',
+  'journey.studio.markStyle.pill': '膠囊',
+  'journey.studio.pinNumbered': '編號',
+  'journey.studio.pinEnds': '起點和終點',
   'journey.studio.icon': '圖示',
   'journey.studio.iconAndLabel': '圖示與文字',
   'journey.studio.iconOnly': '僅圖示',
@@ -497,19 +550,17 @@ const journey: TranslationStrings = {
   'journey.studio.strokeDotted': '點線',
   'journey.studio.singleFigures': '單一數據',
   'journey.studio.addPage': '新增頁面',
+  'journey.studio.addPageShort': '頁面',
   'journey.studio.addPageAfter': '在此後插入頁面',
   'journey.studio.duplicatePage': '複製頁面',
   'journey.studio.deletePage': '刪除頁面',
   'journey.studio.movePageUp': '前移',
   'journey.studio.movePageDown': '後移',
-  'journey.studio.beta': 'Beta',
   'journey.studio.addProsCons': '優缺點',
   'journey.studio.showMarks': '符號',
   'journey.studio.formatCustom': '自訂尺寸',
   'journey.studio.document': '文件',
   'journey.studio.pageNumbers': '頁碼',
-  'journey.studio.pageNumbersOn': '開',
-  'journey.studio.pageNumbersOff': '關',
   'journey.studio.folio.outer': '外側',
   'journey.studio.folio.inner': '內側',
   'journey.studio.folio.centre': '置中',
@@ -530,7 +581,6 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.mosaic': '馬賽克',
   'journey.studio.tpl.bandQuote': '文字置中',
   'journey.studio.tpl.staggerFour': '四張錯落',
-  'journey.studio.weightMissing': '此字體沒有這個字重',
   'journey.studio.mapSource': '地圖來源',
   'journey.studio.mapSourceVector': '輪廓',
   'journey.studio.mapSourceRelief': '地形暈渲',
@@ -549,14 +599,12 @@ const journey: TranslationStrings = {
   'journey.studio.pinPhoto': '照片',
   'journey.studio.pinPhotoNone': '這些停留點還沒有照片，因此以圓點顯示。',
   'journey.studio.roads': '道路',
-  'journey.studio.roadsFetch': '沿道路繪製',
   'journey.studio.roadsFollow': '沿道路',
   'journey.studio.roadsDirect': '直連',
   'journey.studio.recommended': '推薦',
   'journey.studio.bleed': '出血',
   'journey.studio.safeArea': '安全區',
   'journey.studio.roadsAgain': '重新取得',
-  'journey.studio.roadsClear': '清除',
   'journey.studio.roadsBusy': '取得中',
   'journey.studio.roadsHint': '向路線服務查詢每段行程實際行駛的路線。長途路段維持原樣。',
   'journey.studio.roadsHave': '道路資料已儲存在這本書裡，離線也能列印出同樣的線條。',
@@ -580,8 +628,6 @@ const journey: TranslationStrings = {
   'journey.studio.mapClipRect': '有邊框',
   'journey.studio.mapClipCountry': '依形狀裁切',
   'journey.studio.mapClipNeedsCountry': '需要一個國家來裁切',
-  'journey.studio.mapCutVector': '裁切',
-  'journey.studio.mapCutTiles': '裁切地圖',
   'journey.studio.mapZoomAuto': '自動',
   'journey.studio.saving': '正在儲存',
   'journey.studio.saved': '已儲存',
@@ -594,6 +640,8 @@ const journey: TranslationStrings = {
   'journey.studio.rotateLeft': '向左旋轉',
   'journey.studio.rotateRight': '向右旋轉',
   'journey.studio.saveReadOnly': '唯讀，不會儲存',
+  'journey.studio.saveNewer': '此書由較新版本的 Studio 儲存。請重新載入後再編輯。',
+  'journey.studio.saveReload': '重新載入',
   'journey.studio.filterPhotos': '篩選照片',
   'journey.studio.filterAll': '全部照片',
   'journey.studio.filterLoose': '不屬於任何條目',
@@ -603,6 +651,8 @@ const journey: TranslationStrings = {
   'journey.studio.noEntryPhotos': '這個條目還沒有照片。',
   'journey.studio.noLoosePhotos': '這裡的每張照片都屬於某個條目。',
   'journey.studio.uploadPhotos': '上傳照片',
+  'journey.studio.fromProvider': '來自 {name}',
+  'journey.studio.fromProviderHint': '從 {name} 選擇照片，加到上傳會放入的位置',
   'journey.studio.uploadHint': '將圖片拖放到這裡，或點擊選擇',
   'journey.studio.uploadToEntry': '新圖片會加入這個條目',
   'journey.studio.uploadToGallery': '新圖片會加入圖庫',
@@ -621,6 +671,11 @@ const journey: TranslationStrings = {
   'journey.editor.statsExcluded': '不計入路線',
   'journey.editor.statsExcludedHint': '該停留點仍保留在日誌中，但不計入 Studio 中的距離、國家和地圖。',
   'journey.entry.offRoute': '不在路線內',
+  'journey.entry.draft': '草稿',
+  'journey.editor.draft': '草稿',
+  'journey.editor.draftHint': '只有你和其他貢獻者看得到這則記錄。在你關閉此選項之前，分享的旅程不會包含它。',
+  'journey.editor.tripSuggestionHint': '這一天落在此行程期間內。連結後，行程中的地點會加入此旅程。',
+  'journey.editor.tripSuggestionLater': '暫時不要',
   'journey.suggestions.dismiss': '忽略這則建議',
   'journey.suggestions.dismissed': '已忽略該建議',
   'journey.suggestions.restore': '找回已忽略的建議',
@@ -637,5 +692,174 @@ const journey: TranslationStrings = {
   'journey.settings.showWeather': '天氣',
   'journey.entry.suggestion': '建議',
   'journey.editor.addDetails': '＋詳情',
+  'journey.recording.mapLine': '記錄於 {date}',
+  'journey.recording.keptBy': '已保存記錄的路線：{distance}，由 {name} 於 {date} 匯入。',
+  'journey.recording.keptOn': '已保存記錄的路線：{distance}，於 {date} 匯入。',
+  'journey.recording.keptRunning': '當時這一天還沒有結束。',
+  'journey.recording.takeOver': '匯入記錄',
+  'journey.recording.takeOverDay': '{date} 的記錄',
+  'journey.recording.sub': '只匯入這一天，來自你的 Dawarich。確認之前不會保存任何內容。',
+  'journey.recording.zone': '這一天的時區',
+  'journey.recording.zoneHint': '這一天依該時區從午夜到午夜計算。請選擇你旅行時所在的時區。',
+  'journey.recording.zoneSource': '來自 Dawarich',
+  'journey.recording.zoneDevice': '本裝置',
+  'journey.recording.scope': '記錄',
+  'journey.recording.loading': '正在從 Dawarich 讀取這一天…',
+  'journey.recording.keptStays': '這趟旅程保存的路線維持不變。',
+  'journey.recording.retry': '重試',
+  'journey.recording.empty': 'Dawarich 在該時區的這一天沒有任何記錄。',
+  'journey.recording.span': '{from} 至 {to}',
+  'journey.recording.pieces': '{count} 段',
+  'journey.recording.gaps': '{count} 處中斷',
+  'journey.recording.gapsHint': '記錄中斷的地方，線條也會中斷。不會畫出沒有記錄的路。',
+  'journey.recording.sourceHint': '軌跡是 Dawarich 已依交通方式劃分的路線。點是原始位置，每天精簡到 600 個。',
+  'journey.recording.sourceTracks': '軌跡',
+  'journey.recording.sourcePoints': '點',
+  'journey.recording.changedSincePreview': '你查看時 Dawarich 中的記錄有了變化。請再檢查一次，然後保存。',
+  'journey.recording.truncated': 'Dawarich 只傳送了這一天的一部分，路線不完整。',
+  'journey.recording.provisional': '在該時區這一天還沒有結束。之後可以用完整的一天取代路線。',
+  'journey.recording.same': '這趟旅程已經保存了完全相同的記錄。',
+  'journey.recording.differs': '這趟旅程保存了 {date} 的另一個版本（{distance}）。取代不會改動任何條目或文字。',
+  'journey.recording.audience': '這趟旅程中的另外 {count} 人會在地圖上看到這條路線。共享連結不會顯示它。',
+  'journey.recording.replace': '取代',
+  'journey.recording.alreadyKept': '已保存',
+  'journey.recording.keep': '保存路線',
+  'journey.recording.remove': '移除路線',
+  'journey.recording.removeTitle': '要移除已保存的路線嗎？',
+  'journey.recording.removeMessage':
+    '這一天的路線將從旅程地圖上消失。條目和文字會保留，Dawarich 也會保留它自己的記錄。',
+  'journey.recording.keptToast': '路線已保存到旅程',
+  'journey.recording.replacedToast': '路線已取代',
+  'journey.recording.removedToast': '路線已從旅程移除',
+  'journey.recording.error.recording_exists': '這趟旅程已經保存了那一天的另一筆記錄。',
+  'journey.recording.error.recording_changed': '自預覽以來記錄已有變化。',
+  'journey.recording.error.recording_empty': 'Dawarich 那一天沒有任何記錄。',
+  'journey.recording.mode.walking': '步行',
+  'journey.recording.mode.running': '跑步',
+  'journey.recording.mode.cycling': '騎單車',
+  'journey.recording.mode.driving': '開車',
+  'journey.recording.mode.motorcycle': '機車',
+  'journey.recording.mode.bus': '公車',
+  'journey.recording.mode.train': '火車',
+  'journey.recording.mode.flying': '飛行',
+  'journey.recording.mode.boat': '船',
+  'journey.recording.mode.stationary': '靜止',
+  'journey.recording.mode.unknown': '未知方式',
+  'journey.dayImport.open': '匯入當天',
+  'journey.dayImport.openHint': '連同停留點匯入這一天',
+  'journey.dayImport.openOn': '連同停留點匯入 {date}',
+  'journey.dayImport.pending': '{count} 個停留點待查看',
+  'journey.dayImport.sub': '你在 Dawarich 中這一天的停留點。選擇、改名並合併它們，它們會成為草稿。',
+  'journey.dayImport.loading': '正在從 Dawarich 讀取當天的停留點…',
+  'journey.dayImport.map': '地圖上的這一天',
+  'journey.dayImport.stays': '停留點',
+  'journey.dayImport.modeEntries': '項目',
+  'journey.dayImport.modeReport': '當日記述',
+  'journey.dayImport.reportDefault': '{date} 這一天',
+  'journey.dayImport.reportHint': '所有選取的停留點會成為一個項目，依時間列出。每個地點都會保留在地圖上。',
+  'journey.dayImport.reportNeedsTwo': '當日記述需要選取兩個或更多停留點。',
+  'journey.dayImport.groupTitle': '項目標題',
+  'journey.dayImport.groupPin': '地圖位置',
+  'journey.dayImport.noPin': '無地圖位置',
+  'journey.dayImport.join': '合併為一個項目',
+  'journey.dayImport.split': '保持分開',
+  'journey.dayImport.choose': '匯入 {name}',
+  'journey.dayImport.name': '{name} 的名稱',
+  'journey.dayImport.unconfirmed': '未確認',
+  'journey.dayImport.noPlace': '無位置',
+  'journey.dayImport.noPlaceHint': 'Dawarich 沒有記錄這個停留點的位置，所以它的項目不會出現在地圖上。',
+  'journey.dayImport.statusHere': '在 {title} 中',
+  'journey.dayImport.statusHereUntitled': '在日誌中',
+  'journey.dayImport.statusElsewhere': '已匯入',
+  'journey.dayImport.statusElsewhereHint': '已作為地點、願望或匯入到其他日誌中。',
+  'journey.dayImport.statusSkipped': '已略過',
+  'journey.dayImport.keepRoute': '同時儲存當天的路線',
+  'journey.dayImport.keepRouteHint': '已記錄 {distance}。旅程中的每個人都能在地圖上看到。',
+  'journey.dayImport.routeNone': 'Dawarich 這一天沒有記錄路線。',
+  'journey.dayImport.routeKept': '路線已儲存',
+  'journey.dayImport.routeDiffers': 'Dawarich 現在有另一版本的路線。請用當天的路線按鈕取代。',
+  'journey.dayImport.existing': '這一天已有',
+  'journey.dayImport.untitled': '無標題項目',
+  'journey.dayImport.draft': '草稿',
+  'journey.dayImport.audience': '草稿不會出現在分享連結中。這次旅程的另外 {count} 人可以看到。',
+  'journey.dayImport.draftsNote': '草稿在你發布之前不會出現在分享連結中。之後再加入照片和文字。',
+  'journey.dayImport.submit': '匯入 {count} 篇草稿',
+  'journey.dayImport.skipped': '已略過 {count} 個',
+  'journey.dayImport.skipHint': '略過的停留點不再在這一天等待處理。你可以在 Dawarich 停留點清單中還原它們。',
+  'journey.dayImport.problem.nothing': '請至少選取一個停留點。',
+  'journey.dayImport.problem.name': '每個選取的停留點都需要名稱。',
+  'journey.dayImport.problem.title': '每個合併的項目和當日記述都需要標題。',
+  'journey.dayImport.done': '已匯入 {count} 篇草稿',
+  'journey.dayImport.alreadyTaken': '{count} 個停留點之前已被採用，沒有重複寫入。',
+  'journey.dayImport.failed': '沒有匯入任何內容：{reason} 清單顯示日誌現在的內容；再試一次不會重複寫入。',
+  'journey.dayImport.routeFailed': '草稿已建立，但路線未儲存：{reason}',
+  'journey.dayImport.routeRetry': '再次儲存路線',
+  'journey.dayImport.stale': 'Dawarich 沒有回應：{reason} 顯示的是 {date} 上次同步的停留點。',
+  'journey.dayImport.staleNever': 'Dawarich 沒有回應：{reason} 顯示的是 TREK 已知的停留點。',
+  'journey.dayImport.truncated': 'Dawarich 只傳送了這一天的一部分，可能缺少停留點。',
+  'journey.dayImport.empty': 'Dawarich 在這一天沒有找到停留點。',
+  'journey.prep.lastSuccess': '上次取得：{time}。',
+  'journey.prep.never': '尚未取得。下一次背景同步會開始取得。',
+  'journey.prep.failed': '上次重新整理失敗：{reason} 正在顯示 {time} 取得的內容。',
+  'journey.prep.failedNever': '首次取得失敗：{reason}',
+  'journey.prep.notConnected': '請在設定中連結 Dawarich，以便準備你的日子。',
+  'journey.prep.noPeriods': '請連結一個有日期的行程：只會準備它的日子。',
+  'journey.prep.syncOff': '你的 Dawarich 設定中關閉了背景同步，只有在你要求時才會取得。',
+  'journey.prep.fetchNow': '立即取得',
+  'journey.prep.fetching': '正在取得…',
+  'journey.prep.fetchFailed': '目前無法向 Dawarich 查詢。',
+  'journey.prep.dayRunning': '這一天還沒結束，可能還會有更多停留點。',
+  'journey.prep.dayPending': '尚未取得。',
+  'journey.prep.dayProvisional': '於 {time} 取得，當時這一天還沒結束，可能缺少停留點。',
+  'journey.prep.dayFailed': '上次重新整理失敗，這是較早的狀態。',
+  'journey.prep.outOfReach': '結束超過 {count} 天的旅行不會在背景準備。開啟其中某一天即可手動取得。',
+  'journey.prep.alreadyRunning': '背景已有一次取得正在進行。完成後停留點就會顯示。',
+  'journey.dayImport.running': '這一天還沒結束。之後記錄的停留點會在 Dawarich 收到後顯示。',
+  'journey.map.layers': '地圖圖層',
+  'journey.map.layer.plan': '計畫',
+  'journey.map.layer.recorded': '記錄',
+  'journey.map.layer.entries': '日記',
+  'journey.map.layer.photos': '照片',
+  'journey.map.layer.loading': '載入中',
+  'journey.map.layer.planEmpty': '連結的行程在其日程中沒有地點',
+  'journey.map.layer.planUnavailable': '無法載入計畫，地圖的其餘部分仍會顯示',
+  'journey.map.layer.recordedEmpty': '還沒有記錄的路線',
+  'journey.map.layer.recordedUnavailable': '無法載入記錄的日子',
+  'journey.map.layer.entriesEmpty': '還沒有帶地點的日記',
+  'journey.map.layer.entriesUnavailable': '無法載入每日報告的停留點，日記仍會顯示',
+  'journey.map.layer.photosEmpty': '還沒有帶位置的照片',
+  'journey.map.legend': '圖例',
+  'journey.map.legend.planned': '計畫的地點',
+  'journey.map.legend.entry': '日記項目',
+  'journey.map.legend.plannedWritten': '已計畫並已記述',
+  'journey.map.legend.stay': '每日報告的停留點',
+  'journey.map.legend.several': '同一地點的多個',
+  'journey.map.legend.lines': '路線',
+  'journey.map.legend.plannedRoute': '計畫的路線（行程的 GPX）',
+  'journey.map.legend.recordedRoute': '記錄的路線',
+  'journey.map.legend.planIsNoVisit': '計畫的地點不能證明到訪過。只有日記、照片和記錄才能顯示你去過哪裡。',
+  'journey.map.pick.openEntry': '開啟日記',
+  'journey.map.pick.planned': '已計畫',
+  'journey.map.pick.notWritten': '還沒有寫過它。',
+  'journey.map.pick.stay': '停留點',
+  'journey.map.pick.partOf': '屬於「{title}」',
+  'journey.map.pick.here': '在此地點',
+  'journey.map.pick.back': '返回清單',
+  'journey.map.pick.timeRange': '{from} 至 {to}',
+  'journey.share.plan': '行程計畫',
+  'journey.share.planHint': '在地圖上顯示連結行程的計畫地點和 GPX 路線',
+  'journey.share.recordings': '記錄的路線',
+  'journey.share.recordingsHint': '有已發布日記的日子的記錄，以及從中取用的停留點。會顯示你何時去過哪裡，也包括住處。',
+  'journey.share.needsMap': '分享地圖後才能開啟',
+  'journey.editor.tags': '標籤',
+  'journey.studio.assistant.toggle': '助理',
+  'journey.studio.assistant.toggleHint': '與助理一起設計這本書',
+  'journey.studio.assistant.panel': '書籍助理',
+  'journey.studio.assistant.welcome': '這本書想做成什麼樣子？',
+  'journey.studio.assistant.readOnly': '你只能檢視這本書，所以我可以回答問題，但不能做任何變更。',
+  'journey.studio.assistant.notice':
+    '助理可以查看你正在編輯的頁面。只有這一頁會以圖片形式傳送給 {provider}，圖片中只顯示你自己新增的照片。無法辨識照片中的人物是誰。',
+  'journey.studio.assistant.noticeAllow': '允許查看頁面',
+  'journey.studio.assistant.noticeLater': '暫不',
 };
 export default journey;

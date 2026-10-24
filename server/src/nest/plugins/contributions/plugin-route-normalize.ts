@@ -1,6 +1,5 @@
+import type { PluginsRepository } from '../../../db/repositories/Plugins.repository';
 import { stripEmoji } from '../text-sanitize';
-
-import type Database from 'better-sqlite3';
 
 type Tone = 'default' | 'success' | 'warn' | 'danger';
 
@@ -120,12 +119,19 @@ export function normalize(
   return { pluginId, profile, coordinates, distance, duration, legs, viaPoints };
 }
 
-export function declaredProfiles(conn: Database.Database, pluginId: string): string[] {
+/**
+ * SV4 (R-survivors) — was `SELECT capabilities FROM plugins WHERE id = ?` over a
+ * raw connection; now `PluginsRepository#findCapabilities` (PR52/PR53, Plan 3j
+ * Task 2's `plugin-runtime.service.ts#capabilityList`/`#mcpToolCapabilities`
+ * conversion of the SAME column read — reused here rather than adding a fourth
+ * near-identical method). Three external callers (`roadtrip-router.service.ts`'s
+ * RRT1/RRT2, `plugin-routes.controller.ts`) switch from the raw-connection
+ * signature to this repository-typed one — Task 5's.
+ */
+export async function declaredProfiles(plugins: PluginsRepository, pluginId: string): Promise<string[]> {
   try {
-    const row = conn.prepare('SELECT capabilities FROM plugins WHERE id = ?').get(pluginId) as
-      | { capabilities?: string }
-      | undefined;
-    const c = JSON.parse(row?.capabilities || '{}') as { routeProfiles?: Array<{ id?: unknown }> };
+    const capabilities = await plugins.findCapabilities(pluginId);
+    const c = JSON.parse(capabilities || '{}') as { routeProfiles?: Array<{ id?: unknown }> };
     if (!Array.isArray(c.routeProfiles)) return [];
     return c.routeProfiles
       .map((p) => (p && typeof p === 'object' && typeof p.id === 'string' ? p.id : ''))

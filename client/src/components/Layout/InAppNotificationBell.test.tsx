@@ -1,4 +1,4 @@
-// FE-COMP-BELL-001 to FE-COMP-BELL-020
+// FE-COMP-BELL-001 to FE-COMP-BELL-021
 import { render, screen, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
@@ -164,14 +164,30 @@ describe('InAppNotificationBell', () => {
     expect(markAllRead).toHaveBeenCalled();
   });
 
-  it('FE-COMP-BELL-015: clicking Delete all calls store action', async () => {
+  it('FE-COMP-BELL-015: Delete all asks first and only then calls the store action', async () => {
     const user = userEvent.setup();
     const deleteAll = vi.fn();
     seedStore(useInAppNotificationStore, { notifications: [buildNotification()], unreadCount: 1, isLoading: false, deleteAll });
     render(<InAppNotificationBell />);
     await user.click(screen.getAllByRole('button')[0]);
     await user.click(screen.getByTitle('Delete all'));
+    expect(deleteAll).not.toHaveBeenCalled();
+    expect(screen.getByText('Delete all notifications?')).toBeInTheDocument();
+    // The confirm button is the last one drawn, after the panel's own trash button.
+    await user.click(screen.getAllByRole('button', { name: 'Delete all' }).slice(-1)[0]);
     expect(deleteAll).toHaveBeenCalled();
+  });
+
+  it('FE-COMP-BELL-015b: cancelling the Delete all question keeps the notifications', async () => {
+    const user = userEvent.setup();
+    const deleteAll = vi.fn();
+    seedStore(useInAppNotificationStore, { notifications: [buildNotification()], unreadCount: 1, isLoading: false, deleteAll });
+    render(<InAppNotificationBell />);
+    await user.click(screen.getAllByRole('button')[0]);
+    await user.click(screen.getByTitle('Delete all'));
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(deleteAll).not.toHaveBeenCalled();
+    expect(screen.queryByText('Delete all notifications?')).not.toBeInTheDocument();
   });
 
   it('FE-COMP-BELL-016: Show all notifications navigates to /notifications', async () => {
@@ -237,5 +253,14 @@ describe('InAppNotificationBell', () => {
     await user.click(bell);
     // fetchNotifications should be called once per open (2 total)
     expect(fetchNotifications).toHaveBeenCalledTimes(2);
+  });
+
+  it('FE-COMP-BELL-021: unread badge is large enough that the count is not squeezed', () => {
+    seedStore(useInAppNotificationStore, { notifications: [], unreadCount: 150, isLoading: false });
+    render(<InAppNotificationBell />);
+    const badge = screen.getByTestId('notification-badge');
+    expect(badge).toHaveTextContent('99+');
+    expect(badge.style.height).toBe('20px');
+    expect(badge.style.minWidth).toBe('20px');
   });
 });

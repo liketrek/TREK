@@ -1,17 +1,22 @@
-import { Injectable } from '@nestjs/common';
-import { randomBytes, createHash } from 'crypto';
-import {
-  PUBLIC_API_SCOPES,
-  type PublicApiGrant,
-  type PublicApiScope,
-} from '@trek/shared';
-import { DatabaseService } from '../database/database.service';
-import { EphemeralTokenService } from '../auth/ephemeral-token.service';
+import { McpTokens } from '../../db/entities/McpTokens.entity';
+import { Users } from '../../db/entities/Users.entity';
+import { MCP_TOKEN_API_SCOPES } from '../../db/json-columns';
+import type { McpTokensRepository, McpTokenBasicRow } from '../../db/repositories/McpTokens.repository';
+import type { UsersRepository } from '../../db/repositories/Users.repository';
 // Import from sessionManager directly, NOT the ../../mcp barrel: the barrel pulls
 // the whole tools fan-out (and via the domain bridges, the Nest services) into
 // every consumer of this module — a nest→mcp→nest module cycle.
 import { revokeUserSessions } from '../../mcp/sessionManager';
 import { User } from '../../types';
+import { decodeJson } from '../../utils/json-column';
+import { EphemeralTokenService } from '../auth-core/ephemeral-token.service';
+import { DomainError } from '../common/domain-error';
+import { toRowId } from '../common/row-id';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import { PUBLIC_API_SCOPES, type PublicApiGrant, type PublicApiScope } from '@trek/shared';
+
+import { randomBytes, createHash } from 'crypto';
 
 /**
  * What a token is allowed to drive. Stored on the row so each surface can accept
@@ -29,22 +34,25 @@ type TokenKind = 'mcp' | 'api';
  * touch one table (mcp_tokens) plus the ephemeral-token store, and nothing in
  * here needs to know how a password is hashed or how a session is established.
  *
- * The methods moved verbatim — same SQL, same validation order, same error
- * strings and status codes, same best-effort session revoke on delete.
+ * The methods moved verbatim — same SQL (now through `McpTokensRepository`),
+ * same validation order, same error strings and status codes, same
+ * best-effort session revoke on delete. The raw token is still never stored —
+ * only its SHA-256 hash reaches the repository, computed here exactly as
+ * before.
  *
  * Deliberately NOT here: verifyJwtToken (that is login identity, and it stays
- * next to the cookie/JWT logic on AuthService) and isDemoUser (a demo gate that
- * happens to read the users table).
+ * next to the cookie/JWT logic on AuthService).
  */
 @Injectable()
 export class TokenService {
   constructor(
-    private readonly db: DatabaseService,
+    @InjectRepository(McpTokens) private readonly tokens: McpTokensRepository,
+    @InjectRepository(Users) private readonly users: UsersRepository,
     private readonly ephemeral: EphemeralTokenService,
   ) {}
 
-  listMcpTokens(userId: number) {
-    return this.listTokens(userId, 'mcp');
+  async listMcpTokens(userId: number) {
+    return await this.listTokens(userId, 'mcp');
   }
 
   /**
@@ -57,15 +65,12 @@ export class TokenService {
    * radius nobody asked for, so `kind` keeps the two apart and each surface
    * verifies the one it accepts.
    */
-  listApiTokens(userId: number) {
-    return this.listTokens(userId, 'api');
+  async listApiTokens(userId: number) {
+    return await this.listTokens(userId, 'api');
   }
 
-  private listTokens(userId: number, kind: TokenKind) {
-    const rows = this.db.all<TokenRow>(
-      'SELECT id, name, token_prefix, created_at, last_used_at, scope_mode, api_scopes FROM mcp_tokens WHERE user_id = ? AND kind = ? ORDER BY created_at DESC',
-      userId, kind
-    );
+  private async listTokens(userId: number, kind: TokenKind) {
+    const rows = await this.tokens.listByUserAndKind(userId, kind);
     // The MCP list keeps the exact shape it has always had: those tokens carry
     // no read scopes, and two columns that are always "everything" would be
     // noise in a panel that cannot act on them.
@@ -86,8 +91,8 @@ export class TokenService {
     });
   }
 
-  createMcpToken(userId: number, rawName: unknown) {
-    return this.createToken(userId, rawName, 'mcp');
+  async createMcpToken(userId: number, rawName: unknown) {
+    return await this.createToken(userId, rawName, 'mcp');
   }
 
   /**
@@ -97,17 +102,22 @@ export class TokenService {
    * before this argument existed. Narrowing is opt-in on purpose: shipping the
    * column must not change what an already-running integration can do.
    */
-  createApiToken(userId: number, rawName: unknown, scopes?: readonly string[]) {
-    return this.createToken(userId, rawName, 'api', scopes);
+  async createApiToken(userId: number, rawName: unknown, scopes?: readonly string[]) {
+    return await this.createToken(userId, rawName, 'api', scopes);
   }
 
-  private createToken(userId: number, rawName: unknown, kind: TokenKind, scopes?: readonly string[]): { error?: string; status?: number; token?: Record<string, unknown> } {
+  private async createToken(
+    userId: number,
+    rawName: unknown,
+    kind: TokenKind,
+    scopes?: readonly string[],
+  ): Promise<{ token?: Record<string, unknown> }> {
     const name = rawName as string | undefined;
-    if (!name?.trim()) return { error: 'Token name is required', status: 400 };
-    if (name.trim().length > 100) return { error: 'Token name must be 100 characters or less', status: 400 };
+    if (!name?.trim()) throw new DomainError(400, 'Token name is required');
+    if (name.trim().length > 100) throw new DomainError(400, 'Token name must be 100 characters or less');
 
-    const tokenCount = this.db.get<{ count: number }>('SELECT COUNT(*) as count FROM mcp_tokens WHERE user_id = ? AND kind = ?', userId, kind)!.count;
-    if (tokenCount >= 10) return { error: 'Maximum of 10 tokens per user reached', status: 400 };
+    const tokenCount = await this.tokens.countByUserAndKind(userId, kind);
+    if (tokenCount >= 10) throw new DomainError(400, 'Maximum of 10 tokens per user reached');
 
     const rawToken = 'trek_' + randomBytes(24).toString('hex');
     const tokenHash = createHash('sha256').update(rawToken).digest('hex');
@@ -117,30 +127,36 @@ export class TokenService {
     // the column default — rather than being handed a list it would ignore.
     const narrowed = kind === 'api' ? sanitizeScopes(scopes) : null;
 
-    const result = this.db.run(
-      'INSERT INTO mcp_tokens (user_id, name, token_hash, token_prefix, kind, scope_mode, api_scopes) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      userId, name.trim(), tokenHash, tokenPrefix, kind,
-      narrowed ? 'limited' : 'all',
-      narrowed ? JSON.stringify(narrowed) : null,
-    );
+    const inserted = await this.tokens.insertToken({
+      user_id: userId,
+      name: name.trim(),
+      token_hash: tokenHash,
+      token_prefix: tokenPrefix,
+      kind,
+      scope_mode: narrowed ? 'limited' : 'all',
+      api_scopes: narrowed ? JSON.stringify(narrowed) : null,
+    });
 
-    const token = this.db.get(
-      'SELECT id, name, token_prefix, created_at, last_used_at FROM mcp_tokens WHERE id = ?',
-      result.lastInsertRowid
-    );
+    // A separate re-select, matching the legacy INSERT-then-SELECT shape
+    // exactly (TK3 then TK4 — two statements, `insertToken` returns only
+    // the generated id and never re-queries the row itself) — `findBasic`
+    // also serves TK9's admin lookup, so its `user_id` field is dropped
+    // here: TK4's response never carried it, and leaking it would be a new
+    // field on the client-facing token payload, not a refactor.
+    const basic = (await this.tokens.findBasic(inserted.id)) as McpTokenBasicRow;
+    const { user_id: _userId, ...token } = basic;
 
-    const grant = kind === 'api'
-      ? { scope_mode: narrowed ? 'limited' : 'all', scopes: narrowed ?? [...PUBLIC_API_SCOPES] }
-      : {};
-    return { token: { ...(token as object), ...grant, raw_token: rawToken } };
+    const grant =
+      kind === 'api' ? { scope_mode: narrowed ? 'limited' : 'all', scopes: narrowed ?? [...PUBLIC_API_SCOPES] } : {};
+    return { token: { ...token, ...grant, raw_token: rawToken } };
   }
 
-  deleteMcpToken(userId: number, tokenId: string) {
-    return this.deleteToken(userId, tokenId, 'mcp');
+  async deleteMcpToken(userId: number, tokenId: string) {
+    return await this.deleteToken(userId, tokenId, 'mcp');
   }
 
-  deleteApiToken(userId: number, tokenId: string) {
-    return this.deleteToken(userId, tokenId, 'api');
+  async deleteApiToken(userId: number, tokenId: string) {
+    return await this.deleteToken(userId, tokenId, 'api');
   }
 
   /**
@@ -148,13 +164,25 @@ export class TokenService {
    * happily delete a token the MCP panel manages, and the user would find a key
    * missing from a screen they never opened.
    */
-  private deleteToken(userId: number, tokenId: string, kind: TokenKind): { error?: string; status?: number; success?: boolean } {
-    const token = this.db.get('SELECT id FROM mcp_tokens WHERE id = ? AND user_id = ? AND kind = ?', tokenId, userId, kind);
-    if (!token) return { error: 'Token not found', status: 404 };
-    this.db.run('DELETE FROM mcp_tokens WHERE id = ?', tokenId);
+  private async deleteToken(userId: number, tokenId: string, kind: TokenKind): Promise<{ success?: boolean }> {
+    // Convert, VALIDATE, and answer the legacy not-found before any
+    // repository call (program rule 15): the legacy statement bound
+    // `tokenId` straight into `WHERE id = ?` and let SQLite's affinity rules
+    // miss on a non-numeric string; a typed repository filter has no such
+    // leniency, so a bare `Number()` turned a 404 into a 500 (Plan 3b Task 2
+    // review, F1).
+    const id = toRowId(tokenId);
+    if (id === null) throw new DomainError(404, 'Token not found');
+    const token = await this.tokens.findOwnedByKind(id, userId, kind);
+    if (!token) throw new DomainError(404, 'Token not found');
+    await this.tokens.deleteById(id);
     // Best-effort, like the changePassword/resetPassword revocations: a session
     // sweep failure must not turn a successful token delete into a 500.
-    try { revokeUserSessions?.(userId); } catch { /* best-effort */ }
+    try {
+      revokeUserSessions?.(userId);
+    } catch {
+      /* best-effort */
+    }
     return { success: true };
   }
 
@@ -162,12 +190,12 @@ export class TokenService {
   // Ephemeral tokens
   // -------------------------------------------------------------------------
 
-  createWsToken(userId: number): { error?: string; status?: number; token?: string } {
+  async createWsToken(userId: number): Promise<{ token?: string }> {
     // Bind the ws-token to the user's current password_version so a token minted
     // before a password reset is rejected on connect (defence-in-depth session gate).
-    const pv = this.db.get<{ password_version?: number }>('SELECT password_version FROM users WHERE id = ?', userId)?.password_version ?? 0;
+    const pv = (await this.users.getPasswordVersion(userId)) ?? 0;
     const token = this.ephemeral.create(userId, 'ws', { pv });
-    if (!token) return { error: 'Service unavailable', status: 503 };
+    if (!token) throw new DomainError(503, 'Service unavailable');
     return { token };
   }
 
@@ -192,19 +220,18 @@ export class TokenService {
   // user-facing one treats that as best-effort.
   // -------------------------------------------------------------------------
 
-  listAllMcpTokens() {
-    return this.db.all(`
-    SELECT t.id, t.name, t.token_prefix, t.created_at, t.last_used_at, t.user_id, u.username
-    FROM mcp_tokens t
-    JOIN users u ON u.id = t.user_id
-    ORDER BY t.created_at DESC
-  `);
+  async listAllMcpTokens() {
+    return await this.tokens.listAllWithUsername();
   }
 
-  adminDeleteMcpToken(id: string) {
-    const token = this.db.get<{ id: number; user_id: number }>('SELECT id, user_id FROM mcp_tokens WHERE id = ?', id);
-    if (!token) return { error: 'Token not found', status: 404 };
-    this.db.run('DELETE FROM mcp_tokens WHERE id = ?', id);
+  async adminDeleteMcpToken(id: string) {
+    // Same guard as `deleteToken` above — convert, VALIDATE, answer the
+    // legacy 404 before any repository call (F1).
+    const numericId = toRowId(id);
+    if (numericId === null) throw new DomainError(404, 'Token not found');
+    const token = await this.tokens.findBasic(numericId);
+    if (!token) throw new DomainError(404, 'Token not found');
+    await this.tokens.deleteById(numericId);
     revokeUserSessions(token.user_id);
     return {};
   }
@@ -213,13 +240,13 @@ export class TokenService {
   // Verification
   // -------------------------------------------------------------------------
 
-  verifyMcpToken(rawToken: string): User | null {
-    return this.verifyToken(rawToken, 'mcp');
+  async verifyMcpToken(rawToken: string): Promise<User | null> {
+    return await this.verifyToken(rawToken, 'mcp');
   }
 
   /** Verifies an integration key. An MCP token presented here does not resolve. */
-  verifyApiToken(rawToken: string): User | null {
-    return this.verifyToken(rawToken, 'api');
+  async verifyApiToken(rawToken: string): Promise<User | null> {
+    return await this.verifyToken(rawToken, 'api');
   }
 
   /**
@@ -229,16 +256,11 @@ export class TokenService {
    * both halves, nothing else needs either, and the existing signature is
    * pinned by tests that assert exactly a `User`.
    */
-  verifyApiTokenWithGrant(rawToken: string): { user: User; grant: PublicApiGrant } | null {
+  async verifyApiTokenWithGrant(rawToken: string): Promise<{ user: User; grant: PublicApiGrant } | null> {
     const hash = createHash('sha256').update(rawToken).digest('hex');
-    const row = this.db.get<User & { scope_mode: string | null; api_scopes: string | null }>(`
-    SELECT u.id, u.username, u.email, u.role, mt.scope_mode, mt.api_scopes
-    FROM mcp_tokens mt
-    JOIN users u ON mt.user_id = u.id
-    WHERE mt.token_hash = ? AND mt.kind = 'api'
-  `, hash);
+    const row = await this.tokens.findGrantByHash(hash);
     if (!row) return null;
-    this.db.run('UPDATE mcp_tokens SET last_used_at = CURRENT_TIMESTAMP WHERE token_hash = ?', hash);
+    await this.tokens.touchLastUsedByHash(hash);
     const { scope_mode, api_scopes, ...user } = row;
     return { user: user as User, grant: resolveGrant(scope_mode, api_scopes) };
   }
@@ -251,30 +273,18 @@ export class TokenService {
    * neither the caller nor a timing measurement learns that the string was a
    * real credential for somewhere else.
    */
-  private verifyToken(rawToken: string, kind: TokenKind): User | null {
+  private async verifyToken(rawToken: string, kind: TokenKind): Promise<User | null> {
     const hash = createHash('sha256').update(rawToken).digest('hex');
-    const row = this.db.get<User>(`
-    SELECT u.id, u.username, u.email, u.role
-    FROM mcp_tokens mt
-    JOIN users u ON mt.user_id = u.id
-    WHERE mt.token_hash = ? AND mt.kind = ?
-  `, hash, kind);
+    const row = await this.tokens.findUserByHashAndKind(hash, kind);
     if (row) {
-      this.db.run('UPDATE mcp_tokens SET last_used_at = CURRENT_TIMESTAMP WHERE token_hash = ?', hash);
-      return row;
+      await this.tokens.touchLastUsedByHash(hash);
+      // `role` is `users.role TEXT`, narrower at runtime than the repository's
+      // row type states — same trust boundary the pre-ORM raw-SQL lookup's
+      // generic type parameter asserted without a runtime check.
+      return row as User;
     }
     return null;
   }
-}
-
-interface TokenRow {
-  id: number;
-  name: string;
-  token_prefix: string;
-  created_at: string;
-  last_used_at: string | null;
-  scope_mode: string | null;
-  api_scopes: string | null;
 }
 
 /**
@@ -308,16 +318,17 @@ function sanitizeScopes(scopes: readonly string[] | undefined): PublicApiScope[]
  * flag instead of "NULL means everything" is that a key minted as restricted
  * must never widen on its own. A key that stops working is a support ticket; a
  * key that quietly reads every trip is the bug this feature exists to prevent.
+ *
+ * Still defends against `mode`/`raw` arriving `null`, even though
+ * `McpTokensRepository`'s rows type them as non-nullable strings (the
+ * `mcp_tokens.scope_mode` column is `NOT NULL DEFAULT 'all'`): this function
+ * is shared, pure, and untouched by the repository conversion — the
+ * defensiveness costs nothing and keeps `PUBAPI-SCOPE-U042` (a hand-built row
+ * simulating a pre-migration NULL) meaningful.
  */
 function resolveGrant(mode: string | null, raw: string | null): PublicApiGrant {
   if (mode !== 'limited') return { mode: 'all', scopes: [...PUBLIC_API_SCOPES] };
-  let parsed: unknown;
-  try {
-    parsed = raw ? JSON.parse(raw) : null;
-  } catch {
-    parsed = null;
-  }
-  if (!Array.isArray(parsed)) return { mode: 'limited', scopes: [] };
+  const parsed = decodeJson(MCP_TOKEN_API_SCOPES, raw);
   const kept = sanitizeScopes(parsed.filter((value): value is string => typeof value === 'string'));
   return { mode: 'limited', scopes: kept ?? [] };
 }

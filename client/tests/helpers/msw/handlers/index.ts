@@ -14,6 +14,7 @@ import { reservationsHandlers } from './reservations';
 import { filesHandlers } from './files';
 import { tagsHandlers } from './tags';
 import { dayNotesHandlers } from './dayNotes';
+import { toursHandlers } from './tours';
 import { adminHandlers } from './admin';
 import { sharedHandlers } from './shared';
 import { externalHandlers } from './external';
@@ -35,6 +36,7 @@ export const defaultHandlers = [
   ...filesHandlers,
   ...tagsHandlers,
   ...dayNotesHandlers,
+  ...toursHandlers,
   ...adminHandlers,
   ...sharedHandlers,
   ...externalHandlers,

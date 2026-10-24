@@ -70,5 +70,6 @@ const backup: TranslationStrings = {
     '現在のすべてのデータ（旅行、場所、ユーザー、アップロード）はバックアップで完全に置き換えられます。この操作は元に戻せません。',
   'backup.restoreTip': 'ヒント：復元前に現在の状態をバックアップすることをおすすめします。',
   'backup.restoreConfirm': 'はい、復元します',
+  'backup.auto.hourHintTz': 'サーバーのローカル時刻（{format}形式）、タイムゾーン {timezone}',
 };
 export default backup;

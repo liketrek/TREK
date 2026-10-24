@@ -6,10 +6,10 @@ const storage: TranslationStrings = {
   'storage.field.endpoint': 'Slutpunkts-URL',
   'storage.help.endpoint':
     'Bas-URL för den S3-kompatibla tjänsten, t.ex. https://s3.example.com eller http://127.0.0.1:9000.',
-  'storage.field.bucket': 'Bucket',
+  'storage.field.bucket': 'Bucket', // same-as-en
   'storage.field.accessKeyId': 'Åtkomstnyckel-ID',
   'storage.field.secretAccessKey': 'Hemlig åtkomstnyckel',
-  'storage.field.region': 'Region',
+  'storage.field.region': 'Region', // same-as-en
   'storage.help.region': 'Behåll standardvärdet om inte din leverantör kräver en specifik region.',
   'storage.field.keyPrefix': 'Nyckelprefix',
   'storage.help.keyPrefix': 'Valfritt prefix som läggs till varje objektnyckel, t.ex. trek/prod.',
@@ -32,7 +32,7 @@ const storage: TranslationStrings = {
   'storage.backends.add': 'Lägg till backend',
   'storage.backends.usedBy': 'Används av: {categories}',
   'storage.backends.unused': 'Inte tilldelad någon kategori',
-  'storage.backends.envReadOnly': 'Definierad av en miljövariabel — skrivskyddad',
+  'storage.backends.envReadOnly': 'Definierad av en miljövariabel (skrivskyddad)',
   'storage.source.built-in': 'Inbyggd',
   'storage.source.env': 'Miljö',
   'storage.source.settings': 'Inställningar',
@@ -112,7 +112,8 @@ const storage: TranslationStrings = {
   'storage.sync.error': 'Synkronisering misslyckades: {error}',
   'storage.sync.prompt': 'Befintliga objekt har inte replikerats än — synkronisera nu?',
   'storage.sync.dismiss': 'Avvisa',
-  'storage.usage.line': '{objects} objekt · {size}',
+  'storage.usage.line': '{count} objekt · {size}',
+  'storage.usage.line.one': '{count} objekt · {size}',
   'storage.usage.computed': 'Användning beräknad {age}',
   'storage.usage.never': 'Användning inte beräknad än',
   'storage.usage.refresh': 'Uppdatera',
@@ -121,7 +122,8 @@ const storage: TranslationStrings = {
 
   // Category migration (copy → flip → delta sweep)
   'storage.migrate.promptTitle': 'Flytta befintliga objekt till den nya backend?',
-  'storage.migrate.promptLine': '{category}: {objects} objekt ({size}) från {from} till {to}',
+  'storage.migrate.promptLine': '{category}: {count} objekt ({size}) från {from} till {to}',
+  'storage.migrate.promptLine.one': '{category}: {count} objekt ({size}) från {from} till {to}',
   'storage.migrate.promptLineUnknown': '{category}: okänd storlek (användning inte skannad än) från {from} till {to}',
   'storage.migrate.move': 'Flytta befintliga objekt',
   'storage.migrate.routeOnly': 'Dirigera bara nya skrivningar',
@@ -130,7 +132,8 @@ const storage: TranslationStrings = {
   'storage.migrate.doneFailures': '{failed} misslyckades — dessa objekt kopierades inte till den nya backend',
   'storage.migrate.failed': 'Flytt misslyckades: {error} — kategorin byttes inte',
   'storage.migrate.cancelled': 'Flytt avbruten — inget byttes',
-  'storage.migrate.reclaimable': '{objects} objekt ({size}) finns kvar på {from} — återvinn manuellt',
+  'storage.migrate.reclaimable': '{count} objekt ({size}) finns kvar på {from}, återvinn manuellt',
+  'storage.migrate.reclaimable.one': '{count} objekt ({size}) finns kvar på {from}, återvinn manuellt',
   'storage.migrate.cancel': 'Avbryt flytt',
   'storage.migrate.promptCancel': 'Avbryt',
   'storage.migrate.queued': 'I kö: {categories}',

@@ -6,6 +6,11 @@ const journey: TranslationStrings = {
   'journey.title': 'Travesia',
   'journey.subtitle': 'Registra els teus viatges en temps real',
   'journey.new': 'Travesia nova',
+  'journey.lightbox.zoomIn': 'Apropa',
+  'journey.lightbox.zoomOut': 'Allunya',
+  'journey.lightbox.zoomReset': 'Torna a la foto sencera',
+  'journey.lightbox.previous': 'Foto anterior',
+  'journey.lightbox.next': 'Foto següent',
   'journey.create': 'Crea',
   'journey.titlePlaceholder': 'A on vas?',
   'journey.empty': 'Encara no hi ha travesies',
@@ -57,6 +62,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.latestJourney': 'Última travesia',
   'journey.frontpage.allJourneys': 'Totes les travesies',
   'journey.frontpage.journeys': 'travesies',
+  'journey.frontpage.journeys.one': 'travesia',
   'journey.frontpage.createNew': 'Crea una travesia nova',
   'journey.frontpage.createNewSub': 'Tria viatges, escriu històries, comparteix les teves aventures',
   'journey.frontpage.live': 'En viu',
@@ -66,6 +72,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.suggestionLabel': 'El viatge acaba de terminar',
   'journey.frontpage.suggestionText': 'Converteix <strong>{title}</strong> en una travesia',
   'journey.frontpage.dismiss': 'Descarta',
+  'journey.frontpage.dismissError': "No s'ha pogut descartar aquest suggeriment",
   'journey.frontpage.journeyName': 'Nom de la travesia',
   'journey.frontpage.namePlaceholder': 'p. ex. Sud-est Asiàtic 2026',
   'journey.frontpage.selectTrips': 'Selecciona viatges',
@@ -73,11 +80,15 @@ const journey: TranslationStrings = {
   'journey.frontpage.trips': 'viatges',
   'journey.frontpage.placesImported': "llocs s'importaran",
   'journey.frontpage.places': 'llocs',
+  'journey.frontpage.places.one': 'lloc',
   'journey.detail.backToJourney': 'Torna a la travesia',
   'journey.detail.syncedWithTrips': 'Sincronitzat amb viatges',
   'journey.detail.addEntry': 'Afegeix una entrada',
   'journey.detail.jumpToTop': 'Torna a dalt',
   'journey.detail.jumpToLast': 'Ves a l’última entrada',
+  'journey.detail.dayJump': 'Ves a un dia',
+  'journey.detail.dayJumpCount': '{count} dies',
+  'journey.detail.dayJumpCount.one': '{count} dia',
   'journey.detail.newEntry': 'Entrada nova',
   'journey.detail.editEntry': "Edita l'entrada",
   'journey.detail.noEntries': 'Encara no hi ha entrades',
@@ -91,6 +102,7 @@ const journey: TranslationStrings = {
   'journey.detail.readMore': 'Llegeix-ne més',
   'journey.detail.prosCons': 'Pros i contres',
   'journey.detail.photos': 'fotos',
+  'journey.detail.photos.one': 'foto',
   'journey.detail.day': 'Dia {number}',
   'journey.detail.places': 'llocs',
   'journey.stats.days': 'Dies',
@@ -103,6 +115,7 @@ const journey: TranslationStrings = {
   'journey.verdict.lovedIt': "M'ha encantat",
   'journey.verdict.couldBeBetter': 'Podria millorar',
   'journey.synced.places': 'llocs',
+  'journey.synced.places.one': 'lloc',
   'journey.synced.synced': 'sincronitzat',
   'journey.editor.discardChangesConfirm': 'Tens canvis sense desar. Els descartes?',
   'journey.editor.uploadFailed': 'Error en pujar les fotos',
@@ -114,7 +127,7 @@ const journey: TranslationStrings = {
   'journey.editor.allPhotosAdded': "Totes les fotos ja s'han afegit",
   'journey.editor.writeStory': 'Escriu la teva història...',
   'journey.editor.prosCons': 'Pros i contres',
-  'journey.editor.pros': 'Pros',
+  'journey.editor.pros': 'Avantatges',
   'journey.editor.cons': 'Contres',
   'journey.editor.proPlaceholder': 'Una cosa genial...',
   'journey.editor.conPlaceholder': 'No tan genial...',
@@ -135,7 +148,7 @@ const journey: TranslationStrings = {
   'journey.editor.locationInsecureContext': 'La ubicació requereix una connexió segura (HTTPS).',
   'journey.mood.amazing': 'Increïble',
   'journey.mood.good': 'Bé',
-  'journey.mood.neutral': 'Neutral',
+  'journey.mood.neutral': 'Neutral', // same-as-en
   'journey.mood.rough': 'Difícil',
   'journey.weather.sunny': 'Assolellat',
   'journey.weather.partly': 'Parcialment ennuvolat',
@@ -180,7 +193,7 @@ const journey: TranslationStrings = {
   'journey.share.updateFailed': "No s'ha pogut actualitzar",
   'journey.invite.role': 'Rol',
   'journey.invite.viewer': 'Lector',
-  'journey.invite.editor': 'Editor',
+  'journey.invite.editor': 'Editor', // same-as-en
   'journey.invite.invite': 'Convida',
   'journey.invite.inviting': 'Convidant...',
   'journey.settings.title': 'Configuració de la travesia',
@@ -191,8 +204,22 @@ const journey: TranslationStrings = {
   'journey.settings.subtitle': 'Subtítol',
   'journey.settings.subtitlePlaceholder': 'p. ex. Tailàndia, Vietnam i Cambodja',
   'journey.settings.tracks': 'Traces GPX',
+  'journey.settings.recordings': 'Dies enregistrats',
   'journey.settings.showTripTracks': 'Mostra totes les traces GPX dels viatges',
-  'journey.settings.showTripTracksHint': 'Dibuixa al mapa les rutes enregistrades dels viatges enllaçats.',
+  'journey.settings.showTripTracksHint': 'Dibuixa al mapa les rutes planificades (traces GPX) dels viatges enllaçats.',
+  'journey.settings.autoPrepare': 'Prepara automàticament els dies enregistrats',
+  'journey.settings.autoPrepareHint':
+    "Mentre un viatge enllaçat està en curs, les estades del teu Dawarich esperen al seu dia que les revisis. Els editors amb connexió pròpia reben les seves. No s'escriu res al diari sol.",
+  'journey.settings.status': 'Estat',
+  'journey.settings.statusAuto': 'Automàtic',
+  'journey.settings.statusAutoHint':
+    'Segueix les dates dels viatges vinculats. Sense viatge, el diari es queda com a esborrany.',
+  'journey.settings.statusManualHint':
+    'Definit a mà. Les dates del viatge ja no el canvien fins que tornis a automàtic.',
+  'journey.settings.photosSection': 'Fotos',
+  'journey.settings.photoLocation': 'Situa les entrades segons les seves fotos',
+  'journey.settings.photoLocationHint':
+    'Una entrada sense lloc agafa el punt on es va fer la primera foto amb GPS. Els llocs que poses tu no es mouen mai.',
   'journey.settings.endJourney': 'Arxiva el viatge',
   'journey.settings.reopenJourney': 'Restaura el viatge',
   'journey.settings.archived': 'Viatge arxivat',
@@ -207,9 +234,14 @@ const journey: TranslationStrings = {
   'journey.settings.coverFailed': 'Error en pujar',
   'journey.settings.failedToDelete': 'Error en eliminar',
   'journey.entries.deleteTitle': "Elimina l'entrada",
+  'journey.gallery.deleteTitle': 'Elimina la foto',
+  'journey.gallery.deleteMessage':
+    "Aquesta foto s'eliminarà de la galeria i de totes les entrades on apareix. No es pot desfer.",
   'journey.photosUploaded': '{count} fotos pujades',
+  'journey.photosUploaded.one': '{count} foto pujada',
   'journey.photosUploadFailed': "Algunes fotos no s'han pogut pujar",
   'journey.photosAdded': '{count} fotos afegides',
+  'journey.photosAdded.one': '{count} foto afegida',
   'journey.public.notFound': 'No trobat',
   'journey.public.notFoundMessage': "Aquesta travesia no existeix o l'enllaç ha caducat.",
   'journey.public.readOnly': 'Només lectura · Travesia pública',
@@ -239,31 +271,33 @@ const journey: TranslationStrings = {
   'journey.contributors.removeConfirm': "Vols eliminar {username} d'aquesta travesia?",
   'journey.contributors.removed': 'Col·laborador eliminat',
   'journey.contributors.removeFailed': "No s'ha pogut eliminar el col·laborador",
-  'journey.editor.externalPhotos': 'External photos', // en-fallback
-  'journey.editor.externalPhotosFor': 'Photos for {date}', // en-fallback
-  'journey.editor.externalPhotosNearby': 'Nearby photos first', // en-fallback
-  'journey.editor.externalPhotosNoLocation': 'All photos from this day', // en-fallback
-  'journey.editor.externalPhotosQueued': 'queued', // en-fallback
-  'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
-  'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
-  'journey.picker.day': 'This day', // en-fallback
-  'journey.studio.title': 'TREK Studio', // en-fallback
-  'journey.studio.open': 'Studio', // en-fallback
-  'journey.studio.openAria': 'Open the photo book studio', // en-fallback
-  'journey.studio.backToJourney': 'Back to the journey', // en-fallback
-  'journey.studio.format': 'Page format', // en-fallback
-  'journey.studio.formatA4Landscape': 'A4 landscape', // en-fallback
-  'journey.studio.formatA4Portrait': 'A4 portrait', // en-fallback
-  'journey.studio.formatSquare21': 'Square 21 × 21 cm', // en-fallback
-  'journey.studio.formatSquare30': 'Square 30 × 30 cm', // en-fallback
-  'journey.studio.pages': 'Pages', // en-fallback
-  'journey.studio.cover': 'Cover', // en-fallback
-  'journey.studio.inspector': 'Properties', // en-fallback
-  'journey.studio.inspectorEmpty': 'Select something on the page to edit it.', // en-fallback
-  'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
-  'journey.studio.autoLayout': 'Auto layout', // en-fallback
-  'journey.studio.export': 'Export', // en-fallback
-  'journey.studio.day': 'DIA',
+  'journey.contributors.viaTrips': 'A través de viatges',
+  'journey.contributors.viaTripsHint':
+    'Poden obrir aquest diari perquè un viatge el vincula. Canvia-ho a la configuració del viatge.',
+  'journey.contributors.viaTrip': 'a través de {trip}',
+  'journey.editor.externalPhotos': 'Fotos externes',
+  'journey.editor.externalPhotosFor': 'Fotos del {date}',
+  'journey.editor.externalPhotosNearby': 'Primer les fotos properes',
+  'journey.editor.externalPhotosNoLocation': "Totes les fotos d'aquest dia",
+  'journey.editor.externalPhotosQueued': 'en cua',
+  'journey.editor.externalPhotosUnavailable': 'No hi ha cap proveïdor de fotos connectat disponible.',
+  'journey.editor.externalPhotosPartialFailed': 'Han fallat {failed} grups de fotos: torna a desar per reintentar-ho',
+  'journey.picker.day': 'Aquest dia',
+  'journey.studio.title': 'TREK Studio',
+  'journey.studio.open': 'Studio',
+  'journey.studio.openAria': "Obre l'Studio del llibre de fotos",
+  'journey.studio.backToJourney': 'Torna al viatge',
+  'journey.studio.format': 'Format de pàgina',
+  'journey.studio.formatA4Landscape': 'A4 apaïsat',
+  'journey.studio.formatA4Portrait': 'A4 vertical',
+  'journey.studio.formatSquare21': 'Quadrat 21 × 21 cm',
+  'journey.studio.formatSquare30': 'Quadrat 30 × 30 cm',
+  'journey.studio.pages': 'Pàgines',
+  'journey.studio.cover': 'Coberta',
+  'journey.studio.inspectorEmpty': 'Selecciona alguna cosa per editar',
+  'journey.studio.autoLayout': 'Disseny automàtic',
+  'journey.studio.export': 'Exporta',
+  'journey.studio.day': 'DIA {day}',
   'journey.studio.stations': 'Etapes',
   'journey.studio.peersHere': 'aquí',
   'journey.studio.folioAuto': 'Automàtic',
@@ -275,105 +309,109 @@ const journey: TranslationStrings = {
   'journey.studio.exportFinishing': 'Acabat',
   'journey.studio.exportMarks': 'Marques de tall',
   'journey.studio.exportMarksHint': 'Afegeix {bleed} mm de sagnat a cada vora i marca on s’ha de tallar',
-  'journey.studio.exportNote': '{sheets} fulls de {width} × {height} mm. El navegador converteix la vista d’impressió en un PDF.',
+  'journey.studio.exportNote':
+    '{count} fulls de {width} × {height} mm. El navegador converteix la vista d’impressió en un PDF.',
+  'journey.studio.exportNote.one':
+    '{count} full de {width} × {height} mm. El navegador converteix la vista d’impressió en un PDF.',
   'journey.studio.exportOpen': 'Vista d’impressió',
   'journey.studio.exportSave': 'Desa com a PDF',
   'journey.studio.exportPreparing': 'S’està preparant',
   'journey.studio.exportSheetCount': '{count} fulls',
-  'journey.studio.undo': 'Undo', // en-fallback
-  'journey.studio.redo': 'Redo', // en-fallback
-  'journey.studio.zoomIn': 'Zoom in', // en-fallback
-  'journey.studio.zoomOut': 'Zoom out', // en-fallback
-  'journey.studio.zoomFit': 'Fit to view', // en-fallback
+  'journey.studio.exportSheetCount.one': '{count} full',
+  'journey.studio.undo': 'Desfés',
+  'journey.studio.redo': 'Refés',
+  'journey.studio.zoomIn': 'Amplia',
+  'journey.studio.zoomOut': 'Redueix',
+  'journey.studio.zoomFit': 'Ajusta a la vista',
   'journey.studio.downloadSpread': 'Baixa aquesta doble pàgina',
-  'journey.studio.downloadSpreadHint': 'Desa el disseny d\'aquesta doble pàgina com a fitxer, sense les fotos, per compartir-lo o reutilitzar-lo',
+  'journey.studio.downloadSpreadHint':
+    "Desa el disseny d'aquesta doble pàgina com a fitxer, sense les fotos, per compartir-lo o reutilitzar-lo",
   'journey.studio.importSpread': 'Importa',
-  'journey.studio.importSpreadHint': 'Afegeix una doble pàgina des d\'un fitxer de disseny baixat',
+  'journey.studio.importSpreadHint': "Afegeix una doble pàgina des d'un fitxer de disseny baixat",
   'journey.studio.importSpreadFailed': 'Aquest fitxer no és una doble pàgina del TREK Studio',
-  'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Dissenyar un llibre demana espai per treballar, per això l\'Studio només hi és a l\'escriptori, i el PDF també. La resta del teu viatge funciona aquí com sempre.', // en-fallback
-  'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
-  'journey.studio.bookView': 'Book view', // en-fallback
-  'journey.studio.multiple': 'Several', // en-fallback
-  'journey.studio.kind.photo': 'Photo', // en-fallback
-  'journey.studio.kind.text': 'Text', // en-fallback
-  'journey.studio.kind.shape': 'Shape', // en-fallback
-  'journey.studio.position': 'Position', // en-fallback
-  'journey.studio.width': 'W', // en-fallback
-  'journey.studio.height': 'H', // en-fallback
-  'journey.studio.text': 'Text', // en-fallback
-  'journey.studio.typography': 'Type', // en-fallback
-  'journey.studio.leading': 'Line', // en-fallback
-  'journey.studio.colour': 'Colour', // en-fallback
+  'journey.studio.desktopOnly': "L'Studio necessita una pantalla més gran",
+  'journey.studio.desktopOnlyHint':
+    "Dissenyar un llibre demana espai per treballar, per això l'Studio només hi és a l'escriptori, i el PDF també. La resta del teu viatge funciona aquí com sempre.",
+  'journey.studio.formatA5Landscape': 'A5 apaïsat',
+  'journey.studio.bookView': 'Vista de llibre',
+  'journey.studio.multiple': 'Diversos',
+  'journey.studio.kind.photo': 'Foto',
+  'journey.studio.kind.text': 'Text',
+  'journey.studio.kind.shape': 'Forma',
+  'journey.studio.position': 'Posició',
+  'journey.studio.width': 'Am',
+  'journey.studio.height': 'Al',
+  'journey.studio.text': 'Text', // same-as-en
+  'journey.studio.typography': 'Tipus',
+  'journey.studio.leading': 'Línia',
+  'journey.studio.colour': 'Color',
   'journey.studio.autoColour': 'Automàtic',
   'journey.studio.countryNames': 'Noms',
-  'journey.studio.crop': 'Crop', // en-fallback
-  'journey.studio.look': 'Look', // en-fallback
-  'journey.studio.radius': 'Corner', // en-fallback
-  'journey.studio.shape': 'Shape', // en-fallback
-  'journey.studio.arrange': 'Arrange', // en-fallback
-  'journey.studio.toFront': 'Bring to front', // en-fallback
-  'journey.studio.forward': 'Bring forward', // en-fallback
-  'journey.studio.backward': 'Send backward', // en-fallback
-  'journey.studio.toBack': 'Send to back', // en-fallback
-  'journey.studio.lock': 'Lock', // en-fallback
-  'journey.studio.unlock': 'Unlock', // en-fallback
-  'journey.studio.delete': 'Delete', // en-fallback
-  'journey.studio.pageHint': 'Page', // en-fallback
-  'journey.studio.boundHint': 'Follows the journal entry. Editing it here breaks that link.', // en-fallback
-  'journey.studio.fit.cover': 'Fill', // en-fallback
-  'journey.studio.fit.contain': 'Fit', // en-fallback
-  'journey.studio.filter.none': 'Original', // en-fallback
-  'journey.studio.filter.bw': 'Black & white', // en-fallback
-  'journey.studio.filter.warm': 'Warm', // en-fallback
-  'journey.studio.shapeKind.rect': 'Rectangle', // en-fallback
-  'journey.studio.shapeKind.ellipse': 'Ellipse', // en-fallback
-  'journey.studio.focalHint': 'Drag the point to choose what stays in frame.', // en-fallback
-  'journey.studio.backCover': 'Back cover', // en-fallback
-  'journey.studio.sections': 'Sections', // en-fallback
-  'journey.studio.content': 'Content', // en-fallback
-  'journey.studio.elements': 'Elements', // en-fallback
-  'journey.studio.templates': 'Layouts', // en-fallback
-  'journey.studio.photos': 'Photos', // en-fallback
-  'journey.studio.entries': 'Entries', // en-fallback
-  'journey.studio.addToPage': 'Add to this page', // en-fallback
-  'journey.studio.noPhotos': 'This journey has no photos yet.', // en-fallback
-  'journey.studio.untitled': 'Untitled', // en-fallback
-  'journey.studio.addTitle': 'Title', // en-fallback
-  'journey.studio.addStory': 'Story', // en-fallback
-  'journey.studio.addPlace': 'Place', // en-fallback
-  'journey.studio.shapes': 'Shapes', // en-fallback
-  'journey.studio.frames': 'Marcs', // en-fallback
-  'journey.studio.emptyFrame': 'Empty frame', // en-fallback
-  'journey.studio.frameHint': 'An empty frame marks where a picture goes. Drop one on it from Content.', // en-fallback
-  'journey.studio.shapeKind.line': 'Line', // en-fallback
-  'journey.studio.styleTitle': 'Heading', // en-fallback
-  'journey.studio.styleSubtitle': 'Subheading', // en-fallback
-  'journey.studio.styleBody': 'Body text', // en-fallback
-  'journey.studio.styleCaption': 'Caption', // en-fallback
-  'journey.studio.sampleHeading': 'A heading', // en-fallback
-  'journey.studio.sampleSubheading': 'A subheading', // en-fallback
-  'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
-  'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
-  'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
-  'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
-  'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
-  'journey.studio.tpl.grid4': 'Four up', // en-fallback
-  'journey.studio.tpl.grid6': 'Six up', // en-fallback
-  'journey.studio.tpl.strip': 'Strip and text', // en-fallback
-  'journey.studio.tpl.quietText': 'Text only', // en-fallback
-  'journey.studio.tpl.portraitPair': 'A pair', // en-fallback
+  'journey.studio.crop': 'Retalla',
+  'journey.studio.look': 'Aspecte',
+  'journey.studio.radius': 'Cantonada',
+  'journey.studio.shape': 'Forma',
+  'journey.studio.arrange': 'Ordena',
+  'journey.studio.toFront': 'Porta al davant',
+  'journey.studio.forward': 'Avança un nivell',
+  'journey.studio.backward': 'Retrocedeix un nivell',
+  'journey.studio.toBack': 'Envia al fons',
+  'journey.studio.lock': 'Bloqueja',
+  'journey.studio.unlock': 'Desbloqueja',
+  'journey.studio.delete': 'Elimina',
+  'journey.studio.pageHint': 'Pàgina',
+  'journey.studio.boundHint': "Segueix l'entrada del diari. Si l'edites aquí, es trenca aquest enllaç.",
+  'journey.studio.fit.cover': 'Omple',
+  'journey.studio.fit.contain': 'Ajusta',
+  'journey.studio.filter.none': 'Original',
+  'journey.studio.filter.bw': 'Blanc i negre',
+  'journey.studio.filter.warm': 'Càlid',
+  'journey.studio.shapeKind.rect': 'Rectangle',
+  'journey.studio.shapeKind.ellipse': 'El·lipse',
+  'journey.studio.focalHint': "Arrossega el punt per triar què es queda dins l'enquadrament.",
+  'journey.studio.backCover': 'Contracoberta',
+  'journey.studio.coverInside': 'Interior de la coberta, en blanc',
+  'journey.studio.backCoverInside': 'Interior de la contracoberta, en blanc',
+  'journey.studio.sections': 'Seccions',
+  'journey.studio.content': 'Contingut',
+  'journey.studio.elements': 'Elements', // same-as-en
+  'journey.studio.templates': 'Maquetacions',
+  'journey.studio.photos': 'Fotos',
+  'journey.studio.entries': 'Entrades',
+  'journey.studio.addToPage': 'Afegeix a aquesta pàgina',
+  'journey.studio.noPhotos': 'Aquest viatge encara no té fotos.',
+  'journey.studio.untitled': 'Sense títol',
+  'journey.studio.addTitle': 'Títol',
+  'journey.studio.addStory': 'Relat',
+  'journey.studio.addPlace': 'Lloc',
+  'journey.studio.shapes': 'Formes',
+  'journey.studio.frames': 'Marcs',
+  'journey.studio.emptyFrame': 'Marc buit',
+  'journey.studio.frameHint': "Un marc buit indica on va una imatge. Deixa-n'hi caure una des de Contingut.",
+  'journey.studio.shapeKind.line': 'Línia',
+  'journey.studio.styleTitle': 'Encapçalament',
+  'journey.studio.styleSubtitle': 'Subencapçalament',
+  'journey.studio.styleBody': 'Text del cos',
+  'journey.studio.styleCaption': 'Peu de foto',
+  'journey.studio.sampleHeading': 'Un encapçalament',
+  'journey.studio.sampleSubheading': 'Un subencapçalament',
+  'journey.studio.sampleBody': 'Escriu alguna cosa sobre aquest dia.',
+  'journey.studio.sampleCaption': 'Peu de foto',
+  'journey.studio.tpl.heroStory': 'Imatge destacada i relat',
+  'journey.studio.tpl.fullBleed': 'Una imatge, a doble pàgina',
+  'journey.studio.tpl.twoUp': 'Dues pàgines senceres',
+  'journey.studio.tpl.grid4': 'Quatre per pàgina',
+  'journey.studio.tpl.grid6': 'Sis per pàgina',
+  'journey.studio.tpl.strip': 'Tira i text',
+  'journey.studio.tpl.quietText': 'Només text',
+  'journey.studio.tpl.portraitPair': 'Una parella',
   'journey.studio.dropPhotoHere': 'Arrossega la teva foto\naquí',
-  'journey.studio.searchContent': 'Search photos and entries', // en-fallback
-  'journey.studio.noMatches': 'Nothing matches that.', // en-fallback
-  'journey.studio.decorations': 'Decoration', // en-fallback
-  'journey.studio.quoteMark': 'Quotation mark', // en-fallback
-  'journey.studio.circleOutline': 'Outlined circle', // en-fallback
-  'journey.studio.roundFrame': 'Rounded frame', // en-fallback
-  'journey.studio.shapeKind.rounded': 'Rounded rectangle', // en-fallback
-  'journey.studio.shapeKind.triangle': 'Triangle', // en-fallback
-  'journey.studio.shapeKind.outline': 'Outline only', // en-fallback
+  'journey.studio.searchContent': 'Cerca fotos i entrades',
+  'journey.studio.noMatches': 'No hi ha cap coincidència.',
+  'journey.studio.quoteMark': 'Cometes',
+  'journey.studio.shapeKind.rounded': 'Rectangle arrodonit',
+  'journey.studio.shapeKind.triangle': 'Triangle',
+  'journey.studio.shapeKind.outline': 'Només contorn',
   'journey.studio.travel': 'Viatge',
   'journey.studio.travelEmpty': 'Les xifres d’aquest viatge encara no estan a punt.',
   'journey.studio.grids': 'Graelles',
@@ -396,26 +434,20 @@ const journey: TranslationStrings = {
   'journey.studio.shapeGroup.decor': 'Decoració',
   'journey.studio.shapeGroup.banners': 'Banderoles',
   'journey.studio.summary': 'Resum',
-  'journey.studio.tripSummary': 'Resum del viatge',
-  'journey.studio.statsRow': 'Una fila',
-  'journey.studio.statsFull': 'Tot',
   'journey.studio.routeMap': 'Mapa del recorregut',
   'journey.studio.mapStyle.minimal': 'Mínim',
   'journey.studio.mapStyle.outline': 'Contorn',
-  'journey.studio.mapStyle.paper': 'Paper',
+  'journey.studio.mapStyle.paper': 'Paper', // same-as-en
   'journey.studio.mapStyle.dark': 'Fosc',
   'journey.studio.countries': 'Països',
-  'journey.studio.countryList': 'Llista de països',
-  'journey.studio.countryGrid': 'Graella de països',
   'journey.studio.noCountries': 'Encara no s’ha determinat cap país per a aquest viatge.',
   'journey.studio.noRoute': 'Encara no hi ha parades amb coordenades.',
   'journey.studio.marks': 'Marques',
   'journey.studio.dateMark': 'Data',
   'journey.studio.dayMark': 'Comptador de dies',
-  'journey.studio.dayWord': 'DIA',
   'journey.studio.coordsMark': 'Coordenades',
   'journey.studio.coordsDms': 'Graus',
-  'journey.studio.coordsDecimal': 'Decimal',
+  'journey.studio.coordsDecimal': 'Decimal', // same-as-en
   'journey.studio.flagMark': 'Bandera',
   'journey.studio.distanceMark': 'Distància',
   'journey.studio.metric.distance': 'Distància',
@@ -432,6 +464,21 @@ const journey: TranslationStrings = {
   'journey.studio.kind.list': 'Llista',
   'journey.studio.kind.icon': 'Icona',
   'journey.studio.duplicate': 'Duplica',
+  'journey.studio.copyToPage': 'Copia, per enganxar a qualsevol pàgina (Ctrl+C)',
+  'journey.studio.paste': 'Enganxa (Ctrl+V)',
+  'journey.studio.pasteEmpty': 'Primer copia alguna cosa i després enganxa-la a qualsevol pàgina',
+  'journey.studio.pageFull':
+    'Aquesta pàgina és plena: ja té tots els elements que hi caben. Treu-ne algun primer o fes servir una altra pàgina.',
+  'journey.studio.myLayouts': 'Les meves disposicions',
+  'journey.studio.myLayoutsEmpty':
+    'Guarda una pàgina que hagis organitzat i disposa altres pàgines de la mateixa manera. Les seves fotos i textos es mantenen.',
+  'journey.studio.saveLayout': 'Desa aquesta pàgina com a disposició',
+  'journey.studio.saveLayoutHint': 'Conserva la disposició sense les fotos, per a tots els editors d’aquest llibre',
+  'journey.studio.saveLayoutFull':
+    'Aquest llibre conserva fins a 24 disposicions. Elimina’n una per desar-ne una altra.',
+  'journey.studio.deleteLayout': 'Elimina la disposició',
+  'journey.studio.layoutName': 'Disposició',
+  'journey.studio.builtInLayouts': 'Predefinides',
   'journey.studio.style': 'Estil',
   'journey.studio.shows': 'Mostra',
   'journey.studio.size': 'Mida',
@@ -441,23 +488,48 @@ const journey: TranslationStrings = {
   'journey.studio.rotation': 'Rotació',
   'journey.studio.opacity': 'Opacitat',
   'journey.studio.fill': 'Emplenat',
-  'journey.studio.fillOn': 'Ple',
   'journey.studio.stroke': 'Contorn',
   'journey.studio.strokeWidth': 'Gruix',
-  'journey.studio.gradient': 'Degradat',
-  'journey.studio.gradientDown': 'Cap avall',
-  'journey.studio.gradientUp': 'Cap amunt',
   'journey.studio.showIcons': 'Icones',
   'journey.studio.mapFit': 'Ajusta a',
   'journey.studio.mapPadding': 'Espai',
   'journey.studio.mapShape': 'Forma',
   'journey.studio.align.left': 'Esquerra',
-  'journey.studio.align.center': 'Centre',
+  'journey.studio.align.center': 'Centre', // same-as-en
   'journey.studio.align.right': 'Dreta',
   'journey.studio.markStyle.plain': 'Simple',
   'journey.studio.markStyle.chip': 'Càpsula',
   'journey.studio.markStyle.outline': 'Contorn',
   'journey.studio.markStyle.stacked': 'Apilat',
+  'journey.studio.statsLook.classic': 'Clàssic',
+  'journey.studio.statsLook.poster': 'Pòster',
+  'journey.studio.statsLook.ticket': 'Bitllet',
+  'journey.studio.statsLook.tiles': 'Rajoles',
+  'journey.studio.statsLook.band': 'Banda',
+  'journey.studio.statsLook.medal': 'Medalla',
+  'journey.studio.statsLook.odometer': 'Comptaquilòmetres',
+  'journey.studio.statsLook.sign': 'Senyal de carretera',
+  'journey.studio.statsLook.note': 'Nota',
+  'journey.studio.statsLook.sketch': 'Esbós',
+  'journey.studio.countryLook.visa': 'Visat',
+  'journey.studio.countryLook.flag': 'Bandera',
+  'journey.studio.countryLook.pin': 'Agulla',
+  'journey.studio.countryLook.label': 'Etiqueta de maleta',
+  'journey.studio.countryLook.sketch': 'Esbós',
+  'journey.studio.markStyle.ribbon': 'Cinta',
+  'journey.studio.markStyle.sticker': 'Adhesiu',
+  'journey.studio.markStyle.patch': 'Pedaç',
+  'journey.studio.markStyle.sketch': 'Esbós',
+  'journey.studio.travelFigures': 'Xifres',
+  'journey.studio.travelMaps': 'Mapes',
+  'journey.studio.countryLook.classic': 'Clàssic',
+  'journey.studio.countryLook.stamp': 'Segell',
+  'journey.studio.countryLook.postcard': 'Postal',
+  'journey.studio.markStyle.stamp': 'Segell',
+  'journey.studio.markStyle.tag': 'Etiqueta',
+  'journey.studio.markStyle.pill': 'Càpsula',
+  'journey.studio.pinNumbered': 'Números',
+  'journey.studio.pinEnds': 'Inici i final',
   'journey.studio.icon': 'Icona',
   'journey.studio.iconAndLabel': 'Icona i text',
   'journey.studio.iconOnly': 'Només icona',
@@ -486,7 +558,7 @@ const journey: TranslationStrings = {
   'journey.studio.showFlag': 'Banderes',
   'journey.studio.showName': 'Noms',
   'journey.studio.textScale': 'Mida del text',
-  'journey.studio.accent': 'Accent',
+  'journey.studio.accent': 'Accent', // same-as-en
   'journey.studio.refresh': 'Actualitza des del viatge',
   'journey.studio.staleHint': 'El viatge ha canviat des que es van prendre aquestes xifres.',
   'journey.studio.align': 'Alineació',
@@ -499,19 +571,17 @@ const journey: TranslationStrings = {
   'journey.studio.strokeDotted': 'Puntejat',
   'journey.studio.singleFigures': 'Xifres soltes',
   'journey.studio.addPage': 'Afegeix una pàgina',
+  'journey.studio.addPageShort': 'Pàgina',
   'journey.studio.addPageAfter': 'Insereix una pàgina després',
   'journey.studio.duplicatePage': 'Duplica la pàgina',
   'journey.studio.deletePage': 'Elimina la pàgina',
   'journey.studio.movePageUp': 'Mou abans',
   'journey.studio.movePageDown': 'Mou després',
-  'journey.studio.beta': 'Beta',
   'journey.studio.addProsCons': 'Pros i contres',
   'journey.studio.showMarks': 'Marques',
   'journey.studio.formatCustom': 'Mida pròpia',
-  'journey.studio.document': 'Document',
+  'journey.studio.document': 'Document', // same-as-en
   'journey.studio.pageNumbers': 'Números de pàgina',
-  'journey.studio.pageNumbersOn': 'Sí',
-  'journey.studio.pageNumbersOff': 'No',
   'journey.studio.folio.outer': 'Exterior',
   'journey.studio.folio.inner': 'Interior',
   'journey.studio.folio.centre': 'Centrat',
@@ -529,15 +599,15 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.coverHalf': 'Dues meitats',
   'journey.studio.tpl.fullText': 'Imatge i història',
   'journey.studio.tpl.grid9': 'Nou',
-  'journey.studio.tpl.mosaic': 'Mosaic',
+  'journey.studio.tpl.mosaic': 'Mosaic', // same-as-en
   'journey.studio.tpl.bandQuote': 'Paraules al mig',
   'journey.studio.tpl.staggerFour': 'Quatre esglaonades',
-  'journey.studio.weightMissing': 'Aquesta tipografia no té aquest gruix',
   'journey.studio.mapSource': 'Origen del mapa',
   'journey.studio.mapSourceVector': 'Contorns',
   'journey.studio.mapSourceRelief': 'Relleu',
   'journey.studio.mapSourceSatellite': 'Satèl·lit',
-  'journey.studio.mapSourceSatelliteHint': 'Sentinel-2 sense núvols, lliure per imprimir amb l’atribució. Nítid fins al carrer.',
+  'journey.studio.mapSourceSatelliteHint':
+    'Sentinel-2 sense núvols, lliure per imprimir amb l’atribució. Nítid fins al carrer.',
   'journey.studio.routeLook': 'La línia',
   'journey.studio.routeStyle': 'Traç',
   'journey.studio.routePlain': 'Simple',
@@ -551,18 +621,19 @@ const journey: TranslationStrings = {
   'journey.studio.pinPhoto': 'Fotos',
   'journey.studio.pinPhotoNone': 'Encara no hi ha fotos en aquestes parades, així que es dibuixen com a punts.',
   'journey.studio.roads': 'Carreteres',
-  'journey.studio.roadsFetch': 'Segueix les carreteres',
   'journey.studio.roadsFollow': 'Per carretera',
   'journey.studio.roadsDirect': 'Directa',
   'journey.studio.recommended': 'recomanat',
   'journey.studio.bleed': 'Sagnat',
   'journey.studio.safeArea': 'Seguretat',
   'journey.studio.roadsAgain': 'Torna-ho a demanar',
-  'journey.studio.roadsClear': 'Esborra',
   'journey.studio.roadsBusy': 'Demanant',
-  'journey.studio.roadsHint': 'Demana a un servei de rutes el camí que es va fer a cada tram. Els trams llargs es queden com estan.',
-  'journey.studio.roadsHave': 'Les carreteres queden desades en aquest llibre, així imprimeix la mateixa línia sense connexió.',
-  'journey.studio.mapSourceReliefHint': 'Relleu ombrejat de la NASA, lliure per imprimir. Ideal per a un país o un continent, massa bast per a una ciutat.',
+  'journey.studio.roadsHint':
+    'Demana a un servei de rutes el camí que es va fer a cada tram. Els trams llargs es queden com estan.',
+  'journey.studio.roadsHave':
+    'Les carreteres queden desades en aquest llibre, així imprimeix la mateixa línia sense connexió.',
+  'journey.studio.mapSourceReliefHint':
+    'Relleu ombrejat de la NASA, lliure per imprimir. Ideal per a un país o un continent, massa bast per a una ciutat.',
   'journey.studio.mapPrintDpi': 'S’imprimeix a uns',
   'journey.studio.mapPrintDpiLow': 'poc nítid a aquesta mida, prova una vista més ampla o un altre origen',
   'journey.studio.mapPerTrip': 'Un viatge cada vegada',
@@ -571,19 +642,17 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceTiles': 'Tessel·les',
   'journey.studio.mapSourceStatic': 'Mapbox',
   'journey.studio.mapSourceHint': 'Es descarrega en renderitzar i s’imprimeix amb l’atribució',
-  'journey.studio.mapZoom': 'Zoom',
+  'journey.studio.mapZoom': 'Zoom', // same-as-en
   'journey.studio.mapFraming': 'Enquadrament',
   'journey.studio.mapFitStops': 'Parades',
   'journey.studio.mapFitCountry': 'Tot el país',
   'journey.studio.mapPadTight': 'Ajustat',
-  'journey.studio.mapPadNormal': 'Normal',
+  'journey.studio.mapPadNormal': 'Normal', // same-as-en
   'journey.studio.mapPadWide': 'Ampli',
   'journey.studio.mapPadFar': 'Molt ampli',
   'journey.studio.mapClipRect': 'Amb marc',
   'journey.studio.mapClipCountry': 'Retallat',
   'journey.studio.mapClipNeedsCountry': 'Cal un país per retallar',
-  'journey.studio.mapCutVector': 'Retall',
-  'journey.studio.mapCutTiles': 'Mapa retallat',
   'journey.studio.mapZoomAuto': 'Ajustar',
   'journey.studio.saving': 'Desant',
   'journey.studio.saved': 'Desat',
@@ -596,6 +665,8 @@ const journey: TranslationStrings = {
   'journey.studio.rotateLeft': "Gira cap a l'esquerra",
   'journey.studio.rotateRight': 'Gira cap a la dreta',
   'journey.studio.saveReadOnly': 'Només lectura, no es desa',
+  'journey.studio.saveNewer': 'Una versió més recent de Studio ha desat aquest llibre. Recarrega per editar-lo.',
+  'journey.studio.saveReload': 'Recarrega',
   'journey.studio.filterPhotos': 'Filtra les fotos',
   'journey.studio.filterAll': 'Totes les fotos',
   'journey.studio.filterLoose': 'Sense entrada',
@@ -605,12 +676,15 @@ const journey: TranslationStrings = {
   'journey.studio.noEntryPhotos': 'Aquesta entrada encara no té fotos.',
   'journey.studio.noLoosePhotos': "Totes les fotos d'aquí pertanyen a una entrada.",
   'journey.studio.uploadPhotos': 'Puja fotos',
+  'journey.studio.fromProvider': 'Des de {name}',
+  'journey.studio.fromProviderHint': 'Tria fotos de {name} i afegeix-les on aniria una pujada',
   'journey.studio.uploadHint': 'Deixa anar imatges aquí o fes clic per triar-ne',
   'journey.studio.uploadToEntry': 'Les imatges noves aniran a aquesta entrada',
   'journey.studio.uploadToGallery': 'Les imatges noves aniran a la galeria',
   'journey.studio.uploading': 'Pujant {done} de {total}',
   'journey.studio.dropFilesHere': 'Deixa anar per afegir les imatges',
   'journey.studio.videosSkipped': "S'han deixat fora {count} vídeos. Un llibre conté imatges.",
+  'journey.studio.videosSkipped.one': "S'ha deixat fora {count} vídeo. Un llibre conté imatges.",
   'journey.studio.fillPage': 'Omple la pàgina',
   'journey.studio.fillSpread': 'Omple la doble pàgina',
   'journey.studio.fillHint': 'Estira la imatge per tota la pàgina, sagnat inclòs, i la posa darrere de tota la resta.',
@@ -625,21 +699,235 @@ const journey: TranslationStrings = {
   'journey.editor.statsExcludedHint':
     'La parada es manté al diari, però no compta per a la distància, els països ni el mapa de Studio.',
   'journey.entry.offRoute': 'Fora de ruta',
+  'journey.entry.draft': 'Esborrany',
+  'journey.editor.draft': 'Esborrany',
+  'journey.editor.draftHint':
+    'Només tu i els altres col·laboradors veieu aquesta entrada. La travesia compartida l’omet fins que ho desactivis.',
+  'journey.editor.tripSuggestionHint':
+    'Aquest dia cau dins d’aquest viatge. Enllaça’l i els seus llocs s’afegiran a aquesta travesia.',
+  'journey.editor.tripSuggestionLater': 'Ara no',
   'journey.suggestions.dismiss': 'Descarta aquest suggeriment',
   'journey.suggestions.dismissed': 'Suggeriment descartat',
   'journey.suggestions.restore': 'Recupera els suggeriments descartats',
   'journey.suggestions.restoreCount': 'Suggeriments descartats ({count})',
-  'journey.suggestions.restored': '{count} suggeriments han tornat',
+  'journey.suggestions.restoreCount.one': 'Suggeriments descartats ({count})',
+  'journey.suggestions.restored': 'S’han recuperat {count} suggeriments',
+  'journey.suggestions.restored.one': 'S’ha recuperat {count} suggeriment',
   'journey.detail.addOnThisDay': 'Afegeix una entrada en aquest dia',
   'journey.detail.jumpToDay': 'Ves al {date}',
   'journey.detail.searchPlaceholder': 'Cerca en aquest viatge',
   'journey.detail.searchEmpty': 'Cap entrada coincideix amb «{query}»',
-  'journey.settings.entryFields': 'Camps de l\'entrada',
-  'journey.settings.entryFieldsHint': 'Desactiva el que aquest viatge no faci servir. No es perd res del que ja has escrit.',
+  'journey.settings.entryFields': "Camps de l'entrada",
+  'journey.settings.entryFieldsHint':
+    'Desactiva el que aquest viatge no faci servir. No es perd res del que ja has escrit.',
   'journey.settings.showVerdict': 'Pros i contres',
-  'journey.settings.showMood': 'Estat d\'ànim',
+  'journey.settings.showMood': "Estat d'ànim",
   'journey.settings.showWeather': 'Temps',
   'journey.entry.suggestion': 'Suggeriment',
   'journey.editor.addDetails': '+ Detalls',
+  'journey.recording.mapLine': 'Enregistrat el {date}',
+  'journey.recording.keptBy': 'Ruta enregistrada desada: {distance}, presa per {name} el {date}.',
+  'journey.recording.keptOn': 'Ruta enregistrada desada: {distance}, presa el {date}.',
+  'journey.recording.keptRunning': 'El dia encara no s’havia acabat.',
+  'journey.recording.takeOver': 'Agafar l’enregistrament',
+  'journey.recording.takeOverDay': 'Enregistrament del {date}',
+  'journey.recording.sub': 'Només aquest dia, des del teu Dawarich. No es desa res fins que confirmis.',
+  'journey.recording.zone': 'Fus horari del dia',
+  'journey.recording.zoneHint': 'El dia va de mitjanit a mitjanit en aquest fus. Tria el fus on viatjaves.',
+  'journey.recording.zoneSource': 'Segons Dawarich',
+  'journey.recording.zoneDevice': 'Aquest dispositiu',
+  'journey.recording.scope': 'Enregistrament',
+  'journey.recording.loading': 'S’està llegint el dia de Dawarich…',
+  'journey.recording.keptStays': 'La ruta que desa aquest viatge es queda com està.',
+  'journey.recording.retry': 'Torna-ho a provar',
+  'journey.recording.empty': 'Dawarich no va enregistrar res aquell dia en aquest fus horari.',
+  'journey.recording.span': 'de {from} a {to}',
+  'journey.recording.pieces': '{count} trams',
+  'journey.recording.pieces.one': '{count} tram',
+  'journey.recording.gaps': '{count} interrupcions',
+  'journey.recording.gaps.one': '{count} interrupció',
+  'journey.recording.gapsHint':
+    'On l’enregistrament s’atura, la línia també. No es dibuixa cap camí que no s’hagi enregistrat.',
+  'journey.recording.sourceHint':
+    'Les rutes són trajectes que Dawarich ja ha dividit per mitjà. Els punts són les seves posicions en brut, reduïdes a 600 per dia.',
+  'journey.recording.sourceTracks': 'Rutes',
+  'journey.recording.sourcePoints': 'Punts',
+  'journey.recording.changedSincePreview':
+    'L’enregistrament ha canviat a Dawarich mentre el miraves. Revisa’l un cop més i després desa’l.',
+  'journey.recording.truncated': 'Dawarich només ha enviat una part d’aquest dia, la ruta és incompleta.',
+  'journey.recording.provisional':
+    'Aquest dia encara no s’ha acabat en aquest fus. Més endavant pots substituir la ruta pel dia sencer.',
+  'journey.recording.same': 'Aquest viatge ja desa exactament aquest enregistrament.',
+  'journey.recording.differs':
+    'Aquest viatge desa una altra versió del {date} ({distance}). Substituir-la no canvia cap entrada ni cap text.',
+  'journey.recording.audience':
+    '{count} persones més d’aquest viatge veuran la ruta al mapa. Els enllaços compartits no la mostren.',
+  'journey.recording.audience.one':
+    '{count} persona més d’aquest viatge veurà la ruta al mapa. Els enllaços compartits no la mostren.',
+  'journey.recording.replace': 'Substitueix',
+  'journey.recording.alreadyKept': 'Ja desada',
+  'journey.recording.keep': 'Desa la ruta',
+  'journey.recording.remove': 'Treu la ruta',
+  'journey.recording.removeTitle': 'Vols treure la ruta desada?',
+  'journey.recording.removeMessage':
+    'La ruta d’aquest dia desapareix del mapa del viatge. Les entrades i els textos es queden, i Dawarich conserva el seu propi enregistrament.',
+  'journey.recording.keptToast': 'Ruta desada al viatge',
+  'journey.recording.replacedToast': 'Ruta substituïda',
+  'journey.recording.removedToast': 'Ruta treta del viatge',
+  'journey.recording.error.recording_exists': 'Aquest viatge ja desa un altre enregistrament d’aquell dia.',
+  'journey.recording.error.recording_changed': 'L’enregistrament ha canviat des de la previsualització.',
+  'journey.recording.error.recording_empty': 'Dawarich no va enregistrar res aquell dia.',
+  'journey.recording.mode.walking': 'A peu',
+  'journey.recording.mode.running': 'Córrer',
+  'journey.recording.mode.cycling': 'Bicicleta',
+  'journey.recording.mode.driving': 'Cotxe',
+  'journey.recording.mode.motorcycle': 'Moto',
+  'journey.recording.mode.bus': 'Autobús',
+  'journey.recording.mode.train': 'Tren',
+  'journey.recording.mode.flying': 'Vol',
+  'journey.recording.mode.boat': 'Vaixell',
+  'journey.recording.mode.stationary': 'Aturat',
+  'journey.recording.mode.unknown': 'Mitjà desconegut',
+  'journey.dayImport.open': 'Incorporar el dia',
+  'journey.dayImport.openHint': 'Incorporar aquest dia amb les seves estades',
+  'journey.dayImport.openOn': 'Incorporar el {date} amb les seves estades',
+  'journey.dayImport.pending': '{count} estades per revisar',
+  'journey.dayImport.pending.one': '{count} estada per revisar',
+  'journey.dayImport.sub':
+    'Les teves estades de Dawarich en aquest dia. Tria-les, canvia’ls el nom i uneix-les; esdevenen esborranys.',
+  'journey.dayImport.loading': 'Llegint les estades del dia des de Dawarich…',
+  'journey.dayImport.map': 'El dia al mapa',
+  'journey.dayImport.stays': 'Estades',
+  'journey.dayImport.modeEntries': 'Entrades',
+  'journey.dayImport.modeReport': 'Crònica del dia',
+  'journey.dayImport.reportDefault': 'Dia del {date}',
+  'journey.dayImport.reportHint':
+    'Totes les estades triades esdevenen una entrada que les enumera amb les seves hores. Cada lloc queda registrat per al mapa.',
+  'journey.dayImport.reportNeedsTwo': 'Tria dues o més estades per a una crònica del dia.',
+  'journey.dayImport.groupTitle': 'Títol de l’entrada',
+  'journey.dayImport.groupPin': 'Posició al mapa',
+  'journey.dayImport.noPin': 'Sense posició al mapa',
+  'journey.dayImport.join': 'Unir en una entrada',
+  'journey.dayImport.split': 'Mantenir separades',
+  'journey.dayImport.choose': 'Incorporar {name}',
+  'journey.dayImport.name': 'Nom de {name}',
+  'journey.dayImport.unconfirmed': 'Sense confirmar',
+  'journey.dayImport.noPlace': 'Sense posició',
+  'journey.dayImport.noPlaceHint':
+    'Dawarich no va registrar cap posició per a aquesta estada, així que la seva entrada no surt al mapa.',
+  'journey.dayImport.statusHere': 'A {title}',
+  'journey.dayImport.statusHereUntitled': 'Al diari',
+  'journey.dayImport.statusElsewhere': 'Ja incorporada',
+  'journey.dayImport.statusElsewhereHint': 'Ja incorporada com a lloc, com a desig o en un altre diari.',
+  'journey.dayImport.statusSkipped': 'Omesa',
+  'journey.dayImport.keepRoute': 'Desar també la ruta del dia',
+  'journey.dayImport.keepRouteHint': '{distance} registrats. Tothom del viatge la veu al mapa.',
+  'journey.dayImport.routeNone': 'Dawarich no va registrar cap ruta aquest dia.',
+  'journey.dayImport.routeKept': 'Ruta desada',
+  'journey.dayImport.routeDiffers':
+    'Dawarich té ara una altra versió de la ruta. Substitueix-la amb el botó de ruta del dia.',
+  'journey.dayImport.existing': 'Ja en aquest dia',
+  'journey.dayImport.untitled': 'Entrada sense títol',
+  'journey.dayImport.draft': 'Esborrany',
+  'journey.dayImport.audience':
+    'Els esborranys no apareixen als enllaços compartits. {count} persones més d’aquest viatge els veuen.',
+  'journey.dayImport.audience.one':
+    'Els esborranys no apareixen als enllaços compartits. {count} persona més d’aquest viatge els veu.',
+  'journey.dayImport.draftsNote':
+    'Els esborranys no apareixen als enllaços compartits fins que els publiquis. Afegeix fotos i text després.',
+  'journey.dayImport.submit': 'Incorporar {count} esborranys',
+  'journey.dayImport.submit.one': 'Incorporar {count} esborrany',
+  'journey.dayImport.skipped': '{count} omeses',
+  'journey.dayImport.skipped.one': '{count} omesa',
+  'journey.dayImport.skipHint':
+    'Les estades que omets ja no queden pendents en aquest dia. Les pots restaurar a la llista d’estades de Dawarich.',
+  'journey.dayImport.problem.nothing': 'Tria almenys una estada.',
+  'journey.dayImport.problem.name': 'Cada estada triada necessita un nom.',
+  'journey.dayImport.problem.title': 'Cada entrada unida i la crònica del dia necessiten un títol.',
+  'journey.dayImport.done': '{count} esborranys incorporats',
+  'journey.dayImport.done.one': '{count} esborrany incorporat',
+  'journey.dayImport.alreadyTaken': '{count} estades ja s’havien incorporat. No s’ha escrit res dues vegades.',
+  'journey.dayImport.alreadyTaken.one': '{count} estada ja s’havia incorporat. No s’ha escrit res dues vegades.',
+  'journey.dayImport.failed':
+    'No s’ha incorporat res: {reason} La llista mostra el que conté ara el diari; tornar-ho a provar no escriu res dues vegades.',
+  'journey.dayImport.routeFailed': 'Els esborranys s’han creat, però la ruta no s’ha desat: {reason}',
+  'journey.dayImport.routeRetry': 'Desar la ruta de nou',
+  'journey.dayImport.stale':
+    'Dawarich no ha respost: {reason} Es mostren les estades de l’última sincronització del {date}.',
+  'journey.dayImport.staleNever': 'Dawarich no ha respost: {reason} Es mostren les estades que TREK ja coneix.',
+  'journey.dayImport.truncated': 'Dawarich només ha enviat una part d’aquest dia. Pot ser que faltin estades.',
+  'journey.dayImport.empty': 'Dawarich no ha trobat estades en aquest dia.',
+  'journey.prep.lastSuccess': 'Última consulta {time}.',
+  'journey.prep.never': 'Encara no consultat. La propera sincronització en segon pla ho inicia.',
+  'journey.prep.failed': "L'última actualització ha fallat: {reason} Es mostra el que es va consultar {time}.",
+  'journey.prep.failedNever': 'La primera consulta ha fallat: {reason}',
+  'journey.prep.notConnected': 'Connecta Dawarich a la configuració perquè es preparin els teus dies.',
+  'journey.prep.noPeriods': 'Enllaça un viatge amb dates: només es preparen els seus dies.',
+  'journey.prep.syncOff':
+    'La sincronització en segon pla està desactivada a la configuració de Dawarich, els dies només es consulten quan ho demanes.',
+  'journey.prep.fetchNow': 'Consulta ara',
+  'journey.prep.fetching': 'Consultant…',
+  'journey.prep.fetchFailed': "Ara mateix no s'ha pogut consultar Dawarich.",
+  'journey.prep.dayRunning': 'El dia encara no ha acabat, poden arribar més estades.',
+  'journey.prep.dayPending': 'Encara no consultat.',
+  'journey.prep.dayProvisional': 'Consultat {time}, abans que acabés el dia, poden faltar estades.',
+  'journey.prep.dayFailed': "L'última actualització ha fallat, aquest és l'estat anterior.",
+  'journey.prep.outOfReach':
+    'Els viatges que van acabar fa més de {count} dies no es preparen en segon pla. Obre un dels seus dies per obtenir-lo a mà.',
+  'journey.prep.outOfReach.one':
+    'Els viatges que van acabar fa més de {count} dia no es preparen en segon pla. Obre un dels seus dies per obtenir-lo a mà.',
+  'journey.prep.alreadyRunning': 'Ja hi ha una obtenció en curs en segon pla. Les estades apareixeran quan acabi.',
+  'journey.dayImport.running':
+    'Aquest dia encara no ha acabat. Les estades enregistrades més tard apareixen tan bon punt Dawarich les tingui.',
+  'journey.map.layers': 'Capes del mapa',
+  'journey.map.layer.plan': 'Planificat',
+  'journey.map.layer.recorded': 'Enregistrat',
+  'journey.map.layer.entries': 'Entrades',
+  'journey.map.layer.photos': 'Fotos',
+  'journey.map.layer.loading': 'carregant',
+  'journey.map.layer.planEmpty': 'els viatges vinculats no tenen llocs als seus dies',
+  'journey.map.layer.planUnavailable': 'no s’ha pogut carregar el pla, la resta del mapa continua visible',
+  'journey.map.layer.recordedEmpty': 'encara no hi ha cap ruta enregistrada',
+  'journey.map.layer.recordedUnavailable': 'no s’han pogut carregar els dies enregistrats',
+  'journey.map.layer.entriesEmpty': 'cap entrada no té lloc encara',
+  'journey.map.layer.entriesUnavailable':
+    'no s’han pogut carregar les parades dels resums del dia, les entrades continuen visibles',
+  'journey.map.layer.photosEmpty': 'encara no hi ha cap foto amb ubicació',
+  'journey.map.legend': 'Llegenda',
+  'journey.map.legend.planned': 'Lloc planificat',
+  'journey.map.legend.entry': 'Entrada del diari',
+  'journey.map.legend.plannedWritten': 'Planificat i descrit',
+  'journey.map.legend.stay': 'Parada d’un resum del dia',
+  'journey.map.legend.several': 'Diversos en un mateix punt',
+  'journey.map.legend.lines': 'Rutes',
+  'journey.map.legend.plannedRoute': 'Ruta planificada (GPX d’un viatge)',
+  'journey.map.legend.recordedRoute': 'Ruta enregistrada',
+  'journey.map.legend.planIsNoVisit':
+    'Un lloc planificat no demostra una visita. Només les entrades, les fotos i els enregistraments mostren on eres.',
+  'journey.map.pick.openEntry': 'Obre l’entrada',
+  'journey.map.pick.planned': 'Planificat',
+  'journey.map.pick.notWritten': 'Encara no hi ha res escrit sobre aquest lloc.',
+  'journey.map.pick.stay': 'Parada',
+  'journey.map.pick.partOf': 'Part de «{title}»',
+  'journey.map.pick.here': 'En aquest punt',
+  'journey.map.pick.back': 'Torna a la llista',
+  'journey.map.pick.timeRange': 'de {from} a {to}',
+  'journey.share.plan': 'Pla del viatge',
+  'journey.share.planHint': 'Llocs planificats i rutes GPX dels viatges vinculats al mapa',
+  'journey.share.recordings': 'Rutes enregistrades',
+  'journey.share.recordingsHint':
+    "Dies enregistrats i les parades que se'n treuen, en els dies amb una entrada publicada. Mostren on i quan eres, també el teu allotjament.",
+  'journey.share.needsMap': 'Comparteix el mapa per activar-ho',
+  'journey.editor.tags': 'Etiquetes',
+  'journey.studio.assistant.toggle': 'Assistent',
+  'journey.studio.assistant.toggleHint': 'Dissenya el llibre amb l’assistent',
+  'journey.studio.assistant.panel': 'Assistent del llibre',
+  'journey.studio.assistant.welcome': 'Com hauria de ser el llibre?',
+  'journey.studio.assistant.readOnly':
+    'Només pots veure aquest llibre, així que puc respondre preguntes però no canviar res.',
+  'journey.studio.assistant.notice':
+    'L’assistent pot mirar la pàgina en què treballes. Només aquesta pàgina s’envia a {provider}, com una imatge que mostra només les fotos que has afegit tu. No es pot detectar qui surt a les teves fotos.',
+  'journey.studio.assistant.noticeAllow': 'Mostra-li pàgines',
+  'journey.studio.assistant.noticeLater': 'Ara no',
 };
 export default journey;

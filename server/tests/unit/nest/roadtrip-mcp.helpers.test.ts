@@ -1,11 +1,18 @@
-import { describe, expect, it } from 'vitest';
-import { HttpException } from '@nestjs/common';
 import { ok, type McpTextResult } from '../../../src/nest-mcp';
 import { answeringRefusals } from '../../../src/nest/roadtrip/roadtrip-mcp.helpers';
+import { HttpException } from '@nestjs/common';
+
+import { describe, expect, it } from 'vitest';
 
 /** A tool body whose service refuses, typed as the answer it never produces. */
-const refusing = (body: unknown, status = 400) => (): McpTextResult => { throw new HttpException(body as never, status); };
-const failing = (message: string) => (): McpTextResult => { throw new Error(message); };
+const refusing =
+  (body: unknown, status = 400) =>
+  (): McpTextResult => {
+    throw new HttpException(body as never, status);
+  };
+const failing = (message: string) => (): McpTextResult => {
+  throw new Error(message);
+};
 
 describe('answeringRefusals', () => {
   it('answers a refusal with the reason the route would send, sync and async', async () => {
@@ -20,7 +27,9 @@ describe('answeringRefusals', () => {
 
   it('takes a string body as the reason and falls back to the message for anything else', () => {
     expect(answeringRefusals(refusing('Permission denied', 403)).content[0].text).toBe('Permission denied');
-    expect(answeringRefusals(refusing({ statusCode: 400, message: 'Bad Request' })).content[0].text).toBe('Bad Request');
+    expect(answeringRefusals(refusing({ statusCode: 400, message: 'Bad Request' })).content[0].text).toBe(
+      'Bad Request',
+    );
   });
 
   it('passes a successful body through untouched', async () => {

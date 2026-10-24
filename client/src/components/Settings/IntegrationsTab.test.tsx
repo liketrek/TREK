@@ -1,10 +1,11 @@
-// FE-COMP-INTEGRATIONS-001 to FE-COMP-INTEGRATIONS-047
+// FE-COMP-INTEGRATIONS-001 to FE-COMP-INTEGRATIONS-050
 import { render, screen, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
 import { useAuthStore } from '../../store/authStore';
 import { useAddonStore } from '../../store/addonStore';
+import { useAssistantStore } from '../../store/assistantStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser } from '../../../tests/helpers/factories';
 import { ToastContainer } from '../shared/Toast';
@@ -32,6 +33,20 @@ function mcpEndpointRow() {
 
 const clipboardWriteText = vi.fn().mockResolvedValue(undefined);
 
+const LAN_CONNECTOR = {
+  mcpUrl: 'http://192.168.1.20:3000/mcp',
+  deepLink: 'https://claude.ai/customize/connectors?modal=add-custom-connector&connectorName=TREK&connectorUrl=x',
+  qrSvg: '<svg xmlns="http://www.w3.org/2000/svg"></svg>',
+};
+
+function enableAddons(ids: string[]) {
+  seedStore(useAddonStore, {
+    addons: ids.map(id => ({ id, name: id, type: 'integration', icon: '', enabled: true })),
+    loaded: true,
+    loadAddons: vi.fn(),
+  });
+}
+
 beforeAll(() => {
   Object.defineProperty(navigator, 'clipboard', {
     value: { writeText: clipboardWriteText },
@@ -43,6 +58,7 @@ beforeAll(() => {
 beforeEach(() => {
   clipboardWriteText.mockClear();
   resetAllStores();
+  useAssistantStore.setState({ status: null });
   vi.clearAllMocks();
   seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
   seedStore(useAddonStore, {
@@ -55,6 +71,7 @@ beforeEach(() => {
     http.get('/api/addons', () => HttpResponse.json({ addons: [] })),
     http.get('/api/oauth/clients', () => HttpResponse.json({ clients: [] })),
     http.get('/api/oauth/sessions', () => HttpResponse.json({ sessions: [] })),
+    http.get('/api/integrations/claude-connector', () => HttpResponse.json(LAN_CONNECTOR)),
   );
 });
 
@@ -240,7 +257,7 @@ describe('IntegrationsTab', () => {
     await screen.findByText('MCP Configuration');
     await user.click(screen.getByRole('button', { name: /API Tokens/i }));
     await screen.findByText('Delete Me');
-    await user.click(screen.getByTitle('Delete Token'));
+    await user.click(screen.getByLabelText('Delete Token'));
     await screen.findByText('This token will stop working immediately. Any MCP client using it will lose access.');
     expect(screen.getByRole('button', { name: /^Cancel$/i })).toBeInTheDocument();
   });
@@ -266,12 +283,11 @@ describe('IntegrationsTab', () => {
     await screen.findByText('MCP Configuration');
     await user.click(screen.getByRole('button', { name: /API Tokens/i }));
     await screen.findByText('Delete Me');
-    await user.click(screen.getByTitle('Delete Token'));
-    // There are two "Delete Token" buttons: the trash icon (title) and the confirm button in modal
+    await user.click(screen.getByLabelText('Delete Token'));
+    // There are two "Delete Token" buttons: the trash icon and the confirm button in the modal
     const deleteButtons = await screen.findAllByRole('button', { name: /^Delete Token$/i });
-    // Click the one in the modal (last one, or the standalone one without title attribute)
-    const confirmBtn = deleteButtons.find(btn => !btn.title);
-    await user.click(confirmBtn ?? deleteButtons[deleteButtons.length - 1]);
+    // The modal renders after the list, so its confirm button comes last
+    await user.click(deleteButtons[deleteButtons.length - 1]);
     expect(deleteCalled).toBe(true);
     await waitFor(() => {
       expect(screen.queryByText('Delete Me')).toBeNull();
@@ -298,9 +314,9 @@ describe('IntegrationsTab', () => {
     const { copy } = mcpEndpointRow();
     await user.click(copy);
     await waitFor(() => {
-      // After copy, icon changes to Check (green). The button should contain an svg with text-green-500
+      // After copy, icon changes to Check in the success colour
       const svg = copy.querySelector('svg');
-      expect(svg).toHaveClass('text-green-500');
+      expect(svg).toHaveClass('text-success');
     });
   });
 
@@ -325,7 +341,7 @@ describe('IntegrationsTab', () => {
     await screen.findByText('MCP Configuration');
     await user.click(screen.getByRole('button', { name: /API Tokens/i }));
     await screen.findByText('Cancel Token');
-    await user.click(screen.getByTitle('Delete Token'));
+    await user.click(screen.getByLabelText('Delete Token'));
     await screen.findByRole('button', { name: /^Cancel$/i });
     await user.click(screen.getByRole('button', { name: /^Cancel$/i }));
     await waitFor(() => {
@@ -568,7 +584,7 @@ describe('IntegrationsTab', () => {
     enableMcp();
     render(<><ToastContainer /><IntegrationsTab /></>);
     await screen.findByText('Delete Me');
-    await user.click(screen.getByTitle('Delete Client'));
+    await user.click(screen.getByLabelText('Delete Client'));
     // Confirmation modal
     await screen.findByRole('heading', { name: 'Delete Client' });
     const confirmBtns = screen.getAllByRole('button', { name: /Delete Client/i });
@@ -596,7 +612,7 @@ describe('IntegrationsTab', () => {
     enableMcp();
     render(<IntegrationsTab />);
     await screen.findByText('Rotate Me');
-    await user.click(screen.getByTitle('Rotate Secret'));
+    await user.click(screen.getByLabelText('Rotate Secret'));
     await screen.findByText('Rotate Secret');
     // Confirm — button text is 'Rotate'
     const rotateBtns = screen.getAllByRole('button', { name: /^Rotate$/i });
@@ -768,7 +784,7 @@ describe('IntegrationsTab – copy actions and cancels', () => {
     await screen.findByText('Token Created');
 
     const writeSpy = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
-    const copyBtns = screen.getAllByTitle('Copy');
+    const copyBtns = screen.getAllByLabelText('Copy');
     await user.click(copyBtns[copyBtns.length - 1]);
 
     expect(writeSpy).toHaveBeenCalledWith('tk_fresh_raw_secret');
@@ -845,7 +861,7 @@ describe('IntegrationsTab – copy actions and cancels', () => {
     render(<IntegrationsTab />);
     await screen.findByText('Existing Client');
 
-    await user.click(screen.getByTitle('Delete Client'));
+    await user.click(screen.getByLabelText('Delete Client'));
     await screen.findByRole('heading', { name: 'Delete Client' });
     await user.click(screen.getByRole('button', { name: /^Cancel$/i }));
 
@@ -860,7 +876,7 @@ describe('IntegrationsTab – copy actions and cancels', () => {
     render(<IntegrationsTab />);
     await screen.findByText('Existing Client');
 
-    await user.click(screen.getByTitle('Rotate Secret'));
+    await user.click(screen.getByLabelText('Rotate Secret'));
     await screen.findByRole('heading', { name: 'Rotate Secret' });
     await user.click(screen.getByRole('button', { name: /^Cancel$/i }));
 
@@ -876,7 +892,7 @@ describe('IntegrationsTab – copy actions and cancels', () => {
     enableMcp();
     render(<IntegrationsTab />);
     await screen.findByText('Existing Client');
-    await user.click(screen.getByTitle('Rotate Secret'));
+    await user.click(screen.getByLabelText('Rotate Secret'));
     const rotateBtns = await screen.findAllByRole('button', { name: /^Rotate$/i });
     await user.click(rotateBtns[rotateBtns.length - 1]);
     await screen.findByText('New Secret Generated');
@@ -932,9 +948,9 @@ describe('IntegrationsTab – failure toasts', () => {
     await openTokensTab(user);
     await screen.findByText('Token One');
 
-    await user.click(screen.getByTitle('Delete Token'));
+    await user.click(screen.getByLabelText('Delete Token'));
     const confirmBtns = await screen.findAllByRole('button', { name: /^Delete Token$/i });
-    await user.click(confirmBtns.find(b => !b.title) ?? confirmBtns[confirmBtns.length - 1]);
+    await user.click(confirmBtns[confirmBtns.length - 1]);
 
     await screen.findByText('Failed to delete token');
     expect(screen.getByText('Token One')).toBeInTheDocument();
@@ -951,12 +967,12 @@ describe('IntegrationsTab – failure toasts', () => {
     render(<><ToastContainer /><IntegrationsTab /></>);
     await screen.findByText('Existing Client');
 
-    await user.click(screen.getByTitle('Delete Client'));
+    await user.click(screen.getByLabelText('Delete Client'));
     const deleteBtns = await screen.findAllByRole('button', { name: /^Delete Client$/i });
     await user.click(deleteBtns[deleteBtns.length - 1]);
     await screen.findByText('Failed to delete OAuth client');
 
-    await user.click(screen.getByTitle('Rotate Secret'));
+    await user.click(screen.getByLabelText('Rotate Secret'));
     const rotateBtns = await screen.findAllByRole('button', { name: /^Rotate$/i });
     await user.click(rotateBtns[rotateBtns.length - 1]);
     expect(await screen.findByText('Failed to rotate client secret')).toBeInTheDocument();
@@ -978,5 +994,57 @@ describe('IntegrationsTab – failure toasts', () => {
 
     await screen.findByText('Failed to revoke session');
     expect(screen.getByText('Session App')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-INTEGRATIONS-048: the AI assistant card follows its addon and stays off a managed install', async () => {
+    server.use(
+      http.get('/api/ai/status', () =>
+        HttpResponse.json({
+          available: false,
+          policy: 'instance_or_user',
+          canConnectOwn: true,
+          effective: null,
+          own: null,
+          instance: null,
+          quota: null,
+          privacyAcked: false,
+          retention: { mode: 'days', days: 90 },
+          openrouterOAuth: false,
+        }),
+      ),
+    );
+    const off = render(<IntegrationsTab />);
+    expect(screen.queryByText('AI assistant')).not.toBeInTheDocument();
+    off.unmount();
+
+    enableAddons(['ai_assistant']);
+    const { unmount } = render(<IntegrationsTab />);
+    expect(await screen.findByText('What would you like to chat with?')).toBeInTheDocument();
+    unmount();
+
+    seedStore(useAuthStore, { managed: true });
+    render(<IntegrationsTab />);
+    expect(screen.queryByText('What would you like to chat with?')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-INTEGRATIONS-049: the Claude card explains why a LAN install cannot be added', async () => {
+    enableMcp();
+    render(<IntegrationsTab />);
+    expect(await screen.findByText('Claude can only reach TREK when it is available over https on the internet.')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Open in Claude/ })).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-INTEGRATIONS-050: the Claude card links a public install into Claude', async () => {
+    server.use(
+      http.get('/api/integrations/claude-connector', () =>
+        HttpResponse.json({ ...LAN_CONNECTOR, mcpUrl: 'https://trip.example.org/mcp' }),
+      ),
+    );
+    enableMcp();
+    render(<IntegrationsTab />);
+    const link = await screen.findByRole('link', { name: /Open in Claude/ });
+    expect(link).toHaveAttribute('href', LAN_CONNECTOR.deepLink);
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(screen.getByText('https://trip.example.org/mcp')).toBeInTheDocument();
   });
 });

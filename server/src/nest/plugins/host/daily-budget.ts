@@ -54,7 +54,11 @@ export class DailyBudget {
   private ai = 0;
   private notify = 0;
 
-  constructor(private readonly cfg: DailyBudgetConfig, now: number, seed?: { ai?: number; notify?: number }) {
+  constructor(
+    private readonly cfg: DailyBudgetConfig,
+    now: number,
+    seed?: { ai?: number; notify?: number },
+  ) {
     this.day = utcDay(now);
     this.ai = seed?.ai ?? 0;
     this.notify = seed?.notify ?? 0;
@@ -85,6 +89,12 @@ export class DailyBudget {
   /** Current usage snapshot for the admin view (read-only). */
   used(now: number): { day: string; ai: number; aiMax: number; notify: number; notifyMax: number } {
     this.rollover(now);
-    return { day: this.day, ai: this.ai, aiMax: this.cfg.aiPerDay, notify: this.notify, notifyMax: this.cfg.notifyPerDay };
+    return {
+      day: this.day,
+      ai: this.ai,
+      aiMax: this.cfg.aiPerDay,
+      notify: this.notify,
+      notifyMax: this.cfg.notifyPerDay,
+    };
   }
 }

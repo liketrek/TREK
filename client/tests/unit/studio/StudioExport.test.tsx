@@ -42,8 +42,8 @@ afterEach(() => { vi.useRealTimers() })
 describe('the choices', () => {
   it('starts on single pages, which is what a printer takes', () => {
     open()
-    expect(screen.getByText('journey.studio.exportPages').closest('button')!.className)
-      .toContain('is-on')
+    expect(screen.getByText('journey.studio.exportPages').closest('button')!.getAttribute('aria-pressed'))
+      .toBe('true')
   })
 
   it('starts with crop marks on', () => {
@@ -55,10 +55,10 @@ describe('the choices', () => {
   it('switches to spreads when asked', () => {
     open()
     fireEvent.click(screen.getByText('journey.studio.exportSpreads'))
-    expect(screen.getByText('journey.studio.exportSpreads').closest('button')!.className)
-      .toContain('is-on')
-    expect(screen.getByText('journey.studio.exportPages').closest('button')!.className)
-      .not.toContain('is-on')
+    expect(screen.getByText('journey.studio.exportSpreads').closest('button')!.getAttribute('aria-pressed'))
+      .toBe('true')
+    expect(screen.getByText('journey.studio.exportPages').closest('button')!.getAttribute('aria-pressed'))
+      .toBe('false')
   })
 
   it('turns the marks off again', () => {

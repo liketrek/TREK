@@ -64,7 +64,7 @@ export default function MRtCorridorBar({ planner, corridor, onOpen }: MRtCorrido
       <button
         type="button"
         onClick={onOpen}
-        className="flex h-11 min-w-0 flex-1 items-center gap-2.5 rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-3.5 text-left shadow-[0_16px_44px_-16px_rgba(0,0,0,.35)] backdrop-blur-[24px] backdrop-saturate-[1.7]"
+        className="flex h-11 min-w-0 flex-1 items-center gap-2.5 rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-3.5 text-start shadow-[0_16px_44px_-16px_rgba(0,0,0,.35)] backdrop-blur-[24px] backdrop-saturate-[1.7]"
       >
         <span className="flex-none text-m-ink">{icon}</span>
         <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-semibold text-m-ink">{title}</span>

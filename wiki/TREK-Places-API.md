@@ -35,11 +35,14 @@ Names are the ones the index has, which are the names used on the spot. The inde
 | Opening a place picked from it | Address, contact details, opening hours and description | The place keeps what was saved with it |
 | Category buttons on the trip map | Places of that category around the map centre | The public Overpass mirrors of OpenStreetMap |
 | The [Road trip](Road-Trip#search-along-the-route) addon's search along the drive | Fuel, charging, rest areas, campsites and the other kinds it looks for | The public Overpass mirrors |
+| Tours: the trail grades, surfaces and kinds of way along a planned tour | The OpenStreetMap tags of the ways the tour runs on, from its ways layer | The public Overpass mirrors |
+| Tours: the signposted horse routes around the map view | The horse route relations in the view with their ways, from its routes layer | The public Overpass mirrors |
 | Booking imports, and stops given only by name in an imported Google Maps route | The coordinate of a venue, found by its name | OpenStreetMap's search service, which also resolves street addresses |
 | Preparing a trip for offline use | Up to 3000 places around the trip, in one request | Nothing is cached, and offline search has nothing to answer from |
 | MCP: `search_place` and `search_pois` | The same as the full search and the category buttons | The same fallbacks |
+| Places near a point (**Places near this pin** in the place form, `POST /api/maps/nearby`, `search_nearby_places`) | Named places of any kind around the point, nearest first | Google Places when the index has nothing and a key exists, OpenStreetMap otherwise |
 
-Where Google holds the keyed slot (a Google key, with neither Amap nor OpenStreetMap picked as the places provider), two things skip the index and OpenStreetMap for a search: the **Search Google instead** line under a result list (`provider: 'google'` on `search_place`) sends that one search to Google Places alone, and the admin switch **Search with Google only** sends every search and every suggestion there, `search_place` included; the category buttons and `search_pois` keep asking the index. See [Google and Amap](Places-and-Search#google-and-amap).
+Where Google holds the keyed slot (a Google key, with neither Amap nor OpenStreetMap picked as the places provider), two things skip the index and OpenStreetMap for a search: the **Search Google instead** line under a result list (`provider: 'google'` on `search_place`) sends that one search to Google Places alone, and the admin switch **Search with Google only** sends every search and every suggestion there, `search_place` and **Places near this pin** included; the category buttons and `search_pois` keep asking the index. See [Google and Amap](Places-and-Search#google-and-amap).
 
 Right-click reverse geocoding on the map does not use it: that is OpenStreetMap's (or Amap's inside mainland China, when Amap holds the keyed slot).
 
@@ -71,13 +74,15 @@ Every request goes out from your TREK server, never from a browser, so the servi
 | The trip's area as a box | Preparing a trip for offline use |
 | The index id of one place | Opening a place picked from the index |
 | A venue name | Booking imports and route imports |
+| The OpenStreetMap way ids a planned tour runs on | Tours trail grades, surfaces and kinds of way |
+| The map view as a box, grown to a 0.05 degree grid | Tours horse routes |
 | An `X-TREK-Instance` header | Every request |
 
 The header carries an opaque token derived from your instance's own address, so the service can rate-limit each instance on its own instead of everyone behind one IP. Set `APP_URL` (or `ALLOWED_ORIGINS`): without either, the token is derived from the port alone, and two unconfigured installs on the same port share one rate-limit bucket.
 
-Who is searching never goes along. No user, account, session, cookie or trip id is sent, and neither is the language TREK is set to. The service's own front page states that queries are not logged, that requests are counted per rate-limit bucket and nothing else, and that the instance token is not stored.
+Who is searching never goes along. No user, account, session, cookie or trip id is sent, and neither is the language TREK is set to or the one picked under **Place names** (see [Language of place names](Places-and-Search#language-of-place-names)). The service's own front page states that queries are not logged, that requests are counted per rate-limit bucket and nothing else, and that the instance token is not stored.
 
-The requests use Node's default HTTP client, so an outbound proxy set with `HTTPS_PROXY` applies to them; see [Environment Variables](Environment-Variables#outbound-https-proxy).
+The requests use Node's default HTTP client, so an outbound proxy set with `HTTPS_PROXY` applies to them, and `NO_PROXY` can exempt the service's host. The official image already turns Node's environment proxy on; a source install needs `NODE_USE_ENV_PROXY=1` as well. See [Environment Variables](Environment-Variables#outbound-https-proxy).
 
 The instance's own [Place Search Log](Places-and-Search#place-search-log) is a different thing: it is off by default, lives in your database and never leaves the instance.
 
@@ -92,11 +97,12 @@ services:
 
 `false`, `0`, `off` and `no` in any casing switch the index off, as on every other boolean switch. A value that is not boolean-like at all aborts startup, and unset or blank leaves the index on.
 
-With the index off, TREK stops asking it for suggestions, searches, category buttons, the Road trip search, import geocoding and offline downloads, and place search works the way it did before 4.3.0:
+With the index off, TREK stops asking it for suggestions, searches, category buttons, the Road trip search, import geocoding, offline downloads and the ways and horse routes of Tours, and place search works the way it did before 4.3.0:
 
 - **Full search** goes to OpenStreetMap on an install without a key. With a Google key, Google answers every search, and with Amap selected, Amap does; OpenStreetMap is then no longer asked beside them.
 - **Suggestions** come from Google or Amap when one holds the keyed slot, otherwise from OpenStreetMap's public search service. That service's usage policy does not allow autocomplete, so on a keyless install consider pointing `NOMINATIM_URL` at a Nominatim of your own.
 - **Category buttons** and the **Road trip search** are answered by the Overpass mirrors.
+- **Tours** read the grades of the ways under a tour and the horse routes around the map from the Overpass mirrors.
 - **Imports** geocode through OpenStreetMap's search service.
 - **Offline search** has nothing to answer from, because no places are downloaded.
 
@@ -117,13 +123,13 @@ The address is read from your own configuration and is not a URL a user can type
 | `TREK_PLACES_ENABLED` | Whether the index is asked at all |
 | `TREK_PLACES_URL` | Which copy of the index is asked |
 | `NOMINATIM_URL` | The OpenStreetMap half of the full search, right-click reverse geocoding, OpenStreetMap place details and import geocoding |
-| `OVERPASS_URL`, `OVERPASS_TIMEOUT_MS` | The Overpass mirrors behind the category buttons and the Road trip search when the index has no answer |
+| `OVERPASS_URL`, `OVERPASS_TIMEOUT_MS` | The Overpass mirrors behind the category buttons, the Road trip search and the ways and horse routes of Tours when the index has no answer |
 
 Defaults and details for each are on [Environment Variables](Environment-Variables).
 
 ## When the service cannot be reached
 
-Nothing breaks. Every call has a short deadline, 3.5 seconds for anything somebody is waiting on and 20 seconds for an offline download, and every call site falls back to what TREK did before the index existed. After four calls in a row that got no answer or a server error, TREK stops asking for a minute and takes the fallback straight away, so an instance that cannot reach the service does not pay the deadline on every keystroke. The first call after that minute tries again, and one answer resets the count.
+Nothing breaks. Every call has a short deadline, 3.5 seconds for a search, 10 seconds per batch of tour ways, 20 seconds for an offline download or a view of routes, and every call site falls back to what TREK did before the index existed. After four calls in a row that got no answer or a server error, TREK stops asking for a minute and takes the fallback straight away, so an instance that cannot reach the service does not pay the deadline on every keystroke. The first call after that minute tries again, and one answer resets the count. Place search and the ways and routes of Tours are counted apart, so a busy answer to a heavy tour never pauses the search. When a tour's ways stop answering part way, Tours keeps the batches that came and asks the Overpass mirrors only for the rest.
 
 | What you see | What it usually means |
 |---|---|
@@ -131,6 +137,7 @@ Nothing breaks. Every call has a short deadline, 3.5 seconds for anything somebo
 | `TREK Places search failed, falling back: …` in the server log | The same, or the service could not be reached. The text after the colon says which. |
 | `TREK Places API unreachable, not retrying yet` in the server log | Four calls in a row got no answer and TREK is waiting out the minute. Check that the server can reach `places.liketrek.com` (or your `TREK_PLACES_URL`) and your proxy settings. |
 | `TREK Places area lookup failed: …` in the server log | A trip's surroundings could not be downloaded for offline use. The trip itself still syncs. |
+| `[TrekPlaces] /v1/ways: …; asking the Overpass mirrors instead` (or `/v1/routes`) in the server log | Logged once per reason: the layer is switched off, not built yet on the service, or did not answer. Tours keeps using Overpass. |
 | The category buttons take seconds | They are being answered by Overpass, because the index had nothing for that area or is switched off. |
 
 ## See also

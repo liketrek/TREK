@@ -154,7 +154,8 @@ describe('ImportCollectionModal with a GPX (#2301)', () => {
 
   it('FE-COMP-COLLIMPORT-011: says which files it takes', () => {
     renderModal();
-    expect(screen.getByText('.trekcollection.json · .gpx')).toBeInTheDocument();
+    expect(screen.getByText('.trekcollection.json')).toBeInTheDocument();
+    expect(screen.getByText('.gpx')).toBeInTheDocument();
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     expect(input.accept).toContain('.gpx');
   });

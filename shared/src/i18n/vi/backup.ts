@@ -70,5 +70,6 @@ const backup: TranslationStrings = {
     'Tất cả dữ liệu hiện tại (chuyến đi, địa điểm, người dùng, nội dung tải lên) sẽ được thay thế vĩnh viễn bằng bản sao lưu. Không thể hoàn tác hành động này.',
   'backup.restoreTip': 'Mẹo: Tạo bản sao lưu trạng thái hiện tại trước khi khôi phục.',
   'backup.restoreConfirm': 'Có, khôi phục',
+  'backup.auto.hourHintTz': 'Giờ địa phương của máy chủ (định dạng {format}), múi giờ {timezone}',
 };
 export default backup;

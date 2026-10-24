@@ -1,38 +1,33 @@
-import { Car, Footprints, Hotel, Zap } from 'lucide-react'
+import { Hotel } from 'lucide-react'
 import type { RouteSegment } from '../../types'
+import { fs } from '../shared/DialogShell'
+import { routeModeIcon } from './routeModes'
 
-// Walking gets the foot icon; a plugin route profile ('plugin:…') gets the bolt —
-// its legs carry the profile-true durationText anyway, the icon just signals that
-// the time came from a plugin router (e.g. EV routing with charge time folded in).
-export function profileIcon(profile: string) {
-  if (profile === 'walking') return Footprints
-  if (profile.startsWith('plugin:')) return Zap
-  return Car
-}
-
-/** Slim travel-time connector shown between two consecutive located stops in a day. */
-export function RouteConnector({ seg, profile }: { seg: RouteSegment; profile: string }) {
+/** The leg's figures as one quiet pill: mode, time, distance and a router note, side by side. */
+function LegPill({ seg, profile }: { seg: RouteSegment; profile: string }) {
   // The leg's own mode (#1281) wins over the day-wide fallback for icon + text.
   const effProfile = seg.mode ?? profile
   const driving = effProfile !== 'walking'
-  const Icon = profileIcon(effProfile)
-  const line = { flex: 1, height: 1, minHeight: 1, alignSelf: 'center', background: 'var(--border-primary)' }
+  const Icon = routeModeIcon(effProfile)
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 14px', fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', lineHeight: 1.2 }}>
-      <div style={line} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-        <Icon size={11} strokeWidth={2} />
-        <span>{seg.durationText ?? (driving ? seg.drivingText : seg.walkingText)}</span>
-        <span style={{ opacity: 0.4 }}>·</span>
-        <span>{seg.distanceText}</span>
-        {seg.noteText && (
-          <>
-            <span style={{ opacity: 0.4 }}>·</span>
-            <span style={{ color: 'var(--text-muted)' }}>{seg.noteText}</span>
-          </>
-        )}
-      </div>
-      <div style={line} />
+    <span className="inline-flex flex-none items-center gap-1.5 whitespace-nowrap rounded-full bg-surface-secondary px-2 py-[2px] font-geist font-semibold tabular-nums text-content-muted" style={fs(10)}>
+      <Icon size={11} strokeWidth={2} className="flex-none" />
+      <span>{seg.durationText ?? (driving ? seg.drivingText : seg.walkingText)}</span>
+      <span className="text-content-faint">{seg.distanceText}</span>
+      {seg.noteText && <span className="text-content-secondary">{seg.noteText}</span>}
+    </span>
+  )
+}
+
+const LINE = 'h-px min-w-3 flex-1 bg-edge-faint'
+
+/** Slim travel-time connector shown between two consecutive located stops in a day. */
+export function RouteConnector({ seg, profile }: { seg: RouteSegment; profile: string }) {
+  return (
+    <div className="flex items-center gap-2 px-3 py-[3px]">
+      <span className={LINE} />
+      <LegPill seg={seg} profile={profile} />
+      <span className={LINE} />
     </div>
   )
 }
@@ -54,38 +49,23 @@ export function HotelRouteConnector({
   name: string
   placement: 'top' | 'bottom'
 }) {
-  const effProfile = seg.mode ?? profile
-  const driving = effProfile !== 'walking'
-  const Icon = profileIcon(effProfile)
-  const line = { flex: 1, height: 1, minHeight: 1, alignSelf: 'center', background: 'var(--border-primary)' }
   const hotelRow = (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '0 14px', minWidth: 0 }}>
-      <Hotel size={12} strokeWidth={1.8} style={{ flexShrink: 0, color: 'var(--text-muted)' }} />
-      <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2 }}>
+    <div className="flex min-w-0 items-center justify-center gap-1.5 px-3">
+      <Hotel size={12} strokeWidth={2} className="flex-none text-content-muted" />
+      <span className="truncate font-semibold text-content-muted" style={{ ...fs(11), lineHeight: 1.2 }}>
         {name}
       </span>
     </div>
   )
   const travelRow = (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 14px', fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', lineHeight: 1.2 }}>
-      <div style={line} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-        <Icon size={11} strokeWidth={2} />
-        <span>{seg.durationText ?? (driving ? seg.drivingText : seg.walkingText)}</span>
-        <span style={{ opacity: 0.4 }}>·</span>
-        <span>{seg.distanceText}</span>
-        {seg.noteText && (
-          <>
-            <span style={{ opacity: 0.4 }}>·</span>
-            <span style={{ color: 'var(--text-muted)' }}>{seg.noteText}</span>
-          </>
-        )}
-      </div>
-      <div style={line} />
+    <div className="flex items-center gap-2 px-3 py-[3px]">
+      <span className={LINE} />
+      <LegPill seg={seg} profile={profile} />
+      <span className={LINE} />
     </div>
   )
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 3, padding: placement === 'top' ? '2px 0 6px' : '6px 0 2px' }}>
+    <div className={`flex flex-col gap-[3px] ${placement === 'top' ? 'pb-1.5 pt-0.5' : 'pb-0.5 pt-1.5'}`}>
       {placement === 'top' ? (
         <>
           {hotelRow}

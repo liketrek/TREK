@@ -13,9 +13,10 @@ import type { PhotoFilter } from './photoFilter'
  * heading over the grid rather than as one control among several, and a long
  * entry name has somewhere to go.
  *
- * The popover is the top bar's format menu, hung from the left edge instead of
- * the right: the side panel is 236px wide and a menu anchored right would open
- * into the rail.
+ * The popover is the top bar's format menu, hung from the start edge instead
+ * of the end: the side panel is 236px wide and a menu anchored at the end would
+ * open into the rail. A long entry name takes two lines in the chip, and the
+ * menu shows every name whole.
  */
 export function StudioContentFilter({
   source, filter, setFilter, admitted, pageEntryId, t, locale,
@@ -79,7 +80,7 @@ export function StudioContentFilter({
             aria-expanded={open}
             title={t('journey.studio.filterPhotos')}
           >
-            <span className="st-filter-name">{label}</span>
+            <span className="st-filter-name" title={label}>{label}</span>
             <em>{admitted}</em>
             <ChevronDown size={12} style={{ opacity: .5 }} />
           </button>

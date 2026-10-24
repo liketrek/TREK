@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types';
+
+const tourPacking: TranslationStrings = {
+  'tours.packing.label': 'Pakkimisnimekiri',
+  'tours.packing.none': 'Pakkimisnimekirja pole lingitud',
+  'tours.packing.link': 'Lingi pakkimisnimekiri',
+  'tours.packing.change': 'Muuda',
+  'tours.packing.whole': 'Kogu pakkimisnimekiri',
+  'tours.packing.packed': 'Pakitud {packed} / {count}',
+  'tours.packing.packed.one': 'Pakitud {packed} / {count}',
+  'tours.packing.more': 'Veel {count}',
+  'tours.packing.more.one': 'Veel {count}',
+  'tours.packing.items': '{count} asja',
+  'tours.packing.items.one': '{count} asi',
+  'tours.packing.allPacked': 'Kõik pakitud',
+  'tours.packing.open': 'Ava pakkimisnimekiri',
+  'tours.packing.missing': '„{name}“ juures pole enam ühtegi asja, mida sa näed.',
+  'tours.packing.emptyList': 'Pakkimisnimekiri on veel tühi.',
+  'tours.packing.emptyCategory': '„{name}“ juures pole veel ühtegi asja.',
+  'tours.packing.addonOff': 'Pakkimisnimekirjad on välja lülitatud, seega nimekirja ei saa näidata.',
+  'tours.packing.loadFailed': 'Pakkimisnimekirja linki ei õnnestunud laadida.',
+  'tours.packing.dialogSub': 'Ainult link. Nimekiri ja selle asjad jäävad oma kohale.',
+  'tours.packing.choose': 'Lingi sihtkoht',
+  'tours.packing.confirm': 'Lingi',
+  'tours.packing.unlink': 'Eemalda link',
+  'tours.packing.unlinkHint': 'Pakkimisnimekiri ja selle asjad jäävad samaks',
+  'tours.packing.linked': 'Pakkimisnimekiri on lingitud.',
+  'tours.packing.unlinked': 'Link on eemaldatud. Pakkimisnimekiri jääb samaks.',
+  'tours.packing.failed': 'Linki ei õnnestunud salvestada.',
+};
+export default tourPacking;

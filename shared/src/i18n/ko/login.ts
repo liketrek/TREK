@@ -24,10 +24,15 @@ const login: TranslationStrings = {
   'login.oidc.noEmail': '공급자로부터 이메일을 받지 못했습니다.',
   'login.oidc.tokenFailed': '인증 실패.',
   'login.oidc.invalidState': '유효하지 않은 세션입니다. 다시 시도하세요.',
+  'login.oidc.emailNotVerified': '로그인 제공자가 이 이메일 주소를 확인하지 않아 기존 계정에 연결할 수 없습니다.',
+  'login.oidc.emailLinkBlocked':
+    '이 로그인을 이 이메일을 사용하는 기존 계정에 연결할 수 없습니다. 관리자에게 주소 확인을 요청하세요.',
   'login.demoFailed': '데모 로그인 실패',
   'login.oidcSignIn': '{name}으로 로그인',
   'login.oidcOnly': '비밀번호 인증이 비활성화되었습니다. SSO 공급자로 로그인하세요.',
   'login.oidcLoggedOut': '로그아웃되었습니다. SSO 공급자로 다시 로그인하세요.',
+  'login.oidcRedirecting': '{name}(으)로 이동하는 중…',
+  'login.oidcRedirectSlow': '아직 이 화면인가요? {name}(으)로 계속',
   'login.demoHint': '데모 체험 — 회원가입 불필요',
   'login.mfaTitle': '2단계 인증',
   'login.mfaSubtitle': '인증 앱의 6자리 코드를 입력하세요.',
@@ -66,9 +71,9 @@ const login: TranslationStrings = {
   'login.resetPasswordFailed': '재설정 실패. 링크가 만료되었을 수 있습니다.',
   'login.passkey.signIn': '패스키로 로그인',
   'login.passkey.failed': '패스키 로그인에 실패했습니다. 다시 시도하세요.',
-  'login.insecureCookie.title': "Login won't stick over HTTP",
+  'login.insecureCookie.title': 'HTTP에서는 로그인이 유지되지 않습니다',
   'login.insecureCookie.body':
-    'You’re connecting over plain HTTP, so your browser drops TREK’s secure session cookie — the next request fails with "Access token required". Fix: use HTTPS, or for a home-lab set COOKIE_SECURE=false.',
-  'login.insecureCookie.link': 'Open the Troubleshooting guide',
+    '일반 HTTP로 접속 중이라 브라우저가 TREK의 보안 세션 쿠키를 버리며, 다음 요청은 "Access token required" 오류로 실패합니다. 해결 방법: HTTPS를 사용하거나, 홈랩이라면 COOKIE_SECURE=false로 설정하세요.',
+  'login.insecureCookie.link': '문제 해결 가이드 열기',
 };
 export default login;

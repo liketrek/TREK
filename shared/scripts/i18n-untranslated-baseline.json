@@ -1,0 +1,138 @@
+{
+  "ar": {
+    "admin.ts": { "marked": 0, "identical": 2 },
+    "settings.ts": { "marked": 1, "identical": 1 },
+    "system_notice.ts": { "marked": 0, "identical": 1 }
+  },
+  "az": {
+    "admin.ts": { "marked": 0, "identical": 1 },
+    "journey.ts": { "marked": 0, "identical": 1 },
+    "places.ts": { "marked": 0, "identical": 1 },
+    "settings.ts": { "marked": 0, "identical": 1 }
+  },
+  "br": {
+    "admin.ts": { "marked": 0, "identical": 1 },
+    "journey.ts": { "marked": 0, "identical": 1 },
+    "system_notice.ts": { "marked": 0, "identical": 2 }
+  },
+  "ca": {
+    "admin.ts": { "marked": 0, "identical": 1 },
+    "journey.ts": { "marked": 0, "identical": 4 },
+    "settings.ts": { "marked": 0, "identical": 1 },
+    "system_notice.ts": { "marked": 0, "identical": 2 }
+  },
+  "cs": {
+    "admin.ts": { "marked": 0, "identical": 1 },
+    "journey.ts": { "marked": 0, "identical": 1 },
+    "places.ts": { "marked": 0, "identical": 1 }
+  },
+  "de": {
+    "admin.ts": { "marked": 0, "identical": 1 },
+    "journey.ts": { "marked": 0, "identical": 2 },
+    "system_notice.ts": { "marked": 0, "identical": 2 }
+  },
+  "es": {
+    "admin.ts": { "marked": 0, "identical": 1 },
+    "journey.ts": { "marked": 0, "identical": 1 }
+  },
+  "fr": {
+    "admin.ts": { "marked": 0, "identical": 2 },
+    "atlas.ts": { "marked": 0, "identical": 1 },
+    "help.ts": { "marked": 0, "identical": 1 },
+    "journey.ts": { "marked": 0, "identical": 10 },
+    "notif.ts": { "marked": 0, "identical": 1 },
+    "places.ts": { "marked": 0, "identical": 1 },
+    "planner.ts": { "marked": 0, "identical": 1 },
+    "roadtrip.ts": { "marked": 0, "identical": 2 },
+    "system_notice.ts": { "marked": 0, "identical": 2 }
+  },
+  "gr": {
+    "admin.ts": { "marked": 0, "identical": 11 },
+    "common.ts": { "marked": 0, "identical": 1 },
+    "day.ts": { "marked": 0, "identical": 2 },
+    "help.ts": { "marked": 0, "identical": 2 },
+    "journey.ts": { "marked": 0, "identical": 1 },
+    "places.ts": { "marked": 0, "identical": 1 },
+    "reservations.ts": { "marked": 0, "identical": 2 },
+    "roadtrip.ts": { "marked": 0, "identical": 3 },
+    "settings.ts": { "marked": 0, "identical": 8 },
+    "storage.ts": { "marked": 0, "identical": 2 },
+    "system_notice.ts": { "marked": 0, "identical": 3 }
+  },
+  "hu": {
+    "admin.ts": { "marked": 0, "identical": 1 }
+  },
+  "id": {
+    "admin.ts": { "marked": 0, "identical": 2 },
+    "journey.ts": { "marked": 0, "identical": 1 }
+  },
+  "it": {
+    "admin.ts": { "marked": 0, "identical": 1 },
+    "journey.ts": { "marked": 0, "identical": 1 },
+    "storage.ts": { "marked": 0, "identical": 1 }
+  },
+  "ja": {
+    "admin.ts": { "marked": 0, "identical": 1 },
+    "settings.ts": { "marked": 0, "identical": 1 },
+    "system_notice.ts": { "marked": 0, "identical": 2 }
+  },
+  "ko": {
+    "admin.ts": { "marked": 0, "identical": 1 },
+    "settings.ts": { "marked": 0, "identical": 1 },
+    "system_notice.ts": { "marked": 0, "identical": 3 }
+  },
+  "nl": {
+    "journey.ts": { "marked": 0, "identical": 2 },
+    "places.ts": { "marked": 0, "identical": 1 },
+    "settings.ts": { "marked": 0, "identical": 6 },
+    "system_notice.ts": { "marked": 0, "identical": 3 }
+  },
+  "pl": {
+    "admin.ts": { "marked": 0, "identical": 1 },
+    "places.ts": { "marked": 0, "identical": 1 }
+  },
+  "ru": {
+    "admin.ts": { "marked": 0, "identical": 4 },
+    "settings.ts": { "marked": 0, "identical": 3 },
+    "system_notice.ts": { "marked": 0, "identical": 3 }
+  },
+  "sk": {
+    "admin.ts": { "marked": 0, "identical": 1 }
+  },
+  "sv": {
+    "admin.ts": { "marked": 0, "identical": 1 },
+    "budget.ts": { "marked": 0, "identical": 1 },
+    "journey.ts": { "marked": 0, "identical": 1 },
+    "mobileTrip.ts": { "marked": 0, "identical": 1 },
+    "packing.ts": { "marked": 0, "identical": 1 },
+    "roadtrip.ts": { "marked": 0, "identical": 1 },
+    "settings.ts": { "marked": 0, "identical": 1 },
+    "system_notice.ts": { "marked": 0, "identical": 2 }
+  },
+  "th": {
+    "admin.ts": { "marked": 0, "identical": 1 },
+    "system_notice.ts": { "marked": 0, "identical": 1 }
+  },
+  "tr": {
+    "system_notice.ts": { "marked": 0, "identical": 1 }
+  },
+  "uk": {
+    "admin.ts": { "marked": 0, "identical": 4 },
+    "settings.ts": { "marked": 0, "identical": 3 },
+    "system_notice.ts": { "marked": 0, "identical": 1 }
+  },
+  "vi": {
+    "admin.ts": { "marked": 0, "identical": 1 },
+    "settings.ts": { "marked": 0, "identical": 1 }
+  },
+  "zh": {
+    "admin.ts": { "marked": 0, "identical": 1 },
+    "settings.ts": { "marked": 0, "identical": 1 },
+    "system_notice.ts": { "marked": 0, "identical": 1 }
+  },
+  "zh-TW": {
+    "admin.ts": { "marked": 0, "identical": 1 },
+    "settings.ts": { "marked": 0, "identical": 1 },
+    "system_notice.ts": { "marked": 0, "identical": 3 }
+  }
+}

@@ -4,7 +4,14 @@ console.log('[dev] initial build...');
 execSync('node scripts/build.mjs', { stdio: 'inherit' });
 
 const children = [];
-const stop = () => { children.forEach((c) => { try { c.kill(); } catch {} }); process.exit(0); };
+const stop = () => {
+  children.forEach((c) => {
+    try {
+      c.kill();
+    } catch {}
+  });
+  process.exit(0);
+};
 process.on('SIGINT', stop);
 process.on('SIGTERM', stop);
 

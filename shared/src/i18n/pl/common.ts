@@ -7,6 +7,7 @@ const common: TranslationStrings = {
   'common.cancel': 'Anuluj',
   'common.clear': 'Wyczyść',
   'common.delete': 'Usuń',
+  'common.remove': 'Usuń',
   'common.preview': 'Podgląd',
   'common.edit': 'Edytuj',
   'common.add': 'Dodaj',
@@ -31,6 +32,9 @@ const common: TranslationStrings = {
   'common.rename': 'Zmień nazwę',
   'common.discardChanges': 'Odrzuć zmiany',
   'common.discard': 'Odrzuć',
+  'common.unsavedTitle': 'Odrzucić zmiany?',
+  'common.unsavedMessage': 'To, co tu wpisano, nie zostało jeszcze zapisane.',
+  'common.keepEditing': 'Kontynuuj edycję',
   'common.name': 'Nazwa',
   'common.email': 'E-mail',
   'common.password': 'Hasło',
@@ -51,19 +55,25 @@ const common: TranslationStrings = {
   'common.saved': 'Zapisano',
   'common.justNow': 'przed chwilą',
   'common.hoursAgo': '{count} godz. temu',
-  'common.daysAgo': '{count} dn. temu',
-  'common.datepicker.prevMonth': 'Previous month', // en-fallback
-  'common.datepicker.nextMonth': 'Next month', // en-fallback
-  'common.datepicker.prevYear': 'Previous year', // en-fallback
-  'common.datepicker.nextYear': 'Next year', // en-fallback
-  'common.datepicker.prevYears': 'Previous years', // en-fallback
-  'common.datepicker.nextYears': 'Next years', // en-fallback
-  'common.datepicker.selectMonth': 'Select month', // en-fallback
-  'common.datepicker.selectYear': 'Select year', // en-fallback
-  'common.datepicker.enterManually': 'Enter date manually', // en-fallback
-  'common.datepicker.typeDate': 'Type a date', // en-fallback
-  'common.datepicker.dialog': 'Date picker', // en-fallback
-  'common.datepicker.clearDate': 'Clear date', // en-fallback
+  'common.hoursAgo.one': '{count} godz. temu',
+  'common.hoursAgo.few': '{count} godz. temu',
+  'common.hoursAgo.many': '{count} godz. temu',
+  'common.daysAgo': '{count} dnia temu',
+  'common.daysAgo.one': '{count} dzień temu',
+  'common.daysAgo.few': '{count} dni temu',
+  'common.daysAgo.many': '{count} dni temu',
+  'common.datepicker.prevMonth': 'Poprzedni miesiąc',
+  'common.datepicker.nextMonth': 'Następny miesiąc',
+  'common.datepicker.prevYear': 'Poprzedni rok',
+  'common.datepicker.nextYear': 'Następny rok',
+  'common.datepicker.prevYears': 'Poprzednie lata',
+  'common.datepicker.nextYears': 'Następne lata',
+  'common.datepicker.selectMonth': 'Wybierz miesiąc',
+  'common.datepicker.selectYear': 'Wybierz rok',
+  'common.datepicker.enterManually': 'Wpisz datę ręcznie',
+  'common.datepicker.typeDate': 'Wpisz datę',
+  'common.datepicker.dialog': 'Wybór daty',
+  'common.datepicker.clearDate': 'Wyczyść datę',
   'common.errorTitle': 'Coś poszło nie tak',
   'common.errorBody': 'Ta część aplikacji przestała działać. Twoje dane są bezpieczne.',
   'common.errorPanelTitle': 'Nie udało się wyświetlić tej sekcji',
@@ -73,5 +83,6 @@ const common: TranslationStrings = {
   'common.errorUpdateTitle': 'Dostępna jest nowa wersja',
   'common.errorUpdateBody': 'TREK został zaktualizowany, gdy ta karta była otwarta. Odśwież, aby pobrać nową wersję.',
   'common.errorPluginTitle': 'Nie udało się wyświetlić tej wtyczki',
+  'common.needsConnection': 'To wymaga połączenia. Spróbuj ponownie, gdy TREK znów będzie online.',
 };
 export default common;

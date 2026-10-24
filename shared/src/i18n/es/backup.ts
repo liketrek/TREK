@@ -70,5 +70,6 @@ const backup: TranslationStrings = {
     'Todos los datos actuales (viajes, lugares, usuarios, subidas) serán reemplazados permanentemente por la copia. Esta acción no se puede deshacer.',
   'backup.restoreTip': 'Consejo: crea una copia del estado actual antes de restaurar.',
   'backup.restoreConfirm': 'Sí, restaurar',
+  'backup.auto.hourHintTz': 'Hora local del servidor (formato {format}), zona horaria {timezone}',
 };
 export default backup;

@@ -1,3 +1,23 @@
+import { ADDON_IDS } from '../../addons';
+import type { User } from '../../types';
+import { AddonGuard } from '../addons/addon.guard';
+import { RequireAddon } from '../addons/require-addon.decorator';
+import { getClientIp } from '../audit/client-ip';
+import { CurrentUser } from '../auth-core/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { DawarichSuggestionsService, AcceptError } from './dawarich-suggestions.service';
+import { DawarichSyncService } from './dawarich-sync.service';
+import { DawarichTracksService } from './dawarich-tracks.service';
+import { DawarichError } from './dawarich.client';
+import {
+  DawarichAcceptDto,
+  DawarichAtlasAcceptDto,
+  DawarichBucketConfirmDto,
+  DawarichSettingsDto,
+  DawarichSuggestionStateDto,
+} from './dawarich.dto';
+import { parseTimeWindow } from './dawarich.helpers';
+import { DawarichService } from './dawarich.service';
 import {
   Body,
   Controller,
@@ -12,26 +32,8 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+
 import type { Request } from 'express';
-import type { User } from '../../types';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
-import { AddonGuard } from '../addons/addon.guard';
-import { RequireAddon } from '../addons/require-addon.decorator';
-import { ADDON_IDS } from '../../addons';
-import { getClientIp } from '../audit/client-ip';
-import { DawarichService } from './dawarich.service';
-import { DawarichSyncService } from './dawarich-sync.service';
-import { DawarichSuggestionsService, AcceptError } from './dawarich-suggestions.service';
-import { DawarichTracksService } from './dawarich-tracks.service';
-import { DawarichError } from './dawarich.client';
-import {
-  DawarichAcceptDto,
-  DawarichAtlasAcceptDto,
-  DawarichBucketConfirmDto,
-  DawarichSettingsDto,
-  DawarichSuggestionStateDto,
-} from './dawarich.dto';
 
 /**
  * `/api/integrations/dawarich` — the per-user Dawarich connection and everything
@@ -72,11 +74,7 @@ export class DawarichController {
   }
 
   @Put('settings')
-  async putSettings(
-    @CurrentUser() user: User,
-    @Body() body: DawarichSettingsDto,
-    @Req() req: Request,
-  ) {
+  async putSettings(@CurrentUser() user: User, @Body() body: DawarichSettingsDto, @Req() req: Request) {
     const result = await this.dawarich.saveSettings(
       user.id,
       body.url,
@@ -97,8 +95,8 @@ export class DawarichController {
 
   @Delete('settings')
   @HttpCode(200)
-  disconnect(@CurrentUser() user: User, @Req() req: Request) {
-    this.dawarich.disconnect(user.id, getClientIp(req));
+  async disconnect(@CurrentUser() user: User, @Req() req: Request) {
+    await this.dawarich.disconnect(user.id, getClientIp(req));
     this.tracks.forget(user.id);
     return { success: true };
   }
@@ -119,11 +117,7 @@ export class DawarichController {
   // ── Suggestions ────────────────────────────────────────────────────────────
 
   @Get('suggestions')
-  listSuggestions(
-    @CurrentUser() user: User,
-    @Query('tripId') tripId?: string,
-    @Query('state') state?: string,
-  ) {
+  listSuggestions(@CurrentUser() user: User, @Query('tripId') tripId?: string, @Query('state') state?: string) {
     return this.suggestions.list(user.id, {
       tripId: parseOptionalId(tripId, 'tripId'),
       state: parseState(state),
@@ -138,19 +132,20 @@ export class DawarichController {
     @Body() body: DawarichAcceptDto,
     @Req() req: Request,
   ) {
-    return this.guard(() =>
-      this.suggestions.accept(user.id, parseId(id), body, socketId(req)),
-    );
+    // guardAsync, not guard: accept() is async now, so its AcceptError arrives as
+    // a rejection a synchronous try/catch cannot see — and the domain's own code
+    // would be dropped from the body.
+    return this.guardAsync(() => this.suggestions.accept(user.id, parseId(id), body, socketId(req)));
   }
 
   @Put('suggestions/:id/state')
   @HttpCode(200)
-  setSuggestionState(
+  async setSuggestionState(
     @CurrentUser() user: User,
     @Param('id') id: string,
     @Body() body: DawarichSuggestionStateDto,
   ) {
-    const updated = this.suggestions.setState(user.id, parseId(id), body.state);
+    const updated = await this.suggestions.setState(user.id, parseId(id), body.state);
     if (!updated) throw new HttpException({ error: 'Suggestion not found' }, 404);
     return updated;
   }
@@ -166,14 +161,16 @@ export class DawarichController {
 
   @Post('bucket-list/confirm')
   @HttpCode(200)
-  confirmBucketVisits(@CurrentUser() user: User, @Body() body: DawarichBucketConfirmDto) {
-    return { updated: this.suggestions.confirmBucketVisits(user.id, body.itemIds, body.visitedAt) };
+  async confirmBucketVisits(@CurrentUser() user: User, @Body() body: DawarichBucketConfirmDto, @Req() req: Request) {
+    return {
+      updated: await this.suggestions.confirmBucketVisits(user.id, body.itemIds, body.visitedAt, socketId(req)),
+    };
   }
 
   @Delete('bucket-list/:itemId/visit')
   @HttpCode(200)
-  clearBucketVisit(@CurrentUser() user: User, @Param('itemId') itemId: string) {
-    const cleared = this.suggestions.clearBucketVisit(user.id, parseId(itemId));
+  async clearBucketVisit(@CurrentUser() user: User, @Param('itemId') itemId: string, @Req() req: Request) {
+    const cleared = await this.suggestions.clearBucketVisit(user.id, parseId(itemId), socketId(req));
     if (!cleared) throw new HttpException({ error: 'Bucket-list entry not found' }, 404);
     return { success: true };
   }
@@ -181,19 +178,15 @@ export class DawarichController {
   // ── Atlas ──────────────────────────────────────────────────────────────────
 
   @Get('atlas/suggestions')
-  async atlasSuggestions(
-    @CurrentUser() user: User,
-    @Query('from') from?: string,
-    @Query('to') to?: string,
-  ) {
-    const window = parseWindow(from, to);
+  async atlasSuggestions(@CurrentUser() user: User, @Query('from') from?: string, @Query('to') to?: string) {
+    const window = parseTimeWindow(from, to);
     return this.guardAsync(() => this.suggestions.atlasSuggestions(user.id, window.from, window.to));
   }
 
   @Post('atlas/accept')
   @HttpCode(200)
-  acceptAtlasCountries(@CurrentUser() user: User, @Body() body: DawarichAtlasAcceptDto) {
-    return { marked: this.suggestions.acceptAtlasCountries(user.id, body.countryCodes) };
+  async acceptAtlasCountries(@CurrentUser() user: User, @Body() body: DawarichAtlasAcceptDto, @Req() req: Request) {
+    return { marked: await this.suggestions.acceptAtlasCountries(user.id, body.countryCodes, socketId(req)) };
   }
 
   // ── Track overlay ──────────────────────────────────────────────────────────
@@ -225,14 +218,9 @@ export class DawarichController {
     @Query('to') to?: string,
     @Query('offset') offset?: string,
   ) {
-    const window = parseWindow(from, to);
+    const window = parseTimeWindow(from, to);
     return this.guardAsync(() =>
-      this.tracks.forWindow(
-        user.id,
-        window.from.toISOString(),
-        window.to.toISOString(),
-        parseOffset(offset),
-      ),
+      this.tracks.forWindow(user.id, window.from.toISOString(), window.to.toISOString(), parseOffset(offset)),
     );
   }
 
@@ -323,25 +311,6 @@ function parseDate(raw: string | undefined): string | undefined {
     throw new HttpException({ error: 'Dates must be ISO, YYYY-MM-DD' }, 400);
   }
   return raw;
-}
-
-/**
- * An explicit instant window. Both ends are required together: a half-open
- * range would silently become "everything since the epoch" on one side, which
- * is the request that makes an instance time out.
- */
-function parseWindow(from: string | undefined, to: string | undefined): { from: Date; to: Date } {
-  const start = from ? new Date(from) : null;
-  const end = to ? new Date(to) : null;
-  if (!start || !end || !Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime())) {
-    throw new HttpException({ error: 'from and to are required ISO timestamps' }, 400);
-  }
-  if (end <= start) throw new HttpException({ error: 'to must be after from' }, 400);
-  const MAX_DAYS = 400;
-  if (end.getTime() - start.getTime() > MAX_DAYS * 86_400_000) {
-    throw new HttpException({ error: `Window must be ${MAX_DAYS} days or less` }, 400);
-  }
-  return { from: start, to: end };
 }
 
 /** The originating client's socket id, so a broadcast does not echo back to it. */

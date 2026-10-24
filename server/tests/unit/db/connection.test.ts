@@ -1,14 +1,9 @@
-import fs from 'fs';
-import os from 'os';
-import path from 'path';
-import Database from 'better-sqlite3';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-
 import { openDatabase } from '../../../src/db/connection';
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { DatabaseService } from '../../../src/nest/database/database.service';
+import { Places } from '../../../src/db/entities/Places.entity';
+import { Trips } from '../../../src/db/entities/Trips.entity';
+import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
 import { TripsService } from '../../../src/nest/trips/trips.service';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
 import {
   createDayAssignment,
   createDayNote,
@@ -17,6 +12,15 @@ import {
   createTrip,
   createUser,
 } from '../../helpers/factories';
+import { countRows } from '../../helpers/factories/rows';
+import { readTripDays } from '../../helpers/factories/trips';
+import { createTestOrm } from '../../helpers/test-orm';
+
+import Database from 'better-sqlite3';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 // #2518: a container with a read-only root filesystem and no tmpfs on /tmp
 // gives SQLite nowhere to put a temp file, so deleting a trip failed with
@@ -33,12 +37,15 @@ beforeAll(() => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'trek-connection-'));
   // Real schema, built once and copied per test: the delete below has to
   // cascade through the same tables and foreign keys a live install has.
+  // The schema is the migrated snapshot the vitest global setup built, written
+  // out as a file so every copy is a real on-disk database.
   schemaFile = path.join(tmpDir, 'schema.db');
+  const snapshot = createSnapshotTestDb();
+  fs.writeFileSync(schemaFile, snapshot.serialize());
+  snapshot.close();
   const db = openDatabase(schemaFile);
   db.exec('PRAGMA journal_mode = WAL');
   db.exec('PRAGMA foreign_keys = ON');
-  createTables(db);
-  runMigrations(db);
   db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
   db.close();
 });
@@ -107,11 +114,11 @@ function sqliteTempFiles(): string[] {
  * delete ran. A trigger calls back into the test after the cascade, still
  * inside the statement, which is when a spilled statement journal is open.
  */
-function deleteTripAndWatchTempFiles(db: Database.Database): {
+async function deleteTripAndWatchTempFiles(db: Database.Database): Promise<{
   tempFiles: string[];
   tripLeft: number;
   placesLeft: number;
-} {
+}> {
   db.exec('PRAGMA journal_mode = WAL');
   db.exec('PRAGMA foreign_keys = ON');
 
@@ -121,7 +128,8 @@ function deleteTripAndWatchTempFiles(db: Database.Database): {
     start_date: '2026-06-01',
     end_date: '2026-06-14',
   });
-  const days = db.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number').all(trip.id) as { id: number }[];
+  const t = await createTestOrm(db);
+  const days = await readTripDays(t, trip.id);
   for (let i = 0; i < 25; i++) {
     const place = createPlace(db, trip.id, { name: `Ort ${i}`, description: 'Grachten und Tulpen. '.repeat(10) });
     createDayAssignment(db, days[i % days.length].id, place.id);
@@ -138,23 +146,26 @@ function deleteTripAndWatchTempFiles(db: Database.Database): {
   db.exec('CREATE TRIGGER trek_watch_trip_delete AFTER DELETE ON trips BEGIN SELECT trek_watch_temp_files(); END');
 
   const none = undefined as never;
-  const trips = new TripsService(new DatabaseService(db), none, none, none, none, none, none, none, none, none);
-  trips.remove(trip.id, user.id, 'user');
-
-  return {
-    tempFiles: [...seen],
-    tripLeft: (db.prepare('SELECT COUNT(*) AS n FROM trips WHERE id = ?').get(trip.id) as { n: number }).n,
-    placesLeft: (db.prepare('SELECT COUNT(*) AS n FROM places WHERE trip_id = ?').get(trip.id) as { n: number }).n,
-  };
+  try {
+    const trips = new TripsService(none, none, none, none, none, none, none, none, new UnitOfWork(t.em), t.em, none);
+    await trips.remove(trip.id, user.id, 'user');
+    return {
+      tempFiles: [...seen],
+      tripLeft: await countRows(t, Trips, { id: trip.id }),
+      placesLeft: await countRows(t, Places, { trip: trip.id }),
+    };
+  } finally {
+    await t.close();
+  }
 }
 
 describe.runIf(canSeeTempFiles)('deleting a trip with content (#2518)', () => {
-  it('needs a temp file on a connection left at the SQLite default', () => {
+  it('needs a temp file on a connection left at the SQLite default', async () => {
     // The control: proves the watcher sees temp files, and that this delete is
     // one SQLite cannot finish without one where no temp directory is writable.
     const db = new Database(freshCopy('default'));
     try {
-      const result = deleteTripAndWatchTempFiles(db);
+      const result = await deleteTripAndWatchTempFiles(db);
       expect(result.tempFiles.length).toBeGreaterThan(0);
       expect(result.tripLeft).toBe(0);
     } finally {
@@ -162,10 +173,10 @@ describe.runIf(canSeeTempFiles)('deleting a trip with content (#2518)', () => {
     }
   });
 
-  it('never touches a temp file on a connection TREK opens', () => {
+  it('never touches a temp file on a connection TREK opens', async () => {
     const db = openDatabase(freshCopy('trek'));
     try {
-      const result = deleteTripAndWatchTempFiles(db);
+      const result = await deleteTripAndWatchTempFiles(db);
       expect(result.tempFiles).toEqual([]);
       expect(result.tripLeft).toBe(0);
       expect(result.placesLeft).toBe(0);

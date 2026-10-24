@@ -1,5 +1,5 @@
 import type { Place } from '../../types'
-import type { SaveToCollectionTarget } from '../../store/saveToCollectionStore'
+import { useSaveToCollectionStore, type SaveToCollectionTarget } from '../../store/saveToCollectionStore'
 
 /**
  * Build a Save-to-Collection picker target from a trip pool place, carrying the
@@ -25,4 +25,15 @@ export function placeToSaveTarget(place: Place): SaveToCollectionTarget {
     website: place.website ?? null,
     phone: place.phone ?? null,
   }
+}
+
+/**
+ * Open the right "Save to Collection" flow for a trip place. A tour opens the
+ * tour's own keep dialog, the one its card uses, so it is kept with its route;
+ * any other place opens the place picker as before.
+ */
+export function openSaveToCollection(place: Place, isTour: boolean, tripId: number | string = place.trip_id): void {
+  const store = useSaveToCollectionStore.getState()
+  if (isTour) store.openTour({ tripId, placeId: place.id, name: place.name })
+  else store.open(placeToSaveTarget(place))
 }

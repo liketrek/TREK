@@ -1,20 +1,23 @@
-import pathMod from 'node:path';
-import { randomUUID } from 'node:crypto';
-import { Readable } from 'node:stream';
-import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
-import { PluginGuards } from '../plugins/host/plugin-guards.service';
-import { BadParams, ForbiddenResource } from '../plugins/host/rpc-errors';
-import { asPayload, num } from '../plugins/host/rpc-params';
-import type { PluginRpcContext } from '../plugins/host/rpc-kit/types';
-import { RealtimeService } from '../realtime/realtime.service';
-import { DatabaseService } from '../database/database.service';
 import { readEnv } from '../../app-config';
+import { Users } from '../../db/entities/Users.entity';
+import type { UsersRepository } from '../../db/repositories/Users.repository';
+import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
+import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
+import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
+import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
+import { asPayload, num } from '../../nest-rpc/rpc-params';
 import { isDemoEmail } from '../common/demo';
+import { RealtimeService } from '../realtime/realtime.service';
+import { StorageService } from '../storage/storage.service';
 import { BLOCKED_EXTENSIONS } from './files.constants';
 // The read cap is the same number on both byte paths, so the upload side of
 // this surface reads it off the service that owns the read side.
 import { FilesService, FileContentError, FILE_CONTENT_MAX as CONTENT_MAX } from './files.service';
-import { StorageService } from '../storage/storage.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+
+import { randomUUID } from 'node:crypto';
+import pathMod from 'node:path';
+import { Readable } from 'node:stream';
 
 /** Files use three separate rights, one per operation, unlike every other domain. */
 const UPLOAD_ACTION = 'file_upload';
@@ -48,15 +51,17 @@ export class FilesRpc {
   constructor(
     private readonly files: FilesService,
     private readonly realtime: RealtimeService,
-    private readonly db: DatabaseService,
+    @InjectRepository(Users) private readonly users: UsersRepository,
     private readonly guards: PluginGuards,
     private readonly storage: StorageService,
   ) {}
 
   @PluginMethod('files.list', { permission: 'db:read:files' })
-  list(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
+  async list(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     // Trash excluded, the same view the files tab shows.
-    return this.guards.tripRead(params, ctx, () => this.files.listFiles(num(params.tripId, 'tripId'), false));
+    return await this.guards.tripRead(params, ctx, async () =>
+      this.files.listFiles(num(params.tripId, 'tripId'), false),
+    );
   }
 
   @PluginMethod('files.getContent', { permission: 'db:read:files:content' })
@@ -101,7 +106,7 @@ export class FilesRpc {
     if (input.content_base64.length > 14 * 1024 * 1024) {
       throw new BadParams('file exceeds the 10MB plugin upload cap');
     }
-    this.guards.requireTripEdit(tripId, actor, UPLOAD_ACTION);
+    await this.guards.requireTripEdit(tripId, actor, UPLOAD_ACTION);
     return this.writeFile(tripId, input as unknown as CreateInput, actor);
   }
 
@@ -110,8 +115,9 @@ export class FilesRpc {
     // demo instance, not even through a plugin's db:write:files. The email is only
     // resolved when demo mode is actually on, so self-hosted installs pay nothing.
     if (readEnv().demo.enabled) {
-      const uploader = this.db.prepare('SELECT email FROM users WHERE id = ?').get(actingUserId) as { email?: string } | undefined;
-      if (isDemoEmail(uploader?.email)) throw new ForbiddenResource('Uploads are disabled in demo mode.');
+      // FL28 — `SELECT email FROM users WHERE id = ?`, now `UsersRepository.getEmail`.
+      const email = await this.users.getEmail(actingUserId);
+      if (isDemoEmail(email)) throw new ForbiddenResource('Uploads are disabled in demo mode.');
     }
     const original = pathMod.basename(input.name);
     const ext = pathMod.extname(original).toLowerCase();
@@ -121,7 +127,7 @@ export class FilesRpc {
     const buf = Buffer.from(input.content_base64, 'base64');
     if (buf.length === 0) throw new BadParams('file content is empty');
     if (buf.length > CONTENT_MAX) throw new BadParams('file exceeds the 10MB plugin upload cap');
-    const foreign = this.files.findForeignLinkTarget(tripId, {
+    const foreign = await this.files.findForeignLinkTarget(tripId, {
       reservation_id: input.reservation_id ?? null,
       place_id: input.place_id ?? null,
     });
@@ -133,7 +139,7 @@ export class FilesRpc {
     await this.storage.put('files', filename, Readable.from(buf), {
       contentType: input.mimetype || 'application/octet-stream',
     });
-    const file = this.files.createFile(
+    const file = await this.files.createFile(
       tripId,
       { filename, originalname: original, size: buf.length, mimetype: input.mimetype || 'application/octet-stream' },
       actingUserId,
@@ -148,17 +154,18 @@ export class FilesRpc {
   }
 
   @PluginMethod('files.createLink', { permission: 'db:write:files' })
-  createLink(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
+  async createLink(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     const tripId = num(params.tripId, 'tripId');
     const fileId = num(params.fileId, 'fileId');
     const actor = this.guards.requireActor(ctx, 'file link');
-    this.guards.requireTripEdit(tripId, actor, EDIT_ACTION);
-    if (!this.files.getFileById(fileId, tripId)) throw new ForbiddenResource(`no file ${fileId} on trip ${tripId}`);
+    await this.guards.requireTripEdit(tripId, actor, EDIT_ACTION);
+    if (!(await this.files.getFileById(fileId, tripId)))
+      throw new ForbiddenResource(`no file ${fileId} on trip ${tripId}`);
     const opts = asPayload(params.opts) as { reservation_id?: number; assignment_id?: number; place_id?: number };
     // A link target on another trip would otherwise attach this trip's file to it.
-    const foreign = this.files.findForeignLinkTarget(tripId, opts);
+    const foreign = await this.files.findForeignLinkTarget(tripId, opts);
     if (foreign) throw new ForbiddenResource(`${foreign} does not belong to trip ${tripId}`);
-    return this.files.createFileLink(fileId, {
+    return await this.files.createFileLink(fileId, {
       reservation_id: opts.reservation_id != null ? String(opts.reservation_id) : null,
       assignment_id: opts.assignment_id != null ? String(opts.assignment_id) : null,
       place_id: opts.place_id != null ? String(opts.place_id) : null,
@@ -166,37 +173,43 @@ export class FilesRpc {
   }
 
   @PluginMethod('files.update', { permission: 'db:write:files' })
-  update(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
+  async update(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     const tripId = num(params.tripId, 'tripId');
     const fileId = num(params.fileId, 'fileId');
     const actor = this.guards.requireActor(ctx, 'file');
-    this.guards.requireTripEdit(tripId, actor, EDIT_ACTION);
-    const current = this.files.getFileById(fileId, tripId);
+    await this.guards.requireTripEdit(tripId, actor, EDIT_ACTION);
+    const current = await this.files.getFileById(fileId, tripId);
     if (!current) throw new ForbiddenResource(`no file ${fileId} on trip ${tripId}`);
-    const input = asPayload(params.input) as { description?: string; place_id?: number | null; reservation_id?: number | null };
-    const foreign = this.files.findForeignLinkTarget(tripId, {
+    const input = asPayload(params.input) as {
+      description?: string;
+      place_id?: number | null;
+      reservation_id?: number | null;
+    };
+    const foreign = await this.files.findForeignLinkTarget(tripId, {
       reservation_id: input.reservation_id ?? null,
       place_id: input.place_id ?? null,
     });
     if (foreign) throw new ForbiddenResource(`${foreign} does not belong to trip ${tripId}`);
-    const file = this.files.updateFile(fileId, current, {
+    const file = await this.files.updateFile(fileId, current, {
       description: input.description,
       // null clears the link, undefined leaves it alone: the two are distinct here.
       place_id: input.place_id != null ? String(input.place_id) : input.place_id === null ? null : undefined,
-      reservation_id: input.reservation_id != null ? String(input.reservation_id) : input.reservation_id === null ? null : undefined,
+      reservation_id:
+        input.reservation_id != null ? String(input.reservation_id) : input.reservation_id === null ? null : undefined,
     });
     this.realtime.broadcast(tripId, 'file:updated', { file }, undefined);
     return file;
   }
 
   @PluginMethod('files.softDelete', { permission: 'db:write:files' })
-  softDelete(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
+  async softDelete(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     const tripId = num(params.tripId, 'tripId');
     const fileId = num(params.fileId, 'fileId');
     const actor = this.guards.requireActor(ctx, 'file');
-    this.guards.requireTripEdit(tripId, actor, DELETE_ACTION);
-    if (!this.files.getFileById(fileId, tripId)) throw new ForbiddenResource(`no file ${fileId} on trip ${tripId}`);
-    this.files.softDeleteFile(fileId);
+    await this.guards.requireTripEdit(tripId, actor, DELETE_ACTION);
+    if (!(await this.files.getFileById(fileId, tripId)))
+      throw new ForbiddenResource(`no file ${fileId} on trip ${tripId}`);
+    await this.files.softDeleteFile(fileId);
     this.realtime.broadcast(tripId, 'file:deleted', { fileId }, undefined);
     return { deleted: true };
   }

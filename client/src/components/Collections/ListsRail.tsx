@@ -4,6 +4,7 @@ import type { Collection } from '@trek/shared'
 import type { TranslationFn } from '../../types'
 import { ALL_SAVED } from '../../store/collectionStore'
 import type { ActiveCollectionId, IncomingCollectionInvite } from '../../store/collectionStore'
+import CollectionInviteCard from './CollectionInviteCard'
 
 interface ListsRailProps {
   ownedLists: Collection[]
@@ -90,18 +91,7 @@ export default function ListsRail(props: ListsRailProps): React.ReactElement {
             <span className="badge">{incomingInvites.length}</span>
           </div>
           {incomingInvites.map(inv => (
-            <div key={inv.collection_id} className="col-invite">
-              <div className="t">{inv.name}</div>
-              <div className="s">{t('collections.invites.from')} {inv.from.username}</div>
-              <div className="col-invite-actions">
-                <button type="button" onClick={() => onAcceptInvite(inv.collection_id)} className="col-invite-accept">
-                  {t('collections.invites.accept')}
-                </button>
-                <button type="button" onClick={() => onDeclineInvite(inv.collection_id)} className="col-invite-decline">
-                  {t('collections.invites.decline')}
-                </button>
-              </div>
-            </div>
+            <CollectionInviteCard key={inv.collection_id} invite={inv} onAccept={onAcceptInvite} onDecline={onDeclineInvite} t={t} />
           ))}
         </>
       )}

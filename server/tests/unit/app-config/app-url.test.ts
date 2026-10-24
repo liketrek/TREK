@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-
 import { getAppUrl, getMcpSafeUrl } from '../../../src/app-config/app-url';
+
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 // These tests PIN the exact behavior moved verbatim from
 // services/notifications.ts (2026-07-28): the APP_URL → ALLOWED_ORIGINS →

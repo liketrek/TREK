@@ -6,10 +6,17 @@ import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildTrip } from '../../../tests/helpers/factories';
+import { addListener } from '../../api/websocket';
 import { TranslationProvider } from '../../i18n/TranslationContext';
 import { useAuthStore } from '../../store/authStore';
 import { useDashboard } from './useDashboard';
 import type { DashboardTrip } from './dashboardModel';
+
+// Retrying reloads the user, and loadUser registers the background sync
+// triggers: a 30 s heartbeat and window listeners that nothing here
+// unregisters, so they outlive the test and can fire, and log, while the
+// file's worker shuts down. Nothing here is about sync.
+vi.mock('../../sync/syncTriggers', () => ({ registerSyncTriggers: vi.fn(), unregisterSyncTriggers: vi.fn() }));
 
 // FE-HOOK-DASH-001 onwards
 
@@ -201,7 +208,7 @@ describe('useDashboard', () => {
   });
 
   it('FE-HOOK-DASH-014: a failing delete toasts and keeps the trip', async () => {
-    server.use(http.delete('/api/trips/:id', () => HttpResponse.json({ error: 'nope' }, { status: 500 })));
+    server.use(http.delete('/api/trips/:id', () => HttpResponse.json({}, { status: 500 })));
     const { result } = await mountLoaded();
 
     act(() => { result.current.setDeleteTrip(PARIS); });
@@ -224,12 +231,41 @@ describe('useDashboard', () => {
   });
 
   it('FE-HOOK-DASH-016: a failing archive only toasts', async () => {
-    server.use(http.put('/api/trips/:id', () => HttpResponse.json({ error: 'nope' }, { status: 500 })));
+    server.use(http.put('/api/trips/:id', () => HttpResponse.json({}, { status: 500 })));
     const { result } = await mountLoaded();
 
     await act(async () => { await result.current.handleArchive(101); });
 
     expect(toastCalls).toContainEqual(['Failed to archive trip', 'error']);
+  });
+
+  it('FE-HOOK-DASH-016b: an archive the server refuses says why (#2604)', async () => {
+    server.use(http.put('/api/trips/:id', () => HttpResponse.json({ error: 'No permission to archive/unarchive this trip' }, { status: 403 })));
+    const { result } = await mountLoaded();
+
+    await act(async () => { await result.current.handleArchive(101); });
+    await act(async () => { await result.current.handleUnarchive(103); });
+
+    expect(toastCalls.filter(c => c[1] === 'error')).toEqual([
+      ['No permission to archive/unarchive this trip', 'error'],
+      ['No permission to archive/unarchive this trip', 'error'],
+    ]);
+  });
+
+  it('FE-HOOK-DASH-016c: a delete or copy the server refuses says why (#2604)', async () => {
+    server.use(
+      http.delete('/api/trips/:id', () => HttpResponse.json({ error: 'No permission to delete this trip' }, { status: 403 })),
+      http.post('/api/trips/:id/copy', () => HttpResponse.json({ error: 'No permission to create trips' }, { status: 403 })),
+    );
+    const { result } = await mountLoaded();
+
+    act(() => { result.current.setDeleteTrip(PARIS); });
+    await act(async () => { await result.current.confirmDelete(); });
+    act(() => { result.current.setCopyTrip(PARIS); });
+    await act(async () => { await result.current.confirmCopy(); });
+
+    expect(toastCalls).toContainEqual(['No permission to delete this trip', 'error']);
+    expect(toastCalls).toContainEqual(['No permission to create trips', 'error']);
   });
 
   it('FE-HOOK-DASH-017: restoring moves the trip back into the active list', async () => {
@@ -246,7 +282,7 @@ describe('useDashboard', () => {
   });
 
   it('FE-HOOK-DASH-018: a failing restore only toasts', async () => {
-    server.use(http.put('/api/trips/:id', () => HttpResponse.json({ error: 'nope' }, { status: 500 })));
+    server.use(http.put('/api/trips/:id', () => HttpResponse.json({}, { status: 500 })));
     const { result } = await mountLoaded();
 
     await act(async () => { await result.current.handleUnarchive(103); });
@@ -278,7 +314,7 @@ describe('useDashboard', () => {
   });
 
   it('FE-HOOK-DASH-021: a failing copy only toasts', async () => {
-    server.use(http.post('/api/trips/:id/copy', () => HttpResponse.json({ error: 'nope' }, { status: 500 })));
+    server.use(http.post('/api/trips/:id/copy', () => HttpResponse.json({}, { status: 500 })));
     const { result } = await mountLoaded();
 
     act(() => { result.current.setCopyTrip(PARIS); });
@@ -334,5 +370,98 @@ describe('useDashboard', () => {
 
     act(() => result.current.setTripFilter('archive'));
     expect(result.current.gridTrips[0].cover_image).toBe('/uploads/covers/new-rome.jpg');
+  });
+  it('FE-HOOK-DASH-027: creating, copying or redating a trip refreshes the stats and upcoming bookings (#2604)', async () => {
+    let statsCalls = 0;
+    let upcomingCalls = 0;
+    server.use(
+      http.get('/api/auth/travel-stats', () => { statsCalls += 1; return HttpResponse.json({ totalTrips: 1 + statsCalls, totalDays: 10 * statsCalls }); }),
+      http.get('/api/reservations/upcoming', () => {
+        upcomingCalls += 1;
+        return HttpResponse.json({ reservations: [{ id: 5, trip_id: 101, title: 'Louvre', type: 'ticket', reservation_time: upcomingCalls > 1 ? '2026-07-03T10:00' : '2026-07-01T10:00' }] });
+      }),
+      http.post('/api/trips', () => HttpResponse.json({ trip: buildTrip({ id: 200, title: 'Iceland' }) })),
+      http.post('/api/trips/:id/copy', () => HttpResponse.json({ trip: { ...PARIS, id: 300, title: 'Paris (copy)' } })),
+      http.put('/api/trips/:id', () => HttpResponse.json({ trip: { ...PARIS, start_date: '2026-07-03', end_date: '2026-07-12' } })),
+    );
+    const { result } = await mountLoaded();
+    await waitFor(() => expect(result.current.stats?.totalTrips).toBe(2));
+
+    await act(async () => { await result.current.handleCreate({ title: 'Iceland' }); });
+    await waitFor(() => expect(result.current.stats?.totalTrips).toBe(3));
+
+    act(() => { result.current.setCopyTrip(PARIS); });
+    await act(async () => { await result.current.confirmCopy(); });
+    await waitFor(() => expect(result.current.stats?.totalTrips).toBe(4));
+
+    act(() => { result.current.setEditingTrip(PARIS); });
+    await act(async () => { await result.current.handleUpdate({ title: 'Paris Adventure', start_date: '2026-07-03', end_date: '2026-07-12' }); });
+    await waitFor(() => expect(result.current.stats?.totalTrips).toBe(5));
+    expect(result.current.upcoming[0].reservation_time).toBe('2026-07-03T10:00');
+    expect(upcomingCalls).toBe(4);
+  });
+
+  it('FE-HOOK-DASH-028: deleting, archiving and restoring a trip refresh the stats too (#2604)', async () => {
+    let statsCalls = 0;
+    server.use(
+      http.get('/api/auth/travel-stats', () => { statsCalls += 1; return HttpResponse.json({ totalTrips: statsCalls }); }),
+      http.delete('/api/trips/:id', () => HttpResponse.json({ success: true })),
+      http.put('/api/trips/:id', () => HttpResponse.json({ trip: { ...PARIS, is_archived: 1 } })),
+    );
+    const { result } = await mountLoaded();
+    await waitFor(() => expect(statsCalls).toBe(1));
+
+    act(() => { result.current.setDeleteTrip(TOKYO); });
+    await act(async () => { await result.current.confirmDelete(); });
+    await waitFor(() => expect(statsCalls).toBe(2));
+
+    await act(async () => { await result.current.handleArchive(101); });
+    await waitFor(() => expect(statsCalls).toBe(3));
+
+    await act(async () => { await result.current.handleUnarchive(101); });
+    await waitFor(() => expect(statsCalls).toBe(4));
+  });
+
+  it('FE-HOOK-DASH-029: a failed mutation does not refetch the side data', async () => {
+    let statsCalls = 0;
+    server.use(
+      http.get('/api/auth/travel-stats', () => { statsCalls += 1; return HttpResponse.json({ totalTrips: statsCalls }); }),
+      http.post('/api/trips/:id/copy', () => HttpResponse.json({}, { status: 500 })),
+    );
+    const { result } = await mountLoaded();
+    await waitFor(() => expect(statsCalls).toBe(1));
+
+    act(() => { result.current.setCopyTrip(PARIS); });
+    await act(async () => { await result.current.confirmCopy(); });
+
+    expect(statsCalls).toBe(1);
+  });
+});
+
+describe('useDashboard: trips changed elsewhere', () => {
+  it('FE-BCAST-018: trips:changed reads the list again quietly, once per burst', async () => {
+    vi.mocked(addListener).mockClear();
+    const view = await mountLoaded();
+    const COPY = buildTrip({ id: 104, title: 'Paris Adventure (copy)', start_date: '2028-08-01', end_date: '2028-08-05' });
+    let listCalls = 0;
+    server.use(
+      http.get('/api/trips', ({ request }) => {
+        const url = new URL(request.url);
+        if (!url.searchParams.get('archived')) listCalls++;
+        return HttpResponse.json({ trips: url.searchParams.get('archived') ? [ROME] : [PARIS, TOKYO, COPY] });
+      }),
+    );
+    act(() => {
+      for (const [listener] of vi.mocked(addListener).mock.calls) {
+        listener({ type: 'trips:changed' });
+        listener({ type: 'trips:changed' });
+      }
+    });
+    const shown = () => [view.result.current.spotlight, ...view.result.current.gridTrips].map((t) => t?.id);
+    expect(shown()).not.toContain(104);
+    await waitFor(() => expect(shown()).toContain(104));
+    expect(listCalls).toBe(1);
+    expect(view.result.current.isLoading).toBe(false);
+    expect(toastCalls).toEqual([]);
   });
 });

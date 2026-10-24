@@ -25,15 +25,15 @@ export default function JoinTripPage() {
           className="bg-surface-hover"
           style={{ width: 52, height: 52, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}
         >
-          {state === 'invalid'
+          {state === 'invalid' || state === 'removed'
             ? <X size={24} className="text-content-faint" />
             : <Users size={24} className="text-accent" />}
         </div>
 
-        {state === 'invalid' ? (
+        {state === 'invalid' || state === 'removed' ? (
           <>
-            <h1 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{t('trip.invite.invalidTitle')}</h1>
-            <p className="text-content-secondary" style={{ fontSize: 14, marginBottom: 20 }}>{t('trip.invite.invalid')}</p>
+            <h1 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{state === 'removed' ? t('trip.invite.removedTitle') : t('trip.invite.invalidTitle')}</h1>
+            <p className="text-content-secondary" style={{ fontSize: 14, marginBottom: 20 }}>{state === 'removed' ? t('trip.invite.removed') : t('trip.invite.invalid')}</p>
             <button type="button"
               onClick={goToDashboard}
               className="bg-surface-hover text-content"

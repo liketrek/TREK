@@ -1,5 +1,6 @@
-import type { Response } from 'express';
 import type { AssetInfo, ServiceResult } from './memories.helpers';
+
+import type { Response } from 'express';
 
 /** What a caller can ask a provider for. */
 export type PhotoAssetKind = 'thumbnail' | 'original';

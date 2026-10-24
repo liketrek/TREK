@@ -9,7 +9,7 @@ const collab: TranslationStrings = {
   'collab.polls.countdownHoursMinutes': '{h}j {m}m lagi',
   'collab.polls.countdownMinutes': '{m}m lagi',
   'collab.polls.clearDeadline': 'Hapus tenggat',
-  'collab.tabs.chat': 'Chat',
+  'collab.tabs.chat': 'Chat', // same-as-en
   'collab.tabs.notes': 'Catatan',
   'collab.tabs.polls': 'Polling',
   'collab.tabs.links': 'Tautan',
@@ -62,7 +62,7 @@ const collab: TranslationStrings = {
   'collab.notes.color': 'Warna',
   'collab.notes.save': 'Simpan',
   'collab.notes.cancel': 'Batal',
-  'collab.notes.edit': 'Edit',
+  'collab.notes.edit': 'Edit', // same-as-en
   'collab.notes.delete': 'Hapus',
   'collab.notes.confirmDeleteTitle': 'Hapus catatan?',
   'collab.notes.confirmDeleteBody': 'Catatan ini akan dihapus secara permanen.',
@@ -71,7 +71,7 @@ const collab: TranslationStrings = {
   'collab.notes.daysAgo': '{n}h lalu',
   'collab.notes.categorySettings': 'Kelola Kategori',
   'collab.notes.create': 'Buat',
-  'collab.notes.website': 'Website',
+  'collab.notes.website': 'Situs web',
   'collab.notes.websitePlaceholder': 'https://...',
   'collab.notes.attachFiles': 'Lampirkan file',
   'collab.notes.noCategoriesYet': 'Belum ada kategori',
@@ -89,7 +89,6 @@ const collab: TranslationStrings = {
   'collab.polls.close': 'Tutup',
   'collab.polls.closed': 'Ditutup',
   'collab.polls.votes': '{n} suara',
-  'collab.polls.vote': '{n} suara',
   'collab.polls.multipleChoice': 'Pilihan ganda',
   'collab.polls.multiChoice': 'Pilihan ganda',
   'collab.polls.deadline': 'Tenggat waktu',
@@ -97,10 +96,16 @@ const collab: TranslationStrings = {
   'collab.polls.options': 'Pilihan',
   'collab.polls.delete': 'Hapus',
   'collab.polls.closedSection': 'Ditutup',
-  'collab.chat.imageLimit': 'Anda dapat melampirkan hingga {max} gambar per pesan',
+  'collab.chat.imageLimit': 'Anda dapat melampirkan hingga {count} gambar per pesan',
   'collab.chat.uploading': 'Mengunggah {percent}%',
   'collab.chat.attachImages': 'Lampirkan gambar',
   'collab.chat.attachedImage': 'Gambar terlampir',
   'collab.chat.closeImage': 'Tutup gambar',
+  'collab.notes.categoryInUse':
+    'Masih ada catatan yang memakai kategori ini. Pindahkan atau hapus catatan tersebut dulu agar kategori bisa dihapus.',
+  'collab.notes.categoriesLocalHint':
+    'Kategori tanpa catatan hanya disimpan di browser ini. Anggota lain baru melihatnya setelah ada catatan yang memakainya.',
+  'collab.chat.fromAssistant': 'dari asisten',
+  'collab.chat.fromAssistantHint': '{name} membagikan jawaban asisten ini',
 };
 export default collab;

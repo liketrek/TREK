@@ -5,8 +5,10 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addNoteShort': 'Notiz',
   'mobileTrip.addPlaceShort': 'Ort',
   'mobileTrip.addToDayQuestion': 'Zu einem Tag hinzufügen?',
-  'mobileTrip.addTransportShort': 'Transport',
+  'mobileTrip.addTransportShort': 'Transport', // same-as-en
   'mobileTrip.allDays': 'Alle Tage',
+  'mobileTrip.today': 'Heute',
+  'mobileTrip.jumpToToday': 'Zu heute springen',
   'mobileTrip.assignedDays': 'Zugewiesene Tage',
   'mobileTrip.assignmentNotes': 'Tagesspezifische Notizen',
   'mobileTrip.bookingsEmpty': 'Noch keine Buchungen',
@@ -25,7 +27,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.icsSubscribeSub': 'Aktualisiert sich automatisch in deiner Kalender-App',
   'mobileTrip.importListSub': 'Link zu einer geteilten Liste einfügen',
   'mobileTrip.importPlaces': 'Orte importieren',
-  'mobileTrip.inCountdown': 'in {time}',
+  'mobileTrip.inCountdown': 'in {time}', // same-as-en
   'mobileTrip.listView': 'Listenansicht',
   'mobileTrip.mapView': 'Kartenansicht',
   'mobileTrip.more': 'Mehr',
@@ -35,14 +37,18 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.onMap': 'Auf Karte',
   'mobileTrip.profileDriving': 'Auto',
   'mobileTrip.profileWalking': 'Fußweg',
+  'mobileTrip.profileCycling': 'Fahrrad',
   'mobileTrip.renameDay': 'Tag umbenennen',
   'mobileTrip.resBadge': 'Buchung',
   'mobileTrip.showOnMap': 'Auf Karte anzeigen',
   'mobileTrip.statDocuments': '{count} Dateien',
+  'mobileTrip.statDocuments.one': '{count} Datei',
   'mobileTrip.statPeople': '{count} Personen',
+  'mobileTrip.statPeople.one': '{count} Person',
   'mobileTrip.stay': 'Aufenthalt',
   'mobileTrip.tapAgainToDelete': 'Nochmal tippen zum Löschen',
   'mobileTrip.todoOpenCount': '{count} offen',
+  'mobileTrip.todoOpenCount.one': '{count} offen',
   'mobileTrip.travel': 'Reise',
   'mobileTrip.upNext': 'Als Nächstes',
   'mobileTrip.viewDetails': 'Details anzeigen',
@@ -50,14 +56,20 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtInfoTitle': 'Fahrdaten',
   'mobileTrip.rtDesktopNote':
     'Diese Werte werden am Desktop gesetzt. Dort kannst du auch Routenvarianten vergleichen und einen Tag einer importierten Spur folgen lassen.',
-  'mobileTrip.rtPlanOnDesktop': 'Geplant wird am Desktop. TREK berechnet die Fahrt, sobald ein Tag zwei Orte hat.',
+  'mobileTrip.planOnDesktop': 'Geplant wird am Desktop',
+  'mobileTrip.rtDriveOnTwoPlaces': 'TREK berechnet die Fahrt, sobald ein Tag zwei Orte hat.',
+  'mobileTrip.toursEmptyBody': 'Gespeicherte Touren erscheinen hier und lassen sich einem Tag zuordnen.',
+  'mobileTrip.toursCount': '{count} Touren',
+  'mobileTrip.toursCount.one': '{count} Tour',
   'mobileTrip.rtSearchOffline': 'Braucht eine Verbindung: Die Suche liest die Strecke, die vor dir liegt.',
   'mobileTrip.rtBehind': '{time} hinter dem Plan',
-  'mobileTrip.rtStart': 'Start',
+  'mobileTrip.rtStart': 'Start', // same-as-en
   'mobileTrip.rtStayScope':
     'Der Aufenthalt gehört zum Ort und zählt deshalb an jedem Tag, an dem dieser Stopp geplant ist.',
   'mobileTrip.rtStayLess': '{count} Minuten weniger',
+  'mobileTrip.rtStayLess.one': '{count} Minute weniger',
   'mobileTrip.rtStayMore': '{count} Minuten mehr',
+  'mobileTrip.rtStayMore.one': '{count} Minute mehr',
   'mobileTrip.rtNightDesktopOnly':
     'Eine Übernachtung an diesem Ort legst du im Desktop-Planer an. Hier kannst du sie nur verwerfen.',
   'mobileTrip.rtReach': 'Wie weit',
@@ -66,10 +78,10 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtFromStart': 'Ab dem Anfang der Etappe',
   'mobileTrip.rtNoneAhead': 'Auf der Strecke voraus ist nichts. Versuch die ganze Etappe.',
   'mobileTrip.rtNoneOnStage': 'Auf dieser Etappe gibt es davon nichts.',
-  'mobileTrip.rtTruncated.one':
-    '1 Abschnitt hatte mehr, als in eine Antwort passt. Wähl weniger Arten, um den Rest zu sehen.',
   'mobileTrip.rtTruncated.other':
-    '{count} Abschnitte hatten mehr, als in eine Antwort passt. Wähl weniger Arten, um den Rest zu sehen.',
+    'Auf {count} Abschnitten gab es mehr, als in eine Antwort passt. Wähl weniger Arten, um den Rest zu sehen.',
+  'mobileTrip.rtTruncated.one':
+    'Auf {count} Abschnitt gab es mehr, als in eine Antwort passt. Wähl weniger Arten, um den Rest zu sehen.',
   'mobileTrip.rtNoDay': 'Kein Tag gewählt',
   'mobileTrip.rtNoDayHint': 'Die Karte zeigt die ganze Reise. Tippe oben auf einen Tag, um seine Fahrt zu sehen.',
 };

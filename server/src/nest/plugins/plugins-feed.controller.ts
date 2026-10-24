@@ -1,7 +1,11 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
-import { DatabaseService } from '../database/database.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Plugins } from '../../db/entities/Plugins.entity';
+import type { PluginsRepository } from '../../db/repositories/Plugins.repository';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { pluginsEnabled } from './kill-switch';
+import { POI_CATEGORY_PERMISSION, poiCategoriesOf } from './poi-categories';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Controller, Get, UseGuards } from '@nestjs/common';
+import type { PluginPoiCategory } from '@trek/shared';
 
 /**
  * GET /api/plugins — the authenticated feed of ACTIVE plugins the client renders
@@ -22,6 +26,15 @@ interface ActivePlugin {
   settingsUi?: true;
   /** Routing profiles the planner's route toggle offers (routeProvider hook, granted only). */
   routeProfiles?: Array<{ id: string; label: string; icon?: string }>;
+  /** Categories the explore pill offers (poiCategoryProvider hook, granted only, #1781). */
+  poiCategories?: PluginPoiCategory[];
+  /**
+   * The plugin holds hook:search-provider, so the place search asks the plugin routes
+   * while it is typed too (#2221). Read off the grant rather than the running child, so
+   * a feed loaded while plugins are still starting says the same; the suggest route
+   * itself only asks the providers whose build implements `suggest`.
+   */
+  searchProvider?: true;
   /** The plugin holds the geolocation:read grant — its frames may request the
    * browser position over the host bridge (the browser prompt still applies). */
   geolocation?: true;
@@ -30,23 +43,26 @@ interface ActivePlugin {
 @Controller('api/plugins')
 @UseGuards(JwtAuthGuard)
 export class PluginsFeedController {
-  constructor(private readonly dbs: DatabaseService) {}
+  constructor(@InjectRepository(Plugins) private readonly plugins: PluginsRepository) {}
 
   @Get()
-  list(): { plugins: ActivePlugin[] } {
+  async list(): Promise<{ plugins: ActivePlugin[] }> {
     if (!pluginsEnabled()) return { plugins: [] };
-    const rows = this.dbs.connection
-      .prepare("SELECT id, name, type, icon, capabilities, granted_permissions FROM plugins WHERE status = 'active' ORDER BY sort_order, name")
-      .all() as Array<Omit<ActivePlugin, 'slot' | 'tripPage'> & { capabilities: string; granted_permissions: string }>;
+    // PFC1 — Plan 3j: this row goes to the CLIENT, not a plugin process — stays
+    // exactly snake_case, R-facade's wrapper is never applied here.
+    const rows = await this.plugins.findActiveFeedRows();
     const plugins = rows.map(({ capabilities, granted_permissions, ...p }) => {
       const tripPage = p.type === 'trip-page' ? tripPageOf(capabilities) : undefined;
       const routeProfiles = routeProfilesOf(capabilities, granted_permissions);
+      const poiCategories = hasGrant(granted_permissions, POI_CATEGORY_PERMISSION) ? poiCategoriesOf(capabilities) : [];
       return {
         ...p,
         slot: slotOf(capabilities),
         ...(tripPage ? { tripPage } : {}),
         ...(settingsUiOf(capabilities) ? { settingsUi: true as const } : {}),
         ...(routeProfiles ? { routeProfiles } : {}),
+        ...(poiCategories.length ? { poiCategories } : {}),
+        ...(hasGrant(granted_permissions, 'hook:search-provider') ? { searchProvider: true as const } : {}),
         ...(hasGrant(granted_permissions, 'geolocation:read') ? { geolocation: true as const } : {}),
       };
     });
@@ -58,7 +74,9 @@ function slotOf(capabilities: string): ActivePlugin['slot'] {
   try {
     const c = JSON.parse(capabilities || '{}') as { widget?: { slot?: string } };
     const slot = c.widget?.slot;
-    return slot === 'hero' || slot === 'place-detail' || slot === 'day-detail' || slot === 'reservation-detail' ? slot : 'sidebar';
+    return slot === 'hero' || slot === 'place-detail' || slot === 'day-detail' || slot === 'reservation-detail'
+      ? slot
+      : 'sidebar';
   } catch {
     return 'sidebar';
   }
@@ -67,7 +85,14 @@ function slotOf(capabilities: string): ActivePlugin['slot'] {
 // Re-validated here even though the manifest parser already gated the values —
 // the capabilities column is a JSON blob, and the tab list the client hides
 // must never be steerable by a hand-edited row ('plan' stays unhideable).
-const REPLACEABLE_TABS: ReadonlySet<string> = new Set(['transports', 'buchungen', 'listen', 'finanzplan', 'dateien', 'collab']);
+const REPLACEABLE_TABS: ReadonlySet<string> = new Set([
+  'transports',
+  'buchungen',
+  'listen',
+  'finanzplan',
+  'dateien',
+  'collab',
+]);
 
 function settingsUiOf(capabilities: string): boolean {
   try {
@@ -100,7 +125,8 @@ function routeProfilesOf(capabilities: string, granted: string): ActivePlugin['r
     for (const v of c.routeProfiles.slice(0, 3)) {
       if (!v || typeof v !== 'object') continue;
       const p = v as { id?: unknown; label?: unknown; icon?: unknown };
-      if (typeof p.id !== 'string' || !PROFILE_RE.test(p.id) || typeof p.label !== 'string' || !p.label.trim()) continue;
+      if (typeof p.id !== 'string' || !PROFILE_RE.test(p.id) || typeof p.label !== 'string' || !p.label.trim())
+        continue;
       out.push({
         id: p.id,
         label: p.label.trim().slice(0, 40),
@@ -118,8 +144,13 @@ function tripPageOf(capabilities: string): ActivePlugin['tripPage'] {
     const c = JSON.parse(capabilities || '{}') as { tripPage?: { replaces?: unknown; position?: unknown } };
     const tp = c.tripPage;
     if (!tp || typeof tp !== 'object') return undefined;
-    const replaces = Array.isArray(tp.replaces) ? tp.replaces.filter((t): t is string => typeof t === 'string' && REPLACEABLE_TABS.has(t)) : [];
-    const position = typeof tp.position === 'number' && Number.isInteger(tp.position) && tp.position >= 0 && tp.position <= 50 ? tp.position : undefined;
+    const replaces = Array.isArray(tp.replaces)
+      ? tp.replaces.filter((t): t is string => typeof t === 'string' && REPLACEABLE_TABS.has(t))
+      : [];
+    const position =
+      typeof tp.position === 'number' && Number.isInteger(tp.position) && tp.position >= 0 && tp.position <= 50
+        ? tp.position
+        : undefined;
     if (!replaces.length && position === undefined) return undefined;
     return { ...(replaces.length ? { replaces } : {}), ...(position !== undefined ? { position } : {}) };
   } catch {

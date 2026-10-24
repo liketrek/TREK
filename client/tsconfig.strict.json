@@ -1,0 +1,11 @@
+{
+  // The strict-ratchet view of the client (npm run lint:strict, scripts/strict-lint.mjs):
+  // the same program as tsconfig.json with strictNullChecks and noImplicitAny on.
+  // Errors per file may only go down against scripts/strict-baseline.json; a file
+  // without an entry, every new one included, has to compile cleanly here.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "strictNullChecks": true,
+    "noImplicitAny": true
+  }
+}

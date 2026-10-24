@@ -16,6 +16,7 @@
  * silently on in a shared or production deployment.
  */
 import { readEnv } from '../../app-config';
+
 export function devLinkEnabled(): boolean {
   return readEnv().plugins.devLink;
 }

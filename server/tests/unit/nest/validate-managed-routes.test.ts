@@ -8,15 +8,13 @@
  * blank reason destroys the only record of WHY a control was taken away from a
  * customer, and nothing recovers that afterwards.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { Controller, Get, Post } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
-import type { INestApplication } from '@nestjs/common';
 import { ManagedForbidden } from '../../../src/nest/common/managed';
-import {
-  collectManagedRoutes,
-  validateManagedRoutes,
-} from '../../../src/nest/common/validate-managed-routes';
+import { collectManagedRoutes, validateManagedRoutes } from '../../../src/nest/common/validate-managed-routes';
+import { Controller, Get, Post } from '@nestjs/common';
+import type { INestApplication } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
+
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 @Controller('managed-gate/plain')
 class PlainController {
@@ -93,10 +91,7 @@ describe('collectManagedRoutes', () => {
   it('MANAGED-BOOT-001: inventories the marked routes and leaves the rest alone', () => {
     const entries = collectManagedRoutes(markedApp);
 
-    expect(entries.map((e) => e.id)).toEqual([
-      'MarkedController.key',
-      'MarkedController.upload',
-    ]);
+    expect(entries.map((e) => e.id)).toEqual(['MarkedController.key', 'MarkedController.upload']);
   });
 
   it('MANAGED-BOOT-002: carries the reason and the handler-enforced flag through', () => {
@@ -134,27 +129,19 @@ describe('validateManagedRoutes (fail-closed boot gate)', () => {
   });
 
   it('MANAGED-BOOT-004: passes when the list matches the markings', () => {
-    expect(() =>
-      validateManagedRoutes(markedApp, ['MarkedController.key', 'MarkedController.upload']),
-    ).not.toThrow();
+    expect(() => validateManagedRoutes(markedApp, ['MarkedController.key', 'MarkedController.upload'])).not.toThrow();
   });
 
   it('MANAGED-BOOT-005: throws naming a marking nobody put on the list', () => {
-    expect(() => validateManagedRoutes(markedApp, ['MarkedController.key'])).toThrow(
-      /MarkedController\.upload/,
-    );
+    expect(() => validateManagedRoutes(markedApp, ['MarkedController.key'])).toThrow(/MarkedController\.upload/);
   });
 
   it('MANAGED-BOOT-006: throws on a stale entry, so the list cannot rot', () => {
-    expect(() => validateManagedRoutes(plainApp, ['MarkedController.key'])).toThrow(
-      /no longer marked/,
-    );
+    expect(() => validateManagedRoutes(plainApp, ['MarkedController.key'])).toThrow(/no longer marked/);
   });
 
   it('MANAGED-BOOT-007: throws when a marking has no reason', () => {
-    expect(() => validateManagedRoutes(blankApp, ['BlankReasonController.vague'])).toThrow(
-      /without a reason/,
-    );
+    expect(() => validateManagedRoutes(blankApp, ['BlankReasonController.vague'])).toThrow(/without a reason/);
   });
 
   it('MANAGED-BOOT-008: an install with no markings and an empty list is fine', () => {

@@ -5,34 +5,29 @@
  * built artifact, native binaries, don't-clobber-a-real-plugin, reload only a link),
  * and a full link -> activate -> reload loop through a real isolated child.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { Plugins } from '../../../src/db/entities/Plugins.entity';
+import { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
+// Plan 3j Task 3: `discoverPlugins` (called from `runtime.link`) is repository-backed
+// now (DI1–DI8) — a native `em.insert()` writes every `Opt`-defaulted entity column
+// (`sort_order`, `installed_at`, `crash_count`, `update_hold`, …), not only the ones
+// the legacy raw `INSERT` statement named, so a hand-trimmed `:memory:` table missing
+// those columns throws inside `discoverPlugins`'s own try/catch (silently: the plugin
+// lands in `skipped`, not `discovered`). A real MikroORM over the full migrated schema
+// (`createSnapshotTestDb` + `createTestOrm`) replaces the old hand-rolled table set,
+// same fix `registry.test.ts` needed.
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { makePlugin } from '../../helpers/factories/plugins';
+import { findRow } from '../../helpers/factories/rows';
+import { createPluginRuntime } from '../../helpers/plugin-host';
+import { sharedTestOrm } from '../../helpers/test-uow';
+
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
-const { testDb } = vi.hoisted(() => {
-  const Database = require('better-sqlite3');
-  const db = new Database(':memory:');
-  db.exec(`CREATE TABLE plugins (
-    id TEXT PRIMARY KEY, name TEXT, description TEXT, type TEXT, icon TEXT, version TEXT, api_version INTEGER,
-    min_trek_version TEXT, trek_range TEXT, permissions TEXT DEFAULT '[]', capabilities TEXT DEFAULT '{}', dependencies TEXT DEFAULT '{}',
-    operator_egress INTEGER DEFAULT 0, granted_permissions TEXT DEFAULT '', status TEXT, enabled INTEGER DEFAULT 0, config TEXT DEFAULT '{}',
-    source_repo TEXT, source_commit TEXT, sha256 TEXT, author_pubkey TEXT, reviewed_at TEXT, last_error TEXT, updated_at TEXT,
-    update_block_code TEXT, update_block_detail TEXT, update_block_version TEXT);
-    CREATE TABLE plugin_error_log (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, level TEXT, message TEXT, ts TEXT);
-    CREATE TABLE plugin_settings_fields (plugin_id TEXT, field_key TEXT, label TEXT, input_type TEXT, placeholder TEXT, hint TEXT, required INTEGER, secret INTEGER, scope TEXT, options TEXT, oauth_config TEXT, default_value TEXT, sort_order INTEGER);
-    CREATE TABLE settings (user_id INTEGER, key TEXT, value TEXT);
-    CREATE TABLE plugin_entity_metadata (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, entity_type TEXT, entity_id INTEGER, key TEXT, value TEXT, updated_at TEXT);
-    CREATE TABLE addons (id TEXT PRIMARY KEY, enabled INTEGER DEFAULT 0);`);
-  return { testDb: db };
-});
-vi.mock('../../../src/db/database', () => ({ db: testDb, canAccessTrip: () => undefined }));
-import { db as dbConn } from '../../../src/db/database';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
-
-import { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
-import { createPluginRuntime } from '../../helpers/plugin-host';
+const testDb = createSnapshotTestDb();
+const dbConn = testDb;
 
 let codeRoot: string;
 let dataRoot: string;
@@ -42,18 +37,31 @@ let runtime: PluginRuntimeService;
 const ROUTE = (v: string) =>
   `module.exports = { routes: [{ method: 'GET', path: '/v', auth: false, async handler() { return { status: 200, body: JSON.stringify({ v: ${v} }) }; } }] };`;
 
-function writeSource(id: string, opts: { index?: string; native?: boolean; noBuild?: boolean; trek?: string } = {}): string {
+function writeSource(
+  id: string,
+  opts: { index?: string; native?: boolean; noBuild?: boolean; trek?: string } = {},
+): string {
   const dir = path.join(srcRoot, id);
   fs.mkdirSync(path.join(dir, 'server'), { recursive: true });
   // dev-link requires a `trek` range like any other install front door; `opts.trek`
   // overrides it to exercise the gate.
-  fs.writeFileSync(path.join(dir, 'trek-plugin.json'), JSON.stringify({ id, name: id, version: '1.0.0', type: 'integration', permissions: [], trek: opts.trek ?? '>=3.0.0' }));
+  fs.writeFileSync(
+    path.join(dir, 'trek-plugin.json'),
+    JSON.stringify({
+      id,
+      name: id,
+      version: '1.0.0',
+      type: 'integration',
+      permissions: [],
+      trek: opts.trek ?? '>=3.0.0',
+    }),
+  );
   if (!opts.noBuild) fs.writeFileSync(path.join(dir, 'server', 'index.js'), opts.index ?? 'module.exports = {};');
   if (opts.native) fs.writeFileSync(path.join(dir, 'server', 'addon.node'), '\0');
   return dir;
 }
 
-beforeAll(() => {
+beforeAll(async () => {
   codeRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'trekplug-link-code-'));
   dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'trekplug-link-data-'));
   srcRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'trekplug-link-src-'));
@@ -61,7 +69,7 @@ beforeAll(() => {
   process.env.TREK_PLUGINS_DATA_DIR = dataRoot;
   process.env.TREK_PLUGINS_ENABLED = 'true';
   process.env.TREK_PLUGINS_DEV_LINK = '1';
-  runtime = createPluginRuntime(new DatabaseService(dbConn));
+  runtime = await createPluginRuntime(dbConn);
 });
 
 afterAll(async () => {
@@ -71,6 +79,7 @@ afterAll(async () => {
   delete process.env.TREK_PLUGINS_DATA_DIR;
   delete process.env.TREK_PLUGINS_ENABLED;
   delete process.env.TREK_PLUGINS_DEV_LINK;
+  testDb.close();
 });
 
 describe('PluginRuntimeService dev-link', () => {
@@ -84,9 +93,7 @@ describe('PluginRuntimeService dev-link', () => {
     expect(fs.existsSync(path.join(dest, 'server', 'index.js'))).toBe(true);
     expect(fs.realpathSync(dest)).toBe(fs.realpathSync(dir));
 
-    const row = testDb.prepare("SELECT source_repo, status, enabled FROM plugins WHERE id = 'linkplug'").get() as {
-      source_repo: string; status: string; enabled: number;
-    };
+    const row = await findRow(await sharedTestOrm(dbConn), Plugins, { id: 'linkplug' });
     expect(row).toMatchObject({ source_repo: 'local:link', status: 'inactive', enabled: 0 });
   });
 
@@ -109,10 +116,12 @@ describe('PluginRuntimeService dev-link', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     try {
       await expect(runtime.link(writeSource('oldplug-bypass', { trek: '>=2.0.0 <3.0.0' }))).resolves.toMatchObject({
-        id: 'oldplug-bypass', trekRangeBypassed: { trekRange: '>=2.0.0 <3.0.0', hostVersion: '3.3.0' },
+        id: 'oldplug-bypass',
+        trekRangeBypassed: { trekRange: '>=2.0.0 <3.0.0', hostVersion: '3.3.0' },
       });
       await expect(runtime.link(writeSource('rangeless-bypass', { trek: '' }))).resolves.toMatchObject({
-        id: 'rangeless-bypass', trekRangeBypassed: { trekRange: null, hostVersion: '3.3.0' },
+        id: 'rangeless-bypass',
+        trekRangeBypassed: { trekRange: null, hostVersion: '3.3.0' },
       });
       // A dir that fits is a plain link — no marker to alarm anyone with.
       await expect(runtime.link(writeSource('fits-bypass'))).resolves.toMatchObject({ trekRangeBypassed: null });
@@ -139,7 +148,13 @@ describe('PluginRuntimeService dev-link', () => {
   });
 
   it('refuses to clobber a real (non-linked) installed plugin of the same id', async () => {
-    testDb.prepare("INSERT INTO plugins (id, name, type, version, status, source_repo) VALUES ('installed','X','integration','1.0.0','inactive','local:upload')").run();
+    await makePlugin(await sharedTestOrm(dbConn), 'installed', {
+      name: 'X',
+      type: 'integration',
+      version: '1.0.0',
+      status: 'inactive',
+      source_repo: 'local:upload',
+    });
     await expect(runtime.link(writeSource('installed'))).rejects.toThrow(/already installed/);
   });
 

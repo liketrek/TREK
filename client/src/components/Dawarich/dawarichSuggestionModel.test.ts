@@ -1,4 +1,4 @@
-// FE-DAWARICH-SUGMODEL-001 to FE-DAWARICH-SUGMODEL-014
+// FE-DAWARICH-SUGMODEL-001 to FE-DAWARICH-SUGMODEL-019
 import { describe, it, expect } from 'vitest'
 import type { DawarichSuggestion } from '@trek/shared'
 import {
@@ -7,6 +7,7 @@ import {
   formatDayOption,
   formatDuration,
   groupByDay,
+  openStayDatesWithin,
   openStaysByDate,
   timeRange,
 } from './dawarichSuggestionModel'
@@ -110,6 +111,11 @@ describe('clockOf / timeRange', () => {
     expect(timeRange('2026-09-10T10:15:00+02:00', 'nonsense', false)).toBe('10:15')
   })
 
+  it('FE-DAWARICH-SUGMODEL-020: a stay into the next day carries the days it ran over', () => {
+    expect(timeRange('2026-10-24T18:30:00+02:00', '2026-10-25T08:30:00+02:00', false)).toBe('18:30 – 08:30 +1')
+    expect(timeRange('2026-10-24T18:30:00+02:00', '2026-10-26T08:30:00+02:00', false)).toBe('18:30 – 08:30 +2')
+  })
+
   it('FE-DAWARICH-SUGMODEL-007: no arrival, no range', () => {
     expect(timeRange('nonsense', '2026-09-10T12:40:00+02:00', false)).toBe('')
   })
@@ -211,5 +217,21 @@ describe('openStaysByDate', () => {
     const byDate = openStaysByDate([stay({ id: 1, localDate: '2026-09-10', state: 'accepted' })])
 
     expect(byDate.size).toBe(0)
+  })
+
+  it('FE-DAWARICH-SUGMODEL-019: the waiting days inside a journal span, oldest first, and none without a span', () => {
+    // The stays are the whole account's; a day outside the journal's entries and trips is
+    // not one it can take over.
+    const byDate = openStaysByDate([
+      stay({ id: 1, localDate: '2026-09-12' }),
+      stay({ id: 2, localDate: '2026-09-10' }),
+      stay({ id: 3, localDate: '2026-12-24' }),
+    ])
+
+    expect(openStayDatesWithin(byDate, ['2026-09-11', null, '2026-09-09', undefined, '2026-09-14'])).toEqual([
+      '2026-09-10',
+      '2026-09-12',
+    ])
+    expect(openStayDatesWithin(byDate, [null, undefined])).toEqual([])
   })
 })

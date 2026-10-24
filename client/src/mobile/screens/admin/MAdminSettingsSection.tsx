@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { AlertTriangle, ChevronDown, RefreshCw } from 'lucide-react'
-import { adminApi, authApi } from '../../../api/client'
-import { getApiErrorMessage } from '../../../types'
+import { useAdminSettingsActions } from '../../../components/Admin/useAdminSettingsActions'
 import { placesGoogleOnlyHint } from '../../../utils/placeSource'
 import type { TranslationFn } from '../../../types'
 import type { useAdmin } from '../../../pages/admin/useAdmin'
@@ -29,22 +28,17 @@ interface MAdminSettingsSectionProps {
 export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectionProps) {
   const [providerPickerOpen, setProviderPickerOpen] = useState(false)
   const {
-    toast,
-    setPlacesPhotosEnabled, setPlacesAutocompleteEnabled, setPlacesDetailsEnabled, setPlacesEnrichEnabled, setPlaceShadowEnabled,
-    placesPhotosEnabled, setPlacesPhotosEnabledState,
-    placesAutocompleteEnabled, setPlacesAutocompleteEnabledState,
-    placesDetailsEnabled, setPlacesDetailsEnabledState,
-    placesEnrichEnabled, setPlacesEnrichEnabledState,
+    placesPhotosEnabled, placesAutocompleteEnabled, placesDetailsEnabled, placesEnrichEnabled,
     placesGoogleOnly, handleTogglePlacesGoogleOnly,
-    placeShadowEnabled, setPlaceShadowEnabledState,
-    oidcConfig, setOidcConfig, savingOidc, setSavingOidc,
+    placeShadowEnabled,
+    oidcConfig, setOidcConfig, savingOidc,
     passwordLogin, setPasswordLogin, passwordRegistration, setPasswordRegistration,
     oidcLogin, setOidcLogin, oidcRegistration, setOidcRegistration,
     envOverrideOidcOnly, oidcConfigured, requireMfa,
     passkeyLogin, setPasskeyLogin, passkeyConfigured,
     webauthnRpId, setWebauthnRpId, webauthnOrigins, setWebauthnOrigins, savingWebauthn, handleSaveWebauthn,
-    allowedFileTypes, setAllowedFileTypes, savingFileTypes, setSavingFileTypes,
-    mapsKey, setMapsKey, unsplashKey, setUnsplashKey, amapKey, setAmapKey, hasMapsKey, hasAmapKey, savingKeys, validating, validation,
+    allowedFileTypes, setAllowedFileTypes, savingFileTypes,
+    mapsKey, setMapsKey, unsplashKey, setUnsplashKey, amapKey, setAmapKey, hasMapsKey, hasAmapKey, keyInputProps, mapsKeyTestable, savingKeys, validating, validation,
     placesProvider, savingPlacesProvider, handleSavePlacesProvider,
     managed,
     setShowRotateJwtModal,
@@ -52,36 +46,10 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
     handleSaveApiKeys, handleValidateKey,
   } = admin
 
-  const saveFileTypes = async () => {
-    setSavingFileTypes(true)
-    try {
-      await authApi.updateAppSettings({ allowed_file_types: allowedFileTypes })
-      toast.success(t('admin.fileTypesSaved'))
-    } catch {
-      toast.error(t('common.error'))
-    } finally {
-      setSavingFileTypes(false)
-    }
-  }
-
-  const saveOidc = async () => {
-    setSavingOidc(true)
-    try {
-      const payload: Record<string, unknown> = {
-        issuer: oidcConfig.issuer,
-        client_id: oidcConfig.client_id,
-        display_name: oidcConfig.display_name,
-        discovery_url: oidcConfig.discovery_url,
-      }
-      if (oidcConfig.client_secret) payload.client_secret = oidcConfig.client_secret
-      await adminApi.updateOidc(payload)
-      toast.success(t('admin.oidcSaved'))
-    } catch (err: unknown) {
-      toast.error(getApiErrorMessage(err, t('common.error')))
-    } finally {
-      setSavingOidc(false)
-    }
-  }
+  const {
+    saveOidc, saveFileTypes, togglePlacesPhotos, togglePlacesAutocomplete, togglePlacesDetails, togglePlacesEnrich,
+    togglePlaceShadow,
+  } = useAdminSettingsActions(admin, t)
 
   return (
     <div className="space-y-3">
@@ -245,12 +213,12 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
                   aria-label={t('admin.mapsKey')}
                   value={mapsKey}
                   onChange={(e) => setMapsKey(e.target.value)}
-                  placeholder={t('settings.keyPlaceholder')}
+                  {...keyInputProps('maps')}
                 />
               </div>
               <MAdminButton
                 variant="ghost"
-                disabled={!mapsKey}
+                disabled={!mapsKeyTestable}
                 busy={!!validating.maps}
                 onClick={() => handleValidateKey('maps')}
                 className="h-[42px]"
@@ -279,16 +247,7 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
                 <MToggle
                   checked={placesPhotosEnabled}
                   ariaLabel={t('admin.placesPhotos.title')}
-                  onChange={async (next) => {
-                    setPlacesPhotosEnabledState(next)
-                    setPlacesPhotosEnabled(next)
-                    try {
-                      await adminApi.updatePlacesPhotos(next)
-                    } catch {
-                      setPlacesPhotosEnabledState(!next)
-                      setPlacesPhotosEnabled(!next)
-                    }
-                  }}
+                  onChange={togglePlacesPhotos}
                 />
               }
             />
@@ -299,16 +258,7 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
                 <MToggle
                   checked={placesAutocompleteEnabled}
                   ariaLabel={t('admin.placesAutocomplete.title')}
-                  onChange={async (next) => {
-                    setPlacesAutocompleteEnabledState(next)
-                    setPlacesAutocompleteEnabled(next)
-                    try {
-                      await adminApi.updatePlacesAutocomplete(next)
-                    } catch {
-                      setPlacesAutocompleteEnabledState(!next)
-                      setPlacesAutocompleteEnabled(!next)
-                    }
-                  }}
+                  onChange={togglePlacesAutocomplete}
                 />
               }
             />
@@ -319,16 +269,7 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
                 <MToggle
                   checked={placesDetailsEnabled}
                   ariaLabel={t('admin.placesDetails.title')}
-                  onChange={async (next) => {
-                    setPlacesDetailsEnabledState(next)
-                    setPlacesDetailsEnabled(next)
-                    try {
-                      await adminApi.updatePlacesDetails(next)
-                    } catch {
-                      setPlacesDetailsEnabledState(!next)
-                      setPlacesDetailsEnabled(!next)
-                    }
-                  }}
+                  onChange={togglePlacesDetails}
                 />
               }
             />
@@ -339,16 +280,7 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
                 <MToggle
                   checked={placesEnrichEnabled}
                   ariaLabel={t('admin.placesEnrich.title')}
-                  onChange={async (next) => {
-                    setPlacesEnrichEnabledState(next)
-                    setPlacesEnrichEnabled(next)
-                    try {
-                      await adminApi.updatePlacesEnrich(next)
-                    } catch {
-                      setPlacesEnrichEnabledState(!next)
-                      setPlacesEnrichEnabled(!next)
-                    }
-                  }}
+                  onChange={togglePlacesEnrich}
                 />
               }
             />
@@ -374,7 +306,7 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
               aria-label={t('admin.amapKey')}
               value={amapKey}
               onChange={(e) => setAmapKey(e.target.value)}
-              placeholder={t('settings.keyPlaceholder')}
+              {...keyInputProps('amap')}
             />
           </MProviderBlock>
 
@@ -384,7 +316,7 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
               aria-label={t('admin.unsplashKey')}
               value={unsplashKey}
               onChange={(e) => setUnsplashKey(e.target.value)}
-              placeholder={t('settings.keyPlaceholder')}
+              {...keyInputProps('unsplash')}
             />
           </MProviderBlock>
           </>)}
@@ -397,7 +329,7 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
               type="button"
               disabled={savingPlacesProvider}
               onClick={() => setProviderPickerOpen(true)}
-              className="flex h-[42px] w-full items-center gap-2 rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 text-left text-[0.84375rem] text-m-ink disabled:opacity-50"
+              className="flex h-[42px] w-full items-center gap-2 rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 text-start text-[0.84375rem] text-m-ink disabled:opacity-50"
             >
               <span className="min-w-0 flex-1 truncate">{t(`admin.placesProvider.${placesProvider}`)}</span>
               <ChevronDown size={15} strokeWidth={2.2} className="flex-none text-m-faint" aria-hidden />
@@ -434,16 +366,7 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
                 <MToggle
                   checked={placeShadowEnabled}
                   ariaLabel={t('admin.placeShadow.title')}
-                  onChange={async (next) => {
-                    setPlaceShadowEnabledState(next)
-                    setPlaceShadowEnabled(next)
-                    try {
-                      await adminApi.updatePlaceShadow(next)
-                    } catch {
-                      setPlaceShadowEnabledState(!next)
-                      setPlaceShadowEnabled(!next)
-                    }
-                  }}
+                  onChange={togglePlaceShadow}
                 />
               }
             />
@@ -466,7 +389,7 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
               type="text"
               value={oidcConfig.display_name}
               onChange={(e) => setOidcConfig((c) => ({ ...c, display_name: e.target.value }))}
-              placeholder="z.B. Google, Authentik, Keycloak"
+              placeholder={t('admin.oidcDisplayNamePlaceholder')}
             />
           </MAdminField>
           <MAdminField label={t('admin.oidcIssuer')} hint={t('admin.oidcIssuerHint')}>
@@ -477,7 +400,7 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
               placeholder="https://accounts.google.com"
             />
           </MAdminField>
-          <MAdminField label="Discovery URL" hint="Override the auto-constructed discovery URL. Required for providers like Authentik where the endpoint is not at <issuer>/.well-known/openid-configuration.">
+          <MAdminField label={t('admin.oidcDiscoveryUrl')} hint={t('admin.oidcDiscoveryUrlHint', { path: '<issuer>/.well-known/openid-configuration' })}>
             <MAdminInput
               type="url"
               value={oidcConfig.discovery_url}
@@ -485,14 +408,14 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
               placeholder="https://auth.example.com/application/o/trek/.well-known/openid-configuration"
             />
           </MAdminField>
-          <MAdminField label="Client ID">
+          <MAdminField label={t('settings.oauth.clientId')}>
             <MAdminInput
               type="text"
               value={oidcConfig.client_id}
               onChange={(e) => setOidcConfig((c) => ({ ...c, client_id: e.target.value }))}
             />
           </MAdminField>
-          <MAdminField label="Client Secret">
+          <MAdminField label={t('settings.oauth.clientSecret')}>
             <MAdminInput
               type="password"
               value={oidcConfig.client_secret}
@@ -510,16 +433,16 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
       <MAdminCard className="border-[color:color-mix(in_srgb,var(--m-st-danger)_28%,transparent)]">
         <div className="mb-1 flex items-center gap-2 text-[color:var(--m-st-danger)]">
           <AlertTriangle size={14} strokeWidth={2.2} />
-          <span className="text-[0.875rem] font-extrabold">Danger Zone</span>
+          <span className="text-[0.875rem] font-extrabold">{t('admin.danger.title')}</span>
         </div>
         <MAdminRow
           first
-          title="Rotate JWT Secret"
-          hint="Generate a new JWT signing secret. All active sessions will be invalidated immediately."
+          title={t('admin.rotateJwt.title')}
+          hint={t('admin.rotateJwt.hint')}
           trailing={
             <MAdminButton variant="danger" onClick={() => setShowRotateJwtModal(true)}>
               <RefreshCw size={12} strokeWidth={2.2} />
-              Rotate
+              {t('admin.rotateJwt.button')}
             </MAdminButton>
           }
         />

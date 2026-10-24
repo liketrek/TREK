@@ -1,8 +1,6 @@
 import type { TranslationStrings } from '../types';
 
 const nav: TranslationStrings = {
-  'nav.trip': '여행',
-  'nav.share': '공유',
   'nav.settings': '설정',
   'nav.admin': '관리자',
   'nav.logout': '로그아웃',
@@ -16,6 +14,6 @@ const nav: TranslationStrings = {
   'nav.bottomAdmin': '관리자 설정',
   'nav.bottomLogout': '로그아웃',
   'nav.bottomAdminBadge': '관리자',
-  'nav.help': 'Help',
+  'nav.help': '도움말',
 };
 export default nav;

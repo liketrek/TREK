@@ -169,6 +169,74 @@ describe('inAppNotificationStore', () => {
     });
   });
 
+  describe('FE-STORE-NOTIF-020: unread-only fetch is filtered by the server', () => {
+    it('asks for unread_only, keeps the filter for the next page and offsets by the unread rows held', async () => {
+      const seen: Array<{ unread: string | null; offset: string | null }> = [];
+      // The server counts the filtered list, so a row marked read leaves the unread total too.
+      const readIds = new Set<number>();
+      server.use(
+        http.put('/api/notifications/in-app/:id/read', ({ params }) => {
+          readIds.add(Number(params.id));
+          return HttpResponse.json({ success: true });
+        }),
+        http.get('/api/notifications/in-app', ({ request }) => {
+          const url = new URL(request.url);
+          seen.push({ unread: url.searchParams.get('unread_only'), offset: url.searchParams.get('offset') });
+          const offset = Number(url.searchParams.get('offset') ?? 0);
+          const ids = offset === 0 ? [1, 2, 3] : [4];
+          return HttpResponse.json({
+            notifications: ids.map(id => buildRawNotif({ id })),
+            total: 4 - readIds.size,
+            unread_count: 4 - readIds.size,
+          });
+        }),
+      );
+
+      await useInAppNotificationStore.getState().fetchNotifications(true, true);
+      expect(useInAppNotificationStore.getState().unreadOnly).toBe(true);
+      expect(useInAppNotificationStore.getState().hasMore).toBe(true);
+
+      // One loaded row is read meanwhile, so it has left the server's unread list.
+      await useInAppNotificationStore.getState().markRead(1);
+      await useInAppNotificationStore.getState().fetchNotifications();
+
+      expect(seen[0]).toEqual({ unread: 'true', offset: '0' });
+      expect(seen[1]).toEqual({ unread: 'true', offset: '2' });
+      expect(useInAppNotificationStore.getState().notifications.map(n => n.id)).toEqual([1, 2, 3, 4]);
+      expect(useInAppNotificationStore.getState().hasMore).toBe(false);
+    });
+
+    it('a plain reset goes back to the full list', async () => {
+      await useInAppNotificationStore.getState().fetchNotifications(true, true);
+      await useInAppNotificationStore.getState().fetchNotifications(true);
+      expect(useInAppNotificationStore.getState().unreadOnly).toBe(false);
+    });
+
+    it('a newer reset replaces a load that is still in flight', async () => {
+      let release: () => void = () => {};
+      const gate = new Promise<void>(resolve => { release = resolve; });
+      server.use(
+        http.get('/api/notifications/in-app', async ({ request }) => {
+          const unread = new URL(request.url).searchParams.get('unread_only') === 'true';
+          if (!unread) await gate;
+          return HttpResponse.json({
+            notifications: [buildRawNotif({ id: unread ? 50 : 60 })],
+            total: 1,
+            unread_count: 1,
+          });
+        }),
+      );
+
+      const stale = useInAppNotificationStore.getState().fetchNotifications(true);
+      await useInAppNotificationStore.getState().fetchNotifications(true, true);
+      release();
+      await stale;
+
+      expect(useInAppNotificationStore.getState().notifications.map(n => n.id)).toEqual([50]);
+      expect(useInAppNotificationStore.getState().unreadOnly).toBe(true);
+    });
+  });
+
   describe('FE-STORE-NOTIF-009: hasMore is set correctly', () => {
     it('hasMore is true when more items exist, false when all loaded', async () => {
       // Default MSW returns 25 total, 20 per page

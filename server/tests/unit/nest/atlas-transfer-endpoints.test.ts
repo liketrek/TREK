@@ -5,14 +5,14 @@
  * really produces (timed legs, date-only legs, a leg whose booking clock belongs
  * to the other airport).
  */
-import { describe, it, expect } from 'vitest';
-
 import {
   MAX_CLOCKLESS_DAY_GAP,
   MAX_LAYOVER_MS,
   transferEndpointIds,
   type FlightEndpointRow,
 } from '../../../src/nest/atlas/transfer-endpoints';
+
+import { describe, it, expect } from 'vitest';
 
 interface Airport {
   code: string | null;
@@ -167,10 +167,7 @@ describe('transferEndpointIds', () => {
     // reservation_time holds the DEPARTURE airport's local clock, 22:00 in Brussels for
     // a flight that landed in Helsinki that morning. Using it as an arrival time would
     // make the onward 11:00 departure look like it left before the plane landed.
-    const { rows, hubIds } = splitChain(
-      { fallback: '2026-08-01T22:00' },
-      { date: '2026-08-01', time: '11:00' },
-    );
+    const { rows, hubIds } = splitChain({ fallback: '2026-08-01T22:00' }, { date: '2026-08-01', time: '11:00' });
     expect(ids(transferEndpointIds(rows))).toEqual(hubIds);
   });
 

@@ -8,8 +8,9 @@
  * ten plausible wrong answers look like an answer and the user never learns the
  * temple was one query away in OpenStreetMap.
  */
-import { describe, it, expect } from 'vitest';
 import { mergeSearchResults } from '../../../src/nest/maps/maps.helpers';
+
+import { describe, it, expect } from 'vitest';
 
 const p = (name: string, lat: number, lng: number, source: string) => ({
   name,
@@ -23,9 +24,7 @@ describe('mergeSearchResults', () => {
   it('MAPS-MERGE-001: puts the landmark second, not eleventh', () => {
     // The Hase-dera case. The index has the shops around the temple and not the
     // temple; OpenStreetMap has the temple, under its Japanese name.
-    const index = Array.from({ length: 10 }, (_, i) =>
-      p(`Shop ${i}`, 35.31 + i / 1000, 139.53, 'trek-places'),
-    );
+    const index = Array.from({ length: 10 }, (_, i) => p(`Shop ${i}`, 35.31 + i / 1000, 139.53, 'trek-places'));
     const osm = [p('長谷寺', 35.3125, 139.5335, 'openstreetmap')];
     const out = mergeSearchResults(index, osm);
     expect(out[1].name).toBe('長谷寺');

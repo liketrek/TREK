@@ -6,3 +6,4 @@ playwright/.cache/
 
 # vite-plugin-pwa dev output (devOptions.enabled)
 dev-dist/
+e2e/help/media.env

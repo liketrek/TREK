@@ -1,8 +1,6 @@
 import type { TranslationStrings } from '../types';
 
 const nav: TranslationStrings = {
-  'nav.trip': 'Поїздка',
-  'nav.share': 'Поділитися',
   'nav.settings': 'Налаштування',
   'nav.admin': 'Адмін',
   'nav.logout': 'Вийти',
@@ -16,6 +14,6 @@ const nav: TranslationStrings = {
   'nav.bottomAdmin': 'Адміністрування',
   'nav.bottomLogout': 'Вийти',
   'nav.bottomAdminBadge': 'Адмін',
-  'nav.help': 'Help',
+  'nav.help': 'Довідка',
 };
 export default nav;

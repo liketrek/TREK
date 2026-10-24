@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types';
+
+const tourPacking: TranslationStrings = {
+  'tours.packing.label': 'Baqaj siyahısı',
+  'tours.packing.none': 'Bağlı baqaj siyahısı yoxdur',
+  'tours.packing.link': 'Baqaj siyahısı bağla',
+  'tours.packing.change': 'Dəyiş',
+  'tours.packing.whole': 'Bütün baqaj siyahısı',
+  'tours.packing.packed': '{count} əşyadan {packed} yığılıb',
+  'tours.packing.packed.one': '{count} əşyadan {packed} yığılıb',
+  'tours.packing.more': 'Daha {count}',
+  'tours.packing.more.one': 'Daha {count}',
+  'tours.packing.items': '{count} əşya',
+  'tours.packing.items.one': '{count} əşya',
+  'tours.packing.allPacked': 'Hamısı yığılıb',
+  'tours.packing.open': 'Baqaj siyahısını aç',
+  'tours.packing.missing': '“{name}” daxilində artıq görə biləcəyiniz əşya yoxdur.',
+  'tours.packing.emptyList': 'Baqaj siyahısı hələ boşdur.',
+  'tours.packing.emptyCategory': '“{name}” daxilində hələ əşya yoxdur.',
+  'tours.packing.addonOff': 'Baqaj siyahıları söndürülüb, ona görə siyahı göstərilə bilmir.',
+  'tours.packing.loadFailed': 'Baqaj siyahısı bağlantısı yüklənmədi.',
+  'tours.packing.dialogSub': 'Sadəcə bağlantıdır. Siyahı və əşyaları olduğu yerdə qalır.',
+  'tours.packing.choose': 'Hara bağlansın',
+  'tours.packing.confirm': 'Bağla',
+  'tours.packing.unlink': 'Bağlantını sil',
+  'tours.packing.unlinkHint': 'Baqaj siyahısı və əşyaları olduğu kimi qalır',
+  'tours.packing.linked': 'Baqaj siyahısı bağlandı.',
+  'tours.packing.unlinked': 'Bağlantı silindi. Baqaj siyahısı olduğu kimi qalır.',
+  'tours.packing.failed': 'Bağlantı saxlanılmadı.',
+};
+export default tourPacking;

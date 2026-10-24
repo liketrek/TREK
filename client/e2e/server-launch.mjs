@@ -12,7 +12,10 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
-const dbFile = path.join(here, '.tmp', 'e2e.db')
+// The port is in the name, so two runs on two port pairs keep two databases
+// and can render different guide files at the same time.
+const apiPort = process.env.E2E_API_PORT || '3001'
+const dbFile = path.join(here, '.tmp', `e2e-${apiPort}.db`)
 const serverDir = path.join(here, '..', '..', 'server')
 
 for (const f of [dbFile, `${dbFile}-wal`, `${dbFile}-shm`]) {
@@ -20,14 +23,18 @@ for (const f of [dbFile, `${dbFile}-wal`, `${dbFile}-shm`]) {
 }
 
 // Build once (no watcher) — the resulting process is a single killable node.
-execSync('node scripts/build.mjs', { cwd: serverDir, stdio: 'inherit' })
+// Several runs on their own port pairs share one dist, so they build it once
+// beforehand and set E2E_SERVER_PREBUILT: a rebuild under a running server
+// swaps its files mid-flight.
+if (!process.env.E2E_SERVER_PREBUILT) execSync('node scripts/build.mjs', { cwd: serverDir, stdio: 'inherit' })
 
 const env = {
   ...process.env,
   TREK_DB_FILE: dbFile,
   ADMIN_EMAIL: 'e2e@trek.local',
   ADMIN_PASSWORD: 'E2eTest12345!',
-  PORT: '3001',
+  // playwright.config.ts picks the port; 3001 is the historical default.
+  PORT: process.env.E2E_API_PORT || '3001',
   NODE_ENV: 'development',
 }
 

@@ -12,6 +12,6 @@ const trips: TranslationStrings = {
   'trips.reminderCustom': 'Personalizzato',
   'trips.reminderDaysBefore': 'giorni prima della partenza',
   'trips.reminderDisabledHint':
-    'I promemoria dei viaggi sono disabilitati. Abilitali in Admin > Impostazioni > Notifiche.',
+    'I promemoria dei viaggi sono disabilitati. Abilitali in Admin > Notifiche > Promemoria viaggio.',
 };
 export default trips;

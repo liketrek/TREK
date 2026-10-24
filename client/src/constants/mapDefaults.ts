@@ -22,6 +22,35 @@ export const SATELLITE_TILE_ATTRIBUTION =
   'Imagery &copy; <a href="https://www.esri.com">Esri</a>, Maxar, Earthstar Geographics'
 export const SATELLITE_TILE_MAXZOOM = 19
 
+// Key-free hiking basemap used only by the Tours planner's per-view switcher.
+export const OPENTOPOMAP_TILE_URL = 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png'
+export const OPENTOPOMAP_TILE_ATTRIBUTION =
+  'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, SRTM | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)'
+export const OPENTOPOMAP_TILE_MAXZOOM = 17
+
+/**
+ * MAP-01: OpenHikingMap, the hiking base map the Tours planner offers while the admin allows it.
+ * Served by openmaps.fr under its tile usage policy (openmaps.fr/tile-usage-policy.html): free
+ * for non-commercial projects up to 500,000 tiles a month, tiles loaded only as they are viewed
+ * (no prefetch, no offline copy), with a Referer, and its credit and donation link visible on the
+ * map. Checked on 19.10.2026: zoom 0 to 18, CORS open, the server's own Cache-Control.
+ */
+export const OPENHIKINGMAP_TILE_URL = 'https://tile.openmaps.fr/openhikingmap/{z}/{x}/{y}.png'
+export const OPENHIKINGMAP_TILE_ATTRIBUTION =
+  '&copy; <a href="https://wiki.openstreetmap.org/wiki/OpenHikingMap">OpenHikingMap</a> | &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> | <a href="https://openmaps.fr/donate">❤️ Donation</a>'
+export const OPENHIKINGMAP_TILE_MAXZOOM = 18
+
+/**
+ * BIK-06: CyclOSM, the cycling base map the Tours planner offers a bike tour while the admin
+ * allows it. Served by OpenStreetMap France on three shards, free for moderate use with a
+ * Referer under its usage policy; loaded only as viewed, like OpenHikingMap. Checked on
+ * 19.10.2026: zoom 0 to 20, CORS open, a day's Cache-Control.
+ */
+export const CYCLOSM_TILE_URL = 'https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png'
+export const CYCLOSM_TILE_ATTRIBUTION =
+  '&copy; <a href="https://www.cyclosm.org">CyclOSM</a> | &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+export const CYCLOSM_TILE_MAXZOOM = 20
+
 /**
  * The basemap for a browser that will not give MapLibre a WebGL context (#2288).
  *

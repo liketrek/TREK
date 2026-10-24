@@ -1,4 +1,4 @@
-// FE-JRN-DAYDAW-001 to FE-JRN-DAYDAW-008
+// FE-JRN-DAYDAW-001 to FE-JRN-DAYDAW-010
 /**
  * The fold a journal day carries for the stays Dawarich recorded on it.
  *
@@ -143,5 +143,28 @@ describe('JourneyDayDawarich', () => {
 
     expect(screen.getByText('8:00 AM – 5:08 PM')).toBeInTheDocument()
     useSettingsStore.setState(s => ({ settings: { ...s.settings, time_format: '24h' } }))
+  })
+
+  it('FE-JRN-DAYDAW-009: beside the shut row, the whole day can be taken over at once (JRN-02)', () => {
+    const onTakeOverDay = vi.fn()
+    render(
+      <JourneyDayDawarich
+        suggestions={[stay({ id: 1 })]}
+        busyId={null}
+        onAccept={vi.fn()}
+        onDismiss={vi.fn()}
+        onTakeOverDay={onTakeOverDay}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Take over day' }))
+
+    expect(onTakeOverDay).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('button', { expanded: false })).toBeInTheDocument()
+  })
+
+  it('FE-JRN-DAYDAW-010: without the right to take a day over there is no such button', () => {
+    fold([stay({ id: 1 })])
+    expect(screen.queryByRole('button', { name: 'Take over day' })).not.toBeInTheDocument()
   })
 })

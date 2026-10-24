@@ -6,7 +6,7 @@ const storage: TranslationStrings = {
   'storage.field.endpoint': 'URL endpoint',
   'storage.help.endpoint':
     'URL di base del servizio compatibile con S3, es. https://s3.example.com o http://127.0.0.1:9000.',
-  'storage.field.bucket': 'Bucket',
+  'storage.field.bucket': 'Bucket', // same-as-en
   'storage.field.accessKeyId': 'ID chiave di accesso',
   'storage.field.secretAccessKey': 'Chiave di accesso segreta',
   'storage.field.region': 'Regione',
@@ -33,13 +33,13 @@ const storage: TranslationStrings = {
   'storage.backends.add': 'Aggiungi backend',
   'storage.backends.usedBy': 'Usato da: {categories}',
   'storage.backends.unused': 'Non assegnato a nessuna categoria',
-  'storage.backends.envReadOnly': "Definito da una variabile d'ambiente — sola lettura",
+  'storage.backends.envReadOnly': "Definito da una variabile d'ambiente (sola lettura)",
   'storage.source.built-in': 'Integrato',
   'storage.source.env': 'Ambiente',
   'storage.source.settings': 'Impostazioni',
   'storage.type.local': 'Locale',
   'storage.type.s3': 'S3',
-  'storage.type.mirror': 'Mirror',
+  'storage.type.mirror': 'Mirror', // same-as-en
   'storage.actions.test': 'Testa',
   'storage.actions.edit': 'Modifica',
   'storage.actions.remove': 'Rimuovi',
@@ -115,7 +115,8 @@ const storage: TranslationStrings = {
   'storage.sync.error': 'Sincronizzazione non riuscita: {error}',
   'storage.sync.prompt': 'Gli oggetti esistenti non sono ancora replicati — sincronizzare ora?',
   'storage.sync.dismiss': 'Ignora',
-  'storage.usage.line': '{objects} oggetti · {size}',
+  'storage.usage.line': '{count} oggetti · {size}',
+  'storage.usage.line.one': '{count} oggetto · {size}',
   'storage.usage.computed': 'Utilizzo calcolato {age}',
   'storage.usage.never': 'Utilizzo non ancora calcolato',
   'storage.usage.refresh': 'Aggiorna',
@@ -124,7 +125,8 @@ const storage: TranslationStrings = {
 
   // Category migration (copy → flip → delta sweep)
   'storage.migrate.promptTitle': 'Spostare gli oggetti esistenti nel nuovo backend?',
-  'storage.migrate.promptLine': '{category}: {objects} oggetti ({size}) da {from} a {to}',
+  'storage.migrate.promptLine': '{category}: {count} oggetti ({size}) da {from} a {to}',
+  'storage.migrate.promptLine.one': '{category}: {count} oggetto ({size}) da {from} a {to}',
   'storage.migrate.promptLineUnknown':
     '{category}: dimensione sconosciuta (utilizzo non ancora calcolato) da {from} a {to}',
   'storage.migrate.move': 'Sposta oggetti esistenti',
@@ -134,10 +136,12 @@ const storage: TranslationStrings = {
   'storage.migrate.doneFailures': '{failed} non riusciti — questi oggetti non sono stati copiati nel nuovo backend',
   'storage.migrate.failed': 'Spostamento non riuscito: {error} — la categoria non è stata cambiata',
   'storage.migrate.cancelled': 'Spostamento annullato — nulla è stato cambiato',
-  'storage.migrate.reclaimable': '{objects} oggetti ({size}) restano su {from} — recuperali manualmente',
+  'storage.migrate.reclaimable': '{count} oggetti ({size}) restano su {from}, recuperali manualmente',
+  'storage.migrate.reclaimable.one': '{count} oggetto ({size}) resta su {from}, recuperalo manualmente',
   'storage.migrate.cancel': 'Annulla spostamento',
   'storage.migrate.promptCancel': 'Annulla',
   'storage.migrate.queued': 'In coda: {categories}',
-  'storage.migrate.queueDropped': 'Impossibile avviare lo spostamento successivo — la coda rimanente è stata svuotata: {categories}',
+  'storage.migrate.queueDropped':
+    'Impossibile avviare lo spostamento successivo — la coda rimanente è stata svuotata: {categories}',
 };
 export default storage;

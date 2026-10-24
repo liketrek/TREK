@@ -11,6 +11,7 @@ import ConfirmDialog from '../shared/ConfirmDialog'
 import { pluginsApi } from '../../api/client'
 import { addListener, removeListener } from '../../api/websocket'
 import { useIsPhone } from '../../mobile/useIsPhone'
+import { browserTimeZone } from '../../utils/localDate'
 
 // The design-token contract handed to plugins (#4 richer context): non-secret CSS
 // values, resolved for the CURRENT theme, so a plugin can match TREK exactly (and
@@ -379,7 +380,7 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
       timeFormat: settings.time_format,
       distanceUnit: settings.distance_unit,
       temperatureUnit: settings.temperature_unit,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      timezone: browserTimeZone() ?? 'UTC',
       blurBookingCodes: Boolean(settings.blur_booking_codes),
     },
     tokens: readThemeTokens(),

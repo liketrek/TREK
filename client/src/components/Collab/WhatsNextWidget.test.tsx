@@ -27,8 +27,11 @@ function getPastDate(daysBack: number): string {
 const tomorrow = getFutureDate(1)
 const yesterday = getPastDate(1)
 
-function makeAssignment(id: number, placeOverrides: Record<string, unknown> = {}, participants: unknown[] = []) {
-  return {
+/** One assignment as the trip store keeps it; the server sends nulls where the generated type says optional. */
+type StoreAssignment = NonNullable<ReturnType<typeof useTripStore.getState>['assignments'][string]>[number]
+
+function makeAssignment(id: number, placeOverrides: Record<string, unknown> = {}, participants: unknown[] = []): StoreAssignment {
+  const assignment = {
     id,
     day_id: 1,
     place_id: id,
@@ -57,6 +60,7 @@ function makeAssignment(id: number, placeOverrides: Record<string, unknown> = {}
     },
     participants,
   }
+  return assignment as unknown as StoreAssignment
 }
 
 describe('WhatsNextWidget', () => {
@@ -278,6 +282,31 @@ describe('WhatsNextWidget', () => {
       render(<WhatsNextWidget />)
       expect(screen.getByText('Late Show')).toBeInTheDocument()
       expect(screen.getByText(/today/i)).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+      if (prevTz === undefined) delete process.env.TZ
+      else process.env.TZ = prevTz
+    }
+  })
+
+  it('FE-COMP-WHATSNEXT-017: a stop that started but has not ended yet is still listed', () => {
+    const prevTz = process.env.TZ
+    process.env.TZ = 'UTC'
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      vi.setSystemTime(new Date('2026-08-23T20:00:00Z'))
+      seedStore(useTripStore, {
+        days: [{ id: 1, trip_id: 1, date: '2026-08-23', title: null, day_number: 0, assignments: [], notes_items: [], notes: null }],
+        assignments: {
+          '1': [
+            makeAssignment(81, { name: 'Running Concert', place_time: '19:00', end_time: '21:30' }),
+            makeAssignment(82, { name: 'Finished Dinner', place_time: '17:00', end_time: '18:30' }),
+          ],
+        },
+      })
+      render(<WhatsNextWidget />)
+      expect(screen.getByText('Running Concert')).toBeInTheDocument()
+      expect(screen.queryByText('Finished Dinner')).toBeNull()
     } finally {
       vi.useRealTimers()
       if (prevTz === undefined) delete process.env.TZ

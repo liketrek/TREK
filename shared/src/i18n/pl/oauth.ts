@@ -12,7 +12,7 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.collab': 'Współpraca',
   'oauth.scope.group.notifications': 'Powiadomienia',
   'oauth.scope.group.vacay': 'Urlop',
-  'oauth.scope.group.geo': 'Geo',
+  'oauth.scope.group.geo': 'Geo', // same-as-en
   'oauth.scope.group.weather': 'Pogoda',
   'oauth.scope.group.journey': 'Dziennik podróży',
   'oauth.scope.trips:read.label': 'Przeglądaj podróże i itineraria',
@@ -76,39 +76,49 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:share.label': 'Zarządzaj linkami dzienników podróży',
   'oauth.scope.journey:share.description':
     'Twórz, aktualizuj i unieważniaj publiczne linki udostępniania dzienników podróży',
-  'oauth.authorize.authorizing': 'Authorizing…', // en-fallback
-  'oauth.authorize.loading': 'Loading…', // en-fallback
-  'oauth.authorize.errorTitle': 'Authorization Error', // en-fallback
-  'oauth.authorize.loginTitle': 'Sign in to continue', // en-fallback
-  'oauth.authorize.loginDescription': '{client} wants access to your TREK account. Please sign in first.', // en-fallback
-  'oauth.authorize.loginButton': 'Sign in to TREK', // en-fallback
-  'oauth.authorize.requestLabel': 'Authorization Request', // en-fallback
-  'oauth.authorize.requestDescription': 'This application is requesting access to your TREK account.', // en-fallback
-  'oauth.authorize.trustNote': 'Only grant access to applications you trust. Your data stays on your server.', // en-fallback
-  'oauth.authorize.selectScope': 'Select at least one scope', // en-fallback
-  'oauth.authorize.approveOneScope': 'Approve ({count} scope)', // en-fallback
-  'oauth.authorize.approveManyScopes': 'Approve ({count} scopes)', // en-fallback
-  'oauth.authorize.approveAccess': 'Approve Access', // en-fallback
-  'oauth.authorize.deny': 'Deny', // en-fallback
-  'oauth.authorize.choosePermissions': 'Choose which permissions to grant', // en-fallback
-  'oauth.authorize.permissionsRequested': 'Permissions requested', // en-fallback
-  'oauth.authorize.alwaysIncluded': 'Always included', // en-fallback
-  'oauth.authorize.alwaysTool.listTrips': 'List your trips so the AI can discover trip IDs', // en-fallback
-  'oauth.authorize.alwaysTool.getTripSummary': 'Read a trip overview needed to use any other tool', // en-fallback
+  'oauth.authorize.authorizing': 'Autoryzowanie…',
+  'oauth.authorize.loading': 'Ładowanie…',
+  'oauth.authorize.errorTitle': 'Błąd autoryzacji',
+  'oauth.authorize.loginTitle': 'Zaloguj się, aby kontynuować',
+  'oauth.authorize.loginDescription': '{client} chce uzyskać dostęp do Twojego konta TREK. Najpierw się zaloguj.',
+  'oauth.authorize.loginButton': 'Zaloguj się do TREK',
+  'oauth.authorize.requestLabel': 'Prośba o autoryzację',
+  'oauth.authorize.requestDescription': 'Ta aplikacja prosi o dostęp do Twojego konta TREK.',
+  'oauth.authorize.verifiedHost': 'Zweryfikowana domena: {host}',
+  'oauth.authorize.trustNote': 'Udzielaj dostępu tylko aplikacjom, którym ufasz. Twoje dane zostają na Twoim serwerze.',
+  'oauth.authorize.selectScope': 'Wybierz co najmniej jeden zakres',
+  'oauth.authorize.approveScopes': 'Zatwierdź ({count} uprawnienia)',
+  'oauth.authorize.approveScopes.one': 'Zatwierdź ({count} uprawnienie)',
+  'oauth.authorize.approveScopes.few': 'Zatwierdź ({count} uprawnienia)',
+  'oauth.authorize.approveScopes.many': 'Zatwierdź ({count} uprawnień)',
+  'oauth.authorize.approveAccess': 'Zatwierdź dostęp',
+  'oauth.authorize.deny': 'Odmów',
+  'oauth.authorize.choosePermissions': 'Wybierz uprawnienia do przyznania',
+  'oauth.authorize.permissionsRequested': 'Żądane uprawnienia',
+  'oauth.authorize.alwaysIncluded': 'Zawsze uwzględnione',
+  'oauth.authorize.alwaysTool.listTrips': 'Wyświetl listę Twoich podróży, aby AI mogła poznać ich identyfikatory',
+  'oauth.authorize.alwaysTool.getTripSummary':
+    'Odczytaj przegląd podróży potrzebny do użycia dowolnego innego narzędzia',
   'oauth.scope.group.files': 'Pliki',
   'oauth.scope.group.settings': 'Ustawienia',
   'oauth.scope.files:read.label': 'Przeglądanie plików podróży',
-  'oauth.scope.files:read.description': 'Wyświetlanie dokumentów podróży: nazw, rozmiarów, kto je przesłał i z czym są powiązane',
+  'oauth.scope.files:read.description':
+    'Wyświetlanie dokumentów podróży: nazw, rozmiarów, kto je przesłał i z czym są powiązane',
   'oauth.scope.files:write.label': 'Zarządzanie plikami podróży',
-  'oauth.scope.files:write.description': 'Zmiana nazw i opisów plików, wiązanie ich z rezerwacjami i miejscami, oznaczanie i przenoszenie do kosza',
+  'oauth.scope.files:write.description':
+    'Zmiana nazw i opisów plików, wiązanie ich z rezerwacjami i miejscami, oznaczanie i przenoszenie do kosza',
   'oauth.scope.files:content.label': 'Odczyt zawartości plików',
-  'oauth.scope.files:content.description': 'Odczyt zawartości przesłanego dokumentu, na przykład PDF-u rezerwacji lub biletu',
+  'oauth.scope.files:content.description':
+    'Odczyt zawartości przesłanego dokumentu, na przykład PDF-u rezerwacji lub biletu',
   'oauth.scope.settings:read.label': 'Przeglądanie preferencji',
-  'oauth.scope.settings:read.description': 'Odczyt jednostek, formatu czasu, języka, waluty domyślnej i strony startowej',
+  'oauth.scope.settings:read.description':
+    'Odczyt jednostek, formatu czasu, języka, waluty domyślnej i strony startowej',
   'oauth.scope.settings:write.label': 'Zmiana preferencji',
-  'oauth.scope.settings:write.description': 'Zmiana jednostek, formatu czasu, języka, waluty domyślnej i strony startowej. Nigdy zapisanych kluczy API',
+  'oauth.scope.settings:write.description':
+    'Zmiana jednostek, formatu czasu, języka, waluty domyślnej i strony startowej. Nigdy zapisanych kluczy API',
   'oauth.scope.group.plugins': 'Wtyczki',
   'oauth.scope.plugins:use.label': 'Uruchamianie narzędzi wtyczek',
-  'oauth.scope.plugins:use.description': 'Pozwala temu klientowi wywoływać narzędzia udostępniane przez wtyczki zainstalowane i zatwierdzone przez administratora. Każda wtyczka działa z uprawnieniami, które już otrzymała, a nie z zakresami tego tokenu',
+  'oauth.scope.plugins:use.description':
+    'Pozwala temu klientowi wywoływać narzędzia udostępniane przez wtyczki zainstalowane i zatwierdzone przez administratora. Każda wtyczka działa z uprawnieniami, które już otrzymała, a nie z zakresami tego tokenu',
 };
 export default oauth;

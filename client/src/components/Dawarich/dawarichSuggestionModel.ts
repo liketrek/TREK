@@ -71,6 +71,22 @@ export function openStaysByDate(suggestions: DawarichSuggestion[]): Map<string, 
   return byDate;
 }
 
+/**
+ * The days with waiting stays that fall inside a journal's span, oldest first. The span
+ * is whatever dates bound it (its entries, its trips' first and last days); without any
+ * there is nothing to place a stay against, because the stays are the whole account's.
+ */
+export function openStayDatesWithin(
+  byDate: Map<string, DawarichSuggestion[]>,
+  span: Array<string | null | undefined>
+): string[] {
+  const bounds = span.filter((date): date is string => !!date).sort((a, b) => a.localeCompare(b));
+  const first = bounds[0];
+  const last = bounds[bounds.length - 1];
+  if (!first || !last) return [];
+  return [...byDate.keys()].filter((date) => date >= first && date <= last).sort((a, b) => a.localeCompare(b));
+}
+
 /** `HH:MM` out of an ISO timestamp, in the offset the timestamp carries. */
 export function clockOf(iso: string): string {
   return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(iso) ? iso.slice(11, 16) : ''
@@ -86,12 +102,17 @@ export function clockOf(iso: string): string {
  * timestamp and printed, so a traveller on a 12-hour clock read every Dawarich time in
  * 24-hour while the rest of the app obeyed the setting. A required argument makes the
  * next caller answer the question rather than inherit the bug.
+ *
+ * A stay that ends on a later day says so, `08:30 +1` after an evening arrival, as a timetable
+ * does, or a night at the hotel reads as fourteen hours that never happened.
  */
 export function timeRange(startedAt: string, endedAt: string, is12h: boolean): string {
   const from = formatClockTime(clockOf(startedAt), is12h)
   const to = formatClockTime(clockOf(endedAt), is12h)
   if (!from) return ''
-  return to ? `${from} – ${to}` : from
+  if (!to) return from
+  const days = Math.round((Date.parse(endedAt.slice(0, 10)) - Date.parse(startedAt.slice(0, 10))) / 86_400_000)
+  return days > 0 ? `${from} – ${to} +${days}` : `${from} – ${to}`
 }
 
 /**

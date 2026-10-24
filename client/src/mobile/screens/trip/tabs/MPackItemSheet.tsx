@@ -5,7 +5,7 @@ import { Eyebrow, FIELD_CLS, FormSheetFooter, FormSheetHeader } from '../sheets/
 import { avatarSrc } from '../../../../utils/avatarSrc'
 import type { PackingItem, TripMember } from '../../../../types'
 import type { TripPlanner } from '../MTripShell'
-import { isPackingPlaceholder } from './listsModel'
+import { isPackingPlaceholder } from '../../../../components/Packing/packingListModel'
 
 export interface MPackItemSheetProps {
   planner: TripPlanner
@@ -211,7 +211,7 @@ export default function MPackItemSheet({
                           key={m.id}
                           type="button"
                           onClick={() => toggleRecipient(m.id)}
-                          className="flex items-center gap-[8px] rounded-[9px] px-[8px] py-[7px] text-left"
+                          className="flex items-center gap-[8px] rounded-[9px] px-[8px] py-[7px] text-start"
                         >
                           <span className="flex h-[22px] w-[22px] flex-none items-center justify-center overflow-hidden rounded-full bg-m-act text-[0.625rem] font-bold text-m-actfg">
                             {src ? <img src={src} alt="" className="h-full w-full object-cover" /> : m.username[0]?.toUpperCase()}

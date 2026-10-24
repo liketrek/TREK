@@ -62,16 +62,22 @@ const login: TranslationStrings = {
   'login.resetPasswordFailed': 'Сброс не удался. Возможно, срок действия ссылки истёк.',
   'login.oidc.tokenFailed': 'Аутентификация не удалась.',
   'login.oidc.invalidState': 'Недействительная сессия. Попробуйте снова.',
+  'login.oidc.emailNotVerified':
+    'Ваш провайдер входа не подтвердил этот адрес электронной почты, поэтому его нельзя связать с существующей учётной записью.',
+  'login.oidc.emailLinkBlocked':
+    'Не удалось связать этот вход с существующей учётной записью с этим адресом. Попросите администратора подтвердить адрес.',
   'login.demoFailed': 'Ошибка демо-входа',
   'login.oidcSignIn': 'Войти через {name}',
   'login.oidcOnly': 'Вход по паролю отключён. Используйте вашего провайдера SSO для входа.',
   'login.oidcLoggedOut': 'Вы вышли из системы. Войдите снова через вашего провайдера SSO.',
+  'login.oidcRedirecting': 'Переходим к {name}…',
+  'login.oidcRedirectSlow': 'Всё ещё здесь? Перейти к {name}',
   'login.demoHint': 'Попробуйте демо — регистрация не требуется',
   'login.passkey.signIn': 'Войти с помощью passkey',
   'login.passkey.failed': 'Не удалось войти с помощью passkey. Попробуйте ещё раз.',
-  'login.insecureCookie.title': "Login won't stick over HTTP",
+  'login.insecureCookie.title': 'Вход не сохранится по HTTP',
   'login.insecureCookie.body':
-    'You’re connecting over plain HTTP, so your browser drops TREK’s secure session cookie — the next request fails with "Access token required". Fix: use HTTPS, or for a home-lab set COOKIE_SECURE=false.',
-  'login.insecureCookie.link': 'Open the Troubleshooting guide',
+    'Вы подключаетесь по обычному HTTP, поэтому браузер отбрасывает защищённый cookie сессии TREK, и следующий запрос завершается ошибкой «Access token required». Решение: используйте HTTPS или, для домашней сети, задайте COOKIE_SECURE=false.',
+  'login.insecureCookie.link': 'Открыть руководство по устранению неполадок',
 };
 export default login;

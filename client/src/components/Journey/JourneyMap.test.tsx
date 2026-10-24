@@ -1,4 +1,4 @@
-// FE-COMP-JOURNEYMAP-001 to FE-COMP-JOURNEYMAP-050
+// FE-COMP-JOURNEYMAP-001 to FE-COMP-JOURNEYMAP-054
 
 vi.mock('../../api/websocket', () => ({
   connect: vi.fn(),
@@ -386,13 +386,17 @@ describe('JourneyMap', () => {
     expect(L.polyline).not.toHaveBeenCalled();
   });
 
-  it('FE-COMP-JOURNEYMAP-022: fullScreen enables wheel zoom and drops the route polyline', () => {
+  it('FE-COMP-JOURNEYMAP-022: fullScreen enables wheel zoom and still draws the dashed route polyline', () => {
     render(
       <JourneyMap checkins={[]} entries={entriesWithCoords} fullScreen />
     );
     expect(vi.mocked(L.map).mock.calls[0][1]).toMatchObject({ scrollWheelZoom: true });
-    // The connecting route line is a sidebar-only decoration
-    expect(L.polyline).not.toHaveBeenCalled();
+    // The public sidebar and the mobile map+carousel view both pass fullScreen,
+    // and the line joining the entries has to show there too (#2606)
+    expect(L.polyline).toHaveBeenCalledWith(
+      [[48.8566, 2.3522], [52.52, 13.405]],
+      expect.objectContaining({ dashArray: '4 6' }),
+    );
   });
 
   it('FE-COMP-JOURNEYMAP-023: clicking a marker reports the entry id', () => {
@@ -619,8 +623,31 @@ describe('JourneyMap', () => {
     expect(line).toBeDefined();
     // Leaflet wants [lat, lng], which is the order the geometry is stored in.
     expect(line![0]).toEqual([[47.1, 11.2], [47.2, 11.3]]);
-    // Solid, unlike the dashed line that merely connects entries in time order.
-    expect((line![1] as any).dashArray).toBeUndefined();
+    // A trip's GPX track is the plan: dashed, and wider apart than the faint
+    // line that merely connects entries in time order.
+    expect((line![1] as any).dashArray).toBe('8 7');
+  });
+
+  it('FE-COMP-JOURNEYMAP-051: a recorded route is drawn solid, apart from the planned one (JRN-01)', () => {
+    vi.mocked(L.polyline).mockClear();
+    render(
+      <JourneyMap
+        checkins={[]}
+        entries={entriesWithCoords}
+        tracks={[
+          { ...track({ color: '#00aa00' }), kind: 'day_recording' as const },
+          { ...track({ color: '#0000aa' }), kind: 'dawarich_live' as const },
+          { ...track({ color: '#aa0000' }), kind: 'trip_gpx' as const },
+        ]}
+      />
+    );
+
+    const style = (color: string) =>
+      vi.mocked(L.polyline).mock.calls.map(c => c[1] as L.PolylineOptions | undefined).find(o => o?.color === color);
+    expect(style('#00aa00')).toBeDefined();
+    expect(style('#00aa00')?.dashArray).toBeUndefined();
+    expect(style('#0000aa')?.dashArray).toBeUndefined();
+    expect(style('#aa0000')?.dashArray).toBe('8 7');
   });
 
   it('FE-COMP-JOURNEYMAP-043: labels a track with the map tooltip the markers use', () => {
@@ -796,4 +823,59 @@ describe('JourneyMap', () => {
       map.latLngToContainerPoint.mockImplementation(() => ({ x: 0, y: 0 }));
     }
   });
+
+  // JRN-04: the layer switches hide in place, and the plan's places and stays draw beside the entries.
+
+  it('FE-COMP-JOURNEYMAP-052: switching the entries off takes their pin off the map and back, without a rebuild', () => {
+    const marker = mockedMarkerWithRemove();
+    const entry = [entriesWithCoords[0]];
+    const shown = { plan: true, recorded: true, entries: true };
+    const { rerender } = render(<JourneyMap checkins={[]} entries={entry} layerVisibility={shown} />);
+    expect(marker.addTo).toHaveBeenCalledTimes(1);
+
+    rerender(<JourneyMap checkins={[]} entries={entry} layerVisibility={{ ...shown, entries: false }} />);
+    expect(marker.remove).toHaveBeenCalledTimes(1);
+    rerender(<JourneyMap checkins={[]} entries={entry} layerVisibility={shown} />);
+    expect(marker.addTo).toHaveBeenCalledTimes(2);
+    expect(L.map).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-COMP-JOURNEYMAP-053: a planned place is drawn as its hollow pin, and a click hands it up', () => {
+    const onMarksPick = vi.fn();
+    const mark = {
+      kind: 'plan' as const,
+      key: 'plan:4',
+      lat: 45.43,
+      lng: 12.33,
+      color: '#e11d48',
+      place: {
+        place_id: 4, trip_id: 2, trip_title: 'Venice', name: 'San Marco', lat: 45.43, lng: 12.33,
+        days: [], time: null, category_color: '#e11d48', category_icon: null, entry_id: null,
+      },
+    };
+    render(<JourneyMap checkins={[]} entries={[]} marks={[mark]} onMarksPick={onMarksPick} />);
+
+    const pins = vi.mocked(L.divIcon).mock.calls.map(c => String(c[0]?.html)).filter(h => h.includes('stroke-dasharray'));
+    expect(pins).toHaveLength(1);
+    expect(pins[0]).toContain('#e11d48');
+    const click = mockedMarker().on.mock.calls.filter((c: unknown[]) => c[0] === 'click').pop()?.[1] as () => void;
+    click();
+    expect(onMarksPick).toHaveBeenCalledWith([mark]);
+  });
+
+  it('FE-COMP-JOURNEYMAP-054: an entry pin whose place the plan had too carries the check', () => {
+    render(<JourneyMap checkins={[]} entries={entriesWithCoords} plannedEntryIds={new Set(['e2'])} />);
+    expect(divIconHtml(0)).not.toContain('#16a34a');
+    expect(divIconHtml(1)).toContain('#16a34a');
+  });
 });
+
+/** The shared marker spy with the `remove` a hidden layer is taken off by. */
+function mockedMarkerWithRemove(): { addTo: Mock; remove: Mock } {
+  L.marker([0, 0]);
+  const marker = mockedMarker() as unknown as { addTo: Mock; remove: Mock };
+  marker.remove = vi.fn();
+  vi.mocked(L.marker).mockClear();
+  marker.addTo.mockClear();
+  return marker;
+}

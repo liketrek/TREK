@@ -1,5 +1,5 @@
-import { Module } from '@nestjs/common';
 import { GeocodingService } from './geocoding.service';
+import { Module } from '@nestjs/common';
 
 /**
  * The single Nominatim seam.

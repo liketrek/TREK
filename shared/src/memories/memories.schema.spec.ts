@@ -1,4 +1,5 @@
 import {
+  PROVIDER_SELECT_ALL_MAX_PAGES,
   addTripPhotosSchema,
   createAlbumLinkSchema,
   immichSearchSchema,
@@ -70,6 +71,12 @@ describe('immich contracts', () => {
     expect(immichSearchSchema.safeParse({ from: '2026-03-15', utc_offset_minutes: 600 }).success).toBe(true);
     expect(immichSearchSchema.safeParse({ utc_offset_minutes: '-480' }).success).toBe(true);
     expect(immichSearchSchema.safeParse({}).success).toBe(true);
+  });
+
+  it('pins how deep the picker pages a search, which the server scan ceiling is sized from (#1587)', () => {
+    // Page 251 of 200 ends at photo 50,200. Raising it deepens the server's scan
+    // ceiling with it, since that ceiling is derived from this number.
+    expect(PROVIDER_SELECT_ALL_MAX_PAGES).toBe(250);
   });
 });
 

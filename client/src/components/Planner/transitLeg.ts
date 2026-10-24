@@ -1,4 +1,5 @@
 import type { Accommodation, Assignment, Reservation, RouteSegment } from '../../types'
+import type { WalkTransitContext } from '../Tours/walk/walkTransit'
 import type { PickedPlace } from './TransitSearchPanel'
 
 /** What the transit search is opened with for one leg of a day. */
@@ -6,6 +7,20 @@ export interface TransitLeg {
   from: PickedPlace
   to: PickedPlace
   time: string | null
+}
+
+/** A leg as a view hands it on to open the search: its day and, between two city walks, what it says of them (CW-08). */
+export interface PlannedTransitLeg extends TransitLeg {
+  dayId: number
+  walk?: WalkTransitContext
+}
+
+/** What the search is seeded with: a leg, or the ends of a journey whose route is changed. */
+export interface TransitPrefill {
+  from?: PickedPlace | null
+  to?: PickedPlace | null
+  time?: string | null
+  walk?: WalkTransitContext | null
 }
 
 /**
@@ -48,7 +63,9 @@ function originDepartureTime(
   assignments: Record<string, Assignment[]>,
   reservations: Reservation[],
 ): string | null {
-  for (const a of assignments[String(dayId)] ?? []) {
+  // A tour's place is where it starts and its time when it starts: a leg leaving a loop is no departure then.
+  const stops = (assignments[String(dayId)] ?? []).filter(a => a.tour_place_id == null || a.tour_place_id !== a.place?.id)
+  for (const a of stops) {
     if (a.place?.lat != null && a.place?.lng != null && `${a.place.lat},${a.place.lng}` === originKey) return a.place.place_time ?? null
   }
   for (const r of reservations) {

@@ -1,0 +1,643 @@
+/* ============================================================================
+   TREK Studio: the paint picker, the swatch rows and the page background.
+
+   Its own sheet beside studio.css (which is past the size ceiling), imported by
+   the components that use it. Scoped under `.trek-dash` for the same reason
+   every Studio rule is: dashboard.css resets `button` at (0,1,1).
+
+   Chrome only. The colours a swatch, a stop or a preview shows are the book's
+   and arrive inline; everything around them resolves against the dashboard
+   tokens, so the picker follows the user's theme and accent.
+   ============================================================================ */
+
+/* The chequerboard under anything see-through, drawn in the ink so it reads in
+   light and dark alike. */
+.trek-dash .st-paint,
+.trek-dash .st-swatch-stack {
+  --st-check: color-mix(in oklch, var(--ink) 9%, transparent);
+  --st-check-bg: conic-gradient(var(--st-check) 25%, transparent 0 50%, var(--st-check) 0 75%, transparent 0) 0 0 / 8px
+    8px;
+}
+
+/* ----------------- swatch rows ----------------- */
+.trek-dash .st-swatch-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.trek-dash .st-swatch {
+  position: relative;
+}
+.trek-dash .st-swatch:focus {
+  outline: none;
+}
+.trek-dash .st-swatch:focus-visible {
+  box-shadow:
+    0 0 0 2px var(--accent-soft),
+    0 0 0 3px var(--accent);
+}
+.trek-dash .st-swatch-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--line);
+}
+.trek-dash .st-swatch-row-icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 22px;
+  color: var(--ink-3);
+}
+.trek-dash .st-swatch-row .st-swatches {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ----------------- opacity ----------------- */
+.trek-dash .st-alpha {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 2px;
+}
+.trek-dash .st-alpha-track {
+  position: relative;
+  flex: 1;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--st-check-bg), var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line-2);
+  /* The colour fades in left to right in every language, like the slider it is. */
+  direction: ltr;
+}
+.trek-dash .st-alpha-track::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, var(--st-alpha-colour));
+}
+.trek-dash .st-alpha-value,
+.trek-dash .st-paint-value {
+  flex: none;
+  min-width: 34px;
+  text-align: end;
+  font-size: calc(11px * var(--fs-scale-caption, 1));
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+
+/* A range input with nothing of the browser's left but the thumb. */
+.trek-dash .st-alpha input[type='range'],
+.trek-dash .st-paint-slider input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.trek-dash .st-alpha input[type='range'] {
+  position: relative;
+  height: 14px;
+}
+.trek-dash .st-paint-slider input[type='range'] {
+  height: 16px;
+  /* The track is drawn as the input's own background so the thumb sits on it. */
+  background: linear-gradient(var(--line-2), var(--line-2)) center / 100% 3px no-repeat;
+  border-radius: 999px;
+}
+.trek-dash .st-alpha input[type='range']::-webkit-slider-thumb,
+.trek-dash .st-paint-slider input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow:
+    0 0 0 1px var(--line-2),
+    var(--sh-sm);
+  transition: transform 0.14s;
+}
+.trek-dash .st-alpha input[type='range']::-moz-range-thumb,
+.trek-dash .st-paint-slider input[type='range']::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: none;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow:
+    0 0 0 1px var(--line-2),
+    var(--sh-sm);
+}
+.trek-dash .st-alpha input[type='range']:active::-webkit-slider-thumb,
+.trek-dash .st-paint-slider input[type='range']:active::-webkit-slider-thumb {
+  transform: scale(1.12);
+}
+.trek-dash .st-alpha input[type='range']:focus {
+  outline: none;
+}
+.trek-dash .st-alpha input[type='range']:focus-visible::-webkit-slider-thumb,
+.trek-dash .st-paint-slider input[type='range']:focus-visible::-webkit-slider-thumb {
+  box-shadow:
+    0 0 0 2px var(--accent-soft),
+    0 0 0 3px var(--accent);
+}
+
+/* ----------------- the picker ----------------- */
+.trek-dash .st-paint {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* Four kinds, each with a chip of what it gives: read at a glance, not a menu. */
+.trek-dash .st-paint-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 2px;
+  padding: 2px;
+  border-radius: 10px;
+  background: color-mix(in oklch, var(--ink) 5%, transparent);
+}
+.trek-dash .st-paint-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 6px 2px 5px;
+  border-radius: 8px;
+  color: var(--ink-3);
+  transition:
+    background 0.16s,
+    color 0.16s,
+    box-shadow 0.16s;
+}
+.trek-dash .st-paint-tab:hover {
+  color: var(--ink);
+}
+.trek-dash .st-paint-tab.is-on {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow:
+    var(--sh-xs),
+    0 0 0 1px var(--line);
+}
+.trek-dash .st-paint-tab:focus {
+  outline: none;
+}
+.trek-dash .st-paint-tab:focus-visible {
+  box-shadow:
+    0 0 0 2px var(--accent-soft),
+    0 0 0 3px var(--accent);
+}
+.trek-dash .st-paint-tab-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 14px;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--ink) 14%, transparent);
+  background-color: var(--surface);
+  color: var(--ink-3);
+  transition: transform 0.16s;
+}
+.trek-dash .st-paint-tab.is-on .st-paint-tab-chip {
+  transform: scale(1.06);
+}
+.trek-dash .st-paint-tab-chip.is-none {
+  background: transparent;
+}
+/* A pattern's chip is its ground with a few diagonal strokes of ink, a sign rather than the repeat. */
+.trek-dash .st-paint-tab-chip.is-pattern {
+  background-image: repeating-linear-gradient(
+    45deg,
+    color-mix(in oklch, var(--ink) 55%, transparent) 0 1.5px,
+    transparent 1.5px 4px
+  );
+}
+/* Four to a row, so a long name ("Farbverlauf", "Dégradé") breaks inside the tab rather than being cut. */
+.trek-dash .st-paint-tab-label {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+  text-align: center;
+  line-height: 1.2;
+  font-size: calc(10.5px * var(--fs-scale-caption, 1));
+  font-weight: 500;
+}
+
+.trek-dash .st-paint-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.trek-dash .st-paint-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+.trek-dash .st-paint-row.is-dial {
+  justify-content: flex-start;
+  gap: 12px;
+}
+.trek-dash .st-paint-row.is-dial > .st-num,
+.trek-dash .st-paint-row.is-dial > .st-paint-slider {
+  flex: 1;
+  min-width: 0;
+}
+.trek-dash .st-paint-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+.trek-dash .st-paint-caption {
+  font-size: calc(11px * var(--fs-scale-caption, 1));
+  color: var(--ink-3);
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+}
+.trek-dash .st-paint-stop {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 9px 10px 10px;
+  border-radius: 10px;
+  background: color-mix(in oklch, var(--ink) 3.5%, transparent);
+}
+.trek-dash .st-chip:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.trek-dash .st-chip:disabled:hover {
+  background: color-mix(in oklch, var(--ink) 5%, transparent);
+  color: var(--ink-2);
+}
+
+/* A small segmented choice inside the picker, quieter than the tabs above it. */
+.trek-dash .st-seg {
+  display: inline-flex;
+  padding: 2px;
+  gap: 2px;
+  border-radius: 8px;
+  background: color-mix(in oklch, var(--ink) 5%, transparent);
+}
+.trek-dash .st-seg-item {
+  height: 23px;
+  padding: 0 10px;
+  border-radius: 6px;
+  font-size: calc(11.5px * var(--fs-scale-caption, 1));
+  font-weight: 500;
+  color: var(--ink-3);
+  transition:
+    background 0.16s,
+    color 0.16s;
+}
+.trek-dash .st-seg-item:hover {
+  color: var(--ink);
+}
+.trek-dash .st-seg-item.is-on {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--sh-xs);
+}
+.trek-dash .st-seg-item:focus {
+  outline: none;
+}
+.trek-dash .st-seg-item:focus-visible {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+/* ----------------- the stop bar ----------------- */
+/* Room below the bar for the handles, which hang under it like a ruler's marks. */
+.trek-dash .st-stopbar-wrap {
+  padding: 0 8px 14px;
+}
+.trek-dash .st-stopbar {
+  position: relative;
+  height: 24px;
+  border-radius: 7px;
+  background: var(--st-check-bg), var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line-2);
+  cursor: copy;
+  /* A picture of the gradient, left to right in every language. */
+  direction: ltr;
+  touch-action: none;
+}
+.trek-dash .st-stopbar-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--ink) 10%, transparent);
+}
+.trek-dash .st-stop {
+  position: absolute;
+  inset-inline-start: var(--at);
+  top: 13px;
+  width: 16px;
+  height: 22px;
+  margin-inline-start: -8px;
+  padding: 0;
+  border-radius: 5px 5px 8px 8px;
+  background: var(--stop);
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 3px var(--line-2),
+    var(--sh-sm);
+  cursor: grab;
+  touch-action: none;
+  transition:
+    box-shadow 0.14s,
+    transform 0.14s,
+    opacity 0.14s;
+}
+/* The tip that points up into the bar at the stop's exact position. */
+.trek-dash .st-stop::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: 50%;
+  top: -6px;
+  width: 2px;
+  height: 6px;
+  margin-inline-start: -1px;
+  border-radius: 1px;
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--line-2);
+}
+.trek-dash .st-stop:hover {
+  transform: translateY(-1px);
+}
+.trek-dash .st-stop:active {
+  cursor: grabbing;
+}
+.trek-dash .st-stop.is-on {
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 4px var(--accent),
+    var(--sh-md);
+  z-index: 1;
+}
+.trek-dash .st-stop.is-leaving {
+  opacity: 0.35;
+  transform: translateY(6px) scale(0.9);
+}
+.trek-dash .st-stop:focus {
+  outline: none;
+}
+.trek-dash .st-stop:focus-visible {
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 4px var(--accent);
+}
+
+/* ----------------- the angle dial ----------------- */
+.trek-dash .st-dial {
+  position: relative;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, var(--surface) 0 55%, transparent 56%),
+    repeating-conic-gradient(
+      from -1deg,
+      color-mix(in oklch, var(--ink) 30%, transparent) 0 2deg,
+      transparent 2deg 45deg
+    ),
+    var(--surface);
+  box-shadow:
+    inset 0 0 0 1px var(--line-2),
+    var(--sh-xs);
+  cursor: grab;
+  touch-action: none;
+  /* A compass: 0 is up and 90 is to the right whichever way the text runs. */
+  direction: ltr;
+  transition: box-shadow 0.14s;
+}
+.trek-dash .st-dial:active {
+  cursor: grabbing;
+}
+.trek-dash .st-dial:focus {
+  outline: none;
+}
+.trek-dash .st-dial:focus-visible {
+  box-shadow:
+    inset 0 0 0 1px var(--line-2),
+    0 0 0 2px var(--accent-soft),
+    0 0 0 3px var(--accent);
+}
+.trek-dash .st-dial-needle {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: transform 0.08s ease-out;
+}
+.trek-dash .st-dial-knob {
+  position: absolute;
+  top: 4px;
+  inset-inline-start: 50%;
+  width: 8px;
+  height: 8px;
+  margin-inline-start: -4px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+/* The needle runs from the centre to the knob. */
+.trek-dash .st-dial-needle::before {
+  content: '';
+  position: absolute;
+  top: 10px;
+  bottom: 50%;
+  inset-inline-start: 50%;
+  width: 1.5px;
+  margin-inline-start: -0.75px;
+  border-radius: 1px;
+  background: color-mix(in oklch, var(--accent) 70%, transparent);
+}
+.trek-dash .st-dial-needle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  inset-inline-start: 50%;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  background: var(--ink-2);
+}
+
+/* ----------------- the radial centre ----------------- */
+.trek-dash .st-radial-pad {
+  position: relative;
+  flex: none;
+  width: 64px;
+  height: 44px;
+  border-radius: 8px;
+  background-color: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line-2);
+  cursor: crosshair;
+  direction: ltr;
+  touch-action: none;
+}
+.trek-dash .st-radial-pad:focus {
+  outline: none;
+}
+.trek-dash .st-radial-pad:focus-visible {
+  box-shadow:
+    inset 0 0 0 1px var(--line-2),
+    0 0 0 2px var(--accent);
+}
+.trek-dash .st-radial-dot {
+  position: absolute;
+  inset-inline-start: var(--cx);
+  top: var(--cy);
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow:
+    0 0 0 1.5px var(--accent),
+    var(--sh-sm);
+  pointer-events: none;
+}
+
+/* ----------------- sliders ----------------- */
+.trek-dash .st-paint-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.trek-dash .st-paint-slider-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* ----------------- pattern tiles ----------------- */
+.trek-dash .st-pattern-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 5px;
+}
+.trek-dash .st-pattern-tile {
+  aspect-ratio: 1;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 8px;
+  background-color: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line-2);
+  transition:
+    transform 0.14s,
+    box-shadow 0.14s;
+}
+.trek-dash .st-pattern-tile.is-clear {
+  background: var(--st-check-bg), var(--surface);
+}
+.trek-dash .st-pattern-tile:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 0 0 1px var(--line-2),
+    var(--sh-sm);
+}
+.trek-dash .st-pattern-tile.is-on {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.trek-dash .st-pattern-tile:focus {
+  outline: none;
+}
+.trek-dash .st-pattern-tile:focus-visible {
+  box-shadow:
+    0 0 0 2px var(--accent-soft),
+    0 0 0 3px var(--accent);
+}
+.trek-dash .st-pattern-tile-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ----------------- page background ----------------- */
+.trek-dash .st-paint-apply {
+  align-self: flex-start;
+  margin-top: 10px;
+}
+.trek-dash .st-paint-apply.is-done {
+  background: color-mix(in oklch, var(--accent) 14%, transparent);
+  color: var(--ink);
+}
+.trek-dash .st-paint-field + .st-paint-field,
+.trek-dash .st-paint-apply + .st-paint-field {
+  margin-top: 14px;
+}
+.trek-dash .st-paint-hint {
+  padding: 0;
+  font-size: calc(11.5px * var(--fs-scale-caption, 1));
+  line-height: 1.5;
+}
+.trek-dash .st-bgphoto-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+}
+.trek-dash .st-bgphoto {
+  position: relative;
+  aspect-ratio: 1;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+  transition:
+    transform 0.14s,
+    box-shadow 0.14s;
+}
+.trek-dash .st-bgphoto img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.trek-dash .st-bgphoto:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--sh-sm);
+}
+.trek-dash .st-bgphoto.is-on {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.trek-dash .st-bgphoto:focus {
+  outline: none;
+}
+.trek-dash .st-bgphoto:focus-visible {
+  box-shadow:
+    0 0 0 2px var(--accent-soft),
+    0 0 0 3px var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trek-dash .st-paint-tab,
+  .trek-dash .st-paint-tab-chip,
+  .trek-dash .st-stop,
+  .trek-dash .st-dial-needle,
+  .trek-dash .st-pattern-tile,
+  .trek-dash .st-bgphoto {
+    transition: none;
+  }
+}

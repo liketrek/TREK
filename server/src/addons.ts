@@ -12,9 +12,11 @@ export const ADDON_IDS = {
   LLM_PARSING: 'llm_parsing',
   COLLECTIONS: 'collections',
   ROADTRIP: 'roadtrip',
+  TOURS: 'tours',
+  AI_ASSISTANT: 'ai_assistant',
 } as const;
 
-export type AddonId = typeof ADDON_IDS[keyof typeof ADDON_IDS];
+export type AddonId = (typeof ADDON_IDS)[keyof typeof ADDON_IDS];
 
 /**
  * The addons that gate an MCP surface, which is what decides whether switching
@@ -46,5 +48,6 @@ export const MCP_GATED_ADDON_IDS: readonly AddonId[] = [
   ADDON_IDS.JOURNEY,
   ADDON_IDS.PACKING,
   ADDON_IDS.ROADTRIP,
+  ADDON_IDS.TOURS,
   ADDON_IDS.VACAY,
 ];

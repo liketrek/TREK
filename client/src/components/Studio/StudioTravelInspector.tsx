@@ -1,35 +1,47 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import type {
   BookBadgeElement, BookCountriesElement, BookElement, BookListElement, BookMapElement,
   BookMetric, BookStatsElement, JourneyStats,
 } from '@trek/shared'
-import { BOOK_METRICS } from '@trek/shared'
-import { isStale, refreshPatch } from './travelRefresh'
+import {
+  BOOK_BADGE_STYLES, BOOK_COUNTRY_LOOKS, BOOK_METRICS, BOOK_STATS_LOOKS, MAX_PATH_POINTS, MAX_PATH_SEGMENTS, isStale, refreshPatch,
+} from '@trek/shared'
 import { Swatches } from './StudioSwatches'
-import { BOOK_FONTS, BOOK_FONT_ORDER, hasWeight, nearestWeight } from './bookFonts'
+import { StudioFontPicker } from './StudioFontPicker'
+import { WeightLine } from './StudioTypeControls'
 import { sourceIdOf, useMapSources } from './mapSources'
 import { printDpi, tileView } from './mapTiles'
 import { useCartoApiKey } from '../../hooks/useTileUrl'
-import { routeFor } from './travelRefresh'
 import { Choice, Line, Picks, Section, Switch } from './StudioControls'
 import { fetchRoads } from './roadRoute'
+import { useStudioStore } from '../../store/studioStore'
+import { StudioThemeLink } from './theme/StudioThemeLink'
+import { mapZoomInUse, travelTypeInUse } from './inspector/inspectorModel'
 
 /**
  * Properties of the travel elements.
  *
- * Its own file because these four are a different kind of thing from a photo or
+ * Its own file because these five are a different kind of thing from a photo or
  * a paragraph: what you adjust is *what the element says*, not how a box looks.
- * Keeping them here leaves StudioInspector.tsx about the elements that have
- * been there since the beginning.
+ * Keeping them here leaves the inspector about the elements that have been
+ * there since the beginning.
+ *
+ * In the order every kind follows: what the element says first (a map's scope,
+ * source and framing, a summary's figures, a mark's words), then where it sits,
+ * then how it looks (a map's line and layers, the type, the colours).
  */
 
 export interface TravelInspectorProps {
   el: BookElement
   /** Live figures, for the refresh button. Null while loading or on failure. */
   stats: JourneyStats | null
+  /** The journey's recorded way, thinned, which a map switched back to the whole journey draws again. */
+  path: [number, number][][]
   set: (patch: Partial<BookElement>) => void
   t: (k: string) => string
   locale: string
+  /** The position and size group, which every kind places after what it is. */
+  position: ReactNode
 }
 
 interface Props<T> {
@@ -38,7 +50,8 @@ interface Props<T> {
   t: (k: string) => string
 }
 
-export function TravelInspector({ el, stats, set, t }: TravelInspectorProps) {
+export function TravelInspector({ el, stats, path, set, t, position }: TravelInspectorProps) {
+  const theme = useStudioStore(s => s.doc?.theme)
   if (
     el.kind !== 'map' && el.kind !== 'stats' && el.kind !== 'countries'
     && el.kind !== 'badge' && el.kind !== 'list'
@@ -66,11 +79,15 @@ export function TravelInspector({ el, stats, set, t }: TravelInspectorProps) {
         </div>
       )}
 
-      {el.kind === 'map' && <MapProps el={el} set={set} t={t} stats={stats} />}
+      {el.kind === 'map' && <MapContent el={el} set={set} t={t} stats={stats} journeyPath={path} />}
       {el.kind === 'stats' && <StatsProps el={el} set={set} t={t} />}
       {el.kind === 'countries' && <CountriesProps el={el} set={set} t={t} />}
       {el.kind === 'badge' && <BadgeProps el={el} set={set} t={t} />}
       {el.kind === 'list' && <ListProps el={el} set={set} t={t} />}
+
+      {position}
+
+      {el.kind === 'map' && <MapLook el={el} set={set} t={t} />}
 
       {/*
        * Type, for all five alike.
@@ -79,44 +96,18 @@ export function TravelInspector({ el, stats, set, t }: TravelInspectorProps) {
        * country's name over its outline — and until now the only thing you
        * could change about that was the size. A book set in a serif with its
        * stats block in the default sans is a book with one element in the
-       * wrong typeface and no way to fix it.
+       * wrong typeface and no way to fix it. Folded, and open on an element
+       * already set in another face, weight or size.
        */}
-      <Section label={t('journey.studio.typography')} defaultOpen={false}>
-        <div className="st-fonts">
-          {BOOK_FONT_ORDER.map(id => {
-            const font = BOOK_FONTS[id]
-            return (
-              <button type="button"
-                key={id}
-                className={`st-font ${el.font === id ? 'is-on' : ''}`}
-                style={{ fontFamily: font.stack }}
-                onClick={() => set({
-                  font: id,
-                  // A family that does not ship this weight renders a
-                  // synthesised bold — a smeared regular in print — so the
-                  // weight moves to the nearest one it really has.
-                  weight: nearestWeight(id, el.weight) as typeof el.weight,
-                } as Partial<BookElement>)}
-                title={font.name}
-              >
-                {font.name}
-              </button>
-            )
-          })}
-        </div>
-        <div style={{ marginTop: 10 }}>
-          <Line label={t('journey.studio.weight')}>
-            <Choice
-              value={el.weight}
-              options={([400, 500, 600, 700] as const).map(w => ({
-                value: w,
-                label: String(w),
-                disabled: !hasWeight(el.font, w),
-                title: hasWeight(el.font, w) ? undefined : t('journey.studio.weightMissing'),
-              }))}
-              onPick={weight => set({ weight } as Partial<BookElement>)}
-            />
-          </Line>
+      <Section label={t('journey.studio.typography')} defaultOpen={travelTypeInUse(el)}>
+        <StudioFontPicker font={el.font} weight={el.weight} onPick={patch => set(patch as Partial<BookElement>)} t={t} />
+        <div className="st-section-gap">
+          <WeightLine
+            font={el.font}
+            weight={el.weight}
+            onPick={weight => set({ weight } as Partial<BookElement>)}
+            t={t}
+          />
           <Line label={t('journey.studio.textScale')}>
             <Choice
               value={el.textScale}
@@ -146,6 +137,9 @@ export function TravelInspector({ el, stats, set, t }: TravelInspectorProps) {
       <Section label={t('journey.studio.colour')}>
         <Line label={t('journey.studio.accent')} wide>
           <Swatches value={el.accent} onPick={c => set({ accent: c } as Partial<BookElement>)} />
+          <StudioThemeLink theme={theme} token={el.accentToken} t={t}
+            onLink={(accentToken, accent) => set({ accent, accentToken } as Partial<BookElement>)}
+            onUnlink={() => set({ accentToken: undefined } as Partial<BookElement>)} />
         </Line>
         <Line label={t('journey.studio.text')} wide>
           {/*
@@ -160,9 +154,14 @@ export function TravelInspector({ el, stats, set, t }: TravelInspectorProps) {
               (el.kind === 'badge' ? { color: c, autoColor: false } : { color: c }) as Partial<BookElement>,
             )}
           />
+          <StudioThemeLink theme={theme} token={el.token} t={t}
+            onLink={(token, color) => set(
+              (el.kind === 'badge' ? { color, token, autoColor: false } : { color, token }) as Partial<BookElement>,
+            )}
+            onUnlink={() => set({ token: undefined } as Partial<BookElement>)} />
         </Line>
         {el.kind === 'badge' && (
-          <div style={{ marginTop: 10 }}>
+          <div className="st-section-gap">
             <Switch
               label={t('journey.studio.autoColour')}
               on={el.autoColor}
@@ -217,31 +216,15 @@ function ListProps({ el, set, t }: Props<BookListElement>) {
   )
 }
 
-function MapProps({ el, set, t, stats }: Props<BookMapElement> & { stats: JourneyStats | null }) {
+/** A map's panel reads the journey too: its live figures, and its recorded way for a map of all of it. */
+type MapPropsInput = Props<BookMapElement> & {
+  stats: JourneyStats | null
+  journeyPath: [number, number][][]
+}
+
+/** What a map shows: which trip, where the picture comes from and its style, the framing and the zoom. */
+function MapContent({ el, set, t, stats, journeyPath }: MapPropsInput) {
   const cartoKey = useCartoApiKey()
-  const [roadState, setRoadState] = useState<'idle' | 'busy'>('idle')
-  const [roadDone, setRoadDone] = useState(0)
-  const hasRoads = (el.roads ?? []).some(r => r && r.length > 1)
-
-  /*
-   * One leg at a time, paced, and written into the document when it is done
-   * rather than leg by leg: a hundred commits would be a hundred undo steps and
-   * a hundred autosaves for one action.
-   */
-  const loadRoads = async () => {
-    setRoadState('busy')
-    setRoadDone(0)
-    try {
-      const roads = await fetchRoads(
-        el.points.map(p => ({ lat: p.lat, lng: p.lng })),
-        { onProgress: done => setRoadDone(done) },
-      )
-      set({ roads } as Partial<BookElement>)
-    } finally {
-      setRoadState('idle')
-    }
-  }
-
   const sources = useMapSources(el.frame, el.points, { source: el.source, tileUrl: el.tileUrl })
   /** Only trips that put stops on the route: a map of the others is a blank. */
   const tripsWithRoute = (stats?.trips ?? []).filter(t => t.points > 0)
@@ -277,15 +260,26 @@ function MapProps({ el, set, t, stats }: Props<BookMapElement> & { stats: Journe
               })),
             ]}
             onPick={id => {
-              if (!stats) return
               const tripId = id === 0 ? null : id
-              const route = routeFor(stats, tripId)
+              // The scope it already has: a re-cut would only drop the roads loaded for these legs.
+              if (!stats || tripId === (el.tripId ?? null)) return
+              /*
+               * Re-cut by the engine's own refresh at the new scope, so the
+               * stops and countries are what refresh_travel and a newly placed
+               * map of that scope hold. The recorded way is the whole
+               * journey's: a trip map draws none, as the engine places none,
+               * and a map of the whole journey gets it back from the journey
+               * at the engine's caps, so a switch there and back loses
+               * nothing. The roads go with the old legs, since entry i is the
+               * way from stop i to stop i + 1 of the route that is gone.
+               */
               set({
+                ...refreshPatch({ ...el, tripId }, stats),
                 tripId,
-                countries: tripId == null
-                  ? stats.countries.map(c => c.code)
-                  : [...new Set(route.map(p => p.country).filter((c): c is string => !!c))],
-                points: route.map(p => ({ lat: p.lat, lng: p.lng, label: p.label, photoId: p.photoId ?? null })),
+                path: tripId == null
+                  ? journeyPath.slice(0, MAX_PATH_SEGMENTS).map(seg => seg.slice(0, MAX_PATH_POINTS))
+                  : [],
+                roads: [],
               } as Partial<BookElement>)
             }}
           />
@@ -326,7 +320,7 @@ function MapProps({ el, set, t, stats }: Props<BookMapElement> & { stats: Journe
         {el.source !== 'vector' && (
           <>
             <p className="st-hint" style={{ paddingTop: 8 }}>
-              {t(SOURCE_HINT[sourceIdOf(el, sources)] ?? 'journey.studio.mapSourceHint')}
+              {t(SOURCE_HINT[sourceIdOf(el, sources)]?.hintKey ?? 'journey.studio.mapSourceHint')}
             </p>
             {/*
               What this map will actually print at, at the size it is now.
@@ -336,7 +330,7 @@ function MapProps({ el, set, t, stats }: Props<BookMapElement> & { stats: Journe
             {dpi != null && (
               <p className={`st-hint ${dpi < 150 ? 'st-stale' : ''}`} style={{ paddingTop: 6 }}>
                 {t('journey.studio.mapPrintDpi')} {dpi} dpi
-                {dpi < 150 && ` — ${t('journey.studio.mapPrintDpiLow')}`}
+                {dpi < 150 && `, ${t('journey.studio.mapPrintDpiLow')}`}
               </p>
             )}
           </>
@@ -406,7 +400,7 @@ function MapProps({ el, set, t, stats }: Props<BookMapElement> & { stats: Journe
       </Section>
 
       {el.source === 'tiles' && (
-        <Section label={t('journey.studio.mapZoom')} defaultOpen={false}>
+        <Section label={t('journey.studio.mapZoom')} defaultOpen={mapZoomInUse(el)}>
           <Choice
             value={el.zoom ?? -1}
             options={[
@@ -417,7 +411,40 @@ function MapProps({ el, set, t, stats }: Props<BookMapElement> & { stats: Journe
           />
         </Section>
       )}
+    </>
+  )
+}
 
+/**
+ * How a map looks: the line of the route, whether it follows the roads, and
+ * which layers are drawn. After the position, like the look of every kind.
+ */
+function MapLook({ el, set, t }: Props<BookMapElement>) {
+  const [roadState, setRoadState] = useState<'idle' | 'busy'>('idle')
+  const [roadDone, setRoadDone] = useState(0)
+  const hasRoads = (el.roads ?? []).some(r => r && r.length > 1)
+
+  /*
+   * One leg at a time, paced, and written into the document when it is done
+   * rather than leg by leg: a hundred commits would be a hundred undo steps and
+   * a hundred autosaves for one action.
+   */
+  const loadRoads = async () => {
+    setRoadState('busy')
+    setRoadDone(0)
+    try {
+      const roads = await fetchRoads(
+        el.points.map(p => ({ lat: p.lat, lng: p.lng })),
+        { onProgress: done => setRoadDone(done) },
+      )
+      set({ roads } as Partial<BookElement>)
+    } finally {
+      setRoadState('idle')
+    }
+  }
+
+  return (
+    <>
       {/*
         How the line itself is drawn, and whether it follows real roads.
 
@@ -522,6 +549,8 @@ function MapProps({ el, set, t, stats }: Props<BookMapElement> & { stats: Journe
                   options={[
                     { value: 'dot' as const, label: t('journey.studio.pinDot') },
                     { value: 'photo' as const, label: t('journey.studio.pinPhoto') },
+                    { value: 'numbered' as const, label: t('journey.studio.pinNumbered') },
+                    { value: 'ends' as const, label: t('journey.studio.pinEnds') },
                   ]}
                   onPick={pinStyle => set({ pinStyle } as Partial<BookElement>)}
                 />
@@ -572,16 +601,26 @@ function StatsProps({ el, set, t }: Props<BookStatsElement>) {
         />
       </Section>
       <Section label={t('journey.studio.layout')}>
-        <Line label={t('journey.studio.layout')}>
+        {/* The look first: the arrangement below belongs to the classic one alone. */}
+        <Line label={t('journey.studio.look')} wide>
           <Choice
-            value={el.layout}
-            options={(['grid', 'row', 'column'] as const).map(layout => ({
-              value: layout,
-              label: t(`journey.studio.layout${layout[0].toUpperCase()}${layout.slice(1)}`),
-            }))}
-            onPick={layout => set({ layout } as Partial<BookElement>)}
+            value={el.look ?? 'classic'}
+            options={BOOK_STATS_LOOKS.map(look => ({ value: look, label: t(`journey.studio.statsLook.${look}`) }))}
+            onPick={look => set({ look } as Partial<BookElement>)}
           />
         </Line>
+        {(el.look ?? 'classic') === 'classic' && (
+          <Line label={t('journey.studio.layout')}>
+            <Choice
+              value={el.layout}
+              options={(['grid', 'row', 'column'] as const).map(layout => ({
+                value: layout,
+                label: t(`journey.studio.layout${layout[0].toUpperCase()}${layout.slice(1)}`),
+              }))}
+              onPick={layout => set({ layout } as Partial<BookElement>)}
+            />
+          </Line>
+        )}
         <Line label={t('journey.studio.units')}>
           <Choice
             value={el.units}
@@ -609,16 +648,25 @@ function StatsProps({ el, set, t }: Props<BookStatsElement>) {
 function CountriesProps({ el, set, t }: Props<BookCountriesElement>) {
   return (
     <Section label={t('journey.studio.countries')}>
-      <Line label={t('journey.studio.layout')}>
+      <Line label={t('journey.studio.look')} wide>
         <Choice
-          value={el.layout}
-          options={(['list', 'grid', 'column'] as const).map(layout => ({
-            value: layout,
-            label: t(`journey.studio.layout${layout[0].toUpperCase()}${layout.slice(1)}`),
-          }))}
-          onPick={layout => set({ layout } as Partial<BookElement>)}
+          value={el.look ?? 'classic'}
+          options={BOOK_COUNTRY_LOOKS.map(look => ({ value: look, label: t(`journey.studio.countryLook.${look}`) }))}
+          onPick={look => set({ look } as Partial<BookElement>)}
         />
       </Line>
+      {(el.look ?? 'classic') === 'classic' && el.codes.length > 1 && (
+        <Line label={t('journey.studio.layout')}>
+          <Choice
+            value={el.layout}
+            options={(['list', 'grid', 'column'] as const).map(layout => ({
+              value: layout,
+              label: t(`journey.studio.layout${layout[0].toUpperCase()}${layout.slice(1)}`),
+            }))}
+            onPick={layout => set({ layout } as Partial<BookElement>)}
+          />
+        </Line>
+      )}
       {/* These three read as raw English out of the code before: `left`,
           `center`, `right`, straight from the value. */}
       <Line label={t('journey.studio.align')}>
@@ -673,9 +721,9 @@ function CountriesProps({ el, set, t }: Props<BookCountriesElement>) {
 }
 
 /** What each imagery source is for, said once where it is chosen. */
-const SOURCE_HINT: Record<string, string> = {
-  relief: 'journey.studio.mapSourceReliefHint',
-  satellite: 'journey.studio.mapSourceSatelliteHint',
+const SOURCE_HINT: Record<string, { hintKey: string }> = {
+  relief: { hintKey: 'journey.studio.mapSourceReliefHint' },
+  satellite: { hintKey: 'journey.studio.mapSourceSatelliteHint' },
 }
 
 /** The variants that draw something as well as saying something. */
@@ -709,7 +757,7 @@ function BadgeProps({ el, set, t }: Props<BookBadgeElement>) {
       <Line label={t('journey.studio.style')} wide>
         <Choice
           value={el.style}
-          options={(['plain', 'chip', 'outline', 'stacked'] as const).map(style => ({
+          options={BOOK_BADGE_STYLES.map(style => ({
             value: style, label: t(`journey.studio.markStyle.${style}`),
           }))}
           onPick={style => set({ style } as Partial<BookElement>)}

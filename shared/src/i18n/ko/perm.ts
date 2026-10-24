@@ -32,6 +32,7 @@ const perm: TranslationStrings = {
   'perm.action.collab_edit': '협업 (메모, 투표, 채팅)',
   'perm.action.share_manage': '공유 링크 관리',
   'perm.actionHint.trip_create': '누가 새 여행을 만들 수 있는지',
+  'perm.action.journal_link': '저널 연결',
   'perm.actionHint.trip_edit': '누가 여행 이름, 날짜, 설명, 통화를 변경할 수 있는지',
   'perm.actionHint.trip_delete': '누가 여행을 영구 삭제할 수 있는지',
   'perm.actionHint.trip_archive': '누가 여행을 보관하거나 복원할 수 있는지',
@@ -47,5 +48,6 @@ const perm: TranslationStrings = {
   'perm.actionHint.packing_edit': '누가 짐 항목과 가방을 관리할 수 있는지',
   'perm.actionHint.collab_edit': '누가 메모, 투표를 만들고 메시지를 보낼 수 있는지',
   'perm.actionHint.share_manage': '누가 공개 공유 링크를 만들거나 삭제할 수 있는지',
+  'perm.actionHint.journal_link': 'Journey의 저널을 여행에 연결하고 멤버에게 공개할 수 있는 사람',
 };
 export default perm;

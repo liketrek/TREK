@@ -32,6 +32,7 @@ const perm: TranslationStrings = {
   'perm.action.collab_edit': 'التعاون (ملاحظات، استطلاعات، دردشة)',
   'perm.action.share_manage': 'إدارة روابط المشاركة',
   'perm.actionHint.trip_create': 'من يمكنه إنشاء رحلات جديدة',
+  'perm.action.journal_link': 'ربط يوميات',
   'perm.actionHint.trip_edit': 'من يمكنه تغيير اسم الرحلة والتواريخ والوصف والعملة',
   'perm.actionHint.trip_delete': 'من يمكنه حذف رحلة نهائياً',
   'perm.actionHint.trip_archive': 'من يمكنه أرشفة أو إلغاء أرشفة رحلة',
@@ -47,5 +48,6 @@ const perm: TranslationStrings = {
   'perm.actionHint.packing_edit': 'من يمكنه إدارة عناصر التعبئة والحقائب',
   'perm.actionHint.collab_edit': 'من يمكنه إنشاء ملاحظات واستطلاعات وإرسال رسائل',
   'perm.actionHint.share_manage': 'من يمكنه إنشاء أو حذف روابط المشاركة العامة',
+  'perm.actionHint.journal_link': 'من يمكنه ربط يومية من Journey بالرحلة وفتحها لأعضائها',
 };
 export default perm;

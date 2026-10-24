@@ -55,6 +55,13 @@ interface ModalOverrides {
   t?: (key: string) => string
 }
 
+// The remove cross on an attachment chip, found from the chip's label; a missing one fails the test.
+function chipButton(label: string): HTMLButtonElement {
+  const button = screen.getByText(label).closest('div')?.querySelector('button')
+  if (!button) throw new Error(`no remove button on ${label}`)
+  return button
+}
+
 function renderModal(overrides: ModalOverrides = {}) {
   const onSubmit = overrides.onSubmit ?? vi.fn(async () => {})
   const onClose = overrides.onClose ?? vi.fn(() => {})
@@ -97,6 +104,7 @@ describe('NoteFormModal', () => {
   it('FE-W5CNF-003: a filled-in note is submitted trimmed and the modal closes', async () => {
     const user = userEvent.setup()
     const { onSubmit, onClose } = renderModal({ existingCategories: ['Food'] })
+    await user.click(screen.getByRole('button', { name: 'Food' }))
     await user.type(screen.getByPlaceholderText('collab.notes.titlePlaceholder'), '  Dinner  ')
     await user.type(screen.getByPlaceholderText('collab.notes.contentPlaceholder'), 'Book a table')
     await user.type(screen.getByPlaceholderText('collab.notes.websitePlaceholder'), ' https://trek.test ')
@@ -120,6 +128,21 @@ describe('NoteFormModal', () => {
     await user.click(screen.getByRole('button', { name: 'collab.notes.create' }))
     await waitFor(() => expect(onSubmit).toHaveBeenCalled())
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ category: null, website: null }))
+  })
+
+  it('FE-W5CNF-004b: a new note starts without a category and a picked one can be put back', async () => {
+    const user = userEvent.setup()
+    const { onSubmit } = renderModal({ existingCategories: ['Food'] })
+    const food = screen.getByRole('button', { name: 'Food' })
+    expect(food).toHaveAttribute('aria-pressed', 'false')
+    await user.click(food)
+    expect(food).toHaveAttribute('aria-pressed', 'true')
+    await user.click(food)
+    expect(food).toHaveAttribute('aria-pressed', 'false')
+    await user.type(screen.getByPlaceholderText('collab.notes.titlePlaceholder'), 'Loose')
+    await user.click(screen.getByRole('button', { name: 'collab.notes.create' }))
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled())
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ category: null }))
   })
 
   it('FE-W5CNF-005: a rejected submit keeps the modal open and re-enables the button', async () => {
@@ -146,8 +169,7 @@ describe('NoteFormModal', () => {
   it('FE-W5CNF-007: the close button calls back without submitting', async () => {
     const user = userEvent.setup()
     const { onClose, onSubmit } = renderModal()
-    const header = screen.getByText('collab.notes.new').parentElement!
-    await user.click(header.querySelector('button')!)
+    await user.click(screen.getByRole('button', { name: 'Close' }))
     expect(onClose).toHaveBeenCalledTimes(1)
     expect(onSubmit).not.toHaveBeenCalled()
   })
@@ -159,9 +181,10 @@ describe('NoteFormModal', () => {
       categoryColors: { Sights: '#6366f1' },
     })
     const sights = screen.getByRole('button', { name: 'Sights' })
-    expect(sights.style.background).toBe('transparent')
+    expect(sights).toHaveAttribute('aria-pressed', 'false')
     await user.click(sights)
-    expect(sights.style.background).toBe('rgba(99, 102, 241, 0.094)')
+    expect(sights).toHaveAttribute('aria-pressed', 'true')
+    expect(sights.style.color).toBe('rgb(99, 102, 241)')
     await user.type(screen.getByPlaceholderText('collab.notes.titlePlaceholder'), 'Museum')
     await user.click(screen.getByRole('button', { name: 'collab.notes.create' }))
     await waitFor(() => expect(onSubmit).toHaveBeenCalled())
@@ -264,7 +287,7 @@ describe('NoteFormModal', () => {
     expect(screen.getByRole('button', { name: 'Add' })).toBeInTheDocument()
   })
 
-  it('FE-W5CNF-019: deleting an existing attachment calls back and drops the chip', async () => {
+  it('FE-W5CNF-019: an attachment is deleted on Save, not on the cross, and Cancel keeps it', async () => {
     const user = userEvent.setup()
     const onDeleteFile = vi.fn(async () => {})
     renderModal({
@@ -277,15 +300,25 @@ describe('NoteFormModal', () => {
     })
     const chip = screen.getByText('a-really-long-att...').closest('div')!
     await user.click(chip.querySelector('button')!)
-    await waitFor(() => expect(onDeleteFile).toHaveBeenCalledWith(42, 7))
     expect(screen.queryByText('a-really-long-att...')).not.toBeInTheDocument()
+    expect(onDeleteFile).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: 'collab.notes.save' }))
+    await waitFor(() => expect(onDeleteFile).toHaveBeenCalledWith(42, 7))
+  })
+
+  it('FE-W5CNF-019b: closing the editor after taking a file off deletes nothing', async () => {
+    const user = userEvent.setup()
+    const onDeleteFile = vi.fn(async () => {})
+    renderModal({ note: buildNote({ attachments: [buildAttachment({ id: 7 })] }), onDeleteFile })
+    await user.click(chipButton('photo.png'))
+    await user.click(screen.getByRole('button', { name: 'Close' }))
+    expect(onDeleteFile).not.toHaveBeenCalled()
   })
 
   it('FE-W5CNF-020: an attachment without a delete handler stays in the list', async () => {
     const user = userEvent.setup()
     renderModal({ note: buildNote({ attachments: [buildAttachment({ id: 9 })] }) })
-    const chip = screen.getByText('photo.png').closest('div')!
-    await user.click(chip.querySelector('button')!)
+    await user.click(chipButton('photo.png'))
     expect(screen.getByText('photo.png')).toBeInTheDocument()
   })
 

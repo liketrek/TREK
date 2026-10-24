@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from '../../../i18n/TranslationContext'
 import { relativeTime } from '../../../utils/relativeTime'
+import { Tooltip } from '../../shared/Tooltip'
 
 /**
  * The small shared pieces of the document-sync dialog.
@@ -32,15 +33,13 @@ export function Badge({
   children: ReactNode
   title?: string
 }) {
-  return (
-    <span
-      title={title}
-      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-caption font-medium ${TONES[tone]}`}
-    >
+  const pill = (
+    <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-caption font-medium ${TONES[tone]}`}>
       {icon}
       {children}
     </span>
   )
+  return title ? <Tooltip label={title}>{pill}</Tooltip> : pill
 }
 
 /** The tone each sync state carries, in one place. */
@@ -66,7 +65,14 @@ export function StateBadge({ state, compact }: { state: string; compact?: boolea
     : tone === 'danger' ? 'bg-danger'
     : 'bg-content-faint'
 
-  if (compact) return <span className={`h-2 w-2 shrink-0 rounded-full ${dot}`} title={t(`docsync.linkState.${state}`)} />
+  if (compact) {
+    const label = t(`docsync.linkState.${state}`)
+    return (
+      <Tooltip label={label}>
+        <span role="img" aria-label={label} className={`h-2 w-2 shrink-0 rounded-full ${dot}`} />
+      </Tooltip>
+    )
+  }
 
   return (
     <Badge tone={tone} icon={<span className={`h-1.5 w-1.5 rounded-full ${dot}`} />}>
@@ -81,7 +87,7 @@ export function LastRun({ at }: { at: string | null }) {
   if (!at) return <span className="text-content-faint">{t('docsync.binding.neverRun')}</span>
   const ms = Date.parse(at)
   if (Number.isNaN(ms)) return null
-  return <span title={new Date(ms).toLocaleString(locale)}>{relativeTime(ms, language)}</span>
+  return <Tooltip label={new Date(ms).toLocaleString(locale)}><span>{relativeTime(ms, language)}</span></Tooltip>
 }
 
 /**

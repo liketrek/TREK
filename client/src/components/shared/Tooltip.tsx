@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import Kbd from './Kbd'
 
 type Placement = 'top' | 'bottom' | 'left' | 'right'
 
@@ -8,10 +9,12 @@ interface TooltipProps {
   placement?: Placement
   delay?: number
   disabled?: boolean
+  /** The keys that do the same, shown beside the label: ["⌘", "K"]. */
+  shortcut?: readonly string[]
   children: React.ReactElement
 }
 
-export function Tooltip({ label, placement = 'bottom', delay = 250, disabled, children }: TooltipProps) {
+export function Tooltip({ label, placement = 'bottom', delay = 250, disabled, shortcut, children }: TooltipProps) {
   const [open, setOpen] = useState(false)
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null)
   const triggerRef = useRef<HTMLElement | null>(null)
@@ -67,14 +70,16 @@ export function Tooltip({ label, placement = 'bottom', delay = 250, disabled, ch
     },
     onMouseEnter: (e: React.MouseEvent) => { show(); childProps.onMouseEnter?.(e) },
     onMouseLeave: (e: React.MouseEvent) => { hide(); childProps.onMouseLeave?.(e) },
-    onFocus: (e: React.FocusEvent) => { show(); childProps.onFocus?.(e) },
+    // Keyboard focus only. A dialog hands focus back to the button that opened it
+    // when it closes, and a tooltip over whatever comes next is noise, not help.
+    onFocus: (e: React.FocusEvent) => { if ((e.currentTarget as HTMLElement).matches(':focus-visible')) show(); childProps.onFocus?.(e) },
     onBlur: (e: React.FocusEvent) => { hide(); childProps.onBlur?.(e) },
   } as TriggerProps)
 
   return (
     <>
       {trigger}
-      {open && createPortal(
+      {open && !disabled && createPortal(
         <div
           ref={tooltipRef}
           role="tooltip"
@@ -90,13 +95,20 @@ export function Tooltip({ label, placement = 'bottom', delay = 250, disabled, ch
             fontWeight: 500,
             padding: '5px 10px',
             borderRadius: 8,
-            whiteSpace: 'nowrap',
+            // A label of several lines (the paddle check bench) breaks at its lines and wraps within the window.
+            whiteSpace: label.includes('\n') ? 'pre-line' : 'nowrap',
+            maxWidth: label.includes('\n') ? 'min(22rem, calc(100vw - 12px))' : undefined,
             boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
             fontFamily: "var(--font-system)",
             transformOrigin: placement === 'top' ? 'bottom center' : placement === 'bottom' ? 'top center' : placement === 'left' ? 'center right' : 'center left',
           }}
         >
-          {label}
+          {shortcut && shortcut.length > 0 ? (
+            <span className="inline-flex items-center gap-2">
+              {label}
+              <Kbd keys={shortcut} />
+            </span>
+          ) : label}
         </div>,
         document.body,
       )}

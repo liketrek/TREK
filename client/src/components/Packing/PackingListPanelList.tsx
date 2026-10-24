@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { PackingState } from './usePackingListPanel'
 import { KategorieGruppe } from './PackingListPanelCategoryGroup'
 import EmptyState from '../shared/EmptyState'
@@ -7,8 +8,13 @@ export function PackingList(S: PackingState) {
     items, gruppiert, t, tripId, allCategories, handleRenameCategory, handleDeleteCategory, handleDeleteItem,
     handleAddItemToCategory, categoryAssignees, tripMembers, handleSetAssignees,
     bagTrackingEnabled, bags, handleCreateBagByName, canEdit, reorderPackingItems,
-    currentUserId, handleSetSharing, handleCloneItem, handleJoinItem, handleLeaveItem,
+    currentUserId, handleSetSharing, handleCloneItem, handleJoinItem, handleLeaveItem, sort, moveCategory,
   } = S
+  // Which category is being dragged and which card it is over. Held here, above
+  // the cards, because the drag starts in one card and ends in another.
+  const [draggedCategory, setDraggedCategory] = useState<string | null>(null)
+  const [overCategory, setOverCategory] = useState<string | null>(null)
+  const endCategoryDrag = () => { setDraggedCategory(null); setOverCategory(null) }
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: '10px 0 16px' }}>
       {items.length === 0 ? (
@@ -39,6 +45,15 @@ export function PackingList(S: PackingState) {
               canEdit={canEdit}
               allItems={items}
               onReorder={(orderedIds) => reorderPackingItems(tripId, orderedIds)}
+              reorderable={sort === 'manual'}
+              categoryDrag={canEdit ? {
+                isDragging: draggedCategory === kat,
+                isOver: overCategory === kat && draggedCategory !== null && draggedCategory !== kat,
+                onStart: () => { setDraggedCategory(kat); setOverCategory(null) },
+                onOver: () => setOverCategory(kat),
+                onEnd: endCategoryDrag,
+                onDrop: (dragged) => { moveCategory(dragged, kat); endCategoryDrag() },
+              } : undefined}
               currentUserId={currentUserId}
               onSetSharing={handleSetSharing}
               onClone={handleCloneItem}

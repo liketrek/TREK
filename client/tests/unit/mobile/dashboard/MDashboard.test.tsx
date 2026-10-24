@@ -25,6 +25,10 @@ vi.mock('../../../../src/components/Plugins/TripCardBadges', () => ({
   useTripCardBadges: () => (tripId: number) => mocks.badges[tripId] ?? [],
 }));
 
+// This screen only ever renders on a phone. Shared dialogs it opens (the calendar
+// subscription) draw their phone look there and their desktop look above 768px.
+vi.mock('../../../../src/mobile/useIsPhone', () => ({ useIsPhone: () => true }));
+
 // Local-calendar date string — NOT toISOString(), which is the UTC date and
 // disagrees with the badge logic's wall-clock classification between local
 // midnight and the UTC rollover (these tests flaked in exactly that window).
@@ -100,8 +104,8 @@ describe('MDashboard', () => {
     expect(screen.getByText('dashboard.status.ongoing')).toBeInTheDocument();
     expect(screen.getByText('dashboard.mobile.spotlightDayOf')).toBeInTheDocument();
     // Stat pills reuse the desktop hero keys (no mobile-only duplicates).
-    expect(screen.getByText('dashboard.hero.destinationMany')).toBeInTheDocument();
-    expect(screen.getByText('dashboard.hero.travelerMany')).toBeInTheDocument();
+    expect(screen.getByText('dashboard.hero.destinations')).toBeInTheDocument();
+    expect(screen.getByText('dashboard.hero.travelers')).toBeInTheDocument();
     expect(screen.getByText('Lisbon')).toBeInTheDocument();
   });
 
@@ -259,7 +263,7 @@ describe('MDashboard', () => {
 
     expect(screen.getByText('12')).toBeInTheDocument();
     expect(screen.getByText('30')).toBeInTheDocument();
-    expect(screen.getByText('dashboard.card.buddyOne')).toBeInTheDocument();
+    expect(screen.getByText('dashboard.card.buddies')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'dashboard.archive' }));
     expect(handleArchive).toHaveBeenCalledWith(4);
@@ -364,7 +368,7 @@ describe('MDashboard', () => {
     render(<MDashboard />);
 
     expect(screen.getByText('dashboard.hero.badgeRecent')).toBeInTheDocument();
-    expect(screen.getByText('dashboard.mobile.spotlightDayOne')).toBeInTheDocument();
+    expect(screen.getByText('dashboard.mobile.spotlightDays')).toBeInTheDocument();
   });
 
   it('FE-MOB-DASH-024: the spotlight opens on Enter as well as on click', () => {
@@ -558,11 +562,11 @@ describe('MDashboard', () => {
     render(<MDashboard />);
 
     // flex-1 on the scroll box stretched the grey pill track all the way to the
-    // calendar icon on phones from ~400px up; the icons ride on ml-auto instead.
+    // calendar icon on phones from ~400px up; the icons ride on ms-auto instead.
     const chip = await screen.findByText('dashboard.filter.planned');
     const wrapper = chip.closest('button')!.parentElement!.parentElement as HTMLElement;
     expect(wrapper.className).not.toContain('flex-1');
     expect(screen.getByRole('button', { name: 'dashboard.subscribeAllTrips' }).className)
-      .toContain('ml-auto');
+      .toContain('ms-auto');
   });
 });

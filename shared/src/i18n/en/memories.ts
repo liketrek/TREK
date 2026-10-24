@@ -16,6 +16,7 @@ const memories: TranslationStrings = {
   'memories.reviewTitle': 'Review your photos',
   'memories.reviewHint': 'Click photos to exclude them from sharing.',
   'memories.shareCount': 'Share {count} photos',
+  'memories.shareCount.one': 'Share {count} photo',
   'memories.providerUrl': 'Server URL',
   'memories.providerApiKey': 'API Key',
   'memories.providerUsername': 'Username',
@@ -48,6 +49,7 @@ const memories: TranslationStrings = {
   'memories.selectHint': 'Tap photos to select them.',
   'memories.selected': 'selected',
   'memories.addSelected': 'Add {count} photos',
+  'memories.addSelected.one': 'Add {count} photo',
   'memories.alreadyAdded': 'Added',
   'memories.private': 'Private',
   'memories.stopSharing': 'Stop sharing',
@@ -59,6 +61,8 @@ const memories: TranslationStrings = {
   'memories.confirmShareTitle': 'Share with trip members?',
   'memories.confirmShareHint':
     '{count} photos will be visible to all members of this trip. You can make individual photos private later.',
+  'memories.confirmShareHint.one':
+    '{count} photo will be visible to all members of this trip. You can make it private later.',
   'memories.confirmShareButton': 'Share photos',
   'memories.error.loadAlbums': 'Failed to load albums',
   'memories.error.linkAlbum': 'Failed to link album',

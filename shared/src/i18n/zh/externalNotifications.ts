@@ -1,4 +1,5 @@
 import type { NotificationLocale } from '../externalNotifications/types';
+import { pluralForm } from '../plural';
 
 const zh: NotificationLocale = {
   email: {
@@ -37,8 +38,8 @@ const zh: NotificationLocale = {
       body: `${p.actor} 邀请你共享收藏。打开 TREK 接受或拒绝。`,
     }),
     photos_shared: (p) => ({
-      title: `${p.count} 张照片已分享`,
-      body: `${p.actor} 在"${p.trip}"中分享了 ${p.count} 张照片。`,
+      title: pluralForm(p.count, 'zh', { other: `${p.count} 张照片已分享` }),
+      body: pluralForm(p.count, 'zh', { other: `${p.actor} 在"${p.trip}"中分享了 ${p.count} 张照片。` }),
     }),
     collab_message: (p) => ({
       title: `"${p.trip}"中的新消息`,
@@ -56,11 +57,26 @@ const zh: NotificationLocale = {
       title: '存储副本故障',
       body:
         `写入副本 '${p.backend}' 失败：${p.op} / ${p.key} — ${p.error}。` +
-        (p.suppressed !== '0' ? `自上次通知以来，还有 ${p.suppressed} 个失败被抑制。` : ''),
+        (p.suppressed !== '0'
+          ? pluralForm(p.suppressed, 'zh', { other: `自上次通知以来，另有 ${p.suppressed} 次失败未单独通知。` })
+          : ''),
+    }),
+    paddle_region_requested: (p) => ({
+      title: '划桨区域申请',
+      body: `${p.actor} 正在 ${p.region} 规划划桨行程。请在管理后台的附加组件中加载或拒绝其水域数据。`,
     }),
     synology_session_cleared: () => ({
       title: 'Synology 会话已清除',
       body: '您的 Synology 账户或 URL 已更改，您已退出 Synology Photos。',
+    }),
+    wanderer_source_hint: (p) => ({
+      title: `wanderer 路线: ${p.tour}`,
+      body:
+        p.state === 'changed'
+          ? `“${p.trip}”中的“${p.tour}”已在 wanderer 中更改。打开行程并检查其来源即可查看所有变化。旅行中的内容不会自行改变。`
+          : p.state === 'unverifiable'
+            ? `“${p.trip}”中的“${p.tour}”已无法在 wanderer 中检查。你旅行中的行程保持不变。`
+            : `“${p.trip}”中的“${p.tour}”可能已在 wanderer 中变化。请打开行程并检查其来源。旅行中的内容不会自行改变。`,
     }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },

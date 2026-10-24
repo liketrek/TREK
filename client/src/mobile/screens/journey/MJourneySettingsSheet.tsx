@@ -1,36 +1,18 @@
-import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router'
-import {
-  X, Image, Plus, Trash2, UserPlus, Link as LinkIcon,
-  List, Grid3x3, MapPin, Route, Archive, ArchiveRestore, Undo2,
-} from 'lucide-react'
+import { useRef, useState } from 'react'
+import { X, Image, Plus, Trash2, UserPlus, Link as LinkIcon, List, Grid3x3, MapPin, Route, Archive, ArchiveRestore, Undo2, Link2, ListChecks, RefreshCw } from 'lucide-react'
 import MSheet from '../../components/MSheet'
 import MIconBtn from '../../components/MIconBtn'
 import MToggle from '../../components/MToggle'
 import ConfirmDialog from '../../../components/shared/ConfirmDialog'
 import { useTranslation } from '../../../i18n'
-import { useToast } from '../../../components/shared/Toast'
-import { journeyApi } from '../../../api/client'
-import { useJourneyStore } from '../../../store/journeyStore'
-import type { JourneyDetail } from '../../../store/journeyStore'
-import { normalizeImageFile } from '../../../utils/convertHeic'
-import { copyText } from '../../../utils/clipboard'
+import type { JourneyDetail, JourneyTripAccess } from '../../../store/journeyStore'
+import { useJourneySettings, useJourneyTripLinking } from '../../../components/Journey/useJourneySettings'
+import {
+  SHARE_MAP_EXTRAS, useJourneyShareLink, type JourneyShareLink, type JourneyShareMapExtra,
+} from '../../../components/Journey/useJourneyShareLink'
+import type { JourneyRecordingPrepState } from '../../../components/Journey/useJourneyRecordingPrep'
 import { pickGradient } from '../../../pages/journeyDetail/JourneyDetailPage.helpers'
 import { journeyCoverSrc } from './mobileJourneyMeta'
-
-interface ShareLink {
-  token: string
-  share_timeline: boolean
-  share_gallery: boolean
-  share_map: boolean
-}
-
-interface AvailableTrip {
-  id: number
-  title: string
-  destination?: string
-  start_date?: string
-}
 
 interface MJourneySettingsSheetProps {
   journey: JourneyDetail
@@ -40,6 +22,8 @@ interface MJourneySettingsSheetProps {
   onRefresh: () => void
   /** Bring back every suggestion waved away card by card. Absent for a viewer. */
   onRestoreSuggestions?: () => Promise<void> | void
+  /** Preparing the recorded days (JRN-03); absent without the Dawarich addon. */
+  recordingPrep?: JourneyRecordingPrepState
 }
 
 /**
@@ -47,184 +31,30 @@ interface MJourneySettingsSheetProps {
  * with per-section toggles (timeline / gallery / map), archive and delete.
  */
 export default function MJourneySettingsSheet({
-  journey, onClose, onSaved, onOpenInvite, onRefresh, onRestoreSuggestions,
+  journey, onClose, onSaved, onOpenInvite, onRefresh, onRestoreSuggestions, recordingPrep,
 }: MJourneySettingsSheetProps) {
   const { t } = useTranslation()
-  const toast = useToast()
-  const navigate = useNavigate()
-  const { updateJourney, deleteJourney } = useJourneyStore()
-
-  const [title, setTitle] = useState(journey.title)
-  const [subtitle, setSubtitle] = useState(journey.subtitle || '')
-  const [saving, setSaving] = useState(false)
-  const [archiving, setArchiving] = useState(false)
-  const [unlinkTarget, setUnlinkTarget] = useState<{ trip_id: number; title: string } | null>(null)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const {
+    title, setTitle, subtitle, setSubtitle, saving, archiving, unlinkTarget, setUnlinkTarget, showDeleteConfirm,
+    setShowDeleteConfirm, savingTracks, savingField, handleSave, handleCoverUpload, handleArchiveToggle,
+    handleTracksToggle, handleFieldToggle, handleDelete, handleRemoveContributor, confirmUnlink,
+  } = useJourneySettings({ journey, onSaved, onRefresh, onContentChanged: onRefresh })
   const [addTripOpen, setAddTripOpen] = useState(false)
-  const [availableTrips, setAvailableTrips] = useState<AvailableTrip[]>([])
-  const [linkingTripId, setLinkingTripId] = useState<number | null>(null)
-  const [shareLink, setShareLink] = useState<ShareLink | null>(null)
-  const [savingTracks, setSavingTracks] = useState(false)
-  const [copied, setCopied] = useState(false)
+  const { availableTrips, linkingTripId, loadAvailableTrips, linkTrip } = useJourneyTripLinking({
+    journeyId: journey.id,
+    onLinked: () => { setAddTripOpen(false); onRefresh() },
+  })
+  const {
+    link: shareLink, copied, shareUrl, createLink: createShareLink, togglePerm: toggleSharePerm,
+    deleteLink: deleteShareLink, copyLink: copyShareUrl,
+  } = useJourneyShareLink(journey.id)
   const coverRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    journeyApi.getShareLink(journey.id).then(d => setShareLink(d.link || null)).catch(() => {})
-  }, [journey.id])
-
   const coverSrc = journeyCoverSrc(journey.cover_image)
-  const shareUrl = shareLink ? `${window.location.origin}/public/journey/${shareLink.token}` : ''
-
-  const handleSave = async () => {
-    setSaving(true)
-    try {
-      await updateJourney(journey.id, { title, subtitle: subtitle || null })
-      onSaved()
-    } catch {
-      toast.error(t('journey.settings.saveFailed'))
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const formData = new FormData()
-    formData.append('cover', await normalizeImageFile(file))
-    try {
-      await journeyApi.uploadCover(journey.id, formData)
-      toast.success(t('journey.settings.coverUpdated'))
-      onRefresh()
-    } catch {
-      toast.error(t('journey.settings.coverFailed'))
-    }
-  }
-
-  // Written on the spot rather than on Save, like the archive button: it is a view
-  // setting and the point of it is watching the map change (#2194). onRefresh, not
-  // onSaved, because onSaved closes the sheet the instant the switch is flipped and
-  // would drop a title the owner has typed but not saved yet.
-  const handleTracksToggle = async (next: boolean) => {
-    setSavingTracks(true)
-    try {
-      await updateJourney(journey.id, { show_trip_tracks: next })
-      onRefresh()
-    } catch {
-      toast.error(t('journey.settings.saveFailed'))
-    } finally {
-      setSavingTracks(false)
-    }
-  }
-
-  /**
-   * Turn one of the optional entry fields off for this journey (discussion #2299).
-   *
-   * Written on the spot and through onRefresh, for the same two reasons the tracks
-   * switch above is. Nothing stored is erased: the form stops asking, the values
-   * stay, and switching back on brings them into view.
-   */
-  const [savingField, setSavingField] = useState<string | null>(null)
-  const handleFieldToggle = async (field: 'show_verdict' | 'show_mood' | 'show_weather', next: boolean) => {
-    setSavingField(field)
-    try {
-      await updateJourney(journey.id, { [field]: next })
-      onRefresh()
-    } catch {
-      toast.error(t('journey.settings.saveFailed'))
-    } finally {
-      setSavingField(null)
-    }
-  }
 
   const openAddTrip = async () => {
     setAddTripOpen(v => !v)
-    if (availableTrips.length === 0) {
-      try {
-        const data = await journeyApi.availableTrips()
-        setAvailableTrips(data.trips || [])
-      } catch { /* row stays empty */ }
-    }
-  }
-
-  const linkTrip = async (tripId: number) => {
-    setLinkingTripId(tripId)
-    try {
-      await journeyApi.addTrip(journey.id, tripId)
-      toast.success(t('journey.trips.tripLinked'))
-      setAddTripOpen(false)
-      onRefresh()
-    } catch {
-      toast.error(t('journey.trips.linkFailed'))
-    } finally {
-      setLinkingTripId(null)
-    }
-  }
-
-  const createShareLink = async () => {
-    try {
-      const res = await journeyApi.createShareLink(journey.id, { share_timeline: true, share_gallery: true, share_map: true })
-      setShareLink({ token: res.token, share_timeline: true, share_gallery: true, share_map: true })
-      toast.success(t('journey.share.linkCreated'))
-    } catch {
-      toast.error(t('journey.share.createFailed'))
-    }
-  }
-
-  const copyShareUrl = async () => {
-    if (!(await copyText(shareUrl))) return
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  const toggleSharePerm = async (key: 'share_timeline' | 'share_gallery' | 'share_map') => {
-    if (!shareLink) return
-    const previous = shareLink
-    const updated = { ...previous, [key]: !previous[key] }
-    setShareLink(updated)
-    try {
-      await journeyApi.createShareLink(journey.id, {
-        share_timeline: updated.share_timeline,
-        share_gallery: updated.share_gallery,
-        share_map: updated.share_map,
-      })
-    } catch {
-      setShareLink(previous)
-      toast.error(t('journey.share.updateFailed'))
-    }
-  }
-
-  const deleteShareLink = async () => {
-    try {
-      await journeyApi.deleteShareLink(journey.id)
-      setShareLink(null)
-      toast.success(t('journey.share.linkDeleted'))
-    } catch {
-      toast.error(t('journey.share.deleteFailed'))
-    }
-  }
-
-  const handleArchiveToggle = async () => {
-    setArchiving(true)
-    try {
-      const newStatus = journey.status === 'archived' ? 'active' : 'archived'
-      await updateJourney(journey.id, { status: newStatus })
-      toast.success(newStatus === 'archived' ? t('journey.settings.archived') : t('journey.settings.reopened'))
-      onSaved()
-    } catch {
-      toast.error(t('journey.settings.saveFailed'))
-    } finally {
-      setArchiving(false)
-    }
-  }
-
-  const handleDelete = async () => {
-    try {
-      await deleteJourney(journey.id)
-      navigate('/journey')
-    } catch {
-      toast.error(t('journey.settings.failedToDelete'))
-    }
+    if (availableTrips.length === 0) await loadAvailableTrips()
   }
 
   const eyebrow = 'font-geist text-[0.625rem] font-bold uppercase tracking-[.09em] text-m-faint'
@@ -290,6 +120,12 @@ export default function MJourneySettingsSheet({
             ariaLabel={t('journey.settings.showTripTracks')}
           />
         </div>
+        {recordingPrep && (
+          <>
+            <div className={`${eyebrow} mb-[6px] mt-[14px]`}>{t('journey.settings.recordings')}</div>
+            <MRecordingPrepRow prep={recordingPrep} enabled={!!journey.auto_prepare_recordings} />
+          </>
+        )}
 
         {/* The three fields a journey may put away (discussion #2299) */}
         <div className={`${eyebrow} mb-[6px] mt-[14px]`}>{t('journey.settings.entryFields')}</div>
@@ -315,13 +151,13 @@ export default function MJourneySettingsSheet({
           <button
             type="button"
             onClick={() => { void onRestoreSuggestions() }}
-            className="mb-[6px] flex w-full items-center gap-[11px] rounded-[14px] bg-[color:var(--m-ic)] px-3 py-[10px] text-left"
+            className="mb-[6px] flex w-full items-center gap-[11px] rounded-[14px] bg-[color:var(--m-ic)] px-3 py-[10px] text-start"
           >
             <Undo2 size={16} strokeWidth={2} className="flex-none text-m-muted" />
             <div className="min-w-0 flex-1">
               <div className="text-[0.8125rem] font-bold">{t('journey.suggestions.restore')}</div>
               <div className="font-geist text-[0.625rem] text-m-muted">
-                {t('journey.suggestions.restoreCount', { count: String(journey.dismissed_count) })}
+                {t('journey.suggestions.restoreCount', { count: journey.dismissed_count ?? 0 })}
               </div>
             </div>
           </button>
@@ -395,16 +231,7 @@ export default function MJourneySettingsSheet({
             {c.role !== 'owner' && (
               <button
                 type="button"
-                onClick={async () => {
-                  if (!window.confirm(t('journey.contributors.removeConfirm', { username: c.username }))) return
-                  try {
-                    await journeyApi.removeContributor(journey.id, c.user_id)
-                    toast.success(t('journey.contributors.removed'))
-                    onRefresh()
-                  } catch {
-                    toast.error(t('journey.contributors.removeFailed'))
-                  }
-                }}
+                onClick={() => handleRemoveContributor(c)}
                 aria-label={t('journey.contributors.remove')}
                 className="flex h-7 w-7 flex-none items-center justify-center rounded-full text-m-faint"
               >
@@ -417,6 +244,8 @@ export default function MJourneySettingsSheet({
           <UserPlus size={13} strokeWidth={2.2} />
           {t('journey.contributors.invite')}
         </button>
+
+        <MTripAccessList access={journey.trip_access} eyebrow={eyebrow} />
 
         {/* Public share */}
         <div className={`${eyebrow} mb-[6px] mt-[14px]`}>{t('journey.share.publicShare')}</div>
@@ -449,6 +278,7 @@ export default function MJourneySettingsSheet({
                 <MToggle checked={shareLink[key]} onChange={() => toggleSharePerm(key)} ariaLabel={label} />
               </div>
             ))}
+            <MShareMapExtras link={shareLink} onToggle={toggleSharePerm} />
             <button
               type="button"
               onClick={deleteShareLink}
@@ -478,7 +308,7 @@ export default function MJourneySettingsSheet({
         <button
           type="button"
           onClick={onClose}
-          className="ml-auto rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-4 py-[9px] text-[0.78125rem] font-semibold"
+          className="ms-auto rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-4 py-[9px] text-[0.78125rem] font-semibold"
         >
           {t('common.cancel')}
         </button>
@@ -495,17 +325,7 @@ export default function MJourneySettingsSheet({
       <ConfirmDialog
         isOpen={!!unlinkTarget}
         onClose={() => setUnlinkTarget(null)}
-        onConfirm={async () => {
-          if (!unlinkTarget) return
-          try {
-            await journeyApi.removeTrip(journey.id, unlinkTarget.trip_id)
-            toast.success(t('journey.trips.tripUnlinked'))
-            setUnlinkTarget(null)
-            onRefresh()
-          } catch {
-            toast.error(t('journey.trips.unlinkFailed'))
-          }
-        }}
+        onConfirm={confirmUnlink}
         title={t('journey.trips.unlinkTrip')}
         message={t('journey.trips.unlinkMessage', { title: unlinkTarget?.title })}
         confirmLabel={t('journey.trips.unlink')}
@@ -522,5 +342,94 @@ export default function MJourneySettingsSheet({
         danger
       />
     </MSheet>
+  )
+}
+
+/** Who a trip's linked journal lets in (#2683): shown under the contributors, but changed in that trip. */
+function MTripAccessList({ access, eyebrow }: { access: JourneyTripAccess[] | undefined; eyebrow: string }) {
+  const { t } = useTranslation()
+  if (!access?.length) return null
+  return (
+    <>
+      <div className={`${eyebrow} mb-[6px] mt-[14px]`}>{t('journey.contributors.viaTrips')}</div>
+      <p className="m-0 mb-[6px] text-caption text-m-faint">{t('journey.contributors.viaTripsHint')}</p>
+      {access.map(a => (
+        <div key={`${a.user_id}-${a.trip_id}`} className="flex items-center gap-[10px] px-[2px] py-1">
+          <Link2 size={15} className="flex-none text-m-muted" />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-caption font-bold">{a.username}</span>
+            <span className="block truncate text-caption text-m-faint">{t('journey.contributors.viaTrip', { trip: a.trip_title })}</span>
+          </span>
+          <span className="rounded-full bg-[color:var(--m-ic)] px-[10px] py-[3px] font-geist text-caption font-extrabold text-m-muted">
+            {a.role}
+          </span>
+        </div>
+      ))}
+    </>
+  )
+}
+
+/** Preparing the recorded days (JRN-03): the owner's switch, the caller's own status and a fetch by hand. */
+function MRecordingPrepRow({ prep, enabled }: { prep: JourneyRecordingPrepState; enabled: boolean }) {
+  const { t } = useTranslation()
+  return (
+    <div className="rounded-[14px] bg-[color:var(--m-ic)] px-3 py-[10px]">
+      <div className="flex items-center gap-[11px]">
+        <ListChecks size={16} strokeWidth={2} className="flex-none text-m-muted" />
+        <div className="min-w-0 flex-1">
+          <div className="text-body font-bold">{t('journey.settings.autoPrepare')}</div>
+          <div className="font-geist text-caption text-m-muted">{t('journey.settings.autoPrepareHint')}</div>
+        </div>
+        <MToggle
+          checked={enabled}
+          onChange={next => { void prep.setEnabled(next) }}
+          disabled={prep.saving}
+          ariaLabel={t('journey.settings.autoPrepare')}
+        />
+      </div>
+      {prep.statusLine && (
+        <div className="mt-2 flex items-center gap-2 border-t border-[color:var(--m-rowbr)] pt-2">
+          <div className={`min-w-0 flex-1 font-geist text-caption leading-[1.45] ${prep.statusLine.tone === 'warning' ? 'text-warning' : 'text-m-muted'}`}>
+            {prep.statusLine.text}
+          </div>
+          {prep.canFetch && (
+            <button
+              type="button"
+              onClick={() => { void prep.fetchNow() }}
+              disabled={prep.fetching}
+              aria-label={t('journey.prep.fetchNow')}
+              className="grid h-8 w-8 flex-none place-items-center rounded-full bg-m-card text-m-muted disabled:opacity-50"
+            >
+              <RefreshCw size={14} strokeWidth={2.2} className={prep.fetching ? 'animate-spin' : undefined} />
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** What the shared map shows besides the entries (JRN-04), only while the map is shared. */
+function MShareMapExtras({ link, onToggle }: { link: JourneyShareLink; onToggle: (key: JourneyShareMapExtra) => unknown }) {
+  const { t } = useTranslation()
+  return (
+    <>
+      {SHARE_MAP_EXTRAS.map(({ key, labelKey, hintKey }) => (
+        <div key={key} className={`flex items-center gap-[11px] py-[8px] ps-[29px] pe-[2px] ${link.share_map ? '' : 'opacity-50'}`}>
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span className="text-body font-bold">{t(labelKey)}</span>
+            <span className="font-geist text-caption text-m-muted">
+              {link.share_map ? t(hintKey) : t('journey.share.needsMap')}
+            </span>
+          </span>
+          <MToggle
+            checked={!!link.share_map && !!link[key]}
+            onChange={() => { void onToggle(key) }}
+            ariaLabel={t(labelKey)}
+            disabled={!link.share_map}
+          />
+        </div>
+      ))}
+    </>
   )
 }

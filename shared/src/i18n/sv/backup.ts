@@ -70,5 +70,6 @@ const backup: TranslationStrings = {
     'Alla aktuella data (resor, platser, användare, uppladdningar) kommer att ersättas permanent med säkerhetskopian. Denna åtgärd går inte att ångra.',
   'backup.restoreTip': 'Tips: Gör en säkerhetskopia av det aktuella läget innan du återställer.',
   'backup.restoreConfirm': 'Ja, återställ',
+  'backup.auto.hourHintTz': 'Serverns lokala tid ({format}-format), tidszon {timezone}',
 };
 export default backup;

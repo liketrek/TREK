@@ -10,14 +10,11 @@
  * reads only state already in memory or in SQLite. Nothing here waits on a
  * child process.
  */
-import { Injectable, type OnApplicationBootstrap, type OnModuleDestroy } from '@nestjs/common';
-
-import { DatabaseService } from '../../database/database.service';
+import { demoDenied, errorResult, type McpContext, type McpDynamicTool, type McpTextResult } from '../../../nest-mcp';
+import { setPluginMcpToolSource } from '../../../plugin-mcp-tools';
 import { RuntimeEnvService } from '../../app-config/runtime-env.service';
-import { isDemoUserId } from '../../common/demo-write';
+import { DemoService } from '../../common/demo.service';
 import { pluginsEnabled } from '../kill-switch';
-import { PluginHooks } from '../plugin-hooks.service';
-import { PluginRuntimeService } from '../plugin-runtime.service';
 import {
   MCP_TOOLS_MAX,
   MCP_TOOLS_TOTAL_MAX,
@@ -25,10 +22,10 @@ import {
   clampToolAnnotations,
   mcpToolName,
 } from '../mcp-tool-schema';
+import { PluginHooks } from '../plugin-hooks.service';
+import { PluginRuntimeService } from '../plugin-runtime.service';
 import { sanitiseAssistantText } from '../text-sanitize';
-import { setPluginMcpToolSource } from '../../../plugin-mcp-tools';
-
-import { demoDenied, errorResult, type McpContext, type McpDynamicTool, type McpTextResult } from '../../../nest-mcp';
+import { Injectable, type OnApplicationBootstrap, type OnModuleDestroy } from '@nestjs/common';
 
 /** The hook a plugin implements to publish tools. */
 const HOOK = 'mcpToolProvider';
@@ -55,7 +52,7 @@ export class PluginMcpToolsService implements OnApplicationBootstrap, OnModuleDe
     private readonly hooks: PluginHooks,
     private readonly runtime: PluginRuntimeService,
     private readonly env: RuntimeEnvService,
-    private readonly dbs: DatabaseService,
+    private readonly demo: DemoService,
   ) {}
 
   // The sink lives here rather than on PluginRuntimeService because the source
@@ -71,11 +68,11 @@ export class PluginMcpToolsService implements OnApplicationBootstrap, OnModuleDe
   }
 
   /**
-   * Every plugin tool this session may see. Synchronous, and never throws:
-   * nest-mcp contains a throwing source, but a per-plugin failure here should
-   * cost that plugin's tools and nothing else.
+   * Every plugin tool this session may see. Never throws: nest-mcp contains a
+   * throwing source, but a per-plugin failure here should cost that plugin's
+   * tools and nothing else.
    */
-  mcpTools(_ctx: McpContext): McpDynamicTool[] {
+  async mcpTools(_ctx: McpContext): Promise<McpDynamicTool[]> {
     if (!pluginsEnabled()) return [];
     const out: McpDynamicTool[] = [];
     let dropped = 0;
@@ -83,7 +80,7 @@ export class PluginMcpToolsService implements OnApplicationBootstrap, OnModuleDe
     for (const id of this.hooks.providersOf(HOOK)) {
       let tools: McpDynamicTool[];
       try {
-        tools = this.toolsOf(id);
+        tools = await this.toolsOf(id);
       } catch {
         // One plugin's bad row contributes nothing; the others still advertise.
         continue;
@@ -114,8 +111,8 @@ export class PluginMcpToolsService implements OnApplicationBootstrap, OnModuleDe
    * on every restart with no version bump. Same two-sided shape as callPlugin's
    * exports check.
    */
-  private toolsOf(pluginId: string): McpDynamicTool[] {
-    const declared = this.runtime.mcpToolCapabilities(pluginId);
+  private async toolsOf(pluginId: string): Promise<McpDynamicTool[]> {
+    const declared = await this.runtime.mcpToolCapabilities(pluginId);
     if (!declared.length) return [];
     const implemented = new Set(this.runtime.mcpToolsOf(pluginId));
     const grants = this.runtime.grantsOf(pluginId);
@@ -157,7 +154,9 @@ export class PluginMcpToolsService implements OnApplicationBootstrap, OnModuleDe
     if (!pluginsEnabled()) return errorResult('Plugins are disabled on this server.');
     // The plugins domain's first demo gate. The child has none of its own, and
     // the ~40 isDemoUser checks elsewhere are per-handler, so it belongs here.
-    if (isDemoUserId(this.env, this.dbs, ctx.userId)) return demoDenied();
+    // Plan 3i Task 3: via the injected DemoService, not the free-function
+    // demo-write.ts helper.
+    if (await this.demo.isDemoUserId(ctx.userId)) return demoDenied();
 
     try {
       const raw = await this.hooks.callMcpTool(pluginId, { name, args: args ?? {} }, ctx.userId);
@@ -166,18 +165,16 @@ export class PluginMcpToolsService implements OnApplicationBootstrap, OnModuleDe
       // A failed or timed-out invoke is a TOOL error, not a protocol one: the
       // model has to see it and be able to try something else.
       const message = e instanceof Error ? e.message : String(e);
-      return errorResult(`Plugin "${pluginId}" could not run "${name}": ${sanitiseAssistantText(message, RESULT_ERROR_MAX)}`);
+      return errorResult(
+        `Plugin "${pluginId}" could not run "${name}": ${sanitiseAssistantText(message, RESULT_ERROR_MAX)}`,
+      );
     }
   }
 }
 
 /** True for a value already shaped like an MCP result the SDK would accept. */
 function isTextResult(v: unknown): v is McpTextResult {
-  return (
-    typeof v === 'object' &&
-    v !== null &&
-    Array.isArray((v as { content?: unknown }).content)
-  );
+  return typeof v === 'object' && v !== null && Array.isArray((v as { content?: unknown }).content);
 }
 
 /**
@@ -271,21 +268,25 @@ export function toMcpTextResult(raw: unknown): McpTextResult {
 function serialiseBounded(value: unknown): { text: string; cut: boolean } {
   let budget = RESULT_MAX;
   let cut = false;
-  const text = JSON.stringify(value, (_key, v: unknown) => {
-    if (budget <= 0) {
-      cut = true;
-      return undefined;
-    }
-    if (typeof v === 'string') {
-      budget -= v.length;
+  const text = JSON.stringify(
+    value,
+    (_key, v: unknown) => {
       if (budget <= 0) {
         cut = true;
-        return v.slice(0, Math.max(0, v.length + budget));
+        return undefined;
       }
+      if (typeof v === 'string') {
+        budget -= v.length;
+        if (budget <= 0) {
+          cut = true;
+          return v.slice(0, Math.max(0, v.length + budget));
+        }
+        return v;
+      }
+      budget -= 8; // rough cost of a number, boolean, or structural token
       return v;
-    }
-    budget -= 8; // rough cost of a number, boolean, or structural token
-    return v;
-  }, 2);
+    },
+    2,
+  );
   return { text: text ?? '', cut };
 }

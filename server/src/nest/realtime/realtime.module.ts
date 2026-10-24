@@ -1,5 +1,5 @@
-import { Global, Module } from '@nestjs/common';
 import { RealtimeService } from './realtime.service';
+import { Global, Module } from '@nestjs/common';
 
 /**
  * Global so every migrated module can inject RealtimeService without

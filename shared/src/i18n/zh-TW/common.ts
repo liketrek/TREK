@@ -7,6 +7,7 @@ const common: TranslationStrings = {
   'common.cancel': '取消',
   'common.clear': '清除',
   'common.delete': '刪除',
+  'common.remove': '刪除',
   'common.preview': '預覽',
   'common.edit': '編輯',
   'common.add': '新增',
@@ -35,6 +36,9 @@ const common: TranslationStrings = {
   'common.rename': '重新命名',
   'common.discardChanges': '捨棄變更',
   'common.discard': '捨棄',
+  'common.unsavedTitle': '放棄變更？',
+  'common.unsavedMessage': '你在這裡輸入的內容尚未儲存。',
+  'common.keepEditing': '繼續編輯',
   'common.name': '名稱',
   'common.email': '郵箱',
   'common.password': '密碼',
@@ -52,18 +56,18 @@ const common: TranslationStrings = {
   'common.justNow': '剛剛',
   'common.hoursAgo': '{count}小時前',
   'common.daysAgo': '{count}天前',
-  'common.datepicker.prevMonth': 'Previous month', // en-fallback
-  'common.datepicker.nextMonth': 'Next month', // en-fallback
-  'common.datepicker.prevYear': 'Previous year', // en-fallback
-  'common.datepicker.nextYear': 'Next year', // en-fallback
-  'common.datepicker.prevYears': 'Previous years', // en-fallback
-  'common.datepicker.nextYears': 'Next years', // en-fallback
-  'common.datepicker.selectMonth': 'Select month', // en-fallback
-  'common.datepicker.selectYear': 'Select year', // en-fallback
-  'common.datepicker.enterManually': 'Enter date manually', // en-fallback
-  'common.datepicker.typeDate': 'Type a date', // en-fallback
-  'common.datepicker.dialog': 'Date picker', // en-fallback
-  'common.datepicker.clearDate': 'Clear date', // en-fallback
+  'common.datepicker.prevMonth': '上個月',
+  'common.datepicker.nextMonth': '下個月',
+  'common.datepicker.prevYear': '上一年',
+  'common.datepicker.nextYear': '下一年',
+  'common.datepicker.prevYears': '較早的年份',
+  'common.datepicker.nextYears': '較晚的年份',
+  'common.datepicker.selectMonth': '選擇月份',
+  'common.datepicker.selectYear': '選擇年份',
+  'common.datepicker.enterManually': '手動輸入日期',
+  'common.datepicker.typeDate': '輸入日期',
+  'common.datepicker.dialog': '日期選擇器',
+  'common.datepicker.clearDate': '清除日期',
   'common.errorTitle': '發生錯誤',
   'common.errorBody': '應用程式的這個部分已停止運作。您的資料是安全的。',
   'common.errorPanelTitle': '無法顯示此區段',
@@ -73,5 +77,6 @@ const common: TranslationStrings = {
   'common.errorUpdateTitle': '有新版本可用',
   'common.errorUpdateBody': '此分頁開啟期間 TREK 已更新。請重新載入以取得新版本。',
   'common.errorPluginTitle': '無法顯示此外掛程式',
+  'common.needsConnection': '此操作需要網路連線。請在 TREK 恢復連線後再試一次。',
 };
 export default common;

@@ -8,7 +8,8 @@ interface ValidateResult {
   valid: boolean
   error?: string
   error_description?: string
-  client?: { name: string; allowed_scopes: string[] }
+  /** verified_host: set for a client identified by its metadata document URL. */
+  client?: { name: string; allowed_scopes: string[]; verified_host?: string }
   scopes?: string[]
   consentRequired?: boolean
   loginRequired?: boolean
@@ -48,7 +49,7 @@ export function useOAuthAuthorize() {
 
   useEffect(() => {
     if (authLoading) return
-    validateRequest()
+    void validateRequest()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, isAuthenticated])
 

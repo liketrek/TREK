@@ -15,7 +15,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplatePlaceholder.select': 'Selecciona una plantilla...',
   'settings.mapDefaultHint': 'Deixa-ho buit per a OpenStreetMap (per defecte)',
   'settings.routingBase': 'Motor de rutes propi',
-  'settings.routingBaseHint': 'Una instància pròpia d’OSRM. Buit fa servir els servidors públics, que permeten aproximadament una petició per segon: prou per a un dia, just per a un viatge llarg. Té efecte després de reiniciar el servidor.',
+  'settings.routingBaseHint':
+    'Una instància pròpia d’OSRM. Buit fa servir els servidors públics, que permeten aproximadament una petició per segon: prou per a un dia, just per a un viatge llarg. Té efecte després de reiniciar el servidor.',
   'settings.valhallaBase': 'Instància Valhalla pròpia',
   'settings.valhallaBaseHint':
     'TREK utilitza per defecte la Valhalla pública de FOSSGIS per evitar peatges, autopistes i ferris. Introdueix aquí l’URL de la teva Valhalla per utilitzar-la en lloc de la pública. Si només hi ha una instància d’encaminament pròpia configurada, no s’utilitza la Valhalla pública. Després d’introduir una URL pròpia, reinicia el servidor i torna a carregar la pàgina.',
@@ -24,7 +25,7 @@ const settings: TranslationStrings = {
   'settings.mapProviderHint': 'Afecta els mapes de Trip Planner i Journey. Atles sempre utilitza Leaflet.',
   'settings.mapLeafletSubtitle': 'Clàssic 2D, qualsevol mosaic raster',
   'settings.mapMapboxSubtitle': 'Mosaics vectorials, edificis 3D i terreny',
-  'settings.mapExperimental': 'Experimental',
+  'settings.mapExperimental': 'Experimental', // same-as-en
   'settings.mapMapboxToken': "Token d'accés de Mapbox",
   'settings.mapMapboxTokenHint': 'Token públic (pk.*) de',
   'settings.mapMapboxTokenLink': "mapbox.com → Tokens d'accés",
@@ -63,6 +64,12 @@ const settings: TranslationStrings = {
   'settings.language': 'Idioma',
   'settings.temperature': 'Unitat de temperatura',
   'settings.timeFormat': "Format d'hora",
+  'settings.weekStart': 'La setmana comença el',
+  'settings.weekStartHint': 'Primer dia de la setmana a tots els selectors de data. Vacay té la seva pròpia opció.',
+  'settings.preferredNavApp': 'Obre els llocs a',
+  'settings.preferredNavAppAsk': 'Pregunta cada vegada',
+  'settings.preferredNavAppHint':
+    "Amb una app triada, el botó de navegació l'obre directament en lloc d'oferir totes les apps de mapes.",
   'settings.blurBookingCodes': 'Difumina els codis de reserva',
   'settings.optimizeFromAccommodation': "Optimitza la ruta des de l'allotjament",
   'settings.optimizeFromAccommodationHint':
@@ -80,6 +87,7 @@ const settings: TranslationStrings = {
   'settings.notifyPhotosShared': 'Fotos compartides (Immich)',
   'settings.notifyCollabMessage': 'Missatges de xat (Col·laboració)',
   'settings.notifyPackingTagged': "Llista d'equipatge: assignacions",
+  'settings.notifyWandererSourceHint': 'wanderer: avisos sobre els teus camins',
   'settings.notifyWebhook': 'Notificacions webhook',
   'settings.notificationsDisabled':
     'Les notificacions no estan configurades. Demana a un administrador que activi les notificacions per correu o webhook.',
@@ -111,7 +119,7 @@ const settings: TranslationStrings = {
   'settings.mcp.modal.create': 'Crea el token',
   'settings.mcp.modal.createdTitle': 'Token creat',
   'settings.mcp.modal.createdWarning':
-    "Aquest token només es mostrarà un cop. Copia'l i desa'l ara — no es podrà recuperar.",
+    "Aquest token només es mostrarà un cop. Copia'l i desa'l ara: no es podrà recuperar.",
   'settings.mcp.modal.done': 'A punt',
   'settings.mcp.toast.created': 'Token creat',
   'settings.mcp.toast.createError': 'Error en crear el token',
@@ -153,14 +161,14 @@ const settings: TranslationStrings = {
     'Un URI per línia. HTTPS, HTTP en bucle local o un esquema propi com myapp://. Coincidència exacta, excepte el port en bucle local.',
   'settings.oauth.modal.scopes': 'Àmbits permesos',
   'settings.oauth.modal.scopesHint':
-    'list_trips i get_trip_summary sempre estan disponibles — sense àmbit requerit. Permeten a la IA descobrir els IDs de viatge necessaris.',
+    'list_trips i get_trip_summary sempre estan disponibles: sense àmbit requerit. Permeten a la IA descobrir els IDs de viatge necessaris.',
   'settings.oauth.modal.selectAll': 'Selecciona-ho tot',
   'settings.oauth.modal.deselectAll': 'Deselecciona-ho tot',
   'settings.oauth.modal.creating': 'Registrant…',
   'settings.oauth.modal.create': 'Registra el client',
   'settings.oauth.modal.createdTitle': 'Client registrat',
   'settings.oauth.modal.createdWarning':
-    "El secret del client només es mostra un cop. Copia'l ara — no es pot recuperar.",
+    "El secret del client només es mostra un cop. Copia'l ara: no es pot recuperar.",
   'settings.oauth.toast.createError': 'Error en registrar el client OAuth',
   'settings.oauth.toast.deleted': 'Client OAuth eliminat',
   'settings.oauth.toast.deleteError': 'Error en eliminar el client OAuth',
@@ -181,20 +189,20 @@ const settings: TranslationStrings = {
   'settings.about.featureRequestHint': 'Suggereix una funció nova',
   'settings.about.wikiHint': 'Documentació i guies',
   'settings.about.descriptionManaged':
-    'TREK helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
-  'settings.about.sourceTitle': 'Source code',
-  'settings.about.sourceHint': 'TREK is open source, licensed AGPL-3.0',
+    "TREK t'ajuda a organitzar els teus viatges des de la primera idea fins al darrer record. Planificació de dies, pressupost, llistes d'equipatge, fotos i molt més, tot en un sol lloc.",
+  'settings.about.sourceTitle': 'Codi font',
+  'settings.about.sourceHint': 'TREK és de codi obert, amb llicència AGPL-3.0',
   'settings.about.supporters.badge': 'Patrocinadors Mensuals',
   'settings.about.supporters.title': 'Companyia de viatge per a TREK',
   'settings.about.supporters.subtitle':
     'Mentre planifiques la teva pròxima ruta, aquestes persones ajuden a planificar el futur de TREK. La seva aportació mensual va directa al desenvolupament i a les hores reals invertides — perquè TREK continuï sent Open Source.',
   'settings.about.supporters.since': 'patrocinador des de {date}',
   'settings.about.supporters.tierEmpty': 'Sigues el primer',
-  'settings.about.supporter.tier.noReturnTicket': 'No Return Ticket',
-  'settings.about.supporter.tier.lostLuggageVip': 'Lost Luggage VIP',
-  'settings.about.supporter.tier.businessClassDreamer': 'Business Class Dreamer',
-  'settings.about.supporter.tier.budgetTraveller': 'Budget Traveller',
-  'settings.about.supporter.tier.hostelBunkmate': 'Hostel Bunkmate',
+  'settings.about.supporter.tier.noReturnTicket': 'Sense bitllet de tornada',
+  'settings.about.supporter.tier.lostLuggageVip': "VIP de l'equipatge perdut",
+  'settings.about.supporter.tier.businessClassDreamer': 'Somiador de classe business',
+  'settings.about.supporter.tier.budgetTraveller': 'Viatger de pressupost ajustat',
+  'settings.about.supporter.tier.hostelBunkmate': "Company de lliteres a l'alberg",
   'settings.about.description':
     "TREK és un planificador de viatges autoallotjat que t'ajuda a organitzar els teus viatges des de la primera idea fins al darrer record. Planificació diària, pressupost, llistes d'equipatge, fotos i molt més — tot en un sol lloc, al teu propi servidor.",
   'settings.about.madeWith': 'Fet amb',
@@ -218,7 +226,7 @@ const settings: TranslationStrings = {
   'settings.deleteAccount': 'Elimina el compte',
   'settings.deleteAccountTitle': 'Vols eliminar el teu compte?',
   'settings.deleteAccountWarning':
-    "El teu compte i tots els teus viatges, llocs i fitxers s'eliminaran permanentment. Aquesta acció no es pot desfer.",
+    "El teu compte i tots els viatges, diaris, llocs i fitxers que tens seran eliminats definitivament, també els viatges compartits amb altres membres, que en perdran l'accés. Els viatges d'altres persones es mantenen i tu en seràs eliminat. Aquesta acció no es pot desfer.",
   'settings.deleteAccountConfirm': 'Elimina permanentment',
   'settings.deleteBlockedTitle': 'No és possible eliminar-lo',
   'settings.deleteBlockedMessage':
@@ -246,7 +254,8 @@ const settings: TranslationStrings = {
   'settings.mfa.enable': 'Activa el 2FA',
   'settings.mfa.cancelSetup': 'Cancel·la',
   'settings.mfa.disableTitle': 'Desactiva el 2FA',
-  'settings.mfa.disableHint': 'Introdueix la teva contrasenya i un codi actual del teu autenticador.',
+  'settings.mfa.disableHint':
+    'Introdueix la teva contrasenya i un codi actual del teu autenticador o un codi de seguretat no utilitzat.',
   'settings.mfa.disable': 'Desactiva el 2FA',
   'settings.mfa.toastEnabled': 'Autenticació de dos factors activada',
   'settings.mfa.toastDisabled': 'Autenticació de dos factors desactivada',
@@ -265,8 +274,17 @@ const settings: TranslationStrings = {
   'settings.bookingLabelsHint': "Mostra noms d'estacions / aeroports al mapa. Desactivat, només es mostra la icona.",
   'settings.currentPasswordRequired': 'La contrasenya actual és obligatòria',
   'settings.passwordWeak': 'La contrasenya ha de contenir majúscules, minúscules, números i un caràcter especial',
+  'settings.passwordCommon': "Aquesta contrasenya és massa comuna. Tria'n una d'única.",
+  'settings.passwordRepetitive': 'La contrasenya és massa repetitiva',
+  'settings.passwordRules': 'Requisits de la contrasenya',
+  'settings.passwordRule.length': 'Almenys 8 caràcters',
+  'settings.passwordRule.upper': 'Una majúscula',
+  'settings.passwordRule.lower': 'Una minúscula',
+  'settings.passwordRule.digit': 'Un número',
+  'settings.passwordRule.special': 'Un caràcter especial',
   'settings.notifyVersionAvailable': 'Versió nova disponible',
   'settings.notifyReplicaFailure': "Error de rèplica d'emmagatzematge",
+  'settings.notifyPaddleRegionRequested': 'Regió de caiac demanada',
   'settings.notificationPreferences.noChannels':
     'No hi ha canals de notificació configurats. Demana a un administrador que configuri notificacions per correu o webhook.',
   'settings.webhookUrl.label': 'URL del webhook',
@@ -278,7 +296,7 @@ const settings: TranslationStrings = {
   'settings.webhookUrl.testSuccess': 'Webhook de prova enviat correctament',
   'settings.webhookUrl.testFailed': 'Error en enviar el webhook de prova',
   'settings.ntfyUrl.topicLabel': 'Tema de Ntfy',
-  'settings.ntfyUrl.topicPlaceholder': 'my-trek-alerts',
+  'settings.ntfyUrl.topicPlaceholder': 'my-trek-alerts', // same-as-en
   'settings.ntfyUrl.serverLabel': 'URL del servidor Ntfy (opcional)',
   'settings.ntfyUrl.serverPlaceholder': 'https://ntfy.sh',
   'settings.ntfyUrl.hint':
@@ -294,7 +312,20 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.email': 'Correu electrònic',
   'settings.notificationPreferences.ntfy': 'Ntfy',
-  'settings.passkey.title': 'Passkeys',
+  'settings.notificationPreferences.push': 'Push', // same-as-en
+  'settings.webPush.title': 'Notificacions push en aquest dispositiu',
+  'settings.webPush.hint':
+    'Mostra les notificacions de TREK en aquest dispositiu fins i tot quan TREK està tancat. Els esdeveniments que arriben segueixen la columna Push.',
+  'settings.webPush.enable': 'Activa en aquest dispositiu',
+  'settings.webPush.disable': 'Desactiva en aquest dispositiu',
+  'settings.webPush.enabled': 'Activat en aquest dispositiu',
+  'settings.webPush.unsupported': 'Aquest navegador no pot rebre notificacions push.',
+  'settings.webPush.insecure': "Push necessita que TREK s'obri per HTTPS.",
+  'settings.webPush.iosInstall': "A l'iPhone i l'iPad, afegeix primer TREK a la pantalla d'inici i obre'l des d'allà.",
+  'settings.webPush.denied':
+    'Les notificacions de TREK estan bloquejades en aquest navegador. Permet-les a la configuració del navegador i torna-ho a provar.',
+  'settings.webPush.failed': "No s'ha pogut activar push en aquest dispositiu.",
+  'settings.passkey.title': "Claus d'accés",
   'settings.passkey.description':
     'Inicia la sessió més ràpidament i amb protecció contra el phishing utilitzant una passkey: la teva empremta, la teva cara, el teu PIN o una clau de seguretat física. La teva contrasenya continua disponible com a alternativa.',
   'settings.passkey.notConfigured':
@@ -312,7 +343,7 @@ const settings: TranslationStrings = {
   'settings.passkey.deleted': 'Passkey eliminada',
   'settings.passkey.deleteConfirm': 'Vols eliminar aquesta passkey? Confirma-ho amb la teva contrasenya.',
   'settings.passkey.rename': 'Canvia el nom',
-  'settings.passkey.defaultName': 'Passkey',
+  'settings.passkey.defaultName': "Clau d'accés",
   'settings.passkey.synced': 'Sincronitzada',
   'settings.passkey.deviceBound': 'Aquest dispositiu',
   'settings.passkey.lastUsed': 'Últim ús',
@@ -331,7 +362,7 @@ const settings: TranslationStrings = {
     'Quan el lector estàndard no pugui llegir un fitxer, reintenta-ho automàticament amb IA.',
   'settings.currency': 'Divisa de visualització',
   'settings.currencyHint':
-    'Els imports a Despeses es mostren convertits a aquesta divisa només per a la visualització — els imports originals no es modifiquen.',
+    'Els imports a Despeses es mostren convertits a aquesta divisa només per a la visualització; els imports originals no es modifiquen.',
   'settings.airtrail.title': 'AirTrail',
   'settings.airtrail.hint': "Connecta't a la teva instància d'AirTrail per importar vols automàticament.",
   'settings.airtrail.url': 'URL de la instància',
@@ -347,7 +378,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.toast.saved': 'Connexió amb AirTrail desada',
   'settings.airtrail.toast.saveError': "No s'ha pogut desar la connexió",
   'settings.airtrail.test.button': 'Provar connexió',
-  'settings.airtrail.test.success': "Connectat — S'han trobat {count} vol(s)",
+  'settings.airtrail.test.success': "Connectat. S'han trobat {count} vols",
+  'settings.airtrail.test.success.one': "Connectat. S'ha trobat {count} vol",
   'settings.airtrail.test.failed': 'La connexió ha fallat',
   'settings.aiParsing.title': 'Anàlisi per IA',
   'settings.aiParsing.hint':
@@ -358,15 +390,15 @@ const settings: TranslationStrings = {
   'settings.aiParsing.providerAnthropic': 'Anthropic',
   'settings.aiParsing.localAdminOnly':
     "Un punt final local (Ollama) es configura una sola vegada per a tota la instància a la configuració d'administració. Aquí encara pots fer servir la teva pròpia clau d'OpenAI o d'Anthropic.",
-  'settings.aiParsing.model': 'Model',
+  'settings.aiParsing.model': 'Model', // same-as-en
   'settings.aiParsing.baseUrl': 'URL base',
   'settings.aiParsing.baseUrlHint':
     "On s'executa el model — un servidor local d'Ollama o un punt final compatible amb OpenAI.",
   'settings.aiParsing.apiKey': "Clau de l'API",
   'settings.aiParsing.apiKeyHint': "S'emmagatzema xifrada. Deixa-ho en blanc per mantenir la clau actual.",
-  'settings.aiParsing.multimodal': 'Enviar documents com a imatges',
+  'settings.aiParsing.multimodal': 'El model llegeix imatges',
   'settings.aiParsing.multimodalHint':
-    'Per a models amb capacitats de visió — envia el PDF original en comptes del text extret.',
+    'Activa-ho per a un model que llegeix imatges, així es pot importar o escanejar una foto.',
   'settings.aiParsing.toast.saved': "Ajustos d'IA desats",
   'settings.aiParsing.toast.saveError': "No s'han pogut desar els ajustos d'IA",
   'settings.tabs.appearance': 'Aparença',
@@ -423,7 +455,7 @@ const settings: TranslationStrings = {
   'settings.appearance.perSize': 'Ajustar cada mida per separat',
   'settings.appearance.size.large': 'Gran',
   'settings.appearance.size.medium': 'Mitjana',
-  'settings.appearance.size.normal': 'Normal',
+  'settings.appearance.size.normal': 'Normal', // same-as-en
   'settings.appearance.size.small': 'Petita',
   'settings.appearance.preview.large': 'Títol gran',
   'settings.appearance.preview.medium': 'Subtítol mitjà',
@@ -433,7 +465,7 @@ const settings: TranslationStrings = {
   'settings.appearance.example.medium': 'Subcapçaleres',
   'settings.appearance.example.normal': 'Noms de llocs, descripcions',
   'settings.appearance.example.small': 'Adreces, etiquetes',
-  'settings.appearance.experimental': 'Experimental',
+  'settings.appearance.experimental': 'Experimental', // same-as-en
   'settings.appearance.mobileNav': 'Barra de navegació inferior',
   'settings.appearance.mobileNav.hint':
     'Tria quins elements apareixen a la barra i quins queden sota «Més». El tauler sempre queda primer.',
@@ -451,6 +483,12 @@ const settings: TranslationStrings = {
   'settings.general.languageRegion': 'Idioma i regió',
   'settings.general.travelMap': 'Viatge i mapa',
   'settings.general.startup': 'Inici',
+  'settings.dayDateFirst': 'Data primer als títols dels dies',
+  'settings.compactUnplanned': 'Marcadors compactes per als llocs sense planificar',
+  'settings.compactUnplannedHint':
+    'Els llocs que no són a cap dia es mostren com a marcadors petits sense foto, perquè les parades planificades destaquin.',
+  'settings.dayDateFirstHint':
+    'Comença cada dia amb la seva data de calendari i mostra «Dia 1» o el títol propi del dia al costat.',
   'settings.startPage': "Pàgina d'inici",
   'settings.startPageDashboard': 'Tauler',
   'settings.startPageActiveTrip': 'Viatge actiu',
@@ -465,15 +503,15 @@ const settings: TranslationStrings = {
   'settings.offline.mode.forceHint':
     'Treballa només amb dades de la memòria cau i posa en cua els teus canvis. Desactiva-ho per tornar-te a connectar i sincronitzar.',
   'settings.offline.mode.active':
-    'El mode fora de línia està activat — els teus canvis estan a la cua i es sincronitzaran quan el desactivis.',
+    'El mode fora de línia està activat: els teus canvis estan a la cua i es sincronitzaran quan el desactivis.',
   'settings.offline.prepare.title': "Preparar per a l'ús fora de línia",
   'settings.offline.prepare.hint':
-    'Descarrega tot el que necessitis — dades del viatge, documents i tessel·les de mapes — abans de perdre la connexió.',
+    'Descarrega tot el que necessitis (dades del viatge, documents i tessel·les de mapes) abans de perdre la connexió.',
   'settings.offline.prepare.button': 'Descarregar per a ús fora de línia',
   'settings.offline.prepare.running': 'Descarregant…',
   'settings.offline.prepare.done': "Llest per a l'ús fora de línia",
   'settings.offline.prepare.phase.trips': 'Dades del viatge',
-  'settings.offline.prepare.phase.files': 'Documents',
+  'settings.offline.prepare.phase.files': 'Documents', // same-as-en
   'settings.offline.prepare.phase.tiles': 'Tessel·les de mapes',
   'settings.offline.resync': 'Sincronitzar ara',
   'settings.offline.resyncing': 'Sincronitzant…',
@@ -485,19 +523,25 @@ const settings: TranslationStrings = {
   'settings.offline.storage.tripOn': 'Desat fora de línia',
   'settings.offline.storage.tripOff': 'No desat',
   'settings.offline.storage.tripFinished': 'Finalitzat. Només es desa si l’actives.',
-  'settings.offline.notice.stored': '{count} viatge(s) desat(s) en aquest dispositiu',
+  'settings.offline.notice.stored': '{count} viatges desats en aquest dispositiu',
+  'settings.offline.notice.stored.one': '{count} viatge desat en aquest dispositiu',
   'settings.offline.notice.nothing': 'No hi ha res a desar. Activa els viatges que vulguis conservar.',
   'settings.offline.notice.busy': 'Ja hi ha una sincronització en curs. Torna-ho a provar d’aquí a un moment.',
   'settings.offline.notice.offline': 'Sense connexió. Connecta’t per desar viatges fora de línia.',
   'settings.offline.notice.signedOut': 'La teva sessió ha caducat. Torna a iniciar la sessió per sincronitzar.',
   'settings.offline.notice.failed': 'La descàrrega no s’ha pogut completar. Comprova la connexió i torna-ho a provar.',
-  'settings.offline.notice.loadFailed': 'No s’ha pogut llegir l’emmagatzematge fora de línia d’aquest dispositiu. Normalment es resol buidant la memòria cau.',
+  'settings.offline.notice.loadFailed':
+    'No s’ha pogut llegir l’emmagatzematge fora de línia d’aquest dispositiu. Normalment es resol buidant la memòria cau.',
   'settings.offline.clear': 'Netejar memòria cau',
   'settings.offline.clearConfirm':
     'Vols netejar totes les dades de viatge fora de línia? Pots tornar a sincronitzar en qualsevol moment mentre estiguis connectat.',
   'settings.offline.stats.trips': 'Viatges a la memòria cau',
   'settings.offline.stats.pending': 'Canvis pendents',
   'settings.offline.stats.failed': 'Canvis fallits',
+  'settings.offline.failed.hint':
+    'Aquests canvis no han arribat mai al servidor. Torna-ho a provar o descarta’ls per conservar la versió del servidor.',
+  'settings.offline.failed.retry': 'Torna-ho a provar',
+  'settings.offline.failed.discard': 'Descarta',
   'settings.offline.stats.conflicts': 'Conflictes',
   'settings.offline.empty': "Encara no hi ha cap viatge a la memòria cau. Connecta't a internet per sincronitzar.",
   'settings.offline.loading': 'Carregant…',
@@ -516,9 +560,13 @@ const settings: TranslationStrings = {
   'settings.offline.banner.offline': 'Fora de línia',
   'settings.offline.banner.forced': 'Mode fora de línia',
   'settings.offline.banner.queued': 'Fora de línia · {count} a la cua',
+  'settings.offline.banner.queued.one': 'Fora de línia · {count} a la cua',
   'settings.offline.banner.syncing': 'Sincronitzant {count}…',
+  'settings.offline.banner.syncing.one': 'Sincronitzant {count}…',
   'settings.offline.banner.failed': 'Error en sincronitzar: {count}',
+  'settings.offline.banner.failed.one': 'Error en sincronitzar: {count}',
   'settings.offline.banner.conflicts': 'Conflictes: {count}',
+  'settings.offline.banner.conflicts.one': 'Conflictes: {count}',
   'settings.plugins.oauth.connected': 'Connectat',
   'settings.plugins.oauth.notConnected': 'No connectat',
   'settings.plugins.oauth.connect': 'Connecta',
@@ -541,6 +589,7 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.status': 'Resultat',
   'settings.notificationPreferences.notConfigured':
     "Encara no s'ha configurat — configura-ho als ajustos del connector",
+  'settings.notificationPreferences.lockedByAdmin': "Desactivat per l'administrador per a tothom",
   'settings.plugins.actions': 'Accions',
   'settings.plugins.actions.confirm': 'Vols executar aquesta acció?',
   'settings.notificationPreferences.sendTest': 'Envia una prova',
@@ -550,10 +599,13 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.pluginConfigured':
     'Configurat. Gestiona les credencials a la configuració del connector.',
   'settings.currencyTrip': 'Divisa del viatge',
+  'settings.placeLanguage': 'Noms de llocs',
+  'settings.placeLanguageApp': 'Igual que l’app',
+  'settings.placeLanguageHint':
+    'La llengua en què responen la cerca de llocs, els suggeriments i les adreces. Si un lloc no té nom en aquesta llengua, se’n mostra el nom local.',
   'settings.alwaysShowRoutes': 'Mostra sempre les rutes de reserva',
   'settings.alwaysShowRoutesHint':
-    'Dibuixa automàticament al mapa la ruta de cada vol, tren i altra reserva — no cal activar-la una per una.',
-
+    'Dibuixa automàticament al mapa la ruta de cada vol, tren i altra reserva, no cal activar-la una per una.',
   // Public API keys (Settings -> Integrations)
   // ── API keys: what a key may read ─────────────────────────────────────────
   'settings.apiScopes.title': 'Què pot llegir aquesta clau',
@@ -562,6 +614,7 @@ const settings: TranslationStrings = {
   'settings.apiScopes.all': 'Tot',
   'settings.apiScopes.noneSelected': 'Tria almenys un àmbit; si no, la clau no podria llegir res.',
   'settings.apiScopes.limited': '{count} de {total}',
+  'settings.apiScopes.limited.one': '{count} de {total}',
   'settings.apiScopes.trips': 'Viatges',
   'settings.apiScopes.days': 'Dies',
   'settings.apiScopes.places': 'Llocs',
@@ -570,34 +623,42 @@ const settings: TranslationStrings = {
   'settings.apiScopes.accommodations': 'Allotjament',
   'settings.apiScopes.travellers': 'Qui hi va',
   'settings.apiScopes.bucket-list': 'Llista de desitjos',
-  'settings.apiScopes.stats': 'Totals',
+  'settings.apiScopes.stats': 'Totals', // same-as-en
   'settings.apiKeys.title': 'Claus API',
-  'settings.apiKeys.description': 'Claus per a l\'API pública, perquè altres programes puguin llegir els teus viatges. Només lectura: una clau no pot canviar ni esborrar res.',
+  'settings.apiKeys.description':
+    "Claus per a l'API pública, perquè altres programes puguin llegir els teus viatges. Només lectura: una clau no pot canviar ni esborrar res.",
   'settings.apiKeys.create': 'Crea una clau',
-  'settings.apiKeys.empty': 'Encara no hi ha claus. Crea\'n una per connectar altres programes.',
+  'settings.apiKeys.empty': "Encara no hi ha claus. Crea'n una per connectar altres programes.",
   'settings.apiKeys.createdAt': 'creada',
   'settings.apiKeys.usedAt': 'últim ús',
   'settings.apiKeys.deleteTitle': 'Elimina la clau',
-  'settings.apiKeys.deleteMessage': 'Tot el que faci servir aquesta clau deixarà de funcionar immediatament. Això no es pot desfer.',
+  'settings.apiKeys.deleteMessage':
+    'Tot el que faci servir aquesta clau deixarà de funcionar immediatament. Això no es pot desfer.',
   'settings.apiKeys.deleted': 'Clau eliminada',
-  'settings.apiKeys.deleteFailed': 'No s\'ha pogut eliminar la clau',
-  'settings.apiKeys.createFailed': 'No s\'ha pogut crear la clau',
+  'settings.apiKeys.deleteFailed': "No s'ha pogut eliminar la clau",
+  'settings.apiKeys.createFailed': "No s'ha pogut crear la clau",
   'settings.apiKeys.copy': 'Copia',
   'settings.apiKeys.docsHint': 'Envia la clau com a "Authorization: Bearer ..." o "X-API-Key: ..." a /api/v1.',
-  'settings.apiKeys.endpoint': 'Endpoint',
+  'settings.apiKeys.endpoint': 'Endpoint', // same-as-en
   'settings.apiKeys.neverUsed': 'mai utilitzada',
-  'settings.apiKeys.loadFailed': 'No s\'han pogut carregar les teves claus. Torna a carregar la pàgina per tornar-ho a provar.',
-  'settings.apiKeys.limitReached': 'Tens {max} claus, el màxim per compte. Esborra\'n una que ja no facis servir per crear-ne una altra.',
-  'settings.apiKeys.copyFailed': 'No s\'ha pogut copiar. Selecciona el text i copia\'l a mà.',
+  'settings.apiKeys.loadFailed':
+    "No s'han pogut carregar les teves claus. Torna a carregar la pàgina per tornar-ho a provar.",
+  'settings.apiKeys.limitReached':
+    "Tens {count} claus, el màxim per compte. Esborra'n una que ja no facis servir per crear-ne una altra.",
+  'settings.apiKeys.limitReached.one':
+    'Tens {count} clau, el màxim per compte. Esborra-la si ja no la fas servir per crear-ne una altra.',
+  'settings.apiKeys.copyFailed': "No s'ha pogut copiar. Selecciona el text i copia'l a mà.",
   'settings.apiKeys.modal.createTitle': 'Crea una clau API',
   'settings.apiKeys.modal.name': 'Nom',
-  'settings.apiKeys.modal.namePlaceholder': 'p. ex. Dawarich',
+  'settings.apiKeys.modal.namePlaceholder': 'p. ex. Tauler de casa',
   'settings.apiKeys.modal.nameHint': 'Només per a tu, perquè reconeguis la clau més endavant.',
-  'settings.apiKeys.modal.creating': 'S\'està creant...',
+  'settings.apiKeys.modal.creating': "S'està creant...",
   'settings.apiKeys.modal.create': 'Crea',
   'settings.apiKeys.modal.createdTitle': 'Clau API creada',
   'settings.apiKeys.modal.createdWarning': 'Copia la clau ara. Només es mostra un cop i no es pot recuperar després.',
   'settings.apiKeys.modal.done': 'Fet',
+  'settings.mcp.deprecated': 'Obsolet',
+  'settings.offline.cache.dateRange': 'del {start} al {end}',
 };
 
 export default settings;

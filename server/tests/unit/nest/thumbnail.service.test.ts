@@ -6,27 +6,32 @@
  * picture or a broken tile: the addon gate, the "source is gone" bail-out, and
  * the mtime check that avoids regenerating an up-to-date thumbnail.
  */
-import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
+import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
+import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import { ThumbnailService, journeyThumbName } from '../../../src/nest/memories/thumbnail.service';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { deleteRows, insertRow } from '../../helpers/factories/rows';
+import { makeStorageFixture } from '../../helpers/storage-fixture';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
 
-const { isAddonEnabled } = vi.hoisted(() => ({ isAddonEnabled: vi.fn(() => true) }));
-
+import { Jimp } from 'jimp';
 import fs from 'node:fs';
 import path from 'node:path';
-import { Jimp } from 'jimp';
-import { ThumbnailService, journeyThumbName } from '../../../src/nest/memories/thumbnail.service';
-import type { AddonsService } from '../../../src/nest/addons/addons.service';
-import Database from 'better-sqlite3';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { makeStorageFixture } from '../../helpers/storage-fixture';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+
+const { isAddonEnabled } = vi.hoisted(() => ({ isAddonEnabled: vi.fn(() => true) }));
 
 // Category-addressed since slice 4: originals + thumbs are ('journey', <name>)
 // objects; the fixture's 'journey/' prefix reproduces the real layout, so the
 // on-disk paths below look exactly like the old uploads-root ones.
 const fx = makeStorageFixture('journey/');
-// Minimal real DB — the orphan sweep only SELECTs these two columns.
-const thumbsDb = new Database(':memory:');
-thumbsDb.exec('CREATE TABLE trek_photos (id INTEGER PRIMARY KEY AUTOINCREMENT, file_path TEXT, thumbnail_path TEXT)');
-const svc = new ThumbnailService({ isAddonEnabled } as unknown as AddonsService, fx.storage, new DatabaseService(thumbsDb as never));
+// Full migrated schema now (Plan 3e Task 6): sweepOrphanThumbs reads through
+// TrekPhotosRepository (the ORM one), which needs the real trek_photos table,
+// not the three-column hand-rolled stand-in this file used before.
+const thumbsDb = createSnapshotTestDb();
+let t: TestOrm;
+let svc: ThumbnailService;
 const root = fx.root;
 
 /** A real 1200x900 JPEG — Jimp has to be able to decode it for the happy path. */
@@ -37,12 +42,18 @@ async function writeSourceImage(rel: string): Promise<void> {
   await img.write(abs as `${string}.jpg`);
 }
 
+beforeAll(async () => {
+  t = await createTestOrm(thumbsDb);
+  svc = new ThumbnailService({ isAddonEnabled } as unknown as AddonsService, fx.storage, t.repo(TrekPhotos));
+});
+
 beforeEach(() => {
   vi.clearAllMocks();
   isAddonEnabled.mockReturnValue(true);
 });
 
-afterAll(() => {
+afterAll(async () => {
+  await t.close();
   thumbsDb.close();
   fx.cleanup();
 });
@@ -126,13 +137,13 @@ describe('sweepOrphanThumbs (spec fix #2)', () => {
     return fp;
   };
 
-  beforeEach(() => {
-    thumbsDb.prepare('DELETE FROM trek_photos').run();
+  beforeEach(async () => {
+    await deleteRows(t, TrekPhotos);
     fs.rmSync(thumbsDir, { recursive: true, force: true });
   });
 
   it('THUMB-SWEEP-001: deletes strays, spares thumbs derivable from live journey rows', async () => {
-    thumbsDb.prepare('INSERT INTO trek_photos (file_path) VALUES (?)').run('journey/live.jpg');
+    await insertRow(t, TrekPhotos, { provider: 'local', file_path: 'journey/live.jpg' });
     const liveName = journeyThumbName('journey/live.jpg'); // 'thumbs/<hash>.jpg'
     const livePath = writeThumb(path.basename(liveName));
     const strayPath = writeThumb('deadbeefdeadbeef.jpg');
@@ -145,8 +156,11 @@ describe('sweepOrphanThumbs (spec fix #2)', () => {
   });
 
   it('THUMB-SWEEP-002: spares a recorded thumbnail_path even without a matching file_path hash', async () => {
-    thumbsDb.prepare('INSERT INTO trek_photos (file_path, thumbnail_path) VALUES (?, ?)')
-      .run('elsewhere/x.jpg', 'journey/thumbs/recorded00000000.jpg');
+    await insertRow(t, TrekPhotos, {
+      provider: 'local',
+      file_path: 'elsewhere/x.jpg',
+      thumbnail_path: 'journey/thumbs/recorded00000000.jpg',
+    });
     const recorded = writeThumb('recorded00000000.jpg');
 
     const removed = await svc.sweepOrphanThumbs();

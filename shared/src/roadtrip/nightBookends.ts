@@ -113,6 +113,55 @@ export function bookendStaysOf<S extends Omit<BookendStay, 'reservation_id'>>(
 }
 
 /**
+ * The stored day's stops with one night per hotel (#2636).
+ *
+ * A stop is a night when a stay begins at its place on its day, and a hotel can be on its
+ * check-in day twice: the stop the booking put there and the traveller's own visit, back
+ * for a rest at noon. Both were read as the night and both held to the check-in, so the
+ * rest waited for the room or was set back to it, and a check-in twelve hours off its
+ * arrival moved it and every stop behind it onto the next day's card.
+ *
+ * One of the visits keeps the night and its check-in, the others are stops like any
+ * other, a hotel all the same. A visit that ends the day is the night. Else the booking's
+ * stop is: it is seated by its check-in (night-seat.ts), first on a day without hours,
+ * and Days does not show it, so a rest the traveller put after it is the last visit they
+ * see and still not the night. Else the last visit is.
+ *
+ * Read over the stops in their stored order, before a terminal or a bookend is seated
+ * among them, the same in the browser and on the server. A day with one visit per hotel
+ * comes back as it was.
+ */
+export function oneNightPerStay(stops: RoadtripStop[]): RoadtripStop[] {
+  const nights = nightVisits(stops);
+  if (nights.size === stops.filter((stop) => stop.night).length) return stops;
+  return stops.map((stop, i) => (stop.night && !nights.has(i) ? { ...stop, night: false, checkInTime: null } : stop));
+}
+
+/**
+ * The indexes of the visits `oneNightPerStay` keeps as the night, one per place, over a
+ * day's visits in their stored order. A row is a candidate when a stay begins at its
+ * place that day (`night`); `bookedNightId` marks the stop the booking put there. For a
+ * caller that reads the stored rows rather than the stops (the ride slot, the editor).
+ */
+export function nightVisits(visits: readonly Pick<RoadtripStop, 'placeId' | 'night' | 'bookedNightId'>[]): Set<number> {
+  const byPlace = new Map<number, number[]>();
+  visits.forEach((visit, i) => {
+    if (visit.night) byPlace.set(visit.placeId, [...(byPlace.get(visit.placeId) ?? []), i]);
+  });
+  const nights = new Set<number>();
+  for (const at of byPlace.values()) {
+    let last = -1;
+    let booked = -1;
+    for (const i of at) {
+      last = i;
+      if (visits[i]?.bookedNightId != null) booked = i;
+    }
+    nights.add(last === visits.length - 1 || booked < 0 ? last : booked);
+  }
+  return nights;
+}
+
+/**
  * A bookend as a stop. `legMode` is the mode of the drive that leaves it: the morning's
  * drive to the first stop goes the way that stop is reached from the hotel
  * (`incoming_leg_transport_mode`, the mode the day plan draws that leg in), and the
@@ -219,33 +268,69 @@ export function seatNightBookends(
   const out = plan.map((day) => {
     const ref = dayOf(day.dayId);
     if (!ref) return day;
-    const stops = day.stops;
-    if (stops.every((stop) => stop.night) && ridden(ref)) return day;
+    if (day.stops.every((stop) => stop.night) && ridden(ref)) return day;
     const hotels = getDayBookendHotels(ref, days, nights);
-    const first = stops[0];
-    const last = stops[stops.length - 1];
-    let head =
-      !!hotels.morning &&
-      !!hotels.morningIsSleptHere &&
-      !(first && (hotelIsTheStop(hotels.morning, first) || opensTheDay(first.carrier?.role))) &&
-      withinReach(hotels.morning, first);
-    let tail =
-      !!hotels.evening &&
-      !!hotels.eveningIsOvernight &&
-      !(last && (hotelIsTheStop(hotels.evening, last) || closesTheDay(last.carrier?.role))) &&
-      withinReach(hotels.evening, last);
-    if (!stops.length) head = tail = head && tail && !sameSpot(hotels.morning, hotels.evening);
+    const edges = (stops: RoadtripStop[]): { head: boolean; tail: boolean } => {
+      const first = stops[0];
+      const last = stops[stops.length - 1];
+      const head =
+        !!hotels.morning &&
+        !!hotels.morningIsSleptHere &&
+        !(first && (hotelIsTheStop(hotels.morning, first) || opensTheDay(first.carrier?.role))) &&
+        withinReach(hotels.morning, first);
+      const tail =
+        !!hotels.evening &&
+        !!hotels.eveningIsOvernight &&
+        !(last && (hotelIsTheStop(hotels.evening, last) || closesTheDay(last.carrier?.role))) &&
+        withinReach(hotels.evening, last);
+      if (!stops.length) {
+        const both = head && tail && !sameSpot(hotels.morning, hotels.evening);
+        return { head: both, tail: both };
+      }
+      return { head, tail };
+    };
+    const stops = withoutBookedNight(day.stops, hotels.evening, day.dayId, edges);
+    const { head, tail } = edges(stops);
     if (!head && !tail) return day;
     changed = true;
-    const stored = stops.filter((stop) => !stop.carrier).length;
+    const stored = day.stops.filter((stop) => !stop.carrier).length;
     return {
       ...day,
       stops: [
-        ...(head ? [bookendStop(day, 'morning', hotels.morning!, 0, first?.incomingLegMode ?? null)] : []),
+        ...(head ? [bookendStop(day, 'morning', hotels.morning!, 0, stops[0]?.incomingLegMode ?? null)] : []),
         ...stops,
         ...(tail ? [bookendStop(day, 'evening', hotels.evening!, stored, null)] : []),
       ],
     };
   });
   return changed ? out : plan;
+}
+
+/**
+ * The day's stops without the one tonight's booking put on it, when the evening seats that
+ * stay at the end of the day instead (#2546).
+ *
+ * Booking a night writes the hotel onto its check-in day as a stop (#2354), seated first or
+ * at its check-in, so a trip that routes without bookends still reaches the hotel. With
+ * bookends the evening already ends the day there, and the booking's stop drew the same
+ * hotel a second time in the middle of the day: check out, drive to tonight's hotel, the
+ * day's places, and back to the hotel for the night. Days hides that stop and draws the
+ * stay at the day's edges, and so does the road trip now. A hotel the traveller placed on
+ * the day themselves is theirs and stays, and so does the booking's stop while it is the
+ * day's last one, or while the evening is not seated after all (a departure closes the day,
+ * or the hotel is out of reach of the stop before it). The stops keep their `ownerIndex`,
+ * so every write still addresses the stored order, and the evening keeps the index behind
+ * the day's last stored stop.
+ */
+function withoutBookedNight(
+  stops: RoadtripStop[],
+  evening: BookendStay | undefined,
+  dayId: number,
+  edges: (stops: RoadtripStop[]) => { tail: boolean },
+): RoadtripStop[] {
+  if (!evening || evening.start_day_id !== dayId || !stops.length) return stops;
+  const own = (stop: RoadtripStop): boolean => stop.bookedNightId === evening.id && !stop.carrier;
+  if (!stops.some(own) || own(stops[stops.length - 1]!)) return stops;
+  const rest = stops.filter((stop) => !own(stop));
+  return rest.length && edges(rest).tail ? rest : stops;
 }

@@ -58,16 +58,20 @@ const login: TranslationStrings = {
   'login.resetPasswordFailed': '重設失敗。連結可能已過期。',
   'login.oidc.tokenFailed': '認證失敗。',
   'login.oidc.invalidState': '會話無效，請重試。',
+  'login.oidc.emailNotVerified': '你的登入提供者尚未確認此電子郵件地址，因此無法連結到現有帳號。',
+  'login.oidc.emailLinkBlocked': '無法將此次登入連結到使用此電子郵件的現有帳號。請管理員確認該地址。',
   'login.demoFailed': '演示登入失敗',
   'login.oidcSignIn': '透過 {name} 登入',
   'login.oidcOnly': '密碼登入已關閉。請透過 SSO 提供商登入。',
   'login.oidcLoggedOut': '您已登出。請重新透過 SSO 提供商登入。',
+  'login.oidcRedirecting': '正在跳轉到 {name}…',
+  'login.oidcRedirectSlow': '還在這裡？繼續前往 {name}',
   'login.demoHint': '試用演示——無需註冊',
   'login.passkey.signIn': '使用 Passkey 登入',
   'login.passkey.failed': 'Passkey 登入失敗，請重試。',
-  'login.insecureCookie.title': "Login won't stick over HTTP",
+  'login.insecureCookie.title': '透過 HTTP 無法保持登入',
   'login.insecureCookie.body':
-    'You’re connecting over plain HTTP, so your browser drops TREK’s secure session cookie — the next request fails with "Access token required". Fix: use HTTPS, or for a home-lab set COOKIE_SECURE=false.',
-  'login.insecureCookie.link': 'Open the Troubleshooting guide',
+    '你目前使用純 HTTP 連線，瀏覽器會丟棄 TREK 的安全工作階段 Cookie，下一個請求會失敗並顯示「Access token required」。解決方式：改用 HTTPS，或在家用環境中設定 COOKIE_SECURE=false。',
+  'login.insecureCookie.link': '開啟疑難排解指南',
 };
 export default login;

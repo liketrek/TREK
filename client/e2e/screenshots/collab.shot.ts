@@ -1,7 +1,6 @@
-import { test, clearNotices, expect } from './shot'
+import { test, clearNotices, expect, seed } from './shot'
+import { PICTURE_DAY } from '../help/guide'
 import type { Page, Locator } from '@playwright/test'
-import { readFileSync } from 'node:fs'
-import path from 'node:path'
 
 /**
  * Collab surfaces, one capture each.
@@ -15,13 +14,10 @@ import path from 'node:path'
  * So each capture targets its own card element rather than clicking a tab.
  */
 
-const seed = JSON.parse(
-  readFileSync(path.join(process.cwd(), 'e2e', '.tmp', 'seed.json'), 'utf8'),
-) as { tripId: number }
 
 /**
- * The panel card containing a given piece of seeded content — see cardClass in
- * CollabPanel.tsx:20.
+ * The panel card containing a given piece of seeded content: see cardClass in
+ * CollabPanel.tsx.
  *
  * Matching on content rather than the panel heading is deliberate: the headings
  * render uppercase through CSS while the DOM text is "Notes" / "Polls", and
@@ -30,12 +26,15 @@ const seed = JSON.parse(
  */
 function card(page: Page, contains: string): Locator {
   return page
-    .locator('div.bg-surface-card.rounded-2xl')
+    .locator('div.bg-surface-secondary.rounded-2xl.min-h-0')
     .filter({ hasText: contains })
     .last()
 }
 
 test.beforeEach(async ({ page }) => {
+  // What's Next lists only what is still ahead, and shots.setup.ts timed its stop
+  // against the picture day's morning, the instant the help pictures are taken at.
+  await page.clock.setFixedTime(PICTURE_DAY)
   await page.goto(`/trips/${seed.tripId}`)
   await clearNotices(page)
   await page.getByRole('button', { name: 'Collab', exact: true }).first().click()

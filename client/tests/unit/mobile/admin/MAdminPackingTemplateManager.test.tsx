@@ -28,6 +28,12 @@ function renderManager() {
 }
 
 // Template rows nest the name two levels below the row that holds the icon buttons.
+/** Accepts the confirm sheet a template or category delete opens. */
+async function confirmSheet(user: ReturnType<typeof userEvent.setup>) {
+  const sheet = await screen.findByRole('dialog');
+  await user.click(within(sheet).getByRole('button', { name: 'Delete' }));
+}
+
 function templateRow(name: string): HTMLElement {
   return screen.getByText(name).parentElement!.parentElement as HTMLElement;
 }
@@ -68,8 +74,8 @@ describe('MAdminPackingTemplateManager', () => {
 
     await screen.findByText('Beach Trip');
     expect(screen.getByText('City Break')).toBeInTheDocument();
-    expect(screen.getByText('2 categories · 5 items')).toBeInTheDocument();
-    expect(screen.getByText('1 categories · 3 items')).toBeInTheDocument();
+    expect(screen.getByText('2 categories, 5 items')).toBeInTheDocument();
+    expect(screen.getByText('1 category, 3 items')).toBeInTheDocument();
   });
 
   it('FE-MOB-APKG-003: a failing list request surfaces the load error toast', async () => {
@@ -99,7 +105,7 @@ describe('MAdminPackingTemplateManager', () => {
 
     await waitFor(() => expect(posted).toEqual({ name: 'Winter Trip' }));
     await screen.findByText('Template created');
-    expect(screen.getByText('0 categories · 0 items')).toBeInTheDocument();
+    expect(screen.getByText('0 categories, 0 items')).toBeInTheDocument();
     // The new template is expanded right away, so its category editor is visible.
     expect(screen.getByRole('button', { name: 'Add category' })).toBeInTheDocument();
     expect(screen.queryByPlaceholderText('Template name (e.g. Beach Holiday)')).not.toBeInTheDocument();
@@ -207,6 +213,8 @@ describe('MAdminPackingTemplateManager', () => {
     await screen.findByText('Clothing');
 
     await user.click(within(templateRow('Beach Trip')).getByRole('button', { name: 'Delete' }));
+    expect(deleted).toBe(false);
+    await confirmSheet(user);
 
     await waitFor(() => expect(deleted).toBe(true));
     await waitFor(() => expect(screen.queryByText('Beach Trip')).not.toBeInTheDocument());
@@ -225,6 +233,7 @@ describe('MAdminPackingTemplateManager', () => {
     await screen.findByText('Beach Trip');
 
     await user.click(within(templateRow('Beach Trip')).getByRole('button', { name: 'Delete' }));
+    await confirmSheet(user);
 
     await screen.findByText('Failed to delete template');
     expect(screen.getByText('Beach Trip')).toBeInTheDocument();
@@ -462,6 +471,8 @@ describe('MAdminPackingTemplateManager', () => {
     await screen.findByText('Clothing');
 
     await user.click(within(categoryHeader('Clothing')).getByRole('button', { name: 'Delete' }));
+    expect(deleted).toBe(false);
+    await confirmSheet(user);
 
     await waitFor(() => expect(deleted).toBe(true));
     await waitFor(() => expect(screen.queryByText('Clothing')).not.toBeInTheDocument());
@@ -482,6 +493,7 @@ describe('MAdminPackingTemplateManager', () => {
     await screen.findByText('Clothing');
 
     await user.click(within(categoryHeader('Clothing')).getByRole('button', { name: 'Delete' }));
+    await confirmSheet(user);
 
     await screen.findByText('Failed to delete');
     expect(screen.getByText('Clothing')).toBeInTheDocument();

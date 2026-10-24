@@ -1,43 +1,41 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import type { AppSettingsRepository } from '../../../../src/db/repositories/AppSettings.repository';
+import type { UsersRepository } from '../../../../src/db/repositories/Users.repository';
+import { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
+import { UnsplashService } from '../../../../src/nest/unsplash/unsplash.service';
+import { asLegacyResult } from '../../../helpers/domain-error';
+import { makeStorageFixture } from '../../../helpers/storage-fixture';
+
 import fs from 'fs';
 import path from 'path';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 
 // safeFetch is mocked so saveUnsplashCover never hits the network.
-// db is mocked so getUnsplashKey resolves from a controllable stub, and
 // decrypt_api_key is a passthrough so stored values compare as plaintext.
-// The instance-wide row (#1939) is read before the user's own, so it gets its
-// own seam rather than eating the mockDbGet stub of every case below.
-const { safeFetch, mockDbGet, mockInstanceGet } = vi.hoisted(() => ({
+// getUnsplashKey resolves through resolveApiKey (instance-api-keys.ts, Plan 3a
+// Task 5), which now reads AppSettingsRepository.getValue (the instance-wide
+// row, #1939's precedence winner) and UsersRepository.getApiKeyColumn (the
+// caller's own row, the last resort) — mockGetValue/mockGetApiKeyColumn stand
+// in for those two repository methods, each its own seam so a test can pin
+// exactly which one was (or was not) reached.
+const { safeFetch, mockGetValue, mockGetApiKeyColumn } = vi.hoisted(() => ({
   safeFetch: vi.fn(),
-  mockDbGet: vi.fn((..._args: unknown[]) => undefined as unknown),
-  mockInstanceGet: vi.fn((..._args: unknown[]) => undefined as unknown),
+  mockGetValue: vi.fn((..._args: unknown[]) => Promise.resolve(undefined as string | null | undefined)),
+  mockGetApiKeyColumn: vi.fn((..._args: unknown[]) => Promise.resolve(undefined as string | null | undefined)),
 }));
 vi.mock('../../../../src/utils/ssrfGuard', () => ({ safeFetch }));
-vi.mock('../../../../src/db/database', () => ({
-  db: {
-    prepare: (sql: string) => ({
-      get: (...args: unknown[]) => (sql.includes('app_settings') ? mockInstanceGet(...args) : mockDbGet(...args)),
-      all: vi.fn(() => []),
-      run: vi.fn(),
-    }),
-  },
-}));
 vi.mock('../../../../src/nest/common/crypto/apiKeyCrypto', () => ({
   decrypt_api_key: (v: string | null) => v,
   // Unused by the read path here, but instance-api-keys imports it.
   maybe_encrypt_api_key: (v: string | null) => v,
 }));
 
-import { UnsplashService } from '../../../../src/nest/unsplash/unsplash.service';
-import { DatabaseService } from '../../../../src/nest/database/database.service';
-import { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
-import { db } from '../../../../src/db/database';
-import { makeStorageFixture } from '../../../helpers/storage-fixture';
-
-// Same four entry points, now methods. The db mock above still feeds them.
+// Same four entry points, now methods. Stub repositories feed getUnsplashKey.
 const coverFx = makeStorageFixture('covers/');
-const svc = new UnsplashService(new DatabaseService(db), new RuntimeEnvService(), coverFx.storage);
-const searchUnsplashPhotos = svc.searchUnsplashPhotos.bind(svc);
+const appSettingsStub = { getValue: mockGetValue } as unknown as AppSettingsRepository;
+const usersStub = { getApiKeyColumn: mockGetApiKeyColumn } as unknown as UsersRepository;
+const svc = new UnsplashService(appSettingsStub, usersStub, new RuntimeEnvService(), coverFx.storage);
+const searchUnsplashPhotos = (...args: Parameters<UnsplashService['searchUnsplashPhotos']>) =>
+  asLegacyResult(svc.searchUnsplashPhotos(...args));
 const getUnsplashKey = svc.getUnsplashKey.bind(svc);
 const saveUnsplashCover = svc.saveUnsplashCover.bind(svc);
 const isUnsplashCoverUrl = svc.isUnsplashCoverUrl.bind(svc);
@@ -47,8 +45,8 @@ const ORIGINAL_UNSPLASH_ENV = process.env.UNSPLASH_ACCESS_KEY;
 afterEach(() => {
   vi.clearAllMocks();
   vi.unstubAllGlobals();
-  mockDbGet.mockReturnValue(undefined);
-  mockInstanceGet.mockReturnValue(undefined);
+  mockGetValue.mockResolvedValue(undefined);
+  mockGetApiKeyColumn.mockResolvedValue(undefined);
   if (ORIGINAL_UNSPLASH_ENV === undefined) delete process.env.UNSPLASH_ACCESS_KEY;
   else process.env.UNSPLASH_ACCESS_KEY = ORIGINAL_UNSPLASH_ENV;
 });
@@ -57,7 +55,7 @@ function fakeRes(init: { ok: boolean; status?: number; type?: string; bytes?: nu
   return {
     ok: init.ok,
     status: init.status ?? (init.ok ? 200 : 500),
-    headers: { get: (h: string) => (h.toLowerCase() === 'content-type' ? init.type ?? '' : null) },
+    headers: { get: (h: string) => (h.toLowerCase() === 'content-type' ? (init.type ?? '') : null) },
     arrayBuffer: async () => new ArrayBuffer(init.bytes ?? 8),
     json: async () => init.json ?? {},
   } as unknown as Response;
@@ -87,7 +85,14 @@ describe('unsplashService.searchUnsplashPhotos', () => {
   });
 
   it('UNSPLASH-003: maps a non-ok response to an error', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(fakeRes({ ok: false, status: 429, type: 'application/json', json: { errors: ['Rate limited'] } })));
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(
+          fakeRes({ ok: false, status: 429, type: 'application/json', json: { errors: ['Rate limited'] } }),
+        ),
+    );
     expect(await searchUnsplashPhotos('paris')).toEqual({ error: 'Rate limited', status: 429 });
   });
 
@@ -113,27 +118,47 @@ describe('unsplashService.searchUnsplashPhotos', () => {
   });
 
   it('UNSPLASH-018: falls back to the generic message when a non-ok body names no error', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(fakeRes({ ok: false, status: 500, type: 'application/json', json: {} })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(fakeRes({ ok: false, status: 500, type: 'application/json', json: {} })),
+    );
     expect(await searchUnsplashPhotos('paris')).toEqual({ error: 'Unsplash search unavailable', status: 500 });
   });
 
   it('UNSPLASH-019: uses the single error field when the errors array is absent', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(fakeRes({ ok: false, status: 401, type: 'application/json', json: { error: 'Bad credentials' } })));
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(
+          fakeRes({ ok: false, status: 401, type: 'application/json', json: { error: 'Bad credentials' } }),
+        ),
+    );
     expect(await searchUnsplashPhotos('paris')).toEqual({ error: 'Bad credentials', status: 401 });
   });
 
   it('UNSPLASH-004: returns normalised photos on success and drops entries missing a url/thumb', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(fakeRes({
-      ok: true,
-      type: 'application/json',
-      json: {
-        results: [
-          { id: 'a', urls: { regular: 'https://images.unsplash.com/a', small: 'https://images.unsplash.com/a-s' }, user: { name: 'Alice' }, links: { html: 'https://unsplash.com/a' } },
-          { id: 'b', urls: {} }, // dropped — no url/thumb
-        ],
-      },
-    })));
-    const res = await searchUnsplashPhotos('paris') as { photos: { id: string }[] };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        fakeRes({
+          ok: true,
+          type: 'application/json',
+          json: {
+            results: [
+              {
+                id: 'a',
+                urls: { regular: 'https://images.unsplash.com/a', small: 'https://images.unsplash.com/a-s' },
+                user: { name: 'Alice' },
+                links: { html: 'https://unsplash.com/a' },
+              },
+              { id: 'b', urls: {} }, // dropped — no url/thumb
+            ],
+          },
+        }),
+      ),
+    );
+    const res = (await searchUnsplashPhotos('paris')) as { photos: { id: string }[] };
     expect(res.photos).toHaveLength(1);
     expect(res.photos[0]).toMatchObject({ id: 'a', photographer: 'Alice', link: 'https://unsplash.com/a' });
   });
@@ -159,47 +184,56 @@ describe('unsplashService.searchUnsplashPhotos', () => {
 });
 
 describe('unsplashService.getUnsplashKey', () => {
-  it('UNSPLASH-012: prefers the UNSPLASH_ACCESS_KEY env var over any stored key', () => {
+  it('UNSPLASH-012: prefers the UNSPLASH_ACCESS_KEY env var over any stored key', async () => {
     process.env.UNSPLASH_ACCESS_KEY = 'env-key';
-    mockDbGet.mockReturnValue({ unsplash_api_key: 'user-key' });
-    expect(getUnsplashKey(1)).toBe('env-key');
-    expect(mockDbGet).not.toHaveBeenCalled();
+    mockGetApiKeyColumn.mockResolvedValue('user-key');
+    expect(await getUnsplashKey(1)).toBe('env-key');
+    expect(mockGetValue).not.toHaveBeenCalled();
+    expect(mockGetApiKeyColumn).not.toHaveBeenCalled();
   });
 
-  it('UNSPLASH-013: returns the user key when set and no env var', () => {
+  it('UNSPLASH-013: returns the user key when set and no env var', async () => {
     delete process.env.UNSPLASH_ACCESS_KEY;
-    mockDbGet.mockReturnValueOnce({ unsplash_api_key: 'user-key' });
-    expect(getUnsplashKey(1)).toBe('user-key');
+    mockGetApiKeyColumn.mockResolvedValueOnce('user-key');
+    expect(await getUnsplashKey(1)).toBe('user-key');
   });
 
-  it('UNSPLASH-014: the instance-wide key wins over the user own key (#1939)', () => {
+  it('UNSPLASH-014: the instance-wide key wins over the user own key (#1939)', async () => {
     delete process.env.UNSPLASH_ACCESS_KEY;
-    mockInstanceGet.mockReturnValue({ value: 'instance-key' });
-    mockDbGet.mockReturnValue({ unsplash_api_key: 'user-key' });
-    expect(getUnsplashKey(1)).toBe('instance-key');
-    expect(mockDbGet).not.toHaveBeenCalled(); // the own row is not even read
+    mockGetValue.mockResolvedValue('instance-key');
+    mockGetApiKeyColumn.mockResolvedValue('user-key');
+    expect(await getUnsplashKey(1)).toBe('instance-key');
+    expect(mockGetApiKeyColumn).not.toHaveBeenCalled(); // the own row is not even read
   });
 
-  it('UNSPLASH-015: returns null when neither env, instance, nor the user has a key', () => {
+  it('UNSPLASH-015: returns null when neither env, instance, nor the user has a key', async () => {
     delete process.env.UNSPLASH_ACCESS_KEY;
-    mockDbGet.mockReturnValue(undefined);
-    expect(getUnsplashKey(1)).toBeNull();
+    mockGetValue.mockResolvedValue(undefined);
+    mockGetApiKeyColumn.mockResolvedValue(undefined);
+    expect(await getUnsplashKey(1)).toBeNull();
   });
 
-  it("UNSPLASH-015b: never reads another user's key — the admin fallback is gone (#1939)", () => {
+  it("UNSPLASH-015b: never reads another user's key — the admin fallback is gone (#1939)", async () => {
     delete process.env.UNSPLASH_ACCESS_KEY;
-    mockDbGet.mockReturnValue(undefined);
-    expect(getUnsplashKey(1)).toBeNull();
+    mockGetValue.mockResolvedValue(undefined);
+    mockGetApiKeyColumn.mockResolvedValue(undefined);
+    expect(await getUnsplashKey(1)).toBeNull();
     // Both reads are scoped: the instance row and this caller's own row.
-    expect(mockDbGet).toHaveBeenCalledTimes(1);
-    expect(mockDbGet).toHaveBeenCalledWith(1);
+    expect(mockGetApiKeyColumn).toHaveBeenCalledTimes(1);
+    expect(mockGetApiKeyColumn).toHaveBeenCalledWith(1, 'unsplash_api_key');
   });
 });
 
 describe('unsplashService.saveUnsplashCover', () => {
   const coversDir = path.join(coverFx.root, 'covers');
   const writtenCovers = () => (fs.existsSync(coversDir) ? fs.readdirSync(coversDir) : []);
-  afterEach(() => { try { fs.rmSync(coversDir, { recursive: true, force: true }); } catch { /* ignore */ } });
+  afterEach(() => {
+    try {
+      fs.rmSync(coversDir, { recursive: true, force: true });
+    } catch {
+      /* ignore */
+    }
+  });
 
   it('UNSPLASH-005: rejects a non-Unsplash host before any fetch', async () => {
     await expect(saveUnsplashCover('https://evil.example.com/x.jpg')).rejects.toThrow('Not an Unsplash image URL');
@@ -215,7 +249,9 @@ describe('unsplashService.saveUnsplashCover', () => {
 
   it('UNSPLASH-007: rejects an unsupported content type without writing', async () => {
     safeFetch.mockResolvedValue(fakeRes({ ok: true, type: 'text/html' }));
-    await expect(saveUnsplashCover('https://images.unsplash.com/photo-1')).rejects.toThrow(/Unsupported cover image type/);
+    await expect(saveUnsplashCover('https://images.unsplash.com/photo-1')).rejects.toThrow(
+      /Unsupported cover image type/,
+    );
     expect(writtenCovers()).toEqual([]);
   });
 
@@ -254,7 +290,9 @@ describe('unsplashService.saveUnsplashCover', () => {
             served++;
             return { done: false, value: new Uint8Array(4 * 1024 * 1024) };
           },
-          cancel: async () => { cancelled = true; },
+          cancel: async () => {
+            cancelled = true;
+          },
         }),
       },
     } as unknown as Response);

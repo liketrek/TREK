@@ -6,6 +6,11 @@ const journey: TranslationStrings = {
   'journey.title': '日記',
   'journey.subtitle': '旅の記録をリアルタイムで残そう',
   'journey.new': '新しい日記',
+  'journey.lightbox.zoomIn': '拡大',
+  'journey.lightbox.zoomOut': '縮小',
+  'journey.lightbox.zoomReset': '写真全体に戻す',
+  'journey.lightbox.previous': '前の写真',
+  'journey.lightbox.next': '次の写真',
   'journey.create': '作成',
   'journey.titlePlaceholder': 'どこへ行きますか？',
   'journey.empty': '日記はまだありません',
@@ -56,7 +61,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.activeJourney': '進行中の日記',
   'journey.frontpage.latestJourney': '最新の日記',
   'journey.frontpage.allJourneys': 'すべての日記',
-  'journey.frontpage.journeys': '日記',
+  'journey.frontpage.journeys': '件の日記',
   'journey.frontpage.createNew': '新しい日記を作成',
   'journey.frontpage.createNewSub': '旅を選んで、物語を書き、共有しよう',
   'journey.frontpage.live': 'ライブ',
@@ -66,18 +71,21 @@ const journey: TranslationStrings = {
   'journey.frontpage.suggestionLabel': '旅行が終了しました',
   'journey.frontpage.suggestionText': '<strong>{title}</strong>を日記にしよう',
   'journey.frontpage.dismiss': '閉じる',
+  'journey.frontpage.dismissError': 'この提案を非表示にできませんでした',
   'journey.frontpage.journeyName': '日記名',
   'journey.frontpage.namePlaceholder': '例：東南アジア 2026',
   'journey.frontpage.selectTrips': '旅行を選択',
   'journey.frontpage.tripsSelected': '件選択',
   'journey.frontpage.trips': '旅行',
   'journey.frontpage.placesImported': '場所がインポートされます',
-  'journey.frontpage.places': '場所',
+  'journey.frontpage.places': 'か所',
   'journey.detail.backToJourney': '日記に戻る',
   'journey.detail.syncedWithTrips': '旅行と同期済み',
   'journey.detail.addEntry': 'エントリーを追加',
   'journey.detail.jumpToTop': '先頭へ戻る',
   'journey.detail.jumpToLast': '最後の記録へ',
+  'journey.detail.dayJump': '日にジャンプ',
+  'journey.detail.dayJumpCount': '{count}日間',
   'journey.detail.newEntry': '新しいエントリー',
   'journey.detail.editEntry': 'エントリーを編集',
   'journey.detail.noEntries': 'エントリーはまだありません',
@@ -91,7 +99,7 @@ const journey: TranslationStrings = {
   'journey.detail.contributors': '参加者',
   'journey.detail.readMore': 'もっと見る',
   'journey.detail.prosCons': '良かった点・気になった点',
-  'journey.detail.photos': '写真',
+  'journey.detail.photos': '枚の写真',
   'journey.detail.day': '{number}日目',
   'journey.detail.places': '場所',
   'journey.stats.days': '日数',
@@ -103,7 +111,7 @@ const journey: TranslationStrings = {
   'journey.skeletons.hide': '提案を非表示',
   'journey.verdict.lovedIt': '最高だった',
   'journey.verdict.couldBeBetter': '改善の余地あり',
-  'journey.synced.places': '場所',
+  'journey.synced.places': 'か所',
   'journey.synced.synced': '同期済み',
   'journey.editor.discardChangesConfirm': '未保存の変更があります。破棄しますか？',
   'journey.editor.uploadPhotos': '写真をアップロード',
@@ -167,6 +175,9 @@ const journey: TranslationStrings = {
   'journey.contributors.removeConfirm': '{username}をこの日記から削除しますか？',
   'journey.contributors.removed': '参加者を削除しました',
   'journey.contributors.removeFailed': '削除に失敗しました',
+  'journey.contributors.viaTrips': '旅行経由',
+  'journey.contributors.viaTripsHint': '旅行がこのジャーナルをリンクしているため開けます。変更は旅行の設定で行います。',
+  'journey.contributors.viaTrip': '{trip} 経由',
   'journey.share.publicShare': '公開共有',
   'journey.share.createLink': '共有リンクを作成',
   'journey.share.linkCreated': '共有リンクを作成しました',
@@ -193,8 +204,20 @@ const journey: TranslationStrings = {
   'journey.settings.subtitle': 'サブタイトル',
   'journey.settings.subtitlePlaceholder': '例：タイ・ベトナム・カンボジア',
   'journey.settings.tracks': 'GPXトラック',
+  'journey.settings.recordings': '記録された日',
   'journey.settings.showTripTracks': '旅行のGPXトラックをすべて表示',
-  'journey.settings.showTripTracksHint': 'リンクされた旅行の記録済みルートを地図に描画します。',
+  'journey.settings.showTripTracksHint': 'リンクした旅行の計画ルート(GPXトラック)を地図に描画します。',
+  'journey.settings.autoPrepare': '記録された日を自動で準備する',
+  'journey.settings.autoPrepareHint':
+    'リンクした旅行の期間中、Dawarich の滞在先はその日のところで確認を待ちます。自分の接続を持つ編集者には各自の滞在先が届きます。ジャーナルに勝手に書き込まれることはありません。',
+  'journey.settings.status': 'ステータス',
+  'journey.settings.statusAuto': '自動',
+  'journey.settings.statusAutoHint': 'リンクした旅行の日付に従います。旅行がない場合は下書きのままです。',
+  'journey.settings.statusManualHint': '手動で設定されています。自動に戻すまで旅行の日付では変わりません。',
+  'journey.settings.photosSection': '写真',
+  'journey.settings.photoLocation': '写真から記録の場所を設定',
+  'journey.settings.photoLocationHint':
+    '場所のない記録は、GPS付きの最初の写真が撮られた地点になります。自分で設定した場所は変更されません。',
   'journey.settings.endJourney': '日記をアーカイブ',
   'journey.settings.reopenJourney': '日記を復元',
   'journey.settings.archived': '日記をアーカイブしました',
@@ -209,8 +232,11 @@ const journey: TranslationStrings = {
   'journey.settings.coverFailed': 'アップロードに失敗しました',
   'journey.settings.failedToDelete': '削除に失敗しました',
   'journey.entries.deleteTitle': 'エントリーを削除',
-  'journey.photosUploaded': '{count}枚の写真をアップロード',
-  'journey.photosAdded': '{count}枚の写真を追加',
+  'journey.gallery.deleteTitle': '写真を削除',
+  'journey.gallery.deleteMessage':
+    'この写真はギャラリーと、使われているすべてのエントリーから削除されます。元に戻すことはできません。',
+  'journey.photosUploaded': '{count}枚の写真をアップロードしました',
+  'journey.photosAdded': '{count}枚の写真を追加しました',
   'journey.public.notFound': '見つかりません',
   'journey.public.notFoundMessage': 'この日記は存在しないか、リンクの有効期限が切れています。',
   'journey.public.readOnly': '閲覧のみ · 公開日記',
@@ -218,7 +244,7 @@ const journey: TranslationStrings = {
   'journey.public.sharedVia': '共有元',
   'journey.public.madeWith': '作成：',
   'journey.pdf.journeyBook': '日記ブック',
-  'journey.pdf.madeWith': 'Made with TREK',
+  'journey.pdf.madeWith': 'TREKで作成',
   'journey.pdf.day': '日目',
   'journey.pdf.theEnd': 'おわり',
   'journey.pdf.saveAsPdf': 'PDFとして保存',
@@ -240,31 +266,30 @@ const journey: TranslationStrings = {
   'journey.editor.uploadPartialFailed':
     '{total}枚中{failed}枚の写真がアップロードに失敗しました — もう一度保存して再試行してください',
   'journey.photosUploadFailed': '一部の写真をアップロードできませんでした',
-  'journey.editor.externalPhotos': 'External photos', // en-fallback
-  'journey.editor.externalPhotosFor': 'Photos for {date}', // en-fallback
-  'journey.editor.externalPhotosNearby': 'Nearby photos first', // en-fallback
-  'journey.editor.externalPhotosNoLocation': 'All photos from this day', // en-fallback
-  'journey.editor.externalPhotosQueued': 'queued', // en-fallback
-  'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
-  'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
-  'journey.picker.day': 'This day', // en-fallback
-  'journey.studio.title': 'TREK Studio', // en-fallback
-  'journey.studio.open': 'Studio', // en-fallback
-  'journey.studio.openAria': 'Open the photo book studio', // en-fallback
-  'journey.studio.backToJourney': 'Back to the journey', // en-fallback
-  'journey.studio.format': 'Page format', // en-fallback
-  'journey.studio.formatA4Landscape': 'A4 landscape', // en-fallback
-  'journey.studio.formatA4Portrait': 'A4 portrait', // en-fallback
-  'journey.studio.formatSquare21': 'Square 21 × 21 cm', // en-fallback
-  'journey.studio.formatSquare30': 'Square 30 × 30 cm', // en-fallback
-  'journey.studio.pages': 'Pages', // en-fallback
-  'journey.studio.cover': 'Cover', // en-fallback
-  'journey.studio.inspector': 'Properties', // en-fallback
-  'journey.studio.inspectorEmpty': 'Select something on the page to edit it.', // en-fallback
-  'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
-  'journey.studio.autoLayout': 'Auto layout', // en-fallback
-  'journey.studio.export': 'Export', // en-fallback
-  'journey.studio.day': '日目',
+  'journey.editor.externalPhotos': '外部の写真',
+  'journey.editor.externalPhotosFor': '{date} の写真',
+  'journey.editor.externalPhotosNearby': '近くの写真を先に表示',
+  'journey.editor.externalPhotosNoLocation': 'この日の写真をすべて表示',
+  'journey.editor.externalPhotosQueued': '待機中',
+  'journey.editor.externalPhotosUnavailable': '接続済みの写真プロバイダーがありません。',
+  'journey.editor.externalPhotosPartialFailed':
+    '{failed} 件の写真グループで失敗しました。もう一度保存すると再試行します',
+  'journey.picker.day': 'この日',
+  'journey.studio.title': 'TREK Studio',
+  'journey.studio.open': 'Studio',
+  'journey.studio.openAria': 'フォトブックの Studio を開く',
+  'journey.studio.backToJourney': '旅の記録に戻る',
+  'journey.studio.format': 'ページサイズ',
+  'journey.studio.formatA4Landscape': 'A4 横',
+  'journey.studio.formatA4Portrait': 'A4 縦',
+  'journey.studio.formatSquare21': '正方形 21 × 21 cm',
+  'journey.studio.formatSquare30': '正方形 30 × 30 cm',
+  'journey.studio.pages': 'ページ',
+  'journey.studio.cover': '表紙',
+  'journey.studio.inspectorEmpty': '編集する要素を選択',
+  'journey.studio.autoLayout': '自動レイアウト',
+  'journey.studio.export': 'エクスポート',
+  'journey.studio.day': '{day}日目',
   'journey.studio.stations': '立ち寄り先',
   'journey.studio.peersHere': '閲覧中',
   'journey.studio.folioAuto': '自動',
@@ -276,109 +301,110 @@ const journey: TranslationStrings = {
   'journey.studio.exportFinishing': '仕上げ',
   'journey.studio.exportMarks': 'トンボ',
   'journey.studio.exportMarksHint': '各辺に{bleed}mmの塗り足しを付け、断裁位置を示します',
-  'journey.studio.exportNote': '{width}×{height}mmの用紙{sheets}枚。印刷ビューはブラウザがPDFにします。',
+  'journey.studio.exportNote': '{width}×{height}mmの用紙{count}枚。印刷ビューはブラウザがPDFにします。',
   'journey.studio.exportOpen': '印刷ビュー',
   'journey.studio.exportSave': 'PDFとして保存',
   'journey.studio.exportPreparing': '準備中',
   'journey.studio.exportSheetCount': '{count}枚',
-  'journey.studio.undo': 'Undo', // en-fallback
-  'journey.studio.redo': 'Redo', // en-fallback
-  'journey.studio.zoomIn': 'Zoom in', // en-fallback
-  'journey.studio.zoomOut': 'Zoom out', // en-fallback
-  'journey.studio.zoomFit': 'Fit to view', // en-fallback
+  'journey.studio.undo': '元に戻す',
+  'journey.studio.redo': 'やり直す',
+  'journey.studio.zoomIn': '拡大',
+  'journey.studio.zoomOut': '縮小',
+  'journey.studio.zoomFit': '画面に合わせる',
   'journey.studio.downloadSpread': 'この見開きをダウンロード',
-  'journey.studio.downloadSpreadHint': 'この見開きのデザインを、写真を除いてファイルに保存します。共有や再利用に使えます',
+  'journey.studio.downloadSpreadHint':
+    'この見開きのデザインを、写真を除いてファイルに保存します。共有や再利用に使えます',
   'journey.studio.importSpread': '読み込む',
   'journey.studio.importSpreadHint': 'ダウンロードしたデザインファイルから見開きを追加します',
   'journey.studio.importSpreadFailed': 'このファイルは TREK Studio の見開きではありません',
-  'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': '本づくりには広さが要るので、Studio はデスクトップ専用です。PDF の作成も同じです。旅の記録のほかの機能は、ここでもこれまでどおり使えます。', // en-fallback
-  'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
-  'journey.studio.bookView': 'Book view', // en-fallback
-  'journey.studio.multiple': 'Several', // en-fallback
-  'journey.studio.kind.photo': 'Photo', // en-fallback
-  'journey.studio.kind.text': 'Text', // en-fallback
-  'journey.studio.kind.shape': 'Shape', // en-fallback
-  'journey.studio.position': 'Position', // en-fallback
-  'journey.studio.width': 'W', // en-fallback
-  'journey.studio.height': 'H', // en-fallback
-  'journey.studio.text': 'Text', // en-fallback
-  'journey.studio.typography': 'Type', // en-fallback
-  'journey.studio.leading': 'Line', // en-fallback
-  'journey.studio.colour': 'Colour', // en-fallback
+  'journey.studio.desktopOnly': 'Studio にはより大きな画面が必要です',
+  'journey.studio.desktopOnlyHint':
+    '本づくりには広さが要るので、Studio はデスクトップ専用です。PDF の作成も同じです。旅の記録のほかの機能は、ここでもこれまでどおり使えます。',
+  'journey.studio.formatA5Landscape': 'A5 横',
+  'journey.studio.bookView': 'ブック表示',
+  'journey.studio.multiple': '複数',
+  'journey.studio.kind.photo': '写真',
+  'journey.studio.kind.text': 'テキスト',
+  'journey.studio.kind.shape': '図形',
+  'journey.studio.position': '位置',
+  'journey.studio.width': '幅',
+  'journey.studio.height': '高さ',
+  'journey.studio.text': 'テキスト',
+  'journey.studio.typography': '文字',
+  'journey.studio.leading': '行間',
+  'journey.studio.colour': '色',
   'journey.studio.autoColour': '自動',
   'journey.studio.countryNames': '名前',
-  'journey.studio.crop': 'Crop', // en-fallback
-  'journey.studio.look': 'Look', // en-fallback
-  'journey.studio.radius': 'Corner', // en-fallback
-  'journey.studio.shape': 'Shape', // en-fallback
-  'journey.studio.arrange': 'Arrange', // en-fallback
-  'journey.studio.toFront': 'Bring to front', // en-fallback
-  'journey.studio.forward': 'Bring forward', // en-fallback
-  'journey.studio.backward': 'Send backward', // en-fallback
-  'journey.studio.toBack': 'Send to back', // en-fallback
-  'journey.studio.lock': 'Lock', // en-fallback
-  'journey.studio.unlock': 'Unlock', // en-fallback
-  'journey.studio.delete': 'Delete', // en-fallback
-  'journey.studio.pageHint': 'Page', // en-fallback
-  'journey.studio.boundHint': 'Follows the journal entry. Editing it here breaks that link.', // en-fallback
-  'journey.studio.fit.cover': 'Fill', // en-fallback
-  'journey.studio.fit.contain': 'Fit', // en-fallback
-  'journey.studio.filter.none': 'Original', // en-fallback
-  'journey.studio.filter.bw': 'Black & white', // en-fallback
-  'journey.studio.filter.warm': 'Warm', // en-fallback
-  'journey.studio.shapeKind.rect': 'Rectangle', // en-fallback
-  'journey.studio.shapeKind.ellipse': 'Ellipse', // en-fallback
-  'journey.studio.focalHint': 'Drag the point to choose what stays in frame.', // en-fallback
-  'journey.studio.backCover': 'Back cover', // en-fallback
-  'journey.studio.sections': 'Sections', // en-fallback
-  'journey.studio.content': 'Content', // en-fallback
-  'journey.studio.elements': 'Elements', // en-fallback
-  'journey.studio.templates': 'Layouts', // en-fallback
-  'journey.studio.photos': 'Photos', // en-fallback
-  'journey.studio.entries': 'Entries', // en-fallback
-  'journey.studio.addToPage': 'Add to this page', // en-fallback
-  'journey.studio.noPhotos': 'This journey has no photos yet.', // en-fallback
-  'journey.studio.untitled': 'Untitled', // en-fallback
-  'journey.studio.addTitle': 'Title', // en-fallback
-  'journey.studio.addStory': 'Story', // en-fallback
-  'journey.studio.addPlace': 'Place', // en-fallback
-  'journey.studio.shapes': 'Shapes', // en-fallback
-  'journey.studio.frames': 'フレーム', // en-fallback
-  'journey.studio.emptyFrame': 'Empty frame', // en-fallback
-  'journey.studio.frameHint': 'An empty frame marks where a picture goes. Drop one on it from Content.', // en-fallback
-  'journey.studio.shapeKind.line': 'Line', // en-fallback
-  'journey.studio.styleTitle': 'Heading', // en-fallback
-  'journey.studio.styleSubtitle': 'Subheading', // en-fallback
-  'journey.studio.styleBody': 'Body text', // en-fallback
-  'journey.studio.styleCaption': 'Caption', // en-fallback
-  'journey.studio.sampleHeading': 'A heading', // en-fallback
-  'journey.studio.sampleSubheading': 'A subheading', // en-fallback
-  'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
-  'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
-  'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
-  'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
-  'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
-  'journey.studio.tpl.grid4': 'Four up', // en-fallback
-  'journey.studio.tpl.grid6': 'Six up', // en-fallback
-  'journey.studio.tpl.strip': 'Strip and text', // en-fallback
-  'journey.studio.tpl.quietText': 'Text only', // en-fallback
-  'journey.studio.tpl.portraitPair': 'A pair', // en-fallback
+  'journey.studio.crop': 'トリミング',
+  'journey.studio.look': '見た目',
+  'journey.studio.radius': '角丸',
+  'journey.studio.shape': '図形',
+  'journey.studio.arrange': '配置',
+  'journey.studio.toFront': '最前面へ',
+  'journey.studio.forward': '前面へ',
+  'journey.studio.backward': '背面へ',
+  'journey.studio.toBack': '最背面へ',
+  'journey.studio.lock': 'ロック',
+  'journey.studio.unlock': 'ロック解除',
+  'journey.studio.delete': '削除',
+  'journey.studio.pageHint': 'ページ',
+  'journey.studio.boundHint': '日記の内容に連動しています。ここで編集すると連動が解除されます。',
+  'journey.studio.fit.cover': '全体に表示',
+  'journey.studio.fit.contain': '収める',
+  'journey.studio.filter.none': 'オリジナル',
+  'journey.studio.filter.bw': '白黒',
+  'journey.studio.filter.warm': '暖色',
+  'journey.studio.shapeKind.rect': '長方形',
+  'journey.studio.shapeKind.ellipse': '楕円',
+  'journey.studio.focalHint': '点をドラッグして、枠内に残す部分を選びます。',
+  'journey.studio.backCover': '裏表紙',
+  'journey.studio.coverInside': '表紙の裏、白紙のまま',
+  'journey.studio.backCoverInside': '裏表紙の裏、白紙のまま',
+  'journey.studio.sections': 'セクション',
+  'journey.studio.content': 'コンテンツ',
+  'journey.studio.elements': '要素',
+  'journey.studio.templates': 'レイアウト',
+  'journey.studio.photos': '写真',
+  'journey.studio.entries': 'エントリー',
+  'journey.studio.addToPage': 'このページに追加',
+  'journey.studio.noPhotos': 'この旅の記録にはまだ写真がありません。',
+  'journey.studio.untitled': '無題',
+  'journey.studio.addTitle': 'タイトル',
+  'journey.studio.addStory': 'ストーリー',
+  'journey.studio.addPlace': '場所',
+  'journey.studio.shapes': '図形',
+  'journey.studio.frames': 'フレーム',
+  'journey.studio.emptyFrame': '空のフレーム',
+  'journey.studio.frameHint': '空のフレームは写真を入れる場所を示します。コンテンツから写真をドロップしてください。',
+  'journey.studio.shapeKind.line': '線',
+  'journey.studio.styleTitle': '見出し',
+  'journey.studio.styleSubtitle': '小見出し',
+  'journey.studio.styleBody': '本文',
+  'journey.studio.styleCaption': 'キャプション',
+  'journey.studio.sampleHeading': '見出し',
+  'journey.studio.sampleSubheading': '小見出し',
+  'journey.studio.sampleBody': 'この日のことを書きましょう。',
+  'journey.studio.sampleCaption': 'キャプション',
+  'journey.studio.tpl.heroStory': 'メイン写真とストーリー',
+  'journey.studio.tpl.fullBleed': '1枚を見開きいっぱいに',
+  'journey.studio.tpl.twoUp': '全面2枚',
+  'journey.studio.tpl.grid4': '4枚並べ',
+  'journey.studio.tpl.grid6': '6枚並べ',
+  'journey.studio.tpl.strip': '帯状写真とテキスト',
+  'journey.studio.tpl.quietText': 'テキストのみ',
+  'journey.studio.tpl.portraitPair': '縦写真のペア',
   'journey.studio.dropPhotoHere': '写真をここに\nドラッグ',
-  'journey.studio.searchContent': 'Search photos and entries', // en-fallback
-  'journey.studio.noMatches': 'Nothing matches that.', // en-fallback
-  'journey.studio.decorations': 'Decoration', // en-fallback
-  'journey.studio.quoteMark': 'Quotation mark', // en-fallback
-  'journey.studio.circleOutline': 'Outlined circle', // en-fallback
-  'journey.studio.roundFrame': 'Rounded frame', // en-fallback
-  'journey.studio.shapeKind.rounded': 'Rounded rectangle', // en-fallback
-  'journey.studio.shapeKind.triangle': 'Triangle', // en-fallback
-  'journey.studio.shapeKind.outline': 'Outline only', // en-fallback
+  'journey.studio.searchContent': '写真とエントリーを検索',
+  'journey.studio.noMatches': '一致するものがありません。',
+  'journey.studio.quoteMark': '引用符',
+  'journey.studio.shapeKind.rounded': '角丸長方形',
+  'journey.studio.shapeKind.triangle': '三角形',
+  'journey.studio.shapeKind.outline': '枠線のみ',
   'journey.studio.travel': '旅',
   'journey.studio.travelEmpty': 'この旅の数値はまだ準備できていません。',
   'journey.studio.grids': 'グリッド',
-  'journey.studio.gridHint': 'グリッドは空のフレームをまとめて配置します。「コンテンツ」から写真をドラッグしてください。',
+  'journey.studio.gridHint':
+    'グリッドは空のフレームをまとめて配置します。「コンテンツ」から写真をドラッグしてください。',
   'journey.studio.lines': '線',
   'journey.studio.frameStyles': 'フレームのスタイル',
   'journey.studio.frameShapes': 'フレームの形',
@@ -397,23 +423,17 @@ const journey: TranslationStrings = {
   'journey.studio.shapeGroup.decor': '装飾',
   'journey.studio.shapeGroup.banners': 'バナー',
   'journey.studio.summary': 'サマリー',
-  'journey.studio.tripSummary': '旅のサマリー',
-  'journey.studio.statsRow': '1行',
-  'journey.studio.statsFull': 'すべて',
   'journey.studio.routeMap': 'ルートマップ',
   'journey.studio.mapStyle.minimal': 'ミニマル',
   'journey.studio.mapStyle.outline': 'アウトライン',
   'journey.studio.mapStyle.paper': '紙',
   'journey.studio.mapStyle.dark': 'ダーク',
   'journey.studio.countries': '国',
-  'journey.studio.countryList': '国リスト',
-  'journey.studio.countryGrid': '国グリッド',
   'journey.studio.noCountries': 'この旅の国はまだ判定されていません。',
   'journey.studio.noRoute': '座標のある地点がまだありません。',
   'journey.studio.marks': 'マーク',
   'journey.studio.dateMark': '日付',
   'journey.studio.dayMark': '日数カウンター',
-  'journey.studio.dayWord': 'DAY',
   'journey.studio.coordsMark': '座標',
   'journey.studio.coordsDms': '度分秒',
   'journey.studio.coordsDecimal': '十進度',
@@ -433,6 +453,21 @@ const journey: TranslationStrings = {
   'journey.studio.kind.list': 'リスト',
   'journey.studio.kind.icon': 'アイコン',
   'journey.studio.duplicate': '複製',
+  'journey.studio.copyToPage': 'コピーして任意のページに貼り付け (Ctrl+C)',
+  'journey.studio.paste': '貼り付け (Ctrl+V)',
+  'journey.studio.pasteEmpty': 'まず何かをコピーしてから、任意のページに貼り付けてください',
+  'journey.studio.pageFull':
+    'このページはいっぱいです。1ページに置ける要素の上限に達しています。先に何かを削除するか、別のページを使ってください。',
+  'journey.studio.myLayouts': 'マイレイアウト',
+  'journey.studio.myLayoutsEmpty':
+    '配置したページを保存して、他のページも同じ配置にできます。写真と文章はそのまま残ります。',
+  'journey.studio.saveLayout': 'このページをレイアウトとして保存',
+  'journey.studio.saveLayoutHint': '写真を除いた配置を、このブックのすべての編集者向けに保存します',
+  'journey.studio.saveLayoutFull':
+    'このブックに保存できるレイアウトは24件までです。新しく保存するには1件削除してください。',
+  'journey.studio.deleteLayout': 'レイアウトを削除',
+  'journey.studio.layoutName': 'レイアウト',
+  'journey.studio.builtInLayouts': '標準',
   'journey.studio.style': 'スタイル',
   'journey.studio.shows': '表示',
   'journey.studio.size': 'サイズ',
@@ -442,12 +477,8 @@ const journey: TranslationStrings = {
   'journey.studio.rotation': '回転',
   'journey.studio.opacity': '不透明度',
   'journey.studio.fill': '塗りの色',
-  'journey.studio.fillOn': '塗りつぶし',
   'journey.studio.stroke': '線の色',
   'journey.studio.strokeWidth': '太さ',
-  'journey.studio.gradient': 'フェード',
-  'journey.studio.gradientDown': '下へ',
-  'journey.studio.gradientUp': '上へ',
   'journey.studio.showIcons': 'アイコン',
   'journey.studio.mapFit': '範囲',
   'journey.studio.mapPadding': '余白',
@@ -459,6 +490,35 @@ const journey: TranslationStrings = {
   'journey.studio.markStyle.chip': 'チップ',
   'journey.studio.markStyle.outline': '枠線',
   'journey.studio.markStyle.stacked': '縦並び',
+  'journey.studio.statsLook.classic': 'クラシック',
+  'journey.studio.statsLook.poster': 'ポスター',
+  'journey.studio.statsLook.ticket': 'チケット',
+  'journey.studio.statsLook.tiles': 'タイル',
+  'journey.studio.statsLook.band': 'バンド',
+  'journey.studio.statsLook.medal': 'メダル',
+  'journey.studio.statsLook.odometer': '走行距離計',
+  'journey.studio.statsLook.sign': '道路標識',
+  'journey.studio.statsLook.note': 'メモ',
+  'journey.studio.statsLook.sketch': 'スケッチ',
+  'journey.studio.countryLook.visa': 'ビザ',
+  'journey.studio.countryLook.flag': '旗',
+  'journey.studio.countryLook.pin': 'ピン',
+  'journey.studio.countryLook.label': '荷物ラベル',
+  'journey.studio.countryLook.sketch': 'スケッチ',
+  'journey.studio.markStyle.ribbon': 'リボン',
+  'journey.studio.markStyle.sticker': 'ステッカー',
+  'journey.studio.markStyle.patch': 'ワッペン',
+  'journey.studio.markStyle.sketch': 'スケッチ',
+  'journey.studio.travelFigures': '数字',
+  'journey.studio.travelMaps': '地図',
+  'journey.studio.countryLook.classic': 'クラシック',
+  'journey.studio.countryLook.stamp': 'スタンプ',
+  'journey.studio.countryLook.postcard': 'ポストカード',
+  'journey.studio.markStyle.stamp': 'スタンプ',
+  'journey.studio.markStyle.tag': 'タグ',
+  'journey.studio.markStyle.pill': 'ピル',
+  'journey.studio.pinNumbered': '番号',
+  'journey.studio.pinEnds': '出発地と到着地',
   'journey.studio.icon': 'アイコン',
   'journey.studio.iconAndLabel': 'アイコンと文字',
   'journey.studio.iconOnly': 'アイコンのみ',
@@ -500,19 +560,17 @@ const journey: TranslationStrings = {
   'journey.studio.strokeDotted': '点線',
   'journey.studio.singleFigures': '単独の数値',
   'journey.studio.addPage': 'ページを追加',
+  'journey.studio.addPageShort': 'ページ',
   'journey.studio.addPageAfter': 'この後にページを挿入',
   'journey.studio.duplicatePage': 'ページを複製',
   'journey.studio.deletePage': 'ページを削除',
   'journey.studio.movePageUp': '前へ移動',
   'journey.studio.movePageDown': '後ろへ移動',
-  'journey.studio.beta': 'Beta',
   'journey.studio.addProsCons': '良かった点・気になった点',
   'journey.studio.showMarks': '記号',
   'journey.studio.formatCustom': 'カスタムサイズ',
   'journey.studio.document': 'ドキュメント',
   'journey.studio.pageNumbers': 'ノンブル',
-  'journey.studio.pageNumbersOn': 'オン',
-  'journey.studio.pageNumbersOff': 'オフ',
   'journey.studio.folio.outer': '外側',
   'journey.studio.folio.inner': '内側',
   'journey.studio.folio.centre': '中央',
@@ -533,12 +591,12 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.mosaic': 'モザイク',
   'journey.studio.tpl.bandQuote': '間にことば',
   'journey.studio.tpl.staggerFour': '4枚ずらし',
-  'journey.studio.weightMissing': 'この書体にこのウェイトはありません',
   'journey.studio.mapSource': '地図のソース',
   'journey.studio.mapSourceVector': '輪郭',
   'journey.studio.mapSourceRelief': '陰影起伏',
   'journey.studio.mapSourceSatellite': '衛星写真',
-  'journey.studio.mapSourceSatelliteHint': '雲のない Sentinel-2。出典を付ければ無料で印刷できます。街の通りまで鮮明です。',
+  'journey.studio.mapSourceSatelliteHint':
+    '雲のない Sentinel-2。出典を付ければ無料で印刷できます。街の通りまで鮮明です。',
   'journey.studio.routeLook': 'ルートの線',
   'journey.studio.routeStyle': '描き方',
   'journey.studio.routePlain': '一本線',
@@ -552,18 +610,17 @@ const journey: TranslationStrings = {
   'journey.studio.pinPhoto': '写真',
   'journey.studio.pinPhotoNone': 'これらの立ち寄り先にはまだ写真がないため、点で表示します。',
   'journey.studio.roads': '道路',
-  'journey.studio.roadsFetch': '道路に沿わせる',
   'journey.studio.roadsFollow': '道なり',
   'journey.studio.roadsDirect': '直行',
   'journey.studio.recommended': '推奨',
   'journey.studio.bleed': '塗り足し',
   'journey.studio.safeArea': '安全領域',
   'journey.studio.roadsAgain': '取得し直す',
-  'journey.studio.roadsClear': '破棄',
   'journey.studio.roadsBusy': '取得中',
   'journey.studio.roadsHint': 'ルート検索サービスに各区間の走行経路を問い合わせます。長い区間はそのままです。',
   'journey.studio.roadsHave': '道路はこの本に保存されるので、オフラインでも同じ線で印刷されます。',
-  'journey.studio.mapSourceReliefHint': 'NASA の陰影起伏図。ライセンス不要で印刷できます。国や大陸には最適ですが、都市単位には粗すぎます。',
+  'journey.studio.mapSourceReliefHint':
+    'NASA の陰影起伏図。ライセンス不要で印刷できます。国や大陸には最適ですが、都市単位には粗すぎます。',
   'journey.studio.mapPrintDpi': '印刷解像度は約',
   'journey.studio.mapPrintDpiLow': 'このサイズではぼやけます。範囲を広げるか別のソースをお試しください',
   'journey.studio.mapPerTrip': '旅行ごと',
@@ -583,8 +640,6 @@ const journey: TranslationStrings = {
   'journey.studio.mapClipRect': '枠あり',
   'journey.studio.mapClipCountry': '形に切り抜く',
   'journey.studio.mapClipNeedsCountry': '切り抜くには国が必要です',
-  'journey.studio.mapCutVector': '切り抜き',
-  'journey.studio.mapCutTiles': '切り抜き地図',
   'journey.studio.mapZoomAuto': '自動',
   'journey.studio.saving': '保存中',
   'journey.studio.saved': '保存しました',
@@ -597,6 +652,9 @@ const journey: TranslationStrings = {
   'journey.studio.rotateLeft': '左に回転',
   'journey.studio.rotateRight': '右に回転',
   'journey.studio.saveReadOnly': '閲覧のみ・保存されません',
+  'journey.studio.saveNewer':
+    'この本は新しいバージョンの Studio で保存されました。編集するには再読み込みしてください。',
+  'journey.studio.saveReload': '再読み込み',
   'journey.studio.filterPhotos': '写真を絞り込む',
   'journey.studio.filterAll': 'すべての写真',
   'journey.studio.filterLoose': 'エントリーに属さない',
@@ -606,6 +664,8 @@ const journey: TranslationStrings = {
   'journey.studio.noEntryPhotos': 'このエントリーにはまだ写真がありません。',
   'journey.studio.noLoosePhotos': 'ここにある写真はすべてエントリーに属しています。',
   'journey.studio.uploadPhotos': '写真をアップロード',
+  'journey.studio.fromProvider': '{name}から',
+  'journey.studio.fromProviderHint': '{name}から写真を選び、アップロードと同じ場所に追加します',
   'journey.studio.uploadHint': 'ここに画像をドロップするか、クリックして選択してください',
   'journey.studio.uploadToEntry': '新しい画像はこのエントリーに追加されます',
   'journey.studio.uploadToGallery': '新しい画像はギャラリーに追加されます',
@@ -625,6 +685,12 @@ const journey: TranslationStrings = {
   'journey.editor.statsExcluded': 'ルートから除外',
   'journey.editor.statsExcludedHint': '立ち寄り地は日記に残りますが、Studio の距離、国、地図には含まれません。',
   'journey.entry.offRoute': 'ルート外',
+  'journey.entry.draft': '下書き',
+  'journey.editor.draft': '下書き',
+  'journey.editor.draftHint':
+    'この記録はあなたと他の参加者にのみ表示されます。オフにするまで、共有された日記には含まれません。',
+  'journey.editor.tripSuggestionHint': 'この日はこの旅行の期間内です。リンクすると、旅行の場所がこの日記に加わります。',
+  'journey.editor.tripSuggestionLater': '今はしない',
   'journey.suggestions.dismiss': 'この提案を見送る',
   'journey.suggestions.dismissed': '提案を見送りました',
   'journey.suggestions.restore': '見送った提案を戻す',
@@ -641,5 +707,186 @@ const journey: TranslationStrings = {
   'journey.settings.showWeather': '天気',
   'journey.entry.suggestion': '提案',
   'journey.editor.addDetails': '＋詳細',
+  'journey.recording.mapLine': '{date}の記録',
+  'journey.recording.keptBy': '記録したルートを保存済み: {distance}、{name}が{date}に取り込み。',
+  'journey.recording.keptOn': '記録したルートを保存済み: {distance}、{date}に取り込み。',
+  'journey.recording.keptRunning': 'その時点ではまだ一日が終わっていませんでした。',
+  'journey.recording.takeOver': '記録を取り込む',
+  'journey.recording.takeOverDay': '{date}の記録',
+  'journey.recording.sub': 'この日だけを、あなたのDawarichから。確定するまで何も保存されません。',
+  'journey.recording.zone': 'この日のタイムゾーン',
+  'journey.recording.zoneHint':
+    'このゾーンの午前0時から次の午前0時までが一日になります。旅行中にいたゾーンを選んでください。',
+  'journey.recording.zoneSource': 'Dawarichの設定',
+  'journey.recording.zoneDevice': 'この端末',
+  'journey.recording.scope': '記録',
+  'journey.recording.loading': 'Dawarichからこの日を読み込み中…',
+  'journey.recording.keptStays': 'この旅に保存されたルートはそのまま残ります。',
+  'journey.recording.retry': '再試行',
+  'journey.recording.empty': 'Dawarichはこのタイムゾーンのこの日に何も記録していません。',
+  'journey.recording.span': '{from}〜{to}',
+  'journey.recording.pieces': '{count}区間',
+  'journey.recording.gaps': '途切れ{count}か所',
+  'journey.recording.gapsHint': '記録が途切れた所で線も途切れます。記録されていない道は描かれません。',
+  'journey.recording.sourceHint':
+    'トラックはDawarichが移動手段ごとに分けたルートです。ポイントは生の位置情報で、1日600点に間引かれます。',
+  'journey.recording.sourceTracks': 'トラック',
+  'journey.recording.sourcePoints': 'ポイント',
+  'journey.recording.changedSincePreview':
+    '確認している間にDawarichの記録が変わりました。もう一度確認してから保存してください。',
+  'journey.recording.truncated': 'Dawarichはこの日の一部しか送ってこなかったため、ルートは不完全です。',
+  'journey.recording.provisional':
+    'このタイムゾーンではこの日はまだ終わっていません。後で一日分のルートに置き換えられます。',
+  'journey.recording.same': 'この旅はすでにまったく同じ記録を保存しています。',
+  'journey.recording.differs':
+    'この旅には{date}の別の版({distance})が保存されています。置き換えてもエントリーや文章は変わりません。',
+  'journey.recording.audience': 'この旅のほかの{count}人がマップでルートを見られます。共有リンクには表示されません。',
+  'journey.recording.replace': '置き換える',
+  'journey.recording.alreadyKept': '保存済み',
+  'journey.recording.keep': 'ルートを保存',
+  'journey.recording.remove': 'ルートを削除',
+  'journey.recording.removeTitle': '保存したルートを削除しますか?',
+  'journey.recording.removeMessage':
+    'この日のルートが旅のマップから消えます。エントリーと文章は残り、Dawarichの記録もそのままです。',
+  'journey.recording.keptToast': 'ルートを旅に保存しました',
+  'journey.recording.replacedToast': 'ルートを置き換えました',
+  'journey.recording.removedToast': 'ルートを旅から削除しました',
+  'journey.recording.error.recording_exists': 'この旅にはその日の別の記録がすでに保存されています。',
+  'journey.recording.error.recording_changed': 'プレビュー以降に記録が変わりました。',
+  'journey.recording.error.recording_empty': 'Dawarichはその日に何も記録していません。',
+  'journey.recording.mode.walking': '徒歩',
+  'journey.recording.mode.running': 'ランニング',
+  'journey.recording.mode.cycling': '自転車',
+  'journey.recording.mode.driving': '車',
+  'journey.recording.mode.motorcycle': 'バイク',
+  'journey.recording.mode.bus': 'バス',
+  'journey.recording.mode.train': '電車',
+  'journey.recording.mode.flying': '飛行機',
+  'journey.recording.mode.boat': '船',
+  'journey.recording.mode.stationary': '停止',
+  'journey.recording.mode.unknown': '不明な手段',
+  'journey.dayImport.open': '1日を取り込む',
+  'journey.dayImport.openHint': 'この日を滞在先ごと取り込む',
+  'journey.dayImport.openOn': '{date}を滞在先ごと取り込む',
+  'journey.dayImport.pending': '確認待ちの滞在先 {count} 件',
+  'journey.dayImport.sub': 'この日のDawarichの滞在先です。選んで名前を直し、まとめると下書きになります。',
+  'journey.dayImport.loading': 'この日の滞在先をDawarichから読み込み中…',
+  'journey.dayImport.map': '地図で見るこの日',
+  'journey.dayImport.stays': '滞在先',
+  'journey.dayImport.modeEntries': 'エントリー',
+  'journey.dayImport.modeReport': '1日のレポート',
+  'journey.dayImport.reportDefault': '{date}の1日',
+  'journey.dayImport.reportHint':
+    '選んだ滞在先はすべて、時刻付きで並べた1つのエントリーになります。各場所は地図用に残ります。',
+  'journey.dayImport.reportNeedsTwo': '1日のレポートには滞在先を2つ以上選んでください。',
+  'journey.dayImport.groupTitle': 'エントリーのタイトル',
+  'journey.dayImport.groupPin': '地図上の位置',
+  'journey.dayImport.noPin': '地図上の位置なし',
+  'journey.dayImport.join': '1つのエントリーにまとめる',
+  'journey.dayImport.split': '別々にする',
+  'journey.dayImport.choose': '{name}を取り込む',
+  'journey.dayImport.name': '{name}の名前',
+  'journey.dayImport.unconfirmed': '未確認',
+  'journey.dayImport.noPlace': '位置なし',
+  'journey.dayImport.noPlaceHint': 'Dawarichはこの滞在先の位置を記録していないため、エントリーは地図に表示されません。',
+  'journey.dayImport.statusHere': '{title}に含まれています',
+  'journey.dayImport.statusHereUntitled': 'ジャーナルに含まれています',
+  'journey.dayImport.statusElsewhere': '取り込み済み',
+  'journey.dayImport.statusElsewhereHint': '場所や願い事として、または別のジャーナルにすでに取り込まれています。',
+  'journey.dayImport.statusSkipped': '除外済み',
+  'journey.dayImport.keepRoute': 'この日のルートも保存する',
+  'journey.dayImport.keepRouteHint': '{distance}を記録。旅のメンバー全員が地図で見られます。',
+  'journey.dayImport.routeNone': 'Dawarichはこの日のルートを記録していません。',
+  'journey.dayImport.routeKept': 'ルート保存済み',
+  'journey.dayImport.routeDiffers':
+    'Dawarichに別のバージョンのルートがあります。この日のルートボタンから置き換えてください。',
+  'journey.dayImport.existing': 'この日にすでにあるもの',
+  'journey.dayImport.untitled': '無題のエントリー',
+  'journey.dayImport.draft': '下書き',
+  'journey.dayImport.audience': '下書きは共有リンクには表示されません。この旅の他の {count} 人には見えます。',
+  'journey.dayImport.draftsNote': '下書きは公開するまで共有リンクに表示されません。写真や本文は後から追加できます。',
+  'journey.dayImport.submit': '下書き {count} 件を取り込む',
+  'journey.dayImport.skipped': '除外 {count} 件',
+  'journey.dayImport.skipHint': '除外した滞在先はこの日の確認待ちから外れます。Dawarichの滞在先リストで元に戻せます。',
+  'journey.dayImport.problem.nothing': '滞在先を1つ以上選んでください。',
+  'journey.dayImport.problem.name': '選んだ滞在先にはすべて名前が必要です。',
+  'journey.dayImport.problem.title': 'まとめたエントリーと1日のレポートにはタイトルが必要です。',
+  'journey.dayImport.done': '下書き {count} 件を取り込みました',
+  'journey.dayImport.alreadyTaken': '{count} 件の滞在先はすでに取り込み済みでした。二重には書き込まれていません。',
+  'journey.dayImport.failed':
+    '何も取り込まれませんでした: {reason} リストは現在のジャーナルの内容を示しています。再試行しても二重には書き込まれません。',
+  'journey.dayImport.routeFailed': '下書きは作成されましたが、ルートは保存されませんでした: {reason}',
+  'journey.dayImport.routeRetry': 'ルートをもう一度保存',
+  'journey.dayImport.stale': 'Dawarichが応答しませんでした: {reason} {date}の前回の同期で得た滞在先を表示しています。',
+  'journey.dayImport.staleNever': 'Dawarichが応答しませんでした: {reason} TREKが把握している滞在先を表示しています。',
+  'journey.dayImport.truncated': 'Dawarichはこの日の一部しか送ってきませんでした。滞在先が欠けている可能性があります。',
+  'journey.dayImport.empty': 'Dawarichはこの日の滞在先を見つけられませんでした。',
+  'journey.prep.lastSuccess': '最終取得: {time}',
+  'journey.prep.never': 'まだ取得していません。次のバックグラウンド同期で開始します。',
+  'journey.prep.failed': '前回の更新に失敗しました: {reason} {time} に取得した内容を表示しています。',
+  'journey.prep.failedNever': '最初の取得に失敗しました: {reason}',
+  'journey.prep.notConnected': '日を準備できるよう、設定で Dawarich を接続してください。',
+  'journey.prep.noPeriods': '日付のある旅行をリンクしてください。その旅行の日だけが準備されます。',
+  'journey.prep.syncOff': 'Dawarich の設定でバックグラウンド同期がオフのため、日は手動で取得したときだけ取得されます。',
+  'journey.prep.fetchNow': '今すぐ取得',
+  'journey.prep.fetching': '取得中…',
+  'journey.prep.fetchFailed': '今は Dawarich に問い合わせできませんでした。',
+  'journey.prep.dayRunning': 'この日はまだ続いています。滞在先が増える可能性があります。',
+  'journey.prep.dayPending': 'まだ取得していません。',
+  'journey.prep.dayProvisional': '{time} に取得、一日が終わる前なので滞在先が欠けている可能性があります。',
+  'journey.prep.dayFailed': '前回の更新に失敗しました。これは古い状態です。',
+  'journey.prep.outOfReach':
+    '{count} 日以上前に終わった旅行はバックグラウンドで準備されません。その日を開くと手動で取得できます。',
+  'journey.prep.alreadyRunning': 'バックグラウンドで取得がすでに実行中です。終わり次第、滞在先が表示されます。',
+  'journey.dayImport.running': 'この日はまだ続いています。後から記録された滞在先は Dawarich に届き次第表示されます。',
+  'journey.map.layers': '地図のレイヤー',
+  'journey.map.layer.plan': '予定',
+  'journey.map.layer.recorded': '記録',
+  'journey.map.layer.entries': 'エントリー',
+  'journey.map.layer.photos': '写真',
+  'journey.map.layer.loading': '読み込み中',
+  'journey.map.layer.planEmpty': 'リンクした旅行の日程に場所がありません',
+  'journey.map.layer.planUnavailable': '予定を読み込めませんでした。地図のほかの部分は表示されたままです',
+  'journey.map.layer.recordedEmpty': '記録したルートはまだありません',
+  'journey.map.layer.recordedUnavailable': '記録した日を読み込めませんでした',
+  'journey.map.layer.entriesEmpty': '場所のあるエントリーはまだありません',
+  'journey.map.layer.entriesUnavailable':
+    '日のまとめの立ち寄り先を読み込めませんでした。エントリーは表示されたままです',
+  'journey.map.layer.photosEmpty': '位置情報のある写真はまだありません',
+  'journey.map.legend': '凡例',
+  'journey.map.legend.planned': '予定の場所',
+  'journey.map.legend.entry': '旅日記のエントリー',
+  'journey.map.legend.plannedWritten': '予定どおり書いたもの',
+  'journey.map.legend.stay': '日のまとめの立ち寄り先',
+  'journey.map.legend.several': '同じ地点に複数',
+  'journey.map.legend.lines': 'ルート',
+  'journey.map.legend.plannedRoute': '予定のルート（旅行のGPX）',
+  'journey.map.legend.recordedRoute': '記録したルート',
+  'journey.map.legend.planIsNoVisit':
+    '予定の場所は訪問の証明ではありません。どこにいたかを示すのはエントリー、写真、記録だけです。',
+  'journey.map.pick.openEntry': 'エントリーを開く',
+  'journey.map.pick.planned': '予定',
+  'journey.map.pick.notWritten': 'まだ何も書かれていません。',
+  'journey.map.pick.stay': '立ち寄り先',
+  'journey.map.pick.partOf': '「{title}」の一部',
+  'journey.map.pick.here': 'この地点',
+  'journey.map.pick.back': '一覧に戻る',
+  'journey.map.pick.timeRange': '{from}〜{to}',
+  'journey.share.plan': '旅行の予定',
+  'journey.share.planHint': 'リンクした旅行の予定の場所とGPXルートを地図に表示',
+  'journey.share.recordings': '記録したルート',
+  'journey.share.recordingsHint':
+    '公開済みのエントリーがある日の記録と、そこから取り込んだ滞在。宿泊先も含め、いつどこにいたかがわかります。',
+  'journey.share.needsMap': '有効にするには地図を共有してください',
+  'journey.editor.tags': 'タグ',
+  'journey.studio.assistant.toggle': 'アシスタント',
+  'journey.studio.assistant.toggleHint': 'アシスタントと一緒に本をデザイン',
+  'journey.studio.assistant.panel': '本のアシスタント',
+  'journey.studio.assistant.welcome': 'どんな本にしますか？',
+  'journey.studio.assistant.readOnly': 'この本は閲覧のみなので、質問には答えられますが、変更はできません。',
+  'journey.studio.assistant.notice':
+    'アシスタントは作業中のページを見ることができます。{provider} に送られるのはそのページだけで、あなた自身が追加した写真だけが写った画像として送られます。写真に誰が写っているかは判別できません。',
+  'journey.studio.assistant.noticeAllow': 'ページを見せる',
+  'journey.studio.assistant.noticeLater': '今はしない',
 };
 export default journey;

@@ -4,12 +4,14 @@ const files: TranslationStrings = {
   'files.title': 'Fitxers',
   'files.pageTitle': 'Fitxers i documents',
   'files.subtitle': '{count} fitxers per a {trip}',
+  'files.subtitle.one': '{count} fitxer per a {trip}',
   'files.download': 'Baixa',
   'files.openError': "No s'ha pogut obrir el fitxer",
   'files.downloadPdf': 'Baixa el PDF',
   'files.count': '{count} fitxers',
-  'files.countSingular': '1 fitxer',
+  'files.count.one': '{count} fitxer',
   'files.uploaded': '{count} fitxers pujats',
+  'files.uploaded.one': '{count} fitxer pujat',
   'files.uploadError': 'La pujada ha fallat',
   'files.dropzone': 'Arrossega els fitxers aquí',
   'files.dropzoneHint': 'o fes clic per explorar',
@@ -18,7 +20,7 @@ const files: TranslationStrings = {
   'files.filterAll': 'Tot',
   'files.filterPdf': 'PDF',
   'files.filterImages': 'Imatges',
-  'files.filterDocs': 'Documents',
+  'files.filterDocs': 'Documents', // same-as-en
   'files.filterCollab': 'Notes de col·laboració',
   'files.sourceCollab': 'Des de notes de col·laboració',
   'files.empty': 'Encara no hi ha fitxers',
@@ -29,7 +31,7 @@ const files: TranslationStrings = {
   'files.toast.deleteError': "No s'ha pogut eliminar el fitxer",
   'files.sourcePlan': 'Pla diari',
   'files.sourceBooking': 'Reserva',
-  'files.sourceTransport': 'Transport',
+  'files.sourceTransport': 'Transport', // same-as-en
   'files.attach': 'Adjunta',
   'files.pasteHint': 'També pots enganxar imatges des del porta-retalls (Ctrl+V)',
   'files.trash': 'Paperera',
@@ -42,7 +44,7 @@ const files: TranslationStrings = {
   'files.assignTitle': 'Assigna el fitxer',
   'files.assignPlace': 'Lloc',
   'files.assignBooking': 'Reserva',
-  'files.assignTransport': 'Transport',
+  'files.assignTransport': 'Transport', // same-as-en
   'files.unassigned': 'Sense assignar',
   'files.unlink': "Elimina l'enllaç",
   'files.noteLabel': 'Nota',
@@ -62,6 +64,14 @@ const files: TranslationStrings = {
   'files.linkTitle': 'Enllaça un fitxer',
   'files.linkEmpty': 'Encara no hi ha llocs ni reserves per enllaçar',
   'files.menu': 'Més opcions',
-  'files.uploadErrorSize': 'El fitxer és massa gran (màx. 50 MB)',
+  'files.uploadErrorSize': 'El fitxer és massa gran (màx. {max} MB)',
+  'files.uploadNeedsConnection': 'Per pujar cal connexió. Torna-ho a provar quan TREK torni a estar en línia.',
+  'files.linkNeedsConnection':
+    'Per treure aquest enllaç cal connexió. Torna-ho a provar quan TREK torni a estar en línia.',
+  'files.placeFilesNeedConnection':
+    'Els fitxers necessiten connexió per pujar-se. Treu els nous per desar el lloc sense connexió, o desa quan tornis a estar en línia.',
+  'files.maxSize': 'Màx. {count} MB',
+  'files.maxSize.one': 'Màx. {count} MB',
+  'files.toast.starError': "No s'ha pogut canviar l'estrella",
 };
 export default files;

@@ -1,5 +1,6 @@
-import { createZodDto } from 'nestjs-zod';
 import { tripInviteLinkCreateRequestSchema } from '@trek/shared';
+
+import { createZodDto } from 'nestjs-zod';
 
 /**
  * Server-side createZodDto wrapper over the @trek/shared trip-invite contract.

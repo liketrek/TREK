@@ -6,16 +6,18 @@ const files: TranslationStrings = {
   'files.linkTitle': 'Lier le fichier',
   'files.linkEmpty': 'Aucun lieu ni réservation à lier pour le moment',
   'files.menu': "Plus d'options",
-  'files.uploadErrorSize': 'Le fichier est trop volumineux (max 50 Mo)',
+  'files.uploadErrorSize': 'Le fichier est trop volumineux (max {max} Mo)',
   'files.title': 'Fichiers',
   'files.pageTitle': 'Fichiers et documents',
   'files.subtitle': '{count} fichiers pour {trip}',
+  'files.subtitle.one': '{count} fichier pour {trip}',
   'files.download': 'Télécharger',
   'files.openError': "Impossible d'ouvrir le fichier",
   'files.downloadPdf': 'Télécharger le PDF',
   'files.count': '{count} fichiers',
-  'files.countSingular': '1 fichier',
-  'files.uploaded': '{count} importés',
+  'files.count.one': '{count} fichier',
+  'files.uploaded': '{count} fichiers importés',
+  'files.uploaded.one': '{count} fichier importé',
   'files.uploadError': "Échec de l'import",
   'files.uploadErrorType': "Ce type de fichier n'est pas pris en charge",
   'files.dropzone': 'Déposez les fichiers ici',
@@ -24,8 +26,8 @@ const files: TranslationStrings = {
   'files.uploading': 'Importation…',
   'files.filterAll': 'Tous',
   'files.filterPdf': 'PDF',
-  'files.filterImages': 'Images',
-  'files.filterDocs': 'Documents',
+  'files.filterImages': 'Images', // same-as-en
+  'files.filterDocs': 'Documents', // same-as-en
   'files.filterCollab': 'Notes Collab',
   'files.sourceCollab': 'Depuis les notes Collab',
   'files.empty': 'Aucun fichier',
@@ -36,7 +38,7 @@ const files: TranslationStrings = {
   'files.toast.deleteError': 'Impossible de supprimer le fichier',
   'files.sourcePlan': 'Plan du jour',
   'files.sourceBooking': 'Réservation',
-  'files.sourceTransport': 'Transport',
+  'files.sourceTransport': 'Transport', // same-as-en
   'files.attach': 'Joindre',
   'files.pasteHint': 'Vous pouvez aussi coller des images depuis le presse-papiers (Ctrl+V)',
   'files.trash': 'Corbeille',
@@ -49,7 +51,7 @@ const files: TranslationStrings = {
   'files.assignTitle': 'Assigner le fichier',
   'files.assignPlace': 'Lieu',
   'files.assignBooking': 'Réservation',
-  'files.assignTransport': 'Transport',
+  'files.assignTransport': 'Transport', // same-as-en
   'files.unassigned': 'Non attribué',
   'files.unlink': 'Supprimer le lien',
   'files.toast.trashed': 'Déplacé dans la corbeille',
@@ -61,7 +63,14 @@ const files: TranslationStrings = {
   'files.confirm.permanentDelete': 'Supprimer définitivement ce fichier ? Cette action est irréversible.',
   'files.confirm.emptyTrash':
     'Supprimer définitivement tous les fichiers de la corbeille ? Cette action est irréversible.',
-  'files.noteLabel': 'Note',
+  'files.noteLabel': 'Note', // same-as-en
   'files.notePlaceholder': 'Ajouter une note…',
+  'files.uploadNeedsConnection': 'L’envoi nécessite une connexion. Réessaie quand TREK sera de nouveau en ligne.',
+  'files.linkNeedsConnection': 'Retirer ce lien nécessite une connexion. Réessaie quand TREK sera de nouveau en ligne.',
+  'files.placeFilesNeedConnection':
+    'Les fichiers ont besoin d’une connexion pour être envoyés. Retire les nouveaux pour enregistrer le lieu hors ligne, ou enregistre une fois de nouveau en ligne.',
+  'files.maxSize': 'Max {count} Mo',
+  'files.maxSize.one': 'Max {count} Mo',
+  'files.toast.starError': "Impossible de modifier l'étoile",
 };
 export default files;

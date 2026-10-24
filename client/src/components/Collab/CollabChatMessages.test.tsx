@@ -1,4 +1,4 @@
-// FE-W5CCM-001 to FE-W5CCM-024
+// FE-W5CCM-001 to FE-W5CCM-025
 // ChatMessages is a pure presentational component — every piece of state arrives
 // as a prop from useCollabChat, so the tests drive it directly instead of going
 // through CollabChat (that path is covered in CollabChat.test.tsx).
@@ -26,6 +26,7 @@ interface ChatMsg {
   reply_to?: number | null
   reactions?: { emoji: string; count: number; users: { user_id: number; username: string }[] }[]
   _deleted?: boolean
+  origin?: string | null
 }
 
 const currentUser = { id: 1, username: 'me' }
@@ -129,8 +130,8 @@ describe('ChatMessages', () => {
     ])
     const first = screen.getByText('first').closest('div[style]')!
     const last = screen.getByText('second').closest('div[style]')!
-    expect(first.getAttribute('style')).toContain('border-radius: 18px 18px 18px 18px')
-    expect(last.getAttribute('style')).toContain('border-radius: 18px 18px 4px 18px')
+    expect(first.getAttribute('style')).toContain('border-start-start-radius: 18px; border-start-end-radius: 18px; border-end-end-radius: 18px; border-end-start-radius: 18px')
+    expect(last.getAttribute('style')).toContain('border-start-start-radius: 18px; border-start-end-radius: 18px; border-end-end-radius: 4px; border-end-start-radius: 18px')
   })
 
   it('FE-W5CCM-007: the avatar image is rendered for a foreign author who has one', () => {
@@ -158,7 +159,7 @@ describe('ChatMessages', () => {
       [buildMsg({ id: 1, text: 'one' }), buildMsg({ id: 2, text: 'two' })],
       { hoveredId: 1 },
     )
-    const actions = screen.getAllByTitle('collab.chat.reply').map(b => b.parentElement!)
+    const actions = screen.getAllByRole('button', { name: 'collab.chat.reply' }).map(b => b.parentElement!)
     expect(actions[0].getAttribute('style')).toContain('opacity: 1')
     expect(actions[1].getAttribute('style')).toContain('opacity: 0')
   })
@@ -243,7 +244,7 @@ describe('ChatMessages', () => {
     const { setReplyTo, handleDelete } = renderMessages([
       buildMsg({ id: 3, user_id: 1, username: 'me', text: 'mine' }),
     ])
-    const replyBtn = screen.getByTitle('collab.chat.reply')
+    const replyBtn = screen.getByRole('button', { name: 'collab.chat.reply' })
     fireEvent.mouseEnter(replyBtn)
     expect(replyBtn.style.transform).toBe('scale(1.2)')
     fireEvent.mouseLeave(replyBtn)
@@ -251,7 +252,7 @@ describe('ChatMessages', () => {
     fireEvent.click(replyBtn)
     expect(setReplyTo).toHaveBeenCalledWith(expect.objectContaining({ id: 3 }))
 
-    const deleteBtn = screen.getByTitle('common.delete')
+    const deleteBtn = screen.getByRole('button', { name: 'common.delete' })
     fireEvent.mouseEnter(deleteBtn)
     expect(deleteBtn.style.background).toBe('rgb(239, 68, 68)')
     fireEvent.mouseLeave(deleteBtn)
@@ -296,5 +297,12 @@ describe('ChatMessages', () => {
     renderMessages([buildMsg({ text: '🎉' })])
     const big = screen.getByText('🎉')
     expect(big.getAttribute('style')).toContain('font-size: calc(40px')
+  })
+
+  it('FE-W5CCM-025: a shared assistant answer carries its label, a typed message none', () => {
+    renderMessages([buildMsg({ id: 1, text: 'typed' }), buildMsg({ id: 2, text: 'shared', origin: 'assistant' })])
+    expect(screen.getAllByText('from the assistant')).toHaveLength(1)
+    expect(screen.getByText('shared').closest('div[style*="column"]')).toHaveTextContent('from the assistant')
+    expect(screen.getByText('typed').closest('div[style*="column"]')).not.toHaveTextContent('from the assistant')
   })
 })

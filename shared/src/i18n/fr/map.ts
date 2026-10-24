@@ -5,28 +5,41 @@ const map: TranslationStrings = {
   'map.showConnections': 'Afficher les itinéraires',
   'map.hideConnections': 'Masquer les itinéraires',
   'poi.searchThisArea': 'Rechercher dans cette zone',
-  'poi.cat.restaurants': 'Restaurants',
-  'poi.cat.cafes': 'Cafés',
+  'poi.cat.restaurants': 'Restaurants', // same-as-en
+  'poi.cat.cafes': 'Cafés', // same-as-en
   'poi.cat.bars': 'Bars & vie nocturne',
   'poi.cat.hotels': 'Hébergement',
   'poi.cat.sights': 'Sites touristiques',
   'poi.cat.museums': 'Musées & culture',
   'poi.cat.nature': 'Nature & parcs',
   'poi.cat.activities': 'Activités',
+  'poi.pluginCategories': 'Catégories des plugins',
   'map.showAllConnections': 'Afficher tous les itinéraires',
   'map.hideAllConnections': 'Masquer tous les itinéraires',
   'map.baseLayer.default': 'Carte',
-  'map.baseLayer.satellite': 'Satellite',
+  'map.baseLayer.satellite': 'Satellite', // same-as-en
+  'map.baseLayer.hiking': 'Randonnée',
+  'map.baseLayer.hikingDown':
+    'OpenHikingMap ne répond pas pour le moment. Passe à une autre carte ; ton itinéraire reste inchangé.',
+  'map.baseLayer.cycle': 'Vélo',
+  'map.baseLayer.cycleDown':
+    'CyclOSM ne répond pas pour le moment. Passe à une autre carte ; ta sortie reste telle quelle.',
   'map.baseLayer.switchToSatellite': 'Passer à la vue satellite',
   'map.baseLayer.switchToDefault': 'Passer à la vue carte',
-  'map.location.denied': 'L’accès à la position est bloqué. Vérifiez les réglages de l’appareil. Une app installée possède sa propre autorisation de localisation, distincte du navigateur.',
+  'map.location.denied':
+    'L’accès à la position est bloqué. Vérifiez les réglages de l’appareil. Une app installée possède sa propre autorisation de localisation, distincte du navigateur.',
   'map.location.unavailable': 'Votre position n’a pas pu être déterminée.',
   'map.location.timeout': 'La localisation a pris trop de temps. Réessayez avec une vue plus dégagée du ciel.',
   'map.overview.show': 'Afficher tout le voyage',
+  'map.lock.lock': 'Verrouiller la vue de la carte',
+  'map.lock.unlock': 'Laisser la carte suivre la sélection',
   'map.overview.hide': 'Masquer tout le voyage',
   'map.overview.total': 'Distance totale',
   'map.attribution': 'Crédits de la carte',
-  'map.overview.unrouted': '{count} étape(s) n’ont pas pu être calculées, les distances sont incomplètes.',
-  'map.overview.dayUnrouted': '{count} étape(s) de cette journée n’ont pas pu être calculées',
+  'map.overview.unrouted': '{count} étapes n’ont pas pu être calculées, les distances sont donc incomplètes.',
+  'map.overview.unrouted.one': '{count} étape n’a pas pu être calculée, les distances sont donc incomplètes.',
+  'map.overview.dayUnrouted': '{count} étapes de cette journée n’ont pas pu être calculées',
+  'map.overview.dayUnrouted.one': '{count} étape de cette journée n’a pas pu être calculée',
+  'map.baseLayer.topo': 'Topographique',
 };
 export default map;

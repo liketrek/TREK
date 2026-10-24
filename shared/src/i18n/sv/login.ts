@@ -25,10 +25,16 @@ const login: TranslationStrings = {
   'login.oidc.noEmail': 'Inget e-postmeddelande har mottagits från leverantören.',
   'login.oidc.tokenFailed': 'Autentiseringen misslyckades.',
   'login.oidc.invalidState': 'Ogiltig session. Försök igen.',
+  'login.oidc.emailNotVerified':
+    'Din inloggningsleverantör har inte bekräftat den här e-postadressen, så den kan inte kopplas till ett befintligt konto.',
+  'login.oidc.emailLinkBlocked':
+    'Inloggningen kunde inte kopplas till det befintliga kontot med den här e-postadressen. Be administratören bekräfta adressen.',
   'login.demoFailed': 'Inloggningen för demoversionen misslyckades',
   'login.oidcSignIn': 'Logga in med {name}',
   'login.oidcOnly': 'Lösenordsautentisering är inaktiverad. Logga in via din SSO-leverantör.',
   'login.oidcLoggedOut': 'Du har loggats ut. Logga in igen via din SSO-leverantör.',
+  'login.oidcRedirecting': 'Skickar dig till {name}…',
+  'login.oidcRedirectSlow': 'Fortfarande här? Fortsätt till {name}',
   'login.demoHint': 'Prova demoversionen – ingen registrering krävs',
   'login.mfaTitle': 'Tvåfaktorsautentisering',
   'login.mfaSubtitle': 'Ange den 6-siffriga koden från din autentiseringsapp.',
@@ -70,9 +76,9 @@ const login: TranslationStrings = {
   'login.resetPasswordFailed': 'Återställningen misslyckades. Länken kan ha gått ut.',
   'login.passkey.signIn': 'Logga in med en inloggningsnyckel',
   'login.passkey.failed': 'Inloggningsnyckel misslyckades. Försök igen.',
-  'login.insecureCookie.title': "Login won't stick over HTTP",
+  'login.insecureCookie.title': 'Inloggningen sitter inte kvar över HTTP',
   'login.insecureCookie.body':
-    'You’re connecting over plain HTTP, so your browser drops TREK’s secure session cookie — the next request fails with "Access token required". Fix: use HTTPS, or for a home-lab set COOKIE_SECURE=false.',
-  'login.insecureCookie.link': 'Open the Troubleshooting guide',
+    'Du ansluter via vanlig HTTP, så webbläsaren kastar TREKs säkra sessionscookie och nästa anrop misslyckas med "Access token required". Lösning: använd HTTPS, eller sätt COOKIE_SECURE=false i ett hemmalabb.',
+  'login.insecureCookie.link': 'Öppna felsökningsguiden',
 };
 export default login;

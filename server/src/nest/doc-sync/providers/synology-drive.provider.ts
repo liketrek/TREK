@@ -1,6 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { createHash, type Hash } from 'node:crypto';
-import { Readable } from 'node:stream';
+import { contentTypeFor } from '../../storage/content-type';
+import { PROVIDER_MAX_PAGES } from '../doc-sync.constants';
 import {
   docFail,
   docOk,
@@ -15,8 +14,6 @@ import {
   type PushResult,
   type RemoteDocument,
 } from '../document-provider';
-import { PROVIDER_MAX_PAGES } from '../doc-sync.constants';
-import { contentTypeFor } from '../../storage/content-type';
 import {
   isValidSynoName,
   isWithinScope,
@@ -29,6 +26,10 @@ import {
   type SynoEntry,
   type SynologyDriveCreds,
 } from './synology-drive.client';
+import { Injectable } from '@nestjs/common';
+
+import { createHash, type Hash } from 'node:crypto';
+import { Readable } from 'node:stream';
 
 /**
  * Synology Drive over the FileStation Web API.
@@ -225,7 +226,12 @@ export class SynologyDriveDocumentProvider implements DocumentProvider {
 
       const needle = query?.trim().toLowerCase();
       const filtered = [...options.values()]
-        .filter((option) => !needle || option.label.toLowerCase().includes(needle) || option.remoteRootPath!.toLowerCase().includes(needle))
+        .filter(
+          (option) =>
+            !needle ||
+            option.label.toLowerCase().includes(needle) ||
+            option.remoteRootPath!.toLowerCase().includes(needle),
+        )
         .sort((a, b) => a.remoteRootPath!.localeCompare(b.remoteRootPath!))
         .slice(0, MAX_SCOPE_OPTIONS);
       return docOk(filtered);
@@ -260,10 +266,7 @@ export class SynologyDriveDocumentProvider implements DocumentProvider {
     }
   }
 
-  async resolveScope(
-    conn: DocumentConnectionRef,
-    scope: DocumentScopeRef,
-  ): Promise<DocResult<DocumentScopeOption>> {
+  async resolveScope(conn: DocumentConnectionRef, scope: DocumentScopeRef): Promise<DocResult<DocumentScopeOption>> {
     const creds = this.credentials(conn);
     if (!creds) return docFail('unauthorized', 'username and password are required');
     const scopePath = this.scopePath(scope);
@@ -299,7 +302,9 @@ export class SynologyDriveDocumentProvider implements DocumentProvider {
   async list(
     conn: DocumentConnectionRef,
     scope: DocumentScopeRef,
-  ): Promise<DocResult<{ documents: RemoteDocument[]; cursor: string | null; cursorUnchanged: boolean; truncated: boolean }>> {
+  ): Promise<
+    DocResult<{ documents: RemoteDocument[]; cursor: string | null; cursorUnchanged: boolean; truncated: boolean }>
+  > {
     const creds = this.credentials(conn);
     if (!creds) return docFail('unauthorized', 'username and password are required');
     const scopePath = this.scopePath(scope);
@@ -358,11 +363,7 @@ export class SynologyDriveDocumentProvider implements DocumentProvider {
     });
   }
 
-  async fetch(
-    conn: DocumentConnectionRef,
-    scope: DocumentScopeRef,
-    remoteId: string,
-  ): Promise<DocResult<FetchResult>> {
+  async fetch(conn: DocumentConnectionRef, scope: DocumentScopeRef, remoteId: string): Promise<DocResult<FetchResult>> {
     const creds = this.credentials(conn);
     if (!creds) return docFail('unauthorized', 'username and password are required');
 
@@ -394,11 +395,7 @@ export class SynologyDriveDocumentProvider implements DocumentProvider {
    * to whole seconds), or the next listing reads TREK's own upload as a change
    * made upstream.
    */
-  async push(
-    conn: DocumentConnectionRef,
-    scope: DocumentScopeRef,
-    req: PushRequest,
-  ): Promise<DocResult<PushResult>> {
+  async push(conn: DocumentConnectionRef, scope: DocumentScopeRef, req: PushRequest): Promise<DocResult<PushResult>> {
     const creds = this.credentials(conn);
     if (!creds) return docFail('unauthorized', 'username and password are required');
     if (req.size > MAX_TRANSFER_BYTES) {
@@ -452,10 +449,7 @@ export class SynologyDriveDocumentProvider implements DocumentProvider {
 
       const entry = await this.client.getInfo(creds, targetPath);
       if (entry.size !== null && entry.size !== req.size) {
-        return docFail(
-          'checksum_mismatch',
-          `The NAS stored ${entry.size} bytes of an ${req.size}-byte upload`,
-        );
+        return docFail('checksum_mismatch', `The NAS stored ${entry.size} bytes of an ${req.size}-byte upload`);
       }
       if (req.size <= MD5_VERIFY_MAX_BYTES) {
         const remote = await this.client.md5(creds, targetPath);
@@ -514,11 +508,7 @@ export class SynologyDriveDocumentProvider implements DocumentProvider {
    * are travelling on must not be one API call away from gone, so a propagated
    * delete becomes a move that any of them can undo in File Station.
    */
-  async trash(
-    conn: DocumentConnectionRef,
-    scope: DocumentScopeRef,
-    remoteId: string,
-  ): Promise<DocResult<void>> {
+  async trash(conn: DocumentConnectionRef, scope: DocumentScopeRef, remoteId: string): Promise<DocResult<void>> {
     const creds = this.credentials(conn);
     if (!creds) return docFail('unauthorized', 'username and password are required');
 

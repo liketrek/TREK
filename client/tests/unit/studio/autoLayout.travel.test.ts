@@ -1,15 +1,14 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 
 /*
- * These cases are about the layouts written in autoLayout.ts, which are what an
- * entry falls back on when no hand-drawn template suits it. With the real
- * templates in place they would be testing whichever spread somebody last drew
- * in Studio — so the set is empty here on purpose.
+ * These cases are about the layouts written as code in the shared auto layout
+ * (shared/src/book/auto), which are what an entry falls back on when no
+ * hand-drawn template suits it. With the real templates in place they would be
+ * testing whichever spread somebody last drew in Studio, so the inputs pass an
+ * empty template set on purpose.
  */
-vi.mock('../../../src/components/Studio/bookTemplates.data', () => ({ SPREAD_TEMPLATES: [] }))
-import type { BookPageSetup, BookSpread, JourneyStats } from '@trek/shared'
-import { buildBook, emptyBook, type AutoEntry, type AutoInput } from '../../../src/components/Studio/autoLayout'
-import { bookPageSetupSchema } from '@trek/shared'
+import type { AutoEntry, AutoInput, BookPageSetup, BookSpread, JourneyStats } from '@trek/shared'
+import { bookPageSetupSchema, buildBook, emptyBook } from '@trek/shared'
 
 /**
  * The auto layout, once it knows what the journey adds up to (#1973).
@@ -62,6 +61,7 @@ function build(over: Partial<AutoInput> = {}) {
     entries: [entry()],
     page,
     stats: stats(),
+    templates: [],
     ...over,
   })
 }
@@ -312,6 +312,7 @@ describe('an empty book', () => {
     entries: [entry()],
     page,
     stats: stats(),
+    templates: [],
   }
 
   it('has a cover, a first page, a spread, a last page and a back cover, and nothing on any of them', () => {

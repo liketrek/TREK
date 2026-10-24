@@ -69,7 +69,7 @@ const listEl = (over: Record<string, unknown> = {}): BookElement => bookListElem
   ...over,
 }) as BookElement
 
-function show(el: BookElement, live: JourneyStats | null = null) {
+function show(el: BookElement, live: JourneyStats | null = null, trail: [number, number][][] = []) {
   useStudioStore.getState().load({
     version: 1, title: 'T', page,
     spreads: [{ id: 'sp1', role: 'inner', background: null, elements: [el], parked: [], entryId: null }],
@@ -80,6 +80,7 @@ function show(el: BookElement, live: JourneyStats | null = null) {
       spreadIndex={0}
       page={page}
       stats={live}
+      path={trail}
       source={{ entries: [], photos: [], photoEntries: {} }}
       setPageNumbers={() => {}}
       t={k => k}
@@ -100,6 +101,20 @@ const tick = (name: string) => fireEvent.click(screen.getByRole('checkbox', { na
 /** A switch, or any plain button: both answer to their accessible name. */
 const press = (name: string) => fireEvent.click(screen.getByRole('button', { name }))
 
+/** Opens the typeface list from its button and picks a family by the name its row is set in. */
+function pickFamily(name: string) {
+  fireEvent.click(screen.getByRole('button', { name: /^journey\.studio\.fonts\.change: / }))
+  const row = screen.getAllByRole('option').find(o => o.querySelector('.st-fontpick-face')?.textContent === name)
+  if (!row) throw new Error(`no typeface row named ${name}`)
+  fireEvent.click(row)
+}
+
+/** Drags the weight slider to the stop of a weight among those the family ships. */
+function slideWeight(weights: readonly number[], weight: number) {
+  const slider = screen.getByRole('slider', { name: 'journey.studio.weight' })
+  fireEvent.change(slider, { target: { value: String(weights.indexOf(weight)) } })
+}
+
 /** A section by its heading, since a label can repeat across sections. */
 function section(container: HTMLElement, label: string): HTMLElement {
   const found = [...container.querySelectorAll<HTMLElement>('.st-section')]
@@ -108,9 +123,18 @@ function section(container: HTMLElement, label: string): HTMLElement {
   return found
 }
 
-/** Some sections start folded, so a control inside one has to be uncovered. */
+/** Whether a section is open, read off its head. */
+function isOpen(container: HTMLElement, label: string): boolean {
+  return section(container, label).querySelector('.st-section-head')?.getAttribute('aria-expanded') === 'true'
+}
+
+/**
+ * Some sections start folded, so a control inside one has to be uncovered. A
+ * folded section opens by itself on an element that already uses it, and is
+ * left open then.
+ */
 function open(container: HTMLElement, label: string) {
-  fireEvent.click(section(container, label).querySelector('.st-section-head')!)
+  if (!isOpen(container, label)) fireEvent.click(section(container, label).querySelector('.st-section-head')!)
 }
 
 /** The control side of one labelled line inside one section. */
@@ -210,6 +234,17 @@ describe('the route map', () => {
     expect(saved().clip).toBe('rect')
   })
 
+  it('folds the zoom of a map that fits its route, and opens it on one held at a zoom', () => {
+    const tiles = { source: 'tiles', tileUrl: 'https://tile.example/{z}/{x}/{y}.png' }
+    const fitted = show(mapEl(tiles))
+    expect(isOpen(fitted.container, 'journey.studio.mapZoom')).toBe(false)
+    fitted.unmount()
+
+    const held = show(mapEl({ ...tiles, zoom: 11 }))
+    expect(isOpen(held.container, 'journey.studio.mapZoom')).toBe(true)
+    expect(screen.getByRole('radio', { name: '11' })).toHaveAttribute('aria-checked', 'true')
+  })
+
   it('writes a zoom from the folded group, and hands it back automatically', () => {
     const { container } = show(mapEl({ source: 'tiles', tileUrl: 'https://tile.example/{z}/{x}/{y}.png' }))
     open(container, 'journey.studio.mapZoom')
@@ -237,6 +272,60 @@ describe('the route map', () => {
 
     press('journey.studio.showLabels')
     expect(saved().showLabels).toBe(true)
+  })
+
+  /** A journey of two trips, so the map offers its scope at all. */
+  const twoTrips: JourneyStats = journeyStatsSchema.parse({
+    ...stats,
+    countries: [
+      { code: 'IS', name: 'Iceland', places: 2, firstVisit: '2026-01-01' },
+      { code: 'PT', name: 'Portugal', places: 1, firstVisit: '2026-03-01' },
+    ],
+    points: [
+      { lat: 64.14, lng: -21.94, label: 'Reykjavik', date: '2026-01-01', country: 'IS', tripId: 11 },
+      { lat: 65.68, lng: -18.09, label: 'Akureyri', date: '2026-01-04', country: 'IS', tripId: 11 },
+      { lat: 38.72, lng: -9.14, label: 'Lisboa', date: '2026-03-01', country: 'PT', tripId: 22 },
+    ],
+    trips: [
+      { id: 11, title: 'North', start: '2026-01-01', end: '2026-01-05', points: 2 },
+      { id: 22, title: 'South', start: '2026-03-01', end: '2026-03-02', points: 1 },
+    ],
+  })
+  /** The journey's recorded way, as the Studio hands it to the inspector. */
+  const trail: [number, number][][] = [[[64.14, -21.94], [38.72, -9.14]]]
+  /** Roads loaded for the whole journey's legs: entry i runs from stop i to stop i + 1. */
+  const roads = [[[64.14, -21.94], [64.0, -21.5], [65.68, -18.09]], null]
+
+  /*
+   * The scope switch re-cuts the map as the book engine refreshes one, so a
+   * map turned into a trip map here holds what the panel or the assistant
+   * would have placed for that trip: its own stops, its own countries, no
+   * recorded way, since the trail is the whole journey's, and no roads, since
+   * those belonged to the old legs. Switched back, the map takes the trail
+   * from the journey again, so the round trip loses nothing.
+   */
+  it('STTRV-007: re-cuts a map to one trip as the engine does, and back to the journey with its trail', () => {
+    show(mapEl({ countries: ['IS', 'PT'], path: trail, roads }), twoTrips, trail)
+
+    pick('North')
+    expect(saved()).toMatchObject({
+      tripId: 11, countries: ['IS'], path: [], roads: [], stale: false,
+      points: [{ label: 'Reykjavik' }, { label: 'Akureyri' }],
+    })
+
+    pick('journey.studio.mapWholeJourney')
+    expect(saved()).toMatchObject({ tripId: null, countries: ['IS', 'PT'], roads: [], stale: false })
+    expect(saved().path).toEqual(trail)
+    expect(saved().points).toHaveLength(3)
+  })
+
+  it('STTRV-008: picking the scope a map already has writes nothing, so its loaded roads stay', () => {
+    show(mapEl({ countries: ['IS', 'PT'], path: trail, roads }), twoTrips, trail)
+
+    pick('journey.studio.mapWholeJourney')
+    expect(saved()).toMatchObject({ tripId: null, path: trail, roads })
+    // Still the one stop it was made with: a re-cut would have brought all three.
+    expect(saved().points).toHaveLength(1)
   })
 })
 
@@ -457,17 +546,29 @@ describe('the tail all five share', () => {
 
     // Bebas ships one weight; a bold it does not have prints as a smeared
     // regular, so the request moves rather than being passed through.
-    press('Bebas Neue')
+    pickFamily('Bebas Neue')
 
     expect(saved().font).toBe('bebas')
     expect(saved().weight).toBe(400)
+  })
+
+  it('folds the type of an element set as placed, and opens it on one set otherwise', () => {
+    const plain = show(statsEl())
+    expect(isOpen(plain.container, 'journey.studio.typography')).toBe(false)
+    plain.unmount()
+
+    for (const over of [{ font: 'serif' }, { weight: 500 }, { textScale: 1.5 }]) {
+      const view = show(statsEl(over))
+      expect(isOpen(view.container, 'journey.studio.typography')).toBe(true)
+      view.unmount()
+    }
   })
 
   it('keeps a weight the new family does have', () => {
     const { container } = show(statsEl({ font: 'sans', weight: 500 }))
     open(container, 'journey.studio.typography')
 
-    press('Lora')
+    pickFamily('Lora')
 
     expect(saved().font).toBe('serif')
     expect(saved().weight).toBe(500)
@@ -477,7 +578,8 @@ describe('the tail all five share', () => {
     const { container } = show(countriesEl())
     open(container, 'journey.studio.typography')
 
-    pick('500')
+    // Poppins ships 100 to 900, so 500 is the fifth stop.
+    slideWeight([100, 200, 300, 400, 500, 600, 700, 800, 900], 500)
 
     expect(saved().weight).toBe(500)
   })

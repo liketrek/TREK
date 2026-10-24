@@ -188,7 +188,7 @@ describe('MAirTrailConnectionSection', () => {
     renderSection();
 
     await user.click(await screen.findByRole('button', { name: /Test connection/ }));
-    await screen.findByText('Connected — 12 flight(s) found');
+    await screen.findByText('Connected. 12 flights found');
     expect(screen.getByText('Connected')).toBeInTheDocument();
   });
 

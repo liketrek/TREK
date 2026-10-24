@@ -10,19 +10,12 @@ import { useInAppNotificationStore } from '../../store/inAppNotificationStore.ts
 export function useInAppNotifications() {
   const { notifications, unreadCount, total, isLoading, hasMore, fetchNotifications, markAllRead, deleteAll } = useInAppNotificationStore()
   const [unreadOnly, setUnreadOnly] = useState(false)
+  const [confirmingDeleteAll, setConfirmingDeleteAll] = useState(false)
   const loaderRef = useRef<HTMLDivElement>(null)
 
+  // First load and every filter change: start the list over, the server filters it.
   useEffect(() => {
-    fetchNotifications(true)
-  }, [])
-
-  // Reload when filter changes
-  useEffect(() => {
-    // We need to fetch with the unreadOnly filter — re-fetch from scratch
-    // The store fetchNotifications doesn't take a filter param directly,
-    // so we use the API directly for filtered view via a side channel.
-    // For now, reset and fetch — store always loads all, filter is client-side.
-    fetchNotifications(true)
+    fetchNotifications(true, unreadOnly)
   }, [unreadOnly])
 
   // Infinite scroll
@@ -37,11 +30,23 @@ export function useInAppNotifications() {
     return () => observer.disconnect()
   }, [hasMore, isLoading])
 
+  // Rows marked read while the Unread filter is on stay out of sight at once, before any reload.
   const displayed = unreadOnly ? notifications.filter(n => !n.is_read) : notifications
+  // The server's total follows the filter, so with Unread on it counts the unread ones.
+  const shownTotal = unreadOnly ? unreadCount : total
+
+  const confirmDeleteAll = async () => {
+    setConfirmingDeleteAll(false)
+    await deleteAll()
+  }
 
   return {
-    notifications, unreadCount, total, isLoading, hasMore,
+    notifications, unreadCount, total: shownTotal, isLoading, hasMore,
     unreadOnly, setUnreadOnly, loaderRef, displayed,
-    markAllRead, deleteAll,
+    markAllRead,
+    confirmingDeleteAll,
+    requestDeleteAll: () => setConfirmingDeleteAll(true),
+    cancelDeleteAll: () => setConfirmingDeleteAll(false),
+    confirmDeleteAll,
   }
 }

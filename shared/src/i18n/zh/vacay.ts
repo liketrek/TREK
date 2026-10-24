@@ -70,9 +70,9 @@ const vacay: TranslationStrings = {
   'vacay.sat': '周六',
   'vacay.sun': '周日',
   'vacay.publicHolidays': '公共假日',
-  'vacay.publicHolidaysHint': 'Mark public holidays in the calendar',
-  'vacay.schoolHolidays': 'School Holidays',
-  'vacay.schoolHolidaysHint': 'Mark school holidays as a visual calendar layer',
+  'vacay.publicHolidaysHint': '在日历中标记公共假期',
+  'vacay.schoolHolidays': '学校假期',
+  'vacay.schoolHolidaysHint': '将学校假期标记为日历上的可视图层',
   'vacay.selectCountry': '选择国家',
   'vacay.selectRegion': '选择地区（必填）',
   'vacay.companyHolidays': '公司假日',
@@ -143,7 +143,7 @@ const vacay: TranslationStrings = {
   'vacay.addCalendar': '添加日历',
   'vacay.calendarColor': '颜色',
   'vacay.calendarLabel': '标签',
-  'vacay.noCalendars': 'No holiday calendars added yet',
-  'vacay.noSchoolCalendars': 'No school holiday calendars added yet',
+  'vacay.noCalendars': '尚未添加假期日历',
+  'vacay.noSchoolCalendars': '尚未添加学校假期日历',
 };
 export default vacay;

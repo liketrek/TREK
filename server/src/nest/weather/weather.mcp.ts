@@ -1,6 +1,9 @@
 import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, ok, type McpContext } from '../../nest-mcp';
-import { z } from 'zod';
 import { WeatherService } from './weather.service';
+import { WindService } from './wind.service';
+import { WIND_FORECAST_DAYS, windQuerySchema, type WindQuery } from '@trek/shared';
+
+import { z } from 'zod';
 
 /**
  * Weather MCP tools, moved 1:1 from the legacy registrar in
@@ -12,10 +15,15 @@ import { WeatherService } from './weather.service';
  * The catch that answers with the upstream message and `isError: true` rather
  * than throwing is carried over verbatim: the client sees "Weather service not
  * available." instead of a transport-level failure when the provider is down.
+ * get_wind_forecast, the twin of GET /api/weather/wind, answers its failures
+ * the same way.
  */
 @McpController()
 export class WeatherMcp {
-  constructor(private readonly weather: WeatherService) {}
+  constructor(
+    private readonly weather: WeatherService,
+    private readonly wind: WindService,
+  ) {}
 
   @Tool({
     name: 'get_weather',
@@ -29,12 +37,15 @@ export class WeatherMcp {
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'weather', mode: 'read' },
   })
-  async getWeather({ lat, lng, date, lang }: { lat: number; lng: number; date: string; lang?: string }, _ctx: McpContext) {
+  async getWeather(
+    { lat, lng, date, lang }: { lat: number; lng: number; date: string; lang?: string },
+    _ctx: McpContext,
+  ) {
     try {
       const weather = await this.weather.get(String(lat), String(lng), date, lang ?? 'en');
       return ok({ weather });
     } catch (err) {
-      return { content: [{ type: 'text' as const, text: (err as Error)?.message ?? 'Weather service not available.' }], isError: true };
+      return unavailable(err);
     }
   }
 
@@ -50,12 +61,38 @@ export class WeatherMcp {
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'weather', mode: 'read' },
   })
-  async getDetailedWeather({ lat, lng, date, lang }: { lat: number; lng: number; date: string; lang?: string }, _ctx: McpContext) {
+  async getDetailedWeather(
+    { lat, lng, date, lang }: { lat: number; lng: number; date: string; lang?: string },
+    _ctx: McpContext,
+  ) {
     try {
       const weather = await this.weather.getDetailed(String(lat), String(lng), date, lang ?? 'en');
       return ok({ weather });
     } catch (err) {
-      return { content: [{ type: 'text' as const, text: (err as Error)?.message ?? 'Weather service not available.' }], isError: true };
+      return unavailable(err);
     }
   }
+
+  @Tool({
+    name: 'get_wind_forecast',
+    description: `Get the wind forecast for a location (lat, lng) on one day (date, YYYY-MM-DD): per local hour the mean speed and the gusts in km/h and the direction the wind comes from in degrees, and for the day the strongest mean, the strongest gust and the dominant direction. Only a forecast is answered: a day in the past or more than ${WIND_FORECAST_DAYS} days ahead comes back with its status (past, beyond_horizon) and no figures. A value the source did not give is null, never calm.`,
+    inputSchema: windQuerySchema.shape,
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    access: { group: 'weather', mode: 'read' },
+  })
+  async getWindForecast({ lat, lng, date }: WindQuery, _ctx: McpContext) {
+    try {
+      return ok({ wind: await this.wind.forecast({ lat, lng, date }) });
+    } catch (err) {
+      return unavailable(err);
+    }
+  }
+}
+
+/** The provider's failure as a refusal the caller can read, never a transport error. */
+function unavailable(err: unknown) {
+  return {
+    content: [{ type: 'text' as const, text: (err as Error)?.message ?? 'Weather service not available.' }],
+    isError: true,
+  };
 }

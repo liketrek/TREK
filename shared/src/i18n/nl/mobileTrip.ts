@@ -5,8 +5,10 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addNoteShort': 'Notitie',
   'mobileTrip.addPlaceShort': 'Plaats',
   'mobileTrip.addToDayQuestion': 'Toevoegen aan een dag?',
-  'mobileTrip.addTransportShort': 'Transport',
+  'mobileTrip.addTransportShort': 'Transport', // same-as-en
   'mobileTrip.allDays': 'Alle dagen',
+  'mobileTrip.today': 'Vandaag',
+  'mobileTrip.jumpToToday': 'Naar vandaag',
   'mobileTrip.assignedDays': 'Toegewezen dagen',
   'mobileTrip.assignmentNotes': 'Dagspecifieke notities',
   'mobileTrip.bookingsEmpty': 'Nog geen boekingen',
@@ -35,14 +37,18 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.onMap': 'Op kaart',
   'mobileTrip.profileDriving': 'Auto',
   'mobileTrip.profileWalking': 'Lopen',
+  'mobileTrip.profileCycling': 'Fietsen',
   'mobileTrip.renameDay': 'Dag hernoemen',
   'mobileTrip.resBadge': 'Boeking',
   'mobileTrip.showOnMap': 'Op kaart tonen',
   'mobileTrip.statDocuments': '{count} bestanden',
+  'mobileTrip.statDocuments.one': '{count} bestand',
   'mobileTrip.statPeople': '{count} personen',
+  'mobileTrip.statPeople.one': '{count} persoon',
   'mobileTrip.stay': 'Verblijf',
   'mobileTrip.tapAgainToDelete': 'Tik nogmaals om te verwijderen',
-  'mobileTrip.todoOpenCount': '{count} open',
+  'mobileTrip.todoOpenCount': '{count} open', // same-as-en
+  'mobileTrip.todoOpenCount.one': '{count} open', // same-as-en
   'mobileTrip.travel': 'Reis',
   'mobileTrip.upNext': 'Volgende',
   'mobileTrip.viewDetails': 'Details bekijken',
@@ -50,13 +56,19 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtInfoTitle': 'Rijgegevens',
   'mobileTrip.rtDesktopNote':
     'Deze waarden stel je in op de desktop. Daar kun je ook routevarianten vergelijken en een dag een geïmporteerde track laten volgen.',
-  'mobileTrip.rtPlanOnDesktop': 'Plannen doe je op de desktop. TREK berekent de rit zodra een dag twee plaatsen heeft.',
+  'mobileTrip.planOnDesktop': 'Plannen op de computer',
+  'mobileTrip.rtDriveOnTwoPlaces': 'TREK berekent de rit zodra een dag twee plaatsen heeft.',
+  'mobileTrip.toursEmptyBody': 'Opgeslagen tochten verschijnen hier en kun je aan een dag toevoegen.',
+  'mobileTrip.toursCount': '{count} tochten',
+  'mobileTrip.toursCount.one': '{count} tocht',
   'mobileTrip.rtSearchOffline': 'Vereist een verbinding: de zoekopdracht leest de route die voor je ligt.',
   'mobileTrip.rtBehind': '{time} achter op schema',
-  'mobileTrip.rtStart': 'Start',
+  'mobileTrip.rtStart': 'Start', // same-as-en
   'mobileTrip.rtStayScope': 'Het verblijf hoort bij de plaats en telt dus op elke dag waarop deze stop gepland staat.',
   'mobileTrip.rtStayLess': '{count} minuten minder',
+  'mobileTrip.rtStayLess.one': '{count} minuut minder',
   'mobileTrip.rtStayMore': '{count} minuten meer',
+  'mobileTrip.rtStayMore.one': '{count} minuut meer',
   'mobileTrip.rtNightDesktopOnly':
     'Een overnachting op deze plaats voeg je toe in de desktopplanner. Hier kun je die alleen verwijderen.',
   'mobileTrip.rtReach': 'Hoe ver',
@@ -65,9 +77,10 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtFromStart': 'Vanaf het begin van de etappe',
   'mobileTrip.rtNoneAhead': 'Niets op de weg die voor je ligt. Probeer de hele etappe.',
   'mobileTrip.rtNoneOnStage': 'Niets van dat soort langs deze etappe.',
-  'mobileTrip.rtTruncated.one': '1 stuk had meer dan in één antwoord past. Kies minder soorten om de rest te zien.',
   'mobileTrip.rtTruncated.other':
     '{count} stukken hadden meer dan in één antwoord past. Kies minder soorten om de rest te zien.',
+  'mobileTrip.rtTruncated.one':
+    '{count} stuk had meer dan in één antwoord past. Kies minder soorten om de rest te zien.',
   'mobileTrip.rtNoDay': 'Geen dag gekozen',
   'mobileTrip.rtNoDayHint': 'De kaart toont de hele reis. Tik hierboven op een dag om de rit te zien.',
 };

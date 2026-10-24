@@ -1,15 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
-import { Cloud, CloudLightning, CloudRain, CloudSnow, Sun, Wind } from 'lucide-react'
 import {
   breaksChronology, buildPlanRows, cityPillsForDay, findUpNext, getTransitMeta, hotelChipsForDay,
-  hotelLegsForDay, itemHasTime, parseReservationMeta, transportSubtitle, weatherIconFor,
+  hotelLegsForDay, itemHasTime, parseReservationMeta, transportSubtitle,
   type TransportEntry,
 } from '../../../../src/mobile/screens/trip/plan/planTimelineModel'
 import { getDisplayTimeForDay, getMergedItems, getTransportForDay, type MergedItem } from '../../../../src/utils/dayMerge'
 import { buildDayRouteRuns, hotelBookendOf, type DayRoutePoint } from '../../../../src/components/Map/dayRoutePlan'
 import { buildAssignment, buildDayNote, buildPlace, buildReservation } from '../../../helpers/factories'
 import type {
-  Accommodation, Assignment, Day, DayNote, Reservation, RouteSegment, TranslationFn,
+  Accommodation, Assignment, Day, DayNote, Place, Reservation, RouteSegment, TranslationFn,
 } from '../../../../src/types'
 
 // FE-MOB-PTLM-001 to FE-MOB-PTLM-060
@@ -55,6 +54,23 @@ const segmentsOf = (runs: DayRoutePoint[][]): RouteSegment[] =>
 const placeItem = (a: Assignment): MergedItem => ({ type: 'place', sortKey: a.order_index, data: a })
 const noteItem = (n: DayNote): MergedItem => ({ type: 'note', sortKey: n.sort_order ?? 0, data: n })
 const transportItem = (r: TransportEntry): MergedItem => ({ type: 'transport', sortKey: 0, data: r })
+
+function tourAssignment(id: number, order: number, geometry: [number, number][], currentGeometry = JSON.stringify(geometry)): Assignment {
+  const [lat, lng] = geometry[0]
+  const tourPlace = buildPlace({ id: id + 100, name: `Tour ${id}`, lat, lng, route_geometry: currentGeometry })
+  return buildAssignment({ id, day_id: 2, order_index: order, place_id: tourPlace.id, place: tourPlace,
+    tour_place_id: tourPlace.id, tour_route_geometry: JSON.stringify(geometry) })
+}
+
+function tourRows(assignments: Assignment[], routeSegments: RouteSegment[], toursEnabled = true) {
+  return buildPlanRows({
+    merged: assignments.map(placeItem), reservations: [], routeSegments, dayId: 2, toursEnabled,
+    places: assignments.flatMap(assignment => assignment.place ? [assignment.place as Place] : []),
+  })
+}
+
+const connectors = (rows: ReturnType<typeof buildPlanRows>) =>
+  rows.flatMap(row => row.kind === 'conn' ? [row.seg] : [])
 
 function accommodation(overrides: Partial<Accommodation>): Accommodation {
   return {
@@ -112,14 +128,17 @@ describe('planTimelineModel — metadata parsing', () => {
 })
 
 describe('planTimelineModel — transportSubtitle', () => {
+  // The labels stay keys, so the assertions read what the subtitle puts where.
+  const tr: TranslationFn = (key) => key
+
   it('FE-MOB-PTLM-006: renders a synthetic leg as from → to', () => {
     const res = { ...buildReservation({ type: 'flight' }), __leg: { index: 0, total: 2, from: 'FRA', to: 'IST' } } as TransportEntry
-    expect(transportSubtitle(res)).toBe('FRA → IST')
+    expect(transportSubtitle(res, tr)).toBe('FRA → IST')
   })
 
   it('FE-MOB-PTLM-007: renders a leg without endpoints as an empty subtitle', () => {
     const res = { ...buildReservation({ type: 'flight' }), __leg: { index: 1, total: 2, from: null, to: null } } as TransportEntry
-    expect(transportSubtitle(res)).toBe('')
+    expect(transportSubtitle(res, tr)).toBe('')
   })
 
   it('FE-MOB-PTLM-008: joins airline, flight number and airports for a flight', () => {
@@ -127,25 +146,42 @@ describe('planTimelineModel — transportSubtitle', () => {
       type: 'flight',
       metadata: JSON.stringify({ airline: 'LH', flight_number: 'LH123', departure_airport: 'FRA', arrival_airport: 'HND' }),
     })
-    expect(transportSubtitle(res)).toBe('LH · LH123 · FRA → HND')
+    expect(transportSubtitle(res, tr)).toBe('LH, LH123, FRA → HND')
   })
 
   it('FE-MOB-PTLM-009: omits the airport pair when neither airport is known', () => {
     const res = buildReservation({ type: 'flight', metadata: JSON.stringify({ airline: 'LH', flight_number: 'LH123' }) })
-    expect(transportSubtitle(res)).toBe('LH · LH123')
+    expect(transportSubtitle(res, tr)).toBe('LH, LH123')
   })
 
   it('FE-MOB-PTLM-010: labels platform and seat for a train', () => {
     const full = buildReservation({
       type: 'train', metadata: JSON.stringify({ train_number: 'ICE 599', platform: '7', seat: '32A' }),
     })
-    expect(transportSubtitle(full)).toBe('ICE 599 · Gl. 7 · Sitz 32A')
-    expect(transportSubtitle(buildReservation({ type: 'train', metadata: '{"train_number":"ICE 599"}' }))).toBe('ICE 599')
+    expect(transportSubtitle(full, tr)).toBe('ICE 599, reservations.meta.platform 7, reservations.meta.seat 32A')
+    expect(transportSubtitle(buildReservation({ type: 'train', metadata: '{"train_number":"ICE 599"}' }), tr)).toBe('ICE 599')
+  })
+
+  // #2701: a leg names its own train, platform and seat, not the first leg's.
+  it('FE-MOB-PTLM-011b: a train leg carries its own number, platform and seat', () => {
+    const res = {
+      ...buildReservation({ type: 'train', metadata: JSON.stringify({ train_number: 'Hida 6', seat: '10-4C' }) }),
+      __leg: { index: 1, total: 2, from: 'Nagoya', to: 'Kyoto', train_number: 'Nozomi 67', platform: '14', seat: '4-5A' },
+    } as TransportEntry
+    expect(transportSubtitle(res, tr)).toBe('Nozomi 67, reservations.meta.platform 14, reservations.meta.seat 4-5A, Nagoya → Kyoto')
+  })
+
+  it('FE-MOB-PTLM-011c: a flight leg carries its own airline and flight number', () => {
+    const res = {
+      ...buildReservation({ type: 'flight' }),
+      __leg: { index: 1, total: 2, from: 'IST', to: 'HND', airline: 'TK', flight_number: 'TK52' },
+    } as TransportEntry
+    expect(transportSubtitle(res, tr)).toBe('TK, TK52, IST → HND')
   })
 
   it('FE-MOB-PTLM-011: falls back to the location for any other type', () => {
-    expect(transportSubtitle(buildReservation({ type: 'bus', location: 'Central Station' }))).toBe('Central Station')
-    expect(transportSubtitle(buildReservation({ type: 'bus', location: null }))).toBe('')
+    expect(transportSubtitle(buildReservation({ type: 'bus', location: 'Central Station' }), tr)).toBe('Central Station')
+    expect(transportSubtitle(buildReservation({ type: 'bus', location: null }), tr)).toBe('')
   })
 })
 
@@ -268,6 +304,119 @@ describe('planTimelineModel — buildPlanRows', () => {
     })
     // Only the first Museum → Park hop finds the single matching leg.
     expect(rows.filter(r => r.kind === 'conn')).toHaveLength(1)
+  })
+
+  it('uses only Tour boundary connectors and leaves saved geometry unrouted', () => {
+    const before = assignment(31, 0, place(301, 'Before', 48.1, 11.1))
+    const tour = tourAssignment(32, 1, [[48.103, 11.103], [48.11, 11.11], [48.12, 11.12]])
+    const after = assignment(33, 2, place(303, 'After', 48.13, 11.13))
+    const incoming = seg([48.1, 11.1], [48.103, 11.103])
+    const outgoing = seg([48.12, 11.12], [48.13, 11.13])
+    const automaticTourRoute = seg([48.103, 11.103], [48.12, 11.12])
+    const rows = tourRows([before, tour, after], [incoming, outgoing, automaticTourRoute])
+    expect(connectors(rows)).toEqual([incoming, outgoing])
+    expect(rows.map(row => row.kind)).toEqual(['place', 'conn', 'place', 'conn', 'place'])
+    expect(rows.filter(row => row.kind === 'conn').map(row => row.assignmentId)).toEqual([before.id, tour.id])
+  })
+
+  it('uses the current Place projection when the saved assignment geometry has not refreshed', () => {
+    const before = assignment(35, 0, place(351, 'Before', 48.1, 11.1))
+    const tour = tourAssignment(36, 1, [[48.103, 11.103], [48.12, 11.12]], JSON.stringify([[48.105, 11.105], [48.125, 11.125]]))
+    const after = assignment(37, 2, place(353, 'After', 48.13, 11.13))
+    const currentIncoming = seg([48.1, 11.1], [48.105, 11.105])
+    const currentOutgoing = seg([48.125, 11.125], [48.13, 11.13])
+    const staleIncoming = seg([48.1, 11.1], [48.103, 11.103])
+    expect(connectors(tourRows([before, tour, after], [currentIncoming, currentOutgoing, staleIncoming])))
+      .toEqual([currentIncoming, currentOutgoing])
+  })
+
+  it('connects first, last and consecutive Tours only at valid boundaries', () => {
+    const before = assignment(41, 0, place(401, 'Before', 48.1, 11.1))
+    const first = tourAssignment(42, 1, [[48.11, 11.11], [48.12, 11.12]])
+    const second = tourAssignment(43, 2, [[48.13, 11.13], [48.14, 11.14]])
+    const after = assignment(44, 3, place(404, 'After', 48.15, 11.15))
+    const segments = [
+      seg([48.1, 11.1], [48.11, 11.11]),
+      seg([48.12, 11.12], [48.13, 11.13]),
+      seg([48.14, 11.14], [48.15, 11.15]),
+    ]
+    const firstToAfter = seg([48.12, 11.12], [48.15, 11.15])
+    expect(connectors(tourRows([first, after], [firstToAfter]))).toEqual([firstToAfter])
+    expect(connectors(tourRows([before, first], [segments[0]]))).toEqual([segments[0]])
+    const rows = tourRows([before, first, second, after], segments)
+    expect(connectors(rows)).toEqual(segments)
+    expect(rows.filter(row => row.kind === 'conn').map(row => row.assignmentId)).toEqual([before.id, first.id, second.id])
+  })
+
+  it('connects a loop Tour at its shared boundary without routing through its geometry', () => {
+    const before = assignment(51, 0, place(501, 'Before', 48.1, 11.1))
+    const loop = tourAssignment(52, 1, [[48.11, 11.11], [48.12, 11.12], [48.11, 11.11]])
+    const after = assignment(53, 2, place(503, 'After', 48.13, 11.13))
+    const incoming = seg([48.1, 11.1], [48.11, 11.11])
+    const outgoing = seg([48.11, 11.11], [48.13, 11.13])
+    const inside = seg([48.11, 11.11], [48.11, 11.11])
+    expect(connectors(tourRows([before, loop, after], [incoming, outgoing, inside]))).toEqual([incoming, outgoing])
+  })
+
+  it('keeps excluded Tours visible and bridges surrounding Places as the central route builder does', () => {
+    const before = assignment(61, 0, place(601, 'Before', 48.1, 11.1))
+    const tour = { ...tourAssignment(62, 1, [[48.11, 11.11], [48.12, 11.12]]), route_excluded: true }
+    const after = assignment(63, 2, place(603, 'After', 48.13, 11.13))
+    const bridge = seg([48.1, 11.1], [48.13, 11.13])
+    const rows = tourRows([before, tour, after], [bridge])
+    expect(rows.map(row => row.kind)).toEqual(['place', 'conn', 'place', 'place'])
+    expect(connectors(rows)).toEqual([bridge])
+    expect(rows.some(row => row.kind === 'place' && row.assignment.id === tour.id)).toBe(true)
+  })
+
+  it('exposes invalid-Tour warning state and never invents an outgoing endpoint', () => {
+    const before = assignment(71, 0, place(701, 'Before', 48.1, 11.1))
+    const tour = tourAssignment(72, 1, [[48.11, 11.11], [48.12, 11.12]], 'not valid geometry')
+    const after = assignment(73, 2, place(703, 'After', 48.13, 11.13))
+    const incoming = seg([48.1, 11.1], [48.11, 11.11])
+    const falseOutgoing = seg([48.11, 11.11], [48.13, 11.13])
+    const rows = tourRows([before, tour, after], [incoming, falseOutgoing])
+    expect(connectors(rows)).toEqual([incoming])
+    expect(rows.find(row => row.kind === 'place' && row.assignment.id === tour.id)).toMatchObject({ invalidTour: true })
+
+    const noPlaceAnchor = { ...tour, place: buildPlace({ id: tour.place!.id, name: 'Tour without anchor', lat: null, lng: null, route_geometry: 'not valid geometry' }) }
+    const noAnchorRows = tourRows([before, noPlaceAnchor, after], [seg([48.1, 11.1], [48.13, 11.13])])
+    expect(connectors(noAnchorRows)).toEqual([])
+    expect(noAnchorRows.find(row => row.kind === 'place' && row.assignment.id === tour.id)).toMatchObject({ invalidTour: true })
+  })
+
+  it('keeps Tours-off routing on the legacy single Place anchor unless the Place has a track (#2600)', () => {
+    const before = assignment(81, 0, place(801, 'Before', 48.1, 11.1))
+    const tour = tourAssignment(82, 1, [[48.11, 11.11], [48.12, 11.12]])
+    const after = assignment(83, 2, place(803, 'After', 48.13, 11.13))
+    // The legs the route calc draws for the day with the addon off, as the phone hands them on.
+    const drawn = (list: Assignment[]) => segmentsOf(buildDayRouteRuns(2, {
+      days: DAYS, assignments: { '2': list }, reservations: [], accommodations: [], optimizeFromAccommodation: false,
+      toursEnabled: false, places: list.flatMap(item => item.place ? [item.place as Place] : []),
+    }))
+    const tourRow = (rows: ReturnType<typeof buildPlanRows>) =>
+      rows.find(row => row.kind === 'place' && row.assignment.id === tour.id)
+
+    // Off, the Place still has its track, so the drive breaks there all the same and
+    // carries on from the track's end, as on the desktop day plan.
+    const rows = tourRows([before, tour, after], drawn([before, tour, after]), false)
+    expect(connectors(rows).map(item => [item.from, item.to])).toEqual([
+      [[48.1, 11.1], [48.11, 11.11]],
+      [[48.12, 11.12], [48.13, 11.13]],
+    ])
+    expect(rows.filter(row => row.kind === 'conn').map(row => row.assignmentId)).toEqual([before.id, tour.id])
+    expect(tourRow(rows)).toMatchObject({ invalidTour: false })
+
+    // Without a usable track it is a plain stop on its Place anchor, the saved Tour
+    // geometry left alone, and never an invalid Tour as it would be with the addon on.
+    const untracked = tourAssignment(82, 1, [[48.11, 11.11], [48.12, 11.12]], 'not valid geometry')
+    const anchorRows = tourRows([before, untracked, after], drawn([before, untracked, after]), false)
+    expect(connectors(anchorRows).map(item => [item.from, item.to])).toEqual([
+      [[48.1, 11.1], [48.11, 11.11]],
+      [[48.11, 11.11], [48.13, 11.13]],
+    ])
+    expect(tourRow(anchorRows)).toMatchObject({ invalidTour: false })
+    expect(tourRow(tourRows([before, untracked, after], [], true))).toMatchObject({ invalidTour: true })
   })
 })
 
@@ -734,17 +883,5 @@ describe('planTimelineModel — chronology helpers', () => {
     const getDisplayTime = vi.fn(getDisplayTimeForDay)
     expect(breaksChronology([nine, bus], 2, getDisplayTime)).toBe(true)
     expect(getDisplayTime).toHaveBeenCalledWith(bus.data, 2)
-  })
-})
-
-describe('planTimelineModel — weatherIconFor', () => {
-  it('FE-MOB-PTLM-041: maps the known conditions and defaults to a cloud', () => {
-    expect(weatherIconFor('Clear')).toBe(Sun)
-    expect(weatherIconFor('Rain')).toBe(CloudRain)
-    expect(weatherIconFor('Thunderstorm')).toBe(CloudLightning)
-    expect(weatherIconFor('Snow')).toBe(CloudSnow)
-    expect(weatherIconFor('Haze')).toBe(Wind)
-    expect(weatherIconFor('Tornado')).toBe(Cloud)
-    expect(weatherIconFor(undefined)).toBe(Cloud)
   })
 })

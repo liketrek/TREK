@@ -10,7 +10,7 @@ Each addon extends TREK with functionality beyond the core trip-planning feature
 
 ## Addon list
 
-The following addons are registered in the system (defined in `server/src/db/seeds.ts`; the TypeScript constant `ADDON_IDS` in `server/src/addons.ts` covers all addons except `naver_list_import`):
+The following addons are registered in the system (defined in `server/src/db/seeders/AddonSeeder.ts`; the TypeScript constant `ADDON_IDS` in `server/src/addons.ts` covers all addons except `naver_list_import`):
 
 | Addon ID | Type | Description |
 |---|---|---|
@@ -22,11 +22,12 @@ The following addons are registered in the system (defined in `server/src/db/see
 | `atlas` | global | Interactive world map showing countries and regions you have visited, plus a bucket list. See [Atlas](Atlas). |
 | `collab` | trip | Notes, polls, and live chat for trip collaboration. See [Real-Time-Collaboration](Real-Time-Collaboration). |
 | `roadtrip` | trip | **Road trip**: plans a trip as one continuous drive, with stops along the route, driving times and arrival times that update themselves. Off by default. See [Road-Trip](Road-Trip). |
+| `tours` | trip | **Tours**: hikes, city walks, bike, ski, paddle and horse tours with a route, drawn in TREK or imported from GPX, KML or KMZ, as single-day tours or with stages over several days. On by default. See [Tours](Tours). |
 | `journey` | global | Trip tracking and travel journal: check-ins, photos, and daily stories. See [Journey-Journal](Journey-Journal). |
 | `collections` | global | A personal, server-wide library of saved places in named lists, with idea/want/visited status, categories, and fusion sharing with per-member roles. See [Collections](Collections). |
 | `airtrail` | integration | Sync flights from your self-hosted AirTrail instance into trips. |
 | `dawarich` | integration | Read the stays and recorded routes of each user's own Dawarich instance, offered as suggestions to confirm. Read-only, nothing is written back. See [Dawarich](Dawarich). |
-| `llm_parsing` | integration | **AI Parsing**: an LLM fallback that extracts bookings from confirmation files KDE Itinerary can't read. See [AI-Booking-Import](AI-Booking-Import). |
+| `llm_parsing` | integration | **AI Parsing**: an LLM fallback that extracts bookings from confirmation files KDE Itinerary can't read. With a model that reads images it also takes photos and scanned PDFs, and Costs gets **Scan receipt**. See [AI-Booking-Import](AI-Booking-Import) and [Budget-Tracking](Budget-Tracking#scanning-a-receipt). |
 | `naver_list_import` | integration | Import places from shared Naver Maps lists directly into a trip. |
 
 

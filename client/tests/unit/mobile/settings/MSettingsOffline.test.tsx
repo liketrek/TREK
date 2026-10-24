@@ -180,7 +180,7 @@ describe('MSettingsOffline', () => {
     await waitFor(() => expect(within(cacheCard).getByText('Paris')).toBeInTheDocument());
     const titles = within(cacheCard).getAllByText(/^(Paris|Tokyo)$/).map(el => el.textContent);
     expect(titles).toEqual(['Paris', 'Tokyo']);
-    expect(within(cacheCard).getByText(/Jun 1, 2025 – Jun 5, 2025/)).toHaveTextContent('7');
+    expect(within(cacheCard).getByText('Jun 1, 2025 to Jun 5, 2025, 7 places, 2 files')).toBeInTheDocument();
     expect(within(screen.getByText('Cached trips').parentElement as HTMLElement).getByText('2')).toBeInTheDocument();
     // Never synced → the time column shows a dash.
     expect(within(cacheCard).getAllByText('—').length).toBe(2);
@@ -266,11 +266,11 @@ describe('MSettingsOffline', () => {
     await screen.findByText('No trips cached yet. Connect to the internet to sync.');
     await user.click(screen.getByRole('button', { name: 'Download for offline use' }));
 
-    expect(await screen.findByText('Documents · 1/4 · Paris')).toBeInTheDocument();
+    expect(await screen.findByText('Documents: 1/4, Paris')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Downloading…' })).toBeDisabled();
 
     await act(async () => { release(); });
-    expect(await screen.findByText('Stored 4 trip(s) on this device')).toBeInTheDocument();
+    expect(await screen.findByText('Stored 4 trips on this device')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Download for offline use' })).toBeEnabled();
   });
 
@@ -287,7 +287,7 @@ describe('MSettingsOffline', () => {
     await screen.findByText('No trips cached yet. Connect to the internet to sync.');
     await user.click(screen.getByRole('button', { name: 'Download for offline use' }));
 
-    const label = await screen.findByText('Map tiles · 0/0');
+    const label = await screen.findByText('Map tiles: 0/0');
     const bar = label.previousElementSibling?.firstElementChild as HTMLElement;
     expect(bar).toHaveStyle({ width: '100%' });
     await act(async () => { release(); });
@@ -362,7 +362,7 @@ describe('MSettingsOffline', () => {
     // switch has to say so rather than promising storage that never happens.
     const toggle = await screen.findByRole('switch', { name: 'Tokyo' });
     expect(toggle).toHaveAttribute('aria-checked', 'false');
-    expect(screen.getAllByText(/Not stored · Finished/)).toHaveLength(2);
+    expect(screen.getAllByText(/Not stored\. Finished/)).toHaveLength(2);
 
     await user.click(toggle);
     await waitFor(() => expect(h.syncAll).toHaveBeenCalledTimes(1));

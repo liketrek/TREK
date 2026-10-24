@@ -82,6 +82,16 @@ describe('NavigationMenu', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
+  it('FE-COMP-NAVMENU-008: Escape is prevented before a dialog behind the menu sees it', () => {
+    render(<NavigationMenu targets={TARGETS} anchor={anchorAt(100)} onClose={vi.fn()} />)
+    let seenPrevented = false
+    const behind = (e: KeyboardEvent) => { seenPrevented = e.defaultPrevented }
+    document.addEventListener('keydown', behind)
+    fireEvent.keyDown(document, { key: 'Escape' })
+    document.removeEventListener('keydown', behind)
+    expect(seenPrevented).toBe(true)
+  })
+
   it('FE-COMP-NAVMENU-007: renders nothing without targets', () => {
     render(<NavigationMenu targets={[]} anchor={anchorAt(100)} onClose={vi.fn()} />)
     expect(screen.queryByRole('menu')).not.toBeInTheDocument()

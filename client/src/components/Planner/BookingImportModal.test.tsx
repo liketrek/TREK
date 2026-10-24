@@ -1,4 +1,4 @@
-// FE-PLANNER-BOOKIMP-001 to FE-PLANNER-BOOKIMP-014
+// FE-PLANNER-BOOKIMP-001 to FE-PLANNER-BOOKIMP-021
 import { render, screen, fireEvent, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -195,5 +195,40 @@ describe('BookingImportModal', () => {
     fireEvent.mouseDown(backdrop);
     fireEvent.click(backdrop);
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('BookingImportModal with a model that reads images', () => {
+  const jpg = () => new File(['jpeg'], 'ticket.jpg', { type: 'image/jpeg' });
+
+  it('FE-PLANNER-BOOKIMP-020: offers photos, and imports one with AI, when the model reads images', async () => {
+    let mode: string | null = null;
+    server.use(
+      http.get('/api/health/features', () => HttpResponse.json({ bookingImport: true, aiParsing: true })),
+      http.get('/api/llm/capabilities', () => HttpResponse.json({ images: true })),
+      http.post('/api/trips/4/reservations/import/booking/async', async ({ request }) => {
+        mode = (await readMultipart(request)).fields.mode ?? null;
+        return HttpResponse.json({ jobId: 'job-2' });
+      }),
+    );
+    render(<BookingImportModal {...defaultProps} kind="transports" />);
+
+    expect(await screen.findByText(/Photos \(JPG, PNG, WEBP\) are read by the AI model\./)).toBeInTheDocument();
+    expect(fileInput().accept).toContain('.jpg');
+    fireEvent.change(fileInput(), { target: { files: [jpg()] } });
+    expect(screen.getByText('ticket.jpg')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Import' }));
+    await waitFor(() => expect(useBackgroundTasksStore.getState().tasks.find(t => t.id === 'job-2')).toMatchObject({ kind: 'transports' }));
+    expect(mode).toBe('fallback-on-empty');
+  });
+
+  it('FE-PLANNER-BOOKIMP-021: refuses a photo while the model reads no images', async () => {
+    server.use(http.get('/api/llm/capabilities', () => HttpResponse.json({ images: false })));
+    render(<BookingImportModal {...defaultProps} />);
+    await waitFor(() => expect(fileInput().accept).not.toContain('.jpg'));
+    fireEvent.change(fileInput(), { target: { files: [jpg()] } });
+    expect(screen.getByText('Unsupported file format. Use EML, PDF, PKPass, HTML, or TXT.')).toBeInTheDocument();
+    expect(screen.queryByText(/Photos \(JPG/)).not.toBeInTheDocument();
   });
 });

@@ -1,11 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut } from 'lucide-react'
 import VideoPlayer from './VideoPlayerLazy'
+import { usePhotoZoom } from './usePhotoZoom'
+import { Tooltip } from '../shared/Tooltip'
+import { isRtlLanguage, useTranslation } from '../../i18n'
 
 interface LightboxPhoto {
   id: string
   src: string
   caption?: string | null
+  /** Where the caption's credit points to (a photo's source page), opened in a new tab. */
+  captionHref?: string | null
   provider?: string
   asset_id?: string | null
   owner_id?: number | null
@@ -16,13 +21,37 @@ interface Props {
   photos: LightboxPhoto[]
   startIndex?: number
   onClose: () => void
+  /** What the dialog is called for assistive tech. */
+  label?: string
 }
 
-export default function PhotoLightbox({ photos, startIndex = 0, onClose }: Props) {
+/** The round glass buttons of the top bar. */
+const ROUND_BTN: React.CSSProperties = {
+  background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%',
+  width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
+  color: '#fff', cursor: 'pointer',
+}
+
+export default function PhotoLightbox({ photos, startIndex = 0, onClose, label }: Props) {
   const [idx, setIdx] = useState(startIndex)
   const touchStart = useRef<{ x: number; y: number } | null>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const { t, language } = useTranslation()
+  // Right to left, the next photo lies to the left: the arrow keys and swipes follow the reading direction.
+  // Taken from the language, not read off <html dir>, so it stays put across re-renders.
+  const rtl = isRtlLanguage(language)
+
+  // Focus moves into the dialog when it opens and back to what opened it when it closes.
+  useEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    dialogRef.current?.focus()
+    return () => opener?.focus()
+  }, [])
 
   const photo = photos[idx]
+  // Zoom starts over on every photo (#1484).
+  const zoom = usePhotoZoom(photo?.id)
+  const isImage = !!photo && photo.mediaType !== 'video'
   const hasPrev = idx > 0
   const hasNext = idx < photos.length - 1
 
@@ -32,19 +61,27 @@ export default function PhotoLightbox({ photos, startIndex = 0, onClose }: Props
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
-      if (e.key === 'ArrowLeft') prev()
-      if (e.key === 'ArrowRight') next()
+      if (e.key === 'ArrowLeft') (rtl ? next : prev)()
+      if (e.key === 'ArrowRight') (rtl ? prev : next)()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [prev, next, onClose])
+  }, [prev, next, onClose, rtl])
 
+  // A pinch, a double tap or a pan of an enlarged photo belongs to the zoom; only
+  // the rest is a swipe that turns the page or closes the lightbox.
   const onTouchStart = (e: React.TouchEvent) => {
+    if (isImage && zoom.touchStart(e)) { touchStart.current = null; return }
     const t = e.touches[0]
     touchStart.current = { x: t.clientX, y: t.clientY }
   }
 
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (isImage && zoom.touchMove(e)) touchStart.current = null
+  }
+
   const onTouchEnd = (e: React.TouchEvent) => {
+    if (isImage && zoom.touchEnd(e)) { touchStart.current = null; return }
     if (!touchStart.current) return
     const t = e.changedTouches[0]
     const dx = t.clientX - touchStart.current.x
@@ -57,7 +94,7 @@ export default function PhotoLightbox({ photos, startIndex = 0, onClose }: Props
     }
     // horizontal swipe
     if (Math.abs(dx) > 50 && Math.abs(dy) < 80) {
-      if (dx < 0) next()
+      if (dx < 0 !== rtl) next()
       else prev()
     }
     touchStart.current = null
@@ -67,13 +104,20 @@ export default function PhotoLightbox({ photos, startIndex = 0, onClose }: Props
 
   return (
     <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={label}
+      tabIndex={-1}
       style={{
+        outline: 'none',
         position: 'fixed', inset: 0, zIndex: 10000,
         background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(20px)',
         display: 'flex', flexDirection: 'column',
         paddingBottom: 'var(--bottom-nav-h)',
       }}
       onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
       {/* Photo area — centered with nav overlays */}
@@ -82,30 +126,54 @@ export default function PhotoLightbox({ photos, startIndex = 0, onClose }: Props
         style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}
       >
         {/* Top bar */}
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px' }}>
+        <div style={{ position: 'absolute', top: 0, insetInline: 0, zIndex: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px' }}>
           <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500 }}>
             {idx + 1} / {photos.length}
           </span>
-          <button type="button" onClick={onClose} style={{
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {isImage && (
+            <>
+              <Tooltip label={t('journey.lightbox.zoomOut')}>
+                <button type="button" onClick={zoom.zoomOut} disabled={!zoom.zoomed} aria-label={t('journey.lightbox.zoomOut')} style={{ ...ROUND_BTN, opacity: zoom.zoomed ? 1 : 0.4 }}>
+                  <ZoomOut size={17} />
+                </button>
+              </Tooltip>
+              {zoom.zoomed && (
+                <Tooltip label={t('journey.lightbox.zoomReset')}>
+                  <button type="button" onClick={zoom.reset} aria-label={t('journey.lightbox.zoomReset')}
+                    style={{ ...ROUND_BTN, width: 'auto', borderRadius: 99, padding: '0 12px', fontSize: 'calc(12px * var(--fs-scale-caption, 1))', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                    {Math.round(zoom.zoom.scale * 100)}%
+                  </button>
+                </Tooltip>
+              )}
+              <Tooltip label={t('journey.lightbox.zoomIn')}>
+                <button type="button" onClick={zoom.zoomIn} disabled={!zoom.canZoomIn} aria-label={t('journey.lightbox.zoomIn')} style={{ ...ROUND_BTN, opacity: zoom.canZoomIn ? 1 : 0.4 }}>
+                  <ZoomIn size={17} />
+                </button>
+              </Tooltip>
+            </>
+          )}
+          <button type="button" onClick={onClose} aria-label={t('common.close')} style={{
             background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%',
             width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
             color: '#fff', cursor: 'pointer',
           }}>
             <X size={18} />
           </button>
+          </div>
         </div>
 
         {/* Prev button — visible on hover (desktop), always visible (mobile) */}
         {hasPrev && (
-          <button type="button" onClick={prev} className="flex sm:opacity-0 sm:group-hover/lightbox:opacity-100 transition-opacity" style={{
-            position: 'absolute', left: 16, zIndex: 5,
+          <button type="button" onClick={prev} aria-label={t('journey.lightbox.previous')} className="flex sm:opacity-0 sm:group-hover/lightbox:opacity-100 focus-visible:opacity-100 transition-opacity" style={{
+            position: 'absolute', insetInlineStart: 16, zIndex: 5,
             width: 44, height: 44, borderRadius: '50%',
             background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)',
             border: '1px solid rgba(255,255,255,0.1)',
             alignItems: 'center', justifyContent: 'center',
             color: '#fff', cursor: 'pointer',
           }}>
-            <ChevronLeft size={22} />
+            <ChevronLeft size={22} className="rtl:rotate-180" />
           </button>
         )}
 
@@ -115,39 +183,50 @@ export default function PhotoLightbox({ photos, startIndex = 0, onClose }: Props
         ) : (
           <img
             key={photo.id}
+            ref={zoom.imgRef}
             src={photo.src}
             alt={photo.caption || ''}
+            draggable={false}
+            {...zoom.mouse}
             style={{
               maxWidth: '92vw', maxHeight: '92vh',
               objectFit: 'contain', borderRadius: 4,
               animation: 'fadeIn 0.15s ease',
+              userSelect: 'none',
+              ...zoom.style,
             }}
           />
         )}
 
         {/* Next button */}
         {hasNext && (
-          <button type="button" onClick={next} className="flex sm:opacity-0 sm:group-hover/lightbox:opacity-100 transition-opacity" style={{
-            position: 'absolute', right: 16, zIndex: 5,
+          <button type="button" onClick={next} aria-label={t('journey.lightbox.next')} className="flex sm:opacity-0 sm:group-hover/lightbox:opacity-100 focus-visible:opacity-100 transition-opacity" style={{
+            position: 'absolute', insetInlineEnd: 16, zIndex: 5,
             width: 44, height: 44, borderRadius: '50%',
             background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)',
             border: '1px solid rgba(255,255,255,0.1)',
             alignItems: 'center', justifyContent: 'center',
             color: '#fff', cursor: 'pointer',
           }}>
-            <ChevronRight size={22} />
+            <ChevronRight size={22} className="rtl:rotate-180" />
           </button>
         )}
 
         {/* Caption — bottom center overlay */}
         {photo.caption && (
-          <div style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 5, maxWidth: '70%', textAlign: 'center' }}>
+          <div style={{ position: 'absolute', bottom: 20, insetInline: 0, zIndex: 5, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
             <p style={{
               fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontStyle: 'italic',
-              color: 'rgba(255,255,255,0.75)', margin: 0, lineHeight: 1.5,
+              color: 'rgba(255,255,255,0.75)', margin: 0, lineHeight: 1.5, maxWidth: '70%', textAlign: 'center',
               background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(8px)',
-              padding: '6px 14px', borderRadius: 10,
-            }}>{photo.caption}</p>
+              padding: '6px 14px', borderRadius: 10, pointerEvents: 'auto',
+            }}>
+              {photo.captionHref ? (
+                <a href={photo.captionHref} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }} className="hover:underline">
+                  {photo.caption}
+                </a>
+              ) : photo.caption}
+            </p>
           </div>
         )}
       </div>

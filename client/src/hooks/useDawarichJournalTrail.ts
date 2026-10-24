@@ -71,6 +71,7 @@ export function useDawarichJournalTrail(
             name: segment.date,
             color: segment.color,
             points: segment.points,
+            kind: 'dawarich_live',
           })),
         )
         setFetchedAt(track.fetchedAt)

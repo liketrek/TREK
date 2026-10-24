@@ -1,4 +1,4 @@
-// FE-PAGE-COLL-001 to FE-PAGE-COLL-085
+// FE-PAGE-COLL-001 to FE-PAGE-COLL-095
 // The Collections page hook. The collection store is replaced by a fixture so
 // every handler/branch can be driven directly; the categories request goes
 // through MSW, and the websocket module is already mocked in tests/setup.ts.
@@ -16,9 +16,12 @@ import { useCollections } from './useCollections'
 
 const navigate = vi.fn()
 let routeParams: { id?: string } = {}
+let searchParams = new URLSearchParams()
+const setSearchParams = vi.fn()
 vi.mock('react-router', () => ({
   useNavigate: () => navigate,
   useParams: () => routeParams,
+  useSearchParams: () => [searchParams, setSearchParams],
 }))
 
 // The fixture is handed out by the mocked store hook; tests mutate it and rerender.
@@ -34,6 +37,9 @@ vi.mock('../../components/Collections/collectionFile', () => ({
   downloadCollectionGpx: vi.fn(),
 }))
 import { downloadCollectionFile, downloadCollectionGpx } from '../../components/Collections/collectionFile'
+
+/** How long useCollections lets a run of collections:* events settle before it reloads. */
+const WS_SETTLE_MS = 400
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
 function makeStore() {
@@ -149,6 +155,8 @@ beforeEach(() => {
   store = makeStore()
   hoisted.store = store
   routeParams = {}
+  searchParams = new URLSearchParams()
+  setSearchParams.mockClear()
   wideMedia = false
   darkMedia = false
   navigate.mockClear()
@@ -164,6 +172,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  vi.useRealTimers()
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
   delete window.__addToast
@@ -869,7 +878,9 @@ describe('useCollections — websocket sync', () => {
     store.loadAll.mockClear()
     // The route sync already activated the union on mount; only the WS effect counts here.
     store.setActive.mockClear()
+    vi.useFakeTimers()
     act(() => wsHandler()({ type: 'collections:updated', collectionId: 4 }))
+    act(() => { vi.advanceTimersByTime(WS_SETTLE_MS) })
 
     expect(store.loadAll).toHaveBeenCalledTimes(1)
     expect(store.loadCollection).toHaveBeenCalledWith(4)
@@ -881,7 +892,9 @@ describe('useCollections — websocket sync', () => {
     store.activeId = null
     await setup()
     store.loadAll.mockClear()
+    vi.useFakeTimers()
     act(() => wsHandler()({ type: 'collections:left' }))
+    act(() => { vi.advanceTimersByTime(WS_SETTLE_MS) })
 
     expect(store.loadAll).toHaveBeenCalledTimes(1)
     expect(store.loadCollection).not.toHaveBeenCalled()
@@ -891,9 +904,60 @@ describe('useCollections — websocket sync', () => {
   it('FE-PAGE-COLL-076: an update on the All-saved union re-unions the lists', async () => {
     store.activeId = 'all'
     await setup()
+    store.setActive.mockClear()
+    vi.useFakeTimers()
     act(() => wsHandler()({ type: 'collections:accepted' }))
+    act(() => { vi.advanceTimersByTime(WS_SETTLE_MS) })
 
-    expect(store.setActive).toHaveBeenCalledWith('all')
+    // A refresh, so the open place and the selection survive the re-union.
+    expect(store.refreshActive).toHaveBeenCalledTimes(1)
+    expect(store.setActive).not.toHaveBeenCalled()
+    expect(store.loadCollection).not.toHaveBeenCalled()
+  })
+
+  it('FE-PAGE-COLL-091: a burst of updates reloads once, after it has settled (#2559)', async () => {
+    store.activeId = 4
+    await setup()
+    store.loadAll.mockClear()
+    vi.useFakeTimers()
+    act(() => {
+      for (let i = 0; i < 20; i++) {
+        wsHandler()({ type: 'collections:updated', collectionId: 4 })
+        vi.advanceTimersByTime(50)
+      }
+    })
+    expect(store.loadAll).not.toHaveBeenCalled()
+    expect(store.loadCollection).not.toHaveBeenCalled()
+
+    act(() => { vi.advanceTimersByTime(WS_SETTLE_MS) })
+    expect(store.loadAll).toHaveBeenCalledTimes(1)
+    expect(store.loadCollection).toHaveBeenCalledTimes(1)
+    expect(store.loadCollection).toHaveBeenCalledWith(4)
+  })
+
+  it('FE-PAGE-COLL-092: the settled reload reads the list that is open by then', async () => {
+    store.activeId = 4
+    const view = await setup()
+    vi.useFakeTimers()
+    act(() => wsHandler()({ type: 'collections:updated', collectionId: 4 }))
+    store.activeId = 'all'
+    view.rerender()
+    act(() => { vi.advanceTimersByTime(WS_SETTLE_MS) })
+
+    expect(store.loadCollection).not.toHaveBeenCalled()
+    expect(store.refreshActive).toHaveBeenCalledTimes(1)
+  })
+
+  it('FE-PAGE-COLL-093: a reload still pending on unmount is dropped', async () => {
+    store.activeId = 4
+    const view = await setup()
+    store.loadAll.mockClear()
+    vi.useFakeTimers()
+    act(() => wsHandler()({ type: 'collections:updated', collectionId: 4 }))
+    view.unmount()
+    act(() => { vi.advanceTimersByTime(WS_SETTLE_MS) })
+
+    expect(store.loadAll).not.toHaveBeenCalled()
     expect(store.loadCollection).not.toHaveBeenCalled()
   })
 })
@@ -1205,5 +1269,93 @@ describe('useCollections: GPX (#2301)', () => {
 
     expect(seen[0]).toEqual({ gpx: '<gpx/>', file_name: 'sintra.gpx' })
     expect(answer).toEqual(read)
+  })
+})
+
+// #2645: the invite notification links to /collections/:id, a list the invitee
+// cannot read until they accept. The page has to offer the invite there, and a
+// link to a list that is gone (declined, cancelled, deleted) must not leave the
+// page pointing at nothing.
+describe('useCollections — route that is an invite (#2645)', () => {
+  const invite = { collection_id: 14, name: 'Lisbon', from: { id: 4, username: 'Lena' } }
+
+  it('FE-PAGE-COLL-086: a route id that is a pending invite exposes it and does not open the list', async () => {
+    routeParams = { id: '14' }
+    store.incomingInvites = [invite]
+    const { result } = await setup()
+    expect(result.current.routeInvite).toEqual(invite)
+    expect(store.setActive).not.toHaveBeenCalledWith(14)
+    expect(navigate).not.toHaveBeenCalled()
+  })
+
+  it('FE-PAGE-COLL-087: the invite on the route is listed first', async () => {
+    routeParams = { id: '14' }
+    const other = { collection_id: 3, name: 'Rome', from: { id: 5, username: 'Tom' } }
+    store.incomingInvites = [other, invite]
+    const { result } = await setup()
+    expect(result.current.orderedInvites).toEqual([invite, other])
+  })
+
+  it('FE-PAGE-COLL-088: a route id that is neither a list nor an invite bounces to /collections once the lists are in', async () => {
+    routeParams = { id: '14' }
+    store.collections = [collection({ id: 2 })]
+    await setup()
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/collections', { replace: true }))
+  })
+
+  it('FE-PAGE-COLL-089: no bounce while the lists are still loading', async () => {
+    routeParams = { id: '14' }
+    let finish: () => void = () => {}
+    store.loadAll.mockImplementationOnce(() => new Promise<void>(res => { finish = res }))
+    await setup()
+    expect(navigate).not.toHaveBeenCalled()
+    await act(async () => { finish() })
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/collections', { replace: true }))
+  })
+
+  it('FE-PAGE-COLL-090: a route id that is one of the lists stays put', async () => {
+    routeParams = { id: '14' }
+    store.collections = [collection({ id: 14 })]
+    await setup()
+    await act(async () => {})
+    expect(navigate).not.toHaveBeenCalled()
+  })
+
+  it('FE-PAGE-COLL-094: a link to a saved place opens it once its list holds it, then drops the param', async () => {
+    routeParams = { id: '14' }
+    searchParams = new URLSearchParams('place=34&tab=map')
+    store.collections = [collection({ id: 14 })]
+    store.activeId = 14
+    store.places = [place({ id: 34, collection_id: 14 })]
+    await setup()
+    expect(store.setSelectedPlaceId).toHaveBeenCalledWith(34)
+    expect(setSearchParams).toHaveBeenCalledTimes(1)
+    const [update, options] = setSearchParams.mock.calls[0] as [(prev: URLSearchParams) => URLSearchParams, object]
+    expect(update(searchParams).toString()).toBe('tab=map')
+    expect(options).toEqual({ replace: true })
+  })
+
+  it('FE-PAGE-COLL-095: a linked place waits for its list: not another list, not while loading; a list without it drops the link', async () => {
+    routeParams = { id: '14' }
+    searchParams = new URLSearchParams('place=34')
+    store.collections = [collection({ id: 14 }), collection({ id: 2 })]
+    store.activeId = 2
+    store.places = [place({ id: 34, collection_id: 2 })]
+    const view = await setup()
+    expect(store.setSelectedPlaceId).not.toHaveBeenCalled()
+    store.activeId = 14
+    store.placesLoading = true
+    view.rerender()
+    expect(store.setSelectedPlaceId).not.toHaveBeenCalled()
+    store.placesLoading = false
+    view.rerender()
+    // The places on screen are still another list's: the place may just not have arrived.
+    expect(setSearchParams).not.toHaveBeenCalled()
+    store.places = [place({ id: 35, collection_id: 14 })]
+    view.rerender()
+    expect(store.setSelectedPlaceId).not.toHaveBeenCalled()
+    expect(setSearchParams).toHaveBeenCalledTimes(1)
+    const drop = setSearchParams.mock.calls[0]?.[0] as (prev: URLSearchParams) => URLSearchParams
+    expect(drop(new URLSearchParams('place=34&x=1')).toString()).toBe('x=1')
   })
 })

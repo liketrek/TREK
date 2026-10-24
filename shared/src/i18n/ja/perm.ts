@@ -32,6 +32,7 @@ const perm: TranslationStrings = {
   'perm.action.collab_edit': 'コラボ（メモ・投票・チャット）',
   'perm.action.share_manage': '共有リンクを管理',
   'perm.actionHint.trip_create': '新しい旅行を作成できる人',
+  'perm.action.journal_link': 'ジャーナルをリンク',
   'perm.actionHint.trip_edit': '旅行名や日付などを変更できる人',
   'perm.actionHint.trip_delete': '旅行を完全に削除できる人',
   'perm.actionHint.trip_archive': '旅行をアーカイブできる人',
@@ -47,5 +48,6 @@ const perm: TranslationStrings = {
   'perm.actionHint.packing_edit': '持ち物やバッグを管理できる人',
   'perm.actionHint.collab_edit': 'メモや投票、メッセージを作成できる人',
   'perm.actionHint.share_manage': '公開共有リンクを管理できる人',
+  'perm.actionHint.journal_link': 'Journey のジャーナルを旅行にリンクし、メンバーに公開できる人',
 };
 export default perm;

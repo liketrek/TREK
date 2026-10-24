@@ -7,6 +7,7 @@ import {
 import { fireEvent, render } from '../../helpers/render'
 import { StudioInspector } from '../../../src/components/Studio/StudioInspector'
 import { useStudioStore } from '../../../src/store/studioStore'
+import { BOOK_FONTS } from '../../../src/components/Studio/bookFonts'
 import type { JourneySource } from '../../../src/components/Studio/StudioSidebar'
 
 /**
@@ -69,6 +70,7 @@ function draw(over: { page?: BookPageSetup; setPageNumbers?: (p: Partial<BookPag
       spreadIndex={0}
       page={over.page ?? setup()}
       stats={null}
+      path={[]}
       source={source}
       setPageNumbers={over.setPageNumbers ?? (() => {})}
       t={(k: string) => k}
@@ -121,10 +123,40 @@ function pickSwatch(c: HTMLElement, lineLabel: string, hex: string) {
   fireEvent.click(line(c, lineLabel).querySelector(`[aria-label="${hex}"]`)!)
 }
 
+/**
+ * A group by its heading. A group's first control answers the group's own
+ * question and carries no label of its own (the text's colour under Colour, a
+ * shape's paint under Fill), so it is found by the group it sits in.
+ */
+function section(c: HTMLElement, label: string): HTMLElement {
+  const found = [...c.querySelectorAll<HTMLElement>('.st-section')]
+    .find(s => s.querySelector('.st-section-label')?.textContent === label)
+  if (!found) throw new Error(`no section headed ${label}`)
+  return found
+}
+
+/** The value, or a failed test saying it was missing. */
+function must<T>(value: T | null | undefined): T {
+  if (value == null) throw new Error('expected a value')
+  return value
+}
+
+/** A swatch in the first swatch row of a group. */
+function pickSwatchIn(c: HTMLElement, sectionLabel: string, hex: string) {
+  fireEvent.click(must(section(c, sectionLabel).querySelector(`[aria-label="${hex}"]`)))
+}
+
 /** One of several: a chip that reads as chosen. */
 function pick(c: HTMLElement, label: string) {
   const chip = [...c.querySelectorAll('[role="radio"]')].find(b => b.textContent === label)
   fireEvent.click(chip!)
+}
+
+/** A kind of paint, from the picker's tabs. */
+function tab(c: HTMLElement, label: string) {
+  const button = [...c.querySelectorAll('.st-paint-tab')].find(b => b.textContent === label)
+  if (!button) throw new Error(`no ${label} tab`)
+  fireEvent.click(button)
 }
 
 /** On or off: the app switch, on its own line beside the words. */
@@ -205,18 +237,26 @@ describe('a text element', () => {
     expect(el()).toMatchObject({ text: 'Bergen harbour', overridden: true })
   })
 
+  /* The weight is a slider over the weights the family ships, not a row of chips. */
   it('sets the weight', () => {
     load([text()])
     const { container } = draw()
-    pick(container, '600')
+    const slider = container.querySelector('input[type="range"][aria-label="journey.studio.weight"]') as HTMLInputElement
+    const at = BOOK_FONTS.sans.weights.indexOf(600)
+    expect(at).toBeGreaterThan(-1)
+    fireEvent.change(slider, { target: { value: String(at) } })
     expect(el()).toMatchObject({ weight: 600 })
   })
 
+  /* The four alignments are named in the reader's language, not by their raw values. */
   it('sets the alignment', () => {
     load([text()])
     const { container } = draw()
-    fireEvent.click(container.querySelector('[aria-label="right"]')!)
+    expect(container.querySelector('[aria-label="right"]')).toBeNull()
+    fireEvent.click(must(container.querySelector('[aria-label="journey.studio.align.right"]')))
     expect(el()).toMatchObject({ align: 'right' })
+    fireEvent.click(must(container.querySelector('[aria-label="journey.studio.align.justify"]')))
+    expect(el()).toMatchObject({ align: 'justify' })
   })
 
   /* Italic was drawn by the renderer and had no control at all before. */
@@ -245,7 +285,7 @@ describe('a text element', () => {
   it('sets the colour', () => {
     load([text()])
     const { container } = draw()
-    pickSwatch(container, 'journey.studio.text', '#9f1239')
+    pickSwatchIn(container, 'journey.studio.colour', '#9f1239')
     expect(el()).toMatchObject({ color: '#9f1239' })
   })
 
@@ -344,10 +384,12 @@ describe('a photo frame', () => {
  * the page it was meant to carry.
  */
 describe('filling a page with a picture', () => {
-  /** The chips live in Arrange, which starts folded like the frame's numbers. */
+  /** The chips sit under the crop, open from the start: the commonest layout is one press away. */
   function fillChip(c: HTMLElement, label: string): HTMLElement | undefined {
-    open(c, 'journey.studio.arrange')
-    return [...c.querySelectorAll('.st-chip')].find(b => b.textContent === label) as HTMLElement | undefined
+    const crop = [...c.querySelectorAll<HTMLElement>('.st-section')]
+      .find(s => s.querySelector('.st-section-label')?.textContent === 'journey.studio.crop')
+    return [...(crop?.querySelectorAll('.st-chip') ?? [])]
+      .find(b => b.textContent === label) as HTMLElement | undefined
   }
 
   it('reaches the bleed on every side and goes behind everything else', () => {
@@ -410,6 +452,30 @@ describe('filling a page with a picture', () => {
     const { container } = draw()
     expect(fillChip(container, 'journey.studio.fillPage')).toBeUndefined()
   })
+
+  /* Behind everything, the picture is the page and nobody's lockup: it leaves
+     its group, and a group it leaves with one member is no group any more. */
+  it('takes the picture out of its group, and a group of two goes with it', () => {
+    load([text({ group: 'g' }), photo({ photoId: 12, group: 'g' })], ['p1'])
+    const { container } = draw()
+    const chip = fillChip(container, 'journey.studio.fillPage')
+    if (!chip) throw new Error('no fill chip')
+
+    fireEvent.click(chip)
+
+    expect(elements().map(e => [e.id, e.group])).toEqual([['p1', undefined], ['t1', undefined]])
+  })
+
+  it('keeps the rest of a larger group together', () => {
+    load([shape({ group: 'g' }), text({ group: 'g' }), photo({ photoId: 12, group: 'g' })], ['p1'])
+    const { container } = draw()
+    const chip = fillChip(container, 'journey.studio.fillSpread')
+    if (!chip) throw new Error('no fill chip')
+
+    fireEvent.click(chip)
+
+    expect(elements().map(e => [e.id, e.group])).toEqual([['p1', undefined], ['s1', 'g'], ['t1', 'g']])
+  })
 })
 
 // ── Shape ──────────────────────────────────────────────────────────────────
@@ -421,7 +487,7 @@ describe('a shape', () => {
     load([shape({ shape: 'rect', fill: '#c2410c' })])
     const { container } = draw()
 
-    fireEvent.click(container.querySelector('.st-mini-shapes [aria-label="ellipse"]')!)
+    fireEvent.click(container.querySelector('.st-mini-shapes [aria-label="journey.studio.shapeName.ellipse"]')!)
 
     expect(el()).toMatchObject({ shape: 'ellipse', fill: '#c2410c', frame: FRAME })
   })
@@ -430,46 +496,59 @@ describe('a shape', () => {
     load([shape({ fill: '#111827', stroke: null, strokeWidth: 0 })])
     const { container } = draw()
 
-    pickSwatch(container, 'journey.studio.fill', '#0f766e')
+    pickSwatchIn(container, 'journey.studio.fill', '#0f766e')
     expect(el()).toMatchObject({ fill: '#0f766e', stroke: null })
 
-    pickSwatch(container, 'journey.studio.stroke', '#1e3a8a')
+    // The outline is folded on a shape that has none, and opens when asked.
+    expect(head(container, 'journey.studio.stroke').getAttribute('aria-expanded')).toBe('false')
+    open(container, 'journey.studio.stroke')
+    pickSwatchIn(container, 'journey.studio.stroke', '#1e3a8a')
     // A colour with no width would draw nothing, so the line gets one.
     expect(el()).toMatchObject({ fill: '#0f766e', stroke: '#1e3a8a', strokeWidth: 0.5 })
   })
 
   /*
    * The rule that matters here: a shape with neither fill nor stroke is a
-   * shape nobody can see or find again, so turning the fill off has to bring
+   * shape nobody can see or find again, so taking the fill away has to bring
    * the outline on with it.
    */
-  it('cannot be turned invisible by switching the fill off', () => {
+  it('cannot be turned invisible by taking the fill away', () => {
     load([shape({ fill: '#111827', stroke: null, strokeWidth: 0 })])
     const { container } = draw()
 
-    toggle(container, 'journey.studio.fillOn')
+    tab(container, 'journey.studio.paint.none')
 
     expect(el()).toMatchObject({ fill: null, stroke: '#141414', strokeWidth: 0.5 })
   })
 
-  it('brings the fill back when it is switched on again', () => {
+  it('brings a fill back when one colour is chosen again', () => {
     load([shape({ fill: null, stroke: '#141414', strokeWidth: 0.5 })])
     const { container } = draw()
 
-    toggle(container, 'journey.studio.fillOn')
+    tab(container, 'journey.studio.paint.solid')
 
     expect(el()).toMatchObject({ fill: '#111111', stroke: '#141414' })
   })
 
-  it('fades the fill, and takes a direction once it does', () => {
-    load([shape()])
+  it('paints a gradient from its own colour, and keeps fill as the colour that stands for it', () => {
+    load([shape({ fill: '#1e3a8a' })])
     const { container } = draw()
 
-    toggle(container, 'journey.studio.gradient')
-    expect(el()).toMatchObject({ gradient: 'down' })
+    tab(container, 'journey.studio.paint.gradient')
 
-    pick(container, 'journey.studio.gradientUp')
-    expect(el()).toMatchObject({ gradient: 'up' })
+    const painted = el() as Extract<BookElement, { kind: 'shape' }>
+    expect(painted.paint).toMatchObject({ type: 'linear', angle: 180, stops: [{ at: 0, color: '#1e3a8a' }, { at: 1 }] })
+    expect(painted.fill).toMatch(/^#[0-9a-f]{6}$/)
+    expect(painted.gradient).toBe('none')
+  })
+
+  /* A cover fade from before paint reads as the gradient it draws, so the picker opens on it. */
+  it('shows an old fade as a gradient', () => {
+    load([shape({ gradient: 'up' })])
+    const { container } = draw()
+
+    const on = container.querySelector('.st-paint-tab[aria-selected="true"]')
+    expect(on?.textContent).toBe('journey.studio.paint.gradient')
   })
 })
 
@@ -501,6 +580,13 @@ describe('an icon', () => {
     fireEvent.click(container.querySelector('[aria-label="Compass"]')!)
 
     expect(el()).toMatchObject({ name: 'Compass', color: '#9f1239', frame: FRAME })
+  })
+
+  it('sets its colour under Look', () => {
+    load([icon()])
+    const { container } = draw()
+    pickSwatchIn(container, 'journey.studio.look', '#0f766e')
+    expect(el()).toMatchObject({ color: '#0f766e' })
   })
 
   it('sets how heavy the drawing is', () => {

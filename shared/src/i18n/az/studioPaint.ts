@@ -1,0 +1,51 @@
+import type { TranslationStrings } from '../types';
+
+/** TREK Studio: paint, gradients, patterns and the page background. */
+const studioPaint: TranslationStrings = {
+  'journey.studio.paint.kind': 'Doldurma növü',
+  'journey.studio.paint.none': 'Yoxdur',
+  'journey.studio.paint.solid': 'Bərk',
+  'journey.studio.paint.gradient': 'Keçid',
+  'journey.studio.paint.pattern': 'Naxış',
+  'journey.studio.paint.linear': 'Xətti',
+  'journey.studio.paint.radial': 'Radial', // same-as-en
+  'journey.studio.paint.reverse': 'Keçidi tərsinə çevir',
+  'journey.studio.paint.addStopHint': 'Rəng nöqtəsi əlavə etmək üçün zolağa klikləyin',
+  'journey.studio.paint.stopAt': '{pos}% nöqtəsində',
+  'journey.studio.paint.removeStop': 'Nöqtəni sil',
+  'journey.studio.paint.angle': 'Bucaq',
+  'journey.studio.paint.centre': 'Mərkəz',
+  'journey.studio.paint.radius': 'Radius', // same-as-en
+  'journey.studio.paint.ink': 'Naxışın rəngi',
+  'journey.studio.paint.ground': 'Fon rəngi',
+  'journey.studio.paint.seeThrough': 'Şəffaf',
+  'journey.studio.paint.scale': 'Ölçü',
+  'journey.studio.paint.opacity': 'Qeyri-şəffaflıq',
+  'journey.studio.paint.bookColours': 'Bu kitabdakı rənglər',
+  'journey.studio.paint.photoColours': 'Fotolardan rənglər',
+  'journey.studio.paint.recentColours': 'Son rənglər',
+  'journey.studio.paint.background': 'Səhifə fonu',
+  'journey.studio.paint.paper': 'Kağız',
+  'journey.studio.paint.applyAll': 'Bütün səhifələrə tətbiq et',
+  'journey.studio.paint.appliedAll': 'Bütün səhifələrə tətbiq edildi',
+  'journey.studio.paint.photoBackground': 'Fon kimi foto',
+  'journey.studio.paint.photoBackgroundHint':
+    'Fotonu kəsim payı daxil olmaqla bütün səhifəyə yayır, arxada kilidli saxlayır. Götürmək üçün onu yenidən seçin.',
+  'journey.studio.paint.removePhotoBackground': 'Fon fotosunu sil',
+  'journey.studio.paint.noPhotos': 'Birini fon kimi istifadə etmək üçün səyahətə foto əlavə edin.',
+  'journey.studio.pattern.checker': 'Şahmat',
+  'journey.studio.pattern.gingham': 'Damalı',
+  'journey.studio.pattern.stripes': 'Zolaqlar',
+  'journey.studio.pattern.pinstripe': 'İncə zolaqlar',
+  'journey.studio.pattern.dots': 'Nöqtələr',
+  'journey.studio.pattern.polka': 'Xallar',
+  'journey.studio.pattern.zigzag': 'Ziqzaq',
+  'journey.studio.pattern.waves': 'Dalğalar',
+  'journey.studio.pattern.grid': 'Tor',
+  'journey.studio.pattern.scales': 'Pulcuqlar',
+  'journey.studio.pattern.sunburst': 'Şüalar',
+  'journey.studio.pattern.confetti': 'Konfeti',
+  'journey.studio.pattern.linen': 'Kətan',
+  'journey.studio.pattern.grain': 'Kağız dənəsi',
+};
+export default studioPaint;

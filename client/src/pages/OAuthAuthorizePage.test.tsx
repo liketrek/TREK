@@ -1,4 +1,4 @@
-// FE-PAGE-OAUTH-001 to FE-PAGE-OAUTH-012
+// FE-PAGE-OAUTH-001 to FE-PAGE-OAUTH-013
 import { render, screen, waitFor } from '../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -7,6 +7,12 @@ import { useAuthStore } from '../store/authStore';
 import { resetAllStores, seedStore } from '../../tests/helpers/store';
 import { buildUser } from '../../tests/helpers/factories';
 import OAuthAuthorizePage from './OAuthAuthorizePage';
+
+// The consent page reloads the user on mount, and loadUser registers the
+// background sync triggers: a 30 s heartbeat and window listeners that nothing
+// here unregisters, so they outlive the test and can fire, and log, while the
+// file's worker shuts down. Nothing here is about sync.
+vi.mock('../sync/syncTriggers', () => ({ registerSyncTriggers: vi.fn(), unregisterSyncTriggers: vi.fn() }));
 
 // Default OAuth query params
 const DEFAULT_SEARCH = '?client_id=test-client&redirect_uri=http%3A%2F%2Flocalhost%3A4000%2Fcallback&scope=trips%3Aread&state=abc&code_challenge=challenge&code_challenge_method=S256';
@@ -195,5 +201,26 @@ describe('OAuthAuthorizePage', () => {
     await screen.findByText('Permissions requested');
     // No checkboxes in read-only mode
     expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
+  });
+
+  it('FE-PAGE-OAUTH-013: names the verified host of a metadata-document client, and nothing for others', async () => {
+    server.use(
+      http.get('/api/oauth/authorize/validate', () =>
+        HttpResponse.json({
+          ...VALIDATE_OK,
+          client: { name: 'Claude', allowed_scopes: ['trips:read'], verified_host: 'claude.ai' },
+          scopeSelectable: true,
+        })
+      )
+    );
+    const { unmount } = render(<OAuthAuthorizePage />);
+    await screen.findByText('Claude');
+    expect(screen.getByText(/claude\.ai/)).toBeInTheDocument();
+    unmount();
+
+    server.use(http.get('/api/oauth/authorize/validate', () => HttpResponse.json(VALIDATE_OK)));
+    render(<OAuthAuthorizePage />);
+    await screen.findByText('Test App');
+    expect(screen.queryByText(/claude\.ai/)).not.toBeInTheDocument();
   });
 });

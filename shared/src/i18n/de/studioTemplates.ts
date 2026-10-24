@@ -1,0 +1,55 @@
+import type { TranslationStrings } from '../types';
+
+const studioTemplates: TranslationStrings = {
+  'studio.templates.decorated': 'Gestaltete Seiten',
+  'studio.templates.style': 'Stil',
+  'studio.templates.all': 'Alle',
+  'studio.templates.hint':
+    'Jeder Entwurf zeigt die Fotos und Texte dieser Seite. Ein Klick gestaltet die Seite danach, und was keinen Platz findet, bleibt bei der Seite.',
+  'studio.templates.archetype.spine-band': 'Buchrückenband',
+  'studio.templates.archetype.poster-pop': 'Poster', // same-as-en
+  'studio.templates.archetype.cutout': 'Scherenschnitt',
+  'studio.templates.archetype.postcard': 'Postkarte',
+  'studio.templates.archetype.grid-badge': 'Raster mit Plakette',
+  'studio.templates.archetype.minimal-serif': 'Minimal', // same-as-en
+  'studio.templates.archetype.stamp-collage': 'Briefmarken',
+  'studio.templates.name.spineBandStitched': 'Genähtes Band',
+  'studio.templates.name.spineBandGingham': 'Band mit Vichykaro',
+  'studio.templates.name.spineBandScript': 'Band mit Schreibschrift',
+  'studio.templates.name.posterPopSunburst': 'Poster mit Strahlen',
+  'studio.templates.name.posterPopSplit': 'Geteiltes Poster',
+  'studio.templates.name.posterPopStack': 'Gestapeltes Poster',
+  'studio.templates.name.cutoutMatisse': 'Papierschnitte',
+  'studio.templates.name.cutoutArch': 'Bogen im Scherenschnitt',
+  'studio.templates.name.cutoutCollage': 'Scherenschnitt-Collage',
+  'studio.templates.name.postcardHouses': 'Postkarte mit Stadt',
+  'studio.templates.name.postcardCoast': 'Postkarte mit Küste',
+  'studio.templates.name.postcardPeaks': 'Postkarte mit Bergen',
+  'studio.templates.name.gridBadgeCircle': 'Raster mit Kreis',
+  'studio.templates.name.gridBadgeStamp': 'Raster mit Stempel',
+  'studio.templates.name.gridBadgeSeal': 'Raster mit Siegel',
+  'studio.templates.name.minimalSerifClassic': 'Klassische Serife',
+  'studio.templates.name.minimalSerifPortrait': 'Serife im Hochformat',
+  'studio.templates.name.minimalSerifWindow': 'Serife mit Fenster',
+  'studio.templates.name.stampCollageChecker': 'Karo-Collage',
+  'studio.templates.name.stampCollageRow': 'Briefmarkenreihe',
+  'studio.templates.name.stampCollageArches': 'Bögen auf Karo',
+  'studio.templates.name.heroScriptWord': 'Titelbild mit Schreibschrift',
+  'studio.templates.name.heroTrioWordart': 'Wortbild und drei Fotos',
+  'studio.templates.name.storyQuote': 'Geschichte mit Zitat',
+  'studio.templates.name.bleedBandCaption': 'Panorama mit Band',
+  'studio.templates.name.twoToneSplit': 'Zwei Farben',
+  'studio.templates.name.dayOpener': 'Tagesauftakt',
+  'studio.templates.name.polaroidStack': 'Polaroids', // same-as-en
+  'studio.templates.name.stampRow': 'Briefmarken quer',
+  'studio.templates.name.archGallery': 'Bogengalerie',
+  'studio.templates.name.mapTickets': 'Karte und Tickets',
+  'studio.templates.name.filmstripScript': 'Filmstreifen',
+  'studio.templates.name.postcardBack': 'Postkartenrückseite',
+  'studio.templates.name.gridTight': 'Enges Raster',
+  'studio.templates.name.gridFeature': 'Raster mit Hauptbild',
+  'studio.templates.name.gridColumns': 'Spaltenraster',
+  'studio.templates.name.gridMosaic': 'Mosaikraster',
+};
+
+export default studioTemplates;

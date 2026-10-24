@@ -1,4 +1,6 @@
 import {
+  asLlmVision,
+  LLM_VISION_MODES,
   adminUserCreateRequestSchema,
   adminUserUpdateRequestSchema,
   adminPermissionsRequestSchema,
@@ -103,6 +105,13 @@ describe('adminAddonUpdateRequestSchema', () => {
     const config = { provider: 'openai', model: 'm', apiKey: '••••', multimodal: true, nested: { a: 1 } };
     expect(adminAddonUpdateRequestSchema.parse({ config })).toEqual({ config });
     expect(adminAddonUpdateRequestSchema.safeParse({ enabled: 'yes' }).success).toBe(false);
+  });
+});
+
+describe('asLlmVision', () => {
+  it('keeps the three modes and reads anything else as auto', () => {
+    for (const mode of LLM_VISION_MODES) expect(asLlmVision(mode)).toBe(mode);
+    for (const other of [undefined, null, '', 'ON', true, false, 1]) expect(asLlmVision(other)).toBe('auto');
   });
 });
 

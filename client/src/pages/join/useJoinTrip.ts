@@ -5,7 +5,13 @@ import { useTranslation } from '../../i18n'
 import { getApiErrorMessage } from '../../types'
 import { useToast } from '../../components/shared/Toast'
 
-export type JoinTripState = 'loading' | 'ready' | 'joining' | 'invalid'
+export type JoinTripState = 'loading' | 'ready' | 'joining' | 'invalid' | 'removed'
+
+/** A 403 that says somebody took this user off the trip: the link cannot bring them back. */
+function isRemovedRefusal(err: unknown): boolean {
+  const response = (err as { response?: { status?: number; data?: { removed?: unknown } } }).response
+  return response?.status === 403 && response.data?.removed === true
+}
 
 /**
  * State + effects behind JoinTripPage (#1143): resolve the invite token to a
@@ -26,7 +32,7 @@ export function useJoinTrip() {
     if (!token) { setState('invalid'); return }
     tripInviteApi.preview(token)
       .then((data: { title: string }) => { if (!cancelled) { setTitle(data.title); setState('ready') } })
-      .catch(() => { if (!cancelled) setState('invalid') })
+      .catch((err: unknown) => { if (!cancelled) setState(isRemovedRefusal(err) ? 'removed' : 'invalid') })
     return () => { cancelled = true }
   }, [token])
 
@@ -41,6 +47,10 @@ export function useJoinTrip() {
         // which sent the user back to the dashboard with no way to try again.
         if ((err as { response?: { status?: number } }).response?.status === 404) {
           setState('invalid')
+          return
+        }
+        if (isRemovedRefusal(err)) {
+          setState('removed')
           return
         }
         setState('ready')

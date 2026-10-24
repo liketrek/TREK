@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React from 'react'
 import { useNavigate } from 'react-router'
 import {
   ArrowRight, ArrowRightLeft, Bookmark, Calendar, ChevronDown, ChevronRight,
@@ -7,12 +7,13 @@ import {
 import { useTranslation } from '../../../i18n'
 import { useSettingsStore } from '../../../store/settingsStore'
 import { useAddonStore } from '../../../store/addonStore'
-import { collectionsApi } from '../../../api/collections'
 import { entityGradient } from '../../../utils/gradients'
-import { CURRENCIES } from '../../../components/Budget/BudgetPanel.constants'
+import { useCurrencyConverter } from '../../../components/Dashboard/useCurrencyConverter'
+import { useCollectionLists } from '../../../components/Dashboard/useCollectionLists'
+import { shortZone, useDashboardTimezones } from '../../../components/Dashboard/useDashboardTimezones'
 import { formatTime, splitReservationDateTime } from '../../../utils/formatters'
-import { normalizeAppearance, MOBILE_DASH_TOKENS, type MobileDashToken, type Collection } from '@trek/shared'
-import { upcomingKey, type UpcomingReservation } from '../../../pages/dashboard/dashboardModel'
+import { normalizeAppearance, MOBILE_DASH_TOKENS, type MobileDashToken } from '@trek/shared'
+import { MOMENT_LABEL, upcomingKey, type UpcomingReservation } from '../../../pages/dashboard/dashboardModel'
 
 const RES_ICON: Record<string, React.ReactElement> = {
   flight: <Plane size={14} strokeWidth={2} />,
@@ -23,9 +24,6 @@ const RES_ICON: Record<string, React.ReactElement> = {
   checkin: <LogIn size={14} strokeWidth={2} />,
   checkout: <LogOut size={14} strokeWidth={2} />,
 }
-
-/** The label a stay's moment carries in place of a location. */
-const MOMENT_LABEL: Record<string, string> = { checkin: 'day.checkIn', checkout: 'day.checkOut' }
 
 /**
  * Inline dashboard widget panels (currency, collections, timezones, upcoming
@@ -91,7 +89,7 @@ function WidgetPanel({ icon, title, action, children }: {
       <div className="flex items-center gap-[7px] font-geist text-[0.625rem] font-bold uppercase tracking-[.14em] text-m-faint">
         {icon}
         {title}
-        {action && <span className="ml-auto flex">{action}</span>}
+        {action && <span className="ms-auto flex">{action}</span>}
       </div>
       {children}
     </section>
@@ -101,67 +99,9 @@ function WidgetPanel({ icon, title, action, children }: {
 // ── Currency converter ───────────────────────────────────────────────────────
 function MCurrencyWidget(): React.ReactElement {
   const { t } = useTranslation()
-  const isLoaded = useSettingsStore(s => s.isLoaded)
-  const updateSetting = useSettingsStore(s => s.updateSetting)
-  const from = useSettingsStore(s => s.settings.dashboard_fx_from) || 'EUR'
-  const to = useSettingsStore(s => s.settings.dashboard_fx_to) || 'USD'
-  const setFrom = (v: string) => { updateSetting('dashboard_fx_from', v).catch(() => {}) }
-  const setTo = (v: string) => { updateSetting('dashboard_fx_to', v).catch(() => {}) }
-  const [amount, setAmount] = useState('100')
-  const [rates, setRates] = useState<Record<string, number> | null>(null)
-
   // The request outlives the widget: this is a third-party endpoint on a mobile
-  // screen a user can leave immediately, and both handlers below set state. Left
-  // unguarded it settles after unmount, React schedules an update against a gone
-  // tree, and under a test runner that surfaces as an unhandled rejection long
-  // after the case that triggered it has passed.
-  const inFlight = useRef<AbortController | null>(null)
-
-  const fetchRates = useCallback(() => {
-    inFlight.current?.abort()
-    const controller = new AbortController()
-    inFlight.current = controller
-    fetch(`https://api.frankfurter.dev/v2/rates?base=${from}`, { signal: controller.signal })
-      .then(r => r.json())
-      .then((d: Array<{ quote: string; rate: number }>) => {
-        if (controller.signal.aborted) return
-        if (!Array.isArray(d)) { setRates(null); return }
-        // Frankfurter omits the base's own self-rate; seed it so `from` stays selectable.
-        const map: Record<string, number> = { [from]: 1 }
-        for (const r of d) map[r.quote] = r.rate
-        setRates(map)
-      })
-      .catch(() => {
-        // An abort is not a failure: it means nobody is waiting for the answer.
-        if (!controller.signal.aborted) setRates(null)
-      })
-  }, [from])
-
-  useEffect(() => {
-    fetchRates()
-    return () => inFlight.current?.abort()
-  }, [fetchRates])
-
-  // Same one-time localStorage → settings migration the desktop widget runs, so
-  // a phone-only user's pre-3.1.3 pair survives an upgrade too (#1311).
-  useEffect(() => {
-    if (!isLoaded) return
-    const lf = localStorage.getItem('trek_fx_from')
-    const lt = localStorage.getItem('trek_fx_to')
-    if (!lf && !lt) return
-    const writes: Promise<void>[] = []
-    if (lf) writes.push(updateSetting('dashboard_fx_from', lf))
-    if (lt) writes.push(updateSetting('dashboard_fx_to', lt))
-    Promise.all(writes).then(() => {
-      localStorage.removeItem('trek_fx_from')
-      localStorage.removeItem('trek_fx_to')
-    }).catch(() => { /* keep localStorage; retry on next load */ })
-  }, [isLoaded, updateSetting])
-
-  const currencies = rates ? Object.keys(rates).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)) : [...CURRENCIES]
-  const rate = rates?.[to] ?? null
-  const converted = rate != null ? (Number.parseFloat(amount.replace(',', '.')) || 0) * rate : null
-  const swap = () => { setFrom(to); setTo(from) }
+  // screen a user can leave immediately, so a pending one is aborted on the way out.
+  const { from, to, setFrom, setTo, amount, setAmount, currencies, rate, converted, swap, fetchRates } = useCurrencyConverter()
 
   return (
     <WidgetPanel
@@ -232,17 +172,7 @@ function CurrencyPicker({ value, currencies, onChange }: {
 function MCollectionsWidget(): React.ReactElement {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const [lists, setLists] = useState<Collection[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    let cancelled = false
-    collectionsApi.list()
-      .then(data => { if (!cancelled) setLists(data.collections) })
-      .catch(() => { if (!cancelled) setLists([]) })
-      .finally(() => { if (!cancelled) setLoading(false) })
-    return () => { cancelled = true }
-  }, [])
+  const { lists, loading } = useCollectionLists()
 
   return (
     <WidgetPanel
@@ -262,11 +192,11 @@ function MCollectionsWidget(): React.ReactElement {
             key={list.id}
             type="button"
             onClick={() => navigate(`/collections/${list.id}`)}
-            className="mt-[11px] flex w-full items-center rounded-[14px] p-[15px_14px] text-left text-white"
+            className="mt-[11px] flex w-full items-center rounded-[14px] p-[15px_14px] text-start text-white"
             style={{ background: list.color || entityGradient(list.id) }}
           >
             <span className="min-w-0 flex-1 truncate text-[0.875rem] font-bold">{list.name}</span>
-            <span className="ml-auto flex flex-none items-center gap-1 rounded-full bg-white/[.22] px-[10px] py-[3px] font-geist text-[0.625rem] font-bold">
+            <span className="ms-auto flex flex-none items-center gap-1 rounded-full bg-white/[.22] px-[10px] py-[3px] font-geist text-[0.625rem] font-bold">
               <MapPin size={10} strokeWidth={2.4} />
               {list.place_count ?? 0}
             </span>
@@ -278,69 +208,9 @@ function MCollectionsWidget(): React.ReactElement {
 }
 
 // ── Timezones ────────────────────────────────────────────────────────────────
-const DEFAULT_ZONES = ['Europe/London', 'Asia/Tokyo']
-
-const FALLBACK_ZONES = [
-  'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Europe/Madrid', 'Europe/Moscow',
-  'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'America/Sao_Paulo',
-  'Asia/Dubai', 'Asia/Kolkata', 'Asia/Bangkok', 'Asia/Shanghai', 'Asia/Tokyo', 'Asia/Singapore',
-  'Australia/Sydney', 'Pacific/Auckland', 'UTC',
-]
-
-function shortZone(tz: string): string {
-  const city = tz.split('/').pop() || tz
-  return city.replace(/_/g, ' ')
-}
-
 function MTimezonesWidget(): React.ReactElement {
   const { t, locale } = useTranslation()
-  const home = Intl.DateTimeFormat().resolvedOptions().timeZone
-  const [now, setNow] = useState(() => new Date())
-  const isLoaded = useSettingsStore(s => s.isLoaded)
-  const updateSetting = useSettingsStore(s => s.updateSetting)
-  const stored = useSettingsStore(s => s.settings.dashboard_timezones)
-  // Unset (never chosen) falls back to home + defaults; an explicit list is honoured.
-  const zones = stored ?? [home, ...DEFAULT_ZONES]
-  const setZones = (next: string[]) => { updateSetting('dashboard_timezones', next).catch(() => {}) }
-  const [adding, setAdding] = useState(false)
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 30000)
-    return () => clearInterval(id)
-  }, [])
-
-  // Same one-time localStorage → settings migration the desktop widget runs, so
-  // a phone-only user's pre-3.1.3 zone list survives an upgrade too (#1311).
-  useEffect(() => {
-    if (!isLoaded) return
-    const raw = localStorage.getItem('trek_dashboard_tz')
-    if (!raw) return
-    let parsed: unknown
-    // A malformed/non-array value can never be written, so drop it now to avoid retrying forever.
-    try { parsed = JSON.parse(raw) } catch { localStorage.removeItem('trek_dashboard_tz'); return }
-    if (!Array.isArray(parsed)) { localStorage.removeItem('trek_dashboard_tz'); return }
-    // Only drop the localStorage source once the server has durably stored the value.
-    updateSetting('dashboard_timezones', parsed)
-      .then(() => { localStorage.removeItem('trek_dashboard_tz') })
-      .catch(() => { /* keep localStorage; retry on next load */ })
-  }, [isLoaded, updateSetting])
-
-  const allZones = React.useMemo<string[]>(() => {
-    const supported = (Intl as unknown as { supportedValuesOf?: (k: string) => string[] }).supportedValuesOf
-    try { return supported ? supported('timeZone') : FALLBACK_ZONES } catch { return FALLBACK_ZONES }
-  }, [])
-
-  const addZone = (tz: string) => {
-    if (tz && !zones.includes(tz)) setZones([...zones, tz])
-    setAdding(false)
-  }
-  const removeZone = (tz: string) => setZones(zones.filter(z => z !== tz))
-
-  const timeIn = (tz: string) => now.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: tz })
-  const offsetLabel = (tz: string) => {
-    const part = new Intl.DateTimeFormat(locale, { timeZone: tz, timeZoneName: 'short' }).formatToParts(now).find(p => p.type === 'timeZoneName')
-    return part?.value || ''
-  }
+  const { zones, adding, setAdding, allZones, addZone, removeZone, timeIn, offsetLabel } = useDashboardTimezones(locale)
 
   return (
     <WidgetPanel
@@ -430,7 +300,7 @@ function MUpcomingWidget({ items }: { items: UpcomingReservation[] }): React.Rea
             key={upcomingKey(r)}
             type="button"
             onClick={() => openReservation(r.trip_id)}
-            className="flex w-full items-center gap-[11px] border-b border-[color:var(--m-rowbr)] py-[9px] text-left"
+            className="flex w-full items-center gap-[11px] border-b border-[color:var(--m-rowbr)] py-[9px] text-start"
           >
             <span className="flex h-8 w-8 flex-none items-center justify-center rounded-[11px] bg-[color:var(--m-ic)]">
               {RES_ICON[r.type] || <Ticket size={14} strokeWidth={2} />}

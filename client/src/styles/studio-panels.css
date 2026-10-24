@@ -1,0 +1,349 @@
+/* ============================================================================
+   TREK Studio: the two side panels, the patterns they share.
+
+   The rail's groups, the tab rows inside the panels, the shelves of the panels
+   on the left, and the parts of the inspector that every kind of element has:
+   the position group, the arrange rows, the page and theme when nothing is
+   selected. The rules for the classes studio.css already had (the head, a
+   labelled line, a number field, a chip) stay in studio.css, edited where they
+   were; this file holds what is new, which is why it can sit beside studio.css
+   in either order.
+
+   Scoped under `.trek-dash` like every Studio rule, in the dashboard tokens
+   only, with logical sides throughout. Text never sits in a box of a fixed
+   width: it wraps, and the few labels that must stay on one line say so where
+   they are set and carry the whole text in a title.
+   ============================================================================ */
+
+/* ----------------- the rail: groups ----------------- */
+
+.trek-dash .st-rail-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Between the sections that put things on a page and the two that are about the
+   book and the page as a whole. A rule rather than a gap, so the two groups
+   read as two even when the rail is long enough to scroll. */
+.trek-dash .st-rail-sep {
+  flex: none;
+  height: 1px;
+  margin-block: 5px;
+  margin-inline: 10px;
+  background: var(--line-2);
+}
+
+/* ----------------- tab rows inside a panel ----------------- */
+
+/* A grid, so every tab keeps its word and the row ends flush with the panel. */
+.trek-dash .st-subtabs {
+  display: grid;
+  gap: 3px;
+  padding: 0 12px 10px;
+  flex: none;
+}
+.trek-dash .st-subtab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 0;
+  min-height: 30px;
+  padding: 5px 6px;
+  border-radius: 8px;
+  font-size: calc(11.5px * var(--fs-scale-caption, 1));
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--ink-3);
+  background: color-mix(in oklch, var(--ink) 4%, transparent);
+  transition:
+    background 0.16s,
+    color 0.16s;
+}
+/* With an icon the word goes under it, so the word has the whole cell. */
+.trek-dash .st-subtabs.has-icons .st-subtab {
+  flex-direction: column;
+  gap: 3px;
+  padding-block: 7px 6px;
+}
+.trek-dash .st-subtab:hover {
+  color: var(--ink-2);
+}
+.trek-dash .st-subtab.is-on {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+.trek-dash .st-subtab:focus {
+  outline: none;
+}
+.trek-dash .st-subtab:focus-visible {
+  box-shadow:
+    0 0 0 2px var(--accent-soft),
+    0 0 0 3px var(--accent);
+}
+.trek-dash .st-subtab-label {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+.trek-dash .st-subtab-icon {
+  flex: none;
+}
+/* How many, as figures in the tab's own colour: quieter than the word, never a pill inside it. */
+.trek-dash .st-subtab-count {
+  flex: none;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.72;
+}
+
+/* The tab's panel takes the rest of the panel's height: a drop anywhere below
+   the tabs lands, and a tab with a search keeps it above its own scroller. */
+.trek-dash [role='tabpanel'].st-panel-scroll {
+  flex: 1 1 auto;
+}
+.trek-dash .st-tab-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* An entry's chips, under its name and its day. */
+.trek-dash .st-entry-chips {
+  margin-top: 7px;
+}
+
+/* A count inside a chip, in the chip's own colour: a footnote to its words. */
+.trek-dash .st-chip-count {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+
+/* How many a search matches, quiet figures at the end of the field. */
+.trek-dash .st-search-count {
+  flex: none;
+  font-size: calc(11px * var(--fs-scale-caption, 1));
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+}
+
+/* ----------------- shelves ----------------- */
+
+.trek-dash .st-shelf > .st-shelf-hint {
+  padding-top: 8px;
+}
+/* A second group inside a shelf, such as the maps per trip under the route maps. */
+.trek-dash .st-shelf-sub {
+  margin-top: 12px;
+}
+/* What a growing library watches for to draw its next rows. */
+.trek-dash .st-shelf-tail {
+  height: 1px;
+}
+
+/* ----------------- inspector: inside a group ----------------- */
+
+/* The heading a folding group's head sits in: there for the outline a screen
+   reader walks, with no margin or type of its own on the page. */
+.trek-dash .st-section-title {
+  margin: 0;
+  font: inherit;
+}
+
+/* The room between two parts of one group, where the part below is not a labelled line. */
+.trek-dash .st-section-gap {
+  margin-top: 10px;
+}
+/* A part that is there but not in force, such as the page number colour while it is automatic. */
+.trek-dash .st-section-gap.is-quiet {
+  opacity: 0.45;
+}
+.trek-dash .st-focal-wrap > .st-focal-hint,
+.trek-dash .st-section-body > .st-hint-after {
+  padding: 6px 0 0;
+}
+.trek-dash .st-section-body > .st-hint-before {
+  padding: 0 0 8px;
+}
+/* A search inside a group, such as the icon swap, takes the group's own width. */
+.trek-dash .st-section-body > .st-search {
+  margin: 0 0 8px;
+}
+
+/* ----------------- inspector: nothing selected ----------------- */
+
+/* What the panel is for until something is picked, said once at its top. */
+.trek-dash .st-empty-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 2px 2px 4px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  background: color-mix(in oklch, var(--ink) 4%, transparent);
+  color: var(--ink-2);
+  font-size: calc(12px * var(--fs-scale-caption, 1));
+  line-height: 1.5;
+}
+.trek-dash .st-empty-note svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--ink-3);
+}
+
+/* The book's theme, as the Theme panel draws it, and the way to it. */
+.trek-dash .st-theme-sum {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  margin-bottom: 10px;
+}
+.trek-dash .st-theme-sum .st-theme-sheet {
+  flex: none;
+  width: 86px;
+  height: 52px;
+}
+.trek-dash .st-theme-sum-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: calc(12.5px * var(--fs-scale-caption, 1));
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+/* ----------------- inspector: position and size ----------------- */
+
+.trek-dash .st-position-row {
+  margin-top: 10px;
+}
+.trek-dash .st-position-row.st-row {
+  align-items: center;
+}
+.trek-dash .st-section-body > .st-position-row + .st-switch {
+  margin-top: 8px;
+}
+
+/* ----------------- inspector: arrange ----------------- */
+
+.trek-dash .st-arrange .st-row {
+  align-items: center;
+}
+/* Two sets of buttons on one row, a wider gap between them than inside them.
+   A set that does not fit moves under the other whole, never one button of it.
+   Named with `.st-row` so it outranks studio.css in either order. */
+.trek-dash .st-row.st-arrange-row {
+  gap: 6px 12px;
+}
+.trek-dash .st-arrange-set {
+  display: flex;
+  flex: none;
+  gap: 5px;
+}
+
+/* ----------------- inspector: a row of actions under a group ----------------- */
+
+/* Fill the page, fill the spread: the commonest layout in a photo book, one press under the crop. */
+.trek-dash .st-photo-fill {
+  margin-top: 10px;
+}
+
+/* ----------------- travel: the route as rows ----------------- */
+
+/*
+ * Not tiles: a stop is not something to place, it is the input every map and
+ * figure below reads. One line per stop, the day first and the switch last, so
+ * the eye runs down the end of the rows to find the one that is off. A
+ * left-out row is dimmed as a whole rather than struck through: it is still a
+ * day of the journal, just not a leg of the route.
+ *
+ * A row is a row rather than a card: fourteen bordered boxes down a narrow
+ * panel is a wall, and what the list needs is to be read quickly, not to have
+ * each of its entries framed. The separators do the same work for a fifth of
+ * the height. The names are `st-route-stop` because `st-stop` is a gradient's
+ * colour stop (studio-paint.css), whose rules laid every row of this list out
+ * as a sixteen pixel handle while both were called the same.
+ */
+.trek-dash .st-route-stops {
+  display: flex;
+  flex-direction: column;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.trek-dash .st-route-stop {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--line);
+  transition: opacity 0.16s;
+}
+.trek-dash .st-route-stop:last-child {
+  border-bottom: 0;
+}
+.trek-dash .st-route-stop.is-off {
+  opacity: 0.55;
+}
+/* A long place name wraps under itself rather than pushing the switch off the row. */
+.trek-dash .st-route-stop-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: calc(12px * var(--fs-scale-caption, 1));
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+/* The day keeps its width, as on the entry cards; the country gives way, and a
+   long one ("Bosnien und Herzegowina") wraps under itself rather than being cut. */
+.trek-dash .st-route-stop > .st-badge {
+  flex: none;
+}
+.trek-dash .st-route-stop > .st-badge.is-quiet {
+  flex: 0 1 auto;
+  height: auto;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+  text-align: end;
+}
+/* The switch, as a mark: a square the size of the badges beside it. */
+.trek-dash .st-route-stop > .st-chip.is-icon {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  min-height: 0;
+  padding: 0;
+}
+.trek-dash .st-route-stop > .st-chip:not(.is-on) {
+  color: var(--ink-3);
+}
+/* The same chip as a plain label: a viewer's, or a stop with no entry to switch. */
+.trek-dash .st-route-stop > span.st-chip {
+  pointer-events: none;
+}
+
+/*
+ * The blank inside of a cover beside the first and the last page in the page
+ * rail (SpreadThumb's coverInside): the bound book opens on those pages with
+ * the cover's inside opposite, which is why they stand alone. Drawn as plain
+ * card under a faint hatch, so it reads as a page nothing is printed on.
+ */
+.trek-dash .st-thumb-inside {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background:
+    repeating-linear-gradient(135deg, color-mix(in oklch, var(--ink) 7%, transparent) 0 1px, transparent 1px 6px),
+    color-mix(in oklch, var(--surface-2) 80%, transparent);
+}

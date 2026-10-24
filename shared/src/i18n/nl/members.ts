@@ -1,14 +1,13 @@
 import type { TranslationStrings } from '../types';
 
 const members: TranslationStrings = {
-  'members.shareTrip': 'Reis delen',
   'members.inviteUser': 'Gebruiker uitnodigen',
   'members.selectUser': 'Selecteer gebruiker…',
   'members.invite': 'Uitnodigen',
   'members.allHaveAccess': 'Alle gebruikers hebben al toegang.',
   'members.access': 'Toegang',
-  'members.person': 'persoon',
   'members.persons': 'personen',
+  'members.persons.one': 'persoon',
   'members.you': 'jij',
   'members.owner': 'Eigenaar',
   'members.leaveTrip': 'Reis verlaten',
@@ -33,6 +32,9 @@ const members: TranslationStrings = {
   'members.guestAddError': 'Kan gast niet toevoegen',
   'members.guestRenameError': 'Kan gast niet hernoemen',
   'members.guestRemoved': 'Gast verwijderd',
-  'members.confirmRemoveGuest': 'Deze gast verwijderen? Hun toewijzingen en kostenaandelen worden ook verwijderd.',
+  'members.confirmRemoveGuest':
+    'Deze gast verwijderen? Hun toewijzingen worden verwijderd en hun aandeel in elke uitgave wordt verdeeld over de andere deelnemers.',
+  'members.guestHasPayments':
+    'Deze gast heeft een uitgave betaald of maakt deel uit van een geregistreerde betaling. Wijzig eerst de betaler of verwijder de betaling.',
 };
 export default members;

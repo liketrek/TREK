@@ -7,19 +7,25 @@
  * The rest are the per-handler cases the router-level test never had room for, in
  * particular the ownership re-check on the two writes.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { expectRegisteredProvider } from '../../helpers/module-providers';
+import { BadParams, ForbiddenResource } from '../../../src/nest-rpc/rpc-errors';
+import { createTestPluginRegistry } from '../../../src/nest-rpc/rpc-kit/testing';
+import type { PluginRpcContext } from '../../../src/nest-rpc/rpc-kit/types';
 import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
-import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
-import { BadParams, ForbiddenResource } from '../../../src/nest/plugins/host/rpc-errors';
-import { TagsRpc } from '../../../src/nest/tags/tags.rpc';
-import { TagsModule } from '../../../src/nest/tags/tags.module';
-import type { TagsService } from '../../../src/nest/tags/tags.service';
-import type { PluginRpcContext } from '../../../src/nest/plugins/host/rpc-kit/types';
 import type { RpcRequest, RpcError } from '../../../src/nest/plugins/protocol/envelope';
+import { TagsModule } from '../../../src/nest/tags/tags.module';
+import { TagsRpc } from '../../../src/nest/tags/tags.rpc';
+import type { TagsService } from '../../../src/nest/tags/tags.service';
+import { expectRegisteredProvider } from '../../helpers/module-providers';
 import { makeDeps } from '../../helpers/rpc-host-deps';
 
-const req = (method: string, params: Record<string, unknown> = {}): RpcRequest => ({ k: 'req', id: 'x', method, params });
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+const req = (method: string, params: Record<string, unknown> = {}): RpcRequest => ({
+  k: 'req',
+  id: 'x',
+  method,
+  params,
+});
 const ctx = (actingUserId: number | undefined): PluginRpcContext => ({
   pluginId: 'p',
   actingUserId,
@@ -62,7 +68,7 @@ describe('TagsRpc through the router', () => {
     );
   });
 
-  it('TAGS-RPC-001 tags are the acting user\'s own; a userless context + empty name are refused', async () => {
+  it("TAGS-RPC-001 tags are the acting user's own; a userless context + empty name are refused", async () => {
     expect((await host.dispatch(req('tags.list'), 42)).ok).toBe(true);
     expect(tags.list).toHaveBeenCalledWith(42);
     expect((await host.dispatch(req('tags.create', { input: { name: 'work' } }), 42)).ok).toBe(true);
@@ -84,7 +90,7 @@ describe('TagsRpc through the router', () => {
     expect(tags.create).not.toHaveBeenCalled();
   });
 
-  it('TAGS-RPC-004 editing another user\'s tag is RESOURCE_FORBIDDEN', async () => {
+  it("TAGS-RPC-004 editing another user's tag is RESOURCE_FORBIDDEN", async () => {
     const res = (await host.dispatch(req('tags.update', { tagId: 2, input: { name: 'x' } }), 42)) as RpcError;
     expect(res.error.code).toBe('RESOURCE_FORBIDDEN');
     expect(res.error.message).toBe('no tag 2 for this user');
@@ -139,12 +145,12 @@ describe('TagsRpc handlers', () => {
     rpc = new TagsRpc(tags);
   });
 
-  it('TAGS-RPC-008 list returns the acting user\'s tags', () => {
-    expect(rpc.list({}, ctx(42))).toEqual([{ id: 1, user_id: 42, name: 'work' }]);
+  it("TAGS-RPC-008 list returns the acting user's tags", async () => {
+    expect(await rpc.list({}, ctx(42))).toEqual([{ id: 1, user_id: 42, name: 'work' }]);
   });
 
-  it('TAGS-RPC-009 create passes name and colour through', () => {
-    expect(rpc.create({ input: { name: 'work', color: '#abc' } }, ctx(42))).toEqual({
+  it('TAGS-RPC-009 create passes name and colour through', async () => {
+    expect(await rpc.create({ input: { name: 'work', color: '#abc' } }, ctx(42))).toEqual({
       id: 9,
       user_id: 42,
       name: 'work',
@@ -152,44 +158,46 @@ describe('TagsRpc handlers', () => {
     });
   });
 
-  it('TAGS-RPC-010 a non-string colour is dropped rather than passed on', () => {
-    rpc.create({ input: { name: 'work', color: 123 } }, ctx(42));
+  it('TAGS-RPC-010 a non-string colour is dropped rather than passed on', async () => {
+    await rpc.create({ input: { name: 'work', color: 123 } }, ctx(42));
     expect(tags.create).toHaveBeenCalledWith(42, 'work', undefined);
   });
 
-  it('TAGS-RPC-011 a non-object input is wrapped, so the name check still refuses it', () => {
-    expect(() => rpc.create({ input: 'work' }, ctx(42))).toThrow(new BadParams('tag name is required'));
+  it('TAGS-RPC-011 a non-object input is wrapped, so the name check still refuses it', async () => {
+    await expect(rpc.create({ input: 'work' }, ctx(42))).rejects.toThrow(new BadParams('tag name is required'));
   });
 
-  it('TAGS-RPC-012 a userless write says "writes", not "reads"', () => {
-    expect(() => rpc.create({ input: { name: 'x' } }, ctx(undefined))).toThrow(
+  it('TAGS-RPC-012 a userless write says "writes", not "reads"', async () => {
+    await expect(rpc.create({ input: { name: 'x' } }, ctx(undefined))).rejects.toThrow(
       new ForbiddenResource('tag writes require an authenticated user context'),
     );
-    expect(() => rpc.update({ tagId: 1 }, ctx(undefined))).toThrow(
+    await expect(rpc.update({ tagId: 1 }, ctx(undefined))).rejects.toThrow(
       new ForbiddenResource('tag writes require an authenticated user context'),
     );
-    expect(() => rpc.delete({ tagId: 1 }, ctx(undefined))).toThrow(
+    await expect(rpc.delete({ tagId: 1 }, ctx(undefined))).rejects.toThrow(
       new ForbiddenResource('tag writes require an authenticated user context'),
     );
   });
 
-  it('TAGS-RPC-013 update only forwards the fields it was given', () => {
-    rpc.update({ tagId: 1, input: { name: 'renamed' } }, ctx(42));
+  it('TAGS-RPC-013 update only forwards the fields it was given', async () => {
+    await rpc.update({ tagId: 1, input: { name: 'renamed' } }, ctx(42));
     expect(tags.update).toHaveBeenCalledWith(1, 'renamed', undefined);
   });
 
-  it('TAGS-RPC-014 a missing tagId is BAD_PARAMS before the ownership check runs', () => {
-    expect(() => rpc.update({ input: { name: 'x' } }, ctx(42))).toThrow(new BadParams('tagId must be a number'));
+  it('TAGS-RPC-014 a missing tagId is BAD_PARAMS before the ownership check runs', async () => {
+    await expect(rpc.update({ input: { name: 'x' } }, ctx(42))).rejects.toThrow(
+      new BadParams('tagId must be a number'),
+    );
     expect(tags.getByIdAndUser).not.toHaveBeenCalled();
   });
 
-  it('TAGS-RPC-015 delete re-checks ownership and reports the deletion', () => {
-    expect(rpc.delete({ tagId: 1 }, ctx(42))).toEqual({ deleted: true });
+  it('TAGS-RPC-015 delete re-checks ownership and reports the deletion', async () => {
+    expect(await rpc.delete({ tagId: 1 }, ctx(42))).toEqual({ deleted: true });
     expect(tags.remove).toHaveBeenCalledWith(1);
   });
 
-  it('TAGS-RPC-016 deleting another user\'s tag never reaches remove()', () => {
-    expect(() => rpc.delete({ tagId: 2 }, ctx(42))).toThrow(new ForbiddenResource('no tag 2 for this user'));
+  it("TAGS-RPC-016 deleting another user's tag never reaches remove()", async () => {
+    await expect(rpc.delete({ tagId: 2 }, ctx(42))).rejects.toThrow(new ForbiddenResource('no tag 2 for this user'));
     expect(tags.remove).not.toHaveBeenCalled();
   });
 });

@@ -30,7 +30,7 @@ const backup: TranslationStrings = {
   'backup.auto.subtitle': 'Automatické zálohování podle plánu',
   'backup.auto.enable': 'Povolit automatické zálohování',
   'backup.auto.enableHint': 'Zálohy budou vytvářeny automaticky podle zvoleného plánu',
-  'backup.auto.interval': 'Interval',
+  'backup.auto.interval': 'Interval', // same-as-en
   'backup.auto.hour': 'Spustit v hodinu',
   'backup.auto.hourHint': 'Místní čas serveru (formát {format})',
   'backup.auto.dayOfWeek': 'Den v týdnu',
@@ -68,5 +68,6 @@ const backup: TranslationStrings = {
     'Všechna aktuální data (cesty, místa, uživatelé, nahrané soubory) budou trvale nahrazena zálohou. Tuto akci nelze vrátit.',
   'backup.restoreTip': 'Tip: Před obnovením vytvořte zálohu aktuálního stavu.',
   'backup.restoreConfirm': 'Ano, obnovit',
+  'backup.auto.hourHintTz': 'Místní čas serveru (formát {format}), časové pásmo {timezone}',
 };
 export default backup;

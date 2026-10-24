@@ -12,14 +12,21 @@ const shared: TranslationStrings = {
   'shared.tabBookings': 'Pemesanan',
   'shared.tabPacking': 'Bawaan',
   'shared.tabBudget': 'Biaya',
-  'shared.tabChat': 'Chat',
+  'shared.tabChat': 'Chat', // same-as-en
   'shared.days': 'hari',
   'shared.places': 'tempat',
+  'shared.unplanned': 'Belum direncanakan',
   'shared.other': 'Lainnya',
   'shared.totalBudget': 'Total Biaya',
   'shared.messages': 'pesan',
   'shared.sharedVia': 'Dibagikan via',
   'shared.confirmed': 'Dikonfirmasi',
   'shared.pending': 'Menunggu',
+  'shared.footerTagline': 'Perencana perjalanan yang Anda hosting sendiri. Sumber terbuka.',
+  'shared.emptyBookings': 'Belum ada pemesanan yang dibagikan',
+  'shared.emptyPacking': 'Daftar barang bawaan masih kosong',
+  'shared.emptyCosts': 'Belum ada pengeluaran',
+  'shared.emptyChat': 'Belum ada pesan',
+  'shared.wholeTrip': 'Seluruh perjalanan',
 };
 export default shared;

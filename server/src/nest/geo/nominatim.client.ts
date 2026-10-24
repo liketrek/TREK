@@ -1,5 +1,5 @@
-import { UA } from '../maps/maps.helpers';
 import { readEnv } from '../../app-config';
+import { UA } from '../maps/maps.helpers';
 
 /**
  * The one Nominatim client.

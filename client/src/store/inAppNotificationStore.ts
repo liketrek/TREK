@@ -48,8 +48,14 @@ interface NotificationState {
   total: number
   isLoading: boolean
   hasMore: boolean
+  /** The filter the loaded pages were fetched with, so the next page continues the same list. */
+  unreadOnly: boolean
 
-  fetchNotifications: (reset?: boolean) => Promise<void>
+  /**
+   * Loads a page. A reset starts the list over with the given filter (default: all) and always
+   * runs, replacing a load that is still in flight; a following page keeps the current filter.
+   */
+  fetchNotifications: (reset?: boolean, unreadOnly?: boolean) => Promise<void>
   fetchUnreadCount: () => Promise<void>
   markRead: (id: number) => Promise<void>
   markUnread: (id: number) => Promise<void>
@@ -60,9 +66,30 @@ interface NotificationState {
 
   handleNewNotification: (notification: RawNotification) => void
   handleUpdatedNotification: (notification: RawNotification) => void
+  handleAllRead: () => void
 }
 
 const PAGE_SIZE = 20
+
+// Newest reset wins: a slower, older response must not overwrite the list of a filter the user has left.
+let fetchSeq = 0
+
+/** What marking everything read leaves, here or in another tab: every notification read, none to count. */
+function allRead(state: NotificationState): Partial<NotificationState> {
+  return { notifications: state.notifications.map(n => n.is_read ? n : { ...n, is_read: true }), unreadCount: 0 }
+}
+
+/** One notification marked read or unread: its row flips, and the count moves only if it was the other way. */
+function markedOne(state: NotificationState, id: number, isRead: boolean): Partial<NotificationState> {
+  const wasRead = Boolean(state.notifications.find(n => n.id === id)?.is_read)
+  let delta = 0
+  if (isRead && !wasRead) delta = -1
+  if (!isRead && wasRead) delta = 1
+  return {
+    notifications: state.notifications.map(n => n.id === id ? { ...n, is_read: isRead } : n),
+    unreadCount: Math.max(0, state.unreadCount + delta),
+  }
+}
 
 export const useInAppNotificationStore = create<NotificationState>((set, get) => ({
   notifications: [],
@@ -70,26 +97,35 @@ export const useInAppNotificationStore = create<NotificationState>((set, get) =>
   total: 0,
   isLoading: false,
   hasMore: false,
+  unreadOnly: false,
 
-  fetchNotifications: async (reset = false) => {
+  fetchNotifications: async (reset = false, unreadOnly) => {
     const { notifications, isLoading } = get()
-    if (isLoading) return
+    if (isLoading && !reset) return
 
+    const filter = reset ? (unreadOnly ?? false) : get().unreadOnly
+    const seq = ++fetchSeq
     set({ isLoading: true })
     try {
-      const offset = reset ? 0 : notifications.length
-      const data = await inAppNotificationsApi.list({ limit: PAGE_SIZE, offset })
+      // The server pages the filtered list. Rows marked read since they were loaded are still held
+      // here but have left that list, so an unread-only page continues after the rows still unread.
+      const offset = reset ? 0 : (filter ? notifications.filter(n => !n.is_read).length : notifications.length)
+      const data = await inAppNotificationsApi.list({ limit: PAGE_SIZE, offset, ...(filter ? { unread_only: true } : {}) })
+      if (seq !== fetchSeq) return
       const normalized = (data.notifications as unknown as RawNotification[]).map(normalizeNotification)
 
+      const known = new Set(notifications.map(n => n.id))
+      const merged = reset ? normalized : [...notifications, ...normalized.filter(n => !known.has(n.id))]
       set({
-        notifications: reset ? normalized : [...notifications, ...normalized],
+        notifications: merged,
         total: data.total,
         unreadCount: data.unread_count,
-        hasMore: (reset ? normalized.length : notifications.length + normalized.length) < data.total,
+        hasMore: offset + normalized.length < data.total,
+        unreadOnly: filter,
         isLoading: false,
       })
     } catch {
-      set({ isLoading: false })
+      if (seq === fetchSeq) set({ isLoading: false })
     }
   },
 
@@ -105,10 +141,7 @@ export const useInAppNotificationStore = create<NotificationState>((set, get) =>
   markRead: async (id: number) => {
     try {
       await inAppNotificationsApi.markRead(id)
-      set(state => ({
-        notifications: state.notifications.map(n => n.id === id ? { ...n, is_read: true } : n),
-        unreadCount: Math.max(0, state.unreadCount - (state.notifications.find(n => n.id === id)?.is_read ? 0 : 1)),
-      }))
+      set(state => markedOne(state, id, true))
     } catch {
       // best-effort
     }
@@ -117,10 +150,7 @@ export const useInAppNotificationStore = create<NotificationState>((set, get) =>
   markUnread: async (id: number) => {
     try {
       await inAppNotificationsApi.markUnread(id)
-      set(state => ({
-        notifications: state.notifications.map(n => n.id === id ? { ...n, is_read: false } : n),
-        unreadCount: state.unreadCount + (state.notifications.find(n => n.id === id)?.is_read ? 1 : 0),
-      }))
+      set(state => markedOne(state, id, false))
     } catch {
       // best-effort
     }
@@ -129,10 +159,7 @@ export const useInAppNotificationStore = create<NotificationState>((set, get) =>
   markAllRead: async () => {
     try {
       await inAppNotificationsApi.markAllRead()
-      set(state => ({
-        notifications: state.notifications.map(n => ({ ...n, is_read: true })),
-        unreadCount: 0,
-      }))
+      set(allRead)
     } catch {
       // best-effort
     }
@@ -187,10 +214,23 @@ export const useInAppNotificationStore = create<NotificationState>((set, get) =>
     }))
   },
 
+  // A notification read, unread or answered in another tab (or through MCP) moves
+  // the bell's count too. One this tab has not loaded says nothing about what it
+  // was before, so the count is asked for instead of guessed.
   handleUpdatedNotification: (raw: RawNotification) => {
     const notification = normalizeNotification(raw)
+    const before = get().notifications.find(n => n.id === notification.id)
+    if (!before) {
+      void get().fetchUnreadCount()
+      return
+    }
+    const delta = Number(!notification.is_read) - Number(!before.is_read)
     set(state => ({
       notifications: state.notifications.map(n => n.id === notification.id ? notification : n),
+      unreadCount: Math.max(0, state.unreadCount + delta),
     }))
   },
+
+  // Everything marked read at once elsewhere: the same end state markAllRead leaves.
+  handleAllRead: () => set(allRead),
 }))

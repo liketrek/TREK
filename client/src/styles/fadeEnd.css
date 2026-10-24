@@ -1,0 +1,10 @@
+/* A row that runs out of room fades at its end instead of ending at a hard edge,
+   e.g. a tour's or a day plan row's chips when the hover actions take their space. */
+.trek-fade-end {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 1.75rem), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 1.75rem), transparent);
+}
+[dir='rtl'] .trek-fade-end {
+  -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 1.75rem), transparent);
+  mask-image: linear-gradient(to left, #000 calc(100% - 1.75rem), transparent);
+}

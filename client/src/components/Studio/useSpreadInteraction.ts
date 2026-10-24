@@ -1,6 +1,8 @@
 import { useCallback, useRef, useState } from 'react'
 import type { BookElement, BookFrame, BookPageSetup, BookSpread } from '@trek/shared'
+import { expandToGroups } from '@trek/shared'
 import { useStudioStore } from '../../store/studioStore'
+import { MIN_FRAME_MM, boxOf, mapFrame, marqueeHits, rectBetween, resizeBox, type HandleId } from './studioGestures'
 
 /**
  * Moving and resizing on the sheet.
@@ -27,11 +29,31 @@ export interface Guide {
   at: number
 }
 
-export type HandleId = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w'
+export type { HandleId }
+
+/** How far, in screen pixels, a press has to travel before it draws a marquee. */
+const MARQUEE_START_PX = 3
 
 interface Gesture {
-  kind: 'move' | 'resize' | 'rotate'
+  kind: 'move' | 'resize' | 'rotate' | 'marquee'
   handle?: HandleId
+  /** The box around the frames being resized, as it was. */
+  baseBox?: BookFrame
+  /**
+   * A marquee: where it started on the spread, in millimetres, and what was
+   * selected before it when shift was held (a marquee with shift adds).
+   */
+  originX?: number
+  originY?: number
+  keep?: string[]
+  /** Whether the pointer has travelled: far enough for a marquee to count, or at all for a move. */
+  moved?: boolean
+  /**
+   * What a press on one of several selected elements narrows the selection
+   * to when it lets go without moving: the element, or its group. A drag
+   * moves all of them; a click picks the one, as in every design tool.
+   */
+  narrowTo?: string[]
   startX: number
   startY: number
   /** Frames as they were when the gesture started, by element id. */
@@ -120,6 +142,41 @@ function bestSnap(edges: number[], targets: number[], tolMm: number): { delta: n
   return best
 }
 
+/**
+ * A resized box with the edges being dragged snapped onto the nearest line,
+ * and the lines it snapped to added to `guides`. A box never turns inside out,
+ * snapped or not: it stops at the minimum against the edge that stays.
+ */
+function snapBox(
+  box: BookFrame,
+  h: HandleId,
+  base: BookFrame,
+  targets: { xs: number[]; ys: number[]; tolMm: number },
+  guides: Guide[],
+): BookFrame {
+  let { x, y, w } = box
+  let hh = box.h
+  if (h.includes('w')) {
+    const s = bestSnap([x], targets.xs, targets.tolMm)
+    if (s) { w += x - s.at; x = s.at; guides.push({ axis: 'x', at: s.at }) }
+  }
+  if (h.includes('e')) {
+    const s = bestSnap([x + w], targets.xs, targets.tolMm)
+    if (s) { w = s.at - x; guides.push({ axis: 'x', at: s.at }) }
+  }
+  if (h.includes('n')) {
+    const s = bestSnap([y], targets.ys, targets.tolMm)
+    if (s) { hh += y - s.at; y = s.at; guides.push({ axis: 'y', at: s.at }) }
+  }
+  if (h.includes('s')) {
+    const s = bestSnap([y + hh], targets.ys, targets.tolMm)
+    if (s) { hh = s.at - y; guides.push({ axis: 'y', at: s.at }) }
+  }
+  if (w < MIN_FRAME_MM) { if (h.includes('w')) x = base.x + base.w - MIN_FRAME_MM; w = MIN_FRAME_MM }
+  if (hh < MIN_FRAME_MM) { if (h.includes('n')) y = base.y + base.h - MIN_FRAME_MM; hh = MIN_FRAME_MM }
+  return { x, y, w, h: hh }
+}
+
 export function useSpreadInteraction(opts: {
   spread: BookSpread | null
   spreadIndex: number
@@ -129,7 +186,7 @@ export function useSpreadInteraction(opts: {
 }) {
   const { spread, spreadIndex, page, pxPerMm } = opts
   const selection = useStudioStore(s => s.selection)
-  const toggleSelect = useStudioStore(s => s.toggleSelect)
+  const pick = useStudioStore(s => s.pick)
   const select = useStudioStore(s => s.select)
   const setFrame = useStudioStore(s => s.setFrame)
   const setRotation = useStudioStore(s => s.setRotation)
@@ -137,8 +194,12 @@ export function useSpreadInteraction(opts: {
   const endGesture = useStudioStore(s => s.endGesture)
 
   const gesture = useRef<Gesture | null>(null)
+  /** Whether letting go of a marquee that never moved clears the selection. */
+  const clearOnClick = useRef(false)
   const [guides, setGuides] = useState<Guide[]>([])
   const [dragging, setDragging] = useState(false)
+  /** The marquee being drawn, in millimetres on the spread. */
+  const [marquee, setMarquee] = useState<BookFrame | null>(null)
 
   const tolMm = SNAP_PX / Math.max(pxPerMm, 0.0001)
 
@@ -149,11 +210,21 @@ export function useSpreadInteraction(opts: {
     } catch {
       // The element can be gone already — releasing a capture is best-effort.
     }
+    const g = gesture.current
     gesture.current = null
     setGuides([])
     setDragging(false)
+    setMarquee(null)
+    // A marquee changes the selection only. A press on bare paper that never
+    // became one clears the selection, as a click there always did.
+    if (g.kind === 'marquee') {
+      if (!g.moved && clearOnClick.current) select([])
+      clearOnClick.current = false
+      return
+    }
+    if (g.kind === 'move' && !g.moved && g.narrowTo) select(g.narrowTo)
     endGesture()
-  }, [endGesture])
+  }, [endGesture, select])
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
     const g = gesture.current
@@ -162,6 +233,18 @@ export function useSpreadInteraction(opts: {
 
     const dxMm = (e.clientX - g.startX) / pxPerMm
     const dyMm = (e.clientY - g.startY) / pxPerMm
+
+    if (g.kind === 'marquee') {
+      if (!g.moved && Math.hypot(e.clientX - g.startX, e.clientY - g.startY) < MARQUEE_START_PX) return
+      g.moved = true
+      const rect = rectBetween(g.originX ?? 0, g.originY ?? 0, (g.originX ?? 0) + dxMm, (g.originY ?? 0) + dyMm)
+      setMarquee(rect)
+      const hits = marqueeHits(spread, rect)
+      const keep = g.keep ?? []
+      select([...keep, ...hits.filter(id => !keep.includes(id))])
+      return
+    }
+
     const moving = new Set(g.base.keys())
     const { xs, ys } = snapTargets(spread, page, moving)
     const nextGuides: Guide[] = []
@@ -195,6 +278,7 @@ export function useSpreadInteraction(opts: {
     }
 
     if (g.kind === 'move') {
+      if (dxMm !== 0 || dyMm !== 0) g.moved = true
       // Snap on the union of all moving edges, so a multi-selection lines up as
       // a block rather than each element fighting for its own line.
       const movedX: number[] = []
@@ -216,46 +300,28 @@ export function useSpreadInteraction(opts: {
           h: f.h,
         })
       }
-    } else if (g.handle) {
+    } else if (g.handle && g.baseBox) {
+      /*
+       * One box for the whole selection, however many are in it.
+       *
+       * The box is resized and every frame inside it is carried along, so a
+       * multi-selection or a group grows as one picture rather than each
+       * element stretching about its own corner. With one element the box is
+       * its frame and this is the plain resize it always was. Shift keeps the
+       * proportions; the snap then stays out of it, since an edge pulled onto
+       * a line would bend the ratio Shift is holding.
+       */
       const h = g.handle
-      for (const [id, f] of g.base) {
-        let { x, y, w, hh } = { x: f.x, y: f.y, w: f.w, hh: f.h }
+      const keep = e.shiftKey
+      let box = resizeBox(g.baseBox, h, { dx: dxMm, dy: dyMm }, keep)
 
-        if (h.includes('w')) { x = f.x + dxMm; w = f.w - dxMm }
-        if (h.includes('e')) { w = f.w + dxMm }
-        if (h.includes('n')) { y = f.y + dyMm; hh = f.h - dyMm }
-        if (h.includes('s')) { hh = f.h + dyMm }
+      if (!keep) box = snapBox(box, h, g.baseBox, { xs, ys, tolMm }, nextGuides)
 
-        // Snap the edge actually being dragged, not the whole box.
-        if (h.includes('w')) {
-          const s = bestSnap([x], xs, tolMm)
-          if (s) { w += x - s.at; x = s.at; nextGuides.push({ axis: 'x', at: s.at }) }
-        }
-        if (h.includes('e')) {
-          const s = bestSnap([x + w], xs, tolMm)
-          if (s) { w = s.at - x; nextGuides.push({ axis: 'x', at: s.at }) }
-        }
-        if (h.includes('n')) {
-          const s = bestSnap([y], ys, tolMm)
-          if (s) { hh += y - s.at; y = s.at; nextGuides.push({ axis: 'y', at: s.at }) }
-        }
-        if (h.includes('s')) {
-          const s = bestSnap([y + hh], ys, tolMm)
-          if (s) { hh = s.at - y; nextGuides.push({ axis: 'y', at: s.at }) }
-        }
-
-        // A frame may not turn inside out. 4mm is about the smallest thing
-        // worth having on a page.
-        const MIN = 4
-        if (w < MIN) { if (h.includes('w')) x = f.x + f.w - MIN; w = MIN }
-        if (hh < MIN) { if (h.includes('n')) y = f.y + f.h - MIN; hh = MIN }
-
-        setFrame(spreadIndex, id, { x, y, w, h: hh })
-      }
+      for (const [id, f] of g.base) setFrame(spreadIndex, id, mapFrame(f, g.baseBox, box))
     }
 
     setGuides(nextGuides)
-  }, [spread, page, pxPerMm, tolMm, setFrame, setRotation, spreadIndex])
+  }, [spread, page, pxPerMm, tolMm, setFrame, setRotation, spreadIndex, select])
 
   const framesFor = useCallback((ids: string[]) => {
     const map = new Map<string, BookFrame>()
@@ -264,14 +330,44 @@ export function useSpreadInteraction(opts: {
     return map
   }, [spread])
 
+  /**
+   * Draw a marquee from where the press landed. `keep` is what stays selected
+   * besides what it catches: the selection before it when shift is held.
+   * `clear` says whether letting go without dragging clears the selection,
+   * which is what a click on bare paper does.
+   */
+  const startMarquee = useCallback((e: React.PointerEvent, keep: string[] | undefined, clear: boolean) => {
+    const stage = (e.currentTarget as Element).closest('.st-stage')
+    const rect = stage?.getBoundingClientRect()
+    ;(e.target as Element).setPointerCapture?.(e.pointerId)
+    clearOnClick.current = clear
+    gesture.current = {
+      kind: 'marquee',
+      startX: e.clientX,
+      startY: e.clientY,
+      originX: (e.clientX - (rect?.left ?? 0)) / pxPerMm,
+      originY: (e.clientY - (rect?.top ?? 0)) / pxPerMm,
+      keep,
+      moved: false,
+      base: new Map(),
+      pointerId: e.pointerId,
+    }
+  }, [pxPerMm])
+
+  /** A press on bare paper: a marquee, or with no drag, nothing selected. */
+  const startPaper = useCallback((e: React.PointerEvent) => {
+    const additive = e.shiftKey || e.metaKey || e.ctrlKey
+    startMarquee(e, additive ? useStudioStore.getState().selection : undefined, !additive)
+  }, [startMarquee])
+
   const startMove = useCallback((e: React.PointerEvent, el: BookElement) => {
     e.stopPropagation()
     const additive = e.shiftKey || e.metaKey || e.ctrlKey
-    const ids = selection.includes(el.id)
-      ? (additive ? selection.filter(x => x !== el.id) : selection)
-      : (additive ? [...selection, el.id] : [el.id])
+    const before = useStudioStore.getState().selection
 
-    if (additive) { toggleSelect(el.id, true) } else if (!selection.includes(el.id)) { select([el.id]) }
+    // Group-aware: a click picks the element's whole group, or the element
+    // alone inside a group stepped into with a double-click (studioLayers.ts).
+    pick(spreadIndex, el.id, additive)
 
     /*
      * Locked means "cannot be moved", not "cannot be reached".
@@ -280,10 +376,24 @@ export function useSpreadInteraction(opts: {
      * not be picked, so the inspector never showed it, so the unlock button was
      * unreachable and the lock could not be undone by any means short of undo.
      * Selection happens first and then the gesture stops here.
+     *
+     * A press on a locked element that goes on to drag draws a marquee
+     * instead: a locked page-sized photo is where a marquee over a page
+     * usually has to start.
      */
-    if (el.locked) return
+    if (el.locked) {
+      startMarquee(e, additive ? before : undefined, false)
+      return
+    }
+    if (additive) return
 
-    const targets = ids.length ? ids : [el.id]
+    // What moves is the selection as the press left it, less what is locked.
+    const state = useStudioStore.getState()
+    const onPage = state.doc?.spreads[spreadIndex]?.elements ?? spread?.elements ?? []
+    const targets = onPage.filter(x => state.selection.includes(x.id) && !x.locked).map(x => x.id)
+    const own = el.group && el.group === state.enteredGroup
+      ? [el.id]
+      : expandToGroups({ elements: onPage } as BookSpread, [el.id])
 
     ;(e.target as Element).setPointerCapture?.(e.pointerId)
     beginGesture()
@@ -291,11 +401,12 @@ export function useSpreadInteraction(opts: {
       kind: 'move',
       startX: e.clientX,
       startY: e.clientY,
-      base: framesFor(targets),
+      base: framesFor(targets.length ? targets : [el.id]),
+      narrowTo: state.selection.length > own.length ? own : undefined,
       pointerId: e.pointerId,
     }
     setDragging(true)
-  }, [selection, toggleSelect, select, beginGesture, framesFor])
+  }, [pick, spreadIndex, spread, startMarquee, beginGesture, framesFor])
 
   /**
    * Take hold of the rotation handle.
@@ -340,6 +451,9 @@ export function useSpreadInteraction(opts: {
 
   const startResize = useCallback((e: React.PointerEvent, handle: HandleId) => {
     e.stopPropagation()
+    const unlocked = (spread?.elements ?? []).filter(el => selection.includes(el.id) && !el.locked).map(el => el.id)
+    const base = framesFor(unlocked)
+    if (!base.size) return
     ;(e.target as Element).setPointerCapture?.(e.pointerId)
     beginGesture()
     gesture.current = {
@@ -347,11 +461,12 @@ export function useSpreadInteraction(opts: {
       handle,
       startX: e.clientX,
       startY: e.clientY,
-      base: framesFor(selection),
+      base,
+      baseBox: boxOf([...base.values()]),
       pointerId: e.pointerId,
     }
     setDragging(true)
-  }, [selection, beginGesture, framesFor])
+  }, [spread, selection, beginGesture, framesFor])
 
-  return { guides, dragging, startMove, startResize, startRotate, onPointerMove, finish }
+  return { guides, dragging, marquee, startMove, startPaper, startResize, startRotate, onPointerMove, finish }
 }

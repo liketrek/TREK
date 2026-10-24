@@ -7,6 +7,8 @@ import {
   collabLinkUpdateRequestSchema,
   collabMessageCreateRequestSchema,
   collabReactionRequestSchema,
+  collabMessageSchema,
+  COLLAB_MESSAGE_ORIGIN_ASSISTANT,
 } from './collab.schema';
 
 import { describe, it, expect } from 'vitest';
@@ -104,5 +106,36 @@ describe('collabReactionRequestSchema', () => {
   it('requires a non-empty emoji', () => {
     expect(collabReactionRequestSchema.safeParse({ emoji: '👍' }).success).toBe(true);
     expect(collabReactionRequestSchema.safeParse({ emoji: '' }).success).toBe(false);
+  });
+});
+
+describe('collabMessageSchema', () => {
+  const message = {
+    id: 1,
+    trip_id: 2,
+    user_id: 3,
+    text: 'See you at the station',
+    reply_to: null,
+    created_at: '2026-10-21 08:00:00',
+    deleted: null,
+    username: 'ana',
+    avatar: null,
+    reply_text: null,
+    reply_username: null,
+    user_avatar: null,
+    avatar_url: null,
+    reactions: [],
+    attachments: [],
+  };
+
+  it('reads a message without an origin, with none and with one shared from the assistant', () => {
+    expect(collabMessageSchema.safeParse(message).success).toBe(true);
+    expect(collabMessageSchema.safeParse({ ...message, origin: null }).success).toBe(true);
+    expect(collabMessageSchema.parse({ ...message, origin: COLLAB_MESSAGE_ORIGIN_ASSISTANT }).origin).toBe('assistant');
+  });
+
+  it('takes an origin it does not know yet, but only as text', () => {
+    expect(collabMessageSchema.safeParse({ ...message, origin: 'plugin' }).success).toBe(true);
+    expect(collabMessageSchema.safeParse({ ...message, origin: 1 }).success).toBe(false);
   });
 });

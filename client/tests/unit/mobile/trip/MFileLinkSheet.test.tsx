@@ -81,7 +81,7 @@ describe('MFileLinkSheet', () => {
   it('FE-MOB-FLINK-005: the first place link goes into place_id', async () => {
     const { planner } = renderSheet()
     fireEvent.click(screen.getByRole('button', { name: 'Fushimi Inari' }))
-    expect(filesApi.update).toHaveBeenCalledWith(1, 7, { place_id: 11 })
+    await waitFor(() => expect(filesApi.update).toHaveBeenCalledWith(1, 7, { place_id: 11 }))
     await waitFor(() => expect(planner.tripActions.loadFiles).toHaveBeenCalledWith(1))
     expect(filesApi.addLink).not.toHaveBeenCalled()
   })
@@ -118,7 +118,7 @@ describe('MFileLinkSheet', () => {
   it('FE-MOB-FLINK-010: the first reservation link goes into reservation_id', async () => {
     const { planner } = renderSheet()
     fireEvent.click(screen.getByRole('button', { name: 'Hotel Granvia' }))
-    expect(filesApi.update).toHaveBeenCalledWith(1, 7, { reservation_id: 21 })
+    await waitFor(() => expect(filesApi.update).toHaveBeenCalledWith(1, 7, { reservation_id: 21 }))
     await waitFor(() => expect(planner.tripActions.loadFiles).toHaveBeenCalledWith(1))
   })
 

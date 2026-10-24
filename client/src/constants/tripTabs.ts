@@ -12,6 +12,7 @@
  */
 export const TRIP_TAB_IDS = [
   'plan',
+  'tour-planner',
   'roadtrip',
   'transports',
   'buchungen',
@@ -19,6 +20,7 @@ export const TRIP_TAB_IDS = [
   'finanzplan',
   'dateien',
   'collab',
+  'journal',
 ] as const
 
 export type TripTabId = (typeof TRIP_TAB_IDS)[number]
@@ -31,6 +33,7 @@ export type TripTabId = (typeof TRIP_TAB_IDS)[number]
  */
 export const TRIP_TAB_LABEL_KEYS: Record<TripTabId, string> = {
   plan: 'trip.tabs.plan',
+  'tour-planner': 'trip.tabs.tourPlanner',
   roadtrip: 'roadtrip.title',
   transports: 'trip.tabs.transports',
   buchungen: 'trip.tabs.reservations',
@@ -38,6 +41,7 @@ export const TRIP_TAB_LABEL_KEYS: Record<TripTabId, string> = {
   finanzplan: 'trip.tabs.budget',
   dateien: 'trip.tabs.files',
   collab: 'admin.addons.catalog.collab.name',
+  journal: 'trip.tabs.journal',
 }
 
 export const isTripTabId = (value: unknown): value is TripTabId =>

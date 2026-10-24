@@ -1,4 +1,4 @@
-// FE-COMP-I18NCTX-001 to FE-COMP-I18NCTX-017 (plus -003b / -013b)
+// FE-COMP-I18NCTX-001 to FE-COMP-I18NCTX-018 (plus -003b / -013b)
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { SUPPORTED_LANGUAGES, TranslationProvider, useTranslation } from '../../../src/i18n/TranslationContext';
 import { TransHtml } from '../../../src/i18n/TransHtml';
@@ -24,6 +24,10 @@ function HtmlProbe({ tKey, params }: { tKey: string; params?: Record<string, str
   const { tHtml } = useTranslation();
   return <span data-testid="raw">{tHtml(tKey, params)}</span>;
 }
+
+// A language's string table is built from its files the first time it is asked
+// for; on a busy runner that can take longer than waitFor's default second.
+const FIRST_LOAD = { timeout: 5000 };
 
 function withLanguage(language: string) {
   seedStore(useSettingsStore, { settings: { language } });
@@ -73,14 +77,14 @@ describe('TranslationProvider', () => {
     render(<TranslationProvider><Probe tKey="common.save" /></TranslationProvider>);
 
     expect(screen.getByTestId('language').textContent).toBe('de');
-    await waitFor(() => expect(screen.getByTestId('value').textContent).toBe('Speichern'));
+    await waitFor(() => expect(screen.getByTestId('value').textContent).toBe('Speichern'), FIRST_LOAD);
     expect(screen.getByTestId('locale').textContent).toBe('de-DE');
   });
 
   it('FE-COMP-I18NCTX-006: falls back to the English string for a key a locale is missing', async () => {
     withLanguage('de');
     render(<TranslationProvider><Probe tKey="does.not.exist" /></TranslationProvider>);
-    await waitFor(() => expect(screen.getByTestId('value').textContent).toBe('does.not.exist'));
+    await waitFor(() => expect(screen.getByTestId('value').textContent).toBe('does.not.exist'), FIRST_LOAD);
   });
 
   it('FE-COMP-I18NCTX-007: writes lang and ltr direction onto the html element', () => {
@@ -97,7 +101,7 @@ describe('TranslationProvider', () => {
 
     expect(document.documentElement.lang).toBe('ar');
     expect(document.documentElement.dir).toBe('rtl');
-    await waitFor(() => expect(screen.getByTestId('value').textContent).not.toBe('Save'));
+    await waitFor(() => expect(screen.getByTestId('value').textContent).not.toBe('Save'), FIRST_LOAD);
   });
 
   it('FE-COMP-I18NCTX-009: keeps the English table for an unknown language code', () => {
@@ -138,6 +142,21 @@ describe('TranslationProvider', () => {
       expect(screen.getByTestId('value').textContent).not.toBe('common.save');
       view.unmount();
     }
+  });
+
+  it('FE-COMP-I18NCTX-018: plural forms follow the language of the strings on screen, not the one still loading', async () => {
+    // The chunk is loaded here first: FE-COMP-I18NCTX-011a starts every locale at
+    // once without waiting, and the Russian one could otherwise queue behind the
+    // others past any timeout. The provider still switches asynchronously, so the
+    // first render below is English all the same.
+    await import('@trek/shared/i18n/ru');
+    withLanguage('ru');
+    render(<TranslationProvider><Probe tKey="places.count" params={{ count: 21 }} /></TranslationProvider>);
+
+    // English strings until the Russian chunk arrives, read with the English
+    // rule: 21 is "other" there, while Russian's rule would pick English's .one.
+    expect(screen.getByTestId('value').textContent).toBe('21 places');
+    await waitFor(() => expect(screen.getByTestId('value').textContent).toBe('21 место'), FIRST_LOAD);
   });
 
   it('FE-COMP-I18NCTX-012: the default context outside a provider echoes the key', () => {

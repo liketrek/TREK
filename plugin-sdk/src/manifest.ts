@@ -30,11 +30,8 @@ export interface ManifestSettingField {
 }
 
 /** Every attribute a settings-field object may carry — the host silently drops anything else.
- *  Mirrors `SETTING_FIELD_KEYS` in the host's install/manifest.ts (parity-tested in
- *  test/permissions-parity.test.ts); change both together. */
-export const SETTING_FIELD_KEYS = [
-  'key', 'label', 'input_type', 'placeholder', 'hint', 'required', 'secret', 'scope', 'options', 'oauth', 'default',
-] as const;
+ *  Generated from the host's protocol/manifest-rules.ts (gen:plugin-facts). */
+export { SETTING_FIELD_KEYS } from './generated/host-facts.js';
 /**
  * The `default`s a manifest declares for one settings scope, keyed by field — the
  * host's effective value for any field nobody set. `trek-plugin dev` seeds `ctx.config`
@@ -71,6 +68,10 @@ export interface ManifestCapabilities {
   tripPage?: { replaces?: string[]; position?: number };
   notificationChannel?: { title?: string; events?: string[] };
   routeProfiles?: Array<{ id: string; label: string; icon?: string }>;
+  /** Chips in the trip map's Explore places pill, answered by the poiCategoryProvider
+   * hook. Requires `hook:poi-category-provider`. At most 4; `icon` is one of
+   * POI_CATEGORY_ICONS, `color` a `#rrggbb` hex, `labels` per TREK language code. */
+  poiCategories?: Array<{ id: string; label: string; labels?: Record<string, string>; icon: string; color: string }>;
   /** MCP tools published via the mcpToolProvider hook. Requires `mcp:tools`. */
   mcpTools?: Array<{
     name: string;
@@ -125,45 +126,36 @@ export interface ValidationResult {
   manifest?: NormalizedManifest;
 }
 
-const ID_RE = /^[a-z][a-z0-9-]{2,39}$/;
+// The format rules (patterns, allowed sets, caps) are the host's own
+// (server/src/nest/plugins/protocol/manifest-rules.ts), generated into host-facts.ts by
+// gen:plugin-facts, so they cannot drift from what an install enforces.
+const ID_RE = MANIFEST_ID_RE;
 // Ids that would collide with admin API route segments — refused by the server's
 // install loader, so surface it locally too.
-const RESERVED_IDS = new Set(['registry', 'install', 'rescan']);
-const SEMVER_RE = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
+const RESERVED_IDS: ReadonlySet<string> = new Set(MANIFEST_RESERVED_IDS);
+const SEMVER_RE = MANIFEST_SEMVER_RE;
 // Addon-id format (lowercase slug, underscores allowed e.g. `llm_parsing`).
-const ADDON_ID_RE = /^[a-z][a-z0-9_]{1,39}$/;
-// Mirror of the server's ADDON_IDS (server/src/addons.ts). Kept in sync so
-// `trek-plugin validate` can WARN on an addon id TREK doesn't know — never a hard
+const ADDON_ID_RE = MANIFEST_ADDON_ID_RE;
+// The server's ADDON_IDS (server/src/addons.ts), generated into host-facts.ts by
+// gen:plugin-facts so it cannot drift again (dawarich, roadtrip and tours had). Used
+// so `trek-plugin validate` can WARN on an addon id TREK doesn't know, never a hard
 // error (a plugin built for a newer TREK may reference an addon this SDK predates).
-export const KNOWN_ADDONS = [
-  'mcp', 'packing', 'budget', 'documents', 'vacay', 'atlas', 'collab', 'journey', 'airtrail', 'llm_parsing', 'collections',
-];
+export { KNOWN_ADDONS } from './generated/host-facts.js';
 // An outbound host: exact hostname (single-label sibling or dotted FQDN) or a
 // `*.`-wildcard with a multi-label suffix. No `*`, no `*.`, no whole-TLD `*.com`,
-// no spaces (mirrors the server manifest validator).
-const HOST_RE = /^(\*\.[a-z0-9-]+(\.[a-z0-9-]+)+|[a-z0-9-]+(\.[a-z0-9-]+)*)$/i;
-const TYPES = ['integration', 'page', 'widget', 'trip-page'];
+// no spaces.
+const HOST_RE = MANIFEST_HOST_RE;
+const TYPES = MANIFEST_TYPES;
 
-/** Mirrors the server's settings-key rules (install/manifest.ts). */
-const SETTING_KEY_RE = /^[a-zA-Z][a-zA-Z0-9_.-]{0,63}$/;
-const RESERVED_SETTING_KEYS = new Set(['constructor', 'prototype', '__proto__']);
+/** The server's settings-key rules. */
+const SETTING_KEY_RE = MANIFEST_SETTING_KEY_RE;
+const RESERVED_SETTING_KEYS: ReadonlySet<string> = new Set(MANIFEST_RESERVED_SETTING_KEYS);
 
 /**
- * Events a plugin notification channel may carry (mirrors the server's
- * PLUGIN_CHANNEL_EVENTS). Admin-scoped and in-app-only events are excluded.
+ * Events a plugin notification channel may carry (the server's PLUGIN_CHANNEL_EVENTS).
+ * Admin-scoped and in-app-only events are excluded.
  */
-export const CHANNEL_EVENTS = [
-  'trip_invite',
-  'booking_change',
-  'trip_reminder',
-  'todo_due',
-  'vacay_invite',
-  'collection_invite',
-  'photos_shared',
-  'collab_message',
-  'packing_tagged',
-  'plugin_notification',
-];
+export { CHANNEL_EVENTS } from './generated/host-facts.js';
 // Mirror of the server's KNOWN_PERMISSIONS (server envelope.ts) — the host hard-rejects
 // anything not in this list at activation, so validate must know the full set.
 //
@@ -171,7 +163,31 @@ export const CHANNEL_EVENTS = [
 // in cli/ui.ts, which only supplies the grouping and hints), so a permission added here can
 // never again go missing from the scaffolder — test/cli.test.ts fails until it has an entry.
 export { KNOWN_PERMISSIONS } from './generated/host-facts.js';
-import { KNOWN_PERMISSIONS } from './generated/host-facts.js';
+import {
+  CHANNEL_EVENTS,
+  KNOWN_PERMISSIONS,
+  MANIFEST_ACTIONS_MAX,
+  MANIFEST_ADDON_ID_RE,
+  MANIFEST_CAPABILITY_NAME_RE,
+  MANIFEST_HOST_RE,
+  MANIFEST_ID_RE,
+  MANIFEST_MCP_TOOLS_MAX,
+  MANIFEST_REPLACEABLE_TABS,
+  MANIFEST_RESERVED_IDS,
+  MANIFEST_RESERVED_SETTING_KEYS,
+  MANIFEST_ROUTE_PROFILE_ID_RE,
+  MANIFEST_ROUTE_PROFILES_MAX,
+  MANIFEST_SEMVER_RE,
+  MANIFEST_SETTING_KEY_RE,
+  MANIFEST_TOOL_NAME_RE,
+  MANIFEST_TRIP_PAGE_POSITION_MAX,
+  MANIFEST_TYPES,
+  MANIFEST_WIDGET_SLOTS,
+  PLUGIN_API_VERSION,
+  POI_CATEGORY_ICONS,
+  POI_CATEGORY_LABEL_MAX,
+  POI_CATEGORY_MAX,
+} from './generated/host-facts.js';
 
 function isKnownPermission(p: string): boolean {
   return KNOWN_PERMISSIONS.includes(p) || p.startsWith('http:outbound:');
@@ -222,7 +238,16 @@ export function validateManifest(raw: unknown): ValidationResult {
         : 'missing "trek" — declare the TREK versions this plugin supports, e.g. ">=4.0.0 <5.0.0"',
     );
   }
-  if (m.apiVersion !== undefined && typeof m.apiVersion !== 'number') errors.push('apiVersion must be a number');
+  // The host's rule (install/manifest.ts): a positive integer, and an install refuses one
+  // newer than the plugin API it implements. A typeof check alone let 0, -1 and 1.5 pass
+  // here and fail at install.
+  if (m.apiVersion !== undefined) {
+    if (typeof m.apiVersion !== 'number' || !Number.isInteger(m.apiVersion) || m.apiVersion < 1) {
+      errors.push('apiVersion must be a positive integer');
+    } else if (m.apiVersion > PLUGIN_API_VERSION) {
+      errors.push(`apiVersion ${m.apiVersion} is newer than the plugin API TREK implements (v${PLUGIN_API_VERSION})`);
+    }
+  }
   if (m.nativeModules === true) errors.push('native modules are not allowed (v1)');
 
   const permissions = Array.isArray(m.permissions) ? m.permissions.map(String) : [];
@@ -257,6 +282,7 @@ export function validateManifest(raw: unknown): ValidationResult {
     tripPage?: { replaces?: unknown; position?: unknown };
     notificationChannel?: { title?: unknown; events?: unknown };
     routeProfiles?: unknown;
+    poiCategories?: unknown;
     mcpTools?: unknown;
     provides?: unknown;
     emits?: unknown;
@@ -266,21 +292,21 @@ export function validateManifest(raw: unknown): ValidationResult {
     errors.push('capabilities.settingsUi must be a boolean');
   }
   const widget = capabilities?.widget;
-  if (widget?.slot !== undefined && widget.slot !== 'sidebar' && widget.slot !== 'hero' && widget.slot !== 'place-detail' && widget.slot !== 'day-detail' && widget.slot !== 'reservation-detail') {
+  if (widget?.slot !== undefined && (typeof widget.slot !== 'string' || !MANIFEST_WIDGET_SLOTS.includes(widget.slot))) {
     errors.push(`widget slot must be "sidebar", "hero", "place-detail", "day-detail" or "reservation-detail", got "${String(widget.slot)}"`);
   }
   // Mirrors the server's REPLACEABLE_TABS — 'plan' is never replaceable.
   const tripPage = capabilities?.tripPage;
   if (tripPage !== undefined) {
-    const REPLACEABLE = ['transports', 'buchungen', 'listen', 'finanzplan', 'dateien', 'collab'];
+    const REPLACEABLE = MANIFEST_REPLACEABLE_TABS;
     if (tripPage.replaces !== undefined) {
       if (!Array.isArray(tripPage.replaces)) errors.push('capabilities.tripPage.replaces must be an array');
       else for (const t of tripPage.replaces) {
         if (typeof t !== 'string' || !REPLACEABLE.includes(t)) errors.push(`capabilities.tripPage.replaces: "${String(t)}" is not a replaceable tab (${REPLACEABLE.join(', ')})`);
       }
     }
-    if (tripPage.position !== undefined && (typeof tripPage.position !== 'number' || !Number.isInteger(tripPage.position) || tripPage.position < 0 || tripPage.position > 50)) {
-      errors.push('capabilities.tripPage.position must be an integer between 0 and 50');
+    if (tripPage.position !== undefined && (typeof tripPage.position !== 'number' || !Number.isInteger(tripPage.position) || tripPage.position < 0 || tripPage.position > MANIFEST_TRIP_PAGE_POSITION_MAX)) {
+      errors.push(`capabilities.tripPage.position must be an integer between 0 and ${MANIFEST_TRIP_PAGE_POSITION_MAX}`);
     }
   }
   // Mirrors the server's PLUGIN_CHANNEL_EVENTS. Admin-scoped events (version_available)
@@ -315,13 +341,15 @@ export function validateManifest(raw: unknown): ValidationResult {
     }
     if (!Array.isArray(routeProfiles)) errors.push('capabilities.routeProfiles must be an array');
     else {
-      if (routeProfiles.length > 3) errors.push('capabilities.routeProfiles: at most 3 profiles');
+      if (routeProfiles.length > MANIFEST_ROUTE_PROFILES_MAX) {
+        errors.push(`capabilities.routeProfiles: at most ${MANIFEST_ROUTE_PROFILES_MAX} profiles`);
+      }
       const seen = new Set<string>();
       normalizedRouteProfiles = [];
       for (const v of routeProfiles) {
         const p = (v && typeof v === 'object' ? v : {}) as { id?: unknown; label?: unknown; icon?: unknown };
         const id = typeof p.id === 'string' ? p.id : '';
-        if (!/^[a-z][a-z0-9-]{0,23}$/.test(id)) errors.push('capabilities.routeProfiles: id must be lowercase [a-z][a-z0-9-], max 24 chars');
+        if (!MANIFEST_ROUTE_PROFILE_ID_RE.test(id)) errors.push('capabilities.routeProfiles: id must be lowercase [a-z][a-z0-9-], max 24 chars');
         else if (seen.has(id)) errors.push(`capabilities.routeProfiles: duplicate id "${id}"`);
         else seen.add(id);
         const label = typeof p.label === 'string' ? p.label.trim() : '';
@@ -335,6 +363,7 @@ export function validateManifest(raw: unknown): ValidationResult {
       }
     }
   }
+  validatePoiCategories(capabilities?.poiCategories, permissions, errors);
   // MCP tools go into every user's assistant context, so the declaration is
   // checked here too rather than only at install: an author should hear about a
   // malformed one from `trek-plugin validate`, not from a tool that never shows up.
@@ -345,7 +374,7 @@ export function validateManifest(raw: unknown): ValidationResult {
     }
     if (!Array.isArray(mcpTools)) errors.push('capabilities.mcpTools must be an array');
     else {
-      if (mcpTools.length > 8) errors.push('capabilities.mcpTools: at most 8 tools');
+      if (mcpTools.length > MANIFEST_MCP_TOOLS_MAX) errors.push(`capabilities.mcpTools: at most ${MANIFEST_MCP_TOOLS_MAX} tools`);
       const seenTools = new Set<string>();
       for (const v of mcpTools) {
         if (!v || typeof v !== 'object' || Array.isArray(v)) {
@@ -354,7 +383,7 @@ export function validateManifest(raw: unknown): ValidationResult {
         }
         const t = v as Record<string, unknown>;
         const name = typeof t.name === 'string' ? t.name : '';
-        if (!/^[a-z0-9_]{1,48}$/.test(name)) {
+        if (!MANIFEST_TOOL_NAME_RE.test(name)) {
           errors.push('capabilities.mcpTools: name must be lowercase [a-z0-9_], max 48 chars');
           continue;
         }
@@ -440,7 +469,7 @@ export function validateManifest(raw: unknown): ValidationResult {
   if (m.actions !== undefined) {
     if (!Array.isArray(m.actions)) errors.push('actions must be an array');
     else {
-      if (m.actions.length > 8) errors.push('at most 8 actions');
+      if (m.actions.length > MANIFEST_ACTIONS_MAX) errors.push(`at most ${MANIFEST_ACTIONS_MAX} actions`);
       const seen = new Set<string>();
       for (const a of m.actions as Array<Record<string, unknown>>) {
         if (!a || typeof a !== 'object') { errors.push('each action must be an object'); continue; }
@@ -497,8 +526,72 @@ export function validateManifest(raw: unknown): ValidationResult {
   return { ok: true, errors: [], manifest };
 }
 
+// Mirrors the host's reader for capabilities.poiCategories (server
+// src/nest/plugins/poi-categories.ts): the same checks, so `validate` refuses exactly
+// what an install would. The icon list and the caps are generated from the host.
+const POI_CATEGORY_ID_RE = /^[a-z][a-z0-9-]{0,23}$/;
+const POI_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
+const POI_LANGUAGE_KEY_RE = /^[a-z]{2,3}(?:-[A-Z]{2})?$/;
+
+function poiLabelOk(v: unknown): boolean {
+  const label = typeof v === 'string' ? v.trim() : '';
+  return label.length > 0 && label.length <= POI_CATEGORY_LABEL_MAX;
+}
+
+// The per-language labels are optional; when present every key must be a language
+// code and every value a label, like the host's reader.
+function poiLabelsProblem(id: string, labels: unknown): string | null {
+  if (labels === undefined) return null;
+  if (!labels || typeof labels !== 'object' || Array.isArray(labels)) {
+    return `"${id}" labels must be an object of language code to label`;
+  }
+  for (const [code, label] of Object.entries(labels as Record<string, unknown>)) {
+    if (!POI_LANGUAGE_KEY_RE.test(code)) return `"${id}" labels: "${code}" is not a language code`;
+    if (!poiLabelOk(label)) return `"${id}" labels.${code} is required (max ${POI_CATEGORY_LABEL_MAX} chars)`;
+  }
+  return null;
+}
+
+function poiCategoryProblem(v: unknown): string | null {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return 'entries must be objects';
+  const p = v as Record<string, unknown>;
+  const id = typeof p.id === 'string' ? p.id : '';
+  if (!POI_CATEGORY_ID_RE.test(id)) return 'id must be lowercase [a-z][a-z0-9-], max 24 chars';
+  if (!poiLabelOk(p.label)) return `"${id}" label is required (max ${POI_CATEGORY_LABEL_MAX} chars)`;
+  if (typeof p.icon !== 'string' || !POI_CATEGORY_ICONS.includes(p.icon)) {
+    return `"${id}" icon must be one of ${POI_CATEGORY_ICONS.join(', ')}`;
+  }
+  if (typeof p.color !== 'string' || !POI_COLOR_RE.test(p.color)) return `"${id}" color must be a #rrggbb hex colour`;
+  return poiLabelsProblem(id, p.labels);
+}
+
+function validatePoiCategories(raw: unknown, permissions: string[], errors: string[]): void {
+  if (raw === undefined) return;
+  // The host installs a declaration without the grant but never shows its chips, so
+  // the author hears about it here instead of from an empty pill.
+  if (!permissions.includes('hook:poi-category-provider')) {
+    errors.push('capabilities.poiCategories requires the "hook:poi-category-provider" permission');
+  }
+  if (!Array.isArray(raw)) {
+    errors.push('capabilities.poiCategories must be an array');
+    return;
+  }
+  if (raw.length > POI_CATEGORY_MAX) errors.push(`capabilities.poiCategories: at most ${POI_CATEGORY_MAX} categories`);
+  const seen = new Set<string>();
+  for (const v of raw) {
+    const problem = poiCategoryProblem(v);
+    if (problem) {
+      errors.push(`capabilities.poiCategories: ${problem}`);
+      continue;
+    }
+    const id = (v as { id: string }).id;
+    if (seen.has(id)) errors.push(`capabilities.poiCategories: duplicate id "${id}"`);
+    seen.add(id);
+  }
+}
+
 // Export/event names exposed to other plugins (dots allowed for event names).
-const CAPABILITY_NAME_RE = /^[a-zA-Z][a-zA-Z0-9._-]{0,63}$/;
+const CAPABILITY_NAME_RE = MANIFEST_CAPABILITY_NAME_RE;
 
 function validateCapabilityNames(raw: unknown, field: string, errors: string[]): void {
   if (raw === undefined) return;

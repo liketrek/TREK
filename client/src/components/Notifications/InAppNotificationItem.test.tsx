@@ -72,6 +72,20 @@ describe('InAppNotificationItem', () => {
     expect(screen.queryByTitle('Mark as read')).not.toBeInTheDocument();
   });
 
+  it('FE-COMP-NOTIF-006b: a read notification offers Mark as unread and calls markUnread', async () => {
+    const user = userEvent.setup();
+    const markUnread = vi.fn().mockResolvedValue(undefined);
+    seedStore(useInAppNotificationStore, { markUnread });
+    render(<InAppNotificationItem notification={buildNotification({ id: 17, is_read: true })} />);
+    await user.click(screen.getByTitle('Mark as unread'));
+    expect(markUnread).toHaveBeenCalledWith(17);
+  });
+
+  it('FE-COMP-NOTIF-006c: an unread notification does not offer Mark as unread', () => {
+    render(<InAppNotificationItem notification={buildNotification({ is_read: false })} />);
+    expect(screen.queryByTitle('Mark as unread')).not.toBeInTheDocument();
+  });
+
   it('FE-COMP-NOTIF-007: shows Delete button', () => {
     render(<InAppNotificationItem notification={buildNotification()} />);
     expect(screen.getByTitle('Delete')).toBeInTheDocument();

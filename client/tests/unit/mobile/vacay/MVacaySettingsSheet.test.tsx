@@ -507,7 +507,7 @@ describe('MVacaySettingsSheet', () => {
     expect(screen.queryByText('Dissolve Fusion')).not.toBeInTheDocument();
   });
 
-  it('FE-MOB-MVACSET-027: dissolving lists the members, toasts and closes the sheet', async () => {
+  it('FE-MOB-MVACSET-027: dissolving lists the members, asks first, toasts and closes the sheet', async () => {
     const dissolve = vi.fn(async () => {});
     seedPlan(buildPlan(), {
       isFused: true,
@@ -520,7 +520,12 @@ describe('MVacaySettingsSheet', () => {
     expect(screen.getByText('alice')).toBeInTheDocument();
     expect(screen.getByText('bob')).toBeInTheDocument();
 
+    // The sheet's button only opens the confirm dialog, so nothing is dissolved yet.
     fireEvent.click(screen.getByRole('button', { name: 'Dissolve' }));
+    expect(dissolve).not.toHaveBeenCalled();
+    // The dialog is portalled after the sheet, so its confirm button is the second match.
+    const [, confirmButton] = screen.getAllByRole('button', { name: 'Dissolve' });
+    fireEvent.click(confirmButton);
     await waitFor(() => expect(dissolve).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
     expect(toasts).toEqual([{ type: 'success', message: 'Calendar separated' }]);

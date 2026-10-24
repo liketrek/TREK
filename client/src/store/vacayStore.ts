@@ -15,6 +15,7 @@ import type {
   VacayUpdateStatsRequest, VacayShareRequest, VacayShareUpdateRequest,
   VacayYearSettingsRequest,
 } from '@trek/shared'
+import { toggledCompanyHolidays, type CompanyHoliday } from '../components/Vacay/companyHolidays'
 
 const ax = apiClient
 
@@ -26,6 +27,15 @@ interface PendingInvite {
 interface IncomingInvite {
   plan_id: number
   owner_username: string
+}
+
+/** The plan endpoint names the inviter `username`; views read `owner_username`. */
+export function normalizeIncomingInvites(rows: unknown): IncomingInvite[] {
+  if (!Array.isArray(rows)) return []
+  return rows.map((r: { plan_id: number; username?: string; owner_username?: string }) => ({
+    plan_id: r.plan_id,
+    owner_username: r.owner_username ?? r.username ?? '',
+  }))
 }
 
 interface VacayPlanResponse {
@@ -43,7 +53,7 @@ interface VacayYearsResponse {
 
 interface VacayEntriesResponse {
   entries: VacayEntry[]
-  companyHolidays: { date: string; note?: string }[]
+  companyHolidays: CompanyHoliday[]
 }
 
 interface VacayStatsResponse {
@@ -78,7 +88,7 @@ interface VacayApi {
   removeYear: (year: number) => Promise<VacayYearsResponse>
   getEntries: (year: number) => Promise<VacayEntriesResponse>
   toggleEntry: (date: string, targetUserId?: number, fraction?: 0.5 | 1, kind?: 'vacation' | 'comp') => Promise<unknown>
-  toggleCompanyHoliday: (date: string) => Promise<unknown>
+  toggleCompanyHoliday: (date: string, fraction?: number) => Promise<unknown>
   getStats: (year: number) => Promise<VacayStatsResponse>
   updateStats: (year: number, days: number, targetUserId?: number) => Promise<unknown>
   getHolidays: (year: number, country: string) => Promise<VacayHolidayRaw[]>
@@ -109,7 +119,7 @@ const api: VacayApi = {
   removeYear: (year) => ax.delete(`/addons/vacay/years/${year}`).then((r: AxiosResponse) => r.data),
   getEntries: (year) => ax.get(`/addons/vacay/entries/${year}`).then((r: AxiosResponse) => r.data),
   toggleEntry: (date, targetUserId, fraction, kind) => ax.post('/addons/vacay/entries/toggle', { date, target_user_id: targetUserId, fraction, kind } satisfies VacayToggleEntryRequest).then((r: AxiosResponse) => r.data),
-  toggleCompanyHoliday: (date) => ax.post('/addons/vacay/entries/company-holiday', { date } satisfies VacayCompanyHolidayRequest).then((r: AxiosResponse) => r.data),
+  toggleCompanyHoliday: (date, fraction) => ax.post('/addons/vacay/entries/company-holiday', { date, fraction: fraction === 0.5 ? 0.5 : 1 } satisfies VacayCompanyHolidayRequest).then((r: AxiosResponse) => r.data),
   getStats: (year) => ax.get(`/addons/vacay/stats/${year}`).then((r: AxiosResponse) => r.data),
   updateStats: (year, days, targetUserId) => ax.put(`/addons/vacay/stats/${year}`, { vacation_days: days, target_user_id: targetUserId } satisfies VacayUpdateStatsRequest).then((r: AxiosResponse) => r.data),
   getHolidays: (year, country) => ax.get(`/addons/vacay/holidays/${year}/${country}`).then((r: AxiosResponse) => r.data),
@@ -184,7 +194,7 @@ interface VacayState {
   isFused: boolean
   years: number[]
   entries: VacayEntry[]
-  companyHolidays: { date: string; note?: string }[]
+  companyHolidays: CompanyHoliday[]
   stats: VacayStat[]
   selectedYear: number
   selectedUserId: number | null
@@ -207,12 +217,14 @@ interface VacayState {
   declineInvite: (planId: number) => Promise<void>
   cancelInvite: (userId: number) => Promise<void>
   dissolve: () => Promise<void>
-  loadYears: () => Promise<void>
+  /** Opens `preferred` when the plan has that year (a link from the assistant), else as before. */
+  loadYears: (preferred?: number) => Promise<void>
   addYear: (year: number) => Promise<void>
   removeYear: (year: number) => Promise<void>
   loadEntries: (year?: number) => Promise<void>
   toggleEntry: (date: string, targetUserId?: number, fraction?: 0.5 | 1, kind?: 'vacation' | 'comp') => Promise<void>
-  toggleCompanyHoliday: (date: string) => Promise<void>
+  /** Whole (1) or half (0.5) company holiday (#2439); the same size again clears it. */
+  toggleCompanyHoliday: (date: string, fraction?: number) => Promise<void>
   loadStats: (year?: number) => Promise<void>
   updateVacationDays: (year: number, days: number, targetUserId?: number) => Promise<void>
   loadHolidays: (year?: number) => Promise<void>
@@ -226,7 +238,7 @@ interface VacayState {
   setShareHidden: (shareId: number, hidden: boolean) => Promise<void>
   loadYearSettings: () => Promise<void>
   updateYearSettings: (data: VacayYearSettingsRequest) => Promise<void>
-  loadAll: () => Promise<void>
+  loadAll: (preferredYear?: number) => Promise<void>
 }
 
 export const useVacayStore = create<VacayState>((set, get) => ({
@@ -258,7 +270,7 @@ export const useVacayStore = create<VacayState>((set, get) => ({
       plan: data.plan,
       users: data.users,
       pendingInvites: data.pendingInvites,
-      incomingInvites: data.incomingInvites,
+      incomingInvites: normalizeIncomingInvites(data.incomingInvites),
       isOwner: data.isOwner,
       isFused: data.isFused,
     })
@@ -300,19 +312,23 @@ export const useVacayStore = create<VacayState>((set, get) => ({
 
   dissolve: async () => {
     await api.dissolve()
+    // The partners are gone from the plan, so a picked partner must not stay the target.
+    set({ selectedUserId: null })
     await get().loadAll()
   },
 
-  loadYears: async () => {
+  loadYears: async (preferred?: number) => {
     const data = await api.getYears()
     // Opening Vacay lands on the period we are in, not on whichever year sorts
     // last. A reload (invite, live settings update) keeps the year the viewer is
     // looking at as long as it still exists — only the first load picks one.
+    // A year asked for by a link wins when the plan has it.
     const previous = get().selectedYear
     const keepSelection = get().years.length > 0 && data.years.includes(previous)
+    const asked = preferred !== undefined && data.years.includes(preferred) ? preferred : null
     set({
       years: data.years,
-      selectedYear: keepSelection ? previous : defaultPeriodYear(data.years, get().yearSettings),
+      selectedYear: asked ?? (keepSelection ? previous : defaultPeriodYear(data.years, get().yearSettings)),
     })
   },
 
@@ -367,16 +383,15 @@ export const useVacayStore = create<VacayState>((set, get) => ({
     }
   },
 
-  toggleCompanyHoliday: async (date: string) => {
+  toggleCompanyHoliday: async (date: string, fraction = 1) => {
     // Optimistic like toggleEntry; a company holiday also overrides personal
     // entries on that day, so refetch entries afterwards to reconcile.
     const prevEntries = get().entries
     const prevCompany = get().companyHolidays
     const prevStats = get().stats
-    const has = prevCompany.some(h => h.date === date)
-    set({ companyHolidays: has ? prevCompany.filter(h => h.date !== date) : [...prevCompany, { date }] })
+    set({ companyHolidays: toggledCompanyHolidays(prevCompany, date, fraction) })
     try {
-      await api.toggleCompanyHoliday(date)
+      await api.toggleCompanyHoliday(date, fraction)
       await get().loadEntries()
       await get().loadStats()
     } catch (e) {
@@ -517,14 +532,14 @@ export const useVacayStore = create<VacayState>((set, get) => ({
     await get().loadSharedCalendars(year)
   },
 
-  loadAll: async () => {
+  loadAll: async (preferredYear?: number) => {
     set({ loading: true })
     try {
       await get().loadPlan()
       // The leave-year window decides which period is current, so it is resolved
       // before the year list picks a default (#737).
       await get().loadYearSettings()
-      await get().loadYears()
+      await get().loadYears(preferredYear)
       const year = get().selectedYear
       await get().loadEntries(year)
       await get().loadStats(year)

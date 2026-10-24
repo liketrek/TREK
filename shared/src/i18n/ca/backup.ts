@@ -32,7 +32,7 @@ const backup: TranslationStrings = {
   'backup.auto.subtitle': 'Còpia de seguretat automàtica segons una programació',
   'backup.auto.enable': 'Activa la còpia automàtica',
   'backup.auto.enableHint': 'Es crearan còpies automàticament segons la freqüència triada',
-  'backup.auto.interval': 'Interval',
+  'backup.auto.interval': 'Interval', // same-as-en
   'backup.auto.hour': 'Executa a les',
   'backup.auto.hourHint': 'Hora local del servidor (format {format})',
   'backup.auto.dayOfWeek': 'Dia de la setmana',
@@ -70,5 +70,6 @@ const backup: TranslationStrings = {
     'Totes les dades actuals (viatges, llocs, usuaris, pujades) seran substituïdes permanentment per la còpia. Aquesta acció no es pot desfer.',
   'backup.restoreTip': "Consell: crea una còpia de l'estat actual abans de restaurar.",
   'backup.restoreConfirm': 'Sí, restaura',
+  'backup.auto.hourHintTz': 'Hora local del servidor (format {format}), fus horari {timezone}',
 };
 export default backup;

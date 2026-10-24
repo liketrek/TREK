@@ -24,6 +24,8 @@ export function useSharedTrip() {
   const [selectedDay, setSelectedDay] = useState<number | null>(null)
   const [activeTab, setActiveTab] = useState('plan')
   const [showLangPicker, setShowLangPicker] = useState(false)
+  // Every day opens unfolded, as the planner's do; a day the reader folds stays folded.
+  const [collapsedDays, setCollapsedDays] = useState<ReadonlySet<number>>(() => new Set())
 
   useEffect(() => {
     if (!token) return
@@ -80,6 +82,30 @@ export function useSharedTrip() {
   // Anchored on the trip currency's quote, as the Costs tab converts (#2525).
   const { convert } = useExchangeRates(base, data?.trip?.currency)
 
+  const toggleDay = (id: number) => {
+    setCollapsedDays(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  // A day picked on the map also brings its card into view where the two sit
+  // side by side. On a phone the list is below the map, and scrolling to it
+  // would take away the map the reader just asked to see.
+  const pickDayOnMap = (id: number | null) => {
+    setSelectedDay(id)
+    if (id == null || typeof window === 'undefined' || !window.matchMedia?.('(min-width: 1024px)').matches) return
+    setCollapsedDays(prev => {
+      if (!prev.has(id)) return prev
+      const next = new Set(prev)
+      next.delete(id)
+      return next
+    })
+    document.getElementById(`shared-day-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   return {
     data,
     error,
@@ -89,6 +115,9 @@ export function useSharedTrip() {
     convert,
     selectedDay,
     setSelectedDay,
+    pickDayOnMap,
+    collapsedDays,
+    toggleDay,
     activeTab,
     setActiveTab,
     showLangPicker,

@@ -32,5 +32,9 @@ const notifications: TranslationStrings = {
   'notifications.test.adminText': 'Ο {actor} έστειλε μια δοκιμαστική ειδοποίηση σε όλους τους διαχειριστές.',
   'notifications.test.tripTitle': 'Ο {actor} δημοσίευσε στο ταξίδι σας',
   'notifications.test.tripText': 'Δοκιμαστική ειδοποίηση για το ταξίδι «{trip}».',
+  'notifications.countLabel': 'ειδοποιήσεις',
+  'notifications.countLabel.one': 'ειδοποίηση',
+  'notifications.deleteAllConfirmTitle': 'Διαγραφή όλων των ειδοποιήσεων;',
+  'notifications.deleteAllConfirmText': 'Όλες οι ειδοποιήσεις διαγράφονται οριστικά. Αυτό δεν μπορεί να αναιρεθεί.',
 };
 export default notifications;

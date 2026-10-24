@@ -353,7 +353,7 @@ describe('MAdminBackupPanel', () => {
     render(<MAdminBackupPanel />);
 
     expect(await screen.findByText('Run at hour')).toBeInTheDocument();
-    expect(screen.getByText('Server local time (24h format) (Timezone: Europe/Berlin)')).toBeInTheDocument();
+    expect(screen.getByText('Server local time (24h format), timezone Europe/Berlin')).toBeInTheDocument();
     expect(screen.getByRole('combobox')).toHaveValue('2');
     expect(screen.getByRole('option', { name: '00:00' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: '23:00' })).toBeInTheDocument();

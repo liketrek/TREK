@@ -1,9 +1,21 @@
-import { PluginController, PluginMethod } from '../rpc-kit/decorators';
-import { PluginGuards } from '../plugin-guards.service';
-import { BadParams, ForbiddenResource } from '../rpc-errors';
-import { num, str } from '../rpc-params';
-import type { PluginRpcContext } from '../rpc-kit/types';
-import { DatabaseService } from '../../../database/database.service';
+import { DayAccommodations } from '../../../../db/entities/DayAccommodations.entity';
+import { Days } from '../../../../db/entities/Days.entity';
+import { Places } from '../../../../db/entities/Places.entity';
+import { PluginEntityMetadata } from '../../../../db/entities/PluginEntityMetadata.entity';
+import { Reservations } from '../../../../db/entities/Reservations.entity';
+import { Trips } from '../../../../db/entities/Trips.entity';
+import type { DayAccommodationsRepository } from '../../../../db/repositories/DayAccommodations.repository';
+import type { DaysRepository } from '../../../../db/repositories/Days.repository';
+import type { PlacesRepository } from '../../../../db/repositories/Places.repository';
+import type { PluginEntityMetadataRepository } from '../../../../db/repositories/PluginEntityMetadata.repository';
+import type { ReservationsRepository } from '../../../../db/repositories/Reservations.repository';
+import type { TripsRepository } from '../../../../db/repositories/Trips.repository';
+import { PluginGuards } from '../../../../nest-rpc/plugin-guards.service';
+import { BadParams, ForbiddenResource } from '../../../../nest-rpc/rpc-errors';
+import { PluginController, PluginMethod } from '../../../../nest-rpc/rpc-kit/decorators';
+import type { PluginRpcContext } from '../../../../nest-rpc/rpc-kit/types';
+import { num, str } from '../../../../nest-rpc/rpc-params';
+import { InjectRepository } from '@mikro-orm/nestjs';
 
 /** Core entities a plugin may attach its own db:meta to. */
 const META_ENTITY_TYPES: ReadonlySet<string> = new Set(['trip', 'place', 'day', 'reservation', 'accommodation']);
@@ -23,14 +35,6 @@ const EDIT_ACTION: Record<string, string> = {
   accommodation: 'day_edit',
 };
 
-/** Each of these tables has a NOT NULL trip_id, so the gate resolves the owning trip. */
-const ENTITY_TABLE: Record<string, string> = {
-  place: 'places',
-  day: 'days',
-  reservation: 'reservations',
-  accommodation: 'day_accommodations',
-};
-
 /**
  * A plugin's OWN namespaced key/value store, attached to a core entity (#plugins).
  *
@@ -44,55 +48,47 @@ const ENTITY_TABLE: Record<string, string> = {
 @PluginController()
 export class MetaRpc {
   constructor(
-    private readonly db: DatabaseService,
+    // Plan 4 Task 2 — canAccessTrip's own DatabaseService delegation is gone:
+    // this reuses the `trips: TripsRepository` param below (findAccessible).
     private readonly guards: PluginGuards,
+    @InjectRepository(PluginEntityMetadata) private readonly meta: PluginEntityMetadataRepository,
+    @InjectRepository(Trips) private readonly trips: TripsRepository,
+    @InjectRepository(Places) private readonly places: PlacesRepository,
+    @InjectRepository(Days) private readonly days: DaysRepository,
+    @InjectRepository(Reservations) private readonly reservations: ReservationsRepository,
+    @InjectRepository(DayAccommodations) private readonly dayAccommodations: DayAccommodationsRepository,
   ) {}
 
   @PluginMethod('meta.get', { permission: 'db:meta' })
-  get(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
-    const { entityType, entityId } = this.resolveEntity(params, ctx, false);
-    const row = this.db
-      .prepare('SELECT value FROM plugin_entity_metadata WHERE plugin_id=? AND entity_type=? AND entity_id=? AND key=?')
-      .get(ctx.pluginId, entityType, entityId, str(params.key, 'key')) as { value: string } | undefined;
-    if (!row) return null;
+  async get(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
+    const { entityType, entityId } = await this.resolveEntity(params, ctx, false);
+    const value = await this.meta.findValue(ctx.pluginId, entityType, entityId, str(params.key, 'key')); // MR1 — Plan 3j
+    if (value === null) return null;
     try {
-      return JSON.parse(row.value);
+      return JSON.parse(value);
     } catch {
       return null;
     }
   }
 
   @PluginMethod('meta.set', { permission: 'db:meta' })
-  set(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
-    const { entityType, entityId } = this.resolveEntity(params, ctx, true);
+  async set(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
+    const { entityType, entityId } = await this.resolveEntity(params, ctx, true);
     const key = str(params.key, 'key');
     if (key.length > META_KEY_MAX) throw new BadParams(`metadata key too long (>${META_KEY_MAX} chars)`);
     const json = JSON.stringify(params.value ?? null);
     if (json.length > META_VALUE_MAX) throw new BadParams(`metadata value too large (>${META_VALUE_MAX} bytes)`);
-    const exists = this.db
-      .prepare('SELECT 1 FROM plugin_entity_metadata WHERE plugin_id=? AND entity_type=? AND entity_id=? AND key=?')
-      .get(ctx.pluginId, entityType, entityId, key);
-    if (!exists) {
-      const { n } = this.db
-        .prepare('SELECT COUNT(*) AS n FROM plugin_entity_metadata WHERE plugin_id=? AND entity_type=? AND entity_id=?')
-        .get(ctx.pluginId, entityType, entityId) as { n: number };
-      if (n >= META_KEYS_MAX) throw new BadParams(`too many metadata keys on this ${entityType} (max ${META_KEYS_MAX})`);
-    }
-    this.db
-      .prepare(`INSERT INTO plugin_entity_metadata (plugin_id, entity_type, entity_id, key, value, updated_at)
-                    VALUES (?, ?, ?, ?, ?, datetime('now'))
-                    ON CONFLICT(plugin_id, entity_type, entity_id, key)
-                    DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`)
-      .run(ctx.pluginId, entityType, entityId, key, json);
+    // MR2/MR3/MR4 — Plan 3j Task 7 fix (must-land 2): one atomic call, not
+    // three separately-awaited ones (task-7-review.md's concurrent-cap-bypass).
+    const written = await this.meta.upsertValueCapped(ctx.pluginId, entityType, entityId, key, json, META_KEYS_MAX);
+    if (!written) throw new BadParams(`too many metadata keys on this ${entityType} (max ${META_KEYS_MAX})`);
     return { key, value: params.value ?? null };
   }
 
   @PluginMethod('meta.list', { permission: 'db:meta' })
-  list(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
-    const { entityType, entityId } = this.resolveEntity(params, ctx, false);
-    const rows = this.db
-      .prepare('SELECT key, value FROM plugin_entity_metadata WHERE plugin_id=? AND entity_type=? AND entity_id=? ORDER BY key')
-      .all(ctx.pluginId, entityType, entityId) as Array<{ key: string; value: string }>;
+  async list(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
+    const { entityType, entityId } = await this.resolveEntity(params, ctx, false);
+    const rows = await this.meta.listForEntity(ctx.pluginId, entityType, entityId); // MR5 — Plan 3j
     const out: Record<string, unknown> = {};
     for (const r of rows) {
       try {
@@ -105,12 +101,10 @@ export class MetaRpc {
   }
 
   @PluginMethod('meta.delete', { permission: 'db:meta' })
-  delete(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
-    const { entityType, entityId } = this.resolveEntity(params, ctx, true);
-    const res = this.db
-      .prepare('DELETE FROM plugin_entity_metadata WHERE plugin_id=? AND entity_type=? AND entity_id=? AND key=?')
-      .run(ctx.pluginId, entityType, entityId, str(params.key, 'key'));
-    return { deleted: res.changes > 0 };
+  async delete(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
+    const { entityType, entityId } = await this.resolveEntity(params, ctx, true);
+    const deleted = await this.meta.deleteValue(ctx.pluginId, entityType, entityId, str(params.key, 'key')); // MR6 — Plan 3j
+    return { deleted };
   }
 
   /**
@@ -118,33 +112,50 @@ export class MetaRpc {
    * resolves to a trip the acting user can access, and for a write that entity's own
    * edit permission.
    */
-  private resolveEntity(
+  private async resolveEntity(
     params: Record<string, unknown>,
     ctx: PluginRpcContext,
     write: boolean,
-  ): { entityType: string; entityId: number } {
+  ): Promise<{ entityType: string; entityId: number }> {
     const entityType = str(params.entityType, 'entityType');
     if (!META_ENTITY_TYPES.has(entityType)) {
       throw new BadParams(`invalid entityType "${entityType}" (${[...META_ENTITY_TYPES].join('|')})`);
     }
     const entityId = num(params.entityId, 'entityId');
     if (ctx.actingUserId === undefined) throw new ForbiddenResource('metadata requires an authenticated user context');
-    const tripId = this.entityTrip(entityType, entityId);
-    if (tripId === undefined || !this.db.canAccessTrip(tripId, ctx.actingUserId)) {
+    const tripId = await this.entityTrip(entityType, entityId);
+    if (tripId === undefined || !(await this.trips.findAccessible(tripId, ctx.actingUserId))) {
       throw new ForbiddenResource(`no access to ${entityType} ${entityId}`);
     }
-    if (write && !this.guards.canEditAs(EDIT_ACTION[entityType], tripId, ctx.actingUserId)) {
+    if (write && !(await this.guards.canEditAs(EDIT_ACTION[entityType], tripId, ctx.actingUserId))) {
       throw new ForbiddenResource(`no permission to edit ${entityType} ${entityId}`);
     }
     return { entityType, entityId };
   }
 
-  private entityTrip(entityType: string, entityId: number): number | undefined {
-    if (entityType === 'trip') {
-      return (this.db.prepare('SELECT id FROM trips WHERE id = ?').get(entityId) as { id: number } | undefined)?.id;
+  /**
+   * MR8/MR9 (Plan 3j Task 5) — R12's "one method per target table, no
+   * dynamic identifier dispatch" precedent (`PlacesRepository.findTripId`/
+   * `ReservationsRepository.findTripId`'s own docstrings): the legacy
+   * `` SELECT trip_id FROM ${table} WHERE id = ? `` string-interpolated a
+   * table name off a fixed 4-entry map (never request-controlled) — this
+   * dispatches over the SAME closed `entityType` union onto one typed read
+   * per table instead, so no identifier is ever interpolated into SQL here.
+   */
+  private async entityTrip(entityType: string, entityId: number): Promise<number | undefined> {
+    switch (entityType) {
+      case 'trip':
+        return (await this.trips.existsById(entityId)) ? entityId : undefined; // MR8 — Plan 3j
+      case 'place':
+        return await this.places.findTripId(entityId); // MR9 — Plan 3j
+      case 'day':
+        return await this.days.findTripId(entityId); // MR9 — Plan 3j
+      case 'reservation':
+        return await this.reservations.findTripId(entityId); // MR9 — Plan 3j
+      case 'accommodation':
+        return await this.dayAccommodations.getTripId(entityId); // MR9 — Plan 3j
+      default:
+        return undefined;
     }
-    // The table name comes from a fixed map, never from the request.
-    const table = ENTITY_TABLE[entityType];
-    return (this.db.prepare(`SELECT trip_id FROM ${table} WHERE id = ?`).get(entityId) as { trip_id: number } | undefined)?.trip_id;
   }
 }

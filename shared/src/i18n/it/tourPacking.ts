@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types';
+
+const tourPacking: TranslationStrings = {
+  'tours.packing.label': 'Lista valigia',
+  'tours.packing.none': 'Nessuna lista valigia collegata',
+  'tours.packing.link': 'Collega una lista valigia',
+  'tours.packing.change': 'Cambia',
+  'tours.packing.whole': 'Intera lista valigia',
+  'tours.packing.packed': '{packed} di {count} in valigia',
+  'tours.packing.packed.one': '{packed} di {count} in valigia',
+  'tours.packing.more': '+{count} altri',
+  'tours.packing.more.one': '+{count} altro',
+  'tours.packing.items': '{count} oggetti',
+  'tours.packing.items.one': '{count} oggetto',
+  'tours.packing.allPacked': 'Tutto in valigia',
+  'tours.packing.open': 'Apri la lista valigia',
+  'tours.packing.missing': '“{name}” non ha più oggetti che puoi vedere.',
+  'tours.packing.emptyList': 'La lista valigia è ancora vuota.',
+  'tours.packing.emptyCategory': '“{name}” non ha ancora oggetti.',
+  'tours.packing.addonOff': 'Le liste valigia sono disattivate, quindi la lista non può essere mostrata.',
+  'tours.packing.loadFailed': 'Non è stato possibile caricare il collegamento alla lista valigia.',
+  'tours.packing.dialogSub': 'Solo un collegamento. La lista e i suoi oggetti restano dove sono.',
+  'tours.packing.choose': 'Collega a',
+  'tours.packing.confirm': 'Collega',
+  'tours.packing.unlink': 'Rimuovi collegamento',
+  'tours.packing.unlinkHint': 'La lista valigia e i suoi oggetti restano come sono',
+  'tours.packing.linked': 'Lista valigia collegata.',
+  'tours.packing.unlinked': 'Collegamento rimosso. La lista valigia resta com’è.',
+  'tours.packing.failed': 'Non è stato possibile salvare il collegamento.',
+};
+export default tourPacking;

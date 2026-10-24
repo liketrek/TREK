@@ -79,18 +79,52 @@ export function placesGoogleOnlyHint(hasMapsKey: boolean, placesProvider: string
 }
 
 /**
+ * Where a picked typed-ahead row stood among the core rows, for the place search log,
+ * or undefined for a row that log has no business ranking.
+ *
+ * A plugin's row (#2221) carries its place and was never ranked by the core index, so
+ * counting it would credit the index with a hit it did not make. Plugin rows follow
+ * the core ones, so a core row's rank is the same with or without them, and the count
+ * leaves them out.
+ */
+export function corePickRank(
+  rows: readonly { placeId: string; place?: unknown }[],
+  picked: { placeId: string; place?: unknown },
+): { rank: number; count: number } | undefined {
+  if (picked.place) return undefined
+  const core = rows.filter(row => !row.place)
+  const rank = core.findIndex(row => row.placeId === picked.placeId)
+  return rank >= 0 ? { rank, count: core.length } : undefined
+}
+
+/** How a plugin index marks its rows: `plugin:<pluginId>` (#2221). */
+const PLUGIN_SOURCE = 'plugin:'
+
+/**
  * The label for one row.
  *
  * A place carries its own source when the index that produced it says so, which
  * is what makes an interleaved list readable. Everything else falls back to what
  * answered the call: Google never marks its places, and a merged list marks only
  * the index side, so an unmarked row in one is OpenStreetMap by elimination.
+ *
+ * A plugin's row is named after the plugin, the name the admin installed it under,
+ * which `pluginName` looks up; the plugin id stands in when it cannot.
  */
-export function sourceLabelFor(place: unknown, listSource: string, t: TranslationFn): string | null {
+export function sourceLabelFor(
+  place: unknown,
+  listSource: string,
+  t: TranslationFn,
+  pluginName?: (pluginId: string) => string | undefined,
+): string | null {
   const own = (place as { source?: unknown } | null)?.source
   const source = typeof own === 'string' && own
     ? own
     : listSource.includes('openstreetmap') ? 'openstreetmap' : listSource
+  if (source.startsWith(PLUGIN_SOURCE)) {
+    const pluginId = source.slice(PLUGIN_SOURCE.length)
+    return pluginName?.(pluginId) || pluginId || null
+  }
   if (SOURCE_KEYS[source]) return t(SOURCE_KEYS[source])
   return SOURCE_LABELS[source] ?? null
 }

@@ -1,4 +1,4 @@
-// FE-JRN-SETTINGS-001 to FE-JRN-SETTINGS-019
+// FE-JRN-SETTINGS-001 to FE-JRN-SETTINGS-029
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
@@ -7,6 +7,7 @@ import { render, screen, waitFor, within, fireEvent, act } from '../../../tests/
 import { server } from '../../../tests/helpers/msw/server'
 import { useJourneyStore, type JourneyDetail } from '../../store/journeyStore'
 import { JourneySettingsDialog } from './JourneyDetailPageSettingsDialog'
+import type { JourneyRecordingPrepState } from './useJourneyRecordingPrep'
 
 type ToastKind = 'success' | 'error' | 'warning' | 'info'
 
@@ -43,7 +44,7 @@ function buildJourney(overrides: Partial<JourneyDetail> = {}): JourneyDetail {
   }
 }
 
-function mountDialog(journey: JourneyDetail = buildJourney()) {
+function mountDialog(journey: JourneyDetail = buildJourney(), recordingPrep?: JourneyRecordingPrepState) {
   const onClose = vi.fn()
   const onSaved = vi.fn()
   const onOpenInvite = vi.fn()
@@ -55,6 +56,7 @@ function mountDialog(journey: JourneyDetail = buildJourney()) {
       onSaved={onSaved}
       onOpenInvite={onOpenInvite}
       onRefresh={onRefresh}
+      recordingPrep={recordingPrep}
     />,
   )
   return { ...utils, onClose, onSaved, onOpenInvite, onRefresh }
@@ -96,6 +98,19 @@ describe('JourneySettingsDialog', () => {
     expect(screen.getByText('julien')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Add cover image' })).toBeInTheDocument()
     await screen.findByRole('button', { name: /create share link/i })
+  })
+
+  it('FE-JRN-SETTINGS-2683: lists the people a linked trip lets in under their own heading, and nothing without', () => {
+    const { unmount } = mountDialog()
+    expect(screen.queryByText('Through trips')).not.toBeInTheDocument()
+    unmount()
+
+    mountDialog(buildJourney({
+      trip_access: [{ user_id: 7, role: 'viewer', username: 'lena', avatar: null, trip_id: 5, trip_title: 'Italy Trip' }],
+    }))
+    expect(screen.getByText('Through trips')).toBeInTheDocument()
+    expect(screen.getByText('lena')).toBeInTheDocument()
+    expect(screen.getByText('via Italy Trip')).toBeInTheDocument()
   })
 
   it('FE-JRN-SETTINGS-002: saves the edited title and subtitle', async () => {
@@ -149,9 +164,9 @@ describe('JourneySettingsDialog', () => {
       uploaded = true
       return HttpResponse.json({ ok: true })
     }))
-    const { container, onSaved } = mountDialog()
+    const { baseElement, onSaved } = mountDialog()
 
-    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement
+    const fileInput = baseElement.querySelector('input[type="file"]') as HTMLInputElement
     fireEvent.change(fileInput, { target: { files: [new File(['x'], 'cover.png', { type: 'image/png' })] } })
 
     await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1))
@@ -161,9 +176,9 @@ describe('JourneySettingsDialog', () => {
 
   it('FE-JRN-SETTINGS-007: reports a failed cover upload', async () => {
     server.use(http.post('/api/journeys/3/cover', () => new HttpResponse(null, { status: 413 })))
-    const { container, onSaved } = mountDialog()
+    const { baseElement, onSaved } = mountDialog()
 
-    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement
+    const fileInput = baseElement.querySelector('input[type="file"]') as HTMLInputElement
     fireEvent.change(fileInput, { target: { files: [new File(['x'], 'cover.png', { type: 'image/png' })] } })
 
     await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('Upload failed', 'error', undefined))
@@ -171,9 +186,9 @@ describe('JourneySettingsDialog', () => {
   })
 
   it('FE-JRN-SETTINGS-008: ignores a cover change event without a file', async () => {
-    const { container, onSaved } = mountDialog()
+    const { baseElement, onSaved } = mountDialog()
 
-    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement
+    const fileInput = baseElement.querySelector('input[type="file"]') as HTMLInputElement
     fireEvent.change(fileInput, { target: { files: [] } })
 
     expect(onSaved).not.toHaveBeenCalled()
@@ -197,6 +212,30 @@ describe('JourneySettingsDialog', () => {
     await waitFor(() => expect(updateJourney).toHaveBeenCalledWith(3, { status: 'archived' }))
     expect(toastSpy).toHaveBeenCalledWith('Journey archived', 'success', undefined)
     expect(onSaved).toHaveBeenCalledTimes(1)
+  })
+
+  it('FE-JRN-SETTINGS-762: sets the status by hand on the spot and back to automatic', async () => {
+    const user = userEvent.setup()
+    const { onRefresh } = mountDialog()
+    expect(screen.getByText('Follows the dates of the linked trips. Without a trip the journey stays a draft.')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Live' }))
+    await waitFor(() => expect(updateJourney).toHaveBeenCalledWith(3, { status_override: 'live' }))
+    expect(onRefresh).toHaveBeenCalled()
+
+    updateJourney.mockClear()
+    mountDialog(buildJourney({ status_override: 'completed' }))
+    expect(screen.getAllByRole('button', { name: 'Completed' }).some(b => b.getAttribute('aria-pressed') === 'true')).toBe(true)
+    await user.click(screen.getAllByRole('button', { name: 'Automatic' })[1])
+    await waitFor(() => expect(updateJourney).toHaveBeenCalledWith(3, { status_override: null }))
+  })
+
+  it('FE-JRN-SETTINGS-1003: the photo-location switch saves on the spot', async () => {
+    const user = userEvent.setup()
+    const { onRefresh } = mountDialog()
+    await user.click(screen.getByRole('button', { name: 'Place entries from their photos' }))
+    await waitFor(() => expect(updateJourney).toHaveBeenCalledWith(3, { photo_location: true }))
+    expect(onRefresh).toHaveBeenCalled()
   })
 
   it('FE-JRN-SETTINGS-011: restores an archived journey', async () => {
@@ -252,7 +291,7 @@ describe('JourneySettingsDialog', () => {
     const user = userEvent.setup()
     const { onSaved } = mountDialog()
 
-    await user.click(screen.getByTitle('Unlink trip'))
+    await user.click(screen.getByRole('button', { name: 'Unlink Trip' }))
     expect(screen.getByText(/Unlink "Italy Trip"\?/)).toBeInTheDocument()
     await user.click(confirmIn('Unlink Trip').getByRole('button', { name: 'Unlink' }))
 
@@ -266,7 +305,7 @@ describe('JourneySettingsDialog', () => {
     const user = userEvent.setup()
     const { onSaved } = mountDialog()
 
-    await user.click(screen.getByTitle('Unlink trip'))
+    await user.click(screen.getByRole('button', { name: 'Unlink Trip' }))
     await user.click(confirmIn('Unlink Trip').getByRole('button', { name: 'Unlink' }))
 
     await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('Failed to unlink trip', 'error', undefined))
@@ -328,8 +367,9 @@ describe('JourneySettingsDialog', () => {
     const { onClose } = mountDialog(buildJourney({ trips: [] }))
 
     await user.click(screen.getByRole('button', { name: 'Add Trip' }))
-    const linkHeading = await screen.findByRole('heading', { name: 'Link Trip' })
-    await user.click(linkHeading.parentElement!.querySelector('button')!)
+    await screen.findByRole('heading', { name: 'Link Trip' })
+    // Both dialogs have a close button; this one is the link-trip dialog's.
+    await user.click(within(screen.getByRole('dialog', { name: 'Link Trip' })).getByRole('button', { name: 'Close' }))
 
     expect(screen.queryByRole('heading', { name: 'Link Trip' })).not.toBeInTheDocument()
     expect(onClose).not.toHaveBeenCalled()
@@ -362,9 +402,7 @@ describe('JourneySettingsDialog', () => {
     const user = userEvent.setup()
     const { onClose } = mountDialog()
 
-    // The header close button carries only an icon, so it is addressed by position.
-    const headerClose = screen.getByRole('heading', { name: 'Journey Settings' })
-      .parentElement!.querySelectorAll('button')[0]
+    const headerClose = screen.getByRole('button', { name: 'Close' })
     await user.type(screen.getByDisplayValue('Rome & Florence'), '!')
     act(() => { headerClose.click() })
 
@@ -411,5 +449,68 @@ describe('JourneySettingsDialog', () => {
 
     await waitFor(() => expect(toastSpy).toHaveBeenCalled())
     expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('FE-JRN-SETTINGS-026: Enter in the name saves, but not while the name is blank', async () => {
+    const user = userEvent.setup()
+    const { onSaved } = mountDialog()
+
+    const name = screen.getByRole('textbox', { name: 'Name' })
+    await user.clear(name)
+    await user.type(name, '{Enter}')
+    expect(updateJourney).not.toHaveBeenCalled()
+
+    await user.type(name, 'Italy 2027{Enter}')
+    await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1))
+    expect(updateJourney).toHaveBeenCalledWith(3, { title: 'Italy 2027', subtitle: 'Rome & Florence' })
+  })
+
+  it('FE-JRN-SETTINGS-027: offers the dismissed suggestions back only when there are some', async () => {
+    const onRestoreSuggestions = vi.fn()
+    const props = { onClose: vi.fn(), onSaved: vi.fn(), onOpenInvite: vi.fn(), onRefresh: vi.fn(), onRestoreSuggestions }
+    const { unmount } = render(<JourneySettingsDialog journey={buildJourney()} {...props} />)
+    expect(screen.queryByRole('button', { name: /Bring back dismissed suggestions/ })).not.toBeInTheDocument()
+    unmount()
+
+    render(<JourneySettingsDialog journey={buildJourney({ dismissed_count: 3 })} {...props} />)
+    expect(screen.getByText('Dismissed suggestions (3)')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /Bring back dismissed suggestions/ }))
+    expect(onRestoreSuggestions).toHaveBeenCalledTimes(1)
+  })
+
+  function prepState(over: Partial<JourneyRecordingPrepState> = {}): JourneyRecordingPrepState {
+    return {
+      prep: { enabled: true, connection: 'ready', lastAttemptAt: null, lastSuccessAt: null, lastError: 'unreachable' },
+      saving: false,
+      fetching: false,
+      statusLine: { text: 'The first fetch failed: TREK could not reach that address.', tone: 'warning' },
+      canFetch: true,
+      setEnabled: vi.fn(async () => {}),
+      fetchNow: vi.fn(async () => {}),
+      dayPrep: () => null,
+      ...over,
+    }
+  }
+
+  it('FE-JRN-SETTINGS-028: the owner switches the preparation of recorded days and fetches by hand after a failure (JRN-03)', async () => {
+    const prep = prepState()
+    mountDialog(buildJourney({ auto_prepare_recordings: 1 }), prep)
+
+    expect(screen.getByTestId('journey-prep-status')).toHaveTextContent('The first fetch failed: TREK could not reach that address.')
+    await userEvent.click(screen.getByRole('button', { name: /Fetch now/ }))
+    expect(prep.fetchNow).toHaveBeenCalledTimes(1)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Prepare recorded days automatically' }))
+    expect(prep.setEnabled).toHaveBeenCalledWith(false)
+  })
+
+  it('FE-JRN-SETTINGS-029: without the Dawarich addon there is no switch, and no fetch where nothing can be reached', () => {
+    const { unmount } = mountDialog()
+    expect(screen.queryByText('Prepare recorded days automatically')).not.toBeInTheDocument()
+    unmount()
+
+    mountDialog(buildJourney(), prepState({ canFetch: false, statusLine: { text: 'Link a trip with dates: only its days are prepared.', tone: 'warning' } }))
+    expect(screen.getByText('Prepare recorded days automatically')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Fetch now/ })).not.toBeInTheDocument()
   })
 })

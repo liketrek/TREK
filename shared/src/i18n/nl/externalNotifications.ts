@@ -1,4 +1,5 @@
 import type { NotificationLocale } from '../externalNotifications/types';
+import { pluralForm } from '../plural';
 
 const nl: NotificationLocale = {
   email: {
@@ -37,8 +38,11 @@ const nl: NotificationLocale = {
       body: `${p.actor} nodigt je uit om een collectie te delen. Open TREK om te accepteren of af te wijzen.`,
     }),
     photos_shared: (p) => ({
-      title: `${p.count} foto's gedeeld`,
-      body: `${p.actor} heeft ${p.count} foto('s) gedeeld in "${p.trip}".`,
+      title: pluralForm(p.count, 'nl', { one: `${p.count} foto gedeeld`, other: `${p.count} foto's gedeeld` }),
+      body: pluralForm(p.count, 'nl', {
+        one: `${p.actor} heeft ${p.count} foto gedeeld in "${p.trip}".`,
+        other: `${p.actor} heeft ${p.count} foto's gedeeld in "${p.trip}".`,
+      }),
     }),
     collab_message: (p) => ({
       title: `Nieuw bericht in "${p.trip}"`,
@@ -56,11 +60,29 @@ const nl: NotificationLocale = {
       title: 'Opslagreplica mislukt',
       body:
         `Schrijven naar replica '${p.backend}' is mislukt: ${p.op} van ${p.key} — ${p.error}.` +
-        (p.suppressed !== '0' ? ` ${p.suppressed} extra fout(en) zijn onderdrukt sinds de laatste melding.` : ''),
+        (p.suppressed !== '0'
+          ? pluralForm(p.suppressed, 'nl', {
+              one: ` ${p.suppressed} extra fout is onderdrukt sinds de laatste melding.`,
+              other: ` ${p.suppressed} extra fouten zijn onderdrukt sinds de laatste melding.`,
+            })
+          : ''),
+    }),
+    paddle_region_requested: (p) => ({
+      title: 'Peddelregio aangevraagd',
+      body: `${p.actor} plant een peddeltocht in ${p.region}. Laad of wijs de watergegevens af in het beheer onder Add-ons.`,
     }),
     synology_session_cleared: () => ({
       title: 'Synology-sessie gewist',
       body: 'Je Synology-account of URL is gewijzigd. Je bent uitgelogd bij Synology Photos.',
+    }),
+    wanderer_source_hint: (p) => ({
+      title: `wanderer-trail: ${p.tour}`,
+      body:
+        p.state === 'changed'
+          ? `‘${p.tour}’ in ‘${p.trip}’ is gewijzigd in wanderer. Open de tocht en controleer de bron om alle wijzigingen te zien. In de reis verandert niets vanzelf.`
+          : p.state === 'unverifiable'
+            ? `‘${p.tour}’ in ‘${p.trip}’ kan niet meer worden gecontroleerd in wanderer. De tocht in je reis blijft zoals hij is.`
+            : `‘${p.tour}’ in ‘${p.trip}’ is mogelijk gewijzigd in wanderer. Open de tocht en controleer de bron om het te zien. In de reis verandert niets vanzelf.`,
     }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },

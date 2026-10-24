@@ -137,7 +137,7 @@ describe('ImpFileStep', () => {
     fireEvent.click(submit())
 
     await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1))
-    expect(importGpx).toHaveBeenCalledWith(1, file, { waypoints: true, routes: false, tracks: true })
+    expect(importGpx).toHaveBeenCalledWith(1, file, { waypoints: true, routes: false, tracks: true, enrich: false })
     expect(planner.tripActions.loadTrip).toHaveBeenCalledWith(1)
     expect(planner.toast.success).toHaveBeenCalledWith('places.gpxImported:3')
     expect(planner.pushUndo).toHaveBeenCalledWith('undo.importGpx', expect.any(Function))
@@ -183,7 +183,7 @@ describe('ImpFileStep', () => {
     fireEvent.click(submit())
 
     await screen.findByText('places.kmlKmzSummaryValues:5,4,1')
-    expect(importMapFile).toHaveBeenCalledWith(1, file, { points: true, paths: false })
+    expect(importMapFile).toHaveBeenCalledWith(1, file, { points: true, paths: false, enrich: false })
     expect(screen.getByText('1 placemark had no coordinates')).toBeInTheDocument()
     expect(planner.toast.success).toHaveBeenCalledWith('places.kmlKmzImported:4')
     expect(planner.pushUndo).toHaveBeenCalledWith('undo.importKeyholeMarkup', expect.any(Function))

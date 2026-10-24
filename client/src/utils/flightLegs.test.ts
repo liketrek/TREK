@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getFlightLegs, getTrainLegs, isMultiLegTrain, stripAirportCode } from './flightLegs'
+import { getFlightLegs, getTrainLegs, isMultiLegTrain, stripAirportCode, usesStationRoute } from './flightLegs'
 import type { Reservation } from '../types'
 
 function res(partial: Partial<Reservation>): Reservation {
@@ -105,5 +105,14 @@ describe('stripAirportCode', () => {
     expect(stripAirportCode('Hamburg Hbf')).toBe('Hamburg Hbf')
     expect(stripAirportCode('Frankfurt (Main)')).toBe('Frankfurt (Main)')
     expect(stripAirportCode('Munich (muc)')).toBe('Munich (muc)')
+  })
+})
+
+describe('usesStationRoute (#1807)', () => {
+  it('covers trains and cruises, nothing else', () => {
+    expect(usesStationRoute('train')).toBe(true)
+    expect(usesStationRoute('cruise')).toBe(true)
+    expect(usesStationRoute('ferry')).toBe(false)
+    expect(usesStationRoute(null)).toBe(false)
   })
 })

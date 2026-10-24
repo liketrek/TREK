@@ -1,7 +1,7 @@
 import type { TranslationStrings } from '../types';
 
 const memories: TranslationStrings = {
-  'memories.title': 'Photos',
+  'memories.title': 'Photos', // same-as-en
   'memories.notConnected': '{provider_name} non connecté',
   'memories.notConnectedHint':
     'Connectez votre instance {provider_name} dans les paramètres pour voir vos photos de voyage ici.',
@@ -10,13 +10,14 @@ const memories: TranslationStrings = {
   'memories.noDates': 'Ajoutez des dates à votre voyage pour charger les photos.',
   'memories.noPhotos': 'Aucune photo trouvée',
   'memories.noPhotosHint': 'Aucune photo trouvée dans {provider_name} pour la période de ce voyage.',
-  'memories.photosFound': 'photos',
+  'memories.photosFound': 'photos', // same-as-en
   'memories.fromOthers': "d'autres",
   'memories.sharePhotos': 'Partager les photos',
   'memories.sharing': 'Partagé',
   'memories.reviewTitle': 'Vérifier vos photos',
   'memories.reviewHint': 'Cliquez sur les photos pour les exclure du partage.',
   'memories.shareCount': 'Partager {count} photos',
+  'memories.shareCount.one': 'Partager {count} photo',
   'memories.providerUrl': 'URL du serveur',
   'memories.providerApiKey': 'Clé API',
   'memories.providerUsername': "Nom d'utilisateur",
@@ -50,12 +51,13 @@ const memories: TranslationStrings = {
   'memories.noAlbums': 'Aucun album trouvé',
   'memories.syncAlbum': 'Synchroniser',
   'memories.unlinkAlbum': 'Délier',
-  'memories.photos': 'photos',
+  'memories.photos': 'photos', // same-as-en
   'memories.selectPhotos': 'Sélectionner des photos depuis {provider_name}',
   'memories.selectPhotosMultiple': 'Sélectionner des photos',
   'memories.selectHint': 'Appuyez sur les photos pour les sélectionner.',
   'memories.selected': 'sélectionné(s)',
   'memories.addSelected': 'Ajouter {count} photos',
+  'memories.addSelected.one': 'Ajouter {count} photo',
   'memories.alreadyAdded': 'Ajouté',
   'memories.private': 'Privé',
   'memories.stopSharing': 'Arrêter le partage',
@@ -64,6 +66,8 @@ const memories: TranslationStrings = {
   'memories.confirmShareTitle': 'Partager avec les membres du voyage ?',
   'memories.confirmShareHint':
     '{count} photos seront visibles par tous les membres de ce voyage. Vous pourrez rendre des photos individuelles privées plus tard.',
+  'memories.confirmShareHint.one':
+    '{count} photo sera visible par tous les membres de ce voyage. Vous pourrez la rendre privée plus tard.',
   'memories.confirmShareButton': 'Partager les photos',
   'memories.error.loadAlbums': 'Impossible de charger les albums',
   'memories.error.linkAlbum': "Impossible de lier l'album",

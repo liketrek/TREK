@@ -5,7 +5,7 @@ const storage: TranslationStrings = {
   'storage.help.root': 'Bu arka ucun nesnelerini sakladığı sunucudaki mutlak yol.',
   'storage.field.endpoint': "Uç nokta URL'si",
   'storage.help.endpoint': "S3 uyumlu hizmetin taban URL'si, örn. https://s3.example.com veya http://127.0.0.1:9000.",
-  'storage.field.bucket': 'Bucket',
+  'storage.field.bucket': 'Bucket', // same-as-en
   'storage.field.accessKeyId': 'Erişim anahtarı kimliği',
   'storage.field.secretAccessKey': 'Gizli erişim anahtarı',
   'storage.field.region': 'Bölge',
@@ -31,7 +31,7 @@ const storage: TranslationStrings = {
   'storage.backends.add': 'Arka uç ekle',
   'storage.backends.usedBy': 'Kullanan: {categories}',
   'storage.backends.unused': 'Herhangi bir kategoriye atanmamış',
-  'storage.backends.envReadOnly': 'Bir ortam değişkeni tarafından tanımlanmış — salt okunur',
+  'storage.backends.envReadOnly': 'Bir ortam değişkeni tarafından tanımlanmış (salt okunur)',
   'storage.source.built-in': 'Yerleşik',
   'storage.source.env': 'Ortam',
   'storage.source.settings': 'Ayarlar',
@@ -113,7 +113,8 @@ const storage: TranslationStrings = {
   'storage.sync.error': 'Eşitleme başarısız oldu: {error}',
   'storage.sync.prompt': 'Mevcut nesneler henüz çoğaltılmadı — şimdi eşitlensin mi?',
   'storage.sync.dismiss': 'Kapat',
-  'storage.usage.line': '{objects} nesne · {size}',
+  'storage.usage.line': '{count} nesne · {size}',
+  'storage.usage.line.one': '{count} nesne · {size}',
   'storage.usage.computed': 'Kullanım hesaplandı {age}',
   'storage.usage.never': 'Kullanım henüz hesaplanmadı',
   'storage.usage.refresh': 'Yenile',
@@ -122,7 +123,8 @@ const storage: TranslationStrings = {
 
   // Category migration (copy → flip → delta sweep)
   'storage.migrate.promptTitle': 'Mevcut nesneler yeni arka uca taşınsın mı?',
-  'storage.migrate.promptLine': '{category}: {from} konumundan {to} konumuna {objects} nesne ({size})',
+  'storage.migrate.promptLine': '{category}: {from} konumundan {to} konumuna {count} nesne ({size})',
+  'storage.migrate.promptLine.one': '{category}: {from} konumundan {to} konumuna {count} nesne ({size})',
   'storage.migrate.promptLineUnknown':
     '{category}: bilinmeyen boyut (henüz kullanım taraması yapılmadı) {from} konumundan {to} konumuna',
   'storage.migrate.move': 'Mevcut nesneleri taşı',
@@ -132,7 +134,8 @@ const storage: TranslationStrings = {
   'storage.migrate.doneFailures': '{failed} başarısız oldu — bu nesneler yeni arka uca kopyalanmadı',
   'storage.migrate.failed': 'Taşıma başarısız oldu: {error} — kategori değiştirilmedi',
   'storage.migrate.cancelled': 'Taşıma iptal edildi — hiçbir şey değiştirilmedi',
-  'storage.migrate.reclaimable': '{objects} nesne ({size}) {from} üzerinde kalıyor — manuel olarak geri kazanın',
+  'storage.migrate.reclaimable': '{count} nesne ({size}) {from} üzerinde kalıyor, manuel olarak geri kazanın',
+  'storage.migrate.reclaimable.one': '{count} nesne ({size}) {from} üzerinde kalıyor, manuel olarak geri kazanın',
   'storage.migrate.cancel': 'Taşımayı iptal et',
   'storage.migrate.promptCancel': 'İptal',
   'storage.migrate.queued': 'Sırada: {categories}',

@@ -66,5 +66,6 @@ const backup: TranslationStrings = {
   'backup.restoreWarning': '所有當前資料（旅行、地點、使用者、上傳檔案）將被備份資料永久替換。此操作無法撤銷。',
   'backup.restoreTip': '提示：恢復前建議先備份當前狀態。',
   'backup.restoreConfirm': '確認恢復',
+  'backup.auto.hourHintTz': '伺服器本地時間（{format} 格式），時區 {timezone}',
 };
 export default backup;

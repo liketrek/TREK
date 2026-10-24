@@ -392,7 +392,7 @@ describe('MSettingsMcp', () => {
     expect(await screen.findByText('Work laptop')).toBeInTheDocument();
     expect(screen.getAllByText(/trek_ab12\.\.\./)).toHaveLength(2);
     // only the first token was ever used
-    expect(screen.getByText(/· Used/)).toBeInTheDocument();
+    expect(screen.getByText(/, Used/)).toBeInTheDocument();
     expect(screen.getByText('Phone')).toBeInTheDocument();
   });
 

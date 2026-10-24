@@ -1,12 +1,14 @@
-import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../database/database.service';
-import { ReservationsService } from '../reservations/reservations.service';
+import { Reservations } from '../../db/entities/Reservations.entity';
+import { ReservationsRepository } from '../../db/repositories/Reservations.repository';
 import { logError, logInfo } from '../audit/audit-log.logger';
+import { ReservationsService } from '../reservations/reservations.service';
+import { AirtrailLinkService } from './airtrail-link.service';
 import { AirtrailAuthError, type AirtrailFlightRaw } from './airtrail.client';
 import { AirtrailClient } from './airtrail.client';
-import { AirtrailService } from './airtrail.service';
-import { AirtrailLinkService } from './airtrail-link.service';
 import { canonicalHash, mapFlightToReservation } from './airtrail.mapper';
+import { AirtrailService } from './airtrail.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 
 export { buildSavePayload } from './airtrail-sync.helpers';
 
@@ -27,7 +29,7 @@ export { buildSavePayload } from './airtrail-sync.helpers';
 @Injectable()
 export class AirtrailSyncService {
   constructor(
-    private readonly db: DatabaseService,
+    @InjectRepository(Reservations) private readonly reservationsRepo: ReservationsRepository,
     private readonly link: AirtrailLinkService,
     private readonly reservations: ReservationsService,
     private readonly client: AirtrailClient,
@@ -38,7 +40,7 @@ export class AirtrailSyncService {
    *  than a module-level flag, because the service is a container singleton. */
   private running = false;
 
-  syncGloballyEnabled(): boolean {
+  async syncGloballyEnabled(): Promise<boolean> {
     return this.link.syncGloballyEnabled();
   }
 
@@ -52,7 +54,7 @@ export class AirtrailSyncService {
    * flights are never auto-added to a trip. Returns how many rows changed.
    */
   private async syncOwner(uid: number): Promise<number> {
-    const creds = this.airtrail.getAirtrailCredentials(uid);
+    const creds = await this.airtrail.getAirtrailCredentials(uid);
     if (!creds) return 0; // owner disconnected — leave their linked rows as-is
 
     let flights: AirtrailFlightRaw[];
@@ -64,16 +66,13 @@ export class AirtrailSyncService {
     }
     const byId = new Map(flights.map((f) => [String(f.id), f]));
 
-    const linked = this.db.all<{ id: number; trip_id: number; external_id: string; external_hash: string | null }>(
-      "SELECT id, trip_id, external_id, external_hash FROM reservations WHERE external_source = 'airtrail' AND sync_enabled = 1 AND external_owner_user_id = ?",
-      uid,
-    );
+    const linked = await this.reservationsRepo.listAirtrailSyncCandidatesForOwner(uid);
 
     let changed = 0;
     for (const row of linked) {
       const flight = byId.get(String(row.external_id));
       if (!flight) {
-        this.link.detach(row.trip_id, row.id); // deleted in AirTrail → keep row, stop syncing
+        await this.link.detach(row.trip_id, row.id); // deleted in AirTrail → keep row, stop syncing
         changed++;
         continue;
       }
@@ -81,24 +80,19 @@ export class AirtrailSyncService {
       const hash = canonicalHash(flight);
       if (hash === row.external_hash) continue;
 
-      const current = this.reservations.getReservation(row.id, row.trip_id);
+      const current = await this.reservations.getReservation(row.id, row.trip_id);
       if (!current) continue;
-      if (this.link.hasLocalMultiLegShape(row.id, (current as any).metadata)) {
+      if (await this.link.hasLocalMultiLegShape(row.id, (current as any).metadata)) {
         // The user connected this flight into a multi-leg booking; applying the
         // remote single-flight shape would flatten it. Stop syncing instead.
-        this.link.detach(row.trip_id, row.id);
+        await this.link.detach(row.trip_id, row.id);
         changed++;
         continue;
       }
       try {
-        this.reservations.update(row.id, row.trip_id, mapFlightToReservation(flight) as any, current as any);
-        this.db.run(
-          'UPDATE reservations SET external_hash = ?, external_synced_at = ? WHERE id = ?',
-          hash,
-          new Date().toISOString(),
-          row.id,
-        );
-        this.link.broadcastUpdated(row.trip_id, row.id);
+        await this.reservations.update(row.id, row.trip_id, mapFlightToReservation(flight) as any, current as any);
+        await this.reservationsRepo.setAirtrailSyncStamp(row.id, hash, new Date().toISOString());
+        await this.link.broadcastUpdated(row.trip_id, row.id);
         changed++;
       } catch (err) {
         logError(`AirTrail sync: failed to update reservation ${row.id}: ${err instanceof Error ? err.message : err}`);
@@ -110,14 +104,12 @@ export class AirtrailSyncService {
   /** Background poll across every connected owner (scheduler). */
   async runAirtrailSync(): Promise<void> {
     if (this.running) return;
-    if (!this.link.syncGloballyEnabled()) return;
+    if (!(await this.link.syncGloballyEnabled())) return;
     this.running = true;
     let changed = 0;
     try {
-      const owners = this.db.all<{ uid: number }>(
-        "SELECT DISTINCT external_owner_user_id AS uid FROM reservations WHERE external_source = 'airtrail' AND sync_enabled = 1 AND external_owner_user_id IS NOT NULL",
-      );
-      for (const { uid } of owners) changed += await this.syncOwner(uid);
+      const owners = await this.reservationsRepo.listAirtrailSyncOwners();
+      for (const uid of owners) changed += await this.syncOwner(uid);
       if (changed > 0) logInfo(`AirTrail sync: applied ${changed} change(s)`);
     } catch (err) {
       logError(`AirTrail sync failed: ${err instanceof Error ? err.message : err}`);
@@ -132,7 +124,7 @@ export class AirtrailSyncService {
    * background poll.
    */
   async runAirtrailSyncForUser(userId: number): Promise<{ changed: number }> {
-    if (!this.link.syncGloballyEnabled()) return { changed: 0 };
+    if (!(await this.link.syncGloballyEnabled())) return { changed: 0 };
     try {
       return { changed: await this.syncOwner(userId) };
     } catch (err) {

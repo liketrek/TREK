@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
-import { calculateAlternatives, sameRoad, type RouteAlternative, type RouteEngine } from '../Map/RouteCalculator'
+import { sameRoad } from '@trek/shared'
+import { calculateAlternatives, type RouteAlternative, type RouteEngine } from '../Map/RouteCalculator'
 import type { RailLegRoute, RailLegRouter } from './useRoadtripRoutes'
 
 /** One offered way of driving a leg, with what it means for this trip. */

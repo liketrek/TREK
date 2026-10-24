@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { DocSyncConnection, DocSyncProvider, useDocSync } from './useDocSync'
+import type { DocSyncConnection, DocSyncProvider, DocSyncVerdict, useDocSync } from './useDocSync'
 
 /**
  * The credential form's rules, for both shells.
@@ -39,7 +39,7 @@ export interface ConnectForm {
   setInsecureTls: (on: boolean) => void
   /** Every required field is either filled in or already stored. */
   complete: boolean
-  probe: () => Promise<{ connected: boolean; account?: string; error?: string }>
+  probe: () => Promise<DocSyncVerdict>
   save: () => Promise<boolean>
 }
 

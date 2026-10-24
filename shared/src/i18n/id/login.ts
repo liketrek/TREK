@@ -24,10 +24,16 @@ const login: TranslationStrings = {
   'login.oidc.noEmail': 'Tidak ada email yang diterima dari penyedia.',
   'login.oidc.tokenFailed': 'Autentikasi gagal.',
   'login.oidc.invalidState': 'Sesi tidak valid. Coba lagi.',
+  'login.oidc.emailNotVerified':
+    'Penyedia masuk Anda belum mengonfirmasi alamat email ini, jadi tidak dapat ditautkan ke akun yang sudah ada.',
+  'login.oidc.emailLinkBlocked':
+    'Proses masuk ini tidak dapat ditautkan ke akun yang sudah ada dengan email ini. Minta administrator untuk mengonfirmasi alamatnya.',
   'login.demoFailed': 'Login demo gagal',
   'login.oidcSignIn': 'Masuk dengan {name}',
   'login.oidcOnly': 'Autentikasi kata sandi dinonaktifkan. Masuk menggunakan penyedia SSO kamu.',
   'login.oidcLoggedOut': 'Kamu telah keluar. Masuk kembali menggunakan penyedia SSO kamu.',
+  'login.oidcRedirecting': 'Mengalihkan ke {name}…',
+  'login.oidcRedirectSlow': 'Masih di sini? Lanjutkan ke {name}',
   'login.demoHint': 'Coba demo — tidak perlu registrasi',
   'login.mfaTitle': 'Autentikasi dua faktor',
   'login.mfaSubtitle': 'Masukkan kode 6 digit dari aplikasi autentikator kamu.',
@@ -66,9 +72,9 @@ const login: TranslationStrings = {
   'login.resetPasswordFailed': 'Reset gagal. Tautan mungkin sudah kedaluwarsa.',
   'login.passkey.signIn': 'Masuk dengan passkey',
   'login.passkey.failed': 'Masuk dengan passkey gagal. Silakan coba lagi.',
-  'login.insecureCookie.title': "Login won't stick over HTTP",
+  'login.insecureCookie.title': 'Login tidak akan bertahan lewat HTTP',
   'login.insecureCookie.body':
-    'You’re connecting over plain HTTP, so your browser drops TREK’s secure session cookie — the next request fails with "Access token required". Fix: use HTTPS, or for a home-lab set COOKIE_SECURE=false.',
-  'login.insecureCookie.link': 'Open the Troubleshooting guide',
+    'Kamu terhubung lewat HTTP biasa, sehingga browser membuang cookie sesi aman milik TREK, dan permintaan berikutnya gagal dengan "Access token required". Solusi: gunakan HTTPS, atau untuk home-lab setel COOKIE_SECURE=false.',
+  'login.insecureCookie.link': 'Buka panduan pemecahan masalah',
 };
 export default login;

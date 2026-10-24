@@ -1,0 +1,40 @@
+import type { TranslationStrings } from '../types';
+
+const members: TranslationStrings = {
+  'members.inviteUser': 'Pozvať používateľa',
+  'members.selectUser': 'Vyberte používateľa…',
+  'members.invite': 'Pozvať',
+  'members.allHaveAccess': 'Všetci používatelia už majú prístup.',
+  'members.access': 'Prístup',
+  'members.persons': 'osôb',
+  'members.persons.one': 'osoba',
+  'members.persons.few': 'osoby',
+  'members.you': 'vy',
+  'members.owner': 'Vlastník',
+  'members.leaveTrip': 'Opustiť cestu',
+  'members.removeAccess': 'Odobrať prístup',
+  'members.confirmLeave': 'Opustiť cestu? Stratíte prístup.',
+  'members.confirmRemove': 'Odobrať prístup tomuto používateľovi?',
+  'members.loadError': 'Nepodarilo sa načítať členov',
+  'members.added': 'pridaný/á',
+  'members.addError': 'Nepodarilo sa pridať',
+  'members.removed': 'Člen odobraný',
+  'members.removeError': 'Nepodarilo sa odobrať',
+  'members.makeOwner': 'Nastaviť ako vlastníka',
+  'members.confirmTransfer': 'Previesť vlastníctvo na {name}? Stanete sa bežným členom.',
+  'members.transferError': 'Prevod vlastníctva zlyhal',
+  'members.guests': 'Hostia',
+  'members.guest': 'Hosť',
+  'members.guestsHint': 'Ľudia bez účtu. Možno im priradiť náklady, balenie a úlohy, ale nemôžu sa prihlásiť.',
+  'members.addGuest': 'Pridať hosťa',
+  'members.guestNamePlaceholder': 'Meno hosťa',
+  'members.guestAdded': 'Hosť pridaný',
+  'members.guestAddError': 'Nepodarilo sa pridať hosťa',
+  'members.guestRenameError': 'Nepodarilo sa premenovať hosťa',
+  'members.guestRemoved': 'Hosť odobraný',
+  'members.confirmRemoveGuest':
+    'Odobrať tohto hosťa? Jeho priradenia budú odobrané a jeho podiel na každom výdavku sa rozdelí medzi ostatných účastníkov.',
+  'members.guestHasPayments':
+    'Tento hosť zaplatil výdavok alebo je súčasťou zaznamenanej platby. Najprv zmeňte platiteľa alebo platbu odstráňte.',
+};
+export default members;

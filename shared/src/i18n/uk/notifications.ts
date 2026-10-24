@@ -29,8 +29,14 @@ const notifications: TranslationStrings = {
   'notifications.test.adminText': '{actor} надіслав тестове сповіщення всім адміністраторам.',
   'notifications.test.tripTitle': '{actor} написав у вашій поїздці',
   'notifications.test.tripText': 'Тестове сповіщення для поїздки "{trip}".',
+  'notifications.countLabel': 'сповіщення',
+  'notifications.countLabel.one': 'сповіщення',
+  'notifications.countLabel.few': 'сповіщення',
+  'notifications.countLabel.many': 'сповіщень',
   'notifications.versionAvailable.title': 'Доступне оновлення',
   'notifications.versionAvailable.text': 'TREK {version} тепер доступний.',
   'notifications.versionAvailable.button': 'Докладніше',
+  'notifications.deleteAllConfirmTitle': 'Видалити всі сповіщення?',
+  'notifications.deleteAllConfirmText': 'Усі сповіщення буде видалено назавжди. Цю дію неможливо скасувати.',
 };
 export default notifications;

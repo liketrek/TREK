@@ -1,4 +1,5 @@
 import type { NotificationLocale } from '../externalNotifications/types';
+import { pluralForm } from '../plural';
 
 const it: NotificationLocale = {
   email: {
@@ -37,7 +38,7 @@ const it: NotificationLocale = {
       body: `${p.actor} ti ha invitato a condividere una raccolta. Apri TREK per accettare o rifiutare.`,
     }),
     photos_shared: (p) => ({
-      title: `${p.count} foto condivise`,
+      title: pluralForm(p.count, 'it', { one: `${p.count} foto condivisa`, other: `${p.count} foto condivise` }),
       body: `${p.actor} ha condiviso ${p.count} foto in "${p.trip}".`,
     }),
     collab_message: (p) => ({
@@ -56,11 +57,29 @@ const it: NotificationLocale = {
       title: "Errore di replica dell'archiviazione",
       body:
         `Scrittura sulla replica non riuscita su '${p.backend}': ${p.op} di ${p.key} — ${p.error}.` +
-        (p.suppressed !== '0' ? ` Altri ${p.suppressed} errori sono stati soppressi dall'ultima notifica.` : ''),
+        (p.suppressed !== '0'
+          ? pluralForm(p.suppressed, 'it', {
+              one: " Dall'ultima notifica è stato soppresso un altro errore.",
+              other: ` Dall'ultima notifica sono stati soppressi altri ${p.suppressed} errori.`,
+            })
+          : ''),
+    }),
+    paddle_region_requested: (p) => ({
+      title: 'Regione canoa richiesta',
+      body: `${p.actor} sta pianificando un giro in canoa in ${p.region}. Carica o rifiuta i suoi dati sull'acqua nell'area amministrazione, sotto Componenti.`,
     }),
     synology_session_cleared: () => ({
       title: 'Sessione Synology rimossa',
       body: 'Il tuo account o URL Synology è cambiato. Sei stato disconnesso da Synology Photos.',
+    }),
+    wanderer_source_hint: (p) => ({
+      title: `Sentiero wanderer: ${p.tour}`,
+      body:
+        p.state === 'changed'
+          ? `«${p.tour}» in «${p.trip}» è stato modificato in wanderer. Apri il percorso e controlla la sua fonte per vedere tutte le modifiche. Nel viaggio non cambia nulla da solo.`
+          : p.state === 'unverifiable'
+            ? `«${p.tour}» in «${p.trip}» non si può più controllare in wanderer. Il percorso nel tuo viaggio resta com'è.`
+            : `«${p.tour}» in «${p.trip}» potrebbe essere cambiato in wanderer. Apri il percorso e controlla la sua fonte per saperlo. Nel viaggio non cambia nulla da solo.`,
     }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },

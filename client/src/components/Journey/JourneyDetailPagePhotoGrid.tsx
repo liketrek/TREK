@@ -69,7 +69,7 @@ export function PhotoGrid({ photos, onClick }: { photos: JourneyPhoto[]; onClick
         <button type="button" className="flex-1 min-h-0 relative cursor-pointer" onClick={() => onClick(2)}>
           <PhotoImg photo={photos[2]} className="w-full h-full object-cover" />
           {count > 3 && (
-            <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur text-white rounded-full px-2 py-0.5 text-[10px] font-semibold flex items-center gap-1">
+            <div className="absolute bottom-2 end-2 bg-black/60 backdrop-blur text-white rounded-full px-2 py-0.5 text-[10px] font-semibold flex items-center gap-1">
               <Image size={10} />
               +{count - 3}
             </div>

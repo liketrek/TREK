@@ -1,0 +1,40 @@
+import type { TranslationStrings } from '../types';
+
+const wandererWatch: TranslationStrings = {
+  'wanderer.watch.label': 'التحقق من تغييرات دروبي',
+  'wanderer.watch.hint': 'إشعار عندما يكون درب مستورد قد تغيّر.',
+  'wanderer.watch.info':
+    'مرة واحدة في اليوم على الأكثر، يقرأ TREK السجل المختصر لكل درب استوردته، ولا يقرأ ملف GPX الخاص به أبدًا. إنه يُشعرك فقط: أنت من يقرر قبول التغيير عبر التحقق من مصدر الجولة.',
+  'wanderer.watch.notConnected': 'اربط wanderer أولًا',
+  'wanderer.watch.on': 'تم تشغيل التحقق في الخلفية',
+  'wanderer.watch.off': 'تم إيقاف التحقق في الخلفية',
+  'wanderer.watch.failed': 'تعذّر تبديل التحقق في الخلفية',
+  'wanderer.watch.lastRun': 'آخر تحقق {date}',
+  'wanderer.watch.neverRun': 'لم يُتحقق بعد',
+  'wanderer.watch.paused': 'متوقف مؤقتًا حتى {time}',
+  'wanderer.watch.pausedHint': 'لم يستجب wanderer. بعد كل إخفاق ينتظر TREK مدة أطول قبل أن يسأل مجددًا.',
+  'wanderer.watch.blocked': 'رُفض الرمز',
+  'wanderer.watch.blockedHint': 'رفض wanderer رمز API. يستأنف التحقق عندما ينجح اختبار الاتصال أو يُحفظ رمز جديد.',
+  'wanderer.watch.hints': 'تنبيهات',
+  'wanderer.watch.hintsCount': '{count} تنبيه مفتوح',
+  'wanderer.watch.hintsCount.zero': 'لا توجد تنبيهات مفتوحة',
+  'wanderer.watch.hintsCount.one': 'تنبيه مفتوح واحد',
+  'wanderer.watch.hintsCount.two': 'تنبيهان مفتوحان',
+  'wanderer.watch.hintsCount.few': '{count} تنبيهات مفتوحة',
+  'wanderer.watch.hintsCount.many': '{count} تنبيهًا مفتوحًا',
+  'wanderer.watch.empty': 'لا توجد تنبيهات مفتوحة',
+  'wanderer.watch.dialogTitle': 'تنبيهات حول دروبك',
+  'wanderer.watch.openTour': 'فتح الجولة',
+  'wanderer.watch.checkedAt': 'تم التحقق {date}',
+  'wanderer.watch.noticeLabel': 'التحقق في الخلفية',
+  'wanderer.watch.state.possible_change': 'ربما تغيّر',
+  'wanderer.watch.state.changed': 'تغيّر',
+  'wanderer.watch.state.unverifiable': 'لا يمكن التحقق',
+  'wanderer.watch.stateHint.possible_change':
+    'غيّر wanderer الطابع الزمني للدرب. وحده التحقق من المصدر يُظهر ما إذا كان المحتوى مختلفًا.',
+  'wanderer.watch.stateHint.changed': 'يُظهر سجل wanderer اسمًا أو وصفًا آخر. يُظهر التحقق من المصدر كل ما تغيّر.',
+  'wanderer.watch.stateHint.unverifiable': 'لم يتمكن TREK من تقييم هذا الدرب، لذا لا يُقال شيء عن تغيّره.',
+  'wanderer.watch.reason.unavailable': 'الدرب غير متاح',
+  'wanderer.watch.reason.no_change_time': 'لا يوجد طابع زمني',
+};
+export default wandererWatch;

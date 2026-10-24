@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { ChevronDown, ChevronRight, ListChecks } from 'lucide-react'
 import type { DawarichSuggestion, DawarichSuggestionTarget } from '@trek/shared'
 import { useTranslation } from '../../i18n'
 import DawarichIcon from '../shared/DawarichIcon'
+import { fs } from '../shared/DialogShell'
 import { SuggestionRow } from '../Dawarich/DawarichSuggestionsPanel'
 import { timeRange } from '../Dawarich/dawarichSuggestionModel'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -28,6 +29,7 @@ export default function JourneyDayDawarich({
   busyId,
   onAccept,
   onDismiss,
+  onTakeOverDay,
 }: {
   /** The open stays of this day, in the order they were lived. */
   suggestions: DawarichSuggestion[]
@@ -35,6 +37,8 @@ export default function JourneyDayDawarich({
   busyId: number | null
   onAccept: (suggestion: DawarichSuggestion, target: DawarichSuggestionTarget) => void
   onDismiss: (suggestion: DawarichSuggestion) => void
+  /** Review the whole day with its stays and route instead of one stay at a time (JRN-02). */
+  onTakeOverDay?: () => void
 }): React.ReactElement | null {
   const { t } = useTranslation()
   const is12h = useSettingsStore(s => s.settings.time_format) === '12h'
@@ -49,24 +53,19 @@ export default function JourneyDayDawarich({
 
   return (
     <div className="rounded-2xl border border-edge bg-surface-secondary overflow-hidden">
+      <div className="flex items-center">
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
         aria-expanded={open}
-        className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-surface-hover"
+        className="flex min-w-0 flex-1 items-center gap-2.5 px-3 py-2.5 text-start transition-colors hover:bg-surface-hover"
       >
         {/* The brand mark in its own colours, which is what tells this row from an entry
             at a glance. No second label saying "Dawarich": the mark is the label. */}
         <DawarichIcon size={18} className="shrink-0" />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[13px] font-semibold text-content">
-            {/* Two keys picked by the count, the shape this codebase uses for a number
-                that changes its noun: there is no plural engine in the i18n layer, and one
-                key with {count} in it reads as "1 stays". */}
-            {t(
-              suggestions.length === 1 ? 'dawarich.journey.dayStays.one' : 'dawarich.journey.dayStays.other',
-              { count: suggestions.length },
-            )}
+            {t('dawarich.journey.dayStays', { count: suggestions.length })}
           </span>
           {span && <span className="block text-[11px] text-content-faint tabular-nums">{span}</span>}
         </span>
@@ -74,6 +73,20 @@ export default function JourneyDayDawarich({
           ? <ChevronDown size={16} className="shrink-0 text-content-faint" aria-hidden />
           : <ChevronRight size={16} className="shrink-0 text-content-faint" aria-hidden />}
       </button>
+      {/* The whole day at once, beside the row: choosing, joining and naming
+          its stays together beats accepting them one by one. */}
+      {onTakeOverDay && (
+        <button
+          type="button"
+          onClick={onTakeOverDay}
+          className="me-2 inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-accent px-2.5 py-1.5 font-semibold text-accent-text transition-opacity hover:opacity-90"
+          style={fs(12, 'body')}
+        >
+          <ListChecks size={14} aria-hidden />
+          {t('journey.dayImport.open')}
+        </button>
+      )}
+      </div>
 
       {open && (
         <div className="flex flex-col gap-1 pb-2">

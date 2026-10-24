@@ -1,8 +1,6 @@
 import type { TranslationStrings } from '../types';
 
 const nav: TranslationStrings = {
-  'nav.trip': 'Cesta',
-  'nav.share': 'Sdílet',
   'nav.settings': 'Nastavení',
   'nav.admin': 'Administrace',
   'nav.logout': 'Odhlásit se',
@@ -16,6 +14,6 @@ const nav: TranslationStrings = {
   'nav.bottomAdmin': 'Nastavení správce',
   'nav.bottomLogout': 'Odhlásit se',
   'nav.bottomAdminBadge': 'Správce',
-  'nav.help': 'Help',
+  'nav.help': 'Nápověda',
 };
 export default nav;

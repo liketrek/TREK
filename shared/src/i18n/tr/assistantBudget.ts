@@ -1,0 +1,30 @@
+import type { TranslationStrings } from '../types';
+
+const assistantBudget: TranslationStrings = {
+  'assistant.change.verb.addPayment': 'Ödeme kaydet',
+  'assistant.change.verb.updatePayment': 'Ödemeyi değiştir',
+  'assistant.tool.create_budget_item_with_members': 'Harcama ekle',
+  'assistant.tool.set_budget_item_members': 'Masrafı kimlerin paylaştığını değiştir',
+  'assistant.tool.toggle_budget_member_paid': 'Kimin ödediğini güncelle',
+  'assistant.tool.create_settlement': 'Ödeme kaydet',
+  'assistant.tool.update_settlement': 'Bu ödemeyi değiştir',
+  'assistant.tool.delete_settlement': 'Bu ödemeyi sil',
+  'assistant.tool.freeze_budget_rates': 'Bugünkü döviz kurlarını sabitle',
+  'assistant.followUp.whoOwes': 'Kim kime borçlu?',
+  'assistant.followUp.recordPayments': 'Bu ödemeleri kaydet',
+  'assistant.card.budget.open': 'Maliyetler içinde aç',
+  'assistant.card.budget.paidBy': '{name} ödedi',
+  'assistant.card.budget.notPaid': 'Ödenmedi',
+  'assistant.card.budget.split.equal': 'Eşit bölündü',
+  'assistant.card.budget.split.custom': 'Farklı tutarlarla bölündü',
+  'assistant.card.budget.split.none': 'Yalnızca planlama, bölünmedi',
+  'assistant.card.budget.together': 'Toplam {amount}',
+  'assistant.card.budget.markedPaid': '{amount} ödendi olarak işaretlendi',
+  'assistant.card.budget.receipts': '{count} fiş',
+  'assistant.card.budget.receipts.one': '{count} fiş',
+  'assistant.card.budget.leftOut': '{count} yabancı para harcaması toplama dahil değil: henüz döviz kuru yok.',
+  'assistant.card.budget.leftOut.one': '{count} yabancı para harcaması toplama dahil değil: henüz döviz kuru yok.',
+  'assistant.card.budget.unconverted': '{currencies} cinsinden {count} kayıt sayılmıyor: henüz döviz kuru yok.',
+  'assistant.card.budget.unconverted.one': '{currencies} cinsinden {count} kayıt sayılmıyor: henüz döviz kuru yok.',
+};
+export default assistantBudget;

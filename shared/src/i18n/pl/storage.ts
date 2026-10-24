@@ -6,10 +6,10 @@ const storage: TranslationStrings = {
   'storage.field.endpoint': 'Adres URL punktu końcowego',
   'storage.help.endpoint':
     'Podstawowy adres URL usługi zgodnej z S3, np. https://s3.example.com lub http://127.0.0.1:9000.',
-  'storage.field.bucket': 'Bucket',
+  'storage.field.bucket': 'Bucket', // same-as-en
   'storage.field.accessKeyId': 'Identyfikator klucza dostępu',
   'storage.field.secretAccessKey': 'Tajny klucz dostępu',
-  'storage.field.region': 'Region',
+  'storage.field.region': 'Region', // same-as-en
   'storage.help.region': 'Pozostaw wartość domyślną, chyba że twój dostawca wymaga konkretnego regionu.',
   'storage.field.keyPrefix': 'Prefiks klucza',
   'storage.help.keyPrefix': 'Opcjonalny prefiks dodawany do każdego klucza obiektu, np. trek/prod.',
@@ -32,13 +32,13 @@ const storage: TranslationStrings = {
   'storage.backends.add': 'Dodaj backend',
   'storage.backends.usedBy': 'Używany przez: {categories}',
   'storage.backends.unused': 'Nieprzypisany do żadnej kategorii',
-  'storage.backends.envReadOnly': 'Zdefiniowany przez zmienną środowiskową — tylko do odczytu',
+  'storage.backends.envReadOnly': 'Zdefiniowany przez zmienną środowiskową (tylko do odczytu)',
   'storage.source.built-in': 'Wbudowany',
   'storage.source.env': 'Środowisko',
   'storage.source.settings': 'Ustawienia',
   'storage.type.local': 'Lokalny',
   'storage.type.s3': 'S3',
-  'storage.type.mirror': 'Mirror',
+  'storage.type.mirror': 'Kopia lustrzana',
   'storage.actions.test': 'Testuj',
   'storage.actions.edit': 'Edytuj',
   'storage.actions.remove': 'Usuń',
@@ -113,7 +113,10 @@ const storage: TranslationStrings = {
   'storage.sync.error': 'Synchronizacja nie powiodła się: {error}',
   'storage.sync.prompt': 'Istniejące obiekty nie zostały jeszcze zreplikowane — zsynchronizować teraz?',
   'storage.sync.dismiss': 'Odrzuć',
-  'storage.usage.line': '{objects} obiektów · {size}',
+  'storage.usage.line': '{count} obiektu · {size}',
+  'storage.usage.line.one': '{count} obiekt · {size}',
+  'storage.usage.line.few': '{count} obiekty · {size}',
+  'storage.usage.line.many': '{count} obiektów · {size}',
   'storage.usage.computed': 'Wykorzystanie obliczone {age}',
   'storage.usage.never': 'Wykorzystanie nie zostało jeszcze obliczone',
   'storage.usage.refresh': 'Odśwież',
@@ -122,7 +125,10 @@ const storage: TranslationStrings = {
 
   // Category migration (copy → flip → delta sweep)
   'storage.migrate.promptTitle': 'Przenieść istniejące obiekty do nowego backendu?',
-  'storage.migrate.promptLine': '{category}: {objects} obiektów ({size}) z {from} do {to}',
+  'storage.migrate.promptLine': '{category}: {count} obiektu ({size}) z {from} do {to}',
+  'storage.migrate.promptLine.one': '{category}: {count} obiekt ({size}) z {from} do {to}',
+  'storage.migrate.promptLine.few': '{category}: {count} obiekty ({size}) z {from} do {to}',
+  'storage.migrate.promptLine.many': '{category}: {count} obiektów ({size}) z {from} do {to}',
   'storage.migrate.promptLineUnknown':
     '{category}: nieznany rozmiar (wykorzystanie jeszcze nie obliczone) z {from} do {to}',
   'storage.migrate.move': 'Przenieś istniejące obiekty',
@@ -132,10 +138,14 @@ const storage: TranslationStrings = {
   'storage.migrate.doneFailures': '{failed} nie powiodło się — te obiekty nie zostały skopiowane do nowego backendu',
   'storage.migrate.failed': 'Przenoszenie nie powiodło się: {error} — kategoria nie została przełączona',
   'storage.migrate.cancelled': 'Przenoszenie anulowane — nic nie zostało przełączone',
-  'storage.migrate.reclaimable': '{objects} obiektów ({size}) pozostaje na {from} — odzyskaj ręcznie',
+  'storage.migrate.reclaimable': '{count} obiektu ({size}) pozostaje na {from}, odzyskaj ręcznie',
+  'storage.migrate.reclaimable.one': '{count} obiekt ({size}) pozostaje na {from}, odzyskaj ręcznie',
+  'storage.migrate.reclaimable.few': '{count} obiekty ({size}) pozostają na {from}, odzyskaj ręcznie',
+  'storage.migrate.reclaimable.many': '{count} obiektów ({size}) pozostaje na {from}, odzyskaj ręcznie',
   'storage.migrate.cancel': 'Anuluj przenoszenie',
   'storage.migrate.promptCancel': 'Anuluj',
   'storage.migrate.queued': 'W kolejce: {categories}',
-  'storage.migrate.queueDropped': 'Nie udało się rozpocząć kolejnego przenoszenia — pozostała kolejka została wyczyszczona: {categories}',
+  'storage.migrate.queueDropped':
+    'Nie udało się rozpocząć kolejnego przenoszenia — pozostała kolejka została wyczyszczona: {categories}',
 };
 export default storage;

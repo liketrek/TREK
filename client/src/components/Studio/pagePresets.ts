@@ -42,7 +42,11 @@ export type PagePresetId =
    */
   | 'custom'
 
-function preset(id: PagePresetId, w: number, h: number, labelKey: string): PagePreset {
+/**
+ * A format from its page size. Its name is given as `labelKey` where the format
+ * is listed, where the check of the client's translation keys can read it.
+ */
+function preset(id: PagePresetId, w: number, h: number, { labelKey }: { labelKey: string }): PagePreset {
   return {
     id,
     pageWidthMm: w,
@@ -56,14 +60,14 @@ function preset(id: PagePresetId, w: number, h: number, labelKey: string): PageP
 }
 
 export const PAGE_PRESETS: Record<PagePresetId, PagePreset> = {
-  'square-210': preset('square-210', 210, 210, 'journey.studio.formatSquare21'),
-  'square-300': preset('square-300', 300, 300, 'journey.studio.formatSquare30'),
-  'a4-landscape': preset('a4-landscape', 297, 210, 'journey.studio.formatA4Landscape'),
-  'a4-portrait': preset('a4-portrait', 210, 297, 'journey.studio.formatA4Portrait'),
-  'a5-landscape': preset('a5-landscape', 210, 148, 'journey.studio.formatA5Landscape'),
+  'square-210': preset('square-210', 210, 210, { labelKey: 'journey.studio.formatSquare21' }),
+  'square-300': preset('square-300', 300, 300, { labelKey: 'journey.studio.formatSquare30' }),
+  'a4-landscape': preset('a4-landscape', 297, 210, { labelKey: 'journey.studio.formatA4Landscape' }),
+  'a4-portrait': preset('a4-portrait', 210, 297, { labelKey: 'journey.studio.formatA4Portrait' }),
+  'a5-landscape': preset('a5-landscape', 210, 148, { labelKey: 'journey.studio.formatA5Landscape' }),
   // The dimensions here are only the starting point the fields open on; the
   // document keeps whatever the user types.
-  custom: preset('custom', 210, 210, 'journey.studio.formatCustom'),
+  custom: preset('custom', 210, 210, { labelKey: 'journey.studio.formatCustom' }),
 }
 
 /**

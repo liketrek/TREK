@@ -1,6 +1,6 @@
-// FE-W4UTL-001 to FE-W4UTL-006
+// FE-W4UTL-001 to FE-W4UTL-008
 import { describe, it, expect } from 'vitest'
-import { getApiErrorMessage } from './apiError'
+import { getApiErrorCode, getApiErrorMessage } from './apiError'
 
 describe('getApiErrorMessage', () => {
   it('FE-W4UTL-001: returns the server-provided error string', () => {
@@ -31,5 +31,19 @@ describe('getApiErrorMessage', () => {
 
   it('FE-W4UTL-006: keeps surrounding whitespace of a real message', () => {
     expect(getApiErrorMessage({ response: { data: { error: ' boom ' } } }, 'fallback')).toBe(' boom ')
+  })
+})
+
+describe('getApiErrorCode', () => {
+  it('FE-W4UTL-007: returns the code a refusal names its reason with', () => {
+    expect(getApiErrorCode({ response: { data: { error: 'Invalid KMZ archive.', code: 'archive_invalid' } } })).toBe('archive_invalid')
+  })
+
+  it('FE-W4UTL-008: is null without a code, for an empty or non-string one, and for no error at all', () => {
+    expect(getApiErrorCode({ response: { data: { error: 'boom' } } })).toBeNull()
+    expect(getApiErrorCode({ response: { data: { code: '' } } })).toBeNull()
+    expect(getApiErrorCode({ response: { data: { code: 42 } } })).toBeNull()
+    expect(getApiErrorCode(null)).toBeNull()
+    expect(getApiErrorCode(undefined)).toBeNull()
   })
 })

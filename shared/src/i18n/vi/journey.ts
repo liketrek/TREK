@@ -6,6 +6,11 @@ const journey: TranslationStrings = {
   'journey.title': 'Hành trình',
   'journey.subtitle': 'Theo dõi chuyến đi của bạn khi chúng diễn ra',
   'journey.new': 'Hành trình mới',
+  'journey.lightbox.zoomIn': 'Phóng to',
+  'journey.lightbox.zoomOut': 'Thu nhỏ',
+  'journey.lightbox.zoomReset': 'Quay lại ảnh đầy đủ',
+  'journey.lightbox.previous': 'Ảnh trước',
+  'journey.lightbox.next': 'Ảnh tiếp theo',
   'journey.create': 'Tạo nên',
   'journey.titlePlaceholder': 'Bạn đang đi đâu?',
   'journey.empty': 'Chưa có chuyến đi nào',
@@ -66,6 +71,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.suggestionLabel': 'Chuyến đi vừa kết thúc',
   'journey.frontpage.suggestionText': 'Biến <strong>{title}</strong> thành một cuộc hành trình',
   'journey.frontpage.dismiss': 'Miễn nhiệm',
+  'journey.frontpage.dismissError': 'Không thể ẩn gợi ý này',
   'journey.frontpage.journeyName': 'Tên hành trình',
   'journey.frontpage.namePlaceholder': 'ví dụ. Đông Nam Á 2026',
   'journey.frontpage.selectTrips': 'Chọn chuyến đi',
@@ -78,6 +84,8 @@ const journey: TranslationStrings = {
   'journey.detail.addEntry': 'Thêm mục nhập',
   'journey.detail.jumpToTop': 'Lên đầu trang',
   'journey.detail.jumpToLast': 'Đến mục cuối cùng',
+  'journey.detail.dayJump': 'Chuyển đến một ngày',
+  'journey.detail.dayJumpCount': '{count} ngày',
   'journey.detail.newEntry': 'Mục mới',
   'journey.detail.editEntry': 'Chỉnh sửa mục nhập',
   'journey.detail.noEntries': 'Chưa có mục nào',
@@ -91,7 +99,7 @@ const journey: TranslationStrings = {
   'journey.detail.contributors': 'Người đóng góp',
   'journey.detail.readMore': 'Đọc thêm',
   'journey.detail.prosCons': 'Ưu và nhược điểm',
-  'journey.detail.photos': 'những bức ảnh',
+  'journey.detail.photos': 'ảnh',
   'journey.detail.day': 'Ngày {number}',
   'journey.detail.places': 'địa điểm',
   'journey.stats.days': 'Ngày',
@@ -170,6 +178,10 @@ const journey: TranslationStrings = {
   'journey.contributors.removeConfirm': 'Xóa {username} khỏi hành trình này?',
   'journey.contributors.removed': 'Đã xóa người đóng góp',
   'journey.contributors.removeFailed': 'Không thể xóa người đóng góp',
+  'journey.contributors.viaTrips': 'Qua chuyến đi',
+  'journey.contributors.viaTripsHint':
+    'Họ có thể mở nhật ký này vì một chuyến đi liên kết nó. Thay đổi trong cài đặt của chuyến đi.',
+  'journey.contributors.viaTrip': 'qua {trip}',
   'journey.share.publicShare': 'Chia sẻ công khai',
   'journey.share.createLink': 'Tạo liên kết chia sẻ',
   'journey.share.linkCreated': 'Đã tạo liên kết chia sẻ',
@@ -196,8 +208,23 @@ const journey: TranslationStrings = {
   'journey.settings.subtitle': 'Phụ đề',
   'journey.settings.subtitlePlaceholder': 'ví dụ. Thái Lan, Việt Nam và Campuchia',
   'journey.settings.tracks': 'Tuyến GPX',
+  'journey.settings.recordings': 'Những ngày đã ghi',
   'journey.settings.showTripTracks': 'Hiện tất cả tuyến GPX của chuyến đi',
-  'journey.settings.showTripTracksHint': 'Vẽ lên bản đồ các tuyến đường đã ghi từ những chuyến đi được liên kết.',
+  'journey.settings.showTripTracksHint':
+    'Vẽ các tuyến đường đã lên kế hoạch (dấu vết GPX) của các chuyến đi được liên kết trên bản đồ.',
+  'journey.settings.autoPrepare': 'Tự động chuẩn bị các ngày đã ghi',
+  'journey.settings.autoPrepareHint':
+    'Khi một chuyến đi được liên kết đang diễn ra, các điểm dừng từ Dawarich của bạn chờ ở ngày của chúng để bạn xem. Người chỉnh sửa có kết nối riêng nhận phần của họ. Không có gì tự ghi vào nhật ký.',
+  'journey.settings.status': 'Trạng thái',
+  'journey.settings.statusAuto': 'Tự động',
+  'journey.settings.statusAutoHint':
+    'Theo ngày của các chuyến đi đã liên kết. Không có chuyến đi thì nhật ký vẫn là bản nháp.',
+  'journey.settings.statusManualHint':
+    'Đặt thủ công. Ngày của chuyến đi sẽ không đổi nó nữa cho đến khi bạn chuyển lại tự động.',
+  'journey.settings.photosSection': 'Ảnh',
+  'journey.settings.photoLocation': 'Định vị mục theo ảnh của nó',
+  'journey.settings.photoLocationHint':
+    'Mục chưa có địa điểm sẽ lấy nơi chụp ảnh có GPS đầu tiên của nó. Địa điểm bạn tự đặt không bao giờ bị đổi.',
   'journey.settings.endJourney': 'Hành trình lưu trữ',
   'journey.settings.reopenJourney': 'Khôi phục hành trình',
   'journey.settings.archived': 'Đã lưu trữ hành trình',
@@ -212,9 +239,12 @@ const journey: TranslationStrings = {
   'journey.settings.coverFailed': 'Tải lên không thành công',
   'journey.settings.failedToDelete': 'Không thể xóa',
   'journey.entries.deleteTitle': 'Xóa mục nhập',
+  'journey.gallery.deleteTitle': 'Xóa ảnh',
+  'journey.gallery.deleteMessage':
+    'Ảnh này sẽ bị xóa khỏi thư viện và khỏi mọi mục nhập có dùng ảnh. Không thể hoàn tác.',
   'journey.photosUploaded': '{count} ảnh đã được tải lên',
   'journey.photosUploadFailed': 'Một số ảnh không thể tải lên',
-  'journey.photosAdded': '{count} đã thêm ảnh',
+  'journey.photosAdded': 'Đã thêm {count} ảnh',
   'journey.public.notFound': 'Không tìm thấy',
   'journey.public.notFoundMessage': 'Hành trình này không tồn tại hoặc liên kết đã hết hạn.',
   'journey.public.readOnly': 'Chỉ đọc · Hành trình công khai',
@@ -239,31 +269,29 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'Không tìm thấy album nào',
   'journey.picker.selectDate': 'Chọn ngày',
   'journey.picker.search': 'Tìm kiếm',
-  'journey.editor.externalPhotos': 'External photos', // en-fallback
-  'journey.editor.externalPhotosFor': 'Photos for {date}', // en-fallback
-  'journey.editor.externalPhotosNearby': 'Nearby photos first', // en-fallback
-  'journey.editor.externalPhotosNoLocation': 'All photos from this day', // en-fallback
-  'journey.editor.externalPhotosQueued': 'queued', // en-fallback
-  'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
-  'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
-  'journey.picker.day': 'This day', // en-fallback
-  'journey.studio.title': 'TREK Studio', // en-fallback
-  'journey.studio.open': 'Studio', // en-fallback
-  'journey.studio.openAria': 'Open the photo book studio', // en-fallback
-  'journey.studio.backToJourney': 'Back to the journey', // en-fallback
-  'journey.studio.format': 'Page format', // en-fallback
-  'journey.studio.formatA4Landscape': 'A4 landscape', // en-fallback
-  'journey.studio.formatA4Portrait': 'A4 portrait', // en-fallback
-  'journey.studio.formatSquare21': 'Square 21 × 21 cm', // en-fallback
-  'journey.studio.formatSquare30': 'Square 30 × 30 cm', // en-fallback
-  'journey.studio.pages': 'Pages', // en-fallback
-  'journey.studio.cover': 'Cover', // en-fallback
-  'journey.studio.inspector': 'Properties', // en-fallback
-  'journey.studio.inspectorEmpty': 'Select something on the page to edit it.', // en-fallback
-  'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
-  'journey.studio.autoLayout': 'Auto layout', // en-fallback
-  'journey.studio.export': 'Export', // en-fallback
-  'journey.studio.day': 'NGÀY',
+  'journey.editor.externalPhotos': 'Ảnh bên ngoài',
+  'journey.editor.externalPhotosFor': 'Ảnh cho {date}',
+  'journey.editor.externalPhotosNearby': 'Ảnh gần đó trước',
+  'journey.editor.externalPhotosNoLocation': 'Tất cả ảnh trong ngày này',
+  'journey.editor.externalPhotosQueued': 'đang chờ',
+  'journey.editor.externalPhotosUnavailable': 'Không có nhà cung cấp ảnh nào được kết nối.',
+  'journey.editor.externalPhotosPartialFailed': '{failed} nhóm ảnh bị lỗi, hãy lưu lại để thử lại',
+  'journey.picker.day': 'Ngày này',
+  'journey.studio.title': 'TREK Studio', // same-as-en
+  'journey.studio.open': 'Studio', // same-as-en
+  'journey.studio.openAria': 'Mở studio thiết kế photobook',
+  'journey.studio.backToJourney': 'Quay lại hành trình',
+  'journey.studio.format': 'Khổ trang',
+  'journey.studio.formatA4Landscape': 'A4 ngang',
+  'journey.studio.formatA4Portrait': 'A4 dọc',
+  'journey.studio.formatSquare21': 'Vuông 21 × 21 cm',
+  'journey.studio.formatSquare30': 'Vuông 30 × 30 cm',
+  'journey.studio.pages': 'Trang',
+  'journey.studio.cover': 'Bìa',
+  'journey.studio.inspectorEmpty': 'Chọn một mục để sửa',
+  'journey.studio.autoLayout': 'Bố cục tự động',
+  'journey.studio.export': 'Xuất',
+  'journey.studio.day': 'NGÀY {day}',
   'journey.studio.stations': 'Chặng dừng',
   'journey.studio.peersHere': 'ở đây',
   'journey.studio.folioAuto': 'Tự động',
@@ -275,105 +303,105 @@ const journey: TranslationStrings = {
   'journey.studio.exportFinishing': 'Gia công',
   'journey.studio.exportMarks': 'Dấu cắt',
   'journey.studio.exportMarksHint': 'Thêm {bleed} mm tràn lề ở mỗi cạnh và đánh dấu chỗ cắt',
-  'journey.studio.exportNote': '{sheets} tờ khổ {width} × {height} mm. Trình duyệt biến bản xem trước thành PDF.',
+  'journey.studio.exportNote': '{count} tờ khổ {width} × {height} mm. Trình duyệt biến bản xem trước thành PDF.',
   'journey.studio.exportOpen': 'Xem trước khi in',
   'journey.studio.exportSave': 'Lưu thành PDF',
   'journey.studio.exportPreparing': 'Đang chuẩn bị',
   'journey.studio.exportSheetCount': '{count} tờ',
-  'journey.studio.undo': 'Undo', // en-fallback
-  'journey.studio.redo': 'Redo', // en-fallback
-  'journey.studio.zoomIn': 'Zoom in', // en-fallback
-  'journey.studio.zoomOut': 'Zoom out', // en-fallback
-  'journey.studio.zoomFit': 'Fit to view', // en-fallback
+  'journey.studio.undo': 'Hoàn tác',
+  'journey.studio.redo': 'Làm lại',
+  'journey.studio.zoomIn': 'Phóng to',
+  'journey.studio.zoomOut': 'Thu nhỏ',
+  'journey.studio.zoomFit': 'Vừa khung nhìn',
   'journey.studio.downloadSpread': 'Tải trang đôi này về',
-  'journey.studio.downloadSpreadHint': 'Lưu thiết kế của trang đôi này thành tệp, không kèm ảnh, để chia sẻ hoặc dùng lại',
+  'journey.studio.downloadSpreadHint':
+    'Lưu thiết kế của trang đôi này thành tệp, không kèm ảnh, để chia sẻ hoặc dùng lại',
   'journey.studio.importSpread': 'Nhập',
   'journey.studio.importSpreadHint': 'Thêm một trang đôi từ tệp thiết kế đã tải về',
   'journey.studio.importSpreadFailed': 'Tệp đó không phải trang đôi của TREK Studio',
-  'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Dàn một cuốn sách cần chỗ để làm việc, nên Studio chỉ có trên máy tính, và việc tạo PDF cũng vậy. Mọi thứ khác của hành trình vẫn dùng bình thường ở đây.', // en-fallback
-  'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
-  'journey.studio.bookView': 'Book view', // en-fallback
-  'journey.studio.multiple': 'Several', // en-fallback
-  'journey.studio.kind.photo': 'Photo', // en-fallback
-  'journey.studio.kind.text': 'Text', // en-fallback
-  'journey.studio.kind.shape': 'Shape', // en-fallback
-  'journey.studio.position': 'Position', // en-fallback
-  'journey.studio.width': 'W', // en-fallback
-  'journey.studio.height': 'H', // en-fallback
-  'journey.studio.text': 'Text', // en-fallback
-  'journey.studio.typography': 'Type', // en-fallback
-  'journey.studio.leading': 'Line', // en-fallback
-  'journey.studio.colour': 'Colour', // en-fallback
+  'journey.studio.desktopOnly': 'Studio cần màn hình lớn hơn',
+  'journey.studio.desktopOnlyHint':
+    'Dàn một cuốn sách cần chỗ để làm việc, nên Studio chỉ có trên máy tính, và việc tạo PDF cũng vậy. Mọi thứ khác của hành trình vẫn dùng bình thường ở đây.',
+  'journey.studio.formatA5Landscape': 'A5 ngang',
+  'journey.studio.bookView': 'Chế độ xem sách',
+  'journey.studio.multiple': 'Nhiều mục',
+  'journey.studio.kind.photo': 'Ảnh',
+  'journey.studio.kind.text': 'Văn bản',
+  'journey.studio.kind.shape': 'Hình khối',
+  'journey.studio.position': 'Vị trí',
+  'journey.studio.width': 'R',
+  'journey.studio.height': 'C',
+  'journey.studio.text': 'Văn bản',
+  'journey.studio.typography': 'Kiểu chữ',
+  'journey.studio.leading': 'Dòng',
+  'journey.studio.colour': 'Màu',
   'journey.studio.autoColour': 'Tự động',
   'journey.studio.countryNames': 'Tên',
-  'journey.studio.crop': 'Crop', // en-fallback
-  'journey.studio.look': 'Look', // en-fallback
-  'journey.studio.radius': 'Corner', // en-fallback
-  'journey.studio.shape': 'Shape', // en-fallback
-  'journey.studio.arrange': 'Arrange', // en-fallback
-  'journey.studio.toFront': 'Bring to front', // en-fallback
-  'journey.studio.forward': 'Bring forward', // en-fallback
-  'journey.studio.backward': 'Send backward', // en-fallback
-  'journey.studio.toBack': 'Send to back', // en-fallback
-  'journey.studio.lock': 'Lock', // en-fallback
-  'journey.studio.unlock': 'Unlock', // en-fallback
-  'journey.studio.delete': 'Delete', // en-fallback
-  'journey.studio.pageHint': 'Page', // en-fallback
-  'journey.studio.boundHint': 'Follows the journal entry. Editing it here breaks that link.', // en-fallback
-  'journey.studio.fit.cover': 'Fill', // en-fallback
-  'journey.studio.fit.contain': 'Fit', // en-fallback
-  'journey.studio.filter.none': 'Original', // en-fallback
-  'journey.studio.filter.bw': 'Black & white', // en-fallback
-  'journey.studio.filter.warm': 'Warm', // en-fallback
-  'journey.studio.shapeKind.rect': 'Rectangle', // en-fallback
-  'journey.studio.shapeKind.ellipse': 'Ellipse', // en-fallback
-  'journey.studio.focalHint': 'Drag the point to choose what stays in frame.', // en-fallback
-  'journey.studio.backCover': 'Back cover', // en-fallback
-  'journey.studio.sections': 'Sections', // en-fallback
-  'journey.studio.content': 'Content', // en-fallback
-  'journey.studio.elements': 'Elements', // en-fallback
-  'journey.studio.templates': 'Layouts', // en-fallback
-  'journey.studio.photos': 'Photos', // en-fallback
-  'journey.studio.entries': 'Entries', // en-fallback
-  'journey.studio.addToPage': 'Add to this page', // en-fallback
-  'journey.studio.noPhotos': 'This journey has no photos yet.', // en-fallback
-  'journey.studio.untitled': 'Untitled', // en-fallback
-  'journey.studio.addTitle': 'Title', // en-fallback
-  'journey.studio.addStory': 'Story', // en-fallback
-  'journey.studio.addPlace': 'Place', // en-fallback
-  'journey.studio.shapes': 'Shapes', // en-fallback
-  'journey.studio.frames': 'Khung', // en-fallback
-  'journey.studio.emptyFrame': 'Empty frame', // en-fallback
-  'journey.studio.frameHint': 'An empty frame marks where a picture goes. Drop one on it from Content.', // en-fallback
-  'journey.studio.shapeKind.line': 'Line', // en-fallback
-  'journey.studio.styleTitle': 'Heading', // en-fallback
-  'journey.studio.styleSubtitle': 'Subheading', // en-fallback
-  'journey.studio.styleBody': 'Body text', // en-fallback
-  'journey.studio.styleCaption': 'Caption', // en-fallback
-  'journey.studio.sampleHeading': 'A heading', // en-fallback
-  'journey.studio.sampleSubheading': 'A subheading', // en-fallback
-  'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
-  'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
-  'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
-  'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
-  'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
-  'journey.studio.tpl.grid4': 'Four up', // en-fallback
-  'journey.studio.tpl.grid6': 'Six up', // en-fallback
-  'journey.studio.tpl.strip': 'Strip and text', // en-fallback
-  'journey.studio.tpl.quietText': 'Text only', // en-fallback
-  'journey.studio.tpl.portraitPair': 'A pair', // en-fallback
+  'journey.studio.crop': 'Cắt',
+  'journey.studio.look': 'Giao diện',
+  'journey.studio.radius': 'Góc',
+  'journey.studio.shape': 'Hình khối',
+  'journey.studio.arrange': 'Sắp xếp',
+  'journey.studio.toFront': 'Đưa lên trên cùng',
+  'journey.studio.forward': 'Đưa lên một lớp',
+  'journey.studio.backward': 'Lùi xuống một lớp',
+  'journey.studio.toBack': 'Đưa xuống dưới cùng',
+  'journey.studio.lock': 'Khóa',
+  'journey.studio.unlock': 'Mở khóa',
+  'journey.studio.delete': 'Xóa',
+  'journey.studio.pageHint': 'Trang',
+  'journey.studio.boundHint': 'Theo mục nhật ký. Chỉnh sửa tại đây sẽ ngắt liên kết đó.',
+  'journey.studio.fit.cover': 'Lấp đầy',
+  'journey.studio.fit.contain': 'Vừa khít',
+  'journey.studio.filter.none': 'Gốc',
+  'journey.studio.filter.bw': 'Đen trắng',
+  'journey.studio.filter.warm': 'Ấm',
+  'journey.studio.shapeKind.rect': 'Hình chữ nhật',
+  'journey.studio.shapeKind.ellipse': 'Hình elip',
+  'journey.studio.focalHint': 'Kéo điểm để chọn phần nằm lại trong khung.',
+  'journey.studio.backCover': 'Bìa sau',
+  'journey.studio.coverInside': 'Mặt trong bìa trước, để trống',
+  'journey.studio.backCoverInside': 'Mặt trong bìa sau, để trống',
+  'journey.studio.sections': 'Các phần',
+  'journey.studio.content': 'Nội dung',
+  'journey.studio.elements': 'Thành phần',
+  'journey.studio.templates': 'Bố cục',
+  'journey.studio.photos': 'Ảnh',
+  'journey.studio.entries': 'Mục',
+  'journey.studio.addToPage': 'Thêm vào trang này',
+  'journey.studio.noPhotos': 'Hành trình này chưa có ảnh nào.',
+  'journey.studio.untitled': 'Chưa có tiêu đề',
+  'journey.studio.addTitle': 'Tiêu đề',
+  'journey.studio.addStory': 'Câu chuyện',
+  'journey.studio.addPlace': 'Địa điểm',
+  'journey.studio.shapes': 'Hình khối',
+  'journey.studio.frames': 'Khung',
+  'journey.studio.emptyFrame': 'Khung trống',
+  'journey.studio.frameHint': 'Khung trống đánh dấu nơi đặt ảnh. Thả một ảnh vào đó từ Nội dung.',
+  'journey.studio.shapeKind.line': 'Đường kẻ',
+  'journey.studio.styleTitle': 'Tiêu đề',
+  'journey.studio.styleSubtitle': 'Tiêu đề phụ',
+  'journey.studio.styleBody': 'Nội dung văn bản',
+  'journey.studio.styleCaption': 'Chú thích',
+  'journey.studio.sampleHeading': 'Một tiêu đề',
+  'journey.studio.sampleSubheading': 'Một tiêu đề phụ',
+  'journey.studio.sampleBody': 'Viết đôi dòng về ngày này.',
+  'journey.studio.sampleCaption': 'Chú thích',
+  'journey.studio.tpl.heroStory': 'Ảnh chính và câu chuyện',
+  'journey.studio.tpl.fullBleed': 'Một ảnh, tràn hai trang',
+  'journey.studio.tpl.twoUp': 'Hai trang đầy đủ',
+  'journey.studio.tpl.grid4': 'Bốn ảnh',
+  'journey.studio.tpl.grid6': 'Sáu ảnh',
+  'journey.studio.tpl.strip': 'Dải ảnh và văn bản',
+  'journey.studio.tpl.quietText': 'Chỉ văn bản',
+  'journey.studio.tpl.portraitPair': 'Một cặp',
   'journey.studio.dropPhotoHere': 'Kéo ảnh của bạn\nvào đây',
-  'journey.studio.searchContent': 'Search photos and entries', // en-fallback
-  'journey.studio.noMatches': 'Nothing matches that.', // en-fallback
-  'journey.studio.decorations': 'Decoration', // en-fallback
-  'journey.studio.quoteMark': 'Quotation mark', // en-fallback
-  'journey.studio.circleOutline': 'Outlined circle', // en-fallback
-  'journey.studio.roundFrame': 'Rounded frame', // en-fallback
-  'journey.studio.shapeKind.rounded': 'Rounded rectangle', // en-fallback
-  'journey.studio.shapeKind.triangle': 'Triangle', // en-fallback
-  'journey.studio.shapeKind.outline': 'Outline only', // en-fallback
+  'journey.studio.searchContent': 'Tìm ảnh và mục nhật ký',
+  'journey.studio.noMatches': 'Không có kết quả phù hợp.',
+  'journey.studio.quoteMark': 'Dấu ngoặc kép',
+  'journey.studio.shapeKind.rounded': 'Hình chữ nhật bo góc',
+  'journey.studio.shapeKind.triangle': 'Hình tam giác',
+  'journey.studio.shapeKind.outline': 'Chỉ viền',
   'journey.studio.travel': 'Hành trình',
   'journey.studio.travelEmpty': 'Số liệu của hành trình này chưa sẵn sàng.',
   'journey.studio.grids': 'Lưới',
@@ -396,23 +424,17 @@ const journey: TranslationStrings = {
   'journey.studio.shapeGroup.decor': 'Trang trí',
   'journey.studio.shapeGroup.banners': 'Băng rôn',
   'journey.studio.summary': 'Tóm tắt',
-  'journey.studio.tripSummary': 'Tóm tắt chuyến đi',
-  'journey.studio.statsRow': 'Một hàng',
-  'journey.studio.statsFull': 'Tất cả',
   'journey.studio.routeMap': 'Bản đồ lộ trình',
   'journey.studio.mapStyle.minimal': 'Tối giản',
   'journey.studio.mapStyle.outline': 'Đường viền',
   'journey.studio.mapStyle.paper': 'Giấy',
   'journey.studio.mapStyle.dark': 'Tối',
   'journey.studio.countries': 'Quốc gia',
-  'journey.studio.countryList': 'Danh sách quốc gia',
-  'journey.studio.countryGrid': 'Lưới quốc gia',
   'journey.studio.noCountries': 'Chưa xác định được quốc gia nào cho hành trình này.',
   'journey.studio.noRoute': 'Chưa có điểm dừng nào có tọa độ.',
   'journey.studio.marks': 'Dấu',
   'journey.studio.dateMark': 'Ngày',
   'journey.studio.dayMark': 'Bộ đếm ngày',
-  'journey.studio.dayWord': 'NGÀY',
   'journey.studio.coordsMark': 'Tọa độ',
   'journey.studio.coordsDms': 'Độ',
   'journey.studio.coordsDecimal': 'Thập phân',
@@ -430,8 +452,22 @@ const journey: TranslationStrings = {
   'journey.studio.kind.countries': 'Quốc gia',
   'journey.studio.kind.badge': 'Dấu',
   'journey.studio.kind.list': 'Danh sách',
-  'journey.studio.kind.icon': 'Icon',
+  'journey.studio.kind.icon': 'Biểu tượng',
   'journey.studio.duplicate': 'Nhân bản',
+  'journey.studio.copyToPage': 'Sao chép để dán vào trang bất kỳ (Ctrl+C)',
+  'journey.studio.paste': 'Dán (Ctrl+V)',
+  'journey.studio.pasteEmpty': 'Hãy sao chép thứ gì đó trước, rồi dán vào trang bất kỳ',
+  'journey.studio.pageFull':
+    'Trang này đã đầy: không thể thêm thành phần nào nữa. Hãy xóa bớt trước hoặc dùng trang khác.',
+  'journey.studio.myLayouts': 'Bố cục của tôi',
+  'journey.studio.myLayoutsEmpty':
+    'Lưu một trang bạn đã sắp xếp và dàn các trang khác theo cùng cách. Ảnh và chữ của chúng được giữ nguyên.',
+  'journey.studio.saveLayout': 'Lưu trang này làm bố cục',
+  'journey.studio.saveLayoutHint': 'Giữ cách sắp xếp nhưng không kèm ảnh, cho mọi người chỉnh sửa cuốn sách này',
+  'journey.studio.saveLayoutFull': 'Cuốn sách này lưu được tối đa 24 bố cục. Hãy xóa một bố cục để lưu bố cục khác.',
+  'journey.studio.deleteLayout': 'Xóa bố cục',
+  'journey.studio.layoutName': 'Bố cục',
+  'journey.studio.builtInLayouts': 'Có sẵn',
   'journey.studio.style': 'Kiểu',
   'journey.studio.shows': 'Hiển thị',
   'journey.studio.size': 'Cỡ chữ',
@@ -441,12 +477,8 @@ const journey: TranslationStrings = {
   'journey.studio.rotation': 'Xoay',
   'journey.studio.opacity': 'Độ mờ',
   'journey.studio.fill': 'Màu tô',
-  'journey.studio.fillOn': 'Có tô màu',
   'journey.studio.stroke': 'Màu viền',
   'journey.studio.strokeWidth': 'Độ dày',
-  'journey.studio.gradient': 'Mờ dần',
-  'journey.studio.gradientDown': 'Xuống dưới',
-  'journey.studio.gradientUp': 'Lên trên',
   'journey.studio.showIcons': 'Icon',
   'journey.studio.mapFit': 'Phạm vi',
   'journey.studio.mapPadding': 'Khoảng trống',
@@ -458,7 +490,36 @@ const journey: TranslationStrings = {
   'journey.studio.markStyle.chip': 'Nền màu',
   'journey.studio.markStyle.outline': 'Viền',
   'journey.studio.markStyle.stacked': 'Xếp chồng',
-  'journey.studio.icon': 'Icon',
+  'journey.studio.statsLook.classic': 'Cổ điển',
+  'journey.studio.statsLook.poster': 'Áp phích',
+  'journey.studio.statsLook.ticket': 'Vé',
+  'journey.studio.statsLook.tiles': 'Ô',
+  'journey.studio.statsLook.band': 'Dải',
+  'journey.studio.statsLook.medal': 'Huy chương',
+  'journey.studio.statsLook.odometer': 'Đồng hồ quãng đường',
+  'journey.studio.statsLook.sign': 'Biển chỉ đường',
+  'journey.studio.statsLook.note': 'Ghi chú',
+  'journey.studio.statsLook.sketch': 'Phác thảo',
+  'journey.studio.countryLook.visa': 'Thị thực',
+  'journey.studio.countryLook.flag': 'Cờ',
+  'journey.studio.countryLook.pin': 'Ghim',
+  'journey.studio.countryLook.label': 'Nhãn hành lý',
+  'journey.studio.countryLook.sketch': 'Phác thảo',
+  'journey.studio.markStyle.ribbon': 'Ruy băng',
+  'journey.studio.markStyle.sticker': 'Nhãn dán',
+  'journey.studio.markStyle.patch': 'Huy hiệu vải',
+  'journey.studio.markStyle.sketch': 'Phác thảo',
+  'journey.studio.travelFigures': 'Con số',
+  'journey.studio.travelMaps': 'Bản đồ',
+  'journey.studio.countryLook.classic': 'Cổ điển',
+  'journey.studio.countryLook.stamp': 'Con dấu',
+  'journey.studio.countryLook.postcard': 'Bưu thiếp',
+  'journey.studio.markStyle.stamp': 'Con dấu',
+  'journey.studio.markStyle.tag': 'Thẻ treo',
+  'journey.studio.markStyle.pill': 'Viên nang',
+  'journey.studio.pinNumbered': 'Số thứ tự',
+  'journey.studio.pinEnds': 'Điểm đầu và điểm cuối',
+  'journey.studio.icon': 'Biểu tượng',
   'journey.studio.iconAndLabel': 'Icon & chữ',
   'journey.studio.iconOnly': 'Chỉ icon',
   'journey.studio.labelOnly': 'Chỉ chữ',
@@ -499,19 +560,17 @@ const journey: TranslationStrings = {
   'journey.studio.strokeDotted': 'Chấm',
   'journey.studio.singleFigures': 'Số riêng lẻ',
   'journey.studio.addPage': 'Thêm trang',
+  'journey.studio.addPageShort': 'Trang',
   'journey.studio.addPageAfter': 'Chèn trang sau trang này',
   'journey.studio.duplicatePage': 'Nhân bản trang',
   'journey.studio.deletePage': 'Xóa trang',
   'journey.studio.movePageUp': 'Chuyển lên trước',
   'journey.studio.movePageDown': 'Chuyển xuống sau',
-  'journey.studio.beta': 'Beta',
   'journey.studio.addProsCons': 'Ưu và nhược điểm',
   'journey.studio.showMarks': 'Dấu',
   'journey.studio.formatCustom': 'Kích thước riêng',
   'journey.studio.document': 'Tài liệu',
   'journey.studio.pageNumbers': 'Số trang',
-  'journey.studio.pageNumbersOn': 'Bật',
-  'journey.studio.pageNumbersOff': 'Tắt',
   'journey.studio.folio.outer': 'Ngoài',
   'journey.studio.folio.inner': 'Trong',
   'journey.studio.folio.centre': 'Giữa',
@@ -532,12 +591,12 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.mosaic': 'Khảm',
   'journey.studio.tpl.bandQuote': 'Chữ ở giữa',
   'journey.studio.tpl.staggerFour': 'Bốn so le',
-  'journey.studio.weightMissing': 'Phông chữ này không có độ đậm đó',
   'journey.studio.mapSource': 'Nguồn bản đồ',
   'journey.studio.mapSourceVector': 'Đường viền',
   'journey.studio.mapSourceRelief': 'Địa hình',
   'journey.studio.mapSourceSatellite': 'Vệ tinh',
-  'journey.studio.mapSourceSatelliteHint': 'Ảnh Sentinel-2 không mây, được in miễn phí nếu ghi công. Rõ đến từng con phố.',
+  'journey.studio.mapSourceSatelliteHint':
+    'Ảnh Sentinel-2 không mây, được in miễn phí nếu ghi công. Rõ đến từng con phố.',
   'journey.studio.routeLook': 'Nét lộ trình',
   'journey.studio.routeStyle': 'Kiểu nét',
   'journey.studio.routePlain': 'Đơn giản',
@@ -551,14 +610,12 @@ const journey: TranslationStrings = {
   'journey.studio.pinPhoto': 'Ảnh',
   'journey.studio.pinPhotoNone': 'Các điểm dừng này chưa có ảnh nào nên được vẽ thành chấm tròn.',
   'journey.studio.roads': 'Đường bộ',
-  'journey.studio.roadsFetch': 'Bám theo đường bộ',
   'journey.studio.roadsFollow': 'Theo đường',
   'journey.studio.roadsDirect': 'Đường chim bay',
   'journey.studio.recommended': 'khuyên dùng',
   'journey.studio.bleed': 'Tràn lề',
   'journey.studio.safeArea': 'An toàn',
   'journey.studio.roadsAgain': 'Tải lại',
-  'journey.studio.roadsClear': 'Xóa',
   'journey.studio.roadsBusy': 'Đang hỏi',
   'journey.studio.roadsHint': 'Hỏi dịch vụ chỉ đường xem mỗi chặng đã đi theo lối nào. Chặng dài giữ nguyên.',
   'journey.studio.roadsHave': 'Đường bộ đã lưu trong cuốn sách này nên in ngoại tuyến vẫn ra đúng nét đó.',
@@ -567,7 +624,8 @@ const journey: TranslationStrings = {
   'journey.studio.mapScope': 'Hiển thị',
   'journey.studio.mapPrintDpi': 'In ở khoảng',
   'journey.studio.mapPrintDpiLow': 'hơi mờ ở kích thước này, thử khung nhìn rộng hơn hoặc nguồn khác',
-  'journey.studio.mapSourceReliefHint': 'Ảnh địa hình đổ bóng của NASA, được in miễn phí. Hợp cho một quốc gia hay châu lục, quá thô cho một thành phố.',
+  'journey.studio.mapSourceReliefHint':
+    'Ảnh địa hình đổ bóng của NASA, được in miễn phí. Hợp cho một quốc gia hay châu lục, quá thô cho một thành phố.',
   'journey.studio.mapSourceTiles': 'Ô bản đồ',
   'journey.studio.mapSourceStatic': 'Mapbox',
   'journey.studio.mapSourceHint': 'Tải khi kết xuất và in kèm ghi công',
@@ -582,8 +640,6 @@ const journey: TranslationStrings = {
   'journey.studio.mapClipRect': 'Trong khung',
   'journey.studio.mapClipCountry': 'Cắt theo hình',
   'journey.studio.mapClipNeedsCountry': 'Cần một quốc gia để cắt theo',
-  'journey.studio.mapCutVector': 'Cắt hình',
-  'journey.studio.mapCutTiles': 'Bản đồ cắt hình',
   'journey.studio.mapZoomAuto': 'Vừa khung',
   'journey.studio.saving': 'Đang lưu',
   'journey.studio.saved': 'Đã lưu',
@@ -596,6 +652,8 @@ const journey: TranslationStrings = {
   'journey.studio.rotateLeft': 'Xoay trái',
   'journey.studio.rotateRight': 'Xoay phải',
   'journey.studio.saveReadOnly': 'Chỉ đọc, không lưu',
+  'journey.studio.saveNewer': 'Cuốn sách này đã được lưu bằng phiên bản Studio mới hơn. Tải lại để chỉnh sửa.',
+  'journey.studio.saveReload': 'Tải lại',
   'journey.studio.filterPhotos': 'Lọc ảnh',
   'journey.studio.filterAll': 'Tất cả ảnh',
   'journey.studio.filterLoose': 'Không thuộc mục nào',
@@ -605,6 +663,8 @@ const journey: TranslationStrings = {
   'journey.studio.noEntryPhotos': 'Mục này chưa có ảnh.',
   'journey.studio.noLoosePhotos': 'Mọi ảnh ở đây đều thuộc về một mục.',
   'journey.studio.uploadPhotos': 'Tải ảnh lên',
+  'journey.studio.fromProvider': 'Từ {name}',
+  'journey.studio.fromProviderHint': 'Chọn ảnh từ {name} và thêm vào nơi ảnh tải lên sẽ vào',
   'journey.studio.uploadHint': 'Thả ảnh vào đây hoặc nhấp để chọn',
   'journey.studio.uploadToEntry': 'Ảnh mới sẽ được đưa vào mục này',
   'journey.studio.uploadToGallery': 'Ảnh mới sẽ được đưa vào thư viện',
@@ -625,11 +685,18 @@ const journey: TranslationStrings = {
   'journey.editor.statsExcludedHint':
     'Điểm dừng vẫn nằm trong nhật ký nhưng không được tính vào quãng đường, các quốc gia hay bản đồ trong Studio.',
   'journey.entry.offRoute': 'Ngoài lộ trình',
+  'journey.entry.draft': 'Bản nháp',
+  'journey.editor.draft': 'Bản nháp',
+  'journey.editor.draftHint':
+    'Chỉ bạn và những người đóng góp khác thấy mục này. Hành trình được chia sẻ sẽ không hiển thị mục này cho đến khi bạn tắt tùy chọn này.',
+  'journey.editor.tripSuggestionHint':
+    'Ngày này nằm trong chuyến đi này. Liên kết để các địa điểm của chuyến đi được thêm vào hành trình này.',
+  'journey.editor.tripSuggestionLater': 'Để sau',
   'journey.suggestions.dismiss': 'Bỏ qua gợi ý này',
   'journey.suggestions.dismissed': 'Đã bỏ qua gợi ý',
   'journey.suggestions.restore': 'Lấy lại các gợi ý đã bỏ qua',
   'journey.suggestions.restoreCount': 'Gợi ý đã bỏ qua ({count})',
-  'journey.suggestions.restored': '{count} gợi ý đã trở lại',
+  'journey.suggestions.restored': 'Đã lấy lại {count} gợi ý',
   'journey.detail.addOnThisDay': 'Thêm một mục vào ngày này',
   'journey.detail.jumpToDay': 'Chuyển đến {date}',
   'journey.detail.searchPlaceholder': 'Tìm trong hành trình này',
@@ -641,5 +708,193 @@ const journey: TranslationStrings = {
   'journey.settings.showWeather': 'Thời tiết',
   'journey.entry.suggestion': 'Gợi ý',
   'journey.editor.addDetails': '+ Chi tiết',
+  'journey.recording.mapLine': 'Ghi lại ngày {date}',
+  'journey.recording.keptBy': 'Đã lưu tuyến đường ghi lại: {distance}, do {name} lấy vào ngày {date}.',
+  'journey.recording.keptOn': 'Đã lưu tuyến đường ghi lại: {distance}, lấy vào ngày {date}.',
+  'journey.recording.keptRunning': 'Khi đó ngày vẫn chưa kết thúc.',
+  'journey.recording.takeOver': 'Lấy bản ghi',
+  'journey.recording.takeOverDay': 'Bản ghi ngày {date}',
+  'journey.recording.sub': 'Chỉ ngày này, từ Dawarich của bạn. Không có gì được lưu cho đến khi bạn xác nhận.',
+  'journey.recording.zone': 'Múi giờ của ngày',
+  'journey.recording.zoneHint':
+    'Ngày kéo dài từ nửa đêm đến nửa đêm theo múi giờ này. Hãy chọn múi giờ nơi bạn đang đi.',
+  'journey.recording.zoneSource': 'Theo Dawarich',
+  'journey.recording.zoneDevice': 'Thiết bị này',
+  'journey.recording.scope': 'Bản ghi',
+  'journey.recording.loading': 'Đang đọc ngày từ Dawarich…',
+  'journey.recording.keptStays': 'Tuyến đường chuyến đi này đang lưu vẫn giữ nguyên.',
+  'journey.recording.retry': 'Thử lại',
+  'journey.recording.empty': 'Dawarich không ghi lại gì vào ngày này theo múi giờ này.',
+  'journey.recording.span': 'từ {from} đến {to}',
+  'journey.recording.pieces': '{count} đoạn',
+  'journey.recording.gaps': '{count} khoảng trống',
+  'journey.recording.gapsHint': 'Chỗ bản ghi dừng thì đường kẻ cũng dừng. Không vẽ đoạn đường nào không được ghi lại.',
+  'journey.recording.sourceHint':
+    'Lộ trình là các tuyến Dawarich đã chia theo phương tiện. Điểm là vị trí thô, được rút gọn còn 600 mỗi ngày.',
+  'journey.recording.sourceTracks': 'Lộ trình',
+  'journey.recording.sourcePoints': 'Điểm',
+  'journey.recording.changedSincePreview':
+    'Bản ghi đã thay đổi trong Dawarich khi bạn đang xem. Hãy kiểm tra lại một lần rồi lưu.',
+  'journey.recording.truncated': 'Dawarich chỉ gửi một phần của ngày này, tuyến đường chưa đầy đủ.',
+  'journey.recording.provisional':
+    'Ngày này chưa kết thúc theo múi giờ này. Sau này bạn có thể thay tuyến đường bằng cả ngày.',
+  'journey.recording.same': 'Chuyến đi này đã lưu đúng bản ghi này rồi.',
+  'journey.recording.differs':
+    'Chuyến đi này đang lưu một phiên bản khác từ {date} ({distance}). Thay thế không đổi mục nhập hay văn bản nào.',
+  'journey.recording.audience':
+    '{count} người khác trong chuyến đi sẽ thấy tuyến đường trên bản đồ. Liên kết chia sẻ không hiển thị nó.',
+  'journey.recording.replace': 'Thay thế',
+  'journey.recording.alreadyKept': 'Đã lưu',
+  'journey.recording.keep': 'Lưu tuyến đường',
+  'journey.recording.remove': 'Xóa tuyến đường',
+  'journey.recording.removeTitle': 'Xóa tuyến đường đã lưu?',
+  'journey.recording.removeMessage':
+    'Tuyến đường của ngày này rời khỏi bản đồ chuyến đi. Mục nhập và văn bản vẫn còn, và Dawarich giữ bản ghi riêng của nó.',
+  'journey.recording.keptToast': 'Đã lưu tuyến đường vào chuyến đi',
+  'journey.recording.replacedToast': 'Đã thay tuyến đường',
+  'journey.recording.removedToast': 'Đã xóa tuyến đường khỏi chuyến đi',
+  'journey.recording.error.recording_exists': 'Chuyến đi này đã lưu một bản ghi khác cho ngày đó.',
+  'journey.recording.error.recording_changed': 'Bản ghi đã thay đổi từ lúc xem trước.',
+  'journey.recording.error.recording_empty': 'Dawarich không ghi lại gì vào ngày đó.',
+  'journey.recording.mode.walking': 'Đi bộ',
+  'journey.recording.mode.running': 'Chạy bộ',
+  'journey.recording.mode.cycling': 'Xe đạp',
+  'journey.recording.mode.driving': 'Ô tô',
+  'journey.recording.mode.motorcycle': 'Xe máy',
+  'journey.recording.mode.bus': 'Xe buýt',
+  'journey.recording.mode.train': 'Tàu hỏa',
+  'journey.recording.mode.flying': 'Chuyến bay',
+  'journey.recording.mode.boat': 'Thuyền',
+  'journey.recording.mode.stationary': 'Đứng yên',
+  'journey.recording.mode.unknown': 'Phương tiện không rõ',
+  'journey.dayImport.open': 'Nhập ngày',
+  'journey.dayImport.openHint': 'Nhập ngày này cùng các điểm dừng',
+  'journey.dayImport.openOn': 'Nhập {date} cùng các điểm dừng',
+  'journey.dayImport.pending': '{count} điểm dừng cần xem',
+  'journey.dayImport.sub':
+    'Các điểm dừng của bạn từ Dawarich trong ngày này. Chọn, đổi tên và gộp chúng; chúng sẽ thành bản nháp.',
+  'journey.dayImport.loading': 'Đang đọc các điểm dừng trong ngày từ Dawarich…',
+  'journey.dayImport.map': 'Ngày trên bản đồ',
+  'journey.dayImport.stays': 'Điểm dừng',
+  'journey.dayImport.modeEntries': 'Mục',
+  'journey.dayImport.modeReport': 'Báo cáo ngày',
+  'journey.dayImport.reportDefault': 'Ngày {date}',
+  'journey.dayImport.reportHint':
+    'Mọi điểm dừng đã chọn thành một mục liệt kê chúng kèm thời gian. Mỗi nơi vẫn được lưu cho bản đồ.',
+  'journey.dayImport.reportNeedsTwo': 'Chọn hai điểm dừng trở lên cho một báo cáo ngày.',
+  'journey.dayImport.groupTitle': 'Tiêu đề mục',
+  'journey.dayImport.groupPin': 'Vị trí trên bản đồ',
+  'journey.dayImport.noPin': 'Không có vị trí trên bản đồ',
+  'journey.dayImport.join': 'Gộp thành một mục',
+  'journey.dayImport.split': 'Giữ riêng',
+  'journey.dayImport.choose': 'Nhập {name}',
+  'journey.dayImport.name': 'Tên của {name}',
+  'journey.dayImport.unconfirmed': 'Chưa xác nhận',
+  'journey.dayImport.noPlace': 'Không có vị trí',
+  'journey.dayImport.noPlaceHint':
+    'Dawarich không ghi vị trí cho điểm dừng này, nên mục của nó không hiện trên bản đồ.',
+  'journey.dayImport.statusHere': 'Trong {title}',
+  'journey.dayImport.statusHereUntitled': 'Trong nhật ký',
+  'journey.dayImport.statusElsewhere': 'Đã nhập',
+  'journey.dayImport.statusElsewhereHint': 'Đã được nhập thành địa điểm, điều ước hoặc vào nhật ký khác.',
+  'journey.dayImport.statusSkipped': 'Đã bỏ qua',
+  'journey.dayImport.keepRoute': 'Lưu cả lộ trình trong ngày',
+  'journey.dayImport.keepRouteHint': 'Đã ghi {distance}. Mọi người trong chuyến đi đều thấy nó trên bản đồ.',
+  'journey.dayImport.routeNone': 'Dawarich không ghi lộ trình nào trong ngày này.',
+  'journey.dayImport.routeKept': 'Đã lưu lộ trình',
+  'journey.dayImport.routeDiffers':
+    'Dawarich hiện có phiên bản khác của lộ trình. Hãy thay bằng nút lộ trình của ngày.',
+  'journey.dayImport.existing': 'Đã có trong ngày này',
+  'journey.dayImport.untitled': 'Mục không tiêu đề',
+  'journey.dayImport.draft': 'Bản nháp',
+  'journey.dayImport.audience':
+    'Bản nháp không hiện trên liên kết chia sẻ. {count} người khác trong chuyến đi này thấy chúng.',
+  'journey.dayImport.draftsNote':
+    'Bản nháp không hiện trên liên kết chia sẻ cho đến khi bạn đăng. Thêm ảnh và nội dung sau.',
+  'journey.dayImport.submit': 'Nhập {count} bản nháp',
+  'journey.dayImport.skipped': 'Bỏ qua {count}',
+  'journey.dayImport.skipHint':
+    'Các điểm dừng bạn bỏ qua sẽ không còn chờ trong ngày này. Bạn có thể khôi phục chúng trong danh sách điểm dừng Dawarich.',
+  'journey.dayImport.problem.nothing': 'Chọn ít nhất một điểm dừng.',
+  'journey.dayImport.problem.name': 'Mỗi điểm dừng đã chọn cần có tên.',
+  'journey.dayImport.problem.title': 'Mỗi mục đã gộp và báo cáo ngày cần có tiêu đề.',
+  'journey.dayImport.done': 'Đã nhập {count} bản nháp',
+  'journey.dayImport.alreadyTaken': '{count} điểm dừng đã được chuyển vào trước đó. Không có gì bị ghi hai lần.',
+  'journey.dayImport.failed':
+    'Chưa nhập được gì: {reason} Danh sách cho thấy nhật ký hiện có gì; thử lại sẽ không ghi trùng.',
+  'journey.dayImport.routeFailed': 'Bản nháp đã được tạo, nhưng lộ trình chưa được lưu: {reason}',
+  'journey.dayImport.routeRetry': 'Lưu lại lộ trình',
+  'journey.dayImport.stale':
+    'Dawarich không phản hồi: {reason} Đang hiển thị các điểm dừng của lần đồng bộ cuối lúc {date}.',
+  'journey.dayImport.staleNever': 'Dawarich không phản hồi: {reason} Đang hiển thị các điểm dừng TREK đã biết.',
+  'journey.dayImport.truncated': 'Dawarich chỉ gửi một phần của ngày này. Có thể thiếu điểm dừng.',
+  'journey.dayImport.empty': 'Dawarich không tìm thấy điểm dừng nào trong ngày này.',
+  'journey.prep.lastSuccess': 'Lần lấy gần nhất {time}.',
+  'journey.prep.never': 'Chưa lấy. Lần đồng bộ nền tiếp theo sẽ bắt đầu.',
+  'journey.prep.failed': 'Lần làm mới gần nhất thất bại: {reason} Đang hiện dữ liệu lấy {time}.',
+  'journey.prep.failedNever': 'Lần lấy đầu tiên thất bại: {reason}',
+  'journey.prep.notConnected': 'Kết nối Dawarich trong cài đặt để các ngày của bạn được chuẩn bị.',
+  'journey.prep.noPeriods': 'Liên kết một chuyến đi có ngày: chỉ các ngày của nó được chuẩn bị.',
+  'journey.prep.syncOff': 'Đồng bộ nền đang tắt trong cài đặt Dawarich, các ngày chỉ được lấy khi bạn yêu cầu.',
+  'journey.prep.fetchNow': 'Lấy ngay',
+  'journey.prep.fetching': 'Đang lấy…',
+  'journey.prep.fetchFailed': 'Hiện không thể hỏi Dawarich.',
+  'journey.prep.dayRunning': 'Ngày này vẫn đang diễn ra, có thể có thêm điểm dừng.',
+  'journey.prep.dayPending': 'Chưa lấy.',
+  'journey.prep.dayProvisional': 'Đã lấy {time}, trước khi ngày kết thúc, có thể thiếu điểm dừng.',
+  'journey.prep.dayFailed': 'Lần làm mới gần nhất thất bại, đây là trạng thái cũ hơn.',
+  'journey.prep.outOfReach':
+    'Các chuyến đi kết thúc hơn {count} ngày trước không được chuẩn bị ở nền. Mở một ngày của chuyến để lấy thủ công.',
+  'journey.prep.alreadyRunning': 'Đang có một lượt lấy dữ liệu chạy ở nền. Các điểm dừng sẽ hiện khi nó xong.',
+  'journey.dayImport.running': 'Ngày này vẫn đang diễn ra. Các điểm dừng ghi sau sẽ hiện khi Dawarich có chúng.',
+  'journey.map.layers': 'Lớp bản đồ',
+  'journey.map.layer.plan': 'Kế hoạch',
+  'journey.map.layer.recorded': 'Đã ghi',
+  'journey.map.layer.entries': 'Bài viết',
+  'journey.map.layer.photos': 'Ảnh',
+  'journey.map.layer.loading': 'đang tải',
+  'journey.map.layer.planEmpty': 'các chuyến đi liên kết không có địa điểm nào trong các ngày',
+  'journey.map.layer.planUnavailable': 'không tải được kế hoạch, phần còn lại của bản đồ vẫn hiển thị',
+  'journey.map.layer.recordedEmpty': 'chưa có tuyến đường nào được ghi',
+  'journey.map.layer.recordedUnavailable': 'không tải được các ngày đã ghi',
+  'journey.map.layer.entriesEmpty': 'chưa có bài viết nào có địa điểm',
+  'journey.map.layer.entriesUnavailable': 'không tải được các điểm dừng của báo cáo ngày, các bài viết vẫn hiển thị',
+  'journey.map.layer.photosEmpty': 'chưa có ảnh nào có vị trí',
+  'journey.map.legend': 'Chú giải bản đồ',
+  'journey.map.legend.planned': 'Địa điểm dự kiến',
+  'journey.map.legend.entry': 'Bài nhật ký',
+  'journey.map.legend.plannedWritten': 'Đã dự kiến và đã viết',
+  'journey.map.legend.stay': 'Điểm dừng của báo cáo ngày',
+  'journey.map.legend.several': 'Nhiều mục tại một điểm',
+  'journey.map.legend.lines': 'Tuyến đường',
+  'journey.map.legend.plannedRoute': 'Tuyến dự kiến (GPX của chuyến đi)',
+  'journey.map.legend.recordedRoute': 'Tuyến đã ghi',
+  'journey.map.legend.planIsNoVisit':
+    'Địa điểm dự kiến không chứng minh bạn đã đến. Chỉ bài viết, ảnh và bản ghi mới cho thấy bạn đã ở đâu.',
+  'journey.map.pick.openEntry': 'Mở bài viết',
+  'journey.map.pick.planned': 'Dự kiến',
+  'journey.map.pick.notWritten': 'Chưa viết gì về nơi này.',
+  'journey.map.pick.stay': 'Điểm dừng',
+  'journey.map.pick.partOf': 'Thuộc “{title}”',
+  'journey.map.pick.here': 'Tại điểm này',
+  'journey.map.pick.back': 'Quay lại danh sách',
+  'journey.map.pick.timeRange': 'từ {from} đến {to}',
+  'journey.share.plan': 'Kế hoạch chuyến đi',
+  'journey.share.planHint': 'Địa điểm dự kiến và tuyến GPX của các chuyến đi liên kết trên bản đồ',
+  'journey.share.recordings': 'Tuyến đã ghi',
+  'journey.share.recordingsHint':
+    'Những ngày đã ghi và các điểm dừng lấy từ đó, vào những ngày có bài viết được đăng. Cho thấy bạn đã ở đâu và khi nào, kể cả chỗ ở.',
+  'journey.share.needsMap': 'Chia sẻ bản đồ để bật mục này',
+  'journey.editor.tags': 'Thẻ',
+  'journey.studio.assistant.toggle': 'Trợ lý',
+  'journey.studio.assistant.toggleHint': 'Thiết kế cuốn sách cùng trợ lý',
+  'journey.studio.assistant.panel': 'Trợ lý sách',
+  'journey.studio.assistant.welcome': 'Cuốn sách nên trông như thế nào?',
+  'journey.studio.assistant.readOnly':
+    'Bạn chỉ có thể xem cuốn sách này, nên tôi có thể trả lời câu hỏi nhưng không thay đổi gì.',
+  'journey.studio.assistant.notice':
+    'Trợ lý có thể xem trang bạn đang làm. Chỉ trang đó được gửi tới {provider}, dưới dạng ảnh chỉ hiển thị những ảnh do chính bạn thêm vào. Không thể nhận biết ai có trong ảnh của bạn.',
+  'journey.studio.assistant.noticeAllow': 'Cho xem trang',
+  'journey.studio.assistant.noticeLater': 'Để sau',
 };
 export default journey;

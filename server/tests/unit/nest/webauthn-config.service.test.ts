@@ -1,3 +1,8 @@
+import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
+import { WebauthnConfigService, originWithinRpScope } from '../../../src/nest/auth/webauthn-config.service';
+
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
 /**
  * webauthn-config.service.test.ts
  *
@@ -21,23 +26,16 @@ vi.mock('../../../src/app-config', async (importOriginal) => {
   return { ...actual, getAppUrl: () => appUrlRef.value };
 });
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { WebauthnConfigService, originWithinRpScope } from '../../../src/nest/auth/webauthn-config.service';
+// Injected instead of vi.mocking src/db/database (Plan 3b Task 1: the service
+// now takes an AppSettingsRepository, not DatabaseService): the service reads
+// exactly one method (`getValue`), so a fake repository over the same real
+// Map keeps the suite free of a schema and states the only contact the
+// resolver has, unchanged from the DatabaseService-stub version.
+const appSettings = {
+  getValue: async (key: string) => settingsStore.get(key) ?? null,
+} as unknown as AppSettingsRepository;
 
-// Injected instead of vi.mocking src/db/database: the service reads exactly one
-// row shape (app_settings.value), so a stub connection keeps the suite free of
-// a schema and states the only DB contact the resolver has.
-const conn = {
-  prepare: (_sql: string) => ({
-    get: (key: string) => {
-      const v = settingsStore.get(key);
-      return v === undefined ? undefined : { value: v };
-    },
-  }),
-} as unknown as ConstructorParameters<typeof DatabaseService>[0];
-
-const svc = new WebauthnConfigService(new DatabaseService(conn));
+const svc = new WebauthnConfigService(appSettings);
 
 beforeEach(() => {
   settingsStore.clear();
@@ -49,87 +47,87 @@ afterEach(() => {
 });
 
 describe('WebauthnConfigService.resolve', () => {
-  it('WAC-001: derives the RP ID and single origin from a real APP_URL domain', () => {
+  it('WAC-001: derives the RP ID and single origin from a real APP_URL domain', async () => {
     appUrlRef.value = 'https://trek.example.org';
-    const cfg = svc.resolve();
+    const cfg = await svc.resolve();
     expect(cfg).not.toBeNull();
     expect(cfg!.rpID).toBe('trek.example.org');
     expect(cfg!.origins).toEqual(['https://trek.example.org']);
     expect(cfg!.explicitOrigins).toBe(false); // derived, not operator-supplied
-    expect(svc.isConfigured()).toBe(true);
+    expect(await svc.isConfigured()).toBe(true);
   });
 
-  it('WAC-002: returns null for a bare-IP host (IPs are not valid RP IDs)', () => {
+  it('WAC-002: returns null for a bare-IP host (IPs are not valid RP IDs)', async () => {
     appUrlRef.value = 'http://192.168.1.50:3001';
-    expect(svc.resolve()).toBeNull();
-    expect(svc.isConfigured()).toBe(false);
+    expect(await svc.resolve()).toBeNull();
+    expect(await svc.isConfigured()).toBe(false);
   });
 
-  it('WAC-003: nothing configured resolves to the localhost dev fallback (#2147)', () => {
+  it('WAC-003: nothing configured resolves to the localhost dev fallback (#2147)', async () => {
     // getAppUrl() never yields '' — an unconfigured instance lands on
     // http://localhost:{PORT}, so resolve() returns the localhost dev config.
     // The remote-origin guard for that phantom config lives in PasskeyService.
-    const cfg = svc.resolve();
+    const cfg = await svc.resolve();
     expect(cfg!.rpID).toBe('localhost');
     expect(cfg!.explicitOrigins).toBe(false);
-    expect(svc.isConfigured()).toBe(true);
+    expect(await svc.isConfigured()).toBe(true);
   });
 
-  it('WAC-004: localhost dev uses the browser (Vite :5173) origin, not just the API port', () => {
+  it('WAC-004: localhost dev uses the browser (Vite :5173) origin, not just the API port', async () => {
     appUrlRef.value = 'http://localhost:3001';
-    const cfg = svc.resolve();
+    const cfg = await svc.resolve();
     expect(cfg!.rpID).toBe('localhost');
     expect(cfg!.origins).toContain('http://localhost:5173');
     expect(cfg!.origins).toContain('http://localhost:3001');
   });
 
-  it('WAC-005: an explicit webauthn_rp_id app-setting overrides APP_URL', () => {
+  it('WAC-005: an explicit webauthn_rp_id app-setting overrides APP_URL', async () => {
     appUrlRef.value = 'https://internal.example.org';
     settingsStore.set('webauthn_rp_id', 'public.example.org');
     settingsStore.set('webauthn_origins', 'https://public.example.org');
-    const cfg = svc.resolve();
+    const cfg = await svc.resolve();
     expect(cfg!.rpID).toBe('public.example.org');
     expect(cfg!.origins).toEqual(['https://public.example.org']);
     expect(cfg!.explicitOrigins).toBe(true);
   });
 
-  it('WAC-006: webauthn_origins is parsed as a comma-separated, trimmed list', () => {
+  it('WAC-006: webauthn_origins is parsed as a comma-separated, trimmed list', async () => {
     settingsStore.set('webauthn_rp_id', 'example.org');
     settingsStore.set('webauthn_origins', 'https://a.example.org , https://b.example.org/');
-    const cfg = svc.resolve();
+    const cfg = await svc.resolve();
     expect(cfg!.origins).toEqual(['https://a.example.org', 'https://b.example.org']);
   });
 
-  it('WAC-007: the WEBAUTHN_RP_ID env var takes priority', () => {
+  it('WAC-007: the WEBAUTHN_RP_ID env var takes priority', async () => {
     vi.stubEnv('WEBAUTHN_RP_ID', 'env.example.org');
     vi.stubEnv('WEBAUTHN_ORIGINS', 'https://env.example.org');
     appUrlRef.value = 'https://ignored.example.org';
-    const cfg = svc.resolve();
+    const cfg = await svc.resolve();
     expect(cfg!.rpID).toBe('env.example.org');
     expect(cfg!.origins).toEqual(['https://env.example.org']);
   });
 
-  it('WAC-008: a configured RP ID with no origins falls back to the APP_URL origin', () => {
+  it('WAC-008: a configured RP ID with no origins falls back to the APP_URL origin', async () => {
     appUrlRef.value = 'https://trek.example.org';
     settingsStore.set('webauthn_rp_id', 'trek.example.org');
-    const cfg = svc.resolve();
+    const cfg = await svc.resolve();
     expect(cfg!.origins).toEqual(['https://trek.example.org']);
     expect(cfg!.explicitOrigins).toBe(false); // the origin list itself is still derived
   });
 
-  it('WAC-009: an operator flipping the RP ID at runtime takes effect on the next resolve', () => {
+  it('WAC-009: an operator flipping the RP ID at runtime takes effect on the next resolve', async () => {
     appUrlRef.value = 'https://trek.example.org';
-    expect(svc.resolve()!.rpID).toBe('trek.example.org');
+    expect((await svc.resolve())!.rpID).toBe('trek.example.org');
 
     settingsStore.set('webauthn_rp_id', 'moved.example.org');
 
-    expect(svc.resolve()!.rpID).toBe('moved.example.org');
+    expect((await svc.resolve())!.rpID).toBe('moved.example.org');
   });
 
-  it('WAC-010: the WEBAUTHN_ORIGINS env var also marks the origin list explicit', () => {
+  it('WAC-010: the WEBAUTHN_ORIGINS env var also marks the origin list explicit', async () => {
     vi.stubEnv('WEBAUTHN_RP_ID', 'env.example.org');
     vi.stubEnv('WEBAUTHN_ORIGINS', 'https://env.example.org');
-    expect(svc.resolve()!.explicitOrigins).toBe(true);
+    expect((await svc.resolve())!.explicitOrigins).toBe(true);
   });
 });
 

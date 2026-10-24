@@ -31,5 +31,8 @@ const notifications: TranslationStrings = {
   'notifications.test.adminText': '{actor}이(가) 모든 관리자에게 테스트 알림을 보냈습니다.',
   'notifications.test.tripTitle': '{actor}이(가) 여행에 게시했습니다',
   'notifications.test.tripText': '여행 "{trip}"의 테스트 알림입니다.',
+  'notifications.countLabel': '개의 알림',
+  'notifications.deleteAllConfirmTitle': '모든 알림을 삭제할까요?',
+  'notifications.deleteAllConfirmText': '모든 알림이 영구적으로 삭제됩니다. 되돌릴 수 없습니다.',
 };
 export default notifications;

@@ -1,19 +1,21 @@
 import type { CSSProperties } from 'react'
 import type {
   BookBadgeElement, BookCountriesElement, BookElement, BookListElement, BookMapElement,
-  BookMetric, BookStatsElement, BookUnits,
+  BookStatsElement,
 } from '@trek/shared'
-import {
-  Camera, CalendarDays, Footprints, Globe, MapPin, Navigation, Route,
-  type LucideIcon,
-} from 'lucide-react'
 import { fontStack } from './bookFonts'
-import { brightness } from './folioColour'
+import { heavy, inkAt as rgba, light, METRIC_ICONS, metricValue, round2 } from './travel/travelInk'
+import { BadgeLookView } from './travel/BadgeLooks'
+import { CountryLookView } from './travel/CountryLooks'
+import { StatsLookView } from './travel/StatsLooks'
+import { badgeIconShare, badgeInk, inkOn, isBadgeLook } from './travel/badgeLook'
+import { BadgeIcon } from './travel/BadgeIcon'
+import { EndMarker } from './travel/EndMarker'
+import { FlagMark } from './travel/FlagMark'
+import { haversineKm } from '../../utils/geo'
 import { COUNTRY_SHAPES, countryParts, countryWorldPath, projectMercator, unprojectMercator } from './countryShapes'
 import { projectOntoTiles, tileView, usableStaticUrl } from './mapTiles'
 import { useCartoApiKey } from '../../hooks/useTileUrl'
-import { FLAG_H, FLAG_W, flagBands, flagDisc, flagSpec } from './flags'
-import { MOOD_CONFIG, WEATHER_CONFIG } from '../../pages/journeyDetail/JourneyDetailPage.constants'
 import { useTranslation } from '../../i18n'
 
 /**
@@ -70,8 +72,6 @@ function typeSize(el: TravelElement, base: number): number {
   return Math.max(1.2, el.frame.h * base * el.textScale)
 }
 
-/** Two decimals of a millimetre, matching what the document stores. */
-const round2 = (n: number) => Math.round(n * 100) / 100
 /** Tile geometry, kept finer than the rest: see the note where it is used. */
 const round3 = (n: number) => Math.round(n * 1000) / 1000
 
@@ -99,12 +99,6 @@ const round3 = (n: number) => Math.round(n * 1000) / 1000
  */
 const tileOverlapMm = (size: number) => Math.max(0.8, size * 0.04)
 
-/** #rrggbb plus an alpha. */
-function rgba(hex: string, alpha: number): string {
-  const n = Number.parseInt(hex.slice(1), 16)
-  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`
-}
-
 export function TravelElementView({ el, frameStyle, big = false }: {
   el: BookElement
   frameStyle: CSSProperties
@@ -112,9 +106,22 @@ export function TravelElementView({ el, frameStyle, big = false }: {
   big?: boolean
 }) {
   if (el.kind === 'map') return <MapView el={el} frameStyle={frameStyle} big={big} />
-  if (el.kind === 'stats') return <StatsView el={el} frameStyle={frameStyle} />
-  if (el.kind === 'countries') return <CountriesView el={el} frameStyle={frameStyle} />
-  if (el.kind === 'badge') return <BadgeView el={el} frameStyle={frameStyle} />
+  // The newer looks draw in files of their own; `classic` is what every book had before them.
+  if (el.kind === 'stats') {
+    return (el.look ?? 'classic') === 'classic'
+      ? <StatsView el={el} frameStyle={frameStyle} />
+      : <StatsLookView el={el} frameStyle={frameStyle} />
+  }
+  if (el.kind === 'countries') {
+    return (el.look ?? 'classic') === 'classic'
+      ? <CountriesView el={el} frameStyle={frameStyle} />
+      : <CountryLookView el={el} frameStyle={frameStyle} />
+  }
+  if (el.kind === 'badge') {
+    return isBadgeLook(el.style)
+      ? <BadgeLookView el={el} frameStyle={frameStyle} />
+      : <BadgeView el={el} frameStyle={frameStyle} />
+  }
   if (el.kind === 'list') return <ListView el={el} frameStyle={frameStyle} />
   return null
 }
@@ -131,17 +138,6 @@ export function TravelElementView({ el, frameStyle, big = false }: {
  * a slab of ink for no reason. What distinguishes the four styles is how the
  * land is drawn, which is enough.
  */
-/**
- * How heavy the type is set, and one step down for the labels under it.
- *
- * These elements draw at two levels at once — a figure over its caption, a
- * country's name over its outline — and the pair has to move together, the way
- * `textScale` moves their size. Hard-coded 700s meant the only way to lighten a
- * stats block was to not use one.
- */
-const heavy = (el: { weight: number }) => el.weight
-const light = (el: { weight: number }) => Math.max(400, el.weight - 100)
-
 const MAP_PALETTES = {
   minimal: { land: '#e9e5dc', border: '#d6d0c4', onDark: false },
   outline: { land: 'transparent', border: '#b9b3a6', onDark: false },
@@ -159,28 +155,6 @@ const MAP_PALETTES = {
  */
 const DEFAULT_ACCENT = '#111111' // theme-lint-disable — the contract's default, matched here
 
-/** Ink for a mark that picks its own, and its opposite. */
-const BADGE_DARK_INK = '#1c1b19' // theme-lint-disable — ink on a printed page, not a UI token
-const BADGE_LIGHT_INK = '#ffffff' // theme-lint-disable — paper white on a filled chip
-
-/**
- * What colour a mark's words are.
- *
- * Automatic unless the element says otherwise, and what automatic means depends
- * on what the mark is: a chip carries its words on its own fill, so they answer
- * to the fill's brightness; a day or a date drawn plain takes the accent,
- * because that is the figure the page is built around. Anything else is
- * ordinary text in the text colour.
- *
- * The moment somebody picks a colour this steps aside completely. That is the
- * point of the flag: automatic is a good default and a bad cage.
- */
-function badgeInk(el: BookBadgeElement): string {
-  if (!el.autoColor) return el.color
-  if (el.style === 'chip') return brightness(el.accent) > 0.55 ? BADGE_DARK_INK : BADGE_LIGHT_INK
-  if (el.variant === 'day' || el.variant === 'date') return el.accent
-  return el.color
-}
 function routeInk(accent: string, onDark: boolean): string {
   if (!onDark) return accent
   return accent.toLowerCase() === DEFAULT_ACCENT ? '#f2efe9' : accent // theme-lint-disable — paper on a dark map
@@ -358,16 +332,6 @@ function MapView({ el, frameStyle, big = false }: {
    */
   const bowed = el.routeArc === 'bow' && trail.length === 0 && points.length > 1
 
-  /** Kilometres between two coordinates, for the ramp. */
-  const km = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
-    const r = (d: number) => (d * Math.PI) / 180
-    const dLat = r(b.lat - a.lat)
-    const dLng = r(b.lng - a.lng)
-    const h = Math.sin(dLat / 2) ** 2
-      + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(dLng / 2) ** 2
-    return 12742 * Math.asin(Math.min(1, Math.sqrt(h)))
-  }
-
   const meanLat = el.points.length
     ? el.points.reduce((sum, p) => sum + p.lat, 0) / el.points.length
     : 0
@@ -389,7 +353,7 @@ function MapView({ el, frameStyle, big = false }: {
       const d = Math.hypot(dx, dy)
       if (d < 1e-6) return { k: 0, nx: 0, ny: 0 }
 
-      const u = Math.min(1, Math.max(0, Math.log(km(a, b) / 150) / Math.log(10)))
+      const u = Math.min(1, Math.max(0, Math.log(haversineKm(a, b) / 150) / Math.log(10)))
       const ramp = u * u * (3 - 2 * u)
       // How much of the leg runs east-west, which is where a bow is truthful.
       const eastWest = 0.35 + 0.65 * Math.abs(dx / d)
@@ -521,6 +485,8 @@ function MapView({ el, frameStyle, big = false }: {
   const S = Math.min(W, H)
   const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
   const drawn = el.routeStyle === 'drawn'
+  // Numbered stops and marked ends are markers of the drawn kind, whatever the line is drawn as.
+  const drawnPins = drawn || el.pinStyle === 'numbered' || el.pinStyle === 'ends'
   const coreW = clamp(S * 0.0055, 0.32, 1.3)
   const casingW = coreW * 1.9
   const beadR = clamp(coreW * 3.1, 1.7, 4.8)
@@ -537,7 +503,7 @@ function MapView({ el, frameStyle, big = false }: {
    * so it inverts with it: dark on a light line, light on a dark one. Measured
    * the same way the marks decide their ink.
    */
-  const numInk = brightness(el.accent) > 0.55 ? '#1c1b19' : '#ffffff' // theme-lint-disable — print ink
+  const numInk = inkOn(el.accent)
   const dashOn = coreW * 2.4
   const dashOff = coreW * 1.8
 
@@ -757,16 +723,16 @@ function MapView({ el, frameStyle, big = false }: {
    */
   const beads: { i: number; x: number; y: number; photo: number | null }[] = []
   let numbered = false
-  if (drawn) {
+  if (drawnPins) {
     // Too small to carry photographs at all: a bead wider than a twelfth of the
     // frame is a picture with a map around it.
     const roomForPhotos = el.pinStyle === 'photo' && big && beadR * 2 <= S * 0.16
     /*
-     * Numbers stand in for the photographs that are not there, so they belong
-     * to the photo treatment alone. A map asked for dots gets dots, and a
-     * thumbnail gets dots too: two digits at 130px is a smudge.
+     * Numbers stand in for the photographs that are not there, and a map asked
+     * for numbers numbers every stop. A map asked for dots gets dots, and a
+     * photo map's thumbnail gets dots too: two digits at 130px is a smudge.
      */
-    numbered = el.pinStyle === 'photo' && big && numR * 2 <= S * 0.12
+    numbered = (el.pinStyle === 'numbered' || (el.pinStyle === 'photo' && big)) && numR * 2 <= S * 0.12
     let last: { x: number; y: number } | null = null
     route.forEach((pt, i) => {
       const photoId = (el.points[i] as { photoId?: number | null } | undefined)?.photoId ?? null
@@ -988,7 +954,7 @@ function MapView({ el, frameStyle, big = false }: {
           </>
         )}
 
-        {el.showPins && !drawn && route.map((p, i) => (
+        {el.showPins && !drawnPins && route.map((p, i) => (
           <circle
             key={i}
             cx={p.x}
@@ -1012,8 +978,10 @@ function MapView({ el, frameStyle, big = false }: {
           is also what a photograph that fails to load degrades to, so the paper
           shows a deliberate marker rather than a hole.
         */}
-        {el.showPins && drawn && beads.map(m => (
-          m.photo != null ? (
+        {el.showPins && drawnPins && beads.map(m => (
+          el.pinStyle === 'ends' && (m.i === 0 || m.i === route.length - 1) ? (
+            <EndMarker key={m.i} x={m.x} y={m.y} r={numR} finish={m.i > 0} ink={coreInk} paper={numInk} />
+          ) : m.photo != null ? (
             <g key={m.i}>
               {/* The shadow, as two translucent discs rather than a filter. */}
               <circle cx={m.x} cy={m.y + coreW * 0.3} r={beadR + coreW * 0.55} fill="#000000" fillOpacity={0.1} />
@@ -1135,49 +1103,6 @@ function MapView({ el, frameStyle, big = false }: {
 }
 
 /* ── Stats ────────────────────────────────────────────────────────────── */
-
-/**
- * The icon beside each figure.
- *
- * lucide, like every other icon in TREK — a hand-drawn set was the first pass
- * and it was the wrong call twice over: it put a second drawing vocabulary next
- * to the one the whole app already uses, and it meant seven paths nobody would
- * ever revisit when lucide gained a better glyph.
- *
- * They size in millimetres despite lucide taking a pixel `size`, because an
- * inline width and height override the attributes it writes while the viewBox
- * stays 24×24 — so the stroke scales with the drawing instead of thinning out
- * on a large panel.
- */
-const METRIC_ICONS: Record<BookMetric, LucideIcon> = {
-  distance: Route,
-  days: CalendarDays,
-  steps: Footprints,
-  photos: Camera,
-  countries: Globe,
-  places: MapPin,
-  furthest: Navigation,
-}
-
-function metricValue(
-  metric: BookMetric,
-  values: Record<string, number>,
-  units: BookUnits,
-  locale: string,
-): { value: string; unit: string } {
-  const raw = values[metric] ?? 0
-  const n = (v: number, digits = 0) =>
-    new Intl.NumberFormat(locale, { maximumFractionDigits: digits }).format(v)
-
-  if (metric === 'distance' || metric === 'furthest') {
-    // Stored in metres and converted here, so switching units never rounds a
-    // second time on top of a rounded number.
-    const km = raw / 1000
-    const shown = units === 'imperial' ? km * 0.621371 : km
-    return { value: n(shown, shown < 100 ? 1 : 0), unit: units === 'imperial' ? 'mi' : 'km' }
-  }
-  return { value: n(raw), unit: '' }
-}
 
 /**
  * The trip summary — the page Polarsteps' books open on, and the one that makes
@@ -1413,75 +1338,6 @@ function CountriesView({ el, frameStyle }: { el: BookCountriesElement; frameStyl
   )
 }
 
-/**
- * A flag, drawn.
- *
- * The first version set a regional-indicator pair and let the platform draw it.
- * That is the standard trick and it is wrong for most of the people who will
- * use this: Chrome on Windows ships no flag glyphs, so it renders the two
- * letters, and "DE" printed in a photo book is not a flag.
- *
- * So flags are constructed from `flags.ts` — exact for the stripe, cross and
- * disc constructions listed there, and absent for anything with an emblem
- * rather than approximated. A country with no construction falls back to its
- * silhouette, which is correct for all 198 of them.
- */
-function FlagMark({ code, size }: { code: string; size: number }) {
-  const spec = flagSpec(code)
-  const height = size
-  const width = (height * FLAG_W) / FLAG_H
-
-  if (spec) {
-    const disc = flagDisc(spec)
-    return (
-      <svg
-        width={`${round2(width)}mm`}
-        height={`${round2(height)}mm`}
-        viewBox={`0 0 ${FLAG_W} ${FLAG_H}`}
-        style={{ display: 'block', flex: '0 0 auto', borderRadius: `${round2(height * 0.08)}mm` }}
-        aria-label={code.toUpperCase()}
-      >
-        {flagBands(spec).map((b, i) => (
-          <rect key={i} x={b.x} y={b.y} width={b.w} height={b.h} fill={b.fill} />
-        ))}
-        {disc && <circle cx={disc.cx} cy={disc.cy} r={disc.r} fill={disc.fill} />}
-        {/* A hairline keeps a white-edged flag off a white page. */}
-        <rect x="0" y="0" width={FLAG_W} height={FLAG_H} fill="none" stroke="rgba(0,0,0,.18)" strokeWidth="0.5" />
-      </svg>
-    )
-  }
-
-  const shape = COUNTRY_SHAPES[code.toUpperCase()]
-  if (!shape) {
-    // Neither a construction nor an outline: the code, set as a mark rather
-    // than as two stray capitals.
-    return (
-      <span
-        style={{
-          fontSize: `${round2(size * 0.62)}mm`,
-          fontWeight: 700,
-          letterSpacing: '0.08em',
-          lineHeight: 1,
-          display: 'inline-block',
-        }}
-      >
-        {code.toUpperCase()}
-      </span>
-    )
-  }
-  return (
-    <svg
-      width={`${round2((height * shape.w) / shape.h)}mm`}
-      height={`${round2(height)}mm`}
-      viewBox={`0 0 ${shape.w} ${shape.h}`}
-      style={{ display: 'block', flex: '0 0 auto' }}
-      aria-label={code.toUpperCase()}
-    >
-      <path d={shape.d} fill="currentColor" />
-    </svg>
-  )
-}
-
 /* ── Badges ───────────────────────────────────────────────────────────── */
 
 /**
@@ -1504,7 +1360,6 @@ function BadgeView({ el, frameStyle }: { el: BookBadgeElement; frameStyle: CSSPr
    */
   const big = typeSize(el, el.variant === 'date' ? 0.52 : 0.42)
   const small = typeSize(el, 0.2)
-  const shape = el.code ? COUNTRY_SHAPES[el.code.toUpperCase()] : null
   const stacked = el.style === 'stacked' || el.variant === 'date'
 
   const chip = el.style === 'chip'
@@ -1520,7 +1375,6 @@ function BadgeView({ el, frameStyle }: { el: BookBadgeElement; frameStyle: CSSPr
    */
   const showIcon = el.showIcon !== false
   const showLabel = el.showLabel !== false
-  const iconTint = (automatic: string) => (el.autoIconColor === false ? el.iconColor : automatic)
   /*
    * A mark with no words is a pictogram, and a pictogram should fill its box.
    * Beside a label the icon is a share of the height; on its own it takes four
@@ -1553,54 +1407,12 @@ function BadgeView({ el, frameStyle }: { el: BookBadgeElement; frameStyle: CSSPr
         overflow: 'hidden',
       }}
     >
-      {el.variant === 'flag' && el.code && showIcon && (
-        <FlagMark code={el.code} size={el.frame.h * (showLabel ? 0.5 : iconScale)} />
-      )}
-
       {/*
-        Mood and weather come from the journal entry, and they are drawn with
-        the *same* icon and the same palette the journey page uses — imported
-        rather than re-listed, so a mood added to TREK appears here without
-        anyone remembering to add it twice.
+        The picture: a flag, an outline, or the journal's own mood and weather
+        icons, imported rather than re-listed so a mood added to TREK appears
+        here without anyone adding it twice.
       */}
-      {(el.variant === 'mood' || el.variant === 'weather') && el.code && showIcon && (() => {
-        // Kept apart rather than narrowed out of one union: only a mood has a
-        // colour of its own, and `'text' in config` types it as unknown.
-        const mood = el.variant === 'mood' ? MOOD_CONFIG[el.code] : null
-        const config = mood ?? WEATHER_CONFIG[el.code]
-        if (!config) return null
-        const Icon = config.icon
-        const size = el.frame.h * iconScale
-        /*
-         * Automatic is the journal's own palette for a mood and the element's
-         * accent for the weather. Note the colour has to be passed rather than
-         * inherited: lucide writes it onto the SVG's stroke, so `currentColor`
-         * from the wrapper never reaches it — which is why the Colour swatch
-         * appeared to do nothing to a mood icon.
-         */
-        const tint = iconTint(mood ? mood.text : el.accent)
-        return (
-          <Icon
-            color={tint}
-            strokeWidth={1.7}
-            style={{ width: `${round2(size)}mm`, height: `${round2(size)}mm`, display: 'block', flex: '0 0 auto' }}
-          />
-        )
-      })()}
-
-      {el.variant === 'country' && shape && showIcon && (() => {
-        const h = el.frame.h * (showLabel ? 0.72 : iconScale)
-        return (
-          <svg
-            width={`${round2((h * shape.w) / shape.h)}mm`}
-            height={`${round2(h)}mm`}
-            viewBox={`0 0 ${shape.w} ${shape.h}`}
-            style={{ display: 'block', flex: '0 0 auto' }}
-          >
-            <path d={shape.d} fill={iconTint(el.accent)} />
-          </svg>
-        )
-      })()}
+      {showIcon && <BadgeIcon el={el} height={el.frame.h * (showLabel ? badgeIconShare(el.variant) : iconScale)} />}
 
       {el.text && showLabel && (
         <span

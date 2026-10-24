@@ -54,14 +54,14 @@ describe('AdminNotificationsPanel', () => {
     servePreferences(matrix());
     renderPanel();
 
-    expect(screen.getByText('Loading…')).toBeInTheDocument();
+    expect(screen.getByText('Loading...')).toBeInTheDocument();
   });
 
   it('FE-ADMMTX-002: stays on the loading line when the request fails', async () => {
     server.use(http.get('/api/admin/notification-preferences', () => HttpResponse.json({}, { status: 500 })));
     renderPanel();
 
-    await waitFor(() => expect(screen.getByText('Loading…')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Loading...')).toBeInTheDocument());
   });
 
   it('FE-ADMMTX-003: renders the empty state when no event types exist', async () => {
@@ -162,7 +162,7 @@ describe('AdminNotificationsPanel', () => {
     fireEvent.click(emailToggle);
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Error'));
-    expect(emailToggle.className).toContain('bg-edge');
+    expect(emailToggle).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('FE-ADMMTX-011: a channel that no event implements gets no column', async () => {
@@ -204,7 +204,7 @@ describe('AdminNotificationsPanel', () => {
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Error'));
     expect(bodies[1]).toEqual({ version_available: { inapp: false, email: true } });
-    expect(emailToggle.className).toContain('bg-edge');
-    expect(inappToggle.className).toContain('bg-edge');
+    expect(emailToggle).toHaveAttribute('aria-pressed', 'false');
+    expect(inappToggle).toHaveAttribute('aria-pressed', 'false');
   });
 });

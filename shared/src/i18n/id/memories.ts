@@ -18,7 +18,7 @@ const memories: TranslationStrings = {
   'memories.reviewHint': 'Klik foto untuk mengecualikannya dari berbagi.',
   'memories.shareCount': 'Bagikan {count} foto',
   'memories.providerUrl': 'URL Server',
-  'memories.providerApiKey': 'API Key',
+  'memories.providerApiKey': 'API Key', // same-as-en
   'memories.providerUsername': 'Nama pengguna',
   'memories.providerPassword': 'Kata sandi',
   'memories.providerOTP': 'Kode MFA (jika diaktifkan)',

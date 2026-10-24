@@ -32,6 +32,7 @@ const perm: TranslationStrings = {
   'perm.action.collab_edit': 'İşbirliği (notlar, anketler, sohbet)',
   'perm.action.share_manage': 'Paylaşım bağlantılarını yönet',
   'perm.actionHint.trip_create': 'Kimler yeni seyahat oluşturabilir',
+  'perm.action.journal_link': 'Günlük bağla',
   'perm.actionHint.trip_edit': 'Kimler seyahat adını, tarihlerini, açıklamasını ve para birimini değiştirebilir',
   'perm.actionHint.trip_delete': 'Kimler bir seyahati kalıcı olarak silebilir',
   'perm.actionHint.trip_archive': 'Kimler seyahati arşivleyebilir veya geri alabilir',
@@ -47,5 +48,6 @@ const perm: TranslationStrings = {
   'perm.actionHint.packing_edit': 'Kimler paket öğelerini ve çantaları yönetebilir',
   'perm.actionHint.collab_edit': 'Kimler not, anket oluşturabilir ve mesaj gönderebilir',
   'perm.actionHint.share_manage': 'Kimler genel paylaşım bağlantısı oluşturabilir veya silebilir',
+  'perm.actionHint.journal_link': 'Journey’den bir günlüğü geziye kimin bağlayıp üyelerine açabileceği',
 };
 export default perm;

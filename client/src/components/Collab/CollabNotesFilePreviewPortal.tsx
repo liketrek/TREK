@@ -1,8 +1,11 @@
 import { createPortal } from 'react-dom'
-import { useState, useEffect } from 'react'
-import { X, ExternalLink, Loader2 } from 'lucide-react'
+import { useState, useEffect, useId } from 'react'
+import { X, ExternalLink, FileText, Loader2 } from 'lucide-react'
 import { getAuthUrl } from '../../api/authUrl'
 import { openFile } from '../../utils/fileDownload'
+import { useTranslation } from '../../i18n'
+import { DialogHeader, DialogShell, DialogTile, NEUTRAL_TINT, PILL, fs } from '../shared/DialogShell'
+import { Tooltip } from '../shared/Tooltip'
 import type { NoteFile } from './CollabNotes.types'
 
 // ── File Preview Portal ─────────────────────────────────────────────────────
@@ -11,63 +14,94 @@ interface FilePreviewPortalProps {
   onClose: () => void
 }
 
+/** The round buttons over the dark image backdrop. */
+const LIGHTBOX_BTN = 'grid h-9 w-9 place-items-center rounded-full bg-[rgba(255,255,255,0.12)] text-[rgba(255,255,255,0.85)] hover:bg-[rgba(255,255,255,0.22)]' // theme-lint-disable: the lightbox is dark in every scheme
+
 export function FilePreviewPortal({ file, onClose }: FilePreviewPortalProps) {
+  const { t } = useTranslation()
+  const labelId = useId()
   const [authUrl, setAuthUrl] = useState('')
   const rawUrl = file?.url || ''
   useEffect(() => {
     setAuthUrl('')
     if (!rawUrl) return
-    getAuthUrl(rawUrl, 'download').then(setAuthUrl)
+    void getAuthUrl(rawUrl, 'download').then(setAuthUrl)
   }, [rawUrl])
 
+  const isImage = !!file?.mime_type?.startsWith('image/')
+  // The dialog handles its own Escape; the image lightbox takes it here.
+  useEffect(() => {
+    if (!file || !isImage) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [file, isImage, onClose])
+
   if (!file) return null
-  const isImage = file.mime_type?.startsWith('image/')
   const isPdf = file.mime_type === 'application/pdf'
   const isTxt = file.mime_type?.startsWith('text/')
 
   const openInNewTab = () => openFile(rawUrl).catch(() => {})
 
-  return createPortal(
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} role="presentation" onClick={onClose}>
-      {isImage ? (
-        /* Image lightbox — floating controls */
-        <div style={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh' }} role="presentation" onClick={e => e.stopPropagation()}>
+  if (isImage) {
+    return createPortal(
+      <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-[rgba(0,0,0,0.88)] p-4" role="presentation" onClick={onClose}> {/* theme-lint-disable: the lightbox is dark in every scheme */}
+        {/* Image lightbox — floating controls */}
+        <div className="relative max-h-[90vh] max-w-[90vw]" role="presentation" onClick={e => e.stopPropagation()}>
           {authUrl
-            ? <img src={authUrl} alt={file.original_name} style={{ maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: 8, display: 'block' }} />
+            ? <img src={authUrl} alt={file.original_name} className="block max-h-[90vh] max-w-[90vw] rounded-[14px] object-contain" />
             : <Loader2 size={32} className="animate-spin text-[rgba(255,255,255,0.5)]" />
           }
-          <div style={{ position: 'absolute', top: -36, left: 0, right: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }}>
-            <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>{file.original_name}</span>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button type="button" onClick={openInNewTab} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', display: 'flex', padding: 0 }}><ExternalLink size={15} /></button>
-              <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', display: 'flex', padding: 0 }}><X size={17} /></button>
+          <div className="absolute inset-x-0 -top-12 flex items-center justify-between gap-3 px-1">
+            <span className="truncate text-[rgba(255,255,255,0.8)]" style={fs(12, 'body')}>{file.original_name}</span>
+            <div className="flex flex-none gap-2">
+              <Tooltip label={t('files.openTab')}>
+                <button type="button" onClick={openInNewTab} aria-label={t('files.openTab')} className={LIGHTBOX_BTN}><ExternalLink size={15} /></button>
+              </Tooltip>
+              <Tooltip label={t('common.close')}>
+                <button type="button" onClick={onClose} aria-label={t('common.close')} className={LIGHTBOX_BTN}><X size={17} /></button>
+              </Tooltip>
             </div>
           </div>
         </div>
-      ) : (
-        /* Document viewer — card with header */
-        <div style={{ width: '100%', maxWidth: 950, height: '94vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-card)', borderRadius: 12, overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }} role="presentation" onClick={e => e.stopPropagation()}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderBottom: '1px solid var(--border-primary)', flexShrink: 0 }}>
-            <span style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{file.original_name}</span>
-            <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-              <button type="button" onClick={openInNewTab} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-muted)', padding: 0 }}><ExternalLink size={13} /></button>
-              <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', padding: 2 }}><X size={18} /></button>
-            </div>
-          </div>
-          {(isPdf || isTxt) ? (
-            <object data={authUrl ? `${authUrl}#view=FitH` : ''} type={file.mime_type} style={{ flex: 1, width: '100%', border: 'none', background: '#fff' }} title={file.original_name}>
-              <p style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)' }}>
-                <button type="button" onClick={openInNewTab} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)', textDecoration: 'underline', fontSize: 'calc(14px * var(--fs-scale-body, 1))', padding: 0 }}>Download</button>
-              </p>
-            </object>
-          ) : (
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
-              <button type="button" onClick={openInNewTab} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)', textDecoration: 'underline', fontSize: 'calc(14px * var(--fs-scale-body, 1))', padding: 0 }}>Download {file.original_name}</button>
-            </div>
+      </div>,
+      document.body
+    )
+  }
+
+  /* Document viewer — the planner's dialog, the name on the head band */
+  return (
+    <DialogShell
+      onClose={onClose}
+      labelledBy={labelId}
+      width="wide"
+      bodyClassName="flex min-h-0 flex-1 flex-col"
+      header={(
+        <DialogHeader
+          tile={<DialogTile><FileText size={20} strokeWidth={1.9} className={isPdf ? 'text-danger' : 'text-content-muted'} /></DialogTile>}
+          tint={NEUTRAL_TINT}
+          labelId={labelId}
+          onClose={onClose}
+          title={file.original_name}
+          pills={(
+            <button type="button" onClick={openInNewTab} className={`${PILL} hover:opacity-80`}>
+              <ExternalLink size={13} strokeWidth={2.2} /> {t('files.openTab')}
+            </button>
           )}
+        />
+      )}
+    >
+      {(isPdf || isTxt) ? (
+        <object data={authUrl ? `${authUrl}#view=FitH` : ''} type={file.mime_type} className="h-[74vh] w-full border-0 bg-white" title={file.original_name}> {/* theme-lint-disable: a document page is white */}
+          <p className="p-6 text-center text-content-muted">
+            <button type="button" onClick={openInNewTab} className="text-content underline" style={fs(14, 'body')}>Download</button>
+          </p>
+        </object>
+      ) : (
+        <div className="flex flex-1 items-center justify-center p-10">
+          <button type="button" onClick={openInNewTab} className="text-content underline" style={fs(14, 'body')}>Download {file.original_name}</button>
         </div>
       )}
-    </div>,
-    document.body
+    </DialogShell>
   )
 }

@@ -12,6 +12,11 @@ import DOMPurify from 'isomorphic-dompurify';
  * Why isomorphic-dompurify: works unchanged in browser (DOMPurify) and Node
  * (DOMPurify + jsdom). Tree-shakes correctly so the client bundle does not
  * pull jsdom.
+ *
+ * Reached through `@trek/shared/sanitize`, not the root barrel: on Node,
+ * isomorphic-dompurify builds a jsdom window as soon as it loads, and the
+ * root barrel is what the server and every server test import. `escapeHtml`
+ * needs no DOM and stays in the root (./escape.ts).
  */
 
 // Inline-only tags. Block-level markup (paragraphs, lists, headings) is not
@@ -54,23 +59,6 @@ const FULL_TAGS = [
 ] as const;
 
 const SAFE_ATTRIBUTES = ['href', 'rel', 'target'] as const;
-
-/**
- * Escapes the five HTML metacharacters so a raw string can be safely
- * interpolated into an HTML template. Use this BEFORE substitution when a
- * user-controlled value lands inside a markup-shaped translation string.
- *
- * This is *not* a substitute for `sanitizeInlineHtml`: escape input, then
- * sanitise the resulting template — both layers run together in `tHtml`.
- */
-export function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
 
 /**
  * Strict inline sanitiser. Use for short, mostly-text strings that may include

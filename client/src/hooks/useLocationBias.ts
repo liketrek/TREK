@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useTripStore } from '../store/tripStore'
+import { useTripStore, type PlanMapViewport } from '../store/tripStore'
 
 /**
  * Where the user is planning right now, as a hint for the place search.
@@ -21,6 +21,12 @@ import { useTripStore } from '../store/tripStore'
  * cities, points at nothing, and costs more rank-1 hits than it gains. It is
  * worse than no hint. So the day being planned comes first, and a hint that
  * ends up wider than a metropolitan area is dropped rather than sent.
+ *
+ * Ahead of both stands the part of the map the user is looking at (#2620). The
+ * numbers above are about boxes guessed from saved places; a map zoomed in on
+ * one city says where the next place goes without any guessing. It is held to
+ * the same width, so a map pulled out to a whole country leaves the search to
+ * the day and the trip as before.
  */
 
 export interface LocationBiasBox {
@@ -96,19 +102,41 @@ export function pointFromBox(box: LocationBiasBox | undefined): LocationBiasPoin
 }
 
 /**
+ * The plan map's viewport as a box, or nothing when it cannot be one. A view
+ * across the antimeridian reports west east of east, and a world map scrolled
+ * sideways reports longitudes past 180; neither is a box the search accepts.
+ */
+export function viewportBox(v: PlanMapViewport): LocationBiasBox | undefined {
+  const { south, west, north, east } = v
+  if (![south, west, north, east].every(Number.isFinite)) return undefined
+  if (south < -90 || north > 90 || west < -180 || east > 180) return undefined
+  if (south > north || west > east) return undefined
+  return { low: { lat: south, lng: west }, high: { lat: north, lng: east } }
+}
+
+/**
  * The hint for the place search, in both shapes the two endpoints want.
  *
  * Preference order, narrowest first:
- *   1. the places of the day currently open — this is the area being planned
- *   2. the trip's places, but only if they still fit inside one region
+ *   1. the plan map's visible area, while it covers no more than one region
+ *   2. the places of the day currently open — this is the area being planned
+ *   3. the trip's places, but only if they still fit inside one region
  * Anything wider is dropped: no hint beats a hint pointing at open country.
  */
 export function useLocationBias(): { box?: LocationBiasBox; point?: LocationBiasPoint } {
   const places = useTripStore((s) => s.places)
   const assignments = useTripStore((s) => s.assignments)
   const selectedDayId = useTripStore((s) => s.selectedDayId)
+  const tripId = useTripStore((s) => s.trip?.id)
+  const viewport = useTripStore((s) => s.planMapViewport)
 
   return useMemo(() => {
+    // Only this trip's map: a viewport left over from another trip points elsewhere.
+    if (viewport && tripId != null && viewport.tripId === Number(tripId)) {
+      const sichtbar = viewportBox(viewport)
+      if (sichtbar && radiusKm(sichtbar) <= MAX_RADIUS_KM) return { box: sichtbar, point: pointFromBox(sichtbar) }
+    }
+
     const alle = places || []
 
     // The day being planned. Places reach a day through assignments, so the
@@ -125,5 +153,5 @@ export function useLocationBias(): { box?: LocationBiasBox; point?: LocationBias
     const box = boxFromCoords(quelle)
     if (!box || radiusKm(box) > MAX_RADIUS_KM) return {}
     return { box, point: pointFromBox(box) }
-  }, [places, assignments, selectedDayId])
+  }, [places, assignments, selectedDayId, tripId, viewport])
 }

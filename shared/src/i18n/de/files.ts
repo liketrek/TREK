@@ -6,16 +6,18 @@ const files: TranslationStrings = {
   'files.linkTitle': 'Datei verknüpfen',
   'files.linkEmpty': 'Keine Orte oder Buchungen zum Verknüpfen vorhanden',
   'files.menu': 'Weitere Optionen',
-  'files.uploadErrorSize': 'Datei ist zu groß (max. 50 MB)',
+  'files.uploadErrorSize': 'Datei ist zu groß (max. {max} MB)',
   'files.title': 'Dateien',
   'files.pageTitle': 'Dateien & Dokumente',
   'files.subtitle': '{count} Dateien für {trip}',
+  'files.subtitle.one': '{count} Datei für {trip}',
   'files.download': 'Herunterladen',
   'files.openError': 'Datei konnte nicht geöffnet werden',
   'files.downloadPdf': 'PDF herunterladen',
   'files.count': '{count} Dateien',
-  'files.countSingular': '1 Datei',
+  'files.count.one': '{count} Datei',
   'files.uploaded': '{count} hochgeladen',
+  'files.uploaded.one': '{count} hochgeladen',
   'files.uploadError': 'Fehler beim Hochladen',
   'files.uploadErrorType': 'Dieser Dateityp wird nicht unterstützt',
   'files.dropzone': 'Dateien hier ablegen',
@@ -36,7 +38,7 @@ const files: TranslationStrings = {
   'files.toast.deleteError': 'Fehler beim Löschen der Datei',
   'files.sourcePlan': 'Tagesplan',
   'files.sourceBooking': 'Buchung',
-  'files.sourceTransport': 'Transport',
+  'files.sourceTransport': 'Transport', // same-as-en
   'files.attach': 'Anhängen',
   'files.pasteHint': 'Du kannst auch Bilder aus der Zwischenablage einfügen (Strg+V)',
   'files.trash': 'Papierkorb',
@@ -49,7 +51,7 @@ const files: TranslationStrings = {
   'files.assignTitle': 'Datei zuweisen',
   'files.assignPlace': 'Ort',
   'files.assignBooking': 'Buchung',
-  'files.assignTransport': 'Transport',
+  'files.assignTransport': 'Transport', // same-as-en
   'files.unassigned': 'Nicht zugewiesen',
   'files.unlink': 'Verknüpfung entfernen',
   'files.toast.trashed': 'In den Papierkorb verschoben',
@@ -62,5 +64,14 @@ const files: TranslationStrings = {
   'files.confirm.emptyTrash': 'Alle Dateien im Papierkorb endgültig löschen? Das kann nicht rückgängig gemacht werden.',
   'files.noteLabel': 'Notiz',
   'files.notePlaceholder': 'Notiz hinzufügen...',
+  'files.uploadNeedsConnection':
+    'Zum Hochladen braucht es eine Verbindung. Versuch es noch einmal, sobald TREK wieder online ist.',
+  'files.linkNeedsConnection':
+    'Diese Verknüpfung lässt sich nur mit Verbindung entfernen. Versuch es noch einmal, sobald TREK wieder online ist.',
+  'files.placeFilesNeedConnection':
+    'Dateien brauchen zum Hochladen eine Verbindung. Entferne die neuen, um den Ort offline zu speichern, oder speichere, sobald du wieder online bist.',
+  'files.maxSize': 'Max. {count} MB',
+  'files.maxSize.one': 'Max. {count} MB',
+  'files.toast.starError': 'Der Stern konnte nicht geändert werden',
 };
 export default files;

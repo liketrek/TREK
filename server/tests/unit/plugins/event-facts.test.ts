@@ -1,6 +1,7 @@
-import { it, expect } from 'vitest';
-import { SNAPSHOT_GRANT, ENTITY_ID_KEYS } from '../../../src/plugin-event-sink';
 import { KNOWN_PERMISSIONS } from '../../../src/nest/plugins/protocol/envelope';
+import { SNAPSHOT_GRANT, ENTITY_ID_KEYS } from '../../../src/plugin-event-sink';
+
+import { it, expect } from 'vitest';
 
 it('every snapshot grant is a known db:read permission', () => {
   for (const p of Object.values(SNAPSHOT_GRANT)) {

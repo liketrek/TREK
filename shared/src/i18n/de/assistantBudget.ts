@@ -1,0 +1,30 @@
+import type { TranslationStrings } from '../types';
+
+const assistantBudget: TranslationStrings = {
+  'assistant.change.verb.addPayment': 'Zahlung erfassen',
+  'assistant.change.verb.updatePayment': 'Zahlung ändern',
+  'assistant.tool.create_budget_item_with_members': 'Ausgabe hinzufügen',
+  'assistant.tool.set_budget_item_members': 'Ändern, wer die Kosten teilt',
+  'assistant.tool.toggle_budget_member_paid': 'Aktualisieren, wer bezahlt hat',
+  'assistant.tool.create_settlement': 'Zahlung erfassen',
+  'assistant.tool.update_settlement': 'Die Zahlung ändern',
+  'assistant.tool.delete_settlement': 'Die Zahlung löschen',
+  'assistant.tool.freeze_budget_rates': 'Heutige Wechselkurse festschreiben',
+  'assistant.followUp.whoOwes': 'Wer schuldet wem was?',
+  'assistant.followUp.recordPayments': 'Diese Zahlungen erfassen',
+  'assistant.card.budget.open': 'In Kosten öffnen',
+  'assistant.card.budget.paidBy': '{name} hat bezahlt',
+  'assistant.card.budget.notPaid': 'Nicht bezahlt',
+  'assistant.card.budget.split.equal': 'Gleich aufgeteilt',
+  'assistant.card.budget.split.custom': 'Ungleich aufgeteilt',
+  'assistant.card.budget.split.none': 'Nur Planung, nicht aufgeteilt',
+  'assistant.card.budget.together': 'Zusammen {amount}',
+  'assistant.card.budget.markedPaid': '{amount} als bezahlt markiert',
+  'assistant.card.budget.receipts': '{count} Belege',
+  'assistant.card.budget.receipts.one': '{count} Beleg',
+  'assistant.card.budget.leftOut': '{count} Ausgaben in Fremdwährung fehlen in der Summe: noch kein Wechselkurs.',
+  'assistant.card.budget.leftOut.one': '{count} Ausgabe in Fremdwährung fehlt in der Summe: noch kein Wechselkurs.',
+  'assistant.card.budget.unconverted': '{count} Einträge in {currencies} werden nicht gezählt: noch kein Wechselkurs.',
+  'assistant.card.budget.unconverted.one': '{count} Eintrag in {currencies} wird nicht gezählt: noch kein Wechselkurs.',
+};
+export default assistantBudget;

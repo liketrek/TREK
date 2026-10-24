@@ -1,3 +1,5 @@
+import { idSchema } from '../common/primitives.schema';
+
 import { z } from 'zod';
 
 /**
@@ -29,6 +31,9 @@ export const packingItemSchema = z.object({
   weight_grams: z.number().nullable().optional(),
   bag_id: z.number().nullable().optional(),
   quantity: z.number().optional(),
+  // How many of `quantity` are already in the bag (#2296). Null when the
+  // counter is not in use: the item is then simply checked or not.
+  packed_quantity: z.number().nullable().optional(),
   // Three-tier sharing (#858). is_private is the raw SQLite INTEGER (0/1):
   // 0 = Common (group pool, visible to all), 1 = restricted. owner_id is the
   // "bringer". A restricted item with no recipients is Personal; with recipients
@@ -124,6 +129,9 @@ export const packingUpdateItemRequestSchema = z.object({
   weight_grams: z.number().nullable().optional(),
   bag_id: z.number().nullable().optional(),
   quantity: z.number().optional(),
+  // Count packed pieces of a multi-piece item (#2296). Reaching the quantity
+  // checks the item; null or 0 clears the count. Ticking `checked` resets it.
+  packed_quantity: z.number().int().min(0).max(999).nullable().optional(),
   // Toggle the item's privacy (#858).
   is_private: z.boolean().optional(),
 });
@@ -190,3 +198,17 @@ export const packingCategoryAssigneesRequestSchema = z.object({
   user_ids: z.array(z.number()),
 });
 export type PackingCategoryAssigneesRequest = z.infer<typeof packingCategoryAssigneesRequestSchema>;
+
+/**
+ * What the assistant's `list_packing_items` reads: the items of the trip's
+ * packing list the caller may see, narrowed to one category, one bag (null:
+ * the items in no bag) or a packed state. `group_by` filters nothing; it says
+ * how the answer is meant to be shown, the way the packing list groups it.
+ */
+export const packingListItemsRequestSchema = z.object({
+  category: z.string().min(1).max(100).optional(),
+  bag_id: idSchema.nullable().optional(),
+  status: z.enum(['all', 'open', 'packed']).optional(),
+  group_by: z.enum(['category', 'bag']).optional(),
+});
+export type PackingListItemsRequest = z.infer<typeof packingListItemsRequestSchema>;

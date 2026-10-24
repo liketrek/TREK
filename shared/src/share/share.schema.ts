@@ -15,5 +15,9 @@ export const shareLinkRequestSchema = z.object({
   share_packing: z.boolean().optional(),
   share_budget: z.boolean().optional(),
   share_collab: z.boolean().optional(),
+  // Narrow the itinerary to transport and stays (#1712): no activities, no day notes.
+  share_travel_only: z.boolean().optional(),
+  // Leave the place photos out of the shared page (#1712).
+  share_hide_images: z.boolean().optional(),
 });
 export type ShareLinkRequest = z.infer<typeof shareLinkRequestSchema>;

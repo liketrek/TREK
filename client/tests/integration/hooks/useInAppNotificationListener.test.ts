@@ -1,5 +1,6 @@
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { useAuthStore } from '../../../src/store/authStore';
 import { useInAppNotificationStore } from '../../../src/store/inAppNotificationStore';
 import { resetAllStores } from '../../helpers/store';
 
@@ -37,6 +38,10 @@ describe('useInAppNotificationListener', () => {
   });
 
   it('FE-HOOK-NOTIFLISTENER-001: on mount, addListener is called once', () => {
+    // Signed out, as resetAllStores leaves it: only the bell listener. Signed in, the
+    // settings and tags pings add theirs (FE-BCAST-013), and capturedListener below
+    // would hold the last of them instead.
+    expect(useAuthStore.getState().isAuthenticated).toBe(false);
     const { unmount } = renderHook(() => useInAppNotificationListener());
     expect(wsMock.addListener).toHaveBeenCalledTimes(1);
     unmount();

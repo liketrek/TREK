@@ -1,7 +1,7 @@
 import { Ticket, type LucideIcon } from 'lucide-react'
 import { isCarrierType, isRentalType, isStoredStop } from '@trek/shared/roadtrip'
 import { RES_ICONS } from '../Planner/DayPlanSidebar.constants'
-import { hidesOnMiddleDay } from '../../utils/dayMerge'
+import { hidesOnMiddleDay, pinnedAway } from '../../utils/dayMerge'
 import { splitReservationDateTime } from '../../utils/formatters'
 import type { Reservation } from '../../types'
 import type { RoadtripStop } from '@trek/shared/roadtrip'
@@ -64,6 +64,8 @@ export function dayBookings(
   reservations: readonly Reservation[],
   /** A day's position in the trip by its id, so a booking spanning days is on the days between too. */
   dayOrder?: (dayId: number) => number | null | undefined,
+  /** The day each stop of the trip sits on, so a booking pinned to one elsewhere stays there. */
+  stopDays?: ReadonlyMap<number, number>,
 ): DayBookings {
   if (!reservations.length) return EMPTY
   const atStop = new Map<number, Reservation[]>()
@@ -77,6 +79,7 @@ export function dayBookings(
     // hotel's own stop, or under the day.
     const real = (i: number): boolean => isStoredStop(stops[i]!)
     let index = r.assignment_id ? stops.findIndex((s, i) => real(i) && s.assignmentId === r.assignment_id) : -1
+    if (index < 0 && dayOrder && pinnedAway(r, stopDays, dayOrder)) continue
     const onDay = spansDay(r, day.dayId, dayOrder)
     if (index < 0 && onDay && r.place_id) index = stops.findIndex((s, i) => real(i) && s.placeId === r.place_id)
     if (index >= 0) {
@@ -90,6 +93,15 @@ export function dayBookings(
   for (const list of atStop.values()) list.sort(byClock)
   loose.sort(byClock)
   return atStop.size || loose.length ? { atStop, loose } : EMPTY
+}
+
+/** The day each stored stop of the drive sits on, by its assignment id, for {@link dayBookings}. */
+export function stopDaysOf(
+  days: readonly { dayId: number; stops: readonly Pick<RoadtripStop, 'assignmentId' | 'placeId' | 'carrier' | 'automaticNight' | 'bookend'>[] }[],
+): Map<number, number> {
+  const out = new Map<number, number>()
+  for (const d of days) for (const s of d.stops) if (isStoredStop(s)) out.set(s.assignmentId, d.dayId)
+  return out
 }
 
 /** The booking panel's icon for the type, so a table reads as a table here too. */

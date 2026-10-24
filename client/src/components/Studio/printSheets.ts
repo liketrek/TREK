@@ -23,6 +23,8 @@
  * standalone PWA. An overlay with a `srcdoc` iframe works everywhere.
  */
 
+import { whenReady } from './printReady'
+
 /*
  * The only literal colours in Studio, and deliberately so.
  *
@@ -253,48 +255,4 @@ ${singleRule(input)}
   })
 
   return close
-}
-
-/**
- * When the document is actually printable.
- *
- * Both halves matter and neither is covered by the load event: a photograph
- * still decoding prints as an empty box, and a face still loading prints in the
- * fallback — the exact substitution the bundled typefaces exist to prevent.
- */
-async function whenReady(iframe: HTMLIFrameElement): Promise<void> {
-  const win = iframe.contentWindow
-  const doc = iframe.contentDocument
-  if (!win || !doc) return
-
-  const settle = (el: Element) => new Promise<void>(resolve => {
-    // A picture that will not load must not hold the button hostage — better a
-    // book with one gap than a dialog that never finishes.
-    el.addEventListener('load', () => resolve(), { once: true })
-    el.addEventListener('error', () => resolve(), { once: true })
-  })
-
-  const images = Array.from(doc.images).map(img => (img.complete ? Promise.resolve() : settle(img)))
-
-  /*
-   * The photographs inside the map's markers are SVG `<image>`, which
-   * `doc.images` does not collect and which has no `complete` to ask, so there
-   * is nothing to do but wait on the events. Missing them meant a book could go
-   * to print with its route beads still blank.
-   */
-  const svgImages = Array.from(doc.querySelectorAll?.('image') ?? []).map(settle)
-
-  /*
-   * And a ceiling over the lot. Without `complete` to fall back on there is no
-   * way to tell a picture that is still coming from one whose events already
-   * fired before this ran, and a Save button that never enables is worse than a
-   * marker that prints blank.
-   */
-  const wait = win.setTimeout?.bind(win) ?? setTimeout
-  const ceiling = new Promise<void>(resolve => { wait(resolve, 8000) })
-
-  await Promise.race([
-    Promise.all([...images, ...svgImages, doc.fonts?.ready ?? Promise.resolve()]),
-    ceiling,
-  ])
 }

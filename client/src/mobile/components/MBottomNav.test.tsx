@@ -1,4 +1,4 @@
-// FE-COMP-MBOTTOMNAV-001 to FE-COMP-MBOTTOMNAV-007
+// FE-COMP-MBOTTOMNAV-001 to FE-COMP-MBOTTOMNAV-008
 
 vi.mock('../../api/websocket', () => ({
   connect: vi.fn(),
@@ -22,6 +22,8 @@ import { useAuthStore } from '../../store/authStore';
 import { useAddonStore } from '../../store/addonStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser } from '../../../tests/helpers/factories';
+import { useAssistantStore } from '../../store/assistantStore';
+import type { AiStatusResponse } from '@trek/shared';
 import MBottomNav from './MBottomNav';
 
 const currentUser = buildUser({ id: 1, username: 'testuser', email: 'test@example.com' });
@@ -96,5 +98,16 @@ describe('MBottomNav', () => {
   it('FE-COMP-MBOTTOMNAV-007: /vacay yields the centre slot to the screen (#1811)', () => {
     render(<MBottomNav />, { initialEntries: ['/vacay'] });
     expect(screen.queryByRole('button', { name: 'New Trip' })).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-MBOTTOMNAV-008: the More list leads with the assistant while it can run, and opens the home chat', async () => {
+    const user = userEvent.setup();
+    useAssistantStore.setState({ status: { available: true } as AiStatusResponse, window: { open: false, minimized: false } });
+    render(<MBottomNav />, { initialEntries: ['/atlas'] });
+    await user.click(screen.getByRole('button', { name: 'More' }));
+    await user.click(screen.getByRole('button', { name: 'Assistant' }));
+    expect(useAssistantStore.getState().window).toEqual({ open: true, minimized: false });
+    expect(mockNavigate).not.toHaveBeenCalled();
+    useAssistantStore.setState({ status: null, window: { open: false, minimized: false } });
   });
 });

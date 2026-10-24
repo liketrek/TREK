@@ -11,6 +11,6 @@ const trips: TranslationStrings = {
   'trips.reminderDays': 'أيام',
   'trips.reminderCustom': 'مخصص',
   'trips.reminderDaysBefore': 'أيام قبل المغادرة',
-  'trips.reminderDisabledHint': 'تذكيرات الرحلة معطلة. قم بتفعيلها من الإدارة > الإعدادات > الإشعارات.',
+  'trips.reminderDisabledHint': 'تذكيرات الرحلة معطلة. قم بتفعيلها من الإدارة > الإشعارات > تذكيرات الرحلات.',
 };
 export default trips;

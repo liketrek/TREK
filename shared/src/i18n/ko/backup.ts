@@ -69,5 +69,6 @@ const backup: TranslationStrings = {
     '현재 모든 데이터 (여행, 장소, 사용자, 업로드)가 백업으로 영구 교체됩니다. 이 작업은 취소할 수 없습니다.',
   'backup.restoreTip': '팁: 복원 전에 현재 상태의 백업을 만드세요.',
   'backup.restoreConfirm': '예, 복원',
+  'backup.auto.hourHintTz': '서버 현지 시간 ({format} 형식), 시간대 {timezone}',
 };
 export default backup;

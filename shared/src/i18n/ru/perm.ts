@@ -32,6 +32,7 @@ const perm: TranslationStrings = {
   'perm.action.collab_edit': 'Совместная работа (заметки, опросы, чат)',
   'perm.action.share_manage': 'Управлять ссылками для обмена',
   'perm.actionHint.trip_create': 'Кто может создавать новые поездки',
+  'perm.action.journal_link': 'Привязать дневник',
   'perm.actionHint.trip_edit': 'Кто может менять название, даты, описание и валюту поездки',
   'perm.actionHint.trip_delete': 'Кто может безвозвратно удалить поездку',
   'perm.actionHint.trip_archive': 'Кто может архивировать или разархивировать поездку',
@@ -47,5 +48,6 @@ const perm: TranslationStrings = {
   'perm.actionHint.packing_edit': 'Кто может управлять вещами для сборов и сумками',
   'perm.actionHint.collab_edit': 'Кто может создавать заметки, опросы и отправлять сообщения',
   'perm.actionHint.share_manage': 'Кто может создавать или удалять публичные ссылки для обмена',
+  'perm.actionHint.journal_link': 'Кто может привязать дневник из Journey к поездке и открыть его участникам',
 };
 export default perm;

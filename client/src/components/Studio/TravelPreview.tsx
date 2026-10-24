@@ -27,10 +27,16 @@ import { ElementView } from './SpreadView'
 /** CSS defines 1in as 96px and 25.4mm, so this factor is exact. */
 const PX_PER_MM = 96 / 25.4
 
-export function TravelPreview({ el, minHeight = 30, maxHeight = 90 }: {
+export function TravelPreview({ el, minHeight = 30, maxHeight = 90, inset = 0 }: {
   el: BookElement
   minHeight?: number
   maxHeight?: number
+  /**
+   * Room kept round the element, as a share of the tile: a stamp is set a few
+   * degrees off square and a medal's ring runs to its edge, and drawn edge to
+   * edge they would be clipped by the tile.
+   */
+  inset?: number
 }) {
   const box = useElementSize<HTMLSpanElement>()
   const width = box.width
@@ -48,7 +54,8 @@ export function TravelPreview({ el, minHeight = 30, maxHeight = 90 }: {
   const drawnW = el.frame.w * PX_PER_MM
   const drawnH = el.frame.h * PX_PER_MM
   const height = Math.round(Math.min(maxHeight, Math.max(minHeight, (width * drawnH) / drawnW || minHeight)))
-  const scale = width > 0 ? Math.min(width / drawnW, height / drawnH) : 0
+  const room = 1 - 2 * inset
+  const scale = width > 0 ? Math.min((width * room) / drawnW, (height * room) / drawnH) : 0
 
   return (
     <span className="st-travel-preview" style={{ height }} ref={box.ref} aria-hidden>

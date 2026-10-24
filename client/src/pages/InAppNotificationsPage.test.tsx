@@ -74,6 +74,25 @@ describe('InAppNotificationsPage', () => {
     });
   });
 
+  describe('FE-PAGE-NOTIFPAGE-004b: Delete all asks first', () => {
+    it('opens a confirmation and only deletes after confirming', async () => {
+      const user = userEvent.setup();
+      const deleteAll = vi.fn(async () => {});
+      render(<InAppNotificationsPage />);
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /delete all/i })).toBeInTheDocument();
+      });
+      seedStore(useInAppNotificationStore, { deleteAll });
+
+      await user.click(screen.getByRole('button', { name: /delete all/i }));
+      expect(deleteAll).not.toHaveBeenCalled();
+      expect(screen.getByText('Delete all notifications?')).toBeInTheDocument();
+
+      await user.click(screen.getAllByRole('button', { name: /delete all/i }).slice(-1)[0]);
+      expect(deleteAll).toHaveBeenCalled();
+    });
+  });
+
   describe('FE-PAGE-NOTIFPAGE-005: Empty state when no notifications', () => {
     it('shows empty state when API returns no notifications', async () => {
       server.use(

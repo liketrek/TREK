@@ -23,10 +23,15 @@ const login: TranslationStrings = {
   'login.oidc.noEmail': 'لم يتم استلام بريد إلكتروني من المزوّد.',
   'login.oidc.tokenFailed': 'فشلت المصادقة.',
   'login.oidc.invalidState': 'جلسة غير صالحة. حاول مرة أخرى.',
+  'login.oidc.emailNotVerified': 'لم يؤكد مزود تسجيل الدخول عنوان البريد الإلكتروني هذا، لذا لا يمكن ربطه بحساب موجود.',
+  'login.oidc.emailLinkBlocked':
+    'تعذر ربط تسجيل الدخول هذا بالحساب الموجود بهذا البريد الإلكتروني. اطلب من المسؤول تأكيد العنوان.',
   'login.demoFailed': 'فشل الدخول إلى العرض التجريبي',
   'login.oidcSignIn': 'تسجيل الدخول عبر {name}',
   'login.oidcOnly': 'تم تعطيل المصادقة بكلمة المرور. يرجى تسجيل الدخول عبر مزود SSO.',
   'login.oidcLoggedOut': 'تم تسجيل خروجك. سجّل الدخول مجدداً عبر مزود SSO.',
+  'login.oidcRedirecting': 'جارٍ تحويلك إلى {name}…',
+  'login.oidcRedirectSlow': 'ما زلت هنا؟ تابع إلى {name}',
   'login.demoHint': 'جرّب العرض التجريبي دون الحاجة للتسجيل',
   'login.mfaTitle': 'المصادقة الثنائية',
   'login.mfaSubtitle': 'أدخل الرمز المكون من 6 أرقام من تطبيق المصادقة.',
@@ -65,12 +70,12 @@ const login: TranslationStrings = {
   'login.resetPasswordInvalidLink': 'رابط إعادة تعيين غير صالح',
   'login.resetPasswordInvalidLinkBody': 'هذا الرابط مفقود أو تالف. اطلب رابطًا جديدًا للمتابعة.',
   'login.resetPasswordFailed': 'فشلت إعادة التعيين. ربما انتهت صلاحية الرابط.',
-  'login.emailPlaceholder': 'your@email.com', // en-fallback
+  'login.emailPlaceholder': 'your@email.com',
   'login.passkey.signIn': 'تسجيل الدخول باستخدام مفتاح المرور',
   'login.passkey.failed': 'فشل تسجيل الدخول بمفتاح المرور. يرجى المحاولة مرة أخرى.',
-  'login.insecureCookie.title': "Login won't stick over HTTP",
+  'login.insecureCookie.title': 'لن يستمر تسجيل الدخول عبر HTTP',
   'login.insecureCookie.body':
-    'You’re connecting over plain HTTP, so your browser drops TREK’s secure session cookie — the next request fails with "Access token required". Fix: use HTTPS, or for a home-lab set COOKIE_SECURE=false.',
-  'login.insecureCookie.link': 'Open the Troubleshooting guide',
+    'أنت تتصل عبر HTTP العادي، لذلك يتجاهل المتصفح ملف تعريف الارتباط الآمن للجلسة في TREK، وسيفشل الطلب التالي مع الرسالة "Access token required". الحل: استخدم HTTPS، أو اضبط COOKIE_SECURE=false في المختبر المنزلي.',
+  'login.insecureCookie.link': 'افتح دليل استكشاف الأخطاء',
 };
 export default login;

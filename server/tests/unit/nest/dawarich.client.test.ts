@@ -16,15 +16,6 @@
  * hands it, so "Dawarich answered HTML" stays a genuine parse failure rather
  * than a mock returning `undefined` on command.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-const { safeFetchMock, readCappedJsonMock } = vi.hoisted(() => ({
-  safeFetchMock: vi.fn(),
-  readCappedJsonMock: vi.fn(),
-}));
-vi.mock('../../../src/utils/ssrfGuard', () => ({ safeFetch: safeFetchMock }));
-vi.mock('../../../src/utils/cappedFetch', () => ({ readCappedJson: readCappedJsonMock }));
-
 import {
   DawarichClient,
   DawarichError,
@@ -36,6 +27,15 @@ import {
   type DawarichCreds,
   type DawarichVisitRaw,
 } from '../../../src/nest/integrations/dawarich.client';
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+const { safeFetchMock, readCappedJsonMock } = vi.hoisted(() => ({
+  safeFetchMock: vi.fn(),
+  readCappedJsonMock: vi.fn(),
+}));
+vi.mock('../../../src/utils/ssrfGuard', () => ({ safeFetch: safeFetchMock }));
+vi.mock('../../../src/utils/cappedFetch', () => ({ readCappedJson: readCappedJsonMock }));
 
 const API_KEY = 'sk-dawarich-2f7c9';
 
@@ -404,11 +404,11 @@ describe('DawarichClient — listVisits', () => {
     const out = await client.listVisits(CREDS, FROM, TO);
 
     expect(calls).toHaveLength(3);
-    expect(out.visits.map(v => v.id)).toEqual([1, 2, 3]);
+    expect(out.visits.map((v) => v.id)).toEqual([1, 2, 3]);
     expect(out.truncated).toBe(false);
     // The first page's banner is the answer; a later page cannot overwrite it.
     expect(out.version).toBe('1.14.4');
-    expect(calls.map(c => new URL(c.url).searchParams.get('page'))).toEqual(['1', '2', '3']);
+    expect(calls.map((c) => new URL(c.url).searchParams.get('page'))).toEqual(['1', '2', '3']);
   });
 
   it('DAWARICH-CLIENT-052: an absent X-Total-Pages means one page', async () => {
@@ -451,7 +451,13 @@ describe('DawarichClient — listVisits', () => {
 describe('DawarichClient — listTracks', () => {
   const feature = (id: number) => ({
     type: 'Feature',
-    geometry: { type: 'LineString', coordinates: [[12.1, 54.0], [12.2, 54.1]] },
+    geometry: {
+      type: 'LineString',
+      coordinates: [
+        [12.1, 54.0],
+        [12.2, 54.1],
+      ],
+    },
     properties: { id, start_at: '2026-09-02T08:00:00Z', end_at: '2026-09-02T09:00:00Z' },
   });
 
@@ -463,7 +469,7 @@ describe('DawarichClient — listTracks', () => {
     expect(url.pathname).toBe('/api/v1/tracks');
     expect(url.searchParams.get('per_page')).toBe(String(TRACKS_PAGE_SIZE));
     expect(url.searchParams.get('start_at')).toBe('2026-09-01T00:00:00Z');
-    expect(out.features.map(f => f.properties?.id)).toEqual([1, 2]);
+    expect(out.features.map((f) => f.properties?.id)).toEqual([1, 2]);
     expect(out.truncated).toBe(false);
   });
 
@@ -526,7 +532,7 @@ describe('DawarichClient — listPoints', () => {
     );
     const paged = await client.listPoints(CREDS, FROM, TO);
     expect(calls).toHaveLength(2);
-    expect(paged.points.map(p => p.id)).toEqual([1, 2]);
+    expect(paged.points.map((p) => p.id)).toEqual([1, 2]);
     expect(paged.truncated).toBe(false);
 
     calls = [];
@@ -596,7 +602,12 @@ describe('DawarichClient, visited cities over a year', () => {
         served === 1
           ? { data: [{ country: 'Germany', cities: [{ city: 'Rostock', stayed_for: 90 }] }] }
           : served === 7
-            ? { data: [{ country: 'Germany', cities: [{ city: 'Rostock', stayed_for: 30 }] }, { country: 'Poland', cities: [] }] }
+            ? {
+                data: [
+                  { country: 'Germany', cities: [{ city: 'Rostock', stayed_for: 30 }] },
+                  { country: 'Poland', cities: [] },
+                ],
+              }
             : { data: [] };
       return reply({ body }) as unknown as Response;
     });

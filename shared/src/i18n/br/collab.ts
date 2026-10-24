@@ -9,10 +9,10 @@ const collab: TranslationStrings = {
   'collab.polls.countdownHoursMinutes': 'Faltam {h}h {m}min',
   'collab.polls.countdownMinutes': 'Faltam {m}min',
   'collab.polls.clearDeadline': 'Remover prazo',
-  'collab.tabs.chat': 'Chat',
+  'collab.tabs.chat': 'Chat', // same-as-en
   'collab.tabs.notes': 'Notas',
   'collab.tabs.polls': 'Enquetes',
-  'collab.tabs.links': 'Links',
+  'collab.tabs.links': 'Links', // same-as-en
   'collab.links.add': 'Adicionar link',
   'collab.chat.imageRejected': 'Apenas imagens JPEG, PNG, GIF e WebP de até 10 MB são permitidas',
   'collab.links.cancel': 'Cancelar',
@@ -45,7 +45,9 @@ const collab: TranslationStrings = {
   'collab.chat.loadMore': 'Carregar mensagens antigas',
   'collab.chat.justNow': 'agora mesmo',
   'collab.chat.minutesAgo': 'há {n} min',
+  'collab.chat.minutesAgo.one': 'há {n} min',
   'collab.chat.hoursAgo': 'há {n} h',
+  'collab.chat.hoursAgo.one': 'há {n} h',
   'collab.notes.title': 'Notas',
   'collab.notes.new': 'Nova nota',
   'collab.notes.empty': 'Nenhuma nota ainda',
@@ -69,6 +71,7 @@ const collab: TranslationStrings = {
   'collab.notes.pin': 'Fixar',
   'collab.notes.unpin': 'Desafixar',
   'collab.notes.daysAgo': 'há {n} d',
+  'collab.notes.daysAgo.one': 'há {n} d',
   'collab.notes.categorySettings': 'Gerenciar categorias',
   'collab.notes.create': 'Criar',
   'collab.notes.website': 'Site',
@@ -89,7 +92,7 @@ const collab: TranslationStrings = {
   'collab.polls.close': 'Encerrar',
   'collab.polls.closed': 'Encerrada',
   'collab.polls.votes': '{n} votos',
-  'collab.polls.vote': '{n} voto',
+  'collab.polls.votes.one': '{n} voto',
   'collab.polls.multipleChoice': 'Múltipla escolha',
   'collab.polls.multiChoice': 'Múltipla escolha',
   'collab.polls.deadline': 'Prazo',
@@ -97,10 +100,17 @@ const collab: TranslationStrings = {
   'collab.polls.options': 'Opções',
   'collab.polls.delete': 'Excluir',
   'collab.polls.closedSection': 'Encerradas',
-  'collab.chat.imageLimit': 'Podes anexar até {max} imagens por mensagem',
+  'collab.chat.imageLimit': 'Podes anexar até {count} imagens por mensagem',
+  'collab.chat.imageLimit.one': 'Podes anexar até {count} imagem por mensagem',
   'collab.chat.uploading': 'A enviar {percent}%',
   'collab.chat.attachImages': 'Anexar imagens',
   'collab.chat.attachedImage': 'Imagem anexada',
   'collab.chat.closeImage': 'Fechar imagem',
+  'collab.notes.categoryInUse':
+    "Notennoù a implij c'hoazh ar rummad-mañ. Fiñvit pe dilamit anezho da gentañ evit lemel ar rummad.",
+  'collab.notes.categoriesLocalHint':
+    "Ur rummad hep notenn n'eo enrollet nemet er merdeer-mañ. An izili all a wel anezhañ pa vo implijet gant ur note.",
+  'collab.chat.fromAssistant': 'do assistente',
+  'collab.chat.fromAssistantHint': '{name} compartilhou esta resposta do assistente',
 };
 export default collab;

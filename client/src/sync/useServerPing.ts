@@ -27,13 +27,30 @@ const COALESCE_MS = 250
  * re-join after a reconnect, and the return to online.
  *
  * `reload` may change identity every render; the latest one is always used.
+ * `eventName` may also be a list, for a view that reads one thing again after
+ * any of several events: a burst across all of them is still one refetch.
+ *
+ * `rejoin: false` leaves the room re-join out. The server answers every join with
+ * `joined`, opening a trip included, so a hook that reads account-wide state
+ * (settings, tags, collections) would read it again on each trip opened. Those
+ * events go to the user's own sockets, not to a room, so a re-join says nothing
+ * about them; the return to online still counts.
  */
-export function useServerPing(eventName: string, enabled: boolean, reload: () => Promise<void>): void {
+export function useServerPing(
+  eventName: string | readonly string[],
+  enabled: boolean,
+  reload: () => Promise<void>,
+  options: { rejoin?: boolean } = {}
+): void {
   const reloadRef = useRef(reload)
   reloadRef.current = reload
+  // A string key, so a list written inline does not resubscribe on every render.
+  const eventKey = typeof eventName === 'string' ? eventName : eventName.join('\n')
+  const rejoin = options.rejoin ?? true
 
   useEffect(() => {
     if (!enabled) return
+    const eventNames = new Set(eventKey.split('\n'))
     let timer: ReturnType<typeof setTimeout> | null = null
     let inFlight = false
     /** A ping that arrived while a refetch was running: serve it once that lands. */
@@ -65,11 +82,11 @@ export function useServerPing(eventName: string, enabled: boolean, reload: () =>
     }
 
     const handler = (event: Record<string, unknown>) => {
-      // 'joined' is the room re-join the socket sends on every reconnect, so it
-      // is also the moment what is on screen is what was there before the drop:
+      // 'joined' answers every room join, the re-join after a reconnect included,
+      // which is the moment what is on screen is what was there before the drop:
       // whatever moved in the meantime pinged into a closed socket.
-      if (event.type !== eventName && event.type !== 'joined') return
-      schedule()
+      const ping = event.type === 'joined' ? rejoin : eventNames.has(String(event.type))
+      if (ping) schedule()
     }
 
     let wasOnline = isEffectivelyOnline()
@@ -89,5 +106,5 @@ export function useServerPing(eventName: string, enabled: boolean, reload: () =>
       unsubscribeMode()
       if (timer) clearTimeout(timer)
     }
-  }, [enabled, eventName])
+  }, [enabled, eventKey, rejoin])
 }

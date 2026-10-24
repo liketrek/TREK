@@ -3,8 +3,9 @@
  * "identical to the default order" — and that is what these check, against the
  * default rather than against hand-written expectations.
  */
-import { describe, it, expect } from 'vitest';
 import { byCodeUnit } from '../../../src/nest/common/compare';
+
+import { describe, it, expect } from 'vitest';
 
 describe('byCodeUnit', () => {
   it('CMP-001: reports less, greater and equal', () => {
@@ -14,8 +15,11 @@ describe('byCodeUnit', () => {
   });
 
   it('CMP-002: orders ISO dates chronologically, which is why the callers can use it', () => {
-    expect(['2026-03-01', '2026-01-15', '2026-02-28'].sort(byCodeUnit))
-      .toEqual(['2026-01-15', '2026-02-28', '2026-03-01']);
+    expect(['2026-03-01', '2026-01-15', '2026-02-28'].sort(byCodeUnit)).toEqual([
+      '2026-01-15',
+      '2026-02-28',
+      '2026-03-01',
+    ]);
   });
 
   it('CMP-003: reproduces the default sort exactly for the ASCII the callers pass', () => {
@@ -37,7 +41,6 @@ describe('byCodeUnit', () => {
     // A list a person reads wants localeCompare instead; this asserts the
     // difference so nobody reaches for byCodeUnit there by accident.
     expect(['Zelt', 'Übernachtung'].sort(byCodeUnit)).toEqual(['Zelt', 'Übernachtung']);
-    expect(['Zelt', 'Übernachtung'].sort((a, b) => a.localeCompare(b, 'de')))
-      .toEqual(['Übernachtung', 'Zelt']);
+    expect(['Zelt', 'Übernachtung'].sort((a, b) => a.localeCompare(b, 'de'))).toEqual(['Übernachtung', 'Zelt']);
   });
 });

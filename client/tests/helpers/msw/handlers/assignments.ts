@@ -1,28 +1,46 @@
-import { http, HttpResponse } from 'msw';
+import {
+  assignmentCreateRequestSchema,
+  assignmentMoveRequestSchema,
+  assignmentReorderRequestSchema,
+  assignmentSchema,
+} from '@trek/shared';
+import { HttpResponse } from 'msw';
+import { z } from 'zod';
 import { buildAssignment, buildPlace } from '../../factories';
+import { contractHandler } from '../contract';
 
 export const assignmentsHandlers = [
-  http.post('/api/trips/:id/days/:dayId/assignments', async ({ params, request }) => {
-    const body = await request.json() as { place_id: number };
-    const place = buildPlace({ id: body.place_id, trip_id: Number(params.id) });
-    const assignment = buildAssignment({
-      day_id: Number(params.dayId),
-      place_id: body.place_id,
-      place,
-      order_index: 0,
-    });
-    return HttpResponse.json({ assignment });
-  }),
+  contractHandler(
+    'post',
+    '/api/trips/:id/days/:dayId/assignments',
+    { request: assignmentCreateRequestSchema, response: z.object({ assignment: assignmentSchema }) },
+    ({ params, body }) => {
+      const placeId = Number(body.place_id);
+      const place = buildPlace({ id: placeId, trip_id: Number(params.id) });
+      const assignment = buildAssignment({ day_id: Number(params.dayId), place_id: placeId, place, order_index: 0 });
+      return { assignment };
+    }
+  ),
 
-  http.delete('/api/trips/:id/days/:dayId/assignments/:assignmentId', () => {
-    return HttpResponse.json({ success: true });
-  }),
+  contractHandler('delete', '/api/trips/:id/days/:dayId/assignments/:assignmentId', {}, () =>
+    HttpResponse.json({ success: true })
+  ),
 
-  http.put('/api/trips/:id/days/:dayId/assignments/reorder', () => {
-    return HttpResponse.json({ success: true });
-  }),
+  contractHandler(
+    'put',
+    '/api/trips/:id/days/:dayId/assignments/reorder',
+    { request: assignmentReorderRequestSchema },
+    () => ({
+      success: true,
+    })
+  ),
 
-  http.put('/api/trips/:id/assignments/:assignmentId/move', () => {
-    return HttpResponse.json({ success: true });
-  }),
+  contractHandler(
+    'put',
+    '/api/trips/:id/assignments/:assignmentId/move',
+    { request: assignmentMoveRequestSchema },
+    () => ({
+      success: true,
+    })
+  ),
 ];

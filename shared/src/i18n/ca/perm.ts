@@ -32,6 +32,7 @@ const perm: TranslationStrings = {
   'perm.action.collab_edit': 'Col·laboració (notes, enquestes, xat)',
   'perm.action.share_manage': 'Gestiona els enllaços compartits',
   'perm.actionHint.trip_create': 'Permet crear viatges nous',
+  'perm.action.journal_link': 'Enllaçar un diari',
   'perm.actionHint.trip_edit': 'Permet canviar el nom, les dates, la descripció i la moneda del viatge',
   'perm.actionHint.trip_delete': 'Permet eliminar permanentment un viatge',
   'perm.actionHint.trip_archive': "Permet arxivar o treure de l'arxiu un viatge",
@@ -47,5 +48,6 @@ const perm: TranslationStrings = {
   'perm.actionHint.packing_edit': "Permet gestionar els elements d'equipatge i les bosses",
   'perm.actionHint.collab_edit': 'Permet crear notes, enquestes i enviar missatges',
   'perm.actionHint.share_manage': 'Permet crear o eliminar enllaços públics compartits',
+  'perm.actionHint.journal_link': 'Qui pot enllaçar un diari de Journey al viatge i obrir-lo als seus membres',
 };
 export default perm;

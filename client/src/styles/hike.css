@@ -1,0 +1,101 @@
+/* ============================================================================
+   Hikes on the planner map and in its cards (MAP-03, MAP-04): the SAC hiking
+   grades OpenStreetMap gives the ways along a hike, T1 to T6, and the
+   surfaces and kinds of way it records for them. Global, since the 2D, GL and
+   3D maps and the planner's cards all read the tokens.
+   ========================================================================== */
+
+/* One ramp of a single hue, from light to deep as the steps grow harder, so
+   the order reads at a glance. It is deliberately no trail marking colour
+   (yellow, white and red, white and blue) and no regional blue, red or black
+   category: the scale is shown as the SAC scale and nothing else. A way
+   without a known grade takes the grey of the unknown (--bike-surface-unknown),
+   never a step. In the dark theme the ramp turns round, so the harder steps
+   stay the ones that stand out. */
+:root {
+  --hike-sac-t1: #c4b5fd;
+  --hike-sac-t2: #a78bfa;
+  --hike-sac-t3: #8b5cf6;
+  --hike-sac-t4: #7c3aed;
+  --hike-sac-t5: #6d28d9;
+  --hike-sac-t6: #4c1d95;
+}
+
+.dark {
+  --hike-sac-t1: #5b21b6;
+  --hike-sac-t2: #6d28d9;
+  --hike-sac-t3: #7c3aed;
+  --hike-sac-t4: #8b5cf6;
+  --hike-sac-t5: #a78bfa;
+  --hike-sac-t6: #ddd6fe;
+}
+
+/* The surfaces OpenStreetMap records along a hike. Where a group means what a
+   bike tour's surface means (asphalt, compacted, gravel, natural ground) it
+   takes the bike's colour, so one surface reads the same on every tour; the
+   groups only a hike shows get their own. A colour sorts the surface, it
+   never says a way can or cannot be walked. */
+:root {
+  --hike-surface-paved: var(--bike-surface-paved);
+  --hike-surface-sett: var(--bike-surface-rough);
+  --hike-surface-compacted: var(--bike-surface-compacted);
+  --hike-surface-gravel: var(--bike-surface-gravel);
+  --hike-surface-ground: var(--bike-surface-ground);
+  --hike-surface-grass: #65a30d;
+  --hike-surface-rock: #57534e;
+  --hike-surface-wood: #be123c;
+  --hike-surface-unpaved: #ca8a04;
+  --hike-surface-other: #c026d3;
+}
+
+.dark {
+  --hike-surface-grass: #a3e635;
+  --hike-surface-rock: #d6d3d1;
+  --hike-surface-wood: #fb7185;
+  --hike-surface-unpaved: #facc15;
+  --hike-surface-other: #e879f9;
+}
+
+/* The kinds of way OpenStreetMap records along a hike: the ways made for
+   walking in warm colours, those shared with bikes and traffic in cool ones,
+   the roads darkest. */
+:root {
+  --hike-way-path: #e11d48;
+  --hike-way-footway: #f97316;
+  --hike-way-steps: #7c3aed;
+  --hike-way-track: #a16207;
+  --hike-way-cycleway: #2563eb;
+  --hike-way-quiet-road: #0d9488;
+  --hike-way-road: #334155;
+  --hike-way-via-ferrata: #c026d3;
+  --hike-way-other: #0891b2;
+}
+
+.dark {
+  --hike-way-path: #fb7185;
+  --hike-way-footway: #fdba74;
+  --hike-way-steps: #c4b5fd;
+  --hike-way-track: #facc15;
+  --hike-way-cycleway: #60a5fa;
+  --hike-way-quiet-road: #2dd4bf;
+  --hike-way-road: #e2e8f0;
+  --hike-way-via-ferrata: #f0abfc;
+  --hike-way-other: #67e8f9;
+}
+
+/* RTE-02: the ways offered for one section of a hike, on the map and in their
+   card. The way the section takes now keeps the planner's route blue; the
+   others take three hues far from it and from each other, so each line is
+   found by its letter. A colour names a way, it never ranks one. */
+:root {
+  --hike-variant-current: #0a84ff;
+  --hike-variant-a: #f97316;
+  --hike-variant-b: #d946ef;
+  --hike-variant-c: #14b8a6;
+}
+
+.dark {
+  --hike-variant-a: #fb923c;
+  --hike-variant-b: #e879f9;
+  --hike-variant-c: #2dd4bf;
+}

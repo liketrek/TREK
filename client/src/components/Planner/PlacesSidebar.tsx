@@ -1,6 +1,7 @@
 import React from 'react'
 import { ContextMenu } from '../shared/ContextMenu'
 import FileImportModal from './FileImportModal'
+import TourGpxPreviewDialog from '../Tours/TourGpxPreviewDialog'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import { usePlacesSidebar, type PlacesSidebarProps } from './usePlacesSidebar'
 import { PlacesDropOverlay, PlacesHeader } from './PlacesSidebarHeader'
@@ -20,7 +21,7 @@ const PlacesSidebar = React.memo(function PlacesSidebar(props: PlacesSidebarProp
   const {
     sidebarDragOver, handleSidebarDragEnter, handleSidebarDragOver, handleSidebarDragLeave, handleSidebarDrop,
     selectMode, filtered, t, dayPickerPlace, listImportOpen,
-    fileImportOpen, setFileImportOpen, sidebarDropFile, setSidebarDropFile, tripId, pushUndo,
+    fileImportOpen, fileImportFiles, closeFileImport, tourFileImport, tripId, pushUndo,
     ctxMenu, isMobile, pendingDeleteIds, setPendingDeleteIds, onBulkDeleteConfirm,
     categories, selectedIds, exitSelectMode, onBulkChangeCategory, categoryPickerOpen, setCategoryPickerOpen,
     collectionsEnabled, saveToListOpen, setSaveToListOpen, days,
@@ -38,39 +39,21 @@ const PlacesSidebar = React.memo(function PlacesSidebar(props: PlacesSidebarProp
       onDragOver={dragDisabled ? undefined : handleSidebarDragOver}
       onDragLeave={dragDisabled ? undefined : handleSidebarDragLeave}
       onDrop={dragDisabled ? undefined : handleSidebarDrop}
-      style={{ display: 'flex', flexDirection: 'column', height: '100%', fontFamily: "var(--font-system)", position: 'relative' }}
+      className="relative flex h-full flex-col"
+      style={{ fontFamily: 'var(--font-system)' }}
     >
-      {!dragDisabled && sidebarDragOver && <PlacesDropOverlay {...S} />}
-      {/* Kopfbereich */}
+      {((!dragDisabled && sidebarDragOver) || tourFileImport.importing) && <PlacesDropOverlay {...S} />}
       <PlacesHeader {...S} />
 
-      {/* Anzahl / Auswahl-Leiste */}
-      {selectMode ? (
-        <PlacesSelectionBar {...S} />
-      ) : (
-        <div style={{ padding: '6px 16px', flexShrink: 0 }}>
-          {/* A badge across the whole rail rather than a line of text hugging the
-              left edge: it reads as the list's header instead of as a stray label.
-              Outlined rather than filled, because the tertiary surface is a slate
-              tone and put a blue cast on the panel. */}
-          <div className="text-content-faint" style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: '4px 10px', borderRadius: 99,
-            background: 'transparent', border: '1px solid var(--border-faint)',
-            fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600,
-            textTransform: 'uppercase', letterSpacing: '0.06em',
-          }}>
-            {filtered.length === 1 ? t('places.countSingular') : t('places.count', { count: filtered.length })}
-          </div>
-        </div>
-      )}
+      {/* No count line: the show filter in the head carries the number. */}
+      <div className="h-2 flex-none" />
 
       {/* Liste, with the Dawarich stays riding on top of it inside the same scroller —
           see the `header` prop for why they are not a band of their own. */}
       <PlacesList
         {...S}
         header={(
-          <div style={{ padding: '0 12px 8px' }}>
+          <div className="px-1 pb-2">
             <DawarichSuggestionsPanel
               tripId={tripId}
               trips={[{ id: tripId, label: t('dawarich.accept.thisTrip') }]}
@@ -87,15 +70,20 @@ const PlacesSidebar = React.memo(function PlacesSidebar(props: PlacesSidebarProp
         )}
       />
 
+      {/* While picking, the bar with what to do with the picks rises at the foot of the column. */}
+      {selectMode && <PlacesSelectionBar {...S} />}
+
       {dayPickerPlace && <MobileDayPickerSheet {...S} />}
       {listImportOpen && <ListImportModal {...S} />}
       <FileImportModal
         isOpen={fileImportOpen}
-        onClose={() => { setFileImportOpen(false); setSidebarDropFile(null) }}
+        onClose={closeFileImport}
         tripId={tripId}
         pushUndo={pushUndo}
-        initialFile={sidebarDropFile}
+        initialFiles={fileImportFiles}
       />
+      {/* With Tours on, a route or track file from this column lands in the Tours preview. */}
+      <TourGpxPreviewDialog gpxImport={tourFileImport} />
       <ContextMenu menu={ctxMenu.menu} onClose={ctxMenu.close} />
       {categoryPickerOpen && (
         <PlacesBulkCategoryModal

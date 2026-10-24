@@ -28,6 +28,7 @@ export function buildSystemPrompt(): string {
     'When present, also include at the reservation ROOT: "seat", "class" (fare/cabin class), "platform" (trains/buses), and the total "price" (a number) with "priceCurrency" (ISO 4217 code, e.g. EUR).',
     'Extract EVERY flight/segment in the document, including return legs — a round trip has TWO OR MORE flights, and each row of a flight table is a separate reservation. Do NOT stop after the first.',
     "Each flight shares the booking's reservationNumber. Use the date shown for that specific flight as its departureTime; if a flight lists only one date (no separate arrival time), leave arrivalTime null — never reuse another flight's date.",
+    'A total for the whole booking belongs on exactly one reservation, the first leg or segment to depart; never repeat it on each leg. Keep prices that the document states separately for each leg.',
     'If the document contains no recognizable reservation, return { "reservations": [] }.',
   ].join('\n');
 }

@@ -1,0 +1,174 @@
+import { bookElementId } from './book-ids';
+import { isBookOrnamentText } from './book-layouts';
+import {
+  MAX_SPREAD_ELEMENTS,
+  type BookElement,
+  type BookLayout,
+  type BookPageSetup,
+  type BookSpread,
+  type BookTextElement,
+} from './book.schema';
+
+/**
+ * A book's own layouts (#2316): a page somebody arranged, kept to lay other
+ * pages out the same way.
+ *
+ * Moved from the Studio (client/src/components/Studio/savedLayouts.ts)
+ * unchanged, so the assistant's book tools can lay a page out on a layout the
+ * book keeps.
+ *
+ * The built-in layouts in book-layouts.ts are frames only. A saved one is the
+ * whole design, panels and shapes and type included, with the pictures taken
+ * out; the page it is applied to brings its own.
+ */
+
+/** Which saved layouts fit a spread: a double spread's design does not fit a single page. */
+export const bookLayoutRole = (spread: BookSpread): BookLayout['role'] =>
+  spread.role === 'inner' ? 'inner' : 'single';
+
+/** A text with letters filled with a photo, as a layout keeps it: in its colour, the picture being the page's. */
+function withoutFillPhoto(el: BookElement): BookElement {
+  return el.kind === 'text' && el.fillPaint?.type === 'photo' ? { ...el, fillPaint: null } : el;
+}
+
+/** The arrangement of a spread, as a layout to keep. */
+export function bookLayoutFromSpread(spread: BookSpread, page: BookPageSetup, name: string): BookLayout {
+  return {
+    id: bookElementId('ly'),
+    name,
+    role: bookLayoutRole(spread),
+    pageWidth: page.pageWidth,
+    pageHeight: page.pageHeight,
+    background: spread.background,
+    ...(spread.backgroundPaint ? { backgroundPaint: spread.backgroundPaint } : {}),
+    // The design, not the pictures: every frame comes out empty, and no letters keep the page's photo.
+    elements: spread.elements.map((el) => (el.kind === 'photo' ? { ...el, photoId: null } : withoutFillPhoto(el))),
+  };
+}
+
+/** The next free "Layout n" name, so a save needs no dialog. */
+export function nextBookLayoutName(existing: readonly BookLayout[], base: string): string {
+  const taken = new Set(existing.map((l) => l.name));
+  let n = existing.length + 1;
+  while (taken.has(`${base} ${n}`)) n += 1;
+  return `${base} ${n}`;
+}
+
+const textSize = (el: BookElement) => (el.kind === 'text' ? el.size : 0);
+
+/** Letters a layout fills with a photo take this page's first picture, or keep their colour on a page without one. */
+function photoFilled(el: BookTextElement, photo: BookElement | undefined): BookTextElement {
+  if (el.fillPaint?.type !== 'photo') return el;
+  if (photo?.kind !== 'photo' || photo.photoId == null) return { ...el, fillPaint: null };
+  const fill = { type: 'photo' as const, photoId: photo.photoId, focalX: photo.focalX, focalY: photo.focalY, zoom: 1 };
+  return { ...el, fillPaint: fill };
+}
+
+/**
+ * Lay a spread out on a saved layout, keeping what the spread holds.
+ *
+ * The same contract as applying a built-in layout: the spread's pictures go into
+ * the layout's frames in order, its words into the layout's text boxes (the
+ * largest into the largest, so the title stays the title), and whatever does not
+ * fit is parked rather than lost. The layout's own type keeps its look and takes
+ * the spread's words; a text box that was filled from a journal entry and finds
+ * nothing to take is left out, because its words belonged to the page it was
+ * saved from. The small marks and the pros and cons list are content too: each
+ * takes the values of the spread's own mark of the same kind, in order (the
+ * spread's day, its coordinates), and keeps the layout's look. Everything else
+ * is the design and is copied as drawn, scaled from the page it was drawn on to
+ * this one.
+ */
+export function applySavedBookLayout(spread: BookSpread, layout: BookLayout, page: BookPageSetup): BookSpread {
+  const sx = page.pageWidth / layout.pageWidth;
+  const sy = page.pageHeight / layout.pageHeight;
+  const pool = [...spread.elements, ...(spread.parked ?? [])];
+  const photos = pool.filter((e) => e.kind === 'photo' && e.photoId != null);
+  // A mark set as text, a quotation mark, is design on either side: never the spread's words, never a box for them.
+  const isWords = (e: BookElement) => e.kind === 'text' && !!e.text.trim() && !isBookOrnamentText(e);
+  const texts = pool.filter(isWords).sort((a, b) => textSize(b) - textSize(a));
+
+  // Which of the layout's text boxes takes which of the spread's words.
+  const slots = layout.elements
+    .filter((e) => e.kind === 'text' && !isBookOrnamentText(e))
+    .sort((a, b) => textSize(b) - textSize(a));
+  const wordsFor = new Map<BookElement, BookElement>();
+  slots.forEach((slot, i) => {
+    const words = texts[i];
+    if (words) wordsFor.set(slot, words);
+  });
+
+  // The spread's own marks and lists, queued per kind, for the layout's to take their values from.
+  const marks = new Map<string, BookElement[]>();
+  for (const el of spread.elements) {
+    const key = el.kind === 'badge' ? `badge:${el.variant}` : el.kind === 'list' ? 'list' : null;
+    if (key) marks.set(key, [...(marks.get(key) ?? []), el]);
+  }
+  const takeMark = (key: string) => marks.get(key)?.shift();
+
+  let pi = 0;
+  const out: BookElement[] = [];
+  for (const el of layout.elements) {
+    const frame = { x: el.frame.x * sx, y: el.frame.y * sy, w: el.frame.w * sx, h: el.frame.h * sy };
+    const base = { ...el, id: bookElementId(el.kind[0] ?? 'e'), frame } as BookElement;
+    if (base.kind === 'photo') {
+      const src = photos[pi++];
+      out.push(
+        src && src.kind === 'photo' ? { ...base, photoId: src.photoId, focalX: src.focalX, focalY: src.focalY } : base,
+      );
+      continue;
+    }
+    if (base.kind === 'text' && el.kind === 'text') {
+      // A layout kept before its letters lost their photo still names the photo of the page it was saved from.
+      const own = photoFilled(base, photos[0]);
+      const src = wordsFor.get(el);
+      if (src && src.kind === 'text') {
+        out.push({ ...own, text: src.text, binding: src.binding, overridden: src.overridden });
+      } else if (!el.binding) {
+        out.push(own);
+      }
+      continue;
+    }
+    if (base.kind === 'badge') {
+      const own = takeMark(`badge:${base.variant}`);
+      out.push(own && own.kind === 'badge' ? { ...base, text: own.text, sub: own.sub, code: own.code } : base);
+      continue;
+    }
+    if (base.kind === 'list') {
+      const own = takeMark('list');
+      out.push(own && own.kind === 'list' ? { ...base, items: own.items } : base);
+      continue;
+    }
+    out.push(base);
+  }
+
+  const used = new Set(wordsFor.values());
+  const parked = [...photos.slice(pi), ...texts.filter((t) => !used.has(t))].slice(0, MAX_SPREAD_ELEMENTS);
+
+  // The layout's background replaces the page's, so the page's link to a theme
+  // colour goes with it: kept, the next theme would paint over the layout's colour.
+  const { backgroundPaint: _old, backgroundToken: _unlinked, ...rest } = spread;
+  const backgroundPaint = layout.backgroundPaint ? { backgroundPaint: layout.backgroundPaint } : {};
+  return { ...rest, background: layout.background, ...backgroundPaint, elements: out, parked };
+}
+
+/** A saved layout drawn as a spread on this book's page, for its card. Nothing is filled in. */
+export function bookLayoutPreview(layout: BookLayout, page: BookPageSetup): BookSpread {
+  const sx = page.pageWidth / layout.pageWidth;
+  const sy = page.pageHeight / layout.pageHeight;
+  return {
+    id: layout.id,
+    role: layout.role === 'inner' ? 'inner' : 'first',
+    background: layout.background,
+    ...(layout.backgroundPaint ? { backgroundPaint: layout.backgroundPaint } : {}),
+    elements: layout.elements.map(
+      (el) =>
+        ({
+          ...withoutFillPhoto(el),
+          frame: { x: el.frame.x * sx, y: el.frame.y * sy, w: el.frame.w * sx, h: el.frame.h * sy },
+        }) as BookElement,
+    ),
+    parked: [],
+    entryId: null,
+  };
+}

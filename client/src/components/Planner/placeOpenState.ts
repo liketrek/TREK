@@ -51,6 +51,14 @@ export function placeWeekdayIndex(now: Date, timeZone: string | null): number {
   return jsDay === 0 ? 6 : jsDay - 1
 }
 
+/** Monday-based weekday index of a plan day's date; for a day without one, today's in `timeZone`. */
+export function getWeekdayIndex(dateStr: string | null | undefined, timeZone: string | null): number {
+  // weekdayDescriptions[0] = Monday … [6] = Sunday
+  if (!dateStr) return placeWeekdayIndex(new Date(), timeZone)
+  const jsDay = new Date(dateStr + 'T12:00:00').getDay()
+  return jsDay === 0 ? 6 : jsDay - 1
+}
+
 /** Weekday (Sunday = 0), minute of day and calendar date of `now` in `timeZone`. */
 function localParts(now: Date, timeZone: string | null): { day: number; minutes: number; date: string } | null {
   if (!timeZone) return null

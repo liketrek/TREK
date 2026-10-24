@@ -2,6 +2,16 @@
  * Auto-backup settings + retention (moved from tests/unit/scheduler.test.ts
  * when the code moved from src/scheduler.ts into the backup domain).
  */
+import {
+  buildCronExpression,
+  cleanupOldBackups,
+  loadSettings,
+  saveSettings,
+  type BackupSettings,
+} from '../../../src/nest/backup/auto-backup.settings';
+import type { StorageService } from '../../../src/nest/storage/storage.service';
+
+import fs from 'node:fs';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 
 // Prevent fs side effects (creating directories, reading files)
@@ -30,16 +40,6 @@ vi.mock('../../../src/nest/audit/audit-log.logger', () => ({
   logError: vi.fn(),
 }));
 
-import fs from 'node:fs';
-import {
-  buildCronExpression,
-  cleanupOldBackups,
-  loadSettings,
-  saveSettings,
-  type BackupSettings,
-} from '../../../src/nest/backup/auto-backup.settings';
-import type { StorageService } from '../../../src/nest/storage/storage.service';
-
 // The settings half still does file I/O; these handles pin the mock functions
 // from the factory above to the plain signatures loadSettings/saveSettings use.
 // (Retention no longer touches fs — it goes through StorageService.)
@@ -63,7 +63,9 @@ function settings(overrides: Partial<BackupSettings> = {}): BackupSettings {
 describe('buildCronExpression', () => {
   describe('hourly', () => {
     it('returns 0 * * * * regardless of hour/dow/dom', () => {
-      expect(buildCronExpression(settings({ interval: 'hourly', hour: 5, day_of_week: 3, day_of_month: 15 }))).toBe('0 * * * *');
+      expect(buildCronExpression(settings({ interval: 'hourly', hour: 5, day_of_week: 3, day_of_month: 15 }))).toBe(
+        '0 * * * *',
+      );
     });
   });
 
@@ -145,19 +147,40 @@ describe('loadSettings / saveSettings', () => {
   });
 
   it('returns the defaults when no settings file exists', () => {
-    expect(loadSettings()).toEqual({ enabled: false, interval: 'daily', keep_days: 7, hour: 2, day_of_week: 0, day_of_month: 1 });
+    expect(loadSettings()).toEqual({
+      enabled: false,
+      interval: 'daily',
+      keep_days: 7,
+      hour: 2,
+      day_of_week: 0,
+      day_of_month: 1,
+    });
   });
 
   it('merges the saved file over the defaults', () => {
     existsSyncMock.mockReturnValue(true);
     readFileSyncMock.mockReturnValue(JSON.stringify({ enabled: true, interval: 'weekly', hour: 6 }));
-    expect(loadSettings()).toEqual({ enabled: true, interval: 'weekly', keep_days: 7, hour: 6, day_of_week: 0, day_of_month: 1 });
+    expect(loadSettings()).toEqual({
+      enabled: true,
+      interval: 'weekly',
+      keep_days: 7,
+      hour: 6,
+      day_of_week: 0,
+      day_of_month: 1,
+    });
   });
 
   it('falls back to the defaults on a corrupt settings file', () => {
     existsSyncMock.mockReturnValue(true);
     readFileSyncMock.mockReturnValue('{not json');
-    expect(loadSettings()).toEqual({ enabled: false, interval: 'daily', keep_days: 7, hour: 2, day_of_week: 0, day_of_month: 1 });
+    expect(loadSettings()).toEqual({
+      enabled: false,
+      interval: 'daily',
+      keep_days: 7,
+      hour: 2,
+      day_of_week: 0,
+      day_of_month: 1,
+    });
   });
 
   it('saveSettings creates the data dir when missing and writes pretty JSON', () => {
@@ -255,7 +278,9 @@ describe('cleanupOldBackups', () => {
 
   it('swallows storage list errors without throwing', async () => {
     const storage = {
-      list: vi.fn(() => { throw new Error('ENOENT'); }),
+      list: vi.fn(() => {
+        throw new Error('ENOENT');
+      }),
       delete: vi.fn(async () => {}),
     } as unknown as StorageService;
     await expect(cleanupOldBackups(storage, 7, NOW)).resolves.toBeUndefined();
@@ -269,7 +294,9 @@ describe('cleanupOldBackups', () => {
 
   it('swallows non-Error throws without throwing (string rejection path)', async () => {
     const storage = {
-      list: vi.fn(() => { throw 'nope'; }),
+      list: vi.fn(() => {
+        throw 'nope';
+      }),
       delete: vi.fn(async () => {}),
     } as unknown as StorageService;
     await expect(cleanupOldBackups(storage, 7, NOW)).resolves.toBeUndefined();

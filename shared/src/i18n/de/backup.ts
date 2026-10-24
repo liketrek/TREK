@@ -70,5 +70,6 @@ const backup: TranslationStrings = {
     'Alle aktuellen Daten (Reisen, Orte, Benutzer, Uploads) werden unwiderruflich durch das Backup ersetzt. Dieser Vorgang kann nicht rückgängig gemacht werden.',
   'backup.restoreTip': 'Tipp: Erstelle zuerst ein Backup des aktuellen Stands, bevor du wiederherstellst.',
   'backup.restoreConfirm': 'Ja, wiederherstellen',
+  'backup.auto.hourHintTz': 'Lokale Serverzeit ({format}-Format), Zeitzone {timezone}',
 };
 export default backup;

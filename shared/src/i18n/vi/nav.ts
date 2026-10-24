@@ -1,8 +1,6 @@
 import type { TranslationStrings } from '../types';
 
 const nav: TranslationStrings = {
-  'nav.trip': 'Chuyến đi',
-  'nav.share': 'Chia sẻ',
   'nav.settings': 'Cài đặt',
   'nav.admin': 'Quản trị viên',
   'nav.logout': 'Đăng xuất',

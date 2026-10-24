@@ -114,15 +114,20 @@ export function fetchPhoto(
     cache.set(cacheKey, entry)
     callback?.(entry)
     notify(cacheKey, entry)
-    // Generate base64 thumb in background
-    urlToBase64(photoId).then(thumb => {
-      if (thumb) { entry.thumbDataUrl = thumb; notifyThumb(cacheKey, thumb) }
-    })
+    // Generate base64 thumb in background, under the same limit as the API path:
+    // a list of a thousand saved places would otherwise ask for a thousand
+    // pictures at once (#2559).
+    void acquireRequestSlot()
+      .then(() => urlToBase64(photoId))
+      .then(thumb => {
+        if (thumb) { entry.thumbDataUrl = thumb; notifyThumb(cacheKey, thumb) }
+      })
+      .finally(releaseRequestSlot)
     return
   }
 
   inFlight.add(cacheKey)
-  acquireRequestSlot().then(() =>
+  void acquireRequestSlot().then(() =>
     mapsApi.placePhoto(photoId, lat, lng, name)
       .then(async (data: { photoUrl?: string }) => {
         const photoUrl = data.photoUrl || null

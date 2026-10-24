@@ -32,6 +32,7 @@ const perm: TranslationStrings = {
   'perm.action.collab_edit': 'Együttműködés (jegyzetek, szavazások, chat)',
   'perm.action.share_manage': 'Megosztási linkek kezelése',
   'perm.actionHint.trip_create': 'Ki hozhat létre új utazásokat',
+  'perm.action.journal_link': 'Napló összekapcsolása',
   'perm.actionHint.trip_edit': 'Ki módosíthatja az utazás nevét, dátumait, leírását és pénznemét',
   'perm.actionHint.trip_delete': 'Ki törölhet véglegesen egy utazást',
   'perm.actionHint.trip_archive': 'Ki archiválhat vagy állíthat vissza egy utazást',
@@ -47,5 +48,6 @@ const perm: TranslationStrings = {
   'perm.actionHint.packing_edit': 'Ki kezelheti a csomagolási tételeket és táskákat',
   'perm.actionHint.collab_edit': 'Ki hozhat létre jegyzeteket, szavazásokat és küldhet üzeneteket',
   'perm.actionHint.share_manage': 'Ki hozhat létre vagy törölhet nyilvános megosztási linkeket',
+  'perm.actionHint.journal_link': 'Ki kapcsolhat Journey-naplót az úthoz, és nyithatja meg a tagjai számára',
 };
 export default perm;

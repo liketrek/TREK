@@ -12,6 +12,6 @@ const trips: TranslationStrings = {
   'trips.reminderCustom': 'Aangepast',
   'trips.reminderDaysBefore': 'dagen voor vertrek',
   'trips.reminderDisabledHint':
-    'Reisherinneringen zijn uitgeschakeld. Schakel ze in via Admin > Instellingen > Meldingen.',
+    'Reisherinneringen zijn uitgeschakeld. Schakel ze in via Admin > Meldingen > Reisherinneringen.',
 };
 export default trips;

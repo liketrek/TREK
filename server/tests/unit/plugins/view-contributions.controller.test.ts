@@ -5,18 +5,21 @@
  * hardening: server-side normalization, a URL-scheme allowlist (no click-XSS), and
  * length/count caps.
  */
+import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
+import { ViewContributionsController } from '../../../src/nest/plugins/contributions/view-contributions.controller';
+import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
+import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { canAccessTrip, pluginsEnabled } = vi.hoisted(() => ({
-  canAccessTrip: vi.fn((tripId: number, userId: number) => (tripId === 1 && userId === 5 ? { id: 1 } : undefined)),
+  canAccessTrip: vi.fn(async (tripId: number, userId: number) =>
+    tripId === 1 && userId === 5 ? { id: 1 } : undefined,
+  ),
   pluginsEnabled: vi.fn(() => true),
 }));
 vi.mock('../../../src/db/database', () => ({ db: { prepare: () => ({ get: () => undefined }) }, canAccessTrip }));
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
-
-import { ViewContributionsController } from '../../../src/nest/plugins/contributions/view-contributions.controller';
-import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
-import type { DatabaseService } from '../../../src/nest/database/database.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const req = (id?: number) => ({ user: id === undefined ? undefined : { id } }) as any;
@@ -25,13 +28,29 @@ function controller(invoke: (id: string) => unknown, providers = ['p1']) {
     providersOf: vi.fn(() => providers),
     tableContributions: vi.fn(async (id: string) => invoke(id)),
   } as unknown as PluginHooks;
-  return { c: new ViewContributionsController(runtime, { canAccessTrip } as unknown as DatabaseService), runtime };
+  return {
+    c: new ViewContributionsController(
+      runtime,
+      new TripAccessService({ findAccessible: canAccessTrip } as unknown as TripsRepository),
+    ),
+    runtime,
+  };
 }
 const col = (over: Record<string, unknown> = {}) => ({ kind: 'column', entityId: 1, id: 'c1', label: 'X', ...over });
-const act = (over: Record<string, unknown> = {}) => ({ kind: 'action', entityId: 1, id: 'a1', label: 'Go', target: { kind: 'frame', sub: '/ui' }, ...over });
+const act = (over: Record<string, unknown> = {}) => ({
+  kind: 'action',
+  entityId: 1,
+  id: 'a1',
+  label: 'Go',
+  target: { kind: 'frame', sub: '/ui' },
+  ...over,
+});
 
 describe('ViewContributionsController', () => {
-  beforeEach(() => { pluginsEnabled.mockReturnValue(true); canAccessTrip.mockReturnValue({ id: 1 } as never); });
+  beforeEach(() => {
+    pluginsEnabled.mockReturnValue(true);
+    canAccessTrip.mockResolvedValue({ id: 1 } as never);
+  });
 
   it('gates: disabled / unknown view / no user / non-member all return [] (no plugin calls on the first two)', async () => {
     pluginsEnabled.mockReturnValue(false);
@@ -52,7 +71,7 @@ describe('ViewContributionsController', () => {
     }
 
     expect((await controller(() => [col()]).c.get('places', '1', req(undefined))).contributions).toEqual([]);
-    canAccessTrip.mockReturnValue(undefined as never);
+    canAccessTrip.mockResolvedValue(undefined as never);
     expect((await controller(() => [col()]).c.get('day', '1', req(5))).contributions).toEqual([]);
   });
 
@@ -65,7 +84,17 @@ describe('ViewContributionsController', () => {
       col({ id: 'long', label: 'L'.repeat(200), value: 'V'.repeat(500), tone: 'nope' }),
     ]);
     const out = (await c.get('reservations', '1', req(5))).contributions;
-    expect(out[0]).toEqual({ kind: 'column', pluginId: 'p1', entityId: 1, id: 'ok', label: 'Crowd', value: 'Quiet', url: 'https://x.test', icon: 'Users', tone: 'success' });
+    expect(out[0]).toEqual({
+      kind: 'column',
+      pluginId: 'p1',
+      entityId: 1,
+      id: 'ok',
+      label: 'Crowd',
+      value: 'Quiet',
+      url: 'https://x.test',
+      icon: 'Users',
+      tone: 'success',
+    });
     expect((out[1] as { url?: string }).url).toBeUndefined(); // javascript: rejected
     expect((out[2] as { url?: string }).url).toBeUndefined(); // data: rejected
     expect((out[3] as { url?: string }).url).toBe('mailto:a@b.c');
@@ -112,7 +141,13 @@ describe('ViewContributionsController', () => {
   });
 
   it('merges providers, skips one that throws, and passes (view, tripId) + user to the hook', async () => {
-    const { c, runtime } = controller((id) => { if (id === 'p2') throw new Error('slow'); return [col({ id: 'from-p1' })]; }, ['p1', 'p2']);
+    const { c, runtime } = controller(
+      (id) => {
+        if (id === 'p2') throw new Error('slow');
+        return [col({ id: 'from-p1' })];
+      },
+      ['p1', 'p2'],
+    );
     const out = (await c.get('reservations', '1', req(5))).contributions;
     expect(out.map((o) => o.id)).toEqual(['from-p1']);
     expect(runtime.tableContributions).toHaveBeenCalledWith('p1', 'reservations', 1, 5);

@@ -1,12 +1,13 @@
-import { Body, Controller, Get, HttpCode, HttpException, Param, Post, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
-import type { MapsPlaceEnrichmentResult } from '@trek/shared';
 import type { User } from '../../types';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
+import { CurrentUser } from '../auth-core/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { RateLimitService } from '../common/rate-limit.service';
-import { PlaceEnrichmentService } from './place-enrichment.service';
 import { PlaceEnrichmentDto } from './place-enrichment.dto';
+import { PlaceEnrichmentService } from './place-enrichment.service';
+import { Body, Controller, Get, HttpCode, HttpException, Param, Post, Req, UseGuards } from '@nestjs/common';
+import type { MapsPlaceEnrichmentResult } from '@trek/shared';
+
+import type { Request } from 'express';
 
 const MINUTE = 60_000;
 /**
@@ -41,7 +42,7 @@ export class PlaceEnrichmentController {
   ): Promise<MapsPlaceEnrichmentResult> {
     // Keyed by user, not by IP: the cost lands on the key of whoever is signed
     // in, and a household behind one address should not share a budget.
-    if (!this.rl.check('place_enrichment', String(user.id), MAX_PER_MINUTE, MINUTE, Date.now())) {
+    if (!(await this.rl.check('place_enrichment', String(user.id), MAX_PER_MINUTE, MINUTE, Date.now()))) {
       throw new HttpException({ error: 'Too many requests' }, 429);
     }
 

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
-import type { BookDocument, BookRecord } from '@trek/shared'
+import { BOOK_SCHEMA_REV, type BookDocument, type BookRecord } from '@trek/shared'
 
 /**
  * Autosaving a Studio book (#1973).
@@ -27,9 +27,9 @@ vi.mock('../../../src/api/websocket', () => ({
 }))
 
 /** Deliver a `journey:book:saved` the way the server broadcasts it. */
-async function remoteSave(version = 6, journeyId = 9) {
+async function remoteSave(version = 6, journeyId = 9, savedBy = 2) {
   await act(async () => {
-    for (const fn of listeners) fn({ type: 'journey:book:saved', journeyId, version, savedBy: 2 })
+    for (const fn of listeners) fn({ type: 'journey:book:saved', journeyId, version, savedBy })
     for (let i = 0; i < 10; i++) await Promise.resolve()
   })
 }
@@ -543,6 +543,226 @@ describe('another editor saving', () => {
   })
 })
 
+// -- A burst of saves from elsewhere (the assistant applying page edits) ------
+
+describe('a burst of saves from elsewhere', () => {
+  async function withBook(selfId?: number) {
+    api.getBook.mockResolvedValue({ book: record({ version: 4, document: doc('theirs') }) })
+    const onRemote = vi.fn()
+    const view = renderHook(() => useBookStore(9, onRemote, selfId))
+    await tick(0)
+    return { ...view, onRemote }
+  }
+
+  /** The next getBook stays open until released with the given record. */
+  function holdNextRead() {
+    let release: (r: BookRecord) => void = () => {}
+    api.getBook.mockImplementationOnce(
+      () => new Promise(resolve => { release = (r: BookRecord) => resolve({ book: r }) }),
+    )
+    return (r: BookRecord) => act(async () => {
+      release(r)
+      for (let i = 0; i < 10; i++) await Promise.resolve()
+    })
+  }
+
+  it('FE-STUDIO-BOOKSYNC-001: events during an open read ask for one more read, not one per event', async () => {
+    const { result, onRemote } = await withBook()
+    const releaseFirst = holdNextRead()
+    api.getBook.mockResolvedValue({ book: record({ version: 8, document: doc('newest') }) })
+
+    await remoteSave(6)
+    await remoteSave(7)
+    await remoteSave(8)
+    // The load at open, then the one read the first event started.
+    expect(api.getBook).toHaveBeenCalledTimes(2)
+
+    await releaseFirst(record({ version: 6, document: doc('older') }))
+    expect(api.getBook).toHaveBeenCalledTimes(3)
+    expect(onRemote).toHaveBeenCalledTimes(2)
+    expect(onRemote.mock.calls[1][0].title).toBe('newest')
+    expect(result.current.record?.version).toBe(8)
+  })
+
+  it('FE-STUDIO-BOOKSYNC-002: an answer no newer than the book held is not taken', async () => {
+    const { onRemote } = await withBook()
+    api.getBook.mockResolvedValue({ book: record({ version: 4, document: doc('same') }) })
+    await remoteSave(6)
+    expect(onRemote).not.toHaveBeenCalled()
+  })
+
+  it('FE-STUDIO-BOOKSYNC-003: a broadcast older than the version held is not read at all', async () => {
+    const { onRemote } = await withBook()
+    await remoteSave(3)
+    expect(api.getBook).toHaveBeenCalledTimes(1)
+    expect(onRemote).not.toHaveBeenCalled()
+  })
+
+  it('FE-STUDIO-BOOKSYNC-004: local work started during the read wins, and no second read follows', async () => {
+    const { result, onRemote } = await withBook()
+    const releaseFirst = holdNextRead()
+    await remoteSave(6)
+    await remoteSave(7)
+    act(() => { result.current.queueSave(doc('mine'), 'T') })
+
+    await releaseFirst(record({ version: 7, document: doc('newer') }))
+    expect(onRemote).not.toHaveBeenCalled()
+    expect(api.getBook).toHaveBeenCalledTimes(2)
+  })
+
+  /*
+   * The save response and the broadcast travel on different channels. When the
+   * assistant's write lands just after the user's own, its broadcast can arrive
+   * while that write is still open, and dropping it left the editor on the old
+   * book with no conflict to bring the change up.
+   */
+  it('FE-STUDIO-BOOKSYNC-010: a save that arrives during a write of this user is read once it lands', async () => {
+    const { result, onRemote } = await withBook()
+    let release: (r: BookRecord) => void = () => {}
+    api.saveBook.mockImplementationOnce(() => new Promise<BookRecord>(resolve => { release = resolve }))
+    act(() => { result.current.queueSave(doc('mine'), 'T') })
+    await tick()
+
+    api.getBook.mockResolvedValue({ book: record({ version: 9, document: doc('assistant') }) })
+    await remoteSave(9)
+    expect(api.getBook).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      release(record({ version: 7 }))
+      for (let i = 0; i < 10; i++) await Promise.resolve()
+    })
+    expect(api.getBook).toHaveBeenCalledTimes(2)
+    expect(onRemote).toHaveBeenCalledTimes(1)
+    expect(onRemote.mock.calls[0][0].title).toBe('assistant')
+    expect(result.current.record?.version).toBe(9)
+  })
+
+  /* The user's own assistant writes as them, so its change is theirs to take back. */
+  it('FE-STUDIO-BOOKSYNC-011: a save by this user is handed over as undoable', async () => {
+    const { onRemote } = await withBook(2)
+    api.getBook.mockResolvedValue({ book: record({ version: 6, document: doc('own') }) })
+    await remoteSave(6, 9, 2)
+    expect(onRemote).toHaveBeenCalledWith(expect.objectContaining({ title: 'own' }), { undoable: true })
+  })
+
+  /*
+   * Undoing somebody else's save would write the older book over their work
+   * with a current version, so no conflict would ever stop it.
+   */
+  it('FE-STUDIO-BOOKSYNC-012: a save by somebody else, or by an unknown user, is not undoable', async () => {
+    const other = await withBook(1)
+    api.getBook.mockResolvedValue({ book: record({ version: 6, document: doc('theirs-6') }) })
+    await remoteSave(6, 9, 2)
+    expect(other.onRemote.mock.calls[0][1]).toEqual({ undoable: false })
+    other.unmount()
+
+    const unknown = await withBook()
+    api.getBook.mockResolvedValue({ book: record({ version: 6, document: doc('theirs-6') }) })
+    await remoteSave(6, 9, 2)
+    expect(unknown.onRemote.mock.calls[0][1]).toEqual({ undoable: false })
+  })
+
+  it('FE-STUDIO-BOOKSYNC-013: in a burst, only the read that folds in a save by someone else loses undo', async () => {
+    const { onRemote } = await withBook(2)
+    const releaseFirst = holdNextRead()
+    await remoteSave(5, 9, 2)
+    await remoteSave(6, 9, 5)
+    api.getBook.mockResolvedValue({ book: record({ version: 6, document: doc('with-theirs') }) })
+
+    await releaseFirst(record({ version: 5, document: doc('own') }))
+    expect(onRemote).toHaveBeenCalledTimes(2)
+    expect(onRemote.mock.calls[0][1]).toEqual({ undoable: true })
+    expect(onRemote.mock.calls[1][1]).toEqual({ undoable: false })
+  })
+
+  /* A book deleted and made again starts its versions over; a low number is not stale then. */
+  it('FE-STUDIO-BOOKSYNC-014: a book made again under a new id is taken despite its lower version', async () => {
+    const { result, onRemote } = await withBook(2)
+    api.getBook.mockResolvedValue({ book: record({ id: 8, version: 1, document: doc('again') }) })
+    await remoteSave(5, 9, 2)
+    expect(onRemote).toHaveBeenCalledTimes(1)
+    expect(onRemote.mock.calls[0][1]).toEqual({ undoable: false })
+    expect(result.current.record?.id).toBe(8)
+    expect(result.current.record?.version).toBe(1)
+  })
+})
+
+// -- flush --------------------------------------------------------------------
+
+describe('flush', () => {
+  it('FE-STUDIO-BOOKSYNC-005: writes a debounced edit at once and says it landed', async () => {
+    const { result } = await mount()
+    act(() => { result.current.queueSave(doc('unsaved'), 'T') })
+
+    let ok: boolean | undefined
+    await act(async () => { ok = await result.current.flush() })
+
+    expect(ok).toBe(true)
+    expect(api.saveBook).toHaveBeenCalledTimes(1)
+    expect(api.saveBook.mock.calls[0][1].document.title).toBe('unsaved')
+    // The debounce it replaced does not fire a second write later.
+    await tick(5000)
+    expect(api.saveBook).toHaveBeenCalledTimes(1)
+  })
+
+  it('FE-STUDIO-BOOKSYNC-006: waits for an open write and the edit queued behind it', async () => {
+    let release: (r: BookRecord) => void = () => {}
+    api.saveBook.mockImplementationOnce(() => new Promise<BookRecord>(resolve => { release = resolve }))
+    const { result } = await mount()
+    act(() => { result.current.queueSave(doc('first'), 'T') })
+    await tick()
+    act(() => { result.current.queueSave(doc('second'), 'T') })
+
+    let ok: boolean | undefined
+    let done: Promise<void> = Promise.resolve()
+    act(() => { done = result.current.flush().then(v => { ok = v }) })
+    expect(ok).toBeUndefined()
+    await act(async () => {
+      release(record({ version: 2 }))
+      await done
+    })
+
+    expect(ok).toBe(true)
+    expect(api.saveBook).toHaveBeenCalledTimes(2)
+    expect(api.saveBook.mock.calls[1][1].document.title).toBe('second')
+  })
+
+  it('FE-STUDIO-BOOKSYNC-007: says false when the write is refused as a conflict', async () => {
+    api.saveBook.mockRejectedValue(conflictError(record({ version: 6 })))
+    const { result } = await mount()
+    act(() => { result.current.queueSave(doc('mine'), 'T') })
+
+    let ok: boolean | undefined
+    await act(async () => { ok = await result.current.flush() })
+
+    expect(ok).toBe(false)
+    expect(result.current.state.status).toBe('conflict')
+  })
+
+  it('FE-STUDIO-BOOKSYNC-008: sends again what a failed request left behind', async () => {
+    api.saveBook.mockRejectedValueOnce(new Error('offline'))
+    const { result } = await mount()
+    act(() => { result.current.queueSave(doc('mine'), 'T') })
+    await tick()
+    expect(result.current.state.status).toBe('error')
+
+    let ok: boolean | undefined
+    await act(async () => { ok = await result.current.flush() })
+
+    expect(ok).toBe(true)
+    expect(api.saveBook).toHaveBeenCalledTimes(2)
+    expect(api.saveBook.mock.calls[1][1].document.title).toBe('mine')
+  })
+
+  it('FE-STUDIO-BOOKSYNC-009: with nothing local it writes nothing and says true', async () => {
+    const { result } = await mount()
+    let ok: boolean | undefined
+    await act(async () => { ok = await result.current.flush() })
+    expect(ok).toBe(true)
+    expect(api.saveBook).not.toHaveBeenCalled()
+  })
+})
+
 // -- Teardown -----------------------------------------------------------------
 
 describe('unmounting', () => {
@@ -554,5 +774,90 @@ describe('unmounting', () => {
     await tick(5000)
 
     expect(api.saveBook).not.toHaveBeenCalled()
+  })
+})
+
+// -- A book a newer Studio saved ----------------------------------------------
+
+/*
+ * This build reads such a book as far as it can, and what it cannot read is
+ * already gone from its copy. Showing it is fine; writing it would delete the
+ * rest for everyone, so nothing is written until a reload.
+ */
+describe('a book a newer Studio saved', () => {
+  const newer = (title = 'newer') => ({ ...doc(title), schemaRev: 99 }) as unknown as BookDocument
+
+  /** A 409 for a book a newer Studio saved since this tab read it. */
+  function newerError() {
+    return Object.assign(new Error('Request failed'), {
+      response: { status: 409, data: { error: 'Book was saved by a newer version of TREK Studio', code: 'book_schema_newer', schemaRev: 2 } },
+    })
+  }
+
+  it('FE-STUDIO-REV-002: opens it, says so, and writes nothing, not even on flush', async () => {
+    api.getBook.mockResolvedValue({ book: record({ version: 5, document: newer() }) })
+    const { result } = await mount()
+
+    expect(result.current.state.status).toBe('newer')
+    expect(result.current.record?.document.title).toBe('newer')
+    act(() => { result.current.queueSave(doc('edited'), 'T') })
+    await tick()
+    let ok: boolean | undefined
+    await act(async () => { ok = await result.current.flush() })
+
+    expect(ok).toBe(false)
+    expect(api.saveBook).not.toHaveBeenCalled()
+  })
+
+  it('FE-STUDIO-REV-003: stops on the server refusing a save over a newer book, and does not try again', async () => {
+    api.saveBook.mockRejectedValue(newerError())
+    const { result } = await mount()
+
+    act(() => { result.current.queueSave(doc('a'), 'T') })
+    await tick()
+    expect(result.current.state.status).toBe('newer')
+
+    act(() => { result.current.queueSave(doc('b'), 'T') })
+    await tick()
+    expect(api.saveBook).toHaveBeenCalledTimes(1)
+  })
+
+  it('FE-STUDIO-REV-004: shows a newer version another editor saved, and holds it the same way', async () => {
+    api.getBook.mockResolvedValue({ book: record({ version: 4, document: doc('ours') }) })
+    const onRemote = vi.fn()
+    const { result } = renderHook(() => useBookStore(9, onRemote))
+    await tick(0)
+    api.getBook.mockResolvedValue({ book: record({ version: 6, document: newer('theirs') }) })
+
+    await remoteSave(6)
+
+    expect(onRemote.mock.calls[0][0].title).toBe('theirs')
+    expect(result.current.state.status).toBe('newer')
+    act(() => { result.current.queueSave(doc('mine'), 'T') })
+    await tick()
+    expect(api.saveBook).not.toHaveBeenCalled()
+  })
+
+  it('FE-STUDIO-REV-005: taking their side of a conflict holds the book when theirs is newer', async () => {
+    const theirs = record({ version: 6, document: newer('theirs') })
+    api.saveBook.mockRejectedValueOnce(conflictError(theirs))
+    const { result } = await mount()
+
+    act(() => { result.current.queueSave(doc('mine'), 'T') })
+    await tick()
+    expect(result.current.state.status).toBe('conflict')
+
+    act(() => { result.current.acceptTheirs(theirs) })
+    expect(result.current.state.status).toBe('newer')
+  })
+
+  /* A book goes out stamped with the revision this build writes, so an older Studio opens it read-only. */
+  it('FE-STUDIO-REV-006: sends a book stamped with the revision this build writes', async () => {
+    const { result } = await mount()
+
+    act(() => { result.current.queueSave(doc('a'), 'T') })
+    await tick()
+
+    expect(api.saveBook.mock.calls[0][1].document.schemaRev).toBe(BOOK_SCHEMA_REV)
   })
 })

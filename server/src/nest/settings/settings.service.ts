@@ -1,8 +1,23 @@
-import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../database/database.service';
-import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
-import { MASKED_SETTING_VALUE, normalizeAppearance } from '@trek/shared';
 import { readEnv } from '../../app-config';
+import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { Settings } from '../../db/entities/Settings.entity';
+import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import type { SettingsRepository } from '../../db/repositories/Settings.repository';
+import { readAppSetting, type AppSettingKey } from '../common/app-settings.registry';
+import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { UnitOfWork } from '../database/unit-of-work';
+import { TripMembershipService } from '../trip-membership/trip-membership.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import {
+  MASKED_SETTING_VALUE,
+  PLANNER_TRIP_VIEWS_KEY,
+  WEEK_START_VALUES,
+  compactPlannerTripViews,
+  normalizeAppearance,
+  plannerTripViewsSchema,
+  type PlannerTripViews,
+} from '@trek/shared';
 
 /**
  * Exported so a caller that hands settings to somebody else can assert its own
@@ -25,6 +40,8 @@ export const DEFAULTABLE_USER_SETTING_KEYS = [
   'distance_unit',
   'dark_mode',
   'time_format',
+  // First day of the week in every date picker (#2029).
+  'week_start',
   // Instance-wide default currency for Costs (new users inherit it until they
   // pick their own). Free-form ISO code, validated on the client.
   'default_currency',
@@ -75,7 +92,7 @@ export const DEFAULTABLE_USER_SETTING_KEYS = [
   'llm_api_key',
 ] as const;
 
-type DefaultableKey = typeof DEFAULTABLE_USER_SETTING_KEYS[number];
+type DefaultableKey = (typeof DEFAULTABLE_USER_SETTING_KEYS)[number];
 
 const DEFAULTABLE_USER_SETTING_KEY_SET = new Set<string>(DEFAULTABLE_USER_SETTING_KEYS);
 
@@ -83,12 +100,18 @@ const VALID_VALUES: Partial<Record<DefaultableKey, unknown[]>> = {
   temperature_unit: ['fahrenheit', 'celsius'],
   distance_unit: ['metric', 'imperial'],
   time_format: ['12h', '24h'],
+  week_start: [...WEEK_START_VALUES],
   dark_mode: [true, false, 'light', 'dark', 'auto'],
   map_provider: ['leaflet', 'mapbox-gl', 'maplibre-gl'],
   llm_provider: ['local', 'openai', 'anthropic'],
 };
 
-const BOOLEAN_KEYS = new Set<DefaultableKey>(['blur_booking_codes', 'mapbox_3d_enabled', 'mapbox_quality_mode', 'llm_multimodal']);
+const BOOLEAN_KEYS = new Set<DefaultableKey>([
+  'blur_booking_codes',
+  'mapbox_3d_enabled',
+  'mapbox_quality_mode',
+  'llm_multimodal',
+]);
 
 /**
  * Per-user settings that name an address, which a non-admin must not write.
@@ -120,7 +143,11 @@ export function isAdminOnlyEndpointSetting(key: string, value: unknown): boolean
 }
 
 function parseValue(raw: string): unknown {
-  try { return JSON.parse(raw); } catch { return raw; }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return raw;
+  }
 }
 
 function serializeValue(key: string, value: unknown): string {
@@ -131,8 +158,8 @@ function serializeValue(key: string, value: unknown): string {
   // null and undefined both mean "cleared" and store '' — the legacy code stored
   // the string "null" for null, which leaked back out of getDecryptedUserSetting
   // as a literal four-character "null" (e.g. as an LLM API key).
-  const raw = value === null || value === undefined ? ''
-    : typeof value === 'object' ? JSON.stringify(value) : String(value);
+  const raw =
+    value === null || value === undefined ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value);
   if (ENCRYPTED_SETTING_KEYS.has(key)) return maybe_encrypt_api_key(raw) ?? raw;
   return raw;
 }
@@ -149,32 +176,56 @@ function serializeValue(key: string, value: unknown): string {
  */
 @Injectable()
 export class SettingsService {
-  constructor(private readonly db: DatabaseService) {}
+  constructor(
+    private readonly uow: UnitOfWork,
+    @InjectRepository(AppSettings) private readonly appSettings: AppSettingsRepository,
+    @InjectRepository(Settings) private readonly settings: SettingsRepository,
+    private readonly membership: TripMembershipService,
+  ) {}
 
-  getAdminUserDefaults(): Record<string, unknown> {
-    const rows = this.db.all<{ key: string; value: string }>(
-      "SELECT key, value FROM app_settings WHERE key LIKE 'default_user_setting_%'"
-    );
+  /**
+   * The planner's remembered view switches (#2639), reduced to trips this user
+   * can still open and to switches that are on. The client only ever adds to
+   * the row, so this is where a deleted trip, or one the user was removed
+   * from, leaves it again. Anything the contract does not accept is stored as
+   * an empty row; the controller has already answered 400 for a request.
+   */
+  private async keepOpenableTripViews(userId: number, value: unknown): Promise<PlannerTripViews | null> {
+    if (value === null || value === undefined) return null;
+    const parsed = plannerTripViewsSchema.safeParse(value);
+    if (!parsed.success) return {};
+    const views = compactPlannerTripViews(parsed.data);
+    if (Object.keys(views).length === 0) return views;
+    const openable = new Set((await this.membership.listAccessibleTripIds(userId)).map(String));
+    return Object.fromEntries(Object.entries(views).filter(([tripId]) => openable.has(tripId)));
+  }
+
+  private async prepareValue(userId: number, key: string, value: unknown): Promise<unknown> {
+    return key === PLANNER_TRIP_VIEWS_KEY ? await this.keepOpenableTripViews(userId, value) : value;
+  }
+
+  async getAdminUserDefaults(): Promise<Record<string, unknown>> {
+    const rows = await this.appSettings.findByKeyPrefix('default_user_setting_');
     const defaults: Record<string, unknown> = {};
     for (const row of rows) {
-      const settingKey = row.key.slice('default_user_setting_'.length);
+      const settingKey = (row.key ?? '').slice('default_user_setting_'.length);
       if (ENCRYPTED_SETTING_KEYS.has(settingKey)) {
         defaults[settingKey] = row.value ? (decrypt_api_key(row.value) ?? '') : '';
       } else {
-        defaults[settingKey] = parseValue(row.value);
+        // Parity with the legacy `parseValue(row.value)` call this replaced:
+        // `JSON.parse(null)` coerces its argument to the string "null" and
+        // returns the JS value `null`, so a NULL-valued row parsed to `null`.
+        // `row.value ?? ''` would instead call `parseValue('')`, which throws
+        // inside JSON.parse and falls back to the empty string — a silent
+        // divergence for a case parseValue never actually threw on before.
+        defaults[settingKey] = row.value === null ? null : parseValue(row.value);
       }
     }
     return defaults;
   }
 
-  setAdminUserDefaults(partial: Record<string, unknown>): void {
-    const upsert = this.db.prepare(
-      `INSERT INTO app_settings (key, value) VALUES (?, ?)
-     ON CONFLICT(key) DO UPDATE SET value = excluded.value`
-    );
-    const del = this.db.prepare("DELETE FROM app_settings WHERE key = ?");
-
-    this.db.transaction(() => {
+  async setAdminUserDefaults(partial: Record<string, unknown>): Promise<void> {
+    await this.uow.transactional(async () => {
       for (const [key, value] of Object.entries(partial)) {
         if (!(DEFAULTABLE_USER_SETTING_KEYS as readonly string[]).includes(key)) {
           throw new Error(`Invalid setting key: ${key}`);
@@ -184,7 +235,7 @@ export class SettingsService {
 
         // null/undefined means "reset to built-in default" — delete the row
         if (value === null || value === undefined) {
-          del.run(appKey);
+          await this.appSettings.deleteValue(appKey);
           continue;
         }
 
@@ -201,15 +252,15 @@ export class SettingsService {
         const stored = ENCRYPTED_SETTING_KEYS.has(key)
           ? (maybe_encrypt_api_key(String(value)) ?? String(value))
           : JSON.stringify(value);
-        upsert.run(appKey, stored);
+        await this.appSettings.setValue(appKey, stored);
       }
     });
   }
 
-  getUserSettings(userId: number): Record<string, unknown> {
-    const adminDefaults = this.getAdminUserDefaults();
+  async getUserSettings(userId: number): Promise<Record<string, unknown>> {
+    const adminDefaults = await this.getAdminUserDefaults();
 
-    const rows = this.db.all<{ key: string; value: string }>('SELECT key, value FROM settings WHERE user_id = ?', userId);
+    const rows = await this.settings.getForUser(userId);
     const userSettings: Record<string, unknown> = {};
     for (const row of rows) {
       if (MASKED_SETTING_KEYS.has(row.key)) {
@@ -277,30 +328,36 @@ export class SettingsService {
     return merged;
   }
 
-  upsertSetting(userId: number, key: string, value: unknown) {
-    this.db.run(`
-    INSERT INTO settings (user_id, key, value) VALUES (?, ?, ?)
-    ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value
-  `, userId, key, serializeValue(key, value));
+  async upsertSetting(userId: number, key: string, value: unknown) {
+    const prepared = await this.prepareValue(userId, key, value);
+    await this.settings.upsertForUser(userId, key, serializeValue(key, prepared));
   }
 
-  bulkUpsertSettings(userId: number, settings: Record<string, unknown>) {
-    const upsert = this.db.prepare(`
-    INSERT INTO settings (user_id, key, value) VALUES (?, ?, ?)
-    ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value
-  `);
+  async bulkUpsertSettings(userId: number, settings: Record<string, unknown>) {
     let written = 0;
-    this.db.transaction(() => {
-      for (const [key, value] of Object.entries(settings)) {
-        // The client echoes redacted secrets back unchanged — skip them so a
-        // bulk save can never overwrite a stored secret with the mask (the
-        // single-upsert route has the same no-op in the controller).
-        if (value === MASKED_SETTING_VALUE) continue;
-        upsert.run(userId, key, serializeValue(key, value));
+    await this.uow.transactional(async () => {
+      // The client echoes redacted secrets back unchanged — skip them so a
+      // bulk save can never overwrite a stored secret with the mask (the
+      // single-upsert route has the same no-op in the controller).
+      const entries = Object.entries(settings).filter(([, value]) => value !== MASKED_SETTING_VALUE);
+      for (const [key, prepared] of await this.prepareValues(userId, entries)) {
+        await this.settings.upsertForUser(userId, key, serializeValue(key, prepared));
         written++;
       }
     });
     return written;
+  }
+
+  /**
+   * {@link prepareValue} over the entries of a bulk save. Only the planner's
+   * view switches are read against the database, so that read happens once,
+   * before the writes, rather than once per key.
+   */
+  private async prepareValues(userId: number, entries: [string, unknown][]): Promise<[string, unknown][]> {
+    const planner = entries.find(([key]) => key === PLANNER_TRIP_VIEWS_KEY);
+    if (!planner) return entries;
+    const views = await this.prepareValue(userId, PLANNER_TRIP_VIEWS_KEY, planner[1]);
+    return entries.map(([key, value]) => [key, key === PLANNER_TRIP_VIEWS_KEY ? views : value]);
   }
 
   /**
@@ -309,8 +366,8 @@ export class SettingsService {
    * returns the plaintext — for server-side use only (e.g. the LLM config
    * resolver needs the real API key). Returns null when unset.
    */
-  getDecryptedUserSetting(userId: number, key: string): string | null {
-    const row = this.db.get<{ value: string }>('SELECT value FROM settings WHERE user_id = ? AND key = ?', userId, key);
+  async getDecryptedUserSetting(userId: number, key: string): Promise<string | null> {
+    const row = await this.settings.getOne(userId, key);
     if (!row || row.value === '' || row.value == null) return null;
     if (ENCRYPTED_SETTING_KEYS.has(key)) return decrypt_api_key(row.value);
     try {
@@ -319,5 +376,21 @@ export class SettingsService {
     } catch {
       return row.value;
     }
+  }
+
+  /** The stored text of a registered instance setting, or null without a row, for a domain that keeps one there. */
+  async getAppSetting(key: AppSettingKey): Promise<string | null> {
+    return await readAppSetting(this.appSettings, key);
+  }
+
+  /** Registered instance settings written together: every value lands, or none does. */
+  async setAppSettings(values: Partial<Record<AppSettingKey, string>>): Promise<void> {
+    const entries = Object.entries(values).filter((entry): entry is [string, string] => entry[1] !== undefined);
+    await this.uow.transactional(() =>
+      entries.reduce<Promise<void>>(async (previous, [key, value]) => {
+        await previous;
+        await this.appSettings.setValue(key, value);
+      }, Promise.resolve()),
+    );
   }
 }

@@ -89,7 +89,6 @@ const collab: TranslationStrings = {
   'collab.polls.close': '關閉',
   'collab.polls.closed': '已關閉',
   'collab.polls.votes': '{n} 票',
-  'collab.polls.vote': '{n} 票',
   'collab.polls.multipleChoice': '多選',
   'collab.polls.multiChoice': '多選',
   'collab.polls.deadline': '截止時間',
@@ -97,10 +96,14 @@ const collab: TranslationStrings = {
   'collab.polls.options': '選項',
   'collab.polls.delete': '刪除',
   'collab.polls.closedSection': '已關閉',
-  'collab.chat.imageLimit': '每則訊息最多可附加 {max} 張圖片',
+  'collab.chat.imageLimit': '每則訊息最多可附加 {count} 張圖片',
   'collab.chat.uploading': '上傳中 {percent}%',
   'collab.chat.attachImages': '附加圖片',
   'collab.chat.attachedImage': '附加的圖片',
   'collab.chat.closeImage': '關閉圖片',
+  'collab.notes.categoryInUse': '仍有筆記在使用此分類。請先移動或刪除這些筆記,再刪除分類。',
+  'collab.notes.categoriesLocalHint': '沒有筆記的分類只儲存在此瀏覽器中。有筆記使用後，其他成員才能看到。',
+  'collab.chat.fromAssistant': '來自助理',
+  'collab.chat.fromAssistantHint': '{name} 分享了助理的這則回答',
 };
 export default collab;

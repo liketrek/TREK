@@ -12,6 +12,6 @@ const trips: TranslationStrings = {
   'trips.reminderCustom': 'Anpassad',
   'trips.reminderDaysBefore': 'dagar innan avresa',
   'trips.reminderDisabledHint':
-    'Resepåminnelser är inaktiverade. Aktivera dem under Admin > Inställningar > Meddelanden.',
+    'Resepåminnelser är inaktiverade. Aktivera dem under Admin > Meddelanden > Påminnelser inför resan.',
 };
 export default trips;

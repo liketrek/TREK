@@ -1,12 +1,13 @@
 import type { TranslationStrings } from '../types';
 
 const inspector: TranslationStrings = {
-  'inspector.opened': 'Openingstijden',
+  'inspector.opened': 'Geopend',
   'inspector.closed': 'Gesloten',
   'inspector.openingHours': 'Openingstijden',
   'inspector.showHours': 'Openingstijden tonen',
   'inspector.files': 'Bestanden',
   'inspector.filesCount': '{count} bestanden',
+  'inspector.filesCount.one': '{count} bestand',
   'inspector.removeFromDay': 'Verwijderen van dag',
   'inspector.remove': 'Verwijderen',
   'inspector.addToDay': 'Toevoegen aan dag',
@@ -14,6 +15,7 @@ const inspector: TranslationStrings = {
   'inspector.pendingRes': 'Reservering in behandeling',
   'inspector.google': 'Google Maps',
   'inspector.navigation': 'Navigatie',
+  'inspector.otherMapApp': 'Andere kaart-app',
   'inspector.openWith': 'Openen met',
   'inspector.openStreetMap': 'OpenStreetMap',
   'inspector.website': 'Website openen',

@@ -1,14 +1,16 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { kitineraryConfig } from '../app-config/tokens';
+import { logDebug } from '../audit/audit-log.logger';
+import type { KiReservation } from './kitinerary.types';
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
+
 import { execFile } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { existsSync, readdirSync, writeFileSync, unlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, extname } from 'node:path';
-import { randomUUID } from 'node:crypto';
-import { readEnv } from '../../app-config';
-import { logDebug } from '../audit/audit-log.logger';
-import { execFileSync } from 'node:child_process';
 import { promisify } from 'node:util';
-import type { KiReservation } from './kitinerary.types';
 
 const execFileAsync = promisify(execFile);
 
@@ -29,8 +31,11 @@ export class KitineraryExtractorService implements OnModuleInit {
    *  one failure that otherwise looks exactly like "not installed". */
   private configuredPath: string | null = null;
 
+  /** KITINERARY_EXTRACTOR_PATH and PATH, frozen per built app like the probe result itself. */
+  constructor(@Inject(kitineraryConfig.KEY) private readonly kitineraryEnv: ConfigType<typeof kitineraryConfig>) {}
+
   onModuleInit() {
-    this.configuredPath = readEnv().integrations.kitineraryExtractorPath || null;
+    this.configuredPath = this.kitineraryEnv.extractorPath || null;
     this.binaryPath = this.findBinary();
     if (this.binaryPath) {
       this.binaryVersion = this.probeVersion(this.binaryPath);
@@ -90,7 +95,7 @@ export class KitineraryExtractorService implements OnModuleInit {
       });
 
       if (stderr?.trim()) {
-        const lines = stderr.split('\n').filter(l => l.trim());
+        const lines = stderr.split('\n').filter((l) => l.trim());
 
         // LOG_LEVEL=debug passes the raw stderr through. The lines the filter
         // below drops are the only signal that a vendor extractor script is
@@ -104,8 +109,9 @@ export class KitineraryExtractorService implements OnModuleInit {
         // At the default level, filter expected noise: currency-symbol ambiguity
         // warnings and vendor extractor script errors are normal (every matching
         // script is tried; most won't match the current document).
-        const unexpected = lines
-          .filter(l => !l.includes('Ambig') && !l.includes('JS ERROR') && !l.includes('Invalid result type from script'));
+        const unexpected = lines.filter(
+          (l) => !l.includes('Ambig') && !l.includes('JS ERROR') && !l.includes('Invalid result type from script'),
+        );
         if (unexpected.length) {
           console.warn(`[KItinerary] stderr for "${fileName}":`, unexpected.join('\n'));
         }
@@ -126,12 +132,14 @@ export class KitineraryExtractorService implements OnModuleInit {
       if (typeof parsed === 'object' && parsed !== null) return [parsed as KiReservation];
       return [];
     } finally {
-      try { unlinkSync(tmpFile); } catch {}
+      try {
+        unlinkSync(tmpFile);
+      } catch {}
     }
   }
 
   private findBinary(): string | null {
-    const envPath = readEnv().integrations.kitineraryExtractorPath;
+    const envPath = this.kitineraryEnv.extractorPath;
     if (envPath) {
       if (existsSync(envPath)) return envPath;
       console.warn(`[KItinerary] KITINERARY_EXTRACTOR_PATH="${envPath}" not found`);
@@ -144,7 +152,9 @@ export class KitineraryExtractorService implements OnModuleInit {
         const candidate = join('/usr/lib', dir, 'libexec', 'kf6', BINARY_NAME);
         if (existsSync(candidate)) return candidate;
       }
-    } catch { /* not a Debian system */ }
+    } catch {
+      /* not a Debian system */
+    }
 
     // Fallback: binary on the search path — resolved to an absolute path here,
     // not left as a bare name. Storing 'kitinerary-extractor' meant every later
@@ -153,13 +163,15 @@ export class KitineraryExtractorService implements OnModuleInit {
     // this branch is dead there) anyone who could write to a PATH directory could
     // have their binary run as the TREK user. Probing the concrete file with
     // execFileSync also drops the /bin/sh hop the old execSync string needed.
-    for (const dir of readEnv().integrations.searchPath) {
+    for (const dir of this.kitineraryEnv.searchPath) {
       const candidate = join(dir, BINARY_NAME);
       if (!existsSync(candidate)) continue;
       try {
         execFileSync(candidate, ['--version'], { stdio: 'pipe', timeout: 3000 });
         return candidate;
-      } catch { /* present but not runnable — keep looking */ }
+      } catch {
+        /* present but not runnable — keep looking */
+      }
     }
 
     return null;

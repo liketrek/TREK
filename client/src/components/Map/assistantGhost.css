@@ -1,0 +1,119 @@
+/*
+ * The assistant on the map: a suggested place drawn before it exists (a ghost),
+ * the pulse when its row or pin is under the pointer, and the pop of a place
+ * that just arrived. Both renderers position the outer element themselves (a
+ * transform), so every animation runs on its first child and never fights
+ * the position.
+ */
+
+@keyframes trek-ghost-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes trek-ghost-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 12px color-mix(in srgb, var(--accent) 0%, transparent);
+  }
+}
+
+@keyframes trek-place-pop {
+  0% {
+    transform: scale(0.6);
+  }
+  65% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.trek-ghost-pin {
+  background: none;
+  border: none;
+}
+
+.trek-ghost {
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+}
+
+.trek-ghost-face {
+  display: flex;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed var(--accent);
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--bg-card) 60%, transparent);
+  color: var(--ghost-color, var(--text-secondary));
+  box-shadow: var(--shadow-sm);
+  animation: trek-ghost-enter 180ms var(--ease-out-quint) both;
+}
+
+/* A spot a card marks (a via of a drive): a small dashed dot in the middle of the ghost's box, no icon. */
+.trek-ghost--point {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.trek-ghost--point .trek-ghost-face {
+  width: 12px;
+  height: 12px;
+  border-width: 2px;
+}
+
+.trek-ghost.is-hot .trek-ghost-face {
+  border-style: solid;
+  animation:
+    trek-ghost-enter 180ms var(--ease-out-quint) both,
+    trek-ghost-pulse 900ms var(--ease-out-quint) 2;
+}
+
+.trek-place-pulse > :first-child {
+  animation: trek-ghost-pulse 900ms var(--ease-out-quint) 2;
+}
+
+.trek-place-pop > :first-child {
+  animation: trek-place-pop 220ms var(--ease-out-quint);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trek-ghost-face {
+    animation: trek-ghost-enter 120ms ease-out both;
+  }
+  .trek-ghost.is-hot .trek-ghost-face,
+  .trek-place-pulse > :first-child {
+    animation: none;
+    box-shadow: 0 0 0 3px var(--accent);
+  }
+  .trek-place-pop > :first-child {
+    animation: trek-backdrop-enter 120ms ease-out;
+  }
+}
+
+[data-reduce-motion] .trek-ghost-face {
+  animation: trek-ghost-enter 120ms ease-out both;
+}
+[data-reduce-motion] .trek-ghost.is-hot .trek-ghost-face,
+[data-reduce-motion] .trek-place-pulse > :first-child {
+  animation: none;
+  box-shadow: 0 0 0 3px var(--accent);
+}
+[data-reduce-motion] .trek-place-pop > :first-child {
+  animation: trek-backdrop-enter 120ms ease-out;
+}

@@ -4,11 +4,17 @@
  * them in (so we never overwrite a plugin DB the runtime holds open). Covers the no-op
  * paths (older archive with no plugin trees) and that the pre-restore tree is replaced.
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import {
+  stageExtractedPluginTrees,
+  applyStagedPluginTrees,
+  setStagedRestoreApplier,
+  applyStagedRestoreNow,
+} from '../../../src/nest/plugins/plugin-backup';
+
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { stageExtractedPluginTrees, applyStagedPluginTrees, setStagedRestoreApplier, applyStagedRestoreNow } from '../../../src/nest/plugins/plugin-backup';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 let root: string;
 beforeEach(() => {
@@ -23,7 +29,10 @@ afterEach(() => {
 });
 
 const read = (p: string) => fs.readFileSync(p, 'utf8');
-const write = (p: string, s: string) => { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, s); };
+const write = (p: string, s: string) => {
+  fs.mkdirSync(path.dirname(p), { recursive: true });
+  fs.writeFileSync(p, s);
+};
 
 describe('plugin backup staging + boot reconcile', () => {
   it('stages the extracted trees beside the live ones, then a boot swaps them in', () => {
@@ -76,47 +85,54 @@ describe('plugin backup staging + boot reconcile', () => {
     write(path.join(authorSrc, 'server', 'index.js'), 'DEV');
     write(path.join(root, 'plugins', 'real', 'server', 'index.js'), 'OLD-REAL');
     fs.mkdirSync(path.join(root, 'plugins'), { recursive: true });
-    try { fs.symlinkSync(authorSrc, path.join(root, 'plugins', 'linked'), 'junction'); }
-    catch { return; } // symlink/junction not permitted in this env → skip
+    try {
+      fs.symlinkSync(authorSrc, path.join(root, 'plugins', 'linked'), 'junction');
+    } catch {
+      return;
+    } // symlink/junction not permitted in this env → skip
     // a restore staged only the real plugin (dev-links are never in a backup)
     const extract = path.join(root, 'restore-dl');
     write(path.join(extract, 'plugins-code', 'real', 'server', 'index.js'), 'NEW-REAL');
     stageExtractedPluginTrees(extract);
     expect(applyStagedPluginTrees()).toContain('plugins-code');
     expect(read(path.join(root, 'plugins', 'real', 'server', 'index.js'))).toBe('NEW-REAL'); // real replaced
-    expect(fs.existsSync(path.join(root, 'plugins', 'linked'))).toBe(true);                    // dev-link kept
-    expect(read(path.join(root, 'plugins', 'linked', 'server', 'index.js'))).toBe('DEV');      // still resolves
+    expect(fs.existsSync(path.join(root, 'plugins', 'linked'))).toBe(true); // dev-link kept
+    expect(read(path.join(root, 'plugins', 'linked', 'server', 'index.js'))).toBe('DEV'); // still resolves
   });
 
   it('the swap removes a live plugin absent from the backup, and re-running is idempotent (crash-safe)', () => {
     // live has an up-to-date plugin + a plugin uninstalled since the backup was taken
-    write(path.join(root, 'plugins-data', 'keep', 'plugin.db'), 'OLD')
-    write(path.join(root, 'plugins-data', 'removed-since', 'plugin.db'), 'GONE')
+    write(path.join(root, 'plugins-data', 'keep', 'plugin.db'), 'OLD');
+    write(path.join(root, 'plugins-data', 'removed-since', 'plugin.db'), 'GONE');
     // staged (from the backup) only has 'keep'
-    write(path.join(root, 'plugins-data.restore', 'keep', 'plugin.db'), 'NEW')
-    applyStagedPluginTrees()
-    expect(read(path.join(root, 'plugins-data', 'keep', 'plugin.db'))).toBe('NEW')     // overwritten
-    expect(fs.existsSync(path.join(root, 'plugins-data', 'removed-since'))).toBe(false) // not in backup → removed
-    expect(fs.existsSync(path.join(root, 'plugins-data.restore'))).toBe(false)          // staging consumed last
+    write(path.join(root, 'plugins-data.restore', 'keep', 'plugin.db'), 'NEW');
+    applyStagedPluginTrees();
+    expect(read(path.join(root, 'plugins-data', 'keep', 'plugin.db'))).toBe('NEW'); // overwritten
+    expect(fs.existsSync(path.join(root, 'plugins-data', 'removed-since'))).toBe(false); // not in backup → removed
+    expect(fs.existsSync(path.join(root, 'plugins-data.restore'))).toBe(false); // staging consumed last
 
     // Simulate a crash BEFORE staging was deleted: the staging dir still exists, live is
     // already (partly) applied. Copy-not-move means re-running restores correctly, never
     // deleting an already-restored entry it can't recreate.
-    write(path.join(root, 'plugins-data.restore', 'keep', 'plugin.db'), 'NEW')
-    write(path.join(root, 'plugins-data', 'keep', 'plugin.db'), 'NEW') // already applied
-    applyStagedPluginTrees()
-    expect(read(path.join(root, 'plugins-data', 'keep', 'plugin.db'))).toBe('NEW')      // intact, not lost
-    expect(fs.existsSync(path.join(root, 'plugins-data.restore'))).toBe(false)
-  })
+    write(path.join(root, 'plugins-data.restore', 'keep', 'plugin.db'), 'NEW');
+    write(path.join(root, 'plugins-data', 'keep', 'plugin.db'), 'NEW'); // already applied
+    applyStagedPluginTrees();
+    expect(read(path.join(root, 'plugins-data', 'keep', 'plugin.db'))).toBe('NEW'); // intact, not lost
+    expect(fs.existsSync(path.join(root, 'plugins-data.restore'))).toBe(false);
+  });
 
   it('applyStagedRestoreNow runs the registered applier (runtime quiesce), or reports false when none', async () => {
     expect(await applyStagedRestoreNow()).toBe(false); // no applier registered
     let ran = false;
-    setStagedRestoreApplier(async () => { ran = true; });
+    setStagedRestoreApplier(async () => {
+      ran = true;
+    });
     expect(await applyStagedRestoreNow()).toBe(true);
     expect(ran).toBe(true);
     // an applier that throws is caught and reported as not-applied (falls back to boot reconcile)
-    setStagedRestoreApplier(() => { throw new Error('quiesce failed'); });
+    setStagedRestoreApplier(() => {
+      throw new Error('quiesce failed');
+    });
     expect(await applyStagedRestoreNow()).toBe(false);
     setStagedRestoreApplier(null);
   });

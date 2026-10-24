@@ -70,5 +70,6 @@ const backup: TranslationStrings = {
     'Wszystkie obecne dane (podróże, miejsca, użytkownicy, przesłane pliki) zostaną trwale zastąpione danymi z kopii zapasowej. Tej operacji nie można cofnąć.',
   'backup.restoreTip': 'Wskazówka: Przed przywróceniem utwórz kopię zapasową bieżącej instancji.',
   'backup.restoreConfirm': 'Tak, przywróć',
+  'backup.auto.hourHintTz': 'Czas lokalny serwera (format {format}), strefa czasowa {timezone}',
 };
 export default backup;

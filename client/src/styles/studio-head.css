@@ -1,0 +1,275 @@
+/* ----------------- head band (StudioHeader.tsx) ----------------- *
+ * The shape every TREK dialog head has: a tinted band, a raised tile, a small
+ * line above the title and the close button at the end. The band keeps the
+ * glass of the old bar under its tint, so the journey still shows through.
+ */
+.trek-dash .st-head {
+  /* Its own stacking context, above the rails: the panels below carry z-index 1,
+     and without this the format menu would open behind them. */
+  position: relative;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding-inline: 14px 16px;
+  background:
+    linear-gradient(
+      color-mix(in srgb, var(--accent) 7%, transparent),
+      color-mix(in srgb, var(--accent) 7%, transparent)
+    ),
+    var(--glass-bg);
+  border-bottom: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+/* The journey's cover, so it is always clear whose book this is. */
+.trek-dash .st-head-tile {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  overflow: hidden;
+  border-radius: 13px;
+  background: var(--surface);
+  box-shadow: var(--sh-sm);
+}
+.trek-dash .st-head-tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.trek-dash .st-head-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+/* The wordmark: what this screen is, above its name, in the title's own ink. */
+.trek-dash .st-head-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 17px;
+  color: var(--ink);
+}
+.trek-dash .st-head-eyebrow svg {
+  flex: none;
+}
+
+.trek-dash .st-head-title {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.trek-dash .st-head-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  margin-inline-start: auto;
+}
+
+/* Every piece of the row is one raised tile of one height and one corner:
+   the groups, who is here, help, export and close. */
+.trek-dash .st-head {
+  --st-head-h: 36px;
+}
+
+/* Tools that belong together share one raised group, like a segmented control. */
+.trek-dash .st-head-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: var(--st-head-h);
+  padding: 3px;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--sh-xs);
+}
+
+/* A tool standing alone is a group of one: help, and export in the accent. */
+.trek-dash .st-tool.st-head-solo {
+  height: var(--st-head-h);
+  border-radius: 12px;
+}
+.trek-dash .st-tool.is-icon.st-head-solo {
+  width: var(--st-head-h);
+  background: var(--surface);
+  box-shadow: var(--sh-xs);
+}
+.trek-dash .st-tool.is-icon.st-head-solo:hover:not(:disabled) {
+  background: var(--surface);
+  box-shadow: var(--sh-sm);
+}
+.trek-dash .st-tool.is-primary.st-head-solo {
+  padding-inline: 16px;
+  box-shadow: var(--sh-xs);
+}
+
+/* Whether the book is saved, as a tile beside who is here; a conflict keeps its warning tint. */
+.trek-dash .st-head .st-save {
+  height: var(--st-head-h);
+  padding-inline: 12px;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--sh-xs);
+  color: var(--ink-2);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.trek-dash .st-head .st-save.is-conflict {
+  background: color-mix(in oklch, var(--warning) 14%, var(--surface));
+  border: 0;
+}
+.trek-dash .st-head .st-save.is-error {
+  background: color-mix(in oklch, var(--danger) 10%, var(--surface));
+}
+
+/* A book a newer Studio saved: the whole Studio under a veil, one card, one way out. */
+.trek-dash .st-newer {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: color-mix(in oklch, var(--surface) 55%, transparent);
+  backdrop-filter: blur(10px) saturate(1.1);
+  -webkit-backdrop-filter: blur(10px) saturate(1.1);
+  animation: st-newer-in 0.22s ease-out both;
+}
+.trek-dash .st-newer-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: min(380px, 100%);
+  padding: 28px 28px 24px;
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: var(--sh-lg);
+  text-align: center;
+}
+.trek-dash .st-newer-icon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.trek-dash .st-newer-text {
+  margin: 0;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.45;
+  text-wrap: balance;
+}
+.trek-dash .st-newer-reload {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 40px;
+  margin-top: 4px;
+  border-radius: 12px;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-size: 13.5px;
+  font-weight: 600;
+  transition: filter 0.16s;
+}
+.trek-dash .st-newer-reload:hover {
+  filter: brightness(1.08);
+}
+.trek-dash .st-newer-reload:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 4px var(--accent);
+}
+@keyframes st-newer-in {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trek-dash .st-newer {
+    animation: none;
+  }
+}
+
+/* Who is here, as a tile like the tools beside it. */
+.trek-dash .st-head .st-peers {
+  height: var(--st-head-h);
+  padding-inline: 8px 12px;
+  margin-inline-start: 0;
+  border: 0;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--sh-xs);
+}
+.trek-dash .st-head .st-peer-dot {
+  width: 24px;
+  height: 24px;
+  border-color: var(--surface);
+}
+.trek-dash .st-head .st-peer-label {
+  font-size: 12.5px;
+}
+
+.trek-dash .st-head-close {
+  display: grid;
+  place-items: center;
+  width: var(--st-head-h);
+  height: var(--st-head-h);
+  flex: none;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--sh-xs);
+  color: var(--ink-3);
+  transition:
+    color 0.16s,
+    box-shadow 0.16s;
+}
+.trek-dash .st-head-close:hover {
+  color: var(--ink);
+  box-shadow: var(--sh-sm);
+}
+.trek-dash .st-head-close:focus {
+  outline: none;
+}
+.trek-dash .st-head-close:focus-visible {
+  box-shadow:
+    0 0 0 2px var(--accent-soft),
+    0 0 0 3px var(--accent);
+}
+
+/* The format's shape, drawn in the tool's own ink. */
+.trek-dash .st-head-chip-shape {
+  flex: none;
+  border: 1.5px solid currentColor;
+  border-radius: 2px;
+  opacity: 0.7;
+}
+
+/* The book view moved to the zoom, where the page's view lives; on reads as pressed. */
+.trek-dash .st-zoom button.is-on {
+  background: color-mix(in oklch, var(--accent) 14%, transparent);
+  color: var(--ink);
+}

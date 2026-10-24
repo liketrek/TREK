@@ -56,7 +56,9 @@ const roadtrip: TranslationStrings = {
   'roadtrip.window.conflict':
     'Una hora fixa entra en conflicte amb el trajecte i les pauses. Es mantenen les hores manuals; la planificació automàtica està en pausa.',
   'roadtrip.window.tooLong':
-    'Aquests horaris requereixen més de {days} dies addicionals. Tria una franja diària més llarga.',
+    'Aquests horaris requereixen més de {count} dies addicionals. Tria una franja diària més llarga.',
+  'roadtrip.window.tooLong.one':
+    'Aquests horaris requereixen més de {count} dia addicional. Tria una franja diària més llarga.',
   'roadtrip.mode.roadtrip': 'Viatge per carretera',
   'roadtrip.mode.days': 'Dies',
   'roadtrip.mode.label': 'Vista del pla',
@@ -70,6 +72,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.looking': 'Es busca',
   'roadtrip.poi.searchingHint': 'S’està cercant la ruta…',
   'roadtrip.poi.found': '{count} pel camí',
+  'roadtrip.poi.found.one': '{count} pel camí',
   'roadtrip.poi.fuel': 'Combustible',
   'roadtrip.poi.charging': 'Càrrega',
   'roadtrip.stop.offRoad': '{distance} des de la carretera',
@@ -85,7 +88,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.limit.rangeLabelCharge': 'Autonomia per càrrega',
   'roadtrip.limit.sectionTrip': 'Aquest viatge',
   'roadtrip.limit.sectionDriving': 'Conducció',
-  'roadtrip.limit.sectionVehicle': 'Vehicle',
+  'roadtrip.limit.sectionVehicle': 'Vehicle', // same-as-en
   'roadtrip.limit.tankLabel': 'Dipòsit',
   'roadtrip.limit.batteryLabel': 'Bateria',
   'roadtrip.limit.useLabel': 'Consum',
@@ -102,9 +105,12 @@ const roadtrip: TranslationStrings = {
   'roadtrip.limit.minutes': 'min',
   'roadtrip.limit.off': 'desactivat',
   'roadtrip.limit.blockNote': 'Un bloc = {distance}',
-  'roadtrip.limit.echoOver': '{over} de {days} dies superen el teu límit.',
-  'roadtrip.limit.echoNone': 'Els {days} dies són dins dels límits.',
+  'roadtrip.limit.echoOver': '{over} de {count} dies superen el teu límit.',
+  'roadtrip.limit.echoOver.one': '{over} de {count} dia supera el teu límit.',
+  'roadtrip.limit.echoNone': 'Els {count} dies són dins dels límits.',
+  'roadtrip.limit.echoNone.one': 'L’únic dia és dins dels límits.',
   'roadtrip.limit.echoDry': '{count} trams sense parada assolible.',
+  'roadtrip.limit.echoDry.one': '{count} tram sense parada assolible.',
   'roadtrip.limit.echoEmpty': 'Obre una ruta per veure’n l’efecte.',
   'roadtrip.limit.specToggle': 'Calcula-ho a partir del cotxe',
   'roadtrip.limit.hint': 'Només compta el temps de conducció. Les parades i les nits no hi són incloses.',
@@ -128,6 +134,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.avoid.unavailable':
     'No disponible: aquesta instància fa servir el seu propi motor, que no pot ometre una classe de via.',
   'roadtrip.avoid.badge': '{count} evitats',
+  'roadtrip.avoid.badge.one': '{count} evitat',
   'roadtrip.avoid.missed': '{classes} inevitable',
   'roadtrip.avoid.missedHint':
     'Aquest dia no té cap ruta que ho eviti, així que el trajecte ho fa servir. La resta de dies continuen evitant el que poden.',
@@ -160,7 +167,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.anyPower': 'Qualsevol potència',
   'roadtrip.poi.free': 'Gratuït',
   'roadtrip.poi.wholeDay': 'Tot el dia',
-  'roadtrip.poi.midLeg': 'A mig cami, {from} a {to}',
+  'roadtrip.poi.midLeg': 'A mig camí, {from} a {to}',
   'roadtrip.track.title': 'El dia {number} segueix una traça',
   'roadtrip.track.hint': 'Fes que aquest dia segueixi una traça importada',
   'roadtrip.track.badge': 'Traça',
@@ -176,12 +183,17 @@ const roadtrip: TranslationStrings = {
   'roadtrip.track.working': 'Ajustant el trajecte a la traça, ronda {round}',
   'roadtrip.track.done':
     'S’han col·locat {count} punts de pas. El trajecte es manté a menys de {distance} de la traça.',
+  'roadtrip.track.done.one':
+    'S’ha col·locat {count} punt de pas. El trajecte es manté a menys de {distance} de la traça.',
   'roadtrip.track.capped':
     'S’han col·locat {count} punts de pas. En el punt més ample, el trajecte queda a {distance} de la traça.',
+  'roadtrip.track.capped.one':
+    'S’ha col·locat {count} punt de pas. En el punt més ample, el trajecte queda a {distance} de la traça.',
   'roadtrip.track.already': 'El trajecte ja seguia aquesta traça.',
   'roadtrip.track.errorRoute': 'El servei de rutes no ha respost.',
   'roadtrip.track.errorSave': 'No s’han pogut desar els punts de pas.',
   'roadtrip.track.clear': 'Elimina {count} punts de pas',
+  'roadtrip.track.clear.one': 'Elimina {count} punt de pas',
   'roadtrip.track.current': 'Actualment segueix {name}',
   'roadtrip.poi.rest': 'Àrea de descans',
   'roadtrip.poi.campsite': 'Càmping',
@@ -192,12 +204,16 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.noMatch': 'Res del trajecte no coincideix amb «{name}».',
   'roadtrip.poi.noneMatchFilters': 'Res del camí no coincideix amb aquests filtres.',
   'roadtrip.poi.foundFiltered': '{count} de {total} al trajecte',
+  'roadtrip.poi.foundFiltered.one': '{count} de {total} al trajecte',
   'roadtrip.poi.truncated':
     'En {count} trams hi havia més del que cap en una resposta: estreny el corredor per veure la resta.',
+  'roadtrip.poi.truncated.one':
+    'En {count} tram hi havia més del que cap en una resposta: estreny el corredor per veure la resta.',
   'roadtrip.poi.search': 'Cerca',
   'roadtrip.poi.searching': 'Cercant {done} de {total}',
   'roadtrip.poi.capped': 'La ruta és llarga: només s’ha cercat el primer tram.',
   'roadtrip.poi.partial': 'No s’han pogut cercar {count} trams: la cerca de llocs no ha respost.',
+  'roadtrip.poi.partial.one': 'No s’ha pogut cercar {count} tram: la cerca de llocs no ha respost.',
   'roadtrip.poi.failed': 'La cerca de llocs no respon ara mateix.',
   'roadtrip.poi.empty': 'Tria què necessites i cerca.',
   'roadtrip.poi.add': 'Afegeix',
@@ -206,7 +222,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.alongRoute': 'després de {distance}',
   'roadtrip.poi.clearResults': 'Esborra resultats',
   'roadtrip.poi.addManual': 'Afegeix manualment',
-  'roadtrip.poi.addManualShort': 'Manual',
+  'roadtrip.poi.addManualShort': 'Manual', // same-as-en
   'roadtrip.poi.manualHint':
     'La cerca de llocs no troba tots els punts de recàrrega ni totes les benzineres. Busca’n un pel nom i digues en quin punt del trajecte va.',
   'roadtrip.poi.addBetween': 'Afegeix entre',
@@ -239,10 +255,11 @@ const roadtrip: TranslationStrings = {
   'roadtrip.alt.standIn':
     'L’encaminador d’evitació no ha respost per a aquest tram, així que l’ha dibuixat l’encaminador principal. S’està tornant a consultar l’encaminador d’evitació.',
   'roadtrip.day': 'Dia {number}',
-  'roadtrip.quietDay.empty': 'Encara sense parades: deixa’n una aquí',
-  'roadtrip.quietDay.one': 'De moment només {name}: deixa una parada aquí',
+  'roadtrip.quietDay.empty': "Encara sense parades, deixa'n una aquí",
+  'roadtrip.quietDay.one': 'De moment només {name}, deixa una parada aquí',
   'roadtrip.leg.driveText': '{distance} en {time}',
   'roadtrip.day.stopCount': '{count} parades',
+  'roadtrip.day.stopCount.one': '{count} parada',
   'roadtrip.day.fold': 'Plega',
   'roadtrip.day.folded': 'Plegat',
   'roadtrip.stop.stayShort': 'Parada',
@@ -263,8 +280,10 @@ const roadtrip: TranslationStrings = {
   'roadtrip.stop.computed': 'Calculat a partir del trajecte',
   'roadtrip.stop.endIsLeave': 'En el viatge per carretera, se surt a aquesta hora.',
   'roadtrip.via.hint': 'Arrossega per remodelar la ruta, clic dret per eliminar',
-  'roadtrip.warn.late': 'Arriba {minutes} min després de l’hora fixada',
-  'roadtrip.warn.missedLeave': 'Arriba {minutes} min després de l’hora de sortida fixada',
+  'roadtrip.warn.late': 'Arriba {count} min després de l’hora fixada',
+  'roadtrip.warn.late.one': 'Arriba {count} min després de l’hora fixada',
+  'roadtrip.warn.missedLeave': 'Arriba {count} min després de l’hora de sortida fixada',
+  'roadtrip.warn.missedLeave.one': 'Arriba {count} min després de l’hora de sortida fixada',
   'roadtrip.warn.overnight': 'Dia següent',
   'roadtrip.spill.title': 'Del dia {number}',
   'roadtrip.spill.departs': 'surt {time}',
@@ -285,7 +304,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.summary.partial': 'Encara s’està calculant la resta del trajecte',
   'roadtrip.stay.releaseTitle': 'Treure la pernoctació?',
   'roadtrip.stay.releaseBody': 'Es traurà la nit a «{name}». La parada es manté a la ruta com a pausa.',
-  'roadtrip.stay.releaseBookedBody': 'Es traurà la nit a «{name}» juntament amb la reserva «{booking}» i qualsevol despesa vinculada. La parada es manté a la ruta com a pausa.',
+  'roadtrip.stay.releaseBookedBody':
+    'Es traurà la nit a «{name}» juntament amb la reserva «{booking}» i qualsevol despesa vinculada. La parada es manté a la ruta com a pausa.',
   'roadtrip.stay.releaseAction': 'Converteix en pausa',
   'roadtrip.ride.departure': 'Sortida {time}',
   'roadtrip.ride.arrival': 'Arribada {time}',
@@ -296,8 +316,7 @@ const roadtrip: TranslationStrings = {
     'La reserva {title} no és a cap dia d’aquest viatge, així que el trajecte no la té en compte.',
   'roadtrip.bookings.loose': 'També reservat aquest dia',
   'roadtrip.ride.departureFlight': 'Sortida {time}',
-  'roadtrip.ride.duration': 'Durada segons la reserva',
-  'roadtrip.ride.checkIn': 'Check-in',
+  'roadtrip.ride.checkIn': 'Check-in', // same-as-en
   'roadtrip.ride.boarding': 'Embarcament',
   'roadtrip.ride.missed': 'Perdut',
   'roadtrip.ride.lateBy': '{time} de retard',
@@ -323,5 +342,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.bookend.afterCheckOut': 'Marxa després de l’hora de sortida',
   'roadtrip.bookend.noVia':
     'No es pot posar cap punt de pas al trajecte fins al teu allotjament o des d’ell. Afegeix-hi una parada.',
+  'roadtrip.stay.untilHint':
+    "Se surt a les {time} perquè aquesta visita té hora de fi. Obre-la i tria Elimina l'hora de fi per fixar una durada d'estada.",
 };
 export default roadtrip;

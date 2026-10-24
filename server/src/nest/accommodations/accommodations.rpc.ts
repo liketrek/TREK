@@ -1,11 +1,11 @@
-import { accommodationCreateRequestSchema, accommodationUpdateRequestSchema } from '@trek/shared';
-import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
-import { PluginGuards } from '../plugins/host/plugin-guards.service';
-import { BadParams, ForbiddenResource } from '../plugins/host/rpc-errors';
-import { num, schemaMessage } from '../plugins/host/rpc-params';
-import type { PluginRpcContext } from '../plugins/host/rpc-kit/types';
+import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
+import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
+import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
+import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
+import { num, schemaMessage } from '../../nest-rpc/rpc-params';
 import { RealtimeService } from '../realtime/realtime.service';
 import { AccommodationsService } from './accommodations.service';
+import { accommodationCreateRequestSchema, accommodationUpdateRequestSchema } from '@trek/shared';
 
 /**
  * Accommodations hold db:write:accommodations but are gated on 'day_edit', NOT on
@@ -42,21 +42,22 @@ export class AccommodationsRpc {
   ) {}
 
   @PluginMethod('accommodations.create', { permission: 'db:write:accommodations' })
-  create(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
+  async create(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     const tripId = num(params.tripId, 'tripId');
     const actor = this.guards.requireActor(ctx, 'accommodation');
     const parsed = accommodationCreateRequestSchema.safeParse(params.input);
     if (!parsed.success) throw new BadParams(`invalid accommodation: ${schemaMessage(parsed.error)}`);
-    this.guards.requireTripEdit(tripId, actor, ACCOMMODATION_EDIT_ACTION);
+    await this.guards.requireTripEdit(tripId, actor, ACCOMMODATION_EDIT_ACTION);
     const input = parsed.data as AccommodationInput;
     const placeId = Math.trunc(Number(input.place_id));
     const startDayId = Math.trunc(Number(input.start_day_id));
     const endDayId = Math.trunc(Number(input.end_day_id));
-    if (!placeId || !startDayId || !endDayId) throw new BadParams('place_id, start_day_id, and end_day_id are required');
+    if (!placeId || !startDayId || !endDayId)
+      throw new BadParams('place_id, start_day_id, and end_day_id are required');
     // Verifies the place and both days belong to this trip.
-    const errors = this.days.validateAccommodationRefs(tripId, placeId, startDayId, endDayId);
+    const errors = await this.days.validateAccommodationRefs(tripId, placeId, startDayId, endDayId);
     if (errors.length > 0) throw new ForbiddenResource(errors[0].message);
-    const { accommodation, mirror } = this.days.createAccommodation(tripId, {
+    const { accommodation, mirror } = await this.days.createAccommodation(tripId, {
       place_id: placeId,
       start_day_id: startDayId,
       end_day_id: endDayId,
@@ -69,42 +70,57 @@ export class AccommodationsRpc {
     this.realtime.broadcast(tripId, 'accommodation:created', { accommodation });
     // The block creates a partner hotel reservation, so the bookings view refreshes too.
     this.realtime.broadcast(tripId, 'reservation:created', {});
-    this.days.announceMirror(tripId, mirror, (event, payload) => this.realtime.broadcast(tripId, event, payload));
+    await this.days.announceMirror(tripId, mirror, (event, payload) => this.realtime.broadcast(tripId, event, payload));
     return accommodation;
   }
 
   @PluginMethod('accommodations.update', { permission: 'db:write:accommodations' })
-  update(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
+  async update(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     const tripId = num(params.tripId, 'tripId');
     const accommodationId = num(params.accommodationId, 'accommodationId');
     const actor = this.guards.requireActor(ctx, 'accommodation');
     const parsed = accommodationUpdateRequestSchema.safeParse(params.input);
     if (!parsed.success) throw new BadParams(`invalid accommodation: ${schemaMessage(parsed.error)}`);
-    this.guards.requireTripEdit(tripId, actor, ACCOMMODATION_EDIT_ACTION);
-    const existing = this.days.getAccommodation(accommodationId, tripId);
+    await this.guards.requireTripEdit(tripId, actor, ACCOMMODATION_EDIT_ACTION);
+    const existing = await this.days.getAccommodation(accommodationId, tripId);
     if (!existing) throw new ForbiddenResource(`no accommodation ${accommodationId} on trip ${tripId}`);
-    const input = parsed.data as { place_id?: number; start_day_id?: number; end_day_id?: number; check_in?: string; check_in_end?: string; check_out?: string; confirmation?: string; notes?: string };
-    const errors = this.days.validateAccommodationRefs(tripId, input.place_id, input.start_day_id, input.end_day_id);
+    const input = parsed.data as {
+      place_id?: number;
+      start_day_id?: number;
+      end_day_id?: number;
+      check_in?: string;
+      check_in_end?: string;
+      check_out?: string;
+      confirmation?: string;
+      notes?: string;
+    };
+    const errors = await this.days.validateAccommodationRefs(
+      tripId,
+      input.place_id,
+      input.start_day_id,
+      input.end_day_id,
+    );
     if (errors.length > 0) throw new ForbiddenResource(errors[0].message);
-    const { accommodation, mirror } = this.days.updateAccommodation(accommodationId, existing, input);
+    const { accommodation, mirror } = await this.days.updateAccommodation(accommodationId, existing, input);
     this.realtime.broadcast(tripId, 'accommodation:updated', { accommodation });
-    this.days.announceMirror(tripId, mirror, (event, payload) => this.realtime.broadcast(tripId, event, payload));
+    await this.days.announceMirror(tripId, mirror, (event, payload) => this.realtime.broadcast(tripId, event, payload));
     return accommodation;
   }
 
   @PluginMethod('accommodations.delete', { permission: 'db:write:accommodations' })
-  delete(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
+  async delete(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     const tripId = num(params.tripId, 'tripId');
     const accommodationId = num(params.accommodationId, 'accommodationId');
     const actor = this.guards.requireActor(ctx, 'accommodation');
-    this.guards.requireTripEdit(tripId, actor, ACCOMMODATION_EDIT_ACTION);
-    if (!this.days.getAccommodation(accommodationId, tripId)) {
+    await this.guards.requireTripEdit(tripId, actor, ACCOMMODATION_EDIT_ACTION);
+    if (!(await this.days.getAccommodation(accommodationId, tripId))) {
       throw new ForbiddenResource(`no accommodation ${accommodationId} on trip ${tripId}`);
     }
     // Deleting a block can take its partner reservation and budget item with it.
-    const { linkedReservationIds, deletedBudgetItemIds, mirror } = this.days.deleteAccommodation(accommodationId);
-    this.days.announceMirror(tripId, mirror, (event, payload) => this.realtime.broadcast(tripId, event, payload));
-    for (const reservationId of linkedReservationIds) this.realtime.broadcast(tripId, 'reservation:deleted', { reservationId });
+    const { linkedReservationIds, deletedBudgetItemIds, mirror } = await this.days.deleteAccommodation(accommodationId);
+    await this.days.announceMirror(tripId, mirror, (event, payload) => this.realtime.broadcast(tripId, event, payload));
+    for (const reservationId of linkedReservationIds)
+      this.realtime.broadcast(tripId, 'reservation:deleted', { reservationId });
     for (const itemId of deletedBudgetItemIds) this.realtime.broadcast(tripId, 'budget:deleted', { itemId });
     this.realtime.broadcast(tripId, 'accommodation:deleted', { accommodationId });
     return { deleted: true };

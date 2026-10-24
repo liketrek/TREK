@@ -9,13 +9,13 @@
  *
  * fetch is stubbed; the DB is mocked the same way maps.service.test.ts does it.
  */
+import { WikimediaClient } from '../../../src/nest/maps/providers/wikimedia.client';
+
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 vi.mock('../../../src/db/database', () => ({
   db: { prepare: () => ({ get: () => undefined, run: () => undefined, all: () => [] }) },
 }));
-
-vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KEY: '0'.repeat(64) }));
 
 vi.mock('../../../src/utils/ssrfGuard', () => ({
   safeFetchFollow: vi.fn(),
@@ -23,11 +23,7 @@ vi.mock('../../../src/utils/ssrfGuard', () => ({
   SsrfBlockedError: class extends Error {},
 }));
 
-import { db } from '../../../src/db/database';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { MapsService } from '../../../src/nest/maps/maps.service';
-
-const svcOf = () => new MapsService(new DatabaseService(db as never), {} as never);
+const svcOf = () => new WikimediaClient();
 
 const filePage = (over: Record<string, unknown> = {}) => ({
   pageid: 4711,
@@ -97,7 +93,9 @@ describe('fetchWikidataCandidates', () => {
     const fetchMock = vi.fn().mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        entities: { Q1: { claims: { P18: [{ mainsnak: { datavalue: { value: 'Wrong.jpg' } }, rank: 'deprecated' }] } } },
+        entities: {
+          Q1: { claims: { P18: [{ mainsnak: { datavalue: { value: 'Wrong.jpg' } }, rank: 'deprecated' }] } },
+        },
       }),
     });
     vi.stubGlobal('fetch', fetchMock);

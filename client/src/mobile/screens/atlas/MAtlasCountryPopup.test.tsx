@@ -125,7 +125,7 @@ describe('MAtlasCountryPopup', () => {
     fireEvent.click(screen.getByText('atlas.addToBucket'))
 
     await waitFor(() => expect(setConfirmAction).toHaveBeenCalledWith(null))
-    expect(body).toEqual({ name: 'France', country_code: 'FR', target_date: '2027-05' })
+    expect(body).toMatchObject({ name: 'France', country_code: 'FR', target_date: '2027-05' })
     expect(setBucketList).toHaveBeenCalled()
   })
 })

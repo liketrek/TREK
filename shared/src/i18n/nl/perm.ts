@@ -32,6 +32,7 @@ const perm: TranslationStrings = {
   'perm.action.collab_edit': 'Samenwerking (notities, polls, chat)',
   'perm.action.share_manage': 'Deellinks beheren',
   'perm.actionHint.trip_create': 'Wie kan nieuwe reizen aanmaken',
+  'perm.action.journal_link': 'Dagboek koppelen',
   'perm.actionHint.trip_edit': 'Wie kan reisnaam, data, beschrijving en valuta wijzigen',
   'perm.actionHint.trip_delete': 'Wie kan een reis permanent verwijderen',
   'perm.actionHint.trip_archive': 'Wie kan een reis archiveren of dearchiveren',
@@ -47,5 +48,6 @@ const perm: TranslationStrings = {
   'perm.actionHint.packing_edit': 'Wie kan pakitems en tassen beheren',
   'perm.actionHint.collab_edit': 'Wie kan notities, polls aanmaken en berichten versturen',
   'perm.actionHint.share_manage': 'Wie kan openbare deellinks aanmaken of verwijderen',
+  'perm.actionHint.journal_link': 'Wie een dagboek uit Journey aan de reis kan koppelen en voor de leden kan openen',
 };
 export default perm;

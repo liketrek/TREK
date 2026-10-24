@@ -1,7 +1,4 @@
 /// <reference types="@aws-lite/s3-types" />
-import awsLite from '@aws-lite/client';
-import { PassThrough, Transform, type Readable } from 'node:stream';
-import fs from 'node:fs';
 import { assertValidKey, assertValidPrefix, isValidKey } from '../storage-keys';
 import {
   StorageBackendError,
@@ -13,6 +10,10 @@ import {
   type PutOptions,
   type StorageDriver,
 } from '../storage.types';
+import awsLite from '@aws-lite/client';
+
+import fs from 'node:fs';
+import { PassThrough, Transform, type Readable } from 'node:stream';
 
 /**
  * S3-compatible driver over @aws-lite/client + @aws-lite/s3 (spec:
@@ -50,9 +51,9 @@ export interface S3Api {
   }>;
   HeadObject(input: Record<string, unknown>): Promise<{ ContentLength?: number; LastModified?: Date; ETag?: string }>;
   DeleteObject(input: Record<string, unknown>): Promise<unknown>;
-  ListObjectsV2(input: Record<string, unknown>): Promise<
-    AsyncIterable<{ Contents?: Array<{ Key?: string; Size?: number; LastModified?: Date }> }>
-  >;
+  ListObjectsV2(
+    input: Record<string, unknown>,
+  ): Promise<AsyncIterable<{ Contents?: Array<{ Key?: string; Size?: number; LastModified?: Date }> }>>;
 }
 
 // `Omit<S3ClientOptions, 'keepAlive'>` rather than a bare `S3ClientOptions &`:
@@ -375,7 +376,10 @@ export class S3Driver implements StorageDriver {
     assertValidKey(key);
     const s3 = await this.client();
     try {
-      const res = await this.deadlined(s3.HeadObject({ Bucket: this.bucket, Key: this.keyPrefix + key }), `stat '${key}'`);
+      const res = await this.deadlined(
+        s3.HeadObject({ Bucket: this.bucket, Key: this.keyPrefix + key }),
+        `stat '${key}'`,
+      );
       return {
         key,
         size: res.ContentLength ?? 0,

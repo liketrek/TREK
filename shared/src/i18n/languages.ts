@@ -2,11 +2,13 @@ export const SUPPORTED_LANGUAGES = [
   { value: 'de', label: 'Deutsch', locale: 'de-DE' },
   { value: 'en', label: 'English', locale: 'en-US' },
   { value: 'es', label: 'Español', locale: 'es-ES' },
+  { value: 'et', label: 'Eesti', locale: 'et-EE' },
   { value: 'fr', label: 'Français', locale: 'fr-FR' },
   { value: 'hu', label: 'Magyar', locale: 'hu-HU' },
   { value: 'nl', label: 'Nederlands', locale: 'nl-NL' },
   { value: 'br', label: 'Português (Brasil)', locale: 'pt-BR' },
   { value: 'cs', label: 'Česky', locale: 'cs-CZ' },
+  { value: 'sk', label: 'Slovenčina', locale: 'sk-SK' },
   { value: 'pl', label: 'Polski', locale: 'pl-PL' },
   { value: 'ru', label: 'Русский', locale: 'ru-RU' },
   { value: 'zh', label: '简体中文', locale: 'zh-CN' },
@@ -14,9 +16,11 @@ export const SUPPORTED_LANGUAGES = [
   { value: 'it', label: 'Italiano', locale: 'it-IT' },
   { value: 'tr', label: 'Türkçe', locale: 'tr-TR' },
   { value: 'ar', label: 'العربية', locale: 'ar-SA' },
+  { value: 'az', label: 'Azərbaycanca', locale: 'az-AZ' },
   { value: 'id', label: 'Bahasa Indonesia', locale: 'id-ID' },
   { value: 'ja', label: '日本語', locale: 'ja-JP' },
   { value: 'ko', label: '한국어', locale: 'ko-KR' },
+  { value: 'th', label: 'ไทย', locale: 'th-TH' },
   { value: 'uk', label: 'Українська', locale: 'uk-UA' },
   { value: 'gr', label: 'Ελληνικά', locale: 'el-GR' },
   { value: 'sv', label: 'Svenska', locale: 'sv-SE' },
@@ -39,9 +43,14 @@ export function getLocaleForLanguage(language: string): string {
   return LOCALES[language] ?? LOCALES['en'] ?? 'en-US';
 }
 
-// Returns a BCP-47 tag suitable for Intl APIs.
+// Two codes TREK uses are not the BCP-47 tag of their language: 'br' is Breton
+// and 'gr' is no language at all.
+const INTL_LANGUAGE: Partial<Record<string, string>> = { br: 'pt-BR', gr: 'el' };
+
+// Returns a BCP-47 tag suitable for Intl APIs and the document's lang attribute.
 export function getIntlLanguage(language: string): string {
-  if (language === 'br') return 'pt-BR';
+  const tag = INTL_LANGUAGE[language];
+  if (tag) return tag;
   return SUPPORTED_LANGUAGE_CODES.includes(language) ? language : 'en';
 }
 

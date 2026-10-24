@@ -9,15 +9,15 @@ const system_notice: TranslationStrings = {
   'system_notice.welcome_v1.highlight_plan': 'Denní itineráře pro každou cestu',
   'system_notice.welcome_v1.highlight_share': 'Spolupráce s cestovními partnery',
   'system_notice.welcome_v1.highlight_offline': 'Funguje offline na mobilu',
-  'system_notice.dev_test_modal.title': '[Dev] Test notice',
-  'system_notice.dev_test_modal.body': 'This is a dev-only test notice.',
+  'system_notice.dev_test_modal.title': '[Dev] Testovací oznámení',
+  'system_notice.dev_test_modal.body': 'Toto je testovací oznámení pouze pro vývoj.',
   'system_notice.thank_you_support.title': 'Děkuji, že používáte TREK',
   'system_notice.thank_you_support.body':
     'Rychlé poděkování za to, že jste si nainstalovali TREK — upřímně, znamená to pro mě hodně.\n\nJsem jediný vývojář a TREK tvořím ve svém volném čase. Začalo to jako malý nástroj jen pro mé vlastní cesty a od té doby mě podpora a zájem komunity naprosto dostávají. TREK dělám s velkým srdcem — ale také díky mnoha úžasným externím přispěvatelům, kteří ho pomohli utvářet.\n\n**TREK je open source a zcela zdarma — a tak to navždy zůstane. Žádné placené verze, žádná předplatná, žádné háčky. Slibuji.**\n\nPokud je pro vás TREK užitečný a chtěli byste podpořit jeho vývoj, malá káva mi opravdu pomáhá pokračovat ve tvoření — žádný tlak, ale každý šálek mi pomáhá přečkat pozdní noci.\n\nDěkuji, že jste tady.\n\n— Maurice',
   'system_notice.thank_you_support.highlight_opensource': '100% open source na GitHubu',
   'system_notice.thank_you_support.highlight_free': 'Navždy zdarma — nikdy žádné placené verze',
   'system_notice.thank_you_support.highlight_community': 'Tvořeno společně s komunitou',
-  'system_notice.thank_you_support.cta_bmc': 'Buy Me a Coffee',
+  'system_notice.thank_you_support.cta_bmc': 'Kup mi kávu',
   'system_notice.thank_you_support.cta_kofi': 'Podpořit na Ko-fi',
   'system_notice.pager.prev': 'Předchozí oznámení',
   'system_notice.pager.next': 'Další oznámení',
@@ -57,15 +57,19 @@ const system_notice: TranslationStrings = {
   // The release modal. One stable set of keys: each big release swaps the copy in place.
   'system_notice.release_notes.eyebrow': 'Aktualizace nainstalována',
   'system_notice.release_notes.headline': 'Čtyři věci, které TREK nyní zvládne sám.',
-  'system_notice.release_notes.intro': 'Vlastní API míst, road tripy naplánované od začátku do konce, historie polohy ve vašich rukou, a dokumenty v synchronizaci.',
+  'system_notice.release_notes.intro':
+    'Vlastní API míst, road tripy naplánované od začátku do konce, historie polohy ve vašich rukou, a dokumenty v synchronizaci.',
   'system_notice.release_notes.features_label': 'Hlavní novinky',
   'system_notice.release_notes.features_aside': 'Zdaleka ne všechno',
-  'system_notice.release_notes.feature_places_title': 'TREK Places API',
-  'system_notice.release_notes.feature_places_body': 'První open source plánovač cest s vlastním API míst. 73,6 milionu míst, bez klíče, bez limitu.',
+  'system_notice.release_notes.feature_places_title': 'TREK Places API', // same-as-en
+  'system_notice.release_notes.feature_places_body':
+    'První open source plánovač cest s vlastním API míst. 73,6 milionu míst, bez klíče, bez limitu.',
   'system_notice.release_notes.feature_roadtrip_title': 'Doplněk Cesta autem',
-  'system_notice.release_notes.feature_roadtrip_body': 'Naplánuje jízdu sám: trasu, vzdálenost, hodiny a zastávky. Vypnuto, dokud to admin nezapne.',
+  'system_notice.release_notes.feature_roadtrip_body':
+    'Naplánuje jízdu sám: trasu, vzdálenost, hodiny a zastávky. Vypnuto, dokud to admin nezapne.',
   'system_notice.release_notes.feature_dawarich_title': 'Integrace Dawarich',
-  'system_notice.release_notes.feature_dawarich_body': 'Self-hosted odpověď na Google Timeline, teď čitelná přímo v TREK. TREK čte, a jen čte.',
+  'system_notice.release_notes.feature_dawarich_body':
+    'Self-hosted odpověď na Google Timeline, teď čitelná přímo v TREK. TREK čte, a jen čte.',
   'system_notice.release_notes.footnote': 'A k tomu dlouhý seznam menších změn napříč zbytkem TREK.',
   'system_notice.release_notes.notes_label': 'Poznámky k vydání',
   'system_notice.release_notes.note_eyebrow': 'Slovo od autora',
@@ -83,9 +87,10 @@ const system_notice: TranslationStrings = {
     'TREK je a vždycky bude zdarma, ale servery, domény a spousta pozdních nocí zdarma nejsou.',
   'system_notice.release_notes.support_text':
     'Pokud si TREK získal místo na vašich cestách, kupte mi kávu a pomozte, aby přišlo i další vydání.',
-  'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
+  'system_notice.release_notes.cta_bmc': 'Kup mi kávu',
   'system_notice.release_notes.cta_kofi': 'Podpořit na Ko-fi',
   'system_notice.release_notes.feature_docsync_title': 'Synchronizace dokumentů',
-  'system_notice.release_notes.feature_docsync_body': 'Paperless-ngx, Papra, Nextcloud, OpenCloud a Synology Drive. Dokumenty cesty proudí oběma směry s úložištěm, které už provozujete.',
+  'system_notice.release_notes.feature_docsync_body':
+    'Paperless-ngx, Papra, Nextcloud, OpenCloud a Synology Drive. Dokumenty cesty proudí oběma směry s úložištěm, které už provozujete.',
 };
 export default system_notice;

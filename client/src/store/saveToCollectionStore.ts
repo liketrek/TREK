@@ -27,21 +27,39 @@ export interface SaveToCollectionTarget {
   phone?: string | null
 }
 
+/**
+ * A saved tour of a trip to keep in a collection. It goes through the tour's
+ * own keep dialog, which copies the tour with its route, never through the
+ * place picker, which would keep a bare point.
+ */
+export interface SaveTourToCollectionTarget {
+  tripId: number | string
+  placeId: number
+  name: string
+}
+
 interface SaveToCollectionState {
   /** The place currently shown in the picker, or null when it is closed. */
   target: SaveToCollectionTarget | null
+  /** The tour currently shown in the keep dialog, or null when it is closed. */
+  tour: SaveTourToCollectionTarget | null
   /** Bumped after every add/remove so other surfaces (the inspector bookmark
    *  indicator) can re-check membership without prop threading. */
   version: number
   open: (target: SaveToCollectionTarget) => void
   close: () => void
+  openTour: (tour: SaveTourToCollectionTarget) => void
+  closeTour: () => void
   bumpVersion: () => void
 }
 
 export const useSaveToCollectionStore = create<SaveToCollectionState>((set, get) => ({
   target: null,
+  tour: null,
   version: 0,
   open: (target) => set({ target }),
   close: () => set({ target: null }),
+  openTour: (tour) => set({ tour }),
+  closeTour: () => set({ tour: null }),
   bumpVersion: () => set({ version: get().version + 1 }),
 }))

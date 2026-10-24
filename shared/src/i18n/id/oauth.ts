@@ -12,9 +12,9 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.collab': 'Kolaborasi',
   'oauth.scope.group.notifications': 'Notifikasi',
   'oauth.scope.group.vacay': 'Liburan',
-  'oauth.scope.group.geo': 'Geo',
+  'oauth.scope.group.geo': 'Geo', // same-as-en
   'oauth.scope.group.weather': 'Cuaca',
-  'oauth.scope.group.journey': 'Journey',
+  'oauth.scope.group.journey': 'Jurnal perjalanan',
   'oauth.scope.trips:read.label': 'Lihat perjalanan & itinerari',
   'oauth.scope.trips:read.description': 'Baca perjalanan, hari, catatan harian, dan anggota',
   'oauth.scope.trips:write.label': 'Edit perjalanan & itinerari',
@@ -75,39 +75,43 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:write.description': 'Buat, perbarui, dan hapus Journey beserta entrinya',
   'oauth.scope.journey:share.label': 'Kelola tautan Journey',
   'oauth.scope.journey:share.description': 'Buat, perbarui, dan cabut tautan berbagi publik untuk Journey',
-  'oauth.authorize.authorizing': 'Authorizing…', // en-fallback
-  'oauth.authorize.loading': 'Loading…', // en-fallback
-  'oauth.authorize.errorTitle': 'Authorization Error', // en-fallback
-  'oauth.authorize.loginTitle': 'Sign in to continue', // en-fallback
-  'oauth.authorize.loginDescription': '{client} wants access to your TREK account. Please sign in first.', // en-fallback
-  'oauth.authorize.loginButton': 'Sign in to TREK', // en-fallback
-  'oauth.authorize.requestLabel': 'Authorization Request', // en-fallback
-  'oauth.authorize.requestDescription': 'This application is requesting access to your TREK account.', // en-fallback
-  'oauth.authorize.trustNote': 'Only grant access to applications you trust. Your data stays on your server.', // en-fallback
-  'oauth.authorize.selectScope': 'Select at least one scope', // en-fallback
-  'oauth.authorize.approveOneScope': 'Approve ({count} scope)', // en-fallback
-  'oauth.authorize.approveManyScopes': 'Approve ({count} scopes)', // en-fallback
-  'oauth.authorize.approveAccess': 'Approve Access', // en-fallback
-  'oauth.authorize.deny': 'Deny', // en-fallback
-  'oauth.authorize.choosePermissions': 'Choose which permissions to grant', // en-fallback
-  'oauth.authorize.permissionsRequested': 'Permissions requested', // en-fallback
-  'oauth.authorize.alwaysIncluded': 'Always included', // en-fallback
-  'oauth.authorize.alwaysTool.listTrips': 'List your trips so the AI can discover trip IDs', // en-fallback
-  'oauth.authorize.alwaysTool.getTripSummary': 'Read a trip overview needed to use any other tool', // en-fallback
+  'oauth.authorize.authorizing': 'Mengotorisasi…',
+  'oauth.authorize.loading': 'Memuat…',
+  'oauth.authorize.errorTitle': 'Kesalahan otorisasi',
+  'oauth.authorize.loginTitle': 'Masuk untuk melanjutkan',
+  'oauth.authorize.loginDescription': '{client} ingin mengakses akun TREK-mu. Silakan masuk dulu.',
+  'oauth.authorize.loginButton': 'Masuk ke TREK',
+  'oauth.authorize.requestLabel': 'Permintaan otorisasi',
+  'oauth.authorize.requestDescription': 'Aplikasi ini meminta akses ke akun TREK-mu.',
+  'oauth.authorize.verifiedHost': 'Domain terverifikasi: {host}',
+  'oauth.authorize.trustNote': 'Berikan akses hanya kepada aplikasi yang kamu percaya. Datamu tetap ada di servermu.',
+  'oauth.authorize.selectScope': 'Pilih minimal satu cakupan',
+  'oauth.authorize.approveScopes': 'Setujui ({count} cakupan)',
+  'oauth.authorize.approveAccess': 'Setujui akses',
+  'oauth.authorize.deny': 'Tolak',
+  'oauth.authorize.choosePermissions': 'Pilih izin yang akan diberikan',
+  'oauth.authorize.permissionsRequested': 'Izin yang diminta',
+  'oauth.authorize.alwaysIncluded': 'Selalu disertakan',
+  'oauth.authorize.alwaysTool.listTrips': 'Daftar perjalananmu agar AI dapat menemukan ID perjalanan',
+  'oauth.authorize.alwaysTool.getTripSummary': 'Baca ringkasan perjalanan yang dibutuhkan untuk memakai alat lain',
   'oauth.scope.group.files': 'Berkas',
   'oauth.scope.group.settings': 'Pengaturan',
   'oauth.scope.files:read.label': 'Lihat berkas perjalanan',
-  'oauth.scope.files:read.description': 'Menampilkan dokumen perjalanan: nama, ukuran, siapa yang mengunggah, dan tautannya',
+  'oauth.scope.files:read.description':
+    'Menampilkan dokumen perjalanan: nama, ukuran, siapa yang mengunggah, dan tautannya',
   'oauth.scope.files:write.label': 'Kelola berkas perjalanan',
-  'oauth.scope.files:write.description': 'Ganti nama dan deskripsi berkas, tautkan ke pemesanan dan tempat, beri bintang dan buang ke sampah',
+  'oauth.scope.files:write.description':
+    'Ganti nama dan deskripsi berkas, tautkan ke pemesanan dan tempat, beri bintang dan buang ke sampah',
   'oauth.scope.files:content.label': 'Baca isi berkas',
   'oauth.scope.files:content.description': 'Membaca isi dokumen yang diunggah, misalnya PDF pemesanan atau tiket',
   'oauth.scope.settings:read.label': 'Lihat preferensi Anda',
   'oauth.scope.settings:read.description': 'Membaca satuan, format waktu, bahasa, mata uang bawaan, dan halaman awal',
   'oauth.scope.settings:write.label': 'Ubah preferensi Anda',
-  'oauth.scope.settings:write.description': 'Mengubah satuan, format waktu, bahasa, mata uang bawaan, dan halaman awal. Tidak pernah kunci API tersimpan',
+  'oauth.scope.settings:write.description':
+    'Mengubah satuan, format waktu, bahasa, mata uang bawaan, dan halaman awal. Tidak pernah kunci API tersimpan',
   'oauth.scope.group.plugins': 'Plugin',
   'oauth.scope.plugins:use.label': 'Jalankan alat plugin',
-  'oauth.scope.plugins:use.description': 'Izinkan klien ini memanggil alat yang disediakan oleh plugin yang dipasang dan disetujui administrator. Setiap plugin bertindak dengan akses yang sudah diberikan kepadanya, bukan dengan cakupan token ini',
+  'oauth.scope.plugins:use.description':
+    'Izinkan klien ini memanggil alat yang disediakan oleh plugin yang dipasang dan disetujui administrator. Setiap plugin bertindak dengan akses yang sudah diberikan kepadanya, bukan dengan cakupan token ini',
 };
 export default oauth;

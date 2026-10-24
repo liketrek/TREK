@@ -1,0 +1,257 @@
+/* The assistant's motion. Calm on purpose: things arrive, nothing bounces.
+   Every rule here has a still form under reduced motion, from the OS setting
+   or from the user's own switch (data-reduce-motion on <html>). */
+
+/* The window grows out of the button that opened it. The origin is set inline,
+   because it is wherever the button sits relative to the window. */
+@keyframes trek-assistant-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.trek-assistant-pop {
+  animation: trek-assistant-pop 240ms var(--ease-drawer);
+}
+
+/* Settling after a drag: the window glides into a corner or its other size,
+   but never while a pointer is moving it. */
+.trek-assistant-settle {
+  transition-property: inset-inline-start, top, width, height;
+  transition-duration: 220ms;
+  transition-timing-function: var(--ease-drawer);
+}
+
+/* A new message rises in. */
+.trek-assistant-enter {
+  animation: trek-fade-up 280ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+/* A reading step names what it does while it runs: the words shimmer. */
+.trek-assistant-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    var(--text-muted) 0%,
+    var(--text-muted) 40%,
+    var(--text-primary) 50%,
+    var(--text-muted) 60%,
+    var(--text-muted) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: trek-shimmer 1.8s linear infinite;
+}
+
+/* The caret at the end of an answer that is still being written: after the
+   last word, so in the last item of a closing list. */
+@keyframes trek-assistant-caret {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.2;
+  }
+}
+.trek-assistant-md[data-writing] > :last-child:not(ul):not(ol)::after,
+.trek-assistant-md[data-writing] > :is(ul, ol):last-child > li:last-child::after {
+  content: '';
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-inline-start: 2px;
+  vertical-align: -0.15em;
+  border-radius: 1px;
+  background: var(--text-primary);
+  animation: trek-assistant-caret 1s ease-in-out infinite;
+}
+
+/* Markdown in an answer: the planner's text scale, tight rhythm, no images. */
+.trek-assistant-md > :first-child {
+  margin-top: 0;
+}
+.trek-assistant-md > :last-child {
+  margin-bottom: 0;
+}
+.trek-assistant-md p,
+.trek-assistant-md ul,
+.trek-assistant-md ol,
+.trek-assistant-md pre,
+.trek-assistant-md blockquote,
+.trek-assistant-md table {
+  margin: 0.5em 0;
+}
+.trek-assistant-md ul {
+  list-style: disc;
+  padding-inline-start: 1.25em;
+}
+.trek-assistant-md ol {
+  list-style: decimal;
+  padding-inline-start: 1.25em;
+}
+.trek-assistant-md li + li {
+  margin-top: 0.15em;
+}
+.trek-assistant-md h1,
+.trek-assistant-md h2,
+.trek-assistant-md h3,
+.trek-assistant-md h4 {
+  margin: 0.75em 0 0.25em;
+  font-weight: 600;
+  font-size: inherit;
+}
+.trek-assistant-md strong {
+  font-weight: 600;
+}
+.trek-assistant-md a {
+  color: var(--accent-on);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.trek-assistant-md code {
+  padding: 0.05em 0.3em;
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  font-size: 0.92em;
+}
+.trek-assistant-md pre {
+  overflow-x: auto;
+  padding: 0.6em 0.75em;
+  border-radius: 8px;
+  background: var(--bg-tertiary);
+}
+.trek-assistant-md pre code {
+  padding: 0;
+  background: none;
+}
+.trek-assistant-md blockquote {
+  padding-inline-start: 0.75em;
+  border-inline-start: 2px solid var(--border-primary);
+  color: var(--text-secondary);
+}
+.trek-assistant-md table {
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+.trek-assistant-md th,
+.trek-assistant-md td {
+  padding: 0.25em 0.6em;
+  border: 1px solid var(--border-faint);
+  text-align: start;
+}
+.trek-assistant-md hr {
+  margin: 0.75em 0;
+  border: 0;
+  border-top: 1px solid var(--border-faint);
+}
+
+/* A closed window still writing an answer: a ring breathes around the floating button. */
+@keyframes trek-assistant-busy {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.45;
+  }
+  50% {
+    transform: scale(1.18);
+    opacity: 0;
+  }
+}
+.trek-assistant-busy {
+  animation: trek-assistant-busy 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trek-assistant-pop,
+  .trek-assistant-enter {
+    animation: trek-backdrop-enter 120ms ease-out;
+  }
+  .trek-assistant-settle {
+    transition: none;
+  }
+  .trek-assistant-busy {
+    animation: none;
+  }
+  .trek-assistant-shimmer {
+    animation: none;
+    background: none;
+    color: var(--text-muted);
+  }
+  .trek-assistant-md[data-writing] > :last-child:not(ul):not(ol)::after,
+  .trek-assistant-md[data-writing] > :is(ul, ol):last-child > li:last-child::after {
+    animation: none;
+  }
+}
+[data-reduce-motion] .trek-assistant-pop,
+[data-reduce-motion] .trek-assistant-enter {
+  animation: trek-backdrop-enter 120ms ease-out;
+}
+[data-reduce-motion] .trek-assistant-settle {
+  transition: none;
+}
+[data-reduce-motion] .trek-assistant-busy {
+  animation: none;
+}
+[data-reduce-motion] .trek-assistant-shimmer {
+  animation: none;
+  background: none;
+  color: var(--text-muted);
+}
+[data-reduce-motion] .trek-assistant-md[data-writing] > :last-child:not(ul):not(ol)::after,
+[data-reduce-motion] .trek-assistant-md[data-writing] > :is(ul, ol):last-child > li:last-child::after {
+  animation: none;
+}
+
+/* A row of cards that scrolls sideways (found places, the weather): no bar,
+   and the edges fade where there is more to scroll to. */
+.trek-assistant-strip {
+  --strip-fade-start: 0px;
+  --strip-fade-end: 0px;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    black var(--strip-fade-start),
+    black calc(100% - var(--strip-fade-end)),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black var(--strip-fade-start),
+    black calc(100% - var(--strip-fade-end)),
+    transparent
+  );
+}
+.trek-assistant-strip::-webkit-scrollbar {
+  display: none;
+}
+[dir='rtl'] .trek-assistant-strip {
+  -webkit-mask-image: linear-gradient(
+    to left,
+    transparent,
+    black var(--strip-fade-start),
+    black calc(100% - var(--strip-fade-end)),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to left,
+    transparent,
+    black var(--strip-fade-start),
+    black calc(100% - var(--strip-fade-end)),
+    transparent
+  );
+}
+.trek-assistant-strip[data-fade-start] {
+  --strip-fade-start: 24px;
+}
+.trek-assistant-strip[data-fade-end] {
+  --strip-fade-end: 24px;
+}

@@ -5,6 +5,7 @@ import {
   nextTripDate,
   planDatedAppend,
   planDayGrid,
+  reorderedDayDates,
   resolveDayGridRange,
 } from './day-grid';
 import { MAX_TRIP_DAYS } from './trip.schema';
@@ -236,5 +237,40 @@ describe('planDayGrid', () => {
       expect(undated(0).rows).toHaveLength(7);
       expect(undated(3, [], [], MAX_TRIP_DAYS + 1).rows).toHaveLength(MAX_TRIP_DAYS);
     });
+  });
+});
+
+describe('reorderedDayDates', () => {
+  const days = [
+    { id: 1, date: '2026-10-01' },
+    { id: 2, date: '2026-10-02' },
+    { id: 3, date: '2026-10-03' },
+    { id: 4, date: null },
+  ];
+
+  it('keeps the dates on their slots while dated days change places', () => {
+    expect([...reorderedDayDates(days, [3, 1, 2, 4])]).toEqual([
+      [3, '2026-10-01'],
+      [1, '2026-10-02'],
+      [2, '2026-10-03'],
+      [4, null],
+    ]);
+  });
+
+  it('moves a day without a date to the front without handing it a date', () => {
+    expect([...reorderedDayDates(days, [4, 1, 2, 3])]).toEqual([
+      [4, null],
+      [1, '2026-10-01'],
+      [2, '2026-10-02'],
+      [3, '2026-10-03'],
+    ]);
+  });
+
+  it('leaves every day without a date on a trip without dates', () => {
+    const undated = [{ id: 1, date: null }, { id: 2 }];
+    expect([...reorderedDayDates(undated, [2, 1])]).toEqual([
+      [2, null],
+      [1, null],
+    ]);
   });
 });

@@ -1,8 +1,11 @@
-import { Controller, Get, HttpException, Query, UseGuards } from '@nestjs/common';
-import type { WeatherResult } from '@trek/shared';
-import { WeatherService } from './weather.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { ResponseContract } from '../common/response-contract';
+import { WindQueryDto } from './dto/wind-query.dto';
 import { ApiError } from './weather.impl';
+import { WeatherService } from './weather.service';
+import { WindService } from './wind.service';
+import { Controller, Get, HttpException, Query, UseGuards } from '@nestjs/common';
+import { windForecastResponseSchema, type WeatherResult, type WindForecastResponse } from '@trek/shared';
 
 /**
  * /api/weather — first migrated leaf module (the pilot).
@@ -19,7 +22,21 @@ import { ApiError } from './weather.impl';
 @Controller('api/weather')
 @UseGuards(JwtAuthGuard)
 export class WeatherController {
-  constructor(private readonly weather: WeatherService) {}
+  constructor(
+    private readonly weather: WeatherService,
+    private readonly wind: WindService,
+  ) {}
+
+  /**
+   * PAD-08: the wind forecast for one place and day, with gusts and direction.
+   * Forecast only: a past day or one beyond the forecast's reach answers with
+   * its status and no figures, and a failed request is a 502 of its own.
+   */
+  @Get('wind')
+  @ResponseContract(windForecastResponseSchema)
+  async getWind(@Query() query: WindQueryDto): Promise<WindForecastResponse> {
+    return await this.wind.forecast(query);
+  }
 
   @Get()
   async getWeather(

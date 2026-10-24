@@ -292,4 +292,51 @@ describe('MSheet', () => {
     expect(onCloseTop).toHaveBeenCalledTimes(1);
     expect(baseCalls).toEqual([]);
   });
+
+  describe('the unsaved-changes question', () => {
+    function Form({ open, onClose }: { open: boolean; onClose: () => void }) {
+      const [name, setName] = React.useState('');
+      return (
+        <MSheet open={open} onClose={onClose} ariaLabel="Form" discardGuard={{ name }}>
+          <input aria-label="Name" value={name} onChange={e => setName(e.target.value)} />
+        </MSheet>
+      );
+    }
+    const backdrop = () => screen.getByRole('dialog', { name: 'Form' }).parentElement!.parentElement!;
+
+    it('FE-MOB-SHEET-020: a tap on the scrim asks before throwing a change away, and keep editing stays', () => {
+      const onClose = vi.fn();
+      render(<Form open onClose={onClose} />);
+      const input = screen.getByRole('textbox', { name: 'Name' });
+      fireEvent.pointerDown(input);
+      fireEvent.change(input, { target: { value: 'Lisbon' } });
+
+      fireEvent.click(backdrop());
+      expect(onClose).not.toHaveBeenCalled();
+      expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: /keep editing|common.keepEditing/i }));
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+      expect(input).toHaveValue('Lisbon');
+
+      fireEvent.keyDown(document, { key: 'Escape' });
+      fireEvent.click(screen.getByRole('button', { name: /discard|common.discard/i }));
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('FE-MOB-SHEET-021: without a change it closes at once, and a reopened sheet starts afresh', () => {
+      const onClose = vi.fn();
+      const { rerender } = render(<Form open onClose={onClose} />);
+      fireEvent.pointerDown(screen.getByRole('textbox', { name: 'Name' }));
+      fireEvent.click(backdrop());
+      expect(onClose).toHaveBeenCalledTimes(1);
+
+      rerender(<Form open={false} onClose={onClose} />);
+      rerender(<Form open onClose={onClose} />);
+      fireEvent.click(backdrop());
+      expect(onClose).toHaveBeenCalledTimes(2);
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    });
+  });
 });
+

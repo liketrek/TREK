@@ -59,8 +59,8 @@ export function PluginColumns({ items }: { items: ViewContribution[] }) {
         <div key={c.pluginId + c.id} className="flex items-baseline justify-between gap-2 text-xs">
           <span className="text-content-secondary font-medium shrink-0">{c.label}</span>
           {c.url
-            ? <a href={c.url} target="_blank" rel="noreferrer noopener" className="text-accent truncate text-right" onClick={(e) => e.stopPropagation()}>{c.value ?? '↗'}</a>
-            : <span className={`${TONE_CLASS[c.tone] ?? TONE_CLASS.default} text-right truncate`}>{c.value}</span>}
+            ? <a href={c.url} target="_blank" rel="noreferrer noopener" className="text-accent truncate text-end" onClick={(e) => e.stopPropagation()}>{c.value ?? '↗'}</a>
+            : <span className={`${TONE_CLASS[c.tone] ?? TONE_CLASS.default} text-end truncate`}>{c.value}</span>}
         </div>
       ))}
     </div>
@@ -101,7 +101,6 @@ export function PluginActions({ items, tripId, className }: { items: ViewContrib
         <button type="button"
           key={a.pluginId + a.id}
           onClick={(e) => run(a, e)}
-          title={a.label}
           className={className ?? 'px-2 h-7 inline-flex items-center rounded-lg border border-edge bg-surface-card text-xs text-content-muted hover:text-content hover:border-content-faint transition-colors'}
         >
           {a.label}

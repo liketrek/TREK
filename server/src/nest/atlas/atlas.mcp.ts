@@ -1,15 +1,24 @@
-import {
-  McpController, Tool, Resource, type McpContext,
-  TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
-  TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, ok,
-} from '../../nest-mcp';
-import { z } from 'zod';
 import { ADDON_IDS } from '../../addons';
-import { AtlasService, BucketItemExistsError } from './atlas.service';
+import {
+  McpController,
+  Tool,
+  Resource,
+  type McpContext,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_WRITE,
+  TOOL_ANNOTATIONS_DELETE,
+  TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  errorResult,
+  ok,
+} from '../../nest-mcp';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
-import { AuthService } from '../auth/auth.service';
+import { readAfterWrite, regionsVisitedOf, standingOf } from './atlas-standing.helpers';
+import { AtlasWritesService } from './atlas-writes.service';
+import { AtlasService, BucketItemExistsError } from './atlas.service';
+import { idSchema } from '@trek/shared';
+
+import { z } from 'zod';
 
 /** Legacy registrar gate: the whole atlas surface (tools AND resources) rides
  *  the atlas addon — unlike the REST controller, which is deliberately ungated
@@ -23,11 +32,13 @@ function bucketDuplicateResult() {
 
 function jsonContent(uri: string, data: unknown) {
   return {
-    contents: [{
-      uri,
-      mimeType: 'application/json',
-      text: JSON.stringify(data, null, 2),
-    }],
+    contents: [
+      {
+        uri,
+        mimeType: 'application/json',
+        text: JSON.stringify(data, null, 2),
+      },
+    ],
   };
 }
 
@@ -39,7 +50,9 @@ function jsonContent(uri: string, data: unknown) {
  * checks map to the declarative atlas read/write access markers (resolved by
  * trekMcpAccessPolicy) and the registration-time addon early-return becomes
  * the `when:` gate. Atlas rows are uid-scoped, so there are no trip-access
- * checks and no broadcasts; writes deny demo users, reads do not. The legacy
+ * checks; the writes go through AtlasWritesService, which tells every tab of
+ * the user (`atlas:changed`), the assistant's own included. Writes deny demo
+ * users, reads do not. The legacy
  * registrar's casing divergence from REST (mark_region_visited /
  * get_country_atlas_places passed codes through un-uppercased) was fixed in
  * the trailing quirk commit — both sides now uppercase. The one input schema
@@ -52,16 +65,37 @@ function jsonContent(uri: string, data: unknown) {
  * merged shape GET /regions has always returned instead of the raw manual
  * rows; and get_atlas_stats carries the dashboard passport figures from
  * GET /api/auth/travel-stats next to the atlas payload.
+ *
+ * For the assistant's cards the four mark tools also answer `after`: where
+ * the country stands once the write ran and how many countries (and, for a
+ * region, regions of that country) count as visited now (atlas-standing.helpers.ts;
+ * a failed read leaves `after` out, the write stands), and list_bucket_list answers what GET /bucket-list does, the only way to
+ * the ids update_bucket_list_item and delete_bucket_list_item take.
  */
 @McpController()
 export class AtlasMcp {
   constructor(
     private readonly atlas: AtlasService,
+    private readonly writes: AtlasWritesService,
     readonly addons: AddonsService,
-    private readonly auth: AuthService,
   ) {}
 
   // ── Bucket list ─────────────────────────────────────────────────────────
+
+  @Tool({
+    name: 'list_bucket_list',
+    description:
+      'List your travel bucket list: each wish with its id, name, country and region, target date, notes and when it was reached. The ids are what update_bucket_list_item and delete_bucket_list_item take.',
+    inputSchema: {},
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    when: atlasAddonOn,
+    access: { group: 'atlas', mode: 'read' },
+  })
+  async listBucketList(_args: Record<string, never>, ctx: McpContext) {
+    // The same rows GET /bucket-list answers with, under the same `items` key.
+    const items = await this.atlas.bucketList(ctx.userId);
+    return ok({ items });
+  }
 
   @Tool({
     name: 'create_bucket_list_item',
@@ -77,18 +111,52 @@ export class AtlasMcp {
       // "same place, different date" case the report calls for was unreachable.
       // update_bucket_list_item has had the field all along.
       target_date: z.string().nullable().optional().describe('When you plan to go, e.g. "2027-05"'),
+      region_code: z
+        .string()
+        .regex(/^[A-Za-z]{2}-[A-Za-z0-9]{1,8}$/)
+        .optional()
+        .describe(
+          'ISO 3166-2 code of a state or province on the wish list, e.g. "US-CA"; needs country_code and has to belong to it. Hatches that region on the Atlas map',
+        ),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: atlasAddonOn,
     access: { group: 'atlas', mode: 'write' },
   })
   async createBucketListItem(
-    { name, lat, lng, country_code, notes, target_date }: { name: string; lat?: number; lng?: number; country_code?: string; notes?: string; target_date?: string | null },
+    {
+      name,
+      lat,
+      lng,
+      country_code,
+      notes,
+      target_date,
+      region_code,
+    }: {
+      name: string;
+      lat?: number;
+      lng?: number;
+      country_code?: string;
+      notes?: string;
+      target_date?: string | null;
+      region_code?: string;
+    },
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
+    // The same rule the REST contract enforces: a region comes with its own country.
+    if (region_code && (!country_code || !region_code.toUpperCase().startsWith(`${country_code.toUpperCase()}-`))) {
+      return errorResult('region_code must belong to country_code.');
+    }
     try {
-      const item = this.atlas.createBucketItem(ctx.userId, { name, lat, lng, country_code, notes, target_date });
+      const item = await this.writes.createBucketItem(ctx.userId, {
+        name,
+        lat,
+        lng,
+        country_code,
+        notes,
+        target_date,
+        region_code,
+      });
       return ok({ item });
     } catch (err) {
       if (err instanceof BucketItemExistsError) return bucketDuplicateResult();
@@ -100,15 +168,14 @@ export class AtlasMcp {
     name: 'delete_bucket_list_item',
     description: 'Remove an item from your travel bucket list.',
     inputSchema: {
-      itemId: z.number().int().positive(),
+      itemId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: atlasAddonOn,
     access: { group: 'atlas', mode: 'write' },
   })
   async deleteBucketListItem({ itemId }: { itemId: number }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    const deleted = this.atlas.deleteBucketItem(ctx.userId, itemId);
+    const deleted = await this.writes.deleteBucketItem(ctx.userId, itemId);
     if (!deleted) return { content: [{ type: 'text' as const, text: 'Bucket list item not found.' }], isError: true };
     return ok({ success: true });
   }
@@ -126,9 +193,10 @@ export class AtlasMcp {
     access: { group: 'atlas', mode: 'write' },
   })
   async markCountryVisited({ country_code }: { country_code: string }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    this.atlas.markCountry(ctx.userId, country_code.toUpperCase());
-    return ok({ success: true, country_code: country_code.toUpperCase() });
+    const code = country_code.toUpperCase();
+    await this.writes.markCountry(ctx.userId, code);
+    const after = await readAfterWrite(() => standingOf(this.atlas, ctx.userId, code));
+    return ok({ success: true, country_code: code, after });
   }
 
   @Tool({
@@ -142,9 +210,10 @@ export class AtlasMcp {
     access: { group: 'atlas', mode: 'write' },
   })
   async unmarkCountryVisited({ country_code }: { country_code: string }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    this.atlas.unmarkCountry(ctx.userId, country_code.toUpperCase());
-    return ok({ success: true, country_code: country_code.toUpperCase() });
+    const code = country_code.toUpperCase();
+    await this.writes.unmarkCountry(ctx.userId, code);
+    const after = await readAfterWrite(() => standingOf(this.atlas, ctx.userId, code));
+    return ok({ success: true, country_code: code, after });
   }
 
   // ── Atlas expanded ──────────────────────────────────────────────────────
@@ -157,7 +226,9 @@ export class AtlasMcp {
       include_coords: z
         .boolean()
         .optional()
-        .describe('Also return the coordinate of every saved place, as the dashboard map plots them. Off by default: it is one entry per place.'),
+        .describe(
+          'Also return the coordinate of every saved place, as the dashboard map plots them. Off by default: it is one entry per place.',
+        ),
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: atlasAddonOn,
@@ -169,7 +240,7 @@ export class AtlasMcp {
     // figures the passport card is actually asked for (GET /api/auth/travel-stats)
     // were unreachable here. Its coords array is one entry per place, which is
     // rendering data rather than an answer, hence the opt-in.
-    const { coords, ...travel } = this.atlas.getTravelStats(ctx.userId);
+    const { coords, ...travel } = await this.atlas.getTravelStats(ctx.userId);
     return ok({ stats, travel: include_coords ? { ...travel, coords } : travel });
   }
 
@@ -212,7 +283,8 @@ export class AtlasMcp {
 
   @Tool({
     name: 'mark_region_visited',
-    description: 'Mark a sub-country region as visited. When you only know a place or a coordinate, get the codes from locate_atlas_region first.',
+    description:
+      'Mark a sub-country region as visited. When you only know a place or a coordinate, get the codes from locate_atlas_region first.',
     inputSchema: {
       regionCode: z.string().describe('ISO region code e.g. US-CA'),
       regionName: z.string(),
@@ -226,23 +298,24 @@ export class AtlasMcp {
     { regionCode, regionName, countryCode }: { regionCode: string; regionName: string; countryCode: string },
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     // Post-fold quirk fix: uppercase both codes, matching the REST controller
     // (the legacy registrar passed them through verbatim, so a lowercase mark
     // created a row REST's uppercased unmark could never hit).
     const upperRegion = regionCode.toUpperCase();
-    this.atlas.markRegion(ctx.userId, upperRegion, regionName, countryCode.toUpperCase());
-    const row = this.atlas.listManuallyVisitedRegions(ctx.userId).find((r) => r.region_code === upperRegion);
+    const upperCountry = countryCode.toUpperCase();
+    await this.writes.markRegion(ctx.userId, upperRegion, regionName, upperCountry);
+    const row = (await this.atlas.listManuallyVisitedRegions(ctx.userId)).find((r) => r.region_code === upperRegion);
     // Echo in the client-facing shape ({ code, name, ... }) rather than raw DB columns.
     const region = row
       ? { code: row.region_code, name: row.region_name, country_code: row.country_code, manuallyMarked: true }
       : undefined;
-    return ok({ region });
+    return ok({ region, after: await readAfterWrite(() => this.regionStanding(ctx.userId, upperCountry)) });
   }
 
   @Tool({
     name: 'unmark_region_visited',
-    description: 'Remove a region from the visited list.',
+    description:
+      'Remove a region from the visited list. Removing the last region of a country also removes the country, unless it was marked visited itself.',
     inputSchema: {
       regionCode: z.string(),
     },
@@ -251,15 +324,25 @@ export class AtlasMcp {
     access: { group: 'atlas', mode: 'write' },
   })
   async unmarkRegionVisited({ regionCode }: { regionCode: string }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     // Post-fold quirk fix: uppercase, matching the REST controller.
-    this.atlas.unmarkRegion(ctx.userId, regionCode.toUpperCase());
-    return ok({ success: true });
+    const code = regionCode.toUpperCase();
+    // The country is read before the unmark, which may take its last manual row
+    // along; a region derived from places carries its country in the code.
+    const marked = (await this.atlas.listManuallyVisitedRegions(ctx.userId)).find((r) => r.region_code === code);
+    const countryCode = marked?.country_code ?? code.split('-')[0] ?? '';
+    await this.writes.unmarkRegion(ctx.userId, code);
+    return ok({ success: true, after: await readAfterWrite(() => this.regionStanding(ctx.userId, countryCode)) });
+  }
+
+  /** Where a region's country stands after a region write, with that country's visited regions. */
+  private async regionStanding(userId: number, countryCode: string) {
+    const standing = await standingOf(this.atlas, userId, countryCode);
+    return { ...standing, regions_visited: await regionsVisitedOf(this.atlas, userId, countryCode) };
   }
 
   @Tool({
     name: 'get_country_atlas_places',
-    description: 'Get places saved in the user\'s atlas for a specific country.',
+    description: "Get places saved in the user's atlas for a specific country.",
     inputSchema: {
       countryCode: z.string().describe('ISO 3166-1 alpha-2 country code'),
     },
@@ -270,7 +353,7 @@ export class AtlasMcp {
   async getCountryAtlasPlaces({ countryCode }: { countryCode: string }, ctx: McpContext) {
     // Post-fold quirk fix: uppercase, matching the REST controller (the legacy
     // registrar passed 'fr' through and matched nothing).
-    const result = this.atlas.countryPlaces(ctx.userId, countryCode.toUpperCase());
+    const result = await this.atlas.countryPlaces(ctx.userId, countryCode.toUpperCase());
     return ok(result);
   }
 
@@ -278,7 +361,7 @@ export class AtlasMcp {
     name: 'update_bucket_list_item',
     description: 'Update a bucket list item (notes, name, target date, location).',
     inputSchema: {
-      itemId: z.number().int().positive(),
+      itemId: idSchema,
       name: z.string().optional(),
       notes: z.string().optional(),
       lat: z.number().nullable().optional(),
@@ -291,7 +374,15 @@ export class AtlasMcp {
     access: { group: 'atlas', mode: 'write' },
   })
   async updateBucketListItem(
-    { itemId, name, notes, lat, lng, country_code, target_date }: {
+    {
+      itemId,
+      name,
+      notes,
+      lat,
+      lng,
+      country_code,
+      target_date,
+    }: {
       itemId: number;
       name?: string;
       notes?: string;
@@ -302,10 +393,16 @@ export class AtlasMcp {
     },
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     let item: unknown;
     try {
-      item = this.atlas.updateBucketItem(ctx.userId, itemId, { name, notes, lat, lng, country_code, target_date });
+      item = await this.writes.updateBucketItem(ctx.userId, itemId, {
+        name,
+        notes,
+        lat,
+        lng,
+        country_code,
+        target_date,
+      });
     } catch (err) {
       if (err instanceof BucketItemExistsError) return bucketDuplicateResult();
       throw err;
@@ -327,7 +424,7 @@ export class AtlasMcp {
     access: { group: 'atlas', mode: 'read' },
   })
   async bucketListResource(uri: URL, ctx: McpContext) {
-    const items = this.atlas.bucketList(ctx.userId);
+    const items = await this.atlas.bucketList(ctx.userId);
     return jsonContent(uri.href, items);
   }
 
@@ -340,7 +437,7 @@ export class AtlasMcp {
     access: { group: 'atlas', mode: 'read' },
   })
   async visitedCountriesResource(uri: URL, ctx: McpContext) {
-    const countries = this.atlas.listVisitedCountries(ctx.userId);
+    const countries = await this.atlas.listVisitedCountries(ctx.userId);
     return jsonContent(uri.href, countries);
   }
 

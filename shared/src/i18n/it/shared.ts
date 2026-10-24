@@ -11,14 +11,22 @@ const shared: TranslationStrings = {
   'shared.tabBookings': 'Prenotazioni',
   'shared.tabPacking': 'Valigia',
   'shared.tabBudget': 'Costi',
-  'shared.tabChat': 'Chat',
+  'shared.tabChat': 'Chat', // same-as-en
   'shared.days': 'giorni',
   'shared.places': 'luoghi',
+  'shared.places.one': 'luogo',
+  'shared.unplanned': 'Non ancora pianificato',
   'shared.other': 'Altro',
   'shared.totalBudget': 'Costi totali',
   'shared.messages': 'messaggi',
   'shared.sharedVia': 'Condiviso tramite',
   'shared.confirmed': 'Confermato',
   'shared.pending': 'In attesa',
+  'shared.footerTagline': 'Il pianificatore di viaggi che ospiti tu stesso. Open source.',
+  'shared.emptyBookings': 'Nessuna prenotazione condivisa finora',
+  'shared.emptyPacking': 'La lista bagagli è ancora vuota',
+  'shared.emptyCosts': 'Nessuna spesa finora',
+  'shared.emptyChat': 'Nessun messaggio finora',
+  'shared.wholeTrip': 'Tutto il viaggio',
 };
 export default shared;

@@ -1,6 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
 import { AddonsController } from '../../../src/nest/addons/addons.controller';
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
+
+import { describe, it, expect, vi } from 'vitest';
 
 function makeService(overrides: Partial<AddonsService> = {}): AddonsService {
   return {
@@ -10,7 +11,7 @@ function makeService(overrides: Partial<AddonsService> = {}): AddonsService {
 }
 
 describe('AddonsController (parity with the legacy GET /api/addons route)', () => {
-  it('GET / delegates straight to the service and returns its feed', () => {
+  it('GET / delegates straight to the service and returns its feed', async () => {
     const feed = {
       collabFeatures: { comments: true },
       bagTracking: true,
@@ -19,7 +20,7 @@ describe('AddonsController (parity with the legacy GET /api/addons route)', () =
     const list = vi.fn().mockReturnValue(feed);
     const svc = makeService({ list } as Partial<AddonsService>);
 
-    expect(new AddonsController(svc).list()).toBe(feed);
+    expect(await new AddonsController(svc).list()).toBe(feed);
     expect(list).toHaveBeenCalledTimes(1);
     expect(list).toHaveBeenCalledWith();
   });

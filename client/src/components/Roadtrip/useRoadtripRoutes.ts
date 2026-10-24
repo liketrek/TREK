@@ -1,5 +1,5 @@
 import { useRoadtripSettings } from '../../hooks/useRoadtripSettings'
-import { assembleRoadtrip, bookendStaysOf, carrierLegsFor, carrierSeam, foldRouteRun, hotelBookendsOn, isCarrierMode, isStationaryJoin, mergeRouteSegments, seatCarrierStops, seatNightBookends, standsAsDay, terminalAssignmentId, viasOnLeg, type CarrierSeam, type RoadtripStop, type RoadtripRoutes, type PlanDay, type QuietDay, type RoutedLeg } from '@trek/shared/roadtrip'
+import { assembleRoadtrip, bookendStaysOf, carrierLegsFor, carrierSeam, foldRouteRun, hotelBookendsOn, isCarrierMode, isStationaryJoin, mergeRouteSegments, oneNightPerStay, seatCarrierStops, seatNightBookends, standsAsDay, terminalAssignmentId, viasOnLeg, type CarrierSeam, type RoadtripStop, type RoadtripRoutes, type PlanDay, type QuietDay, type RoutedLeg } from '@trek/shared/roadtrip'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { avoidedClasses, calculateRouteWithLegs, routeEngineFor, RoutingRefusedError, type RouteEngine } from '../Map/RouteCalculator'
 import { resolveLegMode } from '../Planner/legMode'
@@ -14,6 +14,7 @@ import { dayWindow } from './dayWindow'
 import { useTranslation } from '../../i18n/TranslationContext'
 import { stayStartingOn } from '../../utils/dayMerge'
 import { staysAtTheirPlaces } from './nightBookend'
+import { viaKeyOf } from '../../utils/dayRouteVias'
 
 export type { RoadtripStop, RoadtripDay, RoadtripRoutes, QuietDay, AccessSpur, RoutedLeg, SnappedPoint } from '@trek/shared/roadtrip'
 
@@ -176,6 +177,7 @@ const asStop = (a: Assignment, ownerDayId: number, ownerIndex: number, accommoda
     leaveAt: a.assignment_end_time ?? p.end_time ?? null,
     checkInTime: stay?.check_in ?? null,
     night: stay !== undefined,
+    bookedNightId: a.accommodation_id ?? null,
     dwellMinutes: typeof p.duration_minutes === 'number' ? p.duration_minutes : null,
     endDay: a.end_day === true,
     legMode: a.leg_transport_mode ?? null,
@@ -318,8 +320,9 @@ export function useRoadtripRoutes(
           .filter((x): x is { assignment: Assignment; stop: RoadtripStop } => x.stop !== null)
         // The index is filled in after the drop, because it is the index into THIS
         // list: an assignment whose place has no coordinates never becomes a stop, and
-        // counting before the filter would name a row the rail does not draw.
-        const stops = located.map((x, i) => ({ ...x.stop, ownerIndex: i }))
+        // counting before the filter would name a row the rail does not draw. A hotel
+        // visited twice on its check-in day is the night at one visit only.
+        const stops = oneNightPerStay(located.map((x, i) => ({ ...x.stop, ownerIndex: i })))
         return {
           dayId: d.id,
           dayNumber: d.day_number ?? 0,
@@ -400,15 +403,7 @@ export function useRoadtripRoutes(
 
   // Only the geometry decides whether legs have to be re-fetched: renaming a place or
   // editing its notes must not fire a routing round.
-  const viaKey = useMemo(
-    () => Object.entries(viasByDay)
-      .map(([dayId, vias]) => `${dayId}:${vias.map(v => `${v.after_order_index}@${v.lat.toFixed(5)},${v.lng.toFixed(5)}`).join('|')}`)
-      // Only the order has to be stable — this is a cache key, not a list anybody reads
-      // — but it has to be stable on purpose rather than by default.
-      .sort((a, b) => a.localeCompare(b))
-      .join(';'),
-    [viasByDay],
-  )
+  const viaKey = useMemo(() => viaKeyOf(viasByDay), [viasByDay])
 
   const planKey = useMemo(
     () => `${plan.map(d => `${d.dayId}:${d.stops.map(stopKey).join('|')}`).join(';')}#${viaKey}`,

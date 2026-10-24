@@ -6,7 +6,7 @@ const storage: TranslationStrings = {
   'storage.field.endpoint': 'URL do endpoint',
   'storage.help.endpoint':
     'URL base do serviço compatível com S3, ex.: https://s3.example.com ou http://127.0.0.1:9000.',
-  'storage.field.bucket': 'Bucket',
+  'storage.field.bucket': 'Bucket', // same-as-en
   'storage.field.accessKeyId': 'ID da chave de acesso',
   'storage.field.secretAccessKey': 'Chave de acesso secreta',
   'storage.field.region': 'Região',
@@ -28,15 +28,15 @@ const storage: TranslationStrings = {
   'storage.discardAndReload': 'Descartar minhas alterações e recarregar',
   'storage.configError.banner':
     'Falha ao carregar as configurações de armazenamento salvas — salvar irá substituí-las: {error}',
-  'storage.backends.title': 'Backends',
+  'storage.backends.title': 'Backends', // same-as-en
   'storage.backends.add': 'Adicionar backend',
   'storage.backends.usedBy': 'Usado por: {categories}',
   'storage.backends.unused': 'Não atribuído a nenhuma categoria',
-  'storage.backends.envReadOnly': 'Definido por uma variável de ambiente — somente leitura',
+  'storage.backends.envReadOnly': 'Definido por uma variável de ambiente (somente leitura)',
   'storage.source.built-in': 'Integrado',
   'storage.source.env': 'Ambiente',
   'storage.source.settings': 'Configurações',
-  'storage.type.local': 'Local',
+  'storage.type.local': 'Local', // same-as-en
   'storage.type.s3': 'S3',
   'storage.type.mirror': 'Espelho',
   'storage.actions.test': 'Testar',
@@ -66,7 +66,7 @@ const storage: TranslationStrings = {
   'storage.category.places': 'Imagens de locais',
   'storage.category.photos-google': 'Cache de fotos do Google',
   'storage.category.photos-trek': 'Cache de fotos do TREK',
-  'storage.category.backups': 'Backups',
+  'storage.category.backups': 'Backups', // same-as-en
 
   // What each category stores — rendered under the label in the category map.
   'storage.categoryDesc.files':
@@ -111,7 +111,8 @@ const storage: TranslationStrings = {
   'storage.sync.error': 'Falha na sincronização: {error}',
   'storage.sync.prompt': 'Os objetos existentes ainda não foram replicados — sincronizar agora?',
   'storage.sync.dismiss': 'Dispensar',
-  'storage.usage.line': '{objects} objetos · {size}',
+  'storage.usage.line': '{count} objetos · {size}',
+  'storage.usage.line.one': '{count} objeto · {size}',
   'storage.usage.computed': 'Uso calculado {age}',
   'storage.usage.never': 'Uso ainda não calculado',
   'storage.usage.refresh': 'Atualizar',
@@ -120,7 +121,8 @@ const storage: TranslationStrings = {
 
   // Category migration (copy → flip → delta sweep)
   'storage.migrate.promptTitle': 'Mover objetos existentes para o novo backend?',
-  'storage.migrate.promptLine': '{category}: {objects} objetos ({size}) de {from} para {to}',
+  'storage.migrate.promptLine': '{category}: {count} objetos ({size}) de {from} para {to}',
+  'storage.migrate.promptLine.one': '{category}: {count} objeto ({size}) de {from} para {to}',
   'storage.migrate.promptLineUnknown': '{category}: tamanho desconhecido (uso ainda não calculado) de {from} para {to}',
   'storage.migrate.move': 'Mover objetos existentes',
   'storage.migrate.routeOnly': 'Apenas rotear novas gravações',
@@ -129,10 +131,12 @@ const storage: TranslationStrings = {
   'storage.migrate.doneFailures': '{failed} falharam — esses objetos não foram copiados para o novo backend',
   'storage.migrate.failed': 'Falha ao mover: {error} — a categoria não foi alterada',
   'storage.migrate.cancelled': 'Movimentação cancelada — nada foi alterado',
-  'storage.migrate.reclaimable': '{objects} objetos ({size}) permanecem em {from} — recupere manualmente',
+  'storage.migrate.reclaimable': '{count} objetos ({size}) permanecem em {from}, recupere manualmente',
+  'storage.migrate.reclaimable.one': '{count} objeto ({size}) permanece em {from}, recupere manualmente',
   'storage.migrate.cancel': 'Cancelar movimentação',
   'storage.migrate.promptCancel': 'Cancelar',
   'storage.migrate.queued': 'Na fila: {categories}',
-  'storage.migrate.queueDropped': 'Não foi possível iniciar a próxima migração — a fila restante foi limpa: {categories}',
+  'storage.migrate.queueDropped':
+    'Não foi possível iniciar a próxima migração — a fila restante foi limpa: {categories}',
 };
 export default storage;

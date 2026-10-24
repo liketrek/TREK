@@ -24,10 +24,16 @@ const login: TranslationStrings = {
   'login.oidc.noEmail': 'Od poskytovatele nebyl přijat žádný e-mail.',
   'login.oidc.tokenFailed': 'Ověření se nezdařilo.',
   'login.oidc.invalidState': 'Neplatná relace. Zkuste to prosím znovu.',
+  'login.oidc.emailNotVerified':
+    'Váš poskytovatel přihlášení tuto e-mailovou adresu nepotvrdil, proto ji nelze propojit s existujícím účtem.',
+  'login.oidc.emailLinkBlocked':
+    'Toto přihlášení se nepodařilo propojit s existujícím účtem s tímto e-mailem. Požádejte správce o potvrzení adresy.',
   'login.demoFailed': 'Přihlášení do dema se nezdařilo',
   'login.oidcSignIn': 'Přihlásit se přes {name}',
   'login.oidcOnly': 'Ověřování heslem je zakázáno. Přihlaste se prosím přes SSO poskytovatele.',
   'login.oidcLoggedOut': 'Byl jste odhlášen. Přihlaste se znovu přes SSO poskytovatele.',
+  'login.oidcRedirecting': 'Přesměrování na {name}…',
+  'login.oidcRedirectSlow': 'Pořád tady? Pokračovat na {name}',
   'login.demoHint': 'Vyzkoušejte demo – registrace není nutná',
   'login.mfaTitle': 'Dvoufaktorové ověření',
   'login.mfaSubtitle': 'Zadejte 6místný kód z vaší autentizační aplikace.',
@@ -67,9 +73,9 @@ const login: TranslationStrings = {
   'login.resetPasswordFailed': 'Obnovení se nezdařilo. Odkaz mohl vypršet.',
   'login.passkey.signIn': 'Přihlásit se pomocí přístupového klíče',
   'login.passkey.failed': 'Přihlášení přístupovým klíčem se nezdařilo. Zkuste to prosím znovu.',
-  'login.insecureCookie.title': "Login won't stick over HTTP",
+  'login.insecureCookie.title': 'Přihlášení přes HTTP nevydrží',
   'login.insecureCookie.body':
-    'You’re connecting over plain HTTP, so your browser drops TREK’s secure session cookie — the next request fails with "Access token required". Fix: use HTTPS, or for a home-lab set COOKIE_SECURE=false.',
-  'login.insecureCookie.link': 'Open the Troubleshooting guide',
+    'Připojujete se přes nešifrované HTTP, takže prohlížeč zahazuje zabezpečenou relační cookie TREK a další požadavek selže s chybou "Access token required". Řešení: použijte HTTPS, nebo v domácí síti nastavte COOKIE_SECURE=false.',
+  'login.insecureCookie.link': 'Otevřít průvodce řešením potíží',
 };
 export default login;

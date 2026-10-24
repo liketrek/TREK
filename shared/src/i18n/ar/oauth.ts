@@ -72,41 +72,49 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:write.description': 'إنشاء مذكرات السفر وتحديثها وحذفها وإدخالاتها',
   'oauth.scope.journey:share.label': 'إدارة روابط مذكرات السفر',
   'oauth.scope.journey:share.description': 'إنشاء روابط مشاركة عامة لمذكرات السفر وتحديثها وإلغاؤها',
-  'oauth.scope.group.atlas': 'Atlas', // en-fallback
-  'oauth.scope.group.geo': 'Geo', // en-fallback
-  'oauth.authorize.authorizing': 'Authorizing…', // en-fallback
-  'oauth.authorize.loading': 'Loading…', // en-fallback
-  'oauth.authorize.errorTitle': 'Authorization Error', // en-fallback
-  'oauth.authorize.loginTitle': 'Sign in to continue', // en-fallback
-  'oauth.authorize.loginDescription': '{client} wants access to your TREK account. Please sign in first.', // en-fallback
-  'oauth.authorize.loginButton': 'Sign in to TREK', // en-fallback
-  'oauth.authorize.requestLabel': 'Authorization Request', // en-fallback
-  'oauth.authorize.requestDescription': 'This application is requesting access to your TREK account.', // en-fallback
-  'oauth.authorize.trustNote': 'Only grant access to applications you trust. Your data stays on your server.', // en-fallback
-  'oauth.authorize.selectScope': 'Select at least one scope', // en-fallback
-  'oauth.authorize.approveOneScope': 'Approve ({count} scope)', // en-fallback
-  'oauth.authorize.approveManyScopes': 'Approve ({count} scopes)', // en-fallback
-  'oauth.authorize.approveAccess': 'Approve Access', // en-fallback
-  'oauth.authorize.deny': 'Deny', // en-fallback
-  'oauth.authorize.choosePermissions': 'Choose which permissions to grant', // en-fallback
-  'oauth.authorize.permissionsRequested': 'Permissions requested', // en-fallback
-  'oauth.authorize.alwaysIncluded': 'Always included', // en-fallback
-  'oauth.authorize.alwaysTool.listTrips': 'List your trips so the AI can discover trip IDs', // en-fallback
-  'oauth.authorize.alwaysTool.getTripSummary': 'Read a trip overview needed to use any other tool', // en-fallback
+  'oauth.scope.group.atlas': 'Atlas',
+  'oauth.scope.group.geo': 'الموقع الجغرافي',
+  'oauth.authorize.authorizing': 'جارٍ التفويض…',
+  'oauth.authorize.loading': 'جارٍ التحميل…',
+  'oauth.authorize.errorTitle': 'خطأ في التفويض',
+  'oauth.authorize.loginTitle': 'سجّل الدخول للمتابعة',
+  'oauth.authorize.loginDescription': 'يريد {client} الوصول إلى حسابك في TREK. يرجى تسجيل الدخول أولًا.',
+  'oauth.authorize.loginButton': 'تسجيل الدخول إلى TREK',
+  'oauth.authorize.requestLabel': 'طلب تفويض',
+  'oauth.authorize.requestDescription': 'يطلب هذا التطبيق الوصول إلى حسابك في TREK.',
+  'oauth.authorize.verifiedHost': 'نطاق موثَّق: {host}',
+  'oauth.authorize.trustNote': 'امنح الوصول فقط للتطبيقات التي تثق بها. تبقى بياناتك على خادمك.',
+  'oauth.authorize.selectScope': 'اختر نطاق صلاحيات واحدًا على الأقل',
+  'oauth.authorize.approveScopes': 'موافقة ({count} نطاق)',
+  'oauth.authorize.approveScopes.zero': 'موافقة (بلا نطاقات)',
+  'oauth.authorize.approveScopes.one': 'موافقة (نطاق واحد)',
+  'oauth.authorize.approveScopes.two': 'موافقة (نطاقان)',
+  'oauth.authorize.approveScopes.few': 'موافقة ({count} نطاقات)',
+  'oauth.authorize.approveScopes.many': 'موافقة ({count} نطاقًا)',
+  'oauth.authorize.approveAccess': 'الموافقة على الوصول',
+  'oauth.authorize.deny': 'رفض',
+  'oauth.authorize.choosePermissions': 'اختر الصلاحيات التي تريد منحها',
+  'oauth.authorize.permissionsRequested': 'الصلاحيات المطلوبة',
+  'oauth.authorize.alwaysIncluded': 'مشمولة دائمًا',
+  'oauth.authorize.alwaysTool.listTrips': 'عرض رحلاتك ليتمكن الذكاء الاصطناعي من معرفة معرّفات الرحلات',
+  'oauth.authorize.alwaysTool.getTripSummary': 'قراءة نظرة عامة على الرحلة، وهي لازمة لاستخدام أي أداة أخرى',
   'oauth.scope.group.files': 'الملفات',
   'oauth.scope.group.settings': 'الإعدادات',
   'oauth.scope.files:read.label': 'عرض ملفات الرحلة',
   'oauth.scope.files:read.description': 'سرد مستندات الرحلة: الأسماء والأحجام ومن رفعها وبماذا ترتبط',
   'oauth.scope.files:write.label': 'إدارة ملفات الرحلة',
-  'oauth.scope.files:write.description': 'إعادة تسمية الملفات ووصفها وربطها بالحجوزات والأماكن وتمييزها ونقلها إلى سلة المهملات',
+  'oauth.scope.files:write.description':
+    'إعادة تسمية الملفات ووصفها وربطها بالحجوزات والأماكن وتمييزها ونقلها إلى سلة المهملات',
   'oauth.scope.files:content.label': 'قراءة محتوى الملفات',
   'oauth.scope.files:content.description': 'قراءة محتوى مستند مرفوع، مثل ملف PDF لحجز أو تذكرة',
   'oauth.scope.settings:read.label': 'عرض تفضيلاتك',
   'oauth.scope.settings:read.description': 'قراءة الوحدات وتنسيق الوقت واللغة والعملة الافتراضية وصفحة البداية',
   'oauth.scope.settings:write.label': 'تغيير تفضيلاتك',
-  'oauth.scope.settings:write.description': 'تغيير الوحدات وتنسيق الوقت واللغة والعملة الافتراضية وصفحة البداية. لا مفاتيح API المخزنة أبدًا',
+  'oauth.scope.settings:write.description':
+    'تغيير الوحدات وتنسيق الوقت واللغة والعملة الافتراضية وصفحة البداية. لا مفاتيح API المخزنة أبدًا',
   'oauth.scope.group.plugins': 'الإضافات',
   'oauth.scope.plugins:use.label': 'تشغيل أدوات الإضافات',
-  'oauth.scope.plugins:use.description': 'السماح لهذا التطبيق باستدعاء الأدوات التي توفرها الإضافات التي ثبّتها المسؤول ووافق عليها. تعمل كل إضافة بالصلاحيات الممنوحة لها مسبقًا، وليس بنطاقات هذا الرمز',
+  'oauth.scope.plugins:use.description':
+    'السماح لهذا التطبيق باستدعاء الأدوات التي توفرها الإضافات التي ثبّتها المسؤول ووافق عليها. تعمل كل إضافة بالصلاحيات الممنوحة لها مسبقًا، وليس بنطاقات هذا الرمز',
 };
 export default oauth;

@@ -6,6 +6,11 @@ const journey: TranslationStrings = {
   'journey.title': 'Dziennik podróży',
   'journey.subtitle': 'Dokumentuj swoje podróże na bieżąco',
   'journey.new': 'Nowy dziennik podróży',
+  'journey.lightbox.zoomIn': 'Powiększ',
+  'journey.lightbox.zoomOut': 'Pomniejsz',
+  'journey.lightbox.zoomReset': 'Wróć do całego zdjęcia',
+  'journey.lightbox.previous': 'Poprzednie zdjęcie',
+  'journey.lightbox.next': 'Następne zdjęcie',
   'journey.create': 'Utwórz',
   'journey.titlePlaceholder': 'Dokąd jedziesz?',
   'journey.empty': 'Brak dzienników podróży',
@@ -56,7 +61,10 @@ const journey: TranslationStrings = {
   'journey.frontpage.activeJourney': 'Aktywny dziennik podróży',
   'journey.frontpage.latestJourney': 'Ostatni dziennik podróży',
   'journey.frontpage.allJourneys': 'Wszystkie dzienniki podróży',
-  'journey.frontpage.journeys': 'dzienniki podróży',
+  'journey.frontpage.journeys': 'dziennika podróży',
+  'journey.frontpage.journeys.one': 'dziennik podróży',
+  'journey.frontpage.journeys.few': 'dzienniki podróży',
+  'journey.frontpage.journeys.many': 'dzienników podróży',
   'journey.frontpage.createNew': 'Utwórz nowy dziennik podróży',
   'journey.frontpage.createNewSub': 'Wybierz podróże, pisz historie, dziel się przygodami',
   'journey.frontpage.live': 'Na żywo',
@@ -66,6 +74,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.suggestionLabel': 'Podróż właśnie się zakończyła',
   'journey.frontpage.suggestionText': 'Zamień <strong>{title}</strong> w dziennik podróży',
   'journey.frontpage.dismiss': 'Odrzuć',
+  'journey.frontpage.dismissError': 'Nie udało się ukryć tej sugestii',
   'journey.frontpage.journeyName': 'Nazwa dziennika podróży',
   'journey.frontpage.namePlaceholder': 'np. Azja Południowo-Wschodnia 2026',
   'journey.frontpage.selectTrips': 'Wybierz podróże',
@@ -73,11 +82,19 @@ const journey: TranslationStrings = {
   'journey.frontpage.trips': 'podróże',
   'journey.frontpage.placesImported': 'miejsc zostanie zaimportowanych',
   'journey.frontpage.places': 'miejsca',
+  'journey.frontpage.places.one': 'miejsce',
+  'journey.frontpage.places.few': 'miejsca',
+  'journey.frontpage.places.many': 'miejsc',
   'journey.detail.backToJourney': 'Powrót do dziennika podróży',
   'journey.detail.syncedWithTrips': 'Zsynchronizowany z podróżami',
   'journey.detail.addEntry': 'Dodaj wpis',
   'journey.detail.jumpToTop': 'Powrót na górę',
   'journey.detail.jumpToLast': 'Przejdź do ostatniego wpisu',
+  'journey.detail.dayJump': 'Przejdź do dnia',
+  'journey.detail.dayJumpCount': '{count} dnia',
+  'journey.detail.dayJumpCount.one': '{count} dzień',
+  'journey.detail.dayJumpCount.few': '{count} dni',
+  'journey.detail.dayJumpCount.many': '{count} dni',
   'journey.detail.newEntry': 'Nowy wpis',
   'journey.detail.editEntry': 'Edytuj wpis',
   'journey.detail.noEntries': 'Brak wpisów',
@@ -90,7 +107,10 @@ const journey: TranslationStrings = {
   'journey.detail.contributors': 'Współtwórcy',
   'journey.detail.readMore': 'Czytaj dalej',
   'journey.detail.prosCons': 'Zalety i wady',
-  'journey.detail.photos': 'zdjęć',
+  'journey.detail.photos': 'zdjęcia',
+  'journey.detail.photos.one': 'zdjęcie',
+  'journey.detail.photos.few': 'zdjęcia',
+  'journey.detail.photos.many': 'zdjęć',
   'journey.detail.day': 'Dzień {number}',
   'journey.detail.places': 'miejsc',
   'journey.stats.days': 'Dni',
@@ -103,6 +123,9 @@ const journey: TranslationStrings = {
   'journey.verdict.lovedIt': 'Świetne',
   'journey.verdict.couldBeBetter': 'Mogłoby być lepiej',
   'journey.synced.places': 'miejsca',
+  'journey.synced.places.one': 'miejsce',
+  'journey.synced.places.few': 'miejsca',
+  'journey.synced.places.many': 'miejsc',
   'journey.synced.synced': 'zsynchronizowane',
   'journey.editor.discardChangesConfirm': 'Masz niezapisane zmiany. Odrzucić?',
   'journey.editor.uploadFailed': 'Przesyłanie zdjęć nie powiodło się',
@@ -191,8 +214,21 @@ const journey: TranslationStrings = {
   'journey.settings.subtitle': 'Podtytuł',
   'journey.settings.subtitlePlaceholder': 'np. Tajlandia, Wietnam i Kambodża',
   'journey.settings.tracks': 'Ślady GPX',
+  'journey.settings.recordings': 'Zapisane dni',
   'journey.settings.showTripTracks': 'Pokaż wszystkie ślady GPX z podróży',
-  'journey.settings.showTripTracksHint': 'Rysuje na mapie zapisane trasy z powiązanych podróży.',
+  'journey.settings.showTripTracksHint': 'Rysuje na mapie zaplanowane trasy (ślady GPX) powiązanych podróży.',
+  'journey.settings.autoPrepare': 'Automatycznie przygotowuj zarejestrowane dni',
+  'journey.settings.autoPrepareHint':
+    'Dopóki powiązana podróż trwa, postoje z twojego Dawarich czekają przy swoim dniu na przejrzenie. Edytorzy z własnym połączeniem dostają swoje. Nic nie trafia do dziennika samo.',
+  'journey.settings.status': 'Status', // same-as-en
+  'journey.settings.statusAuto': 'Automatycznie',
+  'journey.settings.statusAutoHint': 'Zależy od dat powiązanych podróży. Bez podróży dziennik pozostaje szkicem.',
+  'journey.settings.statusManualHint':
+    'Ustawiony ręcznie. Daty podróży go nie zmienią, dopóki nie wrócisz do trybu automatycznego.',
+  'journey.settings.photosSection': 'Zdjęcia',
+  'journey.settings.photoLocation': 'Ustalaj miejsce wpisów z ich zdjęć',
+  'journey.settings.photoLocationHint':
+    'Wpis bez miejsca dostaje lokalizację pierwszego zdjęcia z GPS. Miejsca ustawione ręcznie nigdy nie są przesuwane.',
   'journey.settings.endJourney': 'Archiwizuj podróż',
   'journey.settings.reopenJourney': 'Przywróć podróż',
   'journey.settings.archived': 'Podróż zarchiwizowana',
@@ -207,13 +243,22 @@ const journey: TranslationStrings = {
   'journey.settings.coverFailed': 'Przesyłanie nie powiodło się',
   'journey.settings.failedToDelete': 'Nie udało się usunąć',
   'journey.entries.deleteTitle': 'Usuń wpis',
-  'journey.photosUploaded': '{count} zdjęć przesłanych',
+  'journey.gallery.deleteTitle': 'Usuń zdjęcie',
+  'journey.gallery.deleteMessage':
+    'To zdjęcie zniknie z galerii i ze wszystkich wpisów, w których jest użyte. Tej operacji nie można cofnąć.',
+  'journey.photosUploaded': 'Przesłano {count} zdjęcia',
+  'journey.photosUploaded.one': 'Przesłano {count} zdjęcie',
+  'journey.photosUploaded.few': 'Przesłano {count} zdjęcia',
+  'journey.photosUploaded.many': 'Przesłano {count} zdjęć',
   'journey.photosUploadFailed': 'Nie udało się przesłać niektórych zdjęć',
-  'journey.photosAdded': '{count} zdjęć dodanych',
+  'journey.photosAdded': 'Dodano {count} zdjęcia',
+  'journey.photosAdded.one': 'Dodano {count} zdjęcie',
+  'journey.photosAdded.few': 'Dodano {count} zdjęcia',
+  'journey.photosAdded.many': 'Dodano {count} zdjęć',
   'journey.public.notFound': 'Nie znaleziono',
   'journey.public.notFoundMessage': 'Ten dziennik podróży nie istnieje lub link wygasł.',
   'journey.public.readOnly': 'Tylko do odczytu · Publiczny dziennik podróży',
-  'journey.public.tagline': 'Travel Resource & Exploration Kit',
+  'journey.public.tagline': 'Zestaw do planowania i odkrywania podróży',
   'journey.public.sharedVia': 'Udostępnione przez',
   'journey.public.madeWith': 'Stworzone z',
   'journey.pdf.journeyBook': 'Książka podróży',
@@ -234,36 +279,39 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'Nie znaleziono albumów',
   'journey.picker.selectDate': 'Wybierz datę',
   'journey.picker.search': 'Szukaj',
-  'journey.detail.journeyTab': 'Journey', // en-fallback
-  'journey.contributors.remove': 'Remove contributor', // en-fallback
-  'journey.contributors.removeConfirm': 'Remove {username} from this journey?', // en-fallback
-  'journey.contributors.removed': 'Contributor removed', // en-fallback
-  'journey.contributors.removeFailed': 'Failed to remove contributor', // en-fallback
-  'journey.editor.externalPhotos': 'External photos', // en-fallback
-  'journey.editor.externalPhotosFor': 'Photos for {date}', // en-fallback
-  'journey.editor.externalPhotosNearby': 'Nearby photos first', // en-fallback
-  'journey.editor.externalPhotosNoLocation': 'All photos from this day', // en-fallback
-  'journey.editor.externalPhotosQueued': 'queued', // en-fallback
-  'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
-  'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
-  'journey.picker.day': 'This day', // en-fallback
-  'journey.studio.title': 'TREK Studio', // en-fallback
-  'journey.studio.open': 'Studio', // en-fallback
-  'journey.studio.openAria': 'Open the photo book studio', // en-fallback
-  'journey.studio.backToJourney': 'Back to the journey', // en-fallback
-  'journey.studio.format': 'Page format', // en-fallback
-  'journey.studio.formatA4Landscape': 'A4 landscape', // en-fallback
-  'journey.studio.formatA4Portrait': 'A4 portrait', // en-fallback
-  'journey.studio.formatSquare21': 'Square 21 × 21 cm', // en-fallback
-  'journey.studio.formatSquare30': 'Square 30 × 30 cm', // en-fallback
-  'journey.studio.pages': 'Pages', // en-fallback
-  'journey.studio.cover': 'Cover', // en-fallback
-  'journey.studio.inspector': 'Properties', // en-fallback
-  'journey.studio.inspectorEmpty': 'Select something on the page to edit it.', // en-fallback
-  'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
-  'journey.studio.autoLayout': 'Auto layout', // en-fallback
-  'journey.studio.export': 'Export', // en-fallback
-  'journey.studio.day': 'DZIEŃ',
+  'journey.detail.journeyTab': 'Podróż',
+  'journey.contributors.remove': 'Usuń współautora',
+  'journey.contributors.removeConfirm': 'Usunąć {username} z tej podróży?',
+  'journey.contributors.removed': 'Współautor usunięty',
+  'journey.contributors.removeFailed': 'Nie udało się usunąć współautora',
+  'journey.contributors.viaTrips': 'Przez podróże',
+  'journey.contributors.viaTripsHint':
+    'Mogą otworzyć ten dziennik, bo podróż go łączy. Zmień to w ustawieniach podróży.',
+  'journey.contributors.viaTrip': 'przez {trip}',
+  'journey.editor.externalPhotos': 'Zdjęcia zewnętrzne',
+  'journey.editor.externalPhotosFor': 'Zdjęcia z dnia {date}',
+  'journey.editor.externalPhotosNearby': 'Najpierw zdjęcia z okolicy',
+  'journey.editor.externalPhotosNoLocation': 'Wszystkie zdjęcia z tego dnia',
+  'journey.editor.externalPhotosQueued': 'w kolejce',
+  'journey.editor.externalPhotosUnavailable': 'Brak połączonych dostawców zdjęć.',
+  'journey.editor.externalPhotosPartialFailed':
+    'Nie udało się zapisać grup zdjęć: {failed}. Zapisz ponownie, aby spróbować jeszcze raz',
+  'journey.picker.day': 'Ten dzień',
+  'journey.studio.title': 'TREK Studio',
+  'journey.studio.open': 'Studio',
+  'journey.studio.openAria': 'Otwórz studio fotoksiążki',
+  'journey.studio.backToJourney': 'Wróć do podróży',
+  'journey.studio.format': 'Format strony',
+  'journey.studio.formatA4Landscape': 'A4 poziomo',
+  'journey.studio.formatA4Portrait': 'A4 pionowo',
+  'journey.studio.formatSquare21': 'Kwadrat 21 × 21 cm',
+  'journey.studio.formatSquare30': 'Kwadrat 30 × 30 cm',
+  'journey.studio.pages': 'Strony',
+  'journey.studio.cover': 'Okładka',
+  'journey.studio.inspectorEmpty': 'Zaznacz coś do edycji',
+  'journey.studio.autoLayout': 'Układ automatyczny',
+  'journey.studio.export': 'Eksportuj',
+  'journey.studio.day': 'DZIEŃ {day}',
   'journey.studio.stations': 'Etapy',
   'journey.studio.peersHere': 'tutaj',
   'journey.studio.folioAuto': 'Automatycznie',
@@ -275,105 +323,113 @@ const journey: TranslationStrings = {
   'journey.studio.exportFinishing': 'Wykończenie',
   'journey.studio.exportMarks': 'Znaczniki cięcia',
   'journey.studio.exportMarksHint': 'Dodaje {bleed} mm spadu przy każdej krawędzi i zaznacza, gdzie ciąć',
-  'journey.studio.exportNote': '{sheets} arkuszy {width} × {height} mm. Przeglądarka zamienia podgląd wydruku w PDF.',
+  'journey.studio.exportNote': '{count} arkusza {width} × {height} mm. Przeglądarka zamienia podgląd wydruku w PDF.',
+  'journey.studio.exportNote.one': '{count} arkusz {width} × {height} mm. Przeglądarka zamienia podgląd wydruku w PDF.',
+  'journey.studio.exportNote.few':
+    '{count} arkusze {width} × {height} mm. Przeglądarka zamienia podgląd wydruku w PDF.',
+  'journey.studio.exportNote.many':
+    '{count} arkuszy {width} × {height} mm. Przeglądarka zamienia podgląd wydruku w PDF.',
   'journey.studio.exportOpen': 'Podgląd wydruku',
   'journey.studio.exportSave': 'Zapisz jako PDF',
   'journey.studio.exportPreparing': 'Przygotowywanie',
-  'journey.studio.exportSheetCount': '{count} arkuszy',
-  'journey.studio.undo': 'Undo', // en-fallback
-  'journey.studio.redo': 'Redo', // en-fallback
-  'journey.studio.zoomIn': 'Zoom in', // en-fallback
-  'journey.studio.zoomOut': 'Zoom out', // en-fallback
-  'journey.studio.zoomFit': 'Fit to view', // en-fallback
+  'journey.studio.exportSheetCount': '{count} arkusza',
+  'journey.studio.exportSheetCount.one': '{count} arkusz',
+  'journey.studio.exportSheetCount.few': '{count} arkusze',
+  'journey.studio.exportSheetCount.many': '{count} arkuszy',
+  'journey.studio.undo': 'Cofnij',
+  'journey.studio.redo': 'Ponów',
+  'journey.studio.zoomIn': 'Powiększ',
+  'journey.studio.zoomOut': 'Pomniejsz',
+  'journey.studio.zoomFit': 'Dopasuj do widoku',
   'journey.studio.downloadSpread': 'Pobierz tę rozkładówkę',
-  'journey.studio.downloadSpreadHint': 'Zapisuje projekt tej rozkładówki jako plik, bez zdjęć, do udostępnienia lub ponownego użycia',
+  'journey.studio.downloadSpreadHint':
+    'Zapisuje projekt tej rozkładówki jako plik, bez zdjęć, do udostępnienia lub ponownego użycia',
   'journey.studio.importSpread': 'Importuj',
   'journey.studio.importSpreadHint': 'Dodaje rozkładówkę z pobranego pliku projektu',
   'journey.studio.importSpreadFailed': 'Ten plik nie jest rozkładówką TREK Studio',
-  'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Składanie książki wymaga miejsca, dlatego Studio działa tylko na komputerze, tak samo jak tworzenie PDF-a. Reszta podróży działa tu jak zwykle.', // en-fallback
-  'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
-  'journey.studio.bookView': 'Book view', // en-fallback
-  'journey.studio.multiple': 'Several', // en-fallback
-  'journey.studio.kind.photo': 'Photo', // en-fallback
-  'journey.studio.kind.text': 'Text', // en-fallback
-  'journey.studio.kind.shape': 'Shape', // en-fallback
-  'journey.studio.position': 'Position', // en-fallback
-  'journey.studio.width': 'W', // en-fallback
-  'journey.studio.height': 'H', // en-fallback
-  'journey.studio.text': 'Text', // en-fallback
-  'journey.studio.typography': 'Type', // en-fallback
-  'journey.studio.leading': 'Line', // en-fallback
-  'journey.studio.colour': 'Colour', // en-fallback
+  'journey.studio.desktopOnly': 'Studio wymaga większego ekranu',
+  'journey.studio.desktopOnlyHint':
+    'Składanie książki wymaga miejsca, dlatego Studio działa tylko na komputerze, tak samo jak tworzenie PDF-a. Reszta podróży działa tu jak zwykle.',
+  'journey.studio.formatA5Landscape': 'A5 poziomo',
+  'journey.studio.bookView': 'Widok książki',
+  'journey.studio.multiple': 'Kilka',
+  'journey.studio.kind.photo': 'Zdjęcie',
+  'journey.studio.kind.text': 'Tekst',
+  'journey.studio.kind.shape': 'Kształt',
+  'journey.studio.position': 'Położenie',
+  'journey.studio.width': 'Szer.',
+  'journey.studio.height': 'Wys.',
+  'journey.studio.text': 'Tekst',
+  'journey.studio.typography': 'Czcionka',
+  'journey.studio.leading': 'Interlinia',
+  'journey.studio.colour': 'Kolor',
   'journey.studio.autoColour': 'Automatycznie',
   'journey.studio.countryNames': 'Nazwy',
-  'journey.studio.crop': 'Crop', // en-fallback
-  'journey.studio.look': 'Look', // en-fallback
-  'journey.studio.radius': 'Corner', // en-fallback
-  'journey.studio.shape': 'Shape', // en-fallback
-  'journey.studio.arrange': 'Arrange', // en-fallback
-  'journey.studio.toFront': 'Bring to front', // en-fallback
-  'journey.studio.forward': 'Bring forward', // en-fallback
-  'journey.studio.backward': 'Send backward', // en-fallback
-  'journey.studio.toBack': 'Send to back', // en-fallback
-  'journey.studio.lock': 'Lock', // en-fallback
-  'journey.studio.unlock': 'Unlock', // en-fallback
-  'journey.studio.delete': 'Delete', // en-fallback
-  'journey.studio.pageHint': 'Page', // en-fallback
-  'journey.studio.boundHint': 'Follows the journal entry. Editing it here breaks that link.', // en-fallback
-  'journey.studio.fit.cover': 'Fill', // en-fallback
-  'journey.studio.fit.contain': 'Fit', // en-fallback
-  'journey.studio.filter.none': 'Original', // en-fallback
-  'journey.studio.filter.bw': 'Black & white', // en-fallback
-  'journey.studio.filter.warm': 'Warm', // en-fallback
-  'journey.studio.shapeKind.rect': 'Rectangle', // en-fallback
-  'journey.studio.shapeKind.ellipse': 'Ellipse', // en-fallback
-  'journey.studio.focalHint': 'Drag the point to choose what stays in frame.', // en-fallback
-  'journey.studio.backCover': 'Back cover', // en-fallback
-  'journey.studio.sections': 'Sections', // en-fallback
-  'journey.studio.content': 'Content', // en-fallback
-  'journey.studio.elements': 'Elements', // en-fallback
-  'journey.studio.templates': 'Layouts', // en-fallback
-  'journey.studio.photos': 'Photos', // en-fallback
-  'journey.studio.entries': 'Entries', // en-fallback
-  'journey.studio.addToPage': 'Add to this page', // en-fallback
-  'journey.studio.noPhotos': 'This journey has no photos yet.', // en-fallback
-  'journey.studio.untitled': 'Untitled', // en-fallback
-  'journey.studio.addTitle': 'Title', // en-fallback
-  'journey.studio.addStory': 'Story', // en-fallback
-  'journey.studio.addPlace': 'Place', // en-fallback
-  'journey.studio.shapes': 'Shapes', // en-fallback
-  'journey.studio.frames': 'Ramki', // en-fallback
-  'journey.studio.emptyFrame': 'Empty frame', // en-fallback
-  'journey.studio.frameHint': 'An empty frame marks where a picture goes. Drop one on it from Content.', // en-fallback
-  'journey.studio.shapeKind.line': 'Line', // en-fallback
-  'journey.studio.styleTitle': 'Heading', // en-fallback
-  'journey.studio.styleSubtitle': 'Subheading', // en-fallback
-  'journey.studio.styleBody': 'Body text', // en-fallback
-  'journey.studio.styleCaption': 'Caption', // en-fallback
-  'journey.studio.sampleHeading': 'A heading', // en-fallback
-  'journey.studio.sampleSubheading': 'A subheading', // en-fallback
-  'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
-  'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
-  'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
-  'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
-  'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
-  'journey.studio.tpl.grid4': 'Four up', // en-fallback
-  'journey.studio.tpl.grid6': 'Six up', // en-fallback
-  'journey.studio.tpl.strip': 'Strip and text', // en-fallback
-  'journey.studio.tpl.quietText': 'Text only', // en-fallback
-  'journey.studio.tpl.portraitPair': 'A pair', // en-fallback
+  'journey.studio.crop': 'Przytnij',
+  'journey.studio.look': 'Wygląd',
+  'journey.studio.radius': 'Róg',
+  'journey.studio.shape': 'Kształt',
+  'journey.studio.arrange': 'Rozmieść',
+  'journey.studio.toFront': 'Przesuń na wierzch',
+  'journey.studio.forward': 'Przesuń do przodu',
+  'journey.studio.backward': 'Przesuń do tyłu',
+  'journey.studio.toBack': 'Przesuń na spód',
+  'journey.studio.lock': 'Zablokuj',
+  'journey.studio.unlock': 'Odblokuj',
+  'journey.studio.delete': 'Usuń',
+  'journey.studio.pageHint': 'Strona',
+  'journey.studio.boundHint': 'Podąża za wpisem w dzienniku. Edycja tutaj zrywa to powiązanie.',
+  'journey.studio.fit.cover': 'Wypełnij',
+  'journey.studio.fit.contain': 'Dopasuj',
+  'journey.studio.filter.none': 'Oryginał',
+  'journey.studio.filter.bw': 'Czarno-biały',
+  'journey.studio.filter.warm': 'Ciepły',
+  'journey.studio.shapeKind.rect': 'Prostokąt',
+  'journey.studio.shapeKind.ellipse': 'Elipsa',
+  'journey.studio.focalHint': 'Przeciągnij punkt, aby wybrać, co zostaje w kadrze.',
+  'journey.studio.backCover': 'Tylna okładka',
+  'journey.studio.coverInside': 'Wewnętrzna strona okładki, pozostaje pusta',
+  'journey.studio.backCoverInside': 'Wewnętrzna strona tylnej okładki, pozostaje pusta',
+  'journey.studio.sections': 'Sekcje',
+  'journey.studio.content': 'Treść',
+  'journey.studio.elements': 'Elementy',
+  'journey.studio.templates': 'Układy',
+  'journey.studio.photos': 'Zdjęcia',
+  'journey.studio.entries': 'Wpisy',
+  'journey.studio.addToPage': 'Dodaj do tej strony',
+  'journey.studio.noPhotos': 'Ta podróż nie ma jeszcze zdjęć.',
+  'journey.studio.untitled': 'Bez tytułu',
+  'journey.studio.addTitle': 'Tytuł',
+  'journey.studio.addStory': 'Opowieść',
+  'journey.studio.addPlace': 'Miejsce',
+  'journey.studio.shapes': 'Kształty',
+  'journey.studio.frames': 'Ramki',
+  'journey.studio.emptyFrame': 'Pusta ramka',
+  'journey.studio.frameHint': 'Pusta ramka oznacza miejsce na zdjęcie. Upuść na nią zdjęcie z Zawartości.',
+  'journey.studio.shapeKind.line': 'Linia',
+  'journey.studio.styleTitle': 'Nagłówek',
+  'journey.studio.styleSubtitle': 'Podnagłówek',
+  'journey.studio.styleBody': 'Tekst podstawowy',
+  'journey.studio.styleCaption': 'Podpis',
+  'journey.studio.sampleHeading': 'Nagłówek',
+  'journey.studio.sampleSubheading': 'Podnagłówek',
+  'journey.studio.sampleBody': 'Napisz coś o tym dniu.',
+  'journey.studio.sampleCaption': 'Podpis',
+  'journey.studio.tpl.heroStory': 'Duże zdjęcie i opowieść',
+  'journey.studio.tpl.fullBleed': 'Jedno zdjęcie na cały rozkład',
+  'journey.studio.tpl.twoUp': 'Dwie pełne strony',
+  'journey.studio.tpl.grid4': 'Cztery zdjęcia',
+  'journey.studio.tpl.grid6': 'Sześć zdjęć',
+  'journey.studio.tpl.strip': 'Pasek i tekst',
+  'journey.studio.tpl.quietText': 'Tylko tekst',
+  'journey.studio.tpl.portraitPair': 'Para',
   'journey.studio.dropPhotoHere': 'Przeciągnij tu\nswoje zdjęcie',
-  'journey.studio.searchContent': 'Search photos and entries', // en-fallback
-  'journey.studio.noMatches': 'Nothing matches that.', // en-fallback
-  'journey.studio.decorations': 'Decoration', // en-fallback
-  'journey.studio.quoteMark': 'Quotation mark', // en-fallback
-  'journey.studio.circleOutline': 'Outlined circle', // en-fallback
-  'journey.studio.roundFrame': 'Rounded frame', // en-fallback
-  'journey.studio.shapeKind.rounded': 'Rounded rectangle', // en-fallback
-  'journey.studio.shapeKind.triangle': 'Triangle', // en-fallback
-  'journey.studio.shapeKind.outline': 'Outline only', // en-fallback
+  'journey.studio.searchContent': 'Szukaj zdjęć i wpisów',
+  'journey.studio.noMatches': 'Nic nie pasuje.',
+  'journey.studio.quoteMark': 'Cudzysłów',
+  'journey.studio.shapeKind.rounded': 'Prostokąt z zaokrąglonymi rogami',
+  'journey.studio.shapeKind.triangle': 'Trójkąt',
+  'journey.studio.shapeKind.outline': 'Tylko kontur',
   'journey.studio.travel': 'Podróż',
   'journey.studio.travelEmpty': 'Dane tej podróży nie są jeszcze gotowe.',
   'journey.studio.grids': 'Siatki',
@@ -385,7 +441,7 @@ const journey: TranslationStrings = {
   'journey.studio.polaroidFrame': 'Polaroid',
   'journey.studio.whiteFrame': 'Biała ramka',
   'journey.studio.shadowFrame': 'Cień',
-  'journey.studio.filmFrame': 'Film',
+  'journey.studio.filmFrame': 'Film', // same-as-en
   'journey.studio.tapeFrame': 'Na taśmie',
   'journey.studio.shapeGroup.basic': 'Podstawowe',
   'journey.studio.shapeGroup.polygons': 'Wielokąty',
@@ -396,23 +452,17 @@ const journey: TranslationStrings = {
   'journey.studio.shapeGroup.decor': 'Dekoracje',
   'journey.studio.shapeGroup.banners': 'Banery',
   'journey.studio.summary': 'Podsumowanie',
-  'journey.studio.tripSummary': 'Podsumowanie podróży',
-  'journey.studio.statsRow': 'Jeden wiersz',
-  'journey.studio.statsFull': 'Wszystko',
   'journey.studio.routeMap': 'Mapa trasy',
   'journey.studio.mapStyle.minimal': 'Minimalna',
   'journey.studio.mapStyle.outline': 'Kontur',
   'journey.studio.mapStyle.paper': 'Papier',
   'journey.studio.mapStyle.dark': 'Ciemna',
   'journey.studio.countries': 'Kraje',
-  'journey.studio.countryList': 'Lista krajów',
-  'journey.studio.countryGrid': 'Siatka krajów',
   'journey.studio.noCountries': 'Nie ustalono jeszcze krajów dla tej podróży.',
   'journey.studio.noRoute': 'Brak przystanków ze współrzędnymi.',
   'journey.studio.marks': 'Znaczniki',
   'journey.studio.dateMark': 'Data',
   'journey.studio.dayMark': 'Licznik dni',
-  'journey.studio.dayWord': 'DZIEŃ',
   'journey.studio.coordsMark': 'Współrzędne',
   'journey.studio.coordsDms': 'Stopnie',
   'journey.studio.coordsDecimal': 'Dziesiętne',
@@ -432,6 +482,20 @@ const journey: TranslationStrings = {
   'journey.studio.kind.list': 'Lista',
   'journey.studio.kind.icon': 'Ikona',
   'journey.studio.duplicate': 'Duplikuj',
+  'journey.studio.copyToPage': 'Kopiuj, aby wkleić na dowolnej stronie (Ctrl+C)',
+  'journey.studio.paste': 'Wklej (Ctrl+V)',
+  'journey.studio.pasteEmpty': 'Najpierw coś skopiuj, a potem wklej to na dowolnej stronie',
+  'journey.studio.pageFull':
+    'Ta strona jest pełna: więcej elementów się na niej nie zmieści. Najpierw coś usuń albo użyj innej strony.',
+  'journey.studio.myLayouts': 'Moje układy',
+  'journey.studio.myLayoutsEmpty':
+    'Zachowaj ułożoną stronę i rozmieść inne strony w ten sam sposób. Ich zdjęcia i teksty pozostaną.',
+  'journey.studio.saveLayout': 'Zapisz tę stronę jako układ',
+  'journey.studio.saveLayoutHint': 'Zachowuje rozmieszczenie bez zdjęć, dla wszystkich edytorów tej książki',
+  'journey.studio.saveLayoutFull': 'Ta książka mieści do 24 układów. Usuń jeden, aby zapisać kolejny.',
+  'journey.studio.deleteLayout': 'Usuń układ',
+  'journey.studio.layoutName': 'Układ',
+  'journey.studio.builtInLayouts': 'Wbudowane',
   'journey.studio.style': 'Styl',
   'journey.studio.shows': 'Pokaż',
   'journey.studio.size': 'Rozmiar',
@@ -441,12 +505,8 @@ const journey: TranslationStrings = {
   'journey.studio.rotation': 'Obrót',
   'journey.studio.opacity': 'Krycie',
   'journey.studio.fill': 'Wypełnienie',
-  'journey.studio.fillOn': 'Wypełniony',
   'journey.studio.stroke': 'Obrys',
   'journey.studio.strokeWidth': 'Grubość',
-  'journey.studio.gradient': 'Gradient',
-  'journey.studio.gradientDown': 'W dół',
-  'journey.studio.gradientUp': 'W górę',
   'journey.studio.showIcons': 'Ikony',
   'journey.studio.mapFit': 'Zakres',
   'journey.studio.mapPadding': 'Margines',
@@ -458,6 +518,35 @@ const journey: TranslationStrings = {
   'journey.studio.markStyle.chip': 'Pełny',
   'journey.studio.markStyle.outline': 'Obrysowany',
   'journey.studio.markStyle.stacked': 'Piętrowy',
+  'journey.studio.statsLook.classic': 'Klasyczny',
+  'journey.studio.statsLook.poster': 'Plakat',
+  'journey.studio.statsLook.ticket': 'Bilet',
+  'journey.studio.statsLook.tiles': 'Kafelki',
+  'journey.studio.statsLook.band': 'Pasek',
+  'journey.studio.statsLook.medal': 'Medal', // same-as-en
+  'journey.studio.statsLook.odometer': 'Licznik kilometrów',
+  'journey.studio.statsLook.sign': 'Drogowskaz',
+  'journey.studio.statsLook.note': 'Notatka',
+  'journey.studio.statsLook.sketch': 'Szkic',
+  'journey.studio.countryLook.visa': 'Wiza',
+  'journey.studio.countryLook.flag': 'Flaga',
+  'journey.studio.countryLook.pin': 'Pinezka',
+  'journey.studio.countryLook.label': 'Nalepka na bagaż',
+  'journey.studio.countryLook.sketch': 'Szkic',
+  'journey.studio.markStyle.ribbon': 'Wstęga',
+  'journey.studio.markStyle.sticker': 'Naklejka',
+  'journey.studio.markStyle.patch': 'Naszywka',
+  'journey.studio.markStyle.sketch': 'Szkic',
+  'journey.studio.travelFigures': 'Liczby',
+  'journey.studio.travelMaps': 'Mapy',
+  'journey.studio.countryLook.classic': 'Klasyczny',
+  'journey.studio.countryLook.stamp': 'Pieczątka',
+  'journey.studio.countryLook.postcard': 'Pocztówka',
+  'journey.studio.markStyle.stamp': 'Pieczątka',
+  'journey.studio.markStyle.tag': 'Zawieszka',
+  'journey.studio.markStyle.pill': 'Kapsułka',
+  'journey.studio.pinNumbered': 'Numery',
+  'journey.studio.pinEnds': 'Start i meta',
   'journey.studio.icon': 'Ikona',
   'journey.studio.iconAndLabel': 'Ikona i tekst',
   'journey.studio.iconOnly': 'Tylko ikona',
@@ -499,19 +588,17 @@ const journey: TranslationStrings = {
   'journey.studio.strokeDotted': 'Kropkowana',
   'journey.studio.singleFigures': 'Pojedyncze dane',
   'journey.studio.addPage': 'Dodaj stronę',
+  'journey.studio.addPageShort': 'Strona',
   'journey.studio.addPageAfter': 'Wstaw stronę po tej',
   'journey.studio.duplicatePage': 'Duplikuj stronę',
   'journey.studio.deletePage': 'Usuń stronę',
   'journey.studio.movePageUp': 'Przenieś wcześniej',
   'journey.studio.movePageDown': 'Przenieś później',
-  'journey.studio.beta': 'Beta',
   'journey.studio.addProsCons': 'Zalety i wady',
   'journey.studio.showMarks': 'Znaki',
   'journey.studio.formatCustom': 'Własny format',
   'journey.studio.document': 'Dokument',
   'journey.studio.pageNumbers': 'Numery stron',
-  'journey.studio.pageNumbersOn': 'Wł.',
-  'journey.studio.pageNumbersOff': 'Wył.',
   'journey.studio.folio.outer': 'Zewnętrzne',
   'journey.studio.folio.inner': 'Wewnętrzne',
   'journey.studio.folio.centre': 'Wyśrodkowane',
@@ -532,12 +619,12 @@ const journey: TranslationStrings = {
   'journey.studio.tpl.mosaic': 'Mozaika',
   'journey.studio.tpl.bandQuote': 'Słowa pośrodku',
   'journey.studio.tpl.staggerFour': 'Cztery przesunięte',
-  'journey.studio.weightMissing': 'Ten krój nie ma tej grubości',
   'journey.studio.mapSource': 'Źródło mapy',
   'journey.studio.mapSourceVector': 'Kontury',
-  'journey.studio.mapSourceRelief': 'Relief',
+  'journey.studio.mapSourceRelief': 'Rzeźba terenu',
   'journey.studio.mapSourceSatellite': 'Satelita',
-  'journey.studio.mapSourceSatelliteHint': 'Bezchmurne Sentinel-2, można drukować bez opłat z podaniem źródła. Ostre aż do pojedynczej ulicy w mieście.',
+  'journey.studio.mapSourceSatelliteHint':
+    'Bezchmurne Sentinel-2, można drukować bez opłat z podaniem źródła. Ostre aż do pojedynczej ulicy w mieście.',
   'journey.studio.routeLook': 'Linia',
   'journey.studio.routeStyle': 'Styl linii',
   'journey.studio.routePlain': 'Gładka',
@@ -551,23 +638,23 @@ const journey: TranslationStrings = {
   'journey.studio.pinPhoto': 'Zdjęcia',
   'journey.studio.pinPhotoNone': 'Te przystanki nie mają jeszcze zdjęć, więc są rysowane jako kropki.',
   'journey.studio.roads': 'Drogi',
-  'journey.studio.roadsFetch': 'Poprowadź po drogach',
   'journey.studio.roadsFollow': 'Po drogach',
   'journey.studio.roadsDirect': 'Bezpośrednio',
   'journey.studio.recommended': 'zalecane',
   'journey.studio.bleed': 'Spad',
   'journey.studio.safeArea': 'Strefa',
   'journey.studio.roadsAgain': 'Pobierz ponownie',
-  'journey.studio.roadsClear': 'Wyczyść',
   'journey.studio.roadsBusy': 'Pobieranie',
-  'journey.studio.roadsHint': 'Zapyta usługę tras o rzeczywisty przebieg każdego odcinka. Długie odcinki zostają bez zmian.',
+  'journey.studio.roadsHint':
+    'Zapyta usługę tras o rzeczywisty przebieg każdego odcinka. Długie odcinki zostają bez zmian.',
   'journey.studio.roadsHave': 'Drogi są zapisane w tej książce, więc offline drukuje tę samą linię.',
   'journey.studio.mapPerTrip': 'Jedna podróż naraz',
   'journey.studio.mapWholeJourney': 'Cały dziennik',
   'journey.studio.mapScope': 'Pokaż',
   'journey.studio.mapPrintDpi': 'Rozdzielczość druku około',
   'journey.studio.mapPrintDpiLow': 'przy tym rozmiarze wyjdzie nieostro, spróbuj szerszego kadru lub innego źródła',
-  'journey.studio.mapSourceReliefHint': 'Cieniowany relief NASA, można drukować bez licencji. Dobry dla kraju lub kontynentu, za mało dokładny dla miasta.',
+  'journey.studio.mapSourceReliefHint':
+    'Cieniowany relief NASA, można drukować bez licencji. Dobry dla kraju lub kontynentu, za mało dokładny dla miasta.',
   'journey.studio.mapSourceTiles': 'Kafelki',
   'journey.studio.mapSourceStatic': 'Mapbox',
   'journey.studio.mapSourceHint': 'Pobierane przy renderowaniu i drukowane z informacją o źródle',
@@ -582,8 +669,6 @@ const journey: TranslationStrings = {
   'journey.studio.mapClipRect': 'W ramce',
   'journey.studio.mapClipCountry': 'Wycięty kształt',
   'journey.studio.mapClipNeedsCountry': 'Do wycięcia potrzebny jest kraj',
-  'journey.studio.mapCutVector': 'Wycinek',
-  'journey.studio.mapCutTiles': 'Wycięta mapa',
   'journey.studio.mapZoomAuto': 'Dopasuj',
   'journey.studio.saving': 'Zapisywanie',
   'journey.studio.saved': 'Zapisano',
@@ -596,6 +681,8 @@ const journey: TranslationStrings = {
   'journey.studio.rotateLeft': 'Obróć w lewo',
   'journey.studio.rotateRight': 'Obróć w prawo',
   'journey.studio.saveReadOnly': 'Tylko do odczytu, nie zapisuje się',
+  'journey.studio.saveNewer': 'Nowsza wersja Studio zapisała tę książkę. Odśwież, aby ją edytować.',
+  'journey.studio.saveReload': 'Odśwież',
   'journey.studio.filterPhotos': 'Filtruj zdjęcia',
   'journey.studio.filterAll': 'Wszystkie zdjęcia',
   'journey.studio.filterLoose': 'Bez wpisu',
@@ -605,12 +692,17 @@ const journey: TranslationStrings = {
   'journey.studio.noEntryPhotos': 'Ten wpis nie ma jeszcze zdjęć.',
   'journey.studio.noLoosePhotos': 'Każde zdjęcie tutaj należy do jakiegoś wpisu.',
   'journey.studio.uploadPhotos': 'Prześlij zdjęcia',
+  'journey.studio.fromProvider': 'Z {name}',
+  'journey.studio.fromProviderHint': 'Wybierz zdjęcia z {name} i dodaj je tam, gdzie trafiłby upload',
   'journey.studio.uploadHint': 'Upuść obrazy tutaj lub kliknij, aby je wybrać',
   'journey.studio.uploadToEntry': 'Nowe obrazy trafią do tego wpisu',
   'journey.studio.uploadToGallery': 'Nowe obrazy trafią do galerii',
   'journey.studio.uploading': 'Przesyłanie {done} z {total}',
   'journey.studio.dropFilesHere': 'Upuść, aby dodać obrazy',
-  'journey.studio.videosSkipped': '{count} filmów pominięto. Książka zawiera obrazy.',
+  'journey.studio.videosSkipped': 'Pominięto {count} filmu. Książka może zawierać tylko obrazy.',
+  'journey.studio.videosSkipped.one': 'Pominięto {count} film. Książka może zawierać tylko obrazy.',
+  'journey.studio.videosSkipped.few': 'Pominięto {count} filmy. Książka może zawierać tylko obrazy.',
+  'journey.studio.videosSkipped.many': 'Pominięto {count} filmów. Książka może zawierać tylko obrazy.',
   'journey.studio.fillPage': 'Wypełnij stronę',
   'journey.studio.fillSpread': 'Wypełnij rozkładówkę',
   'journey.studio.fillHint': 'Rozciąga obraz na całą stronę, łącznie ze spadem, i umieszcza go za wszystkim innym.',
@@ -625,11 +717,24 @@ const journey: TranslationStrings = {
   'journey.editor.statsExcludedHint':
     'Przystanek zostaje w dzienniku, ale nie liczy się do dystansu, krajów ani mapy w Studio.',
   'journey.entry.offRoute': 'Poza trasą',
+  'journey.entry.draft': 'Szkic',
+  'journey.editor.draft': 'Szkic',
+  'journey.editor.draftHint':
+    'Ten wpis widzisz tylko ty i pozostali współautorzy. Udostępniony dziennik go pomija, dopóki tego nie wyłączysz.',
+  'journey.editor.tripSuggestionHint':
+    'Ten dzień przypada na tę podróż. Połącz ją, a jej miejsca trafią do tego dziennika.',
+  'journey.editor.tripSuggestionLater': 'Nie teraz',
   'journey.suggestions.dismiss': 'Odrzuć tę propozycję',
   'journey.suggestions.dismissed': 'Propozycja odrzucona',
   'journey.suggestions.restore': 'Przywróć odrzucone propozycje',
   'journey.suggestions.restoreCount': 'Odrzucone propozycje ({count})',
+  'journey.suggestions.restoreCount.one': 'Odrzucone propozycje ({count})',
+  'journey.suggestions.restoreCount.few': 'Odrzucone propozycje ({count})',
+  'journey.suggestions.restoreCount.many': 'Odrzucone propozycje ({count})',
   'journey.suggestions.restored': 'Wróciło {count} propozycji',
+  'journey.suggestions.restored.one': 'Wróciła {count} propozycja',
+  'journey.suggestions.restored.few': 'Wróciły {count} propozycje',
+  'journey.suggestions.restored.many': 'Wróciło {count} propozycji',
   'journey.detail.addOnThisDay': 'Dodaj wpis w tym dniu',
   'journey.detail.jumpToDay': 'Przejdź do {date}',
   'journey.detail.searchPlaceholder': 'Szukaj w tej podróży',
@@ -641,5 +746,230 @@ const journey: TranslationStrings = {
   'journey.settings.showWeather': 'Pogoda',
   'journey.entry.suggestion': 'Propozycja',
   'journey.editor.addDetails': '+ Szczegóły',
+  'journey.recording.mapLine': 'Zarejestrowano {date}',
+  'journey.recording.keptBy': 'Zarejestrowana trasa zapisana: {distance}, przejęta przez {name} dnia {date}.',
+  'journey.recording.keptOn': 'Zarejestrowana trasa zapisana: {distance}, przejęta dnia {date}.',
+  'journey.recording.keptRunning': 'Dzień jeszcze wtedy trwał.',
+  'journey.recording.takeOver': 'Przejmij nagranie',
+  'journey.recording.takeOverDay': 'Nagranie z {date}',
+  'journey.recording.sub': 'Tylko ten dzień, z twojego Dawarich. Nic nie zostanie zapisane, dopóki nie potwierdzisz.',
+  'journey.recording.zone': 'Strefa czasowa dnia',
+  'journey.recording.zoneHint': 'Dzień trwa w tej strefie od północy do północy. Wybierz tę, w której podróżowałeś.',
+  'journey.recording.zoneSource': 'Z Dawarich',
+  'journey.recording.zoneDevice': 'To urządzenie',
+  'journey.recording.scope': 'Nagranie',
+  'journey.recording.loading': 'Wczytywanie dnia z Dawarich…',
+  'journey.recording.keptStays': 'Trasa zapisana w tej podróży pozostaje bez zmian.',
+  'journey.recording.retry': 'Spróbuj ponownie',
+  'journey.recording.empty': 'Dawarich nic nie zarejestrował tego dnia w tej strefie czasowej.',
+  'journey.recording.span': 'od {from} do {to}',
+  'journey.recording.pieces': '{count} odcinka',
+  'journey.recording.pieces.one': '{count} odcinek',
+  'journey.recording.pieces.few': '{count} odcinki',
+  'journey.recording.pieces.many': '{count} odcinków',
+  'journey.recording.gaps': '{count} przerwy',
+  'journey.recording.gaps.one': '{count} przerwa',
+  'journey.recording.gaps.few': '{count} przerwy',
+  'journey.recording.gaps.many': '{count} przerw',
+  'journey.recording.gapsHint':
+    'Tam, gdzie nagranie się urywa, urywa się też linia. Nie jest rysowana żadna droga, której nie nagrano.',
+  'journey.recording.sourceHint':
+    'Ślady to trasy, które Dawarich już podzielił według środka transportu. Punkty to surowe pozycje, przerzedzone do 600 dziennie.',
+  'journey.recording.sourceTracks': 'Ślady',
+  'journey.recording.sourcePoints': 'Punkty',
+  'journey.recording.changedSincePreview':
+    'Nagranie zmieniło się w Dawarich, gdy je oglądałeś. Sprawdź je jeszcze raz, a potem zapisz.',
+  'journey.recording.truncated': 'Dawarich wysłał tylko część tego dnia, trasa jest niepełna.',
+  'journey.recording.provisional':
+    'Ten dzień w tej strefie jeszcze się nie skończył. Później możesz zastąpić trasę całym dniem.',
+  'journey.recording.same': 'Ta podróż już przechowuje dokładnie to nagranie.',
+  'journey.recording.differs':
+    'Ta podróż przechowuje inną wersję z {date} ({distance}). Zastąpienie nie zmienia żadnych wpisów ani tekstów.',
+  'journey.recording.audience':
+    '{count} innej osoby z tej podróży zobaczy trasę na mapie. Udostępnione linki jej nie pokazują.',
+  'journey.recording.audience.one':
+    '{count} inna osoba z tej podróży zobaczy trasę na mapie. Udostępnione linki jej nie pokazują.',
+  'journey.recording.audience.few':
+    '{count} inne osoby z tej podróży zobaczą trasę na mapie. Udostępnione linki jej nie pokazują.',
+  'journey.recording.audience.many':
+    '{count} innych osób z tej podróży zobaczy trasę na mapie. Udostępnione linki jej nie pokazują.',
+  'journey.recording.replace': 'Zastąp',
+  'journey.recording.alreadyKept': 'Już zapisana',
+  'journey.recording.keep': 'Zapisz trasę',
+  'journey.recording.remove': 'Usuń trasę',
+  'journey.recording.removeTitle': 'Usunąć zapisaną trasę?',
+  'journey.recording.removeMessage':
+    'Trasa tego dnia znika z mapy podróży. Wpisy i teksty zostają, a Dawarich zachowuje własne nagranie.',
+  'journey.recording.keptToast': 'Trasa zapisana w podróży',
+  'journey.recording.replacedToast': 'Trasa zastąpiona',
+  'journey.recording.removedToast': 'Trasa usunięta z podróży',
+  'journey.recording.error.recording_exists': 'Ta podróż przechowuje już inne nagranie z tego dnia.',
+  'journey.recording.error.recording_changed': 'Nagranie zmieniło się od podglądu.',
+  'journey.recording.error.recording_empty': 'Dawarich nic nie zarejestrował tego dnia.',
+  'journey.recording.mode.walking': 'Pieszo',
+  'journey.recording.mode.running': 'Bieg',
+  'journey.recording.mode.cycling': 'Rower',
+  'journey.recording.mode.driving': 'Samochód',
+  'journey.recording.mode.motorcycle': 'Motocykl',
+  'journey.recording.mode.bus': 'Autobus',
+  'journey.recording.mode.train': 'Pociąg',
+  'journey.recording.mode.flying': 'Lot',
+  'journey.recording.mode.boat': 'Łódź',
+  'journey.recording.mode.stationary': 'W miejscu',
+  'journey.recording.mode.unknown': 'Nieznany środek',
+  'journey.dayImport.open': 'Przejmij dzień',
+  'journey.dayImport.openHint': 'Przejmij ten dzień razem z postojami',
+  'journey.dayImport.openOn': 'Przejmij {date} razem z postojami',
+  'journey.dayImport.pending': '{count} postoju do przejrzenia',
+  'journey.dayImport.pending.one': '{count} postój do przejrzenia',
+  'journey.dayImport.pending.few': '{count} postoje do przejrzenia',
+  'journey.dayImport.pending.many': '{count} postojów do przejrzenia',
+  'journey.dayImport.sub': 'Twoje postoje z Dawarich tego dnia. Wybierz je, zmień nazwy i połącz; staną się szkicami.',
+  'journey.dayImport.loading': 'Wczytywanie postojów dnia z Dawarich…',
+  'journey.dayImport.map': 'Dzień na mapie',
+  'journey.dayImport.stays': 'Postoje',
+  'journey.dayImport.modeEntries': 'Wpisy',
+  'journey.dayImport.modeReport': 'Relacja dnia',
+  'journey.dayImport.reportDefault': 'Dzień {date}',
+  'journey.dayImport.reportHint':
+    'Wszystkie wybrane postoje staną się jednym wpisem, który wymienia je z godzinami. Każde miejsce zostaje zapisane dla mapy.',
+  'journey.dayImport.reportNeedsTwo': 'Na relację dnia wybierz dwa lub więcej postojów.',
+  'journey.dayImport.groupTitle': 'Tytuł wpisu',
+  'journey.dayImport.groupPin': 'Pozycja na mapie',
+  'journey.dayImport.noPin': 'Bez pozycji na mapie',
+  'journey.dayImport.join': 'Połącz w jeden wpis',
+  'journey.dayImport.split': 'Zostaw osobno',
+  'journey.dayImport.choose': 'Przejmij {name}',
+  'journey.dayImport.name': 'Nazwa dla {name}',
+  'journey.dayImport.unconfirmed': 'Niepotwierdzony',
+  'journey.dayImport.noPlace': 'Bez pozycji',
+  'journey.dayImport.noPlaceHint': 'Dawarich nie zapisał pozycji tego postoju, więc jego wpis nie pojawi się na mapie.',
+  'journey.dayImport.statusHere': 'We wpisie {title}',
+  'journey.dayImport.statusHereUntitled': 'W dzienniku',
+  'journey.dayImport.statusElsewhere': 'Przejęty',
+  'journey.dayImport.statusElsewhereHint': 'Już przejęty jako miejsce, życzenie albo do innego dziennika.',
+  'journey.dayImport.statusSkipped': 'Pominięty',
+  'journey.dayImport.keepRoute': 'Zapisz też trasę dnia',
+  'journey.dayImport.keepRouteHint': 'Zapisano {distance}. Wszyscy w podróży zobaczą ją na mapie.',
+  'journey.dayImport.routeNone': 'Dawarich nie zapisał tego dnia żadnej trasy.',
+  'journey.dayImport.routeKept': 'Trasa zapisana',
+  'journey.dayImport.routeDiffers': 'Dawarich ma teraz inną wersję trasy. Zastąp ją przyciskiem trasy tego dnia.',
+  'journey.dayImport.existing': 'Już tego dnia',
+  'journey.dayImport.untitled': 'Wpis bez tytułu',
+  'journey.dayImport.draft': 'Szkic',
+  'journey.dayImport.audience':
+    'Szkice nie pojawiają się w udostępnionych linkach. Widzi je {count} innej osoby w tej podróży.',
+  'journey.dayImport.audience.one':
+    'Szkice nie pojawiają się w udostępnionych linkach. Widzi je {count} inna osoba w tej podróży.',
+  'journey.dayImport.audience.few':
+    'Szkice nie pojawiają się w udostępnionych linkach. Widzą je {count} inne osoby w tej podróży.',
+  'journey.dayImport.audience.many':
+    'Szkice nie pojawiają się w udostępnionych linkach. Widzi je {count} innych osób w tej podróży.',
+  'journey.dayImport.draftsNote':
+    'Szkice nie pojawiają się w udostępnionych linkach, dopóki ich nie opublikujesz. Zdjęcia i tekst dodasz później.',
+  'journey.dayImport.submit': 'Przejmij {count} szkicu',
+  'journey.dayImport.submit.one': 'Przejmij {count} szkic',
+  'journey.dayImport.submit.few': 'Przejmij {count} szkice',
+  'journey.dayImport.submit.many': 'Przejmij {count} szkiców',
+  'journey.dayImport.skipped': '{count} pominiętego',
+  'journey.dayImport.skipped.one': '{count} pominięty',
+  'journey.dayImport.skipped.few': '{count} pominięte',
+  'journey.dayImport.skipped.many': '{count} pominiętych',
+  'journey.dayImport.skipHint':
+    'Pominięte postoje nie czekają już tego dnia. Możesz je przywrócić na liście postojów Dawarich.',
+  'journey.dayImport.problem.nothing': 'Wybierz co najmniej jeden postój.',
+  'journey.dayImport.problem.name': 'Każdy wybrany postój potrzebuje nazwy.',
+  'journey.dayImport.problem.title': 'Każdy połączony wpis i relacja dnia potrzebują tytułu.',
+  'journey.dayImport.done': 'Przejęto {count} szkicu',
+  'journey.dayImport.done.one': 'Przejęto {count} szkic',
+  'journey.dayImport.done.few': 'Przejęto {count} szkice',
+  'journey.dayImport.done.many': 'Przejęto {count} szkiców',
+  'journey.dayImport.alreadyTaken': '{count} postoju było już przejęte. Nic nie zapisano dwa razy.',
+  'journey.dayImport.alreadyTaken.one': '{count} postój był już przejęty. Nic nie zapisano dwa razy.',
+  'journey.dayImport.alreadyTaken.few': '{count} postoje były już przejęte. Nic nie zapisano dwa razy.',
+  'journey.dayImport.alreadyTaken.many': '{count} postojów było już przejętych. Nic nie zapisano dwa razy.',
+  'journey.dayImport.failed':
+    'Nic nie przejęto: {reason} Lista pokazuje, co jest teraz w dzienniku; ponowna próba nic nie zapisze dwa razy.',
+  'journey.dayImport.routeFailed': 'Szkice zostały utworzone, ale trasy nie zapisano: {reason}',
+  'journey.dayImport.routeRetry': 'Zapisz trasę ponownie',
+  'journey.dayImport.stale': 'Dawarich nie odpowiedział: {reason} Widać postoje z ostatniej synchronizacji {date}.',
+  'journey.dayImport.staleNever': 'Dawarich nie odpowiedział: {reason} Widać postoje, które TREK już zna.',
+  'journey.dayImport.truncated': 'Dawarich przesłał tylko część tego dnia. Może brakować postojów.',
+  'journey.dayImport.empty': 'Dawarich nie znalazł tego dnia żadnych postojów.',
+  'journey.prep.lastSuccess': 'Ostatnio pobrano {time}.',
+  'journey.prep.never': 'Jeszcze nie pobrano. Uruchomi to następna synchronizacja w tle.',
+  'journey.prep.failed': 'Ostatnie odświeżenie nie powiodło się: {reason} Widać stan pobrany {time}.',
+  'journey.prep.failedNever': 'Pierwsze pobranie nie powiodło się: {reason}',
+  'journey.prep.notConnected': 'Połącz Dawarich w ustawieniach, aby twoje dni mogły zostać przygotowane.',
+  'journey.prep.noPeriods': 'Powiąż podróż z datami: przygotowywane są tylko jej dni.',
+  'journey.prep.syncOff':
+    'Synchronizacja w tle jest wyłączona w ustawieniach Dawarich, dni są pobierane tylko na twoją prośbę.',
+  'journey.prep.fetchNow': 'Pobierz teraz',
+  'journey.prep.fetching': 'Pobieranie…',
+  'journey.prep.fetchFailed': 'Nie udało się teraz zapytać Dawarich.',
+  'journey.prep.dayRunning': 'Dzień jeszcze trwa, mogą dojść kolejne postoje.',
+  'journey.prep.dayPending': 'Jeszcze nie pobrano.',
+  'journey.prep.dayProvisional': 'Pobrano {time}, przed końcem dnia, może brakować postojów.',
+  'journey.prep.dayFailed': 'Ostatnie odświeżenie nie powiodło się, to starszy stan.',
+  'journey.prep.outOfReach':
+    'Podróże zakończone ponad {count} dnia temu nie są przygotowywane w tle. Otwórz jeden z ich dni, aby pobrać go ręcznie.',
+  'journey.prep.outOfReach.one':
+    'Podróże zakończone ponad {count} dzień temu nie są przygotowywane w tle. Otwórz jeden z ich dni, aby pobrać go ręcznie.',
+  'journey.prep.outOfReach.few':
+    'Podróże zakończone ponad {count} dni temu nie są przygotowywane w tle. Otwórz jeden z ich dni, aby pobrać go ręcznie.',
+  'journey.prep.outOfReach.many':
+    'Podróże zakończone ponad {count} dni temu nie są przygotowywane w tle. Otwórz jeden z ich dni, aby pobrać go ręcznie.',
+  'journey.prep.alreadyRunning': 'W tle trwa już pobieranie. Postoje pojawią się, gdy się zakończy.',
+  'journey.dayImport.running':
+    'Ten dzień jeszcze trwa. Postoje zarejestrowane później pojawią się, gdy tylko Dawarich je będzie mieć.',
+  'journey.map.layers': 'Warstwy mapy',
+  'journey.map.layer.plan': 'Plan', // same-as-en
+  'journey.map.layer.recorded': 'Nagrane',
+  'journey.map.layer.entries': 'Wpisy',
+  'journey.map.layer.photos': 'Zdjęcia',
+  'journey.map.layer.loading': 'wczytywanie',
+  'journey.map.layer.planEmpty': 'powiązane podróże nie mają miejsc w swoich dniach',
+  'journey.map.layer.planUnavailable': 'nie udało się wczytać planu, reszta mapy pozostaje widoczna',
+  'journey.map.layer.recordedEmpty': 'jeszcze brak nagranej trasy',
+  'journey.map.layer.recordedUnavailable': 'nie udało się wczytać nagranych dni',
+  'journey.map.layer.entriesEmpty': 'żaden wpis nie ma jeszcze miejsca',
+  'journey.map.layer.entriesUnavailable': 'nie udało się wczytać postojów relacji dnia, wpisy pozostają widoczne',
+  'journey.map.layer.photosEmpty': 'jeszcze brak zdjęć z lokalizacją',
+  'journey.map.legend': 'Legenda',
+  'journey.map.legend.planned': 'Zaplanowane miejsce',
+  'journey.map.legend.entry': 'Wpis w dzienniku',
+  'journey.map.legend.plannedWritten': 'Zaplanowane i opisane',
+  'journey.map.legend.stay': 'Postój relacji dnia',
+  'journey.map.legend.several': 'Kilka w jednym miejscu',
+  'journey.map.legend.lines': 'Trasy',
+  'journey.map.legend.plannedRoute': 'Zaplanowana trasa (GPX podróży)',
+  'journey.map.legend.recordedRoute': 'Nagrana trasa',
+  'journey.map.legend.planIsNoVisit':
+    'Zaplanowane miejsce nie dowodzi wizyty. Tylko wpisy, zdjęcia i nagrania pokazują, gdzie byłeś.',
+  'journey.map.pick.openEntry': 'Otwórz wpis',
+  'journey.map.pick.planned': 'Zaplanowane',
+  'journey.map.pick.notWritten': 'Nic jeszcze o nim nie napisano.',
+  'journey.map.pick.stay': 'Postój',
+  'journey.map.pick.partOf': 'Część „{title}”',
+  'journey.map.pick.here': 'W tym miejscu',
+  'journey.map.pick.back': 'Wróć do listy',
+  'journey.map.pick.timeRange': 'od {from} do {to}',
+  'journey.share.plan': 'Plan podróży',
+  'journey.share.planHint': 'Zaplanowane miejsca i trasy GPX powiązanych podróży na mapie',
+  'journey.share.recordings': 'Nagrane trasy',
+  'journey.share.recordingsHint':
+    'Nagrane dni i przejęte z nich postoje, w dniach z opublikowanym wpisem. Pokazują, gdzie i kiedy byłeś, także nocleg.',
+  'journey.share.needsMap': 'Udostępnij mapę, aby to włączyć',
+  'journey.editor.tags': 'Tagi',
+  'journey.studio.assistant.toggle': 'Asystent',
+  'journey.studio.assistant.toggleHint': 'Projektuj książkę razem z asystentem',
+  'journey.studio.assistant.panel': 'Asystent książki',
+  'journey.studio.assistant.welcome': 'Jak ma wyglądać książka?',
+  'journey.studio.assistant.readOnly':
+    'Możesz tylko przeglądać tę książkę, więc odpowiem na pytania, ale niczego nie zmienię.',
+  'journey.studio.assistant.notice':
+    'Asystent może zobaczyć stronę, nad którą pracujesz. Do {provider} trafia tylko ta strona, jako obraz pokazujący wyłącznie zdjęcia dodane przez ciebie. Nie da się rozpoznać, kto jest na twoich zdjęciach.',
+  'journey.studio.assistant.noticeAllow': 'Pokaż strony',
+  'journey.studio.assistant.noticeLater': 'Nie teraz',
 };
 export default journey;

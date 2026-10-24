@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types';
+
+const tourPacking: TranslationStrings = {
+  'tours.packing.label': 'Packlista',
+  'tours.packing.none': 'Ingen packlista kopplad',
+  'tours.packing.link': 'Koppla en packlista',
+  'tours.packing.change': 'Ändra',
+  'tours.packing.whole': 'Hela packlistan',
+  'tours.packing.packed': '{packed} av {count} packade',
+  'tours.packing.packed.one': '{packed} av {count} packad',
+  'tours.packing.more': '+{count} till',
+  'tours.packing.more.one': '+{count} till',
+  'tours.packing.items': '{count} saker',
+  'tours.packing.items.one': '{count} sak',
+  'tours.packing.allPacked': 'Allt packat',
+  'tours.packing.open': 'Öppna packlistan',
+  'tours.packing.missing': '”{name}” har inga saker kvar som du kan se.',
+  'tours.packing.emptyList': 'Packlistan är fortfarande tom.',
+  'tours.packing.emptyCategory': '”{name}” har inga saker än.',
+  'tours.packing.addonOff': 'Packlistor är avstängda, så listan kan inte visas.',
+  'tours.packing.loadFailed': 'Kopplingen till packlistan kunde inte läsas in.',
+  'tours.packing.dialogSub': 'Bara en koppling. Listan och sakerna i den stannar där de är.',
+  'tours.packing.choose': 'Koppla till',
+  'tours.packing.confirm': 'Koppla',
+  'tours.packing.unlink': 'Ta bort koppling',
+  'tours.packing.unlinkHint': 'Packlistan och sakerna i den förblir som de är',
+  'tours.packing.linked': 'Packlista kopplad.',
+  'tours.packing.unlinked': 'Kopplingen är borttagen. Packlistan förblir som den är.',
+  'tours.packing.failed': 'Kopplingen kunde inte sparas.',
+};
+export default tourPacking;

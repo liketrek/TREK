@@ -46,20 +46,23 @@ The seeder defaults the admin address to `admin@trek.app` while the reset defaul
 
 The instance-wide Maps and Unsplash keys stored in `app_settings` are carried across either way, so map and photo search keep working after a reset.
 
+Everybody signed in stays signed in. The baseline holds no sign-in sessions of its own, so the sessions that are active when the reset runs are carried across as well, for every account the baseline still holds under the same email. A visitor or admin mid-session is not sent back to the login screen on the hour.
+
 ## Saving a baseline
 
 The baseline is the snapshot the hourly reset restores to. The admin can update it at any time:
 
 **Endpoint:** `POST /api/admin/save-demo-baseline`
 
-This is available in the admin panel. The baseline captures the current state of the database — including trip data, settings, and encrypted API keys — so demo features (maps, photos, weather) continue to work after each reset.
+In the admin panel, a **Demo Baseline** card sits above the tabs while demo mode is on; its **Save Baseline** button calls this endpoint. The baseline captures the current state of the database, trip data, settings and encrypted API keys included, so demo features (maps, photos, weather) continue to work after each reset. It is written as a consistent snapshot and only then put in place of the previous baseline, so a save that fails leaves the previous one intact.
 
-On first start with demo mode active, TREK seeds three example trips (Tokyo & Kyoto, Barcelona Long Weekend, New York City) owned by the admin and shared with the demo user, then saves the initial baseline automatically.
+On first start with demo mode active, TREK seeds three example trips (Tokyo & Kyoto, Barcelona Long Weekend, New York City) owned by the admin and shared with the demo user, then saves the initial baseline automatically once the server is up. The same happens when a backup restored onto a demo instance without a baseline holds no admin trips: the example trips are seeded into the restored database and it becomes the baseline. Only a seeding start or restore saves a baseline on its own: an instance that already holds data but has no baseline keeps skipping the hourly reset until the admin saves one.
 
 ## Limitations
 
 - Demo mode is not for production use with real user data. The hourly reset deletes all visitor-created content.
 - All demo visitors share a single account — there is no isolation between sessions.
+- Because the demo account is shared, its session list (`GET /api/auth/sessions`) shows each visitor only their own session, and ending sessions (`DELETE /api/auth/sessions/{id}`, `POST /api/auth/sessions/revoke-others`) answers 403 `Sessions cannot be ended in demo mode.`, so one visitor cannot see or sign out the others. Logging out still ends the visitor's own session.
 - File uploads (photos, documents, trip covers, avatars) are disabled for the demo user.
 
 ## See also

@@ -85,7 +85,7 @@ function openEntries(source: JourneySource) {
     />,
   )
   fireEvent.click(screen.getByLabelText('journey.studio.content'))
-  fireEvent.click(screen.getByRole('button', { name: /journey\.studio\.entries/ }))
+  fireEvent.click(screen.getByRole('tab', { name: /journey\.studio\.entries/ }))
   return view
 }
 

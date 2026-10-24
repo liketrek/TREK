@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types';
+
+const assistantJourney: TranslationStrings = {
+  'assistant.card.journey.label': 'Καταχωρίσεις ημερολογίου',
+  'assistant.card.journey.open': 'Άνοιγμα στο ημερολόγιο',
+  'assistant.card.journey.entries': '{count} καταχωρίσεις',
+  'assistant.card.journey.entries.one': '{count} καταχώριση',
+  'assistant.card.journey.more': '{count} ακόμη στο ημερολόγιο',
+  'assistant.card.journey.more.one': '{count} ακόμη στο ημερολόγιο',
+  'assistant.card.journey.photos': '{count} φωτογραφίες',
+  'assistant.card.journey.photos.one': '{count} φωτογραφία',
+  'assistant.card.journey.toSuggestion': 'Γίνεται ξανά πρόταση',
+  'assistant.card.journey.video': 'Ξεκινά με βίντεο',
+  'assistant.card.journey.typeEntry': 'Γραπτή καταχώριση',
+  'assistant.card.journey.typeCheckin': 'Δήλωση άφιξης',
+  'assistant.card.journey.notDraft': 'Δεν είναι πλέον πρόχειρο',
+  'assistant.card.journey.onRoute': 'Ξανά στη διαδρομή',
+  'assistant.card.journey.restored': 'Η πρόταση επανήλθε',
+  'assistant.change.verb.addJournalEntry': 'Προσθήκη καταχώρισης στο ημερολόγιο',
+  'assistant.change.verb.updateJournalEntry': 'Αλλαγή της καταχώρισης ημερολογίου',
+  'assistant.change.verb.removeJournalEntry': 'Διαγραφή της καταχώρισης ημερολογίου',
+  'assistant.step.readingJournal': 'Διαβάζω το ημερολόγιο',
+  'assistant.tool.create_journey': 'Δημιουργία ημερολογίου',
+  'assistant.tool.update_journey': 'Αλλαγή του ημερολογίου',
+  'assistant.tool.add_journey_trip': 'Προσθήκη του ταξιδιού στο ημερολόγιο',
+  'assistant.tool.link_trip_journal': 'Εμφάνιση του ημερολογίου σε αυτό το ταξίδι',
+  'assistant.tool.reorder_journey_entries': 'Αναδιάταξη του ημερολογίου',
+  'assistant.followUp.journalToday': 'Γράψε μια καταχώριση για σήμερα',
+  'assistant.followUp.journalSummary': 'Σύνοψη αυτών των ημερών',
+};
+export default assistantJourney;

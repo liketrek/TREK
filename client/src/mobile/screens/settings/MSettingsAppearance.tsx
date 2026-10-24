@@ -1,53 +1,14 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React from 'react'
 import { Eye, LayoutDashboard, Paintbrush, RotateCcw, Smartphone } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
-import { useSettingsStore } from '../../../store/settingsStore'
-import { useToast } from '../../../components/shared/Toast'
-import { applyAppearance } from '../../../theme/applyAppearance'
 import { APPEARANCE_SCHEMES, CUSTOM_ACCENT_PRESETS } from '../../../theme/schemes'
-import {
-  DEFAULT_APPEARANCE,
-  normalizeAppearance,
-  APPEARANCE_SCALE_MIN,
-  APPEARANCE_SCALE_MAX,
-  type AppearanceConfig,
-} from '@trek/shared'
+import { APPEARANCE_SCALE_MIN, APPEARANCE_SCALE_MAX, type AppearanceConfig } from '@trek/shared'
+import { DESKTOP_GROUPS, MOBILE_GROUPS, isHex } from '../../../components/Settings/appearanceModel'
+import { useAppearanceEditor } from '../../../components/Settings/useAppearanceEditor'
 import MToggle from '../../components/MToggle'
 import { MSetCard, MSetEyebrow, MSetSegments, MSetRow } from './MSettingsUi'
 import MMobileNavCustomizer from './MMobileNavCustomizer'
 import MMobileDashOrder from './MMobileDashOrder'
-
-// ── WCAG contrast helpers (custom-accent legibility hint) ────────────────────
-function channelLum(v: number): number {
-  return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)
-}
-function relLuminance(hex: string): number {
-  const c = hex.replace('#', '')
-  const full = c.length === 3 ? c.split('').map((x) => x + x).join('') : c
-  const r = channelLum(Number.parseInt(full.slice(0, 2), 16) / 255)
-  const g = channelLum(Number.parseInt(full.slice(2, 4), 16) / 255)
-  const b = channelLum(Number.parseInt(full.slice(4, 6), 16) / 255)
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b
-}
-function contrastRatio(a: string, b: string): number {
-  const la = relLuminance(a)
-  const lb = relLuminance(b)
-  const [hi, lo] = la > lb ? [la, lb] : [lb, la]
-  return (hi + 0.05) / (lo + 0.05)
-}
-const isHex = (v: string) => /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v)
-
-type DesktopWidgetKey = keyof AppearanceConfig['dashboard']['desktop']
-type MobileWidgetKey = keyof AppearanceConfig['dashboard']['mobile']
-
-const DESKTOP_GROUPS: { id: string; master?: DesktopWidgetKey; keys: DesktopWidgetKey[] }[] = [
-  { id: 'belowHero', keys: ['atlas', 'tripsTotal', 'daysTraveled', 'distanceFlown'] },
-  { id: 'rightSidebar', master: 'sidebar', keys: ['currency', 'collections', 'timezones', 'upcomingReservations'] },
-]
-const MOBILE_GROUPS: { id: string; keys: MobileWidgetKey[] }[] = [
-  { id: 'belowHero', keys: ['tripsTotal', 'daysTraveled'] },
-  { id: 'bottomOfPage', keys: ['currency', 'collections', 'timezones', 'upcomingReservations'] },
-]
 
 function SliderRow({ label, sub, value, onChange }: { label: string; sub?: string; value: number; onChange: (v: number) => void }) {
   return (
@@ -55,7 +16,7 @@ function SliderRow({ label, sub, value, onChange }: { label: string; sub?: strin
       <div className="mb-1 flex items-center justify-between gap-2">
         <div className="min-w-0">
           <span className="text-[0.78125rem] font-bold text-m-ink">{label}</span>
-          {sub && <span className="ml-[6px] font-geist text-[0.625rem] text-m-muted">{sub}</span>}
+          {sub && <span className="ms-[6px] font-geist text-[0.625rem] text-m-muted">{sub}</span>}
         </div>
         <span className="font-geist text-[0.6875rem] tabular-nums text-m-muted">{Math.round(value * 100)}%</span>
       </div>
@@ -79,71 +40,11 @@ function SliderRow({ label, sub, value, onChange }: { label: string; sub?: strin
  * density, text sizes) and the per-device dashboard widget configuration.
  */
 export default function MSettingsAppearance() {
-  const { settings, updateSetting } = useSettingsStore()
   const { t } = useTranslation()
-  const toast = useToast()
+  const { cfg, darkMode, isDark, update, setMode, setWidget, resetAll, accentLight, accentDark, customRatio } =
+    useAppearanceEditor()
 
-  const [cfg, setCfg] = useState<AppearanceConfig>(() => normalizeAppearance(settings.appearance))
-  const persistTimer = useRef<number | undefined>(undefined)
-  // What the pending timer would have written, so leaving the screen inside the
-  // debounce window still saves instead of silently dropping the change.
-  const pendingWrite = useRef<AppearanceConfig | null>(null)
-
-  // Re-sync when settings change elsewhere (server reconcile / another tab).
-  useEffect(() => {
-    setCfg(normalizeAppearance(settings.appearance))
-  }, [settings.appearance])
-
-  useEffect(() => () => {
-    if (!persistTimer.current) return
-    window.clearTimeout(persistTimer.current)
-    // The component is gone, so a failure has nowhere to be shown.
-    if (pendingWrite.current) updateSetting('appearance', pendingWrite.current).catch(() => {})
-  }, [updateSetting])
-
-  const isDark =
-    settings.dark_mode === true ||
-    settings.dark_mode === 'dark' ||
-    (settings.dark_mode === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)
-
-  // Live preview now (DOM), persist after a short debounce (API).
-  const update = (patch: Partial<AppearanceConfig>) => {
-    const next = { ...cfg, ...patch }
-    setCfg(next)
-    applyAppearance({ darkMode: settings.dark_mode, appearance: next, isSharedPage: false })
-    if (persistTimer.current) window.clearTimeout(persistTimer.current)
-    pendingWrite.current = next
-    persistTimer.current = window.setTimeout(() => {
-      pendingWrite.current = null
-      updateSetting('appearance', next).catch((e: unknown) =>
-        toast.error(e instanceof Error ? e.message : t('common.error')),
-      )
-    }, 350)
-  }
-
-  const setMode = async (mode: string) => {
-    try {
-      await updateSetting('dark_mode', mode)
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : t('common.error'))
-    }
-  }
-
-  const setWidget = (device: 'desktop' | 'mobile', key: string, on: boolean) => {
-    update({
-      dashboard: {
-        ...cfg.dashboard,
-        [device]: { ...cfg.dashboard[device], [key]: on },
-      },
-    })
-  }
-
-  const darkMode = settings.dark_mode
   const modeValue = darkMode === true || darkMode === 'dark' ? 'dark' : darkMode === 'auto' ? 'auto' : 'light'
-
-  const accentLight = cfg.accent?.light ?? '#4f46e5'
-  const accentDark = cfg.accent?.dark ?? '#6366f1'
-  const customRatio = contrastRatio(isDark ? accentDark : accentLight, '#ffffff')
 
   const widgetToggle = (device: 'desktop' | 'mobile', key: string, on: boolean, disabled = false) => (
     <MSetRow
@@ -177,7 +78,7 @@ export default function MSettingsAppearance() {
                 key={s.id}
                 type="button"
                 onClick={() => update({ schemeId: s.id })}
-                className={`flex items-center gap-2 rounded-xl px-3 py-[9px] text-left text-[0.78125rem] ${
+                className={`flex items-center gap-2 rounded-xl px-3 py-[9px] text-start text-[0.78125rem] ${
                   active
                     ? 'bg-m-act font-semibold text-m-actfg'
                     : 'border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] font-medium text-m-ink'
@@ -191,7 +92,7 @@ export default function MSettingsAppearance() {
           <button
             type="button"
             onClick={() => update({ schemeId: 'custom', accent: cfg.accent ?? { light: accentLight, dark: accentDark } })}
-            className={`flex items-center gap-2 rounded-xl px-3 py-[9px] text-left text-[0.78125rem] ${
+            className={`flex items-center gap-2 rounded-xl px-3 py-[9px] text-start text-[0.78125rem] ${
               cfg.schemeId === 'custom'
                 ? 'bg-m-act font-semibold text-m-actfg'
                 : 'border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] font-medium text-m-ink'
@@ -366,7 +267,7 @@ export default function MSettingsAppearance() {
 
       <button
         type="button"
-        onClick={() => update({ ...DEFAULT_APPEARANCE })}
+        onClick={resetAll}
         className="mt-3 flex items-center gap-2 px-1 py-[6px] text-[0.78125rem] font-semibold text-m-muted"
       >
         <RotateCcw size={15} />

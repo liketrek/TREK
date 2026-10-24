@@ -1,0 +1,13 @@
+/* The sticker library: every sticker on a square tile of the same size, drawn
+   to fit inside it whether it is tall, wide or round. */
+.trek-dash .st-sticker-btn {
+  min-height: 0;
+  padding: 10px;
+  overflow: hidden;
+}
+.trek-dash .st-sticker-btn svg {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+}

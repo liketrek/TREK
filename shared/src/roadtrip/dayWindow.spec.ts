@@ -338,10 +338,10 @@ describe('daily travel window', () => {
 
     expect(planned.issue).toBeNull();
     // One night inserted, not two: the stay ends inside the next day's window.
-    const dayTwo = planned.chains.find(c => c.dayNumber === 2)!;
-    expect(dayTwo.schedule.entries.find(e => e.departure === '08:04')).toBeTruthy();
+    const dayTwo = planned.chains.find((c) => c.dayNumber === 2)!;
+    expect(dayTwo.schedule.entries.find((e) => e.departure === '08:04')).toBeTruthy();
     // And the stop after it is reached that same morning.
-    expect(dayTwo.stops.some(s => s.assignmentId === 2)).toBe(true);
+    expect(dayTwo.stops.some((s) => s.assignmentId === 2)).toBe(true);
   });
 
   it('does not place a night pause halfway through a ferry crossing', () => {
@@ -396,11 +396,7 @@ describe('daily travel window', () => {
 });
 
 it('holds a check-in the drive reaches within the minute a rounded leg can add', () => {
-  const stops = [
-    stop(1, { time: '07:00', dwellMinutes: 60 }),
-    stop(2, { checkInTime: '09:11' }),
-    stop(3),
-  ];
+  const stops = [stop(1, { time: '07:00', dwellMinutes: 60 }), stop(2, { checkInTime: '09:11' }), stop(3)];
   const plan = calculate(stops, [71.5, 29]);
   expect(plan.issue).toBeNull();
   // Half a minute over is the rounding of the drive, not being late: the night keeps
@@ -414,11 +410,7 @@ it('holds a check-in the drive reaches within the minute a rounded leg can add',
 it('does not rush a check-in the drive overshoots, and does not quietly move it either', () => {
   // Two minutes past the check-in is past it. A pinned time out of reach is a
   // conflict here, and a check-in is one of those now.
-  const stops = [
-    stop(1, { time: '07:00', dwellMinutes: 60 }),
-    stop(2, { checkInTime: '09:11' }),
-    stop(3),
-  ];
+  const stops = [stop(1, { time: '07:00', dwellMinutes: 60 }), stop(2, { checkInTime: '09:11' }), stop(3)];
   expect(calculate(stops, [72.5, 29]).issue).toBe('conflict');
 });
 

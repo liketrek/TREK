@@ -1,10 +1,8 @@
 import type { TranslationStrings } from '../types';
 
 const nav: TranslationStrings = {
-  'nav.trip': 'Utazás',
-  'nav.share': 'Megosztás',
   'nav.settings': 'Beállítások',
-  'nav.admin': 'Admin',
+  'nav.admin': 'Admin', // same-as-en
   'nav.logout': 'Kijelentkezés',
   'nav.lightMode': 'Világos mód',
   'nav.darkMode': 'Sötét mód',
@@ -15,7 +13,7 @@ const nav: TranslationStrings = {
   'nav.bottomSettings': 'Beállítások',
   'nav.bottomAdmin': 'Adminisztráció',
   'nav.bottomLogout': 'Kijelentkezés',
-  'nav.bottomAdminBadge': 'Admin',
-  'nav.help': 'Help',
+  'nav.bottomAdminBadge': 'Admin', // same-as-en
+  'nav.help': 'Súgó',
 };
 export default nav;

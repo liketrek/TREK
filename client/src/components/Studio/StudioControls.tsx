@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useId, useState, type ReactNode } from 'react'
 import { Check, ChevronDown } from 'lucide-react'
 import ToggleSwitch from '../Settings/ToggleSwitch'
 
@@ -31,10 +31,15 @@ import ToggleSwitch from '../Settings/ToggleSwitch'
 /**
  * One group of properties.
  *
- * `defaultOpen={false}` is for the groups you set once and rarely return to —
- * the frame's numbers, mostly. The state is per mounted section rather than
- * remembered: coming back to an element and finding its panel folded up
- * differently from last time is worse than opening one group again.
+ * `defaultOpen={false}` is for the groups you set once and rarely return to:
+ * the frame's numbers, the effects, the advanced settings of a kind. The
+ * inspector opens such a group anyway when the element already uses it, so a
+ * photo with a duotone shows its duotone and a plain one keeps it out of the
+ * way (inspector/inspectorModel.ts says which groups are in use). The state
+ * is per mounted section rather than remembered: the inspector mounts its
+ * groups afresh for every selection, and coming back to an element and finding
+ * its panel folded up differently from last time is worse than opening one
+ * group again.
  */
 export function Section({ label, children, defaultOpen = true, hint, badge }: {
   label: string
@@ -51,15 +56,19 @@ export function Section({ label, children, defaultOpen = true, hint, badge }: {
   badge?: string
 }) {
   const [open, setOpen] = useState(defaultOpen)
+  const body = useId()
   return (
     <div className={`st-section is-fold ${open ? '' : 'is-folded'}`}>
-      <button type="button" className="st-section-head" onClick={() => setOpen(!open)} aria-expanded={open}>
-        <span className="st-section-label">{label}</span>
-        {badge && <span className="st-section-badge">{badge}</span>}
-        <ChevronDown size={13} className="st-section-caret" />
-      </button>
+      <h3 className="st-section-title">
+        <button type="button" className="st-section-head" onClick={() => setOpen(!open)} aria-expanded={open}
+          aria-controls={open ? body : undefined}>
+          <span className="st-section-label">{label}</span>
+          {badge && <span className="st-section-badge">{badge}</span>}
+          <ChevronDown size={13} className="st-section-caret" aria-hidden />
+        </button>
+      </h3>
       {open && (
-        <div className="st-section-body">
+        <div className="st-section-body" id={body}>
           {hint && <p className="st-hint st-section-hint">{hint}</p>}
           {children}
         </div>
@@ -68,7 +77,17 @@ export function Section({ label, children, defaultOpen = true, hint, badge }: {
   )
 }
 
-/** A labelled line. The label sits left, the control fills what is left. */
+/**
+ * A labelled line: the label first, the control after it.
+ *
+ * The two share the line while they fit and the control moves under the label
+ * when they do not, so a long label ("Πεζά και κεφαλαία", "Átlátszatlanság")
+ * pushes its control down a line instead of being cut or squeezing the control
+ * to nothing. There is no column of a fixed width for the label to fit into;
+ * short labels sit at a common minimum, so the controls of a group still start
+ * at one edge. `wide` puts the control under the label always, for a control
+ * that needs the whole width, like a row of swatches.
+ */
 export function Line({ label, children, wide = false }: {
   label: string
   children: ReactNode

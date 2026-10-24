@@ -10,7 +10,7 @@ const collab: TranslationStrings = {
   'collab.polls.countdownMinutes': 'Reste {m} min',
   'collab.polls.clearDeadline': "Effacer l'échéance",
   'collab.tabs.chat': 'Discussion',
-  'collab.tabs.notes': 'Notes',
+  'collab.tabs.notes': 'Notes', // same-as-en
   'collab.tabs.polls': 'Sondages',
   'collab.tabs.links': 'Liens',
   'collab.links.add': 'Ajouter un lien',
@@ -45,8 +45,10 @@ const collab: TranslationStrings = {
   'collab.chat.loadMore': 'Charger les messages précédents',
   'collab.chat.justNow': "à l'instant",
   'collab.chat.minutesAgo': 'il y a {n} min',
+  'collab.chat.minutesAgo.one': 'il y a {n} min',
   'collab.chat.hoursAgo': 'il y a {n} h',
-  'collab.notes.title': 'Notes',
+  'collab.chat.hoursAgo.one': 'il y a {n} h',
+  'collab.notes.title': 'Notes', // same-as-en
   'collab.notes.new': 'Nouvelle note',
   'collab.notes.empty': 'Aucune note',
   'collab.notes.emptyHint': 'Commencez à capturer vos idées et plans',
@@ -69,6 +71,7 @@ const collab: TranslationStrings = {
   'collab.notes.pin': 'Épingler',
   'collab.notes.unpin': 'Désépingler',
   'collab.notes.daysAgo': 'il y a {n} j',
+  'collab.notes.daysAgo.one': 'il y a {n} j',
   'collab.notes.categorySettings': 'Gérer les catégories',
   'collab.notes.create': 'Créer',
   'collab.notes.website': 'Site web',
@@ -80,27 +83,34 @@ const collab: TranslationStrings = {
   'collab.polls.new': 'Nouveau sondage',
   'collab.polls.empty': 'Aucun sondage',
   'collab.polls.emptyHint': 'Posez des questions au groupe et votez ensemble',
-  'collab.polls.question': 'Question',
+  'collab.polls.question': 'Question', // same-as-en
   'collab.polls.questionPlaceholder': 'Que devrait-on faire ?',
   'collab.polls.markdownHint': 'Markdown pris en charge',
   'collab.polls.addOption': '+ Ajouter une option',
-  'collab.polls.optionPlaceholder': 'Option {n}',
+  'collab.polls.optionPlaceholder': 'Option {n}', // same-as-en
   'collab.polls.create': 'Créer le sondage',
   'collab.polls.close': 'Fermer',
   'collab.polls.closed': 'Fermé',
-  'collab.polls.votes': '{n} votes',
-  'collab.polls.vote': '{n} vote',
+  'collab.polls.votes': '{n} votes', // same-as-en
+  'collab.polls.votes.one': '{n} vote', // same-as-en
   'collab.polls.multipleChoice': 'Choix multiples',
   'collab.polls.multiChoice': 'Choix multiples',
   'collab.polls.deadline': 'Date limite',
-  'collab.polls.option': 'Option',
-  'collab.polls.options': 'Options',
+  'collab.polls.option': 'Option', // same-as-en
+  'collab.polls.options': 'Options', // same-as-en
   'collab.polls.delete': 'Supprimer',
   'collab.polls.closedSection': 'Fermés',
-  'collab.chat.imageLimit': 'Vous pouvez joindre jusqu’à {max} images par message',
+  'collab.chat.imageLimit': 'Vous pouvez joindre jusqu’à {count} images par message',
+  'collab.chat.imageLimit.one': 'Vous pouvez joindre jusqu’à {count} image par message',
   'collab.chat.uploading': 'Envoi {percent} %',
   'collab.chat.attachImages': 'Joindre des images',
   'collab.chat.attachedImage': 'Image jointe',
   'collab.chat.closeImage': 'Fermer l’image',
+  'collab.notes.categoryInUse':
+    "Des notes utilisent encore cette catégorie. Déplacez-les ou supprimez-les d'abord pour la retirer.",
+  'collab.notes.categoriesLocalHint':
+    "Une catégorie sans note n'est enregistrée que dans ce navigateur. Les autres membres la voient dès qu'une note l'utilise.",
+  'collab.chat.fromAssistant': 'de l’assistant',
+  'collab.chat.fromAssistantHint': '{name} a partagé cette réponse de l’assistant',
 };
 export default collab;

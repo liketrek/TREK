@@ -1,14 +1,13 @@
 import type { TranslationStrings } from '../types';
 
 const members: TranslationStrings = {
-  'members.shareTrip': 'Utazás megosztása',
   'members.inviteUser': 'Felhasználó meghívása',
   'members.selectUser': 'Felhasználó kiválasztása…',
   'members.invite': 'Meghívás',
   'members.allHaveAccess': 'Minden felhasználónak már van hozzáférése.',
   'members.access': 'Hozzáférés',
-  'members.person': 'személy',
   'members.persons': 'személy',
+  'members.persons.one': 'személy',
   'members.you': 'te',
   'members.owner': 'Tulajdonos',
   'members.leaveTrip': 'Utazás elhagyása',
@@ -33,6 +32,9 @@ const members: TranslationStrings = {
   'members.guestAddError': 'Nem sikerült hozzáadni a vendéget',
   'members.guestRenameError': 'Nem sikerült átnevezni a vendéget',
   'members.guestRemoved': 'Vendég eltávolítva',
-  'members.confirmRemoveGuest': 'Eltávolítja ezt a vendéget? A hozzárendelései és költségrészei is törlődnek.',
+  'members.confirmRemoveGuest':
+    'Eltávolítja ezt a vendéget? A hozzárendelései törlődnek, a költségekből rá eső rész pedig a többi résztvevő között oszlik meg.',
+  'members.guestHasPayments':
+    'Ez a vendég kifizetett egy költséget, vagy részese egy rögzített fizetésnek. Előbb módosítsa a fizetőt, vagy törölje a fizetést.',
 };
 export default members;

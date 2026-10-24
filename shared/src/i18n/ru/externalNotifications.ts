@@ -1,4 +1,5 @@
 import type { NotificationLocale } from '../externalNotifications/types';
+import { pluralForm } from '../plural';
 
 const ru: NotificationLocale = {
   email: {
@@ -37,7 +38,12 @@ const ru: NotificationLocale = {
       body: `${p.actor} приглашает вас поделиться коллекцией. Откройте TREK для подтверждения.`,
     }),
     photos_shared: (p) => ({
-      title: `${p.count} фото`,
+      title: pluralForm(p.count, 'ru', {
+        one: `${p.count} фото опубликовано`,
+        few: `${p.count} фото опубликованы`,
+        many: `${p.count} фото опубликовано`,
+        other: `${p.count} фото опубликовано`,
+      }),
       body: `${p.actor} поделился ${p.count} фото в "${p.trip}".`,
     }),
     collab_message: (p) => ({
@@ -56,11 +62,31 @@ const ru: NotificationLocale = {
       title: 'Сбой реплики хранилища',
       body:
         `Ошибка записи в реплику '${p.backend}': ${p.op} для ${p.key} — ${p.error}.` +
-        (p.suppressed !== '0' ? ` С момента последнего уведомления подавлено ещё ${p.suppressed} ошибок.` : ''),
+        (p.suppressed !== '0'
+          ? pluralForm(p.suppressed, 'ru', {
+              one: ` С момента последнего уведомления подавлена ещё ${p.suppressed} ошибка.`,
+              few: ` С момента последнего уведомления подавлено ещё ${p.suppressed} ошибки.`,
+              many: ` С момента последнего уведомления подавлено ещё ${p.suppressed} ошибок.`,
+              other: ` С момента последнего уведомления подавлено ещё ${p.suppressed} ошибки.`,
+            })
+          : ''),
+    }),
+    paddle_region_requested: (p) => ({
+      title: 'Запрошен регион для сплава',
+      body: `${p.actor} планирует сплав в регионе ${p.region}. Загрузите или отклоните его данные о воде в администрировании в разделе «Дополнения».`,
     }),
     synology_session_cleared: () => ({
       title: 'Сессия Synology сброшена',
       body: 'Ваш аккаунт или URL Synology изменился. Вы вышли из Synology Photos.',
+    }),
+    wanderer_source_hint: (p) => ({
+      title: `Маршрут wanderer: ${p.tour}`,
+      body:
+        p.state === 'changed'
+          ? `«${p.tour}» в «${p.trip}» изменён в wanderer. Откройте тур и проверьте его источник, чтобы увидеть все изменения. В поездке ничего не меняется само.`
+          : p.state === 'unverifiable'
+            ? `«${p.tour}» в «${p.trip}» больше нельзя проверить в wanderer. Тур в вашей поездке остаётся как есть.`
+            : `«${p.tour}» в «${p.trip}», возможно, изменён в wanderer. Откройте тур и проверьте его источник. В поездке ничего не меняется само.`,
     }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },

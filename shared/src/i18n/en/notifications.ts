@@ -32,5 +32,9 @@ const notifications: TranslationStrings = {
   'notifications.test.adminText': '{actor} sent a test notification to all admins.',
   'notifications.test.tripTitle': '{actor} posted in your trip',
   'notifications.test.tripText': 'Test notification for trip "{trip}".',
+  'notifications.countLabel': 'notifications',
+  'notifications.countLabel.one': 'notification',
+  'notifications.deleteAllConfirmTitle': 'Delete all notifications?',
+  'notifications.deleteAllConfirmText': 'Every notification is removed for good. This cannot be undone.',
 };
 export default notifications;

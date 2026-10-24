@@ -6,5 +6,6 @@ const transport: TranslationStrings = {
   'transport.modalTitle.edit': '移動手段を編集',
   'transport.title': '移動手段',
   'transport.addManual': '交通',
+  'transport.empty': '移動手段はまだありません',
 };
 export default transport;

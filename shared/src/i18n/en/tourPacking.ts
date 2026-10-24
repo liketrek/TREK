@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types';
+
+const tourPacking: TranslationStrings = {
+  'tours.packing.label': 'Packing list',
+  'tours.packing.none': 'No packing list linked',
+  'tours.packing.link': 'Link a packing list',
+  'tours.packing.change': 'Change',
+  'tours.packing.whole': 'Whole packing list',
+  'tours.packing.packed': '{packed} of {count} packed',
+  'tours.packing.packed.one': '{packed} of {count} packed',
+  'tours.packing.more': '+{count} more',
+  'tours.packing.more.one': '+{count} more',
+  'tours.packing.items': '{count} items',
+  'tours.packing.items.one': '{count} item',
+  'tours.packing.allPacked': 'All packed',
+  'tours.packing.open': 'Open packing list',
+  'tours.packing.missing': '“{name}” has no items you can see any more.',
+  'tours.packing.emptyList': 'The packing list is still empty.',
+  'tours.packing.emptyCategory': '“{name}” has no items yet.',
+  'tours.packing.addonOff': 'Packing lists are switched off, so the list cannot be shown.',
+  'tours.packing.loadFailed': 'The packing link could not be loaded.',
+  'tours.packing.dialogSub': 'Only a link. The list and its items stay where they are.',
+  'tours.packing.choose': 'Link to',
+  'tours.packing.confirm': 'Link',
+  'tours.packing.unlink': 'Remove link',
+  'tours.packing.unlinkHint': 'The packing list and its items stay as they are',
+  'tours.packing.linked': 'Packing list linked.',
+  'tours.packing.unlinked': 'Link removed. The packing list stays as it is.',
+  'tours.packing.failed': 'The link could not be saved.',
+};
+export default tourPacking;

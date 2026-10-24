@@ -5,6 +5,9 @@ import { isStandardFamily, supportsCustom3d, wantsTerrain, addCustom3dBuildings,
 import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, basemapLanguage, type GlMapProvider } from '../Map/glProviders'
 import type { JourneyTrack } from '@trek/shared'
 import { SHOT_INDEX_ATTR, ensureJourneyPopupStyle, formatMarkerDate, journeyPopupHtml } from './journeyMapPopup'
+import { clusterPhotos, photoMarkerHtml, type MapPhoto } from './journeyPhotoLayer'
+import { MARK_CLUSTER_PX, PLANNED_BADGE_SVG, clusterPoints, markHitSvg, type JourneyMapMark } from './journeyMapMarks'
+import { isPlannedTrack, type JourneyMapLayerVisibility } from './journeyMapLayers'
 
 export interface JourneyMapGLHandle {
   highlightMarker: (id: string | null) => void
@@ -47,7 +50,15 @@ interface Props {
    * card stays the inert label it has always been.
    */
   onMarkerPhotoClick?: (entryId: string, photoIndex: number) => void
+  /** Photos placed by their own capture coordinates, clustered by proximity (#2453). */
+  photos?: MapPhoto[]
+  onPhotoClick?: (photoIds: string[]) => void
   paddingBottom?: number
+  /** See the Leaflet twin (JRN-04): hidden layers go off the map in place. */
+  layerVisibility?: JourneyMapLayerVisibility
+  marks?: JourneyMapMark[]
+  onMarksPick?: (marks: JourneyMapMark[]) => void
+  plannedEntryIds?: ReadonlySet<string>
   glProvider?: GlMapProvider
   /**
    * The GL engine, injected instead of imported. Both SDKs used to be pulled in
@@ -94,7 +105,16 @@ function buildItems(entries: MapEntry[]): Item[] {
   return items
 }
 
-function markerHtml(dayColor: string, dayLabel: number, highlighted: boolean): HTMLDivElement {
+/** The map's own layers each switch takes off and puts back. */
+const LAYER_IDS: Record<keyof JourneyMapLayerVisibility, string[]> = {
+  plan: ['journey-tracks-planned-casing', 'journey-tracks-planned'],
+  recorded: ['journey-tracks-casing', 'journey-tracks-line'],
+  entries: ['journey-route-line'],
+}
+const EVERY_LAYER: JourneyMapLayerVisibility = { plan: true, recorded: true, entries: true }
+const NO_PLANNED: ReadonlySet<string> = new Set()
+
+function markerHtml(dayColor: string, dayLabel: number, highlighted: boolean, planned = false): HTMLDivElement {
   const fill = dayColor
   const textColor = '#fff'
   const stroke = highlighted ? '#fff' : 'rgba(255,255,255,0.5)'
@@ -117,6 +137,7 @@ function markerHtml(dayColor: string, dayLabel: number, highlighted: boolean): H
     <path d="M14 34C14 34 26 22.36 26 13C26 6.37 20.63 1 14 1C7.37 1 2 6.37 2 13C2 22.36 14 34 14 34Z" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>
     <circle cx="14" cy="13" r="8" fill="${fill}"/>
     <text x="14" y="13" text-anchor="middle" dominant-baseline="central" fill="${textColor}" font-family="'Poppins',system-ui,sans-serif" font-size="11" font-weight="700">${label}</text>
+    ${planned ? PLANNED_BADGE_SVG : ''}
   </svg>`
   wrap.appendChild(inner)
   return wrap
@@ -127,8 +148,24 @@ const EMPTY_TRACKS: JourneyTrack[] = []
 /** Fallback when a track carries no colour of its own, matching the planner's default. */
 const TRACK_FALLBACK_COLOR = '#4f46e5'
 
+function markBounds(gl: Props['gl'], marks: JourneyMapMark[], points: [number, number][] = []) {
+  const bounds = new gl.LngLatBounds()
+  points.forEach(point => bounds.extend(point))
+  marks.forEach(mark => bounds.extend([mark.lng, mark.lat]))
+  return bounds
+}
+
+function fitOptions(paddingBottom: number | undefined, tilted: boolean | undefined) {
+  return {
+    padding: { top: 50, bottom: paddingBottom || 50, left: 50, right: 50 },
+    maxZoom: 16,
+    pitch: tilted ? 45 : 0,
+    duration: 0,
+  }
+}
+
 function JourneyMapGL(
-  { entries, trail, tracks, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, glProvider = 'mapbox-gl', gl, hideMarkerTooltip, onMarkerPhotoClick, ref }: Props,
+  { entries, trail, tracks, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, glProvider = 'mapbox-gl', gl, hideMarkerTooltip, onMarkerPhotoClick, photos, onPhotoClick, layerVisibility = EVERY_LAYER, marks, onMarksPick, plannedEntryIds = NO_PLANNED, ref }: Props,
 ) {
   const hideMarkerTooltipRef = useRef(hideMarkerTooltip)
   hideMarkerTooltipRef.current = hideMarkerTooltip
@@ -158,6 +195,28 @@ function JourneyMapGL(
   const popupRef = useRef<any | null>(null)
   const onMarkerClickRef = useRef(onMarkerClick)
   onMarkerClickRef.current = onMarkerClick
+  const onPhotoClickRef = useRef(onPhotoClick)
+  onPhotoClickRef.current = onPhotoClick
+  const photoMarkersRef = useRef<{ remove: () => void }[]>([])
+  const markMarkersRef = useRef<{ remove: () => void }[]>([])
+  const onMarksPickRef = useRef(onMarksPick)
+  const marksRef = useRef(marks)
+  // As on the Leaflet map: the plan and the stays arrive after the entries, so
+  // the first view is framed again around both, unless the reader moved it.
+  const entryPointsRef = useRef<[number, number][]>([])
+  const marksFramedRef = useRef(false)
+  const readerMovedRef = useRef(false)
+  const visibilityRef = useRef(layerVisibility)
+  const shownRef = useRef<JourneyMapLayerVisibility>(layerVisibility)
+  const plannedRef = useRef(plannedEntryIds)
+  const iconPlannedRef = useRef<ReadonlySet<string>>(plannedEntryIds)
+  // Before the map effects below, so a rebuild draws with what the reader shows now.
+  useEffect(() => {
+    onMarksPickRef.current = onMarksPick
+    marksRef.current = marks
+    visibilityRef.current = layerVisibility
+    plannedRef.current = plannedEntryIds
+  })
   const darkRef = useRef(dark)
   darkRef.current = dark
   const mapLangRef = useRef(mapLang)
@@ -235,11 +294,11 @@ function JourneyMapGL(
     if (!currentInner) return
     // Only swap the inner element's styles/HTML. Touching `el.style.cssText`
     // would wipe mapbox's positional transform and make the marker flicker.
-    const next = markerHtml(item.dayColor, item.dayLabel, highlighted)
+    const next = markerHtml(item.dayColor, item.dayLabel, highlighted, plannedRef.current.has(id))
     const nextInner = next.querySelector('.trek-journey-marker-inner') as HTMLDivElement
     currentInner.style.cssText = nextInner.style.cssText
     currentInner.innerHTML = nextInner.innerHTML
-    el.style.zIndex = highlighted ? '1000' : '0'
+    el.style.zIndex = highlighted ? '1000' : '1'
   }, [])
 
   const highlightMarker = useCallback((id: string | null) => {
@@ -307,6 +366,17 @@ function JourneyMapGL(
 
     const map = new gl.Map(mapOptions as any)
     mapRef.current = map
+    marksFramedRef.current = false
+    entryPointsRef.current = [...items.map(i => [i.lng, i.lat] as [number, number]), ...stableTrail.map(p => [p.lng, p.lat] as [number, number])]
+    readerMovedRef.current = false
+    map.on('movestart', (ev: { originalEvent?: unknown }) => {
+      if (ev.originalEvent) readerMovedRef.current = true
+    })
+    shownRef.current = visibilityRef.current
+    iconPlannedRef.current = plannedRef.current
+    // A layer whose switch is off is added hidden, so switching it on later needs no rebuild.
+    const layout = (kind: keyof JourneyMapLayerVisibility, base: Record<string, unknown>) =>
+      visibilityRef.current[kind] ? base : { ...base, visibility: 'none' }
 
     map.on('load', () => {
       if (enableMapbox3d) {
@@ -345,14 +415,16 @@ function JourneyMapGL(
               'line-opacity': 0.5,
               'line-dasharray': [2, 3],
             },
-            layout: { 'line-cap': 'round', 'line-join': 'round' },
+            layout: layout('entries', { 'line-cap': 'round', 'line-join': 'round' }),
           })
         }
       }
 
-      // GPX tracks — one source for all of them, coloured per feature so a journey
-      // with several recorded routes keeps them apart. Casing underneath, same as the
-      // planner map, so a track stays readable on satellite tiles.
+      // Tracks, one source for all of them, coloured per feature so a journey
+      // with several routes keeps them apart. Casing underneath, same as the
+      // planner map, so a track stays readable on satellite tiles. A trip's GPX
+      // track is the plan and goes on a dashed layer, what was recorded on a solid
+      // one (JRN-01): a dash pattern cannot follow a feature property.
       if (stableTracks.length > 0) {
         const featureCollection: GeoJSON.FeatureCollection = {
           type: 'FeatureCollection',
@@ -360,7 +432,11 @@ function JourneyMapGL(
             .filter(track => track.points.length > 1)
             .map(track => ({
               type: 'Feature' as const,
-              properties: { color: track.color || TRACK_FALLBACK_COLOR, name: track.name },
+              properties: {
+                color: track.color || TRACK_FALLBACK_COLOR,
+                name: track.name,
+                planned: isPlannedTrack(track),
+              },
               geometry: { type: 'LineString' as const, coordinates: track.points.map(([lat, lng]) => [lng, lat]) },
             })),
         }
@@ -369,19 +445,38 @@ function JourneyMapGL(
             (map.getSource('journey-tracks') as mapboxgl.GeoJSONSource).setData(featureCollection)
           } else {
             map.addSource('journey-tracks', { type: 'geojson', data: featureCollection })
+            // Casing apart for the plan and what was recorded, so each goes with its switch.
             map.addLayer({
               id: 'journey-tracks-casing',
               type: 'line',
               source: 'journey-tracks',
+              filter: ['!=', ['get', 'planned'], true],
               paint: { 'line-color': '#ffffff', 'line-width': 6, 'line-opacity': 0.75 },
-              layout: { 'line-cap': 'round', 'line-join': 'round' },
+              layout: layout('recorded', { 'line-cap': 'round', 'line-join': 'round' }),
+            })
+            map.addLayer({
+              id: 'journey-tracks-planned-casing',
+              type: 'line',
+              source: 'journey-tracks',
+              filter: ['==', ['get', 'planned'], true],
+              paint: { 'line-color': '#ffffff', 'line-width': 6, 'line-opacity': 0.75 },
+              layout: layout('plan', { 'line-cap': 'round', 'line-join': 'round' }),
             })
             map.addLayer({
               id: 'journey-tracks-line',
               type: 'line',
               source: 'journey-tracks',
+              filter: ['!=', ['get', 'planned'], true],
               paint: { 'line-color': ['get', 'color'], 'line-width': 3.5, 'line-opacity': 0.95 },
-              layout: { 'line-cap': 'round', 'line-join': 'round' },
+              layout: layout('recorded', { 'line-cap': 'round', 'line-join': 'round' }),
+            })
+            map.addLayer({
+              id: 'journey-tracks-planned',
+              type: 'line',
+              source: 'journey-tracks',
+              filter: ['==', ['get', 'planned'], true],
+              paint: { 'line-color': ['get', 'color'], 'line-width': 3.5, 'line-opacity': 0.95, 'line-dasharray': [2.2, 2] },
+              layout: layout('plan', { 'line-cap': 'butt', 'line-join': 'round' }),
             })
           }
         }
@@ -389,7 +484,10 @@ function JourneyMapGL(
 
       // markers
       items.forEach((item) => {
-        const el = markerHtml(item.dayColor, item.dayLabel, false)
+        const el = markerHtml(item.dayColor, item.dayLabel, false, plannedRef.current.has(item.id))
+        // Above the photo thumbnails, which stay at auto: the itinerary is the point of the map (#2453).
+        el.style.zIndex = '1'
+        if (!visibilityRef.current.entries) el.style.display = 'none'
         const marker = new gl.Marker({ element: el, anchor: 'bottom' })
           .setLngLat([item.lng, item.lat])
           .addTo(map)
@@ -401,15 +499,12 @@ function JourneyMapGL(
       })
 
       // fit bounds to all points
-      if (hasPoints) {
-        const pb = paddingBottom || 50
+      const known = marksRef.current ?? []
+      marksFramedRef.current = known.length > 0
+      known.forEach(mark => bounds.extend([mark.lng, mark.lat]))
+      if (hasPoints || known.length > 0) {
         try {
-          map.fitBounds(bounds, {
-            padding: { top: 50, bottom: pb, left: 50, right: 50 },
-            maxZoom: 16,
-            pitch: enableMapbox3d && fullScreen ? 45 : 0,
-            duration: 0,
-          })
+          map.fitBounds(bounds, fitOptions(paddingBottom, enableMapbox3d && fullScreen))
         } catch { /* empty bounds */ }
       }
     })
@@ -426,6 +521,112 @@ function JourneyMapGL(
       mapRef.current = null
     }
   }, [entries, stableTrail, stableTracks, glProvider, glStyle, mapboxToken, enableMapbox3d, mapboxQuality, fullScreen, paddingBottom])
+
+  // Photo layer (#2453), the GL twin of the Leaflet one: its own effect so photos
+  // arriving do not rebuild the map, redrawn on every move because the clustering
+  // is done in screen space. Same dependencies as the build effect above, so it
+  // attaches to the map that effect just made.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    const clear = () => {
+      photoMarkersRef.current.forEach(m => m.remove())
+      photoMarkersRef.current = []
+    }
+    const draw = () => {
+      clear()
+      if (!photos?.length) return
+      for (const cluster of clusterPhotos(photos, (lat, lng) => map.project([lng, lat]))) {
+        const el = document.createElement('div')
+        el.style.cssText = 'position:relative;width:48px;height:48px;cursor:pointer'
+        el.innerHTML = photoMarkerHtml(cluster.members[0].thumbUrl, cluster.members.length)
+        el.addEventListener('click', (ev) => {
+          ev.stopPropagation()
+          onPhotoClickRef.current?.(cluster.members.map(m => m.id))
+        })
+        photoMarkersRef.current.push(new gl.Marker({ element: el, anchor: 'center' }).setLngLat([cluster.lng, cluster.lat]).addTo(map))
+      }
+    }
+    if (map.loaded()) draw()
+    else map.once('load', draw)
+    map.on('moveend', draw)
+    return () => {
+      map.off('moveend', draw)
+      map.off('load', draw)
+      clear()
+    }
+    // gl is the injected engine and does not change for the life of a map.
+  }, [photos, gl, entries, stableTrail, stableTracks, glProvider, glStyle, mapboxToken, enableMapbox3d, mapboxQuality, fullScreen, paddingBottom])
+
+  // A switch shows or hides its layers where they are (JRN-04): the GL layers by
+  // their visibility, the entry pins by their element.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    for (const kind of Object.keys(LAYER_IDS) as (keyof JourneyMapLayerVisibility)[]) {
+      if (shownRef.current[kind] === layerVisibility[kind]) continue
+      for (const id of LAYER_IDS[kind]) {
+        try { map.setLayoutProperty(id, 'visibility', layerVisibility[kind] ? 'visible' : 'none') } catch { /* not drawn on this map */ }
+      }
+      if (kind === 'entries') {
+        markersRef.current.forEach(m => { m.getElement().style.display = layerVisibility.entries ? '' : 'none' })
+      }
+    }
+    shownRef.current = layerVisibility
+  }, [layerVisibility])
+
+  // The plan's check on an entry pin follows the plan layer in place.
+  useEffect(() => {
+    const before = iconPlannedRef.current
+    if (before === plannedEntryIds) return
+    for (const item of itemsRef.current) {
+      if (before.has(item.id) !== plannedEntryIds.has(item.id)) setMarkerStyle(item.id, highlightedRef.current === item.id)
+    }
+    iconPlannedRef.current = plannedEntryIds
+  }, [plannedEntryIds, setMarkerStyle])
+
+  // The plan's places and the stays (JRN-04), the GL twin of the Leaflet layer:
+  // regrouped on every move, between the photos and the entry pins.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    const clear = () => {
+      markMarkersRef.current.forEach(m => m.remove())
+      markMarkersRef.current = []
+    }
+    const draw = () => {
+      clear()
+      if (!marks?.length) return
+      if (!marksFramedRef.current) {
+        marksFramedRef.current = true
+        if (!readerMovedRef.current) {
+          try {
+            map.fitBounds(markBounds(gl, marks, entryPointsRef.current), fitOptions(paddingBottom, enableMapbox3d && fullScreen))
+          } catch { /* empty bounds */ }
+        }
+      }
+      for (const hit of clusterPoints(marks, (lat, lng) => map.project([lng, lat]), MARK_CLUSTER_PX)) {
+        const look = markHitSvg(hit.members)
+        const el = document.createElement('div')
+        el.style.cssText = `width:${look.width}px;height:${look.height}px;cursor:pointer`
+        el.innerHTML = look.html
+        el.addEventListener('click', (ev) => {
+          ev.stopPropagation()
+          onMarksPickRef.current?.(hit.members)
+        })
+        markMarkersRef.current.push(new gl.Marker({ element: el, anchor: look.anchor }).setLngLat([hit.lng, hit.lat]).addTo(map))
+      }
+    }
+    if (map.loaded()) draw()
+    else map.once('load', draw)
+    map.on('moveend', draw)
+    return () => {
+      map.off('moveend', draw)
+      map.off('load', draw)
+      clear()
+    }
+    // gl is the injected engine and does not change for the life of a map.
+  }, [marks, gl, entries, stableTrail, stableTracks, glProvider, glStyle, mapboxToken, enableMapbox3d, mapboxQuality, fullScreen, paddingBottom])
 
   // Switching the UI language has to repin the basemap labels without tearing
   // the map down. The load handler covers the initial run.

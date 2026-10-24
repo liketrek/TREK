@@ -6,50 +6,31 @@
  * attached via the nest-mcp registry inside registerTools).
  * Resources: trek://trips/{tripId}/collab/polls, trek://trips/{tripId}/collab/messages.
  */
+import { ADDON_IDS } from '../../../src/addons';
+import { db as testDb } from '../../../src/db/database';
+import { CollabPollVotes } from '../../../src/db/entities/CollabPollVotes.entity';
+import { CollabPolls } from '../../../src/db/entities/CollabPolls.entity';
+import { TripMembers } from '../../../src/db/entities/TripMembers.entity';
+import { NotificationsService } from '../../../src/nest/notifications/notifications.service';
+import { createUser, createTrip } from '../../helpers/factories';
+import { makeCollabMessage } from '../../helpers/factories/collab';
+import { countRows, findRow, insertRow } from '../../helpers/factories/rows';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
+import { bootTestApp } from '../../helpers/test-app';
+import { resetTestDb } from '../../helpers/test-db';
+import { setAddonEnabled } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
-const { testDb, dbMock } = vi.hoisted(() => {
-  const Database = require('better-sqlite3');
-  const db = new Database(':memory:');
-  db.exec('PRAGMA journal_mode = WAL');
-  db.exec('PRAGMA foreign_keys = ON');
-  db.exec('PRAGMA busy_timeout = 5000');
-  const mock = {
-    db,
-    closeDb: () => {},
-    reinitialize: () => {},
-    getPlaceWithTags: () => null,
-    canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`).get(userId, tripId, userId),
-    isOwner: (tripId: any, userId: number) =>
-      !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
-  };
-  return { testDb: db, dbMock: mock };
+vi.mock('../../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
 });
 
-vi.mock('../../../src/db/database', () => dbMock);
-vi.mock('../../../src/config', () => ({
-  JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  updateJwtSecret: () => {},
-}));
-
-const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
-vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
-
-
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
-import { setAddonEnabled } from '../../helpers/test-db';
-import { ADDON_IDS } from '../../../src/addons';
-
-beforeAll(() => {
-  createTables(testDb);
-  runMigrations(testDb);
-});
+const realtime = new FakeRealtimeService();
+const broadcastMock = realtime.broadcastMock;
 
 beforeEach(() => {
   setAddonEnabled(testDb, ADDON_IDS.COLLAB, true);
@@ -58,18 +39,33 @@ beforeEach(() => {
   delete process.env.DEMO_MODE;
 });
 
-afterAll(() => {
+let orm: TestOrm;
+
+beforeAll(async () => {
+  orm = await createTestOrm(testDb);
+});
+
+afterAll(async () => {
+  await orm.close();
   testDb.close();
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
-  const h = await createMcpHarness({ userId, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  const h = await createMcpHarness({ realtime, userId, withResources: false });
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 async function withResourceHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
-  const h = await createMcpHarness({ userId, withResources: true });
-  try { await fn(h); } finally { await h.cleanup(); }
+  const h = await createMcpHarness({ realtime, userId, withResources: true });
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -162,9 +158,12 @@ describe('Tool: vote_collab_poll', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     // Create a poll directly in the DB
-    const pollId = (testDb.prepare(
-      `INSERT INTO collab_polls (trip_id, user_id, question, options, created_at) VALUES (?, ?, ?, ?, datetime('now'))`
-    ).run(trip.id, user.id, 'Best city?', JSON.stringify(['Paris', 'Rome'])) as any).lastInsertRowid;
+    const pollId = await insertRow(orm, CollabPolls, {
+      trip: trip.id,
+      user: user.id,
+      question: 'Best city?',
+      options: JSON.stringify(['Paris', 'Rome']),
+    });
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -181,9 +180,12 @@ describe('Tool: vote_collab_poll', () => {
     process.env.DEMO_MODE = 'true';
     const { user } = createUser(testDb, { email: 'demo@nomad.app' });
     const trip = createTrip(testDb, user.id);
-    const pollId = (testDb.prepare(
-      `INSERT INTO collab_polls (trip_id, user_id, question, options, created_at) VALUES (?, ?, ?, ?, datetime('now'))`
-    ).run(trip.id, user.id, 'Best city?', JSON.stringify(['Paris', 'Rome'])) as any).lastInsertRowid;
+    const pollId = await insertRow(orm, CollabPolls, {
+      trip: trip.id,
+      user: user.id,
+      question: 'Best city?',
+      options: JSON.stringify(['Paris', 'Rome']),
+    });
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -191,7 +193,7 @@ describe('Tool: vote_collab_poll', () => {
         arguments: { tripId: trip.id, pollId: Number(pollId), optionIndex: 0 },
       });
       expect(result.isError).toBe(true);
-      expect(testDb.prepare('SELECT COUNT(*) as c FROM collab_poll_votes WHERE poll_id = ?').get(pollId)).toEqual({ c: 0 });
+      expect(await countRows(orm, CollabPollVotes, { poll: pollId })).toBe(0);
     });
   });
 
@@ -217,9 +219,12 @@ describe('Tool: close_collab_poll', () => {
   it('sets closed flag and broadcasts collab:poll:closed', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    const pollId = (testDb.prepare(
-      `INSERT INTO collab_polls (trip_id, user_id, question, options, created_at) VALUES (?, ?, ?, ?, datetime('now'))`
-    ).run(trip.id, user.id, 'Vote now?', JSON.stringify(['Yes', 'No'])) as any).lastInsertRowid;
+    const pollId = await insertRow(orm, CollabPolls, {
+      trip: trip.id,
+      user: user.id,
+      question: 'Vote now?',
+      options: JSON.stringify(['Yes', 'No']),
+    });
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -263,9 +268,12 @@ describe('Tool: delete_collab_poll', () => {
   it('removes poll and broadcasts collab:poll:deleted', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    const pollId = (testDb.prepare(
-      `INSERT INTO collab_polls (trip_id, user_id, question, options, created_at) VALUES (?, ?, ?, ?, datetime('now'))`
-    ).run(trip.id, user.id, 'Delete me?', JSON.stringify(['Yes', 'No'])) as any).lastInsertRowid;
+    const pollId = await insertRow(orm, CollabPolls, {
+      trip: trip.id,
+      user: user.id,
+      question: 'Delete me?',
+      options: JSON.stringify(['Yes', 'No']),
+    });
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -274,8 +282,12 @@ describe('Tool: delete_collab_poll', () => {
       });
       const data = parseToolResult(result) as any;
       expect(data.success).toBe(true);
-      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'collab:poll:deleted', expect.objectContaining({ pollId: Number(pollId) }));
-      expect(testDb.prepare('SELECT id FROM collab_polls WHERE id = ?').get(Number(pollId))).toBeUndefined();
+      expect(broadcastMock).toHaveBeenCalledWith(
+        trip.id,
+        'collab:poll:deleted',
+        expect.objectContaining({ pollId: Number(pollId) }),
+      );
+      expect(await findRow(orm, CollabPolls, { id: Number(pollId) })).toBeNull();
     });
   });
 
@@ -342,9 +354,7 @@ describe('Tool: send_collab_message', () => {
   it('sends message with replyTo when parent exists', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    const msgId = (testDb.prepare(
-      `INSERT INTO collab_messages (trip_id, user_id, text, created_at) VALUES (?, ?, ?, datetime('now'))`
-    ).run(trip.id, user.id, 'Original message') as any).lastInsertRowid;
+    const msgId = (await makeCollabMessage(orm, trip.id, user.id, { text: 'Original message' })).id;
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -374,7 +384,10 @@ describe('Tool: send_collab_message', () => {
     const { user: other } = createUser(testDb);
     const trip = createTrip(testDb, other.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'send_collab_message', arguments: { tripId: trip.id, text: 'Hi' } });
+      const result = await h.client.callTool({
+        name: 'send_collab_message',
+        arguments: { tripId: trip.id, text: 'Hi' },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -388,9 +401,7 @@ describe('Tool: delete_collab_message', () => {
   it('soft-deletes message and broadcasts collab:message:deleted', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    const msgId = (testDb.prepare(
-      `INSERT INTO collab_messages (trip_id, user_id, text, created_at) VALUES (?, ?, ?, datetime('now'))`
-    ).run(trip.id, user.id, 'To be deleted') as any).lastInsertRowid;
+    const msgId = (await makeCollabMessage(orm, trip.id, user.id, { text: 'To be deleted' })).id;
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -399,7 +410,12 @@ describe('Tool: delete_collab_message', () => {
       });
       const data = parseToolResult(result) as any;
       expect(data.success).toBe(true);
-      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'collab:message:deleted', expect.any(Object));
+      // Named like REST names it: the author, who is the only one allowed to delete.
+      expect(broadcastMock).toHaveBeenCalledWith(
+        trip.id,
+        'collab:message:deleted',
+        expect.objectContaining({ messageId: Number(msgId), username: user.username }),
+      );
     });
   });
 
@@ -408,10 +424,8 @@ describe('Tool: delete_collab_message', () => {
     const { user: other } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     // Add other as trip member
-    testDb.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (?, ?)').run(trip.id, other.id);
-    const msgId = (testDb.prepare(
-      `INSERT INTO collab_messages (trip_id, user_id, text, created_at) VALUES (?, ?, ?, datetime('now'))`
-    ).run(trip.id, user.id, 'Owner message') as any).lastInsertRowid;
+    await insertRow(orm, TripMembers, { trip: trip.id, user: other.id });
+    const msgId = (await makeCollabMessage(orm, trip.id, user.id, { text: 'Owner message' })).id;
 
     await withHarness(other.id, async (h) => {
       const result = await h.client.callTool({
@@ -427,7 +441,10 @@ describe('Tool: delete_collab_message', () => {
     const { user: other } = createUser(testDb);
     const trip = createTrip(testDb, other.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'delete_collab_message', arguments: { tripId: trip.id, messageId: 1 } });
+      const result = await h.client.callTool({
+        name: 'delete_collab_message',
+        arguments: { tripId: trip.id, messageId: 1 },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -441,9 +458,7 @@ describe('Tool: react_collab_message', () => {
   it('toggles reaction and broadcasts collab:message:reacted', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    const msgId = (testDb.prepare(
-      `INSERT INTO collab_messages (trip_id, user_id, text, created_at) VALUES (?, ?, ?, datetime('now'))`
-    ).run(trip.id, user.id, 'React to me') as any).lastInsertRowid;
+    const msgId = (await makeCollabMessage(orm, trip.id, user.id, { text: 'React to me' })).id;
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -473,7 +488,10 @@ describe('Tool: react_collab_message', () => {
     const { user: other } = createUser(testDb);
     const trip = createTrip(testDb, other.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'react_collab_message', arguments: { tripId: trip.id, messageId: 1, emoji: '👍' } });
+      const result = await h.client.callTool({
+        name: 'react_collab_message',
+        arguments: { tripId: trip.id, messageId: 1, emoji: '👍' },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -515,5 +533,31 @@ describe('Resource: trek://trips/{tripId}/collab/messages', () => {
       const data = parseResourceResult(result) as any;
       expect(Array.isArray(data)).toBe(true);
     });
+  });
+});
+
+describe('send_collab_message, as the chat posts it', () => {
+  it('MCP-COLLAB-001: notifies the fellow travellers with the preview a typed message gets, after the room heard it', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const send = vi
+      .spyOn((await bootTestApp(realtime)).get(NotificationsService), 'send')
+      .mockResolvedValue({ attempted: 0, delivered: 0 });
+    try {
+      await withHarness(user.id, async (h) => {
+        await h.client.callTool({ name: 'send_collab_message', arguments: { tripId: trip.id, text: 'Dinner at 8?' } });
+      });
+      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'collab:message:created', expect.any(Object));
+      expect(send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event: 'collab_message',
+          actorId: user.id,
+          targetId: trip.id,
+          params: expect.objectContaining({ actor: user.username, preview: 'Dinner at 8?' }),
+        }),
+      );
+    } finally {
+      send.mockRestore();
+    }
   });
 });

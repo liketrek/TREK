@@ -1,8 +1,11 @@
-import { Utensils, Coffee, Wine, BedDouble, Camera, Landmark, Trees, Ticket, Fuel, Zap, ParkingSquare, Tent, type LucideIcon } from 'lucide-react'
+import { Utensils, Coffee, Wine, BedDouble, Camera, Landmark, Trees, Ticket, Fuel, Zap, ParkingSquare, Tent, Binoculars, Mountain, Warehouse, Droplet, Toilet, Sandwich, Anchor, Sailboat, Wrench, Store, BatteryCharging, type LucideIcon } from 'lucide-react'
+import type { TourPoiCategory } from '@trek/shared'
+import { parsePluginPoiCategoryKey, type PluginPoiDetail } from '@trek/shared'
 // The road-trip kinds take their colour from the one place that defines it, so the
 // search result, the map pin and the road-trip rail cannot drift apart.
 import { SERVICE_COLORS } from '../Roadtrip/roadtripModel'
 import { CORRIDOR_CATEGORIES, HOTEL_COLOR } from '../Roadtrip/stopKinds'
+import { POI_DEFAULT_COLOR, pluginPoiColor, resolvePluginPoiIcon } from './pluginPoiIcons'
 
 // The POI categories shown in the map "explore" pill. The `key` is the contract
 // with the server (CATEGORY_OSM_FILTERS in mapsService.ts) — the OSM tag mapping
@@ -38,8 +41,42 @@ export const ROADTRIP_POI_CATEGORIES: PoiCategory[] = CORRIDOR_CATEGORIES.map(
   ({ key, labelKey, Icon, color }) => ({ key, labelKey, Icon, color }),
 )
 
-export const POI_CATEGORY_BY_KEY: Record<string, PoiCategory> = Object.fromEntries(
-  [...POI_CATEGORIES, ...ROADTRIP_POI_CATEGORIES].map(c => [c.key, c]),
+const CORE_COLOR = new Map(POI_CATEGORIES.map(c => [c.key, c.color] as const))
+const coreColor = (key: string) => CORE_COLOR.get(key) ?? POI_DEFAULT_COLOR
+
+/**
+ * What a hike, a ride or a paddle tour stops for (PLN-02), searched along a tour in the
+ * planner and drawn on its map. Each takes the colour of the explore category
+ * it is closest to, so the map keeps one palette.
+ */
+export const TOUR_POI_LOOKS: Record<TourPoiCategory, PoiCategory> = {
+  viewpoint: { key: 'viewpoint', labelKey: 'tours.poi.cat.viewpoint', Icon: Binoculars, color: coreColor('sights') },
+  peak: { key: 'peak', labelKey: 'tours.poi.cat.peak', Icon: Mountain, color: coreColor('nature') },
+  shelter: { key: 'shelter', labelKey: 'tours.poi.cat.shelter', Icon: Warehouse, color: HOTEL_COLOR },
+  drinking_water: { key: 'drinking_water', labelKey: 'tours.poi.cat.drinking_water', Icon: Droplet, color: coreColor('museum') },
+  food: { key: 'food', labelKey: 'tours.poi.cat.food', Icon: Utensils, color: coreColor('restaurant') },
+  toilets: { key: 'toilets', labelKey: 'tours.poi.cat.toilets', Icon: Toilet, color: coreColor('bar') },
+  picnic: { key: 'picnic', labelKey: 'tours.poi.cat.picnic', Icon: Sandwich, color: coreColor('nature') },
+  campsite: { key: 'campsite', labelKey: 'tours.poi.cat.campsite', Icon: Tent, color: coreColor('activity') },
+  sights: { key: 'sights', labelKey: 'tours.poi.cat.sights', Icon: Camera, color: coreColor('sights') },
+  slipway: { key: 'slipway', labelKey: 'tours.poi.cat.slipway', Icon: Anchor, color: coreColor('museum') },
+  boat_rental: { key: 'boat_rental', labelKey: 'tours.poi.cat.boat_rental', Icon: Sailboat, color: coreColor('cafe') },
+  bike_repair: { key: 'bike_repair', labelKey: 'tours.poi.cat.bike_repair', Icon: Wrench, color: coreColor('activity') },
+  // CW-05: a city walk's own, each in the colour of the explore category it comes from.
+  museum: { key: 'museum', labelKey: 'tours.poi.cat.museum', Icon: Landmark, color: coreColor('museum') },
+  park: { key: 'park', labelKey: 'tours.poi.cat.park', Icon: Trees, color: coreColor('nature') },
+  cafe: { key: 'cafe', labelKey: 'tours.poi.cat.cafe', Icon: Coffee, color: coreColor('cafe') },
+  restaurant: { key: 'restaurant', labelKey: 'tours.poi.cat.restaurant', Icon: Utensils, color: coreColor('restaurant') },
+  market: { key: 'market', labelKey: 'tours.poi.cat.market', Icon: Store, color: coreColor('shopping') },
+  // BIK-07: the road trip's charging colour, so a charger reads as one on every map.
+  ebike_charging: { key: 'ebike_charging', labelKey: 'tours.poi.cat.ebike_charging', Icon: BatteryCharging, color: SERVICE_COLORS.charging },
+}
+
+// A Map rather than an object, so a category named after an Object.prototype member
+// (`constructor`, `toString`) finds nothing rather than a function. A Tours category
+// that shares a key with an explore one (`sights`, `campsite`) keeps the explore look.
+const CATEGORY_BY_KEY = new Map(
+  [...Object.values(TOUR_POI_LOOKS), ...POI_CATEGORIES, ...ROADTRIP_POI_CATEGORIES].map(c => [c.key, c] as const),
 )
 
 // One POI result from /api/maps/pois (mirror of the server's OverpassPoi).
@@ -73,4 +110,37 @@ export interface Poi {
   source: string
   pluginId?: string
   rating?: number | null
+  /**
+   * Only on a POI from a plugin category (GET /api/plugin-pois): what the plugin knows
+   * that open data does not, and the declaring category's icon and colour. Plugin text
+   * and a plugin value either way, so they are drawn through poiAppearance and
+   * textContent, never straight into markup.
+   */
+  details?: PluginPoiDetail[]
+  icon?: string
+  color?: string
+}
+
+/** What a POI pin and its hover card are drawn with. */
+export interface PoiAppearance {
+  color: string
+  /** Null for a category nobody knows, which is drawn as a plain grey disc. */
+  Icon: LucideIcon | null
+}
+
+/**
+ * How to draw `poi`. A core or road trip category has its own look; a plugin category
+ * has the one its POI carries, checked again here (a colour that is not `#rrggbb`
+ * turns grey, an icon off the allow-list turns into a pin); anything else is the grey
+ * disc an unknown category has always been. Keyed by the category rather than by
+ * `pluginId`, because a plugin's hit in the road trip corridor search answers a core
+ * category and is drawn like one.
+ */
+export function poiAppearance(poi: Pick<Poi, 'category' | 'icon' | 'color'>): PoiAppearance {
+  const core = CATEGORY_BY_KEY.get(poi.category)
+  if (core) return { color: core.color, Icon: core.Icon }
+  if (parsePluginPoiCategoryKey(poi.category)) {
+    return { color: pluginPoiColor(poi.color), Icon: resolvePluginPoiIcon(poi.icon) }
+  }
+  return { color: POI_DEFAULT_COLOR, Icon: null }
 }

@@ -23,15 +23,29 @@ describe('reservationCreateRequestSchema', () => {
   });
 
   it('rejects a booking url that executes instead of navigating, on create and update', () => {
-    expect(reservationCreateRequestSchema.safeParse({ title: 'Hotel', url: 'javascript:alert(1)' }).success).toBe(false);
-    expect(reservationCreateRequestSchema.safeParse({ title: 'Hotel', url: 'JavaScript:alert(1)' }).success).toBe(false);
-    expect(reservationCreateRequestSchema.safeParse({ title: 'Hotel', url: ' \tjava\nscript:alert(1)' }).success).toBe(false);
-    expect(reservationCreateRequestSchema.safeParse({ title: 'Hotel', url: 'data:text/html,<script>x</script>' }).success).toBe(false);
+    expect(reservationCreateRequestSchema.safeParse({ title: 'Hotel', url: 'javascript:alert(1)' }).success).toBe(
+      false,
+    );
+    expect(reservationCreateRequestSchema.safeParse({ title: 'Hotel', url: 'JavaScript:alert(1)' }).success).toBe(
+      false,
+    );
+    expect(reservationCreateRequestSchema.safeParse({ title: 'Hotel', url: ' \tjava\nscript:alert(1)' }).success).toBe(
+      false,
+    );
+    expect(
+      reservationCreateRequestSchema.safeParse({ title: 'Hotel', url: 'data:text/html,<script>x</script>' }).success,
+    ).toBe(false);
     expect(reservationUpdateRequestSchema.safeParse({ url: 'vbscript:msgbox' }).success).toBe(false);
   });
 
   it('keeps every link people actually paste valid (no stored row becomes unsavable)', () => {
-    for (const url of ['https://hotel.example/booking', 'http://hotel.example', 'www.hotel.com', 'hotel.example/x?a=b', '']) {
+    for (const url of [
+      'https://hotel.example/booking',
+      'http://hotel.example',
+      'www.hotel.com',
+      'hotel.example/x?a=b',
+      '',
+    ]) {
       expect(reservationCreateRequestSchema.safeParse({ title: 'Hotel', url }).success).toBe(true);
       expect(reservationUpdateRequestSchema.safeParse({ url }).success).toBe(true);
     }
@@ -96,8 +110,14 @@ describe('transportLegInputSchema', () => {
   it('accepts a train leg and a leg that carries times only', () => {
     expect(
       transportLegInputSchema.safeParse({
-        from: 'Basel SBB', to: 'Lugano', train_number: 'EC 57', platform: '8',
-        dep_day_id: null, dep_time: '08:33', arr_day_id: null, arr_time: '11:20',
+        from: 'Basel SBB',
+        to: 'Lugano',
+        train_number: 'EC 57',
+        platform: '8',
+        dep_day_id: null,
+        dep_time: '08:33',
+        arr_day_id: null,
+        arr_time: '11:20',
       }).success,
     ).toBe(true);
     // from/to may be omitted: a writer can fill them from the endpoint codes.
@@ -114,9 +134,9 @@ describe('transportLegInputSchema', () => {
   });
 
   it('accepts a per-segment booking reference and its absence (#1943)', () => {
-    expect(
-      transportLegInputSchema.safeParse({ from: 'AMS', to: 'CDG', confirmation_number: 'ABC123' }).success,
-    ).toBe(true);
+    expect(transportLegInputSchema.safeParse({ from: 'AMS', to: 'CDG', confirmation_number: 'ABC123' }).success).toBe(
+      true,
+    );
     // null is what a form writes for a segment the user left blank.
     expect(transportLegInputSchema.safeParse({ confirmation_number: null }).success).toBe(true);
     // Same ceiling as the reservation-level reference on the MCP tools.

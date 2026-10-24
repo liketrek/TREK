@@ -1,5 +1,6 @@
-import { RoadtripRouterService } from '../../../src/nest/roadtrip/roadtrip-router.service';
+import { RoadtripRouterService, RouteRefusal } from '../../../src/nest/roadtrip/roadtrip-router.service';
 import { safeFetchAdminConfigured } from '../../../src/utils/ssrfGuard';
+import { valhallaPolyline } from '../../helpers/valhalla';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -36,14 +37,12 @@ const osrm = () =>
   );
 function setup(settings = {}) {
   const hooks = { providersOf: vi.fn(() => ['scenic']), route: vi.fn() };
-  const db = {
-    connection: {
-      prepare: () => ({ get: () => ({ capabilities: JSON.stringify({ routeProfiles: [{ id: 'car' }] }) }) }),
-    },
-  };
+  // RRT1/RRT2 (Plan 3j Task 3, confirmed at Task 5's own HEAD) — `declaredProfiles`
+  // now takes `PluginsRepository`, not a raw connection.
+  const plugins = { findCapabilities: vi.fn(async () => JSON.stringify({ routeProfiles: [{ id: 'car' }] })) };
   return {
     hooks,
-    router: new RoadtripRouterService({ getUserSettings: () => settings } as never, hooks as never, db as never),
+    router: new RoadtripRouterService({ getUserSettings: () => settings } as never, hooks as never, plugins as never),
   };
 }
 beforeEach(() => {
@@ -56,17 +55,23 @@ afterEach(() => vi.useRealTimers());
 
 describe('server Roadtrip router', () => {
   it('reads Valhalla leg times, geometry and unmet road preferences', async () => {
-    const encode = (value: number) => {
-      let remaining = value < 0 ? ~(value << 1) : value << 1;
-      let encoded = '';
-      while (remaining >= 32) { encoded += String.fromCharCode((32 | (remaining & 31)) + 63); remaining >>>= 5; }
-      return encoded + String.fromCharCode(remaining + 63);
-    };
-    const shape = encode(48000000) + encode(10000000) + encode(1000000) + encode(1000000);
-    vi.mocked(safeFetchAdminConfigured).mockResolvedValueOnce(new Response(JSON.stringify({trip:{legs:[{shape,summary:{length:25,time:1200,has_toll:true,has_ferry:false}}]}})));
-    const route = await setup().router.route(1,1,1,points.slice(0,2),'driving',['toll','ferry']);
-    expect(route.leg.line).toEqual([[48,10],[49,11]]);
-    expect(route.parts).toEqual([{distance:25000,duration:1200}]);
+    const shape = valhallaPolyline([
+      [48, 10],
+      [49, 11],
+    ]);
+    vi.mocked(safeFetchAdminConfigured).mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          trip: { legs: [{ shape, summary: { length: 25, time: 1200, has_toll: true, has_ferry: false } }] },
+        }),
+      ),
+    );
+    const route = await setup().router.route(1, 1, 1, points.slice(0, 2), 'driving', ['toll', 'ferry']);
+    expect(route.leg.line).toEqual([
+      [48, 10],
+      [49, 11],
+    ]);
+    expect(route.parts).toEqual([{ distance: 25000, duration: 1200 }]);
     expect(route.avoidMissed).toEqual(['toll']);
     expect(route.snapped).toHaveLength(2);
     expect(safeFetchAdminConfigured).toHaveBeenCalledTimes(1);
@@ -117,10 +122,24 @@ describe('server Roadtrip router', () => {
     );
 
     vi.mocked(safeFetchAdminConfigured).mockResolvedValueOnce(
-      new Response(JSON.stringify({
-        code: 'Ok',
-        routes: [{ distance: 1000, duration: 100, geometry: { coordinates: [[10, 48], [11, 49]] }, legs: [{ distance: 1000, duration: 100 }] }],
-      })),
+      new Response(
+        JSON.stringify({
+          code: 'Ok',
+          routes: [
+            {
+              distance: 1000,
+              duration: 100,
+              geometry: {
+                coordinates: [
+                  [10, 48],
+                  [11, 49],
+                ],
+              },
+              legs: [{ distance: 1000, duration: 100 }],
+            },
+          ],
+        }),
+      ),
     );
     const pair = router.route(2, 1, 1, points.slice(0, 2), 'driving', []);
     await vi.runAllTimersAsync();
@@ -184,6 +203,474 @@ describe('server Roadtrip router', () => {
     });
     expect((await router.route(7, 8, 9, points, 'plugin:scenic/car', [])).leg.seg.distance).toBe(3000);
     expect(hooks.route).toHaveBeenCalledWith('scenic', { tripId: 8, dayId: 9, profile: 'car', waypoints: points }, 7);
-    expect(router.profiles()).toContain('plugin:scenic/car');
+    expect(await router.profiles()).toContain('plugin:scenic/car');
+  });
+});
+
+describe('server Roadtrip router, a walk on foot only (CW-12)', () => {
+  const shape = valhallaPolyline([
+    [48, 10],
+    [49, 11],
+  ]);
+  const valhallaLegs = (legs: unknown[]) => new Response(JSON.stringify({ trip: { legs } }));
+  const walked = { shape, summary: { length: 1.4, time: 1000, has_ferry: false } };
+  // Measured on Venice: the boat leg as FOSSGIS answers it, boarding at type 28 with ferry true.
+  const byBoat = {
+    shape,
+    summary: { length: 1.9, time: 1250, has_ferry: true },
+    maneuvers: [{ type: 1 }, { type: 28, ferry: true }, { type: 29 }],
+  };
+
+  it('asks Valhalla on foot with no point bound to a boat line, and names the legs that still cross by boat', async () => {
+    vi.mocked(safeFetchAdminConfigured).mockResolvedValueOnce(valhallaLegs([walked, byBoat]));
+    const route = await setup().router.route(1, 1, 0, points, 'walking', [], { footOnly: true });
+    const [url, init] = vi.mocked(safeFetchAdminConfigured).mock.calls[0] as [string, { body: string }];
+    expect(url).toBe('https://valhalla1.openstreetmap.de/route');
+    const body = JSON.parse(init.body) as { locations: Array<Record<string, unknown>>; costing_options: unknown };
+    expect(
+      body.locations.every((location) => (location.search_filter as { exclude_ferry: boolean }).exclude_ferry),
+    ).toBe(true);
+    expect(body.costing_options).toEqual({ pedestrian: { use_ferry: 0 } });
+    expect(route.ferryLegs).toEqual([1]);
+    expect(route.parts).toEqual([
+      { distance: 1400, duration: 1000 },
+      { distance: 1900, duration: 1250 },
+    ]);
+    expect(route.snapped).toHaveLength(3);
+  });
+
+  it('reads a crossing off OSRM steps where no Valhalla is asked, and keeps the foot-only answer apart in the cache', async () => {
+    vi.mocked(safeFetchAdminConfigured).mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          code: 'Ok',
+          routes: [
+            {
+              distance: 3000,
+              duration: 300,
+              geometry: { coordinates: points.map((p) => [p.lng, p.lat]) },
+              legs: [
+                { distance: 1000, duration: 100, steps: [{ mode: 'walking' }] },
+                { distance: 2000, duration: 200, steps: [{ mode: 'walking' }, { mode: 'ferry' }] },
+              ],
+            },
+          ],
+        }),
+      ),
+    );
+    const { router } = setup({ routing_base_url: 'http://router.internal' });
+    const route = await router.route(1, 1, 0, points, 'walking', [], { footOnly: true });
+    expect(safeFetchAdminConfigured).toHaveBeenCalledWith(expect.stringContaining('steps=true'), expect.anything());
+    expect(route.ferryLegs).toEqual([1]);
+    expect(route.parts).toEqual([
+      { distance: 1000, duration: 100 },
+      { distance: 2000, duration: 200 },
+    ]);
+    // The same points asked without the option are another question, answered without ferries named.
+    const plain = router.route(1, 1, 0, points, 'walking', []);
+    await vi.runAllTimersAsync();
+    expect(await plain).not.toHaveProperty('ferryLegs');
+    expect(safeFetchAdminConfigured).toHaveBeenLastCalledWith(
+      expect.stringContaining('steps=false'),
+      expect.anything(),
+    );
+  });
+
+  it('falls back to OSRM on foot when Valhalla fails, and leaves a drive as it was', async () => {
+    vi.mocked(safeFetchAdminConfigured).mockResolvedValueOnce(new Response('', { status: 503 }));
+    const pending = setup().router.route(1, 1, 0, points, 'walking', [], { footOnly: true });
+    await vi.runAllTimersAsync();
+    expect((await pending).ferryLegs).toEqual([]);
+    expect(safeFetchAdminConfigured).toHaveBeenLastCalledWith(
+      expect.stringContaining('routed-foot'),
+      expect.anything(),
+    );
+
+    const drive = await setup().router.route(1, 1, 0, points, 'driving', [], { footOnly: true });
+    expect(drive).not.toHaveProperty('ferryLegs');
+    expect(safeFetchAdminConfigured).toHaveBeenLastCalledWith(expect.stringContaining('routed-car'), expect.anything());
+  });
+});
+
+describe('server Roadtrip router, a hike: its costing, heights and ways', () => {
+  const hikeLeg = {
+    shape: valhallaPolyline([
+      [48, 10],
+      [49, 11],
+    ]),
+    summary: { length: 2.5, time: 1800 },
+  };
+  const costingOptions = { max_hiking_difficulty: 3, step_penalty: 600 };
+  const bodyOf = (call: number) =>
+    JSON.parse((vi.mocked(safeFetchAdminConfigured).mock.calls[call][1] as { body: string }).body) as Record<
+      string,
+      unknown
+    >;
+  const line = (count: number) => Array.from({ length: count }, (_, index): [number, number] => [47 + index / 1e4, 11]);
+  /** Valhalla's /height answer for whatever piece it was asked about: a metre a point of the line, from 500. */
+  const heightAnswer = (init: RequestInit | undefined) => {
+    const body = JSON.parse(String(init?.body)) as { shape: Array<{ lat: number }> };
+    return new Response(
+      JSON.stringify({
+        range_height: body.shape.map((point, index) => [index, 500 + Math.round((point.lat - 47) * 1e4)]),
+      }),
+    );
+  };
+  const heightsByIndex = () =>
+    vi.mocked(safeFetchAdminConfigured).mockImplementation(async (_url, init) => heightAnswer(init));
+  /** Every question answered with `answer`, the router asked through the queue until it is done. */
+  const failing = (answer: () => Response | Promise<Response>) =>
+    vi.mocked(safeFetchAdminConfigured).mockImplementation(async () => answer());
+  const settled = async <T>(pending: Promise<T>): Promise<T> => {
+    await vi.runAllTimersAsync();
+    return await pending;
+  };
+
+  it('ROUTER-HIKE-001: asks Valhalla on foot with exactly the hike costing, no point bound off the boats, and keeps it apart in the cache', async () => {
+    vi.mocked(safeFetchAdminConfigured).mockImplementation(
+      async () => new Response(JSON.stringify({ trip: { legs: [hikeLeg] } })),
+    );
+    const { router } = setup();
+    const route = await router.route(1, 1, 0, points.slice(0, 2), 'walking', [], { costingOptions });
+    const [url] = vi.mocked(safeFetchAdminConfigured).mock.calls[0];
+    expect(url).toBe('https://valhalla1.openstreetmap.de/route');
+    const body = bodyOf(0);
+    expect(body.costing).toBe('pedestrian');
+    expect(body.costing_options).toEqual({ pedestrian: costingOptions });
+    expect((body.locations as Array<Record<string, unknown>>).every((location) => !('search_filter' in location))).toBe(
+      true,
+    );
+    expect(route.parts).toEqual([{ distance: 2500, duration: 1800 }]);
+    expect(route).not.toHaveProperty('ferryLegs');
+    // The same hike again comes from the cache; the same points as a city walk or with another limit are other questions.
+    await router.route(1, 1, 0, points.slice(0, 2), 'walking', [], { costingOptions });
+    expect(safeFetchAdminConfigured).toHaveBeenCalledTimes(1);
+    const other = router.route(1, 1, 0, points.slice(0, 2), 'walking', [], {
+      costingOptions: { ...costingOptions, max_hiking_difficulty: 4 },
+    });
+    await vi.runAllTimersAsync();
+    await other;
+    expect(safeFetchAdminConfigured).toHaveBeenCalledTimes(2);
+    const walk = await settled(router.route(1, 1, 0, points.slice(0, 2), 'walking', [], { footOnly: true }));
+    expect(safeFetchAdminConfigured).toHaveBeenCalledTimes(3);
+    expect(bodyOf(2).costing_options).toEqual({ pedestrian: { use_ferry: 0 } });
+    expect(walk.ferryLegs).toEqual([]);
+  });
+
+  it('ROUTER-HIKE-002: refuses a hike where there is no Valhalla to ask, and never falls back to OSRM', async () => {
+    const { router } = setup({ routing_base_url: 'http://router.internal' });
+    const refused = router.route(1, 1, 0, points, 'walking', [], { costingOptions });
+    await expect(refused).rejects.toBeInstanceOf(RouteRefusal);
+    await expect(refused).rejects.toMatchObject({ why: 'no_valhalla' });
+    expect(safeFetchAdminConfigured).not.toHaveBeenCalled();
+
+    vi.mocked(safeFetchAdminConfigured).mockResolvedValueOnce(new Response('', { status: 503 }));
+    await expect(setup().router.route(1, 1, 0, points, 'walking', [], { costingOptions })).rejects.toThrow(
+      'Routing provider returned 503',
+    );
+    expect(safeFetchAdminConfigured).toHaveBeenCalledTimes(1);
+  });
+
+  it('ROUTER-HIKE-003: reads Valhalla saying no way joins the points as a refusal, and any other 400 as a failure', async () => {
+    vi.mocked(safeFetchAdminConfigured).mockResolvedValueOnce(
+      new Response(JSON.stringify({ error_code: 442, error: 'No path could be found for input' }), { status: 400 }),
+    );
+    await expect(setup().router.route(1, 1, 0, points, 'walking', [], { costingOptions })).rejects.toMatchObject({
+      name: 'RouteRefusal',
+      why: 'no_way',
+    });
+    vi.mocked(safeFetchAdminConfigured).mockResolvedValueOnce(
+      new Response(JSON.stringify({ error_code: 150, error: 'Exceeded max locations' }), { status: 400 }),
+    );
+    const failure: unknown = await setup()
+      .router.route(1, 1, 0, points, 'walking', [], { costingOptions })
+      .catch((err: unknown) => err);
+    expect(failure).not.toBeInstanceOf(RouteRefusal);
+    expect(failure).toMatchObject({ message: 'Routing provider returned 400' });
+    // A way past the instance's distance limit is refused for its length, which asking again does not change.
+    vi.mocked(safeFetchAdminConfigured).mockResolvedValueOnce(
+      new Response(JSON.stringify({ error_code: 154, error: 'Path distance exceeds the max distance limit' }), {
+        status: 400,
+      }),
+    );
+    await expect(setup().router.route(1, 1, 0, points, 'walking', [], { costingOptions })).rejects.toMatchObject({
+      name: 'RouteRefusal',
+      why: 'too_long',
+    });
+    // A 400 that names no code of Valhalla's is a failure of the host as well.
+    vi.mocked(safeFetchAdminConfigured).mockResolvedValueOnce(new Response('Bad request', { status: 400 }));
+    const unread: unknown = await setup()
+      .router.route(1, 1, 0, points, 'walking', [], { costingOptions })
+      .catch((err: unknown) => err);
+    expect(unread).not.toBeInstanceOf(RouteRefusal);
+    expect(unread).toMatchObject({ message: 'Routing provider returned 400' });
+  });
+
+  it('ROUTER-HIKE-004: leaves a city walk falling back to OSRM on a refusal, and a drive untouched by a hike costing', async () => {
+    vi.mocked(safeFetchAdminConfigured).mockResolvedValueOnce(
+      new Response(JSON.stringify({ error_code: 171 }), { status: 400 }),
+    );
+    const walk = setup().router.route(1, 1, 0, points, 'walking', [], { footOnly: true });
+    await vi.runAllTimersAsync();
+    expect((await walk).parts).toHaveLength(2);
+    expect(safeFetchAdminConfigured).toHaveBeenLastCalledWith(
+      expect.stringContaining('routed-foot'),
+      expect.anything(),
+    );
+
+    await setup().router.route(1, 1, 0, points, 'driving', [], { costingOptions });
+    expect(safeFetchAdminConfigured).toHaveBeenLastCalledWith(expect.stringContaining('routed-car'), expect.anything());
+  });
+
+  it('ROUTER-HIKE-005: reads the heights in pieces of 500 that overlap by one, through the paced queue', async () => {
+    heightsByIndex();
+    const pending = setup().router.heights(1, line(1000));
+    await vi.runAllTimersAsync();
+    const measured = await pending;
+    const calls = vi.mocked(safeFetchAdminConfigured).mock.calls;
+    expect(calls.map(([url]) => url)).toEqual(Array(3).fill('https://valhalla1.openstreetmap.de/height'));
+    expect([0, 1, 2].map((call) => (bodyOf(call).shape as unknown[]).length)).toEqual([500, 500, 2]);
+    expect(bodyOf(0).range).toBe(true);
+    expect((bodyOf(1).shape as Array<{ lat: number; lon: number }>)[0]).toEqual({ lat: 47 + 499 / 1e4, lon: 11 });
+    expect(measured).toHaveLength(1000);
+    expect(measured?.[0]).toEqual([47, 11, 500]);
+    expect(measured?.[999]).toEqual([47 + 999 / 1e4, 11, 1499]);
+    expect(measured?.every((point) => point.length === 3)).toBe(true);
+
+    // A line whose last piece would hold only the point the one before ended at asks no third time.
+    vi.mocked(safeFetchAdminConfigured).mockClear();
+    const shorter = setup().router.heights(1, line(999));
+    await vi.runAllTimersAsync();
+    expect((await shorter)?.at(-1)).toEqual([47 + 998 / 1e4, 11, 1498]);
+    expect(safeFetchAdminConfigured).toHaveBeenCalledTimes(2);
+  });
+
+  it('ROUTER-HIKE-006: keeps the height the overlapping point already has, and a point without one flat', async () => {
+    heightsByIndex();
+    let calls = 0;
+    vi.mocked(safeFetchAdminConfigured).mockImplementationOnce(async (_url, init) => {
+      calls += 1;
+      const body = JSON.parse(String(init?.body)) as { shape: unknown[] };
+      // The terrain data has no height for the second point.
+      return new Response(
+        JSON.stringify({ range_height: body.shape.map((_, index) => [index, index === 1 ? null : 7]) }),
+      );
+    });
+    const pending = setup().router.heights(1, line(501));
+    await vi.runAllTimersAsync();
+    const measured = await pending;
+    expect(calls).toBe(1);
+    expect(measured?.[1]).toEqual([47 + 1 / 1e4, 11]);
+    expect(measured?.[499]).toEqual([47 + 499 / 1e4, 11, 7]);
+    expect(measured?.[500]).toEqual([47 + 500 / 1e4, 11, 1000]);
+  });
+
+  it('ROUTER-HIKE-007: stops reading heights at a piece that fails twice or twice does not name every point', async () => {
+    const failures = [
+      () => failing(() => new Response('', { status: 503 })),
+      () => failing(() => new Response(JSON.stringify({ range_height: [[0, 500]] }))),
+      () => failing(() => new Response(JSON.stringify({ heights: [1, 2, 3] }))),
+      () => vi.mocked(safeFetchAdminConfigured).mockRejectedValue(new Error('socket hang up')),
+      // A transport that rejects with a bare value.
+      () => vi.mocked(safeFetchAdminConfigured).mockRejectedValue('socket hang up'),
+    ];
+    // One failure after the other: what each read gave, and how often the host was asked for it.
+    const reads = await failures.reduce<Promise<unknown[]>>(async (before, fail) => {
+      const done = await before;
+      vi.mocked(safeFetchAdminConfigured).mockReset();
+      fail();
+      const read = await settled(setup().router.heights(1, line(3)));
+      return [...done, [read, vi.mocked(safeFetchAdminConfigured).mock.calls.length]];
+    }, Promise.resolve([]));
+    expect(reads).toEqual(failures.map(() => [line(3), 2]));
+  });
+
+  it('ROUTER-HIKE-011: asks a failed piece once more, and stops at one that fails again, the points after it flat', async () => {
+    let asked = 0;
+    vi.mocked(safeFetchAdminConfigured).mockImplementation(async (_url, init) => {
+      asked += 1;
+      return asked === 1 ? heightAnswer(init) : new Response('', { status: 503 });
+    });
+    const measured = await settled(setup().router.heights(1, line(1000)));
+    // The first piece, the second, and the second again; the third is never asked.
+    expect(safeFetchAdminConfigured).toHaveBeenCalledTimes(3);
+    expect(measured).toHaveLength(1000);
+    expect(measured?.slice(0, 500).every((point) => point.length === 3)).toBe(true);
+    expect(measured?.slice(500).every((point) => point.length === 2)).toBe(true);
+    expect(measured?.[499]).toEqual([47 + 499 / 1e4, 11, 999]);
+
+    // A piece that fails once and answers when asked again is read.
+    vi.mocked(safeFetchAdminConfigured).mockClear();
+    heightsByIndex().mockResolvedValueOnce(new Response('', { status: 429 }));
+    const again = await settled(setup().router.heights(1, line(3)));
+    expect(again?.every((point) => point.length === 3)).toBe(true);
+    expect(safeFetchAdminConfigured).toHaveBeenCalledTimes(2);
+  });
+
+  it('ROUTER-HIKE-012: keeps a line read whole for five minutes per user, and asks again for one read in part', async () => {
+    heightsByIndex();
+    const { router } = setup();
+    const first = await settled(router.heights(1, line(3)));
+    expect(first?.every((point) => point.length === 3)).toBe(true);
+    expect(await router.heights(1, line(3))).toEqual(first);
+    expect(safeFetchAdminConfigured).toHaveBeenCalledTimes(1);
+
+    // Another user, another line, and the same line five minutes on are asked again.
+    await settled(router.heights(2, line(3)));
+    await settled(router.heights(1, line(4)));
+    expect(safeFetchAdminConfigured).toHaveBeenCalledTimes(3);
+    vi.advanceTimersByTime(300_001);
+    await settled(router.heights(1, line(3)));
+    expect(safeFetchAdminConfigured).toHaveBeenCalledTimes(4);
+
+    // A line read in part is not kept: the next question asks the host again.
+    failing(() => new Response('', { status: 502 })).mockClear();
+    expect(await settled(router.heights(1, line(5)))).toEqual(line(5));
+    heightsByIndex().mockClear();
+    expect((await settled(router.heights(1, line(5))))?.every((point) => point.length === 3)).toBe(true);
+    expect(safeFetchAdminConfigured).toHaveBeenCalledTimes(1);
+
+    // Only the twenty lines read last are kept; the first of them is asked again.
+    vi.mocked(safeFetchAdminConfigured).mockClear();
+    // The router's one queue answers them in the order asked.
+    const counts = Array.from({ length: 21 }, (_, index) => 10 + index);
+    await settled(Promise.all(counts.map((count) => router.heights(3, line(count)))));
+    expect(safeFetchAdminConfigured).toHaveBeenCalledTimes(21);
+    await settled(router.heights(3, line(30)));
+    expect(safeFetchAdminConfigured).toHaveBeenCalledTimes(21);
+    await settled(router.heights(3, line(10)));
+    expect(safeFetchAdminConfigured).toHaveBeenCalledTimes(22);
+  });
+
+  it('ROUTER-HIKE-008: asks no heights without a Valhalla or a line to measure', async () => {
+    expect(await setup({ routing_base_url: 'http://router.internal' }).router.heights(1, line(3))).toBeNull();
+    expect(await setup().router.heights(1, line(1))).toBeNull();
+    expect(safeFetchAdminConfigured).not.toHaveBeenCalled();
+  });
+
+  it('ROUTER-HIKE-009: describes the ways under a line, matched on foot with every grade open, thinned to 4000 points', async () => {
+    vi.mocked(safeFetchAdminConfigured).mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          edges: [{ way_id: 11, length: 0.25 }, { way_id: 0, length: 0.1 }, { length: 0.05 }, { way_id: 12 }],
+        }),
+      ),
+    );
+    const { router } = setup({ valhalla_base_url: 'https://valhalla.internal/' });
+    const ways = await router.wayIds(1, line(9001));
+    expect(vi.mocked(safeFetchAdminConfigured).mock.calls[0][0]).toBe('https://valhalla.internal/trace_attributes');
+    const body = bodyOf(0);
+    expect(body).toMatchObject({
+      costing: 'pedestrian',
+      costing_options: { pedestrian: { max_hiking_difficulty: 6 } },
+      shape_match: 'map_snap',
+      filters: { attributes: ['edge.way_id', 'edge.length'], action: 'include' },
+    });
+    const shape = body.shape as Array<{ lat: number; lon: number }>;
+    expect(shape.length).toBeLessThanOrEqual(4000);
+    expect(shape[0]).toEqual({ lat: 47, lon: 11 });
+    expect(shape.at(-1)).toEqual({ lat: 47 + 9000 / 1e4, lon: 11 });
+    expect(ways).toEqual([
+      { wayId: 11, metres: 250 },
+      { wayId: null, metres: 100 },
+      { wayId: null, metres: 50 },
+    ]);
+  });
+
+  it('ROUTER-HIKE-010: refuses to describe a line without a Valhalla, and an answer of another kind', async () => {
+    await expect(setup({ routing_base_url: 'http://router.internal' }).router.wayIds(1, line(3))).rejects.toMatchObject(
+      {
+        why: 'no_valhalla',
+      },
+    );
+    expect(safeFetchAdminConfigured).not.toHaveBeenCalled();
+    vi.mocked(safeFetchAdminConfigured).mockResolvedValueOnce(new Response(JSON.stringify({ edges: 'none' })));
+    await expect(setup().router.wayIds(1, line(3))).rejects.toThrow();
+  });
+});
+
+describe('server Roadtrip router: other ways on foot (RTE-02)', () => {
+  const trip = (points: Array<[number, number]>) => ({
+    legs: [{ shape: valhallaPolyline(points), summary: { length: 1.2, time: 900 } }],
+  });
+
+  it('ROUTER-WAYS-001: asks Valhalla once on foot under the hike’s costing, its own way first', async () => {
+    vi.mocked(safeFetchAdminConfigured).mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          trip: trip([
+            [47, 11],
+            [47.01, 11.01],
+          ]),
+          alternates: [
+            {
+              trip: trip([
+                [47, 11],
+                [47.02, 11],
+                [47.01, 11.01],
+              ]),
+            },
+          ],
+        }),
+      ),
+    );
+    const { router } = setup({ valhalla_base_url: 'https://valhalla.internal/' });
+    const ways = await router.alternatesOnFoot(
+      1,
+      { lat: 47, lng: 11 },
+      { lat: 47.01, lng: 11.01 },
+      { max_hiking_difficulty: 3 },
+      3,
+    );
+    expect(ways).toEqual([
+      [
+        [47, 11],
+        [47.01, 11.01],
+      ],
+      [
+        [47, 11],
+        [47.02, 11],
+        [47.01, 11.01],
+      ],
+    ]);
+    const [url, init] = vi.mocked(safeFetchAdminConfigured).mock.calls[0] ?? [];
+    expect(url).toBe('https://valhalla.internal/route');
+    expect(JSON.parse(String((init as RequestInit).body))).toMatchObject({
+      costing: 'pedestrian',
+      costing_options: { pedestrian: { max_hiking_difficulty: 3 } },
+      alternates: 3,
+      locations: [
+        { lat: 47, lon: 11 },
+        { lat: 47.01, lon: 11.01 },
+      ],
+    });
+  });
+
+  it('ROUTER-WAYS-002: an answer without alternates is the one way; no Valhalla refuses before asking', async () => {
+    vi.mocked(safeFetchAdminConfigured).mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          trip: trip([
+            [47, 11],
+            [47.01, 11.01],
+          ]),
+        }),
+      ),
+    );
+    const ways = await setup().router.alternatesOnFoot(1, { lat: 47, lng: 11 }, { lat: 47.01, lng: 11.01 }, {}, 0);
+    expect(ways).toHaveLength(1);
+    const body = JSON.parse(String((vi.mocked(safeFetchAdminConfigured).mock.calls[0]?.[1] as RequestInit).body));
+    expect(body.alternates).toBeUndefined();
+    vi.mocked(safeFetchAdminConfigured).mockClear();
+    await expect(
+      setup({ routing_base_url: 'http://router.internal' }).router.alternatesOnFoot(
+        1,
+        { lat: 47, lng: 11 },
+        { lat: 47.01, lng: 11.01 },
+        {},
+        3,
+      ),
+    ).rejects.toMatchObject({ why: 'no_valhalla' });
+    expect(safeFetchAdminConfigured).not.toHaveBeenCalled();
   });
 });

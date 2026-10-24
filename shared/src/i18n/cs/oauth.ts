@@ -12,7 +12,7 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.collab': 'Spolupráce',
   'oauth.scope.group.notifications': 'Oznámení',
   'oauth.scope.group.vacay': 'Dovolená',
-  'oauth.scope.group.geo': 'Geo',
+  'oauth.scope.group.geo': 'Geo', // same-as-en
   'oauth.scope.group.weather': 'Počasí',
   'oauth.scope.group.journey': 'Cestovní deník',
   'oauth.scope.trips:read.label': 'Zobrazit výlety a itineráře',
@@ -74,39 +74,46 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:write.description': 'Vytvářet, aktualizovat a mazat cestovní deníky a jejich záznamy',
   'oauth.scope.journey:share.label': 'Spravovat odkazy na cestovní deníky',
   'oauth.scope.journey:share.description': 'Vytvářet, aktualizovat a rušit veřejné sdílené odkazy na cestovní deníky',
-  'oauth.authorize.authorizing': 'Authorizing…', // en-fallback
-  'oauth.authorize.loading': 'Loading…', // en-fallback
-  'oauth.authorize.errorTitle': 'Authorization Error', // en-fallback
-  'oauth.authorize.loginTitle': 'Sign in to continue', // en-fallback
-  'oauth.authorize.loginDescription': '{client} wants access to your TREK account. Please sign in first.', // en-fallback
-  'oauth.authorize.loginButton': 'Sign in to TREK', // en-fallback
-  'oauth.authorize.requestLabel': 'Authorization Request', // en-fallback
-  'oauth.authorize.requestDescription': 'This application is requesting access to your TREK account.', // en-fallback
-  'oauth.authorize.trustNote': 'Only grant access to applications you trust. Your data stays on your server.', // en-fallback
-  'oauth.authorize.selectScope': 'Select at least one scope', // en-fallback
-  'oauth.authorize.approveOneScope': 'Approve ({count} scope)', // en-fallback
-  'oauth.authorize.approveManyScopes': 'Approve ({count} scopes)', // en-fallback
-  'oauth.authorize.approveAccess': 'Approve Access', // en-fallback
-  'oauth.authorize.deny': 'Deny', // en-fallback
-  'oauth.authorize.choosePermissions': 'Choose which permissions to grant', // en-fallback
-  'oauth.authorize.permissionsRequested': 'Permissions requested', // en-fallback
-  'oauth.authorize.alwaysIncluded': 'Always included', // en-fallback
-  'oauth.authorize.alwaysTool.listTrips': 'List your trips so the AI can discover trip IDs', // en-fallback
-  'oauth.authorize.alwaysTool.getTripSummary': 'Read a trip overview needed to use any other tool', // en-fallback
+  'oauth.authorize.authorizing': 'Autorizuji…',
+  'oauth.authorize.loading': 'Načítání…',
+  'oauth.authorize.errorTitle': 'Chyba autorizace',
+  'oauth.authorize.loginTitle': 'Pro pokračování se přihlaste',
+  'oauth.authorize.loginDescription': '{client} žádá o přístup k vašemu účtu TREK. Nejprve se prosím přihlaste.',
+  'oauth.authorize.loginButton': 'Přihlásit se do TREK',
+  'oauth.authorize.requestLabel': 'Žádost o autorizaci',
+  'oauth.authorize.requestDescription': 'Tato aplikace žádá o přístup k vašemu účtu TREK.',
+  'oauth.authorize.verifiedHost': 'Ověřená doména: {host}',
+  'oauth.authorize.trustNote':
+    'Přístup udělujte jen aplikacím, kterým důvěřujete. Vaše data zůstávají na vašem serveru.',
+  'oauth.authorize.selectScope': 'Vyberte alespoň jedno oprávnění',
+  'oauth.authorize.approveScopes': 'Schválit ({count} oprávnění)',
+  'oauth.authorize.approveScopes.one': 'Schválit ({count} oprávnění)',
+  'oauth.authorize.approveScopes.few': 'Schválit ({count} oprávnění)',
+  'oauth.authorize.approveAccess': 'Schválit přístup',
+  'oauth.authorize.deny': 'Odmítnout',
+  'oauth.authorize.choosePermissions': 'Vyberte, která oprávnění udělit',
+  'oauth.authorize.permissionsRequested': 'Požadovaná oprávnění',
+  'oauth.authorize.alwaysIncluded': 'Vždy zahrnuto',
+  'oauth.authorize.alwaysTool.listTrips': 'Zobrazí seznam vašich cest, aby AI zjistila ID cest',
+  'oauth.authorize.alwaysTool.getTripSummary': 'Přečte přehled cesty potřebný pro použití jakéhokoli jiného nástroje',
   'oauth.scope.group.files': 'Soubory',
   'oauth.scope.group.settings': 'Nastavení',
   'oauth.scope.files:read.label': 'Zobrazit soubory cesty',
-  'oauth.scope.files:read.description': 'Vypsat dokumenty cesty: názvy, velikosti, kdo je nahrál a k čemu jsou připojené',
+  'oauth.scope.files:read.description':
+    'Vypsat dokumenty cesty: názvy, velikosti, kdo je nahrál a k čemu jsou připojené',
   'oauth.scope.files:write.label': 'Spravovat soubory cesty',
-  'oauth.scope.files:write.description': 'Přejmenovat a popsat soubory, připojit je k rezervacím a místům, označit hvězdičkou a přesunout do koše',
+  'oauth.scope.files:write.description':
+    'Přejmenovat a popsat soubory, připojit je k rezervacím a místům, označit hvězdičkou a přesunout do koše',
   'oauth.scope.files:content.label': 'Číst obsah souborů',
   'oauth.scope.files:content.description': 'Přečíst obsah nahraného dokumentu, například PDF rezervace nebo jízdenku',
   'oauth.scope.settings:read.label': 'Zobrazit vaše předvolby',
   'oauth.scope.settings:read.description': 'Číst jednotky, formát času, jazyk, výchozí měnu a úvodní stránku',
   'oauth.scope.settings:write.label': 'Změnit vaše předvolby',
-  'oauth.scope.settings:write.description': 'Změnit jednotky, formát času, jazyk, výchozí měnu a úvodní stránku. Nikdy uložené API klíče',
+  'oauth.scope.settings:write.description':
+    'Změnit jednotky, formát času, jazyk, výchozí měnu a úvodní stránku. Nikdy uložené API klíče',
   'oauth.scope.group.plugins': 'Pluginy',
   'oauth.scope.plugins:use.label': 'Spouštět nástroje pluginů',
-  'oauth.scope.plugins:use.description': 'Umožní tomuto klientovi volat nástroje zveřejněné pluginy, které správce nainstaloval a schválil. Každý plugin jedná s oprávněními, která už dostal, nikoli s rozsahy tohoto tokenu',
+  'oauth.scope.plugins:use.description':
+    'Umožní tomuto klientovi volat nástroje zveřejněné pluginy, které správce nainstaloval a schválil. Každý plugin jedná s oprávněními, která už dostal, nikoli s rozsahy tohoto tokenu',
 };
 export default oauth;

@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types';
+
+const tourPacking: TranslationStrings = {
+  'tours.packing.label': 'Liste de bagages',
+  'tours.packing.none': 'Aucune liste de bagages liée',
+  'tours.packing.link': 'Lier une liste de bagages',
+  'tours.packing.change': 'Modifier',
+  'tours.packing.whole': 'Toute la liste de bagages',
+  'tours.packing.packed': '{packed} sur {count} emballés',
+  'tours.packing.packed.one': '{packed} sur {count} emballé',
+  'tours.packing.more': '+{count} autres',
+  'tours.packing.more.one': '+{count} autre',
+  'tours.packing.items': '{count} articles',
+  'tours.packing.items.one': '{count} article',
+  'tours.packing.allPacked': 'Tout est emballé',
+  'tours.packing.open': 'Ouvrir la liste de bagages',
+  'tours.packing.missing': '« {name} » n’a plus d’article visible pour vous.',
+  'tours.packing.emptyList': 'La liste de bagages est encore vide.',
+  'tours.packing.emptyCategory': '« {name} » n’a encore aucun article.',
+  'tours.packing.addonOff': 'Les listes de bagages sont désactivées, la liste ne peut donc pas être affichée.',
+  'tours.packing.loadFailed': 'Le lien vers la liste de bagages n’a pas pu être chargé.',
+  'tours.packing.dialogSub': 'Un simple lien. La liste et ses articles restent où ils sont.',
+  'tours.packing.choose': 'Lier à',
+  'tours.packing.confirm': 'Lier',
+  'tours.packing.unlink': 'Retirer le lien',
+  'tours.packing.unlinkHint': 'La liste de bagages et ses articles restent tels quels',
+  'tours.packing.linked': 'Liste de bagages liée.',
+  'tours.packing.unlinked': 'Lien retiré. La liste de bagages reste telle quelle.',
+  'tours.packing.failed': 'Le lien n’a pas pu être enregistré.',
+};
+export default tourPacking;

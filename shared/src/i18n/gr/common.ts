@@ -7,6 +7,7 @@ const common: TranslationStrings = {
   'common.cancel': 'Ακύρωση',
   'common.clear': 'Εκκαθάριση',
   'common.delete': 'Διαγραφή',
+  'common.remove': 'Αφαίρεση',
   'common.preview': 'Προεπισκόπηση',
   'common.edit': 'Επεξεργασία',
   'common.add': 'Προσθήκη',
@@ -35,13 +36,18 @@ const common: TranslationStrings = {
   'common.rename': 'Μετονομασία',
   'common.discardChanges': 'Απόρριψη αλλαγών',
   'common.discard': 'Απόρριψη',
+  'common.unsavedTitle': 'Απόρριψη των αλλαγών;',
+  'common.unsavedMessage': 'Όσα καταχωρίσατε εδώ δεν έχουν αποθηκευτεί ακόμη.',
+  'common.keepEditing': 'Συνέχεια επεξεργασίας',
   'common.name': 'Όνομα',
   'common.email': 'Email',
   'common.password': 'Κωδικός',
   'common.saving': 'Αποθήκευση...',
   'common.justNow': 'Μόλις τώρα',
-  'common.hoursAgo': '{count} ώρες πρίν',
-  'common.daysAgo': '{count} μέρες πρίν',
+  'common.hoursAgo': 'πριν από {count} ώρες',
+  'common.hoursAgo.one': 'πριν από {count} ώρα',
+  'common.daysAgo': 'πριν από {count} μέρες',
+  'common.daysAgo.one': 'πριν από {count} μέρα',
   'common.saved': 'Αποθηκεύτηκε',
   'common.update': 'Ενημέρωση',
   'common.change': 'Αλλαγή',
@@ -52,18 +58,18 @@ const common: TranslationStrings = {
   'common.collapse': 'Σύμπτυξη',
   'common.copy': 'Αντιγραφή',
   'common.copied': 'Αντιγράφηκε',
-  'common.datepicker.prevMonth': 'Previous month', // en-fallback
-  'common.datepicker.nextMonth': 'Next month', // en-fallback
-  'common.datepicker.prevYear': 'Previous year', // en-fallback
-  'common.datepicker.nextYear': 'Next year', // en-fallback
-  'common.datepicker.prevYears': 'Previous years', // en-fallback
-  'common.datepicker.nextYears': 'Next years', // en-fallback
-  'common.datepicker.selectMonth': 'Select month', // en-fallback
-  'common.datepicker.selectYear': 'Select year', // en-fallback
-  'common.datepicker.enterManually': 'Enter date manually', // en-fallback
-  'common.datepicker.typeDate': 'Type a date', // en-fallback
-  'common.datepicker.dialog': 'Date picker', // en-fallback
-  'common.datepicker.clearDate': 'Clear date', // en-fallback
+  'common.datepicker.prevMonth': 'Προηγούμενος μήνας',
+  'common.datepicker.nextMonth': 'Επόμενος μήνας',
+  'common.datepicker.prevYear': 'Προηγούμενο έτος',
+  'common.datepicker.nextYear': 'Επόμενο έτος',
+  'common.datepicker.prevYears': 'Προηγούμενα έτη',
+  'common.datepicker.nextYears': 'Επόμενα έτη',
+  'common.datepicker.selectMonth': 'Επιλογή μήνα',
+  'common.datepicker.selectYear': 'Επιλογή έτους',
+  'common.datepicker.enterManually': 'Χειροκίνητη εισαγωγή ημερομηνίας',
+  'common.datepicker.typeDate': 'Πληκτρολογήστε μια ημερομηνία',
+  'common.datepicker.dialog': 'Επιλογέας ημερομηνίας',
+  'common.datepicker.clearDate': 'Εκκαθάριση ημερομηνίας',
   'common.errorTitle': 'Κάτι πήγε στραβά',
   'common.errorBody': 'Αυτό το τμήμα της εφαρμογής σταμάτησε να λειτουργεί. Τα δεδομένα σας είναι ασφαλή.',
   'common.errorPanelTitle': 'Δεν ήταν δυνατή η εμφάνιση αυτής της ενότητας',
@@ -71,7 +77,9 @@ const common: TranslationStrings = {
   'common.errorRetry': 'Δοκιμάστε ξανά',
   'common.errorReload': 'Επαναφόρτωση σελίδας',
   'common.errorUpdateTitle': 'Διατίθεται νέα έκδοση',
-  'common.errorUpdateBody': 'Το TREK ενημερώθηκε ενώ αυτή η καρτέλα ήταν ανοιχτή. Κάντε επαναφόρτωση για τη νέα έκδοση.',
+  'common.errorUpdateBody':
+    'Το TREK ενημερώθηκε ενώ αυτή η καρτέλα ήταν ανοιχτή. Κάντε επαναφόρτωση για τη νέα έκδοση.',
   'common.errorPluginTitle': 'Δεν ήταν δυνατή η εμφάνιση αυτού του πρόσθετου',
+  'common.needsConnection': 'Αυτό χρειάζεται σύνδεση. Δοκίμασε ξανά μόλις το TREK συνδεθεί ξανά.',
 };
 export default common;

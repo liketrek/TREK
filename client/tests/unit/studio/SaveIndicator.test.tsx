@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import type { BookRecord } from '@trek/shared'
 import { fireEvent, render, screen } from '../../helpers/render'
-import { SaveIndicator } from '../../../src/components/Studio/SaveIndicator'
+import { NewerBookOverlay, SaveIndicator } from '../../../src/components/Studio/SaveIndicator'
 
 /**
  * The save status (#1973).
@@ -97,5 +97,27 @@ describe('a conflict', () => {
   it('is announced rather than only drawn', () => {
     draw({ status: 'conflict', current: current() })
     expect(screen.getByRole('alert')).toBeTruthy()
+  })
+})
+
+describe('a book a newer Studio saved', () => {
+  /*
+   * Nothing done in this tab is kept until it reloads, so the bar says nothing
+   * of its own and the overlay over the whole Studio offers the one way out.
+   */
+  it('leaves the bar to the overlay, which says why, takes the focus and reloads on request', () => {
+    const { container } = render(
+      <SaveIndicator state={{ status: 'newer' }} t={t} onAcceptTheirs={vi.fn()} onKeepMine={vi.fn()} onRetry={vi.fn()} />,
+    )
+    expect(container.textContent).toBe('')
+
+    const onReload = vi.fn()
+    render(<NewerBookOverlay t={t} onReload={onReload} />)
+    expect(screen.getByRole('alertdialog')).toBeTruthy()
+    expect(screen.getByText('journey.studio.saveNewer')).toBeTruthy()
+    const reload = screen.getByRole('button', { name: 'journey.studio.saveReload' })
+    expect(document.activeElement).toBe(reload)
+    fireEvent.click(reload)
+    expect(onReload).toHaveBeenCalledTimes(1)
   })
 })

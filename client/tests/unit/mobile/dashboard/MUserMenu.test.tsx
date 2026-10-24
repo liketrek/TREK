@@ -106,4 +106,20 @@ describe('MUserMenu', () => {
 
     expect(container.querySelector('img')).toHaveAttribute('src', '/uploads/avatars/m.jpg');
   });
+
+  it('FE-MOB-MENU-009: shows the app version as a footer under sign out', () => {
+    useAuthStore.setState({ appVersion: '5.0.0' });
+    render(<MUserMenu open onClose={() => {}} />);
+
+    expect(screen.getByText('v5.0.0')).toBeInTheDocument();
+    expect(screen.getByAltText('TREK')).toBeInTheDocument();
+  });
+
+  it('FE-MOB-MENU-010: renders no version footer while the version is unknown', () => {
+    useAuthStore.setState({ appVersion: '' });
+    render(<MUserMenu open onClose={() => {}} />);
+
+    expect(screen.queryByText(/^v\d/)).not.toBeInTheDocument();
+    expect(screen.queryByAltText('TREK')).not.toBeInTheDocument();
+  });
 });

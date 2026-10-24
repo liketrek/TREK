@@ -32,5 +32,8 @@ const notifications: TranslationStrings = {
   'notifications.test.adminText': '{actor} đã gửi thông báo kiểm tra tới tất cả quản trị viên.',
   'notifications.test.tripTitle': '{actor} đã đăng trong chuyến đi của bạn',
   'notifications.test.tripText': 'Thông báo kiểm tra chuyến đi "{trip}".',
+  'notifications.countLabel': 'thông báo',
+  'notifications.deleteAllConfirmTitle': 'Xóa tất cả thông báo?',
+  'notifications.deleteAllConfirmText': 'Tất cả thông báo sẽ bị xóa vĩnh viễn. Không thể hoàn tác.',
 };
 export default notifications;

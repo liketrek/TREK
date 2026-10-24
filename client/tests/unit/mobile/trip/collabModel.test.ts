@@ -4,6 +4,7 @@ import {
   OTHER_BUBBLE_RADIUS,
   OWN_BUBBLE_RADIUS,
   QUICK_REACTIONS,
+  bubbleRadius,
   buildCategoryColorMap,
   formatChatClockTime,
   formatChatDateSeparator,
@@ -25,7 +26,7 @@ import {
   type CollabNoteData,
   type CollabPollData,
   type PollVoter,
-} from '../../../../src/mobile/screens/trip/tabs/collabModel';
+} from '../../../../src/components/Collab/collabModel';
 
 // FE-MOB-CLBM-001 to FE-MOB-CLBM-023
 
@@ -105,8 +106,10 @@ describe('collabModel — constants', () => {
     expect(QUICK_REACTIONS).toHaveLength(8);
     expect(QUICK_REACTIONS).toContain('❤️');
     expect(new Set(QUICK_REACTIONS).size).toBe(QUICK_REACTIONS.length);
-    expect(OWN_BUBBLE_RADIUS).toBe('16px 16px 4px 16px');
-    expect(OTHER_BUBBLE_RADIUS).toBe('4px 16px 16px 16px');
+    // Logical corners: in a left-to-right language the same as '16px 16px 4px 16px'
+    // and '4px 16px 16px 16px', and the tail follows the row in right to left.
+    expect(OWN_BUBBLE_RADIUS).toEqual({ borderStartStartRadius: 16, borderStartEndRadius: 16, borderEndEndRadius: 4, borderEndStartRadius: 16 });
+    expect(OTHER_BUBBLE_RADIUS).toEqual({ borderStartStartRadius: 4, borderStartEndRadius: 16, borderEndEndRadius: 16, borderEndStartRadius: 16 });
     expect(NOTE_COLORS).toHaveLength(6);
   });
 });
@@ -163,6 +166,17 @@ describe('collabModel — chat', () => {
     expect(shouldShowChatDateSeparator(c, b)).toBe(true);
   });
 
+  it('FE-MOB-CLBM-024: bubbleRadius rounds a bubble and puts the tail on the sender side of the last one', () => {
+    expect(bubbleRadius(true, false)).toEqual({
+      borderStartStartRadius: 18,
+      borderStartEndRadius: 18,
+      borderEndEndRadius: 18,
+      borderEndStartRadius: 18,
+    });
+    expect(bubbleRadius(true, true)).toMatchObject({ borderEndEndRadius: 4, borderEndStartRadius: 18 });
+    expect(bubbleRadius(false, true)).toMatchObject({ borderEndEndRadius: 18, borderEndStartRadius: 4 });
+  });
+
   it('FE-MOB-CLBM-010: isSameSender compares user ids loosely and needs both messages', () => {
     const a = msg({ user_id: 7 });
     const b = msg({ id: 2, user_id: 7 });
@@ -177,14 +191,23 @@ describe('collabModel — chat', () => {
 });
 
 describe('collabModel — notes', () => {
-  it('FE-MOB-CLBM-011: buildCategoryColorMap keeps the first colour seen per category', () => {
+  it('FE-MOB-CLBM-011: buildCategoryColorMap keeps the last colour seen per category', () => {
     const notes = [
       note({ id: 1, category: 'Ideas', color: '#ef4444' }),
       note({ id: 2, category: 'Ideas', color: '#10b981' }),
       note({ id: 3, category: 'Food', color: null }),
       note({ id: 4, category: null, color: '#3b82f6' }),
     ];
-    expect(buildCategoryColorMap(notes)).toEqual({ Ideas: '#ef4444' });
+    expect(buildCategoryColorMap(notes)).toEqual({ Ideas: '#10b981' });
+  });
+
+  it('FE-MOB-CLBM-023: a category whose notes disagree takes the colour the desktop panel shows', () => {
+    // A category recolour that failed halfway leaves its notes on two colours.
+    const notes = [
+      note({ id: 1, category: 'Ideas', color: '#ef4444' }),
+      note({ id: 2, category: 'Ideas', color: '#10b981' }),
+    ];
+    expect(buildCategoryColorMap(notes)).toEqual({ Ideas: '#10b981' });
   });
 
   it('FE-MOB-CLBM-012: getCategoryColor round-robins fresh categories onto the palette', () => {

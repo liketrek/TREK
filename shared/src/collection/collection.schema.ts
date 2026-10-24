@@ -1,4 +1,10 @@
-import { placeCategorySchema, placeImageUrlSchema, placeRatingVoteSchema, placeWebsiteSchema } from '../place/place.schema';
+import { idSchema } from '../common/primitives.schema';
+import {
+  placeCategorySchema,
+  placeImageUrlSchema,
+  placeRatingVoteSchema,
+  placeWebsiteSchema,
+} from '../place/place.schema';
 import { tagSchema } from '../tag/tag.schema';
 
 import { z } from 'zod';
@@ -253,6 +259,21 @@ export const collectionCopyToTripRequestSchema = z.object({
 });
 export type CollectionCopyToTripRequest = z.infer<typeof collectionCopyToTripRequestSchema>;
 
+/** What a copy into a trip did: how many went in, the ones the trip had, and each new trip place by its source. */
+export const collectionCopyToTripResponseSchema = z.object({
+  copied: z.number(),
+  skipped: z.array(z.object({ id: z.number(), name: z.string() })),
+  created: z.array(z.object({ id: z.number(), source_id: z.number() })),
+});
+export type CollectionCopyToTripResponse = z.infer<typeof collectionCopyToTripResponseSchema>;
+
+/** Saved places and labels asked for by their ids, across every list the caller can see (get_collection_items). */
+export const collectionItemsRequestSchema = z.object({
+  placeIds: z.array(idSchema).max(50).optional(),
+  labelIds: z.array(idSchema).max(20).optional(),
+});
+export type CollectionItemsRequest = z.infer<typeof collectionItemsRequestSchema>;
+
 // Fusion invitations. user_id is NUMERIC ONLY — the UI always sends an id from availableUsers.
 export const collectionInviteRequestSchema = z.object({
   collection_id: z.number(),
@@ -332,6 +353,28 @@ export const collectionDetailResponseSchema = z.object({
 });
 export type CollectionDetailResponse = z.infer<typeof collectionDetailResponseSchema>;
 
+/**
+ * The asked-for places and labels with the lists they sit in: each list's
+ * size, colour, labels and people (names and roles, no addresses), and
+ * whether the caller may delete places from it (its owner or an admin). An id
+ * the caller cannot see is left out, never refused.
+ */
+const collectionItemsListSchema = collectionSchema
+  .pick({ id: true, name: true, color: true, place_count: true, is_owner: true, labels: true })
+  .extend({
+    can_delete: z.boolean(),
+    members: z.array(
+      collectionMemberSchema.pick({ user_id: true, username: true, status: true, role: true, is_owner: true }),
+    ),
+  });
+
+export const collectionItemsResponseSchema = z.object({
+  lists: z.array(collectionItemsListSchema),
+  places: z.array(collectionPlaceSchema),
+  labels: z.array(collectionLabelSchema),
+});
+export type CollectionItemsResponse = z.infer<typeof collectionItemsResponseSchema>;
+
 /** Dedup outcome envelope reused by save + copy (matches placeService dedup UX). */
 export const collectionSaveResultSchema = z.object({
   place: collectionPlaceSchema.optional(),
@@ -343,15 +386,19 @@ export type CollectionSaveResult = z.infer<typeof collectionSaveResultSchema>;
 /** Library-wide "is this place already saved anywhere I can see?" lookup (inspector indicator). */
 export const collectionMembershipSchema = z.object({
   saved: z.boolean(),
-  lists: z.array(z.object({
-    collection_id: z.number(),
-    name: z.string(),
-    place_id: z.number(),
-    /** Per-list status, so the picker can show and change it without a second round trip (#1469). */
-    status: collectionStatusSchema,
-    /** False for a list the viewer may read but not edit — its status pill stays read-only. */
-    can_edit: z.boolean().default(true),
-  })),
+  lists: z.array(
+    z.object({
+      collection_id: z.number(),
+      name: z.string(),
+      /** The list's colour, for its dot; older servers leave it out. */
+      color: z.string().nullable().optional(),
+      place_id: z.number(),
+      /** Per-list status, so the picker can show and change it without a second round trip (#1469). */
+      status: collectionStatusSchema,
+      /** False for a list the viewer may read but not edit — its status pill stays read-only. */
+      can_edit: z.boolean().default(true),
+    }),
+  ),
 });
 export type CollectionMembership = z.infer<typeof collectionMembershipSchema>;
 

@@ -55,6 +55,9 @@ const COSTING: Record<'driving' | 'walking' | 'cycling', string> = {
   cycling: 'bicycle',
 }
 
+/** What a caller tunes in the costing model: a weighting, a switch, or a bicycle type by name. */
+export type CostingOptions = Record<string, number | string | boolean>
+
 /**
  * What a caller can ask to be left out, against the costing option that asks for it.
  *
@@ -97,6 +100,27 @@ const CHUNK_PAUSE_MS = 1100
  */
 const CHUNK_RETRIES = 1
 
+/**
+ * A stretch of a leg the router takes by boat, by the indices of the leg's
+ * line where the boat leaves and lands, with the crossing's own length in
+ * metres and its time in seconds (null where the router gave none).
+ */
+export interface FerrySpan {
+  from: number
+  to: number
+  metres: number
+  seconds: number | null
+}
+
+/**
+ * What the router may bind a point to. `exclude_ferry` keeps a point off a
+ * ferry's edge: a stop beside a pier, bound onto the boat line, would make the
+ * route ride the boat to its next landing however the costing weighs ferries.
+ */
+export interface SearchFilter {
+  exclude_ferry?: boolean
+}
+
 /** One way of driving a leg, in the units OSRM answers in so callers need no branch. */
 export interface ValhallaLeg {
   coordinates: [number, number][]
@@ -108,7 +132,25 @@ export interface ValhallaLeg {
   hasToll: boolean
   hasHighway: boolean
   hasFerry: boolean
+  /** CW-12: where the leg goes by boat, read off its maneuvers; absent where it does not. */
+  ferrySpans?: FerrySpan[]
 }
+
+/**
+ * CW-12: the router's own word that no way joins the points, apart from a
+ * router that gave no answer at all: down, rate limited, or not asked.
+ */
+export interface ValhallaNoPath {
+  noPath: true
+}
+
+/**
+ * The refusals that are about the way rather than the host: points in
+ * regions no edge connects (170), a point with no edge near it (171), and no
+ * path found between them (442).
+ */
+const NO_PATH_CODES = new Set([170, 171, 442])
+const NO_PATH: ValhallaNoPath = { noPath: true }
 
 /** A routed chain: one leg per pair of consecutive waypoints, plus the whole of it. */
 export interface ValhallaRun {
@@ -191,7 +233,42 @@ export async function valhallaRun(
   profile: 'driving' | 'walking' | 'cycling',
   avoid: readonly AvoidClass[],
   signal?: AbortSignal,
+  costingOptions: Readonly<CostingOptions> = {},
 ): Promise<ValhallaRun | null> {
+  const run = await chainRun(waypoints, profile, avoid, signal, { costingOptions, searchFilter: null })
+  if (!run || 'noPath' in run) return null
+  return run
+}
+
+/**
+ * CW-12: a chain walked on foot, every point bound off the boat lines. Measured
+ * on Venice: a stop by a vaporetto pier bound onto the boat line ended the
+ * route on the ferry to its next landing, which `use_ferry` cannot weigh away
+ * because the edge is where the route starts, not a choice along it. Tells a
+ * walk no way joins (`noPath`) from a router that did not answer (null).
+ */
+export function valhallaRunOnFoot(
+  waypoints: Waypoint[],
+  signal: AbortSignal | undefined,
+  costingOptions: Readonly<CostingOptions>,
+  searchFilter: Readonly<SearchFilter>,
+): Promise<ValhallaRun | ValhallaNoPath | null> {
+  return chainRun(waypoints, 'walking', [], signal, { costingOptions, searchFilter })
+}
+
+/** How a chain is asked for besides its profile and avoidance. */
+interface RunAsk {
+  costingOptions: Readonly<CostingOptions>
+  searchFilter: Readonly<SearchFilter> | null
+}
+
+async function chainRun(
+  waypoints: Waypoint[],
+  profile: 'driving' | 'walking' | 'cycling',
+  avoid: readonly AvoidClass[],
+  signal: AbortSignal | undefined,
+  ask: RunAsk,
+): Promise<ValhallaRun | ValhallaNoPath | null> {
   const base = valhallaBase()
   if (!base || notValhalla.has(base) || waypoints.length < 2) return null
 
@@ -204,11 +281,12 @@ export async function valhallaRun(
     // rate limit on the last piece of a split day would otherwise throw away the pieces
     // that already answered and ask for all of them again — three times over, against a
     // host that allows one request a second.
-    const run = await askWithRetry(base, () => requestRun(base, chunk, profile, avoid, signal), signal)
+    const run = await askWithRetry(base, () => requestRun(base, chunk, profile, avoid, signal, ask), signal)
     // A day is one answer or none. Half a day of legs would be worse than no answer:
     // the schedule chains leg times blindly and cannot tell that it is missing some, so
     // it would print a complete, plausible, wrong timetable rather than a gap.
     if (!run) return null
+    if ('noPath' in run) return run
     legs.push(...run.legs)
   }
   if (legs.length !== waypoints.length - 1) return null
@@ -253,6 +331,35 @@ function pause(ms: number, signal?: AbortSignal): Promise<void> {
   })
 }
 
+/** When this tab last put a question to the public instance. */
+let lastPublicAskAt = 0
+
+/**
+ * Waits for this tab's turn at the public instance, which allows about one request a
+ * second per client. Every request to it goes through here, the route and the Tours
+ * elevation alike, so a tour's route and the height question right behind it, or two
+ * features asking at once, no longer reach it inside the same second and come back 429.
+ * The pauses the callers keep themselves still stand; this only adds the wait they
+ * cannot see, the one between unrelated callers.
+ *
+ * Another host is not paced: an operator's own Valhalla sets its own limits.
+ */
+export async function valhallaTurn(base: string, signal?: AbortSignal): Promise<void> {
+  if (base !== FOSSGIS_VALHALLA) return
+  for (let wait = lastPublicAskAt + CHUNK_PAUSE_MS - Date.now(); wait > 0; wait = lastPublicAskAt + CHUNK_PAUSE_MS - Date.now()) {
+    await pause(wait, signal)
+    if (signal?.aborted) return
+  }
+  // Taken in the same synchronous step as the check, so two callers woken together
+  // cannot both see a free turn.
+  lastPublicAskAt = Date.now()
+}
+
+/** Forget the last turn, for tests that start from a quiet host. */
+export function resetValhallaTurns(): void {
+  lastPublicAskAt = 0
+}
+
 /**
  * Waits out the host's one request a second before the next question is put.
  *
@@ -285,25 +392,34 @@ function routeBody(
   waypoints: Waypoint[],
   profile: 'driving' | 'walking' | 'cycling',
   avoid: readonly AvoidClass[],
+  costingOptions: Readonly<CostingOptions> = {},
+  searchFilter: Readonly<SearchFilter> | null = null,
 ): Record<string, unknown> {
   const costing = COSTING[profile]
   // All of them in one request: the options are independent weightings, so asking to
   // leave out tolls and ferries together is one question rather than two routes to
   // reconcile. Measured Hamburg to Copenhagen: tolls, motorways and ferries weighted
   // away together answered 656.9 km against 339.2 km for the plain route.
-  const options: Record<string, number> = {}
+  const options: CostingOptions = { ...costingOptions }
   for (const cls of avoid) options[AVOID_OPTION[cls]] = 0
   return {
-    locations: waypoints.map(w => ({ lat: w.lat, lon: w.lng, radius: SNAP_RADIUS_M })),
+    locations: waypoints.map(w => ({
+      lat: w.lat,
+      lon: w.lng,
+      radius: SNAP_RADIUS_M,
+      ...(searchFilter ? { search_filter: searchFilter } : {}),
+    })),
     costing,
     costing_options: { [costing]: options },
     directions_options: { units: 'kilometers' },
   }
 }
 
-/** The parsed answer to one POST, or null for every failure. */
+/** The parsed answer to one POST, `NO_PATH` when the router found no way, or null for every other failure. */
 async function postRoute(base: string, body: Record<string, unknown>, signal?: AbortSignal): Promise<unknown> {
   try {
+    await valhallaTurn(base, signal)
+    if (signal?.aborted) return null
     const response = await fetch(`${base}/route`, {
       method: 'POST',
       // A browser cannot set User-Agent, so this is the whole of what FOSSGIS asks a
@@ -318,8 +434,95 @@ async function postRoute(base: string, body: Record<string, unknown>, signal?: A
       // 400 carries the real refusals (unroutable point, over 1500 km apart) and 429
       // is the public instance's one-per-second.
       if (response.status === 404 || response.status === 405) notValhalla.add(base)
+      if (response.status === 400 && (await refusesTheWay(response))) return NO_PATH
       return null
     }
+    return await response.json()
+  } catch {
+    return null
+  }
+}
+
+async function refusesTheWay(response: Response): Promise<boolean> {
+  try {
+    const code = ((await response.json()) as { error_code?: unknown })?.error_code
+    return typeof code === 'number' && NO_PATH_CODES.has(code)
+  } catch {
+    return false
+  }
+}
+
+/** The most points a description of a line asks about; a longer line is thinned evenly, its ends kept. */
+const TRACE_MAX_POINTS = 4000
+/** How long a description may take before it counts as failed, so a router that hangs does not leave its card waiting. */
+const TRACE_TIMEOUT_MS = 30_000
+
+/**
+ * How a line is matched to the ways under it: as a mountain bike rides, the
+ * bicycle costing that refuses the fewest ways, so a road bike's route and a
+ * gravel one are described alike; or on foot with every grade of path open,
+ * since a hike's line (MAP-03) may run on a T6 ridge the matcher must not
+ * refuse, and steps and mountain paths a run takes (RUN-02) stay on the line
+ * (matched as a bike, a trail run over steps was described as the street
+ * beside them). Matching is no routing: the limit a hike was planned with
+ * plays no part. A hike and a run are matched alike; they differ in whether
+ * the router's own hiking grade is asked for.
+ */
+const TRACE_COSTING = {
+  bike: { costing: 'bicycle', costing_options: { bicycle: { bicycle_type: 'Mountain' } } },
+  foot: { costing: 'pedestrian', costing_options: { pedestrian: { max_hiking_difficulty: 6 } } },
+  run: { costing: 'pedestrian', costing_options: { pedestrian: { max_hiking_difficulty: 6 } } },
+} as const
+
+export type TraceMatching = keyof typeof TRACE_COSTING
+
+const TRACE_ATTRIBUTES = ['shape', 'edge.surface', 'edge.use', 'edge.road_class', 'edge.cycle_lane', 'edge.length',
+  'edge.way_id', 'edge.begin_shape_index', 'edge.end_shape_index']
+
+/** The router's hiking grade is asked along a bike tour's and a run's line, never a hike's (MAP-03 reads OpenStreetMap). */
+function traceAttributesFor(matching: TraceMatching): string[] {
+  return matching === 'foot' ? TRACE_ATTRIBUTES : [...TRACE_ATTRIBUTES, 'edge.sac_scale']
+}
+
+/**
+ * BIK-01, RUN-02 and MAP-03: how the router describes the ways under a line
+ * (`trace_attributes`): the surface, the use and road class, the cycle lane,
+ * the OpenStreetMap way of every edge and, but for a hike, the router's
+ * hiking grade (`sac_scale`, 0 where the way has none), with the line as
+ * matched. A run's grade shares (RUN-02) read the router's grade; the grade a
+ * hike shows (MAP-03) comes from OpenStreetMap itself, since the router's
+ * reading may be normalised or derived, so it is not asked for there. Null for
+ * every failure: the description is an addition beside a route that already
+ * exists.
+ */
+export async function valhallaTraceAttributes(
+  line: readonly [number, number][],
+  signal?: AbortSignal,
+  matching: TraceMatching = 'bike'
+): Promise<unknown> {
+  const base = valhallaBase()
+  if (!base || line.length < 2) return null
+  const step = Math.max(1, Math.ceil(line.length / TRACE_MAX_POINTS))
+  const shape = line.filter((_, index) => index % step === 0 || index === line.length - 1).map(([lat, lon]) => ({ lat, lon }))
+  const bounded = signal ? AbortSignal.any([signal, AbortSignal.timeout(TRACE_TIMEOUT_MS)]) : AbortSignal.timeout(TRACE_TIMEOUT_MS)
+  try {
+    await valhallaTurn(base, signal)
+    if (signal?.aborted) return null
+    const response = await fetch(`${base}/trace_attributes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Client-Id': 'trek' },
+      body: JSON.stringify({
+        shape,
+        ...TRACE_COSTING[matching],
+        shape_match: 'map_snap',
+        filters: {
+          attributes: traceAttributesFor(matching),
+          action: 'include',
+        },
+      }),
+      signal: bounded,
+    })
+    if (!response.ok) return null
     return await response.json()
   } catch {
     return null
@@ -332,9 +535,11 @@ async function requestRun(
   waypoints: Waypoint[],
   profile: 'driving' | 'walking' | 'cycling',
   avoid: readonly AvoidClass[],
-  signal?: AbortSignal,
-): Promise<Omit<ValhallaRun, 'snapped'> | null> {
-  const data = await postRoute(base, routeBody(waypoints, profile, avoid), signal)
+  signal: AbortSignal | undefined,
+  { costingOptions, searchFilter }: RunAsk,
+): Promise<Omit<ValhallaRun, 'snapped'> | ValhallaNoPath | null> {
+  const data = await postRoute(base, routeBody(waypoints, profile, avoid, costingOptions, searchFilter), signal)
+  if (data === NO_PATH) return NO_PATH
   return data === null ? null : runFrom(data)
 }
 
@@ -346,6 +551,8 @@ async function requestRun(
  * quickest road beside a day Valhalla had routed was offered as the faster way, and
  * taking it changed nothing. Valhalla answers `alternates` between exactly two locations,
  * which is all one leg is, and weighs every one of them the way it weighed the day.
+ * `costingOptions` carries the rest of how that day was weighed, such as a hike's limit
+ * and preferences (RTE-02), so a section of a tour is offered ways under its own rules.
  */
 export async function valhallaAlternates(
   from: Waypoint,
@@ -354,10 +561,11 @@ export async function valhallaAlternates(
   avoid: readonly AvoidClass[],
   count: number,
   signal?: AbortSignal,
+  costingOptions: Readonly<CostingOptions> = {},
 ): Promise<ValhallaLeg[] | null> {
   const base = valhallaBase()
   if (!base || notValhalla.has(base)) return null
-  const body = { ...routeBody([from, to], profile, avoid), ...(count > 0 ? { alternates: count } : {}) }
+  const body = { ...routeBody([from, to], profile, avoid, costingOptions), ...(count > 0 ? { alternates: count } : {}) }
   return askWithRetry(base, async () => {
     const data = await postRoute(base, body, signal)
     return data === null ? null : alternatesFrom(data)
@@ -391,10 +599,14 @@ export function alternatesFrom(data: unknown): ValhallaLeg[] | null {
  */
 function joinLegs(legs: ValhallaLeg[]): ValhallaLeg {
   const coordinates: [number, number][] = []
+  const ferrySpans: FerrySpan[] = []
   for (const leg of legs) {
     const last = coordinates[coordinates.length - 1]
     const first = leg.coordinates[0]
     const continues = last && first && last[0] === first[0] && last[1] === first[1]
+    // Where the leg's first point lands on the joined line, so its boat stretches keep pointing at their own points.
+    const offset = continues ? coordinates.length - 1 : coordinates.length
+    for (const span of leg.ferrySpans ?? []) ferrySpans.push({ ...span, from: span.from + offset, to: span.to + offset })
     coordinates.push(...(continues ? leg.coordinates.slice(1) : leg.coordinates))
   }
   return {
@@ -406,6 +618,7 @@ function joinLegs(legs: ValhallaLeg[]): ValhallaLeg {
     hasToll: legs.some(l => l.hasToll),
     hasHighway: legs.some(l => l.hasHighway),
     hasFerry: legs.some(l => l.hasFerry),
+    ...(ferrySpans.length ? { ferrySpans } : {}),
   }
 }
 
@@ -443,17 +656,64 @@ export function runFrom(data: unknown): Omit<ValhallaRun, 'snapped'> | null {
     // Paris route reads 488.56, which is not a latitude; as 6 it reads 48.856193.
     const measure = measured(summary, decodePolyline(leg.shape, 6))
     if (!measure) return null
-    legs.push(measure)
+    const ferrySpans = measure.hasFerry ? ferrySpansOf(leg.maneuvers, measure.coordinates.length) : []
+    legs.push(ferrySpans.length ? { ...measure, ferrySpans } : measure)
   }
   return { legs, total: joinLegs(legs) }
 }
 
 interface ValhallaSummary { [key: string]: number | boolean | undefined }
 
+interface ValhallaManeuver {
+  type?: number
+  ferry?: boolean
+  begin_shape_index?: number
+  end_shape_index?: number
+  time?: number
+  length?: number
+}
+
 function tripOf(data: unknown) {
   return (data as {
-    trip?: { legs?: { shape?: string; summary?: ValhallaSummary }[]; summary?: ValhallaSummary }
+    trip?: {
+      legs?: { shape?: string; summary?: ValhallaSummary; maneuvers?: ValhallaManeuver[] }[]
+      summary?: ValhallaSummary
+    }
   })?.trip
+}
+
+/** Valhalla's maneuver type for boarding a ferry; the maneuver also carries `ferry: true` for its crossing. */
+const FERRY_ENTER = 28
+
+/**
+ * CW-12: the stretches of a leg the router takes by boat, read off its
+ * maneuvers: a crossing is the maneuver that boards the ferry, from the point
+ * it starts at to the one it ends at, with its own length and time. Measured
+ * on Venice, the San Tomà to Ca' Rezzonico line came back as one maneuver of
+ * type 28, ferry true, 1.236 km and 745 s over shape points 24 to 46, then the
+ * walk off it. Crossings that touch are one. A leg the summary says has a
+ * ferry but whose maneuvers do not say where is taken whole, without a time:
+ * the crossing is somewhere on it, and none of it is counted as walked.
+ */
+function ferrySpansOf(maneuvers: ValhallaManeuver[] | undefined, points: number): FerrySpan[] {
+  const spans: FerrySpan[] = []
+  for (const maneuver of maneuvers ?? []) {
+    if (maneuver.ferry !== true && maneuver.type !== FERRY_ENTER) continue
+    const from = Number(maneuver.begin_shape_index)
+    const to = Number(maneuver.end_shape_index)
+    if (!Number.isInteger(from) || !Number.isInteger(to) || from < 0 || to <= from || to >= points) continue
+    const metres = Number.isFinite(maneuver.length) ? Number(maneuver.length) * 1000 : 0
+    const seconds = Number.isFinite(maneuver.time) ? Number(maneuver.time) : null
+    const previous = spans[spans.length - 1]
+    if (previous && previous.to === from) {
+      previous.to = to
+      previous.metres += metres
+      previous.seconds = previous.seconds === null || seconds === null ? null : previous.seconds + seconds
+    } else {
+      spans.push({ from, to, metres, seconds })
+    }
+  }
+  return spans.length || points < 2 ? spans : [{ from: 0, to: points - 1, metres: 0, seconds: null }]
 }
 
 /** A summary and a shape as a leg, or null when the summary carries no numbers. */

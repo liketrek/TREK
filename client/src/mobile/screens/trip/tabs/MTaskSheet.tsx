@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { Check, Flag, Plus, User } from 'lucide-react'
-import type { TodoCreateItemRequest, TodoUpdateItemRequest } from '@trek/shared'
+import type { TodoCreateItemRequest } from '@trek/shared'
 import MSheet from '../../../components/MSheet'
 import { CustomDatePicker } from '../../../../components/shared/CustomDateTimePicker'
+import MarkdownEditable from '../../../../components/shared/MarkdownEditable'
 import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
 import { avatarSrc } from '../../../../utils/avatarSrc'
 import type { TodoItem, TripMember } from '../../../../types'
 import type { TripPlanner } from '../MTripShell'
 import { PRIORITY_COLOR, PRIORITY_LABEL, PRIORITY_LEVELS } from './listsModel'
+import { useTaskForm } from '../../../../components/Todo/useTaskForm'
+import { taskUpdatePayload } from '../../../../components/Todo/todoListModel'
 
 export interface MTaskSheetProps {
   planner: TripPlanner
@@ -32,40 +35,21 @@ export default function MTaskSheet({ planner, open, itemId, categories, members,
   if (liveItem) heldRef.current = liveItem
   const item = itemId != null ? (liveItem ?? heldRef.current) : null
 
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [dueDate, setDueDate] = useState('')
-  const [category, setCategory] = useState('')
-  const [assignedUserId, setAssignedUserId] = useState<number | null>(null)
-  const [priority, setPriority] = useState(0)
+  const { name, setName, fields, patchFields, saving, load, saveWith } = useTaskForm(null)
+  const { desc: description, dueDate, category, assignedUserId, priority } = fields
   const [addingCategory, setAddingCategory] = useState(false)
   const [categoryDraft, setCategoryDraft] = useState('')
-  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (!open) return
-    if (item) {
-      setName(item.name)
-      setDescription(item.description || '')
-      setDueDate(item.due_date || '')
-      setCategory(item.category || '')
-      setAssignedUserId(item.assigned_user_id)
-      setPriority(item.priority || 0)
-    } else {
-      setName('')
-      setDescription('')
-      setDueDate('')
-      setCategory(defaultCategory || '')
-      setAssignedUserId(null)
-      setPriority(0)
-    }
+    load(item, defaultCategory)
     setAddingCategory(false)
     setCategoryDraft('')
-  }, [open, item, defaultCategory])
+  }, [open, item, defaultCategory, load])
 
   const confirmCategory = () => {
     const trimmed = categoryDraft.trim()
-    if (trimmed) setCategory(trimmed)
+    if (trimmed) patchFields({ category: trimmed })
     setCategoryDraft('')
     setAddingCategory(false)
   }
@@ -83,18 +67,9 @@ export default function MTaskSheet({ planner, open, itemId, categories, members,
   const handleSave = async () => {
     const trimmedName = name.trim()
     if (!trimmedName || saving) return
-    setSaving(true)
-    try {
+    await saveWith(async () => {
       if (item) {
-        const payload: TodoUpdateItemRequest = {
-          name: trimmedName,
-          description: description || null,
-          due_date: dueDate || null,
-          category: category || null,
-          assigned_user_id: assignedUserId,
-          priority,
-        }
-        await tripActions.updateTodoItem(tripId, item.id, payload)
+        await tripActions.updateTodoItem(tripId, item.id, taskUpdatePayload(name, fields))
       } else {
         const payload: TodoCreateItemRequest = {
           name: trimmedName,
@@ -107,11 +82,7 @@ export default function MTaskSheet({ planner, open, itemId, categories, members,
         await tripActions.addTodoItem(tripId, payload)
       }
       onClose()
-    } catch {
-      toast.error(t('common.error'))
-    } finally {
-      setSaving(false)
-    }
+    }, () => toast.error(t('common.error')))
   }
 
   const pillCls = (active: boolean) =>
@@ -133,12 +104,21 @@ export default function MTaskSheet({ planner, open, itemId, categories, members,
         />
 
         <Eyebrow className="mb-[5px] mt-3 uppercase">{t('todo.detail.description')}</Eyebrow>
-        <textarea
+        <MarkdownEditable
           value={description}
-          onChange={e => setDescription(e.target.value)}
-          rows={3}
-          placeholder={t('todo.descriptionPlaceholder')}
-          className={FIELD_AREA_CLS}
+          canEdit
+          editLabel={t('todo.editDescription')}
+          className="rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[10px] font-geist text-[0.78125rem] leading-[1.5] text-m-ink [overflow-wrap:break-word]"
+          renderEditor={editor => (
+            <textarea
+              value={description}
+              onChange={e => patchFields({ desc: e.target.value })}
+              rows={3}
+              {...editor}
+              placeholder={t('todo.descriptionPlaceholder')}
+              className={FIELD_AREA_CLS}
+            />
+          )}
         />
 
         <Eyebrow className="mb-[6px] mt-3 uppercase">{t('todo.detail.priority')}</Eyebrow>
@@ -150,7 +130,7 @@ export default function MTaskSheet({ planner, open, itemId, categories, members,
               <button
                 key={p}
                 type="button"
-                onClick={() => setPriority(p)}
+                onClick={() => patchFields({ priority: p })}
                 className={`flex flex-1 items-center justify-center gap-1 rounded-full py-[7px] text-[0.71875rem] font-bold ${
                   active ? (color ? '' : 'text-m-ink') : 'text-m-faint'
                 }`}
@@ -169,11 +149,11 @@ export default function MTaskSheet({ planner, open, itemId, categories, members,
 
         <Eyebrow className="mb-[6px] mt-3 uppercase">{t('todo.detail.category')}</Eyebrow>
         <div className="flex flex-wrap gap-[6px]">
-          <button type="button" onClick={() => setCategory('')} className={pillCls(category === '')}>
+          <button type="button" onClick={() => patchFields({ category: '' })} className={pillCls(category === '')}>
             {t('todo.noCategory')}
           </button>
           {categories.map(cat => (
-            <button key={cat} type="button" onClick={() => setCategory(cat)} className={pillCls(category === cat)}>
+            <button key={cat} type="button" onClick={() => patchFields({ category: cat })} className={pillCls(category === cat)}>
               {cat}
             </button>
           ))}
@@ -219,11 +199,11 @@ export default function MTaskSheet({ planner, open, itemId, categories, members,
         </div>
 
         <Eyebrow className="mb-[5px] mt-3 uppercase">{t('todo.detail.dueDate')}</Eyebrow>
-        <CustomDatePicker value={dueDate} onChange={setDueDate} placeholder={t('todo.detail.dueDate')} />
+        <CustomDatePicker value={dueDate} onChange={v => patchFields({ dueDate: v })} placeholder={t('todo.detail.dueDate')} />
 
         <Eyebrow className="mb-[6px] mt-3 uppercase">{t('todo.detail.assignedTo')}</Eyebrow>
         <div className="flex flex-wrap gap-[6px]">
-          <button type="button" onClick={() => setAssignedUserId(null)} className={pillCls(assignedUserId == null)}>
+          <button type="button" onClick={() => patchFields({ assignedUserId: null })} className={pillCls(assignedUserId == null)}>
             <User size={12} strokeWidth={2.2} />
             {t('todo.unassigned')}
           </button>
@@ -231,7 +211,7 @@ export default function MTaskSheet({ planner, open, itemId, categories, members,
             const active = assignedUserId === m.id
             const src = m.avatar_url || avatarSrc(m.avatar)
             return (
-              <button key={m.id} type="button" onClick={() => setAssignedUserId(m.id)} className={pillCls(active)}>
+              <button key={m.id} type="button" onClick={() => patchFields({ assignedUserId: m.id })} className={pillCls(active)}>
                 <span className="flex h-4 w-4 flex-none items-center justify-center overflow-hidden rounded-full bg-m-act text-[0.5rem] font-bold text-m-actfg">
                   {src ? <img src={src} alt="" className="h-full w-full object-cover" /> : m.username[0]?.toUpperCase()}
                 </span>

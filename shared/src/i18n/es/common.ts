@@ -7,6 +7,7 @@ const common: TranslationStrings = {
   'common.cancel': 'Cancelar',
   'common.clear': 'Borrar',
   'common.delete': 'Eliminar',
+  'common.remove': 'Eliminar',
   'common.preview': 'Vista previa',
   'common.edit': 'Editar',
   'common.add': 'Añadir',
@@ -15,7 +16,7 @@ const common: TranslationStrings = {
   'common.select': 'Seleccionar',
   'common.selectAll': 'Seleccionar todo',
   'common.deselectAll': 'Deseleccionar todo',
-  'common.error': 'Error',
+  'common.error': 'Error', // same-as-en
   'common.success': 'Éxito',
   'common.unknownError': 'Error desconocido',
   'common.tooManyAttempts': 'Demasiados intentos. Inténtelo de nuevo más tarde.',
@@ -28,13 +29,16 @@ const common: TranslationStrings = {
   'common.confirm': 'Confirmar',
   'common.ok': 'Aceptar',
   'common.yes': 'Sí',
-  'common.no': 'No',
+  'common.no': 'No', // same-as-en
   'common.or': 'o',
   'common.none': 'Ninguno',
   'common.date': 'Fecha',
   'common.rename': 'Renombrar',
   'common.discardChanges': 'Descartar cambios',
   'common.discard': 'Descartar',
+  'common.unsavedTitle': '¿Descartar los cambios?',
+  'common.unsavedMessage': 'Lo que has introducido aquí aún no se ha guardado.',
+  'common.keepEditing': 'Seguir editando',
   'common.name': 'Nombre',
   'common.email': 'Correo',
   'common.password': 'Contraseña',
@@ -51,19 +55,21 @@ const common: TranslationStrings = {
   'common.copied': 'Copiado',
   'common.justNow': 'justo ahora',
   'common.hoursAgo': 'hace {count}h',
+  'common.hoursAgo.one': 'hace {count}h',
   'common.daysAgo': 'hace {count}d',
-  'common.datepicker.prevMonth': 'Previous month', // en-fallback
-  'common.datepicker.nextMonth': 'Next month', // en-fallback
-  'common.datepicker.prevYear': 'Previous year', // en-fallback
-  'common.datepicker.nextYear': 'Next year', // en-fallback
-  'common.datepicker.prevYears': 'Previous years', // en-fallback
-  'common.datepicker.nextYears': 'Next years', // en-fallback
-  'common.datepicker.selectMonth': 'Select month', // en-fallback
-  'common.datepicker.selectYear': 'Select year', // en-fallback
-  'common.datepicker.enterManually': 'Enter date manually', // en-fallback
-  'common.datepicker.typeDate': 'Type a date', // en-fallback
-  'common.datepicker.dialog': 'Date picker', // en-fallback
-  'common.datepicker.clearDate': 'Clear date', // en-fallback
+  'common.daysAgo.one': 'hace {count}d',
+  'common.datepicker.prevMonth': 'Mes anterior',
+  'common.datepicker.nextMonth': 'Mes siguiente',
+  'common.datepicker.prevYear': 'Año anterior',
+  'common.datepicker.nextYear': 'Año siguiente',
+  'common.datepicker.prevYears': 'Años anteriores',
+  'common.datepicker.nextYears': 'Años siguientes',
+  'common.datepicker.selectMonth': 'Seleccionar mes',
+  'common.datepicker.selectYear': 'Seleccionar año',
+  'common.datepicker.enterManually': 'Introducir la fecha manualmente',
+  'common.datepicker.typeDate': 'Escribe una fecha',
+  'common.datepicker.dialog': 'Selector de fecha',
+  'common.datepicker.clearDate': 'Borrar fecha',
   'common.errorTitle': 'Algo salió mal',
   'common.errorBody': 'Esta parte de la aplicación dejó de funcionar. Tus datos están a salvo.',
   'common.errorPanelTitle': 'No se pudo mostrar esta sección',
@@ -71,7 +77,9 @@ const common: TranslationStrings = {
   'common.errorRetry': 'Reintentar',
   'common.errorReload': 'Recargar la página',
   'common.errorUpdateTitle': 'Hay una nueva versión disponible',
-  'common.errorUpdateBody': 'TREK se actualizó mientras esta pestaña estaba abierta. Recarga para obtener la nueva versión.',
+  'common.errorUpdateBody':
+    'TREK se actualizó mientras esta pestaña estaba abierta. Recarga para obtener la nueva versión.',
   'common.errorPluginTitle': 'No se pudo mostrar este plugin',
+  'common.needsConnection': 'Esto necesita conexión. Vuelve a intentarlo cuando TREK esté de nuevo en línea.',
 };
 export default common;

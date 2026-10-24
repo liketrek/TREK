@@ -89,6 +89,7 @@ const vacay: TranslationStrings = {
   'vacay.carryOverHint': 'Automatically carry remaining vacation days into the next year',
   'vacay.carriedOverPrevPeriod': 'from previous period',
   'vacay.compUsedCount': '{count} comp / flex',
+  'vacay.compUsedCount.one': '{count} comp / flex',
   'vacay.yearType': 'Vacation year',
   'vacay.yearTypeHint': 'When your leave year starts — entitlement, usage and carry-over follow it',
   'vacay.yearTypeCalendar': 'Calendar',

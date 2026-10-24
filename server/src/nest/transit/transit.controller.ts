@@ -1,10 +1,11 @@
-import { Controller, Get, HttpException, Query, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
-import { CurrentUser } from '../auth/current-user.decorator';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import type { User } from '../../types';
+import { CurrentUser } from '../auth-core/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { RateLimitService } from '../common/rate-limit.service';
 import { TransitService } from './transit.service';
-import type { User } from '../../types';
+import { Controller, Get, HttpException, Query, Req, UseGuards } from '@nestjs/common';
+
+import type { Request } from 'express';
 
 const RL_WINDOW = 15 * 60 * 1000;
 
@@ -28,8 +29,8 @@ export class TransitController {
     private readonly transit: TransitService,
   ) {}
 
-  private limit(bucket: string, req: Request, max: number): void {
-    if (!this.rl.check(bucket, req.ip || 'unknown', max, RL_WINDOW, Date.now())) {
+  private async limit(bucket: string, req: Request, max: number): Promise<void> {
+    if (!(await this.rl.check(bucket, req.ip || 'unknown', max, RL_WINDOW, Date.now()))) {
       throw new HttpException({ error: 'Too many requests. Please try again later.' }, 429);
     }
   }
@@ -48,10 +49,12 @@ export class TransitController {
     @CurrentUser() user: User,
     @Req() req: Request,
   ) {
-    this.limit('transit_geocode', req, 300);
+    await this.limit('transit_geocode', req, 300);
     try {
       return await this.transit.geocode(q || '', lang, near, user.id);
-    } catch (err) { this.rethrow(err); }
+    } catch (err) {
+      this.rethrow(err);
+    }
   }
 
   @Get('plan')
@@ -66,16 +69,22 @@ export class TransitController {
     @CurrentUser() user: User,
     @Req() req: Request,
   ) {
-    this.limit('transit_plan', req, 60);
+    await this.limit('transit_plan', req, 60);
     try {
-      return await this.transit.plan({
-        from: from || '',
-        to: to || '',
-        time,
-        arriveBy: arriveBy === 'true' || arriveBy === '1',
-        modes,
-        maxTransfers: maxTransfers !== undefined && maxTransfers !== '' ? Number(maxTransfers) : undefined,
-      }, lang, user.id);
-    } catch (err) { this.rethrow(err); }
+      return await this.transit.plan(
+        {
+          from: from || '',
+          to: to || '',
+          time,
+          arriveBy: arriveBy === 'true' || arriveBy === '1',
+          modes,
+          maxTransfers: maxTransfers !== undefined && maxTransfers !== '' ? Number(maxTransfers) : undefined,
+        },
+        lang,
+        user.id,
+      );
+    } catch (err) {
+      this.rethrow(err);
+    }
   }
 }

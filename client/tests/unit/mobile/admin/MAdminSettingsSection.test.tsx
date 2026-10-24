@@ -1,4 +1,4 @@
-// FE-MOB-ASET-001 to FE-MOB-ASET-023
+// FE-MOB-ASET-001 to FE-MOB-ASET-024
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
@@ -234,6 +234,21 @@ describe('MAdminSettingsSection', () => {
     expect(admin.handleValidateKey).toHaveBeenCalledWith('maps');
   });
 
+  it('FE-MOB-ASET-024: a key the environment sets is read-only and names its variable (#1881)', async () => {
+    const user = userEvent.setup();
+    const admin = renderSettings({
+      keyInputProps: (field: string) =>
+        field === 'maps' ? { disabled: true, placeholder: 'Set via PLACES_API_KEY' } : { disabled: false, placeholder: 'Enter key...' },
+      mapsKeyTestable: true,
+    });
+
+    expect(screen.getByLabelText('Google Maps API Key')).toBeDisabled();
+    expect(screen.getByLabelText('Google Maps API Key')).toHaveAttribute('placeholder', 'Set via PLACES_API_KEY');
+    expect(screen.getByLabelText('Unsplash API Key')).toBeEnabled();
+    await user.click(screen.getByRole('button', { name: 'Test' }));
+    expect(admin.handleValidateKey).toHaveBeenCalledWith('maps');
+  });
+
   it('FE-MOB-ASET-015: the validation result renders as a valid or invalid line', () => {
     const { unmount } = render(
       <Harness admin={buildAdminHook({ mapsKey: 'k', validation: { maps: true } })} />,
@@ -453,7 +468,7 @@ describe('MAdminSettingsSection', () => {
     const user = userEvent.setup();
     render(<OidcHarness />);
 
-    await user.type(screen.getByPlaceholderText('z.B. Google, Authentik, Keycloak'), 'Authentik');
+    await user.type(screen.getByPlaceholderText('e.g. Google, Authentik, Keycloak'), 'Authentik');
     await user.type(screen.getByPlaceholderText('https://accounts.google.com'), 'https://idp');
     await user.type(
       screen.getByPlaceholderText(
@@ -464,7 +479,7 @@ describe('MAdminSettingsSection', () => {
     await user.type(unlabelledInput('text'), 'trek');
     await user.type(unlabelledInput('password'), 's3cr3t');
 
-    expect(screen.getByPlaceholderText('z.B. Google, Authentik, Keycloak')).toHaveValue('Authentik');
+    expect(screen.getByPlaceholderText('e.g. Google, Authentik, Keycloak')).toHaveValue('Authentik');
     expect(screen.getByPlaceholderText('https://accounts.google.com')).toHaveValue('https://idp');
     expect(
       screen.getByPlaceholderText(

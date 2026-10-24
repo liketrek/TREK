@@ -1,0 +1,15 @@
+/* ============================================================================
+   City walks on the planner map (CW-12): a crossing by boat, dotted in a water
+   blue so it never reads as a way walked, and a route kept from before a plan
+   that failed, greyed while it no longer stands for the points.
+   ========================================================================== */
+
+:root {
+  --map-walk-ferry: #0e7490;
+  --map-route-stale: #94a3b8;
+}
+
+.dark {
+  --map-walk-ferry: #22d3ee;
+  --map-route-stale: #64748b;
+}

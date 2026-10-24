@@ -63,7 +63,7 @@ describe('MAdminAuditLogPanel', () => {
     render(<MAdminAuditLogPanel serverTimezone="UTC" />);
 
     await screen.findByText('No audit entries yet.');
-    expect(screen.getByText('0 loaded · 0 total')).toBeInTheDocument();
+    expect(screen.getByText('0 loaded, 0 total')).toBeInTheDocument();
     expect(screen.queryByText('Load more')).not.toBeInTheDocument();
   });
 
@@ -80,7 +80,7 @@ describe('MAdminAuditLogPanel', () => {
     expect(screen.getByText('/trips/42')).toBeInTheDocument();
     expect(screen.getByText('127.0.0.1')).toBeInTheDocument();
     expect(screen.getByText('{"title":"Test"}')).toBeInTheDocument();
-    expect(screen.getByText('1 loaded · 1 total')).toBeInTheDocument();
+    expect(screen.getByText('1 loaded, 1 total')).toBeInTheDocument();
   });
 
   it('FE-MOB-AUDIT-004: the timestamp is rendered in the server timezone', async () => {
@@ -156,7 +156,7 @@ describe('MAdminAuditLogPanel', () => {
 
     await screen.findByText('trip.delete');
     expect(screen.getByText('trip.create')).toBeInTheDocument();
-    expect(screen.getByText('2 loaded · 2 total')).toBeInTheDocument();
+    expect(screen.getByText('2 loaded, 2 total')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Load more' })).not.toBeInTheDocument();
     expect(offsets).toEqual(['0', '100']);
   });
@@ -179,7 +179,7 @@ describe('MAdminAuditLogPanel', () => {
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Load more' })).not.toBeDisabled());
     expect(screen.getByText('trip.create')).toBeInTheDocument();
-    expect(screen.getByText('1 loaded · 5 total')).toBeInTheDocument();
+    expect(screen.getByText('1 loaded, 5 total')).toBeInTheDocument();
   });
 
   it('FE-MOB-AUDIT-011: Refresh throws away the appended pages', async () => {
@@ -204,7 +204,7 @@ describe('MAdminAuditLogPanel', () => {
     await screen.findByText('after.refresh');
     expect(screen.queryByText('trip.create')).not.toBeInTheDocument();
     expect(screen.queryByText('trip.delete')).not.toBeInTheDocument();
-    expect(screen.getByText('1 loaded · 1 total')).toBeInTheDocument();
+    expect(screen.getByText('1 loaded, 1 total')).toBeInTheDocument();
   });
 
   it('FE-MOB-AUDIT-012: a failing first page falls back to the empty state', async () => {
@@ -212,6 +212,6 @@ describe('MAdminAuditLogPanel', () => {
     render(<MAdminAuditLogPanel />);
 
     await screen.findByText('No audit entries yet.');
-    expect(screen.getByText('0 loaded · 0 total')).toBeInTheDocument();
+    expect(screen.getByText('0 loaded, 0 total')).toBeInTheDocument();
   });
 });

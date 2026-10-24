@@ -1,5 +1,6 @@
 import { schoolHolidayBand } from '../../../components/Vacay/holidayVisual'
-import { dayVisual, hatchTint, localDateStr, monthLead, type DayVisualContext } from './vacayDayModel'
+import { localDateStr, monthLead } from '../../../vacay/monthGrid'
+import { dayVisual, hatchTint, type DayVisualContext } from './vacayDayModel'
 
 interface MVacayMonthProps {
   year: number
@@ -67,7 +68,7 @@ export default function MVacayMonth({
               <span
                 aria-hidden
                 className={`absolute rounded-full ${
-                  mini ? 'right-[2px] top-[2px] h-[3px] w-[3px]' : 'right-[4px] top-[4px] h-[5px] w-[5px]'
+                  mini ? 'end-[2px] top-[2px] h-[3px] w-[3px]' : 'end-[4px] top-[4px] h-[5px] w-[5px]'
                 }`}
                 style={{ background: tripDotColor }}
               />
@@ -76,7 +77,7 @@ export default function MVacayMonth({
               <span
                 aria-hidden
                 className={`absolute rounded-full ${
-                  mini ? 'right-[2px] bottom-[2px] h-[3px] w-[3px]' : 'right-[4px] bottom-[4px] h-[5px] w-[5px]'
+                  mini ? 'end-[2px] bottom-[2px] h-[3px] w-[3px]' : 'end-[4px] bottom-[4px] h-[5px] w-[5px]'
                 }`}
                 style={{ background: '#f97316' }}
               />

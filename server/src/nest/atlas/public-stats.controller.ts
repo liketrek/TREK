@@ -1,10 +1,11 @@
-import { Controller, Get, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
-import type { PublicApiStats } from '@trek/shared';
-import { AtlasService } from './atlas.service';
+import { RateLimitService } from '../common/rate-limit.service';
 import { ApiTokenGuard } from '../public-api/api-token.guard';
 import { enforcePublicApiRateLimit, requireScope, requireUserId } from '../public-api/public-api-request';
-import { RateLimitService } from '../common/rate-limit.service';
+import { AtlasService } from './atlas.service';
+import { Controller, Get, Req, UseGuards } from '@nestjs/common';
+import type { PublicApiStats } from '@trek/shared';
+
+import type { Request } from 'express';
 
 /**
  * GET /api/v1/stats — aggregate counts for a dashboard widget (#1367).
@@ -46,13 +47,14 @@ export class PublicStatsController {
   ) {}
 
   @Get('stats')
-  stats(@Req() req: Request): PublicApiStats {
-    enforcePublicApiRateLimit(this.rl, req);
+  async stats(@Req() req: Request): Promise<PublicApiStats> {
+    await enforcePublicApiRateLimit(this.rl, req);
     requireScope(req, 'stats');
     const userId = requireUserId(req);
 
-    const travel = this.atlas.getTravelStats(userId);
-    const last = this.atlas.lastTrip(userId);
+    const travel = await this.atlas.getTravelStats(userId);
+    const last = await this.atlas.lastTrip(userId);
+    const next = await this.atlas.nextTrip(userId);
 
     // Counts, not the arrays behind them. A consumer that wants the members asks
     // /api/v1/trips; this endpoint exists for the one that wants a number.
@@ -70,6 +72,14 @@ export class PublicStatsController {
         // The list's head, so `country` and `countries[0]` can never disagree.
         country: last.countries[0] ?? null,
         countries: last.countries,
+      },
+      next_trip: next && {
+        title: next.title,
+        start_date: next.start_date,
+        end_date: next.end_date,
+        days_until: next.days_until,
+        country: next.countries[0] ?? null,
+        countries: next.countries,
       },
     };
   }

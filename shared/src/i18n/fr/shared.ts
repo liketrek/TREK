@@ -8,18 +8,26 @@ const shared: TranslationStrings = {
     'Cela ne veut pas dire que le lien a expiré. Vérifiez votre connexion et réessayez dans un instant.',
   'shared.retry': 'Réessayer',
   'shared.readOnly': 'Vue en lecture seule',
-  'shared.tabPlan': 'Plan',
+  'shared.tabPlan': 'Plan', // same-as-en
   'shared.tabBookings': 'Réservations',
   'shared.tabPacking': 'Bagages',
   'shared.tabBudget': 'Coûts',
-  'shared.tabChat': 'Chat',
+  'shared.tabChat': 'Chat', // same-as-en
   'shared.days': 'jours',
   'shared.places': 'lieux',
+  'shared.places.one': 'lieu',
+  'shared.unplanned': 'Pas encore planifié',
   'shared.other': 'Autre',
   'shared.totalBudget': 'Coûts totaux',
-  'shared.messages': 'messages',
+  'shared.messages': 'messages', // same-as-en
   'shared.sharedVia': 'Partagé via',
   'shared.confirmed': 'Confirmé',
   'shared.pending': 'En attente',
+  'shared.footerTagline': 'Le planificateur de voyage que vous hébergez vous-même. Open source.',
+  'shared.emptyBookings': 'Aucune réservation partagée pour le moment',
+  'shared.emptyPacking': 'La liste de bagages est encore vide',
+  'shared.emptyCosts': 'Aucune dépense pour le moment',
+  'shared.emptyChat': 'Aucun message pour le moment',
+  'shared.wholeTrip': 'Tout le voyage',
 };
 export default shared;

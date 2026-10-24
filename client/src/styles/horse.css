@@ -1,0 +1,16 @@
+/* ============================================================================
+   Rides on horseback (HOR-01): the colour the sections of signposted horse
+   routes are drawn in, on the maps and on the waypoint list's badges. Global,
+   since the 2D, GL and 3D maps and the planner's cards all read the tokens.
+   ========================================================================== */
+
+/* A saddle brown nothing else on the tour map uses, on a rim of the map's own white. */
+:root {
+  --horse-route: #a16207;
+  --horse-route-casing: #ffffff;
+}
+
+.dark {
+  --horse-route: #f59e0b;
+  --horse-route-casing: #0f172a;
+}

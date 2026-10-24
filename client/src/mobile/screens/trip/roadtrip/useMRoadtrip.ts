@@ -8,13 +8,7 @@ import type { RoadtripDay } from '@trek/shared/roadtrip'
 import type { MTripShellApi, TripPlanner } from '../MTripShell'
 import type { RoadtripRow, StopRow } from '../../../../components/Roadtrip/roadtripRowModel'
 import type { Category, Place } from '../../../../types'
-import { localIsoDate } from '../../../../utils/localDate'
-
-/** Minutes since midnight, local time. */
-const nowMinutes = (): number => {
-  const d = new Date()
-  return d.getHours() * 60 + d.getMinutes()
-}
+import { isLocalToday, localMinutes } from '../../../../utils/localDate'
 
 /** The same 30 s tick the day timeline runs on, so the two never disagree by a minute. */
 const TICK_MS = 30_000
@@ -52,11 +46,11 @@ export interface MRoadtripController {
 export function useMRoadtrip(planner: TripPlanner): MRoadtripController {
   const { roadtripRoutes, selectedDayId, days } = planner
   const vehicle = useRoadtripSettings(s => s.roadtrip_vehicle, planner.tripId)
-  const [minutes, setMinutes] = useState(nowMinutes)
+  const [minutes, setMinutes] = useState(localMinutes)
   const [offline, setOffline] = useState(isEffectivelyOffline)
 
   useEffect(() => {
-    const id = window.setInterval(() => setMinutes(nowMinutes()), TICK_MS)
+    const id = window.setInterval(() => setMinutes(localMinutes()), TICK_MS)
     return () => window.clearInterval(id)
   }, [])
 
@@ -88,14 +82,13 @@ export function useMRoadtrip(planner: TripPlanner): MRoadtripController {
 
   // "Today" is the stage's own date, not the selected day's index: a trip can be
   // planned for next year, and a countdown on a day in March is noise.
-  const isToday = useMemo(() => {
-    const date = days.find(d => d.id === selectedDayId)?.date
-    if (!date) return false
-    // The wall clock, not UTC: `nowMinutes` above is local, and between local midnight
-    // and the UTC rollover the two disagree, so east of Greenwich the card hung on
-    // yesterday's stage for the first hours of every night. `localDate.ts` says as much.
-    return date.slice(0, 10) === localIsoDate()
-  }, [days, selectedDayId])
+  // The wall clock, not UTC: the minutes above are local, and between local midnight
+  // and the UTC rollover the two disagree, so east of Greenwich the card hung on
+  // yesterday's stage for the first hours of every night. `localDate.ts` says as much.
+  const isToday = useMemo(
+    () => isLocalToday(days.find(d => d.id === selectedDayId)?.date),
+    [days, selectedDayId],
+  )
 
   return {
     stage,

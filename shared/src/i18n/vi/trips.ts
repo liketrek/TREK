@@ -11,6 +11,7 @@ const trips: TranslationStrings = {
   'trips.reminderDays': 'ngày',
   'trips.reminderCustom': 'Tùy chọn',
   'trips.reminderDaysBefore': 'ngày trước khi khởi hành',
-  'trips.reminderDisabledHint': 'Lời nhắc chuyến đi bị tắt. Kích hoạt chúng trong Quản trị > Cài đặt > Thông báo.',
+  'trips.reminderDisabledHint':
+    'Lời nhắc chuyến đi bị tắt. Kích hoạt chúng trong Quản trị > Thông báo > Lời nhắc chuyến đi.',
 };
 export default trips;

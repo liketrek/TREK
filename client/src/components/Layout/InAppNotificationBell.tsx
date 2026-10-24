@@ -4,21 +4,19 @@ import { useNavigate } from 'react-router'
 import { Bell, Trash2, CheckCheck } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { useInAppNotificationStore } from '../../store/inAppNotificationStore.ts'
-import { useSettingsStore } from '../../store/settingsStore'
 import { useAuthStore } from '../../store/authStore'
 import InAppNotificationItem from '../Notifications/InAppNotificationItem.tsx'
+import ConfirmDialog from '../shared/ConfirmDialog'
 
 export default function InAppNotificationBell(): React.ReactElement {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { settings } = useSettingsStore()
-  const darkMode = settings.dark_mode
-  const dark = darkMode === true || darkMode === 'dark' || (darkMode === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)
 
   const isAuthenticated = useAuthStore(s => s.isAuthenticated)
   const { notifications, unreadCount, isLoading, fetchNotifications, fetchUnreadCount, markAllRead, deleteAll } = useInAppNotificationStore()
 
   const [open, setOpen] = useState(false)
+  const [confirmingDeleteAll, setConfirmingDeleteAll] = useState(false)
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -45,20 +43,18 @@ export default function InAppNotificationBell(): React.ReactElement {
       <button type="button"
         onClick={handleOpen}
         title={t('notifications.title')}
-        className="relative p-2 rounded-lg transition-colors text-content-muted"
-        onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+        className="relative p-2 rounded-lg transition-colors text-content-muted hover:bg-surface-hover focus-visible:bg-surface-hover"
       >
         <Bell className="w-4 h-4" />
         {unreadCount > 0 && (
           <span
-            className="absolute -top-0.5 -right-0.5 flex items-center justify-center rounded-full text-white font-bold"
+            data-testid="notification-badge"
+            className="absolute -top-1.5 -end-1.5 flex items-center justify-center rounded-full bg-danger text-white font-bold tabular-nums ring-2 ring-surface-card"
             style={{
-              background: '#ef4444',
-              fontSize: 'calc(9px * var(--fs-scale-caption, 1))',
-              minWidth: 14,
-              height: 14,
-              padding: '0 3px',
+              fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))',
+              minWidth: 20,
+              height: 20,
+              padding: '0 5px',
               lineHeight: 1,
             }}
           >
@@ -72,12 +68,12 @@ export default function InAppNotificationBell(): React.ReactElement {
           {/* Click-away catcher only — the bell button itself closes the panel again from the keyboard. */}
           <div role="presentation" style={{ position: 'fixed', inset: 0, zIndex: 9998 }} onClick={() => setOpen(false)} />
           <div
-            className="rounded-xl shadow-xl border overflow-hidden bg-surface-card border-edge"
+            className="rounded-2xl shadow-xl border overflow-hidden bg-surface-card border-edge"
             style={{
               position: 'fixed',
               top: 'var(--nav-h)',
-              right: 8,
-              width: 360,
+              insetInlineEnd: 8,
+              width: 380,
               maxWidth: 'calc(100vw - 16px)',
               maxHeight: 'min(480px, calc(100vh - var(--nav-h) - 16px))',
               zIndex: 9999,
@@ -85,14 +81,15 @@ export default function InAppNotificationBell(): React.ReactElement {
               flexDirection: 'column',
             }}
           >
-            {/* Header */}
-            <div
-              className="flex items-center justify-between px-4 py-3 flex-shrink-0 border-b border-edge-secondary"
-            >
-              <span className="text-sm font-semibold text-content">
+            {/* Header: the dialogs' head, a tile, the name and how many are unread, the tools at the end. */}
+            <div className="flex items-center gap-3 px-4 pt-4 pb-3 flex-shrink-0">
+              <span className="grid place-items-center w-9 h-9 rounded-xl bg-accent-subtle text-accent flex-shrink-0">
+                <Bell className="w-4 h-4" />
+              </span>
+              <span className="flex-1 min-w-0 flex items-center gap-2 text-subtitle font-semibold text-content">
                 {t('notifications.title')}
                 {unreadCount > 0 && (
-                  <span className="ml-2 px-1.5 py-0.5 rounded-full text-xs font-medium bg-content text-surface">
+                  <span className="px-2 h-5 inline-flex items-center rounded-full text-caption font-semibold tabular-nums bg-accent text-accent-text">
                     {unreadCount}
                   </span>
                 )}
@@ -102,38 +99,38 @@ export default function InAppNotificationBell(): React.ReactElement {
                   <button type="button"
                     onClick={markAllRead}
                     title={t('notifications.markAllRead')}
-                    className="p-1.5 rounded-lg transition-colors text-content-muted"
-                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    aria-label={t('notifications.markAllRead')}
+                    className="grid place-items-center w-8 h-8 rounded-lg transition-colors text-content-muted bg-surface-secondary hover:bg-surface-hover hover:text-content focus-visible:bg-surface-hover"
                   >
-                    <CheckCheck className="w-3.5 h-3.5" />
+                    <CheckCheck className="w-4 h-4" />
                   </button>
                 )}
                 {notifications.length > 0 && (
                   <button type="button"
-                    onClick={deleteAll}
+                    onClick={() => setConfirmingDeleteAll(true)}
                     title={t('notifications.deleteAll')}
-                    className="p-1.5 rounded-lg transition-colors text-content-muted"
-                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    aria-label={t('notifications.deleteAll')}
+                    className="grid place-items-center w-8 h-8 rounded-lg transition-colors text-content-muted bg-surface-secondary hover:bg-danger-soft hover:text-danger focus-visible:bg-danger-soft"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 )}
               </div>
             </div>
 
             {/* Notification list */}
-            <div className="overflow-y-auto flex-1">
+            <div className="overflow-y-auto flex-1 py-1 border-t border-edge-secondary">
               {isLoading && notifications.length === 0 ? (
                 <div className="flex items-center justify-center py-10">
                   <div className="w-5 h-5 border-2 rounded-full animate-spin border-edge border-t-content" />
                 </div>
               ) : notifications.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10 px-4 text-center gap-2">
-                  <Bell className="w-8 h-8 text-content-faint" />
-                  <p className="text-sm font-medium text-content-muted">{t('notifications.empty')}</p>
-                  <p className="text-xs text-content-faint">{t('notifications.emptyDescription')}</p>
+                <div className="flex flex-col items-center justify-center py-10 px-6 text-center gap-2">
+                  <span className="grid place-items-center w-12 h-12 rounded-2xl bg-surface-secondary text-content-faint">
+                    <Bell className="w-5 h-5" />
+                  </span>
+                  <p className="text-body font-semibold text-content">{t('notifications.empty')}</p>
+                  <p className="text-caption text-content-muted">{t('notifications.emptyDescription')}</p>
                 </div>
               ) : (
                 notifications.slice(0, 10).map(n => (
@@ -143,21 +140,26 @@ export default function InAppNotificationBell(): React.ReactElement {
             </div>
 
             {/* Footer */}
-            <button type="button"
-              onClick={handleShowAll}
-              className="w-full py-2.5 text-xs font-medium transition-colors flex-shrink-0 border-t border-edge-secondary text-content"
-              style={{
-                background: 'transparent',
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-            >
-              {t('notifications.showAll')}
-            </button>
+            <div className="p-2 flex-shrink-0 border-t border-edge-secondary">
+              <button type="button"
+                onClick={handleShowAll}
+                className="w-full h-9 rounded-xl text-body font-medium transition-colors bg-surface-secondary text-content hover:bg-surface-hover focus-visible:bg-surface-hover"
+              >
+                {t('notifications.showAll')}
+              </button>
+            </div>
           </div>
         </>,
         document.body
       )}
+      <ConfirmDialog
+        isOpen={confirmingDeleteAll}
+        onClose={() => setConfirmingDeleteAll(false)}
+        onConfirm={() => { setConfirmingDeleteAll(false); void deleteAll() }}
+        title={t('notifications.deleteAllConfirmTitle')}
+        message={t('notifications.deleteAllConfirmText')}
+        confirmLabel={t('notifications.deleteAll')}
+      />
     </div>
   )
 }

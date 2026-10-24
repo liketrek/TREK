@@ -60,6 +60,25 @@ export function MAdminRow({
   )
 }
 
+/**
+ * A description that keeps to two lines until it is tapped. On a phone the long
+ * ones (a map provider's terms, how a loader decides) pushed every control off
+ * screen; the whole text stays one tap away.
+ */
+export function MAdminClampedText({ children, className = '' }: { children: string; className?: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <button
+      type="button"
+      aria-expanded={open}
+      onClick={() => setOpen((value) => !value)}
+      className={`block w-full text-start font-geist leading-relaxed text-m-muted ${open ? '' : 'line-clamp-2'} ${className}`}
+    >
+      {children}
+    </button>
+  )
+}
+
 /** Labelled form field with an optional hint line under the control. */
 export function MAdminField({ label, hint, children }: { label: ReactNode; hint?: ReactNode; children: ReactNode }) {
   return (
@@ -75,7 +94,7 @@ export function MAdminInput({ className = '', ...props }: InputHTMLAttributes<HT
   return (
     <input
       {...props}
-      className={`h-[42px] w-full rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 text-[0.84375rem] text-m-ink outline-none placeholder:text-m-faint focus:border-[color:var(--m-faint)] ${className}`}
+      className={`h-[42px] w-full rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 text-[0.84375rem] text-m-ink outline-none placeholder:text-m-faint focus:border-[color:var(--m-faint)] disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
     />
   )
 }
@@ -85,13 +104,13 @@ export function MAdminSecretInput({ className = '', ...props }: InputHTMLAttribu
   const [show, setShow] = useState(false)
   return (
     <div className="relative">
-      <MAdminInput {...props} type={show ? 'text' : 'password'} className={`pr-10 ${className}`} />
+      <MAdminInput {...props} type={show ? 'text' : 'password'} className={`pe-10 ${className}`} />
       <button
         type="button"
         tabIndex={-1}
         aria-label="Show or hide"
         onClick={() => setShow((v) => !v)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-m-faint"
+        className="absolute end-3 top-1/2 -translate-y-1/2 text-m-faint"
       >
         {show ? <EyeOff size={16} /> : <Eye size={16} />}
       </button>

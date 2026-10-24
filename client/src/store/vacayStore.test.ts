@@ -1,4 +1,4 @@
-// FE-STORE-VCY-001 to FE-STORE-VCY-023
+// FE-STORE-VCY-001 to FE-STORE-VCY-024
 // Complements tests/unit/stores/vacayStore.test.ts: optimistic toggles and their
 // rollbacks, the leave-year window plumbing and the holiday-marker merge rules.
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -153,7 +153,7 @@ describe('vacayStore optimistic updates', () => {
     await useVacayStore.getState().toggleCompanyHoliday('2025-12-25');
 
     expect(seen[0]).toEqual([]);
-    expect(seen[1]).toEqual([{ date: '2025-12-25' }]);
+    expect(seen[1]).toEqual([{ date: '2025-12-25', fraction: 1 }]);
   });
 
   it('FE-STORE-VCY-008: a rejected company-holiday toggle rolls the day back', async () => {
@@ -421,5 +421,27 @@ describe('vacayStore year selection', () => {
     await useVacayStore.getState().removeYear(current + 1);
 
     expect(useVacayStore.getState().selectedYear).toBe(current);
+  });
+
+  it('FE-STORE-VCY-024: a year asked for by a link opens when the plan has it, and is ignored when not', async () => {
+    const current = new Date().getFullYear();
+    useVacayStore.setState({ years: [current, current + 1], selectedYear: current });
+    server.use(http.get('/api/addons/vacay/years', () =>
+      HttpResponse.json({ years: [current, current + 1] })));
+
+    await useVacayStore.getState().loadYears(current + 1);
+    expect(useVacayStore.getState().selectedYear).toBe(current + 1);
+
+    await useVacayStore.getState().loadYears(current + 5);
+    expect(useVacayStore.getState().selectedYear).toBe(current + 1);
+  });
+});
+
+describe('incoming fusion invites', () => {
+  it('FE-STORE-VCY-INV-001: the plan response username becomes owner_username', async () => {
+    const { normalizeIncomingInvites } = await import('./vacayStore');
+    expect(normalizeIncomingInvites([{ id: 1, plan_id: 7, username: 'Ada', email: 'a@x.y', created_at: null }]))
+      .toEqual([{ plan_id: 7, owner_username: 'Ada' }]);
+    expect(normalizeIncomingInvites(undefined)).toEqual([]);
   });
 });

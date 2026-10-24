@@ -53,3 +53,54 @@ own switch in the admin panel. https://cloud.google.com/maps-platform/terms
 
 `server/assets/airports.json` is built from **OurAirports**
 (https://ourairports.com/data/), released into the public domain.
+
+## Typefaces: Studio books and the app
+
+Every typeface a book can be set in, and the app's own (Poppins, MuseoModerno,
+Geist), is self-hosted from the **@fontsource** npm packages, which redistribute
+the families published on Google Fonts split into subsets by script. The catalogue of book faces is
+`shared/src/book/book-fonts.data.ts`. Each package carries its licence and the
+copyright notice of the family's authors in its `LICENSE` file.
+
+Both licences allow a font to be bundled with software and embedded in a
+document made with it, so a printed or exported book may carry the faces it is
+set in. No family is renamed, redrawn or sold on its own. SIL OFL 1.1: https://openfontlicense.org. Apache 2.0:
+https://www.apache.org/licenses/LICENSE-2.0
+
+| Family | Package | Licence |
+|---|---|---|
+| Abril Fatface | `@fontsource/abril-fatface` | SIL Open Font License 1.1 |
+| Alfa Slab One | `@fontsource/alfa-slab-one` | SIL Open Font License 1.1 |
+| Allura | `@fontsource/allura` | SIL Open Font License 1.1 |
+| Anton | `@fontsource/anton` | SIL Open Font License 1.1 |
+| Archivo Black | `@fontsource/archivo-black` | SIL Open Font License 1.1 |
+| Bebas Neue | `@fontsource/bebas-neue` | SIL Open Font License 1.1 |
+| Big Shoulders Display | `@fontsource/big-shoulders-display` | SIL Open Font License 1.1 |
+| Bodoni Moda | `@fontsource/bodoni-moda` | SIL Open Font License 1.1 |
+| Bricolage Grotesque | `@fontsource/bricolage-grotesque` | SIL Open Font License 1.1 |
+| Caveat | `@fontsource/caveat` | SIL Open Font License 1.1 |
+| Cormorant Garamond | `@fontsource/cormorant-garamond` | SIL Open Font License 1.1 |
+| Dancing Script | `@fontsource/dancing-script` | SIL Open Font License 1.1 |
+| DM Mono | `@fontsource/dm-mono` | SIL Open Font License 1.1 |
+| DM Serif Display | `@fontsource/dm-serif-display` | SIL Open Font License 1.1 |
+| EB Garamond | `@fontsource/eb-garamond` | SIL Open Font License 1.1 |
+| Fraunces | `@fontsource/fraunces` | SIL Open Font License 1.1 |
+| Great Vibes | `@fontsource/great-vibes` | SIL Open Font License 1.1 |
+| Homemade Apple | `@fontsource/homemade-apple` | Apache License 2.0 |
+| Inter | `@fontsource/inter` | SIL Open Font License 1.1 |
+| Kaushan Script | `@fontsource/kaushan-script` | SIL Open Font License 1.1 |
+| League Gothic | `@fontsource/league-gothic` | SIL Open Font License 1.1 |
+| Lora | `@fontsource/lora` | SIL Open Font License 1.1 |
+| Montserrat | `@fontsource/montserrat` | SIL Open Font License 1.1 |
+| MuseoModerno | `@fontsource/museomoderno` | SIL Open Font License 1.1 |
+| Oswald | `@fontsource/oswald` | SIL Open Font License 1.1 |
+| Pacifico | `@fontsource/pacifico` | SIL Open Font License 1.1 |
+| Parisienne | `@fontsource/parisienne` | SIL Open Font License 1.1 |
+| Permanent Marker | `@fontsource/permanent-marker` | Apache License 2.0 |
+| Playfair Display | `@fontsource/playfair-display` | SIL Open Font License 1.1 |
+| Poppins | `@fontsource/poppins` | SIL Open Font License 1.1 |
+| Sacramento | `@fontsource/sacramento` | SIL Open Font License 1.1 |
+| Satisfy | `@fontsource/satisfy` | Apache License 2.0 |
+| Shrikhand | `@fontsource/shrikhand` | SIL Open Font License 1.1 |
+| Yellowtail | `@fontsource/yellowtail` | Apache License 2.0 |
+| Geist Sans | `@fontsource/geist-sans` | SIL Open Font License 1.1 |

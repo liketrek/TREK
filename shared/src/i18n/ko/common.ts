@@ -7,6 +7,7 @@ const common: TranslationStrings = {
   'common.cancel': '취소',
   'common.clear': '지우기',
   'common.delete': '삭제',
+  'common.remove': '제거',
   'common.preview': '미리보기',
   'common.edit': '편집',
   'common.add': '추가',
@@ -35,6 +36,9 @@ const common: TranslationStrings = {
   'common.rename': '이름 변경',
   'common.discardChanges': '변경 사항 취소',
   'common.discard': '취소',
+  'common.unsavedTitle': '변경 사항을 버릴까요?',
+  'common.unsavedMessage': '여기에 입력한 내용은 아직 저장되지 않았습니다.',
+  'common.keepEditing': '계속 편집',
   'common.name': '이름',
   'common.email': '이메일',
   'common.password': '비밀번호',
@@ -52,18 +56,18 @@ const common: TranslationStrings = {
   'common.collapse': '접기',
   'common.copy': '복사',
   'common.copied': '복사됨',
-  'common.datepicker.prevMonth': 'Previous month', // en-fallback
-  'common.datepicker.nextMonth': 'Next month', // en-fallback
-  'common.datepicker.prevYear': 'Previous year', // en-fallback
-  'common.datepicker.nextYear': 'Next year', // en-fallback
-  'common.datepicker.prevYears': 'Previous years', // en-fallback
-  'common.datepicker.nextYears': 'Next years', // en-fallback
-  'common.datepicker.selectMonth': 'Select month', // en-fallback
-  'common.datepicker.selectYear': 'Select year', // en-fallback
-  'common.datepicker.enterManually': 'Enter date manually', // en-fallback
-  'common.datepicker.typeDate': 'Type a date', // en-fallback
-  'common.datepicker.dialog': 'Date picker', // en-fallback
-  'common.datepicker.clearDate': 'Clear date', // en-fallback
+  'common.datepicker.prevMonth': '이전 달',
+  'common.datepicker.nextMonth': '다음 달',
+  'common.datepicker.prevYear': '이전 연도',
+  'common.datepicker.nextYear': '다음 연도',
+  'common.datepicker.prevYears': '이전 연도 범위',
+  'common.datepicker.nextYears': '다음 연도 범위',
+  'common.datepicker.selectMonth': '월 선택',
+  'common.datepicker.selectYear': '연도 선택',
+  'common.datepicker.enterManually': '날짜 직접 입력',
+  'common.datepicker.typeDate': '날짜 입력',
+  'common.datepicker.dialog': '날짜 선택기',
+  'common.datepicker.clearDate': '날짜 지우기',
   'common.errorTitle': '문제가 발생했습니다',
   'common.errorBody': '앱의 이 부분이 작동을 멈췄습니다. 데이터는 안전합니다.',
   'common.errorPanelTitle': '이 섹션을 표시할 수 없습니다',
@@ -73,5 +77,6 @@ const common: TranslationStrings = {
   'common.errorUpdateTitle': '새 버전이 있습니다',
   'common.errorUpdateBody': '이 탭이 열려 있는 동안 TREK이 업데이트되었습니다. 새로고침하여 새 버전을 받으세요.',
   'common.errorPluginTitle': '이 플러그인을 표시할 수 없습니다',
+  'common.needsConnection': '연결이 필요한 작업입니다. TREK가 다시 온라인이 되면 다시 시도하세요.',
 };
 export default common;

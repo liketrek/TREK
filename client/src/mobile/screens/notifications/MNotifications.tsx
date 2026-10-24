@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router'
 import { ArrowLeft, CheckCheck, Trash2 } from 'lucide-react'
 import MDancingTrek from '../../components/MDancingTrek'
+import ConfirmDialog from '../../../components/shared/ConfirmDialog'
 import { useTranslation } from '../../../i18n'
 import { useInAppNotifications } from '../../../pages/inAppNotifications/useInAppNotifications'
 import MGlassBar from '../../components/MGlassBar'
@@ -29,7 +30,7 @@ export default function MNotifications() {
   const {
     notifications, unreadCount, isLoading, hasMore,
     unreadOnly, setUnreadOnly, loaderRef, displayed,
-    markAllRead, deleteAll,
+    markAllRead, confirmingDeleteAll, requestDeleteAll, cancelDeleteAll, confirmDeleteAll,
   } = useInAppNotifications()
 
   return (
@@ -52,7 +53,7 @@ export default function MNotifications() {
           </MIconBtn>
         )}
         {notifications.length > 0 && (
-          <MIconBtn ariaLabel={t('notifications.deleteAll')} onClick={deleteAll}>
+          <MIconBtn ariaLabel={t('notifications.deleteAll')} onClick={requestDeleteAll}>
             <Trash2 size={16} strokeWidth={2} className="text-[color:var(--m-st-danger)]" />
           </MIconBtn>
         )}
@@ -89,6 +90,14 @@ export default function MNotifications() {
           )}
         </div>
       </div>
+      <ConfirmDialog
+        isOpen={confirmingDeleteAll}
+        onClose={cancelDeleteAll}
+        onConfirm={confirmDeleteAll}
+        title={t('notifications.deleteAllConfirmTitle')}
+        message={t('notifications.deleteAllConfirmText')}
+        confirmLabel={t('notifications.deleteAll')}
+      />
     </>
   )
 }

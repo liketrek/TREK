@@ -53,15 +53,19 @@ const system_notice: TranslationStrings = {
   // The release modal. One stable set of keys: each big release swaps the copy in place.
   'system_notice.release_notes.eyebrow': 'Update installed',
   'system_notice.release_notes.headline': 'Four things TREK now does on its own.',
-  'system_notice.release_notes.intro': 'Its own place API, road trips planned end to end, your location history back in your hands, and your documents in sync.',
+  'system_notice.release_notes.intro':
+    'Its own place API, road trips planned end to end, your location history back in your hands, and your documents in sync.',
   'system_notice.release_notes.features_label': 'The headliners',
   'system_notice.release_notes.features_aside': 'Far from everything',
   'system_notice.release_notes.feature_places_title': 'TREK Places API',
-  'system_notice.release_notes.feature_places_body': 'The first open source travel planner with its own place API. 73.6 million places, no key, no quota.',
+  'system_notice.release_notes.feature_places_body':
+    'The first open source travel planner with its own place API. 73.6 million places, no key, no quota.',
   'system_notice.release_notes.feature_roadtrip_title': 'Roadtrip Addon',
-  'system_notice.release_notes.feature_roadtrip_body': 'Plans the drive itself: route, distance, hours and stops. Off until an admin turns it on.',
+  'system_notice.release_notes.feature_roadtrip_body':
+    'Plans the drive itself: route, distance, hours and stops. Off until an admin turns it on.',
   'system_notice.release_notes.feature_dawarich_title': 'Dawarich Integration',
-  'system_notice.release_notes.feature_dawarich_body': 'The self-hosted answer to Google Timeline, now readable inside TREK. TREK reads, and only reads.',
+  'system_notice.release_notes.feature_dawarich_body':
+    'The self-hosted answer to Google Timeline, now readable inside TREK. TREK reads, and only reads.',
   'system_notice.release_notes.footnote': 'Plus a long list of smaller changes across the rest of TREK.',
   'system_notice.release_notes.notes_label': 'Release notes',
   'system_notice.release_notes.note_eyebrow': 'A note from the maintainer',
@@ -87,6 +91,7 @@ const system_notice: TranslationStrings = {
   'system_notice.pager.goto': 'Go to notice {n}',
   'system_notice.pager.position': 'Notice {current} of {total}',
   'system_notice.release_notes.feature_docsync_title': 'Document Sync',
-  'system_notice.release_notes.feature_docsync_body': 'Paperless-ngx, Papra, Nextcloud, OpenCloud and Synology Drive. A trip’s documents flow both ways with the store you already run.',
+  'system_notice.release_notes.feature_docsync_body':
+    'Paperless-ngx, Papra, Nextcloud, OpenCloud and Synology Drive. A trip’s documents flow both ways with the store you already run.',
 };
 export default system_notice;

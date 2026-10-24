@@ -1,22 +1,38 @@
-import { Injectable } from '@nestjs/common';
-import { DAWARICH_TRACK_POINTS_PER_DAY, type DawarichTrack } from '@trek/shared';
-import { DatabaseService } from '../database/database.service';
-import { DawarichClient, type DawarichCreds } from './dawarich.client';
+import { Trips } from '../../db/entities/Trips.entity';
+import { TripsRepository } from '../../db/repositories/Trips.repository';
+import { DomainError } from '../common/domain-error';
+import { DawarichClient, DawarichError, type DawarichCreds, type DawarichTrackFeature } from './dawarich.client';
+import { RECORDING_GAP, bucketPointsByDay, bucketTracksByDay, countPoints, offsetMinutesOf } from './dawarich.helpers';
 import { DawarichService } from './dawarich.service';
-import {
-  bucketPointsByDay,
-  bucketTracksByDay,
-  countPoints,
-  offsetMinutesOf,
-} from './dawarich.helpers';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import { DAWARICH_TRACK_POINTS_PER_DAY, type DawarichTrack, type DawarichTrackSegment } from '@trek/shared';
+
+/** One local day of recording, read for a journey to keep (JRN-01). */
+export interface RecordedDayFetch {
+  segments: DawarichTrackSegment[];
+  sourceKind: 'tracks' | 'points';
+  /** The zone the day was cut in, minutes east of UTC. */
+  utcOffsetMinutes: number;
+  offsetSource: 'source' | 'chosen';
+  /** The zone Dawarich records in, where its answer shows one. */
+  sourceOffsetMinutes: number | null;
+  window: { from: string; to: string };
+  fetchedAt: string;
+  truncated: boolean;
+}
+
+const HOUR_MS = 3_600_000;
 
 /**
- * The recorded route for a window, fetched on demand and never stored.
+ * The recorded route for a window, fetched on demand and never stored here.
  *
  * That is the point of the whole feature and the one rule it must not break:
  * Dawarich owns the location archive. TREK draws the part of it somebody is
  * looking at right now and forgets it again. There is no table here, no
- * `route_geometry` written to a place, no background import.
+ * `route_geometry` written to a place, no background import. The one copy is
+ * a day a traveller takes over into a journey on purpose (`fetchDay`, JRN-01),
+ * and the journey keeps that, not this service.
  *
  * What there is instead is a short in-memory cache, because "update the line
  * while the map is open" and "ask an instance for a month of GPS every few
@@ -41,7 +57,7 @@ export class DawarichTracksService {
   private static readonly MAX_ENTRIES = 64;
 
   constructor(
-    private readonly db: DatabaseService,
+    @InjectRepository(Trips) private readonly trips: TripsRepository,
     private readonly dawarich: DawarichService,
     private readonly client: DawarichClient,
   ) {}
@@ -61,12 +77,9 @@ export class DawarichTracksService {
     to?: string,
     offsetMinutes = 0,
   ): Promise<DawarichTrack | null> {
-    if (!this.db.canAccessTrip(tripId, userId)) return null;
+    if (!(await this.trips.findAccessible(tripId, userId))) return null;
 
-    const trip = this.db.get<{ start_date: string | null; end_date: string | null }>(
-      'SELECT start_date, end_date FROM trips WHERE id = ?',
-      tripId,
-    );
+    const trip = await this.trips.findDatesById(tripId);
     if (!trip) return null;
 
     const start = from ?? trip.start_date;
@@ -91,7 +104,7 @@ export class DawarichTracksService {
     toIso: string,
     offsetMinutes = offsetMinutesOf(fromIso),
   ): Promise<DawarichTrack> {
-    const creds = this.dawarich.getCredentials(userId);
+    const creds = await this.dawarich.getCredentials(userId);
     if (!creds) return emptyTrack();
 
     const from = new Date(fromIso);
@@ -129,7 +142,7 @@ export class DawarichTracksService {
     to: Date,
     offsetMinutes: number,
   ): Promise<DawarichTrack> {
-    const capabilities = this.dawarich.getCapabilities(userId);
+    const capabilities = await this.dawarich.getCapabilities(userId);
 
     if (capabilities?.tracks !== false) {
       try {
@@ -167,6 +180,65 @@ export class DawarichTracksService {
     };
   }
 
+  /**
+   * One local day of recording, read fresh past the cache: what a journey keeps
+   * has to be what the instance says now, not what the map saw a minute ago.
+   *
+   * The day is cut in Dawarich's own zone when `useSourceOffset` asks for it and
+   * the answer reveals one (track times carry it, points do not), else in the
+   * zone given. The request spans every zone there is around the date, so the
+   * day is the same day whichever zone cuts it. A gap in the recording stays a
+   * gap. Refuses with a DomainError the controller and the MCP tool pass on:
+   * 409 `not_connected`, or the instance's own reason.
+   */
+  async fetchDay(
+    userId: number,
+    date: string,
+    zone: { offsetMinutes: number; useSourceOffset: boolean },
+  ): Promise<RecordedDayFetch> {
+    const creds = await this.dawarich.getCredentials(userId);
+    if (!creds) throw new DomainError(409, 'Dawarich is not connected', { details: { code: 'not_connected' } });
+
+    const dayStart = Date.parse(`${date}T00:00:00Z`);
+    const from = new Date(dayStart - 14 * HOUR_MS);
+    const to = new Date(dayStart + 36 * HOUR_MS);
+    const capabilities = await this.dawarich.getCapabilities(userId);
+
+    if (capabilities?.tracks !== false) {
+      try {
+        const { features, truncated } = await this.client.listTracks(creds, from, to);
+        const sourceOffset = sourceOffsetOn(features, date);
+        const offset = zoneOf(zone, sourceOffset);
+        const day = bucketTracksByDay(features, {
+          maxPointsPerDay: DAWARICH_TRACK_POINTS_PER_DAY,
+          offsetMinutes: offset.minutes,
+        }).find((d) => d.date === date);
+        if (day && day.segments.length > 0) {
+          return recordedDay(date, day.segments, 'tracks', offset, sourceOffset, truncated);
+        }
+      } catch {
+        // Points next, as for the overlay: an instance that cannot serve tracks
+        // can usually still serve what they are built from.
+      }
+    }
+
+    const offset = zoneOf(zone, null);
+    try {
+      const { points, truncated } = await this.client.listPoints(creds, from, to);
+      const day = bucketPointsByDay(points, offset.minutes, {
+        maxPointsPerDay: DAWARICH_TRACK_POINTS_PER_DAY,
+        gaps: RECORDING_GAP,
+      }).find((d) => d.date === date);
+      return recordedDay(date, day?.segments ?? [], 'points', offset, null, truncated);
+    } catch (err) {
+      if (err instanceof DawarichError) {
+        const status = err.code === 'unauthorized' || err.code === 'forbidden' ? 400 : 502;
+        throw new DomainError(status, err.message, { details: { code: err.code } });
+      }
+      throw err;
+    }
+  }
+
   private remember(key: string, value: DawarichTrack): void {
     if (this.cache.size >= DawarichTracksService.MAX_ENTRIES) {
       const oldest = this.cache.keys().next().value;
@@ -181,6 +253,53 @@ export class DawarichTracksService {
       if (key.startsWith(`${userId}:`)) this.cache.delete(key);
     }
   }
+}
+
+/**
+ * The zone Dawarich recorded the date in, read off the first track that starts
+ * on it: the window opens on the day before, and a traveller who crossed zones
+ * overnight was elsewhere then. A `Z` time names no zone, Dawarich just wrote
+ * UTC, so it reveals nothing about where the day was.
+ */
+function sourceOffsetOn(features: DawarichTrackFeature[], date: string): number | null {
+  for (const feature of features) {
+    const startAt = feature.properties?.start_at;
+    if (typeof startAt !== 'string' || !/[+-]\d{2}:?\d{2}$/.test(startAt)) continue;
+    const offset = offsetMinutesOf(startAt);
+    const localDate = new Date(Date.parse(startAt) + offset * 60_000).toISOString().slice(0, 10);
+    if (localDate === date) return offset;
+  }
+  return null;
+}
+
+function zoneOf(
+  zone: { offsetMinutes: number; useSourceOffset: boolean },
+  sourceOffset: number | null,
+): { minutes: number; source: 'source' | 'chosen' } {
+  return zone.useSourceOffset && sourceOffset !== null
+    ? { minutes: sourceOffset, source: 'source' }
+    : { minutes: zone.offsetMinutes, source: 'chosen' };
+}
+
+function recordedDay(
+  date: string,
+  segments: DawarichTrackSegment[],
+  sourceKind: 'tracks' | 'points',
+  offset: { minutes: number; source: 'source' | 'chosen' },
+  sourceOffsetMinutes: number | null,
+  truncated: boolean,
+): RecordedDayFetch {
+  const from = Date.parse(`${date}T00:00:00Z`) - offset.minutes * 60_000;
+  return {
+    segments,
+    sourceKind,
+    utcOffsetMinutes: offset.minutes,
+    offsetSource: offset.source,
+    sourceOffsetMinutes,
+    window: { from: new Date(from).toISOString(), to: new Date(from + 24 * HOUR_MS).toISOString() },
+    fetchedAt: new Date().toISOString(),
+    truncated,
+  };
 }
 
 function emptyTrack(): DawarichTrack {

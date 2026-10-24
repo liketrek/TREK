@@ -32,5 +32,8 @@ const notifications: TranslationStrings = {
   'notifications.test.adminText': '{actor} が管理者全員に通知を送りました。',
   'notifications.test.tripTitle': '{actor} が旅行に投稿しました',
   'notifications.test.tripText': '旅行「{trip}」のテスト通知です。',
+  'notifications.countLabel': '件の通知',
+  'notifications.deleteAllConfirmTitle': 'すべての通知を削除しますか?',
+  'notifications.deleteAllConfirmText': 'すべての通知が完全に削除されます。この操作は取り消せません。',
 };
 export default notifications;

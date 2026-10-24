@@ -32,6 +32,7 @@ const perm: TranslationStrings = {
   'perm.action.collab_edit': 'Συνεργασία (σημειώσεις, δημοσκοπήσεις, συνομιλία)',
   'perm.action.share_manage': 'Διαχείριση συνδέσμων κοινής χρήσης',
   'perm.actionHint.trip_create': 'Ποιος μπορεί να δημιουργεί νέα ταξίδια',
+  'perm.action.journal_link': 'Σύνδεση ημερολογίου',
   'perm.actionHint.trip_edit': 'Ποιος μπορεί να αλλάζει όνομα, ημερομηνίες, περιγραφή και νόμισμα ταξιδιού',
   'perm.actionHint.trip_delete': 'Ποιος μπορεί να διαγράφει οριστικά ένα ταξίδι',
   'perm.actionHint.trip_archive': 'Ποιος μπορεί να αρχειοθετεί ή να επαναφέρει ένα ταξίδι',
@@ -47,5 +48,7 @@ const perm: TranslationStrings = {
   'perm.actionHint.packing_edit': 'Ποιος μπορεί να διαχειρίζεται αντικείμενα και τσάντες αποσκευών',
   'perm.actionHint.collab_edit': 'Ποιος μπορεί να δημιουργεί σημειώσεις, δημοσκοπήσεις και να στέλνει μηνύματα',
   'perm.actionHint.share_manage': 'Ποιος μπορεί να δημιουργεί ή να διαγράφει δημόσιους συνδέσμους κοινής χρήσης',
+  'perm.actionHint.journal_link':
+    'Ποιος μπορεί να συνδέσει ένα ημερολόγιο από το Journey με το ταξίδι και να το ανοίξει στα μέλη του',
 };
 export default perm;

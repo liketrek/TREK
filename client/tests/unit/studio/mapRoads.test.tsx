@@ -245,13 +245,14 @@ describe('placing a map from the panel', () => {
       return new Promise(() => {}) as never
     })
 
-    const { getByTitle, unmount } = render(
+    const { getByTitle, getByRole, unmount } = render(
       <StudioTravelPanel
         page={page} stats={journeyStats} path={[]} t={k => k} locale="en"
         canEdit={false} onToggleStop={async () => true}
       />,
     )
-    fireEvent.click(getByTitle('journey.studio.mapStyle.minimal'))
+    fireEvent.click(getByRole('tab', { name: 'journey.studio.travelMaps' }))
+    fireEvent.click(getByTitle('journey.studio.pinPhoto'))
     await vi.waitFor(() => expect(calculateRouteWithLegs).toHaveBeenCalled())
 
     unmount()

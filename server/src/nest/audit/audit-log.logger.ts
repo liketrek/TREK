@@ -1,13 +1,18 @@
 import { readEnv } from '../../app-config';
-import fs from 'fs';
-import path from 'path';
+import { resolveDataPaths } from '../../app-config/data-paths';
+import { correlationTag, currentCorrelation } from '../common/request-correlation';
+import { BufferedLogFile } from './log-file';
 
 /**
- * The server's rotating file logger — a plain module, NOT an injectable
- * (index.ts lazy-requires it before any Nest container exists). Directory
- * creation is lazy (first write), so importing the module has no disk side
- * effect; the LOG_LEVEL freeze below is the one deliberate import-time
- * behavior and is load-bearing for tests/setup.ts.
+ * The server's rotating file logger, a plain module and NOT an injectable
+ * (index.ts lazy-requires it before any Nest container exists). Every line goes
+ * to the console at once and to `data/logs/trek.log` through a buffered,
+ * asynchronous sink (log-file.ts), so logging never waits for the disk.
+ * Nothing touches the disk at import: the directory appears with the first
+ * flush. A line written inside a unit of work (an HTTP request, an MCP call,
+ * a WebSocket message, a plugin RPC, a cron tick) carries its correlation tag,
+ * `[http 1b9d...]`, after the timestamp. The LOG_LEVEL freeze below is the
+ * one deliberate import-time behavior and is load-bearing for tests/setup.ts.
  */
 
 // Frozen at import on purpose (legacy timing; tests/setup.ts sets it pre-import).
@@ -21,87 +26,69 @@ const MAX_LOG_SIZE = 10 * 1024 * 1024; // 10 MB
 const MAX_LOG_FILES = 5;
 
 const C = {
-  blue:    '\x1b[34m',
-  cyan:    '\x1b[36m',
-  red:     '\x1b[31m',
-  yellow:  '\x1b[33m',
-  reset:   '\x1b[0m',
+  blue: '\x1b[34m',
+  cyan: '\x1b[36m',
+  red: '\x1b[31m',
+  yellow: '\x1b[33m',
+  reset: '\x1b[0m',
 };
 
-// ── File logger with rotation ─────────────────────────────────────────────
+// ── File sink ─────────────────────────────────────────────────────────────
 
-const logsDir = path.join(process.cwd(), 'data/logs');
-const logFilePath = path.join(logsDir, 'trek.log');
-let logsDirReady = false;
+const logFile = new BufferedLogFile({
+  // From the data layout, like every other data path. It used to be cwd-based,
+  // which agreed only because the image and `npm run dev` both start in server/.
+  dir: resolveDataPaths().logsDir,
+  file: 'trek.log',
+  maxBytes: MAX_LOG_SIZE,
+  maxFiles: MAX_LOG_FILES,
+  onError: (message) => console.error(`[logger] ${message}`),
+});
 
-function ensureLogsDir(): void {
-  if (logsDirReady) return;
-  try {
-    fs.mkdirSync(logsDir, { recursive: true });
-    logsDirReady = true;
-  } catch (e) {
-    console.error(`[logger] could not create ${logsDir}: ${e instanceof Error ? e.message : e}`);
-  }
+/** Resolves once every line logged so far is in trek.log. */
+export function flushLogFile(): Promise<void> {
+  return logFile.flush();
 }
 
-function rotateIfNeeded(): void {
-  try {
-    if (!fs.existsSync(logFilePath)) return;
-    const stat = fs.statSync(logFilePath);
-    if (stat.size < MAX_LOG_SIZE) return;
-
-    for (let i = MAX_LOG_FILES - 1; i >= 1; i--) {
-      const src = i === 1 ? logFilePath : `${logFilePath}.${i - 1}`;
-      const dst = `${logFilePath}.${i}`;
-      if (fs.existsSync(src)) fs.renameSync(src, dst);
-    }
-  } catch (e) {
-    console.error(`[logger] log rotation failed: ${e instanceof Error ? e.message : e}`);
-  }
-}
-
-function writeToFile(line: string): void {
-  try {
-    ensureLogsDir();
-    rotateIfNeeded();
-    fs.appendFileSync(logFilePath, line + '\n');
-  } catch (e) {
-    console.error(`[logger] log file write failed: ${e instanceof Error ? e.message : e}`);
-  }
+/** Writes what is still queued, synchronously: for the process exit handler only. */
+export function flushLogFileSync(): void {
+  logFile.flushSync();
 }
 
 // ── Public log helpers ────────────────────────────────────────────────────
 
-function formatTs(): string {
+/** Timestamp, then the correlation tag of the current unit of work when there is one. */
+function prefix(): string {
   const tz = readEnv().app.tz || 'UTC';
-  return new Date().toLocaleString('sv-SE', { timeZone: tz }).replace(' ', 'T');
+  const ts = new Date().toLocaleString('sv-SE', { timeZone: tz }).replace(' ', 'T');
+  return `${ts} ${correlationTag(currentCorrelation())}`;
 }
 
 export function logInfo(msg: string): void {
   if (LOG_THRESHOLD < LEVEL_RANKS.info) return;
-  const ts = formatTs();
-  console.log(`${C.blue}[INFO]${C.reset} ${ts} ${msg}`);
-  writeToFile(`[INFO] ${ts} ${msg}`);
+  const ts = prefix();
+  console.log(`${C.blue}[INFO]${C.reset} ${ts}${msg}`);
+  logFile.write(`[INFO] ${ts}${msg}`);
 }
 
 export function logDebug(msg: string): void {
   if (LOG_THRESHOLD < LEVEL_RANKS.debug) return;
-  const ts = formatTs();
-  console.log(`${C.cyan}[DEBUG]${C.reset} ${ts} ${msg}`);
-  writeToFile(`[DEBUG] ${ts} ${msg}`);
+  const ts = prefix();
+  console.log(`${C.cyan}[DEBUG]${C.reset} ${ts}${msg}`);
+  logFile.write(`[DEBUG] ${ts}${msg}`);
 }
 
 export function logError(msg: string): void {
-  const ts = formatTs();
-  console.error(`${C.red}[ERROR]${C.reset} ${ts} ${msg}`);
-  writeToFile(`[ERROR] ${ts} ${msg}`);
+  const ts = prefix();
+  console.error(`${C.red}[ERROR]${C.reset} ${ts}${msg}`);
+  logFile.write(`[ERROR] ${ts}${msg}`);
 }
 
 export function logWarn(msg: string): void {
   if (LOG_THRESHOLD < LEVEL_RANKS.warn) return;
-  const ts = formatTs();
-  console.warn(`${C.yellow}[WARN]${C.reset} ${ts} ${msg}`);
-  writeToFile(`[WARN] ${ts} ${msg}`);
+  const ts = prefix();
+  console.warn(`${C.yellow}[WARN]${C.reset} ${ts}${msg}`);
+  logFile.write(`[WARN] ${ts}${msg}`);
 }
 
 export { LOG_LEVEL };

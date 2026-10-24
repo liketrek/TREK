@@ -68,5 +68,6 @@ const backup: TranslationStrings = {
     'Todos os dados atuais (viagens, lugares, usuários, envios) serão permanentemente substituídos pelo backup. Esta ação não pode ser desfeita.',
   'backup.restoreTip': 'Dica: crie um backup do estado atual antes de restaurar.',
   'backup.restoreConfirm': 'Sim, restaurar',
+  'backup.auto.hourHintTz': 'Hora local do servidor (formato {format}), fuso horário {timezone}',
 };
 export default backup;

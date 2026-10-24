@@ -1,5 +1,5 @@
 /**
- * ROADTRIP-ASSEMBLE-001..022: what the assembler does with the model's warnings, and
+ * ROADTRIP-ASSEMBLE-001..024: what the assembler does with the model's warnings, and
  * what it tells a surface about the drive between connected days. From 017 on: a booked
  * night seated at both ends of its days (`seatNightBookends`) is one spot overnight,
  * driven to and from like any stop and never between.
@@ -14,7 +14,7 @@
  */
 import { assembleRoadtrip } from './assemble';
 import type { DayWindow } from './dayWindow';
-import { seatNightBookends } from './nightBookends';
+import { oneNightPerStay, seatNightBookends } from './nightBookends';
 import type { PlanDay, RoadtripStop, RoutedLeg, SnappedWaypoint } from './planning-types';
 import { standsAsDay } from './roadtripModel';
 
@@ -237,9 +237,11 @@ describe('assembleRoadtrip connected days', () => {
     // Shift that night off the stop and the same leg stops counting as one.
     const midLeg = {
       ...routes,
-      days: routes.days.map((d) => (d.dayNumber === 2
-        ? { ...d, stops: [{ ...d.stops[0]!, automaticNight: { ...opening, position: 0.4 } }, ...d.stops.slice(1)] }
-        : d)),
+      days: routes.days.map((d) =>
+        d.dayNumber === 2
+          ? { ...d, stops: [{ ...d.stops[0]!, automaticNight: { ...opening, position: 0.4 } }, ...d.stops.slice(1)] }
+          : d,
+      ),
     };
     const shifted = midLeg.days.find((d) => d.dayNumber === 2)!.stops[0]!.automaticNight!;
     expect(Number.isInteger(shifted.position ?? 0)).toBe(false);
@@ -381,6 +383,67 @@ describe('assembleRoadtrip booked nights', () => {
     expect(schedule.entries.map((e) => e.arrival)).toEqual(['10:00', '12:00', '13:30']);
     expect(schedule.entries[0]!.anchored).toBe(true);
     expect(schedule.warnings).toEqual([]);
+  });
+});
+
+describe('assembleRoadtrip a hotel visited twice on its check-in day (#2636)', () => {
+  // 90 km at the 40 seconds a kilometre `leg` drives is an hour.
+  const hour = 90;
+  const hotel = { placeId: 900, lat: 45, lng: 7, night: true, stopType: 'hotel' };
+
+  it('ROADTRIP-ASSEMBLE-023: the rest at noon is a stop, and the day stays on its card', () => {
+    // A late check-in and a rest at the hotel before it. Both visits read as the night held
+    // the rest to ten at night, and the places behind it went onto the next day's card.
+    const stops = oneNightPerStay([
+      stop({ ownerIndex: 0, time: '09:00', dwellMinutes: 0 }),
+      stop({ ownerIndex: 1, ...hotel, checkInTime: '22:00', dwellMinutes: 60 }),
+      stop({ ownerIndex: 2, dwellMinutes: 30 }),
+      stop({ ownerIndex: 3, ...hotel, checkInTime: '22:00' }),
+    ]);
+
+    const routes = assemble(stops, [hour, hour, hour]);
+
+    expect(routes.days).toHaveLength(1);
+    const day = routes.days[0]!;
+    expect(day.stops.map((s) => [s.ownerIndex, s.night, s.checkInTime])).toEqual([
+      [0, undefined, undefined],
+      [1, false, null],
+      [2, undefined, undefined],
+      [3, true, '22:00'],
+    ]);
+    expect(day.schedule.entries.map((e) => e.arrival)).toEqual(['09:00', '10:00', '12:00', '22:00']);
+    expect(day.schedule.entries[1]!.anchored).toBeFalsy();
+    expect(day.schedule.entries[3]!.anchored).toBe(true);
+    expect(day.schedule.warnings).toEqual([]);
+  });
+
+  it('ROADTRIP-ASSEMBLE-024: the booking leads a day without hours, and a rest later on is a stop', () => {
+    // The booking seats its stop first on a day nobody put an hour on, and Days does not
+    // show it. The rest the traveller put mid-day is then the hotel's last visit, and read
+    // as the night it was held to the check-in a second time.
+    const day = (rest: Partial<RoadtripStop>) =>
+      oneNightPerStay([
+        stop({ ownerIndex: 0, ...hotel, checkInTime: '15:00', bookedNightId: 7 }),
+        stop({ ownerIndex: 1, dwellMinutes: 30 }),
+        stop({ ownerIndex: 2, ...rest, dwellMinutes: 60 }),
+        stop({ ownerIndex: 3, dwellMinutes: 30 }),
+      ]);
+
+    const routes = assemble(day({ ...hotel, checkInTime: '15:00' }), [hour, hour, hour]);
+
+    expect(routes.days).toHaveLength(1);
+    const [only] = routes.days;
+    expect(only!.stops.map((s) => [s.ownerIndex, s.night, s.checkInTime])).toEqual([
+      [0, true, '15:00'],
+      [1, undefined, undefined],
+      [2, false, null],
+      [3, undefined, undefined],
+    ]);
+    // The day runs as it did before the rest was put on it.
+    const without = assemble(day({ placeId: 900, lat: 45, lng: 7 }), [hour, hour, hour]);
+    expect(only!.schedule.entries).toEqual(without.days[0]!.schedule.entries);
+    expect(only!.schedule.entries.map((e) => e.arrival)).toEqual(['15:00', '16:00', '17:30', '19:30']);
+    expect(only!.schedule.warnings).toEqual([]);
   });
 });
 

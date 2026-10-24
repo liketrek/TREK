@@ -1,9 +1,10 @@
-// FE-COMP-JOURNEYDATEPICKER-001 to FE-COMP-JOURNEYDATEPICKER-006
+// FE-COMP-JOURNEYDATEPICKER-001 to FE-COMP-JOURNEYDATEPICKER-007
 import React from 'react'
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '../../../tests/helpers/render'
 import userEvent from '@testing-library/user-event'
 import { DatePicker } from './JourneyDetailPageDatePicker'
+import { useSettingsStore } from '../../store/settingsStore'
 
 function open(value = '2026-09-11') {
   const onChange = vi.fn()
@@ -19,7 +20,7 @@ describe('DatePicker year navigation (#2318)', () => {
     const user = userEvent.setup()
     open()
     await user.click(screen.getByText(/Sep 11, 2026/))
-    expect(screen.getByText('Mo')).toBeInTheDocument()
+    expect(screen.getByText('Mon')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Select month' })).toHaveTextContent('September 2026')
   })
 
@@ -29,7 +30,7 @@ describe('DatePicker year navigation (#2318)', () => {
     await user.click(screen.getByText(/Sep 11, 2026/))
 
     await user.click(screen.getByRole('button', { name: 'Select month' }))
-    expect(screen.queryByText('Mo')).not.toBeInTheDocument()
+    expect(screen.queryByText('Mon')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Jan' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Select year' })).toHaveTextContent('2026')
 
@@ -51,7 +52,7 @@ describe('DatePicker year navigation (#2318)', () => {
     expect(screen.getByRole('button', { name: 'Select year' })).toHaveTextContent('2023')
     await user.click(screen.getByRole('button', { name: 'Mar' }))
     expect(screen.getByRole('button', { name: 'Select month' })).toHaveTextContent('March 2023')
-    expect(screen.getByText('Mo')).toBeInTheDocument()
+    expect(screen.getByText('Mon')).toBeInTheDocument()
   })
 
   it('FE-COMP-JOURNEYDATEPICKER-004: the arrows step the level they are on', async () => {
@@ -83,7 +84,7 @@ describe('DatePicker year navigation (#2318)', () => {
     await user.click(screen.getByRole('button', { name: 'Mar' }))
     await user.click(screen.getByRole('button', { name: '15' }))
     expect(onChange).toHaveBeenCalledWith('2023-03-15')
-    expect(screen.queryByText('Mo')).not.toBeInTheDocument()
+    expect(screen.queryByText('Mon')).not.toBeInTheDocument()
   })
 
   it('FE-COMP-JOURNEYDATEPICKER-006: reopening starts on the days again', async () => {
@@ -96,6 +97,25 @@ describe('DatePicker year navigation (#2318)', () => {
     await user.click(trigger)
     expect(screen.queryByRole('button', { name: '2023' })).not.toBeInTheDocument()
     await user.click(trigger)
-    expect(screen.getByText('Mo')).toBeInTheDocument()
+    expect(screen.getByText('Mon')).toBeInTheDocument()
+  })
+})
+
+describe('DatePicker week start (#2029)', () => {
+  it('FE-COMP-JOURNEYDATEPICKER-007: follows the first weekday the user picked, like the other date pickers', async () => {
+    const original = useSettingsStore.getState().settings
+    useSettingsStore.setState({ settings: { ...original, week_start: 'sunday' } })
+    try {
+      const user = userEvent.setup()
+      render(<DatePicker value="2026-03-15" onChange={vi.fn()} />)
+      await user.click(screen.getByText(/Mar 15, 2026/))
+      const header = screen.getByText('Sun').parentElement!
+      expect(Array.from(header.children).map(c => c.textContent)).toEqual(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'])
+      // 1 March 2026 is a Sunday, so it opens the first row without a blank before it.
+      const day1 = screen.getByRole('button', { name: '1' })
+      expect(Array.from(day1.parentElement!.children).indexOf(day1)).toBe(0)
+    } finally {
+      useSettingsStore.setState({ settings: original })
+    }
   })
 })

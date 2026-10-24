@@ -1,6 +1,6 @@
 // FE-W4CNH-001 to FE-W4CNH-008
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
-import { formatTimestamp } from './CollabNotes.helpers'
+import { formatTimestamp, originalCategoryName, planCategoryColorSave } from './CollabNotes.helpers'
 
 // The helper feeds t() with a key and params; echo them so the branches are visible.
 const t = (key: string, params?: Record<string, number>) =>
@@ -61,5 +61,26 @@ describe('formatTimestamp', () => {
     expect(formatTimestamp(ago(5), empty, 'en')).toBe('5m ago')
     expect(formatTimestamp(ago(120), empty, 'en')).toBe('2h ago')
     expect(formatTimestamp(ago(60 * 24 * 2), empty, 'en')).toBe('2d ago')
+  })
+})
+
+describe('category colour save', () => {
+  const notes = [{ id: 1, category: 'Food' }, { id: 2, category: 'Food' }, { id: 3, category: 'Sights' }]
+
+  it('FE-W4CNH-009: a rename and a new colour in one Save recolour the notes under the old name', () => {
+    const plan = planCategoryColorSave(notes, { Food: '#ef4444', Sights: '#3b82f6' }, { Dinner: '#10b981', Sights: '#3b82f6' }, { Food: 'Dinner' })
+    expect(plan.updates).toEqual([{ noteId: 1, color: '#10b981' }, { noteId: 2, color: '#10b981' }])
+    expect(plan.emptyCategories).toEqual({})
+  })
+
+  it('FE-W4CNH-010: only a category without notes is kept as an empty one', () => {
+    const plan = planCategoryColorSave(notes, { Food: '#ef4444' }, { Food: '#ef4444', Spare: '#6366f1' })
+    expect(plan.updates).toEqual([])
+    expect(plan.emptyCategories).toEqual({ Spare: '#6366f1' })
+  })
+
+  it('FE-W4CNH-011: the original name of a renamed category is found, others map to themselves', () => {
+    expect(originalCategoryName('Dinner', { Food: 'Dinner' })).toBe('Food')
+    expect(originalCategoryName('Sights', { Food: 'Dinner' })).toBe('Sights')
   })
 })

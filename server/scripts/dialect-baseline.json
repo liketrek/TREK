@@ -1,0 +1,35 @@
+{
+  "src/db/entities/IdempotencyKeys.entity.ts": {
+    "strftime": 1
+  },
+  "src/db/entities/PlaceShadowPicks.entity.ts": {
+    "datetime": 1
+  },
+  "src/db/entities/PluginCapabilityAudit.entity.ts": {
+    "datetime": 1
+  },
+  "src/db/entities/PluginEgressHosts.entity.ts": {
+    "datetime": 1
+  },
+  "src/db/entities/PluginEntityMetadata.entity.ts": {
+    "datetime": 1
+  },
+  "src/db/entities/PluginOauthTokens.entity.ts": {
+    "datetime": 1
+  },
+  "src/db/entities/PluginScheduledTasks.entity.ts": {
+    "datetime": 1
+  },
+  "src/db/entities/PluginUserConfig.entity.ts": {
+    "datetime": 1
+  },
+  "src/db/entities/PluginUserErasureQueue.entity.ts": {
+    "datetime": 1
+  },
+  "src/db/repositories/MaintenanceRepository.ts": {
+    "pragma": 1
+  },
+  "src/nest/backup/backup-archive.ts": {
+    "pragma": 1
+  }
+}

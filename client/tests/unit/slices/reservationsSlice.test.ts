@@ -1,9 +1,11 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { useTripStore } from '../../../src/store/tripStore';
 import { resetAllStores, seedStore } from '../../helpers/store';
-import { buildReservation } from '../../helpers/factories';
+import { buildBudgetItem, buildReservation } from '../../helpers/factories';
 import { server } from '../../helpers/msw/server';
+import { clearAll, offlineDb } from '../../../src/db/offlineDb';
+import { _resetNetworkMode, setForcedOffline } from '../../../src/sync/networkMode';
 
 vi.mock('../../../src/api/websocket', () => ({
   connect: vi.fn(),
@@ -177,6 +179,54 @@ describe('reservationsSlice', () => {
 
       // Still in state since server-first (only removes after success)
       expect(useTripStore.getState().reservations).toHaveLength(1);
+    });
+  });
+  // #2601: offline a booking is kept here and queued instead of failing with a network error.
+  describe('offline', () => {
+    beforeEach(async () => {
+      await clearAll();
+      setForcedOffline(true);
+    });
+    afterEach(() => {
+      _resetNetworkMode();
+    });
+
+    it('FE-RESERV-011: a booking added offline shows at once under a temporary id and waits in the queue', async () => {
+      seedStore(useTripStore, { reservations: [] });
+
+      const saved = await useTripStore.getState().addReservation(1, { title: 'Night train', type: 'train' });
+
+      expect(saved.id).toBeLessThan(0);
+      expect(useTripStore.getState().reservations.map(r => r.title)).toEqual(['Night train']);
+      const [mutation] = await offlineDb.mutationQueue.toArray();
+      expect(mutation).toMatchObject({ method: 'POST', url: '/trips/1/reservations', tempId: saved.id });
+    });
+
+    it('FE-RESERV-012: the status toggle, travelers and transport order made offline stay and are queued', async () => {
+      const reservation = buildReservation({ id: 10, trip_id: 1, status: 'pending' });
+      seedStore(useTripStore, { reservations: [reservation] });
+      await offlineDb.reservations.put(reservation);
+
+      await useTripStore.getState().toggleReservationStatus(1, 10);
+      await useTripStore.getState().setReservationTravelers(1, 10, []);
+      await useTripStore.getState().updateReservationPositions(1, [{ id: 10, day_plan_position: 1 }], 3);
+
+      expect(useTripStore.getState().reservations[0]).toMatchObject({ status: 'confirmed', travelers: [] });
+      const urls = (await offlineDb.mutationQueue.toArray()).sort((a, b) => a.createdAt - b.createdAt).map(m => m.url);
+      expect(urls).toEqual(['/trips/1/reservations/10', '/trips/1/reservations/10/travelers', '/trips/1/reservations/positions']);
+    });
+
+    it('FE-RESERV-013: a booking deleted offline leaves the list and takes its linked costs with it', async () => {
+      seedStore(useTripStore, {
+        reservations: [buildReservation({ id: 10, trip_id: 1 })],
+        budgetItems: [buildBudgetItem({ id: 5, trip_id: 1, reservation_id: 10 })],
+      });
+
+      await useTripStore.getState().deleteReservation(1, 10);
+
+      expect(useTripStore.getState().reservations).toEqual([]);
+      expect(useTripStore.getState().budgetItems).toEqual([]);
+      expect((await offlineDb.mutationQueue.toArray())[0]).toMatchObject({ method: 'DELETE', url: '/trips/1/reservations/10' });
     });
   });
 });

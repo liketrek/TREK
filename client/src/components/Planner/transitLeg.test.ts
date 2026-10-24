@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { buildTransitLeg, buildTransitNameIndex } from './transitLeg'
 import type { Accommodation, Assignment, Reservation, RouteSegment } from '../../types'
 
-// FE-PLANNER-TRANSITLEG-001 to FE-PLANNER-TRANSITLEG-006
+// FE-PLANNER-TRANSITLEG-001 to FE-PLANNER-TRANSITLEG-007
 
 const visit = (id: number, dayId: number, name: string, lat: number, lng: number, placeTime?: string) =>
   ({ id, day_id: dayId, place: { id, name, lat, lng, place_time: placeTime ?? null } }) as unknown as Assignment
@@ -68,5 +68,12 @@ describe('buildTransitLeg', () => {
   it('FE-PLANNER-TRANSITLEG-006: answers nothing for a leg without both ends', () => {
     expect(buildTransitLeg(undefined, 1, names, assignments, [])).toBeNull()
     expect(buildTransitLeg({ from: [1, 1] } as unknown as RouteSegment, 1, names, assignments, [])).toBeNull()
+  })
+
+  it('FE-PLANNER-TRANSITLEG-007: a leg leaving a loop tour does not depart when the tour starts (CW-08)', () => {
+    // A tour's place sits at its start; a loop ends there too, but its time is when it starts.
+    const loop = { ...visit(31, 3, 'Old town loop', 52.52, 13.4, '10:00'), tour_place_id: 31 } as Assignment
+    const tours = { '3': [loop, visit(32, 3, 'Harbour', 52.5, 13.45)] }
+    expect(buildTransitLeg(seg([52.52, 13.4], [52.5, 13.45]), 3, buildTransitNameIndex(tours, [], []), tours, [])?.time).toBeNull()
   })
 })

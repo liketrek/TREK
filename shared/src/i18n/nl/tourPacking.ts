@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types';
+
+const tourPacking: TranslationStrings = {
+  'tours.packing.label': 'Inpaklijst',
+  'tours.packing.none': 'Geen inpaklijst gekoppeld',
+  'tours.packing.link': 'Inpaklijst koppelen',
+  'tours.packing.change': 'Wijzigen',
+  'tours.packing.whole': 'Hele inpaklijst',
+  'tours.packing.packed': '{packed} van {count} ingepakt',
+  'tours.packing.packed.one': '{packed} van {count} ingepakt',
+  'tours.packing.more': '+{count} meer',
+  'tours.packing.more.one': '+{count} meer',
+  'tours.packing.items': '{count} artikelen',
+  'tours.packing.items.one': '{count} artikel',
+  'tours.packing.allPacked': 'Alles ingepakt',
+  'tours.packing.open': 'Inpaklijst openen',
+  'tours.packing.missing': '‘{name}’ heeft geen spullen meer die je kunt zien.',
+  'tours.packing.emptyList': 'De inpaklijst is nog leeg.',
+  'tours.packing.emptyCategory': '‘{name}’ heeft nog geen spullen.',
+  'tours.packing.addonOff': 'Inpaklijsten zijn uitgeschakeld, dus de lijst kan niet worden getoond.',
+  'tours.packing.loadFailed': 'De koppeling met de inpaklijst kon niet worden geladen.',
+  'tours.packing.dialogSub': 'Alleen een koppeling. De lijst en de spullen erin blijven waar ze zijn.',
+  'tours.packing.choose': 'Koppelen aan',
+  'tours.packing.confirm': 'Koppelen',
+  'tours.packing.unlink': 'Koppeling verwijderen',
+  'tours.packing.unlinkHint': 'De inpaklijst en de spullen erin blijven zoals ze zijn',
+  'tours.packing.linked': 'Inpaklijst gekoppeld.',
+  'tours.packing.unlinked': 'Koppeling verwijderd. De inpaklijst blijft zoals hij is.',
+  'tours.packing.failed': 'De koppeling kon niet worden opgeslagen.',
+};
+export default tourPacking;

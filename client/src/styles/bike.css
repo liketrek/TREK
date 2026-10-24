@@ -1,0 +1,49 @@
+/* ============================================================================
+   Bike tours on the maps and in the planner (BIK-01 to BIK-05): the colours of
+   the surfaces a route runs on and of the trail grades OpenStreetMap gives its
+   ways. Global, since the 2D, GL and 3D maps and the planner's cards all read
+   the tokens.
+   ========================================================================== */
+
+/* Surfaces run from smooth to rough: asphalt in green, rough paving in teal,
+   compacted ways in blue, gravel in amber, natural ground in brown, what the
+   data does not say in grey. A colour sorts the surface, it never says a way
+   can or cannot be ridden. */
+:root {
+  --bike-surface-paved: #16a34a;
+  --bike-surface-rough: #0d9488;
+  --bike-surface-compacted: #2563eb;
+  --bike-surface-gravel: #d97706;
+  --bike-surface-ground: #92400e;
+  --bike-surface-unknown: #94a3b8;
+  --bike-highlight-casing: #ffffff;
+}
+
+.dark {
+  --bike-surface-paved: #22c55e;
+  --bike-surface-rough: #2dd4bf;
+  --bike-surface-compacted: #60a5fa;
+  --bike-surface-gravel: #f59e0b;
+  --bike-surface-ground: #d6a06e;
+  --bike-surface-unknown: #64748b;
+  --bike-highlight-casing: #0f172a;
+}
+
+/* The mtb:scale steps in the colours trail maps commonly use for them (S0
+   green, S1 blue, S2 red, S3 black, S4 and up violet), so a rider reads them
+   at a glance; in the dark theme the black step turns light. */
+:root {
+  --bike-trail-s0: #16a34a;
+  --bike-trail-s1: #2563eb;
+  --bike-trail-s2: #dc2626;
+  --bike-trail-s3: #111827;
+  --bike-trail-s4: #7c3aed;
+}
+
+.dark {
+  --bike-trail-s0: #22c55e;
+  --bike-trail-s1: #60a5fa;
+  --bike-trail-s2: #f87171;
+  --bike-trail-s3: #e5e7eb;
+  --bike-trail-s4: #a78bfa;
+}

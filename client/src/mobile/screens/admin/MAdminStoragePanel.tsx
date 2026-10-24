@@ -1,61 +1,24 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import {
-  STORAGE_BACKEND_TYPES,
   STORAGE_BACKEND_TYPE_IDS,
   STORAGE_CATEGORIES,
   type StorageBackend,
-  type StorageBackendFieldDef,
   type StorageBackendTypeId,
   type StorageCategory,
-  type StorageConfig,
-  type StorageMigrationStatus,
 } from '@trek/shared'
 import { useTranslation } from '../../../i18n'
-import { useToast } from '../../../components/shared/Toast'
 import { formatBytes } from '../../../utils/formatBytes'
 import { relativeTime } from '../../../utils/relativeTime'
-import {
-  CACHE_CATEGORIES,
-  adoptedMirrorFor,
-  computeMigrationCandidates,
-  effectiveCategoryMap,
-  foldBackends,
-  primaryNameOf,
-  removeBackend,
-  removeBackendAndMirrors,
-  renameBackendRefs,
-  replicaCandidates,
-  replicaOfPrimaries,
-  settingsDocumentOf,
-  setMirrorTargets,
-  stripCategories,
-  upsertBackend,
-  usageByBackend,
-  type FoldedBackendRow,
-  type MigrationCandidate,
-} from '../../../components/Admin/storage/storageModel'
-import { useStorageAdmin } from '../../../components/Admin/storage/useStorageAdmin'
+import { CACHE_CATEGORIES, primaryNameOf } from '../../../components/Admin/storage/storageModel'
+import { useBackendForm } from '../../../components/Admin/storage/useBackendForm'
+import { categoryNames, migrationPromptLine, useStoragePanel } from '../../../components/Admin/storage/useStoragePanel'
 import MToggle from '../../components/MToggle'
+import MStorageTestResult from '../../components/MStorageTestResult'
 import MSetPickerSheet from '../settings/MSetPickerSheet'
 import MConfirmSheet from '../settings/MConfirmSheet'
 import { MSetSelectRow } from '../settings/MSettingsUi'
 import { MAdminButton, MAdminCard, MAdminCardHead, MAdminField, MAdminInput, MAdminSecretInput } from './MAdminUi'
-
-type FieldValues = Record<string, string | string[]>
-
-function valuesOf(backend: StorageBackend | null): FieldValues {
-  if (!backend) return {}
-  const values: FieldValues = {}
-  for (const [key, value] of Object.entries(backend.options)) {
-    values[key] = Array.isArray(value) ? value : String(value)
-  }
-  return values
-}
-
-/** Display-name mapper for joined category lists — the raw id renders only in the badge. */
-const categoryNames = (t: (key: string) => string, ids: readonly string[]): string =>
-  ids.map((id) => t(`storage.category.${id}`)).join(', ')
 
 /** Same behavior contract as the desktop BackendForm, rendered on the M* primitives. */
 function MBackendForm({
@@ -72,38 +35,13 @@ function MBackendForm({
   onCancel: () => void
 }): React.ReactElement {
   const { t } = useTranslation()
-  const [type, setType] = useState<StorageBackendTypeId>(initial?.type ?? 'local')
-  const [name, setName] = useState(initial?.name ?? '')
-  const [values, setValues] = useState<FieldValues>(() => valuesOf(initial))
-  const [targets, setTargets] = useState<string[]>(mirror.initialTargets)
+  const {
+    type, changeType, name, setName, values, setValue, toggleRef, targets, toggleTarget, fields, refOptions,
+    duplicate, canApply, buildBackend, visibleCandidates,
+  } = useBackendForm({ initial, backendNames, mirror })
   const [picker, setPicker] = useState<string | null>(null)
 
-  const fields = STORAGE_BACKEND_TYPES[type].fields as readonly StorageBackendFieldDef[]
-  const refOptions = backendNames.filter((candidate) => candidate !== name.trim())
-  const setValue = (key: string, value: string | string[]) => setValues((prev) => ({ ...prev, [key]: value }))
-
-  const filled = (field: StorageBackendFieldDef): boolean => {
-    const value = values[field.key]
-    if (field.kind === 'backend-ref-list') return Array.isArray(value) && value.length > 0
-    return typeof value === 'string' && value.trim() !== ''
-  }
-  const duplicate = name.trim() !== (initial?.name ?? '') && backendNames.includes(name.trim())
-  const canApply = name.trim() !== '' && !duplicate && fields.every((f) => !f.required || filled(f))
-
-  const apply = () => {
-    const options: Record<string, unknown> = {}
-    for (const field of fields) {
-      const value = values[field.key]
-      if (field.kind === 'backend-ref-list') {
-        options[field.key] = Array.isArray(value) ? value : []
-        continue
-      }
-      const text = typeof value === 'string' ? value : ''
-      if (text === '' && !field.required) continue
-      options[field.key] = field.kind === 'number' ? Number(text) : text
-    }
-    onCommit({ name: name.trim(), type, options } as StorageBackend, targets)
-  }
+  const apply = () => onCommit(buildBackend(), targets)
 
   return (
     <MAdminCard className="space-y-3">
@@ -132,10 +70,7 @@ function MBackendForm({
               label: t(`storage.type.${id}`),
             }))}
             value={type}
-            onSelect={(next) => {
-              setType(next as StorageBackendTypeId)
-              setValues({})
-            }}
+            onSelect={(next) => changeType(next as StorageBackendTypeId)}
           />
         </MAdminField>
       )}
@@ -173,12 +108,7 @@ function MBackendForm({
                     <MToggle
                       checked={selected.includes(candidate)}
                       ariaLabel={candidate}
-                      onChange={(checked) =>
-                        setValue(
-                          field.key,
-                          checked ? [...selected, candidate] : selected.filter((existing) => existing !== candidate),
-                        )
-                      }
+                      onChange={(checked) => toggleRef(field.key, candidate, checked)}
                     />
                   </div>
                 ))}
@@ -207,17 +137,13 @@ function MBackendForm({
 
       <MAdminField label={t('storage.mirror.targets')} hint={t('storage.mirror.targetsHelp')}>
         <div className="space-y-2">
-          {mirror.candidates
-            .filter((candidate) => candidate !== name.trim())
-            .map((candidate) => (
+          {visibleCandidates.map((candidate) => (
               <div key={candidate} className="flex items-center justify-between gap-2">
                 <span className="text-[0.8125rem] font-semibold text-m-ink">{candidate}</span>
                 <MToggle
                   checked={targets.includes(candidate)}
                   ariaLabel={candidate}
-                  onChange={(checked) =>
-                    setTargets(checked ? [...targets, candidate] : targets.filter((existing) => existing !== candidate))
-                  }
+                  onChange={(checked) => toggleTarget(candidate, checked)}
                 />
               </div>
             ))}
@@ -243,63 +169,11 @@ function MBackendForm({
 
 export default function MAdminStoragePanel(): React.ReactElement {
   const { t, locale } = useTranslation()
-  const toast = useToast()
-  const admin = useStorageAdmin(t('common.error'), t('storage.saveConflict'))
-  const [editing, setEditing] = useState<{
-    initial: StorageBackend | null
-    originalName: string | null
-    mirror: { candidates: string[]; initialTargets: string[] }
-  } | null>(null)
-  const [confirmRemove, setConfirmRemove] = useState<{ name: string; degenerate: boolean } | null>(null)
+  const {
+    admin, editing, setEditing, confirmRemove, setConfirmRemove, syncPrompt, setSyncPrompt, migratePrompt,
+    handleCancelMigration, handleRefreshStats, handleStartBackfill, handleCancelBackfill, loaded,
+  } = useStoragePanel()
   const [categoryPicker, setCategoryPicker] = useState<StorageCategory | null>(null)
-  const [syncPrompt, setSyncPrompt] = useState<string | null>(null)
-  const [migratePrompt, setMigratePrompt] = useState<MigrationCandidate[] | null>(null)
-  const [migrationQueue, setMigrationQueue] = useState<MigrationCandidate[]>([])
-  // Set by `save` right before it calls admin.save(): the pre-save mirror
-  // target count per row name. Consumed (and cleared) by the effect below the
-  // first time `admin.state` changes afterward — never touched otherwise, so
-  // unrelated state changes (the backfill poll included) are no-ops here.
-  const pendingPromptCheck = useRef<Map<string, number> | null>(null)
-  // Synchronous single-flight lock for the queue effect below: `admin.state`
-  // only reflects a just-started migration once startMigration's awaited
-  // refreshState() resolves, so `setMigrationQueue(rest)` re-firing the
-  // effect synchronously (still against the pre-POST `admin.state`) would
-  // otherwise dequeue and POST the next candidate before the server has
-  // confirmed the first — a ref (not state) so the guard is visible on that
-  // very next synchronous re-render, not just after a state-driven one.
-  const migrationStartInFlight = useRef(false)
-
-  useEffect(() => {
-    if (!pendingPromptCheck.current || !admin.state) return
-    const before = pendingPromptCheck.current
-    pendingPromptCheck.current = null
-    const { rows: afterRows } = foldBackends(admin.state, settingsDocumentOf(admin.state))
-    const grown = afterRows.find((r) => r.mirrorTargets.length > (before.get(r.name) ?? 0))
-    if (grown) setSyncPrompt(grown.name)
-  }, [admin.state])
-
-  // Queued category migrations run strictly sequentially: once a slot opens
-  // (no migration currently running), dequeue the next candidate and start
-  // it. Depends on admin.state so a poll landing a terminal status re-fires
-  // this without any user interaction. The in-flight lock closes the race
-  // where setMigrationQueue(rest) re-fires this effect synchronously while
-  // admin.state still shows the pre-POST world — without it, the next
-  // candidate could dequeue and POST before the first is server-confirmed.
-  // Also waits out a running BACKFILL — the server's one-storage-job-at-a-time
-  // rule spans backfills and migrations alike, so starting while one runs
-  // would 409, and the queued candidate would be lost (no retry).
-  useEffect(() => {
-    if (migrationQueue.length === 0 || !admin.state) return
-    if (migrationStartInFlight.current) return
-    if (admin.storageBusy()) return
-    const [next, ...rest] = migrationQueue
-    migrationStartInFlight.current = true
-    setMigrationQueue(rest)
-    void admin.startMigration(next!.category, next!.toWire).then((error) => {
-      migrationStartInFlight.current = false
-      if (error) toast.error(error)
-    })
-  }, [migrationQueue, admin.state])
 
   if (admin.loading) {
     return (
@@ -308,136 +182,17 @@ export default function MAdminStoragePanel(): React.ReactElement {
       </MAdminCard>
     )
   }
-  if (!admin.state || !admin.draft) {
+  if (!loaded) {
     return (
       <MAdminCard>
         <p role="alert" className="text-[0.8125rem] text-m-ink">{admin.loadError || t('common.error')}</p>
       </MAdminCard>
     )
   }
-  const { state, draft } = admin
-
-  const backendNames = [...new Set([...state.backends.map((b) => b.name), ...draft.backends.map((b) => b.name)])]
-  const { rows, degenerate } = foldBackends(state, draft)
-  const effective = effectiveCategoryMap(state, draft)
-  const usageSums = usageByBackend(state, draft)
-
-  const startEdit = (row: FoldedBackendRow) => {
-    setEditing({
-      initial: row.backend,
-      originalName: row.name,
-      mirror: {
-        candidates: replicaCandidates(rows, row.name, row.mirrorTargets),
-        initialTargets: row.mirrorTargets,
-      },
-    })
-  }
-
-  const commitBackend = (backend: StorageBackend, mirrorTargets: string[]) => {
-    const renamedFrom = editing?.originalName && editing.originalName !== backend.name ? editing.originalName : null
-    // Widened to StorageConfig: these edit helpers are version-blind (they
-    // return plain StorageConfig), and admin.setDraft re-attaches the
-    // draft's own `version` regardless of what shape it's handed.
-    let next: StorageConfig | null = draft
-    if (renamedFrom) next = renameBackendRefs(removeBackend(next, renamedFrom), renamedFrom, backend.name)
-    next = upsertBackend(next, backend)
-    next = setMirrorTargets(state, next, backend.name, mirrorTargets)
-    admin.setDraft(next)
-    setEditing(null)
-  }
-
-  const removeMessage = (name: string, isDegenerate: boolean): string => {
-    const row = rows.find((r) => r.name === name)
-    const assigned = isDegenerate
-      ? degenerate.find((d) => d.backend.name === name)?.categories ?? []
-      : row?.categories ?? []
-    const usedAsReplicaBy = isDegenerate ? [] : replicaOfPrimaries(draft, name)
-    return [
-      t('storage.remove.body', { name }),
-      assigned.length > 0 ? t('storage.remove.stillAssigned', { categories: categoryNames(t, assigned) }) : '',
-      usedAsReplicaBy.length > 0 ? t('storage.remove.usedAsReplicaBy', { primaries: usedAsReplicaBy.join(', ') }) : '',
-    ]
-      .filter(Boolean)
-      .join(' ')
-  }
-
-  const setCategory = (category: StorageCategory, primaryName: string) => {
-    const target = adoptedMirrorFor(draft, primaryName)?.name ?? primaryName
-    // The admin state's category record is exhaustive by schema contract.
-    const stateEntry = state.categories[category]!
-    const categories = { ...draft.categories }
-    if (stateEntry.source === 'default' && target === stateEntry.backend) {
-      delete categories[category]
-    } else {
-      categories[category] = target
-    }
-    admin.setDraft({ ...draft, categories })
-  }
-
-  // Snapshot the LAST-CONFIRMED (pre-save `state`'s own fold, not the
-  // in-progress `draft`) mirror target counts; the effect above compares
-  // them against the fresh post-save state to detect newly-added
-  // replicas. Folding `draft` here would already include the unsaved
-  // edit and mask the very growth this is meant to detect.
-  const snapshotMirrorTargets = (): Map<string, number> => {
-    const { rows: beforeRows } = foldBackends(state, settingsDocumentOf(state))
-    return new Map(beforeRows.map((r) => [r.name, r.mirrorTargets.length]))
-  }
-
-  const doPlainSave = async () => {
-    pendingPromptCheck.current = snapshotMirrorTargets()
-    if (await admin.save()) toast.success(t('storage.saved'))
-    else pendingPromptCheck.current = null
-  }
-
-  const moveAndSave = async (candidates: MigrationCandidate[]) => {
-    pendingPromptCheck.current = snapshotMirrorTargets()
-    const ok = await admin.save(stripCategories(draft, state, candidates.map((c) => c.category)))
-    if (ok) {
-      setMigrationQueue(candidates)
-      toast.success(t('storage.saved'))
-    } else {
-      pendingPromptCheck.current = null
-    }
-    setMigratePrompt(null)
-  }
-
-  const routeOnlySave = async () => {
-    setMigratePrompt(null)
-    await doPlainSave()
-  }
-
-  const save = async () => {
-    const candidates = computeMigrationCandidates(draft, state)
-    if (candidates.length > 0) {
-      setMigratePrompt(candidates)
-      return
-    }
-    await doPlainSave()
-  }
-
-  const handleCancelMigration = async (m: StorageMigrationStatus) => {
-    const error = await admin.cancelMigration(m.category)
-    if (error) toast.error(error)
-  }
-
-  const handleRefreshStats = async () => {
-    const error = await admin.refreshStats()
-    if (error) toast.error(error)
-  }
-
-  const handleStartBackfill = async (row: FoldedBackendRow) => {
-    if (!row.mirrorName) return
-    setSyncPrompt((prev) => (prev === row.name ? null : prev))
-    const error = await admin.startBackfill(row.mirrorName)
-    if (error) toast.error(error)
-  }
-
-  const handleCancelBackfill = async (row: FoldedBackendRow) => {
-    if (!row.mirrorName) return
-    const error = await admin.cancelBackfill(row.mirrorName)
-    if (error) toast.error(error)
-  }
+  const {
+    state, draft, backendNames, rows, degenerate, effective, usageSums, startAdd, startEdit, testRow, commitBackend,
+    removeMessage, confirmRemoval, setCategory, save, moveAndSave, routeOnlySave,
+  } = loaded
 
   return (
     <div className="space-y-3">
@@ -481,11 +236,6 @@ export default function MAdminStoragePanel(): React.ReactElement {
           {rows.map((row) => {
             const resultKey = row.mirrorName ?? row.name
             const result = admin.testResults[resultKey]
-            // row.mirrorName only exists when foldBackends adopted a draft mirror
-            // for this row, so the draft lookup below cannot miss.
-            const testCandidate = row.mirrorName
-              ? draft.backends.find((b) => b.name === row.mirrorName)!
-              : row.backend
             const rowUsage = usageSums?.[row.name]
             const backfill = row.mirrorName ? state.backfills.find((b) => b.backend === row.mirrorName) : undefined
             return (
@@ -510,7 +260,7 @@ export default function MAdminStoragePanel(): React.ReactElement {
                 </p>
                 {rowUsage && (
                   <p className="mt-1 font-geist text-[0.625rem] text-m-muted">
-                    {t('storage.usage.line', { objects: String(rowUsage.objects), size: formatBytes(rowUsage.bytes) })}
+                    {t('storage.usage.line', { count: rowUsage.objects, size: formatBytes(rowUsage.bytes) })}
                     {row.name === 'uploads-local' && state.usage!.legacyPhotos.objects > 0
                       ? ` (${t('storage.usage.legacyNote')})`
                       : ''}
@@ -530,7 +280,7 @@ export default function MAdminStoragePanel(): React.ReactElement {
                   <p className="mt-1 font-geist text-[0.625rem] text-m-muted">{t('storage.backends.envReadOnly')}</p>
                 )}
                 <div className="mt-2 flex gap-2">
-                  <MAdminButton variant="ghost" onClick={() => admin.test(testCandidate)}>
+                  <MAdminButton variant="ghost" onClick={() => void testRow(row)}>
                     {t('storage.actions.test')}
                   </MAdminButton>
                   {row.source !== 'env' && (
@@ -544,23 +294,7 @@ export default function MAdminStoragePanel(): React.ReactElement {
                     </MAdminButton>
                   )}
                 </div>
-                {result === 'running' ? (
-                  <p className="mt-2 font-geist text-[0.625rem] text-m-muted">{t('storage.test.running')}</p>
-                ) : (
-                  result && (
-                    <div className="mt-2 space-y-0.5">
-                      <p className="text-[0.75rem] font-bold text-m-ink">
-                        {result.ok ? t('storage.test.ok') : t('storage.test.failed')}
-                      </p>
-                      {result.targets.map((target) => (
-                        <p key={target.name} className="font-geist text-[0.625rem] text-m-muted">
-                          {target.ok ? '✓' : '✗'} {target.name}
-                          {target.error ? ` — ${target.error}` : ''}
-                        </p>
-                      ))}
-                    </div>
-                  )
-                )}
+                <MStorageTestResult result={result} />
                 {row.mirrorTargets.length > 0 && (
                   <div className="mt-2">
                     {backfill?.status === 'running' ? (
@@ -647,23 +381,7 @@ export default function MAdminStoragePanel(): React.ReactElement {
                     {t('storage.actions.remove')}
                   </MAdminButton>
                 </div>
-                {result === 'running' ? (
-                  <p className="mt-2 font-geist text-[0.625rem] text-m-muted">{t('storage.test.running')}</p>
-                ) : (
-                  result && (
-                    <div className="mt-2 space-y-0.5">
-                      <p className="text-[0.75rem] font-bold text-m-ink">
-                        {result.ok ? t('storage.test.ok') : t('storage.test.failed')}
-                      </p>
-                      {result.targets.map((target) => (
-                        <p key={target.name} className="font-geist text-[0.625rem] text-m-muted">
-                          {target.ok ? '✓' : '✗'} {target.name}
-                          {target.error ? ` — ${target.error}` : ''}
-                        </p>
-                      ))}
-                    </div>
-                  )
-                )}
+                <MStorageTestResult result={result} />
               </div>
             )
           })}
@@ -703,7 +421,7 @@ export default function MAdminStoragePanel(): React.ReactElement {
                   {m.reclaimable && (
                     <p className="mt-1 font-geist text-[0.625rem] text-m-muted">
                       {t('storage.migrate.reclaimable', {
-                        objects: String(m.reclaimable.objects),
+                        count: m.reclaimable.objects,
                         size: formatBytes(m.reclaimable.bytes),
                         from: m.from,
                       })}
@@ -723,13 +441,7 @@ export default function MAdminStoragePanel(): React.ReactElement {
         {editing === null && (
           <div className="mt-3">
             <MAdminButton
-              onClick={() =>
-                setEditing({
-                  initial: null,
-                  originalName: null,
-                  mirror: { candidates: replicaCandidates(rows, null), initialTargets: [] },
-                })
-              }
+              onClick={startAdd}
             >
               {t('storage.backends.add')}
             </MAdminButton>
@@ -772,7 +484,7 @@ export default function MAdminStoragePanel(): React.ReactElement {
                 {state.usage?.categories[category] && (
                   <p className="mb-1 font-geist text-[0.625rem] text-m-muted">
                     {t('storage.usage.line', {
-                      objects: String(state.usage.categories[category]!.objects),
+                      count: state.usage.categories[category]!.objects,
                       size: formatBytes(state.usage.categories[category]!.bytes),
                     })}
                   </p>
@@ -826,19 +538,7 @@ export default function MAdminStoragePanel(): React.ReactElement {
             <p className="text-[0.8125rem] text-m-ink">{t('storage.migrate.promptTitle')}</p>
             {migratePrompt.map((c) => (
               <p key={c.category} className="mt-1 font-geist text-[0.625rem] text-m-muted">
-                {c.objects === null
-                  ? t('storage.migrate.promptLineUnknown', {
-                      category: t(`storage.category.${c.category}`),
-                      from: c.from,
-                      to: c.to,
-                    })
-                  : t('storage.migrate.promptLine', {
-                      category: t(`storage.category.${c.category}`),
-                      objects: String(c.objects),
-                      size: formatBytes(c.bytes ?? 0),
-                      from: c.from,
-                      to: c.to,
-                    })}
+                {migrationPromptLine(t, c)}
               </p>
             ))}
             <div className="mt-2 flex items-center gap-2">
@@ -873,16 +573,7 @@ export default function MAdminStoragePanel(): React.ReactElement {
         confirmLabel={t('storage.actions.remove')}
         cancelLabel={t('storage.form.cancel')}
         danger
-        onConfirm={() => {
-          if (confirmRemove) {
-            admin.setDraft(
-              confirmRemove.degenerate
-                ? removeBackend(draft, confirmRemove.name)
-                : removeBackendAndMirrors(state, draft, confirmRemove.name),
-            )
-          }
-          setConfirmRemove(null)
-        }}
+        onConfirm={confirmRemoval}
       />
     </div>
   )

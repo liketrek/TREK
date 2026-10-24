@@ -1,13 +1,11 @@
 import type { TranslationStrings } from '../types';
 
 const members: TranslationStrings = {
-  'members.shareTrip': 'Chia sẻ chuyến đi',
   'members.inviteUser': 'Mời người dùng',
   'members.selectUser': 'Chọn người dùng…',
   'members.invite': 'Mời',
   'members.allHaveAccess': 'Tất cả người dùng đã có quyền truy cập.',
   'members.access': 'Truy cập',
-  'members.person': 'người',
   'members.persons': 'người',
   'members.you': 'Bạn',
   'members.owner': 'Người sở hữu',
@@ -33,6 +31,9 @@ const members: TranslationStrings = {
   'members.guestAddError': 'Không thể thêm khách',
   'members.guestRenameError': 'Không thể đổi tên khách',
   'members.guestRemoved': 'Đã xóa khách',
-  'members.confirmRemoveGuest': 'Xóa khách này? Các phân công và phần chi phí của họ cũng sẽ bị xóa.',
+  'members.confirmRemoveGuest':
+    'Xóa khách này? Các phân công của họ sẽ bị xóa và phần của họ trong mỗi khoản chi sẽ được chia cho những người còn lại.',
+  'members.guestHasPayments':
+    'Khách này đã thanh toán một khoản chi hoặc có liên quan đến một khoản thanh toán đã ghi nhận. Hãy đổi người trả hoặc xóa khoản thanh toán trước.',
 };
 export default members;

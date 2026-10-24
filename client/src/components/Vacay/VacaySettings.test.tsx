@@ -235,6 +235,12 @@ describe('VacaySettings', () => {
     const dissolveButton = buttons.find(b => b.className.includes('bg-red-500'))
     expect(dissolveButton).toBeDefined()
     await user.click(dissolveButton!)
+    // The button only asks; nothing is dissolved until the dialog is confirmed.
+    expect(dissolve).not.toHaveBeenCalled()
+    // The confirm button is the same label, rendered last (portal).
+    const confirmButtons = await screen.findAllByRole('button', { name: /dissolveAction|Dissolve/i })
+    expect(confirmButtons.length).toBeGreaterThan(1)
+    await user.click(confirmButtons[confirmButtons.length - 1])
 
     await waitFor(() => {
       expect(dissolve).toHaveBeenCalled()

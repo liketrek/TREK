@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types';
+
+const tourPacking: TranslationStrings = {
+  'tours.packing.label': 'Paket listesi',
+  'tours.packing.none': 'Bağlı paket listesi yok',
+  'tours.packing.link': 'Paket listesi bağla',
+  'tours.packing.change': 'Değiştir',
+  'tours.packing.whole': 'Tüm paket listesi',
+  'tours.packing.packed': '{count} eşyadan {packed} tanesi paketlendi',
+  'tours.packing.packed.one': '{count} eşyadan {packed} tanesi paketlendi',
+  'tours.packing.more': '{count} tane daha',
+  'tours.packing.more.one': '{count} tane daha',
+  'tours.packing.items': '{count} eşya',
+  'tours.packing.items.one': '{count} eşya',
+  'tours.packing.allPacked': 'Hepsi paketlendi',
+  'tours.packing.open': 'Paket listesini aç',
+  'tours.packing.missing': '“{name}” içinde artık görebileceğiniz eşya yok.',
+  'tours.packing.emptyList': 'Paket listesi henüz boş.',
+  'tours.packing.emptyCategory': '“{name}” içinde henüz eşya yok.',
+  'tours.packing.addonOff': 'Paket listeleri kapalı, bu yüzden liste gösterilemiyor.',
+  'tours.packing.loadFailed': 'Paket listesi bağlantısı yüklenemedi.',
+  'tours.packing.dialogSub': 'Yalnızca bir bağlantı. Liste ve eşyaları olduğu yerde kalır.',
+  'tours.packing.choose': 'Bağlanacak yer',
+  'tours.packing.confirm': 'Bağla',
+  'tours.packing.unlink': 'Bağlantıyı kaldır',
+  'tours.packing.unlinkHint': 'Paket listesi ve eşyaları olduğu gibi kalır',
+  'tours.packing.linked': 'Paket listesi bağlandı.',
+  'tours.packing.unlinked': 'Bağlantı kaldırıldı. Paket listesi olduğu gibi kalır.',
+  'tours.packing.failed': 'Bağlantı kaydedilemedi.',
+};
+export default tourPacking;

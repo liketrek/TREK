@@ -2,6 +2,7 @@ import { schoolHolidayCatalogRepo } from '../../repo/schoolHolidayCatalogRepo'
 import apiClient from '../../api/client'
 import { useSettingsStore } from '../../store/settingsStore'
 import { SCHOOL_HOLIDAY_COUNTRY_CONFIG } from '../../vacay/schoolHolidayCountries'
+import { importChunk } from '../../utils/chunkReload'
 
 // Loads the subdivision (state/region) options for a holiday-calendar country.
 //
@@ -23,7 +24,7 @@ export async function fetchRegionOptions(country: string): Promise<{ value: stri
     // that get a region picker at all. Deliberately inside the try — if the chunk
     // fails, the result is the same empty array as a failed request, rather than an
     // unhandled rejection in the two callers that only do .then(setRegions).
-    const iso31662 = (await import('iso-3166-2')).default
+    const iso31662 = (await importChunk(() => import('iso-3166-2'))).default
 
     const opts = new Map<string, string>() // ISO code -> display name
     const sub = iso31662.country(country)?.sub || {}

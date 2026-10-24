@@ -256,7 +256,7 @@ describe('DawarichAtlasDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Look for countries' }))
     await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Netherlands' })).toBeInTheDocument())
 
-    fireEvent.click(screen.getByRole('button', { name: /Add 1 countries/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Add 1 country/ }))
 
     await waitFor(() => expect(api.acceptAtlasCountries).toHaveBeenCalledWith(['NL']))
   })
@@ -351,7 +351,7 @@ describe('DawarichAtlasDialog', () => {
     await waitFor(() =>
       expect(screen.getByText('Your recordings show no countries TREK does not already have.')).toBeInTheDocument(),
     )
-    expect(screen.queryByRole('button', { name: /Add \d+ countries/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Add \d+ countr/ })).toBeNull()
   })
 
   it('FE-DAWARICH-ATLASDLG-015: wishes reached on one day travel in one request, another day in its own', async () => {
@@ -430,7 +430,7 @@ describe('DawarichAtlasDialog', () => {
     await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Netherlands' })).toBeInTheDocument())
 
     setForcedOffline(true)
-    fireEvent.click(screen.getByRole('button', { name: /Add 1 countries/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Add 1 country/ }))
 
     expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('TREK is offline right now'))
     expect(api.acceptAtlasCountries).not.toHaveBeenCalled()
@@ -463,7 +463,7 @@ describe('DawarichAtlasDialog', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Look for countries' }))
     await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Netherlands' })).toBeInTheDocument())
-    fireEvent.click(screen.getByRole('button', { name: /Add 1 countries/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Add 1 country/ }))
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Something went wrong talking to Dawarich.'))
     expect(screen.getByRole('checkbox', { name: 'Netherlands' })).toHaveAttribute('aria-checked', 'true')
@@ -572,9 +572,9 @@ describe('DawarichAtlasDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Look for countries' }))
     await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Netherlands' })).toBeInTheDocument())
 
-    fireEvent.click(screen.getByRole('button', { name: /Add 1 countries/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Add 1 country/ }))
 
-    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('1 countries added'))
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('1 country added'))
     // Marked in place rather than re-read: the reading costs an upstream request
     // and the only thing that changed is what the reader just pressed. The row
     // leaving the list is what says the write landed.
@@ -582,7 +582,7 @@ describe('DawarichAtlasDialog', () => {
       expect(screen.getByText('Your recordings show no countries TREK does not already have.')).toBeInTheDocument(),
     )
     expect(screen.queryByRole('checkbox', { name: 'Netherlands' })).toBeNull()
-    expect(screen.queryByRole('button', { name: /Add \d+ countries/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Add \d+ countr/ })).toBeNull()
     expect(repo.atlasSuggestions).toHaveBeenCalledTimes(1)
     // The Atlas keeps its own map and its own counts; without this the country
     // it was just told about only appears there after a reload.
@@ -626,11 +626,11 @@ describe('DawarichAtlasDialog', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: 'France' }))
     expect(screen.getByRole('checkbox', { name: 'France' })).toHaveAttribute('aria-checked', 'true')
 
-    fireEvent.click(screen.getByRole('button', { name: /Add 1 countries/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Add 1 country/ }))
 
     // Belgium was never sent, so nothing has to be undone in the Atlas after.
     await waitFor(() => expect(api.acceptAtlasCountries).toHaveBeenCalledWith(['FR']))
-    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('1 countries added'))
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('1 country added'))
     // And it is still on offer, still unticked, for the trip it does belong to.
     expect(screen.getByRole('checkbox', { name: 'Belgium' })).toHaveAttribute('aria-checked', 'false')
   })

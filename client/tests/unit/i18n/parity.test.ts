@@ -1,25 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import type { TranslationStrings } from '@trek/shared/i18n'
+import { pluralFormOf, pluralGroups } from '@trek/shared'
+import { SUPPORTED_LANGUAGE_CODES, type TranslationStrings } from '@trek/shared/i18n'
 import en from '@trek/shared/i18n/en'
-import de from '@trek/shared/i18n/de'
-import es from '@trek/shared/i18n/es'
-import fr from '@trek/shared/i18n/fr'
-import hu from '@trek/shared/i18n/hu'
-import itIT from '@trek/shared/i18n/it'
-import tr from '@trek/shared/i18n/tr'
-import ru from '@trek/shared/i18n/ru'
-import zh from '@trek/shared/i18n/zh'
-import zhTW from '@trek/shared/i18n/zh-TW'
-import nl from '@trek/shared/i18n/nl'
-import idID from '@trek/shared/i18n/id'
-import ar from '@trek/shared/i18n/ar'
-import br from '@trek/shared/i18n/br'
-import cs from '@trek/shared/i18n/cs'
-import pl from '@trek/shared/i18n/pl'
-import ja from '@trek/shared/i18n/ja'
-import ko from '@trek/shared/i18n/ko'
-import uk from '@trek/shared/i18n/uk'
-import gr from '@trek/shared/i18n/gr'
 
 // Runtime guard for the aggregated i18n bundles. `t()` resolves keys against the
 // active locale's flat dot-key map (see TranslationContext), so a key that is
@@ -29,36 +11,38 @@ import gr from '@trek/shared/i18n/gr'
 //
 // The shared package also runs a file-level parity check (shared/scripts), but
 // that one only inspects per-domain source files; this one asserts the *merged*
-// export each locale actually serves to the app.
+// export each locale actually serves to the app. The locales come from the one
+// registry, so a language added there is checked here without a second list.
 
-const NON_EN_LOCALES: Record<string, TranslationStrings> = {
-  de, es, fr, hu, it: itIT, tr, ru, zh, 'zh-TW': zhTW, nl, id: idID,
-  ar, br, cs, pl, ja, ko, uk, gr,
-}
+const NON_EN_CODES = SUPPORTED_LANGUAGE_CODES.filter((code) => code !== 'en')
 
-const enKeys = new Set(Object.keys(en))
+// A count-bearing string's category forms (`places.count.one`, `.few`, ...)
+// differ by language on purpose: Russian needs `.few` and `.many`, Japanese
+// none. They are left out of the key comparison here; the shared parity CLI
+// checks each locale has exactly the forms its plural rule needs.
+const groups = pluralGroups(Object.keys(en))
+const isVariant = (k: string) => pluralFormOf(k, groups) !== null
+const enKeys = new Set(Object.keys(en).filter((k) => !isVariant(k)))
 
 describe('i18n locale key parity', () => {
-  it('covers every non-en locale', () => {
-    // Keep the assertion set in lockstep with the supported language list minus en.
-    expect(Object.keys(NON_EN_LOCALES)).toHaveLength(19)
+  it('covers every supported locale but en', () => {
+    expect(NON_EN_CODES.length).toBeGreaterThanOrEqual(26)
   })
 
-  for (const [locale, strings] of Object.entries(NON_EN_LOCALES)) {
-    it(`${locale} has the exact same key set as en`, () => {
-      const localeKeys = new Set(Object.keys(strings))
-      const missing = [...enKeys].filter((k) => !localeKeys.has(k))
-      const extra = [...localeKeys].filter((k) => !enKeys.has(k))
+  it.each(NON_EN_CODES)('%s has the exact same key set as en', async (locale) => {
+    const strings = ((await import(`@trek/shared/i18n/${locale}`)) as { default: TranslationStrings }).default
+    const localeKeys = new Set(Object.keys(strings).filter((k) => !isVariant(k)))
+    const missing = [...enKeys].filter((k) => !localeKeys.has(k))
+    const extra = [...localeKeys].filter((k) => !enKeys.has(k))
 
-      const diagnostic =
-        `Locale "${locale}" key drift vs en — ` +
-        `missing ${missing.length}` +
-        (missing.length ? ` (${missing.slice(0, 10).join(', ')}${missing.length > 10 ? ', …' : ''})` : '') +
-        `; extra ${extra.length}` +
-        (extra.length ? ` (${extra.slice(0, 10).join(', ')}${extra.length > 10 ? ', …' : ''})` : '')
+    const diagnostic =
+      `Locale "${locale}" key drift vs en — ` +
+      `missing ${missing.length}` +
+      (missing.length ? ` (${missing.slice(0, 10).join(', ')}${missing.length > 10 ? ', …' : ''})` : '') +
+      `; extra ${extra.length}` +
+      (extra.length ? ` (${extra.slice(0, 10).join(', ')}${extra.length > 10 ? ', …' : ''})` : '')
 
-      expect(missing, diagnostic).toEqual([])
-      expect(extra, diagnostic).toEqual([])
-    })
-  }
+    expect(missing, diagnostic).toEqual([])
+    expect(extra, diagnostic).toEqual([])
+  })
 })

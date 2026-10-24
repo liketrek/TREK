@@ -1,3 +1,9 @@
+import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { PlaceShadowPicks } from '../../db/entities/PlaceShadowPicks.entity';
+import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import type { PlaceShadowPicksRepository, PlaceShadowPickRow } from '../../db/repositories/PlaceShadowPicks.repository';
+import { readAppSetting } from '../common/app-settings.registry';
+import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
 import type {
   PlaceShadowExportResult,
@@ -5,7 +11,6 @@ import type {
   PlaceShadowRow,
   PlaceShadowSummaryResult,
 } from '@trek/shared';
-import { DatabaseService } from '../database/database.service';
 
 /** Rows older than this are removed nightly. */
 export const RETENTION_DAYS = 180;
@@ -25,23 +30,7 @@ function round(value: number, decimals = COORD_DECIMALS): number {
   return Math.round(value * f) / f;
 }
 
-interface DbRow {
-  id: number;
-  created_at: string;
-  query: string;
-  lang: string | null;
-  bias_lat: number | null;
-  bias_lng: number | null;
-  source: string;
-  live_rank: number;
-  live_count: number;
-  picked_name: string;
-  picked_lat: number;
-  picked_lng: number;
-  picked_place_id: string | null;
-}
-
-function toRow(r: DbRow): PlaceShadowRow {
+function toRow(r: PlaceShadowPickRow): PlaceShadowRow {
   return {
     id: r.id,
     createdAt: r.created_at,
@@ -72,13 +61,14 @@ function toRow(r: DbRow): PlaceShadowRow {
  */
 @Injectable()
 export class PlaceShadowService {
-  constructor(private readonly db: DatabaseService) {}
+  constructor(
+    @InjectRepository(PlaceShadowPicks) private readonly picks: PlaceShadowPicksRepository,
+    @InjectRepository(AppSettings) private readonly appSettings: AppSettingsRepository,
+  ) {}
 
-  enabled(): boolean {
-    const row = this.db.get<{ value: string }>(
-      "SELECT value FROM app_settings WHERE key = 'place_shadow_enabled'",
-    );
-    return row?.value === 'true';
+  async enabled(): Promise<boolean> {
+    const value = await readAppSetting(this.appSettings, 'place_shadow_enabled');
+    return value === 'true';
   }
 
   /**
@@ -87,30 +77,26 @@ export class PlaceShadowService {
    * somebody adds a place would be noise about a feature that is off on
    * purpose.
    */
-  record(pick: PlaceShadowPickRequest): boolean {
-    if (!this.enabled()) return false;
+  async record(pick: PlaceShadowPickRequest): Promise<boolean> {
+    if (!(await this.enabled())) return false;
     // A rank outside the returned list means the client and the server disagree
     // about what was on screen. Storing it would poison the very number the
     // corpus exists to produce, so the row is dropped instead.
     if (pick.liveRank >= pick.liveCount) return false;
 
-    this.db.run(
-      `INSERT INTO place_shadow_picks
-         (query, lang, bias_lat, bias_lng, source, live_rank, live_count,
-          picked_name, picked_lat, picked_lng, picked_place_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      pick.query,
-      pick.lang ?? null,
-      pick.biasLat === undefined ? null : round(pick.biasLat),
-      pick.biasLng === undefined ? null : round(pick.biasLng),
-      pick.source,
-      pick.liveRank,
-      pick.liveCount,
-      pick.pickedName,
-      round(pick.pickedLat),
-      round(pick.pickedLng),
-      pick.pickedPlaceId ?? null,
-    );
+    await this.picks.insertPick({
+      query: pick.query,
+      lang: pick.lang ?? null,
+      bias_lat: pick.biasLat === undefined ? null : round(pick.biasLat),
+      bias_lng: pick.biasLng === undefined ? null : round(pick.biasLng),
+      source: pick.source,
+      live_rank: pick.liveRank,
+      live_count: pick.liveCount,
+      picked_name: pick.pickedName,
+      picked_lat: round(pick.pickedLat),
+      picked_lng: round(pick.pickedLng),
+      picked_place_id: pick.pickedPlaceId ?? null,
+    });
     return true;
   }
 
@@ -119,16 +105,9 @@ export class PlaceShadowService {
    * previous page; paging by id rather than by offset keeps the pages stable
    * while new rows arrive underneath.
    */
-  export(after?: number, limit = EXPORT_PAGE_SIZE): PlaceShadowExportResult {
+  async export(after?: number, limit = EXPORT_PAGE_SIZE): Promise<PlaceShadowExportResult> {
     const size = Math.min(Math.max(1, limit), EXPORT_PAGE_SIZE);
-    const rows = this.db.all<DbRow>(
-      `SELECT * FROM place_shadow_picks
-        WHERE id > ?
-        ORDER BY id
-        LIMIT ?`,
-      after ?? 0,
-      size + 1,
-    );
+    const rows = await this.picks.page(after ?? 0, size);
     const page = rows.slice(0, size);
     return {
       version: 1,
@@ -138,42 +117,35 @@ export class PlaceShadowService {
     };
   }
 
-  summary(): PlaceShadowSummaryResult {
-    const enabled = this.enabled();
-    const totals = this.db.get<{ total: number; oldest: string | null; newest: string | null }>(
-      'SELECT COUNT(*) AS total, MIN(created_at) AS oldest, MAX(created_at) AS newest FROM place_shadow_picks',
-    );
-    const total = totals?.total ?? 0;
+  async summary(): Promise<PlaceShadowSummaryResult> {
+    const enabled = await this.enabled();
+    const totals = await this.picks.totals();
+    const total = totals.total;
 
-    const bySource = this.db.all<{ source: string; count: number }>(
-      `SELECT source, COUNT(*) AS count FROM place_shadow_picks
-        GROUP BY source ORDER BY count DESC`,
-    );
+    const bySource = await this.picks.countBySource();
 
     // Buckets rather than a mean: the question is "did the user find it near
     // the top", and an average rank is dragged around by the rare query that
     // scrolled to result 40.
-    const ranks = this.db.all<{ live_rank: number; count: number }>(
-      'SELECT live_rank, COUNT(*) AS count FROM place_shadow_picks GROUP BY live_rank',
-    );
+    const ranks = await this.picks.countByLiveRank();
     const counted = (test: (rank: number) => boolean): number =>
-      ranks.filter(r => test(r.live_rank)).reduce((sum, r) => sum + r.count, 0);
+      ranks.filter((r) => test(r.live_rank)).reduce((sum, r) => sum + r.count, 0);
 
-    const topOne = counted(r => r === 0);
-    const topFive = counted(r => r < 5);
+    const topOne = counted((r) => r === 0);
+    const topFive = counted((r) => r < 5);
 
     return {
       enabled,
       total,
-      oldest: totals?.oldest ?? null,
-      newest: totals?.newest ?? null,
+      oldest: totals.oldest,
+      newest: totals.newest,
       retentionDays: RETENTION_DAYS,
       bySource,
       liveRankBuckets: [
         { bucket: '1', count: topOne },
-        { bucket: '2-5', count: counted(r => r >= 1 && r < 5) },
-        { bucket: '6-10', count: counted(r => r >= 5 && r < 10) },
-        { bucket: '11+', count: counted(r => r >= 10) },
+        { bucket: '2-5', count: counted((r) => r >= 1 && r < 5) },
+        { bucket: '6-10', count: counted((r) => r >= 5 && r < 10) },
+        { bucket: '11+', count: counted((r) => r >= 10) },
       ],
       liveTopOneShare: total ? topOne / total : 0,
       liveTopFiveShare: total ? topFive / total : 0,
@@ -181,16 +153,12 @@ export class PlaceShadowService {
   }
 
   /** Admin wipe. Returns how many rows went. */
-  clear(): number {
-    return this.db.run('DELETE FROM place_shadow_picks').changes;
+  async clear(): Promise<number> {
+    return this.picks.deleteAll();
   }
 
   /** Nightly retention. Returns how many rows went. */
-  purgeExpired(retentionDays = RETENTION_DAYS): number {
-    return this.db.run(
-      `DELETE FROM place_shadow_picks
-        WHERE created_at < datetime('now', ?)`,
-      `-${retentionDays} days`,
-    ).changes;
+  async purgeExpired(retentionDays = RETENTION_DAYS): Promise<number> {
+    return this.picks.purgeOlderThan(retentionDays);
   }
 }

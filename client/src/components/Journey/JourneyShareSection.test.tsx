@@ -1,4 +1,4 @@
-// FE-JRN-SHARE-001 to FE-JRN-SHARE-011
+// FE-JRN-SHARE-001 to FE-JRN-SHARE-014
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { http, HttpResponse, delay } from 'msw'
@@ -97,9 +97,12 @@ describe('JourneyShareSection', () => {
     render(<JourneyShareSection journeyId={JOURNEY_ID} />)
 
     const timeline = await screen.findByRole('button', { name: 'Timeline' })
-    expect(timeline.className).toContain('bg-zinc-900')
-    expect(screen.getByRole('button', { name: 'Map' }).className).toContain('bg-zinc-900')
-    expect(screen.getByRole('button', { name: 'Gallery' }).className).not.toContain('bg-zinc-900')
+    expect(timeline.className).toContain('bg-accent')
+    expect(screen.getByRole('button', { name: 'Map' }).className).toContain('bg-accent')
+    expect(screen.getByRole('button', { name: 'Gallery' }).className).not.toContain('bg-accent')
+    // The state is said, not only shown (#2604).
+    expect(timeline).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Gallery' })).toHaveAttribute('aria-pressed', 'false')
     expect(screen.getByText(`${window.location.origin}/public/journey/tok-abc`)).toBeInTheDocument()
   })
 
@@ -137,7 +140,7 @@ describe('JourneyShareSection', () => {
 
     await waitFor(() => expect(bodies).toHaveLength(1))
     expect(bodies[0]).toEqual({ share_timeline: true, share_gallery: true, share_map: true })
-    expect(screen.getByRole('button', { name: 'Gallery' }).className).toContain('bg-zinc-900')
+    expect(screen.getByRole('button', { name: 'Gallery' }).className).toContain('bg-accent')
   })
 
   it('FE-JRN-SHARE-008: reverts the toggle when the update request fails', async () => {
@@ -153,7 +156,7 @@ describe('JourneyShareSection', () => {
     await waitFor(() => {
       expect(toastSpy).toHaveBeenCalledWith('Failed to update', 'error', undefined)
     })
-    expect(screen.getByRole('button', { name: 'Timeline' }).className).toContain('bg-zinc-900')
+    expect(screen.getByRole('button', { name: 'Timeline' }).className).toContain('bg-accent')
   })
 
   it('FE-JRN-SHARE-009: deleting the link returns to the create state', async () => {
@@ -210,5 +213,36 @@ describe('JourneyShareSection', () => {
     expect(await screen.findByRole('button', { name: 'Copied!' })).toBeInTheDocument()
     // The temporary textarea is removed again.
     expect(document.querySelector('textarea')).toBeNull()
+  })
+
+  it('FE-JRN-SHARE-013: the trip plan and the recorded routes switch on under the map, each on its own (JRN-04)', async () => {
+    const bodies: Record<string, unknown>[] = []
+    server.use(
+      http.get('/api/journeys/7/share-link', () => HttpResponse.json({ link: existingLink() })),
+      http.post('/api/journeys/7/share-link', async ({ request }) => {
+        bodies.push(await request.json() as Record<string, unknown>)
+        return HttpResponse.json({ token: 'tok-abc' })
+      }),
+    )
+    render(<JourneyShareSection journeyId={JOURNEY_ID} />)
+
+    const plan = await screen.findByRole('button', { name: /Trip plan/ })
+    expect(plan).toHaveAttribute('aria-pressed', 'false')
+    act(() => { plan.click() })
+
+    await waitFor(() => expect(bodies).toHaveLength(1))
+    expect(bodies[0]).toMatchObject({ share_plan: true })
+    expect(bodies[0]).not.toHaveProperty('share_recordings')
+    expect(screen.getByRole('button', { name: /Trip plan/ })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('FE-JRN-SHARE-014: without the map shared the map extras are dimmed and cannot be switched', async () => {
+    server.use(http.get('/api/journeys/7/share-link', () => HttpResponse.json({ link: existingLink({ share_map: false, share_plan: true }) })))
+    render(<JourneyShareSection journeyId={JOURNEY_ID} />)
+
+    const plan = await screen.findByRole('button', { name: /Trip plan/ })
+    expect(plan).toBeDisabled()
+    expect(plan).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('button', { name: /Recorded routes/ })).toBeDisabled()
   })
 })

@@ -115,6 +115,7 @@ export function exportSpread(spread: BookSpread, page: BookPageSetup, name?: str
     if (typeof out.size === 'number') out.size = round4(out.size / PH)
     if (typeof out.radius === 'number') out.radius = round4(out.radius / PW)
     if (typeof out.strokeWidth === 'number') out.strokeWidth = round4(out.strokeWidth / PW)
+    if (typeof out.edgeSize === 'number') out.edgeSize = round4(out.edgeSize / PW)
     // The design, not the pictures.
     if (out.kind === 'photo') out.photoId = null
     /*
@@ -168,6 +169,7 @@ export function importSpread(raw: unknown, page: BookPageSetup): BookSpread | nu
     if (typeof scaled.size === 'number') scaled.size = round2(scaled.size * PH)
     if (typeof scaled.radius === 'number') scaled.radius = round2(scaled.radius * PW)
     if (typeof scaled.strokeWidth === 'number') scaled.strokeWidth = round2(scaled.strokeWidth * PW)
+    if (typeof scaled.edgeSize === 'number') scaled.edgeSize = round2(scaled.edgeSize * PW)
     /*
      * A map arrives with no source, whatever the file says.
      *

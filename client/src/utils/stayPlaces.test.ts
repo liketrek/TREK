@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { stayPlaces } from './stayPlaces'
 
-// FE-UTIL-STAYPLACES-001 to FE-UTIL-STAYPLACES-003
+// FE-UTIL-STAYPLACES-001 to FE-UTIL-STAYPLACES-004
 
 describe('stayPlaces', () => {
   const hotel = { id: 1, route_geometry: null }
@@ -21,5 +21,12 @@ describe('stayPlaces', () => {
 
   it('FE-UTIL-STAYPLACES-003: a stay at an ordinary place lets no track in', () => {
     expect(stayPlaces([hotel, track], 1).map(p => p.id)).toEqual([1])
+  })
+
+  it('FE-UTIL-STAYPLACES-004: a city walk still waiting for its line is a tour, not somewhere to stay', () => {
+    const walk = { id: 4, route_geometry: null, tour_place_id: 4 }
+    const inn = { id: 5, route_geometry: null, tour_place_id: null }
+    expect(stayPlaces([hotel, walk, inn]).map(p => p.id)).toEqual([1, 5])
+    expect(stayPlaces([hotel, walk], 4).map(p => p.id)).toEqual([1, 4])
   })
 })

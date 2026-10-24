@@ -1,9 +1,9 @@
-// FE-JRN-DETHOOK-001 to FE-JRN-DETHOOK-029
+// FE-JRN-DETHOOK-001 to FE-JRN-DETHOOK-039
 import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
-import { useLocation } from 'react-router';
+import { useLocation, useSearchParams } from 'react-router';
 import { delay, http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
-import { render, screen, fireEvent, waitFor } from '../../../tests/helpers/render';
+import { act, render, screen, fireEvent, waitFor } from '../../../tests/helpers/render';
 import { addListener, removeListener } from '../../api/websocket';
 import { useJourneyStore } from '../../store/journeyStore';
 import type { JourneyDetail, JourneyEntry } from '../../store/journeyStore';
@@ -68,6 +68,20 @@ function serveTracks(journeyId: number, tracks: JourneyTrack[] = []) {
   return asked;
 }
 
+/** Serves the map's layers of a journey, counting the reads. */
+function serveLayers(journeyId: number, routes: JourneyTrack[] = []) {
+  const asked = vi.fn();
+  server.use(http.get(`/api/journeys/${journeyId}/map-layers`, () => {
+    asked();
+    return HttpResponse.json({
+      places: { status: 'ok', items: [] },
+      routes: { status: 'ok', items: routes },
+      stays: { status: 'ok', items: [] },
+    });
+  }));
+  return asked;
+}
+
 // ── Harness ──────────────────────────────────────────────────────────────────
 
 type HookState = ReturnType<typeof useJourneyDetail>;
@@ -77,9 +91,12 @@ function Harness({ renderEntries = true }: { renderEntries?: boolean }) {
   const state = useJourneyDetail();
   latest = state;
   const location = useLocation();
+  const [, setSearchParams] = useSearchParams();
   return (
     <div>
       <span data-testid="search">{location.search}</span>
+      {/* A link into the open journal, the way the assistant chat's "Open in the journal" sends one. */}
+      <button type="button" data-testid="relink" onClick={() => setSearchParams({ entry: '2' })} />
       <div ref={state.feedRef} data-testid="feed">
         {renderEntries && (state.current?.entries ?? []).map(e => (
           <div key={e.id} data-entry-id={String(e.id)} data-testid={`entry-${e.id}`}>{e.title}</div>
@@ -188,6 +205,34 @@ describe('useJourneyDetail', () => {
     await waitFor(() => expect(latest.current?.title).toBe('Japan renamed'));
   });
 
+  it('FE-JRN-DETHOOK-030: capture times landing after an import reload the journey so the gallery re-sorts (#1587)', async () => {
+    setup();
+    await waitFor(() => expect(latest.current).not.toBeNull());
+    const handler = vi.mocked(addListener).mock.calls[0][0] as (e: Record<string, unknown>) => void;
+
+    serveJourney(buildDetail({ gallery: [{ id: 3, photo_id: 30, taken_at: '2026-05-01T09:00:00Z' }] as never }));
+    handler({ type: 'journey:photos:updated', journeyId: 7 });
+    await waitFor(() => expect(latest.current?.gallery).toHaveLength(1));
+  });
+
+  it('FE-JRN-DETHOOK-031: provider photos added from the picker or the editor reload this journey once some landed (#1587)', async () => {
+    setup();
+    await waitFor(() => expect(latest.current).not.toBeNull());
+    const toGallery = vi.fn(async () => ({ photos: [], added: 2 }));
+    const toEntry = vi.fn(async () => ({ photos: [], added: 1 }));
+    useJourneyStore.setState({ addProviderPhotosToGallery: toGallery, addProviderPhotos: toEntry } as never);
+
+    serveJourney(buildDetail({ title: 'After the import' }));
+    await act(() => latest.addPickedProviderPhotos(7, 'immich', [{ assetIds: ['a1', 'a2'] }], null));
+    expect(toGallery).toHaveBeenCalledWith(7, 'immich', { assetIds: ['a1', 'a2'] });
+    expect(addToast).toHaveBeenCalledWith('2 photos added', 'success', undefined);
+    await waitFor(() => expect(latest.current?.title).toBe('After the import'));
+
+    const group = { provider: 'immich', assetIds: ['b1'] };
+    await act(() => latest.addEntryProviderPhotos(1, group));
+    expect(toEntry).toHaveBeenCalledWith(1, 'immich', group);
+  });
+
   it('FE-JRN-DETHOOK-009: events of another type or another journey are ignored', async () => {
     setup();
     await waitFor(() => expect(latest.current).not.toBeNull());
@@ -199,6 +244,143 @@ describe('useJourneyDetail', () => {
     handler({ journeyId: 7 });
     await new Promise(r => setTimeout(r, 20));
     expect(latest.current?.title).toBe('Japan 2026');
+  });
+
+  it('FE-JRN-DETHOOK-032: a journey deleted elsewhere returns to the journey list instead of reading it again', async () => {
+    setup();
+    await waitFor(() => expect(latest.current).not.toBeNull());
+    const handler = vi.mocked(addListener).mock.calls[0][0] as (e: Record<string, unknown>) => void;
+    const reads = vi.fn();
+    server.use(http.get('/api/journeys/7', () => {
+      reads();
+      return HttpResponse.json({ error: 'gone' }, { status: 404 });
+    }));
+
+    handler({ type: 'journey:deleted', journeyId: 7 });
+    expect(mockNavigate).toHaveBeenCalledWith('/journey');
+    expect(addToast).toHaveBeenCalledWith('Journey deleted', 'info', undefined);
+    await new Promise(r => setTimeout(r, 20));
+    expect(reads).not.toHaveBeenCalled();
+  });
+
+  it('FE-JRN-DETHOOK-037: photo book saves and presence frames do not read the journey again', async () => {
+    setup();
+    await waitFor(() => expect(latest.current).not.toBeNull());
+    const handler = vi.mocked(addListener).mock.calls[0][0] as (e: Record<string, unknown>) => void;
+    const reads = vi.fn();
+    server.use(http.get('/api/journeys/7', () => {
+      reads();
+      return HttpResponse.json(buildDetail());
+    }));
+
+    handler({ type: 'journey:book:saved', journeyId: 7, version: 3, savedBy: 2 });
+    handler({ type: 'journey:book:peers', journeyId: 7, peers: [] });
+    handler({ type: 'journey:book:cursor', journeyId: 7, x: 1, y: 2, spreadIndex: 0 });
+    await new Promise(r => setTimeout(r, 20));
+    expect(reads).not.toHaveBeenCalled();
+  });
+
+  it('FE-JRN-DETHOOK-038: a burst of changes while a reload is open reads the journey once more, not once per event', async () => {
+    setup();
+    await waitFor(() => expect(latest.current).not.toBeNull());
+    const handler = vi.mocked(addListener).mock.calls[0][0] as (e: Record<string, unknown>) => void;
+    const reads = vi.fn();
+    server.use(http.get('/api/journeys/7', async () => {
+      reads();
+      await delay(30);
+      return HttpResponse.json(buildDetail({ title: 'After the burst' }));
+    }));
+
+    for (let i = 0; i < 5; i++) handler({ type: 'journey:entry:updated', journeyId: 7 });
+    await waitFor(() => expect(reads).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(latest.current?.title).toBe('After the burst'));
+    await new Promise(r => setTimeout(r, 80));
+    expect(reads).toHaveBeenCalledTimes(2);
+  });
+
+  it('FE-JRN-DETHOOK-039: a reload that fails keeps the journal shown and the next change reads it again', async () => {
+    setup();
+    await waitFor(() => expect(latest.current).not.toBeNull());
+    const handler = vi.mocked(addListener).mock.calls[0][0] as (e: Record<string, unknown>) => void;
+    let fail = true;
+    const reads = vi.fn();
+    server.use(http.get('/api/journeys/7', () => {
+      reads();
+      return fail
+        ? HttpResponse.json({ error: 'boom' }, { status: 500 })
+        : HttpResponse.json(buildDetail({ title: 'Back again' }));
+    }));
+
+    handler({ type: 'journey:entry:updated', journeyId: 7 });
+    await waitFor(() => expect(reads).toHaveBeenCalledTimes(1));
+    await new Promise(r => setTimeout(r, 20));
+    expect(latest.current?.title).toBe('Japan 2026');
+
+    fail = false;
+    handler({ type: 'journey:entry:updated', journeyId: 7 });
+    await waitFor(() => expect(latest.current?.title).toBe('Back again'));
+  });
+
+  it('FE-JRN-DETHOOK-033: ?entry= opens the journal at that entry, scrolls it in and leaves the URL', async () => {
+    const scrolled = vi.fn();
+    vi.spyOn(HTMLElement.prototype, 'scrollIntoView').mockImplementation(function (this: HTMLElement) {
+      scrolled(this.getAttribute('data-entry-id'));
+    });
+    setup({ search: '?entry=2' });
+
+    await waitFor(() => expect(latest.openAtEntryId).toBe('2'));
+    await waitFor(() => expect(screen.getByTestId('search').textContent).toBe(''));
+    await waitFor(() => expect(scrolled).toHaveBeenCalledWith('2'));
+    expect(latest.activeEntryId).toBe('2');
+  });
+
+  it('FE-JRN-DETHOOK-034: an ?entry= this journal does not hold is dropped and opens it as usual', async () => {
+    setup({ search: '?entry=99' });
+
+    await waitFor(() => expect(latest.current).not.toBeNull());
+    await waitFor(() => expect(screen.getByTestId('search').textContent).toBe(''));
+    expect(latest.openAtEntryId).not.toBe('99');
+  });
+
+  it('FE-JRN-DETHOOK-035: a second link to the same entry, with the journal open already, scrolls to it again', async () => {
+    const scrolled = vi.fn();
+    vi.spyOn(HTMLElement.prototype, 'scrollIntoView').mockImplementation(function (this: HTMLElement) {
+      scrolled(this.getAttribute('data-entry-id'));
+    });
+    setup({ search: '?entry=2' });
+    await waitFor(() => expect(scrolled).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByTestId('search').textContent).toBe(''));
+
+    fireEvent.click(screen.getByTestId('relink'));
+
+    await waitFor(() => expect(scrolled).toHaveBeenCalledTimes(2));
+    expect(scrolled).toHaveBeenLastCalledWith('2');
+    await waitFor(() => expect(screen.getByTestId('search').textContent).toBe(''));
+  });
+
+  it('FE-JRN-DETHOOK-036: an entry added nearer today does not scroll the open journal again', async () => {
+    const day = (offset: number) => {
+      const d = new Date();
+      d.setDate(d.getDate() + offset);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+    const detail = buildDetail({
+      entries: [buildEntry({ entry_date: day(-3) }), buildEntry({ id: 2, title: 'Kyoto', entry_date: day(2) })],
+    });
+    serveJourney(detail);
+    const scrolled = vi.fn();
+    vi.spyOn(HTMLElement.prototype, 'scrollIntoView').mockImplementation(function (this: HTMLElement) {
+      scrolled(this.getAttribute('data-entry-id'));
+    });
+    setup();
+    await waitFor(() => expect(scrolled).toHaveBeenCalledWith('1'));
+
+    const added = buildEntry({ id: 3, title: 'Nara', entry_date: day(-1) });
+    act(() => useJourneyStore.setState({ current: { ...detail, entries: [...detail.entries, added] } }));
+
+    await waitFor(() => expect(latest.openAtEntryId).toBe('3'));
+    await new Promise(r => setTimeout(r, 450));
+    expect(scrolled).toHaveBeenCalledTimes(1);
   });
 
   it('FE-JRN-DETHOOK-010: the websocket listener is detached on unmount', async () => {
@@ -308,6 +490,23 @@ describe('useJourneyDetail', () => {
     expect(latest.sidebarMapItems[0].dayColor).toBe(latest.sidebarMapItems[1].dayColor);
   });
 
+  it('FE-JRN-DETHOOK-2453: geotagged gallery photos become the map layer, and a tap opens them', async () => {
+    serveJourney(buildDetail({
+      gallery: [
+        { id: 3, photo_id: 30, lat: 48.1, lng: 11.5, caption: 'Marienplatz' },
+        { id: 4, photo_id: 40, lat: null, lng: null },
+      ] as never,
+    }));
+    setup();
+    await waitFor(() => expect(latest.mapPhotos).toHaveLength(1));
+    expect(latest.mapPhotos[0]).toEqual({ id: '3', lat: 48.1, lng: 11.5, thumbUrl: '/api/photos/30/thumbnail' });
+    act(() => latest.openMapPhotos(['3']));
+    expect(latest.lightbox?.photos).toEqual([expect.objectContaining({ id: 3, src: '/api/photos/30/original', caption: 'Marienplatz' })]);
+    act(() => latest.setLightbox(null));
+    act(() => latest.openMapPhotos(['999']));
+    expect(latest.lightbox).toBeNull();
+  });
+
   it('FE-JRN-DETHOOK-019: tripDates expands linked trips and skips half-dated ones', async () => {
     serveJourney(buildDetail({
       trips: [
@@ -399,37 +598,40 @@ describe('useJourneyDetail', () => {
     expect(scrollTo).toHaveBeenLastCalledWith({ top: 9000, behavior: 'smooth' });
   });
 
-  // ── Trip GPX tracks (#2194) ────────────────────────────────────────────────
-  // The switch gates the request, not the drawing: the endpoint ships unthinned
-  // geometry, megabytes of it for a trip with a season of recorded drives.
+  // ── Trip GPX tracks (#2194) and the map's layers (JRN-04) ─────────────────
+  // The GPX tracks come with the plan layer now, read through the linked trips;
+  // the frozen /tracks answer stays Studio's. The server reads no geometry while
+  // the journey's switch is off, and the read follows the journey the route names.
 
-  it('FE-JRN-DETHOOK-026: a journey with the switch off never asks for the geometry', async () => {
-    const asked = serveTracks(7, [buildTrack()]);
-    setup();
-    await waitFor(() => expect(latest.current).not.toBeNull());
-    await new Promise(r => setTimeout(r, 20));
-
-    expect(asked).not.toHaveBeenCalled();
-    expect(latest.tracks).toEqual([]);
-  });
-
-  it('FE-JRN-DETHOOK-027: with the switch on the tracks are fetched and handed on', async () => {
-    // The column is INTEGER, so what arrives over the wire is 1, not true.
+  it('FE-JRN-DETHOOK-026: the map never asks the frozen tracks endpoint; its routes come with its layers', async () => {
     serveJourney(buildDetail({ show_trip_tracks: 1 }));
     const asked = serveTracks(7, [buildTrack()]);
+    const layers = serveLayers(7, [buildTrack({ kind: 'trip_gpx' })]);
     setup();
 
-    await waitFor(() => expect(latest.tracks).toHaveLength(1));
-    expect(latest.tracks[0].name).toBe('Ridge walk');
-    expect(asked).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(latest.mapLayers.tracks).toHaveLength(1));
+    expect(latest.mapLayers.tracks[0].name).toBe('Ridge walk');
+    expect(layers).toHaveBeenCalledTimes(1);
+    expect(asked).not.toHaveBeenCalled();
   });
 
-  it('FE-JRN-DETHOOK-028: the geometry follows the route id, not the journey still on screen', async () => {
-    // loadJourney leaves the previous journey in place while the next one loads, so an
-    // unguarded read of the flag would fetch journey B's tracks off journey A's setting.
+  it('FE-JRN-DETHOOK-027: flipping the track switch reads the layers again', async () => {
+    serveJourney(buildDetail({ show_trip_tracks: 0 }));
+    const layers = serveLayers(7);
+    setup();
+    await waitFor(() => expect(layers).toHaveBeenCalledTimes(1));
+
+    serveJourney(buildDetail({ show_trip_tracks: 1 }));
+    await act(async () => { await useJourneyStore.getState().loadJourney(7) });
+    await waitFor(() => expect(layers).toHaveBeenCalledTimes(2));
+  });
+
+  it('FE-JRN-DETHOOK-028: the layers follow the route id, not the journey still on screen', async () => {
+    // loadJourney leaves the previous journey in place while the next one loads.
     routeParams = { id: '8' };
     useJourneyStore.setState({ current: buildDetail({ show_trip_tracks: 1 }) });
-    const asked = serveTracks(8, [buildTrack()]);
+    const seven = serveLayers(7);
+    const eight = serveLayers(8);
     server.use(http.get('/api/journeys/8', async () => {
       await delay(20);
       return HttpResponse.json(buildDetail({ id: 8, title: 'Norway 2027' }));
@@ -437,18 +639,18 @@ describe('useJourneyDetail', () => {
     setup();
 
     await waitFor(() => expect(latest.current?.id).toBe(8));
-    expect(asked).not.toHaveBeenCalled();
-    expect(latest.tracks).toEqual([]);
+    await waitFor(() => expect(eight).toHaveBeenCalledTimes(1));
+    expect(seven).not.toHaveBeenCalled();
   });
 
-  it('FE-JRN-DETHOOK-029: a failed geometry lookup costs the map its lines, not the page', async () => {
+  it('FE-JRN-DETHOOK-029: a failed layers read costs the map its plan, not the page', async () => {
     serveJourney(buildDetail({ show_trip_tracks: 1 }));
-    server.use(http.get('/api/journeys/7/tracks', () => new HttpResponse(null, { status: 500 })));
+    server.use(http.get('/api/journeys/7/map-layers', () => new HttpResponse(null, { status: 500 })));
     setup();
 
-    await waitFor(() => expect(latest.current?.title).toBe('Japan 2026'));
-    await new Promise(r => setTimeout(r, 20));
-    expect(latest.tracks).toEqual([]);
+    await waitFor(() => expect(latest.mapLayers.controls.find(c => c.layer === 'plan')?.state).toBe('unavailable'));
+    expect(latest.current?.title).toBe('Japan 2026');
+    expect(latest.mapLayers.tracks).toEqual([]);
     expect(addToast).not.toHaveBeenCalled();
   });
 });

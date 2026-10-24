@@ -1,14 +1,13 @@
 import type { TranslationStrings } from '../types';
 
 const members: TranslationStrings = {
-  'members.shareTrip': 'Partager le voyage',
   'members.inviteUser': 'Inviter un utilisateur',
   'members.selectUser': 'Sélectionner un utilisateur…',
   'members.invite': 'Inviter',
   'members.allHaveAccess': 'Tous les utilisateurs ont déjà accès.',
   'members.access': 'Accès',
-  'members.person': 'personne',
   'members.persons': 'personnes',
+  'members.persons.one': 'personne',
   'members.you': 'vous',
   'members.owner': 'Propriétaire',
   'members.leaveTrip': 'Quitter le voyage',
@@ -33,6 +32,9 @@ const members: TranslationStrings = {
   'members.guestAddError': "Échec de l'ajout de l'invité",
   'members.guestRenameError': "Échec du renommage de l'invité",
   'members.guestRemoved': 'Invité supprimé',
-  'members.confirmRemoveGuest': 'Supprimer cet invité ? Ses affectations et parts de dépenses seront aussi supprimées.',
+  'members.confirmRemoveGuest':
+    'Supprimer cet invité ? Ses affectations seront supprimées et sa part de chaque dépense sera répartie entre les autres participants.',
+  'members.guestHasPayments':
+    "Cet invité a payé une dépense ou fait partie d'un paiement enregistré. Changez d'abord le payeur ou supprimez le paiement.",
 };
 export default members;

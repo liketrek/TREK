@@ -1,16 +1,23 @@
-import { z } from 'zod';
-import { MAX_TRIP_DAYS, roadtripDayBoundarySchema, type RoadtripDayBoundary } from '@trek/shared';
-import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE, ok, type McpContext } from '../../nest-mcp';
-import { demoDenied, noAccess, permissionDenied } from '../../mcp/tools/_shared';
-import { DatabaseService } from '../database/database.service';
-import { AuthService } from '../auth/auth.service';
+import { ADDON_IDS } from '../../addons';
+import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
+import {
+  McpController,
+  Tool,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_WRITE,
+  ok,
+  type McpContext,
+} from '../../nest-mcp';
+import { addonGate } from '../addons/addon-gate';
+import { AddonsService } from '../addons/addons.service';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { RealtimeService } from '../realtime/realtime.service';
-import { AddonsService } from '../addons/addons.service';
-import { addonGate } from '../addons/addon-gate';
-import { ADDON_IDS } from '../../addons';
+import { TripAccessService } from '../trip-membership/trip-access.service';
 import { DayBoundariesService } from './day-boundaries.service';
 import { answeringRefusals } from './roadtrip-mcp.helpers';
+import { idSchema, MAX_TRIP_DAYS, roadtripDayBoundarySchema, type RoadtripDayBoundary } from '@trek/shared';
+
+import { z } from 'zod';
 
 const when = addonGate(ADDON_IDS.ROADTRIP);
 
@@ -18,38 +25,49 @@ const when = addonGate(ADDON_IDS.ROADTRIP);
 export class DayBoundariesMcp {
   constructor(
     private readonly boundaries: DayBoundariesService,
-    private readonly db: DatabaseService,
-    private readonly auth: AuthService,
+    private readonly tripsRepo: TripAccessService,
     private readonly guards: McpToolGuardsService,
     private readonly realtime: RealtimeService,
     readonly addons: AddonsService,
   ) {}
 
   @Tool({
-    name: 'list_day_boundaries', description: 'List manual road trip day endings. They apply only with daily travel times enabled.',
-    inputSchema: { tripId: z.number().int().positive() },
-    annotations: TOOL_ANNOTATIONS_READONLY, access: { group: 'trips', mode: 'read' }, when,
+    name: 'list_day_boundaries',
+    description: 'List manual road trip day endings. They apply only with daily travel times enabled.',
+    inputSchema: { tripId: idSchema },
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    access: { group: 'trips', mode: 'read' },
+    when,
   })
   async list({ tripId }: { tripId: number }, ctx: McpContext) {
-    if (!this.db.canAccessTrip(tripId, ctx.userId)) return noAccess();
-    return ok({ boundaries: this.boundaries.list(tripId) });
+    if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
+    return ok({ boundaries: await this.boundaries.list(tripId) });
   }
 
   @Tool({
     name: 'set_day_boundary',
-    description: 'Override a road trip day ending at a visit or a fraction along the driving leg between consecutive visits. Daily travel times must be enabled in the planner. Fixed visit times stay protected and conflicts are shown. With roadtrip_hotel_bookends on, a boundary between two stops a booked night separates is ignored: the night ends the day. Pass null to restore the automatic day ending.',
-    inputSchema: { tripId: z.number().int().positive(), dayNumber: z.number().int().min(1).max(MAX_TRIP_DAYS), boundary: roadtripDayBoundarySchema.nullable() },
-    annotations: TOOL_ANNOTATIONS_WRITE, access: { group: 'trips', mode: 'write' }, when,
+    description:
+      'Override a road trip day ending at a visit or a fraction along the driving leg between consecutive visits. Daily travel times must be enabled in the planner. Fixed visit times stay protected and conflicts are shown. With roadtrip_hotel_bookends on, a boundary between two stops a booked night separates is ignored: the night ends the day. Pass null to restore the automatic day ending.',
+    inputSchema: {
+      tripId: idSchema,
+      dayNumber: z.number().int().min(1).max(MAX_TRIP_DAYS),
+      boundary: roadtripDayBoundarySchema.nullable(),
+    },
+    annotations: TOOL_ANNOTATIONS_WRITE,
+    access: { group: 'trips', mode: 'write' },
+    when,
   })
-  async save({ tripId, dayNumber, boundary }: { tripId: number; dayNumber: number; boundary: RoadtripDayBoundary | null }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.db.canAccessTrip(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
+  async save(
+    { tripId, dayNumber, boundary }: { tripId: number; dayNumber: number; boundary: RoadtripDayBoundary | null },
+    ctx: McpContext,
+  ) {
+    if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
     // A stop from another trip is refused by the service, with the reason.
-    return answeringRefusals(() => {
+    return answeringRefusals(async () => {
       const boundaries = boundary
-        ? this.boundaries.save(tripId, { ...boundary, day_number: dayNumber })
-        : this.boundaries.remove(tripId, dayNumber);
+        ? await this.boundaries.save(tripId, { ...boundary, day_number: dayNumber })
+        : await this.boundaries.remove(tripId, dayNumber);
       this.realtime.broadcast(String(tripId), 'roadtripBoundary:changed', { boundaries });
       return ok({ boundaries });
     });

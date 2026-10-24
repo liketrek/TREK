@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types';
+
+const tourPacking: TranslationStrings = {
+  'tours.packing.label': 'Λίστα αποσκευών',
+  'tours.packing.none': 'Δεν έχει συνδεθεί λίστα αποσκευών',
+  'tours.packing.link': 'Σύνδεση λίστας αποσκευών',
+  'tours.packing.change': 'Αλλαγή',
+  'tours.packing.whole': 'Όλη η λίστα αποσκευών',
+  'tours.packing.packed': '{packed} από {count} στη βαλίτσα',
+  'tours.packing.packed.one': '{packed} από {count} στη βαλίτσα',
+  'tours.packing.more': '+{count} ακόμη',
+  'tours.packing.more.one': '+{count} ακόμη',
+  'tours.packing.items': '{count} αντικείμενα',
+  'tours.packing.items.one': '{count} αντικείμενο',
+  'tours.packing.allPacked': 'Όλα στη βαλίτσα',
+  'tours.packing.open': 'Άνοιγμα λίστας αποσκευών',
+  'tours.packing.missing': 'Το «{name}» δεν έχει πια αντικείμενα που μπορείτε να δείτε.',
+  'tours.packing.emptyList': 'Η λίστα αποσκευών είναι ακόμη άδεια.',
+  'tours.packing.emptyCategory': 'Το «{name}» δεν έχει ακόμη αντικείμενα.',
+  'tours.packing.addonOff': 'Οι λίστες αποσκευών είναι απενεργοποιημένες, γι’ αυτό η λίστα δεν μπορεί να εμφανιστεί.',
+  'tours.packing.loadFailed': 'Η σύνδεση με τη λίστα αποσκευών δεν φορτώθηκε.',
+  'tours.packing.dialogSub': 'Μόνο μια σύνδεση. Η λίστα και τα αντικείμενά της μένουν εκεί που είναι.',
+  'tours.packing.choose': 'Σύνδεση με',
+  'tours.packing.confirm': 'Σύνδεση',
+  'tours.packing.unlink': 'Αφαίρεση σύνδεσης',
+  'tours.packing.unlinkHint': 'Η λίστα αποσκευών και τα αντικείμενά της μένουν ως έχουν',
+  'tours.packing.linked': 'Η λίστα αποσκευών συνδέθηκε.',
+  'tours.packing.unlinked': 'Η σύνδεση αφαιρέθηκε. Η λίστα αποσκευών μένει ως έχει.',
+  'tours.packing.failed': 'Η σύνδεση δεν αποθηκεύτηκε.',
+};
+export default tourPacking;

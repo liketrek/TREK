@@ -1,33 +1,14 @@
-import { useEffect, useState } from 'react'
-import { adminApi } from '../../../api/client'
+import { useAdminNotificationMatrix } from '../../../components/Admin/useAdminNotificationMatrix'
 import type { TranslationFn } from '../../../types'
 import type { useToast } from '../../../components/shared/Toast'
 import { ADMIN_EVENT_LABEL_KEYS, ADMIN_CHANNEL_LABEL_KEYS } from '../../../pages/admin/AdminPage.constants'
 import MToggle from '../../components/MToggle'
 import { MAdminCard, MAdminCardHead } from './MAdminUi'
 
-interface ChannelInfo {
-  id: string
-  active: boolean
-}
-
-interface MatrixData {
-  event_types: string[]
-  channels?: ChannelInfo[]
-  implemented_combos: Record<string, string[]>
-  preferences: Record<string, Record<string, boolean>>
-}
-
-const BUILTIN_CHANNELS = ['inapp', 'email', 'webhook', 'ntfy'] as const
-
 // Per-event × per-channel admin notification matrix — the mobile layout of
 // AdminNotificationsPanel. Loads its own data and auto-saves each toggle.
 export default function MAdminNotifyMatrix({ t, toast }: { t: TranslationFn; toast: ReturnType<typeof useToast> }) {
-  const [matrix, setMatrix] = useState<MatrixData | null>(null)
-
-  useEffect(() => {
-    adminApi.getNotificationPreferences().then((data: MatrixData) => setMatrix(data)).catch(() => {})
-  }, [])
+  const { matrix, visibleChannels, toggle } = useAdminNotificationMatrix(t, toast)
 
   if (!matrix) {
     return (
@@ -43,28 +24,6 @@ export default function MAdminNotifyMatrix({ t, toast }: { t: TranslationFn; toa
         <p className="font-geist text-[0.6875rem] text-m-faint">{t('settings.notificationPreferences.noChannels')}</p>
       </MAdminCard>
     )
-  }
-
-  // Admin-scoped events only go out over the built-in channels (plugin
-  // channels are user-scoped), same rule as the desktop panel.
-  const isActive = (id: string) => matrix.channels?.some((c) => c.id === id && c.active) ?? false
-  const visibleChannels = BUILTIN_CHANNELS.filter(
-    (ch) => isActive(ch) && matrix.event_types.some((evt) => matrix.implemented_combos[evt]?.includes(ch)),
-  )
-
-  const toggle = async (eventType: string, channel: string) => {
-    const current = matrix.preferences[eventType]?.[channel] ?? true
-    const updated = {
-      ...matrix.preferences,
-      [eventType]: { ...matrix.preferences[eventType], [channel]: !current },
-    }
-    setMatrix((m) => (m ? { ...m, preferences: updated } : m))
-    try {
-      await adminApi.updateNotificationPreferences(updated)
-    } catch {
-      setMatrix((m) => (m ? { ...m, preferences: matrix.preferences } : m))
-      toast.error(t('common.error'))
-    }
   }
 
   return (

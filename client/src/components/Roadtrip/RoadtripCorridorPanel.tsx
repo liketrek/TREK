@@ -16,6 +16,7 @@ import { serviceColor } from './roadtripModel'
 import { alongLabel, offRouteLabel } from './corridorSearchModel'
 import { CORRIDOR_CATEGORY_BY_KEY, manualStopKindFor } from './stopKinds'
 import { FS } from './typeScale'
+import { fs } from '../shared/DialogShell'
 import { CORRIDOR_CATEGORY_KEYS, CORRIDOR_SECTION_KM, CORRIDOR_WIDTHS_KM, type RoadtripCorridor } from './useRoadtripCorridor'
 import type { RoadtripStopType } from '@trek/shared'
 import type { CorridorPoi } from './useCorridorPois'
@@ -457,11 +458,12 @@ export default function RoadtripCorridorPanel({
             disabled={!canSearch}
             aria-label={t('roadtrip.poi.search')}
             title={narrow ? t('roadtrip.poi.search') : undefined}
-            className="flex h-[32px] min-w-0 flex-1 items-center justify-center gap-2 rounded-lg bg-accent text-body font-semibold text-accent-text transition-opacity disabled:opacity-50"
+            className="flex h-8 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[10px] bg-accent px-3 font-semibold text-accent-text transition-opacity enabled:hover:opacity-90 disabled:opacity-50"
+            style={fs(12, 'body')}
           >
             {search.loading
-              ? <RotateCw size={15} className="shrink-0 animate-spin" aria-hidden />
-              : <Search size={15} strokeWidth={2} className="shrink-0" aria-hidden />}
+              ? <RotateCw size={13} className="shrink-0 animate-spin" aria-hidden />
+              : <Search size={13} strokeWidth={2.2} className="shrink-0" aria-hidden />}
             {/* The word stays put while a run is on, and the spinner in front of it says
                 the run is on. It used to become "Searching 3 of 12", which is both the
                 longest label in the panel and the very sentence the progress row right
@@ -481,9 +483,10 @@ export default function RoadtripCorridorPanel({
               // the button carries the one word that fits beside "Search".
               aria-label={t('roadtrip.poi.addManual')}
               title={t('roadtrip.poi.addManual')}
-              className="flex h-[32px] min-w-0 flex-1 items-center justify-center gap-2 rounded-lg border border-edge bg-surface-card text-body font-semibold text-content transition-colors hover:bg-surface-hover"
+              className="flex h-8 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[10px] border border-edge bg-surface-card px-3 font-semibold text-content transition-colors hover:bg-surface-hover"
+              style={fs(12, 'body')}
             >
-              <Plus size={15} strokeWidth={2.2} className="shrink-0" aria-hidden />
+              <Plus size={13} strokeWidth={2.2} className="shrink-0" aria-hidden />
               {narrow ? null : <span className="min-w-0 truncate">{t('roadtrip.poi.addManualShort')}</span>}
             </button>
           ) : null}

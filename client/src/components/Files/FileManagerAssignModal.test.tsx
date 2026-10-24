@@ -26,6 +26,7 @@ import { AssignModal } from './FileManagerAssignModal'
 const setAssignFileId = vi.fn()
 const handleAssign = vi.fn(async (_fileId: number, _data: unknown) => {})
 const refreshFiles = vi.fn(async () => {})
+const toastError = vi.fn()
 
 const file = (overrides: Partial<TripFile> = {}) =>
   ({ id: 7, original_name: 'ticket.pdf', description: '', url: '/uploads/files/ticket.pdf', ...overrides }) as unknown as TripFile
@@ -47,6 +48,7 @@ function state(overrides: Partial<FileManagerState> = {}): FileManagerState {
     tripId: 3,
     handleAssign,
     refreshFiles,
+    toast: { error: toastError },
     ...overrides,
   } as unknown as FileManagerState
 }
@@ -69,11 +71,13 @@ describe('AssignModal shell', () => {
 
   it('FE-W5ASG-002: the backdrop closes the modal but the card swallows the click', () => {
     render(<AssignModal {...state()} />)
-    const card = screen.getByText('files.assignTitle').closest('div[style*="border-radius: 16px"]') as HTMLElement
+    const card = screen.getByRole('dialog')
 
     fireEvent.click(card)
     expect(setAssignFileId).not.toHaveBeenCalled()
 
+    // A press that starts and ends on the backdrop closes it.
+    fireEvent.mouseDown(card.parentElement!)
     fireEvent.click(card.parentElement!)
     expect(setAssignFileId).toHaveBeenCalledWith(null)
   })
@@ -196,13 +200,14 @@ describe('AssignModal place list', () => {
     expect(refreshFiles).toHaveBeenCalled()
   })
 
-  it('FE-W5ASG-014: a failing link request is swallowed', async () => {
+  it('FE-W5ASG-014: a failing link request shows the assign error and does not refresh', async () => {
     addLink.mockRejectedValueOnce(new Error('offline'))
     render(<AssignModal {...state({ places, files: [file({ place_id: 1 })] })} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Eiffel Tower' }))
 
-    await waitFor(() => expect(addLink).toHaveBeenCalled())
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith('files.toast.assignError'))
+    expect(addLink).toHaveBeenCalled()
     expect(refreshFiles).not.toHaveBeenCalled()
   })
 
@@ -234,14 +239,30 @@ describe('AssignModal place list', () => {
     expect(removeLink).not.toHaveBeenCalled()
   })
 
-  it('FE-W5ASG-018: a failing links lookup is swallowed', async () => {
+  it('FE-W5ASG-018: a failing links lookup shows the assign error and does not refresh', async () => {
     getLinks.mockRejectedValueOnce(new Error('offline'))
     render(<AssignModal {...state({ places, files: [file({ place_id: 1, linked_place_ids: [2] })] })} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Eiffel Tower' }))
 
-    await waitFor(() => expect(getLinks).toHaveBeenCalled())
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith('files.toast.assignError'))
+    expect(getLinks).toHaveBeenCalled()
     expect(refreshFiles).not.toHaveBeenCalled()
+  })
+
+  it('FE-W5ASG-035: offline, removing a further link says it needs a connection', async () => {
+    Object.defineProperty(navigator, 'onLine', { value: false, writable: true, configurable: true })
+    const t = (key: string) => (key === 'files.linkNeedsConnection' ? 'Needs a connection' : key)
+    try {
+      render(<AssignModal {...state({ t, places, files: [file({ place_id: 1, linked_place_ids: [2] })] } as Partial<FileManagerState>)} />)
+
+      fireEvent.click(screen.getByRole('button', { name: 'Eiffel Tower' }))
+
+      await waitFor(() => expect(toastError).toHaveBeenCalledWith('Needs a connection'))
+      expect(getLinks).not.toHaveBeenCalled()
+    } finally {
+      Object.defineProperty(navigator, 'onLine', { value: true, writable: true, configurable: true })
+    }
   })
 
   it('FE-W5ASG-019: rows keep the linked highlight on mouse-out, free rows do not', () => {

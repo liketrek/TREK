@@ -1,11 +1,8 @@
 /**
- * The plugin-author-facing SDK surface (#plugins, M1) — the minimal in-repo
- * version. The published `@trek/plugin-sdk` (M6) will re-export these types; for
- * now the runtime ships its own copy so the child has zero external deps.
- *
- * PURE — no server imports. This runs inside the isolated child. Every ctx
- * method is plumbing that turns a call into an RPC message to the host; the
- * child holds no db handle, no secrets, no network by default.
+ * The plugin API as the isolated child implements it, its own copy of the trek-plugin-sdk
+ * types (plugin-sdk's test/host-types.test-d.ts holds the two to the same names and members).
+ * PURE: no server imports, zero external deps. Every ctx method is plumbing that turns a call
+ * into an RPC message to the host; the child holds no db handle, no secrets, no network.
  */
 
 /** Mirrors the published package's constant — bumped on any breaking API change. */
@@ -338,6 +335,8 @@ export interface PluginRequest {
    * providers; never Cookie/Authorization/session). Empty on authenticated routes.
    * Verify a provider signature against a secret you hold in `ctx.config`/`ctx.settings`. */
   headers: Record<string, string>;
+  /** Raw body, base64, on `auth:false` routes only (else null): HMAC this, not the parsed `body`. */
+  rawBodyBase64?: string | null;
   user: { id: number; username: string; isAdmin: boolean } | null;
 }
 export interface PluginResponse {
@@ -449,6 +448,17 @@ export interface SearchRequest {
 }
 export interface SearchProvider {
   search(request: SearchRequest, ctx: PluginContext): Promise<SearchResultPlace[]>;
+  /** Optional: the same question while it is typed (#2221). The host only calls it when the child reported it at load. */
+  suggest?(request: SearchRequest, ctx: PluginContext): Promise<SearchResultPlace[]>;
+}
+/**
+ * A POI category provider (#1781). Only the hook's name and call are spelled out here:
+ * the request and place shapes authors write against live once, in the published SDK.
+ * The child dispatches the hook by name, and the host re-validates every place it
+ * answers (plugin-pois.helpers.ts), so a second typed copy would guard nothing.
+ */
+export interface PoiCategoryProvider {
+  getPois(request: Readonly<Record<string, unknown>>, ctx: PluginContext): Promise<unknown[]>;
 }
 /** A validation/warning a plugin raises on a trip; TREK surfaces it in the planner. */
 export interface TripWarning { level: 'info' | 'warning' | 'error'; message: string; dayId?: number; placeId?: number; }
@@ -758,6 +768,7 @@ export interface PluginDefinition {
     calendarSource?: CalendarSource;
     placeDetailProvider?: PlaceDetailProvider;
     searchProvider?: SearchProvider;
+    poiCategoryProvider?: PoiCategoryProvider;
     warningProvider?: WarningProvider;
     tableContributor?: TableContributor;
     mapMarkerProvider?: MapMarkerProvider;

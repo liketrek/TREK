@@ -68,6 +68,14 @@ export function matchingEntries(source: JourneySource, query: string): JourneySo
       .some(v => v && v.toLowerCase().includes(q)))
 }
 
+/** The four answers, each named as `emptyKey` so the check of the client's translation keys can read it. */
+const EMPTY = {
+  none: { emptyKey: 'journey.studio.noPhotos' },
+  unmatched: { emptyKey: 'journey.studio.noMatches' },
+  entry: { emptyKey: 'journey.studio.noEntryPhotos' },
+  loose: { emptyKey: 'journey.studio.noLoosePhotos' },
+} as const
+
 /**
  * Why the grid is empty, which is four different answers.
  *
@@ -75,9 +83,9 @@ export function matchingEntries(source: JourneySource, query: string): JourneySo
  * on a day that has none, reads as the pictures having gone.
  */
 export function emptyKeyFor(source: JourneySource, filter: PhotoFilter, admitted: Photo[]): string {
-  if (!source.photos.length) return 'journey.studio.noPhotos'
-  if (admitted.length) return 'journey.studio.noMatches'
-  if (filter.kind === 'entry') return 'journey.studio.noEntryPhotos'
-  if (filter.kind === 'loose') return 'journey.studio.noLoosePhotos'
-  return 'journey.studio.noMatches'
+  if (!source.photos.length) return EMPTY.none.emptyKey
+  if (admitted.length) return EMPTY.unmatched.emptyKey
+  if (filter.kind === 'entry') return EMPTY.entry.emptyKey
+  if (filter.kind === 'loose') return EMPTY.loose.emptyKey
+  return EMPTY.unmatched.emptyKey
 }

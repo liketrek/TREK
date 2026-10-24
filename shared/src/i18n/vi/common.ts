@@ -19,6 +19,7 @@ const common: TranslationStrings = {
   'common.cancel': 'Hủy',
   'common.clear': 'Xóa',
   'common.delete': 'Xóa bỏ',
+  'common.remove': 'Gỡ bỏ',
   'common.preview': 'Xem trước',
   'common.edit': 'Chỉnh sửa',
   'common.add': 'Thêm',
@@ -47,8 +48,11 @@ const common: TranslationStrings = {
   'common.rename': 'Đổi tên',
   'common.discardChanges': 'Hủy thay đổi',
   'common.discard': 'Bỏ',
+  'common.unsavedTitle': 'Bỏ các thay đổi?',
+  'common.unsavedMessage': 'Những gì bạn nhập ở đây chưa được lưu.',
+  'common.keepEditing': 'Tiếp tục chỉnh sửa',
   'common.name': 'Tên',
-  'common.email': 'Email',
+  'common.email': 'Email', // same-as-en
   'common.password': 'Mật khẩu',
   'common.saving': 'Đang lưu...',
   'common.justNow': 'vừa xong',
@@ -73,5 +77,6 @@ const common: TranslationStrings = {
   'common.errorUpdateTitle': 'Đã có phiên bản mới',
   'common.errorUpdateBody': 'TREK đã được cập nhật trong khi thẻ này đang mở. Hãy tải lại để nhận phiên bản mới.',
   'common.errorPluginTitle': 'Không thể hiển thị plugin này',
+  'common.needsConnection': 'Thao tác này cần kết nối. Hãy thử lại khi TREK trực tuyến trở lại.',
 };
 export default common;

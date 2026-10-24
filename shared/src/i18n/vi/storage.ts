@@ -6,7 +6,7 @@ const storage: TranslationStrings = {
   'storage.field.endpoint': 'URL điểm cuối',
   'storage.help.endpoint':
     'URL cơ sở của dịch vụ tương thích S3, ví dụ: https://s3.example.com hoặc http://127.0.0.1:9000.',
-  'storage.field.bucket': 'Bucket',
+  'storage.field.bucket': 'Bucket', // same-as-en
   'storage.field.accessKeyId': 'ID khóa truy cập',
   'storage.field.secretAccessKey': 'Khóa truy cập bí mật',
   'storage.field.region': 'Khu vực',
@@ -32,7 +32,7 @@ const storage: TranslationStrings = {
   'storage.backends.add': 'Thêm backend',
   'storage.backends.usedBy': 'Được sử dụng bởi: {categories}',
   'storage.backends.unused': 'Chưa được gán cho danh mục nào',
-  'storage.backends.envReadOnly': 'Được xác định bởi biến môi trường — chỉ đọc',
+  'storage.backends.envReadOnly': 'Được xác định bởi biến môi trường (chỉ đọc)',
   'storage.source.built-in': 'Tích hợp sẵn',
   'storage.source.env': 'Môi trường',
   'storage.source.settings': 'Cài đặt',
@@ -113,7 +113,7 @@ const storage: TranslationStrings = {
   'storage.sync.error': 'Đồng bộ thất bại: {error}',
   'storage.sync.prompt': 'Các đối tượng hiện có chưa được nhân bản — đồng bộ ngay?',
   'storage.sync.dismiss': 'Bỏ qua',
-  'storage.usage.line': '{objects} đối tượng · {size}',
+  'storage.usage.line': '{count} đối tượng · {size}',
   'storage.usage.computed': 'Đã tính dung lượng sử dụng {age}',
   'storage.usage.never': 'Chưa tính dung lượng sử dụng',
   'storage.usage.refresh': 'Làm mới',
@@ -122,7 +122,7 @@ const storage: TranslationStrings = {
 
   // Category migration (copy → flip → delta sweep)
   'storage.migrate.promptTitle': 'Di chuyển các đối tượng hiện có sang backend mới?',
-  'storage.migrate.promptLine': '{category}: {objects} đối tượng ({size}) từ {from} sang {to}',
+  'storage.migrate.promptLine': '{category}: {count} đối tượng ({size}) từ {from} sang {to}',
   'storage.migrate.promptLineUnknown': '{category}: không rõ dung lượng (chưa quét mức sử dụng) từ {from} sang {to}',
   'storage.migrate.move': 'Di chuyển các đối tượng hiện có',
   'storage.migrate.routeOnly': 'Chỉ định tuyến các ghi mới',
@@ -131,7 +131,7 @@ const storage: TranslationStrings = {
   'storage.migrate.doneFailures': '{failed} thất bại — các đối tượng đó chưa được sao chép sang backend mới',
   'storage.migrate.failed': 'Di chuyển thất bại: {error} — danh mục chưa được chuyển đổi',
   'storage.migrate.cancelled': 'Đã hủy di chuyển — chưa có gì được chuyển đổi',
-  'storage.migrate.reclaimable': '{objects} đối tượng ({size}) vẫn còn trên {from} — hãy thu hồi thủ công',
+  'storage.migrate.reclaimable': '{count} đối tượng ({size}) vẫn còn trên {from}, hãy thu hồi thủ công',
   'storage.migrate.cancel': 'Hủy di chuyển',
   'storage.migrate.promptCancel': 'Hủy',
   'storage.migrate.queued': 'Đang chờ: {categories}',

@@ -25,10 +25,16 @@ const login: TranslationStrings = {
   'login.oidc.noEmail': 'Nessuna email ricevuta dal provider.',
   'login.oidc.tokenFailed': 'Autenticazione fallita.',
   'login.oidc.invalidState': 'Sessione non valida. Riprova.',
+  'login.oidc.emailNotVerified':
+    'Il tuo provider di accesso non ha confermato questo indirizzo email, quindi non può essere collegato a un account esistente.',
+  'login.oidc.emailLinkBlocked':
+    "Non è stato possibile collegare questo accesso all'account esistente con questa email. Chiedi all'amministratore di confermare l'indirizzo.",
   'login.demoFailed': 'Accesso demo fallito',
   'login.oidcSignIn': 'Accedi con {name}',
   'login.oidcOnly': "L'autenticazione tramite password è disabilitata. Accedi utilizzando il tuo provider SSO.",
   'login.oidcLoggedOut': 'Sei stato disconnesso. Accedi nuovamente tramite il tuo provider SSO.',
+  'login.oidcRedirecting': 'Reindirizzamento a {name}…',
+  'login.oidcRedirectSlow': 'Ancora qui? Continua su {name}',
   'login.demoHint': 'Prova la demo — nessuna registrazione necessaria',
   'login.mfaTitle': 'Autenticazione a due fattori',
   'login.mfaSubtitle': 'Inserisci il codice a 6 cifre dalla tua app authenticator.',
@@ -68,9 +74,9 @@ const login: TranslationStrings = {
   'login.resetPasswordFailed': 'Reset non riuscito. Il link potrebbe essere scaduto.',
   'login.passkey.signIn': 'Accedi con una passkey',
   'login.passkey.failed': 'Accesso con passkey non riuscito. Riprova.',
-  'login.insecureCookie.title': "Login won't stick over HTTP",
+  'login.insecureCookie.title': "L'accesso non resta salvato su HTTP",
   'login.insecureCookie.body':
-    'You’re connecting over plain HTTP, so your browser drops TREK’s secure session cookie — the next request fails with "Access token required". Fix: use HTTPS, or for a home-lab set COOKIE_SECURE=false.',
-  'login.insecureCookie.link': 'Open the Troubleshooting guide',
+    'Ti stai collegando tramite HTTP semplice, perciò il browser scarta il cookie di sessione sicuro di TREK e la richiesta successiva fallisce con "Access token required". Soluzione: usa HTTPS oppure, per un home lab, imposta COOKIE_SECURE=false.',
+  'login.insecureCookie.link': 'Apri la guida alla risoluzione dei problemi',
 };
 export default login;

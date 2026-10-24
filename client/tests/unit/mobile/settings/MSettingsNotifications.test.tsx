@@ -77,13 +77,14 @@ describe('MSettingsNotifications', () => {
     expect(screen.getByText('Loading...')).toBeInTheDocument();
   });
 
-  it('FE-MOB-SETNOTIF-002: a failing preferences load keeps the loading line instead of crashing', async () => {
+  it('FE-MOB-SETNOTIF-002: a failing preferences load shows an error instead of the loading line', async () => {
     server.use(
       http.get('/api/notifications/preferences', () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
       http.get('/api/settings', () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
     );
     render(<MSettingsNotifications />);
-    await waitFor(() => expect(screen.getByText('Loading...')).toBeInTheDocument());
+    expect(await screen.findByText('Error')).toBeInTheDocument();
+    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
     expect(screen.getByText('Notifications')).toBeInTheDocument();
   });
 
@@ -442,7 +443,7 @@ describe('MSettingsNotifications', () => {
   });
 
   describe('event matrix', () => {
-    it('FE-MOB-SETNOTIF-026: tapping a chip flips the preference and PUTs the whole matrix', async () => {
+    it('FE-MOB-SETNOTIF-026: tapping a chip flips the preference and PUTs only that cell', async () => {
       const user = userEvent.setup();
       let body: Record<string, Record<string, boolean>> | null = null;
       server.use(
@@ -457,7 +458,7 @@ describe('MSettingsNotifications', () => {
       await user.click(chip);
 
       await waitFor(() => expect(body).not.toBeNull());
-      expect(body).toEqual({ trip_invite: { inapp: false, webhook: false } });
+      expect(body).toEqual({ trip_invite: { inapp: false } });
     });
 
     it('FE-MOB-SETNOTIF-027: a channel with no stored preference defaults to on', async () => {
@@ -511,7 +512,7 @@ describe('MSettingsNotifications', () => {
         http.put('/api/notifications/preferences', async ({ request }) => {
           const body = (await request.json()) as Record<string, Record<string, boolean>>;
           // The first write is the in-app flip; it hangs until the test rejects it.
-          if (body.trip_invite.webhook === false) {
+          if ('inapp' in body.trip_invite) {
             return new Promise<Response>(resolve => {
               rejectInapp = () => resolve(HttpResponse.json({ error: 'nope' }, { status: 500 }) as unknown as Response);
             });
@@ -539,6 +540,34 @@ describe('MSettingsNotifications', () => {
       await waitFor(() => expect(screen.getByRole('button', { name: 'In-App' }).className).toBe(activeClass));
       // The webhook toggle the user made meanwhile is not undone.
       expect(screen.getByRole('button', { name: 'Webhook' }).className).toBe(activeClass);
+    });
+
+    it('FE-MOB-SETNOTIF-035: a second toggle while the first is in flight sends only its own cell', async () => {
+      const user = userEvent.setup();
+      const bodies: Record<string, Record<string, boolean>>[] = [];
+      let rejectFirst!: () => void;
+      server.use(
+        http.put('/api/notifications/preferences', async ({ request }) => {
+          bodies.push((await request.json()) as Record<string, Record<string, boolean>>);
+          if (bodies.length === 1) {
+            return new Promise<Response>(resolve => {
+              rejectFirst = () => resolve(HttpResponse.json({ error: 'nope' }, { status: 500 }) as unknown as Response);
+            });
+          }
+          return HttpResponse.json({ success: true });
+        }),
+      );
+      render(<MSettingsNotifications />);
+
+      await user.click(await screen.findByRole('button', { name: 'In-App' }));
+      await waitFor(() => expect(bodies).toHaveLength(1));
+      await user.click(screen.getByRole('button', { name: 'Webhook' }));
+      await waitFor(() => expect(bodies).toHaveLength(2));
+      rejectFirst();
+
+      // The failed in-app flip is rolled back on screen, so the server must not get it
+      // through the webhook write either.
+      expect(bodies).toEqual([{ trip_invite: { inapp: false } }, { trip_invite: { webhook: true } }]);
     });
 
     it('FE-MOB-SETNOTIF-029: the saving hint shows while the update is in flight', async () => {
@@ -592,5 +621,49 @@ describe('MSettingsNotifications', () => {
       const row = (await screen.findByText('Trip invitations')).parentElement as HTMLElement;
       expect(within(row).getByRole('button', { name: 'plugin:x' })).toBeInTheDocument();
     });
+  });
+});
+
+// Web Push (#894): the per-device card joins the other channel cards while the
+// admin has push switched on. jsdom has no push APIs, so the real hook reads
+// this "browser" as unable to receive push, and the card has to say so.
+describe('MSettingsNotifications: Web Push', () => {
+  it('FE-MOB-SETNOTIF-033: an active push channel gets its chip and the device card', async () => {
+    usePrefs(
+      matrix({
+        preferences: { trip_invite: { inapp: true, push: true } },
+        channels: [builtin('inapp'), builtin('push', { configured: false })],
+        implemented_combos: { trip_invite: ['inapp', 'push'] },
+      }),
+    );
+    render(<MSettingsNotifications />);
+
+    expect(await screen.findByText('Push notifications on this device')).toBeInTheDocument();
+    const row = (await screen.findByText('Trip invitations')).parentElement as HTMLElement;
+    expect(within(row).getByRole('button', { name: 'Push' })).toBeInTheDocument();
+    expect(await screen.findByRole('status')).toHaveTextContent(/push/i);
+  });
+
+  it('FE-MOB-SETNOTIF-034: no card while the admin has push off', async () => {
+    usePrefs(
+      matrix({
+        channels: [builtin('inapp'), builtin('push', { active: false })],
+        implemented_combos: { trip_invite: ['inapp', 'push'] },
+      }),
+    );
+    render(<MSettingsNotifications />);
+
+    await screen.findByText('Trip invitations');
+    expect(screen.queryByText('Push notifications on this device')).not.toBeInTheDocument();
+  });
+});
+
+describe('MSettingsNotifications — cells the admin blocked (#1536)', () => {
+  it('FE-MOB-SETNOTIF-LOCK-001: a blocked channel shows as a locked chip, not a toggle', async () => {
+    usePrefs(matrix({ locked: { trip_invite: ['webhook'] } }));
+    render(<MSettingsNotifications />);
+    const chip = await screen.findByLabelText(/Turned off for everyone by the admin/);
+    expect(chip).toHaveAttribute('aria-disabled', 'true');
+    expect(chip.tagName).toBe('SPAN');
   });
 });

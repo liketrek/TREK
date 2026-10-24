@@ -10,6 +10,7 @@ import {
 // FE-MOB-NROW-001 onwards
 
 const markRead = vi.fn(async (_id: number) => {});
+const markUnread = vi.fn(async (_id: number) => {});
 const deleteNotification = vi.fn(async (_id: number) => {});
 const respondToBoolean = vi.fn(async (_id: number, _r: 'positive' | 'negative') => {});
 
@@ -43,9 +44,10 @@ const agesAgo = (minutes: number) => new Date(Date.now() - minutes * 60000).toIS
 beforeEach(() => {
   resetAllStores();
   markRead.mockClear();
+  markUnread.mockClear();
   deleteNotification.mockClear();
   respondToBoolean.mockClear();
-  useInAppNotificationStore.setState({ markRead, deleteNotification, respondToBoolean });
+  useInAppNotificationStore.setState({ markRead, markUnread, deleteNotification, respondToBoolean });
 });
 
 describe('MNotificationRow', () => {
@@ -106,6 +108,19 @@ describe('MNotificationRow', () => {
     fireEvent.click(screen.getByText('notif.title'));
 
     expect(markRead).not.toHaveBeenCalled();
+  });
+
+  it('FE-MOB-NROW-007b: a read row offers Mark as unread, an unread row does not', () => {
+    const { unmount } = render(<MNotificationRow notification={buildNotification({ is_read: true })} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mark as unread' }));
+
+    expect(markUnread).toHaveBeenCalledWith(3);
+    expect(markRead).not.toHaveBeenCalled();
+    unmount();
+
+    render(<MNotificationRow notification={buildNotification({ is_read: false })} />);
+    expect(screen.queryByRole('button', { name: 'Mark as unread' })).not.toBeInTheDocument();
   });
 
   it('FE-MOB-NROW-008: the trailing button deletes without marking read', () => {

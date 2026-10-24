@@ -1,9 +1,9 @@
-import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
-import { PluginGuards } from '../plugins/host/plugin-guards.service';
-import { BadParams, ForbiddenResource } from '../plugins/host/rpc-errors';
-import { asPayload, num } from '../plugins/host/rpc-params';
-import type { PluginRpcContext } from '../plugins/host/rpc-kit/types';
 import { ADDON_IDS } from '../../addons';
+import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
+import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
+import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
+import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
+import { asPayload, num } from '../../nest-rpc/rpc-params';
 import { AtlasService, BucketItemExistsError } from './atlas.service';
 
 /**
@@ -23,71 +23,72 @@ export class AtlasRpc {
   ) {}
 
   @PluginMethod('atlas.visited', { permission: 'db:read:atlas' })
-  visited(_params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
+  async visited(_params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     const userId = this.requireAtlasUser(ctx, 'reads');
-    this.requireAtlasAddon();
+    await this.requireAtlasAddon();
     return {
-      countries: this.atlas.listVisitedCountries(userId),
-      regions: this.atlas.listManuallyVisitedRegions(userId),
+      countries: await this.atlas.listVisitedCountries(userId),
+      regions: await this.atlas.listManuallyVisitedRegions(userId),
     };
   }
 
   @PluginMethod('atlas.bucketList', { permission: 'db:read:atlas' })
-  bucketList(_params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
+  async bucketList(_params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     const userId = this.requireAtlasUser(ctx, 'reads');
-    this.requireAtlasAddon();
-    return this.atlas.bucketList(userId) as unknown[];
+    await this.requireAtlasAddon();
+    return (await this.atlas.bucketList(userId)) as unknown[];
   }
 
   @PluginMethod('atlas.markCountry', { permission: 'db:write:atlas' })
-  markCountry(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
+  async markCountry(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     const userId = this.requireAtlasUser(ctx, 'writes');
     const code = this.code(params.code, 'code');
-    this.requireAtlasAddon();
-    this.atlas.markCountry(userId, code);
+    await this.requireAtlasAddon();
+    await this.atlas.markCountry(userId, code);
     return { visited: true };
   }
 
   @PluginMethod('atlas.unmarkCountry', { permission: 'db:write:atlas' })
-  unmarkCountry(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
+  async unmarkCountry(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     const userId = this.requireAtlasUser(ctx, 'writes');
     const code = this.code(params.code, 'code');
-    this.requireAtlasAddon();
-    this.atlas.unmarkCountry(userId, code);
+    await this.requireAtlasAddon();
+    await this.atlas.unmarkCountry(userId, code);
     return { visited: false };
   }
 
   @PluginMethod('atlas.markRegion', { permission: 'db:write:atlas' })
-  markRegion(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
+  async markRegion(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     const userId = this.requireAtlasUser(ctx, 'writes');
     // A missing name falls back to the code, so the row is never nameless.
-    const regionName = typeof params.regionName === 'string' && params.regionName
-      ? params.regionName.slice(0, 128)
-      : String(params.regionCode ?? '');
+    const regionName =
+      typeof params.regionName === 'string' && params.regionName
+        ? params.regionName.slice(0, 128)
+        : String(params.regionCode ?? '');
     const regionCode = this.code(params.regionCode, 'regionCode');
     const countryCode = this.code(params.countryCode, 'countryCode');
-    this.requireAtlasAddon();
-    this.atlas.markRegion(userId, regionCode, regionName, countryCode);
+    await this.requireAtlasAddon();
+    await this.atlas.markRegion(userId, regionCode, regionName, countryCode);
     return { visited: true };
   }
 
   @PluginMethod('atlas.unmarkRegion', { permission: 'db:write:atlas' })
-  unmarkRegion(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
+  async unmarkRegion(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     const userId = this.requireAtlasUser(ctx, 'writes');
     const regionCode = this.code(params.regionCode, 'regionCode');
-    this.requireAtlasAddon();
-    this.atlas.unmarkRegion(userId, regionCode);
+    await this.requireAtlasAddon();
+    await this.atlas.unmarkRegion(userId, regionCode);
     return { visited: false };
   }
 
   @PluginMethod('atlas.createBucketItem', { permission: 'db:write:atlas' })
-  createBucketItem(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
+  async createBucketItem(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     const userId = this.requireAtlasUser(ctx, 'writes');
     const input = asPayload(params.input);
     if (typeof input.name !== 'string' || input.name.trim() === '') throw new BadParams('bucket item name is required');
-    this.requireAtlasAddon();
+    await this.requireAtlasAddon();
     try {
-      return this.atlas.createBucketItem(userId, input as never);
+      return await this.atlas.createBucketItem(userId, input as never);
     } catch (err) {
       // #1898: a repeated wish is the caller's mistake, not ours. Without this the
       // plugin sees a generic internal error and cannot tell the two apart.
@@ -97,11 +98,11 @@ export class AtlasRpc {
   }
 
   @PluginMethod('atlas.deleteBucketItem', { permission: 'db:write:atlas' })
-  deleteBucketItem(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
+  async deleteBucketItem(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     const userId = this.requireAtlasUser(ctx, 'writes');
     const itemId = num(params.itemId, 'itemId');
-    this.requireAtlasAddon();
-    if (!this.atlas.deleteBucketItem(userId, itemId)) {
+    await this.requireAtlasAddon();
+    if (!(await this.atlas.deleteBucketItem(userId, itemId))) {
       throw new ForbiddenResource(`no bucket item ${itemId} for this user`);
     }
     return { deleted: true };
@@ -121,8 +122,8 @@ export class AtlasRpc {
     return ctx.actingUserId;
   }
 
-  private requireAtlasAddon(): void {
-    this.guards.requireAddon(ADDON_IDS.ATLAS, 'atlas');
+  private async requireAtlasAddon(): Promise<void> {
+    await this.guards.requireAddon(ADDON_IDS.ATLAS, 'atlas');
   }
 
   /** Country and region codes are short and stored upper-cased. */

@@ -17,28 +17,33 @@ const admin: TranslationStrings = {
   'admin.webhook.hint': 'Benachrichtigungen an einen externen Webhook senden (Discord, Slack usw.).',
   'admin.smtp.testSuccess': 'Test-E-Mail erfolgreich gesendet',
   'admin.smtp.testFailed': 'Test-E-Mail fehlgeschlagen',
-  'admin.title': 'Administration',
+  'admin.title': 'Administration', // same-as-en
   'admin.subtitle': 'Benutzerverwaltung und Systemeinstellungen',
   'admin.tabs.users': 'Benutzer',
   'admin.tabs.categories': 'Kategorien',
-  'admin.tabs.backup': 'Backup',
-  'admin.tabs.audit': 'Audit',
+  'admin.tabs.backup': 'Backup', // same-as-en
+  'admin.tabs.audit': 'Audit', // same-as-en
   'admin.stats.users': 'Benutzer',
+  'admin.stats.users.one': 'Benutzer',
   'admin.stats.trips': 'Reisen',
+  'admin.stats.trips.one': 'Reise',
   'admin.stats.places': 'Orte',
+  'admin.stats.places.one': 'Ort',
   'admin.stats.photos': 'Fotos',
   'admin.stats.files': 'Dateien',
+  'admin.stats.files.one': 'Datei',
   'admin.table.user': 'Benutzer',
   'admin.table.email': 'E-Mail',
   'admin.table.role': 'Rolle',
   'admin.table.created': 'Erstellt',
-  'admin.table.lastLogin': 'Letzter Login',
+  'admin.table.lastActive': 'Zuletzt aktiv',
   'admin.table.actions': 'Aktionen',
   'admin.you': '(Du)',
   'admin.editUser': 'Benutzer bearbeiten',
   'admin.newPassword': 'Neues Passwort',
   'admin.newPasswordHint': 'Leer lassen, um das Passwort nicht zu ändern',
-  'admin.deleteUser': 'Benutzer "{name}" löschen? Alle Reisen werden unwiderruflich gelöscht.',
+  'admin.deleteUser':
+    'Benutzer "{name}" löschen? Das Konto sowie alle Reisen und Journale, die dem Benutzer gehören, werden endgültig gelöscht, auch Reisen, die mit anderen Mitgliedern geteilt sind; diese verlieren den Zugriff. Reisen anderer bleiben erhalten.',
   'admin.deleteUserTitle': 'Benutzer löschen',
   'admin.newPasswordPlaceholder': 'Neues Passwort eingeben…',
   'admin.toast.loadError': 'Fehler beim Laden der Admin-Daten',
@@ -72,59 +77,47 @@ const admin: TranslationStrings = {
   'admin.tabs.settings': 'Einstellungen',
   'admin.allowRegistration': 'Registrierung erlauben',
   'admin.allowRegistrationHint': 'Neue Benutzer können sich selbst registrieren',
-  'admin.authMethods': 'Authentication Methods',
-  'admin.passwordLogin': 'Password Login',
-  'admin.passwordLoginHint': 'Allow users to sign in with email and password',
-  'admin.passwordRegistration': 'Password Registration',
-  'admin.passwordRegistrationHint': 'Allow new users to register with email and password',
-  'admin.oidcLogin': 'SSO Login',
-  'admin.oidcLoginHint': 'Allow users to sign in with SSO',
+  'admin.authMethods': 'Anmeldemethoden',
+  'admin.passwordLogin': 'Passwort-Anmeldung',
+  'admin.passwordLoginHint': 'Erlaube Nutzern die Anmeldung mit E-Mail und Passwort',
+  'admin.passwordRegistration': 'Passwort-Registrierung',
+  'admin.passwordRegistrationHint': 'Erlaube neuen Nutzern die Registrierung mit E-Mail und Passwort',
+  'admin.oidcLogin': 'SSO-Anmeldung',
+  'admin.oidcLoginHint': 'Erlaube Nutzern die Anmeldung per SSO',
   'admin.oidcRegistration': 'SSO Auto-Provisioning',
-  'admin.oidcRegistrationHint': 'Automatically create accounts for new SSO users',
+  'admin.oidcRegistrationHint': 'Konten für neue SSO-Nutzer automatisch anlegen',
   'admin.envOverrideHint':
-    'Password login settings are controlled by the OIDC_ONLY environment variable and cannot be changed here.',
-  'admin.lockoutWarning': 'At least one login method must remain enabled',
+    'Die Einstellungen zur Passwort-Anmeldung werden über die Umgebungsvariable OIDC_ONLY gesteuert und lassen sich hier nicht ändern.',
+  'admin.lockoutWarning': 'Mindestens eine Anmeldemethode muss aktiviert bleiben',
   'admin.requireMfa': 'Zwei-Faktor-Authentifizierung (2FA) für alle verlangen',
   'admin.requireMfaHint':
     'Benutzer ohne 2FA müssen die Einrichtung unter Einstellungen abschließen, bevor sie die App nutzen können.',
   'admin.apiKeys': 'API-Schlüssel',
-  'admin.apiKeysHint': 'Woher die Ortsdaten kommen. Der TREK-Index braucht keinen Schlüssel, die beiden Anbieter darunter sind optional.',
+  'admin.apiKeysHint':
+    'Woher die Ortsdaten kommen. Der TREK-Index braucht keinen Schlüssel, die beiden Anbieter darunter sind optional.',
   'admin.trekApi.badgeDefault': 'Empfohlene Standardquelle',
   'admin.googleCaveat.badge': 'Nicht empfohlen',
   'admin.googleCaveat.body':
     'TREK ist quelloffen und wir sind hier nicht neutral. Bewertungen und Fotos gewöhnlicher Läden gibt es in dieser Größenordnung nur bei Google, und genau das ist ein Monopol. Das Feld steht hier, weil es keine Alternative gibt, nicht weil wir es empfehlen. Jede Abfrage geht dann an Google.',
   'admin.trekApi.tagline':
     'TREKs eigener Ortsindex. Suchen ohne Google-Schlüssel, ohne Kontingent und ohne dass jemand mitzählt.',
-  'admin.trekApi.factPlaces':
-    '73,6 Millionen Orte weltweit',
-  'admin.trekApi.factNoKey':
-    'Kein Schlüssel, kein Kontingent',
-  'admin.trekApi.factOffline':
-    'Länderpakete auch offline',
-  'admin.trekApi.factPrivacy':
-    'Suchanfragen werden nie protokolliert',
-  'admin.trekApi.more':
-    'Was drin ist',
-  'admin.trekApi.fieldPhone':
-    'Telefon',
-  'admin.trekApi.fieldStableId':
-    'Stabile Kennung',
+  'admin.trekApi.factPlaces': '73,6 Millionen Orte weltweit',
+  'admin.trekApi.factNoKey': 'Kein Schlüssel, kein Kontingent',
+  'admin.trekApi.factOffline': 'Länderpakete auch offline',
+  'admin.trekApi.factPrivacy': 'Suchanfragen werden nie protokolliert',
+  'admin.trekApi.more': 'Was drin ist',
+  'admin.trekApi.fieldPhone': 'Telefon',
+  'admin.trekApi.fieldStableId': 'Stabile Kennung',
   'admin.trekApi.includedNote':
     'Beschreibungen kommen von der Website des Ortes selbst, Öffnungszeiten aus OpenStreetMap, wo sie eingetragen sind.',
-  'admin.trekApi.notRatings':
-    'Bewertungen',
-  'admin.trekApi.notPhotos':
-    'Fotos gewöhnlicher Läden',
+  'admin.trekApi.notRatings': 'Bewertungen',
+  'admin.trekApi.notPhotos': 'Fotos gewöhnlicher Läden',
   'admin.trekApi.notIncludedNote':
     'Beides gibt es in keiner offenen Quelle, zu keinem Preis. Dafür bleibt ein Google-Schlüssel der einzige Weg.',
-  'admin.trekApi.sourcesLabel':
-    'Quellen',
-  'admin.trekApi.sourcesNote':
-    'Jedes Feld einer Antwort nennt, aus welcher davon es stammt.',
-  'admin.trekApi.included':
-    'Enthalten',
-  'admin.trekApi.notIncluded':
-    'Nicht enthalten',
+  'admin.trekApi.sourcesLabel': 'Quellen',
+  'admin.trekApi.sourcesNote': 'Jedes Feld einer Antwort nennt, aus welcher davon es stammt.',
+  'admin.trekApi.included': 'Enthalten',
+  'admin.trekApi.notIncluded': 'Nicht enthalten',
   'admin.mapsKey': 'Google Maps API-Schlüssel',
   'admin.mapsKeyHint': 'Für Ortsuche benötigt. Erstellen unter console.cloud.google.com',
   'admin.mapsKeyHintLong':
@@ -137,22 +130,25 @@ const admin: TranslationStrings = {
   'admin.amapKey': 'Amap (高德地图) API-Key',
   'admin.amapKeyHint':
     'Für die Ortssuche in Festlandchina, wo Google nicht erreichbar ist und OpenStreetMap kaum Daten hat. Benötigt einen Key vom Typ „Web 服务" (Webdienst), nicht einen JS-API-Key. Erhältlich auf console.amap.com.',
+  'admin.keyFromEnv': 'Gesetzt über {name}',
   'admin.placesProvider.title': 'Anbieter für die Ortssuche',
-  'admin.placesProvider.subtitle': 'Der TREK-Index und OpenStreetMap beantworten jede Suche. Hier wird gewählt, wer zusätzlich gefragt wird, wenn die beiden nichts finden: Automatisch bevorzugt Google, wenn ein Schlüssel da ist, danach Amap.',
+  'admin.placesProvider.subtitle':
+    'Der TREK-Index und OpenStreetMap beantworten jede Suche. Hier wird gewählt, wer zusätzlich gefragt wird, wenn die beiden nichts finden: Automatisch bevorzugt Google, wenn ein Schlüssel da ist, danach Amap.',
   'admin.placesProvider.auto': 'Automatisch',
   'admin.placesProvider.google': 'Google Places',
-  'admin.placesProvider.amap': 'Amap (高德地图)',
+  'admin.placesProvider.amap': 'Amap (高德地图)', // same-as-en
   'admin.placesProvider.openstreetmap': 'OpenStreetMap',
-  'admin.placesProvider.missingKey': 'Für den gewählten Anbieter ist kein API-Schlüssel hinterlegt, die Ortssuche beantworten daher nur der TREK-Index und OpenStreetMap.',
+  'admin.placesProvider.missingKey':
+    'Für den gewählten Anbieter ist kein API-Schlüssel hinterlegt, die Ortssuche beantworten daher nur der TREK-Index und OpenStreetMap.',
   'admin.placesProvider.saved': 'Anbieter für die Ortssuche gespeichert',
-  'admin.validateKey': 'Test',
+  'admin.validateKey': 'Testen',
   'admin.keyValid': 'Verbunden',
   'admin.keyInvalid': 'Ungültig',
   'admin.keySaved': 'API-Schlüssel gespeichert',
-  'admin.oidcTitle': 'Single Sign-On (OIDC)',
+  'admin.oidcTitle': 'Single Sign-On (OIDC)', // same-as-en
   'admin.oidcSubtitle': 'Anmeldung über externe Anbieter wie Google, Apple, Authentik oder Keycloak.',
   'admin.oidcDisplayName': 'Anzeigename',
-  'admin.oidcIssuer': 'Issuer URL',
+  'admin.oidcIssuer': 'Issuer-URL',
   'admin.oidcIssuerHint': 'Die OpenID Connect Issuer URL des Anbieters. z.B. https://accounts.google.com',
   'admin.oidcSaved': 'OIDC-Konfiguration gespeichert',
   'admin.oidcOnlyMode': 'Passwort-Authentifizierung deaktivieren',
@@ -177,23 +173,38 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.subtitle':
     'Bilder und eine Beschreibung beim Hinzufügen eines Ortes anzeigen. Wikipedia und OpenStreetMap werden immer genutzt; Google kommt zusätzlich dazu, wenn Ortsfotos oder Ortsdetails aktiv sind.',
   'admin.placesGoogleOnly.title': 'Nur mit Google suchen',
-  'admin.placesGoogleOnly.subtitle': 'Jede Suche und jeder Vorschlag geht an Google Places. Aus, antworten zuerst der TREK-Index und OpenStreetMap, Google wird nur gefragt, wenn beide nichts finden.',
-  'admin.placesGoogleOnly.missingKey': 'Braucht einen Google-Maps-API-Schlüssel. Ohne ihn läuft die Suche über den TREK-Index und OpenStreetMap, egal wie dieser Schalter steht.',
-  'admin.placesGoogleOnly.otherProvider': 'Braucht Google als Orts-Anbieter. Mit Amap oder OpenStreetMap als Auswahl geht keine Suche an Google, egal wie dieser Schalter steht.',
+  'admin.placesGoogleOnly.subtitle':
+    'Jede Suche und jeder Vorschlag geht an Google Places. Aus, antworten zuerst der TREK-Index und OpenStreetMap, Google wird nur gefragt, wenn beide nichts finden.',
+  'admin.placesGoogleOnly.missingKey':
+    'Braucht einen Google-Maps-API-Schlüssel. Ohne ihn läuft die Suche über den TREK-Index und OpenStreetMap, egal wie dieser Schalter steht.',
+  'admin.placesGoogleOnly.otherProvider':
+    'Braucht Google als Orts-Anbieter. Mit Amap oder OpenStreetMap als Auswahl geht keine Suche an Google, egal wie dieser Schalter steht.',
+  'admin.googleQuota.title': 'Tageslimit für Google-Aufrufe',
+  'admin.googleQuota.subtitle':
+    'Ist es erreicht, ruft TREK Google bis zum nächsten Tag (UTC) nicht mehr auf und sucht stattdessen mit OpenStreetMap. Leer heißt kein Limit.',
+  'admin.googleQuota.placeholder': 'Kein Limit',
+  'admin.googleQuota.usedToday': 'Heute: {used}',
+  'admin.googleQuota.usedOfLimit': 'Heute: {used} von {limit}',
+  'admin.googleQuota.reached': 'Limit erreicht ({used}), Google bis morgen pausiert',
+  'admin.googleQuota.saved': 'Tageslimit gespeichert',
   'admin.transitProvider.title': 'Verkehrsanbieter',
   'admin.transitProvider.subtitle': 'Welcher Dienst die ÖPNV-Suche beantwortet.',
   'admin.transitProvider.transitous': 'Transitous (kostenlos)',
   'admin.transitProvider.google': 'Google',
-  'admin.transitProvider.transitousHint': 'Community-GTFS-Feeds. Kostenlos und ohne Schlüssel, mit der besten Abdeckung in Europa.',
-  'admin.transitProvider.googleHint': 'Nutzt den obigen Google-Schlüssel, für Regionen ohne Transitous-Daten. Wird pro Suche abgerechnet – solange kein Schlüssel gesetzt ist, wird Transitous verwendet.',
-  'admin.transitProvider.noKeyWarning': 'Google ist ausgewählt, aber es ist kein Google-Schlüssel hinterlegt — die ÖPNV-Suche nutzt weiterhin Transitous. Trage oben unter API-Schlüssel einen Schlüssel ein.',
-  'admin.transitProvider.personalKeyWarning': 'Es ist nur dein eigener Google-Schlüssel gesetzt, daher fällt die Suche der anderen Mitglieder weiterhin auf Transitous zurück. Speichere den Schlüssel oben als Admin, damit er instanzweit gilt.',
+  'admin.transitProvider.transitousHint':
+    'Community-GTFS-Feeds. Kostenlos und ohne Schlüssel, mit der besten Abdeckung in Europa.',
+  'admin.transitProvider.googleHint':
+    'Nutzt den obigen Google-Schlüssel, für Regionen ohne Transitous-Daten. Wird pro Suche abgerechnet; solange kein Schlüssel gesetzt ist, wird Transitous verwendet.',
+  'admin.transitProvider.noKeyWarning':
+    'Google ist ausgewählt, aber es ist kein Google-Schlüssel hinterlegt; die ÖPNV-Suche nutzt weiterhin Transitous. Trage oben unter API-Schlüssel einen Schlüssel ein.',
+  'admin.transitProvider.personalKeyWarning':
+    'Es ist nur dein eigener Google-Schlüssel gesetzt, daher fällt die Suche der anderen Mitglieder weiterhin auf Transitous zurück. Speichere den Schlüssel oben als Admin, damit er instanzweit gilt.',
   'admin.placeShadow.title': 'Ortssuche protokollieren',
   'admin.placeShadow.subtitle':
     'Festhalten, welches Suchergebnis ausgewählt wurde, damit sich ein anderer Ortsindex später an echten Suchen messen lässt. Nichts verlässt diese Instanz, und ein Administrator kann das Protokoll jederzeit exportieren oder löschen.',
   'admin.bagTracking.title': 'Gepäck-Tracking',
   'admin.bagTracking.subtitle': 'Gewicht und Gepäckstück-Zuordnung für Packlisteneinträge aktivieren',
-  'admin.collab.chat.title': 'Chat',
+  'admin.collab.chat.title': 'Chat', // same-as-en
   'admin.collab.chat.subtitle': 'Echtzeit-Nachrichten für die Reiseplanung',
   'admin.collab.notes.title': 'Notizen',
   'admin.collab.notes.subtitle': 'Gemeinsame Notizen und Dokumente',
@@ -216,7 +227,9 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.namePlaceholder': 'Vorlagenname (z.B. Strandurlaub)',
   'admin.packingTemplates.empty': 'Noch keine Vorlagen erstellt',
   'admin.packingTemplates.items': 'Einträge',
+  'admin.packingTemplates.items.one': 'Eintrag',
   'admin.packingTemplates.categories': 'Kategorien',
+  'admin.packingTemplates.categories.one': 'Kategorie',
   'admin.packingTemplates.itemName': 'Artikelname',
   'admin.packingTemplates.itemCategory': 'Kategorie',
   'admin.packingTemplates.categoryName': 'Kategoriename (z.B. Kleidung)',
@@ -229,8 +242,8 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.deleteCategoryError': 'Kategorie konnte nicht gelöscht werden',
   'admin.packingTemplates.deleteItemError': 'Eintrag konnte nicht gelöscht werden',
   'admin.packingTemplates.saveError': 'Fehler beim Speichern',
-  'admin.tabs.addons': 'Addons',
-  'admin.tabs.plugins': 'Plugins',
+  'admin.tabs.addons': 'Add-ons',
+  'admin.tabs.plugins': 'Plugins', // same-as-en
   'admin.tabs.storage': 'Speicher',
   'admin.plugins.rescan': 'Neu scannen',
   'admin.plugins.rescanned': 'Plugin-Ordner neu gescannt',
@@ -267,6 +280,7 @@ const admin: TranslationStrings = {
     'Beim Speichern wird das Plugin neu gestartet, damit es die neue Liste übernimmt.',
   'admin.plugins.allowedHosts.add': 'Erlaubten Host hinzufügen',
   'admin.plugins.allowedHosts.count': '{n} erlaubte Hosts',
+  'admin.plugins.allowedHosts.count.one': '{n} erlaubter Host',
   'admin.plugins.operatorEgressPill': '+ von dir ergänzte Hosts',
   'admin.plugins.operatorEgressHint':
     'Dieses Plugin spricht mit einem Dienst, den nur du benennen kannst (ein selbst gehosteter Server). Füge nach der Installation unter ⋯ → Erlaubte Hosts die erreichbaren Hosts hinzu. Andere erreicht es nicht.',
@@ -276,18 +290,18 @@ const admin: TranslationStrings = {
   'admin.plugins.uninstallBody':
     'Das stoppt das Plugin, entfernt seinen Code und löscht alle seine Daten. Das kann nicht rückgängig gemacht werden.',
   'admin.plugins.status.starting': 'Startet…',
-  'admin.plugins.type.widget': 'Widget',
+  'admin.plugins.type.widget': 'Widget', // same-as-en
   'admin.plugins.type.page': 'Seite',
-  'admin.plugins.type.integration': 'Integration',
+  'admin.plugins.type.integration': 'Integration', // same-as-en
   'admin.plugins.type.trip-page': 'Reise-Seite',
   'admin.plugins.reviewed': 'Geprüft',
   'admin.plugins.unreviewed': 'Ungeprüft',
   'admin.plugins.updated': 'Plugin aktualisiert',
-  'admin.plugins.updateTo': 'Update → v{version}',
+  'admin.plugins.updateTo': 'Update → v{version}', // same-as-en
   'admin.plugins.enabledToggle': 'Plugin aktivieren',
   'plugins.notFound': 'Plugin nicht gefunden',
   'plugins.frameLoadFailed': 'Dieses Plugin konnte nicht geladen werden.',
-  'admin.plugins.title': 'Plugins',
+  'admin.plugins.title': 'Plugins', // same-as-en
   'admin.plugins.subtitle': 'Plugins von Drittanbietern auf deiner Instanz installieren und verwalten.',
   'admin.plugins.disabledTitle': 'Plugins sind deaktiviert',
   'admin.plugins.disabledBody':
@@ -301,7 +315,7 @@ const admin: TranslationStrings = {
   'admin.plugins.status.disabled': 'Deaktiviert',
   'admin.plugins.status.error': 'Fehler',
   'admin.plugins.status.incompatible': 'Inkompatibel',
-  'admin.plugins.details': 'Details',
+  'admin.plugins.details': 'Details', // same-as-en
   'admin.plugins.detailError': 'Plugin-Details konnten nicht geladen werden.',
   'admin.plugins.permissionsTitle': 'Berechtigungen',
   'admin.plugins.noPermissions': 'Dieses Plugin benötigt keine besonderen Berechtigungen.',
@@ -313,7 +327,7 @@ const admin: TranslationStrings = {
   'admin.plugins.fieldRequired': 'Erforderlich',
   'admin.plugins.sourceRepo': 'Quell-Repository',
   'admin.plugins.reportIssue': 'Problem melden',
-  'admin.plugins.homepage': 'Homepage',
+  'admin.plugins.homepage': 'Homepage', // same-as-en
   'admin.plugins.requiresTrek': 'Benötigt TREK {version}+',
   'admin.plugins.reviewedOn': 'Geprüft am {date}',
   'admin.plugins.perm.db:own': 'Eigene Daten in einer isolierten Datenbank speichern',
@@ -384,6 +398,8 @@ const admin: TranslationStrings = {
     'Zusatzdetails (Bewertungen, Ratings, Links) zu einem Ort beisteuern',
   'admin.plugins.perm.hook:search-provider':
     'Ortssuchen aus einem eigenen Index beantworten, neben TREKs eigenen Ergebnissen',
+  'admin.plugins.perm.hook:poi-category-provider':
+    'Eigene Ortskategorien zu „Orte auf der Karte entdecken“ hinzufügen; wählst du eine davon, erhält das Plugin den Kartenausschnitt, den du gerade ansiehst',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Validierungswarnungen zu einer Reise ausgeben (im Planer angezeigt)',
   'admin.plugins.perm.hook:table-contributor':
@@ -398,7 +414,9 @@ const admin: TranslationStrings = {
     'Tage im Tagesplan farblich markieren (z. B. zu welchem Reiseabschnitt ein Tag gehört)',
   'admin.plugins.cap.mcpTools': 'Veröffentlicht KI-Tools',
   'admin.plugins.mcpToolsTitle': 'Veröffentlichte KI-Tools',
-  'admin.plugins.mcpToolsHint': 'Ein Assistent kann sie im Namen eines Nutzers ausführen. Jedes handelt mit den oben erteilten Rechten.',
+  'admin.plugins.mcpToolsHint':
+    'Ein Assistent kann sie im Namen eines Nutzers ausführen. Jedes handelt mit den oben erteilten Rechten.',
+  'admin.plugins.poiCategoriesTitle': 'Kartenkategorien, die es hinzufügt',
   'admin.plugins.perm.mcp:tools':
     'Tools veröffentlichen, die ein KI-Assistent in deinem Namen ausführen kann (es handelt mit den Rechten, die du dem Plugin hier erteilst, nicht mit denen des Assistenten)',
   'admin.plugins.perm.geolocation:read':
@@ -484,17 +502,18 @@ const admin: TranslationStrings = {
   'admin.plugins.tabDiscover': 'Entdecken',
   'admin.plugins.searchPlaceholder': 'Plugins durchsuchen…',
   'admin.plugins.filterType': 'Typ',
-  'admin.plugins.filterStatus': 'Status',
+  'admin.plugins.filterStatus': 'Status', // same-as-en
   'admin.plugins.sortBy': 'Sortieren',
   'admin.plugins.allTypes': 'Alle Typen',
   'admin.plugins.allStatuses': 'Alle',
   'admin.plugins.stateOff': 'Aus',
   'admin.plugins.filterUpdate': 'Update verfügbar',
-  'admin.plugins.sortName': 'Name',
+  'admin.plugins.sortName': 'Name', // same-as-en
   'admin.plugins.sortRecent': 'Zuletzt aktualisiert',
   'admin.plugins.sortUpdates': 'Updates zuerst',
   'admin.plugins.sortDownloads': 'Meiste Downloads',
   'admin.plugins.updatesAvailable': '{count} Updates für deine Plugins verfügbar.',
+  'admin.plugins.updatesAvailable.one': '{count} Update für deine Plugins verfügbar.',
   'admin.plugins.newerNeedsTrek': 'v{version} verfügbar — benötigt TREK {range}',
   'admin.plugins.versionsTitle': 'Versionen',
   'admin.plugins.versionPickerTitle': 'Version wechseln — {name}',
@@ -503,7 +522,8 @@ const admin: TranslationStrings = {
   'admin.plugins.changeVersion': 'Version wechseln…',
   'admin.plugins.noVersions': 'Keine veröffentlichten Versionen in der Registry gefunden.',
   'admin.plugins.downgradeTitle': 'Dieses Plugin zurücksetzen?',
-  'admin.plugins.downgradeBody': 'Wechsel von v{from} zu v{to}: Von der neueren Version geschriebene Daten bleiben erhalten, und die ältere Version versteht sie möglicherweise nicht.',
+  'admin.plugins.downgradeBody':
+    'Wechsel von v{from} zu v{to}: Von der neueren Version geschriebene Daten bleiben erhalten, und die ältere Version versteht sie möglicherweise nicht.',
   'admin.plugins.downgradeConfirm': 'Zurücksetzen',
   'admin.plugins.updatesHeld': 'Updates pausiert bei v{version}',
   'admin.plugins.resumeUpdates': 'Updates fortsetzen',
@@ -543,6 +563,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Liefert Kalender-Events',
   'admin.plugins.cap.placeDetails': 'Reichert Orte an',
   'admin.plugins.cap.search': 'Beantwortet Suchen',
+  'admin.plugins.cap.poiCategories': 'Fügt Kartenkategorien hinzu',
   'admin.plugins.cap.warnings': 'Meldet Probleme',
   'admin.plugins.cap.mapLayers': 'Zeichnet auf der Karte',
   'admin.plugins.cap.routing': 'Bietet Routing an',
@@ -553,7 +574,9 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.requiresAddon': 'Benötigt {addon}',
   'admin.plugins.cap.dependsOn': 'Benötigt {id} {version}',
   'admin.plugins.dep.addonDisabledToast': 'Aktiviere zuerst die benötigten Addons: {addons}',
+  'admin.plugins.dep.addonDisabledToast.one': 'Aktiviere zuerst das benötigte Addon: {addons}',
   'admin.plugins.dep.autoEnabled': 'Benötigte Plugins zuerst aktiviert: {plugins}',
+  'admin.plugins.dep.autoEnabled.one': 'Benötigtes Plugin zuerst aktiviert: {plugins}',
   'admin.plugins.dep.downloaded': '{id} heruntergeladen',
   'admin.plugins.dep.resolveTitle': 'Fehlende Abhängigkeiten',
   'admin.plugins.dep.resolveBody': '„{name}“ benötigt diese Plugins, bevor es aktiviert werden kann.',
@@ -575,20 +598,19 @@ const admin: TranslationStrings = {
     '„{name}“ gibt Unterstützung für TREK {range} an, dieser Server läuft mit {host}. TREK lässt es nur durch, weil TREK_PLUGINS_IGNORE_TREK_RANGE gesetzt ist. Der Autor hat den Versionsbereich des Plugins für dieses TREK nicht aktualisiert, es gibt also keine Garantie, dass es funktioniert — und in seltenen Fällen kann ein unpassendes Plugin TREK-Daten beschädigen. Fahre nur fort, wenn du dieses Risiko akzeptierst.',
   'admin.plugins.rangeBypass.bodyUnknown':
     '„{name}“ gibt nicht an, welche TREK-Versionen es unterstützt; dieser Server läuft mit {host}. TREK lässt es nur durch, weil TREK_PLUGINS_IGNORE_TREK_RANGE gesetzt ist. Nichts belegt, dass der Autor es auf diesem TREK getestet hat, es gibt also keine Garantie, dass es funktioniert — und in seltenen Fällen kann ein unpassendes Plugin TREK-Daten beschädigen. Fahre nur fort, wenn du dieses Risiko akzeptierst.',
-  'admin.plugins.dep.trekBypassed':
-    'Außerhalb seines TREK-Bereichs ({range}) — Versionsprüfung aus',
+  'admin.plugins.dep.trekBypassed': 'Außerhalb seines TREK-Bereichs ({range}) — Versionsprüfung aus',
   'admin.plugins.dep.trekBypassedUnknown': 'Gibt keinen TREK-Bereich an — Versionsprüfung aus',
   'admin.plugins.incompatible': 'Nicht kompatibel',
   'admin.plugins.accessTitle': 'Worauf es zugreift',
   'admin.plugins.connectsTitle': 'Verbindet sich mit',
-  'admin.plugins.detailsTitle': 'Details',
+  'admin.plugins.detailsTitle': 'Details', // same-as-en
   'admin.plugins.noAccess': 'Braucht keinen besonderen Zugriff.',
-  'admin.plugins.metaVersion': 'Version',
+  'admin.plugins.metaVersion': 'Version', // same-as-en
   'admin.plugins.metaSize': 'Größe',
   'admin.plugins.metaRequires': 'Benötigt',
   'admin.plugins.metaReviewed': 'Geprüft am',
-  'admin.plugins.downloads': 'Downloads',
-  'admin.addons.title': 'Addons',
+  'admin.plugins.downloads': 'Downloads', // same-as-en
+  'admin.addons.title': 'Add-ons',
   'admin.addons.subtitle': 'Aktiviere oder deaktiviere Funktionen, um TREK nach deinen Wünschen anzupassen.',
   'admin.addons.catalog.packing.name': 'Listen',
   'admin.addons.catalog.packing.description': 'Packlisten und To-Do-Aufgaben für deine Reisen',
@@ -600,17 +622,20 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.vacay.description': 'Persönlicher Urlaubsplaner mit Kalenderansicht',
   'admin.addons.catalog.atlas.name': 'Atlas',
   'admin.addons.catalog.atlas.description': 'Weltkarte mit besuchten Ländern und Reisestatistiken',
-  'admin.addons.catalog.collab.name': 'Collab',
+  'admin.addons.catalog.collab.name': 'Collab', // same-as-en
   'admin.addons.catalog.collab.description': 'Notizen, Umfragen, Chat und Vorschläge für die gemeinsame Planung',
   'admin.addons.catalog.roadtrip.name': 'Roadtrip',
-  'admin.addons.catalog.roadtrip.description': 'Fahrten mit Zwischenstopps planen — Fahrzeiten und Ankunftszeiten rechnen sich selbst neu',
+  'admin.addons.catalog.roadtrip.description':
+    'Fahrten mit Zwischenstopps planen — Fahrzeiten und Ankunftszeiten rechnen sich selbst neu',
+  'admin.addons.catalog.tours.name': 'Touren',
+  'admin.addons.catalog.tours.description': 'Wanderungen, Radtouren und andere Touren entlang einer Route',
   'admin.addons.catalog.memories.name': 'Fotos (Immich)',
   'admin.addons.catalog.memories.description': 'Reisefotos über deine Immich-Instanz teilen',
   'admin.addons.catalog.mcp.name': 'MCP',
   'admin.addons.catalog.mcp.description': 'Model Context Protocol für die KI-Assistenten-Integration',
   'admin.addons.subtitleBefore': 'Aktiviere oder deaktiviere Funktionen, um ',
   'admin.addons.subtitleAfter': ' nach deinen Wünschen anzupassen.',
-  'admin.addons.catalog.naver_list_import.name': 'Naver List Import',
+  'admin.addons.catalog.naver_list_import.name': 'Naver-Listenimport',
   'admin.addons.catalog.naver_list_import.description': 'Orte aus einer geteilten Naver-Maps-Liste importieren',
   'admin.addons.catalog.airtrail.name': 'AirTrail',
   'admin.addons.catalog.airtrail.description': 'Flüge aus deiner AirTrail-Instanz synchronisieren',
@@ -618,18 +643,50 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.dawarich.description':
     'Aufenthalte und aufgezeichnete Routen aus einer Dawarich-Instanz lesen, die jeder selbst verbindet',
   'admin.addons.catalog.llm_parsing.name': 'KI-Auswertung',
-  'admin.addons.catalog.llm_parsing.description': 'Liest Buchungen, an denen der eingebaute Parser scheitert, mit einem KI-Modell deiner Wahl',
+  'admin.addons.catalog.llm_parsing.description':
+    'Liest Buchungen, an denen der eingebaute Parser scheitert, mit einem KI-Modell deiner Wahl',
+  'admin.addons.catalog.ai_assistant.name': 'KI-Assistent',
+  'admin.addons.catalog.ai_assistant.description':
+    'Ein Chat in jeder Reise, der Fragen beantwortet und Änderungen vorschlägt, die du bestätigst',
+  'admin.addons.llm.vision.auto': 'Automatisch',
+  'admin.addons.llm.vision.on': 'Ja',
+  'admin.addons.llm.vision.off': 'Nein',
+  'admin.addons.llm.vision.hintLocal': 'Automatisch fragt den Ollama-Server, ob dieses Modell Bilder liest.',
+  'admin.addons.llm.vision.hintCloud':
+    'Automatisch bedeutet bei einem Cloud-Modell Nein. Wähle Ja, wenn dieses Modell Bilder liest.',
   'admin.addons.enabled': 'Aktiviert',
   'admin.addons.disabled': 'Deaktiviert',
   'admin.addons.type.trip': 'Reise',
-  'admin.addons.type.global': 'Global',
-  'admin.addons.type.integration': 'Integration',
+  'admin.addons.type.global': 'Global', // same-as-en
+  'admin.addons.type.integration': 'Integration', // same-as-en
   'admin.addons.tripHint': 'Verfügbar als Tab innerhalb jedes Trips',
   'admin.addons.globalHint': 'Verfügbar als eigenständiger Bereich in der Navigation',
   'admin.addons.integrationHint': 'Backend-Dienste und API-Integrationen ohne eigene Seite',
   'admin.addons.toast.updated': 'Addon aktualisiert',
   'admin.addons.toast.error': 'Addon konnte nicht aktualisiert werden',
   'admin.addons.group.count': '{enabled} von {total} aktiviert',
+  'admin.addons.search': 'Addons durchsuchen',
+  'admin.addons.filter': 'Anzeigen',
+  'admin.addons.filter.all': 'Alle',
+  'admin.addons.filter.on': 'An',
+  'admin.addons.filter.off': 'Aus',
+  'admin.addons.noMatch': 'Kein Addon passt zur Suche oder zum Filter.',
+  'admin.addons.subOptions': '{count} Optionen',
+  'admin.addons.subOptions.one': '{count} Option',
+  'admin.addons.subOptionsOn': '{count} aktiv',
+  'admin.addons.subOptionsOn.one': '{count} aktiv',
+  'admin.toursWanderer.title': 'wanderer',
+  'admin.toursWanderer.subtitle':
+    'Nutzer können ihre eigene wanderer-Instanz verbinden und deren Trails als Touren importieren',
+  'admin.toursHikingMap.title': 'Wanderkarte (OpenHikingMap)',
+  'admin.toursHikingMap.subtitle':
+    'Bietet OpenHikingMap als Grundkarte im Tourplaner an. Kostenlos für nichtkommerzielle Installationen bis 500.000 Kacheln im Monat; eine kommerzielle oder größere Installation braucht vorher eine Vereinbarung mit openmaps.fr',
+  'admin.toursCycleMap.title': 'Fahrradkarte (CyclOSM)',
+  'admin.toursCycleMap.subtitle':
+    'Bietet CyclOSM als Grundkarte für Radtouren im Tourplaner an. OpenStreetMap France stellt sie für moderate Nutzung bereit; eine stark genutzte oder kommerzielle Installation schaltet sie ab oder trifft vorher eine Vereinbarung mit dem Betreiber',
+  'admin.toursSkiRouting.title': 'Pistenrouter',
+  'admin.toursSkiRouting.subtitle':
+    'Plant Skitouren entlang von Pisten, Liften und Loipen auf den Pistendaten des Places-Servers. Ausgeschaltet werden die Abschnitte einer Skitour gerade gezeichnet',
   'admin.addons.noAddons': 'Keine Addons verfügbar',
   'admin.weather.title': 'Wetterdaten',
   'admin.weather.badge': 'Seit 24. März 2026',
@@ -660,7 +717,7 @@ const admin: TranslationStrings = {
   'admin.mcpTokens.deleteError': 'Token konnte nicht gelöscht werden',
   'admin.mcpTokens.loadError': 'Tokens konnten nicht geladen werden',
   'admin.oauthSessions.sectionTitle': 'OAuth-Sitzungen',
-  'admin.oauthSessions.clientName': 'Client',
+  'admin.oauthSessions.clientName': 'Client', // same-as-en
   'admin.oauthSessions.owner': 'Besitzer',
   'admin.oauthSessions.scopes': 'Berechtigungen',
   'admin.oauthSessions.created': 'Erstellt',
@@ -676,13 +733,14 @@ const admin: TranslationStrings = {
   'admin.audit.empty': 'Noch keine Audit-Einträge.',
   'admin.audit.refresh': 'Aktualisieren',
   'admin.audit.loadMore': 'Mehr laden',
-  'admin.audit.showing': '{count} geladen · {total} gesamt',
+  'admin.audit.showing': '{count} geladen, {total} gesamt',
+  'admin.audit.showing.one': '{count} geladen, {total} gesamt',
   'admin.audit.col.time': 'Zeit',
   'admin.audit.col.user': 'Benutzer',
   'admin.audit.col.action': 'Aktion',
   'admin.audit.col.resource': 'Ressource',
   'admin.audit.col.ip': 'IP',
-  'admin.audit.col.details': 'Details',
+  'admin.audit.col.details': 'Details', // same-as-en
   'admin.github.title': 'Update-Verlauf',
   'admin.github.subtitle': 'Neueste Updates von {repo}',
   'admin.github.latest': 'Aktuell',
@@ -718,8 +776,11 @@ const admin: TranslationStrings = {
   'admin.update.wikiLink': 'Update-Anleitung öffnen',
   'admin.update.reloadHint': 'Bitte lade die Seite in wenigen Sekunden neu.',
   'admin.tabs.permissions': 'Berechtigungen',
-  'admin.notifications.emailPanel.title': 'Email (SMTP)',
+  'admin.notifications.emailPanel.title': 'E-Mail (SMTP)',
   'admin.notifications.webhookPanel.title': 'Webhook',
+  'admin.notifications.webPushPanel.title': 'Web Push',
+  'admin.notifications.webPushPanel.hint':
+    'Ermöglicht Benutzern, über den Browser Benachrichtigungen auf ihren Smartphones und Computern zu empfangen, auch wenn TREK geschlossen ist. Erfordert HTTPS; auf iPhone und iPad muss TREK zum Home-Bildschirm hinzugefügt werden.',
   'admin.notifications.inappPanel.title': 'In-App',
   'admin.notifications.inappPanel.hint':
     'In-App-Benachrichtigungen sind immer aktiv und können nicht global deaktiviert werden.',
@@ -745,7 +806,7 @@ const admin: TranslationStrings = {
     'Wird auch als Standardserver für Benutzer-ntfy-Benachrichtigungen verwendet. Leer lassen für ntfy.sh. Benutzer können dies in ihren eigenen Einstellungen überschreiben.',
   'admin.notifications.adminNtfyPanel.serverPlaceholder': 'https://ntfy.sh',
   'admin.notifications.adminNtfyPanel.topicLabel': 'Admin-Thema',
-  'admin.notifications.adminNtfyPanel.topicPlaceholder': 'trek-admin-alerts',
+  'admin.notifications.adminNtfyPanel.topicPlaceholder': 'trek-admin-alerts', // same-as-en
   'admin.notifications.adminNtfyPanel.tokenLabel': 'Zugriffstoken (optional)',
   'admin.notifications.adminNtfyPanel.tokenCleared': 'Admin-Zugriffstoken gelöscht',
   'admin.notifications.adminNtfyPanel.saved': 'Admin-Ntfy-Einstellungen gespeichert',
@@ -755,16 +816,24 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNtfyPanel.alwaysOnHint': 'Admin-Ntfy sendet immer, wenn ein Thema konfiguriert ist',
   'admin.notifications.adminNotificationsHint':
     'Konfiguriere, welche Kanäle Admin-Benachrichtigungen liefern (z. B. Versions-Updates). Der Webhook sendet automatisch, wenn eine Admin-Webhook-URL gesetzt ist.',
+  'admin.notificationDefaults.title': 'Vorgaben für Nutzer',
+  'admin.notificationDefaults.hint':
+    'So starten die Benachrichtigungen jedes Nutzers. „Aus“ kann jeder selbst wieder einschalten, „Gesperrt“ schaltet für alle ab und erscheint in ihren Einstellungen mit Schloss. Gilt für alle, die die Zelle nicht selbst geändert haben.',
+  'admin.notificationDefaults.on': 'An',
+  'admin.notificationDefaults.off': 'Aus',
+  'admin.notificationDefaults.blocked': 'Gesperrt',
+  'admin.notificationDefaults.cycle': 'Klicken für: {next}',
   'admin.notifications.tripReminders.title': 'Reiseerinnerungen',
   'admin.notifications.tripReminders.hint':
     'Sendet eine Erinnerungsbenachrichtigung vor Reisebeginn (erfordert gesetzte Erinnerungstage bei der Reise).',
   'admin.notifications.tripReminders.enabled': 'Reiseerinnerungen aktiviert',
   'admin.notifications.tripReminders.disabled': 'Reiseerinnerungen deaktiviert',
   'admin.tabs.notifications': 'Benachrichtigungen',
-  'admin.addons.catalog.journey.name': 'Journey',
+  'admin.addons.catalog.journey.name': 'Journey', // same-as-en
   'admin.addons.catalog.journey.description': 'Reise-Tracking & Tagebuch mit Check-ins, Fotos und Tagesberichten',
   'admin.addons.catalog.collections.name': 'Sammlungen',
-  'admin.addons.catalog.collections.description': 'Orte aus allen Reisen in benannten Listen sammeln und wiederverwenden',
+  'admin.addons.catalog.collections.description':
+    'Orte aus allen Reisen in benannten Listen sammeln und wiederverwenden',
   'admin.passkey.title': 'Passkey-Anmeldung',
   'admin.passkey.cardHint': 'Erlaube Benutzern die Anmeldung mit Passkeys (WebAuthn). Standardmäßig deaktiviert.',
   'admin.passkey.login': 'Passkey-Anmeldung aktivieren',
@@ -782,7 +851,8 @@ const admin: TranslationStrings = {
   'admin.passkey.resetHint':
     'Entfernt alle Passkeys dieses Benutzers (z. B. bei einem verlorenen Gerät). Die Anmeldung mit Passwort bleibt weiterhin möglich.',
   'admin.passkey.resetConfirm': 'Alle Passkeys von {name} entfernen?',
-  'admin.passkey.resetDone': '{count} Passkey(s) entfernt',
+  'admin.passkey.resetDone': '{count} Passkeys entfernt',
+  'admin.passkey.resetDone.one': '{count} Passkey entfernt',
   'admin.defaultSettings.mapProvider': 'Kartendienst',
   'admin.defaultSettings.mapProviderHint':
     'Die Standardkarte für alle auf dieser Instanz. Jeder Nutzer kann sie weiterhin in den eigenen Einstellungen überschreiben.',
@@ -810,7 +880,134 @@ const admin: TranslationStrings = {
   'admin.invite.boundTo': 'fügt zu {trip} hinzu',
   'admin.placesUsageTitle': 'Wofür der Schlüssel benutzt wird',
   'admin.mapsKeyHintShort': 'Ergänzt Fotos, Bewertungen und Öffnungszeiten. Jede Abfrage geht dann an Google.',
-  'admin.amapKeyHintShort': 'Für die Ortssuche in Festlandchina. Braucht einen Web-Service-Schlüssel, keinen JS-API-Schlüssel.',
+  'admin.amapKeyHintShort':
+    'Für die Ortssuche in Festlandchina. Braucht einen Web-Service-Schlüssel, keinen JS-API-Schlüssel.',
   'admin.collab.links.subtitle': 'Geteilte Links und Lesezeichen',
+  'admin.paddleRegions.title': 'Paddel-Gewässerdaten',
+  'admin.paddleRegions.hint':
+    'Wehre, Schleusen und Befahrungsregeln aus OpenStreetMap, je Region gelesen und jeden Monat neu.',
+  'admin.paddleRegions.search': 'Region hinzufügen',
+  'admin.paddleRegions.searchPlaceholder': 'Geofabrik durchsuchen, zum Beispiel Oberpfalz',
+  'admin.paddleRegions.noHits': 'Keine Region mit diesem Namen',
+  'admin.paddleRegions.added': 'Hinzugefügt',
+  'admin.paddleRegions.empty': 'Noch keine Region. Paddeltouren zeigen dann, dass keine Hindernisdaten bekannt sind.',
+  'admin.paddleRegions.status.queued': 'Wartet',
+  'admin.paddleRegions.status.importing': 'Liest',
+  'admin.paddleRegions.status.ready': 'Bereit',
+  'admin.paddleRegions.status.failed': 'Fehler',
+  'admin.paddleRegions.phase.download': 'Lädt herunter',
+  'admin.paddleRegions.phase.read': 'Liest aus',
+  'admin.paddleRegions.objects': '{count} Objekte',
+  'admin.paddleRegions.objects.one': '{count} Objekt',
+  'admin.paddleRegions.asOf': 'Stand {date}',
+  'admin.paddleRegions.keptData': 'Der zuvor gelesene Stand bleibt in Gebrauch.',
+  'admin.paddleRegions.refresh': 'Neu lesen',
+  'admin.paddleRegions.remove': 'Region entfernen',
+  'admin.paddleRegions.removeMessage':
+    '{name} und ihre Hindernisdaten werden entfernt. Paddeltouren dort zeigen dann keine Daten.',
+  'admin.paddleRegions.retry': 'Erneut versuchen',
+  'admin.paddleRegions.offline': 'Regionen lassen sich nur mit Verbindung verwalten.',
+  'admin.paddleRegions.catalogUnavailable': 'Geofabrik ist gerade nicht erreichbar. Versuche es später erneut.',
+  'admin.paddleRegions.attribution':
+    'Daten © OpenStreetMap-Mitwirkende (ODbL), regionale Auszüge von Geofabrik. Neu gelesen am 3. jedes Monats.',
+  'admin.paddleRegions.toast.added': 'Region hinzugefügt. TREK liest sie im Hintergrund.',
+  'admin.paddleRegions.toast.removed': 'Region entfernt',
+  'admin.paddleRegions.phase.build': 'Wassernetz wird gebaut',
+  'admin.paddleRegions.network.km': '{km} km Gewässer',
+  'admin.paddleRegions.network.lakes': '{count} Seen',
+  'admin.paddleRegions.network.lakes.one': '{count} See',
+  'admin.paddleRegions.network.portages': '{count} kartierte Umtragestellen',
+  'admin.paddleRegions.network.portages.one': '{count} kartierte Umtragestelle',
+  'admin.paddleRegions.network.inferred': '{count} angenommene Umtragungen',
+  'admin.paddleRegions.network.inferred.one': '{count} angenommene Umtragung',
+  'admin.paddleRegions.network.locks': '{count} Schleusen',
+  'admin.paddleRegions.network.locks.one': '{count} Schleuse',
+  'admin.paddleRegions.network.gaps': '{count} überbrückte Lücken',
+  'admin.paddleRegions.network.gaps.one': '{count} überbrückte Lücke',
+  'admin.paddleRegions.network.missing': 'Kein Wassernetz',
+  'admin.paddleRegions.network.missingHint': 'Lies die Region erneut ein, um das Netz für das Paddel-Routing zu bauen.',
+  'admin.paddleRegions.auto.title': 'Regionen automatisch laden',
+  'admin.paddleRegions.auto.mode.auto': 'Automatisch',
+  'admin.paddleRegions.auto.mode.ask': 'Auf Anfrage',
+  'admin.paddleRegions.auto.mode.off': 'Aus',
+  'admin.paddleRegions.auto.modeHint.auto':
+    'Plant jemand eine Paddeltour in einer Gegend ohne Gewässerdaten, lädt TREK die kleinste passende Region sofort, bis zur Größengrenze und nur wenige am Tag. Größere warten hier als Anfrage. Nur der Name der Region geht an Geofabrik, nie der Ort.',
+  'admin.paddleRegions.auto.modeHint.ask':
+    'Jede neue Region wartet hier, bis ein Admin sie freigibt. Plant ein Admin selbst, lädt sie sofort.',
+  'admin.paddleRegions.auto.modeHint.off':
+    'TREK lädt nichts von selbst und fragt nicht nach. Regionen fügst du hier von Hand hinzu.',
+  'admin.paddleRegions.auto.maxSize': 'Größte Region, die automatisch lädt',
+  'admin.paddleRegions.auto.maxSizeHint':
+    'Größere Regionen warten hier als Anfrage. Das Einlesen einer Region dauert einige Minuten und braucht dabei Arbeitsspeicher.',
+  'admin.paddleRegions.requests.title': 'Angefragt',
+  'admin.paddleRegions.requests.reason.ask': 'Auf Anfrage',
+  'admin.paddleRegions.requests.reason.too_large': 'Zu groß',
+  'admin.paddleRegions.requests.reason.limit': 'Tageslimit',
+  'admin.paddleRegions.requests.declined': 'Abgelehnt',
+  'admin.paddleRegions.requests.by': 'von {user}',
+  'admin.paddleRegions.requests.approve': 'Laden',
+  'admin.paddleRegions.requests.decline': 'Ablehnen',
+  'admin.paddleRegions.origin.auto': 'Automatisch',
+  'admin.paddleRegions.origin.autoHint':
+    'TREK hat diese Region selbst geladen, für eine Paddeltour, die dort geplant wird.',
+  'admin.mfa.reset': '2FA zurücksetzen',
+  'admin.mfa.resetHint':
+    'Schaltet die Zwei-Faktor-Authentifizierung für diesen Benutzer ab, zum Beispiel nach dem Verlust des Handys. Die Person wird überall abgemeldet und kann sie nach der Anmeldung mit dem Passwort neu einrichten.',
+  'admin.mfa.resetConfirm': 'Zwei-Faktor-Authentifizierung für {name} abschalten?',
+  'admin.mfa.resetDone': 'Zwei-Faktor-Authentifizierung zurückgesetzt',
+  'admin.danger.title': 'Gefahrenzone',
+  'admin.rotateJwt.title': 'JWT-Secret erneuern',
+  'admin.rotateJwt.hint': 'Erzeugt ein neues JWT-Signatur-Secret. Alle aktiven Sitzungen werden sofort ungültig.',
+  'admin.rotateJwt.confirm': 'Erneuern und abmelden',
+  'admin.rotateJwt.warning': 'Achtung, dadurch werden alle Sitzungen ungültig und du wirst abgemeldet.',
+  'admin.rotateJwt.body':
+    'Es wird sofort ein neues JWT-Secret erzeugt. Alle angemeldeten Benutzer, du eingeschlossen, werden abgemeldet und müssen sich neu anmelden.',
+  'admin.oidcDisplayNamePlaceholder': 'z. B. Google, Authentik, Keycloak',
+  'admin.oidcDiscoveryUrl': 'Discovery-URL (optional)',
+  'admin.oidcDiscoveryUrlHint':
+    'Überschreibt die automatisch gebildete Discovery-URL. Nötig bei Anbietern wie Authentik, bei denen der Endpunkt nicht unter {path} liegt.',
+  'admin.smtp.skipTls': 'TLS-Zertifikatsprüfung überspringen',
+  'admin.smtp.skipTlsHint': 'Aktivieren bei selbstsignierten Zertifikaten auf lokalen Mailservern',
+  'admin.demoBaseline.title': 'Demo-Ausgangszustand',
+  'admin.demoBaseline.hint':
+    'Speichert den aktuellen Stand als stündlichen Rücksetzpunkt. Alle Admin-Reisen und -Einstellungen bleiben erhalten.',
+  'admin.demoBaseline.button': 'Ausgangszustand speichern',
+  'admin.demoBaseline.saved': 'Ausgangszustand gespeichert! Zurücksetzungen stellen diesen Stand wieder her.',
+  'admin.demoBaseline.failed': 'Ausgangszustand konnte nicht gespeichert werden',
+  'admin.invite.deleteTitle': 'Einladungslink löschen',
+  'admin.invite.deleteConfirm':
+    'Diesen Einladungslink löschen? Wer ihn noch nicht benutzt hat, kann sich damit nicht mehr registrieren.',
+  'admin.packingTemplates.deleteTemplateTitle': 'Vorlage löschen',
+  'admin.packingTemplates.deleteTemplateConfirm': 'Vorlage "{name}" mit allen Kategorien und Einträgen löschen?',
+  'admin.packingTemplates.deleteCategoryTitle': 'Kategorie löschen',
+  'admin.packingTemplates.deleteCategoryConfirm': 'Kategorie "{name}" und alle ihre Einträge löschen?',
+  'admin.rotateJwt.button': 'Erneuern',
+  'admin.addons.ai.name': 'KI',
+  'admin.addons.ai.description':
+    'Eine Verbindung für den Assistenten und das Lesen von Buchungen. MCP öffnet TREK für andere KI-Apps.',
+  'admin.addons.ai.setup': 'KI einrichten',
+  'admin.addons.ai.dialogSub': 'Die Verbindung, die Assistent und KI-Auswertung teilen, und was jeder davon darf.',
+  'admin.addons.ai.tab.connection': 'Verbindung',
+  'admin.addons.ai.parsing.readsWith': 'Liest Buchungen mit',
+  'admin.addons.ai.parsing.own': 'Eigene Verbindung',
+  'admin.addons.ai.parsing.ownHint': 'Wird statt der gemeinsamen Verbindung verwendet.',
+  'admin.addons.ai.parsing.useShared': 'Gemeinsame Verbindung verwenden',
+  'admin.addons.ai.parsing.sharedTag': 'Gemeinsam',
+  'admin.addons.ai.parsing.perUser': 'Jede Person liest mit ihrer eigenen Verbindung aus ihren Einstellungen.',
+  'admin.addons.ai.parsing.none':
+    'Noch keine Verbindung. Richte eine für alle ein oder gib der KI-Auswertung eine eigene.',
+  'admin.addons.ai.parsing.setupOwn': 'Eine andere verwenden',
+  'admin.addons.ai.parsing.installed': 'Auf dem Server installiert',
+  'admin.addons.ai.parsing.refresh': 'Aktualisieren',
+  'admin.addons.ai.parsing.noModels': 'Noch keine Modelle installiert. Lade unten eins.',
+  'admin.addons.ai.parsing.pullTitle': 'Empfohlenes Modell laden',
+  'admin.addons.ai.parsing.pull': 'Laden',
+  'admin.addons.ai.parsing.pulling': 'Lädt…',
+  'admin.addons.ai.parsing.use': 'Verwenden',
+  'admin.addons.ai.parsing.selected': 'Ausgewählt',
+  'admin.addons.ai.parsing.pulled': 'Modell geladen',
+  'admin.addons.ai.parsing.pullFailed': 'Modell konnte nicht geladen werden',
+  'admin.addons.ai.parsing.unreachable': 'Der lokale Server ist nicht erreichbar',
+  'admin.addons.ai.parsing.apiKeyOptional': 'Meist nicht nötig',
 };
 export default admin;

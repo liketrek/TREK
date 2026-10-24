@@ -1,33 +1,23 @@
-import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
-
-const { testDb, dbMock } = vi.hoisted(() => {
-  const Database = require('better-sqlite3');
-  const db = new Database(':memory:');
-  db.exec('PRAGMA journal_mode = WAL');
-  db.exec('PRAGMA foreign_keys = ON');
-  return { testDb: db, dbMock: { db, closeDb: () => {}, reinitialize: () => {} } };
-});
-vi.mock('../../../../src/db/database', () => dbMock);
-vi.mock('../../../../src/config', () => ({ ENCRYPTION_KEY: 'storage-stats-test-key' }));
+import { db as testDb } from '../../../../src/db/database';
+import { AppSettings } from '../../../../src/db/entities/AppSettings.entity';
+import { StorageEventsService } from '../../../../src/nest/storage/storage-events.service';
+import { StorageRegistryService } from '../../../../src/nest/storage/storage-registry.service';
+import { StatsBusyError, StorageStatsService } from '../../../../src/nest/storage/storage-stats.service';
+import { StorageService } from '../../../../src/nest/storage/storage.service';
+import { deleteRows } from '../../../helpers/factories/rows';
+import { readAppSetting, setAppSetting } from '../../../helpers/factories/settings';
+import { createTestUnitOfWork, createTestAppSettingsRepo, sharedTestOrm } from '../../../helpers/test-uow';
 
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { Readable } from 'node:stream';
-import { createTables } from '../../../../src/db/schema';
-import { runMigrations } from '../../../../src/db/migrations';
-import { DatabaseService } from '../../../../src/nest/database/database.service';
-import type { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
-import { StorageEventsService } from '../../../../src/nest/storage/storage-events.service';
-import { StorageRegistryService } from '../../../../src/nest/storage/storage-registry.service';
-import { StorageService } from '../../../../src/nest/storage/storage.service';
-import { StatsBusyError, StorageStatsService } from '../../../../src/nest/storage/storage-stats.service';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
 
-const db = new DatabaseService(testDb);
-
-beforeAll(() => {
-  createTables(testDb);
-  runMigrations(testDb);
+vi.mock('../../../../src/db/database', async () => {
+  const { createSnapshotTestDb } = await import('../../../helpers/db-mock');
+  const db = createSnapshotTestDb();
+  return { db, closeDb: () => {}, reinitialize: () => {} };
 });
 
 const tmpDirs: string[] = [];
@@ -36,38 +26,45 @@ function makeTmpDir(): string {
   tmpDirs.push(dir);
   return dir;
 }
-function setSetting(key: string, value: string): void {
-  testDb.prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)').run(key, value);
+async function setSetting(key: string, value: string): Promise<void> {
+  await setAppSetting(await sharedTestOrm(testDb), key, value);
 }
-beforeEach(() => {
-  testDb.prepare("DELETE FROM app_settings WHERE key LIKE 'storage.%'").run();
+beforeEach(async () => {
+  await deleteRows(await sharedTestOrm(testDb), AppSettings, { key: { $like: 'storage.%' } });
 });
 afterEach(() => {
   vi.restoreAllMocks();
   while (tmpDirs.length) fs.rmSync(tmpDirs.pop()!, { recursive: true, force: true });
 });
 
-function makeWorld() {
+async function makeWorld() {
   const uploadsRoot = makeTmpDir();
   const backupsRoot = makeTmpDir();
-  setSetting(
+  await setSetting(
     'storage.backends',
     JSON.stringify([
       { name: 'uploads-local', type: 'local', options: { root: uploadsRoot } },
       { name: 'backups-local', type: 'local', options: { root: backupsRoot } },
     ]),
   );
-  const env = { env: () => ({ paths: {} }) } as unknown as RuntimeEnvService;
-  const registry = new StorageRegistryService(db, env, new StorageEventsService());
-  registry.onModuleInit();
+  const env = { placePhotoDir: undefined };
+  const appSettings = await createTestAppSettingsRepo(testDb);
+  const registry = new StorageRegistryService(
+    appSettings,
+    env,
+    new StorageEventsService(),
+    await createTestUnitOfWork(testDb),
+    (await sharedTestOrm(testDb)).orm,
+  );
+  await registry.onModuleInit();
   const storage = new StorageService(registry);
-  const stats = new StorageStatsService(storage, db);
+  const stats = new StorageStatsService(storage, appSettings);
   return { storage, stats, uploadsRoot };
 }
 
 describe('StorageStatsService', () => {
   it('STATS-001 sums objects and bytes per category, legacy photos separate, and persists with computedAt', async () => {
-    const { storage, stats } = makeWorld();
+    const { storage, stats } = await makeWorld();
     await storage.put('files', 'a.pdf', Readable.from('12345')); // 5 bytes
     await storage.put('files', 'b.pdf', Readable.from('123')); // 3 bytes
     await storage.put('covers', 'c.jpg', Readable.from('1234567')); // 7 bytes
@@ -79,13 +76,13 @@ describe('StorageStatsService', () => {
     expect(usage.legacyPhotos).toEqual({ objects: 1, bytes: 2 });
     expect(usage.computedAt).toBeGreaterThan(0);
     // Persisted round-trip:
-    expect(stats.readUsage()).toEqual(usage);
-    const raw = testDb.prepare("SELECT value FROM app_settings WHERE key = 'storage.usage'").get() as { value: string };
-    expect(JSON.parse(raw.value)).toEqual(usage);
+    expect(await stats.readUsage()).toEqual(usage);
+    const raw = await readAppSetting(await sharedTestOrm(testDb), 'storage.usage');
+    expect(JSON.parse(raw ?? 'null')).toEqual(usage);
   });
 
   it('STATS-002 photos-google/photos-trek nested content is NOT double-counted into legacy photos', async () => {
-    const { storage, stats } = makeWorld();
+    const { storage, stats } = await makeWorld();
     await storage.put('photos-google', 'g.jpg', Readable.from('gggg'));
     const usage = await stats.scan();
     expect(usage.categories['photos-google']).toEqual({ objects: 1, bytes: 4 });
@@ -93,17 +90,17 @@ describe('StorageStatsService', () => {
   });
 
   it('STATS-003 concurrent scans throw StatsBusyError', async () => {
-    const { storage, stats } = makeWorld();
+    const { storage, stats } = await makeWorld();
     for (let i = 0; i < 30; i++) await storage.put('files', `f${i}.bin`, Readable.from('x'.repeat(500)));
     const first = stats.scan();
     await expect(stats.scan()).rejects.toThrow(StatsBusyError);
     await first;
   });
 
-  it('STATS-004 readUsage returns null on absent or unparseable rows', () => {
-    const { stats } = makeWorld();
-    expect(stats.readUsage()).toBeNull();
-    setSetting('storage.usage', 'not json');
-    expect(stats.readUsage()).toBeNull();
+  it('STATS-004 readUsage returns null on absent or unparseable rows', async () => {
+    const { stats } = await makeWorld();
+    expect(await stats.readUsage()).toBeNull();
+    await setSetting('storage.usage', 'not json');
+    expect(await stats.readUsage()).toBeNull();
   });
 });

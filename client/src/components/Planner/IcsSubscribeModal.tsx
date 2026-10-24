@@ -1,7 +1,10 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useId, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { X, RefreshCw, Calendar, Power } from 'lucide-react'
 import { SubscribeLinks } from './SubscribeLinks'
+import { useIsPhone } from '../../mobile/useIsPhone'
+import { useTranslation } from '../../i18n'
+import { DialogButton, DialogFooter, DialogHeader, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT, fs } from '../shared/DialogShell'
 
 interface IcsSubscribeModalProps {
   /** Token endpoint base, e.g. `/api/trips/123/feed` or `/api/feed/user`. */
@@ -25,12 +28,18 @@ function absolutize(url: string): string {
  * Shared subscribe dialog for the per-trip and all-trips ICS feeds. Opening it
  * only *reads* the current token — it never mints one silently. The user
  * explicitly enables the public link, and can rotate or fully turn it off.
+ *
+ * The phone keeps its own markup; the desktop draws the same steps in the
+ * planner's dialog frame, with the link's controls in the bar at the foot.
  */
 export function IcsSubscribeModal({ endpoint, title, description, onClose }: IcsSubscribeModalProps) {
   const tokenUrl = `${endpoint}/token`
   const [feedUrl, setFeedUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
+  const isPhone = useIsPhone()
+  const { t } = useTranslation()
+  const titleId = useId()
 
   const httpsUrl = feedUrl ? absolutize(feedUrl) : ''
   const webcalUrl = httpsUrl ? httpsUrl.replace(/^https?:\/\//, 'webcal://') : ''
@@ -59,6 +68,23 @@ export function IcsSubscribeModal({ endpoint, title, description, onClose }: Ics
       }
     } catch { /* ignore */ }
     setBusy(false)
+  }
+
+  if (!isPhone) {
+    return (
+      <DesktopSubscribeDialog
+        titleId={titleId}
+        title={title}
+        description={description}
+        onClose={onClose}
+        loading={loading}
+        busy={busy}
+        feedUrl={feedUrl}
+        httpsUrl={httpsUrl}
+        webcalUrl={webcalUrl}
+        mutate={mutate}
+      />
+    )
   }
 
   return createPortal(
@@ -92,6 +118,7 @@ export function IcsSubscribeModal({ endpoint, title, description, onClose }: Ics
           </div>
           <button type="button"
             onClick={onClose}
+            aria-label={t('common.close')}
             style={{
               background: 'none', border: 'none', cursor: 'pointer', padding: 4,
               color: 'var(--text-muted)', borderRadius: 6, display: 'flex',
@@ -107,7 +134,7 @@ export function IcsSubscribeModal({ endpoint, title, description, onClose }: Ics
 
         {loading ? (
           <div style={{ textAlign: 'center', padding: '16px 0', color: 'var(--text-muted)', fontSize: 12 }}>
-            Loading…
+            {t('common.loading')}
           </div>
         ) : !feedUrl ? (
           <>
@@ -123,10 +150,10 @@ export function IcsSubscribeModal({ endpoint, title, description, onClose }: Ics
               }}
             >
               <Calendar size={14} strokeWidth={2} />
-              Enable calendar subscription
+              {t('dashboard.ics.enable')}
             </button>
             <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.4 }}>
-              Creates a secret link anyone with it can read without logging in. You can turn it off anytime.
+              {t('dashboard.ics.enableHint')}
             </p>
           </>
         ) : (
@@ -147,7 +174,7 @@ export function IcsSubscribeModal({ endpoint, title, description, onClose }: Ics
                 }}
               >
                 <RefreshCw size={11} strokeWidth={2} style={{ animation: busy ? 'spin 0.8s linear infinite' : 'none' }} />
-                Regenerate
+                {t('dashboard.ics.regenerate')}
               </button>
               <button type="button"
                 onClick={() => mutate('DELETE')}
@@ -162,11 +189,11 @@ export function IcsSubscribeModal({ endpoint, title, description, onClose }: Ics
                 }}
               >
                 <Power size={11} strokeWidth={2} />
-                Turn off
+                {t('dashboard.ics.turnOff')}
               </button>
             </div>
             <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.4 }}>
-              Regenerating creates a new link and invalidates the old one. Turning off disables the link entirely.
+              {t('dashboard.ics.manageHint')}
             </p>
           </>
         )}
@@ -175,5 +202,82 @@ export function IcsSubscribeModal({ endpoint, title, description, onClose }: Ics
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>,
   document.body
+  )
+}
+
+// A secondary footer button in the danger colour, for the switch that takes the link away.
+const TURN_OFF_BTN = 'inline-flex items-center gap-1.5 rounded-[10px] bg-surface-tertiary px-3.5 py-2 font-medium text-danger hover:bg-danger-soft disabled:cursor-default disabled:opacity-50'
+
+function DesktopSubscribeDialog({ titleId, title, description, onClose, loading, busy, feedUrl, httpsUrl, webcalUrl, mutate }: {
+  titleId: string
+  title: string
+  description: string
+  onClose: () => void
+  loading: boolean
+  busy: boolean
+  feedUrl: string | null
+  httpsUrl: string
+  webcalUrl: string
+  mutate: (method: 'POST' | 'PUT' | 'DELETE') => Promise<void>
+}) {
+  const { t } = useTranslation()
+  const header = (
+    <DialogHeader
+      tile={<DialogTile><Calendar size={20} strokeWidth={1.9} className="text-content-muted" /></DialogTile>}
+      tint={NEUTRAL_TINT}
+      labelId={titleId}
+      onClose={onClose}
+      title={title}
+      sub={description}
+      subWraps
+    />
+  )
+
+  const hint = 'm-0 leading-normal text-content-muted'
+  let body: ReactNode
+  let footer: ReactNode = null
+  if (loading) {
+    body = <div className="py-4 text-center text-content-muted" style={fs(12.5, 'body')}>{t('common.loading')}</div>
+  } else if (!feedUrl) {
+    body = (
+      <p className={hint} style={fs(12.5, 'body')}>
+        {t('dashboard.ics.enableHint')}
+      </p>
+    )
+    footer = (
+      <DialogFooter>
+        <FooterSpacer />
+        <DialogButton variant="primary" onClick={() => mutate('POST')} disabled={busy} icon={<Calendar size={14} strokeWidth={2} />}>
+          {t('dashboard.ics.enable')}
+        </DialogButton>
+      </DialogFooter>
+    )
+  } else {
+    body = (
+      <>
+        <SubscribeLinks httpsUrl={httpsUrl} webcalUrl={webcalUrl} />
+        <p className={hint} style={fs(11.5)}>
+          {t('dashboard.ics.manageHint')}
+        </p>
+      </>
+    )
+    footer = (
+      <DialogFooter>
+        <DialogButton onClick={() => mutate('PUT')} disabled={busy} icon={<RefreshCw size={14} strokeWidth={2} className={busy ? 'animate-spin' : ''} />}>
+          {t('dashboard.ics.regenerate')}
+        </DialogButton>
+        <FooterSpacer />
+        <button type="button" onClick={() => mutate('DELETE')} disabled={busy} className={TURN_OFF_BTN} style={fs(13, 'body')}>
+          <Power size={14} strokeWidth={2} />
+          {t('dashboard.ics.turnOff')}
+        </button>
+      </DialogFooter>
+    )
+  }
+
+  return (
+    <DialogShell onClose={onClose} labelledBy={titleId} width="narrow" header={header} footer={footer}>
+      {body}
+    </DialogShell>
   )
 }

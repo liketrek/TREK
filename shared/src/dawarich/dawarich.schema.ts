@@ -1,5 +1,6 @@
-import { z } from 'zod';
 import { idSchema } from '../common/primitives.schema';
+
+import { z } from 'zod';
 
 /**
  * Dawarich integration contracts (#2279, #214).
@@ -9,7 +10,9 @@ import { idSchema } from '../common/primitives.schema';
  * TREK plans and interprets.** TREK never starts a location tracker of its own,
  * never writes into Dawarich, and never keeps a copy of the raw GPS archive —
  * the track overlay is fetched for the window being looked at and thrown away
- * again.
+ * again. The one exception is asked for: a traveller may take one day's route
+ * over into a journey, thinned like the overlay and only after a preview they
+ * confirmed (JRN-01, `journey/journey-recordings.schema.ts`).
  *
  * The connection is per user (Settings → Integrations); the global on/off is
  * the `dawarich` addon. Each user stores their own instance URL and API key,
@@ -249,10 +252,19 @@ export const dawarichAcceptSchema = z.object({
   lat: z.number().min(-90).max(90).optional(),
   lng: z.number().min(-180).max(180).optional(),
   /** `YYYY-MM-DD`. Falls back to the suggestion's resolved local date. */
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
   /** `HH:MM`. Falls back to the recorded arrival and departure. */
-  time: z.string().regex(/^\d{2}:\d{2}$/).optional(),
-  endTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  time: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .optional(),
+  endTime: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .optional(),
 });
 export type DawarichAccept = z.infer<typeof dawarichAcceptSchema>;
 
@@ -318,6 +330,30 @@ export const dawarichTrackSchema = z.object({
   truncated: z.boolean(),
 });
 export type DawarichTrack = z.infer<typeof dawarichTrackSchema>;
+
+/** The longest window one read of the recordings may span. */
+export const DAWARICH_WINDOW_MAX_DAYS = 400;
+
+/**
+ * An explicit window of the recordings, as GET /atlas/suggestions and GET
+ * /track take it in their query and the MCP tools take it as input. Both ends
+ * are required and `to` lies after `from`, within DAWARICH_WINDOW_MAX_DAYS:
+ * a half-open range would read everything since the epoch, the request that
+ * makes an instance time out. The server checks the order and the span.
+ */
+export const dawarichTimeWindowSchema = z.object({
+  from: z
+    .string()
+    .min(1)
+    .describe('Start of the window, ISO 8601 (2025-06-01 or 2025-06-01T00:00:00Z); a bare date is its midnight UTC'),
+  to: z
+    .string()
+    .min(1)
+    .describe(
+      `End of the window, ISO 8601, after from and at most ${DAWARICH_WINDOW_MAX_DAYS} days later; a bare date is its midnight UTC, so give the day after the last one to include it`,
+    ),
+});
+export type DawarichTimeWindow = z.infer<typeof dawarichTimeWindowSchema>;
 
 // ── Atlas ────────────────────────────────────────────────────────────────────
 

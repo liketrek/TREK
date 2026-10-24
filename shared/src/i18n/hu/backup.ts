@@ -69,5 +69,6 @@ const backup: TranslationStrings = {
     'Minden jelenlegi adat (utazások, helyek, felhasználók, feltöltések) véglegesen lecserélődik a mentéssel. Ez a művelet nem vonható vissza.',
   'backup.restoreTip': 'Tipp: Készíts mentést a jelenlegi állapotról a visszaállítás előtt.',
   'backup.restoreConfirm': 'Igen, visszaállítás',
+  'backup.auto.hourHintTz': 'A szerver helyi ideje ({format} formátum), időzóna: {timezone}',
 };
 export default backup;
