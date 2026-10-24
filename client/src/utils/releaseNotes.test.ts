@@ -22,11 +22,11 @@ describe('parseReleaseNotes', () => {
     ]);
   });
 
-  it('FE-UTIL-RELNOTES-003: lines are trimmed and markers need their space', () => {
+  it('FE-UTIL-RELNOTES-003: lines are trimmed, markers need their space and #### heads a feature', () => {
     expect(parseReleaseNotes('   ## Spaced  \n-no space\n#### deep\n\n\n')).toEqual([
       { kind: 'h3', text: 'Spaced' },
       { kind: 'p', text: '-no space' },
-      { kind: 'p', text: '#### deep' },
+      { kind: 'h5', text: 'deep' },
     ]);
   });
 
