@@ -1875,3 +1875,38 @@ describe('quirk fixes', () => {
     expect(await storedFields(VacayYears, { plan: plan.id, year: year + 1 }, ['id'])).toBeUndefined();
   });
 });
+
+describe('a day written for a year the plan has not opened', () => {
+  it('VACAY-SVC-079: adds that year with the member allowance, so the day shows in the calendar', async () => {
+    const { user, plan } = await setupUserWithPlan();
+    await allowWeekends(plan.id);
+    expect(await svc.listYears(plan.id)).not.toContain(2031);
+
+    const result = await svc.toggleEntry(user.id, plan.id, '2031-01-06', 1, 'vacation');
+
+    expect(result.action).toBe('added');
+    expect(await svc.listYears(plan.id)).toContain(2031);
+    expect(await storedRow(VacayUserYears, { user: user.id, plan: plan.id, year: 2031 })).toBeDefined();
+  });
+
+  it('VACAY-SVC-080: taking the day away again keeps the year it opened', async () => {
+    const { user, plan } = await setupUserWithPlan();
+    await allowWeekends(plan.id);
+    await svc.toggleEntry(user.id, plan.id, '2032-03-02', 1, 'vacation');
+    await svc.deleteYear(plan.id, 2032, undefined);
+    const before = await svc.listYears(plan.id);
+
+    await svc.toggleEntry(user.id, plan.id, '2032-03-02', 1, 'vacation');
+    await svc.toggleEntry(user.id, plan.id, '2032-03-02', 1, 'vacation');
+
+    expect(await svc.listYears(plan.id)).toEqual([...before, 2032].sort((a, b) => a - b));
+  });
+
+  it('VACAY-SVC-081: a company holiday in a year not opened yet adds that year too', async () => {
+    const { plan } = await setupUserWithPlan();
+
+    await svc.toggleCompanyHoliday(plan.id, '2033-12-25', 'Christmas', undefined);
+
+    expect(await svc.listYears(plan.id)).toContain(2033);
+  });
+});

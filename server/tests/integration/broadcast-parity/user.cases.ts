@@ -602,14 +602,22 @@ const vacayCases: ParityCase[] = [
     needs: ['vacay'],
     args: () => ({ date: '2027-06-01' }),
     rest: { method: 'post', path: () => `${VACAY}/entries/toggle`, body: () => ({ date: '2027-06-01' }) },
-    expect: [{ event: 'vacay:update', user: 'actor' }],
+    // 2027 is not a year of the plan yet, so the day opens it too.
+    expect: [
+      { event: 'vacay:settings', user: 'actor' },
+      { event: 'vacay:update', user: 'actor' },
+    ],
   },
   {
     tool: 'toggle_company_holiday',
     needs: ['vacay'],
     args: () => ({ date: '2027-06-02' }),
     rest: { method: 'post', path: () => `${VACAY}/entries/company-holiday`, body: () => ({ date: '2027-06-02' }) },
-    expect: [{ event: 'vacay:update', user: 'actor' }],
+    // 2027 is not a year of the plan yet, so the day opens it too.
+    expect: [
+      { event: 'vacay:settings', user: 'actor' },
+      { event: 'vacay:update', user: 'actor' },
+    ],
   },
   {
     tool: 'update_vacay_stats',

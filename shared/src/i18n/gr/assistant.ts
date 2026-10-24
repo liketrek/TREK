@@ -67,7 +67,6 @@ const assistant: TranslationStrings = {
   'assistant.connect.statusError': 'Μη προσβάσιμο',
   'assistant.connect.quota': 'Σήμερα χρησιμοποιήθηκαν {used} από {count} μηνύματα',
   'assistant.connect.quota.one': 'Σήμερα χρησιμοποιήθηκαν {used} από {count} μήνυμα',
-  'assistant.connect.claudeLink': 'Χρησιμοποιείτε Claude; Συνδεθείτε στο Claude',
   'assistant.privacy.what': 'Τι κοινοποιείται;',
   'assistant.privacy.banner':
     'Τα μηνύματά σας και τα δεδομένα του ταξιδιού που διαβάζει ο βοηθός πηγαίνουν στο {provider}.',
@@ -257,14 +256,6 @@ const assistant: TranslationStrings = {
   'assistant.admin.retentionDays': '{count} ημέρες',
   'assistant.admin.retentionDays.one': '{count} ημέρα',
   'assistant.admin.retentionForever': 'Για πάντα',
-  'assistant.claude.title': 'Σύνδεση με Claude',
-  'assistant.claude.description':
-    'Χρησιμοποιήστε το TREK απευθείας μέσα στο Claude: προσθέστε το ως σύνδεσμο, συνδεθείτε, έτοιμο.',
-  'assistant.claude.open': 'Άνοιγμα στο Claude',
-  'assistant.claude.scan': 'Ή σαρώστε το με το κινητό σας',
-  'assistant.claude.copyUrl': 'Αντιγραφή διεύθυνσης',
-  'assistant.claude.qrAlt': 'Κωδικός QR για προσθήκη του TREK στο Claude',
-  'assistant.claude.notPublic': 'Το Claude φτάνει στο TREK μόνο όταν είναι διαθέσιμο μέσω https στο διαδίκτυο.',
   'assistant.mobile.tile': 'Ρωτήστε το TREK',
   'assistant.mobile.tileHint': 'Σχεδιάστε με τον βοηθό',
   'assistant.mobile.backToChat': 'Πίσω στη συνομιλία',

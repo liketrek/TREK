@@ -126,6 +126,5 @@ describe('aiConnectionsRepo', () => {
     await expect(aiConnectionsRepo.disconnect()).rejects.toBeInstanceOf(OnlineOnlyError);
     await expect(aiConnectionsRepo.chatgptStart()).rejects.toBeInstanceOf(OnlineOnlyError);
     await expect(aiConnectionsRepo.adminSettings()).rejects.toBeInstanceOf(OnlineOnlyError);
-    await expect(aiConnectionsRepo.claudeConnector()).rejects.toBeInstanceOf(OnlineOnlyError);
   });
 });

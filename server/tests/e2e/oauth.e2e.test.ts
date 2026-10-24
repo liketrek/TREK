@@ -160,34 +160,4 @@ describe('OAuth e2e (real guards + temp SQLite)', () => {
     expect(cookie.status).toBe(201);
     expect(cookie.body).toEqual({ client_id: 'c1', client_secret: 's' });
   });
-
-  describe('GET /api/integrations/claude-connector', () => {
-    const MCP_URL = 'https://mcp.test/mcp';
-
-    it('404 { error } while the MCP addon is off, even without a session', async () => {
-      isAddonEnabled.mockReturnValue(false);
-      const res = await request(server).get('/api/integrations/claude-connector');
-      expect(res.status).toBe(404);
-      expect(res.body).toEqual({ error: 'MCP addon is not enabled' });
-    });
-
-    it('401 without a session', async () => {
-      const res = await request(server).get('/api/integrations/claude-connector');
-      expect(res.status).toBe(401);
-    });
-
-    it('200 with the MCP endpoint, the claude.ai link that adds it and that link as a QR code', async () => {
-      const res = await request(server).get('/api/integrations/claude-connector').set('Cookie', sessionCookie(1));
-      expect(res.status).toBe(200);
-      expect(res.body.mcpUrl).toBe(MCP_URL);
-      const link = new URL(res.body.deepLink);
-      expect(link.origin + link.pathname).toBe('https://claude.ai/customize/connectors');
-      expect(Object.fromEntries(link.searchParams)).toEqual({
-        modal: 'add-custom-connector',
-        connectorName: 'TREK',
-        connectorUrl: MCP_URL,
-      });
-      expect(res.body.qrSvg).toMatch(/^<svg[\s\S]*<\/svg>\s*$/);
-    });
-  });
 });
