@@ -96,6 +96,7 @@ import { TagsModule } from './tags/tags.module';
 import { TodoModule } from './todo/todo.module';
 import { ToursModule } from './tours/tours.module';
 import { TransitModule } from './transit/transit.module';
+import { TravelTransferModule } from './travel-transfer/travel-transfer.module';
 import { TripInviteModule } from './trip-invite/trip-invite.module';
 import { TripsModule } from './trips/trips.module';
 import { VacayModule } from './vacay/vacay.module';
@@ -166,6 +167,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
     PaddleRoutingModule,
     SkiRoutingModule,
     TripsModule,
+    TravelTransferModule,
     CollabModule,
     FilesModule,
     DocSyncModule,

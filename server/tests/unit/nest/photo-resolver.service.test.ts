@@ -107,10 +107,16 @@ beforeAll(async () => {
   const repo = new TrekPhotoRegistrationService(t.repo(TrekPhotos), t.repo(TripPhotos), t.repo(JourneyPhotos));
   svc = new PhotoResolverService(
     repo,
+    {
+      canAccessTrekPhoto: async () => true,
+    } as unknown as import('../../../src/nest/memories/memories-access.service').MemoriesAccessService,
     thumbnails as unknown as ThumbnailService,
     cache as unknown as TrekPhotoCacheService,
     providers,
     storage as unknown as import('../../../src/nest/storage/storage.service').StorageService,
+    {
+      assertProviderEnabled: async () => {},
+    } as unknown as import('../../../src/nest/memories/unified-memories.service').UnifiedMemoriesService,
   );
 });
 

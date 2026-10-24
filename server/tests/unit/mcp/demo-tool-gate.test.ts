@@ -19,6 +19,7 @@ import { createUser, setAppSetting } from '../../helpers/factories';
 import { createMcpTestRegistry } from '../../helpers/mcp-test-controllers';
 import { bootTestApp } from '../../helpers/test-app';
 import { resetTestDb, setAddonEnabled } from '../../helpers/test-db';
+import { TRANSFER_TOOLS } from '../../helpers/transfer-tools';
 import { MikroORM } from '@mikro-orm/core';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 
@@ -166,13 +167,32 @@ describe('demo tool gate over the whole registry', () => {
     expect(result.isError).toBeUndefined();
   });
 
-  it('DEMOGATE-005: with every addon on, only the photo-library tools stay detached, so the sweep above covers the rest', async () => {
+  it('DEMOGATE-005: without transfer consent, only provider and transfer tools stay detached', async () => {
     const { user } = createUser(testDb);
     const tools = await captureTools(registry, { userId: user.id, scopes: null, isStaticToken: false });
     const missing = toolListings.map((t) => t.name).filter((name) => !tools.has(name));
     // These three wait for a connected Immich or Synology provider
-    // (anyPhotoProviderEnabled), and all three are reads.
-    expect(missing.sort()).toEqual(['list_provider_album_photos', 'list_provider_albums', 'search_provider_photos']);
+    // (anyPhotoProviderEnabled), and all three are reads. Transfer tools require
+    // a client ID and explicit transfer scopes; DEMOGATE-008 checks their writes.
+    expect(missing.sort()).toEqual(
+      ['list_provider_album_photos', 'list_provider_albums', 'search_provider_photos', ...TRANSFER_TOOLS].sort(),
+    );
+  });
+
+  it('DEMOGATE-008: explicitly consented transfer writes still refuse the demo account before their handlers', async () => {
+    process.env.DEMO_MODE = 'true';
+    const { user: demo } = createUser(testDb, { email: 'demo@trek.app' });
+    const ctx: McpContext = {
+      userId: demo.id,
+      scopes: ['transfer:read', 'transfer:write'],
+      clientId: 'consented-transfer-test',
+      isStaticToken: false,
+    };
+    const tools = await captureTools(registry, ctx);
+    expect([...tools.keys()].filter((name) => name.startsWith('travel_transfer_')).sort()).toEqual(TRANSFER_TOOLS);
+    const writes = TRANSFER_TOOLS.filter((name) => tools.get(name)?.annotations?.readOnlyHint !== true);
+    expect(writes).toEqual(['travel_transfer_apply', 'travel_transfer_stage_graph', 'travel_transfer_write_original']);
+    for (const name of writes) expect(await tools.get(name)!.call(), name).toEqual(DEMO_REFUSAL);
   });
 
   it('DEMOGATE-006: the scope mode and the read-only annotation agree on every declarative tool', async () => {

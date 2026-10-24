@@ -1,15 +1,19 @@
 import type { TrekPhoto } from '../../types';
 import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { DomainError } from '../common/domain-error';
 import { TrekPhotoRegistrationService } from '../photos/trek-photo-registration.service';
 import { StorageService } from '../storage/storage.service';
+import { MemoriesAccessService } from './memories-access.service';
 import { fail, success, type AssetInfo, type ServiceResult } from './memories.helpers';
 import type { PhotoAssetRef } from './photo-provider';
 import { PhotoProviderRegistry } from './photo-provider.registry';
 import { ThumbnailService } from './thumbnail.service';
 import { TrekPhotoCacheService } from './trek-photo-cache.service';
+import { UnifiedMemoriesService } from './unified-memories.service';
 import { Injectable } from '@nestjs/common';
 
 import { Response } from 'express';
+import { createHash } from 'node:crypto';
 import fsPromises from 'node:fs/promises';
 
 /**
@@ -38,10 +42,12 @@ export type PhotoSignalSource =
 export class PhotoResolverService {
   constructor(
     private readonly photos: TrekPhotoRegistrationService,
+    private readonly access: MemoriesAccessService,
     private readonly thumbnails: ThumbnailService,
     private readonly cache: TrekPhotoCacheService,
     private readonly providers: PhotoProviderRegistry,
     private readonly storage: StorageService,
+    private readonly enabled: UnifiedMemoriesService,
   ) {}
 
   /** photos.file_path / thumbnail_path are uploads-relative 'journey/…' by
@@ -205,6 +211,38 @@ export class PhotoResolverService {
       passphrase: photo.passphrase ? decrypt_api_key(photo.passphrase) || undefined : undefined,
       mediaType: photo.media_type,
     };
+  }
+
+  /** Transfer port. Rechecks current photo access and never consults the thumbnail cache. */
+  async openOriginal(user: number, id: number) {
+    if (!(await this.access.canAccessTrekPhoto(user, id))) throw new DomainError(404, 'Photo unavailable');
+    const photo = await this.photos.resolve(id);
+    if (!photo) throw new DomainError(404, 'Photo unavailable');
+    if (photo.provider === 'local') {
+      const name = photo.file_path && this.storageName(photo.file_path);
+      if (!name || name.includes('/') || name.includes('\\') || name === '.' || name === '..')
+        throw new DomainError(422, 'Invalid local photo storage key');
+      const opened = await this.storage.getStream('journey', name);
+      return {
+        ...opened,
+        contentType: 'application/octet-stream',
+        sourceStamp: createHash('sha256')
+          .update(JSON.stringify([name, opened.stat]))
+          .digest('hex'),
+      };
+    }
+    await this.enabled.assertProviderEnabled(photo.provider);
+    const provider = this.providers.get(photo.provider);
+    if (!provider?.openOriginal || !photo.owner_id || !photo.asset_id)
+      throw new DomainError(422, 'Photo provider does not support original transfer');
+    return provider.openOriginal(this.refFor(photo, user));
+  }
+
+  async checkOriginalAccess(user: number, id: number) {
+    if (!(await this.access.canAccessTrekPhoto(user, id))) throw new DomainError(404, 'Photo unavailable');
+    const photo = await this.photos.resolve(id);
+    if (!photo) throw new DomainError(404, 'Photo unavailable');
+    if (photo.provider !== 'local') await this.enabled.assertProviderEnabled(photo.provider);
   }
 
   // ── Asset Info ────────────────────────────────────────────────────────────

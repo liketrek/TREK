@@ -129,6 +129,12 @@ import { TourStationVisitsSchema } from './TourStationVisits.entity';
 import { TourTypesSchema } from './TourTypes.entity';
 import { TourWaypointsSchema } from './TourWaypoints.entity';
 import { ToursSchema } from './Tours.entity';
+import { TravelTransferChunksSchema } from './TravelTransferChunks.entity';
+import { TravelTransferFileHashesSchema } from './TravelTransferFileHashes.entity';
+import { TravelTransferGraphsSchema } from './TravelTransferGraphs.entity';
+import { TravelTransferObjectsSchema } from './TravelTransferObjects.entity';
+import { TravelTransferOperationsSchema } from './TravelTransferOperations.entity';
+import { TravelTransferSilentTasksSchema } from './TravelTransferSilentTasks.entity';
 import { TrekPhotoCacheMetaSchema } from './TrekPhotoCacheMeta.entity';
 import { TrekPhotoSignalsSchema } from './TrekPhotoSignals.entity';
 import { TrekPhotosSchema } from './TrekPhotos.entity';
@@ -291,6 +297,12 @@ export const ALL_ENTITIES: readonly EntitySchema[] = [
   TourTypesSchema,
   TourWaypointsSchema,
   ToursSchema,
+  TravelTransferChunksSchema,
+  TravelTransferFileHashesSchema,
+  TravelTransferGraphsSchema,
+  TravelTransferObjectsSchema,
+  TravelTransferOperationsSchema,
+  TravelTransferSilentTasksSchema,
   TrekPhotoCacheMetaSchema,
   TrekPhotoSignalsSchema,
   TrekPhotosSchema,

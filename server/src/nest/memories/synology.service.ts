@@ -1,6 +1,7 @@
 import { UserSynologyRepository, type SynologyUserColumn } from '../../db/repositories/UserSynology.repository';
 import { safeFetch, SsrfBlockedError, checkSsrf } from '../../utils/ssrfGuard';
 import { decrypt_api_key, encrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { DomainError } from '../common/domain-error';
 import { NotificationsService } from '../notifications/notifications.service';
 import { MemoriesAccessService } from './memories-access.service';
 import {
@@ -17,6 +18,7 @@ import {
   type ServiceResult,
   type StatusResult,
 } from './memories.helpers';
+import { openPhotoOriginal } from './photo-original';
 import { Injectable } from '@nestjs/common';
 
 import { Response } from 'express';
@@ -801,6 +803,30 @@ export class SynologyService {
       console.error('fetchSynologyThumbnailBytes: upstream fetch failed:', error);
       return { error: 'Proxy error', status: 502 };
     }
+  }
+
+  /** @txStandalone Provider session renewal is independent credential maintenance before streaming, never part of a trip transaction. */
+  async openOriginal(owner: number, assetId: string, passphrase?: string) {
+    const parsed = this._splitPackedSynologyId(assetId);
+    if (!parsed) throw new DomainError(422, 'Invalid photo identity');
+    const credentials = await this._getSynologyCredentials(owner);
+    const session = await this._getSynologySession(owner);
+    if (!credentials.success || !session.success || !session.data)
+      throw new DomainError(404, 'Photo connection unavailable');
+    const params = new URLSearchParams({
+      api: 'SYNO.Foto.Download',
+      method: 'download',
+      version: '1',
+      unit_id: `[${parsed.id}]`,
+      cache_key: parsed.cacheKey,
+      _sid: session.data,
+    });
+    if (passphrase) params.set('passphrase', passphrase);
+    return openPhotoOriginal(
+      this._buildSynologyEndpoint(credentials.data.synology_url, params.toString()),
+      {},
+      { rejectUnauthorized: !credentials.data.synology_skip_ssl },
+    );
   }
 
   async streamSynologyAsset(

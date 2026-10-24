@@ -33,7 +33,7 @@ import { createTestOrm, type TestOrm } from '../helpers/test-orm';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
-import type { Application } from 'express';
+import type { Server } from 'node:http';
 import request from 'supertest';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
 
@@ -72,12 +72,15 @@ const MCP_AUDIENCE = `${getMcpSafeUrl().replace(/\/+$/, '')}/mcp`;
 const EXPECTED_CHALLENGE = `Bearer realm="TREK MCP", resource_metadata="${getMcpSafeUrl().replace(/\/+$/, '')}/.well-known/oauth-protected-resource/mcp", error="invalid_token"`;
 
 let nestApp: INestApplication;
-let app: Application;
+let app: Server;
 let t: TestOrm;
 
 beforeAll(async () => {
   nestApp = await buildApp();
-  app = nestApp.getHttpAdapter().getInstance();
+  // Supertest connects to IPv4, but its implicit listen(0) binds an IPv6
+  // wildcard. On macOS that port may already belong to another IPv4 fixture.
+  await nestApp.listen(0, '127.0.0.1');
+  app = nestApp.getHttpServer();
   t = await createTestOrm(testDb);
   oauthSvc = new OauthService(
     t.repo(OauthClients),
@@ -124,6 +127,10 @@ describe('MCP authentication', () => {
 });
 
 describe('MCP session init', () => {
+  it('MCP-HTTP-001 — requests use a listening IPv4 loopback server', () => {
+    expect(nestApp.getHttpServer().address()).toMatchObject({ address: '127.0.0.1', family: 'IPv4' });
+  });
+
   it('MCP-002 — POST /mcp with valid JWT passes auth check (may fail if addon disabled)', async () => {
     const { user } = createUser(testDb);
     const token = generateToken(user.id);

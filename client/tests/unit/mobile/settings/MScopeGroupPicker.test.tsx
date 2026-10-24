@@ -1,12 +1,12 @@
 // FE-MOB-SETSCP-001 onwards
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
-import { render, screen } from '../../../helpers/render';
-import { resetAllStores } from '../../../helpers/store';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ALL_SCOPES } from '../../../../src/api/oauthScopes';
 import MScopeGroupPicker from '../../../../src/mobile/screens/settings/MScopeGroupPicker';
+import { render, screen } from '../../../helpers/render';
+import { resetAllStores } from '../../../helpers/store';
 
-const TRIP_SCOPES = ['trips:read', 'trips:write', 'trips:delete', 'trips:share'];
+const TRIP_SCOPES = ['transfer:read', 'transfer:write', 'trips:read', 'trips:write', 'trips:delete', 'trips:share'];
 
 describe('MScopeGroupPicker', () => {
   beforeEach(() => {
@@ -84,7 +84,7 @@ describe('MScopeGroupPicker', () => {
   it('FE-MOB-SETSCP-008: a partially selected group shows the n/total counter', () => {
     render(<MScopeGroupPicker selected={['trips:read', 'trips:write']} onChange={vi.fn()} />);
 
-    expect(screen.getByText('(2/4)')).toBeInTheDocument();
+    expect(screen.getByText('(2/6)')).toBeInTheDocument();
   });
 
   it('FE-MOB-SETSCP-009: tapping an unselected scope row adds it', async () => {

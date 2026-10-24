@@ -28,11 +28,12 @@ export async function registerTools(
   onInvoke?: McpAttachOptions['onInvoke'],
   dynamicTools: McpAttachOptions['dynamicTools'] = getPluginMcpToolSource() ?? undefined,
   around?: McpAttachOptions['around'],
+  transferAuth?: Pick<import('../nest-mcp').McpContext, 'clientId' | 'reauthorize'>,
 ): Promise<void> {
   if (registry)
     await registry.attach(
       server,
-      { userId, scopes, isStaticToken, getDeprecationNotice },
+      { userId, scopes, isStaticToken, getDeprecationNotice, ...transferAuth },
       { onInvoke, dynamicTools, around },
     );
 }

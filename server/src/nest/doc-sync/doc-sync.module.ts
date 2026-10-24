@@ -15,7 +15,9 @@ import { PermissionsModule } from '../permissions/permissions.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { SchedulingModule } from '../scheduling/scheduling.module';
 import { StorageModule } from '../storage/storage.module';
+import { TripMembershipModule } from '../trip-membership/trip-membership.module';
 import { DocSyncConfigService } from './doc-sync-config.service';
+import { DocSyncTransferService } from './doc-sync-transfer.service';
 import { DocSyncWebhookController } from './doc-sync-webhook.controller';
 import { DocSyncController } from './doc-sync.controller';
 import { DocSyncJob } from './doc-sync.job';
@@ -60,6 +62,7 @@ import { Module } from '@nestjs/common';
  */
 @Module({
   imports: [
+    TripMembershipModule,
     StorageModule,
     FilesModule,
     AllowedFileTypesModule,
@@ -83,6 +86,7 @@ import { Module } from '@nestjs/common';
   ],
   controllers: [DocSyncController, DocSyncWebhookController],
   providers: [
+    DocSyncTransferService,
     DocSyncConfigService,
     DocSyncService,
     DocSyncJob,
@@ -118,6 +122,6 @@ import { Module } from '@nestjs/common';
       ],
     },
   ],
-  exports: [DocSyncConfigService, DocSyncService],
+  exports: [DocSyncConfigService, DocSyncService, DocSyncTransferService],
 })
 export class DocSyncModule {}

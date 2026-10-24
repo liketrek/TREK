@@ -22,6 +22,10 @@ type ScopeMode = Scope extends `${string}:${infer M}` ? M : never;
  */
 export interface McpContext {
   userId: number;
+  /** Only supplied by the OAuth transport; absent for legacy/JWT sessions. */
+  clientId?: string | null;
+  /** Revalidates the credential before committing a long transfer call. */
+  reauthorize?: () => Promise<boolean>;
   scopes: string[] | null;
   isStaticToken: boolean;
   /**

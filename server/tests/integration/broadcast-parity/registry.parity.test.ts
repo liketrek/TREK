@@ -2,6 +2,7 @@ import { McpRegistryService } from '../../../src/nest-mcp';
 import { withRequestContext } from '../../../src/nest/database/request-context';
 import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { TRANSFER_TOOLS } from '../../helpers/transfer-tools';
 import { ALL_NEEDS, NEED_KEYS, openHarness, REST_SOCKET, type ListedTool, type ParityHarness } from './harness';
 import { ALL_GROUPS } from './index';
 import { PENDING_CEILING } from './pending-ceiling';
@@ -19,6 +20,10 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
  * row fails here, and so does a row for a tool that is gone or only reads.
  * Pending only shrinks (`PENDING_CEILING`): a new tool gets a case or an
  * exemption.
+ *
+ * Transfer writes are intentionally silent historical operations and are not
+ * exposed to this ordinary admin session. Their real OAuth HTTP/SSE tests in
+ * travel-transfer.test.ts cover consent, apply/retry and the absence of broadcasts.
  *
  * Out of its reach on purpose: the tools installed plugins contribute
  * (`dynamicTools`, attached per session from the plugin source, never held by
@@ -55,7 +60,7 @@ function rowsByTool(): Map<string, string[]> {
 const writeTools = () => listed.filter((tool) => !tool.readOnly).map((tool) => tool.name);
 
 describe('broadcast parity: every write tool has a row', () => {
-  it('BCP-REG-001: an admin session with every addon on lists every tool the registry holds', () => {
+  it('BCP-REG-001: an admin session lists every ordinary tool; transfer tools require separate OAuth consent', () => {
     const registered = h.app
       .get(McpRegistryService)
       .list()
@@ -63,9 +68,9 @@ describe('broadcast parity: every write tool has a row', () => {
       .map((entry) => entry.name);
     const names = new Set(listed.map((tool) => tool.name));
     expect(
-      registered.filter((name) => !names.has(name)),
-      'a when: or addon gate hid these tools from the test',
-    ).toEqual([]);
+      registered.filter((name) => !names.has(name)).sort(),
+      'only the separately consented transfer tools may be absent',
+    ).toEqual(TRANSFER_TOOLS);
     expect(
       [...names].filter((name) => !registered.includes(name)),
       'listed, but not in the registry',

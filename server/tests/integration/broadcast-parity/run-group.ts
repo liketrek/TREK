@@ -242,6 +242,10 @@ export function runGroup(group: CaseGroup): void {
       afterAll(async () => {
         await h?.close();
       });
+
+      it(`${group.prefix}-HTTP: REST requests use a listening IPv4 loopback server`, () => {
+        expect(h.app.getHttpServer().address()).toMatchObject({ address: '127.0.0.1', family: 'IPv4' });
+      });
     }
 
     it(`${caseId(group.prefix, 0)}: names each of its write tools once, and every case can fail`, () => {

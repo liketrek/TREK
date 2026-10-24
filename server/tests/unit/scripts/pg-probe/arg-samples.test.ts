@@ -1,5 +1,5 @@
 /**
- * The Postgres probe has no fixtures: scripts/pg-probe/arg-samples.ts reads
+ * The generic planner in scripts/pg-probe/arg-samples.ts reads
  * every repository with the TypeScript checker and builds one argument list
  * per public method from the parameter types. These tests run it over a
  * throwaway repository file with the server's own non-strict compiler

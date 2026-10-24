@@ -198,7 +198,9 @@ describe('the pre-migration snapshot', () => {
 
     const refusal = migrate(envWith({ preMigrateSnapshot: true }));
     await expect(refusal).rejects.toThrow(/migrated by a newer TREK/);
-    await expect(refusal).rejects.toThrow(`The copy taken right before the newer TREK migrated it is ${match}`);
+    await expect(refusal).rejects.toThrow(
+      `The copy taken right before the newer TREK migrated it is ${fs.realpathSync(match)}`,
+    );
 
     fs.rmSync(match);
     fs.writeFileSync(path.join(dir, 'pre-migrate-legacy-200-20250101T000000Z.db'), '');

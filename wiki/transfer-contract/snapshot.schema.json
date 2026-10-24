@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:trek:travel-transfer:1",
+  "title": "Travel transfer complete snapshot v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "trip",
+    "revision",
+    "complete",
+    "records",
+    "originals"
+  ],
+  "properties": {
+    "format": {
+      "const": "travel-transfer/1"
+    },
+    "trip": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "revision": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "complete": {
+      "const": true
+    },
+    "records": {
+      "type": "array",
+      "maxItems": 20000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "kind",
+          "fields",
+          "references",
+          "visibility",
+          "source"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "kind": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "visibility": {
+            "enum": [
+              "private",
+              "trip"
+            ]
+          },
+          "fields": {
+            "type": "object"
+          },
+          "references": {
+            "type": "object",
+            "additionalProperties": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "source": {
+            "type": "object",
+            "required": [
+              "fields"
+            ],
+            "properties": {
+              "fields": {
+                "type": "object",
+                "additionalProperties": {
+                  "enum": [
+                    "present",
+                    "empty",
+                    "unknown",
+                    "unavailable",
+                    "extension"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "originals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "record",
+          "sha256",
+          "size"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "record": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 536870912
+          }
+        }
+      },
+      "maxItems": 20000
+    }
+  }
+}

@@ -30,6 +30,10 @@ export class SynologyPhotoProvider implements PhotoProvider {
     );
   }
 
+  openOriginal(ref: PhotoAssetRef) {
+    return this.synology.openOriginal(ref.ownerId, ref.assetId, ref.passphrase);
+  }
+
   fetchThumbnailBytes(ref: PhotoAssetRef): Promise<PhotoBytes | PhotoFetchError> {
     return this.synology.fetchSynologyThumbnailBytes(ref.userId, ref.ownerId, ref.assetId, ref.passphrase);
   }

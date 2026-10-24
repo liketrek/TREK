@@ -1,6 +1,11 @@
 import type { TranslationStrings } from '../types';
 
 const oauth: TranslationStrings = {
+  'oauth.scope.transfer:read.label': '여행 전송 데이터 읽기',
+  'oauth.scope.transfer:read.description': '지원되는 여행 데이터와 원본 파일을 읽습니다.',
+  'oauth.scope.transfer:write.label': '여행 전송 데이터 적용',
+  'oauth.scope.transfer:write.description': '검토된 여행 데이터와 원본 파일을 알림 없이 적용합니다.',
+
   'oauth.scope.group.trips': '여행',
   'oauth.scope.group.places': '장소',
   'oauth.scope.group.collections': '컬렉션',

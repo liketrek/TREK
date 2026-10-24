@@ -1,0 +1,679 @@
+{
+  "complete": true,
+  "format": "travel-transfer/1",
+  "originals": [],
+  "records": [
+    {
+      "fields": {
+        "balances": {},
+        "currency": null,
+        "exponent": null,
+        "incomplete_expense_ids": [],
+        "participant_finals": [],
+        "shared_total_minor": "0",
+        "suggestions": [],
+        "unconverted_expense_ids": [],
+        "unconverted_settlement_ids": []
+      },
+      "id": "cost_ledger:root",
+      "kind": "cost_ledger",
+      "references": {},
+      "source": {
+        "fields": {
+          "balances": "empty",
+          "currency": "empty",
+          "exponent": "empty",
+          "incomplete_expense_ids": "empty",
+          "participant_finals": "empty",
+          "shared_total_minor": "present",
+          "suggestions": "empty",
+          "unconverted_expense_ids": "empty",
+          "unconverted_settlement_ids": "empty"
+        },
+        "schema": "memories-trip-plan/1"
+      },
+      "visibility": "trip"
+    },
+    {
+      "fields": {
+        "currency": "AUD",
+        "exponent": 2
+      },
+      "id": "cost_settings:root",
+      "kind": "cost_settings",
+      "references": {},
+      "source": {
+        "fields": {
+          "currency": "present",
+          "exponent": "present"
+        },
+        "provider": "trek"
+      },
+      "visibility": "trip"
+    },
+    {
+      "fields": {},
+      "id": "day_plan:root",
+      "kind": "day_plan",
+      "references": {},
+      "source": {
+        "fields": {},
+        "schema": "memories-trip-plan/1"
+      },
+      "visibility": "trip"
+    },
+    {
+      "fields": {
+        "audience": "private",
+        "balances": {},
+        "currency": null,
+        "exponent": null,
+        "incomplete_expense_ids": [],
+        "participant_finals": [],
+        "personal_total_minor": "0",
+        "personal_unconverted_expense_ids": [],
+        "shared_total_minor": "0",
+        "suggestions": [],
+        "unconverted_expense_ids": [],
+        "unconverted_settlement_ids": []
+      },
+      "id": "private_cost_ledger:root",
+      "kind": "private_cost_ledger",
+      "references": {},
+      "source": {
+        "fields": {
+          "audience": "present",
+          "balances": "empty",
+          "currency": "empty",
+          "exponent": "empty",
+          "incomplete_expense_ids": "empty",
+          "participant_finals": "empty",
+          "personal_total_minor": "present",
+          "personal_unconverted_expense_ids": "empty",
+          "shared_total_minor": "present",
+          "suggestions": "empty",
+          "unconverted_expense_ids": "empty",
+          "unconverted_settlement_ids": "empty"
+        },
+        "schema": "memories-trip-plan/1"
+      },
+      "visibility": "private"
+    },
+    {
+      "fields": {
+        "audience": "private",
+        "days": {}
+      },
+      "id": "private_day_plan:root",
+      "kind": "private_day_plan",
+      "references": {},
+      "source": {
+        "fields": {
+          "audience": "present",
+          "days": "empty"
+        },
+        "schema": "memories-trip-plan/1"
+      },
+      "visibility": "private"
+    },
+    {
+      "fields": {
+        "amount_minor": "1225",
+        "amount_text": "12.25",
+        "category": "Other",
+        "currency": "AUD",
+        "days_text": "1",
+        "expense_date": "",
+        "exponent": 2,
+        "fx_base_currency": "AUD",
+        "fx_base_exponent": 2,
+        "fx_direction": "base_per_source",
+        "fx_rate": "1",
+        "fx_rounding": "half_positive",
+        "notes": "",
+        "persons_text": "1",
+        "sort_order_text": "0",
+        "title": "Tickets",
+        "trek_created_at": "2026-10-23 09:08:40",
+        "trek_native_values": {
+          "days": null,
+          "exchange_rate": 1,
+          "expense_date": null,
+          "note": null,
+          "persons": null,
+          "sort_order": 0,
+          "total_price": 12.25
+        },
+        "trek_paid_by_user_id": null,
+        "trek_ticket_json": null
+      },
+      "id": "trek:budget_items:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4",
+      "kind": "expenses",
+      "references": {
+        "place_id": null,
+        "reservation_id": "trek:reservations:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4"
+      },
+      "source": {
+        "fields": {
+          "amount_minor": "present",
+          "amount_text": "present",
+          "category": "present",
+          "currency": "present",
+          "days_text": "present",
+          "expense_date": "present",
+          "exponent": "present",
+          "fx_base_currency": "present",
+          "fx_base_exponent": "present",
+          "fx_direction": "present",
+          "fx_rate": "present",
+          "fx_rounding": "present",
+          "notes": "present",
+          "persons_text": "present",
+          "sort_order_text": "present",
+          "title": "present",
+          "trek_created_at": "present",
+          "trek_native_values": "present",
+          "trek_paid_by_user_id": "present",
+          "trek_ticket_json": "present"
+        },
+        "provider": "trek"
+      },
+      "visibility": "trip"
+    },
+    {
+      "fields": {
+        "created_at": "2026-10-23 09:08:40",
+        "deleted": 0,
+        "text": "Historical message",
+        "trek_user_id": {
+          "id": "1",
+          "name": "testuser26"
+        }
+      },
+      "id": "trek:collab_messages:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4",
+      "kind": "chat_messages",
+      "references": {
+        "reply_to": null
+      },
+      "source": {
+        "fields": {
+          "created_at": "present",
+          "deleted": "present",
+          "text": "present",
+          "trek_user_id": "present"
+        },
+        "provider": "trek"
+      },
+      "visibility": "trip"
+    },
+    {
+      "fields": {
+        "check_in_end": "",
+        "check_in_start": "",
+        "check_out": "",
+        "confirmation": "",
+        "notes": "Two nights",
+        "title": "Museum",
+        "trek_created_at": "2026-10-23 09:08:40",
+        "trek_native_values": {
+          "check_in": null,
+          "check_in_end": null,
+          "check_out": null,
+          "confirmation": null
+        }
+      },
+      "id": "trek:day_accommodations:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4",
+      "kind": "stays",
+      "references": {
+        "end_day_id": "trek:days:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4",
+        "place_id": "trek:places:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4",
+        "start_day_id": "trek:days:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4"
+      },
+      "source": {
+        "fields": {
+          "check_in_end": "present",
+          "check_in_start": "present",
+          "check_out": "present",
+          "confirmation": "present",
+          "notes": "present",
+          "title": "present",
+          "trek_created_at": "present",
+          "trek_native_values": "present"
+        },
+        "provider": "trek"
+      },
+      "visibility": "trip"
+    },
+    {
+      "fields": {
+        "end_at": {},
+        "ends_day": false,
+        "incoming_transport_mode": "",
+        "notes": "",
+        "position": 2,
+        "start_at": {},
+        "title": "Museum",
+        "transport_mode": "",
+        "trek_created_at": "2026-10-23 09:08:40",
+        "trek_native_values": {
+          "assignment_end_time": null,
+          "assignment_time": null,
+          "end_day": 0,
+          "incoming_leg_transport_mode": null,
+          "leg_transport_mode": null,
+          "notes": null
+        },
+        "trek_reservation_datetime": null,
+        "trek_reservation_notes": null,
+        "trek_reservation_status": "none",
+        "trek_route_excluded": 0,
+        "trek_tour_stage_key": null
+      },
+      "id": "trek:day_assignments:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4",
+      "kind": "items",
+      "references": {
+        "day_id": "trek:days:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4",
+        "place_id": "trek:places:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4",
+        "stay_id": "trek:day_accommodations:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4"
+      },
+      "source": {
+        "fields": {
+          "end_at": "present",
+          "ends_day": "present",
+          "incoming_transport_mode": "present",
+          "notes": "present",
+          "position": "present",
+          "start_at": "present",
+          "title": "present",
+          "transport_mode": "present",
+          "trek_created_at": "present",
+          "trek_native_values": "present",
+          "trek_reservation_datetime": "present",
+          "trek_reservation_notes": "present",
+          "trek_reservation_status": "present",
+          "trek_route_excluded": "present",
+          "trek_tour_stage_key": "present"
+        },
+        "provider": "trek"
+      },
+      "visibility": "trip"
+    },
+    {
+      "fields": {
+        "date": "2027-02-01",
+        "notes": "",
+        "position": 1,
+        "title": "",
+        "transport_mode": "",
+        "trek_native_values": {
+          "default_transport_mode": null,
+          "notes": null,
+          "title": null
+        }
+      },
+      "id": "trek:days:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4",
+      "kind": "days",
+      "references": {},
+      "source": {
+        "fields": {
+          "date": "present",
+          "notes": "present",
+          "position": "present",
+          "title": "present",
+          "transport_mode": "present",
+          "trek_native_values": "present"
+        },
+        "provider": "trek"
+      },
+      "visibility": "trip"
+    },
+    {
+      "fields": {
+        "title": "Packing"
+      },
+      "id": "trek:packing-list",
+      "kind": "packing_lists",
+      "references": {},
+      "source": {
+        "fields": {
+          "title": "present"
+        },
+        "provider": "trek"
+      },
+      "visibility": "trip"
+    },
+    {
+      "fields": {
+        "color": "#6366f1",
+        "position": 0,
+        "title": "Backpack",
+        "trek_created_at": "2026-10-23 09:08:40",
+        "trek_native_values": {
+          "weight_limit_grams": 7500
+        },
+        "trek_user_id": null,
+        "weight_limit_grams_text": "7500"
+      },
+      "id": "trek:packing_bags:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4",
+      "kind": "packing_bags",
+      "references": {},
+      "source": {
+        "fields": {
+          "color": "present",
+          "position": "present",
+          "title": "present",
+          "trek_created_at": "present",
+          "trek_native_values": "present",
+          "trek_user_id": "present",
+          "weight_limit_grams_text": "present"
+        },
+        "provider": "trek"
+      },
+      "visibility": "trip"
+    },
+    {
+      "fields": {
+        "category": "",
+        "packed": false,
+        "packed_quantity": null,
+        "position": 0,
+        "quantity": 2,
+        "title": "Jacket",
+        "trek_created_at": "2026-10-23 09:08:40",
+        "trek_is_private": 0,
+        "trek_native_values": {
+          "category": null,
+          "checked": 0,
+          "weight_grams": 550
+        },
+        "trek_owner_id": null,
+        "trek_updated_at": null,
+        "visibility": "common",
+        "weight_grams_text": "550"
+      },
+      "id": "trek:packing_items:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4",
+      "kind": "packing_items",
+      "references": {
+        "bag_id": "trek:packing_bags:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4",
+        "list_id": "trek:packing-list"
+      },
+      "source": {
+        "fields": {
+          "category": "present",
+          "packed": "present",
+          "packed_quantity": "present",
+          "position": "present",
+          "quantity": "present",
+          "title": "present",
+          "trek_created_at": "present",
+          "trek_is_private": "present",
+          "trek_native_values": "present",
+          "trek_owner_id": "present",
+          "trek_updated_at": "present",
+          "visibility": "present",
+          "weight_grams_text": "present"
+        },
+        "provider": "trek"
+      },
+      "visibility": "trip"
+    },
+    {
+      "fields": {
+        "address": "",
+        "description": "",
+        "duration_minutes": 60,
+        "latitude": -33.8,
+        "longitude": 151.2,
+        "name": "Museum",
+        "notes": "",
+        "opening_hours": "",
+        "phone": "",
+        "trek_amap_poi_id": null,
+        "trek_category_id": null,
+        "trek_created_at": "2026-10-23 09:08:40",
+        "trek_currency": null,
+        "trek_email": null,
+        "trek_end_time": null,
+        "trek_fill_percent": null,
+        "trek_google_ftid": null,
+        "trek_google_place_id": null,
+        "trek_image_url": null,
+        "trek_native_values": {
+          "address": null,
+          "description": null,
+          "notes": null,
+          "opening_hours": null,
+          "phone": null,
+          "website": null
+        },
+        "trek_osm_id": null,
+        "trek_place_time": null,
+        "trek_price": null,
+        "trek_reservation_datetime": null,
+        "trek_reservation_notes": null,
+        "trek_reservation_status": "none",
+        "trek_route_color": null,
+        "trek_route_geometry": null,
+        "trek_source": null,
+        "trek_stop_type": null,
+        "trek_transport_mode": "walking",
+        "trek_updated_at": "2026-10-23 09:08:40",
+        "website": ""
+      },
+      "id": "trek:places:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4",
+      "kind": "places",
+      "references": {},
+      "source": {
+        "fields": {
+          "address": "present",
+          "description": "present",
+          "duration_minutes": "present",
+          "latitude": "present",
+          "longitude": "present",
+          "name": "present",
+          "notes": "present",
+          "opening_hours": "present",
+          "phone": "present",
+          "trek_amap_poi_id": "present",
+          "trek_category_id": "present",
+          "trek_created_at": "present",
+          "trek_currency": "present",
+          "trek_email": "present",
+          "trek_end_time": "present",
+          "trek_fill_percent": "present",
+          "trek_google_ftid": "present",
+          "trek_google_place_id": "present",
+          "trek_image_url": "present",
+          "trek_native_values": "present",
+          "trek_osm_id": "present",
+          "trek_place_time": "present",
+          "trek_price": "present",
+          "trek_reservation_datetime": "present",
+          "trek_reservation_notes": "present",
+          "trek_reservation_status": "present",
+          "trek_route_color": "present",
+          "trek_route_geometry": "present",
+          "trek_source": "present",
+          "trek_stop_type": "present",
+          "trek_transport_mode": "present",
+          "trek_updated_at": "present",
+          "website": "present"
+        },
+        "provider": "trek"
+      },
+      "visibility": "trip"
+    },
+    {
+      "fields": {
+        "code": "",
+        "departure_date_text": null,
+        "departure_time_text": "",
+        "latitude": -33.8,
+        "longitude": 151.2,
+        "name": "Station",
+        "position": 0,
+        "role": "from",
+        "timezone_text": "",
+        "trek_created_at": "2026-10-23 09:08:40",
+        "trek_native_values": {
+          "code": null,
+          "local_time": null,
+          "timezone": null
+        }
+      },
+      "id": "trek:reservation_endpoints:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4",
+      "kind": "endpoints",
+      "references": {
+        "reservation_id": "trek:reservations:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4"
+      },
+      "source": {
+        "fields": {
+          "code": "present",
+          "departure_date_text": "present",
+          "departure_time_text": "present",
+          "latitude": "present",
+          "longitude": "present",
+          "name": "present",
+          "position": "present",
+          "role": "present",
+          "timezone_text": "present",
+          "trek_created_at": "present",
+          "trek_native_values": "present"
+        },
+        "provider": "trek"
+      },
+      "visibility": "trip"
+    },
+    {
+      "fields": {
+        "confirmation": "",
+        "end_time_text": "",
+        "kind": "event",
+        "location": "",
+        "needs_review": false,
+        "notes": "",
+        "position": 0,
+        "start_time_text": "",
+        "status": "planned",
+        "title": "Museum ticket",
+        "trek_accommodation_id": null,
+        "trek_created_at": "2026-10-23 09:08:40",
+        "trek_metadata": null,
+        "trek_native_values": {
+          "confirmation_number": null,
+          "day_plan_position": null,
+          "location": null,
+          "needs_review": 0,
+          "notes": null,
+          "reservation_end_time": null,
+          "reservation_time": null,
+          "status": "pending",
+          "url": null
+        },
+        "url": ""
+      },
+      "id": "trek:reservations:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4",
+      "kind": "bookings",
+      "references": {
+        "end_day_id": null,
+        "item_id": "trek:day_assignments:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4",
+        "place_id": "trek:places:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4",
+        "start_day_id": "trek:days:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4"
+      },
+      "source": {
+        "fields": {
+          "confirmation": "present",
+          "end_time_text": "present",
+          "kind": "present",
+          "location": "present",
+          "needs_review": "present",
+          "notes": "present",
+          "position": "present",
+          "start_time_text": "present",
+          "status": "present",
+          "title": "present",
+          "trek_accommodation_id": "present",
+          "trek_created_at": "present",
+          "trek_metadata": "present",
+          "trek_native_values": "present",
+          "url": "present"
+        },
+        "provider": "trek"
+      },
+      "visibility": "trip"
+    },
+    {
+      "fields": {
+        "category": "",
+        "checked": false,
+        "completed_at": null,
+        "due_date": null,
+        "notes": "",
+        "position": 0,
+        "priority": "normal",
+        "title": "Pack",
+        "trek_assigned_user_id": null,
+        "trek_created_at": "2026-10-23 09:08:40",
+        "trek_native_values": {
+          "category": null,
+          "checked": 1,
+          "description": null,
+          "priority": 0
+        }
+      },
+      "id": "trek:todo_items:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4",
+      "kind": "tasks",
+      "references": {},
+      "source": {
+        "fields": {
+          "category": "present",
+          "checked": "present",
+          "completed_at": "empty",
+          "due_date": "present",
+          "notes": "present",
+          "position": "present",
+          "priority": "present",
+          "title": "present",
+          "trek_assigned_user_id": "present",
+          "trek_created_at": "present",
+          "trek_native_values": "present"
+        },
+        "provider": "trek"
+      },
+      "visibility": "trip"
+    },
+    {
+      "fields": {
+        "currency": "AUD",
+        "end_date": null,
+        "notes": "",
+        "start_date": null,
+        "status": "planning",
+        "tentative": false,
+        "timezone": "UTC",
+        "title": "Native source",
+        "trek_archived": false
+      },
+      "id": "trip",
+      "kind": "trip",
+      "references": {},
+      "source": {
+        "fields": {
+          "currency": "present",
+          "end_date": "present",
+          "notes": "present",
+          "start_date": "present",
+          "status": "present",
+          "tentative": "present",
+          "timezone": "present",
+          "title": "present",
+          "trek_archived": "present"
+        },
+        "schema": "memories-trip-plan/1"
+      },
+      "visibility": "trip"
+    }
+  ],
+  "revision": "99d06016e02cc49e77232c2262bb24182a57af1069ee37bf247df55c4898ef5c",
+  "trip": "7313da4e-5d13-4a58-80b3-d471a4cc5614"
+}

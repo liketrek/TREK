@@ -2,6 +2,7 @@ import { UserImmichRepository } from '../../db/repositories/UserImmich.repositor
 import { checkSsrf, safeFetch, type SafeFetchOptions } from '../../utils/ssrfGuard';
 import { AuditService } from '../audit/audit.service';
 import { maybe_encrypt_api_key, decrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { DomainError } from '../common/domain-error';
 import { UnitOfWork } from '../database/unit-of-work';
 import { StorageService } from '../storage/storage.service';
 import { MemoriesAccessService } from './memories-access.service';
@@ -15,6 +16,7 @@ import {
   sortAssetsByTakenAtDesc,
   type Selection,
 } from './memories.helpers';
+import { openPhotoOriginal } from './photo-original';
 import { Injectable } from '@nestjs/common';
 import { PROVIDER_SELECT_ALL_MAX_PAGES } from '@trek/shared';
 
@@ -514,6 +516,17 @@ export class ImmichService {
    * Every other exit goes through `pipeAsset`, which writes on all paths
    * including its catch, so the method is `void` all the way down now.
    */
+  async openOriginal(owner: number, assetId: string) {
+    if (!this.isValidAssetId(assetId)) throw new DomainError(422, 'Invalid photo identity');
+    const creds = await this.getImmichCredentials(owner);
+    if (!creds) throw new DomainError(404, 'Photo connection unavailable');
+    return openPhotoOriginal(
+      `${creds.immich_url}/api/assets/${encodeURIComponent(assetId)}/original`,
+      { headers: { 'x-api-key': creds.immich_api_key } },
+      tlsOptions(creds.allow_insecure_tls),
+    );
+  }
+
   async streamImmichAsset(
     response: Response,
     userId: number,

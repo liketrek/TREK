@@ -88,7 +88,7 @@ describeLegacyUpgrade(
       const line = logged.find((entry) => entry.startsWith('[DB] Copy of the database before migrating: '));
       expect(line).toBeDefined();
       const snapshot = line!.slice('[DB] Copy of the database before migrating: '.length);
-      expect(path.dirname(snapshot)).toBe(path.dirname(legacyDb.name));
+      expect(fs.realpathSync(path.dirname(snapshot))).toBe(fs.realpathSync(path.dirname(legacyDb.name)));
       expect(path.basename(snapshot)).toMatch(/^pre-migrate-legacy-244-\d{8}T\d{6}Z\.db$/);
       expect(fs.existsSync(snapshot)).toBe(true);
 

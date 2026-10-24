@@ -1,6 +1,12 @@
 import type { TranslationStrings } from '../types';
 
 const oauth: TranslationStrings = {
+  'oauth.scope.transfer:read.label': 'Reiseübertragungen lesen',
+  'oauth.scope.transfer:read.description': 'Unterstützte Reisedaten und Originaldateien lesen.',
+  'oauth.scope.transfer:write.label': 'Reiseübertragungen anwenden',
+  'oauth.scope.transfer:write.description':
+    'Geprüfte Reisedaten und Originaldateien ohne Benachrichtigungen übernehmen.',
+
   'oauth.scope.group.trips': 'Reisen',
   'oauth.scope.group.places': 'Orte',
   'oauth.scope.group.collections': 'Sammlungen',

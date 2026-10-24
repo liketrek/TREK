@@ -1245,4 +1245,19 @@ describe('self-signed certificates', () => {
 
     expect((safeFetch.mock.calls[0][1] as { signal?: AbortSignal }).signal).toBeInstanceOf(AbortSignal);
   });
+  it('downloads actual originals, including videos, without thumbnail or playback endpoints', async () => {
+    await seedUser(USER, 'https://photos.test', 'original-key');
+    safeFetch.mockResolvedValue(new Response('original-video', { headers: { 'content-type': 'video/quicktime' } }));
+    const result = await svc.openOriginal(USER, 'asset-1');
+    const chunks = [];
+    for await (const chunk of result.stream) chunks.push(chunk);
+    expect(Buffer.concat(chunks).toString()).toBe('original-video');
+    expect(safeFetch.mock.calls.at(-1)?.[0]).toBe('https://photos.test/api/assets/asset-1/original');
+    await expect(svc.openOriginal(USER, '../secret')).rejects.toThrow('Invalid photo');
+  });
+  it('refuses JSON errors masquerading as successful original responses', async () => {
+    await seedUser(USER, 'https://photos.test', 'original-key');
+    safeFetch.mockResolvedValue(new Response('{}', { headers: { 'content-type': 'application/json' } }));
+    await expect(svc.openOriginal(USER, 'asset-1')).rejects.toThrow('did not supply an original');
+  });
 });

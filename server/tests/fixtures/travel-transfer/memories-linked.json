@@ -1,0 +1,456 @@
+{
+  "graph": {
+    "complete": true,
+    "format": "travel-transfer/1",
+    "originals": [
+      {
+        "id": "native:90fbea234296688bbf21defe70c99f81eb0479085ac55bf4e06bde3cffd3e2c8",
+        "record": "trek:trek_photos:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4",
+        "sha256": "bb96a4d813d4249b9f230c1429af69dfd49171e66c0bf254098d22a33dda7ef6",
+        "size": 48
+      }
+    ],
+    "records": [
+      {
+        "fields": {
+          "balances": {},
+          "currency": null,
+          "exponent": null,
+          "incomplete_expense_ids": [],
+          "participant_finals": [],
+          "shared_total_minor": "0",
+          "suggestions": [],
+          "unconverted_expense_ids": [],
+          "unconverted_settlement_ids": []
+        },
+        "id": "cost_ledger:root",
+        "kind": "cost_ledger",
+        "references": {},
+        "source": {
+          "fields": {
+            "balances": "empty",
+            "currency": "empty",
+            "exponent": "empty",
+            "incomplete_expense_ids": "empty",
+            "participant_finals": "empty",
+            "shared_total_minor": "present",
+            "suggestions": "empty",
+            "unconverted_expense_ids": "empty",
+            "unconverted_settlement_ids": "empty"
+          },
+          "schema": "memories-trip-plan/1"
+        },
+        "visibility": "trip"
+      },
+      {
+        "fields": {
+          "currency": "EUR",
+          "exponent": 2
+        },
+        "id": "cost_settings:root",
+        "kind": "cost_settings",
+        "references": {},
+        "source": {
+          "fields": {
+            "currency": "present",
+            "exponent": "present"
+          },
+          "provider": "trek"
+        },
+        "visibility": "trip"
+      },
+      {
+        "fields": {},
+        "id": "day_plan:root",
+        "kind": "day_plan",
+        "references": {},
+        "source": {
+          "fields": {},
+          "schema": "memories-trip-plan/1"
+        },
+        "visibility": "trip"
+      },
+      {
+        "fields": {
+          "audience": "private",
+          "balances": {},
+          "currency": null,
+          "exponent": null,
+          "incomplete_expense_ids": [],
+          "participant_finals": [],
+          "personal_total_minor": "0",
+          "personal_unconverted_expense_ids": [],
+          "shared_total_minor": "0",
+          "suggestions": [],
+          "unconverted_expense_ids": [],
+          "unconverted_settlement_ids": []
+        },
+        "id": "private_cost_ledger:root",
+        "kind": "private_cost_ledger",
+        "references": {},
+        "source": {
+          "fields": {
+            "audience": "present",
+            "balances": "empty",
+            "currency": "empty",
+            "exponent": "empty",
+            "incomplete_expense_ids": "empty",
+            "participant_finals": "empty",
+            "personal_total_minor": "present",
+            "personal_unconverted_expense_ids": "empty",
+            "shared_total_minor": "present",
+            "suggestions": "empty",
+            "unconverted_expense_ids": "empty",
+            "unconverted_settlement_ids": "empty"
+          },
+          "schema": "memories-trip-plan/1"
+        },
+        "visibility": "private"
+      },
+      {
+        "fields": {
+          "audience": "private",
+          "days": {}
+        },
+        "id": "private_day_plan:root",
+        "kind": "private_day_plan",
+        "references": {},
+        "source": {
+          "fields": {
+            "audience": "present",
+            "days": "empty"
+          },
+          "schema": "memories-trip-plan/1"
+        },
+        "visibility": "private"
+      },
+      {
+        "fields": {
+          "country_code": null,
+          "created_at": 1,
+          "dismissed": 0,
+          "entry_date": "2026-10-23",
+          "entry_time": null,
+          "is_draft": 0,
+          "location_lat": null,
+          "location_lng": null,
+          "location_name": null,
+          "mood": null,
+          "pros_cons": null,
+          "sort_order": 0,
+          "source_assignment_id": null,
+          "source_place_id": null,
+          "source_trip_id": null,
+          "stats_excluded": 0,
+          "story": "Synthetic original writing",
+          "tags": null,
+          "title": "A remembered day",
+          "trek_author_id": {
+            "id": "1",
+            "name": "testuser15"
+          },
+          "type": "entry",
+          "updated_at": 2,
+          "visibility": "shared",
+          "weather": null
+        },
+        "id": "trek:journey_entries:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4",
+        "kind": "source:journal_entries",
+        "references": {
+          "journey_id": "trek:journeys:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4"
+        },
+        "source": {
+          "fields": {
+            "country_code": "present",
+            "created_at": "present",
+            "dismissed": "present",
+            "entry_date": "present",
+            "entry_time": "present",
+            "is_draft": "present",
+            "location_lat": "present",
+            "location_lng": "present",
+            "location_name": "present",
+            "mood": "present",
+            "pros_cons": "present",
+            "sort_order": "present",
+            "source_assignment_id": "present",
+            "source_place_id": "present",
+            "source_trip_id": "present",
+            "stats_excluded": "present",
+            "story": "present",
+            "tags": "present",
+            "title": "present",
+            "trek_author_id": "present",
+            "type": "present",
+            "updated_at": "present",
+            "visibility": "present",
+            "weather": "present"
+          },
+          "native_identity": {
+            "key": {
+              "id": 1
+            },
+            "table": "journey_entries"
+          },
+          "provider": "trek"
+        },
+        "visibility": "private"
+      },
+      {
+        "fields": {
+          "created_at": 1,
+          "sort_order": 0
+        },
+        "id": "trek:journey_entry_photos:f9005f3e243500613ac9d2e6f1fd9012f0fc423e973191308f9cd1ee1f514ea8",
+        "kind": "source:entry_photo_links",
+        "references": {
+          "entry_id": "trek:journey_entries:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4",
+          "journey_photo_id": "trek:journey_photos:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4"
+        },
+        "source": {
+          "fields": {
+            "created_at": "present",
+            "sort_order": "present"
+          },
+          "native_identity": {
+            "key": {
+              "entry_id": 1,
+              "journey_photo_id": 1
+            },
+            "table": "journey_entry_photos"
+          },
+          "provider": "trek"
+        },
+        "visibility": "private"
+      },
+      {
+        "fields": {
+          "asset_id": null,
+          "caption": "Original video",
+          "created_at": 1,
+          "provider": null,
+          "shared": 1,
+          "sort_order": 0,
+          "trek_owner_id": {
+            "id": "1",
+            "name": "testuser15"
+          }
+        },
+        "id": "trek:journey_photos:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4",
+        "kind": "source:journey_photo_links",
+        "references": {
+          "journey_id": "trek:journeys:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4",
+          "photo_id": "trek:trek_photos:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4"
+        },
+        "source": {
+          "fields": {
+            "asset_id": "present",
+            "caption": "present",
+            "created_at": "present",
+            "provider": "present",
+            "shared": "present",
+            "sort_order": "present",
+            "trek_owner_id": "present"
+          },
+          "native_identity": {
+            "key": {
+              "id": 1
+            },
+            "table": "journey_photos"
+          },
+          "provider": "trek"
+        },
+        "visibility": "private"
+      },
+      {
+        "fields": {
+          "added_at": 1,
+          "journey_id": 1
+        },
+        "id": "trek:journey_trips:8e216f673dbdc5bec5626c2e298f72ffc44ac9265477135df7eb42cbb2402cd8",
+        "kind": "source:journey_links",
+        "references": {},
+        "source": {
+          "fields": {
+            "added_at": "present",
+            "journey_id": "present"
+          },
+          "native_identity": {
+            "key": {
+              "journey_id": 1,
+              "trip_id": 1
+            },
+            "table": "journey_trips"
+          },
+          "provider": "trek"
+        },
+        "visibility": "private"
+      },
+      {
+        "fields": {
+          "cover_gradient": null,
+          "created_at": 1,
+          "photo_location": 0,
+          "show_mood": 1,
+          "show_trip_tracks": 0,
+          "show_verdict": 1,
+          "show_weather": 1,
+          "status": "draft",
+          "status_override": null,
+          "subtitle": null,
+          "title": "Synthetic journey",
+          "trek_user_id": {
+            "id": "1",
+            "name": "testuser15"
+          },
+          "updated_at": 2
+        },
+        "id": "trek:journeys:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4",
+        "kind": "source:journeys",
+        "references": {},
+        "source": {
+          "fields": {
+            "cover_gradient": "present",
+            "created_at": "present",
+            "photo_location": "present",
+            "show_mood": "present",
+            "show_trip_tracks": "present",
+            "show_verdict": "present",
+            "show_weather": "present",
+            "status": "present",
+            "status_override": "present",
+            "subtitle": "present",
+            "title": "present",
+            "trek_user_id": "present",
+            "updated_at": "present"
+          },
+          "native_identity": {
+            "key": {
+              "id": 1
+            },
+            "table": "journeys"
+          },
+          "provider": "trek"
+        },
+        "visibility": "private"
+      },
+      {
+        "fields": {
+          "asset_id": "source-asset",
+          "created_at": "2026-10-23 12:21:51",
+          "duration_ms": null,
+          "height": null,
+          "lat": null,
+          "lng": null,
+          "media_type": "video",
+          "provider": "immich",
+          "taken_at": null,
+          "trek_owner_id": {
+            "id": "1",
+            "name": "testuser15"
+          },
+          "width": null
+        },
+        "id": "trek:trek_photos:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4",
+        "kind": "source:photos",
+        "references": {},
+        "source": {
+          "fields": {
+            "asset_id": "present",
+            "created_at": "present",
+            "duration_ms": "present",
+            "height": "present",
+            "lat": "present",
+            "lng": "present",
+            "media_type": "present",
+            "provider": "present",
+            "taken_at": "present",
+            "trek_owner_id": "present",
+            "width": "present"
+          },
+          "native_identity": {
+            "key": {
+              "id": 1
+            },
+            "table": "trek_photos"
+          },
+          "provider": "trek"
+        },
+        "visibility": "trip"
+      },
+      {
+        "fields": {
+          "added_at": "2026-10-23 12:21:51",
+          "shared": 1,
+          "trek_user_id": {
+            "id": "1",
+            "name": "testuser15"
+          }
+        },
+        "id": "trek:trip_photos:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4",
+        "kind": "source:trip_photo_links",
+        "references": {
+          "album_link_id": null,
+          "photo_id": "trek:trek_photos:037c9214eef74cc3887f3a4f085b4e17d76280dafd273b0ee160c09c4ba1cfd4"
+        },
+        "source": {
+          "fields": {
+            "added_at": "present",
+            "shared": "present",
+            "trek_user_id": "present"
+          },
+          "native_identity": {
+            "key": {
+              "id": 1
+            },
+            "table": "trip_photos"
+          },
+          "provider": "trek"
+        },
+        "visibility": "trip"
+      },
+      {
+        "fields": {
+          "currency": "EUR",
+          "end_date": null,
+          "notes": "",
+          "start_date": null,
+          "status": "planning",
+          "tentative": false,
+          "timezone": "UTC",
+          "title": "Linked synthetic trip",
+          "trek_archived": false,
+          "trek_created_at": "2026-10-23 12:21:51",
+          "trek_owner_id": "1",
+          "trek_updated_at": "2026-10-23 12:21:51"
+        },
+        "id": "trip",
+        "kind": "trip",
+        "references": {},
+        "source": {
+          "fields": {
+            "currency": "present",
+            "end_date": "present",
+            "notes": "present",
+            "start_date": "present",
+            "status": "present",
+            "tentative": "present",
+            "timezone": "present",
+            "title": "present",
+            "trek_archived": "present",
+            "trek_created_at": "present",
+            "trek_owner_id": "present",
+            "trek_updated_at": "present"
+          },
+          "schema": "memories-trip-plan/1"
+        },
+        "visibility": "trip"
+      }
+    ],
+    "revision": "a1e805a229f4b16711dccf93f8ef5dbb6d9034a9eb9437ee87990be1194a82a7",
+    "trip": "7ed02a19-26b8-4235-80cb-f6d13265c4b2"
+  },
+  "originals": {
+    "native:90fbea234296688bbf21defe70c99f81eb0479085ac55bf4e06bde3cffd3e2c8": "b3JpZ2luYWwgbW92aWUgYnl0ZXMA4oCUbm90IGEgcGxheWJhY2sgcmVuZGl0aW9u"
+  }
+}

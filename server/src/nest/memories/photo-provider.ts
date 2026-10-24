@@ -1,6 +1,7 @@
 import type { AssetInfo, ServiceResult } from './memories.helpers';
 
 import type { Response } from 'express';
+import type { Readable } from 'node:stream';
 
 /** What a caller can ask a provider for. */
 export type PhotoAssetKind = 'thumbnail' | 'original';
@@ -59,6 +60,9 @@ export interface PhotoProvider {
    * untouched, which hung the request in every one of its four callers.
    */
   streamAsset(res: Response, ref: PhotoAssetRef, kind: PhotoAssetKind): Promise<void>;
+
+  /** Optional for third-party adapters: absence refuses original transfer, never falls back to a preview. */
+  openOriginal?(ref: PhotoAssetRef): Promise<{ stream: Readable; contentType: string; sourceStamp: string }>;
 
   /** Thumbnail bytes for the cache, rather than straight to a response. */
   fetchThumbnailBytes(ref: PhotoAssetRef): Promise<PhotoBytes | PhotoFetchError>;
