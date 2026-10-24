@@ -69,7 +69,7 @@ export default function JourneyShareSection({ journeyId }: { journeyId: number }
             <span className="flex-1 text-caption text-content-muted truncate">{shareUrl}</span>
             <button type="button"
               onClick={copyLink}
-              className="flex-shrink-0 px-3 py-1.5 rounded-full bg-accent text-accent-on text-caption font-semibold hover:bg-accent-hover transition-colors"
+              className="flex-shrink-0 px-3 py-1.5 rounded-full bg-accent text-accent-text text-caption font-semibold hover:bg-accent-hover transition-colors"
             >
               {copied ? t('journey.share.copied') : t('journey.share.copy')}
             </button>
@@ -94,7 +94,7 @@ export default function JourneyShareSection({ journeyId }: { journeyId: number }
                 onClick={() => togglePerm(key)}
                 className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border text-body font-medium transition-all ${
                   link[key]
-                    ? 'border-accent bg-accent text-accent-on'
+                    ? 'border-accent bg-accent text-accent-text'
                     : 'border-edge text-content-muted hover:border-content-faint'
                 }`}
               >

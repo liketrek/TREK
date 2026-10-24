@@ -1,4 +1,4 @@
-// FE-JRN-SHARE-001 to FE-JRN-SHARE-014
+// FE-JRN-SHARE-001 to FE-JRN-SHARE-015
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { http, HttpResponse, delay } from 'msw'
@@ -244,5 +244,16 @@ describe('JourneyShareSection', () => {
     expect(plan).toBeDisabled()
     expect(plan).toHaveAttribute('aria-pressed', 'false')
     expect(screen.getByRole('button', { name: /Recorded routes/ })).toBeDisabled()
+  })
+
+  it('FE-JRN-SHARE-015: a filled accent button sets its words in the colour made for it, not in the accent itself', async () => {
+    server.use(http.get('/api/journeys/7/share-link', () => HttpResponse.json({ link: existingLink() })))
+    render(<JourneyShareSection journeyId={JOURNEY_ID} />)
+
+    const filled = [await screen.findByRole('button', { name: 'Timeline' }), screen.getByRole('button', { name: 'Copy' })]
+    for (const button of filled) {
+      expect(button.className).toContain('text-accent-text')
+      expect(button.className).not.toContain('text-accent-on')
+    }
   })
 })
