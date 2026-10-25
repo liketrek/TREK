@@ -33,7 +33,7 @@
   },
   "devDependencies": {
     "concurrently": "^10.0.6",
-    "knip": "^6.38.0",
+    "knip": "^6.42.1",
     "unrun": "^0.3.1"
   },
   "comment:scarfSettings": "swagger-ui-dist ships @scarf/scarf install-time analytics; TREK sends no telemetry, so it stays off.",
@@ -64,9 +64,9 @@
   },
   "comment:optionalDependencies": "The lockfile is generated on glibc, so the musl builds the Alpine image needs never land in it on their own. Keep the @img/* pins on the same version as client's sharp — a mismatch nests the binary away from libvips and the image build dies in generate-icons.",
   "optionalDependencies": {
-    "@img/sharp-linuxmusl-arm64": "0.35.4",
-    "@img/sharp-linuxmusl-x64": "0.35.4",
-    "@rollup/rollup-linux-arm64-musl": "4.62.0",
-    "@rollup/rollup-linux-x64-musl": "4.62.0"
+    "@img/sharp-linuxmusl-arm64": "0.35.5",
+    "@img/sharp-linuxmusl-x64": "0.35.5",
+    "@rollup/rollup-linux-arm64-musl": "4.65.0",
+    "@rollup/rollup-linux-x64-musl": "4.65.0"
   }
 }
