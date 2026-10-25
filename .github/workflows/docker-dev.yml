@@ -164,7 +164,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download build digests
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           path: /tmp/digests
           pattern: digests-*

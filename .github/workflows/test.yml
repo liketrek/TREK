@@ -873,7 +873,7 @@ jobs:
         run: npm ci
 
       - name: Download the blob reports
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           pattern: server-blob-*
           path: server/.vitest-reports/
@@ -957,7 +957,7 @@ jobs:
         run: npm ci --workspace shared --workspace client
 
       - name: Download the blob reports
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           pattern: client-blob-*
           path: client/.vitest-reports/
@@ -1076,25 +1076,25 @@ jobs:
           fetch-depth: 0
 
       - name: Download server coverage
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: sonar-server-coverage
           path: server/coverage/
 
       - name: Download client coverage
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: sonar-client-coverage
           path: client/coverage/
 
       - name: Download shared coverage
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: sonar-shared-coverage
           path: shared/coverage/
 
       - name: Download plugin-sdk coverage
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: sonar-plugin-sdk-coverage
           path: plugin-sdk/coverage/
