@@ -79,7 +79,7 @@
     "@types/semver": "^7.8.0",
     "@types/update-notifier": "^6.0.8",
     "@vitest/coverage-v8": "^4.1.11",
-    "typescript": "^5.9.3",
+    "typescript": "^7.0.2",
     "vitest": "^4.1.11"
   },
   "keywords": [
