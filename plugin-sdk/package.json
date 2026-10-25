@@ -78,7 +78,7 @@
     "@types/node": "^22.20.4",
     "@types/semver": "^7.8.0",
     "@types/update-notifier": "^6.0.8",
-    "@vitest/coverage-v8": "^4.1.11",
+    "@vitest/coverage-v8": "^5.0.5",
     "typescript": "^5.9.3",
     "vitest": "^4.1.11"
   },
