@@ -648,7 +648,7 @@ jobs:
 
       - name: Upload traces
         if: failure()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-results
           path: client/test-results/
@@ -793,7 +793,7 @@ jobs:
 
       - name: Upload the measured baseline and the report
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: pg-probe-baseline
           path: |
@@ -847,7 +847,7 @@ jobs:
           --reporter=default --reporter=github-actions --reporter=blob
 
       - name: Upload the blob report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: server-blob-${{ matrix.shard }}
           path: server/.vitest-reports/
@@ -887,7 +887,7 @@ jobs:
         run: cd server && npx vitest run --merge-reports --coverage
 
       - name: Upload coverage
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: sonar-server-coverage
           path: server/coverage/
@@ -931,7 +931,7 @@ jobs:
           --reporter=default --reporter=github-actions --reporter=blob
 
       - name: Upload the blob report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: client-blob-${{ matrix.shard }}
           path: client/.vitest-reports/
@@ -971,7 +971,7 @@ jobs:
         run: cd client && npx vitest run --merge-reports --coverage
 
       - name: Upload coverage
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: sonar-client-coverage
           path: client/coverage/
@@ -999,7 +999,7 @@ jobs:
         run: cd shared && npm run test:coverage
 
       - name: Upload coverage
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: sonar-shared-coverage
           path: shared/coverage/
@@ -1038,7 +1038,7 @@ jobs:
         run: npm run test:coverage
 
       - name: Upload coverage
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: sonar-plugin-sdk-coverage
           path: plugin-sdk/coverage/
