@@ -75,7 +75,7 @@
     "prepublishOnly": "npm run build && npm test"
   },
   "devDependencies": {
-    "@types/node": "^22.20.4",
+    "@types/node": "^26.6.5",
     "@types/semver": "^7.8.0",
     "@types/update-notifier": "^6.0.8",
     "@vitest/coverage-v8": "^4.1.11",
