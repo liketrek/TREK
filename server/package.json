@@ -144,7 +144,7 @@
     "prettier-plugin-organize-imports": "^4.3.0",
     "supertest": "^7.2.2",
     "typescript-eslint": "^8.70.0",
-    "unplugin-swc": "^1.6.0",
+    "unplugin-swc": "^2.0.0",
     "vitest": "^4.1.11"
   }
 }
