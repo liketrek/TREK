@@ -80,7 +80,7 @@
     "@fontsource/satisfy": "^5.3.0",
     "@fontsource/shrikhand": "^5.3.0",
     "@fontsource/yellowtail": "^5.3.0",
-    "@mapbox/mapbox-gl-rtl-text": "^0.4.0",
+    "@mapbox/mapbox-gl-rtl-text": "^1.0.0",
     "@maplibre/maplibre-gl-leaflet": "0.1.4",
     "@simplewebauthn/browser": "^13.3.0",
     "@trek/shared": "*",
