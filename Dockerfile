@@ -2,7 +2,7 @@
 # Rebuild gosu with a current Go toolchain so the runtime image ships no stale
 # Go stdlib (Debian's apt gosu is built with an old Go that trips CVE scanners).
 # The binary and its runtime behaviour are identical to the apt package.
-FROM golang:1.26-alpine AS gosu-build
+FROM golang:1.27-alpine AS gosu-build
 # Pinned to the commit of gosu's 1.19 tag: @latest made every build pick up whatever
 # was pushed last, and the tag itself is not a semver version go install accepts.
 RUN CGO_ENABLED=0 GOBIN=/out go install github.com/tianon/gosu@6456aaa0f3c854d199d0f037f068eb97515b7513
