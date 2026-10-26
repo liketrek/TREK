@@ -111,11 +111,11 @@
     "eslint": "^10.11.0",
     "eslint-config-flat-gitignore": "^2.4.0",
     "eslint-config-prettier": "^10.1.8",
-    "prettier": "3.9.8",
+    "prettier": "3.9.10",
     "prettier-plugin-organize-imports": "^4.3.0",
-    "tsdown": "^0.23.0",
+    "tsdown": "^0.23.2",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.70.0",
+    "typescript-eslint": "^8.72.0",
     "vitest": "^4.1.11"
   }
 }
