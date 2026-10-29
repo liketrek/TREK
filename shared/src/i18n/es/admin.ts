@@ -139,6 +139,10 @@ const admin: TranslationStrings = {
   'admin.trekApi.quota.hint.revoked':
     'La clave de esta instalación ha sido revocada. Las búsquedas usan el fondo compartido hasta que crees una nueva identidad.',
   'admin.trekApi.quota.unavailable': 'No se puede leer el cupo en este momento.',
+  'admin.trekApi.quota.service.places': 'Búsqueda de lugares',
+  'admin.trekApi.quota.service.photon': 'Búsqueda de direcciones',
+  'admin.trekApi.quota.service.valhalla': 'Rutas',
+  'admin.trekApi.quota.notInUse': 'No se usa en esta instancia',
   'admin.trekApi.quota.envKey': 'La clave viene de TREK_SERVICES_KEY.',
   'admin.trekApi.quota.regenerate': 'Nueva identidad',
   'admin.trekApi.quota.regenerateTitle': '¿Crear una nueva identidad?',

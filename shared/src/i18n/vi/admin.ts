@@ -186,6 +186,10 @@ const admin: TranslationStrings = {
   'admin.trekApi.quota.hint.revoked':
     'Khóa của bản cài đặt này đã bị thu hồi. Các lượt tìm kiếm dùng nhóm dùng chung cho đến khi bạn tạo danh tính mới.',
   'admin.trekApi.quota.unavailable': 'Hiện không thể đọc hạn mức.',
+  'admin.trekApi.quota.service.places': 'Tìm kiếm địa điểm',
+  'admin.trekApi.quota.service.photon': 'Tìm kiếm địa chỉ',
+  'admin.trekApi.quota.service.valhalla': 'Định tuyến',
+  'admin.trekApi.quota.notInUse': 'Không dùng trên phiên bản này',
   'admin.trekApi.quota.envKey': 'Khóa được lấy từ TREK_SERVICES_KEY.',
   'admin.trekApi.quota.regenerate': 'Danh tính mới',
   'admin.trekApi.quota.regenerateTitle': 'Tạo danh tính mới?',

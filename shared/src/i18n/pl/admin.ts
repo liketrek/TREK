@@ -137,6 +137,10 @@ const admin: TranslationStrings = {
   'admin.trekApi.quota.hint.revoked':
     'Klucz tej instalacji został unieważniony. Wyszukiwania idą przez wspólną pulę, dopóki nie utworzysz nowej tożsamości.',
   'admin.trekApi.quota.unavailable': 'Nie można teraz odczytać limitu.',
+  'admin.trekApi.quota.service.places': 'Wyszukiwanie miejsc',
+  'admin.trekApi.quota.service.photon': 'Wyszukiwanie adresów',
+  'admin.trekApi.quota.service.valhalla': 'Wyznaczanie tras',
+  'admin.trekApi.quota.notInUse': 'Nieużywane w tej instancji',
   'admin.trekApi.quota.envKey': 'Klucz pochodzi z TREK_SERVICES_KEY.',
   'admin.trekApi.quota.regenerate': 'Nowa tożsamość',
   'admin.trekApi.quota.regenerateTitle': 'Utworzyć nową tożsamość?',

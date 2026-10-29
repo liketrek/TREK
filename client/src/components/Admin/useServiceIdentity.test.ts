@@ -17,7 +17,7 @@ const LEGACY: ServiceIdentityStatus = {
   state: 'legacy',
   tier: 'legacy',
   keySource: null,
-  quota: null,
+  services: [],
   lastSeenAt: null,
 };
 const card = { current: null };

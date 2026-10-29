@@ -194,6 +194,10 @@ const admin: TranslationStrings = {
   'admin.trekApi.quota.hint.revoked':
     'Bu quraşdırmanın açarı ləğv edilib. Yeni identiklik yaradana qədər axtarışlar ümumi hovuz vasitəsilə gedir.',
   'admin.trekApi.quota.unavailable': 'Limiti hazırda oxumaq mümkün deyil.',
+  'admin.trekApi.quota.service.places': 'Məkan axtarışı',
+  'admin.trekApi.quota.service.photon': 'Ünvan axtarışı',
+  'admin.trekApi.quota.service.valhalla': 'Marşrutlaşdırma',
+  'admin.trekApi.quota.notInUse': 'Bu instansiyada istifadə olunmur',
   'admin.trekApi.quota.envKey': 'Açar TREK_SERVICES_KEY dəyişənindən gəlir.',
   'admin.trekApi.quota.regenerate': 'Yeni identiklik',
   'admin.trekApi.quota.regenerateTitle': 'Yeni identiklik yaradılsın?',

@@ -90,7 +90,11 @@ describe('observe', () => {
         'X-TREK-Quota-Reset': '1793059200',
       }),
     );
-    expect(t.get(QuotaTracker).latest()).toMatchObject({ tier: 'std', quota: { limit: 10_000, used: 1_000 } });
+    expect(t.get(QuotaTracker).latest('places.liketrek.com')).toMatchObject({
+      tier: 'std',
+      quota: { limit: 10_000, used: 1_000 },
+    });
+    expect(t.get(QuotaTracker).latest('valhalla.liketrek.com')).toBeNull();
     expect(t.get(ServiceClock).nowSeconds()).toBeGreaterThan(Math.floor(Date.now() / 1000) + 100);
     expect(keys.noteAccepted).toHaveBeenCalledTimes(1);
   });
@@ -107,10 +111,11 @@ describe('observe', () => {
   });
 
   it('SIREQ-013: learns nothing from a host that is not allowlisted', () => {
-    const before = t.get(QuotaTracker).latest();
+    const before = t.get(QuotaTracker).newest();
     identity.observe(new URL('https://mirror.example.org/v1/search'), answer(401, '{}', { 'X-TREK-Tier': 'own' }));
     expect(keys.noteInvalid).not.toHaveBeenCalled();
-    expect(t.get(QuotaTracker).latest()).toBe(before);
+    expect(t.get(QuotaTracker).newest()).toBe(before);
+    expect(t.get(QuotaTracker).latest('mirror.example.org')).toBeNull();
   });
 });
 

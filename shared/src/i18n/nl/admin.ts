@@ -139,6 +139,10 @@ const admin: TranslationStrings = {
   'admin.trekApi.quota.hint.revoked':
     'De sleutel van deze installatie is ingetrokken. Zoekopdrachten gaan via de gedeelde pot tot je een nieuwe identiteit aanmaakt.',
   'admin.trekApi.quota.unavailable': 'Het tegoed kan nu niet worden gelezen.',
+  'admin.trekApi.quota.service.places': 'Plaatsen zoeken',
+  'admin.trekApi.quota.service.photon': 'Adressen zoeken',
+  'admin.trekApi.quota.service.valhalla': 'Routeplanning',
+  'admin.trekApi.quota.notInUse': 'Niet in gebruik op deze instantie',
   'admin.trekApi.quota.envKey': 'De sleutel komt uit TREK_SERVICES_KEY.',
   'admin.trekApi.quota.regenerate': 'Nieuwe identiteit',
   'admin.trekApi.quota.regenerateTitle': 'Nieuwe identiteit aanmaken?',

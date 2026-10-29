@@ -179,6 +179,10 @@ const admin: TranslationStrings = {
   'admin.trekApi.quota.hint.revoked':
     'أُلغي مفتاح هذا التثبيت. تمر عمليات البحث عبر الحصة المشتركة حتى تنشئ هوية جديدة.',
   'admin.trekApi.quota.unavailable': 'تعذّر قراءة الحصة الآن.',
+  'admin.trekApi.quota.service.places': 'البحث عن الأماكن',
+  'admin.trekApi.quota.service.photon': 'البحث عن العناوين',
+  'admin.trekApi.quota.service.valhalla': 'التوجيه',
+  'admin.trekApi.quota.notInUse': 'غير مستخدمة على هذا الخادم',
   'admin.trekApi.quota.envKey': 'المفتاح مأخوذ من TREK_SERVICES_KEY.',
   'admin.trekApi.quota.regenerate': 'هوية جديدة',
   'admin.trekApi.quota.regenerateTitle': 'إنشاء هوية جديدة؟',

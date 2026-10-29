@@ -186,6 +186,10 @@ const admin: TranslationStrings = {
   'admin.trekApi.quota.hint.revoked':
     'Kunci instalasi ini telah dicabut. Pencarian memakai kumpulan bersama sampai kamu membuat identitas baru.',
   'admin.trekApi.quota.unavailable': 'Kuota tidak dapat dibaca saat ini.',
+  'admin.trekApi.quota.service.places': 'Pencarian tempat',
+  'admin.trekApi.quota.service.photon': 'Pencarian alamat',
+  'admin.trekApi.quota.service.valhalla': 'Perutean',
+  'admin.trekApi.quota.notInUse': 'Tidak digunakan di instans ini',
   'admin.trekApi.quota.envKey': 'Kunci berasal dari TREK_SERVICES_KEY.',
   'admin.trekApi.quota.regenerate': 'Identitas baru',
   'admin.trekApi.quota.regenerateTitle': 'Buat identitas baru?',

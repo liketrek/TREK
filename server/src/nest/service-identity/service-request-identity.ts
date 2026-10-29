@@ -38,7 +38,7 @@ export class ServiceRequestIdentity extends ServiceIdentityPort {
   observe(url: URL, response: Response): void {
     if (!isAllowlisted(url, this.config.hosts)) return;
     this.clock.learn(serverDateMs(response.headers));
-    this.tracker.record(readQuotaHeaders(response.headers));
+    this.tracker.record(url.hostname.toLowerCase(), readQuotaHeaders(response.headers));
     if (response.ok) this.keys.noteAccepted();
     else if (response.status === 401) this.keys.noteInvalid();
     else if (response.status === 403) void this.checkRevocation(response.clone());

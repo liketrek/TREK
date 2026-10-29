@@ -195,6 +195,10 @@ const admin: TranslationStrings = {
   'admin.trekApi.quota.hint.revoked':
     'Το κλειδί αυτής της εγκατάστασης ανακλήθηκε. Οι αναζητήσεις περνούν από την κοινή δεξαμενή μέχρι να δημιουργήσετε νέα ταυτότητα.',
   'admin.trekApi.quota.unavailable': 'Το όριο δεν μπορεί να διαβαστεί αυτή τη στιγμή.',
+  'admin.trekApi.quota.service.places': 'Αναζήτηση τοποθεσιών',
+  'admin.trekApi.quota.service.photon': 'Αναζήτηση διευθύνσεων',
+  'admin.trekApi.quota.service.valhalla': 'Δρομολόγηση',
+  'admin.trekApi.quota.notInUse': 'Δεν χρησιμοποιείται σε αυτή την εγκατάσταση',
   'admin.trekApi.quota.envKey': 'Το κλειδί προέρχεται από το TREK_SERVICES_KEY.',
   'admin.trekApi.quota.regenerate': 'Νέα ταυτότητα',
   'admin.trekApi.quota.regenerateTitle': 'Δημιουργία νέας ταυτότητας;',

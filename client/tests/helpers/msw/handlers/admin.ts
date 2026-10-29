@@ -164,6 +164,6 @@ export const adminHandlers = [
 
   // The TREK API card's allowance panel, read whenever the settings tab renders it.
   http.get('/api/admin/service-identity', () => {
-    return HttpResponse.json({ state: 'legacy', tier: 'legacy', keySource: null, quota: null, lastSeenAt: null });
+    return HttpResponse.json({ state: 'legacy', tier: 'legacy', keySource: null, services: [], lastSeenAt: null });
   }),
 ];

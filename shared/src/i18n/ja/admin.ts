@@ -177,6 +177,10 @@ const admin: TranslationStrings = {
   'admin.trekApi.quota.hint.revoked':
     'このインストールのキーは失効しました。新しい ID を作成するまで、検索は共有枠を使います。',
   'admin.trekApi.quota.unavailable': '現在、上限を読み取れません。',
+  'admin.trekApi.quota.service.places': '場所の検索',
+  'admin.trekApi.quota.service.photon': '住所の検索',
+  'admin.trekApi.quota.service.valhalla': 'ルーティング',
+  'admin.trekApi.quota.notInUse': 'このインスタンスでは使用されていません',
   'admin.trekApi.quota.envKey': 'キーは TREK_SERVICES_KEY から設定されています。',
   'admin.trekApi.quota.regenerate': '新しい ID',
   'admin.trekApi.quota.regenerateTitle': '新しい ID を作成しますか？',

@@ -139,6 +139,10 @@ const admin: TranslationStrings = {
   'admin.trekApi.quota.hint.revoked':
     "La clé de cette installation a été révoquée. Les recherches passent par la réserve partagée jusqu'à ce que vous créiez une nouvelle identité.",
   'admin.trekApi.quota.unavailable': 'Le quota ne peut pas être lu pour le moment.',
+  'admin.trekApi.quota.service.places': 'Recherche de lieux',
+  'admin.trekApi.quota.service.photon': 'Recherche d’adresses',
+  'admin.trekApi.quota.service.valhalla': 'Itinéraires',
+  'admin.trekApi.quota.notInUse': 'Non utilisé sur cette instance',
   'admin.trekApi.quota.envKey': 'La clé provient de TREK_SERVICES_KEY.',
   'admin.trekApi.quota.regenerate': 'Nouvelle identité',
   'admin.trekApi.quota.regenerateTitle': 'Créer une nouvelle identité ?',

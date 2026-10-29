@@ -192,6 +192,10 @@ const admin: TranslationStrings = {
   'admin.trekApi.quota.hint.revoked':
     'Kľúč tejto inštalácie bol zneplatnený. Vyhľadávanie ide cez spoločný fond, kým nevytvoríte novú identitu.',
   'admin.trekApi.quota.unavailable': 'Limit sa teraz nedá načítať.',
+  'admin.trekApi.quota.service.places': 'Vyhľadávanie miest',
+  'admin.trekApi.quota.service.photon': 'Vyhľadávanie adries',
+  'admin.trekApi.quota.service.valhalla': 'Plánovanie trás',
+  'admin.trekApi.quota.notInUse': 'Na tejto inštancii sa nepoužíva',
   'admin.trekApi.quota.envKey': 'Kľúč pochádza z TREK_SERVICES_KEY.',
   'admin.trekApi.quota.regenerate': 'Nová identita',
   'admin.trekApi.quota.regenerateTitle': 'Vytvoriť novú identitu?',

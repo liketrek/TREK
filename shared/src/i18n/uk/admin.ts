@@ -146,6 +146,10 @@ const admin: TranslationStrings = {
   'admin.trekApi.quota.hint.revoked':
     'Ключ цієї інсталяції відкликано. Пошук іде через спільний пул, доки ви не створите нову ідентичність.',
   'admin.trekApi.quota.unavailable': 'Зараз не вдається отримати ліміт.',
+  'admin.trekApi.quota.service.places': 'Пошук місць',
+  'admin.trekApi.quota.service.photon': 'Пошук адрес',
+  'admin.trekApi.quota.service.valhalla': 'Маршрутизація',
+  'admin.trekApi.quota.notInUse': 'Не використовується на цьому екземплярі',
   'admin.trekApi.quota.envKey': 'Ключ задано в TREK_SERVICES_KEY.',
   'admin.trekApi.quota.regenerate': 'Нова ідентичність',
   'admin.trekApi.quota.regenerateTitle': 'Створити нову ідентичність?',

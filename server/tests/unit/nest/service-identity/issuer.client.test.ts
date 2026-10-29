@@ -59,8 +59,17 @@ describe('IssuerClient', () => {
 
     const quota = { tier: 'legacy', limit: 3000, used: 3, remaining: 2997, reset_at: 1_793_059_200, per_minute: 60 };
     safeFetch.mockResolvedValueOnce(json(quota));
-    expect((await issuer.quota(null)).body).toEqual(quota);
+    expect((await issuer.quota('https://places.liketrek.com', null)).body).toEqual(quota);
+    expect(lastCall().url).toBe('https://places.liketrek.com/v1/quota');
     expect(lastCall().init.headers).not.toHaveProperty('Authorization');
+  });
+
+  it('SIISS-006: reads the allowance of another liketrek host at its own /v1/quota', async () => {
+    const quota = { tier: 'std', limit: 20_000, used: 5, remaining: 19_995, reset_at: 1_793_059_200, per_minute: 120 };
+    safeFetch.mockResolvedValueOnce(json(quota));
+    expect((await issuer.quota('https://valhalla.liketrek.com', 'tk1.a.b.c')).body).toEqual(quota);
+    expect(lastCall().url).toBe('https://valhalla.liketrek.com/v1/quota');
+    expect(lastCall().init.headers.Authorization).toBe('Bearer tk1.a.b.c');
   });
 
   it('SIISS-004: turns a refusal into an IssuerError with the wait it asked for', async () => {

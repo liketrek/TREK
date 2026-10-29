@@ -11,7 +11,13 @@ const STATUS: ServiceIdentityStatus = {
   state: 'connected',
   tier: 'std',
   keySource: 'registered',
-  quota: { limit: 10_000, used: 1, remaining: 9_999, resetAt: '2026-10-30T00:00:00.000Z' },
+  services: [
+    {
+      service: 'places',
+      inUse: true,
+      quota: { limit: 10_000, used: 1, remaining: 9_999, resetAt: '2026-10-30T00:00:00.000Z' },
+    },
+  ],
   lastSeenAt: null,
 };
 

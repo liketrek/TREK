@@ -189,6 +189,10 @@ const admin: TranslationStrings = {
   'admin.trekApi.quota.hint.revoked':
     'The key of this installation was revoked. Searches use the shared pool until you create a new identity.',
   'admin.trekApi.quota.unavailable': 'The allowance cannot be read right now.',
+  'admin.trekApi.quota.service.places': 'Place search',
+  'admin.trekApi.quota.service.photon': 'Address search',
+  'admin.trekApi.quota.service.valhalla': 'Routing',
+  'admin.trekApi.quota.notInUse': 'Not in use on this instance',
   'admin.trekApi.quota.envKey': 'The key comes from TREK_SERVICES_KEY.',
   'admin.trekApi.quota.regenerate': 'New identity',
   'admin.trekApi.quota.regenerateTitle': 'Create a new identity?',

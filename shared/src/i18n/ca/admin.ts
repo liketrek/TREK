@@ -144,6 +144,10 @@ const admin: TranslationStrings = {
   'admin.trekApi.quota.hint.revoked':
     "La clau d'aquesta instal·lació s'ha revocat. Les cerques fan servir la reserva compartida fins que creïs una identitat nova.",
   'admin.trekApi.quota.unavailable': 'Ara mateix no es pot llegir la quota.',
+  'admin.trekApi.quota.service.places': 'Cerca de llocs',
+  'admin.trekApi.quota.service.photon': 'Cerca d’adreces',
+  'admin.trekApi.quota.service.valhalla': 'Rutes',
+  'admin.trekApi.quota.notInUse': 'No s’utilitza en aquesta instància',
   'admin.trekApi.quota.envKey': 'La clau ve de TREK_SERVICES_KEY.',
   'admin.trekApi.quota.regenerate': 'Identitat nova',
   'admin.trekApi.quota.regenerateTitle': 'Vols crear una identitat nova?',

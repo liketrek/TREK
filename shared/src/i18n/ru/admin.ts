@@ -147,6 +147,10 @@ const admin: TranslationStrings = {
   'admin.trekApi.quota.hint.revoked':
     'Ключ этой установки отозван. Поиск идёт через общий пул, пока вы не создадите новую идентичность.',
   'admin.trekApi.quota.unavailable': 'Сейчас не удаётся получить лимит.',
+  'admin.trekApi.quota.service.places': 'Поиск мест',
+  'admin.trekApi.quota.service.photon': 'Поиск адресов',
+  'admin.trekApi.quota.service.valhalla': 'Маршрутизация',
+  'admin.trekApi.quota.notInUse': 'Не используется на этом экземпляре',
   'admin.trekApi.quota.envKey': 'Ключ задан в TREK_SERVICES_KEY.',
   'admin.trekApi.quota.regenerate': 'Новая идентичность',
   'admin.trekApi.quota.regenerateTitle': 'Создать новую идентичность?',

@@ -38,18 +38,25 @@ const ADMIN = 2;
 const ENV_KEY = serviceKeyTokenFor({ i: 'from-environment', iat: 1_793_000_000, exp: 4_102_444_800, q: 'own' });
 const STORED_KEY = serviceKeyTokenFor({ i: 'registered-one', iat: 1_793_000_000, exp: 4_102_444_800 });
 const QUOTA = { tier: 'own', limit: 50_000, used: 1_234, remaining: 48_766, reset_at: 1_793_059_200, per_minute: 600 };
+const VIEW = { limit: 50_000, used: 1_234, remaining: 48_766, resetAt: new Date(1_793_059_200_000).toISOString() };
 
 const writeAudit = vi.fn();
 let orm: TestOrm;
 
-type ServicesConfig = { mode: 'auto' | 'off'; key: string | null; hosts: string[] };
+type ServicesConfig = { mode: 'auto' | 'off'; key: string | null; hosts: string[]; valhallaUrl: string };
 
 async function build(config: Partial<ServicesConfig> = {}) {
   const moduleRef = await Test.createTestingModule({
     imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), ServiceIdentityModule],
   })
     .overrideProvider(servicesConfig.KEY)
-    .useValue({ mode: 'auto', key: null, hosts: ['places.liketrek.com'], ...config })
+    .useValue({
+      mode: 'auto',
+      key: null,
+      hosts: ['places.liketrek.com'],
+      valhallaUrl: 'https://valhalla.liketrek.com',
+      ...config,
+    })
     .overrideProvider(AuditService)
     .useValue({ writeAudit })
     .compile();
@@ -61,7 +68,7 @@ async function build(config: Partial<ServicesConfig> = {}) {
   return nest;
 }
 
-/** The issuer as places.liketrek.com answers /v1/quota. */
+/** Every liketrek host as it answers /v1/quota. */
 function issuerAnswers(status = 200) {
   safeFetch.mockImplementation(async () =>
     status === 200
@@ -107,16 +114,21 @@ describe('with a key from TREK_SERVICES_KEY', () => {
     expect((await request(server).post('/api/admin/service-identity/regenerate').set(as(USER))).status).toBe(403);
   });
 
-  it('SIE2E-002: shows the allowance the issuer reports for that key', async () => {
+  it('SIE2E-002: shows the allowance the issuer reports for that key, and no other host sees it', async () => {
     const res = await request(app.getHttpServer()).get('/api/admin/service-identity').set(as(ADMIN));
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
       state: 'connected',
       tier: 'own',
       keySource: 'env',
-      quota: { limit: 50_000, used: 1_234, remaining: 48_766, resetAt: new Date(1_793_059_200_000).toISOString() },
+      services: [
+        { service: 'places', inUse: true, quota: VIEW },
+        { service: 'photon', inUse: false, quota: null },
+        { service: 'valhalla', inUse: false, quota: null },
+      ],
       lastSeenAt: null,
     });
+    expect(safeFetch).toHaveBeenCalledTimes(1);
     const [url, init] = safeFetch.mock.calls[0] as [string, RequestInit & { headers: Record<string, string> }];
     expect(url).toBe('https://places.liketrek.com/v1/quota');
     expect(init.headers.Authorization).toBe(`Bearer ${ENV_KEY}`);
@@ -147,7 +159,8 @@ describe('with a key the installation registered', () => {
     issuerAnswers(503);
     const res = await request(app.getHttpServer()).get('/api/admin/service-identity').set(as(ADMIN));
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ state: 'connected', tier: 'std', keySource: 'registered', quota: null });
+    expect(res.body).toMatchObject({ state: 'connected', tier: 'std', keySource: 'registered' });
+    expect(res.body.services[0]).toEqual({ service: 'places', inUse: true, quota: null });
   });
 
   it('SIE2E-011: a new identity drops the stored key, is audited, and leaves the shared pool until the next search', async () => {
@@ -166,12 +179,49 @@ describe('with a key the installation registered', () => {
   });
 });
 
+describe('with every liketrek host listed in TREK_SERVICES_HOSTS', () => {
+  const ALL_HOSTS = ['places.liketrek.com', 'photon.liketrek.com', 'valhalla.liketrek.com'];
+
+  it('SIE2E-030: asks each host for its own allowance and says which services this instance uses', async () => {
+    const app = await build({ key: ENV_KEY, hosts: ALL_HOSTS });
+    try {
+      const res = await request(app.getHttpServer()).get('/api/admin/service-identity').set(as(ADMIN));
+      expect(res.status).toBe(200);
+      expect(res.body.services).toEqual([
+        { service: 'places', inUse: true, quota: VIEW },
+        { service: 'photon', inUse: true, quota: VIEW },
+        { service: 'valhalla', inUse: true, quota: VIEW },
+      ]);
+      const asked = safeFetch.mock.calls.map(([url]) => String(url)).sort();
+      expect(asked).toEqual([
+        'https://photon.liketrek.com/v1/quota',
+        'https://places.liketrek.com/v1/quota',
+        'https://valhalla.liketrek.com/v1/quota',
+      ]);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('SIE2E-031: the routing service is not in use once the admin picks FOSSGIS', async () => {
+    const app = await build({ key: ENV_KEY, hosts: ALL_HOSTS });
+    await upsertRow(orm, AppSettings, { key: 'default_user_setting_routing_valhalla_provider', value: '"fossgis"' });
+    try {
+      const res = await request(app.getHttpServer()).get('/api/admin/service-identity').set(as(ADMIN));
+      expect(res.body.services[2]).toEqual({ service: 'valhalla', inUse: false, quota: VIEW });
+    } finally {
+      await deleteRows(orm, AppSettings, { key: 'default_user_setting_routing_valhalla_provider' });
+      await app.close();
+    }
+  });
+});
+
 describe('with TREK_SERVICES=off', () => {
   it('SIE2E-020: says so and asks the issuer nothing', async () => {
     const app = await build({ mode: 'off' });
     try {
       const res = await request(app.getHttpServer()).get('/api/admin/service-identity').set(as(ADMIN));
-      expect(res.body).toEqual({ state: 'off', tier: null, keySource: null, quota: null, lastSeenAt: null });
+      expect(res.body).toEqual({ state: 'off', tier: null, keySource: null, services: [], lastSeenAt: null });
       expect(safeFetch).not.toHaveBeenCalled();
       const regenerate = await request(app.getHttpServer())
         .post('/api/admin/service-identity/regenerate')

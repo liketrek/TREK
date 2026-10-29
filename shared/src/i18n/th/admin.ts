@@ -821,6 +821,10 @@ const admin: TranslationStrings = {
   'admin.trekApi.quota.hint.revoked':
     'คีย์ของการติดตั้งนี้ถูกเพิกถอนแล้ว การค้นหาจะใช้โควตาส่วนกลางจนกว่าคุณจะสร้างตัวตนใหม่',
   'admin.trekApi.quota.unavailable': 'ไม่สามารถอ่านโควตาได้ในขณะนี้',
+  'admin.trekApi.quota.service.places': 'ค้นหาสถานที่',
+  'admin.trekApi.quota.service.photon': 'ค้นหาที่อยู่',
+  'admin.trekApi.quota.service.valhalla': 'การหาเส้นทาง',
+  'admin.trekApi.quota.notInUse': 'ไม่ได้ใช้บนอินสแตนซ์นี้',
   'admin.trekApi.quota.envKey': 'คีย์มาจาก TREK_SERVICES_KEY',
   'admin.trekApi.quota.regenerate': 'ตัวตนใหม่',
   'admin.trekApi.quota.regenerateTitle': 'สร้างตัวตนใหม่หรือไม่?',

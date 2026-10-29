@@ -191,6 +191,10 @@ const admin: TranslationStrings = {
   'admin.trekApi.quota.hint.revoked':
     'Nyckeln för den här installationen har återkallats. Sökningar går via den gemensamma poolen tills du skapar en ny identitet.',
   'admin.trekApi.quota.unavailable': 'Kvoten kan inte läsas just nu.',
+  'admin.trekApi.quota.service.places': 'Platssökning',
+  'admin.trekApi.quota.service.photon': 'Adressökning',
+  'admin.trekApi.quota.service.valhalla': 'Ruttplanering',
+  'admin.trekApi.quota.notInUse': 'Används inte på den här instansen',
   'admin.trekApi.quota.envKey': 'Nyckeln kommer från TREK_SERVICES_KEY.',
   'admin.trekApi.quota.regenerate': 'Ny identitet',
   'admin.trekApi.quota.regenerateTitle': 'Skapa en ny identitet?',

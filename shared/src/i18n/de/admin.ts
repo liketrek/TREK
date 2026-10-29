@@ -140,6 +140,10 @@ const admin: TranslationStrings = {
   'admin.trekApi.quota.hint.revoked':
     'Der Schlüssel dieser Installation wurde gesperrt. Suchen laufen über den gemeinsamen Topf, bis du eine neue Identität erzeugst.',
   'admin.trekApi.quota.unavailable': 'Das Kontingent lässt sich gerade nicht abrufen.',
+  'admin.trekApi.quota.service.places': 'Ortssuche',
+  'admin.trekApi.quota.service.photon': 'Adresssuche',
+  'admin.trekApi.quota.service.valhalla': 'Routenplanung',
+  'admin.trekApi.quota.notInUse': 'Auf dieser Instanz nicht in Benutzung',
   'admin.trekApi.quota.envKey': 'Der Schlüssel kommt aus TREK_SERVICES_KEY.',
   'admin.trekApi.quota.regenerate': 'Neue Identität',
   'admin.trekApi.quota.regenerateTitle': 'Neue Identität erzeugen?',

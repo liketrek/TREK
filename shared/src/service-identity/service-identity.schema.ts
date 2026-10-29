@@ -64,12 +64,25 @@ const serviceQuotaViewSchema = z.object({
 });
 export type ServiceQuotaView = z.infer<typeof serviceQuotaViewSchema>;
 
+/** The liketrek services an installation key opens, in the order the admin card lists them. */
+export const SERVICE_NAMES = ['places', 'photon', 'valhalla'] as const;
+export const serviceNameSchema = z.enum(SERVICE_NAMES);
+export type ServiceName = z.infer<typeof serviceNameSchema>;
+
+/** One service: whether this instance asks it right now, and today's allowance its host reports. */
+const serviceAllowanceSchema = z.object({
+  service: serviceNameSchema,
+  inUse: z.boolean(),
+  quota: serviceQuotaViewSchema.nullable(),
+});
+export type ServiceAllowance = z.infer<typeof serviceAllowanceSchema>;
+
 /** GET /api/admin/service-identity and the answer of its regenerate action. */
 export const serviceIdentityStatusSchema = z.object({
   state: serviceIdentityStateSchema,
   tier: serviceTierSchema.nullable(),
   keySource: z.enum(['env', 'registered']).nullable(),
-  quota: serviceQuotaViewSchema.nullable(),
+  services: z.array(serviceAllowanceSchema).max(SERVICE_NAMES.length),
   lastSeenAt: z.string().nullable(),
 });
 export type ServiceIdentityStatus = z.infer<typeof serviceIdentityStatusSchema>;

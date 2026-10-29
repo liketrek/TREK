@@ -42,18 +42,29 @@ describe('serviceKeyGrantSchema and serviceQuotaSchema', () => {
 
 describe('serviceIdentityStatusSchema', () => {
   it('describes an installation that is switched off', () => {
-    const off = { state: 'off', tier: null, keySource: null, quota: null, lastSeenAt: null };
+    const off = { state: 'off', tier: null, keySource: null, services: [], lastSeenAt: null };
     expect(serviceIdentityStatusSchema.parse(off)).toEqual(off);
   });
 
-  it('describes a connected one with its allowance', () => {
+  it('describes a connected one with the allowance of each service', () => {
+    const quota = { limit: 10_000, used: 12, remaining: 9_988, resetAt: '2026-10-30T00:00:00.000Z' };
     const connected = {
       state: 'connected',
       tier: 'std',
       keySource: 'registered',
-      quota: { limit: 10_000, used: 12, remaining: 9_988, resetAt: '2026-10-30T00:00:00.000Z' },
+      services: [
+        { service: 'places', inUse: true, quota },
+        { service: 'photon', inUse: false, quota: null },
+        { service: 'valhalla', inUse: true, quota },
+      ],
       lastSeenAt: '2026-10-29T12:00:00.000Z',
     };
     expect(serviceIdentityStatusSchema.parse(connected)).toEqual(connected);
+  });
+
+  it('knows only the three services', () => {
+    const status = { state: 'connected', tier: null, keySource: null, lastSeenAt: null };
+    const unknown = [{ service: 'nominatim', inUse: true, quota: null }];
+    expect(serviceIdentityStatusSchema.safeParse({ ...status, services: unknown }).success).toBe(false);
   });
 });

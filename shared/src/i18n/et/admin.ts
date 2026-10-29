@@ -190,6 +190,10 @@ const admin: TranslationStrings = {
   'admin.trekApi.quota.hint.revoked':
     'Selle paigalduse võti on tühistatud. Otsingud käivad ühise kogumi kaudu, kuni lood uue identiteedi.',
   'admin.trekApi.quota.unavailable': 'Kvooti ei saa praegu lugeda.',
+  'admin.trekApi.quota.service.places': 'Kohtade otsing',
+  'admin.trekApi.quota.service.photon': 'Aadresside otsing',
+  'admin.trekApi.quota.service.valhalla': 'Marsruutimine',
+  'admin.trekApi.quota.notInUse': 'Selles serveris pole kasutusel',
   'admin.trekApi.quota.envKey': 'Võti tuleb muutujast TREK_SERVICES_KEY.',
   'admin.trekApi.quota.regenerate': 'Uus identiteet',
   'admin.trekApi.quota.regenerateTitle': 'Kas luua uus identiteet?',

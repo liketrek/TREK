@@ -42,7 +42,7 @@ export class IssuerError extends Error {
   }
 }
 
-/** The four calls TREK makes to the key issuer at places.liketrek.com. */
+/** The calls TREK makes to the key issuer at places.liketrek.com, and the allowance any liketrek host reports. */
 @Injectable()
 export class IssuerClient {
   challenge(): Promise<IssuerAnswer<ServiceChallenge>> {
@@ -57,22 +57,25 @@ export class IssuerClient {
     return this.call('POST', '/v1/register/renew', serviceKeyGrantSchema, { bearer: key });
   }
 
-  /** Today's allowance of the key, or of the shared legacy pool without one. Costs no allowance itself. */
-  quota(key: string | null): Promise<IssuerAnswer<ServiceQuota>> {
-    return this.call('GET', '/v1/quota', serviceQuotaSchema, { bearer: key });
+  /**
+   * Today's allowance of the key at the host of `origin`, or of the shared
+   * legacy pool without one (only Places has that pool). Costs no allowance itself.
+   */
+  quota(origin: string, key: string | null): Promise<IssuerAnswer<ServiceQuota>> {
+    return this.call('GET', '/v1/quota', serviceQuotaSchema, { bearer: key, origin });
   }
 
   private async call<T>(
     method: 'GET' | 'POST',
     path: string,
     schema: z.ZodType<T>,
-    opts: { body?: RegistrationRequest; bearer?: string | null } = {},
+    opts: { body?: RegistrationRequest; bearer?: string | null; origin?: string } = {},
   ): Promise<IssuerAnswer<T>> {
     const headers: Record<string, string> = { Accept: 'application/json', 'User-Agent': serviceUserAgent() };
     if (opts.bearer) headers.Authorization = `Bearer ${opts.bearer}`;
     if (opts.body) headers['Content-Type'] = 'application/json';
     const res = await safeFetch(
-      `${SERVICE_ISSUER_ORIGIN}${path}`,
+      `${opts.origin ?? SERVICE_ISSUER_ORIGIN}${path}`,
       {
         method,
         headers,

@@ -138,6 +138,10 @@ const admin: TranslationStrings = {
   'admin.trekApi.quota.hint.revoked':
     'Ennek a telepítésnek a kulcsát visszavonták. A keresések a közös kereten át mennek, amíg új identitást nem hozol létre.',
   'admin.trekApi.quota.unavailable': 'A keret most nem olvasható le.',
+  'admin.trekApi.quota.service.places': 'Helykeresés',
+  'admin.trekApi.quota.service.photon': 'Címkeresés',
+  'admin.trekApi.quota.service.valhalla': 'Útvonaltervezés',
+  'admin.trekApi.quota.notInUse': 'Ezen a példányon nincs használatban',
   'admin.trekApi.quota.envKey': 'A kulcs a TREK_SERVICES_KEY változóból jön.',
   'admin.trekApi.quota.regenerate': 'Új identitás',
   'admin.trekApi.quota.regenerateTitle': 'Új identitást hozol létre?',

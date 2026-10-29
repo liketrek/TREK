@@ -191,6 +191,10 @@ const admin: TranslationStrings = {
   'admin.trekApi.quota.hint.revoked':
     'Bu kurulumun anahtarı iptal edildi. Yeni bir kimlik oluşturana kadar aramalar ortak havuzdan yapılır.',
   'admin.trekApi.quota.unavailable': 'Kota şu anda okunamıyor.',
+  'admin.trekApi.quota.service.places': 'Yer arama',
+  'admin.trekApi.quota.service.photon': 'Adres arama',
+  'admin.trekApi.quota.service.valhalla': 'Rota planlama',
+  'admin.trekApi.quota.notInUse': 'Bu sunucuda kullanılmıyor',
   'admin.trekApi.quota.envKey': 'Anahtar TREK_SERVICES_KEY değişkeninden geliyor.',
   'admin.trekApi.quota.regenerate': 'Yeni kimlik',
   'admin.trekApi.quota.regenerateTitle': 'Yeni bir kimlik oluşturulsun mu?',

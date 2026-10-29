@@ -138,6 +138,10 @@ const admin: TranslationStrings = {
   'admin.trekApi.quota.hint.revoked':
     'La chiave di questa installazione è stata revocata. Le ricerche usano la riserva condivisa finché non crei una nuova identità.',
   'admin.trekApi.quota.unavailable': 'Al momento non è possibile leggere la quota.',
+  'admin.trekApi.quota.service.places': 'Ricerca di luoghi',
+  'admin.trekApi.quota.service.photon': 'Ricerca di indirizzi',
+  'admin.trekApi.quota.service.valhalla': 'Percorsi',
+  'admin.trekApi.quota.notInUse': 'Non in uso su questa istanza',
   'admin.trekApi.quota.envKey': 'La chiave proviene da TREK_SERVICES_KEY.',
   'admin.trekApi.quota.regenerate': 'Nuova identità',
   'admin.trekApi.quota.regenerateTitle': 'Creare una nuova identità?',

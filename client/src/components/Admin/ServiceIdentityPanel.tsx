@@ -1,4 +1,10 @@
-import type { ServiceIdentityState, ServiceIdentityStatus, ServiceQuotaView } from '@trek/shared';
+import type {
+  ServiceAllowance,
+  ServiceIdentityState,
+  ServiceIdentityStatus,
+  ServiceName,
+  ServiceQuotaView,
+} from '@trek/shared';
 import { RefreshCw } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useTranslation } from '../../i18n';
@@ -18,6 +24,12 @@ const STATE_DOT: Record<ServiceIdentityState, string> = {
   revoked: 'bg-danger',
 };
 
+const SERVICE_LABEL: Record<ServiceName, string> = {
+  places: 'admin.trekApi.quota.service.places',
+  photon: 'admin.trekApi.quota.service.photon',
+  valhalla: 'admin.trekApi.quota.service.valhalla',
+};
+
 /** Below a tenth of the day left the bar turns amber, at nothing left red. */
 function barTone(quota: ServiceQuotaView): string {
   if (quota.remaining === 0) return 'bg-danger';
@@ -33,7 +45,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function QuotaMeter({ quota }: { quota: ServiceQuotaView }) {
+function QuotaMeter({ quota, label }: { quota: ServiceQuotaView; label: string }) {
   const { t, locale } = useTranslation();
   const is12h = useSettingsStore((s) => s.settings.time_format === '12h');
   const number = new Intl.NumberFormat(locale);
@@ -48,7 +60,7 @@ function QuotaMeter({ quota }: { quota: ServiceQuotaView }) {
     <div className="flex flex-col gap-2.5">
       <div
         role="progressbar"
-        aria-label={t('admin.trekApi.quota.title')}
+        aria-label={label}
         aria-valuemin={0}
         aria-valuemax={quota.limit}
         aria-valuenow={quota.used}
@@ -71,15 +83,39 @@ function QuotaMeter({ quota }: { quota: ServiceQuotaView }) {
   );
 }
 
+function rowNote(t: TranslationFn, allowance: ServiceAllowance): string | null {
+  if (!allowance.inUse) return t('admin.trekApi.quota.notInUse');
+  return allowance.quota ? null : t('admin.trekApi.quota.unavailable');
+}
+
+/**
+ * One service under the key: its name, today's allowance where its host told
+ * it, and whether this instance asks it at all. A service not in use is
+ * dimmed rather than hidden, so the list reads the same on every install.
+ */
+function ServiceRow({ allowance }: { allowance: ServiceAllowance }) {
+  const { t } = useTranslation();
+  const name = t(SERVICE_LABEL[allowance.service]);
+  const note = rowNote(t, allowance);
+
+  return (
+    <li className={`flex flex-col gap-2 py-2.5 first:pt-0 last:pb-0 ${allowance.inUse ? '' : 'opacity-60'}`}>
+      <p className="m-0 text-caption font-medium text-content-secondary">{name}</p>
+      {allowance.quota && <QuotaMeter quota={allowance.quota} label={name} />}
+      {note && <p className="m-0 text-caption leading-snug text-content-muted">{note}</p>}
+    </li>
+  );
+}
+
 function stateHint(t: TranslationFn, status: ServiceIdentityStatus | null, failed: boolean): string | null {
   if (!status) return failed ? t('admin.trekApi.quota.unavailable') : null;
-  if (status.state !== 'connected') return t(`admin.trekApi.quota.hint.${status.state}`);
-  return status.quota ? null : t('admin.trekApi.quota.unavailable');
+  return status.state === 'connected' ? null : t(`admin.trekApi.quota.hint.${status.state}`);
 }
 
 /**
  * How this installation stands with the TREK services: whether it has its key,
- * today's allowance against what is used, and when the count starts again.
+ * and for place search, address search and routing today's allowance against
+ * what is used, and when the count starts again.
  * Read when the card is in view and refreshed every 30 seconds while it stays.
  * A managed install leaves the identity to its operator, so it offers no new one.
  */
@@ -121,7 +157,13 @@ export default function ServiceIdentityPanel({ managed = false }: { managed?: bo
         )}
       </div>
 
-      {status?.quota && status.state !== 'off' && <QuotaMeter quota={status.quota} />}
+      {status && status.services.length > 0 && (
+        <ul aria-label={t('admin.trekApi.quota.title')} className="m-0 list-none divide-y divide-edge-faint p-0">
+          {status.services.map((allowance) => (
+            <ServiceRow key={allowance.service} allowance={allowance} />
+          ))}
+        </ul>
+      )}
       {hint && <p className="m-0 text-caption leading-snug text-content-muted">{hint}</p>}
 
       {status?.keySource === 'env' && (
