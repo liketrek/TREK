@@ -422,7 +422,11 @@ export class RoadtripRouterService {
     const footOnly = options.footOnly === true && profile === 'walking';
     // A tour's own costing goes with a way on foot or by bike; a drive has its avoidances instead.
     const hiking = profile === 'walking' || profile === 'cycling' ? options.costingOptions : undefined;
+    const trekValhalla = this.relay.trekValhalla();
+    // Whether the TREK services can be asked belongs in the key: a key added or removed
+    // moves the days from one engine to the other.
     const key = JSON.stringify([
+      trekValhalla !== null,
       userId,
       tripId,
       dayId,
@@ -443,6 +447,9 @@ export class RoadtripRouterService {
     let avoidMissed = profile === 'driving' ? [...avoid] : [];
     let snapped: SnappedWaypoint[] | undefined;
     let ferryLegs: number[] | undefined;
+    // A day Valhalla routes that OSRM drew instead, kept no longer than this answer: the
+    // next question goes to Valhalla again, as the planner's does.
+    let standIn = false;
     const plugin = /^plugin:([^/]+)\/(.+)$/.exec(profile);
     if (plugin) {
       const [, id, name] = plugin;
@@ -463,7 +470,7 @@ export class RoadtripRouterService {
       parts = route.legs;
     } else {
       const mode = profile === 'walking' || profile === 'cycling' ? profile : 'driving';
-      const { base, valhalla, everyDay } = routersOf(settings, this.relay.trekValhalla());
+      const { base, valhalla, everyDay } = routersOf(settings, trekValhalla);
       let weighted = false;
       if (hiking) {
         const cycling = mode === 'cycling';
@@ -476,6 +483,8 @@ export class RoadtripRouterService {
         ({ line, distance, duration, parts, snapped } = routeOfLegs(points, legs));
         weighted = true;
       } else if (footOnly && valhalla) {
+        // A walk kept off the boats is something only Valhalla can do, like an avoidance,
+        // so it may go to FOSSGIS where the relay cannot answer, as the planner's does.
         try {
           const ferryless = { use_ferry: 0 };
           const offBoats = { offBoatLines: true };
@@ -519,6 +528,7 @@ export class RoadtripRouterService {
           weighted = true;
         } catch {
           snapped = undefined;
+          standIn = true;
         }
       }
       if (!weighted) {
@@ -595,7 +605,7 @@ export class RoadtripRouterService {
       avoidMissed,
       ...(ferryLegs ? { ferryLegs } : {}),
     };
-    this.cache.set(key, { at: Date.now(), route });
+    if (!standIn) this.cache.set(key, { at: Date.now(), route });
     if (this.cache.size > 100) this.cache.delete(this.cache.keys().next().value!);
     return route;
   }

@@ -921,6 +921,41 @@ describe('server Roadtrip router: every day through Valhalla where it routes the
       expect(route.parts).toHaveLength(11);
       expect(route.avoidMissed).toEqual([]);
     });
+
+    it('ROUTER-DAY-008: keeps no OSRM stand-in, so the same day asks the relay again once it is back', async () => {
+      const { router } = setup();
+      relay.ask.mockResolvedValueOnce(answer(502, { error: 'The TREK routing service did not answer' }));
+      const fallen = await settled(router.route(4, 1, 1, points, 'driving', []));
+      expect(fallen.parts.map((part) => part.duration)).toEqual([100, 200]);
+
+      const back = await settled(router.route(4, 1, 1, points, 'driving', []));
+      expect(back.parts.map((part) => part.duration)).toEqual([60, 60]);
+      expect(relay.ask).toHaveBeenCalledTimes(2);
+
+      expect(await settled(router.route(4, 1, 1, points, 'driving', []))).toBe(back);
+      expect(relay.ask).toHaveBeenCalledTimes(2);
+    });
+
+    it('ROUTER-DAY-009: a day routed with the key is not served from the cache once the key is gone', async () => {
+      const { router } = setup();
+      await settled(router.route(4, 1, 1, points, 'driving', []));
+      relay.trekValhalla.mockReturnValue(null);
+      const plain = await settled(router.route(4, 1, 1, points, 'driving', []));
+      expect(plain.parts.map((part) => part.duration)).toEqual([100, 200]);
+      expect(relay.ask).toHaveBeenCalledTimes(1);
+    });
+
+    it('ROUTER-DAY-010: a walk kept off the boats goes to FOSSGIS where the relay cannot answer, as only Valhalla can plan it', async () => {
+      relay.ask.mockReset().mockResolvedValue(answer(503, { error: 'The TREK routing service is resting' }));
+      vi.mocked(safeFetchAdminConfigured).mockImplementation(
+        async (_url, init) => new Response(JSON.stringify(legsFor(bodyOf(init)))),
+      );
+      const route = await settled(setup().router.route(4, 1, 1, points, 'walking', [], { footOnly: true }));
+      expect(vi.mocked(safeFetchAdminConfigured).mock.calls.map(([url]) => url)).toEqual([
+        'https://valhalla1.openstreetmap.de/route',
+      ]);
+      expect(route.ferryLegs).toEqual([]);
+    });
   });
 
   it('ROUTER-DAY-006: an own Valhalla routes every day in pieces of twenty, and OSRM the day it cannot answer', async () => {
