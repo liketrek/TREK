@@ -9,7 +9,7 @@
  * mutate mid-lifetime, belongs in derive.ts instead.
  */
 import type { RawEnv } from './derive';
-import { parseBool, positiveIntOr, stripTrailingSlashes } from './parsers';
+import { csvListFiltered, parseBool, positiveIntOr, stripTrailingSlashes } from './parsers';
 
 /**
  * Longer than the upstream idle timeout of the common reverse proxies and load
@@ -62,12 +62,31 @@ export function deriveKitinerary(raw: RawEnv) {
   };
 }
 
+/** The liketrek hosts that receive the installation key when nothing else is configured. */
+const DEFAULT_SERVICE_HOSTS = ['places.liketrek.com'];
+
+/**
+ * How this installation identifies itself to the liketrek services. Unset is
+ * `auto`; any other value than `auto` switches them off, so a typo fails closed.
+ * A key from the environment wins over the stored one and stops registration.
+ */
+export function deriveServices(raw: RawEnv) {
+  const mode = raw.TREK_SERVICES?.trim().toLowerCase() || 'auto';
+  const hosts = csvListFiltered(raw.TREK_SERVICES_HOSTS?.toLowerCase());
+  return {
+    mode: mode === 'auto' ? ('auto' as const) : ('off' as const),
+    key: raw.TREK_SERVICES_KEY?.trim() || null,
+    hosts: hosts?.length ? hosts : DEFAULT_SERVICE_HOSTS,
+  };
+}
+
 /** One entry per token: the namespace it registers under and the function it derives with. */
 export const BOOT_DERIVERS = {
   http: deriveHttpBoot,
   storage: deriveStorage,
   transit: deriveTransit,
   kitinerary: deriveKitinerary,
+  services: deriveServices,
 } as const;
 
 export type BootNamespace = keyof typeof BOOT_DERIVERS;

@@ -23,6 +23,7 @@ import {
   serviceLang,
   type TrekPlace,
 } from '../../../src/nest/maps/trek-places.client';
+import { serviceIdentitySlot } from '../../../src/nest/service-identity/service-identity.interface';
 import { oneByOne } from '../../helpers/one-by-one';
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -459,6 +460,54 @@ describe('the circuit breaker', () => {
     }
     stubFetch({ query: 'x', results: [PLACE] });
     await expect(trekPlacesSearch('x')).resolves.toHaveLength(1);
+  });
+
+  it('a refused or revoked installation key is an answer, a 429 is not', async () => {
+    // A 401 or 403 says the service is there and judged the key; the identity
+    // falls back to the shared pool on its own. A 429 means the next request
+    // costs the same and gets the same, like a server error.
+    for (const status of [401, 403]) {
+      for (let i = 0; i < 6; i++) {
+        stubFetch({}, status);
+        await expect(trekPlacesSearch('x')).rejects.toThrow(String(status));
+      }
+    }
+    stubFetch({}, 429);
+    for (let i = 0; i < 4; i++) await expect(trekPlacesSearch('x')).rejects.toThrow(/429/);
+    await expect(trekPlacesSearch('x')).rejects.toThrow('unreachable, not retrying yet');
+  });
+});
+
+describe('the installation identity', () => {
+  it('takes the headers from the identity port on every request and shows it every answer', async () => {
+    const seen: string[] = [];
+    const port = {
+      headersFor: vi.fn(() => ({ 'User-Agent': 'TREK/test', Authorization: 'Bearer installation-key' })),
+      observe: vi.fn((url: URL) => {
+        seen.push(url.pathname);
+      }),
+    };
+    serviceIdentitySlot.install(port);
+    try {
+      stubFetch({ query: 'x', results: [] });
+      await trekPlacesSearch('x');
+      expect(calls[0].init?.headers).toMatchObject({
+        Accept: 'application/json',
+        'X-TREK-Instance': expect.stringMatching(/^trek-/),
+        'User-Agent': 'TREK/test',
+        Authorization: 'Bearer installation-key',
+      });
+      expect(port.headersFor).toHaveBeenCalledWith(expect.any(URL));
+      expect(seen).toEqual(['/v1/search']);
+    } finally {
+      serviceIdentitySlot.release(port);
+    }
+  });
+
+  it('sends what it always sent while no identity is installed', async () => {
+    stubFetch({ query: 'x', results: [] });
+    await trekPlacesSearch('x');
+    expect(Object.keys(calls[0].init?.headers ?? {}).sort()).toEqual(['Accept', 'X-TREK-Instance']);
   });
 });
 

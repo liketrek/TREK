@@ -125,6 +125,7 @@ export const MANAGED_ROUTE_ALLOW_LIST: string[] = [
   'PluginsController.link',
   'PluginsController.reload',
   'PluginsController.upload',
+  'ServiceIdentityController.regenerate',
   'StorageAdminController.backfillCancel',
   'StorageAdminController.backfillStart',
   'StorageAdminController.get',

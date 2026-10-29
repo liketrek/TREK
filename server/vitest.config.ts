@@ -188,6 +188,9 @@ export default defineConfig({
         'src/nest/route-usage/**/*.ts': { statements: 84, branches: 66, functions: 77, lines: 83 },
         'src/nest/scheduling/**/*.ts': { statements: 99, branches: 92, functions: 99, lines: 99 },
         'src/nest/school-holidays/**/*.ts': { statements: 97, branches: 95, functions: 99, lines: 97 },
+        // New domain in this change, unmeasured: on the 80 floor until the first
+        // full CI run, then raised with scripts/coverage-thresholds.mjs, never lowered.
+        'src/nest/service-identity/**/*.ts': { statements: 80, branches: 80, functions: 80, lines: 80 },
         // New domain in this change, unmeasured: pinned at the 80 floor so it
         // has its own entry rather than hiding in the catch-all. Its suites
         // cover every branch they can reach; regenerate with

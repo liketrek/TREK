@@ -1,0 +1,58 @@
+{
+  "format": "tk1.<kid>.<base64url(payload_json)>.<base64url(ed25519(issuer_sk, 'tk1.'+kid+'.'+payload_b64url))>",
+  "base64url": "RFC 4648 section 5, no padding",
+  "kid": "test1",
+  "public_key_b64url": "2Vf8tqqkTtNVzw401JcQEwSc-MUATUozBLyK2h79bY0",
+  "vectors": [
+    {
+      "name": "std",
+      "payload": {
+        "i": "AAECAwQFBgcICQoLDA0ODw",
+        "iat": 1793000000,
+        "exp": 1800776000,
+        "q": "std"
+      },
+      "payload_json": "{\"i\":\"AAECAwQFBgcICQoLDA0ODw\",\"iat\":1793000000,\"exp\":1800776000,\"q\":\"std\"}",
+      "token": "tk1.test1.eyJpIjoiQUFFQ0F3UUZCZ2NJQ1FvTERBME9EdyIsImlhdCI6MTc5MzAwMDAwMCwiZXhwIjoxODAwNzc2MDAwLCJxIjoic3RkIn0.UyQGzHwmtYj4s93PR6l5kqAsbEAZwURmhVlhljanHRTBB-FAE_20rbLWLsAlRQNn5faeigKXpFX_ZV5Ulr53BQ",
+      "valid": true
+    },
+    {
+      "name": "own",
+      "payload": {
+        "i": "EBESExQVFhcYGRobHB0eHw",
+        "iat": 1793000000,
+        "exp": 1800776000,
+        "q": "own"
+      },
+      "payload_json": "{\"i\":\"EBESExQVFhcYGRobHB0eHw\",\"iat\":1793000000,\"exp\":1800776000,\"q\":\"own\"}",
+      "token": "tk1.test1.eyJpIjoiRUJFU0V4UVZGaGNZR1JvYkhCMGVIdyIsImlhdCI6MTc5MzAwMDAwMCwiZXhwIjoxODAwNzc2MDAwLCJxIjoib3duIn0.VQcnAlqeWD6BvPR0hfqyEM0Hri154soKz2dtYOEE8SY8Kt08oRV0Q4PbS-phJ2JZxisLLfIYndbdwnsM-WwFDQ",
+      "valid": true
+    },
+    {
+      "name": "tampered_signature",
+      "token": "tk1.test1.eyJpIjoiQUFFQ0F3UUZCZ2NJQ1FvTERBME9EdyIsImlhdCI6MTc5MzAwMDAwMCwiZXhwIjoxODAwNzc2MDAwLCJxIjoic3RkIn0.UiQGzHwmtYj4s93PR6l5kqAsbEAZwURmhVlhljanHRTBB-FAE_20rbLWLsAlRQNn5faeigKXpFX_ZV5Ulr53BQ",
+      "valid": false
+    },
+    {
+      "name": "tampered_payload",
+      "token": "tk1.test1.eyJpIjoiQUFFQ0F3UUZCZ2NJQ1FvTERBME9EdyIsImlhdCI6MTc5MzAwMDAwMCwiZXhwIjoxODAwNzc2MDAwLCJxIjoib3duIn0.UyQGzHwmtYj4s93PR6l5kqAsbEAZwURmhVlhljanHRTBB-FAE_20rbLWLsAlRQNn5faeigKXpFX_ZV5Ulr53BQ",
+      "valid": false
+    },
+    {
+      "name": "unknown_kid",
+      "token": "tk1.nope.eyJpIjoiQUFFQ0F3UUZCZ2NJQ1FvTERBME9EdyIsImlhdCI6MTc5MzAwMDAwMCwiZXhwIjoxODAwNzc2MDAwLCJxIjoic3RkIn0.UyQGzHwmtYj4s93PR6l5kqAsbEAZwURmhVlhljanHRTBB-FAE_20rbLWLsAlRQNn5faeigKXpFX_ZV5Ulr53BQ",
+      "valid": false
+    }
+  ],
+  "pow": {
+    "definition": "Find decimal-string nonce (\"0\",\"1\",...) such that scrypt(password=UTF8(c + '.' + nonce), salt=UTF8('trek-pow-v1'), N, r, p, dkLen=32) has at least `bits` leading zero bits (MSB first).",
+    "c": "v1.test-challenge",
+    "N": 16384,
+    "r": 8,
+    "p": 1,
+    "bits": 6,
+    "valid_nonce": "17",
+    "hash_hex": "008fe949e117a88520a7926fad815af49b1f92b543cd88d83240d2e7a4521bb2",
+    "invalid_nonce": "18"
+  }
+}

@@ -7,11 +7,13 @@
  * autocomplete, and paying Google for a text search whose terms then forbid
  * storing what comes back.
  *
- * Everything here is read-only, unauthenticated and cacheable. There is no key
- * to configure and no quota to exhaust, so the failure modes are the network
+ * Everything here is read-only and cacheable. There is no key to configure:
+ * service-identity adds the installation's headers and reads each answer, and a
+ * refused key falls back to the shared pool. The failure modes stay the network
  * and the service being down, both of which fall back to what TREK did before.
  */
 import { readEnv, getAppUrl } from '../../app-config';
+import { serviceIdentitySlot } from '../service-identity/service-identity.interface';
 import { toApiLang } from './maps.helpers';
 import {
   normalizePlaceWebsite,
@@ -253,6 +255,17 @@ function noteFailure(err: unknown, breaker: Breaker): void {
   }
 }
 
+/** A request carrying who is asking: the instance token, and the installation key where it may go. */
+async function identifiedFetch(url: URL, headers: Record<string, string>, signal: AbortSignal): Promise<Response> {
+  const identity = serviceIdentitySlot.get();
+  const res = await fetch(url, {
+    signal,
+    headers: { ...headers, 'X-TREK-Instance': instanceToken(), ...identity.headersFor(url) },
+  });
+  identity.observe(url, res);
+  return res;
+}
+
 function statusError(status: number): Error & { status: number } {
   const err = new Error(`TREK Places API ${status}`) as Error & { status: number };
   err.status = status;
@@ -275,13 +288,7 @@ async function getJson<T>(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), opts.timeoutMs ?? TIMEOUT_MS);
   try {
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        Accept: 'application/json',
-        'X-TREK-Instance': instanceToken(),
-      },
-    });
+    const res = await identifiedFetch(url, { Accept: 'application/json' }, controller.signal);
     if (!res.ok) throw statusError(res.status);
     // Read with a cap rather than res.json(): a hostile or broken upstream
     // should not be able to hand us an unbounded body to buffer.
@@ -928,9 +935,9 @@ async function getWinter(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), limits.timeoutMs);
   try {
-    const headers: Record<string, string> = { Accept: accept, 'X-TREK-Instance': instanceToken() };
+    const headers: Record<string, string> = { Accept: accept };
     if (etag) headers['If-None-Match'] = `"${etag}"`;
-    const res = await fetch(url, { signal: controller.signal, headers });
+    const res = await identifiedFetch(url, headers, controller.signal);
     if (res.status === 304 && etag) {
       layersBreaker.failures = 0;
       return { status: 'not_modified' };

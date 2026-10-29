@@ -1,4 +1,10 @@
-import { deriveHttpBoot, deriveKitinerary, deriveStorage, deriveTransit } from '../../../src/app-config/boot-derive';
+import {
+  deriveHttpBoot,
+  deriveKitinerary,
+  deriveServices,
+  deriveStorage,
+  deriveTransit,
+} from '../../../src/app-config/boot-derive';
 import {
   deriveApp,
   deriveHttp,
@@ -275,6 +281,30 @@ describe('deriveKitinerary (kitineraryConfig token)', () => {
     expect(deriveKitinerary({ PATH: ['/a', ' /b ', '', '/c'].join(sep) }).searchPath).toEqual(['/a', '/b', '/c']);
     expect(deriveKitinerary({ Path: ['/w1', '/w2'].join(sep) }).searchPath).toEqual(['/w1', '/w2']);
     expect(deriveKitinerary({}).searchPath).toEqual([]);
+  });
+});
+
+describe('deriveServices (servicesConfig token)', () => {
+  it('registers by itself unless TREK_SERVICES says off, and any value but auto is off', () => {
+    expect(deriveServices({}).mode).toBe('auto');
+    expect(deriveServices({ TREK_SERVICES: ' AUTO ' }).mode).toBe('auto');
+    expect(deriveServices({ TREK_SERVICES: 'off' }).mode).toBe('off');
+    expect(deriveServices({ TREK_SERVICES: 'of' }).mode).toBe('off');
+  });
+
+  it('takes a key from TREK_SERVICES_KEY, trimmed, and no key for a blank one', () => {
+    expect(deriveServices({ TREK_SERVICES_KEY: ' tk1.k.p.s ' }).key).toBe('tk1.k.p.s');
+    expect(deriveServices({ TREK_SERVICES_KEY: '  ' }).key).toBeNull();
+    expect(deriveServices({}).key).toBeNull();
+  });
+
+  it('sends the key to places.liketrek.com unless TREK_SERVICES_HOSTS names others', () => {
+    expect(deriveServices({}).hosts).toEqual(['places.liketrek.com']);
+    expect(deriveServices({ TREK_SERVICES_HOSTS: 'Places.LikeTrek.com, , photon.liketrek.com' }).hosts).toEqual([
+      'places.liketrek.com',
+      'photon.liketrek.com',
+    ]);
+    expect(deriveServices({ TREK_SERVICES_HOSTS: ' , ' }).hosts).toEqual(['places.liketrek.com']);
   });
 });
 

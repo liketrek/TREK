@@ -383,6 +383,21 @@ export class SettingsService {
     return await readAppSetting(this.appSettings, key);
   }
 
+  /** Writes a registered instance setting only while it has no row; the first of several processes keeps it. */
+  async insertAppSettingIfAbsent(key: AppSettingKey, value: string): Promise<void> {
+    await this.appSettings.insertIfAbsent(key, value);
+  }
+
+  /** Removes registered instance settings together. */
+  async deleteAppSettings(keys: AppSettingKey[]): Promise<void> {
+    await this.uow.transactional(() =>
+      keys.reduce<Promise<void>>(async (previous, key) => {
+        await previous;
+        await this.appSettings.deleteValue(key);
+      }, Promise.resolve()),
+    );
+  }
+
   /** Registered instance settings written together: every value lands, or none does. */
   async setAppSettings(values: Partial<Record<AppSettingKey, string>>): Promise<void> {
     const entries = Object.entries(values).filter((entry): entry is [string, string] => entry[1] !== undefined);

@@ -39,12 +39,14 @@ describe('managed key assignment', () => {
     expect(MANAGED_CUSTOMER_KEYS.filter((k) => !SOURCE_KEYS.includes(k))).toEqual([]);
   });
 
-  it('MANAGED-KEYS-003: the only locked names outside both source lists are the users columns', () => {
+  it('MANAGED-KEYS-003: the only locked names outside both source lists are the users columns and the service key', () => {
+    // service_key is written by the server alone, never through a settings
+    // form; it is locked so a managed install keeps the operator's key.
     expect(
       MANAGED_LOCKED_SETTING_KEYS.filter((k) => !SOURCE_KEYS.includes(k))
         .slice()
         .sort(),
-    ).toEqual([...MANAGED_LOCKED_PROFILE_KEYS].sort());
+    ).toEqual([...MANAGED_LOCKED_PROFILE_KEYS, 'service_key'].sort());
   });
 
   it('MANAGED-KEYS-004: neither set repeats itself', () => {
@@ -67,6 +69,7 @@ describe('managed key assignment', () => {
       'oidc_registration',
       'openweather_api_key',
       'routing_base_url',
+      'service_key',
       'smtp_from',
       'smtp_host',
       'smtp_pass',

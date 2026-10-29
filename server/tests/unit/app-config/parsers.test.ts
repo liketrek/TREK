@@ -3,6 +3,7 @@ import {
   csvListFiltered,
   decodeBase64Url,
   isP256PrivateKey,
+  isServiceKeyShape,
   isUncompressedP256Key,
   isVapidSubject,
   nonNegativeIntOr,
@@ -234,6 +235,19 @@ describe('Web Push key material', () => {
     ];
     for (const bad of refused) {
       expect(isVapidSubject(bad), bad).toBe(false);
+    }
+  });
+});
+
+describe('isServiceKeyShape', () => {
+  it('accepts tk1.<kid>.<payload>.<signature> with base64url parts, surrounding whitespace included', () => {
+    expect(isServiceKeyShape('tk1.test1.eyJpIjoiYSJ9.UyQG_zH-wmtY')).toBe(true);
+    expect(isServiceKeyShape('  tk1.k.p.s\n')).toBe(true);
+  });
+
+  it('refuses another version, a part too many or too few, and characters outside base64url', () => {
+    for (const bad of ['tk2.k.p.s', 'tk1.k.p', 'tk1.k.p.s.x', 'tk1.k.p+.s', 'tk1..p.s', 'Bearer tk1.k.p.s', '']) {
+      expect(isServiceKeyShape(bad), bad).toBe(false);
     }
   });
 });

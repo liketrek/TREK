@@ -58,6 +58,7 @@ describe('the derived key lists', () => {
       'admin_ntfy_token',
       'admin_webhook_url',
       'oidc_client_secret',
+      'service_key',
       'smtp_pass',
     ]);
     expect((APP_SETTINGS.smtp_pass as AppSettingDef).encrypted).toBe('always');

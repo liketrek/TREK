@@ -86,6 +86,7 @@ import { RoadtripModule } from './roadtrip/roadtrip.module';
 import { RouteUsageModule } from './route-usage/route-usage.module';
 import { SchedulingModule } from './scheduling/scheduling.module';
 import { SchoolHolidaysModule } from './school-holidays/school-holidays.module';
+import { ServiceIdentityModule } from './service-identity/service-identity.module';
 import { SessionsModule } from './sessions/sessions.module';
 import { SettingsModule } from './settings/settings.module';
 import { ShareModule } from './share/share.module';
@@ -182,6 +183,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
     TransitModule,
     FeedsModule,
     SettingsModule,
+    ServiceIdentityModule,
     StorageModule,
     BackupModule,
     AuthModule,

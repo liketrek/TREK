@@ -139,6 +139,10 @@ export const APP_SETTINGS = {
   ai_assistant_web_search: { schema: flag, default: 'true' },
   /** `urn:uuid:<uuid>`: this install as one host to Sign in with ChatGPT, created on the first sign-in. */
   ai_siwc_host_id: { schema: text, default: null },
+  /** This installation's key towards the liketrek services, issued on first use (service-identity). */
+  service_key: { schema: text, default: null, encrypted: 'always', managedLocked: true },
+  /** The key's bookkeeping as JSON: when to renew, when to ask again after a refusal, a revocation. */
+  service_key_state: { schema: text, default: null },
 } as const satisfies Record<string, AppSettingDef>;
 
 export type AppSettingKey = keyof typeof APP_SETTINGS;
