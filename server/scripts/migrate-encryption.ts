@@ -295,6 +295,10 @@ async function main() {
     // web_push_vapid_private_key is the Web Push signing key VapidKeysService
     // generates. Missed here it would no longer decrypt under the new key, and
     // push would stay off on every device until the old key came back.
+    //
+    // service_key is the installation's key towards the liketrek services.
+    // Missed here it reads back as unusable, the installation registers anew and
+    // loses its id, and a revoked key would come back as a fresh one.
     for (const key of [
       'oidc_client_secret',
       'smtp_pass',
@@ -304,6 +308,7 @@ async function main() {
       'unsplash_api_key',
       'amap_api_key',
       'web_push_vapid_private_key',
+      'service_key',
     ]) {
       const row = db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key) as { value: string } | undefined;
       if (!row?.value) continue;

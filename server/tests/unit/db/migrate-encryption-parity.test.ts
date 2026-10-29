@@ -10,6 +10,7 @@
  * key, decrypt_api_key returns null on the next read, and the instance quietly
  * behaves as if no key were configured. This pins the copy instead.
  */
+import { ENCRYPTED_APP_SETTING_KEYS } from '../../../src/nest/common/app-settings.registry';
 import { INSTANCE_API_KEY_NAMES } from '../../../src/nest/settings/instance-api-keys';
 import { storageSecretFields } from '@trek/shared';
 
@@ -108,6 +109,14 @@ describe('migrate-encryption.ts app_settings parity', () => {
 
   it('ROTPAR-003: the canonical list is not empty, so ROTPAR-001 cannot pass vacuously', () => {
     expect(INSTANCE_API_KEY_NAMES.length).toBeGreaterThan(0);
+  });
+
+  // The register marks every app setting stored encrypted, the service key among them.
+  it('ROTPAR-015: rotates every app setting the register stores encrypted', () => {
+    expect(ENCRYPTED_APP_SETTING_KEYS.size).toBeGreaterThan(0);
+    for (const key of ENCRYPTED_APP_SETTING_KEYS) {
+      expect(appSettingsLoop).toContain(`'${key}'`);
+    }
   });
 
   it('ROTPAR-004: rotates every storage.backends secret field for s3', () => {
