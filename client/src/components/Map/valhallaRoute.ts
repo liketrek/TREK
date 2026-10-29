@@ -52,6 +52,16 @@ const TREK_VALHALLA = '/api/routing/valhalla'
  */
 const RELAY_REST_MS = 10 * 60_000
 
+/** The longest Retry-After of the relay this tab follows; a longer one is asked about again after it. */
+const RELAY_MAX_WAIT_MS = 60 * 60_000
+
+/**
+ * How long a route or a height question may take through the relay. The server gives the
+ * TREK Valhalla ten seconds; this leaves room for its 502 to arrive first, and where the
+ * relay itself hangs, FOSSGIS answers soon after.
+ */
+const RELAY_TIMEOUT_MS = 12_000
+
 /**
  * How far Valhalla may look for a road under a point, in metres.
  *
@@ -388,22 +398,45 @@ export function resetValhallaTurns(): void {
 }
 
 /**
- * The relay's statuses that say it cannot answer for the TREK services right now: no
- * session (a shared page), no key, a body it does not take, an allowance spent, a host
- * that is down. A 400 is Valhalla's own refusal of the way and is read as such.
+ * Whether the relay's answer says it cannot answer for the TREK services right now: no
+ * session (a shared page), no key, a body it does not take, a route this server does not
+ * have yet, an allowance spent, a host that is down. A 400 that carries Valhalla's
+ * `error_code` is its own refusal of the way and is read as such; one without is the
+ * relay refusing the body.
  */
-function relayCannotAnswer(status: number): boolean {
-  return status === 401 || status === 403 || status === 413 || status === 429 || status >= 500
+async function relayCannotAnswer(response: Response): Promise<boolean> {
+  if (response.status === 400) {
+    const data: unknown = await response.clone().json().catch(() => null)
+    return typeof (data as { error_code?: unknown } | null)?.error_code !== 'number'
+  }
+  return [401, 403, 404, 405, 413, 429].includes(response.status) || response.status >= 500
+}
+
+/** The relay's Retry-After in milliseconds, as seconds or an HTTP date, or null without one. */
+function relayWait(response: Response): number | null {
+  const value = response.headers.get('Retry-After')?.trim()
+  if (!value) return null
+  if (/^\d+$/.test(value)) return Number(value) * 1000
+  const at = Date.parse(value)
+  return Number.isNaN(at) ? null : Math.max(0, at - Date.now())
 }
 
 async function askRelay(action: ValhallaRelayAction, body: object, signal?: AbortSignal): Promise<Response | null> {
+  let bounded = signal
+  // A description brings its own deadline; a route or a height gets the relay's.
+  if (action !== 'trace_attributes') {
+    const deadline = AbortSignal.timeout(RELAY_TIMEOUT_MS)
+    bounded = signal ? AbortSignal.any([signal, deadline]) : deadline
+  }
+  let wait = RELAY_REST_MS
   try {
-    const response = await valhallaRelayRepo.ask(action, body, signal)
-    if (!relayCannotAnswer(response.status)) return response
+    const response = await valhallaRelayRepo.ask(action, body, bounded)
+    if (!(await relayCannotAnswer(response))) return response
+    wait = Math.min(relayWait(response) ?? RELAY_REST_MS, RELAY_MAX_WAIT_MS)
   } catch (err) {
     if (signal?.aborted) throw err
   }
-  relayRestingUntil = Date.now() + RELAY_REST_MS
+  relayRestingUntil = Date.now() + wait
   return null
 }
 

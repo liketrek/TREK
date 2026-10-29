@@ -793,4 +793,56 @@ describe('through the TREK services (routing relay)', () => {
     expect(bodies[0]).not.toHaveProperty('shape')
     expect(bodies[0]).toMatchObject({ encoded_polyline: expect.any(String), costing: 'bicycle', shape_match: 'map_snap' })
   })
+
+  it('VALHALLA-RELAY-006: reads a 400 without error_code, and a route the server does not have, as the relay unable to answer', async () => {
+    const refusals = [
+      () => HttpResponse.json({ error: 'Expected number, received string' }, { status: 400 }),
+      () => new HttpResponse('Not Found', { status: 404 }),
+      () => HttpResponse.json({ error: 'Method Not Allowed' }, { status: 405 }),
+    ]
+    for (const refusal of refusals) {
+      resetValhallaTurns()
+      let fossgis = 0
+      server.use(
+        http.post(RELAY, refusal),
+        http.post(FOSSGIS_VALHALLA, () => { fossgis++; return HttpResponse.json(answer()) }),
+      )
+      await expect(valhallaRouteAvoiding(HAMBURG, BERLIN, 'driving', 'toll')).resolves.not.toBeNull()
+      expect(fossgis).toBe(1)
+      expect(valhallaBase()).toBe('https://valhalla1.openstreetmap.de')
+    }
+  })
+
+  it('VALHALLA-RELAY-007: rests the relay as long as its Retry-After says, at most an hour', async () => {
+    for (const [retryAfter, restMs] of [['30', 30_000], ['86400', 60 * 60_000]] as const) {
+      resetValhallaTurns()
+      server.use(
+        http.post(RELAY, () => HttpResponse.json({ error: 'spent' }, { status: 429, headers: { 'Retry-After': retryAfter } })),
+        http.post(FOSSGIS_VALHALLA, () => HttpResponse.json(answer())),
+      )
+      await valhallaRouteAvoiding(HAMBURG, BERLIN, 'driving', 'toll')
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(Date.now() + restMs - 1000)
+      expect(valhallaBase()).toBe('https://valhalla1.openstreetmap.de')
+      vi.setSystemTime(Date.now() + 2000)
+      expect(valhallaBase()).toBe(TREK_VALHALLA)
+      vi.useRealTimers()
+    }
+  })
+
+  it('VALHALLA-RELAY-008: gives up on a relay that does not answer in time and asks FOSSGIS', async () => {
+    const timeout = AbortSignal.timeout.bind(AbortSignal)
+    const spy = vi.spyOn(AbortSignal, 'timeout').mockImplementation(ms =>
+      ms === 12_000 ? AbortSignal.abort(new DOMException('signal timed out', 'TimeoutError')) : timeout(ms))
+    let fossgis = 0
+    server.use(
+      http.post(RELAY, () => HttpResponse.json(answer())),
+      http.post(FOSSGIS_VALHALLA, () => { fossgis++; return HttpResponse.json(answer()) }),
+    )
+    await expect(valhallaRouteAvoiding(HAMBURG, BERLIN, 'driving', 'toll')).resolves.not.toBeNull()
+    expect(spy).toHaveBeenCalledWith(12_000)
+    expect(fossgis).toBe(1)
+    expect(valhallaBase()).toBe('https://valhalla1.openstreetmap.de')
+    spy.mockRestore()
+  })
 })
