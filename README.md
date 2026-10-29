@@ -6,7 +6,9 @@
   <img src="docs/logo-trek-dark.svg" alt="TREK" height="96" />
 </picture>
 
-A self-hosted, real-time collaborative travel planner — with maps, budgets, packing lists, a journal, and AI built in.
+### Every part of your trip. One app you own.
+
+TREK has grown from a travel planner into a whole ecosystem for trips: plan together in real time on a live map, build hikes, tours and road trips, keep bookings and shared costs in order, pack, write the journal, lay out the photo book and hand the busy work to the built-in AI. Self-hosted, on the web, on your phone and offline.
 
 <br />
 
