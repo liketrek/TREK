@@ -84,6 +84,7 @@ import { ReservationImportModule } from './reservation-import/reservation-import
 import { ReservationsModule } from './reservations/reservations.module';
 import { RoadtripModule } from './roadtrip/roadtrip.module';
 import { RouteUsageModule } from './route-usage/route-usage.module';
+import { RoutingRelayModule } from './routing-relay/routing-relay.module';
 import { SchedulingModule } from './scheduling/scheduling.module';
 import { SchoolHolidaysModule } from './school-holidays/school-holidays.module';
 import { ServiceIdentityModule } from './service-identity/service-identity.module';
@@ -184,6 +185,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
     FeedsModule,
     SettingsModule,
     ServiceIdentityModule,
+    RoutingRelayModule,
     StorageModule,
     BackupModule,
     AuthModule,

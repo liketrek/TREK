@@ -3,9 +3,11 @@ import type { PluginsRepository } from '../../db/repositories/Plugins.repository
 import { readCappedJson, discardBody } from '../../utils/cappedFetch';
 import { safeFetchAdminConfigured } from '../../utils/ssrfGuard';
 import { logWarn } from '../audit/audit-log.logger';
+import { DomainError } from '../common/domain-error';
 import { normalize, declaredProfiles } from '../plugins/contributions/plugin-route-normalize';
 import { pluginsEnabled } from '../plugins/kill-switch';
 import { PluginHooks } from '../plugins/plugin-hooks.service';
+import { RoutingRelayService, type ValhallaRelayAnswer } from '../routing-relay/routing-relay.service';
 import { SettingsService } from '../settings/settings.service';
 import {
   HEIGHT_CHUNK_SIZE,
@@ -18,7 +20,12 @@ import {
 } from './valhalla-hike.helpers';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
-import type { GeometryPoint } from '@trek/shared';
+import {
+  resolveValhallaProvider,
+  type GeometryPoint,
+  type ValhallaProvider,
+  type ValhallaRelayAction,
+} from '@trek/shared';
 import {
   formatDurationShort,
   haversineKm,
@@ -151,9 +158,42 @@ const refusalSchema = z.object({ error_code: z.number() });
 const REFUSAL_MAX_BYTES = 64 * 1024;
 
 /** Valhalla's word in a router's 400 that the way cannot be had, or null where the 400 says something else. */
-async function refusalOf(response: Response): Promise<'no_way' | 'too_long' | null> {
-  const refusal = refusalSchema.safeParse(await readCappedJson(response, REFUSAL_MAX_BYTES));
+function refusalIn(payload: unknown): 'no_way' | 'too_long' | null {
+  const refusal = refusalSchema.safeParse(payload);
   return refusal.success ? (REFUSAL_CODES.get(refusal.data.error_code) ?? null) : null;
+}
+
+async function refusalOf(response: Response): Promise<'no_way' | 'too_long' | null> {
+  return refusalIn(await readCappedJson(response, REFUSAL_MAX_BYTES));
+}
+
+/** The public Valhalla FOSSGIS runs, which TREK ships with. */
+const FOSSGIS_VALHALLA = 'https://valhalla1.openstreetmap.de';
+
+/**
+ * What the relay says when it cannot answer for the TREK services right now:
+ * no key, an allowance spent, a body it does not take, a host that is down.
+ * The question then goes to FOSSGIS, as the planner in the browser sends it.
+ */
+function relayCannotAnswer(status: number): boolean {
+  return status === 401 || status === 403 || status === 413 || status === 429 || status >= 500;
+}
+
+/** The relay's answer read as the queue reads a router's: the payload, a refusal, or a failure. */
+function payloadOf(answer: ValhallaRelayAnswer): unknown {
+  let payload: unknown;
+  try {
+    payload = JSON.parse(answer.body.toString('utf8'));
+  } catch {
+    payload = undefined;
+  }
+  if (answer.status === 400) {
+    const why = refusalIn(payload);
+    if (why) throw new RouteRefusal(why, 'Routing provider returned 400');
+  }
+  if (answer.status < 200 || answer.status >= 300) throw new Error(`Routing provider returned ${answer.status}`);
+  if (payload === undefined) throw new Error('Routing response is invalid or too large');
+  return payload;
 }
 
 /** How often a piece of a line whose heights could not be read is asked again, as the planner asks a route again. */
@@ -169,14 +209,29 @@ function heightsKey(userId: number, valhalla: string, line: ReadonlyArray<readon
   return `${userId} ${valhalla} ${digest}`;
 }
 
-/** The routers a user's settings name: their own OSRM (blank for the public hosts) and the Valhalla to ask, if any. */
-function routersOf(settings: Record<string, unknown>): { base: string; valhalla: string } {
+/**
+ * The routers a user's settings name: their own OSRM (blank for the public
+ * hosts) and the Valhalla to ask, if any, chosen as the browser chooses it
+ * (`valhallaBase`). `trekValhalla` is the TREK services' Valhalla while it can
+ * be asked.
+ */
+function routersOf(settings: Record<string, unknown>, trekValhalla: string | null): { base: string; valhalla: string } {
   const base =
     typeof settings.routing_base_url === 'string' ? settings.routing_base_url.trim().replace(/\/+$/, '') : '';
   const configuredValhalla =
     typeof settings.valhalla_base_url === 'string' ? settings.valhalla_base_url.trim().replace(/\/+$/, '') : '';
-  // An own OSRM without a Valhalla means no Valhalla at all, as in the browser (`valhallaBase`).
-  return { base, valhalla: configuredValhalla || (base ? '' : 'https://valhalla1.openstreetmap.de') };
+  const provider = resolveValhallaProvider({
+    provider: settings.routing_valhalla_provider,
+    valhallaUrl: configuredValhalla,
+    routingUrl: base,
+    trekAvailable: trekValhalla !== null,
+  });
+  const valhallaOf: Record<ValhallaProvider, string> = {
+    custom: configuredValhalla,
+    trek: trekValhalla ?? FOSSGIS_VALHALLA,
+    fossgis: FOSSGIS_VALHALLA,
+  };
+  return { base, valhalla: provider ? valhallaOf[provider] : '' };
 }
 
 /** Valhalla's maneuver type for boarding a ferry. */
@@ -249,6 +304,7 @@ export class RoadtripRouterService {
     private readonly settings: SettingsService,
     private readonly hooks: PluginHooks,
     @InjectRepository(Plugins) private readonly plugins: PluginsRepository,
+    private readonly relay: RoutingRelayService,
   ) {}
 
   async profiles(): Promise<string[]> {
@@ -297,6 +353,28 @@ export class RoadtripRouterService {
     }
   }
 
+  /**
+   * One question to a Valhalla. The TREK services' one is asked through the
+   * relay, under the user's allowance there and with the installation key; a
+   * relay that cannot answer hands the question to FOSSGIS through the paced
+   * queue. Every other Valhalla is asked through the queue directly.
+   */
+  private async askValhalla(
+    userId: number,
+    valhalla: string,
+    action: ValhallaRelayAction,
+    body: object,
+    timeoutMs?: number,
+  ): Promise<unknown> {
+    if (!this.relay.serves(valhalla)) return this.request(`${valhalla}/${action}`, body, timeoutMs);
+    const answer = await this.relay.ask(userId, action, body, timeoutMs).catch((err: unknown) => {
+      if (err instanceof DomainError) return null;
+      throw err;
+    });
+    if (answer && !relayCannotAnswer(answer.status)) return payloadOf(answer);
+    return this.request(`${FOSSGIS_VALHALLA}/${action}`, body, timeoutMs);
+  }
+
   async route(
     userId: number,
     tripId: number,
@@ -319,6 +397,7 @@ export class RoadtripRouterService {
       avoid,
       settings.routing_base_url,
       settings.valhalla_base_url,
+      settings.routing_valhalla_provider,
       ...(footOnly ? ['foot-only'] : []),
       ...(hiking ? [{ hiking }] : []),
     ]);
@@ -350,19 +429,21 @@ export class RoadtripRouterService {
       parts = route.legs;
     } else {
       const mode = profile === 'walking' || profile === 'cycling' ? profile : 'driving';
-      const { base, valhalla } = routersOf(settings);
+      const { base, valhalla } = routersOf(settings, this.relay.trekValhalla());
       let weighted = false;
       if (hiking) {
         const cycling = mode === 'cycling';
         if (!valhalla) {
           throw new RouteRefusal('no_valhalla', `No Valhalla is set to plan a ${cycling ? 'bike tour' : 'hike'} with`);
         }
-        const legs = await this.valhallaLegs(valhalla, points, cycling ? 'bicycle' : 'pedestrian', { ...hiking });
+        const legs = await this.valhallaLegs(userId, valhalla, points, cycling ? 'bicycle' : 'pedestrian', {
+          ...hiking,
+        });
         ({ line, distance, duration, parts, snapped } = routeOfLegs(points, legs));
         weighted = true;
       } else if (footOnly && valhalla) {
         try {
-          const legs = await this.valhallaLegs(valhalla, points, 'pedestrian', { use_ferry: 0 }, true);
+          const legs = await this.valhallaLegs(userId, valhalla, points, 'pedestrian', { use_ferry: 0 }, true);
           ({ line, distance, duration, parts, snapped } = routeOfLegs(points, legs));
           ferryLegs = legs.flatMap((leg, index) => (crossesByBoat(leg) ? [index] : []));
           weighted = true;
@@ -377,7 +458,7 @@ export class RoadtripRouterService {
             use_highways: avoid.includes('motorway') ? 0 : 1,
             use_ferry: avoid.includes('ferry') ? 0 : 1,
           };
-          const legs = await this.valhallaLegs(valhalla, points, 'auto', options);
+          const legs = await this.valhallaLegs(userId, valhalla, points, 'auto', options);
           ({ line, distance, duration, parts, snapped } = routeOfLegs(points, legs));
           avoidMissed = avoid.filter((cls) =>
             legs.some((leg) =>
@@ -479,6 +560,7 @@ export class RoadtripRouterService {
    * a ferry's edge (`offBoatLines`).
    */
   private async valhallaLegs(
+    userId: number,
     valhalla: string,
     points: Point[],
     costing: 'auto' | 'pedestrian' | 'bicycle',
@@ -487,7 +569,7 @@ export class RoadtripRouterService {
   ): Promise<ValhallaLegs> {
     const legs: ValhallaLegs = [];
     for (let start = 0; start < points.length - 1; start += 9) {
-      const payload = await this.request(`${valhalla}/route`, {
+      const payload = await this.askValhalla(userId, valhalla, 'route', {
         locations: points.slice(start, start + 10).map((p) => ({
           lat: p.lat,
           lon: p.lng,
@@ -506,7 +588,7 @@ export class RoadtripRouterService {
 
   /** The Valhalla a user's routes are asked of, or null where there is none to ask. */
   private async valhallaFor(userId: number): Promise<string | null> {
-    return routersOf(await this.settings.getUserSettings(userId)).valhalla || null;
+    return routersOf(await this.settings.getUserSettings(userId), this.relay.trekValhalla()).valhalla || null;
   }
 
   /**
@@ -526,7 +608,9 @@ export class RoadtripRouterService {
     const key = heightsKey(userId, valhalla, line);
     const kept = this.heightsCache.get(key);
     const heights =
-      kept && Date.now() - kept.at < HEIGHTS_TTL_MS ? kept.heights : await this.readHeights(key, valhalla, line);
+      kept && Date.now() - kept.at < HEIGHTS_TTL_MS
+        ? kept.heights
+        : await this.readHeights(userId, key, valhalla, line);
     return line.map(([lat, lng], index): GeometryPoint => {
       const height = heights[index];
       return height === null ? [lat, lng] : [lat, lng, height];
@@ -535,6 +619,7 @@ export class RoadtripRouterService {
 
   /** The heights of a line asked piece by piece, kept under `key` where every piece was answered. */
   private async readHeights(
+    userId: number,
     key: string,
     valhalla: string,
     line: ReadonlyArray<readonly [number, number]>,
@@ -545,7 +630,7 @@ export class RoadtripRouterService {
     // One piece after another through the queue; the first that fails twice ends the reading.
     const whole = await offsets.reduce<Promise<boolean>>(async (going, offset) => {
       if (!(await going)) return false;
-      const read = await this.pieceHeights(valhalla, line.slice(offset, offset + HEIGHT_CHUNK_SIZE), offset);
+      const read = await this.pieceHeights(userId, valhalla, line.slice(offset, offset + HEIGHT_CHUNK_SIZE), offset);
       // The point a piece shares with the one before keeps the height it already has.
       read?.forEach((height, index) => {
         if (index > 0 || heights[offset] === null) heights[offset + index] = height;
@@ -565,6 +650,7 @@ export class RoadtripRouterService {
    * `retries` times where its question fails, or null where it failed every time.
    */
   private async pieceHeights(
+    userId: number,
     valhalla: string,
     piece: ReadonlyArray<readonly [number, number]>,
     offset: number,
@@ -572,13 +658,13 @@ export class RoadtripRouterService {
   ): Promise<Array<number | null> | null> {
     let why: string;
     try {
-      const read = heightsOf(await this.request(`${valhalla}/height`, heightBody(piece)), piece.length);
+      const read = heightsOf(await this.askValhalla(userId, valhalla, 'height', heightBody(piece)), piece.length);
       if (read) return read;
       why = 'the answer does not name every point';
     } catch (err: unknown) {
       why = err instanceof Error ? err.message : String(err);
     }
-    if (retries > 0) return await this.pieceHeights(valhalla, piece, offset, retries - 1);
+    if (retries > 0) return await this.pieceHeights(userId, valhalla, piece, offset, retries - 1);
     logWarn(`[Router] heights stop at point ${offset}: ${why}`);
     return null;
   }
@@ -594,7 +680,8 @@ export class RoadtripRouterService {
   async wayIds(userId: number, line: ReadonlyArray<readonly [number, number]>): Promise<TracedWay[]> {
     const valhalla = await this.valhallaFor(userId);
     if (!valhalla) throw new RouteRefusal('no_valhalla', 'No Valhalla is set to describe a line with');
-    return tracedWaysOf(await this.request(`${valhalla}/trace_attributes`, traceBody(line), TRACE_TIMEOUT_MS));
+    const answer = await this.askValhalla(userId, valhalla, 'trace_attributes', traceBody(line), TRACE_TIMEOUT_MS);
+    return tracedWaysOf(answer);
   }
 
   /**
@@ -614,7 +701,7 @@ export class RoadtripRouterService {
   ): Promise<Array<[number, number][]>> {
     const valhalla = await this.valhallaFor(userId);
     if (!valhalla) throw new RouteRefusal('no_valhalla', 'No Valhalla is set to plan a hike with');
-    const payload = await this.request(`${valhalla}/route`, {
+    const payload = await this.askValhalla(userId, valhalla, 'route', {
       locations: [from, to].map((p) => ({ lat: p.lat, lon: p.lng, radius: 50 })),
       costing: 'pedestrian',
       costing_options: { pedestrian: { ...costingOptions } },

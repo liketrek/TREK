@@ -323,6 +323,14 @@ describe('deriveServices (servicesConfig token)', () => {
       'https://geo.example.org/photon',
     );
   });
+
+  it('relays routing to valhalla.liketrek.com unless TREK_VALHALLA_URL names another, without its trailing slash', () => {
+    expect(deriveServices({}).valhallaUrl).toBe('https://valhalla.liketrek.com');
+    expect(deriveServices({ TREK_VALHALLA_URL: ' http://valhalla.lan:8002/ ' }).valhallaUrl).toBe(
+      'http://valhalla.lan:8002',
+    );
+    expect(deriveServices({ TREK_VALHALLA_URL: '  ' }).valhallaUrl).toBe('https://valhalla.liketrek.com');
+  });
 });
 
 describe('deriveFiles (#1364)', () => {

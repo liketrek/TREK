@@ -121,6 +121,9 @@ data:
   {{- if .Values.env.TREK_PHOTON_URL }}
   TREK_PHOTON_URL: {{ .Values.env.TREK_PHOTON_URL | quote }}
   {{- end }}
+  {{- if .Values.env.TREK_VALHALLA_URL }}
+  TREK_VALHALLA_URL: {{ .Values.env.TREK_VALHALLA_URL | quote }}
+  {{- end }}
   {{- if .Values.env.GOOGLE_LIST_DATA_BASE }}
   GOOGLE_LIST_DATA_BASE: {{ .Values.env.GOOGLE_LIST_DATA_BASE | quote }}
   {{- end }}

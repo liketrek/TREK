@@ -124,6 +124,9 @@ env:
   # The address search (Photon) of the TREK services. With a key, search and reverse lookups ask it before
   # Nominatim and fall back to Nominatim when it does not answer. Never asked when NOMINATIM_URL is set.
   # Defaults to https://photon.liketrek.com.
+  # TREK_VALHALLA_URL: ""
+  # The Valhalla of the TREK services, which this server relays routing to unless the admin picks another
+  # routing service. The browser never talks to it. Defaults to https://valhalla.liketrek.com.
   # AMAP_API_BASE: ""
   # Send the Amap (高德地图) calls through an egress proxy, a cache or a gateway that speaks the same API instead of
   # restapi.amap.com directly. The key itself is a credential and goes under secretEnv.AMAP_API_KEY, or into

@@ -18,7 +18,8 @@ import { Module, type OnModuleDestroy } from '@nestjs/common';
  * The installation identity towards the liketrek services: the key, its
  * registration and renewal, and the admin view of it. The Places client reads
  * the request side through serviceIdentitySlot, which this module fills with
- * the port the container resolved.
+ * the port the container resolved; a provider (the routing relay) injects the
+ * exported port instead.
  */
 @Module({
   imports: [AppConfigModule, AuditModule, SchedulingModule, SettingsModule],
@@ -33,6 +34,7 @@ import { Module, type OnModuleDestroy } from '@nestjs/common';
     ServiceKeyStore,
     { provide: ServiceIdentityPort, useClass: ServiceRequestIdentity },
   ],
+  exports: [ServiceIdentityPort],
 })
 export class ServiceIdentityModule implements OnModuleDestroy {
   constructor(private readonly port: ServiceIdentityPort) {

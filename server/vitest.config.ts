@@ -186,6 +186,9 @@ export default defineConfig({
         // points against the headroom of the domains beside them.
         'src/nest/roadtrip/**/*.ts': { statements: 88, branches: 80, functions: 95, lines: 95 },
         'src/nest/route-usage/**/*.ts': { statements: 84, branches: 66, functions: 77, lines: 83 },
+        // New domain in this change, unmeasured: on the 80 floor until the first
+        // full CI run, then raised with scripts/coverage-thresholds.mjs, never lowered.
+        'src/nest/routing-relay/**/*.ts': { statements: 80, branches: 80, functions: 80, lines: 80 },
         'src/nest/scheduling/**/*.ts': { statements: 99, branches: 92, functions: 99, lines: 99 },
         'src/nest/school-holidays/**/*.ts': { statements: 97, branches: 95, functions: 99, lines: 97 },
         // New domain in this change, unmeasured: on the 80 floor until the first

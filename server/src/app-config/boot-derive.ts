@@ -67,6 +67,8 @@ const DEFAULT_SERVICE_HOSTS = ['places.liketrek.com', 'photon.liketrek.com', 'va
 
 /** The address search of the TREK services, asked before Nominatim while the installation holds a key. */
 const DEFAULT_PHOTON_URL = 'https://photon.liketrek.com';
+/** The TREK services' Valhalla, asked through this server's routing relay. */
+const DEFAULT_VALHALLA_URL = 'https://valhalla.liketrek.com';
 
 /**
  * How this installation identifies itself to the liketrek services. Unset is
@@ -81,6 +83,7 @@ export function deriveServices(raw: RawEnv) {
     key: raw.TREK_SERVICES_KEY?.trim() || null,
     hosts: hosts?.length ? hosts : DEFAULT_SERVICE_HOSTS,
     photonUrl: stripTrailingSlashes(raw.TREK_PHOTON_URL?.trim() || DEFAULT_PHOTON_URL),
+    valhallaUrl: stripTrailingSlashes(raw.TREK_VALHALLA_URL?.trim() || DEFAULT_VALHALLA_URL),
   };
 }
 

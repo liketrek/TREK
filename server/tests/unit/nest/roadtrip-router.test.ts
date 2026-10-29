@@ -1,4 +1,6 @@
+import { DomainError } from '../../../src/nest/common/domain-error';
 import { RoadtripRouterService, RouteRefusal } from '../../../src/nest/roadtrip/roadtrip-router.service';
+import type { ValhallaRelayAnswer } from '../../../src/nest/routing-relay/routing-relay.service';
 import { safeFetchAdminConfigured } from '../../../src/utils/ssrfGuard';
 import { valhallaPolyline } from '../../helpers/valhalla';
 
@@ -35,6 +37,13 @@ const osrm = () =>
       waypoints: points.map((p) => ({ location: [p.lng, p.lat], distance: 25 })),
     }),
   );
+const TREK_VALHALLA = 'https://valhalla.liketrek.com';
+/** The routing relay: no TREK Valhalla to ask unless a case opens one. */
+const relay = {
+  trekValhalla: vi.fn((): string | null => null),
+  serves: vi.fn((base: string) => base === TREK_VALHALLA),
+  ask: vi.fn<(...args: unknown[]) => Promise<ValhallaRelayAnswer>>(),
+};
 function setup(settings = {}) {
   const hooks = { providersOf: vi.fn(() => ['scenic']), route: vi.fn() };
   // RRT1/RRT2 (Plan 3j Task 3, confirmed at Task 5's own HEAD) — `declaredProfiles`
@@ -42,7 +51,12 @@ function setup(settings = {}) {
   const plugins = { findCapabilities: vi.fn(async () => JSON.stringify({ routeProfiles: [{ id: 'car' }] })) };
   return {
     hooks,
-    router: new RoadtripRouterService({ getUserSettings: () => settings } as never, hooks as never, plugins as never),
+    router: new RoadtripRouterService(
+      { getUserSettings: () => settings } as never,
+      hooks as never,
+      plugins as never,
+      relay as never,
+    ),
   };
 }
 beforeEach(() => {
@@ -50,6 +64,8 @@ beforeEach(() => {
   vi.mocked(safeFetchAdminConfigured)
     .mockReset()
     .mockImplementation(async () => osrm());
+  relay.trekValhalla.mockReset().mockReturnValue(null);
+  relay.ask.mockReset();
 });
 afterEach(() => vi.useRealTimers());
 
@@ -671,6 +687,127 @@ describe('server Roadtrip router: other ways on foot (RTE-02)', () => {
         3,
       ),
     ).rejects.toMatchObject({ why: 'no_valhalla' });
+    expect(safeFetchAdminConfigured).not.toHaveBeenCalled();
+  });
+});
+
+describe('server Roadtrip router through the TREK services (routing relay)', () => {
+  const answer = (status: number, body: unknown): ValhallaRelayAnswer => ({
+    status,
+    contentType: 'application/json',
+    body: Buffer.from(JSON.stringify(body)),
+  });
+  const tolled = {
+    trip: {
+      legs: [
+        {
+          shape: valhallaPolyline([
+            [48, 10],
+            [49, 11],
+          ]),
+          summary: { length: 25, time: 1200, has_toll: false },
+        },
+      ],
+    },
+  };
+  const settled = async <T>(pending: Promise<T>): Promise<T> => {
+    await vi.runAllTimersAsync();
+    return await pending;
+  };
+
+  beforeEach(() => relay.trekValhalla.mockReturnValue(TREK_VALHALLA));
+
+  it('ROUTER-RELAY-001: asks the TREK Valhalla through the relay by default, under the asking user', async () => {
+    relay.ask.mockResolvedValueOnce(answer(200, tolled));
+    const route = await setup().router.route(7, 1, 1, points.slice(0, 2), 'driving', ['toll']);
+    expect(route.avoidMissed).toEqual([]);
+    expect(relay.ask).toHaveBeenCalledTimes(1);
+    const [userId, action, body] = relay.ask.mock.calls[0] as [number, string, { costing: string }];
+    expect([userId, action, body.costing]).toEqual([7, 'route', 'auto']);
+    expect(safeFetchAdminConfigured).not.toHaveBeenCalled();
+  });
+
+  it('ROUTER-RELAY-002: hands the question to FOSSGIS where the relay cannot answer', async () => {
+    const refusals = [
+      () => Promise.resolve(answer(429, { error: 'Too many routing requests' })),
+      () => Promise.resolve(answer(502, { error: 'down' })),
+      () => Promise.reject(new DomainError(503, 'The TREK routing service is not available on this instance')),
+    ];
+    for (const [userId, refusal] of refusals.entries()) {
+      vi.mocked(safeFetchAdminConfigured)
+        .mockReset()
+        .mockResolvedValueOnce(new Response(JSON.stringify(tolled)));
+      relay.ask.mockReset().mockImplementationOnce(refusal);
+      const route = await settled(setup().router.route(userId, 1, 1, points.slice(0, 2), 'driving', ['toll']));
+      expect(route.avoidMissed).toEqual([]);
+      expect(vi.mocked(safeFetchAdminConfigured).mock.calls[0][0]).toBe('https://valhalla1.openstreetmap.de/route');
+    }
+  });
+
+  it('ROUTER-RELAY-003: reads the TREK Valhalla saying no way joins the points as a refusal, and fails on any other error', async () => {
+    const costingOptions = { max_hiking_difficulty: 3 };
+    relay.ask.mockResolvedValueOnce(answer(400, { error_code: 442, error: 'No path could be found for input' }));
+    const refused = setup().router.route(1, 1, 0, points.slice(0, 2), 'walking', [], { costingOptions });
+    await expect(refused).rejects.toMatchObject({ why: 'no_way' });
+
+    relay.ask.mockRejectedValueOnce(new Error('socket hang up'));
+    await expect(setup().router.route(1, 1, 0, points.slice(0, 2), 'walking', [], { costingOptions })).rejects.toThrow(
+      'socket hang up',
+    );
+    expect(safeFetchAdminConfigured).not.toHaveBeenCalled();
+  });
+
+  it('ROUTER-RELAY-004: an admin choice of FOSSGIS or an own Valhalla never reaches the relay', async () => {
+    vi.mocked(safeFetchAdminConfigured).mockImplementation(async () => new Response(JSON.stringify(tolled)));
+    await setup({ routing_valhalla_provider: 'fossgis' }).router.route(1, 1, 1, points.slice(0, 2), 'driving', [
+      'toll',
+    ]);
+    expect(vi.mocked(safeFetchAdminConfigured).mock.calls[0][0]).toBe('https://valhalla1.openstreetmap.de/route');
+    await settled(
+      setup({ valhalla_base_url: 'https://valhalla.internal' }).router.route(2, 1, 1, points.slice(0, 2), 'driving', [
+        'toll',
+      ]),
+    );
+    expect(vi.mocked(safeFetchAdminConfigured).mock.calls[1][0]).toBe('https://valhalla.internal/route');
+    expect(relay.ask).not.toHaveBeenCalled();
+  });
+
+  it('ROUTER-RELAY-005: an own OSRM alone asks no Valhalla, unless the admin picked the TREK services', async () => {
+    const own = { routing_base_url: 'http://router.internal' };
+    await setup(own).router.route(1, 1, 1, points, 'driving', ['toll']);
+    expect(relay.ask).not.toHaveBeenCalled();
+
+    relay.ask.mockResolvedValueOnce(answer(200, tolled));
+    await setup({ ...own, routing_valhalla_provider: 'trek' }).router.route(1, 1, 1, points.slice(0, 2), 'driving', [
+      'toll',
+    ]);
+    expect(relay.ask).toHaveBeenCalledTimes(1);
+  });
+
+  it('ROUTER-RELAY-006: reads heights and the ways under a line through the relay', async () => {
+    relay.ask.mockImplementation(async (_userId, action, body) =>
+      action === 'height'
+        ? answer(200, {
+            range_height: (body as { shape: unknown[] }).shape.map((_point, index) => [index, 400 + index]),
+          })
+        : answer(200, { edges: [{ way_id: 5, length: 0.3 }] }),
+    );
+    const { router } = setup();
+    const line: Array<[number, number]> = [
+      [47, 11],
+      [47.001, 11],
+      [47.002, 11],
+    ];
+    expect(await router.heights(3, line)).toEqual([
+      [47, 11, 400],
+      [47.001, 11, 401],
+      [47.002, 11, 402],
+    ]);
+    expect(await router.wayIds(3, line)).toEqual([{ wayId: 5, metres: 300 }]);
+    expect(relay.ask.mock.calls.map(([userId, action]) => [userId, action])).toEqual([
+      [3, 'height'],
+      [3, 'trace_attributes'],
+    ]);
     expect(safeFetchAdminConfigured).not.toHaveBeenCalled();
   });
 });

@@ -20,6 +20,7 @@ import { PermissionsModule } from '../permissions/permissions.module';
 import { PlacesModule } from '../places/places.module';
 import { PluginsRuntimeModule } from '../plugins/plugins-runtime.module';
 import { RealtimeModule } from '../realtime/realtime.module';
+import { RoutingRelayModule } from '../routing-relay/routing-relay.module';
 import { SettingsModule } from '../settings/settings.module';
 import { TripMembershipModule } from '../trip-membership/trip-membership.module';
 import { ChargingLookupController } from './charging-lookup.controller';
@@ -79,6 +80,7 @@ import { Module } from '@nestjs/common';
 
     AddonsModule,
     RealtimeModule,
+    RoutingRelayModule,
     SettingsModule,
     PluginsRuntimeModule,
     MapsModule,

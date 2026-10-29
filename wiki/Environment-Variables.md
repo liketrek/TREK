@@ -395,6 +395,7 @@ TREK's own place index, the [TREK Places API](TREK-Places-API), answers the sugg
 | `TREK_SERVICES_KEY`   | A key issued to you for this installation. Wins over the stored key and turns self-registration off. A value that is not a key aborts startup. | none |
 | `TREK_SERVICES_HOSTS` | Comma-separated hosts that receive the installation key over https. | `places.liketrek.com,photon.liketrek.com,valhalla.liketrek.com` |
 | `TREK_PHOTON_URL`     | The address search of the TREK services, a [Photon](https://github.com/komoot/photon) instance. Once the installation holds a key, the OpenStreetMap search and the reverse lookups ask it before Nominatim and fall back to Nominatim whenever it does not answer. It is never asked with `TREK_SERVICES=off`, without a key, or when `NOMINATIM_URL` is set. See [Address search](TREK-Places-API#address-search). | `https://photon.liketrek.com` |
+| `TREK_VALHALLA_URL`   | The Valhalla of the TREK services. Routes, elevation and the description of a line go there unless the admin picks another routing service under Admin, Default user settings; this server relays them with the installation key, so the browser never talks to it. A trailing slash is stripped, and a value that is not a full URL aborts startup. | `https://valhalla.liketrek.com` |
 
 On Helm these go under `env:` in `values.yaml`, except `TREK_SERVICES_KEY`, which goes under `secretEnv:`. The chart passes `TREK_PLACES_ENABLED` through whenever it is set at all, so an unquoted `false` or `--set env.TREK_PLACES_ENABLED=false` reaches the container as well.
 
