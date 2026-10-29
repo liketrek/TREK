@@ -172,11 +172,12 @@ const FOSSGIS_VALHALLA = 'https://valhalla1.openstreetmap.de';
 
 /**
  * What the relay says when it cannot answer for the TREK services right now:
- * no key, an allowance spent, a body it does not take, a host that is down.
- * The question then goes to FOSSGIS, as the planner in the browser sends it.
+ * no key, an allowance spent, a body it does not take, a path the host does
+ * not know, a host that is down or resting. The question then goes to
+ * FOSSGIS, as the planner in the browser sends it.
  */
 function relayCannotAnswer(status: number): boolean {
-  return status === 401 || status === 403 || status === 413 || status === 429 || status >= 500;
+  return [401, 403, 404, 405, 413, 429].includes(status) || status >= 500;
 }
 
 /** The relay's answer read as the queue reads a router's: the payload, a refusal, or a failure. */

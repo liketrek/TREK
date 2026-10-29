@@ -51,7 +51,7 @@ The address of an OSRM instance of your own, for example `https://osrm.example.o
 Which Valhalla answers what OSRM cannot: driving around toll roads, motorways and ferries, and the routes, heights and ways of tours.
 
 - **Automatic** (nothing chosen): the TREK services, or **Own Valhalla instance** when one is set. If only **Own routing engine** is set, no Valhalla is asked.
-- **TREK services**: the Valhalla at `valhalla.liketrek.com` (or `TREK_VALHALLA_URL`). This server asks it with the installation key, so the browser never talks to it and no restart is needed. Where it cannot answer (no key yet, the day's allowance spent, the service down, or a shared page without a sign-in), TREK asks the public FOSSGIS Valhalla instead, without a message.
+- **TREK services**: the Valhalla at `valhalla.liketrek.com` (or `TREK_VALHALLA_URL`). This server asks it with the installation key, so the browser never talks to it and no restart is needed. Where it cannot answer (no key yet, the day's allowance spent, the service down or slow to answer, or a shared page without a sign-in), TREK asks the public FOSSGIS Valhalla instead, without a message. After such an answer it keeps asking FOSSGIS for a while: a minute after an error or a question that took longer than ten seconds, as long as the service says when the allowance is spent (an hour at most). Each user may ask 60 routing questions a minute through this server, and the whole installation 100.
 - **Public Valhalla (FOSSGIS)**: `valhalla1.openstreetmap.de`, as before.
 - **Own Valhalla instance**: the address below.
 

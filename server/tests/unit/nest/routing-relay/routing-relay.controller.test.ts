@@ -41,6 +41,17 @@ describe('RoutingRelayController', () => {
     }
   });
 
+  it('RELAY-CTRL-003: sends a Retry-After along where the answer names one', async () => {
+    const spent = { ...answer, status: 429, retryAfter: '30' };
+    const controller = new RoutingRelayController({
+      ask: vi.fn().mockResolvedValue(spent),
+    } as unknown as RoutingRelayService);
+    const res = { ...response(), set: vi.fn() };
+    await controller.route(user, { locations: [], costing: 'auto' } as never, res as unknown as Response);
+    expect(res.set).toHaveBeenCalledWith('Retry-After', '30');
+    expect(res.status).toHaveBeenCalledWith(429);
+  });
+
   it('RELAY-CTRL-002: lets a refusal of the relay itself reach the exception filter', async () => {
     const refusal = new Error('refused');
     const controller = new RoutingRelayController({

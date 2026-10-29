@@ -153,4 +153,23 @@ describe('POST /api/routing/valhalla/:action', () => {
     expect(res.body).toEqual({ error: 'The TREK routing service is not available on this instance' });
     expect(safeFetchAdminConfigured).not.toHaveBeenCalled();
   });
+
+  it('RELAY-E2E-007: passes a spent allowance on with its Retry-After, and rests without asking again', async () => {
+    safeFetchAdminConfigured.mockResolvedValue(
+      new Response('{"error":"quota"}', {
+        status: 429,
+        headers: { 'content-type': 'application/json', 'retry-after': '30', 'x-trek-quota-remaining': '0' },
+      }),
+    );
+    const spent = await request(app.getHttpServer()).post('/api/routing/valhalla/route').set(as(USER)).send(ROUTE);
+    expect(spent.status).toBe(429);
+    expect(spent.headers['retry-after']).toBe('30');
+    expect(spent.headers).not.toHaveProperty('x-trek-quota-remaining');
+
+    const resting = await request(app.getHttpServer()).post('/api/routing/valhalla/route').set(as(USER)).send(ROUTE);
+    expect(resting.status).toBe(503);
+    expect(Number(resting.headers['retry-after'])).toBeGreaterThan(0);
+    expect(resting.body).toEqual({ error: 'The TREK routing service is resting' });
+    expect(safeFetchAdminConfigured).toHaveBeenCalledTimes(1);
+  });
 });

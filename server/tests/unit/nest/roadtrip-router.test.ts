@@ -731,6 +731,8 @@ describe('server Roadtrip router through the TREK services (routing relay)', () 
     const refusals = [
       () => Promise.resolve(answer(429, { error: 'Too many routing requests' })),
       () => Promise.resolve(answer(502, { error: 'down' })),
+      () => Promise.resolve(answer(503, { error: 'The TREK routing service is resting' })),
+      () => Promise.resolve(answer(404, { error: 'Not Found' })),
       () => Promise.reject(new DomainError(503, 'The TREK routing service is not available on this instance')),
     ];
     for (const [userId, refusal] of refusals.entries()) {

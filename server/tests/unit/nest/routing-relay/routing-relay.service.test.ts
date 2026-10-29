@@ -2,7 +2,8 @@
  * RoutingRelayService: the TREK services' Valhalla asked for a user. The key
  * goes along only when the identity hands one over for that host, the body is
  * held to the shared contract, every question counts against the user's
- * minute, and Valhalla's answer comes back untouched. The upstream behind
+ * and the installation's minute, Valhalla's answer comes back untouched, and
+ * a host that failed is left alone for a while. The upstream behind
  * safeFetchAdminConfigured is a stub.
  */
 import { servicesConfig } from '../../../../src/nest/app-config/tokens';
@@ -37,8 +38,8 @@ const ROUTE = {
   costing: 'auto',
   costing_options: { auto: { use_tolls: 0 } },
 };
-const upstream = (status: number, body: string, type = 'application/json') =>
-  new Response(body, { status, headers: { 'content-type': type } });
+const upstream = (status: number, body: string, extra: Record<string, string> = {}) =>
+  new Response(body, { status, headers: { 'content-type': 'application/json', ...extra } });
 
 const testDb = createSnapshotTestDb();
 let t: TestModule;
@@ -63,6 +64,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  vi.useRealTimers();
   await t.close();
 });
 
@@ -120,29 +122,109 @@ describe('RoutingRelayService.ask', () => {
     expect(safeFetchAdminConfigured).not.toHaveBeenCalled();
   });
 
-  it('RELAY-006: holds every user to 120 questions a minute, each user apart', async () => {
+  it('RELAY-006: holds every user to 60 questions a minute, each user apart', async () => {
     vi.mocked(safeFetchAdminConfigured).mockImplementation(async () => upstream(200, '{}'));
-    for (let i = 0; i < 120; i++) await relay.ask(1, 'height', { shape: [{ lat: 47, lon: 11 }] });
+    for (let i = 0; i < 60; i++) await relay.ask(1, 'height', { shape: [{ lat: 47, lon: 11 }] });
     const refused = await relay.ask(1, 'route', ROUTE).catch((err: unknown) => err);
     expect(refused).toBeInstanceOf(DomainError);
     expect(refused).toMatchObject({ status: 429, message: 'Too many routing requests, try again in a minute' });
     expect((await relay.ask(2, 'route', ROUTE)).status).toBe(200);
-    expect(safeFetchAdminConfigured).toHaveBeenCalledTimes(121);
+    expect(safeFetchAdminConfigured).toHaveBeenCalledTimes(61);
   });
 
-  it('RELAY-007: answers 502 where the host does not answer or sends more than it passes on', async () => {
+  it('RELAY-007: holds the whole installation to 100 questions a minute and says when to come back', async () => {
+    vi.mocked(safeFetchAdminConfigured).mockImplementation(async () => upstream(200, '{}'));
+    const height = { shape: [{ lat: 47, lon: 11 }] };
+    for (let i = 0; i < 60; i++) await relay.ask(1, 'height', height);
+    for (let i = 0; i < 40; i++) await relay.ask(2, 'height', height);
+    const refused = await relay.ask(3, 'route', ROUTE);
+    expect(refused).toMatchObject({ status: 429, retryAfter: '60' });
+    expect(JSON.parse(refused.body.toString())).toEqual({ error: 'Too many routing requests on this instance' });
+    expect(safeFetchAdminConfigured).toHaveBeenCalledTimes(100);
+  });
+
+  it('RELAY-008: answers 502 where the host does not answer or sends more than it passes on', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-29T10:00:00Z'));
     vi.mocked(safeFetchAdminConfigured).mockRejectedValueOnce(new Error('connect ECONNREFUSED'));
     await expect(relay.ask(1, 'route', ROUTE)).rejects.toMatchObject({
       status: 502,
       message: 'The TREK routing service did not answer',
     });
+    vi.setSystemTime(new Date('2026-10-29T10:01:01Z'));
     vi.mocked(safeFetchAdminConfigured).mockResolvedValueOnce(upstream(200, 'x'.repeat(8 * 1024 * 1024 + 1)));
     await expect(relay.ask(1, 'route', ROUTE)).rejects.toMatchObject({ status: 502 });
+  });
+
+  it('RELAY-009: after a host that hung, the next question is answered 503 at once, and asked again after the rest', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-29T10:00:00Z'));
+    vi.mocked(safeFetchAdminConfigured).mockRejectedValueOnce(
+      new DOMException('The operation was aborted due to timeout', 'TimeoutError'),
+    );
+    await expect(relay.ask(1, 'height', { shape: [{ lat: 47, lon: 11 }] })).rejects.toMatchObject({ status: 502 });
+
+    const resting = await relay.ask(1, 'height', { shape: [{ lat: 47.1, lon: 11 }] });
+    expect(resting).toMatchObject({ status: 503, retryAfter: '60' });
+    expect(safeFetchAdminConfigured).toHaveBeenCalledTimes(1);
+
+    vi.setSystemTime(new Date('2026-10-29T10:01:01Z'));
+    vi.mocked(safeFetchAdminConfigured).mockResolvedValueOnce(upstream(200, '{}'));
+    expect((await relay.ask(1, 'route', ROUTE)).status).toBe(200);
+    expect(safeFetchAdminConfigured).toHaveBeenCalledTimes(2);
+  });
+
+  it('RELAY-010: passes an error of the host on and rests after it', async () => {
+    vi.mocked(safeFetchAdminConfigured).mockResolvedValueOnce(upstream(504, '{"error":"gateway"}'));
+    expect((await relay.ask(1, 'route', ROUTE)).status).toBe(504);
+    expect((await relay.ask(1, 'route', ROUTE)).status).toBe(503);
+    expect(safeFetchAdminConfigured).toHaveBeenCalledTimes(1);
+  });
+
+  it("RELAY-011: follows a spent allowance's Retry-After, at most an hour of it, and passes it on", async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-29T10:00:00Z'));
+    vi.mocked(safeFetchAdminConfigured).mockResolvedValueOnce(
+      upstream(429, '{"error":"day"}', { 'retry-after': '50400' }),
+    );
+    expect(await relay.ask(1, 'route', ROUTE)).toMatchObject({ status: 429, retryAfter: '50400' });
+    expect((await relay.ask(1, 'route', ROUTE)).retryAfter).toBe('3600');
+
+    vi.setSystemTime(new Date('2026-10-29T11:00:01Z'));
+    vi.mocked(safeFetchAdminConfigured).mockResolvedValueOnce(
+      upstream(429, '{"error":"minute"}', { 'retry-after': 'Thu, 29 Oct 2026 11:00:21 GMT' }),
+    );
+    expect((await relay.ask(1, 'route', ROUTE)).status).toBe(429);
+    expect((await relay.ask(1, 'route', ROUTE)).retryAfter).toBe('20');
+
+    vi.setSystemTime(new Date('2026-10-29T11:00:22Z'));
+    vi.mocked(safeFetchAdminConfigured).mockResolvedValueOnce(upstream(429, '{}', { 'retry-after': 'soon' }));
+    await relay.ask(1, 'route', ROUTE);
+    expect((await relay.ask(1, 'route', ROUTE)).retryAfter).toBe('60');
+    expect(safeFetchAdminConfigured).toHaveBeenCalledTimes(3);
+  });
+
+  it('RELAY-015: rests a minute after a spent allowance that names no wait, and invents none for it', async () => {
+    vi.mocked(safeFetchAdminConfigured).mockResolvedValueOnce(upstream(429, '{"error":"spent"}'));
+    const spent = await relay.ask(1, 'route', ROUTE);
+    expect(spent.status).toBe(429);
+    expect(spent).not.toHaveProperty('retryAfter');
+    expect((await relay.ask(1, 'route', ROUTE)).retryAfter).toBe('60');
+  });
+
+  it('RELAY-012: waits ten seconds for a route and thirty for a description, unless told otherwise', async () => {
+    const timeout = vi.spyOn(AbortSignal, 'timeout');
+    vi.mocked(safeFetchAdminConfigured).mockImplementation(async () => upstream(200, '{}'));
+    await relay.ask(1, 'route', ROUTE);
+    await relay.ask(1, 'trace_attributes', { encoded_polyline: 'abc', costing: 'pedestrian' });
+    await relay.ask(1, 'height', { shape: [{ lat: 47, lon: 11 }] }, 5000);
+    expect(timeout.mock.calls.map(([ms]) => ms)).toEqual([10_000, 30_000, 5000]);
+    timeout.mockRestore();
   });
 });
 
 describe('RoutingRelayService.trekValhalla and serves', () => {
-  it('RELAY-010: names the TREK Valhalla only while there is a key to take there', () => {
+  it('RELAY-013: names the TREK Valhalla only while there is a key to take there', () => {
     expect(relay.trekValhalla()).toBe('https://valhalla.liketrek.com');
     identity.headersFor.mockReturnValueOnce({});
     expect(relay.trekValhalla()).toBeNull();
@@ -150,7 +232,7 @@ describe('RoutingRelayService.trekValhalla and serves', () => {
     expect(relay.trekValhalla()).toBeNull();
   });
 
-  it('RELAY-011: knows its own address, with or without a trailing slash, and no other', () => {
+  it('RELAY-014: knows its own address, with or without a trailing slash, and no other', () => {
     expect(relay.serves('https://valhalla.liketrek.com/')).toBe(true);
     expect(relay.serves('https://valhalla1.openstreetmap.de')).toBe(false);
   });

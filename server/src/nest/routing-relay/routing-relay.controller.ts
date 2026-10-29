@@ -45,6 +45,8 @@ export class RoutingRelayController {
   }
 }
 
+/** Of the upstream's headers only Retry-After goes on, so the planner knows how long to ask FOSSGIS instead. */
 function passOn(res: Response, answer: ValhallaRelayAnswer): void {
+  if (answer.retryAfter) res.set('Retry-After', answer.retryAfter);
   res.status(answer.status).type(answer.contentType).send(answer.body);
 }
