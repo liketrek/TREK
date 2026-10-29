@@ -161,4 +161,9 @@ export const adminHandlers = [
   http.get('/api/auth/validate-keys', () => {
     return HttpResponse.json({ maps: true, weather: true });
   }),
+
+  // The TREK API card's allowance panel, read whenever the settings tab renders it.
+  http.get('/api/admin/service-identity', () => {
+    return HttpResponse.json({ state: 'legacy', tier: 'legacy', keySource: null, quota: null, lastSeenAt: null });
+  }),
 ];

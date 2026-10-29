@@ -4,6 +4,7 @@ import TrekMark from '../../components/shared/TrekMark'
 import { fs } from '../../components/shared/DialogShell'
 import { StatusPill } from '../../components/Settings/settingsKit'
 import FoldSummary from './FoldSummary'
+import ServiceIdentityPanel from '../../components/Admin/ServiceIdentityPanel'
 import type { TranslationFn } from '../../types'
 import { TREK_API_SOURCES as SOURCES, trekApiFacts, trekApiFields } from '../../components/Admin/trekApiModel'
 
@@ -20,8 +21,9 @@ interface TrekApiCardProps {
  * to do and what made it shout over the settings it sat next to.
  *
  * Everything a reader can check is a measured number, not a claim: 73.6 million
- * is the row count of the current index, and "no queries logged" is enforced in
- * three places on the server rather than promised here.
+ * is the row count of the current index, "no queries logged" is enforced in
+ * three places on the server rather than promised here, and the allowance below
+ * the facts is what the service itself reports for this installation.
  */
 const CHIP = 'rounded-full border px-2.5 py-[3px] font-medium'
 
@@ -70,6 +72,8 @@ export default function TrekApiCard({ t }: TrekApiCardProps): React.ReactElement
             </li>
           ))}
         </ul>
+
+        <ServiceIdentityPanel />
       </div>
 
       <details className="group border-t border-edge-faint">
