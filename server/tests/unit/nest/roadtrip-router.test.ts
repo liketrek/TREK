@@ -2,6 +2,7 @@ import { DomainError } from '../../../src/nest/common/domain-error';
 import { RoadtripRouterService, RouteRefusal } from '../../../src/nest/roadtrip/roadtrip-router.service';
 import type { ValhallaRelayAnswer } from '../../../src/nest/routing-relay/routing-relay.service';
 import { safeFetchAdminConfigured } from '../../../src/utils/ssrfGuard';
+import { oneByOne } from '../../helpers/one-by-one';
 import { valhallaPolyline } from '../../helpers/valhalla';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -735,7 +736,7 @@ describe('server Roadtrip router through the TREK services (routing relay)', () 
       () => Promise.resolve(answer(404, { error: 'Not Found' })),
       () => Promise.reject(new DomainError(503, 'The TREK routing service is not available on this instance')),
     ];
-    for (const [userId, refusal] of refusals.entries()) {
+    await oneByOne([...refusals.entries()], async ([userId, refusal]) => {
       vi.mocked(safeFetchAdminConfigured)
         .mockReset()
         .mockResolvedValueOnce(new Response(JSON.stringify(tolled)));
@@ -743,7 +744,7 @@ describe('server Roadtrip router through the TREK services (routing relay)', () 
       const route = await settled(setup().router.route(userId, 1, 1, points.slice(0, 2), 'driving', ['toll']));
       expect(route.avoidMissed).toEqual([]);
       expect(vi.mocked(safeFetchAdminConfigured).mock.calls[0][0]).toBe('https://valhalla1.openstreetmap.de/route');
-    }
+    });
   });
 
   it('ROUTER-RELAY-003: reads the TREK Valhalla saying no way joins the points as a refusal, and fails on any other error', async () => {

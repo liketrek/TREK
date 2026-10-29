@@ -406,7 +406,8 @@ export function resetValhallaTurns(): void {
  */
 async function relayCannotAnswer(response: Response): Promise<boolean> {
   if (response.status === 400) {
-    const data: unknown = await response.clone().json().catch(() => null)
+    // A body that is not JSON cannot be Valhalla's own refusal, so it reads as the relay's.
+    const data: unknown = await response.clone().json().catch(() => ({}))
     return typeof (data as { error_code?: unknown } | null)?.error_code !== 'number'
   }
   return [401, 403, 404, 405, 413, 429].includes(response.status) || response.status >= 500

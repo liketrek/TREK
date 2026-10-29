@@ -14,6 +14,7 @@ import { RoutingRelayService } from '../../../../src/nest/routing-relay/routing-
 import { ServiceIdentityPort } from '../../../../src/nest/service-identity/service-identity.interface';
 import { safeFetchAdminConfigured } from '../../../../src/utils/ssrfGuard';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { oneByOne } from '../../../helpers/one-by-one';
 import { createTestModule, type TestModule } from '../../../helpers/test-module';
 
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -38,6 +39,7 @@ const ROUTE = {
   costing: 'auto',
   costing_options: { auto: { use_tolls: 0 } },
 };
+const times = (count: number) => Array.from({ length: count }, (_, i) => i);
 const upstream = (status: number, body: string, extra: Record<string, string> = {}) =>
   new Response(body, { status, headers: { 'content-type': 'application/json', ...extra } });
 
@@ -124,7 +126,7 @@ describe('RoutingRelayService.ask', () => {
 
   it('RELAY-006: holds every user to 60 questions a minute, each user apart', async () => {
     vi.mocked(safeFetchAdminConfigured).mockImplementation(async () => upstream(200, '{}'));
-    for (let i = 0; i < 60; i++) await relay.ask(1, 'height', { shape: [{ lat: 47, lon: 11 }] });
+    await oneByOne(times(60), () => relay.ask(1, 'height', { shape: [{ lat: 47, lon: 11 }] }));
     const refused = await relay.ask(1, 'route', ROUTE).catch((err: unknown) => err);
     expect(refused).toBeInstanceOf(DomainError);
     expect(refused).toMatchObject({ status: 429, message: 'Too many routing requests, try again in a minute' });
@@ -135,8 +137,8 @@ describe('RoutingRelayService.ask', () => {
   it('RELAY-007: holds the whole installation to 100 questions a minute and says when to come back', async () => {
     vi.mocked(safeFetchAdminConfigured).mockImplementation(async () => upstream(200, '{}'));
     const height = { shape: [{ lat: 47, lon: 11 }] };
-    for (let i = 0; i < 60; i++) await relay.ask(1, 'height', height);
-    for (let i = 0; i < 40; i++) await relay.ask(2, 'height', height);
+    await oneByOne(times(60), () => relay.ask(1, 'height', height));
+    await oneByOne(times(40), () => relay.ask(2, 'height', height));
     const refused = await relay.ask(3, 'route', ROUTE);
     expect(refused).toMatchObject({ status: 429, retryAfter: '60' });
     expect(JSON.parse(refused.body.toString())).toEqual({ error: 'Too many routing requests on this instance' });

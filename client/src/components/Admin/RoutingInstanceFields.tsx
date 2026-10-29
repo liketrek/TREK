@@ -29,10 +29,10 @@ const ROUTERS = [
 
 // '' is no choice of the admin: the instance then decides as before the choice existed.
 const PROVIDERS = [
-  { value: '', label: 'settings.valhallaProviderOption.auto' },
-  { value: 'trek', label: 'settings.valhallaProviderOption.trek' },
-  { value: 'fossgis', label: 'settings.valhallaProviderOption.fossgis' },
-  { value: 'custom', label: 'settings.valhallaProviderOption.custom' },
+  { value: '', labelKey: 'settings.valhallaProviderOption.auto' },
+  { value: 'trek', labelKey: 'settings.valhallaProviderOption.trek' },
+  { value: 'fossgis', labelKey: 'settings.valhallaProviderOption.fossgis' },
+  { value: 'custom', labelKey: 'settings.valhallaProviderOption.custom' },
 ] as const
 
 // The phone screen's look, unchanged: MAdminDefaultUserSettings passes its own hint class.
@@ -123,7 +123,7 @@ function RoutingProviderField({ defaults, onSave, onReset, hintClassName }: Rout
       </div>
       <select id={id} value={defaults.routing_valhalla_provider ?? ''} disabled={saving}
         onChange={e => void pick(e.target.value)} aria-describedby={`${id}-hint`} className={look.input}>
-        {PROVIDERS.map(option => <option key={option.value} value={option.value}>{t(option.label)}</option>)}
+        {PROVIDERS.map(option => <option key={option.value} value={option.value}>{t(option.labelKey)}</option>)}
       </select>
       <FieldHint id={`${id}-hint`} text={t('settings.valhallaProviderHint')} hintClassName={hintClassName} />
     </div>

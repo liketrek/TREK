@@ -6,6 +6,7 @@
 import { deriveServices } from '../../../src/app-config/boot-derive';
 import { PhotonClient } from '../../../src/nest/maps/providers/photon.client';
 import { serviceIdentitySlot } from '../../../src/nest/service-identity/service-identity.interface';
+import { oneByOne } from '../../helpers/one-by-one';
 import { FakeServiceIdentity, gateFeature, photonAnswer } from '../../helpers/photon';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -142,7 +143,7 @@ describe('the pause after misses in a row', () => {
     vi.setSystemTime(new Date('2026-10-29T10:00:00Z'));
     const photon = client();
     fetchMock.mockImplementation(async () => photonAnswer([], 503));
-    for (let i = 0; i < 4; i++) expect(await photon.search('Rostock')).toBeNull();
+    expect(await oneByOne([1, 2, 3, 4], () => photon.search('Rostock'))).toEqual([null, null, null, null]);
     expect(fetchMock).toHaveBeenCalledTimes(4);
 
     expect(await photon.search('Rostock')).toBeNull();
@@ -158,7 +159,7 @@ describe('the pause after misses in a row', () => {
     fetchMock.mockImplementation(async () => photonAnswer([gateFeature()]));
     expect(await photon.search('Rostock')).toHaveLength(1);
     fetchMock.mockImplementation(async () => photonAnswer([], 503));
-    for (let i = 0; i < 3; i++) expect(await photon.search('Rostock')).toBeNull();
+    expect(await oneByOne([1, 2, 3], () => photon.search('Rostock'))).toEqual([null, null, null]);
     expect(fetchMock).toHaveBeenCalledTimes(9);
   });
 });

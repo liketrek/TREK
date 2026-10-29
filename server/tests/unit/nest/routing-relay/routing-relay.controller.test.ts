@@ -5,6 +5,7 @@
 import { RoutingRelayController } from '../../../../src/nest/routing-relay/routing-relay.controller';
 import type { RoutingRelayService } from '../../../../src/nest/routing-relay/routing-relay.service';
 import type { User } from '../../../../src/types';
+import { oneByOne } from '../../../helpers/one-by-one';
 
 import type { Response } from 'express';
 import { describe, expect, it, vi } from 'vitest';
@@ -27,18 +28,21 @@ describe('RoutingRelayController', () => {
     const trace = { encoded_polyline: 'abc', costing: 'pedestrian' } as never;
     const height = { shape: [{ lat: 47, lon: 11 }] } as never;
 
-    for (const [call, action, body] of [
-      [(res: Response) => controller.route(user, route, res), 'route', route],
-      [(res: Response) => controller.traceAttributes(user, trace, res), 'trace_attributes', trace],
-      [(res: Response) => controller.height(user, height, res), 'height', height],
-    ] as const) {
-      const res = response();
-      await call(res as unknown as Response);
-      expect(ask).toHaveBeenLastCalledWith(4, action, body);
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.type).toHaveBeenCalledWith('application/json');
-      expect(res.send).toHaveBeenCalledWith(answer.body);
-    }
+    await oneByOne(
+      [
+        [(res: Response) => controller.route(user, route, res), 'route', route],
+        [(res: Response) => controller.traceAttributes(user, trace, res), 'trace_attributes', trace],
+        [(res: Response) => controller.height(user, height, res), 'height', height],
+      ] as const,
+      async ([call, action, body]) => {
+        const res = response();
+        await call(res as unknown as Response);
+        expect(ask).toHaveBeenLastCalledWith(4, action, body);
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(res.type).toHaveBeenCalledWith('application/json');
+        expect(res.send).toHaveBeenCalledWith(answer.body);
+      },
+    );
   });
 
   it('RELAY-CTRL-003: sends a Retry-After along where the answer names one', async () => {

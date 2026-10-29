@@ -35,7 +35,7 @@
   },
   "tests": {
     "@typescript-eslint/no-explicit-any": 490,
-    "@typescript-eslint/no-non-null-assertion": 1927,
+    "@typescript-eslint/no-non-null-assertion": 1917,
     "@typescript-eslint/no-misused-promises": 22,
     "@typescript-eslint/no-unused-vars": 51,
     "@typescript-eslint/no-floating-promises": 33,

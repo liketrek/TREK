@@ -1,10 +1,4 @@
-import type {
-  ServiceAllowance,
-  ServiceIdentityState,
-  ServiceIdentityStatus,
-  ServiceName,
-  ServiceQuotaView,
-} from '@trek/shared';
+import type { ServiceAllowance, ServiceIdentityState, ServiceIdentityStatus, ServiceQuotaView } from '@trek/shared';
 import { RefreshCw } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useTranslation } from '../../i18n';
@@ -22,12 +16,6 @@ const STATE_DOT: Record<ServiceIdentityState, string> = {
   legacy: 'bg-[var(--text-faint)]',
   off: 'bg-[var(--text-faint)]',
   revoked: 'bg-danger',
-};
-
-const SERVICE_LABEL: Record<ServiceName, string> = {
-  places: 'admin.trekApi.quota.service.places',
-  photon: 'admin.trekApi.quota.service.photon',
-  valhalla: 'admin.trekApi.quota.service.valhalla',
 };
 
 /** Below a tenth of the day left the bar turns amber, at nothing left red. */
@@ -95,7 +83,7 @@ function rowNote(t: TranslationFn, allowance: ServiceAllowance): string | null {
  */
 function ServiceRow({ allowance }: { allowance: ServiceAllowance }) {
   const { t } = useTranslation();
-  const name = t(SERVICE_LABEL[allowance.service]);
+  const name = t(`admin.trekApi.quota.service.${allowance.service}`);
   const note = rowNote(t, allowance);
 
   return (

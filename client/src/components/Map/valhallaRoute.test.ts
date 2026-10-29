@@ -134,9 +134,9 @@ describe('runFrom', () => {
   it('VALHALLA-PARSE-001: decodes the shape as polyline6 and converts km to metres', () => {
     const leg = total(answer())
     expect(leg).not.toBeNull()
-    expect(leg!.coordinates).toEqual(SHAPE_POINTS)
-    expect(leg!.distance).toBeCloseTo(295700, 0)
-    expect(leg!.duration).toBe(11460)
+    expect(leg?.coordinates).toEqual(SHAPE_POINTS)
+    expect(leg?.distance).toBeCloseTo(295700, 0)
+    expect(leg?.duration).toBe(11460)
   })
 
   it('VALHALLA-PARSE-002: carries the flags through as booleans', () => {
@@ -164,15 +164,15 @@ describe('runFrom', () => {
         summary: { length: 150, time: 5400, has_toll: true, has_highway: true, has_ferry: false },
       },
     }
-    const run = runFrom(chain)!
-    expect(run.legs.map(l => l.distance)).toEqual([100000, 50000])
-    expect(run.legs.map(l => l.hasToll)).toEqual([false, true])
-    expect(run.total.distance).toBe(150000)
-    expect(run.total.duration).toBe(5400)
+    const run = runFrom(chain)
+    expect(run?.legs.map(l => l.distance)).toEqual([100000, 50000])
+    expect(run?.legs.map(l => l.hasToll)).toEqual([false, true])
+    expect(run?.total.distance).toBe(150000)
+    expect(run?.total.duration).toBe(5400)
     // One tolled leg makes the drive tolled. `every` here would call a day with a
     // single toll booth in it toll-free.
-    expect(run.total.hasToll).toBe(true)
-    expect(run.total.coordinates).toHaveLength(SHAPE_POINTS.length * 2)
+    expect(run?.total.hasToll).toBe(true)
+    expect(run?.total.coordinates).toHaveLength(SHAPE_POINTS.length * 2)
   })
 
   it('VALHALLA-PARSE-007: several legs with no summaries of their own are refused', () => {
@@ -228,7 +228,7 @@ describe('valhallaRouteAvoiding', () => {
       })
     )
     const leg = await valhallaRouteAvoiding(HAMBURG, BERLIN, 'driving', 'toll')
-    expect(leg!.distance).toBeCloseTo(295700, 0)
+    expect(leg?.distance).toBeCloseTo(295700, 0)
     expect(body).toMatchObject({
       costing: 'auto',
       costing_options: { auto: { use_tolls: 0 } },
@@ -378,8 +378,8 @@ describe('valhallaRun over a whole day', () => {
     const run = await valhallaRun(stops(6), 'driving', [])
 
     expect(calls).toBe(1)
-    expect(run!.legs).toHaveLength(5)
-    expect(run!.total.distance).toBe(50000)
+    expect(run?.legs).toHaveLength(5)
+    expect(run?.total.distance).toBe(50000)
   })
 
   it('VALHALLA-RUN-008: forwards caller-specific costing options only when supplied', async () => {
@@ -414,8 +414,8 @@ describe('valhallaRun over a whole day', () => {
     // takes the remaining five. Nine pairs plus four.
     expect(sizes).toEqual([10, 5])
     // Thirteen pairs across two requests, none lost and none counted twice.
-    expect(run!.legs).toHaveLength(13)
-    expect(run!.total.distance).toBe(130000)
+    expect(run?.legs).toHaveLength(13)
+    expect(run?.total.distance).toBe(130000)
   })
 
   it('VALHALLA-RUN-003: never sends more than ten locations, however long the day', async () => {
@@ -464,7 +464,7 @@ describe('valhallaRun over a whole day', () => {
 
     const run = await valhallaRun(stops(14), 'driving', ['toll'])
 
-    expect(run!.legs).toHaveLength(13)
+    expect(run?.legs).toHaveLength(13)
     // First piece, second piece refused, second piece again.
     expect(calls).toBe(3)
   })
@@ -732,7 +732,7 @@ describe('through the TREK services (routing relay)', () => {
     )
     const leg = await valhallaRouteAvoiding(HAMBURG, BERLIN, 'driving', 'toll')
     expect(leg).not.toBeNull()
-    expect(leg!.distance).toBeCloseTo(295700, 0)
+    expect(leg?.distance).toBeCloseTo(295700, 0)
     expect(relayed).toHaveLength(1)
     expect(relayed[0].action).toBe('route')
     expect(relayed[0].body).toMatchObject({ costing: 'auto', costing_options: { auto: { use_tolls: 0 } } })
@@ -765,6 +765,7 @@ describe('through the TREK services (routing relay)', () => {
       http.post(FOSSGIS_VALHALLA, () => HttpResponse.json(answer())),
     )
     await valhallaRouteAvoiding(HAMBURG, BERLIN, 'driving', 'toll')
+    expect(relayCalls).toBe(1)
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(Date.now() + 11 * 60_000)
     expect(valhallaBase()).toBe(TREK_VALHALLA)
