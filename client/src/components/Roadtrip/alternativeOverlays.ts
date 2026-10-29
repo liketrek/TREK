@@ -1,6 +1,7 @@
 import { formatDurationShort } from './roadtripModel'
 import { ALT_PRIMARY, ALT_SECONDARY, ALT_LABEL_PRIMARY_BG, ALT_LABEL_SECONDARY_BG } from './alternativeColors'
-import type { RouteAlternative, RouteEngine } from '../Map/RouteCalculator'
+import type { RouteAlternative } from '../Map/routeTypes'
+import type { RouteEngine } from '../../types'
 import type { LegAlternatives } from './useRouteAlternatives'
 
 /** One offered route, ready to draw: the line, its colour, and where its label sits. */

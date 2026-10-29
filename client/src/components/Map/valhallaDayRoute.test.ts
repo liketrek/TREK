@@ -117,12 +117,12 @@ describe('which engine routes a day', () => {
     expect(routeEngineFor('plugin:ev/fast', [])).toBe('plugin');
   });
 
-  it('VDAY-ENGINE-004: while the relay rests after a failure, the days go back to OSRM', async () => {
-    listen(() => HttpResponse.json({ error: 'resting' }, { status: 503 }));
-    await calculateRouteWithLegs(freshDay(2), { profile: 'driving' });
-    expect(routeEngineFor('driving', [])).toBe('osrm');
-    resetValhallaTurns();
+  it('VDAY-ENGINE-004: while the relay rests the days stay planned with Valhalla, and OSRM draws them and says so', async () => {
+    const traffic = listen(() => HttpResponse.json({ error: 'resting' }, { status: 503 }));
+    expect((await calculateRouteWithLegs(freshDay(2), { profile: 'driving' })).engine).toBe('osrm');
+    expect((await calculateRouteWithLegs(freshDay(2), { profile: 'driving' })).engine).toBe('osrm');
     expect(routeEngineFor('driving', [])).toBe('valhalla');
+    expect([traffic.relay.length, traffic.osrm.length]).toEqual([1, 2]);
   });
 });
 
@@ -139,6 +139,7 @@ describe('a day where Valhalla routes the days', () => {
     expect([route.distance, route.duration, route.legs.length, route.snapped?.length]).toEqual([4000, 600, 2, 3]);
     expect(route.legs[0]).toMatchObject({ distanceText: '2 km', durationText: '5 min' });
     expect(route).not.toHaveProperty('avoidance');
+    expect(route.engine).toBe('valhalla');
   });
 
   it('VDAY-002: the relay takes twenty locations a request, an own Valhalla too', async () => {
@@ -176,6 +177,7 @@ describe('a day where Valhalla routes the days', () => {
       expect([traffic.relay.length, traffic.fossgis.length, traffic.osrm.length]).toEqual([1, 0, 1]);
       expect(traffic.osrm[0]).toContain(OSRM.walking);
       expect(route).not.toHaveProperty('avoidance');
+      expect(route.engine).toBe('osrm');
     }
   });
 
@@ -188,6 +190,21 @@ describe('a day where Valhalla routes the days', () => {
     const route = await calculateRouteWithLegs(freshDay(2), { profile: 'driving' });
     expect(route.distance).toBe(1000);
     expect([traffic.fossgis.length, traffic.osrm.length]).toEqual([0, 1]);
+  });
+
+  it('VDAY-004b: an own Valhalla that does not answer in time hands the day to OSRM without a second wait', async () => {
+    choose({ valhalla_base_url: OWN_VALHALLA });
+    const timeout = AbortSignal.timeout.bind(AbortSignal);
+    const deadlines = vi
+      .spyOn(AbortSignal, 'timeout')
+      .mockImplementation((ms) =>
+        ms === 12_000 ? AbortSignal.abort(new DOMException('signal timed out', 'TimeoutError')) : timeout(ms)
+      );
+    const traffic = listen();
+    const route = await calculateRouteWithLegs(freshDay(3), { profile: 'cycling' });
+    expect([route.distance, route.engine]).toEqual([2000, 'osrm']);
+    expect(deadlines.mock.calls.filter(([ms]) => ms === 12_000)).toHaveLength(1);
+    expect([traffic.relay.length, traffic.fossgis.length, traffic.osrm.length]).toEqual([0, 0, 1]);
   });
 
   it('VDAY-005: an own Valhalla that cannot answer leaves the day to OSRM', async () => {
@@ -242,6 +259,31 @@ describe('the route cache keeps the engine apart', () => {
     resetValhallaTurns();
     expect((await calculateRouteWithLegs(points, { profile: 'driving' })).distance).toBe(4000);
     expect([traffic.relay.length, traffic.osrm.length]).toEqual([2, 1]);
+  });
+});
+
+describe('the route cache while the relay rests', () => {
+  it('VDAY-CACHE-003: a day kept from Valhalla is still found while the relay rests, as it is offline', async () => {
+    const points = freshDay(3);
+    let up = true;
+    const traffic = listen((body) => (up ? answered(body) : HttpResponse.json({ error: 'down' }, { status: 503 })));
+    expect((await calculateRouteWithLegs(points, { profile: 'driving' })).distance).toBe(4000);
+
+    up = false;
+    await calculateRouteWithLegs(freshDay(2), { profile: 'driving' });
+    const kept = await calculateRouteWithLegs(points, { profile: 'driving' });
+    expect([kept.distance, kept.engine]).toEqual([4000, 'valhalla']);
+    expect([traffic.relay.length, traffic.osrm.length]).toEqual([2, 1]);
+  });
+
+  it('VDAY-CACHE-004: a day that avoids something keeps its key, whichever Valhalla answered it', async () => {
+    const points = freshDay(3);
+    const traffic = listen();
+    await calculateRouteWithLegs(points, { profile: 'driving', avoid: ['toll'] });
+    choose({ routing_valhalla_provider: 'fossgis' });
+    const kept = await calculateRouteWithLegs(points, { profile: 'driving', avoid: ['toll'] });
+    expect(kept.engine).toBe('valhalla');
+    expect([traffic.relay.length, traffic.fossgis.length, traffic.osrm.length]).toEqual([1, 0, 0]);
   });
 });
 

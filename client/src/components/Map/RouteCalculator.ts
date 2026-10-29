@@ -1,11 +1,12 @@
 import { useSettingsStore } from '../../store/settingsStore'
 import { pluginsApi } from '../../api/client'
-import type { RouteResult, RouteSegment, RouteWithLegs, SnappedWaypoint, Waypoint, RouteAnchors } from '../../types'
+import type { RouteEngine, RouteResult, RouteSegment, RouteWithLegs, SnappedWaypoint, Waypoint, RouteAnchors } from '../../types'
 import { haversineKm } from '../../utils/geo'
 import { countRoute } from './routeUsageCounter'
 import { cacheRoute, rememberRoute, routeInMemory, storedRoute } from './routeStore'
-import { formatDuration, formatRouteDistance, getDistanceUnit } from './routeText'
-import { valhallaAvailable, valhallaRoutesDays, type AvoidClass } from './valhallaRoute'
+import { formatDuration, formatRouteDistance, getDistanceUnit, legSegment } from './routeText'
+import type { RouteAlternative } from './routeTypes'
+import { valhallaAvailable, valhallaPlansDays, valhallaRoutesDays, type AvoidClass } from './valhallaRoute'
 import { EXCLUDABLE_CLASSES, valhallaDayAlternatives, valhallaDayRoute, valhallaExcluding } from './valhallaDayRoute'
 import { furthestFrom, sameRoad, type RouteUsageSurface } from '@trek/shared'
 
@@ -214,14 +215,6 @@ export function parsePluginProfile(profile: string): { pluginId: string; profile
   return { pluginId: rest.slice(0, slash), profileId: rest.slice(slash + 1) }
 }
 
-/**
- * Which engine priced a route: OSRM, Valhalla (which routes the days with the TREK
- * services or an own Valhalla, and otherwise weighs road classes away), or a route
- * provider plugin. Their figures are three different speed models, so a figure from one
- * read against a figure from another measures the models, not the roads.
- */
-export type RouteEngine = 'osrm' | 'valhalla' | 'plugin'
-
 /** One of the three profiles both engines know, or null for a plugin's own. */
 function builtInProfile(profile: RouteProfileKey): 'driving' | 'walking' | 'cycling' | null {
   return profile === 'driving' || profile === 'walking' || profile === 'cycling' ? profile : null
@@ -242,14 +235,15 @@ export function avoidedClasses(profile: RouteProfileKey, avoid: readonly AvoidCl
 }
 
 /**
- * The engine `calculateRouteWithLegs` hands a request with this profile and avoidance to:
- * Valhalla for every day where it routes the days, and for a day that avoids something
- * wherever it can; OSRM for the rest.
+ * The engine a request with this profile and avoidance is planned with: Valhalla for every
+ * day where it routes the days, and for a day that avoids something wherever it can; OSRM
+ * for the rest. Planned, not promised: a day Valhalla cannot answer, or one asked while
+ * the relay rests, is drawn by OSRM, and the answer says so in its `engine`.
  */
 export function routeEngineFor(profile: RouteProfileKey, avoid: readonly AvoidClass[]): RouteEngine {
   if (parsePluginProfile(profile)) return 'plugin'
   if (avoidedClasses(profile, avoid).length) return 'valhalla'
-  return builtInProfile(profile) && valhallaRoutesDays() ? 'valhalla' : 'osrm'
+  return builtInProfile(profile) && valhallaPlansDays() ? 'valhalla' : 'osrm'
 }
 
 /** The profile Valhalla routes a request under, or null where `routeEngineFor` gives it to another engine. */
@@ -259,10 +253,12 @@ function valhallaProfile(profile: RouteProfileKey, avoid: readonly AvoidClass[])
 
 /**
  * Where a Valhalla answer is kept: beside the OSRM key, which keeps the shape it always
- * had, with the engine and the classes the day weighs away.
+ * had. A day that weighs classes away keeps the key it has had since only Valhalla could
+ * answer one, so the days a device already holds stay found; a day that avoids nothing
+ * names the engine instead.
  */
 function valhallaKey(plainKey: string, avoiding: readonly AvoidClass[]): string {
-  return `${plainKey}:valhalla${avoiding.length ? `:avoid=${avoiding.join(',')}` : ''}`
+  return avoiding.length ? `${plainKey}:avoid=${avoiding.join(',')}` : `${plainKey}:valhalla`
 }
 
 /**
@@ -272,7 +268,41 @@ function valhallaKey(plainKey: string, avoiding: readonly AvoidClass[]): string 
  * held on a road nobody weighed.
  */
 function withFallbackNoted(plain: RouteWithLegs, avoiding: AvoidClass[]): RouteWithLegs {
-  return avoiding.length ? { ...plain, avoidance: { asked: avoiding, achieved: [], fellBack: true } } : plain
+  const drawn = withEngine(plain, 'osrm')
+  return avoiding.length ? { ...drawn, avoidance: { asked: avoiding, achieved: [], fellBack: true } } : drawn
+}
+
+/**
+ * A kept route with the engine that drew it. A key holds one engine's answers only, so an
+ * entry kept before answers named their engine is that key's.
+ */
+function withEngine(route: RouteWithLegs, engine: RouteEngine): RouteWithLegs {
+  return route.engine ? route : { ...route, engine }
+}
+
+/**
+ * A day planned with Valhalla: its answer, kept under the Valhalla key, or where it gives
+ * none OSRM's for the whole day, kept under the plain key. One engine per day, never one
+ * leg from each. While the relay rests, a day that avoids nothing is not put to it at all.
+ */
+async function valhallaOrOsrmDay(
+  waypoints: Waypoint[],
+  { profile, avoiding, keys, signal }: {
+    profile: 'driving' | 'walking' | 'cycling'
+    avoiding: AvoidClass[]
+    keys: { valhalla: string; plain: string; coords: string }
+    signal?: AbortSignal
+  },
+): Promise<RouteWithLegs> {
+  const asking = avoiding.length > 0 || valhallaRoutesDays()
+  const routed = asking ? await valhallaDayRoute(waypoints, profile, avoiding, signal) : null
+  if (routed) {
+    cacheRoute(keys.valhalla, routed)
+    return routed
+  }
+  const plain = (await storedRoute(keys.plain)) ?? await osrmWithLegs(waypoints, keys.coords, profile, signal)
+  cacheRoute(keys.plain, plain)
+  return withFallbackNoted(plain, avoiding)
 }
 
 /** Fetches a full route via OSRM and returns coordinates, distance, and duration estimates for driving/walking. */
@@ -502,30 +532,10 @@ export async function calculateSegments(
   if (data.code !== 'Ok' || !data.routes?.[0]) throw new Error('No route found')
 
   const legs = data.routes[0].legs
-  return legs.map((leg: OsrmLeg, i: number): RouteSegment => osrmLegSegment(leg, i, waypoints))
+  return legs.map((leg: OsrmLeg, i: number): RouteSegment => legSegment(leg, i, waypoints))
 }
 
 interface OsrmLeg { distance: number; duration: number }
-
-/**
- * The connector data for OSRM leg i, which runs from waypoint i to waypoint i + 1:
- * both ends, the midpoint the label sits on, and the walking time at 5 km/h next to
- * the driving time OSRM measured.
- */
-export function osrmLegSegment(leg: OsrmLeg, i: number, waypoints: Waypoint[]): RouteSegment {
-  const from: [number, number] = [waypoints[i].lat, waypoints[i].lng]
-  const to: [number, number] = [waypoints[i + 1].lat, waypoints[i + 1].lng]
-  const mid: [number, number] = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2]
-  const walkingDuration = leg.distance / (5000 / 3600)
-  return {
-    mid, from, to,
-    distance: leg.distance,
-    duration: leg.duration,
-    walkingText: formatDuration(walkingDuration),
-    drivingText: formatDuration(leg.duration),
-    distanceText: formatRouteDistance(leg.distance),
-  }
-}
 
 /**
  * One OSRM call per waypoint-run that returns BOTH the real road geometry (for the
@@ -575,24 +585,18 @@ export async function calculateRouteWithLegs(
   // weighed road until the next reload, however soon Valhalla came back.
   const pluginScope = profile.startsWith('plugin:') ? `:${tripId ?? ''}:${dayId ?? ''}` : ''
   const plainKey = `${profile}:${getDistanceUnit()}:${coords}${pluginScope}`
+  // Which engine the day is planned with does not follow the relay's rest, so a day kept
+  // from Valhalla is still found while the relay rests, offline above all.
   const cacheKey = valhallaDay ? valhallaKey(plainKey, avoiding) : plainKey
   // A plugin route stays in memory: its answer depends on the trip and the day,
   // and may carry live data such as charging stops. The rest is kept on the device
   // too, so a trip that shows its whole route opens drawn (#2794).
   const cached = pluginScope ? routeInMemory(cacheKey) : await storedRoute(cacheKey)
-  if (cached) return cached
+  if (cached) return withEngine(cached, routeEngineFor(profile, avoid))
 
   if (valhallaDay) {
-    const routed = await valhallaDayRoute(waypoints, valhallaDay, avoiding, signal)
-    if (routed) {
-      cacheRoute(cacheKey, routed)
-      return routed
-    }
-    // Null is a Valhalla that could not answer at all, and the whole day goes to OSRM:
-    // one engine per day, never one leg from each.
-    const plain = (await storedRoute(plainKey)) ?? await osrmWithLegs(waypoints, coords, profile, signal)
-    cacheRoute(plainKey, plain)
-    return withFallbackNoted(plain, avoiding)
+    const keys = { valhalla: cacheKey, plain: plainKey, coords }
+    return valhallaOrOsrmDay(waypoints, { profile: valhallaDay, avoiding, keys, signal })
   }
 
   // Plugin profile (`plugin:<id>/<profile>`): the server invokes that routeProvider
@@ -607,27 +611,18 @@ export async function calculateRouteWithLegs(
       waypoints: waypoints.map((p) => ({ lat: p.lat, lng: p.lng })),
     }, { signal })
     if (!route) throw new Error('No route found')
-    const legs: RouteSegment[] = route.legs.map((leg, i): RouteSegment => {
-      const from: [number, number] = [waypoints[i].lat, waypoints[i].lng]
-      const to: [number, number] = [waypoints[i + 1].lat, waypoints[i + 1].lng]
-      const mid: [number, number] = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2]
-      return {
-        mid, from, to,
-        distance: leg.distance,
-        duration: leg.duration,
-        walkingText: formatDuration(leg.distance / (5000 / 3600)),
-        drivingText: formatDuration(leg.duration),
-        distanceText: formatRouteDistance(leg.distance),
-        durationText: formatDuration(leg.duration),
-        ...(leg.note ? { noteText: leg.note } : {}),
-      }
-    })
+    const legs = route.legs.map((leg, i): RouteSegment => ({
+      ...legSegment(leg, i, waypoints),
+      durationText: formatDuration(leg.duration),
+      ...(leg.note ? { noteText: leg.note } : {}),
+    }))
     const result: RouteWithLegs = {
       coordinates: route.coordinates,
       distance: route.distance,
       duration: route.duration,
       legs,
       ...(route.viaPoints.length ? { vias: route.viaPoints } : {}),
+      engine: 'plugin',
     }
     rememberRoute(cacheKey, result)
     return result
@@ -663,13 +658,13 @@ async function osrmWithLegs(
   // The day plan's connectors also show the leg's own duration line.
   const legs: RouteSegment[] = (route.legs || []).map(
     (leg: OsrmLeg, i: number): RouteSegment => ({
-      ...osrmLegSegment(leg, i, waypoints),
+      ...legSegment(leg, i, waypoints),
       durationText: formatDuration(leg.duration),
     })
   )
 
   const snapped = readSnapped(data, waypoints)
-  return { coordinates, distance: route.distance, duration: route.duration, legs, ...(snapped ? { snapped } : {}) }
+  return { coordinates, distance: route.distance, duration: route.duration, legs, ...(snapped ? { snapped } : {}), engine: 'osrm' }
 }
 
 /**
@@ -702,35 +697,6 @@ function readSnapped(data: unknown, waypoints: Waypoint[]): SnappedWaypoint[] | 
   }
   return out
 }
-
-/** One way of driving a leg, as a router offers it. */
-export interface RouteAlternative {
-  coordinates: [number, number][]
-  distance: number
-  duration: number
-  /** Where this route differs most from the first one — the point that would pin it. */
-  divergence: { lat: number; lng: number } | null
-  /** Set when this way exists because a road class was left out of it. */
-  avoids?: AvoidClass
-  /**
-   * Which engine priced this route. Absent means OSRM, which answers every route of a
-   * trip that avoids nothing where Valhalla does not route the days, except the
-   * avoidance offer.
-   *
-   * It exists because the engines do not agree on speed: measured over twelve European
-   * legs the per-leg drive times run from 14.7 % under OSRM's to 13.2 % over, and the
-   * sign depends on the region: Valhalla is faster on Spanish autovía and slower through
-   * a city. So a figure from one of them subtracted from a figure from the other is not a
-   * difference in driving time, it is the gap between two speed models, and the reader
-   * has no way of telling the two apart.
-   */
-  engine?: RouteEngine
-  /** Whether the way crosses by ferry, where the engine that drew it says so. */
-  hasFerry?: boolean
-}
-
-/** What two routes are compared by: their line, and their figures where there is none. */
-export type RoadLine = Pick<RouteAlternative, 'coordinates' | 'distance' | 'duration'>
 
 /**
  * Hosts that have already answered "I do not do exclude", by base URL.
@@ -835,9 +801,15 @@ export async function calculateAlternatives(
   from: Waypoint,
   to: Waypoint,
   profile: 'driving' | 'walking' | 'cycling' = 'driving',
-  { signal, limit = 3, avoid = [] }: { signal?: AbortSignal; limit?: number; avoid?: readonly AvoidClass[] } = {},
+  { signal, limit = 3, avoid = [], engine = routeEngineFor(profile, avoid) }: {
+    signal?: AbortSignal
+    limit?: number
+    avoid?: readonly AvoidClass[]
+    /** The engine that drew the leg, where it is known; the planned one otherwise. */
+    engine?: RouteEngine
+  } = {},
 ): Promise<RouteAlternative[]> {
-  const routes = routeEngineFor(profile, avoid) === 'valhalla'
+  const routes = engine === 'valhalla'
     ? await alternativesFromValhalla(from, to, profile, avoidedClasses(profile, avoid), { limit, signal })
     : await alternativesFromOsrm(from, to, profile, limit, signal)
   if (!routes.length) return routes
@@ -864,7 +836,8 @@ async function alternativesFromValhalla(
   avoiding: AvoidClass[],
   { limit, signal }: { limit: number; signal?: AbortSignal },
 ): Promise<RouteAlternative[]> {
-  const offered = await valhallaDayAlternatives(from, to, profile, avoiding, { limit, signal })
+  const asking = avoiding.length > 0 || valhallaRoutesDays()
+  const offered = asking ? await valhallaDayAlternatives(from, to, profile, avoiding, { limit, signal }) : null
   if (offered) return offered
   if (avoiding.length) throw new Error('No route found')
   return alternativesFromOsrm(from, to, profile, limit, signal)

@@ -69,11 +69,12 @@ const RELAY_REST_MS = 10 * 60_000
 const RELAY_MAX_WAIT_MS = 60 * 60_000
 
 /**
- * How long a route or a height question may take through the relay. The server gives the
- * TREK Valhalla ten seconds; this leaves room for its 502 to arrive first, and where the
- * relay itself hangs, FOSSGIS answers soon after.
+ * How long a route or a height question may take through the relay or at an own Valhalla.
+ * The server gives the TREK Valhalla ten seconds; this leaves room for its 502 to arrive
+ * first. Where the relay itself hangs, FOSSGIS answers soon after; where an own Valhalla
+ * does, OSRM routes the day, rather than the day waiting as long as the browser would.
  */
-const RELAY_TIMEOUT_MS = 12_000
+const ASK_TIMEOUT_MS = 12_000
 
 /**
  * How far Valhalla may look for a road under a point, in metres.
@@ -183,6 +184,14 @@ export interface ValhallaNoPath {
 const NO_PATH_CODES = new Set([170, 171, 442])
 const NO_PATH: ValhallaNoPath = { noPath: true }
 
+/** A host that let a question run out its deadline, apart from one that refused it. */
+const TOO_SLOW = { tooSlow: true } as const
+type TooSlow = typeof TOO_SLOW
+
+function tooSlow(answer: unknown): answer is TooSlow {
+  return answer === TOO_SLOW
+}
+
 /** A routed chain: one leg per pair of consecutive waypoints, plus the whole of it. */
 export interface ValhallaRun {
   legs: ValhallaLeg[]
@@ -221,26 +230,38 @@ export function valhallaBase(): string | null {
   return provider === 'fossgis' ? FOSSGIS_VALHALLA : null
 }
 
-function currentProvider(): { provider: ValhallaProvider | null; own: string } {
+/**
+ * The provider as the settings choose it. Whether the TREK services can answer is the
+ * relay's to say; until it said no, it is asked, and `ignoreRest` reads past its no.
+ */
+function currentProvider(ignoreRest = false): { provider: ValhallaProvider | null; own: string } {
   const settings = useSettingsStore.getState().settings
   const own = settings.valhalla_base_url?.trim().replace(/\/+$/, '') ?? ''
   const provider = resolveValhallaProvider({
     provider: settings.routing_valhalla_provider,
     valhallaUrl: own,
     routingUrl: settings.routing_base_url,
-    // Whether the TREK services can answer is the relay's to say; until it said no, ask it.
-    trekAvailable: Date.now() >= relayRestingUntil,
+    trekAvailable: ignoreRest || Date.now() >= relayRestingUntil,
   })
   return { provider, own }
 }
 
 /**
- * Whether the days are routed here rather than by OSRM: with the TREK services or an own
- * Valhalla. While the relay rests after a failure this reads as FOSSGIS, so the days go
- * back to OSRM until it is asked again.
+ * Whether the days are asked here right now rather than of OSRM: with the TREK services
+ * or an own Valhalla. While the relay rests after a failure this reads as FOSSGIS, so the
+ * days go to OSRM until it is asked again.
  */
 export function valhallaRoutesDays(): boolean {
   return valhallaRoutesEveryDay(currentProvider().provider)
+}
+
+/**
+ * Whether the days are planned with this engine, resting relay or not. The route cache is
+ * keyed by it: a day this device already holds from Valhalla stays found while the relay
+ * rests, offline above all, where every question to it fails and it rests at once.
+ */
+export function valhallaPlansDays(): boolean {
+  return valhallaRoutesEveryDay(currentProvider(true).provider)
 }
 
 /** True when this engine can be asked at all, so callers can skip building a request. */
@@ -484,16 +505,17 @@ function relayWait(response: Response): number | null {
   return Number.isNaN(at) ? null : Math.max(0, at - Date.now())
 }
 
+/** A route or a height question held to `ASK_TIMEOUT_MS`; a description brings its own deadline. */
+function withDeadline(action: ValhallaRelayAction, signal?: AbortSignal): AbortSignal | undefined {
+  if (action === 'trace_attributes') return signal
+  const deadline = AbortSignal.timeout(ASK_TIMEOUT_MS)
+  return signal ? AbortSignal.any([signal, deadline]) : deadline
+}
+
 async function askRelay(action: ValhallaRelayAction, body: object, signal?: AbortSignal): Promise<Response | null> {
-  let bounded = signal
-  // A description brings its own deadline; a route or a height gets the relay's.
-  if (action !== 'trace_attributes') {
-    const deadline = AbortSignal.timeout(RELAY_TIMEOUT_MS)
-    bounded = signal ? AbortSignal.any([signal, deadline]) : deadline
-  }
   let wait = RELAY_REST_MS
   try {
-    const response = await valhallaRelayRepo.ask(action, body, bounded)
+    const response = await valhallaRelayRepo.ask(action, body, withDeadline(action, signal))
     if (!(await relayCannotAnswer(response))) return response
     wait = Math.min(relayWait(response) ?? RELAY_REST_MS, RELAY_MAX_WAIT_MS)
   } catch (err) {
@@ -530,7 +552,8 @@ export async function valhallaPost(
     // client to identify itself with. It costs a preflight, which is answered.
     headers: { 'Content-Type': 'application/json', 'X-Client-Id': 'trek' },
     body: JSON.stringify(body),
-    signal,
+    // An own Valhalla routes every day, so one that hangs would hold each of them up.
+    signal: host === FOSSGIS_VALHALLA ? signal : withDeadline(action, signal),
   })
 }
 
@@ -549,24 +572,25 @@ export function valhallaSpacing(signal?: AbortSignal): Promise<void> {
  * One question, and one more try after a pause when it earned no answer.
  *
  * Not when the host just proved it is not a Valhalla at all: that answer will not change
- * on a second ask, and asking anyway is the request the memo exists to save. Nor when
- * the relay now rests and nothing may stand in for it: the second ask would not leave
- * this tab, and OSRM is waiting for the day.
+ * on a second ask, and asking anyway is the request the memo exists to save. Nor, where
+ * nothing may stand in for this engine, when the relay now rests or the host used up its
+ * whole deadline: the second ask would not leave this tab or would most likely wait as
+ * long again, and OSRM is waiting for the day.
  */
 async function askWithRetry<T>(
   base: string,
-  ask: () => Promise<T | null>,
+  ask: () => Promise<T | TooSlow | null>,
   signal: AbortSignal | undefined,
   publicFallback: boolean,
 ): Promise<T | null> {
   let answer = await ask()
-  for (let attempt = 0; !answer && attempt < CHUNK_RETRIES && !signal?.aborted; attempt++) {
+  for (let attempt = 0; (!answer || tooSlow(answer)) && attempt < CHUNK_RETRIES && !signal?.aborted; attempt++) {
     if (notValhalla.has(base)) break
-    if (base === TREK_VALHALLA && !publicFallback && Date.now() < relayRestingUntil) break
+    if (!publicFallback && (tooSlow(answer) || (base === TREK_VALHALLA && Date.now() < relayRestingUntil))) break
     await pause(CHUNK_PAUSE_MS, signal)
     answer = await ask()
   }
-  return answer
+  return tooSlow(answer) ? null : answer
 }
 
 /** The request body for a chain of waypoints, weighted away from `avoid`. */
@@ -597,7 +621,10 @@ function routeBody(
   }
 }
 
-/** The parsed answer to one POST, `NO_PATH` when the router found no way, or null for every other failure. */
+/**
+ * The parsed answer to one POST, `NO_PATH` when the router found no way, `TOO_SLOW` when
+ * it did not answer in time, or null for every other failure.
+ */
 async function postRoute(
   base: string,
   body: Record<string, unknown>,
@@ -616,8 +643,8 @@ async function postRoute(
       return null
     }
     return await response.json()
-  } catch {
-    return null
+  } catch (err) {
+    return err instanceof DOMException && err.name === 'TimeoutError' ? TOO_SLOW : null
   }
 }
 
@@ -708,10 +735,10 @@ async function requestRun(
   avoid: readonly AvoidClass[],
   signal: AbortSignal | undefined,
   { costingOptions, searchFilter, publicFallback }: RunAsk,
-): Promise<Omit<ValhallaRun, 'snapped'> | ValhallaNoPath | null> {
+): Promise<Omit<ValhallaRun, 'snapped'> | ValhallaNoPath | TooSlow | null> {
   const body = routeBody(waypoints, profile, avoid, costingOptions, searchFilter)
   const data = await postRoute(base, body, signal, publicFallback)
-  if (data === NO_PATH) return NO_PATH
+  if (data === NO_PATH || tooSlow(data)) return data
   return data === null ? null : runFrom(data)
 }
 
@@ -765,6 +792,7 @@ async function alternates(
   const body = { ...routeBody([from, to], profile, avoid, costingOptions), ...(count > 0 ? { alternates: count } : {}) }
   return askWithRetry(base, async () => {
     const data = await postRoute(base, body, signal, publicFallback)
+    if (tooSlow(data)) return data
     return data === null ? null : alternatesFrom(data)
   }, signal, publicFallback)
 }

@@ -3,8 +3,8 @@ import { sameRoad } from '@trek/shared';
 import { useSettingsStore } from '../../store/settingsStore';
 import type { RouteSegment, RouteWithLegs, Waypoint } from '../../types';
 import { haversineKm } from '../../utils/geo';
-import type { RouteAlternative } from './RouteCalculator';
-import { formatDuration, formatRouteDistance } from './routeText';
+import { formatDuration, legSegment } from './routeText';
+import type { RouteAlternative } from './routeTypes';
 import { countRoute } from './routeUsageCounter';
 import {
   legAvoids,
@@ -73,21 +73,10 @@ export async function valhallaDayRoute(
   if (!signal?.aborted) countRoute({ ...sample, failed: !run });
   if (!run) return null;
 
-  const legs: RouteSegment[] = run.legs.map((leg, i): RouteSegment => {
-    const from: [number, number] = [waypoints[i].lat, waypoints[i].lng];
-    const to: [number, number] = [waypoints[i + 1].lat, waypoints[i + 1].lng];
-    return {
-      mid: [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2],
-      from,
-      to,
-      distance: leg.distance,
-      duration: leg.duration,
-      walkingText: formatDuration(leg.distance / (5000 / 3600)),
-      drivingText: formatDuration(leg.duration),
-      distanceText: formatRouteDistance(leg.distance),
-      durationText: formatDuration(leg.duration),
-    };
-  });
+  const legs = run.legs.map((leg, i): RouteSegment => ({
+    ...legSegment(leg, i, waypoints),
+    durationText: formatDuration(leg.duration),
+  }));
 
   return {
     coordinates: run.total.coordinates,
@@ -99,6 +88,7 @@ export async function valhallaDayRoute(
       ? { avoidance: { asked: avoid, achieved: avoid.filter((cls) => legAvoids(run.total, cls)) } }
       : {}),
     hasFerry: run.total.hasFerry,
+    engine: 'valhalla',
   };
 }
 
