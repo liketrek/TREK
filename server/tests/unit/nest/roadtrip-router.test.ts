@@ -3,7 +3,7 @@ import { RoadtripRouterService, RouteRefusal } from '../../../src/nest/roadtrip/
 import type { ValhallaRelayAnswer } from '../../../src/nest/routing-relay/routing-relay.service';
 import { safeFetchAdminConfigured } from '../../../src/utils/ssrfGuard';
 import { oneByOne } from '../../helpers/one-by-one';
-import { valhallaPolyline } from '../../helpers/valhalla';
+import { valhallaPolyline, valhallaRoute } from '../../helpers/valhalla';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -812,5 +812,152 @@ describe('server Roadtrip router through the TREK services (routing relay)', () 
       [3, 'trace_attributes'],
     ]);
     expect(safeFetchAdminConfigured).not.toHaveBeenCalled();
+  });
+});
+
+describe('server Roadtrip router: every day through Valhalla where it routes the days', () => {
+  type RouteBody = { locations: Array<{ lat: number; lon: number }>; costing: string; costing_options: unknown };
+  /** Valhalla's answer to a route body: one leg per pair of its locations, a kilometre and a minute each. */
+  const legsFor = (body: RouteBody) =>
+    valhallaRoute(
+      body.locations.slice(1).map((to, index) => ({
+        line: [
+          [body.locations[index].lat, body.locations[index].lon],
+          [to.lat, to.lon],
+        ],
+        km: 1,
+        seconds: 60,
+      })),
+    );
+  const answer = (status: number, body: unknown): ValhallaRelayAnswer => ({
+    status,
+    contentType: 'application/json',
+    body: Buffer.from(JSON.stringify(body)),
+  });
+  const day = (count: number) => Array.from({ length: count }, (_, index) => ({ lat: 47 + index / 100, lng: 11 }));
+  const settled = async <T>(pending: Promise<T>): Promise<T> => {
+    await vi.runAllTimersAsync();
+    return await pending;
+  };
+  const relayBodies = () => relay.ask.mock.calls.map((call) => call[2] as RouteBody);
+  const bodyOf = (init: RequestInit | undefined) => JSON.parse(String(init?.body)) as RouteBody;
+
+  describe('with the TREK services', () => {
+    beforeEach(() => {
+      relay.trekValhalla.mockReturnValue(TREK_VALHALLA);
+      relay.ask.mockImplementation(async (_userId, _action, body) => answer(200, legsFor(body as RouteBody)));
+    });
+
+    it.each([
+      ['driving', 'auto'],
+      ['walking', 'pedestrian'],
+      ['cycling', 'bicycle'],
+    ])(
+      'ROUTER-DAY-001: routes a %s day that avoids nothing through the relay as %s, OSRM never asked',
+      async (mode, costing) => {
+        const route = await settled(setup().router.route(4, 1, 1, points, mode, []));
+        expect(relayBodies().map((body) => [body.costing, body.costing_options, body.locations.length])).toEqual([
+          [costing, { [costing]: {} }, 3],
+        ]);
+        expect(route.parts).toEqual([
+          { distance: 1000, duration: 60 },
+          { distance: 1000, duration: 60 },
+        ]);
+        expect(route.avoidMissed).toEqual([]);
+        expect(safeFetchAdminConfigured).not.toHaveBeenCalled();
+      },
+    );
+
+    it('ROUTER-DAY-002: asks twenty locations at a time, each piece starting where the one before ended', async () => {
+      const route = await settled(setup().router.route(4, 1, 1, day(25), 'driving', []));
+      const asked = relayBodies().map((body) => body.locations);
+      expect(asked.map((locations) => locations.length)).toEqual([20, 6]);
+      expect(asked[1][0]).toEqual(asked[0][19]);
+      expect(route.parts).toHaveLength(24);
+    });
+
+    it('ROUTER-DAY-003: routes the whole day with OSRM where the relay cannot answer, never with FOSSGIS', async () => {
+      const refusals = [
+        () => Promise.resolve(answer(401, { error: 'Unauthorized' })),
+        () => Promise.resolve(answer(403, { error: 'Forbidden' })),
+        () => Promise.resolve(answer(413, { error: 'Payload too large' })),
+        () => Promise.resolve(answer(429, { error: 'Too many routing requests' })),
+        () => Promise.resolve(answer(502, { error: 'The TREK routing service did not answer' })),
+        () => Promise.resolve(answer(503, { error: 'The TREK routing service is resting' })),
+        () => Promise.reject(new DomainError(503, 'The TREK routing service is not available on this instance')),
+      ];
+      await oneByOne([...refusals.entries()], async ([userId, refusal]) => {
+        vi.mocked(safeFetchAdminConfigured).mockClear();
+        relay.ask.mockReset().mockImplementationOnce(refusal);
+        const route = await settled(setup().router.route(userId, 1, 1, points, 'driving', []));
+        expect(route.parts.map((part) => part.duration)).toEqual([100, 200]);
+        const asked = vi.mocked(safeFetchAdminConfigured).mock.calls.map(([url]) => String(url));
+        expect(asked).toHaveLength(1);
+        expect(asked[0]).toContain('routing.openstreetmap.de/routed-car');
+      });
+    });
+
+    it('ROUTER-DAY-004: routes the whole day with OSRM where Valhalla finds no way for one of its legs', async () => {
+      relay.ask.mockResolvedValueOnce(answer(400, { error_code: 442, error: 'No path could be found for input' }));
+      const route = await settled(setup().router.route(4, 1, 1, points, 'walking', []));
+      expect(route.parts.map((part) => part.duration)).toEqual([100, 200]);
+      expect(safeFetchAdminConfigured).toHaveBeenCalledTimes(1);
+      expect(safeFetchAdminConfigured).toHaveBeenCalledWith(
+        expect.stringContaining('routed-foot/route/v1/foot/'),
+        expect.anything(),
+      );
+    });
+
+    it('ROUTER-DAY-005: a day that avoids something keeps FOSSGIS behind the relay and its ten locations', async () => {
+      relay.ask.mockReset().mockResolvedValue(answer(503, { error: 'The TREK routing service is resting' }));
+      vi.mocked(safeFetchAdminConfigured).mockImplementation(
+        async (_url, init) => new Response(JSON.stringify(legsFor(bodyOf(init)))),
+      );
+      const route = await settled(setup().router.route(4, 1, 1, day(12), 'driving', ['toll']));
+      expect(relayBodies().map((body) => body.locations.length)).toEqual([10, 3]);
+      expect(vi.mocked(safeFetchAdminConfigured).mock.calls.map(([url]) => url)).toEqual(
+        Array(2).fill('https://valhalla1.openstreetmap.de/route'),
+      );
+      expect(route.parts).toHaveLength(11);
+      expect(route.avoidMissed).toEqual([]);
+    });
+  });
+
+  it('ROUTER-DAY-006: an own Valhalla routes every day in pieces of twenty, and OSRM the day it cannot answer', async () => {
+    const own = (url: unknown) => String(url).startsWith('https://valhalla.internal');
+    vi.mocked(safeFetchAdminConfigured).mockImplementation(async (url, init) =>
+      own(url) ? new Response(JSON.stringify(legsFor(bodyOf(init)))) : osrm(),
+    );
+    const { router } = setup({ valhalla_base_url: 'https://valhalla.internal' });
+    const route = await settled(router.route(1, 1, 1, day(21), 'cycling', []));
+    const asked = vi
+      .mocked(safeFetchAdminConfigured)
+      .mock.calls.map(([url, init]) => [url, bodyOf(init).locations.length]);
+    expect(asked).toEqual([
+      ['https://valhalla.internal/route', 20],
+      ['https://valhalla.internal/route', 2],
+    ]);
+    expect(route.parts).toHaveLength(20);
+
+    vi.mocked(safeFetchAdminConfigured)
+      .mockClear()
+      .mockImplementation(async (url) => (own(url) ? new Response('', { status: 502 }) : osrm()));
+    const fallen = await settled(router.route(2, 1, 1, points, 'driving', []));
+    expect(fallen.parts.map((part) => part.duration)).toEqual([100, 200]);
+    const urls = vi.mocked(safeFetchAdminConfigured).mock.calls.map(([url]) => url);
+    expect(urls).toHaveLength(2);
+    expect(urls[0]).toBe('https://valhalla.internal/route');
+    expect(urls[1]).toContain('routing.openstreetmap.de/routed-car');
+    expect(relay.ask).not.toHaveBeenCalled();
+  });
+
+  it('ROUTER-DAY-007: with FOSSGIS chosen, a day that avoids nothing stays with OSRM as before', async () => {
+    relay.trekValhalla.mockReturnValue(TREK_VALHALLA);
+    const { router } = setup({ routing_valhalla_provider: 'fossgis' });
+    const route = await settled(router.route(1, 1, 1, points, 'driving', []));
+    expect(route.parts.map((part) => part.duration)).toEqual([100, 200]);
+    expect(safeFetchAdminConfigured).toHaveBeenCalledTimes(1);
+    expect(safeFetchAdminConfigured).toHaveBeenCalledWith(expect.stringContaining('routed-car'), expect.anything());
+    expect(relay.ask).not.toHaveBeenCalled();
   });
 });
