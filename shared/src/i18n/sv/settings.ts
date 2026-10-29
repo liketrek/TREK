@@ -32,7 +32,7 @@ const settings: TranslationStrings = {
     'En egen Valhalla, som tillfrågas när ruttjänsten ovan är inställd på den eller på Automatiskt. Om bara en egen ruttserver är konfigurerad och ingen ruttjänst är vald tillfrågas ingen Valhalla. Starta om servern och ladda om sidan efter att du angett en URL.',
   'settings.valhallaProvider': 'Ruttjänst',
   'settings.valhallaProviderHint':
-    'Svarar på det OSRM inte kan: rutter utan vägtullar, motorvägar eller färjor, samt rutter, höjder och stigar för turer. TREK-tjänsterna tillfrågas via den här servern; när de inte kan svara tar FOSSGIS publika Valhalla över. Automatiskt frågar TREK-tjänsterna, om inte en egen Valhalla eller bara en egen ruttserver är angiven.',
+    'Med TREK-tjänsterna eller en egen Valhalla beräknar Valhalla alla rutter: dagar och bilresor till fots, med cykel och med bil, rutter utan vägtullar, motorvägar eller färjor samt rutter, höjder och stigar för turer. När den inte kan svara beräknar OSRM den dagen i stället. TREK-tjänsterna tillfrågas via den här servern. Med FOSSGIS publika Valhalla beräknar OSRM rutterna och Valhalla svarar bara på det OSRM inte kan. Automatiskt frågar TREK-tjänsterna, om inte en egen Valhalla eller bara en egen ruttserver är angiven.',
   'settings.valhallaProviderOption.auto': 'Automatiskt',
   'settings.valhallaProviderOption.trek': 'TREK-tjänster',
   'settings.valhallaProviderOption.fossgis': 'Publik Valhalla (FOSSGIS)',

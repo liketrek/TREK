@@ -41,7 +41,7 @@ const settings: TranslationStrings = {
     'Vlastná Valhalla, ktorej sa pýta, keď je smerovacia služba vyššie nastavená na ňu alebo na Automaticky. Ak je nastavená iba vlastná smerovacia inštancia a nie je zvolená žiadna smerovacia služba, žiadna Valhalla sa nepýta. Po zadaní URL reštartujte server a znovu načítajte stránku.',
   'settings.valhallaProvider': 'Smerovacia služba',
   'settings.valhallaProviderHint':
-    'Odpovedá na to, čo OSRM nevie: trasy bez mýta, diaľnic alebo trajektov a trasy, výšky a cesty výletov. Služby TREK sa pýtajú cez tento server; keď nemôžu odpovedať, prevezme to verejná Valhalla FOSSGIS. Automaticky sa pýta služieb TREK, pokiaľ nie je nastavená vlastná Valhalla alebo iba vlastná smerovacia inštancia.',
+    'So službami TREK alebo vlastnou Valhallou počíta všetky trasy Valhalla: dni a cestné výlety pešo, na bicykli aj autom, trasy bez mýta, diaľnic alebo trajektov a trasy, výšky a cesty výletov. Keď nemôže odpovedať, vypočíta daný deň OSRM. Služby TREK sa pýtajú cez tento server. S verejnou Valhallou FOSSGIS počíta trasy OSRM a Valhalla odpovedá len na to, čo OSRM nevie. Automaticky sa pýta služieb TREK, pokiaľ nie je nastavená vlastná Valhalla alebo iba vlastná smerovacia inštancia.',
   'settings.valhallaProviderOption.auto': 'Automaticky',
   'settings.valhallaProviderOption.trek': 'Služby TREK',
   'settings.valhallaProviderOption.fossgis': 'Verejná Valhalla (FOSSGIS)',

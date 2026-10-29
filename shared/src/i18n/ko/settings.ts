@@ -32,7 +32,7 @@ const settings: TranslationStrings = {
     '자체 Valhalla입니다. 위의 경로 서비스가 이것 또는 자동으로 설정되어 있을 때 요청합니다. 자체 라우팅 서버만 설정되어 있고 경로 서비스를 선택하지 않았다면 어떤 Valhalla에도 요청하지 않습니다. URL을 입력한 후 서버를 재시작하고 페이지를 새로고침하세요.',
   'settings.valhallaProvider': '경로 서비스',
   'settings.valhallaProviderHint':
-    'OSRM이 할 수 없는 일을 처리합니다: 유료 도로, 고속도로, 페리를 피하는 경로와 투어의 경로, 고도, 길. TREK 서비스는 이 서버를 통해 요청되며, 응답할 수 없으면 FOSSGIS의 공개 Valhalla가 대신합니다. 자동은 자체 Valhalla나 자체 라우팅 서버만 설정되어 있지 않으면 TREK 서비스에 요청합니다.',
+    'TREK 서비스나 자체 Valhalla를 쓰면 모든 경로를 Valhalla가 계산합니다: 도보, 자전거, 자동차로 이동하는 일별 경로와 로드 트립, 유료 도로, 고속도로, 페리를 피하는 경로, 투어의 경로, 고도, 길. 응답할 수 없으면 그날은 OSRM이 계산합니다. TREK 서비스는 이 서버를 통해 요청됩니다. FOSSGIS의 공개 Valhalla를 쓰면 경로는 OSRM이 계산하고 Valhalla는 OSRM이 할 수 없는 일만 처리합니다. 자동은 자체 Valhalla나 자체 라우팅 서버만 설정되어 있지 않으면 TREK 서비스에 요청합니다.',
   'settings.valhallaProviderOption.auto': '자동',
   'settings.valhallaProviderOption.trek': 'TREK 서비스',
   'settings.valhallaProviderOption.fossgis': '공개 Valhalla (FOSSGIS)',

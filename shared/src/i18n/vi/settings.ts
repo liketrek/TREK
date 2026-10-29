@@ -32,7 +32,7 @@ const settings: TranslationStrings = {
     'Valhalla riêng của bạn, được hỏi khi dịch vụ định tuyến ở trên được đặt cho nó hoặc Tự động. Nếu chỉ cấu hình máy chủ định tuyến riêng và không chọn dịch vụ định tuyến, sẽ không hỏi Valhalla nào. Sau khi nhập URL, hãy khởi động lại máy chủ và tải lại trang.',
   'settings.valhallaProvider': 'Dịch vụ định tuyến',
   'settings.valhallaProviderHint':
-    'Trả lời những gì OSRM không làm được: lộ trình tránh đường thu phí, đường cao tốc hoặc phà, cùng lộ trình, độ cao và đường đi của các chuyến đi. Dịch vụ TREK được hỏi qua máy chủ này; khi không thể trả lời, Valhalla công cộng của FOSSGIS sẽ thay thế. Tự động sẽ hỏi dịch vụ TREK, trừ khi đã đặt Valhalla riêng hoặc chỉ máy chủ định tuyến riêng.',
+    'Với dịch vụ TREK hoặc Valhalla riêng, Valhalla tính mọi lộ trình: các ngày và chuyến đi đường bộ khi đi bộ, đi xe đạp và đi ô tô, lộ trình tránh đường thu phí, đường cao tốc hoặc phà, cùng lộ trình, độ cao và đường đi của các chuyến đi. Khi không thể trả lời, OSRM sẽ tính ngày đó thay thế. Dịch vụ TREK được hỏi qua máy chủ này. Với Valhalla công cộng của FOSSGIS, OSRM tính các lộ trình và Valhalla chỉ trả lời những gì OSRM không làm được. Tự động sẽ hỏi dịch vụ TREK, trừ khi đã đặt Valhalla riêng hoặc chỉ máy chủ định tuyến riêng.',
   'settings.valhallaProviderOption.auto': 'Tự động',
   'settings.valhallaProviderOption.trek': 'Dịch vụ TREK',
   'settings.valhallaProviderOption.fossgis': 'Valhalla công cộng (FOSSGIS)',

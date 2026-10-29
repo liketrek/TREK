@@ -32,7 +32,7 @@ const settings: TranslationStrings = {
     '独自のValhallaです。上のルーティングサービスがこれか「自動」に設定されているときに問い合わせます。独自のルーティングサーバーのみが設定され、ルーティングサービスが選ばれていない場合、Valhallaには問い合わせません。URLを入力した後は、サーバーを再起動し、ページを再読み込みしてください。',
   'settings.valhallaProvider': 'ルーティングサービス',
   'settings.valhallaProviderHint':
-    'OSRMにできないことに答えます：有料道路・高速道路・フェリーを避けるルートと、ツアーのルート・標高・道です。TREKサービスへの問い合わせはこのサーバー経由で行われ、応答できない場合はFOSSGISの公開Valhallaが引き継ぎます。「自動」は、独自のValhallaや独自のルーティングサーバーのみが設定されていない限り、TREKサービスに問い合わせます。',
+    'TREKサービスまたは独自のValhallaでは、すべてのルートをValhallaが計算します：徒歩・自転車・車での日ごとのルートとロードトリップ、有料道路・高速道路・フェリーを避けるルート、ツアーのルート・標高・道です。応答できない場合は、その日をOSRMが計算します。TREKサービスへの問い合わせはこのサーバー経由で行われます。FOSSGISの公開Valhallaでは、ルートはOSRMが計算し、ValhallaはOSRMにできないことだけに答えます。「自動」は、独自のValhallaや独自のルーティングサーバーのみが設定されていない限り、TREKサービスに問い合わせます。',
   'settings.valhallaProviderOption.auto': '自動',
   'settings.valhallaProviderOption.trek': 'TREKサービス',
   'settings.valhallaProviderOption.fossgis': '公開Valhalla（FOSSGIS）',

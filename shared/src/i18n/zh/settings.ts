@@ -32,7 +32,7 @@ const settings: TranslationStrings = {
     '你自己的 Valhalla，当上方的路线服务设为它或设为“自动”时使用。如果只配置了自己的路线规划服务器且未选择路线服务，则不会请求任何 Valhalla。输入网址后，请重启服务器并重新加载页面。',
   'settings.valhallaProvider': '路线服务',
   'settings.valhallaProviderHint':
-    '处理 OSRM 做不到的事：避开收费道路、高速公路或渡轮的路线，以及行程的路线、海拔和道路。TREK 服务通过此服务器请求；无法应答时，由 FOSSGIS 的公共 Valhalla 接手。“自动”会请求 TREK 服务，除非已设置自己的 Valhalla 或只设置了自己的路线规划服务器。',
+    '使用 TREK 服务或自己的 Valhalla 时，所有路线都由 Valhalla 计算：步行、骑行和驾车的每日路线与自驾游，避开收费道路、高速公路或渡轮的路线，以及行程的路线、海拔和道路。无法应答时，由 OSRM 计算当天的路线。TREK 服务通过此服务器请求。使用 FOSSGIS 的公共 Valhalla 时，路线由 OSRM 计算，Valhalla 只处理 OSRM 做不到的事。“自动”会请求 TREK 服务，除非已设置自己的 Valhalla 或只设置了自己的路线规划服务器。',
   'settings.valhallaProviderOption.auto': '自动',
   'settings.valhallaProviderOption.trek': 'TREK 服务',
   'settings.valhallaProviderOption.fossgis': '公共 Valhalla（FOSSGIS）',

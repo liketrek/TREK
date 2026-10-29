@@ -33,7 +33,7 @@ const settings: TranslationStrings = {
     'Een eigen Valhalla, gevraagd als de routeringsdienst hierboven daarop of op Automatisch staat. Als alleen een eigen routeringsinstantie is ingesteld en geen routeringsdienst gekozen, wordt geen Valhalla gevraagd. Herstart na het invoeren van een URL de server en laad de pagina opnieuw.',
   'settings.valhallaProvider': 'Routeringsdienst',
   'settings.valhallaProviderHint':
-    'Beantwoordt wat OSRM niet kan: routes zonder tol, snelwegen of veerboten, en de routes, hoogtes en paden van tochten. De TREK-diensten worden via deze server gevraagd; als ze niet kunnen antwoorden, neemt de publieke Valhalla van FOSSGIS het over. Automatisch vraagt de TREK-diensten, tenzij een eigen Valhalla of alleen een eigen routeringsinstantie is ingesteld.',
+    'Met de TREK-diensten of een eigen Valhalla berekent Valhalla alle routes: dagen en roadtrips te voet, met de fiets en met de auto, routes zonder tol, snelwegen of veerboten, en de routes, hoogtes en paden van tochten. Als ze niet kan antwoorden, berekent OSRM die dag. De TREK-diensten worden via deze server gevraagd. Met de publieke Valhalla van FOSSGIS berekent OSRM de routes en beantwoordt Valhalla alleen wat OSRM niet kan. Automatisch vraagt de TREK-diensten, tenzij een eigen Valhalla of alleen een eigen routeringsinstantie is ingesteld.',
   'settings.valhallaProviderOption.auto': 'Automatisch',
   'settings.valhallaProviderOption.trek': 'TREK-diensten',
   'settings.valhallaProviderOption.fossgis': 'Publieke Valhalla (FOSSGIS)',

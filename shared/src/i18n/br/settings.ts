@@ -33,7 +33,7 @@ const settings: TranslationStrings = {
     'Uma Valhalla própria, consultada quando o serviço de rotas acima está definido para ela ou para Automático. Se apenas uma instância de roteamento própria estiver configurada e nenhum serviço de rotas for escolhido, nenhuma Valhalla é consultada. Após inserir uma URL, reinicie o servidor e recarregue a página.',
   'settings.valhallaProvider': 'Serviço de rotas',
   'settings.valhallaProviderHint':
-    'Responde ao que o OSRM não consegue: rotas sem pedágios, rodovias ou balsas, e as rotas, altitudes e caminhos dos passeios. Os serviços TREK são consultados por meio deste servidor; quando não conseguem responder, a Valhalla pública da FOSSGIS assume. Automático consulta os serviços TREK, a menos que uma Valhalla própria ou apenas uma instância de roteamento própria esteja configurada.',
+    'Com os serviços TREK ou uma Valhalla própria, a Valhalla calcula todas as rotas: os dias e as viagens de estrada a pé, de bicicleta e de carro, rotas sem pedágios, rodovias ou balsas, e as rotas, altitudes e caminhos dos passeios. Quando ela não consegue responder, o OSRM calcula esse dia no lugar dela. Os serviços TREK são consultados por meio deste servidor. Com a Valhalla pública da FOSSGIS, o OSRM calcula as rotas e a Valhalla responde apenas ao que o OSRM não consegue. Automático consulta os serviços TREK, a menos que uma Valhalla própria ou apenas uma instância de roteamento própria esteja configurada.',
   'settings.valhallaProviderOption.auto': 'Automático',
   'settings.valhallaProviderOption.trek': 'Serviços TREK',
   'settings.valhallaProviderOption.fossgis': 'Valhalla pública (FOSSGIS)',

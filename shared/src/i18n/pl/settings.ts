@@ -32,7 +32,7 @@ const settings: TranslationStrings = {
     'Własna Valhalla, pytana, gdy usługa wyznaczania tras powyżej jest ustawiona na nią lub na Automatycznie. Jeśli skonfigurowano tylko własną instancję wyznaczania tras i nie wybrano usługi, żadna Valhalla nie jest pytana. Po wpisaniu adresu URL uruchom ponownie serwer i odśwież stronę.',
   'settings.valhallaProvider': 'Usługa wyznaczania tras',
   'settings.valhallaProviderHint':
-    'Odpowiada na to, czego OSRM nie potrafi: trasy bez opłat, autostrad i promów oraz trasy, wysokości i ścieżki wycieczek. Usługi TREK są pytane przez ten serwer; gdy nie mogą odpowiedzieć, zastępuje je publiczna Valhalla FOSSGIS. Automatycznie pyta usługi TREK, chyba że ustawiono własną Valhallę albo tylko własną instancję wyznaczania tras.',
+    'Z usługami TREK lub własną Valhallą wszystkie trasy wyznacza Valhalla: dni i podróże drogowe pieszo, rowerem i samochodem, trasy bez opłat, autostrad i promów oraz trasy, wysokości i ścieżki wycieczek. Gdy nie może odpowiedzieć, ten dzień wyznacza OSRM. Usługi TREK są pytane przez ten serwer. Z publiczną Valhallą FOSSGIS trasy wyznacza OSRM, a Valhalla odpowiada tylko na to, czego OSRM nie potrafi. Automatycznie pyta usługi TREK, chyba że ustawiono własną Valhallę albo tylko własną instancję wyznaczania tras.',
   'settings.valhallaProviderOption.auto': 'Automatycznie',
   'settings.valhallaProviderOption.trek': 'Usługi TREK',
   'settings.valhallaProviderOption.fossgis': 'Publiczna Valhalla (FOSSGIS)',

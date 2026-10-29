@@ -33,7 +33,7 @@ const settings: TranslationStrings = {
     'Eine eigene Valhalla, gefragt, wenn der Routing-Dienst oben auf sie oder auf Automatisch steht. Ist nur eine eigene Routing-Instanz konfiguriert und kein Routing-Dienst gewählt, wird keine Valhalla gefragt. Nach dem Eintragen einer URL den Server neu starten und die Seite neu laden.',
   'settings.valhallaProvider': 'Routing-Dienst',
   'settings.valhallaProviderHint':
-    'Beantwortet, was OSRM nicht kann: Routen ohne Maut, Autobahn oder Fähre sowie Routen, Höhen und Wege von Touren. Die TREK-Dienste werden über diesen Server gefragt; wo sie nicht antworten können, springt die öffentliche FOSSGIS-Valhalla ein. Automatisch fragt die TREK-Dienste, außer eine eigene Valhalla oder nur eine eigene Routing-Instanz ist eingetragen.',
+    'Mit den TREK-Diensten oder einer eigenen Valhalla berechnet Valhalla alle Routen: Tage und Roadtrips zu Fuß, mit dem Rad und mit dem Auto, Routen ohne Maut, Autobahn oder Fähre sowie Routen, Höhen und Wege von Touren. Wo sie nicht antworten kann, berechnet OSRM diesen Tag. Die TREK-Dienste werden über diesen Server gefragt. Mit der öffentlichen FOSSGIS-Valhalla berechnet OSRM die Routen, und Valhalla beantwortet nur, was OSRM nicht kann. Automatisch fragt die TREK-Dienste, außer eine eigene Valhalla oder nur eine eigene Routing-Instanz ist eingetragen.',
   'settings.valhallaProviderOption.auto': 'Automatisch',
   'settings.valhallaProviderOption.trek': 'TREK-Dienste',
   'settings.valhallaProviderOption.fossgis': 'Öffentliche Valhalla (FOSSGIS)',

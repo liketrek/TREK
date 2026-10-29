@@ -32,7 +32,7 @@ const settings: TranslationStrings = {
     'Saját Valhalla, amelyet akkor kérdez, ha a fenti útvonaltervező szolgáltatás rá vagy Automatikusra van állítva. Ha csak saját útvonaltervező van beállítva, és nincs kiválasztva szolgáltatás, egyik Valhalla sem kap kérdést. URL megadása után indítsa újra a szervert, és töltse újra az oldalt.',
   'settings.valhallaProvider': 'Útvonaltervező szolgáltatás',
   'settings.valhallaProviderHint':
-    'Arra válaszol, amire az OSRM nem képes: fizetős utak, autópályák vagy kompok nélküli útvonalakra, valamint a túrák útvonalaira, magasságaira és ösvényeire. A TREK-szolgáltatásokat ez a szerver kérdezi meg; ha nem tudnak válaszolni, a FOSSGIS nyilvános Valhallája veszi át. Az Automatikus a TREK-szolgáltatásokat kérdezi, hacsak nincs megadva saját Valhalla vagy csak saját útvonaltervező.',
+    'A TREK-szolgáltatásokkal vagy saját Valhallával minden útvonalat a Valhalla számol: a napokat és az autós utakat gyalog, kerékpárral és autóval, a fizetős utak, autópályák vagy kompok nélküli útvonalakat, valamint a túrák útvonalait, magasságait és ösvényeit. Ha nem tud válaszolni, az adott napot az OSRM számolja. A TREK-szolgáltatásokat ez a szerver kérdezi meg. A FOSSGIS nyilvános Valhallájával az OSRM számolja az útvonalakat, a Valhalla pedig csak arra válaszol, amire az OSRM nem képes. Az Automatikus a TREK-szolgáltatásokat kérdezi, hacsak nincs megadva saját Valhalla vagy csak saját útvonaltervező.',
   'settings.valhallaProviderOption.auto': 'Automatikus',
   'settings.valhallaProviderOption.trek': 'TREK-szolgáltatások',
   'settings.valhallaProviderOption.fossgis': 'Nyilvános Valhalla (FOSSGIS)',

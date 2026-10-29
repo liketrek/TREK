@@ -41,7 +41,7 @@ const settings: TranslationStrings = {
     'Oma Valhalla, millelt küsitakse, kui ülal olev marsruutimisteenus on seatud sellele või automaatsele. Kui seadistatud on ainult oma marsruutimisserver ja teenust pole valitud, ei küsita ühelgi Valhallal. Pärast URL-i sisestamist taaskäivita server ja laadi leht uuesti.',
   'settings.valhallaProvider': 'Marsruutimisteenus',
   'settings.valhallaProviderHint':
-    'Vastab sellele, mida OSRM ei oska: marsruudid ilma teemaksu, kiirteede või praamideta ning matkade marsruudid, kõrgused ja rajad. TREKi teenustelt küsitakse selle serveri kaudu; kui need ei saa vastata, võtab üle FOSSGIS-i avalik Valhalla. Automaatne küsib TREKi teenustelt, kui pole seadistatud oma Valhallat või ainult oma marsruutimisserverit.',
+    'TREKi teenuste või oma Valhallaga arvutab kõik marsruudid Valhalla: päevad ja autoreisid jalgsi, rattaga ja autoga, marsruudid ilma teemaksu, kiirteede või praamideta ning matkade marsruudid, kõrgused ja rajad. Kui see ei saa vastata, arvutab selle päeva OSRM. TREKi teenustelt küsitakse selle serveri kaudu. FOSSGIS-i avaliku Valhallaga arvutab marsruudid OSRM ja Valhalla vastab ainult sellele, mida OSRM ei oska. Automaatne küsib TREKi teenustelt, kui pole seadistatud oma Valhallat või ainult oma marsruutimisserverit.',
   'settings.valhallaProviderOption.auto': 'Automaatne',
   'settings.valhallaProviderOption.trek': 'TREKi teenused',
   'settings.valhallaProviderOption.fossgis': 'Avalik Valhalla (FOSSGIS)',

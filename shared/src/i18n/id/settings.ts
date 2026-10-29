@@ -32,7 +32,7 @@ const settings: TranslationStrings = {
     'Valhalla milik Anda sendiri, ditanyakan saat layanan perutean di atas diatur ke sana atau ke Otomatis. Jika hanya instans perutean sendiri yang dikonfigurasi dan tidak ada layanan perutean yang dipilih, tidak ada Valhalla yang ditanyakan. Setelah memasukkan URL, mulai ulang server dan muat ulang halaman.',
   'settings.valhallaProvider': 'Layanan perutean',
   'settings.valhallaProviderHint':
-    'Menjawab apa yang tidak bisa dilakukan OSRM: rute tanpa tol, jalan bebas hambatan, atau feri, serta rute, ketinggian, dan jalur tur. Layanan TREK ditanyakan melalui server ini; jika tidak dapat menjawab, Valhalla publik FOSSGIS mengambil alih. Otomatis menanyakan layanan TREK, kecuali Valhalla sendiri atau hanya instans perutean sendiri yang diatur.',
+    'Dengan layanan TREK atau Valhalla sendiri, Valhalla menghitung semua rute: hari dan perjalanan darat dengan berjalan kaki, bersepeda, dan bermobil, rute tanpa tol, jalan bebas hambatan, atau feri, serta rute, ketinggian, dan jalur tur. Jika tidak dapat menjawab, OSRM menghitung hari itu sebagai gantinya. Layanan TREK ditanyakan melalui server ini. Dengan Valhalla publik FOSSGIS, OSRM menghitung rute dan Valhalla hanya menjawab apa yang tidak bisa dilakukan OSRM. Otomatis menanyakan layanan TREK, kecuali Valhalla sendiri atau hanya instans perutean sendiri yang diatur.',
   'settings.valhallaProviderOption.auto': 'Otomatis',
   'settings.valhallaProviderOption.trek': 'Layanan TREK',
   'settings.valhallaProviderOption.fossgis': 'Valhalla publik (FOSSGIS)',

@@ -41,7 +41,7 @@ const settings: TranslationStrings = {
     'A Valhalla of your own, asked when the routing service above is set to it or to automatic. If only an own routing engine is configured and no routing service is chosen, no Valhalla is asked. After entering a URL, restart the server and reload the page.',
   'settings.valhallaProvider': 'Routing service',
   'settings.valhallaProviderHint':
-    'Answers what OSRM cannot: routes that avoid tolls, motorways or ferries, and the routes, heights and ways of tours. The TREK services are asked through this server; where they cannot answer, the public FOSSGIS Valhalla takes over. Automatic asks the TREK services unless an own Valhalla or only an own routing engine is set.',
+    'With the TREK services or an own Valhalla, Valhalla calculates every route: days and road trips on foot, by bike and by car, routes that avoid tolls, motorways or ferries, and the routes, heights and ways of tours. Where it cannot answer, OSRM calculates that day instead. The TREK services are asked through this server. With the public FOSSGIS Valhalla, OSRM calculates the routes and Valhalla only answers what OSRM cannot. Automatic asks the TREK services unless an own Valhalla or only an own routing engine is set.',
   'settings.valhallaProviderOption.auto': 'Automatic',
   'settings.valhallaProviderOption.trek': 'TREK services',
   'settings.valhallaProviderOption.fossgis': 'Public Valhalla (FOSSGIS)',

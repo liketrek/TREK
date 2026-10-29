@@ -45,7 +45,7 @@ const settings: TranslationStrings = {
     'Öz Valhalla-nız; yuxarıdakı marşrut xidməti ona və ya Avtomatik rejimə qurulduqda soruşulur. Yalnız öz marşrut instansiyanız konfiqurasiya edilibsə və marşrut xidməti seçilməyibsə, heç bir Valhalla soruşulmur. URL daxil etdikdən sonra serveri yenidən başladın və səhifəni yeniləyin.',
   'settings.valhallaProvider': 'Marşrut xidməti',
   'settings.valhallaProviderHint':
-    'OSRM-in bacarmadığına cavab verir: ödənişli yollar, avtomagistrallar və ya bərələr olmadan marşrutlar, həmçinin turların marşrutları, hündürlükləri və cığırları. TREK xidmətləri bu server vasitəsilə soruşulur; cavab verə bilmədikdə ictimai FOSSGIS Valhalla əvəz edir. Avtomatik rejim, öz Valhalla-nız və ya yalnız öz marşrut instansiyanız təyin edilməyibsə, TREK xidmətlərini soruşur.',
+    'TREK xidmətləri və ya öz Valhalla-nızla bütün marşrutları Valhalla hesablayır: piyada, velosipedlə və avtomobillə günlər və yol səyahətləri, ödənişli yollar, avtomagistrallar və ya bərələr olmadan marşrutlar, həmçinin turların marşrutları, hündürlükləri və cığırları. Cavab verə bilmədikdə həmin günü OSRM hesablayır. TREK xidmətləri bu server vasitəsilə soruşulur. İctimai FOSSGIS Valhalla ilə marşrutları OSRM hesablayır, Valhalla isə yalnız OSRM-in bacarmadığına cavab verir. Avtomatik rejim, öz Valhalla-nız və ya yalnız öz marşrut instansiyanız təyin edilməyibsə, TREK xidmətlərini soruşur.',
   'settings.valhallaProviderOption.auto': 'Avtomatik',
   'settings.valhallaProviderOption.trek': 'TREK xidmətləri',
   'settings.valhallaProviderOption.fossgis': 'İctimai Valhalla (FOSSGIS)',

@@ -22,7 +22,7 @@ const settings: TranslationStrings = {
     'Una Valhalla pròpia, consultada quan el servei de rutes de dalt hi està configurat o està en Automàtic. Si només hi ha una instància d’encaminament pròpia configurada i no s’ha triat cap servei de rutes, no es consulta cap Valhalla. Després d’introduir una URL, reinicia el servidor i torna a carregar la pàgina.',
   'settings.valhallaProvider': 'Servei de rutes',
   'settings.valhallaProviderHint':
-    'Respon el que OSRM no pot: rutes sense peatges, autopistes ni ferris, i les rutes, altituds i camins de les excursions. Els serveis de TREK es consulten a través d’aquest servidor; si no poden respondre, pren el relleu la Valhalla pública de FOSSGIS. Automàtic consulta els serveis de TREK, tret que hi hagi configurada una Valhalla pròpia o només una instància d’encaminament pròpia.',
+    'Amb els serveis de TREK o una Valhalla pròpia, Valhalla calcula totes les rutes: els dies i els viatges per carretera a peu, en bicicleta i en cotxe, les rutes sense peatges, autopistes ni ferris, i les rutes, altituds i camins de les excursions. Si no pot respondre, OSRM calcula aquell dia en el seu lloc. Els serveis de TREK es consulten a través d’aquest servidor. Amb la Valhalla pública de FOSSGIS, OSRM calcula les rutes i Valhalla només respon el que OSRM no pot. Automàtic consulta els serveis de TREK, tret que hi hagi configurada una Valhalla pròpia o només una instància d’encaminament pròpia.',
   'settings.valhallaProviderOption.auto': 'Automàtic',
   'settings.valhallaProviderOption.trek': 'Serveis de TREK',
   'settings.valhallaProviderOption.fossgis': 'Valhalla pública (FOSSGIS)',

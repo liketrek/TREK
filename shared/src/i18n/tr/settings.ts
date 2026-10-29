@@ -32,7 +32,7 @@ const settings: TranslationStrings = {
     'Kendi Valhalla sunucunuz; yukarıdaki rota hizmeti ona ya da Otomatik’e ayarlıyken sorulur. Yalnızca kendi rota sunucunuz yapılandırılmışsa ve rota hizmeti seçilmemişse hiçbir Valhalla’ya sorulmaz. URL girdikten sonra sunucuyu yeniden başlatın ve sayfayı yenileyin.',
   'settings.valhallaProvider': 'Rota hizmeti',
   'settings.valhallaProviderHint':
-    'OSRM’nin yapamadığını yanıtlar: ücretli yollar, otoyollar veya feribotlar olmadan rotalar ile turların rotaları, yükseklikleri ve yolları. TREK hizmetlerine bu sunucu üzerinden sorulur; yanıt veremezlerse FOSSGIS’in herkese açık Valhalla’sı devreye girer. Otomatik, kendi Valhalla’nız ya da yalnızca kendi rota sunucunuz ayarlanmadıkça TREK hizmetlerine sorar.',
+    'TREK hizmetleri veya kendi Valhalla’nızla tüm rotaları Valhalla hesaplar: yürüyerek, bisikletle ve arabayla günler ve yol gezileri, ücretli yollar, otoyollar veya feribotlar olmadan rotalar ile turların rotaları, yükseklikleri ve yolları. Yanıt veremediğinde o günü OSRM hesaplar. TREK hizmetlerine bu sunucu üzerinden sorulur. FOSSGIS’in herkese açık Valhalla’sıyla rotaları OSRM hesaplar ve Valhalla yalnızca OSRM’nin yapamadığını yanıtlar. Otomatik, kendi Valhalla’nız ya da yalnızca kendi rota sunucunuz ayarlanmadıkça TREK hizmetlerine sorar.',
   'settings.valhallaProviderOption.auto': 'Otomatik',
   'settings.valhallaProviderOption.trek': 'TREK hizmetleri',
   'settings.valhallaProviderOption.fossgis': 'Herkese açık Valhalla (FOSSGIS)',
