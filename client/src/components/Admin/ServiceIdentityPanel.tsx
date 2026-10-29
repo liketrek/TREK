@@ -81,8 +81,9 @@ function stateHint(t: TranslationFn, status: ServiceIdentityStatus | null, faile
  * How this installation stands with the TREK services: whether it has its key,
  * today's allowance against what is used, and when the count starts again.
  * Read when the card is in view and refreshed every 30 seconds while it stays.
+ * A managed install leaves the identity to its operator, so it offers no new one.
  */
-export default function ServiceIdentityPanel() {
+export default function ServiceIdentityPanel({ managed = false }: { managed?: boolean }) {
   const { t } = useTranslation();
   const toast = useToast();
   const panel = useRef<HTMLElement>(null);
@@ -100,7 +101,7 @@ export default function ServiceIdentityPanel() {
   };
 
   const hint = stateHint(t, status, failed);
-  const canRegenerate = status !== null && status.keySource !== 'env' && status.state !== 'off';
+  const canRegenerate = !managed && status !== null && status.keySource !== 'env' && status.state !== 'off';
 
   return (
     <section

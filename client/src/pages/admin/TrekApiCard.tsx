@@ -10,6 +10,7 @@ import { TREK_API_SOURCES as SOURCES, trekApiFacts, trekApiFields } from '../../
 
 interface TrekApiCardProps {
   t: TranslationFn
+  managed?: boolean
 }
 
 /**
@@ -41,7 +42,7 @@ function FactGroup({ icon, title, note, children }: { icon: React.ReactNode; tit
   )
 }
 
-export default function TrekApiCard({ t }: TrekApiCardProps): React.ReactElement {
+export default function TrekApiCard({ t, managed = false }: TrekApiCardProps): React.ReactElement {
   const fields = trekApiFields(t)
   const facts = trekApiFacts(t)
 
@@ -73,7 +74,7 @@ export default function TrekApiCard({ t }: TrekApiCardProps): React.ReactElement
           ))}
         </ul>
 
-        <ServiceIdentityPanel />
+        <ServiceIdentityPanel managed={managed} />
       </div>
 
       <details className="group border-t border-edge-faint">

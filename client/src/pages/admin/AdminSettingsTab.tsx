@@ -387,7 +387,7 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
           {/* Three comparable blocks, in the order we would have people choose
               them. Weather moved out entirely: it needs no key and had nothing
               to configure, so it had no business in a card about keys. */}
-          <TrekApiCard t={t} />
+          <TrekApiCard t={t} managed={managed} />
 
           {!managed && (<>
           <ProviderBlock title={t('admin.mapsKey')}>

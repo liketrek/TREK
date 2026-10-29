@@ -1,4 +1,4 @@
-// FE-ADMIN-SVCID-001 to FE-ADMIN-SVCID-007
+// FE-ADMIN-SVCID-001 to FE-ADMIN-SVCID-008
 import userEvent from '@testing-library/user-event';
 import type { ServiceIdentityStatus } from '@trek/shared';
 import { http, HttpResponse } from 'msw';
@@ -102,5 +102,12 @@ describe('ServiceIdentityPanel', () => {
     await user.click(confirm);
     await waitFor(() => expect(regenerated).toBe(1));
     expect(await screen.findByText('admin.trekApi.quota.hint.registering')).toBeInTheDocument();
+  });
+
+  it('FE-ADMIN-SVCID-008: a managed install leaves the identity to its operator', async () => {
+    serve({ state: 'revoked', tier: 'std', keySource: 'registered', quota: null, lastSeenAt: null });
+    render(<ServiceIdentityPanel managed />);
+    expect(await screen.findByText('admin.trekApi.quota.hint.revoked')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'admin.trekApi.quota.regenerate' })).toBeNull();
   });
 });
