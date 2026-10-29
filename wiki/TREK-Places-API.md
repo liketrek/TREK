@@ -1,6 +1,6 @@
 # TREK Places API
 
-The TREK Places API is TREK's own place index. It answers place search, the suggestions under the search box, the details of a place picked from it, the category buttons on the map and the geocoding behind imports, with no API key, no quota and no account. In the app it is called the **TREK API**, and a result that came from it carries a **TREK** mark.
+The TREK Places API is TREK's own place index. It answers place search, the suggestions under the search box, the details of a place picked from it, the category buttons on the map and the geocoding behind imports, with no API key to enter and no account. Every installation gets a fair daily allowance, counted by the number of requests only. In the app it is called the **TREK API**, and a result that came from it carries a **TREK** mark.
 
 It does not replace OpenStreetMap. A search asks both and shows their results together, because each is good at what the other lacks: the index is strongest on businesses such as restaurants, shops and hotels, and OpenStreetMap is where the temples, bridges, viewpoints and stations are. How the two meet in the search box is described in [Places and Search](Places-and-Search).
 
@@ -63,6 +63,22 @@ What the index returns may be kept. That is what lets TREK store a place you pic
 
 The OpenStreetMap layers are kept apart from the place rows and are joined only when an answer is put together, so the share-alike terms of the ODbL stay with the OpenStreetMap data and do not spread to the rest of the index. The service lists all of this at `/v1/attribution`. The name TREK Places API describes the interface, not the origin of the data, and it is not endorsed by the Overture Maps Foundation or the OpenStreetMap Foundation.
 
+## Installation key and daily allowance
+
+On its first search an installation registers itself with the service in the background: it solves a small proof of work (a few seconds on a Raspberry Pi) and receives a key, which TREK keeps encrypted in its database and renews on its own after 60 of its 90 days. Nobody clicks anything, and the first searches do not wait for it; until the key is there, requests go out the way they always did and are answered from a shared pool.
+
+The key carries a random installation id and nothing else: no address, no host name, no user. It lets the service give each installation its own daily allowance instead of one pool per network, and it is sent only to the hosts in `TREK_SERVICES_HOSTS` (`places.liketrek.com` by default), never to a copy you run yourself or anywhere else.
+
+**Admin → Settings → API Keys** shows on the card how this installation stands: connected, setting up its key, on the shared pool, switched off or revoked, with today's use, what is left and when the count starts again. **New identity** drops the key and asks for a new one; use it after cloning an installation onto a second machine, or after the key was revoked. Counting happens per installation id only and is deleted after two days; search terms and coordinates are never logged.
+
+| Variable | What it does |
+|---|---|
+| `TREK_SERVICES` | `auto` (default) registers on first use; `off` sends no key, and searches use the shared pool |
+| `TREK_SERVICES_KEY` | A key issued to you for this installation. It wins over the stored one, and the installation never registers by itself |
+| `TREK_SERVICES_HOSTS` | Comma-separated hosts that receive the key over https |
+
+An installation pointed at its own copy with `TREK_PLACES_URL`, or with `TREK_PLACES_ENABLED=false`, never registers.
+
 ## What leaves your instance
 
 Every request goes out from your TREK server, never from a browser, so the service sees your server's address and nobody else's.
@@ -79,10 +95,12 @@ Every request goes out from your TREK server, never from a browser, so the servi
 | The map view as a box, grown to a 0.05 degree grid | Tours horse routes |
 | The id of a ski area | Tours ski piste router. No coordinate goes along: the service learns which area a planner loaded, never where anyone clicked. |
 | An `X-TREK-Instance` header | Every request |
+| A `User-Agent` of `TREK/<version>` | Every request |
+| The installation key as an `Authorization` header | Every request to a host in `TREK_SERVICES_HOSTS`, once the installation has one |
 
 The header carries an opaque token derived from your instance's own address, so the service can rate-limit each instance on its own instead of everyone behind one IP. Set `APP_URL` (or `ALLOWED_ORIGINS`): without either, the token is derived from the port alone, and two unconfigured installs on the same port share one rate-limit bucket.
 
-Who is searching never goes along. No user, account, session, cookie or trip id is sent, and neither is the language TREK is set to or the one picked under **Place names** (see [Language of place names](Places-and-Search#language-of-place-names)). The service's own front page states that queries are not logged, that requests are counted per rate-limit bucket and nothing else, and that the instance token is not stored.
+Who is searching never goes along. No user, account, session, cookie or trip id is sent, and neither is the language TREK is set to or the one picked under **Place names** (see [Language of place names](Places-and-Search#language-of-place-names)). The service's own front page states that queries are not logged, that requests are counted per installation and nothing else, and that the instance token is not stored.
 
 The requests use Node's default HTTP client, so an outbound proxy set with `HTTPS_PROXY` applies to them, and `NO_PROXY` can exempt the service's host. The official image already turns Node's environment proxy on; a source install needs `NODE_USE_ENV_PROXY=1` as well. See [Environment Variables](Environment-Variables#outbound-https-proxy).
 
@@ -125,6 +143,7 @@ The address is read from your own configuration and is not a URL a user can type
 |---|---|
 | `TREK_PLACES_ENABLED` | Whether the index is asked at all |
 | `TREK_PLACES_URL` | Which copy of the index is asked |
+| `TREK_SERVICES`, `TREK_SERVICES_KEY`, `TREK_SERVICES_HOSTS` | The installation key, see [Installation key and daily allowance](#installation-key-and-daily-allowance) |
 | `NOMINATIM_URL` | The OpenStreetMap half of the full search, right-click reverse geocoding, OpenStreetMap place details and import geocoding |
 | `OVERPASS_URL`, `OVERPASS_TIMEOUT_MS` | The Overpass mirrors behind the category buttons, the Road trip search and the ways and horse routes of Tours when the index has no answer |
 

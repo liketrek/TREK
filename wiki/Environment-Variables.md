@@ -385,14 +385,17 @@ To get a key: create a free account at [unsplash.com/developers](https://unsplas
 
 ## Place Search (TREK Places API)
 
-TREK's own place index, the [TREK Places API](TREK-Places-API), answers the suggestions and, together with OpenStreetMap, the full search in the place form, the category buttons on the trip map, the Road trip search along the drive, import geocoding and the offline download of a trip's surroundings. It needs no key, it is on by default, and there is no switch for it in the admin panel: whether searches leave the instance is set here.
+TREK's own place index, the [TREK Places API](TREK-Places-API), answers the suggestions and, together with OpenStreetMap, the full search in the place form, the category buttons on the trip map, the Road trip search along the drive, import geocoding and the offline download of a trip's surroundings. It needs no key to enter, it is on by default, and there is no switch for it in the admin panel: whether searches leave the instance is set here.
 
 | Variable              | Description | Default |
 |-----------------------|-------------|---------|
 | `TREK_PLACES_ENABLED` | Set to `false` to stop asking the index. Search then works as it did before 4.3.0: OpenStreetMap on an install without a key, the keyed provider (Google or Amap) when one is set, the Overpass mirrors for the category buttons and for the OpenStreetMap ways and horse routes Tours reads, and no places downloaded for offline search. It is a boolean switch like the others on this page: `false`, `0`, `off` and `no` in any casing switch it off, a value that is not boolean-like aborts startup, and unset or blank leaves the index on. | on |
 | `TREK_PLACES_URL`     | Base URL of a copy of the service you run yourself; it has to answer the same `/v1` API. Unset or blank uses the public service. A trailing slash is stripped, and a value that is not a full URL aborts startup. It is configuration rather than user input and is not run through the SSRF guard, so an address on your LAN or Docker network works without `ALLOW_INTERNAL_NETWORK`. | `https://places.liketrek.com` |
+| `TREK_SERVICES`       | `auto` lets the installation register itself with the TREK services on first use and keep its key in the database; `off` sends no key, and searches use the shared pool. See [Installation key and daily allowance](TREK-Places-API#installation-key-and-daily-allowance). | `auto` |
+| `TREK_SERVICES_KEY`   | A key issued to you for this installation. Wins over the stored key and turns self-registration off. A value that is not a key aborts startup. | none |
+| `TREK_SERVICES_HOSTS` | Comma-separated hosts that receive the installation key over https. | `places.liketrek.com` |
 
-On Helm both go under `env:` in `values.yaml`. The chart passes `TREK_PLACES_ENABLED` through whenever it is set at all, so an unquoted `false` or `--set env.TREK_PLACES_ENABLED=false` reaches the container as well.
+On Helm these go under `env:` in `values.yaml`, except `TREK_SERVICES_KEY`, which goes under `secretEnv:`. The chart passes `TREK_PLACES_ENABLED` through whenever it is set at all, so an unquoted `false` or `--set env.TREK_PLACES_ENABLED=false` reaches the container as well.
 
 ---
 

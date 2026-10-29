@@ -112,6 +112,12 @@ env:
   # Base URL of a copy of the Places API you run yourself; it has to answer the same /v1 API. Read from
   # configuration rather than typed by a user, so an in-cluster address works without ALLOW_INTERNAL_NETWORK.
   # Defaults to https://places.liketrek.com.
+  # TREK_SERVICES: "off"
+  # Places search identifies this installation with a key it registers by itself on first use and keeps in the
+  # database. "off" sends no key; searches then use the shared pool. A key issued to you goes under
+  # secretEnv.TREK_SERVICES_KEY. Defaults to auto.
+  # TREK_SERVICES_HOSTS: ""
+  # Comma-separated hosts that receive the installation key over https. Defaults to places.liketrek.com.
   # AMAP_API_BASE: ""
   # Send the Amap (高德地图) calls through an egress proxy, a cache or a gateway that speaks the same API instead of
   # restapi.amap.com directly. The key itself is a credential and goes under secretEnv.AMAP_API_KEY, or into
@@ -164,6 +170,9 @@ secretEnv:
   # with signing enabled, because such a key rejects every unsigned request. Leave empty
   # otherwise. The endpoint itself is not a secret and is set under env.AMAP_API_BASE.
   AMAP_API_SECRET: ""
+  # Optional key issued for this installation by the TREK services. Wins over the key TREK
+  # registers by itself and turns that registration off. Leave empty to let TREK register.
+  TREK_SERVICES_KEY: ""
   # Optional Web Push key pair, private half (base64url, 32 bytes). Only used together with
   # env.VAPID_PUBLIC_KEY; a pair whose halves do not belong together, or only one half, turns
   # push off with an error in the log until it is fixed, and every device stays registered.
@@ -179,7 +188,7 @@ generateEncryptionKey: false
 # If set, the chart renders no Secret of its own and instead reads every secret env
 # var from this existing Kubernetes secret. Expected keys: ENCRYPTION_KEY (rename via
 # existingSecretKey), ADMIN_EMAIL, ADMIN_PASSWORD, OIDC_CLIENT_SECRET,
-# UNSPLASH_ACCESS_KEY, PLACES_API_KEY, AMAP_API_KEY, AMAP_API_SECRET,
+# UNSPLASH_ACCESS_KEY, PLACES_API_KEY, AMAP_API_KEY, AMAP_API_SECRET, TREK_SERVICES_KEY,
 # VAPID_PRIVATE_KEY, SMTP_PASS, MAPBOX_ACCESS_TOKEN, CARTO_API_KEY, DEMO_ADMIN_PASS.
 # Missing keys are simply left unset (they are optional), so only provide the ones your
 # setup needs.

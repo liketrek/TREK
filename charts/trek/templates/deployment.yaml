@@ -85,6 +85,12 @@ spec:
                   name: {{ default (printf "%s-secret" (include "trek.fullname" .)) .Values.existingSecret }}
                   key: PLACES_API_KEY
                   optional: true
+            - name: TREK_SERVICES_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ default (printf "%s-secret" (include "trek.fullname" .)) .Values.existingSecret }}
+                  key: TREK_SERVICES_KEY
+                  optional: true
             - name: AMAP_API_KEY
               valueFrom:
                 secretKeyRef:
