@@ -98,9 +98,9 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.body':
     'TREK jest otwartym oprogramowaniem i nie jesteśmy tu neutralni. W tej skali oceny i zdjęcia zwykłych lokali istnieją tylko u Google, i to jest właśnie monopol. Pole jest tu z braku alternatywy, a nie dlatego, że je zalecamy. Każde zapytanie idzie wtedy do Google.',
   'admin.trekApi.tagline':
-    'Własny indeks miejsc TREK-a. Wyszukiwanie bez klucza Google, bez limitu i bez tego, żeby ktoś liczył twoje zapytania.',
+    'Własny indeks miejsc TREK. Szukaj bez klucza Google i bez wpisywania żadnego klucza: każda instalacja dostaje uczciwy dzienny limit, a liczona jest tylko liczba zapytań.',
   'admin.trekApi.factPlaces': '73,6 miliona miejsc na świecie',
-  'admin.trekApi.factNoKey': 'Bez klucza, bez limitu',
+  'admin.trekApi.factNoKey': 'Bez klucza do wpisania, uczciwy dzienny limit',
   'admin.trekApi.factOffline': 'Pakiety krajowe działają offline',
   'admin.trekApi.factPrivacy': 'Zapytania nigdy nie są zapisywane',
   'admin.trekApi.more': 'Co w tym jest',
@@ -116,6 +116,33 @@ const admin: TranslationStrings = {
   'admin.trekApi.sourcesNote': 'Każde pole w odpowiedzi mówi, z którego z nich pochodzi.',
   'admin.trekApi.included': 'Zawiera',
   'admin.trekApi.notIncluded': 'Nie zawiera',
+  'admin.trekApi.quota.title': 'Dzisiejszy limit',
+  'admin.trekApi.quota.used': 'Wykorzystano',
+  'admin.trekApi.quota.remaining': 'Pozostało',
+  'admin.trekApi.quota.resets': 'Reset o',
+  'admin.trekApi.quota.state.connected': 'Połączono',
+  'admin.trekApi.quota.state.registering': 'Konfigurowanie',
+  'admin.trekApi.quota.state.legacy': 'Wspólna pula',
+  'admin.trekApi.quota.state.off': 'Wyłączone',
+  'admin.trekApi.quota.state.revoked': 'Klucz unieważniony',
+  'admin.trekApi.quota.tier.std': 'Standardowy',
+  'admin.trekApi.quota.tier.hosted': 'Hostowany',
+  'admin.trekApi.quota.tier.own': 'Własna instancja',
+  'admin.trekApi.quota.tier.legacy': 'Wspólny',
+  'admin.trekApi.quota.hint.registering':
+    'Ta instalacja pobiera swój klucz w tle. Wyszukiwanie w tym czasie działa dalej.',
+  'admin.trekApi.quota.hint.legacy':
+    'Jeszcze bez klucza. Wyszukiwania idą przez wspólną pulę, dopóki instalacja nie dostanie klucza przy następnym wyszukiwaniu.',
+  'admin.trekApi.quota.hint.off': 'Nieużywane na tej instancji: wyłączone albo skierowane na własną kopię.',
+  'admin.trekApi.quota.hint.revoked':
+    'Klucz tej instalacji został unieważniony. Wyszukiwania idą przez wspólną pulę, dopóki nie utworzysz nowej tożsamości.',
+  'admin.trekApi.quota.unavailable': 'Nie można teraz odczytać limitu.',
+  'admin.trekApi.quota.envKey': 'Klucz pochodzi z TREK_SERVICES_KEY.',
+  'admin.trekApi.quota.regenerate': 'Nowa tożsamość',
+  'admin.trekApi.quota.regenerateTitle': 'Utworzyć nową tożsamość?',
+  'admin.trekApi.quota.regenerateBody':
+    'Ta instalacja porzuca swój klucz i w tle prosi o nowy. Wyszukiwanie w tym czasie działa dalej. Przydatne po skopiowaniu instalacji na inną maszynę lub gdy klucz został unieważniony.',
+  'admin.trekApi.quota.regenerated': 'Trwa konfigurowanie nowej tożsamości.',
   'admin.mapsKey': 'Klucz Google Maps API',
   'admin.mapsKeyHint': 'Wymagany do wyszukiwania miejsc. Uzyskaj go na console.cloud.google.com',
   'admin.mapsKeyHintLong':

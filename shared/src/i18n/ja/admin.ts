@@ -138,9 +138,9 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.body':
     'TREK はオープンソースで、この点で中立ではありません。この規模でレビューとふつうの店舗の写真があるのは Google だけで、それが独占です。この欄は代わりがないから置いてあるのであって、勧めているからではありません。使えば問い合わせはすべて Google に届きます。',
   'admin.trekApi.tagline':
-    'TREK 自前の場所インデックス。Google のキーなし、上限なし、そして誰にも検索を数えられずに探せます。',
+    'TREK 自前の場所インデックス。Google のキーも、入力するキーも不要です。各インストールに公平な1日の上限があり、数えるのはリクエストの件数だけです。',
   'admin.trekApi.factPlaces': '世界で 7,360 万件の場所',
-  'admin.trekApi.factNoKey': 'キーも上限も不要',
+  'admin.trekApi.factNoKey': '入力するキーは不要、公平な1日の上限',
   'admin.trekApi.factOffline': '国別パッケージはオフラインでも使えます',
   'admin.trekApi.factPrivacy': '検索内容は一切記録しません',
   'admin.trekApi.more': '何が入っているか',
@@ -156,6 +156,33 @@ const admin: TranslationStrings = {
   'admin.trekApi.sourcesNote': '応答のどの項目も、このうちどれに由来するかを示します。',
   'admin.trekApi.included': '含まれるもの',
   'admin.trekApi.notIncluded': '含まれないもの',
+  'admin.trekApi.quota.title': '今日の上限',
+  'admin.trekApi.quota.used': '使用済み',
+  'admin.trekApi.quota.remaining': '残り',
+  'admin.trekApi.quota.resets': 'リセット時刻',
+  'admin.trekApi.quota.state.connected': '接続済み',
+  'admin.trekApi.quota.state.registering': '設定中',
+  'admin.trekApi.quota.state.legacy': '共有枠',
+  'admin.trekApi.quota.state.off': 'オフ',
+  'admin.trekApi.quota.state.revoked': 'キー失効',
+  'admin.trekApi.quota.tier.std': '標準',
+  'admin.trekApi.quota.tier.hosted': 'ホスティング',
+  'admin.trekApi.quota.tier.own': '自前のインスタンス',
+  'admin.trekApi.quota.tier.legacy': '共有',
+  'admin.trekApi.quota.hint.registering':
+    'このインストールはバックグラウンドでキーを取得しています。その間も検索は使えます。',
+  'admin.trekApi.quota.hint.legacy': 'まだキーがありません。次の検索でキーを取得するまで、検索は共有枠を使います。',
+  'admin.trekApi.quota.hint.off':
+    'このインスタンスでは使われていません：オフにされているか、自前のコピーを指しています。',
+  'admin.trekApi.quota.hint.revoked':
+    'このインストールのキーは失効しました。新しい ID を作成するまで、検索は共有枠を使います。',
+  'admin.trekApi.quota.unavailable': '現在、上限を読み取れません。',
+  'admin.trekApi.quota.envKey': 'キーは TREK_SERVICES_KEY から設定されています。',
+  'admin.trekApi.quota.regenerate': '新しい ID',
+  'admin.trekApi.quota.regenerateTitle': '新しい ID を作成しますか？',
+  'admin.trekApi.quota.regenerateBody':
+    'このインストールは現在のキーを破棄し、バックグラウンドで新しいキーを要求します。その間も検索は使えます。インストールを別のマシンにコピーした後や、キーが失効した場合に役立ちます。',
+  'admin.trekApi.quota.regenerated': '新しい ID を設定しています。',
   'admin.mapsKey': 'Google Maps APIキー',
   'admin.mapsKeyHint': '場所検索に必要。console.cloud.google.com で取得',
   'admin.mapsKeyHintLong':

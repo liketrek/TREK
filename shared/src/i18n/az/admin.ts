@@ -155,9 +155,9 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.body':
     'TREK açıq mənbəlidir və biz burada bitərəf deyilik. Adi müəssisələrin reytinqləri və fotoları bu miqyasda yalnız Google-da mövcuddur və inhisar məhz budur. Bu sahə onu tövsiyə etdiyimiz üçün deyil, alternativ olmadığı üçün buradadır. Bundan sonra hər sorğu Google-a göndərilir.',
   'admin.trekApi.tagline':
-    'TREK-in öz məkan indeksi. Google açarı, kvota və sorğularınızı sayan heç kim olmadan axtarış edin.',
+    'TREK-in öz məkan indeksi. Google açarı olmadan və heç bir açar daxil etmədən axtarın: hər quraşdırma ədalətli gündəlik limit alır və yalnız sorğuların sayı hesablanır.',
   'admin.trekApi.factPlaces': 'Dünya üzrə 73,6 milyon məkan',
-  'admin.trekApi.factNoKey': 'Açar yoxdur, kvota yoxdur',
+  'admin.trekApi.factNoKey': 'Açar daxil etmək lazım deyil, ədalətli gündəlik limit',
   'admin.trekApi.factOffline': 'Ölkə paketləri oflayn işləyir',
   'admin.trekApi.factPrivacy': 'Axtarışlar heç vaxt qeydə alınmır',
   'admin.trekApi.more': 'Nələr daxildir',
@@ -173,6 +173,33 @@ const admin: TranslationStrings = {
   'admin.trekApi.sourcesNote': 'Cavabdakı hər sahə məlumatın bu mənbələrdən hansından əldə edildiyini göstərir.',
   'admin.trekApi.included': 'Daxildir',
   'admin.trekApi.notIncluded': 'Daxil deyil',
+  'admin.trekApi.quota.title': 'Bugünkü limit',
+  'admin.trekApi.quota.used': 'İstifadə edilib',
+  'admin.trekApi.quota.remaining': 'Qalıb',
+  'admin.trekApi.quota.resets': 'Sıfırlanma vaxtı',
+  'admin.trekApi.quota.state.connected': 'Qoşulub',
+  'admin.trekApi.quota.state.registering': 'Qurulur',
+  'admin.trekApi.quota.state.legacy': 'Ümumi hovuz',
+  'admin.trekApi.quota.state.off': 'Söndürülüb',
+  'admin.trekApi.quota.state.revoked': 'Açar ləğv edilib',
+  'admin.trekApi.quota.tier.std': 'Standart',
+  'admin.trekApi.quota.tier.hosted': 'Hostinqdə',
+  'admin.trekApi.quota.tier.own': 'Öz instansiya',
+  'admin.trekApi.quota.tier.legacy': 'Ümumi',
+  'admin.trekApi.quota.hint.registering':
+    'Bu quraşdırma açarını arxa planda alır. Axtarış bu müddətdə işləməyə davam edir.',
+  'admin.trekApi.quota.hint.legacy':
+    'Hələ açar yoxdur. Quraşdırma növbəti axtarışda açar alana qədər axtarışlar ümumi hovuz vasitəsilə gedir.',
+  'admin.trekApi.quota.hint.off': 'Bu instansiyada istifadə olunmur: söndürülüb və ya öz nüsxənizə yönləndirilib.',
+  'admin.trekApi.quota.hint.revoked':
+    'Bu quraşdırmanın açarı ləğv edilib. Yeni identiklik yaradana qədər axtarışlar ümumi hovuz vasitəsilə gedir.',
+  'admin.trekApi.quota.unavailable': 'Limiti hazırda oxumaq mümkün deyil.',
+  'admin.trekApi.quota.envKey': 'Açar TREK_SERVICES_KEY dəyişənindən gəlir.',
+  'admin.trekApi.quota.regenerate': 'Yeni identiklik',
+  'admin.trekApi.quota.regenerateTitle': 'Yeni identiklik yaradılsın?',
+  'admin.trekApi.quota.regenerateBody':
+    'Bu quraşdırma açarından imtina edir və arxa planda yenisini istəyir. Axtarış bu müddətdə işləməyə davam edir. Quraşdırmanı başqa maşına köçürdükdən sonra və ya açar ləğv edildikdə faydalıdır.',
+  'admin.trekApi.quota.regenerated': 'Yeni identiklik qurulur.',
   'admin.mapsKey': 'Google Maps API açarı',
   'admin.mapsKeyHint': 'Məkan axtarışı üçün tələb olunur. console.cloud.google.com saytından əldə edin',
   'admin.mapsKeyHintLong':

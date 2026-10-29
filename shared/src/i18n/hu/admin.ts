@@ -99,9 +99,9 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.body':
     'A TREK nyílt forráskódú, és ebben nem vagyunk semlegesek. Ebben a méretben az értékelések és a hétköznapi üzletek fotói csak a Google-nél léteznek, és ez a monopólium. A mező alternatíva híján van itt, nem mert ajánljuk. Minden lekérdezés ilyenkor a Google-höz megy.',
   'admin.trekApi.tagline':
-    'A TREK saját helyindexe. Keresés Google-kulcs nélkül, kvóta nélkül, és anélkül, hogy bárki számolná a lekérdezéseidet.',
+    'A TREK saját helyindexe. Keress Google-kulcs nélkül és kulcs megadása nélkül: minden telepítés méltányos napi keretet kap, és csak a kérések száma számít.',
   'admin.trekApi.factPlaces': '73,6 millió hely világszerte',
-  'admin.trekApi.factNoKey': 'Nincs kulcs, nincs kvóta',
+  'admin.trekApi.factNoKey': 'Nem kell kulcsot megadni, méltányos napi keret',
   'admin.trekApi.factOffline': 'Az országcsomagok offline is működnek',
   'admin.trekApi.factPrivacy': 'A kereséseket soha nem naplózzuk',
   'admin.trekApi.more': 'Mi van benne',
@@ -117,6 +117,33 @@ const admin: TranslationStrings = {
   'admin.trekApi.sourcesNote': 'A válasz minden mezője megmondja, melyikükből származik.',
   'admin.trekApi.included': 'Tartalmazza',
   'admin.trekApi.notIncluded': 'Nem tartalmazza',
+  'admin.trekApi.quota.title': 'Mai keret',
+  'admin.trekApi.quota.used': 'Felhasznált',
+  'admin.trekApi.quota.remaining': 'Hátralévő',
+  'admin.trekApi.quota.resets': 'Visszaáll ekkor',
+  'admin.trekApi.quota.state.connected': 'Csatlakoztatva',
+  'admin.trekApi.quota.state.registering': 'Beállítás folyamatban',
+  'admin.trekApi.quota.state.legacy': 'Közös keret',
+  'admin.trekApi.quota.state.off': 'Kikapcsolva',
+  'admin.trekApi.quota.state.revoked': 'Kulcs visszavonva',
+  'admin.trekApi.quota.tier.std': 'Normál',
+  'admin.trekApi.quota.tier.hosted': 'Hosztolt',
+  'admin.trekApi.quota.tier.own': 'Saját példány',
+  'admin.trekApi.quota.tier.legacy': 'Közös',
+  'admin.trekApi.quota.hint.registering':
+    'Ez a telepítés a háttérben szerzi meg a kulcsát. A keresés közben is működik.',
+  'admin.trekApi.quota.hint.legacy':
+    'Még nincs kulcs. A keresések a közös kereten át mennek, amíg a telepítés a következő keresésnél kulcsot nem kap.',
+  'admin.trekApi.quota.hint.off': 'Ezen a példányon nincs használatban: kikapcsolva vagy saját másolatra irányítva.',
+  'admin.trekApi.quota.hint.revoked':
+    'Ennek a telepítésnek a kulcsát visszavonták. A keresések a közös kereten át mennek, amíg új identitást nem hozol létre.',
+  'admin.trekApi.quota.unavailable': 'A keret most nem olvasható le.',
+  'admin.trekApi.quota.envKey': 'A kulcs a TREK_SERVICES_KEY változóból jön.',
+  'admin.trekApi.quota.regenerate': 'Új identitás',
+  'admin.trekApi.quota.regenerateTitle': 'Új identitást hozol létre?',
+  'admin.trekApi.quota.regenerateBody':
+    'Ez a telepítés eldobja a kulcsát, és a háttérben újat kér. A keresés közben is működik. Hasznos, ha a telepítést másik gépre másoltad, vagy ha a kulcsot visszavonták.',
+  'admin.trekApi.quota.regenerated': 'Az új identitás beállítása folyamatban.',
   'admin.mapsKey': 'Google Maps API kulcs',
   'admin.mapsKeyHint': 'Helykereséshez szükséges. Létrehozás: console.cloud.google.com',
   'admin.mapsKeyHintLong':

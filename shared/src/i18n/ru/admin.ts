@@ -108,9 +108,9 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.body':
     'TREK с открытым исходным кодом, и мы здесь не нейтральны. В таком масштабе отзывы и фотографии обычных заведений есть только у Google, и это и есть монополия. Поле здесь из-за отсутствия альтернативы, а не потому, что мы его советуем. Тогда каждый запрос уходит в Google.',
   'admin.trekApi.tagline':
-    'Собственный указатель мест TREK. Поиск без ключа Google, без квоты и без того, чтобы кто-то считал ваши запросы.',
+    'Собственный индекс мест TREK. Поиск без ключа Google и без ввода какого-либо ключа: каждая установка получает справедливый дневной лимит, и считается только число запросов.',
   'admin.trekApi.factPlaces': '73,6 миллиона мест по всему миру',
-  'admin.trekApi.factNoKey': 'Без ключа, без квоты',
+  'admin.trekApi.factNoKey': 'Ключ вводить не нужно, справедливый дневной лимит',
   'admin.trekApi.factOffline': 'Страновые пакеты работают офлайн',
   'admin.trekApi.factPrivacy': 'Запросы никогда не записываются',
   'admin.trekApi.more': 'Что внутри',
@@ -126,6 +126,33 @@ const admin: TranslationStrings = {
   'admin.trekApi.sourcesNote': 'Каждое поле в ответе указывает, из какого из них оно пришло.',
   'admin.trekApi.included': 'Входит',
   'admin.trekApi.notIncluded': 'Не входит',
+  'admin.trekApi.quota.title': 'Лимит на сегодня',
+  'admin.trekApi.quota.used': 'Использовано',
+  'admin.trekApi.quota.remaining': 'Осталось',
+  'admin.trekApi.quota.resets': 'Сброс в',
+  'admin.trekApi.quota.state.connected': 'Подключено',
+  'admin.trekApi.quota.state.registering': 'Настройка',
+  'admin.trekApi.quota.state.legacy': 'Общий пул',
+  'admin.trekApi.quota.state.off': 'Выключено',
+  'admin.trekApi.quota.state.revoked': 'Ключ отозван',
+  'admin.trekApi.quota.tier.std': 'Стандарт',
+  'admin.trekApi.quota.tier.hosted': 'Хостинг',
+  'admin.trekApi.quota.tier.own': 'Собственный экземпляр',
+  'admin.trekApi.quota.tier.legacy': 'Общий',
+  'admin.trekApi.quota.hint.registering':
+    'Эта установка получает свой ключ в фоне. Поиск при этом продолжает работать.',
+  'admin.trekApi.quota.hint.legacy':
+    'Ключа пока нет. Поиск идёт через общий пул, пока установка не получит ключ при следующем поиске.',
+  'admin.trekApi.quota.hint.off': 'На этом экземпляре не используется: выключено или направлено на собственную копию.',
+  'admin.trekApi.quota.hint.revoked':
+    'Ключ этой установки отозван. Поиск идёт через общий пул, пока вы не создадите новую идентичность.',
+  'admin.trekApi.quota.unavailable': 'Сейчас не удаётся получить лимит.',
+  'admin.trekApi.quota.envKey': 'Ключ задан в TREK_SERVICES_KEY.',
+  'admin.trekApi.quota.regenerate': 'Новая идентичность',
+  'admin.trekApi.quota.regenerateTitle': 'Создать новую идентичность?',
+  'admin.trekApi.quota.regenerateBody':
+    'Эта установка отказывается от своего ключа и в фоне запрашивает новый. Поиск при этом продолжает работать. Полезно после копирования установки на другую машину или если ключ был отозван.',
+  'admin.trekApi.quota.regenerated': 'Новая идентичность настраивается.',
   'admin.mapsKey': 'API-ключ Google Maps',
   'admin.mapsKeyHint': 'Необходим для поиска мест. Получите на console.cloud.google.com',
   'admin.mapsKeyHintLong':

@@ -155,9 +155,9 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.body':
     'Το TREK είναι ανοιχτού κώδικα και εδώ δεν είμαστε ουδέτεροι. Σε αυτή την κλίμακα, βαθμολογίες και φωτογραφίες συνηθισμένων καταστημάτων υπάρχουν μόνο στη Google, και αυτό είναι μονοπώλιο. Το πεδίο υπάρχει ελλείψει εναλλακτικής, όχι επειδή το συνιστούμε. Τότε κάθε αναζήτηση πηγαίνει στη Google.',
   'admin.trekApi.tagline':
-    'Το δικό του ευρετήριο τόπων του TREK. Αναζήτηση χωρίς κλειδί Google, χωρίς όριο και χωρίς να μετράει κανείς τις αναζητήσεις σας.',
+    'Ο δικός κατάλογος τοποθεσιών του TREK. Αναζήτηση χωρίς κλειδί Google και χωρίς να εισαγάγετε κανένα κλειδί: κάθε εγκατάσταση παίρνει ένα δίκαιο ημερήσιο όριο, και μετριέται μόνο ο αριθμός των αιτημάτων.',
   'admin.trekApi.factPlaces': '73,6 εκατομμύρια τόποι παγκοσμίως',
-  'admin.trekApi.factNoKey': 'Χωρίς κλειδί, χωρίς όριο',
+  'admin.trekApi.factNoKey': 'Κανένα κλειδί προς εισαγωγή, δίκαιο ημερήσιο όριο',
   'admin.trekApi.factOffline': 'Τα πακέτα χωρών δουλεύουν και εκτός σύνδεσης',
   'admin.trekApi.factPrivacy': 'Οι αναζητήσεις δεν καταγράφονται ποτέ',
   'admin.trekApi.more': 'Τι περιλαμβάνει',
@@ -173,6 +173,34 @@ const admin: TranslationStrings = {
   'admin.trekApi.sourcesNote': 'Κάθε πεδίο μιας απάντησης λέει από ποια από αυτές προέρχεται.',
   'admin.trekApi.included': 'Περιλαμβάνεται',
   'admin.trekApi.notIncluded': 'Δεν περιλαμβάνεται',
+  'admin.trekApi.quota.title': 'Σημερινό όριο',
+  'admin.trekApi.quota.used': 'Χρησιμοποιήθηκαν',
+  'admin.trekApi.quota.remaining': 'Απομένουν',
+  'admin.trekApi.quota.resets': 'Μηδενίζεται στις',
+  'admin.trekApi.quota.state.connected': 'Συνδεδεμένο',
+  'admin.trekApi.quota.state.registering': 'Ρύθμιση σε εξέλιξη',
+  'admin.trekApi.quota.state.legacy': 'Κοινή δεξαμενή',
+  'admin.trekApi.quota.state.off': 'Απενεργοποιημένο',
+  'admin.trekApi.quota.state.revoked': 'Το κλειδί ανακλήθηκε',
+  'admin.trekApi.quota.tier.std': 'Τυπικό',
+  'admin.trekApi.quota.tier.hosted': 'Φιλοξενούμενο',
+  'admin.trekApi.quota.tier.own': 'Δικός σας διακομιστής',
+  'admin.trekApi.quota.tier.legacy': 'Κοινό',
+  'admin.trekApi.quota.hint.registering':
+    'Αυτή η εγκατάσταση παίρνει το κλειδί της στο παρασκήνιο. Η αναζήτηση συνεχίζει να λειτουργεί στο μεταξύ.',
+  'admin.trekApi.quota.hint.legacy':
+    'Δεν υπάρχει ακόμη κλειδί. Οι αναζητήσεις περνούν από την κοινή δεξαμενή μέχρι η εγκατάσταση να πάρει κλειδί στην επόμενη αναζήτηση.',
+  'admin.trekApi.quota.hint.off':
+    'Δεν χρησιμοποιείται σε αυτόν τον διακομιστή: είναι απενεργοποιημένο ή στραμμένο σε δικό σας αντίγραφο.',
+  'admin.trekApi.quota.hint.revoked':
+    'Το κλειδί αυτής της εγκατάστασης ανακλήθηκε. Οι αναζητήσεις περνούν από την κοινή δεξαμενή μέχρι να δημιουργήσετε νέα ταυτότητα.',
+  'admin.trekApi.quota.unavailable': 'Το όριο δεν μπορεί να διαβαστεί αυτή τη στιγμή.',
+  'admin.trekApi.quota.envKey': 'Το κλειδί προέρχεται από το TREK_SERVICES_KEY.',
+  'admin.trekApi.quota.regenerate': 'Νέα ταυτότητα',
+  'admin.trekApi.quota.regenerateTitle': 'Δημιουργία νέας ταυτότητας;',
+  'admin.trekApi.quota.regenerateBody':
+    'Αυτή η εγκατάσταση απορρίπτει το κλειδί της και ζητά νέο στο παρασκήνιο. Η αναζήτηση συνεχίζει να λειτουργεί στο μεταξύ. Χρήσιμο μετά την αντιγραφή της εγκατάστασης σε άλλο μηχάνημα ή αν το κλειδί ανακλήθηκε.',
+  'admin.trekApi.quota.regenerated': 'Ρυθμίζεται νέα ταυτότητα.',
   'admin.mapsKey': 'Κλειδί API Google Maps',
   'admin.mapsKeyHint': 'Απαιτείται για αναζήτηση τόπων. Λάβετε το από console.cloud.google.com',
   'admin.mapsKeyHintLong':

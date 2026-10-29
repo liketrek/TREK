@@ -147,9 +147,9 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.body':
     'TREK là phần mềm nguồn mở và ở đây chúng tôi không trung lập. Ở quy mô này, đánh giá và ảnh của các cửa hàng thông thường chỉ có ở Google, và đó là độc quyền. Ô này có mặt vì không có lựa chọn khác, không phải vì chúng tôi khuyến nghị. Khi đó mọi truy vấn đều đi tới Google.',
   'admin.trekApi.tagline':
-    'Chỉ mục địa điểm của riêng TREK. Tìm kiếm không cần khóa Google, không hạn mức, và không ai đếm lượt tìm của bạn.',
+    'Chỉ mục địa điểm riêng của TREK. Tìm kiếm không cần khóa Google và không phải nhập khóa nào: mỗi bản cài đặt nhận một hạn mức hằng ngày công bằng, và chỉ số lượng yêu cầu được đếm.',
   'admin.trekApi.factPlaces': '73,6 triệu địa điểm trên toàn thế giới',
-  'admin.trekApi.factNoKey': 'Không khóa, không hạn mức',
+  'admin.trekApi.factNoKey': 'Không cần nhập khóa, hạn mức hằng ngày công bằng',
   'admin.trekApi.factOffline': 'Gói theo quốc gia dùng được ngoại tuyến',
   'admin.trekApi.factPrivacy': 'Không bao giờ ghi lại nội dung tìm kiếm',
   'admin.trekApi.more': 'Bên trong có gì',
@@ -165,6 +165,33 @@ const admin: TranslationStrings = {
   'admin.trekApi.sourcesNote': 'Mọi trường trong phản hồi đều cho biết nó đến từ nguồn nào.',
   'admin.trekApi.included': 'Có',
   'admin.trekApi.notIncluded': 'Không có',
+  'admin.trekApi.quota.title': 'Hạn mức hôm nay',
+  'admin.trekApi.quota.used': 'Đã dùng',
+  'admin.trekApi.quota.remaining': 'Còn lại',
+  'admin.trekApi.quota.resets': 'Đặt lại lúc',
+  'admin.trekApi.quota.state.connected': 'Đã kết nối',
+  'admin.trekApi.quota.state.registering': 'Đang thiết lập',
+  'admin.trekApi.quota.state.legacy': 'Nhóm dùng chung',
+  'admin.trekApi.quota.state.off': 'Đã tắt',
+  'admin.trekApi.quota.state.revoked': 'Khóa đã bị thu hồi',
+  'admin.trekApi.quota.tier.std': 'Tiêu chuẩn',
+  'admin.trekApi.quota.tier.hosted': 'Được lưu trữ',
+  'admin.trekApi.quota.tier.own': 'Phiên bản riêng',
+  'admin.trekApi.quota.tier.legacy': 'Dùng chung',
+  'admin.trekApi.quota.hint.registering':
+    'Bản cài đặt này đang nhận khóa ở chế độ nền. Trong lúc đó, tìm kiếm vẫn hoạt động bình thường.',
+  'admin.trekApi.quota.hint.legacy':
+    'Chưa có khóa. Các lượt tìm kiếm dùng nhóm dùng chung cho đến khi bản cài đặt nhận được khóa ở lần tìm kiếm tiếp theo.',
+  'admin.trekApi.quota.hint.off': 'Không được dùng trên phiên bản này: đã tắt hoặc trỏ tới bản sao của riêng bạn.',
+  'admin.trekApi.quota.hint.revoked':
+    'Khóa của bản cài đặt này đã bị thu hồi. Các lượt tìm kiếm dùng nhóm dùng chung cho đến khi bạn tạo danh tính mới.',
+  'admin.trekApi.quota.unavailable': 'Hiện không thể đọc hạn mức.',
+  'admin.trekApi.quota.envKey': 'Khóa được lấy từ TREK_SERVICES_KEY.',
+  'admin.trekApi.quota.regenerate': 'Danh tính mới',
+  'admin.trekApi.quota.regenerateTitle': 'Tạo danh tính mới?',
+  'admin.trekApi.quota.regenerateBody':
+    'Bản cài đặt này bỏ khóa hiện tại và xin khóa mới ở chế độ nền. Trong lúc đó, tìm kiếm vẫn hoạt động bình thường. Hữu ích sau khi sao chép bản cài đặt sang máy khác, hoặc khi khóa đã bị thu hồi.',
+  'admin.trekApi.quota.regenerated': 'Đang thiết lập danh tính mới.',
   'admin.mapsKey': 'Google Maps API Key', // same-as-en
   'admin.mapsKeyHint': 'Cần thiết cho tìm kiếm địa điểm. Truy cập tại console.cloud.google.com',
   'admin.mapsKeyHintLong':

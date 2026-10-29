@@ -782,9 +782,9 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.body':
     'TREK เป็นโอเพนซอร์ส และเราไม่ได้วางตัวเป็นกลางในเรื่องนี้ คะแนนและรูปภาพของธุรกิจทั่วไปในระดับนี้มีอยู่ที่ Google เท่านั้น ซึ่งก็คือการผูกขาด ช่องนี้มีไว้เพราะไม่มีทางเลือก ไม่ใช่เพราะเราแนะนำ ทุกการค้นหาจะส่งไปยัง Google',
   'admin.trekApi.tagline':
-    'ดัชนีสถานที่ของ TREK เอง ค้นหาได้โดยไม่ต้องมีคีย์ Google ไม่มีโควตา และไม่มีใครนับจำนวนการค้นหาของคุณ',
+    'ดัชนีสถานที่ของ TREK เอง ค้นหาได้โดยไม่ต้องใช้คีย์ Google และไม่ต้องกรอกคีย์ใด ๆ ทุกการติดตั้งได้รับโควตารายวันอย่างเป็นธรรม และนับเฉพาะจำนวนคำขอเท่านั้น',
   'admin.trekApi.factPlaces': '73.6 ล้านสถานที่ทั่วโลก',
-  'admin.trekApi.factNoKey': 'ไม่ต้องมีคีย์ ไม่มีโควตา',
+  'admin.trekApi.factNoKey': 'ไม่ต้องกรอกคีย์ โควตารายวันที่เป็นธรรม',
   'admin.trekApi.factOffline': 'แพ็กเกจประเทศใช้งานแบบออฟไลน์ได้',
   'admin.trekApi.factPrivacy': 'จะไม่บันทึกการค้นหา',
   'admin.trekApi.more': 'มีอะไรบ้าง',
@@ -800,6 +800,33 @@ const admin: TranslationStrings = {
   'admin.trekApi.sourcesNote': 'ทุกฟิลด์ในคำตอบจะระบุว่ามาจากแหล่งใด',
   'admin.trekApi.included': 'รวมอยู่',
   'admin.trekApi.notIncluded': 'ไม่รวมอยู่',
+  'admin.trekApi.quota.title': 'โควตาวันนี้',
+  'admin.trekApi.quota.used': 'ใช้ไปแล้ว',
+  'admin.trekApi.quota.remaining': 'คงเหลือ',
+  'admin.trekApi.quota.resets': 'รีเซ็ตเวลา',
+  'admin.trekApi.quota.state.connected': 'เชื่อมต่อแล้ว',
+  'admin.trekApi.quota.state.registering': 'กำลังตั้งค่า',
+  'admin.trekApi.quota.state.legacy': 'โควตาส่วนกลาง',
+  'admin.trekApi.quota.state.off': 'ปิดอยู่',
+  'admin.trekApi.quota.state.revoked': 'คีย์ถูกเพิกถอน',
+  'admin.trekApi.quota.tier.std': 'มาตรฐาน',
+  'admin.trekApi.quota.tier.hosted': 'โฮสต์ให้',
+  'admin.trekApi.quota.tier.own': 'อินสแตนซ์ของตัวเอง',
+  'admin.trekApi.quota.tier.legacy': 'ส่วนกลาง',
+  'admin.trekApi.quota.hint.registering':
+    'การติดตั้งนี้กำลังรับคีย์อยู่เบื้องหลัง ระหว่างนี้การค้นหายังใช้งานได้ตามปกติ',
+  'admin.trekApi.quota.hint.legacy':
+    'ยังไม่มีคีย์ การค้นหาจะใช้โควตาส่วนกลางจนกว่าการติดตั้งจะได้รับคีย์ในการค้นหาครั้งถัดไป',
+  'admin.trekApi.quota.hint.off': 'ไม่ได้ใช้งานบนอินสแตนซ์นี้: ปิดอยู่ หรือชี้ไปยังสำเนาของคุณเอง',
+  'admin.trekApi.quota.hint.revoked':
+    'คีย์ของการติดตั้งนี้ถูกเพิกถอนแล้ว การค้นหาจะใช้โควตาส่วนกลางจนกว่าคุณจะสร้างตัวตนใหม่',
+  'admin.trekApi.quota.unavailable': 'ไม่สามารถอ่านโควตาได้ในขณะนี้',
+  'admin.trekApi.quota.envKey': 'คีย์มาจาก TREK_SERVICES_KEY',
+  'admin.trekApi.quota.regenerate': 'ตัวตนใหม่',
+  'admin.trekApi.quota.regenerateTitle': 'สร้างตัวตนใหม่หรือไม่?',
+  'admin.trekApi.quota.regenerateBody':
+    'การติดตั้งนี้จะทิ้งคีย์เดิมและขอคีย์ใหม่อยู่เบื้องหลัง ระหว่างนี้การค้นหายังใช้งานได้ตามปกติ มีประโยชน์หลังคัดลอกการติดตั้งไปยังเครื่องอื่น หรือเมื่อคีย์ถูกเพิกถอน',
+  'admin.trekApi.quota.regenerated': 'กำลังตั้งค่าตัวตนใหม่',
   'admin.amapKey': 'คีย์ API ของ Amap (高德地图)',
   'admin.amapKeyHint':
     'สำหรับค้นหาสถานที่ในจีนแผ่นดินใหญ่ที่ Google ใช้ไม่ได้และ OpenStreetMap ครอบคลุมไม่มาก ต้องใช้คีย์ “Web 服务” (เว็บเซอร์วิส) ไม่ใช่คีย์ JS API รับได้ที่ console.amap.com',

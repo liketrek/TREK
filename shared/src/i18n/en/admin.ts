@@ -150,9 +150,9 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.body':
     'TREK is open source and we are not neutral here. Ratings and photos of ordinary businesses exist at this scale only at Google, and that is what a monopoly is. The field is here because there is no alternative, not because we recommend it. Every lookup then goes to Google.',
   'admin.trekApi.tagline':
-    "TREK's own place index. Search without a Google key, without a quota and without anyone counting your lookups.",
+    "TREK's own place index. Search without a Google key and without a key to enter: every installation gets a fair daily allowance, and only the number of requests is counted.",
   'admin.trekApi.factPlaces': '73.6 million places worldwide',
-  'admin.trekApi.factNoKey': 'No key, no quota',
+  'admin.trekApi.factNoKey': 'No key to enter, fair daily allowance',
   'admin.trekApi.factOffline': 'Country packages work offline',
   'admin.trekApi.factPrivacy': 'Searches are never logged',
   'admin.trekApi.more': 'What is in it',
@@ -168,6 +168,33 @@ const admin: TranslationStrings = {
   'admin.trekApi.sourcesNote': 'Every field in a response says which of these it came from.',
   'admin.trekApi.included': 'Included',
   'admin.trekApi.notIncluded': 'Not included',
+  'admin.trekApi.quota.title': "Today's allowance",
+  'admin.trekApi.quota.used': 'Used',
+  'admin.trekApi.quota.remaining': 'Remaining',
+  'admin.trekApi.quota.resets': 'Resets at',
+  'admin.trekApi.quota.state.connected': 'Connected',
+  'admin.trekApi.quota.state.registering': 'Setting up',
+  'admin.trekApi.quota.state.legacy': 'Shared pool',
+  'admin.trekApi.quota.state.off': 'Switched off',
+  'admin.trekApi.quota.state.revoked': 'Key revoked',
+  'admin.trekApi.quota.tier.std': 'Standard',
+  'admin.trekApi.quota.tier.hosted': 'Hosted',
+  'admin.trekApi.quota.tier.own': 'Own instance',
+  'admin.trekApi.quota.tier.legacy': 'Shared',
+  'admin.trekApi.quota.hint.registering':
+    'This installation is getting its key in the background. Searches keep working meanwhile.',
+  'admin.trekApi.quota.hint.legacy':
+    'No key yet. Searches use the shared pool until the installation gets one on its next search.',
+  'admin.trekApi.quota.hint.off': 'Not in use on this instance: switched off, or pointed at a copy of your own.',
+  'admin.trekApi.quota.hint.revoked':
+    'The key of this installation was revoked. Searches use the shared pool until you create a new identity.',
+  'admin.trekApi.quota.unavailable': 'The allowance cannot be read right now.',
+  'admin.trekApi.quota.envKey': 'The key comes from TREK_SERVICES_KEY.',
+  'admin.trekApi.quota.regenerate': 'New identity',
+  'admin.trekApi.quota.regenerateTitle': 'Create a new identity?',
+  'admin.trekApi.quota.regenerateBody':
+    'This installation drops its key and asks for a new one in the background. Searches keep working meanwhile. Useful after copying the installation to another machine, or after the key was revoked.',
+  'admin.trekApi.quota.regenerated': 'A new identity is being set up.',
   'admin.mapsKey': 'Google Maps API Key',
   'admin.mapsKeyHint': 'Required for place search. Get at console.cloud.google.com',
   'admin.mapsKeyHintLong':

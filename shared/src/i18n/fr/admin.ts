@@ -100,9 +100,9 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.body':
     "TREK est un logiciel libre et nous ne sommes pas neutres ici. À cette échelle, les avis et les photos de commerces ordinaires n'existent que chez Google, et c'est cela, un monopole. Le champ est là faute d'alternative, pas parce que nous le recommandons. Chaque requête part alors chez Google.",
   'admin.trekApi.tagline':
-    "L'index de lieux propre à TREK. Chercher sans clé Google, sans quota et sans que personne ne compte vos recherches.",
+    "L'index de lieux propre à TREK. Chercher sans clé Google et sans clé à saisir : chaque installation dispose d'un quota journalier équitable, et seul le nombre de requêtes est compté.",
   'admin.trekApi.factPlaces': '73,6 millions de lieux dans le monde',
-  'admin.trekApi.factNoKey': 'Sans clé, sans quota',
+  'admin.trekApi.factNoKey': 'Aucune clé à saisir, quota journalier équitable',
   'admin.trekApi.factOffline': 'Paquets par pays utilisables hors ligne',
   'admin.trekApi.factPrivacy': 'Les recherches ne sont jamais journalisées',
   'admin.trekApi.more': "Ce qu'il contient",
@@ -118,6 +118,33 @@ const admin: TranslationStrings = {
   'admin.trekApi.sourcesNote': "Chaque champ d'une réponse indique de laquelle il provient.",
   'admin.trekApi.included': 'Inclus',
   'admin.trekApi.notIncluded': 'Non inclus',
+  'admin.trekApi.quota.title': 'Quota du jour',
+  'admin.trekApi.quota.used': 'Utilisé',
+  'admin.trekApi.quota.remaining': 'Restant',
+  'admin.trekApi.quota.resets': 'Remise à zéro à',
+  'admin.trekApi.quota.state.connected': 'Connecté',
+  'admin.trekApi.quota.state.registering': 'Configuration en cours',
+  'admin.trekApi.quota.state.legacy': 'Réserve partagée',
+  'admin.trekApi.quota.state.off': 'Désactivé',
+  'admin.trekApi.quota.state.revoked': 'Clé révoquée',
+  'admin.trekApi.quota.tier.std': 'Standard', // same-as-en
+  'admin.trekApi.quota.tier.hosted': 'Hébergé',
+  'admin.trekApi.quota.tier.own': 'Instance propre',
+  'admin.trekApi.quota.tier.legacy': 'Partagé',
+  'admin.trekApi.quota.hint.registering':
+    'Cette installation obtient sa clé en arrière-plan. La recherche continue de fonctionner pendant ce temps.',
+  'admin.trekApi.quota.hint.legacy':
+    "Pas encore de clé. Les recherches passent par la réserve partagée jusqu'à ce que l'installation en obtienne une lors de sa prochaine recherche.",
+  'admin.trekApi.quota.hint.off': 'Non utilisé sur cette instance : désactivé, ou dirigé vers votre propre copie.',
+  'admin.trekApi.quota.hint.revoked':
+    "La clé de cette installation a été révoquée. Les recherches passent par la réserve partagée jusqu'à ce que vous créiez une nouvelle identité.",
+  'admin.trekApi.quota.unavailable': 'Le quota ne peut pas être lu pour le moment.',
+  'admin.trekApi.quota.envKey': 'La clé provient de TREK_SERVICES_KEY.',
+  'admin.trekApi.quota.regenerate': 'Nouvelle identité',
+  'admin.trekApi.quota.regenerateTitle': 'Créer une nouvelle identité ?',
+  'admin.trekApi.quota.regenerateBody':
+    "Cette installation abandonne sa clé et en demande une nouvelle en arrière-plan. La recherche continue de fonctionner pendant ce temps. Utile après avoir copié l'installation sur une autre machine, ou si la clé a été révoquée.",
+  'admin.trekApi.quota.regenerated': 'Une nouvelle identité est en cours de configuration.',
   'admin.mapsKey': 'Clé API Google Maps',
   'admin.mapsKeyHint': 'Requise pour la recherche de lieux. Obtenez-la sur console.cloud.google.com',
   'admin.mapsKeyHintLong':

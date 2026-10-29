@@ -100,9 +100,9 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.body':
     "TREK is open source en wij zijn hier niet neutraal. Op deze schaal bestaan beoordelingen en foto's van gewone zaken alleen bij Google, en dat is een monopolie. Het veld staat er bij gebrek aan alternatief, niet omdat wij het aanraden. Elke opvraging gaat dan naar Google.",
   'admin.trekApi.tagline':
-    "TREK's eigen plaatsenindex. Zoeken zonder Google-sleutel, zonder quotum en zonder dat iemand meetelt.",
+    'De eigen plaatsindex van TREK. Zoeken zonder Google-sleutel en zonder een sleutel in te voeren: elke installatie krijgt een eerlijk dagtegoed, en alleen het aantal verzoeken wordt geteld.',
   'admin.trekApi.factPlaces': '73,6 miljoen plaatsen wereldwijd',
-  'admin.trekApi.factNoKey': 'Geen sleutel, geen quotum',
+  'admin.trekApi.factNoKey': 'Geen sleutel nodig, eerlijk dagtegoed',
   'admin.trekApi.factOffline': 'Landpakketten werken offline',
   'admin.trekApi.factPrivacy': 'Zoekopdrachten worden nooit vastgelegd',
   'admin.trekApi.more': 'Wat erin zit',
@@ -118,6 +118,33 @@ const admin: TranslationStrings = {
   'admin.trekApi.sourcesNote': 'Elk veld in een antwoord vermeldt uit welke ervan het komt.',
   'admin.trekApi.included': 'Inbegrepen',
   'admin.trekApi.notIncluded': 'Niet inbegrepen',
+  'admin.trekApi.quota.title': 'Tegoed vandaag',
+  'admin.trekApi.quota.used': 'Gebruikt',
+  'admin.trekApi.quota.remaining': 'Resterend',
+  'admin.trekApi.quota.resets': 'Wordt gereset om',
+  'admin.trekApi.quota.state.connected': 'Verbonden',
+  'admin.trekApi.quota.state.registering': 'Wordt ingericht',
+  'admin.trekApi.quota.state.legacy': 'Gedeelde pot',
+  'admin.trekApi.quota.state.off': 'Uitgeschakeld',
+  'admin.trekApi.quota.state.revoked': 'Sleutel ingetrokken',
+  'admin.trekApi.quota.tier.std': 'Standaard',
+  'admin.trekApi.quota.tier.hosted': 'Gehost',
+  'admin.trekApi.quota.tier.own': 'Eigen instantie',
+  'admin.trekApi.quota.tier.legacy': 'Gedeeld',
+  'admin.trekApi.quota.hint.registering':
+    'Deze installatie haalt op de achtergrond haar sleutel op. Zoeken blijft intussen gewoon werken.',
+  'admin.trekApi.quota.hint.legacy':
+    'Nog geen sleutel. Zoekopdrachten gaan via de gedeelde pot tot de installatie er bij de volgende zoekopdracht een krijgt.',
+  'admin.trekApi.quota.hint.off': 'Niet in gebruik op deze instantie: uitgeschakeld of naar een eigen kopie verwezen.',
+  'admin.trekApi.quota.hint.revoked':
+    'De sleutel van deze installatie is ingetrokken. Zoekopdrachten gaan via de gedeelde pot tot je een nieuwe identiteit aanmaakt.',
+  'admin.trekApi.quota.unavailable': 'Het tegoed kan nu niet worden gelezen.',
+  'admin.trekApi.quota.envKey': 'De sleutel komt uit TREK_SERVICES_KEY.',
+  'admin.trekApi.quota.regenerate': 'Nieuwe identiteit',
+  'admin.trekApi.quota.regenerateTitle': 'Nieuwe identiteit aanmaken?',
+  'admin.trekApi.quota.regenerateBody':
+    'Deze installatie gooit haar sleutel weg en vraagt op de achtergrond een nieuwe aan. Zoeken blijft intussen gewoon werken. Handig nadat de installatie naar een andere machine is gekopieerd of als de sleutel is ingetrokken.',
+  'admin.trekApi.quota.regenerated': 'Er wordt een nieuwe identiteit ingericht.',
   'admin.mapsKey': 'Google Maps API-sleutel',
   'admin.mapsKeyHint': 'Vereist voor het zoeken van plaatsen. Verkrijgbaar op console.cloud.google.com',
   'admin.mapsKeyHintLong':

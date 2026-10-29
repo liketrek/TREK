@@ -147,9 +147,9 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.body':
     'TREK adalah perangkat lunak sumber terbuka dan di sini kami tidak netral. Pada skala ini ulasan dan foto usaha biasa hanya ada di Google, dan itulah monopoli. Kolom ini ada karena tidak ada penggantinya, bukan karena kami menyarankan. Lalu setiap pencarian pergi ke Google.',
   'admin.trekApi.tagline':
-    'Indeks tempat milik TREK sendiri. Mencari tanpa kunci Google, tanpa kuota, dan tanpa ada yang menghitung pencarian Anda.',
+    'Indeks tempat milik TREK sendiri. Cari tanpa kunci Google dan tanpa perlu memasukkan kunci apa pun: setiap instalasi mendapat kuota harian yang adil, dan hanya jumlah permintaan yang dihitung.',
   'admin.trekApi.factPlaces': '73,6 juta tempat di seluruh dunia',
-  'admin.trekApi.factNoKey': 'Tanpa kunci, tanpa kuota',
+  'admin.trekApi.factNoKey': 'Tanpa kunci yang perlu dimasukkan, kuota harian yang adil',
   'admin.trekApi.factOffline': 'Paket per negara jalan offline',
   'admin.trekApi.factPrivacy': 'Pencarian tidak pernah dicatat',
   'admin.trekApi.more': 'Apa isinya',
@@ -165,6 +165,33 @@ const admin: TranslationStrings = {
   'admin.trekApi.sourcesNote': 'Setiap ruas dalam respons menyebutkan berasal dari yang mana.',
   'admin.trekApi.included': 'Termasuk',
   'admin.trekApi.notIncluded': 'Tidak termasuk',
+  'admin.trekApi.quota.title': 'Kuota hari ini',
+  'admin.trekApi.quota.used': 'Terpakai',
+  'admin.trekApi.quota.remaining': 'Tersisa',
+  'admin.trekApi.quota.resets': 'Direset pukul',
+  'admin.trekApi.quota.state.connected': 'Terhubung',
+  'admin.trekApi.quota.state.registering': 'Sedang disiapkan',
+  'admin.trekApi.quota.state.legacy': 'Kumpulan bersama',
+  'admin.trekApi.quota.state.off': 'Dimatikan',
+  'admin.trekApi.quota.state.revoked': 'Kunci dicabut',
+  'admin.trekApi.quota.tier.std': 'Standar',
+  'admin.trekApi.quota.tier.hosted': 'Dihosting',
+  'admin.trekApi.quota.tier.own': 'Instans sendiri',
+  'admin.trekApi.quota.tier.legacy': 'Bersama',
+  'admin.trekApi.quota.hint.registering':
+    'Instalasi ini sedang mendapatkan kuncinya di latar belakang. Pencarian tetap berjalan selama itu.',
+  'admin.trekApi.quota.hint.legacy':
+    'Belum ada kunci. Pencarian memakai kumpulan bersama sampai instalasi mendapat kunci pada pencarian berikutnya.',
+  'admin.trekApi.quota.hint.off': 'Tidak dipakai di instans ini: dimatikan atau diarahkan ke salinan sendiri.',
+  'admin.trekApi.quota.hint.revoked':
+    'Kunci instalasi ini telah dicabut. Pencarian memakai kumpulan bersama sampai kamu membuat identitas baru.',
+  'admin.trekApi.quota.unavailable': 'Kuota tidak dapat dibaca saat ini.',
+  'admin.trekApi.quota.envKey': 'Kunci berasal dari TREK_SERVICES_KEY.',
+  'admin.trekApi.quota.regenerate': 'Identitas baru',
+  'admin.trekApi.quota.regenerateTitle': 'Buat identitas baru?',
+  'admin.trekApi.quota.regenerateBody':
+    'Instalasi ini membuang kuncinya dan meminta kunci baru di latar belakang. Pencarian tetap berjalan selama itu. Berguna setelah instalasi disalin ke mesin lain, atau jika kuncinya dicabut.',
+  'admin.trekApi.quota.regenerated': 'Identitas baru sedang disiapkan.',
   'admin.mapsKey': 'Kunci API Google Maps',
   'admin.mapsKeyHint': 'Diperlukan untuk pencarian tempat. Dapatkan di console.cloud.google.com',
   'admin.mapsKeyHintLong':

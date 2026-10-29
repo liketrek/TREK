@@ -100,9 +100,9 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.body':
     'TREK ist quelloffen und wir sind hier nicht neutral. Bewertungen und Fotos gewöhnlicher Läden gibt es in dieser Größenordnung nur bei Google, und genau das ist ein Monopol. Das Feld steht hier, weil es keine Alternative gibt, nicht weil wir es empfehlen. Jede Abfrage geht dann an Google.',
   'admin.trekApi.tagline':
-    'TREKs eigener Ortsindex. Suchen ohne Google-Schlüssel, ohne Kontingent und ohne dass jemand mitzählt.',
+    'TREKs eigener Ortsindex. Suchen ohne Google-Schlüssel und ohne einen Schlüssel einzutragen: Jede Installation bekommt ein faires Tageskontingent, gezählt wird nur die Anzahl der Anfragen.',
   'admin.trekApi.factPlaces': '73,6 Millionen Orte weltweit',
-  'admin.trekApi.factNoKey': 'Kein Schlüssel, kein Kontingent',
+  'admin.trekApi.factNoKey': 'Kein Schlüssel nötig, faires Tageskontingent',
   'admin.trekApi.factOffline': 'Länderpakete auch offline',
   'admin.trekApi.factPrivacy': 'Suchanfragen werden nie protokolliert',
   'admin.trekApi.more': 'Was drin ist',
@@ -118,6 +118,34 @@ const admin: TranslationStrings = {
   'admin.trekApi.sourcesNote': 'Jedes Feld einer Antwort nennt, aus welcher davon es stammt.',
   'admin.trekApi.included': 'Enthalten',
   'admin.trekApi.notIncluded': 'Nicht enthalten',
+  'admin.trekApi.quota.title': 'Kontingent heute',
+  'admin.trekApi.quota.used': 'Verbraucht',
+  'admin.trekApi.quota.remaining': 'Verbleibend',
+  'admin.trekApi.quota.resets': 'Zurückgesetzt um',
+  'admin.trekApi.quota.state.connected': 'Verbunden',
+  'admin.trekApi.quota.state.registering': 'Wird eingerichtet',
+  'admin.trekApi.quota.state.legacy': 'Gemeinsamer Topf',
+  'admin.trekApi.quota.state.off': 'Ausgeschaltet',
+  'admin.trekApi.quota.state.revoked': 'Schlüssel gesperrt',
+  'admin.trekApi.quota.tier.std': 'Standard', // same-as-en
+  'admin.trekApi.quota.tier.hosted': 'Gehostet',
+  'admin.trekApi.quota.tier.own': 'Eigene Instanz',
+  'admin.trekApi.quota.tier.legacy': 'Gemeinsam',
+  'admin.trekApi.quota.hint.registering':
+    'Diese Installation holt sich ihren Schlüssel im Hintergrund. Die Suche funktioniert währenddessen weiter.',
+  'admin.trekApi.quota.hint.legacy':
+    'Noch kein Schlüssel. Suchen laufen über den gemeinsamen Topf, bis die Installation bei der nächsten Suche einen bekommt.',
+  'admin.trekApi.quota.hint.off':
+    'Auf dieser Instanz nicht in Gebrauch: ausgeschaltet oder auf eine eigene Kopie umgestellt.',
+  'admin.trekApi.quota.hint.revoked':
+    'Der Schlüssel dieser Installation wurde gesperrt. Suchen laufen über den gemeinsamen Topf, bis du eine neue Identität erzeugst.',
+  'admin.trekApi.quota.unavailable': 'Das Kontingent lässt sich gerade nicht abrufen.',
+  'admin.trekApi.quota.envKey': 'Der Schlüssel kommt aus TREK_SERVICES_KEY.',
+  'admin.trekApi.quota.regenerate': 'Neue Identität',
+  'admin.trekApi.quota.regenerateTitle': 'Neue Identität erzeugen?',
+  'admin.trekApi.quota.regenerateBody':
+    'Diese Installation verwirft ihren Schlüssel und fordert im Hintergrund einen neuen an. Die Suche funktioniert währenddessen weiter. Sinnvoll, nachdem die Installation auf einen anderen Rechner kopiert oder der Schlüssel gesperrt wurde.',
+  'admin.trekApi.quota.regenerated': 'Eine neue Identität wird eingerichtet.',
   'admin.mapsKey': 'Google Maps API-Schlüssel',
   'admin.mapsKeyHint': 'Für Ortsuche benötigt. Erstellen unter console.cloud.google.com',
   'admin.mapsKeyHintLong':

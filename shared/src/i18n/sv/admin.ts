@@ -152,9 +152,9 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.body':
     'TREK är öppen källkod och vi är inte neutrala här. I den här skalan finns omdömen och foton på vanliga verksamheter bara hos Google, och det är ett monopol. Fältet finns i brist på alternativ, inte för att vi rekommenderar det. Varje uppslagning går då till Google.',
   'admin.trekApi.tagline':
-    'TREK:s eget platsregister. Sök utan Google-nyckel, utan kvot och utan att någon räknar dina sökningar.',
+    'TREK:s eget platsindex. Sök utan Google-nyckel och utan att ange någon nyckel: varje installation får en rimlig dagskvot, och bara antalet förfrågningar räknas.',
   'admin.trekApi.factPlaces': '73,6 miljoner platser i världen',
-  'admin.trekApi.factNoKey': 'Ingen nyckel, ingen kvot',
+  'admin.trekApi.factNoKey': 'Ingen nyckel att ange, rimlig dagskvot',
   'admin.trekApi.factOffline': 'Landpaket fungerar offline',
   'admin.trekApi.factPrivacy': 'Sökningar loggas aldrig',
   'admin.trekApi.more': 'Vad som ingår',
@@ -170,6 +170,33 @@ const admin: TranslationStrings = {
   'admin.trekApi.sourcesNote': 'Varje fält i ett svar anger vilken av dem det kommer från.',
   'admin.trekApi.included': 'Ingår',
   'admin.trekApi.notIncluded': 'Ingår inte',
+  'admin.trekApi.quota.title': 'Dagens kvot',
+  'admin.trekApi.quota.used': 'Använt',
+  'admin.trekApi.quota.remaining': 'Kvar',
+  'admin.trekApi.quota.resets': 'Nollställs kl.',
+  'admin.trekApi.quota.state.connected': 'Ansluten',
+  'admin.trekApi.quota.state.registering': 'Konfigureras',
+  'admin.trekApi.quota.state.legacy': 'Gemensam pool',
+  'admin.trekApi.quota.state.off': 'Avstängd',
+  'admin.trekApi.quota.state.revoked': 'Nyckel återkallad',
+  'admin.trekApi.quota.tier.std': 'Standard', // same-as-en
+  'admin.trekApi.quota.tier.hosted': 'Hostad',
+  'admin.trekApi.quota.tier.own': 'Egen instans',
+  'admin.trekApi.quota.tier.legacy': 'Gemensam',
+  'admin.trekApi.quota.hint.registering':
+    'Den här installationen hämtar sin nyckel i bakgrunden. Sökningen fungerar som vanligt under tiden.',
+  'admin.trekApi.quota.hint.legacy':
+    'Ingen nyckel än. Sökningar går via den gemensamma poolen tills installationen får en vid nästa sökning.',
+  'admin.trekApi.quota.hint.off': 'Används inte på den här instansen: avstängd eller pekar på en egen kopia.',
+  'admin.trekApi.quota.hint.revoked':
+    'Nyckeln för den här installationen har återkallats. Sökningar går via den gemensamma poolen tills du skapar en ny identitet.',
+  'admin.trekApi.quota.unavailable': 'Kvoten kan inte läsas just nu.',
+  'admin.trekApi.quota.envKey': 'Nyckeln kommer från TREK_SERVICES_KEY.',
+  'admin.trekApi.quota.regenerate': 'Ny identitet',
+  'admin.trekApi.quota.regenerateTitle': 'Skapa en ny identitet?',
+  'admin.trekApi.quota.regenerateBody':
+    'Den här installationen släpper sin nyckel och begär en ny i bakgrunden. Sökningen fungerar som vanligt under tiden. Användbart efter att installationen kopierats till en annan maskin, eller om nyckeln har återkallats.',
+  'admin.trekApi.quota.regenerated': 'En ny identitet konfigureras.',
   'admin.mapsKey': 'Google Maps API Nyckel',
   'admin.mapsKeyHint': 'Krävs för att söka efter platser. Hämta på console.cloud.google.com',
   'admin.mapsKeyHintLong':

@@ -105,9 +105,9 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.body':
     "TREK és programari lliure i aquí no som neutrals. En aquesta escala, les valoracions i les fotos de negocis corrents només existeixen a Google, i això és un monopoli. El camp hi és per manca d'alternativa, no perquè el recomanem. Llavors cada consulta va a Google.",
   'admin.trekApi.tagline':
-    "L'índex de llocs propi de TREK. Cercar sense clau de Google, sense quota i sense que ningú compti les teves cerques.",
+    "L'índex de llocs propi de TREK. Cerca sense clau de Google i sense haver d'introduir cap clau: cada instal·lació rep una quota diària justa, i només es compta el nombre de sol·licituds.",
   'admin.trekApi.factPlaces': '73,6 milions de llocs al món',
-  'admin.trekApi.factNoKey': 'Sense clau, sense quota',
+  'admin.trekApi.factNoKey': 'Cap clau per introduir, quota diària justa',
   'admin.trekApi.factOffline': 'Els paquets per país funcionen sense connexió',
   'admin.trekApi.factPrivacy': 'Les cerques no es registren mai',
   'admin.trekApi.more': 'Què hi ha a dins',
@@ -123,6 +123,33 @@ const admin: TranslationStrings = {
   'admin.trekApi.sourcesNote': "Cada camp d'una resposta diu de quina d'elles ve.",
   'admin.trekApi.included': 'Inclòs',
   'admin.trekApi.notIncluded': 'No inclòs',
+  'admin.trekApi.quota.title': "Quota d'avui",
+  'admin.trekApi.quota.used': 'Utilitzat',
+  'admin.trekApi.quota.remaining': 'Restant',
+  'admin.trekApi.quota.resets': 'Es reinicia a les',
+  'admin.trekApi.quota.state.connected': 'Connectat',
+  'admin.trekApi.quota.state.registering': "S'està configurant",
+  'admin.trekApi.quota.state.legacy': 'Reserva compartida',
+  'admin.trekApi.quota.state.off': 'Desactivat',
+  'admin.trekApi.quota.state.revoked': 'Clau revocada',
+  'admin.trekApi.quota.tier.std': 'Estàndard',
+  'admin.trekApi.quota.tier.hosted': 'Allotjat',
+  'admin.trekApi.quota.tier.own': 'Instància pròpia',
+  'admin.trekApi.quota.tier.legacy': 'Compartit',
+  'admin.trekApi.quota.hint.registering':
+    'Aquesta instal·lació està obtenint la seva clau en segon pla. Mentrestant, la cerca continua funcionant.',
+  'admin.trekApi.quota.hint.legacy':
+    "Encara no hi ha clau. Les cerques fan servir la reserva compartida fins que la instal·lació n'obtingui una en la propera cerca.",
+  'admin.trekApi.quota.hint.off': "No s'utilitza en aquesta instància: desactivat o apuntant a una còpia pròpia.",
+  'admin.trekApi.quota.hint.revoked':
+    "La clau d'aquesta instal·lació s'ha revocat. Les cerques fan servir la reserva compartida fins que creïs una identitat nova.",
+  'admin.trekApi.quota.unavailable': 'Ara mateix no es pot llegir la quota.',
+  'admin.trekApi.quota.envKey': 'La clau ve de TREK_SERVICES_KEY.',
+  'admin.trekApi.quota.regenerate': 'Identitat nova',
+  'admin.trekApi.quota.regenerateTitle': 'Vols crear una identitat nova?',
+  'admin.trekApi.quota.regenerateBody':
+    "Aquesta instal·lació descarta la seva clau i en demana una de nova en segon pla. Mentrestant, la cerca continua funcionant. Útil després de copiar la instal·lació a una altra màquina o si la clau s'ha revocat.",
+  'admin.trekApi.quota.regenerated': "S'està configurant una identitat nova.",
   'admin.mapsKey': 'Clau API de Google Maps',
   'admin.mapsKeyHint': 'Obligatòria per cercar llocs. Aconsegueix-la a console.cloud.google.com',
   'admin.mapsKeyHintLong':

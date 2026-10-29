@@ -152,9 +152,9 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.body':
     "TREK açık kaynaklıdır ve burada tarafsız değiliz. Bu ölçekte değerlendirmeler ve sıradan işletme fotoğrafları yalnızca Google'da vardır; tekel budur. Alan, başka seçenek olmadığı için burada; önerdiğimiz için değil. O zaman her sorgu Google'a gider.",
   'admin.trekApi.tagline':
-    "TREK'in kendi yer dizini. Google anahtarı olmadan, kota olmadan ve kimse aramalarınızı saymadan arama.",
+    "TREK'in kendi yer dizini. Google anahtarı olmadan ve hiçbir anahtar girmeden arayın: her kurulum adil bir günlük kota alır ve yalnızca istek sayısı sayılır.",
   'admin.trekApi.factPlaces': 'Dünya genelinde 73,6 milyon yer',
-  'admin.trekApi.factNoKey': 'Anahtar yok, kota yok',
+  'admin.trekApi.factNoKey': 'Girilecek anahtar yok, adil günlük kota',
   'admin.trekApi.factOffline': 'Ülke paketleri çevrimdışı da çalışır',
   'admin.trekApi.factPrivacy': 'Aramalar hiçbir zaman kaydedilmez',
   'admin.trekApi.more': 'İçinde ne var',
@@ -170,6 +170,33 @@ const admin: TranslationStrings = {
   'admin.trekApi.sourcesNote': 'Yanıttaki her alan, bunlardan hangisinden geldiğini söyler.',
   'admin.trekApi.included': 'Dahil',
   'admin.trekApi.notIncluded': 'Dahil değil',
+  'admin.trekApi.quota.title': 'Bugünkü kota',
+  'admin.trekApi.quota.used': 'Kullanılan',
+  'admin.trekApi.quota.remaining': 'Kalan',
+  'admin.trekApi.quota.resets': 'Sıfırlanma saati',
+  'admin.trekApi.quota.state.connected': 'Bağlı',
+  'admin.trekApi.quota.state.registering': 'Kuruluyor',
+  'admin.trekApi.quota.state.legacy': 'Ortak havuz',
+  'admin.trekApi.quota.state.off': 'Kapalı',
+  'admin.trekApi.quota.state.revoked': 'Anahtar iptal edildi',
+  'admin.trekApi.quota.tier.std': 'Standart',
+  'admin.trekApi.quota.tier.hosted': 'Barındırılan',
+  'admin.trekApi.quota.tier.own': 'Kendi örneği',
+  'admin.trekApi.quota.tier.legacy': 'Ortak',
+  'admin.trekApi.quota.hint.registering':
+    'Bu kurulum anahtarını arka planda alıyor. Arama bu sırada çalışmaya devam eder.',
+  'admin.trekApi.quota.hint.legacy':
+    'Henüz anahtar yok. Kurulum bir sonraki aramada anahtar alana kadar aramalar ortak havuzdan yapılır.',
+  'admin.trekApi.quota.hint.off': 'Bu örnekte kullanılmıyor: kapatılmış veya kendi kopyanıza yönlendirilmiş.',
+  'admin.trekApi.quota.hint.revoked':
+    'Bu kurulumun anahtarı iptal edildi. Yeni bir kimlik oluşturana kadar aramalar ortak havuzdan yapılır.',
+  'admin.trekApi.quota.unavailable': 'Kota şu anda okunamıyor.',
+  'admin.trekApi.quota.envKey': 'Anahtar TREK_SERVICES_KEY değişkeninden geliyor.',
+  'admin.trekApi.quota.regenerate': 'Yeni kimlik',
+  'admin.trekApi.quota.regenerateTitle': 'Yeni bir kimlik oluşturulsun mu?',
+  'admin.trekApi.quota.regenerateBody':
+    'Bu kurulum anahtarını bırakır ve arka planda yenisini ister. Arama bu sırada çalışmaya devam eder. Kurulumu başka bir makineye kopyaladıktan sonra veya anahtar iptal edildiyse kullanışlıdır.',
+  'admin.trekApi.quota.regenerated': 'Yeni bir kimlik kuruluyor.',
   'admin.mapsKey': 'Google Haritalar API Anahtarı',
   'admin.mapsKeyHint': 'Yer arama için gereklidir. console.cloud.google.com adresinden erişin',
   'admin.mapsKeyHintLong':

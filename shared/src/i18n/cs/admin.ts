@@ -100,9 +100,9 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.body':
     'TREK je otevřený software a nejsme v tom neutrální. V tomto měřítku existují hodnocení a fotografie běžných podniků jen u Googlu, a to je monopol. Pole tu je z nedostatku alternativy, ne proto, že bychom je doporučovali. Každý dotaz pak jde do Googlu.',
   'admin.trekApi.tagline':
-    'Vlastní rejstřík míst TREKu. Hledání bez klíče od Googlu, bez kvóty a bez toho, aby někdo počítal vaše dotazy.',
+    'Vlastní index míst TREK. Hledejte bez klíče Google a bez zadávání jakéhokoli klíče: každá instalace dostane férový denní limit a počítá se jen počet požadavků.',
   'admin.trekApi.factPlaces': '73,6 milionu míst po celém světě',
-  'admin.trekApi.factNoKey': 'Bez klíče, bez kvóty',
+  'admin.trekApi.factNoKey': 'Žádný klíč k zadání, férový denní limit',
   'admin.trekApi.factOffline': 'Balíčky zemí fungují offline',
   'admin.trekApi.factPrivacy': 'Dotazy se nikdy nezaznamenávají',
   'admin.trekApi.more': 'Co v tom je',
@@ -118,6 +118,33 @@ const admin: TranslationStrings = {
   'admin.trekApi.sourcesNote': 'Každé pole v odpovědi uvádí, ze kterého z nich pochází.',
   'admin.trekApi.included': 'Obsahuje',
   'admin.trekApi.notIncluded': 'Neobsahuje',
+  'admin.trekApi.quota.title': 'Dnešní limit',
+  'admin.trekApi.quota.used': 'Využito',
+  'admin.trekApi.quota.remaining': 'Zbývá',
+  'admin.trekApi.quota.resets': 'Obnoví se v',
+  'admin.trekApi.quota.state.connected': 'Připojeno',
+  'admin.trekApi.quota.state.registering': 'Nastavuje se',
+  'admin.trekApi.quota.state.legacy': 'Sdílený fond',
+  'admin.trekApi.quota.state.off': 'Vypnuto',
+  'admin.trekApi.quota.state.revoked': 'Klíč zneplatněn',
+  'admin.trekApi.quota.tier.std': 'Standardní',
+  'admin.trekApi.quota.tier.hosted': 'Hostováno',
+  'admin.trekApi.quota.tier.own': 'Vlastní instance',
+  'admin.trekApi.quota.tier.legacy': 'Sdílený',
+  'admin.trekApi.quota.hint.registering':
+    'Tato instalace získává svůj klíč na pozadí. Vyhledávání mezitím funguje dál.',
+  'admin.trekApi.quota.hint.legacy':
+    'Zatím bez klíče. Vyhledávání běží přes sdílený fond, dokud instalace při příštím hledání klíč nezíská.',
+  'admin.trekApi.quota.hint.off': 'Na této instanci se nepoužívá: vypnuto nebo nasměrováno na vlastní kopii.',
+  'admin.trekApi.quota.hint.revoked':
+    'Klíč této instalace byl zneplatněn. Vyhledávání běží přes sdílený fond, dokud nevytvoříte novou identitu.',
+  'admin.trekApi.quota.unavailable': 'Limit teď nelze načíst.',
+  'admin.trekApi.quota.envKey': 'Klíč pochází z TREK_SERVICES_KEY.',
+  'admin.trekApi.quota.regenerate': 'Nová identita',
+  'admin.trekApi.quota.regenerateTitle': 'Vytvořit novou identitu?',
+  'admin.trekApi.quota.regenerateBody':
+    'Tato instalace zahodí svůj klíč a na pozadí si vyžádá nový. Vyhledávání mezitím funguje dál. Hodí se po zkopírování instalace na jiný počítač nebo po zneplatnění klíče.',
+  'admin.trekApi.quota.regenerated': 'Nastavuje se nová identita.',
   'admin.mapsKey': 'Google Maps API klíč',
   'admin.mapsKeyHint': 'Povinné pro hledání míst. Získáte na console.cloud.google.com',
   'admin.mapsKeyHintLong':
