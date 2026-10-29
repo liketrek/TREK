@@ -25,7 +25,7 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
 <a href="https://ko-fi.com/mauriceboe"><img alt="Ko-fi" src="https://img.shields.io/badge/Ko--fi-support-FF5E5B?style=for-the-badge" /></a>
 &nbsp;
 <a href="https://www.buymeacoffee.com/mauriceboe"><img alt="BMAC" src="https://img.shields.io/badge/BMAC-support-FFDD00?style=for-the-badge" /></a>
-<br />
+&nbsp;
 <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/License-AGPL_v3-6B7280?style=for-the-badge" /></a>
 &nbsp;
 <a href="https://github.com/liketrek/TREK/releases"><img alt="Latest Release" src="https://img.shields.io/github/v/release/liketrek/trek?include_prereleases&style=for-the-badge&label=Release&color=6B7280" /></a>
