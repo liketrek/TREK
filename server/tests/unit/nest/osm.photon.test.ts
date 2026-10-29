@@ -1,5 +1,5 @@
 /**
- * OSM-PHOTON-001..009: the OpenStreetMap search and reverse lookup ask Photon
+ * OSM-PHOTON-001..012: the OpenStreetMap search and reverse lookup ask Photon
  * first where the installation holds a key, answer in the shape Nominatim's
  * answers always had, and fall back to Nominatim whenever Photon gives none.
  * Lookups by id stay on Nominatim. The network is a stubbed global fetch
@@ -93,6 +93,36 @@ describe('search', () => {
     photonReply = () => photonAnswer([gateFeature({ osm_type: undefined }), gateFeature({ osm_id: 7, osm_type: 'N' })]);
     const places = await osm.searchNominatim('Brandenburger Tor');
     expect(places.map((p) => p.osm_id)).toEqual(['node:7']);
+  });
+
+  it('OSM-PHOTON-010: asks Nominatim when Photon finds nothing usable, without holding it against Photon', async () => {
+    photonReply = () => photonAnswer([]);
+    expect((await osm.searchNominatim('Brandenburger Tor', 'de'))[0]).toMatchObject({ osm_id: 'way:518071791' });
+    photonReply = () => photonAnswer([gateFeature({ osm_type: undefined })]);
+    expect((await osm.searchNominatim('Brandenburger Tor', 'de'))[0]).toMatchObject({ wikidata: 'Q82425' });
+    photonReply = () => photonAnswer([gateFeature()]);
+    await osm.searchNominatim('Brandenburger Tor', 'de');
+    expect(hosts).toEqual([
+      'photon.liketrek.com',
+      'nominatim.openstreetmap.org',
+      'photon.liketrek.com',
+      'nominatim.openstreetmap.org',
+      'photon.liketrek.com',
+    ]);
+  });
+
+  it('OSM-PHOTON-011: a bulk import on the background lane asks Nominatim alone', async () => {
+    await osm.searchNominatim('Brandenburger Tor', 'de', 'background');
+    await osm.reverse('52.5', '13.4', 'de', { lane: 'background' });
+    expect(hosts).toEqual(['nominatim.openstreetmap.org', 'nominatim.openstreetmap.org']);
+  });
+
+  it('OSM-PHOTON-012: carries the wiki tags of a Photon hit into the record', async () => {
+    photonReply = () =>
+      photonAnswer([gateFeature({ extra: { wikidata: 'Q82425', wikimedia_commons: 'Category:Brandenburger Tor' } })]);
+    const [place] = await osm.searchNominatim('Brandenburger Tor', 'de');
+    expect(hosts).toEqual(['photon.liketrek.com']);
+    expect(place).toMatchObject({ wikidata: 'Q82425', wikimedia_commons: 'Category:Brandenburger Tor' });
   });
 
   it('OSM-PHOTON-004: the suggestions of a keyless install come out of Photon too', async () => {

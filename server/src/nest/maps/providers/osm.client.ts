@@ -451,7 +451,12 @@ export class OsmClient {
    * to thirty sequential calls. On the interactive lane those thirty take the
    * next slot each time, so somebody typing in the place search waits behind the
    * whole import. Yielding does not make the import faster, it stops it from
-   * being the only thing the process will do for half a minute.
+   * being the only thing the process will do for half a minute. That loop
+   * asks Nominatim alone, so an import does not spend the Photon allowance
+   * the people typing need.
+   *
+   * Photon matches differently and can find nothing where Nominatim finds the
+   * place, so an answer without a usable hit is asked again there.
    */
   async searchNominatim(
     query: string,
@@ -459,8 +464,9 @@ export class OsmClient {
     lane: GeoLane = 'interactive',
     bias?: { lat: number; lng: number },
   ) {
-    const photon = await this.photon.search(query, { lang, bias });
-    if (photon) return photon.map(asNominatimHit).filter(isHit).map(searchRecord);
+    const photon = lane === 'background' ? null : await this.photon.search(query, { lang, bias });
+    const hits = photon?.map(asNominatimHit).filter(isHit);
+    if (hits?.length) return hits.map(searchRecord);
     const params = new URLSearchParams({
       q: query,
       format: 'json',
@@ -656,7 +662,8 @@ export class OsmClient {
     lang?: string,
     opts?: { lane?: GeoLane; timeoutMs?: number; locality?: boolean },
   ): Promise<{ name: string | null; address: string | null }> {
-    const data = (await this.reversePhoton(lat, lng, lang)) ?? (await this.reverseNominatim(lat, lng, lang, opts));
+    const photon = opts?.lane === 'background' ? null : await this.reversePhoton(lat, lng, lang, opts?.timeoutMs);
+    const data = photon ?? (await this.reverseNominatim(lat, lng, lang, opts));
     if (!data) return { name: null, address: null };
     const addr = data.address || {};
     const name = opts?.locality
@@ -670,8 +677,13 @@ export class OsmClient {
    * within a radius and can find nothing at all, where Nominatim names the
    * nearest object at any distance, so an empty answer is asked again there.
    */
-  private async reversePhoton(lat: string, lng: string, lang?: string): Promise<NominatimReverse | null> {
-    const found = await this.photon.reverse(Number.parseFloat(lat), Number.parseFloat(lng), lang);
+  private async reversePhoton(
+    lat: string,
+    lng: string,
+    lang?: string,
+    timeoutMs?: number,
+  ): Promise<NominatimReverse | null> {
+    const found = await this.photon.reverse(Number.parseFloat(lat), Number.parseFloat(lng), lang, timeoutMs);
     return found?.[0] ? asNominatimReverse(found[0]) : null;
   }
 

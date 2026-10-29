@@ -1,5 +1,5 @@
 /**
- * PHOTON-001..014: when Photon is asked, what it is asked, and every way it
+ * PHOTON-001..016: when Photon is asked, what it is asked, and every way it
  * hands the question back to Nominatim. The network is a stubbed global fetch,
  * the installation identity a fake in the slot the service-identity module fills.
  */
@@ -160,5 +160,39 @@ describe('the pause after misses in a row', () => {
     fetchMock.mockImplementation(async () => photonAnswer([], 503));
     for (let i = 0; i < 3; i++) expect(await photon.search('Rostock')).toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(9);
+  });
+});
+
+describe('a spent allowance and a short deadline', () => {
+  it('PHOTON-015: a refusal with Retry-After pauses for that long, an hour at most', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-29T10:00:00Z'));
+    const photon = client();
+    const spent = (retryAfter: string) =>
+      new Response('{}', { status: 429, headers: { 'content-type': 'application/json', 'retry-after': retryAfter } });
+    fetchMock.mockResolvedValueOnce(spent('30'));
+    expect(await photon.search('Rostock')).toBeNull();
+    expect(await photon.reverse(52.5, 13.4)).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    vi.setSystemTime(new Date('2026-10-29T10:00:31Z'));
+    fetchMock.mockResolvedValueOnce(spent('50400'));
+    expect(await photon.search('Rostock')).toBeNull();
+    vi.setSystemTime(new Date('2026-10-29T10:59:00Z'));
+    expect(await photon.search('Rostock')).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    vi.setSystemTime(new Date('2026-10-29T11:00:32Z'));
+    expect(await photon.search('Rostock')).toHaveLength(1);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it("PHOTON-016: a reverse lookup leaves Nominatim at least half of the caller's deadline", async () => {
+    const timeout = vi.spyOn(AbortSignal, 'timeout');
+    await client().reverse(52.5, 13.4, 'de', 3000);
+    await client().reverse(52.5, 13.4, 'de', 8000);
+    await client().reverse(52.5, 13.4, 'de');
+    expect(timeout.mock.calls.map(([ms]) => ms)).toEqual([1500, 2500, 2500]);
+    timeout.mockRestore();
   });
 });

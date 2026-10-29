@@ -11,6 +11,13 @@
  * read to the traveller as the search they had before. After a few misses in
  * a row it stops asking for a minute, as the Places client does, so an
  * installation that cannot reach it does not pay the deadline on every search.
+ * A spent allowance says itself how long to wait (Retry-After), and that wait
+ * is kept instead.
+ *
+ * The key comes from serviceIdentitySlot, as it does for the Places request
+ * (trek-places.fetch.ts), so the maps domain reads the installation identity
+ * one way and needs no import of ServiceIdentityModule; the slot holds the
+ * port that module resolved.
  *
  * Never imports MapsService: providers sit below the orchestrator.
  */
@@ -19,6 +26,7 @@ import { capResponse } from '../../../utils/ssrfGuard';
 import { servicesConfig } from '../../app-config/tokens';
 import { logDebug, logWarn } from '../../audit/audit-log.logger';
 import { serviceIdentitySlot } from '../../service-identity/service-identity.interface';
+import { retryAfterMs } from '../overpass-hedge.helpers';
 import { photonAnswerSchema, photonLang, type PhotonFeature } from './photon.mapping';
 import { Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
@@ -35,6 +43,8 @@ const SEARCH_LIMIT = 10;
 const BIAS_ZOOM = 10;
 const MISSES_BEFORE_PAUSE = 4;
 const PAUSE_MS = 60_000;
+/** The longest Retry-After followed; the first question after it finds out whether the allowance is back. */
+const MAX_PAUSE_MS = 60 * 60_000;
 
 interface PhotonSearchOptions {
   lang?: string;
@@ -59,14 +69,21 @@ export class PhotonClient {
     return this.ask('api', params);
   }
 
-  /** What lies at a point, nearest first, or null when Nominatim has to answer. */
-  reverse(lat: number, lng: number, lang?: string): Promise<PhotonFeature[] | null> {
+  /**
+   * What lies at a point, nearest first, or null when Nominatim has to answer.
+   * A caller's own deadline leaves Nominatim at least half of it.
+   */
+  reverse(lat: number, lng: number, lang?: string, timeoutMs?: number): Promise<PhotonFeature[] | null> {
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return Promise.resolve(null);
     const params = new URLSearchParams({ lat: String(lat), lon: String(lng), limit: '1', lang: photonLang(lang) });
-    return this.ask('reverse', params);
+    return this.ask('reverse', params, timeoutMs ? Math.min(TIMEOUT_MS, timeoutMs / 2) : TIMEOUT_MS);
   }
 
-  private async ask(path: 'api' | 'reverse', params: URLSearchParams): Promise<PhotonFeature[] | null> {
+  private async ask(
+    path: 'api' | 'reverse',
+    params: URLSearchParams,
+    timeoutMs = TIMEOUT_MS,
+  ): Promise<PhotonFeature[] | null> {
     if (!this.mayAsk()) return null;
     const url = new URL(`${this.config.photonUrl}/${path}`);
     url.search = params.toString();
@@ -78,9 +95,15 @@ export class PhotonClient {
         headers: { Accept: 'application/json', ...headers },
         // The key goes to this host alone, never on to wherever it points.
         redirect: 'error',
-        signal: AbortSignal.timeout(TIMEOUT_MS),
+        signal: AbortSignal.timeout(timeoutMs),
       });
       identity.observe(url, res);
+      const wait = res.status === 429 ? retryAfterMs(res.headers.get('retry-after')) : null;
+      if (wait !== null) {
+        await res.body?.cancel();
+        this.pauseFor(wait);
+        return null;
+      }
       if (!res.ok) {
         await res.body?.cancel();
         throw new Error(`answered ${res.status}`);
@@ -111,5 +134,12 @@ export class PhotonClient {
     // One more miss after the pause starts the next one.
     this.misses = MISSES_BEFORE_PAUSE - 1;
     logWarn(`[Photon] ${reason}; asking Nominatim alone for a minute`);
+  }
+
+  private pauseFor(ms: number): void {
+    const wait = Math.min(ms, MAX_PAUSE_MS);
+    this.pausedUntil = Date.now() + wait;
+    this.misses = MISSES_BEFORE_PAUSE - 1;
+    logWarn(`[Photon] allowance spent; asking Nominatim alone for ${Math.ceil(wait / 1000)} s`);
   }
 }
