@@ -6,13 +6,6 @@
   <img src="docs/logo-trek-dark.svg" alt="TREK" height="96" />
 </picture>
 
-<br />
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/subtitle-light.png" />
-  <source media="(prefers-color-scheme: light)" srcset="docs/subtitle-dark.png" />
-  <img src="docs/subtitle-dark.png" alt="your trip. your plan." height="28" />
-</picture>
-
 A self-hosted, real-time collaborative travel planner — with maps, budgets, packing lists, a journal, and AI built in.
 
 <br />
