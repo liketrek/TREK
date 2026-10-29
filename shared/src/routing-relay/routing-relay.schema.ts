@@ -36,6 +36,7 @@ const point = z.object({
 });
 
 const costingSchema = z.enum(['auto', 'pedestrian', 'bicycle']);
+export type ValhallaCosting = z.infer<typeof costingSchema>;
 
 const optionName = z.string().min(1).max(64);
 /** Per costing, its weightings and switches by name: a number, a word or a flag. */

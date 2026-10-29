@@ -1,4 +1,16 @@
-import { valhallaProviderSchema, type ValhallaProvider, type ValhallaRelayAction } from './routing-relay.schema';
+import {
+  valhallaProviderSchema,
+  type ValhallaCosting,
+  type ValhallaProvider,
+  type ValhallaRelayAction,
+} from './routing-relay.schema';
+
+/** TREK's three route profiles against the Valhalla costing model each is asked under. */
+export const VALHALLA_COSTING = {
+  driving: 'auto',
+  walking: 'pedestrian',
+  cycling: 'bicycle',
+} as const satisfies Record<'driving' | 'walking' | 'cycling', ValhallaCosting>;
 
 /** What decides which Valhalla an instance asks, as its settings hold it. */
 export interface ValhallaChoice {
@@ -30,6 +42,17 @@ export function resolveValhallaProvider(choice: ValhallaChoice): ValhallaProvide
   if (filled(choice.valhallaUrl)) return 'custom';
   if (filled(choice.routingUrl)) return null;
   return choice.trekAvailable ? 'trek' : 'fossgis';
+}
+
+/**
+ * Whether this Valhalla routes every day, on foot, by bike and by car, or only
+ * what OSRM cannot answer. The TREK services and an own Valhalla carry the
+ * whole load; the public FOSSGIS one allows a request a second and ten
+ * locations, so there OSRM keeps the days and Valhalla answers the avoidances
+ * and the tours.
+ */
+export function valhallaRoutesEveryDay(provider: ValhallaProvider | null): boolean {
+  return provider === 'trek' || provider === 'custom';
 }
 
 function encodeSigned(value: number): string {

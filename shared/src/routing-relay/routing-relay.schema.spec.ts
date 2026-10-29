@@ -4,7 +4,13 @@ import {
   valhallaRouteRequestSchema,
   valhallaTraceRequestSchema,
 } from './routing-relay.schema';
-import { compactValhallaRequest, encodePolyline6, resolveValhallaProvider } from './valhalla-provider';
+import {
+  compactValhallaRequest,
+  encodePolyline6,
+  resolveValhallaProvider,
+  VALHALLA_COSTING,
+  valhallaRoutesEveryDay,
+} from './valhalla-provider';
 
 import { describe, expect, it } from 'vitest';
 
@@ -141,5 +147,25 @@ describe('resolveValhallaProvider', () => {
       resolveValhallaProvider({ ...unset, provider: 'custom', routingUrl: 'https://osrm.example.org' }),
     ).toBeNull();
     expect(resolveValhallaProvider({ ...unset, provider: 'nonsense', valhallaUrl: ' ' })).toBe('trek');
+  });
+});
+
+describe('valhallaRoutesEveryDay', () => {
+  it('hands every day to the TREK services and an own Valhalla, never to FOSSGIS or no Valhalla', () => {
+    expect(valhallaRoutesEveryDay('trek')).toBe(true);
+    expect(valhallaRoutesEveryDay('custom')).toBe(true);
+    expect(valhallaRoutesEveryDay('fossgis')).toBe(false);
+    expect(valhallaRoutesEveryDay(null)).toBe(false);
+  });
+});
+
+describe('VALHALLA_COSTING', () => {
+  it('asks each profile under a costing the relay takes', () => {
+    expect(VALHALLA_COSTING).toEqual({ driving: 'auto', walking: 'pedestrian', cycling: 'bicycle' });
+    for (const costing of Object.values(VALHALLA_COSTING)) {
+      expect(
+        valhallaRouteRequestSchema.safeParse({ ...route, costing, costing_options: { [costing]: {} } }).success,
+      ).toBe(true);
+    }
   });
 });
