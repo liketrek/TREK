@@ -41,15 +41,7 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
 <br />
 <br />
 
-<sub>PUBLIC SERVICES PROUDLY SPONSORED BY</sub>
-<br />
-<a href="https://cloud.dataforest.net/en?mtm_campaign=trek">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/sponsors/dataforest-light.svg" />
-    <source media="(prefers-color-scheme: light)" srcset="docs/sponsors/dataforest-dark.svg" />
-    <img src="docs/sponsors/dataforest-dark.svg" alt="dataforest cloud" height="30" />
-  </picture>
-</a>
+<sub>PUBLIC SERVICES PROUDLY SPONSORED BY</sub><br /><a href="https://cloud.dataforest.net/en?mtm_campaign=trek"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/sponsors/dataforest-light.svg" /><source media="(prefers-color-scheme: light)" srcset="docs/sponsors/dataforest-dark.svg" /><img src="docs/sponsors/dataforest-dark.svg" alt="dataforest cloud" height="30" /></picture></a>
 </div>
 
 ---
@@ -258,10 +250,7 @@ Thank you, dataforest, for backing open source this generously. 💚
 
 <a href="https://cloud.dataforest.net/en?mtm_campaign=trek"><img alt="Visit dataforest cloud" src="https://img.shields.io/badge/Visit-dataforest_cloud-02C382?style=for-the-badge" /></a>
 
-<br />
-<br />
-
-<sub>Looking for a server for your own TREK? dataforest cloud is where TREK's own services live.</sub>
+Looking for a server for your own TREK? dataforest cloud is where TREK's own services live.
 
 </div>
 
