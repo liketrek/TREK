@@ -89,13 +89,23 @@ export function photonLang(lang: string | undefined): string {
 
 /**
  * The address line Nominatim calls `display_name`: the place's own name first,
- * then street, quarter, town, county, region, postcode and country. A part
- * that repeats one before it is left out, so Berlin reads "Berlin, Germany"
- * rather than naming the city state twice.
+ * then house number and street as parts of their own ("12, Main Street", the
+ * way Nominatim writes them), quarter, town, county, region, postcode and
+ * country. A part that repeats one before it is left out, so Berlin reads
+ * "Berlin, Germany" rather than naming the city state twice.
  */
 export function photonDisplayName(p: PhotonProperties): string {
-  const street = [p.street, p.housenumber].filter(Boolean).join(' ');
-  const parts = [p.name, street, p.district ?? p.locality, p.city, p.county, p.state, p.postcode, p.country];
+  const parts = [
+    p.name,
+    p.housenumber,
+    p.street,
+    p.district ?? p.locality,
+    p.city,
+    p.county,
+    p.state,
+    p.postcode,
+    p.country,
+  ];
   const seen = new Set<string>();
   for (const part of parts) {
     const value = part?.trim();

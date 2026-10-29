@@ -1,5 +1,5 @@
 /**
- * PHOTON-MAP-001..012: Photon's answers read into the shape Nominatim gives,
+ * PHOTON-MAP-001..013: Photon's answers read into the shape Nominatim gives,
  * and the language Photon is asked in.
  */
 import {
@@ -44,10 +44,15 @@ describe('photonLang', () => {
 });
 
 describe('photonDisplayName', () => {
-  it('PHOTON-MAP-005: names the place, then the street, quarter, town, region, postcode and country', () => {
+  it('PHOTON-MAP-005: names the place, then house number and street as Nominatim does, quarter, town, region, postcode and country', () => {
     expect(photonDisplayName(feature({ housenumber: '1' }).properties)).toBe(
-      'Brandenburger Tor, Pariser Platz 1, Mitte, Berlin, 10117, Deutschland',
+      'Brandenburger Tor, 1, Pariser Platz, Mitte, Berlin, 10117, Deutschland',
     );
+  });
+
+  it('PHOTON-MAP-013: writes an address without a name the way Nominatim writes a house', () => {
+    const house = feature({ name: undefined, housenumber: '77', street: 'Unter den Linden', postcode: undefined });
+    expect(photonDisplayName(house.properties)).toBe('77, Unter den Linden, Mitte, Berlin, Deutschland');
   });
 
   it('PHOTON-MAP-006: leaves out what is missing and what repeats', () => {
@@ -88,7 +93,7 @@ describe('asNominatimHit', () => {
 describe('asNominatimReverse', () => {
   it('PHOTON-MAP-010: fills the address fields Nominatim fills, the sight under its main tag', () => {
     expect(asNominatimReverse(feature({ housenumber: '1' }))).toEqual({
-      display_name: 'Brandenburger Tor, Pariser Platz 1, Mitte, Berlin, 10117, Deutschland',
+      display_name: 'Brandenburger Tor, 1, Pariser Platz, Mitte, Berlin, 10117, Deutschland',
       name: 'Brandenburger Tor',
       address: {
         road: 'Pariser Platz',
