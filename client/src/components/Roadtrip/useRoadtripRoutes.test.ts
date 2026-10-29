@@ -1149,7 +1149,8 @@ describe('a leg asked for again on demand', () => {
   })
 
   it('FE-ROADTRIP-ROUTES-047: a seam is asked under the card it arrives on, and a leg nothing weighs is OSRM\'s', () => {
-    act(() => { useSettingsStore.setState(s => ({ settings: { ...s.settings, roadtrip_avoid: 'motorway' } })) })
+    // FOSSGIS chosen: Valhalla only answers what OSRM cannot.
+    act(() => { useSettingsStore.setState(s => ({ settings: { ...s.settings, roadtrip_avoid: 'motorway', routing_valhalla_provider: 'fossgis' } })) })
     const days = [day(1, 1, { default_transport_mode: 'cycling' }), day(2, 2, { default_transport_mode: 'driving' })]
     const { result } = renderHook(() => useRoadtripRoutes(7, days, {} as AssignmentsMap))
 
@@ -1162,6 +1163,17 @@ describe('a leg asked for again on demand', () => {
     // A stop's own mode wins over any default, and a plugin prices its own leg.
     expect(result.current.legRouter!(stopOn(2, 0, BERLIN, { legMode: 'plugin:ev/fast' }), stopOn(2, 1, HAMBURG), 2))
       .toMatchObject({ mode: 'plugin:ev/fast', avoid: [], engine: 'plugin' })
+  })
+
+  it('FE-ROADTRIP-ROUTES-047b: where Valhalla routes the days, a leg nothing weighs is Valhalla\'s too', () => {
+    act(() => { useSettingsStore.setState(s => ({ settings: { ...s.settings, routing_valhalla_provider: 'trek' } })) })
+    const days = [day(1, 1, { default_transport_mode: 'cycling' }), day(2, 2, { default_transport_mode: 'driving' })]
+    const { result } = renderHook(() => useRoadtripRoutes(7, days, {} as AssignmentsMap))
+
+    expect(result.current.legRouter?.(stopOn(1, 2, HAMBURG), stopOn(1, 3, LUENEBURG), 2))
+      .toMatchObject({ mode: 'cycling', avoid: [], engine: 'valhalla' })
+    expect(result.current.legRouter?.(stopOn(2, 0, BERLIN, { legMode: 'plugin:ev/fast' }), stopOn(2, 1, HAMBURG), 2))
+      .toMatchObject({ engine: 'plugin' })
   })
 
   it('FE-ROADTRIP-ROUTES-048: a day the stand-in engine drove while avoiding says the avoidance did not happen', async () => {

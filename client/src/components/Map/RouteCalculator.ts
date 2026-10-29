@@ -1,11 +1,12 @@
 import { useSettingsStore } from '../../store/settingsStore'
 import { pluginsApi } from '../../api/client'
-import type { DistanceUnit, RouteResult, RouteSegment, RouteWithLegs, SnappedWaypoint, Waypoint, RouteAnchors } from '../../types'
+import type { RouteResult, RouteSegment, RouteWithLegs, SnappedWaypoint, Waypoint, RouteAnchors } from '../../types'
 import { haversineKm } from '../../utils/geo'
-import { formatDistance } from '../../utils/units'
 import { countRoute } from './routeUsageCounter'
 import { cacheRoute, rememberRoute, routeInMemory, storedRoute } from './routeStore'
-import { valhallaRouteAvoiding, valhallaRun, valhallaAvailable, valhallaAlternates, valhallaSpacing, legAvoids, type AvoidClass, type ValhallaLeg } from './valhallaRoute'
+import { formatDuration, formatRouteDistance, getDistanceUnit } from './routeText'
+import { valhallaAvailable, valhallaRoutesDays, type AvoidClass } from './valhallaRoute'
+import { EXCLUDABLE_CLASSES, valhallaDayAlternatives, valhallaDayRoute, valhallaExcluding } from './valhallaDayRoute'
 import { furthestFrom, sameRoad, type RouteUsageSurface } from '@trek/shared'
 
 // FOSSGIS hosts OSRM with real per-profile routing (car/foot/bike) — the
@@ -214,11 +215,17 @@ export function parsePluginProfile(profile: string): { pluginId: string; profile
 }
 
 /**
- * Which engine priced a route: OSRM, the second engine that weighs road classes away, or
- * a route provider plugin. Their figures are three different speed models, so a figure
- * from one read against a figure from another measures the models, not the roads.
+ * Which engine priced a route: OSRM, Valhalla (which routes the days with the TREK
+ * services or an own Valhalla, and otherwise weighs road classes away), or a route
+ * provider plugin. Their figures are three different speed models, so a figure from one
+ * read against a figure from another measures the models, not the roads.
  */
 export type RouteEngine = 'osrm' | 'valhalla' | 'plugin'
+
+/** One of the three profiles both engines know, or null for a plugin's own. */
+function builtInProfile(profile: RouteProfileKey): 'driving' | 'walking' | 'cycling' | null {
+  return profile === 'driving' || profile === 'walking' || profile === 'cycling' ? profile : null
+}
 
 /**
  * The classes a request really weighs away, in a stable order, and none when it cannot.
@@ -234,10 +241,38 @@ export function avoidedClasses(profile: RouteProfileKey, avoid: readonly AvoidCl
     : []
 }
 
-/** The engine `calculateRouteWithLegs` hands a request with this profile and avoidance to. */
+/**
+ * The engine `calculateRouteWithLegs` hands a request with this profile and avoidance to:
+ * Valhalla for every day where it routes the days, and for a day that avoids something
+ * wherever it can; OSRM for the rest.
+ */
 export function routeEngineFor(profile: RouteProfileKey, avoid: readonly AvoidClass[]): RouteEngine {
   if (parsePluginProfile(profile)) return 'plugin'
-  return avoidedClasses(profile, avoid).length ? 'valhalla' : 'osrm'
+  if (avoidedClasses(profile, avoid).length) return 'valhalla'
+  return builtInProfile(profile) && valhallaRoutesDays() ? 'valhalla' : 'osrm'
+}
+
+/** The profile Valhalla routes a request under, or null where `routeEngineFor` gives it to another engine. */
+function valhallaProfile(profile: RouteProfileKey, avoid: readonly AvoidClass[]): 'driving' | 'walking' | 'cycling' | null {
+  return routeEngineFor(profile, avoid) === 'valhalla' ? builtInProfile(profile) : null
+}
+
+/**
+ * Where a Valhalla answer is kept: beside the OSRM key, which keeps the shape it always
+ * had, with the engine and the classes the day weighs away.
+ */
+function valhallaKey(plainKey: string, avoiding: readonly AvoidClass[]): string {
+  return `${plainKey}:valhalla${avoiding.length ? `:avoid=${avoiding.join(',')}` : ''}`
+}
+
+/**
+ * OSRM's answer for a day Valhalla could not route. A day that avoided nothing is then
+ * routed as it always was, without a word. One that avoided something says that nothing
+ * was avoided, with the reason, so the rail flags the day instead of implying the setting
+ * held on a road nobody weighed.
+ */
+function withFallbackNoted(plain: RouteWithLegs, avoiding: AvoidClass[]): RouteWithLegs {
+  return avoiding.length ? { ...plain, avoidance: { asked: avoiding, achieved: [], fellBack: true } } : plain
 }
 
 /** Fetches a full route via OSRM and returns coordinates, distance, and duration estimates for driving/walking. */
@@ -513,6 +548,7 @@ export async function calculateRouteWithLegs(
     return { coordinates: [], distance: 0, duration: 0, legs: [] }
   }
 
+  const valhallaDay = valhallaProfile(profile, avoid)
   const avoiding = avoidedClasses(profile, avoid)
 
   const coords = waypoints.map((p) => `${p.lng},${p.lat}`).join(';')
@@ -520,41 +556,43 @@ export async function calculateRouteWithLegs(
   // part of the key — otherwise switching km↔mi would return stale text (#1300).
   // A plugin route is trip-/day-specific (it may return different charging stops for
   // the same coordinates on a different day), so its key includes tripId/dayId;
-  // the built-in OSRM profiles are context-free and leave those out.
+  // the built-in profiles are context-free and leave those out.
+  //
+  // The engine belongs in the key because the two price roads differently: a day OSRM
+  // drew handed out as Valhalla's after the admin switched engines would keep the old
+  // times on every device that held it, and the other way round. An OSRM answer keeps
+  // the key it always had, so the routes already kept on a device stay good.
   //
   // The avoidance belongs in the key for two reasons pointing opposite ways. Without it
   // turning the switch on returns the tolled route out of cache in under a millisecond,
   // so nothing on screen changes and it reads as a broken toggle. And the leak the other
   // way is worse: this Map is shared with the ordinary day planner, the studio and the
   // booking geometry, none of which ask for avoidance, so an avoid-routed answer stored
-  // under the plain key would hand them a road nobody drives and a second engine's
-  // times. So the avoiding key only ever holds a Valhalla answer: when Valhalla cannot
-  // answer and OSRM drives the request after all, that answer is filed under the plain
-  // key, where it is exactly what an ordinary caller would have got. Filed under the
-  // avoiding key it stood in for the avoided road until the next reload, however soon
-  // Valhalla came back.
+  // under the plain key would hand them a road nobody drives. So the Valhalla keys only
+  // ever hold a Valhalla answer: when Valhalla cannot answer and OSRM drives the request
+  // after all, that answer is filed under the OSRM key, where it is exactly what an
+  // ordinary caller would have got. Filed under the Valhalla key it stood in for the
+  // weighed road until the next reload, however soon Valhalla came back.
   const pluginScope = profile.startsWith('plugin:') ? `:${tripId ?? ''}:${dayId ?? ''}` : ''
-  const avoidScope = avoiding.length ? `:avoid=${avoiding.join(',')}` : ''
   const plainKey = `${profile}:${getDistanceUnit()}:${coords}${pluginScope}`
-  const cacheKey = `${plainKey}${avoidScope}`
+  const cacheKey = valhallaDay ? valhallaKey(plainKey, avoiding) : plainKey
   // A plugin route stays in memory: its answer depends on the trip and the day,
   // and may carry live data such as charging stops. The rest is kept on the device
   // too, so a trip that shows its whole route opens drawn (#2794).
   const cached = pluginScope ? routeInMemory(cacheKey) : await storedRoute(cacheKey)
   if (cached) return cached
 
-  if (avoiding.length) {
-    const routed = await routeAvoidingWithLegs(waypoints, avoiding, signal)
+  if (valhallaDay) {
+    const routed = await valhallaDayRoute(waypoints, valhallaDay, avoiding, signal)
     if (routed) {
       cacheRoute(cacheKey, routed)
       return routed
     }
-    // Null is a Valhalla that could not answer at all. OSRM keeps the day drawn rather
-    // than blank, and the answer says that nothing was avoided, with the reason, so the
-    // rail flags the day instead of implying the setting held on a road nobody weighed.
+    // Null is a Valhalla that could not answer at all, and the whole day goes to OSRM:
+    // one engine per day, never one leg from each.
     const plain = (await storedRoute(plainKey)) ?? await osrmWithLegs(waypoints, coords, profile, signal)
     cacheRoute(plainKey, plain)
-    return { ...plain, avoidance: { asked: avoiding, achieved: [], fellBack: true } }
+    return withFallbackNoted(plain, avoiding)
   }
 
   // Plugin profile (`plugin:<id>/<profile>`): the server invokes that routeProvider
@@ -635,63 +673,6 @@ async function osrmWithLegs(
 }
 
 /**
- * A whole chain from the second engine, weighted away from some road classes.
- *
- * Shaped exactly like the OSRM answer above so the callers never branch on which engine
- * spoke — same leg list, same formatted text, same snap positions. What it adds is
- * `avoidance`: what was asked for against what the road actually turned out to be, which
- * is the only honest way to label a weighting that can fail.
- *
- * Null rather than a throw when it cannot answer, so the caller falls through to OSRM
- * and the day stays drawn.
- */
-async function routeAvoidingWithLegs(
-  waypoints: Waypoint[],
-  avoid: AvoidClass[],
-  signal?: AbortSignal,
-): Promise<RouteWithLegs | null> {
-  const sample = {
-    profile: 'driving' as const,
-    surface: 'legs' as const,
-    selfHosted: !!useSettingsStore.getState().settings.routing_base_url?.trim(),
-    waypoints: waypoints.length,
-    km: waypoints.slice(1).reduce((sum, point, i) => sum + haversineKm(waypoints[i], point), 0),
-  }
-  const run = await valhallaRun(waypoints, 'driving', avoid, signal)
-  // Counted by hand because the adapter speaks to a different engine with a different
-  // verb, and the counter exists to answer "how much routing does this instance do" —
-  // an engine it cannot see is exactly the traffic that would go missing from it.
-  if (!signal?.aborted) countRoute({ ...sample, failed: !run })
-  if (!run) return null
-
-  const legs: RouteSegment[] = run.legs.map((leg, i): RouteSegment => {
-    const from: [number, number] = [waypoints[i].lat, waypoints[i].lng]
-    const to: [number, number] = [waypoints[i + 1].lat, waypoints[i + 1].lng]
-    return {
-      mid: [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2],
-      from,
-      to,
-      distance: leg.distance,
-      duration: leg.duration,
-      walkingText: formatDuration(leg.distance / (5000 / 3600)),
-      drivingText: formatDuration(leg.duration),
-      distanceText: formatRouteDistance(leg.distance),
-      durationText: formatDuration(leg.duration),
-    }
-  })
-
-  return {
-    coordinates: run.total.coordinates,
-    distance: run.total.distance,
-    duration: run.total.duration,
-    legs,
-    snapped: run.snapped,
-    avoidance: { asked: avoid, achieved: avoid.filter(cls => legAvoids(run.total, cls)) },
-    hasFerry: run.total.hasFerry,
-  }
-}
-
-/**
  * The snap positions out of an OSRM answer, or undefined if it did not describe them.
  *
  * OSRM reports this in every response and TREK has thrown it away since the first route
@@ -722,27 +703,6 @@ function readSnapped(data: unknown, waypoints: Waypoint[]): SnappedWaypoint[] | 
   return out
 }
 
-function getDistanceUnit(): DistanceUnit {
-  return useSettingsStore.getState().settings.distance_unit === 'imperial' ? 'imperial' : 'metric'
-}
-
-function formatRouteDistance(meters: number): string {
-  const unit = getDistanceUnit()
-  if (unit === 'metric' && meters < 1000) {
-    return `${Math.round(meters)} m`
-  }
-  return formatDistance(meters / 1000, unit)
-}
-
-function formatDuration(seconds: number): string {
-  const h = Math.floor(seconds / 3600)
-  const m = Math.floor((seconds % 3600) / 60)
-  if (h > 0) {
-    return `${h} h ${m} min`
-  }
-  return `${m} min`
-}
-
 /** One way of driving a leg, as a router offers it. */
 export interface RouteAlternative {
   coordinates: [number, number][]
@@ -753,8 +713,9 @@ export interface RouteAlternative {
   /** Set when this way exists because a road class was left out of it. */
   avoids?: AvoidClass
   /**
-   * Which engine priced this route. Absent means OSRM, which is what answers every route
-   * of a trip that avoids nothing, except the avoidance offer on a default install.
+   * Which engine priced this route. Absent means OSRM, which answers every route of a
+   * trip that avoids nothing where Valhalla does not route the days, except the
+   * avoidance offer.
    *
    * It exists because the engines do not agree on speed: measured over twelve European
    * legs the per-leg drive times run from 14.7 % under OSRM's to 13.2 % over, and the
@@ -770,26 +731,6 @@ export interface RouteAlternative {
 
 /** What two routes are compared by: their line, and their figures where there is none. */
 export type RoadLine = Pick<RouteAlternative, 'coordinates' | 'distance' | 'duration'>
-
-/**
- * Road classes worth asking the router to leave out, in the order they are tried.
- *
- * OSRM's own alternative search is conservative: it only offers a second road when the
- * detour is short enough and shares little enough with the first, so on a long motorway
- * run it usually answers with exactly one route — while a perfectly good, slower way over
- * the B-roads exists and is what somebody opening "other ways" is looking for. Excluding
- * a class asks a different question and reliably produces that road.
- *
- * Only for driving: the foot and bike profiles have no excludable classes, and asking
- * anyway earns an `InvalidOptions` for nothing.
- *
- * Ferry is on the list for Valhalla's sake and skipped on the OSRM path below. OSRM
- * does carry a ferry class, but on a leg where a ferry is the only crossing it answers
- * NoRoute rather than the long way round, which is not an alternative anybody can use.
- * Valhalla weights it instead and drives around, which is the whole point.
- */
-const EXCLUDABLE_CLASSES = ['motorway', 'toll', 'ferry'] as const
-
 
 /**
  * Hosts that have already answered "I do not do exclude", by base URL.
@@ -836,49 +777,6 @@ async function routeExcluding(
   // a request to be told so.
   if (exclude === 'ferry') return null
   return osrmExcluding(from, to, profile, exclude, signal)
-}
-
-/**
- * The same leg from Valhalla, weighted away from one class, or null.
- *
- * The check that makes this honest is `legAvoids`: `use_tolls: 0` is a preference, so
- * between two points with no untolled connection the answer is still a tolled road.
- * Offering that as "No tolls" would put a lie on the map, so it is dropped and the
- * OSRM attempt gets its turn.
- */
-async function valhallaExcluding(
-  from: Waypoint,
-  to: Waypoint,
-  profile: 'driving' | 'walking' | 'cycling',
-  exclude: AvoidClass,
-  signal?: AbortSignal,
-): Promise<RouteAlternative | null> {
-  if (!valhallaAvailable()) return null
-  const sample = {
-    profile,
-    surface: 'alternatives' as const,
-    selfHosted: !!useSettingsStore.getState().settings.routing_base_url?.trim(),
-    waypoints: 2,
-    km: haversineKm(from, to),
-  }
-  const leg = await valhallaRouteAvoiding(from, to, profile, exclude, signal)
-  // Counted here rather than in the adapter, so the adapter stays a format translator
-  // and every routing request an instance makes still lands in the one counter.
-  if (!signal?.aborted) countRoute({ ...sample, failed: !leg })
-  if (!leg || !legAvoids(leg, exclude)) return null
-  return valhallaOffer(leg)
-}
-
-/** A Valhalla leg as an offer, carrying the engine that priced it and what it crosses. */
-function valhallaOffer(leg: ValhallaLeg): RouteAlternative {
-  return {
-    coordinates: leg.coordinates,
-    distance: leg.distance,
-    duration: leg.duration,
-    divergence: null,
-    engine: 'valhalla',
-    hasFerry: leg.hasFerry,
-  }
 }
 
 /** The same leg from OSRM with the class excluded outright, or null. */
@@ -928,10 +826,10 @@ async function osrmExcluding(
  * onto this road on every future request, without storing a polyline that would go stale
  * with the next OSM update.
  *
- * `avoid` is the classes the trip weighs away. A driving leg of such a trip is routed by
- * Valhalla, so its offers come from Valhalla too, weighed the same way, and never from
- * OSRM: a list holding both engines is what offered a road the rail was not on as the
- * quicker one, and clicking it changed nothing.
+ * `avoid` is the classes the trip weighs away. A leg Valhalla routes, because it routes
+ * the days or because the trip avoids something, gets its offers from Valhalla too,
+ * weighed the same way, and never from OSRM: a list holding both engines is what offered
+ * a road the rail was not on as the quicker one, and clicking it changed nothing.
  */
 export async function calculateAlternatives(
   from: Waypoint,
@@ -939,9 +837,8 @@ export async function calculateAlternatives(
   profile: 'driving' | 'walking' | 'cycling' = 'driving',
   { signal, limit = 3, avoid = [] }: { signal?: AbortSignal; limit?: number; avoid?: readonly AvoidClass[] } = {},
 ): Promise<RouteAlternative[]> {
-  const avoiding = avoidedClasses(profile, avoid)
-  const routes = avoiding.length
-    ? await alternativesAvoiding(from, to, avoiding, limit, signal)
+  const routes = routeEngineFor(profile, avoid) === 'valhalla'
+    ? await alternativesFromValhalla(from, to, profile, avoidedClasses(profile, avoid), { limit, signal })
     : await alternativesFromOsrm(from, to, profile, limit, signal)
   if (!routes.length) return routes
 
@@ -953,54 +850,24 @@ export async function calculateAlternatives(
 }
 
 /**
- * The offers for a leg of a trip that weighs classes away, every one of them Valhalla's.
+ * The offers for a leg of a day Valhalla routes, every one of them Valhalla's.
  *
- * Throws when Valhalla has nothing to say, so the picker reports a router that is not
- * answering. Quietly offering OSRM's roads instead is the very mix this path exists to end.
- *
- * One way back gets the question the OSRM path asks too: the same drive with one more
- * class left out, only of those the trip does not already avoid, and only where the road
- * that comes back really is without it. Paced like the pieces of a split day, because the
- * public instance allows one request a second.
+ * A day that weighs classes away has no other engine to ask: this throws when Valhalla has
+ * nothing to say, so the picker reports a router that is not answering. Quietly offering
+ * OSRM's roads instead is the very mix this path exists to end. A day that avoids nothing
+ * went to OSRM whole when Valhalla did not answer it, so its offers do the same.
  */
-async function alternativesAvoiding(
+async function alternativesFromValhalla(
   from: Waypoint,
   to: Waypoint,
+  profile: 'driving' | 'walking' | 'cycling',
   avoiding: AvoidClass[],
-  limit: number,
-  signal?: AbortSignal,
+  { limit, signal }: { limit: number; signal?: AbortSignal },
 ): Promise<RouteAlternative[]> {
-  const sample = {
-    profile: 'driving' as const,
-    surface: 'alternatives' as const,
-    selfHosted: !!useSettingsStore.getState().settings.routing_base_url?.trim(),
-    waypoints: 2,
-    km: haversineKm(from, to),
-  }
-  const answered = await valhallaAlternates(from, to, 'driving', avoiding, Math.max(0, limit - 1), signal)
-  if (!signal?.aborted) countRoute({ ...sample, failed: !answered })
-  if (!answered?.length) throw new Error('No route found')
-
-  const routes: RouteAlternative[] = []
-  for (const leg of answered) {
-    const offer = valhallaOffer(leg)
-    if (!routes.some(r => sameRoad(r, offer))) routes.push(offer)
-  }
-  if (routes.length >= 2) return routes
-
-  for (const cls of EXCLUDABLE_CLASSES) {
-    if (avoiding.includes(cls)) continue
-    await valhallaSpacing(signal)
-    if (signal?.aborted) break
-    const run = await valhallaRun([from, to], 'driving', [...avoiding, cls], signal)
-    if (!signal?.aborted) countRoute({ ...sample, failed: !run })
-    if (!run || !legAvoids(run.total, cls)) continue
-    const detour = valhallaOffer(run.total)
-    if (routes.some(r => sameRoad(r, detour))) continue
-    routes.push({ ...detour, avoids: cls })
-    break
-  }
-  return routes
+  const offered = await valhallaDayAlternatives(from, to, profile, avoiding, { limit, signal })
+  if (offered) return offered
+  if (avoiding.length) throw new Error('No route found')
+  return alternativesFromOsrm(from, to, profile, limit, signal)
 }
 
 /** The offers for a leg of a trip that avoids nothing: OSRM's, and one avoidance offer. */

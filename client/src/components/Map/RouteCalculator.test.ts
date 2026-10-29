@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from 'vitest'
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../../tests/helpers/msw/server'
 import { pluginsApi, type PluginRouteResult } from '../../api/client'
@@ -386,6 +386,12 @@ function pluginRouteResult(over: Partial<PluginRouteResult> = {}): PluginRouteRe
     ...over,
   }
 }
+
+// FOSSGIS: OSRM routes the days and Valhalla only what OSRM cannot. Where Valhalla routes
+// every day is valhallaDayRoute.test.ts.
+beforeEach(() => {
+  useSettingsStore.setState(st => ({ settings: { ...st.settings, routing_valhalla_provider: 'fossgis' } }))
+})
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -913,7 +919,8 @@ describe('calculateAlternatives', () => {
 
   it('FE-COMP-ROUTECALCULATOR-053: an instance with its own OSRM is never sent to the public Valhalla', async () => {
     let valhallaCalls = 0
-    useSettingsStore.setState(st => ({ settings: { ...st.settings, routing_base_url: 'https://osrm.example.org' } }))
+    // No routing service chosen: the own OSRM alone decides.
+    useSettingsStore.setState(st => ({ settings: { ...st.settings, routing_base_url: 'https://osrm.example.org', routing_valhalla_provider: '' } }))
     server.use(
       http.get('https://osrm.example.org/route/v1/driving/:coords', ({ request }) => {
         const exclude = new URL(request.url).searchParams.get('exclude')
