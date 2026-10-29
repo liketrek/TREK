@@ -1202,7 +1202,7 @@ jobs:
           docker stop -t 30 trek-ci >/dev/null
           code="$(docker inspect -f '{{.State.ExitCode}}' trek-ci)"
           [ "$code" = "0" ] || { echo "::error::docker stop ended with exit code $code, not a graceful shutdown"; exit 1; }
-          docker logs trek-ci 2>&1 | grep -q 'SIGTERM received' \
+          docker logs trek-ci 2>&1 | grep 'SIGTERM received' >/dev/null \
             || { echo "::error::the server never saw SIGTERM"; exit 1; }
 
       - name: Container log

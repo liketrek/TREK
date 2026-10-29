@@ -217,7 +217,12 @@ export function parsePluginProfile(profile: string): { pluginId: string; profile
 
 /** One of the three profiles both engines know, or null for a plugin's own. */
 function builtInProfile(profile: RouteProfileKey): 'driving' | 'walking' | 'cycling' | null {
-  return profile === 'driving' || profile === 'walking' || profile === 'cycling' ? profile : null
+  switch (profile) {
+    case 'driving': return 'driving'
+    case 'walking': return 'walking'
+    case 'cycling': return 'cycling'
+    default: return null
+  }
 }
 
 /**

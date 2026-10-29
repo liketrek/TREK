@@ -738,7 +738,8 @@ async function requestRun(
 ): Promise<Omit<ValhallaRun, 'snapped'> | ValhallaNoPath | TooSlow | null> {
   const body = routeBody(waypoints, profile, avoid, costingOptions, searchFilter)
   const data = await postRoute(base, body, signal, publicFallback)
-  if (data === NO_PATH || tooSlow(data)) return data
+  if (data === NO_PATH) return NO_PATH
+  if (tooSlow(data)) return data
   return data === null ? null : runFrom(data)
 }
 

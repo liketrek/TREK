@@ -1182,11 +1182,11 @@ describe('a leg asked for again on demand', () => {
     const { result } = renderHook(() => useRoadtripRoutes(7, [day(1, 1)], map(1, [{ id: 1, at: HAMBURG }, { id: 2, at: BERLIN }])))
     await waitFor(() => expect(result.current.loading).toBe(false))
     const [from, to] = result.current.days[0].stops
-    expect(result.current.legRouter!(from, to, 1)).toMatchObject({ engine: 'osrm', standIn: false })
+    expect(result.current.legRouter?.(from, to, 1)).toMatchObject({ engine: 'osrm', standIn: false })
 
     calculateRouteWithLegs.mockResolvedValue({ ...routed(1), engine: 'valhalla' })
-    act(() => { result.current.reroute!() })
-    await waitFor(() => expect(result.current.legRouter!(from, to, 1).engine).toBe('valhalla'))
+    act(() => { result.current.reroute?.() })
+    await waitFor(() => expect(result.current.legRouter?.(from, to, 1)?.engine).toBe('valhalla'))
   })
 
   it('FE-ROADTRIP-ROUTES-048: a day the stand-in engine drove while avoiding says the avoidance did not happen', async () => {
