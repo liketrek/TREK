@@ -252,14 +252,21 @@ describe('refusals', () => {
     return built;
   }
 
+  const tenMinutesLater = () => vi.setSystemTime(Date.now() + 10 * 60_000);
+
   it('SIKEYS-020: gives the key up only on the third 401 in a row, and asks again within six hours', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
     const { keys, store, issuer } = await registered();
     keys.noteInvalid();
+    tenMinutesLater();
     keys.noteInvalid();
     keys.noteAccepted();
+    tenMinutesLater();
     keys.noteInvalid();
+    tenMinutesLater();
     keys.noteInvalid();
     expect(store.dropKey).not.toHaveBeenCalled();
+    tenMinutesLater();
     const before = Date.now();
     keys.noteInvalid();
     await settled(keys);
@@ -306,6 +313,17 @@ describe('refusals', () => {
     const off = await build({ config: { mode: 'off' } });
     await expect(off.keys.regenerate()).rejects.toMatchObject({ status: 409 });
   });
+
+  it('SIKEYS-024: the refusals of one page full of searches count once', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const { keys, store } = await registered();
+    for (let i = 0; i < 6; i++) keys.noteInvalid();
+    tenMinutesLater();
+    for (let i = 0; i < 6; i++) keys.noteInvalid();
+    await settled(keys);
+    expect(store.dropKey).not.toHaveBeenCalled();
+    expect(keys.bearer()).toBe(KEY);
+  });
 });
 
 describe('renewal', () => {
@@ -345,12 +363,20 @@ describe('renewal', () => {
     expect(issuer.renew).toHaveBeenCalledTimes(1);
   });
 
-  it('SIKEYS-033: a refused renewal drops the key, a revoked one freezes it, a network failure changes nothing', async () => {
+  it('SIKEYS-033: a refused renewal counts like a refused search, a revoked one freezes it, a network failure changes nothing', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
     const refused = fakeIssuer();
-    refused.renew.mockRejectedValueOnce(new IssuerError(401, null, null));
+    refused.renew.mockRejectedValue(new IssuerError(401, null, null));
     const first = await build({ store: stored(), issuer: refused });
     await first.keys.renewIfDue();
+    await first.keys.renewIfDue();
+    expect(first.store.dropKey).not.toHaveBeenCalled();
+    for (let i = 0; i < 2; i++) {
+      vi.setSystemTime(Date.now() + 10 * 60_000);
+      await first.keys.renewIfDue();
+    }
     expect(first.store.dropKey).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
     await t?.close();
 
     const revoked = fakeIssuer();
@@ -389,5 +415,48 @@ describe('renewal', () => {
     const { keys, issuer } = await build({ store: stored(), config: { key: KEY } });
     await keys.renewIfDue();
     expect(issuer.renew).not.toHaveBeenCalled();
+  });
+
+  it('SIKEYS-036: a due key is renewed on the next request, not only by the daily check', async () => {
+    const store = stored();
+    const { keys, issuer } = await build({ store });
+    expect(keys.bearer()).toBe(oldKey);
+    await settled(keys);
+    expect(issuer.renew).toHaveBeenCalledWith(oldKey);
+    expect(keys.bearer()).toBe(RENEWED_KEY);
+  });
+
+  it('SIKEYS-037: an expired key within its grace stays home, and the next request renews it', async () => {
+    const expired = serviceKeyTokenFor({ i: 'installation-a', iat: now() - 95 * DAY, exp: now() - 5 * DAY });
+    const store = fakeStore({
+      key: {
+        token: expired,
+        kid: 'test',
+        payload: { i: 'installation-a', iat: now() - 95 * DAY, exp: now() - 5 * DAY, q: 'std' },
+      },
+    });
+    const { keys, issuer } = await build({ store });
+    expect(keys.bearer()).toBeNull();
+    await settled(keys);
+    expect(issuer.renew).toHaveBeenCalledWith(expired);
+    expect(issuer.register).not.toHaveBeenCalled();
+    expect(keys.bearer()).toBe(RENEWED_KEY);
+  });
+
+  it('SIKEYS-038: after a failed renewal the requests wait for the backoff instead of asking again', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const issuer = fakeIssuer();
+    issuer.renew.mockRejectedValueOnce(new Error('fetch failed'));
+    const { keys } = await build({ store: stored(), issuer });
+    keys.bearer();
+    await settled(keys);
+    keys.bearer();
+    await settled(keys);
+    expect(issuer.renew).toHaveBeenCalledTimes(1);
+    vi.setSystemTime(Date.now() + 5 * 60_000);
+    keys.bearer();
+    await settled(keys);
+    expect(issuer.renew).toHaveBeenCalledTimes(2);
+    expect(keys.bearer()).toBe(RENEWED_KEY);
   });
 });

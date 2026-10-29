@@ -255,15 +255,24 @@ function noteFailure(err: unknown, breaker: Breaker): void {
   }
 }
 
-/** A request carrying who is asking: the instance token, and the installation key where it may go. */
+/**
+ * A request carrying who is asking: the instance token, and the installation
+ * key where it may go. A refused key costs no answer: the request goes once
+ * more without it, through the shared pool, while the identity counts the refusal.
+ */
 async function identifiedFetch(url: URL, headers: Record<string, string>, signal: AbortSignal): Promise<Response> {
   const identity = serviceIdentitySlot.get();
-  const res = await fetch(url, {
-    signal,
-    headers: { ...headers, 'X-TREK-Instance': instanceToken(), ...identity.headersFor(url) },
-  });
+  const own = identity.headersFor(url);
+  const base = { ...headers, 'X-TREK-Instance': instanceToken() };
+  const res = await fetch(url, { signal, headers: { ...base, ...own } });
   identity.observe(url, res);
-  return res;
+  if (res.status !== 401 || !own.Authorization) return res;
+  await res.body?.cancel();
+  return fetch(url, { signal, headers: { ...base, ...withoutKey(own) } });
+}
+
+function withoutKey(headers: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(Object.entries(headers).filter(([name]) => name !== 'Authorization'));
 }
 
 function statusError(status: number): Error & { status: number } {

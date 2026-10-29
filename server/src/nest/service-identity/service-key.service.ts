@@ -5,6 +5,7 @@ import { logInfo, logWarn } from '../audit/audit-log.logger';
 import { conflict } from '../common/domain-error';
 import { withRequestContext } from '../database/request-context';
 import { IssuerClient, IssuerError } from './issuer.client';
+import { RefusalStreak } from './refusal-streak';
 import { ServiceClock } from './service-clock';
 import { SERVICE_ISSUER_ORIGIN } from './service-identity.constants';
 import { isAllowlisted, keyFingerprint, sameServiceUrl } from './service-identity.helpers';
@@ -23,8 +24,6 @@ const DAY_SECONDS = 86_400;
 const RENEW_AGE_SECONDS = 60 * DAY_SECONDS;
 /** An expired key can still be renewed for this long; after that it registers anew. */
 const RENEW_GRACE_SECONDS = 30 * DAY_SECONDS;
-/** Refusals in a row before a key counts as gone, so one broken deploy upstream drops nothing. */
-const INVALID_STREAK_LIMIT = 3;
 /** Spreads the new registrations of every installation a broken key hit, instead of all at once. */
 const REREGISTER_JITTER_MS = 6 * 3_600_000;
 const FIRST_BACKOFF_MS = 5 * 60_000;
@@ -34,14 +33,15 @@ export interface KeySnapshot {
   state: ServiceIdentityState;
   key: ServiceKey | null;
   source: 'env' | 'registered' | null;
-  /** What a request may carry right now; null while revoked or without a key. */
+  /** What a request may carry right now; null while revoked, expired or without a key. */
   bearer: string | null;
 }
 
 /**
  * The installation key: loaded lazily, registered in the background on the
- * first call to a liketrek service, renewed from day 60, given up after
- * repeated refusals and frozen when the services revoke it.
+ * first call to a liketrek service, renewed from day 60 on the next call or
+ * the daily check, given up after repeated refusals and frozen when the
+ * services revoke it.
  *
  * Nothing here ever makes a request wait. Until a key is there, requests go
  * out as they always did, and the shared legacy pool answers them.
@@ -57,7 +57,7 @@ export class ServiceKeyService {
   private registering = false;
   private nextAttemptAt = 0;
   private failures = 0;
-  private invalidStreak = 0;
+  private readonly refusals = new RefusalStreak();
 
   constructor(
     @Inject(servicesConfig.KEY) private readonly config: ConfigType<typeof servicesConfig>,
@@ -79,12 +79,15 @@ export class ServiceKeyService {
     }
   }
 
-  /** The bearer for a request to an allowlisted host; starts a registration in the background when there is none. */
+  /**
+   * The bearer for a request to an allowlisted host. Starts a registration or a
+   * due renewal in the background; until it lands, the request goes without a key.
+   */
   bearer(): string | null {
     if (!this.inUse()) return null;
     this.settleInBackground();
     const token = this.config.key ?? this.key?.token ?? null;
-    return token && !this.isRevoked(token) ? token : null;
+    return token && !this.isRevoked(token) && !this.isExpired(token) ? token : null;
   }
 
   /** What the admin card shows. Reads only: a GET must not register. */
@@ -96,57 +99,43 @@ export class ServiceKeyService {
     const source = this.config.key ? 'env' : 'registered';
     const key = parseServiceKey(token);
     if (this.isRevoked(token)) return { state: 'revoked', key, source, bearer: null };
+    if (this.isExpired(token)) return { state: source === 'env' ? 'legacy' : 'registering', key, source, bearer: null };
     return { state: 'connected', key, source, bearer: token };
   }
 
   /** A liketrek service accepted the key. */
   noteAccepted(): void {
-    this.invalidStreak = 0;
+    this.refusals.clear();
   }
 
-  /** A liketrek service answered 401 to the key; the third in a row gives it up. */
+  /** A liketrek service answered 401 to the key; the third time, at moments apart, gives it up. */
   noteInvalid(): void {
     if (!this.config.key && !this.key) return;
-    this.invalidStreak += 1;
-    if (this.invalidStreak < INVALID_STREAK_LIMIT) return;
-    this.invalidStreak = 0;
+    if (!this.refusals.hit()) return;
     if (this.config.key) {
       logWarn(
         'TREK services: the key in TREK_SERVICES_KEY is refused. Place search continues through the shared pool.',
       );
       return;
     }
-    this.inBackground(() => this.dropKey());
+    void this.inBackground(() => this.dropKey());
   }
 
   /** A liketrek service answered that the key is revoked. */
   noteRevoked(): void {
     const token = this.config.key ?? this.key?.token;
     if (!token || this.isRevoked(token)) return;
-    this.inBackground(() => this.markRevoked(token));
+    void this.inBackground(() => this.markRevoked(token));
   }
 
   /** The daily check: renews the key once it is due. A key past its grace period is already gone on load. */
   async renewIfDue(): Promise<void> {
-    if (!this.inUse() || this.config.key) return;
-    await this.load();
-    const key = this.key;
-    if (!key || this.isRevoked(key.token)) return;
-    if (this.clock.nowSeconds() < (this.state.renewAfter ?? key.payload.iat + RENEW_AGE_SECONDS)) return;
-    const renewal = await this.issuer.renew(key.token).then(
-      (grant) => ({ grant, error: null }),
-      (error: unknown) => ({ grant: null, error }),
-    );
-    if (!renewal.grant) {
-      await this.refused(renewal.error, key.token);
-      return;
-    }
-    this.clock.learn(renewal.grant.serverMs);
-    const renewed = this.readGrant(renewal.grant.body);
-    this.state = { ...this.state, renewAfter: renewal.grant.body.renew_after };
-    await this.store.replace(renewed, this.state);
-    this.key = renewed;
-    logInfo('TREK services: renewed the key of this installation.');
+    if (!this.inUse()) return;
+    await this.inBackground(async () => {
+      await this.load();
+      const key = this.dueForRenewal();
+      if (key) await this.renew(key);
+    });
   }
 
   /** The admin's way out of a revoked or cloned identity: forget the key and ask for a new one. */
@@ -157,7 +146,7 @@ export class ServiceKeyService {
     this.adopt({ key: null, unreadable: false, state: EMPTY_KEY_STATE });
     this.nextAttemptAt = 0;
     this.failures = 0;
-    this.invalidStreak = 0;
+    this.refusals.clear();
     logInfo('TREK services: an admin asked for a new identity for this installation.');
     this.settleInBackground();
   }
@@ -189,28 +178,56 @@ export class ServiceKeyService {
     );
   }
 
+  /** A request starts a due renewal, but after a failed one only once the backoff has passed. */
+  private keyToRenewNow(): ServiceKey | null {
+    return Date.now() >= this.nextAttemptAt ? this.dueForRenewal() : null;
+  }
+
+  private dueForRenewal(): ServiceKey | null {
+    const key = this.key;
+    if (this.config.key || !key || this.isRevoked(key.token)) return null;
+    const dueAt = this.state.renewAfter ?? key.payload.iat + RENEW_AGE_SECONDS;
+    return this.clock.nowSeconds() >= dueAt ? key : null;
+  }
+
   private isRevoked(token: string): boolean {
     return this.state.revoked !== null && this.state.revoked === keyFingerprint(token);
   }
 
+  /** Read on the issuer's clock: the gate refuses an expired key instead of counting it in the shared pool. */
+  private isExpired(token: string): boolean {
+    const key = this.key?.token === token ? this.key : parseServiceKey(token);
+    return key !== null && this.clock.nowSeconds() >= key.payload.exp;
+  }
+
   private settleInBackground(): void {
-    if (this.work || (this.loaded && !this.wantsRegistration())) return;
-    this.inBackground(async () => {
+    if (this.work || (this.loaded && !this.wantsRegistration() && !this.keyToRenewNow())) return;
+    void this.inBackground(async () => {
       await this.load();
-      if (this.wantsRegistration()) await this.register();
+      if (this.wantsRegistration()) {
+        await this.register();
+        return;
+      }
+      const due = this.keyToRenewNow();
+      if (due) await this.renew(due);
     });
   }
 
-  /** Runs work outside the request that triggered it, one piece at a time, and never lets it fail a caller. */
-  private inBackground(task: () => Promise<void>): void {
+  /**
+   * Runs work outside the request that triggered it, one piece at a time. A
+   * failure is logged and never reaches a request; only a caller that awaits
+   * the returned promise sees it.
+   */
+  private inBackground(task: () => Promise<void>): Promise<void> {
     const previous = this.work ?? Promise.resolve();
-    const next = previous
-      .then(() => withRequestContext(this.orm, task))
+    const run = previous.then(() => withRequestContext(this.orm, task));
+    const next = run
       .catch((err: unknown) => logWarn(`TREK services: ${err instanceof Error ? err.message : String(err)}`))
       .finally(() => {
         if (this.work === next) this.work = null;
       });
     this.work = next;
+    return run;
   }
 
   private async load(): Promise<void> {
@@ -252,6 +269,27 @@ export class ServiceKeyService {
     }
   }
 
+  /** Same installation, new expiry; the old key is the proof, so no proof of work. */
+  private async renew(key: ServiceKey): Promise<void> {
+    const renewal = await this.issuer.renew(key.token).then(
+      (grant) => ({ grant, error: null }),
+      (error: unknown) => ({ grant: null, error }),
+    );
+    if (!renewal.grant) {
+      this.backOff(renewal.error);
+      await this.refused(renewal.error, key.token);
+      return;
+    }
+    this.clock.learn(renewal.grant.serverMs);
+    const renewed = this.readGrant(renewal.grant.body);
+    this.state = { ...this.state, renewAfter: renewal.grant.body.renew_after };
+    await this.store.replace(renewed, this.state);
+    this.key = renewed;
+    this.failures = 0;
+    this.refusals.clear();
+    logInfo('TREK services: renewed the key of this installation.');
+  }
+
   private readGrant(grant: ServiceKeyGrant): ServiceKey {
     const key = parseServiceKey(grant.key);
     if (!key) throw new Error('the issuer handed out a key TREK cannot read');
@@ -265,10 +303,11 @@ export class ServiceKeyService {
     this.nextAttemptAt = Date.now() + (asked ?? backoff);
   }
 
+  /** A refused renewal counts like a refused search; anything else is rethrown for the caller to log. */
   private async refused(err: unknown, token: string): Promise<void> {
     if (!(err instanceof IssuerError) || (err.status !== 401 && err.status !== 403)) throw err;
     if (err.status === 403) await this.markRevoked(token);
-    else await this.dropKey();
+    else if (this.refusals.hit()) await this.dropKey();
   }
 
   private async dropKey(): Promise<void> {

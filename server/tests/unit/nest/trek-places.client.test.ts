@@ -504,6 +504,40 @@ describe('the installation identity', () => {
     }
   });
 
+  it('asks once more through the shared pool when the key is refused, and shows the identity only the refusal', async () => {
+    const port = {
+      headersFor: vi.fn(() => ({ 'User-Agent': 'TREK/test', Authorization: 'Bearer installation-key' })),
+      observe: vi.fn(),
+    };
+    serviceIdentitySlot.install(port);
+    try {
+      calls = [];
+      let answered = 0;
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (url: URL | string, init?: RequestInit) => {
+          calls.push({ url: String(url), init });
+          answered += 1;
+          const status = answered === 1 ? 401 : 200;
+          return {
+            ok: status === 200,
+            status,
+            body: null,
+            text: async () => JSON.stringify({ query: 'x', results: [PLACE] }),
+          } as unknown as Response;
+        }),
+      );
+      await expect(trekPlacesSearch('x')).resolves.toHaveLength(1);
+      expect(calls).toHaveLength(2);
+      expect(calls[1].init?.headers).not.toHaveProperty('Authorization');
+      expect(calls[1].init?.headers).toMatchObject({ 'User-Agent': 'TREK/test' });
+      expect(port.observe).toHaveBeenCalledTimes(1);
+      expect(port.observe.mock.calls[0][1]).toMatchObject({ status: 401 });
+    } finally {
+      serviceIdentitySlot.release(port);
+    }
+  });
+
   it('sends what it always sent while no identity is installed', async () => {
     stubFetch({ query: 'x', results: [] });
     await trekPlacesSearch('x');
