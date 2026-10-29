@@ -1,0 +1,24 @@
+TREK is a travel planner for the trips you take with other people. Plan the days together, see every place on the map, keep bookings, costs and packing lists in one place, and still have all of it with you when the connection drops.
+
+TREK is open source and works with a TREK server: one you run yourself, at home or on a rented server, one your organisation provides, or the public demo to try it out. Your trips stay on that server. The makers of TREK receive none of your data.
+
+PLAN TOGETHER
+• Days with places, notes, transports and stays, in order and on the map
+• Changes from everyone on the trip appear live
+• Roles that decide who may change what
+
+BOOKINGS AND COSTS
+• Flights, trains, hotels, rentals and tickets, with their documents
+• Shared expenses with fair splits and who owes whom, in any currency
+
+ON THE ROAD
+• Trips you choose are kept on the device, maps included, for when you are offline
+• Packing lists and to-dos for the whole group
+• A travel journal with photos, and an atlas of the countries you have visited
+
+YOUR DATA
+• No account with us, no tracking, no ads
+• Sign in with a password, a passkey or your organisation's single sign-on
+• Available in 27 languages
+
+To use the app you need the address of a TREK server. Without one yet, tap "Try the demo" on the first screen, or read how to run your own at github.com/liketrek/TREK.

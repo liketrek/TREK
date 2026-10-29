@@ -3,6 +3,7 @@ import { useSystemNoticeStore, type SystemNoticeDTO } from '../../store/systemNo
 import { useTranslation } from '../../i18n/index.js';
 import { ModalRenderer } from './SystemNoticeModal.js';
 import { BannerRenderer, ToastRenderer } from './SystemNoticeBanner.js';
+import { donationsShown, noticeAsksForDonation } from '../../utils/donations';
 
 // Mobile breakpoint matches the modal sheet's (max-width: 639px).
 function useIsMobile() {
@@ -76,7 +77,9 @@ export function SystemNoticeHost() {
 
   // desktopOnly notices (e.g. the thank-you/support modal) are hidden on mobile, and a
   // notice whose copy this build does not have yet waits for the reload (see hasCopy).
-  const readable = notices.filter(n => hasCopy(n, t));
+  // Inside the native apps a notice that asks for a donation never shows: the
+  // store rules on payments allow no outside payment link there.
+  const readable = notices.filter(n => hasCopy(n, t) && (donationsShown() || !noticeAsksForDonation(n)));
   const visible = isMobile ? readable.filter(n => !n.desktopOnly) : readable;
 
   const modals  = visible.filter(n => n.display === 'modal');

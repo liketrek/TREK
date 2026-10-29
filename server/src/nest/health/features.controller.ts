@@ -62,6 +62,14 @@ export class FeaturesController {
       // Whether the assistant exists on this install at all; whether it can
       // run for a user is /api/ai/status. A managed install has none.
       aiAssistant: !readEnv().managed.enabled && (await this.addons.isAddonEnabled(ADDON_IDS.AI_ASSISTANT)),
+      // The native apps refuse to connect to a server without this: an older
+      // one serves a UI that knows neither the sign-in hand-off nor the way
+      // back to the server picker, and the user would be stuck in it.
+      nativeApp: true,
+      // The version of what the apps rely on from the server (the hand-off
+      // routes, the shell bridge in the served UI). Raised only for a change an
+      // older app cannot follow; the app refuses a server below its minimum.
+      nativeApi: 1,
     };
   }
 }

@@ -3,6 +3,7 @@ import { User, Save, Lock, KeyRound, AlertTriangle, Shield, Camera, Trash2, Copy
 import { useTranslation } from '../../i18n'
 import Section from './Section'
 import PasskeysSection from './PasskeysSection'
+import NativeServerSection from './NativeServerSection'
 import PasswordChecklist from '../shared/PasswordChecklist'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import { Tooltip } from '../shared/Tooltip'
@@ -72,6 +73,7 @@ export default function AccountTab(): React.ReactElement {
 
   return (
     <>
+      <NativeServerSection />
       {/* The shared demo account: everything here is shown, nothing can be changed. */}
       <AccountDemoLock>
       <Section title={t('settings.account')} icon={User}>

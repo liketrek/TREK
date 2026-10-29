@@ -5,6 +5,7 @@ import Section from './Section';
 import { StatusPill } from './settingsKit';
 import { fs } from '../shared/DialogShell';
 import { useAuthStore } from '../../store/authStore';
+import { donationsShown } from '../../utils/donations';
 
 interface Props {
   appVersion: string;
@@ -107,20 +108,25 @@ export default function AboutTab({ appVersion }: Props): React.ReactElement {
           not the part being trimmed here. */}
       {!managed && (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <LinkTile
-            href="https://ko-fi.com/mauriceboe"
-            color={BRAND.kofi}
-            icon={<Coffee size={19} />}
-            title="Ko-fi"
-            hint={t('admin.github.support')}
-          />
-          <LinkTile
-            href="https://buymeacoffee.com/mauriceboe"
-            color={BRAND.bmac}
-            icon={<Heart size={19} />}
-            title="Buy Me a Coffee"
-            hint={t('admin.github.support')}
-          />
+          {/* Not in the native apps, whose store rules allow no outside payment links. */}
+          {donationsShown() && (
+            <>
+              <LinkTile
+                href="https://ko-fi.com/mauriceboe"
+                color={BRAND.kofi}
+                icon={<Coffee size={19} />}
+                title="Ko-fi"
+                hint={t('admin.github.support')}
+              />
+              <LinkTile
+                href="https://buymeacoffee.com/mauriceboe"
+                color={BRAND.bmac}
+                icon={<Heart size={19} />}
+                title="Buy Me a Coffee"
+                hint={t('admin.github.support')}
+              />
+            </>
+          )}
           <LinkTile
             href="https://discord.gg/NhZBDSd4qW"
             color={BRAND.discord}

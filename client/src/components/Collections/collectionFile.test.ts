@@ -75,10 +75,10 @@ describe('downloads', () => {
     expect(click).toHaveBeenCalledTimes(1)
     expect(names).toEqual(['lisbon' + COLLECTION_FILE_EXTENSION])
     expect(created[0].type).toBe('application/json')
-    expect(document.querySelector('a')).toBeNull()
     expect(revoke).not.toHaveBeenCalled()
     vi.runAllTimers()
     expect(revoke).toHaveBeenCalledWith('blob:x')
+    expect(document.querySelector('a')).toBeNull()
   })
 
   it('FE-COLL-FILE-014: hands the browser a GPX under the list name', async () => {

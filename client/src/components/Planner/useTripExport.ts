@@ -5,6 +5,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import type { AssignmentsMap, Category, Day, DayNote, Place, Reservation, Trip } from '../../types';
 import { importChunk } from '../../utils/chunkReload';
+import { downloadBlob } from '../../utils/fileDownload';
 import { hasPersonalPlan } from '../PDF/pdfScope';
 
 type Translate = (key: string, params?: Record<string, string | number>) => string;
@@ -46,20 +47,11 @@ export interface TripExportOptions {
 }
 
 /**
- * Hands the browser a downloaded file. Firefox and Safari cancel the download when
- * the object URL is revoked before they picked the blob up, hence the delay.
+ * Hands the downloaded file on: a browser download, or the share sheet inside
+ * the native app (utils/fileDownload.ts).
  */
 export function saveBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(() => {
-    URL.revokeObjectURL(url);
-    a.remove();
-  }, 100);
+  downloadBlob(blob, filename);
 }
 
 /** The day notes as one list, each carrying the day it belongs to. */

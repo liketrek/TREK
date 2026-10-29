@@ -2,6 +2,7 @@ import { startRegistration } from '@simplewebauthn/browser';
 import { useEffect, useState } from 'react';
 import { authApi, type PasskeyCredential } from '../../api/client';
 import { useTranslation } from '../../i18n';
+import { isNativeApp } from '../../native/platform';
 import { getApiErrorMessage } from '../../types';
 import { useToast } from '../shared/Toast';
 
@@ -24,7 +25,9 @@ export function isWebauthnAbort(err: unknown): boolean {
  * list, add (a password step-up, then the WebAuthn ceremony), rename, and delete
  * (password step-up). Adding needs the instance toggle on AND a usable RP ID; the
  * list stays reachable when the feature is later switched off so users can clean up.
- * `hidden` tells a view to render nothing: in demo mode, or when there is nothing to show.
+ * `hidden` tells a view to render nothing: in demo mode, when there is nothing to show, or
+ * inside the native app, whose WebView cannot run WebAuthn for every server's domain (the
+ * passkeys are managed in the browser there, and signing in with one goes through it too).
  */
 export function usePasskeys({ demoMode = false }: { demoMode?: boolean } = {}) {
   const { t } = useTranslation();
@@ -68,7 +71,7 @@ export function usePasskeys({ demoMode = false }: { demoMode?: boolean } = {}) {
   const canAdd = enabled && configured;
   // Nothing to show: feature off and the user has no credentials to manage.
   const nothingToShow = !loading && !enabled && creds.length === 0;
-  const hidden = demoMode || nothingToShow;
+  const hidden = demoMode || nothingToShow || isNativeApp();
   // The toggle is on but no usable RP ID resolves, so adding stays off.
   const notConfigured = enabled && !configured;
 

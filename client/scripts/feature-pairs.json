@@ -683,6 +683,12 @@
       "mobile": ["src/mobile/screens/settings/MSettingsAccount.tsx"]
     },
     {
+      "feature": "Settings / Account / Native app server",
+      "hooks": ["src/components/Settings/useNativeServer.ts"],
+      "desktop": ["src/components/Settings/NativeServerSection.tsx"],
+      "mobile": ["src/mobile/screens/settings/MSettingsServer.tsx"]
+    },
+    {
       "feature": "Settings / Account / Passkeys",
       "hooks": ["src/components/Settings/usePasskeys.ts"],
       "desktop": ["src/components/Settings/PasskeysSection.tsx"],

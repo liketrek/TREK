@@ -21,16 +21,24 @@
       "ignoreDependencies": ["unrun", "eslint", "prettier"]
     },
     "client": {
-      // The app, its scripts, the Playwright specs and the server launcher
+      // The app, the native apps' address screen, its scripts, the Playwright specs and the server launcher
       // playwright.config.ts starts (`node e2e/server-launch.mjs`), and the tests.
       "entry": [
         "src/main.tsx",
+        // The address screen the native apps ship, its own build (vite.native.config.js).
+        "native-shell/main.ts",
         "scripts/*.mjs",
         "e2e/**/*.{ts,mjs}",
         "src/**/*.test.{ts,tsx}",
         "tests/**/*.{ts,tsx}"
       ],
-      "project": ["src/**/*.{ts,tsx}", "scripts/**/*.mjs", "tests/**/*.{ts,tsx}", "e2e/**/*.{ts,mjs}"]
+      "project": [
+        "src/**/*.{ts,tsx}",
+        "native-shell/**/*.ts",
+        "scripts/**/*.mjs",
+        "tests/**/*.{ts,tsx}",
+        "e2e/**/*.{ts,mjs}"
+      ]
     },
     "server": {
       "entry": [

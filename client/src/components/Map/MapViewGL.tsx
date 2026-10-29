@@ -24,7 +24,7 @@ import { useTransportRoutes } from '../../hooks/useTransportRoutes'
 import { visibleRouteReservations } from '../../utils/reservationRoutes'
 import { safeHexColor } from '../../utils/safeColor'
 import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, basemapLanguage, type GlMapProvider } from './glProviders'
-import { buildGlMap } from './glSupport'
+import { buildGlMap, initialMapStyle } from './glSupport'
 import LocationButton from './LocationButton'
 import { useIsPhone } from '../../mobile/useIsPhone'
 import { useGeolocation } from '../../hooks/useGeolocation'
@@ -1028,7 +1028,7 @@ export function MapViewGL({
 
     const mapOptions: Record<string, unknown> = {
       container: containerRef.current,
-      style: glStyle,
+      style: initialMapStyle(glProvider, glStyle),
       center: [initial.center[1], initial.center[0]],
       zoom: initial.zoom,
       pitch: enableMapbox3d ? 45 : 0,

@@ -1,0 +1,33 @@
+TREK Travel Planner is the iOS client of TREK, an open-source, self-hostable travel planner (https://github.com/liketrek/TREK). Each user or organisation runs their own TREK server; the app asks for the server's address on first start and then shows the TREK web interface that server delivers.
+
+HOW TO REVIEW
+1. Open the app. On the address screen enter: [REVIEW SERVER URL, e.g. https://review.example.com]
+2. Sign in with one of the review accounts below (each starts with the same sample trips).
+3. Open a sample trip from the dashboard: the day plan with its map, then the Bookings, Costs and Lists tabs.
+4. Settings > Account shows the connected server and the privacy policy link at the top, and "Delete account" with the profile.
+
+Review accounts on the review server (not the public demo, which blocks deletion):
+- [REVIEW ACCOUNT 1 EMAIL] / [PASSWORD]
+- [REVIEW ACCOUNT 2 EMAIL] / [PASSWORD]
+- [REVIEW ACCOUNT 3 EMAIL] / [PASSWORD]
+
+NATIVE FEATURES
+The app is more than a website in a frame: its own address screen with server validation and an offline fallback screen, sign-in through the system browser (ASWebAuthenticationSession) for single sign-on and passkeys, offline maps and trips stored on the device, the share sheet for exports and documents, haptic feedback, the native status bar, splash screen and back gestures.
+
+DOWNLOADED INTERFACE (2.5.2 / 4.2)
+The interface comes from the user's own server, in the version that server runs, just as a mail client shows the messages its server holds. It contains no executable code that changes the app's features or purpose beyond what this build reviews; every server runs the same open-source TREK.
+
+APP TRANSPORT SECURITY
+NSAllowsArbitraryLoads is set because the user types in their own server address, which the app cannot know at build time: often a home server reached as http://192.168.x.x or over a VPN such as Tailscale (100.64.0.0/10, not covered by NSAllowsLocalNetworking). HTTPS remains the documented recommendation for servers outside a local network.
+
+SIGN-IN (4.8)
+Accounts belong to the user's server, not to us. The app offers whatever that server offers: a password, a passkey, or the single sign-on of the organisation running the server. There is no third-party social login, so Sign in with Apple does not apply.
+
+USER-GENERATED CONTENT
+Content is shared only between people invited to the same trip on the same private server; there is no public feed. The server's administrator manages accounts and can remove content and users.
+
+ACCOUNT DELETION
+Settings > Account > Delete account deletes the account and its data on the server. See also https://liketrek.com/delete-account.
+
+CONTACT
+[CONTACT NAME], [CONTACT EMAIL]

@@ -182,7 +182,7 @@ Most of what follows is an addon an admin switches on or off. Lists, Costs, Docu
 
 #### 📱 Mobile and offline
 
-- **Installable**: iOS and Android straight from the browser, no App Store, standalone with a themed status bar
+- **Apps**: TREK Travel Planner for iPhone, iPad and Android connects to any TREK server, and the browser installs TREK as a standalone app with a themed status bar too
 - **Phone layouts**: their own screens for every part of the app, with a bottom bar and dashboard widgets the user orders
 - **Offline reads**: the app shell is precached and trips, places, tours, files and nearby places live in a per-user IndexedDB store, so a trip opens with no network
 - **Offline writes**: changes queue and replay with an `X-Idempotency-Key`, and a stale edit waits for a keep-mine or keep-theirs choice
@@ -335,7 +335,7 @@ See [`charts/README.md`](https://github.com/liketrek/TREK/blob/main/charts/READM
 
 <h2 id="install-as-app-pwa">Install as App (PWA)</h2>
 
-TREK works as a Progressive Web App — no App Store needed.
+TREK works as a Progressive Web App, and the TREK Travel Planner app for iPhone, iPad and Android connects to the same server ([Native Apps](https://github.com/liketrek/TREK/wiki/Native-Apps)). To install the web app instead:
 
 1. Open TREK in the browser (HTTPS required)
 2. **iOS**: Share ▸ *Add to Home Screen*

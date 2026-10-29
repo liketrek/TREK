@@ -3,7 +3,7 @@ import type mapboxgl from 'mapbox-gl'
 import { useSettingsStore } from '../../store/settingsStore'
 import { isStandardFamily, supportsCustom3d, wantsTerrain, addCustom3dBuildings, addTerrainAndSky } from '../Map/mapboxSetup'
 import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, basemapLanguage, type GlMapProvider } from '../Map/glProviders'
-import { buildGlMap } from '../Map/glSupport'
+import { buildGlMap, initialMapStyle } from '../Map/glSupport'
 import type { JourneyTrack } from '@trek/shared'
 import { SHOT_INDEX_ATTR, ensureJourneyPopupStyle, formatMarkerDate, journeyPopupHtml } from './journeyMapPopup'
 import { clusterPhotos, photoMarkerHtml, type MapPhoto } from './journeyPhotoLayer'
@@ -350,7 +350,7 @@ function JourneyMapGL(
 
     const mapOptions: Record<string, unknown> = {
       container: containerRef.current,
-      style: glStyle,
+      style: initialMapStyle(glProvider, glStyle),
       center: hasPoints ? bounds.getCenter() : [0, 30],
       zoom: hasPoints ? 2 : 1,
       pitch: enableMapbox3d && fullScreen ? 45 : 0,

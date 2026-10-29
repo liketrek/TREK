@@ -61,6 +61,7 @@ import { ManagedExtModule } from './managed/managed-ext.module';
 import { MapsModule } from './maps/maps.module';
 import { McpTransportModule } from './mcp-transport/mcp-transport.module';
 import { MemoriesModule } from './memories/memories.module';
+import { NativeAuthModule } from './native-auth/native-auth.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { OauthModule } from './oauth/oauth.module';
 import { OidcModule } from './oidc/oidc.module';
@@ -187,6 +188,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
     AuthModule,
     SessionsModule,
     OidcModule,
+    NativeAuthModule,
     OauthModule,
     AdminModule,
     AddonsModule,
