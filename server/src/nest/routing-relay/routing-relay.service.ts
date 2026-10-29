@@ -9,7 +9,12 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { VALHALLA_RELAY_REQUEST_SCHEMAS, compactValhallaRequest, type ValhallaRelayAction } from '@trek/shared';
 
-/** Questions one user may put to the TREK Valhalla a minute, the browser and the server's own routing together. */
+/**
+ * Questions one user may put to the TREK Valhalla a minute, the browser and the server's
+ * own routing together. A day is one question of up to twenty stops however long it is,
+ * and the road trip rail asks one a second at most, so a whole trip fits; past it the
+ * refusal says when to come back (see `ask`).
+ */
 const QUESTIONS_PER_MINUTE = 60;
 /**
  * Questions the whole installation may put a minute. The TREK services allow
@@ -93,7 +98,9 @@ export class RoutingRelayService {
       RATE_WINDOW_MS,
       now,
     );
-    if (!allowed) throw new DomainError(429, 'Too many routing requests, try again in a minute');
+    // With the wait it asks for: the planner leaves the relay alone that long and routes
+    // the days with OSRM meanwhile, rather than for the ten minutes a refusal without one costs.
+    if (!allowed) return refusal(429, 'Too many routing requests, try again in a minute', RATE_WINDOW_MS);
     const withinInstallation = await this.rateLimit.check(
       'valhalla-relay-installation',
       'all',

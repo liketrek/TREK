@@ -124,12 +124,12 @@ describe('RoutingRelayService.ask', () => {
     expect(safeFetchAdminConfigured).not.toHaveBeenCalled();
   });
 
-  it('RELAY-006: holds every user to 60 questions a minute, each user apart', async () => {
+  it('RELAY-006: holds every user to 60 questions a minute, each user apart, and says when to come back', async () => {
     vi.mocked(safeFetchAdminConfigured).mockImplementation(async () => upstream(200, '{}'));
     await oneByOne(times(60), () => relay.ask(1, 'height', { shape: [{ lat: 47, lon: 11 }] }));
-    const refused = await relay.ask(1, 'route', ROUTE).catch((err: unknown) => err);
-    expect(refused).toBeInstanceOf(DomainError);
-    expect(refused).toMatchObject({ status: 429, message: 'Too many routing requests, try again in a minute' });
+    const refused = await relay.ask(1, 'route', ROUTE);
+    expect(refused).toMatchObject({ status: 429, retryAfter: '60' });
+    expect(JSON.parse(refused.body.toString())).toEqual({ error: 'Too many routing requests, try again in a minute' });
     expect((await relay.ask(2, 'route', ROUTE)).status).toBe(200);
     expect(safeFetchAdminConfigured).toHaveBeenCalledTimes(61);
   });
