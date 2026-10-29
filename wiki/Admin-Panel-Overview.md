@@ -52,9 +52,9 @@ The **Week starts on** default decides which day opens each row of every date pi
 
 ### Routing services
 
-On desktop and mobile, **User Defaults** includes optional **Own routing engine** and **Own Valhalla instance** fields in the map section. Changes save when you leave the field; **reset** restores the built-in default.
+On desktop and mobile, **User Defaults** includes the **Routing service** and optional **Own routing engine** and **Own Valhalla instance** fields in the map section. Changes save when you leave the field; **reset** restores the built-in default.
 
-With both fields empty, TREK uses public OSRM servers for routing and the public FOSSGIS Valhalla for avoiding toll roads, motorways and ferries. Configuring only a custom routing instance disables the public Valhalla fallback. After entering a custom server URL, restart TREK and reload the page. See [Road-Trip](Road-Trip#routing-engines).
+With **Routing service** on **Automatic** and both fields empty, the Valhalla of the TREK services calculates every route, and the public OSRM servers a day it cannot answer. Without the TREK services, or with **Public Valhalla (FOSSGIS)** chosen, TREK uses public OSRM servers for routing and the public FOSSGIS Valhalla for avoiding toll roads, motorways and ferries. Configuring only a custom routing instance disables the public Valhalla fallback. After entering a custom server URL, restart TREK and reload the page. See [Admin-User-Defaults](Admin-User-Defaults#routing-service) and [Road-Trip](Road-Trip#routing-engines).
 
 > **AI / MCP:** These fields configure the routing services the planner and the road trip MCP tools use, and do not change stored trip data.
 

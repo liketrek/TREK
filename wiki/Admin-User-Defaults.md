@@ -44,16 +44,20 @@ Used for every user who has not entered their own key, so the whole instance get
 
 ### Own routing engine
 
-The address of an OSRM instance of your own, for example `https://osrm.example.org`. Empty uses the public servers, which allow about one request a second: enough for a day plan, tight for a road trip.
+The address of an OSRM instance of your own, for example `https://osrm.example.org`. Empty uses the public servers, which allow about one request a second: enough for a day plan, tight for a road trip. With the TREK services or an own Valhalla as **Routing service**, OSRM only calculates the days Valhalla cannot answer.
 
 ### Routing service
 
-Which Valhalla answers what OSRM cannot: driving around toll roads, motorways and ferries, and the routes, heights and ways of tours.
+Which Valhalla TREK asks, and with it how much of the routing Valhalla does.
 
 - **Automatic** (nothing chosen): the TREK services, or **Own Valhalla instance** when one is set. If only **Own routing engine** is set, no Valhalla is asked.
-- **TREK services**: the Valhalla at `valhalla.liketrek.com` (or `TREK_VALHALLA_URL`). This server asks it with the installation key, so the browser never talks to it and no restart is needed. Where it cannot answer (no key yet, the day's allowance spent, the service down or slow to answer, or a shared page without a sign-in), TREK asks the public FOSSGIS Valhalla instead, without a message. After such an answer it keeps asking FOSSGIS for a while: a minute after an error or a question that took longer than ten seconds, as long as the service says when the allowance is spent (an hour at most). Each user may ask 60 routing questions a minute through this server, and the whole installation 100.
-- **Public Valhalla (FOSSGIS)**: `valhalla1.openstreetmap.de`, as before.
-- **Own Valhalla instance**: the address below.
+- **TREK services**: the Valhalla at `valhalla.liketrek.com` (or `TREK_VALHALLA_URL`), a planet with elevation data. It calculates every route: the days of the planner and the road trip on foot, by bike and by car, driving around toll roads, motorways and ferries, and the routes, heights and ways of tours. This server asks it with the installation key, so the browser never talks to it and no restart is needed. Where it cannot answer (no key yet, the day's allowance spent, the service down or slow to answer, a shared page without a sign-in, or no way for one of the day's legs), OSRM calculates that day as it did before, without a message; a day is always calculated by one engine, never one leg by each, because the two estimate travel times differently. What only Valhalla can answer (avoiding road classes, tours) goes to the public FOSSGIS Valhalla instead. After such an answer TREK leaves the service alone for a while: a minute after an error or a question that took longer than ten seconds, as long as the service says when the allowance is spent (an hour at most). Each user may ask 60 routing questions a minute through this server, and the whole installation 100.
+- **Public Valhalla (FOSSGIS)**: `valhalla1.openstreetmap.de`, as before: OSRM calculates the routes, and Valhalla only answers what OSRM cannot (driving around toll roads, motorways and ferries, and tours). This is also what an installation without the TREK services gets.
+- **Own Valhalla instance**: the address below. Like the TREK services it calculates every route, with OSRM taking over a day it cannot answer.
+
+A day longer than one request may carry is asked in pieces that share a stop: twenty stops a piece on the TREK services and an own Valhalla, ten on FOSSGIS.
+
+Routes the browser has kept on the device are kept per engine, so switching the routing service never shows a day calculated by the other engine.
 
 The allowance the TREK services count for routing is shown in the TREK API card under **Admin → Settings**.
 

@@ -226,12 +226,14 @@ When the instance has its own OSRM but no Valhalla, the switches are unavailable
 
 ## Routing engines
 
-Routing needs two engines, and both have public defaults, so the addon works without any setup:
+Routing uses two engines, and both have public defaults, so the addon works without any setup:
 
-| Engine | Used for | Public default | Own instance |
+| Engine | Used for | Default | Own instance |
 |---|---|---|---|
-| **OSRM** | every road route TREK draws: the road trip, the day plan, the routed booking lines | the FOSSGIS servers at `routing.openstreetmap.de` | **Own routing engine** |
-| **Valhalla** | driving around toll roads, motorways and ferries, and the **No motorway**, **No tolls** and **No ferry** offers | the TREK services' Valhalla through this server, the FOSSGIS Valhalla at `valhalla1.openstreetmap.de` where it cannot answer (**Routing service**) | **Own Valhalla instance** |
+| **Valhalla** | with the TREK services or an own Valhalla: every road route TREK draws (the road trip, the day plan, the routed booking lines) on foot, by bike and by car, and the other ways of a leg. With the public FOSSGIS Valhalla only driving around toll roads, motorways and ferries, and the **No motorway**, **No tolls** and **No ferry** offers | the TREK services' Valhalla through this server (**Routing service**), the FOSSGIS Valhalla at `valhalla1.openstreetmap.de` where they are off | **Own Valhalla instance** |
+| **OSRM** | every day Valhalla does not calculate: all of them with the public FOSSGIS Valhalla or without a Valhalla, and a day the TREK services or an own Valhalla cannot answer | the FOSSGIS servers at `routing.openstreetmap.de` | **Own routing engine** |
+
+A day is always calculated by one engine, never one leg by each: the two estimate travel times differently, and a day's arrival times are added up leg by leg. When Valhalla cannot answer a day (the service down or its allowance spent, or no way for one of its legs), OSRM calculates the whole day instead, without a message, and TREK asks Valhalla again for the next day it routes once the service has rested (see [Admin-User-Defaults](Admin-User-Defaults#routing-service)). A day that avoids road classes still goes to the public FOSSGIS Valhalla in that case, since OSRM cannot avoid them.
 
 The public OSRM servers allow roughly one request a second. That is enough for a day plan and tight for a road trip, which routes every leg of every day: TREK spaces its requests and retries a refused one, but a long trip takes a while to fill in. An instance with many road trippers is better off with its own.
 
@@ -241,15 +243,20 @@ Why a restart: routes are calculated in the browser, and the browser only talks 
 
 What the combinations do:
 
+With **Routing service** left on **Automatic**:
+
 | Own routing engine | Own Valhalla instance | Result |
 |---|---|---|
-| empty | empty | Public OSRM for routes, public Valhalla for avoidance. |
-| set | empty | Your OSRM for routes. **The public Valhalla is not used**, because an instance that runs its own router has chosen against public hosts. The avoid switches are unavailable, and **Other ways** can still offer routes without motorways or tolls if your OSRM supports excluding them. |
-| empty or set | set | Your Valhalla for avoidance. |
+| empty | empty | The TREK services' Valhalla for every route, public OSRM for a day it cannot answer. Without the TREK services: public OSRM for routes, public Valhalla for avoidance. |
+| set | empty | Your OSRM for routes. **No Valhalla is used**, because an instance that runs its own router has chosen against public hosts. The avoid switches are unavailable, and **Other ways** can still offer routes without motorways or tolls if your OSRM supports excluding them. |
+| empty or set | set | Your Valhalla for every route, OSRM (yours where set) for a day it cannot answer. |
+
+Choosing **Public Valhalla (FOSSGIS)** as **Routing service** keeps OSRM for every route and Valhalla for avoidance alone, whatever else is set.
 
 Requirements for your own instances:
 
-- **OSRM** must serve the standard layout, `<address>/route/v1/<profile>/…`, which `osrm-routed` does out of the box. It answers every route in TREK, not only road trips. The public servers refuse to exclude road classes; an OSRM of your own built through the MLD pipeline, with a profile that has those classes, can answer **No motorway** and **No tolls** in **Other ways** by itself.
+- **OSRM** must serve the standard layout, `<address>/route/v1/<profile>/…`, which `osrm-routed` does out of the box. It answers every route in TREK that Valhalla does not, not only road trips. The public servers refuse to exclude road classes; an OSRM of your own built through the MLD pipeline, with a profile that has those classes, can answer **No motorway** and **No tolls** in **Other ways** by itself.
+- **Valhalla** of your own answers every route, so it needs the `auto`, `pedestrian` and `bicycle` costings and should take twenty locations a request (`max_locations`, Valhalla's own default for `auto`); a longer day is asked in pieces of twenty that share a stop.
 - **Reachable from the browser.** The browser calls the engine directly, so the address has to work from the devices your travellers plan on, not only from the TREK server. `http://localhost:5000` means the traveller's own computer to a browser. When TREK is served over HTTPS, the engine has to be HTTPS too, or the browser blocks it as mixed content.
 - **Reachable from the TREK server** for the [MCP tools](#mcp-tools), which calculate on the server. An address on your local network is accepted there without `ALLOW_INTERNAL_NETWORK`, because only an admin can set it.
 
@@ -392,8 +399,9 @@ What TREK contacts, and from where:
 
 | Service | Asked by | When | To change it |
 |---|---|---|---|
-| OSRM (`routing.openstreetmap.de` by default) | the browser, and the TREK server for MCP | every route | **Own routing engine** |
-| Valhalla (`valhalla1.openstreetmap.de` by default) | the browser, and the TREK server for MCP | only when avoiding road classes or offering **No motorway**, **No tolls**, **No ferry** | **Own Valhalla instance**, or not at all once only **Own routing engine** is set |
+| TREK services' Valhalla (`valhalla.liketrek.com` by default) | the TREK server, for the browser and for MCP | every route | **Routing service**, or `TREK_VALHALLA_URL` |
+| OSRM (`routing.openstreetmap.de` by default) | the browser, and the TREK server for MCP | every route Valhalla does not calculate | **Own routing engine** |
+| Valhalla (`valhalla1.openstreetmap.de`) | the browser, and the TREK server for MCP | with **Public Valhalla (FOSSGIS)**, or where the TREK services cannot answer: only when avoiding road classes or offering **No motorway**, **No tolls**, **No ferry** | **Own Valhalla instance**, or not at all once only **Own routing engine** is set |
 | TREK's place index and OpenStreetMap | the TREK server | the search along the route (OpenStreetMap through Overpass), and the place lookups of **Add manually** and the Google import (the usual place search) | see [TREK-Places-API](TREK-Places-API) and [Places-and-Search](Places-and-Search), and `OVERPASS_URL` and `NOMINATIM_URL` in [Environment-Variables](Environment-Variables) |
 | MobiData BW OCPDB | the TREK server | when a charging stop's data is shown | |
 | DWD and GDACS | the TREK server | only with **Show hazard areas** on | switch it off |

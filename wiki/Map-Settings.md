@@ -165,7 +165,7 @@ The small map preview on this settings page is the exception: it stays on a fixe
 
 ## Routing engines
 
-The routes TREK draws and the travel times between stops come from a public OSRM router, and the avoidance of toll roads, motorways and ferries from a public Valhalla server. An admin can point TREK at engines of their own with **Own routing engine** and **Own Valhalla instance**, next to the map defaults under **Admin → User Defaults**. They are not part of this tab. See [Admin-User-Defaults](Admin-User-Defaults#own-routing-engine) and [Road-Trip](Road-Trip#routing-engines).
+The routes TREK draws and the travel times between stops come from the Valhalla of the TREK services, with a public OSRM router for a day it cannot answer; without the TREK services from the public OSRM router, and the avoidance of toll roads, motorways and ferries from a public Valhalla server. An admin picks the **Routing service** and can point TREK at engines of their own with **Own routing engine** and **Own Valhalla instance**, next to the map defaults under **Admin → User Defaults**. They are not part of this tab. See [Admin-User-Defaults](Admin-User-Defaults#own-routing-engine) and [Road-Trip](Road-Trip#routing-engines).
 
 ## See also
 
