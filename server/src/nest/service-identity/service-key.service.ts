@@ -154,7 +154,7 @@ export class ServiceKeyService {
   /** Test seam: resolves once the background work queued so far has run. */
   async whenIdle(): Promise<void> {
     const work = this.work;
-    if (!work) return;
+    if (work === null) return;
     await work;
     await this.whenIdle();
   }
@@ -201,7 +201,7 @@ export class ServiceKeyService {
   }
 
   private settleInBackground(): void {
-    if (this.work || (this.loaded && !this.wantsRegistration() && !this.keyToRenewNow())) return;
+    if (this.work !== null || (this.loaded && !this.wantsRegistration() && !this.keyToRenewNow())) return;
     void this.inBackground(async () => {
       await this.load();
       if (this.wantsRegistration()) {

@@ -466,14 +466,13 @@ describe('the circuit breaker', () => {
     // A 401 or 403 says the service is there and judged the key; the identity
     // falls back to the shared pool on its own. A 429 means the next request
     // costs the same and gets the same, like a server error.
-    for (const status of [401, 403]) {
-      for (let i = 0; i < 6; i++) {
-        stubFetch({}, status);
-        await expect(trekPlacesSearch('x')).rejects.toThrow(String(status));
-      }
-    }
+    const refusals = [401, 403].flatMap((status) => Array<number>(6).fill(status));
+    await oneByOne(refusals, (status) => {
+      stubFetch({}, status);
+      return expect(trekPlacesSearch('x')).rejects.toThrow(String(status));
+    });
     stubFetch({}, 429);
-    for (let i = 0; i < 4; i++) await expect(trekPlacesSearch('x')).rejects.toThrow(/429/);
+    await oneByOne(Array.from({ length: 4 }), () => expect(trekPlacesSearch('x')).rejects.toThrow(/429/));
     await expect(trekPlacesSearch('x')).rejects.toThrow('unreachable, not retrying yet');
   });
 });

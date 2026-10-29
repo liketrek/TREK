@@ -19,6 +19,7 @@ import {
   type StoredIdentity,
 } from '../../../../src/nest/service-identity/service-key.store';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { oneByOne } from '../../../helpers/one-by-one';
 import { serviceKeyTokenFor } from '../../../helpers/service-keys';
 import { createTestModule, type TestModule } from '../../../helpers/test-module';
 
@@ -220,15 +221,14 @@ describe('when it never registers', () => {
     expect((await keys.snapshot()).state).toBe('legacy');
   });
 
-  it('SIKEYS-011: never with the index switched off, nor with TREK_SERVICES=off', async () => {
-    for (const setup of [{ places: { enabled: false } }, { config: { mode: 'off' as const } }]) {
-      const { keys, issuer } = await build(setup);
-      expect(keys.bearer()).toBeNull();
-      expect((await keys.snapshot()).state).toBe('off');
-      expect(issuer.challenge).not.toHaveBeenCalled();
-      await t?.close();
-      t = null;
-    }
+  it.each<[string, Setup]>([
+    ['the index switched off', { places: { enabled: false } }],
+    ['TREK_SERVICES=off', { config: { mode: 'off' } }],
+  ])('SIKEYS-011: never with %s', async (_, setup) => {
+    const { keys, issuer } = await build(setup);
+    expect(keys.bearer()).toBeNull();
+    expect((await keys.snapshot()).state).toBe('off');
+    expect(issuer.challenge).not.toHaveBeenCalled();
   });
 
   it('SIKEYS-012: never for a copy of the index the operator runs', async () => {
@@ -391,10 +391,10 @@ describe('renewal', () => {
     await first.keys.renewIfDue();
     await first.keys.renewIfDue();
     expect(first.store.dropKey).not.toHaveBeenCalled();
-    for (let i = 0; i < 2; i++) {
+    await oneByOne(Array.from({ length: 2 }), () => {
       vi.setSystemTime(Date.now() + 10 * 60_000);
-      await first.keys.renewIfDue();
-    }
+      return first.keys.renewIfDue();
+    });
     expect(first.store.dropKey).toHaveBeenCalledTimes(1);
     vi.useRealTimers();
     await t?.close();
@@ -440,6 +440,7 @@ describe('renewal', () => {
   it('SIKEYS-036: a due key is renewed on the next request, not only by the daily check', async () => {
     const store = stored();
     const { keys, issuer } = await build({ store });
+    await keys.snapshot();
     expect(keys.bearer()).toBe(oldKey);
     await settled(keys);
     expect(issuer.renew).toHaveBeenCalledWith(oldKey);

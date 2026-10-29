@@ -61,13 +61,20 @@ async function saysRevoked(response: Response): Promise<boolean> {
 async function readUpTo(response: Response, maxChars: number): Promise<string> {
   const reader = response.body?.getReader();
   if (!reader) return '';
-  const decoder = new TextDecoder();
-  let text = '';
-  while (text.length <= maxChars) {
-    const { done, value } = await reader.read();
-    if (done) return text;
-    text += decoder.decode(value, { stream: true });
+  return readOn(reader, new TextDecoder(), '', maxChars);
+}
+
+async function readOn(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  decoder: TextDecoder,
+  text: string,
+  maxChars: number,
+): Promise<string> {
+  if (text.length > maxChars) {
+    await reader.cancel();
+    return text;
   }
-  await reader.cancel();
-  return text;
+  const { done, value } = await reader.read();
+  if (done) return text;
+  return readOn(reader, decoder, text + decoder.decode(value, { stream: true }), maxChars);
 }

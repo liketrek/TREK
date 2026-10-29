@@ -55,8 +55,9 @@ describe('solvePow', () => {
     const nonce = await solvePow(cheap, Date.now() + 60_000);
     expect(nonce).toMatch(/^\d+$/);
     expect(leadingZeroBits(await powHash(cheap.c, nonce, cheap))).toBeGreaterThanOrEqual(cheap.bits);
-    for (let earlier = 0; earlier < Number(nonce); earlier++) {
-      expect(leadingZeroBits(await powHash(cheap.c, String(earlier), cheap))).toBeLessThan(cheap.bits);
+    const earlier = Array.from({ length: Number(nonce) }, (_, n) => powHash(cheap.c, String(n), cheap));
+    for (const hash of await Promise.all(earlier)) {
+      expect(leadingZeroBits(hash)).toBeLessThan(cheap.bits);
     }
   });
 

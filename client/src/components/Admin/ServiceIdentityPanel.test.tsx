@@ -97,7 +97,8 @@ describe('ServiceIdentityPanel', () => {
     expect(screen.getByText('admin.trekApi.quota.regenerateBody')).toBeInTheDocument();
     expect(regenerated).toBe(0);
 
-    const confirm = screen.getAllByRole('button', { name: 'admin.trekApi.quota.regenerate' }).at(-1);
+    const regenerateButtons = screen.getAllByRole('button', { name: 'admin.trekApi.quota.regenerate' });
+    const confirm = regenerateButtons[regenerateButtons.length - 1];
     if (!confirm) throw new Error('no confirm button');
     await user.click(confirm);
     await waitFor(() => expect(regenerated).toBe(1));

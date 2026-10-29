@@ -29,10 +29,13 @@ export function leadingZeroBits(hash: Uint8Array): number {
 }
 
 /** The first decimal nonce whose hash has at least `bits` leading zero bits, tried until `deadlineMs`. */
-export async function solvePow(challenge: ServiceChallenge, deadlineMs: number): Promise<string> {
-  for (let nonce = 0; Date.now() < deadlineMs; nonce++) {
-    const hash = await powHash(challenge.c, String(nonce), challenge);
-    if (leadingZeroBits(hash) >= challenge.bits) return String(nonce);
-  }
-  throw new Error('the registration challenge expired before it was solved');
+export function solvePow(challenge: ServiceChallenge, deadlineMs: number): Promise<string> {
+  return firstNonceFrom(0, challenge, deadlineMs);
+}
+
+async function firstNonceFrom(nonce: number, challenge: ServiceChallenge, deadlineMs: number): Promise<string> {
+  if (Date.now() >= deadlineMs) throw new Error('the registration challenge expired before it was solved');
+  const hash = await powHash(challenge.c, String(nonce), challenge);
+  if (leadingZeroBits(hash) >= challenge.bits) return String(nonce);
+  return firstNonceFrom(nonce + 1, challenge, deadlineMs);
 }
