@@ -69,7 +69,7 @@ On its first search an installation registers itself with the service in the bac
 
 The key carries a random installation id and nothing else: no address, no host name, no user. It lets the service give each installation its own daily allowance instead of one pool per network, and it is sent only to the hosts in `TREK_SERVICES_HOSTS` (`places.liketrek.com` by default), never to a copy you run yourself or anywhere else.
 
-**Admin → Settings → API Keys** shows on the card how this installation stands: connected, setting up its key, on the shared pool, switched off or revoked, with today's use, what is left and when the count starts again. **New identity** drops the key and asks for a new one; use it after cloning an installation onto a second machine, or after the key was revoked. Counting happens per installation id only and is deleted after two days; search terms and coordinates are never logged.
+**Admin → Settings → API Keys** shows on the card how this installation stands: connected, setting up its key, on the shared pool, switched off or revoked, with today's use, what is left and when the count starts again. **New identity** drops the key and asks for a new one; use it after cloning an installation onto a second machine, or after the key was revoked. Requests are counted per installation and, independently, per network; the counters are deleted after two days. Search terms and coordinates are never logged.
 
 | Variable | What it does |
 |---|---|
@@ -100,7 +100,7 @@ Every request goes out from your TREK server, never from a browser, so the servi
 
 The header carries an opaque token derived from your instance's own address, so the service can rate-limit each instance on its own instead of everyone behind one IP. Set `APP_URL` (or `ALLOWED_ORIGINS`): without either, the token is derived from the port alone, and two unconfigured installs on the same port share one rate-limit bucket.
 
-Who is searching never goes along. No user, account, session, cookie or trip id is sent, and neither is the language TREK is set to or the one picked under **Place names** (see [Language of place names](Places-and-Search#language-of-place-names)). The service's own front page states that queries are not logged, that requests are counted per installation and nothing else, and that the instance token is not stored.
+Who is searching never goes along. No user, account, session, cookie or trip id is sent, and neither is the language TREK is set to or the one picked under **Place names** (see [Language of place names](Places-and-Search#language-of-place-names)). The service's own front page states that queries are not logged, that requests are counted per rate-limit bucket and nothing else, and that the instance token is not stored.
 
 The requests use Node's default HTTP client, so an outbound proxy set with `HTTPS_PROXY` applies to them, and `NO_PROXY` can exempt the service's host. The official image already turns Node's environment proxy on; a source install needs `NODE_USE_ENV_PROXY=1` as well. See [Environment Variables](Environment-Variables#outbound-https-proxy).
 
