@@ -14,6 +14,7 @@ import { OsmClient } from '../../src/nest/maps/providers/osm.client';
 import { WikimediaClient } from '../../src/nest/maps/providers/wikimedia.client';
 import type { PlacePhotoCacheService } from '../../src/nest/place-photos/place-photo-cache.service';
 import { noGoogleQuota } from './google-quota';
+import { photonOff } from './photon';
 
 /** MapsService and the outbound clients it was wired with, for tests that reach a client directly. */
 export interface MapsParts {
@@ -39,7 +40,7 @@ export function buildMapsParts(
   googleQuota: GoogleQuotaService = noGoogleQuota,
 ): MapsParts {
   const google = new GooglePlacesClient(googleQuota);
-  const osm = new OsmClient();
+  const osm = new OsmClient(photonOff());
   const wiki = new WikimediaClient();
   const selector = new PlacesProviderSelector(appSettings, users, googleQuota);
   const photos = new PlacePhotoResolver(photoCache, places, google, wiki, selector);

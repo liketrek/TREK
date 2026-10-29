@@ -249,6 +249,14 @@ describe('deriveIntegrations', () => {
     expect(deriveIntegrations({ OVERPASS_TIMEOUT_MS: '-1' }).overpassTimeoutMs).toBe(OVERPASS_TIMEOUT_DEFAULT_MS);
   });
 
+  it('says whether the operator set a Nominatim of their own, which keeps search off Photon', () => {
+    expect(deriveIntegrations({}).nominatimOwn).toBe(false);
+    expect(deriveIntegrations({ NOMINATIM_URL: '   ' }).nominatimOwn).toBe(false);
+    expect(deriveIntegrations({ NOMINATIM_URL: 'http://nominatim:8080' }).nominatimOwn).toBe(true);
+    // The public address spelled out is still a choice the operator made.
+    expect(deriveIntegrations({ NOMINATIM_URL: 'https://nominatim.openstreetmap.org' }).nominatimOwn).toBe(true);
+  });
+
   it('floors the LLM ceiling to a whole number — undici rejects a fractional headersTimeout', () => {
     expect(deriveIntegrations({}).llmTimeoutMs).toBe(900_000);
     expect(deriveIntegrations({ LLM_TIMEOUT_MS: '-1' }).llmTimeoutMs).toBe(900_000);
@@ -298,13 +306,22 @@ describe('deriveServices (servicesConfig token)', () => {
     expect(deriveServices({}).key).toBeNull();
   });
 
-  it('sends the key to places.liketrek.com unless TREK_SERVICES_HOSTS names others', () => {
-    expect(deriveServices({}).hosts).toEqual(['places.liketrek.com']);
+  it('sends the key to the three liketrek services unless TREK_SERVICES_HOSTS names others', () => {
+    const all = ['places.liketrek.com', 'photon.liketrek.com', 'valhalla.liketrek.com'];
+    expect(deriveServices({}).hosts).toEqual(all);
     expect(deriveServices({ TREK_SERVICES_HOSTS: 'Places.LikeTrek.com, , photon.liketrek.com' }).hosts).toEqual([
       'places.liketrek.com',
       'photon.liketrek.com',
     ]);
-    expect(deriveServices({ TREK_SERVICES_HOSTS: ' , ' }).hosts).toEqual(['places.liketrek.com']);
+    expect(deriveServices({ TREK_SERVICES_HOSTS: ' , ' }).hosts).toEqual(all);
+  });
+
+  it('asks photon.liketrek.com unless TREK_PHOTON_URL names another copy, trimmed and without trailing slashes', () => {
+    expect(deriveServices({}).photonUrl).toBe('https://photon.liketrek.com');
+    expect(deriveServices({ TREK_PHOTON_URL: '  ' }).photonUrl).toBe('https://photon.liketrek.com');
+    expect(deriveServices({ TREK_PHOTON_URL: ' https://geo.example.org/photon// ' }).photonUrl).toBe(
+      'https://geo.example.org/photon',
+    );
   });
 });
 

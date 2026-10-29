@@ -63,7 +63,10 @@ export function deriveKitinerary(raw: RawEnv) {
 }
 
 /** The liketrek hosts that receive the installation key when nothing else is configured. */
-const DEFAULT_SERVICE_HOSTS = ['places.liketrek.com'];
+const DEFAULT_SERVICE_HOSTS = ['places.liketrek.com', 'photon.liketrek.com', 'valhalla.liketrek.com'];
+
+/** The address search of the TREK services, asked before Nominatim while the installation holds a key. */
+const DEFAULT_PHOTON_URL = 'https://photon.liketrek.com';
 
 /**
  * How this installation identifies itself to the liketrek services. Unset is
@@ -77,6 +80,7 @@ export function deriveServices(raw: RawEnv) {
     mode: mode === 'auto' ? ('auto' as const) : ('off' as const),
     key: raw.TREK_SERVICES_KEY?.trim() || null,
     hosts: hosts?.length ? hosts : DEFAULT_SERVICE_HOSTS,
+    photonUrl: stripTrailingSlashes(raw.TREK_PHOTON_URL?.trim() || DEFAULT_PHOTON_URL),
   };
 }
 

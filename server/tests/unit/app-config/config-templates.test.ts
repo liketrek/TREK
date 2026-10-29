@@ -163,6 +163,14 @@ describe('the TREK services switches in the templates', () => {
     expect(envExample).toContain('# TREK_SERVICES_HOSTS=');
   });
 
+  it('every template names the Photon address and the default hosts it joined', () => {
+    expect(envExample).toContain('# TREK_PHOTON_URL=https://photon.liketrek.com ');
+    expect(compose).toContain('#      - TREK_PHOTON_URL=https://photon.liketrek.com ');
+    expect(helmValues).toContain('# TREK_PHOTON_URL:');
+    expect(helmConfigMap).toContain('TREK_PHOTON_URL: {{ .Values.env.TREK_PHOTON_URL | quote }}');
+    expect(envExample).toContain('(default: places.liketrek.com,photon.liketrek.com,valhalla.liketrek.com)');
+  });
+
   it('the Helm ConfigMap passes the switch and the hosts, the Secret carries the key', () => {
     for (const name of ['TREK_SERVICES', 'TREK_SERVICES_HOSTS']) {
       expect(helmValues).toContain(`# ${name}:`);

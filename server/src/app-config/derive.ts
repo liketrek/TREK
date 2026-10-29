@@ -284,6 +284,8 @@ export function deriveIntegrations(raw: RawEnv) {
     // treats a blank one as unset, so a padded or whitespace-only value would
     // otherwise pass startup and then be the string that cannot be fetched.
     nominatimUrl: stripTrailingSlashes(raw.NOMINATIM_URL?.trim() || 'https://nominatim.openstreetmap.org'),
+    /** The operator runs a geocoder of their own, so search and reverse stay on it instead of going to Photon. */
+    nominatimOwn: Boolean(raw.NOMINATIM_URL?.trim()),
     overpassUrl: raw.OVERPASS_URL,
     // Longer than the `[timeout:20]` the query itself carries, or we abort an answer the
     // mirror was still allowed to be working on. See OVERPASS_QUERY_TIMEOUT_S.

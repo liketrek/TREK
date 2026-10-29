@@ -188,6 +188,7 @@ export const envSchema = z.object({
   TREK_SERVICES: oneOf(['auto', 'off']),
   TREK_SERVICES_KEY: optionalWith(isServiceKeyShape, 'must be a TREK services key (tk1.<kid>.<payload>.<signature>)'),
   TREK_SERVICES_HOSTS: anyString,
+  TREK_PHOTON_URL: url,
   PLACES_API_KEY: anyString,
   AMAP_API_BASE: url,
   AMAP_API_KEY: anyString,

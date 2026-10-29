@@ -8,6 +8,7 @@
 import { toWikiLang, haversineMetres, namesOverlap } from '../../../src/nest/maps/maps.helpers';
 import { OsmClient } from '../../../src/nest/maps/providers/osm.client';
 import { WikimediaClient } from '../../../src/nest/maps/providers/wikimedia.client';
+import { photonOff } from '../../helpers/photon';
 
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
@@ -22,7 +23,7 @@ vi.mock('../../../src/utils/ssrfGuard', () => ({
 }));
 
 const wikiOf = () => new WikimediaClient();
-const osmOf = () => new OsmClient();
+const osmOf = () => new OsmClient(photonOff());
 
 // The Brandenburg Gate and the underground station named after it, 250m apart.
 const GATE = { lat: 52.5163, lng: 13.3777 };

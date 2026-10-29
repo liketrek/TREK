@@ -15,6 +15,12 @@
  * search along a line takes after every Overpass endpoint failed it is the
  * instance's own: MapsModule provides one client per process.
  *
+ * Search and reverse ask Photon first (PhotonClient) where the TREK services
+ * hold a key and the operator runs no Nominatim of their own; its answers are
+ * read into Nominatim's shape, so both come out of the same mapping. Lookups
+ * by id and the identity match stay on Nominatim: they need its id lookup and
+ * its extratags.
+ *
  * Never imports MapsService: providers sit below the orchestrator
  * (lint:boundaries holds that).
  */
@@ -41,6 +47,8 @@ import {
 } from '../maps.helpers';
 import { overpassSelector, tagsMatchFilter } from '../osm-filter.helpers';
 import { OverpassBusy, hedged, lastAnsweredFirst, retryAfterMs, soonestRetryMs } from '../overpass-hedge.helpers';
+import { PhotonClient } from './photon.client';
+import { asNominatimHit, asNominatimReverse } from './photon.mapping';
 import { readWikiIdentity } from './wiki-identity';
 import { Injectable } from '@nestjs/common';
 import { normalizePlaceWebsite } from '@trek/shared';
@@ -51,7 +59,7 @@ function nominatimCategory(item: { class?: string; type?: string }): string | nu
   return item.class === 'shop' ? `shop_${item.type}` : item.type;
 }
 
-interface NominatimResult {
+export interface NominatimResult {
   osm_type: string;
   osm_id: string;
   /** The main OSM tag, key and value: `class` "tourism" with `type` "hotel". */
@@ -97,6 +105,35 @@ export interface NominatimReverse {
   display_name?: string;
   name?: string;
   address?: Record<string, string>;
+}
+
+/** A search row as TREK's place record. */
+function searchRecord(item: NominatimResult) {
+  // Number.isFinite, not `|| null`: a place on the equator or prime
+  // meridian has a legitimate 0 coordinate.
+  const lat = Number.parseFloat(item.lat);
+  const lng = Number.parseFloat(item.lon);
+  return {
+    google_place_id: null,
+    google_ftid: null,
+    osm_id: `${item.osm_type}:${item.osm_id}`,
+    name: item.name || item.display_name?.split(',')[0] || '',
+    address: item.display_name || '',
+    lat: Number.isFinite(lat) ? lat : null,
+    lng: Number.isFinite(lng) ? lng : null,
+    rating: null,
+    website: null,
+    phone: null,
+    // What the place is, so the add form can preselect a category (#2282). A shop's
+    // value is the ware ("bakery"), so the key goes first and says it is a shop.
+    category: nominatimCategory(item),
+    source: 'openstreetmap',
+    ...readWikiIdentity(item.extratags),
+  };
+}
+
+function isHit(hit: NominatimResult | null): hit is NominatimResult {
+  return hit !== null;
 }
 
 // Tighter than the wiki calls, because this one sits at the FRONT of a chain:
@@ -402,6 +439,8 @@ export class OsmClient {
   /** Whether this cooldown's first skip was logged, so the log holds one line per cooldown. */
   private overpassAlongSkipLogged = false;
 
+  constructor(private readonly photon: PhotonClient) {}
+
   // ── Nominatim search ───────────────────────────────────────────────────────
 
   /**
@@ -420,6 +459,8 @@ export class OsmClient {
     lane: GeoLane = 'interactive',
     bias?: { lat: number; lng: number },
   ) {
+    const photon = await this.photon.search(query, { lang, bias });
+    if (photon) return photon.map(asNominatimHit).filter(isHit).map(searchRecord);
     const params = new URLSearchParams({
       q: query,
       format: 'json',
@@ -450,29 +491,7 @@ export class OsmClient {
       );
     }
     const data = (await response.json()) as NominatimResult[];
-    return data.map((item) => {
-      // Number.isFinite, not `|| null`: a place on the equator or prime
-      // meridian has a legitimate 0 coordinate.
-      const lat = Number.parseFloat(item.lat);
-      const lng = Number.parseFloat(item.lon);
-      return {
-        google_place_id: null,
-        google_ftid: null,
-        osm_id: `${item.osm_type}:${item.osm_id}`,
-        name: item.name || item.display_name?.split(',')[0] || '',
-        address: item.display_name || '',
-        lat: Number.isFinite(lat) ? lat : null,
-        lng: Number.isFinite(lng) ? lng : null,
-        rating: null,
-        website: null,
-        phone: null,
-        // What the place is, so the add form can preselect a category (#2282). A shop's
-        // value is the ware ("bakery"), so the key goes first and says it is a shop.
-        category: nominatimCategory(item),
-        source: 'openstreetmap',
-        ...readWikiIdentity(item.extratags),
-      };
-    });
+    return data.map(searchRecord);
   }
 
   /** Suggestions out of a Nominatim search, for an install with neither the index nor a key. */
@@ -630,13 +649,38 @@ export class OsmClient {
 
   // ── Nominatim reverse ──────────────────────────────────────────────────────
 
-  /** The name and address Nominatim gives a point, or nulls when it answers with an error. */
+  /** The name and address Photon or Nominatim gives a point, or nulls when Nominatim answers with an error. */
   async reverse(
     lat: string,
     lng: string,
     lang?: string,
     opts?: { lane?: GeoLane; timeoutMs?: number; locality?: boolean },
   ): Promise<{ name: string | null; address: string | null }> {
+    const data = (await this.reversePhoton(lat, lng, lang)) ?? (await this.reverseNominatim(lat, lng, lang, opts));
+    if (!data) return { name: null, address: null };
+    const addr = data.address || {};
+    const name = opts?.locality
+      ? addr.city || addr.town || addr.village || addr.municipality || data.name || null
+      : data.name || addr.tourism || addr.amenity || addr.shop || addr.building || addr.road || null;
+    return { name, address: data.display_name || null };
+  }
+
+  /**
+   * Photon's nearest feature, or null for Nominatim to answer. Photon looks
+   * within a radius and can find nothing at all, where Nominatim names the
+   * nearest object at any distance, so an empty answer is asked again there.
+   */
+  private async reversePhoton(lat: string, lng: string, lang?: string): Promise<NominatimReverse | null> {
+    const found = await this.photon.reverse(Number.parseFloat(lat), Number.parseFloat(lng), lang);
+    return found?.[0] ? asNominatimReverse(found[0]) : null;
+  }
+
+  private async reverseNominatim(
+    lat: string,
+    lng: string,
+    lang?: string,
+    opts?: { lane?: GeoLane; timeoutMs?: number; locality?: boolean },
+  ): Promise<NominatimReverse | null> {
     const params = new URLSearchParams({
       lat,
       lon: lng,
@@ -646,21 +690,18 @@ export class OsmClient {
       'accept-language': toApiLang(lang),
     });
     const response = await nominatimFetch('reverse', params, opts);
-    if (!response.ok) return { name: null, address: null };
-    const data = (await response.json()) as NominatimReverse;
-    const addr = data.address || {};
-    const name = opts?.locality
-      ? addr.city || addr.town || addr.village || addr.municipality || data.name || null
-      : data.name || addr.tourism || addr.amenity || addr.shop || addr.building || addr.road || null;
-    return { name, address: data.display_name || null };
+    if (!response.ok) return null;
+    return (await response.json()) as NominatimReverse;
   }
 
   /**
-   * The raw reverse answer for a point a pasted link carried, in Nominatim's
-   * default language. A non-ok answer (5xx, 429) is an empty object: the
+   * The raw reverse answer for a point a pasted link carried, in the names
+   * used on the spot. A non-ok answer (5xx, 429) is an empty object: the
    * coordinates are already known, so the caller still has something to return.
    */
   async reverseRaw(lat: number, lng: number): Promise<NominatimReverse> {
+    const found = await this.photon.reverse(lat, lng);
+    if (found?.[0]) return asNominatimReverse(found[0]);
     const res = await nominatimFetch(
       'reverse',
       new URLSearchParams({ lat: String(lat), lon: String(lng), format: 'json', addressdetails: '1' }),

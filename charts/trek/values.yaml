@@ -92,7 +92,8 @@ env:
   # Custom Nominatim base URL for every geocoding call the server makes (place search, reverse lookup, Atlas region
   # fill). When set it REPLACES the public OpenStreetMap service, with no fallback, so the instance behind it needs
   # the coverage you expect and has to speak the Nominatim API. TREK keeps its ~1 request per second spacing either
-  # way. Defaults to https://nominatim.openstreetmap.org.
+  # way, and search and reverse lookups no longer go to the TREK services' Photon. Defaults to
+  # https://nominatim.openstreetmap.org.
   # OVERPASS_URL: ""
   # Custom Overpass endpoint(s) for the map POI "explore" search, comma-separated. When set, REPLACES the bundled
   # public mirrors — point it at an internal/self-hosted Overpass instance when the public mirrors are unreachable
@@ -117,7 +118,12 @@ env:
   # database. "off" sends no key; searches then use the shared pool. A key issued to you goes under
   # secretEnv.TREK_SERVICES_KEY. Defaults to auto.
   # TREK_SERVICES_HOSTS: ""
-  # Comma-separated hosts that receive the installation key over https. Defaults to places.liketrek.com.
+  # Comma-separated hosts that receive the installation key over https. Defaults to
+  # places.liketrek.com,photon.liketrek.com,valhalla.liketrek.com.
+  # TREK_PHOTON_URL: ""
+  # The address search (Photon) of the TREK services. With a key, search and reverse lookups ask it before
+  # Nominatim and fall back to Nominatim when it does not answer. Never asked when NOMINATIM_URL is set.
+  # Defaults to https://photon.liketrek.com.
   # AMAP_API_BASE: ""
   # Send the Amap (高德地图) calls through an egress proxy, a cache or a gateway that speaks the same API instead of
   # restapi.amap.com directly. The key itself is a credential and goes under secretEnv.AMAP_API_KEY, or into

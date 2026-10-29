@@ -16,6 +16,7 @@ import {
   OsmClient,
   OverpassCoolingDown,
 } from '../../../src/nest/maps/providers/osm.client';
+import { photonOff } from '../../helpers/photon';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -61,7 +62,7 @@ const queryOf = (call: unknown[] | undefined) =>
   decodeURIComponent(String((call?.[1] as RequestInit | undefined)?.body ?? '')).replace(/^data=/, '');
 
 beforeEach(() => {
-  osm = new OsmClient();
+  osm = new OsmClient(photonOff());
   logWarn.mockClear();
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
