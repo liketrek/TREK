@@ -189,6 +189,26 @@ describe('registration', () => {
     expect(issuer.challenge).toHaveBeenCalledTimes(2);
     expect(keys.bearer()).toBe(KEY);
   });
+
+  it('SIKEYS-007: a refused challenge is fetched once more at once, then left to the backoff', async () => {
+    const issuer = fakeIssuer();
+    issuer.register.mockRejectedValueOnce(new IssuerError(400, null, null));
+    const { keys } = await build({ issuer });
+    keys.bearer();
+    await settled(keys);
+    expect(issuer.challenge).toHaveBeenCalledTimes(2);
+    expect(keys.bearer()).toBe(KEY);
+
+    const refusing = fakeIssuer();
+    refusing.register.mockRejectedValue(new IssuerError(400, null, null));
+    await t?.close();
+    const again = await build({ issuer: refusing });
+    again.keys.bearer();
+    await settled(again.keys);
+    again.keys.bearer();
+    await settled(again.keys);
+    expect(refusing.challenge).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe('when it never registers', () => {

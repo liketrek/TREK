@@ -4,7 +4,7 @@ import { servicesConfig } from '../app-config/tokens';
 import { logInfo, logWarn } from '../audit/audit-log.logger';
 import { conflict } from '../common/domain-error';
 import { withRequestContext } from '../database/request-context';
-import { IssuerClient, IssuerError } from './issuer.client';
+import { IssuerClient, IssuerError, type IssuerAnswer } from './issuer.client';
 import { RefusalStreak } from './refusal-streak';
 import { ServiceClock } from './service-clock';
 import { SERVICE_ISSUER_ORIGIN } from './service-identity.constants';
@@ -246,10 +246,7 @@ export class ServiceKeyService {
   private async register(): Promise<void> {
     this.registering = true;
     try {
-      const challenge = await this.issuer.challenge();
-      this.clock.learn(challenge.serverMs);
-      const nonce = await solvePow(challenge.body, this.clock.toLocalMs(challenge.body.expires_at));
-      const grant = await this.issuer.register({ c: challenge.body.c, nonce, v: runningVersion() });
+      const grant = await this.requestKey();
       this.clock.learn(grant.serverMs);
       const key = this.readGrant(grant.body);
       const state: KeyState = { ...EMPTY_KEY_STATE, renewAfter: grant.body.renew_after };
@@ -267,6 +264,27 @@ export class ServiceKeyService {
     } finally {
       this.registering = false;
     }
+  }
+
+  /**
+   * A challenge is bound to the network that fetched it, and the registration
+   * may leave over the other address family. A refused challenge is therefore
+   * fetched once more at once instead of waiting out the backoff.
+   */
+  private async requestKey(): Promise<IssuerAnswer<ServiceKeyGrant>> {
+    try {
+      return await this.solveChallenge();
+    } catch (err) {
+      if (!(err instanceof IssuerError) || err.status !== 400) throw err;
+      return this.solveChallenge();
+    }
+  }
+
+  private async solveChallenge(): Promise<IssuerAnswer<ServiceKeyGrant>> {
+    const challenge = await this.issuer.challenge();
+    this.clock.learn(challenge.serverMs);
+    const nonce = await solvePow(challenge.body, this.clock.toLocalMs(challenge.body.expires_at));
+    return this.issuer.register({ c: challenge.body.c, nonce, v: runningVersion() });
   }
 
   /** Same installation, new expiry; the old key is the proof, so no proof of work. */

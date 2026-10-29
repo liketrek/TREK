@@ -18,7 +18,7 @@ const TIMEOUT_MS = 10_000;
 /** Every answer of the issuer is a few hundred bytes. */
 const MAX_BYTES = 4096;
 
-interface IssuerAnswer<T> {
+export interface IssuerAnswer<T> {
   body: T;
   /** The issuer's clock from its Date header. */
   serverMs: number | null;
