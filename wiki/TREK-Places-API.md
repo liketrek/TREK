@@ -45,7 +45,7 @@ Names are the ones the index has, which are the names used on the spot. The inde
 
 Where Google holds the keyed slot (a Google key, with neither Amap nor OpenStreetMap picked as the places provider), two things skip the index and OpenStreetMap for a search: the **Search Google instead** line under a result list (`provider: 'google'` on `search_place`) sends that one search to Google Places alone, and the admin switch **Search with Google only** sends every search and every suggestion there, `search_place` and **Places near this pin** included; the category buttons and `search_pois` keep asking the index. See [Google and Amap](Places-and-Search#google-and-amap).
 
-Right-click reverse geocoding on the map does not use it: that is OpenStreetMap's (or Amap's inside mainland China, when Amap holds the keyed slot).
+Right-click reverse geocoding on the map does not use it: that is OpenStreetMap's (or Amap's inside mainland China, when Amap holds the keyed slot), through the [address search](#address-search) where the installation has a key.
 
 ### Why two sources
 
@@ -67,7 +67,7 @@ The OpenStreetMap layers are kept apart from the place rows and are joined only 
 
 On its first search an installation registers itself with the service in the background: it solves a small proof of work (a few seconds on a Raspberry Pi) and receives a key, which TREK keeps encrypted in its database and renews on its own after 60 of its 90 days. Nobody clicks anything, and the first searches do not wait for it; until the key is there, requests go out the way they always did and are answered from a shared pool.
 
-The key carries a random installation id and nothing else: no address, no host name, no user. It lets the service give each installation its own daily allowance instead of one pool per network, and it is sent only to the hosts in `TREK_SERVICES_HOSTS` (`places.liketrek.com` by default), never to a copy you run yourself or anywhere else.
+The key carries a random installation id and nothing else: no address, no host name, no user. It lets the service give each installation its own daily allowance instead of one pool per network, and it is sent only to the hosts in `TREK_SERVICES_HOSTS` (`places.liketrek.com`, `photon.liketrek.com` and `valhalla.liketrek.com` by default), never to a copy you run yourself or anywhere else.
 
 **Admin → Settings → API Keys** shows on the card how this installation stands: connected, setting up its key, on the shared pool, switched off or revoked, with today's use, what is left and when the count starts again. **New identity** drops the key and asks for a new one; use it after cloning an installation onto a second machine, or after the key was revoked. Requests are counted per installation and, independently, per network; the counters are deleted after two days. Search terms and coordinates are never logged.
 
@@ -78,6 +78,14 @@ The key carries a random installation id and nothing else: no address, no host n
 | `TREK_SERVICES_HOSTS` | Comma-separated hosts that receive the key over https |
 
 An installation pointed at its own copy with `TREK_PLACES_URL`, or with `TREK_PLACES_ENABLED=false`, never registers.
+
+## Address search
+
+Where the installation holds a key, the OpenStreetMap half of the search, the suggestions of an install without the index or a key, the right-click on the map, the name of a pasted map link and the geocoding of imports ask the address search of the TREK services first: a [Photon](https://github.com/komoot/photon) instance at `photon.liketrek.com` with a planet-wide import of OpenStreetMap. Nominatim stays behind it. A refused key, a spent allowance, an error, no answer within 2.5 seconds, or nothing found at a right-clicked point all go to Nominatim, so the result reads the same either way. After four misses in a row TREK asks Nominatim alone for a minute.
+
+It is asked in the language TREK is set to, without its region (`pt-BR` asks in Portuguese, `zh-TW` in Chinese), where the import holds names in that language: Arabic, Azerbaijani, Catalan, Chinese, Czech, Dutch, English, Estonian, French, German, Greek, Hungarian, Indonesian, Italian, Japanese, Korean, Polish, Portuguese, Russian, Slovak, Spanish, Swedish, Thai, Turkish, Ukrainian and Vietnamese. Any other language gets the names used on the spot. Opening a place and matching a Google place to its OpenStreetMap record stay on Nominatim.
+
+It sends the words searched, the coordinate a search is ranked around, the point of a reverse lookup and that language, with the installation key and the `User-Agent` and nothing else. There is no shared pool: without a key, with `TREK_SERVICES=off`, or with `NOMINATIM_URL` set to a Nominatim of your own, TREK never asks it and searches the way it did before. `TREK_PHOTON_URL` points at another copy.
 
 ## What leaves your instance
 
@@ -144,7 +152,8 @@ The address is read from your own configuration and is not a URL a user can type
 | `TREK_PLACES_ENABLED` | Whether the index is asked at all |
 | `TREK_PLACES_URL` | Which copy of the index is asked |
 | `TREK_SERVICES`, `TREK_SERVICES_KEY`, `TREK_SERVICES_HOSTS` | The installation key, see [Installation key and daily allowance](#installation-key-and-daily-allowance) |
-| `NOMINATIM_URL` | The OpenStreetMap half of the full search, right-click reverse geocoding, OpenStreetMap place details and import geocoding |
+| `NOMINATIM_URL` | The OpenStreetMap half of the full search, right-click reverse geocoding, OpenStreetMap place details and import geocoding. Set, it also keeps them off the [address search](#address-search) |
+| `TREK_PHOTON_URL` | Which copy of the [address search](#address-search) is asked |
 | `OVERPASS_URL`, `OVERPASS_TIMEOUT_MS` | The Overpass mirrors behind the category buttons, the Road trip search and the ways and horse routes of Tours when the index has no answer |
 
 Defaults and details for each are on [Environment Variables](Environment-Variables).
