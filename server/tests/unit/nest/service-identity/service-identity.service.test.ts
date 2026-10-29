@@ -3,6 +3,7 @@
  * the issuer when it answers, the last one a liketrek answer stated when it
  * does not, nothing at all while the services are off.
  */
+import { servicesConfig } from '../../../../src/nest/app-config/tokens';
 import { IssuerClient } from '../../../../src/nest/service-identity/issuer.client';
 import { QuotaTracker } from '../../../../src/nest/service-identity/quota-tracker';
 import { ServiceClock } from '../../../../src/nest/service-identity/service-clock';
@@ -21,6 +22,7 @@ const QUOTA = { tier: 'std', limit: 10_000, used: 250, remaining: 9_750, reset_a
 
 const keys = { snapshot: vi.fn(async (): Promise<KeySnapshot> => CONNECTED), regenerate: vi.fn(async () => undefined) };
 const issuer = { quota: vi.fn() };
+const config = { mode: 'auto' as const, key: null, hosts: ['places.liketrek.com'] };
 
 const testDb = createSnapshotTestDb();
 let t: TestModule;
@@ -28,6 +30,7 @@ let identity: ServiceIdentityService;
 
 beforeEach(async () => {
   vi.clearAllMocks();
+  config.hosts = ['places.liketrek.com'];
   issuer.quota.mockResolvedValue({ body: QUOTA, serverMs: null });
   t = await createTestModule({
     db: testDb,
@@ -38,6 +41,7 @@ beforeEach(async () => {
       ServiceClock,
       { provide: ServiceKeyService, useValue: keys },
       { provide: IssuerClient, useValue: issuer },
+      { provide: servicesConfig.KEY, useValue: config },
     ],
   });
   identity = t.get(ServiceIdentityService);
@@ -104,5 +108,11 @@ describe('ServiceIdentityService.status', () => {
     expect(keys.regenerate).toHaveBeenCalledTimes(1);
     expect(after.state).toBe('registering');
     expect(issuer.quota).toHaveBeenLastCalledWith(null);
+  });
+
+  it('SISVC-006: never shows the key to the issuer when TREK_SERVICES_HOSTS leaves it out', async () => {
+    config.hosts = ['gate.example.org'];
+    expect(await identity.status()).toMatchObject({ state: 'connected', tier: 'hosted', quota: null });
+    expect(issuer.quota).not.toHaveBeenCalled();
   });
 });

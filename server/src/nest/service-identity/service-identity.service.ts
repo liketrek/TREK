@@ -1,9 +1,13 @@
+import { servicesConfig } from '../app-config/tokens';
 import { logDebug } from '../audit/audit-log.logger';
 import { IssuerClient } from './issuer.client';
 import { QuotaTracker } from './quota-tracker';
 import { ServiceClock } from './service-clock';
+import { SERVICE_ISSUER_ORIGIN } from './service-identity.constants';
+import { isAllowlisted } from './service-identity.helpers';
 import { ServiceKeyService, type KeySnapshot } from './service-key.service';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
 import {
   serviceTierSchema,
   type ServiceIdentityStatus,
@@ -23,6 +27,7 @@ export class ServiceIdentityService {
   private cached: { bearer: string | null; at: number; quota: ServiceQuota | null } | null = null;
 
   constructor(
+    @Inject(servicesConfig.KEY) private readonly config: ConfigType<typeof servicesConfig>,
     private readonly keys: ServiceKeyService,
     private readonly issuer: IssuerClient,
     private readonly tracker: QuotaTracker,
@@ -49,8 +54,9 @@ export class ServiceIdentityService {
     return this.status();
   }
 
-  /** GET /v1/quota, which costs no allowance; null when the issuer cannot be asked right now. */
+  /** GET /v1/quota, which costs no allowance; null when the issuer cannot or may not be asked right now. */
   private async freshQuota(bearer: string | null): Promise<ServiceQuota | null> {
+    if (bearer && !this.issuerMaySeeKey()) return null;
     if (this.cached && this.cached.bearer === bearer && Date.now() - this.cached.at < QUOTA_CACHE_MS) {
       return this.cached.quota;
     }
@@ -64,6 +70,11 @@ export class ServiceIdentityService {
     }
     this.cached = { bearer, at: Date.now(), quota };
     return quota;
+  }
+
+  /** Even the issuer sees the key only while TREK_SERVICES_HOSTS lists it. */
+  private issuerMaySeeKey(): boolean {
+    return isAllowlisted(new URL(SERVICE_ISSUER_ORIGIN), this.config.hosts);
   }
 }
 
