@@ -18,6 +18,7 @@ import { toursHandlers } from './tours';
 import { adminHandlers } from './admin';
 import { sharedHandlers } from './shared';
 import { externalHandlers } from './external';
+import { routingHandlers } from './routing';
 
 export const defaultHandlers = [
   ...authHandlers,
@@ -40,4 +41,5 @@ export const defaultHandlers = [
   ...adminHandlers,
   ...sharedHandlers,
   ...externalHandlers,
+  ...routingHandlers,
 ];

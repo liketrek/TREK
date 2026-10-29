@@ -46,9 +46,20 @@ Used for every user who has not entered their own key, so the whole instance get
 
 The address of an OSRM instance of your own, for example `https://osrm.example.org`. Empty uses the public servers, which allow about one request a second: enough for a day plan, tight for a road trip.
 
+### Routing service
+
+Which Valhalla answers what OSRM cannot: driving around toll roads, motorways and ferries, and the routes, heights and ways of tours.
+
+- **Automatic** (nothing chosen): the TREK services, or **Own Valhalla instance** when one is set. If only **Own routing engine** is set, no Valhalla is asked.
+- **TREK services**: the Valhalla at `valhalla.liketrek.com` (or `TREK_VALHALLA_URL`). This server asks it with the installation key, so the browser never talks to it and no restart is needed. Where it cannot answer (no key yet, the day's allowance spent, the service down, or a shared page without a sign-in), TREK asks the public FOSSGIS Valhalla instead, without a message.
+- **Public Valhalla (FOSSGIS)**: `valhalla1.openstreetmap.de`, as before.
+- **Own Valhalla instance**: the address below.
+
+The allowance the TREK services count for routing is shown in the TREK API card under **Admin → Settings**.
+
 ### Own Valhalla instance
 
-The address of a Valhalla instance of your own, for example `https://valhalla.example.org`. TREK uses the public FOSSGIS Valhalla by default to avoid toll roads, motorways and ferries. If only **Own routing engine** is set, the public Valhalla is not used.
+The address of a Valhalla instance of your own, for example `https://valhalla.example.org`. It is asked when **Routing service** is set to it, or left on **Automatic**.
 
 Both routing fields save when you leave them (or press **Enter**), and only an admin can set them. After changing either one, **restart the server and reload the page**: the browser only talks to routing hosts the server names in its security policy, and that policy is built once at start. There is no environment variable for either engine. See [Road-Trip](Road-Trip#routing-engines) for what each combination does and what your own instances need.
 

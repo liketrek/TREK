@@ -231,7 +231,7 @@ Routing needs two engines, and both have public defaults, so the addon works wit
 | Engine | Used for | Public default | Own instance |
 |---|---|---|---|
 | **OSRM** | every road route TREK draws: the road trip, the day plan, the routed booking lines | the FOSSGIS servers at `routing.openstreetmap.de` | **Own routing engine** |
-| **Valhalla** | driving around toll roads, motorways and ferries, and the **No motorway**, **No tolls** and **No ferry** offers | the FOSSGIS Valhalla at `valhalla1.openstreetmap.de` | **Own Valhalla instance** |
+| **Valhalla** | driving around toll roads, motorways and ferries, and the **No motorway**, **No tolls** and **No ferry** offers | the TREK services' Valhalla through this server, the FOSSGIS Valhalla at `valhalla1.openstreetmap.de` where it cannot answer (**Routing service**) | **Own Valhalla instance** |
 
 The public OSRM servers allow roughly one request a second. That is enough for a day plan and tight for a road trip, which routes every leg of every day: TREK spaces its requests and retries a refused one, but a long trip takes a while to fill in. An instance with many road trippers is better off with its own.
 

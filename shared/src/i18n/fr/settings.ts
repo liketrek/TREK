@@ -29,7 +29,14 @@ const settings: TranslationStrings = {
     'Votre propre instance OSRM. Vide utilise les serveurs publics, limités à environ une requête par seconde : suffisant pour une journée, juste pour un road trip. Prend effet après un redémarrage du serveur.',
   'settings.valhallaBase': 'Instance Valhalla propre',
   'settings.valhallaBaseHint':
-    'TREK utilise par défaut la Valhalla publique de FOSSGIS pour éviter les péages, autoroutes et ferries. Saisissez ici l’URL de votre propre Valhalla pour l’utiliser à la place. Si seule une instance de routage personnalisée est configurée, la Valhalla publique n’est pas utilisée. Après avoir saisi une URL personnalisée, redémarrez le serveur et rechargez la page.',
+    'Une Valhalla personnelle, interrogée lorsque le service d’itinéraire ci-dessus est réglé sur elle ou sur Automatique. Si seule une instance de routage personnalisée est configurée et qu’aucun service d’itinéraire n’est choisi, aucune Valhalla n’est interrogée. Après avoir saisi une URL, redémarrez le serveur et rechargez la page.',
+  'settings.valhallaProvider': 'Service d’itinéraire',
+  'settings.valhallaProviderHint':
+    'Répond à ce qu’OSRM ne sait pas faire : des itinéraires sans péages, autoroutes ni ferries, ainsi que les itinéraires, altitudes et chemins des randonnées. Les services TREK sont interrogés via ce serveur ; s’ils ne peuvent pas répondre, la Valhalla publique de FOSSGIS prend le relais. Automatique interroge les services TREK, sauf si une Valhalla personnelle ou seulement une instance de routage personnalisée est configurée.',
+  'settings.valhallaProviderOption.auto': 'Automatique',
+  'settings.valhallaProviderOption.trek': 'Services TREK',
+  'settings.valhallaProviderOption.fossgis': 'Valhalla publique (FOSSGIS)',
+  'settings.valhallaProviderOption.custom': 'Instance Valhalla personnelle',
   'settings.mapHint': "Modèle d'URL pour les tuiles de carte",
   'settings.mapProvider': 'Fournisseur de carte',
   'settings.mapProviderHint': 'Affecte les cartes Trip Planner et Journey. Atlas utilise toujours Leaflet.',

@@ -29,7 +29,14 @@ const settings: TranslationStrings = {
     '자체 OSRM 인스턴스입니다. 비워 두면 초당 약 한 번의 요청만 허용하는 공개 서버를 사용합니다. 하루치는 충분하지만 로드트립에는 빠듯합니다. 서버를 다시 시작해야 적용됩니다.',
   'settings.valhallaBase': '자체 Valhalla 인스턴스',
   'settings.valhallaBaseHint':
-    'TREK은 기본적으로 유료 도로, 고속도로, 페리를 피하기 위해 FOSSGIS의 공개 Valhalla를 사용합니다. 대신 자체 Valhalla를 사용하려면 여기에 URL을 입력하세요. 자체 라우팅 서버만 설정된 경우 공개 Valhalla는 사용되지 않습니다. 자체 URL을 입력한 후 서버를 재시작하고 페이지를 새로고침하세요.',
+    '자체 Valhalla입니다. 위의 경로 서비스가 이것 또는 자동으로 설정되어 있을 때 요청합니다. 자체 라우팅 서버만 설정되어 있고 경로 서비스를 선택하지 않았다면 어떤 Valhalla에도 요청하지 않습니다. URL을 입력한 후 서버를 재시작하고 페이지를 새로고침하세요.',
+  'settings.valhallaProvider': '경로 서비스',
+  'settings.valhallaProviderHint':
+    'OSRM이 할 수 없는 일을 처리합니다: 유료 도로, 고속도로, 페리를 피하는 경로와 투어의 경로, 고도, 길. TREK 서비스는 이 서버를 통해 요청되며, 응답할 수 없으면 FOSSGIS의 공개 Valhalla가 대신합니다. 자동은 자체 Valhalla나 자체 라우팅 서버만 설정되어 있지 않으면 TREK 서비스에 요청합니다.',
+  'settings.valhallaProviderOption.auto': '자동',
+  'settings.valhallaProviderOption.trek': 'TREK 서비스',
+  'settings.valhallaProviderOption.fossgis': '공개 Valhalla (FOSSGIS)',
+  'settings.valhallaProviderOption.custom': '자체 Valhalla',
   'settings.mapHint': '지도 타일 URL 템플릿',
   'settings.mapProvider': '지도 공급자',
   'settings.mapProviderHint': '여행 플래너 및 Journey 지도에 영향을 줍니다. Atlas는 항상 Leaflet을 사용합니다.',

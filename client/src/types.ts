@@ -30,6 +30,7 @@ import type {
   Tag,
   Category,
   AppearanceConfig,
+  ValhallaProvider,
   WeekStart,
 } from '@trek/shared'
 
@@ -126,6 +127,11 @@ export interface Settings {
    * operator turned the second engine off and "other ways" goes back to OSRM alone.
    */
   valhalla_base_url?: string
+  /**
+   * Which Valhalla answers: the public FOSSGIS one, the TREK services' one through the
+   * server's relay, or `valhalla_base_url`. Empty means not chosen; see valhallaBase().
+   */
+  routing_valhalla_provider?: ValhallaProvider | ''
   dark_mode: boolean | string
   /** Display currency for Costs. Empty/null = follow each trip's own currency. */
   default_currency: string | null

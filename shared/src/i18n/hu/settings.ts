@@ -29,7 +29,14 @@ const settings: TranslationStrings = {
     'Saját OSRM-példány. Üresen hagyva a nyilvános kiszolgálókat használja, amelyek másodpercenként körülbelül egy kérést engednek — egy napra elég, egy autós útra kevés. A kiszolgáló újraindítása után lép életbe.',
   'settings.valhallaBase': 'Saját Valhalla-példány',
   'settings.valhallaBaseHint':
-    'A TREK alapértelmezés szerint a FOSSGIS nyilvános Valhalláját használja a fizetős utak, autópályák és kompok elkerüléséhez. Itt megadhatja saját Valhallája URL-jét, hogy azt használja helyette. Ha csak saját útvonaltervező van beállítva, a nyilvános Valhalla nem használatos. Saját URL megadása után indítsa újra a szervert, és töltse újra az oldalt.',
+    'Saját Valhalla, amelyet akkor kérdez, ha a fenti útvonaltervező szolgáltatás rá vagy Automatikusra van állítva. Ha csak saját útvonaltervező van beállítva, és nincs kiválasztva szolgáltatás, egyik Valhalla sem kap kérdést. URL megadása után indítsa újra a szervert, és töltse újra az oldalt.',
+  'settings.valhallaProvider': 'Útvonaltervező szolgáltatás',
+  'settings.valhallaProviderHint':
+    'Arra válaszol, amire az OSRM nem képes: fizetős utak, autópályák vagy kompok nélküli útvonalakra, valamint a túrák útvonalaira, magasságaira és ösvényeire. A TREK-szolgáltatásokat ez a szerver kérdezi meg; ha nem tudnak válaszolni, a FOSSGIS nyilvános Valhallája veszi át. Az Automatikus a TREK-szolgáltatásokat kérdezi, hacsak nincs megadva saját Valhalla vagy csak saját útvonaltervező.',
+  'settings.valhallaProviderOption.auto': 'Automatikus',
+  'settings.valhallaProviderOption.trek': 'TREK-szolgáltatások',
+  'settings.valhallaProviderOption.fossgis': 'Nyilvános Valhalla (FOSSGIS)',
+  'settings.valhallaProviderOption.custom': 'Saját Valhalla-példány',
   'settings.mapHint': 'URL sablon a térképcsempékhez',
   'settings.mapProvider': 'Térkép szolgáltató',
   'settings.mapProviderHint': 'A Trip Planner és Journey térképekre érvényes. Az Atlas mindig Leafletet használ.',

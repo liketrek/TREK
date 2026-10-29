@@ -38,7 +38,14 @@ const settings: TranslationStrings = {
     'Sinu enda OSRM-server. Tühja välja korral kasutatakse avalikke servereid, mis lubavad umbes ühe päringu sekundis — piisav ühe päeva, kuid napp autoreisi jaoks. Jõustub pärast serveri taaskäivitamist.',
   'settings.valhallaBase': 'Oma Valhalla server',
   'settings.valhallaBaseHint':
-    'TREK kasutab tasuliste teede, kiirteede ja praamide vältimiseks vaikimisi avalikku FOSSGIS Valhallat. Enda Valhalla kasutamiseks sisesta siia selle URL. Kui seadistatud on ainult oma marsruutimisserver, avalikku Valhallat ei kasutata. Pärast oma URL-i sisestamist taaskäivita server ja laadi leht uuesti.',
+    'Oma Valhalla, millelt küsitakse, kui ülal olev marsruutimisteenus on seatud sellele või automaatsele. Kui seadistatud on ainult oma marsruutimisserver ja teenust pole valitud, ei küsita ühelgi Valhallal. Pärast URL-i sisestamist taaskäivita server ja laadi leht uuesti.',
+  'settings.valhallaProvider': 'Marsruutimisteenus',
+  'settings.valhallaProviderHint':
+    'Vastab sellele, mida OSRM ei oska: marsruudid ilma teemaksu, kiirteede või praamideta ning matkade marsruudid, kõrgused ja rajad. TREKi teenustelt küsitakse selle serveri kaudu; kui need ei saa vastata, võtab üle FOSSGIS-i avalik Valhalla. Automaatne küsib TREKi teenustelt, kui pole seadistatud oma Valhallat või ainult oma marsruutimisserverit.',
+  'settings.valhallaProviderOption.auto': 'Automaatne',
+  'settings.valhallaProviderOption.trek': 'TREKi teenused',
+  'settings.valhallaProviderOption.fossgis': 'Avalik Valhalla (FOSSGIS)',
+  'settings.valhallaProviderOption.custom': 'Oma Valhalla server',
   'settings.mapHint': 'Kaardipaanide URL-i mall',
   'settings.mapProvider': 'Kaarditeenus',
   'settings.mapProviderHint': 'Mõjutab reisiplaneerija ja reisilugude kaarte. Atlas kasutab alati Leafleti.',

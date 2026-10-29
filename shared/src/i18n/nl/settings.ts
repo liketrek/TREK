@@ -30,7 +30,14 @@ const settings: TranslationStrings = {
     'Een eigen OSRM-server. Leeg gebruikt de publieke servers, die ongeveer één verzoek per seconde toestaan — genoeg voor een dag, krap voor een roadtrip. Werkt na een herstart van de server.',
   'settings.valhallaBase': 'Eigen Valhalla-instantie',
   'settings.valhallaBaseHint':
-    'TREK gebruikt standaard de publieke Valhalla van FOSSGIS om tolwegen, snelwegen en veerboten te vermijden. Vul hier de URL van je eigen Valhalla in om die te gebruiken. Als alleen een eigen routeringsinstantie is ingesteld, wordt de publieke Valhalla niet gebruikt. Herstart na het invoeren van een eigen URL de server en laad de pagina opnieuw.',
+    'Een eigen Valhalla, gevraagd als de routeringsdienst hierboven daarop of op Automatisch staat. Als alleen een eigen routeringsinstantie is ingesteld en geen routeringsdienst gekozen, wordt geen Valhalla gevraagd. Herstart na het invoeren van een URL de server en laad de pagina opnieuw.',
+  'settings.valhallaProvider': 'Routeringsdienst',
+  'settings.valhallaProviderHint':
+    'Beantwoordt wat OSRM niet kan: routes zonder tol, snelwegen of veerboten, en de routes, hoogtes en paden van tochten. De TREK-diensten worden via deze server gevraagd; als ze niet kunnen antwoorden, neemt de publieke Valhalla van FOSSGIS het over. Automatisch vraagt de TREK-diensten, tenzij een eigen Valhalla of alleen een eigen routeringsinstantie is ingesteld.',
+  'settings.valhallaProviderOption.auto': 'Automatisch',
+  'settings.valhallaProviderOption.trek': 'TREK-diensten',
+  'settings.valhallaProviderOption.fossgis': 'Publieke Valhalla (FOSSGIS)',
+  'settings.valhallaProviderOption.custom': 'Eigen Valhalla-instantie',
   'settings.mapHint': 'URL-sjabloon voor kaarttegels',
   'settings.mapProvider': 'Kaartprovider',
   'settings.mapProviderHint': 'Geldt voor Trip Planner en Journey kaarten. Atlas gebruikt altijd Leaflet.',

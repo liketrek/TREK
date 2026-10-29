@@ -1,4 +1,5 @@
 import { useId, useState } from 'react'
+import type { ValhallaProvider } from '@trek/shared'
 import { useTranslation } from '../../i18n/TranslationContext'
 import { fs } from '../shared/DialogShell'
 import { INPUT, LABEL } from '../shared/dialogParts'
@@ -6,6 +7,7 @@ import { INPUT, LABEL } from '../shared/dialogParts'
 export interface RoutingDefaults {
   routing_base_url?: string
   valhalla_base_url?: string
+  routing_valhalla_provider?: ValhallaProvider
 }
 
 interface RoutingFieldsProps {
@@ -25,6 +27,14 @@ const ROUTERS = [
   { key: 'valhalla_base_url', label: 'settings.valhallaBase', hint: 'settings.valhallaBaseHint', placeholder: 'https://valhalla.example.org' },
 ] as const
 
+// '' is no choice of the admin: the instance then decides as before the choice existed.
+const PROVIDERS = [
+  { value: '', label: 'settings.valhallaProviderOption.auto' },
+  { value: 'trek', label: 'settings.valhallaProviderOption.trek' },
+  { value: 'fossgis', label: 'settings.valhallaProviderOption.fossgis' },
+  { value: 'custom', label: 'settings.valhallaProviderOption.custom' },
+] as const
+
 // The phone screen's look, unchanged: MAdminDefaultUserSettings passes its own hint class.
 const PHONE = {
   wrap: 'min-w-0 space-y-1.5',
@@ -41,6 +51,12 @@ const DESKTOP = {
   label: LABEL,
   reset: 'mb-[5px] rounded-full font-medium text-content-muted underline-offset-2 hover:text-content hover:underline disabled:opacity-50',
   input: INPUT,
+}
+
+function FieldHint({ id, text, hintClassName }: { id: string; text: string; hintClassName?: string }) {
+  return hintClassName !== undefined
+    ? <p id={id} className={hintClassName}>{text}</p>
+    : <p id={id} className="m-0 mt-1 leading-normal text-content-faint" style={fs(11)}>{text}</p>
 }
 
 function RoutingUrlField({ router, defaults, onSave, onReset, hintClassName }: RoutingFieldsProps & { router: typeof ROUTERS[number] }) {
@@ -81,14 +97,45 @@ function RoutingUrlField({ router, defaults, onSave, onReset, hintClassName }: R
         aria-describedby={`${id}-hint`}
         className={look.input}
       />
-      {phone
-        ? <p id={`${id}-hint`} className={hintClassName}>{t(router.hint)}</p>
-        : <p id={`${id}-hint`} className="m-0 mt-1 leading-normal text-content-faint" style={fs(11)}>{t(router.hint)}</p>}
+      <FieldHint id={`${id}-hint`} text={t(router.hint)} hintClassName={hintClassName} />
+    </div>
+  )
+}
+
+/** Which Valhalla answers what OSRM cannot; picking "automatic" clears the choice. */
+function RoutingProviderField({ defaults, onSave, onReset, hintClassName }: RoutingFieldsProps) {
+  const { t } = useTranslation()
+  const id = useId()
+  const [saving, setSaving] = useState(false)
+  const phone = hintClassName !== undefined
+  const look = phone ? PHONE : DESKTOP
+  const pick = async (value: string) => {
+    setSaving(true)
+    try {
+      if (value === '') await onReset('routing_valhalla_provider')
+      else await onSave({ routing_valhalla_provider: value as ValhallaProvider })
+    } finally { setSaving(false) }
+  }
+  return (
+    <div className={`${look.wrap} ${!phone && saving ? 'opacity-60' : ''}`} aria-busy={saving}>
+      <div className={look.head}>
+        <label htmlFor={id} className={look.label}>{t('settings.valhallaProvider')}</label>
+      </div>
+      <select id={id} value={defaults.routing_valhalla_provider ?? ''} disabled={saving}
+        onChange={e => void pick(e.target.value)} aria-describedby={`${id}-hint`} className={look.input}>
+        {PROVIDERS.map(option => <option key={option.value} value={option.value}>{t(option.label)}</option>)}
+      </select>
+      <FieldHint id={`${id}-hint`} text={t('settings.valhallaProviderHint')} hintClassName={hintClassName} />
     </div>
   )
 }
 
 export default function RoutingInstanceFields(props: RoutingFieldsProps) {
   const phone = props.hintClassName !== undefined
-  return <div className={phone ? 'flex flex-col gap-3' : 'flex flex-col gap-4'}>{ROUTERS.map(router => <RoutingUrlField key={router.key} router={router} {...props} />)}</div>
+  return (
+    <div className={phone ? 'flex flex-col gap-3' : 'flex flex-col gap-4'}>
+      <RoutingProviderField {...props} />
+      {ROUTERS.map(router => <RoutingUrlField key={router.key} router={router} {...props} />)}
+    </div>
+  )
 }

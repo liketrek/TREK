@@ -1,3 +1,5 @@
+import { resolveValhallaProvider, type ValhallaRelayAction } from '@trek/shared'
+import { valhallaRelayRepo } from '../../repo/valhallaRelayRepo'
 import { useSettingsStore } from '../../store/settingsStore'
 import { decodePolyline } from './transitGeometry'
 import { haversineKm } from '../../utils/geo'
@@ -37,6 +39,18 @@ import type { Waypoint, SnappedWaypoint, RouteAvoidClass } from '../../types'
 
 /** The public instance, matching how the OSRM defaults are shipped rather than configured. */
 const FOSSGIS_VALHALLA = 'https://valhalla1.openstreetmap.de'
+
+/**
+ * The TREK services' Valhalla, reached through this server's relay: same origin, so no
+ * connect-src to add, and the installation key stays on the server.
+ */
+const TREK_VALHALLA = '/api/routing/valhalla'
+
+/**
+ * How long this tab leaves the relay alone after it could not answer: signed out on a
+ * shared page, the allowance spent, the services down. FOSSGIS answers meanwhile.
+ */
+const RELAY_REST_MS = 10 * 60_000
 
 /**
  * How far Valhalla may look for a road under a point, in metres.
@@ -169,21 +183,33 @@ export interface ValhallaRun {
   snapped: SnappedWaypoint[]
 }
 
+/** Until when this tab asks FOSSGIS instead of a relay that could not answer. */
+let relayRestingUntil = 0
+
 /**
  * The instance's Valhalla, or null when it should not ask one.
  *
- * Blank falls back to the public instance, the same reading `routing_base_url` gets —
+ * The admin's choice (`routing_valhalla_provider`) stands. Without one, an own Valhalla
+ * is asked, and otherwise the TREK services through the relay, with FOSSGIS behind it —
  * with one condition. An operator who filled in their OWN router chose deliberately
  * against the public hosts, usually because their instance is not supposed to talk to
- * third parties at all, and quietly adding a second public host they never asked for
- * would undo that choice. They lose nothing: a self-hosted OSRM built through the MLD
+ * third parties at all, and quietly adding a second host they never asked for would
+ * undo that choice. They lose nothing: a self-hosted OSRM built through the MLD
  * pipeline answers `exclude` on its own, which is exactly the fallback below.
  */
 export function valhallaBase(): string | null {
   const settings = useSettingsStore.getState().settings
-  const configured = settings.valhalla_base_url?.trim()
-  if (configured) return configured.replace(/\/+$/, '')
-  return settings.routing_base_url?.trim() ? null : FOSSGIS_VALHALLA
+  const own = settings.valhalla_base_url?.trim().replace(/\/+$/, '') ?? ''
+  const provider = resolveValhallaProvider({
+    provider: settings.routing_valhalla_provider,
+    valhallaUrl: own,
+    routingUrl: settings.routing_base_url,
+    // Whether the TREK services can answer is the relay's to say; until it said no, ask it.
+    trekAvailable: Date.now() >= relayRestingUntil,
+  })
+  if (provider === 'custom') return own
+  if (provider === 'trek') return TREK_VALHALLA
+  return provider === 'fossgis' ? FOSSGIS_VALHALLA : null
 }
 
 /** True when this engine can be asked at all, so callers can skip building a request. */
@@ -355,9 +381,57 @@ export async function valhallaTurn(base: string, signal?: AbortSignal): Promise<
   lastPublicAskAt = Date.now()
 }
 
-/** Forget the last turn, for tests that start from a quiet host. */
+/** Forget the last turn and a resting relay, for tests that start from a quiet host. */
 export function resetValhallaTurns(): void {
   lastPublicAskAt = 0
+  relayRestingUntil = 0
+}
+
+/**
+ * The relay's statuses that say it cannot answer for the TREK services right now: no
+ * session (a shared page), no key, a body it does not take, an allowance spent, a host
+ * that is down. A 400 is Valhalla's own refusal of the way and is read as such.
+ */
+function relayCannotAnswer(status: number): boolean {
+  return status === 401 || status === 403 || status === 413 || status === 429 || status >= 500
+}
+
+async function askRelay(action: ValhallaRelayAction, body: object, signal?: AbortSignal): Promise<Response | null> {
+  try {
+    const response = await valhallaRelayRepo.ask(action, body, signal)
+    if (!relayCannotAnswer(response.status)) return response
+  } catch (err) {
+    if (signal?.aborted) throw err
+  }
+  relayRestingUntil = Date.now() + RELAY_REST_MS
+  return null
+}
+
+/**
+ * One question to a Valhalla, in its turn where the host is the public one. The relay
+ * is asked first where it is the base; where it cannot answer, the same question goes
+ * to FOSSGIS without a word, so a route never fails because of it.
+ */
+export async function valhallaPost(
+  base: string,
+  action: ValhallaRelayAction,
+  body: object,
+  signal?: AbortSignal,
+): Promise<Response> {
+  if (base === TREK_VALHALLA && Date.now() >= relayRestingUntil) {
+    const relayed = await askRelay(action, body, signal)
+    if (relayed) return relayed
+  }
+  const host = base === TREK_VALHALLA ? FOSSGIS_VALHALLA : base
+  await valhallaTurn(host, signal)
+  return fetch(`${host}/${action}`, {
+    method: 'POST',
+    // A browser cannot set User-Agent, so this is the whole of what FOSSGIS asks a
+    // client to identify itself with. It costs a preflight, which is answered.
+    headers: { 'Content-Type': 'application/json', 'X-Client-Id': 'trek' },
+    body: JSON.stringify(body),
+    signal,
+  })
 }
 
 /**
@@ -418,16 +492,7 @@ function routeBody(
 /** The parsed answer to one POST, `NO_PATH` when the router found no way, or null for every other failure. */
 async function postRoute(base: string, body: Record<string, unknown>, signal?: AbortSignal): Promise<unknown> {
   try {
-    await valhallaTurn(base, signal)
-    if (signal?.aborted) return null
-    const response = await fetch(`${base}/route`, {
-      method: 'POST',
-      // A browser cannot set User-Agent, so this is the whole of what FOSSGIS asks a
-      // client to identify itself with. It costs a preflight, which is answered.
-      headers: { 'Content-Type': 'application/json', 'X-Client-Id': 'trek' },
-      body: JSON.stringify(body),
-      signal,
-    })
+    const response = await valhallaPost(base, 'route', body, signal)
     if (!response.ok) {
       // 404 and 405 mean this URL is not a Valhalla — an OSRM pointed at by mistake,
       // or a proxy that swallowed the path. Every other status is about this request:
@@ -506,22 +571,15 @@ export async function valhallaTraceAttributes(
   const shape = line.filter((_, index) => index % step === 0 || index === line.length - 1).map(([lat, lon]) => ({ lat, lon }))
   const bounded = signal ? AbortSignal.any([signal, AbortSignal.timeout(TRACE_TIMEOUT_MS)]) : AbortSignal.timeout(TRACE_TIMEOUT_MS)
   try {
-    await valhallaTurn(base, signal)
-    if (signal?.aborted) return null
-    const response = await fetch(`${base}/trace_attributes`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Client-Id': 'trek' },
-      body: JSON.stringify({
-        shape,
-        ...TRACE_COSTING[matching],
-        shape_match: 'map_snap',
-        filters: {
-          attributes: traceAttributesFor(matching),
-          action: 'include',
-        },
-      }),
-      signal: bounded,
-    })
+    const response = await valhallaPost(base, 'trace_attributes', {
+      shape,
+      ...TRACE_COSTING[matching],
+      shape_match: 'map_snap',
+      filters: {
+        attributes: traceAttributesFor(matching),
+        action: 'include',
+      },
+    }, bounded)
     if (!response.ok) return null
     return await response.json()
   } catch {

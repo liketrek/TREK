@@ -19,7 +19,14 @@ const settings: TranslationStrings = {
     'Una instància pròpia d’OSRM. Buit fa servir els servidors públics, que permeten aproximadament una petició per segon: prou per a un dia, just per a un viatge llarg. Té efecte després de reiniciar el servidor.',
   'settings.valhallaBase': 'Instància Valhalla pròpia',
   'settings.valhallaBaseHint':
-    'TREK utilitza per defecte la Valhalla pública de FOSSGIS per evitar peatges, autopistes i ferris. Introdueix aquí l’URL de la teva Valhalla per utilitzar-la en lloc de la pública. Si només hi ha una instància d’encaminament pròpia configurada, no s’utilitza la Valhalla pública. Després d’introduir una URL pròpia, reinicia el servidor i torna a carregar la pàgina.',
+    'Una Valhalla pròpia, consultada quan el servei de rutes de dalt hi està configurat o està en Automàtic. Si només hi ha una instància d’encaminament pròpia configurada i no s’ha triat cap servei de rutes, no es consulta cap Valhalla. Després d’introduir una URL, reinicia el servidor i torna a carregar la pàgina.',
+  'settings.valhallaProvider': 'Servei de rutes',
+  'settings.valhallaProviderHint':
+    'Respon el que OSRM no pot: rutes sense peatges, autopistes ni ferris, i les rutes, altituds i camins de les excursions. Els serveis de TREK es consulten a través d’aquest servidor; si no poden respondre, pren el relleu la Valhalla pública de FOSSGIS. Automàtic consulta els serveis de TREK, tret que hi hagi configurada una Valhalla pròpia o només una instància d’encaminament pròpia.',
+  'settings.valhallaProviderOption.auto': 'Automàtic',
+  'settings.valhallaProviderOption.trek': 'Serveis de TREK',
+  'settings.valhallaProviderOption.fossgis': 'Valhalla pública (FOSSGIS)',
+  'settings.valhallaProviderOption.custom': 'Instància de Valhalla pròpia',
   'settings.mapHint': "Plantilla d'URL per als mosaics del mapa",
   'settings.mapProvider': 'Proveïdor de mapa',
   'settings.mapProviderHint': 'Afecta els mapes de Trip Planner i Journey. Atles sempre utilitza Leaflet.',

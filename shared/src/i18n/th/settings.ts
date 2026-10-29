@@ -601,7 +601,14 @@ const settings: TranslationStrings = {
     'อินสแตนซ์ OSRM ของคุณเอง หากเว้นว่างจะใช้เซิร์ฟเวอร์สาธารณะ ซึ่งรองรับราวหนึ่งคำขอต่อวินาที — เพียงพอสำหรับหนึ่งวันแต่ค่อนข้างจำกัดสำหรับโรดทริป มีผลหลังรีสตาร์ตเซิร์ฟเวอร์',
   'settings.valhallaBase': 'อินสแตนซ์ Valhalla ของคุณเอง',
   'settings.valhallaBaseHint':
-    'โดยค่าเริ่มต้น TREK ใช้ FOSSGIS Valhalla สาธารณะเพื่อหลีกเลี่ยงถนนเก็บค่าผ่านทาง ทางด่วน และเรือเฟอร์รี่ ป้อน URL Valhalla ของคุณเองที่นี่เพื่อใช้แทน หากตั้งค่าเฉพาะอินสแตนซ์เส้นทางแบบกำหนดเอง จะไม่ใช้ Valhalla สาธารณะ หลังป้อน URL แบบกำหนดเอง ให้รีสตาร์ตเซิร์ฟเวอร์และโหลดหน้านี้ใหม่',
+    'Valhalla ของคุณเอง จะถูกถามเมื่อบริการเส้นทางด้านบนตั้งเป็นตัวนี้หรือเป็นอัตโนมัติ หากตั้งค่าเฉพาะเซิร์ฟเวอร์เส้นทางของคุณเองและไม่ได้เลือกบริการเส้นทาง จะไม่ถาม Valhalla ใดเลย หลังป้อน URL ให้รีสตาร์ตเซิร์ฟเวอร์และโหลดหน้านี้ใหม่',
+  'settings.valhallaProvider': 'บริการเส้นทาง',
+  'settings.valhallaProviderHint':
+    'ตอบในสิ่งที่ OSRM ทำไม่ได้: เส้นทางที่เลี่ยงทางเก็บค่าผ่านทาง ทางด่วน หรือเรือเฟอร์รี่ รวมถึงเส้นทาง ระดับความสูง และทางเดินของทัวร์ บริการ TREK จะถูกถามผ่านเซิร์ฟเวอร์นี้ หากตอบไม่ได้ Valhalla สาธารณะของ FOSSGIS จะรับช่วงต่อ โหมดอัตโนมัติจะถามบริการ TREK เว้นแต่ตั้งค่า Valhalla ของคุณเองหรือเฉพาะเซิร์ฟเวอร์เส้นทางของคุณเอง',
+  'settings.valhallaProviderOption.auto': 'อัตโนมัติ',
+  'settings.valhallaProviderOption.trek': 'บริการ TREK',
+  'settings.valhallaProviderOption.fossgis': 'Valhalla สาธารณะ (FOSSGIS)',
+  'settings.valhallaProviderOption.custom': 'Valhalla ของคุณเอง',
   'settings.notifyCollectionInvite': 'คำเชิญเข้าคอลเลกชัน',
   'settings.notifySynologySessionCleared': 'ล้างเซสชัน Synology แล้ว',
   'settings.notifyPluginNotification': 'การแจ้งเตือนจากปลั๊กอิน',

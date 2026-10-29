@@ -29,7 +29,14 @@ const settings: TranslationStrings = {
     '你自己的 OSRM 实例。留空则使用公共服务器，约每秒一个请求 — 单日够用，长途自驾则吃紧。需重启服务器后生效。',
   'settings.valhallaBase': '自建 Valhalla 实例',
   'settings.valhallaBaseHint':
-    'TREK 默认使用 FOSSGIS 的公共 Valhalla 来避开收费道路、高速公路和渡轮。若要改用自己的 Valhalla，请在此输入网址。如果只配置了自己的路线规划服务器，就不会使用公共 Valhalla。输入自己的网址后，请重启服务器并重新加载页面。',
+    '你自己的 Valhalla，当上方的路线服务设为它或设为“自动”时使用。如果只配置了自己的路线规划服务器且未选择路线服务，则不会请求任何 Valhalla。输入网址后，请重启服务器并重新加载页面。',
+  'settings.valhallaProvider': '路线服务',
+  'settings.valhallaProviderHint':
+    '处理 OSRM 做不到的事：避开收费道路、高速公路或渡轮的路线，以及行程的路线、海拔和道路。TREK 服务通过此服务器请求；无法应答时，由 FOSSGIS 的公共 Valhalla 接手。“自动”会请求 TREK 服务，除非已设置自己的 Valhalla 或只设置了自己的路线规划服务器。',
+  'settings.valhallaProviderOption.auto': '自动',
+  'settings.valhallaProviderOption.trek': 'TREK 服务',
+  'settings.valhallaProviderOption.fossgis': '公共 Valhalla（FOSSGIS）',
+  'settings.valhallaProviderOption.custom': '自己的 Valhalla',
   'settings.mapHint': '地图瓦片 URL 模板',
   'settings.mapProvider': '地图提供商',
   'settings.mapProviderHint': '影响行程规划器和旅程地图。足迹始终使用 Leaflet。',

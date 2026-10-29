@@ -10,7 +10,7 @@
 import { db as testDb } from '../../../src/db/database';
 import { Settings } from '../../../src/db/entities/Settings.entity';
 import { Trips } from '../../../src/db/entities/Trips.entity';
-import { SettingsService } from '../../../src/nest/settings/settings.service';
+import { SettingsService, isAdminOnlyEndpointSetting } from '../../../src/nest/settings/settings.service';
 import { TripMembershipModule } from '../../../src/nest/trip-membership/trip-membership.module';
 import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
 import { addTripMember, createTrip, createUser } from '../../helpers/factories';
@@ -392,6 +392,22 @@ describe('legacy quirk fixes', () => {
     // Vacay's 0/1 numbers are not this setting's values either.
     await expect(svc.setAdminUserDefaults({ week_start: 0 })).rejects.toThrow(/Invalid value for week_start/);
     expect((await svc.getAdminUserDefaults()).week_start).toBeUndefined();
+  });
+
+  it('SET-SVC-041 — the routing service default takes fossgis, trek or custom and refuses anything else', async () => {
+    await svc.setAdminUserDefaults({ routing_valhalla_provider: 'trek' });
+    expect((await svc.getAdminUserDefaults()).routing_valhalla_provider).toBe('trek');
+    await expect(svc.setAdminUserDefaults({ routing_valhalla_provider: 'osrm' })).rejects.toThrow(
+      /Invalid value for routing_valhalla_provider/,
+    );
+    await svc.setAdminUserDefaults({ routing_valhalla_provider: null });
+    expect((await svc.getAdminUserDefaults()).routing_valhalla_provider).toBeUndefined();
+  });
+
+  it('SET-SVC-042 — only an admin picks the routing service; clearing a personal row stays open', () => {
+    expect(isAdminOnlyEndpointSetting('routing_valhalla_provider', 'fossgis')).toBe(true);
+    expect(isAdminOnlyEndpointSetting('routing_valhalla_provider', '')).toBe(false);
+    expect(isAdminOnlyEndpointSetting('routing_valhalla_provider', null)).toBe(false);
   });
 
   it('SET-SVC-028 — a nulled defaultable key falls through to the admin default', async () => {

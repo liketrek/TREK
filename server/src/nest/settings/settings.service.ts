@@ -16,6 +16,7 @@ import {
   compactPlannerTripViews,
   normalizeAppearance,
   plannerTripViewsSchema,
+  valhallaProviderSchema,
   type PlannerTripViews,
 } from '@trek/shared';
 
@@ -71,6 +72,14 @@ export const DEFAULTABLE_USER_SETTING_KEYS = [
    * party they never asked for.
    */
   'valhalla_base_url',
+  /**
+   * Which Valhalla answers: `fossgis` (the public one), `trek` (the TREK services' one,
+   * relayed by this server with the installation key) or `custom` (valhalla_base_url).
+   * Unset reads as before the choice existed: an own Valhalla is custom, an own OSRM
+   * alone means none, and otherwise the TREK services where they can be asked
+   * (`resolveValhallaProvider`). Same-origin or public, so no restart is needed.
+   */
+  'routing_valhalla_provider',
   // CARTO stamps an "API KEY REQUIRED" watermark into keyless tiles (#2054), and
   // the key is per-instance rather than per-person: defaultable so one admin
   // value clears the watermark for everybody at once.
@@ -104,6 +113,7 @@ const VALID_VALUES: Partial<Record<DefaultableKey, unknown[]>> = {
   dark_mode: [true, false, 'light', 'dark', 'auto'],
   map_provider: ['leaflet', 'mapbox-gl', 'maplibre-gl'],
   llm_provider: ['local', 'openai', 'anthropic'],
+  routing_valhalla_provider: [...valhallaProviderSchema.options],
 };
 
 const BOOLEAN_KEYS = new Set<DefaultableKey>([
@@ -130,6 +140,9 @@ const BOOLEAN_KEYS = new Set<DefaultableKey>([
  * the whole app stops routing with no catchable error. Refusing it here means
  * the caller finds out instead of silently breaking their own map.
  *
+ * `routing_valhalla_provider` picks between those same instance engines, so it is
+ * set where they are.
+ *
  * Clearing stays open to everyone: the Settings sections send an empty string
  * while the field is hidden, so a row written before this rule cleans itself up
  * on the next save instead of blocking it.
@@ -139,6 +152,7 @@ export function isAdminOnlyEndpointSetting(key: string, value: unknown): boolean
     return typeof value === 'string' && value.trim() !== '';
   }
   if (key === 'llm_provider') return value === 'local';
+  if (key === 'routing_valhalla_provider') return typeof value === 'string' && value.trim() !== '';
   return false;
 }
 

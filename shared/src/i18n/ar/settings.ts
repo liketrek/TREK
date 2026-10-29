@@ -28,7 +28,14 @@ const settings: TranslationStrings = {
     'خادم OSRM خاص بك. اتركه فارغًا لاستخدام الخوادم العامة التي تسمح بطلب واحد تقريبًا في الثانية — يكفي ليوم واحد، وضيّق لرحلة برية. يسري بعد إعادة تشغيل الخادم.',
   'settings.valhallaBase': 'خادم Valhalla خاص بك',
   'settings.valhallaBaseHint':
-    'يستخدم TREK خدمة Valhalla العامة من FOSSGIS افتراضيًا لتجنب الطرق ذات الرسوم والطرق السريعة والعبّارات. أدخل رابط خادم Valhalla الخاص بك هنا لاستخدامه بدلًا منها. إذا تم إعداد خادم توجيه خاص فقط، فلن تُستخدم خدمة Valhalla العامة. بعد إدخال رابط خاص، أعد تشغيل الخادم وحمّل الصفحة مجددًا.',
+    'خادم Valhalla خاص بك، يُسأل عندما تكون خدمة التوجيه أعلاه مضبوطة عليه أو على «تلقائي». إذا لم يُضبط سوى خادم توجيه خاص ولم تُختر أي خدمة توجيه، فلا يُسأل أي خادم Valhalla. بعد إدخال الرابط، أعد تشغيل الخادم وحمّل الصفحة مجددًا.',
+  'settings.valhallaProvider': 'خدمة التوجيه',
+  'settings.valhallaProviderHint':
+    'تجيب عمّا لا يستطيعه OSRM: مسارات بلا طرق برسوم أو طرق سريعة أو عبّارات، ومسارات الجولات وارتفاعاتها وطرقها. تُسأل خدمات TREK عبر هذا الخادم؛ وإذا تعذّر عليها الرد تتولى خدمة Valhalla العامة من FOSSGIS المهمة. يسأل الوضع التلقائي خدمات TREK ما لم يُضبط خادم Valhalla خاص أو خادم توجيه خاص فقط.',
+  'settings.valhallaProviderOption.auto': 'تلقائي',
+  'settings.valhallaProviderOption.trek': 'خدمات TREK',
+  'settings.valhallaProviderOption.fossgis': 'Valhalla العامة (FOSSGIS)',
+  'settings.valhallaProviderOption.custom': 'خادم Valhalla خاص',
   'settings.mapHint': 'قالب URL لبلاطات الخريطة',
   'settings.mapProvider': 'مزود الخريطة',
   'settings.mapProviderHint': 'يؤثر على خرائط Trip Planner و Journey. يستخدم Atlas دائمًا Leaflet.',

@@ -29,7 +29,14 @@ const settings: TranslationStrings = {
     'Vlastní instance OSRM. Prázdné použije veřejné servery s limitem asi jednoho požadavku za sekundu — na den to stačí, na road trip je to málo. Projeví se po restartu serveru.',
   'settings.valhallaBase': 'Vlastní instance Valhalla',
   'settings.valhallaBaseHint':
-    'TREK ve výchozím nastavení používá veřejnou Valhallu FOSSGIS k vyhýbání se mýtnému, dálnicím a trajektům. Zde můžete zadat URL vlastní Valhally a používat ji místo veřejné. Pokud je nastavena pouze vlastní směrovací instance, veřejná Valhalla se nepoužije. Po zadání vlastní URL restartujte server a znovu načtěte stránku.',
+    'Vlastní Valhalla, dotazovaná, když je směrovací služba výše nastavena na ni nebo na Automaticky. Pokud je nastavena jen vlastní směrovací instance a žádná směrovací služba není zvolena, žádná Valhalla se nedotazuje. Po zadání URL restartujte server a znovu načtěte stránku.',
+  'settings.valhallaProvider': 'Směrovací služba',
+  'settings.valhallaProviderHint':
+    'Odpovídá na to, co OSRM neumí: trasy bez mýtného, dálnic nebo trajektů a trasy, výšky a cesty výletů. Služby TREK se dotazují přes tento server; když nemohou odpovědět, převezme to veřejná Valhalla FOSSGIS. Automaticky se ptá služeb TREK, pokud není nastavena vlastní Valhalla nebo jen vlastní směrovací instance.',
+  'settings.valhallaProviderOption.auto': 'Automaticky',
+  'settings.valhallaProviderOption.trek': 'Služby TREK',
+  'settings.valhallaProviderOption.fossgis': 'Veřejná Valhalla (FOSSGIS)',
+  'settings.valhallaProviderOption.custom': 'Vlastní instance Valhally',
   'settings.mapHint': 'URL šablony pro mapové dlaždice',
   'settings.mapProvider': 'Poskytovatel mapy',
   'settings.mapProviderHint': 'Ovlivňuje mapy v Trip Planneru a Journey. Atlas vždy používá Leaflet.',

@@ -92,6 +92,7 @@ export const MANAGED_LOCKED_SETTING_KEYS = [
   'oidc_registration',
   'openweather_api_key',
   'routing_base_url',
+  'routing_valhalla_provider',
   // The operator issues a managed install its key through TREK_SERVICES_KEY.
   'service_key',
   'smtp_from',

@@ -38,7 +38,14 @@ const settings: TranslationStrings = {
     'An OSRM instance of your own. Empty uses the public servers, which allow about one request a second — enough for a day, tight for a road trip. Takes effect after a server restart.',
   'settings.valhallaBase': 'Own Valhalla instance',
   'settings.valhallaBaseHint':
-    'TREK uses the public FOSSGIS Valhalla by default to avoid toll roads, motorways and ferries. Enter your own Valhalla URL here to use it instead. If only a custom routing instance is configured, the public Valhalla is not used. After entering a custom URL, restart the server and reload the page.',
+    'A Valhalla of your own, asked when the routing service above is set to it or to automatic. If only an own routing engine is configured and no routing service is chosen, no Valhalla is asked. After entering a URL, restart the server and reload the page.',
+  'settings.valhallaProvider': 'Routing service',
+  'settings.valhallaProviderHint':
+    'Answers what OSRM cannot: routes that avoid tolls, motorways or ferries, and the routes, heights and ways of tours. The TREK services are asked through this server; where they cannot answer, the public FOSSGIS Valhalla takes over. Automatic asks the TREK services unless an own Valhalla or only an own routing engine is set.',
+  'settings.valhallaProviderOption.auto': 'Automatic',
+  'settings.valhallaProviderOption.trek': 'TREK services',
+  'settings.valhallaProviderOption.fossgis': 'Public Valhalla (FOSSGIS)',
+  'settings.valhallaProviderOption.custom': 'Own Valhalla instance',
   'settings.mapHint': 'URL template for map tiles',
   'settings.mapProvider': 'Map Provider',
   'settings.mapProviderHint': 'Affects Trip Planner and Journey maps. Atlas always uses Leaflet.',

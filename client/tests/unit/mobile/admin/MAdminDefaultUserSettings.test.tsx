@@ -1,4 +1,4 @@
-// FE-MOB-MDUS-001 to FE-MOB-MDUS-028
+// FE-MOB-MDUS-001 to FE-MOB-MDUS-030
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor, within, fireEvent } from '../../../helpers/render';
 import userEvent from '@testing-library/user-event';
@@ -463,5 +463,40 @@ describe('MAdminDefaultUserSettings week start (#2029)', () => {
     await user.click(screen.getByRole('tab', { name: 'Saturday' }));
     await waitFor(() => expect(screen.getByRole('tab', { name: 'Saturday' })).toHaveAttribute('aria-selected', 'true'));
     expect(puts).toEqual([{ week_start: 'saturday' }]);
+  });
+});
+
+describe('MAdminDefaultUserSettings, the routing service', () => {
+  beforeEach(() => {
+    resetAllStores();
+    seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
+  });
+
+  it('FE-MOB-MDUS-029: starts on automatic, saves a chosen service and clears it again', async () => {
+    const { puts } = stubDefaults();
+    render(<MAdminDefaultUserSettings />);
+    const picker = await screen.findByRole('combobox', { name: 'Routing service' });
+    expect(picker).toHaveValue('');
+
+    fireEvent.change(picker, { target: { value: 'trek' } });
+    await waitFor(() => expect(puts).toEqual([{ routing_valhalla_provider: 'trek' }]));
+    await waitFor(() => expect(picker).toHaveValue('trek'));
+    await waitFor(() => expect(picker).toBeEnabled());
+
+    fireEvent.change(picker, { target: { value: '' } });
+    await waitFor(() => expect(puts[1]).toEqual({ routing_valhalla_provider: null }));
+    await waitFor(() => expect(picker).toHaveValue(''));
+  });
+
+  it('FE-MOB-MDUS-030: shows the stored choice and hides it on a managed instance', async () => {
+    stubDefaults({ routing_valhalla_provider: 'fossgis' });
+    const { unmount } = render(<MAdminDefaultUserSettings />);
+    expect(await screen.findByRole('combobox', { name: 'Routing service' })).toHaveValue('fossgis');
+    unmount();
+
+    seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin(), managed: true });
+    render(<MAdminDefaultUserSettings />);
+    await screen.findByText('Default User Settings');
+    expect(screen.queryByRole('combobox', { name: 'Routing service' })).not.toBeInTheDocument();
   });
 });

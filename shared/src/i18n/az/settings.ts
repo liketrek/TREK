@@ -42,7 +42,14 @@ const settings: TranslationStrings = {
     'Öz OSRM instansiyanız. Sahə boş olduqda saniyədə təxminən bir sorğuya icazə verən ictimai serverlər istifadə edilir — bu, bir günlük plan üçün kifayətdir, avtomobil səyahəti üçün isə məhdud ola bilər. Server yenidən başladıldıqdan sonra qüvvəyə minir.',
   'settings.valhallaBase': 'Şəxsi Valhalla instansiyası',
   'settings.valhallaBaseHint':
-    'TREK ödənişli yollardan, avtomagistrallardan və bərələrdən yayınmaq üçün standart olaraq ictimai FOSSGIS Valhalla xidmətindən istifadə edir. Əvəzində öz Valhalla URL-inizdən istifadə etmək üçün onu buraya daxil edin. Yalnız fərdi marşrut instansiyası konfiqurasiya edilərsə, ictimai Valhalla istifadə olunmur. Fərdi URL daxil etdikdən sonra serveri yenidən başladın və səhifəni yeniləyin.',
+    'Öz Valhalla-nız; yuxarıdakı marşrut xidməti ona və ya Avtomatik rejimə qurulduqda soruşulur. Yalnız öz marşrut instansiyanız konfiqurasiya edilibsə və marşrut xidməti seçilməyibsə, heç bir Valhalla soruşulmur. URL daxil etdikdən sonra serveri yenidən başladın və səhifəni yeniləyin.',
+  'settings.valhallaProvider': 'Marşrut xidməti',
+  'settings.valhallaProviderHint':
+    'OSRM-in bacarmadığına cavab verir: ödənişli yollar, avtomagistrallar və ya bərələr olmadan marşrutlar, həmçinin turların marşrutları, hündürlükləri və cığırları. TREK xidmətləri bu server vasitəsilə soruşulur; cavab verə bilmədikdə ictimai FOSSGIS Valhalla əvəz edir. Avtomatik rejim, öz Valhalla-nız və ya yalnız öz marşrut instansiyanız təyin edilməyibsə, TREK xidmətlərini soruşur.',
+  'settings.valhallaProviderOption.auto': 'Avtomatik',
+  'settings.valhallaProviderOption.trek': 'TREK xidmətləri',
+  'settings.valhallaProviderOption.fossgis': 'İctimai Valhalla (FOSSGIS)',
+  'settings.valhallaProviderOption.custom': 'Öz Valhalla instansiyası',
   'settings.mapHint': 'Xəritə plitələri üçün URL şablonu',
   'settings.mapProvider': 'Xəritə provayderi',
   'settings.mapProviderHint':

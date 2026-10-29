@@ -29,7 +29,14 @@ const settings: TranslationStrings = {
     'En egen OSRM-instans. Tomt använder de publika servrarna, som tillåter ungefär en förfrågan per sekund – nog för en dag, knappt för en bilresa. Träder i kraft efter omstart av servern.',
   'settings.valhallaBase': 'Egen Valhalla-instans',
   'settings.valhallaBaseHint':
-    'TREK använder som standard FOSSGIS publika Valhalla för att undvika vägtullar, motorvägar och färjor. Ange URL:en till din egen Valhalla här för att använda den i stället. Om bara en egen ruttserver är konfigurerad används inte den publika Valhalla. Starta om servern och ladda om sidan efter att du angett en egen URL.',
+    'En egen Valhalla, som tillfrågas när ruttjänsten ovan är inställd på den eller på Automatiskt. Om bara en egen ruttserver är konfigurerad och ingen ruttjänst är vald tillfrågas ingen Valhalla. Starta om servern och ladda om sidan efter att du angett en URL.',
+  'settings.valhallaProvider': 'Ruttjänst',
+  'settings.valhallaProviderHint':
+    'Svarar på det OSRM inte kan: rutter utan vägtullar, motorvägar eller färjor, samt rutter, höjder och stigar för turer. TREK-tjänsterna tillfrågas via den här servern; när de inte kan svara tar FOSSGIS publika Valhalla över. Automatiskt frågar TREK-tjänsterna, om inte en egen Valhalla eller bara en egen ruttserver är angiven.',
+  'settings.valhallaProviderOption.auto': 'Automatiskt',
+  'settings.valhallaProviderOption.trek': 'TREK-tjänster',
+  'settings.valhallaProviderOption.fossgis': 'Publik Valhalla (FOSSGIS)',
+  'settings.valhallaProviderOption.custom': 'Egen Valhalla-instans',
   'settings.mapHint': 'URL-mall för kartrutor',
   'settings.mapProvider': 'Kartleverantör',
   'settings.mapProviderHint': 'Påverkar resplaneraren och resedagbokens kartor. Atlas använder alltid Leaflet.',

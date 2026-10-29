@@ -30,7 +30,14 @@ const settings: TranslationStrings = {
     'Uma instância própria do OSRM. Vazio usa os servidores públicos, que permitem cerca de uma requisição por segundo — suficiente para um dia, apertado para uma viagem de carro. Passa a valer após reiniciar o servidor.',
   'settings.valhallaBase': 'Instância Valhalla própria',
   'settings.valhallaBaseHint':
-    'Por padrão, o TREK usa a Valhalla pública da FOSSGIS para evitar pedágios, rodovias e balsas. Insira aqui a URL da sua própria Valhalla para usá-la no lugar. Se apenas uma instância de roteamento própria estiver configurada, a Valhalla pública não será usada. Após inserir uma URL própria, reinicie o servidor e recarregue a página.',
+    'Uma Valhalla própria, consultada quando o serviço de rotas acima está definido para ela ou para Automático. Se apenas uma instância de roteamento própria estiver configurada e nenhum serviço de rotas for escolhido, nenhuma Valhalla é consultada. Após inserir uma URL, reinicie o servidor e recarregue a página.',
+  'settings.valhallaProvider': 'Serviço de rotas',
+  'settings.valhallaProviderHint':
+    'Responde ao que o OSRM não consegue: rotas sem pedágios, rodovias ou balsas, e as rotas, altitudes e caminhos dos passeios. Os serviços TREK são consultados por meio deste servidor; quando não conseguem responder, a Valhalla pública da FOSSGIS assume. Automático consulta os serviços TREK, a menos que uma Valhalla própria ou apenas uma instância de roteamento própria esteja configurada.',
+  'settings.valhallaProviderOption.auto': 'Automático',
+  'settings.valhallaProviderOption.trek': 'Serviços TREK',
+  'settings.valhallaProviderOption.fossgis': 'Valhalla pública (FOSSGIS)',
+  'settings.valhallaProviderOption.custom': 'Instância Valhalla própria',
   'settings.mapHint': 'URL do modelo de blocos do mapa',
   'settings.mapProvider': 'Provedor de mapa',
   'settings.mapProviderHint': 'Afeta os mapas do Planejador de Viagem e Diário. Atlas sempre usa Leaflet.',

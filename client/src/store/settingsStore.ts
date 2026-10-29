@@ -62,9 +62,11 @@ export const DEFAULT_SETTINGS: Settings = {
   map_tile_url: '',
   // Empty = the public routing hosts TREK ships with.
   routing_base_url: '',
-  // Empty = the public Valhalla, unless routing_base_url names an own router, in which
-  // case no second engine is asked at all. See valhallaBase().
+  // Empty = no own Valhalla. Which one is asked then is valhallaBase()'s to say.
   valhalla_base_url: '',
+  // Empty = not chosen: the TREK services, FOSSGIS where they cannot answer, none
+  // beside an own router alone. See valhallaBase().
+  routing_valhalla_provider: '',
   // Empty = not said, and then a stop of either kind fills up. See refuelsRange().
   roadtrip_vehicle: '',
   // Off = the rail routes a day at a time, the way the day plan stores it, and the road
