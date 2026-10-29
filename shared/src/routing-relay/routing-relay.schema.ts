@@ -22,7 +22,12 @@ export const VALHALLA_RELAY_MAX_LOCATIONS = 20;
 export const VALHALLA_RELAY_MAX_TRACE_POINTS = 4000;
 /** Points one height question may carry: the planner asks 500 at a time. */
 export const VALHALLA_RELAY_MAX_HEIGHT_POINTS = 1000;
-/** Alternate ways one route may ask for besides its own. */
+/**
+ * Alternate ways one route may ask for besides its own. Valhalla answers a
+ * larger ask with as many as its `service_limits.max_alternates` allows rather
+ * than refusing it, so the hike ways and leg variants, which ask for three,
+ * need that limit at three or more on the TREK Valhalla to get all of them.
+ */
 export const VALHALLA_RELAY_MAX_ALTERNATES = 5;
 
 const point = z.object({
