@@ -26,10 +26,13 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
 &nbsp;
 <a href="https://www.buymeacoffee.com/mauriceboe"><img alt="BMAC" src="https://img.shields.io/badge/BMAC-support-FFDD00?style=for-the-badge" /></a>
 <br />
-<a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-AGPL_v3-6B7280?style=flat-square" /></a>
-<a href="https://github.com/liketrek/TREK/releases"><img alt="Latest Release" src="https://img.shields.io/github/v/release/liketrek/trek?include_prereleases&style=flat-square&color=6B7280" /></a>
-<a href="https://hub.docker.com/r/mauriceboe/trek"><img alt="Docker Pulls" src="https://img.shields.io/docker/pulls/mauriceboe/trek?style=flat-square&color=6B7280" /></a>
-<a href="https://github.com/liketrek/TREK"><img alt="Stars" src="https://img.shields.io/github/stars/liketrek/trek?style=flat-square&color=6B7280" /></a>
+<a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/License-AGPL_v3-6B7280?style=for-the-badge" /></a>
+&nbsp;
+<a href="https://github.com/liketrek/TREK/releases"><img alt="Latest Release" src="https://img.shields.io/github/v/release/liketrek/trek?include_prereleases&style=for-the-badge&label=Release&color=6B7280" /></a>
+&nbsp;
+<a href="https://hub.docker.com/r/mauriceboe/trek"><img alt="Docker Pulls" src="https://img.shields.io/docker/pulls/mauriceboe/trek?style=for-the-badge&label=Docker%20pulls&color=6B7280" /></a>
+&nbsp;
+<a href="https://github.com/liketrek/TREK"><img alt="Stars" src="https://img.shields.io/github/stars/liketrek/trek?style=for-the-badge&label=Stars&color=6B7280" /></a>
 
 <br />
 <br />
