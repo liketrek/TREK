@@ -5,8 +5,8 @@ import { SettingsService } from '../settings/settings.service';
 import { IssuerClient } from './issuer.client';
 import { QuotaTracker } from './quota-tracker';
 import { ServiceClock } from './service-clock';
-import { PHOTON_ORIGIN, PUBLIC_NOMINATIM_URL, SERVICE_ISSUER_ORIGIN } from './service-identity.constants';
-import { isAllowlisted, sameServiceUrl } from './service-identity.helpers';
+import { SERVICE_ISSUER_ORIGIN } from './service-identity.constants';
+import { isAllowlisted } from './service-identity.helpers';
 import { ServiceKeyService, type KeySnapshot } from './service-key.service';
 import { Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
@@ -77,14 +77,14 @@ export class ServiceIdentityService {
   }
 
   private originOf(service: ServiceName): string {
-    if (service === 'photon') return PHOTON_ORIGIN;
+    if (service === 'photon') return this.config.photonUrl;
     return service === 'valhalla' ? this.config.valhallaUrl : SERVICE_ISSUER_ORIGIN;
   }
 
   /**
    * Whether this instance asks each service right now. Places is in use
    * whenever the identity is; the other two need the key itself, since they
-   * have no shared pool. Photon stands in for the public Nominatim only, and
+   * have no shared pool. Photon steps aside for an own NOMINATIM_URL, and
    * the TREK Valhalla answers only where the routing choice comes to it.
    */
   private async servicesInUse(key: KeySnapshot): Promise<Record<ServiceName, boolean>> {
@@ -98,7 +98,7 @@ export class ServiceIdentityService {
     });
     return {
       places: true,
-      photon: keyed('photon') && sameServiceUrl(this.env.env().integrations.nominatimUrl, PUBLIC_NOMINATIM_URL),
+      photon: keyed('photon') && !this.env.env().integrations.nominatimOwn,
       valhalla: routing === 'trek',
     };
   }

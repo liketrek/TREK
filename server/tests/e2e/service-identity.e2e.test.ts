@@ -43,7 +43,13 @@ const VIEW = { limit: 50_000, used: 1_234, remaining: 48_766, resetAt: new Date(
 const writeAudit = vi.fn();
 let orm: TestOrm;
 
-type ServicesConfig = { mode: 'auto' | 'off'; key: string | null; hosts: string[]; valhallaUrl: string };
+type ServicesConfig = {
+  mode: 'auto' | 'off';
+  key: string | null;
+  hosts: string[];
+  photonUrl: string;
+  valhallaUrl: string;
+};
 
 async function build(config: Partial<ServicesConfig> = {}) {
   const moduleRef = await Test.createTestingModule({
@@ -54,6 +60,7 @@ async function build(config: Partial<ServicesConfig> = {}) {
       mode: 'auto',
       key: null,
       hosts: ['places.liketrek.com'],
+      photonUrl: 'https://photon.liketrek.com',
       valhallaUrl: 'https://valhalla.liketrek.com',
       ...config,
     })

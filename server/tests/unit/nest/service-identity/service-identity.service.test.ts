@@ -29,12 +29,13 @@ const config = {
   mode: 'auto' as const,
   key: null,
   hosts: ['places.liketrek.com'],
+  photonUrl: 'https://photon.liketrek.com',
   valhallaUrl: 'https://valhalla.liketrek.com',
 };
 const ALL_HOSTS = ['places.liketrek.com', 'photon.liketrek.com', 'valhalla.liketrek.com'];
 const defaults = vi.fn(async (): Promise<Record<string, unknown>> => ({}));
-const nominatim = { url: 'https://nominatim.openstreetmap.org' };
-const env = { env: () => ({ integrations: { nominatimUrl: nominatim.url } }) };
+const nominatim = { own: false };
+const env = { env: () => ({ integrations: { nominatimOwn: nominatim.own } }) };
 const VIEW = { limit: 10_000, used: 250, remaining: 9_750, resetAt: new Date(1_793_059_200_000).toISOString() };
 
 const testDb = createSnapshotTestDb();
@@ -44,7 +45,7 @@ let identity: ServiceIdentityService;
 beforeEach(async () => {
   vi.clearAllMocks();
   config.hosts = ['places.liketrek.com'];
-  nominatim.url = 'https://nominatim.openstreetmap.org';
+  nominatim.own = false;
   defaults.mockResolvedValue({});
   issuer.quota.mockResolvedValue({ body: QUOTA, serverMs: null });
   t = await createTestModule({
@@ -174,7 +175,7 @@ describe('ServiceIdentityService.status', () => {
 
   it('SISVC-009: Photon is not in use beside an own Nominatim, the TREK Valhalla not beside another routing choice', async () => {
     config.hosts = ALL_HOSTS;
-    nominatim.url = 'https://geocode.example.org';
+    nominatim.own = true;
     defaults.mockResolvedValue({ valhalla_base_url: 'https://valhalla.example.org' });
     const status = await identity.status();
     expect(status.services.map(({ inUse }) => inUse)).toEqual([true, false, false]);
