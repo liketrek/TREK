@@ -36,9 +36,6 @@ TREK has grown from a travel planner into a whole ecosystem for trips: plan toge
 &nbsp;
 <a href="https://github.com/liketrek/TREK"><img alt="Stars" src="https://img.shields.io/github/stars/liketrek/trek?style=for-the-badge&label=Stars&color=6B7280" /></a>
 
-<br />
-<br />
-
 <sub>PUBLIC SERVICES PROUDLY SPONSORED BY</sub><br /><a href="https://cloud.dataforest.net/en?mtm_campaign=trek"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/sponsors/dataforest-light.svg" /><source media="(prefers-color-scheme: light)" srcset="docs/sponsors/dataforest-dark.svg" /><img src="docs/sponsors/dataforest-dark.svg" alt="dataforest cloud" height="30" /></picture></a>
 </div>
 
