@@ -138,7 +138,10 @@ export class ServiceKeyService {
     });
   }
 
-  /** The admin's way out of a revoked or cloned identity: forget the key and ask for a new one. */
+  /**
+   * The admin's way out of a revoked or cloned identity: forget the key and ask for a new one.
+   * @txIndependent the new key is written in the background once the issuer answered, long after the old one is gone.
+   */
   async regenerate(): Promise<void> {
     if (this.config.key) throw conflict('The key is set by TREK_SERVICES_KEY and is changed there');
     if (!this.inUse()) throw conflict('TREK services are not in use on this instance');
