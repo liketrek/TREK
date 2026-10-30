@@ -638,6 +638,12 @@ describe('JourneyMapGL', () => {
     const thumbs = gl.markers.filter(m => m.element.innerHTML.includes('/api/photos/'))
     // At zoom 4 a and b lie three world pixels apart in one 64px cell, c far off.
     expect(thumbs).toHaveLength(2)
+    // Relative outer positioning adds document-flow offsets to projected coordinates.
+    for (const thumb of thumbs) {
+      expect(thumb.element.style.position).toBe('')
+      expect(thumb.element.style.width).toBe('48px')
+      expect(thumb.element.style.height).toBe('48px')
+    }
     expect(thumbs[0].element.innerHTML).toContain('>2<')
     thumbs[0].element.click()
     expect(onPhotoClick).toHaveBeenCalledWith(['a', 'b'])
