@@ -38,7 +38,7 @@ function SteamingCoffee() {
 }
 
 const SPONSOR = 'dataforest cloud';
-const SPONSOR_HREF = 'https://cloud.dataforest.net/?mtm_campaign=trek';
+const SPONSOR_HREF = 'https://cloud.dataforest.net/en?mtm_campaign=trek';
 
 /** The sponsor's name is a brand and reads the same in every language, so wherever a line names it, it links. */
 function withSponsorLink(text: string): React.ReactNode {

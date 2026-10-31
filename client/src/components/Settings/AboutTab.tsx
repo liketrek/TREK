@@ -93,7 +93,7 @@ function LinkTile({
   );
 }
 
-const DATAFOREST_HREF = 'https://cloud.dataforest.net/?mtm_campaign=trek';
+const DATAFOREST_HREF = 'https://cloud.dataforest.net/en?mtm_campaign=trek';
 const DATAFOREST_NAME = 'dataforest cloud';
 const DATAFOREST = '#02C382'; // theme-lint-disable: brand colour (dataforest cloud)
 
