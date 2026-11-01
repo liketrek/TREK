@@ -565,7 +565,7 @@ describe('permanentDeleteFile', () => {
     const file = await makeFile(trip.id, user.id, { filename: 'on-disk.pdf' });
     release.releaseValues.mockImplementationOnce(async () => {
       expect(await svc.getFileById(file.id, trip.id)).toBeUndefined();
-      return [];
+      return 0;
     });
     await svc.permanentDeleteFile((await svc.getFileById(file.id, trip.id))!);
     expect(release.releaseValues).toHaveBeenCalledWith(['on-disk.pdf'], FILE_KEYS);

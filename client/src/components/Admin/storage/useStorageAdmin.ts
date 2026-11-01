@@ -432,7 +432,14 @@ export function useStorageAdmin(genericError: string, conflictError: string): St
       } catch (err: unknown) {
         const failure = reclaimFailureOf(err, genericError)
         // The count moved on since it was shown: show the current one before the admin confirms again.
-        if ('code' in failure && failure.code === 'reclaim_confirm_stale') void refreshState().catch(() => {})
+        if ('code' in failure && failure.code === 'reclaim_confirm_stale') {
+          try {
+            await refreshState()
+          } catch (reloadErr: unknown) {
+            // Without the new figure there is nothing to confirm against: say why instead.
+            return reclaimFailureOf(reloadErr, genericError)
+          }
+        }
         return failure
       }
     },

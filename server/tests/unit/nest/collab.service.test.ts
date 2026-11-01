@@ -996,7 +996,7 @@ describe('hardening', () => {
     collabRelease.releaseValues.mockClear();
     collabRelease.releaseValues.mockImplementationOnce(async () => {
       expect(await countRows(orm, TripFiles, { id: attachment.id })).toBe(0);
-      return [];
+      return 0;
     });
     expect(await svc.deleteNoteFile(trip.id, note.id, attachment.id)).toBe(true);
     expect(collabRelease.releaseValues).toHaveBeenLastCalledWith(['stuck.pdf'], { bare: 'files', basename: true });
@@ -1004,7 +1004,7 @@ describe('hardening', () => {
     await attachToNote(trip.id, note.id, 'files/legacy.pdf', 'legacy.pdf');
     collabRelease.releaseValues.mockImplementationOnce(async () => {
       expect(await countRows(orm, CollabNotes, { id: note.id })).toBe(0);
-      return [];
+      return 0;
     });
     expect(await svc.deleteNote(trip.id, note.id)).toBe(true);
     expect(collabRelease.releaseValues).toHaveBeenLastCalledWith(['files/legacy.pdf'], {

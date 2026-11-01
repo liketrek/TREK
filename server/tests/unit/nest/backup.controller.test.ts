@@ -453,7 +453,7 @@ describe('BackupService (wrapper)', () => {
     let runningInside = false;
     vi.mocked(backupSvc.createBackup).mockImplementationOnce(async () => {
       runningInside = jobs.backupRunning;
-      return { filename: 'svc.zip', size: 5 };
+      return { filename: 'svc.zip', size: 5, sizeText: '5 B', created_at: '2026-11-01T00:00:00.000Z' };
     });
     await wrapper.createBackup();
     expect(runningInside).toBe(true);

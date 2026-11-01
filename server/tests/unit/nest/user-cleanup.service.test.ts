@@ -454,7 +454,7 @@ describe('deleteUserCompletely', () => {
     await updateRows(orm, Users, { id: user.id }, { avatar: 'face.png' });
     cleanupRelease.releaseValues.mockImplementationOnce(async () => {
       expect(await findRow(orm, Users, { id: user.id })).toBeNull();
-      return [];
+      return 0;
     });
     await svc.deleteUserCompletely(user.id);
     expect(cleanupRelease.releaseValues).toHaveBeenCalledWith(['face.png'], { bare: 'avatars' });

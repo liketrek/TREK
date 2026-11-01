@@ -117,22 +117,29 @@ describe('Storage reclaim e2e (whole app: real auth + admin guard + managed guar
   });
 
   it('RCLE-004: PUT and confirm refuse a body outside the contract', async () => {
-    const refused = await Promise.all(
-      [{}, { deleteEnabled: 'yes' }, { deleteEnabled: true, extra: 1 }].map((body) =>
-        request(server).put('/api/admin/storage/reclaim').set('Cookie', adminCookie).send(body),
-      ),
-    );
-    expect(refused.map((res) => res.status)).toEqual([400, 400, 400]);
-    const confirm = await Promise.all(
-      [
+    // One request after the other: a burst of parallel requests on one supertest server resets connections.
+    const statusesOf = (method: 'put' | 'post', url: string, bodies: object[]) =>
+      bodies.reduce<Promise<number[]>>(async (previous, body) => {
+        const done = await previous;
+        const res = await request(server)[method](url).set('Cookie', adminCookie).send(body);
+        return [...done, res.status];
+      }, Promise.resolve([]));
+    expect(
+      await statusesOf('put', '/api/admin/storage/reclaim', [
+        {},
+        { deleteEnabled: 'yes' },
+        { deleteEnabled: true, extra: 1 },
+      ]),
+    ).toEqual([400, 400, 400]);
+    expect(
+      await statusesOf('post', '/api/admin/storage/reclaim/confirm', [
         {},
         { category: 'nowhere', unreferenced: 3 },
         { category: 'covers', count: 3 },
         { category: 'covers' },
         { category: 'covers', unreferenced: -1 },
-      ].map((body) => request(server).post('/api/admin/storage/reclaim/confirm').set('Cookie', adminCookie).send(body)),
-    );
-    expect(confirm.map((res) => res.status)).toEqual([400, 400, 400, 400, 400]);
+      ]),
+    ).toEqual([400, 400, 400, 400, 400]);
     expect(await countRows(orm, AuditLog)).toBe(0);
   });
 
