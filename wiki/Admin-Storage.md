@@ -129,13 +129,19 @@ includes the legacy photo library.
 
 Uploaded files can outlive what used them. When you delete or replace
 something that shows a file (a trip or list cover, a place image, a journal
-photo, an avatar, a trip file), TREK deletes that file right away, unless
-something else still shows it: a copied trip, a journey that took over the
-trip cover, a saved place in a list. Whatever is left over after that (files of
-deleted trips and users, files from before this check existed) is found by a
-check every night at 04:05 server time. It looks at the covers, place images,
-avatars, trip files and journal photos for files that nothing in TREK names
-any more, and the **Unreferenced files** section shows what it found:
+photo, an avatar, a trip file), TREK deletes that file about a day later,
+unless something still shows it by then: a copied trip, a journey that took
+over the trip cover, a saved place in a list, or the old value written back by
+an undo. The day is the longest any undo in TREK can bring a file back (a
+change the assistant proposed can still be applied for 24 hours). This runs
+whether or not deletion is switched on below, as deleting always did, with the
+same checks the nightly cleanup makes.
+
+Whatever is left over after that (files of deleted trips and users, files from
+before this check existed) is found by a check every night at 04:05 server
+time. It looks at the covers, place images, avatars, trip files and journal
+photos for files that nothing in TREK names any more, and the **Unreferenced
+files** section shows what it found:
 
 - **Can be freed**: unused on every check for at least a week, so the nightly
   check deletes them once deletion is on.
@@ -156,11 +162,14 @@ recorded in the [Audit-Log](Audit-Log); the nightly entry names how many files
 went per category.
 
 When more than a fifth of a category's files look unused, the check marks it
-and deletes nothing there until you confirm it once with **Confirm** next to
-the category. The confirmation covers the number of files shown at that
-moment: if the number later grows past it, while still more than a fifth, the
-category waits for you again. A long-running instance with many old leftovers
-usually needs this once.
+and deletes nothing there until you confirm it with **Confirm** next to the
+category. You confirm the number shown: if a newer check found a clearly
+different number in the meantime, TREK asks you to look again first. A
+confirmation covers that number plus half as much again (at least a hundred
+more files), so the few files a busy instance leaves behind while the backlog
+drains do not undo it, and it lasts two weeks. Once the category is back under
+a fifth, the confirmation is used up; a later surge waits for you again. A
+long-running instance with many old leftovers usually needs this once.
 
 A category is skipped for that night, with the reason shown next to it, when:
 
@@ -171,20 +180,39 @@ A category is skipped for that night, with the reason shown next to it, when:
 - listing it or asking about it failed. What the earlier nights found stays,
   so one failure does not restart anyone's week;
 - deleting failed on the storage backend: the check then stops deleting in
-  that category for the night.
+  that category for the night;
+- a backup was being written when its files were due. Nothing is deleted
+  while a backup reads the uploads; the next night tries again. If this shows
+  every night, move the backup hour or the backup interval away from 04:05.
 
 **Several installations on one bucket or folder.** Each check leaves a small
 file named `trek-owner-<id>` at the top of every category it looks at, naming
 this installation. When it finds such a file of another installation there,
 it leaves that category alone, and so does the other installation once it
-sees this one's file. Backups leave these files out. If you moved an
-installation and a stale `trek-owner-<id>` of its old self remains, delete
-that one file to let the check work there again.
+sees this one's file. The day-later deletes above keep to the same rule.
+Backups leave these files out. If you moved an installation and a stale
+`trek-owner-<id>` of its old self remains, delete that one file to let the
+check work there again.
 
-**Restoring a backup** switches deletion off and forgets what earlier checks
-found and what you confirmed, because the restored data may come from another
-installation. Switch deletion on again once you have looked at the next
-report.
+TREK versions from before this check write no such file, so an installation
+cannot tell that an older TREK shares its bucket or folder. Keep deletion off
+on a location you share with an older TREK, or upgrade both first.
+
+**Which installation this is** lives in the file `.trek-install-id` in the
+data folder (next to `travel.db`), made on the first start. Backups never
+contain it and no restore writes it. When the database names another
+installation than that file (a restored backup, also one restored with
+`RESTORE_FROM_BACKUP` at start-up, a restart after a restore that failed half
+way, or a database file copied from elsewhere), TREK switches deletion off and
+forgets what earlier checks found, what you confirmed and what was waiting to
+be deleted, before anything else runs. Every restore through the admin panel
+does the same. Switch deletion on again once you have looked at the next
+report. A copy of the whole data folder carries the file with it and looks
+like the same installation: give a clone its own data folder, or delete
+`.trek-install-id` in the copy before its first start. If the file is lost or
+unreadable, nothing is deleted until it is there again; a new one makes this
+installation's old `trek-owner-<id>` files look like another installation's,
+so delete those once you are sure nothing else uses the location.
 
 Caches (place photos), backups, assistant attachments and journal thumbnails
 are cleaned up by their own routines and are never touched here. No check runs
