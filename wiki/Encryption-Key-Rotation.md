@@ -61,8 +61,10 @@ Use `scripts/migrate-encryption.ts` to re-encrypt the stored secrets listed belo
 **Docker:**
 
 ```bash
-docker exec -it -w /app/server trek node --import tsx scripts/migrate-encryption.ts
+docker exec -it -u node -w /app/server trek node --import tsx scripts/migrate-encryption.ts
 ```
+
+Run it as `node`; a plain `docker exec` runs as root, which the shipped compose file (`cap_drop: ALL`) stops from writing `/app/data`.
 
 **Host (run from the `server/` directory):**
 

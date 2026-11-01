@@ -2,14 +2,15 @@
  * Admin recovery — reset (or create) an admin account when you are locked out.
  *
  * Usage inside the container:
- *   docker exec -it trek node server/reset-admin.js
- *   docker exec -it -e RESET_ADMIN_EMAIL=me@example.com -e RESET_ADMIN_PASSWORD=secret trek node server/reset-admin.js
+ *   docker exec -it -u node trek node server/reset-admin.js
+ *   docker exec -it -u node -e RESET_ADMIN_EMAIL=me@example.com -e RESET_ADMIN_PASSWORD=secret trek node server/reset-admin.js
  *
  * Defaults to admin@trek.local with a generated password (printed below). The
  * account is flagged must_change_password, so you are prompted to set a new one
  * on first login. Honours TREK_DB_FILE, TREK_DB_JOURNAL_MODE and
  * TREK_DB_SYNCHRONOUS the same way the server does.
  */
+const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const Database = require('better-sqlite3');
@@ -45,6 +46,23 @@ if (wantedSync && synchronous !== wantedSync) {
 }
 
 const dbPath = process.env.TREK_DB_FILE || path.join(__dirname, 'data/travel.db');
+// SQLite silently opens an unwritable file read-only (#2933); db.readonly can't tell.
+const notWritable = [dbPath, path.dirname(dbPath)].find((p) => {
+  if (!fs.existsSync(p)) return false;
+  try {
+    fs.accessSync(p, fs.constants.W_OK);
+    return false;
+  } catch {
+    return true;
+  }
+});
+if (notWritable) {
+  console.error(`Cannot write to ${notWritable} as uid ${process.getuid?.() ?? '?'}.`);
+  console.error('Run this script as the user that owns the data directory. In the Docker image that is node:');
+  console.error('  docker exec -it -u node trek node server/reset-admin.js');
+  process.exit(1);
+}
+
 const db = new Database(dbPath);
 // Spelled out rather than left to better-sqlite3's default, so switching the
 // journal mode below waits for a busy server instead of failing on the spot.
