@@ -322,8 +322,8 @@ export class StorageReclaimService implements OnModuleInit {
   }
 
   /**
-   * @txIndependent one delete per object, each with its own re-check, so a
-   * failure leaves the others' work standing.
+   * @txIndependent a batch at a time, each delete standing alone, so a failure
+   * leaves the others' work standing.
    */
   private async deleteEligible(
     category: ServedCategory,
@@ -333,44 +333,61 @@ export class StorageReclaimService implements OnModuleInit {
   ): Promise<Candidate[]> {
     return chunk(eligible, DELETE_BATCH).reduce<Promise<Candidate[]>>(async (previous, batch) => {
       const done = await previous;
-      const results = await Promise.all(batch.map((candidate) => this.deleteOne(category, candidate, sources, ctx)));
-      done.push(...batch.filter((_candidate, i) => results[i]));
+      done.push(...(await this.deleteBatch(category, batch, sources, ctx)));
       return done;
     }, Promise.resolve([]));
   }
 
   /**
-   * Asks every source about this one key again, checks the object is still the
-   * old one the pass judged, then deletes it and its mark. False keeps it.
+   * Checks each object is still the old one the pass judged, then asks every
+   * source about the batch again and deletes, at once, what none of them names.
+   * The question goes last so nothing slower than the delete itself sits
+   * between the answer and the delete, and once per batch so a pass reads each
+   * source's columns once per batch rather than once per object.
+   *
+   * @txIndependent every object goes on its own, see deleteOne.
+   */
+  private async deleteBatch(
+    category: ServedCategory,
+    batch: readonly Candidate[],
+    sources: readonly StorageReferenceSource[],
+    ctx: PassContext,
+  ): Promise<Candidate[]> {
+    const stats = await Promise.all(batch.map((candidate) => this.storage.stat(category, candidate.key)));
+    // Gone, or written again since it was judged: the next pass looks at it afresh.
+    const changed = batch.filter((_candidate, i) => {
+      const stat = stats[i];
+      return stat === null || !(stat.mtimeMs > 0) || ctx.now - stat.mtimeMs < RECLAIM_GRACE_MS;
+    });
+    if (changed.length > 0) await this.marks.deleteKeys(category, keysOf(changed));
+    const due = batch.filter(
+      (candidate) => !changed.includes(candidate) && !this.storage.keepsOnDelete(category, candidate.key),
+    );
+    if (due.length === 0) return [];
+    let referenced: Set<string>;
+    try {
+      referenced = await this.referencedIn(category, keysOf(due), sources);
+    } catch (err) {
+      logError(
+        `[storage] reclaim kept ${due.length} '${category}' object(s), their re-check failed: ${messageOf(err)}`,
+      );
+      return [];
+    }
+    const named = due.filter((candidate) => referenced.has(candidate.key.toLowerCase()));
+    if (named.length > 0) await this.marks.deleteKeys(category, keysOf(named));
+    const unnamed = due.filter((candidate) => !referenced.has(candidate.key.toLowerCase()));
+    this.assertSameDatabase(ctx);
+    const results = await Promise.all(unnamed.map((candidate) => this.deleteOne(category, candidate)));
+    return unnamed.filter((_candidate, i) => results[i]);
+  }
+
+  /**
+   * Deletes one object the batch cleared, then its mark. False keeps it.
    *
    * @txIndependent the object goes first and the mark after, so a mark never
    * outlives a delete that failed.
    */
-  private async deleteOne(
-    category: ServedCategory,
-    candidate: Candidate,
-    sources: readonly StorageReferenceSource[],
-    ctx: PassContext,
-  ): Promise<boolean> {
-    let referenced: Set<string>;
-    try {
-      referenced = await this.referencedIn(category, [candidate.key], sources);
-    } catch (err) {
-      logError(`[storage] reclaim kept a '${category}' object, its re-check failed: ${messageOf(err)}`);
-      return false;
-    }
-    if (referenced.size > 0) {
-      await this.marks.deleteKeys(category, [candidate.key]);
-      return false;
-    }
-    const stat = await this.storage.stat(category, candidate.key);
-    if (stat === null || !(stat.mtimeMs > 0) || ctx.now - stat.mtimeMs < RECLAIM_GRACE_MS) {
-      // Gone, or written again since it was judged: the next pass looks at it afresh.
-      await this.marks.deleteKeys(category, [candidate.key]);
-      return false;
-    }
-    if (this.storage.keepsOnDelete(category, candidate.key)) return false;
-    this.assertSameDatabase(ctx);
+  private async deleteOne(category: ServedCategory, candidate: Candidate): Promise<boolean> {
     try {
       await this.storage.delete(category, candidate.key);
     } catch (err) {
@@ -414,6 +431,10 @@ function answersFor(source: StorageReferenceSource, category: ServedCategory): b
 
 function claimsKey(source: StorageReferenceSource, category: ServedCategory, key: string): boolean {
   return source.claims.some((claim) => claim.category === category && key.startsWith(claim.prefix));
+}
+
+function keysOf(candidates: readonly Candidate[]): string[] {
+  return candidates.map((candidate) => candidate.key);
 }
 
 function chunk<T>(items: readonly T[], size: number): T[][] {

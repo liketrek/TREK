@@ -4,7 +4,7 @@
  * fake reference sources standing in for the owner domains. The pass marks
  * first, deletes a week later only with the switch on and only after asking
  * every source about the single key again; every brake skips a category and
- * starts its marks over. RCLS-001 to RCLS-021.
+ * starts its marks over. RCLS-001 to RCLS-024.
  */
 import { AppSettings } from '../../../../src/db/entities/AppSettings.entity';
 import { StorageReclaimMarks } from '../../../../src/db/entities/StorageReclaimMarks.entity';
@@ -428,16 +428,33 @@ describe('StorageReclaimService: the delete itself', () => {
 
   it('RCLS-017: an object gone or written again since it was judged is left and its mark dropped', async () => {
     await markedWeekOld(['gone.jpg', 'fresh.jpg'], 8);
-    onAsk = (_category, keys) => {
-      if (keys.length !== 1) return;
-      if (keys[0] === 'gone.jpg') fs.rmSync(objectPath('covers', 'gone.jpg'), { force: true });
-      if (keys[0] === 'fresh.jpg') fs.utimesSync(objectPath('covers', 'fresh.jpg'), WEEK_LATER, WEEK_LATER);
-    };
+    // Changed between the listing and the delete: the batch looks at each object again first.
+    const listed = storage.list.bind(storage);
+    vi.spyOn(storage, 'list').mockImplementation(async function* (category, prefix) {
+      yield* listed(category, prefix);
+      if (category !== 'covers') return;
+      fs.rmSync(objectPath('covers', 'gone.jpg'), { force: true });
+      fs.utimesSync(objectPath('covers', 'fresh.jpg'), WEEK_LATER, WEEK_LATER);
+    });
     const report = await reclaim.run({ now: WEEK_LATER });
     expect(report.categories.covers.eligible.objects).toBe(2);
     expect(report.categories.covers.deleted.objects).toBe(0);
     expect(fs.existsSync(objectPath('covers', 'fresh.jpg'))).toBe(true);
     expect(await marksOf('covers')).toEqual([]);
+  });
+
+  it('RCLS-024: the re-check before the delete asks about the whole batch at once, not once per object', async () => {
+    await markedWeekOld(['a.jpg', 'b.jpg', 'c.jpg'], 12);
+    const asked: string[][] = [];
+    onAsk = (category, keys) => {
+      if (category === 'covers') asked.push([...keys].sort());
+    };
+    const report = await reclaim.run({ now: WEEK_LATER });
+    expect(report.categories.covers.deleted.objects).toBe(3);
+    // Per source: the listing's question, then one re-check for the three.
+    const rechecks = asked.filter((keys) => keys.length === 3 && keys.every((key) => !key.startsWith('kept-')));
+    expect(rechecks.length).toBe(STORAGE_REFERENCE_SOURCE_IDS.filter((id) => id !== 'auth' && id !== 'files').length);
+    expect(asked.some((keys) => keys.length === 1)).toBe(false);
   });
 
   it('RCLS-018: a delete that fails keeps the mark for the next pass', async () => {

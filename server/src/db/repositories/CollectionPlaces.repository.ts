@@ -138,12 +138,6 @@ export class CollectionPlacesRepository extends TrekRepository<CollectionPlaces>
   // CL47/CL48 — updatePlace
   // ---------------------------------------------------------------------
 
-  /** CL47 (`updatePlace`'s pre-image read, dup text also `deletePlace`/`deletePlacesMany`/`setPlaceImage`) — `SELECT image_url FROM collection_places WHERE id=?`. Plain (non-FK) column — safe through the entity API, `fields: ['image_url']`. */
-  async imageUrl(id: number): Promise<string | null | undefined> {
-    const row = await this.findOne({ id }, { fields: ['image_url'] });
-    return row?.image_url;
-  }
-
   /**
    * CL48 (`updatePlace`, TX) — the allow-listed dynamic `UPDATE
    * collection_places SET ... WHERE id=?`, including the cross-list move
@@ -453,23 +447,6 @@ export class CollectionPlacesRepository extends TrekRepository<CollectionPlaces>
   // Plan 3h Task 6 (survivors — `places.service.ts` SV-PI2, `place-photo-
   // cache.service.ts` SV-PP6, `place-image.ts` SV-PLACEIMG-2) — additive.
   // ---------------------------------------------------------------------
-
-  /**
-   * SV-PI2 (`places.service.ts::reclaimPlaceImage`) / SV-PLACEIMG-2
-   * (`CollectionsService`'s own private `reclaimPlaceImage`, replacing
-   * `place-image.ts`'s free function) — `SELECT 1 FROM collection_places
-   * WHERE image_url = ? LIMIT 1`. Trip-agnostic, same shape as
-   * `PlacesRepository.existsByImageUrl` for its own table.
-   */
-  async existsByImageUrl(imageUrl: string): Promise<boolean> {
-    const row = await this.db_()
-      .selectFrom('collection_places')
-      .select('id')
-      .where('image_url', '=', imageUrl)
-      .limit(1)
-      .executeTakeFirst();
-    return !!row;
-  }
 
   /**
    * SV-PP6 (`place-photo-cache.service.ts::isReferenced`) — `SELECT 1 FROM
