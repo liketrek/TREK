@@ -591,6 +591,66 @@ describe('toChatHistory: calls the model made of the server tools (#2845)', () =
     ]);
   });
 
+  /** A step stopped while its calls ran: the provider's record holds both calls, the parts only the one that ran. */
+  function stoppedMidStep(state: Record<string, unknown>): AiChatMessage[] {
+    return toChatHistory(
+      [
+        row('user', [{ type: 'text', text: 'Plan Friday' }]),
+        row(
+          'assistant',
+          [
+            { type: 'text', text: 'Let me look.' },
+            { type: 'tool-call', toolCallId: 'call_1', toolName: 'list_places', args: {}, result: { places: [] } },
+          ],
+          { provider_state: JSON.stringify(state), status: 'aborted' },
+        ),
+        row('user', [{ type: 'text', text: 'Hello?' }]),
+      ],
+      new Map(),
+    );
+  }
+
+  it('ASTHIS-019: Anthropic gets a call of a stopped step that never ran answered, so the thread goes on', () => {
+    const history = stoppedMidStep({
+      adapter: 'anthropic-messages',
+      blocks: [
+        { type: 'text', text: 'Let me look.' },
+        { type: 'tool_use', id: 'call_1', name: 'list_places', input: {} },
+        { type: 'tool_use', id: 'call_2', name: 'get_weather', input: {} },
+      ],
+    });
+    expect(history.filter((message) => message.role === 'tool')).toEqual([
+      expect.objectContaining({ toolCallId: 'call_1' }),
+      {
+        role: 'tool',
+        toolCallId: 'call_2',
+        name: 'get_weather',
+        output: expect.stringContaining('did not run'),
+        isError: true,
+      },
+    ]);
+    const messages = toAnthropicMessages(history);
+    const results = messages[2].content
+      .filter((block) => block.type === 'tool_result')
+      .map((block) => block.tool_use_id);
+    expect(results).toEqual(['call_1', 'call_2']);
+    expect(messages).toHaveLength(3);
+  });
+
+  it('ASTHIS-020: the Responses API gets a function call of a stopped step that never ran answered', () => {
+    const history = stoppedMidStep({
+      adapter: 'openai-responses',
+      items: [
+        { type: 'function_call', call_id: 'call_1', name: 'list_places', arguments: '{}' },
+        { type: 'function_call', call_id: 'call_2', name: 'get_weather', arguments: '{}' },
+      ],
+    });
+    const outputs = toResponsesInput({ system: '', messages: history, tools: [] })
+      .filter((item) => item.type === 'function_call_output')
+      .map((item) => item.call_id);
+    expect(outputs).toEqual(['call_1', 'call_2']);
+  });
+
   it('ASTHIS-017: a step that only kept a note is the model call it was, answered with what was kept', () => {
     const history = toChatHistory(
       [

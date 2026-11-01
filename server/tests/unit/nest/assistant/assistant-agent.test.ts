@@ -808,6 +808,57 @@ describe('runAgentLoop', () => {
       expect(t.requests).toHaveLength(2);
       expect(t.chunks.some((chunk) => chunk.type === 'data-trek-follow-ups')).toBe(false);
     });
+
+    it('ASTAGT-043: follow-ups with no answer before them are told none was seen, the step goes back whole, and their chips come under the answer (#2789)', async () => {
+      const state = {
+        adapter: 'anthropic-messages' as const,
+        blocks: [
+          { type: 'thinking', thinking: '', signature: 'sig' },
+          { type: 'tool_use', id: 'toolu_5', name: ASSISTANT_FOLLOW_UPS_TOOL, input: {} },
+        ],
+      };
+      const t = setup([
+        [
+          { type: 'provider-state', state },
+          ask('toolu_5', ['Stops on the drive']),
+          { type: 'finish', reason: 'tool-calls' },
+        ],
+        [
+          { type: 'text-delta', delta: 'You leave Lisbon on day 4.' },
+          { type: 'finish', reason: 'stop' },
+        ],
+      ]);
+      const outcome = await runAgentLoop(t.deps, t.input, t.writer, new AbortController().signal);
+      expect(outcome.end).toBe('stop');
+      const second = t.requests[1].messages;
+      expect(second.at(-2)).toEqual({
+        role: 'assistant',
+        text: '',
+        toolCalls: [{ id: 'toolu_5', name: ASSISTANT_FOLLOW_UPS_TOOL, args: { questions: ['Stops on the drive'] } }],
+        providerState: state,
+      });
+      expect(second.at(-1)).toMatchObject({
+        role: 'tool',
+        toolCallId: 'toolu_5',
+        output: expect.stringContaining('Not shown yet'),
+      });
+      expect(t.memory.saved[0].status).toBe('complete');
+      expect(t.memory.saved[1].step.parts).toEqual([
+        { type: 'text', text: 'You leave Lisbon on day 4.' },
+        { type: 'data-trek-follow-ups', data: { questions: ['Stops on the drive'] } },
+      ]);
+      expect(t.chunks).toContainEqual({ type: 'data-trek-follow-ups', data: { questions: ['Stops on the drive'] } });
+    });
+
+    it('ASTAGT-044: follow-ups with no answer twice in a row end in empty_answer', async () => {
+      const t = setup([
+        [ask('toolu_6', ['x']), { type: 'finish', reason: 'tool-calls' }],
+        [ask('toolu_7', ['x']), { type: 'finish', reason: 'tool-calls' }],
+      ]);
+      const outcome = await runAgentLoop(t.deps, t.input, t.writer, new AbortController().signal);
+      expect(outcome).toMatchObject({ end: 'failed', code: 'empty_answer' });
+      expect(t.requests).toHaveLength(2);
+    });
   });
 
   it('ASTAGT-038: followUpsOf trims, drops duplicates and blanks, cuts each to a chip and keeps three', () => {
