@@ -890,7 +890,7 @@ describe('StorageReclaimService: a pass that stops, and a restore', () => {
     expect((await reclaim.state()).deleteEnabled).toBe(false);
   });
 
-  it('RCLS-046: while a restore's reset is still pending, the nightly pass only reports, whatever the switch says', async () => {
+  it('RCLS-046: while the reset of a restore is still pending, the nightly pass only reports, whatever the switch says', async () => {
     const sentinel = path.join(dataRoot, 'reclaim-reset');
     await markedWeekOld(['orphan.jpg']);
     fs.writeFileSync(sentinel, 'pending');
