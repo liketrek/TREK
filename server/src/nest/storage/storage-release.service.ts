@@ -53,7 +53,7 @@ const MAX_KEYS_PER_CALL = 1000;
 const QUEUE_LIMIT = 50_000;
 /** Rows per insert: three bound values each. */
 const ENQUEUE_BATCH = 100;
-/** Rows one tick looks at. */
+/** Rows one tick looks at, shared equally between the categories it may judge. */
 const TICK_LIMIT = 200;
 /** Keys per question to the sources. */
 const ASK_BATCH = 50;
@@ -67,7 +67,7 @@ export const STORAGE_RELEASE_JOB = 'a storage release';
 
 export interface ReleaseTickResult {
   /** Why the tick did nothing, or null when it ran. */
-  skipped: 'busy' | 'no_install_id' | null;
+  skipped: 'busy' | 'no_install_id' | 'install_mismatch' | null;
   deleted: number;
   /** Rows dropped because a row still names the object, or the instance keeps it. */
   kept: number;
@@ -96,8 +96,11 @@ class ReleaseStopped extends Error {}
  * required source is missing, where the category's location overlaps another
  * one's, or where another installation's owner marker lies (or this one's
  * cannot be written). It does nothing while a restore or a backup runs or
- * another storage job holds the slot, and without an install id. A refused
- * category's rows wait, up to QUEUE_MAX_AGE_MS. Releases run whatever the
+ * another storage job holds the slot, without an install id, and while the
+ * database names another installation or a restore's reset is still pending
+ * (StorageInstallService.databaseIsThis). A refused category's rows wait, up
+ * to QUEUE_MAX_AGE_MS; what is dropped then, or never queued because the queue
+ * was full, is logged and left to the nightly pass. Releases run whatever the
  * nightly deletion switch says: they are what a delete always did. Queueing
  * never fails the caller's request.
  */
@@ -129,8 +132,12 @@ export class StorageReleaseService {
     try {
       const rows = releasable(values, options);
       if (rows.length === 0) return 0;
-      if ((await this.queue.size()) + rows.length > QUEUE_LIMIT) {
-        logWarn(`[storage] the release queue is full, ${rows.length} object(s) are left to the nightly pass`);
+      const waiting = await this.queue.size();
+      if (waiting + rows.length > QUEUE_LIMIT) {
+        logWarn(
+          `[storage] the release queue is full (${waiting} of ${QUEUE_LIMIT} waiting): ${rows.length} released ` +
+            `object(s) are left to the nightly pass, which removes them only once deletion is on`,
+        );
         return 0;
       }
       const dueAt = dbNow(new Date(Date.now() + RELEASE_DELAY_MS));
@@ -160,6 +167,8 @@ export class StorageReleaseService {
     const result: ReleaseTickResult = { skipped: null, deleted: 0, kept: 0 };
     const installId = this.install.installId();
     if (installId === null) return { ...result, skipped: 'no_install_id' };
+    // A reconcile that failed at boot leaves another installation's queue, or a restore's, in place.
+    if (!(await this.install.databaseIsThis(installId))) return { ...result, skipped: 'install_mismatch' };
     if (this.jobs.backupRunning || !this.jobs.claimExclusive(STORAGE_RELEASE_JOB))
       return { ...result, skipped: 'busy' };
     try {
@@ -172,16 +181,11 @@ export class StorageReleaseService {
 
   /** @txIndependent see processDue. */
   private async drain(installId: string, now: number, epoch: number, result: ReleaseTickResult): Promise<void> {
-    await this.queue.deleteDueBefore(dbNow(new Date(now - QUEUE_MAX_AGE_MS)));
+    await this.dropOverdue(now);
     const due = new Set(await this.queue.dueCategories(dbNow(new Date(now))));
     if (due.size === 0) return;
     const allowed = await this.allowedCategories(due, installId, now);
-    const rows = await this.queue.dueIn([...allowed.keys()], dbNow(new Date(now)), TICK_LIMIT);
-    const byCategory = new Map<ServedCategory, string[]>();
-    for (const row of rows) {
-      const category = row.category as ServedCategory;
-      byCategory.set(category, [...(byCategory.get(category) ?? []), row.key]);
-    }
+    const byCategory = await this.dueKeys([...allowed.keys()], now);
     try {
       await [...byCategory].reduce<Promise<void>>(async (previous, [category, keys]) => {
         await previous;
@@ -191,6 +195,34 @@ export class StorageReleaseService {
       if (!(err instanceof ReleaseStopped)) throw err;
       logDebug(`[storage] a release tick stopped: ${err.message}`);
     }
+  }
+
+  /** Drops the rows that waited QUEUE_MAX_AGE_MS past their time, their category refused all along. */
+  private async dropOverdue(now: number): Promise<void> {
+    const dropped = await this.queue.deleteDueBefore(dbNow(new Date(now - QUEUE_MAX_AGE_MS)));
+    if (dropped === 0) return;
+    logWarn(
+      `[storage] ${dropped} released object(s) waited 30 days past their time in a category the release may not ` +
+        `judge: they are left to the nightly pass, which removes them only once deletion is on`,
+    );
+  }
+
+  /**
+   * The due keys of each category, the longest waiting first, at most an
+   * equal share of TICK_LIMIT each: a category whose deletes keep failing
+   * keeps only its own rows waiting, never another's.
+   */
+  private async dueKeys(categories: readonly ServedCategory[], now: number): Promise<Map<ServedCategory, string[]>> {
+    const byCategory = new Map<ServedCategory, string[]>();
+    if (categories.length === 0) return byCategory;
+    const share = Math.ceil(TICK_LIMIT / categories.length);
+    await categories.reduce<Promise<void>>(async (previous, category) => {
+      await previous;
+      const rows = await this.queue.dueIn(category, dbNow(new Date(now)), share);
+      const keys = rows.map((row) => row.key);
+      if (keys.length > 0) byCategory.set(category, keys);
+    }, Promise.resolve());
+    return byCategory;
   }
 
   /** Of the categories with rows due, the ones the guards let a release judge now, each with the sources to ask. */

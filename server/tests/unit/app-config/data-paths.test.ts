@@ -42,6 +42,7 @@ describe('resolveDataPaths', () => {
       jwtSecretFile: path.join('/srv/trek', 'data', '.jwt_secret'),
       encryptionKeyFile: path.join('/srv/trek', 'data', '.encryption_key'),
       installIdFile: path.join('/srv/trek', 'data', '.trek-install-id'),
+      reclaimResetFile: path.join('/srv/trek', 'data', '.trek-reclaim-reset'),
       dbFile: path.join('/srv/trek', 'data', 'travel.db'),
     });
   });

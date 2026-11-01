@@ -28,19 +28,24 @@ afterAll(async () => {
 });
 
 describe('StorageReleaseQueueRepository', () => {
-  it('RELQ-001: queues keys per category and answers the due ones, the longest waiting first, up to a limit', async () => {
+  it('RELQ-001: queues keys per category and answers the due ones of one category, the longest waiting first, up to a limit', async () => {
     await queue.enqueue([{ category: 'covers', key: 'b.jpg' }], '2026-01-02 00:00:00');
     await queue.enqueue([{ category: 'covers', key: 'a.jpg' }], '2026-01-01 00:00:00');
     await queue.enqueue([{ category: 'places', key: 'a.jpg' }], '2026-01-01 00:00:00');
     await queue.enqueue([{ category: 'covers', key: 'later.jpg' }], '2026-02-01 00:00:00');
     expect(await queue.size()).toBe(4);
-    expect(await queue.dueIn(['covers'], '2026-01-15 00:00:00', 10)).toEqual([
+    expect(await queue.dueIn('covers', '2026-01-15 00:00:00', 10)).toEqual([
       { category: 'covers', key: 'a.jpg', due_at: '2026-01-01 00:00:00' },
       { category: 'covers', key: 'b.jpg', due_at: '2026-01-02 00:00:00' },
     ]);
-    expect(await queue.dueIn(['covers', 'places'], '2026-01-15 00:00:00', 1)).toHaveLength(1);
-    expect(await queue.dueIn([], '2026-01-15 00:00:00', 10)).toEqual([]);
-    expect(await queue.dueIn(['covers'], '2026-01-15 00:00:00', 0)).toEqual([]);
+    expect(await queue.dueIn('covers', '2026-01-15 00:00:00', 1)).toEqual([
+      { category: 'covers', key: 'a.jpg', due_at: '2026-01-01 00:00:00' },
+    ]);
+    expect(await queue.dueIn('places', '2026-01-15 00:00:00', 10)).toEqual([
+      { category: 'places', key: 'a.jpg', due_at: '2026-01-01 00:00:00' },
+    ]);
+    expect(await queue.dueIn('files', '2026-01-15 00:00:00', 10)).toEqual([]);
+    expect(await queue.dueIn('covers', '2026-01-15 00:00:00', 0)).toEqual([]);
   });
 
   it('RELQ-002: a key queued again waits from the later time, and an empty batch writes nothing', async () => {
@@ -48,8 +53,8 @@ describe('StorageReleaseQueueRepository', () => {
     await queue.enqueue([{ category: 'covers', key: 'a.jpg' }], '2026-03-01 00:00:00');
     await queue.enqueue([], '2026-04-01 00:00:00');
     expect(await queue.size()).toBe(1);
-    expect(await queue.dueIn(['covers'], '2026-02-01 00:00:00', 10)).toEqual([]);
-    expect(await queue.dueIn(['covers'], '2026-03-01 00:00:00', 10)).toHaveLength(1);
+    expect(await queue.dueIn('covers', '2026-02-01 00:00:00', 10)).toEqual([]);
+    expect(await queue.dueIn('covers', '2026-03-01 00:00:00', 10)).toHaveLength(1);
   });
 
   it('RELQ-003: answers the categories holding a due row, each once', async () => {
@@ -77,7 +82,7 @@ describe('StorageReleaseQueueRepository', () => {
     expect(await queue.deleteKeys('covers', ['a.jpg', 'nope.jpg'])).toBe(1);
     expect(await queue.deleteKeys('covers', [])).toBe(0);
     expect(await queue.deleteDueBefore('2026-02-01 00:00:00')).toBe(1);
-    expect(await queue.dueIn(['places'], '2026-03-01 00:00:00', 10)).toEqual([
+    expect(await queue.dueIn('places', '2026-03-01 00:00:00', 10)).toEqual([
       { category: 'places', key: 'a.jpg', due_at: '2026-03-01 00:00:00' },
     ]);
   });

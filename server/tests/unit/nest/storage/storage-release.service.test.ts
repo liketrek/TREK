@@ -5,7 +5,9 @@
  * StorageModule (a LocalDriver on a temp folder) with fake sources standing in
  * for the owner domains. An object any row still names stays; the pass's
  * guards hold, the owner marker included; a failure never reaches the caller
- * and leaves its rows queued. RELS-001 to RELS-021.
+ * and leaves its rows queued; one failing category never holds up another, and
+ * a database that is not this installation's releases nothing. RELS-001 to
+ * RELS-026.
  */
 import { AppSettings } from '../../../../src/db/entities/AppSettings.entity';
 import { StorageReleaseQueue } from '../../../../src/db/entities/StorageReleaseQueue.entity';
@@ -121,7 +123,11 @@ beforeAll(async () => {
   dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'trek-release-data-'));
   orm = await createTestOrm(db);
   await setBackends();
-  const paths = { ...new DataPathsService(), installIdFile: path.join(dataRoot, '.trek-install-id') };
+  const paths = {
+    ...new DataPathsService(),
+    installIdFile: path.join(dataRoot, '.trek-install-id'),
+    reclaimResetFile: path.join(dataRoot, '.trek-reclaim-reset'),
+  };
   t = await createTestModule({
     db,
     imports: [StorageModule],
@@ -439,5 +445,105 @@ describe('StorageReleaseService: the guards the nightly pass keeps', () => {
     expect(asked).toEqual([]);
     expect(exists('covers', 'short.jpg')).toBe(true);
     expect(await queued('covers')).toBe(0);
+  });
+});
+
+describe('StorageReleaseService: what a round-3 review found', () => {
+  it('RELS-022: a database naming another installation, or a restore whose reset is pending, releases nothing', async () => {
+    await put('covers', `${UUID}-x.jpg`);
+    await release.releaseValues([`/uploads/covers/${UUID}-x.jpg`]);
+    await setAppSetting(orm, 'install_id', '12345678-aaaa-4bbb-8ccc-1234567890ab');
+    try {
+      expect((await release.processDue(due())).skipped).toBe('install_mismatch');
+    } finally {
+      await setAppSetting(orm, 'install_id', installId);
+    }
+    const sentinel = path.join(dataRoot, '.trek-reclaim-reset');
+    fs.writeFileSync(sentinel, 'pending');
+    try {
+      expect((await release.processDue(due())).skipped).toBe('install_mismatch');
+    } finally {
+      fs.rmSync(sentinel, { force: true });
+    }
+    expect(exists('covers', `${UUID}-x.jpg`)).toBe(true);
+    expect(await queued('covers')).toBe(1);
+    expect(await release.processDue(due())).toEqual({ skipped: null, deleted: 1, kept: 0 });
+  });
+
+  it('RELS-023: a category whose deletes keep failing takes only its share of a tick, the others still go', async () => {
+    const older = Array.from({ length: 230 }, (_unused, i) => `${UUID}-c${i}.jpg`);
+    await orm.repo(StorageReleaseQueue).enqueue(
+      older.map((key) => ({ category: 'covers', key })),
+      dbNow(new Date(Date.now() - DAY)),
+    );
+    await put('places', `${UUID}-p.jpg`);
+    await release.releaseValues([`/uploads/places/${UUID}-p.jpg`]);
+    const realDelete = storage.delete.bind(storage);
+    vi.spyOn(storage, 'delete').mockImplementation(async (category, key) => {
+      if (category === 'covers') throw new Error('covers bucket refuses deletes');
+      await realDelete(category, key);
+    });
+    // The 230 older covers rows would fill a tick of 200 on their own, every tick.
+    expect((await release.processDue(due())).deleted).toBe(1);
+    expect(exists('places', `${UUID}-p.jpg`)).toBe(false);
+    expect(await queued('places')).toBe(0);
+    expect(await queued('covers')).toBe(230);
+  });
+
+  it('RELS-024: rows dropped after thirty days and a full queue are logged at warn with their counts', async () => {
+    await orm.repo(StorageReleaseQueue).enqueue(
+      [
+        { category: 'covers', key: `${UUID}-old1.jpg` },
+        { category: 'places', key: `${UUID}-old2.jpg` },
+      ],
+      dbNow(new Date(Date.now() - 31 * DAY)),
+    );
+    await release.processDue(new Date());
+    expect(logWarn).toHaveBeenCalledWith(expect.stringMatching(/^\[storage\] 2 released object\(s\) waited 30 days/));
+    expect(logWarn).toHaveBeenCalledWith(expect.stringContaining('only once deletion is on'));
+    vi.mocked(logWarn).mockClear();
+    vi.spyOn(StorageReleaseQueueRepository.prototype, 'size').mockResolvedValueOnce(50_000);
+    expect(await release.releaseValues([`/uploads/covers/${UUID}-full.jpg`])).toBe(0);
+    expect(logWarn).toHaveBeenCalledWith(expect.stringContaining('(50000 of 50000 waiting): 1 released object(s)'));
+    expect(await countRows(orm, StorageReleaseQueue)).toBe(0);
+  });
+
+  it('RELS-025: an allowed owner verdict holds for one window only, a refusal until the next night', async () => {
+    const marker = storageOwnerMarkerKey('another-install-0002');
+    const lists = vi.spyOn(storage, 'list');
+    const start = due().getTime();
+    await put('covers', `${UUID}-w1.jpg`);
+    await release.releaseValues([`/uploads/covers/${UUID}-w1.jpg`]);
+    expect((await release.processDue(new Date(start))).deleted).toBe(1);
+    expect(lists).toHaveBeenCalledTimes(1);
+    // Another installation's marker shows up: within the window the verdict stands, without a second listing.
+    await put('covers', marker);
+    try {
+      await put('covers', `${UUID}-w2.jpg`);
+      await release.releaseValues([`/uploads/covers/${UUID}-w2.jpg`]);
+      expect((await release.processDue(new Date(start + 10 * 60_000))).deleted).toBe(1);
+      expect(lists).toHaveBeenCalledTimes(1);
+      // Past it the root is listed again and the category refused.
+      await put('covers', `${UUID}-w3.jpg`);
+      await release.releaseValues([`/uploads/covers/${UUID}-w3.jpg`]);
+      expect((await release.processDue(new Date(start + 16 * 60_000))).deleted).toBe(0);
+      expect(lists).toHaveBeenCalledTimes(2);
+    } finally {
+      await storage.delete('covers', marker);
+    }
+    // The refusal holds hours later, though the marker is gone, until the nightly pass judges again.
+    expect((await release.processDue(new Date(start + 6 * 60 * 60_000))).deleted).toBe(0);
+    expect(lists).toHaveBeenCalledTimes(2);
+    expect(exists('covers', `${UUID}-w3.jpg`)).toBe(true);
+    expect((await release.processDue(new Date(start + 27 * 60 * 60_000))).deleted).toBe(1);
+    expect(exists('covers', `${UUID}-w3.jpg`)).toBe(false);
+  });
+
+  it('RELS-026: the owner marker is looked for in the category root only, one shallow listing', async () => {
+    const lists = vi.spyOn(storage, 'list');
+    await put('covers', `${UUID}-root.jpg`);
+    await release.releaseValues([`/uploads/covers/${UUID}-root.jpg`]);
+    await release.processDue(due());
+    expect(lists.mock.calls).toEqual([['covers', '', { shallow: true }]]);
   });
 });

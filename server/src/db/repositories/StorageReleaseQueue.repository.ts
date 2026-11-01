@@ -14,9 +14,9 @@ export interface ReleaseQueueRow {
 /**
  * `storage_release_queue`: the objects a delete or a replace left unnamed,
  * keyed by category and category-relative key, each with the time it may go.
- * Owners only add rows; the release job reads the due ones of the categories
- * it may judge, asks every reference source again and drops each row once it
- * has decided, deleted or not. A key queued again waits from the later time.
+ * Owners only add rows; the release job reads the due ones of each category
+ * it may judge (a share of its tick each), asks every reference source again
+ * and drops each row once it has decided, deleted or not. A key queued again waits from the later time.
  */
 export class StorageReleaseQueueRepository extends TrekRepository<StorageReleaseQueue> {
   private db() {
@@ -49,15 +49,16 @@ export class StorageReleaseQueueRepository extends TrekRepository<StorageRelease
     return rows.map((row) => row.category);
   }
 
-  /** The rows of these categories due at `now`, the longest waiting first, at most `limit`. */
-  async dueIn(categories: string[], now: string, limit: number): Promise<ReleaseQueueRow[]> {
-    if (categories.length === 0 || limit <= 0) return [];
+  /** The rows of one category due at `now`, the longest waiting first, at most `limit`. */
+  async dueIn(category: string, now: string, limit: number): Promise<ReleaseQueueRow[]> {
+    if (limit <= 0) return [];
     return await this.db()
       .selectFrom('storage_release_queue')
       .select(['category', 'key', 'due_at'])
-      .where('category', 'in', categories)
+      .where('category', '=', category)
       .where('due_at', '<=', now)
       .orderBy('due_at')
+      .orderBy('key')
       .limit(limit)
       .execute();
   }

@@ -60,7 +60,8 @@ tokens, `RuntimeEnvService`) and consumes the SAME derive functions.
 `uploads/` (on `SERVER_ROOT`, the package directory, never on `process.cwd()`)
 and names what lives in them: backups, the scratch dir, the logs, the JWT
 secret and encryption key files, the install id file the storage reclaim
-tells a copied database apart by, and the database file (TREK_DB_FILE when set,
+tells a copied database apart by, the reset file a restore leaves for it, and
+the database file (TREK_DB_FILE when set,
 else `data/travel.db`). Never derive one of these paths from `__dirname` in a
 new file: a moved file would quietly move the data.
 

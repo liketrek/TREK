@@ -13,7 +13,7 @@ import { storageOwnerMarkerInstall } from '../storage/storage-reclaim.types';
 import type { StorageService } from '../storage/storage.service';
 import { StorageInvalidKeyError } from '../storage/storage.types';
 import { VALID_INTERVALS } from './auto-backup.settings';
-import { extractBackupArchive } from './backup-archive';
+import { extractBackupArchive, markReclaimResetPending } from './backup-archive';
 import { RequestContext } from '@mikro-orm/core';
 
 import archiver from 'archiver';
@@ -40,7 +40,7 @@ const describeError = (err: unknown): string => (err instanceof Error ? err.mess
 
 // The scratch and key directory. The database itself may live elsewhere
 // (TREK_DB_FILE); the database port knows where.
-const { dataDir, encryptionKeyFile } = resolveDataPaths();
+const { dataDir, encryptionKeyFile, reclaimResetFile } = resolveDataPaths();
 const PRECOMPRESSED = /\.(jpe?g|png|webp|gif|heic|heif|avif|mp4|mov|m4v|webm|pdf|zip|gz)$/i;
 
 // Compressed upload cap for restore archives. Defaults to 500 MB, raisable via
@@ -482,6 +482,9 @@ export async function restoreFromZip({ storage, database }: BackupDeps, zipPath:
 
     await database.keepCopyBeforeRestore();
     const liveSessions = await readSessionsToCarry();
+    // Read again by storage reclaim once the swapped database is open, here or
+    // on the next start when the reopen below fails.
+    markReclaimResetPending(reclaimResetFile);
 
     try {
       // Closes the connection, swaps the database in and reopens it, migrating

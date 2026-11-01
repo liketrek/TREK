@@ -9,7 +9,8 @@
  * covers a margin for two weeks and is used up once the share is back under;
  * an owner marker of another install keeps its hands off; a restore, or a
  * database naming another install, resets the switch, the marks, the queue
- * and the reports but keeps this install's id. RCLS-001 to RCLS-043.
+ * and the reports but keeps this install's id, and so does a restore's reset
+ * file whatever id the database names. RCLS-001 to RCLS-045.
  */
 import { AppSettings } from '../../../../src/db/entities/AppSettings.entity';
 import { AuditLog } from '../../../../src/db/entities/AuditLog.entity';
@@ -19,7 +20,7 @@ import { StorageReclaimMarksRepository } from '../../../../src/db/repositories/S
 import { dbNow } from '../../../../src/db/types';
 import { DataPathsService } from '../../../../src/nest/app-config/data-paths.service';
 import { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
-import { logError } from '../../../../src/nest/audit/audit-log.logger';
+import { logError, logWarn } from '../../../../src/nest/audit/audit-log.logger';
 import { DomainError } from '../../../../src/nest/common/domain-error';
 import { DatabaseLifecycle } from '../../../../src/nest/database/database-lifecycle.service';
 import { StorageAdminService } from '../../../../src/nest/storage/storage-admin.service';
@@ -167,7 +168,14 @@ beforeAll(async () => {
     imports: [StorageModule],
     init: true,
     overrides: [
-      { provide: DataPathsService, useValue: { ...new DataPathsService(), installIdFile: path.join(dataRoot, 'id') } },
+      {
+        provide: DataPathsService,
+        useValue: {
+          ...new DataPathsService(),
+          installIdFile: path.join(dataRoot, 'id'),
+          reclaimResetFile: path.join(dataRoot, 'reclaim-reset'),
+        },
+      },
       {
         provide: DatabaseLifecycle,
         useValue: {
@@ -189,6 +197,7 @@ beforeAll(async () => {
 beforeEach(async () => {
   vi.restoreAllMocks();
   vi.mocked(logError).mockClear();
+  vi.mocked(logWarn).mockClear();
   for (const entry of fs.readdirSync(uploadsRoot)) {
     if (entry !== '.tmp') fs.rmSync(path.join(uploadsRoot, entry), { recursive: true, force: true });
   }
@@ -852,6 +861,59 @@ describe('StorageReclaimService: a pass that stops, and a restore', () => {
     expect(await readAppSetting(orm, 'storage.reclaim_report')).toBeNull();
     expect(await marksOf('covers')).toEqual([]);
     expect(await countRows(orm, StorageReleaseQueue)).toBe(0);
+  });
+
+  it('RCLS-044: a restore left the reset file: a backup of this installation loses its state too, then it goes', async () => {
+    const install = t.get(StorageInstallService);
+    const sentinel = path.join(dataRoot, 'reclaim-reset');
+    await markedWeekOld(['orphan.jpg']);
+    await orm.repo(StorageReleaseQueue).enqueue([{ category: 'covers', key: 'queued.jpg' }], dbNow(new Date()));
+    // A restore at boot, or a restart after a restore whose reopen failed: the id is this installation's own.
+    fs.writeFileSync(sentinel, 'pending');
+    expect(await install.databaseIsThis(installId)).toBe(false);
+    expect(await install.reconcile()).toBe(true);
+    expect(fs.existsSync(sentinel)).toBe(false);
+    expect(await readAppSetting(orm, 'install_id')).toBe(installId);
+    expect(await readAppSetting(orm, 'storage.reclaim_delete')).toBeNull();
+    expect(await readAppSetting(orm, 'storage.reclaim_report')).toBeNull();
+    expect(await marksOf('covers')).toEqual([]);
+    expect(await countRows(orm, StorageReleaseQueue)).toBe(0);
+    expect(await install.databaseIsThis(installId)).toBe(true);
+    // Done once: the next start keeps what this installation does from then on.
+    await reclaim.setDeleteEnabled(true);
+    expect(await install.reconcile()).toBe(false);
+    expect((await reclaim.state()).deleteEnabled).toBe(true);
+    // A reopen that went through takes the file away with its reset.
+    fs.writeFileSync(sentinel, 'pending');
+    await reopen();
+    expect(fs.existsSync(sentinel)).toBe(false);
+    expect((await reclaim.state()).deleteEnabled).toBe(false);
+  });
+
+  it('RCLS-045: a reset file that cannot be removed is reset again on the next start, and the database is not this', async () => {
+    const install = t.get(StorageInstallService);
+    const sentinel = path.join(dataRoot, 'reclaim-reset');
+    fs.writeFileSync(sentinel, 'pending');
+    const realRm = fs.rmSync;
+    vi.spyOn(fs, 'rmSync').mockImplementation((target, options) => {
+      if (target === sentinel) throw Object.assign(new Error('read-only file system'), { code: 'EROFS' });
+      realRm(target, options);
+    });
+    try {
+      await reclaim.setDeleteEnabled(true);
+      expect(await install.reconcile()).toBe(true);
+      expect(fs.existsSync(sentinel)).toBe(true);
+      expect(await install.databaseIsThis(installId)).toBe(false);
+      expect(logWarn).toHaveBeenCalledWith(expect.stringContaining('the next start resets again'));
+    } finally {
+      vi.mocked(fs.rmSync).mockRestore();
+      fs.rmSync(sentinel, { force: true });
+    }
+    expect(await install.databaseIsThis(installId)).toBe(true);
+    // A database that names another installation is not this one either.
+    await setAppSetting(orm, 'install_id', '12345678-aaaa-4bbb-8ccc-1234567890ab');
+    expect(await install.databaseIsThis(installId)).toBe(false);
+    expect(await install.reconcile()).toBe(true);
   });
 
   it('RCLS-041: the install id file is made once, mode 0600; a garbled one keeps every delete off', async () => {

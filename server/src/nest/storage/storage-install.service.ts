@@ -24,20 +24,26 @@ const INSTALL_ID = /^[a-z0-9-]{8,64}$/;
  * (`data/.trek-install-id`, made on the first start with a random id, mode
  * 0600 like the at-rest key). No backup archive carries it and no restore
  * writes it, so it stays with the data dir while a database can come from
- * anywhere: a backup restore (in the app or at boot), a restart after a
- * restore that failed half way, a copied `travel.db`.
+ * anywhere.
  *
- * At boot, and after every reopen of the database, the database is reconciled
- * with it: a database that names another id, or none, gets this one, and the
- * reclaim state it brought (the deletion switch, the confirmations, both
- * reports, the marks and the release queue) is dropped, since it describes
- * another installation's storage. After a reopen that happens whatever the id
- * says, as before: the rows a restore brings are an older history even when
- * they are this installation's own.
+ * The reclaim state a database holds (the deletion switch, the confirmations,
+ * both reports, the marks and the release queue) is dropped, and the database
+ * gets this installation's id, in exactly these cases:
+ * - at boot, when the database names another id or none: a copied `travel.db`,
+ *   a backup of another installation, a database from before install ids;
+ * - at boot, when a restore left `data/.trek-reclaim-reset` (data-paths.ts)
+ *   behind, whatever the id says: a restore at boot (RESTORE_FROM_BACKUP), and
+ *   a restore in the admin panel whose reopen failed or that the process did
+ *   not outlive. The file goes once the state is dropped;
+ * - after every reopen of the database (a restore in the admin panel, the demo
+ *   reset), whatever the id says: the rows a restore brings are an older
+ *   history even when they are this installation's own.
  *
- * What it cannot tell apart is a data dir copied whole, the file with it: the
- * wiki asks to give a clone its own data dir or delete the file. When the file
- * can be neither read nor written, there is no id: nothing is deleted then.
+ * What it cannot tell apart is a database of this installation put in place
+ * by hand while TREK was stopped, and a data dir copied whole, the file with
+ * it: the wiki asks to give a clone its own data dir or delete the file. When
+ * the file can be neither read nor written, there is no id: nothing is deleted
+ * then.
  */
 @Injectable()
 export class StorageInstallService implements OnApplicationBootstrap {
@@ -80,38 +86,65 @@ export class StorageInstallService implements OnApplicationBootstrap {
 
   /**
    * Makes the database name this installation. One that names another, or
-   * none, loses its reclaim state first. Answers whether it reset something
-   * a database had brought along.
+   * none, loses its reclaim state first, and so does any database a restore
+   * left the reset file for. Answers whether it reset something a database had
+   * brought along.
    */
   async reconcile(): Promise<boolean> {
+    const pending = resetPending(this.dataPaths.reclaimResetFile);
     const id = this.installId();
-    if (id === null) return false;
+    if (id === null && !pending) return false;
     const stored = await this.appSettings.getValue(INSTALL_ID_KEY);
-    if (stored === id) return false;
+    if (stored === id && !pending) return false;
     const wasOn = await this.reset(id);
-    if (stored !== null) {
+    const off = wasOn ? ', and deletion is off until an admin turns it on' : '';
+    if (pending) {
+      this.clearResetPending();
+      logInfo(`[storage] the database was put in place by a restore: its reclaim state was dropped${off}`);
+    } else if (stored !== null) {
       logInfo(
         `[storage] the database names another installation (restored, cloned or copied): its reclaim state was ` +
-          `dropped${wasOn ? ', and deletion is off until an admin turns it on' : ''}`,
+          `dropped${off}`,
       );
     }
-    return stored !== null;
+    return pending || stored !== null;
+  }
+
+  /**
+   * Whether the database is this installation's as `reconcile` leaves it: it
+   * names `id` and no restore is waiting for its reset. False means a
+   * reconcile failed or has not run, so nothing may be released.
+   */
+  async databaseIsThis(id: string): Promise<boolean> {
+    if (resetPending(this.dataPaths.reclaimResetFile)) return false;
+    return (await this.appSettings.getValue(INSTALL_ID_KEY)) === id;
   }
 
   /**
    * The database was swapped (a restore, the demo reset): what ran on the old
    * one stops, and the new one gets this installation's id and no reclaim
-   * state. Contained, since a listener that throws fails the reopen.
+   * state, after which a restore's reset file goes. Contained, since a
+   * listener that throws fails the reopen.
    */
   async afterReopen(): Promise<void> {
     this.currentEpoch += 1;
     try {
       const id = this.installId();
       const wasOn = await withRequestContext(this.orm, () => this.reset(id));
+      this.clearResetPending();
       if (wasOn)
         logInfo('[storage] the restored database had reclaim deletion on: it is off until an admin turns it on');
     } catch (err) {
       logError(`[storage] could not reset the reclaim state after the database was reopened: ${messageOf(err)}`);
+    }
+  }
+
+  /** Removes a restore's reset file once its reset is done; one left behind only resets again on the next start. */
+  private clearResetPending(): void {
+    try {
+      fs.rmSync(this.dataPaths.reclaimResetFile, { force: true });
+    } catch (err) {
+      logWarn(`[storage] could not remove the reclaim reset file, the next start resets again: ${messageOf(err)}`);
     }
   }
 
@@ -166,6 +199,21 @@ function placeOnce(file: string, text: string): void {
     fs.writeFileSync(file, text, { mode: 0o600, flag: 'wx' });
   } finally {
     fs.rmSync(spool, { force: true });
+  }
+}
+
+/**
+ * Whether a restore left the reset file. A file that cannot be looked at
+ * counts as there: resetting once more only switches deletion off.
+ */
+function resetPending(file: string): boolean {
+  try {
+    fs.statSync(file);
+    return true;
+  } catch (err) {
+    if (codeOf(err) === 'ENOENT') return false;
+    logWarn(`[storage] could not look for the reclaim reset file, the reclaim state is reset: ${messageOf(err)}`);
+    return true;
   }
 }
 

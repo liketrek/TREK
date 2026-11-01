@@ -138,10 +138,12 @@ async function bootstrap(): Promise<void> {
 async function restoreBeforeTheDatabaseOpens() {
   const { restoreOnFirstBoot } = require('./nest/backup/boot-restore') as typeof import('./nest/backup/boot-restore');
   const env = readEnv();
+  const paths = resolveDataPaths(env);
   return restoreOnFirstBoot({
     archive: env.backup.restoreFromBackup,
     dbFile: resolveDbPath(),
-    dataDir: resolveDataPaths(env).dataDir,
+    dataDir: paths.dataDir,
+    reclaimResetFile: paths.reclaimResetFile,
   });
 }
 

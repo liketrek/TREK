@@ -36,6 +36,14 @@ export interface DataPaths {
    */
   readonly installIdFile: string;
   /**
+   * `data/.trek-reclaim-reset`: left by a restore right before it swaps the
+   * database in, removed once storage reclaim has dropped the state the swapped
+   * database brought. A start that finds it resets that state first, so a
+   * restore whose reopen failed, or one at boot, is covered even when the
+   * backup came from this installation. Never part of a backup.
+   */
+  readonly reclaimResetFile: string;
+  /**
    * The SQLite file a non-test process opens: TREK_DB_FILE when set, else
    * `data/travel.db`. Under NODE_ENV=test the connection is `:memory:` instead
    * (db/db-path.ts), which is a property of the connection, not of the layout.
@@ -65,6 +73,7 @@ export function resolveDataPaths(
     jwtSecretFile: path.join(dataDir, '.jwt_secret'),
     encryptionKeyFile: path.join(dataDir, '.encryption_key'),
     installIdFile: path.join(dataDir, '.trek-install-id'),
+    reclaimResetFile: path.join(dataDir, '.trek-reclaim-reset'),
     dbFile: env.db.trekDbFile || path.join(dataDir, 'travel.db'),
   };
 }

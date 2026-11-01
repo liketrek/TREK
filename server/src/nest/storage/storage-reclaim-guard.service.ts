@@ -14,8 +14,15 @@ type CategoryRefusal = 'not_reclaimed' | 'sources_missing' | 'shared_location';
 /** Why the place a category lives in may not be judged: another installation's, or one nobody can tell. */
 type OwnerRefusal = 'foreign_install' | 'owner_unknown';
 
-/** A verdict the release queue reuses for this long; the nightly pass renews it every night. */
-const OWNER_VERDICT_TTL_MS = 26 * 60 * 60 * 1000;
+/**
+ * How long the release queue trusts a verdict that let a category through: a
+ * little more than one release interval (ten minutes), so a marker another
+ * installation left since stops the next tick but one at the latest, and the
+ * root is listed at most once in that time.
+ */
+const OWNER_ALLOWED_TTL_MS = 15 * 60 * 1000;
+/** A refusal holds until the nightly pass judges again: it only ever keeps objects. */
+const OWNER_REFUSAL_TTL_MS = 26 * 60 * 60 * 1000;
 /** A failed look at the owner markers is not retried before this. */
 const OWNER_FAILURE_TTL_MS = 60 * 60 * 1000;
 
@@ -36,9 +43,14 @@ interface CachedVerdict {
  *
  * The owner verdict is cached per category with the location it was judged
  * at. The pass judges it from the listing it makes anyway; the release queue
- * reuses that verdict for a day and lists the category's root itself only
- * when there is none, so a release never deletes in a category the pass
- * would refuse as another installation's.
+ * reuses a refusal until the next night, but an allowed verdict only for
+ * OWNER_ALLOWED_TTL_MS, and lists the category's root itself when there is no
+ * verdict it may reuse: at most once per category in that window, since a
+ * fresh verdict is cached again. The root is listed whole, filtered to the
+ * markers here: the local driver reads a prefix as a folder, so it cannot be
+ * asked for the `trek-owner-` names alone. So a release never deletes in a
+ * category another installation's marker has reached for longer than that
+ * window.
  */
 @Injectable()
 export class StorageReclaimGuardService {
@@ -87,15 +99,16 @@ export class StorageReclaimGuardService {
   ): Promise<OwnerRefusal | null> {
     const location = this.locationOf(category);
     const verdict = await this.judgeOwners(category, owners, installId);
-    this.verdicts.set(category, { verdict, location, until: now + OWNER_VERDICT_TTL_MS });
+    const ttl = verdict === null ? OWNER_ALLOWED_TTL_MS : OWNER_REFUSAL_TTL_MS;
+    this.verdicts.set(category, { verdict, location, until: now + ttl });
     return verdict;
   }
 
   /**
-   * The owner verdict for a category, as the last judgement left it when that
-   * holds for where the category lives now; otherwise its root is listed for
-   * owner markers and judged afresh. A listing that fails reads as
-   * `owner_unknown` for an hour.
+   * The owner verdict for a category, as the last judgement left it while that
+   * is fresh (see OWNER_ALLOWED_TTL_MS) and holds for where the category lives
+   * now; otherwise its root is listed for owner markers and judged afresh. A
+   * listing that fails reads as `owner_unknown` for an hour.
    */
   async cachedOwnerVerdict(
     category: ServedCategory,
