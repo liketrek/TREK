@@ -95,7 +95,7 @@ export function uploadKeysIn(value: string | null | undefined): StorageKeyRef[] 
     const next = matches[i + 1];
     const tail = value.slice(start, next ? next.index : value.length);
     const end = tail.search(KEY_END);
-    const category = match[1]!.toLowerCase();
+    const category = match[1].toLowerCase();
     return keyVariants(end === -1 ? tail : tail.slice(0, end)).map((key) => ({ category, key }));
   });
 }
@@ -113,9 +113,9 @@ export function storageKeysIn(value: string | null | undefined, options: Storage
   if (trimmed === '') return [];
   const refs = uploadKeysIn(value);
   const relative = /^\.?\/?([a-z0-9][a-z0-9-]*)\/(.+)$/i.exec(trimmed);
-  if (relative && SERVED.has(relative[1]!.toLowerCase())) {
-    const category = relative[1]!.toLowerCase();
-    for (const key of keyVariants(relative[2]!)) refs.push({ category, key });
+  if (relative && SERVED.has(relative[1].toLowerCase())) {
+    const category = relative[1].toLowerCase();
+    for (const key of keyVariants(relative[2])) refs.push({ category, key });
   }
   if (options.bare) {
     const bare = options.bare;
@@ -166,7 +166,7 @@ function keyVariants(raw: string): string[] {
   const whole = stripSuffix(raw);
   for (const form of [whole, decoded(whole)]) {
     add(form);
-    add(form.trim().split(/\s/)[0]!);
+    add(form.trim().split(/\s/)[0] ?? '');
   }
   return [...forms];
 }

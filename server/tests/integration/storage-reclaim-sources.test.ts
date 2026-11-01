@@ -8,7 +8,6 @@
  * forever, or swept while a domain's rows were never asked.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { StorageReclaimRegistryService } from '../../src/nest/storage/storage-reclaim-registry.service';
 import {
   RECLAIM_LEDGER,
@@ -17,12 +16,7 @@ import {
 } from '../../src/nest/storage/storage-reclaim.ledger';
 import type { INestApplication } from '@nestjs/common';
 
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 describe('RECLAIM-SRC: the app registers what the reclaim ledger waits for', () => {
   let app: INestApplication;
@@ -32,8 +26,7 @@ describe('RECLAIM-SRC: the app registers what the reclaim ledger waits for', () 
   });
 
   afterAll(async () => {
-    await app.close();
-    testDb.close();
+    await app?.close();
   });
 
   it('RECLAIM-SRC-001: the registered source ids are exactly the ones the ledger requires', () => {
