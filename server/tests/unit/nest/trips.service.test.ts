@@ -276,7 +276,7 @@ beforeAll(async () => {
   await createTestCategoriesRepo(testDb),
   await createTestTripsRepo(testDb),
   await createTestBudgetItemsRepo(testDb),
-  await createTestCollectionPlacesRepo(testDb),
+  { releaseValues: async () => [] } as never, // StorageReleaseService
   buildPlaceImportService(),
 );
   // SettingsService reads the trips a planner view may keep (#2639) through TripMembershipService,
@@ -298,12 +298,12 @@ beforeAll(async () => {
   ),
   realtime,
   undefined as never, // unsplash — not exercised here
-  coversFx.storage,
+  { releaseValues: async () => [] } as never, // StorageReleaseService: the cover release has its own suite
   await createTestUnitOfWork(testDb),
   (await sharedTestOrm(testDb)).em,
   new SettingsService(await createTestUnitOfWork(testDb), await createTestAppSettingsRepo(testDb), await createTestSettingsRepo(testDb), membership.get(TripMembershipService)),
 );
-  membersSvc = new TripMembersService(budgetSvc, new UserCleanupService(new MaintenanceRepository(dbsEm!), budgetSvc, await createTestUnitOfWork(testDb), await createTestUsersRepo(testDb), await createTestTripMembersRepo(testDb), await createTestBudgetItemsRepo(testDb), await createTestBudgetSettlementsRepo(testDb), await createTestJourneyShareTokensRepo(testDb), await createTestJourneysRepo(testDb), await createTestJourneyEntriesRepo(testDb), await createTestJourneyContributorsRepo(testDb), await createTestShareTokensRepo(testDb), await createTestPluginsRepo(testDb), await createTestPluginUserErasureQueueRepo(testDb)), new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), realtime, notificationsStub(), await createTestUnitOfWork(testDb), await createTestTripsRepo(testDb), await createTestTripMembersRepo(testDb), await createTestUsersRepo(testDb));
+  membersSvc = new TripMembersService(budgetSvc, new UserCleanupService(new MaintenanceRepository(dbsEm!), budgetSvc, await createTestUnitOfWork(testDb), await createTestUsersRepo(testDb), await createTestTripMembersRepo(testDb), await createTestBudgetItemsRepo(testDb), await createTestBudgetSettlementsRepo(testDb), await createTestJourneyShareTokensRepo(testDb), await createTestJourneysRepo(testDb), await createTestJourneyEntriesRepo(testDb), await createTestJourneyContributorsRepo(testDb), await createTestShareTokensRepo(testDb), await createTestPluginsRepo(testDb), await createTestPluginUserErasureQueueRepo(testDb), { releaseValues: async () => [] } as never), new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), realtime, notificationsStub(), await createTestUnitOfWork(testDb), await createTestTripsRepo(testDb), await createTestTripMembersRepo(testDb), await createTestUsersRepo(testDb));
   readModelSvc = new TripReadModelService(
   await createTestTripsRepo(testDb), membersSvc, daysSvc, accommodationsSvc, budgetSvc,
   new PackingService(
@@ -316,7 +316,7 @@ beforeAll(async () => {
   new CollabService(
     // Plan 4 Task 2 — CollabService's own DatabaseService param is gone:
     // canAccessTrip now reads through the TripsRepository at the end.
-    new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), realtime, notificationsStub(), coversFx.storage, new RateLimitService(), await createTestUnitOfWork(testDb),
+    new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), realtime, notificationsStub(), { releaseValues: async () => [] } as never, new RateLimitService(), await createTestUnitOfWork(testDb),
     await createTestCollabMessageReactionsRepo(testDb), await createTestCollabNotesRepo(testDb), await createTestCollabPollsRepo(testDb),
     await createTestCollabPollVotesRepo(testDb), await createTestCollabLinksRepo(testDb), await createTestCollabMessagesRepo(testDb),
     await createTestTripsRepo(testDb),
@@ -329,8 +329,7 @@ beforeAll(async () => {
   await createTestTripMembersRepo(testDb),
   ),
   new FilesService(
-    // Plan 4 Task 2 — FilesService's own canAccessTrip delegate is now
-    // TripsRepository.findAccessible, in the same constructor slot.
+    // Plan 4 Task 2 — canAccessTrip is TripsRepository.findAccessible, in the same constructor slot.
     new TripAccessService(await createTestTripsRepo(testDb)),
     new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
     realtime,
@@ -344,6 +343,7 @@ beforeAll(async () => {
     await createTestPlacesRepo(testDb),
     await createTestDayAssignmentsRepo(testDb),
     await createTestBudgetItemsRepo(testDb),
+    { releaseValues: async () => [] } as never, // StorageReleaseService
   ),
 );
 });

@@ -3,6 +3,7 @@ import { DomainError } from '../common/domain-error';
 import { restTripWriter, type TripWriter } from '../common/trip-writer';
 import { PermissionsService } from '../permissions/permissions.service';
 import { RealtimeService } from '../realtime/realtime.service';
+import { StorageReleaseService } from '../storage/storage-release.service';
 import { TripsService, type DeleteTripInfo } from './trips.service';
 import { Injectable } from '@nestjs/common';
 
@@ -36,6 +37,7 @@ export class TripWritesService {
     private readonly trips: TripsService,
     private readonly permissions: PermissionsService,
     private readonly realtime: RealtimeService,
+    private readonly release: StorageReleaseService,
   ) {}
 
   /** REST's writer for a trip: the room minus the tab that sent the request. */
@@ -62,10 +64,17 @@ export class TripWritesService {
     return newTripId;
   }
 
-  /** Deletes a trip and tells everyone in its room, once the delete is committed. */
+  /**
+   * Deletes a trip and tells everyone in its room, once the delete is
+   * committed. Its cover goes with it unless another row (a trip copy, a
+   * journey) still names it; the objects its places and files named are the
+   * nightly reclaim pass's, since their rows belong to other domains.
+   */
   async remove(tripId: string | number, writer: TripWriter): Promise<DeleteTripInfo> {
+    const cover = ((await this.trips.getRaw(tripId)) as { cover_image?: string | null } | undefined)?.cover_image;
     const info = await this.trips.remove(tripId, writer.userId, writer.role);
     writer.events.emit('trip:deleted', { id: info.tripId });
+    await this.release.releaseValues([cover]);
     return info;
   }
 

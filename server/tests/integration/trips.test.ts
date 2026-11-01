@@ -1301,7 +1301,7 @@ describe('Trip cover upload parity', () => {
     expect(fsMod.existsSync(pathMod.join(coversDir, diskName))).toBe(true);
   });
 
-  it('TRIP-P02 — re-upload keeps the previous cover file for the storage reclaim job (#2924)', async () => {
+  it('TRIP-P02 — re-upload deletes the previous cover file', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
 
@@ -1317,8 +1317,7 @@ describe('Trip cover upload parity', () => {
       .set('Cookie', authCookie(user.id))
       .attach('cover', FIXTURE_IMG, 'two.jpg');
     expect(second.status).toBe(201);
-    // A trip copy or a journey may show the same object, so the replace leaves it.
-    expect(fsMod.existsSync(pathMod.join(coversDir, firstName))).toBe(true);
+    expect(fsMod.existsSync(pathMod.join(coversDir, firstName))).toBe(false);
   });
 
   it('TRIP-P03 — no file → 400 "No image uploaded"', async () => {

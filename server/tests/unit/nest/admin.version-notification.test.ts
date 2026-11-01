@@ -136,6 +136,7 @@ beforeAll(async () => {
     await createTestShareTokensRepo(testDb),
     await createTestPluginsRepo(testDb),
     await createTestPluginUserErasureQueueRepo(testDb),
+    { releaseValues: async () => [] } as never,
   );
   auth = new AuthService(
     permissions,

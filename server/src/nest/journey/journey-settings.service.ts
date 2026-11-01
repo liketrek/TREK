@@ -2,6 +2,7 @@ import { Journeys } from '../../db/entities/Journeys.entity';
 import type { JourneysRepository } from '../../db/repositories/Journeys.repository';
 import type { Journey } from '../../types';
 import { UnitOfWork } from '../database/unit-of-work';
+import { StorageReleaseService } from '../storage/storage-release.service';
 import { JourneyDomainService } from './journey-domain.service';
 import {
   journeySettingsPatch,
@@ -24,7 +25,9 @@ interface JourneySettingsUpdate {
  * of the input and the same owner check), with the stored values of exactly
  * the columns it wrote, read in the same transaction. That is what takes the
  * change back: the assistant's undo writes those values again through the
- * same tool. The broadcast goes out after the commit.
+ * same tool. The broadcast goes out after the commit, and so does the release
+ * of a replaced cover: its object goes unless another row (the trip it was
+ * inherited from, a gallery photo) still names it (#2924).
  */
 @Injectable()
 export class JourneySettingsService {
@@ -32,6 +35,7 @@ export class JourneySettingsService {
     private readonly journeys: JourneyDomainService,
     private readonly uow: UnitOfWork,
     @InjectRepository(Journeys) private readonly journeysRepo: JourneysRepository,
+    private readonly release: StorageReleaseService,
   ) {}
 
   /** Null for anyone but the owner, who alone reshapes the journey itself, as on the route. */
@@ -50,6 +54,7 @@ export class JourneySettingsService {
       return previousSettings(before as unknown as Readonly<Record<string, unknown>> | undefined, patch);
     });
     if (written) await this.journeys.broadcastJourneyEvent(journeyId, 'journey:updated', {}, sid);
+    if (typeof previous.cover_image === 'string') await this.release.releaseValues([previous.cover_image]);
     const journey = (await this.journeysRepo.findById(journeyId)) as Journey | undefined;
     return journey ? { journey, previous } : null;
   }

@@ -139,6 +139,7 @@ beforeAll(async () => {
       await createTestShareTokensRepo(testDb),
       await createTestPluginsRepo(testDb),
       await createTestPluginUserErasureQueueRepo(testDb),
+      { releaseValues: async () => [] } as never,
     ),
     new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
     realtime,

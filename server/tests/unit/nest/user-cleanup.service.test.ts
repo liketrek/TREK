@@ -54,6 +54,7 @@ import {
   createTestPluginsRepo,
   createTestPluginUserErasureQueueRepo,
 } from '../../helpers/share-repos';
+import { releaseNothing } from '../../helpers/storage-release';
 import { resetTestDb } from '../../helpers/test-db';
 import type { TestOrm } from '../../helpers/test-orm';
 import {
@@ -93,6 +94,8 @@ vi.mock('../../../src/nest/plugins/paths', () => ({ pluginsDataRoot: () => dataR
 let em: EntityManager;
 let budget: BudgetService;
 let svc: UserCleanupService;
+/** What a deletion hands on: the avatar, released by its own suites. */
+const cleanupRelease = releaseNothing();
 beforeAll(async () => {
   // Plan 4 Task 4: UserCleanupService's own DatabaseService param is gone.
   // UC1 goes through MaintenanceRepository, which Nest injects (built here
@@ -125,6 +128,7 @@ beforeAll(async () => {
     // Plan 4 Task 8a constructor-ripple: UC2/UC3's repositories.
     await createTestPluginsRepo(testDb),
     await createTestPluginUserErasureQueueRepo(testDb),
+    cleanupRelease,
   );
 });
 
@@ -159,6 +163,7 @@ const addEntry = (journeyId: number, authorId: number, type: string, title: stri
 
 beforeEach(async () => {
   resetTestDb(testDb);
+  cleanupRelease.releaseValues.mockClear();
   // The plugin tables are not user data, so resetTestDb leaves them alone —
   // these tests own them and must not leak rows into each other.
   await deleteRows(orm, PluginUserErasureQueue);
@@ -261,6 +266,7 @@ describe('erasePluginUserData', () => {
       // constructor-time failure.
       await createTestPluginsRepo(slim),
       await createTestPluginUserErasureQueueRepo(slim),
+      { releaseValues: async () => [] } as never,
     );
 
     await expect(slimSvc.erasePluginUserData(1)).resolves.toBeUndefined();
@@ -431,13 +437,26 @@ describe('deleteUserCompletely', () => {
           await createTestShareTokensRepo(testDb),
           await createTestPluginsRepo(testDb),
           await createTestPluginUserErasureQueueRepo(testDb),
+          cleanupRelease,
         ).deleteUserCompletely(victim.id),
       ).rejects.toThrow('boom');
 
       expect(await findRow(orm, Users, { id: victim.id })).not.toBeNull();
       expect((await findRow(orm, TripMembers, { user: owner.id }))?.invited_by).toBe(victim.id);
+      expect(cleanupRelease.releaseValues).not.toHaveBeenCalled();
     } finally {
       deleteByIdSpy.mockRestore();
     }
+  });
+
+  it('USER-CLEANUP-010: hands the uploaded avatar to the release once the user row is gone', async () => {
+    const { user } = createUser(testDb, { username: 'with-avatar' });
+    await updateRows(orm, Users, { id: user.id }, { avatar: 'face.png' });
+    cleanupRelease.releaseValues.mockImplementationOnce(async () => {
+      expect(await findRow(orm, Users, { id: user.id })).toBeNull();
+      return [];
+    });
+    await svc.deleteUserCompletely(user.id);
+    expect(cleanupRelease.releaseValues).toHaveBeenCalledWith(['face.png'], { bare: 'avatars' });
   });
 });

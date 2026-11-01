@@ -43,7 +43,7 @@ import { BudgetService, type CurrencyRebase } from '../budget/budget.service';
 import { ReservationsService } from '../reservations/reservations.service';
 import { VacayService } from '../vacay/vacay.service';
 import { UnsplashService } from '../unsplash/unsplash.service';
-import { StorageService } from '../storage/storage.service';
+import { StorageReleaseService } from '../storage/storage-release.service';
 import { SettingsService } from '../settings/settings.service';
 import { escapeLikePattern } from '../places/places.helpers';
 import { NotFoundError, ValidationError } from '../common/domain-errors';
@@ -154,7 +154,7 @@ export class TripsService {
     private readonly vacay: VacayService,
     private readonly realtime: RealtimeService,
     private readonly unsplash: UnsplashService,
-    private readonly storage: StorageService,
+    private readonly release: StorageReleaseService, // the cover a change replaced, released after the commit
     private readonly uow: UnitOfWork,
     // Plan 3c Task 0b (task-0a-review-security.md F-A1): `canAccessTrip`/
     // `isOwner` below resolve `TripsRepository` directly through this,
@@ -537,6 +537,7 @@ export class TripsService {
       }
     });
     if (vacayId !== undefined) await this.vacay.notifyPlanUsers(vacayId, undefined);
+    if (cover_image !== undefined) await this.release.releaseValues([trip.cover_image]); // kept while any row names it
 
     const changes: Record<string, unknown> = {};
     if (title && title !== trip.title) changes.title = title;

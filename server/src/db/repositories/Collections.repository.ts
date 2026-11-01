@@ -230,6 +230,16 @@ export class CollectionsRepository extends TrekRepository<Collections> {
       .execute();
   }
 
+  /** CL31 (`setCollectionCover`) — `SELECT cover_image FROM collections WHERE id=?`. */
+  async coverImage(id: number): Promise<string | null | undefined> {
+    const row = await this.readDb()
+      .selectFrom('collections')
+      .select('cover_image')
+      .where('id', '=', id)
+      .executeTakeFirst();
+    return row?.cover_image;
+  }
+
   /** CL32 (`setCollectionCover`) — `UPDATE collections SET cover_image=?, updated_at=<dbNow()> WHERE id=?`. */
   async setCoverImage(id: number, coverUrl: string | null): Promise<void> {
     await this.readDb()

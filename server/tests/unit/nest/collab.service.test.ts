@@ -29,6 +29,7 @@ import type { TripWriter } from '../../../src/nest/common/trip-writer';
 import type { NotificationsService } from '../../../src/nest/notifications/notifications.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import type { StorageReleaseService } from '../../../src/nest/storage/storage-release.service';
 import {
   createTestCollabNotesRepo,
   createTestCollabMessageReactionsRepo,
@@ -41,7 +42,7 @@ import { createUser, createTrip } from '../../helpers/factories';
 import { countRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { notificationsStub } from '../../helpers/notifications';
-import { makeStorageFixture } from '../../helpers/storage-fixture';
+import { releaseNothing } from '../../helpers/storage-release';
 import { resetTestDb } from '../../helpers/test-db';
 import type { TestOrm } from '../../helpers/test-orm';
 import {
@@ -101,7 +102,8 @@ vi.mock('../../../src/utils/ssrfGuard', () => {
   };
 });
 
-const collabFx = makeStorageFixture('files/');
+/** Where note and chat attachments go once their rows are gone; the release has its own suites. */
+const collabRelease = releaseNothing();
 const rateLimit = new RateLimitService();
 let svc: CollabService;
 // Named bindings (not only inside `svc`), the `files.service.test.ts`
@@ -115,7 +117,7 @@ let linksRepo: CollabLinksRepository;
 let messagesRepo: CollabMessagesRepository;
 
 async function buildCollabService(
-  storage = collabFx.storage,
+  release: StorageReleaseService = collabRelease,
   rl = rateLimit,
   notifications = notificationsStub(),
   realtime: RealtimeService = new RealtimeService(),
@@ -126,7 +128,7 @@ async function buildCollabService(
     new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
     realtime,
     notifications,
-    storage,
+    release,
     rl,
     await createTestUnitOfWork(testDb),
     await createTestCollabMessageReactionsRepo(testDb),
@@ -158,7 +160,7 @@ beforeAll(async () => {
 });
 
 /** A CollabService with its own preview cache and budget, for the tests that fill either. */
-const freshSvc = async () => buildCollabService(collabFx.storage, new RateLimitService());
+const freshSvc = async () => buildCollabService(collabRelease, new RateLimitService());
 
 beforeEach(() => {
   resetTestDb(testDb);
@@ -415,7 +417,7 @@ describe('postNote / postMessage', () => {
       send,
       actorName: vi.fn(async () => 'owner'),
     } as unknown as NotificationsService;
-    const service = await buildCollabService(collabFx.storage, rateLimit, notifications, realtime);
+    const service = await buildCollabService(collabRelease, rateLimit, notifications, realtime);
     return { service, realtime, send };
   }
 
@@ -886,7 +888,7 @@ describe('linkPreview hardening', () => {
 
     const limiter = new RateLimitService();
     const check = vi.spyOn(limiter, 'check');
-    const service = await buildCollabService(collabFx.storage, limiter);
+    const service = await buildCollabService(collabRelease, limiter);
     const all = Promise.all(Array.from({ length: 20 }, () => service.linkPreview('https://example.com/same', 9)));
     release!();
     const results = await all;
@@ -903,7 +905,7 @@ describe('linkPreview hardening', () => {
     const fetchMock = stubFetch({ ok: true, text: async () => '<title>Eigenes Budget</title>' });
     const limiter = new RateLimitService();
     for (let i = 0; i < 60; i++) await limiter.check('collab_link_preview', '42', 60, 60_000, Date.now());
-    const service = await buildCollabService(collabFx.storage, limiter);
+    const service = await buildCollabService(collabRelease, limiter);
 
     // 42 is first in line and out of budget; 43 arrives while 42's check runs.
     const [spent, fresh] = await Promise.all([
@@ -985,24 +987,30 @@ describe('hardening', () => {
     expect(await countRows(orm, CollabNotes, { id: note.id })).toBe(1);
   });
 
-  it('COLLAB-SVC-036: a failing storage delete is swallowed — note + file deletes still succeed', async () => {
+  it('COLLAB-SVC-036a: a note file, a note and a message release their attachments only once their rows are gone', async () => {
     const { user1, trip } = setup();
-    const failingStorage = { delete: vi.fn().mockRejectedValue(new Error('EACCES')) };
-    const failing = await buildCollabService(
-      failingStorage as unknown as import('../../../src/nest/storage/storage.service').StorageService,
-    );
-    const note = await failing.createNote(trip.id, user1.id, { title: 'Sticky file' });
+    const note = await svc.createNote(trip.id, user1.id, { title: 'With files' });
     await attachToNote(trip.id, note.id, 'stuck.pdf', 'stuck.pdf');
     const attachment = await findRow(orm, TripFiles, { note: note.id });
     if (!attachment) throw new Error('the note attachment was not written');
-    const fileId = attachment.id;
+    collabRelease.releaseValues.mockClear();
+    collabRelease.releaseValues.mockImplementationOnce(async () => {
+      expect(await countRows(orm, TripFiles, { id: attachment.id })).toBe(0);
+      return [];
+    });
+    expect(await svc.deleteNoteFile(trip.id, note.id, attachment.id)).toBe(true);
+    expect(collabRelease.releaseValues).toHaveBeenLastCalledWith(['stuck.pdf'], { bare: 'files', basename: true });
 
-    expect(await failing.deleteNoteFile(trip.id, note.id, fileId)).toBe(true);
-    expect(await countRows(orm, TripFiles, { id: fileId })).toBe(0);
-
-    await attachToNote(trip.id, note.id, 'stuck2.pdf', 'stuck2.pdf');
-    expect(await failing.deleteNote(trip.id, note.id)).toBe(true);
-    expect(await countRows(orm, CollabNotes, { id: note.id })).toBe(0);
+    await attachToNote(trip.id, note.id, 'files/legacy.pdf', 'legacy.pdf');
+    collabRelease.releaseValues.mockImplementationOnce(async () => {
+      expect(await countRows(orm, CollabNotes, { id: note.id })).toBe(0);
+      return [];
+    });
+    expect(await svc.deleteNote(trip.id, note.id)).toBe(true);
+    expect(collabRelease.releaseValues).toHaveBeenLastCalledWith(['files/legacy.pdf'], {
+      bare: 'files',
+      basename: true,
+    });
   });
 
   it('COLLAB-SVC-036: getFormattedNoteById is trip-scoped and null-safe', async () => {

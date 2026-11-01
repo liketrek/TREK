@@ -46,6 +46,7 @@ import {
 import { makeCollabMessage } from '../../helpers/factories/collab';
 import { countRows, findRow, insertRow } from '../../helpers/factories/rows';
 import { createTestTripFilesRepo, createTestFileLinksRepo, createTestBudgetItemsRepo } from '../../helpers/files-repos';
+import { releaseNothing } from '../../helpers/storage-release';
 import { resetTestDb } from '../../helpers/test-db';
 import type { TestOrm } from '../../helpers/test-orm';
 import {
@@ -93,6 +94,8 @@ const { consumeEphemeralToken } = vi.hoisted(() => ({ consumeEphemeralToken: vi.
 vi.mock('../../../src/nest/auth-core/ephemeral-tokens', () => ({ consumeEphemeralToken }));
 
 const storageDelete = vi.fn();
+/** What a permanent delete hands on: the release asks every reference source, in its own suites. */
+const release = releaseNothing();
 const storagePut = vi.fn(async () => undefined);
 const storageStub = {
   delete: storageDelete,
@@ -143,6 +146,7 @@ beforeAll(async () => {
     await createTestPlacesRepo(testDb),
     await createTestDayAssignmentsRepo(testDb),
     await createTestBudgetItemsRepo(testDb),
+    release,
   );
 });
 
@@ -551,66 +555,64 @@ describe('toggleStarred / softDeleteFile / restoreFile', () => {
   });
 });
 
-// ── permanentDeleteFile / emptyTrash (unlink-first semantics) ─────────────────
+// ── permanentDeleteFile / emptyTrash (row first, then the release) ────────────
+
+const FILE_KEYS = { bare: 'files', basename: true };
 
 describe('permanentDeleteFile', () => {
-  it('FILE-SVC-022: deletes the storage object (idempotent on missing), then the DB row', async () => {
+  it('FILE-SVC-022: deletes the DB row, then hands its filename to the release, never to storage itself', async () => {
     const { user, trip } = seedTrip();
     const file = await makeFile(trip.id, user.id, { filename: 'on-disk.pdf' });
-    storageDelete.mockResolvedValue(undefined);
+    release.releaseValues.mockImplementationOnce(async () => {
+      expect(await svc.getFileById(file.id, trip.id)).toBeUndefined();
+      return [];
+    });
     await svc.permanentDeleteFile((await svc.getFileById(file.id, trip.id))!);
-    expect(storageDelete).toHaveBeenCalledWith('files', 'on-disk.pdf');
-    expect(await svc.getFileById(file.id, trip.id)).toBeUndefined();
+    expect(release.releaseValues).toHaveBeenCalledWith(['on-disk.pdf'], FILE_KEYS);
+    expect(storageDelete).not.toHaveBeenCalled();
   });
 
-  it('FILE-SVC-023: a delete failure logs [files], rethrows and keeps the DB row', async () => {
+  it('FILE-SVC-023: a row delete that fails releases nothing and keeps the row', async () => {
     const { user, trip } = seedTrip();
     const file = await makeFile(trip.id, user.id, { filename: 'stuck.pdf' });
-    const boom = new Error('EACCES');
-    storageDelete.mockRejectedValue(boom);
-    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
-    await expect(svc.permanentDeleteFile((await svc.getFileById(file.id, trip.id))!)).rejects.toThrow('EACCES');
-    expect(err).toHaveBeenCalledWith('[files] unlink failed for stuck.pdf, keeping DB row:', boom);
+    const spy = vi.spyOn(tripFilesRepo, 'deleteById').mockRejectedValueOnce(new Error('SQLITE_BUSY'));
+    await expect(svc.permanentDeleteFile((await svc.getFileById(file.id, trip.id))!)).rejects.toThrow('SQLITE_BUSY');
+    expect(release.releaseValues).not.toHaveBeenCalled();
     expect(await svc.getFileById(file.id, trip.id)).toBeDefined();
+    spy.mockRestore();
   });
 });
 
 describe('emptyTrash', () => {
-  it('FILE-SVC-024: unlinks every trashed file and deletes their rows, returning the count', async () => {
+  it('FILE-SVC-024: deletes every trashed row, then releases their names, returning the count', async () => {
     const { user, trip } = seedTrip();
     const a = await makeFile(trip.id, user.id, { filename: 'a.pdf' });
     const b = await makeFile(trip.id, user.id, { filename: 'b.pdf' });
     const kept = await makeFile(trip.id, user.id, { filename: 'kept.pdf' });
     await svc.softDeleteFile(a.id);
     await svc.softDeleteFile(b.id);
-    storageDelete.mockResolvedValue(undefined);
 
     await expect(svc.emptyTrash(trip.id)).resolves.toBe(2);
     expect(await svc.listFiles(trip.id, true)).toEqual([]);
     expect(await svc.getFileById(kept.id, trip.id)).toBeDefined();
+    const [names, options] = release.releaseValues.mock.calls[0] as unknown as [string[], unknown];
+    expect([...names].sort()).toEqual(['a.pdf', 'b.pdf']);
+    expect(options).toEqual(FILE_KEYS);
+    expect(storageDelete).not.toHaveBeenCalled();
   });
 
-  it('FILE-SVC-025: a partial unlink failure keeps the failed row, swallows the error and counts only successes', async () => {
+  it('FILE-SVC-025: a legacy prefixed filename reaches the release as stored, the basename reading is its own', async () => {
     const { user, trip } = seedTrip();
-    const good = await makeFile(trip.id, user.id, { filename: 'good.pdf' });
-    const bad = await makeFile(trip.id, user.id, { filename: 'bad.pdf' });
-    await svc.softDeleteFile(good.id);
-    await svc.softDeleteFile(bad.id);
-    const boom = new Error('EBUSY');
-    storageDelete.mockImplementation((_category: string, name: string) =>
-      name.includes('bad.pdf') ? Promise.reject(boom) : Promise.resolve(),
-    );
-    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
-
+    const legacy = await makeFile(trip.id, user.id, { filename: 'uploads/files/legacy.pdf' });
+    await svc.softDeleteFile(legacy.id);
     await expect(svc.emptyTrash(trip.id)).resolves.toBe(1);
-    expect(err).toHaveBeenCalledWith('[files] unlink failed for bad.pdf, keeping DB row:', boom);
-    expect(await svc.getFileById(good.id, trip.id)).toBeUndefined();
-    expect(await svc.getDeletedFile(bad.id, trip.id)).toBeDefined();
+    expect(release.releaseValues).toHaveBeenCalledWith(['uploads/files/legacy.pdf'], FILE_KEYS);
   });
 
-  it('FILE-SVC-026: an empty trash resolves to 0 without touching storage', async () => {
+  it('FILE-SVC-026: an empty trash resolves to 0 without a release', async () => {
     const { trip } = seedTrip();
     await expect(svc.emptyTrash(trip.id)).resolves.toBe(0);
+    expect(release.releaseValues).not.toHaveBeenCalled();
     expect(storageDelete).not.toHaveBeenCalled();
   });
 
@@ -627,10 +629,10 @@ describe('emptyTrash', () => {
     const { user, trip } = seedTrip();
     const a = await makeFile(trip.id, user.id, { filename: 'a.pdf' });
     await svc.softDeleteFile(a.id);
-    storageDelete.mockResolvedValue(undefined);
     const spy = vi.spyOn(tripFilesRepo, 'deleteMany').mockRejectedValueOnce(new Error('boom'));
     await expect(svc.emptyTrash(trip.id)).rejects.toThrow('boom');
     expect(await countRows(orm, TripFiles, { id: a.id })).toBe(1);
+    expect(release.releaseValues).not.toHaveBeenCalled();
     spy.mockRestore();
   });
 });

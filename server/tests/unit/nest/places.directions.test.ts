@@ -48,7 +48,6 @@ import {
   createTestTripsRepo,
   sharedTestOrm,
 } from '../../helpers/test-uow';
-import { createTestCollectionPlacesRepo } from '../../helpers/test-uow';
 
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 
@@ -150,7 +149,7 @@ async function svc(searchNominatim: OsmClient['searchNominatim']): Promise<Place
     await createTestCategoriesRepo(testDb),
     await createTestTripsRepo(testDb),
     await createTestBudgetItemsRepo(testDb),
-    await createTestCollectionPlacesRepo(testDb),
+    { releaseValues: async () => [] } as never, // StorageReleaseService
     buildPlaceImportService(),
   );
 }

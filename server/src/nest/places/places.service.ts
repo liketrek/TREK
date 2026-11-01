@@ -25,6 +25,7 @@ import { MAX_PLACE_IMAGE_SIZE, PLACE_IMAGE_EXTENSIONS } from '../common/place-im
 import { randomUUID } from 'node:crypto';
 import { JourneyDomainService } from '../journey/journey-domain.service';
 import { StorageService } from '../storage/storage.service';
+import { StorageReleaseService } from '../storage/storage-release.service';
 import { AccommodationsService } from '../accommodations/accommodations.service';
 import { Places } from '../../db/entities/Places.entity';
 import { Tags } from '../../db/entities/Tags.entity';
@@ -42,8 +43,6 @@ import type { CategoriesRepository } from '../../db/repositories/Categories.repo
 import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import { BudgetItems } from '../../db/entities/BudgetItems.entity';
 import type { BudgetItemsRepository } from '../../db/repositories/BudgetItems.repository';
-import { CollectionPlaces } from '../../db/entities/CollectionPlaces.entity';
-import type { CollectionPlacesRepository } from '../../db/repositories/CollectionPlaces.repository';
 
 /** Rows a place delete took down with the nights booked there, for the caller to announce. */
 export interface CancelledStays {
@@ -157,17 +156,11 @@ export class PlacesService {
     @InjectRepository(TripMembers) private readonly tripMembersRepo: TripMembersRepository,
     @InjectRepository(DayAssignments) private readonly dayAssignmentsRepo: DayAssignmentsRepository,
     @InjectRepository(Categories) private readonly categoriesRepo: CategoriesRepository,
-    // Task 9 fix wave (B-M2 / A-L3 ruling): `DatabaseService.getTripTitle`
-    // does not stay — it was the one method on that class this domain's own
-    // PL28 comment said should convert like its siblings once concurrent
-    // implementers stopped colliding on this file. `Trips` is already on
-    // `PlacesModule`'s `forFeature` list, so this needs no module change.
+    // Task 9 fix wave (B-M2 / A-L3): PL28's trip title, read here since `DatabaseService.getTripTitle` went.
     @InjectRepository(Trips) private readonly tripsRepo: TripsRepository,
     // Plan 3e Task 2 (budget) — additive, PL15/PL18/PL22 only.
     @InjectRepository(BudgetItems) private readonly budgetItemsRepo: BudgetItemsRepository,
-    // Plan 3h Task 6 (survivors): read by nothing since the storage reclaim job
-    // took over the image ref-count (#2924); kept so the constructor stays put.
-    @InjectRepository(CollectionPlaces) private readonly collectionPlacesRepo: CollectionPlacesRepository,
+    private readonly release: StorageReleaseService, // the images a change or a delete left unnamed (#2924)
     // Reading files and shared lists; this service only persists what it reads.
     private readonly placeImport: PlaceImportService,
   ) {}
@@ -418,7 +411,8 @@ export class PlacesService {
     body: PlaceUpdateInput,
     ifMatch?: string,
   ): Promise<PlaceWithTags | UpdateConflict | null> {
-    const { result } = await this.uow.transactional(() => this.applyUpdate(tripId, placeId, body, ifMatch));
+    const { result, previousImage } = await this.uow.transactional(() => this.applyUpdate(tripId, placeId, body, ifMatch));
+    await this.release.releaseValues([previousImage]); // after the commit: kept while a copy or a cover names it
     return result;
   }
 
@@ -431,7 +425,7 @@ export class PlacesService {
     placeId: string,
     body: PlaceUpdateInput,
     ifMatch?: string,
-  ): Promise<{ result: PlaceWithTags | UpdateConflict | null }> {
+  ): Promise<{ result: PlaceWithTags | UpdateConflict | null; previousImage?: string | null }> {
     // PL9 — the pre-image read every `!== undefined` fallback below needs.
     // `toRowId` first (Task 3 review H1, absorbed here): every write in
     // this method (`updatePlace`, `tagsRepo.deleteForPlace`/`insertIgnore`)
@@ -524,9 +518,8 @@ export class PlacesService {
       if (tags.length > 0) await this.tagsRepo.insertIgnore(id, await this.tagsOnTrip(tid, tags)); // PL13
     }
 
-    // A replaced or cleared custom upload (#1136) stays: a copy of this place or
-    // a cover may name it, and the storage reclaim job removes it once none does.
-    return { result: await this.placesRepo.findWithTagsAndRatings(id) }; // PL14
+    // PL14; the image this write replaced (#1136), for the caller to release once the transaction committed.
+    return { result: await this.placesRepo.findWithTagsAndRatings(id), previousImage: image_url !== undefined ? existingPlace.image_url : null };
   }
 
   // -------------------------------------------------------------------------
@@ -618,6 +611,7 @@ export class PlacesService {
       await this.placesRepo.deleteById(id);
     });
     await reclaimPhotoCache(this.photoCache, place.google_place_id, place.image_url);
+    await this.release.releaseValues([place.image_url]);
     return { deleted: true, deletedTourPlaceIds: wasTour ? [id] : [], cancelled };
   }
 
@@ -663,6 +657,7 @@ export class PlacesService {
     for (const row of reclaimable) {
       await reclaimPhotoCache(this.photoCache, row.google_place_id, row.image_url);
     }
+    await this.release.releaseValues(reclaimable.map((row) => row.image_url));
     return { deleted, deletedTourPlaceIds, cancelled };
   }
 
@@ -690,14 +685,17 @@ export class PlacesService {
   async updateMany(tripId: string, ids: number[], body: PlaceUpdateInput): Promise<PlaceWithTags[]> {
     if (ids.length === 0) return [];
     const updated: PlaceWithTags[] = [];
+    const previousImages: (string | null | undefined)[] = [];
     await this.uow.transactional(async () => {
       for (const id of ids) {
         // Bulk update sends no If-Match, so applyUpdate() never returns a
         // conflict here; the guard keeps the types honest.
-        const { result: place } = await this.applyUpdate(tripId, String(id), body);
+        const { result: place, previousImage } = await this.applyUpdate(tripId, String(id), body);
         if (place && !isUpdateConflict(place)) updated.push(place);
+        previousImages.push(previousImage);
       }
     });
+    await this.release.releaseValues(previousImages); // one bulk value may have replaced many uploads
     return updated;
   }
 

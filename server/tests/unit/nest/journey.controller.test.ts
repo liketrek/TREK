@@ -8,6 +8,9 @@ import type { JourneyPhotoLinksService } from '../../../src/nest/journey/journey
 import { JourneyPublicController } from '../../../src/nest/journey/journey-public.controller';
 import { JourneyController } from '../../../src/nest/journey/journey.controller';
 import type { JourneyService } from '../../../src/nest/journey/journey.service';
+import { journeyThumbName } from '../../../src/nest/memories/thumbnail.service';
+import type { StorageKeyRef } from '../../../src/nest/storage/storage-reclaim.types';
+import type { StorageReleaseService } from '../../../src/nest/storage/storage-release.service';
 import type { StorageService } from '../../../src/nest/storage/storage.service';
 import type { User } from '../../../src/types';
 import { HttpException } from '@nestjs/common';
@@ -44,6 +47,18 @@ const captureBackfillStub = {
 } as unknown as JourneyPhotoCaptureService;
 
 /**
+ * What a deleted photo hands on. By default every `journey/<name>` it names
+ * goes, as the real release answers when no other row names them; a case
+ * about a shared object answers what it keeps.
+ */
+const releaseValues = vi.fn(async (values: ReadonlyArray<string | null | undefined>): Promise<StorageKeyRef[]> =>
+  values
+    .filter((value): value is string => typeof value === 'string' && value.startsWith('journey/'))
+    .map((value) => ({ category: 'journey', key: value.slice('journey/'.length) })),
+);
+const releaseStub = { releaseValues } as unknown as StorageReleaseService;
+
+/**
  * Build the controller.
  *
  * Storage and the Studio book (#1973) are injected dependencies that almost no
@@ -66,6 +81,7 @@ function ctl(
     photoLinks as JourneyPhotoLinksService,
     // The live env: a case about demo mode stubs DEMO_MODE, every other runs outside it.
     new RuntimeEnvService(),
+    releaseStub,
   );
 }
 
@@ -705,14 +721,25 @@ describe('JourneyController', () => {
     expect(updatePhoto).toHaveBeenCalledWith(7, 1, { caption: 'x' }, 'sock-1');
   });
 
-  it('DELETE photo leaves the bytes to the storage reclaim job (#2924)', async () => {
+  it('DELETE photo releases its file and poster once the row is gone, and the thumb of a file that went', async () => {
     (storageStub.delete as ReturnType<typeof vi.fn>).mockClear();
+    releaseValues.mockClear();
     const deletePhoto = vi.fn().mockReturnValue({ id: 7, file_path: 'journey/a.jpg', thumbnail_path: 'journey/p.jpg' });
     expect(await ctl(svc({ deletePhoto } as Partial<JourneyService>)).deletePhoto(user, '7')).toEqual({
       success: true,
     });
     expect(deletePhoto).toHaveBeenCalledWith(7, 1);
-    // Another row may name the same object: the photo row going is what frees it.
+    expect(releaseValues).toHaveBeenCalledWith(['journey/a.jpg', 'journey/p.jpg'], { bare: 'journey' });
+    expect(storageStub.delete).toHaveBeenCalledWith('journey', journeyThumbName('journey/a.jpg'));
+  });
+
+  it('DELETE photo keeps the thumb of a file another row still names, and of a path outside journey/', async () => {
+    (storageStub.delete as ReturnType<typeof vi.fn>).mockClear();
+    releaseValues.mockResolvedValueOnce([]);
+    const shared = vi.fn().mockReturnValue({ id: 8, file_path: 'journey/shared.jpg', thumbnail_path: null });
+    await ctl(svc({ deletePhoto: shared } as Partial<JourneyService>)).deletePhoto(user, '8');
+    const outside = vi.fn().mockReturnValue({ id: 9, file_path: 'elsewhere/x.jpg' });
+    await ctl(svc({ deletePhoto: outside } as Partial<JourneyService>)).deletePhoto(user, '9');
     expect(storageStub.delete).not.toHaveBeenCalled();
   });
 
@@ -743,7 +770,7 @@ describe('JourneyController', () => {
     expect(await ctl(svc()).galleryProviderPhotos(user, '9', { provider: 'immich', asset_id: 'a' })).toEqual({ id: 3 });
   });
 
-  it('DELETE gallery photo: 404, then leaves the bytes and the poster to the reclaim job', async () => {
+  it('DELETE gallery photo: 404, then releases the video, its poster and its thumb', async () => {
     expect(
       await thrownAsync(() =>
         ctl(svc({ deleteGalleryPhoto: vi.fn().mockReturnValue(null) } as Partial<JourneyService>)).deleteGalleryPhoto(
@@ -753,6 +780,7 @@ describe('JourneyController', () => {
       ),
     ).toEqual({ status: 404, body: { error: 'Photo not found or not allowed' } });
     (storageStub.delete as ReturnType<typeof vi.fn>).mockClear();
+    releaseValues.mockClear();
     const deleteGalleryPhoto = vi
       .fn()
       .mockReturnValue({ id: 10, file_path: 'journey/clip.mp4', thumbnail_path: 'journey/poster.jpg' });
@@ -760,7 +788,13 @@ describe('JourneyController', () => {
       await ctl(svc({ deleteGalleryPhoto } as Partial<JourneyService>)).deleteGalleryPhoto(user, '10'),
     ).toBeUndefined();
     expect(deleteGalleryPhoto).toHaveBeenCalledWith(10, 1);
-    expect(storageStub.delete).not.toHaveBeenCalled();
+    expect(releaseValues).toHaveBeenCalledWith(['journey/clip.mp4', 'journey/poster.jpg'], { bare: 'journey' });
+    expect(storageStub.delete).toHaveBeenCalledWith('journey', journeyThumbName('journey/clip.mp4'));
+    // A thumb delete that finds nothing is swallowed.
+    (storageStub.delete as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('ENOENT'));
+    await expect(
+      ctl(svc({ deleteGalleryPhoto } as Partial<JourneyService>)).deleteGalleryPhoto(user, '10'),
+    ).resolves.toBeUndefined();
   });
 
   it('PATCH /:id returns the updated journey on success', async () => {

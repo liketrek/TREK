@@ -127,11 +127,9 @@ async function linkOfFile(fileId: number) {
 // deleteGuest routes through the SAME BudgetService domain SQL
 // (removeUserFromBudgetItems) under test.
 //
-// Plan 3c Task 0b: `dbsEm` is resolved once, at the top of the `beforeAll`
-// below — `canAccessTrip`/`isOwner`/`rosterUserIds`/`getPlaceWithTags`
-// resolve `TripsRepository`/`TripMembersRepository`/`PlacesRepository`
-// through it. Plan 4 Task 4: `DatabaseService` itself is gone —
-// `UserCleanupService` now takes this `EntityManager` directly.
+// Plan 3c Task 0b: `dbsEm` is resolved once, at the top of the `beforeAll` below — `canAccessTrip`/`isOwner`/
+// `rosterUserIds`/`getPlaceWithTags` resolve `TripsRepository`/`TripMembersRepository`/`PlacesRepository`
+// through it. Plan 4 Task 4: `DatabaseService` is gone; `UserCleanupService` takes this `EntityManager`.
 let dbsEm: import('@mikro-orm/core').EntityManager | undefined;
 
 let budget: BudgetService;
@@ -157,7 +155,7 @@ beforeAll(async () => {
 );
   membersSvc = new TripMembersService(
   budget,
-  new UserCleanupService(new MaintenanceRepository(dbsEm!), budget, await createTestUnitOfWork(testDb), await createTestUsersRepo(testDb), await createTestTripMembersRepo(testDb), await createTestBudgetItemsRepo(testDb), await createTestBudgetSettlementsRepo(testDb), await createTestJourneyShareTokensRepo(testDb), await createTestJourneysRepo(testDb), await createTestJourneyEntriesRepo(testDb), await createTestJourneyContributorsRepo(testDb), await createTestShareTokensRepo(testDb), await createTestPluginsRepo(testDb), await createTestPluginUserErasureQueueRepo(testDb)),
+  new UserCleanupService(new MaintenanceRepository(dbsEm!), budget, await createTestUnitOfWork(testDb), await createTestUsersRepo(testDb), await createTestTripMembersRepo(testDb), await createTestBudgetItemsRepo(testDb), await createTestBudgetSettlementsRepo(testDb), await createTestJourneyShareTokensRepo(testDb), await createTestJourneysRepo(testDb), await createTestJourneyEntriesRepo(testDb), await createTestJourneyContributorsRepo(testDb), await createTestShareTokensRepo(testDb), await createTestPluginsRepo(testDb), await createTestPluginUserErasureQueueRepo(testDb), { releaseValues: () => [] } as never),
   new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
   new RealtimeService(),
   notificationsStub(),

@@ -28,6 +28,7 @@ import { BudgetService } from '../budget/budget.service';
 import { UnitOfWork } from '../database/unit-of-work';
 import { pluginsDataRoot } from '../plugins/paths';
 import { enqueueHookUserDataErasures } from '../plugins/user-erasure-enqueue';
+import { StorageReleaseService } from '../storage/storage-release.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
 
@@ -73,6 +74,7 @@ export class UserCleanupService {
     @InjectRepository(Plugins) private readonly pluginsRepo: PluginsRepository,
     @InjectRepository(PluginUserErasureQueue)
     private readonly pluginUserErasureQueueRepo: PluginUserErasureQueueRepository,
+    private readonly release: StorageReleaseService,
   ) {}
 
   /**
@@ -188,10 +190,15 @@ export class UserCleanupService {
    * stays raw, per each method's own docstring.
    */
   async deleteUserCompletely(userId: number): Promise<void> {
+    const avatar = await this.usersRepo.getAvatar(userId);
     await this.uow.transactional(async () => {
       await this.cleanupUserReferences(userId);
       await this.erasePluginUserData(userId);
       await this.usersRepo.deleteById(userId);
     });
+    // After the commit, the uploaded avatar goes unless another row names it.
+    // What the user's trips and journeys named is the nightly reclaim pass's:
+    // those rows are other domains' and went with the cascade.
+    await this.release.releaseValues([avatar], { bare: 'avatars' });
   }
 }

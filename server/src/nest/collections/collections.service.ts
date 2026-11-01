@@ -5,7 +5,7 @@ import { InjectRepository } from '@mikro-orm/nestjs';
 import { PermissionsService } from '../permissions/permissions.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import { PlacesService } from '../places/places.service';
-import { StorageService } from '../storage/storage.service';
+import { StorageReleaseService } from '../storage/storage-release.service';
 import { Collections } from '../../db/entities/Collections.entity';
 import { CollectionsRepository, type CollectionPlaceRow } from '../../db/repositories/Collections.repository';
 import { CollectionMembers } from '../../db/entities/CollectionMembers.entity';
@@ -77,18 +77,13 @@ import { PlaceImportService, type ExportedCollectionFile } from '../place-import
 import { UnitOfWork } from '../database/unit-of-work';
 import { parseLinks, serializeLinks } from './collections.helpers';
 
-// ---------------------------------------------------------------------------
-// Errors — thrown as plain Errors carrying a status; TrekExceptionFilter maps
-// `err.status` → that HTTP code with an `{ error: message }` body.
-// ---------------------------------------------------------------------------
+// Errors: a DomainError carrying a status; TrekExceptionFilter maps it to that code with an `{ error }` body.
 
 function httpError(status: number, message: string): never {
   throw new DomainError(status, message);
 }
 
-/** Re-exported under this service's historical name — the underlying type
- *  now lives in `_shared/collection-role.ts` (R6), the ONE shared predicate
- *  `isVisible`/`isOwner`/`roleOf` all resolve through. */
+/** Re-exported under this service's historical name; the type lives in `_shared/collection-role.ts` (R6). */
 export type EffectiveRole = CollectionRole;
 
 type PlaceRow = CollectionPlaceRow;
@@ -110,7 +105,7 @@ export class CollectionsService {
     private readonly permissions: PermissionsService,
     private readonly realtime: RealtimeService,
     private readonly notifications: NotificationsService,
-    private readonly storage: StorageService,
+    private readonly release: StorageReleaseService, // replaced and deleted images, after the write
     private readonly uow: UnitOfWork,
     @InjectRepository(Collections) private readonly collectionsRepo: CollectionsRepository,
     @InjectRepository(CollectionMembers) private readonly members: CollectionMembersRepository,
@@ -601,13 +596,12 @@ export class CollectionsService {
     return { ...col, is_owner: col.owner_id === userId };
   }
 
-  /**
-   * Set (or clear) a list's cover image. The previous file stays where another
-   * row may name it; the storage reclaim job removes it once nothing does.
-   */
+  /** Set (or clear) a list's cover image; the previous file goes unless another row still names it. */
   async setCollectionCover(userId: number, id: number, coverUrl: string | null, socketId?: string): Promise<Collection> {
     await this.assertCanEdit(userId, id);
+    const prev = (await this.collectionsRepo.coverImage(id)) ?? null;
     await this.collectionsRepo.setCoverImage(id, coverUrl);
+    await this.release.releaseValues([prev]);
     await this.notifyCollectionUsers(id, socketId, 'collections:updated');
     const col = await this.getCollectionRow(id);
     return { ...col, is_owner: col.owner_id === userId };
@@ -876,6 +870,7 @@ export class CollectionsService {
   async updatePlace(userId: number, placeId: number, body: CollectionPlaceUpdateRequest, socketId?: string): Promise<CollectionPlace> {
     const currentCollection = await this.collectionIdOfPlace(placeId);
     await this.assertCanEdit(userId, currentCollection);
+    const prevImage = body.image_url !== undefined ? (await this.collectionPlaces.imageUrl(placeId)) ?? null : null;
 
     const write: Parameters<CollectionPlacesRepository['updateFields']>[1] = {};
     if (body.name !== undefined) write.name = body.name;
@@ -898,8 +893,7 @@ export class CollectionsService {
       movedTo = body.collection_id;
     }
 
-    // Field update + tag rewrite + label rewrite are one logical write — atomic
-    // since the post-fold quirk pass.
+    // Field update + tag rewrite + label rewrite are one logical write, so one transaction.
     await this.uow.transactional(async () => {
       await this.collectionPlaces.updateFields(placeId, write);
 
@@ -913,6 +907,7 @@ export class CollectionsService {
       if (movedTo) await this.collectionPlaces.deleteLabelAssignments(placeId);
       if (body.label_ids !== undefined) await this.setPlaceLabels(placeId, movedTo ?? currentCollection, body.label_ids);
     });
+    await this.release.releaseValues([prevImage]); // a replaced custom thumbnail (#1136), unless a copy names it
 
     await this.notifyCollectionUsers(currentCollection, socketId, 'collections:updated');
     if (movedTo) await this.notifyCollectionUsers(movedTo, socketId, 'collections:updated');
@@ -944,34 +939,36 @@ export class CollectionsService {
     return this.getPlaceById(placeId);
   }
 
-  // A saved place's uploaded image is never deleted here: copy-to-trip and
-  // save-to-collection share it by reference, and other columns can name it
-  // too. The storage reclaim job removes it once no row does (#2924).
+  // A saved place's image goes with it unless a trip place it was copied to (or from) still names it (#2924).
   async deletePlace(userId: number, placeId: number, socketId?: string): Promise<void> {
     const collectionId = await this.collectionIdOfPlace(placeId);
     await this.assertCanDelete(userId, collectionId);
+    const image = (await this.collectionPlaces.imageUrl(placeId)) ?? null;
     await this.collectionPlaces.deleteById(placeId); // CASCADE drops tags. NO photo-cache reclaim.
+    await this.release.releaseValues([image]);
     await this.notifyCollectionUsers(collectionId, socketId, 'collections:updated');
   }
 
   async deletePlacesMany(userId: number, ids: number[], socketId?: string): Promise<number[]> {
-    // All-or-nothing since the post-fold quirk pass: every id is resolved and
-    // permission-checked BEFORE any delete (the relocated legacy interleaved
-    // checks with deletes, so a mid-list 403/404 left earlier deletes committed),
-    // and the deletes then run in one transaction.
+    // All-or-nothing: every id is resolved and permission-checked BEFORE any delete (the legacy interleaved
+    // them, so a mid-list 403/404 left earlier deletes committed), then the deletes run in one transaction.
     const deleted: number[] = [];
     const touched = new Set<number>();
+    const reads: Promise<string | null | undefined>[] = [];
     for (const id of ids) {
       const collectionId = await this.collectionIdOfPlace(id);
       await this.assertCanDelete(userId, collectionId);
       touched.add(collectionId);
+      reads.push(this.collectionPlaces.imageUrl(id).catch(() => null)); // to release once the rows are gone
     }
+    const images = await Promise.all(reads);
     await this.uow.transactional(async () => {
       for (const id of ids) {
         await this.collectionPlaces.deleteById(id);
         deleted.push(id);
       }
     });
+    await this.release.releaseValues(images);
     for (const cid of touched) await this.notifyCollectionUsers(cid, socketId, 'collections:updated');
     return deleted;
   }
@@ -1059,11 +1056,13 @@ export class CollectionsService {
     return this.collectionPlaces.matchingByTripSource(collectionIds, tripId, place, COORD_DEDUP_TOLERANCE);
   }
 
-  /** Set (or clear) a saved place's custom thumbnail; the storage reclaim job takes the replaced upload. */
+  /** Set (or clear) a saved place's custom thumbnail; the replaced upload goes unless another row names it. */
   async setPlaceImage(userId: number, placeId: number, imageUrl: string | null, socketId?: string): Promise<CollectionPlace> {
     const collectionId = await this.collectionIdOfPlace(placeId);
     await this.assertCanEdit(userId, collectionId);
+    const prev = (await this.collectionPlaces.imageUrl(placeId)) ?? null;
     await this.collectionPlaces.setImageUrl(placeId, imageUrl);
+    await this.release.releaseValues([prev]);
     await this.notifyCollectionUsers(collectionId, socketId, 'collections:updated');
     return this.getPlaceById(placeId);
   }

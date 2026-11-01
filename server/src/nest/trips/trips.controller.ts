@@ -8,6 +8,7 @@ import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { CalendarService } from '../calendar/calendar.service';
 import { contentDisposition } from '../common/content-disposition';
 import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../common/demo-write';
+import { StorageReleaseService } from '../storage/storage-release.service';
 import { StorageService } from '../storage/storage.service';
 import { TripReadModelService } from '../trip-read-model/trip-read-model.service';
 import { UnsplashService } from '../unsplash/unsplash.service';
@@ -84,6 +85,7 @@ export class TripsController {
     private readonly readModel: TripReadModelService,
     private readonly storage: StorageService,
     private readonly tripWrites: TripWritesService,
+    private readonly release: StorageReleaseService,
   ) {}
 
   @Get()
@@ -257,11 +259,11 @@ export class TripsController {
     }
     // Commit the spooled upload to its final storage location (atomic
     // same-volume rename) before anything references the final path.
-    // The replaced cover stays: a trip copy or a journey may show the same
-    // object, and the storage reclaim job removes it once nothing names it.
     await this.storage.put('covers', file.filename, { tmpPath: file.path });
     const coverUrl = `/uploads/covers/${file.filename}`;
     await this.trips.updateCoverImage(id, coverUrl);
+    // The replaced cover goes unless a trip copy or a journey still shows it.
+    await this.release.releaseValues([trip.cover_image]);
     return { cover_image: coverUrl };
   }
 

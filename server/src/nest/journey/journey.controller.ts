@@ -25,6 +25,8 @@ import type { User } from '../../types';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../common/demo-write';
 import { StorageService } from '../storage/storage.service';
+import { StorageReleaseService } from '../storage/storage-release.service';
+import { journeyThumbName } from '../memories/thumbnail.service';
 import { JourneyService } from './journey.service';
 import { JourneyBookService } from './journey-book.service';
 import { JourneyPhotoCaptureService, type ProviderPhotoBatch, type ProviderPhotoTarget } from './journey-photo-capture.service';
@@ -175,6 +177,8 @@ export class JourneyController {
     private readonly photoLinks: JourneyPhotoLinksService,
     // Whether DEMO_MODE is on, read on every upload (refuseDemoUpload).
     private readonly env: RuntimeEnvService,
+    // What a deleted photo named, once its row is gone (#2924).
+    private readonly release: StorageReleaseService,
   ) {}
 
   /**
@@ -459,14 +463,25 @@ export class JourneyController {
   @Delete('photos/:photoId')
   @ResponseContract(successResponseSchema)
   async deletePhoto(@CurrentUser() user: User, @Param('photoId') photoId: string) {
-    // The bytes stay: another journey, a trip or a cover may name the same
-    // object. Once the photo row is gone the storage reclaim job takes the file
-    // and its poster, and the thumbnail sweep its thumbnail (#2924).
     const photo = await this.journey.deletePhoto(Number(photoId), user.id);
     if (!photo) {
       throw new HttpException({ error: 'Photo not found' }, 404);
     }
+    await this.releasePhoto(photo);
     return { success: true };
+  }
+
+  /**
+   * After a photo's row went: its file and its poster go at once unless another
+   * row (another journey's photo, a journey cover) still names them, and the
+   * thumbnail derived from a file that went goes with it (#2924).
+   */
+  private async releasePhoto(photo: { file_path?: string | null; thumbnail_path?: string | null }): Promise<void> {
+    const released = await this.release.releaseValues([photo.file_path, photo.thumbnail_path], { bare: 'journey' });
+    const filePath = photo.file_path;
+    if (!filePath?.startsWith('journey/')) return;
+    if (!released.some((ref) => ref.category === 'journey' && `journey/${ref.key}` === filePath)) return;
+    await this.storage.delete('journey', journeyThumbName(filePath)).catch(() => { /* already gone */ });
   }
 
   // ── Gallery (prefix /:id/gallery — before /:id) ─────────────────────────
@@ -546,11 +561,11 @@ export class JourneyController {
   @HttpCode(204)
   @ResponseContract(emptyResponseSchema)
   async deleteGalleryPhoto(@CurrentUser() user: User, @Param('journeyPhotoId') journeyPhotoId: string): Promise<void> {
-    // The bytes stay, as for deletePhoto above.
     const photo = await this.journey.deleteGalleryPhoto(Number(journeyPhotoId), user.id);
     if (!photo) {
       throw new HttpException({ error: 'Photo not found or not allowed' }, 404);
     }
+    await this.releasePhoto(photo);
   }
 
   // ── Journeys /:id ───────────────────────────────────────────────────────

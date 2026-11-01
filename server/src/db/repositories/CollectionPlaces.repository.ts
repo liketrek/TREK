@@ -138,6 +138,12 @@ export class CollectionPlacesRepository extends TrekRepository<CollectionPlaces>
   // CL47/CL48 — updatePlace
   // ---------------------------------------------------------------------
 
+  /** CL47 (`updatePlace`'s pre-image read, dup text also `deletePlace`/`deletePlacesMany`/`setPlaceImage`) — `SELECT image_url FROM collection_places WHERE id=?`. Plain (non-FK) column — safe through the entity API, `fields: ['image_url']`. */
+  async imageUrl(id: number): Promise<string | null | undefined> {
+    const row = await this.findOne({ id }, { fields: ['image_url'] });
+    return row?.image_url;
+  }
+
   /**
    * CL48 (`updatePlace`, TX) — the allow-listed dynamic `UPDATE
    * collection_places SET ... WHERE id=?`, including the cross-list move

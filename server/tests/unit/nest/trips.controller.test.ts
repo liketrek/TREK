@@ -3,6 +3,7 @@ import type { AuditService } from '../../../src/nest/audit/audit.service';
 import type { CalendarService } from '../../../src/nest/calendar/calendar.service';
 import { DomainError } from '../../../src/nest/common/domain-error';
 import type { TripWriter } from '../../../src/nest/common/trip-writer';
+import type { StorageReleaseService } from '../../../src/nest/storage/storage-release.service';
 import type { TripReadModelService } from '../../../src/nest/trip-read-model/trip-read-model.service';
 import type { TripListWriter, TripWritesService } from '../../../src/nest/trips/trip-writes.service';
 import { TripsController, MAX_COVER_SIZE, TRIP_COVER_FILE_FILTER } from '../../../src/nest/trips/trips.controller';
@@ -54,6 +55,9 @@ const audit = { writeAudit } as unknown as AuditService;
 const storageStub = {
   put: vi.fn().mockResolvedValue(undefined),
 } as unknown as import('../../../src/nest/storage/storage.service').StorageService;
+// What a cover upload hands back for release; the release itself has its own suite.
+const releaseValues = vi.fn().mockResolvedValue([]);
+const releaseStub = { releaseValues } as unknown as StorageReleaseService;
 /**
  * TripWritesService over the stubbed TripsService: create, copy and delete go
  * through it, so it hands each on to the stub and records the writer the route
@@ -87,6 +91,7 @@ const tc = (
     (readModel ?? {}) as TripReadModelService,
     storageStub,
     writes as unknown as TripWritesService,
+    releaseStub,
   );
 
 function svc(o: Partial<TripsService> = {}): TripsService {
@@ -596,9 +601,13 @@ describe('TripsController (parity with the legacy /api/trips route)', async () =
       } as Partial<TripsService>);
       expect(await tc(s).cover(user, '9', file)).toEqual({ cover_image: '/uploads/covers/abc.jpg' });
       expect(storageStub.put).toHaveBeenCalledWith('covers', 'abc.jpg', { tmpPath: undefined });
-      // The replaced cover is left to the storage reclaim job: a copy may share it (#2924).
       expect(storageStub.put).toHaveBeenCalledTimes(1);
       expect(updateCoverImage).toHaveBeenCalledWith('9', '/uploads/covers/abc.jpg');
+      // The replaced cover is released after the new one is stored: it goes unless a copy still names it (#2924).
+      expect(releaseValues).toHaveBeenCalledWith(['/old.jpg']);
+      expect(releaseValues.mock.invocationCallOrder[0]).toBeGreaterThan(
+        updateCoverImage.mock.invocationCallOrder[0] ?? 0,
+      );
     });
 
     it('403 in demo mode for a demo account', async () => {
