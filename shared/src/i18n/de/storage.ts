@@ -142,5 +142,26 @@ const storage: TranslationStrings = {
   'storage.migrate.queued': 'In Warteschlange: {categories}',
   'storage.migrate.queueDropped':
     'Die nächste Verschiebung konnte nicht gestartet werden — die verbleibende Warteschlange wurde geleert: {categories}',
+  'storage.reclaim.title': 'Nicht mehr genutzte Dateien',
+  'storage.reclaim.hint':
+    'Jede Nacht sucht TREK nach hochgeladenen Dateien, die keine Reise, kein Ort, kein Reisetagebuch, keine Sammlung und kein Nutzer mehr verwendet, etwa nach dem Löschen einer Reise.',
+  'storage.reclaim.check': 'Jetzt prüfen',
+  'storage.reclaim.checked': 'Geprüft {age}',
+  'storage.reclaim.never': 'Noch nicht geprüft',
+  'storage.reclaim.delete': 'Nicht mehr genutzte Dateien löschen',
+  'storage.reclaim.deleteHint':
+    'Aus: Die nächtliche Prüfung berichtet nur. An: Eine Datei, die eine Woche lang nichts mehr verwendet, wird gelöscht. Lass es aus, wenn sich mehrere Installationen einen Speicher-Bucket teilen.',
+  'storage.reclaim.freeable': 'Kann freigegeben werden',
+  'storage.reclaim.waiting': 'Seit weniger als einer Woche ungenutzt',
+  'storage.reclaim.deleted': 'Bei der letzten Prüfung freigegeben',
+  'storage.reclaim.nothing': 'Keine ungenutzten Dateien gefunden.',
+  'storage.reclaim.stopped':
+    'Die letzte Prüfung wurde vorzeitig beendet, weil währenddessen die Datenbank wiederhergestellt wurde.',
+  'storage.reclaim.skip.sources_missing': 'Übersprungen: Nicht jeder Teil von TREK konnte gefragt werden',
+  'storage.reclaim.skip.shared_location': 'Übersprungen: teilt den Speicherort mit einer anderen Kategorie',
+  'storage.reclaim.skip.too_many_unreferenced':
+    'Übersprungen: Zu viele Dateien wirken ungenutzt, womöglich ein geteilter Bucket',
+  'storage.reclaim.skip.list_failed': 'Übersprungen: Die Dateien konnten nicht aufgelistet werden',
+  'storage.reclaim.skip.source_failed': 'Übersprungen: Eine Abfrage ist fehlgeschlagen',
 };
 export default storage;

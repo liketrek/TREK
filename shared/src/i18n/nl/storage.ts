@@ -142,5 +142,26 @@ const storage: TranslationStrings = {
   'storage.migrate.queued': 'In wachtrij: {categories}',
   'storage.migrate.queueDropped':
     'Kon de volgende verplaatsing niet starten — de resterende wachtrij is gewist: {categories}',
+  'storage.reclaim.title': 'Niet-gekoppelde bestanden',
+  'storage.reclaim.hint':
+    'TREK zoekt elke nacht naar geüploade bestanden die door geen enkele reis, plaats, dagboek, collectie of gebruiker meer worden gebruikt, bijvoorbeeld nadat een reis is verwijderd.',
+  'storage.reclaim.check': 'Nu controleren',
+  'storage.reclaim.checked': 'Gecontroleerd {age}',
+  'storage.reclaim.never': 'Nog niet gecontroleerd',
+  'storage.reclaim.delete': 'Niet-gekoppelde bestanden verwijderen',
+  'storage.reclaim.deleteHint':
+    'Uit: de nachtelijke controle rapporteert alleen. Aan: een bestand dat een week lang nergens is gebruikt, wordt verwijderd. Laat dit uit als meerdere installaties één opslagbucket delen.',
+  'storage.reclaim.freeable': 'Kan worden vrijgemaakt',
+  'storage.reclaim.waiting': 'Minder dan een week ongebruikt',
+  'storage.reclaim.deleted': 'Vrijgemaakt bij de laatste controle',
+  'storage.reclaim.nothing': 'Geen niet-gekoppelde bestanden gevonden.',
+  'storage.reclaim.stopped':
+    'De laatste controle is vroegtijdig gestopt omdat de database tijdens het uitvoeren werd hersteld.',
+  'storage.reclaim.skip.sources_missing': 'Overgeslagen: niet elk onderdeel van TREK kon worden bevraagd',
+  'storage.reclaim.skip.shared_location': 'Overgeslagen: deelt zijn locatie met een andere categorie',
+  'storage.reclaim.skip.too_many_unreferenced':
+    'Overgeslagen: te veel bestanden lijken ongebruikt, mogelijk een gedeelde bucket',
+  'storage.reclaim.skip.list_failed': 'Overgeslagen: de bestanden konden niet worden opgesomd',
+  'storage.reclaim.skip.source_failed': 'Overgeslagen: een opzoeking is mislukt',
 };
 export default storage;

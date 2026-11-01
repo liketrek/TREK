@@ -135,5 +135,25 @@ const storage: TranslationStrings = {
   'storage.migrate.promptCancel': 'キャンセル',
   'storage.migrate.queued': 'キュー待ち: {categories}',
   'storage.migrate.queueDropped': '次の移動を開始できませんでした — 残りのキューはクリアされました: {categories}',
+  'storage.reclaim.title': '参照されていないファイル',
+  'storage.reclaim.hint':
+    'TREKは毎晩、旅行、場所、ジャーナル、コレクション、ユーザーのいずれからも使われなくなったアップロード済みファイルを探します。たとえば旅行を削除した後などです。',
+  'storage.reclaim.check': '今すぐチェック',
+  'storage.reclaim.checked': '{age}にチェック済み',
+  'storage.reclaim.never': '未チェック',
+  'storage.reclaim.delete': '参照されていないファイルを削除',
+  'storage.reclaim.deleteHint':
+    'オフの場合、夜間チェックは報告のみ行います。オンの場合、1週間使われていないファイルが削除されます。複数のインストールで1つのストレージバケットを共有している場合は、オフのままにしてください。',
+  'storage.reclaim.freeable': '解放可能',
+  'storage.reclaim.waiting': '未使用期間が1週間未満',
+  'storage.reclaim.deleted': '前回のチェックで解放',
+  'storage.reclaim.nothing': '参照されていないファイルは見つかりませんでした。',
+  'storage.reclaim.stopped': '前回のチェックは、実行中にデータベースが復元されたため途中で停止しました。',
+  'storage.reclaim.skip.sources_missing': 'スキップ: TREKの一部に問い合わせできませんでした',
+  'storage.reclaim.skip.shared_location': 'スキップ: 場所が別のカテゴリと共有されています',
+  'storage.reclaim.skip.too_many_unreferenced':
+    'スキップ: 未使用に見えるファイルが多すぎます。共有バケットの可能性があります',
+  'storage.reclaim.skip.list_failed': 'スキップ: ファイルを一覧取得できませんでした',
+  'storage.reclaim.skip.source_failed': 'スキップ: 検索に失敗しました',
 };
 export default storage;

@@ -138,5 +138,26 @@ const storage: TranslationStrings = {
   'storage.migrate.promptCancel': 'Avbryt',
   'storage.migrate.queued': 'I kö: {categories}',
   'storage.migrate.queueDropped': 'Det gick inte att starta nästa flytt — den återstående kön rensades: {categories}',
+  'storage.reclaim.title': 'Filer utan koppling',
+  'storage.reclaim.hint':
+    'Varje natt letar TREK efter uppladdade filer som ingen resa, plats, dagbok, samling eller användare längre använder, till exempel efter att en resa har raderats.',
+  'storage.reclaim.check': 'Kontrollera nu',
+  'storage.reclaim.checked': 'Kontrollerades {age}',
+  'storage.reclaim.never': 'Inte kontrollerat ännu',
+  'storage.reclaim.delete': 'Radera filer utan koppling',
+  'storage.reclaim.deleteHint':
+    'Av: nattkontrollen rapporterar bara. På: en fil som ingenting har använt på en vecka raderas. Låt den vara av om flera installationer delar en lagringsbucket.',
+  'storage.reclaim.freeable': 'Kan frigöras',
+  'storage.reclaim.waiting': 'Oanvända i mindre än en vecka',
+  'storage.reclaim.deleted': 'Frigjordes vid senaste kontrollen',
+  'storage.reclaim.nothing': 'Inga filer utan koppling hittades.',
+  'storage.reclaim.stopped':
+    'Den senaste kontrollen avbröts i förtid eftersom databasen återställdes medan den pågick.',
+  'storage.reclaim.skip.sources_missing': 'Hoppades över: alla delar av TREK kunde inte tillfrågas',
+  'storage.reclaim.skip.shared_location': 'Hoppades över: delar plats med en annan kategori',
+  'storage.reclaim.skip.too_many_unreferenced':
+    'Hoppades över: för många filer verkar oanvända, möjligen en delad bucket',
+  'storage.reclaim.skip.list_failed': 'Hoppades över: filerna kunde inte listas',
+  'storage.reclaim.skip.source_failed': 'Hoppades över: en uppslagning misslyckades',
 };
 export default storage;

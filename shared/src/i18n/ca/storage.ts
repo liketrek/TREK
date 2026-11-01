@@ -142,5 +142,25 @@ const storage: TranslationStrings = {
   'storage.migrate.queued': 'En cua: {categories}',
   'storage.migrate.queueDropped':
     "No s'ha pogut iniciar el trasllat següent — s'ha buidat la cua restant: {categories}",
+  'storage.reclaim.title': 'Fitxers sense referència',
+  'storage.reclaim.hint':
+    "Cada nit TREK cerca fitxers pujats que cap viatge, lloc, diari, col·lecció o usuari fa servir ja, per exemple després d'eliminar un viatge.",
+  'storage.reclaim.check': 'Comprova ara',
+  'storage.reclaim.checked': 'Comprovat {age}',
+  'storage.reclaim.never': 'Encara no comprovat',
+  'storage.reclaim.delete': 'Elimina els fitxers sense referència',
+  'storage.reclaim.deleteHint':
+    "Desactivat, la comprovació nocturna només informa. Activat, s'elimina un fitxer que ningú no ha fet servir durant una setmana. Deixa-ho desactivat si diverses instal·lacions comparteixen un mateix bucket d'emmagatzematge.",
+  'storage.reclaim.freeable': 'Es pot alliberar',
+  'storage.reclaim.waiting': "Sense ús fa menys d'una setmana",
+  'storage.reclaim.deleted': "Alliberat a l'última comprovació",
+  'storage.reclaim.nothing': "No s'ha trobat cap fitxer sense referència.",
+  'storage.reclaim.stopped':
+    "L'última comprovació s'ha aturat abans d'hora perquè la base de dades es va restaurar mentre s'executava.",
+  'storage.reclaim.skip.sources_missing': "Omès: no s'han pogut consultar totes les parts de TREK",
+  'storage.reclaim.skip.shared_location': 'Omès: comparteix la ubicació amb una altra categoria',
+  'storage.reclaim.skip.too_many_unreferenced': 'Omès: massa fitxers semblen sense ús, potser un bucket compartit',
+  'storage.reclaim.skip.list_failed': "Omès: no s'han pogut llistar els fitxers",
+  'storage.reclaim.skip.source_failed': 'Omès: ha fallat una consulta',
 };
 export default storage;

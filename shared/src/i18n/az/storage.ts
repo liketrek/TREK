@@ -149,6 +149,26 @@ const storage: TranslationStrings = {
   'storage.migrate.promptCancel': 'Ləğv et',
   'storage.migrate.queued': 'Növbədədir: {categories}',
   'storage.migrate.queueDropped': 'Növbəti köçürməni başlatmaq mümkün olmadı — qalan növbə təmizləndi: {categories}',
+  'storage.reclaim.title': 'İstinad olunmayan fayllar',
+  'storage.reclaim.hint':
+    'TREK hər gecə heç bir səfər, yer, jurnal, kolleksiya və ya istifadəçinin artıq istifadə etmədiyi yüklənmiş faylları axtarır, məsələn, səfər silindikdən sonra.',
+  'storage.reclaim.check': 'İndi yoxla',
+  'storage.reclaim.checked': 'Yoxlanıldı: {age}',
+  'storage.reclaim.never': 'Hələ yoxlanılmayıb',
+  'storage.reclaim.delete': 'İstinad olunmayan faylları sil',
+  'storage.reclaim.deleteHint':
+    'Söndürülü olduqda gecə yoxlaması yalnız hesabat verir. Aktiv olduqda bir həftədir heç nəyin istifadə etmədiyi fayl silinir. Bir neçə quraşdırma eyni bucket-i paylaşırsa, söndürülü saxlayın.',
+  'storage.reclaim.freeable': 'Boşaldıla bilər',
+  'storage.reclaim.waiting': 'Bir həftədən az istifadə olunmayıb',
+  'storage.reclaim.deleted': 'Son yoxlamada boşaldıldı',
+  'storage.reclaim.nothing': 'İstinad olunmayan fayl tapılmadı.',
+  'storage.reclaim.stopped': 'Son yoxlama vaxtından əvvəl dayandı, çünki o işləyərkən verilənlər bazası bərpa olundu.',
+  'storage.reclaim.skip.sources_missing': 'Keçildi: TREK-in bütün hissələrinə sorğu göndərmək mümkün olmadı',
+  'storage.reclaim.skip.shared_location': 'Keçildi: yeri başqa kateqoriya ilə paylaşılır',
+  'storage.reclaim.skip.too_many_unreferenced':
+    'Keçildi: çox fayl istifadə olunmayan görünür, bəlkə paylaşılan bucket-dir',
+  'storage.reclaim.skip.list_failed': 'Keçildi: faylların siyahısını almaq mümkün olmadı',
+  'storage.reclaim.skip.source_failed': 'Keçildi: bir sorğu uğursuz oldu',
 };
 
 export default storage;

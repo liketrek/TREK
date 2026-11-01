@@ -125,5 +125,23 @@ const storage: TranslationStrings = {
   'storage.migrate.promptCancel': '取消',
   'storage.migrate.queued': '排队中：{categories}',
   'storage.migrate.queueDropped': '无法启动下一个迁移 — 剩余队列已清空：{categories}',
+  'storage.reclaim.title': '未被引用的文件',
+  'storage.reclaim.hint': 'TREK 每晚会查找不再被任何行程、地点、日志、合集或用户使用的已上传文件，例如行程被删除之后。',
+  'storage.reclaim.check': '立即检查',
+  'storage.reclaim.checked': '{age}检查',
+  'storage.reclaim.never': '尚未检查',
+  'storage.reclaim.delete': '删除未被引用的文件',
+  'storage.reclaim.deleteHint':
+    '关闭时，夜间检查只做报告。开启后，一周内无人使用的文件会被删除。如果多个安装共用同一个存储桶，请保持关闭。',
+  'storage.reclaim.freeable': '可释放',
+  'storage.reclaim.waiting': '未使用不足一周',
+  'storage.reclaim.deleted': '上次检查已释放',
+  'storage.reclaim.nothing': '未发现未被引用的文件。',
+  'storage.reclaim.stopped': '上次检查提前停止，因为运行期间数据库被恢复了。',
+  'storage.reclaim.skip.sources_missing': '已跳过：无法查询 TREK 的所有部分',
+  'storage.reclaim.skip.shared_location': '已跳过：与另一个类别共用位置',
+  'storage.reclaim.skip.too_many_unreferenced': '已跳过：看起来未使用的文件过多，可能是共享存储桶',
+  'storage.reclaim.skip.list_failed': '已跳过：无法列出文件',
+  'storage.reclaim.skip.source_failed': '已跳过：某次查询失败',
 };
 export default storage;

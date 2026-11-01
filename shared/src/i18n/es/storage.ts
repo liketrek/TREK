@@ -142,5 +142,26 @@ const storage: TranslationStrings = {
   'storage.migrate.promptCancel': 'Cancelar',
   'storage.migrate.queued': 'En cola: {categories}',
   'storage.migrate.queueDropped': 'No se pudo iniciar la siguiente migración — se vació la cola restante: {categories}',
+  'storage.reclaim.title': 'Archivos sin referencia',
+  'storage.reclaim.hint':
+    'Cada noche TREK busca archivos subidos que ningún viaje, lugar, diario, colección o usuario usa ya, por ejemplo tras eliminar un viaje.',
+  'storage.reclaim.check': 'Comprobar ahora',
+  'storage.reclaim.checked': 'Comprobado {age}',
+  'storage.reclaim.never': 'Aún no comprobado',
+  'storage.reclaim.delete': 'Eliminar archivos sin referencia',
+  'storage.reclaim.deleteHint':
+    'Desactivado, la comprobación nocturna solo informa. Activado, se elimina un archivo que nadie ha usado en una semana. Déjalo desactivado si varias instalaciones comparten un mismo bucket de almacenamiento.',
+  'storage.reclaim.freeable': 'Se puede liberar',
+  'storage.reclaim.waiting': 'Sin uso desde hace menos de una semana',
+  'storage.reclaim.deleted': 'Liberado en la última comprobación',
+  'storage.reclaim.nothing': 'No se encontraron archivos sin referencia.',
+  'storage.reclaim.stopped':
+    'La última comprobación se detuvo antes de tiempo porque la base de datos se restauró mientras se ejecutaba.',
+  'storage.reclaim.skip.sources_missing': 'Omitido: no se pudo consultar a todas las partes de TREK',
+  'storage.reclaim.skip.shared_location': 'Omitido: comparte ubicación con otra categoría',
+  'storage.reclaim.skip.too_many_unreferenced':
+    'Omitido: demasiados archivos parecen sin uso, posiblemente un bucket compartido',
+  'storage.reclaim.skip.list_failed': 'Omitido: no se pudieron listar los archivos',
+  'storage.reclaim.skip.source_failed': 'Omitido: falló una consulta',
 };
 export default storage;

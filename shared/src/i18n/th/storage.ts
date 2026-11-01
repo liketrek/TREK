@@ -150,5 +150,25 @@ const storage: TranslationStrings = {
   'storage.migrate.promptCancel': 'ยกเลิก',
   'storage.migrate.queued': 'อยู่ในคิว: {categories}',
   'storage.migrate.queueDropped': 'ไม่สามารถเริ่มการย้ายข้อมูลครั้งถัดไปได้ - ล้างคิวที่เหลือแล้ว: {categories}',
+  'storage.reclaim.title': 'ไฟล์ที่ไม่มีการอ้างอิง',
+  'storage.reclaim.hint':
+    'ทุกคืน TREK จะค้นหาไฟล์ที่อัปโหลดซึ่งไม่มีทริป สถานที่ บันทึก คอลเลกชัน หรือผู้ใช้คนใดใช้งานอีกต่อไป เช่น หลังจากลบทริป',
+  'storage.reclaim.check': 'ตรวจสอบตอนนี้',
+  'storage.reclaim.checked': 'ตรวจสอบเมื่อ {age}',
+  'storage.reclaim.never': 'ยังไม่เคยตรวจสอบ',
+  'storage.reclaim.delete': 'ลบไฟล์ที่ไม่มีการอ้างอิง',
+  'storage.reclaim.deleteHint':
+    'ปิด: การตรวจสอบรายคืนจะรายงานเท่านั้น เปิด: ไฟล์ที่ไม่มีการใช้งานเป็นเวลาหนึ่งสัปดาห์จะถูกลบ ควรปิดไว้หากหลายการติดตั้งใช้ถังเก็บข้อมูลเดียวกัน',
+  'storage.reclaim.freeable': 'ว่างได้',
+  'storage.reclaim.waiting': 'ไม่ได้ใช้งานน้อยกว่าหนึ่งสัปดาห์',
+  'storage.reclaim.deleted': 'ว่างแล้วในการตรวจสอบครั้งล่าสุด',
+  'storage.reclaim.nothing': 'ไม่พบไฟล์ที่ไม่มีการอ้างอิง',
+  'storage.reclaim.stopped': 'การตรวจสอบครั้งล่าสุดหยุดก่อนกำหนด เพราะมีการกู้คืนฐานข้อมูลระหว่างที่ทำงาน',
+  'storage.reclaim.skip.sources_missing': 'ข้าม: ไม่สามารถสอบถามทุกส่วนของ TREK ได้',
+  'storage.reclaim.skip.shared_location': 'ข้าม: ใช้ตำแหน่งที่ตั้งเดียวกับหมวดหมู่อื่น',
+  'storage.reclaim.skip.too_many_unreferenced':
+    'ข้าม: มีไฟล์ที่ดูเหมือนไม่ได้ใช้มากเกินไป อาจเป็นถังเก็บข้อมูลที่ใช้ร่วมกัน',
+  'storage.reclaim.skip.list_failed': 'ข้าม: ไม่สามารถแสดงรายการไฟล์ได้',
+  'storage.reclaim.skip.source_failed': 'ข้าม: การค้นหาล้มเหลว',
 };
 export default storage;

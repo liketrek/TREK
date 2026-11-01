@@ -127,6 +127,25 @@ const storage: TranslationStrings = {
   'storage.migrate.promptCancel': 'ביטול',
   'storage.migrate.queued': 'בתור: {categories}',
   'storage.migrate.queueDropped': 'לא ניתן היה להתחיל את ההעברה הבאה — התור שנותר נוקה: {categories}',
+  'storage.reclaim.title': 'קבצים ללא שימוש',
+  'storage.reclaim.hint':
+    'בכל לילה TREK מחפש קבצים שהועלו ושאף טיול, מקום, יומן, אוסף או משתמש כבר לא משתמשים בהם, למשל אחרי שטיול נמחק.',
+  'storage.reclaim.check': 'בדיקה עכשיו',
+  'storage.reclaim.checked': 'נבדק {age}',
+  'storage.reclaim.never': 'טרם נבדק',
+  'storage.reclaim.delete': 'מחיקת קבצים ללא שימוש',
+  'storage.reclaim.deleteHint':
+    'כשהאפשרות כבויה, הבדיקה הלילית רק מדווחת. כשהיא פועלת, קובץ שלא היה בשימוש במשך שבוע נמחק. השאירו אותה כבויה אם כמה התקנות חולקות אותו באקט אחסון.',
+  'storage.reclaim.freeable': 'ניתן לפנות',
+  'storage.reclaim.waiting': 'לא בשימוש פחות משבוע',
+  'storage.reclaim.deleted': 'פונה בבדיקה האחרונה',
+  'storage.reclaim.nothing': 'לא נמצאו קבצים ללא שימוש.',
+  'storage.reclaim.stopped': 'הבדיקה האחרונה נעצרה מוקדם כי מסד הנתונים שוחזר בזמן שהיא רצה.',
+  'storage.reclaim.skip.sources_missing': 'דולג: לא ניתן היה לשאול את כל חלקי TREK',
+  'storage.reclaim.skip.shared_location': 'דולג: חולק את המיקום שלו עם קטגוריה אחרת',
+  'storage.reclaim.skip.too_many_unreferenced': 'דולג: נראה שיותר מדי קבצים אינם בשימוש, ייתכן שזה באקט משותף',
+  'storage.reclaim.skip.list_failed': 'דולג: לא ניתן היה לרשום את הקבצים',
+  'storage.reclaim.skip.source_failed': 'דולג: חיפוש נכשל',
 };
 
 export default storage;

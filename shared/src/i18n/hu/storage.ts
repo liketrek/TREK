@@ -143,5 +143,25 @@ const storage: TranslationStrings = {
   'storage.migrate.queued': 'Várólistán: {categories}',
   'storage.migrate.queueDropped':
     'A következő áthelyezés nem indítható el — a hátralévő várólista törlésre került: {categories}',
+  'storage.reclaim.title': 'Hivatkozás nélküli fájlok',
+  'storage.reclaim.hint':
+    'A TREK minden éjjel megkeresi azokat a feltöltött fájlokat, amelyeket már egyetlen utazás, hely, napló, gyűjtemény vagy felhasználó sem használ, például egy utazás törlése után.',
+  'storage.reclaim.check': 'Ellenőrzés most',
+  'storage.reclaim.checked': 'Ellenőrizve: {age}',
+  'storage.reclaim.never': 'Még nem lett ellenőrizve',
+  'storage.reclaim.delete': 'Hivatkozás nélküli fájlok törlése',
+  'storage.reclaim.deleteHint':
+    'Kikapcsolva az éjszakai ellenőrzés csak jelent. Bekapcsolva törlődik minden fájl, amelyet egy hete senki nem használt. Hagyd kikapcsolva, ha több telepítés oszt meg egy tárhely-bucketet.',
+  'storage.reclaim.freeable': 'Felszabadítható',
+  'storage.reclaim.waiting': 'Kevesebb mint egy hete nem használt',
+  'storage.reclaim.deleted': 'Felszabadítva az utolsó ellenőrzéskor',
+  'storage.reclaim.nothing': 'Nem található hivatkozás nélküli fájl.',
+  'storage.reclaim.stopped': 'Az utolsó ellenőrzés idő előtt leállt, mert futás közben visszaállították az adatbázist.',
+  'storage.reclaim.skip.sources_missing': 'Kihagyva: a TREK nem minden része volt lekérdezhető',
+  'storage.reclaim.skip.shared_location': 'Kihagyva: a helyét egy másik kategóriával osztja meg',
+  'storage.reclaim.skip.too_many_unreferenced':
+    'Kihagyva: túl sok fájl tűnik használatlannak, lehet, hogy közös bucketről van szó',
+  'storage.reclaim.skip.list_failed': 'Kihagyva: a fájlokat nem sikerült listázni',
+  'storage.reclaim.skip.source_failed': 'Kihagyva: egy lekérdezés sikertelen volt',
 };
 export default storage;

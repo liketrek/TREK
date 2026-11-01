@@ -58,6 +58,10 @@ export interface StorageAdmin {
   startMigration: (category: string, to: string) => Promise<string | null>
   cancelMigration: (category: string) => Promise<string | null>
   refreshStats: () => Promise<string | null>
+  /** Switches the nightly deletion of unreferenced files on or off; null on success. */
+  setReclaimDelete: (enabled: boolean) => Promise<string | null>
+  /** Runs a check now that only reports; null on success. */
+  checkReclaim: () => Promise<string | null>
   /** Re-GETs admin state (poll-safe — see the implementation comment below). Exposed for the panel's failed-queue recovery path. */
   refreshState: () => Promise<void>
   /**
@@ -356,6 +360,34 @@ export function useStorageAdmin(genericError: string, conflictError: string): St
     }
   }, [genericError])
 
+  /** Writes the reclaim part of the state the way refreshStats writes usage. */
+  const setReclaim = useCallback((reclaim: NonNullable<StorageAdminState['reclaim']>) => {
+    const prev = stateRef.current
+    if (!prev) return
+    const next = { ...prev, reclaim }
+    stateRef.current = next
+    setState(next)
+  }, [])
+
+  const setReclaimDelete = useCallback(async (enabled: boolean): Promise<string | null> => {
+    try {
+      setReclaim(await adminApi.setStorageReclaimDelete(enabled))
+      return null
+    } catch (err: unknown) {
+      return getApiErrorMessage(err, genericError)
+    }
+  }, [genericError, setReclaim])
+
+  const checkReclaim = useCallback(async (): Promise<string | null> => {
+    try {
+      const lastRun = await adminApi.runStorageReclaimCheck()
+      setReclaim({ deleteEnabled: stateRef.current?.reclaim?.deleteEnabled ?? false, lastRun })
+      return null
+    } catch (err: unknown) {
+      return getApiErrorMessage(err, genericError)
+    }
+  }, [genericError, setReclaim])
+
   return {
     state,
     storageBusy,
@@ -376,6 +408,8 @@ export function useStorageAdmin(genericError: string, conflictError: string): St
     startMigration,
     cancelMigration,
     refreshStats,
+    setReclaimDelete,
+    checkReclaim,
     refreshState,
     discardDraft,
   }

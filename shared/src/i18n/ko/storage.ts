@@ -132,5 +132,25 @@ const storage: TranslationStrings = {
   'storage.migrate.promptCancel': '취소',
   'storage.migrate.queued': '대기 중: {categories}',
   'storage.migrate.queueDropped': '다음 이동을 시작할 수 없습니다 — 남은 대기열이 지워졌습니다: {categories}',
+  'storage.reclaim.title': '참조되지 않는 파일',
+  'storage.reclaim.hint':
+    'TREK은 매일 밤 어떤 여행, 장소, 일지, 컬렉션, 사용자도 더 이상 사용하지 않는 업로드 파일을 찾습니다. 예를 들어 여행이 삭제된 뒤에 생기는 파일입니다.',
+  'storage.reclaim.check': '지금 확인',
+  'storage.reclaim.checked': '{age} 확인됨',
+  'storage.reclaim.never': '아직 확인하지 않음',
+  'storage.reclaim.delete': '참조되지 않는 파일 삭제',
+  'storage.reclaim.deleteHint':
+    '끄면 야간 점검은 보고만 합니다. 켜면 일주일 동안 아무도 사용하지 않은 파일이 삭제됩니다. 여러 설치가 하나의 스토리지 버킷을 공유한다면 끄세요.',
+  'storage.reclaim.freeable': '확보 가능',
+  'storage.reclaim.waiting': '일주일 미만 동안 사용 안 됨',
+  'storage.reclaim.deleted': '지난 확인에서 확보됨',
+  'storage.reclaim.nothing': '참조되지 않는 파일이 없습니다.',
+  'storage.reclaim.stopped': '실행 중에 데이터베이스가 복원되어 마지막 확인이 중간에 중단되었습니다.',
+  'storage.reclaim.skip.sources_missing': '건너뜀: TREK의 일부 구성 요소를 조회할 수 없었습니다',
+  'storage.reclaim.skip.shared_location': '건너뜀: 다른 카테고리와 위치를 공유합니다',
+  'storage.reclaim.skip.too_many_unreferenced':
+    '건너뜀: 사용되지 않는 것으로 보이는 파일이 너무 많습니다. 공유 버킷일 수 있습니다',
+  'storage.reclaim.skip.list_failed': '건너뜀: 파일 목록을 가져올 수 없었습니다',
+  'storage.reclaim.skip.source_failed': '건너뜀: 조회에 실패했습니다',
 };
 export default storage;

@@ -144,5 +144,26 @@ const storage: TranslationStrings = {
   'storage.migrate.queued': "En file d'attente : {categories}",
   'storage.migrate.queueDropped':
     "Impossible de démarrer le déplacement suivant — la file d'attente restante a été vidée : {categories}",
+  'storage.reclaim.title': 'Fichiers non référencés',
+  'storage.reclaim.hint':
+    "Chaque nuit, TREK recherche les fichiers envoyés qu'aucun voyage, lieu, journal, collection ou utilisateur n'utilise plus, par exemple après la suppression d'un voyage.",
+  'storage.reclaim.check': 'Vérifier maintenant',
+  'storage.reclaim.checked': 'Vérifié {age}',
+  'storage.reclaim.never': 'Pas encore vérifié',
+  'storage.reclaim.delete': 'Supprimer les fichiers non référencés',
+  'storage.reclaim.deleteHint':
+    'Désactivé, la vérification nocturne se contente de signaler. Activé, un fichier inutilisé depuis une semaine est supprimé. Laisse désactivé si plusieurs installations partagent un même bucket de stockage.',
+  'storage.reclaim.freeable': 'Peut être libéré',
+  'storage.reclaim.waiting': "Inutilisé depuis moins d'une semaine",
+  'storage.reclaim.deleted': 'Libéré lors de la dernière vérification',
+  'storage.reclaim.nothing': 'Aucun fichier non référencé trouvé.',
+  'storage.reclaim.stopped':
+    "La dernière vérification s'est arrêtée prématurément, car la base de données a été restaurée pendant son exécution.",
+  'storage.reclaim.skip.sources_missing': "Ignoré : toutes les parties de TREK n'ont pas pu être interrogées",
+  'storage.reclaim.skip.shared_location': 'Ignoré : partage son emplacement avec une autre catégorie',
+  'storage.reclaim.skip.too_many_unreferenced':
+    'Ignoré : trop de fichiers semblent inutilisés, peut-être un bucket partagé',
+  'storage.reclaim.skip.list_failed': "Ignoré : la liste des fichiers n'a pas pu être obtenue",
+  'storage.reclaim.skip.source_failed': 'Ignoré : une recherche a échoué',
 };
 export default storage;

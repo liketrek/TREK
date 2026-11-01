@@ -147,5 +147,26 @@ const storage: TranslationStrings = {
   'storage.migrate.queued': 'W kolejce: {categories}',
   'storage.migrate.queueDropped':
     'Nie udało się rozpocząć kolejnego przenoszenia — pozostała kolejka została wyczyszczona: {categories}',
+  'storage.reclaim.title': 'Pliki bez powiązań',
+  'storage.reclaim.hint':
+    'Każdej nocy TREK szuka przesłanych plików, których nie używa już żadna podróż, miejsce, dziennik, kolekcja ani użytkownik, na przykład po usunięciu podróży.',
+  'storage.reclaim.check': 'Sprawdź teraz',
+  'storage.reclaim.checked': 'Sprawdzono {age}',
+  'storage.reclaim.never': 'Jeszcze nie sprawdzono',
+  'storage.reclaim.delete': 'Usuń pliki bez powiązań',
+  'storage.reclaim.deleteHint':
+    'Wyłączone: nocna kontrola tylko raportuje. Włączone: plik, którego nic nie używało przez tydzień, jest usuwany. Zostaw wyłączone, jeśli kilka instalacji współdzieli jeden bucket magazynu.',
+  'storage.reclaim.freeable': 'Można zwolnić',
+  'storage.reclaim.waiting': 'Nieużywane krócej niż tydzień',
+  'storage.reclaim.deleted': 'Zwolniono przy ostatniej kontroli',
+  'storage.reclaim.nothing': 'Nie znaleziono plików bez powiązań.',
+  'storage.reclaim.stopped':
+    'Ostatnia kontrola zakończyła się wcześniej, ponieważ w trakcie jej trwania przywrócono bazę danych.',
+  'storage.reclaim.skip.sources_missing': 'Pominięto: nie dało się zapytać każdej części TREK',
+  'storage.reclaim.skip.shared_location': 'Pominięto: współdzieli lokalizację z inną kategorią',
+  'storage.reclaim.skip.too_many_unreferenced':
+    'Pominięto: zbyt wiele plików wygląda na nieużywane, możliwe że to współdzielony bucket',
+  'storage.reclaim.skip.list_failed': 'Pominięto: nie udało się wylistować plików',
+  'storage.reclaim.skip.source_failed': 'Pominięto: wyszukiwanie nie powiodło się',
 };
 export default storage;

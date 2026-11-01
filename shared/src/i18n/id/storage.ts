@@ -138,5 +138,26 @@ const storage: TranslationStrings = {
   'storage.migrate.queued': 'Dalam antrean: {categories}',
   'storage.migrate.queueDropped':
     'Tidak dapat memulai pemindahan berikutnya — antrean yang tersisa telah dihapus: {categories}',
+  'storage.reclaim.title': 'File tanpa referensi',
+  'storage.reclaim.hint':
+    'Setiap malam TREK mencari file yang diunggah tetapi tidak lagi dipakai oleh perjalanan, tempat, jurnal, koleksi, atau pengguna mana pun, misalnya setelah sebuah perjalanan dihapus.',
+  'storage.reclaim.check': 'Periksa sekarang',
+  'storage.reclaim.checked': 'Diperiksa {age}',
+  'storage.reclaim.never': 'Belum diperiksa',
+  'storage.reclaim.delete': 'Hapus file tanpa referensi',
+  'storage.reclaim.deleteHint':
+    'Nonaktif, pemeriksaan malam hanya melaporkan. Aktif, file yang tidak dipakai selama seminggu akan dihapus. Biarkan nonaktif jika beberapa instalasi berbagi satu bucket penyimpanan.',
+  'storage.reclaim.freeable': 'Dapat dibebaskan',
+  'storage.reclaim.waiting': 'Tidak dipakai kurang dari seminggu',
+  'storage.reclaim.deleted': 'Dibebaskan pada pemeriksaan terakhir',
+  'storage.reclaim.nothing': 'Tidak ada file tanpa referensi.',
+  'storage.reclaim.stopped':
+    'Pemeriksaan terakhir berhenti lebih awal karena database dipulihkan saat pemeriksaan berjalan.',
+  'storage.reclaim.skip.sources_missing': 'Dilewati: tidak semua bagian TREK dapat ditanyai',
+  'storage.reclaim.skip.shared_location': 'Dilewati: lokasinya sama dengan kategori lain',
+  'storage.reclaim.skip.too_many_unreferenced':
+    'Dilewati: terlalu banyak file yang tampak tidak terpakai, mungkin bucket bersama',
+  'storage.reclaim.skip.list_failed': 'Dilewati: daftar file tidak dapat diambil',
+  'storage.reclaim.skip.source_failed': 'Dilewati: salah satu pencarian gagal',
 };
 export default storage;

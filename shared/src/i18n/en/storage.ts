@@ -152,5 +152,24 @@ const storage: TranslationStrings = {
   'storage.migrate.promptCancel': 'Cancel',
   'storage.migrate.queued': 'Queued: {categories}',
   'storage.migrate.queueDropped': 'Could not start the next migration — the remaining queue was cleared: {categories}',
+  'storage.reclaim.title': 'Unreferenced files',
+  'storage.reclaim.hint':
+    'Every night TREK looks for uploaded files that no trip, place, journal, collection or user uses any more, for example after a trip was deleted.',
+  'storage.reclaim.check': 'Check now',
+  'storage.reclaim.checked': 'Checked {age}',
+  'storage.reclaim.never': 'Not checked yet',
+  'storage.reclaim.delete': 'Delete unreferenced files',
+  'storage.reclaim.deleteHint':
+    'Off, the nightly check only reports. On, a file nothing has used for a week is deleted. Leave it off if several installations share one storage bucket.',
+  'storage.reclaim.freeable': 'Can be freed',
+  'storage.reclaim.waiting': 'Unused for less than a week',
+  'storage.reclaim.deleted': 'Freed on the last check',
+  'storage.reclaim.nothing': 'No unreferenced files found.',
+  'storage.reclaim.stopped': 'The last check stopped early because the database was restored while it ran.',
+  'storage.reclaim.skip.sources_missing': 'Skipped: not every part of TREK could be asked',
+  'storage.reclaim.skip.shared_location': 'Skipped: shares its location with another category',
+  'storage.reclaim.skip.too_many_unreferenced': 'Skipped: too many files look unused, possibly a shared bucket',
+  'storage.reclaim.skip.list_failed': 'Skipped: the files could not be listed',
+  'storage.reclaim.skip.source_failed': 'Skipped: a lookup failed',
 };
 export default storage;

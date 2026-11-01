@@ -139,5 +139,25 @@ const storage: TranslationStrings = {
   'storage.migrate.promptCancel': 'Zrušit',
   'storage.migrate.queued': 'Ve frontě: {categories}',
   'storage.migrate.queueDropped': 'Nepodařilo se spustit další přesun — zbývající fronta byla vymazána: {categories}',
+  'storage.reclaim.title': 'Nepoužívané soubory',
+  'storage.reclaim.hint':
+    'TREK každou noc hledá nahrané soubory, které už nepoužívá žádný výlet, místo, deník, sbírka ani uživatel, například po smazání výletu.',
+  'storage.reclaim.check': 'Zkontrolovat nyní',
+  'storage.reclaim.checked': 'Zkontrolováno {age}',
+  'storage.reclaim.never': 'Zatím nezkontrolováno',
+  'storage.reclaim.delete': 'Smazat nepoužívané soubory',
+  'storage.reclaim.deleteHint':
+    'Když je vypnuto, noční kontrola jen hlásí. Když je zapnuto, soubor, který se týden nepoužil, se smaže. Pokud několik instalací sdílí jeden bucket úložiště, nechte vypnuto.',
+  'storage.reclaim.freeable': 'Lze uvolnit',
+  'storage.reclaim.waiting': 'Nepoužito méně než týden',
+  'storage.reclaim.deleted': 'Uvolněno při poslední kontrole',
+  'storage.reclaim.nothing': 'Nebyly nalezeny žádné nepoužívané soubory.',
+  'storage.reclaim.stopped': 'Poslední kontrola skončila předčasně, protože byla během jejího běhu obnovena databáze.',
+  'storage.reclaim.skip.sources_missing': 'Přeskočeno: nešlo se zeptat všech částí TREK',
+  'storage.reclaim.skip.shared_location': 'Přeskočeno: sdílí umístění s jinou kategorií',
+  'storage.reclaim.skip.too_many_unreferenced':
+    'Přeskočeno: příliš mnoho souborů vypadá nepoužitě, možná jde o sdílený bucket',
+  'storage.reclaim.skip.list_failed': 'Přeskočeno: soubory se nepodařilo vypsat',
+  'storage.reclaim.skip.source_failed': 'Přeskočeno: dotaz selhal',
 };
 export default storage;

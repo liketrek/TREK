@@ -147,5 +147,25 @@ const storage: TranslationStrings = {
   'storage.migrate.promptCancel': 'Скасувати',
   'storage.migrate.queued': 'У черзі: {categories}',
   'storage.migrate.queueDropped': 'Не вдалося розпочати наступне перенесення — залишок черги очищено: {categories}',
+  'storage.reclaim.title': 'Файли без посилань',
+  'storage.reclaim.hint':
+    'Щоночі TREK шукає завантажені файли, які більше не використовує жодна поїздка, місце, щоденник, колекція чи користувач, наприклад після видалення поїздки.',
+  'storage.reclaim.check': 'Перевірити зараз',
+  'storage.reclaim.checked': 'Перевірено {age}',
+  'storage.reclaim.never': 'Ще не перевірялося',
+  'storage.reclaim.delete': 'Видаляти файли без посилань',
+  'storage.reclaim.deleteHint':
+    'Вимкнено: нічна перевірка лише повідомляє. Увімкнено: файл, який тиждень ніщо не використовує, видаляється. Залиште вимкненим, якщо кілька встановлень ділять один бакет сховища.',
+  'storage.reclaim.freeable': 'Можна звільнити',
+  'storage.reclaim.waiting': 'Не використовується менше тижня',
+  'storage.reclaim.deleted': 'Звільнено під час останньої перевірки',
+  'storage.reclaim.nothing': 'Файлів без посилань не знайдено.',
+  'storage.reclaim.stopped': 'Остання перевірка зупинилася раніше, бо під час її роботи базу даних було відновлено.',
+  'storage.reclaim.skip.sources_missing': 'Пропущено: не вдалося опитати всі частини TREK',
+  'storage.reclaim.skip.shared_location': 'Пропущено: ділить розташування з іншою категорією',
+  'storage.reclaim.skip.too_many_unreferenced':
+    'Пропущено: забагато файлів здаються невикористаними, можливо, це спільний бакет',
+  'storage.reclaim.skip.list_failed': 'Пропущено: не вдалося отримати список файлів',
+  'storage.reclaim.skip.source_failed': 'Пропущено: пошук завершився помилкою',
 };
 export default storage;

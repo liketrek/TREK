@@ -12,6 +12,7 @@ import type {
 import { useTranslation } from '../../../i18n';
 import { formatBytes } from '../../../utils/formatBytes';
 import { useToast } from '../../shared/Toast';
+import { reclaimView } from './reclaimModel';
 import {
   adoptedMirrorFor,
   computeMigrationCandidates,
@@ -164,6 +165,19 @@ export function useStoragePanel() {
     const error = await admin.refreshStats();
     if (error) toast.error(error);
   };
+
+  const [reclaimChecking, setReclaimChecking] = useState(false);
+  const handleReclaimCheck = async () => {
+    setReclaimChecking(true);
+    const error = await admin.checkReclaim();
+    setReclaimChecking(false);
+    if (error) toast.error(error);
+  };
+  const handleReclaimDelete = async (enabled: boolean) => {
+    const error = await admin.setReclaimDelete(enabled);
+    if (error) toast.error(error);
+  };
+  const reclaim = reclaimView(admin.state?.reclaim ?? null);
 
   const handleStartBackfill = async (row: FoldedBackendRow) => {
     if (!row.mirrorName) return;
@@ -371,6 +385,10 @@ export function useStoragePanel() {
     migrationQueue,
     handleCancelMigration,
     handleRefreshStats,
+    reclaim,
+    reclaimChecking,
+    handleReclaimCheck,
+    handleReclaimDelete,
     handleStartBackfill,
     handleCancelBackfill,
     loaded,

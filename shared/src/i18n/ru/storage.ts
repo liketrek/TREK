@@ -148,5 +148,26 @@ const storage: TranslationStrings = {
   'storage.migrate.promptCancel': 'Отмена',
   'storage.migrate.queued': 'В очереди: {categories}',
   'storage.migrate.queueDropped': 'Не удалось запустить следующий перенос — оставшаяся очередь очищена: {categories}',
+  'storage.reclaim.title': 'Файлы без связей',
+  'storage.reclaim.hint':
+    'Каждую ночь TREK ищет загруженные файлы, которые больше не используются ни в одной поездке, месте, дневнике, коллекции или профиле пользователя, например после удаления поездки.',
+  'storage.reclaim.check': 'Проверить сейчас',
+  'storage.reclaim.checked': 'Проверено {age}',
+  'storage.reclaim.never': 'Ещё не проверялось',
+  'storage.reclaim.delete': 'Удалять файлы без связей',
+  'storage.reclaim.deleteHint':
+    'Выкл.: ночная проверка только сообщает о файлах. Вкл.: файл, который неделю нигде не использовался, удаляется. Оставьте выключенным, если несколько установок используют один бакет хранилища.',
+  'storage.reclaim.freeable': 'Можно освободить',
+  'storage.reclaim.waiting': 'Не используются менее недели',
+  'storage.reclaim.deleted': 'Освобождено при последней проверке',
+  'storage.reclaim.nothing': 'Файлов без связей не найдено.',
+  'storage.reclaim.stopped':
+    'Последняя проверка остановлена досрочно, потому что во время её выполнения была восстановлена база данных.',
+  'storage.reclaim.skip.sources_missing': 'Пропущено: не удалось опросить все части TREK',
+  'storage.reclaim.skip.shared_location': 'Пропущено: расположение совпадает с другой категорией',
+  'storage.reclaim.skip.too_many_unreferenced':
+    'Пропущено: слишком много файлов выглядят неиспользуемыми, возможно, это общий бакет',
+  'storage.reclaim.skip.list_failed': 'Пропущено: не удалось получить список файлов',
+  'storage.reclaim.skip.source_failed': 'Пропущено: запрос не выполнен',
 };
 export default storage;

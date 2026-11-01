@@ -156,5 +156,25 @@ const storage: TranslationStrings = {
   'storage.migrate.queued': 'Järjekorras: {categories}',
   'storage.migrate.queueDropped':
     'Järgmist teisaldamist ei saanud alustada — ülejäänud järjekord tühjendati: {categories}',
+  'storage.reclaim.title': 'Viiteta failid',
+  'storage.reclaim.hint':
+    'TREK otsib igal ööl üleslaaditud faile, mida ükski reis, koht, päevik, kogu ega kasutaja enam ei kasuta, näiteks pärast reisi kustutamist.',
+  'storage.reclaim.check': 'Kontrolli kohe',
+  'storage.reclaim.checked': 'Kontrollitud {age}',
+  'storage.reclaim.never': 'Pole veel kontrollitud',
+  'storage.reclaim.delete': 'Kustuta viiteta failid',
+  'storage.reclaim.deleteHint':
+    'Väljas teavitab öine kontroll ainult. Sees kustutatakse fail, mida pole nädala jooksul keegi kasutanud. Jäta välja, kui mitu paigaldust jagavad ühte salve (bucket).',
+  'storage.reclaim.freeable': 'Vabastatav',
+  'storage.reclaim.waiting': 'Kasutamata alla nädala',
+  'storage.reclaim.deleted': 'Vabastatud viimasel kontrollil',
+  'storage.reclaim.nothing': 'Viiteta faile ei leitud.',
+  'storage.reclaim.stopped': 'Viimane kontroll katkes ennatlikult, sest andmebaas taastati selle töö ajal.',
+  'storage.reclaim.skip.sources_missing': 'Vahele jäetud: kõigilt TREK-i osadelt ei saanud päringut teha',
+  'storage.reclaim.skip.shared_location': 'Vahele jäetud: jagab asukohta teise kategooriaga',
+  'storage.reclaim.skip.too_many_unreferenced':
+    'Vahele jäetud: liiga palju faile paistab kasutamata, võib-olla jagatud salv',
+  'storage.reclaim.skip.list_failed': 'Vahele jäetud: faile ei saanud loetleda',
+  'storage.reclaim.skip.source_failed': 'Vahele jäetud: päring ebaõnnestus',
 };
 export default storage;

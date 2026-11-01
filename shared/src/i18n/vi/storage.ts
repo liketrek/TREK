@@ -136,5 +136,25 @@ const storage: TranslationStrings = {
   'storage.migrate.promptCancel': 'Hủy',
   'storage.migrate.queued': 'Đang chờ: {categories}',
   'storage.migrate.queueDropped': 'Không thể bắt đầu di chuyển tiếp theo — hàng đợi còn lại đã bị xóa: {categories}',
+  'storage.reclaim.title': 'Tệp không còn được tham chiếu',
+  'storage.reclaim.hint':
+    'Mỗi đêm TREK tìm các tệp đã tải lên mà không chuyến đi, địa điểm, nhật ký, bộ sưu tập hay người dùng nào còn sử dụng, ví dụ sau khi một chuyến đi bị xóa.',
+  'storage.reclaim.check': 'Kiểm tra ngay',
+  'storage.reclaim.checked': 'Đã kiểm tra {age}',
+  'storage.reclaim.never': 'Chưa kiểm tra',
+  'storage.reclaim.delete': 'Xóa các tệp không còn được tham chiếu',
+  'storage.reclaim.deleteHint':
+    'Tắt: lần kiểm tra hằng đêm chỉ báo cáo. Bật: tệp không được dùng trong một tuần sẽ bị xóa. Hãy để tắt nếu nhiều bản cài đặt dùng chung một bucket lưu trữ.',
+  'storage.reclaim.freeable': 'Có thể giải phóng',
+  'storage.reclaim.waiting': 'Chưa dùng dưới một tuần',
+  'storage.reclaim.deleted': 'Đã giải phóng ở lần kiểm tra trước',
+  'storage.reclaim.nothing': 'Không tìm thấy tệp nào không còn được tham chiếu.',
+  'storage.reclaim.stopped': 'Lần kiểm tra trước đã dừng sớm vì cơ sở dữ liệu được khôi phục trong khi đang chạy.',
+  'storage.reclaim.skip.sources_missing': 'Bỏ qua: không thể truy vấn mọi phần của TREK',
+  'storage.reclaim.skip.shared_location': 'Bỏ qua: dùng chung vị trí với một danh mục khác',
+  'storage.reclaim.skip.too_many_unreferenced':
+    'Bỏ qua: quá nhiều tệp có vẻ không được dùng, có thể là bucket dùng chung',
+  'storage.reclaim.skip.list_failed': 'Bỏ qua: không thể liệt kê các tệp',
+  'storage.reclaim.skip.source_failed': 'Bỏ qua: một truy vấn đã thất bại',
 };
 export default storage;

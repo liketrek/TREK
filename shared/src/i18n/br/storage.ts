@@ -138,5 +138,26 @@ const storage: TranslationStrings = {
   'storage.migrate.queued': 'Na fila: {categories}',
   'storage.migrate.queueDropped':
     'Não foi possível iniciar a próxima migração — a fila restante foi limpa: {categories}',
+  'storage.reclaim.title': 'Arquivos sem referência',
+  'storage.reclaim.hint':
+    'Toda noite o TREK procura arquivos enviados que nenhuma viagem, lugar, diário, coleção ou usuário usa mais, por exemplo depois que uma viagem foi excluída.',
+  'storage.reclaim.check': 'Verificar agora',
+  'storage.reclaim.checked': 'Verificado {age}',
+  'storage.reclaim.never': 'Ainda não verificado',
+  'storage.reclaim.delete': 'Excluir arquivos sem referência',
+  'storage.reclaim.deleteHint':
+    'Desativado, a verificação noturna apenas informa. Ativado, um arquivo que ninguém usa há uma semana é excluído. Deixe desativado se várias instalações compartilham o mesmo bucket de armazenamento.',
+  'storage.reclaim.freeable': 'Pode ser liberado',
+  'storage.reclaim.waiting': 'Sem uso há menos de uma semana',
+  'storage.reclaim.deleted': 'Liberado na última verificação',
+  'storage.reclaim.nothing': 'Nenhum arquivo sem referência encontrado.',
+  'storage.reclaim.stopped':
+    'A última verificação parou antes do fim porque o banco de dados foi restaurado durante a execução.',
+  'storage.reclaim.skip.sources_missing': 'Ignorado: nem todas as partes do TREK puderam ser consultadas',
+  'storage.reclaim.skip.shared_location': 'Ignorado: compartilha o local com outra categoria',
+  'storage.reclaim.skip.too_many_unreferenced':
+    'Ignorado: muitos arquivos parecem sem uso, possivelmente um bucket compartilhado',
+  'storage.reclaim.skip.list_failed': 'Ignorado: não foi possível listar os arquivos',
+  'storage.reclaim.skip.source_failed': 'Ignorado: uma consulta falhou',
 };
 export default storage;

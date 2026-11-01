@@ -126,5 +126,24 @@ const storage: TranslationStrings = {
   'storage.migrate.promptCancel': '取消',
   'storage.migrate.queued': '排隊中：{categories}',
   'storage.migrate.queueDropped': '無法啟動下一個遷移 — 剩餘佇列已清空：{categories}',
+  'storage.reclaim.title': '未被引用的檔案',
+  'storage.reclaim.hint':
+    'TREK 每晚會尋找不再被任何行程、地點、日誌、集合或使用者使用的已上傳檔案，例如行程被刪除之後。',
+  'storage.reclaim.check': '立即檢查',
+  'storage.reclaim.checked': '{age}檢查',
+  'storage.reclaim.never': '尚未檢查',
+  'storage.reclaim.delete': '刪除未被引用的檔案',
+  'storage.reclaim.deleteHint':
+    '關閉時，夜間檢查只會回報。開啟後，一週內無人使用的檔案會被刪除。如果多個安裝共用同一個儲存貯體，請保持關閉。',
+  'storage.reclaim.freeable': '可釋放',
+  'storage.reclaim.waiting': '未使用不足一週',
+  'storage.reclaim.deleted': '上次檢查已釋放',
+  'storage.reclaim.nothing': '未發現未被引用的檔案。',
+  'storage.reclaim.stopped': '上次檢查提前停止，因為執行期間資料庫被還原了。',
+  'storage.reclaim.skip.sources_missing': '已略過：無法查詢 TREK 的所有部分',
+  'storage.reclaim.skip.shared_location': '已略過：與另一個類別共用位置',
+  'storage.reclaim.skip.too_many_unreferenced': '已略過：看起來未使用的檔案過多，可能是共用儲存貯體',
+  'storage.reclaim.skip.list_failed': '已略過：無法列出檔案',
+  'storage.reclaim.skip.source_failed': '已略過：某次查詢失敗',
 };
 export default storage;

@@ -148,5 +148,25 @@ const storage: TranslationStrings = {
   'storage.migrate.promptCancel': 'إلغاء',
   'storage.migrate.queued': 'في قائمة الانتظار: {categories}',
   'storage.migrate.queueDropped': 'تعذّر بدء عملية النقل التالية — تم مسح قائمة الانتظار المتبقية: {categories}',
+  'storage.reclaim.title': 'الملفات غير المرتبطة',
+  'storage.reclaim.hint':
+    'يبحث TREK كل ليلة عن الملفات المرفوعة التي لم تعد أي رحلة أو مكان أو يومية أو مجموعة أو مستخدم يستخدمها، مثلاً بعد حذف رحلة.',
+  'storage.reclaim.check': 'افحص الآن',
+  'storage.reclaim.checked': 'تم الفحص {age}',
+  'storage.reclaim.never': 'لم يتم الفحص بعد',
+  'storage.reclaim.delete': 'حذف الملفات غير المرتبطة',
+  'storage.reclaim.deleteHint':
+    'عند الإيقاف، يكتفي الفحص الليلي بالإبلاغ. عند التفعيل، يُحذف أي ملف لم يُستخدم منذ أسبوع. أبقِه متوقفاً إذا كانت عدة تثبيتات تشترك في حاوية (Bucket) تخزين واحدة.',
+  'storage.reclaim.freeable': 'يمكن تحرير مساحته',
+  'storage.reclaim.waiting': 'غير مستخدمة منذ أقل من أسبوع',
+  'storage.reclaim.deleted': 'تم تحريرها في آخر فحص',
+  'storage.reclaim.nothing': 'لم يتم العثور على ملفات غير مرتبطة.',
+  'storage.reclaim.stopped': 'توقف الفحص الأخير مبكراً لأن قاعدة البيانات استُعيدت أثناء تشغيله.',
+  'storage.reclaim.skip.sources_missing': 'تم التخطي: تعذّر الاستعلام من كل أجزاء TREK',
+  'storage.reclaim.skip.shared_location': 'تم التخطي: يشترك في موقعه مع فئة أخرى',
+  'storage.reclaim.skip.too_many_unreferenced':
+    'تم التخطي: يبدو أن عدداً كبيراً من الملفات غير مستخدم، ربما بسبب حاوية (Bucket) مشتركة',
+  'storage.reclaim.skip.list_failed': 'تم التخطي: تعذّر سرد الملفات',
+  'storage.reclaim.skip.source_failed': 'تم التخطي: فشل أحد الاستعلامات',
 };
 export default storage;

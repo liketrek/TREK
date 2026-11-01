@@ -125,6 +125,36 @@ stamp shows when the numbers were computed; reassigning categories does not
 retroactively move them until the next scan. The uploads backend's total
 includes the legacy photo library.
 
+## Unreferenced files
+
+Uploaded files can outlive what used them: deleting a trip, a user or a place
+image, or replacing a cover, leaves the old file in storage. Every night
+(04:05 server time) TREK checks the covers, place images, avatars, trip files
+and journal photos for files that no row names any more, and the
+**Unreferenced files** section shows what it found:
+
+- **Can be freed**: unused for at least a week, so the nightly run deletes them
+  once deletion is on.
+- **Unused for less than a week**: these get their week first. A file that is
+  used again in the meantime (an undo, a copied trip) starts over.
+- **Freed on the last check**: what the nightly run deleted.
+
+**Delete unreferenced files** is off after install and upgrade, so the check
+only reports. Switched on, the nightly run deletes a file once it has been
+unused for a week and a last check right before the delete still finds
+nothing that uses it. **Check now** runs a check that only reports, whatever
+the switch says. Each run is recorded in the [Audit-Log](Audit-Log).
+
+A category is skipped, with the reason shown next to it, when not every part
+of TREK could be asked about it, when its files share a location with another
+category, when a listing or a lookup fails, or when more than a fifth of its
+files look unused. The last one usually means two installations share one
+bucket: each would see the other's files as unused, so leave deletion off in
+that setup. Caches (place photos), backups, assistant attachments and journal
+thumbnails are cleaned up by their own routines and are never touched here.
+No check runs on a demo instance, and none while a sync, a move or a restore
+is running.
+
 ## Secrets and encryption
 
 Backend credentials (the S3 secret access key) are stored encrypted. Setting

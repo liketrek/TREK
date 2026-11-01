@@ -155,5 +155,25 @@ const storage: TranslationStrings = {
   'storage.migrate.promptCancel': 'Zrušiť',
   'storage.migrate.queued': 'V poradí: {categories}',
   'storage.migrate.queueDropped': 'Nepodarilo sa spustiť ďalší presun — zvyšné poradie bolo vymazané: {categories}',
+  'storage.reclaim.title': 'Nepoužívané súbory',
+  'storage.reclaim.hint':
+    'TREK každú noc hľadá nahrané súbory, ktoré už nepoužíva žiadna cesta, miesto, denník, kolekcia ani používateľ, napríklad po odstránení cesty.',
+  'storage.reclaim.check': 'Skontrolovať teraz',
+  'storage.reclaim.checked': 'Skontrolované {age}',
+  'storage.reclaim.never': 'Ešte neskontrolované',
+  'storage.reclaim.delete': 'Odstraňovať nepoužívané súbory',
+  'storage.reclaim.deleteHint':
+    'Vypnuté: nočná kontrola len hlási. Zapnuté: súbor, ktorý týždeň nikto nepoužil, sa odstráni. Nechajte vypnuté, ak viaceré inštalácie zdieľajú jeden bucket úložiska.',
+  'storage.reclaim.freeable': 'Možno uvoľniť',
+  'storage.reclaim.waiting': 'Nepoužité menej ako týždeň',
+  'storage.reclaim.deleted': 'Uvoľnené pri poslednej kontrole',
+  'storage.reclaim.nothing': 'Nenašli sa žiadne nepoužívané súbory.',
+  'storage.reclaim.stopped': 'Posledná kontrola sa predčasne zastavila, pretože sa počas jej behu obnovila databáza.',
+  'storage.reclaim.skip.sources_missing': 'Preskočené: nebolo možné sa opýtať každej časti TREK',
+  'storage.reclaim.skip.shared_location': 'Preskočené: zdieľa umiestnenie s inou kategóriou',
+  'storage.reclaim.skip.too_many_unreferenced':
+    'Preskočené: príliš veľa súborov vyzerá ako nepoužívaných, možno ide o zdieľaný bucket',
+  'storage.reclaim.skip.list_failed': 'Preskočené: súbory sa nepodarilo vypísať',
+  'storage.reclaim.skip.source_failed': 'Preskočené: vyhľadávanie zlyhalo',
 };
 export default storage;

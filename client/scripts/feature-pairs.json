@@ -985,6 +985,7 @@
   "mobileOnly": {
     "src/mobile/screens/admin/MAdminResetMfaSheet.tsx": "Markup only; the 2FA reset confirm that MAdminSheets opens, with the reset handed in through props from its useAdminUserActions.",
     "src/mobile/screens/admin/MAdminUi.tsx": "Phone only admin UI primitives (button, card, field, input, secret input, sheet frame).",
+    "src/mobile/screens/admin/MStorageReclaimCard.tsx": "Markup only; renders the reclaim view and handlers that MAdminStoragePanel takes from useStoragePanel, the twin of StorageReclaimSection.",
     "src/mobile/screens/atlas/MAtlasSearch.tsx": "Phone full screen country search overlay; options, suggestions and selection come through props from MAtlas.",
     "src/mobile/screens/atlas/MAtlasStatsCard.tsx": "Markup only; renders the AtlasStats that MAtlas passes in.",
     "src/mobile/screens/collections/MCollCategoryPicker.tsx": "Phone only category dropdown; value and categories come through props from the collection sheets.",

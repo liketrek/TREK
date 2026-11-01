@@ -140,5 +140,25 @@ const storage: TranslationStrings = {
   'storage.migrate.promptCancel': 'İptal',
   'storage.migrate.queued': 'Sırada: {categories}',
   'storage.migrate.queueDropped': 'Sonraki taşıma başlatılamadı — kalan kuyruk temizlendi: {categories}',
+  'storage.reclaim.title': 'Başvurulmayan dosyalar',
+  'storage.reclaim.hint':
+    'TREK her gece, artık hiçbir gezi, yer, günlük, koleksiyon veya kullanıcı tarafından kullanılmayan yüklenmiş dosyaları arar, örneğin bir gezi silindikten sonra.',
+  'storage.reclaim.check': 'Şimdi kontrol et',
+  'storage.reclaim.checked': 'Kontrol edildi: {age}',
+  'storage.reclaim.never': 'Henüz kontrol edilmedi',
+  'storage.reclaim.delete': 'Başvurulmayan dosyaları sil',
+  'storage.reclaim.deleteHint':
+    "Kapalıyken gece kontrolü yalnızca rapor verir. Açıkken bir hafta boyunca hiçbir yerde kullanılmayan dosya silinir. Birden fazla kurulum aynı depolama bucket'ını paylaşıyorsa kapalı bırakın.",
+  'storage.reclaim.freeable': 'Boşaltılabilir',
+  'storage.reclaim.waiting': 'Bir haftadan kısa süredir kullanılmıyor',
+  'storage.reclaim.deleted': 'Son kontrolde boşaltıldı',
+  'storage.reclaim.nothing': 'Başvurulmayan dosya bulunamadı.',
+  'storage.reclaim.stopped': 'Son kontrol erken durdu, çünkü çalışırken veritabanı geri yüklendi.',
+  'storage.reclaim.skip.sources_missing': "Atlandı: TREK'in her bölümüne sorulamadı",
+  'storage.reclaim.skip.shared_location': 'Atlandı: konumunu başka bir kategoriyle paylaşıyor',
+  'storage.reclaim.skip.too_many_unreferenced':
+    'Atlandı: çok fazla dosya kullanılmıyor gibi görünüyor, olasılıkla paylaşılan bir bucket',
+  'storage.reclaim.skip.list_failed': 'Atlandı: dosyalar listelenemedi',
+  'storage.reclaim.skip.source_failed': 'Atlandı: bir sorgu başarısız oldu',
 };
 export default storage;

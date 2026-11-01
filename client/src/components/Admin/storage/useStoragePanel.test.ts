@@ -1,4 +1,4 @@
-// FE-ADMIN-STOR-PANEL-001 to -017: the storage panel logic behind both admin shells.
+// FE-ADMIN-STOR-PANEL-001 to -019: the storage panel logic behind both admin shells.
 import { act, renderHook, waitFor } from '@testing-library/react';
 
 import { STORAGE_CATEGORIES, type StorageAdminState, type StorageBackend, type StorageConfig } from '@trek/shared';
@@ -58,6 +58,8 @@ function makeAdmin(state: StorageAdminState | null, draft?: StorageConfig): Stor
     startMigration: vi.fn(async () => null),
     cancelMigration: vi.fn(async () => null),
     refreshStats: vi.fn(async () => null),
+    setReclaimDelete: vi.fn(async () => null),
+    checkReclaim: vi.fn(async () => null),
     refreshState: vi.fn(async () => {}),
     discardDraft: vi.fn(async () => {}),
   };
@@ -281,5 +283,31 @@ describe('migrationPromptLine', () => {
     expect(
       migrationPromptLine(t, { category: 'covers', from: 'a', to: 'b', toWire: 'b', objects: null, bytes: null })
     ).toBe('storage.migrate.promptLineUnknown {"category":"storage.category.covers","from":"a","to":"b"}');
+  });
+});
+
+describe('useStoragePanel: unreferenced files', () => {
+  it('FE-ADMIN-STOR-PANEL-018: the reclaim switch and the check go through the admin hook, a failure as a toast', async () => {
+    fake.admin = makeAdmin(baseState());
+    vi.mocked(fake.admin.checkReclaim).mockResolvedValueOnce('busy');
+    const { result } = renderHook(() => useStoragePanel());
+    await act(async () => {
+      await result.current.handleReclaimDelete(true);
+    });
+    expect(fake.admin.setReclaimDelete).toHaveBeenCalledWith(true);
+    await act(async () => {
+      await result.current.handleReclaimCheck();
+    });
+    expect(fake.admin.checkReclaim).toHaveBeenCalledTimes(1);
+    expect(toast.error).toHaveBeenCalledWith('busy');
+    expect(result.current.reclaimChecking).toBe(false);
+  });
+
+  it('FE-ADMIN-STOR-PANEL-019: a server without the reclaim state reads as deletion off and never checked', () => {
+    fake.admin = makeAdmin(baseState());
+    const { result } = renderHook(() => useStoragePanel());
+    expect(result.current.reclaim.deleteEnabled).toBe(false);
+    expect(result.current.reclaim.checkedAt).toBeNull();
+    expect(result.current.reclaim.lines).toEqual([]);
   });
 });

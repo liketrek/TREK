@@ -145,5 +145,26 @@ const storage: TranslationStrings = {
   'storage.migrate.queued': 'Σε αναμονή: {categories}',
   'storage.migrate.queueDropped':
     'Δεν ήταν δυνατή η έναρξη της επόμενης μετακίνησης — η υπόλοιπη ουρά διαγράφηκε: {categories}',
+  'storage.reclaim.title': 'Αρχεία χωρίς αναφορά',
+  'storage.reclaim.hint':
+    'Κάθε νύχτα το TREK αναζητά ανεβασμένα αρχεία που δεν χρησιμοποιούνται πια από κανένα ταξίδι, μέρος, ημερολόγιο, συλλογή ή χρήστη, για παράδειγμα μετά τη διαγραφή ενός ταξιδιού.',
+  'storage.reclaim.check': 'Έλεγχος τώρα',
+  'storage.reclaim.checked': 'Έλεγχος {age}',
+  'storage.reclaim.never': 'Δεν έχει ελεγχθεί ακόμα',
+  'storage.reclaim.delete': 'Διαγραφή αρχείων χωρίς αναφορά',
+  'storage.reclaim.deleteHint':
+    'Όταν είναι ανενεργό, ο νυχτερινός έλεγχος μόνο αναφέρει. Όταν είναι ενεργό, διαγράφεται κάθε αρχείο που δεν έχει χρησιμοποιηθεί για μία εβδομάδα. Άφησέ το ανενεργό αν πολλές εγκαταστάσεις μοιράζονται το ίδιο bucket αποθήκευσης.',
+  'storage.reclaim.freeable': 'Μπορεί να ελευθερωθεί',
+  'storage.reclaim.waiting': 'Αχρησιμοποίητα για λιγότερο από μία εβδομάδα',
+  'storage.reclaim.deleted': 'Ελευθερώθηκε στον τελευταίο έλεγχο',
+  'storage.reclaim.nothing': 'Δεν βρέθηκαν αρχεία χωρίς αναφορά.',
+  'storage.reclaim.stopped':
+    'Ο τελευταίος έλεγχος σταμάτησε νωρίς επειδή η βάση δεδομένων επαναφέρθηκε κατά την εκτέλεσή του.',
+  'storage.reclaim.skip.sources_missing': 'Παραλείφθηκε: δεν ήταν δυνατή η ερώτηση σε όλα τα μέρη του TREK',
+  'storage.reclaim.skip.shared_location': 'Παραλείφθηκε: μοιράζεται τη θέση του με άλλη κατηγορία',
+  'storage.reclaim.skip.too_many_unreferenced':
+    'Παραλείφθηκε: πάρα πολλά αρχεία φαίνονται αχρησιμοποίητα, πιθανώς κοινόχρηστο bucket',
+  'storage.reclaim.skip.list_failed': 'Παραλείφθηκε: δεν ήταν δυνατή η λίστα των αρχείων',
+  'storage.reclaim.skip.source_failed': 'Παραλείφθηκε: μια αναζήτηση απέτυχε',
 };
 export default storage;
