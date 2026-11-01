@@ -68,8 +68,6 @@ import { JourneyEntries } from '../../../src/db/entities/JourneyEntries.entity';
 import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 import { makeStorageFixture } from '../../helpers/storage-fixture';
 import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
-import fs from 'fs';
-import path from 'path';
 import { notificationsStub } from '../../helpers/notifications';
 import { EphemeralTokenService } from '../../../src/nest/auth-core/ephemeral-token.service';
 import {
@@ -852,45 +850,6 @@ describe('generateDays', () => {
     // The refusals stay on the server side of the rule.
     expect(() => resolve(dated, { start_date: '2025-07-05', end_date: '2025-07-01' })).toThrow('End date must be after start date');
     expect(() => resolve(dated, { end_date: '2025-06-30' })).toThrow('End date must be after start date');
-  });
-});
-
-// ── deleteOldCover — path containment ──────────────────────────────────────────
-
-describe('deleteOldCover', () => {
-  it('TRIP-SVC-COVER-001: never deletes outside the covers category for a crafted cover_image', async () => {
-    // Attacker-controlled values aimed at auth-gated sibling upload dirs — the
-    // basename + category addressing keeps every delete inside covers/.
-    const filesDir = path.join(coversFx.root, 'files');
-    const avatarsDir = path.join(coversFx.root, 'avatars');
-    fs.mkdirSync(filesDir, { recursive: true });
-    fs.mkdirSync(avatarsDir, { recursive: true });
-    const secret = path.join(filesDir, 'secret.pdf');
-    const someone = path.join(avatarsDir, 'someone.png');
-    fs.writeFileSync(secret, 'pdf');
-    fs.writeFileSync(someone, 'png');
-
-    await svc.deleteOldCover('/uploads/files/secret.pdf');
-    await svc.deleteOldCover('/uploads/covers/../files/secret.pdf');
-    await svc.deleteOldCover('/uploads/avatars/someone.png');
-
-    expect(fs.existsSync(secret)).toBe(true);
-    expect(fs.existsSync(someone)).toBe(true);
-  });
-
-  it('TRIP-SVC-COVER-002: deletes a legitimate cover file', async () => {
-    const coversDir = path.join(coversFx.root, 'covers');
-    fs.mkdirSync(coversDir, { recursive: true });
-    const cover = path.join(coversDir, 'abc123.jpg');
-    fs.writeFileSync(cover, 'jpeg');
-
-    await svc.deleteOldCover('/uploads/covers/abc123.jpg');
-    expect(fs.existsSync(cover)).toBe(false);
-  });
-
-  it('TRIP-SVC-COVER-003: an external https cover URL is tolerated (no throw)', async () => {
-    await expect(svc.deleteOldCover('https://example.com/some/pic.jpg')).resolves.toBeUndefined();
-    await expect(svc.deleteOldCover(null)).resolves.toBeUndefined();
   });
 });
 

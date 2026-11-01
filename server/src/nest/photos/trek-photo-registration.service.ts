@@ -145,8 +145,10 @@ export class TrekPhotoRegistrationService {
 
   /**
    * PH10/PH11 — drop the row once no trip and no journey references it.
-   * Local photos are kept: their bytes are ours, and the file would outlive
-   * the row.
+   * A local photo is kept unless the caller deletes it on purpose (`local`,
+   * a journey photo the user deleted): its row is what keeps its bytes, and
+   * once it is gone the storage reclaim job removes them when no other row
+   * names the file (#2924). An unlink alone keeps a local photo.
    *
    * PH10's original statement was one `UNION ALL` existence check across
    * `trip_photos` and `journey_photos`; split into its two halves here
@@ -156,9 +158,10 @@ export class TrekPhotoRegistrationService {
    * to run if the other already found a row), never a transaction (both are
    * reads).
    */
-  async deleteIfOrphan(photoId: number): Promise<void> {
+  async deleteIfOrphan(photoId: number, options: { local?: boolean } = {}): Promise<void> {
     if (await this.tripPhotos.existsForPhoto(photoId)) return;
     if (await this.journeyPhotos.existsForPhoto(photoId)) return; // PH10 — converted (Plan 3g Task 4)
-    await this.trekPhotos.deleteNonLocal(photoId);
+    if (options.local) await this.trekPhotos.deleteById(photoId);
+    else await this.trekPhotos.deleteNonLocal(photoId);
   }
 }

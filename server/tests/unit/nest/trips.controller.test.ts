@@ -448,10 +448,8 @@ describe('TripsController (parity with the legacy /api/trips route)', async () =
       const update = vi
         .fn()
         .mockReturnValue({ updatedTrip: { id: 9 }, changes: {}, newTitle: 'b', newReminder: 0, oldReminder: 0 });
-      const deleteOldCover = vi.fn();
       const s = svc({
         update,
-        deleteOldCover,
         getRaw: vi.fn().mockReturnValue({ cover_image: null }),
       } as Partial<TripsService>);
       await tc(s).update(user, '9', { cover_image: 'https://images.unsplash.com/photo-123?w=1080' }, req);
@@ -591,16 +589,15 @@ describe('TripsController (parity with the legacy /api/trips route)', async () =
           ),
         ),
       ).toEqual({ status: 400, body: { error: 'No image uploaded' } });
-      const deleteOldCover = vi.fn();
       const updateCoverImage = vi.fn();
       const s = svc({
         getRaw: vi.fn().mockReturnValue({ cover_image: '/old.jpg' }),
-        deleteOldCover,
         updateCoverImage,
       } as Partial<TripsService>);
       expect(await tc(s).cover(user, '9', file)).toEqual({ cover_image: '/uploads/covers/abc.jpg' });
       expect(storageStub.put).toHaveBeenCalledWith('covers', 'abc.jpg', { tmpPath: undefined });
-      expect(deleteOldCover).toHaveBeenCalledWith('/old.jpg');
+      // The replaced cover is left to the storage reclaim job: a copy may share it (#2924).
+      expect(storageStub.put).toHaveBeenCalledTimes(1);
       expect(updateCoverImage).toHaveBeenCalledWith('9', '/uploads/covers/abc.jpg');
     });
 

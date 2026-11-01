@@ -846,7 +846,7 @@ describe('custom saved-place image', () => {
     expect(updated.image_url).toBe('/uploads/places/col-set.jpg');
   });
 
-  it('COLLECTIONS-SVC-061: setPlaceImage stores the url and reclaims a replaced upload', async () => {
+  it('COLLECTIONS-SVC-061: setPlaceImage stores the url and leaves a replaced upload to the reclaim job', async () => {
     const u = createUser(testDb).user;
     const col = await svc.createCollection(u.id, { name: 'Photos' });
     const p = (await svc.savePlace(u.id, { collection_id: col.id, name: 'Pic' })).place!;
@@ -856,10 +856,12 @@ describe('custom saved-place image', () => {
 
     const res = await svc.setPlaceImage(u.id, p.id, '/uploads/places/col-replace-b.jpg');
     expect(res.image_url).toBe('/uploads/places/col-replace-b.jpg');
-    expect(fs.existsSync(fileA)).toBe(false);
+    // A trip copy may still show it; the storage reclaim job decides (#2924).
+    expect(fs.existsSync(fileA)).toBe(true);
+    fs.unlinkSync(fileA);
   });
 
-  it('COLLECTIONS-SVC-062: deletePlace reclaims the uploaded image when unreferenced', async () => {
+  it('COLLECTIONS-SVC-062: deletePlace leaves the uploaded image to the reclaim job', async () => {
     const u = createUser(testDb).user;
     const col = await svc.createCollection(u.id, { name: 'Photos' });
     const p = (await svc.savePlace(u.id, { collection_id: col.id, name: 'Pic', image_url: '/uploads/places/col-delete.jpg' })).place!;
@@ -867,7 +869,8 @@ describe('custom saved-place image', () => {
     expect(fs.existsSync(fileA)).toBe(true);
 
     await svc.deletePlace(u.id, p.id);
-    expect(fs.existsSync(fileA)).toBe(false);
+    expect(fs.existsSync(fileA)).toBe(true);
+    fs.unlinkSync(fileA);
   });
 });
 

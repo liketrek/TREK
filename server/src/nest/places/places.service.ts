@@ -20,7 +20,7 @@ import { ratingAggregate } from '../common/rowShape';
 import { UnsplashService } from '../unsplash/unsplash.service';
 import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
 import { type UpdateConflict, isUpdateConflict } from '../common/conflictResult';
-import { isUploadedPlaceImage, placeImageUrl } from './place-image';
+import { placeImageUrl } from './place-image';
 import { MAX_PLACE_IMAGE_SIZE, PLACE_IMAGE_EXTENSIONS } from '../common/place-image-upload';
 import { randomUUID } from 'node:crypto';
 import { JourneyDomainService } from '../journey/journey-domain.service';
@@ -165,7 +165,8 @@ export class PlacesService {
     @InjectRepository(Trips) private readonly tripsRepo: TripsRepository,
     // Plan 3e Task 2 (budget) — additive, PL15/PL18/PL22 only.
     @InjectRepository(BudgetItems) private readonly budgetItemsRepo: BudgetItemsRepository,
-    // Plan 3h Task 6 (survivors) — additive, SV-PI2's `reclaimPlaceImage` only.
+    // Plan 3h Task 6 (survivors): read by nothing since the storage reclaim job
+    // took over the image ref-count (#2924); kept so the constructor stays put.
     @InjectRepository(CollectionPlaces) private readonly collectionPlacesRepo: CollectionPlacesRepository,
     // Reading files and shared lists; this service only persists what it reads.
     private readonly placeImport: PlaceImportService,
@@ -244,37 +245,6 @@ export class PlacesService {
     this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
-  /**
-   * Delete a custom place-image object once nothing references it any more
-   * (moved in from `place-image.ts`'s free function `reclaimPlaceImage`,
-   * option (a) — see `place-image.ts`'s own docstring for why that free
-   * function stays, unconverted, for `collections.service.ts`'s own call
-   * sites). A trip place and a collection saved-place can share the same
-   * uploaded file — save-to-collection and copy-to-trip copy `image_url` by
-   * reference — so this ref-counts across both tables before deleting.
-   *
-   * PI1 (`SELECT 1 FROM places WHERE image_url = ? LIMIT 1`) through
-   * `PlacesRepository.existsByImageUrl`; PI2 (`SELECT 1 FROM collection_places
-   * WHERE image_url = ? LIMIT 1`) through `CollectionPlacesRepository
-   * .existsByImageUrl` (Plan 3h Task 6, closing out the carve-out), evaluated
-   * only when PI1 is false — reproducing the legacy `UNION ALL … LIMIT 1`'s
-   * short-circuit by evaluation order, the same pattern
-   * `PlacePhotoCacheService.isReferenced` uses for the same two tables
-   * (Plan 3c Task 1's PP6 ruling). `path.basename()` keeps the storage name
-   * confined to the 'places' category. Best-effort: never throws (central
-   * key validation rejects a hostile stored value; the catch swallows it
-   * exactly like the legacy unlink guard).
-   */
-  private async reclaimPlaceImage(url: string | null | undefined): Promise<void> {
-    if (!isUploadedPlaceImage(url)) return;
-    if (await this.placesRepo.existsByImageUrl(url)) return;
-    // PI2 (Plan 3h Task 6) — `CollectionPlacesRepository.existsByImageUrl`.
-    if (await this.collectionPlacesRepo.existsByImageUrl(url)) return;
-    await this.storage.delete('places', path.basename(url)).catch(() => {
-      /* best-effort */
-    });
-  }
-
   // -------------------------------------------------------------------------
   // List places
   // -------------------------------------------------------------------------
@@ -319,7 +289,7 @@ export class PlacesService {
   /**
    * Makes a picture already attached in the trip the place's own image (#1242). The file
    * is copied, not pointed at: the place keeps its picture when the attachment is deleted,
-   * and the update path reclaims the copy like any other uploaded image. Returns a reason
+   * and the storage reclaim job takes the copy like any other uploaded image. Returns a reason
    * string when the file cannot serve, the updated place otherwise.
    */
   async setImageFromFile(tripId: string, placeId: string, fileId: number): Promise<'not_found' | 'not_image' | 'too_large' | Awaited<ReturnType<PlacesService['update']>>> {
@@ -335,7 +305,8 @@ export class PlacesService {
     const { stream } = await this.storage.getStream('files', path.basename(file.filename));
     await this.storage.put('places', name, stream, { contentType: mime });
     const updated = await this.update(tripId, placeId, { image_url: placeImageUrl(name) } as never);
-    if (!updated || isUpdateConflict(updated)) await this.reclaimPlaceImage(placeImageUrl(name));
+    // The copy is this request's own until the update names it, so a failed update drops it here.
+    if (!updated || isUpdateConflict(updated)) await this.storage.delete('places', name).catch(() => undefined);
     return updated;
   }
 
@@ -447,22 +418,20 @@ export class PlacesService {
     body: PlaceUpdateInput,
     ifMatch?: string,
   ): Promise<PlaceWithTags | UpdateConflict | null> {
-    const { result, reclaim } = await this.uow.transactional(() => this.applyUpdate(tripId, placeId, body, ifMatch));
-    if (reclaim !== undefined) await this.reclaimPlaceImage(reclaim);
+    const { result } = await this.uow.transactional(() => this.applyUpdate(tripId, placeId, body, ifMatch));
     return result;
   }
 
   /**
    * The DB half of update(). Split out so updateMany() can run it inside the
-   * same UnitOfWork transaction and settle the storage reclaims after the
-   * transaction commits.
+   * same UnitOfWork transaction.
    */
   private async applyUpdate(
     tripId: string,
     placeId: string,
     body: PlaceUpdateInput,
     ifMatch?: string,
-  ): Promise<{ result: PlaceWithTags | UpdateConflict | null; reclaim?: string | null }> {
+  ): Promise<{ result: PlaceWithTags | UpdateConflict | null }> {
     // PL9 — the pre-image read every `!== undefined` fallback below needs.
     // `toRowId` first (Task 3 review H1, absorbed here): every write in
     // this method (`updatePlace`, `tagsRepo.deleteForPlace`/`insertIgnore`)
@@ -555,14 +524,9 @@ export class PlacesService {
       if (tags.length > 0) await this.tagsRepo.insertIgnore(id, await this.tagsOnTrip(tid, tags)); // PL13
     }
 
-    // A custom uploaded thumbnail (#1136) that was just replaced or cleared leaves
-    // an orphan file behind — reclaim it (in the caller, once any enclosing
-    // transaction committed) if nothing references it any more.
-    const reclaim = image_url !== undefined && image_url !== existingPlace.image_url
-      ? existingPlace.image_url
-      : undefined;
-
-    return { result: await this.placesRepo.findWithTagsAndRatings(id), reclaim }; // PL14
+    // A replaced or cleared custom upload (#1136) stays: a copy of this place or
+    // a cover may name it, and the storage reclaim job removes it once none does.
+    return { result: await this.placesRepo.findWithTagsAndRatings(id) }; // PL14
   }
 
   // -------------------------------------------------------------------------
@@ -654,7 +618,6 @@ export class PlacesService {
       await this.placesRepo.deleteById(id);
     });
     await reclaimPhotoCache(this.photoCache, place.google_place_id, place.image_url);
-    await this.reclaimPlaceImage(place.image_url);
     return { deleted: true, deletedTourPlaceIds: wasTour ? [id] : [], cancelled };
   }
 
@@ -699,7 +662,6 @@ export class PlacesService {
     // Reclaim after the transaction commits so isReferenced() sees the final place set.
     for (const row of reclaimable) {
       await reclaimPhotoCache(this.photoCache, row.google_place_id, row.image_url);
-      await this.reclaimPlaceImage(row.image_url);
     }
     return { deleted, deletedTourPlaceIds, cancelled };
   }
@@ -728,19 +690,14 @@ export class PlacesService {
   async updateMany(tripId: string, ids: number[], body: PlaceUpdateInput): Promise<PlaceWithTags[]> {
     if (ids.length === 0) return [];
     const updated: PlaceWithTags[] = [];
-    const reclaims: (string | null)[] = [];
     await this.uow.transactional(async () => {
       for (const id of ids) {
         // Bulk update sends no If-Match, so applyUpdate() never returns a
         // conflict here; the guard keeps the types honest.
-        const { result: place, reclaim } = await this.applyUpdate(tripId, String(id), body);
+        const { result: place } = await this.applyUpdate(tripId, String(id), body);
         if (place && !isUpdateConflict(place)) updated.push(place);
-        if (reclaim !== undefined) reclaims.push(reclaim);
       }
     });
-    // Settle reclaims after the transaction commits, so the refcount sees the
-    // final image_url state.
-    for (const reclaim of reclaims) await this.reclaimPlaceImage(reclaim);
     return updated;
   }
 

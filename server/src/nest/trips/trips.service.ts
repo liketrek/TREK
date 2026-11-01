@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import path from 'path';
 import { EntityManager } from '@mikro-orm/core';
 import { Trips } from '../../db/entities/Trips.entity';
 import { Days } from '../../db/entities/Days.entity';
@@ -623,17 +622,6 @@ export class TripsService {
   }
 
   // ── Cover image ───────────────────────────────────────────────────────────
-
-  async deleteOldCover(coverImage: string | null | undefined): Promise<void> {
-    if (!coverImage) return;
-    // cover_image is client-supplied, so treat it as untrusted: covers are flat
-    // filenames in the 'covers' category — basename() confines the delete to
-    // it, and central key validation rejects anything hostile (swallowed like
-    // the old containment guard; an external https URL is likewise a no-op).
-    await this.storage.delete('covers', path.basename(coverImage)).catch(() => {
-      /* external URL or already gone */
-    });
-  }
 
   /** TP35 — `TripsRepository.setCoverImage`. */
   async updateCoverImage(tripId: string | number, coverUrl: string): Promise<void> {

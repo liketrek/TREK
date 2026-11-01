@@ -1498,16 +1498,16 @@ describe('importKmlPlaces — full stored row and atomicity (M2/L2)', () => {
   });
 });
 
-// ── Custom place image reclaim (#1136) ──────────────────────────────────────────
+// ── Custom place images stay for the storage reclaim job (#1136, #2924) ──────────────────────────────────────────
 
-describe('custom place image reclaim', () => {
+describe('custom place images', () => {
   function writePlaceImage(name: string): string {
     const filePath = path.join(placesStorageFx.root, name);
     fs.writeFileSync(filePath, 'jpeg-bytes');
     return filePath;
   }
 
-  it('PLACE-SVC-046 — replacing image_url unlinks the previous upload once unreferenced', async () => {
+  it('PLACE-SVC-046 — replacing image_url keeps the previous upload for the reclaim job', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const place = createPlace(testDb, trip.id, { name: 'Photo' }) as any;
@@ -1516,10 +1516,10 @@ describe('custom place image reclaim', () => {
     expect(fs.existsSync(fileA)).toBe(true);
 
     await svc.update(String(trip.id), String(place.id), { image_url: '/uploads/places/svc-replace-b.jpg' });
-    expect(fs.existsSync(fileA)).toBe(false);
+    expect(fs.existsSync(fileA)).toBe(true);
   });
 
-  it('PLACE-SVC-047 — clearing image_url to null unlinks the previous upload', async () => {
+  it('PLACE-SVC-047 — clearing image_url to null keeps the previous upload', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const place = createPlace(testDb, trip.id, { name: 'Photo' }) as any;
@@ -1528,10 +1528,10 @@ describe('custom place image reclaim', () => {
     expect(fs.existsSync(fileA)).toBe(true);
 
     await svc.update(String(trip.id), String(place.id), { image_url: null } as any);
-    expect(fs.existsSync(fileA)).toBe(false);
+    expect(fs.existsSync(fileA)).toBe(true);
   });
 
-  it('PLACE-SVC-048 — remove unlinks the uploaded image', async () => {
+  it('PLACE-SVC-048 — remove keeps the uploaded image', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const place = createPlace(testDb, trip.id, { name: 'Photo' }) as any;
@@ -1540,7 +1540,7 @@ describe('custom place image reclaim', () => {
     expect(fs.existsSync(fileA)).toBe(true);
 
     await svc.remove(String(trip.id), String(place.id));
-    expect(fs.existsSync(fileA)).toBe(false);
+    expect(fs.existsSync(fileA)).toBe(true);
   });
 
   it('PLACE-SVC-049 — a collection_places reference keeps the file when the trip place is deleted', async () => {

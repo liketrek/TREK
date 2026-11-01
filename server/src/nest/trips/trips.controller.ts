@@ -200,15 +200,8 @@ export class TripsController {
         throw new HttpException({ error: 'Could not save the selected cover image' }, 502);
       }
     }
-    const oldCover =
-      body.cover_image !== undefined
-        ? ((await this.trips.getRaw(id)) as { cover_image: string | null } | undefined)?.cover_image
-        : undefined;
     try {
       const result = await this.trips.update(id, user.id, body, user.role);
-      if (body.cover_image !== undefined && body.cover_image !== oldCover) {
-        await this.trips.deleteOldCover(oldCover);
-      }
       if (Object.keys(result.changes).length > 0) {
         await this.audit.writeAudit({
           userId: user.id,
@@ -264,8 +257,9 @@ export class TripsController {
     }
     // Commit the spooled upload to its final storage location (atomic
     // same-volume rename) before anything references the final path.
+    // The replaced cover stays: a trip copy or a journey may show the same
+    // object, and the storage reclaim job removes it once nothing names it.
     await this.storage.put('covers', file.filename, { tmpPath: file.path });
-    await this.trips.deleteOldCover(trip.cover_image);
     const coverUrl = `/uploads/covers/${file.filename}`;
     await this.trips.updateCoverImage(id, coverUrl);
     return { cover_image: coverUrl };

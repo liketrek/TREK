@@ -1,11 +1,9 @@
 import { DomainError } from '../common/domain-error';
 import { restTripEvents, type TripBroadcast, type TripEventSink } from '../common/trip-writer';
-import path from 'path';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { PermissionsService } from '../permissions/permissions.service';
 import { RealtimeService } from '../realtime/realtime.service';
-import { isUploadedPlaceImage } from '../places/place-image';
 import { PlacesService } from '../places/places.service';
 import { StorageService } from '../storage/storage.service';
 import { Collections } from '../../db/entities/Collections.entity';
@@ -131,21 +129,6 @@ export class CollectionsService {
     private readonly placeImport: PlaceImportService,
     private readonly places: PlacesService, // the journey hook of every place copyToTrip adds
   ) {}
-
-  /**
-   * Reclaim a replaced cover object (mirrors tripService.deleteOldCover — kept
-   * local so this service doesn't pull the trips import graph). Collection +
-   * trip covers share the 'covers' category; basename() tolerates the stored
-   * /uploads/covers/<name> URL form and any external URL the client saved
-   * (central key validation rejects hostile values; the catch swallows them
-   * like the old containment guard did).
-   */
-  private async deleteOldCollectionCover(coverImage: string | null | undefined): Promise<void> {
-    if (!coverImage) return;
-    await this.storage.delete('covers', path.basename(coverImage)).catch(() => {
-      /* external URL or already gone */
-    });
-  }
 
   // -------------------------------------------------------------------------
   // Visibility — a user may see/edit a collection if they own it OR are an
@@ -618,12 +601,13 @@ export class CollectionsService {
     return { ...col, is_owner: col.owner_id === userId };
   }
 
-  /** Set (or clear) a list's cover image, reclaiming the previous file. */
+  /**
+   * Set (or clear) a list's cover image. The previous file stays where another
+   * row may name it; the storage reclaim job removes it once nothing does.
+   */
   async setCollectionCover(userId: number, id: number, coverUrl: string | null, socketId?: string): Promise<Collection> {
     await this.assertCanEdit(userId, id);
-    const prev = (await this.collectionsRepo.coverImage(id)) ?? null;
     await this.collectionsRepo.setCoverImage(id, coverUrl);
-    if (prev && prev !== coverUrl) await this.deleteOldCollectionCover(prev);
     await this.notifyCollectionUsers(id, socketId, 'collections:updated');
     const col = await this.getCollectionRow(id);
     return { ...col, is_owner: col.owner_id === userId };
@@ -893,10 +877,6 @@ export class CollectionsService {
     const currentCollection = await this.collectionIdOfPlace(placeId);
     await this.assertCanEdit(userId, currentCollection);
 
-    // Capture the previous thumbnail so a replaced/cleared custom upload (#1136)
-    // can be reclaimed once nothing references it any more.
-    const prevImage = body.image_url !== undefined ? (await this.collectionPlaces.imageUrl(placeId)) ?? null : null;
-
     const write: Parameters<CollectionPlacesRepository['updateFields']>[1] = {};
     if (body.name !== undefined) write.name = body.name;
     if (body.description !== undefined) write.description = body.description ?? null;
@@ -934,10 +914,6 @@ export class CollectionsService {
       if (body.label_ids !== undefined) await this.setPlaceLabels(placeId, movedTo ?? currentCollection, body.label_ids);
     });
 
-    if (body.image_url !== undefined && prevImage !== (body.image_url ?? null)) {
-      await this.reclaimPlaceImage(prevImage);
-    }
-
     await this.notifyCollectionUsers(currentCollection, socketId, 'collections:updated');
     if (movedTo) await this.notifyCollectionUsers(movedTo, socketId, 'collections:updated');
     return this.getPlaceById(placeId);
@@ -968,35 +944,13 @@ export class CollectionsService {
     return this.getPlaceById(placeId);
   }
 
-  /**
-   * Delete a custom saved-place-image object once nothing references it any
-   * more (Plan 3h Task 6, replacing `place-image.ts`'s free function — see
-   * that file's own doc comment). A trip place and a collection saved-place
-   * can share the same uploaded file — save-to-collection and copy-to-trip
-   * copy `image_url` by reference — so this ref-counts across both tables
-   * before deleting, mirroring `PlacesService.reclaimPlaceImage`'s shape
-   * exactly: `places` first via `PlacesRepository.existsByImageUrl`
-   * (`tripPlaces`, already injected), `collection_places` second via
-   * `CollectionPlacesRepository.existsByImageUrl` (`collectionPlaces`,
-   * already injected), JS-level `||` short-circuit preserved by early
-   * return. `path.basename()` keeps the storage name confined to the
-   * 'places' category. Best-effort: never throws.
-   */
-  private async reclaimPlaceImage(url: string | null | undefined): Promise<void> {
-    if (!isUploadedPlaceImage(url)) return;
-    if (await this.tripPlaces.existsByImageUrl(url)) return;
-    if (await this.collectionPlaces.existsByImageUrl(url)) return;
-    await this.storage.delete('places', path.basename(url)).catch(() => {
-      /* best-effort */
-    });
-  }
-
+  // A saved place's uploaded image is never deleted here: copy-to-trip and
+  // save-to-collection share it by reference, and other columns can name it
+  // too. The storage reclaim job removes it once no row does (#2924).
   async deletePlace(userId: number, placeId: number, socketId?: string): Promise<void> {
     const collectionId = await this.collectionIdOfPlace(placeId);
     await this.assertCanDelete(userId, collectionId);
-    const image = (await this.collectionPlaces.imageUrl(placeId)) ?? null;
     await this.collectionPlaces.deleteById(placeId); // CASCADE drops tags. NO photo-cache reclaim.
-    await this.reclaimPlaceImage(image);
     await this.notifyCollectionUsers(collectionId, socketId, 'collections:updated');
   }
 
@@ -1007,11 +961,9 @@ export class CollectionsService {
     // and the deletes then run in one transaction.
     const deleted: number[] = [];
     const touched = new Set<number>();
-    const images: (string | null)[] = [];
     for (const id of ids) {
       const collectionId = await this.collectionIdOfPlace(id);
       await this.assertCanDelete(userId, collectionId);
-      images.push((await this.collectionPlaces.imageUrl(id)) ?? null);
       touched.add(collectionId);
     }
     await this.uow.transactional(async () => {
@@ -1020,7 +972,6 @@ export class CollectionsService {
         deleted.push(id);
       }
     });
-    for (const image of images) await this.reclaimPlaceImage(image);
     for (const cid of touched) await this.notifyCollectionUsers(cid, socketId, 'collections:updated');
     return deleted;
   }
@@ -1108,13 +1059,11 @@ export class CollectionsService {
     return this.collectionPlaces.matchingByTripSource(collectionIds, tripId, place, COORD_DEDUP_TOLERANCE);
   }
 
-  /** Set (or clear) a saved place's custom thumbnail, reclaiming the previous upload. */
+  /** Set (or clear) a saved place's custom thumbnail; the storage reclaim job takes the replaced upload. */
   async setPlaceImage(userId: number, placeId: number, imageUrl: string | null, socketId?: string): Promise<CollectionPlace> {
     const collectionId = await this.collectionIdOfPlace(placeId);
     await this.assertCanEdit(userId, collectionId);
-    const prev = (await this.collectionPlaces.imageUrl(placeId)) ?? null;
     await this.collectionPlaces.setImageUrl(placeId, imageUrl);
-    if (prev !== imageUrl) await this.reclaimPlaceImage(prev);
     await this.notifyCollectionUsers(collectionId, socketId, 'collections:updated');
     return this.getPlaceById(placeId);
   }

@@ -25,7 +25,6 @@ import type { User } from '../../types';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../common/demo-write';
 import { StorageService } from '../storage/storage.service';
-import { journeyThumbName } from '../memories/thumbnail.service';
 import { JourneyService } from './journey.service';
 import { JourneyBookService } from './journey-book.service';
 import { JourneyPhotoCaptureService, type ProviderPhotoBatch, type ProviderPhotoTarget } from './journey-photo-capture.service';
@@ -460,40 +459,14 @@ export class JourneyController {
   @Delete('photos/:photoId')
   @ResponseContract(successResponseSchema)
   async deletePhoto(@CurrentUser() user: User, @Param('photoId') photoId: string) {
+    // The bytes stay: another journey, a trip or a cover may name the same
+    // object. Once the photo row is gone the storage reclaim job takes the file
+    // and its poster, and the thumbnail sweep its thumbnail (#2924).
     const photo = await this.journey.deletePhoto(Number(photoId), user.id);
     if (!photo) {
       throw new HttpException({ error: 'Photo not found' }, 404);
     }
-    await this.deletePhotoObject(photo.file_path);
-    await this.reclaimDerived(photo.file_path, photo.thumbnail_path);
     return { success: true };
-  }
-
-  /**
-   * Best-effort removal of a deleted photo's bytes. file_path rows are the
-   * uploads-relative 'journey/<file>' form every writer stores; anything else
-   * (provider rows have null) has no local object.
-   */
-  private async deletePhotoObject(filePath: string | null | undefined): Promise<void> {
-    if (!filePath) return;
-    const name = filePath.startsWith('journey/') ? filePath.slice('journey/'.length) : null;
-    if (!name) return;
-    await this.storage.delete('journey', name).catch(() => { /* file already gone */ });
-  }
-
-  /**
-   * Delete a photo's derived artifacts with it (spec In-scope fix #2): the
-   * hash-named thumbnail derivable from file_path, and whatever
-   * thumbnail_path recorded — a generated thumb (usually the same object) or
-   * a video's uploaded poster. Both best-effort, both idempotent.
-   */
-  private async reclaimDerived(filePath: string | null | undefined, thumbnailPath: string | null | undefined): Promise<void> {
-    if (filePath?.startsWith('journey/')) {
-      await this.storage.delete('journey', journeyThumbName(filePath)).catch(() => { /* already gone */ });
-    }
-    if (thumbnailPath?.startsWith('journey/')) {
-      await this.storage.delete('journey', thumbnailPath.slice('journey/'.length)).catch(() => { /* already gone */ });
-    }
   }
 
   // ── Gallery (prefix /:id/gallery — before /:id) ─────────────────────────
@@ -573,12 +546,11 @@ export class JourneyController {
   @HttpCode(204)
   @ResponseContract(emptyResponseSchema)
   async deleteGalleryPhoto(@CurrentUser() user: User, @Param('journeyPhotoId') journeyPhotoId: string): Promise<void> {
+    // The bytes stay, as for deletePhoto above.
     const photo = await this.journey.deleteGalleryPhoto(Number(journeyPhotoId), user.id);
     if (!photo) {
       throw new HttpException({ error: 'Photo not found or not allowed' }, 404);
     }
-    await this.deletePhotoObject(photo.file_path);
-    await this.reclaimDerived(photo.file_path, photo.thumbnail_path);
   }
 
   // ── Journeys /:id ───────────────────────────────────────────────────────
