@@ -4,6 +4,7 @@ import { UnitOfWork } from '../database/unit-of-work';
 import { StorageJobsService } from './storage-jobs.service';
 import { getSeedConfigPath } from './storage-paths';
 import { ephemeralDriverFor, probeDriver, type ProbeTargetResult } from './storage-probe';
+import { readReclaimState } from './storage-reclaim.settings';
 import { BACKENDS_KEY, CATEGORIES_KEY, VERSION_KEY, StorageRegistryService } from './storage-registry.service';
 import {
   assertNoMaskSentinels,
@@ -63,6 +64,7 @@ export class StorageAdminService {
       health: { replicaFailures: this.storage.health().replicaFailures.map((f) => ({ ...f })) },
       seedFilePresent: fs.existsSync(getSeedConfigPath()),
       usage: await this.stats.readUsage(),
+      reclaim: await readReclaimState(this.appSettings),
       backfills: this.jobs.statuses(),
       migrations: this.jobs.migrationStatuses(),
       version: await this.registry.currentConfigVersion(),

@@ -41,13 +41,36 @@ export class StorageJobsService {
   private readonly jobs = new Map<string, ActiveJob>();
   private readonly migrations = new Map<string, ActiveMigration>();
   private ttlMs = 10 * 60_000;
+  /** A pass that holds the one-job slot without a status of its own (the reclaim pass), by name. */
+  private exclusive: string | null = null;
 
-  /** One storage job at a time, across both backfills and category migrations. */
+  /** One storage job at a time, across backfills, category migrations and the reclaim pass. */
   private anyJobRunning(): boolean {
     return (
+      this.exclusive !== null ||
       [...this.jobs.values()].some((j) => j.status.status === 'running') ||
       [...this.migrations.values()].some((m) => m.status.status === 'running')
     );
+  }
+
+  /** The refusal a start meets while the slot is taken, naming what holds it. */
+  private busyError(fallback: string): BackfillBusyError {
+    return new BackfillBusyError(this.exclusive ? `${this.exclusive} is running, one storage job at a time` : fallback);
+  }
+
+  /**
+   * Takes the one-job slot for a pass that runs in the caller (the reclaim
+   * pass): false while a backfill, a migration or another such pass runs.
+   * The caller releases it in a finally.
+   */
+  claimExclusive(name: string): boolean {
+    if (this.anyJobRunning()) return false;
+    this.exclusive = name;
+    return true;
+  }
+
+  releaseExclusive(name: string): void {
+    if (this.exclusive === name) this.exclusive = null;
   }
 
   constructor(private readonly registry: StorageRegistryService) {}
@@ -74,7 +97,7 @@ export class StorageJobsService {
       throw new BackfillTargetError(`'${mirrorName}' is not a mirror backend`);
     }
     if (this.anyJobRunning()) {
-      throw new BackfillBusyError('a sync is already running — one backfill at a time');
+      throw this.busyError('a sync is already running — one backfill at a time');
     }
     const prefixes = resolved.map((r) => r.keyPrefix);
 
@@ -156,7 +179,7 @@ export class StorageJobsService {
     const target = this.registry.driverByName(to);
     if (!target) throw new MigrationTargetError(`no backend named '${to}'`);
     if (this.anyJobRunning()) {
-      throw new BackfillBusyError('a sync is already running — one storage job at a time');
+      throw this.busyError('a sync is already running — one storage job at a time');
     }
     // The DESTINATION prefix, computed for `to` before the flip — may differ
     // from `current.keyPrefix` (audit #8: a mode-A '' source migrating onto a
