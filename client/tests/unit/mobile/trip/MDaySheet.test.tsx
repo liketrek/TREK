@@ -11,7 +11,7 @@ import { resetAllStores, seedStore } from '../../../helpers/store'
 import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
 import { isBlurred } from '../../../helpers/bookingCodeBlur'
 
-// FE-MOB-DAYSH-001 to FE-MOB-DAYSH-030
+// FE-MOB-DAYSH-001 to FE-MOB-DAYSH-031
 
 const DAYS = [
   { id: 1, trip_id: 5, day_number: 1, date: '2026-05-01', title: null },
@@ -208,6 +208,20 @@ describe('MDaySheet', () => {
     const input = screen.getByPlaceholderText('Day 2')
     expect(input).toHaveValue('Old Town')
     fireEvent.change(input, { target: { value: '  Ringstrasse  ' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(planner.handleUpdateDayTitle).toHaveBeenCalledWith(2, 'Ringstrasse')
+  })
+
+  it('FE-MOB-DAYSH-031: with the date first the pencil and the input sit on the name line under the date (#2921)', async () => {
+    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, day_date_first: true } })
+    const { planner } = await renderSheet()
+    const pencil = screen.getByRole('button', { name: 'Rename day' })
+    expect(pencil.parentElement?.textContent).toBe('Old Town')
+    fireEvent.click(pencil)
+    const input = screen.getByPlaceholderText('Day 2')
+    expect(input).toHaveValue('Old Town')
+    expect(screen.getByText(/May 2/)).toBeInTheDocument()
+    fireEvent.change(input, { target: { value: 'Ringstrasse' } })
     fireEvent.keyDown(input, { key: 'Enter' })
     expect(planner.handleUpdateDayTitle).toHaveBeenCalledWith(2, 'Ringstrasse')
   })

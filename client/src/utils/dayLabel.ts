@@ -33,8 +33,19 @@ export function dayDate(iso: string, locale: string): string | null {
  * A day heading's two parts in reading order. The day's name ("Day 3" or its own
  * title) leads, unless the traveller plans by the calendar and asked for the date
  * first (#1953). A day without a date always leads with its name.
+ *
+ * `nameFirst` says which of the two is the name: the rename pencil and the title
+ * input belong with the name wherever it stands (#2921), and it is the name that
+ * gives way when the line is short, never the date (#2920).
  */
-export function dayHeadingParts(name: string, date: string | null | undefined, dateFirst: boolean): { primary: string; secondary: string | null } {
-  if (dateFirst && date) return { primary: date, secondary: name }
-  return { primary: name, secondary: date || null }
+export function dayHeadingParts(name: string, date: string | null | undefined, dateFirst: boolean): { primary: string; secondary: string | null; nameFirst: boolean } {
+  if (dateFirst && date) return { primary: date, secondary: name, nameFirst: false }
+  return { primary: name, secondary: date || null, nameFirst: true }
+}
+
+/** On one line the name gives way when it runs long, the date stays whole: with the date first a long title squeezed it to "Th…" (#2920). */
+export function headingFit({ nameFirst }: { nameFirst: boolean }): { primary: string; secondary: string } {
+  const gives = 'min-w-0 truncate'
+  const keeps = 'flex-none whitespace-nowrap'
+  return nameFirst ? { primary: gives, secondary: keeps } : { primary: keeps, secondary: gives }
 }
