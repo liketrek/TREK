@@ -2,9 +2,14 @@ import {
   STORAGE_BACKEND_TYPES,
   STORAGE_BACKEND_TYPE_IDS,
   STORAGE_CATEGORIES,
+  STORAGE_RECLAIM_CATEGORIES,
   storageAdminStateSchema,
   storageBackfillStatusSchema,
   storageConfigSchema,
+  storageReclaimReportSchema,
+  storageReclaimRunRequestSchema,
+  storageReclaimSettingsRequestSchema,
+  storageReclaimStateSchema,
   storageSecretFields,
   storageUsageSchema,
   type StorageBackendTypeId,
@@ -181,5 +186,44 @@ describe('backfill + usage wire shapes', () => {
   it('the admin state embeds usage (nullable) and backfills', () => {
     const stateShape = storageAdminStateSchema.pick({ usage: true, backfills: true });
     expect(stateShape.parse({ usage: null, backfills: [] })).toEqual({ usage: null, backfills: [] });
+  });
+});
+
+describe('the reclaim contract', () => {
+  const counts = { objects: 0, bytes: 0 };
+  const perCategory = { objects: 3, unreferenced: counts, eligible: counts, deleted: counts, skipped: null };
+  const report = {
+    startedAt: 1_700_000_000_000,
+    finishedAt: 1_700_000_001_000,
+    mode: 'report',
+    stopped: null,
+    categories: Object.fromEntries(STORAGE_RECLAIM_CATEGORIES.map((c) => [c, perCategory])),
+  };
+
+  it('covers every configurable category and the legacy photos folder', () => {
+    expect(STORAGE_RECLAIM_CATEGORIES).toEqual([...STORAGE_CATEGORIES, 'photos']);
+    expect(storageReclaimReportSchema.parse(report)).toEqual(report);
+  });
+
+  it('a report missing a category, or naming an unknown skip reason, is refused', () => {
+    const { photos: _photos, ...withoutPhotos } = report.categories;
+    expect(storageReclaimReportSchema.safeParse({ ...report, categories: withoutPhotos }).success).toBe(false);
+    const odd = { ...report, categories: { ...report.categories, covers: { ...perCategory, skipped: 'tired' } } };
+    expect(storageReclaimReportSchema.safeParse(odd).success).toBe(false);
+  });
+
+  it('the admin state carries the switch and a nullable last run', () => {
+    const shape = storageAdminStateSchema.pick({ reclaim: true });
+    expect(shape.parse({ reclaim: { deleteEnabled: false, lastRun: null } })).toEqual({
+      reclaim: { deleteEnabled: false, lastRun: null },
+    });
+    expect(storageReclaimStateSchema.safeParse({ deleteEnabled: 'yes', lastRun: null }).success).toBe(false);
+  });
+
+  it('the requests are closed objects', () => {
+    expect(storageReclaimSettingsRequestSchema.parse({ deleteEnabled: true })).toEqual({ deleteEnabled: true });
+    expect(storageReclaimSettingsRequestSchema.safeParse({ deleteEnabled: true, extra: 1 }).success).toBe(false);
+    expect(storageReclaimRunRequestSchema.parse({})).toEqual({});
+    expect(storageReclaimRunRequestSchema.safeParse({ reportOnly: 'no' }).success).toBe(false);
   });
 });

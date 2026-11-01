@@ -276,6 +276,68 @@ export const storageUsageSchema = z.object({
 });
 export type StorageUsage = z.infer<typeof storageUsageSchema>;
 
+// ── Reclaim: objects no row names any more ────────────────────────────────────
+
+/** Every category the byte-paths serve, the legacy `photos` folder included: the reclaim report covers each. */
+export const STORAGE_RECLAIM_CATEGORIES = [...STORAGE_CATEGORIES, 'photos'] as const;
+export const storageReclaimCategorySchema = z.enum(STORAGE_RECLAIM_CATEGORIES);
+
+/**
+ * Why a category deleted nothing on a pass, whatever the switch says:
+ * - `not_reclaimed`: the category is never reclaimed (a cache, the backups, the legacy photos folder);
+ * - `sources_missing`: a domain whose rows can name its objects did not answer, so nothing can be proven unreferenced;
+ * - `shared_location`: its objects sit where another category's do, or where they cannot be told apart;
+ * - `too_many_unreferenced`: more than a fifth of its objects look unreferenced, which points at a shared bucket;
+ * - `list_failed` / `source_failed`: the listing or a reference lookup failed, so the pass stopped there.
+ */
+export const STORAGE_RECLAIM_SKIP_REASONS = [
+  'not_reclaimed',
+  'sources_missing',
+  'shared_location',
+  'too_many_unreferenced',
+  'list_failed',
+  'source_failed',
+] as const;
+
+const storageObjectCountSchema = z.object({ objects: z.number().int().nonnegative(), bytes: z.number().nonnegative() });
+
+export const storageReclaimCategoryReportSchema = z.object({
+  /** Objects the pass looked at; 0 when the category was skipped before it was listed. */
+  objects: z.number().int().nonnegative(),
+  /** Older than a day and named by no row. */
+  unreferenced: storageObjectCountSchema,
+  /** Unreferenced on every pass for at least a week: what a pass with deletion on removes. */
+  eligible: storageObjectCountSchema,
+  deleted: storageObjectCountSchema,
+  skipped: z.enum(STORAGE_RECLAIM_SKIP_REASONS).nullable(),
+});
+export type StorageReclaimCategoryReport = z.infer<typeof storageReclaimCategoryReportSchema>;
+
+export const storageReclaimReportSchema = z.object({
+  startedAt: z.number(),
+  finishedAt: z.number(),
+  /** `delete` only when the admin switched deletion on and the pass was not asked to only report. */
+  mode: z.enum(['report', 'delete']),
+  /** Why the pass stopped before the end: the database was swapped under it (a restore). Null when it ran through. */
+  stopped: z.enum(['database_reopened']).nullable(),
+  categories: z.record(storageReclaimCategorySchema, storageReclaimCategoryReportSchema),
+});
+export type StorageReclaimReport = z.infer<typeof storageReclaimReportSchema>;
+
+export const storageReclaimStateSchema = z.object({
+  /** Off after install and upgrade: a pass then only reports. */
+  deleteEnabled: z.boolean(),
+  lastRun: storageReclaimReportSchema.nullable(),
+});
+export type StorageReclaimState = z.infer<typeof storageReclaimStateSchema>;
+
+export const storageReclaimSettingsRequestSchema = z.strictObject({ deleteEnabled: z.boolean() });
+export type StorageReclaimSettingsRequest = z.infer<typeof storageReclaimSettingsRequestSchema>;
+
+/** `reportOnly` runs a pass that deletes nothing even with deletion switched on. */
+export const storageReclaimRunRequestSchema = z.strictObject({ reportOnly: z.boolean().optional() });
+export type StorageReclaimRunRequest = z.infer<typeof storageReclaimRunRequestSchema>;
+
 export const storageAdminStateSchema = z.object({
   backends: z.array(
     z.object({
@@ -295,6 +357,8 @@ export const storageAdminStateSchema = z.object({
   health: z.object({ replicaFailures: z.array(storageReplicaFailureSchema) }),
   seedFilePresent: z.boolean(),
   usage: storageUsageSchema.nullable(),
+  /** The reclaim switch and the last pass's report (null before the first pass). */
+  reclaim: storageReclaimStateSchema,
   backfills: z.array(storageBackfillStatusSchema),
   migrations: z.array(storageMigrationStatusSchema),
   /** Optimistic-concurrency counter for the two settings rows (audit #7) — echo it back on the next PUT. */
