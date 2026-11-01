@@ -20,11 +20,28 @@ if [ ! -f /app/server/dist/index.js ] || [ ! -d /app/node_modules/tsconfig-paths
   exit 1
 fi
 
-# Best effort: a read-only host filesystem or a locked-down bind mount must keep
-# booting, exactly as it did before.
-chown -R node:node /app/data /app/uploads 2>/dev/null || true
-
 # cd into server/ so tsconfig-paths/register finds tsconfig.json and
 # ../node_modules resolves correctly.
 cd /app/server
+
+# Already started as a non-root user (Kubernetes runAsUser, docker --user): there
+# is nothing to chown and no privilege to drop, and gosu would only fail to switch
+# users. Run Node as whoever we are; the volumes are that user's to provide.
+if [ "$(id -u)" != "0" ]; then
+  exec node --require tsconfig-paths/register dist/index.js
+fi
+
+# Hand the mounted data dirs to node, touching only what is not node's yet. A
+# blanket `chown -R` rewrote every inode on every start, which on a large or
+# network-backed volume (NFS, CephFS, Longhorn) kept the container busy for
+# minutes before Node printed its first line (#2918). Best effort: a read-only
+# host filesystem or a locked-down bind mount must keep booting.
+for dir in /app/data /app/uploads; do
+  [ -d "$dir" ] || continue
+  if [ -n "$(find "$dir" \( ! -user node -o ! -group node \) -print -quit 2>/dev/null)" ]; then
+    echo "Correcting ownership of $dir for the node user..."
+    find "$dir" \( ! -user node -o ! -group node \) -exec chown -h node:node {} + 2>/dev/null || true
+  fi
+done
+
 exec gosu node node --require tsconfig-paths/register dist/index.js

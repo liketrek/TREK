@@ -1275,6 +1275,14 @@ jobs:
             --set 'httpRoute.parentRefs[0].name=gateway' \
             > "$out/http-route.yaml"
           helm template trek charts/trek \
+            --set podSecurityContext.runAsUser=1000 \
+            --set podSecurityContext.runAsGroup=1000 \
+            --set podSecurityContext.runAsNonRoot=true \
+            --set podSecurityContext.seccompProfile.type=RuntimeDefault \
+            --set securityContext.allowPrivilegeEscalation=false \
+            --set 'securityContext.capabilities.drop[0]=ALL' \
+            > "$out/non-root.yaml"
+          helm template trek charts/trek \
             --set ingress.enabled=true \
             --set fullnameOverride=custom-trek \
             --set service.port=8080 \

@@ -49,4 +49,37 @@ describe('entrypoint script', () => {
   it('keeps the volume-over-/app preflight wording the wiki quotes', () => {
     expect(source).toContain('FATAL: TREK application files are missing from the image.');
   });
+
+  // A blanket `chown -R` over the volumes rewrote every inode on every start; on a
+  // large or network-backed PVC the container sat there for minutes without a log
+  // line, which looked like gosu hanging (#2918).
+  // Only the commands count; the comments are free to talk about the old chown.
+  const code = source
+    .split('\n')
+    .filter((line) => !line.trimStart().startsWith('#'))
+    .join('\n');
+
+  it('never chowns the volumes recursively and unconditionally', () => {
+    expect(code).not.toMatch(/chown\s+-R/);
+    expect(code).toContain('! -user node -o ! -group node');
+    expect(code).toContain('Correcting ownership of $dir for the node user...');
+  });
+
+  // Under runAsUser: 1000 there is no privilege to drop and gosu cannot switch
+  // users, so the non-root branch has to exec Node itself before any chown or gosu.
+  it('starts Node directly, without chown or gosu, when not running as root', () => {
+    const nonRootCheck = code.indexOf('if [ "$(id -u)" != "0" ]; then');
+    expect(nonRootCheck).toBeGreaterThan(-1);
+    const branchEnd = code.indexOf('\nfi\n', nonRootCheck);
+    expect(branchEnd).toBeGreaterThan(nonRootCheck);
+    const branch = code.slice(nonRootCheck, branchEnd);
+    expect(branch).toContain('exec node --require tsconfig-paths/register dist/index.js');
+    expect(branch).not.toContain('gosu');
+    expect(code.indexOf('chown')).toBeGreaterThan(branchEnd);
+    expect(code.indexOf('gosu')).toBeGreaterThan(branchEnd);
+  });
+
+  it('still drops to node through gosu when started as root', () => {
+    expect(source).toContain('exec gosu node node --require tsconfig-paths/register dist/index.js');
+  });
 });
