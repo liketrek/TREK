@@ -218,7 +218,7 @@ Most of what follows is an addon an admin switches on or off. Lists, Costs, Docu
 
 <br />
 
-## Powered by dataforest cloud
+## Powered by [dataforest cloud](https://cloud.dataforest.net/en?mtm_campaign=trek)
 
 <div align="center">
 
@@ -235,17 +235,17 @@ Most of what follows is an addon an admin switches on or off. Lists, Costs, Docu
 <br />
 <br />
 
-**Every TREK installation in the world searches through servers that dataforest cloud sponsors.**
+**Every TREK installation in the world searches through servers that [dataforest cloud](https://cloud.dataforest.net/en?mtm_campaign=trek) sponsors.**
 
-The place index with over 88 million places, the address search in every TREK language and the planet-wide routing all run on dataforest cloud in Frankfurt, Germany, free of charge for everyone who self-hosts TREK. Without this sponsorship, these services would not exist in this form.
+The place index with over 88 million places, the address search in every TREK language and the planet-wide routing all run on [dataforest cloud](https://cloud.dataforest.net/en?mtm_campaign=trek) in Frankfurt, Germany, free of charge for everyone who self-hosts TREK. Without this sponsorship, these services would not exist in this form.
 
-Thank you, dataforest, for backing open source this generously. 💚
+Thank you, [dataforest](https://cloud.dataforest.net/en?mtm_campaign=trek), for backing open source this generously. 💚
 
 <br />
 
 <a href="https://cloud.dataforest.net/en?mtm_campaign=trek"><img alt="Visit dataforest cloud" src="https://img.shields.io/badge/Visit-dataforest_cloud-02C382?style=for-the-badge" /></a>
 
-Looking for a server for your own TREK? dataforest cloud is where TREK's own services live.
+Looking for a server for your own TREK? [dataforest cloud](https://cloud.dataforest.net/en?mtm_campaign=trek) is where TREK's own services live.
 
 </div>
 
