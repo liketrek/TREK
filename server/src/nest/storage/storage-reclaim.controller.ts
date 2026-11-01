@@ -6,23 +6,19 @@ import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { ManagedForbidden } from '../common/managed';
 import { ResponseContract } from '../common/response-contract';
-import { StorageReclaimRunDto, StorageReclaimSettingsDto } from './storage-admin.dto';
+import { StorageReclaimConfirmDto, StorageReclaimSettingsDto } from './storage-admin.dto';
 import { StorageReclaimService } from './storage-reclaim.service';
 import { Body, Controller, HttpCode, Post, Put, Req, UseGuards } from '@nestjs/common';
-import {
-  storageReclaimReportSchema,
-  storageReclaimStateSchema,
-  type StorageReclaimReport,
-  type StorageReclaimState,
-} from '@trek/shared';
+import { storageReclaimRunStartedSchema, storageReclaimStateSchema, type StorageReclaimState } from '@trek/shared';
 
 import type { Request } from 'express';
 
 /**
- * /api/admin/storage/reclaim: the admin's switch for the reclaim pass and a
- * pass on demand. The state itself rides on GET /api/admin/storage. Deleting
- * stays off until an admin turns it on here; a pass then still deletes only
- * what has been unreferenced for a week (StorageReclaimService).
+ * /api/admin/storage/reclaim: the admin's switch for the reclaim pass, a check
+ * on demand and the confirmation a category with a large unreferenced share
+ * waits for. The state itself rides on GET /api/admin/storage. Deleting stays
+ * off until an admin turns it on here; a pass then still deletes only what has
+ * been unreferenced for a week (StorageReclaimService).
  */
 @Controller('api/admin/storage/reclaim')
 @UseGuards(JwtAuthGuard, AdminGuard)
@@ -50,27 +46,47 @@ export class StorageReclaimController {
     return state;
   }
 
-  /** One pass now, honouring the switch unless `reportOnly`. 409 on a demo or while another storage job runs. */
+  /**
+   * Starts a report-only pass in the background and answers 202 at once; the
+   * admin state says `running` until its report lands. 409 on a demo or while
+   * another storage job, a reclaim pass included, runs.
+   */
   @Post('run')
-  @HttpCode(200)
-  @ResponseContract(storageReclaimReportSchema)
-  async run(
-    @CurrentUser() user: User,
-    @Body() body: StorageReclaimRunDto,
-    @Req() req: Request,
-  ): Promise<StorageReclaimReport> {
-    const report = await this.reclaim.run({ reportOnly: body.reportOnly === true });
-    const rows = Object.values(report.categories);
+  @HttpCode(202)
+  @ResponseContract(storageReclaimRunStartedSchema)
+  async run(@CurrentUser() user: User, @Req() req: Request): Promise<{ started: true }> {
+    this.reclaim.start();
     await this.audit.writeAudit({
       userId: user.id,
       action: 'admin.storage_reclaim_run',
       ip: getClientIp(req),
+      details: { mode: 'report' },
+    });
+    return { started: true };
+  }
+
+  /**
+   * Lets the pass delete in a category whose unreferenced share is over a
+   * fifth, up to the count the last report showed. 409 when nothing waits.
+   */
+  @Post('confirm')
+  @HttpCode(200)
+  @ResponseContract(storageReclaimStateSchema)
+  async confirm(
+    @CurrentUser() user: User,
+    @Body() body: StorageReclaimConfirmDto,
+    @Req() req: Request,
+  ): Promise<StorageReclaimState> {
+    const state = await this.reclaim.confirm(body.category);
+    await this.audit.writeAudit({
+      userId: user.id,
+      action: 'admin.storage_reclaim_confirm',
+      ip: getClientIp(req),
       details: {
-        mode: report.mode,
-        deleted: rows.reduce((sum, row) => sum + row.deleted.objects, 0),
-        bytes: rows.reduce((sum, row) => sum + row.deleted.bytes, 0),
+        category: body.category,
+        unreferenced: state.lastRun?.categories[body.category].unreferenced.objects ?? 0,
       },
     });
-    return report;
+    return state;
   }
 }

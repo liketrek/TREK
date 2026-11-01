@@ -1,6 +1,7 @@
 /**
  * The reclaim ledger and the location check (#2924), plus the registry the
- * reference sources land in. RCLL-001 to RCLL-011.
+ * reference sources land in. Local roots are resolved through their symlinks,
+ * so the layouts live in a temp folder. RCLL-001 to RCLL-013.
  */
 import { StorageReclaimRegistryService } from '../../../../src/nest/storage/storage-reclaim-registry.service';
 import {
@@ -21,8 +22,10 @@ import type { BackendSnapshot } from '../../../../src/nest/storage/storage-regis
 import { CATEGORY_PREFIXES } from '../../../../src/nest/storage/storage-registry.service';
 import { SERVED_CATEGORIES, type ServedCategory } from '../../../../src/nest/storage/storage.types';
 
+import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
-import { describe, expect, it, vi } from 'vitest';
+import { afterAll, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../../src/nest/audit/audit-log.logger', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../../src/nest/audit/audit-log.logger')>()),
@@ -32,8 +35,20 @@ vi.mock('../../../../src/nest/audit/audit-log.logger', async (importOriginal) =>
   logWarn: vi.fn(),
 }));
 
-const UPLOADS = path.resolve('/srv/trek/uploads');
-const BACKUPS = path.resolve('/srv/trek/backups');
+const ROOT = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'trek-reclaim-ledger-')));
+/** A folder under the temp root, made if missing: a location is only resolved when its root exists. */
+function dir(...parts: string[]): string {
+  const target = path.join(ROOT, ...parts);
+  fs.mkdirSync(target, { recursive: true });
+  return target;
+}
+const UPLOADS = dir('uploads');
+const BACKUPS = dir('backups');
+for (const category of SERVED_CATEGORIES) dir('uploads', CATEGORY_PREFIXES[category]);
+
+afterAll(() => {
+  fs.rmSync(ROOT, { recursive: true, force: true });
+});
 
 function local(name: string, root: string): BackendSnapshot {
   return { name, type: 'local', source: 'settings', options: { root } };
@@ -90,7 +105,7 @@ describe('sharedLocationCategories', () => {
   });
 
   it('RCLL-005: TREK_PLACE_PHOTO_DIR inside the uploads folder overlaps the category it lands in', () => {
-    const backends = [...BASE_BACKENDS, local('place-photos-local', path.join(UPLOADS, 'places'))];
+    const backends = [...BASE_BACKENDS, local('place-photos-local', dir('uploads', 'places'))];
     const shared = sharedLocationCategories(
       defaults({ 'photos-google': { backendName: 'place-photos-local', keyPrefix: '' } }),
       backends,
@@ -108,8 +123,8 @@ describe('sharedLocationCategories', () => {
     expect(shared.has('covers')).toBe(false);
   });
 
-  it('RCLL-007: two backends of other names on one folder overlap, compared without regard to case', () => {
-    const backends = [...BASE_BACKENDS, local('again', UPLOADS.toUpperCase() + path.sep)];
+  it('RCLL-007: two backends of other names on one folder overlap, however the root is spelled', () => {
+    const backends = [...BASE_BACKENDS, local('again', `${path.join(UPLOADS, 'files', '..')}${path.sep}`)];
     const shared = sharedLocationCategories(
       defaults({ avatars: { backendName: 'again', keyPrefix: 'covers/' } }),
       backends,
@@ -145,14 +160,37 @@ describe('sharedLocationCategories', () => {
   it('RCLL-009: a mirror counts its primary and every replica; a replica inside another category excludes it', () => {
     const backends: BackendSnapshot[] = [
       ...BASE_BACKENDS,
-      local('primary', path.resolve('/mnt/primary')),
-      local('replica', path.join(UPLOADS, 'journey')),
+      local('primary', dir('primary')),
+      local('replica', dir('uploads', 'journey')),
       { name: 'm', type: 'mirror', source: 'settings', options: { primary: 'primary', replicas: ['replica'] } },
     ];
     const shared = sharedLocationCategories(defaults({ covers: { backendName: 'm', keyPrefix: 'covers/' } }), backends);
     // The replica's copy of covers lands at uploads/journey/covers/, inside journey's location.
     expect(shared.has('journey')).toBe(true);
     expect(shared.has('covers')).toBe(false);
+  });
+
+  it('RCLL-012: a place-photo folder reached through a symlink still overlaps the category it really is', () => {
+    // The image links /app/server/uploads to /app/uploads; an operator names the latter.
+    const linked = path.join(ROOT, 'linked-uploads');
+    if (!fs.existsSync(linked)) fs.symlinkSync(UPLOADS, linked, 'junction');
+    const backends = [...BASE_BACKENDS, local('place-photos-local', path.join(linked, 'places'))];
+    const shared = sharedLocationCategories(
+      defaults({ 'photos-google': { backendName: 'place-photos-local', keyPrefix: '' } }),
+      backends,
+    );
+    expect(shared.has('places')).toBe(true);
+    expect(shared.has('covers')).toBe(false);
+  });
+
+  it('RCLL-013: a local root that does not resolve reads as unknown, so shared', () => {
+    const backends = [...BASE_BACKENDS, local('gone', path.join(ROOT, 'never-made'))];
+    const shared = sharedLocationCategories(
+      defaults({ covers: { backendName: 'gone', keyPrefix: 'covers/' } }),
+      backends,
+    );
+    expect(shared.has('covers')).toBe(true);
+    expect(shared.has('files')).toBe(true);
   });
 
   it('RCLL-010: a location that cannot be resolved fails closed, for itself and for every other category', () => {
@@ -178,6 +216,7 @@ describe('StorageReclaimRegistryService', () => {
   const source = (id: StorageReferenceSource['id']): StorageReferenceSource => ({
     id,
     claims: [{ category: 'covers', prefix: '' }],
+    namedKeys: async () => new Set<string>(),
     referenced: async () => new Set<string>(),
   });
 

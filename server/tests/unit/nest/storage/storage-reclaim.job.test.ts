@@ -35,7 +35,14 @@ function report(
   stopped: StorageReclaimReport['stopped'] = null,
 ) {
   const none = { objects: 0, bytes: 0 };
-  const row = { objects: 0, unreferenced: none, eligible: none, deleted: none, skipped: null };
+  const row = {
+    objects: 0,
+    unreferenced: none,
+    eligible: none,
+    deleted: none,
+    confirmationRequired: false,
+    skipped: null,
+  };
   return {
     startedAt: 1,
     finishedAt: 2,
@@ -104,15 +111,18 @@ describe('StorageReclaimJob', () => {
           unreferenced: { objects: 2, bytes: 30 },
           eligible: { objects: 1, bytes: 10 },
           deleted: { objects: 1, bytes: 10 },
+          confirmationRequired: false,
           skipped: null,
         },
-        avatars: { ...report().categories.avatars, skipped: 'sources_missing' },
+        files: { ...report().categories.files, confirmationRequired: true },
+        avatars: { ...report().categories.avatars, skipped: 'interrupted' },
       },
       'database_reopened',
     );
     await makeJob(async () => busy).job.tick();
     expect(logInfo).toHaveBeenCalledWith(
-      'Storage reclaim: 2 unreferenced object(s); deleted 1 (10 bytes); skipped avatars (sources_missing); stopped: database_reopened',
+      'Storage reclaim: 2 unreferenced object(s); deleted 1 (10 bytes); waiting for an admin to confirm files; ' +
+        'skipped avatars (interrupted); stopped: database_reopened',
     );
   });
 

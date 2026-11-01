@@ -5,8 +5,7 @@ import { SERVED_CATEGORIES, type ServedCategory } from './storage.types';
  * name stored objects (#2924). Storage cannot read those rows itself: it may
  * import no domain that imports it, and it may not inject another domain's
  * repositories. So each owner registers a source with
- * `StorageReclaimRegistryService` and answers, for a page of keys, which of
- * them its rows still name.
+ * `StorageReclaimRegistryService` and answers which keys its rows still name.
  *
  * The ids are a closed list: the ledger in storage names, per category, which
  * of them must have answered before a single object of that category may be
@@ -53,10 +52,16 @@ export interface StorageReferenceSource {
    */
   readonly claims: ReadonlyArray<StorageReferenceClaim>;
   /**
-   * Of these category-relative keys (as `StorageService.list` yields them, at
-   * most a page of 500), the ones a row still names. A row that is trashed,
+   * Every key of `category` the rows name, lowercased: one read of the whole
+   * column set, which a pass makes once per category. A row that is trashed,
    * pending or otherwise not gone counts. Throwing stops the pass for the
    * category; it never deletes on a failed answer.
+   */
+  namedKeys(category: ServedCategory): Promise<Set<string>>;
+  /**
+   * Of these category-relative keys (as `StorageService.list` yields them, a
+   * batch at a time), the ones a row names right now: the question a delete
+   * asks last, read fresh and narrowed to the rows that can name them.
    */
   referenced(category: ServedCategory, keys: readonly string[]): Promise<Set<string>>;
 }
@@ -76,16 +81,18 @@ export interface StorageKeyOptions {
 }
 
 const UPLOADS_PATH = /(?:^|\/)uploads\/([a-z0-9][a-z0-9-]*)\//gi;
-const KEY_END = /[?#"'<>\r\n]/;
+/** Where a key inside a longer text ends at the latest: a quote, markup or a line break. */
+const TEXT_END = /["'<>\r\n]/;
+const SUFFIX = /[?#]/;
 const SERVED = new Set<string>(SERVED_CATEGORIES);
 
 /**
  * Every `/uploads/<category>/<key>` in a value, wherever it stands: a path, an
  * absolute URL of this instance (`https://host/uploads/covers/x.jpg`), a leading
- * `uploads/` without the slash, several in one text. A query or a fragment is
- * dropped, the key is percent-decoded and trimmed. A key with a blank in it is
- * reported both whole and cut at the blank, since a value may be a sentence:
- * reporting one key too many only keeps an object, one too few would lose it.
+ * `uploads/` without the slash, several in one text. Each key is reported as it
+ * stands and in its other readings: cut at a query or fragment, percent-decoded,
+ * trimmed, cut at a blank. Reporting one key too many only keeps an object; one
+ * too few would lose it, so the raw spelling is always among them.
  */
 export function uploadKeysIn(value: string | null | undefined): StorageKeyRef[] {
   if (typeof value !== 'string' || value === '') return [];
@@ -94,7 +101,7 @@ export function uploadKeysIn(value: string | null | undefined): StorageKeyRef[] 
     const start = match.index + match[0].length;
     const next = matches[i + 1];
     const tail = value.slice(start, next ? next.index : value.length);
-    const end = tail.search(KEY_END);
+    const end = tail.search(TEXT_END);
     const category = match[1].toLowerCase();
     return keyVariants(end === -1 ? tail : tail.slice(0, end)).map((key) => ({ category, key }));
   });
@@ -103,26 +110,28 @@ export function uploadKeysIn(value: string | null | undefined): StorageKeyRef[] 
 /**
  * Every object a stored value can name: the upload paths above, the relative
  * `<category>/<key>` spelling (`journeys.cover_image` holds `covers/x`), and
- * with `options` the bare or legacy-prefixed name of one category. A value
- * that names nothing this way (an https URL elsewhere, a data: URL, garbage)
- * answers an empty list: it references nothing a pass can find.
+ * with `options` the bare or legacy-prefixed name of one category. A bare name
+ * is the object's exact name (`uuid. #4711`, `uuid.pdf `), so it is reported
+ * untouched first and in its other readings after. A value that names nothing
+ * this way (an https URL elsewhere, a data: URL, garbage) answers an empty list:
+ * it references nothing a pass can find.
  */
 export function storageKeysIn(value: string | null | undefined, options: StorageKeyOptions = {}): StorageKeyRef[] {
-  if (typeof value !== 'string') return [];
-  const trimmed = stripSuffix(value).trim();
-  if (trimmed === '') return [];
+  if (typeof value !== 'string' || value === '') return [];
   const refs = uploadKeysIn(value);
-  const relative = /^\.?\/?([a-z0-9][a-z0-9-]*)\/(.+)$/i.exec(trimmed);
-  if (relative && SERVED.has(relative[1].toLowerCase())) {
-    const category = relative[1].toLowerCase();
-    for (const key of keyVariants(relative[2])) refs.push({ category, key });
+  for (const form of new Set([value, value.trim(), stripSuffix(value).trim()])) {
+    const relative = /^\.?\/?([a-z0-9][a-z0-9-]*)\/(.+)$/is.exec(form);
+    if (relative && SERVED.has(relative[1].toLowerCase())) {
+      const category = relative[1].toLowerCase();
+      for (const key of keyVariants(relative[2])) refs.push({ category, key });
+    }
   }
   if (options.bare) {
     const bare = options.bare;
-    if (!/[/\\:]/.test(trimmed)) {
-      for (const key of keyVariants(trimmed)) refs.push({ category: bare, key });
+    if (!/[/\\:]/.test(value)) {
+      for (const key of keyVariants(value)) refs.push({ category: bare, key });
     } else if (options.basename) {
-      const last = trimmed.slice(Math.max(trimmed.lastIndexOf('/'), trimmed.lastIndexOf('\\')) + 1);
+      const last = value.slice(Math.max(value.lastIndexOf('/'), value.lastIndexOf('\\')) + 1);
       for (const key of keyVariants(last)) refs.push({ category: bare, key });
     }
   }
@@ -130,14 +139,13 @@ export function storageKeysIn(value: string | null | undefined, options: Storage
 }
 
 /**
- * The candidates of `category` that any of `values` names, compared without
- * regard to case: a local volume on Windows or macOS serves `A.jpg` for `a.jpg`,
- * so an object is kept when a value names it in either spelling. The helper a
- * source builds `referenced()` from, so no source parses with a regex of its own.
+ * The keys of `category` any of `values` names, lowercased: a local volume on
+ * Windows or macOS serves `A.jpg` for `a.jpg`, so an object is kept when a value
+ * names it in either spelling. The helper a source builds its answers from, so
+ * no source parses with a regex of its own.
  */
-export function referencedAmong(
+export function keysNamedIn(
   category: ServedCategory,
-  candidates: readonly string[],
   values: Iterable<string | null | undefined>,
   options: StorageKeyOptions = {},
 ): Set<string> {
@@ -147,25 +155,57 @@ export function referencedAmong(
       if (ref.category === category) named.add(ref.key.toLowerCase());
     }
   }
-  return new Set(candidates.filter((key) => named.has(key.toLowerCase())));
+  return named;
+}
+
+/**
+ * The longest run of plain characters in a key (`[a-z0-9-]`, the random part
+ * of every name TREK writes): a row that names the key in any spelling holds
+ * this run verbatim, so a `LIKE '%run%'` finds every row worth parsing. Null
+ * when the key has no run long enough to narrow anything.
+ */
+export function keySearchCore(key: string): string | null {
+  const runs = key.toLowerCase().match(/[a-z0-9-]+/g) ?? [];
+  const longest = runs.reduce((best, run) => (run.length > best.length ? run : best), '');
+  return longest.length >= 8 ? longest : null;
+}
+
+/**
+ * The marker object a pass keeps at the root of each category it judges,
+ * naming this installation (`trek-owner-<install id>`). A second TREK
+ * installation that keeps its uploads in the same place writes its own, and
+ * from then on neither deletes there.
+ */
+const OWNER_MARKER_PREFIX = 'trek-owner-';
+const OWNER_MARKER = /^trek-owner-([a-z0-9-]{8,64})$/;
+
+export function storageOwnerMarkerKey(installId: string): string {
+  return `${OWNER_MARKER_PREFIX}${installId}`;
+}
+
+/** The install id an owner marker names, or null for any other key. Backups leave markers out. */
+export function storageOwnerMarkerInstall(key: string): string | null {
+  return OWNER_MARKER.exec(key)?.[1] ?? null;
 }
 
 function stripSuffix(value: string): string {
-  const cut = value.search(/[?#]/);
+  const cut = value.search(SUFFIX);
   return cut === -1 ? value : value.slice(0, cut);
 }
 
-/** The raw key, decoded, and cut at a blank; never an empty key or one that climbs out of its category. */
+/** The raw key and its other readings; never an empty one. */
 function keyVariants(raw: string): string[] {
   const forms = new Set<string>();
   const add = (key: string) => {
-    const clean = key.trim().replace(/^\/+/, '');
-    if (clean === '' || clean.split('/').some((segment) => segment === '..' || segment === '.')) return;
-    forms.add(clean);
+    if (key.trim() === '') return;
+    forms.add(key);
+    const unslashed = key.replace(/^\/+/, '');
+    if (unslashed.trim() !== '') forms.add(unslashed);
   };
-  const whole = stripSuffix(raw);
-  for (const form of [whole, decoded(whole)]) {
+  const stripped = stripSuffix(raw);
+  for (const form of [raw, stripped, decoded(raw), decoded(stripped)]) {
     add(form);
+    add(form.trim());
     add(form.trim().split(/\s/)[0] ?? '');
   }
   return [...forms];

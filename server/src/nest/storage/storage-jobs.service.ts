@@ -45,6 +45,8 @@ export class StorageJobsService {
   private exclusive: string | null = null;
   /** Restores in progress: no exclusive pass starts while one runs, and one in flight stops. */
   private restores = 0;
+  /** Backups in progress: the reclaim pass deletes nothing while one reads the uploads. */
+  private backups = 0;
   /** Settles once the exclusive pass holding the slot releases it; settled while none does. */
   private exclusiveReleased: Promise<void> = Promise.resolve();
   private onExclusiveReleased: (() => void) | null = null;
@@ -88,6 +90,33 @@ export class StorageJobsService {
   /** True while a backup restore swaps the database and the uploads. */
   get restoreRunning(): boolean {
     return this.restores > 0;
+  }
+
+  /** True while a backup reads the uploads: the reclaim pass deletes nothing then, the archive may still want them. */
+  get backupRunning(): boolean {
+    return this.backups > 0;
+  }
+
+  /** The exclusive pass holding the one-job slot now, by name; null while none does. */
+  get exclusiveHolder(): string | null {
+    return this.exclusive;
+  }
+
+  /**
+   * Settles once no exclusive pass holds the slot (at once when none does): the
+   * nightly usage scan waits here, so its figures follow what a reclaim pass freed.
+   */
+  async exclusiveIdle(): Promise<void> {
+    await this.exclusiveReleased;
+  }
+
+  /** A backup started reading the uploads; the caller calls `endBackup` in a finally. */
+  beginBackup(): void {
+    this.backups += 1;
+  }
+
+  endBackup(): void {
+    if (this.backups > 0) this.backups -= 1;
   }
 
   /**

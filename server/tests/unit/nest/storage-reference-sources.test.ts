@@ -3,7 +3,11 @@
  * (#2924), each against the migrated schema: which of a page of keys its rows
  * still name, in every spelling those columns hold. One object kept too many
  * costs a few bytes; one called unreferenced while a row names it is lost, so
- * every case here is a spelling a real row can carry. RSRC-001 to RSRC-011.
+ * every case here is a spelling a real row can carry. A source answers twice:
+ * `namedKeys`, every key of a category its rows name (one read, for a pass),
+ * and `referenced`, a few keys asked fresh and narrowed to the rows holding
+ * their plain runs (the re-check before a delete, and a release).
+ * RSRC-001 to RSRC-014.
  */
 import { PlaceContribOutbox } from '../../../src/db/entities/PlaceContribOutbox.entity';
 import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
@@ -196,5 +200,37 @@ describe('reference sources', () => {
       SOURCES.map((Source) => asked(t.get<StorageReferenceSource>(Source), 'covers', [])),
     );
     expect(answers).toEqual(SOURCES.map(() => []));
+  });
+
+  it('RSRC-012: a narrowed question still finds a uuid-named object in every spelling a row holds', async () => {
+    const id = '7b1f0c2e-5a4d-4e3f-8a9b-0c1d2e3f4a5b';
+    await makeTrip(orm, userId, {
+      cover_image: `https://trip.example.test/uploads/covers/${id.toUpperCase()}.JPG?v=3`,
+    });
+    await makePlace(orm, tripId, { image_url: `/uploads/places/${id}-p.jpg#frag` });
+    const trips = t.get(TripsStorageRefsService);
+    expect(await asked(trips, 'covers', [`${id}.jpg`, `${id}-other.jpg`])).toEqual([`${id}.jpg`]);
+    expect(await asked(t.get(PlacesStorageRefsService), 'places', [`${id}-p.jpg`])).toEqual([`${id}-p.jpg`]);
+  });
+
+  it('RSRC-013: namedKeys answers every key of the category its rows name, lowercased, in one read', async () => {
+    await makeTrip(orm, userId, { cover_image: '/uploads/covers/RSRC-Named-A.jpg' });
+    await makeTrip(orm, userId, { cover_image: '/uploads/places/rsrc-named-b.jpg' });
+    const trips = t.get(TripsStorageRefsService);
+    const covers = await trips.namedKeys('covers');
+    expect(covers.has('rsrc-named-a.jpg')).toBe(true);
+    expect(covers.has('rsrc-named-b.jpg')).toBe(false);
+    expect((await trips.namedKeys('places')).has('rsrc-named-b.jpg')).toBe(true);
+    expect(await t.get(FilesStorageRefsService).namedKeys('covers')).toEqual(new Set());
+  });
+
+  it('RSRC-014: a trip file whose name holds a #, a ? or a trailing blank keeps its object both ways', async () => {
+    const id = '3c9d8e7f-6a5b-4c4d-9e3f-2a1b0c9d8e7f';
+    const names = [`${id}. #4711`, `${id}.c#`, `${id}.v2?final`, `${id}.pdf `];
+    await Promise.all(names.map((filename) => makeTripFile(orm, tripId, { filename })));
+    const files = t.get(FilesStorageRefsService);
+    expect(await asked(files, 'files', names)).toEqual([...names].sort());
+    const named = await files.namedKeys('files');
+    for (const name of names) expect(named.has(name.toLowerCase())).toBe(true);
   });
 });

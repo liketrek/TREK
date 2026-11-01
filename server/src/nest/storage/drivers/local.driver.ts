@@ -5,6 +5,7 @@ import {
   StorageInvalidKeyError,
   StorageNotFoundError,
   type ByteRange,
+  type ListOptions,
   type LocalTempFile,
   type ObjectStat,
   type StorageDriver,
@@ -175,13 +176,13 @@ export class LocalDriver implements StorageDriver {
     }
   }
 
-  async *list(prefix: string): AsyncIterable<ObjectStat> {
+  async *list(prefix: string, opts: ListOptions = {}): AsyncIterable<ObjectStat> {
     assertValidPrefix(prefix);
     const root = this.root();
-    yield* this.walk(prefix ? path.resolve(root, prefix) : root, root);
+    yield* this.walk(prefix ? path.resolve(root, prefix) : root, root, opts.shallow === true);
   }
 
-  private async *walk(dir: string, root: string): AsyncIterable<ObjectStat> {
+  private async *walk(dir: string, root: string, shallow: boolean): AsyncIterable<ObjectStat> {
     let entries: fs.Dirent[];
     try {
       entries = await fs.promises.readdir(dir, { withFileTypes: true });
@@ -195,7 +196,7 @@ export class LocalDriver implements StorageDriver {
       if (entry.name.startsWith('.')) continue;
       const entryPath = path.join(dir, entry.name);
       if (entry.isDirectory()) {
-        yield* this.walk(entryPath, root);
+        if (!shallow) yield* this.walk(entryPath, root, false);
       } else if (entry.isFile()) {
         const st = await fs.promises.stat(entryPath);
         yield {

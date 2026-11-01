@@ -98,6 +98,11 @@ export function isClientAbortError(err: unknown): boolean {
   );
 }
 
+export interface ListOptions {
+  /** Only the objects directly under the prefix, none in a folder below it (the reclaim pass judges a category's root). */
+  shallow?: boolean;
+}
+
 export interface StorageDriver {
   /** Backend instance name, e.g. 'uploads-local'. */
   readonly id: string;
@@ -107,7 +112,7 @@ export interface StorageDriver {
   stat(key: string): Promise<ObjectStat | null>;
   /** Idempotent; resolving on a missing key is success. */
   delete(key: string): Promise<void>;
-  list(prefix: string): AsyncIterable<ObjectStat>;
+  list(prefix: string, opts?: ListOptions): AsyncIterable<ObjectStat>;
   /** Fast-path for local drivers; `null`/absent is exactly the remote-driver branch every caller must handle. */
   getLocalPath?(key: string): string | null;
   /** Same-filesystem spool dir (LocalDriver: `<root>/.tmp`), or null for drivers with no local filesystem. */

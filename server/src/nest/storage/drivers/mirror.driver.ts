@@ -6,6 +6,7 @@ import {
   StorageInvalidKeyError,
   StorageNotFoundError,
   type ByteRange,
+  type ListOptions,
   type LocalTempFile,
   type ObjectStat,
   type PutOptions,
@@ -195,11 +196,11 @@ export class MirrorDriver implements StorageDriver {
     }
   }
 
-  async *list(prefix: string): AsyncIterable<ObjectStat> {
+  async *list(prefix: string, opts: ListOptions = {}): AsyncIterable<ObjectStat> {
     assertValidPrefix(prefix);
     let yieldedAny = false;
     try {
-      for await (const stat of this.primary.list(prefix)) {
+      for await (const stat of this.primary.list(prefix, opts)) {
         yieldedAny = true;
         yield stat;
       }
@@ -210,7 +211,7 @@ export class MirrorDriver implements StorageDriver {
       if (yieldedAny || !shouldFallback(err)) throw err;
       for (const replica of this.replicas) {
         try {
-          for await (const stat of replica.list(prefix)) yield stat;
+          for await (const stat of replica.list(prefix, opts)) yield stat;
           return;
         } catch {
           /* try next replica */

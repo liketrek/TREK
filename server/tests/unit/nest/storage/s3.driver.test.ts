@@ -287,6 +287,18 @@ describe('S3Driver list', () => {
     for await (const stat of makeDriver(api, { keyPrefix: 'trek/prod' }).list('')) out.push(stat);
     expect(out.map((s) => s.key)).toEqual(['a/ok.bin']);
   });
+  it('a shallow list asks S3 to fold every deeper key away with a delimiter', async () => {
+    const api = makeMockApi({
+      ListObjectsV2: pages([{ Key: 'trek/prod/a/one.bin', Size: 2, LastModified: new Date(1000) }]),
+    });
+    const out = [];
+    for await (const stat of makeDriver(api, { keyPrefix: 'trek/prod' }).list('a/', { shallow: true })) out.push(stat);
+    expect(out.map((s) => s.key)).toEqual(['a/one.bin']);
+    expect(api.ListObjectsV2).toHaveBeenCalledWith(expect.objectContaining({ Prefix: 'trek/prod/a/', Delimiter: '/' }));
+    const deep = makeMockApi({ ListObjectsV2: pages([]) });
+    for await (const stat of makeDriver(deep).list('a/')) void stat;
+    expect(deep.ListObjectsV2).toHaveBeenCalledWith(expect.not.objectContaining({ Delimiter: '/' }));
+  });
   it('yields nothing for an empty result and validates the prefix first', async () => {
     const api = makeMockApi({ ListObjectsV2: pages([]) });
     const driver = makeDriver(api);

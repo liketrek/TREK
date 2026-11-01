@@ -448,6 +448,20 @@ describe('BackupService (wrapper)', () => {
     expect(jobs.claimExclusive('a storage reclaim')).toBe(true);
     jobs.releaseExclusive('a storage reclaim');
   });
+
+  it('BKS-BACKUP-001: a backup runs marked as reading the uploads, a failed one too, and the mark ends with it', async () => {
+    let runningInside = false;
+    vi.mocked(backupSvc.createBackup).mockImplementationOnce(async () => {
+      runningInside = jobs.backupRunning;
+      return { filename: 'svc.zip', size: 5 };
+    });
+    await wrapper.createBackup();
+    expect(runningInside).toBe(true);
+    expect(jobs.backupRunning).toBe(false);
+    vi.mocked(backupSvc.createBackup).mockRejectedValueOnce(new Error('disk full'));
+    await expect(wrapper.createBackup()).rejects.toThrow('disk full');
+    expect(jobs.backupRunning).toBe(false);
+  });
 });
 
 describe('BackupModule', () => {

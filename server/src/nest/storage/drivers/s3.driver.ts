@@ -5,6 +5,7 @@ import {
   StorageNotFoundError,
   isLocalTempFile,
   type ByteRange,
+  type ListOptions,
   type LocalTempFile,
   type ObjectStat,
   type PutOptions,
@@ -403,13 +404,15 @@ export class S3Driver implements StorageDriver {
     }
   }
 
-  async *list(prefix: string): AsyncIterable<ObjectStat> {
+  async *list(prefix: string, opts: ListOptions = {}): AsyncIterable<ObjectStat> {
     assertValidPrefix(prefix);
     const s3 = await this.client();
+    // A delimiter makes S3 fold every deeper key into CommonPrefixes, which are not read.
+    const shallow = opts.shallow === true ? { Delimiter: '/' } : {};
     let pages: AsyncIterable<{ Contents?: Array<{ Key?: string; Size?: number; LastModified?: Date }> }>;
     try {
       pages = await this.deadlined(
-        s3.ListObjectsV2({ Bucket: this.bucket, Prefix: this.keyPrefix + prefix, paginate: 'iterator' }),
+        s3.ListObjectsV2({ Bucket: this.bucket, Prefix: this.keyPrefix + prefix, paginate: 'iterator', ...shallow }),
         `list '${prefix}'`,
       );
     } catch (err) {

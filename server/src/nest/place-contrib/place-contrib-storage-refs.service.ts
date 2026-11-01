@@ -1,5 +1,5 @@
 import { PlaceContribOutbox } from '../../db/entities/PlaceContribOutbox.entity';
-import { StorageReclaimSource } from '../storage/storage-reclaim-source.service';
+import { likeAny, StorageReclaimSource } from '../storage/storage-reclaim-source.service';
 import { EVERY_RECLAIMABLE_CATEGORY } from '../storage/storage-reclaim.types';
 import { Injectable } from '@nestjs/common';
 
@@ -15,8 +15,10 @@ export class PlaceContribStorageRefsService extends StorageReclaimSource {
   readonly id = 'place-contrib';
   readonly claims = EVERY_RECLAIMABLE_CATEGORY;
 
-  protected async storedValues(): Promise<Array<string | null | undefined>> {
-    const rows = await this.em.getRepository(PlaceContribOutbox).find({}, { fields: ['value'] });
+  protected async storedValues(containing: readonly string[] | null): Promise<Array<string | null | undefined>> {
+    const rows = await this.em
+      .getRepository(PlaceContribOutbox)
+      .find(likeAny<PlaceContribOutbox>(['value'], containing), { fields: ['value'] });
     return rows.map((row) => row.value);
   }
 }

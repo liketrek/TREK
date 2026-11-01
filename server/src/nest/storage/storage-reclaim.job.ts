@@ -2,14 +2,15 @@ import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { logDebug, logError, logInfo } from '../audit/audit-log.logger';
 import { DomainError } from '../common/domain-error';
 import { CronRegistrarService } from '../scheduling/cron-registrar.service';
+import { reportSummary } from './storage-reclaim.report';
 import { StorageReclaimService } from './storage-reclaim.service';
 import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
-import type { StorageReclaimReport } from '@trek/shared';
 
 /**
- * The nightly reclaim pass, 04:05: after the thumbnail sweep at 04:00 and
- * before the usage scan at 04:15, so the next usage figures already show what
- * it freed. No pass at boot: a pass that may delete waits for its hour.
+ * The nightly reclaim pass, 04:05: after the thumbnail sweep at 04:00. The
+ * usage scan at 04:15 waits for a pass still running (StorageUsageScanJob), so
+ * its figures show what the pass freed. No pass at boot: a pass that may
+ * delete waits for its hour. A pass that deletes audits itself.
  */
 @Injectable()
 export class StorageReclaimJob implements OnApplicationBootstrap {
@@ -32,7 +33,7 @@ export class StorageReclaimJob implements OnApplicationBootstrap {
     if (this.runtimeEnv.isDemoMode()) return;
     try {
       const report = await this.reclaim.run({ now });
-      const line = summary(report);
+      const line = reportSummary(report);
       if (line) logInfo(`Storage reclaim: ${line}`);
     } catch (err: unknown) {
       if (err instanceof DomainError && err.getStatus() === 409) {
@@ -42,21 +43,4 @@ export class StorageReclaimJob implements OnApplicationBootstrap {
       logError(`Storage reclaim: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
-}
-
-/** One line when the pass found, deleted or refused something; null when there was nothing to say. */
-function summary(report: StorageReclaimReport): string | null {
-  const rows = Object.values(report.categories);
-  const unreferenced = rows.reduce((sum, row) => sum + row.unreferenced.objects, 0);
-  const deleted = rows.reduce((sum, row) => sum + row.deleted.objects, 0);
-  const bytes = rows.reduce((sum, row) => sum + row.deleted.bytes, 0);
-  const braked = Object.entries(report.categories)
-    .filter(([, row]) => row.skipped !== null && row.skipped !== 'not_reclaimed')
-    .map(([category, row]) => `${category} (${row.skipped})`);
-  const parts: string[] = [];
-  if (unreferenced > 0) parts.push(`${unreferenced} unreferenced object(s)`);
-  if (deleted > 0) parts.push(`deleted ${deleted} (${bytes} bytes)`);
-  if (braked.length > 0) parts.push(`skipped ${braked.join(', ')}`);
-  if (report.stopped) parts.push(`stopped: ${report.stopped}`);
-  return parts.length > 0 ? parts.join('; ') : null;
 }

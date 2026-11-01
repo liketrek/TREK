@@ -56,8 +56,8 @@ export class StorageReclaimMarksRepository extends TrekRepository<StorageReclaim
     return Number(result.numDeletedRows);
   }
 
-  /** Drops every mark of a category, for a pass that could not judge it: the week starts over. */
-  async deleteCategory(category: string): Promise<number> {
-    return await this.nativeDelete({ category });
+  /** Drops every mark, for a database a restore brought back: its marks are another history's. */
+  async deleteAll(): Promise<number> {
+    return await this.nativeDelete({});
   }
 }

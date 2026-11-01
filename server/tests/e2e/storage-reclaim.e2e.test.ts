@@ -4,13 +4,15 @@
  * AdminGuard and ManagedGuard, the Zod pipe on both bodies and the response
  * contracts the handlers declare all stand in front of it. Every owner
  * domain registers its reference source here, so a pass looks at every
- * reclaimable category; the passes below only report. RCLE-001 to RCLE-007.
+ * reclaimable category; the checks below run in the background and only
+ * report. RCLE-001 to RCLE-007.
  */
 import { buildApp } from '../../src/bootstrap';
 import { AppSettings } from '../../src/db/entities/AppSettings.entity';
 import { AuditLog } from '../../src/db/entities/AuditLog.entity';
 import { StorageJobsService } from '../../src/nest/storage/storage-jobs.service';
-import { STORAGE_RECLAIMABLE_CATEGORIES } from '../../src/nest/storage/storage-reclaim.types';
+import { STORAGE_RECLAIMABLE_CATEGORIES, storageOwnerMarkerKey } from '../../src/nest/storage/storage-reclaim.types';
+import { StorageService } from '../../src/nest/storage/storage.service';
 import { countRows, deleteRows, findRow } from '../helpers/factories/rows';
 import { makeAdmin, makeUser } from '../helpers/factories/users';
 import { sessionCookie } from './harness';
@@ -50,12 +52,33 @@ describe('Storage reclaim e2e (whole app: real auth + admin guard + managed guar
   });
 
   afterAll(async () => {
+    // The uploads folder is the test run's shared one: take back the owner markers this app's checks wrote.
+    const installId = (await findRow(orm, AppSettings, { key: 'install_id' }))?.value;
+    if (installId) {
+      const storage = app.get(StorageService);
+      await Promise.all(
+        STORAGE_RECLAIMABLE_CATEGORIES.map((category) =>
+          storage.delete(category, storageOwnerMarkerKey(installId)).catch(() => undefined),
+        ),
+      );
+    }
     await app?.close();
   });
 
-  it('RCLE-001: 401 without a session on both routes', async () => {
+  /** The admin state's reclaim part once a check started by hand has finished. */
+  async function settledState() {
+    await app.get(StorageJobsService).exclusiveIdle();
+    const res = await request(server).get('/api/admin/storage').set('Cookie', adminCookie);
+    expect(res.status).toBe(200);
+    return res.body.reclaim;
+  }
+
+  it('RCLE-001: 401 without a session on every route', async () => {
     expect((await request(server).put('/api/admin/storage/reclaim').send({ deleteEnabled: true })).status).toBe(401);
     expect((await request(server).post('/api/admin/storage/reclaim/run').send({})).status).toBe(401);
+    expect((await request(server).post('/api/admin/storage/reclaim/confirm').send({ category: 'covers' })).status).toBe(
+      401,
+    );
   });
 
   it('RCLE-002: 403 for a non-admin, and nothing is stored', async () => {
@@ -68,63 +91,79 @@ describe('Storage reclaim e2e (whole app: real auth + admin guard + managed guar
     expect(await findRow(orm, AppSettings, { key: 'storage.reclaim_delete' })).toBeFalsy();
   });
 
-  it('RCLE-003: PUT stores the switch, answers the state, audits, and GET /api/admin/storage carries it', async () => {
+  it('RCLE-003: PUT stores the switch for this install, answers the state, audits, and the admin state carries it', async () => {
     const res = await request(server)
       .put('/api/admin/storage/reclaim')
       .set('Cookie', adminCookie)
       .send({ deleteEnabled: true });
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ deleteEnabled: true, lastRun: null });
+    expect(res.body).toEqual({ deleteEnabled: true, running: false, lastRun: null, lastDeleteRun: null });
     expect(await countRows(orm, AuditLog, { action: 'admin.storage_reclaim_update' })).toBe(1);
-    const state = await request(server).get('/api/admin/storage').set('Cookie', adminCookie);
-    expect(state.status).toBe(200);
-    expect(state.body.reclaim).toEqual({ deleteEnabled: true, lastRun: null });
+    // Stored as the install id it was turned on for, so a database restored elsewhere reads as off.
+    const installId = (await findRow(orm, AppSettings, { key: 'install_id' }))?.value;
+    expect(installId).toMatch(/^[0-9a-f-]{36}$/);
+    expect((await findRow(orm, AppSettings, { key: 'storage.reclaim_delete' }))?.value).toBe(installId);
+    expect((await settledState()).deleteEnabled).toBe(true);
+    const off = await request(server)
+      .put('/api/admin/storage/reclaim')
+      .set('Cookie', adminCookie)
+      .send({ deleteEnabled: false });
+    expect(off.body.deleteEnabled).toBe(false);
   });
 
-  it('RCLE-004: PUT refuses a body outside the contract', async () => {
+  it('RCLE-004: PUT and confirm refuse a body outside the contract', async () => {
     const refused = await Promise.all(
       [{}, { deleteEnabled: 'yes' }, { deleteEnabled: true, extra: 1 }].map((body) =>
         request(server).put('/api/admin/storage/reclaim').set('Cookie', adminCookie).send(body),
       ),
     );
     expect(refused.map((res) => res.status)).toEqual([400, 400, 400]);
-    const run = await request(server)
-      .post('/api/admin/storage/reclaim/run')
-      .set('Cookie', adminCookie)
-      .send({ reportOnly: 'no' });
-    expect(run.status).toBe(400);
+    const confirm = await Promise.all(
+      [{}, { category: 'nowhere' }, { category: 'covers', count: 3 }].map((body) =>
+        request(server).post('/api/admin/storage/reclaim/confirm').set('Cookie', adminCookie).send(body),
+      ),
+    );
+    expect(confirm.map((res) => res.status)).toEqual([400, 400, 400]);
     expect(await countRows(orm, AuditLog)).toBe(0);
   });
 
-  it('RCLE-005: a report-only pass asks every registered source, deletes nothing, persists and audits', async () => {
-    const res = await request(server)
-      .post('/api/admin/storage/reclaim/run')
-      .set('Cookie', adminCookie)
-      .send({ reportOnly: true });
-    expect(res.status).toBe(200);
-    expect(res.body.mode).toBe('report');
-    for (const category of STORAGE_RECLAIMABLE_CATEGORIES) {
-      expect(res.body.categories[category].skipped).not.toBe('sources_missing');
-      expect(res.body.categories[category].deleted).toEqual({ objects: 0, bytes: 0 });
-    }
-    expect(res.body.categories.backups.skipped).toBe('not_reclaimed');
+  it('RCLE-005: POST run answers 202 at once, the check asks every source, deletes nothing and lands on the state', async () => {
+    const res = await request(server).post('/api/admin/storage/reclaim/run').set('Cookie', adminCookie).send({});
+    expect(res.status).toBe(202);
+    expect(res.body).toEqual({ started: true });
     const audit = await findRow(orm, AuditLog, { action: 'admin.storage_reclaim_run' });
-    expect(JSON.parse(String(audit?.details))).toEqual({ mode: 'report', deleted: 0, bytes: 0 });
-    const state = await request(server).get('/api/admin/storage').set('Cookie', adminCookie);
-    expect(state.body.reclaim.lastRun).toEqual(res.body);
+    expect(JSON.parse(String(audit?.details))).toEqual({ mode: 'report' });
+    const reclaim = await settledState();
+    expect(reclaim.running).toBe(false);
+    expect(reclaim.lastRun.mode).toBe('report');
+    expect(reclaim.lastDeleteRun).toBeNull();
+    for (const category of STORAGE_RECLAIMABLE_CATEGORIES) {
+      expect(reclaim.lastRun.categories[category].skipped).not.toBe('sources_missing');
+      expect(reclaim.lastRun.categories[category].deleted).toEqual({ objects: 0, bytes: 0 });
+    }
+    expect(reclaim.lastRun.categories.backups.skipped).toBe('not_reclaimed');
   });
 
-  it('RCLE-006: 409 while another storage job holds the slot', async () => {
+  it('RCLE-006: 409 with a code while another storage job holds the slot, and while nothing waits for a confirmation', async () => {
     const jobs = app.get(StorageJobsService);
     expect(jobs.claimExclusive('a test job')).toBe(true);
     try {
       const res = await request(server).post('/api/admin/storage/reclaim/run').set('Cookie', adminCookie).send({});
       expect(res.status).toBe(409);
-      expect(res.body).toEqual({ error: 'another storage job is running, one storage job at a time' });
+      expect(res.body).toEqual({
+        error: 'another storage job is running, one storage job at a time',
+        code: 'reclaim_busy',
+      });
       expect(await countRows(orm, AuditLog)).toBe(0);
     } finally {
       jobs.releaseExclusive('a test job');
     }
+    const confirm = await request(server)
+      .post('/api/admin/storage/reclaim/confirm')
+      .set('Cookie', adminCookie)
+      .send({ category: 'covers' });
+    expect(confirm.status).toBe(409);
+    expect(confirm.body.code).toBe('reclaim_nothing_to_confirm');
   });
 
   it('RCLE-007: managed mode refuses the surface with the standard body', async () => {

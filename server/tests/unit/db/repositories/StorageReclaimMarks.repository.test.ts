@@ -69,11 +69,11 @@ describe('StorageReclaimMarksRepository', () => {
     expect((await marks.marksOf('places')).map((m) => m.key)).toEqual(['a.jpg']);
   });
 
-  it('RCLM-004: drops every mark of one category', async () => {
+  it('RCLM-004: drops every mark of every category, for a database a restore brought back', async () => {
     await marks.insertMissing('covers', [{ key: 'a.jpg', size: 1 }], '2026-01-01 00:00:00');
     await marks.insertMissing('places', [{ key: 'a.jpg', size: 1 }], '2026-01-01 00:00:00');
-    expect(await marks.deleteCategory('covers')).toBe(1);
+    expect(await marks.deleteAll()).toBe(2);
     expect(await marks.marksOf('covers')).toEqual([]);
-    expect(await marks.marksOf('places')).toHaveLength(1);
+    expect(await marks.marksOf('places')).toEqual([]);
   });
 });

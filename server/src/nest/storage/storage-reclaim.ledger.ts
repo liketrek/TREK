@@ -1,7 +1,8 @@
 import type { StorageReclaimableCategory, StorageReferenceSourceId } from './storage-reclaim.types';
-import type { BackendSnapshot } from './storage-registry.service';
-import type { ServedCategory } from './storage.types';
+import type { BackendSnapshot, StorageRegistryService } from './storage-registry.service';
+import { SERVED_CATEGORIES, type ServedCategory } from './storage.types';
 
+import fs from 'node:fs';
 import path from 'node:path';
 
 export type ReclaimRule =
@@ -113,6 +114,17 @@ export function sharedLocationCategories(
   return shared;
 }
 
+/** The categories whose resolved location overlaps another's, from the live registry. */
+export function sharedLocationsOf(registry: StorageRegistryService): Set<ServedCategory> {
+  const assignments = new Map(
+    SERVED_CATEGORIES.map((category) => {
+      const { backendName, keyPrefix } = registry.resolve(category);
+      return [category, { backendName, keyPrefix }] as const;
+    }),
+  );
+  return sharedLocationCategories(assignments, registry.snapshot().backends);
+}
+
 function locationsOf(assignment: CategoryAssignment, backends: ReadonlyMap<string, BackendSnapshot>): string[] | null {
   const backend = backends.get(assignment.backendName);
   if (!backend) return null;
@@ -120,32 +132,52 @@ function locationsOf(assignment: CategoryAssignment, backends: ReadonlyMap<strin
     backend.type === 'mirror'
       ? [backend.options.primary, ...asList(backend.options.replicas)].map((name) => backends.get(String(name)))
       : [backend];
-  const bases: string[] = [];
+  const locations: string[] = [];
   for (const member of members) {
-    const base = member ? baseOf(member) : null;
-    if (base === null) return null;
-    bases.push(base);
+    const location = member ? locationOf(member, assignment.keyPrefix) : null;
+    if (location === null) return null;
+    locations.push(location);
   }
-  return bases.map((base) => base + assignment.keyPrefix.toLowerCase());
+  return locations;
 }
 
 /**
- * Where a backend keeps its objects, lowercased: comparing more paths as equal
- * than the volume does only excludes more, never less.
+ * Where a backend keeps a key prefix's objects, lowercased: comparing more
+ * paths as equal than the volume does only excludes more, never less. A local
+ * root is resolved through its symlinks as LocalDriver resolves it (the image
+ * links /app/server/uploads to /app/uploads), and the prefix's own folder too
+ * when it exists; a root that cannot be resolved reads as unknown, so shared.
  */
-function baseOf(backend: BackendSnapshot): string | null {
+function locationOf(backend: BackendSnapshot, keyPrefix: string): string | null {
   const { options } = backend;
   if (backend.type === 'local') {
     if (typeof options.root !== 'string' || options.root === '') return null;
-    return `local:${trimSlashes(path.resolve(options.root).replace(/\\/g, '/'))}/`.toLowerCase();
+    const root = realOrNull(path.resolve(options.root));
+    if (root === null) return null;
+    const prefixed = keyPrefix === '' ? null : realOrNull(path.join(root, keyPrefix));
+    const base = prefixed === null ? `${slashed(root)}${keyPrefix}` : slashed(prefixed);
+    return `local:/${trimSlashes(base)}${base.endsWith('/') ? '/' : ''}`.toLowerCase();
   }
   if (backend.type === 's3') {
     if (typeof options.endpoint !== 'string' || typeof options.bucket !== 'string') return null;
-    const keyPrefix = typeof options.keyPrefix === 'string' ? trimSlashes(options.keyPrefix) : '';
+    const bucketPrefix = typeof options.keyPrefix === 'string' ? trimSlashes(options.keyPrefix) : '';
     const base = `s3:${trimSlashes(options.endpoint)}/${options.bucket}/`;
-    return (keyPrefix === '' ? base : `${base}${keyPrefix}/`).toLowerCase();
+    return `${bucketPrefix === '' ? base : `${base}${bucketPrefix}/`}${keyPrefix}`.toLowerCase();
   }
   return null;
+}
+
+function realOrNull(target: string): string | null {
+  try {
+    return fs.realpathSync(target);
+  } catch {
+    return null;
+  }
+}
+
+/** A resolved folder with forward slashes and one trailing slash. */
+function slashed(folder: string): string {
+  return `${folder.replace(/\\/g, '/').replace(/\/+$/, '')}/`;
 }
 
 function asList(value: string | number | string[] | undefined): string[] {

@@ -1,5 +1,5 @@
 import { TrekPhotos } from '../../db/entities/TrekPhotos.entity';
-import { StorageReclaimSource } from '../storage/storage-reclaim-source.service';
+import { likeAny, StorageReclaimSource } from '../storage/storage-reclaim-source.service';
 import { EVERY_RECLAIMABLE_CATEGORY } from '../storage/storage-reclaim.types';
 import { Injectable } from '@nestjs/common';
 
@@ -20,13 +20,12 @@ export class PhotosStorageRefsService extends StorageReclaimSource {
   readonly claims = EVERY_RECLAIMABLE_CATEGORY;
   protected override readonly keyOptions = { bare: 'journey', basename: true } as const;
 
-  protected async storedValues(): Promise<Array<string | null | undefined>> {
+  protected async storedValues(containing: readonly string[] | null): Promise<Array<string | null | undefined>> {
     const rows = await this.em
       .getRepository(TrekPhotos)
-      .find(
-        { $or: [{ file_path: { $ne: null } }, { thumbnail_path: { $ne: null } }] },
-        { fields: ['file_path', 'thumbnail_path'] },
-      );
+      .find(likeAny<TrekPhotos>(['file_path', 'thumbnail_path'], containing), {
+        fields: ['file_path', 'thumbnail_path'],
+      });
     return rows.flatMap((row) => [row.file_path, row.thumbnail_path]);
   }
 }

@@ -1,7 +1,7 @@
 import {
   storageConfigPutSchema,
   storageMigrationRequestSchema,
-  storageReclaimRunRequestSchema,
+  storageReclaimConfirmRequestSchema,
   storageReclaimSettingsRequestSchema,
   storageTestRequestSchema,
 } from '@trek/shared';
@@ -19,4 +19,4 @@ export class StorageConfigDto extends createZodDto(storageConfigPutSchema) {}
 export class StorageTestRequestDto extends createZodDto(storageTestRequestSchema) {}
 export class StorageMigrationRequestDto extends createZodDto(storageMigrationRequestSchema) {}
 export class StorageReclaimSettingsDto extends createZodDto(storageReclaimSettingsRequestSchema) {}
-export class StorageReclaimRunDto extends createZodDto(storageReclaimRunRequestSchema) {}
+export class StorageReclaimConfirmDto extends createZodDto(storageReclaimConfirmRequestSchema) {}

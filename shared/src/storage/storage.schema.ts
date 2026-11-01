@@ -283,20 +283,27 @@ export const STORAGE_RECLAIM_CATEGORIES = [...STORAGE_CATEGORIES, 'photos'] as c
 export const storageReclaimCategorySchema = z.enum(STORAGE_RECLAIM_CATEGORIES);
 
 /**
- * Why a category deleted nothing on a pass, whatever the switch says:
+ * Why a category was not judged on a pass, or stopped short, whatever the switch says:
  * - `not_reclaimed`: the category is never reclaimed (a cache, the backups, the legacy photos folder);
  * - `sources_missing`: a domain whose rows can name its objects did not answer, so nothing can be proven unreferenced;
  * - `shared_location`: its objects sit where another category's do, or where they cannot be told apart;
- * - `too_many_unreferenced`: more than a fifth of its objects look unreferenced, which points at a shared bucket;
- * - `list_failed` / `source_failed`: the listing or a reference lookup failed, so the pass stopped there.
+ * - `foreign_install`: another TREK installation keeps its uploads in the same place (its owner marker is there);
+ * - `owner_unknown`: this installation's owner marker could not be written there, so a shared place cannot be ruled out;
+ * - `list_failed` / `source_failed`: the listing or a reference lookup failed, so the pass stopped there;
+ * - `delete_failed`: deleting failed on the backend, so the pass stopped deleting in this category;
+ * - `interrupted`: the pass stopped (`stopped` says why) before it finished this category; its figures are partial.
+ * A skip keeps the marks it found: only a pass that judges the category moves them.
  */
 export const STORAGE_RECLAIM_SKIP_REASONS = [
   'not_reclaimed',
   'sources_missing',
   'shared_location',
-  'too_many_unreferenced',
+  'foreign_install',
+  'owner_unknown',
   'list_failed',
   'source_failed',
+  'delete_failed',
+  'interrupted',
 ] as const;
 
 const storageObjectCountSchema = z.object({ objects: z.number().int().nonnegative(), bytes: z.number().nonnegative() });
@@ -309,6 +316,11 @@ export const storageReclaimCategoryReportSchema = z.object({
   /** Unreferenced on every pass for at least a week: what a pass with deletion on removes. */
   eligible: storageObjectCountSchema,
   deleted: storageObjectCountSchema,
+  /**
+   * More than a fifth of the category is unreferenced, and more than an admin
+   * last confirmed: deletion waits for a confirmation (POST .../reclaim/confirm).
+   */
+  confirmationRequired: z.boolean(),
   skipped: z.enum(STORAGE_RECLAIM_SKIP_REASONS).nullable(),
 });
 export type StorageReclaimCategoryReport = z.infer<typeof storageReclaimCategoryReportSchema>;
@@ -316,27 +328,41 @@ export type StorageReclaimCategoryReport = z.infer<typeof storageReclaimCategory
 export const storageReclaimReportSchema = z.object({
   startedAt: z.number(),
   finishedAt: z.number(),
-  /** `delete` only when the admin switched deletion on and the pass was not asked to only report. */
+  /** `delete` when the pass started with deletion switched on; a check started by hand always only reports. */
   mode: z.enum(['report', 'delete']),
-  /** Why the pass stopped before the end: the database was swapped under it (a restore). Null when it ran through. */
-  stopped: z.enum(['database_reopened']).nullable(),
+  /**
+   * Why the pass stopped before the end: the database was swapped under it (a
+   * restore), or an unexpected error. Null when it ran through.
+   */
+  stopped: z.enum(['database_reopened', 'failed']).nullable(),
   categories: z.record(storageReclaimCategorySchema, storageReclaimCategoryReportSchema),
 });
 export type StorageReclaimReport = z.infer<typeof storageReclaimReportSchema>;
 
 export const storageReclaimStateSchema = z.object({
-  /** Off after install and upgrade: a pass then only reports. */
+  /** Off after install, upgrade and every backup restore: a pass then only reports. */
   deleteEnabled: z.boolean(),
+  /** A pass is running now (the nightly one or a check started by hand). */
+  running: z.boolean(),
+  /** The last pass of any kind; null before the first. */
   lastRun: storageReclaimReportSchema.nullable(),
+  /** The last pass that ran with deletion on, which a check started by hand never replaces; null before one. */
+  lastDeleteRun: storageReclaimReportSchema.nullable(),
 });
 export type StorageReclaimState = z.infer<typeof storageReclaimStateSchema>;
 
 export const storageReclaimSettingsRequestSchema = z.strictObject({ deleteEnabled: z.boolean() });
 export type StorageReclaimSettingsRequest = z.infer<typeof storageReclaimSettingsRequestSchema>;
 
-/** `reportOnly` runs a pass that deletes nothing even with deletion switched on. */
-export const storageReclaimRunRequestSchema = z.strictObject({ reportOnly: z.boolean().optional() });
-export type StorageReclaimRunRequest = z.infer<typeof storageReclaimRunRequestSchema>;
+/** POST .../reclaim/run answers 202 at once; the pass reports through the admin state. */
+export const storageReclaimRunStartedSchema = z.object({ started: z.literal(true) });
+
+/**
+ * Lets the pass delete in a category whose unreferenced share is over a
+ * fifth, up to the count the last report showed for it.
+ */
+export const storageReclaimConfirmRequestSchema = z.strictObject({ category: storageReclaimCategorySchema });
+export type StorageReclaimConfirmRequest = z.infer<typeof storageReclaimConfirmRequestSchema>;
 
 export const storageAdminStateSchema = z.object({
   backends: z.array(

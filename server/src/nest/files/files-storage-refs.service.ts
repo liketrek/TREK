@@ -1,5 +1,5 @@
 import { TripFiles } from '../../db/entities/TripFiles.entity';
-import { StorageReclaimSource } from '../storage/storage-reclaim-source.service';
+import { likeAny, StorageReclaimSource } from '../storage/storage-reclaim-source.service';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -19,8 +19,10 @@ export class FilesStorageRefsService extends StorageReclaimSource {
   readonly claims = [{ category: 'files', prefix: '' }] as const;
   protected override readonly keyOptions = { bare: 'files', basename: true } as const;
 
-  protected async storedValues(): Promise<Array<string | null | undefined>> {
-    const rows = await this.em.getRepository(TripFiles).find({}, { fields: ['filename'] });
+  protected async storedValues(containing: readonly string[] | null): Promise<Array<string | null | undefined>> {
+    const rows = await this.em
+      .getRepository(TripFiles)
+      .find(likeAny<TripFiles>(['filename'], containing), { fields: ['filename'] });
     return rows.map((row) => row.filename);
   }
 }

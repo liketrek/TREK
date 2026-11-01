@@ -6,8 +6,10 @@ import {
   storageAdminStateSchema,
   storageBackfillStatusSchema,
   storageConfigSchema,
+  STORAGE_RECLAIM_SKIP_REASONS,
+  storageReclaimConfirmRequestSchema,
   storageReclaimReportSchema,
-  storageReclaimRunRequestSchema,
+  storageReclaimRunStartedSchema,
   storageReclaimSettingsRequestSchema,
   storageReclaimStateSchema,
   storageSecretFields,
@@ -191,7 +193,14 @@ describe('backfill + usage wire shapes', () => {
 
 describe('the reclaim contract', () => {
   const counts = { objects: 0, bytes: 0 };
-  const perCategory = { objects: 3, unreferenced: counts, eligible: counts, deleted: counts, skipped: null };
+  const perCategory = {
+    objects: 3,
+    unreferenced: counts,
+    eligible: counts,
+    deleted: counts,
+    confirmationRequired: false,
+    skipped: null,
+  };
   const report = {
     startedAt: 1_700_000_000_000,
     finishedAt: 1_700_000_001_000,
@@ -205,25 +214,60 @@ describe('the reclaim contract', () => {
     expect(storageReclaimReportSchema.parse(report)).toEqual(report);
   });
 
-  it('a report missing a category, or naming an unknown skip reason, is refused', () => {
+  it('a report missing a category, a confirmation flag, or naming an unknown skip reason, is refused', () => {
     const { photos: _photos, ...withoutPhotos } = report.categories;
     expect(storageReclaimReportSchema.safeParse({ ...report, categories: withoutPhotos }).success).toBe(false);
     const odd = { ...report, categories: { ...report.categories, covers: { ...perCategory, skipped: 'tired' } } };
     expect(storageReclaimReportSchema.safeParse(odd).success).toBe(false);
+    const { confirmationRequired: _flag, ...unflagged } = perCategory;
+    const old = { ...report, categories: { ...report.categories, covers: unflagged } };
+    expect(storageReclaimReportSchema.safeParse(old).success).toBe(false);
   });
 
-  it('the admin state carries the switch and a nullable last run', () => {
+  it('names every skip reason a pass reports, the brake that used to skip a category gone', () => {
+    expect([...STORAGE_RECLAIM_SKIP_REASONS]).toEqual([
+      'not_reclaimed',
+      'sources_missing',
+      'shared_location',
+      'foreign_install',
+      'owner_unknown',
+      'list_failed',
+      'source_failed',
+      'delete_failed',
+      'interrupted',
+    ]);
+    for (const skipped of STORAGE_RECLAIM_SKIP_REASONS) {
+      const row = { ...report, categories: { ...report.categories, covers: { ...perCategory, skipped } } };
+      expect(storageReclaimReportSchema.safeParse(row).success).toBe(true);
+    }
+    expect(storageReclaimReportSchema.safeParse({ ...report, stopped: 'failed' }).success).toBe(true);
+    expect(storageReclaimReportSchema.safeParse({ ...report, stopped: 'tired' }).success).toBe(false);
+  });
+
+  it('the admin state carries the switch, the running flag and both nullable reports', () => {
     const shape = storageAdminStateSchema.pick({ reclaim: true });
-    expect(shape.parse({ reclaim: { deleteEnabled: false, lastRun: null } })).toEqual({
-      reclaim: { deleteEnabled: false, lastRun: null },
-    });
-    expect(storageReclaimStateSchema.safeParse({ deleteEnabled: 'yes', lastRun: null }).success).toBe(false);
+    const idle = { deleteEnabled: false, running: false, lastRun: null, lastDeleteRun: null };
+    expect(shape.parse({ reclaim: idle })).toEqual({ reclaim: idle });
+    expect(shape.parse({ reclaim: null })).toEqual({ reclaim: null });
+    expect(storageReclaimStateSchema.parse({ ...idle, running: true, lastRun: report, lastDeleteRun: report })).toEqual(
+      {
+        ...idle,
+        running: true,
+        lastRun: report,
+        lastDeleteRun: report,
+      },
+    );
+    expect(storageReclaimStateSchema.safeParse({ ...idle, deleteEnabled: 'yes' }).success).toBe(false);
+    expect(storageReclaimStateSchema.safeParse({ deleteEnabled: false, lastRun: null }).success).toBe(false);
   });
 
-  it('the requests are closed objects', () => {
+  it('the requests are closed objects, and a started check answers started: true', () => {
     expect(storageReclaimSettingsRequestSchema.parse({ deleteEnabled: true })).toEqual({ deleteEnabled: true });
     expect(storageReclaimSettingsRequestSchema.safeParse({ deleteEnabled: true, extra: 1 }).success).toBe(false);
-    expect(storageReclaimRunRequestSchema.parse({})).toEqual({});
-    expect(storageReclaimRunRequestSchema.safeParse({ reportOnly: 'no' }).success).toBe(false);
+    expect(storageReclaimConfirmRequestSchema.parse({ category: 'covers' })).toEqual({ category: 'covers' });
+    expect(storageReclaimConfirmRequestSchema.safeParse({ category: 'nowhere' }).success).toBe(false);
+    expect(storageReclaimConfirmRequestSchema.safeParse({ category: 'covers', count: 3 }).success).toBe(false);
+    expect(storageReclaimRunStartedSchema.parse({ started: true })).toEqual({ started: true });
+    expect(storageReclaimRunStartedSchema.safeParse({ started: false }).success).toBe(false);
   });
 });

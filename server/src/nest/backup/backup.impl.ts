@@ -9,6 +9,7 @@ import { invalidatePermissionsCache } from '../permissions/permissions-cache';
 import { snapshotAllPluginDataDbs } from '../plugins/host/plugin-data.service';
 import { pluginsCodeRoot, pluginsDataRoot } from '../plugins/paths';
 import { stageExtractedPluginTrees, applyStagedRestoreNow } from '../plugins/plugin-backup';
+import { storageOwnerMarkerInstall } from '../storage/storage-reclaim.types';
 import type { StorageService } from '../storage/storage.service';
 import { StorageInvalidKeyError } from '../storage/storage.types';
 import { VALID_INTERVALS } from './auto-backup.settings';
@@ -217,6 +218,10 @@ export async function createBackup(
         // In mode A the google/trek caches nest under the photos/ prefix — the
         // category walk would sweep them back in without this skip.
         if (category === 'photos' && (obj.key.startsWith('google/') || obj.key.startsWith('trek/'))) continue;
+        // The storage reclaim pass's owner marker names the install that wrote
+        // it; restored elsewhere, it would make that install's own uploads look
+        // shared with a foreign one.
+        if (storageOwnerMarkerInstall(obj.key) !== null) continue;
         // Local path available (exists on disk right now — the fail-safe half
         // of getLocalPathOrNull's contract) → push it directly: zero-copy, the
         // default-install path. Otherwise (a remote/S3 primary, or a local

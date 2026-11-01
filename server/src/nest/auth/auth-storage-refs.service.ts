@@ -1,5 +1,5 @@
 import { Users } from '../../db/entities/Users.entity';
-import { StorageReclaimSource } from '../storage/storage-reclaim-source.service';
+import { likeAny, StorageReclaimSource } from '../storage/storage-reclaim-source.service';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -14,8 +14,10 @@ export class AuthStorageRefsService extends StorageReclaimSource {
   readonly claims = [{ category: 'avatars', prefix: '' }] as const;
   protected override readonly keyOptions = { bare: 'avatars' } as const;
 
-  protected async storedValues(): Promise<Array<string | null | undefined>> {
-    const rows = await this.em.getRepository(Users).find({ avatar: { $ne: null } }, { fields: ['avatar'] });
+  protected async storedValues(containing: readonly string[] | null): Promise<Array<string | null | undefined>> {
+    const rows = await this.em
+      .getRepository(Users)
+      .find(likeAny<Users>(['avatar'], containing), { fields: ['avatar'] });
     return rows.map((row) => row.avatar);
   }
 }

@@ -714,6 +714,23 @@ describe('BACKUP-036 createBackup', () => {
     expect(storage.getLocalPathOrNull).toHaveBeenCalledTimes(1);
   });
 
+  it('BACKUP-036i — leaves the storage reclaim owner marker out, so a restore elsewhere does not read as shared', async () => {
+    fsMock.existsSync.mockReturnValue(false);
+    setupArchiveSuccess();
+    const storage = stubStorage({
+      stat: statOf(1024),
+      list: listByCategory({
+        covers: [{ key: 'trek-owner-0f8e2b7c-1d2a-4c3b-9e8f-7a6b5c4d3e2f' }, { key: 'cover.jpg' }],
+      }),
+    });
+
+    await createBackup(deps(storage));
+
+    const names = archiverInstanceMock.file.mock.calls.map((c) => c[1]?.name as string);
+    expect(names).toContain('uploads/covers/cover.jpg');
+    expect(names.some((n) => n?.includes('trek-owner-'))).toBe(false);
+  });
+
   it('BACKUP-036h — only category prefixes are ever archived; backups/ and restore-* are structurally out (issue #1358)', async () => {
     // The uploads/** glob is gone: even when data and uploads map to the same
     // directory, enumeration only ever walks the six archived categories, so

@@ -127,33 +127,70 @@ includes the legacy photo library.
 
 ## Unreferenced files
 
-Uploaded files can outlive what used them: deleting a trip, a user or a place
-image, or replacing a cover, leaves the old file in storage. Every night
-(04:05 server time) TREK checks the covers, place images, avatars, trip files
-and journal photos for files that no row names any more, and the
-**Unreferenced files** section shows what it found:
+Uploaded files can outlive what used them. When you delete or replace
+something that shows a file (a trip or list cover, a place image, a journal
+photo, an avatar, a trip file), TREK deletes that file right away, unless
+something else still shows it: a copied trip, a journey that took over the
+trip cover, a saved place in a list. Whatever is left over after that (files of
+deleted trips and users, files from before this check existed) is found by a
+check every night at 04:05 server time. It looks at the covers, place images,
+avatars, trip files and journal photos for files that nothing in TREK names
+any more, and the **Unreferenced files** section shows what it found:
 
-- **Can be freed**: unused for at least a week, so the nightly run deletes them
-  once deletion is on.
+- **Can be freed**: unused on every check for at least a week, so the nightly
+  check deletes them once deletion is on.
 - **Unused for less than a week**: these get their week first. A file that is
   used again in the meantime (an undo, a copied trip) starts over.
-- **Freed on the last check**: what the nightly run deleted.
+- **Freed on the last check**: what the last nightly check with deletion on
+  deleted. A check you start by hand never deletes, so it never changes this
+  figure.
 
 **Delete unreferenced files** is off after install and upgrade, so the check
-only reports. Switched on, the nightly run deletes a file once it has been
-unused for a week and a last check right before the delete still finds
-nothing that uses it. **Check now** runs a check that only reports, whatever
-the switch says. Each run is recorded in the [Audit-Log](Audit-Log).
+only reports. Switched on, the nightly check deletes a file once it has been
+unused for a week and one more look right before the delete still finds
+nothing that uses it. **Check now** starts a check in the background that only
+reports, whatever the switch says; the section shows that it is running and
+updates when it is done. Switching deletion on or off, starting a check,
+confirming a category (below) and every nightly check that deleted files are
+recorded in the [Audit-Log](Audit-Log); the nightly entry names how many files
+went per category.
 
-A category is skipped, with the reason shown next to it, when not every part
-of TREK could be asked about it, when its files share a location with another
-category, when a listing or a lookup fails, or when more than a fifth of its
-files look unused. The last one usually means two installations share one
-bucket: each would see the other's files as unused, so leave deletion off in
-that setup. Caches (place photos), backups, assistant attachments and journal
-thumbnails are cleaned up by their own routines and are never touched here.
-No check runs on a demo instance, and none while a sync, a move or a restore
-is running.
+When more than a fifth of a category's files look unused, the check marks it
+and deletes nothing there until you confirm it once with **Confirm** next to
+the category. The confirmation covers the number of files shown at that
+moment: if the number later grows past it, while still more than a fifth, the
+category waits for you again. A long-running instance with many old leftovers
+usually needs this once.
+
+A category is skipped for that night, with the reason shown next to it, when:
+
+- not every part of TREK could be asked about it;
+- its files share a location with another category's;
+- another TREK installation keeps its files in the same place (see below), or
+  TREK could not leave its own mark there;
+- listing it or asking about it failed. What the earlier nights found stays,
+  so one failure does not restart anyone's week;
+- deleting failed on the storage backend: the check then stops deleting in
+  that category for the night.
+
+**Several installations on one bucket or folder.** Each check leaves a small
+file named `trek-owner-<id>` at the top of every category it looks at, naming
+this installation. When it finds such a file of another installation there,
+it leaves that category alone, and so does the other installation once it
+sees this one's file. Backups leave these files out. If you moved an
+installation and a stale `trek-owner-<id>` of its old self remains, delete
+that one file to let the check work there again.
+
+**Restoring a backup** switches deletion off and forgets what earlier checks
+found and what you confirmed, because the restored data may come from another
+installation. Switch deletion on again once you have looked at the next
+report.
+
+Caches (place photos), backups, assistant attachments and journal thumbnails
+are cleaned up by their own routines and are never touched here. No check runs
+on a demo instance, none while a sync, a move or a restore is running, and a
+running check deletes nothing while a backup is being written or once you
+switch deletion off.
 
 ## Secrets and encryption
 

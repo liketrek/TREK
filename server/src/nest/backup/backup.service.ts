@@ -32,8 +32,14 @@ export class BackupService {
   listBackups() {
     return svc.listBackups(this.storage);
   }
-  createBackup(prefix?: 'backup' | 'auto-backup') {
-    return svc.createBackup(this.deps, prefix);
+  /** Marked running while it reads the uploads, so the storage reclaim pass deletes nothing it still archives. */
+  async createBackup(prefix?: 'backup' | 'auto-backup') {
+    this.jobs.beginBackup();
+    try {
+      return await svc.createBackup(this.deps, prefix);
+    } finally {
+      this.jobs.endBackup();
+    }
   }
   restoreFromZip(zipPath: string) {
     return this.whileRestoring(() => svc.restoreFromZip(this.deps, zipPath));
