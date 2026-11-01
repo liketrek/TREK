@@ -199,7 +199,7 @@ podSecurityContext:
 securityContext: {}
 ```
 
-With these defaults the container starts as root, gives every file under `/app/data` and `/app/uploads` that does not belong to the `node` user (uid 1000) to `node`, and then drops to `node`. Files that already belong to `node` are left alone, so a large uploads volume does not slow down the start. If ownership has to be corrected, the log says `Correcting ownership of /app/uploads for the node user...` before TREK's own start-up lines.
+With these defaults the container starts as root, hands `/app/data` and `/app/uploads` to the `node` user (uid 1000) if they are not `node`'s yet, and then drops to `node`. Only the two directories and what sits directly in them are checked, so a large uploads volume that already belongs to `node` does not slow down the start. If ownership has to be corrected, the log says `Correcting ownership of /app/uploads for the node user...` before TREK's own start-up lines. A volume that refuses `chown` (NFS with `root_squash`, for example) logs a warning instead; run TREK as uid 1000 then, as shown below.
 
 To run TREK as `node` from the first process on, for example in a namespace that enforces the `restricted` Pod Security Standard, set the user in the pod security context. The image notices it is not root and starts Node directly, with no ownership step and no privilege drop:
 

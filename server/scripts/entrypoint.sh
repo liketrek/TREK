@@ -31,16 +31,25 @@ if [ "$(id -u)" != "0" ]; then
   exec node --require tsconfig-paths/register dist/index.js
 fi
 
-# Hand the mounted data dirs to node, touching only what is not node's yet. A
-# blanket `chown -R` rewrote every inode on every start, which on a large or
-# network-backed volume (NFS, CephFS, Longhorn) kept the container busy for
-# minutes before Node printed its first line (#2918). Best effort: a read-only
-# host filesystem or a locked-down bind mount must keep booting.
+# Hand the mounted data dirs to node. A blanket `chown -R` on every start
+# rewrote, and even a search for strays still read, every inode of the volume,
+# which on a large or network-backed one (NFS, CephFS, Longhorn) kept the
+# container busy for minutes before Node printed its first line (#2918). So only
+# the dir and what sits directly in it are looked at: a volume that is not
+# node's yet (a fresh one, or one copied in as root) shows there, and is handed
+# over once. A volume that refuses chown altogether (NFS with root_squash) is
+# said once per start instead of being walked file by file; such a pod belongs
+# under runAsUser 1000, see the Helm page of the wiki. Best effort either way: a
+# read-only host filesystem or a locked-down bind mount must keep booting.
 for dir in /app/data /app/uploads; do
   [ -d "$dir" ] || continue
-  if [ -n "$(find "$dir" \( ! -user node -o ! -group node \) -print -quit 2>/dev/null)" ]; then
-    echo "Correcting ownership of $dir for the node user..."
-    find "$dir" \( ! -user node -o ! -group node \) -exec chown -h node:node {} + 2>/dev/null || true
+  if [ -n "$(find "$dir" -maxdepth 1 \( ! -user node -o ! -group node \) -print -quit 2>/dev/null)" ]; then
+    if chown node:node "$dir" 2>/dev/null; then
+      echo "Correcting ownership of $dir for the node user..."
+      chown -R -h node:node "$dir" 2>/dev/null || true
+    else
+      echo "WARNING: $dir cannot be handed to the node user (chown refused); run the container as uid 1000 instead."
+    fi
   fi
 done
 

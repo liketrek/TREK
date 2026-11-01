@@ -59,10 +59,20 @@ describe('entrypoint script', () => {
     .filter((line) => !line.trimStart().startsWith('#'))
     .join('\n');
 
-  it('never chowns the volumes recursively and unconditionally', () => {
-    expect(code).not.toMatch(/chown\s+-R/);
-    expect(code).toContain('! -user node -o ! -group node');
+  it('never walks the volumes on a start where they already belong to node', () => {
+    // Only the dir and its direct entries are looked at, never the whole tree.
+    expect(code).toContain('find "$dir" -maxdepth 1 \\( ! -user node -o ! -group node \\) -print -quit');
+    expect(code).not.toMatch(/find "\$dir" \\\(/);
+    // The recursive hand-over sits behind that check and behind a chown of the dir that worked.
+    const check = code.indexOf('-maxdepth 1');
+    const dirChown = code.indexOf('if chown node:node "$dir"');
+    expect(dirChown).toBeGreaterThan(check);
+    expect(code.indexOf('chown -R')).toBeGreaterThan(dirChown);
     expect(code).toContain('Correcting ownership of $dir for the node user...');
+  });
+
+  it('says so once instead of walking a volume that refuses chown', () => {
+    expect(code).toContain('cannot be handed to the node user (chown refused); run the container as uid 1000 instead.');
   });
 
   // Under runAsUser: 1000 there is no privilege to drop and gosu cannot switch
