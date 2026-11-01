@@ -353,13 +353,27 @@ function applyChronoOrder(
   dayId: number,
   getDisplayTime: (r: any, dayId: number) => string | null
 ): MergedItem[] {
+  return chronoOrder(items, chronoKeyOf(items, dayId, getDisplayTime))
+}
+
+/**
+ * The minutes the day orders an item by: its own clock, or for a booking in a known
+ * zone the clock slot it takes among the day's zoned bookings (#2929). The checks
+ * that ask whether a move keeps the day in order read the same key, or a day whose
+ * flights were put in the order they happen would read as out of order on every move.
+ */
+export function chronoKeyOf(
+  items: readonly MergedItem[],
+  dayId: number,
+  getDisplayTime: (r: any, dayId: number) => string | null
+): (it: MergedItem) => number | null {
   const clockOf = (it: MergedItem): number | null => {
     if (it.type === 'place') return parseTimeToMinutes(it.data?.place?.place_time)
     if (it.type === 'note') return parseTimeToMinutes(it.data?.time)
     return parseTimeToMinutes(getDisplayTime(it.data, dayId))
   }
-  const zoned = zonedClockSlots(items, dayId, getDisplayTime, clockOf)
-  return chronoOrder(items, it => (zoned.has(it) ? zoned.get(it) : clockOf(it)))
+  const zoned = zonedClockSlots([...items], dayId, getDisplayTime, clockOf)
+  return it => (zoned.has(it) ? (zoned.get(it) as number) : clockOf(it))
 }
 
 /**

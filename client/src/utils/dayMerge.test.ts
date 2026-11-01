@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseTimeToMinutes, getSpanPhase, hidesOnMiddleDay, getTransportRouteEndpoints, getDisplayTimeForDay, getTransportForDay, getAssignmentReservations, pinnedAway, stopDayIds, getPlaceBookings, getMergedItems, nightRowsOf, rideSeatKey, seatTimedDrop, stayStartingOn, storedRideSlot, timedSlot, type MergedItem } from './dayMerge'
+import { parseTimeToMinutes, getSpanPhase, hidesOnMiddleDay, getTransportRouteEndpoints, getDisplayTimeForDay, getTransportForDay, getAssignmentReservations, pinnedAway, stopDayIds, getPlaceBookings, getMergedItems, chronoKeyOf, nightRowsOf, rideSeatKey, seatTimedDrop, stayStartingOn, storedRideSlot, timedSlot, type MergedItem } from './dayMerge'
 import { planMergedOrder, withTransportPositions } from './mergedOrder'
 
 describe('parseTimeToMinutes', () => {
@@ -738,5 +738,12 @@ describe('getMergedItems: bookings in different time zones (#2929)', () => {
   it('seats a dragged flight where its zone puts it', () => {
     const order = getMergedItems({ dayAssignments: [], dayNotes: [], dayTransports: [toLA, toSeattle], dayId: DAY })
     expect(ids(seatTimedDrop([order[1], order[0]], 0, DAY))).toEqual([1, 2])
+  })
+
+  it('gives the zoned flights the key they are drawn by, so the drawn order reads as in order', () => {
+    const items = getMergedItems({ dayAssignments: [], dayNotes: [], dayTransports: [toSeattle, toLA], dayId: DAY })
+    const keyOf = chronoKeyOf(items, DAY, getDisplayTimeForDay)
+    // Drawn Auckland first: it takes the 17:00 slot, the Seattle flight the 20:20 one.
+    expect(items.map(keyOf)).toEqual([17 * 60, 20 * 60 + 20])
   })
 })

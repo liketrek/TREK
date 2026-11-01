@@ -884,4 +884,19 @@ describe('planTimelineModel — chronology helpers', () => {
     expect(breaksChronology([nine, bus], 2, getDisplayTime)).toBe(true)
     expect(getDisplayTime).toHaveBeenCalledWith(bus.data, 2)
   })
+
+  it('FE-MOB-PTLM-061: flights drawn in the order they happen across time zones do not read as out of order (#2929)', () => {
+    const flight = (id: number, time: string, from: string, to: string) =>
+      buildReservation({
+        id, type: 'flight', day_id: 2, end_day_id: 2, reservation_time: `2026-05-02T${time}`,
+        metadata: JSON.stringify({ departure_timezone: from, arrival_timezone: to }),
+      })
+    const toLA = flight(61, '20:20', 'Pacific/Auckland', 'America/Los_Angeles')
+    const toSeattle = flight(62, '17:00', 'America/Los_Angeles', 'America/Los_Angeles')
+    const drawn = getMergedItems({ dayAssignments: [], dayNotes: [], dayTransports: [toSeattle, toLA], dayId: 2 })
+    expect(drawn.map(i => i.data.id)).toEqual([61, 62])
+    const breakfast = placeItem(assignment(11, 0, place(101, 'Breakfast', 48.1, 16.1, '09:00')))
+    expect(breaksChronology([breakfast, ...drawn], 2, getDisplayTimeForDay)).toBe(false)
+    expect(breaksChronology([...drawn, breakfast], 2, getDisplayTimeForDay)).toBe(true)
+  })
 })

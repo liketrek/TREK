@@ -49,7 +49,7 @@ import { getAccommodationAnchors, getDayBookendHotels, shouldDrawMorningLeg, sho
 import {
   TRANSPORT_TYPES, parseTimeToMinutes, getSpanPhase, hidesOnMiddleDay, getDisplayTimeForDay, getTransportRouteEndpoints,
   getTransportForDay as _getTransportForDay, getMergedItems as _getMergedItems, isCarrierTransport, hasCarrierEndpointOnDay,
-  getAssignmentReservations, timedSlot, storedRideSlot, seatTimedDrop, stopDayIds,
+  getAssignmentReservations, timedSlot, storedRideSlot, seatTimedDrop, stopDayIds, chronoKeyOf,
   type MergedItem,
 } from '../../utils/dayMerge'
 import { withinDriveRange } from '@trek/shared/roadtrip'
@@ -935,12 +935,9 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
         const fromIdx = m.findIndex(i => i.type === fromType && i.data.id === fromId)
         const toIdx = m.findIndex(matchTo)
         if (fromIdx !== -1 && toIdx !== -1) {
+          const keyOf = chronoKeyOf(m, dayId, getDisplayTimeForDay)
           const timedInOrder = moveRow(m, fromIdx, matchTo, insertAfter).order
-            .map(i => {
-              if (i.type === 'transport') return parseTimeToMinutes(getDisplayTimeForDay(i.data, dayId))
-              if (i.type === 'place') return parseTimeToMinutes(i.data?.place?.place_time)
-              return null
-            })
+            .map(i => (i.type === 'note' ? null : keyOf(i)))
             .filter(t => t !== null)
           const isChronological = timedInOrder.every((t, i) => i === 0 || t >= timedInOrder[i - 1])
 
@@ -1829,12 +1826,9 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                           // Check chronological order of all timed items in the new order
                           const placeTime = place.place_time
                           if (parseTimeToMinutes(placeTime) !== null) {
+                            const keyOf = chronoKeyOf(m, day.id, getDisplayTimeForDay)
                             const timedInNewOrder = newOrder
-                              .map(i => {
-                                if (i.type === 'transport') return parseTimeToMinutes(getDisplayTimeForDay(i.data, day.id))
-                                if (i.type === 'place') return parseTimeToMinutes(i.data?.place?.place_time)
-                                return null
-                              })
+                              .map(i => (i.type === 'note' ? null : keyOf(i)))
                               .filter(t => t !== null)
                             const isChronological = timedInNewOrder.every((t, i) => i === 0 || t >= timedInNewOrder[i - 1])
                             if (!isChronological) {
