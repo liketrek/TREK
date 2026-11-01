@@ -258,7 +258,12 @@ export class StorageReclaimService implements OnModuleInit {
   private async pass(reportOnly: boolean, now: Date): Promise<StorageReclaimReport> {
     const wallStart = Date.now();
     const installId = this.install.installId();
-    const deleting = !reportOnly && installId !== null && (await readReclaimDeleteEnabled(this.appSettings, installId));
+    // A database this installation does not recognise (a restore whose reset did not run yet) only reports.
+    const deleting =
+      !reportOnly &&
+      installId !== null &&
+      (await this.install.databaseIsThis(installId)) &&
+      (await readReclaimDeleteEnabled(this.appSettings, installId));
     const ctx: PassContext = {
       now: now.getTime(),
       installId,

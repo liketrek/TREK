@@ -10,7 +10,7 @@
  * an owner marker of another install keeps its hands off; a restore, or a
  * database naming another install, resets the switch, the marks, the queue
  * and the reports but keeps this install's id, and so does a restore's reset
- * file whatever id the database names. RCLS-001 to RCLS-045.
+ * file whatever id the database names. RCLS-001 to RCLS-046.
  */
 import { AppSettings } from '../../../../src/db/entities/AppSettings.entity';
 import { AuditLog } from '../../../../src/db/entities/AuditLog.entity';
@@ -888,6 +888,20 @@ describe('StorageReclaimService: a pass that stops, and a restore', () => {
     await reopen();
     expect(fs.existsSync(sentinel)).toBe(false);
     expect((await reclaim.state()).deleteEnabled).toBe(false);
+  });
+
+  it('RCLS-046: while a restore's reset is still pending, the nightly pass only reports, whatever the switch says', async () => {
+    const sentinel = path.join(dataRoot, 'reclaim-reset');
+    await markedWeekOld(['orphan.jpg']);
+    fs.writeFileSync(sentinel, 'pending');
+    try {
+      const report = await reclaim.run({ now: WEEK_LATER });
+      expect(report.mode).toBe('report');
+      expect(report.categories.covers.deleted.objects).toBe(0);
+      expect(fs.existsSync(objectPath('covers', 'orphan.jpg'))).toBe(true);
+    } finally {
+      fs.rmSync(sentinel, { force: true });
+    }
   });
 
   it('RCLS-045: a reset file that cannot be removed is reset again on the next start, and the database is not this', async () => {
