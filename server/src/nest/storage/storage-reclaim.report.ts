@@ -1,3 +1,5 @@
+import { confirmationCovers, type ReclaimConfirmations } from './storage-reclaim.settings';
+import type { ServedCategory } from './storage.types';
 import type { StorageReclaimCategoryReport, StorageReclaimReport } from '@trek/shared';
 
 /** One object a pass looks at. */
@@ -36,6 +38,28 @@ export function reportOf(progress: CategoryProgress): StorageReclaimCategoryRepo
 
 function countOf(candidates: readonly ReclaimCandidate[]): { objects: number; bytes: number } {
   return { objects: candidates.length, bytes: candidates.reduce((sum, candidate) => sum + candidate.size, 0) };
+}
+
+/**
+ * The report as the admin state shows it: a category whose live confirmation
+ * covers its unreferenced count no longer reads as waiting for one, so the
+ * prompt goes as soon as the admin confirmed, not only after the next pass.
+ */
+export function withConfirmations(
+  report: StorageReclaimReport,
+  confirmations: ReclaimConfirmations,
+  now: number,
+): StorageReclaimReport {
+  const categories = Object.fromEntries(
+    Object.entries(report.categories).map(([category, row]) => [
+      category,
+      row.confirmationRequired &&
+      confirmationCovers(confirmations[category as ServedCategory], row.unreferenced.objects, now)
+        ? { ...row, confirmationRequired: false }
+        : row,
+    ]),
+  ) as StorageReclaimReport['categories'];
+  return { ...report, categories };
 }
 
 /** What a report says the pass deleted, over every category. */

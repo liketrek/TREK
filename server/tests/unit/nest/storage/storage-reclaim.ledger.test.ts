@@ -217,6 +217,7 @@ describe('StorageReclaimRegistryService', () => {
     id,
     claims: [{ category: 'covers', prefix: '' }],
     namedKeys: async () => new Set<string>(),
+    namedKeysByCategory: async () => new Map(),
     referenced: async () => new Set<string>(),
   });
 

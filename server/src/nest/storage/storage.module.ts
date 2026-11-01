@@ -1,5 +1,6 @@
 import { AppSettings } from '../../db/entities/AppSettings.entity';
 import { StorageReclaimMarks } from '../../db/entities/StorageReclaimMarks.entity';
+import { StorageReleaseQueue } from '../../db/entities/StorageReleaseQueue.entity';
 import { AppConfigModule } from '../app-config/app-config.module';
 import { AuditModule } from '../audit/audit.module';
 import { DatabaseLifecycleModule } from '../database/database-lifecycle.module';
@@ -7,12 +8,15 @@ import { SchedulingModule } from '../scheduling/scheduling.module';
 import { StorageAdminController } from './storage-admin.controller';
 import { StorageAdminService } from './storage-admin.service';
 import { StorageEventsService } from './storage-events.service';
+import { StorageInstallService } from './storage-install.service';
 import { StorageJobsService } from './storage-jobs.service';
+import { StorageReclaimGuardService } from './storage-reclaim-guard.service';
 import { StorageReclaimRegistryService } from './storage-reclaim-registry.service';
 import { StorageReclaimController } from './storage-reclaim.controller';
 import { StorageReclaimJob } from './storage-reclaim.job';
 import { StorageReclaimService } from './storage-reclaim.service';
 import { StorageRegistryService } from './storage-registry.service';
+import { StorageReleaseJob } from './storage-release.job';
 import { StorageReleaseService } from './storage-release.service';
 import { StorageStatsService } from './storage-stats.service';
 import { StorageUsageScanJob } from './storage-usage-scan.job';
@@ -42,7 +46,10 @@ import { Module } from '@nestjs/common';
  * running there and waits for a reclaim pass in flight to let go, a backup
  * marks itself so the pass deletes nothing it still reads.
  * StorageReleaseService is exported for the owners, which hand it the values a
- * delete or a replace left unnamed right after their write.
+ * delete or a replace left unnamed right after their write; it queues them,
+ * and StorageReleaseJob deletes what is still unnamed once every undo window
+ * has passed. StorageInstallService keeps this installation's id in the data
+ * dir and resets the reclaim state of a database that came from elsewhere.
  */
 @Module({
   imports: [
@@ -50,7 +57,7 @@ import { Module } from '@nestjs/common';
     AuditModule,
     DatabaseLifecycleModule,
     SchedulingModule,
-    MikroOrmModule.forFeature([AppSettings, StorageReclaimMarks]),
+    MikroOrmModule.forFeature([AppSettings, StorageReclaimMarks, StorageReleaseQueue]),
   ],
   controllers: [StorageAdminController, StorageReclaimController],
   providers: [
@@ -62,9 +69,12 @@ import { Module } from '@nestjs/common';
     StorageStatsService,
     StorageUsageScanJob,
     StorageReclaimRegistryService,
+    StorageInstallService,
+    StorageReclaimGuardService,
     StorageReclaimService,
     StorageReclaimJob,
     StorageReleaseService,
+    StorageReleaseJob,
   ],
   exports: [
     StorageService,

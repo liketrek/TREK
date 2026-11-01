@@ -26,7 +26,6 @@ import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../common/demo-write';
 import { StorageService } from '../storage/storage.service';
 import { StorageReleaseService } from '../storage/storage-release.service';
-import { journeyThumbName } from '../memories/thumbnail.service';
 import { JourneyService } from './journey.service';
 import { JourneyBookService } from './journey-book.service';
 import { JourneyPhotoCaptureService, type ProviderPhotoBatch, type ProviderPhotoTarget } from './journey-photo-capture.service';
@@ -472,16 +471,13 @@ export class JourneyController {
   }
 
   /**
-   * After a photo's row went: its file and its poster go at once unless another
-   * row (another journey's photo, a journey cover) still names them, and the
-   * thumbnail derived from a file that went goes with it (#2924).
+   * After a photo's row went: its file and its poster are queued for release,
+   * and go once no other row (another journey's photo, a journey cover) names
+   * them (#2924). The thumbnail derived from the file is the nightly thumbnail
+   * sweep's, which drops every thumb no photo row accounts for.
    */
   private async releasePhoto(photo: { file_path?: string | null; thumbnail_path?: string | null }): Promise<void> {
-    const released = await this.release.releaseValues([photo.file_path, photo.thumbnail_path], { bare: 'journey' });
-    const filePath = photo.file_path;
-    if (!filePath?.startsWith('journey/')) return;
-    if (!released.some((ref) => ref.category === 'journey' && `journey/${ref.key}` === filePath)) return;
-    await this.storage.delete('journey', journeyThumbName(filePath)).catch(() => { /* already gone */ });
+    await this.release.releaseValues([photo.file_path, photo.thumbnail_path], { bare: 'journey' });
   }
 
   // ── Gallery (prefix /:id/gallery — before /:id) ─────────────────────────

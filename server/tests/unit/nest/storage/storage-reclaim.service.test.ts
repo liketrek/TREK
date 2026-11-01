@@ -1,24 +1,31 @@
 /**
  * The storage reclaim pass (#2924) over a real StorageModule: a real registry
- * and LocalDriver on temp folders, the marks table in the snapshot db, and
- * fake reference sources standing in for the owner domains. The pass marks
- * first, deletes a week later only with the switch on and only after asking
- * every source about its batch again. A skip keeps the marks; a share over a
- * fifth waits for an admin's confirmation; an owner marker of another install
- * keeps its hands off; a restore resets the switch, the marks and the reports
- * but keeps this install's id. RCLS-001 to RCLS-036.
+ * and LocalDriver on temp folders, the marks table in the snapshot db, the
+ * install id file in a temp data dir, and fake reference sources standing in
+ * for the owner domains. The pass reads every source once, marks first,
+ * deletes a week later only with the switch on and only after reading every
+ * source again, fresh, right before the batch. A skip keeps the marks; a share
+ * over a fifth waits for an admin's confirmation of the count they saw, which
+ * covers a margin for two weeks and is used up once the share is back under;
+ * an owner marker of another install keeps its hands off; a restore, or a
+ * database naming another install, resets the switch, the marks, the queue
+ * and the reports but keeps this install's id. RCLS-001 to RCLS-043.
  */
 import { AppSettings } from '../../../../src/db/entities/AppSettings.entity';
 import { AuditLog } from '../../../../src/db/entities/AuditLog.entity';
 import { StorageReclaimMarks } from '../../../../src/db/entities/StorageReclaimMarks.entity';
+import { StorageReleaseQueue } from '../../../../src/db/entities/StorageReleaseQueue.entity';
 import { StorageReclaimMarksRepository } from '../../../../src/db/repositories/StorageReclaimMarks.repository';
 import { dbNow } from '../../../../src/db/types';
+import { DataPathsService } from '../../../../src/nest/app-config/data-paths.service';
 import { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
 import { logError } from '../../../../src/nest/audit/audit-log.logger';
 import { DomainError } from '../../../../src/nest/common/domain-error';
 import { DatabaseLifecycle } from '../../../../src/nest/database/database-lifecycle.service';
 import { StorageAdminService } from '../../../../src/nest/storage/storage-admin.service';
+import { StorageInstallService } from '../../../../src/nest/storage/storage-install.service';
 import { StorageJobsService } from '../../../../src/nest/storage/storage-jobs.service';
+import { StorageReclaimGuardService } from '../../../../src/nest/storage/storage-reclaim-guard.service';
 import { StorageReclaimRegistryService } from '../../../../src/nest/storage/storage-reclaim-registry.service';
 import { StorageReclaimService } from '../../../../src/nest/storage/storage-reclaim.service';
 import {
@@ -29,6 +36,7 @@ import {
   type StorageReferenceSource,
   type StorageReferenceSourceId,
 } from '../../../../src/nest/storage/storage-reclaim.types';
+import { STORAGE_RELEASE_JOB } from '../../../../src/nest/storage/storage-release.service';
 import { StorageModule } from '../../../../src/nest/storage/storage.module';
 import { StorageService } from '../../../../src/nest/storage/storage.service';
 import type { ServedCategory } from '../../../../src/nest/storage/storage.types';
@@ -58,6 +66,7 @@ let t: TestModule;
 let orm: TestOrm;
 let uploadsRoot: string;
 let backupsRoot: string;
+let dataRoot: string;
 let reclaim: StorageReclaimService;
 let storage: StorageService;
 let jobs: StorageJobsService;
@@ -68,6 +77,8 @@ let installId: string;
 let named: Map<ServedCategory, Set<string>>;
 /** Called on every question a source is asked, before it answers: `keys` is null for a whole-category read. */
 let onAsk: ((category: ServedCategory, keys: readonly string[] | null) => void | Promise<void>) | null;
+/** Called when a source is read once for the whole pass, before it answers. */
+let onRead: ((id: StorageReferenceSourceId) => void | Promise<void>) | null;
 
 /** The keys the fake sources name in `category`, created empty on first use. */
 function namedIn(category: ServedCategory): Set<string> {
@@ -82,12 +93,22 @@ function namedIn(category: ServedCategory): Set<string> {
 function fakeSource(id: StorageReferenceSourceId): StorageReferenceSource {
   const categories: readonly ServedCategory[] =
     id === 'auth' ? ['avatars'] : id === 'files' ? ['files'] : STORAGE_RECLAIMABLE_CATEGORIES;
+  const lowered = (category: ServedCategory) =>
+    new Set([...(named.get(category) ?? [])].map((key) => key.toLowerCase()));
   return {
     id,
     claims: categories.map((category): StorageReferenceClaim => ({ category, prefix: '' })),
     async namedKeys(category) {
       await onAsk?.(category, null);
-      return new Set([...(named.get(category) ?? [])].map((key) => key.toLowerCase()));
+      return lowered(category);
+    },
+    async namedKeysByCategory(asked) {
+      await onRead?.(id);
+      return new Map(
+        asked
+          .filter((category) => categories.includes(category))
+          .map((category): [ServedCategory, Set<string>] => [category, lowered(category)]),
+      );
     },
     async referenced(category, keys) {
       await onAsk?.(category, keys);
@@ -127,16 +148,6 @@ async function marksOf(category: string): Promise<Array<{ key: string; first_see
     .sort((a, b) => a.key.localeCompare(b.key));
 }
 
-/** What a synchronous call threw, or null. */
-function thrownBy(call: () => unknown): unknown {
-  try {
-    call();
-  } catch (err) {
-    return err;
-  }
-  return null;
-}
-
 async function markWeekOld(category: ServedCategory, keys: string[]): Promise<void> {
   await orm.repo(StorageReclaimMarks).insertMissing(
     category,
@@ -148,6 +159,7 @@ async function markWeekOld(category: ServedCategory, keys: string[]): Promise<vo
 beforeAll(async () => {
   uploadsRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'trek-reclaim-uploads-'));
   backupsRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'trek-reclaim-backups-'));
+  dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'trek-reclaim-data-'));
   orm = await createTestOrm(db);
   await setAppSetting(orm, 'storage.backends', backends());
   t = await createTestModule({
@@ -155,6 +167,7 @@ beforeAll(async () => {
     imports: [StorageModule],
     init: true,
     overrides: [
+      { provide: DataPathsService, useValue: { ...new DataPathsService(), installIdFile: path.join(dataRoot, 'id') } },
       {
         provide: DatabaseLifecycle,
         useValue: {
@@ -170,7 +183,7 @@ beforeAll(async () => {
   jobs = t.get(StorageJobsService);
   references = t.get(StorageReclaimRegistryService);
   for (const id of STORAGE_REFERENCE_SOURCE_IDS) references.register(fakeSource(id));
-  installId = (await readAppSetting(orm, 'install_id')) ?? '';
+  installId = t.get(StorageInstallService).installId() ?? '';
 });
 
 beforeEach(async () => {
@@ -180,10 +193,13 @@ beforeEach(async () => {
     if (entry !== '.tmp') fs.rmSync(path.join(uploadsRoot, entry), { recursive: true, force: true });
   }
   await deleteRows(orm, StorageReclaimMarks);
+  await deleteRows(orm, StorageReleaseQueue);
   await deleteRows(orm, AppSettings, { key: { $like: 'storage.reclaim%' } });
+  t.get(StorageReclaimGuardService).forget();
   await deleteRows(orm, AuditLog);
   named = new Map();
   onAsk = null;
+  onRead = null;
 });
 
 afterAll(async () => {
@@ -192,6 +208,7 @@ afterAll(async () => {
   db.close();
   fs.rmSync(uploadsRoot, { recursive: true, force: true });
   fs.rmSync(backupsRoot, { recursive: true, force: true });
+  fs.rmSync(dataRoot, { recursive: true, force: true });
 });
 
 const T0 = new Date(Date.now() + 2 * DAY);
@@ -206,6 +223,8 @@ async function markedWeekOld(orphans: string[], kept = 4): Promise<void> {
 describe('StorageReclaimService: mark, then sweep', () => {
   it('RCLS-001: a first pass reports and marks; the report is persisted and both states carry it', async () => {
     expect(installId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(fs.readFileSync(path.join(dataRoot, 'id'), 'utf8').trim()).toBe(installId);
+    expect(await readAppSetting(orm, 'install_id')).toBe(installId);
     await seedCovers(['orphan.jpg']);
     const report = await reclaim.run({ now: T0 });
     expect(report.mode).toBe('report');
@@ -273,10 +292,10 @@ describe('StorageReclaimService: mark, then sweep', () => {
     expect(await marksOf('covers')).toEqual([{ key: 'orphan.jpg', first_seen_at: dbNow(WEEK_LATER) }]);
   });
 
-  it('RCLS-005: the fresh re-check right before the delete keeps an object named in between', async () => {
+  it('RCLS-005: the fresh read right before the delete keeps an object named in between', async () => {
     await markedWeekOld(['orphan.jpg']);
     onAsk = (category, keys) => {
-      if (category === 'covers' && keys !== null) namedIn('covers').add('orphan.jpg');
+      if (category === 'covers' && keys === null) namedIn('covers').add('orphan.jpg');
     };
     const report = await reclaim.run({ now: WEEK_LATER });
     expect(report.categories.covers.eligible.objects).toBe(1);
@@ -337,37 +356,64 @@ describe('StorageReclaimService: a large unreferenced share waits for the admin'
     ]);
   });
 
-  it('RCLS-009: an admin confirmation of the shown count lets the next pass delete; a larger share waits again', async () => {
+  it('RCLS-009: confirming the count shown clears the prompt at once and lets the next pass delete', async () => {
     await seedCovers(['o1.jpg', 'o2.jpg'], 1);
     await markWeekOld('covers', ['o1.jpg', 'o2.jpg']);
     await reclaim.setDeleteEnabled(true);
     await reclaim.run({ now: WEEK_LATER });
-    const confirmed = await reclaim.confirm('covers');
-    expect(confirmed.lastRun?.categories.covers.confirmationRequired).toBe(true);
-    expect(JSON.parse(String(await readAppSetting(orm, 'storage.reclaim_confirmed')))).toEqual({
-      installId,
-      counts: { covers: 2 },
-    });
+    const before = Date.now();
+    const confirmed = await reclaim.confirm('covers', 2);
+    // The state folds the confirmation in: the prompt goes before the next pass.
+    expect(confirmed.lastRun?.categories.covers.confirmationRequired).toBe(false);
+    const stored = JSON.parse(String(await readAppSetting(orm, 'storage.reclaim_confirmed')));
+    expect(stored).toEqual({ installId, categories: { covers: { count: 2, confirmedAt: expect.any(Number) } } });
+    expect(stored.categories.covers.confirmedAt).toBeGreaterThanOrEqual(before);
 
-    await put('covers', 'o3.jpg');
-    await put('covers', 'o4.jpg');
-    await put('covers', 'o5.jpg');
-    await markWeekOld('covers', ['o3.jpg', 'o4.jpg', 'o5.jpg']);
-    const bigger = await reclaim.run({ now: WEEK_LATER });
-    expect(bigger.categories.covers.confirmationRequired).toBe(true);
-    expect(bigger.categories.covers.deleted.objects).toBe(0);
-
-    await reclaim.confirm('covers');
     const after = await reclaim.run({ now: WEEK_LATER });
-    expect(after.categories.covers).toMatchObject({ confirmationRequired: false, deleted: { objects: 5, bytes: 25 } });
+    expect(after.categories.covers).toMatchObject({ confirmationRequired: false, deleted: { objects: 2, bytes: 10 } });
     expect(fs.existsSync(objectPath('covers', 'kept-0.jpg'))).toBe(true);
   });
 
+  it('RCLS-037: a confirmation covers half as much again, at least a hundred more; a surge past that waits again', async () => {
+    await seedCovers(['o1.jpg', 'o2.jpg'], 1);
+    await markWeekOld('covers', ['o1.jpg', 'o2.jpg']);
+    await reclaim.run({ now: WEEK_LATER });
+    await reclaim.confirm('covers', 2);
+    // A few more orphans than were shown: still covered (2 + 100).
+    const few = ['o3.jpg', 'o4.jpg', 'o5.jpg'];
+    await Promise.all(few.map((key) => put('covers', key)));
+    const covered = await reclaim.run({ now: WEEK_LATER });
+    expect(covered.categories.covers).toMatchObject({ unreferenced: { objects: 5 }, confirmationRequired: false });
+    // A surge well past the margin waits for a new confirmation.
+    const surge = Array.from({ length: 105 }, (_unused, i) => `s${i}.jpg`);
+    await Promise.all(surge.map((key) => put('covers', key)));
+    const waiting = await reclaim.run({ now: WEEK_LATER });
+    expect(waiting.categories.covers).toMatchObject({ unreferenced: { objects: 110 }, confirmationRequired: true });
+  });
+
+  it('RCLS-038: a confirmation runs out after two weeks, and is used up once the share is back under a fifth', async () => {
+    await seedCovers(['o1.jpg', 'o2.jpg'], 1);
+    await reclaim.run({ now: WEEK_LATER });
+    await reclaim.confirm('covers', 2);
+    const late = await reclaim.run({ now: new Date(Date.now() + 15 * DAY) });
+    expect(late.categories.covers.confirmationRequired).toBe(true);
+    // The pass that found it run out dropped it.
+    expect(await readAppSetting(orm, 'storage.reclaim_confirmed')).toBeNull();
+
+    await reclaim.run({ now: WEEK_LATER });
+    await reclaim.confirm('covers', 2);
+    await Promise.all(Array.from({ length: 20 }, (_unused, i) => put('covers', `named-${i}.jpg`)));
+    for (let i = 0; i < 20; i += 1) namedIn('covers').add(`named-${i}.jpg`);
+    const under = await reclaim.run({ now: WEEK_LATER });
+    expect(under.categories.covers.confirmationRequired).toBe(false);
+    expect(await readAppSetting(orm, 'storage.reclaim_confirmed')).toBeNull();
+  });
+
   it('RCLS-010: a confirmation is refused with a code when the last report holds nothing waiting', async () => {
-    await expect(reclaim.confirm('covers')).rejects.toMatchObject({ code: 'reclaim_nothing_to_confirm' });
+    await expect(reclaim.confirm('covers', 1)).rejects.toMatchObject({ code: 'reclaim_nothing_to_confirm' });
     await seedCovers(['orphan.jpg']);
     await reclaim.run({ now: T0 });
-    const refusal = await reclaim.confirm('covers').catch((err: unknown) => err);
+    const refusal = await reclaim.confirm('covers', 1).catch((err: unknown) => err);
     expect(refusal).toBeInstanceOf(DomainError);
     expect((refusal as DomainError).getStatus()).toBe(409);
     expect((refusal as DomainError).getResponse()).toEqual({
@@ -376,18 +422,38 @@ describe('StorageReclaimService: a large unreferenced share waits for the admin'
     });
   });
 
-  it('RCLS-011: a confirmation another install wrote counts for nothing here', async () => {
+  it('RCLS-039: a count the admin was shown that the last report no longer holds is refused as stale', async () => {
+    const orphans = Array.from({ length: 300 }, (_unused, i) => `o${i}.jpg`);
+    await seedCovers(orphans, 1);
+    await reclaim.run({ now: T0 });
+    const stale = await reclaim.confirm('covers', 5).catch((err: unknown) => err);
+    expect(stale).toBeInstanceOf(DomainError);
+    expect((stale as DomainError).getStatus()).toBe(409);
+    expect((stale as DomainError).getResponse()).toMatchObject({ code: 'reclaim_confirm_stale' });
+    // Within a tenth and fifty objects of it is the count the admin saw.
+    await expect(reclaim.confirm('covers', 280)).resolves.toMatchObject({ deleteEnabled: false });
+    await expect(reclaim.confirm('covers', 240)).rejects.toMatchObject({ code: 'reclaim_confirm_stale' });
+    expect(await readAppSetting(orm, 'storage.reclaim_confirmed')).toContain('"count":280');
+  });
+
+  it('RCLS-011: a confirmation another install wrote counts for nothing here, and an old-format row neither', async () => {
     await seedCovers(['o1.jpg', 'o2.jpg'], 1);
     await markWeekOld('covers', ['o1.jpg', 'o2.jpg']);
     await setAppSetting(
       orm,
       'storage.reclaim_confirmed',
-      JSON.stringify({ installId: '11111111-2222-4333-8444-555555555555', counts: { covers: 99 } }),
+      JSON.stringify({
+        installId: '11111111-2222-4333-8444-555555555555',
+        categories: { covers: { count: 99, confirmedAt: Date.now() } },
+      }),
     );
     await reclaim.setDeleteEnabled(true);
     const report = await reclaim.run({ now: WEEK_LATER });
     expect(report.categories.covers.confirmationRequired).toBe(true);
     expect(report.categories.covers.deleted.objects).toBe(0);
+    await setAppSetting(orm, 'storage.reclaim_confirmed', JSON.stringify({ installId, counts: { covers: 99 } }));
+    const old = await reclaim.run({ now: WEEK_LATER });
+    expect(old.categories.covers.confirmationRequired).toBe(true);
   });
 });
 
@@ -405,6 +471,7 @@ describe('StorageReclaimService: categories it may not judge', () => {
       id: 'trips',
       claims: [{ category: 'covers', prefix: 'sub/' }],
       namedKeys: async () => new Set<string>(),
+      namedKeysByCategory: async () => new Map(),
       referenced: async () => new Set<string>(),
     };
     vi.spyOn(references, 'sources').mockReturnValue([...all.filter((source) => source.id !== 'trips'), partialTrips]);
@@ -413,21 +480,24 @@ describe('StorageReclaimService: categories it may not judge', () => {
     expect((await marksOf('covers')).map((mark) => mark.key)).toEqual(['orphan.jpg']);
   });
 
-  it('RCLS-013: a source answering for a subtree only is not asked about root keys before a delete', async () => {
+  it('RCLS-013: a source answering for a subtree is read with the rest, and never asked key by key', async () => {
     await markedWeekOld(['orphan.jpg']);
-    const subtree = vi.fn(async () => new Set<string>());
+    const subtreeRead = vi.fn(async () => new Set<string>());
+    const subtreeAsked = vi.fn(async () => new Set<string>());
     vi.spyOn(references, 'sources').mockReturnValue([
       ...references.sources(),
       {
         id: 'trips',
         claims: [{ category: 'covers', prefix: 'sub/' }],
-        namedKeys: async () => new Set(),
-        referenced: subtree,
+        namedKeys: subtreeRead,
+        namedKeysByCategory: async () => new Map<ServedCategory, Set<string>>([['covers', new Set<string>()]]),
+        referenced: subtreeAsked,
       },
     ]);
     const report = await reclaim.run({ now: WEEK_LATER });
     expect(report.categories.covers.deleted.objects).toBe(1);
-    expect(subtree).not.toHaveBeenCalled();
+    expect(subtreeRead).toHaveBeenCalledWith('covers');
+    expect(subtreeAsked).not.toHaveBeenCalled();
   });
 
   it('RCLS-014: a category whose location holds another category is skipped with its marks', async () => {
@@ -488,17 +558,18 @@ describe('StorageReclaimService: categories it may not judge', () => {
     expect(await marksOf('covers')).toEqual([{ key: 'x.jpg', first_seen_at: dbNow(new Date(0)) }]);
   });
 
-  it('RCLS-018: a source that fails skips the category, never reads it as unreferenced, and keeps its marks', async () => {
+  it('RCLS-018: a source that fails skips the categories it answers for, never reads them as unreferenced', async () => {
+    await put('files', 'orphan.pdf');
+    await markWeekOld('files', ['orphan.pdf']);
     await seedCovers(['orphan.jpg']);
-    await markWeekOld('covers', ['orphan.jpg']);
-    onAsk = (category) => {
-      if (category === 'covers') throw new Error('trips table locked');
+    onRead = (id) => {
+      if (id === 'files') throw new Error('trip_files table locked');
     };
     const report = await reclaim.run({ now: T0 });
-    expect(report.categories.covers).toMatchObject({ objects: 5, skipped: 'source_failed' });
-    expect(report.categories.places.skipped).toBeNull();
-    expect(logError).toHaveBeenCalledWith(expect.stringContaining('trips table locked'));
-    expect(await marksOf('covers')).toHaveLength(1);
+    expect(report.categories.files).toMatchObject({ objects: 1, skipped: 'source_failed' });
+    expect(report.categories.covers.skipped).toBeNull();
+    expect(vi.mocked(logError).mock.calls.filter(([line]) => String(line).includes('table locked'))).toHaveLength(2);
+    expect(await marksOf('files')).toEqual([{ key: 'orphan.pdf', first_seen_at: dbNow(new Date(0)) }]);
   });
 });
 
@@ -506,7 +577,7 @@ describe('StorageReclaimService: when a pass runs at all', () => {
   it('RCLS-019: a pass refuses with a coded 409 on a demo instance and while another storage job holds the slot', async () => {
     const demo = vi.spyOn(t.get(RuntimeEnvService), 'isDemoMode').mockReturnValue(true);
     await expect(reclaim.run()).rejects.toMatchObject({ code: 'reclaim_demo' });
-    expect(thrownBy(() => reclaim.start())).toMatchObject({ code: 'reclaim_demo' });
+    await expect(reclaim.start()).rejects.toMatchObject({ code: 'reclaim_demo' });
     demo.mockRestore();
 
     expect(jobs.claimExclusive('a test')).toBe(true);
@@ -525,8 +596,8 @@ describe('StorageReclaimService: when a pass runs at all', () => {
 
   it('RCLS-020: while a pass holds the slot, a migration is refused with its name, and the slot is free after', async () => {
     let refusal: unknown = null;
-    onAsk = async (category) => {
-      if (category !== 'covers' || refusal) return;
+    onRead = async () => {
+      if (refusal) return;
       refusal = await jobs.startMigration('covers', 'backups-local').catch((err: unknown) => err);
     };
     await seedCovers(['orphan.jpg']);
@@ -542,10 +613,10 @@ describe('StorageReclaimService: when a pass runs at all', () => {
     const gate = new Promise<void>((resolve) => {
       release = resolve;
     });
-    onAsk = async () => gate;
-    reclaim.start();
+    onRead = async () => gate;
+    await reclaim.start();
     expect((await reclaim.state()).running).toBe(true);
-    expect(thrownBy(() => reclaim.start())).toMatchObject({ code: 'reclaim_busy' });
+    await expect(reclaim.start()).rejects.toMatchObject({ code: 'reclaim_busy' });
     release();
     await jobs.exclusiveIdle();
     const state = await reclaim.state();
@@ -567,10 +638,10 @@ describe('StorageReclaimService: when a pass runs at all', () => {
 });
 
 describe('StorageReclaimService: the delete itself', () => {
-  it('RCLS-023: a re-check that fails keeps the object', async () => {
+  it('RCLS-023: a fresh read that fails keeps the object', async () => {
     await markedWeekOld(['orphan.jpg']);
     onAsk = (_category, keys) => {
-      if (keys !== null) throw new Error('lookup timed out');
+      if (keys === null) throw new Error('lookup timed out');
     };
     const report = await reclaim.run({ now: WEEK_LATER });
     expect(report.categories.covers.deleted.objects).toBe(0);
@@ -594,19 +665,21 @@ describe('StorageReclaimService: the delete itself', () => {
     expect(await marksOf('covers')).toEqual([]);
   });
 
-  it('RCLS-025: the re-check before the delete asks about the whole batch at once, and the listing reads each source once', async () => {
+  it('RCLS-025: a pass reads each source once for every category, and once more, whole, right before a batch goes', async () => {
     await markedWeekOld(['a.jpg', 'b.jpg', 'c.jpg'], 12);
+    const reads: StorageReferenceSourceId[] = [];
     const asked: Array<string[] | null> = [];
+    onRead = (id) => {
+      reads.push(id);
+    };
     onAsk = (category, keys) => {
       if (category === 'covers') asked.push(keys === null ? null : [...keys].sort());
     };
     const report = await reclaim.run({ now: WEEK_LATER });
     expect(report.categories.covers.deleted.objects).toBe(3);
+    expect(reads.sort()).toEqual([...STORAGE_REFERENCE_SOURCE_IDS].sort());
     const freeForm = STORAGE_REFERENCE_SOURCE_IDS.filter((id) => id !== 'auth' && id !== 'files').length;
-    expect(asked.filter((keys) => keys === null)).toHaveLength(freeForm);
-    expect(asked.filter((keys) => keys !== null)).toEqual(
-      Array.from({ length: freeForm }, () => ['a.jpg', 'b.jpg', 'c.jpg']),
-    );
+    expect(asked).toEqual(Array.from({ length: freeForm }, () => null));
   });
 
   it('RCLS-026: a delete that fails stops deleting in that category, keeps the mark and says why once', async () => {
@@ -655,13 +728,24 @@ describe('StorageReclaimService: the delete itself', () => {
     expect(fs.existsSync(objectPath('places', 'place-orphan.jpg'))).toBe(true);
   });
 
-  it('RCLS-030: nothing is deleted while a backup reads the uploads', async () => {
+  it('RCLS-030: nothing is deleted while a backup reads the uploads, and the report says so', async () => {
     await markedWeekOld(['orphan.jpg']);
+    await put('places', 'place-orphan.jpg');
+    await markWeekOld('places', ['place-orphan.jpg']);
+    ['p1.jpg', 'p2.jpg', 'p3.jpg', 'p4.jpg', 'p5.jpg'].forEach((key) => namedIn('places').add(key));
+    await Promise.all(['p1.jpg', 'p2.jpg', 'p3.jpg', 'p4.jpg', 'p5.jpg'].map((key) => put('places', key)));
     jobs.beginBackup();
     try {
       const report = await reclaim.run({ now: WEEK_LATER });
       expect(report.mode).toBe('delete');
-      expect(report.categories.covers).toMatchObject({ eligible: { objects: 1 }, deleted: { objects: 0 } });
+      expect(report.categories.covers).toMatchObject({
+        eligible: { objects: 1 },
+        deleted: { objects: 0 },
+        skipped: 'backup_running',
+      });
+      expect(report.categories.places).toMatchObject({ deleted: { objects: 0 }, skipped: 'backup_running' });
+      // A category with nothing due has nothing to say.
+      expect(report.categories.avatars.skipped).toBeNull();
       expect(fs.existsSync(objectPath('covers', 'orphan.jpg'))).toBe(true);
     } finally {
       jobs.endBackup();
@@ -683,6 +767,9 @@ describe('StorageReclaimService: a pass that stops, and a restore', () => {
     expect(report.categories.covers).toMatchObject({ skipped: null, deleted: { objects: 1, bytes: 5 } });
     for (const category of ['avatars', 'places'] as const) {
       expect(report.categories[category]).toMatchObject({ objects: 0, skipped: 'interrupted' });
+    }
+    for (const category of ['photos', 'photos-google', 'photos-trek', 'backups'] as const) {
+      expect(report.categories[category].skipped).toBe('not_reclaimed');
     }
     expect((await reclaim.state()).lastRun?.stopped).toBe('database_reopened');
     expect(await countRows(orm, AuditLog, { action: 'storage.reclaim_deleted' })).toBe(1);
@@ -711,7 +798,7 @@ describe('StorageReclaimService: a pass that stops, and a restore', () => {
     let restoreAsked = false;
     let restoreWent = false;
     onAsk = (_category, keys) => {
-      if (keys === null || restoreAsked) return;
+      if (keys !== null || restoreAsked) return;
       restoreAsked = true;
       restoreStarted = jobs.beginRestore().then(() => {
         restoreWent = true;
@@ -729,9 +816,14 @@ describe('StorageReclaimService: a pass that stops, and a restore', () => {
     }
   });
 
-  it('RCLS-034: a reopen turns deletion off and drops marks, confirmations and reports, but keeps the install id', async () => {
+  it('RCLS-034: a reopen turns deletion off and drops marks, confirmations, the queue and reports, keeping the id', async () => {
     await markedWeekOld(['orphan.jpg']);
-    await setAppSetting(orm, 'storage.reclaim_confirmed', JSON.stringify({ installId, counts: { covers: 1 } }));
+    await setAppSetting(
+      orm,
+      'storage.reclaim_confirmed',
+      JSON.stringify({ installId, categories: { covers: { count: 1, confirmedAt: Date.now() } } }),
+    );
+    await orm.repo(StorageReleaseQueue).enqueue([{ category: 'covers', key: 'queued.jpg' }], dbNow(new Date()));
     // A restored database carries another install's id and switch.
     await setAppSetting(orm, 'install_id', '12345678-aaaa-4bbb-8ccc-1234567890ab');
     await setAppSetting(orm, 'storage.reclaim_delete', '12345678-aaaa-4bbb-8ccc-1234567890ab');
@@ -740,7 +832,60 @@ describe('StorageReclaimService: a pass that stops, and a restore', () => {
     const reset = ['storage.reclaim_delete', 'storage.reclaim_confirmed', 'storage.reclaim_report'];
     expect(await Promise.all(reset.map((key) => readAppSetting(orm, key)))).toEqual([null, null, null]);
     expect(await marksOf('covers')).toEqual([]);
+    expect(await countRows(orm, StorageReleaseQueue)).toBe(0);
     expect(await reclaim.state()).toEqual({ deleteEnabled: false, running: false, lastRun: null, lastDeleteRun: null });
+  });
+
+  it('RCLS-040: at boot, a database naming another installation loses its reclaim state and gets this id', async () => {
+    const install = t.get(StorageInstallService);
+    await markedWeekOld(['orphan.jpg']);
+    await orm.repo(StorageReleaseQueue).enqueue([{ category: 'covers', key: 'queued.jpg' }], dbNow(new Date()));
+    // As this installation's own database: nothing to reset.
+    expect(await install.reconcile()).toBe(false);
+    expect((await reclaim.state()).deleteEnabled).toBe(true);
+    // A database restored at boot, cloned or copied from another one.
+    await setAppSetting(orm, 'install_id', '12345678-aaaa-4bbb-8ccc-1234567890ab');
+    await setAppSetting(orm, 'storage.reclaim_delete', '12345678-aaaa-4bbb-8ccc-1234567890ab');
+    expect(await install.reconcile()).toBe(true);
+    expect(await readAppSetting(orm, 'install_id')).toBe(installId);
+    expect(await readAppSetting(orm, 'storage.reclaim_delete')).toBeNull();
+    expect(await readAppSetting(orm, 'storage.reclaim_report')).toBeNull();
+    expect(await marksOf('covers')).toEqual([]);
+    expect(await countRows(orm, StorageReleaseQueue)).toBe(0);
+  });
+
+  it('RCLS-041: the install id file is made once, mode 0600; a garbled one keeps every delete off', async () => {
+    const file = path.join(dataRoot, 'id');
+    expect(fs.readFileSync(file, 'utf8').trim()).toBe(installId);
+    if (process.platform !== 'win32') expect(fs.statSync(file).mode & 0o777).toBe(0o600);
+    const garbled = path.join(dataRoot, 'garbled');
+    fs.writeFileSync(garbled, 'not an id\n');
+    const install = t.get(StorageInstallService);
+    const paths = t.get(DataPathsService) as { installIdFile: string };
+    /** The service reads its file once; these cases read another one afresh. */
+    const reread = (file: string) => {
+      paths.installIdFile = file;
+      (install as unknown as { fileId: string | null | undefined }).fileId = undefined;
+      return install.installId();
+    };
+    try {
+      expect(reread(garbled)).toBeNull();
+      await expect(reclaim.setDeleteEnabled(true)).rejects.toMatchObject({ code: 'reclaim_install_unknown' });
+      expect((await reclaim.state()).deleteEnabled).toBe(false);
+      expect(await install.reconcile()).toBe(false);
+    } finally {
+      expect(reread(file)).toBe(installId);
+    }
+    // A missing file is made, once.
+    const fresh = path.join(dataRoot, 'nested', 'fresh-id');
+    try {
+      const made = reread(fresh);
+      expect(made).toMatch(/^[0-9a-f-]{36}$/);
+      expect(fs.readFileSync(fresh, 'utf8').trim()).toBe(made);
+      expect(reread(fresh)).toBe(made);
+    } finally {
+      expect(reread(file)).toBe(installId);
+    }
   });
 });
 
@@ -757,6 +902,31 @@ describe('StorageReclaimService: the switch and the stored reports', () => {
     expect(await readsOff('true')).toBe(false);
     expect(await readsOff('yes')).toBe(false);
     expect(await readsOff('12345678-aaaa-4bbb-8ccc-1234567890ab')).toBe(false);
+  });
+
+  it('RCLS-042: without an install id a pass judges nothing and deletes nothing', async () => {
+    await markedWeekOld(['orphan.jpg']);
+    vi.spyOn(t.get(StorageInstallService), 'installId').mockReturnValue(null);
+    const report = await reclaim.run({ now: WEEK_LATER });
+    expect(report.mode).toBe('report');
+    expect(report.categories.covers).toMatchObject({ skipped: 'owner_unknown', deleted: { objects: 0 } });
+    expect(fs.existsSync(objectPath('covers', 'orphan.jpg'))).toBe(true);
+  });
+
+  it('RCLS-043: a pass waits for a release tick holding the slot instead of losing its night', async () => {
+    expect(jobs.claimExclusive(STORAGE_RELEASE_JOB)).toBe(true);
+    const running = reclaim.run({ now: T0 });
+    await Promise.resolve();
+    expect(jobs.exclusiveHolder).toBe(STORAGE_RELEASE_JOB);
+    jobs.releaseExclusive(STORAGE_RELEASE_JOB);
+    expect((await running).stopped).toBeNull();
+    // Any other holder still refuses at once.
+    expect(jobs.claimExclusive('a backfill')).toBe(true);
+    try {
+      await expect(reclaim.run({ now: T0 })).rejects.toMatchObject({ code: 'reclaim_busy' });
+    } finally {
+      jobs.releaseExclusive('a backfill');
+    }
   });
 
   it('RCLS-036: a stored report that no longer parses reads as never run', async () => {

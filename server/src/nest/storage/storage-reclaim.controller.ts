@@ -49,13 +49,14 @@ export class StorageReclaimController {
   /**
    * Starts a report-only pass in the background and answers 202 at once; the
    * admin state says `running` until its report lands. 409 on a demo or while
-   * another storage job, a reclaim pass included, runs.
+   * another storage job, a reclaim pass included, runs (a release tick, which
+   * takes seconds, is waited for).
    */
   @Post('run')
   @HttpCode(202)
   @ResponseContract(storageReclaimRunStartedSchema)
   async run(@CurrentUser() user: User, @Req() req: Request): Promise<{ started: true }> {
-    this.reclaim.start();
+    await this.reclaim.start();
     await this.audit.writeAudit({
       userId: user.id,
       action: 'admin.storage_reclaim_run',
@@ -67,7 +68,9 @@ export class StorageReclaimController {
 
   /**
    * Lets the pass delete in a category whose unreferenced share is over a
-   * fifth, up to the count the last report showed. 409 when nothing waits.
+   * fifth, for the count the admin was shown (`unreferenced`). 409
+   * `reclaim_nothing_to_confirm` when nothing waits, `reclaim_confirm_stale`
+   * when the last report's count is no longer the one shown.
    */
   @Post('confirm')
   @HttpCode(200)
@@ -77,15 +80,12 @@ export class StorageReclaimController {
     @Body() body: StorageReclaimConfirmDto,
     @Req() req: Request,
   ): Promise<StorageReclaimState> {
-    const state = await this.reclaim.confirm(body.category);
+    const state = await this.reclaim.confirm(body.category, body.unreferenced);
     await this.audit.writeAudit({
       userId: user.id,
       action: 'admin.storage_reclaim_confirm',
       ip: getClientIp(req),
-      details: {
-        category: body.category,
-        unreferenced: state.lastRun?.categories[body.category].unreferenced.objects ?? 0,
-      },
+      details: { category: body.category, unreferenced: body.unreferenced },
     });
     return state;
   }

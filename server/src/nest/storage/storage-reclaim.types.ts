@@ -52,16 +52,21 @@ export interface StorageReferenceSource {
    */
   readonly claims: ReadonlyArray<StorageReferenceClaim>;
   /**
-   * Every key of `category` the rows name, lowercased: one read of the whole
-   * column set, which a pass makes once per category. A row that is trashed,
-   * pending or otherwise not gone counts. Throwing stops the pass for the
-   * category; it never deletes on a failed answer.
+   * Every key of `category` the rows name, lowercased: one fresh read of the
+   * whole column set, the question a pass asks right before it deletes. A row
+   * that is trashed, pending or otherwise not gone counts. Throwing stops the
+   * pass for the category; it never deletes on a failed answer.
    */
   namedKeys(category: ServedCategory): Promise<Set<string>>;
   /**
-   * Of these category-relative keys (as `StorageService.list` yields them, a
-   * batch at a time), the ones a row names right now: the question a delete
-   * asks last, read fresh and narrowed to the rows that can name them.
+   * The same for several categories from one read, each the source claims
+   * keyed in the answer: what a pass reads once and judges every category by.
+   */
+  namedKeysByCategory(categories: readonly ServedCategory[]): Promise<Map<ServedCategory, Set<string>>>;
+  /**
+   * Of these category-relative keys (as `StorageService.list` yields them), the
+   * ones a row names right now, read narrowed to the rows that can name them:
+   * the question the release queue asks before it deletes.
    */
   referenced(category: ServedCategory, keys: readonly string[]): Promise<Set<string>>;
 }

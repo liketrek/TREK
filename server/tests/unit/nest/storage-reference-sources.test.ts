@@ -7,7 +7,7 @@
  * `namedKeys`, every key of a category its rows name (one read, for a pass),
  * and `referenced`, a few keys asked fresh and narrowed to the rows holding
  * their plain runs (the re-check before a delete, and a release).
- * RSRC-001 to RSRC-014.
+ * RSRC-001 to RSRC-017.
  */
 import { PlaceContribOutbox } from '../../../src/db/entities/PlaceContribOutbox.entity';
 import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
@@ -20,6 +20,7 @@ import { PhotosStorageRefsService } from '../../../src/nest/photos/photos-storag
 import { PlaceContribStorageRefsService } from '../../../src/nest/place-contrib/place-contrib-storage-refs.service';
 import { PlacesStorageRefsService } from '../../../src/nest/places/places-storage-refs.service';
 import { StorageReclaimRegistryService } from '../../../src/nest/storage/storage-reclaim-registry.service';
+import { likeAny, MAX_LIKE_TERMS } from '../../../src/nest/storage/storage-reclaim-source.service';
 import {
   STORAGE_RECLAIMABLE_CATEGORIES,
   STORAGE_REFERENCE_SOURCE_IDS,
@@ -232,5 +233,32 @@ describe('reference sources', () => {
     expect(await asked(files, 'files', names)).toEqual([...names].sort());
     const named = await files.namedKeys('files');
     for (const name of names) expect(named.has(name.toLowerCase())).toBe(true);
+  });
+
+  it('RSRC-015: a question about many keys is split into reads of at most MAX_LIKE_TERMS terms each', async () => {
+    const ids = Array.from({ length: 60 }, (_unused, i) => `9d8c7b6a-5f4e-4d3c-8b2a-${String(i).padStart(12, '0')}`);
+    await Promise.all(ids.slice(0, 30).map((id) => makePlace(orm, tripId, { image_url: `/uploads/places/${id}.jpg` })));
+    const keys = ids.map((id) => `${id}.jpg`);
+    expect(await asked(t.get(PlacesStorageRefsService), 'places', keys)).toEqual(keys.slice(0, 30).sort());
+    // The photos source reads two columns, still within the bound.
+    expect(await asked(t.get(PhotosStorageRefsService), 'journey', keys)).toEqual([]);
+  });
+
+  it('RSRC-016: a filter past MAX_LIKE_TERMS terms is refused before it reaches SQLite', () => {
+    const runs = Array.from({ length: MAX_LIKE_TERMS + 1 }, (_unused, i) => `run-${String(i).padStart(8, '0')}`);
+    expect(() => likeAny<{ a: string }>(['a'], runs)).toThrow(/at most/);
+    expect(() => likeAny<{ a: string; b: string }>(['a', 'b'], runs.slice(0, 25))).not.toThrow();
+    expect(() => likeAny<{ a: string; b: string }>(['a', 'b'], runs.slice(0, 26))).toThrow(/at most/);
+  });
+
+  it('RSRC-017: namedKeysByCategory reads once and answers every category the source claims, none it does not', async () => {
+    await makeTrip(orm, userId, { cover_image: '/uploads/covers/rsrc-once-a.jpg' });
+    await makeTrip(orm, userId, { cover_image: '/uploads/places/rsrc-once-b.jpg' });
+    const answer = await t.get(TripsStorageRefsService).namedKeysByCategory(['covers', 'places', 'photos']);
+    expect(answer.get('covers')?.has('rsrc-once-a.jpg')).toBe(true);
+    expect(answer.get('covers')?.has('rsrc-once-b.jpg')).toBe(false);
+    expect(answer.get('places')?.has('rsrc-once-b.jpg')).toBe(true);
+    expect(answer.has('photos')).toBe(false);
+    expect(await t.get(FilesStorageRefsService).namedKeysByCategory(['covers'])).toEqual(new Map());
   });
 });

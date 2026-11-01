@@ -1,7 +1,7 @@
 /**
  * StorageReclaimController over a stub service: what it forwards, what it
  * audits, and that a refusal of the service reaches the client unchanged.
- * RCLC-001 to RCLC-006.
+ * RCLC-001 to RCLC-007.
  */
 import type { AuditService } from '../../../../src/nest/audit/audit.service';
 import { DomainError } from '../../../../src/nest/common/domain-error';
@@ -52,7 +52,7 @@ function makeController(over: Partial<Record<keyof StorageReclaimService, unknow
   const writeAudit = vi.fn();
   const service = {
     setDeleteEnabled: vi.fn(async (enabled: boolean) => state({ deleteEnabled: enabled })),
-    start: vi.fn(),
+    start: vi.fn(async () => undefined),
     confirm: vi.fn(async () => state({ lastRun: report() })),
     ...over,
   } as unknown as StorageReclaimService;
@@ -89,19 +89,18 @@ describe('StorageReclaimController', () => {
       code: 'reclaim_busy',
     });
     const { controller, writeAudit } = makeController({
-      start: vi.fn(() => {
-        throw refusal;
-      }),
+      start: vi.fn().mockRejectedValue(refusal),
     });
     await expect(controller.run(user, req)).rejects.toBe(refusal);
     expect(writeAudit).not.toHaveBeenCalled();
   });
 
-  it('RCLC-005: POST confirm forwards the category, answers the state and audits the confirmed count', async () => {
+  it('RCLC-005: POST confirm forwards the category and the count shown, answers the state and audits that count', async () => {
     const { controller, service, writeAudit } = makeController();
-    const answer = await controller.confirm(user, { category: 'covers' } as StorageReclaimConfirmDto, req);
+    const body = { category: 'covers', unreferenced: 4 } as StorageReclaimConfirmDto;
+    const answer = await controller.confirm(user, body, req);
     expect(answer.lastRun?.categories.covers.confirmationRequired).toBe(true);
-    expect(service.confirm).toHaveBeenCalledWith('covers');
+    expect(service.confirm).toHaveBeenCalledWith('covers', 4);
     expect(writeAudit).toHaveBeenCalledWith(
       expect.objectContaining({
         action: 'admin.storage_reclaim_confirm',
@@ -115,9 +114,18 @@ describe('StorageReclaimController', () => {
       code: 'reclaim_nothing_to_confirm',
     });
     const { controller, writeAudit } = makeController({ confirm: vi.fn().mockRejectedValue(refusal) });
-    await expect(controller.confirm(user, { category: 'files' } as StorageReclaimConfirmDto, req)).rejects.toBe(
-      refusal,
-    );
+    const body = { category: 'files', unreferenced: 3 } as StorageReclaimConfirmDto;
+    await expect(controller.confirm(user, body, req)).rejects.toBe(refusal);
+    expect(writeAudit).not.toHaveBeenCalled();
+  });
+
+  it('RCLC-007: a count the last report no longer holds propagates its stale 409 and writes no audit row', async () => {
+    const refusal = new DomainError(409, 'the last check found another count since, reload and confirm again', {
+      code: 'reclaim_confirm_stale',
+    });
+    const { controller, writeAudit } = makeController({ confirm: vi.fn().mockRejectedValue(refusal) });
+    const body = { category: 'covers', unreferenced: 400 } as StorageReclaimConfirmDto;
+    await expect(controller.confirm(user, body, req)).rejects.toBe(refusal);
     expect(writeAudit).not.toHaveBeenCalled();
   });
 });

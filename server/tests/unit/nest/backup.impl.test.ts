@@ -731,6 +731,18 @@ describe('BACKUP-036 createBackup', () => {
     expect(names.some((n) => n?.includes('trek-owner-'))).toBe(false);
   });
 
+  it('BACKUP-036k — never bundles the install id file, so a restore cannot make another install look like this one', async () => {
+    // The key files both exist here: the archive still takes only the ones it names.
+    fsMock.existsSync.mockImplementation((p: string) => /\.(encryption_key|trek-install-id)$/.test(String(p)));
+    setupArchiveSuccess();
+    await createBackup(deps(stubStorage({ stat: statOf(1024) })));
+    const files = archiverInstanceMock.file.mock.calls.map((c) => [String(c[0]), c[1]?.name as string]);
+    expect(files.some(([from, name]) => from.includes('.trek-install-id') || name?.includes('.trek-install-id'))).toBe(
+      false,
+    );
+    expect(archiverInstanceMock.glob).not.toHaveBeenCalled();
+  });
+
   it('BACKUP-036h — only category prefixes are ever archived; backups/ and restore-* are structurally out (issue #1358)', async () => {
     // The uploads/** glob is gone: even when data and uploads map to the same
     // directory, enumeration only ever walks the six archived categories, so

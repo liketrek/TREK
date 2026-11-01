@@ -537,7 +537,7 @@ export class TripsService {
       }
     });
     if (vacayId !== undefined) await this.vacay.notifyPlanUsers(vacayId, undefined);
-    if (cover_image !== undefined) await this.release.releaseValues([trip.cover_image]); // kept while any row names it
+    if (cover_image !== undefined && cover_image !== trip.cover_image) await this.release.releaseValues([trip.cover_image]);
 
     const changes: Record<string, unknown> = {};
     if (title && title !== trip.title) changes.title = title;

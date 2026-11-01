@@ -1,38 +1,105 @@
+import { StorageReleaseQueue } from '../../db/entities/StorageReleaseQueue.entity';
+import type {
+  ReleaseQueueRow,
+  StorageReleaseQueueRepository,
+} from '../../db/repositories/StorageReleaseQueue.repository';
+import { dbNow } from '../../db/types';
 import { logDebug, logWarn } from '../audit/audit-log.logger';
+import { UnitOfWork } from '../database/unit-of-work';
+import { StorageInstallService } from './storage-install.service';
 import { StorageJobsService } from './storage-jobs.service';
 import { isValidKey } from './storage-keys';
+import { StorageReclaimGuardService } from './storage-reclaim-guard.service';
 import { StorageReclaimRegistryService } from './storage-reclaim-registry.service';
-import { inReclaimScope, RECLAIM_LEDGER, sharedLocationsOf } from './storage-reclaim.ledger';
+import { inReclaimScope, RECLAIM_LEDGER, reclaimableCategories, sharedLocationsOf } from './storage-reclaim.ledger';
 import {
+  keySearchCore,
   storageKeysIn,
   storageOwnerMarkerInstall,
   type StorageKeyOptions,
-  type StorageKeyRef,
   type StorageReferenceSource,
 } from './storage-reclaim.types';
 import { StorageRegistryService } from './storage-registry.service';
 import { StorageService } from './storage.service';
 import { SERVED_CATEGORIES, type ServedCategory } from './storage.types';
+import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
+
+const HOUR_MS = 60 * 60 * 1000;
+/**
+ * How long a released object waits before the queue may delete it: longer
+ * than every window in TREK that can write a value back that names it.
+ * - the assistant: a change card's undo lasts 15 minutes (UNDO_WINDOW_MS), and
+ *   a proposed change may be approved for 24 hours (APPROVAL_TTL_MS), so a
+ *   change proposed with an old cover path can still be applied a day later;
+ * - the offline mutation queue retries a write the server failed with a 5xx
+ *   for about two hours (MAX_SERVER_ERROR_ATTEMPTS, doubling from 30 s);
+ * - the planner's own undo (usePlannerHistory) and a write queued while
+ *   offline are bounded by nothing but the tab and the outage: those are
+ *   unbounded, and the place undo does not offer to undo a delete that took an
+ *   uploaded image (placeUndo.ts) for that reason.
+ * So the longest bounded window is a day; two hours on top cover the clock
+ * and the job's interval. What comes back later than that finds the object
+ * gone, as it did before the reclaim when every delete was immediate.
+ */
+export const RELEASE_DELAY_MS = 26 * HOUR_MS;
+/** A queued row older than this past its time belongs to the nightly pass: its category stayed refused. */
+const QUEUE_MAX_AGE_MS = 30 * 24 * HOUR_MS;
+/** Keys one stored value may queue: a value naming more than that is no upload path of ours. */
+const MAX_KEYS_PER_VALUE = 16;
+/** Keys one call may queue; the rest is the nightly pass's. */
+const MAX_KEYS_PER_CALL = 1000;
+/** No more rows than this wait at once; a release past it is the nightly pass's. */
+const QUEUE_LIMIT = 50_000;
+/** Rows per insert: three bound values each. */
+const ENQUEUE_BATCH = 100;
+/** Rows one tick looks at. */
+const TICK_LIMIT = 200;
+/** Keys per question to the sources. */
+const ASK_BATCH = 50;
+/** Deletes in flight at once. */
+const DELETE_CONCURRENCY = 10;
 
 const SERVED = new Set<string>(SERVED_CATEGORIES);
 
+/** The name a release tick holds the one-job slot under. */
+export const STORAGE_RELEASE_JOB = 'a storage release';
+
+export interface ReleaseTickResult {
+  /** Why the tick did nothing, or null when it ran. */
+  skipped: 'busy' | 'no_install_id' | null;
+  deleted: number;
+  /** Rows dropped because a row still names the object, or the instance keeps it. */
+  kept: number;
+}
+
+/** A restore began, a backup started or the database was swapped mid-tick: the rest waits for the next one. */
+class ReleaseStopped extends Error {}
+
 /**
- * Deletes what a user's change left unnamed, right after it: a replaced or
- * removed cover, place image or avatar, a deleted journey photo or trip file.
- * The owner calls it once its transaction committed, with the values the rows
- * held, and every registered reference source (the nightly pass's sources and
- * parser) is asked whether anything still names each object. Only what no row
- * names goes, through `StorageService.delete` (replicas follow, a demo keeps
- * its bytes), so an object a trip copy, a journey or a saved place still shows
- * stays, unlike before (#2924), while a deleted photo is gone at once as it
- * always was.
+ * What a user's change left unnamed: a replaced or removed cover, place image
+ * or avatar, a deleted journey photo or trip file. The owner hands the values
+ * its rows held to `releaseValues` once its transaction committed, and every
+ * object they name is queued, which is all the request pays. Nothing goes
+ * before RELEASE_DELAY_MS, so an undo or a late write that brings the value
+ * back keeps its object.
  *
- * The pass's own guards hold: only the root of a reclaimable category, never
- * an owner marker, never while a restore runs, never where a required source
- * is missing or the category's location overlaps another's. It never fails
- * the caller's request: anything it leaves (an error, a guard) is the nightly
- * pass's to find. Releases are logged at debug, not audited one by one.
+ * A job (StorageReleaseJob) then takes the due rows, asks every registered
+ * reference source again about them (the nightly pass's sources and parser)
+ * and deletes only what none of them names, through `StorageService.delete`
+ * (replicas follow, a demo keeps its bytes); the row goes either way. So an
+ * object a trip copy, a journey or a saved place still shows stays (#2924),
+ * while a deleted photo still goes as it did before, a day later.
+ *
+ * The queue refuses what the pass refuses (StorageReclaimGuardService): only
+ * the root of a reclaimable category, never an owner marker, never where a
+ * required source is missing, where the category's location overlaps another
+ * one's, or where another installation's owner marker lies (or this one's
+ * cannot be written). It does nothing while a restore or a backup runs or
+ * another storage job holds the slot, and without an install id. A refused
+ * category's rows wait, up to QUEUE_MAX_AGE_MS. Releases run whatever the
+ * nightly deletion switch says: they are what a delete always did. Queueing
+ * never fails the caller's request.
  */
 @Injectable()
 export class StorageReleaseService {
@@ -41,75 +108,186 @@ export class StorageReleaseService {
     private readonly registry: StorageRegistryService,
     private readonly references: StorageReclaimRegistryService,
     private readonly jobs: StorageJobsService,
+    private readonly install: StorageInstallService,
+    private readonly guard: StorageReclaimGuardService,
+    private readonly uow: UnitOfWork,
+    @InjectRepository(StorageReleaseQueue) private readonly queue: StorageReleaseQueueRepository,
   ) {}
 
   /**
-   * The objects these stored values name (any spelling a column holds), each
-   * deleted when no row names it any more. Answers the ones that went.
+   * Queues the objects these stored values name (any spelling a column holds)
+   * for a release once they are due; answers how many were queued. Never
+   * throws: what it cannot queue is the nightly pass's.
+   *
+   * @txStandalone a queue row stands on its own whatever the caller wrote:
+   * the job asks every source again before anything goes.
    */
   async releaseValues(
     values: ReadonlyArray<string | null | undefined>,
     options: StorageKeyOptions = {},
-  ): Promise<StorageKeyRef[]> {
-    const byCategory = new Map<ServedCategory, Set<string>>();
-    for (const value of values) {
-      for (const ref of storageKeysIn(value, options)) {
-        if (!SERVED.has(ref.category)) continue;
-        const category = ref.category as ServedCategory;
-        const keys = byCategory.get(category) ?? new Set<string>();
-        keys.add(ref.key);
-        byCategory.set(category, keys);
-      }
-    }
-    const released = await Promise.all(
-      [...byCategory].map(async ([category, keys]) =>
-        (await this.releaseIfUnreferenced(category, [...keys])).map((key) => ({ category, key })),
-      ),
-    );
-    return released.flat();
-  }
-
-  /** These keys of one category, each deleted when it exists and no row names it. Answers the ones that went. */
-  async releaseIfUnreferenced(category: ServedCategory, keys: readonly string[]): Promise<string[]> {
+  ): Promise<number> {
     try {
-      const candidates = [...new Set(keys)].filter(
-        (key) => inReclaimScope(key) && isValidKey(key) && storageOwnerMarkerInstall(key) === null,
-      );
-      if (candidates.length === 0) return [];
-      const sources = this.sourcesFor(category);
-      if (sources === null) return [];
-      const referenced = await this.referencedIn(category, candidates, sources);
-      const unnamed = candidates.filter(
-        (key) => !referenced.has(key.toLowerCase()) && !this.storage.keepsOnDelete(category, key),
-      );
-      const released = await Promise.all(unnamed.map((key) => this.deleteIfPresent(category, key)));
-      return unnamed.filter((_key, i) => released[i]);
+      const rows = releasable(values, options);
+      if (rows.length === 0) return 0;
+      if ((await this.queue.size()) + rows.length > QUEUE_LIMIT) {
+        logWarn(`[storage] the release queue is full, ${rows.length} object(s) are left to the nightly pass`);
+        return 0;
+      }
+      const dueAt = dbNow(new Date(Date.now() + RELEASE_DELAY_MS));
+      await this.uow.transactional(async () => {
+        await chunk(rows, ENQUEUE_BATCH).reduce<Promise<void>>(async (previous, page) => {
+          await previous;
+          await this.queue.enqueue(page, dueAt);
+        }, Promise.resolve());
+      });
+      return rows.length;
     } catch (err) {
-      logWarn(`[storage] could not release '${category}' objects, the nightly pass will: ${messageOf(err)}`);
-      return [];
+      logWarn(`[storage] could not queue released objects, the nightly pass will find them: ${messageOf(err)}`);
+      return 0;
     }
   }
 
-  /** The sources to ask, or null when the category may not be released from now. */
-  private sourcesFor(category: ServedCategory): readonly StorageReferenceSource[] | null {
-    const rule = RECLAIM_LEDGER[category];
-    if (!rule.reclaim || this.jobs.restoreRunning) return null;
-    const sources = this.references.sources().filter((source) => source.claims.some((c) => c.category === category));
-    const whole = new Set(
-      sources
-        .filter((source) => source.claims.some((c) => c.category === category && c.prefix === ''))
-        .map((source) => source.id),
-    );
-    if (rule.requiredSources.some((id) => !whole.has(id))) return null;
-    if (sharedLocationsOf(this.registry).has(category)) return null;
-    return sources;
+  /**
+   * One tick of the release job: the due rows of every category the guards
+   * let through, at most TICK_LIMIT, each object deleted when no source names
+   * it. Holds the one-job slot while it runs, so a restore waits for it and a
+   * backfill or a migration never runs beside it.
+   *
+   * @txIndependent every delete and every dropped row stands on its own: a
+   * tick cut short leaves the rest queued.
+   */
+  async processDue(now: Date = new Date()): Promise<ReleaseTickResult> {
+    const result: ReleaseTickResult = { skipped: null, deleted: 0, kept: 0 };
+    const installId = this.install.installId();
+    if (installId === null) return { ...result, skipped: 'no_install_id' };
+    if (this.jobs.backupRunning || !this.jobs.claimExclusive(STORAGE_RELEASE_JOB))
+      return { ...result, skipped: 'busy' };
+    try {
+      await this.drain(installId, now.getTime(), this.install.epoch, result);
+    } finally {
+      this.jobs.releaseExclusive(STORAGE_RELEASE_JOB);
+    }
+    return result;
   }
 
-  private async referencedIn(
+  /** @txIndependent see processDue. */
+  private async drain(installId: string, now: number, epoch: number, result: ReleaseTickResult): Promise<void> {
+    await this.queue.deleteDueBefore(dbNow(new Date(now - QUEUE_MAX_AGE_MS)));
+    const due = new Set(await this.queue.dueCategories(dbNow(new Date(now))));
+    if (due.size === 0) return;
+    const allowed = await this.allowedCategories(due, installId, now);
+    const rows = await this.queue.dueIn([...allowed.keys()], dbNow(new Date(now)), TICK_LIMIT);
+    const byCategory = new Map<ServedCategory, string[]>();
+    for (const row of rows) {
+      const category = row.category as ServedCategory;
+      byCategory.set(category, [...(byCategory.get(category) ?? []), row.key]);
+    }
+    try {
+      await [...byCategory].reduce<Promise<void>>(async (previous, [category, keys]) => {
+        await previous;
+        await this.releaseCategory(category, keys, allowed.get(category) ?? [], epoch, result);
+      }, Promise.resolve());
+    } catch (err) {
+      if (!(err instanceof ReleaseStopped)) throw err;
+      logDebug(`[storage] a release tick stopped: ${err.message}`);
+    }
+  }
+
+  /** Of the categories with rows due, the ones the guards let a release judge now, each with the sources to ask. */
+  private async allowedCategories(
+    due: ReadonlySet<string>,
+    installId: string,
+    now: number,
+  ): Promise<Map<ServedCategory, StorageReferenceSource[]>> {
+    const sources = this.references.sources();
+    const shared = sharedLocationsOf(this.registry);
+    const allowed = new Map<ServedCategory, StorageReferenceSource[]>();
+    const asked = reclaimableCategories().filter((category) => due.has(category));
+    await asked.reduce<Promise<void>>(async (previous, category) => {
+      await previous;
+      const judged = this.guard.judgeable(category, sources, shared);
+      if ('refused' in judged) return;
+      if ((await this.guard.cachedOwnerVerdict(category, installId, now)) !== null) return;
+      allowed.set(category, judged.sources);
+    }, Promise.resolve());
+    return allowed;
+  }
+
+  /**
+   * The due keys of one category, ASK_BATCH at a time: asked about, then
+   * deleted when unnamed. A failed question or delete stops the category for
+   * this tick and leaves its rows queued.
+   *
+   * @txIndependent every delete stands alone, its row goes after it.
+   */
+  private async releaseCategory(
     category: ServedCategory,
     keys: readonly string[],
     sources: readonly StorageReferenceSource[],
+    epoch: number,
+    result: ReleaseTickResult,
+  ): Promise<void> {
+    let failed = false;
+    await chunk(keys, ASK_BATCH).reduce<Promise<void>>(async (previous, batch) => {
+      await previous;
+      if (failed) return;
+      this.assertUndisturbed(epoch);
+      failed = await this.releaseBatch(category, batch, sources, epoch, result);
+    }, Promise.resolve());
+  }
+
+  /** True when the batch failed part way, so the category stops for this tick. */
+  private async releaseBatch(
+    category: ServedCategory,
+    batch: readonly string[],
+    sources: readonly StorageReferenceSource[],
+    epoch: number,
+    result: ReleaseTickResult,
+  ): Promise<boolean> {
+    let referenced: Set<string>;
+    try {
+      referenced = await this.referencedIn(category, batch, sources);
+    } catch (err) {
+      logWarn(`[storage] could not ask about released '${category}' objects, they wait: ${messageOf(err)}`);
+      return true;
+    }
+    const kept = batch.filter((key) => referenced.has(key.toLowerCase()) || this.storage.keepsOnDelete(category, key));
+    const unnamed = batch.filter((key) => !kept.includes(key));
+    this.assertUndisturbed(epoch);
+    const deleted: string[] = [];
+    let failure: unknown = null;
+    await chunk(unnamed, DELETE_CONCURRENCY).reduce<Promise<void>>(async (previous, group) => {
+      await previous;
+      if (failure !== null) return;
+      const results = await Promise.allSettled(group.map((key) => this.storage.delete(category, key)));
+      results.forEach((settled, i) => {
+        if (settled.status === 'fulfilled') deleted.push(group[i] as string);
+        else failure ??= settled.reason;
+      });
+    }, Promise.resolve());
+    await this.queue.deleteKeys(category, [...kept, ...deleted]);
+    result.kept += kept.length;
+    result.deleted += deleted.length;
+    if (deleted.length > 0) logDebug(`[storage] released ${deleted.length} unreferenced '${category}' object(s)`);
+    if (failure === null) return false;
+    logWarn(`[storage] could not release a '${category}' object, it waits: ${messageOf(failure)}`);
+    return true;
+  }
+
+  /**
+   * The keys some source names right now, lowercased. A key no source can
+   * narrow its read to (no plain run of 8 characters, which every name TREK
+   * writes has) counts as named without a question: asking about it would read
+   * whole tables, so it is the nightly pass's.
+   */
+  private async referencedIn(
+    category: ServedCategory,
+    batch: readonly string[],
+    sources: readonly StorageReferenceSource[],
   ): Promise<Set<string>> {
+    const referenced = new Set(batch.filter((key) => keySearchCore(key) === null).map((key) => key.toLowerCase()));
+    const keys = batch.filter((key) => keySearchCore(key) !== null);
+    if (keys.length === 0) return referenced;
     const answers = await Promise.all(
       sources.map(async (source) => {
         const asked = keys.filter((key) =>
@@ -118,22 +296,50 @@ export class StorageReleaseService {
         return asked.length === 0 ? new Set<string>() : await source.referenced(category, asked);
       }),
     );
-    const referenced = new Set<string>();
     for (const answer of answers) for (const key of answer) referenced.add(key.toLowerCase());
     return referenced;
   }
 
-  private async deleteIfPresent(category: ServedCategory, key: string): Promise<boolean> {
-    try {
-      if ((await this.storage.stat(category, key)) === null) return false;
-      await this.storage.delete(category, key);
-      logDebug(`[storage] released an unreferenced '${category}' object`);
-      return true;
-    } catch (err) {
-      logWarn(`[storage] could not release a '${category}' object, the nightly pass will: ${messageOf(err)}`);
-      return false;
+  /** A restore or a backup that began, or a reopen that happened, since the tick started ends it. */
+  private assertUndisturbed(epoch: number): void {
+    if (this.jobs.restoreRunning) throw new ReleaseStopped('a restore began');
+    if (this.jobs.backupRunning) throw new ReleaseStopped('a backup began');
+    if (this.install.epoch !== epoch) throw new ReleaseStopped('the database was reopened');
+  }
+}
+
+/**
+ * The rows these values queue: root-level keys of reclaimable categories,
+ * never an owner marker, at most MAX_KEYS_PER_VALUE per value and
+ * MAX_KEYS_PER_CALL in all.
+ */
+function releasable(
+  values: ReadonlyArray<string | null | undefined>,
+  options: StorageKeyOptions,
+): Array<Pick<ReleaseQueueRow, 'category' | 'key'>> {
+  const seen = new Set<string>();
+  const rows: Array<Pick<ReleaseQueueRow, 'category' | 'key'>> = [];
+  for (const value of values) {
+    const refs = storageKeysIn(value, options).filter(
+      (ref) =>
+        SERVED.has(ref.category) &&
+        RECLAIM_LEDGER[ref.category as ServedCategory].reclaim &&
+        inReclaimScope(ref.key) &&
+        isValidKey(ref.key) &&
+        storageOwnerMarkerInstall(ref.key) === null,
+    );
+    for (const ref of refs.slice(0, MAX_KEYS_PER_VALUE)) {
+      const id = `${ref.category}\n${ref.key}`;
+      if (seen.has(id) || rows.length >= MAX_KEYS_PER_CALL) continue;
+      seen.add(id);
+      rows.push({ category: ref.category, key: ref.key });
     }
   }
+  return rows;
+}
+
+function chunk<T>(items: readonly T[], size: number): T[][] {
+  return Array.from({ length: Math.ceil(items.length / size) }, (_page, i) => items.slice(i * size, (i + 1) * size));
 }
 
 function messageOf(err: unknown): string {

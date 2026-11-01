@@ -54,7 +54,10 @@ export class JourneySettingsService {
       return previousSettings(before as unknown as Readonly<Record<string, unknown>> | undefined, patch);
     });
     if (written) await this.journeys.broadcastJourneyEvent(journeyId, 'journey:updated', {}, sid);
-    if (typeof previous.cover_image === 'string') await this.release.releaseValues([previous.cover_image]);
+    // A replaced cover is queued, never deleted here: the assistant's undo can write it back.
+    if (typeof previous.cover_image === 'string' && previous.cover_image !== patch.cover_image) {
+      await this.release.releaseValues([previous.cover_image]);
+    }
     const journey = (await this.journeysRepo.findById(journeyId)) as Journey | undefined;
     return journey ? { journey, previous } : null;
   }

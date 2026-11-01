@@ -30,6 +30,12 @@ export interface DataPaths {
   /** `data/.encryption_key`: the at-rest key when ENCRYPTION_KEY does not provide it. */
   readonly encryptionKeyFile: string;
   /**
+   * `data/.trek-install-id`: this installation's random id, written on first
+   * start. It never enters a backup and no restore writes it, so a database
+   * restored or copied from another install is told apart by it (storage reclaim).
+   */
+  readonly installIdFile: string;
+  /**
    * The SQLite file a non-test process opens: TREK_DB_FILE when set, else
    * `data/travel.db`. Under NODE_ENV=test the connection is `:memory:` instead
    * (db/db-path.ts), which is a property of the connection, not of the layout.
@@ -58,6 +64,7 @@ export function resolveDataPaths(
     logsDir: path.join(dataDir, 'logs'),
     jwtSecretFile: path.join(dataDir, '.jwt_secret'),
     encryptionKeyFile: path.join(dataDir, '.encryption_key'),
+    installIdFile: path.join(dataDir, '.trek-install-id'),
     dbFile: env.db.trekDbFile || path.join(dataDir, 'travel.db'),
   };
 }

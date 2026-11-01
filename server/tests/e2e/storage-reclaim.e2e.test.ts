@@ -5,19 +5,22 @@
  * contracts the handlers declare all stand in front of it. Every owner
  * domain registers its reference source here, so a pass looks at every
  * reclaimable category; the checks below run in the background and only
- * report. RCLE-001 to RCLE-007.
+ * report. RCLE-001 to RCLE-008.
  */
 import { buildApp } from '../../src/bootstrap';
 import { AppSettings } from '../../src/db/entities/AppSettings.entity';
 import { AuditLog } from '../../src/db/entities/AuditLog.entity';
+import { StorageInstallService } from '../../src/nest/storage/storage-install.service';
 import { StorageJobsService } from '../../src/nest/storage/storage-jobs.service';
 import { STORAGE_RECLAIMABLE_CATEGORIES, storageOwnerMarkerKey } from '../../src/nest/storage/storage-reclaim.types';
 import { StorageService } from '../../src/nest/storage/storage.service';
 import { countRows, deleteRows, findRow } from '../helpers/factories/rows';
+import { setAppSetting } from '../helpers/factories/settings';
 import { makeAdmin, makeUser } from '../helpers/factories/users';
 import { sessionCookie } from './harness';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
+import { STORAGE_RECLAIM_CATEGORIES, type StorageReclaimReport } from '@trek/shared';
 
 import type { Server } from 'http';
 import request from 'supertest';
@@ -53,7 +56,7 @@ describe('Storage reclaim e2e (whole app: real auth + admin guard + managed guar
 
   afterAll(async () => {
     // The uploads folder is the test run's shared one: take back the owner markers this app's checks wrote.
-    const installId = (await findRow(orm, AppSettings, { key: 'install_id' }))?.value;
+    const installId = app.get(StorageInstallService).installId();
     if (installId) {
       const storage = app.get(StorageService);
       await Promise.all(
@@ -99,9 +102,11 @@ describe('Storage reclaim e2e (whole app: real auth + admin guard + managed guar
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ deleteEnabled: true, running: false, lastRun: null, lastDeleteRun: null });
     expect(await countRows(orm, AuditLog, { action: 'admin.storage_reclaim_update' })).toBe(1);
-    // Stored as the install id it was turned on for, so a database restored elsewhere reads as off.
+    // Stored as the install id it was turned on for, so a database restored elsewhere reads as off. The id
+    // comes from the data dir's file, and the database carries a copy it is reconciled with at boot.
     const installId = (await findRow(orm, AppSettings, { key: 'install_id' }))?.value;
     expect(installId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(installId).toBe(app.get(StorageInstallService).installId());
     expect((await findRow(orm, AppSettings, { key: 'storage.reclaim_delete' }))?.value).toBe(installId);
     expect((await settledState()).deleteEnabled).toBe(true);
     const off = await request(server)
@@ -119,11 +124,15 @@ describe('Storage reclaim e2e (whole app: real auth + admin guard + managed guar
     );
     expect(refused.map((res) => res.status)).toEqual([400, 400, 400]);
     const confirm = await Promise.all(
-      [{}, { category: 'nowhere' }, { category: 'covers', count: 3 }].map((body) =>
-        request(server).post('/api/admin/storage/reclaim/confirm').set('Cookie', adminCookie).send(body),
-      ),
+      [
+        {},
+        { category: 'nowhere', unreferenced: 3 },
+        { category: 'covers', count: 3 },
+        { category: 'covers' },
+        { category: 'covers', unreferenced: -1 },
+      ].map((body) => request(server).post('/api/admin/storage/reclaim/confirm').set('Cookie', adminCookie).send(body)),
     );
-    expect(confirm.map((res) => res.status)).toEqual([400, 400, 400]);
+    expect(confirm.map((res) => res.status)).toEqual([400, 400, 400, 400, 400]);
     expect(await countRows(orm, AuditLog)).toBe(0);
   });
 
@@ -161,9 +170,47 @@ describe('Storage reclaim e2e (whole app: real auth + admin guard + managed guar
     const confirm = await request(server)
       .post('/api/admin/storage/reclaim/confirm')
       .set('Cookie', adminCookie)
-      .send({ category: 'covers' });
+      .send({ category: 'covers', unreferenced: 3 });
     expect(confirm.status).toBe(409);
     expect(confirm.body.code).toBe('reclaim_nothing_to_confirm');
+  });
+
+  it('RCLE-008: confirm takes the count shown, refuses a stale one with a code, and the prompt goes at once', async () => {
+    const none = { objects: 0, bytes: 0 };
+    const row = {
+      objects: 0,
+      unreferenced: none,
+      eligible: none,
+      deleted: none,
+      confirmationRequired: false,
+      skipped: null,
+    };
+    const report: StorageReclaimReport = {
+      startedAt: Date.now(),
+      finishedAt: Date.now(),
+      mode: 'report',
+      stopped: null,
+      categories: {
+        ...(Object.fromEntries(STORAGE_RECLAIM_CATEGORIES.map((c) => [c, row])) as StorageReclaimReport['categories']),
+        covers: { ...row, objects: 1000, unreferenced: { objects: 300, bytes: 3000 }, confirmationRequired: true },
+      },
+    };
+    await setAppSetting(orm, 'storage.reclaim_report', JSON.stringify(report));
+    const confirm = (unreferenced: number) =>
+      request(server)
+        .post('/api/admin/storage/reclaim/confirm')
+        .set('Cookie', adminCookie)
+        .send({ category: 'covers', unreferenced });
+    const stale = await confirm(5000);
+    expect(stale.status).toBe(409);
+    expect(stale.body.code).toBe('reclaim_confirm_stale');
+    expect(await countRows(orm, AuditLog)).toBe(0);
+    const ok = await confirm(300);
+    expect(ok.status).toBe(200);
+    expect(ok.body.lastRun.categories.covers.confirmationRequired).toBe(false);
+    const audit = await findRow(orm, AuditLog, { action: 'admin.storage_reclaim_confirm' });
+    expect(JSON.parse(String(audit?.details))).toEqual({ category: 'covers', unreferenced: 300 });
+    expect((await settledState()).lastRun.categories.covers.confirmationRequired).toBe(false);
   });
 
   it('RCLE-007: managed mode refuses the surface with the standard body', async () => {
