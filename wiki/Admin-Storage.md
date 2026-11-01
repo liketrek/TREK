@@ -141,7 +141,7 @@ any more, and the **Unreferenced files** section shows what it found:
   check deletes them once deletion is on.
 - **Unused for less than a week**: these get their week first. A file that is
   used again in the meantime (an undo, a copied trip) starts over.
-- **Freed on the last check**: what the last nightly check with deletion on
+- **Freed by the last nightly cleanup**: what the last nightly check with deletion on
   deleted. A check you start by hand never deletes, so it never changes this
   figure.
 

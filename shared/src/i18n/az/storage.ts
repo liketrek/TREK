@@ -153,22 +153,33 @@ const storage: TranslationStrings = {
   'storage.reclaim.hint':
     'TREK hər gecə heç bir səfər, yer, jurnal, kolleksiya və ya istifadəçinin artıq istifadə etmədiyi yüklənmiş faylları axtarır, məsələn, səfər silindikdən sonra.',
   'storage.reclaim.check': 'İndi yoxla',
-  'storage.reclaim.checked': 'Yoxlanıldı: {age}',
+  'storage.reclaim.checked': 'Son yoxlama: {age}',
   'storage.reclaim.never': 'Hələ yoxlanılmayıb',
   'storage.reclaim.delete': 'İstinad olunmayan faylları sil',
   'storage.reclaim.deleteHint':
-    'Söndürülü olduqda gecə yoxlaması yalnız hesabat verir. Aktiv olduqda bir həftədir heç nəyin istifadə etmədiyi fayl silinir. Bir neçə quraşdırma eyni bucket-i paylaşırsa, söndürülü saxlayın.',
+    'Söndürülü olduqda gecə yoxlaması yalnız hesabat verir. Aktiv olduqda bir həftədir heç nəyin istifadə etmədiyi fayl silinir. TREK-də sildiyiniz fayllar hər iki halda dərhal silinir.',
   'storage.reclaim.freeable': 'Boşaldıla bilər',
   'storage.reclaim.waiting': 'Bir həftədən az istifadə olunmayıb',
-  'storage.reclaim.deleted': 'Son yoxlamada boşaldıldı',
+  'storage.reclaim.deleted': 'Son gecə təmizliyi ilə boşaldıldı',
   'storage.reclaim.nothing': 'İstinad olunmayan fayl tapılmadı.',
   'storage.reclaim.stopped': 'Son yoxlama vaxtından əvvəl dayandı, çünki o işləyərkən verilənlər bazası bərpa olundu.',
   'storage.reclaim.skip.sources_missing': 'Keçildi: TREK-in bütün hissələrinə sorğu göndərmək mümkün olmadı',
   'storage.reclaim.skip.shared_location': 'Keçildi: yeri başqa kateqoriya ilə paylaşılır',
-  'storage.reclaim.skip.too_many_unreferenced':
-    'Keçildi: çox fayl istifadə olunmayan görünür, bəlkə paylaşılan bucket-dir',
   'storage.reclaim.skip.list_failed': 'Keçildi: faylların siyahısını almaq mümkün olmadı',
   'storage.reclaim.skip.source_failed': 'Keçildi: bir sorğu uğursuz oldu',
+  'storage.reclaim.running': 'Yoxlanılır…',
+  'storage.reclaim.stoppedFailed': 'Son yoxlama xəta ilə dayandı. Bu gecə yenidən işləyəcək.',
+  'storage.reclaim.skip.foreign_install': 'Keçildi: başqa TREK quraşdırması bu saxlama yerindən istifadə edir',
+  'storage.reclaim.skip.owner_unknown': 'Keçildi: TREK bu saxlama yerini özününkü kimi işarələyə bilmədi',
+  'storage.reclaim.skip.delete_failed': 'Dayandırıldı: saxlama yeri silməni rədd etdi',
+  'storage.reclaim.skip.interrupted': 'Bitməmiş dayandırıldı, rəqəmlər qismən məlumatdır',
+  'storage.reclaim.confirmNeeded':
+    'Bu faylların beşdə birindən çoxu istifadə olunmayan görünür. Bunun gözlənilən olduğunu təsdiqləyənə qədər burada heç nə silinməyəcək.',
+  'storage.reclaim.confirm': 'Təsdiqlə',
+  'storage.reclaim.confirmed': 'Təsdiqləndi. Gecə təmizliyi indi bu faylları silə bilər.',
+  'storage.reclaim.error.reclaim_busy': 'Başqa saxlama tapşırığı işləyir. Bir azdan yenidən cəhd edin.',
+  'storage.reclaim.error.reclaim_demo': 'Demo quraşdırmada əlçatan deyil.',
+  'storage.reclaim.error.reclaim_nothing_to_confirm': 'Artıq təsdiqlənəcək bir şey yoxdur. Əvvəlcə yoxlama aparın.',
 };
 
 export default storage;

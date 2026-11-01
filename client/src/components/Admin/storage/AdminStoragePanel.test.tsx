@@ -14,9 +14,10 @@ const S3_MASKED = {
 /** A last check with three covers a week old and two younger ones; every other category never reclaimed. */
 function reclaimReport(): StorageReclaimReport {
   const categories = Object.fromEntries(
-    STORAGE_RECLAIM_CATEGORIES.map((c) => [c, { objects: 0, unreferenced: { objects: 0, bytes: 0 }, eligible: { objects: 0, bytes: 0 }, deleted: { objects: 0, bytes: 0 }, skipped: 'not_reclaimed' as const }]),
+    STORAGE_RECLAIM_CATEGORIES.map((c) => [c, { objects: 0, unreferenced: { objects: 0, bytes: 0 }, eligible: { objects: 0, bytes: 0 }, deleted: { objects: 0, bytes: 0 }, confirmationRequired: false, skipped: 'not_reclaimed' as const }]),
   ) as StorageReclaimReport['categories'];
-  categories.covers = { objects: 40, unreferenced: { objects: 5, bytes: 5000 }, eligible: { objects: 3, bytes: 3000 }, deleted: { objects: 0, bytes: 0 }, skipped: null };
+  categories.covers = { objects: 40, unreferenced: { objects: 5, bytes: 5000 }, eligible: { objects: 3, bytes: 3000 }, deleted: { objects: 0, bytes: 0 }, confirmationRequired: false, skipped: null };
+  categories.places = { objects: 10, unreferenced: { objects: 3, bytes: 300 }, eligible: { objects: 0, bytes: 0 }, deleted: { objects: 0, bytes: 0 }, confirmationRequired: true, skipped: null };
   return { startedAt: Date.now() - 60_000, finishedAt: Date.now() - 30_000, mode: 'report', stopped: null, categories };
 }
 
@@ -1228,27 +1229,54 @@ describe('AdminStoragePanel', () => {
     expect(within(row).getByRole('button', { name: 'Sync now' })).toBeInTheDocument();
   });
 
-  it('FE-ADMIN-STOR-051: unreferenced files: the last check shows, the switch and the check go to the server', async () => {
+  it('FE-ADMIN-STOR-051: unreferenced files: the last check shows, the switch, the check and a confirmation go to the server', async () => {
     const lastRun = reclaimReport();
     let put: unknown = null;
-    let run: unknown = null;
+    let runs = 0;
+    let confirm: unknown = null;
     server.use(
       http.put('/api/admin/storage/reclaim', async ({ request }) => {
         put = await request.json();
-        return HttpResponse.json({ deleteEnabled: true, lastRun });
+        return HttpResponse.json({ deleteEnabled: true, running: false, lastRun, lastDeleteRun: null });
       }),
-      http.post('/api/admin/storage/reclaim/run', async ({ request }) => {
-        run = await request.json();
-        return HttpResponse.json(lastRun);
+      http.post('/api/admin/storage/reclaim/run', () => {
+        runs += 1;
+        return HttpResponse.json({ started: true }, { status: 202 });
+      }),
+      http.post('/api/admin/storage/reclaim/confirm', async ({ request }) => {
+        confirm = await request.json();
+        return HttpResponse.json({ deleteEnabled: true, running: false, lastRun, lastDeleteRun: null });
       }),
     );
-    await renderPanel(baseState({ reclaim: { deleteEnabled: false, lastRun } }));
+    await renderPanel(baseState({ reclaim: { deleteEnabled: false, running: false, lastRun, lastDeleteRun: null } }));
+    // Once a check started, the state the panel polls says it runs.
+    server.use(
+      http.get('/api/admin/storage', () =>
+        HttpResponse.json(baseState({ reclaim: { deleteEnabled: true, running: runs > 0, lastRun, lastDeleteRun: null } })),
+      ),
+    );
     expect(screen.getByText('Unreferenced files')).toBeInTheDocument();
     expect(within(screen.getByTestId('storage-reclaim-covers')).getByText(/Can be freed/)).toBeInTheDocument();
+    expect(within(screen.getByTestId('storage-reclaim-places')).getByText(/More than a fifth/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Delete unreferenced files' }));
     await waitFor(() => expect(put).toEqual({ deleteEnabled: true }));
     await waitFor(() => expect(screen.getByRole('button', { name: 'Delete unreferenced files' })).toHaveAttribute('aria-pressed', 'true'));
+    fireEvent.click(within(screen.getByTestId('storage-reclaim-places')).getByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(confirm).toEqual({ category: 'places' }));
     fireEvent.click(screen.getByRole('button', { name: 'Check now' }));
-    await waitFor(() => expect(run).toEqual({ reportOnly: true }));
+    await waitFor(() => expect(runs).toBe(1));
+    // The check runs in the background: the panel shows it running until the state says otherwise.
+    await waitFor(() => expect(screen.getByText('Checking…')).toBeInTheDocument());
+  });
+
+  it('FE-ADMIN-STOR-051b: a refused check names the reason in the operator\'s language', async () => {
+    server.use(
+      http.post('/api/admin/storage/reclaim/run', () =>
+        HttpResponse.json({ error: 'busy', code: 'reclaim_busy' }, { status: 409 }),
+      ),
+    );
+    await renderPanel(baseState({ reclaim: { deleteEnabled: false, running: false, lastRun: null, lastDeleteRun: null } }));
+    fireEvent.click(screen.getByRole('button', { name: 'Check now' }));
+    await waitFor(() => expect(screen.getByText('Another storage task is running. Try again in a moment.')).toBeInTheDocument());
   });
 });

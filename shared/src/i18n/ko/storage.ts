@@ -136,21 +136,32 @@ const storage: TranslationStrings = {
   'storage.reclaim.hint':
     'TREK은 매일 밤 어떤 여행, 장소, 일지, 컬렉션, 사용자도 더 이상 사용하지 않는 업로드 파일을 찾습니다. 예를 들어 여행이 삭제된 뒤에 생기는 파일입니다.',
   'storage.reclaim.check': '지금 확인',
-  'storage.reclaim.checked': '{age} 확인됨',
+  'storage.reclaim.checked': '마지막 확인: {age}',
   'storage.reclaim.never': '아직 확인하지 않음',
   'storage.reclaim.delete': '참조되지 않는 파일 삭제',
   'storage.reclaim.deleteHint':
-    '끄면 야간 점검은 보고만 합니다. 켜면 일주일 동안 아무도 사용하지 않은 파일이 삭제됩니다. 여러 설치가 하나의 스토리지 버킷을 공유한다면 끄세요.',
+    '끄면 야간 점검은 보고만 합니다. 켜면 일주일 동안 아무도 사용하지 않은 파일이 삭제됩니다. TREK에서 직접 삭제한 파일은 어느 쪽이든 즉시 삭제됩니다.',
   'storage.reclaim.freeable': '확보 가능',
   'storage.reclaim.waiting': '일주일 미만 동안 사용 안 됨',
-  'storage.reclaim.deleted': '지난 확인에서 확보됨',
+  'storage.reclaim.deleted': '지난 야간 정리에서 확보됨',
   'storage.reclaim.nothing': '참조되지 않는 파일이 없습니다.',
   'storage.reclaim.stopped': '실행 중에 데이터베이스가 복원되어 마지막 확인이 중간에 중단되었습니다.',
   'storage.reclaim.skip.sources_missing': '건너뜀: TREK의 일부 구성 요소를 조회할 수 없었습니다',
   'storage.reclaim.skip.shared_location': '건너뜀: 다른 카테고리와 위치를 공유합니다',
-  'storage.reclaim.skip.too_many_unreferenced':
-    '건너뜀: 사용되지 않는 것으로 보이는 파일이 너무 많습니다. 공유 버킷일 수 있습니다',
   'storage.reclaim.skip.list_failed': '건너뜀: 파일 목록을 가져올 수 없었습니다',
   'storage.reclaim.skip.source_failed': '건너뜀: 조회에 실패했습니다',
+  'storage.reclaim.running': '확인 중…',
+  'storage.reclaim.stoppedFailed': '마지막 확인이 오류로 중단되었습니다. 오늘 밤 다시 실행됩니다.',
+  'storage.reclaim.skip.foreign_install': '건너뜀: 다른 TREK 설치가 이 스토리지를 사용 중입니다',
+  'storage.reclaim.skip.owner_unknown': '건너뜀: TREK이 이 스토리지를 자신의 것으로 표시할 수 없었습니다',
+  'storage.reclaim.skip.delete_failed': '중단됨: 스토리지가 삭제를 거부했습니다',
+  'storage.reclaim.skip.interrupted': '끝나기 전에 중단되어 수치가 일부만 반영되었습니다',
+  'storage.reclaim.confirmNeeded':
+    '이 파일의 5분의 1 이상이 사용되지 않는 것으로 보입니다. 예상된 상황이라고 확인하기 전까지는 아무것도 삭제되지 않습니다.',
+  'storage.reclaim.confirm': '확인',
+  'storage.reclaim.confirmed': '확인되었습니다. 이제 야간 정리에서 이 파일들을 삭제할 수 있습니다.',
+  'storage.reclaim.error.reclaim_busy': '다른 스토리지 작업이 실행 중입니다. 잠시 후 다시 시도하세요.',
+  'storage.reclaim.error.reclaim_demo': '데모 인스턴스에서는 사용할 수 없습니다.',
+  'storage.reclaim.error.reclaim_nothing_to_confirm': '더 이상 확인할 항목이 없습니다. 먼저 점검을 실행하세요.',
 };
 export default storage;

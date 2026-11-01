@@ -146,22 +146,33 @@ const storage: TranslationStrings = {
   'storage.reclaim.hint':
     'Cada noche TREK busca archivos subidos que ningún viaje, lugar, diario, colección o usuario usa ya, por ejemplo tras eliminar un viaje.',
   'storage.reclaim.check': 'Comprobar ahora',
-  'storage.reclaim.checked': 'Comprobado {age}',
+  'storage.reclaim.checked': 'Última comprobación: {age}',
   'storage.reclaim.never': 'Aún no comprobado',
   'storage.reclaim.delete': 'Eliminar archivos sin referencia',
   'storage.reclaim.deleteHint':
-    'Desactivado, la comprobación nocturna solo informa. Activado, se elimina un archivo que nadie ha usado en una semana. Déjalo desactivado si varias instalaciones comparten un mismo bucket de almacenamiento.',
+    'Desactivado, la comprobación nocturna solo informa. Activado, se elimina un archivo que nadie ha usado en una semana. Los archivos que eliminas en TREK se borran al instante en ambos casos.',
   'storage.reclaim.freeable': 'Se puede liberar',
   'storage.reclaim.waiting': 'Sin uso desde hace menos de una semana',
-  'storage.reclaim.deleted': 'Liberado en la última comprobación',
+  'storage.reclaim.deleted': 'Liberado por la última limpieza nocturna',
   'storage.reclaim.nothing': 'No se encontraron archivos sin referencia.',
   'storage.reclaim.stopped':
     'La última comprobación se detuvo antes de tiempo porque la base de datos se restauró mientras se ejecutaba.',
   'storage.reclaim.skip.sources_missing': 'Omitido: no se pudo consultar a todas las partes de TREK',
   'storage.reclaim.skip.shared_location': 'Omitido: comparte ubicación con otra categoría',
-  'storage.reclaim.skip.too_many_unreferenced':
-    'Omitido: demasiados archivos parecen sin uso, posiblemente un bucket compartido',
   'storage.reclaim.skip.list_failed': 'Omitido: no se pudieron listar los archivos',
   'storage.reclaim.skip.source_failed': 'Omitido: falló una consulta',
+  'storage.reclaim.running': 'Comprobando…',
+  'storage.reclaim.stoppedFailed': 'La última comprobación se detuvo por un error. Se ejecutará de nuevo esta noche.',
+  'storage.reclaim.skip.foreign_install': 'Omitido: otra instalación de TREK usa este almacenamiento',
+  'storage.reclaim.skip.owner_unknown': 'Omitido: TREK no pudo marcar este almacenamiento como propio',
+  'storage.reclaim.skip.delete_failed': 'Detenido: el almacenamiento rechazó una eliminación',
+  'storage.reclaim.skip.interrupted': 'Detenido antes de terminar, las cifras son parciales',
+  'storage.reclaim.confirmNeeded':
+    'Más de una quinta parte de estos archivos parece sin uso. No se elimina nada aquí hasta que confirmes que es lo esperado.',
+  'storage.reclaim.confirm': 'Confirmar',
+  'storage.reclaim.confirmed': 'Confirmado. La limpieza nocturna ya puede eliminar estos archivos.',
+  'storage.reclaim.error.reclaim_busy': 'Hay otra tarea de almacenamiento en curso. Inténtalo de nuevo en un momento.',
+  'storage.reclaim.error.reclaim_demo': 'No disponible en una instancia de demostración.',
+  'storage.reclaim.error.reclaim_nothing_to_confirm': 'Ya no hay nada que confirmar. Ejecuta primero una comprobación.',
 };
 export default storage;

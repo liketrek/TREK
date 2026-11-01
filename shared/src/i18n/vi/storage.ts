@@ -140,21 +140,32 @@ const storage: TranslationStrings = {
   'storage.reclaim.hint':
     'Mỗi đêm TREK tìm các tệp đã tải lên mà không chuyến đi, địa điểm, nhật ký, bộ sưu tập hay người dùng nào còn sử dụng, ví dụ sau khi một chuyến đi bị xóa.',
   'storage.reclaim.check': 'Kiểm tra ngay',
-  'storage.reclaim.checked': 'Đã kiểm tra {age}',
+  'storage.reclaim.checked': 'Lần kiểm tra gần nhất: {age}',
   'storage.reclaim.never': 'Chưa kiểm tra',
   'storage.reclaim.delete': 'Xóa các tệp không còn được tham chiếu',
   'storage.reclaim.deleteHint':
-    'Tắt: lần kiểm tra hằng đêm chỉ báo cáo. Bật: tệp không được dùng trong một tuần sẽ bị xóa. Hãy để tắt nếu nhiều bản cài đặt dùng chung một bucket lưu trữ.',
+    'Tắt: lần kiểm tra hằng đêm chỉ báo cáo. Bật: tệp không được dùng trong một tuần sẽ bị xóa. Tệp bạn xóa trong TREK luôn bị gỡ ngay, dù bật hay tắt.',
   'storage.reclaim.freeable': 'Có thể giải phóng',
   'storage.reclaim.waiting': 'Chưa dùng dưới một tuần',
-  'storage.reclaim.deleted': 'Đã giải phóng ở lần kiểm tra trước',
+  'storage.reclaim.deleted': 'Đã giải phóng ở lần dọn dẹp hằng đêm gần nhất',
   'storage.reclaim.nothing': 'Không tìm thấy tệp nào không còn được tham chiếu.',
   'storage.reclaim.stopped': 'Lần kiểm tra trước đã dừng sớm vì cơ sở dữ liệu được khôi phục trong khi đang chạy.',
   'storage.reclaim.skip.sources_missing': 'Bỏ qua: không thể truy vấn mọi phần của TREK',
   'storage.reclaim.skip.shared_location': 'Bỏ qua: dùng chung vị trí với một danh mục khác',
-  'storage.reclaim.skip.too_many_unreferenced':
-    'Bỏ qua: quá nhiều tệp có vẻ không được dùng, có thể là bucket dùng chung',
   'storage.reclaim.skip.list_failed': 'Bỏ qua: không thể liệt kê các tệp',
   'storage.reclaim.skip.source_failed': 'Bỏ qua: một truy vấn đã thất bại',
+  'storage.reclaim.running': 'Đang kiểm tra…',
+  'storage.reclaim.stoppedFailed': 'Lần kiểm tra gần nhất đã dừng do có lỗi. Tối nay sẽ chạy lại.',
+  'storage.reclaim.skip.foreign_install': 'Bỏ qua: một bản cài đặt TREK khác đang dùng bộ lưu trữ này',
+  'storage.reclaim.skip.owner_unknown': 'Bỏ qua: TREK không thể đánh dấu bộ lưu trữ này là của mình',
+  'storage.reclaim.skip.delete_failed': 'Đã dừng: bộ lưu trữ từ chối một thao tác xóa',
+  'storage.reclaim.skip.interrupted': 'Đã dừng trước khi hoàn tất, số liệu chỉ là một phần',
+  'storage.reclaim.confirmNeeded':
+    'Hơn một phần năm số tệp này có vẻ không được dùng. Sẽ không có gì bị xóa cho đến khi bạn xác nhận điều này là bình thường.',
+  'storage.reclaim.confirm': 'Xác nhận',
+  'storage.reclaim.confirmed': 'Đã xác nhận. Lần dọn dẹp hằng đêm giờ có thể xóa các tệp này.',
+  'storage.reclaim.error.reclaim_busy': 'Một tác vụ lưu trữ khác đang chạy. Hãy thử lại sau giây lát.',
+  'storage.reclaim.error.reclaim_demo': 'Không khả dụng trên bản demo.',
+  'storage.reclaim.error.reclaim_nothing_to_confirm': 'Không còn gì để xác nhận. Hãy chạy kiểm tra trước.',
 };
 export default storage;

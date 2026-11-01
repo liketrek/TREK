@@ -144,21 +144,32 @@ const storage: TranslationStrings = {
   'storage.reclaim.hint':
     'TREK her gece, artık hiçbir gezi, yer, günlük, koleksiyon veya kullanıcı tarafından kullanılmayan yüklenmiş dosyaları arar, örneğin bir gezi silindikten sonra.',
   'storage.reclaim.check': 'Şimdi kontrol et',
-  'storage.reclaim.checked': 'Kontrol edildi: {age}',
+  'storage.reclaim.checked': 'Son kontrol: {age}',
   'storage.reclaim.never': 'Henüz kontrol edilmedi',
   'storage.reclaim.delete': 'Başvurulmayan dosyaları sil',
-  'storage.reclaim.deleteHint':
-    "Kapalıyken gece kontrolü yalnızca rapor verir. Açıkken bir hafta boyunca hiçbir yerde kullanılmayan dosya silinir. Birden fazla kurulum aynı depolama bucket'ını paylaşıyorsa kapalı bırakın.",
   'storage.reclaim.freeable': 'Boşaltılabilir',
   'storage.reclaim.waiting': 'Bir haftadan kısa süredir kullanılmıyor',
-  'storage.reclaim.deleted': 'Son kontrolde boşaltıldı',
+  'storage.reclaim.deleted': 'Son gece temizliğiyle boşaltıldı',
   'storage.reclaim.nothing': 'Başvurulmayan dosya bulunamadı.',
   'storage.reclaim.stopped': 'Son kontrol erken durdu, çünkü çalışırken veritabanı geri yüklendi.',
   'storage.reclaim.skip.sources_missing': "Atlandı: TREK'in her bölümüne sorulamadı",
   'storage.reclaim.skip.shared_location': 'Atlandı: konumunu başka bir kategoriyle paylaşıyor',
-  'storage.reclaim.skip.too_many_unreferenced':
-    'Atlandı: çok fazla dosya kullanılmıyor gibi görünüyor, olasılıkla paylaşılan bir bucket',
   'storage.reclaim.skip.list_failed': 'Atlandı: dosyalar listelenemedi',
   'storage.reclaim.skip.source_failed': 'Atlandı: bir sorgu başarısız oldu',
+  'storage.reclaim.deleteHint':
+    "Kapalıyken gece kontrolü yalnızca rapor verir. Açıkken bir hafta boyunca hiçbir yerde kullanılmayan dosya silinir. TREK'te sildiğiniz dosyalar her iki durumda da hemen kaldırılır.",
+  'storage.reclaim.running': 'Kontrol ediliyor…',
+  'storage.reclaim.stoppedFailed': 'Son kontrol bir hata nedeniyle durdu. Bu gece yeniden çalışacak.',
+  'storage.reclaim.skip.foreign_install': 'Atlandı: başka bir TREK kurulumu bu depolamayı kullanıyor',
+  'storage.reclaim.skip.owner_unknown': 'Atlandı: TREK bu depolamayı kendisine ait olarak işaretleyemedi',
+  'storage.reclaim.skip.delete_failed': 'Durduruldu: depolama bir silme işlemini reddetti',
+  'storage.reclaim.skip.interrupted': 'Bitmeden durduruldu, rakamlar eksik',
+  'storage.reclaim.confirmNeeded':
+    'Bu dosyaların beşte birinden fazlası kullanılmıyor gibi görünüyor. Bunun beklenen bir durum olduğunu onaylayana kadar burada hiçbir şey silinmez.',
+  'storage.reclaim.confirm': 'Onayla',
+  'storage.reclaim.confirmed': 'Onaylandı. Gece temizliği artık bu dosyaları silebilir.',
+  'storage.reclaim.error.reclaim_busy': 'Başka bir depolama görevi çalışıyor. Birazdan tekrar deneyin.',
+  'storage.reclaim.error.reclaim_demo': 'Demo örneğinde kullanılamaz.',
+  'storage.reclaim.error.reclaim_nothing_to_confirm': 'Onaylanacak bir şey kalmadı. Önce bir kontrol çalıştırın.',
 };
 export default storage;

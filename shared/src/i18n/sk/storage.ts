@@ -159,21 +159,32 @@ const storage: TranslationStrings = {
   'storage.reclaim.hint':
     'TREK každú noc hľadá nahrané súbory, ktoré už nepoužíva žiadna cesta, miesto, denník, kolekcia ani používateľ, napríklad po odstránení cesty.',
   'storage.reclaim.check': 'Skontrolovať teraz',
-  'storage.reclaim.checked': 'Skontrolované {age}',
+  'storage.reclaim.checked': 'Posledná kontrola: {age}',
   'storage.reclaim.never': 'Ešte neskontrolované',
   'storage.reclaim.delete': 'Odstraňovať nepoužívané súbory',
   'storage.reclaim.deleteHint':
-    'Vypnuté: nočná kontrola len hlási. Zapnuté: súbor, ktorý týždeň nikto nepoužil, sa odstráni. Nechajte vypnuté, ak viaceré inštalácie zdieľajú jeden bucket úložiska.',
+    'Vypnuté: nočná kontrola len hlási. Zapnuté: súbor, ktorý týždeň nikto nepoužil, sa odstráni. Súbory, ktoré odstránite v TREK, sa v oboch prípadoch odstránia okamžite.',
   'storage.reclaim.freeable': 'Možno uvoľniť',
   'storage.reclaim.waiting': 'Nepoužité menej ako týždeň',
-  'storage.reclaim.deleted': 'Uvoľnené pri poslednej kontrole',
+  'storage.reclaim.deleted': 'Uvoľnené pri poslednom nočnom čistení',
   'storage.reclaim.nothing': 'Nenašli sa žiadne nepoužívané súbory.',
   'storage.reclaim.stopped': 'Posledná kontrola sa predčasne zastavila, pretože sa počas jej behu obnovila databáza.',
   'storage.reclaim.skip.sources_missing': 'Preskočené: nebolo možné sa opýtať každej časti TREK',
   'storage.reclaim.skip.shared_location': 'Preskočené: zdieľa umiestnenie s inou kategóriou',
-  'storage.reclaim.skip.too_many_unreferenced':
-    'Preskočené: príliš veľa súborov vyzerá ako nepoužívaných, možno ide o zdieľaný bucket',
   'storage.reclaim.skip.list_failed': 'Preskočené: súbory sa nepodarilo vypísať',
   'storage.reclaim.skip.source_failed': 'Preskočené: vyhľadávanie zlyhalo',
+  'storage.reclaim.running': 'Kontroluje sa…',
+  'storage.reclaim.stoppedFailed': 'Posledná kontrola sa zastavila po chybe. Dnes v noci sa spustí znova.',
+  'storage.reclaim.skip.foreign_install': 'Preskočené: toto úložisko používa iná inštalácia TREK',
+  'storage.reclaim.skip.owner_unknown': 'Preskočené: TREK nemohol označiť toto úložisko ako svoje',
+  'storage.reclaim.skip.delete_failed': 'Zastavené: úložisko odmietlo odstránenie',
+  'storage.reclaim.skip.interrupted': 'Zastavené pred dokončením, údaje sú neúplné',
+  'storage.reclaim.confirmNeeded':
+    'Viac ako pätina týchto súborov vyzerá ako nepoužívaná. Nič tu nebude odstránené, kým nepotvrdíte, že je to očakávané.',
+  'storage.reclaim.confirm': 'Potvrdiť',
+  'storage.reclaim.confirmed': 'Potvrdené. Nočné čistenie môže tieto súbory teraz odstrániť.',
+  'storage.reclaim.error.reclaim_busy': 'Beží iná úloha úložiska. Skúste to o chvíľu znova.',
+  'storage.reclaim.error.reclaim_demo': 'Nie je dostupné v demo inštancii.',
+  'storage.reclaim.error.reclaim_nothing_to_confirm': 'Už nie je čo potvrdzovať. Najprv spustite kontrolu.',
 };
 export default storage;

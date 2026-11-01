@@ -146,22 +146,33 @@ const storage: TranslationStrings = {
   'storage.reclaim.hint':
     'TREK zoekt elke nacht naar geüploade bestanden die door geen enkele reis, plaats, dagboek, collectie of gebruiker meer worden gebruikt, bijvoorbeeld nadat een reis is verwijderd.',
   'storage.reclaim.check': 'Nu controleren',
-  'storage.reclaim.checked': 'Gecontroleerd {age}',
+  'storage.reclaim.checked': 'Laatste controle: {age}',
   'storage.reclaim.never': 'Nog niet gecontroleerd',
   'storage.reclaim.delete': 'Niet-gekoppelde bestanden verwijderen',
   'storage.reclaim.deleteHint':
-    'Uit: de nachtelijke controle rapporteert alleen. Aan: een bestand dat een week lang nergens is gebruikt, wordt verwijderd. Laat dit uit als meerdere installaties één opslagbucket delen.',
+    'Uit: de nachtelijke controle rapporteert alleen. Aan: een bestand dat een week lang nergens is gebruikt, wordt verwijderd. Bestanden die je in TREK verwijdert, worden in beide gevallen meteen verwijderd.',
   'storage.reclaim.freeable': 'Kan worden vrijgemaakt',
   'storage.reclaim.waiting': 'Minder dan een week ongebruikt',
-  'storage.reclaim.deleted': 'Vrijgemaakt bij de laatste controle',
+  'storage.reclaim.deleted': 'Vrijgemaakt bij de laatste nachtelijke opruiming',
   'storage.reclaim.nothing': 'Geen niet-gekoppelde bestanden gevonden.',
   'storage.reclaim.stopped':
     'De laatste controle is vroegtijdig gestopt omdat de database tijdens het uitvoeren werd hersteld.',
   'storage.reclaim.skip.sources_missing': 'Overgeslagen: niet elk onderdeel van TREK kon worden bevraagd',
   'storage.reclaim.skip.shared_location': 'Overgeslagen: deelt zijn locatie met een andere categorie',
-  'storage.reclaim.skip.too_many_unreferenced':
-    'Overgeslagen: te veel bestanden lijken ongebruikt, mogelijk een gedeelde bucket',
   'storage.reclaim.skip.list_failed': 'Overgeslagen: de bestanden konden niet worden opgesomd',
   'storage.reclaim.skip.source_failed': 'Overgeslagen: een opzoeking is mislukt',
+  'storage.reclaim.running': 'Controleren…',
+  'storage.reclaim.stoppedFailed': 'De laatste controle is gestopt na een fout. Vannacht wordt hij opnieuw uitgevoerd.',
+  'storage.reclaim.skip.foreign_install': 'Overgeslagen: een andere TREK-installatie gebruikt deze opslag',
+  'storage.reclaim.skip.owner_unknown': 'Overgeslagen: TREK kon deze opslag niet als de zijne markeren',
+  'storage.reclaim.skip.delete_failed': 'Gestopt: de opslag weigerde een verwijdering',
+  'storage.reclaim.skip.interrupted': 'Gestopt voordat het klaar was, de cijfers zijn onvolledig',
+  'storage.reclaim.confirmNeeded':
+    'Meer dan een vijfde van deze bestanden lijkt ongebruikt. Er wordt hier niets verwijderd totdat je bevestigt dat dit klopt.',
+  'storage.reclaim.confirm': 'Bevestigen',
+  'storage.reclaim.confirmed': 'Bevestigd. De nachtelijke opruiming mag deze bestanden nu verwijderen.',
+  'storage.reclaim.error.reclaim_busy': 'Er loopt al een andere opslagtaak. Probeer het zo opnieuw.',
+  'storage.reclaim.error.reclaim_demo': 'Niet beschikbaar op een demo-instantie.',
+  'storage.reclaim.error.reclaim_nothing_to_confirm': 'Er is niets meer te bevestigen. Voer eerst een controle uit.',
 };
 export default storage;

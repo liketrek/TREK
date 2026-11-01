@@ -1,11 +1,28 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { StorageAdminState, StorageBackend, StorageConfig, StorageConfigPut, StorageTestResponse } from '@trek/shared'
+import type {
+  StorageAdminState,
+  StorageBackend,
+  StorageConfig,
+  StorageConfigPut,
+  StorageReclaimConfirmRequest,
+  StorageTestResponse,
+} from '@trek/shared'
 import { adminApi } from '../../../api/client'
 import { storageReclaimApi } from '../../../api/storageReclaim'
 import { getApiErrorMessage, type ApiError } from '../../../types'
 import { settingsDocumentOf } from './storageModel'
 
 export type StorageTestResults = Record<string, StorageTestResponse | 'running'>
+
+/** A refused reclaim call: the server's code when it sent one the panel can name, its message otherwise. */
+export type ReclaimFailure = { code: string } | { message: string }
+
+function reclaimFailureOf(err: unknown, fallback: string): ReclaimFailure {
+  const code = (err as ApiError | null)?.response?.data as { code?: unknown } | undefined
+  return typeof code?.code === 'string' && code.code.startsWith('reclaim_')
+    ? { code: code.code }
+    : { message: getApiErrorMessage(err, fallback) }
+}
 
 /** 50ms under vitest so poll tests run on real timers (MSW + fake timers don't mix). */
 export const BACKFILL_POLL_MS = import.meta.env.MODE === 'test' ? 50 : 5000
@@ -60,9 +77,11 @@ export interface StorageAdmin {
   cancelMigration: (category: string) => Promise<string | null>
   refreshStats: () => Promise<string | null>
   /** Switches the nightly deletion of unreferenced files on or off; null on success. */
-  setReclaimDelete: (enabled: boolean) => Promise<string | null>
-  /** Runs a check now that only reports; null on success. */
-  checkReclaim: () => Promise<string | null>
+  setReclaimDelete: (enabled: boolean) => Promise<ReclaimFailure | null>
+  /** Starts a check that only reports, in the background; the state polls until it is done. Null on success. */
+  checkReclaim: () => Promise<ReclaimFailure | null>
+  /** Lets the nightly run delete in a category where an unusually large share looks unused. Null on success. */
+  confirmReclaim: (category: StorageReclaimConfirmRequest['category']) => Promise<ReclaimFailure | null>
   /** Re-GETs admin state (poll-safe — see the implementation comment below). Exposed for the panel's failed-queue recovery path. */
   refreshState: () => Promise<void>
   /**
@@ -276,7 +295,8 @@ export function useStorageAdmin(genericError: string, conflictError: string): St
   useEffect(() => {
     if (
       !state?.backfills.some((b) => b.status === 'running') &&
-      !state?.migrations.some((m) => m.status === 'running')
+      !state?.migrations.some((m) => m.status === 'running') &&
+      !state?.reclaim?.running
     )
       return
     const iv = setInterval(() => {
@@ -361,33 +381,60 @@ export function useStorageAdmin(genericError: string, conflictError: string): St
     }
   }, [genericError])
 
-  /** Writes the reclaim part of the state the way refreshStats writes usage. */
+  /**
+   * Writes the reclaim part of the state. It counts as a deliberate state
+   * application, so a poll GET that was in flight before it is dropped instead
+   * of putting the switch back where it was.
+   */
   const setReclaim = useCallback((reclaim: NonNullable<StorageAdminState['reclaim']>) => {
     const prev = stateRef.current
     if (!prev) return
+    stateSeq.current += 1
     const next = { ...prev, reclaim }
     stateRef.current = next
     setState(next)
   }, [])
 
-  const setReclaimDelete = useCallback(async (enabled: boolean): Promise<string | null> => {
+  const setReclaimDelete = useCallback(
+    async (enabled: boolean): Promise<ReclaimFailure | null> => {
+      try {
+        setReclaim(await storageReclaimApi.setDelete(enabled))
+        return null
+      } catch (err: unknown) {
+        return reclaimFailureOf(err, genericError)
+      }
+    },
+    [genericError, setReclaim],
+  )
+
+  const checkReclaim = useCallback(async (): Promise<ReclaimFailure | null> => {
     try {
-      setReclaim(await storageReclaimApi.setDelete(enabled))
+      await storageReclaimApi.check()
+      // Running from here on: the poll above picks the report up once the pass is done.
+      const current = stateRef.current?.reclaim
+      setReclaim({
+        deleteEnabled: current?.deleteEnabled ?? false,
+        running: true,
+        lastRun: current?.lastRun ?? null,
+        lastDeleteRun: current?.lastDeleteRun ?? null,
+      })
       return null
     } catch (err: unknown) {
-      return getApiErrorMessage(err, genericError)
+      return reclaimFailureOf(err, genericError)
     }
   }, [genericError, setReclaim])
 
-  const checkReclaim = useCallback(async (): Promise<string | null> => {
-    try {
-      const lastRun = await storageReclaimApi.check()
-      setReclaim({ deleteEnabled: stateRef.current?.reclaim?.deleteEnabled ?? false, lastRun })
-      return null
-    } catch (err: unknown) {
-      return getApiErrorMessage(err, genericError)
-    }
-  }, [genericError, setReclaim])
+  const confirmReclaim = useCallback(
+    async (category: StorageReclaimConfirmRequest['category']): Promise<ReclaimFailure | null> => {
+      try {
+        setReclaim(await storageReclaimApi.confirm(category))
+        return null
+      } catch (err: unknown) {
+        return reclaimFailureOf(err, genericError)
+      }
+    },
+    [genericError, setReclaim],
+  )
 
   return {
     state,
@@ -411,6 +458,7 @@ export function useStorageAdmin(genericError: string, conflictError: string): St
     refreshStats,
     setReclaimDelete,
     checkReclaim,
+    confirmReclaim,
     refreshState,
     discardDraft,
   }

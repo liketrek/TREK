@@ -151,22 +151,34 @@ const storage: TranslationStrings = {
   'storage.reclaim.hint':
     'Każdej nocy TREK szuka przesłanych plików, których nie używa już żadna podróż, miejsce, dziennik, kolekcja ani użytkownik, na przykład po usunięciu podróży.',
   'storage.reclaim.check': 'Sprawdź teraz',
-  'storage.reclaim.checked': 'Sprawdzono {age}',
+  'storage.reclaim.checked': 'Ostatnia kontrola: {age}',
   'storage.reclaim.never': 'Jeszcze nie sprawdzono',
   'storage.reclaim.delete': 'Usuń pliki bez powiązań',
   'storage.reclaim.deleteHint':
-    'Wyłączone: nocna kontrola tylko raportuje. Włączone: plik, którego nic nie używało przez tydzień, jest usuwany. Zostaw wyłączone, jeśli kilka instalacji współdzieli jeden bucket magazynu.',
+    'Wyłączone: nocna kontrola tylko raportuje. Włączone: plik, którego nic nie używało przez tydzień, jest usuwany. Pliki usunięte w TREK znikają od razu w obu przypadkach.',
   'storage.reclaim.freeable': 'Można zwolnić',
   'storage.reclaim.waiting': 'Nieużywane krócej niż tydzień',
-  'storage.reclaim.deleted': 'Zwolniono przy ostatniej kontroli',
+  'storage.reclaim.deleted': 'Zwolniono podczas ostatniego nocnego czyszczenia',
   'storage.reclaim.nothing': 'Nie znaleziono plików bez powiązań.',
   'storage.reclaim.stopped':
     'Ostatnia kontrola zakończyła się wcześniej, ponieważ w trakcie jej trwania przywrócono bazę danych.',
   'storage.reclaim.skip.sources_missing': 'Pominięto: nie dało się zapytać każdej części TREK',
   'storage.reclaim.skip.shared_location': 'Pominięto: współdzieli lokalizację z inną kategorią',
-  'storage.reclaim.skip.too_many_unreferenced':
-    'Pominięto: zbyt wiele plików wygląda na nieużywane, możliwe że to współdzielony bucket',
   'storage.reclaim.skip.list_failed': 'Pominięto: nie udało się wylistować plików',
   'storage.reclaim.skip.source_failed': 'Pominięto: wyszukiwanie nie powiodło się',
+  'storage.reclaim.running': 'Sprawdzanie…',
+  'storage.reclaim.stoppedFailed':
+    'Ostatnia kontrola zatrzymała się z powodu błędu. Uruchomi się ponownie dziś w nocy.',
+  'storage.reclaim.skip.foreign_install': 'Pominięto: inna instalacja TREK korzysta z tego magazynu',
+  'storage.reclaim.skip.owner_unknown': 'Pominięto: TREK nie mógł oznaczyć tego magazynu jako własnego',
+  'storage.reclaim.skip.delete_failed': 'Zatrzymano: magazyn odmówił usunięcia',
+  'storage.reclaim.skip.interrupted': 'Zatrzymano przed zakończeniem, dane są niepełne',
+  'storage.reclaim.confirmNeeded':
+    'Ponad jedna piąta tych plików wygląda na nieużywane. Nic tutaj nie zostanie usunięte, dopóki nie potwierdzisz, że tak ma być.',
+  'storage.reclaim.confirm': 'Potwierdź',
+  'storage.reclaim.confirmed': 'Potwierdzono. Nocne czyszczenie może teraz usunąć te pliki.',
+  'storage.reclaim.error.reclaim_busy': 'Trwa inne zadanie magazynu. Spróbuj ponownie za chwilę.',
+  'storage.reclaim.error.reclaim_demo': 'Niedostępne w instancji demo.',
+  'storage.reclaim.error.reclaim_nothing_to_confirm': 'Nie ma już nic do potwierdzenia. Najpierw uruchom kontrolę.',
 };
 export default storage;

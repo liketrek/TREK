@@ -151,21 +151,32 @@ const storage: TranslationStrings = {
   'storage.reclaim.hint':
     'Щоночі TREK шукає завантажені файли, які більше не використовує жодна поїздка, місце, щоденник, колекція чи користувач, наприклад після видалення поїздки.',
   'storage.reclaim.check': 'Перевірити зараз',
-  'storage.reclaim.checked': 'Перевірено {age}',
+  'storage.reclaim.checked': 'Остання перевірка: {age}',
   'storage.reclaim.never': 'Ще не перевірялося',
   'storage.reclaim.delete': 'Видаляти файли без посилань',
   'storage.reclaim.deleteHint':
-    'Вимкнено: нічна перевірка лише повідомляє. Увімкнено: файл, який тиждень ніщо не використовує, видаляється. Залиште вимкненим, якщо кілька встановлень ділять один бакет сховища.',
+    'Вимкнено: нічна перевірка лише повідомляє. Увімкнено: файл, який тиждень ніщо не використовує, видаляється. Файли, які ви видаляєте в TREK, у будь-якому разі видаляються одразу.',
   'storage.reclaim.freeable': 'Можна звільнити',
   'storage.reclaim.waiting': 'Не використовується менше тижня',
-  'storage.reclaim.deleted': 'Звільнено під час останньої перевірки',
+  'storage.reclaim.deleted': 'Звільнено під час останнього нічного очищення',
   'storage.reclaim.nothing': 'Файлів без посилань не знайдено.',
   'storage.reclaim.stopped': 'Остання перевірка зупинилася раніше, бо під час її роботи базу даних було відновлено.',
   'storage.reclaim.skip.sources_missing': 'Пропущено: не вдалося опитати всі частини TREK',
   'storage.reclaim.skip.shared_location': 'Пропущено: ділить розташування з іншою категорією',
-  'storage.reclaim.skip.too_many_unreferenced':
-    'Пропущено: забагато файлів здаються невикористаними, можливо, це спільний бакет',
   'storage.reclaim.skip.list_failed': 'Пропущено: не вдалося отримати список файлів',
   'storage.reclaim.skip.source_failed': 'Пропущено: пошук завершився помилкою',
+  'storage.reclaim.running': 'Перевірка…',
+  'storage.reclaim.stoppedFailed': 'Остання перевірка зупинилася через помилку. Вона запуститься знову вночі.',
+  'storage.reclaim.skip.foreign_install': 'Пропущено: це сховище використовує інше встановлення TREK',
+  'storage.reclaim.skip.owner_unknown': 'Пропущено: TREK не зміг позначити це сховище як своє',
+  'storage.reclaim.skip.delete_failed': 'Зупинено: сховище відхилило видалення',
+  'storage.reclaim.skip.interrupted': 'Зупинено до завершення, цифри неповні',
+  'storage.reclaim.confirmNeeded':
+    "Понад п'ята частина цих файлів виглядає невикористаною. Нічого тут не видаляється, доки ви не підтвердите, що це очікувано.",
+  'storage.reclaim.confirm': 'Підтвердити',
+  'storage.reclaim.confirmed': 'Підтверджено. Нічне очищення тепер може видаляти ці файли.',
+  'storage.reclaim.error.reclaim_busy': 'Виконується інше завдання зі сховищем. Спробуйте за мить.',
+  'storage.reclaim.error.reclaim_demo': 'Недоступно в демонстраційному екземплярі.',
+  'storage.reclaim.error.reclaim_nothing_to_confirm': 'Підтверджувати більше нічого. Спершу запустіть перевірку.',
 };
 export default storage;

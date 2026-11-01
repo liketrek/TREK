@@ -152,21 +152,32 @@ const storage: TranslationStrings = {
   'storage.reclaim.hint':
     'يبحث TREK كل ليلة عن الملفات المرفوعة التي لم تعد أي رحلة أو مكان أو يومية أو مجموعة أو مستخدم يستخدمها، مثلاً بعد حذف رحلة.',
   'storage.reclaim.check': 'افحص الآن',
-  'storage.reclaim.checked': 'تم الفحص {age}',
+  'storage.reclaim.checked': 'آخر فحص: {age}',
   'storage.reclaim.never': 'لم يتم الفحص بعد',
   'storage.reclaim.delete': 'حذف الملفات غير المرتبطة',
   'storage.reclaim.deleteHint':
-    'عند الإيقاف، يكتفي الفحص الليلي بالإبلاغ. عند التفعيل، يُحذف أي ملف لم يُستخدم منذ أسبوع. أبقِه متوقفاً إذا كانت عدة تثبيتات تشترك في حاوية (Bucket) تخزين واحدة.',
+    'عند الإيقاف، يكتفي الفحص الليلي بالإبلاغ. عند التفعيل، يُحذف أي ملف لم يُستخدم منذ أسبوع. الملفات التي تحذفها في TREK تُزال فورًا في الحالتين.',
   'storage.reclaim.freeable': 'يمكن تحرير مساحته',
   'storage.reclaim.waiting': 'غير مستخدمة منذ أقل من أسبوع',
-  'storage.reclaim.deleted': 'تم تحريرها في آخر فحص',
+  'storage.reclaim.deleted': 'تم تحريرها في آخر تنظيف ليلي',
   'storage.reclaim.nothing': 'لم يتم العثور على ملفات غير مرتبطة.',
   'storage.reclaim.stopped': 'توقف الفحص الأخير مبكراً لأن قاعدة البيانات استُعيدت أثناء تشغيله.',
   'storage.reclaim.skip.sources_missing': 'تم التخطي: تعذّر الاستعلام من كل أجزاء TREK',
   'storage.reclaim.skip.shared_location': 'تم التخطي: يشترك في موقعه مع فئة أخرى',
-  'storage.reclaim.skip.too_many_unreferenced':
-    'تم التخطي: يبدو أن عدداً كبيراً من الملفات غير مستخدم، ربما بسبب حاوية (Bucket) مشتركة',
   'storage.reclaim.skip.list_failed': 'تم التخطي: تعذّر سرد الملفات',
   'storage.reclaim.skip.source_failed': 'تم التخطي: فشل أحد الاستعلامات',
+  'storage.reclaim.running': 'جارٍ الفحص…',
+  'storage.reclaim.stoppedFailed': 'توقف الفحص الأخير بسبب خطأ. سيعمل مجددًا الليلة.',
+  'storage.reclaim.skip.foreign_install': 'تم التخطي: تثبيت TREK آخر يستخدم هذا التخزين',
+  'storage.reclaim.skip.owner_unknown': 'تم التخطي: تعذّر على TREK وسم هذا التخزين على أنه خاص به',
+  'storage.reclaim.skip.delete_failed': 'توقف: رفض التخزين عملية حذف',
+  'storage.reclaim.skip.interrupted': 'توقف قبل الاكتمال، الأرقام جزئية',
+  'storage.reclaim.confirmNeeded':
+    'يبدو أن أكثر من خُمس هذه الملفات غير مستخدم. لن يُحذف شيء هنا حتى تؤكد أن هذا متوقع.',
+  'storage.reclaim.confirm': 'تأكيد',
+  'storage.reclaim.confirmed': 'تم التأكيد. قد يحذف التنظيف الليلي هذه الملفات الآن.',
+  'storage.reclaim.error.reclaim_busy': 'مهمة تخزين أخرى قيد التشغيل. حاول مجددًا بعد قليل.',
+  'storage.reclaim.error.reclaim_demo': 'غير متاح في نسخة العرض التجريبي.',
+  'storage.reclaim.error.reclaim_nothing_to_confirm': 'لا شيء لتأكيده بعد الآن. شغّل فحصًا أولًا.',
 };
 export default storage;

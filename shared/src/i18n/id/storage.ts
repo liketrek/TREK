@@ -142,22 +142,35 @@ const storage: TranslationStrings = {
   'storage.reclaim.hint':
     'Setiap malam TREK mencari file yang diunggah tetapi tidak lagi dipakai oleh perjalanan, tempat, jurnal, koleksi, atau pengguna mana pun, misalnya setelah sebuah perjalanan dihapus.',
   'storage.reclaim.check': 'Periksa sekarang',
-  'storage.reclaim.checked': 'Diperiksa {age}',
+  'storage.reclaim.checked': 'Pemeriksaan terakhir: {age}',
   'storage.reclaim.never': 'Belum diperiksa',
   'storage.reclaim.delete': 'Hapus file tanpa referensi',
   'storage.reclaim.deleteHint':
-    'Nonaktif, pemeriksaan malam hanya melaporkan. Aktif, file yang tidak dipakai selama seminggu akan dihapus. Biarkan nonaktif jika beberapa instalasi berbagi satu bucket penyimpanan.',
+    'Nonaktif, pemeriksaan malam hanya melaporkan. Aktif, file yang tidak dipakai selama seminggu akan dihapus. File yang Anda hapus di TREK tetap langsung dihapus dalam kedua kasus.',
   'storage.reclaim.freeable': 'Dapat dibebaskan',
   'storage.reclaim.waiting': 'Tidak dipakai kurang dari seminggu',
-  'storage.reclaim.deleted': 'Dibebaskan pada pemeriksaan terakhir',
+  'storage.reclaim.deleted': 'Dibebaskan oleh pembersihan malam terakhir',
   'storage.reclaim.nothing': 'Tidak ada file tanpa referensi.',
   'storage.reclaim.stopped':
     'Pemeriksaan terakhir berhenti lebih awal karena database dipulihkan saat pemeriksaan berjalan.',
   'storage.reclaim.skip.sources_missing': 'Dilewati: tidak semua bagian TREK dapat ditanyai',
   'storage.reclaim.skip.shared_location': 'Dilewati: lokasinya sama dengan kategori lain',
-  'storage.reclaim.skip.too_many_unreferenced':
-    'Dilewati: terlalu banyak file yang tampak tidak terpakai, mungkin bucket bersama',
   'storage.reclaim.skip.list_failed': 'Dilewati: daftar file tidak dapat diambil',
   'storage.reclaim.skip.source_failed': 'Dilewati: salah satu pencarian gagal',
+  'storage.reclaim.running': 'Memeriksa…',
+  'storage.reclaim.stoppedFailed':
+    'Pemeriksaan terakhir berhenti karena error. Pemeriksaan akan berjalan lagi malam ini.',
+  'storage.reclaim.skip.foreign_install': 'Dilewati: instalasi TREK lain memakai penyimpanan ini',
+  'storage.reclaim.skip.owner_unknown': 'Dilewati: TREK tidak dapat menandai penyimpanan ini sebagai miliknya',
+  'storage.reclaim.skip.delete_failed': 'Dihentikan: penyimpanan menolak penghapusan',
+  'storage.reclaim.skip.interrupted': 'Dihentikan sebelum selesai, angkanya belum lengkap',
+  'storage.reclaim.confirmNeeded':
+    'Lebih dari seperlima file ini tampak tidak terpakai. Tidak ada yang dihapus di sini sampai Anda mengonfirmasi bahwa ini memang wajar.',
+  'storage.reclaim.confirm': 'Konfirmasi',
+  'storage.reclaim.confirmed': 'Dikonfirmasi. Pembersihan malam kini dapat menghapus file ini.',
+  'storage.reclaim.error.reclaim_busy': 'Tugas penyimpanan lain sedang berjalan. Coba lagi sebentar lagi.',
+  'storage.reclaim.error.reclaim_demo': 'Tidak tersedia di instans demo.',
+  'storage.reclaim.error.reclaim_nothing_to_confirm':
+    'Tidak ada lagi yang perlu dikonfirmasi. Jalankan pemeriksaan terlebih dahulu.',
 };
 export default storage;

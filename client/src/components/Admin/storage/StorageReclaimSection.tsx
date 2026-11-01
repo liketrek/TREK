@@ -11,17 +11,29 @@ import type { ReclaimCount, ReclaimView } from './reclaimModel';
 
 interface Props {
   reclaim: ReclaimView;
+  /** A check was asked for or is running. */
   checking: boolean;
+  /** The switch is on its way to the server. */
+  saving: boolean;
   onCheck: () => void;
   onDelete: (enabled: boolean) => void;
+  onConfirm: (category: ReclaimView['lines'][number]['category']) => void;
 }
 
 /**
  * Unreferenced files on the desktop storage panel: what the last check found,
- * the switch that lets the nightly run delete them, and a check on demand. The
- * phone shows the same through MStorageReclaimCard, off the same view model.
+ * the switch that lets the nightly run delete them, a check on demand and the
+ * confirmation a category with an unusually large share of unused files waits
+ * for. The phone shows the same through MStorageReclaimCard, off the same view model.
  */
-export default function StorageReclaimSection({ reclaim, checking, onCheck, onDelete }: Props): React.ReactElement {
+export default function StorageReclaimSection({
+  reclaim,
+  checking,
+  saving,
+  onCheck,
+  onDelete,
+  onConfirm,
+}: Props): React.ReactElement {
   const { t, locale } = useTranslation();
   const count = (c: ReclaimCount) => t('storage.usage.line', { count: c.objects, size: formatBytes(c.bytes) });
   const checked = reclaim.checkedAt !== null;
@@ -44,7 +56,7 @@ export default function StorageReclaimSection({ reclaim, checking, onCheck, onDe
           ) : (
             <ScanSearch size={14} strokeWidth={2.2} />
           )}
-          {t('storage.reclaim.check')}
+          {checking ? t('storage.reclaim.running') : t('storage.reclaim.check')}
         </button>
       }
     >
@@ -52,11 +64,13 @@ export default function StorageReclaimSection({ reclaim, checking, onCheck, onDe
         <SettingRow
           label={t('storage.reclaim.delete')}
           hint={t('storage.reclaim.deleteHint')}
+          dimmed={saving}
           control={
             <ToggleSwitch
               on={reclaim.deleteEnabled}
               onToggle={() => onDelete(!reclaim.deleteEnabled)}
               label={t('storage.reclaim.delete')}
+              disabled={saving}
             />
           }
         />
@@ -68,45 +82,59 @@ export default function StorageReclaimSection({ reclaim, checking, onCheck, onDe
           </p>
           {reclaim.stopped && (
             <p role="note" className="m-0 mt-1.5 leading-snug text-warning" style={fs(11.5)}>
-              {t('storage.reclaim.stopped')}
+              {t(reclaim.stopped === 'failed' ? 'storage.reclaim.stoppedFailed' : 'storage.reclaim.stopped')}
             </p>
           )}
           {checked && (
             <div className="mt-2.5 grid grid-cols-1 gap-2 sm:grid-cols-3">
               <Figure label={t('storage.reclaim.freeable')} value={count(reclaim.freeable)} />
               <Figure label={t('storage.reclaim.waiting')} value={count(reclaim.waiting)} />
-              <Figure label={t('storage.reclaim.deleted')} value={count(reclaim.deleted)} />
+              <Figure label={t('storage.reclaim.deleted')} value={count(reclaim.freed)} />
             </div>
           )}
-          {checked && reclaim.lines.length === 0 && (
+          {checked && !reclaim.stopped && reclaim.lines.length === 0 && (
             <SettingsHint className="mt-2.5">{t('storage.reclaim.nothing')}</SettingsHint>
           )}
           {reclaim.lines.length > 0 && (
-            <ul className="m-0 mt-3 flex list-none flex-col gap-1.5 p-0">
+            <ul className="m-0 mt-3 flex list-none flex-col gap-2 p-0">
               {reclaim.lines.map((line) => (
                 <li
                   key={line.category}
                   data-testid={`storage-reclaim-${line.category}`}
-                  className="flex flex-wrap items-center gap-x-2.5 gap-y-1"
+                  className="flex flex-col gap-1"
                 >
-                  <span className="font-medium text-content-secondary" style={fs(12.5, 'body')}>
-                    {t(`storage.category.${line.category}`)}
-                  </span>
-                  {line.skipped ? (
-                    <StatusPill tone="warning">{t(`storage.reclaim.skip.${line.skipped}`)}</StatusPill>
-                  ) : (
-                    <>
-                      {line.freeable.objects > 0 && (
-                        <span className="font-geist tabular-nums text-content-faint" style={fs(11.5)}>
-                          {t('storage.reclaim.freeable')}: {count(line.freeable)}
-                        </span>
-                      )}
-                      {line.waiting.objects > 0 && (
-                        <span className="font-geist tabular-nums text-content-faint" style={fs(11.5)}>
-                          {t('storage.reclaim.waiting')}: {count(line.waiting)}
-                        </span>
-                      )}
-                    </>
+                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                    <span className="font-medium text-content-secondary" style={fs(12.5, 'body')}>
+                      {t(`storage.category.${line.category}`)}
+                    </span>
+                    {line.freeable.objects > 0 && (
+                      <span className="font-geist tabular-nums text-content-faint" style={fs(11.5)}>
+                        {t('storage.reclaim.freeable')}: {count(line.freeable)}
+                      </span>
+                    )}
+                    {line.waiting.objects > 0 && (
+                      <span className="font-geist tabular-nums text-content-faint" style={fs(11.5)}>
+                        {t('storage.reclaim.waiting')}: {count(line.waiting)}
+                      </span>
+                    )}
+                    {line.skipped && (
+                      <StatusPill tone="warning">{t(`storage.reclaim.skip.${line.skipped}`)}</StatusPill>
+                    )}
+                  </div>
+                  {line.confirmationRequired && (
+                    <div className="flex flex-wrap items-center gap-2.5 rounded-[10px] bg-warning-soft px-2.5 py-1.5">
+                      <p className="m-0 min-w-0 flex-1 basis-56 leading-snug text-warning" style={fs(11.5)}>
+                        {t('storage.reclaim.confirmNeeded')}
+                      </p>
+                      <button
+                        type="button"
+                        className={SETTINGS_BUTTON}
+                        style={fs(12, 'body')}
+                        onClick={() => onConfirm(line.category)}
+                      >
+                        {t('storage.reclaim.confirm')}
+                      </button>
+                    </div>
                   )}
                 </li>
               ))}

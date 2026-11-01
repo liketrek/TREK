@@ -152,22 +152,33 @@ const storage: TranslationStrings = {
   'storage.reclaim.hint':
     'Каждую ночь TREK ищет загруженные файлы, которые больше не используются ни в одной поездке, месте, дневнике, коллекции или профиле пользователя, например после удаления поездки.',
   'storage.reclaim.check': 'Проверить сейчас',
-  'storage.reclaim.checked': 'Проверено {age}',
+  'storage.reclaim.checked': 'Последняя проверка: {age}',
   'storage.reclaim.never': 'Ещё не проверялось',
   'storage.reclaim.delete': 'Удалять файлы без связей',
   'storage.reclaim.deleteHint':
-    'Выкл.: ночная проверка только сообщает о файлах. Вкл.: файл, который неделю нигде не использовался, удаляется. Оставьте выключенным, если несколько установок используют один бакет хранилища.',
+    'Выкл.: ночная проверка только сообщает о файлах. Вкл.: файл, который неделю нигде не использовался, удаляется. Файлы, удалённые в TREK, в любом случае удаляются сразу.',
   'storage.reclaim.freeable': 'Можно освободить',
   'storage.reclaim.waiting': 'Не используются менее недели',
-  'storage.reclaim.deleted': 'Освобождено при последней проверке',
+  'storage.reclaim.deleted': 'Освобождено при последней ночной очистке',
   'storage.reclaim.nothing': 'Файлов без связей не найдено.',
   'storage.reclaim.stopped':
     'Последняя проверка остановлена досрочно, потому что во время её выполнения была восстановлена база данных.',
   'storage.reclaim.skip.sources_missing': 'Пропущено: не удалось опросить все части TREK',
   'storage.reclaim.skip.shared_location': 'Пропущено: расположение совпадает с другой категорией',
-  'storage.reclaim.skip.too_many_unreferenced':
-    'Пропущено: слишком много файлов выглядят неиспользуемыми, возможно, это общий бакет',
   'storage.reclaim.skip.list_failed': 'Пропущено: не удалось получить список файлов',
   'storage.reclaim.skip.source_failed': 'Пропущено: запрос не выполнен',
+  'storage.reclaim.running': 'Проверка…',
+  'storage.reclaim.stoppedFailed': 'Последняя проверка остановилась из-за ошибки. Сегодня ночью она запустится снова.',
+  'storage.reclaim.skip.foreign_install': 'Пропущено: это хранилище использует другая установка TREK',
+  'storage.reclaim.skip.owner_unknown': 'Пропущено: TREK не удалось пометить это хранилище как своё',
+  'storage.reclaim.skip.delete_failed': 'Остановлено: хранилище отклонило удаление',
+  'storage.reclaim.skip.interrupted': 'Остановлено до завершения, данные неполные',
+  'storage.reclaim.confirmNeeded':
+    'Более пятой части этих файлов выглядят неиспользуемыми. Ничего здесь не будет удалено, пока вы не подтвердите, что так и должно быть.',
+  'storage.reclaim.confirm': 'Подтвердить',
+  'storage.reclaim.confirmed': 'Подтверждено. Ночная очистка теперь может удалить эти файлы.',
+  'storage.reclaim.error.reclaim_busy': 'Выполняется другая задача хранилища. Повторите попытку через минуту.',
+  'storage.reclaim.error.reclaim_demo': 'Недоступно в демонстрационной версии.',
+  'storage.reclaim.error.reclaim_nothing_to_confirm': 'Подтверждать больше нечего. Сначала запустите проверку.',
 };
 export default storage;

@@ -146,21 +146,34 @@ const storage: TranslationStrings = {
   'storage.reclaim.hint':
     "Cada nit TREK cerca fitxers pujats que cap viatge, lloc, diari, col·lecció o usuari fa servir ja, per exemple després d'eliminar un viatge.",
   'storage.reclaim.check': 'Comprova ara',
-  'storage.reclaim.checked': 'Comprovat {age}',
+  'storage.reclaim.checked': 'Última comprovació: {age}',
   'storage.reclaim.never': 'Encara no comprovat',
   'storage.reclaim.delete': 'Elimina els fitxers sense referència',
-  'storage.reclaim.deleteHint':
-    "Desactivat, la comprovació nocturna només informa. Activat, s'elimina un fitxer que ningú no ha fet servir durant una setmana. Deixa-ho desactivat si diverses instal·lacions comparteixen un mateix bucket d'emmagatzematge.",
   'storage.reclaim.freeable': 'Es pot alliberar',
   'storage.reclaim.waiting': "Sense ús fa menys d'una setmana",
-  'storage.reclaim.deleted': "Alliberat a l'última comprovació",
   'storage.reclaim.nothing': "No s'ha trobat cap fitxer sense referència.",
   'storage.reclaim.stopped':
     "L'última comprovació s'ha aturat abans d'hora perquè la base de dades es va restaurar mentre s'executava.",
   'storage.reclaim.skip.sources_missing': "Omès: no s'han pogut consultar totes les parts de TREK",
   'storage.reclaim.skip.shared_location': 'Omès: comparteix la ubicació amb una altra categoria',
-  'storage.reclaim.skip.too_many_unreferenced': 'Omès: massa fitxers semblen sense ús, potser un bucket compartit',
   'storage.reclaim.skip.list_failed': "Omès: no s'han pogut llistar els fitxers",
   'storage.reclaim.skip.source_failed': 'Omès: ha fallat una consulta',
+  'storage.reclaim.deleted': "Alliberat per l'última neteja nocturna",
+  'storage.reclaim.deleteHint':
+    "Desactivat, la comprovació nocturna només informa. Activat, s'elimina un fitxer que ningú no ha fet servir durant una setmana. Els fitxers que elimines a TREK s'esborren a l'instant en tots dos casos.",
+  'storage.reclaim.running': 'Comprovant…',
+  'storage.reclaim.stoppedFailed': "L'última comprovació s'ha aturat per un error. Torna a executar-se aquesta nit.",
+  'storage.reclaim.skip.foreign_install': 'Omès: una altra instal·lació de TREK fa servir aquest emmagatzematge',
+  'storage.reclaim.skip.owner_unknown': 'Omès: TREK no ha pogut marcar aquest emmagatzematge com a propi',
+  'storage.reclaim.skip.delete_failed': "Aturat: l'emmagatzematge ha rebutjat una eliminació",
+  'storage.reclaim.skip.interrupted': "Aturat abans d'acabar, les xifres són parcials",
+  'storage.reclaim.confirmNeeded':
+    "Més d'una cinquena part d'aquests fitxers semblen sense ús. No s'elimina res d'aquí fins que confirmis que és l'esperat.",
+  'storage.reclaim.confirm': 'Confirma',
+  'storage.reclaim.confirmed': 'Confirmat. La neteja nocturna ja pot eliminar aquests fitxers.',
+  'storage.reclaim.error.reclaim_busy':
+    "Hi ha una altra tasca d'emmagatzematge en curs. Torna-ho a provar d'aquí a un moment.",
+  'storage.reclaim.error.reclaim_demo': 'No disponible en una instància de demostració.',
+  'storage.reclaim.error.reclaim_nothing_to_confirm': 'Ja no hi ha res per confirmar. Executa primer una comprovació.',
 };
 export default storage;

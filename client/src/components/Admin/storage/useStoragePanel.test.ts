@@ -1,4 +1,4 @@
-// FE-ADMIN-STOR-PANEL-001 to -019: the storage panel logic behind both admin shells.
+// FE-ADMIN-STOR-PANEL-001 to -020: the storage panel logic behind both admin shells.
 import { act, renderHook, waitFor } from '@testing-library/react';
 
 import { STORAGE_CATEGORIES, type StorageAdminState, type StorageBackend, type StorageConfig } from '@trek/shared';
@@ -60,6 +60,7 @@ function makeAdmin(state: StorageAdminState | null, draft?: StorageConfig): Stor
     refreshStats: vi.fn(async () => null),
     setReclaimDelete: vi.fn(async () => null),
     checkReclaim: vi.fn(async () => null),
+    confirmReclaim: vi.fn(async () => null),
     refreshState: vi.fn(async () => {}),
     discardDraft: vi.fn(async () => {}),
   };
@@ -289,18 +290,36 @@ describe('migrationPromptLine', () => {
 describe('useStoragePanel: unreferenced files', () => {
   it('FE-ADMIN-STOR-PANEL-018: the reclaim switch and the check go through the admin hook, a failure as a toast', async () => {
     fake.admin = makeAdmin(baseState());
-    vi.mocked(fake.admin.checkReclaim).mockResolvedValueOnce('busy');
+    vi.mocked(fake.admin.checkReclaim).mockResolvedValueOnce({ code: 'reclaim_busy' });
+    vi.mocked(fake.admin.setReclaimDelete).mockResolvedValueOnce({ message: 'disk full' });
     const { result } = renderHook(() => useStoragePanel());
     await act(async () => {
       await result.current.handleReclaimDelete(true);
     });
     expect(fake.admin.setReclaimDelete).toHaveBeenCalledWith(true);
+    // A failure without a code the panel knows shows the server's message.
+    expect(toast.error).toHaveBeenCalledWith('disk full');
+    expect(result.current.reclaimSaving).toBe(false);
     await act(async () => {
       await result.current.handleReclaimCheck();
     });
     expect(fake.admin.checkReclaim).toHaveBeenCalledTimes(1);
-    expect(toast.error).toHaveBeenCalledWith('busy');
+    // A code the panel knows is shown in the operator's language.
+    expect(toast.error).toHaveBeenCalledWith('storage.reclaim.error.reclaim_busy');
     expect(result.current.reclaimChecking).toBe(false);
+  });
+
+  it('FE-ADMIN-STOR-PANEL-020: confirming a category goes through the admin hook and says so; a running check keeps the button busy', async () => {
+    const state = baseState();
+    state.reclaim = { deleteEnabled: true, running: true, lastRun: null, lastDeleteRun: null };
+    fake.admin = makeAdmin(state);
+    const { result } = renderHook(() => useStoragePanel());
+    expect(result.current.reclaimChecking).toBe(true);
+    await act(async () => {
+      await result.current.handleReclaimConfirm('places');
+    });
+    expect(fake.admin.confirmReclaim).toHaveBeenCalledWith('places');
+    expect(toast.success).toHaveBeenCalledWith('storage.reclaim.confirmed');
   });
 
   it('FE-ADMIN-STOR-PANEL-019: a server without the reclaim state reads as deletion off and never checked', () => {

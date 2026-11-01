@@ -154,21 +154,32 @@ const storage: TranslationStrings = {
   'storage.reclaim.hint':
     'ทุกคืน TREK จะค้นหาไฟล์ที่อัปโหลดซึ่งไม่มีทริป สถานที่ บันทึก คอลเลกชัน หรือผู้ใช้คนใดใช้งานอีกต่อไป เช่น หลังจากลบทริป',
   'storage.reclaim.check': 'ตรวจสอบตอนนี้',
-  'storage.reclaim.checked': 'ตรวจสอบเมื่อ {age}',
+  'storage.reclaim.checked': 'ตรวจสอบครั้งล่าสุด: {age}',
   'storage.reclaim.never': 'ยังไม่เคยตรวจสอบ',
   'storage.reclaim.delete': 'ลบไฟล์ที่ไม่มีการอ้างอิง',
   'storage.reclaim.deleteHint':
-    'ปิด: การตรวจสอบรายคืนจะรายงานเท่านั้น เปิด: ไฟล์ที่ไม่มีการใช้งานเป็นเวลาหนึ่งสัปดาห์จะถูกลบ ควรปิดไว้หากหลายการติดตั้งใช้ถังเก็บข้อมูลเดียวกัน',
+    'ปิด: การตรวจสอบรายคืนจะรายงานเท่านั้น เปิด: ไฟล์ที่ไม่มีการใช้งานเป็นเวลาหนึ่งสัปดาห์จะถูกลบ ไฟล์ที่คุณลบใน TREK จะถูกลบทันทีไม่ว่าจะเปิดหรือปิด',
   'storage.reclaim.freeable': 'ว่างได้',
   'storage.reclaim.waiting': 'ไม่ได้ใช้งานน้อยกว่าหนึ่งสัปดาห์',
-  'storage.reclaim.deleted': 'ว่างแล้วในการตรวจสอบครั้งล่าสุด',
+  'storage.reclaim.deleted': 'ว่างแล้วจากการล้างข้อมูลรายคืนครั้งล่าสุด',
   'storage.reclaim.nothing': 'ไม่พบไฟล์ที่ไม่มีการอ้างอิง',
   'storage.reclaim.stopped': 'การตรวจสอบครั้งล่าสุดหยุดก่อนกำหนด เพราะมีการกู้คืนฐานข้อมูลระหว่างที่ทำงาน',
   'storage.reclaim.skip.sources_missing': 'ข้าม: ไม่สามารถสอบถามทุกส่วนของ TREK ได้',
   'storage.reclaim.skip.shared_location': 'ข้าม: ใช้ตำแหน่งที่ตั้งเดียวกับหมวดหมู่อื่น',
-  'storage.reclaim.skip.too_many_unreferenced':
-    'ข้าม: มีไฟล์ที่ดูเหมือนไม่ได้ใช้มากเกินไป อาจเป็นถังเก็บข้อมูลที่ใช้ร่วมกัน',
   'storage.reclaim.skip.list_failed': 'ข้าม: ไม่สามารถแสดงรายการไฟล์ได้',
   'storage.reclaim.skip.source_failed': 'ข้าม: การค้นหาล้มเหลว',
+  'storage.reclaim.running': 'กำลังตรวจสอบ…',
+  'storage.reclaim.stoppedFailed': 'การตรวจสอบครั้งล่าสุดหยุดลงเพราะเกิดข้อผิดพลาด จะทำงานอีกครั้งคืนนี้',
+  'storage.reclaim.skip.foreign_install': 'ข้าม: การติดตั้ง TREK อื่นใช้ที่เก็บข้อมูลนี้อยู่',
+  'storage.reclaim.skip.owner_unknown': 'ข้าม: TREK ไม่สามารถทำเครื่องหมายว่าที่เก็บข้อมูลนี้เป็นของตนได้',
+  'storage.reclaim.skip.delete_failed': 'หยุด: ที่เก็บข้อมูลปฏิเสธการลบ',
+  'storage.reclaim.skip.interrupted': 'หยุดก่อนเสร็จสิ้น ตัวเลขเป็นเพียงบางส่วน',
+  'storage.reclaim.confirmNeeded':
+    'ไฟล์เหล่านี้มากกว่าหนึ่งในห้าดูเหมือนไม่ได้ใช้งาน จะไม่มีการลบสิ่งใดจนกว่าคุณจะยืนยันว่าเป็นเรื่องปกติ',
+  'storage.reclaim.confirm': 'ยืนยัน',
+  'storage.reclaim.confirmed': 'ยืนยันแล้ว การล้างข้อมูลรายคืนอาจลบไฟล์เหล่านี้ได้แล้ว',
+  'storage.reclaim.error.reclaim_busy': 'มีงานเกี่ยวกับที่เก็บข้อมูลอื่นกำลังทำงานอยู่ โปรดลองอีกครั้งในอีกสักครู่',
+  'storage.reclaim.error.reclaim_demo': 'ไม่พร้อมใช้งานบนอินสแตนซ์สาธิต',
+  'storage.reclaim.error.reclaim_nothing_to_confirm': 'ไม่มีอะไรให้ยืนยันอีกแล้ว โปรดรันการตรวจสอบก่อน',
 };
 export default storage;
