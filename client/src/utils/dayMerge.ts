@@ -14,6 +14,9 @@ export interface MergedItem {
   data: any
 }
 
+/** Reads a booking's time on one day, as getDisplayTimeForDay does. */
+type DisplayTimeOf = (r: MergedItem['data'], dayId: number) => string | null
+
 export function parseTimeToMinutes(time?: string | null): number | null {
   if (!time) return null
   if (time.includes('T')) {
@@ -365,7 +368,7 @@ function applyChronoOrder(
 export function chronoKeyOf(
   items: readonly MergedItem[],
   dayId: number,
-  getDisplayTime: (r: any, dayId: number) => string | null
+  getDisplayTime: DisplayTimeOf
 ): (it: MergedItem) => number | null {
   const clockOf = (it: MergedItem): number | null => {
     if (it.type === 'place') return parseTimeToMinutes(it.data?.place?.place_time)
@@ -382,7 +385,7 @@ export function chronoKeyOf(
  * own pair of endpoints, and only when they line up one per stop with the legs (see
  * getTransportRouteEndpoints); the booking-wide zones belong to its outermost two.
  */
-function transportTimeZone(r: any, dayId: number): string | null {
+function transportTimeZone(r: MergedItem['data'], dayId: number): string | null {
   const side = getSpanPhase(r, dayId) === 'end' ? 'to' : 'from'
   if (r?.__leg) {
     const ordered = orderedEndpoints(r)
@@ -407,7 +410,7 @@ function transportTimeZone(r: any, dayId: number): string | null {
 function zonedClockSlots(
   items: MergedItem[],
   dayId: number,
-  getDisplayTime: (r: any, dayId: number) => string | null,
+  getDisplayTime: DisplayTimeOf,
   clockOf: (it: MergedItem) => number | null
 ): Map<MergedItem, number> {
   const zoned = items.flatMap((it, index) => {
