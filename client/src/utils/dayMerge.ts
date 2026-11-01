@@ -3,7 +3,8 @@ import { nightVisits, rideSeatAfter, sameDayRide, type CarrierBooking, type Seat
 // `orderedEndpoints` is the geometry order's single source of truth, in the module
 // that documents the multi-leg model. Sorting endpoints a second time here is how
 // the two drift.
-import { orderedEndpoints } from './flightLegs'
+import { orderedEndpoints, parseReservationMetadata } from './flightLegs'
+import { zonedInstant } from './zonedTime'
 
 export const TRANSPORT_TYPES = new Set(['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'cable_car', 'transit', 'transport_other'])
 
@@ -352,11 +353,62 @@ function applyChronoOrder(
   dayId: number,
   getDisplayTime: (r: any, dayId: number) => string | null
 ): MergedItem[] {
-  return chronoOrder(items, it => {
+  const clockOf = (it: MergedItem): number | null => {
     if (it.type === 'place') return parseTimeToMinutes(it.data?.place?.place_time)
     if (it.type === 'note') return parseTimeToMinutes(it.data?.time)
     return parseTimeToMinutes(getDisplayTime(it.data, dayId))
+  }
+  const zoned = zonedClockSlots(items, dayId, getDisplayTime, clockOf)
+  return chronoOrder(items, it => (zoned.has(it) ? zoned.get(it) : clockOf(it)))
+}
+
+/**
+ * The zone a booking's time on this day is read in: the departure's on the day it
+ * leaves, the arrival's on the day it lands. A leg of a multi-leg booking reads its
+ * own pair of endpoints, and only when they line up one per stop with the legs (see
+ * getTransportRouteEndpoints); the booking-wide zones belong to its outermost two.
+ */
+function transportTimeZone(r: any, dayId: number): string | null {
+  const side = getSpanPhase(r, dayId) === 'end' ? 'to' : 'from'
+  if (r?.__leg) {
+    const ordered = orderedEndpoints(r)
+    if (ordered.length !== r.__leg.total + 1) return null
+    return ordered[r.__leg.index + (side === 'to' ? 1 : 0)]?.timezone || null
+  }
+  const meta = parseReservationMetadata(r)
+  const fromMeta = side === 'from' ? meta.departure_timezone : meta.arrival_timezone
+  if (typeof fromMeta === 'string' && fromMeta) return fromMeta
+  return (r?.endpoints || []).find((e: { role?: string; timezone?: string | null }) => e.role === side)?.timezone || null
+}
+
+/**
+ * The clock slots of the day's bookings whose time names an instant: a dated time in a
+ * known zone. Each local time reads in its own zone, so across zones the clock can run
+ * backwards: a flight leaving Auckland at 20:20 lands in Los Angeles at 12:25 the same
+ * date, and the 17:00 flight on from there sorted ahead of it (#2929). Such bookings
+ * keep the clock slots they hold between them and take them in the order they happen,
+ * so stops, notes and bookings without a zone stay where the clock puts them. With fewer
+ * than two the map is empty and the day orders by the clock as before.
+ */
+function zonedClockSlots(
+  items: MergedItem[],
+  dayId: number,
+  getDisplayTime: (r: any, dayId: number) => string | null,
+  clockOf: (it: MergedItem) => number | null
+): Map<MergedItem, number> {
+  const zoned = items.flatMap((it, index) => {
+    if (it.type !== 'transport') return []
+    const clock = clockOf(it)
+    const instant = zonedInstant(getDisplayTime(it.data, dayId), transportTimeZone(it.data, dayId))
+    return clock === null || instant === null ? [] : [{ it, index, clock, instant }]
   })
+  const slots = new Map<MergedItem, number>()
+  if (zoned.length < 2) return slots
+  const clocks = zoned.map(z => z.clock).sort((a, b) => a - b)
+  zoned
+    .sort((a, b) => a.instant - b.instant || a.clock - b.clock || a.index - b.index)
+    .forEach((z, i) => slots.set(z.it, clocks[i]))
+  return slots
 }
 
 /**
