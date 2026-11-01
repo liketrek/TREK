@@ -708,9 +708,11 @@ describe('StorageReclaimService: a pass that stops, and a restore', () => {
   it('RCLS-033: a restore that begins mid-pass stops it before the delete, and waits for it to let go', async () => {
     await markedWeekOld(['orphan.jpg']);
     let restoreStarted: Promise<void> | null = null;
+    let restoreAsked = false;
     let restoreWent = false;
     onAsk = (_category, keys) => {
-      if (keys === null || restoreStarted) return;
+      if (keys === null || restoreAsked) return;
+      restoreAsked = true;
       restoreStarted = jobs.beginRestore().then(() => {
         restoreWent = true;
       });

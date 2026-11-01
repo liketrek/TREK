@@ -165,8 +165,8 @@ export function keysNamedIn(
  * when the key has no run long enough to narrow anything.
  */
 export function keySearchCore(key: string): string | null {
-  const runs = key.toLowerCase().match(/[a-z0-9-]+/g) ?? [];
-  const longest = runs.reduce((best, run) => (run.length > best.length ? run : best), '');
+  const runs: string[] = key.toLowerCase().match(/[a-z0-9-]+/g) ?? [];
+  const longest = runs.reduce<string>((best, run) => (run.length > best.length ? run : best), '');
   return longest.length >= 8 ? longest : null;
 }
 

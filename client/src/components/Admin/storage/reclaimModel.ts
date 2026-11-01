@@ -70,34 +70,41 @@ function freedBy(run: StorageReclaimReport | null): ReclaimCount {
  * `null` (a server from before the reclaim pass, or a state not loaded) reads
  * as deletion off, not running and never checked.
  */
+/**
+ * One category of the last check as a line, or null when it has nothing to
+ * say. A category the pass stopped in still counts what it found; one it
+ * never judged counts nothing.
+ */
+function lineOf(
+  category: ReclaimCategoryLine['category'],
+  report: StorageReclaimCategoryReport | undefined
+): ReclaimCategoryLine | null {
+  if (!report || report.skipped === 'not_reclaimed') return null;
+  const judged = report.skipped === null || report.skipped === 'interrupted' || report.skipped === 'delete_failed';
+  // What was deleted on this run no longer waits to be freed.
+  const freeable = judged ? minus(report.eligible, report.deleted) : NONE;
+  const waiting = judged ? minus(report.unreferenced, report.eligible) : NONE;
+  const line = {
+    category,
+    freeable,
+    waiting,
+    confirmationRequired: report.confirmationRequired,
+    skipped: report.skipped,
+  };
+  const quiet = freeable.objects === 0 && waiting.objects === 0 && !line.confirmationRequired && line.skipped === null;
+  return quiet ? null : line;
+}
+
+/**
+ * The reclaim state as the storage panels show it, desktop and phone alike.
+ * `null` (a server from before the reclaim pass, or a state not loaded) reads
+ * as deletion off, not running and never checked.
+ */
 export function reclaimView(state: StorageReclaimState | null): ReclaimView {
   const run = state?.lastRun ?? null;
-  const lines: ReclaimCategoryLine[] = [];
-  let freeable = NONE;
-  let waiting = NONE;
-  for (const category of STORAGE_RECLAIM_CATEGORIES) {
-    const report = run?.categories[category];
-    if (!report || report.skipped === 'not_reclaimed') continue;
-    // What was deleted on this run no longer waits to be freed.
-    const due = minus(report.eligible, report.deleted);
-    const young = minus(report.unreferenced, report.eligible);
-    // A category the pass stopped in, or that waits for a confirmation, still
-    // counts what it found; one it never judged counts nothing.
-    const judged = report.skipped === null || report.skipped === 'interrupted' || report.skipped === 'delete_failed';
-    if (judged) {
-      freeable = add(freeable, due);
-      waiting = add(waiting, young);
-    }
-    const counts = judged ? { freeable: due, waiting: young } : { freeable: NONE, waiting: NONE };
-    if (
-      counts.freeable.objects > 0 ||
-      counts.waiting.objects > 0 ||
-      report.confirmationRequired ||
-      report.skipped !== null
-    ) {
-      lines.push({ category, ...counts, confirmationRequired: report.confirmationRequired, skipped: report.skipped });
-    }
-  }
+  const lines = STORAGE_RECLAIM_CATEGORIES.flatMap((category) => lineOf(category, run?.categories[category]) ?? []);
+  const freeable = lines.reduce((sum, line) => add(sum, line.freeable), NONE);
+  const waiting = lines.reduce((sum, line) => add(sum, line.waiting), NONE);
   const deleteRun = state?.lastDeleteRun ?? null;
   return {
     deleteEnabled: state?.deleteEnabled ?? false,
