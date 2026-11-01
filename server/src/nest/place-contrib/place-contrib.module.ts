@@ -8,6 +8,7 @@ import { SettingsModule } from '../settings/settings.module';
 import { StorageModule } from '../storage/storage.module';
 import { PlaceContribSender } from './place-contrib-sender.service';
 import { PlaceContribSettings } from './place-contrib-settings';
+import { PlaceContribStorageRefsService } from './place-contrib-storage-refs.service';
 import { PlaceContribClient } from './place-contrib.client';
 import { PlaceContribController } from './place-contrib.controller';
 import { PlaceContribJob } from './place-contrib.job';
@@ -32,7 +33,14 @@ import { Module } from '@nestjs/common';
     MikroOrmModule.forFeature([PlaceContribOutbox, PlaceContribLog]),
   ],
   controllers: [PlaceContribController],
-  providers: [PlaceContribService, PlaceContribSettings, PlaceContribClient, PlaceContribSender, PlaceContribJob],
+  providers: [
+    PlaceContribService,
+    PlaceContribSettings,
+    PlaceContribClient,
+    PlaceContribSender,
+    PlaceContribJob,
+    PlaceContribStorageRefsService,
+  ],
   exports: [PlaceContribService],
 })
 export class PlaceContribModule {}

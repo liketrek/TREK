@@ -63,7 +63,7 @@ describe('RECLAIM_LEDGER', () => {
   });
 
   it('RCLL-002: every reclaimable category waits for all the free-form owners, files and avatars for their own too', () => {
-    const freeForm = ['trips', 'collections', 'places', 'journey', 'photos'];
+    const freeForm = ['trips', 'collections', 'places', 'place-contrib', 'journey', 'photos'];
     for (const category of STORAGE_RECLAIMABLE_CATEGORIES) {
       const rule = RECLAIM_LEDGER[category];
       expect(rule.reclaim).toBe(true);

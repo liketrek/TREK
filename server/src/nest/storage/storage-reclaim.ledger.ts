@@ -9,7 +9,14 @@ export type ReclaimRule =
   | { readonly reclaim: true; readonly requiredSources: readonly StorageReferenceSourceId[] };
 
 /** The owners of columns that hold a free-form upload path, which can point into any category. */
-const FREE_FORM_SOURCES: readonly StorageReferenceSourceId[] = ['trips', 'collections', 'places', 'journey', 'photos'];
+const FREE_FORM_SOURCES: readonly StorageReferenceSourceId[] = [
+  'trips',
+  'collections',
+  'places',
+  'place-contrib',
+  'journey',
+  'photos',
+];
 
 /**
  * What the reclaim pass may do per category, and which reference sources must
@@ -27,7 +34,8 @@ export const RECLAIM_LEDGER: Readonly<Record<ServedCategory, ReclaimRule>> = {
   // Trip, collection and journey covers; a trip copy and a journey share one object.
   covers: { reclaim: true, requiredSources: FREE_FORM_SOURCES },
   avatars: { reclaim: true, requiredSources: ['auth', ...FREE_FORM_SOURCES] },
-  // places.image_url, collection_places.image_url and the contribution outbox.
+  // places.image_url, collection_places.image_url and the contribution outbox
+  // (place-contrib's queue holds an image path until it is sent).
   places: { reclaim: true, requiredSources: FREE_FORM_SOURCES },
   photos: {
     reclaim: false,

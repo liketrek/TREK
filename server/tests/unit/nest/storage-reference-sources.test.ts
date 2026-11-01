@@ -1,0 +1,200 @@
+/**
+ * The reference sources the owner domains hand the storage reclaim pass
+ * (#2924), each against the migrated schema: which of a page of keys its rows
+ * still name, in every spelling those columns hold. One object kept too many
+ * costs a few bytes; one called unreferenced while a row names it is lost, so
+ * every case here is a spelling a real row can carry. RSRC-001 to RSRC-011.
+ */
+import { PlaceContribOutbox } from '../../../src/db/entities/PlaceContribOutbox.entity';
+import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
+import { Users } from '../../../src/db/entities/Users.entity';
+import { AuthStorageRefsService } from '../../../src/nest/auth/auth-storage-refs.service';
+import { CollectionsStorageRefsService } from '../../../src/nest/collections/collections-storage-refs.service';
+import { FilesStorageRefsService } from '../../../src/nest/files/files-storage-refs.service';
+import { JourneyStorageRefsService } from '../../../src/nest/journey/journey-storage-refs.service';
+import { PhotosStorageRefsService } from '../../../src/nest/photos/photos-storage-refs.service';
+import { PlaceContribStorageRefsService } from '../../../src/nest/place-contrib/place-contrib-storage-refs.service';
+import { PlacesStorageRefsService } from '../../../src/nest/places/places-storage-refs.service';
+import { StorageReclaimRegistryService } from '../../../src/nest/storage/storage-reclaim-registry.service';
+import {
+  STORAGE_RECLAIMABLE_CATEGORIES,
+  STORAGE_REFERENCE_SOURCE_IDS,
+  type StorageReferenceSource,
+} from '../../../src/nest/storage/storage-reclaim.types';
+import type { ServedCategory } from '../../../src/nest/storage/storage.types';
+import { TripsStorageRefsService } from '../../../src/nest/trips/trips-storage-refs.service';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { makeCollection, makeCollectionPlace } from '../../helpers/factories/collections';
+import { makeTripFile } from '../../helpers/factories/files';
+import { makeJourney } from '../../helpers/factories/journeys';
+import { makePlace } from '../../helpers/factories/places';
+import { insertRow, updateRows } from '../../helpers/factories/rows';
+import { makeTrip } from '../../helpers/factories/trips';
+import { makeUser } from '../../helpers/factories/users';
+import { createTestModule, type TestModule } from '../../helpers/test-module';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+
+const SOURCES = [
+  TripsStorageRefsService,
+  CollectionsStorageRefsService,
+  PlacesStorageRefsService,
+  PlaceContribStorageRefsService,
+  JourneyStorageRefsService,
+  PhotosStorageRefsService,
+  FilesStorageRefsService,
+  AuthStorageRefsService,
+];
+
+const db = createSnapshotTestDb();
+let orm: TestOrm;
+let t: TestModule;
+let userId: number;
+let tripId: number;
+
+beforeAll(async () => {
+  orm = await createTestOrm(db);
+  t = await createTestModule({ db, imports: [], providers: [StorageReclaimRegistryService, ...SOURCES], init: true });
+  userId = (await makeUser(orm)).user.id;
+  tripId = (await makeTrip(orm, userId)).id;
+});
+
+afterAll(async () => {
+  await t.close();
+  await orm.close();
+  db.close();
+});
+
+/** The sorted keys a source still references. */
+async function asked(source: StorageReferenceSource, category: ServedCategory, keys: string[]): Promise<string[]> {
+  return [...(await source.referenced(category, keys))].sort();
+}
+
+describe('reference sources', () => {
+  it('RSRC-001: every source registers itself once the app boots, under the ids the ledger knows', () => {
+    const registry = t.get(StorageReclaimRegistryService);
+    expect([...registry.ids()].sort()).toEqual([...STORAGE_REFERENCE_SOURCE_IDS].sort());
+    for (const source of registry.sources()) {
+      const claimed = source.claims.map((claim) => `${claim.category}:${claim.prefix}`).sort();
+      if (source.id === 'files') expect(claimed).toEqual(['files:']);
+      else if (source.id === 'auth') expect(claimed).toEqual(['avatars:']);
+      else expect(claimed).toEqual(STORAGE_RECLAIMABLE_CATEGORIES.map((category) => `${category}:`).sort());
+    }
+  });
+
+  it('RSRC-002: a trip cover keeps its object in every spelling, and in whatever category it points into', async () => {
+    await makeTrip(orm, userId, { cover_image: '/uploads/covers/rsrc-a.jpg' });
+    await makeTrip(orm, userId, { cover_image: 'https://trip.example.test/uploads/places/rsrc-b.jpg?v=2' });
+    await makeTrip(orm, userId, { cover_image: '/uploads/covers/RSRC-Mixed.JPG' });
+    await makeTrip(orm, userId, { cover_image: 'https://images.unsplash.com/rsrc-z.jpg' });
+    const trips = t.get(TripsStorageRefsService);
+    expect(await asked(trips, 'covers', ['rsrc-a.jpg', 'rsrc-mixed.jpg', 'rsrc-z.jpg', 'rsrc-b.jpg'])).toEqual([
+      'rsrc-a.jpg',
+      'rsrc-mixed.jpg',
+    ]);
+    expect(await asked(trips, 'places', ['rsrc-b.jpg', 'rsrc-a.jpg'])).toEqual(['rsrc-b.jpg']);
+    expect(await asked(trips, 'covers', [])).toEqual([]);
+  });
+
+  it('RSRC-003: a list cover and a saved place image both keep their objects', async () => {
+    const collection = await makeCollection(orm, userId, { cover_image: '/uploads/covers/rsrc-c.jpg' });
+    await makeCollectionPlace(orm, collection.id, userId, { image_url: '/uploads/places/rsrc-d.jpg' });
+    await makeCollectionPlace(orm, collection.id, userId, { image_url: 'https://example.test/rsrc-y.jpg' });
+    const collections = t.get(CollectionsStorageRefsService);
+    expect(await asked(collections, 'covers', ['rsrc-c.jpg', 'rsrc-d.jpg'])).toEqual(['rsrc-c.jpg']);
+    expect(await asked(collections, 'places', ['rsrc-d.jpg', 'rsrc-y.jpg'])).toEqual(['rsrc-d.jpg']);
+  });
+
+  it('RSRC-004: a place image keeps its object; a photo-proxy path or an inline image names none', async () => {
+    await makePlace(orm, tripId, { image_url: '/uploads/places/rsrc-e.jpg' });
+    await makePlace(orm, tripId, { image_url: '/uploads/covers/rsrc-e2.jpg' });
+    await makePlace(orm, tripId, { image_url: '/api/maps/place-photo/rsrc-x/bytes' });
+    await makePlace(orm, tripId, { image_url: 'data:image/png;base64,AAAA' });
+    const places = t.get(PlacesStorageRefsService);
+    expect(await asked(places, 'places', ['rsrc-e.jpg', 'rsrc-x', 'bytes'])).toEqual(['rsrc-e.jpg']);
+    expect(await asked(places, 'covers', ['rsrc-e2.jpg'])).toEqual(['rsrc-e2.jpg']);
+  });
+
+  it('RSRC-005: a queued contribution keeps the image it has yet to send', async () => {
+    const place = await makePlace(orm, tripId, { image_url: null });
+    await insertRow(orm, PlaceContribOutbox, {
+      contrib_key: 'osm:node/2924',
+      field: 'image',
+      value: '/uploads/places/rsrc-f.jpg',
+      place: place.id,
+      place_name: 'Queued',
+      cid: 'cid-rsrc-0001',
+      eligible_at: '2026-01-01 00:00:00',
+      next_attempt_at: '2026-01-01 00:00:00',
+    });
+    const outbox = t.get(PlaceContribStorageRefsService);
+    expect(await asked(outbox, 'places', ['rsrc-f.jpg', 'rsrc-f2.jpg'])).toEqual(['rsrc-f.jpg']);
+  });
+
+  it('RSRC-006: a journey cover keeps a shared trip cover and a gallery photo by their relative spelling', async () => {
+    await makeJourney(orm, userId, { cover_image: 'covers/rsrc-g.jpg' });
+    await makeJourney(orm, userId, { cover_image: 'journey/rsrc-h.jpg' });
+    await makeJourney(orm, userId, { cover_image: '/uploads/covers/rsrc-g2.jpg' });
+    const journeys = t.get(JourneyStorageRefsService);
+    expect(await asked(journeys, 'covers', ['rsrc-g.jpg', 'rsrc-g2.jpg', 'rsrc-h.jpg'])).toEqual([
+      'rsrc-g.jpg',
+      'rsrc-g2.jpg',
+    ]);
+    expect(await asked(journeys, 'journey', ['rsrc-h.jpg', 'rsrc-g.jpg'])).toEqual(['rsrc-h.jpg']);
+  });
+
+  it('RSRC-007: every photo row with a path keeps it, whatever its provider and links', async () => {
+    // A local photo retargeted to a remote provider is still served from its bytes.
+    await insertRow(orm, TrekPhotos, {
+      provider: 'immich',
+      asset_id: 'rsrc-asset',
+      owner: userId,
+      file_path: 'journey/rsrc-i.jpg',
+      thumbnail_path: 'journey/rsrc-i-poster.jpg',
+    });
+    await insertRow(orm, TrekPhotos, { provider: 'local', owner: userId, file_path: 'legacy/rsrc-j.jpg' });
+    await insertRow(orm, TrekPhotos, { provider: 'immich', asset_id: 'rsrc-remote', owner: userId });
+    const photos = t.get(PhotosStorageRefsService);
+    expect(
+      await asked(photos, 'journey', ['rsrc-i.jpg', 'rsrc-i-poster.jpg', 'rsrc-j.jpg', 'rsrc-remote', 'rsrc-k.jpg']),
+    ).toEqual(['rsrc-i-poster.jpg', 'rsrc-i.jpg', 'rsrc-j.jpg']);
+    expect(await asked(photos, 'covers', ['rsrc-i.jpg'])).toEqual([]);
+  });
+
+  it('RSRC-008: a trip file keeps its object, trashed or carrying a legacy path', async () => {
+    await makeTripFile(orm, tripId, { filename: 'rsrc-k.pdf' });
+    await makeTripFile(orm, tripId, { filename: 'rsrc-l.pdf', deleted_at: '2026-01-01 00:00:00' });
+    await makeTripFile(orm, tripId, { filename: 'files/rsrc-m.pdf' });
+    await makeTripFile(orm, tripId, { filename: '/uploads/files/rsrc-n.pdf' });
+    await makeTripFile(orm, tripId, { filename: 'uploads\\files\\rsrc-p.pdf' });
+    const files = t.get(FilesStorageRefsService);
+    expect(
+      await asked(files, 'files', ['rsrc-k.pdf', 'rsrc-l.pdf', 'rsrc-m.pdf', 'rsrc-n.pdf', 'rsrc-p.pdf', 'rsrc-o.pdf']),
+    ).toEqual(['rsrc-k.pdf', 'rsrc-l.pdf', 'rsrc-m.pdf', 'rsrc-n.pdf', 'rsrc-p.pdf']);
+  });
+
+  it('RSRC-009: a source asked about a category it does not claim answers nothing', async () => {
+    await makeTripFile(orm, tripId, { filename: 'rsrc-q.jpg' });
+    expect(await asked(t.get(FilesStorageRefsService), 'covers', ['rsrc-q.jpg'])).toEqual([]);
+    expect(await asked(t.get(FilesStorageRefsService), 'files', [])).toEqual([]);
+    expect(await asked(t.get(AuthStorageRefsService), 'files', ['rsrc-q.jpg'])).toEqual([]);
+  });
+
+  it('RSRC-010: an uploaded avatar keeps its object; an OIDC picture names none', async () => {
+    const uploaded = (await makeUser(orm)).user;
+    const oidc = (await makeUser(orm)).user;
+    await updateRows(orm, Users, { id: uploaded.id }, { avatar: 'rsrc-r.png' });
+    await updateRows(orm, Users, { id: oidc.id }, { avatar: 'https://idp.example.test/pictures/rsrc-s.png' });
+    const auth = t.get(AuthStorageRefsService);
+    expect(await asked(auth, 'avatars', ['rsrc-r.png', 'rsrc-s.png'])).toEqual(['rsrc-r.png']);
+    expect(await asked(auth, 'avatars', [])).toEqual([]);
+  });
+
+  it('RSRC-011: every source asked with no keys answers nothing', async () => {
+    const answers = await Promise.all(
+      SOURCES.map((Source) => asked(t.get<StorageReferenceSource>(Source), 'covers', [])),
+    );
+    expect(answers).toEqual(SOURCES.map(() => []));
+  });
+});

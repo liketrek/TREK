@@ -16,6 +16,7 @@ export const STORAGE_REFERENCE_SOURCE_IDS = [
   'trips',
   'collections',
   'places',
+  'place-contrib',
   'journey',
   'photos',
   'files',
@@ -37,6 +38,11 @@ export interface StorageReferenceClaim {
   readonly category: ServedCategory;
   readonly prefix: string;
 }
+
+/** What a source whose columns hold free-form upload paths claims: the whole of every reclaimable category. */
+export const EVERY_RECLAIMABLE_CATEGORY: readonly StorageReferenceClaim[] = STORAGE_RECLAIMABLE_CATEGORIES.map(
+  (category) => ({ category, prefix: '' }),
+);
 
 export interface StorageReferenceSource {
   readonly id: StorageReferenceSourceId;

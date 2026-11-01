@@ -22,6 +22,7 @@ import { buildStorageUploadOptions } from '../storage/storage-upload.factory';
 import { StorageModule } from '../storage/storage.module';
 import { StorageService } from '../storage/storage.service';
 import { CollectionsItemsService } from './collections-items.service';
+import { CollectionsStorageRefsService } from './collections-storage-refs.service';
 import { CollectionsController } from './collections.controller';
 import { MAX_COVER_SIZE } from './collections.controller';
 import { CollectionsMcp } from './collections.mcp';
@@ -77,7 +78,13 @@ import { MulterModule } from '@nestjs/platform-express';
     ]),
   ],
   controllers: [CollectionsController],
-  providers: [CollectionsService, CollectionsItemsService, CollectionsMcp, CollectionsRpc],
+  providers: [
+    CollectionsService,
+    CollectionsItemsService,
+    CollectionsMcp,
+    CollectionsRpc,
+    CollectionsStorageRefsService,
+  ],
   exports: [CollectionsService],
 })
 export class CollectionsModule {}
