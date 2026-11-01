@@ -135,7 +135,11 @@ over the trip cover, a saved place in a list, or the old value written back by
 an undo. The day is the longest any undo in TREK can bring a file back (a
 change the assistant proposed can still be applied for 24 hours). This runs
 whether or not deletion is switched on below, as deleting always did, with the
-same checks the nightly cleanup makes.
+same checks the nightly cleanup makes. A file whose category stays skipped
+(see below) for 30 days past its day, and every file released while 50,000
+already wait, is no longer waited for: the log says so with the number of
+files, and such files are then only removed by the nightly cleanup, once
+deletion is switched on.
 
 Whatever is left over after that (files of deleted trips and users, files from
 before this check existed) is found by a check every night at 04:05 server
@@ -201,13 +205,17 @@ on a location you share with an older TREK, or upgrade both first.
 **Which installation this is** lives in the file `.trek-install-id` in the
 data folder (next to `travel.db`), made on the first start. Backups never
 contain it and no restore writes it. When the database names another
-installation than that file (a restored backup, also one restored with
-`RESTORE_FROM_BACKUP` at start-up, a restart after a restore that failed half
-way, or a database file copied from elsewhere), TREK switches deletion off and
-forgets what earlier checks found, what you confirmed and what was waiting to
-be deleted, before anything else runs. Every restore through the admin panel
-does the same. Switch deletion on again once you have looked at the next
-report. A copy of the whole data folder carries the file with it and looks
+installation than that file, or none (a backup or a database file from
+another installation), TREK switches deletion off and forgets what earlier
+checks found, what you confirmed and what was waiting to be deleted, before
+anything else runs. Every restore does the same, also of a backup of this
+installation: one in the admin panel right after it, one with
+`RESTORE_FROM_BACKUP` on that start. A restore leaves the file
+`.trek-reclaim-reset` in the data folder until this is done, so a restart
+after a restore that failed half way does it as well; backups never contain
+that file either. A database file of this installation that you put in place
+by hand while TREK was stopped is not told apart: use a restore for that.
+Switch deletion on again once you have looked at the next report. A copy of the whole data folder carries the file with it and looks
 like the same installation: give a clone its own data folder, or delete
 `.trek-install-id` in the copy before its first start. If the file is lost or
 unreadable, nothing is deleted until it is there again; a new one makes this
