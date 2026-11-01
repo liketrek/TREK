@@ -74,6 +74,7 @@ describe('checkPushEndpoint / checkPushSubscription', () => {
     for (const endpoint of [
       FCM,
       'https://android.googleapis.com/gcm/send/x',
+      'https://jmt17.google.com/fcm/send/x',
       'https://updates.push.services.mozilla.com/wpush/v2/gAAAA',
       'https://push.services.mozilla.com/wpush/v1/x',
       'https://web.push.apple.com/QGx9',
@@ -111,6 +112,8 @@ describe('checkPushEndpoint / checkPushSubscription', () => {
       'https://example.com/push',
       'https://127.0.0.1/push',
       'https://fcm.googleapis.com.evil.test/x',
+      'https://jmt17.google.com.evil.test/x',
+      'https://google.com/fcm/send/x',
       'https://evilnotify.windows.com/x',
       'https://.notify.windows.com/x',
       'https://push.apple.com/x',
