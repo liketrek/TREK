@@ -357,8 +357,11 @@ export const storageAdminStateSchema = z.object({
   health: z.object({ replicaFailures: z.array(storageReplicaFailureSchema) }),
   seedFilePresent: z.boolean(),
   usage: storageUsageSchema.nullable(),
-  /** The reclaim switch and the last pass's report (null before the first pass). */
-  reclaim: storageReclaimStateSchema,
+  /**
+   * The reclaim switch and the last pass's report (`lastRun` null before the
+   * first pass). Nullable so a client reading an older server copes with it.
+   */
+  reclaim: storageReclaimStateSchema.nullable(),
   backfills: z.array(storageBackfillStatusSchema),
   migrations: z.array(storageMigrationStatusSchema),
   /** Optimistic-concurrency counter for the two settings rows (audit #7) — echo it back on the next PUT. */

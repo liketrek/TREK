@@ -28,6 +28,7 @@ function baseState(): StorageAdminState {
     ) as StorageAdminState['categories'],
     health: { replicaFailures: [] },
     seedFilePresent: false,
+    reclaim: null,
     usage: null,
     backfills: [],
     migrations: [],

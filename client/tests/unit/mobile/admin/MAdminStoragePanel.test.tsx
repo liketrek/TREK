@@ -29,6 +29,7 @@ function baseState(overrides: Partial<StorageAdminState> = {}): StorageAdminStat
     },
     health: { replicaFailures: [] },
     seedFilePresent: false,
+    reclaim: null,
     usage: null,
     backfills: [],
     migrations: [],
