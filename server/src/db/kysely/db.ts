@@ -124,6 +124,7 @@ import type { SchoolHolidayPeriodsTable } from './SchoolHolidayPeriods.table';
 import type { SchoolHolidayRegionsTable } from './SchoolHolidayRegions.table';
 import type { SettingsTable } from './Settings.table';
 import type { ShareTokensTable } from './ShareTokens.table';
+import type { StorageReclaimMarksTable } from './StorageReclaimMarks.table';
 import type { TagsTable } from './Tags.table';
 import type { TodoCategoryAssigneesTable } from './TodoCategoryAssignees.table';
 import type { TodoItemsTable } from './TodoItems.table';
@@ -297,6 +298,7 @@ export interface DB {
   school_holiday_regions: SchoolHolidayRegionsTable;
   settings: SettingsTable;
   share_tokens: ShareTokensTable;
+  storage_reclaim_marks: StorageReclaimMarksTable;
   tags: TagsTable;
   todo_category_assignees: TodoCategoryAssigneesTable;
   todo_items: TodoItemsTable;

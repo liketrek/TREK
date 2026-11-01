@@ -59,7 +59,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 // + trip_member_removals: id, trip_id, user_id (a removal note always names its trip and its person).
 // + assistant_attachments: id, thread_id, user_id, trip_id, name, mime, size, sha256, storage_key, text_status
 //   (an attached file is only ever written whole, by the turn it was attached in).
-const KNOWN_UNINITIALISED_NOT_NULL_SCALARS = 604;
+// + storage_reclaim_marks: category, key, first_seen_at, size (a mark is only ever written whole, by the reclaim pass).
+const KNOWN_UNINITIALISED_NOT_NULL_SCALARS = 608;
 
 describe('entity class fields never carry a NaN initialiser (task-4-review-shape.md, Important 1)', () => {
   it('CLASSFIELD-001: new X() has no own property whose value is NaN, across all 133 entities', () => {
