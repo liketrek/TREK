@@ -6,6 +6,8 @@ import { BackupController } from '../../../src/nest/backup/backup.controller';
 import * as backupSvc from '../../../src/nest/backup/backup.impl';
 import { BackupService as RealBackupService } from '../../../src/nest/backup/backup.service';
 import type { BackupService } from '../../../src/nest/backup/backup.service';
+import { StorageJobsService } from '../../../src/nest/storage/storage-jobs.service';
+import type { StorageRegistryService } from '../../../src/nest/storage/storage-registry.service';
 import { StorageNotFoundError } from '../../../src/nest/storage/storage.types';
 import type { User } from '../../../src/types';
 import { HttpException } from '@nestjs/common';
@@ -374,7 +376,9 @@ describe('BackupService (wrapper)', () => {
   const database = {
     __sentinel: 'database',
   } as unknown as import('../../../src/nest/database/database-backup.interface').DatabaseBackupStrategy;
-  const wrapper = new RealBackupService(storage, database);
+  // The real one-job slot: the restore marks itself running there.
+  const jobs = new StorageJobsService({} as StorageRegistryService);
+  const wrapper = new RealBackupService(storage, database, jobs);
 
   it('forwards every call straight to the legacy backup service', async () => {
     expect(await wrapper.listBackups()).toEqual([{ filename: 'svc.zip' }]);
@@ -408,6 +412,33 @@ describe('BackupService (wrapper)', () => {
 
   it('exposes the legacy rate window', () => {
     expect(wrapper.rateWindow).toBe(backupSvc.BACKUP_RATE_WINDOW);
+  });
+
+  it('BKS-RESTORE-001: a restore runs marked as such, so the reclaim pass can neither start nor go on beside it', async () => {
+    let runningInside = false;
+    vi.mocked(backupSvc.restoreFromZip).mockImplementationOnce(async () => {
+      runningInside = jobs.restoreRunning;
+      expect(jobs.claimExclusive('a storage reclaim')).toBe(false);
+      return { success: true };
+    });
+    await expect(wrapper.restoreFromZip('/tmp/a.zip')).resolves.toEqual({ success: true });
+    expect(runningInside).toBe(true);
+    expect(jobs.restoreRunning).toBe(false);
+  });
+
+  it('BKS-RESTORE-002: a restore waits for a reclaim pass in flight to let go, and a failed one still ends', async () => {
+    expect(jobs.claimExclusive('a storage reclaim')).toBe(true);
+    vi.mocked(backupSvc.restoreBackup).mockRejectedValueOnce(new Error('broken archive'));
+    const restore = wrapper.restoreBackup('svc.zip');
+    await Promise.resolve();
+    expect(jobs.restoreRunning).toBe(true);
+    expect(backupSvc.restoreBackup).not.toHaveBeenCalled();
+    jobs.releaseExclusive('a storage reclaim');
+    await expect(restore).rejects.toThrow('broken archive');
+    expect(backupSvc.restoreBackup).toHaveBeenCalledWith({ storage, database }, 'svc.zip');
+    expect(jobs.restoreRunning).toBe(false);
+    expect(jobs.claimExclusive('a storage reclaim')).toBe(true);
+    jobs.releaseExclusive('a storage reclaim');
   });
 });
 

@@ -61,7 +61,10 @@ interface ReclaimRunOptions {
   now?: Date;
 }
 
-/** The database was swapped under the pass (a restore): nothing it learnt before holds any more. */
+/**
+ * A restore began, or the database was swapped under the pass: nothing it
+ * learnt before holds any more. Reported as `database_reopened` either way.
+ */
 class ReclaimStopped extends Error {}
 
 /**
@@ -78,8 +81,9 @@ class ReclaimStopped extends Error {}
  * registered, whose objects share a location with another category's, whose
  * listing or lookups fail, or where more than a fifth of the objects look
  * unreferenced is skipped and its marks start over. A pass never runs beside
- * a backfill or a category migration (the one-job slot of StorageJobsService),
- * never on a demo instance, and stops when the database is reopened under it.
+ * a backfill, a category migration or a restore (the one-job slot of
+ * StorageJobsService, which a restore waits on), never on a demo instance,
+ * and stops when a restore begins or the database is reopened under it.
  */
 @Injectable()
 export class StorageReclaimService implements OnModuleInit {
@@ -377,7 +381,9 @@ export class StorageReclaimService implements OnModuleInit {
     return true;
   }
 
+  /** A restore that began, or a reopen that happened, since the pass started ends it. */
   private assertSameDatabase(ctx: PassContext): void {
+    if (this.jobs.restoreRunning) throw new ReclaimStopped('a restore began during the pass');
     if (this.generation !== ctx.generation) throw new ReclaimStopped('the database was reopened during the pass');
   }
 }

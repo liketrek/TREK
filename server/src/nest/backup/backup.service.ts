@@ -1,4 +1,5 @@
 import { DATABASE_BACKUP, type DatabaseBackupStrategy } from '../database/database-backup.interface';
+import { StorageJobsService } from '../storage/storage-jobs.service';
 import { StorageService } from '../storage/storage.service';
 import * as svc from './backup.impl';
 import { Inject, Injectable } from '@nestjs/common';
@@ -23,6 +24,7 @@ export class BackupService {
   constructor(
     private readonly storage: StorageService,
     @Inject(DATABASE_BACKUP) database: DatabaseBackupStrategy,
+    private readonly jobs: StorageJobsService,
   ) {
     this.deps = { storage, database };
   }
@@ -34,10 +36,10 @@ export class BackupService {
     return svc.createBackup(this.deps, prefix);
   }
   restoreFromZip(zipPath: string) {
-    return svc.restoreFromZip(this.deps, zipPath);
+    return this.whileRestoring(() => svc.restoreFromZip(this.deps, zipPath));
   }
   restoreBackup(filename: string) {
-    return svc.restoreBackup(this.deps, filename);
+    return this.whileRestoring(() => svc.restoreBackup(this.deps, filename));
   }
   deleteBackup(filename: string) {
     return svc.deleteBackup(this.storage, filename);
@@ -58,5 +60,20 @@ export class BackupService {
 
   get rateWindow() {
     return svc.BACKUP_RATE_WINDOW;
+  }
+
+  /**
+   * A restore wipes and rehydrates the uploads under a swapped database, so
+   * the storage reclaim pass must not run beside it: the restore marks itself
+   * running (a pass refuses to start and one in flight stops at its next
+   * check) and waits for a pass in flight to let go before it touches anything.
+   */
+  private async whileRestoring<T>(restore: () => Promise<T>): Promise<T> {
+    await this.jobs.beginRestore();
+    try {
+      return await restore();
+    } finally {
+      this.jobs.endRestore();
+    }
   }
 }

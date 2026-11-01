@@ -62,6 +62,16 @@ let named: Map<ServedCategory, Set<string>>;
 /** Called on every question a source is asked, before it answers. */
 let onAsk: ((category: ServedCategory, keys: readonly string[]) => void | Promise<void>) | null;
 
+/** The keys the fake sources name in `category`, created empty on first use. */
+function namedIn(category: ServedCategory): Set<string> {
+  let set = named.get(category);
+  if (!set) {
+    set = new Set<string>();
+    named.set(category, set);
+  }
+  return set;
+}
+
 function fakeSource(id: StorageReferenceSourceId): StorageReferenceSource {
   const categories: readonly ServedCategory[] =
     id === 'auth' ? ['avatars'] : id === 'files' ? ['files'] : STORAGE_RECLAIMABLE_CATEGORIES;
@@ -208,12 +218,12 @@ describe('StorageReclaimService: mark, then sweep', () => {
     await seedCovers(['orphan.jpg']);
     await reclaim.setDeleteEnabled(true);
     await reclaim.run({ now: T0 });
-    named.get('covers')!.add('orphan.jpg');
+    namedIn('covers').add('orphan.jpg');
     const renamed = await reclaim.run({ now: new Date(T0.getTime() + DAY) });
     expect(renamed.categories.covers.unreferenced.objects).toBe(0);
     expect(await marksOf('covers')).toEqual([]);
 
-    named.get('covers')!.delete('orphan.jpg');
+    namedIn('covers').delete('orphan.jpg');
     const again = await reclaim.run({ now: WEEK_LATER });
     expect(again.categories.covers.eligible.objects).toBe(0);
     expect(fs.existsSync(objectPath('covers', 'orphan.jpg'))).toBe(true);
@@ -225,7 +235,8 @@ describe('StorageReclaimService: mark, then sweep', () => {
     await reclaim.setDeleteEnabled(true);
     await reclaim.run({ now: T0 });
     onAsk = (category, keys) => {
-      if (category === 'covers' && keys.length === 1) named.get('covers')!.add(keys[0]!);
+      const [only] = keys;
+      if (category === 'covers' && keys.length === 1 && only !== undefined) namedIn('covers').add(only);
     };
     const report = await reclaim.run({ now: WEEK_LATER });
     expect(report.categories.covers.eligible.objects).toBe(1);
@@ -461,5 +472,42 @@ describe('StorageReclaimService: the switch and the stored report', () => {
     expect((await reclaim.state()).lastRun).toBeNull();
     await setAppSetting(orm, 'storage.reclaim_report', JSON.stringify({ startedAt: 'yesterday' }));
     expect((await reclaim.state()).lastRun).toBeNull();
+  });
+
+  it('RCLS-022: a restore that begins mid-pass stops it before the delete, and waits for it to let go', async () => {
+    await seedCovers(['orphan.jpg']);
+    await reclaim.setDeleteEnabled(true);
+    await reclaim.run({ now: T0 });
+    const jobs = t.get(StorageJobsService);
+    let restoreStarted: Promise<void> | null = null;
+    let restoreWent = false;
+    onAsk = (_category, keys) => {
+      if (keys.length !== 1 || restoreStarted) return;
+      restoreStarted = jobs.beginRestore().then(() => {
+        restoreWent = true;
+      });
+    };
+    try {
+      const report = await reclaim.run({ now: WEEK_LATER });
+      expect(report.stopped).toBe('database_reopened');
+      expect(fs.existsSync(objectPath('covers', 'orphan.jpg'))).toBe(true);
+      expect(restoreStarted).not.toBeNull();
+      await restoreStarted;
+      expect(restoreWent).toBe(true);
+    } finally {
+      jobs.endRestore();
+    }
+  });
+
+  it('RCLS-023: a pass refuses to start while a restore runs, and starts again once it ended', async () => {
+    const jobs = t.get(StorageJobsService);
+    await jobs.beginRestore();
+    try {
+      await expect(reclaim.run({ now: T0 })).rejects.toMatchObject({ code: 'reclaim_busy' });
+    } finally {
+      jobs.endRestore();
+    }
+    expect(jobs.restoreRunning).toBe(false);
+    expect((await reclaim.run({ now: T0 })).stopped).toBeNull();
   });
 });

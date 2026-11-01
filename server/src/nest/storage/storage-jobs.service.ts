@@ -43,6 +43,11 @@ export class StorageJobsService {
   private ttlMs = 10 * 60_000;
   /** A pass that holds the one-job slot without a status of its own (the reclaim pass), by name. */
   private exclusive: string | null = null;
+  /** Restores in progress: no exclusive pass starts while one runs, and one in flight stops. */
+  private restores = 0;
+  /** Settles once the exclusive pass holding the slot releases it; settled while none does. */
+  private exclusiveReleased: Promise<void> = Promise.resolve();
+  private onExclusiveReleased: (() => void) | null = null;
 
   /** One storage job at a time, across backfills, category migrations and the reclaim pass. */
   private anyJobRunning(): boolean {
@@ -60,17 +65,45 @@ export class StorageJobsService {
 
   /**
    * Takes the one-job slot for a pass that runs in the caller (the reclaim
-   * pass): false while a backfill, a migration or another such pass runs.
+   * pass): false while a backfill, a migration, another such pass or a
+   * restore runs.
    * The caller releases it in a finally.
    */
   claimExclusive(name: string): boolean {
-    if (this.anyJobRunning()) return false;
+    if (this.restores > 0 || this.anyJobRunning()) return false;
     this.exclusive = name;
+    this.exclusiveReleased = new Promise((resolve) => {
+      this.onExclusiveReleased = resolve;
+    });
     return true;
   }
 
   releaseExclusive(name: string): void {
-    if (this.exclusive === name) this.exclusive = null;
+    if (this.exclusive !== name) return;
+    this.exclusive = null;
+    this.onExclusiveReleased?.();
+    this.onExclusiveReleased = null;
+  }
+
+  /** True while a backup restore swaps the database and the uploads. */
+  get restoreRunning(): boolean {
+    return this.restores > 0;
+  }
+
+  /**
+   * Marks a restore as running and waits until an exclusive pass in flight
+   * (the reclaim pass, which stops at its next check of `restoreRunning`) has
+   * let go, so none of its deletes can land on the uploads the restore puts
+   * back. Backfills and migrations are not waited for, as before. The caller
+   * calls `endRestore` in a finally.
+   */
+  async beginRestore(): Promise<void> {
+    this.restores += 1;
+    await this.exclusiveReleased;
+  }
+
+  endRestore(): void {
+    if (this.restores > 0) this.restores -= 1;
   }
 
   constructor(private readonly registry: StorageRegistryService) {}

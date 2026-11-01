@@ -37,6 +37,8 @@ import { Module } from '@nestjs/common';
  * and follows database reopens (DatabaseLifecycleModule); the domains whose
  * rows name stored objects register their reference sources with the exported
  * StorageReclaimRegistryService, so storage never imports them.
+ * StorageJobsService is exported for the backup restore, which marks itself
+ * running there and waits for a reclaim pass in flight to let go.
  */
 @Module({
   imports: [
@@ -59,6 +61,6 @@ import { Module } from '@nestjs/common';
     StorageReclaimService,
     StorageReclaimJob,
   ],
-  exports: [StorageService, StorageEventsService, StorageReclaimRegistryService],
+  exports: [StorageService, StorageEventsService, StorageJobsService, StorageReclaimRegistryService],
 })
 export class StorageModule {}
