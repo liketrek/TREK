@@ -1,5 +1,6 @@
 import React from 'react';
 import type { ReclaimCount, ReclaimView } from '../../../components/Admin/storage/reclaimModel';
+import { fs } from '../../../components/shared/DialogShell';
 import { useTranslation } from '../../../i18n';
 import { formatBytes } from '../../../utils/formatBytes';
 import { relativeTime } from '../../../utils/relativeTime';
@@ -39,13 +40,13 @@ export default function MStorageReclaimCard({ reclaim, checking, onCheck, onDele
         }
       />
       <div className="border-t border-[color:var(--m-rowbr)] pt-[11px]" data-testid="m-storage-reclaim-summary">
-        <p className="font-geist text-[0.625rem] text-m-muted">
+        <p className="font-geist text-m-muted" style={fs(10)}>
           {reclaim.checkedAt !== null
             ? t('storage.reclaim.checked', { age: relativeTime(reclaim.checkedAt, locale) })
             : t('storage.reclaim.never')}
         </p>
         {reclaim.stopped && (
-          <p role="note" className="mt-1 font-geist text-[0.625rem] text-m-muted">
+          <p role="note" className="mt-1 font-geist text-m-muted" style={fs(10)}>
             {t('storage.reclaim.stopped')}
           </p>
         )}
@@ -57,24 +58,30 @@ export default function MStorageReclaimCard({ reclaim, checking, onCheck, onDele
           </div>
         )}
         {checked && reclaim.lines.length === 0 && (
-          <p className="mt-2 font-geist text-[0.625rem] text-m-muted">{t('storage.reclaim.nothing')}</p>
+          <p className="mt-2 font-geist text-m-muted" style={fs(10)}>
+            {t('storage.reclaim.nothing')}
+          </p>
         )}
         {reclaim.lines.length > 0 && (
           <div className="mt-2 space-y-1.5">
             {reclaim.lines.map((line) => (
               <div key={line.category} data-testid={`m-storage-reclaim-${line.category}`}>
-                <p className="text-[0.75rem] font-bold text-m-ink">{t(`storage.category.${line.category}`)}</p>
+                <p className="font-bold text-m-ink" style={fs(12, 'body')}>
+                  {t(`storage.category.${line.category}`)}
+                </p>
                 {line.skipped ? (
-                  <p className="font-geist text-[0.625rem] text-m-muted">{t(`storage.reclaim.skip.${line.skipped}`)}</p>
+                  <p className="font-geist text-m-muted" style={fs(10)}>
+                    {t(`storage.reclaim.skip.${line.skipped}`)}
+                  </p>
                 ) : (
                   <>
                     {line.freeable.objects > 0 && (
-                      <p className="font-geist text-[0.625rem] text-m-muted">
+                      <p className="font-geist text-m-muted" style={fs(10)}>
                         {t('storage.reclaim.freeable')}: {count(line.freeable)}
                       </p>
                     )}
                     {line.waiting.objects > 0 && (
-                      <p className="font-geist text-[0.625rem] text-m-muted">
+                      <p className="font-geist text-m-muted" style={fs(10)}>
                         {t('storage.reclaim.waiting')}: {count(line.waiting)}
                       </p>
                     )}
@@ -92,8 +99,12 @@ export default function MStorageReclaimCard({ reclaim, checking, onCheck, onDele
 function Figure({ label, value }: { label: string; value: string }): React.ReactElement {
   return (
     <div className="flex items-baseline justify-between gap-3">
-      <span className="font-geist text-[0.6875rem] text-m-muted">{label}</span>
-      <span className="font-geist text-[0.6875rem] font-bold tabular-nums text-m-ink">{value}</span>
+      <span className="font-geist text-m-muted" style={fs(11)}>
+        {label}
+      </span>
+      <span className="font-geist font-bold tabular-nums text-m-ink" style={fs(11)}>
+        {value}
+      </span>
     </div>
   );
 }

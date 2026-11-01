@@ -56,8 +56,6 @@ import {
   type BookingImportMode,
   type ReceiptScanResult,
   type StorageAdminState,
-  type StorageReclaimReport,
-  type StorageReclaimState,
   type StorageBackend,
   type StorageConfigPut,
   type StorageTestResponse,
@@ -736,12 +734,6 @@ export const adminApi = {
   // A full scan of a large install can exceed the 8s instance timeout.
   refreshStorageStats: (): Promise<StorageUsage> =>
     apiClient.post('/admin/storage/stats/refresh', undefined, { timeout: 120_000 }).then(r => r.data),
-  setStorageReclaimDelete: (deleteEnabled: boolean): Promise<StorageReclaimState> =>
-    apiClient.put('/admin/storage/reclaim', { deleteEnabled }).then(r => r.data),
-  // A check lists every reclaimable category and asks each domain about it; a
-  // large bucket outlasts the 8s instance timeout. It only reports, whatever the switch says.
-  runStorageReclaimCheck: (): Promise<StorageReclaimReport> =>
-    apiClient.post('/admin/storage/reclaim/run', { reportOnly: true }, { timeout: 300_000 }).then(r => r.data),
 }
 
 export const addonsApi = {

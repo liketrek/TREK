@@ -58,7 +58,7 @@ describe('RECLAIM_LEDGER', () => {
     for (const category of ['photos', 'photos-google', 'photos-trek', 'backups'] as const) {
       const rule: ReclaimRule = RECLAIM_LEDGER[category];
       expect(rule.reclaim).toBe(false);
-      if (!rule.reclaim) expect(rule.reason.length).toBeGreaterThan(10);
+      if (rule.reclaim === false) expect(rule.reason.length).toBeGreaterThan(10);
     }
   });
 

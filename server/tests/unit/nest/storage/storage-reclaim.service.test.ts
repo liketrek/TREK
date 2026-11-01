@@ -497,9 +497,11 @@ describe('StorageReclaimService: the switch and the stored report', () => {
     await reclaim.run({ now: T0 });
     const jobs = t.get(StorageJobsService);
     let restoreStarted: Promise<void> | null = null;
+    let restoreAsked = false;
     let restoreWent = false;
     onAsk = (_category, keys) => {
-      if (keys.length !== 1 || restoreStarted) return;
+      if (keys.length !== 1 || restoreAsked) return;
+      restoreAsked = true;
       restoreStarted = jobs.beginRestore().then(() => {
         restoreWent = true;
       });
@@ -508,7 +510,7 @@ describe('StorageReclaimService: the switch and the stored report', () => {
       const report = await reclaim.run({ now: WEEK_LATER });
       expect(report.stopped).toBe('database_reopened');
       expect(fs.existsSync(objectPath('covers', 'orphan.jpg'))).toBe(true);
-      expect(restoreStarted).not.toBeNull();
+      expect(restoreAsked).toBe(true);
       await restoreStarted;
       expect(restoreWent).toBe(true);
     } finally {

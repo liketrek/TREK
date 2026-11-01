@@ -7,13 +7,14 @@ import * as backupSvc from '../../../src/nest/backup/backup.impl';
 import { BackupService as RealBackupService } from '../../../src/nest/backup/backup.service';
 import type { BackupService } from '../../../src/nest/backup/backup.service';
 import { StorageJobsService } from '../../../src/nest/storage/storage-jobs.service';
-import type { StorageRegistryService } from '../../../src/nest/storage/storage-registry.service';
+import { StorageRegistryService } from '../../../src/nest/storage/storage-registry.service';
 import { StorageNotFoundError } from '../../../src/nest/storage/storage.types';
 import type { User } from '../../../src/types';
 import { HttpException } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
 
 import type { Request, Response } from 'express';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
 
 vi.mock('../../../src/nest/audit/client-ip', () => ({ getClientIp: vi.fn(() => '1.2.3.4') }));
 vi.mock('../../../src/nest/audit/audit-log.logger', () => ({
@@ -376,9 +377,16 @@ describe('BackupService (wrapper)', () => {
   const database = {
     __sentinel: 'database',
   } as unknown as import('../../../src/nest/database/database-backup.interface').DatabaseBackupStrategy;
-  // The real one-job slot: the restore marks itself running there.
-  const jobs = new StorageJobsService({} as StorageRegistryService);
-  const wrapper = new RealBackupService(storage, database, jobs);
+  // The real one-job slot, taken from a testing module: the restore marks itself running there.
+  let jobs: StorageJobsService;
+  let wrapper: RealBackupService;
+  beforeAll(async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [StorageJobsService, { provide: StorageRegistryService, useValue: {} }],
+    }).compile();
+    jobs = moduleRef.get(StorageJobsService);
+    wrapper = new RealBackupService(storage, database, jobs);
+  });
 
   it('forwards every call straight to the legacy backup service', async () => {
     expect(await wrapper.listBackups()).toEqual([{ filename: 'svc.zip' }]);

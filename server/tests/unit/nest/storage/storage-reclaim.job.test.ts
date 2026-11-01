@@ -65,8 +65,9 @@ describe('StorageReclaimJob', () => {
     const { job, registrar, reclaim } = makeJob(() => new Promise((resolve) => (finish = resolve)));
     job.onApplicationBootstrap();
     expect(registrar.register).toHaveBeenCalledWith('storage-reclaim', '5 4 * * *', expect.any(Function));
-    const onTick = registrar.register.mock.calls[0]![2];
-    const ticking = onTick();
+    const [call] = registrar.register.mock.calls;
+    if (!call) throw new Error('the job registered nothing');
+    const ticking = call[2]();
     expect(ticking).toBeInstanceOf(Promise);
     let settled = false;
     void (ticking as Promise<void>).then(() => (settled = true));

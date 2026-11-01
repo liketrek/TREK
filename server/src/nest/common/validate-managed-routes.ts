@@ -134,6 +134,8 @@ export const MANAGED_ROUTE_ALLOW_LIST: string[] = [
   'StorageAdminController.statsRefresh',
   'StorageAdminController.test',
   'StorageAdminController.update',
+  'StorageReclaimController.run',
+  'StorageReclaimController.update',
 ];
 
 /**

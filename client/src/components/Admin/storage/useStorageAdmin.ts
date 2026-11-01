@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { StorageAdminState, StorageBackend, StorageConfig, StorageConfigPut, StorageTestResponse } from '@trek/shared'
 import { adminApi } from '../../../api/client'
+import { storageReclaimApi } from '../../../api/storageReclaim'
 import { getApiErrorMessage, type ApiError } from '../../../types'
 import { settingsDocumentOf } from './storageModel'
 
@@ -371,7 +372,7 @@ export function useStorageAdmin(genericError: string, conflictError: string): St
 
   const setReclaimDelete = useCallback(async (enabled: boolean): Promise<string | null> => {
     try {
-      setReclaim(await adminApi.setStorageReclaimDelete(enabled))
+      setReclaim(await storageReclaimApi.setDelete(enabled))
       return null
     } catch (err: unknown) {
       return getApiErrorMessage(err, genericError)
@@ -380,7 +381,7 @@ export function useStorageAdmin(genericError: string, conflictError: string): St
 
   const checkReclaim = useCallback(async (): Promise<string | null> => {
     try {
-      const lastRun = await adminApi.runStorageReclaimCheck()
+      const lastRun = await storageReclaimApi.check()
       setReclaim({ deleteEnabled: stateRef.current?.reclaim?.deleteEnabled ?? false, lastRun })
       return null
     } catch (err: unknown) {
