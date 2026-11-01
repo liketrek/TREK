@@ -15,7 +15,9 @@ interface Props {
   saving: boolean;
   onCheck: () => void;
   onDelete: (enabled: boolean) => void;
-  onConfirm: (category: ReclaimView['lines'][number]['category']) => void;
+  /** The category whose confirmation is on its way. */
+  confirming: ReclaimView['lines'][number]['category'] | null;
+  onConfirm: (request: { category: ReclaimView['lines'][number]['category']; unreferenced: number }) => void;
 }
 
 /** Unreferenced files on the phone's storage panel, off the view model StorageReclaimSection shows on desktop. */
@@ -25,6 +27,7 @@ export default function MStorageReclaimCard({
   saving,
   onCheck,
   onDelete,
+  confirming,
   onConfirm,
 }: Props): React.ReactElement {
   const { t, locale } = useTranslation();
@@ -62,7 +65,7 @@ export default function MStorageReclaimCard({
             : t('storage.reclaim.never')}
         </p>
         {reclaim.stopped && (
-          <p role="note" className="mt-1 font-geist text-m-muted" style={fs(10)}>
+          <p role="note" className="mt-1 font-geist text-[color:var(--m-st-pending)]" style={fs(10)}>
             {t(reclaim.stopped === 'failed' ? 'storage.reclaim.stoppedFailed' : 'storage.reclaim.stopped')}
           </p>
         )}
@@ -86,7 +89,7 @@ export default function MStorageReclaimCard({
                   {t(`storage.category.${line.category}`)}
                 </p>
                 {line.skipped && (
-                  <p className="font-geist text-m-muted" style={fs(10)}>
+                  <p className="font-geist text-[color:var(--m-st-pending)]" style={fs(10)}>
                     {t(`storage.reclaim.skip.${line.skipped}`)}
                   </p>
                 )}
@@ -105,7 +108,11 @@ export default function MStorageReclaimCard({
                     <p className="min-w-0 flex-1 font-geist text-m-muted" style={fs(10)}>
                       {t('storage.reclaim.confirmNeeded')}
                     </p>
-                    <MAdminButton variant="ghost" onClick={() => onConfirm(line.category)}>
+                    <MAdminButton
+                      variant="ghost"
+                      busy={confirming === line.category}
+                      onClick={() => onConfirm({ category: line.category, unreferenced: line.unreferenced })}
+                    >
                       {t('storage.reclaim.confirm')}
                     </MAdminButton>
                   </div>

@@ -164,7 +164,7 @@ const storage: TranslationStrings = {
   'storage.reclaim.never': 'Pole veel kontrollitud',
   'storage.reclaim.delete': 'Kustuta viiteta failid',
   'storage.reclaim.deleteHint':
-    'Väljas teavitab öine kontroll ainult. Sees kustutatakse fail, mida pole nädala jooksul keegi kasutanud. TREKis kustutatud failid eemaldatakse mõlemal juhul kohe.',
+    'Väljas teavitab öine kontroll ainult. Sees kustutatakse fail, mida pole nädala jooksul keegi kasutanud. TREKis kustutatud failid eemaldatakse mõlemal juhul päev hiljem, kui ükski tagasivõtmine neid enam tagasi tuua ei saa.',
   'storage.reclaim.freeable': 'Vabastatav',
   'storage.reclaim.waiting': 'Kasutamata alla nädala',
   'storage.reclaim.deleted': 'Vabastatud viimase öise puhastusega',
@@ -183,9 +183,14 @@ const storage: TranslationStrings = {
   'storage.reclaim.confirmNeeded':
     'Rohkem kui viiendik neist failidest paistab kasutamata. Siin ei kustutata midagi enne, kui kinnitad, et see on ootuspärane.',
   'storage.reclaim.confirm': 'Kinnita',
-  'storage.reclaim.confirmed': 'Kinnitatud. Öine puhastus võib need failid nüüd kustutada.',
+  'storage.reclaim.confirmed': 'Kinnitatud järgmiseks 14 päevaks.',
   'storage.reclaim.error.reclaim_busy': 'Käib teine salvestusruumi töö. Proovi hetke pärast uuesti.',
   'storage.reclaim.error.reclaim_demo': 'Demopaigaldusel pole saadaval.',
   'storage.reclaim.error.reclaim_nothing_to_confirm': 'Kinnitada pole enam midagi. Käivita esmalt kontroll.',
+  'storage.reclaim.skip.backup_running': 'Vahele jäetud: varundus oli käimas',
+  'storage.reclaim.error.reclaim_confirm_stale':
+    'Arv on pärast kuvamist muutunud. Kontrolli uut näitu ja kinnita uuesti.',
+  'storage.reclaim.error.reclaim_install_unknown':
+    'TREK ei saanud oma paigalduse ID-d lugeda, seega ta ei kustuta midagi. Kontrolli andmekausta.',
 };
 export default storage;

@@ -150,7 +150,7 @@ const storage: TranslationStrings = {
   'storage.reclaim.never': 'Nog niet gecontroleerd',
   'storage.reclaim.delete': 'Niet-gekoppelde bestanden verwijderen',
   'storage.reclaim.deleteHint':
-    'Uit: de nachtelijke controle rapporteert alleen. Aan: een bestand dat een week lang nergens is gebruikt, wordt verwijderd. Bestanden die je in TREK verwijdert, worden in beide gevallen meteen verwijderd.',
+    'Uit: de nachtelijke controle rapporteert alleen. Aan: een bestand dat een week lang nergens is gebruikt, wordt verwijderd. Bestanden die je in TREK verwijdert, worden in beide gevallen een dag later verwijderd, zodra geen ongedaanmaking ze meer kan terugbrengen.',
   'storage.reclaim.freeable': 'Kan worden vrijgemaakt',
   'storage.reclaim.waiting': 'Minder dan een week ongebruikt',
   'storage.reclaim.deleted': 'Vrijgemaakt bij de laatste nachtelijke opruiming',
@@ -170,9 +170,14 @@ const storage: TranslationStrings = {
   'storage.reclaim.confirmNeeded':
     'Meer dan een vijfde van deze bestanden lijkt ongebruikt. Er wordt hier niets verwijderd totdat je bevestigt dat dit klopt.',
   'storage.reclaim.confirm': 'Bevestigen',
-  'storage.reclaim.confirmed': 'Bevestigd. De nachtelijke opruiming mag deze bestanden nu verwijderen.',
+  'storage.reclaim.confirmed': 'Bevestigd voor de komende 14 dagen.',
   'storage.reclaim.error.reclaim_busy': 'Er loopt al een andere opslagtaak. Probeer het zo opnieuw.',
   'storage.reclaim.error.reclaim_demo': 'Niet beschikbaar op een demo-instantie.',
   'storage.reclaim.error.reclaim_nothing_to_confirm': 'Er is niets meer te bevestigen. Voer eerst een controle uit.',
+  'storage.reclaim.skip.backup_running': 'Overgeslagen: er liep een back-up',
+  'storage.reclaim.error.reclaim_confirm_stale':
+    'Het aantal is veranderd sinds het werd getoond. Controleer het nieuwe cijfer en bevestig opnieuw.',
+  'storage.reclaim.error.reclaim_install_unknown':
+    'TREK kon zijn installatie-id niet lezen en verwijdert daarom niets. Controleer de gegevensmap.',
 };
 export default storage;

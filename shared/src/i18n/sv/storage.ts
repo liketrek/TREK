@@ -146,7 +146,7 @@ const storage: TranslationStrings = {
   'storage.reclaim.never': 'Inte kontrollerat ännu',
   'storage.reclaim.delete': 'Radera filer utan koppling',
   'storage.reclaim.deleteHint':
-    'Av: nattkontrollen rapporterar bara. På: en fil som ingenting har använt på en vecka raderas. Filer som du raderar i TREK tas bort direkt i båda fallen.',
+    'Av: nattkontrollen rapporterar bara. På: en fil som ingenting har använt på en vecka raderas. Filer som du raderar i TREK tas bort en dag senare i båda fallen, när ingen ångra-funktion längre kan få tillbaka dem.',
   'storage.reclaim.freeable': 'Kan frigöras',
   'storage.reclaim.waiting': 'Oanvända i mindre än en vecka',
   'storage.reclaim.deleted': 'Frigjordes vid den senaste nattliga rensningen',
@@ -166,9 +166,14 @@ const storage: TranslationStrings = {
   'storage.reclaim.confirmNeeded':
     'Mer än en femtedel av filerna verkar oanvända. Ingenting här raderas förrän du bekräftar att det är väntat.',
   'storage.reclaim.confirm': 'Bekräfta',
-  'storage.reclaim.confirmed': 'Bekräftat. Den nattliga rensningen får nu radera de här filerna.',
+  'storage.reclaim.confirmed': 'Bekräftat för de kommande 14 dagarna.',
   'storage.reclaim.error.reclaim_busy': 'En annan lagringsuppgift pågår. Försök igen om en stund.',
   'storage.reclaim.error.reclaim_demo': 'Inte tillgängligt på en demoinstans.',
   'storage.reclaim.error.reclaim_nothing_to_confirm': 'Det finns inget mer att bekräfta. Kör en kontroll först.',
+  'storage.reclaim.skip.backup_running': 'Hoppades över: en säkerhetskopiering pågick',
+  'storage.reclaim.error.reclaim_confirm_stale':
+    'Antalet har ändrats sedan det visades. Kontrollera den nya siffran och bekräfta igen.',
+  'storage.reclaim.error.reclaim_install_unknown':
+    'TREK kunde inte läsa sitt installations-id och raderar därför ingenting. Kontrollera datamappen.',
 };
 export default storage;

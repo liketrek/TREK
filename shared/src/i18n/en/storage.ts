@@ -160,7 +160,7 @@ const storage: TranslationStrings = {
   'storage.reclaim.never': 'Not checked yet',
   'storage.reclaim.delete': 'Delete unreferenced files',
   'storage.reclaim.deleteHint':
-    'Off, the nightly check only reports. On, a file nothing has used for a week is deleted. Files you delete in TREK are removed right away either way.',
+    'Off, the nightly check only reports. On, a file nothing has used for a week is deleted. Files you delete in TREK are removed a day later either way, once no undo can bring them back.',
   'storage.reclaim.freeable': 'Can be freed',
   'storage.reclaim.waiting': 'Unused for less than a week',
   'storage.reclaim.deleted': 'Freed by the last nightly cleanup',
@@ -179,9 +179,14 @@ const storage: TranslationStrings = {
   'storage.reclaim.confirmNeeded':
     'More than a fifth of these files look unused. Nothing here is deleted until you confirm that this is expected.',
   'storage.reclaim.confirm': 'Confirm',
-  'storage.reclaim.confirmed': 'Confirmed. The nightly cleanup may delete these files now.',
+  'storage.reclaim.confirmed': 'Confirmed for the next 14 days.',
   'storage.reclaim.error.reclaim_busy': 'Another storage task is running. Try again in a moment.',
   'storage.reclaim.error.reclaim_demo': 'Not available on a demo instance.',
   'storage.reclaim.error.reclaim_nothing_to_confirm': 'There is nothing to confirm any more. Run a check first.',
+  'storage.reclaim.skip.backup_running': 'Skipped: a backup was running',
+  'storage.reclaim.error.reclaim_confirm_stale':
+    'The count has changed since it was shown. Check the new figure and confirm again.',
+  'storage.reclaim.error.reclaim_install_unknown':
+    'TREK could not read its installation id, so it deletes nothing. Check the data folder.',
 };
 export default storage;

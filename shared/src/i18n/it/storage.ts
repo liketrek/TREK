@@ -151,7 +151,7 @@ const storage: TranslationStrings = {
   'storage.reclaim.never': 'Non ancora controllato',
   'storage.reclaim.delete': 'Elimina i file non referenziati',
   'storage.reclaim.deleteHint':
-    'Disattivato, il controllo notturno si limita a segnalare. Attivato, un file inutilizzato da una settimana viene eliminato. I file che elimini in TREK vengono comunque rimossi subito.',
+    'Disattivato, il controllo notturno si limita a segnalare. Attivato, un file inutilizzato da una settimana viene eliminato. I file che elimini in TREK vengono comunque rimossi un giorno dopo, quando nessun annullamento può più ripristinarli.',
   'storage.reclaim.freeable': 'Può essere liberato',
   'storage.reclaim.waiting': 'Inutilizzati da meno di una settimana',
   'storage.reclaim.nothing': 'Nessun file non referenziato trovato.',
@@ -172,9 +172,14 @@ const storage: TranslationStrings = {
   'storage.reclaim.confirmNeeded':
     'Più di un quinto di questi file sembra inutilizzato. Nulla qui viene eliminato finché non confermi che è previsto.',
   'storage.reclaim.confirm': 'Conferma',
-  'storage.reclaim.confirmed': 'Confermato. La pulizia notturna può ora eliminare questi file.',
+  'storage.reclaim.confirmed': 'Confermato per i prossimi 14 giorni.',
   'storage.reclaim.error.reclaim_busy': "Un'altra attività di archiviazione è in corso. Riprova tra un attimo.",
   'storage.reclaim.error.reclaim_demo': "Non disponibile su un'istanza demo.",
   'storage.reclaim.error.reclaim_nothing_to_confirm': "Non c'è più nulla da confermare. Esegui prima un controllo.",
+  'storage.reclaim.skip.backup_running': 'Saltato: era in corso un backup',
+  'storage.reclaim.error.reclaim_confirm_stale':
+    'Il conteggio è cambiato da quando è stato mostrato. Controlla il nuovo valore e conferma di nuovo.',
+  'storage.reclaim.error.reclaim_install_unknown':
+    "TREK non è riuscito a leggere l'ID della propria installazione, quindi non elimina nulla. Controlla la cartella dei dati.",
 };
 export default storage;

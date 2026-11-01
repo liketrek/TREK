@@ -151,7 +151,7 @@ const storage: TranslationStrings = {
   'storage.reclaim.never': 'Még nem lett ellenőrizve',
   'storage.reclaim.delete': 'Hivatkozás nélküli fájlok törlése',
   'storage.reclaim.deleteHint':
-    'Kikapcsolva az éjszakai ellenőrzés csak jelent. Bekapcsolva törlődik minden fájl, amelyet egy hete senki nem használt. A TREK-ben általad törölt fájlok mindkét esetben azonnal törlődnek.',
+    'Kikapcsolva az éjszakai ellenőrzés csak jelent. Bekapcsolva törlődik minden fájl, amelyet egy hete senki nem használt. A TREK-ben általad törölt fájlok mindkét esetben egy nappal később törlődnek, amikor már semmilyen visszavonás nem hozhatja vissza őket.',
   'storage.reclaim.freeable': 'Felszabadítható',
   'storage.reclaim.waiting': 'Kevesebb mint egy hete nem használt',
   'storage.reclaim.deleted': 'Felszabadítva az utolsó éjszakai tisztításkor',
@@ -170,9 +170,14 @@ const storage: TranslationStrings = {
   'storage.reclaim.confirmNeeded':
     'Ezeknek a fájloknak több mint ötöde használatlannak tűnik. Itt semmi sem törlődik, amíg meg nem erősíted, hogy ez várható.',
   'storage.reclaim.confirm': 'Megerősítés',
-  'storage.reclaim.confirmed': 'Megerősítve. Az éjszakai tisztítás mostantól törölheti ezeket a fájlokat.',
+  'storage.reclaim.confirmed': 'Megerősítve a következő 14 napra.',
   'storage.reclaim.error.reclaim_busy': 'Egy másik tárhelyfeladat fut. Próbáld újra egy pillanat múlva.',
   'storage.reclaim.error.reclaim_demo': 'Demópéldányon nem érhető el.',
   'storage.reclaim.error.reclaim_nothing_to_confirm': 'Már nincs mit megerősíteni. Előbb futtass egy ellenőrzést.',
+  'storage.reclaim.skip.backup_running': 'Kihagyva: mentés futott',
+  'storage.reclaim.error.reclaim_confirm_stale':
+    'A szám megváltozott a megjelenítése óta. Ellenőrizd az új értéket, és erősítsd meg újra.',
+  'storage.reclaim.error.reclaim_install_unknown':
+    'A TREK nem tudta beolvasni a telepítése azonosítóját, ezért nem töröl semmit. Ellenőrizd az adatmappát.',
 };
 export default storage;

@@ -146,7 +146,7 @@ const storage: TranslationStrings = {
   'storage.reclaim.never': 'Belum diperiksa',
   'storage.reclaim.delete': 'Hapus file tanpa referensi',
   'storage.reclaim.deleteHint':
-    'Nonaktif, pemeriksaan malam hanya melaporkan. Aktif, file yang tidak dipakai selama seminggu akan dihapus. File yang Anda hapus di TREK tetap langsung dihapus dalam kedua kasus.',
+    'Nonaktif, pemeriksaan malam hanya melaporkan. Aktif, file yang tidak dipakai selama seminggu akan dihapus. File yang Anda hapus di TREK tetap dihapus sehari kemudian dalam kedua kasus, setelah tidak ada pembatalan yang bisa mengembalikannya.',
   'storage.reclaim.freeable': 'Dapat dibebaskan',
   'storage.reclaim.waiting': 'Tidak dipakai kurang dari seminggu',
   'storage.reclaim.deleted': 'Dibebaskan oleh pembersihan malam terakhir',
@@ -167,10 +167,15 @@ const storage: TranslationStrings = {
   'storage.reclaim.confirmNeeded':
     'Lebih dari seperlima file ini tampak tidak terpakai. Tidak ada yang dihapus di sini sampai Anda mengonfirmasi bahwa ini memang wajar.',
   'storage.reclaim.confirm': 'Konfirmasi',
-  'storage.reclaim.confirmed': 'Dikonfirmasi. Pembersihan malam kini dapat menghapus file ini.',
+  'storage.reclaim.confirmed': 'Dikonfirmasi untuk 14 hari ke depan.',
   'storage.reclaim.error.reclaim_busy': 'Tugas penyimpanan lain sedang berjalan. Coba lagi sebentar lagi.',
   'storage.reclaim.error.reclaim_demo': 'Tidak tersedia di instans demo.',
   'storage.reclaim.error.reclaim_nothing_to_confirm':
     'Tidak ada lagi yang perlu dikonfirmasi. Jalankan pemeriksaan terlebih dahulu.',
+  'storage.reclaim.skip.backup_running': 'Dilewati: pencadangan sedang berjalan',
+  'storage.reclaim.error.reclaim_confirm_stale':
+    'Jumlahnya telah berubah sejak ditampilkan. Periksa angka yang baru dan konfirmasi lagi.',
+  'storage.reclaim.error.reclaim_install_unknown':
+    'TREK tidak dapat membaca ID instalasinya, sehingga tidak menghapus apa pun. Periksa folder data.',
 };
 export default storage;

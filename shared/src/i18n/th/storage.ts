@@ -158,7 +158,7 @@ const storage: TranslationStrings = {
   'storage.reclaim.never': 'ยังไม่เคยตรวจสอบ',
   'storage.reclaim.delete': 'ลบไฟล์ที่ไม่มีการอ้างอิง',
   'storage.reclaim.deleteHint':
-    'ปิด: การตรวจสอบรายคืนจะรายงานเท่านั้น เปิด: ไฟล์ที่ไม่มีการใช้งานเป็นเวลาหนึ่งสัปดาห์จะถูกลบ ไฟล์ที่คุณลบใน TREK จะถูกลบทันทีไม่ว่าจะเปิดหรือปิด',
+    'ปิด: การตรวจสอบรายคืนจะรายงานเท่านั้น เปิด: ไฟล์ที่ไม่มีการใช้งานเป็นเวลาหนึ่งสัปดาห์จะถูกลบ ไฟล์ที่คุณลบใน TREK จะถูกลบในอีกหนึ่งวันไม่ว่าจะเปิดหรือปิด เมื่อไม่มีการเลิกทำใดนำไฟล์กลับมาได้อีก',
   'storage.reclaim.freeable': 'ว่างได้',
   'storage.reclaim.waiting': 'ไม่ได้ใช้งานน้อยกว่าหนึ่งสัปดาห์',
   'storage.reclaim.deleted': 'ว่างแล้วจากการล้างข้อมูลรายคืนครั้งล่าสุด',
@@ -177,9 +177,13 @@ const storage: TranslationStrings = {
   'storage.reclaim.confirmNeeded':
     'ไฟล์เหล่านี้มากกว่าหนึ่งในห้าดูเหมือนไม่ได้ใช้งาน จะไม่มีการลบสิ่งใดจนกว่าคุณจะยืนยันว่าเป็นเรื่องปกติ',
   'storage.reclaim.confirm': 'ยืนยัน',
-  'storage.reclaim.confirmed': 'ยืนยันแล้ว การล้างข้อมูลรายคืนอาจลบไฟล์เหล่านี้ได้แล้ว',
+  'storage.reclaim.confirmed': 'ยืนยันแล้วสำหรับ 14 วันถัดไป',
   'storage.reclaim.error.reclaim_busy': 'มีงานเกี่ยวกับที่เก็บข้อมูลอื่นกำลังทำงานอยู่ โปรดลองอีกครั้งในอีกสักครู่',
   'storage.reclaim.error.reclaim_demo': 'ไม่พร้อมใช้งานบนอินสแตนซ์สาธิต',
   'storage.reclaim.error.reclaim_nothing_to_confirm': 'ไม่มีอะไรให้ยืนยันอีกแล้ว โปรดรันการตรวจสอบก่อน',
+  'storage.reclaim.skip.backup_running': 'ข้าม: การสำรองข้อมูลกำลังทำงานอยู่',
+  'storage.reclaim.error.reclaim_confirm_stale': 'ตัวเลขเปลี่ยนไปตั้งแต่แสดงผล โปรดตรวจสอบตัวเลขใหม่แล้วยืนยันอีกครั้ง',
+  'storage.reclaim.error.reclaim_install_unknown':
+    'TREK ไม่สามารถอ่านรหัสการติดตั้งของตนได้ จึงไม่ลบสิ่งใด โปรดตรวจสอบโฟลเดอร์ข้อมูล',
 };
 export default storage;

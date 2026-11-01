@@ -144,7 +144,7 @@ const storage: TranslationStrings = {
   'storage.reclaim.never': 'Chưa kiểm tra',
   'storage.reclaim.delete': 'Xóa các tệp không còn được tham chiếu',
   'storage.reclaim.deleteHint':
-    'Tắt: lần kiểm tra hằng đêm chỉ báo cáo. Bật: tệp không được dùng trong một tuần sẽ bị xóa. Tệp bạn xóa trong TREK luôn bị gỡ ngay, dù bật hay tắt.',
+    'Tắt: lần kiểm tra hằng đêm chỉ báo cáo. Bật: tệp không được dùng trong một tuần sẽ bị xóa. Tệp bạn xóa trong TREK luôn bị gỡ sau một ngày, dù bật hay tắt, khi không còn thao tác hoàn tác nào khôi phục được chúng.',
   'storage.reclaim.freeable': 'Có thể giải phóng',
   'storage.reclaim.waiting': 'Chưa dùng dưới một tuần',
   'storage.reclaim.deleted': 'Đã giải phóng ở lần dọn dẹp hằng đêm gần nhất',
@@ -163,9 +163,14 @@ const storage: TranslationStrings = {
   'storage.reclaim.confirmNeeded':
     'Hơn một phần năm số tệp này có vẻ không được dùng. Sẽ không có gì bị xóa cho đến khi bạn xác nhận điều này là bình thường.',
   'storage.reclaim.confirm': 'Xác nhận',
-  'storage.reclaim.confirmed': 'Đã xác nhận. Lần dọn dẹp hằng đêm giờ có thể xóa các tệp này.',
+  'storage.reclaim.confirmed': 'Đã xác nhận trong 14 ngày tới.',
   'storage.reclaim.error.reclaim_busy': 'Một tác vụ lưu trữ khác đang chạy. Hãy thử lại sau giây lát.',
   'storage.reclaim.error.reclaim_demo': 'Không khả dụng trên bản demo.',
   'storage.reclaim.error.reclaim_nothing_to_confirm': 'Không còn gì để xác nhận. Hãy chạy kiểm tra trước.',
+  'storage.reclaim.skip.backup_running': 'Bỏ qua: một bản sao lưu đang chạy',
+  'storage.reclaim.error.reclaim_confirm_stale':
+    'Số lượng đã thay đổi kể từ lúc được hiển thị. Hãy kiểm tra con số mới và xác nhận lại.',
+  'storage.reclaim.error.reclaim_install_unknown':
+    'TREK không thể đọc mã định danh bản cài đặt của mình nên không xóa gì cả. Hãy kiểm tra thư mục dữ liệu.',
 };
 export default storage;

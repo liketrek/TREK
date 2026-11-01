@@ -155,7 +155,7 @@ const storage: TranslationStrings = {
   'storage.reclaim.never': 'Ще не перевірялося',
   'storage.reclaim.delete': 'Видаляти файли без посилань',
   'storage.reclaim.deleteHint':
-    'Вимкнено: нічна перевірка лише повідомляє. Увімкнено: файл, який тиждень ніщо не використовує, видаляється. Файли, які ви видаляєте в TREK, у будь-якому разі видаляються одразу.',
+    'Вимкнено: нічна перевірка лише повідомляє. Увімкнено: файл, який тиждень ніщо не використовує, видаляється. Файли, які ви видаляєте в TREK, у будь-якому разі видаляються через добу, коли жодне скасування вже не може їх повернути.',
   'storage.reclaim.freeable': 'Можна звільнити',
   'storage.reclaim.waiting': 'Не використовується менше тижня',
   'storage.reclaim.deleted': 'Звільнено під час останнього нічного очищення',
@@ -174,9 +174,14 @@ const storage: TranslationStrings = {
   'storage.reclaim.confirmNeeded':
     "Понад п'ята частина цих файлів виглядає невикористаною. Нічого тут не видаляється, доки ви не підтвердите, що це очікувано.",
   'storage.reclaim.confirm': 'Підтвердити',
-  'storage.reclaim.confirmed': 'Підтверджено. Нічне очищення тепер може видаляти ці файли.',
+  'storage.reclaim.confirmed': 'Підтверджено на наступні 14 днів.',
   'storage.reclaim.error.reclaim_busy': 'Виконується інше завдання зі сховищем. Спробуйте за мить.',
   'storage.reclaim.error.reclaim_demo': 'Недоступно в демонстраційному екземплярі.',
   'storage.reclaim.error.reclaim_nothing_to_confirm': 'Підтверджувати більше нічого. Спершу запустіть перевірку.',
+  'storage.reclaim.skip.backup_running': 'Пропущено: виконувалося резервне копіювання',
+  'storage.reclaim.error.reclaim_confirm_stale':
+    'Кількість змінилася відтоді, як її показали. Перевірте нове значення та підтвердьте ще раз.',
+  'storage.reclaim.error.reclaim_install_unknown':
+    'TREK не зміг прочитати ідентифікатор свого встановлення, тому нічого не видаляє. Перевірте папку даних.',
 };
 export default storage;

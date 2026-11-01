@@ -146,7 +146,7 @@ const storage: TranslationStrings = {
   'storage.reclaim.never': 'Ainda não verificado',
   'storage.reclaim.delete': 'Excluir arquivos sem referência',
   'storage.reclaim.deleteHint':
-    'Desativado, a verificação noturna apenas informa. Ativado, um arquivo que ninguém usa há uma semana é excluído. Arquivos que você exclui no TREK são removidos na hora, de qualquer forma.',
+    'Desativado, a verificação noturna apenas informa. Ativado, um arquivo que ninguém usa há uma semana é excluído. Arquivos que você exclui no TREK são removidos um dia depois, de qualquer forma, quando nenhum desfazer pode mais recuperá-los.',
   'storage.reclaim.freeable': 'Pode ser liberado',
   'storage.reclaim.waiting': 'Sem uso há menos de uma semana',
   'storage.reclaim.deleted': 'Liberado pela última limpeza noturna',
@@ -166,9 +166,14 @@ const storage: TranslationStrings = {
   'storage.reclaim.confirmNeeded':
     'Mais de um quinto destes arquivos parece sem uso. Nada aqui será excluído até você confirmar que isso é esperado.',
   'storage.reclaim.confirm': 'Confirmar',
-  'storage.reclaim.confirmed': 'Confirmado. A limpeza noturna agora pode excluir estes arquivos.',
+  'storage.reclaim.confirmed': 'Confirmado pelos próximos 14 dias.',
   'storage.reclaim.error.reclaim_busy': 'Outra tarefa de armazenamento está em execução. Tente novamente em instantes.',
   'storage.reclaim.error.reclaim_demo': 'Indisponível em uma instância de demonstração.',
   'storage.reclaim.error.reclaim_nothing_to_confirm': 'Não há mais nada a confirmar. Execute uma verificação primeiro.',
+  'storage.reclaim.skip.backup_running': 'Ignorado: um backup estava em execução',
+  'storage.reclaim.error.reclaim_confirm_stale':
+    'A contagem mudou desde que foi exibida. Verifique o novo valor e confirme novamente.',
+  'storage.reclaim.error.reclaim_install_unknown':
+    'O TREK não conseguiu ler o id da sua instalação, então não exclui nada. Verifique a pasta de dados.',
 };
 export default storage;

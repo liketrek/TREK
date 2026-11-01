@@ -1262,7 +1262,7 @@ describe('AdminStoragePanel', () => {
     await waitFor(() => expect(put).toEqual({ deleteEnabled: true }));
     await waitFor(() => expect(screen.getByRole('button', { name: 'Delete unreferenced files' })).toHaveAttribute('aria-pressed', 'true'));
     fireEvent.click(within(screen.getByTestId('storage-reclaim-places')).getByRole('button', { name: 'Confirm' }));
-    await waitFor(() => expect(confirm).toEqual({ category: 'places' }));
+    await waitFor(() => expect(confirm).toEqual({ category: 'places', unreferenced: 3 }));
     fireEvent.click(screen.getByRole('button', { name: 'Check now' }));
     await waitFor(() => expect(runs).toBe(1));
     // The check runs in the background: the panel shows it running until the state says otherwise.

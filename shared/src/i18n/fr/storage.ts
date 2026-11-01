@@ -152,7 +152,7 @@ const storage: TranslationStrings = {
   'storage.reclaim.never': 'Pas encore vérifié',
   'storage.reclaim.delete': 'Supprimer les fichiers non référencés',
   'storage.reclaim.deleteHint':
-    'Désactivé, la vérification nocturne se contente de signaler. Activé, un fichier inutilisé depuis une semaine est supprimé. Les fichiers que tu supprimes dans TREK sont de toute façon supprimés immédiatement.',
+    "Désactivé, la vérification nocturne se contente de signaler. Activé, un fichier inutilisé depuis une semaine est supprimé. Les fichiers que tu supprimes dans TREK sont de toute façon supprimés un jour plus tard, une fois qu'aucune annulation ne peut plus les restaurer.",
   'storage.reclaim.freeable': 'Peut être libéré',
   'storage.reclaim.waiting': "Inutilisé depuis moins d'une semaine",
   'storage.reclaim.deleted': 'Libéré lors du dernier nettoyage nocturne',
@@ -173,9 +173,14 @@ const storage: TranslationStrings = {
   'storage.reclaim.confirmNeeded':
     "Plus d'un cinquième de ces fichiers semblent inutilisés. Rien n'est supprimé ici tant que tu n'as pas confirmé que c'est normal.",
   'storage.reclaim.confirm': 'Confirmer',
-  'storage.reclaim.confirmed': 'Confirmé. Le nettoyage nocturne peut désormais supprimer ces fichiers.',
+  'storage.reclaim.confirmed': 'Confirmé pour les 14 prochains jours.',
   'storage.reclaim.error.reclaim_busy': 'Une autre tâche de stockage est en cours. Réessaie dans un instant.',
   'storage.reclaim.error.reclaim_demo': 'Indisponible sur une instance de démonstration.',
   'storage.reclaim.error.reclaim_nothing_to_confirm': "Il n'y a plus rien à confirmer. Lance d'abord une vérification.",
+  'storage.reclaim.skip.backup_running': 'Ignoré : une sauvegarde était en cours',
+  'storage.reclaim.error.reclaim_confirm_stale':
+    'Le nombre a changé depuis son affichage. Vérifie le nouveau chiffre et confirme à nouveau.',
+  'storage.reclaim.error.reclaim_install_unknown':
+    "TREK n'a pas pu lire l'identifiant de son installation, il ne supprime donc rien. Vérifie le dossier de données.",
 };
 export default storage;

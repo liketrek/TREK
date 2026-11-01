@@ -173,7 +173,7 @@ export default function MAdminStoragePanel(): React.ReactElement {
   const {
     admin, editing, setEditing, confirmRemove, setConfirmRemove, syncPrompt, setSyncPrompt, migratePrompt,
     handleCancelMigration, handleRefreshStats, handleStartBackfill, handleCancelBackfill, loaded,
-    reclaim, reclaimChecking, reclaimSaving, handleReclaimCheck, handleReclaimDelete, handleReclaimConfirm,
+    reclaim, reclaimChecking, reclaimSaving, reclaimConfirming, handleReclaimCheck, handleReclaimDelete, handleReclaimConfirm,
   } = useStoragePanel()
   const [categoryPicker, setCategoryPicker] = useState<StorageCategory | null>(null)
 
@@ -571,7 +571,8 @@ export default function MAdminStoragePanel(): React.ReactElement {
         reclaim={reclaim}
         checking={reclaimChecking}
         saving={reclaimSaving}
-        onConfirm={(category) => void handleReclaimConfirm(category)}
+        confirming={reclaimConfirming}
+        onConfirm={(request) => void handleReclaimConfirm(request)}
         onCheck={() => void handleReclaimCheck()}
         onDelete={(enabled) => void handleReclaimDelete(enabled)}
       />

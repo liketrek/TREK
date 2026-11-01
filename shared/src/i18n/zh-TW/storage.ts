@@ -134,7 +134,7 @@ const storage: TranslationStrings = {
   'storage.reclaim.never': '尚未檢查',
   'storage.reclaim.delete': '刪除未被引用的檔案',
   'storage.reclaim.deleteHint':
-    '關閉時，夜間檢查只會回報。開啟後，一週內無人使用的檔案會被刪除。無論開關與否，你在 TREK 中刪除的檔案都會立即移除。',
+    '關閉時，夜間檢查只會回報。開啟後，一週內無人使用的檔案會被刪除。無論開關與否，你在 TREK 中刪除的檔案都會在一天後移除，此時已無法透過復原找回。',
   'storage.reclaim.freeable': '可釋放',
   'storage.reclaim.waiting': '未使用不足一週',
   'storage.reclaim.deleted': '上次夜間清理已釋放',
@@ -152,9 +152,12 @@ const storage: TranslationStrings = {
   'storage.reclaim.skip.interrupted': '未完成即停止，數字僅為部分',
   'storage.reclaim.confirmNeeded': '這些檔案中超過五分之一看起來未被使用。在你確認這是預期情況之前，不會刪除任何內容。',
   'storage.reclaim.confirm': '確認',
-  'storage.reclaim.confirmed': '已確認。夜間清理現在可以刪除這些檔案。',
+  'storage.reclaim.confirmed': '已確認，未來 14 天有效。',
   'storage.reclaim.error.reclaim_busy': '另一項儲存任務正在執行。請稍後再試。',
   'storage.reclaim.error.reclaim_demo': '示範實例中無法使用。',
   'storage.reclaim.error.reclaim_nothing_to_confirm': '已無需確認。請先執行一次檢查。',
+  'storage.reclaim.skip.backup_running': '已略過：備份正在執行',
+  'storage.reclaim.error.reclaim_confirm_stale': '自顯示以來，數量已發生變化。請檢查新的數字，然後重新確認。',
+  'storage.reclaim.error.reclaim_install_unknown': 'TREK 無法讀取其安裝 ID，因此不會刪除任何內容。請檢查資料目錄。',
 };
 export default storage;

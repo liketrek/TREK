@@ -157,7 +157,7 @@ const storage: TranslationStrings = {
   'storage.reclaim.skip.list_failed': 'Atlandı: dosyalar listelenemedi',
   'storage.reclaim.skip.source_failed': 'Atlandı: bir sorgu başarısız oldu',
   'storage.reclaim.deleteHint':
-    "Kapalıyken gece kontrolü yalnızca rapor verir. Açıkken bir hafta boyunca hiçbir yerde kullanılmayan dosya silinir. TREK'te sildiğiniz dosyalar her iki durumda da hemen kaldırılır.",
+    "Kapalıyken gece kontrolü yalnızca rapor verir. Açıkken bir hafta boyunca hiçbir yerde kullanılmayan dosya silinir. TREK'te sildiğiniz dosyalar, geri almayla artık döndürülemeyecekleri için her iki durumda da bir gün sonra kaldırılır.",
   'storage.reclaim.running': 'Kontrol ediliyor…',
   'storage.reclaim.stoppedFailed': 'Son kontrol bir hata nedeniyle durdu. Bu gece yeniden çalışacak.',
   'storage.reclaim.skip.foreign_install': 'Atlandı: başka bir TREK kurulumu bu depolamayı kullanıyor',
@@ -167,9 +167,14 @@ const storage: TranslationStrings = {
   'storage.reclaim.confirmNeeded':
     'Bu dosyaların beşte birinden fazlası kullanılmıyor gibi görünüyor. Bunun beklenen bir durum olduğunu onaylayana kadar burada hiçbir şey silinmez.',
   'storage.reclaim.confirm': 'Onayla',
-  'storage.reclaim.confirmed': 'Onaylandı. Gece temizliği artık bu dosyaları silebilir.',
+  'storage.reclaim.confirmed': 'Önümüzdeki 14 gün için onaylandı.',
   'storage.reclaim.error.reclaim_busy': 'Başka bir depolama görevi çalışıyor. Birazdan tekrar deneyin.',
   'storage.reclaim.error.reclaim_demo': 'Demo örneğinde kullanılamaz.',
   'storage.reclaim.error.reclaim_nothing_to_confirm': 'Onaylanacak bir şey kalmadı. Önce bir kontrol çalıştırın.',
+  'storage.reclaim.skip.backup_running': 'Atlandı: bir yedekleme çalışıyordu',
+  'storage.reclaim.error.reclaim_confirm_stale':
+    'Sayı gösterildiğinden beri değişti. Yeni rakamı kontrol edin ve tekrar onaylayın.',
+  'storage.reclaim.error.reclaim_install_unknown':
+    'TREK kurulum kimliğini okuyamadı, bu yüzden hiçbir şey silmiyor. Veri klasörünü kontrol edin.',
 };
 export default storage;

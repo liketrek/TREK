@@ -7,8 +7,9 @@ export const storageReclaimApi = {
     apiClient.put('/admin/storage/reclaim', { deleteEnabled }).then((r) => r.data),
   /** Starts a report-only check in the background (202); its report arrives through the admin state. */
   check: (): Promise<{ started: true }> => apiClient.post('/admin/storage/reclaim/run').then((r) => r.data),
-  confirm: (category: StorageReclaimConfirmRequest['category']): Promise<StorageReclaimState> =>
+  /** `unreferenced` is the count the admin was shown: the server refuses when its own count has moved on. */
+  confirm: (request: StorageReclaimConfirmRequest): Promise<StorageReclaimState> =>
     apiClient
-      .post('/admin/storage/reclaim/confirm', { category } satisfies StorageReclaimConfirmRequest)
+      .post('/admin/storage/reclaim/confirm', request satisfies StorageReclaimConfirmRequest)
       .then((r) => r.data),
 };

@@ -97,7 +97,7 @@ export default function AdminStoragePanel(): React.ReactElement {
   const {
     admin, editing, setEditing, confirmRemove, setConfirmRemove, syncPrompt, setSyncPrompt, migratePrompt,
     closeMigratePrompt, migrationQueue, handleCancelMigration, handleRefreshStats, handleStartBackfill, handleCancelBackfill, loaded,
-    reclaim, reclaimChecking, reclaimSaving, handleReclaimCheck, handleReclaimDelete, handleReclaimConfirm,
+    reclaim, reclaimChecking, reclaimSaving, reclaimConfirming, handleReclaimCheck, handleReclaimDelete, handleReclaimConfirm,
   } = useStoragePanel()
   // Open/closed only: the render below and moveAndSave both recompute
   // computeMigrationCandidates(draft, state) fresh rather than reading the
@@ -634,7 +634,8 @@ export default function AdminStoragePanel(): React.ReactElement {
           reclaim={reclaim}
           checking={reclaimChecking}
           saving={reclaimSaving}
-          onConfirm={(category) => void handleReclaimConfirm(category)}
+          confirming={reclaimConfirming}
+          onConfirm={(request) => void handleReclaimConfirm(request)}
           onCheck={() => void handleReclaimCheck()}
           onDelete={(enabled) => void handleReclaimDelete(enabled)}
         />

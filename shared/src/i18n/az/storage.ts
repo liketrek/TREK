@@ -157,7 +157,7 @@ const storage: TranslationStrings = {
   'storage.reclaim.never': 'Hələ yoxlanılmayıb',
   'storage.reclaim.delete': 'İstinad olunmayan faylları sil',
   'storage.reclaim.deleteHint':
-    'Söndürülü olduqda gecə yoxlaması yalnız hesabat verir. Aktiv olduqda bir həftədir heç nəyin istifadə etmədiyi fayl silinir. TREK-də sildiyiniz fayllar hər iki halda dərhal silinir.',
+    'Söndürülü olduqda gecə yoxlaması yalnız hesabat verir. Aktiv olduqda bir həftədir heç nəyin istifadə etmədiyi fayl silinir. TREK-də sildiyiniz fayllar hər iki halda bir gün sonra silinir, çünki o vaxt heç bir geri qaytarma onları bərpa edə bilməz.',
   'storage.reclaim.freeable': 'Boşaldıla bilər',
   'storage.reclaim.waiting': 'Bir həftədən az istifadə olunmayıb',
   'storage.reclaim.deleted': 'Son gecə təmizliyi ilə boşaldıldı',
@@ -176,10 +176,15 @@ const storage: TranslationStrings = {
   'storage.reclaim.confirmNeeded':
     'Bu faylların beşdə birindən çoxu istifadə olunmayan görünür. Bunun gözlənilən olduğunu təsdiqləyənə qədər burada heç nə silinməyəcək.',
   'storage.reclaim.confirm': 'Təsdiqlə',
-  'storage.reclaim.confirmed': 'Təsdiqləndi. Gecə təmizliyi indi bu faylları silə bilər.',
+  'storage.reclaim.confirmed': 'Növbəti 14 gün üçün təsdiqləndi.',
   'storage.reclaim.error.reclaim_busy': 'Başqa saxlama tapşırığı işləyir. Bir azdan yenidən cəhd edin.',
   'storage.reclaim.error.reclaim_demo': 'Demo quraşdırmada əlçatan deyil.',
   'storage.reclaim.error.reclaim_nothing_to_confirm': 'Artıq təsdiqlənəcək bir şey yoxdur. Əvvəlcə yoxlama aparın.',
+  'storage.reclaim.skip.backup_running': 'Keçildi: ehtiyat nüsxə işləyirdi',
+  'storage.reclaim.error.reclaim_confirm_stale':
+    'Say göstərildikdən sonra dəyişib. Yeni rəqəmi yoxlayın və yenidən təsdiqləyin.',
+  'storage.reclaim.error.reclaim_install_unknown':
+    'TREK quraşdırma identifikatorunu oxuya bilmədi, ona görə heç nə silmir. Data qovluğunu yoxlayın.',
 };
 
 export default storage;

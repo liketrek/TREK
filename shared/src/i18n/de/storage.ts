@@ -150,7 +150,7 @@ const storage: TranslationStrings = {
   'storage.reclaim.never': 'Noch nicht geprüft',
   'storage.reclaim.delete': 'Nicht mehr genutzte Dateien löschen',
   'storage.reclaim.deleteHint':
-    'Aus: Die nächtliche Prüfung berichtet nur. An: Eine Datei, die eine Woche lang nichts mehr verwendet, wird gelöscht. Was du in TREK löschst, wird so oder so sofort entfernt.',
+    'Aus: Die nächtliche Prüfung berichtet nur. An: Eine Datei, die eine Woche lang nichts mehr verwendet, wird gelöscht. Was du in TREK löschst, wird so oder so einen Tag später entfernt, sobald kein Rückgängig es mehr zurückholen kann.',
   'storage.reclaim.freeable': 'Kann freigegeben werden',
   'storage.reclaim.waiting': 'Seit weniger als einer Woche ungenutzt',
   'storage.reclaim.deleted': 'Bei der letzten nächtlichen Bereinigung freigegeben',
@@ -171,9 +171,14 @@ const storage: TranslationStrings = {
   'storage.reclaim.confirmNeeded':
     'Mehr als ein Fünftel dieser Dateien wirkt ungenutzt. Hier wird nichts gelöscht, bis du bestätigst, dass das so stimmt.',
   'storage.reclaim.confirm': 'Bestätigen',
-  'storage.reclaim.confirmed': 'Bestätigt. Die nächtliche Bereinigung darf diese Dateien jetzt löschen.',
+  'storage.reclaim.confirmed': 'Für die nächsten 14 Tage bestätigt.',
   'storage.reclaim.error.reclaim_busy': 'Gerade läuft eine andere Speicheraufgabe. Versuch es gleich noch einmal.',
   'storage.reclaim.error.reclaim_demo': 'Auf einer Demo-Instanz nicht verfügbar.',
   'storage.reclaim.error.reclaim_nothing_to_confirm': 'Es gibt nichts mehr zu bestätigen. Starte zuerst eine Prüfung.',
+  'storage.reclaim.skip.backup_running': 'Übersprungen: Ein Backup lief',
+  'storage.reclaim.error.reclaim_confirm_stale':
+    'Die Zahl hat sich seit der Anzeige geändert. Prüf den neuen Wert und bestätige noch einmal.',
+  'storage.reclaim.error.reclaim_install_unknown':
+    'TREK konnte seine Installationskennung nicht lesen und löscht deshalb nichts. Prüf den Datenordner.',
 };
 export default storage;

@@ -150,7 +150,7 @@ const storage: TranslationStrings = {
   'storage.reclaim.never': 'Aún no comprobado',
   'storage.reclaim.delete': 'Eliminar archivos sin referencia',
   'storage.reclaim.deleteHint':
-    'Desactivado, la comprobación nocturna solo informa. Activado, se elimina un archivo que nadie ha usado en una semana. Los archivos que eliminas en TREK se borran al instante en ambos casos.',
+    'Desactivado, la comprobación nocturna solo informa. Activado, se elimina un archivo que nadie ha usado en una semana. Los archivos que eliminas en TREK se borran un día después en ambos casos, cuando ya no hay deshacer que pueda recuperarlos.',
   'storage.reclaim.freeable': 'Se puede liberar',
   'storage.reclaim.waiting': 'Sin uso desde hace menos de una semana',
   'storage.reclaim.deleted': 'Liberado por la última limpieza nocturna',
@@ -170,9 +170,14 @@ const storage: TranslationStrings = {
   'storage.reclaim.confirmNeeded':
     'Más de una quinta parte de estos archivos parece sin uso. No se elimina nada aquí hasta que confirmes que es lo esperado.',
   'storage.reclaim.confirm': 'Confirmar',
-  'storage.reclaim.confirmed': 'Confirmado. La limpieza nocturna ya puede eliminar estos archivos.',
+  'storage.reclaim.confirmed': 'Confirmado durante los próximos 14 días.',
   'storage.reclaim.error.reclaim_busy': 'Hay otra tarea de almacenamiento en curso. Inténtalo de nuevo en un momento.',
   'storage.reclaim.error.reclaim_demo': 'No disponible en una instancia de demostración.',
   'storage.reclaim.error.reclaim_nothing_to_confirm': 'Ya no hay nada que confirmar. Ejecuta primero una comprobación.',
+  'storage.reclaim.skip.backup_running': 'Omitido: había una copia de seguridad en curso',
+  'storage.reclaim.error.reclaim_confirm_stale':
+    'El recuento ha cambiado desde que se mostró. Comprueba la cifra nueva y confirma de nuevo.',
+  'storage.reclaim.error.reclaim_install_unknown':
+    'TREK no pudo leer el id de su instalación, así que no elimina nada. Comprueba la carpeta de datos.',
 };
 export default storage;

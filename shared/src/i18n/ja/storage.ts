@@ -143,7 +143,7 @@ const storage: TranslationStrings = {
   'storage.reclaim.never': '未チェック',
   'storage.reclaim.delete': '参照されていないファイルを削除',
   'storage.reclaim.deleteHint':
-    'オフの場合、夜間チェックは報告のみ行います。オンの場合、1週間使われていないファイルが削除されます。TREKで削除したファイルは、どちらの場合もすぐに削除されます。',
+    'オフの場合、夜間チェックは報告のみ行います。オンの場合、1週間使われていないファイルが削除されます。TREKで削除したファイルは、どちらの場合も1日後に削除されます。その時点では、元に戻す操作でも復元できません。',
   'storage.reclaim.freeable': '解放可能',
   'storage.reclaim.waiting': '未使用期間が1週間未満',
   'storage.reclaim.deleted': '前回の夜間クリーンアップで解放',
@@ -162,9 +162,14 @@ const storage: TranslationStrings = {
   'storage.reclaim.confirmNeeded':
     'これらのファイルの5分の1以上が未使用に見えます。これが想定どおりであることを確認するまで、ここでは何も削除されません。',
   'storage.reclaim.confirm': '確認',
-  'storage.reclaim.confirmed': '確認しました。夜間クリーンアップでこれらのファイルが削除される可能性があります。',
+  'storage.reclaim.confirmed': '今後14日間、確認済みです。',
   'storage.reclaim.error.reclaim_busy': '別のストレージ処理を実行中です。しばらくしてからもう一度お試しください。',
   'storage.reclaim.error.reclaim_demo': 'デモインスタンスでは利用できません。',
   'storage.reclaim.error.reclaim_nothing_to_confirm': '確認するものはもうありません。先にチェックを実行してください。',
+  'storage.reclaim.skip.backup_running': 'スキップ: バックアップを実行中でした',
+  'storage.reclaim.error.reclaim_confirm_stale':
+    '表示されてから件数が変わりました。新しい数値を確認して、もう一度確認してください。',
+  'storage.reclaim.error.reclaim_install_unknown':
+    'TREKがインストールIDを読み取れなかったため、何も削除しません。データフォルダを確認してください。',
 };
 export default storage;

@@ -160,7 +160,7 @@ const storage: TranslationStrings = {
   'storage.reclaim.skip.source_failed': 'Omès: ha fallat una consulta',
   'storage.reclaim.deleted': "Alliberat per l'última neteja nocturna",
   'storage.reclaim.deleteHint':
-    "Desactivat, la comprovació nocturna només informa. Activat, s'elimina un fitxer que ningú no ha fet servir durant una setmana. Els fitxers que elimines a TREK s'esborren a l'instant en tots dos casos.",
+    "Desactivat, la comprovació nocturna només informa. Activat, s'elimina un fitxer que ningú no ha fet servir durant una setmana. Els fitxers que elimines a TREK s'esborren un dia després en tots dos casos, quan ja no hi ha cap desfer que els pugui recuperar.",
   'storage.reclaim.running': 'Comprovant…',
   'storage.reclaim.stoppedFailed': "L'última comprovació s'ha aturat per un error. Torna a executar-se aquesta nit.",
   'storage.reclaim.skip.foreign_install': 'Omès: una altra instal·lació de TREK fa servir aquest emmagatzematge',
@@ -170,10 +170,15 @@ const storage: TranslationStrings = {
   'storage.reclaim.confirmNeeded':
     "Més d'una cinquena part d'aquests fitxers semblen sense ús. No s'elimina res d'aquí fins que confirmis que és l'esperat.",
   'storage.reclaim.confirm': 'Confirma',
-  'storage.reclaim.confirmed': 'Confirmat. La neteja nocturna ja pot eliminar aquests fitxers.',
+  'storage.reclaim.confirmed': 'Confirmat per als propers 14 dies.',
   'storage.reclaim.error.reclaim_busy':
     "Hi ha una altra tasca d'emmagatzematge en curs. Torna-ho a provar d'aquí a un moment.",
   'storage.reclaim.error.reclaim_demo': 'No disponible en una instància de demostració.',
   'storage.reclaim.error.reclaim_nothing_to_confirm': 'Ja no hi ha res per confirmar. Executa primer una comprovació.',
+  'storage.reclaim.skip.backup_running': "Omès: s'estava executant una còpia de seguretat",
+  'storage.reclaim.error.reclaim_confirm_stale':
+    'El recompte ha canviat des que es va mostrar. Comprova la xifra nova i confirma de nou.',
+  'storage.reclaim.error.reclaim_install_unknown':
+    "TREK no ha pogut llegir l'identificador de la seva instal·lació, així que no elimina res. Comprova la carpeta de dades.",
 };
 export default storage;

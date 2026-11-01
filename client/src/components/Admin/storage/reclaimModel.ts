@@ -24,6 +24,8 @@ interface ReclaimCategoryLine {
    * backlog, say, rather than a second installation in the same bucket).
    */
   confirmationRequired: boolean;
+  /** Everything the check found unused in the category, the count a confirmation is given for. */
+  unreferenced: number;
   /** Why the category was left alone, or stopped part way; null when it was checked through. */
   skipped: Exclude<StorageReclaimCategoryReport['skipped'], 'not_reclaimed'> | null;
 }
@@ -89,6 +91,7 @@ function lineOf(
     freeable,
     waiting,
     confirmationRequired: report.confirmationRequired,
+    unreferenced: report.unreferenced.objects,
     skipped: report.skipped,
   };
   const quiet = freeable.objects === 0 && waiting.objects === 0 && !line.confirmationRequired && line.skipped === null;

@@ -17,7 +17,9 @@ interface Props {
   saving: boolean;
   onCheck: () => void;
   onDelete: (enabled: boolean) => void;
-  onConfirm: (category: ReclaimView['lines'][number]['category']) => void;
+  /** The category whose confirmation is on its way. */
+  confirming: ReclaimView['lines'][number]['category'] | null;
+  onConfirm: (request: { category: ReclaimView['lines'][number]['category']; unreferenced: number }) => void;
 }
 
 /**
@@ -32,6 +34,7 @@ export default function StorageReclaimSection({
   saving,
   onCheck,
   onDelete,
+  confirming,
   onConfirm,
 }: Props): React.ReactElement {
   const { t, locale } = useTranslation();
@@ -130,8 +133,12 @@ export default function StorageReclaimSection({
                         type="button"
                         className={SETTINGS_BUTTON}
                         style={fs(12, 'body')}
-                        onClick={() => onConfirm(line.category)}
+                        onClick={() => onConfirm({ category: line.category, unreferenced: line.unreferenced })}
+                        disabled={confirming === line.category}
                       >
+                        {confirming === line.category && (
+                          <Loader2 size={13} strokeWidth={2.2} className="animate-spin" />
+                        )}
                         {t('storage.reclaim.confirm')}
                       </button>
                     </div>

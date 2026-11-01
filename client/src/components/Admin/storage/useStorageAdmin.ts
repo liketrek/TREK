@@ -81,7 +81,7 @@ export interface StorageAdmin {
   /** Starts a check that only reports, in the background; the state polls until it is done. Null on success. */
   checkReclaim: () => Promise<ReclaimFailure | null>
   /** Lets the nightly run delete in a category where an unusually large share looks unused. Null on success. */
-  confirmReclaim: (category: StorageReclaimConfirmRequest['category']) => Promise<ReclaimFailure | null>
+  confirmReclaim: (request: StorageReclaimConfirmRequest) => Promise<ReclaimFailure | null>
   /** Re-GETs admin state (poll-safe — see the implementation comment below). Exposed for the panel's failed-queue recovery path. */
   refreshState: () => Promise<void>
   /**
@@ -425,15 +425,18 @@ export function useStorageAdmin(genericError: string, conflictError: string): St
   }, [genericError, setReclaim])
 
   const confirmReclaim = useCallback(
-    async (category: StorageReclaimConfirmRequest['category']): Promise<ReclaimFailure | null> => {
+    async (request: StorageReclaimConfirmRequest): Promise<ReclaimFailure | null> => {
       try {
-        setReclaim(await storageReclaimApi.confirm(category))
+        setReclaim(await storageReclaimApi.confirm(request))
         return null
       } catch (err: unknown) {
-        return reclaimFailureOf(err, genericError)
+        const failure = reclaimFailureOf(err, genericError)
+        // The count moved on since it was shown: show the current one before the admin confirms again.
+        if ('code' in failure && failure.code === 'reclaim_confirm_stale') void refreshState().catch(() => {})
+        return failure
       }
     },
-    [genericError, setReclaim],
+    [genericError, setReclaim, refreshState],
   )
 
   return {

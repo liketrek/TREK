@@ -155,7 +155,7 @@ const storage: TranslationStrings = {
   'storage.reclaim.never': 'Jeszcze nie sprawdzono',
   'storage.reclaim.delete': 'Usuń pliki bez powiązań',
   'storage.reclaim.deleteHint':
-    'Wyłączone: nocna kontrola tylko raportuje. Włączone: plik, którego nic nie używało przez tydzień, jest usuwany. Pliki usunięte w TREK znikają od razu w obu przypadkach.',
+    'Wyłączone: nocna kontrola tylko raportuje. Włączone: plik, którego nic nie używało przez tydzień, jest usuwany. Pliki usunięte w TREK są w obu przypadkach usuwane dzień później, gdy żadne cofnięcie nie może ich już przywrócić.',
   'storage.reclaim.freeable': 'Można zwolnić',
   'storage.reclaim.waiting': 'Nieużywane krócej niż tydzień',
   'storage.reclaim.deleted': 'Zwolniono podczas ostatniego nocnego czyszczenia',
@@ -176,9 +176,14 @@ const storage: TranslationStrings = {
   'storage.reclaim.confirmNeeded':
     'Ponad jedna piąta tych plików wygląda na nieużywane. Nic tutaj nie zostanie usunięte, dopóki nie potwierdzisz, że tak ma być.',
   'storage.reclaim.confirm': 'Potwierdź',
-  'storage.reclaim.confirmed': 'Potwierdzono. Nocne czyszczenie może teraz usunąć te pliki.',
+  'storage.reclaim.confirmed': 'Potwierdzono na najbliższe 14 dni.',
   'storage.reclaim.error.reclaim_busy': 'Trwa inne zadanie magazynu. Spróbuj ponownie za chwilę.',
   'storage.reclaim.error.reclaim_demo': 'Niedostępne w instancji demo.',
   'storage.reclaim.error.reclaim_nothing_to_confirm': 'Nie ma już nic do potwierdzenia. Najpierw uruchom kontrolę.',
+  'storage.reclaim.skip.backup_running': 'Pominięto: trwało tworzenie kopii zapasowej',
+  'storage.reclaim.error.reclaim_confirm_stale':
+    'Liczba zmieniła się od czasu jej wyświetlenia. Sprawdź nową wartość i potwierdź ponownie.',
+  'storage.reclaim.error.reclaim_install_unknown':
+    'TREK nie mógł odczytać identyfikatora instalacji, więc niczego nie usuwa. Sprawdź folder danych.',
 };
 export default storage;

@@ -156,7 +156,7 @@ const storage: TranslationStrings = {
   'storage.reclaim.never': 'لم يتم الفحص بعد',
   'storage.reclaim.delete': 'حذف الملفات غير المرتبطة',
   'storage.reclaim.deleteHint':
-    'عند الإيقاف، يكتفي الفحص الليلي بالإبلاغ. عند التفعيل، يُحذف أي ملف لم يُستخدم منذ أسبوع. الملفات التي تحذفها في TREK تُزال فورًا في الحالتين.',
+    'عند الإيقاف، يكتفي الفحص الليلي بالإبلاغ. عند التفعيل، يُحذف أي ملف لم يُستخدم منذ أسبوع. الملفات التي تحذفها في TREK تُزال بعد يوم في الحالتين، عندما لا يعود بالإمكان التراجع عن حذفها.',
   'storage.reclaim.freeable': 'يمكن تحرير مساحته',
   'storage.reclaim.waiting': 'غير مستخدمة منذ أقل من أسبوع',
   'storage.reclaim.deleted': 'تم تحريرها في آخر تنظيف ليلي',
@@ -175,9 +175,13 @@ const storage: TranslationStrings = {
   'storage.reclaim.confirmNeeded':
     'يبدو أن أكثر من خُمس هذه الملفات غير مستخدم. لن يُحذف شيء هنا حتى تؤكد أن هذا متوقع.',
   'storage.reclaim.confirm': 'تأكيد',
-  'storage.reclaim.confirmed': 'تم التأكيد. قد يحذف التنظيف الليلي هذه الملفات الآن.',
+  'storage.reclaim.confirmed': 'تم التأكيد للأيام الـ 14 القادمة.',
   'storage.reclaim.error.reclaim_busy': 'مهمة تخزين أخرى قيد التشغيل. حاول مجددًا بعد قليل.',
   'storage.reclaim.error.reclaim_demo': 'غير متاح في نسخة العرض التجريبي.',
   'storage.reclaim.error.reclaim_nothing_to_confirm': 'لا شيء لتأكيده بعد الآن. شغّل فحصًا أولًا.',
+  'storage.reclaim.skip.backup_running': 'تم التخطي: كان هناك نسخ احتياطي قيد التشغيل',
+  'storage.reclaim.error.reclaim_confirm_stale': 'تغيّر العدد منذ عرضه. افحص الرقم الجديد ثم أكّد مجددًا.',
+  'storage.reclaim.error.reclaim_install_unknown':
+    'تعذّر على TREK قراءة معرّف التثبيت الخاص به، لذلك لا يحذف شيئًا. افحص مجلد البيانات.',
 };
 export default storage;

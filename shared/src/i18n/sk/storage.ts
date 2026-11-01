@@ -163,7 +163,7 @@ const storage: TranslationStrings = {
   'storage.reclaim.never': 'Ešte neskontrolované',
   'storage.reclaim.delete': 'Odstraňovať nepoužívané súbory',
   'storage.reclaim.deleteHint':
-    'Vypnuté: nočná kontrola len hlási. Zapnuté: súbor, ktorý týždeň nikto nepoužil, sa odstráni. Súbory, ktoré odstránite v TREK, sa v oboch prípadoch odstránia okamžite.',
+    'Vypnuté: nočná kontrola len hlási. Zapnuté: súbor, ktorý týždeň nikto nepoužil, sa odstráni. Súbory, ktoré odstránite v TREK, sa v oboch prípadoch odstránia o deň neskôr, keď ich už nemožno vrátiť späť.',
   'storage.reclaim.freeable': 'Možno uvoľniť',
   'storage.reclaim.waiting': 'Nepoužité menej ako týždeň',
   'storage.reclaim.deleted': 'Uvoľnené pri poslednom nočnom čistení',
@@ -182,9 +182,14 @@ const storage: TranslationStrings = {
   'storage.reclaim.confirmNeeded':
     'Viac ako pätina týchto súborov vyzerá ako nepoužívaná. Nič tu nebude odstránené, kým nepotvrdíte, že je to očakávané.',
   'storage.reclaim.confirm': 'Potvrdiť',
-  'storage.reclaim.confirmed': 'Potvrdené. Nočné čistenie môže tieto súbory teraz odstrániť.',
+  'storage.reclaim.confirmed': 'Potvrdené na ďalších 14 dní.',
   'storage.reclaim.error.reclaim_busy': 'Beží iná úloha úložiska. Skúste to o chvíľu znova.',
   'storage.reclaim.error.reclaim_demo': 'Nie je dostupné v demo inštancii.',
   'storage.reclaim.error.reclaim_nothing_to_confirm': 'Už nie je čo potvrdzovať. Najprv spustite kontrolu.',
+  'storage.reclaim.skip.backup_running': 'Preskočené: bežala záloha',
+  'storage.reclaim.error.reclaim_confirm_stale':
+    'Počet sa od zobrazenia zmenil. Skontrolujte nový údaj a potvrďte znova.',
+  'storage.reclaim.error.reclaim_install_unknown':
+    'TREK nemohol prečítať ID svojej inštalácie, preto nič neodstraňuje. Skontrolujte priečinok s dátami.',
 };
 export default storage;

@@ -184,8 +184,12 @@ export function useStoragePanel() {
     setReclaimSaving(false);
     if (failure) toast.error(reclaimError(failure));
   };
-  const handleReclaimConfirm = async (category: StorageReclaimConfirmRequest['category']) => {
-    const failure = await admin.confirmReclaim(category);
+  // The category whose confirmation is on its way, so its button waits for the answer.
+  const [reclaimConfirming, setReclaimConfirming] = useState<StorageReclaimConfirmRequest['category'] | null>(null);
+  const handleReclaimConfirm = async (request: StorageReclaimConfirmRequest) => {
+    setReclaimConfirming(request.category);
+    const failure = await admin.confirmReclaim(request);
+    setReclaimConfirming(null);
     if (failure) toast.error(reclaimError(failure));
     else toast.success(t('storage.reclaim.confirmed'));
   };
@@ -401,6 +405,7 @@ export function useStoragePanel() {
     reclaim,
     reclaimChecking,
     reclaimSaving,
+    reclaimConfirming,
     handleReclaimCheck,
     handleReclaimDelete,
     handleReclaimConfirm,

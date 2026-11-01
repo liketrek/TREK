@@ -135,7 +135,7 @@ const storage: TranslationStrings = {
   'storage.reclaim.never': 'טרם נבדק',
   'storage.reclaim.delete': 'מחיקת קבצים ללא שימוש',
   'storage.reclaim.deleteHint':
-    'כשהאפשרות כבויה, הבדיקה הלילית רק מדווחת. כשהיא פועלת, קובץ שלא היה בשימוש במשך שבוע נמחק. קבצים שאתם מוחקים ב-TREK נמחקים מיד בכל מקרה.',
+    'כשהאפשרות כבויה, הבדיקה הלילית רק מדווחת. כשהיא פועלת, קובץ שלא היה בשימוש במשך שבוע נמחק. קבצים שאתם מוחקים ב-TREK נמחקים יום לאחר מכן בכל מקרה, כשאי אפשר עוד לשחזר אותם בביטול.',
   'storage.reclaim.freeable': 'ניתן לפנות',
   'storage.reclaim.waiting': 'לא בשימוש פחות משבוע',
   'storage.reclaim.deleted': 'פונה בניקוי הלילי האחרון',
@@ -154,10 +154,14 @@ const storage: TranslationStrings = {
   'storage.reclaim.confirmNeeded':
     'יותר מחמישית מהקבצים האלה נראים בלתי בשימוש. שום דבר כאן לא יימחק עד שתאשרו שזה צפוי.',
   'storage.reclaim.confirm': 'אישור',
-  'storage.reclaim.confirmed': 'אושר. הניקוי הלילי יכול למחוק עכשיו את הקבצים האלה.',
+  'storage.reclaim.confirmed': 'אושר ל-14 הימים הבאים.',
   'storage.reclaim.error.reclaim_busy': 'משימת אחסון אחרת רצה כעת. נסו שוב בעוד רגע.',
   'storage.reclaim.error.reclaim_demo': 'לא זמין במופע הדגמה.',
   'storage.reclaim.error.reclaim_nothing_to_confirm': 'אין יותר מה לאשר. הריצו קודם בדיקה.',
+  'storage.reclaim.skip.backup_running': 'דולג: גיבוי היה פעיל',
+  'storage.reclaim.error.reclaim_confirm_stale': 'הספירה השתנתה מאז שהוצגה. בדקו את הנתון החדש ואשרו שוב.',
+  'storage.reclaim.error.reclaim_install_unknown':
+    'TREK לא הצליח לקרוא את מזהה ההתקנה שלו, ולכן הוא לא מוחק דבר. בדקו את תיקיית הנתונים.',
 };
 
 export default storage;

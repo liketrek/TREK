@@ -316,9 +316,10 @@ describe('useStoragePanel: unreferenced files', () => {
     const { result } = renderHook(() => useStoragePanel());
     expect(result.current.reclaimChecking).toBe(true);
     await act(async () => {
-      await result.current.handleReclaimConfirm('places');
+      await result.current.handleReclaimConfirm({ category: 'places', unreferenced: 3 });
     });
-    expect(fake.admin.confirmReclaim).toHaveBeenCalledWith('places');
+    expect(fake.admin.confirmReclaim).toHaveBeenCalledWith({ category: 'places', unreferenced: 3 });
+    expect(result.current.reclaimConfirming).toBeNull();
     expect(toast.success).toHaveBeenCalledWith('storage.reclaim.confirmed');
   });
 

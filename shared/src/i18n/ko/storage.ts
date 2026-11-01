@@ -140,7 +140,7 @@ const storage: TranslationStrings = {
   'storage.reclaim.never': '아직 확인하지 않음',
   'storage.reclaim.delete': '참조되지 않는 파일 삭제',
   'storage.reclaim.deleteHint':
-    '끄면 야간 점검은 보고만 합니다. 켜면 일주일 동안 아무도 사용하지 않은 파일이 삭제됩니다. TREK에서 직접 삭제한 파일은 어느 쪽이든 즉시 삭제됩니다.',
+    '끄면 야간 점검은 보고만 합니다. 켜면 일주일 동안 아무도 사용하지 않은 파일이 삭제됩니다. TREK에서 직접 삭제한 파일은 취소로 되돌릴 수 없게 된 시점에, 어느 쪽이든 하루 뒤에 삭제됩니다.',
   'storage.reclaim.freeable': '확보 가능',
   'storage.reclaim.waiting': '일주일 미만 동안 사용 안 됨',
   'storage.reclaim.deleted': '지난 야간 정리에서 확보됨',
@@ -159,9 +159,14 @@ const storage: TranslationStrings = {
   'storage.reclaim.confirmNeeded':
     '이 파일의 5분의 1 이상이 사용되지 않는 것으로 보입니다. 예상된 상황이라고 확인하기 전까지는 아무것도 삭제되지 않습니다.',
   'storage.reclaim.confirm': '확인',
-  'storage.reclaim.confirmed': '확인되었습니다. 이제 야간 정리에서 이 파일들을 삭제할 수 있습니다.',
+  'storage.reclaim.confirmed': '향후 14일 동안 확인되었습니다.',
   'storage.reclaim.error.reclaim_busy': '다른 스토리지 작업이 실행 중입니다. 잠시 후 다시 시도하세요.',
   'storage.reclaim.error.reclaim_demo': '데모 인스턴스에서는 사용할 수 없습니다.',
   'storage.reclaim.error.reclaim_nothing_to_confirm': '더 이상 확인할 항목이 없습니다. 먼저 점검을 실행하세요.',
+  'storage.reclaim.skip.backup_running': '건너뜀: 백업이 실행 중이었습니다',
+  'storage.reclaim.error.reclaim_confirm_stale':
+    '표시된 이후 개수가 바뀌었습니다. 새 수치를 확인한 다음 다시 확인하세요.',
+  'storage.reclaim.error.reclaim_install_unknown':
+    'TREK이 설치 ID를 읽을 수 없어 아무것도 삭제하지 않습니다. 데이터 폴더를 확인하세요.',
 };
 export default storage;

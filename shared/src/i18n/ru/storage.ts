@@ -156,7 +156,7 @@ const storage: TranslationStrings = {
   'storage.reclaim.never': 'Ещё не проверялось',
   'storage.reclaim.delete': 'Удалять файлы без связей',
   'storage.reclaim.deleteHint':
-    'Выкл.: ночная проверка только сообщает о файлах. Вкл.: файл, который неделю нигде не использовался, удаляется. Файлы, удалённые в TREK, в любом случае удаляются сразу.',
+    'Выкл.: ночная проверка только сообщает о файлах. Вкл.: файл, который неделю нигде не использовался, удаляется. Файлы, удалённые в TREK, в любом случае удаляются через день, когда их уже нельзя вернуть отменой.',
   'storage.reclaim.freeable': 'Можно освободить',
   'storage.reclaim.waiting': 'Не используются менее недели',
   'storage.reclaim.deleted': 'Освобождено при последней ночной очистке',
@@ -176,9 +176,14 @@ const storage: TranslationStrings = {
   'storage.reclaim.confirmNeeded':
     'Более пятой части этих файлов выглядят неиспользуемыми. Ничего здесь не будет удалено, пока вы не подтвердите, что так и должно быть.',
   'storage.reclaim.confirm': 'Подтвердить',
-  'storage.reclaim.confirmed': 'Подтверждено. Ночная очистка теперь может удалить эти файлы.',
+  'storage.reclaim.confirmed': 'Подтверждено на следующие 14 дней.',
   'storage.reclaim.error.reclaim_busy': 'Выполняется другая задача хранилища. Повторите попытку через минуту.',
   'storage.reclaim.error.reclaim_demo': 'Недоступно в демонстрационной версии.',
   'storage.reclaim.error.reclaim_nothing_to_confirm': 'Подтверждать больше нечего. Сначала запустите проверку.',
+  'storage.reclaim.skip.backup_running': 'Пропущено: выполнялось резервное копирование',
+  'storage.reclaim.error.reclaim_confirm_stale':
+    'С момента показа число изменилось. Проверьте новое значение и подтвердите снова.',
+  'storage.reclaim.error.reclaim_install_unknown':
+    'TREK не удалось прочитать идентификатор установки, поэтому ничего не удаляется. Проверьте папку данных.',
 };
 export default storage;

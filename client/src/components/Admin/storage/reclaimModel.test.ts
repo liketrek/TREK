@@ -94,7 +94,14 @@ describe('reclaimView', () => {
       lastRun: report({ avatars: category({ skipped: 'foreign_install', unreferenced: { objects: 9, bytes: 9 } }) }),
     });
     expect(view.lines).toEqual([
-      { category: 'avatars', freeable: none, waiting: none, confirmationRequired: false, skipped: 'foreign_install' },
+      {
+        category: 'avatars',
+        freeable: none,
+        waiting: none,
+        confirmationRequired: false,
+        unreferenced: 9,
+        skipped: 'foreign_install',
+      },
     ]);
     expect(view.waiting).toEqual(none);
     expect(view.lines.some((line) => line.category === 'backups')).toBe(false);
@@ -123,7 +130,7 @@ describe('reclaimView', () => {
       lastRun: report({ places: category({ objects: 10, confirmationRequired: true }) }),
     });
     expect(view.lines).toEqual([
-      { category: 'places', freeable: none, waiting: none, confirmationRequired: true, skipped: null },
+      { category: 'places', freeable: none, waiting: none, confirmationRequired: true, unreferenced: 0, skipped: null },
     ]);
   });
 
