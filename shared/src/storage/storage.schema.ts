@@ -291,6 +291,8 @@ export const storageReclaimCategorySchema = z.enum(STORAGE_RECLAIM_CATEGORIES);
  * - `owner_unknown`: this installation's owner marker could not be written there, so a shared place cannot be ruled out;
  * - `list_failed` / `source_failed`: the listing or a reference lookup failed, so the pass stopped there;
  * - `delete_failed`: deleting failed on the backend, so the pass stopped deleting in this category;
+ * - `backup_running`: a backup was reading the uploads when this category's objects were due, so the pass
+ *   deleted nothing there (from then on, for the rest of the pass); the next pass tries again;
  * - `interrupted`: the pass stopped (`stopped` says why) before it finished this category; its figures are partial.
  * A skip keeps the marks it found: only a pass that judges the category moves them.
  */
@@ -303,6 +305,7 @@ export const STORAGE_RECLAIM_SKIP_REASONS = [
   'list_failed',
   'source_failed',
   'delete_failed',
+  'backup_running',
   'interrupted',
 ] as const;
 
@@ -317,8 +320,9 @@ export const storageReclaimCategoryReportSchema = z.object({
   eligible: storageObjectCountSchema,
   deleted: storageObjectCountSchema,
   /**
-   * More than a fifth of the category is unreferenced, and more than an admin
-   * last confirmed: deletion waits for a confirmation (POST .../reclaim/confirm).
+   * More than a fifth of the category is unreferenced and no admin confirmation
+   * covers that count: deletion waits for one (POST .../reclaim/confirm). The
+   * admin state reads false once a confirmation covers it, before the next pass.
    */
   confirmationRequired: z.boolean(),
   skipped: z.enum(STORAGE_RECLAIM_SKIP_REASONS).nullable(),
@@ -359,9 +363,16 @@ export const storageReclaimRunStartedSchema = z.object({ started: z.literal(true
 
 /**
  * Lets the pass delete in a category whose unreferenced share is over a
- * fifth, up to the count the last report showed for it.
+ * fifth. `unreferenced` is the count the admin was shown; the server refuses
+ * (409 `reclaim_confirm_stale`) when its last report's count for the category
+ * differs from it by more than a tenth or by more than 50 objects. The
+ * confirmation then covers up to one and a half times that count (at least 100
+ * more) for 14 days, and is used up once the share falls under a fifth again.
  */
-export const storageReclaimConfirmRequestSchema = z.strictObject({ category: storageReclaimCategorySchema });
+export const storageReclaimConfirmRequestSchema = z.strictObject({
+  category: storageReclaimCategorySchema,
+  unreferenced: z.number().int().nonnegative(),
+});
 export type StorageReclaimConfirmRequest = z.infer<typeof storageReclaimConfirmRequestSchema>;
 
 export const storageAdminStateSchema = z.object({

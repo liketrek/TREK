@@ -224,7 +224,7 @@ describe('the reclaim contract', () => {
     expect(storageReclaimReportSchema.safeParse(old).success).toBe(false);
   });
 
-  it('names every skip reason a pass reports, the brake that used to skip a category gone', () => {
+  it('names every skip reason a pass reports, a running backup included, the old brake gone', () => {
     expect([...STORAGE_RECLAIM_SKIP_REASONS]).toEqual([
       'not_reclaimed',
       'sources_missing',
@@ -234,6 +234,7 @@ describe('the reclaim contract', () => {
       'list_failed',
       'source_failed',
       'delete_failed',
+      'backup_running',
       'interrupted',
     ]);
     for (const skipped of STORAGE_RECLAIM_SKIP_REASONS) {
@@ -264,10 +265,20 @@ describe('the reclaim contract', () => {
   it('the requests are closed objects, and a started check answers started: true', () => {
     expect(storageReclaimSettingsRequestSchema.parse({ deleteEnabled: true })).toEqual({ deleteEnabled: true });
     expect(storageReclaimSettingsRequestSchema.safeParse({ deleteEnabled: true, extra: 1 }).success).toBe(false);
-    expect(storageReclaimConfirmRequestSchema.parse({ category: 'covers' })).toEqual({ category: 'covers' });
-    expect(storageReclaimConfirmRequestSchema.safeParse({ category: 'nowhere' }).success).toBe(false);
+    expect(storageReclaimConfirmRequestSchema.parse({ category: 'covers', unreferenced: 300 })).toEqual({
+      category: 'covers',
+      unreferenced: 300,
+    });
+    expect(storageReclaimConfirmRequestSchema.safeParse({ category: 'nowhere', unreferenced: 3 }).success).toBe(false);
     expect(storageReclaimConfirmRequestSchema.safeParse({ category: 'covers', count: 3 }).success).toBe(false);
     expect(storageReclaimRunStartedSchema.parse({ started: true })).toEqual({ started: true });
     expect(storageReclaimRunStartedSchema.safeParse({ started: false }).success).toBe(false);
+  });
+  it('a confirmation names the count the admin was shown, a whole number of objects', () => {
+    expect(storageReclaimConfirmRequestSchema.safeParse({ category: 'covers' }).success).toBe(false);
+    expect(storageReclaimConfirmRequestSchema.safeParse({ category: 'covers', unreferenced: -1 }).success).toBe(false);
+    expect(storageReclaimConfirmRequestSchema.safeParse({ category: 'covers', unreferenced: 1.5 }).success).toBe(false);
+    expect(storageReclaimConfirmRequestSchema.safeParse({ category: 'covers', unreferenced: '3' }).success).toBe(false);
+    expect(storageReclaimConfirmRequestSchema.safeParse({ category: 'covers', unreferenced: 0 }).success).toBe(true);
   });
 });
