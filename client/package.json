@@ -138,7 +138,7 @@
     "prettier-plugin-organize-imports": "^4.3.0",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "rollup-plugin-visualizer": "^7.1.1",
-    "sharp": "^0.35.4",
+    "sharp": "^0.35.5",
     "tailwindcss": "^3.4.19",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.70.0",
