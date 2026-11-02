@@ -18,7 +18,7 @@ import {
 } from './helper-cases';
 import { ProbePostgresDialect, type StatementRecorder } from './recorder';
 import type { MethodResult } from './report';
-import { adjustColumns, NOCASE_COLLATION_SQL, splitStatements, type ColumnMeta } from './schema';
+import { adjustColumns, NOCASE_COLLATION_SQL, splitStatements, type ColumnMeta } from '../../src/db/engine/postgres/schema-adjust';
 import { RequestContext, type Configuration, type EntityManager, type EntityProperty } from '@mikro-orm/core';
 import { MikroORM, PostgreSqlConnection, PostgreSqlDriver, type Options } from '@mikro-orm/postgresql';
 import { SqlitePlatform } from '@mikro-orm/sql';

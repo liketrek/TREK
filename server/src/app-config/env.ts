@@ -105,10 +105,6 @@ export function validateEnvAtBoot(raw: RawEnv = process.env as RawEnv): void {
   );
 }
 
-/** Why a boot with TREK_DB_URL is refused until the Postgres engine can run TREK. */
-export const POSTGRES_NOT_READY =
-  'Postgres support is not complete in this release; unset TREK_DB_URL to run on the SQLite file.';
-
 /** The SQLite settings that mean nothing next to TREK_DB_URL. */
 const SQLITE_ONLY_DB_KEYS = ['TREK_DB_FILE', 'TREK_DB_JOURNAL_MODE', 'TREK_DB_SYNCHRONOUS'] as const;
 
@@ -120,16 +116,12 @@ const SQLITE_ONLY_DB_KEYS = ['TREK_DB_FILE', 'TREK_DB_JOURNAL_MODE', 'TREK_DB_SY
  */
 function databasePreconditions(raw: RawEnv): string[] {
   if (!raw.TREK_DB_URL?.trim()) return [];
-  const problems: string[] = [];
   const sqliteKeys = SQLITE_ONLY_DB_KEYS.filter((key) => raw[key]?.trim());
-  if (sqliteKeys.length > 0) {
-    problems.push(
-      `  - ambiguous database configuration: TREK_DB_URL is set together with ${sqliteKeys.join(', ')}, ` +
-        'which only apply to the SQLite file. Unset one side.',
-    );
-  }
-  problems.push(`  - TREK_DB_URL: ${POSTGRES_NOT_READY}`);
-  return problems;
+  if (sqliteKeys.length === 0) return [];
+  return [
+    `  - ambiguous database configuration: TREK_DB_URL is set together with ${sqliteKeys.join(', ')}, ` +
+      'which only apply to the SQLite file. Unset one side.',
+  ];
 }
 
 /**

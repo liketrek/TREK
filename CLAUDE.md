@@ -53,6 +53,7 @@ cd server && npm run lint:boundaries               # no new import cycles or cro
 cd server && npm run lint:dialect                  # SQLite-only SQL spellings may only shrink (CI gate; rules in server/CLAUDE.md)
 cd server && npm run lint:engine-dispatch          # engine checks outside src/db/dialect/ and src/db/engine/ may only shrink (CI gate)
 cd server && npm run probe:pg                      # dialect helpers + the repository statements it reaches against Postgres (CI job; needs TREK_PG_PROBE_URL)
+cd server && npm run check:pg-baseline              # the Postgres baseline in server/assets/postgres/ matches the entities and the migrations (CI gate)
 cd server && npm run lint:tx                       # no new method writing twice outside one transaction (CI gate)
 cd server && npm run lint:test-sql                 # raw SQL fixtures in tests/ may only shrink; seed through tests/helpers/factories (CI gate)
 cd server && npm run lint:test-mocks               # vi.mock of config, realtime and db modules in tests/ may only shrink (CI gate)

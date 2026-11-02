@@ -1,6 +1,8 @@
+import { finishSchemaBootstrap, type AnyOrm } from '../../orm';
 import type { DatabaseEngine } from '../engine';
 import { redactUrl } from '../redact-url';
-import { PostgreSqlDriver } from '@mikro-orm/postgresql';
+import { TrekPostgreSqlDriver } from './postgres-driver';
+import { bootstrapPostgresSchema, defaultPostgresBootstrapDeps, type PostgresBootstrapDeps } from './schema-bootstrap';
 
 import { readFileSync } from 'node:fs';
 
@@ -54,14 +56,34 @@ export function sslOptionFor(url: string): PgSslOption | undefined {
 /**
  * The Postgres engine: MikroORM's own `pg` driver on `TREK_DB_URL`, with a
  * pool of at most `TREK_DB_POOL_MAX` connections that keeps none open while
- * idle. Not ready in this release: `buildOrmConfig` refuses it until the
- * engine can bring a database to the schema.
+ * idle. The pool belongs to the ORM, which the Nest container closes; the
+ * schema comes from the baseline plus the migrations after it
+ * (`schema-bootstrap.ts`).
  */
 export class PostgresEngine implements DatabaseEngine {
   readonly id = 'postgres';
-  readonly ready = false;
 
-  constructor(private readonly settings: PostgresSettings) {}
+  constructor(
+    private readonly settings: PostgresSettings,
+    private readonly bootstrapDeps: () => PostgresBootstrapDeps = defaultPostgresBootstrapDeps,
+  ) {}
+
+  open(): void {
+    // Nothing of its own to open: the ORM connects the pool.
+  }
+
+  close(): void {
+    // Nothing of its own to close: the pool goes with the ORM.
+  }
+
+  reopen(): Promise<void> {
+    return Promise.reject(new Error('Restoring a backup into a Postgres database is not available in this release.'));
+  }
+
+  async schemaBootstrap(orm: AnyOrm): Promise<void> {
+    await bootstrapPostgresSchema(orm, this.bootstrapDeps());
+    await finishSchemaBootstrap(orm);
+  }
 
   describe(): string {
     return `Postgres ${redactUrl(this.settings.url)}`;
@@ -70,7 +92,7 @@ export class PostgresEngine implements DatabaseEngine {
   ormOptions() {
     const ssl = sslOptionFor(this.settings.url);
     return {
-      driver: PostgreSqlDriver,
+      driver: TrekPostgreSqlDriver,
       clientUrl: this.settings.url,
       pool: { min: 0, max: this.settings.poolMax },
       driverOptions: ssl === undefined ? {} : { ssl },

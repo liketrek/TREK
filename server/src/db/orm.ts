@@ -1,4 +1,3 @@
-import mikroOrmConfig from '../mikro-orm.config';
 import { withRequestContext } from '../nest/database/request-context';
 import { runDemoSeed } from './database';
 import { ensureEmailCaseIndex } from './email-case-index';
@@ -6,7 +5,6 @@ import { migrateToHead, NO_SAFETY_NET } from './legacy-baseline';
 import { preMigrateSnapshot } from './pre-migrate-snapshot';
 import type { AnyEntity, EntityClass, EntityManager, EntitySchema, IDatabaseDriver, MikroORM } from '@mikro-orm/core';
 import type { Migrator } from '@mikro-orm/migrations';
-import { MikroORM as SqliteMikroORM } from '@mikro-orm/sqlite';
 
 /**
  * Schema ownership at startup.
@@ -52,8 +50,16 @@ export async function runSchemaBootstrap(orm: AnyOrm, { snapshot = true }: { sna
     undefined,
     snapshot ? preMigrateSnapshot(connection) : NO_SAFETY_NET,
   );
+  await finishSchemaBootstrap(orm);
+}
+
+/**
+ * What every engine does once its schema is at head: the deferred index, the
+ * seeders, the demo seed. Idempotent, like the migration step before it.
+ */
+export async function finishSchemaBootstrap(orm: AnyOrm): Promise<void> {
   // The one index a migration may have had to defer (see email-case-index.ts).
-  await ensureEmailCaseIndex(connection);
+  await ensureEmailCaseIndex(orm.em.getConnection());
 
   const defaultSeeder = orm.config.get('seeder').defaultSeeder;
   if (defaultSeeder) await orm.seeder.seedString(defaultSeeder);
@@ -76,26 +82,4 @@ export async function runSchemaBootstrap(orm: AnyOrm, { snapshot = true }: { sna
   // restore path) returns to its caller, the same completion guarantee the
   // fully-synchronous version had by construction.
   await withRequestContext(orm, () => runDemoSeed());
-}
-
-/**
- * An ORM instance outside Nest, for the vitest global setup that builds the
- * schema snapshot. Production uses the container-owned one from
- * `MikroOrmModule.forRoot()` instead of creating a second.
- */
-export function createStandaloneOrm(): Promise<AnyOrm> {
-  return SqliteMikroORM.init({
-    ...mikroOrmConfig,
-    // Entity discovery is skipped deliberately. Migrations and seeders are raw
-    // SQL and need no metadata, and the global setup that calls this runs as ESM
-    // in vitest's main process, where discovering `*.entity.ts` fails on Node's
-    // extensionless import resolution.
-    entities: [],
-    entitiesTs: [],
-    discovery: { warnWhenNoEntities: false },
-    // The migrator's per-migration progress log is production boot output; the
-    // global setup already reports the snapshot in one line of its own, and a
-    // failing migration still throws.
-    migrations: { ...mikroOrmConfig.migrations, silent: true },
-  });
 }

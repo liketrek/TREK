@@ -1,6 +1,5 @@
-import { closeDb, getRawConnection, registerReinitializeHook, reinitialize } from '../../db/database';
 import { resolveDbPath } from '../../db/db-path';
-import { runSchemaBootstrap } from '../../db/orm';
+import { resolveEngine } from '../../db/engine';
 import { MikroORM } from '@mikro-orm/core';
 import { Injectable } from '@nestjs/common';
 
@@ -16,13 +15,14 @@ import { Injectable } from '@nestjs/common';
  * port), and the shutdown closes through this. Nothing opens the database at
  * import any more; the first connect does, and this provider makes it explicit.
  *
- * Only the SQLite file engine exists today. The engine specific parts (the file
- * path, the swap) are confined to `file` and to the backup port's SQLite
- * implementation, so another engine changes this provider and that one class.
+ * What differs by engine (a file to open or not, how a database reaches the
+ * schema) is the engine's (`db/engine/`), chosen from `TREK_DB_URL`: this
+ * provider decides when, the engine decides how.
  */
 @Injectable()
 export class DatabaseLifecycle {
   private readonly reopenListeners: Array<() => Promise<void>> = [];
+  private readonly engine = resolveEngine();
 
   constructor(private readonly orm: MikroORM) {}
 
@@ -37,21 +37,19 @@ export class DatabaseLifecycle {
 
   /**
    * Opens the connection, binds the ORM to its later swaps and brings the schema
-   * to head (legacy baseline, migrations, the deferred index, seeders, demo
-   * seed, in that order: see `db/orm.ts`). Called once by `buildApp()`, before
-   * anything reads the database.
+   * to head (on SQLite: legacy baseline, migrations, the deferred index,
+   * seeders, demo seed, in that order, see `db/orm.ts`; on Postgres: the
+   * baseline or the migrations after it, then the same seeding). Called once
+   * by `buildApp()`, before anything reads the database.
    */
   async open(): Promise<void> {
-    // Normally a no-op: the ORM's first connect inside NestFactory.create()
-    // already opened it. Said here so the boot does not depend on that.
-    getRawConnection();
-    registerReinitializeHook(() => this.rebindOrm());
-    await runSchemaBootstrap(this.orm);
+    this.engine.open(() => this.rebindOrm());
+    await this.engine.schemaBootstrap(this.orm, { snapshot: true });
   }
 
   /** Checkpoints and closes the connection. A closed connection stays closed until `reopen()`. */
   close(): void {
-    closeDb();
+    this.engine.close();
   }
 
   /**
@@ -60,7 +58,7 @@ export class DatabaseLifecycle {
    * restored backup may predate this release).
    */
   async reopen(): Promise<void> {
-    await reinitialize();
+    await this.engine.reopen();
   }
 
   /**
@@ -90,7 +88,7 @@ export class DatabaseLifecycle {
     await connection.connect();
     // No pre-migrate snapshot: the file was just unpacked from an archive that
     // is still there to go back to.
-    await runSchemaBootstrap(this.orm, { snapshot: false });
+    await this.engine.schemaBootstrap(this.orm, { snapshot: false });
     for (const listener of this.reopenListeners) await listener();
   }
 }

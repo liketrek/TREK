@@ -6,7 +6,7 @@
  * repositories. Nothing tested that claim until this probe. Given an empty
  * Postgres database it
  *
- *   1. derives a Postgres schema from the entities (pg-probe/schema.ts);
+ *   1. derives a Postgres schema from the entities (src/db/engine/postgres/schema-adjust.ts);
  *   2. runs every dialect helper on SQLite and on Postgres and checks both
  *      return what the helper promises (pg-probe/helper-cases.ts); every
  *      case must pass;

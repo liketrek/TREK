@@ -1,10 +1,9 @@
 import { deriveDb } from '../../../../src/app-config/derive';
-import { POSTGRES_NOT_READY } from '../../../../src/app-config/env';
 import { buildOrmConfig, resolveEngine } from '../../../../src/db/engine';
+import { TrekPostgreSqlDriver } from '../../../../src/db/engine/postgres/postgres-driver';
 import { sslOptionFor } from '../../../../src/db/engine/postgres/postgres-engine';
 import { redactUrl } from '../../../../src/db/engine/redact-url';
 import { SharedSqliteDriver } from '../../../../src/db/orm-driver';
-import { PostgreSqlDriver } from '@mikro-orm/postgresql';
 
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -17,7 +16,6 @@ describe('resolveEngine', () => {
   it('ENGINE-001: SQLite when no TREK_DB_URL is set, which is the test environment', () => {
     const engine = resolveEngine();
     expect(engine.id).toBe('sqlite');
-    expect(engine.ready).toBe(true);
     expect(engine.ormOptions()).toEqual({ driver: SharedSqliteDriver, dbName: ':memory:' });
     expect(engine.describe()).toBe('SQLite file :memory:');
   });
@@ -25,9 +23,8 @@ describe('resolveEngine', () => {
   it('ENGINE-002: Postgres when TREK_DB_URL names a database, with the pool size and no SSL by default', () => {
     const engine = resolveEngine(deriveDb({ TREK_DB_URL: PG_URL, TREK_DB_POOL_MAX: '7' }));
     expect(engine.id).toBe('postgres');
-    expect(engine.ready).toBe(false);
     expect(engine.ormOptions()).toEqual({
-      driver: PostgreSqlDriver,
+      driver: TrekPostgreSqlDriver,
       clientUrl: PG_URL,
       pool: { min: 0, max: 7 },
       driverOptions: {},
@@ -102,9 +99,18 @@ describe('buildOrmConfig', () => {
     expect(Array.isArray(config.entities) && config.entities.length).toBeGreaterThan(100);
   });
 
-  it('ENGINE-031: refuses an engine this release cannot run, before anything connects, without the password', () => {
+  it('ENGINE-031: the Postgres config carries the same entities and migrations, on the pg driver', () => {
+    const config = buildOrmConfig(resolveEngine(deriveDb({ TREK_DB_URL: PG_URL })));
+    expect(config.driver).toBe(TrekPostgreSqlDriver);
+    expect(config.clientUrl).toBe(PG_URL);
+    expect(config.migrations).toMatchObject({ pathTs: 'src/db/migrations', snapshot: false });
+    expect(config.entities).toBe(buildOrmConfig(resolveEngine()).entities);
+  });
+
+  it('ENGINE-032: a Postgres engine opens and closes nothing of its own, and refuses a reopen (no restore yet)', async () => {
     const engine = resolveEngine(deriveDb({ TREK_DB_URL: PG_URL }));
-    expect(() => buildOrmConfig(engine)).toThrow(POSTGRES_NOT_READY);
-    expect(() => buildOrmConfig(engine)).not.toThrow(/s3cret/);
+    expect(() => engine.open(() => undefined)).not.toThrow();
+    expect(() => engine.close()).not.toThrow();
+    await expect(engine.reopen()).rejects.toThrow(/not available in this release/);
   });
 });

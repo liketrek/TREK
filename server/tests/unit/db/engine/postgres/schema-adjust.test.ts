@@ -1,6 +1,6 @@
 /**
- * How the Postgres probe turns the entities into a Postgres schema
- * (scripts/pg-probe/schema.ts): SQLite-only defaults, TEXT timestamps, the
+ * How the entities' schema is written in Postgres
+ * (src/db/engine/postgres/schema-adjust.ts): SQLite-only defaults, TEXT timestamps, the
  * NOCASE collation, and splitting the generated DDL so one refused statement
  * does not take the rest with it.
  */
@@ -9,9 +9,10 @@ import {
   NOCASE_COLLATION_SQL,
   PG_NOW_TEXT_DEFAULT,
   portableDefault,
+  POSTGRES_TRIGGERS,
   splitStatements,
   type ColumnMeta,
-} from '../../../../scripts/pg-probe/schema';
+} from '../../../../../src/db/engine/postgres/schema-adjust';
 
 import { describe, expect, it } from 'vitest';
 
@@ -39,17 +40,28 @@ describe('pg-probe schema', () => {
       { name: 'title', customType: new TextType(), columnTypes: ['text'], defaultRaw: "'x'" },
       { name: 'stamp', columnTypes: ['int'], defaultRaw: "(strftime('%s','now'))" },
       { name: 'region', columnTypes: ['text'], collation: 'NOCASE' },
-      { name: 'id', columnTypes: ['int'] },
+      { name: 'body', columnTypes: ['text'] },
     ];
     expect(adjustColumns(columns)).toEqual(['created_at', 'stamp', 'region']);
     expect(columns[0]).toMatchObject({ columnTypes: ['text'], defaultRaw: PG_NOW_TEXT_DEFAULT });
     expect(columns[1]).toMatchObject({ columnTypes: ['text'], defaultRaw: "'x'" });
     expect(columns[2]).toMatchObject({
-      columnTypes: ['int'],
+      columnTypes: ['bigint'],
       defaultRaw: 'CAST(EXTRACT(EPOCH FROM CURRENT_TIMESTAMP) AS bigint)',
     });
     expect(columns[3]).toMatchObject({ collation: 'nocase' });
     expect(NOCASE_COLLATION_SQL).toContain('CREATE COLLATION IF NOT EXISTS nocase');
+  });
+
+  it('PGPROBE-043: an integer column is bigint, as wide as SQLite INTEGER (epoch milliseconds overflow integer)', () => {
+    const columns: ColumnMeta[] = [
+      { name: 'id', columnTypes: ['integer'] },
+      { name: 'next_run_at', columnTypes: ['int'] },
+      { name: 'enabled', columnTypes: ['boolean'] },
+      { name: 'note', columnTypes: ['text'] },
+    ];
+    expect(adjustColumns(columns)).toEqual(['id', 'next_run_at']);
+    expect(columns.map((column) => column.columnTypes)).toEqual([['bigint'], ['bigint'], ['boolean'], ['text']]);
   });
 
   it('PGPROBE-042: splits DDL on semicolons outside quotes and drops session settings', () => {
@@ -66,5 +78,18 @@ describe('pg-probe schema', () => {
       'create table "b ;" ("id" int)',
     ]);
     expect(splitStatements('  ;  ; ')).toEqual([]);
+  });
+
+  it('PGPROBE-044: a $$ body stays one statement, semicolons and all, and every trigger port splits into its two', () => {
+    const fn =
+      "CREATE FUNCTION f() RETURNS trigger LANGUAGE plpgsql AS $$\nBEGIN\n  UPDATE t SET x = ';';\n  RETURN NEW;\nEND\n$$";
+    expect(splitStatements(`${fn};\nCREATE TRIGGER g AFTER UPDATE ON t FOR EACH ROW EXECUTE FUNCTION f();`)).toEqual([
+      fn,
+      'CREATE TRIGGER g AFTER UPDATE ON t FOR EACH ROW EXECUTE FUNCTION f()',
+    ]);
+    for (const [name, statements] of Object.entries(POSTGRES_TRIGGERS)) {
+      expect(splitStatements(statements.join(';\n')), name).toEqual([...statements]);
+      expect(statements.at(-1), name).toContain(`CREATE TRIGGER ${name} `);
+    }
   });
 });

@@ -18,13 +18,18 @@ export async function ensureEmailCaseIndex(connection: Connection): Promise<void
   const pending: unknown[] = await connection.execute(`SELECT value FROM app_settings WHERE key = ?`, [PENDING_KEY]);
   if (pending.length === 0) return;
 
-  const duplicates: Array<{ ids: string }> = await connection.execute(
-    `SELECT group_concat(id, ', ') AS ids FROM (SELECT id, email FROM users ORDER BY id) GROUP BY lower(email) HAVING COUNT(*) > 1`,
+  // Grouped here rather than with group_concat, which Postgres spells string_agg.
+  const rows: Array<{ id: number; email_key: string }> = await connection.execute(
+    `SELECT id, lower(email) AS email_key FROM users WHERE lower(email) IN ` +
+      `(SELECT lower(email) FROM users GROUP BY lower(email) HAVING COUNT(*) > 1) ORDER BY id`,
   );
-  if (duplicates.length > 0) {
+  const duplicates = new Map<string, number[]>();
+  for (const row of rows) duplicates.set(row.email_key, [...(duplicates.get(row.email_key) ?? []), row.id]);
+  if (duplicates.size > 0) {
+    const ids = [...duplicates.values()].map((group) => group.join(', '));
     console.warn(
-      `[DB] ${duplicates.length} email address(es) still belong to more than one account when case is ignored ` +
-        `(user ids ${duplicates.map((row) => row.ids).join('; ')}), so users.email has no case-insensitive unique ` +
+      `[DB] ${duplicates.size} email address(es) still belong to more than one account when case is ignored ` +
+        `(user ids ${ids.join('; ')}), so users.email has no case-insensitive unique ` +
         'index yet. Give each of those accounts its own address under Admin > Users; the next start creates it.',
     );
     return;

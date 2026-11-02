@@ -369,11 +369,8 @@ describe('validateEnvAtBoot: the database engine', () => {
     }
   });
 
-  it('DB-BOOT-004: refuses a Postgres database while this release cannot run on one', () => {
-    const { thrown, printed } = bootReport({ TREK_DB_URL: 'postgresql://u:p@db:5432/trek?sslmode=require' });
-    expect(thrown).toMatch(/Invalid environment configuration/);
-    expect(printed).toContain('Postgres support is not complete in this release');
-    expect(printed).not.toContain('u:p@');
+  it('DB-BOOT-004: accepts a Postgres database on its own', () => {
+    expect(() => validateEnvAtBoot({ TREK_DB_URL: 'postgresql://u:p@db:5432/trek?sslmode=require' })).not.toThrow();
   });
 
   it('DB-BOOT-005: refuses a pool size outside 1 to 100', () => {

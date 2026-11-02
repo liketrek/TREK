@@ -68,8 +68,8 @@ describe('DatabaseLifecycle', () => {
 
     await new DatabaseLifecycle(orm).open();
 
-    expect(calls).toEqual(['getRawConnection', 'registerReinitializeHook', 'runSchemaBootstrap:{}']);
-    expect(ormMock.runSchemaBootstrap).toHaveBeenCalledWith(orm);
+    expect(calls).toEqual(['getRawConnection', 'registerReinitializeHook', 'runSchemaBootstrap:{"snapshot":true}']);
+    expect(ormMock.runSchemaBootstrap).toHaveBeenCalledWith(orm, { snapshot: true });
   });
 
   it('DBLIFE-002: the hook open() registers rebuilds the ORM client and migrates the new file without a pre-migrate copy', async () => {

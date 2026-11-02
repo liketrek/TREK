@@ -44,7 +44,7 @@ permissions:
 #   Client: Bundle           the production build, one chunk per map engine
 #   Client: End-to-End       the app in Chromium and WebKit
 #   Plugin SDK: Types & Coverage
-#   Repo: Docker Image       builds the image and boots it until ready
+#   Repo: Docker Image       builds the image and boots it until ready, on SQLite and on Postgres
 #   Repo: Helm Chart & Compose
 #   Repo: Sonar Scan         SonarCloud analysis, not required
 #   ci-ok                    the one required check (below)
@@ -281,6 +281,13 @@ jobs:
         # src/db/kysely/ is generated from the migrations by gen:db-types; a
         # migration that changes a column regenerates it in the same change.
         run: cd server && npm run check:db-types
+
+      - name: Postgres baseline matches the entities
+        # server/assets/postgres/ is the schema a fresh Postgres database starts
+        # from, generated from the entities by gen:pg-baseline. Until a migration
+        # lands after its cut it must match them exactly; after, it is frozen
+        # and only its list of migrations is checked.
+        run: cd server && npm run check:pg-baseline
 
   server-lint-checks:
     name: 'Server: Lint & Checks'
@@ -1211,9 +1218,71 @@ jobs:
           docker logs trek-ci 2>&1 | grep 'SIGTERM received' >/dev/null \
             || { echo "::error::the server never saw SIGTERM"; exit 1; }
 
+      # The same image on a Postgres database (TREK_DB_URL): an empty database
+      # gets the baseline schema, the admin is seeded, and the server answers
+      # ready. The database runs beside it on a private network, never exposed.
+      - name: Start the container on Postgres
+        run: |
+          set -euo pipefail
+          docker network create trek-ci-pg
+          docker run -d --name trek-ci-db --network trek-ci-pg \
+            -e POSTGRES_PASSWORD=ci -e POSTGRES_DB=trek postgres:17
+          for _ in $(seq 1 30); do
+            docker exec trek-ci-db pg_isready -U postgres -d trek >/dev/null 2>&1 && break
+            sleep 2
+          done
+          docker exec trek-ci-db pg_isready -U postgres -d trek \
+            || { echo "::error::Postgres did not accept connections within 60 seconds."; exit 1; }
+          mkdir -p "$RUNNER_TEMP/trek-pg/data" "$RUNNER_TEMP/trek-pg/uploads"
+          docker run -d --name trek-ci-on-pg --network trek-ci-pg -p 127.0.0.1:3001:3000 \
+            --read-only --tmpfs /tmp:noexec,nosuid,size=128m \
+            --security-opt no-new-privileges:true \
+            --cap-drop ALL --cap-add CHOWN --cap-add SETUID --cap-add SETGID --cap-add KILL \
+            -v "$RUNNER_TEMP/trek-pg/data:/app/data" \
+            -v "$RUNNER_TEMP/trek-pg/uploads:/app/uploads" \
+            -e ENCRYPTION_KEY="$(openssl rand -hex 32)" \
+            -e TREK_DB_URL=postgres://postgres:ci@trek-ci-db:5432/trek \
+            trek:ci
+
+      # Twice: the first start creates the schema in the empty database, the
+      # restart finds it migrated and must start without touching it.
+      - name: Wait until the server on Postgres is ready, then again after a restart
+        run: |
+          wait_ready() {
+          for _ in $(seq 1 90); do
+            if [ "$(docker inspect -f '{{.State.Running}}' trek-ci-on-pg)" != "true" ]; then
+              echo "::error::The container on Postgres exited before it became ready."
+              exit 1
+            fi
+            if curl -sf http://127.0.0.1:3001/api/health/ready; then
+              echo
+              return 0
+            fi
+            sleep 2
+          done
+          echo "::error::/api/health/ready on Postgres did not answer within 180 seconds."
+          exit 1
+          }
+          wait_ready
+          docker restart -t 30 trek-ci-on-pg >/dev/null
+          wait_ready
+
+      - name: Stop the container on Postgres gracefully
+        run: |
+          set -euo pipefail
+          docker stop -t 30 trek-ci-on-pg >/dev/null
+          code="$(docker inspect -f '{{.State.ExitCode}}' trek-ci-on-pg)"
+          [ "$code" = "0" ] || { echo "::error::docker stop ended with exit code $code, not a graceful shutdown"; exit 1; }
+
       - name: Container log
         if: always()
         run: docker logs trek-ci 2>&1 || true
+
+      - name: Container log on Postgres
+        if: always()
+        run: |
+          docker logs trek-ci-on-pg 2>&1 || true
+          docker logs trek-ci-db 2>&1 | tail -50 || true
 
   # The Helm chart and the compose files are what self-hosters deploy from,
   # and before this job only a release ever touched them. The chart is linted,
