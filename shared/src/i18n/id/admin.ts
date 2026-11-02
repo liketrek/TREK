@@ -1121,6 +1121,8 @@ const admin: TranslationStrings = {
   'admin.contribute.never.providers': 'Detail yang diisi oleh Google atau penyedia lain',
   'admin.contribute.prompt.how':
     'Hanya yang diketik sendiri oleh pengguna Anda, dan hanya untuk tempat yang dikenal indeks. Tidak ada pengguna, perjalanan, atau akun yang ikut terkirim. Log menunjukkan setiap pengiriman, dan Anda dapat mematikan bidang atau menarik semuanya kapan saja.',
+  'admin.contribute.prompt.past':
+    'Detail yang diketik pengguna Anda sejak TREK 5.1 juga dibagikan, sedikit demi sedikit.',
   'admin.contribute.prompt.openRegistration':
     'Pendaftaran terbuka di instalasi ini, jadi siapa pun yang punya akun dapat mengetik detail. Setiap nilai diperiksa sebelum dipublikasikan.',
   'admin.contribute.prompt.footnote': 'Anda memutuskan ini untuk seluruh instalasi. Pengguna Anda tidak ditanya.',

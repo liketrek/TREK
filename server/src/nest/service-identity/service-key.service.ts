@@ -46,10 +46,10 @@ export interface KeySnapshot {
 }
 
 /**
- * The installation key: loaded lazily, registered in the background on the
- * first call to a liketrek service, renewed from day 60 on the next call or
- * the daily check, given up after repeated refusals and frozen when the
- * services revoke it.
+ * The installation key: loaded lazily, registered in the background a few
+ * minutes after startup or on the first call to a liketrek service, whichever
+ * comes first, renewed from day 60 on the next call or the daily check, given
+ * up after repeated refusals and frozen when the services revoke it.
  *
  * Nothing here ever makes a request wait. Until a key is there, requests go
  * out as they always did, and the shared legacy pool answers them.
@@ -138,11 +138,20 @@ export class ServiceKeyService {
     void this.inBackground(() => this.markRevoked(token));
   }
 
-  /** The daily check: renews the key once it is due. A key past its grace period is already gone on load. */
-  async renewIfDue(): Promise<void> {
+  /**
+   * The check after startup and every day: registers when there is no key yet
+   * and the backoff of a failed attempt is over, and renews the key once it is
+   * due. So an installation gets its key without anyone searching for a place
+   * first. A key past its grace period is already gone on load.
+   */
+  async settle(): Promise<void> {
     if (!this.inUse()) return;
     await this.inBackground(async () => {
       await this.load();
+      if (this.wantsRegistration()) {
+        await this.register();
+        return;
+      }
       const key = this.dueForRenewal();
       if (key) await this.renew(key);
     });

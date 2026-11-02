@@ -1023,6 +1023,7 @@ const admin: TranslationStrings = {
   'admin.contribute.never.providers': '由 Google 或其他提供者填寫的詳情',
   'admin.contribute.prompt.how':
     '只分享你的使用者親自填寫的內容，而且僅限索引已收錄的地點。不會附帶任何使用者、行程或帳號。記錄會顯示每一次傳輸，你可以隨時關閉欄位或撤回全部內容。',
+  'admin.contribute.prompt.past': '使用者自 TREK 5.1 起填寫的資訊也會逐步分享。',
   'admin.contribute.prompt.openRegistration':
     '此安裝已開放註冊，因此任何有帳號的人都可以填寫詳情。每個值在發布前都會經過檢查。',
   'admin.contribute.prompt.footnote': '這由你為整個安裝決定。不會詢問你的使用者。',

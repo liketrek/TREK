@@ -20,6 +20,24 @@ export interface OutboxRow {
   created_at: string;
 }
 
+/** A place with values a user typed, and the hash each of those values had when it was typed. */
+export interface PlaceTypedRow {
+  place: {
+    id: number;
+    name: string;
+    lat: number | null;
+    lng: number | null;
+    osm_id: string | null;
+    website: string | null;
+    phone: string | null;
+    email: string | null;
+    opening_hours: string | null;
+    description: string | null;
+    image_url: string | null;
+  };
+  typed: { field: string; value_hash: string }[];
+}
+
 /**
  * A value the sender read: its settle writes touch the row only while it still
  * holds that value, since a newer one keeps the row's id but brings a new cid.
@@ -251,5 +269,56 @@ export class PlaceContribOutboxRepository extends TrekRepository<PlaceContribOut
       ])
       .where('o.id', 'in', ids)
       .execute();
+  }
+
+  /**
+   * The next places after `afterId`, by id, with a value a user typed in one
+   * of these fields, each with the origins of those fields: the catch-up
+   * after an agreement walks them page by page.
+   */
+  async typedAfter(afterId: number, fields: string[], limit: number): Promise<PlaceTypedRow[]> {
+    if (fields.length === 0) return [];
+    const placeIds = (
+      await this.db()
+        .selectFrom('place_field_origin')
+        .select('place_id')
+        .distinct()
+        .where('origin', '=', 'user')
+        .where('field', 'in', fields)
+        .where('place_id', '>', afterId)
+        .orderBy('place_id')
+        .limit(limit)
+        .execute()
+    ).map((row) => row.place_id);
+    if (placeIds.length === 0) return [];
+    const typed = await this.db()
+      .selectFrom('place_field_origin')
+      .select(['place_id', 'field', 'value_hash'])
+      .where('origin', '=', 'user')
+      .where('field', 'in', fields)
+      .where('place_id', 'in', placeIds)
+      .execute();
+    const places = await this.db()
+      .selectFrom('places')
+      .select([
+        'id',
+        'name',
+        'lat',
+        'lng',
+        'osm_id',
+        'website',
+        'phone',
+        'email',
+        'opening_hours',
+        'description',
+        'image_url',
+      ])
+      .where('id', 'in', placeIds)
+      .orderBy('id')
+      .execute();
+    return places.map((place) => ({
+      place,
+      typed: typed.filter((row) => row.place_id === place.id).map(({ field, value_hash }) => ({ field, value_hash })),
+    }));
   }
 }

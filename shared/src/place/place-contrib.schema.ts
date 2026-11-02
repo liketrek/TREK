@@ -108,6 +108,12 @@ export const placeContribConsentSchema = z.object({
   decision: z.enum(['agreed', 'declined', 'off']).nullable(),
   decidedBy: z.number().int().positive().nullable(),
   decidedAt: z.string().nullable(),
+  /**
+   * The agreement was given in a prompt that said what users typed before it
+   * is shared as well (from TREK 5.1.1 on); only then does a field switched on
+   * later catch up too. Absent on an agreement from 5.1.0.
+   */
+  includesEarlier: z.boolean().optional(),
 });
 export type PlaceContribConsent = z.infer<typeof placeContribConsentSchema>;
 

@@ -215,6 +215,7 @@ describe('the admin state and the decisions', () => {
       decision: 'agreed',
       decidedBy: ADMIN,
       decidedAt: NOW.toISOString(),
+      includesEarlier: true,
     });
     expect(await store().activeFields()).toEqual(['website', 'phone', 'opening_hours', 'description', 'image']);
   });

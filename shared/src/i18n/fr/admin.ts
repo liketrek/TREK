@@ -1158,6 +1158,8 @@ const admin: TranslationStrings = {
   'admin.contribute.never.providers': 'Détails renseignés par Google ou un autre fournisseur',
   'admin.contribute.prompt.how':
     "Seulement ce que vos utilisateurs ont saisi eux-mêmes, et seulement pour les lieux que l'index connaît. Aucun utilisateur, voyage ou compte n'accompagne ces données. Le journal montre chaque transmission, et vous pouvez désactiver des champs ou tout retirer à tout moment.",
+  'admin.contribute.prompt.past':
+    'Les détails que vos utilisateurs ont saisis depuis TREK 5.1 sont aussi partagés, petit à petit.',
   'admin.contribute.prompt.openRegistration':
     "L'inscription est ouverte sur cette installation : toute personne ayant un compte peut donc saisir des détails. Chaque valeur est vérifiée avant d'être publiée.",
   'admin.contribute.prompt.footnote':

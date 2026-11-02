@@ -1131,6 +1131,8 @@ const admin: TranslationStrings = {
   'admin.contribute.never.providers': "Google'i või mõne muu pakkuja täidetud andmed",
   'admin.contribute.prompt.how':
     'Ainult see, mida sinu kasutajad ise sisestasid, ja ainult kohtade kohta, mida indeks tunneb. Kaasa ei lähe ükski kasutaja, reis ega konto. Logi näitab iga edastust ning sa saad välju igal ajal välja lülitada või kõik tagasi võtta.',
+  'admin.contribute.prompt.past':
+    'Ka andmeid, mille teie kasutajad on sisestanud alates TREK 5.1-st, jagatakse järk-järgult.',
   'admin.contribute.prompt.openRegistration':
     'Sellel paigaldusel on registreerimine avatud, seega saab andmeid sisestada igaüks, kellel on konto. Iga väärtus kontrollitakse enne avaldamist.',
   'admin.contribute.prompt.footnote': 'Sa otsustad selle kogu paigalduse eest. Sinu kasutajatelt ei küsita.',

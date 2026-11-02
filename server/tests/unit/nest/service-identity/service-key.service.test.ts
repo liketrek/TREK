@@ -333,6 +333,41 @@ describe('registration', () => {
   });
 });
 
+describe('the check after startup and every day', () => {
+  it('SIKEYS-039: registers without any request having asked first', async () => {
+    const { keys, store, issuer } = await build();
+    await keys.settle();
+    expect(issuer.register).toHaveBeenCalledTimes(1);
+    expect(store.current().key?.token).toBe(KEY);
+    expect(keys.bearer()).toBe(KEY);
+  });
+
+  it('SIKEYS-040: waits out the backoff of a failed attempt, then registers on the next check', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const issuer = fakeIssuer();
+    issuer.challenge.mockRejectedValueOnce(new Error('fetch failed'));
+    const { keys } = await build({ issuer });
+    await expect(keys.settle()).rejects.toThrow('fetch failed');
+    await keys.settle();
+    expect(issuer.challenge).toHaveBeenCalledTimes(1);
+    vi.setSystemTime(Date.now() + 5 * 60_000);
+    await keys.settle();
+    expect(issuer.register).toHaveBeenCalledTimes(1);
+    expect(keys.bearer()).toBe(KEY);
+  });
+
+  it.each([
+    ['the services are off', { config: { mode: 'off' as const } }],
+    ['the TREK index is off', { places: { enabled: false } }],
+    ['a key comes from the environment', { config: { key: KEY } }],
+    ['the index is an own copy', { places: { url: 'https://places.example.org' } }],
+  ])('SIKEYS-041: does not register when %s', async (_case, setup) => {
+    const { keys, issuer } = await build(setup);
+    await keys.settle();
+    expect(issuer.challenge).not.toHaveBeenCalled();
+  });
+});
+
 describe('when it never registers', () => {
   it('SIKEYS-010: never under NODE_ENV=test', async () => {
     const { keys, issuer } = await build({ isTest: true });
@@ -481,14 +516,14 @@ describe('renewal', () => {
 
   it('SIKEYS-030: leaves a key alone before it is due', async () => {
     const { keys, issuer } = await build({ store: stored({ renewAfter: now() + DAY }) });
-    await keys.renewIfDue();
+    await keys.settle();
     expect(issuer.renew).not.toHaveBeenCalled();
   });
 
   it('SIKEYS-031: renews from day 60 with the old key, keeping the same installation', async () => {
     const store = stored();
     const { keys, issuer } = await build({ store });
-    await keys.renewIfDue();
+    await keys.settle();
     expect(issuer.renew).toHaveBeenCalledWith(oldKey);
     expect(store.current().key?.token).toBe(RENEWED_KEY);
     expect(store.current().state.renewAfter).toBeGreaterThan(now() + 149 * DAY);
@@ -500,7 +535,7 @@ describe('renewal', () => {
     const issuer = fakeIssuer();
     const { keys } = await build({ store, issuer });
     t?.get(ServiceClock).learn(Date.now() + 2 * DAY * 1000);
-    await keys.renewIfDue();
+    await keys.settle();
     expect(issuer.renew).toHaveBeenCalledTimes(1);
   });
 
@@ -509,12 +544,12 @@ describe('renewal', () => {
     const refused = fakeIssuer();
     refused.renew.mockRejectedValue(new IssuerError(401, null, null));
     const first = await build({ store: stored(), issuer: refused });
-    await first.keys.renewIfDue();
-    await first.keys.renewIfDue();
+    await first.keys.settle();
+    await first.keys.settle();
     expect(first.store.dropKey).not.toHaveBeenCalled();
     await oneByOne(Array.from({ length: 2 }), () => {
       vi.setSystemTime(Date.now() + 10 * 60_000);
-      return first.keys.renewIfDue();
+      return first.keys.settle();
     });
     expect(first.store.dropKey).toHaveBeenCalledTimes(1);
     vi.useRealTimers();
@@ -523,14 +558,14 @@ describe('renewal', () => {
     const revoked = fakeIssuer();
     revoked.renew.mockRejectedValueOnce(new IssuerError(403, null, null));
     const second = await build({ store: stored(), issuer: revoked });
-    await second.keys.renewIfDue();
+    await second.keys.settle();
     expect(second.store.current().state.revoked).toBe(keyFingerprint(oldKey));
     await t?.close();
 
     const down = fakeIssuer();
     down.renew.mockRejectedValueOnce(new Error('fetch failed'));
     const third = await build({ store: stored(), issuer: down });
-    await expect(third.keys.renewIfDue()).rejects.toThrow('fetch failed');
+    await expect(third.keys.settle()).rejects.toThrow('fetch failed');
     expect(third.store.current().key?.token).toBe(oldKey);
   });
 
@@ -544,7 +579,7 @@ describe('renewal', () => {
       },
     });
     const { keys, issuer } = await build({ store });
-    await keys.renewIfDue();
+    await keys.settle();
     expect(issuer.renew).not.toHaveBeenCalled();
     keys.bearer();
     await settled(keys);
@@ -554,7 +589,7 @@ describe('renewal', () => {
 
   it('SIKEYS-035: never renews a key from the environment', async () => {
     const { keys, issuer } = await build({ store: stored(), config: { key: KEY } });
-    await keys.renewIfDue();
+    await keys.settle();
     expect(issuer.renew).not.toHaveBeenCalled();
   });
 

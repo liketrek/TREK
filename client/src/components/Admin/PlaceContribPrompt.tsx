@@ -175,7 +175,7 @@ export default function PlaceContribPrompt({
           ))}
         </ul>
         <p className="m-0 leading-normal text-content-muted" style={fs(12, 'body')}>
-          {t('admin.contribute.prompt.how')}
+          {t('admin.contribute.prompt.how')} {t('admin.contribute.prompt.past')}
         </p>
       </section>
 

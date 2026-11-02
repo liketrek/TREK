@@ -2,6 +2,7 @@ import { PlaceContribLog } from '../../db/entities/PlaceContribLog.entity';
 import type { PlaceContribLogRepository } from '../../db/repositories/PlaceContribLog.repository';
 import { logError, logInfo } from '../audit/audit-log.logger';
 import { CronRegistrarService } from '../scheduling/cron-registrar.service';
+import { PlaceContribBackfill } from './place-contrib-backfill.service';
 import { PlaceContribSender } from './place-contrib-sender.service';
 import { LOG_RETENTION_DAYS, LOG_RETENTION_SCHEDULE, SEND_SCHEDULE } from './place-contrib.constants';
 import { dayOf } from './place-contrib.helpers';
@@ -12,7 +13,8 @@ const DAY_MS = 24 * 3_600_000;
 
 /**
  * The two crons of the community enrichment: the sender every two minutes,
- * which does nothing unless the installation is eligible and an admin agreed,
+ * which does nothing unless the installation is eligible and an admin agreed
+ * and first tops the queue up with the catch-up of earlier values,
  * and the nightly retention of the transmission log (90 days), which runs
  * whatever the decision so a log switched off still ages out.
  */
@@ -20,6 +22,7 @@ const DAY_MS = 24 * 3_600_000;
 export class PlaceContribJob implements OnApplicationBootstrap {
   constructor(
     private readonly sender: PlaceContribSender,
+    private readonly backfill: PlaceContribBackfill,
     @InjectRepository(PlaceContribLog) private readonly log: PlaceContribLogRepository,
     private readonly registrar: CronRegistrarService,
   ) {}
@@ -56,6 +59,12 @@ export class PlaceContribJob implements OnApplicationBootstrap {
 
   private async runOnce(): Promise<void> {
     this.again = false;
+    // A failed catch-up step never keeps what is queued from going out.
+    try {
+      await this.backfill.step();
+    } catch (err: unknown) {
+      logError(`Places contribution: the catch-up failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
     try {
       await this.sender.run();
     } catch (err: unknown) {

@@ -1138,6 +1138,7 @@ const admin: TranslationStrings = {
   'admin.contribute.never.providers': 'Údaje vyplněné Googlem nebo jiným poskytovatelem',
   'admin.contribute.prompt.how':
     'Jen to, co uživatelé zadali sami, a jen pro místa, která index zná. Žádný uživatel, cesta ani účet se neodesílá. Protokol ukazuje každé odeslání a pole můžete kdykoli vypnout nebo vše stáhnout zpět.',
+  'admin.contribute.prompt.past': 'Údaje, které vaši uživatelé zadali od TREK 5.1, se sdílejí také, postupně.',
   'admin.contribute.prompt.openRegistration':
     'V této instalaci je otevřená registrace, takže údaje může zadávat kdokoli s účtem. Každá hodnota se před zveřejněním kontroluje.',
   'admin.contribute.prompt.footnote': 'Rozhodujete za celou instalaci. Vaši uživatelé o souhlas požádáni nejsou.',

@@ -6,6 +6,8 @@ import { SchedulingModule } from '../scheduling/scheduling.module';
 import { ServiceIdentityModule } from '../service-identity/service-identity.module';
 import { SettingsModule } from '../settings/settings.module';
 import { StorageModule } from '../storage/storage.module';
+import { PlaceContribBackfill } from './place-contrib-backfill.service';
+import { PlaceContribQueue } from './place-contrib-queue';
 import { PlaceContribSender } from './place-contrib-sender.service';
 import { PlaceContribSettings } from './place-contrib-settings';
 import { PlaceContribStorageRefsService } from './place-contrib-storage-refs.service';
@@ -19,7 +21,8 @@ import { Module } from '@nestjs/common';
 /**
  * Community enrichment of place details: the admin's decision, the queue of
  * values users typed in, the cron that sends them to the TREK Places API and
- * the transmission log. Exports PlaceContribService for the places domain,
+ * the transmission log, and the catch-up of what users typed before an
+ * admin agreed. Exports PlaceContribService for the places domain,
  * whose origin tracking feeds the queue after every place write.
  */
 @Module({
@@ -40,6 +43,8 @@ import { Module } from '@nestjs/common';
     PlaceContribSender,
     PlaceContribJob,
     PlaceContribStorageRefsService,
+    PlaceContribQueue,
+    PlaceContribBackfill,
   ],
   exports: [PlaceContribService],
 })

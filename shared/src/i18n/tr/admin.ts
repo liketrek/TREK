@@ -1143,6 +1143,7 @@ const admin: TranslationStrings = {
   'admin.contribute.never.providers': 'Google veya başka bir sağlayıcının doldurduğu ayrıntılar',
   'admin.contribute.prompt.how':
     'Yalnızca kullanıcılarınızın kendi yazdıkları ve yalnızca dizinin tanıdığı yerler için. Hiçbir kullanıcı, gezi veya hesap bununla gitmez. Günlük her aktarımı gösterir; alanları kapatabilir veya her şeyi istediğiniz zaman geri çekebilirsiniz.',
+  'admin.contribute.prompt.past': "Kullanıcılarınızın TREK 5.1'den beri girdiği bilgiler de azar azar paylaşılır.",
   'admin.contribute.prompt.openRegistration':
     'Bu kurulumda kayıt açık, yani hesabı olan herkes ayrıntı yazabilir. Her değer yayımlanmadan önce kontrol edilir.',
   'admin.contribute.prompt.footnote': 'Buna tüm kurulum için siz karar verirsiniz. Kullanıcılarınıza sorulmaz.',

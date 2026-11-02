@@ -1,10 +1,12 @@
 /**
  * The two crons of the community enrichment: registration behind the test
  * gate, the log retention cut-off, that a failing run or sweep stays inside
- * its tick, and the run a save starts at once.
+ * its tick, the run a save starts at once, and the catch-up step before
+ * every run.
  */
 import type { PlaceContribLogRepository } from '../../../../src/db/repositories/PlaceContribLog.repository';
 import { inOrder } from '../../../../src/nest/common/in-order';
+import type { PlaceContribBackfill } from '../../../../src/nest/place-contrib/place-contrib-backfill.service';
 import type { PlaceContribSender } from '../../../../src/nest/place-contrib/place-contrib-sender.service';
 import { PlaceContribJob } from '../../../../src/nest/place-contrib/place-contrib.job';
 import type { CronRegistrarService } from '../../../../src/nest/scheduling/cron-registrar.service';
@@ -22,14 +24,16 @@ vi.mock('../../../../src/nest/audit/audit-log.logger', () => logMock);
 
 function make(enabled = true) {
   const sender = { run: vi.fn(async () => ({ skipped: null, places: 0, expired: 0 })) };
+  const backfill = { step: vi.fn(async () => 0) };
   const log = { purgeBefore: vi.fn(async () => 0) };
   const registrar = { isEnabled: vi.fn(() => enabled), register: vi.fn(() => enabled) };
   const job = new PlaceContribJob(
     sender as unknown as PlaceContribSender,
+    backfill as unknown as PlaceContribBackfill,
     log as unknown as PlaceContribLogRepository,
     registrar as unknown as CronRegistrarService,
   );
-  return { job, sender, log, registrar };
+  return { job, sender, backfill, log, registrar };
 }
 
 beforeEach(() => vi.clearAllMocks());
@@ -99,9 +103,22 @@ describe('PlaceContribJob', () => {
     const first = job.send();
     const second = job.send();
     const third = job.send();
-    expect(sender.run).toHaveBeenCalledTimes(1);
+    // The catch-up step comes first, so the sender starts a moment later.
+    await vi.waitFor(() => expect(sender.run).toHaveBeenCalledTimes(1));
     release();
     await Promise.all([first, second, third]);
     expect(sender.run).toHaveBeenCalledTimes(2);
+  });
+
+  it('PCJ-008: every run first tops the queue up from the catch-up, and a failed step still sends', async () => {
+    const { job, sender, backfill } = make();
+    await job.send();
+    expect(backfill.step).toHaveBeenCalledTimes(1);
+    expect(backfill.step.mock.invocationCallOrder[0]).toBeLessThan(sender.run.mock.invocationCallOrder[0]);
+
+    backfill.step.mockRejectedValueOnce(new Error('database is locked'));
+    await job.send();
+    expect(sender.run).toHaveBeenCalledTimes(2);
+    expect(logMock.logError).toHaveBeenCalledWith(expect.stringContaining('catch-up'));
   });
 });

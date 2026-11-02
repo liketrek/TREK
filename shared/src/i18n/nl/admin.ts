@@ -1143,6 +1143,8 @@ const admin: TranslationStrings = {
   'admin.contribute.never.providers': 'Details die door Google of een andere aanbieder zijn ingevuld',
   'admin.contribute.prompt.how':
     'Alleen wat je gebruikers zelf hebben ingevuld, en alleen voor plaatsen die de index kent. Er gaat geen gebruiker, reis of account mee. Het logboek toont elke verzending, en je kunt velden uitzetten of alles op elk moment intrekken.',
+  'admin.contribute.prompt.past':
+    'Gegevens die je gebruikers sinds TREK 5.1 hebben ingevoerd, worden ook gedeeld, stukje bij beetje.',
   'admin.contribute.prompt.openRegistration':
     'De registratie staat open op deze installatie, dus iedereen met een account kan details invullen. Elke waarde wordt gecontroleerd voordat ze wordt gepubliceerd.',
   'admin.contribute.prompt.footnote': 'Je beslist dit voor de hele installatie. Je gebruikers worden niet gevraagd.',
