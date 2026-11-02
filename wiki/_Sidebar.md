@@ -125,6 +125,7 @@
 - [[Audit Log|Audit-Log]]
 
 ## Operations
+- [[Database: Postgres|Database-Postgres]]
 - [[Demo Mode|Demo-Mode]]
 - [[Encryption Key Rotation|Encryption-Key-Rotation]]
 - [[Internal Network Access|Internal-Network-Access]]

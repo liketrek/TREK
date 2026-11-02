@@ -645,3 +645,59 @@ See [Notifications](Notifications#web-push) for the details.
 **Cause:** The server kept refusing a queued change (after eight attempts it counts as failed), or an edit you made offline collided with a newer one on the server.
 
 **Fix:** The status pill at the bottom of the window reads **Failed to sync: N** or **Conflicts: N**. Open **Settings → Offline**. Under **Failed changes**, use **Try again** or **Discard** on each item. Under conflicts, choose **Keep mine** or **Keep theirs**. If the local copy itself looks wrong, **Clear cache** empties it and the next sync downloads it again. Unsynced changes are kept when a trip is cleared from the device. See [Offline-Mode-and-PWA](Offline-Mode-and-PWA).
+
+---
+
+## Postgres: TREK refuses to start because the database holds tables
+
+**Cause:** `TREK_DB_URL` points at a database that already has tables, and none of them is TREK's migration history. TREK creates its schema only in an empty database, and it does not adopt tables another application made. The log reads `[DB] Refusing to boot: the database holds N table(s) (...) but no TREK migration history.` Nothing was written to the database.
+
+**Fix:** Create a new, empty database for TREK, or point `TREK_DB_URL` at the one TREK already migrated. If this database is the wrong one, check the URL. See [Database-Postgres](Database-Postgres#first-boot).
+
+---
+
+## Postgres: TREK refuses to start because a copy before migrating could not be written
+
+**Cause:** Before it applies pending migrations, TREK writes a `pg_dump` copy to `data/pre-migrate-<schema>-<time>.pgdump`. If `pg_dump` is not installed where TREK looks, or the data directory is full or read-only, the copy fails and TREK refuses to migrate. The log says `could not write a copy of the database ... Nothing was migrated.`
+
+**Fix:** Install the PostgreSQL client tools (the Docker image has them) or set `TREK_DB_PG_BIN_DIR` to the directory that holds `pg_dump`. Free disk space or fix the permissions on `data/`, then start again. To migrate without a copy, set `TREK_DB_PRE_MIGRATE_SNAPSHOT=false`, but only when you have a backup of your own. See [Updating](Updating#database-migrations).
+
+---
+
+## Postgres: "pg_dump was not found" when backing up or restoring
+
+**Cause:** The backup, restore or pre-migration copy runs `pg_dump`, `pg_restore` or `psql` by its absolute path. None of them is in the directories TREK searches (`/usr/lib/postgresql/17` down to `14`, `/usr/local/bin`, `/usr/bin`), and `PATH` is not searched.
+
+**Fix:** Install the `postgresql-client` package, or set `TREK_DB_PG_BIN_DIR` to the directory that holds the three tools. The Docker image already includes the version 17 client. See [Database-Postgres](Database-Postgres#where-the-client-tools-are-found).
+
+---
+
+## Postgres: a backup or restore fails with "server version mismatch" or a version error
+
+**Cause:** Two different problems produce messages about versions. `pg_dump` from version 17 cannot dump a server running version 18 or later, and fails with `aborting because of server version mismatch`. A restore also refuses a `pg_restore` or `psql` older than 17.6, 16.10, 15.14 or 14.19, because those versions cannot restore a dump safely (CVE-2025-8714). The error names the version it found.
+
+**Fix:** For a newer server, point `TREK_DB_PG_BIN_DIR` at client tools of the same major version as the server. For an old client, install a newer `postgresql-client` package, or use a newer image. The Docker image's client is version 17, so it works with servers 14 to 17.
+
+---
+
+## Postgres: TREK refuses to start because of the sslmode in TREK_DB_URL
+
+**Cause:** The `sslmode` parameter is not one TREK accepts. TREK accepts `disable`, `require`, `verify-ca` and `verify-full`. A value such as `prefer`, `allow` or `no-verify`, or a misspelling, would connect without verifying the server, so TREK refuses to start. A `sslrootcert` that names a file the container cannot read stops the start the same way.
+
+**Fix:** Set `sslmode` to one of the four accepted values, and mount the CA file and point `sslrootcert` at its path inside the container. See [Database-Postgres](Database-Postgres#ssl).
+
+---
+
+## Postgres: TREK refuses to start because TREK_DB_URL is set with a SQLite variable
+
+**Cause:** `TREK_DB_URL` is set together with `TREK_DB_FILE`, `TREK_DB_JOURNAL_MODE` or `TREK_DB_SYNCHRONOUS`. TREK cannot tell which database those variables mean, so it refuses to start.
+
+**Fix:** Unset the SQLite variables. See [Environment-Variables](Environment-Variables).
+
+---
+
+## Postgres: a restore refuses the archive
+
+**Cause:** The archive is not a Postgres backup, or it cannot be loaded here. The message says which: `This backup holds a SQLite database, which cannot be restored into a Postgres database.` (a backup from a SQLite install), `The uploaded dump holds no TREK migration history.` (a dump that is not from TREK), or `This backup was made by a newer TREK version.` A SQLite backup cannot be restored into PostgreSQL, and a PostgreSQL backup cannot be restored into SQLite.
+
+**Fix:** Restore a backup taken on the same engine. For a newer backup, update TREK first. The database being replaced is kept as `data/pre-restore-<time>.pgdump` before the load starts. An archive that is refused is not loaded, so the database itself is unchanged. See [Backups](Backups#restoring-a-backup).

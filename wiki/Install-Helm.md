@@ -177,6 +177,33 @@ Every value the chart writes into its Secret is quoted, so a password such as `1
 
 > **Note:** Without `UNSPLASH_ACCESS_KEY` the server queries Unsplash's unauthenticated endpoint, which many datacenter and VPS IP ranges — including a lot of Kubernetes clusters — are blocked or rate-limited on. Trip-cover and place-image search then fail with **"Unsplash search unavailable"**. A free Access Key switches the server to Unsplash's authenticated API (`api.unsplash.com`), which is not subject to that block. The key can also be set in **Admin → Settings → API Keys**; this value takes priority over that one. See [Environment-Variables](Environment-Variables#image-search-unsplash).
 
+### Running on Postgres
+
+To run TREK on a PostgreSQL database, set `database.url`. The connection URL carries the password, so the chart writes it into its own Secret as `TREK_DB_URL` rather than into the ConfigMap:
+
+```yaml
+database:
+  url: "postgres://trek:<password>@postgres.example.internal:5432/trek?sslmode=require"
+```
+
+To keep the URL out of your values file, create a Secret yourself and point the chart at it. The key holds the same URL:
+
+```bash
+kubectl create secret generic trek-db --from-literal=TREK_DB_URL='postgres://trek:<password>@postgres.example.internal:5432/trek?sslmode=require'
+```
+
+```yaml
+database:
+  existingSecret: trek-db
+  existingSecretKey: TREK_DB_URL   # the default
+```
+
+The chart then reads `TREK_DB_URL` from that Secret. If the key is missing, the pod does not start. It does not fall back to SQLite. The chart refuses to render when `database.url` and the top-level `existingSecret` are both set, because the chart's own Secret, which holds the URL, is not created in that case. Use `database.existingSecret` instead.
+
+The database must be empty and dedicated to TREK, with a role that is not a superuser. The data and uploads volumes are still needed: they hold the data directory, the uploads and the copies TREK takes before migrating. The PostgreSQL requirements, the SSL settings (`sslmode`, `sslrootcert` with a CA file mounted into the pod) and the backups are on [Database: Postgres](Database-Postgres).
+
+Keep `replicas: 1` on Postgres too. TREK keeps rate limits, pending codes, the permission cache and WebSocket connections in memory, so a second pod would not share them. See [Limitations](Database-Postgres#limitations).
+
 ### Persistent Storage
 
 The data PVC holds the database, the plugins you install and the automatic `pre-migrate-<schema>-<time>.db` copy TREK writes before an upgrade migrates the database, so the previous image can run on that copy again. See [Updating](Updating).
@@ -328,7 +355,7 @@ Timeout fields are Standard Channel in Gateway API v1.2, though controller suppo
 
 ## Upgrade
 
-The Deployment uses the `Recreate` update strategy (`updateStrategy: Recreate`): the old pod stops before the new one starts. TREK is a single-writer SQLite application, and during a rolling update the new pod would migrate the database while the old one still writes to it. A ReadWriteMany volume does not make that safe, so leave the strategy as it is and keep one replica.
+The Deployment uses the `Recreate` update strategy (`updateStrategy: Recreate`): the old pod stops before the new one starts. The new pod migrates the database when it starts, and during a rolling update it would do that while the old pod still writes to it. On SQLite that is unsafe, and a ReadWriteMany volume does not make it safe either. On Postgres the database is no longer a file, but the strategy and the single replica stay for the in-memory state described above. Leave the strategy as it is and keep one replica.
 
 The in-app Help pages come from the image (`/app/wiki`), so they match the version you upgrade to.
 
