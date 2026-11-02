@@ -375,6 +375,15 @@ describe('AddonsService.list', () => {
     expect(listSpy).not.toHaveBeenCalled();
     listSpy.mockRestore();
   });
+
+  it('names the photo providers users can connect: the enabled ones, none while the journey addon is off', async () => {
+    await insertProvider({ id: 'immich', name: 'Immich', icon: 'image', enabled: 1 });
+    await insertProvider({ id: 'off-provider', name: 'Off', icon: 'image', enabled: 0 });
+    expect(await svc.enabledPhotoProviderIds()).toEqual([]);
+
+    stubJourneyEnabled();
+    expect(await svc.enabledPhotoProviderIds()).toEqual(['immich']);
+  });
 });
 
 // Direct coverage of the enablement reads/writers relocated from
