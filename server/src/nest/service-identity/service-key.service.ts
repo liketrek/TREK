@@ -9,7 +9,7 @@ import { RefusalStreak } from './refusal-streak';
 import type { RegistrationDialect } from './registration-dialect.types';
 import { ServiceClock } from './service-clock';
 import { REGISTRATION_DIALECT, SERVICE_ISSUER_ORIGIN } from './service-identity.constants';
-import { isAllowlisted, keyFingerprint, sameServiceUrl } from './service-identity.helpers';
+import { describeFailure, isAllowlisted, keyFingerprint, sameServiceUrl } from './service-identity.helpers';
 import { parseServiceKey, type ServiceKey } from './service-key.format';
 import { solvePow } from './service-key.pow';
 import { EMPTY_KEY_STATE, ServiceKeyStore, type KeyState, type StoredIdentity } from './service-key.store';
@@ -235,7 +235,7 @@ export class ServiceKeyService {
     const previous = this.work ?? Promise.resolve();
     const run = previous.then(() => withRequestContext(this.orm, task));
     const next = run
-      .catch((err: unknown) => logWarn(`TREK services: ${err instanceof Error ? err.message : String(err)}`))
+      .catch((err: unknown) => logWarn(`TREK services: ${describeFailure(err)}`))
       .finally(() => {
         if (this.work === next) this.work = null;
       });

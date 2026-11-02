@@ -1,4 +1,5 @@
 import {
+  describeFailure,
   isAllowlisted,
   keyFingerprint,
   readQuotaHeaders,
@@ -101,5 +102,53 @@ describe('keyFingerprint', () => {
     expect(keyFingerprint(token)).toMatch(/^[0-9a-f]{16}$/);
     expect(keyFingerprint(token)).toBe(keyFingerprint(token));
     expect(keyFingerprint(token)).not.toBe(keyFingerprint(`${token}x`));
+  });
+});
+
+describe('describeFailure', () => {
+  const attempt = (code: string, address: string, port = 443) =>
+    Object.assign(new Error(`connect ${code} ${address}:${port}`), { code, address, port });
+
+  it('spells out every address undici tried behind "fetch failed"', () => {
+    const cause = new AggregateError(
+      [attempt('ETIMEDOUT', '185.255.115.203'), attempt('ENETUNREACH', '2a0d:5940:140:bf4::2')],
+      '',
+    );
+    const err = new TypeError('fetch failed', { cause });
+
+    expect(describeFailure(err)).toBe(
+      'fetch failed (ETIMEDOUT 185.255.115.203:443, ENETUNREACH [2a0d:5940:140:bf4::2]:443)',
+    );
+  });
+
+  it('names a single cause by its code', () => {
+    const cause = Object.assign(new Error('getaddrinfo ENOTFOUND places.liketrek.com'), { code: 'ENOTFOUND' });
+
+    expect(describeFailure(new TypeError('fetch failed', { cause }))).toBe('fetch failed (ENOTFOUND)');
+  });
+
+  it('falls back to the cause message without a code', () => {
+    const cause = new Error('unable to verify the first certificate');
+
+    expect(describeFailure(new TypeError('fetch failed', { cause }))).toBe(
+      'fetch failed (unable to verify the first certificate)',
+    );
+  });
+
+  it('handles a cause list without usable entries and an address without a port', () => {
+    const portless = Object.assign(new Error('connect ECONNREFUSED'), { code: 'ECONNREFUSED', address: '192.0.2.1' });
+
+    expect(describeFailure(new TypeError('fetch failed', { cause: new AggregateError([], '') }))).toBe('fetch failed');
+    expect(describeFailure(new TypeError('fetch failed', { cause: new AggregateError(['odd'], '') }))).toBe(
+      'fetch failed (odd)',
+    );
+    expect(describeFailure(new TypeError('fetch failed', { cause: portless }))).toBe(
+      'fetch failed (ECONNREFUSED 192.0.2.1)',
+    );
+  });
+
+  it('keeps a plain error or value as it is', () => {
+    expect(describeFailure(new Error('the issuer answered 503'))).toBe('the issuer answered 503');
+    expect(describeFailure('boom')).toBe('boom');
   });
 });

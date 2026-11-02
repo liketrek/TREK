@@ -18,10 +18,16 @@ import { flushLogFileSync, logError } from './nest/audit/audit-log.logger';
 import type { DatabaseLifecycle } from './nest/database/database-lifecycle.service';
 import { ReadinessService } from './nest/health/readiness.service';
 import { createFatalHandler } from './shutdown';
+import { widenConnectAttemptTimeout } from './utils/connectAttempt';
 import type { INestApplication } from '@nestjs/common';
 
 import fs from 'node:fs';
 import http from 'node:http';
+
+// Before any outbound request: Node's 250 ms per-address attempt is shorter
+// than a round trip from Australia to Europe, which cut off every connection
+// to the TREK services there on networks without IPv6.
+widenConnectAttemptTimeout();
 
 // data/tmp is the driver-agnostic global scratch dir (restore-upload spool,
 // mirror stream staging) and stays boot-created here. Driver-owned roots — the
