@@ -3,6 +3,7 @@ import { resolveDbPath } from '../../db-path';
 import { runSchemaBootstrap, type AnyOrm } from '../../orm';
 import { SharedSqliteDriver } from '../../orm-driver';
 import type { DatabaseEngine } from '../engine';
+import type { EntityManager } from '@mikro-orm/core';
 
 /**
  * The SQLite file engine, TREK's default: one better-sqlite3 handle that
@@ -39,5 +40,10 @@ export class SqliteEngine implements DatabaseEngine {
 
   schemaBootstrap(orm: AnyOrm, options: { snapshot: boolean }): Promise<void> {
     return runSchemaBootstrap(orm, options);
+  }
+
+  serializeWrites(_em: EntityManager): Promise<void> {
+    // One connection, one writer: SQLite serializes the transactions already.
+    return Promise.resolve();
   }
 }

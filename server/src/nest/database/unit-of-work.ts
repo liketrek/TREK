@@ -1,3 +1,4 @@
+import { resolveEngine } from '../../db/engine';
 import { EntityManager } from '@mikro-orm/core';
 import { Injectable } from '@nestjs/common';
 
@@ -17,12 +18,22 @@ import { Injectable } from '@nestjs/common';
  *
  * Never awaits network I/O inside: the SQLite connection is one Kysely client
  * with a mutex, and an open transaction holds it for every other request.
+ *
+ * The services read `MAX(...) + 1` inside these transactions on the strength
+ * of SQLite's single writer. On Postgres a pool of connections would let two
+ * of them read the same MAX, so every transaction first takes the engine's
+ * write lock (`DatabaseEngine.serializeWrites`), which keeps that guarantee.
  */
 @Injectable()
 export class UnitOfWork {
+  private readonly engine = resolveEngine();
+
   constructor(private readonly em: EntityManager) {}
 
   transactional<T>(fn: () => Promise<T>): Promise<T> {
-    return this.em.transactional(() => fn());
+    return this.em.transactional(async (em) => {
+      await this.engine.serializeWrites(em);
+      return fn();
+    });
   }
 }

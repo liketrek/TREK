@@ -1,7 +1,7 @@
 {
   "scripts/db-call-graph.mjs": 1036,
   "scripts/generate-entities.ts": 2259,
-  "src/db/repositories/Places.repository.ts": 1437,
+  "src/db/repositories/Places.repository.ts": 1435,
   "src/db/repositories/Reservations.repository.ts": 1563,
   "src/db/repositories/Trips.repository.ts": 1121,
   "src/db/repositories/Users.repository.ts": 1445,

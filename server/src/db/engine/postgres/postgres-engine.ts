@@ -3,6 +3,7 @@ import type { DatabaseEngine } from '../engine';
 import { redactUrl } from '../redact-url';
 import { TrekPostgreSqlDriver } from './postgres-driver';
 import { bootstrapPostgresSchema, defaultPostgresBootstrapDeps, type PostgresBootstrapDeps } from './schema-bootstrap';
+import type { EntityManager } from '@mikro-orm/core';
 
 import { readFileSync } from 'node:fs';
 
@@ -53,6 +54,9 @@ export function sslOptionFor(url: string): PgSslOption | undefined {
   }
 }
 
+/** The advisory lock key every write transaction takes: "TREK" in ASCII. */
+const TREK_WRITE_LOCK = 0x5452454b;
+
 /**
  * The Postgres engine: MikroORM's own `pg` driver on `TREK_DB_URL`, with a
  * pool of at most `TREK_DB_POOL_MAX` connections that keeps none open while
@@ -78,6 +82,17 @@ export class PostgresEngine implements DatabaseEngine {
 
   reopen(): Promise<void> {
     return Promise.reject(new Error('Restoring a backup into a Postgres database is not available in this release.'));
+  }
+
+  /**
+   * `pg_advisory_xact_lock` on one key for the whole database: held until the
+   * transaction commits or rolls back, taken again by a savepoint in the same
+   * session without waiting, and shared by every process on the database.
+   */
+  async serializeWrites(em: EntityManager): Promise<void> {
+    await em
+      .getConnection()
+      .execute('select pg_advisory_xact_lock(?)', [TREK_WRITE_LOCK], 'run', em.getTransactionContext());
   }
 
   async schemaBootstrap(orm: AnyOrm): Promise<void> {

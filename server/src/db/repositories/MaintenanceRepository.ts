@@ -69,14 +69,20 @@ export class MaintenanceRepository {
    * otherwise, so passing it through is correct both inside and outside a
    * transaction. Each statement is independently best-effort: a
    * slimmed-down test schema may not carry one or more of these tables at
-   * all, matching the legacy per-table try/catch exactly.
+   * all, matching the legacy per-table try/catch exactly. Each one runs in
+   * its own savepoint (a nested `em.transactional`), because on Postgres a
+   * failed statement aborts the whole transaction it is in: the savepoint
+   * rolls back that one statement and the user's erasure goes on.
    */
   async deletePluginUserData(userId: number): Promise<void> {
     this.validateRequestContext();
-    const ctx = this.em.getTransactionContext();
     for (const table of ['plugin_user_config', 'plugin_oauth_tokens', 'plugin_oauth_state']) {
       try {
-        await this.em.getConnection().execute(`DELETE FROM ${table} WHERE user_id = ?`, [userId], 'run', ctx);
+        await this.em.transactional((em) =>
+          em
+            .getConnection()
+            .execute(`DELETE FROM ${table} WHERE user_id = ?`, [userId], 'run', em.getTransactionContext()),
+        );
       } catch {
         /* table absent (slim schema) */
       }

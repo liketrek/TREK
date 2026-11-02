@@ -4,11 +4,12 @@ import { TrekPostgreSqlDriver } from '../../../../src/db/engine/postgres/postgre
 import { sslOptionFor } from '../../../../src/db/engine/postgres/postgres-engine';
 import { redactUrl } from '../../../../src/db/engine/redact-url';
 import { SharedSqliteDriver } from '../../../../src/db/orm-driver';
+import type { EntityManager } from '@mikro-orm/core';
 
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 const PG_URL = 'postgresql://trek:s3cret@db.example:5432/trek';
 
@@ -112,5 +113,16 @@ describe('buildOrmConfig', () => {
     expect(() => engine.open(() => undefined)).not.toThrow();
     expect(() => engine.close()).not.toThrow();
     await expect(engine.reopen()).rejects.toThrow(/not available in this release/);
+  });
+
+  it('ENGINE-033: Postgres serializes write transactions with one advisory lock taken in the transaction, SQLite needs none', async () => {
+    const execute = vi.fn(async () => []);
+    const trx = { trx: true };
+    const em = { getConnection: () => ({ execute }), getTransactionContext: () => trx } as unknown as EntityManager;
+    await resolveEngine(deriveDb({ TREK_DB_URL: PG_URL })).serializeWrites(em);
+    expect(execute).toHaveBeenCalledWith('select pg_advisory_xact_lock(?)', [0x5452454b], 'run', trx);
+    execute.mockClear();
+    await resolveEngine().serializeWrites(em);
+    expect(execute).not.toHaveBeenCalled();
   });
 });

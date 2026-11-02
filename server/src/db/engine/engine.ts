@@ -1,5 +1,5 @@
 import type { AnyOrm } from '../orm';
-import type { Options } from '@mikro-orm/core';
+import type { EntityManager, Options } from '@mikro-orm/core';
 
 /** The databases TREK can be pointed at. MySQL/MariaDB are out of scope (server/CLAUDE.md). */
 type EngineId = 'sqlite' | 'postgres';
@@ -37,4 +37,10 @@ export interface DatabaseEngine {
    * archive is the copy).
    */
   schemaBootstrap(orm: AnyOrm, options: { snapshot: boolean }): Promise<void>;
+  /**
+   * Runs first in every `UnitOfWork` transaction, on its EntityManager: makes
+   * the transactions that write run one at a time, as SQLite's single writer
+   * does, so a `MAX(...) + 1` read inside one cannot race another.
+   */
+  serializeWrites(em: EntityManager): Promise<void>;
 }
