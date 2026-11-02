@@ -97,16 +97,15 @@ export class NotificationPreferencesService {
    */
   private async listedEventTypes(): Promise<NotifEventType[]> {
     const photoProviders = await this.addons.enabledPhotoProviderIds();
-    const addonOn = new Map<string, boolean>();
-    const on = async (id: string) => {
-      if (!addonOn.has(id)) addonOn.set(id, await this.addons.isAddonEnabled(id));
-      return addonOn.get(id) === true;
+    // One read per addon, shared by the events that hang off it.
+    const addonOn = new Map<string, Promise<boolean>>();
+    const on = (id: string): Promise<boolean> => {
+      if (!addonOn.has(id)) addonOn.set(id, this.addons.isAddonEnabled(id));
+      return addonOn.get(id) as Promise<boolean>;
     };
-    const listed: NotifEventType[] = [];
-    for (const event of offeredEventTypes()) {
-      if (await this.featureOn(event, on, photoProviders)) listed.push(event);
-    }
-    return listed;
+    const events = offeredEventTypes();
+    const shown = await Promise.all(events.map((event) => this.featureOn(event, on, photoProviders)));
+    return events.filter((_, i) => shown[i]);
   }
 
   private async featureOn(

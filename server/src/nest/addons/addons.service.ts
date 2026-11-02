@@ -117,7 +117,7 @@ export class AddonsService {
   /** The photo providers users can connect: none while the journey addon is off. */
   async enabledPhotoProviderIds(): Promise<string[]> {
     if (!(await this.isAddonEnabled(ADDON_IDS.JOURNEY))) return [];
-    return (await this.photoProviders.listEnabled()).map((row) => row.id);
+    return (await this.photoProviders.listEnabled()).flatMap((row) => (row.id ? [row.id] : []));
   }
 
   /** wanderer may be used: Tours is on and the admin allowed it under Tours. */
