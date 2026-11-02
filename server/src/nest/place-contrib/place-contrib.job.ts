@@ -57,6 +57,7 @@ export class PlaceContribJob implements OnApplicationBootstrap {
     return this.running;
   }
 
+  /** @txIndependent the catch-up step and the send run each commit their own writes; a failed step never holds back the send. */
   private async runOnce(): Promise<void> {
     this.again = false;
     // A failed catch-up step never keeps what is queued from going out.

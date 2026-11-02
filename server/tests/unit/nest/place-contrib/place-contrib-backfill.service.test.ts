@@ -64,7 +64,7 @@ const ALL: PlaceContribFieldSwitches = {
   image: true,
 };
 const GERS = 'gers:ceba0e62-172b-4343-bb3b-78b915a18383';
-const OSM = 'node/4242';
+const OSM = 'node:4242';
 const ADMIN = 1;
 const NOW = new Date('2026-11-02T12:00:00Z');
 

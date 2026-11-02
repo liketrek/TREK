@@ -24,6 +24,7 @@ export class ServiceKeyJob implements OnApplicationBootstrap, OnApplicationShutd
     private readonly registrar: CronRegistrarService,
   ) {}
 
+  /** @txIndependent a daily schedule and a first check, each on its own; the key service writes in its own background work. */
   onApplicationBootstrap(): void {
     if (!this.registrar.isEnabled()) return;
     this.registrar.register('service-key-renewal', `${randomInt(60)} ${randomInt(24)} * * *`, () => this.keys.settle());

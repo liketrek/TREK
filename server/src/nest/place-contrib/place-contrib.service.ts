@@ -223,6 +223,7 @@ export class PlaceContribService {
     });
   }
 
+  /** @txIndependent the switches and the catch-up commit together before any withdrawal asks the service, which is network I/O. */
   private async changeFields(
     consent: PlaceContribConsent,
     fields: PlaceContribFieldSwitches,
