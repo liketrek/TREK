@@ -742,11 +742,8 @@
     {
       "feature": "Settings / Map: mapSettingsModel",
       "hooks": ["src/components/Settings/mapSettingsModel.ts"],
-      "desktop": ["src/components/Admin/DefaultUserSettingsTab.tsx", "src/components/Settings/MapSettingsTab.tsx"],
-      "mobile": [
-        "src/mobile/screens/admin/MAdminDefaultUserSettings.tsx",
-        "src/mobile/screens/settings/MSettingsMap.tsx"
-      ]
+      "desktop": ["src/components/Settings/MapSettingsTab.tsx"],
+      "mobile": ["src/mobile/screens/settings/MSettingsMap.tsx"]
     },
     {
       "feature": "Settings / Map: useMapSettingsForm",
@@ -983,6 +980,7 @@
     }
   ],
   "mobileOnly": {
+    "src/mobile/screens/admin/MAdminOidcCard.tsx": "Markup only; the OIDC card of MAdminSettingsSection, with the form state from useAdmin and the save from its useAdminSettingsActions handed in through props.",
     "src/mobile/screens/admin/MAdminResetMfaSheet.tsx": "Markup only; the 2FA reset confirm that MAdminSheets opens, with the reset handed in through props from its useAdminUserActions.",
     "src/mobile/screens/admin/MAdminUi.tsx": "Phone only admin UI primitives (button, card, field, input, secret input, sheet frame).",
     "src/mobile/screens/admin/MStorageReclaimCard.tsx": "Markup only; renders the reclaim view and handlers that MAdminStoragePanel takes from useStoragePanel, the twin of StorageReclaimSection.",
