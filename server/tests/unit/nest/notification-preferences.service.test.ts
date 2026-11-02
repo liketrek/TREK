@@ -86,6 +86,9 @@ const getActiveChannels = (...a: Parameters<Svc['getActiveChannels']>) => svc.ge
 const isSmtpConfigured = (...a: Parameters<Svc['isSmtpConfigured']>) => svc.isSmtpConfigured(...a);
 const isWebhookConfigured = (...a: Parameters<Svc['isWebhookConfigured']>) => svc.isWebhookConfigured(...a);
 
+/** The addon answers the service sees; a test narrows them and the next one gets them back. */
+const features = everyFeatureOn();
+
 beforeAll(async () => {
   const usersRepo = await createTestUsersRepo(testDb);
   const settingsRepo = await createTestSettingsRepo(testDb);
@@ -102,7 +105,7 @@ beforeAll(async () => {
     await createTestUnitOfWork(testDb),
     await createTestAppSettingsRepo(testDb),
     await createTestNotificationChannelPreferencesRepo(testDb),
-    everyFeatureOn(),
+    features,
   );
 });
 
@@ -454,33 +457,28 @@ describe('instance defaults', () => {
 
 describe('listed events follow the features that are on', () => {
   it('NPREF-LIST-001: rows for switched-off addons and providers are not listed', async () => {
-    const narrow = new NotificationPreferencesService(
-      new MailerService(
-        await createTestUsersRepo(testDb),
-        await createTestSettingsRepo(testDb),
-        await createTestAppSettingsRepo(testDb),
-      ),
-      await createTestUnitOfWork(testDb),
-      await createTestAppSettingsRepo(testDb),
-      await createTestNotificationChannelPreferencesRepo(testDb),
-      everyFeatureOn({
-        isAddonEnabled: async (id: string) => id !== 'vacay' && id !== 'collections',
-        isWandererAvailable: async () => false,
-        enabledPhotoProviderIds: async () => ['immich'],
-      }),
-    );
-    const { user } = createUser(testDb);
-    const { event_types } = await narrow.getPreferencesMatrix(user.id, 'user');
-    for (const hidden of [
-      'vacay_invite',
-      'vacay_share',
-      'collection_invite',
-      'wanderer_source_hint',
-      'synology_session_cleared',
-    ]) {
-      expect(event_types).not.toContain(hidden);
+    const all = { ...features };
+    Object.assign(features, {
+      isAddonEnabled: async (id: string) => id !== 'vacay' && id !== 'collections',
+      isWandererAvailable: async () => false,
+      enabledPhotoProviderIds: async () => ['immich'],
+    });
+    try {
+      const { user } = createUser(testDb);
+      const { event_types } = await svc.getPreferencesMatrix(user.id, 'user');
+      for (const hidden of [
+        'vacay_invite',
+        'vacay_share',
+        'collection_invite',
+        'wanderer_source_hint',
+        'synology_session_cleared',
+      ]) {
+        expect(event_types).not.toContain(hidden);
+      }
+      expect(event_types).toContain('photos_shared');
+      expect(event_types).toContain('trip_invite');
+    } finally {
+      Object.assign(features, all);
     }
-    expect(event_types).toContain('photos_shared');
-    expect(event_types).toContain('trip_invite');
   });
 });
