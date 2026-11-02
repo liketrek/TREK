@@ -33,7 +33,7 @@
   },
   "devDependencies": {
     "concurrently": "^10.0.6",
-    "knip": "^6.44.0",
+    "knip": "^6.38.0",
     "unrun": "^0.3.1"
   },
   "comment:scarfSettings": "swagger-ui-dist ships @scarf/scarf install-time analytics; TREK sends no telemetry, so it stays off.",
@@ -42,8 +42,8 @@
   },
   "comment:overrides": "React and react-dom: one React 19 across the workspace, so the test renderer (@testing-library/react) and the app share one react-dom. Everything else is a security floor. npm reads overrides from the root package.json only, so a floor in a workspace package.json does nothing. A floor never crosses a major its dependents ask for (brace-expansion is pinned per line for that reason), and npm ls <name> shows whether it holds.",
   "overrides": {
-    "react": "19.3.1",
-    "react-dom": "19.3.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
     "@hono/node-server": "^1.19.13",
     "body-parser@^1.20.0": "^1.20.9",
     "body-parser@^2.0.0": "^2.4.0",
@@ -64,9 +64,9 @@
   },
   "comment:optionalDependencies": "The lockfile is generated on glibc, so the musl builds the Alpine image needs never land in it on their own. Keep the @img/* pins on the same version as client's sharp — a mismatch nests the binary away from libvips and the image build dies in generate-icons.",
   "optionalDependencies": {
-    "@img/sharp-linuxmusl-arm64": "0.35.5",
-    "@img/sharp-linuxmusl-x64": "0.35.5",
-    "@rollup/rollup-linux-arm64-musl": "4.67.2",
-    "@rollup/rollup-linux-x64-musl": "4.67.2"
+    "@img/sharp-linuxmusl-arm64": "0.35.4",
+    "@img/sharp-linuxmusl-x64": "0.35.4",
+    "@rollup/rollup-linux-arm64-musl": "4.62.0",
+    "@rollup/rollup-linux-x64-musl": "4.62.0"
   }
 }

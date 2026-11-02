@@ -15,7 +15,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - name: Close stale wrong-base-branch PRs
-        uses: actions/github-script@v9
+        uses: actions/github-script@v8
         with:
           script: |
             const { data: pulls } = await github.rest.pulls.list({

@@ -36,7 +36,7 @@ jobs:
 
       - name: Comment on PR if checks failed
         if: steps.checks.outcome == 'failure'
-        uses: actions/github-script@v9
+        uses: actions/github-script@v8
         with:
           script: |
             await github.rest.issues.createComment({
