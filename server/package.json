@@ -137,7 +137,7 @@
     "@types/unzipper": "^0.10.11",
     "@types/ws": "^8.18.1",
     "@vitest/coverage-istanbul": "^4.1.11",
-    "eslint": "^9.39.5",
+    "eslint": "^10.14.0",
     "eslint-config-flat-gitignore": "^2.4.0",
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.9.8",
