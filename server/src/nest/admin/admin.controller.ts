@@ -293,6 +293,7 @@ export class AdminController {
 
   @Put('tours-wanderer')
   @ResponseContract(adminFeatureToggleResponseSchema)
+  @ManagedForbidden('wanderer sends searches to a server the user picks, which the operator has not agreed to')
   async updateToursWanderer(@CurrentUser() user: User, @Body() body: AdminFeatureToggleDto, @Req() req: Request) {
     const result = await this.addons.updateToursWanderer(body.enabled);
     await this.audit.writeAudit({
@@ -418,6 +419,7 @@ export class AdminController {
   }
 
   @Put('place-shadow')
+  @ManagedForbidden('place search belongs to the operator on a managed install')
   async updatePlaceShadow(@CurrentUser() user: User, @Body() body: AdminFeatureToggleDto, @Req() req: Request) {
     const result = await this.addons.updatePlaceShadow(body.enabled);
     await this.audit.writeAudit({
@@ -491,6 +493,7 @@ export class AdminController {
   }
 
   @Put('transit-provider')
+  @ManagedForbidden('routing belongs to the operator on a managed install')
   async updateTransitProvider(@CurrentUser() user: User, @Body() body: AdminTransitProviderDto, @Req() req: Request) {
     const result = await this.addons.updateTransitProvider(body.provider, user.id);
     await this.audit.writeAudit({

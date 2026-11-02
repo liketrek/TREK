@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../tests/helpers/msw/server';
 import { resetAllStores, seedStore } from '../../tests/helpers/store';
+import { useAddonStore } from '../store/addonStore';
 import { buildUser } from '../../tests/helpers/factories';
 import { useAuthStore } from '../store/authStore';
 import { usePermissionsStore } from '../store/permissionsStore';
@@ -240,6 +241,8 @@ beforeEach(() => {
   useJourneyStore.setState(useJourneyStore.getState(), true);
   seedStore(useAuthStore, { isAuthenticated: true, user: ownerUser });
   seedStore(usePermissionsStore, { level: 'owner' } as any);
+  // A photo provider on for the install, so the entry editor offers External photos.
+  seedStore(useAddonStore, { addons: [{ id: 'immich', name: 'Immich', type: 'photo_provider', enabled: true } as never] });
   setupDefaultHandlers();
 });
 

@@ -1,4 +1,4 @@
-// FE-ADMIN-CONTRIB-001 to FE-ADMIN-CONTRIB-011
+// FE-ADMIN-CONTRIB-001 to FE-ADMIN-CONTRIB-013
 import userEvent from '@testing-library/user-event';
 import type { PlaceContribDecisionRequest, PlaceContribState } from '@trek/shared';
 import { http, HttpResponse } from 'msw';
@@ -200,5 +200,24 @@ describe('PlaceContribPanel', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('FE-ADMIN-CONTRIB-012: standing alone, a card the operator switched off is not shown', async () => {
+    const asked = vi.fn();
+    server.use(
+      http.get('/api/admin/places-contribute', () => {
+        asked();
+        return HttpResponse.json({ ...UNDECIDED, eligible: false, ineligibleReason: 'env_off', showPrompt: false });
+      })
+    );
+    const { container } = render(<PlaceContribPanel hideWhenSwitchedOff />);
+    await waitFor(() => expect(asked).toHaveBeenCalled());
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('FE-ADMIN-CONTRIB-013: standing alone, any other reason is still explained', async () => {
+    serve({ ...UNDECIDED, eligible: false, ineligibleReason: 'not_production', showPrompt: false });
+    render(<PlaceContribPanel hideWhenSwitchedOff />);
+    expect(await screen.findByText('admin.contribute.ineligible.not_production')).toBeInTheDocument();
   });
 });

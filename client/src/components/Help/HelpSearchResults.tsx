@@ -6,6 +6,7 @@ import { allHelpGuides, guideKey, guideStepKey, guideTipKey, ctxKey } from '../.
 import type { HelpGuide } from '../../help/types'
 import { GuideCard, SectionLabel } from './HelpHome'
 import HelpDocLink from './HelpDocLink'
+import { useAuthStore } from '../../store/authStore'
 
 /** Guides shown for a query, at most. The docs list is capped by the server. */
 const MAX_GUIDES = 8
@@ -62,6 +63,8 @@ export default function HelpSearchResults(): React.ReactElement {
   const { t } = useTranslation()
   const query = useHelpStore(s => s.query)
   const status = useHelpStore(s => s.searchStatus)
+  // No Help & Docs page on a managed install (App.tsx): guides only.
+  const managed = useAuthStore(s => s.managed)
   const docHits = useHelpStore(s => s.docHits)
   const q = query.trim()
 
@@ -75,7 +78,7 @@ export default function HelpSearchResults(): React.ReactElement {
       .map(x => x.g)
   }, [q, t])
 
-  const nothing = guides.length === 0 && status === 'done' && docHits.length === 0
+  const nothing = guides.length === 0 && (managed || (status === 'done' && docHits.length === 0))
 
   return (
     <div className="trek-help-view flex flex-col gap-8">
@@ -93,6 +96,7 @@ export default function HelpSearchResults(): React.ReactElement {
         </section>
       )}
 
+      {!managed && (
       <section className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
           <SectionLabel>{t('help.center.searchDocs')}</SectionLabel>
@@ -113,6 +117,7 @@ export default function HelpSearchResults(): React.ReactElement {
           </ul>
         )}
       </section>
+      )}
 
       {nothing && (
         <div className="flex flex-col items-center text-center gap-2 py-10">

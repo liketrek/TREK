@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
+import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useAddonStore } from '../../store/addonStore';
 import { ToastContainer } from '../shared/Toast';
@@ -677,6 +678,16 @@ describe('AddonManager', () => {
 
     await waitFor(() => expect(puts).toEqual([{ enabled: true }]));
     expect(isOn(screen.getByRole('button', { name: 'wanderer' }))).toBe(true);
+  });
+
+  it('FE-ADMIN-ADDON-042b: a managed install has no wanderer switch under Tours', async () => {
+    seedStore(useAuthStore, { managed: true });
+    server.use(addonsRoute([buildAddon({ id: 'tours', name: 'Tours', icon: 'Mountain', enabled: true })]));
+    render(<AddonManager />);
+
+    await screen.findByRole('button', { name: /\d+ options?/, expanded: false });
+    await unfoldShelves();
+    expect(screen.queryByRole('button', { name: 'wanderer' })).not.toBeInTheDocument();
   });
 
   it('FE-ADMIN-ADDON-043: a failed wanderer save puts the switch back', async () => {

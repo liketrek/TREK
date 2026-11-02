@@ -5,6 +5,7 @@ import { PushSubscriptions } from '../../db/entities/PushSubscriptions.entity';
 import { Settings } from '../../db/entities/Settings.entity';
 import { TodoItems } from '../../db/entities/TodoItems.entity';
 import { Trips } from '../../db/entities/Trips.entity';
+import { AddonsModule } from '../addons/addons.module';
 import { SchedulingModule } from '../scheduling/scheduling.module';
 import { StorageModule } from '../storage/storage.module';
 import { MailerModule } from './mailer/mailer.module';
@@ -63,6 +64,7 @@ import { Module } from '@nestjs/common';
       PushSubscriptions,
     ]),
 
+    AddonsModule,
     MailerModule,
     SchedulingModule,
     StorageModule,

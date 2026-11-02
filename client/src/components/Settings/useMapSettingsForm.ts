@@ -7,7 +7,15 @@ import type { Place } from '../../types';
 import { normalizeStyleForProvider } from '../Map/glProviders';
 import { useWebGL2 } from '../Map/glSupport';
 import { useToast } from '../shared/Toast';
-import { type MapProvider, normalizeProvider, previewPlace, slotStyle, styleForProvider } from './mapSettingsModel';
+import {
+  type MapProvider,
+  mapboxOffered,
+  mapPresetsFor,
+  normalizeProvider,
+  previewPlace,
+  slotStyle,
+  styleForProvider,
+} from './mapSettingsModel';
 
 export interface MapSettingsFormOptions {
   /**
@@ -32,6 +40,7 @@ export function useMapSettingsForm({ mirrorStyleBeforeSave = false }: MapSetting
   const [provider, setProvider] = useState<MapProvider>(initialProvider);
   const [mapTileUrl, setMapTileUrl] = useState<string>(settings.map_tile_url || '');
   const managed = useAuthStore((s) => s.managed);
+  const hasAmapKey = useAuthStore((s) => s.hasAmapKey);
   const [mapboxToken, setMapboxToken] = useState<string>(settings.mapbox_access_token || '');
   const [cartoKey, setCartoKey] = useState<string>(settings.carto_api_key || '');
   const [mapboxStyle, setMapboxStyle] = useState<string>(
@@ -94,6 +103,8 @@ export function useMapSettingsForm({ mirrorStyleBeforeSave = false }: MapSetting
 
   return {
     managed,
+    presets: mapPresetsFor(managed, hasAmapKey),
+    canMapbox: mapboxOffered(managed, settings.mapbox_access_token),
     saving,
     provider,
     changeProvider,

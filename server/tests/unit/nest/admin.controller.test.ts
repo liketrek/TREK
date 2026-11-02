@@ -5,6 +5,7 @@ import type { AuditService } from '../../../src/nest/audit/audit.service';
 import type { RegistrationInvitesService } from '../../../src/nest/auth/registration-invites.service';
 import { KitineraryExtractorService } from '../../../src/nest/booking-import/kitinerary-extractor.service';
 import { DomainError } from '../../../src/nest/common/domain-error';
+import { MANAGED_FORBIDDEN } from '../../../src/nest/common/managed';
 import type { NotificationsService } from '../../../src/nest/notifications/notifications.service';
 import type { OauthService } from '../../../src/nest/oauth/oauth.service';
 import type { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
@@ -605,5 +606,19 @@ describe('AdminController feature toggles', () => {
     } as unknown as AddonsService);
     expect(await noop.updateCollabFeatures(user, { chat: true }, req)).toEqual({ chat: true });
     expect(noopInvalidate).not.toHaveBeenCalled();
+  });
+});
+
+describe('AdminController on a managed install', () => {
+  it('ADMIN-CTRL-MANAGED-001: the transit provider and the place search log are operator-owned', () => {
+    // Place search and routing come with a managed instance; the admin UI hides
+    // both, and the routes refuse them so a direct call cannot set them either.
+    for (const name of ['updateTransitProvider', 'updatePlaceShadow', 'updateToursWanderer'] as const) {
+      const handler = AdminController.prototype[name];
+      expect(Reflect.getMetadata(MANAGED_FORBIDDEN, handler)?.reason, name).toBeTruthy();
+    }
+    // Reading stays open: the search still needs to know what it runs on.
+    expect(Reflect.getMetadata(MANAGED_FORBIDDEN, AdminController.prototype.getTransitProvider)).toBeUndefined();
+    expect(Reflect.getMetadata(MANAGED_FORBIDDEN, AdminController.prototype.getPlaceShadow)).toBeUndefined();
   });
 });

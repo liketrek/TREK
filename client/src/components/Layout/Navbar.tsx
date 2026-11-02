@@ -35,7 +35,7 @@ interface Addon {
 }
 
 export default function Navbar({ tripTitle, tripId, onBack, showBack, onSettings }: NavbarProps): React.ReactElement {
-  const { user, logout, isPrerelease, appVersion } = useAuthStore()
+  const { user, logout, isPrerelease, appVersion, managed } = useAuthStore()
   const { settings, updateSetting } = useSettingsStore()
   const { addons: allAddons, loadAddons } = useAddonStore()
   const { t, locale } = useTranslation()
@@ -326,6 +326,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onSettings
                     {t('nav.settings')}
                   </Link>
 
+                  {!managed && (
                   <Link to="/help" onClick={() => setUserMenuOpen(false)}
                     className="flex items-center gap-2 px-4 py-2 text-sm transition-colors text-content-secondary"
                     onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
@@ -333,6 +334,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onSettings
                     <BookOpen className="w-4 h-4" />
                     {t('nav.help')}
                   </Link>
+                  )}
 
                   {user.role === 'admin' && (
                     <Link to="/admin" onClick={() => setUserMenuOpen(false)}

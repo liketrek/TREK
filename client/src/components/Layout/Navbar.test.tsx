@@ -87,6 +87,16 @@ describe('Navbar', () => {
     expect(screen.getByText('Admin')).toBeInTheDocument();
   });
 
+  it('FE-COMP-NAVBAR-009b: a managed install keeps the help center but has no Help & Docs entry', async () => {
+    const user = userEvent.setup();
+    seedStore(useAuthStore, { user: buildUser({ username: 'testuser' }), isAuthenticated: true, managed: true });
+    render(<Navbar />);
+    expect(document.querySelector('[data-help-button]')).not.toBeNull();
+    await user.click(screen.getByText('testuser'));
+    expect(screen.queryByText('Help')).not.toBeInTheDocument();
+    expect(screen.getByText('Settings')).toBeInTheDocument();
+  });
+
   it('FE-COMP-NAVBAR-010: regular user does not see Admin option', async () => {
     const user = userEvent.setup();
     render(<Navbar />);

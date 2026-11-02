@@ -134,6 +134,9 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
             {t('admin.passkey.notConfigured')}
           </p>
         )}
+        {/* The relying party is the instance's address, which the operator owns on a
+            managed install (server managed.ts), same as the desktop tab. */}
+        {!managed && (
         <div className="space-y-3">
           <MAdminField label={t('admin.passkey.rpId')} hint={t('admin.passkey.rpIdHint')}>
             <MAdminInput
@@ -155,6 +158,7 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
             {t('common.save')}
           </MAdminButton>
         </div>
+        )}
       </MAdminCard>
 
       {/* Require 2FA */}
@@ -187,7 +191,9 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
         </div>
       </MAdminCard>
 
-      {/* API keys */}
+      {/* API keys, place search and routing: the operator's on a managed install,
+          same as the desktop tab. Share place details has its own section there. */}
+      {!managed && (
       <MAdminCard>
         <MAdminCardHead title={t('admin.apiKeys')} hint={t('admin.apiKeysHint')} />
         <div className="space-y-3">
@@ -379,8 +385,10 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
           )}
         </div>
       </MAdminCard>
+      )}
 
-      {/* OIDC / SSO */}
+      {/* OIDC / SSO: the operator's on a managed install, as on the desktop tab. */}
+      {!managed && (
       <MAdminCard>
         <MAdminCardHead title={t('admin.oidcTitle')} hint={t('admin.oidcSubtitle')} />
         <div className="space-y-3">
@@ -428,6 +436,7 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
           </MAdminButton>
         </div>
       </MAdminCard>
+      )}
 
       {/* Danger zone */}
       <MAdminCard className="border-[color:color-mix(in_srgb,var(--m-st-danger)_28%,transparent)]">

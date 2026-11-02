@@ -16,6 +16,7 @@ import GoogleOptions from './GoogleOptions'
 import GoogleDailyLimitRow from '../../components/Admin/GoogleDailyLimitRow'
 import ProviderBlock from './ProviderBlock'
 import TrekApiCard from './TrekApiCard'
+import PlaceContribPanel from '../../components/Admin/PlaceContribPanel'
 import { useAdminSettingsActions } from '../../components/Admin/useAdminSettingsActions'
 import { placesGoogleOnlyHint } from '../../utils/placeSource'
 import type { TranslationFn } from '../../types'
@@ -139,6 +140,29 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
 
   const passwordLoginLocked = !passwordLogin && !oidcLogin
   const oidcLoginLocked = !passwordLogin && oidcLogin
+
+  // On a managed install the right column loses place search, routing and the
+  // keys to the operator, so file types move over and the columns stay even.
+  const fileTypesCard = (
+    <SettingsCard icon={FileType} title={t('admin.fileTypes')} hint={t('admin.fileTypesHint')}>
+      <div>
+        <input
+          type="text"
+          aria-label={t('admin.fileTypes')}
+          value={allowedFileTypes}
+          onChange={e => setAllowedFileTypes(e.target.value)}
+          placeholder="jpg,png,pdf,doc,docx,xls,xlsx,txt,csv"
+          className={`${INPUT} font-geist`}
+        />
+        <SettingsHint className="mt-1.5">{t('admin.fileTypesFormat')}</SettingsHint>
+      </div>
+      <SaveBar
+        label={t('common.save')}
+        saving={savingFileTypes}
+        onClick={saveFileTypes}
+      />
+    </SettingsCard>
+  )
 
   return (
         <div>
@@ -351,33 +375,24 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
           </SettingsCard>
           )}
 
-        {/* Allowed File Types */}
-        <SettingsCard icon={FileType} title={t('admin.fileTypes')} hint={t('admin.fileTypesHint')}>
-          <div>
-            <input
-              type="text"
-              aria-label={t('admin.fileTypes')}
-              value={allowedFileTypes}
-              onChange={e => setAllowedFileTypes(e.target.value)}
-              placeholder="jpg,png,pdf,doc,docx,xls,xlsx,txt,csv"
-              className={`${INPUT} font-geist`}
-            />
-            <SettingsHint className="mt-1.5">{t('admin.fileTypesFormat')}</SettingsHint>
-          </div>
-          <SaveBar
-            label={t('common.save')}
-            saving={savingFileTypes}
-            onClick={saveFileTypes}
-          />
-        </SettingsCard>
+        {!managed && fileTypesCard}
         </div>
 
         <div className="min-w-0">
+        {managed && fileTypesCard}
+        {/* Inside the place search card elsewhere; that card is the operator's here,
+            sharing place details is still the admin's decision. */}
+        {managed && <PlaceContribPanel hideWhenSwitchedOff />}
 
           {/* Place search and routing: TREK's own services first, then which provider
               answers search and transit, and the search log. Apart from the keys, so a
               keyless install reads its whole setup in one card. Everything here saves
               as it is changed. */}
+          {/* On a managed install place search and routing are the operator's: the
+              services, their allowance and the providers behind them come with the
+              instance. Share place details stays the admin's call and has a tab of
+              its own there (AdminPage). */}
+          {!managed && (
           <SettingsCard icon={Compass} title={t('admin.servicesCard.title')} hint={t('admin.servicesCard.hint')}>
           <TrekApiCard t={t} managed={managed} />
           {!managed && (<>
@@ -486,6 +501,7 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
           </SettingRows>
 
           </SettingsCard>
+          )}
 
           {/* API Keys: only the keyed providers, Google, Unsplash and Amap. They are
               the operator's on a managed install, so the card is not shown there;

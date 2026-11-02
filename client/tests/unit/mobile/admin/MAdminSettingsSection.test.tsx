@@ -281,16 +281,16 @@ describe('MAdminSettingsSection', () => {
     expect(admin.handleSaveApiKeys).toHaveBeenCalled();
   });
 
-  it('FE-MOB-ASET-016b: a managed install hides the keys but keeps the provider choice', () => {
-    // The operator owns the credentials; which of them answers place search is
-    // still the admin's call, the same split the desktop tab makes.
+  it('FE-MOB-ASET-016b: a managed install hides the keys, place search, OIDC and the relying party', () => {
+    // All of it is the operator's there, the same split the desktop tab makes.
     renderSettings({ managed: true });
 
     expect(screen.queryByLabelText('Google Maps API Key')).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/Amap/)).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Unsplash API Key')).not.toBeInTheDocument();
-    // The native select became TREK's own picker: a button carrying the choice.
-    expect(screen.getByRole('button', { name: 'Automatic' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Automatic' })).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('trek.example.org')).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(/Authentik/)).not.toBeInTheDocument();
   });
 
   it('FE-MOB-ASET-016c: the missing-key notice follows app-config, not the fields', () => {
@@ -301,7 +301,7 @@ describe('MAdminSettingsSection', () => {
     expect(screen.getByText(/TREK index and OpenStreetMap alone/i)).toBeInTheDocument();
     unmount();
 
-    renderSettings({ managed: true, placesProvider: 'google', mapsKey: '', hasMapsKey: true });
+    renderSettings({ placesProvider: 'google', mapsKey: '', hasMapsKey: true });
     expect(screen.queryByText(/TREK index and OpenStreetMap alone/i)).not.toBeInTheDocument();
   });
 

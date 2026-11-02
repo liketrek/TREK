@@ -12,7 +12,7 @@ import type { DistanceUnit, WeekStart } from '../../types'
 import { weekStartOptions } from '../../utils/calendarWeek'
 import { withTileApiKey } from '../../utils/tileUrl'
 import { defaultStyleForProvider } from '../Map/glProviders'
-import { MAP_PRESETS, type MapProvider } from '../Settings/mapSettingsModel'
+import type { MapProvider } from '../Settings/mapSettingsModel'
 import RoutingInstanceFields from './RoutingInstanceFields'
 import { useDefaultUserSettings, type Defaults } from './useDefaultUserSettings'
 
@@ -69,7 +69,7 @@ function errorText(err: unknown, fallback: string): string {
 export default function DefaultUserSettingsTab(): React.ReactElement {
   const { t, locale } = useTranslation()
   const {
-    defaults, loaded, managed, isSet, save, reset, mapTileUrl, setMapTileUrl, mapboxToken, setMapboxToken,
+    defaults, loaded, managed, presets, canMapbox, isSet, save, reset, mapTileUrl, setMapTileUrl, mapboxToken, setMapboxToken,
     cartoKey, setCartoKey, mapboxStyle, setMapboxStyle, mapPreviewPlaces, mapProvider, glStylePresets, styleKey,
     saveMapProvider, pickTilePreset, pickStylePreset, commitStyle,
   } = useDefaultUserSettings({ errorMessage: errorText, previewCreatedAt: () => String(new Date()) })
@@ -217,7 +217,7 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
             value={mapTileUrl}
             onChange={pickTilePreset}
             placeholder={t('settings.mapTemplatePlaceholder.select')}
-            options={MAP_PRESETS.map(p => ({ value: p.url, label: p.name }))}
+            options={presets.map(p => ({ value: p.url, label: p.name }))}
           />
           <input
             type="text"
@@ -283,7 +283,7 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
             onChange={saveMapProvider}
             options={[
               { value: 'leaflet', label: t('admin.defaultSettings.providerLeaflet') },
-              { value: 'mapbox-gl', label: t('admin.defaultSettings.providerMapbox') },
+              ...(canMapbox ? [{ value: 'mapbox-gl' as const, label: t('admin.defaultSettings.providerMapbox') }] : []),
               { value: 'maplibre-gl', label: t('admin.defaultSettings.providerMapLibre') },
             ]}
           />
