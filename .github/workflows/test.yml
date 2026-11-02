@@ -367,6 +367,12 @@ jobs:
         # so the code stays portable to a second engine.
         run: cd server && npm run lint:dialect
 
+      - name: Engine checks may only shrink
+        # isSqlite(/isPostgres( and platform instanceof outside src/db/dialect/
+        # and src/db/engine/ are held to scripts/engine-dispatch-baseline.json,
+        # so what differs between engines stays in those two places.
+        run: cd server && npm run lint:engine-dispatch
+
       - name: Writes outside a transaction
         # A method that writes twice does it inside one uow.transactional.
         # Today's exceptions sit in scripts/tx-writes-baseline.json and may

@@ -341,3 +341,43 @@ describe('validateEnvAtBoot: the pre-migration snapshot switches', () => {
     );
   });
 });
+
+describe('validateEnvAtBoot: the database engine', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('DB-BOOT-001: refuses a TREK_DB_URL that is not a postgres:// or postgresql:// URL, without printing it', () => {
+    for (const value of ['mysql://u:secret@db/trek', 'not a url', 'sqlite:///data/travel.db']) {
+      const { printed, thrown } = bootReport({ TREK_DB_URL: value });
+      expect(thrown, value).toMatch(/Invalid environment configuration/);
+      expect(printed, value).toContain('TREK_DB_URL=***');
+      expect(printed, value).not.toContain('secret');
+    }
+  });
+
+  it('DB-BOOT-002: masks TREK_DB_URL like every other secret', () => {
+    expect(SECRET_ENV_KEYS.has('TREK_DB_URL')).toBe(true);
+  });
+
+  it('DB-BOOT-003: refuses TREK_DB_URL together with a SQLite setting, naming both', () => {
+    for (const key of ['TREK_DB_FILE', 'TREK_DB_JOURNAL_MODE', 'TREK_DB_SYNCHRONOUS']) {
+      const { thrown, printed } = bootReport({ TREK_DB_URL: 'postgres://u:p@db/trek', [key]: 'x' });
+      expect(thrown, key).toMatch(/Invalid environment configuration/);
+      expect(printed, key).toContain('ambiguous database configuration');
+      expect(printed, key).toContain(key);
+    }
+  });
+
+  it('DB-BOOT-004: refuses a Postgres database while this release cannot run on one', () => {
+    const { thrown, printed } = bootReport({ TREK_DB_URL: 'postgresql://u:p@db:5432/trek?sslmode=require' });
+    expect(thrown).toMatch(/Invalid environment configuration/);
+    expect(printed).toContain('Postgres support is not complete in this release');
+    expect(printed).not.toContain('u:p@');
+  });
+
+  it('DB-BOOT-005: refuses a pool size outside 1 to 100', () => {
+    expect(bootReport({ TREK_DB_POOL_MAX: '0' }).thrown).toMatch(/Invalid environment configuration/);
+    expect(() => validateEnvAtBoot({ TREK_DB_POOL_MAX: '20' })).not.toThrow();
+  });
+});

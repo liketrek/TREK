@@ -338,7 +338,14 @@ export function deriveBackup(raw: RawEnv) {
 
 export function deriveDb(raw: RawEnv) {
   const durability = resolveDurability(raw.TREK_DB_JOURNAL_MODE, raw.TREK_DB_SYNCHRONOUS);
+  const url = raw.TREK_DB_URL?.trim() || undefined;
   return {
+    /** Which database this process runs on: Postgres when TREK_DB_URL names one, the SQLite file otherwise. */
+    engine: (url ? 'postgres' : 'sqlite') as 'sqlite' | 'postgres',
+    /** The Postgres connection URL; it carries the password, so never log it (db/engine/redact-url.ts). */
+    url,
+    /** The largest number of connections the Postgres pool opens. */
+    poolMax: Math.min(positiveIntOr(raw.TREK_DB_POOL_MAX, 10), 100),
     trekDbFile: raw.TREK_DB_FILE,
     /** Resolved journal_mode — WAL unless the operator asked for something else (network storage needs DELETE/TRUNCATE). */
     journalMode: durability.journalMode,

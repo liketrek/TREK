@@ -371,6 +371,24 @@ describe('deriveDb: the pre-migration snapshot', () => {
   });
 });
 
+describe('deriveDb: the engine', () => {
+  it('DB-ENGINE-001: SQLite unless TREK_DB_URL names a database', () => {
+    expect(deriveDb({})).toMatchObject({ engine: 'sqlite', url: undefined });
+    expect(deriveDb({ TREK_DB_URL: '   ' })).toMatchObject({ engine: 'sqlite', url: undefined });
+    expect(deriveDb({ TREK_DB_URL: ' postgres://u:p@db:5432/trek ' })).toMatchObject({
+      engine: 'postgres',
+      url: 'postgres://u:p@db:5432/trek',
+    });
+  });
+
+  it('DB-ENGINE-002: a pool of ten connections unless told otherwise, from 1 to 100', () => {
+    expect(deriveDb({}).poolMax).toBe(10);
+    expect(deriveDb({ TREK_DB_POOL_MAX: '25' }).poolMax).toBe(25);
+    expect(deriveDb({ TREK_DB_POOL_MAX: '0' }).poolMax).toBe(10);
+    expect(deriveDb({ TREK_DB_POOL_MAX: '500' }).poolMax).toBe(100);
+  });
+});
+
 describe('deriveNet', () => {
   it('ALLOW_INTERNAL_NETWORK coerces the boolean-like family (ssrfGuard)', () => {
     expect(deriveNet({ ALLOW_INTERNAL_NETWORK: 'True' }).allowInternalNetwork).toBe(true);
