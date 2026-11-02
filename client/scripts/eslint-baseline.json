@@ -34,7 +34,7 @@
     "react-hooks/exhaustive-deps": 46
   },
   "tests": {
-    "@typescript-eslint/no-explicit-any": 490,
+    "@typescript-eslint/no-explicit-any": 489,
     "@typescript-eslint/no-non-null-assertion": 1915,
     "@typescript-eslint/no-misused-promises": 22,
     "@typescript-eslint/no-unused-vars": 51,
