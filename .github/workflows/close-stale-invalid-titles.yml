@@ -14,7 +14,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - name: Close stale invalid-title issues
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const badTitles = [
