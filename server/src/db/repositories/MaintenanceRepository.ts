@@ -6,22 +6,20 @@ import type { EntityManager } from '@mikro-orm/core';
  * MaintenanceRepository/DemoRepository, with a comment)").
  *
  * Not a `TrekRepository<Entity>` — it backs no table and no entity of its
- * own. It exists purely as the one place two whole-database-file statements
- * (a `PRAGMA` and a `VACUUM INTO`) run against the ORM's own bound driver
- * connection instead of scattering raw `better-sqlite3` calls across
- * `backup.impl.ts`/`demo-reset.ts`. `find/findOne → create/assign/flush →
- * nativeUpdate/nativeDelete → em.upsert → qb() → em.getKysely()` all fail
- * for these two statements — neither is expressible against an entity at
- * all — so `connection.execute()` (the last tier in the program's query-API
- * order) is the correct tool, not a shortcut around it.
+ * own. It holds the statements no entity can express that run on every
+ * engine: the readiness ping and the plugin-table erasure. `find/findOne →
+ * create/assign/flush → nativeUpdate/nativeDelete → em.upsert → qb() →
+ * em.getKysely()` all fail for them, so `connection.execute()` (the last
+ * tier in the program's query-API order) is the correct tool, not a
+ * shortcut around it. The SQLite file's own maintenance (`PRAGMA
+ * wal_checkpoint`, `VACUUM INTO`) is `SqliteMaintenance`, under
+ * `db/engine/sqlite/`.
  *
  * Provided through Nest DI by `MaintenanceModule` (`nest/database/`), a
  * factory over the context-resolving global `EntityManager`; its consumers
- * inject it: the readiness probe, `UserCleanupService` and the SQLite backup
- * port (`SqliteDatabaseBackup`), which the backup, the restore and the demo
- * reset all go through. The class stays free of Nest decorators like every
- * other file under `db/`, so a test can still build one over its own
- * `EntityManager`.
+ * inject it: the readiness probe and `UserCleanupService`. The class stays
+ * free of Nest decorators like every other file under `db/`, so a test can
+ * still build one over its own `EntityManager`.
  */
 export class MaintenanceRepository {
   constructor(private readonly em: EntityManager) {}
@@ -30,7 +28,7 @@ export class MaintenanceRepository {
    * MikroORM's own validating `getContext()` — throws
    * `ValidationError.cannotUseGlobalContext()` outside a request context (the
    * production default), the same fail-closed ratchet `TrekRepository`
-   * applies to every entity-bound repository. Called first by both methods
+   * applies to every entity-bound repository. Called first by every method
    * below, since raw `connection.execute()` has no such guard of its own.
    */
   private validateRequestContext(): void {
@@ -44,32 +42,6 @@ export class MaintenanceRepository {
   }
 
   /**
-   * `PRAGMA wal_checkpoint(TRUNCATE)` — rendered text pinned, identical to
-   * the legacy `db.exec('PRAGMA wal_checkpoint(TRUNCATE)')` it replaces.
-   * Reached through the backup port's `checkpoint()`, which the backup
-   * (BK1) and the demo reset (DMR3) call. Flushes the WAL into the main db
-   * file before a snapshot or a swap; every caller treats it as best effort.
-   */
-  async walCheckpoint(): Promise<void> {
-    this.validateRequestContext();
-    await this.em.getConnection().execute('PRAGMA wal_checkpoint(TRUNCATE)');
-  }
-
-  /**
-   * `` VACUUM INTO '<path>' `` — rendered text pinned, identical to the
-   * legacy `` db.exec(`VACUUM INTO '${dbSnap.replaceAll("'", "''")}'`) ``
-   * (BK2, reached through the backup port's `snapshot()`): single quotes in `path` are
-   * escaped by doubling, the same escaping the legacy statement used — a
-   * consistent point-in-time snapshot under concurrent writers, with no
-   * MikroORM/Kysely equivalent.
-   */
-  async vacuumInto(path: string): Promise<void> {
-    this.validateRequestContext();
-    const escaped = path.replaceAll("'", "''");
-    await this.em.getConnection().execute(`VACUUM INTO '${escaped}'`);
-  }
-
-  /**
    * Plan 4 Task 4 — UC1 (`UserCleanupService.erasePluginUserData`): a
    * best-effort per-user delete across the three plugin-held tables
    * (`plugin_user_config`/`plugin_oauth_tokens`/`plugin_oauth_state`). These
@@ -77,13 +49,13 @@ export class MaintenanceRepository {
    * narrowed by Plan 4 Task 8a to just this trio — UC2/UC3 already moved to
    * `PluginsRepository`/`PluginUserErasureQueueRepository`), not an entity
    * managed by any repository, so `connection.execute()` (rule 4's last
-   * tier) is the correct tool here, same shape as `walCheckpoint`/
-   * `vacuumInto` above — with ONE difference those two don't need: this is
+   * tier) is the correct tool here, same shape as `ping` above and
+   * `SqliteMaintenance`'s statements — with ONE difference those don't need: this is
    * the first `MaintenanceRepository` caller ever invoked from INSIDE an
    * open `UnitOfWork.transactional(...)` (`deleteUserCompletely`'s
    * transaction). `Connection#execute(query, params, method, ctx)`'s `ctx`
    * defaults to the plain (non-transactional) Kysely client when omitted —
-   * `walCheckpoint`/`vacuumInto` always omit it because their callers
+   * `SqliteMaintenance`'s statements always omit it because their callers
    * (the backup port) never run inside a transaction, but
    * omitting it here deadlocked: this repo's `better-sqlite3` connection is
    * single-connection/single-writer, the open transaction holds it for its

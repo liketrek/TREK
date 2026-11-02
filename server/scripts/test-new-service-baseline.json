@@ -143,7 +143,6 @@
     "tests/unit/nest/sessions/sessions.service.test.ts": 1,
     "tests/unit/nest/settings.service.test.ts": 1,
     "tests/unit/nest/share.service.test.ts": 3,
-    "tests/unit/nest/sqlite-database-backup.test.ts": 2,
     "tests/unit/nest/storage/storage-admin.service.test.ts": 5,
     "tests/unit/nest/storage/storage-jobs.service.test.ts": 15,
     "tests/unit/nest/storage/storage-registry.service.test.ts": 3,

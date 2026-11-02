@@ -659,8 +659,8 @@ export class PlacesRepository extends TrekRepository<Places> {
    */
   async listForTrip(trip_id: string, filters: {
     searchPattern?: string;
-    category?: string;
-    tag?: string;
+    category?: number;
+    tag?: number;
     assignment?: 'all' | 'unassigned' | 'assigned';
   }): Promise<PlaceListRow[]> {
     const platform = this.getEntityManager().getPlatform();
@@ -685,10 +685,10 @@ export class PlacesRepository extends TrekRepository<Places> {
         [filters.searchPattern, filters.searchPattern, filters.searchPattern],
       );
     }
-    if (filters.category) {
+    if (filters.category !== undefined) {
       qb.andWhere('p.category_id = ?', [filters.category]);
     }
-    if (filters.tag) {
+    if (filters.tag !== undefined) {
       qb.andWhere('p.id IN (SELECT place_id FROM place_tags WHERE tag_id = ?)', [filters.tag]);
     }
     if (filters.assignment === 'unassigned') {

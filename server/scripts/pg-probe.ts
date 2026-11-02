@@ -15,10 +15,11 @@
  *      (pg-probe/arg-samples.ts), through a MikroORM Postgres driver that
  *      runs each statement in its own rolled-back transaction and records
  *      whether Postgres accepted it (pg-probe/recorder.ts);
- *   4. holds the statements Postgres refuses as SQL (SQLSTATE class 42 or
- *      0A), per method, to scripts/pg-probe-baseline.json, which may only
- *      shrink (pg-probe/baseline.ts); a refusal over a sample value
- *      (class 22) or the empty tables is reported, not held;
+ *   4. holds the statements Postgres refuses as SQL or over a value's type
+ *      (SQLSTATE class 42, 0A or 22), per method, to
+ *      scripts/pg-probe-baseline.json, which may only shrink
+ *      (pg-probe/baseline.ts); a constraint over a sample value (class 23) or
+ *      the empty tables is reported, not held;
  *   5. holds the methods whose SQL it did not see (it could not call them,
  *      they sent no SQL, or they timed out) to the same file's `uncovered`
  *      list, which may only shrink too, so a new method the probe cannot

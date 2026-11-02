@@ -1,4 +1,4 @@
-import { MaintenanceRepository } from '../../db/repositories/MaintenanceRepository';
+import { SqliteMaintenance } from '../../db/engine/sqlite/sqlite-maintenance';
 import { logInfo, logWarn } from '../audit/audit-log.logger';
 import {
   DatabaseConnectionLostError,
@@ -35,7 +35,7 @@ export class SqliteDatabaseBackup implements DatabaseBackupStrategy {
 
   constructor(
     private readonly lifecycle: DatabaseLifecycle,
-    private readonly maintenance: MaintenanceRepository,
+    private readonly maintenance: SqliteMaintenance,
   ) {}
 
   location(): string {

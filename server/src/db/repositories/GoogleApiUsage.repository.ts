@@ -43,7 +43,11 @@ export class GoogleApiUsageRepository extends TrekRepository<GoogleApiUsage> {
     await this.kysely<GoogleApiUsageKyselyDB>()
       .insertInto('google_api_usage')
       .values({ day, calls: 1 })
-      .onConflict((oc) => oc.column('day').doUpdateSet({ calls: (eb) => eb('calls', '+', 1) }))
+      .onConflict((oc) =>
+        // Qualified: Postgres reads a bare `calls` here as ambiguous between the
+        // target row and `excluded` (42702); SQLite accepts both spellings.
+        oc.column('day').doUpdateSet({ calls: (eb) => eb(eb.ref('google_api_usage.calls'), '+', 1) }),
+      )
       .execute();
   }
 

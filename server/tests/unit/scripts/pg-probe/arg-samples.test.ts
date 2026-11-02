@@ -47,6 +47,7 @@ export class ThingsRepository {
   async record(r: Record<string, number>): Promise<void> {}
   async literals(n: bigint, flag: true): Promise<void> {}
   async destructured({ id, label }: { id: number; label: string }): Promise<void> {}
+  async presence(write: { name?: readonly [present: boolean, value: string]; flag?: readonly [boolean, number] }): Promise<void> {}
 }
 export abstract class AbstractRepository {
   async skipped(): Promise<void> {}
@@ -102,6 +103,7 @@ describe('pg-probe argument samples', () => {
         'literals',
         'nullable',
         'optionalCallback',
+        'presence',
         'record',
         'rest',
         'tuple',
@@ -143,6 +145,13 @@ describe('pg-probe argument samples', () => {
     expect(argsOf('rest')).toEqual([1]);
     expect(argsOf('tuple')).toEqual([[1, 'probe']]);
     expect(argsOf('collections')).toEqual([new Set([1]), new Map([['1', 1]])]);
+  });
+
+  it('PGPROBE-037: a presence pair is present, so a patch built from it reaches its SQL', () => {
+    // The repositories' partial updates take `[present: boolean, value]` pairs
+    // and send nothing when no pair is present; a false flag would leave the
+    // method unmeasured. Only the element labelled `present` turns true.
+    expect(argsOf('presence')).toEqual([{ name: [true, 'probe'], flag: [false, 1] }]);
   });
 
   it('PGPROBE-035: a required callback makes the method unprobeable, an optional one is left off', () => {

@@ -251,12 +251,10 @@ export class PlacesService {
     // the coercion stays here (the service), the repository binds the
     // already-built pattern verbatim (PL3).
     const searchPattern = filters.search ? `%${escapeLikePattern(filters.search)}%` : undefined;
-    const places: PlaceListRow[] = await this.placesRepo.listForTrip(tripId, {
-      searchPattern,
-      category: filters.category,
-      tag: filters.tag,
-      assignment: filters.assignment,
-    });
+    // A category or tag that is no canonical id (toRowId) matches nothing; bound as text, Postgres would refuse it.
+    const [category, tag] = [filters.category, filters.tag].map((id) => (id ? toRowId(id) : undefined));
+    if (category === null || tag === null) return [];
+    const places: PlaceListRow[] = await this.placesRepo.listForTrip(tripId, { searchPattern, category, tag, assignment: filters.assignment });
 
     const placeIds = places.map(p => p.id);
     const tagsByPlaceId = await this.queryHelpers.loadTagsByPlaceIds(placeIds);

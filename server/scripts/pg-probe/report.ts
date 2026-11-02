@@ -22,7 +22,7 @@ export interface FailedStatement {
   code: string;
   message: string;
   sql: string;
-  /** A dialect refusal (SQLSTATE class 42 or 0A) the ratchet holds; anything else is reported only. */
+  /** A refusal the ratchet holds (SQLSTATE class 42, 0A or 22); anything else is reported only. */
   counted: boolean;
 }
 
@@ -38,8 +38,9 @@ export interface ProbeSummary {
   /** Every distinct statement Postgres refused, counted toward the ratchet or not. */
   failedStatements: FailedStatement[];
   /**
-   * `Class.method` → distinct statements Postgres refused as SQL (SQLSTATE
-   * class 42 or 0A); every called method appears, zeros included.
+   * `Class.method` → distinct statements Postgres refused as SQL or over a
+   * value's type (SQLSTATE class 42, 0A or 22); every called method appears,
+   * zeros included.
    */
   failingByMethod: Map<string, number>;
   /**
@@ -192,7 +193,8 @@ export function formatConsole(input: ReportInput): string {
   const refusals = splitRefusals(summary);
   lines.push(
     `Statements: ${summary.statements} distinct, ${summary.failedStatements.length} refused by Postgres ` +
-      `(${refusals.counted.length} as SQL, held to the baseline; ${refusals.reported.length} over a sample value or the empty tables, reported only).`,
+      `(${refusals.counted.length} as SQL or over a value's type, held to the baseline; ` +
+      `${refusals.reported.length} over a constraint, a timeout or the empty tables, reported only).`,
   );
   for (const [code, count] of [...summary.failuresByCode.entries()].sort((a, b) => b[1] - a[1])) {
     lines.push(`  ${code}: ${count}${countsTowardRatchet(code) ? '' : ' (not held)'}`);
@@ -254,8 +256,8 @@ export function formatMarkdown(input: ReportInput): string {
   );
   out.push(`| Methods whose SQL the probe did not see | ${summary.uncovered.size} |`);
   out.push(`| Distinct statements | ${summary.statements} |`);
-  out.push(`| Refused by Postgres as SQL (held) | ${refusals.counted.length} |`);
-  out.push(`| Refused over a sample value or the empty tables (reported only) | ${refusals.reported.length} |`);
+  out.push(`| Refused by Postgres as SQL or over a value's type (held) | ${refusals.counted.length} |`);
+  out.push(`| Refused over a constraint, a timeout or the empty tables (reported only) | ${refusals.reported.length} |`);
   out.push('');
   if (probedNothing(summary))
     out.push('No repository method was called, so there is nothing to hold to the baseline.', '');

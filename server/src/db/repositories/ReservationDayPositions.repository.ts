@@ -52,10 +52,14 @@ export class ReservationDayPositionsRepository extends TrekRepository<Reservatio
    * position) SELECT r.id, d.id, ? FROM reservations r JOIN days d ON
    * d.trip_id = r.trip_id WHERE r.id = ? AND d.id = ? AND r.trip_id = ?`.
    *
-   * Kysely `insertInto().orReplace().columns().expression(selectFrom…)`
-   * (the MikroORM QueryBuilder's `insertFrom` has no `OR REPLACE` flag —
-   * `.onConflict().merge()` is semantically different, a real UPDATE rather
-   * than REPLACE's delete-then-insert). The trip scoping lives IN the
+   * Kysely `insertInto().columns().expression(selectFrom…)` with an
+   * `ON CONFLICT (reservation_id, day_id) DO UPDATE SET position`, which both
+   * engines read (`INSERT OR REPLACE` is SQLite only). The pair is the
+   * table's whole primary key and `position` its only other column, so the
+   * update leaves the same row REPLACE's delete-then-insert did, and no
+   * foreign key points at this table for the delete to have cascaded to.
+   * The SELECT keeps its WHERE, which SQLite needs to read the trailing
+   * ON CONFLICT as the upsert clause. The trip scoping lives IN the
    * SELECT (a foreign `reservation_id`/`day_id` materialises zero rows to
    * insert, never a foreign-key error) — preserved exactly, not hoisted
    * into a pre-check.
@@ -68,7 +72,6 @@ export class ReservationDayPositionsRepository extends TrekRepository<Reservatio
   ): Promise<void> {
     await this.kysely<ReservationDayPositionsKyselyDB>()
       .insertInto('reservation_day_positions')
-      .orReplace()
       .columns(['reservation_id', 'day_id', 'position'])
       .expression((eb) =>
         eb
@@ -78,6 +81,9 @@ export class ReservationDayPositionsRepository extends TrekRepository<Reservatio
           .where('r.id', '=', reservation_id)
           .where('d.id', '=', day_id)
           .where('r.trip_id', '=', trip_id as number),
+      )
+      .onConflict((oc) =>
+        oc.columns(['reservation_id', 'day_id']).doUpdateSet((eb) => ({ position: eb.ref('excluded.position') })),
       )
       .execute();
   }

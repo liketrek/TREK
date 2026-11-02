@@ -124,9 +124,16 @@ export function classify(file) {
   return 'source';
 }
 
-/** PRAGMA is fine in src/db/*.ts (connection, durability, baseline, snapshot) and the migrations. */
+/**
+ * PRAGMA is fine in src/db/*.ts (connection, durability, baseline, snapshot),
+ * the migrations and the SQLite engine's own folder (src/db/engine/sqlite/).
+ */
 export function pragmaAllowed(file) {
-  return /^src\/db\/[^/]+\.ts$/.test(file) || file.startsWith('src/db/migrations/');
+  return (
+    /^src\/db\/[^/]+\.ts$/.test(file) ||
+    file.startsWith('src/db/migrations/') ||
+    file.startsWith('src/db/engine/sqlite/')
+  );
 }
 
 function isSqlTag(node) {
