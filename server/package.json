@@ -51,6 +51,7 @@
     "test:integration": "vitest run tests/integration",
     "test:ws": "vitest run tests/websocket",
     "test:e2e": "vitest run tests/e2e",
+    "test:pg": "vitest run --config vitest.pg.config.ts",
     "test:coverage": "vitest run --coverage"
   },
   "mikro-orm": {

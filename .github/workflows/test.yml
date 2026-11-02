@@ -32,6 +32,8 @@ permissions:
 #   Server: S3 Contract (MinIO)
 #                            the storage driver against MinIO
 #   Server: Postgres Probe   the repository SQL against Postgres
+#   Server: Postgres Tests   the suites that boot the app, plus PARITY-PG and
+#                            the write lock, on Postgres (vitest.pg.config.ts)
 #   Client: Types & Checks   typecheck and the strict ratchet; then the page
 #                            pattern and the source ratchets (RTL, size,
 #                            Prettier, layers, offline path, duplication,
@@ -65,9 +67,9 @@ permissions:
 #     test jobs feeds the scan.
 #   - Job count: GitHub runs at most 20 jobs of the organisation at once and
 #     does not say in which order it starts queued ones. A code change starts
-#     the 14 shards and about a dozen other jobs; seven of those (parity, the
-#     SDK, the bundle, S3, Postgres, shared coverage, the chart) are done in
-#     a minute or two, so what queues at the start waits about that long. The
+#     the 14 shards and about a dozen other jobs; eight of those (parity, the
+#     SDK, the bundle, S3, the Postgres probe and tests, shared coverage, the
+#     chart) are done in a few minutes, so what queues at the start waits about that long. The
 #     jobs that run for minutes (shards, gates, e2e, the image) must not
 #     outnumber the 20 slots, or one of them waits for another to finish and
 #     the run grows by a whole job: a layout with six gate jobs did exactly
@@ -815,6 +817,50 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+  # The Postgres lane: every suite that boots the app through buildApp() on the
+  # real database module, each file on its own copy of one migrated template,
+  # plus the Postgres-only suites (PARITY-PG, the write lock). The lane fails,
+  # never skips, without TREK_TEST_DB_URL.
+  server-postgres-tests:
+    name: 'Server: Postgres Tests'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: lane
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build shared
+        run: npm run build --workspace=shared
+
+      - name: Run the Postgres lane
+        env:
+          TREK_TEST_DB_URL: postgres://postgres:lane@127.0.0.1:5432/postgres
+        run: npm run test:pg --workspace=server
+
   # The server suite in seven slices. vitest.shard.config.ts is vitest.config.ts
   # without the thresholds and the coverage reports: a slice's blob carries
   # its coverage to server-coverage, which checks the whole. fail-fast is off,
@@ -1398,6 +1444,7 @@ jobs:
       - client-e2e
       - s3-contract
       - postgres-probe
+      - server-postgres-tests
       - server-tests
       - server-coverage
       - client-tests
