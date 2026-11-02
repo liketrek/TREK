@@ -19,7 +19,7 @@ import {
   disableNotificationPref,
 } from '../../helpers/factories';
 import { countRows, findRow, insertRow } from '../../helpers/factories/rows';
-import { makeWebPushService } from '../../helpers/notifications';
+import { everyFeatureOn, makeWebPushService } from '../../helpers/notifications';
 import { createTestNotificationChannelPreferencesRepo } from '../../helpers/notifications-repos';
 import { resetTestDb } from '../../helpers/test-db';
 import {
@@ -102,6 +102,7 @@ beforeAll(async () => {
     await createTestUnitOfWork(testDb),
     await createTestAppSettingsRepo(testDb),
     await createTestNotificationChannelPreferencesRepo(testDb),
+    everyFeatureOn(),
   );
 });
 
@@ -448,5 +449,38 @@ describe('instance defaults', () => {
     expect(before.defaults.trip_invite?.inapp).toBe('on');
     await svc.setInstanceDefaults({ trip_invite: { email: 'on' } });
     expect(await countRows(await sharedTestOrm(testDb), AppSettings, { key: { $like: 'notif_default_%' } })).toBe(0);
+  });
+});
+
+describe('listed events follow the features that are on', () => {
+  it('NPREF-LIST-001: rows for switched-off addons and providers are not listed', async () => {
+    const narrow = new NotificationPreferencesService(
+      new MailerService(
+        await createTestUsersRepo(testDb),
+        await createTestSettingsRepo(testDb),
+        await createTestAppSettingsRepo(testDb),
+      ),
+      await createTestUnitOfWork(testDb),
+      await createTestAppSettingsRepo(testDb),
+      await createTestNotificationChannelPreferencesRepo(testDb),
+      everyFeatureOn({
+        isAddonEnabled: async (id: string) => id !== 'vacay' && id !== 'collections',
+        isWandererAvailable: async () => false,
+        enabledPhotoProviderIds: async () => ['immich'],
+      }),
+    );
+    const { user } = createUser(testDb);
+    const { event_types } = await narrow.getPreferencesMatrix(user.id, 'user');
+    for (const hidden of [
+      'vacay_invite',
+      'vacay_share',
+      'collection_invite',
+      'wanderer_source_hint',
+      'synology_session_cleared',
+    ]) {
+      expect(event_types).not.toContain(hidden);
+    }
+    expect(event_types).toContain('photos_shared');
+    expect(event_types).toContain('trip_invite');
   });
 });

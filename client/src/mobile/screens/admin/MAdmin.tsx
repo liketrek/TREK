@@ -88,7 +88,7 @@ export default function MAdmin() {
     { id: 'config', label: t('admin.tabs.config'), icon: SlidersHorizontal },
     { id: 'settings', label: t('admin.tabs.settings'), icon: SettingsIcon },
     { id: 'addons', label: t('admin.tabs.addons'), icon: Blocks },
-    { id: 'plugins', label: t('admin.tabs.plugins'), icon: Puzzle },
+    ...(managed ? [] : [{ id: 'plugins', label: t('admin.tabs.plugins'), icon: Puzzle }]),
     ...(managed ? [] : [{ id: 'storage', label: t('admin.tabs.storage'), icon: HardDrive }]),
     { id: 'notifications', label: t('admin.tabs.notifications'), icon: Bell },
     ...(mcpEnabled ? [{ id: 'mcp-tokens', label: t('admin.tabs.mcpTokens'), icon: Plug }] : []),

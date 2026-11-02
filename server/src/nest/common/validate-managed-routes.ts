@@ -64,6 +64,9 @@ export function collectManagedRoutes(app: INestApplication): ManagedRouteEntry[]
  */
 export const MANAGED_ROUTE_ALLOW_LIST: string[] = [
   'AdminController.rotateJwtSecret',
+  'AdminController.updatePlaceShadow',
+  'AdminController.updateToursWanderer',
+  'AdminController.updateTransitProvider',
   'AdminOidcController.get',
   'AdminOidcController.update',
   'AiAdminController.connection',

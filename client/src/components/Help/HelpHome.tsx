@@ -8,6 +8,7 @@ import type { HelpContext, HelpDocLink as HelpDocTarget, HelpGuide } from '../..
 import { helpIcon } from './helpIcons'
 import HelpBadge from './HelpBadge'
 import HelpDocLink from './HelpDocLink'
+import { useAuthStore } from '../../store/authStore'
 import HelpSizeChip from './HelpSizeChip'
 import { useScreenRoute } from './useScreenRoute'
 
@@ -19,6 +20,8 @@ import { useScreenRoute } from './useScreenRoute'
 export default function HelpHome({ context }: { context: HelpContext | null }): React.ReactElement {
   const { t } = useTranslation()
   const docIndex = useHelpStore(s => s.docIndex)
+  // No Help & Docs page on a managed install (App.tsx), so no links into it.
+  const managed = useAuthStore(s => s.managed)
   const closeHelp = useHelpStore(s => s.closeHelp)
   const screenRoute = useScreenRoute(context?.route)
 
@@ -35,7 +38,7 @@ export default function HelpHome({ context }: { context: HelpContext | null }): 
   const guides = guidesFor(context)
   const bullets = Array.from({ length: context.bullets }, (_, i) => t(ctxBulletKey(context.id, i + 1)))
   const children = childHelpContexts(context.id)
-  const docs = onePerPage(context.docs)
+  const docs = managed ? [] : onePerPage(context.docs)
   const trail = helpContextTrail(context).slice(0, -1)
   const Icon = helpIcon(context.icon)
 

@@ -63,6 +63,7 @@ export default function MAdminAddonManager({ bagTrackingEnabled, onToggleBagTrac
   const {
     addons, loading, handleToggle, tripAddons, globalAddons, integrationAddons, aiAddons, providerOptions, documentProviderOptions,
     toursWanderer,
+    wandererOffered,
     toggleToursWanderer,
     mapSwitches,
   } = useAddonManager()
@@ -115,13 +116,15 @@ export default function MAdminAddonManager({ bagTrackingEnabled, onToggleBagTrac
                   {addon.id === 'documents' && addon.enabled && <MProviderShelf options={documentProviderOptions} />}
                   {addon.id === 'tours' && addon.enabled && (
                     <>
-                      <MSubRow
-                        providerIcon={WandererMark}
-                        title={t('admin.toursWanderer.title')}
-                        subtitle={t('admin.toursWanderer.subtitle')}
-                        enabled={toursWanderer}
-                        onToggle={() => void toggleToursWanderer()}
-                      />
+                      {wandererOffered && (
+                        <MSubRow
+                          providerIcon={WandererMark}
+                          title={t('admin.toursWanderer.title')}
+                          subtitle={t('admin.toursWanderer.subtitle')}
+                          enabled={toursWanderer}
+                          onToggle={() => void toggleToursWanderer()}
+                        />
+                      )}
                       {mapSwitches.map(({ key, Icon, titleKey, subtitleKey, enabled, toggle }) => (
                         <MSubRow
                           key={key}

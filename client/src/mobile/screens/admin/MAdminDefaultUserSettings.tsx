@@ -7,7 +7,7 @@ import { getApiErrorMessage, type DistanceUnit, type WeekStart } from '../../../
 import { weekStartOptions } from '../../../utils/calendarWeek'
 import { withTileApiKey } from '../../../utils/tileUrl'
 import { defaultStyleForProvider } from '../../../components/Map/glProviders'
-import { MAP_PRESETS, type MapProvider } from '../../../components/Settings/mapSettingsModel'
+import type { MapProvider } from '../../../components/Settings/mapSettingsModel'
 import { useDefaultUserSettings, type Defaults } from '../../../components/Admin/useDefaultUserSettings'
 import MToggle from '../../components/MToggle'
 import MSegmented from '../../components/MSegmented'
@@ -22,7 +22,7 @@ import RoutingInstanceFields from '../../../components/Admin/RoutingInstanceFiel
 export default function MAdminDefaultUserSettings(): React.ReactElement {
   const { t, locale } = useTranslation()
   const {
-    defaults, loaded, managed, isSet, save, reset, mapTileUrl, setMapTileUrl, mapboxToken, setMapboxToken,
+    defaults, loaded, managed, presets, canMapbox, isSet, save, reset, mapTileUrl, setMapTileUrl, mapboxToken, setMapboxToken,
     cartoKey, setCartoKey, mapboxStyle, setMapboxStyle, mapPreviewPlaces, mapProvider, glStylePresets, styleKey,
     saveMapProvider, pickTilePreset, pickStylePreset, commitStyle,
   } = useDefaultUserSettings({ errorMessage: getApiErrorMessage, previewCreatedAt: () => new Date().toISOString() })
@@ -80,14 +80,14 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
   ]
   const providerOptions: { value: string; label: React.ReactNode }[] = [
     { value: 'leaflet', label: t('admin.defaultSettings.providerLeaflet') },
-    { value: 'mapbox-gl', label: t('admin.defaultSettings.providerMapbox') },
+    ...(canMapbox ? [{ value: 'mapbox-gl' as const, label: t('admin.defaultSettings.providerMapbox') }] : []),
     { value: 'maplibre-gl', label: t('admin.defaultSettings.providerMapLibre') },
   ]
 
   const currencyLabel = defaults.default_currency
     ? (SYMBOLS[defaults.default_currency] ? `${defaults.default_currency}  ${SYMBOLS[defaults.default_currency]}` : defaults.default_currency)
     : t('settings.currency')
-  const tilePresetLabel = MAP_PRESETS.find((p) => p.url === mapTileUrl)?.name || t('settings.mapTemplatePlaceholder.select')
+  const tilePresetLabel = presets.find((p) => p.url === mapTileUrl)?.name || t('settings.mapTemplatePlaceholder.select')
   const stylePresetLabel = glStylePresets.find((p) => p.url === mapboxStyle)?.name || t('admin.defaultSettings.mapboxStylePlaceholder')
   const chevron = <ChevronDown size={13} strokeWidth={2} className="flex-none text-m-faint" />
 
@@ -302,7 +302,7 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
         title={t('settings.mapTemplate')}
         value={mapTileUrl}
         onSelect={pickTilePreset}
-        options={MAP_PRESETS.map((p) => ({ value: p.url, label: p.name }))}
+        options={presets.map((p) => ({ value: p.url, label: p.name }))}
       />
 
       <MSetPickerSheet

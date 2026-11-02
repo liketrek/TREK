@@ -8,6 +8,7 @@ import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpe
 import { seedStore } from '../../../tests/helpers/store'
 import { buildSettings } from '../../../tests/helpers/factories'
 import { useSettingsStore } from '../../store/settingsStore'
+import { useAddonStore } from '../../store/addonStore'
 import { server } from '../../../tests/helpers/msw/server'
 import type { GalleryPhoto, JourneyEntry, JourneyPhoto, JourneyTrip } from '../../store/journeyStore'
 import type { ResilientResult, UploadProgress } from '../../utils/uploadQueue'
@@ -102,6 +103,8 @@ beforeEach(() => {
   // The time field reads time_format, so pin it: without this the cases that
   // assert a 24h string depend on whichever test ran before them (#2067).
   seedStore(useSettingsStore, { settings: buildSettings({ time_format: '24h' }) })
+  // A photo provider switched on for the install, so the External photos source is offered.
+  seedStore(useAddonStore, { addons: [{ id: 'immich', name: 'Immich', type: 'photo_provider', enabled: true } as never] })
   window.__addToast = toastSpy
   Object.defineProperty(URL, 'createObjectURL', {
     configurable: true, writable: true, value: vi.fn(() => 'blob:preview'),
@@ -428,6 +431,14 @@ describe('EntryEditor', () => {
 
     fireEvent.focus(input)
     expect(screen.getByText('Roma Termini')).toBeInTheDocument()
+  })
+
+  it('FE-JRN-EDITOR-018b: offers no External photos source where no photo provider is on', () => {
+    seedStore(useAddonStore, { addons: [] })
+    mountEditor(buildEntry({ id: 10 }))
+
+    expect(screen.queryByRole('button', { name: 'External photos' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Upload photos/ })).toBeInTheDocument()
   })
 
   it('FE-JRN-EDITOR-019: reports that no external provider is connected', async () => {

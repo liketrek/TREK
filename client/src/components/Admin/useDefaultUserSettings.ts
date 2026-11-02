@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { adminApi } from '../../api/client';
 import { useTranslation } from '../../i18n';
 import { useAuthStore } from '../../store/authStore';
+import { useSettingsStore } from '../../store/settingsStore';
 import type { DistanceUnit, Place, WeekStart } from '../../types';
 import { normalizeTileUrl } from '../../utils/tileUrl';
 import {
@@ -11,7 +12,13 @@ import {
   normalizeStyleForProvider,
   styleSettingKey,
 } from '../Map/glProviders';
-import { type MapProvider, normalizeProvider, styleForProvider } from '../Settings/mapSettingsModel';
+import {
+  type MapProvider,
+  mapboxOffered,
+  mapPresetsFor,
+  normalizeProvider,
+  styleForProvider,
+} from '../Settings/mapSettingsModel';
 import { useToast } from '../shared/Toast';
 import type { RoutingDefaults } from './RoutingInstanceFields';
 
@@ -53,6 +60,9 @@ export function useDefaultUserSettings({ errorMessage, previewCreatedAt }: Defau
   const [loaded, setLoaded] = useState(false);
   const [mapTileUrl, setMapTileUrl] = useState('');
   const managed = useAuthStore((s) => s.managed);
+  const hasAmapKey = useAuthStore((s) => s.hasAmapKey);
+  // The operator's token reaches the admin's own settings the same way it reaches everybody's.
+  const operatorMapboxToken = useSettingsStore((s) => s.settings.mapbox_access_token);
   const [mapboxToken, setMapboxToken] = useState('');
   const [cartoKey, setCartoKey] = useState('');
   const [mapboxStyle, setMapboxStyle] = useState('');
@@ -153,6 +163,8 @@ export function useDefaultUserSettings({ errorMessage, previewCreatedAt }: Defau
     defaults,
     loaded,
     managed,
+    presets: mapPresetsFor(managed, hasAmapKey),
+    canMapbox: mapboxOffered(managed, operatorMapboxToken),
     isSet,
     save,
     reset,
