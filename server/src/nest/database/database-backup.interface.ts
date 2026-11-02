@@ -42,10 +42,11 @@ export interface DatabaseBackupStrategy {
   snapshot(target: string): Promise<void>;
 
   /**
-   * Checks an unpacked archive's database before anything is replaced. Returns
-   * null when it can be restored, or the refusal in the restore route's words.
+   * Checks an unpacked archive's database before anything is replaced. Resolves
+   * with null when it can be restored, or the refusal in the restore route's
+   * words (an engine may throw a DomainError with it instead).
    */
-  verify(extractDir: string): DatabaseBackupRefusal | null;
+  verify(extractDir: string): Promise<DatabaseBackupRefusal | null>;
 
   /**
    * Keeps a copy of the database a restore is about to replace. Best effort: a

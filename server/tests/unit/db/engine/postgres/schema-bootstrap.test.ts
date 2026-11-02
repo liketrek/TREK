@@ -13,7 +13,10 @@ import type { MigrationSafetyNet } from '../../../../../src/db/legacy-baseline';
 import type { AnyOrm } from '../../../../../src/db/orm';
 import { Logger } from '@nestjs/common';
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { chmodSync, mkdtempSync, readdirSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const M1 = 'Migration20200101000000_baseline_schema';
 const M2 = 'Migration20200101000100_second';
@@ -175,27 +178,89 @@ describe('bootstrapPostgresSchema', () => {
 });
 
 describe('postgresSafetyNet', () => {
-  const envWith = (preMigrateSnapshot: boolean | undefined, isTest: boolean) => () =>
-    ({ db: { preMigrateSnapshot }, app: { isTest } }) as unknown as AppEnv;
+  const URL = 'postgresql://trek:pw@db/trek';
+  const NOW = new Date('2026-11-02T13:05:09Z');
+  let dir: string;
+  let bin: string;
+
+  beforeEach(() => {
+    dir = mkdtempSync(path.join(tmpdir(), 'trek-pg-net-'));
+    bin = mkdtempSync(path.join(tmpdir(), 'trek-pg-net-bin-'));
+  });
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+    rmSync(bin, { recursive: true, force: true });
+  });
+
+  /** A stand-in pg_dump that writes its --file, or fails like one that cannot connect. */
+  const fakePgDump = (ok: boolean) => {
+    const body = ok
+      ? 'for a in "$@"; do case "$a" in --file=*) printf dump > "${a#--file=}";; esac; done'
+      : 'echo "could not connect" >&2; exit 1';
+    writeFileSync(path.join(bin, 'pg_dump'), `#!/bin/sh\n${body}\n`);
+    chmodSync(path.join(bin, 'pg_dump'), 0o755);
+  };
+  const envWith =
+    (preMigrateSnapshot: boolean | undefined, isTest: boolean, keep = 3) =>
+    () =>
+      ({
+        db: { preMigrateSnapshot, preMigrateSnapshotKeep: keep, pgBinDir: bin },
+        app: { isTest },
+      }) as unknown as AppEnv;
+  const net = (env: () => AppEnv) =>
+    postgresSafetyNet(
+      URL,
+      env,
+      () => NOW,
+      () => dir,
+    );
 
   it.each([undefined, true])(
-    'PGBOOT-010: refuses by default (setting %s), naming pg_dump and the switch, since this release cannot copy a Postgres database',
+    'PGBOOT-010: dumps the database before migrating it (setting %s), keeping the newest copies and no half-written one',
     async (setting) => {
-      await expect(postgresSafetyNet(envWith(setting, false)).beforeMigrate('1')).rejects.toThrow(
-        /cannot copy a Postgres database.*pg_dump.*TREK_DB_PRE_MIGRATE_SNAPSHOT=false/,
-      );
+      vi.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
+      fakePgDump(true);
+      for (const old of ['20200101000001', '20200101000002']) {
+        writeFileSync(path.join(dir, `pre-migrate-${old}-20250101T000000Z.pgdump`), 'old');
+        utimesSync(path.join(dir, `pre-migrate-${old}-20250101T000000Z.pgdump`), 1, 1);
+      }
+      writeFileSync(path.join(dir, 'pre-migrate-20200101000003-20250101T000000Z.pgdump.partial'), 'killed');
+      await net(envWith(setting, false, 2)).beforeMigrate('20200101000100');
+      const kept = readdirSync(dir).sort();
+      expect(kept).toHaveLength(2);
+      expect(kept).toContain('pre-migrate-20200101000100-20261102T130509Z.pgdump');
+      expect(kept.some((file) => file.endsWith('.partial'))).toBe(false);
     },
   );
 
   it('PGBOOT-011: migrates without a copy when the operator turned it off, and says so', async () => {
     const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
-    await expect(postgresSafetyNet(envWith(false, false)).beforeMigrate('1')).resolves.toBeUndefined();
+    await expect(net(envWith(false, false)).beforeMigrate('1')).resolves.toBeUndefined();
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('without a copy'));
+    expect(readdirSync(dir)).toEqual([]);
   });
 
-  it('PGBOOT-012: stays out of the way under test unless a suite asks for it, and has no restore hint', async () => {
-    const net = postgresSafetyNet(envWith(undefined, true));
-    await expect(net.beforeMigrate('1')).resolves.toBeUndefined();
-    await expect(net.restoreHint('1')).resolves.toBeNull();
+  it('PGBOOT-012: stays out of the way under test unless a suite asks for it', async () => {
+    await expect(net(envWith(undefined, true)).beforeMigrate('1')).resolves.toBeUndefined();
+    expect(readdirSync(dir)).toEqual([]);
+  });
+
+  it('PGBOOT-013: a copy that cannot be written refuses the boot, names the switch, and leaves no partial file', async () => {
+    fakePgDump(false);
+    await expect(net(envWith(true, false)).beforeMigrate('1')).rejects.toThrow(
+      /Refusing to boot: could not write a copy.*pg_dump failed: could not connect.*TREK_DB_PRE_MIGRATE_SNAPSHOT=false/s,
+    );
+    expect(readdirSync(dir)).toEqual([]);
+  });
+
+  it('PGBOOT-014: the newer-database refusal points at the copy taken from this release, or at the others', async () => {
+    const hint = net(envWith(true, false));
+    await expect(hint.restoreHint('20200101000100')).resolves.toBeNull();
+    writeFileSync(path.join(dir, 'pre-migrate-20200101000050-20250101T000000Z.pgdump'), 'old');
+    await expect(hint.restoreHint('20200101000100')).resolves.toMatch(/none of them from this release/);
+    writeFileSync(path.join(dir, 'pre-migrate-20200101000100-20250102T000000Z.pgdump'), 'mine');
+    await expect(hint.restoreHint('20200101000100')).resolves.toMatch(
+      /pre-migrate-20200101000100-20250102T000000Z\.pgdump: stop TREK, empty the database .*pg_restore --no-owner/,
+    );
   });
 });

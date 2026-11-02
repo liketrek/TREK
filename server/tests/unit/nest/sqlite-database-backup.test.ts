@@ -146,8 +146,8 @@ describe('SqliteDatabaseBackup', () => {
     expect(fs.existsSync(target)).toBe(false);
   });
 
-  it('SQLBK-007: verify refuses an unpacked archive without a database', () => {
-    expect(portWith(maintenanceStub()).verify(dir)).toEqual({
+  it('SQLBK-007: verify refuses an unpacked archive without a database', async () => {
+    await expect(portWith(maintenanceStub()).verify(dir)).resolves.toEqual({
       error: 'Invalid backup: travel.db not found',
       status: 400,
     });

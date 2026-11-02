@@ -62,7 +62,7 @@ export class SqliteDatabaseBackup implements DatabaseBackupStrategy {
     }
   }
 
-  verify(extractDir: string): DatabaseBackupRefusal | null {
+  async verify(extractDir: string): Promise<DatabaseBackupRefusal | null> {
     return checkBackupDatabase(extractDir);
   }
 

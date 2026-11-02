@@ -150,6 +150,7 @@ async function restoreBeforeTheDatabaseOpens() {
     dbFile: resolveDbPath(),
     dataDir: paths.dataDir,
     reclaimResetFile: paths.reclaimResetFile,
+    postgres: env.db.url ? { url: env.db.url, binDir: env.db.pgBinDir } : undefined,
   });
 }
 

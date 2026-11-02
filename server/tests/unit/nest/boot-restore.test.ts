@@ -6,6 +6,7 @@
  * calls this file makes. The plugin staging is the one seam stubbed, because
  * it moves trees under the plugin roots of the machine running the tests.
  */
+import { knownMigrationNames } from '../../../src/db/known-migrations';
 import { BootRestoreError, restoreOnFirstBoot } from '../../../src/nest/backup/boot-restore';
 
 import archiver from 'archiver';
@@ -123,6 +124,77 @@ describe('restoreOnFirstBoot', () => {
       restoreOnFirstBoot({ archive: path.join(root, 'nope.zip'), dbFile, dataDir, reclaimResetFile }),
     ).rejects.toBeInstanceOf(BootRestoreError);
     expect(fs.existsSync(dbFile)).toBe(false);
+  });
+
+  describe('on Postgres', () => {
+    /**
+     * Stand-in client tools: psql lists the tables written to `tables` and
+     * marks `loaded` when it runs a restore; pg_restore lists a known migration
+     * as the dump's history, or writes a restricted script. Their arguments are
+     * pinned in pg-tools.test.ts.
+     */
+    const postgresPlan = (archivePath: string) => {
+      const bin = path.join(root, 'bin');
+      fs.mkdirSync(bin, { recursive: true });
+      const write = (name: string, body: string) => {
+        const version = `[ "$1" = --version ] && { echo '${name} (PostgreSQL) 17.11'; exit 0; }`;
+        fs.writeFileSync(path.join(bin, name), `#!/bin/sh\n${version}\n${body}\n`);
+        fs.chmodSync(path.join(bin, name), 0o755);
+      };
+      write(
+        'psql',
+        `case "$*" in *--command=*) [ -f '${root}/tables' ] && cat '${root}/tables'; exit 0;; *) touch '${root}/loaded';; esac`,
+      );
+      const migration = [...knownMigrationNames()][0];
+      write(
+        'pg_restore',
+        [
+          'case "$*" in',
+          `  *--data-only*) printf 'COPY public.mikro_orm_migrations (id, name) FROM stdin;\\n1\\t${migration}\\n\\\\.\\n';;`,
+          `  *) for a in "$@"; do case "$a" in --file=*) printf '%s\\n' '\\restrict k1' > "\${a#--file=}";; esac; done;;`,
+          'esac',
+        ].join('\n'),
+      );
+      return {
+        archive: archivePath,
+        dbFile,
+        dataDir,
+        reclaimResetFile,
+        postgres: { url: 'postgres://trek:pw@db/trek', binDir: bin },
+      };
+    };
+    const loaded = () => fs.existsSync(path.join(root, 'loaded'));
+
+    it('BOOT-RESTORE-004b: a database holding tables is left alone, so a restart never rolls back', async () => {
+      const plan = postgresPlan(await archive({ 'travel.pgdump': 'dump' }));
+      fs.writeFileSync(path.join(root, 'tables'), 'users\ntrips\n');
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      expect(await restoreOnFirstBoot(plan)).toEqual({ restored: false, reason: 'database-exists' });
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('the Postgres database (2 table(s))'));
+      expect(loaded()).toBe(false);
+    });
+
+    it("BOOT-RESTORE-004c: an empty database is loaded from the archive's dump, with its key and uploads", async () => {
+      const plan = postgresPlan(
+        await archive({ 'travel.pgdump': 'dump', '.encryption_key': 'b'.repeat(64), 'uploads/a.jpg': 'jpeg' }),
+      );
+      const out = await restoreOnFirstBoot(plan);
+      expect(out.restored).toBe(true);
+      expect(loaded()).toBe(true);
+      expect(fs.readFileSync(path.join(dataDir, '.encryption_key'), 'utf8')).toBe('b'.repeat(64));
+      expect(fs.existsSync(reclaimResetFile)).toBe(true);
+      expect(fs.existsSync(dbFile)).toBe(false);
+    });
+
+    it('BOOT-RESTORE-004d: a SQLite backup is refused before anything is loaded, leaving no scratch', async () => {
+      const plan = postgresPlan(await goodArchive());
+      await expect(restoreOnFirstBoot(plan)).rejects.toThrow(
+        'RESTORE_FROM_BACKUP: This backup holds a SQLite database, which cannot be restored into a Postgres database.',
+      );
+      expect(loaded()).toBe(false);
+      expect(fs.existsSync(reclaimResetFile)).toBe(false);
+      expect(fs.readdirSync(dataDir).filter((f) => f.startsWith('restore-boot-'))).toEqual([]);
+    });
   });
 
   it('BOOT-RESTORE-005: an archive without a database is refused and leaves no scratch behind', async () => {

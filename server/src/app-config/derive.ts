@@ -346,6 +346,8 @@ export function deriveDb(raw: RawEnv) {
     url,
     /** The largest number of connections the Postgres pool opens. */
     poolMax: Math.min(positiveIntOr(raw.TREK_DB_POOL_MAX, 10), 100),
+    /** Where pg_dump and pg_restore are; unset, the usual install directories are tried (never PATH). */
+    pgBinDir: raw.TREK_DB_PG_BIN_DIR?.trim() || undefined,
     trekDbFile: raw.TREK_DB_FILE,
     /** Resolved journal_mode — WAL unless the operator asked for something else (network storage needs DELETE/TRUNCATE). */
     journalMode: durability.journalMode,

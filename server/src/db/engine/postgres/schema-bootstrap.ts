@@ -1,13 +1,22 @@
 import { readEnv, type AppEnv } from '../../../app-config';
+import { resolveDataPaths } from '../../../app-config/data-paths';
 import { knownMigrationNames } from '../../known-migrations';
 import { migrationLabel, REFUSAL, refuseNewerDatabase, type MigrationSafetyNet } from '../../legacy-baseline';
 import type { AnyOrm } from '../../orm';
+import { listSnapshots, PREFIX, pruneSnapshots, stamp } from '../../pre-migrate-snapshot';
 import { readPostgresBaseline, type PostgresBaseline } from './baseline';
+import { pgDump } from './pg-tools';
 import type { Connection } from '@mikro-orm/core';
 import type { Migrator } from '@mikro-orm/migrations';
 import { Logger } from '@nestjs/common';
 
+import fs from 'node:fs';
+import path from 'node:path';
+
 const logger = new Logger('DB');
+
+/** A Postgres copy is a pg_dump custom-format archive. */
+const DUMP_EXTENSION = '.pgdump';
 
 /** What a Postgres bootstrap reads, passed in so a test can supply its own. */
 export interface PostgresBootstrapDeps {
@@ -67,7 +76,8 @@ export async function bootstrapPostgresSchema(orm: AnyOrm, deps: PostgresBootstr
       await Promise.all(baseline.migrations.map((name) => storage.logMigration({ name }, trx)));
     });
   } else {
-    refuseNewerDatabase(executed, deps.known);
+    const thisRelease = migrationLabel([...deps.known].sort().at(-1) ?? '');
+    refuseNewerDatabase(executed, deps.known, await deps.safetyNet.restoreHint(thisRelease));
   }
 
   const pending = await migrator.getPending();
@@ -78,32 +88,73 @@ export async function bootstrapPostgresSchema(orm: AnyOrm, deps: PostgresBootstr
   await migrator.up();
 }
 
+/** Dumps a killed boot left half-written: never a copy, only disk taken. */
+function removeOrphanedPartials(dir: string): void {
+  for (const file of fs.readdirSync(dir)) {
+    if (file.startsWith(PREFIX) && file.endsWith(`${DUMP_EXTENSION}.partial`)) {
+      fs.rmSync(path.join(dir, file), { force: true });
+    }
+  }
+}
+
 /**
- * The Postgres safety net before pending migrations. This release cannot copy
- * a Postgres database (the SQLite engine's `VACUUM INTO` has no Postgres
- * equivalent short of `pg_dump`), so it refuses unless the operator turned
- * the copy off: fail closed, rather than migrate with nothing to go back to.
- * Off under NODE_ENV=test unless a suite asks for it, as on SQLite.
+ * The Postgres safety net before pending migrations, as the SQLite file's
+ * (`db/pre-migrate-snapshot.ts`): a `pg_dump` of the database to
+ * `<data>/pre-migrate-<schema>-<time>.pgdump`, the newest
+ * `TREK_DB_PRE_MIGRATE_SNAPSHOT_KEEP` kept. A copy that cannot be written
+ * (pg_dump missing, the data dir full) refuses the boot before anything is
+ * migrated, unless `TREK_DB_PRE_MIGRATE_SNAPSHOT=false`. Off under
+ * NODE_ENV=test unless a suite asks for it.
  */
-export function postgresSafetyNet(env: () => AppEnv = readEnv): MigrationSafetyNet {
+export function postgresSafetyNet(
+  url: string,
+  env: () => AppEnv = readEnv,
+  now: () => Date = () => new Date(),
+  dataDir: () => string = () => resolveDataPaths(env()).dataDir,
+): MigrationSafetyNet {
   return {
-    async beforeMigrate() {
+    async beforeMigrate(from) {
       const { db, app } = env();
       if (db.preMigrateSnapshot === undefined && app.isTest) return;
       if (db.preMigrateSnapshot === false) {
         logger.warn('TREK_DB_PRE_MIGRATE_SNAPSHOT is off: migrating the Postgres database without a copy');
         return;
       }
-      throw new Error(
-        `${REFUSAL} migrations are pending and TREK cannot copy a Postgres database before migrating it in this ` +
-          'release. Back it up with pg_dump, then start once with TREK_DB_PRE_MIGRATE_SNAPSHOT=false.',
-      );
+      const target = path.join(dataDir(), `${PREFIX}${from ?? 'unversioned'}-${stamp(now())}${DUMP_EXTENSION}`);
+      try {
+        fs.mkdirSync(dataDir(), { recursive: true });
+        removeOrphanedPartials(dataDir());
+        await pgDump(url, target, db.pgBinDir);
+      } catch (err) {
+        throw new Error(
+          `${REFUSAL} could not write a copy of the database to ${target} before migrating it ` +
+            `(${err instanceof Error ? err.message : String(err)}). Nothing was migrated. Fix that, ` +
+            'or set TREK_DB_PRE_MIGRATE_SNAPSHOT=false to migrate without a copy.',
+          { cause: err },
+        );
+      }
+      logger.log(`Copy of the database before migrating: ${target}`);
+      pruneSnapshots(dataDir(), db.preMigrateSnapshotKeep, DUMP_EXTENSION);
     },
-    restoreHint: async () => null,
+
+    async restoreHint(thisRelease) {
+      const snapshots = listSnapshots(dataDir(), DUMP_EXTENSION);
+      const match = snapshots.find((snapshot) => path.basename(snapshot).startsWith(`${PREFIX}${thisRelease}-`));
+      if (match) {
+        return (
+          `The copy taken right before the newer TREK migrated it is ${match}: stop TREK, empty the database ` +
+          '(drop and recreate it), and restore it with pg_restore --no-owner --no-privileges --single-transaction.'
+        );
+      }
+      if (snapshots.length > 0) {
+        return `Copies taken before earlier migrations are in ${dataDir()} (${PREFIX}*${DUMP_EXTENSION}), none of them from this release.`;
+      }
+      return null;
+    },
   };
 }
 
 /** What a production boot passes: the committed baseline, the migrations on disk, the safety net above. */
-export function defaultPostgresBootstrapDeps(): PostgresBootstrapDeps {
-  return { baseline: readPostgresBaseline, known: knownMigrationNames(), safetyNet: postgresSafetyNet() };
+export function defaultPostgresBootstrapDeps(url: string): PostgresBootstrapDeps {
+  return { baseline: readPostgresBaseline, known: knownMigrationNames(), safetyNet: postgresSafetyNet(url) };
 }

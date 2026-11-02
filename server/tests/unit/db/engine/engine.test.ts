@@ -108,11 +108,14 @@ describe('buildOrmConfig', () => {
     expect(config.entities).toBe(buildOrmConfig(resolveEngine()).entities);
   });
 
-  it('ENGINE-032: a Postgres engine opens and closes nothing of its own, and refuses a reopen (no restore yet)', async () => {
+  it('ENGINE-032: a Postgres engine opens and closes nothing of its own; a reopen (after pg_restore) rebinds and migrates', async () => {
     const engine = resolveEngine(deriveDb({ TREK_DB_URL: PG_URL }));
-    expect(() => engine.open(() => undefined)).not.toThrow();
+    await expect(engine.reopen()).rejects.toThrow(/reopened before it was opened/);
+    const onReopened = vi.fn(async () => undefined);
+    expect(() => engine.open(onReopened)).not.toThrow();
     expect(() => engine.close()).not.toThrow();
-    await expect(engine.reopen()).rejects.toThrow(/not available in this release/);
+    await engine.reopen();
+    expect(onReopened).toHaveBeenCalledTimes(1);
   });
 
   it('ENGINE-033: Postgres serializes write transactions with one advisory lock taken in the transaction, SQLite needs none', async () => {

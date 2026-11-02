@@ -1,3 +1,4 @@
+import { NO_SAFETY_NET } from '../../legacy-baseline';
 import { finishSchemaBootstrap, type AnyOrm } from '../../orm';
 import type { DatabaseEngine } from '../engine';
 import { redactUrl } from '../redact-url';
@@ -69,19 +70,28 @@ export class PostgresEngine implements DatabaseEngine {
 
   constructor(
     private readonly settings: PostgresSettings,
-    private readonly bootstrapDeps: () => PostgresBootstrapDeps = defaultPostgresBootstrapDeps,
+    private readonly bootstrapDeps: (url: string) => PostgresBootstrapDeps = defaultPostgresBootstrapDeps,
   ) {}
 
-  open(): void {
-    // Nothing of its own to open: the ORM connects the pool.
+  private onReopened: (() => Promise<void>) | null = null;
+
+  /** Nothing of its own to open (the ORM connects the pool); keeps what a reopen runs. */
+  open(onReopened: () => Promise<void>): void {
+    this.onReopened = onReopened;
   }
 
   close(): void {
     // Nothing of its own to close: the pool goes with the ORM.
   }
 
-  reopen(): Promise<void> {
-    return Promise.reject(new Error('Restoring a backup into a Postgres database is not available in this release.'));
+  /**
+   * After `pg_restore` replaced the database's contents: the ORM reconnects
+   * and the restored database is migrated forward (`onReopened`, which
+   * `DatabaseLifecycle` hands to `open`).
+   */
+  async reopen(): Promise<void> {
+    if (!this.onReopened) throw new Error('The Postgres engine was reopened before it was opened.');
+    await this.onReopened();
   }
 
   /**
@@ -95,8 +105,10 @@ export class PostgresEngine implements DatabaseEngine {
       .execute('select pg_advisory_xact_lock(?)', [TREK_WRITE_LOCK], 'run', em.getTransactionContext());
   }
 
-  async schemaBootstrap(orm: AnyOrm): Promise<void> {
-    await bootstrapPostgresSchema(orm, this.bootstrapDeps());
+  /** `snapshot: false` (a restore, whose archive is the copy) migrates without a pg_dump first. */
+  async schemaBootstrap(orm: AnyOrm, options: { snapshot: boolean }): Promise<void> {
+    const deps = this.bootstrapDeps(this.settings.url);
+    await bootstrapPostgresSchema(orm, options.snapshot ? deps : { ...deps, safetyNet: NO_SAFETY_NET });
     await finishSchemaBootstrap(orm);
   }
 

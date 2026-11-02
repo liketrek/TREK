@@ -474,7 +474,7 @@ export async function restoreFromZip({ storage, database }: BackupDeps, zipPath:
     const refused = await extractBackupArchive(zipPath, extractDir);
     if (refused) return { success: false, ...refused };
 
-    const unreadable = database.verify(extractDir);
+    const unreadable = await database.verify(extractDir);
     if (unreadable) {
       fs.rmSync(extractDir, { recursive: true, force: true });
       return { success: false, ...unreadable };

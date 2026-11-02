@@ -168,6 +168,7 @@ export const envSchema = z.object({
   // carries the password), so it is masked in the boot report.
   TREK_DB_URL: postgresUrl,
   TREK_DB_POOL_MAX: integer(1, 100),
+  TREK_DB_PG_BIN_DIR: anyString,
   TREK_DB_FILE: anyString,
   // The two SQLite pragmas are deliberately unvalidated: a typo here must fall
   // back and warn rather than abort boot, because reset-admin.js — the way out
