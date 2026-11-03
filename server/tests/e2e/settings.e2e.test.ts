@@ -338,6 +338,28 @@ describe('Settings e2e (real auth guard + temp SQLite)', () => {
     });
   });
 
+  describe('date_format (#2971)', () => {
+    it('an admin default reaches a user who never picked a date format', async () => {
+      const put = await request(server)
+        .put('/api/admin/default-user-settings')
+        .set('Cookie', sessionCookie(2))
+        .send({ date_format: 'YYYY-MM-DD' });
+      expect(put.status).toBe(200);
+      const res = await request(server).get('/api/settings').set('Cookie', sessionCookie(1));
+      expect(res.status).toBe(200);
+      expect(res.body.settings.date_format).toBe('YYYY-MM-DD');
+    });
+
+    it('PUT /api/admin/default-user-settings 400 for a format the app does not offer', async () => {
+      const res = await request(server)
+        .put('/api/admin/default-user-settings')
+        .set('Cookie', sessionCookie(2))
+        .send({ date_format: 'YY.MM.DD' });
+      expect(res.status).toBe(400);
+      expect(await findRow(orm, AppSettings, { key: 'default_user_setting_date_format' })).toBeNull();
+    });
+  });
+
   describe('planner_trip_views (#2639)', () => {
     beforeEach(async () => {
       await deleteRows(orm, TripMembers);

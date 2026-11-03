@@ -92,6 +92,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': 'Μορφή Ώρας',
   'settings.weekStart': 'Η εβδομάδα ξεκινά την',
   'settings.weekStartHint': 'Πρώτη ημέρα της εβδομάδας σε κάθε επιλογέα ημερομηνίας. Το Vacay έχει δική του ρύθμιση.',
+  'settings.dateFormat': 'Μορφή Ημερομηνίας',
+  'settings.dateFormatHint':
+    'Πώς γράφονται οι ημερομηνίες σε κάθε πεδίο ημερομηνίας και λίστα. Οι ημερομηνίες με όνομα μήνα διατηρούν τη διατύπωση της γλώσσας σας.',
+  'settings.dateFormatAuto': 'Αυτόματο',
   'settings.preferredNavApp': 'Άνοιγμα τοποθεσιών σε',
   'settings.preferredNavAppAsk': 'Ερώτηση κάθε φορά',
   'settings.preferredNavAppHint':

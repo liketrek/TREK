@@ -264,6 +264,17 @@ describe('Tool: update_display_settings', () => {
     });
   });
 
+  it('writes date_format and refuses a format the app does not offer (#2971)', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const ok = parseToolResult(await update(h, { date_format: 'DD.MM.YYYY' })) as any;
+      expect(ok.settings.date_format).toBe('DD.MM.YYYY');
+      const refused = await update(h, { date_format: 'dd-mm' });
+      expect(refused.isError).toBe(true);
+      expect(await readSetting(user.id, 'date_format')).toBe('DD.MM.YYYY');
+    });
+  });
+
   it('writes week_start and refuses a day outside the three the app offers (#2029)', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {

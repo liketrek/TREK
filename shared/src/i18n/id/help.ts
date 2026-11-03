@@ -1149,7 +1149,7 @@ const help: TranslationStrings = {
   'help.ctx.settings.bullet.1':
     'Sidebar di kiri: “Tampilan” (umum), “Tampilan” (visual), “Peta”, “Notifikasi”, “Integrasi”, Offline, dan “Akun”. Plugin muncul begitu ada plugin yang aktif. “Tentang” muncul kecuali operator menyembunyikannya. Versinya tampil di bagian bawah.',
   'help.ctx.settings.bullet.2':
-    '“Tampilan” (umum) terbuka lebih dulu. Isinya bahasa, bahasa nama tempat, satuan, format waktu, awal minggu, dan mata uang tampilan, serta cara kerja peta perjalanan. “Tampilan” (visual) berisi tema, warna, keterbacaan, ukuran teks, dan widget dasbor.',
+    '“Tampilan” (umum) terbuka lebih dulu. Isinya bahasa, bahasa nama tempat, satuan, format waktu, format tanggal, awal minggu, dan mata uang tampilan, serta cara kerja peta perjalanan. “Tampilan” (visual) berisi tema, warna, keterbacaan, ukuran teks, dan widget dasbor.',
   'help.ctx.settings.bullet.3':
     '“Peta” mengatur mesin peta dan gayanya; “Notifikasi” mengatur peristiwa mana yang dikirim ke saluran mana; “Integrasi” menghubungkan pustaka foto, AirTrail, Dawarich, dan wanderer, serta berisi kunci API dan MCP; “Offline” mengatur apa saja yang disimpan di perangkat ini.',
   'help.ctx.settings.bullet.4':
@@ -1160,7 +1160,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-display.bullet.1':
     '“Mulai”: “Halaman awal” membuka “Dasbor” atau “Perjalanan aktif”; dengan “Perjalanan aktif”, “Tab awal” menentukan tab yang dibuka perjalanan itu.',
   'help.ctx.settings-display.bullet.2':
-    'Bahasa & wilayah: “Mata uang tampilan” (atau “Mata uang perjalanan” agar tidak dikonversi), “Bahasa”, “Nama tempat”, “Satuan Suhu”, “Satuan Jarak”, “Format Waktu”, dan “Awal minggu”.',
+    'Bahasa & wilayah: “Mata uang tampilan” (atau “Mata uang perjalanan” agar tidak dikonversi), “Bahasa”, “Nama tempat”, “Satuan Suhu”, “Satuan Jarak”, “Format Waktu”, “Awal minggu”, dan “Format Tanggal”.',
   'help.ctx.settings-display.bullet.3':
     '“Perjalanan & peta”: “Buka tempat di”, “Tanggal di depan pada judul hari”, “Label rute pemesanan”, “Selalu tampilkan rute pemesanan”, “Penanda ringkas untuk tempat yang belum direncanakan”, “Jelajahi tempat di peta”, “Sembunyikan Kode Pemesanan”, dan “Optimalkan rute dari akomodasi”.',
   'help.ctx.settings-appearance.title': 'Tampilan',
@@ -1479,9 +1479,9 @@ const help: TranslationStrings = {
     '“Pengaturan Izin” di bagian bawah: untuk setiap tindakan, siapa yang boleh melakukannya (“Semua orang”, “Anggota perjalanan”, “Pemilik perjalanan”, atau “Hanya Admin”). Klik “Simpan” di bagian atas kartu untuk menyimpannya.',
   'help.ctx.admin-defaults.title': 'Pengaturan Default Pengguna',
   'help.ctx.admin-defaults.summary':
-    'Pengaturan awal akun baru, agar tidak ada yang perlu mengaturnya dulu: mode warna, satuan, format waktu, awal minggu, mata uang tampilan, dan kode pemesanan yang disamarkan, ditambah peta, kuncinya, dan server rute.',
+    'Pengaturan awal akun baru, agar tidak ada yang perlu mengaturnya dulu: mode warna, satuan, format waktu, format tanggal, awal minggu, mata uang tampilan, dan kode pemesanan yang disamarkan, ditambah peta, kuncinya, dan server rute.',
   'help.ctx.admin-defaults.bullet.1':
-    '“Pengaturan Default Pengguna” di kiri: “Mode Warna”, “Satuan Suhu”, “Satuan Jarak”, “Format Waktu”, “Awal minggu”, “Mata uang tampilan”, dan “Sembunyikan Kode Pemesanan”.',
+    '“Pengaturan Default Pengguna” di kiri: “Mode Warna”, “Satuan Suhu”, “Satuan Jarak”, “Format Waktu”, “Awal minggu”, “Format Tanggal”, “Mata uang tampilan”, dan “Sembunyikan Kode Pemesanan”.',
   'help.ctx.admin-defaults.bullet.2':
     '“Peta” di kanan: “Template Peta”, “Kunci CARTO bersama”, “Mesin rute sendiri” dan “Instans Valhalla sendiri”, pratinjau, lalu “Mesin peta” dengan “Gaya peta”, “Token Mapbox bersama”, “Bangunan & medan 3D”, dan “Mode kualitas tinggi”.',
   'help.ctx.admin-config.title': 'Personalisasi',
@@ -4322,7 +4322,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-about.bullet.3':
     'Lewat Ko-fi, Buy Me a Coffee, dan Discord, kamu bisa mendukung TREK atau mengobrol dengan orang-orang yang membuatnya.',
   'help.guide.language-region.step.3':
-    'Atur “Mata uang tampilan”, atau biarkan “Mata uang perjalanan” agar setiap perjalanan tampil dalam mata uangnya sendiri. Lalu pilih “Satuan Suhu”, “Satuan Jarak”, “Format Waktu”, dan hari “Awal minggu”.',
+    'Atur “Mata uang tampilan”, atau biarkan “Mata uang perjalanan” agar setiap perjalanan tampil dalam mata uangnya sendiri. Lalu pilih “Satuan Suhu”, “Satuan Jarak”, “Format Waktu”, hari “Awal minggu”, dan “Format Tanggal”.',
   'help.guide.travel-map-prefs.step.3':
     '“Jelajahi tempat di peta” menampilkan pil kategori untuk mencari tempat di sekitar. “Sembunyikan Kode Pemesanan” menyamarkan nomor konfirmasi sampai kamu mengarahkan kursor ke atasnya atau mengetuknya. “Optimalkan rute dari akomodasi” membuat setiap hari dimulai dan diakhiri di hotelmu.',
   'help.guide.web-push-device.step.2':
@@ -6396,7 +6396,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-settings.bullet.5':
     '“Zona Berbahaya”: “Putar Secret JWT” mengeluarkan semua pengguna, termasuk kamu.',
   'help.guide.default-user-settings.step.1':
-    'Di bawah “Pengaturan Default Pengguna”, pilih “Mode Warna” (“Terang”, “Gelap”, atau “Otomatis”), “Satuan Suhu”, “Satuan Jarak”, “Format Waktu”, “Awal minggu”, “Mata uang tampilan”, dan apakah “Sembunyikan Kode Pemesanan” “Aktif” atau “Mati”. Setiap pilihan langsung tersimpan.',
+    'Di bawah “Pengaturan Default Pengguna”, pilih “Mode Warna” (“Terang”, “Gelap”, atau “Otomatis”), “Satuan Suhu”, “Satuan Jarak”, “Format Waktu”, “Awal minggu”, “Format Tanggal”, “Mata uang tampilan”, dan apakah “Sembunyikan Kode Pemesanan” “Aktif” atau “Mati”. Setiap pilihan langsung tersimpan.',
   'help.guide.admin-passkeys.step.2':
     'Isi Relying Party ID (domain), misalnya trek.example.org, dan “Origin yang diizinkan” tempat TREK-mu diakses, lalu klik “Simpan”. Biarkan keduanya kosong untuk memakai APP_URL.',
   'help.guide.rotate-jwt-secret.title': 'Mengeluarkan semua orang sekaligus',

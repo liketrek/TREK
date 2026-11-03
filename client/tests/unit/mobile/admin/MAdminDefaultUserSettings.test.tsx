@@ -1,4 +1,4 @@
-// FE-MOB-MDUS-001 to FE-MOB-MDUS-030
+// FE-MOB-MDUS-001 to FE-MOB-MDUS-032
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor, within, fireEvent } from '../../../helpers/render';
 import userEvent from '@testing-library/user-event';
@@ -498,5 +498,38 @@ describe('MAdminDefaultUserSettings, the routing service', () => {
     render(<MAdminDefaultUserSettings />);
     await screen.findByText('Default User Settings');
     expect(screen.queryByRole('combobox', { name: 'Routing service' })).not.toBeInTheDocument();
+  });
+});
+
+describe('MAdminDefaultUserSettings date format (#2971)', () => {
+  beforeEach(() => {
+    resetAllStores();
+    seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
+  });
+
+  it('FE-MOB-MDUS-031: the date-format sheet saves its own key', async () => {
+    const user = userEvent.setup();
+    const { puts } = stubDefaults({ date_format: 'YYYY-MM-DD' });
+    render(<MAdminDefaultUserSettings />);
+    await screen.findByText('Default User Settings');
+
+    // The choices are labelled by how they write 31 December.
+    await user.click(screen.getByRole('button', { name: '2026-12-31' }));
+    const sheet = await screen.findByRole('dialog');
+    await user.click(within(sheet).getByRole('button', { name: '31.12.2026' }));
+
+    await waitFor(() => expect(puts).toEqual([{ date_format: 'DD.MM.YYYY' }]));
+  });
+
+  it('FE-MOB-MDUS-032: a stored date format can be reset', async () => {
+    const user = userEvent.setup();
+    const { puts } = stubDefaults({ date_format: 'DD/MM/YYYY' });
+    render(<MAdminDefaultUserSettings />);
+    await screen.findByText('Default User Settings');
+
+    // The only default set, so the only reset link on the page.
+    await user.click(screen.getByRole('button', { name: 'reset' }));
+
+    await waitFor(() => expect(puts).toEqual([{ date_format: null }]));
   });
 });

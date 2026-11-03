@@ -4,7 +4,7 @@ import { adminApi } from '../../api/client';
 import { useTranslation } from '../../i18n';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
-import type { DistanceUnit, Place, WeekStart } from '../../types';
+import type { DateFormat, DistanceUnit, Place, WeekStart } from '../../types';
 import { normalizeTileUrl } from '../../utils/tileUrl';
 import {
   defaultStyleForProvider,
@@ -28,6 +28,7 @@ export type Defaults = RoutingDefaults & {
   dark_mode?: string | boolean;
   time_format?: string;
   week_start?: WeekStart;
+  date_format?: DateFormat;
   default_currency?: string;
   blur_booking_codes?: boolean;
   map_tile_url?: string;

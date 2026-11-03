@@ -1,4 +1,4 @@
-// FE-COMP-DISPLAY-001 to FE-COMP-DISPLAY-055
+// FE-COMP-DISPLAY-001 to FE-COMP-DISPLAY-057
 import { render, screen, within, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -479,6 +479,35 @@ describe('DisplaySettingsTab week start (#2029)', () => {
 
     await user.click(screen.getByRole('button', { name: /Sunday/ }));
     await user.click(await screen.findByText('Saturday'));
+
+    expect(await screen.findByText('Save failed')).toBeInTheDocument();
+  });
+});
+
+// ── Date format (056, 057) ────────────────────────────────────────────────────
+
+describe('DisplaySettingsTab date format (#2971)', () => {
+  it('FE-COMP-DISPLAY-056: shows the language format when unset and saves the format picked', async () => {
+    const user = userEvent.setup();
+    const updateSetting = vi.fn().mockResolvedValue(undefined);
+    seedStore(useSettingsStore, { settings: buildSettings({ date_format: undefined }), updateSetting });
+    render(<DisplaySettingsTab />);
+
+    // Each choice is labelled by how it writes 31 December; auto carries the language's own way.
+    await user.click(screen.getByRole('button', { name: /\(12\/31\/2026\)/ }));
+    await user.click(await screen.findByText('31.12.2026'));
+
+    expect(updateSetting).toHaveBeenCalledWith('date_format', 'DD.MM.YYYY');
+  });
+
+  it('FE-COMP-DISPLAY-057: a rejected change surfaces the error', async () => {
+    const user = userEvent.setup();
+    const updateSetting = vi.fn().mockRejectedValue(new Error('Save failed'));
+    seedStore(useSettingsStore, { settings: buildSettings({ date_format: 'YYYY-MM-DD' }), updateSetting });
+    render(<><ToastContainer /><DisplaySettingsTab /></>);
+
+    await user.click(screen.getByRole('button', { name: /2026-12-31/ }));
+    await user.click(await screen.findByText('31/12/2026'));
 
     expect(await screen.findByText('Save failed')).toBeInTheDocument();
   });

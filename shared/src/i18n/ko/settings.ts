@@ -86,6 +86,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': '시간 형식',
   'settings.weekStart': '주 시작 요일',
   'settings.weekStartHint': '모든 날짜 선택기에서 한 주의 첫 요일입니다. Vacay에는 별도의 설정이 있습니다.',
+  'settings.dateFormat': '날짜 형식',
+  'settings.dateFormatHint':
+    '모든 날짜 입력란과 목록에서 날짜를 쓰는 방식입니다. 월 이름이 들어간 날짜는 언어 표기를 그대로 따릅니다.',
+  'settings.dateFormatAuto': '자동',
   'settings.preferredNavApp': '장소 열기 앱',
   'settings.preferredNavAppAsk': '매번 묻기',
   'settings.preferredNavAppHint': '앱을 선택하면 길찾기 버튼이 모든 지도 앱을 보여주는 대신 바로 그 앱을 엽니다.',

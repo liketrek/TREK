@@ -10,6 +10,7 @@ import { MapView } from '../Map/MapView'
 import { SYMBOLS, currenciesWith } from '../Budget/BudgetPanel.constants'
 import type { DistanceUnit, WeekStart } from '../../types'
 import { weekStartOptions } from '../../utils/calendarWeek'
+import { dateFormatOptions } from '../../utils/dateFormat'
 import { withTileApiKey } from '../../utils/tileUrl'
 import { defaultStyleForProvider } from '../Map/glProviders'
 import type { MapProvider } from '../Settings/mapSettingsModel'
@@ -178,6 +179,17 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
           onChange={value => { if (value) void save({ week_start: value }) }}
           options={weekStartOptions(locale)}
         />
+      </ChoiceRow>
+
+      {/* Date format: every date field and numeric date (#2971) */}
+      <ChoiceRow label={<>{t('settings.dateFormat')} <ResetButton field="date_format" /></>}>
+        <div className="w-[220px] max-w-full">
+          <CustomSelect
+            value={defaults.date_format ?? ''}
+            onChange={value => { if (value) void save({ date_format: String(value) as Defaults['date_format'] }) }}
+            options={dateFormatOptions(locale, t('settings.dateFormatAuto'))}
+          />
+        </div>
       </ChoiceRow>
 
       {/* Default Currency */}

@@ -9,6 +9,8 @@ import { airtrailApi } from '../../api/client'
 import { useTripStore } from '../../store/tripStore'
 import { isEffectivelyOffline } from '../../sync/networkMode'
 import { parseReservationMetadata } from '../../utils/flightLegs'
+import { useDateFormat } from '../../hooks/useDateFormat'
+import { formatDisplayDate } from '../../utils/dateFormat'
 
 interface AirTrailImportModalProps {
   isOpen: boolean
@@ -52,15 +54,15 @@ export function detectConnections(flights: AirtrailFlight[]): AirtrailFlight[][]
 }
 
 /** Locale-aware date (e.g. de → 13.06.2026, en-US → 06/13/2026). */
-function fmtDate(d: string | null, locale: string): string {
+function fmtDate(d: string | null, locale: string, dateFormat: string): string {
   if (!d) return ''
   try {
-    return new Date(d + 'T00:00:00Z').toLocaleDateString(locale, {
+    return formatDisplayDate(new Date(d + 'T00:00:00Z'), locale, {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
       timeZone: 'UTC',
-    })
+    }, dateFormat)
   } catch {
     return d
   }
@@ -68,6 +70,7 @@ function fmtDate(d: string | null, locale: string): string {
 
 export default function AirTrailImportModal({ isOpen, onClose, tripId, pushUndo }: AirTrailImportModalProps) {
   const { t, locale } = useTranslation()
+  const dateFormat = useDateFormat()
   const toast = useToast()
   const trip = useTripStore(s => s.trip)
   const reservations = useTripStore(s => s.reservations)
@@ -270,7 +273,7 @@ export default function AirTrailImportModal({ isOpen, onClose, tripId, pushUndo 
         <span style={{ flex: 1, minWidth: 0 }}>
           <span style={{ display: 'block', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
           <span style={{ display: 'block', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-muted)' }}>
-            {f.fromCode ?? f.fromName ?? '?'} → {f.toCode ?? f.toName ?? '?'}{f.date ? ` · ${fmtDate(f.date, locale)}` : ''}
+            {f.fromCode ?? f.fromName ?? '?'} → {f.toCode ?? f.toName ?? '?'}{f.date ? ` · ${fmtDate(f.date, locale, dateFormat)}` : ''}
           </span>
         </span>
         {already && (

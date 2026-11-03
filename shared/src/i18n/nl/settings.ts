@@ -87,6 +87,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': 'Tijdnotatie',
   'settings.weekStart': 'Week begint op',
   'settings.weekStartHint': 'Eerste dag van de week in elke datumkiezer. Vacay heeft een eigen instelling.',
+  'settings.dateFormat': 'Datumnotatie',
+  'settings.dateFormatHint':
+    'Hoe datums in elk datumveld en elke lijst worden geschreven. Datums met een maandnaam houden de schrijfwijze van je taal.',
+  'settings.dateFormatAuto': 'Automatisch',
   'settings.preferredNavApp': 'Plekken openen in',
   'settings.preferredNavAppAsk': 'Elke keer vragen',
   'settings.preferredNavAppHint':

@@ -19,7 +19,9 @@ import {
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { useTranslation } from '../../../i18n';
+import { useDateFormat } from '../../../hooks/useDateFormat';
 import { useSettingsStore } from '../../../store/settingsStore';
+import { formatDisplayDate } from '../../../utils/dateFormat';
 import { formatDistance, formatElevation } from '../../../utils/units';
 import { BarButton, WhiteBadge } from '../../Planner/planParts';
 import { DialogButton, NEUTRAL_TINT, fs } from '../../shared/DialogShell';
@@ -428,12 +430,13 @@ function SnapshotNotice({
   onOpen: (placeId: number) => void;
 }) {
   const { t } = useTranslation();
+  const dateFormat = useDateFormat();
   const snapshot = preview.snapshot;
   if (preview.state === 'new' || !snapshot) {
     return <TourNotice>{t('wanderer.preview.newHint')}</TourNotice>;
   }
   const when = snapshot.importedAt
-    ? new Date(`${snapshot.importedAt.replace(' ', 'T')}Z`).toLocaleDateString(locale)
+    ? formatDisplayDate(new Date(`${snapshot.importedAt.replace(' ', 'T')}Z`), locale, {}, dateFormat)
     : '';
   const open = (
     <button

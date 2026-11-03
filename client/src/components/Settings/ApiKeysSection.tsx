@@ -11,6 +11,8 @@ import { DialogButton, DialogFooter, DialogHeader, DialogShell, DialogTile, Foot
 import { EditorField, GRID_2, INPUT, LABEL } from '../shared/dialogParts'
 import { SETTINGS_BUTTON_PRIMARY, SETTINGS_ICON_BUTTON, SettingsHint, StatusPill } from './settingsKit'
 import { useTranslation } from '../../i18n'
+import { useDateFormat } from '../../hooks/useDateFormat'
+import { formatDisplayDate } from '../../utils/dateFormat'
 import { useToast } from '../shared/Toast'
 import { authApi } from '../../api/client'
 
@@ -55,10 +57,10 @@ const SCOPE_ICONS: Record<PublicApiScope, LucideIcon> = {
 }
 
 /** SQLite hands out "YYYY-MM-DD HH:MM:SS" in UTC, which Safari will not parse as it stands. */
-function formatStamp(ts: string, locale: string): string {
+function formatStamp(ts: string, locale: string, dateFormat: string): string {
   const iso = ts.includes('T') ? ts : ts.replace(' ', 'T')
   const d = new Date(/(Z|[+-]\d{2}:?\d{2})$/.test(iso) ? iso : `${iso}Z`)
-  return Number.isNaN(d.getTime()) ? ts : d.toLocaleDateString(locale)
+  return Number.isNaN(d.getTime()) ? ts : formatDisplayDate(d, locale, {}, dateFormat)
 }
 
 /**
@@ -380,6 +382,7 @@ export default function ApiKeysSection(): React.ReactElement {
 
 function ApiKeyRow({ apiKey, locale, onDelete }: { apiKey: ApiKey; locale: string; onDelete: () => void }): React.ReactElement {
   const { t } = useTranslation()
+  const dateFormat = useDateFormat()
   const scopes = apiKey.scope_mode === 'limited' ? apiKey.scopes : undefined
   return (
     <li className="flex items-start gap-3 px-3.5 py-3">
@@ -394,10 +397,10 @@ function ApiKeyRow({ apiKey, locale, onDelete }: { apiKey: ApiKey; locale: strin
           </code>
         </div>
         <p className="m-0 mt-0.5 tabular-nums text-content-faint first-letter:uppercase" style={fs(11.5)}>
-          {t('settings.apiKeys.createdAt')} {formatStamp(apiKey.created_at, locale)}
+          {t('settings.apiKeys.createdAt')} {formatStamp(apiKey.created_at, locale, dateFormat)}
           {', '}
           {apiKey.last_used_at
-            ? `${t('settings.apiKeys.usedAt')} ${formatStamp(apiKey.last_used_at, locale)}`
+            ? `${t('settings.apiKeys.usedAt')} ${formatStamp(apiKey.last_used_at, locale, dateFormat)}`
             : t('settings.apiKeys.neverUsed')}
         </p>
         {/* What the key may read. Shown on the row rather than behind a detail

@@ -1190,7 +1190,7 @@ const help: TranslationStrings = {
   'help.ctx.settings.bullet.1':
     'La barre latérale à gauche : « Affichage », « Apparence », « Carte », « Notifications », « Intégrations », « Hors ligne » et « Compte ». « Plugins » apparaît dès qu’un plugin est actif. « À propos » apparaît sauf si l’exploitant l’a masqué. La version est indiquée en bas.',
   'help.ctx.settings.bullet.2':
-    '« Affichage » s’ouvre en premier. Il regroupe la langue, la langue des noms de lieux, les unités, le format de l’heure, le premier jour de la semaine et la devise d’affichage, ainsi que le comportement de la carte du voyage. « Apparence » regroupe le thème, les couleurs, la lisibilité, la taille du texte et les widgets du tableau de bord.',
+    '« Affichage » s’ouvre en premier. Il regroupe la langue, la langue des noms de lieux, les unités, le format de l’heure, le format de date, le premier jour de la semaine et la devise d’affichage, ainsi que le comportement de la carte du voyage. « Apparence » regroupe le thème, les couleurs, la lisibilité, la taille du texte et les widgets du tableau de bord.',
   'help.ctx.settings.bullet.3':
     '« Carte » règle le moteur de carte et son style ; « Notifications » détermine quels événements passent par quel canal ; « Intégrations » connecte les photothèques, AirTrail, Dawarich et wanderer, et regroupe les clés API et MCP ; « Hors ligne » détermine ce que cet appareil garde en mémoire.',
   'help.ctx.settings.bullet.4':
@@ -1201,7 +1201,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-display.bullet.1':
     '« Démarrage » : « Page de démarrage » ouvre le « Tableau de bord » ou le « Voyage en cours » ; avec « Voyage en cours », « Onglet de démarrage » détermine l’onglet sur lequel s’ouvre ce voyage.',
   'help.ctx.settings-display.bullet.2':
-    "« Langue et région » : « Devise d'affichage » (ou « Devise du voyage » pour ne rien convertir), « Langue », « Noms de lieux », « Unité de température », « Unité de distance », « Format de l'heure » et « La semaine commence le ».",
+    "« Langue et région » : « Devise d'affichage » (ou « Devise du voyage » pour ne rien convertir), « Langue », « Noms de lieux », « Unité de température », « Unité de distance », « Format de l'heure », « La semaine commence le » et « Format de date ».",
   'help.ctx.settings-display.bullet.3':
     "« Voyage et carte » : « Ouvrir les lieux dans », « Date en premier dans les titres de jour », « Étiquettes des itinéraires », « Toujours afficher les itinéraires de réservation », « Repères compacts pour les lieux non planifiés », « Explorer les lieux sur la carte », « Masquer les codes de réservation » et « Optimiser l'itinéraire depuis l'hébergement ».",
   'help.ctx.settings-appearance.title': 'Apparence',
@@ -1535,9 +1535,9 @@ const help: TranslationStrings = {
     '« Paramètres des permissions », en bas : pour chaque action, qui peut l’effectuer (« Tout le monde », « Membres du voyage », « Propriétaire du voyage » ou « Administrateur uniquement »). Cliquez sur « Enregistrer » en haut de la carte pour valider.',
   'help.ctx.admin-defaults.title': 'Valeurs par défaut',
   'help.ctx.admin-defaults.summary':
-    'Les réglages de départ d’un nouveau compte, pour que personne n’ait à tout configurer d’abord : mode de couleur, unités, format de l’heure, premier jour de la semaine, devise d’affichage et codes de réservation masqués, ainsi que la carte, ses clés et les serveurs de calcul d’itinéraire.',
+    'Les réglages de départ d’un nouveau compte, pour que personne n’ait à tout configurer d’abord : mode de couleur, unités, format de l’heure, format de date, premier jour de la semaine, devise d’affichage et codes de réservation masqués, ainsi que la carte, ses clés et les serveurs de calcul d’itinéraire.',
   'help.ctx.admin-defaults.bullet.1':
-    "« Paramètres utilisateur par défaut », à gauche : « Mode de couleur », « Unité de température », « Unité de distance », « Format de l'heure », « La semaine commence le », « Devise d'affichage » et « Masquer les codes de réservation ».",
+    "« Paramètres utilisateur par défaut », à gauche : « Mode de couleur », « Unité de température », « Unité de distance », « Format de l'heure », « La semaine commence le », « Format de date », « Devise d'affichage » et « Masquer les codes de réservation ».",
   'help.ctx.admin-defaults.bullet.2':
     '« Carte », à droite : « Modèle de carte », « Clé CARTO partagée », « Moteur de calcul d’itinéraire propre » et « Instance Valhalla propre », un aperçu, puis « Moteur cartographique » avec « Style de carte », « Jeton Mapbox partagé », « Bâtiments & terrain en 3D » et « Mode haute qualité ».',
   'help.ctx.admin-config.title': 'Personnalisation',
@@ -4415,7 +4415,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-about.bullet.3':
     'Ko-fi, Buy Me a Coffee et Discord : c’est là que vous pouvez soutenir TREK ou échanger avec l’équipe qui le développe.',
   'help.guide.language-region.step.3':
-    "Réglez la « Devise d'affichage », ou gardez « Devise du voyage » pour voir chaque voyage dans sa propre devise. Choisissez ensuite « Unité de température », « Unité de distance », « Format de l'heure » et le jour où commence la semaine.",
+    "Réglez la « Devise d'affichage », ou gardez « Devise du voyage » pour voir chaque voyage dans sa propre devise. Choisissez ensuite « Unité de température », « Unité de distance », « Format de l'heure », le jour où commence la semaine et le « Format de date ».",
   'help.guide.travel-map-prefs.step.3':
     "« Explorer les lieux sur la carte » affiche la pastille de catégories pour trouver des lieux à proximité. « Masquer les codes de réservation » cache les numéros de confirmation jusqu’à ce que vous les survoliez ou les touchiez. « Optimiser l'itinéraire depuis l'hébergement » fait commencer et finir chaque journée à votre hôtel.",
   'help.guide.web-push-device.step.2':
@@ -6537,7 +6537,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-settings.bullet.5':
     '« Zone de danger » : « Renouveler le secret JWT » déconnecte tous les utilisateurs, vous compris.',
   'help.guide.default-user-settings.step.1':
-    "Sous « Paramètres utilisateur par défaut », choisissez « Mode de couleur » (« Clair », « Sombre » ou « Auto »), « Unité de température », « Unité de distance », « Format de l'heure », « La semaine commence le », la « Devise d'affichage » et si « Masquer les codes de réservation » est activé ou désactivé. Chaque choix est enregistré immédiatement.",
+    "Sous « Paramètres utilisateur par défaut », choisissez « Mode de couleur » (« Clair », « Sombre » ou « Auto »), « Unité de température », « Unité de distance », « Format de l'heure », « La semaine commence le », le « Format de date », la « Devise d'affichage » et si « Masquer les codes de réservation » est activé ou désactivé. Chaque choix est enregistré immédiatement.",
   'help.guide.admin-passkeys.step.2':
     'Saisissez le « Relying Party ID (domaine) », par exemple trek.example.org, et les « Origines autorisées » par lesquelles on accède à votre TREK, puis cliquez sur « Enregistrer ». Laissez les deux champs vides pour utiliser APP_URL.',
   'help.guide.rotate-jwt-secret.title': 'Déconnecter tout le monde d’un coup',

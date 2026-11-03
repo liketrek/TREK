@@ -5,6 +5,7 @@ import { MapView } from '../../../components/Map/MapView'
 import { SYMBOLS, currenciesWith } from '../../../components/Budget/BudgetPanel.constants'
 import { getApiErrorMessage, type DistanceUnit, type WeekStart } from '../../../types'
 import { weekStartOptions } from '../../../utils/calendarWeek'
+import { dateFormatOptions } from '../../../utils/dateFormat'
 import { withTileApiKey } from '../../../utils/tileUrl'
 import { defaultStyleForProvider } from '../../../components/Map/glProviders'
 import type { MapProvider } from '../../../components/Settings/mapSettingsModel'
@@ -27,6 +28,7 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
     saveMapProvider, pickTilePreset, pickStylePreset, commitStyle,
   } = useDefaultUserSettings({ errorMessage: getApiErrorMessage, previewCreatedAt: () => new Date().toISOString() })
   const [currencyOpen, setCurrencyOpen] = useState(false)
+  const [dateFormatOpen, setDateFormatOpen] = useState(false)
   const [presetOpen, setPresetOpen] = useState(false)
   const [styleOpen, setStyleOpen] = useState(false)
 
@@ -90,6 +92,7 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
   const tilePresetLabel = presets.find((p) => p.url === mapTileUrl)?.name || t('settings.mapTemplatePlaceholder.select')
   const stylePresetLabel = glStylePresets.find((p) => p.url === mapboxStyle)?.name || t('admin.defaultSettings.mapboxStylePlaceholder')
   const chevron = <ChevronDown size={13} strokeWidth={2} className="flex-none text-m-faint" />
+  const dateFormats = dateFormatOptions(locale, t('settings.dateFormatAuto'))
 
   return (
     <div className="space-y-3">
@@ -121,6 +124,15 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
           {/* Week start (#2029) */}
           <MAdminField label={<>{t('settings.weekStart')} <ResetButton field="week_start" /></>}>
             <MSegmented value={defaults.week_start || ''} onChange={(v) => save({ week_start: v as WeekStart })} options={weekStartOptions(locale)} />
+          </MAdminField>
+
+          {/* Date format (#2971) */}
+          <MAdminField label={<>{t('settings.dateFormat')} <ResetButton field="date_format" /></>}>
+            <MSetSelectRow
+              label={dateFormats.find((o) => o.value === defaults.date_format)?.label ?? t('settings.dateFormat')}
+              trailing={chevron}
+              onClick={() => setDateFormatOpen(true)}
+            />
           </MAdminField>
 
           {/* Default Currency */}
@@ -287,6 +299,15 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
       </MAdminCard>
 
       {/* Pickers */}
+      <MSetPickerSheet
+        open={dateFormatOpen}
+        onClose={() => setDateFormatOpen(false)}
+        title={t('settings.dateFormat')}
+        value={defaults.date_format || ''}
+        onSelect={(value) => { if (value) void save({ date_format: value as Defaults['date_format'] }) }}
+        options={dateFormats}
+      />
+
       <MSetPickerSheet
         open={currencyOpen}
         onClose={() => setCurrencyOpen(false)}

@@ -84,6 +84,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': 'تنسيق الوقت',
   'settings.weekStart': 'يبدأ الأسبوع في',
   'settings.weekStartHint': 'أول أيام الأسبوع في جميع منتقيات التاريخ. لدى Vacay إعداد خاص به.',
+  'settings.dateFormat': 'تنسيق التاريخ',
+  'settings.dateFormatHint':
+    'طريقة كتابة التواريخ في جميع حقول التاريخ والقوائم. التواريخ التي تتضمن اسم الشهر تحتفظ بصياغة لغتك.',
+  'settings.dateFormatAuto': 'تلقائي',
   'settings.preferredNavApp': 'فتح الأماكن في',
   'settings.preferredNavAppAsk': 'اسأل في كل مرة',
   'settings.preferredNavAppHint': 'عند اختيار تطبيق، يفتحه زر التنقل مباشرةً بدلاً من عرض جميع تطبيقات الخرائط.',

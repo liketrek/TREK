@@ -4,13 +4,15 @@ import { authApi, type PasskeyCredential } from '../../api/client';
 import { useTranslation } from '../../i18n';
 import { getApiErrorMessage } from '../../types';
 import { useToast } from '../shared/Toast';
+import { readDateFormat } from '../../hooks/useDateFormat';
+import { formatDisplayDate } from '../../utils/dateFormat';
 
 /** Parse a SQLite UTC timestamp ("YYYY-MM-DD HH:MM:SS") into a local date string. */
 export function fmtDate(ts: string | null): string | null {
   if (!ts) return null;
   const iso = ts.includes('T') ? ts : ts.replace(' ', 'T');
   const d = new Date(iso.endsWith('Z') ? iso : iso + 'Z');
-  return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString();
+  return Number.isNaN(d.getTime()) ? null : formatDisplayDate(d, undefined, {}, readDateFormat());
 }
 
 /** True when the browser cancellation / no-matching-credential DOMExceptions fire. */

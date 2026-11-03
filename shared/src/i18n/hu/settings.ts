@@ -88,6 +88,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': 'Időformátum',
   'settings.weekStart': 'A hét kezdőnapja',
   'settings.weekStartHint': 'A hét első napja minden dátumválasztóban. A Vacay saját beállítást használ.',
+  'settings.dateFormat': 'Dátumformátum',
+  'settings.dateFormatHint':
+    'Hogyan jelennek meg a dátumok minden dátummezőben és listában. A hónapnevet tartalmazó dátumok megtartják a nyelved megfogalmazását.',
+  'settings.dateFormatAuto': 'Automatikus',
   'settings.preferredNavApp': 'Helyek megnyitása itt',
   'settings.preferredNavAppAsk': 'Mindig kérdezzen',
   'settings.preferredNavAppHint':

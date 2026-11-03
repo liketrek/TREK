@@ -1129,7 +1129,7 @@ const help: TranslationStrings = {
   'help.ctx.settings.bullet.1':
     'Thanh bên trái: “Hiển thị”, “Giao diện”, “Bản đồ”, “Thông báo”, “Tích hợp”, “Ngoại tuyến” và “Tài khoản”. “Plugin” xuất hiện khi có plugin đang hoạt động. “Về” xuất hiện trừ khi người vận hành đã ẩn nó. Phiên bản hiện ở dưới cùng.',
   'help.ctx.settings.bullet.2':
-    '“Hiển thị” mở đầu tiên. Mục này chứa ngôn ngữ, ngôn ngữ của tên địa điểm, đơn vị, định dạng giờ, ngày bắt đầu tuần và tiền tệ hiển thị, cùng cách bản đồ chuyến đi hoạt động. “Giao diện” chứa chủ đề, màu sắc, khả năng đọc, cỡ chữ và các tiện ích bảng điều khiển.',
+    '“Hiển thị” mở đầu tiên. Mục này chứa ngôn ngữ, ngôn ngữ của tên địa điểm, đơn vị, định dạng giờ, định dạng ngày, ngày bắt đầu tuần và tiền tệ hiển thị, cùng cách bản đồ chuyến đi hoạt động. “Giao diện” chứa chủ đề, màu sắc, khả năng đọc, cỡ chữ và các tiện ích bảng điều khiển.',
   'help.ctx.settings.bullet.3':
     '“Bản đồ” chọn công cụ bản đồ và kiểu hiển thị; “Thông báo” chọn sự kiện nào gửi qua kênh nào; “Tích hợp” kết nối thư viện ảnh, AirTrail, Dawarich và wanderer, đồng thời chứa khóa API và MCP; “Ngoại tuyến” chọn những gì thiết bị này lưu.',
   'help.ctx.settings.bullet.4':
@@ -1140,7 +1140,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-display.bullet.1':
     '“Khởi động”: “Trang khởi động” mở ở “Bảng điều khiển” hoặc “Chuyến đi đang diễn ra”; với “Chuyến đi đang diễn ra”, “Tab khởi động” chọn tab mà chuyến đó mở ra.',
   'help.ctx.settings-display.bullet.2':
-    '“Ngôn ngữ & khu vực”: “Tiền tệ hiển thị” (hoặc “Tiền tệ của chuyến đi” nếu không quy đổi), “Ngôn ngữ”, “Tên địa điểm”, “Đơn vị nhiệt độ”, “Đơn vị khoảng cách”, “Định dạng thời gian” và “Tuần bắt đầu vào”.',
+    '“Ngôn ngữ & khu vực”: “Tiền tệ hiển thị” (hoặc “Tiền tệ của chuyến đi” nếu không quy đổi), “Ngôn ngữ”, “Tên địa điểm”, “Đơn vị nhiệt độ”, “Đơn vị khoảng cách”, “Định dạng thời gian”, “Tuần bắt đầu vào” và “Định dạng ngày”.',
   'help.ctx.settings-display.bullet.3':
     'Du lịch & bản đồ: “Mở địa điểm bằng”, “Hiện ngày tháng trước trong tiêu đề ngày”, “Nhãn lộ trình đặt chỗ”, “Luôn hiển thị tuyến đường đặt chỗ”, “Điểm đánh dấu gọn cho địa điểm chưa lên kế hoạch”, “Khám phá các địa điểm trên bản đồ”, “Mã đặt chỗ mờ” và “Tối ưu hóa tuyến đường từ chỗ ở”.',
   'help.ctx.settings-appearance.title': 'Giao diện',
@@ -1455,9 +1455,9 @@ const help: TranslationStrings = {
     '“Cài đặt quyền” ở cuối: với từng hành động, ai được làm (“Mọi người”, “Thành viên”, “Người tạo” hoặc “Chỉ quản trị viên”). Nhấp “Lưu” ở đầu thẻ để lưu.',
   'help.ctx.admin-defaults.title': 'Mặc định của người dùng',
   'help.ctx.admin-defaults.summary':
-    'Tài khoản mới bắt đầu với những gì, để không ai phải thiết lập trước: chế độ màu, đơn vị, định dạng giờ, ngày đầu tuần, tiền tệ hiển thị và mã đặt chỗ mờ, cùng bản đồ, các khóa của nó và máy chủ định tuyến.',
+    'Tài khoản mới bắt đầu với những gì, để không ai phải thiết lập trước: chế độ màu, đơn vị, định dạng giờ, định dạng ngày, ngày đầu tuần, tiền tệ hiển thị và mã đặt chỗ mờ, cùng bản đồ, các khóa của nó và máy chủ định tuyến.',
   'help.ctx.admin-defaults.bullet.1':
-    '“Cài đặt người dùng mặc định” ở bên trái: “Chế độ màu”, “Đơn vị nhiệt độ”, “Đơn vị khoảng cách”, “Định dạng thời gian”, “Tuần bắt đầu vào”, “Tiền tệ hiển thị” và “Mã đặt chỗ mờ”.',
+    '“Cài đặt người dùng mặc định” ở bên trái: “Chế độ màu”, “Đơn vị nhiệt độ”, “Đơn vị khoảng cách”, “Định dạng thời gian”, “Tuần bắt đầu vào”, “Định dạng ngày”, “Tiền tệ hiển thị” và “Mã đặt chỗ mờ”.',
   'help.ctx.admin-defaults.bullet.2':
     'Bản đồ ở bên phải: “Mẫu bản đồ”, “Khóa CARTO được chia sẻ”, “Máy chủ định tuyến riêng” và “Máy chủ Valhalla riêng”, một bản xem trước, rồi “Công cụ bản đồ” với “Kiểu bản đồ”, “Mã thông báo Mapbox được chia sẻ”, “Tòa nhà và địa hình 3D” và “Chế độ chất lượng cao”.',
   'help.ctx.admin-config.title': 'Cá nhân hóa',
@@ -4245,7 +4245,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-about.bullet.3':
     'Ko-fi, “Mua cho tôi một ly cà phê” và Discord là nơi bạn có thể ủng hộ TREK hoặc trò chuyện với những người làm ra nó.',
   'help.guide.language-region.step.3':
-    'Chọn “Tiền tệ hiển thị”, hoặc giữ “Tiền tệ của chuyến đi” để xem mỗi chuyến đi theo tiền tệ riêng. Sau đó chọn “Đơn vị nhiệt độ”, “Đơn vị khoảng cách”, “Định dạng thời gian” và ngày “Tuần bắt đầu vào”.',
+    'Chọn “Tiền tệ hiển thị”, hoặc giữ “Tiền tệ của chuyến đi” để xem mỗi chuyến đi theo tiền tệ riêng. Sau đó chọn “Đơn vị nhiệt độ”, “Đơn vị khoảng cách”, “Định dạng thời gian”, ngày “Tuần bắt đầu vào” và “Định dạng ngày”.',
   'help.guide.travel-map-prefs.step.3':
     '“Khám phá các địa điểm trên bản đồ” hiện nút danh mục để tìm địa điểm lân cận. “Mã đặt chỗ mờ” ẩn mã xác nhận cho đến khi bạn rê chuột hoặc chạm vào. “Tối ưu hóa tuyến đường từ chỗ ở” bắt đầu và kết thúc một ngày tại khách sạn của bạn.',
   'help.guide.web-push-device.step.2':
@@ -6295,7 +6295,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-settings.bullet.5':
     '“Vùng nguy hiểm”: “Xoay vòng khóa bí mật JWT” đăng xuất tất cả người dùng, kể cả bạn.',
   'help.guide.default-user-settings.step.1':
-    'Ở “Cài đặt người dùng mặc định”, chọn “Chế độ màu” (Sáng, Tối hoặc Tự động), “Đơn vị nhiệt độ”, “Đơn vị khoảng cách”, “Định dạng thời gian”, “Tuần bắt đầu vào”, “Tiền tệ hiển thị” và chọn bật hay tắt “Mã đặt chỗ mờ”. Mỗi lựa chọn được lưu ngay.',
+    'Ở “Cài đặt người dùng mặc định”, chọn “Chế độ màu” (Sáng, Tối hoặc Tự động), “Đơn vị nhiệt độ”, “Đơn vị khoảng cách”, “Định dạng thời gian”, “Tuần bắt đầu vào”, “Định dạng ngày”, “Tiền tệ hiển thị” và chọn bật hay tắt “Mã đặt chỗ mờ”. Mỗi lựa chọn được lưu ngay.',
   'help.guide.admin-passkeys.step.2':
     'Nhập “Đảng dựa vào ID (miền)” (miền của TREK), ví dụ trek.example.org, và “Nguồn gốc được phép” là địa chỉ bạn truy cập TREK, rồi bấm “Lưu”. Để trống cả hai nếu muốn dùng APP_URL.',
   'help.guide.rotate-jwt-secret.title': 'Đăng xuất tất cả mọi người cùng lúc',

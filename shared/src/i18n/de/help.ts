@@ -1180,7 +1180,7 @@ const help: TranslationStrings = {
   'help.ctx.settings.bullet.1':
     'Seitenleiste links: „Allgemein“, „Darstellung“, „Karte“, „Benachrichtigungen“, „Integrationen“, „Offline“ und „Konto“. „Plugins“ erscheint, sobald ein Plugin aktiv ist, „Über“ überall dort, wo der Betreiber es nicht ausgeblendet hat, und ganz unten steht die Version.',
   'help.ctx.settings.bullet.2':
-    'Unter Allgemein legst du fest, womit TREK startet: Sprache, Sprache der Ortsnamen, Einheiten, Zeitformat, Wochenbeginn und Anzeigewährung, dazu das Verhalten der Reisekarte. Unter Darstellung findest du Theme, Farben, Lesbarkeit, Schriftgröße und die Dashboard-Widgets.',
+    'Unter Allgemein legst du fest, womit TREK startet: Sprache, Sprache der Ortsnamen, Einheiten, Zeitformat, Datumsformat, Wochenbeginn und Anzeigewährung, dazu das Verhalten der Reisekarte. Unter Darstellung findest du Theme, Farben, Lesbarkeit, Schriftgröße und die Dashboard-Widgets.',
   'help.ctx.settings.bullet.3':
     '„Karte“ wählt die Engine und ihren Stil. Unter „Benachrichtigungen“ legst du fest, welche Ereignisse über welchen Kanal kommen. „Integrationen“ verbindet Fotobibliotheken, AirTrail, Dawarich und wanderer und enthält API-Schlüssel und MCP. Unter „Offline“ legst du fest, was dieses Gerät speichert.',
   'help.ctx.settings.bullet.4':
@@ -1191,7 +1191,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-display.bullet.1':
     'Start: Unter „Startseite“ legst du fest, ob TREK mit dem Dashboard oder der aktiven Reise startet; bei „Aktive Reise“ wählst du unter „Start-Tab“, mit welchem Tab sich diese Reise öffnet.',
   'help.ctx.settings-display.bullet.2':
-    'Sprache & Region: „Anzeigewährung“ (oder „Reisewährung“, wenn nicht umgerechnet werden soll), „Sprache“, „Ortsnamen“, „Temperatureinheit“, „Entfernungseinheit“, „Zeitformat“ und „Woche beginnt am“.',
+    'Sprache & Region: „Anzeigewährung“ (oder „Reisewährung“, wenn nicht umgerechnet werden soll), „Sprache“, „Ortsnamen“, „Temperatureinheit“, „Entfernungseinheit“, „Zeitformat“, „Woche beginnt am“ und „Datumsformat“.',
   'help.ctx.settings-display.bullet.3':
     'Reise & Karte: „Orte öffnen in“, „Datum zuerst in Tagesüberschriften“, „Orts-Labels auf Buchungsrouten“, „Buchungsrouten immer anzeigen“, „Kompakte Markierungen für ungeplante Orte“, „Orte auf der Karte entdecken“, „Buchungscodes verbergen“ und „Route ab der Unterkunft optimieren“.',
   'help.ctx.settings-appearance.title': 'Darstellung',
@@ -1517,9 +1517,9 @@ const help: TranslationStrings = {
     '„Berechtigungseinstellungen“ unten: Für jede Aktion legst du fest, wer sie ausführen darf („Alle“, „Reise-Mitglieder“, „Reise-Eigentümer“ oder „Nur Administrator“), und speicherst mit „Speichern“ oben in der Karte.',
   'help.ctx.admin-defaults.title': 'Benutzer-Standards',
   'help.ctx.admin-defaults.summary':
-    'Womit ein neues Konto startet, damit niemand erst alles einrichten muss: Farbmodus, Einheiten, Zeitformat, Wochenbeginn, Anzeigewährung und verborgene Buchungscodes, dazu die Karte, ihre Schlüssel und die Routing-Server.',
+    'Womit ein neues Konto startet, damit niemand erst alles einrichten muss: Farbmodus, Einheiten, Zeitformat, Datumsformat, Wochenbeginn, Anzeigewährung und verborgene Buchungscodes, dazu die Karte, ihre Schlüssel und die Routing-Server.',
   'help.ctx.admin-defaults.bullet.1':
-    'Links die Standard-Benutzereinstellungen: „Farbmodus“, „Temperatureinheit“, „Entfernungseinheit“, „Zeitformat“, „Woche beginnt am“, „Anzeigewährung“ und „Buchungscodes verbergen“.',
+    'Links die Standard-Benutzereinstellungen: „Farbmodus“, „Temperatureinheit“, „Entfernungseinheit“, „Zeitformat“, „Woche beginnt am“, „Datumsformat“, „Anzeigewährung“ und „Buchungscodes verbergen“.',
   'help.ctx.admin-defaults.bullet.2':
     'Karte rechts: „Karten-Vorlage“, „Gemeinsamer CARTO-Key“, „Eigene Routing-Instanz“ und „Eigene Valhalla-Instanz“, eine Vorschau, danach „Kartendienst“ mit „Kartenstil“, „Gemeinsames Mapbox-Token“, „3D-Gebäude & Gelände“ und „Hochqualitätsmodus“.',
   'help.ctx.admin-config.title': 'Personalisierung',
@@ -4386,7 +4386,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-about.bullet.3':
     'Über Ko-fi, Buy Me a Coffee und Discord kannst du TREK unterstützen oder die Leute dahinter kennenlernen.',
   'help.guide.language-region.step.3':
-    'Leg die „Anzeigewährung“ fest oder behalte „Reisewährung“, damit jede Reise in ihrer eigenen Währung angezeigt wird. Wähl dann „Temperatureinheit“, „Entfernungseinheit“, „Zeitformat“ und unter „Woche beginnt am“ den ersten Wochentag.',
+    'Leg die „Anzeigewährung“ fest oder behalte „Reisewährung“, damit jede Reise in ihrer eigenen Währung angezeigt wird. Wähl dann „Temperatureinheit“, „Entfernungseinheit“, „Zeitformat“, unter „Woche beginnt am“ den ersten Wochentag und das „Datumsformat“.',
   'help.guide.travel-map-prefs.step.3':
     '„Orte auf der Karte entdecken“ blendet die Kategorie-Pille ein, mit der du Orte in der Nähe findest. „Buchungscodes verbergen“ macht Bestätigungsnummern unkenntlich, bis du mit der Maus darüberfährst oder sie antippst. „Route ab der Unterkunft optimieren“ lässt jeden Tag an deinem Hotel beginnen und enden.',
   'help.guide.web-push-device.step.2':
@@ -6495,7 +6495,7 @@ const help: TranslationStrings = {
     'Über den Link zum Zurücksetzen neben einem geänderten Feld stellst du den TREK-Standard wieder her. Die eigenen Einstellungen der Benutzer haben immer Vorrang.',
   'help.ctx.admin-settings.bullet.5': 'Gefahrenzone: „JWT-Secret erneuern“ meldet alle Benutzer ab, auch dich.',
   'help.guide.default-user-settings.step.1':
-    'Wähl unter „Standard-Benutzereinstellungen“ den „Farbmodus“ (Hell, Dunkel oder Automatisch), „Temperatureinheit“, „Entfernungseinheit“, „Zeitformat“, „Woche beginnt am“, die „Anzeigewährung“ und ob „Buchungscodes verbergen“ auf „Ein“ oder „Aus“ steht. Jede Auswahl wird sofort gespeichert.',
+    'Wähl unter „Standard-Benutzereinstellungen“ den „Farbmodus“ (Hell, Dunkel oder Automatisch), „Temperatureinheit“, „Entfernungseinheit“, „Zeitformat“, „Woche beginnt am“, das „Datumsformat“, die „Anzeigewährung“ und ob „Buchungscodes verbergen“ auf „Ein“ oder „Aus“ steht. Jede Auswahl wird sofort gespeichert.',
   'help.guide.admin-passkeys.step.2':
     'Gib die „Relying Party ID (Domain)“ ein, etwa trek.example.org, und unter „Erlaubte Origins“ die Adressen, unter denen dein TREK erreichbar ist. Klick dann auf „Speichern“. Lässt du beide leer, wird APP_URL verwendet.',
   'help.guide.rotate-jwt-secret.title': 'Alle auf einmal abmelden',

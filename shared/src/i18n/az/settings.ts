@@ -108,6 +108,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': 'Vaxt formatı',
   'settings.weekStart': 'Həftənin başlanğıcı',
   'settings.weekStartHint': 'Bütün tarix seçicilərində həftənin ilk günü. Vacay-ın öz ayarı var.',
+  'settings.dateFormat': 'Tarix formatı',
+  'settings.dateFormatHint':
+    'Tarixlərin bütün tarix sahələrində və siyahılarda necə yazıldığı. Ay adı olan tarixlər dilinizin ifadə tərzini saxlayır.',
+  'settings.dateFormatAuto': 'Avtomatik',
   'settings.preferredNavApp': 'Yerləri açmaq üçün',
   'settings.preferredNavAppAsk': 'Hər dəfə soruş',
   'settings.preferredNavAppHint':

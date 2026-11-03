@@ -3,6 +3,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { adminApi, authApi } from '../../api/client';
 import { useTranslation } from '../../i18n';
+import { useDateFormat } from '../../hooks/useDateFormat';
+import { formatDisplayDateTime } from '../../utils/dateFormat';
 import { useAuthStore } from '../../store/authStore';
 import { getApiErrorMessage, type UserWithOidc } from '../../types';
 import { passwordErrorKey } from '../../utils/passwordError';
@@ -35,6 +37,7 @@ export function useAccountSettings({ avatarRemoveErrorKey, ignoreEmptyBackupCode
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const dateFormat = useDateFormat();
   const toast = useToast();
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
@@ -126,7 +129,7 @@ export function useAccountSettings({ avatarRemoveErrorKey, ignoreEmptyBackupCode
     if (skipBackupCodes) return;
     const html = `<!doctype html><html><head><meta charset="utf-8"/><title>TREK MFA Backup Codes</title>
       <style>body{font-family:Arial,sans-serif;padding:32px}h1{font-size:20px}pre{font-size:16px;line-height:1.6}</style>
-      </head><body><h1>TREK MFA Backup Codes</h1><p>${escapeHtml(new Date().toLocaleString())}</p><pre>${escapeHtml(backupCodesText)}</pre></body></html>`;
+      </head><body><h1>TREK MFA Backup Codes</h1><p>${escapeHtml(formatDisplayDateTime(new Date(), undefined, {}, dateFormat))}</p><pre>${escapeHtml(backupCodesText)}</pre></body></html>`;
     const w = window.open('', '_blank', 'width=900,height=700');
     if (!w) return;
     w.document.open();

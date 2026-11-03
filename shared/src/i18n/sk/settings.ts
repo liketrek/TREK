@@ -94,6 +94,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': 'Formát času',
   'settings.weekStart': 'Týždeň začína',
   'settings.weekStartHint': 'Prvý deň týždňa vo všetkých výberoch dátumu. Vacay má vlastné nastavenie.',
+  'settings.dateFormat': 'Formát dátumu',
+  'settings.dateFormatHint':
+    'Ako sa zapisujú dátumy vo všetkých dátumových poliach a zoznamoch. Dátumy s názvom mesiaca si zachovávajú znenie vášho jazyka.',
+  'settings.dateFormatAuto': 'Automaticky',
   'settings.preferredNavApp': 'Otvárať miesta v',
   'settings.preferredNavAppAsk': 'Zakaždým sa opýtať',
   'settings.preferredNavAppHint':

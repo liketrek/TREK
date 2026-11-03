@@ -32,6 +32,7 @@ import type {
   AppearanceConfig,
   ValhallaProvider,
   WeekStart,
+  DateFormat,
 } from '@trek/shared'
 
 export type {
@@ -57,6 +58,7 @@ export type {
   Category,
   AppearanceConfig,
   WeekStart,
+  DateFormat,
 }
 
 export interface User {
@@ -143,6 +145,8 @@ export interface Settings {
   time_format: string
   /** First column of every date picker (#2029); missing means Monday. */
   week_start?: WeekStart
+  /** How dates are written in numbers (#2971); missing means the language's own format. */
+  date_format?: DateFormat
   show_place_description: boolean
   blur_booking_codes?: boolean
   /** Day headings lead with the calendar date and name the trip day second (#1953). */

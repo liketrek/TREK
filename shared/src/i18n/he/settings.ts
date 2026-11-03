@@ -94,6 +94,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': 'פורמט שעה',
   'settings.weekStart': 'השבוע מתחיל ביום',
   'settings.weekStartHint': 'היום הראשון בשבוע בכל בוחר תאריכים. ל-Vacay יש הגדרה משלו.',
+  'settings.dateFormat': 'פורמט תאריך',
+  'settings.dateFormatHint':
+    'איך תאריכים נכתבים בכל שדה תאריך וברשימות. תאריכים עם שם חודש שומרים על הניסוח של השפה שלך.',
+  'settings.dateFormatAuto': 'אוטומטי',
   'settings.preferredNavApp': 'פתיחת מקומות ב-',
   'settings.preferredNavAppAsk': 'לשאול בכל פעם',
   'settings.preferredNavAppHint': 'כשנבחרה אפליקציה, כפתור הניווט פותח אותה מיד במקום להציע את כל אפליקציות המפות.',

@@ -8,8 +8,10 @@ import MDancingTrek from '../../../components/MDancingTrek'
 import { useCollabPolls } from '../../../../components/Collab/useCollabPolls'
 import { useAuthStore } from '../../../../store/authStore'
 import ToggleSwitch from '../../../../components/Settings/ToggleSwitch'
+import { CustomDateTimePicker } from '../../../../components/shared/CustomDateTimePicker'
+import { localIsoDate } from '../../../../utils/localDate'
 import MSheet from '../../../components/MSheet'
-import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
+import { Eyebrow, FIELD_AREA_CLS, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
 import MConfirmSheet from '../../settings/MConfirmSheet'
 import type { TripPlanner } from '../MTripShell'
 import { SectionHeader, TabScroller } from './tabChrome'
@@ -338,8 +340,6 @@ function PollFormSheet({ open, onClose, onSubmit, t }: {
     }
   }
 
-  const minDeadline = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)
-
   return (
     <MSheet open={open} onClose={onClose} ariaLabel={t('collab.polls.new')}>
       <FormSheetHeader icon={BarChart3} title={t('collab.polls.new')} onClose={onClose} closeLabel={t('common.close')} />
@@ -396,12 +396,11 @@ function PollFormSheet({ open, onClose, onSubmit, t }: {
 
         <Eyebrow className="mb-[5px] mt-3 uppercase">{t('collab.polls.deadline')}</Eyebrow>
         <div className="flex items-center gap-[6px]">
-          <input
-            type="datetime-local"
+          <CustomDateTimePicker
             value={deadline}
-            min={minDeadline}
-            onChange={e => setDeadline(e.target.value)}
-            className={`${FIELD_CLS} flex-1`}
+            onChange={setDeadline}
+            min={localIsoDate()}
+            style={{ flex: 1, minWidth: 0 }}
           />
           {deadline && (
             <button

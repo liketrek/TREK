@@ -1,5 +1,6 @@
 import { Check, ChevronDown, ChevronRight, Copy, KeyRound, Plus, RefreshCw, Terminal, Trash2 } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
+import { useFormatDate } from '../../../hooks/useDateFormat'
 import { OAUTH_PRESETS, useMcpIntegration } from '../../../components/Settings/useMcpIntegration'
 import MScopeGroupPicker from './MScopeGroupPicker'
 import MSheet from '../../components/MSheet'
@@ -38,7 +39,8 @@ function CodeBlock({ children }: { children: string }) {
  * tokens, with the desktop modals as floating sheets.
  */
 export default function MSettingsMcp() {
-  const { t, locale } = useTranslation()
+  const { t } = useTranslation()
+  const { formatDate } = useFormatDate()
   const demoLocked = useDemoAccountLock()
   const {
     activeMcpTab: activeTab,
@@ -190,7 +192,7 @@ export default function MSettingsMcp() {
                       {t('settings.oauth.clientId')}: {client.client_id}
                     </p>
                     <p className="mt-[2px] font-geist text-[0.625rem] text-m-faint">
-                      {t('settings.mcp.tokenCreatedAt')} {new Date(client.created_at).toLocaleDateString(locale)}
+                      {t('settings.mcp.tokenCreatedAt')} {formatDate(new Date(client.created_at))}
                     </p>
                     <div className="mt-[6px] flex flex-wrap gap-1">
                       {(scopesExpanded[client.id] ? client.allowed_scopes : client.allowed_scopes.slice(0, 5)).map((s) => (
@@ -226,7 +228,7 @@ export default function MSettingsMcp() {
                         {t('settings.oauth.sessionScopes')}: {session.scopes.join(', ')}
                       </p>
                       <p className="font-geist text-[0.625rem] text-m-faint">
-                        {t('settings.oauth.sessionExpires')} {new Date(session.access_token_expires_at).toLocaleDateString(locale)}
+                        {t('settings.oauth.sessionExpires')} {formatDate(new Date(session.access_token_expires_at))}
                       </p>
                     </div>
                     <MSetButton variant="danger" onClick={() => setRevokeId(session.id)}>
@@ -272,11 +274,11 @@ export default function MSettingsMcp() {
                     <p className="mt-[2px] font-mono text-[0.625rem] text-m-faint">
                       {token.token_prefix}...
                       <span className="ms-2 font-geist">
-                        {t('settings.mcp.tokenCreatedAt')} {new Date(token.created_at).toLocaleDateString(locale)}
+                        {t('settings.mcp.tokenCreatedAt')} {formatDate(new Date(token.created_at))}
                       </span>
                       {token.last_used_at && (
                         <span className="font-geist">
-                          , {t('settings.mcp.tokenUsedAt')} {new Date(token.last_used_at).toLocaleDateString(locale)}
+                          , {t('settings.mcp.tokenUsedAt')} {formatDate(new Date(token.last_used_at))}
                         </span>
                       )}
                     </p>

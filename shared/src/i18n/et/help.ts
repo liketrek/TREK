@@ -1138,7 +1138,7 @@ const help: TranslationStrings = {
   'help.ctx.settings.bullet.1':
     'Vasakul olev külgriba: „Üldine“, „Välimus“, „Kaart“, „Teavitused“, „Integratsioonid“, „Võrguühenduseta“ ja „Konto“. „Pluginad“ ilmub, kui mõni plugin on aktiivne. „Teave“ on näha, kui haldaja pole seda peitnud. Versioon on näidatud allosas.',
   'help.ctx.settings.bullet.2':
-    'Esimesena avaneb „Üldine“. Seal on keel, kohanimede keel, ühikud, ajavorming, nädala alguspäev ja kuvamisvaluuta ning reisikaardi käitumine. „Välimus“ sisaldab teemat, värve, loetavust, teksti suurust ja avalehe vidinaid.',
+    'Esimesena avaneb „Üldine“. Seal on keel, kohanimede keel, ühikud, ajavorming, kuupäevavorming, nädala alguspäev ja kuvamisvaluuta ning reisikaardi käitumine. „Välimus“ sisaldab teemat, värve, loetavust, teksti suurust ja avalehe vidinaid.',
   'help.ctx.settings.bullet.3':
     '„Kaart“ määrab kaardimootori ja selle stiili; „Teavitused“ määrab, millised sündmused millisesse kanalisse lähevad; „Integratsioonid“ ühendab fototeegid, AirTraili, Dawarichi ja wandereri ning sisaldab API-võtmeid ja MCP-d; „Võrguühenduseta“ määrab, mida see seade salvestab.',
   'help.ctx.settings.bullet.4':
@@ -1149,7 +1149,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-display.bullet.1':
     '„Käivitamine“: „Avaleht“ avab „Ülevaate“ või „Aktiivse reisi“; valikuga „Aktiivne reis“ määrab „Avatav vahekaart“, milline vaheleht reisil avaneb.',
   'help.ctx.settings-display.bullet.2':
-    '„Keel ja piirkond“: „Kuvamisvaluuta“ (või „Reisi valuuta“, kui teisendust ei soovi), „Keel“, „Kohtade nimed“, „Temperatuuriühik“, „Vahemaaühik“, „Ajavorming“ ja „Nädala alguspäev“.',
+    '„Keel ja piirkond“: „Kuvamisvaluuta“ (või „Reisi valuuta“, kui teisendust ei soovi), „Keel“, „Kohtade nimed“, „Temperatuuriühik“, „Vahemaaühik“, „Ajavorming“, „Nädala alguspäev“ ja „Kuupäevavorming“.',
   'help.ctx.settings-display.bullet.3':
     '„Reisimine ja kaart“: „Ava kohad rakenduses“, „Kuupäev päevapealkirjades eespool“, „Broneeringute marsruutide sildid“, „Näita alati broneeringute marsruute“, „Kompaktsed tähised planeerimata kohtadele“, „Avasta kaardil kohti“, „Hägusta broneerimiskoodid“ ja „Optimeeri marsruut majutuskohast“.',
   'help.ctx.settings-appearance.title': 'Välimus',
@@ -1463,9 +1463,9 @@ const help: TranslationStrings = {
     'All olev „Õiguste seaded“: iga toimingu puhul, kes tohib seda teha („Kõik“, „Reisi liikmed“, „Reisi omanik“ või „Ainult administraator“). Salvestamiseks klõpsa kaardi ülaosas „Salvesta“.',
   'help.ctx.admin-defaults.title': 'Kasutaja vaikevalikud',
   'help.ctx.admin-defaults.summary':
-    'Millega uus konto alustab, et keegi ei peaks seda kõigepealt seadistama: värvirežiim, ühikud, ajavorming, nädala alguspäev, kuvamisvaluuta ja hägustatud broneerimiskoodid ning lisaks kaart, selle võtmed ja marsruutimisserverid.',
+    'Millega uus konto alustab, et keegi ei peaks seda kõigepealt seadistama: värvirežiim, ühikud, ajavorming, kuupäevavorming, nädala alguspäev, kuvamisvaluuta ja hägustatud broneerimiskoodid ning lisaks kaart, selle võtmed ja marsruutimisserverid.',
   'help.ctx.admin-defaults.bullet.1':
-    'Vasakul olev „Kasutajate vaikeseaded“: „Värvirežiim“, „Temperatuuriühik“, „Vahemaaühik“, „Ajavorming“, „Nädala alguspäev“, „Kuvamisvaluuta“ ja „Hägusta broneerimiskoodid“.',
+    'Vasakul olev „Kasutajate vaikeseaded“: „Värvirežiim“, „Temperatuuriühik“, „Vahemaaühik“, „Ajavorming“, „Nädala alguspäev“, „Kuupäevavorming“, „Kuvamisvaluuta“ ja „Hägusta broneerimiskoodid“.',
   'help.ctx.admin-defaults.bullet.2':
     'Paremal olev „Kaart“: „Kaardimall“, „Ühine CARTO võti“, „Oma marsruutimootor“ ja „Oma Valhalla server“, eelvaade, seejärel „Kaardimootor“ koos väljadega „Kaardi stiil“, „Ühine Mapboxi pääsutõend“, „3D-hooned ja maastik“ ning „Kõrge kvaliteediga režiim“.',
   'help.ctx.admin-config.title': 'Isikupärastamine',
@@ -4236,7 +4236,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-about.bullet.3':
     'Ko-fi, „Osta mulle kohv“ ja Discordi kaudu saad TREKi toetada või selle tegijatega suhelda.',
   'help.guide.language-region.step.3':
-    'Määra „Kuvamisvaluuta“ või jäta „Reisi valuuta“, et näha iga reisi tema enda valuutas. Seejärel vali „Temperatuuriühik“, „Vahemaaühik“, „Ajavorming“ ja „Nädala alguspäev“.',
+    'Määra „Kuvamisvaluuta“ või jäta „Reisi valuuta“, et näha iga reisi tema enda valuutas. Seejärel vali „Temperatuuriühik“, „Vahemaaühik“, „Ajavorming“, „Nädala alguspäev“ ja „Kuupäevavorming“.',
   'help.guide.travel-map-prefs.step.3':
     '„Avasta kaardil kohti“ näitab kategooriasilti lähedal asuvate kohtade leidmiseks. „Hägusta broneerimiskoodid“ peidab kinnitusnumbrid, kuni viid kursori nende kohale või puudutad neid. „Optimeeri marsruut majutuskohast“ alustab ja lõpetab päeva sinu hotellis.',
   'help.guide.web-push-device.step.2':
@@ -6243,7 +6243,7 @@ const help: TranslationStrings = {
     'Määratud välja kõrval olev lähtestuslink taastab TREKi vaikeväärtuse. Kasutaja enda seade on alati nende ees ülimuslik.',
   'help.ctx.admin-settings.bullet.5': '„Ohutsoon“: „Roteeri JWT saladus“ logib välja kõik kasutajad, ka sinu.',
   'help.guide.default-user-settings.step.1':
-    'Vali jaotises „Kasutajate vaikeseaded“ „Värvirežiim“ („Hele“, „Tume“ või „Automaatne“), „Temperatuuriühik“, „Vahemaaühik“, „Ajavorming“, „Nädala alguspäev“, „Kuvamisvaluuta“ ja see, kas „Hägusta broneerimiskoodid“ on sees või „Väljas“. Iga valik salvestub kohe.',
+    'Vali jaotises „Kasutajate vaikeseaded“ „Värvirežiim“ („Hele“, „Tume“ või „Automaatne“), „Temperatuuriühik“, „Vahemaaühik“, „Ajavorming“, „Nädala alguspäev“, „Kuupäevavorming“, „Kuvamisvaluuta“ ja see, kas „Hägusta broneerimiskoodid“ on sees või „Väljas“. Iga valik salvestub kohe.',
   'help.guide.admin-passkeys.step.2':
     'Sisesta „Teenuseosutaja ID (domeen)“, näiteks trek.example.org, ja „Lubatud päritolud“, mille kaudu sinu TREK on kättesaadav, seejärel klõpsa „Salvesta“. Jäta mõlemad tühjaks, et kasutada APP_URL-i.',
   'help.guide.rotate-jwt-secret.title': 'Kõigi korraga väljalogimine',

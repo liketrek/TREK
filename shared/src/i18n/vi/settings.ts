@@ -88,6 +88,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': 'Định dạng thời gian',
   'settings.weekStart': 'Tuần bắt đầu vào',
   'settings.weekStartHint': 'Ngày đầu tuần trong mọi bộ chọn ngày. Vacay có cài đặt riêng.',
+  'settings.dateFormat': 'Định dạng ngày',
+  'settings.dateFormatHint':
+    'Cách viết ngày trong mọi trường ngày và danh sách. Ngày có tên tháng vẫn giữ cách viết theo ngôn ngữ của bạn.',
+  'settings.dateFormatAuto': 'Tự động',
   'settings.preferredNavApp': 'Mở địa điểm bằng',
   'settings.preferredNavAppAsk': 'Hỏi mỗi lần',
   'settings.preferredNavAppHint':

@@ -156,6 +156,7 @@ export const MANAGED_CUSTOMER_KEYS = [
   'temperature_unit',
   'time_format',
   'week_start',
+  'date_format',
 ] as const;
 
 const LOCKED = new Set<string>(MANAGED_LOCKED_SETTING_KEYS);

@@ -1183,7 +1183,7 @@ const help: TranslationStrings = {
   'help.ctx.settings.bullet.1':
     'Soldakı yan panel: «Ümumi», «Görünüş», «Xəritə», «Bildirişlər», «İnteqrasiyalar», «Oflayn» və «Hesab». «Plaginlər» aktiv plagin olduqda görünür. «Haqqında» operator onu gizlətməyibsə görünür. Versiya aşağıda göstərilir.',
   'help.ctx.settings.bullet.2':
-    'Birinci «Ümumi» açılır. Burada dil, məkan adlarının dili, vahidlər, vaxt formatı, həftənin başlanğıcı və göstərilən valyuta, həmçinin səyahət xəritəsinin necə işlədiyi var. «Görünüş»də tema, rənglər, oxunaqlılıq, mətn ölçüsü və idarə paneli vidcetləri var.',
+    'Birinci «Ümumi» açılır. Burada dil, məkan adlarının dili, vahidlər, vaxt formatı, tarix formatı, həftənin başlanğıcı və göstərilən valyuta, həmçinin səyahət xəritəsinin necə işlədiyi var. «Görünüş»də tema, rənglər, oxunaqlılıq, mətn ölçüsü və idarə paneli vidcetləri var.',
   'help.ctx.settings.bullet.3':
     '«Xəritə» xəritə mühərrikini və üslubunu seçir; «Bildirişlər» hansı hadisənin hansı kanala göndəriləcəyini təyin edir; «İnteqrasiyalar» foto kitabxanalarını, AirTrail, Dawarich və wanderer xidmətlərini qoşur, burada həmçinin API açarları və MCP var; «Oflayn» bu cihazda nələrin saxlanacağını təyin edir.',
   'help.ctx.settings.bullet.4':
@@ -1194,7 +1194,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-display.bullet.1':
     '«Başlanğıc»: «Başlanğıc səhifəsi» «İdarə paneli» və ya «Aktiv səyahət» ilə açılır; «Aktiv səyahət» seçildikdə «Başlanğıc tabı» həmin səyahətin hansı vərəqdə açılacağını təyin edir.',
   'help.ctx.settings-display.bullet.2':
-    '«Dil və region»: «Göstərilən valyuta» (çevirmə istəmirsinizsə, «Səyahət valyutası»), «Dil», «Məkan adları», «Temperatur vahidi», «Məsafə vahidi», «Vaxt formatı» və «Həftənin başlanğıcı».',
+    '«Dil və region»: «Göstərilən valyuta» (çevirmə istəmirsinizsə, «Səyahət valyutası»), «Dil», «Məkan adları», «Temperatur vahidi», «Məsafə vahidi», «Vaxt formatı», «Həftənin başlanğıcı» və «Tarix formatı».',
   'help.ctx.settings-display.bullet.3':
     '«Səyahət və xəritə»: «Yerləri açmaq üçün», «Gün başlıqlarında əvvəlcə tarix», «Rezervasiya marşrutu etiketləri», «Rezervasiya marşrutlarını həmişə göstər», «Planlaşdırılmamış məkanlar üçün kiçik nişanlar», «Xəritədə məkanları kəşf et», «Rezervasiya kodlarını bulanıqlaşdır» və «Marşrutu yaşayış yerindən başlayaraq optimallaşdır».',
   'help.ctx.settings-appearance.title': 'Görünüş',
@@ -1516,9 +1516,9 @@ const help: TranslationStrings = {
     'Aşağıdakı «İcazə tənzimləmələri»: hər əməliyyatı kimin edə biləcəyi («Hər kəs», «Səyahət üzvləri», «Səyahətin sahibi» və ya «Yalnız administrator»). Saxlamaq üçün kartın yuxarısındakı «Yadda saxla» düyməsinə klikləyin.',
   'help.ctx.admin-defaults.title': 'İstifadəçi standartları',
   'help.ctx.admin-defaults.summary':
-    'Yeni hesabın başlanğıc ayarları, beləliklə, heç kim əvvəlcə onları qurmalı olmur: rəng rejimi, vahidlər, vaxt formatı, həftənin başlanğıcı, göstərilən valyuta və bulanıqlaşdırılmış rezervasiya kodları, həmçinin xəritə, onun açarları və marşrut serverləri.',
+    'Yeni hesabın başlanğıc ayarları, beləliklə, heç kim əvvəlcə onları qurmalı olmur: rəng rejimi, vahidlər, vaxt formatı, tarix formatı, həftənin başlanğıcı, göstərilən valyuta və bulanıqlaşdırılmış rezervasiya kodları, həmçinin xəritə, onun açarları və marşrut serverləri.',
   'help.ctx.admin-defaults.bullet.1':
-    'Solda «Standart istifadəçi tənzimləmələri»: «Rəng rejimi», «Temperatur vahidi», «Məsafə vahidi», «Vaxt formatı», «Həftənin başlanğıcı», «Göstərilən valyuta» və «Rezervasiya kodlarını bulanıqlaşdır».',
+    'Solda «Standart istifadəçi tənzimləmələri»: «Rəng rejimi», «Temperatur vahidi», «Məsafə vahidi», «Vaxt formatı», «Həftənin başlanğıcı», «Tarix formatı», «Göstərilən valyuta» və «Rezervasiya kodlarını bulanıqlaşdır».',
   'help.ctx.admin-defaults.bullet.2':
     'Sağda «Xəritə»: «Xəritə şablonu», «Paylaşılan CARTO açarı», «Şəxsi marşrut mühərriki» və «Şəxsi Valhalla instansiyası», önizləmə, sonra «Xəritə üslubu» ilə «Xəritə mühərriki», «Paylaşılan Mapbox tokeni», «3D binalar və relyef» və «Yüksək keyfiyyət rejimi».',
   'help.ctx.admin-config.title': 'Fərdiləşdirmə',
@@ -4329,7 +4329,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-about.bullet.3':
     'Ko-fi, «Mənə qəhvə al» və Discord vasitəsilə TREK-i dəstəkləyə və ya onu hazırlayan insanlarla danışa bilərsiniz.',
   'help.guide.language-region.step.3':
-    '«Göstərilən valyuta»nı seçin və ya hər səyahəti öz valyutasında görmək üçün «Səyahət valyutası»nı saxlayın. Sonra «Temperatur vahidi», «Məsafə vahidi», «Vaxt formatı» və həftənin hansı gündən başladığını seçin.',
+    '«Göstərilən valyuta»nı seçin və ya hər səyahəti öz valyutasında görmək üçün «Səyahət valyutası»nı saxlayın. Sonra «Temperatur vahidi», «Məsafə vahidi», «Vaxt formatı», həftənin hansı gündən başladığını və «Tarix formatı»nı seçin.',
   'help.guide.travel-map-prefs.step.3':
     '«Xəritədə məkanları kəşf et» yaxınlıqdakı məkanları tapmaq üçün kateqoriya düymələrini göstərir. «Rezervasiya kodlarını bulanıqlaşdır» təsdiq nömrələrini kursoru üzərinə gətirənə və ya toxunana qədər gizlədir. «Marşrutu yaşayış yerindən başlayaraq optimallaşdır» günü otelinizdə başladır və bitirir.',
   'help.guide.web-push-device.step.2':
@@ -6374,7 +6374,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-settings.bullet.5':
     '«Təhlükəli zona»: «JWT sirrini yenilə» siz də daxil olmaqla bütün istifadəçiləri hesabdan çıxarır.',
   'help.guide.default-user-settings.step.1':
-    '«Standart istifadəçi tənzimləmələri» altında «Rəng rejimi» («İşıqlı», «Tünd» və ya «Avtomatik»), «Temperatur vahidi», «Məsafə vahidi», «Vaxt formatı», «Həftənin başlanğıcı», «Göstərilən valyuta» və «Rezervasiya kodlarını bulanıqlaşdır» seçiminin aktiv və ya deaktiv olmasını seçin. Hər seçim dərhal yadda saxlanır.',
+    '«Standart istifadəçi tənzimləmələri» altında «Rəng rejimi» («İşıqlı», «Tünd» və ya «Avtomatik»), «Temperatur vahidi», «Məsafə vahidi», «Vaxt formatı», «Həftənin başlanğıcı», «Tarix formatı», «Göstərilən valyuta» və «Rezervasiya kodlarını bulanıqlaşdır» seçiminin aktiv və ya deaktiv olmasını seçin. Hər seçim dərhal yadda saxlanır.',
   'help.guide.admin-passkeys.step.2':
     '«Relying Party ID (domen)» (məsələn, trek.example.org) və TREK-inizin açıldığı «İcazə verilən mənbələr»i daxil edin, sonra «Yadda saxla» düyməsinə klikləyin. APP_URL istifadə etmək üçün hər ikisini boş buraxın.',
   'help.guide.rotate-jwt-secret.title': 'Hamını birdəfəlik hesabdan çıxarmaq',

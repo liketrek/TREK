@@ -87,6 +87,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': 'Zeitformat',
   'settings.weekStart': 'Woche beginnt am',
   'settings.weekStartHint': 'Erster Tag der Woche in jedem Datumswähler. Vacay hat eine eigene Einstellung.',
+  'settings.dateFormat': 'Datumsformat',
+  'settings.dateFormatHint':
+    'Wie Daten in jedem Datumsfeld und jeder Liste geschrieben werden. Daten mit Monatsnamen behalten die Schreibweise deiner Sprache.',
+  'settings.dateFormatAuto': 'Automatisch',
   'settings.preferredNavApp': 'Orte öffnen in',
   'settings.preferredNavAppAsk': 'Jedes Mal fragen',
   'settings.preferredNavAppHint':

@@ -97,6 +97,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': 'Ajavorming',
   'settings.weekStart': 'Nädala alguspäev',
   'settings.weekStartHint': 'Nädala esimene päev kõigis kuupäevavalijates. Vacayl on oma seade.',
+  'settings.dateFormat': 'Kuupäevavorming',
+  'settings.dateFormatHint':
+    'Kuidas kuupäevi kõigis kuupäevaväljades ja loendites kirjutatakse. Kuu nimega kuupäevad järgivad sinu keele sõnastust.',
+  'settings.dateFormatAuto': 'Automaatne',
   'settings.preferredNavApp': 'Ava kohad rakenduses',
   'settings.preferredNavAppAsk': 'Küsi iga kord',
   'settings.preferredNavAppHint':

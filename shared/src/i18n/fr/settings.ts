@@ -90,6 +90,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': "Format de l'heure",
   'settings.weekStart': 'La semaine commence le',
   'settings.weekStartHint': 'Premier jour de la semaine dans tous les sélecteurs de date. Vacay a son propre réglage.',
+  'settings.dateFormat': 'Format de date',
+  'settings.dateFormatHint':
+    "Façon dont les dates s'écrivent dans tous les champs de date et toutes les listes. Les dates avec un nom de mois gardent la formulation de votre langue.",
+  'settings.dateFormatAuto': 'Automatique',
   'settings.preferredNavApp': 'Ouvrir les lieux dans',
   'settings.preferredNavAppAsk': 'Demander à chaque fois',
   'settings.preferredNavAppHint':

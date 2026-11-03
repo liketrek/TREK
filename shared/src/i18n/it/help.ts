@@ -1165,7 +1165,7 @@ const help: TranslationStrings = {
   'help.ctx.settings.bullet.1':
     "La barra laterale a sinistra: «Visualizzazione», «Aspetto», «Mappa», «Notifiche», «Integrazioni», Offline e Account. «Plugin» compare quando c'è un plugin attivo. «Informazioni» compare, a meno che il gestore non l'abbia nascosta. La versione è indicata in fondo.",
   'help.ctx.settings.bullet.2':
-    "All'apertura c'è «Visualizzazione», con lingua, lingua dei nomi dei luoghi, unità di misura, formato dell'ora, inizio della settimana e valuta di visualizzazione, più il comportamento della mappa del viaggio. «Aspetto» contiene tema, colori, leggibilità, dimensione del testo e widget della dashboard.",
+    "All'apertura c'è «Visualizzazione», con lingua, lingua dei nomi dei luoghi, unità di misura, formato dell'ora, formato della data, inizio della settimana e valuta di visualizzazione, più il comportamento della mappa del viaggio. «Aspetto» contiene tema, colori, leggibilità, dimensione del testo e widget della dashboard.",
   'help.ctx.settings.bullet.3':
     '«Mappa» imposta il motore della mappa e il suo stile; «Notifiche» stabilisce quali eventi arrivano su quale canale; «Integrazioni» collega le librerie di foto, AirTrail, Dawarich e wanderer, e contiene chiavi API e MCP; «Offline» stabilisce cosa salva questo dispositivo.',
   'help.ctx.settings.bullet.4':
@@ -1176,7 +1176,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-display.bullet.1':
     '«Avvio»: «Pagina iniziale» apre la Dashboard o il «Viaggio attivo»; con «Viaggio attivo», «Scheda iniziale» sceglie la scheda con cui si apre quel viaggio.',
   'help.ctx.settings-display.bullet.2':
-    'Lingua e regione: «Valuta di visualizzazione» (o «Valuta del viaggio» per non convertire), «Lingua», «Nomi dei luoghi», «Unità di Temperatura», «Unità di Distanza», «Formato Ora» e «La settimana inizia il».',
+    'Lingua e regione: «Valuta di visualizzazione» (o «Valuta del viaggio» per non convertire), «Lingua», «Nomi dei luoghi», «Unità di Temperatura», «Unità di Distanza», «Formato Ora», «La settimana inizia il» e «Formato Data».',
   'help.ctx.settings-display.bullet.3':
     "Viaggio e mappa: «Apri i luoghi in», «Data prima nei titoli dei giorni», «Etichette percorsi prenotati», «Mostra sempre i percorsi delle prenotazioni», «Segnaposti compatti per i luoghi non pianificati», «Esplora luoghi sulla mappa», «Nascondi codici di prenotazione» e «Ottimizza il percorso dall'alloggio».",
   'help.ctx.settings-appearance.title': 'Aspetto',
@@ -1500,9 +1500,9 @@ const help: TranslationStrings = {
     'In fondo, «Impostazioni dei permessi»: per ogni azione, chi può eseguirla («Tutti», «Membri del viaggio», «Proprietario del viaggio» o «Solo amministratore»). Clicca su «Salva» in cima alla scheda per salvare.',
   'help.ctx.admin-defaults.title': 'Impostazioni predefinite',
   'help.ctx.admin-defaults.summary':
-    "Le impostazioni di partenza di un nuovo account, così nessuno deve configurarle da zero: modalità colore, unità di misura, formato dell'ora, inizio della settimana, valuta di visualizzazione e codici di prenotazione oscurati, più la mappa, le sue chiavi e i server per il calcolo dei percorsi.",
+    "Le impostazioni di partenza di un nuovo account, così nessuno deve configurarle da zero: modalità colore, unità di misura, formato dell'ora, formato della data, inizio della settimana, valuta di visualizzazione e codici di prenotazione oscurati, più la mappa, le sue chiavi e i server per il calcolo dei percorsi.",
   'help.ctx.admin-defaults.bullet.1':
-    'A sinistra, «Impostazioni predefinite utente»: «Modalità Colore», «Unità di Temperatura», «Unità di Distanza», «Formato Ora», «La settimana inizia il», «Valuta di visualizzazione» e «Nascondi codici di prenotazione».',
+    'A sinistra, «Impostazioni predefinite utente»: «Modalità Colore», «Unità di Temperatura», «Unità di Distanza», «Formato Ora», «La settimana inizia il», «Formato Data», «Valuta di visualizzazione» e «Nascondi codici di prenotazione».',
   'help.ctx.admin-defaults.bullet.2':
     "A destra, la mappa: «Modello Mappa», «Chiave CARTO condivisa», «Motore di percorso proprio» e «Istanza Valhalla propria», un'anteprima, poi «Motore mappe» con «Stile mappa», «Token Mapbox condiviso», «Edifici & terreno in 3D» e «Modalità alta qualità».",
   'help.ctx.admin-config.title': 'Personalizzazione',
@@ -4348,7 +4348,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-about.bullet.3':
     'Su Ko-fi, Buy Me a Coffee e Discord puoi sostenere TREK o parlare con le persone che lo sviluppano.',
   'help.guide.language-region.step.3':
-    'Imposta la «Valuta di visualizzazione», oppure lascia «Valuta del viaggio» per vedere ogni viaggio nella sua valuta. Poi scegli «Unità di Temperatura», «Unità di Distanza», «Formato Ora» e il giorno in cui inizia la settimana («La settimana inizia il»).',
+    'Imposta la «Valuta di visualizzazione», oppure lascia «Valuta del viaggio» per vedere ogni viaggio nella sua valuta. Poi scegli «Unità di Temperatura», «Unità di Distanza», «Formato Ora», il giorno in cui inizia la settimana («La settimana inizia il») e il «Formato Data».',
   'help.guide.travel-map-prefs.step.3':
     "«Esplora luoghi sulla mappa» mostra la pillola delle categorie per trovare luoghi nelle vicinanze. «Nascondi codici di prenotazione» oscura i numeri di conferma finché non ci passi sopra con il mouse o li tocchi. «Ottimizza il percorso dall'alloggio» fa iniziare e finire la giornata al tuo hotel.",
   'help.guide.web-push-device.step.2':
@@ -6451,7 +6451,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-settings.bullet.5':
     '«Zona pericolosa»: «Ruota il secret JWT» disconnette tutti gli utenti, te compreso.',
   'help.guide.default-user-settings.step.1':
-    'Sotto «Impostazioni predefinite utente», scegli «Modalità Colore» («Chiara», «Scuro» o «Automatica»), «Unità di Temperatura», «Unità di Distanza», «Formato Ora», «La settimana inizia il», la «Valuta di visualizzazione» e se «Nascondi codici di prenotazione» è attivo o «Disattivato». Ogni scelta si salva subito.',
+    'Sotto «Impostazioni predefinite utente», scegli «Modalità Colore» («Chiara», «Scuro» o «Automatica»), «Unità di Temperatura», «Unità di Distanza», «Formato Ora», «La settimana inizia il», il «Formato Data», la «Valuta di visualizzazione» e se «Nascondi codici di prenotazione» è attivo o «Disattivato». Ogni scelta si salva subito.',
   'help.guide.admin-passkeys.step.2':
     'Inserisci il «Relying Party ID (dominio)», ad esempio trek.example.org, e le «Origini consentite» da cui si raggiunge il tuo TREK, poi clicca su «Salva». Lasciali entrambi vuoti per usare APP_URL.',
   'help.guide.rotate-jwt-secret.title': 'Disconnettere tutti in una volta',

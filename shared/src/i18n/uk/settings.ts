@@ -88,6 +88,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': 'Формат часу',
   'settings.weekStart': 'Тиждень починається з',
   'settings.weekStartHint': 'Перший день тижня в усіх виборах дати. Vacay має власне налаштування.',
+  'settings.dateFormat': 'Формат дати',
+  'settings.dateFormatHint':
+    'Як записуються дати в усіх полях дати та списках. Дати з назвою місяця зберігають написання вашої мови.',
+  'settings.dateFormatAuto': 'Автоматично',
   'settings.preferredNavApp': 'Відкривати місця в',
   'settings.preferredNavAppAsk': 'Питати щоразу',
   'settings.preferredNavAppHint':

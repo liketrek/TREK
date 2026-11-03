@@ -4,6 +4,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from '../../i18n';
 import { dateInputPattern } from '../../utils/dateInputPattern';
+import { type DateField, dateFieldOrder, dateLayout, formatDisplayDate } from '../../utils/dateFormat';
+import { useDateFormat } from '../../hooks/useDateFormat';
 import { useRemeasureSignal } from '../../hooks/useAnchoredPosition';
 import { useWeekStartDay } from '../../hooks/useWeekStartDay';
 import { leadingBlanks, weekdayLabels } from '../../utils/calendarWeek';
@@ -42,6 +44,7 @@ export function CustomDatePicker({
 }: CustomDatePickerProps) {
   const { locale, t } = useTranslation();
   const weekStart = useWeekStartDay();
+  const dateFormat = useDateFormat();
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<CalendarView>('days');
   const [yearPageStart, setYearPageStart] = useState(0);
@@ -149,22 +152,17 @@ export function CustomDatePicker({
   );
   const years = Array.from({ length: YEAR_PAGE_SIZE }, (_, i) => yearPageStart + i);
 
-  const displayValue = parsed
-    ? parsed.toLocaleDateString(
-        locale,
-        compact
-          ? { day: '2-digit', month: '2-digit', year: '2-digit', timeZone: 'UTC' }
-          : { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }
-      )
-    : null;
+  // A chosen date format (#2971) writes the field in numbers, the whole year
+  // included; 'auto' keeps the language's short month as before.
+  const fieldOptions: Intl.DateTimeFormatOptions = dateLayout(dateFormat)
+    ? { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }
+    : compact
+      ? { day: '2-digit', month: '2-digit', year: '2-digit', timeZone: 'UTC' }
+      : { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' };
+  const displayValue = parsed ? formatDisplayDate(parsed, locale, fieldOptions, dateFormat) : null;
 
   const inputValue = parsed
-    ? parsed.toLocaleDateString(locale, {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        timeZone: 'UTC',
-      })
+    ? formatDisplayDate(parsed, locale, { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }, dateFormat)
     : '';
 
   // Inclusive range check on ISO (YYYY-MM-DD) strings — lexicographic order
@@ -212,13 +210,11 @@ export function CustomDatePicker({
       return;
     }
 
-    // Determine field order for active locale via Intl
-    const parts = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'numeric', year: 'numeric' }).formatToParts(
-      new Date(2001, 5, 15)
-    ); // known date: June 15, 2001
-    const order = parts
-      .filter((p) => ['day', 'month', 'year'].includes(p.type))
-      .map((p) => p.type as 'day' | 'month' | 'year');
+    // The order of the chosen date format (#2971), or the active locale's. A
+    // four-digit first number is a year in every format, so 2026/11/04 or
+    // 2026.11.04 reads as year, month, day whichever format is set.
+    const yearFirst = /^\D*\d{4}\D/.test(input);
+    const order: readonly DateField[] = yearFirst ? ['year', 'month', 'day'] : dateFieldOrder(locale, dateFormat);
 
     // Strip non-numeric chars (handles RTL marks, dots, slashes, spaces)
     const nums = input
@@ -277,7 +273,7 @@ export function CustomDatePicker({
             if (e.key === 'Escape') setIsTyping(false);
           }}
           onBlur={handleTextSubmit}
-          placeholder={dateInputPattern(locale)}
+          placeholder={dateInputPattern(locale, dateFormat)}
           aria-label={t('common.datepicker.enterManually')}
           style={{
             width: '100%',
@@ -700,9 +696,12 @@ interface CustomDateTimePickerProps {
   onChange: (value: string) => void;
   placeholder?: string;
   style?: React.CSSProperties;
+  /** Earliest and latest day (YYYY-MM-DD), as CustomDatePicker takes them. */
+  min?: string;
+  max?: string;
 }
 
-export function CustomDateTimePicker({ value, onChange, placeholder, style = {} }: CustomDateTimePickerProps) {
+export function CustomDateTimePicker({ value, onChange, placeholder, style = {}, min, max }: CustomDateTimePickerProps) {
   const { locale } = useTranslation();
   const [datePart, timePart] = (value || '').split('T');
 
@@ -716,7 +715,13 @@ export function CustomDateTimePicker({ value, onChange, placeholder, style = {} 
 
   return (
     <div style={{ display: 'flex', gap: 8, ...style }}>
-      <CustomDatePicker value={datePart || ''} onChange={handleDateChange} style={{ flex: 1, minWidth: 0 }} />
+      <CustomDatePicker
+        value={datePart || ''}
+        onChange={handleDateChange}
+        style={{ flex: 1, minWidth: 0 }}
+        min={min}
+        max={max}
+      />
       <div style={{ width: 110, flexShrink: 0 }}>
         <CustomTimePicker value={timePart || ''} onChange={handleTimeChange} />
       </div>

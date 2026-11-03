@@ -1170,7 +1170,7 @@ const help: TranslationStrings = {
   'help.ctx.settings.bullet.1':
     "Barra lateral de l'esquerra: «Pantalla», «Aparença», «Mapa», «Notificacions», «Integracions», «Fora de línia» i «Compte». «Connectors» apareix quan hi ha algun connector actiu. «Quant a» apareix tret que l'operador l'hagi amagat. La versió es mostra a baix de tot.",
   'help.ctx.settings.bullet.2':
-    "«Pantalla» s'obre primer. Inclou l'idioma, l'idioma dels noms de llocs, les unitats, el format d'hora, el primer dia de la setmana i la divisa de visualització, i també com es comporta el mapa del viatge. «Aparença» inclou el tema, els colors, la llegibilitat, la mida del text i els ginys del tauler.",
+    "«Pantalla» s'obre primer. Inclou l'idioma, l'idioma dels noms de llocs, les unitats, el format d'hora, el format de data, el primer dia de la setmana i la divisa de visualització, i també com es comporta el mapa del viatge. «Aparença» inclou el tema, els colors, la llegibilitat, la mida del text i els ginys del tauler.",
   'help.ctx.settings.bullet.3':
     '«Mapa» defineix el motor del mapa i el seu estil; «Notificacions», quins esdeveniments van a cada canal; «Integracions» connecta biblioteques de fotos, AirTrail, Dawarich i wanderer, i inclou les claus API i MCP; «Fora de línia» defineix què desa aquest dispositiu.',
   'help.ctx.settings.bullet.4':
@@ -1181,7 +1181,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-display.bullet.1':
     "«Inici»: «Pàgina d'inici» obre el «Tauler» o el «Viatge actiu»; amb «Viatge actiu», «Pestanya d'inici» tria la pestanya amb què s'obre aquell viatge.",
   'help.ctx.settings-display.bullet.2':
-    "«Idioma i regió»: «Divisa de visualització» (o «Divisa del viatge» per no convertir), «Idioma», «Noms de llocs», «Unitat de temperatura», «Unitat de distància», «Format d'hora» i «La setmana comença el».",
+    "«Idioma i regió»: «Divisa de visualització» (o «Divisa del viatge» per no convertir), «Idioma», «Noms de llocs», «Unitat de temperatura», «Unitat de distància», «Format d'hora», «La setmana comença el» i «Format de data».",
   'help.ctx.settings-display.bullet.3':
     "«Viatge i mapa»: «Obre els llocs a», «Data primer als títols dels dies», «Etiquetes de rutes de reserves», «Mostra sempre les rutes de reserva», «Marcadors compactes per als llocs sense planificar», «Explora llocs al mapa», «Difumina els codis de reserva» i «Optimitza la ruta des de l'allotjament».",
   'help.ctx.settings-appearance.title': 'Aparença',
@@ -1505,9 +1505,9 @@ const help: TranslationStrings = {
     "«Configuració de permisos», a baix de tot: per a cada acció, qui la pot fer («Tothom», «Membres del viatge», «Propietari del viatge» o «Només l'administrador»). Fes clic a «Desa», a dalt de la targeta, per desar-ho.",
   'help.ctx.admin-defaults.title': 'Valors per defecte',
   'help.ctx.admin-defaults.summary':
-    "Amb què comença un compte nou, perquè ningú no l'hagi de configurar abans: mode de color, unitats, format d'hora, primer dia de la setmana, divisa de visualització i codis de reserva difuminats, i també el mapa, les seves claus i els servidors de rutes.",
+    "Amb què comença un compte nou, perquè ningú no l'hagi de configurar abans: mode de color, unitats, format d'hora, format de data, primer dia de la setmana, divisa de visualització i codis de reserva difuminats, i també el mapa, les seves claus i els servidors de rutes.",
   'help.ctx.admin-defaults.bullet.1':
-    "«Configuració per defecte dels usuaris», a l'esquerra: «Mode de color», «Unitat de temperatura», «Unitat de distància», «Format d'hora», «La setmana comença el», «Divisa de visualització» i «Difumina els codis de reserva».",
+    "«Configuració per defecte dels usuaris», a l'esquerra: «Mode de color», «Unitat de temperatura», «Unitat de distància», «Format d'hora», «La setmana comença el», «Format de data», «Divisa de visualització» i «Difumina els codis de reserva».",
   'help.ctx.admin-defaults.bullet.2':
     "«Mapa», a la dreta: «Plantilla del mapa», «Clau CARTO compartida», «Motor de rutes propi» i «Instància Valhalla pròpia», una vista prèvia, i després «Motor de mapes» amb «Estil de mapa», «Token de Mapbox compartit», «Edificis i terreny en 3D» i «Mode d'alta qualitat».",
   'help.ctx.admin-config.title': 'Personalització',
@@ -4355,7 +4355,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-about.bullet.3':
     'A Ko-fi, Buy Me a Coffee i Discord pots donar suport a TREK o parlar amb la gent que el fa.',
   'help.guide.language-region.step.3':
-    "Tria la «Divisa de visualització», o deixa «Divisa del viatge» per veure cada viatge en la seva divisa. Després tria «Unitat de temperatura», «Unitat de distància», «Format d'hora» i, a «La setmana comença el», el dia en què comença la setmana.",
+    "Tria la «Divisa de visualització», o deixa «Divisa del viatge» per veure cada viatge en la seva divisa. Després tria «Unitat de temperatura», «Unitat de distància», «Format d'hora», a «La setmana comença el» el dia en què comença la setmana i el «Format de data».",
   'help.guide.travel-map-prefs.step.3':
     "«Explora llocs al mapa» mostra la pastilla de categories per trobar llocs propers. «Difumina els codis de reserva» amaga els números de confirmació fins que hi passes el ratolí per sobre o els toques. «Optimitza la ruta des de l'allotjament» fa que el dia comenci i acabi al teu hotel.",
   'help.guide.web-push-device.step.2':
@@ -6437,7 +6437,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-settings.bullet.5':
     '«Zona de perill»: «Rota el secret JWT» tanca la sessió de tots els usuaris, tu inclòs.',
   'help.guide.default-user-settings.step.1':
-    "A «Configuració per defecte dels usuaris», tria «Mode de color» («Clar», «Fosc» o «Automàtic»), «Unitat de temperatura», «Unitat de distància», «Format d'hora», «La setmana comença el», la «Divisa de visualització» i si «Difumina els codis de reserva» està activat o desactivat. Cada opció es desa a l'instant.",
+    "A «Configuració per defecte dels usuaris», tria «Mode de color» («Clar», «Fosc» o «Automàtic»), «Unitat de temperatura», «Unitat de distància», «Format d'hora», «La setmana comença el», el «Format de data», la «Divisa de visualització» i si «Difumina els codis de reserva» està activat o desactivat. Cada opció es desa a l'instant.",
   'help.guide.admin-passkeys.step.2':
     "Introdueix l'«ID de la part confiable (domini)», com ara trek.example.org, i els «Orígens permesos» des d'on s'accedeix al teu TREK, i fes clic a «Desa». Deixa'ls tots dos buits per fer servir APP_URL.",
   'help.guide.rotate-jwt-secret.title': 'Tancar la sessió de tothom alhora',

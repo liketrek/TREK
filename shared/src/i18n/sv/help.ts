@@ -1127,7 +1127,7 @@ const help: TranslationStrings = {
   'help.ctx.settings.bullet.1':
     'Sidofältet till vänster: Visning, Utseende, Karta, Meddelanden, Integrationer, Offline och Konto. Plugin visas när ett plugin är aktivt. Om visas om inte operatören har dolt den. Versionen visas längst ned.',
   'help.ctx.settings.bullet.2':
-    'Visning öppnas först. Där finns språk, språk för platsnamn, enheter, tidsformat, veckostart och visningsvaluta, samt hur reskartan beter sig. Utseende innehåller tema, färger, läsbarhet, textstorlek och översiktswidgets.',
+    'Visning öppnas först. Där finns språk, språk för platsnamn, enheter, tidsformat, datumformat, veckostart och visningsvaluta, samt hur reskartan beter sig. Utseende innehåller tema, färger, läsbarhet, textstorlek och översiktswidgets.',
   'help.ctx.settings.bullet.3':
     'Karta ställer in kartmotor och kartstil; Meddelanden styr vilka händelser som skickas till vilken kanal; Integrationer ansluter fotobibliotek, AirTrail, Dawarich och wanderer och innehåller API-nycklar och MCP; Offline styr vad som sparas på den här enheten.',
   'help.ctx.settings.bullet.4':
@@ -1138,7 +1138,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-display.bullet.1':
     'Start: Startsida öppnas på Översikt eller på Aktiv resa. Med Aktiv resa väljer Startflik vilken flik den resan öppnas på.',
   'help.ctx.settings-display.bullet.2':
-    'Språk och region: Visningsvaluta (eller Resans valuta för ingen), Språk, Platsnamn, Temperaturenhet, Avståndsenhet, Tidsformat och Vecka börjar på.',
+    'Språk och region: Visningsvaluta (eller Resans valuta för ingen), Språk, Platsnamn, Temperaturenhet, Avståndsenhet, Tidsformat, Vecka börjar på och Datumformat.',
   'help.ctx.settings-display.bullet.3':
     'Resor och karta: Öppna platser i, Datum först i dagsrubriker, Etiketter för bokningsrutter, Visa alltid bokningsrutter, Kompakta markörer för oplanerade platser, Utforska platser på kartan, Blurra bokningskoder och Optimera rutten från boendet.',
   'help.ctx.settings-appearance.title': 'Utseende',
@@ -1455,9 +1455,9 @@ const help: TranslationStrings = {
     'Behörighetsinställningar längst ned: för varje åtgärd, vem som får utföra den (Alla, Resedeltagare, Researrangör eller Admin endast). Klicka på Spara överst i kortet för att spara.',
   'help.ctx.admin-defaults.title': 'Användarinställningar',
   'help.ctx.admin-defaults.summary':
-    'Vad ett nytt konto startar med, så att ingen först behöver ställa in det: färgläge, enheter, tidsformat, veckostart, visningsvaluta och blurrade bokningskoder, plus kartan, dess nycklar och ruttservrarna.',
+    'Vad ett nytt konto startar med, så att ingen först behöver ställa in det: färgläge, enheter, tidsformat, datumformat, veckostart, visningsvaluta och blurrade bokningskoder, plus kartan, dess nycklar och ruttservrarna.',
   'help.ctx.admin-defaults.bullet.1':
-    'Standardinställningar för användare till vänster: Färgläge, Temperaturenhet, Avståndsenhet, Tidsformat, Vecka börjar på, Visningsvaluta och Blurra bokningskoder.',
+    'Standardinställningar för användare till vänster: Färgläge, Temperaturenhet, Avståndsenhet, Tidsformat, Vecka börjar på, Datumformat, Visningsvaluta och Blurra bokningskoder.',
   'help.ctx.admin-defaults.bullet.2':
     'Karta till höger: Kartmall, Delad CARTO-nyckel, Egen ruttmotor och Egen Valhalla-instans, en förhandsgranskning och sedan Kartmotor med Kartstil, Delat Mapbox-token, 3D-byggnader och terräng och Högkvalitetsläge.',
   'help.ctx.admin-config.title': 'Anpassning',
@@ -4261,7 +4261,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-about.bullet.3':
     'Via Ko-fi, Buy Me a Coffee och Discord kan du stötta TREK eller prata med dem som utvecklar det.',
   'help.guide.language-region.step.3':
-    'Ställ in Visningsvaluta, eller behåll ”Resans valuta” för att se varje resa i dess egen valuta. Välj sedan Temperaturenhet, Avståndsenhet, Tidsformat och vilken dag veckan ska börja på under ”Vecka börjar på”.',
+    'Ställ in Visningsvaluta, eller behåll ”Resans valuta” för att se varje resa i dess egen valuta. Välj sedan Temperaturenhet, Avståndsenhet, Tidsformat, vilken dag veckan ska börja på under ”Vecka börjar på” och Datumformat.',
   'help.guide.travel-map-prefs.step.3':
     '”Utforska platser på kartan” visar kategoripillret för att hitta platser i närheten. ”Blurra bokningskoder” döljer bekräftelsenummer tills du håller pekaren över dem eller trycker på dem. ”Optimera rutten från boendet” börjar och avslutar dagen vid ditt hotell.',
   'help.guide.web-push-device.step.2':
@@ -6290,7 +6290,7 @@ const help: TranslationStrings = {
     'Länken ”Återställ” bredvid ett fält som du har angett återställer TREK:s eget standardvärde. En användares egen inställning gäller alltid före dessa.',
   'help.ctx.admin-settings.bullet.5': 'Farozon: Rotera JWT-hemlighet loggar ut alla användare, dig själv inräknad.',
   'help.guide.default-user-settings.step.1':
-    'Under Standardinställningar för användare väljer du Färgläge (Ljust, Mörk eller Auto), Temperaturenhet, Avståndsenhet, Tidsformat, Vecka börjar på, Visningsvaluta och om Blurra bokningskoder är På eller Av. Varje val sparas direkt.',
+    'Under Standardinställningar för användare väljer du Färgläge (Ljust, Mörk eller Auto), Temperaturenhet, Avståndsenhet, Tidsformat, Vecka börjar på, Datumformat, Visningsvaluta och om Blurra bokningskoder är På eller Av. Varje val sparas direkt.',
   'help.guide.admin-passkeys.step.2':
     'Ange ”Relying Party ID” (domän), till exempel trek.example.org, och ”Allowed origins” som din TREK nås på, och klicka sedan på Spara. Lämna båda tomma för att använda APP_URL.',
   'help.guide.rotate-jwt-secret.title': 'Logga ut alla på en gång',

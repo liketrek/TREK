@@ -1172,7 +1172,7 @@ const help: TranslationStrings = {
   'help.ctx.settings.bullet.1':
     'Barra lateral izquierda: «Pantalla», «Apariencia», «Mapa», «Notificaciones», «Integraciones», «Sin conexión» y «Cuenta». «Plugins» aparece cuando hay algún plugin activo. «Acerca de» aparece salvo que el administrador del servidor la haya ocultado. La versión se muestra abajo del todo.',
   'help.ctx.settings.bullet.2':
-    '«Pantalla» se abre primero. Incluye el idioma, el idioma de los nombres de lugares, las unidades, el formato de hora, el primer día de la semana y la moneda de visualización, además del comportamiento del mapa del viaje. «Apariencia» incluye el tema, los colores, la legibilidad, el tamaño del texto y los widgets del panel.',
+    '«Pantalla» se abre primero. Incluye el idioma, el idioma de los nombres de lugares, las unidades, el formato de hora, el formato de fecha, el primer día de la semana y la moneda de visualización, además del comportamiento del mapa del viaje. «Apariencia» incluye el tema, los colores, la legibilidad, el tamaño del texto y los widgets del panel.',
   'help.ctx.settings.bullet.3':
     '«Mapa» define el motor de mapas y su estilo; «Notificaciones», qué eventos van a cada canal; «Integraciones» conecta bibliotecas de fotos, AirTrail, Dawarich y wanderer, e incluye las claves de API y MCP; «Sin conexión» define qué guarda este dispositivo.',
   'help.ctx.settings.bullet.4':
@@ -1183,7 +1183,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-display.bullet.1':
     '«Inicio»: «Página de inicio» abre el «Panel» o el «Viaje activo»; con «Viaje activo», «Pestaña de inicio» elige la pestaña con la que se abre ese viaje.',
   'help.ctx.settings-display.bullet.2':
-    'Idioma y región: «Moneda de visualización» (o «Moneda del viaje» para no convertir), «Idioma», «Nombres de lugares», «Unidad de temperatura», «Unidad de distancia», «Formato de hora» y «La semana comienza el».',
+    'Idioma y región: «Moneda de visualización» (o «Moneda del viaje» para no convertir), «Idioma», «Nombres de lugares», «Unidad de temperatura», «Unidad de distancia», «Formato de hora», «La semana comienza el» y «Formato de fecha».',
   'help.ctx.settings-display.bullet.3':
     '«Viaje y mapa»: «Abrir lugares en», «Fecha primero en los títulos de día», «Etiquetas de rutas de reservas», «Mostrar siempre las rutas de reserva», «Marcadores compactos para lugares sin planificar», «Explorar lugares en el mapa», «Difuminar códigos de reserva» y «Optimizar la ruta desde el alojamiento».',
   'help.ctx.settings-appearance.title': 'Apariencia',
@@ -1507,9 +1507,9 @@ const help: TranslationStrings = {
     '«Configuración de permisos», abajo: para cada acción, quién puede hacerla («Todos», «Miembros del viaje», «Propietario del viaje» o «Solo administrador»). Haz clic en Guardar, arriba de la tarjeta, para guardarlo.',
   'help.ctx.admin-defaults.title': 'Valores predeterminados',
   'help.ctx.admin-defaults.summary':
-    'Con qué empieza una cuenta nueva, para que nadie tenga que configurarlo antes: modo de color, unidades, formato de hora, primer día de la semana, moneda de visualización y códigos de reserva difuminados, además del mapa, sus claves y los servidores de rutas.',
+    'Con qué empieza una cuenta nueva, para que nadie tenga que configurarlo antes: modo de color, unidades, formato de hora, formato de fecha, primer día de la semana, moneda de visualización y códigos de reserva difuminados, además del mapa, sus claves y los servidores de rutas.',
   'help.ctx.admin-defaults.bullet.1':
-    '«Configuración predeterminada de usuarios», a la izquierda: «Modo de color», «Unidad de temperatura», «Unidad de distancia», «Formato de hora», «La semana comienza el», «Moneda de visualización» y «Difuminar códigos de reserva».',
+    '«Configuración predeterminada de usuarios», a la izquierda: «Modo de color», «Unidad de temperatura», «Unidad de distancia», «Formato de hora», «La semana comienza el», «Formato de fecha», «Moneda de visualización» y «Difuminar códigos de reserva».',
   'help.ctx.admin-defaults.bullet.2':
     '«Mapa», a la derecha: «Plantilla del mapa», «Clave de CARTO compartida», «Motor de rutas propio» e «Instancia de Valhalla propia», una vista previa y, después, «Motor de mapas» con «Estilo de mapa», «Token de Mapbox compartido», «Edificios y terreno en 3D» y «Modo de alta calidad».',
   'help.ctx.admin-config.title': 'Personalización',
@@ -4362,7 +4362,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-about.bullet.3':
     'En Ko-fi, Buy Me a Coffee y Discord puedes apoyar a TREK o hablar con las personas que lo desarrollan.',
   'help.guide.language-region.step.3':
-    'Elige la «Moneda de visualización», o deja «Moneda del viaje» para ver cada viaje en su propia moneda. Después elige «Unidad de temperatura», «Unidad de distancia», «Formato de hora» y el día en que empieza la semana en «La semana comienza el».',
+    'Elige la «Moneda de visualización», o deja «Moneda del viaje» para ver cada viaje en su propia moneda. Después elige «Unidad de temperatura», «Unidad de distancia», «Formato de hora», el día en que empieza la semana en «La semana comienza el» y el «Formato de fecha».',
   'help.guide.travel-map-prefs.step.3':
     '«Explorar lugares en el mapa» muestra la píldora de categorías para buscar lugares cercanos. «Difuminar códigos de reserva» oculta los números de confirmación hasta que pasas el cursor por encima o los tocas. «Optimizar la ruta desde el alojamiento» hace que el día empiece y termine en tu hotel.',
   'help.guide.web-push-device.step.2':
@@ -6457,7 +6457,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-settings.bullet.5':
     '«Zona de peligro»: «Rotar secreto JWT» cierra la sesión de todos los usuarios, también la tuya.',
   'help.guide.default-user-settings.step.1':
-    'En «Configuración predeterminada de usuarios», elige «Modo de color» («Claro», «Oscuro» o «Automático»), «Unidad de temperatura», «Unidad de distancia», «Formato de hora», «La semana comienza el», la «Moneda de visualización» y si «Difuminar códigos de reserva» está activado o desactivado. Cada opción se guarda al momento.',
+    'En «Configuración predeterminada de usuarios», elige «Modo de color» («Claro», «Oscuro» o «Automático»), «Unidad de temperatura», «Unidad de distancia», «Formato de hora», «La semana comienza el», el «Formato de fecha», la «Moneda de visualización» y si «Difuminar códigos de reserva» está activado o desactivado. Cada opción se guarda al momento.',
   'help.guide.admin-passkeys.step.2':
     'Introduce el «Relying Party ID (dominio)», por ejemplo trek.example.org, y los «Orígenes permitidos» desde los que se accede a tu TREK, y haz clic en Guardar. Déjalos vacíos para usar APP_URL.',
   'help.guide.rotate-jwt-secret.title': 'Cerrar la sesión de todos a la vez',

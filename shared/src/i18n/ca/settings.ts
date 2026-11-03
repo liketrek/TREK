@@ -73,6 +73,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': "Format d'hora",
   'settings.weekStart': 'La setmana comença el',
   'settings.weekStartHint': 'Primer dia de la setmana a tots els selectors de data. Vacay té la seva pròpia opció.',
+  'settings.dateFormat': 'Format de data',
+  'settings.dateFormatHint':
+    "Com s'escriuen les dates a tots els camps de data i a les llistes. Les dates amb el nom del mes mantenen la redacció del teu idioma.",
+  'settings.dateFormatAuto': 'Automàtic',
   'settings.preferredNavApp': 'Obre els llocs a',
   'settings.preferredNavAppAsk': 'Pregunta cada vegada',
   'settings.preferredNavAppHint':
