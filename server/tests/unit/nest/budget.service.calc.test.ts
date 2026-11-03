@@ -1583,9 +1583,9 @@ describe('calculateSettlement: bills in the display currency (#2965)', () => {
     const [alice, bob] = result.balances.map((b) => b.balance);
     expect([540.54, 540.55]).toContain(alice);
     expect(bob).toBe(-alice);
-    const fronted = result.finalBudgets.find((f) => f.user_id === 1)!;
-    expect(fronted.expenses).toBe(1081.09);
-    expect(fronted.sources.fronted).toEqual([{ item_id: 1, cents: 108109 }]);
+    const fronted = result.finalBudgets.find((f) => f.user_id === 1);
+    expect(fronted?.expenses).toBe(1081.09);
+    expect(fronted?.sources.fronted).toEqual([{ item_id: 1, cents: 108109 }]);
   });
 
   it('a repayment of exactly what is owed in euros squares the trip, frozen at any rate', async () => {
@@ -1593,8 +1593,12 @@ describe('calculateSettlement: bills in the display currency (#2965)', () => {
     const owed = (await budget.calculateSettlement(1, today)).flows[0].amount;
     // Bob pays the euros the flow names, frozen at today's yen rate.
     await setupDb(flight(), pair(), paid(), [makeSettlementRow(5, 2, 1, owed, 'EUR', 1 / 176.73)]);
-    for (const eurPerYen of [1 / 176.73, 1 / 170, 1 / 185]) {
-      const result = await budget.calculateSettlement(1, { ...today, rates: { JPY: 1, EUR: eurPerYen } });
+    const results = await Promise.all(
+      [1 / 176.73, 1 / 170, 1 / 185].map((eurPerYen) =>
+        budget.calculateSettlement(1, { ...today, rates: { JPY: 1, EUR: eurPerYen } }),
+      ),
+    );
+    for (const result of results) {
       expect(result.balances.map((b) => b.balance)).toEqual([0, 0]);
       expect(result.flows).toEqual([]);
       for (const f of result.finalBudgets) expect(f.final).toBeCloseTo(f.user_id === 1 ? 1081.09 - owed : owed, 2);

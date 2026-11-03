@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../tests/helpers/msw/server'
-import { bookedInTrip, convertBooked, convertedLine, crossRate, fetchExchangeRates, fetchFreshRates, freshRates, clearExchangeRateCache, tripAmountOf, useExchangeRates, withFallbackFx } from './useExchangeRates'
+import { bookedInTrip, convertBooked, convertedLine, inDisplayCurrency, crossRate, fetchExchangeRates, fetchFreshRates, freshRates, clearExchangeRateCache, tripAmountOf, useExchangeRates, withFallbackFx } from './useExchangeRates'
 
 const FX_URL = 'https://api.frankfurter.dev/v2/rates'
 
@@ -198,16 +198,11 @@ describe('convertBooked', () => {
   })
 
   // #2965: read in dollars, a bill entered in dollars counts as typed, as the balances net it.
-  it('shows a row in the display currency as typed, whatever rate it was frozen at', () => {
-    const liveUsd = (amount: number, from: string | null | undefined): number => {
-      const rates: Record<string, number> = { USD: 1, EUR: 1 / 1.1398 }
-      const r = rates[(from || 'USD').toUpperCase()]
-      return r && r > 0 ? amount / r : amount
-    }
-    expect(convertBooked(801.76, 'USD', 1.17, 'EUR', liveUsd, 'USD')).toBe(801.76)
-    expect(convertBooked(801.76, 'usd', 1.17, 'EUR', liveUsd, 'USD')).toBe(801.76)
-    // Another currency still goes through the trip currency.
-    expect(convertBooked(801.76, 'USD', 1.17, 'EUR', liveUsd, 'GBP')).toBeCloseTo((801.76 / 1.17) * 1.1398, 6)
+  it('knows a row entered in the display currency, a NULL currency being the trip one', () => {
+    expect(inDisplayCurrency('usd', 'EUR', 'USD')).toBe(true)
+    expect(inDisplayCurrency(null, 'EUR', 'eur')).toBe(true)
+    expect(inDisplayCurrency(null, 'EUR', 'USD')).toBe(false)
+    expect(inDisplayCurrency('USD', 'EUR', 'GBP')).toBe(false)
   })
 })
 

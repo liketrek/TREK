@@ -3,7 +3,7 @@ import { catMeta } from '../../components/Budget/costsCategories'
 import { fs, NEUTRAL_TINT } from '../../components/shared/DialogShell'
 import { CountPill } from '../../components/Planner/bookings/bookingParts'
 import { TripMemberAvatar } from '../../components/Trips/TripMemberAvatar'
-import { convertBooked, convertedLine } from '../../hooks/useExchangeRates'
+import { convertBooked, convertedLine, inDisplayCurrency } from '../../hooks/useExchangeRates'
 import { useTranslation } from '../../i18n'
 import { avatarSrc } from '../../utils/avatarSrc'
 import { currencyDecimals } from '../../utils/formatters'
@@ -92,7 +92,11 @@ export function SharedCostsView({ items, base, tripCurrency, convert }: CostsPro
   const { t, locale } = useTranslation()
   if (items.length === 0) return <EmptySection icon={<Wallet size={22} />} text={t('shared.emptyCosts')} />
   const amountOf = (i: Expense) => Number.parseFloat(String(i.total_price ?? '')) || 0
-  const valueOf = (i: Expense) => convertBooked(amountOf(i), i.currency, i.exchange_rate, tripCurrency, convert, base)
+  // A bill in the owner's display currency reads as typed, as in Costs (#2965).
+  const valueOf = (i: Expense) =>
+    inDisplayCurrency(i.currency, tripCurrency, base)
+      ? amountOf(i)
+      : convertBooked(amountOf(i), i.currency, i.exchange_rate, tripCurrency, convert)
   // In the reader's own number format with the currency's code: a public page has
   // no idea where its reader is, and "$" alone does not say which dollar.
   // Whole cents: a converted amount otherwise printed a third decimal.

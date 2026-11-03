@@ -764,7 +764,7 @@ describe('MCostsTab', () => {
     expect(update).toHaveBeenCalledTimes(1)
   })
 
-  it('FE-MOB-COSTT-045: a bill whose rate moved shows what was entered and what it was booked at (#2525)', async () => {
+  it('FE-MOB-COSTT-045: a bill whose rate moved still reads as the dollars typed (#2965)', async () => {
     // A euro trip read in dollars, the bill entered in dollars at a frozen 1.17 to the
     // euro while today the euro buys 1.1551. It is 685.26 EUR of trip money, $791.55
     // today, and that is what settle-up offers too; the row now says where the
@@ -793,17 +793,16 @@ describe('MCostsTab', () => {
     await renderTab(planner({ trip: { ...TRIP, currency: 'EUR' } as Trip, budgetItems: [hotel] }))
 
     const card = cardOf('Aparthotel Silver')
-    expect(within(card).getByText(/^\$801\.76 → 685,26\s€$/)).toBeInTheDocument()
-    expect(within(card).getByText('$791.55')).toBeInTheDocument()
-    // Each share is half of the booked euros, the figure the balances net.
-    expect(within(card).getAllByText('$395.77')).toHaveLength(2)
-    expect(within(card).queryByText('$400.88')).toBeNull()
-    expect(up(screen.getByText('costs.totalSpend'), 1).textContent).toContain('$791.55')
-    expect(screen.getByText('costs.spent:$791.55')).toBeInTheDocument()
+    expect(within(card).queryByText(/^\$801\.76 → /)).toBeNull()
+    expect(within(card).getByText('$801.76')).toBeInTheDocument()
+    // Each share is half of the dollars typed, the figure the balances net (#2965).
+    expect(within(card).getAllByText('$400.88')).toHaveLength(2)
+    expect(up(screen.getByText('costs.totalSpend'), 1).textContent).toContain('$801.76')
+    expect(screen.getByText('costs.spent:$801.76')).toBeInTheDocument()
 
     expect(screen.getAllByText('costs.payment')).toHaveLength(2)
     const paid = up(screen.getByText('Ada → costs.you'), 2)
-    expect(within(paid).getByText(/^\$400\.88 → 342,63\s€$/)).toBeInTheDocument()
+    expect(within(paid).getByText('$400.88')).toBeInTheDocument()
     expect(within(up(screen.getByText('Bob → costs.you'), 2)).getByText('$30.00')).toBeInTheDocument()
     expect(screen.queryByText('$34.65')).toBeNull()
   })
