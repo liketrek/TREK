@@ -1268,7 +1268,7 @@ describe('calculateSettlement: unconverted rows', () => {
 
   it('baseRate never converts a row', async () => {
     await setupDb(
-      [{ ...makeItem(1, 100), currency: 'EUR', exchange_rate: 1 } as BudgetItem],
+      [{ ...makeItem(1, 100), currency: 'USD', exchange_rate: 1 } as BudgetItem],
       [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob')],
       [makePayer(1, 1, 100, 'alice')],
     );
@@ -1280,8 +1280,24 @@ describe('calculateSettlement: unconverted rows', () => {
       baseRate: 0.61,
     });
     expect(result.currency).toBe('EUR');
-    expect(result.unconverted).toEqual({ item_ids: [1], settlement_ids: [], currencies: ['EUR'] });
+    expect(result.unconverted).toEqual({ item_ids: [1], settlement_ids: [], currencies: ['USD'] });
     expect(result.balances).toEqual([]);
+  });
+
+  it('a bill in the display currency needs no rate at all: it counts as typed (#2965)', async () => {
+    await setupDb(
+      [{ ...makeItem(1, 100), currency: 'EUR', exchange_rate: 1 } as BudgetItem],
+      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob')],
+      [makePayer(1, 1, 100, 'alice')],
+    );
+    const result = await budget.calculateSettlement(1, {
+      base: 'EUR',
+      tripCurrency: 'AUD',
+      rates: null,
+      baseRate: 0.61,
+    });
+    expect(result.unconverted).toEqual(none);
+    expect(result.balances.map((b) => b.balance)).toEqual([50, -50]);
   });
 });
 
@@ -1544,5 +1560,77 @@ describe('applySettlementUpdate', () => {
       note: null,
     });
     expect(res).toMatchObject({ id: 7, from_user_id: 2, to_user_id: 1, amount: 10.13 });
+  });
+});
+
+// ── A bill in the display currency counts as typed (#2965) ──────────────────
+// A yen trip read in euros, the flight entered in euros: booked through the yen
+// at its frozen rate and back at today's, 1,081.09 EUR came back as 1,078.86 EUR
+// a day later, and repaying exactly what was typed left 2.23 EUR owed.
+
+describe('calculateSettlement: bills in the display currency (#2965)', () => {
+  // The flight was frozen at 176.37 yen per euro; today a euro buys 176.73.
+  const flight = () => [{ ...makeItem(1, 1081.09), currency: 'EUR', exchange_rate: 1 / 176.37 } as BudgetItem];
+  const pair = () => [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob')];
+  const paid = () => [makePayer(1, 1, 1081.09, 'alice')];
+  const today = { base: 'EUR', tripCurrency: 'JPY', rates: { JPY: 1, EUR: 1 / 176.73 } };
+
+  it('owes half of what was typed, whatever the rate did since', async () => {
+    await setupDb(flight(), pair(), paid());
+    const result = await budget.calculateSettlement(1, today);
+    expect(result.currency).toBe('EUR');
+    expect(centSum(result.balances.map((b) => b.balance))).toBe(0);
+    const [alice, bob] = result.balances.map((b) => b.balance);
+    expect([540.54, 540.55]).toContain(alice);
+    expect(bob).toBe(-alice);
+    const fronted = result.finalBudgets.find((f) => f.user_id === 1)!;
+    expect(fronted.expenses).toBe(1081.09);
+    expect(fronted.sources.fronted).toEqual([{ item_id: 1, cents: 108109 }]);
+  });
+
+  it('a repayment of exactly what is owed in euros squares the trip, frozen at any rate', async () => {
+    await setupDb(flight(), pair(), paid());
+    const owed = (await budget.calculateSettlement(1, today)).flows[0].amount;
+    // Bob pays the euros the flow names, frozen at today's yen rate.
+    await setupDb(flight(), pair(), paid(), [makeSettlementRow(5, 2, 1, owed, 'EUR', 1 / 176.73)]);
+    for (const eurPerYen of [1 / 176.73, 1 / 170, 1 / 185]) {
+      const result = await budget.calculateSettlement(1, { ...today, rates: { JPY: 1, EUR: eurPerYen } });
+      expect(result.balances.map((b) => b.balance)).toEqual([0, 0]);
+      expect(result.flows).toEqual([]);
+      for (const f of result.finalBudgets) expect(f.final).toBeCloseTo(f.user_id === 1 ? 1081.09 - owed : owed, 2);
+    }
+  });
+
+  it('a euro payment beyond the euro debt pays the yen debt at its frozen rate (#1445 stays)', async () => {
+    // A yen dinner on top: Bob owes 540.55 EUR for the flight and 5,000 yen for dinner.
+    await setupDb(
+      [...flight(), { ...makeItem(2, 10000) } as BudgetItem],
+      [...pair(), makeMember(2, 1, 'alice'), makeMember(2, 2, 'bob')],
+      [...paid(), makePayer(2, 1, 10000, 'alice')],
+    );
+    const before = await budget.calculateSettlement(1, today);
+    const owed = before.flows[0].amount;
+    await setupDb(
+      [...flight(), { ...makeItem(2, 10000) } as BudgetItem],
+      [...pair(), makeMember(2, 1, 'alice'), makeMember(2, 2, 'bob')],
+      [...paid(), makePayer(2, 1, 10000, 'alice')],
+      [makeSettlementRow(5, 2, 1, owed, 'EUR', 1 / 176.73)],
+    );
+    // Settled at today's rate it squares the trip; the yen part keeps its frozen rate,
+    // so it stays within a cent when the yen moves afterwards.
+    const now = await budget.calculateSettlement(1, today);
+    expect(now.balances.map((b) => b.balance)).toEqual([0, 0]);
+    const later = await budget.calculateSettlement(1, { ...today, rates: { JPY: 1, EUR: 1 / 160 } });
+    for (const b of later.balances) expect(Math.abs(b.balance)).toBeLessThanOrEqual(0.01);
+    expect(centSum(later.balances.map((b) => b.balance))).toBe(0);
+  });
+
+  it('read in the trip currency nothing changes: the bill goes through its frozen rate', async () => {
+    await setupDb(flight(), pair(), paid());
+    const result = await budget.calculateSettlement(1, { base: 'JPY', tripCurrency: 'JPY', rates: null });
+    expect(result.currency).toBe('JPY');
+    // 1,081.09 EUR at 176.37 is 190,672 yen (whole yen), half each.
+    expect(centSum(result.balances.map((b) => b.balance))).toBe(0);
+    expect(Math.abs(result.balances[0].balance)).toBeCloseTo(95336, -1);
   });
 });

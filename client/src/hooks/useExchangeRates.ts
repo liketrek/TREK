@@ -133,8 +133,13 @@ export function convertBooked(
   frozenRate: number | null | undefined,
   tripCurrency: string,
   convertLive: (amount: number, from: string | null | undefined) => number,
+  displayCurrency?: string,
 ): number {
   const trip = (tripCurrency || 'EUR').toUpperCase()
+  // A row entered in the display currency is shown as typed (#2965): through the
+  // trip currency at its frozen rate and back at today's, it drifted off the
+  // amount entered, and the balances (which net such rows as typed) disagreed.
+  if (displayCurrency && (rowCurrency || trip).toUpperCase() === displayCurrency.toUpperCase()) return amount
   const inTrip = bookedInTrip(amount, rowCurrency, frozenRate, trip)
   if (inTrip != null) return convertLive(inTrip, trip)
   // A NULL currency means the trip's own, and then there was never anything to freeze.

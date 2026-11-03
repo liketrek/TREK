@@ -32,7 +32,7 @@ export function currencyOf(e: BudgetItem, ctx: CostsCtx): string {
 
 /** An amount of this expense in the display currency, at the rate the expense was booked at. */
 export function booked(amount: number, e: BudgetItem, ctx: CostsCtx): number {
-  return convertBooked(amount, e.currency, e.exchange_rate, ctx.tripCurrency, ctx.convert);
+  return convertBooked(amount, e.currency, e.exchange_rate, ctx.tripCurrency, ctx.convert, ctx.displayCurrency);
 }
 
 /**
@@ -132,7 +132,14 @@ function paymentCurrency(s: CostsSettlement, ctx: CostsCtx): string {
 
 /** A recorded payment in the display currency, at the rate frozen when it was settled (#1445). */
 export function paymentAmount(s: CostsSettlement, ctx: CostsCtx): number {
-  return convertBooked(s.amount, paymentCurrency(s, ctx), s.exchange_rate, ctx.tripCurrency, ctx.convert);
+  return convertBooked(
+    s.amount,
+    paymentCurrency(s, ctx),
+    s.exchange_rate,
+    ctx.tripCurrency,
+    ctx.convert,
+    ctx.displayCurrency
+  );
 }
 
 /** The line under a payment shown converted, explained the way an expense's is (#2525). */

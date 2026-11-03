@@ -92,7 +92,7 @@ export function SharedCostsView({ items, base, tripCurrency, convert }: CostsPro
   const { t, locale } = useTranslation()
   if (items.length === 0) return <EmptySection icon={<Wallet size={22} />} text={t('shared.emptyCosts')} />
   const amountOf = (i: Expense) => Number.parseFloat(String(i.total_price ?? '')) || 0
-  const valueOf = (i: Expense) => convertBooked(amountOf(i), i.currency, i.exchange_rate, tripCurrency, convert)
+  const valueOf = (i: Expense) => convertBooked(amountOf(i), i.currency, i.exchange_rate, tripCurrency, convert, base)
   // In the reader's own number format with the currency's code: a public page has
   // no idea where its reader is, and "$" alone does not say which dollar.
   // Whole cents: a converted amount otherwise printed a third decimal.

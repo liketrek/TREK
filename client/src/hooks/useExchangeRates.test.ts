@@ -182,10 +182,9 @@ describe('convertBooked', () => {
     expect(convertBooked(100, 'eur', 1, 'EUR', live)).toBe(100)
   })
 
-  // #2525: a euro trip read in dollars, the bill entered in dollars. It was booked at 685.26
-  // EUR, and that is what the balances and settle-up net and then show at today's rate. The
-  // row has to show the same figure, or paying back the "you lent" it printed reopens the trip.
-  it('reads an amount in the display currency through the trip currency too', () => {
+  // #2525: a euro trip read in dollars, the bill entered in dollars. Without the display
+  // currency the row goes through the trip currency at its frozen rate, as before.
+  it('reads an amount through the trip currency when no display currency is given', () => {
     const liveUsd = (amount: number, from: string | null | undefined): number => {
       const rates: Record<string, number> = { USD: 1, EUR: 1 / 1.1398 }
       const r = rates[(from || 'USD').toUpperCase()]
@@ -196,6 +195,19 @@ describe('convertBooked', () => {
     expect(convertBooked(801.76, 'USD', 1.17, 'EUR', liveUsd)).not.toBeCloseTo(801.76, 1)
     // Without a booked rate there is nothing to go through, and dollars stay dollars.
     expect(convertBooked(801.76, 'USD', 1, 'EUR', liveUsd)).toBe(801.76)
+  })
+
+  // #2965: read in dollars, a bill entered in dollars counts as typed, as the balances net it.
+  it('shows a row in the display currency as typed, whatever rate it was frozen at', () => {
+    const liveUsd = (amount: number, from: string | null | undefined): number => {
+      const rates: Record<string, number> = { USD: 1, EUR: 1 / 1.1398 }
+      const r = rates[(from || 'USD').toUpperCase()]
+      return r && r > 0 ? amount / r : amount
+    }
+    expect(convertBooked(801.76, 'USD', 1.17, 'EUR', liveUsd, 'USD')).toBe(801.76)
+    expect(convertBooked(801.76, 'usd', 1.17, 'EUR', liveUsd, 'USD')).toBe(801.76)
+    // Another currency still goes through the trip currency.
+    expect(convertBooked(801.76, 'USD', 1.17, 'EUR', liveUsd, 'GBP')).toBeCloseTo((801.76 / 1.17) * 1.1398, 6)
   })
 })
 
