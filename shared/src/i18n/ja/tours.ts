@@ -932,7 +932,7 @@ const tours: TranslationStrings = {
   'tours.import.pointsAsPlacesHint': '単独のポイントはツアーに含まれません。代わりに旅行の場所に追加されます。',
   'tours.import.pointsConfirm': '場所を追加',
   'tours.import.pointsFailedIn': '{name} のポイントを場所として追加できませんでした。',
-  'tours.import.pointsImported': '追加した場所: {count}',
+  'tours.import.pointsImported': '{count} 件の場所を追加しました',
   'tours.import.unreadableIn': '{name}を読み込めませんでした：ファイルが破損しているか、GPX、KML、KMZではありません',
   'tours.import.archiveNoKmlIn': '{name}にKMLファイルが見つかりません',
   'tours.import.archiveTooLargeIn': '{name}は展開すると大きすぎます',

@@ -909,7 +909,7 @@ const tours: TranslationStrings = {
   'tours.import.pointsAsPlacesHint': 'จุดเดี่ยวไม่ได้เป็นส่วนหนึ่งของทัวร์ แต่จะถูกเพิ่มเข้าไปในสถานที่ของทริปแทน',
   'tours.import.pointsConfirm': 'เพิ่มสถานที่',
   'tours.import.pointsFailedIn': 'ไม่สามารถเพิ่มจุดใน {name} เป็นสถานที่ได้',
-  'tours.import.pointsImported': 'เพิ่มสถานที่แล้ว: {count}',
+  'tours.import.pointsImported': 'เพิ่มสถานที่ {count} แห่งแล้ว',
   'tours.import.unreadableIn': 'ไม่สามารถอ่าน {name} ได้: ไฟล์เสียหายหรือไม่ใช่ GPX, KML หรือ KMZ',
   'tours.import.archiveNoKmlIn': 'ไม่พบไฟล์ KML ใน {name}',
   'tours.import.archiveTooLargeIn': '{name} ใหญ่เกินไปเมื่อแตกไฟล์',

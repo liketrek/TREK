@@ -199,6 +199,29 @@ export default function TourGpxPreviewDialog({
 
 const HIKE: TourGpxImportFields = { tour_type: 'hike' };
 
+/** A fresh line needs its type complete; a file of known lines can still be confirmed for its points alone. */
+function canConfirm(fresh: number, addsPoints: boolean, typeComplete: boolean): boolean {
+  return fresh > 0 ? typeComplete : addsPoints;
+}
+
+/** The points offered as places, and below them whatever else stays out. */
+function PreviewExtras({
+  leftOut,
+  withPoints,
+  onTogglePoints,
+}: {
+  leftOut: TourFileLeftOut;
+  withPoints: boolean;
+  onTogglePoints: () => void;
+}) {
+  return (
+    <>
+      {leftOut.points > 0 && <PreviewPoints count={leftOut.points} on={withPoints} onToggle={onTogglePoints} />}
+      <PreviewLeftOut leftOut={withPoints ? { ...leftOut, points: 0 } : leftOut} />
+    </>
+  );
+}
+
 function PreviewDialog({
   gpxImport,
   files,
@@ -226,8 +249,8 @@ function PreviewDialog({
     [files]
   );
   const focusPoints = useMemo(() => lines.flat(), [lines]);
-  const canImport =
-    (fresh > 0 || addsPoints) && (fresh === 0 || importMissing(choices.chosen) === null) && !gpxImport.importing;
+  const canImport = canConfirm(fresh, addsPoints, importMissing(choices.chosen) === null) && !gpxImport.importing;
+  const confirmLabel = fresh > 0 ? t('tours.import.previewConfirm', { count: fresh }) : t('tours.import.pointsConfirm');
   const fields = importFields(choices.chosen);
   const title = files.length === 1 ? files[0].file.name : t('tours.import.previewFiles', { count: files.length });
 
@@ -266,7 +289,7 @@ function PreviewDialog({
             disabled={!canImport}
             onClick={() => void gpxImport.confirm(fields, { points: addsPoints })}
           >
-            {fresh > 0 ? t('tours.import.previewConfirm', { count: fresh }) : t('tours.import.pointsConfirm')}
+            {confirmLabel}
           </DialogButton>
         </DialogFooter>
       }
@@ -291,10 +314,7 @@ function PreviewDialog({
             <PreviewTrackRow key={`${file.name}-${index}`} name={file.name} number={index + 1} track={track} />
           ))}
         </ul>
-        {leftOut.points > 0 && (
-          <PreviewPoints count={leftOut.points} on={withPoints} onToggle={() => setWithPoints((on) => !on)} />
-        )}
-        <PreviewLeftOut leftOut={withPoints ? { ...leftOut, points: 0 } : leftOut} />
+        <PreviewExtras leftOut={leftOut} withPoints={withPoints} onTogglePoints={() => setWithPoints((on) => !on)} />
         {fresh === 0 && !addsPoints && (
           <div className="mt-2">
             <TourNotice tone="warning" icon={<AlertTriangle size={13} strokeWidth={2} />}>

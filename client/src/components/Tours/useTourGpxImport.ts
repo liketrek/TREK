@@ -1,6 +1,5 @@
 import type { TourFileLeftOut, TourGpxImportFields, TourGpxPreviewTrack, TourListItem } from '@trek/shared';
 import { useCallback, useState } from 'react';
-import { placesApi } from '../../api/client';
 import { useTranslation } from '../../i18n';
 import { tourRepo } from '../../repo/tourRepo';
 import { useTripStore } from '../../store/tripStore';
@@ -45,19 +44,56 @@ export interface GpxPreviewFile {
   leftOut?: TourFileLeftOut;
 }
 
-/** The points of one file added as places of the trip, through the places import that has always taken them. */
-async function importPoints(tripId: number, file: File): Promise<number> {
-  const isGpx = file.name.toLowerCase().endsWith('.gpx');
-  const result = isGpx
-    ? await placesApi.importGpx(tripId, file, { waypoints: true, routes: false, tracks: false })
-    : await placesApi.importMapFile(tripId, file, { points: true, paths: false });
-  return result.count ?? 0;
-}
-
 /** What to do with the previewed files besides their lines. */
 export interface TourImportExtras {
   /** Add each file's points (GPX waypoints, KML pins) as places of the trip (#2969). */
   points?: boolean;
+}
+
+interface ToursImported {
+  tours: TourListItem[];
+  skipped: number;
+  caution: boolean;
+}
+
+/** Each file with a line the trip does not hold yet, imported as tours; a file that fails is handed to `onError`. */
+async function importTours(
+  tripId: number,
+  files: readonly GpxPreviewFile[],
+  fields: TourGpxImportFields,
+  onError: (error: unknown, file: File) => void
+): Promise<ToursImported> {
+  const sum: ToursImported = { tours: [], skipped: 0, caution: false };
+  for (const { file, tracks } of files) {
+    if (tracks.every((track) => track.duplicate)) continue;
+    try {
+      const result = await tourRepo.importGpx(tripId, file, fields);
+      sum.tours.push(...result.tours);
+      sum.skipped += result.skipped;
+      sum.caution ||= result.caution;
+    } catch (error: unknown) {
+      onError(error, file);
+    }
+  }
+  return sum;
+}
+
+/** The points of each file that holds any, added as places (#2969); a file that fails is handed to `onError`. */
+async function importPoints(
+  tripId: number,
+  files: readonly GpxPreviewFile[],
+  onError: (file: File) => void
+): Promise<number> {
+  let places = 0;
+  for (const { file, leftOut } of files) {
+    if (!leftOut?.points) continue;
+    try {
+      places += await tourRepo.importFilePoints(tripId, file);
+    } catch {
+      onError(file);
+    }
+  }
+  return places;
 }
 
 interface TourGpxImportOptions {
@@ -142,30 +178,13 @@ export function useTourGpxImport({ tripId, canEdit, onToursChanged, onImported, 
     async (fields: TourGpxImportFields, extras: TourImportExtras = {}) => {
       if (!canEdit || !preview || importing) return;
       setImporting(true);
-      const imported: TourListItem[] = [];
-      let skipped = 0;
-      let caution = false;
-      let places = 0;
       try {
-        for (const { file, tracks, leftOut } of preview) {
-          if (tracks.some((track) => !track.duplicate)) {
-            try {
-              const result = await tourRepo.importGpx(tripId, file, fields);
-              imported.push(...result.tours);
-              skipped += result.skipped;
-              caution ||= result.caution;
-            } catch (error: unknown) {
-              fileError(error, file);
-            }
-          }
-          if (extras.points && (leftOut?.points ?? 0) > 0) {
-            try {
-              places += await importPoints(tripId, file);
-            } catch {
-              toast.error(t('tours.import.pointsFailedIn', { name: file.name }));
-            }
-          }
-        }
+        const { tours: imported, skipped, caution } = await importTours(tripId, preview, fields, fileError);
+        const places = extras.points
+          ? await importPoints(tripId, preview, (file) =>
+              toast.error(t('tours.import.pointsFailedIn', { name: file.name }))
+            )
+          : 0;
         setPreview(null);
         if (places > 0) {
           if (imported.length === 0) await refreshPlaces(tripId);
