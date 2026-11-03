@@ -364,8 +364,11 @@ export class AssistantToolSession {
     const blind = this.calledBlind.get(name);
     if (!run.ok && blind) {
       const hint = `${name} was called before the "${blind}" tools were loaded in this turn, so its arguments were written without its schema. They are loaded now and the schema is in your tools: send the call again with the arguments exactly as it describes them.`;
-      return { ok: false, value: `${typeof run.value === 'string' ? run.value : JSON.stringify(run.value)}
-${hint}` };
+      return {
+        ok: false,
+        value: `${typeof run.value === 'string' ? run.value : JSON.stringify(run.value)}
+${hint}`,
+      };
     }
     if (name === TRANSIT_SEARCH_TOOL && run.ok) this.itineraries.keep(run.value);
     return run;
