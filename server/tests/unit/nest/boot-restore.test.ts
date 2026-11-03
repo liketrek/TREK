@@ -143,7 +143,13 @@ describe('restoreOnFirstBoot', () => {
       };
       write(
         'psql',
-        `case "$*" in *--command=*) [ -f '${root}/tables' ] && cat '${root}/tables'; exit 0;; *) touch '${root}/loaded';; esac`,
+        [
+          'case "$*" in',
+          "  *quote_ident*) printf 'public\\tpublic\\n';;",
+          `  *--command=*) [ -f '${root}/tables' ] && cat '${root}/tables'; exit 0;;`,
+          `  *) touch '${root}/loaded';;`,
+          'esac',
+        ].join('\n'),
       );
       const migration = [...knownMigrationNames()][0];
       write(
@@ -151,7 +157,7 @@ describe('restoreOnFirstBoot', () => {
         [
           'case "$*" in',
           `  *--data-only*) printf 'COPY public.mikro_orm_migrations (id, name) FROM stdin;\\n1\\t${migration}\\n\\\\.\\n';;`,
-          `  *) for a in "$@"; do case "$a" in --file=*) printf '%s\\n' '\\restrict k1' > "\${a#--file=}";; esac; done;;`,
+          `  *) for a in "$@"; do case "$a" in --file=*) printf '%s\\n' '\\restrict k1' 'CREATE TABLE public.mikro_orm_migrations (' > "\${a#--file=}";; esac; done;;`,
           'esac',
         ].join('\n'),
       );

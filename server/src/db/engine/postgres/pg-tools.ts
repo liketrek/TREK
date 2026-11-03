@@ -166,19 +166,59 @@ function createPrivateFile(file: string): void {
   fs.writeFileSync(file, '', { mode: 0o600 });
 }
 
+/** The schema TREK's tables live in: its name, and the name as SQL quotes it (`quote_ident`). */
+interface PgSchema {
+  name: string;
+  quoted: string;
+}
+
 /**
- * Writes a custom-format dump of the database at `url` to `target`, readable
- * by its owner only. It is written beside the target and renamed into place,
- * so a dump that fails or is killed never leaves a file that passes for a copy.
+ * The current schema of the database at `url`, the one TREK creates its
+ * tables in. A backup and a restore stay inside it: a hosted database
+ * (Supabase) keeps the platform's own schemas, `auth` among them, beside it,
+ * and they are neither TREK's to copy nor to replace.
+ */
+async function pgCurrentSchema(url: string, binDir: string | undefined): Promise<PgSchema> {
+  const out = await run(
+    'psql',
+    binDir,
+    [
+      '--no-psqlrc',
+      '--no-align',
+      '--tuples-only',
+      "--command=select current_schema() || E'\\t' || quote_ident(current_schema())",
+    ],
+    pgConnectionEnv(url),
+  );
+  const [name, quoted] = out.replace(/\n$/, '').split('\t');
+  if (!name || !quoted) {
+    throw new Error('The database has no current schema: set the search_path of the role in TREK_DB_URL.');
+  }
+  return { name, quoted };
+}
+
+/**
+ * Writes a custom-format dump of the current schema of the database at `url`
+ * to `target`, readable by its owner only. It is written beside the target and
+ * renamed into place, so a dump that fails or is killed never leaves a file
+ * that passes for a copy.
  */
 export async function pgDump(url: string, target: string, binDir: string | undefined): Promise<void> {
   const partial = `${target}.partial`;
   try {
     createPrivateFile(partial);
+    const schema = await pgCurrentSchema(url, binDir);
     await run(
       'pg_dump',
       binDir,
-      ['--format=custom', '--no-owner', '--no-privileges', `--file=${partial}`],
+      [
+        '--format=custom',
+        '--no-owner',
+        '--no-privileges',
+        `--file=${partial}`,
+        // A pattern in double quotes matches that one name, as written.
+        `--schema="${schema.name.replaceAll('"', '""')}"`,
+      ],
       pgConnectionEnv(url),
     );
     fs.renameSync(partial, target);
@@ -226,21 +266,38 @@ async function refuseToolsWithoutRestrict(binDir: string | undefined): Promise<v
   }
 }
 
+/** Whether the restore script creates TREK's migration table in `schema`: a dump of TREK's own schema does. */
+function scriptHoldsTrekSchema(script: string, schema: PgSchema): boolean {
+  const table = `${schema.quoted}.mikro_orm_migrations`.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`^CREATE TABLE ${table} \\(`, 'm').test(fs.readFileSync(script, 'utf8'));
+}
+
 /**
- * Replaces the database at `url` with the dump at `source`: pg_restore turns
- * the dump into a script beside it, then psql clears the current schema and
- * runs the script in one transaction, so a restore that fails leaves the
- * database as it was.
+ * Replaces the current schema of the database at `url` with the dump at
+ * `source`: pg_restore turns the dump's objects in that schema into a script
+ * beside it (anything else the dump holds is left out), then psql clears the
+ * schema and runs the script in one transaction, so a restore that fails
+ * leaves the database as it was. A dump without TREK's tables in that schema
+ * is refused before anything is cleared.
  */
 export async function pgRestore(url: string, source: string, binDir: string | undefined): Promise<void> {
   await refuseToolsWithoutRestrict(binDir);
+  const schema = await pgCurrentSchema(url, binDir);
   const workDir = fs.mkdtempSync(path.join(path.dirname(source), '.pg-restore-'));
   try {
     const clear = path.join(workDir, 'clear-schema.sql');
     const script = path.join(workDir, 'restore.sql');
     fs.writeFileSync(clear, CLEAR_SCHEMA_SQL, { mode: 0o600 });
     createPrivateFile(script);
-    await run('pg_restore', binDir, ['--no-owner', '--no-privileges', `--file=${script}`, '--', source], {});
+    await run(
+      'pg_restore',
+      binDir,
+      ['--no-owner', '--no-privileges', `--schema=${schema.name}`, `--file=${script}`, '--', source],
+      {},
+    );
+    if (!scriptHoldsTrekSchema(script, schema)) {
+      throw new Error(`The backup holds no TREK tables in the schema "${schema.name}"; nothing was replaced.`);
+    }
     await run(
       'psql',
       binDir,

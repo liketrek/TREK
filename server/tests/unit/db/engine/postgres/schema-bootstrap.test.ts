@@ -192,13 +192,18 @@ describe('postgresSafetyNet', () => {
     rmSync(bin, { recursive: true, force: true });
   });
 
-  /** A stand-in pg_dump that writes its --file, or fails like one that cannot connect. */
+  /**
+   * A stand-in pg_dump that writes its --file, or fails like one that cannot
+   * connect, beside the psql that names the schema the dump is limited to.
+   */
   const fakePgDump = (ok: boolean) => {
     const body = ok
       ? 'for a in "$@"; do case "$a" in --file=*) printf dump > "${a#--file=}";; esac; done'
       : 'echo "could not connect" >&2; exit 1';
     writeFileSync(path.join(bin, 'pg_dump'), `#!/bin/sh\n${body}\n`);
+    writeFileSync(path.join(bin, 'psql'), "#!/bin/sh\nprintf 'public\\tpublic\\n'\n");
     chmodSync(path.join(bin, 'pg_dump'), 0o755);
+    chmodSync(path.join(bin, 'psql'), 0o755);
   };
   const envWith =
     (preMigrateSnapshot: boolean | undefined, isTest: boolean, keep = 3) =>

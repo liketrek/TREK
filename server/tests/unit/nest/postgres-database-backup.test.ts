@@ -30,6 +30,8 @@ function tool(name: 'pg_dump' | 'pg_restore' | 'psql', body: string): void {
   chmodSync(path.join(bin, name), 0o755);
 }
 const WRITES_ITS_FILE = 'for a in "$@"; do case "$a" in --file=*) printf dump > "${a#--file=}";; esac; done';
+/** A psql that answers the current-schema query a dump and a restore start with, and otherwise succeeds. */
+const ANSWERS_SCHEMA = 'case "$*" in *quote_ident*) printf \'public\\tpublic\\n\';; esac';
 const FAILS = 'echo "connection refused" >&2; exit 1';
 /** A pg_restore whose --data-only listing shows `names` as the dump's migrations. */
 const LISTS = (names: string[]) =>
@@ -47,6 +49,7 @@ beforeEach(() => {
   extract = path.join(root, 'extract');
   mkdirSync(bin);
   mkdirSync(extract);
+  tool('psql', ANSWERS_SCHEMA);
   vi.stubEnv('TREK_DB_URL', 'postgresql://trek:pw@db/trek');
   vi.stubEnv('TREK_DB_PG_BIN_DIR', bin);
   reopen = vi.fn(async () => undefined);
@@ -115,8 +118,10 @@ describe('PostgresDatabaseBackup', () => {
   });
 
   it('PGBACKUP-004: replace restores, then reopens; a reopen failure is reported, not thrown', async () => {
-    tool('pg_restore', "printf '%s\\n' '\\restrict k1' > \"${3#--file=}\"");
-    tool('psql', 'exit 0');
+    tool(
+      'pg_restore',
+      "printf '%s\\n' '\\restrict k1' 'CREATE TABLE public.mikro_orm_migrations (' > \"${4#--file=}\"",
+    );
     await expect(backup.replace(path.join(extract, 'travel.pgdump'))).resolves.toEqual({ reopenError: null });
     expect(reopen).toHaveBeenCalledTimes(1);
     const lost = new Error('reconnect failed');
@@ -126,7 +131,6 @@ describe('PostgresDatabaseBackup', () => {
 
   it('PGBACKUP-005: a failed restore still reopens, and both failures surface when the reopen fails too', async () => {
     tool('pg_restore', FAILS);
-    tool('psql', 'exit 0');
     const source = path.join(extract, 'travel.pgdump');
     await expect(backup.replace(source)).rejects.toThrow('pg_restore failed: connection refused');
     expect(reopen).toHaveBeenCalledTimes(1);

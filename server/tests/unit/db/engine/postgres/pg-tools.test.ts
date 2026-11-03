@@ -35,8 +35,11 @@ const URL_WITH_SECRET = 'postgresql://trek:s3cr%40t@db.example:6543/trek_db?sslm
 let bin: string;
 let out: string;
 
-/** pg_restore writing its --file (the third argument) as 17.6+ does: opened with a \\restrict line. */
-const WRITES_RESTRICTED_SCRIPT = "printf '%s\\n' '\\restrict k1' 'SELECT 1;' > \"${3#--file=}\"";
+/** pg_restore writing its --file (the fourth argument) as 17.6+ does: opened with a \\restrict line. */
+const WRITES_RESTRICTED_SCRIPT =
+  "printf '%s\\n' '\\restrict k1' 'CREATE TABLE public.mikro_orm_migrations (' ');' > \"${4#--file=}\"";
+/** What psql answers to the current-schema query: the name, a tab, the name as quote_ident writes it. */
+const PUBLIC_SCHEMA = 'public\tpublic';
 
 interface FakeOptions {
   stdout?: string;
@@ -125,14 +128,16 @@ describe('pg-tools', () => {
   });
 
   it('PGTOOLS-004: pg_dump writes a private custom-format dump beside the target and renames it into place', async () => {
+    fakeTool('psql', { stdout: PUBLIC_SCHEMA });
     const log = fakeTool('pg_dump', { body: 'printf dump >> "${4#--file=}"' });
     const target = path.join(out, 'x.pgdump');
     await pgDump(URL_WITH_SECRET, target, bin);
-    expect(argsOf(log).slice(0, 4)).toEqual([
+    expect(argsOf(log).slice(0, 5)).toEqual([
       '--format=custom',
       '--no-owner',
       '--no-privileges',
       `--file=${target}.partial`,
+      '--schema="public"',
     ]);
     expect(readFileSync(log, 'utf8')).toContain('PGPASSWORD=s3cr@t');
     expect(argsOf(log).join(' ')).not.toContain('s3cr');
@@ -144,13 +149,16 @@ describe('pg-tools', () => {
   it('PGTOOLS-005: a restore clears the schema and loads the script in one psql transaction, then removes its work files', async () => {
     const source = path.join(out, 'in.pgdump');
     const restoreLog = fakeTool('pg_restore', { body: WRITES_RESTRICTED_SCRIPT });
-    const psqlLog = fakeTool('psql', { body: `cp "\${6#--file=}" '${path.join(bin, 'clear.sql')}'` });
+    const psqlLog = fakeTool('psql', {
+      stdout: PUBLIC_SCHEMA,
+      body: `[ -n "$6" ] && cp "\${6#--file=}" '${path.join(bin, 'clear.sql')}'`,
+    });
     await pgRestore(URL_WITH_SECRET, source, bin);
 
     const restoreArgs = argsOf(restoreLog);
-    expect(restoreArgs.slice(0, 2)).toEqual(['--no-owner', '--no-privileges']);
-    expect(restoreArgs[2]).toMatch(/^--file=.*\.pg-restore-[^/]+\/restore\.sql$/);
-    expect(restoreArgs.slice(3, 5)).toEqual(['--', source]);
+    expect(restoreArgs.slice(0, 3)).toEqual(['--no-owner', '--no-privileges', '--schema=public']);
+    expect(restoreArgs[3]).toMatch(/^--file=.*\.pg-restore-[^/]+\/restore\.sql$/);
+    expect(restoreArgs.slice(4, 6)).toEqual(['--', source]);
     expect(readFileSync(restoreLog, 'utf8')).not.toContain('PGPASSWORD');
 
     const psqlArgs = argsOf(psqlLog);
@@ -162,7 +170,7 @@ describe('pg-tools', () => {
       '--output=/dev/null',
     ]);
     expect(psqlArgs[5]).toMatch(/clear-schema\.sql$/);
-    expect(psqlArgs[6]).toBe(restoreArgs[2]);
+    expect(psqlArgs[6]).toBe(restoreArgs[3]);
     expect(readFileSync(psqlLog, 'utf8')).toContain('PGOPTIONS=-c lock_timeout=60s -c client_min_messages=warning');
     expect(readFileSync(path.join(bin, 'clear.sql'), 'utf8')).toMatch(/DROP %s IF EXISTS %s CASCADE/);
     expect(readdirSync(out)).toEqual([]);
@@ -194,6 +202,7 @@ describe('pg-tools', () => {
   });
 
   it('PGTOOLS-007: a failing tool reports its own message without the lines that quote SQL or rows, and leaves no file', async () => {
+    fakeTool('psql', { stdout: PUBLIC_SCHEMA });
     fakeTool('pg_dump', {
       exitCode: 1,
       stderr: 'pg_dump: error: query failed\nCommand was: SELECT secret_row\nDETAIL: Key (email)=(a@b.c)\n',
@@ -236,5 +245,33 @@ describe('pg-tools', () => {
     for (const v of fixed) expect(hasRestrictFix(`pg_restore (PostgreSQL) ${v}`), v).toBe(true);
     for (const v of unfixed) expect(hasRestrictFix(`pg_restore (PostgreSQL) ${v}`), v).toBe(false);
     expect(hasRestrictFix('not a version')).toBe(false);
+  });
+
+  it('PGTOOLS-011: a dump holds the current schema only, matched by its exact name, which psql reads without the password in an argument', async () => {
+    const psqlLog = fakeTool('psql', { stdout: 'My"Trek\t"My""Trek"' });
+    const log = fakeTool('pg_dump', { body: 'printf dump >> "${4#--file=}"' });
+    await pgDump(URL_WITH_SECRET, path.join(out, 'x.pgdump'), bin);
+    expect(argsOf(log)[4]).toBe('--schema="My""Trek"');
+    expect(argsOf(psqlLog).join(' ')).toContain('current_schema()');
+    expect(argsOf(psqlLog).join(' ')).not.toContain('s3cr');
+
+    fakeTool('psql', { stdout: '\n' });
+    await expect(pgDump(URL_WITH_SECRET, path.join(out, 'y.pgdump'), bin)).rejects.toThrow(/no current schema/);
+    expect(readdirSync(out)).toEqual(['x.pgdump']);
+  });
+
+  it('PGTOOLS-012: a restore keeps to the current schema, and refuses a dump without TREK tables there before clearing anything', async () => {
+    const source = path.join(out, 'in.pgdump');
+    const restoreLog = fakeTool('pg_restore', {
+      body: "printf '%s\\n' '\\restrict k1' 'CREATE TABLE auth.users (' ');' > \"${4#--file=}\"",
+    });
+    const psqlLog = fakeTool('psql', { stdout: 'trek\ttrek' });
+    await expect(pgRestore(URL_WITH_SECRET, source, bin)).rejects.toThrow(
+      'The backup holds no TREK tables in the schema "trek"; nothing was replaced.',
+    );
+    expect(argsOf(restoreLog)[2]).toBe('--schema=trek');
+    // psql only read the schema: it never ran the clear or the load.
+    expect(argsOf(psqlLog).join(' ')).not.toContain('--single-transaction');
+    expect(readdirSync(out)).toEqual([]);
   });
 });
