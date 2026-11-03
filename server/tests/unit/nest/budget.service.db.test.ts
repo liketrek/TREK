@@ -1807,20 +1807,14 @@ describe('the settlement converts with the quote the entry rate was frozen from 
     const mine = before.finalBudgets.find(f => f.user_id === me.id)!;
     expect(mine.expenses).toBe(12345.67);
     expect(mine.sources.fronted).toEqual([{ item_id: bill.id, cents: 1234567 }]);
-    const offered = before.flows.map(f => f.amount);
-    expect(offered).toHaveLength(1);
-    expect([6172.83, 6172.84]).toContain(offered[0]);
-
-    // Bob pays exactly what settle-up offers, in dollars, as the Costs screen records it.
-    await budget.createSettlement(trip.id, { from_user_id: bob.id, to_user_id: me.id, amount: offered[0], currency: 'USD' }, me.id);
+    expect(before.flows.map(f => [6172.83, 6172.84].includes(f.amount))).toEqual([true]);
+    // Bob pays exactly what settle-up offers, in dollars; read in euros one cent may stay apart (#2965).
+    await budget.createSettlement(trip.id, { from_user_id: bob.id, to_user_id: me.id, amount: before.flows[0].amount, currency: 'USD' }, me.id);
     const after = await budget.settlement(trip.id, 'USD', 'EUR');
     expect(after.balances.map(b => b.balance)).toEqual([0, 0]);
     expect(after.flows).toEqual([]);
-    // Read in the trip currency both go through the euro, each rounded to a euro cent
-    // on its own, so at most that cent stays apart (#2965); it still adds up to zero.
-    const inEur = (await budget.settlement(trip.id, 'EUR', 'EUR')).balances.map(b => b.balance);
-    expect(inEur.every(b => Math.abs(b) <= 0.01)).toBe(true);
-    expect(Math.round(inEur[0] * 100) + Math.round(inEur[1] * 100)).toBe(0);
+    const inEur = (await budget.settlement(trip.id, 'EUR', 'EUR')).balances.map(b => Math.round(b.balance * 100));
+    expect([[0, 0], [1, -1], [-1, 1]]).toContainEqual(inEur);
   });
 
   it('BUDGET-SVC-DB-083: the final budget lists a bill at what was typed even where its trip cent rounds away', async () => {

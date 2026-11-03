@@ -7,7 +7,7 @@
   "src/db/repositories/Users.repository.ts": 1445,
   "src/nest/atlas/atlas.service.ts": 1177,
   "src/nest/auth/auth.service.ts": 1143,
-  "src/nest/budget/budget.service.ts": 1617,
+  "src/nest/budget/budget.service.ts": 1613,
   "src/nest/collections/collections.service.ts": 1426,
   "src/nest/doc-sync/doc-sync.service.ts": 1060,
   "src/nest/doc-sync/providers/synology-drive.client.ts": 1160,
