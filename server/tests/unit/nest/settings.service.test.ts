@@ -397,7 +397,9 @@ describe('legacy quirk fixes', () => {
   });
 
   it('SET-SVC-038 — a date_format default the app does not offer is refused and not stored', async () => {
-    await expect(svc.setAdminUserDefaults({ date_format: 'YY-MM-DD' })).rejects.toThrow(/Invalid value for date_format/);
+    await expect(svc.setAdminUserDefaults({ date_format: 'YY-MM-DD' })).rejects.toThrow(
+      /Invalid value for date_format/,
+    );
     expect((await svc.getAdminUserDefaults()).date_format).toBeUndefined();
   });
 

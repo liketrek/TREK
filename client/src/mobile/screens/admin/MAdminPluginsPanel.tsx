@@ -958,7 +958,7 @@ function PluginDetailSheet({ item, installed, busy, onInstall, onClose, t, local
   item: RegistryItem; installed: boolean; busy: string | null; ignoreTrekRange: boolean
   onInstall: (id: string, version?: string, warn?: RangeWarning) => void; onClose: () => void; t: T; locale: string
 }) {
-  const { formatDate } = useFormatDate()
+  const { formatDate: dateOf } = useFormatDate()
   const { detail, failed } = usePluginDetail<MRegistryDetail>(item.id)
 
   const manifest = detail?.manifest ?? null
@@ -1112,7 +1112,7 @@ function PluginDetailSheet({ item, installed, busy, onInstall, onClose, t, local
               {(item.trek || item.minTrekVersion) && (
                 <Meta k={t('admin.plugins.metaRequires')} v={item.trek ? `TREK ${item.trek}` : `TREK ${item.minTrekVersion}+`} />
               )}
-              {item.reviewedAt && <Meta k={t('admin.plugins.metaReviewed')} v={formatDate(new Date(item.reviewedAt))} />}
+              {item.reviewedAt && <Meta k={t('admin.plugins.metaReviewed')} v={dateOf(new Date(item.reviewedAt))} />}
               {typeof item.downloadCount === 'number' && item.downloadCount > 0 && (
                 <Meta k={t('admin.plugins.downloads')} v={item.downloadCount.toLocaleString(locale)} />
               )}
