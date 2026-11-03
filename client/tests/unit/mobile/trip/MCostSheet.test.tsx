@@ -8,7 +8,7 @@ import type { BudgetItem, BudgetItemMember } from '../../../../src/types'
 import { buildBudgetItem, buildTrip } from '../../../helpers/factories'
 import { localToday } from '../../../../src/components/Planner/today'
 import { resetAllStores } from '../../../helpers/store'
-import { act, fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
+import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
 // FE-MOB-COSTSH-001 to FE-MOB-COSTSH-038
 // The sheet reads its copy from useTranslation(), so assertions are English.
