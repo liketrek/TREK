@@ -41,7 +41,7 @@ export function sumMoney(amounts: number[]): number {
  * a won and rounded one by one on screen stops adding up (#2604). In the trip's own
  * currency the remainders are integers, so booking what is offered clears it.
  */
-export function allocateDisplayCents(cents: number[], factor: number, total?: number, unit = 1): number[] {
+function allocateDisplayCents(cents: number[], factor: number, total?: number, unit = 1): number[] {
   if (factor === 1 && unit === 1) return [...cents];
   const exact = cents.map((c) => (c * factor) / unit);
   const out = exact.map((v) => Math.floor(v));
@@ -159,7 +159,7 @@ export function tripConverter(
  * Units of `to` per 1 `from`, from a set of rates quoted against any base (each rate is
  * units of that currency per 1 base). Null when either quote is missing.
  */
-export function quoteRatio(rates: Record<string, number> | null, to: string, from: string): number | null {
+function quoteRatio(rates: Record<string, number> | null, to: string, from: string): number | null {
   const rTo = rates?.[to];
   const rFrom = rates?.[from];
   return rTo && rTo > 0 && rFrom && rFrom > 0 ? rTo / rFrom : null;
