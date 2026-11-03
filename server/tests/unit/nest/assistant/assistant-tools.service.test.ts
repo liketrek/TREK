@@ -403,6 +403,23 @@ describe('an assistant tool session', () => {
     }
   });
 
+  it('ASTTOOL-024: a tool of a group not loaded in the turn is sent back once, with its group loaded for the next step (#2967)', async () => {
+    const { userId, tripId } = await ownerWithTrips();
+    const session = await tools.open(userId, tripId);
+    try {
+      expect(session.specs().map((spec) => spec.name)).not.toContain('list_tours');
+      const refused = session.pinArgs('list_tours', { placeId: '530' });
+      expect(refused).toEqual({ error: expect.stringContaining('"tours" tools, which were not loaded') });
+      expect(session.specs().map((spec) => spec.name)).toContain('list_tours');
+      // Sent again with the schema in hand, the call goes through.
+      expect(session.pinArgs('list_tours', {})).toEqual({ args: {} });
+      // A core tool was never held back.
+      expect(session.pinArgs('get_trip_summary', {})).toEqual({ args: {} });
+    } finally {
+      await session.close();
+    }
+  });
+
   it('ASTTOOL-014: an undo session holds its target and nothing else', async () => {
     const { userId, tripId } = await ownerWithTrips();
     const session = await tools.open(userId, tripId, new Set(['delete_place']));
