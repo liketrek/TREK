@@ -403,18 +403,23 @@ describe('an assistant tool session', () => {
     }
   });
 
-  it('ASTTOOL-024: a tool of a group not loaded in the turn is sent back once, with its group loaded for the next step (#2967)', async () => {
+  it('ASTTOOL-024: a tool called before its group was loaded loads the group, and a refusal of its arguments says why (#2967)', async () => {
     const { userId, tripId } = await ownerWithTrips();
     const session = await tools.open(userId, tripId);
     try {
       expect(session.specs().map((spec) => spec.name)).not.toContain('list_tours');
-      const refused = session.pinArgs('list_tours', { placeId: '530' });
-      expect(refused).toEqual({ error: expect.stringContaining('"tours" tools, which were not loaded') });
+      // Called blind, as from an earlier turn: it still runs, and its group comes with it.
+      const pinned = session.pinArgs('get_tour_plan', { placeId: '530' });
+      expect(pinned).toEqual({ args: { placeId: '530' } });
       expect(session.specs().map((spec) => spec.name)).toContain('list_tours');
-      // Sent again with the schema in hand, the call goes through.
-      expect(session.pinArgs('list_tours', {})).toEqual({ args: {} });
-      // A core tool was never held back.
-      expect(session.pinArgs('get_trip_summary', {})).toEqual({ args: {} });
+      // The MCP check refuses the string id; the answer tells the model to send it again.
+      const run = await session.call('get_tour_plan', { placeId: '530' });
+      expect(run.ok).toBe(false);
+      expect(String(run.value)).toContain('"tours" tools were loaded in this turn');
+      // A core tool's refusal carries no such hint.
+      const core = await session.call('create_place', {});
+      expect(core.ok).toBe(false);
+      expect(String(core.value)).not.toContain('were loaded in this turn');
     } finally {
       await session.close();
     }

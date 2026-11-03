@@ -266,6 +266,9 @@ export class AssistantToolSession {
   /** The groups this turn loaded; the core is always there. */
   private readonly loaded = new Set<string>();
 
+  /** Tools the model called before their group was loaded in this turn, by name, with that group. */
+  private readonly calledBlind = new Map<string, string>();
+
   /** Whether the session offers its tools by group: a trip's turn and a home turn do. */
   private get grouped(): boolean {
     return this.mode === 'turn' || this.mode === 'home';
@@ -334,12 +337,10 @@ export class AssistantToolSession {
     if (unloaded) {
       // The model called a tool it was not offered in this turn (it knows the
       // name from an earlier turn), so it wrote the arguments without the
-      // schema and they would fail the MCP check (#2967). Its group is loaded
-      // here, so the next step offers the schema, and the call is sent back.
+      // schema (#2967). Its group is loaded here, so the next step offers the
+      // schema, and a refusal of these arguments says so (see call()).
       this.loaded.add(unloaded);
-      return {
-        error: `${name} belongs to the "${unloaded}" tools, which were not loaded in this turn, so it did not run. They are loaded now: send the call again with the arguments exactly as its schema describes them.`,
-      };
+      this.calledBlind.set(name, unloaded);
     }
     const given = pinNamesOf(this.pinArg).filter((key) => args[key] !== undefined);
     if (given.some((key) => Number(args[key]) !== this.pinnedId)) {
@@ -360,6 +361,12 @@ export class AssistantToolSession {
     const final = name === TRANSIT_CREATE_TOOL ? await this.withFoundItinerary(args) : args;
     const run = await this.invoke(name, final);
     this.audit(name);
+    const blind = this.calledBlind.get(name);
+    if (!run.ok && blind) {
+      const hint = `${name} was called before the "${blind}" tools were loaded in this turn, so its arguments were written without its schema. They are loaded now and the schema is in your tools: send the call again with the arguments exactly as it describes them.`;
+      return { ok: false, value: `${typeof run.value === 'string' ? run.value : JSON.stringify(run.value)}
+${hint}` };
+    }
     if (name === TRANSIT_SEARCH_TOOL && run.ok) this.itineraries.keep(run.value);
     return run;
   }
