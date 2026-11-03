@@ -5,6 +5,7 @@ import { IcsSubscribeModal } from '../../../../components/Planner/IcsSubscribeMo
 import { useTripStore } from '../../../../store/tripStore'
 import { useTranslation } from '../../../../i18n'
 import { useTripExport } from '../../../../components/Planner/useTripExport'
+import { useExportDeepLink } from '../../../../hooks/useExportDeepLink'
 import { INNER_CLS, TileHeader } from './MTripSheetUi'
 import type { MTripSheetsProps } from '../MTripShell'
 import type { LucideIcon } from 'lucide-react'
@@ -20,6 +21,8 @@ export default function MExportSheet({ planner, shell }: MTripSheetsProps) {
   const open = shell.sheet?.id === 'export'
   const dayNotes = useTripStore(s => s.dayNotes)
   const [subscribeOpen, setSubscribeOpen] = useState(false)
+  // The iOS Home Screen app hands the PDF to Safari, which lands here with ?export=pdf.
+  useExportDeepLink(() => shell.openSheet('export'))
   // Fed the way the desktop dialog feeds it: the store's assignments, and the export
   // applies the day plan's filter itself, so both shells print the same. The PDF stays
   // open here; a calendar or GPX file closes the sheet.

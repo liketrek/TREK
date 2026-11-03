@@ -71,7 +71,7 @@
   "components/Map/poiCategories.ts": 7,
   "components/Map/ratingBadge.ts": 2,
   "components/Map/reservationsMapbox.ts": 1,
-  "components/PDF/TripPDF.tsx": 53,
+  "components/PDF/TripPDF.tsx": 51,
   "components/Packing/PackingListPanelBagModal.tsx": 2,
   "components/Packing/PackingListPanelCategoryGroup.tsx": 5,
   "components/Packing/PackingListPanelHeader.tsx": 5,

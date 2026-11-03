@@ -9,7 +9,7 @@ import { server } from '../../../helpers/msw/server'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-EXPSH-001 to FE-MOB-EXPSH-015
+// FE-MOB-EXPSH-001 to FE-MOB-EXPSH-016
 // This sheet reads its copy from useTranslation(), so the assertions are English.
 
 vi.mock('../../../../src/components/PDF/TripPDF', () => ({ downloadTripPDF: vi.fn() }))
@@ -247,5 +247,11 @@ describe('MExportSheet', () => {
     rerender(<MExportSheet planner={planner} shell={buildShell({ sheet: { id: 'mehr' } })} />)
     expect(route?.signal?.aborted).toBe(true)
     expect(signal?.aborted).toBe(true)
+  })
+
+  it('FE-MOB-EXPSH-016: ?export=pdf, as Safari opens it from the iOS Home Screen app, opens the sheet', () => {
+    const shell = buildShell({ sheet: null })
+    render(<MExportSheet planner={buildPlanner({ days: DAYS })} shell={shell} />, { initialEntries: ['/trips/1?export=pdf'] })
+    expect(shell.openSheet).toHaveBeenCalledWith('export')
   })
 })

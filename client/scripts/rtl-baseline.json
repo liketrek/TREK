@@ -34,7 +34,7 @@
   "components/Map/locationMarkerMapbox.ts": 2,
   "components/Map/nightPauseMarker.ts": 4,
   "components/Map/ratingBadge.ts": 1,
-  "components/PDF/TripPDF.tsx": 8,
+  "components/PDF/TripPDF.tsx": 7,
   "components/PDF/tripMapImage.ts": 1,
   "components/Packing/PackingListPanelBagCard.tsx": 1,
   "components/Packing/PackingListPanelCategoryGroup.tsx": 3,
