@@ -983,6 +983,11 @@ const tours: TranslationStrings = {
   'tours.import.leftOutOther.one': '{count} inny element',
   'tours.import.leftOutOther.few': '{count} inne elementy',
   'tours.import.leftOutOther.many': '{count} innych elementów',
+  'tours.import.pointsAsPlaces': 'Dodaj punkty jako miejsca',
+  'tours.import.pointsAsPlacesHint': 'Pojedyncze punkty nie należą do trasy. Trafiają do miejsc podróży.',
+  'tours.import.pointsConfirm': 'Dodaj miejsca',
+  'tours.import.pointsFailedIn': 'Nie udało się dodać punktów z {name} jako miejsc.',
+  'tours.import.pointsImported': 'Dodane miejsca: {count}',
   'tours.import.unreadableIn':
     'Nie można odczytać pliku {name}: jest uszkodzony albo nie jest plikiem GPX, KML ani KMZ',
   'tours.import.archiveNoKmlIn': 'W pliku {name} nie ma pliku KML',

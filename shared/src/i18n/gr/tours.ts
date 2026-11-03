@@ -983,6 +983,11 @@ const tours: TranslationStrings = {
   'tours.import.leftOutAreas.one': '{count} περιοχή',
   'tours.import.leftOutOther': '{count} άλλα στοιχεία',
   'tours.import.leftOutOther.one': '{count} άλλο στοιχείο',
+  'tours.import.pointsAsPlaces': 'Προσθήκη των σημείων ως τοποθεσίες',
+  'tours.import.pointsAsPlacesHint': 'Τα μεμονωμένα σημεία δεν ανήκουν σε διαδρομή. Προστίθενται στις τοποθεσίες του ταξιδιού.',
+  'tours.import.pointsConfirm': 'Προσθήκη τοποθεσιών',
+  'tours.import.pointsFailedIn': 'Δεν ήταν δυνατή η προσθήκη των σημείων του {name} ως τοποθεσίες.',
+  'tours.import.pointsImported': 'Τοποθεσίες που προστέθηκαν: {count}',
   'tours.import.unreadableIn':
     'Δεν ήταν δυνατή η ανάγνωση του {name}: το αρχείο είναι κατεστραμμένο ή δεν είναι GPX, KML ή KMZ',
   'tours.import.archiveNoKmlIn': 'Δεν βρέθηκε αρχείο KML στο {name}',

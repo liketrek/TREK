@@ -943,8 +943,8 @@ export class ToursService {
   /**
    * PAD-02: what a file would import, read with the import's own parser and
    * duplicate rule and written nowhere. Null when the file holds no track or
-   * route, the import's own refusal. A KML or KMZ file also says what it holds
-   * besides its lines (IO-02).
+   * route, the import's own refusal. The preview also says what the file holds
+   * besides its lines (IO-02), a GPX file its waypoints (#2969).
    */
   async previewGpx(tripId: string, fileBuffer: Buffer, fileName?: string): Promise<TourGpxPreviewResponse | null> {
     const { rows, leftOut } = await readTourFile(this.placeImport, fileBuffer, fileName);

@@ -1049,6 +1049,18 @@ describe('Tours e2e (real guards + temp SQLite)', () => {
       expect(broadcast).not.toHaveBeenCalled();
     });
 
+    it('counts the waypoints beside the track, which no tour takes in (#2969)', async () => {
+      expect((await previewGpx(OWNER, TRACK_GPX)).body.left_out).toBeUndefined();
+      const withPoints = TRACK_GPX.replace(
+        '<trk>',
+        '<wpt lat="49.1" lon="12.1"><name>Hut</name></wpt><wpt lat="49.2" lon="12.2"><name>Lake</name></wpt><trk>',
+      );
+      const res = await previewGpx(OWNER, withPoints);
+      expect(res.body.tracks).toHaveLength(1);
+      expect(res.body.left_out).toEqual({ points: 2, areas: 0, other: 0 });
+      expect(await countRows(orm, Places)).toBe(0);
+    });
+
     it('leaves heights it does not have unknown, and names a track the trip already holds', async () => {
       const flat = await previewGpx(OWNER, FLAT_GPX);
       expect(flat.body.tracks[0]).toMatchObject({ elevation_gain_m: null, elevation_loss_m: null });
