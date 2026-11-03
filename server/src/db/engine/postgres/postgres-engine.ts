@@ -67,6 +67,12 @@ const TREK_WRITE_LOCK = 0x5452454b;
  */
 export class PostgresEngine implements DatabaseEngine {
   readonly id = 'postgres';
+  /**
+   * The pool stays: ending it waits for every connection it has lent out, and
+   * one lent to a job while the restore ran was never handed back to the
+   * ending pool, so the restore never returned.
+   */
+  readonly reopenSwapsConnection = false;
 
   constructor(
     private readonly settings: PostgresSettings,
@@ -85,8 +91,8 @@ export class PostgresEngine implements DatabaseEngine {
   }
 
   /**
-   * After `pg_restore` replaced the database's contents: the ORM reconnects
-   * and the restored database is migrated forward (`onReopened`, which
+   * After `pg_restore` replaced the database's contents: the restored
+   * database is migrated forward on the same pool (`onReopened`, which
    * `DatabaseLifecycle` hands to `open`).
    */
   async reopen(): Promise<void> {

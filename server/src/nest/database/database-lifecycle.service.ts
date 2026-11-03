@@ -78,14 +78,18 @@ export class DatabaseLifecycle {
   /**
    * Kysely caches whatever handle it was given, so without this the ORM would
    * keep talking to the closed one. Closing and reconnecting sends the driver
-   * back through `createKyselyDialect()`, which picks up the new handle.
+   * back through `createKyselyDialect()`, which picks up the new handle. An
+   * engine whose reopen keeps the connection (Postgres) skips that and only
+   * migrates.
    */
   private async rebindOrm(): Promise<void> {
-    const connection = this.orm.em.getConnection();
-    // The handle is owned and closed by `db/database.ts`; the bound driver's
-    // `destroy()` is a no-op (see `orm-driver.ts`), so this close never reaches it.
-    await connection.close(true);
-    await connection.connect();
+    if (this.engine.reopenSwapsConnection) {
+      const connection = this.orm.em.getConnection();
+      // The handle is owned and closed by `db/database.ts`; the bound driver's
+      // `destroy()` is a no-op (see `orm-driver.ts`), so this close never reaches it.
+      await connection.close(true);
+      await connection.connect();
+    }
     // No pre-migrate snapshot: the file was just unpacked from an archive that
     // is still there to go back to.
     await this.engine.schemaBootstrap(this.orm, { snapshot: false });

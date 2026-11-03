@@ -7,6 +7,7 @@
  * baseline depends on) and that the ORM is rebuilt around a reopened handle.
  * The real open, migrate and reopen run in tests/integration/database-lifecycle.test.ts.
  */
+import { PostgresEngine } from '../../../../src/db/engine/postgres/postgres-engine';
 import { DatabaseLifecycle } from '../../../../src/nest/database/database-lifecycle.service';
 import type { MikroORM } from '@mikro-orm/core';
 
@@ -118,6 +119,33 @@ describe('DatabaseLifecycle', () => {
     const hook = dbMock.registerReinitializeHook.mock.calls[0][0];
 
     await expect(hook()).rejects.toThrow('listener broke');
+  });
+
+  it('DBLIFE-009: on Postgres a reopen keeps the pool and only migrates, so it never waits on a connection lent to a job', async () => {
+    vi.stubEnv('TREK_DB_URL', 'postgres://trek:pw@db/trek');
+    const bootstrap = vi
+      .spyOn(PostgresEngine.prototype, 'schemaBootstrap')
+      .mockImplementation(async (_orm, options) => {
+        calls.push(`schemaBootstrap:${JSON.stringify(options)}`);
+      });
+    try {
+      const { orm, connection } = ormStub();
+      const lifecycle = new DatabaseLifecycle(orm);
+      lifecycle.onReopened(async () => {
+        calls.push('listener');
+      });
+      await lifecycle.open();
+      calls.length = 0;
+
+      await lifecycle.reopen();
+
+      expect(connection.close).not.toHaveBeenCalled();
+      expect(connection.connect).not.toHaveBeenCalled();
+      expect(calls).toEqual(['schemaBootstrap:{"snapshot":false}', 'listener']);
+    } finally {
+      bootstrap.mockRestore();
+      vi.unstubAllEnvs();
+    }
   });
 
   it('DBLIFE-003: close() and reopen() go through the connection module', async () => {

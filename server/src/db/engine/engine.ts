@@ -22,6 +22,13 @@ export interface DatabaseEngine {
   /** What MikroORM needs to reach the database: the driver and its target, the pool, driver options. */
   ormOptions(): Partial<Options>;
   /**
+   * Whether a reopen hands the ORM a different connection, so its client has
+   * to be closed and connected again around it. SQLite swaps the file under
+   * one handle; a Postgres restore replaces the contents of the same database,
+   * which the pool's connections keep reaching.
+   */
+  readonly reopenSwapsConnection: boolean;
+  /**
    * Called once at boot, before the schema bootstrap. `onReopened` is what
    * has to follow a later reopen (rebinding the ORM, migrating the restored
    * database forward).

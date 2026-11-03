@@ -14,6 +14,7 @@ import type { EntityManager } from '@mikro-orm/core';
  */
 export class SqliteEngine implements DatabaseEngine {
   readonly id = 'sqlite';
+  readonly reopenSwapsConnection = true;
 
   describe(): string {
     return `SQLite file ${resolveDbPath()}`;
