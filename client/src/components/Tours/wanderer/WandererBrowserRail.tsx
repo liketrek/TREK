@@ -18,8 +18,8 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
-import { useTranslation } from '../../../i18n';
 import { useDateFormat } from '../../../hooks/useDateFormat';
+import { useTranslation } from '../../../i18n';
 import { useSettingsStore } from '../../../store/settingsStore';
 import { formatDisplayDate } from '../../../utils/dateFormat';
 import { formatDistance, formatElevation } from '../../../utils/units';

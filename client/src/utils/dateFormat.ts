@@ -1,4 +1,4 @@
-import { DATE_FORMAT_VALUES, type DateFormat } from '@trek/shared'
+import { DATE_FORMAT_VALUES, type DateFormat } from '@trek/shared';
 
 /**
  * The user's date format (#2971), applied wherever a date is written in numbers.
@@ -14,11 +14,11 @@ import { DATE_FORMAT_VALUES, type DateFormat } from '@trek/shared'
  * setting answers "how do I read 03/11", not "what is November called".
  */
 
-export type DateField = 'day' | 'month' | 'year'
+export type DateField = 'day' | 'month' | 'year';
 
 interface DateLayout {
-  order: DateField[]
-  separator: string
+  order: DateField[];
+  separator: string;
 }
 
 const LAYOUTS: Record<Exclude<DateFormat, 'auto'>, DateLayout> = {
@@ -27,16 +27,16 @@ const LAYOUTS: Record<Exclude<DateFormat, 'auto'>, DateLayout> = {
   'DD.MM.YYYY': { order: ['day', 'month', 'year'], separator: '.' },
   'DD/MM/YYYY': { order: ['day', 'month', 'year'], separator: '/' },
   'MM/DD/YYYY': { order: ['month', 'day', 'year'], separator: '/' },
-}
+};
 
 /** The order and separator of a chosen format; null for 'auto' or anything unknown. */
 export function dateLayout(format: string | null | undefined): DateLayout | null {
-  if (!format || format === 'auto') return null
-  return LAYOUTS[format as keyof typeof LAYOUTS] ?? null
+  if (!format || format === 'auto') return null;
+  return LAYOUTS[format as keyof typeof LAYOUTS] ?? null;
 }
 
-const DATE_KEYS = ['day', 'month', 'year'] as const
-const TIME_KEYS = ['hour', 'minute', 'second', 'dayPeriod', 'fractionalSecondDigits'] as const
+const DATE_KEYS = ['day', 'month', 'year'] as const;
+const TIME_KEYS = ['hour', 'minute', 'second', 'dayPeriod', 'fractionalSecondDigits'] as const;
 
 /**
  * Whether these options write the date in numbers only: no weekday, no month
@@ -44,42 +44,42 @@ const TIME_KEYS = ['hour', 'minute', 'second', 'dayPeriod', 'fractionalSecondDig
  * styles name the month.
  */
 export function isNumericDate(opts: Intl.DateTimeFormatOptions = {}): boolean {
-  if (opts.weekday || opts.era) return false
-  if (opts.dateStyle) return opts.dateStyle === 'short'
-  return !opts.month || opts.month === 'numeric' || opts.month === '2-digit'
+  if (opts.weekday || opts.era) return false;
+  if (opts.dateStyle) return opts.dateStyle === 'short';
+  return !opts.month || opts.month === 'numeric' || opts.month === '2-digit';
 }
 
 const hasAny = (opts: Intl.DateTimeFormatOptions, keys: readonly string[]) =>
-  keys.some((key) => (opts as Record<string, unknown>)[key] !== undefined)
+  keys.some((key) => (opts as Record<string, unknown>)[key] !== undefined);
 
 /** The date in the layout's order, each field the options ask for (all three when they name none). */
 function numericDate(date: Date, opts: Intl.DateTimeFormatOptions, layout: DateLayout): string {
-  const named = opts.dateStyle ? DATE_KEYS : DATE_KEYS.filter((key) => opts[key] !== undefined)
-  const fields = named.length > 0 ? named : DATE_KEYS
+  const named = opts.dateStyle ? DATE_KEYS : DATE_KEYS.filter((key) => opts[key] !== undefined);
+  const fields = named.length > 0 ? named : DATE_KEYS;
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: opts.timeZone,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
     numberingSystem: 'latn',
-  }).formatToParts(date)
-  const value = (type: DateField) => parts.find((part) => part.type === type)?.value ?? ''
-  const shortYear = opts.year === '2-digit'
+  }).formatToParts(date);
+  const value = (type: DateField) => parts.find((part) => part.type === type)?.value ?? '';
+  const shortYear = opts.year === '2-digit';
   return layout.order
     .filter((field) => (fields as readonly string[]).includes(field))
     .map((field) => (field === 'year' && shortYear ? value('year').slice(-2) : value(field)))
-    .join(layout.separator)
+    .join(layout.separator);
 }
 
 /** Only the time-of-day options, for the clock part beside a numeric date. */
 function timeOptions(opts: Intl.DateTimeFormatOptions): Intl.DateTimeFormatOptions {
-  const time: Intl.DateTimeFormatOptions = {}
+  const time: Intl.DateTimeFormatOptions = {};
   for (const key of [...TIME_KEYS, 'hour12', 'hourCycle', 'timeZone', 'timeZoneName'] as const) {
-    const value = (opts as Record<string, unknown>)[key]
-    if (value !== undefined) (time as Record<string, unknown>)[key] = value
+    const value = (opts as Record<string, unknown>)[key];
+    if (value !== undefined) (time as Record<string, unknown>)[key] = value;
   }
-  if (opts.timeStyle) time.timeStyle = opts.timeStyle
-  return time
+  if (opts.timeStyle) time.timeStyle = opts.timeStyle;
+  return time;
 }
 
 /**
@@ -92,20 +92,20 @@ export function formatDisplayDate(
   opts: Intl.DateTimeFormatOptions = {},
   format?: string | null
 ): string {
-  const layout = dateLayout(format)
-  if (!layout || Number.isNaN(date.getTime())) return date.toLocaleDateString(locale, opts)
+  const layout = dateLayout(format);
+  if (!layout || Number.isNaN(date.getTime())) return date.toLocaleDateString(locale, opts);
   if (opts.weekday && isNumericWithWeekday(opts)) {
-    const weekday = date.toLocaleDateString(locale, { weekday: opts.weekday, timeZone: opts.timeZone })
-    return `${weekday}, ${numericDate(date, opts, layout)}`
+    const weekday = date.toLocaleDateString(locale, { weekday: opts.weekday, timeZone: opts.timeZone });
+    return `${weekday}, ${numericDate(date, opts, layout)}`;
   }
-  if (!isNumericDate(opts)) return date.toLocaleDateString(locale, opts)
-  return numericDate(date, opts, layout)
+  if (!isNumericDate(opts)) return date.toLocaleDateString(locale, opts);
+  return numericDate(date, opts, layout);
 }
 
 /** A weekday beside a date that is otherwise all numbers ("Tue, 03.11.2026"). */
 function isNumericWithWeekday(opts: Intl.DateTimeFormatOptions): boolean {
-  if (opts.era || opts.dateStyle) return false
-  return (opts.month === 'numeric' || opts.month === '2-digit') && opts.day !== undefined
+  if (opts.era || opts.dateStyle) return false;
+  return (opts.month === 'numeric' || opts.month === '2-digit') && opts.day !== undefined;
 }
 
 /**
@@ -119,15 +119,15 @@ export function formatDisplayDateTime(
   opts: Intl.DateTimeFormatOptions = {},
   format?: string | null
 ): string {
-  const layout = dateLayout(format)
-  const named = hasAny(opts, DATE_KEYS) || !!opts.dateStyle
-  const timed = hasAny(opts, TIME_KEYS) || !!opts.timeStyle
-  if (!layout || !isNumericDate(opts) || Number.isNaN(date.getTime())) return date.toLocaleString(locale, opts)
-  if (!named && timed) return date.toLocaleString(locale, opts)
-  const day = numericDate(date, opts, layout)
-  if (named && !timed) return day
-  const time = date.toLocaleTimeString(locale, timed ? timeOptions(opts) : { timeZone: opts.timeZone })
-  return `${day} ${time}`
+  const layout = dateLayout(format);
+  const named = hasAny(opts, DATE_KEYS) || !!opts.dateStyle;
+  const timed = hasAny(opts, TIME_KEYS) || !!opts.timeStyle;
+  if (!layout || !isNumericDate(opts) || Number.isNaN(date.getTime())) return date.toLocaleString(locale, opts);
+  if (!named && timed) return date.toLocaleString(locale, opts);
+  const day = numericDate(date, opts, layout);
+  if (named && !timed) return day;
+  const time = date.toLocaleTimeString(locale, timed ? timeOptions(opts) : { timeZone: opts.timeZone });
+  return `${day} ${time}`;
 }
 
 /**
@@ -139,41 +139,44 @@ export function displayDateFormatter(
   opts: Intl.DateTimeFormatOptions = {},
   format?: string | null
 ): { format: (date: Date | number) => string } {
-  const intl = new Intl.DateTimeFormat(locale, opts)
-  const layout = dateLayout(format)
-  if (!layout || !isNumericDate(opts)) return { format: (date) => intl.format(date) }
+  const intl = new Intl.DateTimeFormat(locale, opts);
+  const layout = dateLayout(format);
+  if (!layout || !isNumericDate(opts)) return { format: (date) => intl.format(date) };
   return {
     format: (date) => {
-      const value = typeof date === 'number' ? new Date(date) : date
+      const value = typeof date === 'number' ? new Date(date) : date;
       return hasAny(opts, TIME_KEYS) || opts.timeStyle
         ? formatDisplayDateTime(value, locale, opts, format)
-        : formatDisplayDate(value, locale, opts, format)
+        : formatDisplayDate(value, locale, opts, format);
     },
-  }
+  };
 }
 
 /** The order the fields of a typed date are read in: the chosen format's, or the language's. */
 export function dateFieldOrder(locale: string | undefined, format?: string | null): DateField[] {
-  const layout = dateLayout(format)
-  if (layout) return layout.order
+  const layout = dateLayout(format);
+  if (layout) return layout.order;
   return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'numeric', year: 'numeric' })
     .formatToParts(new Date(2001, 5, 15))
     .filter((part) => part.type === 'day' || part.type === 'month' || part.type === 'year')
-    .map((part) => part.type as DateField)
+    .map((part) => part.type as DateField);
 }
 
 /** 31 December: no day of it reads as a month, so every option's example is unambiguous. */
-const SAMPLE = new Date(Date.UTC(2026, 11, 31))
+const SAMPLE = new Date(Date.UTC(2026, 11, 31));
 
 /**
  * The choices of the setting, each labelled by how it writes 31 December, and
  * 'auto' by `autoLabel` with the language's own way in brackets.
  */
-export function dateFormatOptions(locale: string | undefined, autoLabel: string): { value: DateFormat; label: string }[] {
+export function dateFormatOptions(
+  locale: string | undefined,
+  autoLabel: string
+): { value: DateFormat; label: string }[] {
   const example = (format: DateFormat) =>
-    formatDisplayDate(SAMPLE, locale, { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }, format)
+    formatDisplayDate(SAMPLE, locale, { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }, format);
   return DATE_FORMAT_VALUES.map((value) => ({
     value,
     label: value === 'auto' ? `${autoLabel} (${example(value)})` : example(value),
-  }))
+  }));
 }

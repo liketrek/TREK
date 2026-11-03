@@ -1,9 +1,9 @@
 import type { BudgetParticipantFinal, BudgetUnconverted, CostCategory } from '@trek/shared';
+import { readDateFormat } from '../../hooks/useDateFormat';
 import { convertBooked, convertedLine, inDisplayCurrency, tripAmountOf } from '../../hooks/useExchangeRates';
 import type { BudgetItem } from '../../types';
-import { readDateFormat } from '../../hooks/useDateFormat';
-import { currencyDecimals } from '../../utils/formatters';
 import { formatDisplayDate } from '../../utils/dateFormat';
+import { currencyDecimals } from '../../utils/formatters';
 import { currenciesWith, SYMBOLS } from './BudgetPanel.constants';
 import { paidByUser, readUserNote, settlementDate, splitEqualShares } from './CostsPanel.helpers';
 import { catMeta, COST_CATEGORY_LIST } from './costsCategories';
@@ -380,12 +380,17 @@ export function buildCostsCsv(items: BudgetItem[], opts: CsvBuildOptions): { fil
   const fmtDate = (iso: string) => {
     if (!iso) return '';
     try {
-      return formatDisplayDate(new Date(iso + 'T00:00:00Z'), opts.locale, {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        timeZone: 'UTC',
-      }, readDateFormat());
+      return formatDisplayDate(
+        new Date(iso + 'T00:00:00Z'),
+        opts.locale,
+        {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          timeZone: 'UTC',
+        },
+        readDateFormat()
+      );
     } catch {
       return iso;
     }

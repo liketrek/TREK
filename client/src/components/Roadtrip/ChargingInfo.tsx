@@ -1,8 +1,8 @@
 import { cheapestEnergy, type ChargingEnergyPrice, type ChargingInfo as Info } from '@trek/shared';
 import { ChevronDown, Coins, PlugZap } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useTranslation } from '../../i18n/TranslationContext';
 import { useFormatDate } from '../../hooks/useDateFormat';
+import { useTranslation } from '../../i18n/TranslationContext';
 import { chargingRepo } from '../../repo/chargingRepo';
 import { useTripStore } from '../../store/tripStore';
 import { isEffectivelyOffline } from '../../sync/networkMode';

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { pluginsApi } from '../../api/client';
-import { useTranslation } from '../../i18n';
 import { useDateFormat } from '../../hooks/useDateFormat';
+import { useTranslation } from '../../i18n';
 import { formatDisplayDateTime } from '../../utils/dateFormat';
 
 export interface ActivityRow {

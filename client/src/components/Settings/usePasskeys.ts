@@ -1,11 +1,11 @@
 import { startRegistration } from '@simplewebauthn/browser';
 import { useEffect, useState } from 'react';
 import { authApi, type PasskeyCredential } from '../../api/client';
+import { readDateFormat } from '../../hooks/useDateFormat';
 import { useTranslation } from '../../i18n';
 import { getApiErrorMessage } from '../../types';
-import { useToast } from '../shared/Toast';
-import { readDateFormat } from '../../hooks/useDateFormat';
 import { formatDisplayDate } from '../../utils/dateFormat';
+import { useToast } from '../shared/Toast';
 
 /** Parse a SQLite UTC timestamp ("YYYY-MM-DD HH:MM:SS") into a local date string. */
 export function fmtDate(ts: string | null): string | null {
