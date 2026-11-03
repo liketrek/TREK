@@ -275,8 +275,8 @@ export default function DisplaySettingsTab(): React.ReactElement {
               <div className={SELECT_BOX}>
                 <CustomSelect
                   value={settings.date_format || DEFAULT_DATE_FORMAT}
-                  onChange={async v => {
-                    await save('date_format', String(v))
+                  onChange={v => {
+                    void save('date_format', String(v))
                   }}
                   options={dateFormatOptions(locale, t('settings.dateFormatAuto'))}
                 />

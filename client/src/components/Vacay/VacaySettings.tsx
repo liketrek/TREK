@@ -360,6 +360,7 @@ function YearTypePicker() {
             value={yearSettings.hire_date || ''}
             onChange={v => save({ hire_date: v || null })}
             placeholder={t('vacay.hireDate')}
+            ariaLabel={t('vacay.hireDate')}
             style={{ width: '100%' }}
           />
           {!yearSettings.hire_date && (

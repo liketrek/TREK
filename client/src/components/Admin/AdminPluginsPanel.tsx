@@ -34,6 +34,7 @@ import { usePluginsAdmin } from './plugins/usePluginsAdmin'
 import PluginFilterMenu from './plugins/PluginFilterMenu'
 import PluginInstalledRow from './plugins/PluginInstalledRow'
 import PluginSecurityDialog from './plugins/PluginSecurityDialog'
+import VersionLine from './plugins/VersionLine'
 
 /**
  * Admin → Plugins (#plugins). A full plugin-management surface: a segmented
@@ -943,18 +944,6 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
         </DialogSection>
       )}
     </DialogShell>
-  )
-}
-
-/** A version number with its date and, when the author signed it, a quiet tick. */
-function VersionLine({ v }: { v: VersionInfo }) {
-  const { formatDate } = useFormatDate()
-  return (
-    <span className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5">
-      <span className={`font-geist font-semibold tabular-nums ${v.compatible ? 'text-content' : 'text-content-faint'}`} style={fs(12.5)}>v{v.version}</span>
-      {v.publishedAt && <span className="text-content-faint" style={fs(11.5)}>{formatDate(new Date(v.publishedAt))}</span>}
-      {v.signed && <ShieldCheck size={13} className="flex-none text-success" />}
-    </span>
   )
 }
 

@@ -284,7 +284,7 @@
   "mobile/screens/vacay/MVacay.tsx": 23,
   "mobile/screens/vacay/MVacayInviteSheet.tsx": 9,
   "mobile/screens/vacay/MVacayMonth.tsx": 3,
-  "mobile/screens/vacay/MVacaySettingsSheet.tsx": 36,
+  "mobile/screens/vacay/MVacaySettingsSheet.tsx": 35,
   "mobile/screens/vacay/MVacayShareSheet.tsx": 11,
   "mobile/screens/vacay/vacayDayModel.ts": 1,
   "pages/AtlasPage.tsx": 32,

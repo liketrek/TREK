@@ -53,8 +53,13 @@ function wsHandler() {
   return calls[calls.length - 1][0]
 }
 
-function deadlineInput(): HTMLInputElement {
-  return document.querySelector('input[type="datetime-local"]') as HTMLInputElement
+// The deadline is the shared date and time picker (#2971): the day typed in its
+// manual field, the time left at the noon it starts from.
+function setDeadline(day: string) {
+  fireEvent.click(screen.getByRole('button', { name: /enterManually|Enter date manually/ }))
+  const input = screen.getByRole('textbox', { name: /enterManually|Enter date manually/ })
+  fireEvent.change(input, { target: { value: day } })
+  fireEvent.keyDown(input, { key: 'Enter' })
 }
 
 describe('MCollabPolls', () => {
@@ -335,7 +340,7 @@ describe('MCollabPolls', () => {
     fireEvent.change(screen.getByPlaceholderText('collab.polls.optionPlaceholder:1'), { target: { value: 'Ryokan' } })
     fireEvent.change(screen.getByPlaceholderText('collab.polls.optionPlaceholder:2'), { target: { value: ' Capsule ' } })
     fireEvent.click(screen.getByRole('button', { name: 'collab.polls.multiChoice' }))
-    fireEvent.change(deadlineInput(), { target: { value: '2026-08-01T12:00' } })
+    setDeadline('2030-08-01')
     fireEvent.click(screen.getByRole('button', { name: 'collab.polls.create' }))
 
     await waitFor(() => expect(createPoll).toHaveBeenCalledWith(1, {
@@ -343,7 +348,7 @@ describe('MCollabPolls', () => {
       options: ['Ryokan', 'Capsule'],
       multiple: true,
       multiple_choice: true,
-      deadline: new Date('2026-08-01T12:00').toISOString(),
+      deadline: new Date('2030-08-01T12:00').toISOString(),
     }))
     expect(await screen.findByText('Which hotel?')).toBeInTheDocument()
   })
@@ -381,10 +386,9 @@ describe('MCollabPolls', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'common.delete' })[0])
     expect(screen.queryByPlaceholderText('collab.polls.optionPlaceholder:3')).not.toBeInTheDocument()
 
-    fireEvent.change(deadlineInput(), { target: { value: '2026-08-01T12:00' } })
-    expect(deadlineInput()).toHaveValue('2026-08-01T12:00')
+    setDeadline('2030-08-01')
     fireEvent.click(screen.getByRole('button', { name: 'collab.polls.clearDeadline' }))
-    expect(deadlineInput()).toHaveValue('')
+    expect(screen.queryByRole('button', { name: 'collab.polls.clearDeadline' })).not.toBeInTheDocument()
   })
 
   it('FE-MOB-POLLS-025: keeps the form open and toasts when creating fails', async () => {

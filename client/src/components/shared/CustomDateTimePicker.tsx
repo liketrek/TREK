@@ -29,6 +29,8 @@ interface CustomDatePickerProps {
   // disabled in the calendar and rejected on manual entry.
   min?: string;
   max?: string;
+  /** What the field is, for a picker without a visible label around it; the trigger reads it with its date. */
+  ariaLabel?: string;
 }
 
 export function CustomDatePicker({
@@ -41,6 +43,7 @@ export function CustomDatePicker({
   disabled = false,
   min,
   max,
+  ariaLabel,
 }: CustomDatePickerProps) {
   const { locale, t } = useTranslation();
   const weekStart = useWeekStartDay();
@@ -298,7 +301,11 @@ export function CustomDatePicker({
             type="button"
             onClick={() => setOpen((o) => !o)}
             disabled={disabled}
-            aria-label={displayValue || placeholder || t('common.date')}
+            aria-label={
+              ariaLabel
+                ? [ariaLabel, displayValue].filter(Boolean).join(': ')
+                : displayValue || placeholder || t('common.date')
+            }
             aria-expanded={open}
             aria-haspopup="dialog"
             style={{

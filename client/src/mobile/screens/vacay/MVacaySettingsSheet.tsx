@@ -339,11 +339,12 @@ function YearTypeRows() {
 
       {type === 'anniversary' && (
         <div className="ms-7">
-          <div className="mt-[7px]" aria-label={t('vacay.hireDate')}>
+          <div className="mt-[7px]">
             <CustomDatePicker
               value={yearSettings.hire_date || ''}
               onChange={v => save({ hire_date: v || null })}
               placeholder={t('vacay.hireDate')}
+              ariaLabel={t('vacay.hireDate')}
             />
           </div>
         </div>

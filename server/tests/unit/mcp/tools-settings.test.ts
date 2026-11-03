@@ -267,7 +267,7 @@ describe('Tool: update_display_settings', () => {
   it('writes date_format and refuses a format the app does not offer (#2971)', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
-      const ok = parseToolResult(await update(h, { date_format: 'DD.MM.YYYY' })) as any;
+      const ok = parseToolResult(await update(h, { date_format: 'DD.MM.YYYY' })) as { settings: Record<string, unknown> };
       expect(ok.settings.date_format).toBe('DD.MM.YYYY');
       const refused = await update(h, { date_format: 'dd-mm' });
       expect(refused.isError).toBe(true);

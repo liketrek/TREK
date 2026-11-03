@@ -223,7 +223,9 @@ export default function MSettingsGeneral() {
         onClose={() => setDateFormatOpen(false)}
         title={t('settings.dateFormat')}
         value={settings.date_format || DEFAULT_DATE_FORMAT}
-        onSelect={(v) => save('date_format', v)}
+        onSelect={(v) => {
+          void save('date_format', v)
+        }}
         options={dateFormats}
       />
 

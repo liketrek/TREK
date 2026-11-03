@@ -15,7 +15,7 @@
     "@typescript-eslint/no-unused-vars": 124,
     "react-hooks/immutability": 28,
     "max-lines-per-function": 130,
-    "react-hooks/static-components": 78,
+    "react-hooks/static-components": 50,
     "react-hooks/preserve-manual-memoization": 12,
     "no-useless-assignment": 7,
     "no-empty": 19,
@@ -25,7 +25,7 @@
     "max-depth": 21,
     "react-hooks/void-use-memo": 1,
     "@typescript-eslint/no-unused-expressions": 2,
-    "react-hooks/purity": 2,
+    "react-hooks/purity": 1,
     "preserve-caught-error": 53,
     "no-useless-escape": 1
   },

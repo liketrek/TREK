@@ -20,6 +20,25 @@ import RoutingInstanceFields from '../../../components/Admin/RoutingInstanceFiel
 // Mobile-native rebuild of the desktop DefaultUserSettingsTab. Identical data
 // layer (adminApi defaults, per-change auto-save, reset-to-built-in) — only the
 // presentation is relaid on the admin mobile design system.
+interface ResetProps {
+  shown: boolean
+  onReset: () => void
+  label: string
+}
+
+function ResetButton({ shown, onReset, label }: ResetProps): React.ReactElement | null {
+  if (!shown) return null
+  return (
+    <button
+      type="button"
+      onClick={onReset}
+      className="ms-2 font-geist text-[0.625rem] font-medium text-m-faint underline"
+    >
+      {label}
+    </button>
+  )
+}
+
 export default function MAdminDefaultUserSettings(): React.ReactElement {
   const { t, locale } = useTranslation()
   const {
@@ -32,16 +51,11 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
   const [presetOpen, setPresetOpen] = useState(false)
   const [styleOpen, setStyleOpen] = useState(false)
 
-  const ResetButton = ({ field }: { field: keyof Defaults }) =>
-    isSet(field) ? (
-      <button
-        type="button"
-        onClick={() => reset(field)}
-        className="ms-2 font-geist text-[0.625rem] font-medium text-m-faint underline"
-      >
-        {t('admin.defaultSettings.resetToBuiltIn')}
-      </button>
-    ) : null
+  const resetOf = (field: keyof Defaults): ResetProps => ({
+    shown: isSet(field),
+    onReset: () => reset(field),
+    label: t('admin.defaultSettings.resetToBuiltIn'),
+  })
 
   if (!loaded) {
     return (
@@ -102,32 +116,32 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
 
         <div className="mt-2 space-y-[14px]">
           {/* Color Mode */}
-          <MAdminField label={<>{t('settings.colorMode')} <ResetButton field="dark_mode" /></>}>
+          <MAdminField label={<>{t('settings.colorMode')} <ResetButton {...resetOf('dark_mode')} /></>}>
             <MSegmented value={colorModeValue} onChange={(v) => save({ dark_mode: v })} options={modeOptions} />
           </MAdminField>
 
           {/* Temperature */}
-          <MAdminField label={<>{t('settings.temperature')} <ResetButton field="temperature_unit" /></>}>
+          <MAdminField label={<>{t('settings.temperature')} <ResetButton {...resetOf('temperature_unit')} /></>}>
             <MSegmented value={defaults.temperature_unit || ''} onChange={(v) => save({ temperature_unit: v })} options={tempOptions} />
           </MAdminField>
 
           {/* Distance */}
-          <MAdminField label={<>{t('settings.distance')} <ResetButton field="distance_unit" /></>}>
+          <MAdminField label={<>{t('settings.distance')} <ResetButton {...resetOf('distance_unit')} /></>}>
             <MSegmented value={defaults.distance_unit || ''} onChange={(v) => save({ distance_unit: v as DistanceUnit })} options={distanceOptions} />
           </MAdminField>
 
           {/* Time Format */}
-          <MAdminField label={<>{t('settings.timeFormat')} <ResetButton field="time_format" /></>}>
+          <MAdminField label={<>{t('settings.timeFormat')} <ResetButton {...resetOf('time_format')} /></>}>
             <MSegmented value={defaults.time_format || ''} onChange={(v) => save({ time_format: v })} options={timeOptions} />
           </MAdminField>
 
           {/* Week start (#2029) */}
-          <MAdminField label={<>{t('settings.weekStart')} <ResetButton field="week_start" /></>}>
+          <MAdminField label={<>{t('settings.weekStart')} <ResetButton {...resetOf('week_start')} /></>}>
             <MSegmented value={defaults.week_start || ''} onChange={(v) => save({ week_start: v as WeekStart })} options={weekStartOptions(locale)} />
           </MAdminField>
 
           {/* Date format (#2971) */}
-          <MAdminField label={<>{t('settings.dateFormat')} <ResetButton field="date_format" /></>}>
+          <MAdminField label={<>{t('settings.dateFormat')} <ResetButton {...resetOf('date_format')} /></>}>
             <MSetSelectRow
               label={dateFormats.find((o) => o.value === defaults.date_format)?.label ?? t('settings.dateFormat')}
               trailing={chevron}
@@ -137,7 +151,7 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
 
           {/* Default Currency */}
           <MAdminField
-            label={<>{t('settings.currency')} <ResetButton field="default_currency" /></>}
+            label={<>{t('settings.currency')} <ResetButton {...resetOf('default_currency')} /></>}
             hint={t('settings.currencyHint')}
           >
             <MSetSelectRow label={currencyLabel} trailing={chevron} onClick={() => setCurrencyOpen(true)} />
@@ -146,7 +160,7 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
           {/* Blur Booking Codes */}
           <MAdminRow
             first
-            title={<>{t('settings.blurBookingCodes')} <ResetButton field="blur_booking_codes" /></>}
+            title={<>{t('settings.blurBookingCodes')} <ResetButton {...resetOf('blur_booking_codes')} /></>}
             trailing={
               <MToggle
                 checked={defaults.blur_booking_codes === true}
@@ -168,7 +182,7 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
         <div className="mt-2 space-y-[14px]">
           {/* Map Tile URL */}
           <MAdminField
-            label={<>{t('settings.mapTemplate')} <ResetButton field="map_tile_url" /></>}
+            label={<>{t('settings.mapTemplate')} <ResetButton {...resetOf('map_tile_url')} /></>}
             hint={t('settings.mapDefaultHint')}
           >
             <MSetSelectRow label={tilePresetLabel} trailing={chevron} onClick={() => setPresetOpen(true)} />
@@ -186,7 +200,7 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
               settings are read. A field here would only let somebody save a worse one. */}
           {!managed && (
             <MAdminField
-              label={<>{t('admin.defaultSettings.cartoKey')} <ResetButton field="carto_api_key" /></>}
+              label={<>{t('admin.defaultSettings.cartoKey')} <ResetButton {...resetOf('carto_api_key')} /></>}
               hint={t('admin.defaultSettings.cartoKeyHint')}
             >
               <MAdminInput
@@ -230,7 +244,7 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
           {/* Map provider */}
           <div className="border-t border-[color:var(--m-rowbr)] pt-[14px]">
             <MAdminField
-              label={<>{t('admin.defaultSettings.mapProvider')} <ResetButton field="map_provider" /></>}
+              label={<>{t('admin.defaultSettings.mapProvider')} <ResetButton {...resetOf('map_provider')} /></>}
               hint={t('admin.defaultSettings.mapProviderHint')}
             >
               <MSegmented value={mapProvider} onChange={(v) => saveMapProvider(v as MapProvider)} options={providerOptions} />
@@ -241,7 +255,7 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
             <div className="space-y-[14px]">
               {mapProvider === 'mapbox-gl' && !managed && (
                 <MAdminField
-                  label={<>{t('admin.defaultSettings.mapboxToken')} <ResetButton field="mapbox_access_token" /></>}
+                  label={<>{t('admin.defaultSettings.mapboxToken')} <ResetButton {...resetOf('mapbox_access_token')} /></>}
                   hint={t('admin.defaultSettings.mapboxTokenHint')}
                 >
                   <MAdminInput
@@ -256,7 +270,7 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
                 </MAdminField>
               )}
 
-              <MAdminField label={<>{t('admin.defaultSettings.mapboxStyle')} <ResetButton field={styleKey} /></>}>
+              <MAdminField label={<>{t('admin.defaultSettings.mapboxStyle')} <ResetButton {...resetOf(styleKey)} /></>}>
                 <MSetSelectRow label={stylePresetLabel} trailing={chevron} onClick={() => setStyleOpen(true)} />
                 <MAdminInput
                   type="text"
@@ -272,7 +286,7 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
                 <div>
                   <MAdminRow
                     first
-                    title={<>{t('admin.defaultSettings.mapbox3d')} <ResetButton field="mapbox_3d_enabled" /></>}
+                    title={<>{t('admin.defaultSettings.mapbox3d')} <ResetButton {...resetOf('mapbox_3d_enabled')} /></>}
                     trailing={
                       <MToggle
                         checked={defaults.mapbox_3d_enabled ?? true}
@@ -282,7 +296,7 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
                     }
                   />
                   <MAdminRow
-                    title={<>{t('admin.defaultSettings.mapboxQuality')} <ResetButton field="mapbox_quality_mode" /></>}
+                    title={<>{t('admin.defaultSettings.mapboxQuality')} <ResetButton {...resetOf('mapbox_quality_mode')} /></>}
                     trailing={
                       <MToggle
                         checked={defaults.mapbox_quality_mode ?? false}

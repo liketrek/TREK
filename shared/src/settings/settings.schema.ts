@@ -43,7 +43,14 @@ export const WEEK_START_DAY: Record<WeekStart, number> = { monday: 1, sunday: 0,
  * own order and separator. Dates written with a month name ("3 Nov") keep the
  * language's wording either way.
  */
-export const DATE_FORMAT_VALUES = ['auto', 'YYYY-MM-DD', 'YYYY/MM/DD', 'DD.MM.YYYY', 'DD/MM/YYYY', 'MM/DD/YYYY'] as const;
+export const DATE_FORMAT_VALUES = [
+  'auto',
+  'YYYY-MM-DD',
+  'YYYY/MM/DD',
+  'DD.MM.YYYY',
+  'DD/MM/YYYY',
+  'MM/DD/YYYY',
+] as const;
 export type DateFormat = (typeof DATE_FORMAT_VALUES)[number];
 export const dateFormatSchema = z.enum(DATE_FORMAT_VALUES);
 /** What a user who never picked one gets. */
