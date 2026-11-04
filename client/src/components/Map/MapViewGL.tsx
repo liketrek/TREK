@@ -49,6 +49,7 @@ import { buildPoiPopupHtml } from './placePopup'
 import { pluginsApi, type PluginMapMarker, type PluginMapLayer } from '../../api/client'
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
 import { alongShortestArc, computeMapViewport, TILE_SIZE_GL } from '../../utils/mapViewport'
+import { onRealWorld } from '../../utils/worldCopy'
 import { selectedPlaceTarget } from './selectedPlaceTarget'
 import {
   PLACE_CLUSTER_CIRCLE_LAYER_ID, PLACE_CLUSTER_COUNT_LAYER_ID, PLACE_CLUSTER_SOURCE_ID,
@@ -725,7 +726,7 @@ export function MapViewGL({
           return
         }
         const rect = map.getContainer().getBoundingClientRect()
-        const at = map.unproject([e.clientX - rect.left, e.clientY - rect.top])
+        const at = onRealWorld(map.unproject([e.clientX - rect.left, e.clientY - rect.top]))
         viaHandlersRef.current.onMoveVia?.(via.day_id, via.id, at.lat, at.lng)
       }
       // The browser fires this when the captured element is torn out of the DOM,
@@ -925,7 +926,8 @@ export function MapViewGL({
       // trip reloads for a gesture the user made once. The picker is a modal
       // choice about that leg; dropping a via mid-choice is not offered anywhere.
       if (e.point && map.queryRenderedFeatures?.(e.point, { layers: ['route-alt-hit'] })?.length) return
-      onRouteClick(e.lngLat.lat, e.lngLat.lng)
+      const at = onRealWorld(e.lngLat)
+      onRouteClick(at.lat, at.lng)
     }
     const enter = () => { map.getCanvas().style.cursor = 'copy' }
     const leave = () => { map.getCanvas().style.cursor = '' }
@@ -964,7 +966,7 @@ export function MapViewGL({
       if (!osmId) return
       e.preventDefault()
       const rect = container.getBoundingClientRect()
-      const at = map.unproject([e.clientX - rect.left, e.clientY - rect.top])
+      const at = onRealWorld(map.unproject([e.clientX - rect.left, e.clientY - rect.top]))
       onPoiDropOnRoute(osmId, at.lat, at.lng)
     }
     container.addEventListener('dragover', onDragOver)
@@ -1343,7 +1345,7 @@ export function MapViewGL({
         && map.queryRenderedFeatures(e.point, { layers: ['trip-route-hit'] }).length > 0
       ) return
       if (isTourLayerHit(map, e.point)) return // a picked via ferrata or paddle obstacle opens its card instead
-      onClickRefs.current.map?.({ latlng: { lat: e.lngLat.lat, lng: e.lngLat.lng } })
+      onClickRefs.current.map?.({ latlng: onRealWorld({ lat: e.lngLat.lat, lng: e.lngLat.lng }) })
     })
     // Emit the viewport (pan/zoom + once on first idle) for the POI-explore pill.
     const emitViewport = () => reportGlViewport(map, onViewportChangeRef.current)
@@ -1376,7 +1378,8 @@ export function MapViewGL({
       // timer — dedupe so the form doesn't open twice.
       if (Date.now() - lastContextFire < 700) return false
       lastContextFire = Date.now()
-      onClickRefs.current.context?.({ latlng: { lat: lngLat.lat, lng: lngLat.lng }, originalEvent })
+      // A right-click on a repeated world copy still means the place on the real world (#2976).
+      onClickRefs.current.context?.({ latlng: onRealWorld({ lat: lngLat.lat, lng: lngLat.lng }), originalEvent })
       return true
     }
     // MapLibre swallows the map contextmenu at the end of a right-button
@@ -1982,7 +1985,9 @@ export function MapViewGL({
     const fitPoints = routeCoords.length > 0 ? [...routeCoords, ...markerPoints] : markerPoints
     if (fitPoints.length === 0) return
     const bounds = new gl.LngLatBounds()
-    fitPoints.forEach(([lat, lng]) => bounds.extend([lng, lat]))
+    // The short way across the antimeridian, as the focus fit below does: a day
+    // from Los Angeles to Auckland frames the Pacific, not the rest of the world (#2975).
+    alongShortestArc(fitPoints).forEach(([lat, lng]) => bounds.extend([lng, lat]))
     let fitted = false
     const run = () => {
       try {

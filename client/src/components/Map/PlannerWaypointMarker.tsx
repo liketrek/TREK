@@ -1,6 +1,9 @@
 import L from 'leaflet';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Marker, Tooltip, useMap } from 'react-leaflet';
+import { frameLng } from '../../utils/lngFrame';
+import { onRealWorld } from '../../utils/worldCopy';
+import { useLngFrame } from './lngFrameContext';
 import { MAP_LABEL_BADGE_CLASS } from './mapHoverLabel';
 import { plannerPinBadge, plannerPinShape, type PlannerPinPoint } from './plannerPinShape';
 import { wirePlannerWaypointDrag } from './plannerWaypointDrag';
@@ -45,7 +48,11 @@ export default function PlannerWaypointMarker({
   useLayoutEffect(() => {
     handlersRef.current = { onClick, onMove };
   }, [onClick, onMove]);
-  const position = useMemo(() => [point.lat, point.lng] as [number, number], [point.lat, point.lng]);
+  const frame = useLngFrame();
+  const position = useMemo(
+    () => [point.lat, frameLng(frame, point.lng)] as [number, number],
+    [point.lat, point.lng, frame]
+  );
   const { label, shaping, stageEnd } = point;
   const icon = useMemo(
     () => plannerWaypointIcon(pinCss, { label, shaping, stageEnd }, index, selected, !!onMove),
@@ -67,7 +74,7 @@ export default function PlannerWaypointMarker({
     if (!element) return;
     return wirePlannerWaypointDrag({
       element,
-      initial: { lat: point.lat, lng: point.lng },
+      initial: { lat: position[0], lng: position[1] },
       coordinateAt: (clientX, clientY) => {
         const rect = map.getContainer().getBoundingClientRect();
         const at = map.containerPointToLatLng([clientX - rect.left, clientY - rect.top]);
@@ -76,9 +83,13 @@ export default function PlannerWaypointMarker({
       setPosition: ({ lat, lng }) => {
         marker.setLatLng([lat, lng]);
       },
-      onCommit: ({ lat, lng }) => handlersRef.current.onMove?.(point.id, lat, lng) ?? false,
+      // Saved on the real world, whichever copy of it the pin was dragged on (#2976).
+      onCommit: (at) => {
+        const { lat, lng } = onRealWorld(at);
+        return handlersRef.current.onMove?.(point.id, lat, lng) ?? false;
+      },
     });
-  }, [map, marker, onMove, point.id, point.lat, point.lng]);
+  }, [map, marker, onMove, point.id, position]);
 
   return (
     <Marker

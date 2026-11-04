@@ -3,6 +3,7 @@ import type { CollectionPlaces } from '../entities/CollectionPlaces.entity';
 import type { DB } from '../kysely/db';
 import type { CollectionPlaceRow } from './Collections.repository';
 import { TrekRepository } from './_shared/trek-repository';
+import { wrapOptionalLongitude } from '@trek/shared';
 
 /**
  * `collection_places` (Plan 3h Task 2, part B — saved places CRUD, dedup,
@@ -115,7 +116,7 @@ export class CollectionPlacesRepository extends TrekRepository<CollectionPlaces>
       name: row.name,
       description: row.description,
       lat: row.lat,
-      lng: row.lng,
+      lng: wrapOptionalLongitude(row.lng),
       address: row.address,
       category: row.category_id,
       price: row.price,
@@ -181,6 +182,7 @@ export class CollectionPlacesRepository extends TrekRepository<CollectionPlaces>
       { id },
       {
         ...rest,
+        ...(rest.lng !== undefined ? { lng: wrapOptionalLongitude(rest.lng) } : {}),
         ...(category_id !== undefined ? { category: category_id } : {}),
         ...(collection_id !== undefined ? { collection: collection_id } : {}),
         ...(owner_id !== undefined ? { owner: owner_id } : {}),

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
 import { pluginsApi, type PluginMapMarker } from '../../api/client'
+import { useLngFrame } from './lngFrameContext'
+import { frameLng } from '../../utils/lngFrame'
 
 /**
  * Host-rendered overlay for the `mapMarkerProvider` plugin hook (#587). A plugin
@@ -33,6 +35,8 @@ function markerIcon(tone: PluginMapMarker['tone']): L.DivIcon {
 
 export function PluginMapMarkers({ tripId }: { tripId?: number | string }) {
   const [markers, setMarkers] = useState<PluginMapMarker[]>([])
+  // Drawn in the map's longitude frame, with the trip (#2975).
+  const frame = useLngFrame()
 
   useEffect(() => {
     if (tripId == null) { setMarkers([]); return }
@@ -54,7 +58,7 @@ export function PluginMapMarkers({ tripId }: { tripId?: number | string }) {
   return (
     <>
       {markers.map(mk => (
-        <Marker key={`${mk.pluginId}:${mk.id}`} position={[mk.lat, mk.lng]} icon={icons.get(mk.tone)!}>
+        <Marker key={`${mk.pluginId}:${mk.id}`} position={[mk.lat, frameLng(frame, mk.lng)]} icon={icons.get(mk.tone)!}>
           {(mk.label || mk.popupText || mk.url) && (
             <Popup>
               <div style={{ minWidth: 120, fontSize: 13 }}>

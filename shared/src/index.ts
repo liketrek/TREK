@@ -111,6 +111,7 @@ export * from './wanderer/wanderer.schema';
 export * from './wanderer/wanderer-watch.schema';
 export * from './wanderer/wanderer-mcp.schema';
 export * from './geo/haversine';
+export * from './geo/longitude';
 export * from './collection/collection.schema';
 export * from './collection/collection-file.schema';
 export * from './trip/trip.schema';

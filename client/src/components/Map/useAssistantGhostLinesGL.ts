@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 
 import type { AssistantRouteLine } from '../../types/assistantMap';
+import { onRealWorld } from '../../utils/worldCopy';
 import { mapHoverLabel } from './mapHoverLabel';
 import { PLACE_CLUSTER_CIRCLE_LAYER_ID, PLACE_CLUSTER_COUNT_LAYER_ID } from './placeClusterLayers';
 
@@ -245,12 +246,15 @@ export function useAssistantGhostLinesGL({ mapRef, mapReady, lines, onHover, onP
         return;
       }
       handlers.current.onHover?.(ref);
-      handlers.current.onPoint?.(ref, event.lngLat.lat, event.lngLat.lng);
+      const at = onRealWorld(event.lngLat);
+      handlers.current.onPoint?.(ref, at.lat, at.lng);
     };
     const leave = () => handlers.current.onHover?.(null);
     const click = (event: LayerEvent) => {
       const ref = refOf(event);
-      if (ref !== null && !onPlanPin(map, event)) handlers.current.onPoint?.(ref, event.lngLat.lat, event.lngLat.lng);
+      if (ref === null || onPlanPin(map, event)) return;
+      const at = onRealWorld(event.lngLat);
+      handlers.current.onPoint?.(ref, at.lat, at.lng);
     };
     const stop = (event: LayerEvent) => {
       const name = event.features?.[0]?.properties?.label;

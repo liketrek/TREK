@@ -50,7 +50,7 @@ import { useTransportRoutes } from '../../hooks/useTransportRoutes'
 import { visibleRouteReservations } from '../../utils/reservationRoutes'
 import { safeHexColor } from '../../utils/safeColor'
 import { placeMarkerLook } from './markerLook'
-import { escapeHtml } from '@trek/shared'
+import { escapeHtml, wrapLongitude } from '@trek/shared'
 import type { Day, Place, Reservation, RouteVia } from '../../types'
 import type { MapHoverInfo } from './mapHover'
 import { nightPauseMarker, NIGHT_PAUSE_MIN_ZOOM } from './nightPauseMarker'
@@ -121,7 +121,8 @@ function RouteViaMarker({ via, controls, eventHandlers, children }: {
   via: RouteVia; controls?: DayBoundaryControls; eventHandlers?: L.LeafletEventHandlerFnMap; children?: React.ReactNode
 }) {
   const [marker, setMarker] = useState<L.Marker | null>(null)
-  return <Marker ref={setMarker} position={[via.lat, via.lng]} icon={via.nightPause ? nightPauseIcon(via) : routeViaIcon(via.tone)}
+  const frame = useLngFrame()
+  return <Marker ref={setMarker} position={[via.lat, frameLng(frame, via.lng)]} icon={via.nightPause ? nightPauseIcon(via) : routeViaIcon(via.tone)}
     alt={via.nightPause ? via.label : undefined} zIndexOffset={800} eventHandlers={eventHandlers}>
     {children}
     {via.nightPause && <NightPauseDrag marker={marker} via={via} controls={controls} />}
@@ -320,7 +321,7 @@ function PoiDropTarget({ onPoiDropOnRoute }: { onPoiDropOnRoute?: (osmId: string
       if (!osmId) return
       e.preventDefault()
       const rect = container.getBoundingClientRect()
-      const at = map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top])
+      const at = onRealWorld(map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]))
       onPoiDropOnRoute(osmId, at.lat, at.lng)
     }
     container.addEventListener('dragover', onDragOver)
@@ -341,7 +342,8 @@ function ViewportController({ onViewportChange }: { onViewportChange?: MapViewPr
     if (!onViewportChange) return
     const emit = () => {
       const b = map.getBounds()
-      onViewportChange({ south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() }, map.getZoom())
+      // A view of a world copy (or of a trip drawn past the antimeridian) asks for the real places there.
+      onViewportChange(bboxOnRealWorld({ south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() }), map.getZoom())
     }
     map.whenReady(emit) // ensure the first bbox is captured once the map is laid out
     map.on('moveend', emit)
@@ -377,6 +379,7 @@ interface SelectionControllerProps {
 
 function SelectionController({ follow, places, selectedPlaceId, dayPlaces, selectedPlace, paddingOpts }: SelectionControllerProps) {
   const map = useMap()
+  const frame = useLngFrame()
   const prev = useRef(null)
 
   useEffect(() => {
@@ -387,7 +390,7 @@ function SelectionController({ follow, places, selectedPlaceId, dayPlaces, selec
       // would cover it). Reuses the same paddingOpts the fit-bounds path uses.
       const selected = selectedPlaceTarget(selectedPlaceId, places, dayPlaces, selectedPlace)
       if (selected?.lat != null && selected?.lng != null) {
-        const latlng: [number, number] = [selected.lat, selected.lng]
+        const latlng: [number, number] = [selected.lat, frameLng(frame, selected.lng)]
         const tl = paddingOpts.paddingTopLeft as [number, number] | undefined
         const br = paddingOpts.paddingBottomRight as [number, number] | undefined
         if (tl && br && typeof map.project === 'function' && typeof map.unproject === 'function') {
@@ -399,7 +402,7 @@ function SelectionController({ follow, places, selectedPlaceId, dayPlaces, selec
       }
     }
     prev.current = selectedPlaceId
-  }, [selectedPlaceId, places, dayPlaces, selectedPlace, map, follow])
+  }, [selectedPlaceId, places, dayPlaces, selectedPlace, map, follow, frame])
 
   return null
 }
@@ -409,16 +412,39 @@ interface MapControllerProps {
   zoom: number
 }
 
+/**
+ * Moves the view along when the longitude frame changes under it (#2975): the trip
+ * is then drawn one world further east or west, and a view left where it was would
+ * look at an empty copy. One jump of a whole world, so nothing on screen changes.
+ */
+function LngFrameFollower() {
+  const map = useMap()
+  const frame = useLngFrame()
+  const prev = useRef<LngFrame | null>(frame)
+  useEffect(() => {
+    const before = prev.current
+    prev.current = frame
+    if (before === frame || typeof map.getCenter !== 'function') return
+    const center = map.getCenter()
+    // Without a frame the trip is back on the real world, and so is the view.
+    const target = frame ? frameLng(frame, center.lng) : wrapLongitude(center.lng)
+    const shift = target - center.lng
+    if (shift !== 0) map.setView([center.lat, target], map.getZoom(), { animate: false })
+  }, [frame, map])
+  return null
+}
+
 function MapController({ center, zoom }: MapControllerProps) {
   const map = useMap()
+  const frame = useLngFrame()
   const prevCenter = useRef(center)
 
   useEffect(() => {
     if (prevCenter.current[0] !== center[0] || prevCenter.current[1] !== center[1]) {
-      map.setView(center, zoom)
+      map.setView([center[0], frameLng(frame, center[1])], zoom)
       prevCenter.current = center
     }
-  }, [center, zoom, map])
+  }, [center, zoom, map, frame])
 
   return null
 }
@@ -456,10 +482,12 @@ function BoundsController({ places, routeCoords, fitKey, paddingOpts, framedOnMo
   const prevFocusKey = useRef(focusKey)
   const built = useRef(false)
 
+  const frame = useLngFrame()
   const fitTo = useCallback((coords: [number, number][], padding: L.FitBoundsOptions = paddingOpts) => {
     if (coords.length === 0) return
     try {
-      const bounds = L.latLngBounds(coords)
+      // In the map's longitude frame, so a trip across the Pacific is framed across the Pacific (#2975).
+      const bounds = L.latLngBounds(frame ? coords.map(([lat, lng]) => [lat, frameLng(frame, lng)] as [number, number]) : coords)
       if (bounds.isValid()) {
         /*
          * The padding already reserves the day panel's height at the bottom
@@ -478,7 +506,7 @@ function BoundsController({ places, routeCoords, fitKey, paddingOpts, framedOnMo
         map.fitBounds(bounds, { maxZoom: 16, animate: true, ...padding })
       }
     } catch {}
-  }, [map, paddingOpts])
+  }, [map, paddingOpts, frame])
 
   // New fitKey (initial trip fit or a day selection): fit to the destinations now
   // and arm a one-shot re-fit for when the route arrives.
@@ -561,12 +589,23 @@ function TrackCasingPane({ onReady }: { onReady: (ready: boolean) => void }) {
   return null
 }
 
+/**
+ * The event as the map reports it, with its point moved from a repeated world copy
+ * back onto the real world: a right-click on the copy east of it said 274.9 for
+ * -85.1, and the place was saved there (#2976).
+ */
+function onRealWorldEvent(e: L.LeafletMouseEvent): L.LeafletMouseEvent {
+  const lng = wrapLongitude(e.latlng.lng)
+  return lng === e.latlng.lng ? e : { ...e, latlng: L.latLng(e.latlng.lat, lng) }
+}
+
 function MapClickHandler({ onClick }: MapClickHandlerProps) {
   const map = useMap()
   useEffect(() => {
     if (!onClick) return
-    map.on('click', onClick)
-    return () => { map.off('click', onClick) }
+    const handle = (e: L.LeafletMouseEvent) => onClick(onRealWorldEvent(e))
+    map.on('click', handle)
+    return () => { map.off('click', handle) }
   }, [map, onClick])
   return null
 }
@@ -575,8 +614,9 @@ function MapContextMenuHandler({ onContextMenu }: { onContextMenu: ((e: L.Leafle
   const map = useMap()
   useEffect(() => {
     if (!onContextMenu) return
-    map.on('contextmenu', onContextMenu)
-    return () => { map.off('contextmenu', onContextMenu) }
+    const handle = (e: L.LeafletMouseEvent) => onContextMenu(onRealWorldEvent(e))
+    map.on('contextmenu', handle)
+    return () => { map.off('contextmenu', handle) }
   }, [map, onContextMenu])
   return null
 }
@@ -594,9 +634,15 @@ import { useIsPhone } from '../../mobile/useIsPhone'
 // identically. Heading is shown as a rotated conic SVG when available.
 import type { GeoPosition, TrackingMode } from '../../hooks/useGeolocation'
 import { selectedPlaceTarget } from './selectedPlaceTarget'
+import { LngFrameProvider, useLngFrame, useTripLngFrame } from './lngFrameContext'
+import { frameLine, frameLng, type LngFrame } from '../../utils/lngFrame'
+import { bboxOnRealWorld, onRealWorld } from '../../utils/worldCopy'
 
-function LeafletLocationLayer({ position, mode }: { position: GeoPosition | null; mode: TrackingMode }) {
+function LeafletLocationLayer({ position: fix, mode }: { position: GeoPosition | null; mode: TrackingMode }) {
   const map = useMap()
+  const frame = useLngFrame()
+  // Drawn on the trip's world copy (#2975); every field but the longitude is the fix itself.
+  const position = useMemo(() => (fix && frame ? { ...fix, lng: frameLng(frame, fix.lng) } : fix), [fix, frame])
 
   // When the user is in follow mode, keep the map centred on the dot.
   // setView (no animation) is what Google Maps does during navigation —
@@ -711,7 +757,8 @@ const MemoMarker = memo(function MemoMarker({
   // differs, and the cluster group answers a moved child by taking it out and putting
   // it back — which collapses an open fan. A fresh array literal here did that on
   // every render the marker took part in.
-  const position = useMemo<[number, number]>(() => [place.lat, place.lng], [place.lat, place.lng])
+  const frame = useLngFrame()
+  const position = useMemo<[number, number]>(() => [place.lat, frameLng(frame, place.lng)], [place.lat, place.lng, frame])
   const register = useCallback((marker: unknown) => { onRegister(place.id, marker) }, [onRegister, place.id])
   return (
     <Marker
@@ -835,11 +882,15 @@ export const MapView = memo(function MapView({
    */
   const isGcjBasemap = !tourRaster && basemap.kind === 'raster' && isGcj02Basemap(basemap.url)
   const gcjCrs = useMemo(() => crsForBasemap(isGcjBasemap), [isGcjBasemap])
+  // Leaflet draws a layer on one world copy only, so a trip across the antimeridian is
+  // drawn in a longitude frame that keeps it on one copy (#2975). Null for every other
+  // trip, and then each layer below draws exactly what it always drew.
+  const lngFrame = useTripLngFrame(places, dayPlaces, reservations)
   const poiMarkers = useMemo(() => (pois as Poi[]).map((poi: Poi) => (
     <Marker
       key={`poi-${poi.osm_id}`}
       alt={poi.name}
-      position={[poi.lat, poi.lng]}
+      position={[poi.lat, frameLng(lngFrame, poi.lng)]}
       icon={createPoiIcon(poi, poi.brand_wikidata)}
       zIndexOffset={500}
       eventHandlers={{
@@ -858,7 +909,7 @@ export const MapView = memo(function MapView({
     >
       <Tooltip direction="top" offset={[0, -10]} opacity={1} className="map-tooltip"><PoiTooltipBody poi={poi} /></Tooltip>
     </Marker>
-  )), [pois, onPoiClick, onPoiDropOnRoute])
+  )), [pois, onPoiClick, onPoiDropOnRoute, lngFrame])
   const visibleReservations = useMemo(() => (
     visibleRouteReservations(reservations, { visibleConnectionIds, showTransitRoutes, selectedDayId, days, scopeConnectionsToDay })
   ), [reservations, visibleConnectionIds, showTransitRoutes, selectedDayId, days, scopeConnectionsToDay])
@@ -892,8 +943,11 @@ export const MapView = memo(function MapView({
     const framed = computeMapViewport(dayPlaces.length > 0 ? dayPlaces : places, {
       tileSize: TILE_SIZE_RASTER,
       padding: paddingBox,
+      // With a longitude frame the trip lies on one copy, so it can be framed the short way.
+      wrapsWorld: lngFrame !== null,
     })
-    return { center: framed?.center ?? center, zoom: framed?.zoom ?? zoom, framed: framed !== null }
+    const opening: [number, number] | undefined = framed ? [framed.center[0], frameLng(lngFrame, framed.center[1])] : undefined
+    return { center: opening ?? center, zoom: framed?.zoom ?? zoom, framed: framed !== null }
   })
   const cameraSnapshotRef = useRef<{ center: [number, number]; zoom: number } | null>(null)
   const saveCameraSnapshot = useCallback((cameraCenter: [number, number], cameraZoom: number) => {
@@ -947,7 +1001,8 @@ export const MapView = memo(function MapView({
 
   // Flattened [lat,lng] points of the selected day's route, so the bounds fit can
   // include the full polyline once it has been computed.
-  const routeCoords = useMemo<[number, number][]>(() => (route || []).flat() as [number, number][], [route])
+  const framedRoute = useMemo(() => (lngFrame && route ? route.map(seg => frameLine(lngFrame, seg)) : route), [route, lngFrame])
+  const routeCoords = useMemo<[number, number][]>(() => (framedRoute || []).flat() as [number, number][], [framedRoute])
   const photoUrls = useMarkerThumbs(places)
 
   const isTouchDevice = typeof window !== 'undefined' && navigator.maxTouchPoints > 0
@@ -1015,9 +1070,9 @@ export const MapView = memo(function MapView({
   const gpxTracks = useMemo(() => places.flatMap(place => {
     const geometry = parseRenderableRouteGeometry(place.route_geometry)
     if (!geometry) return []
-    const coords: [number, number][] = geometry.map(([lat, lng]) => [lat, lng])
+    const coords: [number, number][] = frameLine(lngFrame, geometry.map(([lat, lng]) => [lat, lng] as [number, number]))
     return [{ place, coords, cased: hasManualTrackColor(place), color: resolveTrackColor(place) }]
-  }), [places])
+  }), [places, lngFrame])
 
   // Keeps the click handler out of the track lines' memo (TrackLines): `handleMarkerClick`
   // changes on every selection, and depending on it would redraw all tracks.
@@ -1053,6 +1108,7 @@ export const MapView = memo(function MapView({
   return (
     <>
     <div className="w-full h-full relative">
+    <LngFrameProvider value={lngFrame}>
     <MapContainer
       // The datum is in the element's identity, because react-leaflet builds the
       // map once and Leaflet cannot change a CRS afterwards. Settings can arrive
@@ -1125,6 +1181,8 @@ export const MapView = memo(function MapView({
         />
       )}
 
+      {/* First, so a fit or a camera request in the same commit starts from the trip's world copy. */}
+      <LngFrameFollower />
       <MapController center={center} zoom={zoom} />
       {hasViewBaseLayer && <MapCameraSnapshot onChange={saveCameraSnapshot} />}
       <BoundsController places={dayPlaces.length > 0 ? dayPlaces : places} routeCoords={dayPlaces.length > 0 ? routeCoords : []} fitKey={fitKey} paddingOpts={paddingOpts} framedOnMount={initialView.framed} focusPoints={focusPoints} focusKey={focusKey} fitPadding={fitPadding} follow={followSelection} />
@@ -1142,7 +1200,7 @@ export const MapView = memo(function MapView({
 
       {/* Apple-Maps style: darker-blue casing under a bright-blue core, rounded.
           When the route can be reshaped an invisible band wider than both takes the click. */}
-      {route && route.length > 0 && route.flatMap((seg, i) => seg.length < 2 ? [] : routeWalking?.[i] ? [
+      {framedRoute && framedRoute.length > 0 && framedRoute.flatMap((seg, i) => seg.length < 2 ? [] : routeWalking?.[i] ? [
         // Walked, so dashed and without the casing: the drive is the solid line (#2532).
         <Polyline
           key={`${i}-walk`}
@@ -1174,7 +1232,7 @@ export const MapView = memo(function MapView({
       {(accessLines ?? []).map((spur, i) => (
         <Polyline
           key={`access-${i}`}
-          positions={spur.line}
+          positions={frameLine(lngFrame, spur.line)}
           pathOptions={{ color: '#0a84ff', weight: 3, opacity: 0.85, dashArray: '2 7', lineCap: 'round' }}
           interactive={false}
         />
@@ -1190,13 +1248,13 @@ export const MapView = memo(function MapView({
         return [
           <Polyline
             key={`alt-${alt.index}-casing`}
-            positions={alt.coordinates}
+            positions={frameLine(lngFrame, alt.coordinates)}
             pathOptions={{ color: ALT_CASING, weight: active ? 9 : 8, opacity: 0.9, lineCap: 'round', lineJoin: 'round' }}
             interactive={false}
           />,
           <Polyline
             key={`alt-${alt.index}`}
-            positions={alt.coordinates}
+            positions={frameLine(lngFrame, alt.coordinates)}
             pathOptions={{
               color: alt.color,
               weight: active ? 6 : 4,
@@ -1213,7 +1271,7 @@ export const MapView = memo(function MapView({
           // The drive time on the road itself, the way Apple labels them.
           <Marker
             key={`alt-${alt.index}-label`}
-            position={[alt.at.lat, alt.at.lng]}
+            position={[alt.at.lat, frameLng(lngFrame, alt.at.lng)]}
             zIndexOffset={600}
             icon={alternativeLabelIcon(alt.label, alt.note, alt.labelBg, active)}
             eventHandlers={onChooseAlternative ? {
@@ -1249,7 +1307,7 @@ export const MapView = memo(function MapView({
 
       {routeProfileFocus && (
         <CircleMarker
-          center={[routeProfileFocus.lat, routeProfileFocus.lng]}
+          center={[routeProfileFocus.lat, frameLng(lngFrame, routeProfileFocus.lng)]}
           radius={8}
           pathOptions={{ className: 'tour-profile-focus-marker', color: 'var(--bg-card)', weight: 3, fillColor: 'var(--text-muted)', fillOpacity: 1 }}
           interactive={false}
@@ -1301,6 +1359,7 @@ export const MapView = memo(function MapView({
       <AssistantMapLeaflet assistant={assistant} padding={paddingBox} markerEl={assistantMarkerEl} />
       <PluginMapLayers tripId={tripId} />
     </MapContainer>
+    </LngFrameProvider>
     {isMobile && <LocationButton
       mode={trackingMode}
       error={trackingError}

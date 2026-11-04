@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { greatCircle, unwrapLngs, geodesicArcs } from './flightGeodesy'
+import { tripLngFrame } from '../../utils/lngFrame'
 
 const YVR: [number, number] = [49.19, -123.18]
 const ICN: [number, number] = [37.46, 126.44]
@@ -59,5 +60,31 @@ describe('flightGeodesy (#1411)', () => {
   it('unwrapLngs keeps already-continuous input unchanged', () => {
     const pts: [number, number][] = [[0, 170], [0, 175], [0, 179]]
     expect(unwrapLngs(pts)).toEqual(pts)
+  })
+})
+
+describe('flightGeodesy in a longitude frame (#2975)', () => {
+  const LAX: [number, number] = [33.94, -118.41]
+  const AKL: [number, number] = [-37.01, 174.79]
+  const frame = tripLngFrame([LAX[1], AKL[1]])
+
+  it('draws LAX to Auckland as one arc on one world copy, between the two pins as the frame places them', () => {
+    expect(frame).not.toBeNull()
+    const arcs = geodesicArcs([LAX[0], LAX[1] + 360], AKL, true, frame)
+    expect(arcs).toHaveLength(1)
+    const [arc] = arcs
+    expect(maxConsecutiveDeltaLng(arc)).toBeLessThan(180)
+    expect(arc[0][1]).toBeCloseTo(LAX[1] + 360, 5)
+    expect(arc[arc.length - 1][1]).toBeCloseTo(AKL[1], 5)
+  })
+
+  it('still copies an arc that leaves the frame, so both of its ends keep a line', () => {
+    const arcs = geodesicArcs(FRA, JFK, true, { seam: -30 })
+    expect(arcs).toHaveLength(2)
+    expect(arcs[1][0][1]).toBeCloseTo(arcs[0][0][1] + 360, 10)
+  })
+
+  it('without a frame draws what it drew before', () => {
+    expect(geodesicArcs(YVR, ICN, true, null)).toEqual(geodesicArcs(YVR, ICN, true))
   })
 })

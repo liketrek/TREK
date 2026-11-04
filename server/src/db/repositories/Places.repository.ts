@@ -1,4 +1,5 @@
 import type { Places } from '../entities/Places.entity';
+import { wrapOptionalLongitude } from '@trek/shared';
 import { absDifference, coalesceParam, columnRef, currentTimestamp, lowerTrim } from '../dialect/sql-functions';
 import { type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
@@ -386,7 +387,7 @@ export class PlacesRepository extends TrekRepository<Places> {
       name: input.name,
       description: input.description,
       lat: input.lat,
-      lng: input.lng,
+      lng: wrapOptionalLongitude(input.lng),
       address: input.address,
       category: input.category_id,
       price: input.price,
@@ -466,7 +467,7 @@ export class PlacesRepository extends TrekRepository<Places> {
       name: write.name,
       description: write.description,
       lat: write.lat,
-      lng: write.lng,
+      lng: wrapOptionalLongitude(write.lng),
       address: write.address,
       category: write.category_id,
       price: write.price,
@@ -963,7 +964,7 @@ export class PlacesRepository extends TrekRepository<Places> {
       name: input.name,
       description: input.description,
       lat: input.lat,
-      lng: input.lng,
+      lng: wrapOptionalLongitude(input.lng),
       address: input.address,
       category: input.category_id,
       price: input.price,
@@ -1338,7 +1339,7 @@ export class PlacesRepository extends TrekRepository<Places> {
       trip: input.trip_id,
       name: input.name,
       lat: input.lat,
-      lng: input.lng,
+      lng: wrapOptionalLongitude(input.lng),
       transport_mode: 'walking',
       route_geometry: input.route_geometry,
       description: input.description ?? null,
@@ -1360,7 +1361,7 @@ export class PlacesRepository extends TrekRepository<Places> {
       {
         name: input.name,
         lat: input.lat,
-        lng: input.lng,
+        lng: wrapOptionalLongitude(input.lng),
         transport_mode: 'walking',
         route_geometry: input.route_geometry,
         ...tourPlaceTextPatch(input),

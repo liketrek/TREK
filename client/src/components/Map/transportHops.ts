@@ -7,6 +7,7 @@
 import { Bike, Bus, CableCar, Car, CarTaxiFront, Plane, Route, Sailboat, Ship, Train, TramFront } from 'lucide-react';
 import type { Reservation, ReservationEndpoint } from '../../types';
 import { haversineKm } from '../../utils/geo';
+import { frameLine, frameLng, type LngFrame } from '../../utils/lngFrame';
 import { geodesicArcs } from './flightGeodesy';
 
 export type TransportType =
@@ -144,14 +145,17 @@ export interface TransportHop {
  * antimeridian also gets a copy shifted by 360 degrees: Leaflet needs that, while a
  * GL map repeats features across world copies itself, so there one continuous arc
  * is enough (a shifted duplicate would sit on the wrapped copy and double the opacity).
+ * `frame` is Leaflet's longitude frame (#2975): the arcs and the waypoints come back
+ * drawn in it, so a pin and the line that ends at it are on the same world copy.
  */
-export function transportHop(r: Reservation, wrapArcs: boolean): TransportHop | null {
+export function transportHop(r: Reservation, wrapArcs: boolean, frame: LngFrame | null = null): TransportHop | null {
   if (!TRANSPORT_TYPES.includes(r.type as TransportType)) return null;
   // Ordered waypoints (from · stops · to). A single-leg booking has exactly two.
-  const waypoints = (r.endpoints || [])
+  const sorted = (r.endpoints || [])
     .filter((e) => e.role === 'from' || e.role === 'to' || e.role === 'stop')
     .slice()
     .sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0));
+  const waypoints = frame ? sorted.map((e) => ({ ...e, lng: frameLng(frame, e.lng) })) : sorted;
   if (waypoints.length < 2) return null;
   const from = waypoints[0];
   const to = waypoints[waypoints.length - 1];
@@ -164,12 +168,12 @@ export function transportHop(r: Reservation, wrapArcs: boolean): TransportHop | 
     const a = waypoints[i];
     const b = waypoints[i + 1];
     const segArcs = isGeo
-      ? geodesicArcs([a.lat, a.lng], [b.lat, b.lng], wrapArcs)
+      ? geodesicArcs([a.lat, a.lng], [b.lat, b.lng], wrapArcs, frame)
       : [
-          [
+          frameLine(frame, [
             [a.lat, a.lng],
             [b.lat, b.lng],
-          ] as [number, number][],
+          ] as [number, number][]),
         ];
     arcs.push(...segArcs);
     distanceKm += haversineKm(a, b);

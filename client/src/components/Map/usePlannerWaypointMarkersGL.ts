@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 
+import { onRealWorld } from '../../utils/worldCopy';
 import { bindPinHoverLabel, mapHoverLabel } from './mapHoverLabel';
 import type { MapViewProps } from './mapViewContract';
 import { plannerPinBadge, plannerPinShape } from './plannerPinShape';
@@ -102,7 +103,7 @@ export function usePlannerWaypointMarkersGL<Pin extends PlannerWaypointPin>({
             coordinateAt: (clientX, clientY) => {
               const rect = map.getContainer().getBoundingClientRect();
               const at = map.unproject([clientX - rect.left, clientY - rect.top]);
-              return { lat: at.lat, lng: at.lng };
+              return onRealWorld({ lat: at.lat, lng: at.lng });
             },
             setPosition: ({ lat, lng }) => pin.setLngLat([lng, lat]),
             onCommit: ({ lat, lng }) =>
