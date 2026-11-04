@@ -61,7 +61,7 @@ const reservations: TranslationStrings = {
   'reservations.type.car': 'Auto',
   'reservations.type.cruise': 'Crociera',
   'reservations.type.event': 'Evento',
-  'reservations.type.tour': 'Tour', // same-as-en
+  'reservations.type.tour': 'Visita guidata',
   'reservations.type.parking': 'Parcheggio',
   'reservations.type.other': 'Altro',
   'reservations.type.bus': 'Autobus',

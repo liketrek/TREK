@@ -7,7 +7,8 @@ const tours: TranslationStrings = {
   'tours.mode.label': 'Zobrazenie pridávania',
   'tours.title': 'Túry',
   'tours.empty.title': 'Zatiaľ žiadne túry',
-  'tours.empty.body': 'Začnite plánovaním túry alebo importom súboru GPX či KML.',
+  'tours.empty.body':
+    'Začnite plánovaním túry alebo importom súboru GPX či KML. Rezervovali ste si prehliadku so sprievodcom? Tá patrí do Rezervácií.',
   'tours.addToDay': 'Pridať k dňu',
   'tours.badge.wanderer': 'wanderer',
   'tours.badge.gpx': 'Import GPX',

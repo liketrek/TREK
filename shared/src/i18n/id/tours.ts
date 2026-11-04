@@ -7,7 +7,8 @@ const tours: TranslationStrings = {
   'tours.mode.label': 'Tampilan penambahan',
   'tours.title': 'Tur',
   'tours.empty.title': 'Belum ada tur',
-  'tours.empty.body': 'Rencanakan tur atau impor berkas GPX atau KML untuk memulai.',
+  'tours.empty.body':
+    'Rencanakan tur atau impor berkas GPX atau KML untuk memulai. Sudah memesan tur berpemandu? Itu masuk ke Pemesanan.',
   'tours.addToDay': 'Tambahkan ke hari',
   'tours.badge.wanderer': 'wanderer',
   'tours.badge.gpx': 'Impor GPX',

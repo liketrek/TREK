@@ -3524,7 +3524,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.summary':
     'Cet onglet regroupe tout ce qui est réservé pour le voyage, hors transports : hébergements, tables, billets, visites et parkings. Chaque réservation est une carte, une ligne de liste ou une barre sur la chronologie, avec son code, ses documents, ses voyageurs et son coût. Cliquez sur une réservation pour ouvrir ses détails.',
   'help.ctx.trip-bookings.bullet.1':
-    '« Réservation manuelle », tout à droite de la barre, ouvre « Nouvelle réservation ». Elle permet de créer six types de réservation : « Hébergement », Restaurant, « Événement », « Visite », Parking et « Autre ». Les vols, trains et autres transports se trouvent dans l’onglet « Transports » et n’apparaissent jamais ici.',
+    '« Réservation manuelle », tout à droite de la barre, ouvre « Nouvelle réservation ». Elle permet de créer six types de réservation : « Hébergement », Restaurant, « Événement », « Visite guidée », Parking et « Autre ». Les vols, trains et autres transports se trouvent dans l’onglet « Transports » et n’apparaissent jamais ici.',
   'help.ctx.trip-bookings.bullet.2':
     'L’icône de téléchargement devant « Réservation manuelle », « Importer des confirmations de réservation », importe des confirmations que TREK lit automatiquement : EML, PDF, PKPass, HTML ou TXT, cinq fichiers de 10 Mo maximum, ainsi que des photos si le modèle d’IA sait lire les images. L’icône n’apparaît que si le serveur peut les lire.',
   'help.ctx.trip-bookings.bullet.3':
@@ -3566,7 +3566,7 @@ const help: TranslationStrings = {
   'help.guide.create-booking.step.1':
     "Cliquez sur « Réservation manuelle » à droite de la barre. « Nouvelle réservation » s'ouvre, avec le titre et deux pastilles dans un en-tête en haut.",
   'help.guide.create-booking.step.2':
-    "Cliquez sur l'étiquette de type dans le bandeau du haut, qui indique « Autre » sur une nouvelle réservation, et choisissez le « Type de réservation ». Cet onglet crée six types : « Hébergement », « Restaurant », « Événement », « Visite », « Parking » et « Autre ». Le formulaire s'adapte à votre choix : seul « Hébergement » utilise une plage de jours au lieu de dates.",
+    "Cliquez sur l'étiquette de type dans le bandeau du haut, qui indique « Autre » sur une nouvelle réservation, et choisissez le « Type de réservation ». Cet onglet crée six types : « Hébergement », « Restaurant », « Événement », « Visite guidée », « Parking » et « Autre ». Le formulaire s'adapte à votre choix : seul « Hébergement » utilise une plage de jours au lieu de dates.",
   'help.guide.create-booking.step.3':
     "Saisissez le titre dans le bandeau du haut, le champ situé au-dessus des pastilles. C'est le seul champ obligatoire, et « Ajouter » reste grisé tant qu'il est vide.",
   'help.guide.create-booking.step.4':

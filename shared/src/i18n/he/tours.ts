@@ -7,7 +7,7 @@ const tours: TranslationStrings = {
   'tours.mode.label': 'הוספת תצוגה',
   'tours.title': 'מסלולים',
   'tours.empty.title': 'עדיין אין מסלולים',
-  'tours.empty.body': 'תכננו מסלול או ייבאו קובץ GPX או KML כדי להתחיל.',
+  'tours.empty.body': 'תכננו מסלול או ייבאו קובץ GPX או KML כדי להתחיל. הזמנתם סיור מודרך? מקומו בהזמנות.',
   'tours.addToDay': 'הוספה ליום',
   'tours.badge.wanderer': 'wanderer',
   'tours.badge.gpx': 'ייבוא GPX',

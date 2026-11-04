@@ -7,7 +7,7 @@ const tours: TranslationStrings = {
   'tours.mode.label': 'عرض الإضافة',
   'tours.title': 'الجولات',
   'tours.empty.title': 'لا توجد جولات بعد',
-  'tours.empty.body': 'خطّط لجولة أو استورد ملف GPX أو KML للبدء.',
+  'tours.empty.body': 'خطّط لجولة أو استورد ملف GPX أو KML للبدء. حجزت جولة مع مرشد؟ مكانها في الحجوزات.',
   'tours.addToDay': 'إضافة إلى يوم',
   'tours.badge.wanderer': 'wanderer',
   'tours.badge.gpx': 'استيراد GPX',

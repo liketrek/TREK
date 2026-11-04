@@ -7,7 +7,7 @@ const tours: TranslationStrings = {
   'tours.mode.label': '添加视图',
   'tours.title': '游览',
   'tours.empty.title': '暂无游览活动',
-  'tours.empty.body': '规划游览路线或导入 GPX 或 KML 文件，即可开始。',
+  'tours.empty.body': '规划游览路线或导入 GPX 或 KML 文件，即可开始。已预订导览游？请放在“预订”里。',
   'tours.addToDay': '添加到某天',
   'tours.badge.wanderer': 'wanderer',
   'tours.badge.gpx': 'GPX 导入',

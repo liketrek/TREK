@@ -3477,7 +3477,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.summary':
     'Esta pestaña recoge todo lo reservado para el viaje salvo el transporte: alojamientos, mesas, entradas, visitas guiadas y aparcamientos. Cada reserva es una tarjeta, una fila de lista o una barra en la cronología, con su código, sus documentos, sus viajeros y su coste. Haz clic en una reserva para ver sus detalles.',
   'help.ctx.trip-bookings.bullet.1':
-    '«Reserva manual», en el extremo derecho de la barra, abre «Nueva reserva». Permite crear seis tipos de reservas: «Alojamiento», «Restaurante», «Evento», «Excursión», «Aparcamiento» y «Otros». Los vuelos, trenes y demás transportes están en la pestaña «Transportes» y nunca aparecen aquí.',
+    '«Reserva manual», en el extremo derecho de la barra, abre «Nueva reserva». Permite crear seis tipos de reservas: «Alojamiento», «Restaurante», «Evento», «Visita guiada», «Aparcamiento» y «Otros». Los vuelos, trenes y demás transportes están en la pestaña «Transportes» y nunca aparecen aquí.',
   'help.ctx.trip-bookings.bullet.2':
     'El icono de descarga delante de «Reserva manual», «Importar confirmaciones de reserva», sube confirmaciones para que TREK las lea automáticamente: EML, PDF, PKPass, HTML o TXT, hasta cinco archivos de 10 MB como máximo, y fotos si el modelo de IA puede leer imágenes. El icono solo aparece si el servidor puede leerlas.',
   'help.ctx.trip-bookings.bullet.3':
@@ -3519,7 +3519,7 @@ const help: TranslationStrings = {
   'help.guide.create-booking.step.1':
     'Haz clic en «Reserva manual», en el extremo derecho de la barra. Se abre «Nueva reserva», con el título y dos etiquetas en una cabecera arriba del todo.',
   'help.guide.create-booking.step.2':
-    'Haz clic en la etiqueta del tipo, en la franja superior, que en una reserva nueva pone «Otros», y elige el «Tipo de reserva». Desde esta pestaña se crean seis tipos: «Alojamiento», «Restaurante», «Evento», «Excursión», «Aparcamiento» y «Otros». El formulario cambia según lo que elijas: solo «Alojamiento» usa un rango de días en lugar de fechas.',
+    'Haz clic en la etiqueta del tipo, en la franja superior, que en una reserva nueva pone «Otros», y elige el «Tipo de reserva». Desde esta pestaña se crean seis tipos: «Alojamiento», «Restaurante», «Evento», «Visita guiada», «Aparcamiento» y «Otros». El formulario cambia según lo que elijas: solo «Alojamiento» usa un rango de días en lugar de fechas.',
   'help.guide.create-booking.step.3':
     'Escribe el título en la franja superior, el campo que hay encima de las etiquetas. Es el único campo obligatorio, y Añadir sigue en gris hasta que escribas algo.',
   'help.guide.create-booking.step.4':

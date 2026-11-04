@@ -7,7 +7,8 @@ const tours: TranslationStrings = {
   'tours.mode.label': 'Режим додавання',
   'tours.title': 'Тури',
   'tours.empty.title': 'Турів поки немає',
-  'tours.empty.body': 'Для початку сплануйте тур або імпортуйте файл GPX чи KML.',
+  'tours.empty.body':
+    'Для початку сплануйте тур або імпортуйте файл GPX чи KML. Забронювали екскурсію з гідом? Її місце в розділі «Бронювання».',
   'tours.addToDay': 'Додати до дня',
   'tours.badge.wanderer': 'wanderer',
   'tours.badge.gpx': 'Імпорт GPX',

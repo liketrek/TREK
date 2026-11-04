@@ -7,7 +7,8 @@ const tours: TranslationStrings = {
   'tours.mode.label': 'Ekleme görünümü',
   'tours.title': 'Turlar',
   'tours.empty.title': 'Henüz tur yok',
-  'tours.empty.body': 'Başlamak için bir tur planlayın veya GPX ya da KML dosyası içe aktarın.',
+  'tours.empty.body':
+    'Başlamak için bir tur planlayın veya GPX ya da KML dosyası içe aktarın. Rehberli bir tur mu ayırttınız? Onun yeri Rezervasyonlar bölümü.',
   'tours.addToDay': 'Güne ekle',
   'tours.badge.wanderer': 'wanderer',
   'tours.badge.gpx': 'GPX içe aktarımı',

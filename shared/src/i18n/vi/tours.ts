@@ -7,7 +7,8 @@ const tours: TranslationStrings = {
   'tours.mode.label': 'Chế độ thêm',
   'tours.title': 'Chuyến tham quan',
   'tours.empty.title': 'Chưa có chuyến tham quan',
-  'tours.empty.body': 'Lên kế hoạch cho một chuyến tham quan hoặc nhập tệp GPX hay KML để bắt đầu.',
+  'tours.empty.body':
+    'Lên kế hoạch cho một chuyến tham quan hoặc nhập tệp GPX hay KML để bắt đầu. Đã đặt tour có hướng dẫn viên? Hãy đưa vào mục Đặt chỗ.',
   'tours.addToDay': 'Thêm vào ngày',
   'tours.badge.wanderer': 'wanderer',
   'tours.badge.gpx': 'Nhập từ GPX',

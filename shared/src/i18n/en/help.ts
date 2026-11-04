@@ -3627,7 +3627,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.summary':
     'This tab holds everything booked for the trip except transport: places to stay, tables, tickets, tours and parking. Every booking is a card, a list row or a bar on the timeline, with its code, its documents, its travellers and its cost. Click a booking to open its details.',
   'help.ctx.trip-bookings.bullet.1':
-    'Manual Booking at the right end of the bar opens New Reservation. It creates six kinds of bookings: Accommodation, Restaurant, Event, Tour, Parking and Other. Flights, trains and other transport are on the Transports tab and never appear here.',
+    'Manual Booking at the right end of the bar opens New Reservation. It creates six kinds of bookings: Accommodation, Restaurant, Event, Guided tour, Parking and Other. Flights, trains and other transport are on the Transports tab and never appear here.',
   'help.ctx.trip-bookings.bullet.2':
     'The download icon before Manual Booking, Import booking confirmations, uploads confirmations so TREK can read them automatically: EML, PDF, PKPass, HTML or TXT, five files of 10 MB at most, and photos when the AI model reads pictures. The icon is only there when the server can read them.',
   'help.ctx.trip-bookings.bullet.3':
@@ -3684,7 +3684,7 @@ const help: TranslationStrings = {
   'help.guide.create-booking.step.1':
     'Click Manual Booking at the right end of the bar. New Reservation opens, with the title and two pills in a header at the top.',
   'help.guide.create-booking.step.2':
-    'Click the type label in the top band, which reads Other on a new booking, and pick the Booking Type. This tab creates six types: Accommodation, Restaurant, Event, Tour, Parking and Other. The form changes with your choice: only Accommodation uses a range of days instead of dates.',
+    'Click the type label in the top band, which reads Other on a new booking, and pick the Booking Type. This tab creates six types: Accommodation, Restaurant, Event, Guided tour, Parking and Other. The form changes with your choice: only Accommodation uses a range of days instead of dates.',
   'help.guide.create-booking.step.3':
     'Type the title into the band at the top, the field above the pills. It is the only required field, and Add stays greyed out until you enter something.',
   'help.guide.create-booking.step.4':

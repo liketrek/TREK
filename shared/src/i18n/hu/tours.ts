@@ -7,7 +7,8 @@ const tours: TranslationStrings = {
   'tours.mode.label': 'Hozzáadási nézet',
   'tours.title': 'Túrák',
   'tours.empty.title': 'Még nincsenek túrák',
-  'tours.empty.body': 'A kezdéshez tervezz egy túrát, vagy importálj egy GPX- vagy KML-fájlt.',
+  'tours.empty.body':
+    'A kezdéshez tervezz egy túrát, vagy importálj egy GPX- vagy KML-fájlt. Vezetett túrát foglaltál? Annak a Foglalások között a helye.',
   'tours.addToDay': 'Hozzáadás egy naphoz',
   'tours.badge.wanderer': 'wanderer',
   'tours.badge.gpx': 'GPX-import',

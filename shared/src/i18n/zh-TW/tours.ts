@@ -7,7 +7,7 @@ const tours: TranslationStrings = {
   'tours.mode.label': '新增檢視',
   'tours.title': '遊程',
   'tours.empty.title': '尚無遊程',
-  'tours.empty.body': '規劃遊程或匯入 GPX 或 KML 檔案，即可開始。',
+  'tours.empty.body': '規劃遊程或匯入 GPX 或 KML 檔案，即可開始。已預訂導覽行程？請放在「預訂」裡。',
   'tours.addToDay': '加入某一天',
   'tours.badge.wanderer': 'wanderer',
   'tours.badge.gpx': 'GPX 匯入',

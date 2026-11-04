@@ -62,7 +62,7 @@ const reservations: TranslationStrings = {
   'reservations.type.car': 'רכב',
   'reservations.type.cruise': 'שייט',
   'reservations.type.event': 'אירוע',
-  'reservations.type.tour': 'סיור',
+  'reservations.type.tour': 'סיור מודרך',
   'reservations.type.parking': 'חניה',
   'reservations.type.other': 'אחר',
   'reservations.type.bus': 'אוטובוס',

@@ -3419,7 +3419,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.summary':
     'Esta aba reúne tudo o que foi reservado para a viagem, menos transporte: hospedagens, mesas, ingressos, passeios e estacionamentos. Cada reserva é um cartão, uma linha de lista ou uma barra na linha do tempo, com código, documentos, viajantes e custo. Clique em uma reserva para abrir os detalhes.',
   'help.ctx.trip-bookings.bullet.1':
-    '“Reserva manual”, na ponta direita da barra, abre “Nova reserva”. Ela cria seis tipos de reserva: Hospedagem, Restaurante, Evento, Passeio, Estacionamento e Outro. Voos, trens e outros transportes ficam na aba Transportes e nunca aparecem aqui.',
+    '“Reserva manual”, na ponta direita da barra, abre “Nova reserva”. Ela cria seis tipos de reserva: Hospedagem, Restaurante, Evento, Passeio guiado, Estacionamento e Outro. Voos, trens e outros transportes ficam na aba Transportes e nunca aparecem aqui.',
   'help.ctx.trip-bookings.bullet.2':
     'O ícone de download antes de “Reserva manual”, “Importar confirmações de reserva”, envia confirmações para o TREK ler automaticamente: EML, PDF, PKPass, HTML ou TXT, no máximo cinco arquivos de 10 MB, e fotos quando o modelo de IA lê imagens. O ícone só aparece quando o servidor consegue ler esses arquivos.',
   'help.ctx.trip-bookings.bullet.3':
@@ -3461,7 +3461,7 @@ const help: TranslationStrings = {
   'help.guide.create-booking.step.1':
     'Clique em “Reserva manual”, na ponta direita da barra. Abre “Nova reserva”, com o título e dois selos num cabeçalho no topo.',
   'help.guide.create-booking.step.2':
-    'Clique no rótulo do tipo na faixa do topo, que mostra “Outro” numa reserva nova, e escolha o “Tipo de reserva”. Esta aba cria seis tipos: Hospedagem, Restaurante, Evento, Passeio, Estacionamento e Outro. O formulário muda conforme a escolha: só Hospedagem usa um intervalo de dias em vez de datas.',
+    'Clique no rótulo do tipo na faixa do topo, que mostra “Outro” numa reserva nova, e escolha o “Tipo de reserva”. Esta aba cria seis tipos: Hospedagem, Restaurante, Evento, Passeio guiado, Estacionamento e Outro. O formulário muda conforme a escolha: só Hospedagem usa um intervalo de dias em vez de datas.',
   'help.guide.create-booking.step.3':
     'Digite o título na faixa do topo, o campo acima das etiquetas. É o único campo obrigatório, e “Adicionar” fica cinza até você preencher algo.',
   'help.guide.create-booking.step.4':

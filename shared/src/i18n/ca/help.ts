@@ -3467,7 +3467,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.summary':
     "Aquesta pestanya conté tot el que s'ha reservat per al viatge excepte el transport: allotjaments, taules, entrades, excursions i aparcaments. Cada reserva és una targeta, una fila de la llista o una barra de la cronologia, amb el seu codi, els documents, els viatgers i el cost. Fes clic a una reserva per obrir-ne els detalls.",
   'help.ctx.trip-bookings.bullet.1':
-    '«Reserva manual», a l’extrem dret de la barra, obre «Reserva nova». Pots crear sis tipus de reserves: «Allotjament», «Restaurant», «Esdeveniment», «Excursió», «Aparcament» i «Altres». Els vols, els trens i la resta de transports són a la pestanya «Transports» i aquí no apareixen mai.',
+    '«Reserva manual», a l’extrem dret de la barra, obre «Reserva nova». Pots crear sis tipus de reserves: «Allotjament», «Restaurant», «Esdeveniment», «Visita guiada», «Aparcament» i «Altres». Els vols, els trens i la resta de transports són a la pestanya «Transports» i aquí no apareixen mai.',
   'help.ctx.trip-bookings.bullet.2':
     "La icona de baixada de davant de «Reserva manual», «Importa confirmacions de reserva», puja confirmacions perquè TREK les llegeixi automàticament: EML, PDF, PKPass, HTML o TXT, fins a cinc fitxers de 10 MB com a màxim, i fotos si el model d'IA llegeix imatges. La icona només apareix si el servidor les pot llegir.",
   'help.ctx.trip-bookings.bullet.3':
@@ -3509,7 +3509,7 @@ const help: TranslationStrings = {
   'help.guide.create-booking.step.1':
     "Fes clic a «Reserva manual», a l'extrem dret de la barra. S'obre «Reserva nova», amb el títol i dues píndoles a la capçalera.",
   'help.guide.create-booking.step.2':
-    'Fes clic a l’etiqueta del tipus a la franja superior, que en una reserva nova diu «Altres», i tria el «Tipus de reserva». Des d’aquesta pestanya pots crear sis tipus: «Allotjament», «Restaurant», «Esdeveniment», «Excursió», «Aparcament» i «Altres». El formulari canvia segons el que triïs: només «Allotjament» fa servir un interval de dies en lloc de dates.',
+    'Fes clic a l’etiqueta del tipus a la franja superior, que en una reserva nova diu «Altres», i tria el «Tipus de reserva». Des d’aquesta pestanya pots crear sis tipus: «Allotjament», «Restaurant», «Esdeveniment», «Visita guiada», «Aparcament» i «Altres». El formulari canvia segons el que triïs: només «Allotjament» fa servir un interval de dies en lloc de dates.',
   'help.guide.create-booking.step.3':
     'Escriu el títol a la franja superior, al camp que hi ha sobre les etiquetes. És l’únic camp obligatori, i «Afegir» està desactivat fins que hi escriguis alguna cosa.',
   'help.guide.create-booking.step.4':

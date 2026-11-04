@@ -62,7 +62,7 @@ const reservations: TranslationStrings = {
   'reservations.type.car': 'Autó',
   'reservations.type.cruise': 'Hajóút',
   'reservations.type.event': 'Esemény',
-  'reservations.type.tour': 'Túra',
+  'reservations.type.tour': 'Vezetett túra',
   'reservations.type.parking': 'Parkolás',
   'reservations.type.other': 'Egyéb',
   'reservations.type.bus': 'Busz',

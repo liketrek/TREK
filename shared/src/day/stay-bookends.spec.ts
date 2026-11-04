@@ -120,6 +120,37 @@ describe('the hotels at both ends of a day', () => {
     });
   });
 
+  it('STAY-BOOKENDS-007: a night away on a side trip wakes up in the side trip and comes back to the room it kept', () => {
+    // The first hotel stays booked over the whole trip and comes first in the list; the
+    // side trip's hotel holds one night in between.
+    const kept = stay(1, 10, 40, [13.7, 100.5]);
+    const away = stay(2, 20, 30, [18.8, 99]);
+    const list = [kept, away];
+    // Day 2 leaves the kept room and sleeps away.
+    expect(getDayBookendHotels(d2, days, list)).toEqual({
+      morning: kept,
+      evening: away,
+      morningIsSleptHere: true,
+      eveningIsOvernight: true,
+    });
+    // Day 3 wakes up away and goes back to the kept room for the night.
+    expect(getDayBookendHotels(d3, days, list)).toEqual({
+      morning: away,
+      evening: kept,
+      morningIsSleptHere: true,
+      eveningIsOvernight: true,
+    });
+    // The order of the list no longer decides it.
+    expect(getDayBookendHotels(d3, days, [away, kept])).toEqual(getDayBookendHotels(d3, days, list));
+    // Day 4, the kept room's check-out day, wakes up there.
+    expect(getDayBookendHotels(d4, days, list)).toEqual({
+      morning: kept,
+      evening: kept,
+      morningIsSleptHere: true,
+      eveningIsOvernight: false,
+    });
+  });
+
   it('STAY-BOOKENDS-005: a stay without coordinates is left out, and the other stay answers on its own', () => {
     const unplaced = stay(1, 10, 20, null);
     const next = stay(2, 20, 30, [9, 9]);

@@ -60,7 +60,7 @@ const reservations: TranslationStrings = {
   'reservations.type.car': 'Автомобіль',
   'reservations.type.cruise': 'Круїз',
   'reservations.type.event': 'Заходи',
-  'reservations.type.tour': 'Екскурсія',
+  'reservations.type.tour': 'Екскурсія з гідом',
   'reservations.type.parking': 'Паркування',
   'reservations.type.other': 'Інше',
   'reservations.type.bus': 'Автобус',

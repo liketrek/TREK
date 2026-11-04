@@ -3492,7 +3492,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.summary':
     'Hier steht alles, was für die Reise gebucht ist, außer Transporten: Unterkünfte, Tischreservierungen, Tickets, Touren und Parkplätze. Jede Buchung ist eine Karte, eine Listenzeile oder ein Balken im Zeitstrahl, mit Code, Dokumenten, Reisenden und Kosten. Klick auf eine Buchung, um ihre Details zu öffnen.',
   'help.ctx.trip-bookings.bullet.1':
-    '„Manuelle Buchung“ rechts in der Leiste öffnet „Neue Buchung“. Damit legst du sechs Arten von Buchungen an: „Unterkunft“, „Restaurant“, „Veranstaltung“, „Tour“, „Parken“ und „Andere“. Flüge, Züge und andere Verkehrsmittel gehören in den Tab „Transporte“ und erscheinen hier nie.',
+    '„Manuelle Buchung“ rechts in der Leiste öffnet „Neue Buchung“. Damit legst du sechs Arten von Buchungen an: „Unterkunft“, „Restaurant“, „Veranstaltung“, „Geführte Tour“, „Parken“ und „Andere“. Flüge, Züge und andere Verkehrsmittel gehören in den Tab „Transporte“ und erscheinen hier nie.',
   'help.ctx.trip-bookings.bullet.2':
     'Das Download-Symbol vor „Manuelle Buchung“, „Buchungsbestätigungen importieren“, gibt Bestätigungen an den Parser weiter: EML, PDF, PKPass, HTML oder TXT, höchstens fünf Dateien mit je bis zu 10 MB, und Fotos, wenn das KI-Modell Bilder lesen kann. Das Symbol erscheint nur, wenn der Server die Dateien auslesen kann.',
   'help.ctx.trip-bookings.bullet.3':
@@ -3534,7 +3534,7 @@ const help: TranslationStrings = {
   'help.guide.create-booking.step.1':
     'Klick rechts in der Leiste auf „Manuelle Buchung“. „Neue Buchung“ öffnet sich, oben mit dem Titel und zwei Labels in einer Kopfzeile.',
   'help.guide.create-booking.step.2':
-    'Klick oben in der Kopfzeile auf das Typ-Label, das bei einer neuen Buchung „Andere“ zeigt, und wähle die „Art der Buchung“. In diesem Tab legst du sechs Typen an: Unterkunft, Restaurant, Veranstaltung, Tour, Parken und Andere. Das Formular passt sich deiner Wahl an: Nur „Unterkunft“ nutzt einen Zeitraum aus Tagen statt einzelner Daten.',
+    'Klick oben in der Kopfzeile auf das Typ-Label, das bei einer neuen Buchung „Andere“ zeigt, und wähle die „Art der Buchung“. In diesem Tab legst du sechs Typen an: Unterkunft, Restaurant, Veranstaltung, Geführte Tour, Parken und Andere. Das Formular passt sich deiner Wahl an: Nur „Unterkunft“ nutzt einen Zeitraum aus Tagen statt einzelner Daten.',
   'help.guide.create-booking.step.3':
     'Gib den Titel oben in der Kopfzeile ein, im Feld über den Labels. Er ist das einzige Pflichtfeld, und „Hinzufügen“ bleibt ausgegraut, bis du etwas eingibst.',
   'help.guide.create-booking.step.4':

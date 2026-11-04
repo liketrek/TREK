@@ -7,7 +7,8 @@ const tours: TranslationStrings = {
   'tours.mode.label': 'Lägg till vy',
   'tours.title': 'Turer',
   'tours.empty.title': 'Inga turer ännu',
-  'tours.empty.body': 'Planera en tur eller importera en GPX- eller KML-fil för att komma igång.',
+  'tours.empty.body':
+    'Planera en tur eller importera en GPX- eller KML-fil för att komma igång. Har du bokat en guidad tur? Den hör hemma under Bokningar.',
   'tours.addToDay': 'Lägg till på en dag',
   'tours.badge.wanderer': 'wanderer',
   'tours.badge.gpx': 'GPX-import',

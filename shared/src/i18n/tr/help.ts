@@ -3393,7 +3393,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.summary':
     'Bu sekmede seyahat için ayrılan her şey var; ulaşım hariç: konaklamalar, masalar, biletler, turlar ve otopark. Her rezervasyon bir kart, bir liste satırı ya da zaman çizelgesinde bir çubuktur; kodu, belgeleri, yolcuları ve maliyeti de içerir. Ayrıntıları açmak için bir rezervasyona tıklayın.',
   'help.ctx.trip-bookings.bullet.1':
-    'Çubuğun sağ ucundaki “Manuel Rezervasyon”, “Yeni Rezervasyon” formunu açar. Altı tür rezervasyon oluşturur: Konaklama, Restoran, Etkinlik, Tur, Otopark ve Diğer. Uçuşlar, trenler ve diğer ulaşım “Ulaşım” sekmesindedir ve burada hiç görünmez.',
+    'Çubuğun sağ ucundaki “Manuel Rezervasyon”, “Yeni Rezervasyon” formunu açar. Altı tür rezervasyon oluşturur: Konaklama, Restoran, Etkinlik, Rehberli tur, Otopark ve Diğer. Uçuşlar, trenler ve diğer ulaşım “Ulaşım” sekmesindedir ve burada hiç görünmez.',
   'help.ctx.trip-bookings.bullet.2':
     "Manuel Rezervasyon'un önündeki indirme simgesi (Rezervasyon onaylarını içe aktar), TREK'in otomatik okuyabilmesi için onayları yükler: EML, PDF, PKPass, HTML ya da TXT; en fazla 10 MB'lık beş dosya, yapay zeka modeli resim okuyabiliyorsa fotoğraflar da. Simge yalnızca sunucu bunları okuyabiliyorsa görünür.",
   'help.ctx.trip-bookings.bullet.3':
@@ -3435,7 +3435,7 @@ const help: TranslationStrings = {
   'help.guide.create-booking.step.1':
     'Çubuğun sağ ucundaki “Manuel Rezervasyon” düğmesine tıklayın. “Yeni Rezervasyon” açılır, üstteki başlıkta başlık alanı ve iki rozet bulunur.',
   'help.guide.create-booking.step.2':
-    'Üstteki bandda, yeni rezervasyonda “Diğer” yazan tür etiketine tıklayın ve “Rezervasyon Türü”nü seçin. Bu sekme altı tür oluşturur: Konaklama, Restoran, Etkinlik, Tur, Otopark ve Diğer. Form seçiminize göre değişir: yalnızca Konaklama, tarihler yerine bir gün aralığı kullanır.',
+    'Üstteki bandda, yeni rezervasyonda “Diğer” yazan tür etiketine tıklayın ve “Rezervasyon Türü”nü seçin. Bu sekme altı tür oluşturur: Konaklama, Restoran, Etkinlik, Rehberli tur, Otopark ve Diğer. Form seçiminize göre değişir: yalnızca Konaklama, tarihler yerine bir gün aralığı kullanır.',
   'help.guide.create-booking.step.3':
     'Başlığı üstteki banda, rozetlerin üzerindeki alana yazın. Zorunlu tek alan budur ve bir şey yazana kadar “Ekle” gri kalır.',
   'help.guide.create-booking.step.4':

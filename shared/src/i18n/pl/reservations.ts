@@ -61,7 +61,7 @@ const reservations: TranslationStrings = {
   'reservations.searchLocation': 'Szukaj stacji, portu, adresu...',
   'reservations.type.cruise': 'Rejs',
   'reservations.type.event': 'Wydarzenie',
-  'reservations.type.tour': 'Wycieczka',
+  'reservations.type.tour': 'Wycieczka z przewodnikiem',
   'reservations.type.parking': 'Parking', // same-as-en
   'reservations.type.other': 'Inne',
   'reservations.type.bus': 'Autobus',

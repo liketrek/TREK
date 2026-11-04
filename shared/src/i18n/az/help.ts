@@ -3145,7 +3145,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.summary':
     'Bu tabda nəqliyyatdan başqa səyahət üçün rezerv olunan hər şey saxlanılır: qalacağınız yerlər, masalar, biletlər, turlar və parkinq. Hər rezervasiya kodu, sənədləri, səyahətçiləri və xərci ilə birlikdə kart, siyahı sətri və ya zaman xəttində zolaq kimi görünür. Təfərrüatları açmaq üçün rezervasiyaya klikləyin.',
   'help.ctx.trip-bookings.bullet.1':
-    'Panelin sağ ucundakı «Əl ilə rezervasiya et» «Yeni rezervasiya» pəncərəsini açır. Burada altı növ rezervasiya yaradılır: Yaşayış yeri, Restoran, Tədbir, Tur, Parkinq və Digər. Uçuşlar, qatarlar və digər nəqliyyat «Nəqliyyat» bölməsindədir və burada heç vaxt görünmür.',
+    'Panelin sağ ucundakı «Əl ilə rezervasiya et» «Yeni rezervasiya» pəncərəsini açır. Burada altı növ rezervasiya yaradılır: Yaşayış yeri, Restoran, Tədbir, Bələdçili tur, Parkinq və Digər. Uçuşlar, qatarlar və digər nəqliyyat «Nəqliyyat» bölməsindədir və burada heç vaxt görünmür.',
   'help.ctx.trip-bookings.bullet.2':
     '«Əl ilə rezervasiya et» qarşısındakı endirmə işarəsi, «Rezervasiya təsdiqlərini idxal et», təsdiqləri yükləyir ki, TREK onları avtomatik oxusun: EML, PDF, PKPass, HTML və ya TXT, ən çoxu 10 MB-lıq beş fayl, AI modeli şəkilləri oxuya bilirsə, fotolar da. Bu işarə yalnız server onları oxuya bildikdə görünür.',
   'help.ctx.trip-bookings.bullet.3':
@@ -3187,7 +3187,7 @@ const help: TranslationStrings = {
   'help.guide.create-booking.step.1':
     'Panelin sağ ucundakı «Əl ilə rezervasiya et» düyməsinə klikləyin. «Yeni rezervasiya» açılır, yuxarıdakı başlıqda ad və iki nişan olur.',
   'help.guide.create-booking.step.2':
-    'Yuxarı zolaqdakı növ yazısına klikləyin (yeni rezervasiyada orada «Digər» yazılır) və «Rezervasiya növü»nü seçin. Bu bölmədə altı növ yaradılır: «Yaşayış yeri», «Restoran», «Tədbir», «Tur», «Parkinq» və «Digər». Forma seçiminizə görə dəyişir: yalnız «Yaşayış yeri» tarixlər əvəzinə günlər aralığından istifadə edir.',
+    'Yuxarı zolaqdakı növ yazısına klikləyin (yeni rezervasiyada orada «Digər» yazılır) və «Rezervasiya növü»nü seçin. Bu bölmədə altı növ yaradılır: «Yaşayış yeri», «Restoran», «Tədbir», «Bələdçili tur», «Parkinq» və «Digər». Forma seçiminizə görə dəyişir: yalnız «Yaşayış yeri» tarixlər əvəzinə günlər aralığından istifadə edir.',
   'help.guide.create-booking.step.3':
     'Başlığı yuxarıdakı zolağa, nişanların üstündəki xanaya yazın. Bu, yeganə məcburi xanadır və nəsə yazmayana qədər «Əlavə et» boz qalır.',
   'help.guide.create-booking.step.4':

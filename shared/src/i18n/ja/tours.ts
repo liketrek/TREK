@@ -7,7 +7,8 @@ const tours: TranslationStrings = {
   'tours.mode.label': '追加する項目',
   'tours.title': 'ツアー',
   'tours.empty.title': 'ツアーはまだありません',
-  'tours.empty.body': 'ツアーを計画するか、GPXまたはKMLファイルをインポートしてください。',
+  'tours.empty.body':
+    'ツアーを計画するか、GPXまたはKMLファイルをインポートしてください。ガイドツアーを予約済みですか？それは予約に入れてください。',
   'tours.addToDay': '日程に追加',
   'tours.badge.wanderer': 'wanderer',
   'tours.badge.gpx': 'GPXインポート',

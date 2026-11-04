@@ -60,7 +60,7 @@ const reservations: TranslationStrings = {
   'reservations.type.car': '汽车',
   'reservations.type.cruise': '邮轮',
   'reservations.type.event': '活动',
-  'reservations.type.tour': '旅游团',
+  'reservations.type.tour': '导览游',
   'reservations.type.parking': '停车',
   'reservations.type.other': '其他',
   'reservations.type.bus': '公交车',

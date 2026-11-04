@@ -7,7 +7,8 @@ const tours: TranslationStrings = {
   'tours.mode.label': 'Lisamise vaade',
   'tours.title': 'Retked',
   'tours.empty.title': 'Retki veel pole',
-  'tours.empty.body': 'Alustamiseks planeeri retk või impordi GPX- või KML-fail.',
+  'tours.empty.body':
+    'Alustamiseks planeeri retk või impordi GPX- või KML-fail. Broneerisid giidiga ekskursiooni? See käib Broneeringute alla.',
   'tours.addToDay': 'Lisa päevale',
   'tours.badge.wanderer': 'wanderer',
   'tours.badge.gpx': 'GPX-import',

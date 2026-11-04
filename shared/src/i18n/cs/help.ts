@@ -3345,7 +3345,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.summary':
     'Tato karta obsahuje vše, co je pro cestu zarezervované, kromě dopravy: ubytování, stoly, vstupenky, prohlídky a parkování. Každá rezervace je kartou, řádkem seznamu nebo pruhem na časové ose s kódem, dokumenty, cestujícími a cenou. Kliknutím na rezervaci otevřete její podrobnosti.',
   'help.ctx.trip-bookings.bullet.1':
-    '„Ruční rezervace“ na pravém konci lišty otevře „Nová rezervace“. Vytvoříte tak šest druhů rezervací: Ubytování, Restaurace, Událost, Prohlídka, Parkování a Ostatní. Lety, vlaky a další doprava jsou na kartě „Doprava“ a tady se nikdy nezobrazí.',
+    '„Ruční rezervace“ na pravém konci lišty otevře „Nová rezervace“. Vytvoříte tak šest druhů rezervací: Ubytování, Restaurace, Událost, Prohlídka s průvodcem, Parkování a Ostatní. Lety, vlaky a další doprava jsou na kartě „Doprava“ a tady se nikdy nezobrazí.',
   'help.ctx.trip-bookings.bullet.2':
     'Ikona stažení před „Ruční rezervace“, „Importovat potvrzení rezervace“, nahraje potvrzení, aby je TREK mohl automaticky přečíst: EML, PDF, PKPass, HTML nebo TXT, nejvýše pět souborů po 10 MB, a fotky, pokud model AI umí číst obrázky. Ikona se zobrazuje, jen když je server umí číst.',
   'help.ctx.trip-bookings.bullet.3':
@@ -3387,7 +3387,7 @@ const help: TranslationStrings = {
   'help.guide.create-booking.step.1':
     'Klikněte na „Ruční rezervace“ na pravém konci lišty. Otevře se „Nová rezervace“ se záhlavím nahoře, ve kterém je název a dva štítky.',
   'help.guide.create-booking.step.2':
-    'Klikněte na štítek typu v horním pruhu, u nové rezervace je na něm „Ostatní“, a vyberte „Typ rezervace“. Na této kartě vytvoříte šest typů: Ubytování, Restaurace, Událost, Prohlídka, Parkování a Ostatní. Formulář se podle volby změní: jen Ubytování používá místo dat rozsah dnů.',
+    'Klikněte na štítek typu v horním pruhu, u nové rezervace je na něm „Ostatní“, a vyberte „Typ rezervace“. Na této kartě vytvoříte šest typů: Ubytování, Restaurace, Událost, Prohlídka s průvodcem, Parkování a Ostatní. Formulář se podle volby změní: jen Ubytování používá místo dat rozsah dnů.',
   'help.guide.create-booking.step.3':
     'Napište název do pruhu nahoře, do pole nad štítky. Je to jediné povinné pole a tlačítko „Přidat“ zůstane šedé, dokud něco nevyplníte.',
   'help.guide.create-booking.step.4':

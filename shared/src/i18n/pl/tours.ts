@@ -7,7 +7,8 @@ const tours: TranslationStrings = {
   'tours.mode.label': 'Widok dodawania',
   'tours.title': 'Wycieczki',
   'tours.empty.title': 'Nie ma jeszcze wycieczek',
-  'tours.empty.body': 'Zaplanuj wycieczkę lub zaimportuj plik GPX albo KML, aby rozpocząć.',
+  'tours.empty.body':
+    'Zaplanuj wycieczkę lub zaimportuj plik GPX albo KML, aby rozpocząć. Zarezerwowano wycieczkę z przewodnikiem? Jej miejsce jest w Rezerwacjach.',
   'tours.addToDay': 'Dodaj do dnia',
   'tours.badge.wanderer': 'wanderer',
   'tours.badge.gpx': 'Import GPX',

@@ -3376,7 +3376,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.summary':
     'Den här fliken innehåller allt som är bokat för resan utom transport: boenden, bord, biljetter, turer och parkering. Varje bokning är ett kort, en rad i listan eller ett fält på tidslinjen, med sin kod, sina dokument, sina resenärer och sin kostnad. Klicka på en bokning för att öppna dess detaljer.',
   'help.ctx.trip-bookings.bullet.1':
-    'Manuell bokning längst till höger i fältet öppnar Ny bokning. Där skapar du sex sorters bokningar: Boende, Restaurang, Evenemang, Rundtur, Parkering och Övrigt. Flyg, tåg och andra transporter finns i fliken Transporter och visas aldrig här.',
+    'Manuell bokning längst till höger i fältet öppnar Ny bokning. Där skapar du sex sorters bokningar: Boende, Restaurang, Evenemang, Guidad tur, Parkering och Övrigt. Flyg, tåg och andra transporter finns i fliken Transporter och visas aldrig här.',
   'help.ctx.trip-bookings.bullet.2':
     'Nedladdningsikonen före Manuell bokning, Importera bokningsbekräftelser, laddar upp bekräftelser så att TREK kan läsa dem automatiskt: EML, PDF, PKPass, HTML eller TXT, högst fem filer på 10 MB, samt foton när AI-modellen läser bilder. Ikonen finns bara när servern kan läsa dem.',
   'help.ctx.trip-bookings.bullet.3':
@@ -3418,7 +3418,7 @@ const help: TranslationStrings = {
   'help.guide.create-booking.step.1':
     'Klicka på Manuell bokning längst till höger i fältet. Ny bokning öppnas, med titeln och två brickor i en rubrik överst.',
   'help.guide.create-booking.step.2':
-    'Klicka på typetiketten i det övre fältet, som visar ”Övrigt” på en ny bokning, och välj ”Bokningstyp”. Den här fliken skapar sex typer: Boende, Restaurang, Evenemang, Rundtur, Parkering och Övrigt. Formuläret ändras efter ditt val: bara Boende använder ett datumspann i stället för enskilda datum.',
+    'Klicka på typetiketten i det övre fältet, som visar ”Övrigt” på en ny bokning, och välj ”Bokningstyp”. Den här fliken skapar sex typer: Boende, Restaurang, Evenemang, Guidad tur, Parkering och Övrigt. Formuläret ändras efter ditt val: bara Boende använder ett datumspann i stället för enskilda datum.',
   'help.guide.create-booking.step.3':
     'Skriv titeln i bandet överst, fältet ovanför brickorna. Det är det enda obligatoriska fältet, och ”Lägg till” är gråtonad tills du har skrivit något.',
   'help.guide.create-booking.step.4':

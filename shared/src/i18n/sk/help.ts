@@ -3065,7 +3065,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.summary':
     'Na tejto záložke je všetko, čo máte pre cestu rezervované okrem dopravy: ubytovanie, stoly v reštauráciách, vstupenky, prehliadky a parkovanie. Každá rezervácia je karta, riadok zoznamu alebo pruh na časovej osi so svojím kódom, dokumentmi, cestujúcimi a nákladmi. Kliknutím na rezerváciu otvoríte jej podrobnosti.',
   'help.ctx.trip-bookings.bullet.1':
-    'Ručná rezervácia na pravom konci lišty otvorí Nová rezervácia. Vytvára šesť druhov rezervácií: Ubytovanie, Reštaurácia, Udalosť, Prehliadka, Parkovanie a Iné. Lety, vlaky a ostatná doprava sú v záložke Doprava a tu sa nikdy nezobrazia.',
+    'Ručná rezervácia na pravom konci lišty otvorí Nová rezervácia. Vytvára šesť druhov rezervácií: Ubytovanie, Reštaurácia, Udalosť, Prehliadka so sprievodcom, Parkovanie a Iné. Lety, vlaky a ostatná doprava sú v záložke Doprava a tu sa nikdy nezobrazia.',
   'help.ctx.trip-bookings.bullet.2':
     'Ikona sťahovania pred Ručná rezervácia, Importovať potvrdenia rezervácií, nahrá potvrdenia, aby ich TREK vedel prečítať automaticky: EML, PDF, PKPass, HTML alebo TXT, najviac päť súborov po 10 MB, a fotky, ak AI model číta obrázky. Ikona sa zobrazí, iba ak ich server vie čítať.',
   'help.ctx.trip-bookings.bullet.3':
@@ -3107,7 +3107,7 @@ const help: TranslationStrings = {
   'help.guide.create-booking.step.1':
     'Kliknite na „Ručná rezervácia“ na pravom konci lišty. Otvorí sa „Nová rezervácia“ s názvom a dvoma štítkami v hlavičke hore.',
   'help.guide.create-booking.step.2':
-    'Kliknite na štítok typu v hornej časti, ktorý je pri novej rezervácii Ostatné, a vyberte Typ rezervácie. Táto záložka vytvára šesť typov: Ubytovanie, Reštaurácia, Udalosť, Prehliadka, Parkovanie a Ostatné. Formulár sa mení podľa vášho výberu: iba Ubytovanie používa namiesto dátumov rozsah dní.',
+    'Kliknite na štítok typu v hornej časti, ktorý je pri novej rezervácii Ostatné, a vyberte Typ rezervácie. Táto záložka vytvára šesť typov: Ubytovanie, Reštaurácia, Udalosť, Prehliadka so sprievodcom, Parkovanie a Ostatné. Formulár sa mení podľa vášho výberu: iba Ubytovanie používa namiesto dátumov rozsah dní.',
   'help.guide.create-booking.step.3':
     'Zadajte názov do hornej časti, do poľa nad štítkami. Je to jediné povinné pole a Pridať zostane sivé, kým do neho niečo nezadáte.',
   'help.guide.create-booking.step.4':

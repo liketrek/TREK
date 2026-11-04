@@ -7,7 +7,8 @@ const tours: TranslationStrings = {
   'tours.mode.label': 'มุมมองการเพิ่ม',
   'tours.title': 'ทัวร์',
   'tours.empty.title': 'ยังไม่มีทัวร์',
-  'tours.empty.body': 'วางแผนทัวร์หรือนำเข้าไฟล์ GPX หรือ KML เพื่อเริ่มต้น',
+  'tours.empty.body':
+    'วางแผนทัวร์หรือนำเข้าไฟล์ GPX หรือ KML เพื่อเริ่มต้น จองทัวร์พร้อมไกด์ไว้แล้วใช่ไหม? ให้เพิ่มไว้ในการจอง',
   'tours.addToDay': 'เพิ่มไปยังวัน',
   'tours.badge.wanderer': 'wanderer',
   'tours.badge.gpx': 'นำเข้าจาก GPX',

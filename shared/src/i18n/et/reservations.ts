@@ -62,7 +62,7 @@ const reservations: TranslationStrings = {
   'reservations.type.car': 'Auto',
   'reservations.type.cruise': 'Kruiis',
   'reservations.type.event': 'Üritus',
-  'reservations.type.tour': 'Ekskursioon',
+  'reservations.type.tour': 'Giidiga ekskursioon',
   'reservations.type.parking': 'Parkimine',
   'reservations.type.other': 'Muu',
   'reservations.type.bus': 'Buss',

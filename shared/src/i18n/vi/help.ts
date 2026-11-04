@@ -3374,7 +3374,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.summary':
     'Tab này chứa mọi thứ đã đặt cho chuyến đi, trừ phương tiện di chuyển: chỗ ở, bàn ăn, vé, tour và bãi đỗ xe. Mỗi đặt chỗ là một thẻ, một hàng trong danh sách hoặc một thanh trên dòng thời gian, kèm mã, tài liệu, người đi và chi phí. Nhấn vào một đặt chỗ để mở chi tiết.',
   'help.ctx.trip-bookings.bullet.1':
-    '“Thêm đặt chỗ” ở đầu bên phải của thanh mở “Đặt chỗ mới”. Nút này tạo sáu loại đặt chỗ: “Chỗ ở”, “Nhà hàng”, “Sự kiện”, “Chuyến du lịch”, “Bãi đỗ xe” và “Khác”. Chuyến bay, tàu hỏa và các phương tiện khác nằm ở tab “Di chuyển” và không bao giờ hiện ở đây.',
+    '“Thêm đặt chỗ” ở đầu bên phải của thanh mở “Đặt chỗ mới”. Nút này tạo sáu loại đặt chỗ: “Chỗ ở”, “Nhà hàng”, “Sự kiện”, “Tour có hướng dẫn viên”, “Bãi đỗ xe” và “Khác”. Chuyến bay, tàu hỏa và các phương tiện khác nằm ở tab “Di chuyển” và không bao giờ hiện ở đây.',
   'help.ctx.trip-bookings.bullet.2':
     'Biểu tượng tải xuống trước “Thêm đặt chỗ”, “Nhập xác nhận đặt chỗ”, tải xác nhận lên để TREK tự đọc: EML, PDF, PKPass, HTML hoặc TXT, tối đa năm tệp, mỗi tệp 10 MB, và cả ảnh nếu mô hình AI đọc được ảnh. Biểu tượng chỉ có khi máy chủ đọc được chúng.',
   'help.ctx.trip-bookings.bullet.3':
@@ -3416,7 +3416,7 @@ const help: TranslationStrings = {
   'help.guide.create-booking.step.1':
     'Bấm “Thêm đặt chỗ” ở cuối bên phải của thanh. “Đặt chỗ mới” mở ra, với tiêu đề và hai nhãn ở phần đầu.',
   'help.guide.create-booking.step.2':
-    'Bấm vào nhãn loại ở phần đầu, nhãn này ghi “Khác” với đặt chỗ mới, rồi chọn “Loại đặt chỗ”. Tab này tạo được sáu loại: “Chỗ ở”, “Nhà hàng”, “Sự kiện”, “Chuyến du lịch”, “Bãi đỗ xe” và “Khác”. Biểu mẫu thay đổi theo lựa chọn của bạn: chỉ “Chỗ ở” dùng một khoảng các ngày thay cho ngày đơn.',
+    'Bấm vào nhãn loại ở phần đầu, nhãn này ghi “Khác” với đặt chỗ mới, rồi chọn “Loại đặt chỗ”. Tab này tạo được sáu loại: “Chỗ ở”, “Nhà hàng”, “Sự kiện”, “Tour có hướng dẫn viên”, “Bãi đỗ xe” và “Khác”. Biểu mẫu thay đổi theo lựa chọn của bạn: chỉ “Chỗ ở” dùng một khoảng các ngày thay cho ngày đơn.',
   'help.guide.create-booking.step.3':
     'Gõ tiêu đề vào phần đầu, ô nằm phía trên các nhãn. Đây là trường duy nhất bắt buộc, và nút “Thêm” vẫn bị làm mờ cho đến khi bạn nhập gì đó.',
   'help.guide.create-booking.step.4':

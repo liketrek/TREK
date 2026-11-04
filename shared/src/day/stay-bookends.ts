@@ -102,17 +102,27 @@ export const getDayBookendHotels = <A extends StayRange>(
     return d ? getDayOrder(d, days) : dayOrd;
   };
   const checkIn = inRange.find((a) => a.start_day_id === day.id); // the hotel you arrive at tonight
-  const sleptHere = inRange.find((a) => orderOf(a.start_day_id) < dayOrd); // the hotel you woke up in
+  // Of the stays checked into on an earlier day, the latest is the one you woke up in: a
+  // night away on a side trip while the first room stays booked sleeps in the side trip's
+  // hotel, not in the one booked first. The earliest of them used to win, so the morning
+  // after drove from the first hotel to the side trip's airport. Ties keep the list order.
+  const before = inRange
+    .filter((a) => orderOf(a.start_day_id) < dayOrd)
+    .sort((a, b) => orderOf(b.start_day_id) - orderOf(a.start_day_id));
+  const sleptHere = before[0];
+  // Tonight's hotel without a check-in today: a stay that runs on past today, the latest
+  // first, which brings the side trip back to the room that was kept.
+  const continuing = before.find((a) => orderOf(a.end_day_id) > dayOrd);
 
   return {
     morning: sleptHere ?? checkIn ?? inRange[0],
-    evening: checkIn ?? sleptHere ?? inRange[0],
+    evening: checkIn ?? continuing ?? sleptHere ?? inRange[0],
     // Provenance for the drawing consumers (map + sidebar). A hotel↔transport bookend
     // is only real when you actually used the hotel: morningIsSleptHere is true only
     // when you woke up there (not a check-in fallback on an arrival day), and
     // eveningIsOvernight is true only when you sleep there tonight (you check in today,
     // or an earlier stay continues past today). The optimizer keeps using the values.
     morningIsSleptHere: sleptHere != null,
-    eveningIsOvernight: checkIn != null || (sleptHere != null && orderOf(sleptHere.end_day_id) > dayOrd),
+    eveningIsOvernight: checkIn != null || continuing != null,
   };
 };

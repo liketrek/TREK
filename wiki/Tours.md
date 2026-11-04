@@ -2,6 +2,8 @@
 
 The **Tours** add-on plans routes inside a trip: hikes and runs, city walks, bike rides, ski days, paddle tours and horse rides, as single-day tours or over several days with stages. A tour has a line on the map, a distance, an ascent and a planned time, and goes on the trip's days like a place does. You can draw a tour in TREK, import a GPX, KML or KMZ file, take one over from another trip or a collection, or bring in a trail from wanderer.
 
+A tour you booked with a provider, such as a guided walk or a food tour, is a booking of the type **Guided tour** under **Bookings** (see [Reservations-and-Bookings](Reservations-and-Bookings)); the empty Tours tab says so too.
+
 Tours is a trip add-on and on by default; an administrator switches it under **Admin > Add-ons**. While it is on, the Plan tab gets a **Places / Tours** switch in its right column and the trip gets a **Tours** tab for drawing and editing. The Tours tab needs a tablet or a computer; on a phone you see and plan tours, but do not draw them.
 
 This page follows the app: the Plan tab first, then the tour card, the Tours tab and its tools, and at the end what is special about each kind of tour. The **?** in the navbar opens the [Help Center](Help-Center) on the tour screen you are on, with a picture of each step.

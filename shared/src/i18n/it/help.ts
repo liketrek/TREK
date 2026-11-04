@@ -3459,7 +3459,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.summary':
     "Questa scheda contiene tutto ciò che è prenotato per il viaggio, tranne i trasporti: alloggi, tavoli, biglietti, tour e parcheggi. Ogni prenotazione è una scheda, una riga dell'elenco o una barra nella cronologia, con codice, documenti, viaggiatori e costo. Clicca su una prenotazione per aprirne i dettagli.",
   'help.ctx.trip-bookings.bullet.1':
-    "«Prenotazione manuale», all'estremità destra della barra, apre «Nuova prenotazione». Crea sei tipi di prenotazione: «Alloggio», «Ristorante», «Evento», Tour, «Parcheggio» e «Altro». Voli, treni e altri trasporti si trovano nella scheda «Trasporti» e qui non compaiono mai.",
+    "«Prenotazione manuale», all'estremità destra della barra, apre «Nuova prenotazione». Crea sei tipi di prenotazione: «Alloggio», «Ristorante», «Evento», Visita guidata, «Parcheggio» e «Altro». Voli, treni e altri trasporti si trovano nella scheda «Trasporti» e qui non compaiono mai.",
   'help.ctx.trip-bookings.bullet.2':
     "L'icona di download prima di «Prenotazione manuale», «Importa conferme di prenotazione», carica le conferme perché TREK le legga automaticamente: EML, PDF, PKPass, HTML o TXT, al massimo cinque file da 10 MB, e foto se il modello di IA legge le immagini. L'icona compare solo se il server è in grado di leggerle.",
   'help.ctx.trip-bookings.bullet.3':
@@ -3501,7 +3501,7 @@ const help: TranslationStrings = {
   'help.guide.create-booking.step.1':
     "Clicca «Prenotazione manuale» all'estremità destra della barra. Si apre «Nuova prenotazione», con il titolo e due etichette nell'intestazione in alto.",
   'help.guide.create-booking.step.2':
-    "Clicca l'etichetta del tipo nella fascia in alto, che in una nuova prenotazione indica «Altro», e scegli il «Tipo di prenotazione». Da questa scheda puoi creare sei tipi: Alloggio, Ristorante, Evento, Tour, Parcheggio e Altro. Il modulo cambia in base alla scelta: solo «Alloggio» usa un intervallo di giorni invece delle date.",
+    "Clicca l'etichetta del tipo nella fascia in alto, che in una nuova prenotazione indica «Altro», e scegli il «Tipo di prenotazione». Da questa scheda puoi creare sei tipi: Alloggio, Ristorante, Evento, Visita guidata, Parcheggio e Altro. Il modulo cambia in base alla scelta: solo «Alloggio» usa un intervallo di giorni invece delle date.",
   'help.guide.create-booking.step.3':
     "Scrivi il titolo nella fascia in alto, nel campo sopra le etichette. È l'unico campo obbligatorio e «Aggiungi» resta disattivato finché non inserisci qualcosa.",
   'help.guide.create-booking.step.4':

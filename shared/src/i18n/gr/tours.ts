@@ -7,7 +7,8 @@ const tours: TranslationStrings = {
   'tours.mode.label': 'Προβολή προσθήκης',
   'tours.title': 'Εκδρομές',
   'tours.empty.title': 'Δεν υπάρχουν εκδρομές ακόμη',
-  'tours.empty.body': 'Σχεδιάστε μια εκδρομή ή εισαγάγετε ένα αρχείο GPX ή KML για να ξεκινήσετε.',
+  'tours.empty.body':
+    'Σχεδιάστε μια εκδρομή ή εισαγάγετε ένα αρχείο GPX ή KML για να ξεκινήσετε. Κλείσατε ξενάγηση; Αυτή μπαίνει στις Κρατήσεις.',
   'tours.addToDay': 'Προσθήκη σε ημέρα',
   'tours.badge.wanderer': 'wanderer',
   'tours.badge.gpx': 'Εισαγωγή GPX',

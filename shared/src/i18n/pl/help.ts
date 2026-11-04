@@ -3406,7 +3406,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.summary':
     'Na tej karcie jest wszystko, co zarezerwowano na podróż, oprócz transportu: noclegi, stoliki, bilety, wycieczki i parkingi. Każda rezerwacja to karta, wiersz listy lub pasek na osi czasu, z kodem, dokumentami, podróżnymi i kosztem. Kliknij rezerwację, aby otworzyć szczegóły.',
   'help.ctx.trip-bookings.bullet.1':
-    '„Rezerwacja ręczna” na prawym końcu paska otwiera „Nowa rezerwacja”. Można w ten sposób utworzyć sześć rodzajów rezerwacji: „Nocleg”, „Restauracja”, „Wydarzenie”, „Wycieczka”, parking i „Inne”. Loty, pociągi i inny transport są w zakładce „Transport” i nigdy się tu nie pojawiają.',
+    '„Rezerwacja ręczna” na prawym końcu paska otwiera „Nowa rezerwacja”. Można w ten sposób utworzyć sześć rodzajów rezerwacji: „Nocleg”, „Restauracja”, „Wydarzenie”, „Wycieczka z przewodnikiem”, parking i „Inne”. Loty, pociągi i inny transport są w zakładce „Transport” i nigdy się tu nie pojawiają.',
   'help.ctx.trip-bookings.bullet.2':
     'Ikona pobierania przed „Rezerwacja ręczna”, czyli „Importuj potwierdzenia rezerwacji”, przesyła potwierdzenia, żeby TREK mógł je automatycznie odczytać: EML, PDF, PKPass, HTML lub TXT, maksymalnie pięć plików po 10 MB, a także zdjęcia, jeśli model AI odczytuje obrazy. Ikona jest widoczna tylko wtedy, gdy serwer potrafi je odczytać.',
   'help.ctx.trip-bookings.bullet.3':
@@ -3448,7 +3448,7 @@ const help: TranslationStrings = {
   'help.guide.create-booking.step.1':
     'Kliknij „Rezerwacja ręczna” na prawym końcu paska. Otworzy się „Nowa rezerwacja” z tytułem i dwiema plakietkami w nagłówku u góry.',
   'help.guide.create-booking.step.2':
-    'Kliknij etykietę typu w górnym pasku, która przy nowej rezerwacji ma napis „Inne”, i wybierz „Rodzaj rezerwacji”. W tej zakładce utworzysz sześć typów: Nocleg, Restauracja, Wydarzenie, Wycieczka, Parking i Inne. Formularz zmienia się zależnie od wyboru: tylko „Nocleg” zamiast dat używa zakresu dni.',
+    'Kliknij etykietę typu w górnym pasku, która przy nowej rezerwacji ma napis „Inne”, i wybierz „Rodzaj rezerwacji”. W tej zakładce utworzysz sześć typów: Nocleg, Restauracja, Wydarzenie, Wycieczka z przewodnikiem, Parking i Inne. Formularz zmienia się zależnie od wyboru: tylko „Nocleg” zamiast dat używa zakresu dni.',
   'help.guide.create-booking.step.3':
     'Wpisz tytuł w górnym pasku, w polu nad plakietkami. To jedyne wymagane pole, a przycisk „Dodaj” pozostaje wyszarzony, dopóki czegoś nie wpiszesz.',
   'help.guide.create-booking.step.4':

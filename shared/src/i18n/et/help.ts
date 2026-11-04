@@ -3066,7 +3066,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.summary':
     'Sellel vahekaardil on kõik reisi jaoks broneeritu peale transpordi: majutus, lauad, piletid, ekskursioonid ja parkimine. Iga broneering on kaart, loendi rida või riba ajajoonel koos koodi, dokumentide, reisijate ja maksumusega. Üksikasjade avamiseks klõpsa broneeringul.',
   'help.ctx.trip-bookings.bullet.1':
-    'Riba paremas otsas olev „Käsitsi broneering“ avab akna „Uus broneering“. Sellega saab luua kuut tüüpi broneeringuid: „Majutus“, „Restoran“, „Üritus“, „Ekskursioon“, „Parkimine“ ja „Muu“. Lennud, rongid ja muu transport on vahekaardil „Transport“ ega ilmu kunagi siia.',
+    'Riba paremas otsas olev „Käsitsi broneering“ avab akna „Uus broneering“. Sellega saab luua kuut tüüpi broneeringuid: „Majutus“, „Restoran“, „Üritus“, „Giidiga ekskursioon“, „Parkimine“ ja „Muu“. Lennud, rongid ja muu transport on vahekaardil „Transport“ ega ilmu kunagi siia.',
   'help.ctx.trip-bookings.bullet.2':
     'Nupu „Käsitsi broneering“ ees olev allalaadimisikoon „Impordi broneeringukinnitused“ laadib kinnitused üles, et TREK saaks need automaatselt läbi lugeda: EML, PDF, PKPass, HTML või TXT, kuni viis faili, igaüks kuni 10 MB, ning fotod, kui tehisintellekti mudel oskab pilte lugeda. Ikoon on olemas ainult siis, kui server oskab neid lugeda.',
   'help.ctx.trip-bookings.bullet.3':
@@ -3107,7 +3107,7 @@ const help: TranslationStrings = {
   'help.guide.create-booking.step.1':
     'Klõpsa riba paremas otsas „Käsitsi broneering“. Avaneb „Uus broneering“, mille ülaosas on päis pealkirja ja kahe märgisega.',
   'help.guide.create-booking.step.2':
-    'Klõpsa ülemisel ribal tüübisildil, millel on uue broneeringu puhul kirjas „Muu“, ja vali „Broneeringu tüüp“. Sellel vahekaardil saab luua kuut tüüpi: „Majutus“, „Restoran“, „Üritus“, „Ekskursioon“, „Parkimine“ ja „Muu“. Vorm muutub vastavalt valikule: ainult „Majutus“ kasutab kuupäevade asemel päevade vahemikku.',
+    'Klõpsa ülemisel ribal tüübisildil, millel on uue broneeringu puhul kirjas „Muu“, ja vali „Broneeringu tüüp“. Sellel vahekaardil saab luua kuut tüüpi: „Majutus“, „Restoran“, „Üritus“, „Giidiga ekskursioon“, „Parkimine“ ja „Muu“. Vorm muutub vastavalt valikule: ainult „Majutus“ kasutab kuupäevade asemel päevade vahemikku.',
   'help.guide.create-booking.step.3':
     'Kirjuta pealkiri ülemisele ribale, kiipide kohal olevale väljale. See on ainus kohustuslik väli ja „Lisa“ jääb halliks, kuni oled midagi sisestanud.',
   'help.guide.create-booking.step.4':

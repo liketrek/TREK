@@ -7,7 +7,8 @@ const tours: TranslationStrings = {
   'tours.mode.label': 'Ansicht zum Hinzufügen',
   'tours.title': 'Touren',
   'tours.empty.title': 'Noch keine Touren',
-  'tours.empty.body': 'Plane eine Tour oder importiere eine GPX- oder KML-Datei.',
+  'tours.empty.body':
+    'Plane eine Tour oder importiere eine GPX- oder KML-Datei. Eine geführte Tour gebucht? Die gehört unter Buchungen.',
   'tours.addToDay': 'Zum Tag hinzufügen',
   'tours.badge.wanderer': 'wanderer',
   'tours.badge.gpx': 'GPX-Import',

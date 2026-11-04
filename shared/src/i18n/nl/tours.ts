@@ -7,7 +7,8 @@ const tours: TranslationStrings = {
   'tours.mode.label': 'Weergave toevoegen',
   'tours.title': 'Tochten',
   'tours.empty.title': 'Nog geen tochten',
-  'tours.empty.body': 'Plan een tocht of importeer een GPX- of KML-bestand om te beginnen.',
+  'tours.empty.body':
+    'Plan een tocht of importeer een GPX- of KML-bestand om te beginnen. Een rondleiding geboekt? Die hoort bij Boekingen.',
   'tours.addToDay': 'Aan dag toevoegen',
   'tours.badge.wanderer': 'wanderer',
   'tours.badge.gpx': 'GPX-import',

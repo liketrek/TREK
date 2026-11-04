@@ -63,7 +63,7 @@ const reservations: TranslationStrings = {
   'reservations.type.car': 'Auto',
   'reservations.type.cruise': 'Plavba',
   'reservations.type.event': 'Udalosť',
-  'reservations.type.tour': 'Prehliadka',
+  'reservations.type.tour': 'Prehliadka so sprievodcom',
   'reservations.type.parking': 'Parkovanie',
   'reservations.type.other': 'Iné',
   'reservations.type.bus': 'Autobus',

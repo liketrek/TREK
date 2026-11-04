@@ -7,7 +7,8 @@ const tours: TranslationStrings = {
   'tours.mode.label': 'Zobrazení pro přidávání',
   'tours.title': 'Výlety',
   'tours.empty.title': 'Zatím žádné výlety',
-  'tours.empty.body': 'Začněte naplánováním výletu nebo importem souboru GPX či KML.',
+  'tours.empty.body':
+    'Začněte naplánováním výletu nebo importem souboru GPX či KML. Zarezervovali jste prohlídku s průvodcem? Ta patří do Rezervací.',
   'tours.addToDay': 'Přidat ke dni',
   'tours.badge.wanderer': 'wanderer',
   'tours.badge.gpx': 'Import GPX',

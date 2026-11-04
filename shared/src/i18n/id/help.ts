@@ -3432,7 +3432,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.summary':
     'Tab ini berisi semua yang dipesan untuk perjalanan selain transportasi: penginapan, meja restoran, tiket, tur, dan parkir. Setiap pemesanan tampil sebagai kartu, baris daftar, atau bar di linimasa, lengkap dengan kode, dokumen, peserta, dan biayanya. Klik pemesanan untuk membuka detailnya.',
   'help.ctx.trip-bookings.bullet.1':
-    '“Pemesanan Manual” di ujung kanan bar membuka “Reservasi Baru”. Di sana bisa dibuat enam jenis pemesanan: “Akomodasi”, “Restoran”, “Acara”, “Tur”, “Parkir”, dan “Lainnya”. Penerbangan, kereta, dan transportasi lainnya ada di tab “Transportasi” dan tidak pernah muncul di sini.',
+    '“Pemesanan Manual” di ujung kanan bar membuka “Reservasi Baru”. Di sana bisa dibuat enam jenis pemesanan: “Akomodasi”, “Restoran”, “Acara”, “Tur berpemandu”, “Parkir”, dan “Lainnya”. Penerbangan, kereta, dan transportasi lainnya ada di tab “Transportasi” dan tidak pernah muncul di sini.',
   'help.ctx.trip-bookings.bullet.2':
     'Ikon unduh sebelum “Pemesanan Manual”, “Impor konfirmasi pemesanan”, mengunggah konfirmasi agar TREK bisa membacanya secara otomatis: EML, PDF, PKPass, HTML, atau TXT, maksimal lima file masing-masing 10 MB, serta foto jika model AI bisa membaca gambar. Ikon ini hanya ada jika server bisa membacanya.',
   'help.ctx.trip-bookings.bullet.3':
@@ -3474,7 +3474,7 @@ const help: TranslationStrings = {
   'help.guide.create-booking.step.1':
     'Klik “Pemesanan Manual” di ujung kanan bilah. “Reservasi Baru” terbuka, dengan judul dan dua label di header bagian atas.',
   'help.guide.create-booking.step.2':
-    'Klik label jenis di pita atas, yang bertuliskan “Lainnya” pada pemesanan baru, lalu pilih “Jenis Pemesanan”. Tab ini bisa membuat enam jenis: “Akomodasi”, “Restoran”, “Acara”, “Tur”, “Parkir”, dan “Lainnya”. Formulir berubah sesuai pilihanmu: hanya “Akomodasi” yang memakai rentang hari, bukan tanggal.',
+    'Klik label jenis di pita atas, yang bertuliskan “Lainnya” pada pemesanan baru, lalu pilih “Jenis Pemesanan”. Tab ini bisa membuat enam jenis: “Akomodasi”, “Restoran”, “Acara”, “Tur berpemandu”, “Parkir”, dan “Lainnya”. Formulir berubah sesuai pilihanmu: hanya “Akomodasi” yang memakai rentang hari, bukan tanggal.',
   'help.guide.create-booking.step.3':
     'Ketik judul di pita atas, yaitu kolom di atas label. Hanya kolom ini yang wajib diisi, dan “Tambah” tetap abu-abu sampai kamu mengisinya.',
   'help.guide.create-booking.step.4':

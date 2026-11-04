@@ -7,7 +7,8 @@ const tours: TranslationStrings = {
   'tours.mode.label': 'Afegeix una vista',
   'tours.title': 'Excursions',
   'tours.empty.title': 'Encara no hi ha excursions',
-  'tours.empty.body': 'Planifica una excursió o importa un fitxer GPX o KML per començar.',
+  'tours.empty.body':
+    'Planifica una excursió o importa un fitxer GPX o KML per començar. Has reservat una visita guiada? Va a Reserves.',
   'tours.addToDay': 'Afegeix a un dia',
   'tours.badge.wanderer': 'wanderer',
   'tours.badge.gpx': 'Importació GPX',

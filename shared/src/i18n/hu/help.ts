@@ -3484,7 +3484,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.summary':
     'Ezen a fülön minden olyan foglalás megtalálható, amely nem közlekedés: szállások, asztalfoglalások, jegyek, túrák és parkolás. Minden foglalás egy kártya, egy listasor vagy egy sáv az idővonalon, a kódjával, dokumentumaival, utazóival és költségével. A részletek megnyitásához kattints egy foglalásra.',
   'help.ctx.trip-bookings.bullet.1':
-    'A sáv jobb végén lévő „Kézi foglalás” megnyitja az „Új foglalás” ablakot. Hatféle foglalást hozhatsz létre: „Szállás”, „Étterem”, „Esemény”, „Túra”, „Parkolás” és „Egyéb”. A repülőjáratok, vonatok és egyéb közlekedési eszközök a „Közlekedés” fülön vannak, és itt sosem jelennek meg.',
+    'A sáv jobb végén lévő „Kézi foglalás” megnyitja az „Új foglalás” ablakot. Hatféle foglalást hozhatsz létre: „Szállás”, „Étterem”, „Esemény”, „Vezetett túra”, „Parkolás” és „Egyéb”. A repülőjáratok, vonatok és egyéb közlekedési eszközök a „Közlekedés” fülön vannak, és itt sosem jelennek meg.',
   'help.ctx.trip-bookings.bullet.2':
     'A „Kézi foglalás” előtti letöltés ikonnal („Foglalási visszaigazolások importálása”) visszaigazolásokat tölthetsz fel, amelyeket a TREK automatikusan feldolgoz: EML, PDF, PKPass, HTML vagy TXT, legfeljebb öt fájl, egyenként 10 MB-ig, valamint fotók, ha az AI-modell képeket is tud olvasni. Az ikon csak akkor jelenik meg, ha a szerver képes feldolgozni őket.',
   'help.ctx.trip-bookings.bullet.3':
@@ -3526,7 +3526,7 @@ const help: TranslationStrings = {
   'help.guide.create-booking.step.1':
     'Kattints a sáv jobb végén a „Kézi foglalás” gombra. Megnyílik az „Új foglalás” ablak, felül egy fejlécben a címmel és két címkével.',
   'help.guide.create-booking.step.2':
-    'Kattints a felső sávban a típuscímkére (új foglalásnál „Egyéb” áll rajta), és válaszd ki a „Foglalás típusa” értékét. Ezen a fülön hat típust hozhatsz létre: „Szállás”, „Étterem”, „Esemény”, „Túra”, „Parkolás” és „Egyéb”. Az űrlap a választásodtól függően változik: csak a „Szállás” használ dátumok helyett naptartományt.',
+    'Kattints a felső sávban a típuscímkére (új foglalásnál „Egyéb” áll rajta), és válaszd ki a „Foglalás típusa” értékét. Ezen a fülön hat típust hozhatsz létre: „Szállás”, „Étterem”, „Esemény”, „Vezetett túra”, „Parkolás” és „Egyéb”. Az űrlap a választásodtól függően változik: csak a „Szállás” használ dátumok helyett naptartományt.',
   'help.guide.create-booking.step.3':
     'Írd be a címet a felső sávba, a címkék fölötti mezőbe. Ez az egyetlen kötelező mező, és amíg nem írsz bele semmit, a „Hozzáadás” gomb szürke marad.',
   'help.guide.create-booking.step.4':

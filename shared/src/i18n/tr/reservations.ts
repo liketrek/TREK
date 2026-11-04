@@ -61,7 +61,7 @@ const reservations: TranslationStrings = {
   'reservations.type.car': 'Araba',
   'reservations.type.cruise': 'Dolaşmak',
   'reservations.type.event': 'Etkinlik',
-  'reservations.type.tour': 'Tur',
+  'reservations.type.tour': 'Rehberli tur',
   'reservations.type.parking': 'Otopark',
   'reservations.type.other': 'Diğer',
   'reservations.type.bus': 'Otobüs',
