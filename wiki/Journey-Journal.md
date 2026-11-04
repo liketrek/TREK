@@ -42,6 +42,8 @@ Each entry corresponds to a day in your journey. The entry editor provides:
 - **Weather** — choose one of six values: Sunny, Partly cloudy, Cloudy, Rainy, Stormy, Snowy. (Snowy is stored under the id `cold`.)
 - **Photos and videos** — attach photos to the entry. The first photo becomes the card thumbnail in list views. A video clip goes on an entry the same way: `mp4`, `m4v`, `webm` or `mov`, up to 500 MB per file. The clip is stored as uploaded, without transcoding, and the editor shows its first frame as a preview before you save. The journey gallery takes the same clips.
   > **Note on HEIC files:** HEIC is an Apple-only format that many browsers and platforms do not recognise as an image. To ensure broad compatibility, HEIC/HEIF files are automatically converted to JPEG before upload. This conversion may result in the loss of embedded metadata (EXIF data such as GPS coordinates, camera information, etc.).
+
+  > **Note on Android:** the photo picker of Android browsers removes the location from photos before they reach any website, so a photo uploaded from an Android phone usually arrives without GPS and stays off the map. Photos added from a connected Immich or Synology Photos library keep their location, because TREK reads it from the library instead of the uploaded file.
 - **Pros / Cons** — optional verdict cards. Add items to a **Pros** list (thumbs-up) or a **Cons** list (thumbs-down) to summarise what you loved or what could have been better. These are stored in the `pros_cons.pros` and `pros_cons.cons` arrays on the entry.
 - **Tags** — free-form labels (e.g. "hidden gem", "best meal").
 - **Location** — pin the entry to a map location.

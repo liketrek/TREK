@@ -347,6 +347,26 @@ docker logs <container> 2>&1 | grep -E "SMTP test email (sent|failed)|SMTP test 
 
 ---
 
+## My location does not work: "Location requires a secure (HTTPS) connection"
+
+**Cause:** Browsers only hand out the device location in a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts). Over plain HTTP at an address other than `localhost`, the location button on the map shows *Location requires a secure (HTTPS) connection*, and the journal's current location stays empty. The same goes for a phone opening TREK by its LAN address.
+
+**Fix:** Open TREK over HTTPS. Two common ways when TREK runs at home:
+
+- **A reverse proxy with a certificate**, see [Reverse-Proxy](Reverse-Proxy).
+- **An HTTPS tunnel** (Cloudflare Tunnel, Tailscale Serve, ngrok and the like) that ends at TREK's HTTP port.
+
+With a tunnel or proxy in front and plain HTTP still used on the LAN, set:
+
+- `APP_URL` to the HTTPS address, so links in emails and calendar feeds use it.
+- `TRUST_PROXY=1`, so TREK sees that the request came in over HTTPS.
+- `COOKIE_SECURE=false` only if you also sign in over plain HTTP on the LAN; without it, that sign-in keeps no session. HTTPS sign-ins work either way.
+- `ALLOWED_ORIGINS` needs no entry for either address: the address in the browser's address bar is always allowed. Add origins only for other sites that call TREK.
+
+See [Environment Variables](Environment-Variables) for each of them.
+
+---
+
 ## CORS error — API requests blocked in the browser
 
 **Cause:** If `ALLOWED_ORIGINS` is set, only those origins are permitted, plus the host the request was sent to (the address in the browser's address bar is never cross-origin to itself). A request from any other origin is refused with `403 Not allowed by CORS`, and the server logs a `CORS: refused origin ...` warning naming the origin to add.

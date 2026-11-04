@@ -588,8 +588,8 @@ describe('Prompt: budget-overview', () => {
     const text = await invokePromptText(client, 'budget-overview', { tripId: trip.id });
     // 801.76 USD at 1.17 is 685.26 EUR. Summed as stored it read "Total: 901.76 EUR".
     expect(text).toContain('Total: 785.26 EUR');
-    expect(text).toContain('- Accommodation: 685.26 EUR');
-    expect(text).toContain('- Food: 100 EUR');
+    expect(text).toContain('- accommodation: 685.26 EUR');
+    expect(text).toContain('- food: 100 EUR');
     expect(text).not.toContain('801.76');
   });
 

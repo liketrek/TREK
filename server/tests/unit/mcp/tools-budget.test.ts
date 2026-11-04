@@ -155,7 +155,8 @@ describe('Tool: create_budget_item', () => {
       });
       const data = parseToolResult(result) as any;
       expect(data.item.name).toBe('Hotel Paris');
-      expect(data.item.category).toBe('Accommodation');
+      // Stored as its fixed key, as the Costs tab shows it (#2835).
+      expect(data.item.category).toBe('accommodation');
       expect(data.item.total_price).toBe(500);
       expect(data.item.note).toBe('Prepaid');
     });

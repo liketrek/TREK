@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import type { BudgetFallbackFx, BudgetParticipantFinal, BudgetUnconverted, TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
-import { splitEqualShares, sumMinor, toMinor } from '@trek/shared';
+import { costCategoryOf, splitEqualShares, storedCostCategory, sumMinor, toMinor } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { avatarUrl } from '../common/avatarUrl';
@@ -91,8 +91,7 @@ export function splitLegacyTicketNote(
  * queries instead of a full listSettlements() scan, settlement usernames use
  * COALESCE(display_name, username) like every item query, and updateMembers no
  * longer double-applies avatarUrl.
- */
-@Injectable()
+ */@Injectable()
 export class BudgetService {
   constructor(
     private readonly permissions: PermissionsService,
@@ -520,7 +519,7 @@ export class BudgetService {
       const maxOrder = await this.budgetItemsRepo.maxSortOrder(tripId);
       const sortOrder = (maxOrder !== null ? maxOrder : -1) + 1;
 
-      const cat = data.category || 'other';
+      const cat = storedCostCategory(data.category);
 
       // Ensure category has a sort_order entry
       const catExists = await this.budgetCategoryOrderRepo.exists(tripId, cat);
@@ -660,7 +659,7 @@ export class BudgetService {
       // (the legacy `COALESCE(?, col)` truthy-wins shape), everything else
       // passes `present = <field> !== undefined` (a true presence sentinel).
       await this.budgetItemsRepo.update(id, {
-        category: [!!data.category, data.category || ''],
+        category: [!!data.category, data.category ? storedCostCategory(data.category) : ''],
         name: [!!data.name, data.name || ''],
         total_price: [data.total_price !== undefined, data.total_price !== undefined ? data.total_price : 0],
         currency: [data.currency !== undefined, data.currency !== undefined ? (data.currency || null) : null],
@@ -705,11 +704,11 @@ export class BudgetService {
 
       // If category changed, update category order table
       if (data.category) {
-        const catExists = await this.budgetCategoryOrderRepo.exists(tripId, data.category);
+        const catExists = await this.budgetCategoryOrderRepo.exists(tripId, storedCostCategory(data.category));
         if (!catExists) {
           const maxCatOrder = await this.budgetCategoryOrderRepo.maxSortOrder(tripId);
           const catOrder = (maxCatOrder !== null && maxCatOrder !== undefined ? maxCatOrder : -1) + 1;
-          await this.budgetCategoryOrderRepo.insertIgnore(tripId, data.category, catOrder);
+          await this.budgetCategoryOrderRepo.insertIgnore(tripId, storedCostCategory(data.category), catOrder);
         }
       }
 
@@ -1037,7 +1036,7 @@ export class BudgetService {
       }
       const cents = toMinor(convert(r.total_price || 0));
       total += cents;
-      const cat = r.category || '';
+      const cat = costCategoryOf(r.category) ?? (r.category || '');
       byCategory[cat] = (byCategory[cat] || 0) + cents;
     }
     return {

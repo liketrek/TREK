@@ -291,7 +291,7 @@ describe('MCP transit tools', () => {
           arguments: { tripId: trip.id, dayId: day.id, from, to, itinerary, price: 230, budget_category: 'Transport' },
         }),
       ) as { reservation: { id: number; metadata: string } };
-      expect((await findRow(orm, BudgetItems, { reservation: paid.reservation.id }))?.category).toBe('Transport');
+      expect((await findRow(orm, BudgetItems, { reservation: paid.reservation.id }))?.category).toBe('transport');
 
       const free = parseToolResult(
         await harness.client.callTool({
