@@ -9,6 +9,8 @@ import { journeyMapStops } from '../../components/Journey/journeyMapStops'
 import { posterlessVideo } from '../journeyDetail/JourneyDetailPage.helpers'
 import { groupByDate, type PublicEntry, type PublicGalleryPhoto } from './journeyPublicModel'
 import { useJourneyMapLayers } from '../../components/Journey/useJourneyMapLayers'
+import { journeyOpenAtEntryId } from '../../components/Journey/journeyOpenAt'
+import { localIsoDate } from '../../utils/localDate'
 
 /**
  * Public-journey (read-only share) data hook — owns the token fetch, the
@@ -144,6 +146,12 @@ export function useJourneyPublic() {
     () => (effectiveNewestFirst ? [...sortedDates].reverse() : sortedDates),
     [sortedDates, effectiveNewestFirst],
   )
+  // The phone's map carousel keeps the trip in time order, so newest-first there means
+  // opening on the latest day instead of reversing the cards (#2851).
+  const openAtEntryId = useMemo(
+    () => journeyOpenAtEntryId(timelineEntries, { today: localIsoDate(), newestFirst: effectiveNewestFirst }),
+    [timelineEntries, effectiveNewestFirst],
+  )
 
   // Two-column desktop layout: timeline feed left + sticky map right
   const desktopTwoColumn = !isMobile && perms.share_timeline && perms.share_map
@@ -166,7 +174,7 @@ export function useJourneyPublic() {
     perms, journey, stats,
     timelineEntries, groupedEntries, sortedDates, displayDates, sidebarMapItems, allPhotos, stopNumberById, mapPhotos,
     mapLayers, entryTitleOf,
-    newestFirst: effectiveNewestFirst, setNewestFirst,
+    newestFirst: effectiveNewestFirst, setNewestFirst, openAtEntryId,
     desktopTwoColumn,
   }
 }

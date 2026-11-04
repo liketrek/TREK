@@ -71,6 +71,14 @@ export function useJourneyCarouselSync<E extends CarouselEntry>({
         bestIdx = idx;
       }
     });
+    // The first and the last card can never reach the centre, so a carousel scrolled
+    // as far as it goes means the card at that end: without this, opening on the
+    // latest day settled on the one before it (#2851). Measured from the start in
+    // either direction: in a right-to-left layout scrollLeft runs negative.
+    const travel = el.scrollWidth - el.clientWidth;
+    const scrolled = Math.abs(el.scrollLeft);
+    if (travel > 1 && scrolled >= travel - 1) bestIdx = cardRefs.current.size - 1;
+    else if (travel > 1 && scrolled <= 0) bestIdx = 0;
     setActiveIndex((prev) => {
       if (prev !== bestIdx) syncMapToCard(bestIdx);
       return bestIdx;

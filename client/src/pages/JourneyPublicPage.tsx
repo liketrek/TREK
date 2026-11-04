@@ -133,6 +133,7 @@ export default function JourneyPublicPage() {
     sortedDates,
     displayDates,
     newestFirst,
+    openAtEntryId,
     setNewestFirst,
     sidebarMapItems,
     allPhotos,
@@ -695,6 +696,7 @@ export default function JourneyPublicPage() {
           {isMobile && view === 'timeline' && perms.share_timeline && perms.share_map && (
             <MobileMapTimeline
               entries={timelineEntries}
+              initialEntryId={openAtEntryId}
               mapEntries={sidebarMapItems as any}
               dark={document.documentElement.classList.contains('dark')}
               readOnly

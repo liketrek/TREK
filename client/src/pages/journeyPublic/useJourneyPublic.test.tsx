@@ -1,4 +1,4 @@
-// FE-JRN-PUBHOOK-001 to FE-JRN-PUBHOOK-002
+// FE-JRN-PUBHOOK-001 to FE-JRN-PUBHOOK-003
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 import { server } from '../../../tests/helpers/msw/server';
@@ -32,14 +32,14 @@ function buildEntry(over: Partial<PublicEntry> & { id: number }): PublicEntry {
   };
 }
 
-function serveShare(entries: PublicEntry[]): void {
+function serveShare(entries: PublicEntry[], permissions: Record<string, boolean> = {}): void {
   server.use(
     http.get('/api/public/journey/tok-1', () =>
       HttpResponse.json({
         journey: { title: 'Japan' },
         entries,
         gallery: [],
-        permissions: { share_timeline: true, share_gallery: true, share_map: false },
+        permissions: { share_timeline: true, share_gallery: true, share_map: false, ...permissions },
         stats: {},
       })
     )
@@ -90,5 +90,22 @@ describe('useJourneyPublic', () => {
       ['9', 3],
     ]);
     expect(result.current.stopNumberById.has('7')).toBe(false);
+  });
+
+  it('FE-JRN-PUBHOOK-003: a link published newest-first opens on the first entry of the latest day', async () => {
+    serveShare(
+      [
+        buildEntry({ id: 1, entry_date: '2020-03-01' }),
+        buildEntry({ id: 2, entry_date: '2020-03-02' }),
+        buildEntry({ id: 3, entry_date: '2020-03-02', sort_order: 1 }),
+      ],
+      { newest_first: true }
+    );
+    const { result } = renderHook(() => useJourneyPublic());
+
+    await waitFor(() => expect(result.current.openAtEntryId).toBe('2'));
+    result.current.setNewestFirst(false);
+    // A journey that ended long ago, read oldest-first, starts at the beginning.
+    await waitFor(() => expect(result.current.openAtEntryId).toBeNull());
   });
 });
