@@ -348,10 +348,8 @@ export class PlacesRepository extends TrekRepository<Places> {
    * builds. Every value here is already fully coerced by the caller (the
    * `?? null` vs `|| null` split PL4's own legacy comment documents — 0 is
    * legitimate for `lat`/`lng`/`price`/`fill_percent`, and
-   * `duration_minutes` defaults to 60 — stays the service's decision, this
-   * writes exactly what it is handed, `DaysRepository.createDay`'s split).
-   * `em.insert()` returns the generated PK (R6's `lastInsertRowid`
-   * replacement).
+   * `duration_minutes` defaults to 60 — stays the service's decision), but
+   * `lng` is stored on the real world (#2976). Returns the generated PK.
    */
   async insertPlace(input: {
     trip_id: number;
