@@ -419,8 +419,8 @@ describe('ArtikelZeile — sharing badges', () => {
       currentUserId: 1,
     })
 
-    // The bringer's initial on an avatar, the co-bringers as a count.
-    expect(screen.getByTitle('brought by Bob')).toHaveTextContent('B+1')
+    // The bringer's initial on an avatar, the co-bringers as a count; the title names everyone (#2782).
+    expect(screen.getByTitle('brought by Bob, cleo')).toHaveTextContent('B+1')
   })
 
   it('FE-W5ROW-022: a bringer without co-bringers shows no counter', () => {

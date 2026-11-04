@@ -169,7 +169,9 @@ describe('useJourneyCarouselSync', () => {
     const settleAt = (scrollLeft: number) => {
       Object.defineProperty(carousel, 'scrollLeft', { value: scrollLeft, configurable: true });
       carousel.dispatchEvent(new Event('scroll'));
-      act(() => vi.advanceTimersByTime(150));
+      act(() => {
+        vi.advanceTimersByTime(150);
+      });
     };
 
     settleAt(300);

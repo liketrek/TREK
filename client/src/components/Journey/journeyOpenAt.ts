@@ -26,13 +26,14 @@ export function journeyOpenAtEntryId(
   { today, newestFirst = false }: { today: string; newestFirst?: boolean }
 ): string | null {
   const dated = [...entries].sort((a, b) => a.entry_date.localeCompare(b.entry_date));
-  const first = dated.at(0);
-  const last = dated.at(-1);
+  const first = dated[0];
+  const last = dated[dated.length - 1];
   if (!first || !last) return null;
   let day = last.entry_date;
   if (!newestFirst) {
     if (today < first.entry_date || today > last.entry_date) return null;
-    day = dated.filter((e) => e.entry_date <= today).at(-1)?.entry_date ?? first.entry_date;
+    const reached = dated.filter((e) => e.entry_date <= today);
+    day = reached[reached.length - 1]?.entry_date ?? first.entry_date;
   }
   const dayStart = dated.find((e) => e.entry_date === day) ?? first;
   return String(dayStart.id);
