@@ -983,6 +983,7 @@
     "src/mobile/screens/admin/MAdminOidcCard.tsx": "Markup only; the OIDC card of MAdminSettingsSection, with the form state from useAdmin and the save from its useAdminSettingsActions handed in through props.",
     "src/mobile/screens/admin/MAdminResetMfaSheet.tsx": "Markup only; the 2FA reset confirm that MAdminSheets opens, with the reset handed in through props from its useAdminUserActions.",
     "src/mobile/screens/admin/MAdminUi.tsx": "Phone only admin UI primitives (button, card, field, input, secret input, sheet frame).",
+    "src/mobile/screens/admin/MPluginVersionDate.tsx": "Markup only; the published date of a plugin version in MAdminPluginsPanel, formatted with the user's date format through useFormatDate.",
     "src/mobile/screens/admin/MStorageReclaimCard.tsx": "Markup only; renders the reclaim view and handlers that MAdminStoragePanel takes from useStoragePanel, the twin of StorageReclaimSection.",
     "src/mobile/screens/atlas/MAtlasSearch.tsx": "Phone full screen country search overlay; options, suggestions and selection come through props from MAtlas.",
     "src/mobile/screens/atlas/MAtlasStatsCard.tsx": "Markup only; renders the AtlasStats that MAtlas passes in.",
