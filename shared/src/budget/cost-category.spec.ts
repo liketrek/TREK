@@ -1,5 +1,5 @@
-// COST-CATEGORY-001 to COST-CATEGORY-003: a typed category read as one of the fixed keys.
-import { costCategoryOf } from './cost-category';
+// COST-CATEGORY-001 to COST-CATEGORY-005: a typed category read as one of the fixed keys.
+import { COST_CATEGORY_HINT, costCategoryOf, storedCostCategory } from './cost-category';
 
 import { describe, expect, it } from 'vitest';
 
@@ -22,5 +22,19 @@ describe('costCategoryOf', () => {
     expect(costCategoryOf('')).toBeNull();
     expect(costCategoryOf(null)).toBeNull();
     expect(costCategoryOf(undefined)).toBeNull();
+  });
+
+  it('COST-CATEGORY-004: an expense is stored under the key, other text as given, nothing as other', () => {
+    expect(storedCostCategory('Food')).toBe('food');
+    expect(storedCostCategory('Train')).toBe('transport');
+    expect(storedCostCategory('Comida')).toBe('Comida');
+    expect(storedCostCategory('')).toBe('other');
+    expect(storedCostCategory(null)).toBe('other');
+    expect(storedCostCategory(undefined)).toBe('other');
+  });
+
+  it('COST-CATEGORY-005: the hint an assistant reads names every key', () => {
+    for (const key of ['accommodation', 'food', 'transport', 'flights', 'other'])
+      expect(COST_CATEGORY_HINT).toContain(key);
   });
 });
