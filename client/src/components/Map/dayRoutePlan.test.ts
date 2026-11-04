@@ -169,7 +169,7 @@ describe('buildDayRouteRuns', () => {
     expect(hotelBookendOf(run[0], run[1])).toBe('morning')
   })
 
-  it('FE-MAP-DRP-017: the morning after a night away starts at the side trip's hotel, not the room kept at home', () => {
+  it("FE-MAP-DRP-017: the morning after a night away starts at the side trip's hotel, not the room kept at home", () => {
     // The first hotel stays booked over the whole trip and comes first in the list; the
     // side trip's hotel holds the night before. The day used to start with a 716 km drive
     // from the kept room to the side trip's first stop.

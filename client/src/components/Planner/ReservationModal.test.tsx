@@ -133,7 +133,7 @@ describe('ReservationModal', () => {
     expect(screen.getByRole('button', { name: /^Accommodation$/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Restaurant$/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Event$/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^Tour$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Guided tour$/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Parking$/i })).toBeInTheDocument();
     // The pill reads "Booking Type: Other", so only its option is named plain "Other".
     expect(screen.getAllByRole('button', { name: /^Other$/i })).toHaveLength(1);
@@ -708,7 +708,7 @@ describe('ReservationModal', () => {
 
   it('FE-PLANNER-RESMODAL-045: tour type shows time pickers', async () => {
     render(<ReservationModal {...defaultProps} />);
-    await pickType(/^Tour$/i);
+    await pickType(/^Guided tour$/i);
     await waitFor(() => {
       expect(screen.getAllByTestId('time-picker').length).toBeGreaterThan(0);
     });

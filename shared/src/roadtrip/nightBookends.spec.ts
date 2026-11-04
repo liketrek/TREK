@@ -305,13 +305,14 @@ describe('two stays on one day', () => {
     expect(day!.stops[2]!.bookend?.accommodationId).toBe(3);
   });
 
-  it('ROADTRIP-BOOKENDS-018: overlapping stays follow the day plan: woken up in the older, tonight in the one checked into', () => {
+  it('ROADTRIP-BOOKENDS-018: overlapping stays follow the day plan: woken up in the one checked into last, tonight in the one that runs on', () => {
     const long = stay(1, D1, D4, HOTEL);
     const short = stay(2, D2, D3, WALLINGA);
     const plan = [planDay(D2, [visit(D2, 0, { name: 'P' })]), planDay(D3, [visit(D3, 0, { name: 'Q' })])];
     const seated = seatNightBookends(plan, days, [long, short]);
     expect(shape(seated[0])).toEqual(['morning:1', 'P', 'evening:2']);
-    expect(shape(seated[1])).toEqual(['morning:1', 'Q', 'evening:1']);
+    // The night before was spent in the short stay; the long one is where the day ends.
+    expect(shape(seated[1])).toEqual(['morning:2', 'Q', 'evening:1']);
   });
 
   it('ROADTRIP-BOOKENDS-019: the order the stays come in changes nothing', () => {
