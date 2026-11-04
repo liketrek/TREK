@@ -18,6 +18,7 @@ import { PopoverItem } from './PackingPopover'
 import { POPOVER, POPOVER_CAPTION, POPOVER_DIVIDER } from './packingPopoverStyles'
 import type { TripMember } from './usePackingListPanel'
 import { NumericInput } from '../shared/NumericInput'
+import { packingBringerNames } from './packingBringers'
 
 interface ArtikelZeileProps {
   item: PackingItem
@@ -226,7 +227,7 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCa
         </span>
       )}
       {!isPlaceholder && broughtBy && (
-        <span className="packing-row-badge" title={t('packing.broughtBy', { name: broughtBy })} aria-label={t('packing.broughtBy', { name: broughtBy })}
+        <span className="packing-row-badge" title={t('packing.broughtBy', { name: packingBringerNames(item) })} aria-label={t('packing.broughtBy', { name: packingBringerNames(item) })}
           style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
           {ownerAvatar
             ? <img src={ownerAvatar} alt="" style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover', display: 'block' }} />

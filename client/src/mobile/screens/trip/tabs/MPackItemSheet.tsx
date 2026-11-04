@@ -6,6 +6,7 @@ import { avatarSrc } from '../../../../utils/avatarSrc'
 import type { PackingItem, TripMember } from '../../../../types'
 import type { TripPlanner } from '../MTripShell'
 import { isPackingPlaceholder } from '../../../../components/Packing/packingListModel'
+import { packingBringerNames } from '../../../../components/Packing/packingBringers'
 
 export interface MPackItemSheetProps {
   planner: TripPlanner
@@ -160,7 +161,7 @@ export default function MPackItemSheet({
               <div className="rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-3">
                 {item.owner_username && (
                   <div className="mb-[9px] font-geist text-[0.6875rem] text-m-muted">
-                    {t('packing.broughtBy', { name: item.owner_username })}
+                    {t('packing.broughtBy', { name: packingBringerNames(item) })}
                   </div>
                 )}
                 <div className="flex gap-2">
