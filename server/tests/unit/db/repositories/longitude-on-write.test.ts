@@ -108,16 +108,28 @@ describe('longitude on write', () => {
   it('LNGWRITE-002: a place on the real world, the edges included, is written as it came', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    for (const lng of [-118.4, 180, -180]) {
-      const id = await places.insertTourPlace({
-        trip_id: trip.id,
-        name: `At ${lng}`,
-        lat: 0,
-        lng,
-        route_geometry: null,
-      });
-      expect(await storedLng(id)).toBe(lng);
-    }
+    const west = await places.insertTourPlace({
+      trip_id: trip.id,
+      name: 'West',
+      lat: 0,
+      lng: -118.4,
+      route_geometry: null,
+    });
+    const edge = await places.insertTourPlace({
+      trip_id: trip.id,
+      name: 'Edge',
+      lat: 0,
+      lng: 180,
+      route_geometry: null,
+    });
+    const otherEdge = await places.insertTourPlace({
+      trip_id: trip.id,
+      name: 'Other edge',
+      lat: 0,
+      lng: -180,
+      route_geometry: null,
+    });
+    expect([await storedLng(west), await storedLng(edge), await storedLng(otherEdge)]).toEqual([-118.4, 180, -180]);
   });
 
   it('LNGWRITE-003: tour places and their route rewrites wrap too', async () => {

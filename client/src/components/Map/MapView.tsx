@@ -3,7 +3,7 @@ import DOM from 'react-dom'
 import { categoryIconSvg } from './categoryIconSvg'
 import { MapContainer, TileLayer, Marker, Polyline, CircleMarker, Circle, useMap, Tooltip } from 'react-leaflet'
 import MarkerClusterGroup from 'react-leaflet-cluster'
-import { makeMarkerDraggable, makePoiDraggable, draggedPoiId } from './markerDrag'
+import { makeMarkerDraggable, makePoiDraggable } from './markerDrag'
 import { CLUSTER_OPTIONS, createClusterIcon, revealInCluster, type ClusterGroupLike } from './markerCluster'
 import RoadtripViaMarkers from './RoadtripViaMarkers'
 import PlannerWaypointMarker from './PlannerWaypointMarker'
@@ -50,7 +50,7 @@ import { useTransportRoutes } from '../../hooks/useTransportRoutes'
 import { visibleRouteReservations } from '../../utils/reservationRoutes'
 import { safeHexColor } from '../../utils/safeColor'
 import { placeMarkerLook } from './markerLook'
-import { escapeHtml, wrapLongitude } from '@trek/shared'
+import { escapeHtml } from '@trek/shared'
 import type { Day, Place, Reservation, RouteVia } from '../../types'
 import type { MapHoverInfo } from './mapHover'
 import { nightPauseMarker, NIGHT_PAUSE_MIN_ZOOM } from './nightPauseMarker'
@@ -299,60 +299,6 @@ function CameraHoverGuard({ movingRef, onMoveStart, onZoom }: { movingRef: { cur
   return null
 }
 
-/**
- * Takes a corridor hit dropped anywhere on the map and reports where it landed.
- *
- * The container rather than the drawn route: a polyline is a real element here but not in
- * the GL renderers, and the drop coordinate answers "where on the drive" just as well
- * once the caller projects it onto the routed geometry — one behaviour for all three.
- */
-function PoiDropTarget({ onPoiDropOnRoute }: { onPoiDropOnRoute?: (osmId: string, lat: number, lng: number) => void }) {
-  const map = useMap()
-  useEffect(() => {
-    if (!onPoiDropOnRoute) return
-    const container = map.getContainer()
-    const onDragOver = (e: DragEvent) => {
-      if (!draggedPoiId(e)) return
-      e.preventDefault()
-      if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'
-    }
-    const onDrop = (e: DragEvent) => {
-      const osmId = draggedPoiId(e)
-      if (!osmId) return
-      e.preventDefault()
-      const rect = container.getBoundingClientRect()
-      const at = onRealWorld(map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]))
-      onPoiDropOnRoute(osmId, at.lat, at.lng)
-    }
-    container.addEventListener('dragover', onDragOver)
-    container.addEventListener('drop', onDrop)
-    return () => {
-      container.removeEventListener('dragover', onDragOver)
-      container.removeEventListener('drop', onDrop)
-    }
-  }, [map, onPoiDropOnRoute])
-  return null
-}
-
-// Emits the current viewport bbox on pan/zoom so the POI-explore pill can fetch
-// OSM places for the visible area, with the zoom an overlay's minimum is read against.
-function ViewportController({ onViewportChange }: { onViewportChange?: MapViewProps['onViewportChange'] }) {
-  const map = useMap()
-  useEffect(() => {
-    if (!onViewportChange) return
-    const emit = () => {
-      const b = map.getBounds()
-      // A view of a world copy (or of a trip drawn past the antimeridian) asks for the real places there.
-      onViewportChange(bboxOnRealWorld({ south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() }), map.getZoom())
-    }
-    map.whenReady(emit) // ensure the first bbox is captured once the map is laid out
-    map.on('moveend', emit)
-    map.on('zoomend', emit)
-    return () => { map.off('moveend', emit); map.off('zoomend', emit) }
-  }, [map, onViewportChange])
-  return null
-}
-
 function MapCameraSnapshot({ onChange }: { onChange: (center: [number, number], zoom: number) => void }) {
   const map = useMap()
   useEffect(() => {
@@ -410,28 +356,6 @@ function SelectionController({ follow, places, selectedPlaceId, dayPlaces, selec
 interface MapControllerProps {
   center: [number, number]
   zoom: number
-}
-
-/**
- * Moves the view along when the longitude frame changes under it (#2975): the trip
- * is then drawn one world further east or west, and a view left where it was would
- * look at an empty copy. One jump of a whole world, so nothing on screen changes.
- */
-function LngFrameFollower() {
-  const map = useMap()
-  const frame = useLngFrame()
-  const prev = useRef<LngFrame | null>(frame)
-  useEffect(() => {
-    const before = prev.current
-    prev.current = frame
-    if (before === frame || typeof map.getCenter !== 'function') return
-    const center = map.getCenter()
-    // Without a frame the trip is back on the real world, and so is the view.
-    const target = frame ? frameLng(frame, center.lng) : wrapLongitude(center.lng)
-    const shift = target - center.lng
-    if (shift !== 0) map.setView([center.lat, target], map.getZoom(), { animate: false })
-  }, [frame, map])
-  return null
 }
 
 function MapController({ center, zoom }: MapControllerProps) {
@@ -563,10 +487,6 @@ function BoundsController({ places, routeCoords, fitKey, paddingOpts, framedOnMo
   return null
 }
 
-interface MapClickHandlerProps {
-  onClick: ((e: L.LeafletMouseEvent) => void) | null
-}
-
 const TRACK_CASING_PANE = 'trek-track-casing'
 
 /**
@@ -589,38 +509,6 @@ function TrackCasingPane({ onReady }: { onReady: (ready: boolean) => void }) {
   return null
 }
 
-/**
- * The event as the map reports it, with its point moved from a repeated world copy
- * back onto the real world: a right-click on the copy east of it said 274.9 for
- * -85.1, and the place was saved there (#2976).
- */
-function onRealWorldEvent(e: L.LeafletMouseEvent): L.LeafletMouseEvent {
-  const lng = wrapLongitude(e.latlng.lng)
-  return lng === e.latlng.lng ? e : { ...e, latlng: L.latLng(e.latlng.lat, lng) }
-}
-
-function MapClickHandler({ onClick }: MapClickHandlerProps) {
-  const map = useMap()
-  useEffect(() => {
-    if (!onClick) return
-    const handle = (e: L.LeafletMouseEvent) => onClick(onRealWorldEvent(e))
-    map.on('click', handle)
-    return () => { map.off('click', handle) }
-  }, [map, onClick])
-  return null
-}
-
-function MapContextMenuHandler({ onContextMenu }: { onContextMenu: ((e: L.LeafletMouseEvent) => void) | null }) {
-  const map = useMap()
-  useEffect(() => {
-    if (!onContextMenu) return
-    const handle = (e: L.LeafletMouseEvent) => onContextMenu(onRealWorldEvent(e))
-    map.on('contextmenu', handle)
-    return () => { map.off('contextmenu', handle) }
-  }, [map, onContextMenu])
-  return null
-}
-
 // Travel times are shown in the day sidebar (per-segment connectors), not on the map.
 
 import { useMarkerThumbs } from './useMarkerThumbs'
@@ -635,8 +523,8 @@ import { useIsPhone } from '../../mobile/useIsPhone'
 import type { GeoPosition, TrackingMode } from '../../hooks/useGeolocation'
 import { selectedPlaceTarget } from './selectedPlaceTarget'
 import { LngFrameProvider, useLngFrame, useTripLngFrame } from './lngFrameContext'
-import { frameLine, frameLng, type LngFrame } from '../../utils/lngFrame'
-import { bboxOnRealWorld, onRealWorld } from '../../utils/worldCopy'
+import { frameLine, frameLng } from '../../utils/lngFrame'
+import { LngFrameFollower, MapClickHandler, MapContextMenuHandler, PoiDropTarget, ViewportController } from './leafletMapBridges'
 
 function LeafletLocationLayer({ position: fix, mode }: { position: GeoPosition | null; mode: TrackingMode }) {
   const map = useMap()

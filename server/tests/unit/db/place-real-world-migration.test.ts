@@ -60,7 +60,7 @@ async function seed(orm: MikroORM): Promise<void> {
   await rawExec(
     orm,
     `INSERT INTO place_contrib_outbox (id, contrib_key, field, value, place_id, place_name, lat, lng, cid, eligible_at, next_attempt_at)
-     VALUES (1, 'k1', 'name', 'x', 1, 'right-hand copy', 10.14, 274.921875, 'c1', '2026-01-01', '2026-01-01')`,
+     VALUES (1, 'k1', 'website', 'x', 1, 'right-hand copy', 10.14, 274.921875, 'c1', '2026-01-01', '2026-01-01')`,
   );
 }
 

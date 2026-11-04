@@ -93,7 +93,8 @@ describe('transportHop', () => {
       endpoint({ role: 'from', lat: 33.94, lng: -118.41 }),
       endpoint({ role: 'to', sequence: 1, lat: -37.01, lng: 174.79 }),
     ]);
-    const hop = transportHop(r, true, { seam: 28 })!;
+    const hop = transportHop(r, true, { seam: 28 });
+    if (!hop) throw new Error('a flight with two located ends draws a hop');
     expect(hop.from.lng).toBeCloseTo(241.59, 5);
     expect(hop.to.lng).toBeCloseTo(174.79, 5);
     expect(hop.arcs).toHaveLength(1);

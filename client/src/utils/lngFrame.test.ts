@@ -15,7 +15,7 @@ describe('tripLngFrame (#2975)', () => {
   it('seams a trip across the Pacific in the middle of the stretch it leaves empty', () => {
     const frame = tripLngFrame([LA, -118.3, AUCKLAND, 174.76]);
     expect(frame).not.toBeNull();
-    expect(frame!.seam).toBeCloseTo((-118.3 + 174.76) / 2, 5);
+    expect(frame?.seam).toBeCloseTo((-118.3 + 174.76) / 2, 5);
     expect(frameLng(frame, LA)).toBeCloseTo(LA + 360, 9);
     expect(frameLng(frame, AUCKLAND)).toBeCloseTo(AUCKLAND, 9);
   });
@@ -36,7 +36,8 @@ describe('tripLngFrame (#2975)', () => {
   });
 
   it('reads a longitude from a world copy where it really is', () => {
-    expect(tripLngFrame([LA + 360, AUCKLAND - 720])!.seam).toBeCloseTo(tripLngFrame([LA, AUCKLAND])!.seam, 9);
+    const fromCopies = tripLngFrame([LA + 360, AUCKLAND - 720]);
+    expect(fromCopies?.seam).toBeCloseTo(tripLngFrame([LA, AUCKLAND])?.seam ?? Number.NaN, 9);
   });
 });
 

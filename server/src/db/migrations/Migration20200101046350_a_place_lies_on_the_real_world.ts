@@ -6,16 +6,12 @@ import { Migration } from '@mikro-orm/migrations';
  */
 const TABLES = ['places', 'reservation_endpoints', 'collection_places', 'place_contrib_outbox'] as const;
 
-interface LngRow {
-  id: number;
-  lng: number;
-}
-
-/** Into [-180, 180], the same arithmetic as wrapLongitude in @trek/shared, kept here so this body never changes. */
-function onTheRealWorld(lng: number): number {
-  const wrapped = ((((lng + 180) % 360) + 360) % 360) - 180;
-  return wrapped === 0 ? 0 : wrapped;
-}
+/**
+ * How many whole worlds `lng` lies east of the real one: floor((lng + 180) / 360),
+ * spelled with CAST, which truncates towards zero, because SQLite has no floor()
+ * without its math extension.
+ */
+const WORLDS = '(CAST((lng + 180) / 360.0 AS INTEGER) - ((lng + 180) / 360.0 < CAST((lng + 180) / 360.0 AS INTEGER)))';
 
 /**
  * Brings every stored longitude back onto the real world.
@@ -30,14 +26,9 @@ function onTheRealWorld(lng: number): number {
 export class Migration20200101046350_a_place_lies_on_the_real_world extends Migration {
   override name = 'Migration20200101046350_a_place_lies_on_the_real_world';
 
-  override async up(): Promise<void> {
+  override up(): void {
     for (const table of TABLES) {
-      const rows = (await this.execute(
-        `SELECT id, lng FROM ${table} WHERE lng IS NOT NULL AND (lng < -180 OR lng > 180)`,
-      )) as LngRow[];
-      for (const row of rows) {
-        await this.execute(`UPDATE ${table} SET lng = ? WHERE id = ?`, [onTheRealWorld(row.lng), row.id]);
-      }
+      this.addSql(`UPDATE ${table} SET lng = lng - 360 * ${WORLDS} WHERE lng < -180 OR lng > 180`);
     }
   }
 }

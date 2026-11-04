@@ -1,5 +1,5 @@
 import { useEffect, useRef, useMemo, useState, useCallback } from 'react'
-import { makeMarkerDraggable, makePoiDraggable, draggedPoiId } from './markerDrag'
+import { makeMarkerDraggable, makePoiDraggable } from './markerDrag'
 import { useStableVias } from './viaMarkerState'
 import { usePlannerWaypointMarkersGL } from './usePlannerWaypointMarkersGL'
 import { carryAssistantMarks, useAssistantMapGL } from './useAssistantMapGL'
@@ -50,6 +50,7 @@ import { pluginsApi, type PluginMapMarker, type PluginMapLayer } from '../../api
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
 import { alongShortestArc, computeMapViewport, TILE_SIZE_GL } from '../../utils/mapViewport'
 import { onRealWorld } from '../../utils/worldCopy'
+import { bindPoiDropTarget } from './poiDropTarget'
 import { selectedPlaceTarget } from './selectedPlaceTarget'
 import {
   PLACE_CLUSTER_CIRCLE_LAYER_ID, PLACE_CLUSTER_COUNT_LAYER_ID, PLACE_CLUSTER_SOURCE_ID,
@@ -946,35 +947,12 @@ export function MapViewGL({
     }
   }, [mapReady, onRouteClick])
 
-  /**
-   * The map takes the drop, not the drawn route: in a GL renderer the line lives in the
-   * canvas and has no element to aim at. The coordinate under the pointer says just as
-   * much once it is projected onto the routed geometry, and it works the same in all
-   * three renderers.
-   */
+  // A POI dropped on the map lands on the drive (see poiDropTarget.ts).
   useEffect(() => {
     const map = mapRef.current
     const container = map?.getContainer?.()
     if (!container || !mapReady || !onPoiDropOnRoute) return
-    const onDragOver = (e: DragEvent) => {
-      if (!draggedPoiId(e)) return
-      e.preventDefault()
-      if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'
-    }
-    const onDrop = (e: DragEvent) => {
-      const osmId = draggedPoiId(e)
-      if (!osmId) return
-      e.preventDefault()
-      const rect = container.getBoundingClientRect()
-      const at = onRealWorld(map.unproject([e.clientX - rect.left, e.clientY - rect.top]))
-      onPoiDropOnRoute(osmId, at.lat, at.lng)
-    }
-    container.addEventListener('dragover', onDragOver)
-    container.addEventListener('drop', onDrop)
-    return () => {
-      container.removeEventListener('dragover', onDragOver)
-      container.removeEventListener('drop', onDrop)
-    }
+    return bindPoiDropTarget(container, (x, y) => map.unproject([x, y]), onPoiDropOnRoute)
   }, [mapReady, onPoiDropOnRoute])
   const onViewportChangeRef = useRef(onViewportChange)
   onViewportChangeRef.current = onViewportChange
@@ -1378,7 +1356,6 @@ export function MapViewGL({
       // timer — dedupe so the form doesn't open twice.
       if (Date.now() - lastContextFire < 700) return false
       lastContextFire = Date.now()
-      // A right-click on a repeated world copy still means the place on the real world (#2976).
       onClickRefs.current.context?.({ latlng: onRealWorld({ lat: lngLat.lat, lng: lngLat.lng }), originalEvent })
       return true
     }
@@ -1985,8 +1962,6 @@ export function MapViewGL({
     const fitPoints = routeCoords.length > 0 ? [...routeCoords, ...markerPoints] : markerPoints
     if (fitPoints.length === 0) return
     const bounds = new gl.LngLatBounds()
-    // The short way across the antimeridian, as the focus fit below does: a day
-    // from Los Angeles to Auckland frames the Pacific, not the rest of the world (#2975).
     alongShortestArc(fitPoints).forEach(([lat, lng]) => bounds.extend([lng, lat]))
     let fitted = false
     const run = () => {
