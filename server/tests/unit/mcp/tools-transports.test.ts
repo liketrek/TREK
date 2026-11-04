@@ -366,7 +366,8 @@ describe('Transport tools: the price link', () => {
       });
       const data = parseToolResult(result) as { reservation: { id: number } };
       const item = await findRow(orm, BudgetItems, { reservation: data.reservation.id });
-      expect(item?.category).toBe('train');
+      // The type is stored as its Costs key: a train is a transport (#2835).
+      expect(item?.category).toBe('transport');
     });
   });
 
