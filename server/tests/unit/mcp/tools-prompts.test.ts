@@ -565,10 +565,10 @@ describe('Prompt: budget-overview', () => {
     const client = await buildServer(user.id);
     const text = await invokePromptText(client, 'budget-overview', { tripId: trip.id });
     expect(text).toContain('Budget Trip');
-    expect(text).toContain('Transport');
-    expect(text).toContain('Accommodation');
-    expect(text).toContain('550'); // Transport total
-    expect(text).toContain('300'); // Accommodation total
+    // Totals group by the fixed Costs key, whatever case the expense was stored in (#2835).
+    expect(text).toContain('- transport: 250');
+    expect(text).toContain('- accommodation: 300');
+    expect(text).toContain('550');
   });
 
   it('prints a foreign-currency bill at the rate it was booked at, not as that many euros (#2525)', async () => {
