@@ -11,9 +11,10 @@ import {
 } from '../../../../../src/db/engine/postgres/schema-bootstrap';
 import type { MigrationSafetyNet } from '../../../../../src/db/legacy-baseline';
 import type { AnyOrm } from '../../../../../src/db/orm';
+import { answersSchema, failsWith, installFakeTool, writesFile } from '../../../../helpers/fake-pg-tools';
 import { Logger } from '@nestjs/common';
 
-import { chmodSync, mkdtempSync, readdirSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -102,8 +103,11 @@ function deps(
 afterEach(() => vi.restoreAllMocks());
 
 describe('bootstrapPostgresSchema', () => {
-  it('PGBOOT-001: an empty database gets the baseline and its migrations recorded, all in one transaction', async () => {
+  beforeEach(() => {
     vi.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
+  });
+
+  it('PGBOOT-001: an empty database gets the baseline and its migrations recorded, all in one transaction', async () => {
     const { orm, db } = fakeOrm({ executed: [], pending: [M1, M2], tables: [] });
     const net = deps();
     await bootstrapPostgresSchema(orm, net);
@@ -115,7 +119,6 @@ describe('bootstrapPostgresSchema', () => {
   });
 
   it('PGBOOT-002: a fresh database runs the migrations after the cut without the safety net (nothing to lose)', async () => {
-    vi.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
     const { orm, db } = fakeOrm({ executed: [], pending: [M1, M2, M3], tables: [] });
     const net = deps();
     await bootstrapPostgresSchema(orm, net);
@@ -135,7 +138,6 @@ describe('bootstrapPostgresSchema', () => {
   });
 
   it('PGBOOT-008: an empty history table beside no other table is a fresh database (a first boot cut short)', async () => {
-    vi.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
     const { orm, db } = fakeOrm({ executed: [], pending: [M1, M2], tables: [], history: true });
     await bootstrapPostgresSchema(orm, deps());
     expect(db.logged).toEqual([M1, M2]);
@@ -148,7 +150,6 @@ describe('bootstrapPostgresSchema', () => {
   });
 
   it('PGBOOT-005: pending migrations on a database in use run after the safety net, labelled by the last one', async () => {
-    vi.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
     const { orm, db } = fakeOrm({ executed: [M2, M1], pending: [M3], tables: ['users'] });
     const net = deps();
     await bootstrapPostgresSchema(orm, net);
@@ -186,6 +187,7 @@ describe('postgresSafetyNet', () => {
   beforeEach(() => {
     dir = mkdtempSync(path.join(tmpdir(), 'trek-pg-net-'));
     bin = mkdtempSync(path.join(tmpdir(), 'trek-pg-net-bin-'));
+    vi.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
   });
   afterEach(() => {
     rmSync(dir, { recursive: true, force: true });
@@ -197,13 +199,8 @@ describe('postgresSafetyNet', () => {
    * connect, beside the psql that names the schema the dump is limited to.
    */
   const fakePgDump = (ok: boolean) => {
-    const body = ok
-      ? 'for a in "$@"; do case "$a" in --file=*) printf dump > "${a#--file=}";; esac; done'
-      : 'echo "could not connect" >&2; exit 1';
-    writeFileSync(path.join(bin, 'pg_dump'), `#!/bin/sh\n${body}\n`);
-    writeFileSync(path.join(bin, 'psql'), "#!/bin/sh\nprintf 'public\\tpublic\\n'\n");
-    chmodSync(path.join(bin, 'pg_dump'), 0o755);
-    chmodSync(path.join(bin, 'psql'), 0o755);
+    installFakeTool(bin, 'pg_dump', { snippets: [ok ? writesFile('dump') : failsWith('could not connect')] });
+    installFakeTool(bin, 'psql', { snippets: [answersSchema()] });
   };
   const envWith =
     (preMigrateSnapshot: boolean | undefined, isTest: boolean, keep = 3) =>
@@ -223,7 +220,6 @@ describe('postgresSafetyNet', () => {
   it.each([undefined, true])(
     'PGBOOT-010: dumps the database before migrating it (setting %s), keeping the newest copies and no half-written one',
     async (setting) => {
-      vi.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
       fakePgDump(true);
       for (const old of ['20200101000001', '20200101000002']) {
         writeFileSync(path.join(dir, `pre-migrate-${old}-20250101T000000Z.pgdump`), 'old');

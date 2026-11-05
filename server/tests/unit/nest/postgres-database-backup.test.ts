@@ -1,8 +1,8 @@
 /**
  * PostgresDatabaseBackup: the backup port on a Postgres database, over
- * stand-in pg_dump, pg_restore and psql scripts (TREK_DB_PG_BIN_DIR) and a
- * stand-in DatabaseLifecycle. The tools' own arguments are pinned in
- * tests/unit/db/engine/postgres/pg-tools.test.ts.
+ * stand-in pg_dump, pg_restore and psql tools (TREK_DB_PG_BIN_DIR, built by
+ * tests/helpers/fake-pg-tools.ts) and a stand-in DatabaseLifecycle. The tools'
+ * own arguments are pinned in tests/unit/db/engine/postgres/pg-tools.test.ts.
  */
 import { knownMigrationNames } from '../../../src/db/known-migrations';
 import type { DataPathsService } from '../../../src/nest/app-config/data-paths.service';
@@ -10,8 +10,16 @@ import { PostgresDatabaseBackup } from '../../../src/nest/backup/postgres-databa
 import { DomainError } from '../../../src/nest/common/domain-error';
 import { DatabaseConnectionLostError } from '../../../src/nest/database/database-backup.interface';
 import type { DatabaseLifecycle } from '../../../src/nest/database/database-lifecycle.service';
+import {
+  answersSchema,
+  failsWith,
+  installFakeTool,
+  listsMigrations,
+  writesFile,
+  writesRestrictedScript,
+} from '../../helpers/fake-pg-tools';
 
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -23,33 +31,13 @@ let extract: string;
 let reopen: ReturnType<typeof vi.fn>;
 let backup: PostgresDatabaseBackup;
 
-/** A stand-in tool: `body` is the shell it runs. */
-function tool(name: 'pg_dump' | 'pg_restore' | 'psql', body: string): void {
-  const version = `[ "$1" = --version ] && { echo '${name} (PostgreSQL) 17.11'; exit 0; }`;
-  writeFileSync(path.join(bin, name), `#!/bin/sh\n${version}\n${body}\n`);
-  chmodSync(path.join(bin, name), 0o755);
-}
-const WRITES_ITS_FILE = 'for a in "$@"; do case "$a" in --file=*) printf dump > "${a#--file=}";; esac; done';
-/** A psql that answers the current-schema query a dump and a restore start with, and otherwise succeeds. */
-const ANSWERS_SCHEMA = 'case "$*" in *quote_ident*) printf \'public\\tpublic\\n\';; esac';
-const FAILS = 'echo "connection refused" >&2; exit 1';
-/** A pg_restore whose --data-only listing shows `names` as the dump's migrations. */
-const LISTS = (names: string[]) =>
-  [
-    'case "$*" in *--data-only*)',
-    "  printf 'COPY public.mikro_orm_migrations (id, name, executed_at) FROM stdin;\\n'",
-    ...names.map((name, i) => `  printf '${i + 1}\\t${name}\\tx\\n'`),
-    "  printf '\\\\.\\n';;",
-    'esac',
-  ].join('\n');
-
 beforeEach(() => {
   root = mkdtempSync(path.join(tmpdir(), 'trek-pg-backup-'));
   bin = path.join(root, 'bin');
   extract = path.join(root, 'extract');
   mkdirSync(bin);
   mkdirSync(extract);
-  tool('psql', ANSWERS_SCHEMA);
+  installFakeTool(bin, 'psql', { snippets: [answersSchema()] });
   vi.stubEnv('TREK_DB_URL', 'postgresql://trek:pw@db/trek');
   vi.stubEnv('TREK_DB_PG_BIN_DIR', bin);
   reopen = vi.fn(async () => undefined);
@@ -78,50 +66,81 @@ describe('PostgresDatabaseBackup', () => {
     expect(backup.archiveEntry).toBe('travel.pgdump');
     expect(backup.canSnapshot()).toBe(true);
     await expect(backup.checkpoint()).resolves.toBeUndefined();
-    tool('pg_dump', WRITES_ITS_FILE);
+    installFakeTool(bin, 'pg_dump', { snippets: [writesFile('dump')] });
     await backup.snapshot(path.join(root, 'a.pgdump'));
     expect(existsSync(path.join(root, 'a.pgdump'))).toBe(true);
-    tool('pg_dump', `printf partial > "$(echo "$4" | sed 's/--file=//')"; ${FAILS}`);
+    installFakeTool(bin, 'pg_dump', { snippets: [writesFile('partial'), failsWith('connection refused')] });
     await expect(backup.snapshot(path.join(root, 'b.pgdump'))).rejects.toThrow('pg_dump failed: connection refused');
     expect(existsSync(path.join(root, 'b.pgdump'))).toBe(false);
     expect(existsSync(path.join(root, 'b.pgdump.partial'))).toBe(false);
   });
 
-  it('PGBACKUP-002: verify takes a TREK dump this build knows, and refuses a missing, SQLite, foreign or newer one', async () => {
+  it('PGBACKUP-002: verify accepts a TREK dump this build knows', async () => {
+    writeFileSync(path.join(extract, 'travel.pgdump'), 'dump');
+    installFakeTool(bin, 'pg_restore', { snippets: [listsMigrations(KNOWN.slice(0, 3))] });
+    await expect(backup.verify(extract)).resolves.toBeNull();
+  });
+
+  it('PGBACKUP-002a: verify refuses an archive without a TREK dump in it', async () => {
     expect(await refusal(backup.verify(extract))).toEqual({
       status: 400,
       message: 'Invalid backup: travel.pgdump not found',
     });
-    writeFileSync(path.join(extract, 'travel.db'), 'sqlite');
-    expect((await refusal(backup.verify(extract))).message).toMatch(/holds a SQLite database/);
-    writeFileSync(path.join(extract, 'travel.pgdump'), 'dump');
-    tool('pg_restore', LISTS(KNOWN.slice(0, 3)));
-    await expect(backup.verify(extract)).resolves.toBeNull();
-    tool('pg_restore', LISTS([...KNOWN, 'Migration29990101000000_from_the_future']));
-    expect((await refusal(backup.verify(extract))).message).toMatch(/made by a newer TREK version/);
-    tool('pg_restore', LISTS([]));
-    expect((await refusal(backup.verify(extract))).message).toMatch(/holds no TREK migration history/);
-    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-    tool('pg_restore', FAILS);
-    expect((await refusal(backup.verify(extract))).message).toBe('Uploaded file is not a valid Postgres dump');
+  });
+
+  it.each([
+    {
+      id: 'PGBACKUP-002b',
+      setup: () => writeFileSync(path.join(extract, 'travel.db'), 'sqlite'),
+      message: /holds a SQLite database/,
+    },
+    {
+      id: 'PGBACKUP-002c',
+      setup: () => {
+        writeFileSync(path.join(extract, 'travel.pgdump'), 'dump');
+        installFakeTool(bin, 'pg_restore', {
+          snippets: [listsMigrations([...KNOWN, 'Migration29990101000000_from_the_future'])],
+        });
+      },
+      message: /made by a newer TREK version/,
+    },
+    {
+      id: 'PGBACKUP-002d',
+      setup: () => {
+        writeFileSync(path.join(extract, 'travel.pgdump'), 'dump');
+        installFakeTool(bin, 'pg_restore', { snippets: [listsMigrations([])] });
+      },
+      message: /holds no TREK migration history/,
+    },
+    {
+      id: 'PGBACKUP-002e',
+      setup: () => {
+        writeFileSync(path.join(extract, 'travel.pgdump'), 'dump');
+        installFakeTool(bin, 'pg_restore', { snippets: [failsWith('pg_restore: error: not a valid archive')] });
+        vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+      },
+      message: 'Uploaded file is not a valid Postgres dump',
+    },
+  ])('$id: verify refuses a dump TREK cannot restore', async ({ setup, message }) => {
+    setup();
+    const refused = await refusal(backup.verify(extract));
+    if (typeof message === 'string') expect(refused.message).toBe(message);
+    else expect(refused.message).toMatch(message);
   });
 
   it('PGBACKUP-003: keeps a dump of the database a restore replaces, or says it could not', async () => {
     vi.spyOn(console, 'log').mockImplementation(() => undefined);
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-    tool('pg_dump', WRITES_ITS_FILE);
+    installFakeTool(bin, 'pg_dump', { snippets: [writesFile('dump')] });
     const kept = await backup.keepCopyBeforeRestore();
     expect(kept).toMatch(/pre-restore-\d+\.pgdump$/);
     expect(existsSync(kept as string)).toBe(true);
-    tool('pg_dump', FAILS);
+    installFakeTool(bin, 'pg_dump', { snippets: [failsWith('connection refused')] });
     await expect(backup.keepCopyBeforeRestore()).resolves.toBeNull();
   });
 
   it('PGBACKUP-004: replace restores, then reopens; a reopen failure is reported, not thrown', async () => {
-    tool(
-      'pg_restore',
-      "printf '%s\\n' '\\restrict k1' 'CREATE TABLE public.mikro_orm_migrations (' > \"${4#--file=}\"",
-    );
+    installFakeTool(bin, 'pg_restore', { snippets: [writesRestrictedScript()] });
     await expect(backup.replace(path.join(extract, 'travel.pgdump'))).resolves.toEqual({ reopenError: null });
     expect(reopen).toHaveBeenCalledTimes(1);
     const lost = new Error('reconnect failed');
@@ -130,7 +149,7 @@ describe('PostgresDatabaseBackup', () => {
   });
 
   it('PGBACKUP-005: a failed restore still reopens, and both failures surface when the reopen fails too', async () => {
-    tool('pg_restore', FAILS);
+    installFakeTool(bin, 'pg_restore', { snippets: [failsWith('connection refused')] });
     const source = path.join(extract, 'travel.pgdump');
     await expect(backup.replace(source)).rejects.toThrow('pg_restore failed: connection refused');
     expect(reopen).toHaveBeenCalledTimes(1);

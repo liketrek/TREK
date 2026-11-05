@@ -8,6 +8,14 @@
  */
 import { knownMigrationNames } from '../../../src/db/known-migrations';
 import { BootRestoreError, restoreOnFirstBoot } from '../../../src/nest/backup/boot-restore';
+import {
+  answersSchema,
+  answersTables,
+  installFakeTool,
+  listsMigrations,
+  touches,
+  writesRestrictedScript,
+} from '../../helpers/fake-pg-tools';
 
 import archiver from 'archiver';
 import Database from 'better-sqlite3';
@@ -128,39 +136,19 @@ describe('restoreOnFirstBoot', () => {
 
   describe('on Postgres', () => {
     /**
-     * Stand-in client tools: psql lists the tables written to `tables` and
-     * marks `loaded` when it runs a restore; pg_restore lists a known migration
-     * as the dump's history, or writes a restricted script. Their arguments are
-     * pinned in pg-tools.test.ts.
+     * Stand-in client tools (tests/helpers/fake-pg-tools.ts): psql lists
+     * `tables` and marks `loaded` when it runs a restore; pg_restore lists a
+     * known migration as the dump's history, or writes a restricted script.
+     * Their arguments are pinned in pg-tools.test.ts.
      */
-    const postgresPlan = (archivePath: string) => {
+    const postgresPlan = (archivePath: string, tables: string[] = []) => {
       const bin = path.join(root, 'bin');
       fs.mkdirSync(bin, { recursive: true });
-      const write = (name: string, body: string) => {
-        const version = `[ "$1" = --version ] && { echo '${name} (PostgreSQL) 17.11'; exit 0; }`;
-        fs.writeFileSync(path.join(bin, name), `#!/bin/sh\n${version}\n${body}\n`);
-        fs.chmodSync(path.join(bin, name), 0o755);
-      };
-      write(
-        'psql',
-        [
-          'case "$*" in',
-          "  *quote_ident*) printf 'public\\tpublic\\n';;",
-          `  *--command=*) [ -f '${root}/tables' ] && cat '${root}/tables'; exit 0;;`,
-          `  *) touch '${root}/loaded';;`,
-          'esac',
-        ].join('\n'),
-      );
+      installFakeTool(bin, 'psql', {
+        snippets: [answersSchema(), answersTables(tables), touches(path.join(root, 'loaded'))],
+      });
       const migration = [...knownMigrationNames()][0];
-      write(
-        'pg_restore',
-        [
-          'case "$*" in',
-          `  *--data-only*) printf 'COPY public.mikro_orm_migrations (id, name) FROM stdin;\\n1\\t${migration}\\n\\\\.\\n';;`,
-          `  *) for a in "$@"; do case "$a" in --file=*) printf '%s\\n' '\\restrict k1' 'CREATE TABLE public.mikro_orm_migrations (' > "\${a#--file=}";; esac; done;;`,
-          'esac',
-        ].join('\n'),
-      );
+      installFakeTool(bin, 'pg_restore', { snippets: [listsMigrations([migration]), writesRestrictedScript()] });
       return {
         archive: archivePath,
         dbFile,
@@ -172,8 +160,7 @@ describe('restoreOnFirstBoot', () => {
     const loaded = () => fs.existsSync(path.join(root, 'loaded'));
 
     it('BOOT-RESTORE-004b: a database holding tables is left alone, so a restart never rolls back', async () => {
-      const plan = postgresPlan(await archive({ 'travel.pgdump': 'dump' }));
-      fs.writeFileSync(path.join(root, 'tables'), 'users\ntrips\n');
+      const plan = postgresPlan(await archive({ 'travel.pgdump': 'dump' }), ['users', 'trips']);
       const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
       expect(await restoreOnFirstBoot(plan)).toEqual({ restored: false, reason: 'database-exists' });
       expect(warn).toHaveBeenCalledWith(expect.stringContaining('the Postgres database (2 table(s))'));
