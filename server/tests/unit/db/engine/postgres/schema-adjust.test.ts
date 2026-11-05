@@ -4,19 +4,19 @@
  * NOCASE collation, and splitting the generated DDL so one refused statement
  * does not take the rest with it.
  */
+import { POSTGRES_TRIGGERS } from '../../../../../src/db/engine/postgres/postgres-triggers';
 import {
-  adjustColumns,
+  applyPostgresColumnAdjustments,
+  type ColumnMeta,
   NOCASE_COLLATION_SQL,
   PG_NOW_TEXT_DEFAULT,
   portableDefault,
-  POSTGRES_TRIGGERS,
-  splitStatements,
-  type ColumnMeta,
 } from '../../../../../src/db/engine/postgres/schema-adjust';
+import { splitStatements } from '../../../../../src/db/engine/postgres/sql-split';
+import { DbTimestampType } from '../../../../../src/db/types';
 
 import { describe, expect, it } from 'vitest';
 
-class DbTimestampType {}
 class TextType {}
 
 describe('pg-probe schema', () => {
@@ -42,7 +42,7 @@ describe('pg-probe schema', () => {
       { name: 'region', columnTypes: ['text'], collation: 'NOCASE' },
       { name: 'body', columnTypes: ['text'] },
     ];
-    expect(adjustColumns(columns)).toEqual(['created_at', 'stamp', 'region']);
+    expect(applyPostgresColumnAdjustments(columns)).toEqual(['created_at', 'stamp', 'region']);
     expect(columns[0]).toMatchObject({ columnTypes: ['text'], defaultRaw: PG_NOW_TEXT_DEFAULT });
     expect(columns[1]).toMatchObject({ columnTypes: ['text'], defaultRaw: "'x'" });
     expect(columns[2]).toMatchObject({
@@ -60,7 +60,7 @@ describe('pg-probe schema', () => {
       { name: 'enabled', columnTypes: ['boolean'] },
       { name: 'note', columnTypes: ['text'] },
     ];
-    expect(adjustColumns(columns)).toEqual(['id', 'next_run_at']);
+    expect(applyPostgresColumnAdjustments(columns)).toEqual(['id', 'next_run_at']);
     expect(columns.map((column) => column.columnTypes)).toEqual([['bigint'], ['bigint'], ['boolean'], ['text']]);
   });
 
@@ -78,6 +78,13 @@ describe('pg-probe schema', () => {
       'create table "b ;" ("id" int)',
     ]);
     expect(splitStatements('  ;  ; ')).toEqual([]);
+  });
+
+  it('PGPROBE-045: refuses a tagged dollar quote, which it does not understand, rather than splitting inside it', () => {
+    expect(() => splitStatements('create function f() as $f$ select 1; $f$;')).toThrow(
+      /only the \$\$ dollar quote, not \$f\$/,
+    );
+    expect(splitStatements("select '$f$'; select 2")).toEqual(["select '$f$'", 'select 2']);
   });
 
   it('PGPROBE-044: a $$ body stays one statement, semicolons and all, and every trigger port splits into its two', () => {

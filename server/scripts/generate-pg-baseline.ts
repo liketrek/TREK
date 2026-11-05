@@ -19,19 +19,19 @@
  *   node --import tsx scripts/generate-pg-baseline.ts           # rewrite server/assets/postgres/
  *   node --import tsx scripts/generate-pg-baseline.ts --check   # exit 1 when it drifted (CI)
  */
-import { baselineMatches, readPostgresBaseline, writePostgresBaseline, type PostgresBaseline } from '../src/db/engine/postgres/baseline';
 import {
-  adjustColumns,
-  NOCASE_COLLATION_SQL,
-  POSTGRES_TRIGGERS,
-  splitStatements,
-  type ColumnMeta,
-} from '../src/db/engine/postgres/schema-adjust';
+  baselineMatches,
+  readPostgresBaseline,
+  writePostgresBaseline,
+  type PostgresBaseline,
+} from '../src/db/engine/postgres/baseline';
+import { POSTGRES_TRIGGERS } from '../src/db/engine/postgres/postgres-triggers';
+import { applyPostgresColumnAdjustments, NOCASE_COLLATION_SQL } from '../src/db/engine/postgres/schema-adjust';
+import { splitStatements } from '../src/db/engine/postgres/sql-split';
 import { ALL_ENTITIES } from '../src/db/entities';
 import { knownMigrationNames } from '../src/db/known-migrations';
-import type { EntityProperty } from '@mikro-orm/core';
-import { MikroORM } from '@mikro-orm/postgresql';
 import { migrateTempDb, tempDbPath } from './generate-entities';
+import { MikroORM } from '@mikro-orm/postgresql';
 
 import Database from 'better-sqlite3';
 import fs from 'node:fs';
@@ -48,7 +48,7 @@ export async function generatePostgresBaseline(known: Set<string> = knownMigrati
     discovery: { warnWhenNoEntities: false },
   });
   try {
-    for (const meta of orm.getMetadata().getAll().values()) adjustColumns(meta.props as EntityProperty[] as ColumnMeta[]);
+    for (const meta of orm.getMetadata().getAll().values()) applyPostgresColumnAdjustments(meta.props);
     const migrated = await readMigratedSqlite();
     const statements = [
       NOCASE_COLLATION_SQL,
@@ -73,8 +73,11 @@ export function checkBaseline(committed: PostgresBaseline, generated: PostgresBa
   const problems: string[] = [];
   const missing = committed.migrations.filter((name) => !known.has(name));
   if (missing.length > 0) problems.push(`the baseline names migrations that do not exist: ${missing.join(', ')}`);
-  const unlisted = generated.migrations.filter((name) => name <= committed.through && !committed.migrations.includes(name));
-  if (unlisted.length > 0) problems.push(`migrations up to ${committed.through} are missing from it: ${unlisted.join(', ')}`);
+  const unlisted = generated.migrations.filter(
+    (name) => name <= committed.through && !committed.migrations.includes(name),
+  );
+  if (unlisted.length > 0)
+    problems.push(`migrations up to ${committed.through} are missing from it: ${unlisted.join(', ')}`);
   if (committed.through === generated.through && !matches) {
     problems.push('the entities generate a different schema; run npm run gen:pg-baseline');
   }
@@ -94,13 +97,21 @@ async function readMigratedSqlite(): Promise<{ triggers: string[]; tables: Array
     const conn = new Database(dbPath, { readonly: true });
     try {
       const objects = conn
-        .prepare("select type, name from sqlite_master where type in ('table', 'trigger') and name not like 'sqlite_%' order by rowid")
+        .prepare(
+          "select type, name from sqlite_master where type in ('table', 'trigger') and name not like 'sqlite_%' order by rowid",
+        )
         .all() as Array<{ type: string; name: string }>;
       const tables = objects
         .filter((object) => object.type === 'table' && !BOOKKEEPING_TABLES.has(object.name))
-        .map((object) => ({ name: object.name, rows: conn.prepare(`select * from "${object.name}" order by rowid`).all() as Row[] }))
+        .map((object) => ({
+          name: object.name,
+          rows: conn.prepare(`select * from "${object.name}" order by rowid`).all() as Row[],
+        }))
         .filter((table) => table.rows.length > 0);
-      const triggers = objects.filter((object) => object.type === 'trigger').map((object) => object.name).sort();
+      const triggers = objects
+        .filter((object) => object.type === 'trigger')
+        .map((object) => object.name)
+        .sort();
       return { triggers, tables };
     } finally {
       conn.close();
@@ -129,7 +140,9 @@ export function rowStatements(table: string, rows: readonly Row[]): string[] {
   if (rows.length === 0) return [];
   const columns = Object.keys(rows[0]);
   const values = rows.map((row) => `(${columns.map((column) => literal(row[column])).join(', ')})`);
-  const statements = [`insert into "${table}" (${columns.map((c) => `"${c}"`).join(', ')}) values ${values.join(', ')}`];
+  const statements = [
+    `insert into "${table}" (${columns.map((c) => `"${c}"`).join(', ')}) values ${values.join(', ')}`,
+  ];
   // A text key (addons.id) has no sequence; a numeric one may.
   if (rows.every((row) => typeof row.id === 'number')) {
     statements.push(
@@ -148,9 +161,11 @@ export function rowStatements(table: string, rows: readonly Row[]): string[] {
 export function triggerPortProblems(sqliteTriggers: readonly string[], ported: readonly string[]): string[] {
   const problems: string[] = [];
   const missing = sqliteTriggers.filter((name) => !ported.includes(name));
-  if (missing.length > 0) problems.push(`SQLite triggers without a Postgres port in POSTGRES_TRIGGERS: ${missing.join(', ')}`);
+  if (missing.length > 0)
+    problems.push(`SQLite triggers without a Postgres port in POSTGRES_TRIGGERS: ${missing.join(', ')}`);
   const stale = ported.filter((name) => !sqliteTriggers.includes(name));
-  if (stale.length > 0) problems.push(`POSTGRES_TRIGGERS ports triggers the migrations no longer create: ${stale.join(', ')}`);
+  if (stale.length > 0)
+    problems.push(`POSTGRES_TRIGGERS ports triggers the migrations no longer create: ${stale.join(', ')}`);
   return problems;
 }
 

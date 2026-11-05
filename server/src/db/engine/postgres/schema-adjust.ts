@@ -22,9 +22,11 @@
  *
  * The baseline keeps the foreign keys; the probe leaves them out, so a
  * statement it sends is never refused only because the sample row it writes
- * points at nothing.
+ * points at nothing. The triggers the SQLite schema has are in
+ * `postgres-triggers.ts`.
  */
 import { pgTimestampText, PG_UTC_NOW } from '../../dialect/platform';
+import { DbTimestampType } from '../../types';
 
 /** SQLite's timestamp text on Postgres, for a column default. */
 export const PG_NOW_TEXT_DEFAULT = pgTimestampText(PG_UTC_NOW);
@@ -45,120 +47,63 @@ export function portableDefault(raw: string): string {
   return raw;
 }
 
-/**
- * The SQLite schema's triggers, as Postgres writes them: a trigger function
- * and the trigger that runs it, under the SQLite trigger's name. The entities
- * describe tables only, so the baseline adds these after the tables, and
- * `check:pg-baseline` fails while a trigger in the migrated SQLite schema has
- * no entry here.
- */
-export const POSTGRES_TRIGGERS: Readonly<Record<string, readonly string[]>> = {
-  // A deleted stay releases the day stops it claimed (no foreign key holds the link).
-  trg_release_stop_on_stay_delete: [
-    `CREATE FUNCTION trg_release_stop_on_stay_delete() RETURNS trigger LANGUAGE plpgsql AS $$
-BEGIN
-  UPDATE day_assignments SET accommodation_id = NULL WHERE accommodation_id = OLD.id;
-  RETURN OLD;
-END
-$$`,
-    'CREATE TRIGGER trg_release_stop_on_stay_delete AFTER DELETE ON day_accommodations ' +
-      'FOR EACH ROW EXECUTE FUNCTION trg_release_stop_on_stay_delete()',
-  ],
-  // A place that moved or was renamed drops the region it was resolved to (#2527).
-  trg_place_regions_follow_place: [
-    `CREATE FUNCTION trg_place_regions_follow_place() RETURNS trigger LANGUAGE plpgsql AS $$
-BEGIN
-  DELETE FROM place_regions WHERE place_id = NEW.id;
-  RETURN NEW;
-END
-$$`,
-    'CREATE TRIGGER trg_place_regions_follow_place AFTER UPDATE OF lat, lng, address ON places FOR EACH ROW ' +
-      'WHEN (OLD.lat IS DISTINCT FROM NEW.lat OR OLD.lng IS DISTINCT FROM NEW.lng OR OLD.address IS DISTINCT FROM NEW.address) ' +
-      'EXECUTE FUNCTION trg_place_regions_follow_place()',
-  ],
-};
-
-/**
- * Splits generated DDL into single statements on `;` outside quotes and
- * `$$` bodies, so one statement Postgres refuses does not take the rest of the
- * schema with it.
- */
-export function splitStatements(sql: string): string[] {
-  const statements: string[] = [];
-  let current = '';
-  let quote: '"' | "'" | '$$' | null = null;
-  for (let i = 0; i < sql.length; i++) {
-    const char = sql[i];
-    const dollar = sql.startsWith('$$', i);
-    if (quote === '$$') {
-      if (dollar) {
-        quote = null;
-        current += '$';
-        i++;
-      }
-      current += char;
-    } else if (quote) {
-      if (char === quote) quote = null;
-      current += char;
-    } else if (dollar) {
-      quote = '$$';
-      current += '$$';
-      i++;
-    } else if (char === "'" || char === '"') {
-      quote = char;
-      current += char;
-    } else if (char === ';') {
-      if (current.trim()) statements.push(current.trim());
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-  if (current.trim()) statements.push(current.trim());
-  return statements.filter((statement) => !/^set\s/i.test(statement));
-}
-
 /** A column type SQLite stores as its 64-bit INTEGER. */
 const INTEGER_TYPE = /^(integer|int)$/i;
 
-/** The subset of MikroORM's property metadata the schema adjustments touch. */
+/**
+ * The subset of MikroORM's property metadata the adjustments read and write.
+ * An entity's `props` satisfy it as they are, so no cast is needed.
+ */
 export interface ColumnMeta {
   name: string;
   defaultRaw?: string;
   collation?: string;
   columnTypes?: string[];
-  customType?: { constructor: { name: string } };
+  customType?: unknown;
+}
+
+/** A timestamp column becomes text. Returns whether it changed. */
+function timestampAsText(column: ColumnMeta): boolean {
+  if (!(column.customType instanceof DbTimestampType) || !column.columnTypes) return false;
+  column.columnTypes = column.columnTypes.map(() => 'text');
+  return true;
+}
+
+/** An integer column becomes bigint. Returns whether it changed. */
+function integerAsBigint(column: ColumnMeta): boolean {
+  if (!column.columnTypes?.some((type) => INTEGER_TYPE.test(type))) return false;
+  column.columnTypes = column.columnTypes.map((type) => (INTEGER_TYPE.test(type) ? 'bigint' : type));
+  return true;
+}
+
+/** A SQLite-only default gets its Postgres spelling. Returns whether it changed. */
+function defaultAsPostgres(column: ColumnMeta): boolean {
+  if (typeof column.defaultRaw !== 'string') return false;
+  const next = portableDefault(column.defaultRaw);
+  if (next === column.defaultRaw) return false;
+  column.defaultRaw = next;
+  return true;
+}
+
+/** A NOCASE column uses the `nocase` collation. Returns whether it changed. */
+function nocaseAsCollation(column: ColumnMeta): boolean {
+  if (column.collation?.toUpperCase() !== 'NOCASE') return false;
+  column.collation = 'nocase';
+  return true;
 }
 
 /**
- * Applies the adjustments above to one entity's properties in place:
- * timestamp columns become `text`, integer columns `bigint`, SQLite-only defaults and the NOCASE
- * collation their Postgres spelling. Returns the names of the properties
- * it changed, for the log.
+ * Applies the adjustments above to an entity's properties, in place, and
+ * returns the names of the properties it changed, for the log. A timestamp
+ * column is text, so the integer adjustment never sees it.
  */
-export function adjustColumns(properties: readonly ColumnMeta[]): string[] {
+export function applyPostgresColumnAdjustments(properties: readonly ColumnMeta[]): string[] {
   const changed: string[] = [];
   for (const property of properties) {
-    let touched = false;
-    if (property.customType?.constructor.name === 'DbTimestampType' && property.columnTypes) {
-      property.columnTypes = property.columnTypes.map(() => 'text');
-      touched = true;
-    } else if (property.columnTypes?.some((type) => INTEGER_TYPE.test(type))) {
-      property.columnTypes = property.columnTypes.map((type) => (INTEGER_TYPE.test(type) ? 'bigint' : type));
-      touched = true;
-    }
-    if (typeof property.defaultRaw === 'string') {
-      const next = portableDefault(property.defaultRaw);
-      if (next !== property.defaultRaw) {
-        property.defaultRaw = next;
-        touched = true;
-      }
-    }
-    if (property.collation?.toUpperCase() === 'NOCASE') {
-      property.collation = 'nocase';
-      touched = true;
-    }
-    if (touched) changed.push(property.name);
+    const typeChanged = timestampAsText(property) || integerAsBigint(property);
+    const defaultChanged = defaultAsPostgres(property);
+    const collationChanged = nocaseAsCollation(property);
+    if (typeChanged || defaultChanged || collationChanged) changed.push(property.name);
   }
   return changed;
 }

@@ -1,4 +1,4 @@
-import { splitStatements } from './schema-adjust';
+import { splitStatements } from './sql-split';
 
 import fs from 'node:fs';
 import path from 'node:path';

@@ -20,9 +20,10 @@
  * - dropping a trigger the entities cannot carry: only the triggers ported by
  *   hand (POSTGRES_TRIGGERS), by exact name, and each of them must exist.
  */
-import { adjustColumns, POSTGRES_TRIGGERS, type ColumnMeta } from '../../src/db/engine/postgres/schema-adjust';
+import { POSTGRES_TRIGGERS } from '../../src/db/engine/postgres/postgres-triggers';
+import { applyPostgresColumnAdjustments } from '../../src/db/engine/postgres/schema-adjust';
 import { ALL_ENTITIES } from '../../src/db/entities';
-import type { EntityProperty, Transaction } from '@mikro-orm/core';
+import type { Transaction } from '@mikro-orm/core';
 import { MikroORM } from '@mikro-orm/postgresql';
 
 import { describe, expect, it } from 'vitest';
@@ -100,7 +101,7 @@ describe('PARITY-PG', () => {
     });
     try {
       for (const meta of orm.getMetadata().getAll().values()) {
-        adjustColumns(meta.props as EntityProperty[] as ColumnMeta[]);
+        applyPostgresColumnAdjustments(meta.props);
       }
       const live = await liveSets(orm);
       const statements = (await orm.schema.getUpdateSchemaSQL({ wrap: false }))
