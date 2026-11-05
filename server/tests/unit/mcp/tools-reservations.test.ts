@@ -93,6 +93,21 @@ describe('Tool: create_reservation', () => {
     });
   });
 
+  it('files the cost of a priced booking under its Costs key when no budget_category is given', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_reservation',
+        arguments: { tripId: trip.id, title: 'Jazz night', type: 'event', price: 40 },
+      });
+      const data = parseToolResult(result) as { reservation: { id: number } };
+      const item = await findRow(orm, BudgetItems, { reservation: data.reservation.id });
+      // Not a separate "event" bucket next to other: the key the web form files it under.
+      expect(item?.category).toBe('activities');
+    });
+  });
+
   it('creates a parking reservation (#1444)', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);

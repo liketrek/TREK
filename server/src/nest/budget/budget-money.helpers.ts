@@ -236,5 +236,5 @@ export function settlementFx(opts: {
   // inverse of the display factor, so such a transfer reads back as entered.
   const settleConverterFor = (sCurrency?: string | null, sRate?: number | null) =>
     sCurrency ? tripConverter(sCurrency, sRate, tripCurrency, rates) : (amount: number) => amount / displayFactor;
-  return { currency, displayFactor, toDisplay, converterFor, settleConverterFor, isDirect };
+  return { currency, displayFactor, displayUnit, toDisplay, converterFor, settleConverterFor, isDirect };
 }

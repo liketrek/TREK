@@ -1,5 +1,7 @@
-// COST-CATEGORY-001 to COST-CATEGORY-005: a typed category read as one of the fixed keys.
-import { COST_CATEGORY_HINT, costCategoryOf, storedCostCategory } from './cost-category';
+// COST-CATEGORY-001 to COST-CATEGORY-007: a typed category read as one of the fixed keys.
+import { COST_CATEGORIES } from './budget.schema';
+import { COST_CATEGORY_HINT, costCategoryOf, storedCostCategory, typeToCostCategory } from './cost-category';
+import { RESERVATION_TYPES } from '../reservation/reservation-types';
 
 import { describe, expect, it } from 'vitest';
 
@@ -36,5 +38,24 @@ describe('costCategoryOf', () => {
   it('COST-CATEGORY-005: the hint an assistant reads names every key', () => {
     for (const key of ['accommodation', 'food', 'transport', 'flights', 'other'])
       expect(COST_CATEGORY_HINT).toContain(key);
+  });
+
+  it('COST-CATEGORY-006: every booking type is filed under a key, the same one on every path', () => {
+    for (const { type } of RESERVATION_TYPES) {
+      expect(COST_CATEGORIES).toContain(typeToCostCategory(type));
+      // The MCP stores the raw type through storedCostCategory; it must land where the form puts it.
+      expect(storedCostCategory(type)).toBe(typeToCostCategory(type));
+    }
+    expect(typeToCostCategory('event')).toBe('activities');
+    expect(typeToCostCategory('cable_car')).toBe('transport');
+    expect(typeToCostCategory('car-rental')).toBe('transport');
+    expect(typeToCostCategory('car rental')).toBe('transport');
+  });
+
+  it('COST-CATEGORY-007: a type no key stands for is filed under other', () => {
+    expect(typeToCostCategory('spaceship')).toBe('other');
+    expect(typeToCostCategory('')).toBe('other');
+    expect(typeToCostCategory(null)).toBe('other');
+    expect(typeToCostCategory(undefined)).toBe('other');
   });
 });

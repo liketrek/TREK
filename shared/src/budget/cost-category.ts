@@ -4,6 +4,8 @@ import { COST_CATEGORIES, type CostCategory } from './budget.schema';
  * Free-text and legacy categories (and booking type labels) mapped to the fixed
  * keys. Bookings used to store labels like "Flight"/"Train"/"Other", and an
  * assistant writing through the MCP says "Food" where the key is "food".
+ * Every reservation type is in here too, so a booking's cost lands on the same
+ * key whether the web form, the import or the MCP wrote it.
  */
 const CATEGORY_ALIASES: Record<string, CostCategory> = {
   flight: 'flights',
@@ -14,11 +16,16 @@ const CATEGORY_ALIASES: Record<string, CostCategory> = {
   bus: 'transport',
   car: 'transport',
   'car rental': 'transport',
+  'car-rental': 'transport',
+  bicycle: 'transport',
+  cruise: 'transport',
   ferry: 'transport',
   boat: 'transport',
   taxi: 'transport',
   transfer: 'transport',
   cable_car: 'transport',
+  transit: 'transport',
+  transport_other: 'transport',
   transport: 'transport',
   transportation: 'transport',
   hotel: 'accommodation',
@@ -34,6 +41,8 @@ const CATEGORY_ALIASES: Record<string, CostCategory> = {
   groceries: 'groceries',
   activity: 'activities',
   activities: 'activities',
+  event: 'activities',
+  tour: 'activities',
   sightseeing: 'sightseeing',
   sights: 'sightseeing',
   shop: 'shopping',
@@ -64,6 +73,15 @@ export function costCategoryOf(category: string | null | undefined): CostCategor
   if (!category) return null;
   if (KEYS.has(category)) return category as CostCategory;
   return CATEGORY_ALIASES[category.trim().toLowerCase()] ?? null;
+}
+
+/**
+ * The Costs category a booking of this type is filed under, `other` for a type
+ * no key stands for. Reads the same table as costCategoryOf, so a cost created
+ * with a booking and the type-change resync never disagree about it.
+ */
+export function typeToCostCategory(type: string | null | undefined): CostCategory {
+  return costCategoryOf(type) ?? 'other';
 }
 
 /**

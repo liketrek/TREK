@@ -1122,7 +1122,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   const budgetItems = useTripStore(s => s.budgetItems)
   const costsEnabled = useAddonStore(s => s.isEnabled('budget'))
   const totalCostLabel = useMemo(() => {
-    const costs = planCosts({ days, assignments, reservations, budgetItems, costsEnabled, tripCurrency: currency })
+    const costs = planCosts({ days, assignments, reservations, budgetItems, costsEnabled, tripCurrency: currency, displayCurrency: costBase })
     return formatMoneySum(costs.total, costBase, locale, fxRates)
   }, [days, assignments, reservations, budgetItems, costsEnabled, currency, costBase, locale, fxRates])
 

@@ -1,6 +1,6 @@
 import type { AssignmentsMap, BudgetItem, Day, Reservation } from '../../types'
 import type { MoneyEntry } from '../../utils/formatters'
-import { bookedInTrip } from '../../hooks/useExchangeRates'
+import { bookedInTrip, inDisplayCurrency } from '../../hooks/useExchangeRates'
 import { daySpan, startKey } from './bookings/bookingsModel'
 
 /** What the plan's cost figures add up: per day, and for the whole trip. */
@@ -22,18 +22,22 @@ export interface PlanCosts {
  * An expense counts on the day its booking starts, else the first day its place is
  * planned on, else the day of its date. One that belongs to no day still counts in
  * the total. A foreign amount booked at a frozen rate counts at that rate, as Costs
- * counts it.
+ * counts it. One entered in `displayCurrency`, when the caller reads the plan in one,
+ * counts as typed, as Costs shows it (#2965): booked into the trip currency and back
+ * at today's rate it drifted off the amount entered. The PDF passes none, since it
+ * adds everything up in the trip currency.
  *
  * With Costs off there are no expenses, and a place's own price (set through the
  * API) still counts, once, on the first day the place is planned on.
  */
-export function planCosts({ days, assignments, reservations, budgetItems, costsEnabled, tripCurrency }: {
+export function planCosts({ days, assignments, reservations, budgetItems, costsEnabled, tripCurrency, displayCurrency }: {
   days: Day[]
   assignments: AssignmentsMap
   reservations: Reservation[]
   budgetItems: BudgetItem[]
   costsEnabled: boolean
   tripCurrency: string
+  displayCurrency?: string | null
 }): PlanCosts {
   const trip = (tripCurrency || 'EUR').toUpperCase()
   const firstDayOfPlace = new Map<number, number>()
@@ -84,6 +88,10 @@ export function planCosts({ days, assignments, reservations, budgetItems, costsE
   for (const item of budgetItems) {
     const amount = item.total_price || 0
     if (amount === 0) continue
+    if (displayCurrency && inDisplayCurrency(item.currency, trip, displayCurrency)) {
+      add(dayOfExpense(item), { amount, currency: displayCurrency.toUpperCase() })
+      continue
+    }
     const booked = bookedInTrip(amount, item.currency, item.exchange_rate, trip)
     const entry = booked != null
       ? { amount: booked, currency: trip }

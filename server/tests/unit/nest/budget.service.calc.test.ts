@@ -1437,6 +1437,27 @@ describe('calculateSettlement: currencies shown in whole units (#2604)', () => {
     }
   });
 
+  it('a bill in a won display currency on a euro trip is split in whole won, and settle-up clears it', async () => {
+    // Read in won, a won bill counts as typed (#2965) and skips the conversion that
+    // rounds to whole won, so it has to be split in whole won itself: 3,333.33 each
+    // printed as -3,333 / -3,333 beside +6,667 again.
+    const fx = { base: 'KRW', tripCurrency: 'EUR', rates: { EUR: 1, KRW: 1500 } };
+    const items = [{ ...makeItem(1, 10000), currency: 'KRW', exchange_rate: 1500 } as BudgetItem];
+    const members = [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob'), makeMember(1, 3, 'carol')];
+    const payers = [makePayer(1, 1, 10000, 'alice')];
+    await setupDb(items, members, payers);
+
+    const result = await budget.calculateSettlement(1, fx);
+    expect(result.currency).toBe('KRW');
+    expectWholeAndSquare(result);
+    expect(result.balances.map((b) => b.balance).sort((x, y) => x - y)).toEqual([-3334, -3333, 6667]);
+
+    const after = await settleEverything(items, members, payers, fx, 'KRW');
+    expectWholeAndSquare(after);
+    expect(after.balances.every((b) => b.balance === 0)).toBe(true);
+    expect(after.flows).toEqual([]);
+  });
+
   it('a two-decimal display currency keeps its cents', async () => {
     // The euro case the rest of this file pins, read once more beside the won ones:
     // 10.00 three ways stays 3.34 / 3.33 / 3.33, not whole euros.
@@ -1627,6 +1648,40 @@ describe('calculateSettlement: bills in the display currency (#2965)', () => {
     const later = await budget.calculateSettlement(1, { ...today, rates: { JPY: 1, EUR: 1 / 160 } });
     for (const b of later.balances) expect(Math.abs(b.balance)).toBeLessThanOrEqual(0.01);
     expect(centSum(later.balances.map((b) => b.balance))).toBe(0);
+  });
+
+  it('settled when the halves point opposite ways, it stays settled when the yen moves', async () => {
+    // Bob paid a 100 EUR train for both, Alice a 100,000 yen hotel for both: Alice
+    // owes Bob 50 EUR in euros, Bob owes Alice 50,000 yen. Bob pays the net in euros.
+    // The euro credit used to stay in euros beside the yen it was netted with, and
+    // the balance reopened as soon as the rate moved.
+    const items = () => [
+      { ...makeItem(1, 100), currency: 'EUR', exchange_rate: 1 / 176.37 } as BudgetItem,
+      { ...makeItem(2, 100000) } as BudgetItem,
+    ];
+    const members = () => [...pair(), makeMember(2, 1, 'alice'), makeMember(2, 2, 'bob')];
+    const payers = () => [makePayer(1, 2, 100, 'bob'), makePayer(2, 1, 100000, 'alice')];
+    await setupDb(items(), members(), payers());
+    const offer = (await budget.calculateSettlement(1, today)).flows;
+    expect(offer).toHaveLength(1);
+    expect(offer[0].from.user_id).toBe(2);
+    await setupDb(items(), members(), payers(), [makeSettlementRow(5, 2, 1, offer[0].amount, 'EUR', 1 / 176.73)]);
+    const results = await Promise.all(
+      [1 / 176.73, 1 / 160, 1 / 195].map((eurPerYen) =>
+        budget.calculateSettlement(1, { ...today, rates: { JPY: 1, EUR: eurPerYen } }),
+      ),
+    );
+    for (const result of results) {
+      expect(result.balances.map((b) => b.balance)).toEqual([0, 0]);
+      expect(result.flows).toEqual([]);
+      for (const f of result.finalBudgets) {
+        expect(f.sources.moved.reduce((a, r) => a + r.cents, 0)).toBe(Math.round(f.reimbursed * 100));
+        expect(f.final).toBeCloseTo(f.expenses - f.reimbursed - f.pending, 2);
+      }
+    }
+    // What Bob sent is what Alice received, read on the day it was sent.
+    const alice = results[0].finalBudgets.find((f) => f.user_id === 1);
+    expect(alice?.reimbursed).toBe(offer[0].amount);
   });
 
   it('read in the trip currency nothing changes: the bill goes through its frozen rate', async () => {
