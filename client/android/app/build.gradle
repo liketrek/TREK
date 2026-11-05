@@ -1,0 +1,66 @@
+apply plugin: 'com.android.application'
+
+android {
+    namespace = "com.liketrek.trek"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "com.liketrek.trek"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        // The release workflow (.github/workflows/native-release.yml) passes both:
+        // the version from client/package.json and a build number that only grows.
+        // Local and PR builds fall back to these placeholders.
+        versionCode((project.findProperty('trekVersionCode') ?: '1') as Integer)
+        versionName(project.findProperty('trekVersionName') ?: '0.0.0-dev')
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    // The upload key only exists in the release workflow, which decodes it from a
+    // secret and passes its path and passwords as Gradle properties. Every other
+    // build (local, fork, PR) stays unsigned and needs no secret.
+    signingConfigs {
+        release {
+            if (project.hasProperty('trekKeystore')) {
+                storeFile file(project.property('trekKeystore'))
+                storePassword project.property('trekKeystorePassword')
+                keyAlias project.property('trekKeyAlias')
+                keyPassword project.property('trekKeyPassword')
+            }
+        }
+    }
+    buildTypes {
+        release {
+            if (project.hasProperty('trekKeystore')) {
+                signingConfig signingConfigs.release
+            }
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation "androidx.browser:browser:$androidxBrowserVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'

@@ -94,6 +94,15 @@ export default defineConfig({
       },
       dependencies: ['shot-fixtures'],
     },
+    // App Store and Google Play screenshots (`npm run store:shots`): the
+    // seeded demo trip at every device size the listings need. Each device sets
+    // its own viewport and scale in e2e/store/capture.store.ts. Not part of CI.
+    {
+      name: 'store',
+      testMatch: /\.store\.ts/,
+      use: { ...devices['Desktop Chrome'], storageState: E2E_STATE_FILE },
+      dependencies: ['shot-fixtures'],
+    },
     // Help-center media (`npm run help:media`): pictures and walkthroughs for
     // the in-app guides, generated from the guide definitions in src/help/.
     // Same seed as the wiki screenshots; its own match so neither run pays

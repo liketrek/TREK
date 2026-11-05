@@ -17,7 +17,7 @@ import ToggleSwitch from '../components/Settings/ToggleSwitch';
 import { SUPPORTED_LANGUAGES, useTranslation } from '../i18n';
 import { IDP_LOGIN_URL, useLogin } from './login/useLogin';
 import LoginWorld from './login/LoginWorld';
-import { clearSignedOut } from '../utils/signedOut'
+import NativeServerLink from './login/NativeServerLink';
 import PasswordChecklist from '../components/shared/PasswordChecklist';
 
 /** Fixed so the sky does not reshuffle on every render. */
@@ -85,9 +85,7 @@ export default function LoginPage(): React.ReactElement {
     configWait,
     idpSlow,
     idpName,
-    handleDemoLogin,
-    handleSubmit,
-    handlePasskeyLogin,
+    handleDemoLogin, handleSubmit, handlePasskeyLogin, handleSsoClick,
   } = useLogin();
 
   const oidcButtonShown = !!(appConfig?.oidc_configured && appConfig?.oidc_login && !oidcOnly);
@@ -490,7 +488,7 @@ export default function LoginPage(): React.ReactElement {
                 {idpSlow && (
                   <a
                     href={IDP_LOGIN_URL}
-                    onClick={clearSignedOut}
+                    onClick={handleSsoClick}
                     style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', color: '#6b7280' }}
                   >
                     {t('login.oidcRedirectSlow', { name: idpName })}
@@ -534,7 +532,7 @@ export default function LoginPage(): React.ReactElement {
                   </div>
                 )}
                 <a
-                  onClick={clearSignedOut}
+                  onClick={handleSsoClick}
                   // No remember-me switch in OIDC-only mode: the IdP owns the session
                   // policy, so always ask for the remembered lifetime (#1927).
                   href={`/api/auth/oidc/login${inviteToken ? '?invite=' + encodeURIComponent(inviteToken) + '&' : '?'}remember=1`}
@@ -1140,7 +1138,7 @@ export default function LoginPage(): React.ReactElement {
                 <div style={{ flex: 1, height: 1, background: '#e5e7eb' }} />
               </div>
               <a
-                onClick={clearSignedOut}
+                onClick={handleSsoClick}
                 href={`/api/auth/oidc/login${
                   inviteToken ? '?invite=' + encodeURIComponent(inviteToken) : ''
                 }${
@@ -1277,6 +1275,7 @@ export default function LoginPage(): React.ReactElement {
               {t('login.demoHint')}
             </button>
           )}
+          <NativeServerLink />
         </div>
       </div>
 

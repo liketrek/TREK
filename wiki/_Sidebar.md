@@ -23,6 +23,7 @@
 - [[Dashboard Widgets|Dashboard-Widgets]]
 - [[Notifications Inbox|Notifications-Inbox]]
 - [[TREK on a Phone|Mobile-App]]
+- [[Native Apps|Native-Apps]]
 - [[Offline Mode and PWA|Offline-Mode-and-PWA]]
 - [[Languages]]
 

@@ -246,7 +246,7 @@ describe('useAccountSettings', () => {
     act(() => result.current.downloadBackupCodes());
     expect(createUrl).toHaveBeenCalledWith(expect.any(Blob));
     expect(click).toHaveBeenCalledTimes(1);
-    expect(revokeUrl).toHaveBeenCalledWith('blob:codes');
+    await waitFor(() => expect(revokeUrl).toHaveBeenCalledWith('blob:codes'));
 
     act(() => result.current.printBackupCodes());
     expect(open).toHaveBeenCalledWith('', '_blank', 'width=900,height=700');

@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { offlineStyle } from '../../native/offlineTiles';
 import { hasWebGL, reportWebGLFailure, subscribeWebGL, webGLFailures } from '../../utils/webgl';
 import type { GlMapProvider } from './glProviders';
 
@@ -63,6 +64,15 @@ export function isGpuInitFailure(err: unknown): boolean {
  * and the caller gets null instead of a throw. Anything else is a bug and is
  * thrown on.
  */
+/**
+ * The style a new GL map is built with. A MapLibre map inside the iOS app reads
+ * its tiles through the offline protocol (native/offlineTiles.ts); Mapbox has no
+ * protocol hook, so its style goes in untouched.
+ */
+export function initialMapStyle(provider: GlMapProvider, style: string): string {
+  return provider === 'maplibre-gl' ? offlineStyle(style) : style;
+}
+
 export function buildGlMap<T>(construct: () => T): T | null {
   try {
     return construct();

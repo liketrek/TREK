@@ -6,6 +6,7 @@ import {
   type CollectionGpxProblem,
   type CollectionGpxReadResult,
 } from '@trek/shared'
+import { downloadBlob } from '../../utils/fileDownload'
 
 /**
  * The browser half of list export and import (#2198, #2301).
@@ -37,16 +38,7 @@ export function collectionFileName(name: string, extension = COLLECTION_FILE_EXT
 }
 
 function download(content: string, type: string, fileName: string): void {
-  const url = URL.createObjectURL(new Blob([content], { type }))
-  const a = document.createElement('a')
-  a.href = url
-  a.download = fileName
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  // Revoked on the next tick: revoking synchronously can cancel the download
-  // in some browsers before it has started reading the blob.
-  setTimeout(() => URL.revokeObjectURL(url), 0)
+  downloadBlob(new Blob([content], { type }), fileName)
 }
 
 /** Hand the file to the browser as a download. */

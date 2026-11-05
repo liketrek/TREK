@@ -1,6 +1,7 @@
 import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
+import { installOfflineProtocol } from '../../../native/offlineTiles'
 
 /**
  * The only module in the client that pulls maplibre-gl in at runtime. Same rule as
@@ -27,5 +28,8 @@ maplibregl.setWorkerUrl(workerUrl)
 // No RTL text plugin here, unlike mapbox. MapLibre 6.9 shapes Arabic and orders
 // bidirectional text itself; the old plugin would replace that implementation, and
 // a v6 worker can only load the plugin's UMD build through eval.
+
+// The iOS app has no service worker to serve pre-downloaded tiles; see native/offlineTiles.ts.
+installOfflineProtocol(maplibregl)
 
 export default maplibregl

@@ -1,0 +1,712 @@
+/*
+ * The address screen the app ships. Dark first, mirroring the app's neutral
+ * default scheme (client/src/index.css), so it shares the launch screen's
+ * background and never flashes. Everything past this screen is the UI the
+ * chosen server delivers.
+ */
+:root {
+  --bg: #09090b;
+  --bg-2: #101013;
+  --surface: #18181b;
+  --surface-2: #1f1f23;
+  --edge: #27272a;
+  --edge-strong: #3f3f46;
+  --ink: #fafafa;
+  --muted: #a1a1aa;
+  --faint: #71717a;
+  --accent: #fafafa;
+  --accent-ink: #09090b;
+  --danger: #f87171;
+  --ok: #4ade80;
+  --radius: 16px;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #ffffff;
+    --bg-2: #fafafa;
+    --surface: #f4f4f5;
+    --surface-2: #ececef;
+    --edge: #e4e4e7;
+    --edge-strong: #d4d4d8;
+    --ink: #111827;
+    --muted: #52525b;
+    --faint: #9ca3af;
+    --accent: #111827;
+    --accent-ink: #ffffff;
+    --danger: #dc2626;
+    --ok: #16a34a;
+    color-scheme: light;
+  }
+  .shell-logo,
+  .mark {
+    filter: none;
+  }
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, system-ui, sans-serif;
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* An ambient glow behind the content, so the flat dark gains a little depth. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(60% 50% at 50% -5%, color-mix(in srgb, var(--ink) 7%, transparent), transparent 70%),
+    radial-gradient(50% 40% at 50% 110%, color-mix(in srgb, var(--ink) 4%, transparent), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.shell {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 440px;
+  margin: 0 auto;
+  padding: calc(env(safe-area-inset-top) + 28px) 24px calc(env(safe-area-inset-bottom) + 24px);
+  overflow: hidden;
+}
+
+/* ── Screen transitions ──────────────────────────────────────────────────── */
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.screen-enter {
+  animation: screenIn 0.5s var(--ease) both;
+}
+.screen-leave {
+  animation: screenOut 0.28s var(--ease-in) both;
+  position: absolute;
+  inset: calc(env(safe-area-inset-top) + 28px) 24px calc(env(safe-area-inset-bottom) + 24px);
+}
+.screen-back.screen-enter {
+  animation-name: screenInBack;
+}
+.screen-back.screen-leave {
+  animation-name: screenOutBack;
+}
+@keyframes screenIn {
+  from {
+    opacity: 0;
+    transform: translateX(26px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes screenOut {
+  to {
+    opacity: 0;
+    transform: translateX(-22px);
+  }
+}
+@keyframes screenInBack {
+  from {
+    opacity: 0;
+    transform: translateX(-26px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes screenOutBack {
+  to {
+    opacity: 0;
+    transform: translateX(22px);
+  }
+}
+
+/* Children stagger in, so a screen assembles rather than snaps. */
+.screen-enter > * {
+  animation: riseIn 0.55s var(--ease) both;
+}
+.screen-enter > *:nth-child(1) {
+  animation-delay: 0.02s;
+}
+.screen-enter > *:nth-child(2) {
+  animation-delay: 0.07s;
+}
+.screen-enter > *:nth-child(3) {
+  animation-delay: 0.12s;
+}
+.screen-enter > *:nth-child(4) {
+  animation-delay: 0.17s;
+}
+.screen-enter > *:nth-child(5) {
+  animation-delay: 0.22s;
+}
+.screen-enter > *:nth-child(6) {
+  animation-delay: 0.27s;
+}
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ── Brand ───────────────────────────────────────────────────────────────── */
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 6px;
+}
+.brand .mark {
+  width: 40px;
+  height: 40px;
+}
+.brand .wordmark {
+  font-weight: 700;
+  font-size: 1.5rem;
+  letter-spacing: -0.01em;
+}
+.brand .tag {
+  font-style: italic;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--accent-ink);
+  background: var(--accent);
+  border-radius: 999px;
+  padding: 2px 10px;
+  line-height: 1.3;
+}
+
+.shell-logo {
+  width: 52px;
+  height: 52px;
+  margin-bottom: 4px;
+}
+
+/* The big hero mark on the welcome screen, with a gentle breathing float. */
+.hero-mark {
+  width: 76px;
+  height: 76px;
+  margin-bottom: 18px;
+  animation: floaty 6s ease-in-out infinite;
+  filter: drop-shadow(0 10px 30px color-mix(in srgb, var(--ink) 18%, transparent));
+}
+@keyframes floaty {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+/* ── Type ────────────────────────────────────────────────────────────────── */
+.title {
+  font-size: 1.9rem;
+  line-height: 1.12;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+.title-sm {
+  font-size: 1.45rem;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+.sub {
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.55;
+  font-size: 1.02rem;
+  overflow-wrap: anywhere;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+.btn {
+  font: inherit;
+  font-weight: 600;
+  font-size: 1.02rem;
+  padding: 16px 18px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: var(--accent-ink);
+  cursor: pointer;
+  transition:
+    transform 0.14s var(--ease),
+    opacity 0.2s,
+    background 0.2s,
+    border-color 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 54px;
+}
+.btn:active {
+  transform: scale(0.975);
+}
+.btn:disabled {
+  opacity: 0.55;
+}
+.btn-ghost {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--edge);
+}
+.btn-ghost:active {
+  background: var(--surface-2);
+}
+.btn-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+.btn-row b {
+  font-weight: 650;
+}
+.btn-row small {
+  font-weight: 500;
+  font-size: 0.86rem;
+  opacity: 0.7;
+}
+.btn .chev {
+  margin-left: auto;
+  opacity: 0.5;
+}
+
+.linkbtn {
+  font: inherit;
+  font-size: 0.95rem;
+  padding: 12px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  align-self: center;
+  transition: color 0.2s;
+}
+.linkbtn:active {
+  color: var(--ink);
+}
+a.linkbtn {
+  text-decoration: none;
+}
+
+.foot-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px 18px;
+  margin-top: 6px;
+  font-size: 0.86rem;
+}
+.foot-links a {
+  color: var(--faint);
+  text-decoration: none;
+  padding: 8px 2px;
+}
+
+/* ── Address form ────────────────────────────────────────────────────────── */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.field {
+  position: relative;
+}
+.field input {
+  width: 100%;
+  font: inherit;
+  font-size: 1.05rem;
+  padding: 16px 18px;
+  border-radius: var(--radius);
+  border: 1px solid var(--edge);
+  background: var(--surface);
+  color: var(--ink);
+  outline: none;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.25s;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.field input::placeholder {
+  color: var(--faint);
+}
+.field input:focus {
+  border-color: var(--edge-strong);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--ink) 9%, transparent);
+}
+.field.bad input {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--danger) 16%, transparent);
+  animation: shake 0.3s;
+}
+@keyframes shake {
+  25% {
+    transform: translateX(-5px);
+  }
+  50% {
+    transform: translateX(5px);
+  }
+  75% {
+    transform: translateX(-3px);
+  }
+}
+
+.error {
+  color: var(--danger);
+  margin: 0;
+  min-height: 1.4em;
+  line-height: 1.45;
+  font-size: 0.95rem;
+  transition: opacity 0.2s;
+}
+
+/* Spinner inside the connect button while probing. */
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid color-mix(in srgb, var(--accent-ink) 35%, transparent);
+  border-top-color: var(--accent-ink);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Feature list (cloud screen) ─────────────────────────────────────────── */
+.features {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 4px 0 2px;
+}
+.feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  padding: 11px 0;
+  border-top: 1px solid var(--edge);
+}
+.feature:first-child {
+  border-top: 0;
+}
+.feature .ic {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--edge);
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+}
+.feature .tx {
+  line-height: 1.4;
+  padding-top: 5px;
+  font-size: 0.98rem;
+}
+
+/* ── Success tick before the server loads ────────────────────────────────── */
+.success {
+  align-items: center;
+  text-align: center;
+  justify-content: center;
+}
+.tick {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--ok) 16%, transparent);
+  display: grid;
+  place-items: center;
+  margin-bottom: 8px;
+  animation: pop 0.45s var(--ease) both;
+}
+.tick svg {
+  width: 38px;
+  height: 38px;
+  color: var(--ok);
+}
+.tick path {
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  animation: draw 0.45s 0.15s var(--ease) forwards;
+}
+@keyframes pop {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  margin: 0 0 2px -8px;
+}
+.back {
+  font: inherit;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 0.98rem;
+  padding: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+.back:active {
+  color: var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ── Plan picker (cloud subscription) ────────────────────────────────────── */
+.segmented {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--edge);
+  border-radius: 13px;
+  align-self: stretch;
+}
+.segmented button {
+  flex: 1;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 9px;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    color 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+.segmented button[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.segmented .save {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ok) 22%, transparent);
+  color: var(--ok);
+}
+.segmented button[aria-pressed='true'] .save {
+  background: color-mix(in srgb, var(--accent-ink) 16%, transparent);
+  color: var(--accent-ink);
+}
+
+.plans {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.plan {
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
+  padding: 16px;
+  background: var(--surface);
+  transition:
+    border-color 0.2s,
+    transform 0.14s var(--ease);
+}
+.plan:active {
+  transform: scale(0.99);
+}
+.plan.featured {
+  border-color: var(--edge-strong);
+  background: var(--surface-2);
+}
+.plan-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.plan-name {
+  font-weight: 700;
+  font-size: 1.12rem;
+}
+.plan-price {
+  font-weight: 700;
+  font-size: 1.3rem;
+  letter-spacing: -0.01em;
+}
+.plan-price small {
+  font-weight: 500;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-left: 3px;
+}
+.plan-feats {
+  margin: 10px 0 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+.plan-feats span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.plan-feats svg {
+  flex: none;
+  color: var(--ok);
+}
+.plan .btn {
+  width: 100%;
+  min-height: 48px;
+  padding: 13px;
+}
+.plan:not(.featured) .btn {
+  background: var(--surface-2);
+  color: var(--ink);
+  border-color: var(--edge);
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  padding: 40px 0;
+}
+.loading .spinner {
+  width: 26px;
+  height: 26px;
+  border-color: var(--edge-strong);
+  border-top-color: var(--ink);
+}
+.note {
+  text-align: center;
+  color: var(--faint);
+  font-size: 0.84rem;
+  margin: 2px 0 0;
+  line-height: 1.45;
+}
+
+/* ── Claim: address + email, and the provisioning wait ───────────────────── */
+.slug-field {
+  display: flex;
+  align-items: center;
+  padding-right: 14px;
+}
+.slug-field .slug-input {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+}
+.slug-suffix {
+  flex: none;
+  color: var(--muted);
+  font-size: 0.98rem;
+  padding-left: 2px;
+  user-select: none;
+}
+.hint {
+  margin: -6px 2px 2px;
+  font-size: 0.84rem;
+  color: var(--faint);
+  min-height: 1.1em;
+  transition: color 0.2s;
+}
+.hint.ok {
+  color: var(--ok);
+}
+.hint.bad {
+  color: var(--danger);
+}
+
+.screen-center {
+  justify-content: center;
+  text-align: center;
+  align-items: center;
+  gap: 18px;
+}
+.screen-center .title-sm,
+.screen-center .sub {
+  text-align: center;
+}
+.provision-mark {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+.provision-mark .spinner {
+  width: 40px;
+  height: 40px;
+  border-width: 3px;
+  border-color: var(--edge-strong);
+  border-top-color: var(--accent);
+}

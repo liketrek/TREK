@@ -7,6 +7,7 @@ import { useTranslation } from '../../i18n';
 import { useAuthStore } from '../../store/authStore';
 import { getApiErrorMessage, type UserWithOidc } from '../../types';
 import { formatDisplayDateTime } from '../../utils/dateFormat';
+import { downloadBlob } from '../../utils/fileDownload';
 import { passwordErrorKey } from '../../utils/passwordError';
 import { useToast } from '../shared/Toast';
 
@@ -115,14 +116,7 @@ export function useAccountSettings({ avatarRemoveErrorKey, ignoreEmptyBackupCode
   const downloadBackupCodes = () => {
     if (skipBackupCodes) return;
     const blob = new Blob([backupCodesText + '\n'], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'trek-mfa-backup-codes.txt';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    downloadBlob(blob, 'trek-mfa-backup-codes.txt');
   };
 
   const printBackupCodes = () => {
