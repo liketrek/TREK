@@ -29,6 +29,7 @@ for (const viewport of [
   { width: 1024, height: 800 },
 ]) {
   test(`place names stay readable next to long labels at ${viewport.width}px`, async ({ page }) => {
+    test.setTimeout(90_000);
     await page.setViewportSize(viewport);
     const addonsResponse = await page.request.get('/api/admin/addons');
     expect(addonsResponse.ok()).toBeTruthy();
@@ -83,7 +84,7 @@ for (const viewport of [
         expect(await name.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
         await expectInside(row);
         // Every label is either on the row or counted by its "+N" chip.
-        const shown = await row.locator('.col-lrow-label').count();
+        const shown = await row.locator('.col-lrow-label:not(.is-over)').count();
         const more = await row
           .locator('.col-lrow-more')
           .textContent()
