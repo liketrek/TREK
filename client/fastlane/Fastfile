@@ -1,0 +1,78 @@
+# iOS release signing and TestFlight upload, driven by .github/workflows/native-release.yml.
+#
+# Automatic signing cannot work on a CI runner with no registered devices: it signs
+# the archive for development and then needs a development provisioning profile, which
+# requires a device. So this signs manually for distribution instead. The distribution
+# certificate and the App Store provisioning profile are created (or reused) through the
+# App Store Connect API key, which means no certificate or profile has to be stored as a
+# secret: the key the workflow already holds is enough.
+#
+# The lane expects these in the environment (the workflow sets them):
+#   ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_PATH  — the App Store Connect API key
+#   APPLE_TEAM_ID                            — the developer team
+#   MARKETING_VERSION, CURRENT_PROJECT_VERSION — the version and build number
+#   RUNNER_TEMP                              — a writable scratch directory
+
+default_platform(:ios)
+
+APP_IDENTIFIER = "com.liketrek.trek"
+PROJECT = "ios/App/App.xcodeproj"
+
+platform :ios do
+  desc "Build the signed Release app and upload it to TestFlight (internal testing)."
+  lane :beta do
+    key = app_store_connect_api_key(
+      key_id: ENV.fetch("ASC_KEY_ID"),
+      issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+      key_filepath: ENV.fetch("ASC_KEY_PATH"),
+      in_house: false,
+    )
+
+    # A throwaway keychain, so the certificate's private key lives only for this run.
+    setup_ci
+
+    # Distribution certificate into the keychain, and an App Store profile that trusts it.
+    get_certificates(api_key: key, development: false)
+    get_provisioning_profile(
+      api_key: key,
+      app_identifier: APP_IDENTIFIER,
+      development: false,
+    )
+
+    # Pin the project to that profile for this build; automatic signing stays the default
+    # a developer sees when they open the project in Xcode.
+    update_code_signing_settings(
+      path: PROJECT,
+      use_automatic_signing: false,
+      team_id: ENV.fetch("APPLE_TEAM_ID"),
+      code_sign_identity: "Apple Distribution",
+      bundle_identifier: APP_IDENTIFIER,
+      profile_name: lane_context[SharedValues::SIGH_NAME],
+      targets: ["App"],
+    )
+
+    build_app(
+      project: PROJECT,
+      scheme: "App",
+      configuration: "Release",
+      export_method: "app-store",
+      output_directory: File.join(ENV.fetch("RUNNER_TEMP"), "export"),
+      xcargs: [
+        "MARKETING_VERSION=#{ENV.fetch('MARKETING_VERSION')}",
+        "CURRENT_PROJECT_VERSION=#{ENV.fetch('CURRENT_PROJECT_VERSION')}",
+      ].join(" "),
+      export_options: {
+        signingStyle: "manual",
+        provisioningProfiles: { APP_IDENTIFIER => lane_context[SharedValues::SIGH_NAME] },
+      },
+    )
+
+    # Upload to App Store Connect; it shows up in TestFlight after Apple finishes processing.
+    # Internal testing needs no App Review, so nothing here submits the app for review.
+    upload_to_testflight(
+      api_key: key,
+      skip_waiting_for_build_processing: true,
+      skip_submission: true,
+    )
+  end
+end

@@ -151,43 +151,23 @@ jobs:
           ASC_KEY_P8_B64: ${{ secrets.ASC_KEY_P8_B64 }}
         run: printf '%s' "$ASC_KEY_P8_B64" | base64 -d > "$RUNNER_TEMP/AuthKey.p8"
 
-      - name: Archive
-        working-directory: client/ios/App
+      # Signs for distribution and uploads to TestFlight. Automatic signing cannot
+      # run on a device-less CI runner (it signs for development and then needs a
+      # development profile, which needs a registered device), so client/fastlane/Fastfile
+      # signs manually: it creates or reuses the distribution certificate and the App
+      # Store profile through the API key, so neither has to be stored as a secret.
+      - name: Build and upload to TestFlight
+        working-directory: client
         env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_PATH: ${{ runner.temp }}/AuthKey.p8
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-        run: >-
-          xcodebuild archive
-          -project App.xcodeproj
-          -scheme App
-          -configuration Release
-          -destination 'generic/platform=iOS'
-          -archivePath "$RUNNER_TEMP/TREK.xcarchive"
-          MARKETING_VERSION=${{ steps.version.outputs.version }}
-          CURRENT_PROJECT_VERSION=${{ steps.version.outputs.build }}
-          DEVELOPMENT_TEAM="$APPLE_TEAM_ID"
-          -allowProvisioningUpdates
-          -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8"
-          -authenticationKeyID "$ASC_KEY_ID"
-          -authenticationKeyIssuerID "$ASC_ISSUER_ID"
-
-      # ExportOptions.plist says destination=upload, so this step sends the build
-      # to App Store Connect, where it shows up in TestFlight after processing.
-      - name: Export and upload to App Store Connect
-        working-directory: client/ios/App
-        env:
-          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-        run: >-
-          xcodebuild -exportArchive
-          -archivePath "$RUNNER_TEMP/TREK.xcarchive"
-          -exportOptionsPlist ../ExportOptions.plist
-          -exportPath "$RUNNER_TEMP/export"
-          -allowProvisioningUpdates
-          -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8"
-          -authenticationKeyID "$ASC_KEY_ID"
-          -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+          MARKETING_VERSION: ${{ steps.version.outputs.version }}
+          CURRENT_PROJECT_VERSION: ${{ steps.version.outputs.build }}
+          FASTLANE_SKIP_UPDATE_CHECK: '1'
+          FASTLANE_HIDE_CHANGELOG: '1'
+        run: fastlane ios beta
 
       - name: Remove the API key
         if: always()
