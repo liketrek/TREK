@@ -974,6 +974,7 @@ const tours: TranslationStrings = {
     'I punti singoli non fanno parte di un percorso. Vengono aggiunti ai luoghi del viaggio.',
   'tours.import.pointsConfirm': 'Aggiungi luoghi',
   'tours.import.pointsFailedIn': 'Non è stato possibile aggiungere i punti di {name} come luoghi.',
+  'tours.import.pointsSkipped': 'Alcuni punti erano già in questo viaggio e sono stati saltati.',
   'tours.import.pointsImported': '{count} luoghi aggiunti',
   'tours.import.pointsImported.one': '{count} luogo aggiunto',
   'tours.import.unreadableIn': 'Impossibile leggere {name}: il file è danneggiato o non è GPX, KML o KMZ',

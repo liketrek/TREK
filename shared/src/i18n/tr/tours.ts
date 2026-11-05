@@ -960,6 +960,7 @@ const tours: TranslationStrings = {
     'Tekil noktalar bir turun parçası değildir. Bunun yerine seyahatin yerlerine eklenir.',
   'tours.import.pointsConfirm': 'Yerleri ekle',
   'tours.import.pointsFailedIn': '{name} içindeki noktalar yer olarak eklenemedi.',
+  'tours.import.pointsSkipped': 'Noktaların bazıları zaten bu seyahatteydi ve atlandı.',
   'tours.import.pointsImported': '{count} yer eklendi',
   'tours.import.pointsImported.one': '{count} yer eklendi',
   'tours.import.unreadableIn': '{name} okunamadı: dosya bozuk ya da GPX, KML veya KMZ değil',

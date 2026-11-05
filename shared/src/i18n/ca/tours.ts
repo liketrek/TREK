@@ -969,6 +969,7 @@ const tours: TranslationStrings = {
   'tours.import.pointsAsPlacesHint': 'Els punts solts no formen part de cap ruta. S’afegeixen als llocs del viatge.',
   'tours.import.pointsConfirm': 'Afegeix llocs',
   'tours.import.pointsFailedIn': 'No s’han pogut afegir els punts de {name} com a llocs.',
+  'tours.import.pointsSkipped': "Alguns punts ja eren en aquest viatge i s'han omès.",
   'tours.import.pointsImported': '{count} llocs afegits',
   'tours.import.pointsImported.one': '{count} lloc afegit',
   'tours.import.unreadableIn': "No s'ha pogut llegir {name}: el fitxer està malmès o no és GPX, KML ni KMZ",

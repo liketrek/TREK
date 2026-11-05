@@ -83,7 +83,7 @@ const PlacesSidebar = React.memo(function PlacesSidebar(props: PlacesSidebarProp
         initialFiles={fileImportFiles}
       />
       {/* With Tours on, a route or track file from this column lands in the Tours preview. */}
-      <TourGpxPreviewDialog gpxImport={tourFileImport} />
+      <TourGpxPreviewDialog gpxImport={tourFileImport} offerPoints />
       <ContextMenu menu={ctxMenu.menu} onClose={ctxMenu.close} />
       {categoryPickerOpen && (
         <PlacesBulkCategoryModal

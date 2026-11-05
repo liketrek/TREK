@@ -113,8 +113,8 @@ function leftOutOf(files: readonly GpxPreviewFile[]): TourFileLeftOut {
 
 /**
  * #2969: the single points of the files (GPX waypoints, KML pins), which no
- * tour is made of, offered as places of the trip. On by default: a file with
- * a route and its stops is usually meant as both.
+ * tour is made of, offered as places of the trip where the dialog's caller
+ * asks for it.
  */
 function PreviewPoints({ count, on, onToggle }: { count: number; on: boolean; onToggle: () => void }) {
   const { t } = useTranslation();
@@ -183,18 +183,22 @@ function PreviewLeftOut({ leftOut }: { leftOut: TourFileLeftOut }) {
  * as recorded, gets no riding time and is not checked for access. Closing it
  * stores nothing. `initial` presets the type, as a recording imported for a
  * tour takes that tour's (ACT-01); left out, it is a hike. A KML or KMZ file
- * is shown the same way, with what it holds besides (IO-02).
+ * is shown the same way, with what it holds besides (IO-02). `offerPoints`
+ * offers the file's single points as places (#2969); only the places column
+ * asks for it, a recording picked for a tour is imported for its line alone.
  */
 export default function TourGpxPreviewDialog({
   gpxImport,
   initial,
+  offerPoints = false,
 }: {
   gpxImport: TourGpxImport;
   initial?: TourGpxImportFields;
+  offerPoints?: boolean;
 }) {
   const { preview } = gpxImport;
   if (!preview) return null;
-  return <PreviewDialog gpxImport={gpxImport} files={preview} initial={initial ?? HIKE} />;
+  return <PreviewDialog gpxImport={gpxImport} files={preview} initial={initial ?? HIKE} offerPoints={offerPoints} />;
 }
 
 const HIKE: TourGpxImportFields = { tour_type: 'hike' };
@@ -207,16 +211,20 @@ function canConfirm(fresh: number, addsPoints: boolean, typeComplete: boolean): 
 /** The points offered as places, and below them whatever else stays out. */
 function PreviewExtras({
   leftOut,
+  offerPoints,
   withPoints,
   onTogglePoints,
 }: {
   leftOut: TourFileLeftOut;
+  offerPoints: boolean;
   withPoints: boolean;
   onTogglePoints: () => void;
 }) {
   return (
     <>
-      {leftOut.points > 0 && <PreviewPoints count={leftOut.points} on={withPoints} onToggle={onTogglePoints} />}
+      {offerPoints && leftOut.points > 0 && (
+        <PreviewPoints count={leftOut.points} on={withPoints} onToggle={onTogglePoints} />
+      )}
       <PreviewLeftOut leftOut={withPoints ? { ...leftOut, points: 0 } : leftOut} />
     </>
   );
@@ -226,17 +234,20 @@ function PreviewDialog({
   gpxImport,
   files,
   initial,
+  offerPoints,
 }: {
   gpxImport: TourGpxImport;
   files: GpxPreviewFile[];
   initial: TourGpxImportFields;
+  offerPoints: boolean;
 }) {
   const { t } = useTranslation();
   const labelId = useId();
   const tileUrl = useTileUrl(OFM_POSITRON);
   const choices = useGpxImportChoices(initial);
   const leftOut = useMemo(() => leftOutOf(files), [files]);
-  const [withPoints, setWithPoints] = useState(true);
+  // On by default where offered: a file with a route and its stops is usually meant as both.
+  const [withPoints, setWithPoints] = useState(offerPoints);
   const addsPoints = withPoints && leftOut.points > 0;
 
   const tracks = files.flatMap((file) => file.tracks.map((track) => ({ file: file.file, track })));
@@ -314,7 +325,12 @@ function PreviewDialog({
             <PreviewTrackRow key={`${file.name}-${index}`} name={file.name} number={index + 1} track={track} />
           ))}
         </ul>
-        <PreviewExtras leftOut={leftOut} withPoints={withPoints} onTogglePoints={() => setWithPoints((on) => !on)} />
+        <PreviewExtras
+          leftOut={leftOut}
+          offerPoints={offerPoints}
+          withPoints={withPoints}
+          onTogglePoints={() => setWithPoints((on) => !on)}
+        />
         {fresh === 0 && !addsPoints && (
           <div className="mt-2">
             <TourNotice tone="warning" icon={<AlertTriangle size={13} strokeWidth={2} />}>

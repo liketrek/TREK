@@ -989,6 +989,7 @@ const tours: TranslationStrings = {
     'Τα μεμονωμένα σημεία δεν ανήκουν σε διαδρομή. Προστίθενται στις τοποθεσίες του ταξιδιού.',
   'tours.import.pointsConfirm': 'Προσθήκη τοποθεσιών',
   'tours.import.pointsFailedIn': 'Δεν ήταν δυνατή η προσθήκη των σημείων του {name} ως τοποθεσίες.',
+  'tours.import.pointsSkipped': 'Ορισμένα σημεία υπήρχαν ήδη σε αυτό το ταξίδι και παραλείφθηκαν.',
   'tours.import.pointsImported': '{count} τοποθεσίες προστέθηκαν',
   'tours.import.pointsImported.one': '{count} τοποθεσία προστέθηκε',
   'tours.import.unreadableIn':

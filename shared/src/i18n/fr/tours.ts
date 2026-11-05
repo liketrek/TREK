@@ -985,6 +985,7 @@ const tours: TranslationStrings = {
     'Les points isolés ne font pas partie d’un parcours. Ils rejoignent les lieux du voyage.',
   'tours.import.pointsConfirm': 'Ajouter les lieux',
   'tours.import.pointsFailedIn': 'Les points de {name} n’ont pas pu être ajoutés comme lieux.',
+  'tours.import.pointsSkipped': 'Certains points étaient déjà dans ce voyage et ont été ignorés.',
   'tours.import.pointsImported': '{count} lieux ajoutés',
   'tours.import.pointsImported.one': '{count} lieu ajouté',
   'tours.import.unreadableIn': 'Impossible de lire {name} : le fichier est endommagé ou n’est pas un GPX, KML ou KMZ',

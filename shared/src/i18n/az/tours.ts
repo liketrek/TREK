@@ -962,6 +962,7 @@ const tours: TranslationStrings = {
     'Tək nöqtələr turun bir hissəsi deyil. Onlar əvəzinə səyahətin məkanlarına əlavə olunur.',
   'tours.import.pointsConfirm': 'Məkanları əlavə et',
   'tours.import.pointsFailedIn': '{name} faylındakı nöqtələr məkan kimi əlavə edilə bilmədi.',
+  'tours.import.pointsSkipped': 'Nöqtələrin bəziləri artıq bu səyahətdə idi və ötürüldü.',
   'tours.import.pointsImported': '{count} məkan əlavə edildi',
   'tours.import.pointsImported.one': '{count} məkan əlavə edildi',
   'tours.import.unreadableIn': '{name} oxunmadı: fayl zədələnib və ya GPX, KML, KMZ deyil',

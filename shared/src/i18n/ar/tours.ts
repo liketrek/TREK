@@ -971,6 +971,7 @@ const tours: TranslationStrings = {
   'tours.import.pointsAsPlacesHint': 'النقاط المفردة ليست جزءًا من الجولة، بل تُضاف إلى أماكن الرحلة.',
   'tours.import.pointsConfirm': 'أضف الأماكن',
   'tours.import.pointsFailedIn': 'تعذّرت إضافة النقاط في {name} كأماكن.',
+  'tours.import.pointsSkipped': 'كانت بعض النقاط موجودة بالفعل في هذه الرحلة فتم تخطيها.',
   'tours.import.pointsImported': 'أُضيف {count} مكان',
   'tours.import.pointsImported.zero': 'أُضيف {count} مكان',
   'tours.import.pointsImported.one': 'أُضيف مكان واحد',

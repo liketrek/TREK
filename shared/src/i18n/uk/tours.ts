@@ -983,6 +983,7 @@ const tours: TranslationStrings = {
   'tours.import.pointsAsPlacesHint': 'Окремі точки не входять до маршруту. Вони додаються до місць подорожі.',
   'tours.import.pointsConfirm': 'Додати місця',
   'tours.import.pointsFailedIn': 'Не вдалося додати точки з {name} як місця.',
+  'tours.import.pointsSkipped': 'Деякі точки вже були в цій подорожі й були пропущені.',
   'tours.import.pointsImported': 'Додано {count} місця',
   'tours.import.pointsImported.one': 'Додано {count} місце',
   'tours.import.pointsImported.few': 'Додано {count} місця',

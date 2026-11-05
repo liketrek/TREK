@@ -458,7 +458,7 @@ describe('ToursSidebar', () => {
       left_out: { points: 3, areas: 1, other: 0 },
     })
     const importCall = vi.spyOn(tourGpxApi, 'import').mockResolvedValue({ tours: [tour], caution: false, skipped: 0 })
-    const pinsCall = vi.spyOn(placesApi, 'importMapFile').mockResolvedValue({ count: 3 })
+    const pinsCall = vi.spyOn(placesApi, 'importMapFile')
     seedStore(useTripStore, { refreshPlaces: vi.fn().mockResolvedValue(undefined) })
     render(
       <ToursSidebar tripId={1} days={[]} tours={[]} canEdit={true} onAssignToDay={vi.fn()} onSelectTour={vi.fn()} />
@@ -471,11 +471,11 @@ describe('ToursSidebar', () => {
     const rows = screen.getAllByTestId('gpx-preview-track')
     expect(rows.map((row) => row.textContent?.slice(0, 1))).toEqual(['1', '2'])
     expect(rows[1]).toHaveTextContent('No heights in the file')
-    // The pins are offered as places (#2969); only the area stays out.
-    expect(screen.getByTestId('gpx-preview-points')).toHaveTextContent('3 pins')
+    // Only the places column offers the pins as places (#2969); here they stay out.
+    expect(screen.queryByTestId('gpx-preview-points')).toBeNull()
     const leftOut = screen.getByTestId('gpx-preview-left-out')
     expect(leftOut).toHaveTextContent('Not imported')
-    expect(leftOut).not.toHaveTextContent('pins')
+    expect(leftOut).toHaveTextContent('3 pins')
     expect(leftOut).toHaveTextContent('1 area')
     expect(leftOut).not.toHaveTextContent('other item')
     expect(within(leftOut).getByRole('button', { name: 'Not imported' })).toBeInTheDocument()
@@ -483,8 +483,7 @@ describe('ToursSidebar', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Import 2 tours' }))
     await waitFor(() => expect(importCall).toHaveBeenCalledWith(1, file, { tour_type: 'hike' }))
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith('1 tour imported'))
-    expect(pinsCall).toHaveBeenCalledWith(1, file, { points: true, paths: false })
-    expect(toast.success).toHaveBeenCalledWith('3 places added')
+    expect(pinsCall).not.toHaveBeenCalled()
     vi.restoreAllMocks()
   })
 

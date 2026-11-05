@@ -1,4 +1,4 @@
-// FE-GPX-PREVIEW-001 to FE-GPX-PREVIEW-007
+// FE-GPX-PREVIEW-001 to FE-GPX-PREVIEW-009
 // The GPX preview as ACT-01 uses it: preset to the tour's type, a city walk
 // imported as one, and when a track was recorded shown where it carried times.
 import { fireEvent, render, screen } from '@testing-library/react';
@@ -86,7 +86,7 @@ describe('TourGpxPreviewDialog (ACT-01)', () => {
 describe('TourGpxPreviewDialog with points beside the lines (#2969)', () => {
   it('FE-GPX-PREVIEW-005: offers the points as places, on by default, and imports them with the tour', () => {
     const current = gpxImport([track()], { points: 4, areas: 0, other: 0 });
-    render(<TourGpxPreviewDialog gpxImport={current} />);
+    render(<TourGpxPreviewDialog gpxImport={current} offerPoints />);
     expect(screen.getByTestId('gpx-preview-points')).toBeInTheDocument();
     // Added as places, they are not listed as left out.
     expect(screen.queryByTestId('gpx-preview-left-out')).toBeNull();
@@ -96,7 +96,7 @@ describe('TourGpxPreviewDialog with points beside the lines (#2969)', () => {
 
   it('FE-GPX-PREVIEW-006: switched off, the points are named as left out and not imported', () => {
     const current = gpxImport([track()], { points: 4, areas: 1, other: 0 });
-    render(<TourGpxPreviewDialog gpxImport={current} />);
+    render(<TourGpxPreviewDialog gpxImport={current} offerPoints />);
     fireEvent.click(screen.getByRole('button', { name: /tours\.import\.pointsAsPlaces|Add the points as places/ }));
     expect(screen.getByTestId('gpx-preview-left-out')).toHaveTextContent(/tours\.import\.leftOutPoints|4 pins/);
     fireEvent.click(screen.getByTestId('gpx-preview-import'));
@@ -105,12 +105,28 @@ describe('TourGpxPreviewDialog with points beside the lines (#2969)', () => {
 
   it('FE-GPX-PREVIEW-007: a file whose every track the trip holds can still bring its points', () => {
     const current = gpxImport([track({ duplicate: true })], { points: 2, areas: 0, other: 0 });
-    render(<TourGpxPreviewDialog gpxImport={current} />);
+    render(<TourGpxPreviewDialog gpxImport={current} offerPoints />);
     const button = screen.getByTestId('gpx-preview-import');
     expect(button).toBeEnabled();
     expect(button).toHaveTextContent(/tours\.import\.pointsConfirm|Add places/);
     expect(screen.queryByText(/tours\.import\.previewAllDuplicates|nothing to import/)).toBeNull();
     fireEvent.click(button);
     expect(current.confirm).toHaveBeenCalledWith({ tour_type: 'hike' }, { points: true });
+  });
+
+  it('FE-GPX-PREVIEW-008: not offered, as for a recording picked for a tour, the points stay out', () => {
+    const current = gpxImport([track()], { points: 4, areas: 0, other: 0 });
+    render(<TourGpxPreviewDialog gpxImport={current} initial={{ tour_type: 'hike' }} />);
+    expect(screen.queryByTestId('gpx-preview-points')).toBeNull();
+    expect(screen.getByTestId('gpx-preview-left-out')).toHaveTextContent(/tours\.import\.leftOutPoints|4 pins/);
+    fireEvent.click(screen.getByTestId('gpx-preview-import'));
+    expect(current.confirm).toHaveBeenCalledWith({ tour_type: 'hike' }, { points: false });
+  });
+
+  it('FE-GPX-PREVIEW-009: not offered, a file of known tracks has nothing to import, points or not', () => {
+    const current = gpxImport([track({ duplicate: true })], { points: 2, areas: 0, other: 0 });
+    render(<TourGpxPreviewDialog gpxImport={current} />);
+    expect(screen.getByTestId('gpx-preview-import')).toBeDisabled();
+    expect(screen.getByText(/tours\.import\.previewAllDuplicates|nothing to import/)).toBeInTheDocument();
   });
 });

@@ -988,6 +988,7 @@ const tours: TranslationStrings = {
   'tours.import.pointsAsPlacesHint': 'Pojedyncze punkty nie należą do trasy. Trafiają do miejsc podróży.',
   'tours.import.pointsConfirm': 'Dodaj miejsca',
   'tours.import.pointsFailedIn': 'Nie udało się dodać punktów z {name} jako miejsc.',
+  'tours.import.pointsSkipped': 'Niektóre punkty były już w tej podróży i zostały pominięte.',
   'tours.import.pointsImported': 'Dodano {count} miejsca',
   'tours.import.pointsImported.one': 'Dodano {count} miejsce',
   'tours.import.pointsImported.few': 'Dodano {count} miejsca',

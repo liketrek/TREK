@@ -949,6 +949,7 @@ const tours: TranslationStrings = {
     'Enskilda punkter ingår inte i en tur. De läggs till bland resans platser i stället.',
   'tours.import.pointsConfirm': 'Lägg till platser',
   'tours.import.pointsFailedIn': 'Punkterna i {name} kunde inte läggas till som platser.',
+  'tours.import.pointsSkipped': 'Några av punkterna fanns redan i den här resan och hoppades över.',
   'tours.import.pointsImported': '{count} platser tillagda',
   'tours.import.pointsImported.one': '{count} plats tillagd',
   'tours.import.unreadableIn': 'Det gick inte att läsa {name}: filen är skadad eller inte GPX, KML eller KMZ',

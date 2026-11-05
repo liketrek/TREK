@@ -925,6 +925,7 @@ const tours: TranslationStrings = {
   'tours.import.pointsAsPlacesHint': '단일 포인트는 투어에 포함되지 않습니다. 대신 여행의 장소에 추가됩니다.',
   'tours.import.pointsConfirm': '장소 추가',
   'tours.import.pointsFailedIn': '{name}의 포인트를 장소로 추가하지 못했습니다.',
+  'tours.import.pointsSkipped': '일부 포인트는 이미 이 여행에 있어 건너뛰었습니다.',
   'tours.import.pointsImported': '장소 {count}개를 추가했습니다',
   'tours.import.unreadableIn': '{name}을(를) 읽을 수 없습니다: 파일이 손상되었거나 GPX, KML, KMZ가 아닙니다',
   'tours.import.archiveNoKmlIn': '{name}에 KML 파일이 없습니다',

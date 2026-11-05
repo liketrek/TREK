@@ -877,6 +877,7 @@ const tours: TranslationStrings = {
   'tours.import.pointsAsPlacesHint': '單一點不屬於路線，而是新增到行程的地點中。',
   'tours.import.pointsConfirm': '新增地點',
   'tours.import.pointsFailedIn': '無法將 {name} 中的點新增為地點。',
+  'tours.import.pointsSkipped': '部分點已在此行程中，已略過。',
   'tours.import.pointsImported': '已新增 {count} 個地點',
   'tours.import.unreadableIn': '無法讀取 {name}：檔案已損毀，或不是 GPX、KML 或 KMZ',
   'tours.import.archiveNoKmlIn': '{name} 中沒有 KML 檔案',

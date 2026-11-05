@@ -945,6 +945,7 @@ const tours: TranslationStrings = {
     'Các điểm đơn lẻ không thuộc về chuyến đi bộ. Chúng được thêm vào các địa điểm của chuyến đi.',
   'tours.import.pointsConfirm': 'Thêm địa điểm',
   'tours.import.pointsFailedIn': 'Không thể thêm các điểm trong {name} làm địa điểm.',
+  'tours.import.pointsSkipped': 'Một số điểm đã có trong chuyến đi này nên đã được bỏ qua.',
   'tours.import.pointsImported': 'Đã thêm {count} địa điểm',
   'tours.import.unreadableIn': 'Không thể đọc {name}: tệp bị hỏng hoặc không phải GPX, KML hay KMZ',
   'tours.import.archiveNoKmlIn': 'Không tìm thấy tệp KML trong {name}',

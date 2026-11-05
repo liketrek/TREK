@@ -992,6 +992,7 @@ const tours: TranslationStrings = {
   'tours.import.pointsAsPlacesHint': 'Отдельные точки не входят в маршрут. Они добавляются к местам поездки.',
   'tours.import.pointsConfirm': 'Добавить места',
   'tours.import.pointsFailedIn': 'Не удалось добавить точки из {name} как места.',
+  'tours.import.pointsSkipped': 'Некоторые точки уже были в этой поездке и были пропущены.',
   'tours.import.pointsImported': 'Добавлено {count} места',
   'tours.import.pointsImported.one': 'Добавлено {count} место',
   'tours.import.pointsImported.few': 'Добавлено {count} места',

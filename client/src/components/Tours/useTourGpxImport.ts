@@ -78,22 +78,33 @@ async function importTours(
   return sum;
 }
 
+interface PointsImported {
+  places: number;
+  /** Points the preview counted that did not come in, almost always because the trip already holds them. */
+  skipped: number;
+}
+
 /** The points of each file that holds any, added as places (#2969); a file that fails is handed to `onError`. */
 async function importPoints(
   tripId: number,
   files: readonly GpxPreviewFile[],
   onError: (file: File) => void
-): Promise<number> {
-  let places = 0;
+): Promise<PointsImported> {
+  const sum: PointsImported = { places: 0, skipped: 0 };
   for (const { file, leftOut } of files) {
     if (!leftOut?.points) continue;
     try {
-      places += await tourRepo.importFilePoints(tripId, file);
+      const added = await tourRepo.importFilePoints(tripId, file);
+      sum.places += added;
+      // Measured against the preview's count rather than the import's own
+      // skipped figure: the map import counts paths it was told to leave out
+      // as skipped too, the GPX import does not.
+      sum.skipped += Math.max(0, leftOut.points - added);
     } catch {
       onError(file);
     }
   }
-  return places;
+  return sum;
 }
 
 interface TourGpxImportOptions {
@@ -180,11 +191,12 @@ export function useTourGpxImport({ tripId, canEdit, onToursChanged, onImported, 
       setImporting(true);
       try {
         const { tours: imported, skipped, caution } = await importTours(tripId, preview, fields, fileError);
-        const places = extras.points
+        const points = extras.points
           ? await importPoints(tripId, preview, (file) =>
               toast.error(t('tours.import.pointsFailedIn', { name: file.name }))
             )
-          : 0;
+          : { places: 0, skipped: 0 };
+        const places = points.places;
         setPreview(null);
         if (places > 0) {
           if (imported.length === 0) await refreshPlaces(tripId);
@@ -200,10 +212,14 @@ export function useTourGpxImport({ tripId, canEdit, onToursChanged, onImported, 
           if (caution) toast.info(t('tours.import.caution'));
           onImported?.(imported);
         }
-        if (skipped > 0) {
-          toast.warning(
-            imported.length > 0 ? t('tours.import.skipped', { count: skipped }) : t('tours.import.allSkipped')
-          );
+        // Nothing came in although something was sent: one warning, so the
+        // dialog never closes on a file the trip already holds without a word.
+        const addedAny = imported.length > 0 || places > 0;
+        if (!addedAny && (skipped > 0 || points.skipped > 0)) {
+          toast.warning(t('tours.import.allSkipped'));
+        } else {
+          if (skipped > 0) toast.warning(t('tours.import.skipped', { count: skipped }));
+          if (points.skipped > 0) toast.warning(t('tours.import.pointsSkipped'));
         }
       } finally {
         setImporting(false);

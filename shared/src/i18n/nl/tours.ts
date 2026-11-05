@@ -970,6 +970,7 @@ const tours: TranslationStrings = {
   'tours.import.pointsAsPlacesHint': 'Losse punten horen niet bij een tocht. Ze komen bij de plekken van de reis.',
   'tours.import.pointsConfirm': 'Plekken toevoegen',
   'tours.import.pointsFailedIn': 'De punten uit {name} konden niet als plekken worden toegevoegd.',
+  'tours.import.pointsSkipped': 'Sommige punten stonden al in deze reis en zijn overgeslagen.',
   'tours.import.pointsImported': '{count} plekken toegevoegd',
   'tours.import.pointsImported.one': '{count} plek toegevoegd',
   'tours.import.unreadableIn': '{name} kon niet worden gelezen: het bestand is beschadigd of geen GPX, KML of KMZ',

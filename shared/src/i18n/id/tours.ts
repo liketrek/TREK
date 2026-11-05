@@ -958,6 +958,7 @@ const tours: TranslationStrings = {
     'Titik tunggal bukan bagian dari tur. Titik itu masuk ke tempat-tempat perjalanan.',
   'tours.import.pointsConfirm': 'Tambahkan tempat',
   'tours.import.pointsFailedIn': 'Titik di {name} tidak dapat ditambahkan sebagai tempat.',
+  'tours.import.pointsSkipped': 'Beberapa titik sudah ada di perjalanan ini dan dilewati.',
   'tours.import.pointsImported': '{count} tempat ditambahkan',
   'tours.import.unreadableIn': '{name} tidak dapat dibaca: berkas rusak atau bukan GPX, KML, atau KMZ',
   'tours.import.archiveNoKmlIn': 'Tidak ada berkas KML di {name}',

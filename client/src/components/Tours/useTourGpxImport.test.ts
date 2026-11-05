@@ -131,4 +131,31 @@ describe('useTourGpxImport with points beside the lines (#2969)', () => {
     expect(addToast).toHaveBeenCalledWith('tours.import.pointsFailedIn', 'error', undefined);
     expect(tourRepo.importGpx).toHaveBeenCalledTimes(2);
   });
+
+  it('says so when every line and every point is already in the trip, instead of closing without a word', async () => {
+    vi.spyOn(placesApi, 'importGpx').mockResolvedValue({ count: 0, skipped: 3 });
+    vi.spyOn(placesApi, 'importMapFile').mockResolvedValue({ count: 0 });
+    const { result } = await previewed(() => ({
+      tracks: [{ ...line, duplicate: true }],
+      left_out: { points: 3, areas: 0, other: 0 },
+    }));
+    await act(() => result.current.confirm({ tour_type: 'hike' }, { points: true }));
+    expect(tourRepo.importGpx).not.toHaveBeenCalled();
+    expect(addToast).toHaveBeenCalledTimes(1);
+    expect(addToast).toHaveBeenCalledWith('tours.import.allSkipped', 'warning', undefined);
+    expect(result.current.preview).toBeNull();
+  });
+
+  it('names the points left out as known beside the places that did come in', async () => {
+    vi.spyOn(placesApi, 'importGpx').mockResolvedValue({ count: 1, skipped: 2 });
+    vi.spyOn(placesApi, 'importMapFile').mockResolvedValue({ count: 2 });
+    const { result } = await previewed((picked) => ({
+      tracks: [{ ...line, duplicate: true }],
+      left_out: { points: picked === route ? 3 : 2, areas: 0, other: 0 },
+    }));
+    await act(() => result.current.confirm({ tour_type: 'hike' }, { points: true }));
+    expect(addToast).toHaveBeenCalledWith('tours.import.pointsImported', 'success', undefined);
+    expect(addToast).toHaveBeenCalledWith('tours.import.pointsSkipped', 'warning', undefined);
+    expect(addToast).not.toHaveBeenCalledWith('tours.import.allSkipped', 'warning', undefined);
+  });
 });

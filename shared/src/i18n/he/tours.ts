@@ -947,6 +947,7 @@ const tours: TranslationStrings = {
   'tours.import.pointsAsPlacesHint': 'נקודות בודדות אינן חלק ממסלול. הן מתווספות למקומות של הטיול.',
   'tours.import.pointsConfirm': 'הוספת מקומות',
   'tours.import.pointsFailedIn': 'לא ניתן היה להוסיף את הנקודות מ-{name} כמקומות.',
+  'tours.import.pointsSkipped': 'חלק מהנקודות כבר היו בטיול הזה ולכן דולגו.',
   'tours.import.pointsImported': '{count} מקומות נוספו',
   'tours.import.pointsImported.one': 'מקום אחד נוסף',
   'tours.import.pointsImported.two': '{count} מקומות נוספו',

@@ -952,6 +952,7 @@ const tours: TranslationStrings = {
     'Üksikud punktid ei kuulu matka juurde. Need lisatakse hoopis reisi kohtade hulka.',
   'tours.import.pointsConfirm': 'Lisa kohad',
   'tours.import.pointsFailedIn': 'Faili {name} punkte ei õnnestunud kohtadena lisada.',
+  'tours.import.pointsSkipped': 'Mõned punktid olid juba selles reisis ja jäeti vahele.',
   'tours.import.pointsImported': '{count} kohta lisatud',
   'tours.import.pointsImported.one': '{count} koht lisatud',
   'tours.import.unreadableIn': 'Faili {name} ei saanud lugeda: see on vigane või pole GPX, KML ega KMZ',

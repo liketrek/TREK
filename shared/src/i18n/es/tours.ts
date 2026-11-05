@@ -967,6 +967,7 @@ const tours: TranslationStrings = {
     'Los puntos sueltos no forman parte de una ruta. Se añaden a los lugares del viaje.',
   'tours.import.pointsConfirm': 'Añadir lugares',
   'tours.import.pointsFailedIn': 'No se pudieron añadir los puntos de {name} como lugares.',
+  'tours.import.pointsSkipped': 'Algunos puntos ya estaban en este viaje y se han omitido.',
   'tours.import.pointsImported': '{count} lugares añadidos',
   'tours.import.pointsImported.one': '{count} lugar añadido',
   'tours.import.unreadableIn': 'No se ha podido leer {name}: el archivo está dañado o no es GPX, KML ni KMZ',

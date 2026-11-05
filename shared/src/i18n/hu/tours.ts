@@ -967,6 +967,7 @@ const tours: TranslationStrings = {
     'Az önálló pontok nem részei egy túrának. Helyettük az utazás helyei közé kerülnek.',
   'tours.import.pointsConfirm': 'Helyek hozzáadása',
   'tours.import.pointsFailedIn': 'A(z) {name} pontjait nem sikerült helyekként hozzáadni.',
+  'tours.import.pointsSkipped': 'Néhány pont már szerepelt ebben az utazásban, ezért kimaradt.',
   'tours.import.pointsImported': '{count} hely hozzáadva',
   'tours.import.pointsImported.one': '{count} hely hozzáadva',
   'tours.import.unreadableIn': 'A(z) {name} nem olvasható: a fájl sérült, vagy nem GPX, KML vagy KMZ',

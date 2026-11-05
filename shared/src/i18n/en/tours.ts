@@ -949,6 +949,7 @@ const tours: TranslationStrings = {
   'tours.import.pointsAsPlacesHint': 'Single points are not part of a tour. They join the places of the trip instead.',
   'tours.import.pointsConfirm': 'Add places',
   'tours.import.pointsFailedIn': 'The points in {name} could not be added as places.',
+  'tours.import.pointsSkipped': 'Some of the points were already in this trip and were skipped.',
   'tours.import.pointsImported': '{count} places added',
   'tours.import.pointsImported.one': '{count} place added',
   'tours.import.unreadableIn': 'Could not read {name}: the file is damaged or not GPX, KML or KMZ',

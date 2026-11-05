@@ -967,6 +967,7 @@ const tours: TranslationStrings = {
   'tours.import.pointsAsPlacesHint': 'Pontos avulsos não fazem parte de um passeio. Eles entram nos lugares da viagem.',
   'tours.import.pointsConfirm': 'Adicionar lugares',
   'tours.import.pointsFailedIn': 'Não foi possível adicionar os pontos de {name} como lugares.',
+  'tours.import.pointsSkipped': 'Alguns pontos já estavam nesta viagem e foram ignorados.',
   'tours.import.pointsImported': '{count} lugares adicionados',
   'tours.import.pointsImported.one': '{count} lugar adicionado',
   'tours.import.unreadableIn': 'Não foi possível ler {name}: o arquivo está danificado ou não é GPX, KML nem KMZ',

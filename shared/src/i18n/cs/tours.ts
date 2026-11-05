@@ -955,6 +955,7 @@ const tours: TranslationStrings = {
   'tours.import.pointsAsPlacesHint': 'Samostatné body nejsou součástí trasy. Přidají se místo toho k místům cesty.',
   'tours.import.pointsConfirm': 'Přidat místa',
   'tours.import.pointsFailedIn': 'Body ze souboru {name} se nepodařilo přidat jako místa.',
+  'tours.import.pointsSkipped': 'Některé body už v této cestě byly, proto byly přeskočeny.',
   'tours.import.pointsImported': '{count} míst přidáno',
   'tours.import.pointsImported.one': '{count} místo přidáno',
   'tours.import.pointsImported.few': '{count} místa přidána',
