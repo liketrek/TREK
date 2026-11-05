@@ -432,7 +432,13 @@ async function slugStatus(slug: string): Promise<SlugStatus> {
   }
 }
 
-type RedeemResult = { ok: true; instanceUrl: string } | { ok: false; code: string }
+interface RedeemResult {
+  ok: boolean
+  /** Set when ok: the address the app loads. */
+  instanceUrl?: string
+  /** Set when not ok: a stable refusal code. */
+  code?: string
+}
 async function redeemPurchase(slug: string, email: string, purchase: Purchase): Promise<RedeemResult> {
   try {
     const res = await CapacitorHttp.post({
@@ -558,19 +564,19 @@ function showClaim(plan: CloudPlan, interval: 'month' | 'year', opts: { back?: b
     }
 
     const redeemed = await redeemPurchase(slug, email, outcome.purchase)
-    if (!redeemed.ok) {
-      void notify(NotificationType.Error)
-      restore()
-      if (redeemed.code === 'slug-taken') {
-        shake(slugField)
-        slugNote.textContent = t('native.claim.taken')
-        slugNote.className = 'hint bad'
-      } else {
-        error.textContent = t('native.claim.redeemFailed')
-      }
+    if (redeemed.ok && redeemed.instanceUrl) {
+      showProvisioning(redeemed.instanceUrl)
       return
     }
-    showProvisioning(redeemed.instanceUrl)
+    void notify(NotificationType.Error)
+    restore()
+    if (redeemed.code === 'slug-taken') {
+      shake(slugField)
+      slugNote.textContent = t('native.claim.taken')
+      slugNote.className = 'hint bad'
+    } else {
+      error.textContent = t('native.claim.redeemFailed')
+    }
   })
 
   show(
