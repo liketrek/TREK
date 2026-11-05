@@ -1,7 +1,7 @@
-import { castIntegerKysely } from '../dialect/kysely-functions';
 import { coalesceOverride, columnRef } from '../dialect/sql-functions';
 import type { DayAccommodations } from '../entities/DayAccommodations.entity';
 import type { DB } from '../kysely/db';
+import { accommodationIdMatches } from './_shared/reservation-accommodation';
 import { type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
 
@@ -254,10 +254,8 @@ export class DayAccommodationsRepository extends TrekRepository<DayAccommodation
     const rows = await this.kysely<DayAccommodationListKyselyDB>()
       .selectFrom('day_accommodations as a')
       .leftJoin('places as p', 'p.id', 'a.place_id')
-      // TEXT `accommodation_id` against INTEGER `a.id`: cast, as Postgres refuses
-      // to compare the two (42883) where SQLite coerces.
       .leftJoin('reservations as r', (join) =>
-        join.on((eb) => eb(castIntegerKysely(platform, eb, 'r.accommodation_id'), '=', eb.ref('a.id'))),
+        join.on((eb) => accommodationIdMatches(platform, eb, 'r.accommodation_id', 'a.id')),
       )
       .selectAll('a')
       .select([
@@ -492,7 +490,7 @@ export class DayAccommodationsRepository extends TrekRepository<DayAccommodation
         eb
           .selectFrom('reservations as r')
           .select((eb2) => eb2.fn.min<number | null>('r.id').as('m'))
-          .where((eb2) => eb2(castIntegerKysely(platform, eb2, 'r.accommodation_id'), '=', eb2.ref('a.id')))
+          .where((eb2) => accommodationIdMatches(platform, eb2, 'r.accommodation_id', 'a.id'))
           .as('reservation_id'),
       ])
       .where('a.trip_id', '=', trip_id)
