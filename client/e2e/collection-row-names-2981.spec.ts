@@ -14,6 +14,8 @@ async function expectInside(row: Locator) {
   const escapes = await row.evaluate((el) => {
     const box = el.getBoundingClientRect();
     return Array.from(el.querySelectorAll('*')).filter((child) => {
+      // The strip's hidden measuring copy is meant to run past the bar.
+      if (child.closest('[aria-hidden="true"]')) return false;
       const r = child.getBoundingClientRect();
       return r.width > 0 && (r.left < box.left - 0.5 || r.right > box.right + 0.5);
     }).length;
@@ -22,6 +24,7 @@ async function expectInside(row: Locator) {
 }
 
 for (const viewport of [
+  { width: 1920, height: 1000 },
   { width: 1400, height: 900 },
   { width: 1024, height: 800 },
 ]) {
@@ -79,7 +82,17 @@ for (const viewport of [
         // The whole name fits: it is not cut to an ellipsis.
         expect(await name.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
         await expectInside(row);
+        // Every label is either on the row or counted by its "+N" chip.
+        const shown = await row.locator('.col-lrow-label').count();
+        const more = await row
+          .locator('.col-lrow-more')
+          .textContent()
+          .catch(() => null);
+        expect(shown + (more ? Number(more.replace('+', '')) : 0)).toBe(place.labels.length);
       }
+      // The map's label strip stays inside the map: whole, or folded into its button.
+      const topbar = page.locator('.col-map-topbar');
+      if (await topbar.count()) await expectInside(topbar);
     } finally {
       if (collectionId !== undefined) {
         expect((await page.request.delete(`/api/addons/collections/${collectionId}`)).ok()).toBeTruthy();

@@ -294,24 +294,24 @@ function CollectionsPageDesktop(): React.ReactElement {
                     <span className="lbl">{t('collections.selectedCount', { count: c.selectedIds.length })}</span>
                     <div className="col-toolbar-spacer" />
                     {c.canEdit && isRealList && (
-                      <button type="button" onClick={() => c.setLabelPickerOpen(true)} disabled={c.selectedIds.length === 0} className="col-selbar-btn">
-                        <Tags size={14} /> {t('collections.labels.assign')}
+                      <button type="button" onClick={() => c.setLabelPickerOpen(true)} disabled={c.selectedIds.length === 0} className="col-selbar-btn act" title={t('collections.labels.assign')}>
+                        <Tags size={14} /> <span className="col-selbar-txt">{t('collections.labels.assign')}</span>
                       </button>
                     )}
                     {c.canDelete && (
-                      <button type="button" onClick={() => c.setListPickerMode('move')} disabled={c.selectedIds.length === 0} className="col-selbar-btn">
-                        <FolderInput size={14} /> {t('collections.moveToList')}
+                      <button type="button" onClick={() => c.setListPickerMode('move')} disabled={c.selectedIds.length === 0} className="col-selbar-btn act" title={t('collections.moveToList')}>
+                        <FolderInput size={14} /> <span className="col-selbar-txt">{t('collections.moveToList')}</span>
                       </button>
                     )}
-                    <button type="button" onClick={() => c.setListPickerMode('copy')} disabled={c.selectedIds.length === 0} className="col-selbar-btn">
-                      <CopyPlus size={14} /> {t('collections.duplicateToList')}
+                    <button type="button" onClick={() => c.setListPickerMode('copy')} disabled={c.selectedIds.length === 0} className="col-selbar-btn act" title={t('collections.duplicateToList')}>
+                      <CopyPlus size={14} /> <span className="col-selbar-txt">{t('collections.duplicateToList')}</span>
                     </button>
-                    <button type="button" onClick={c.openCopyForSelection} disabled={c.selectedIds.length === 0} className="col-selbar-btn">
-                      <Copy size={14} /> {t('collections.copyToTrip')}
+                    <button type="button" onClick={c.openCopyForSelection} disabled={c.selectedIds.length === 0} className="col-selbar-btn act" title={t('collections.copyToTrip')}>
+                      <Copy size={14} /> <span className="col-selbar-txt">{t('collections.copyToTrip')}</span>
                     </button>
                     {c.canDelete && (
-                      <button type="button" onClick={c.handleDeleteSelected} disabled={c.selectedIds.length === 0} className="col-selbar-btn danger">
-                        <Trash2 size={14} /> {t('common.delete')}
+                      <button type="button" onClick={c.handleDeleteSelected} disabled={c.selectedIds.length === 0} className="col-selbar-btn act danger" title={t('common.delete')}>
+                        <Trash2 size={14} /> <span className="col-selbar-txt">{t('common.delete')}</span>
                       </button>
                     )}
                     <button type="button" onClick={() => c.setSelectMode(false)} className="col-selbar-btn" aria-label={t('common.cancel')}>

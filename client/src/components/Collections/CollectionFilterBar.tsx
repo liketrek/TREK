@@ -35,7 +35,7 @@ function Dropdown({ current, options, onSelect, lead }: {
   const cur = options.find(o => o.key === current) ?? options[0]
   return (
     <div className="col-filter" ref={ref}>
-      <button type="button" className={`col-filter-btn${open ? ' open' : ''}`} onClick={() => setOpen(o => !o)} aria-haspopup="listbox" aria-expanded={open}>
+      <button type="button" className={`col-filter-btn${open ? ' open' : ''}${cur.key === options[0]?.key ? ' is-default' : ''}`} onClick={() => setOpen(o => !o)} aria-haspopup="listbox" aria-expanded={open} title={cur.label}>
         {cur.icon ?? lead}
         <span className="col-filter-lbl">{cur.label}</span>
         <ChevronDown size={14} className="col-filter-chev" />

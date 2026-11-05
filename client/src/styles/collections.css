@@ -215,6 +215,13 @@
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; padding: 10px 14px;
   border-radius: var(--r-md); background: var(--glass-bg); border: 1px solid var(--glass-border); box-shadow: var(--sh-sm);
 }
+.trek-dash .col-selbar { container-type: inline-size; }
+/* Too narrow for every action's words: the actions keep their icon and say what they do
+   in their tooltip, so the bar stays one line instead of stranding "Delete" below. */
+@container (max-width: 1120px) {
+  .trek-dash .col-selbar-btn.act { padding-inline: 9px; }
+  .trek-dash .col-selbar-btn.act .col-selbar-txt { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
 .trek-dash .col-selbar .lbl { font-size: 13px; font-weight: 600; color: var(--ink); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .trek-dash .col-selbar-btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 9px; font-size: 12.5px; font-weight: 600; color: var(--ink-2); transition: background .12s, color .12s; }
 .trek-dash .col-selbar-btn:hover { background: var(--surface-2); color: var(--ink); }
@@ -254,12 +261,10 @@
 
 /* ----------------- list view ----------------- */
 .trek-dash .col-listview { display: flex; flex-direction: column; gap: 7px; }
-/* A row is the place's tile, its name and address, and an end group of labels, category
-   and status. The name keeps at least 11rem; when the end group does not fit beside it,
-   the group goes to a line of its own and wraps there, so a place with long labels still
-   shows which place it is and its status stays inside the card (#2981). */
+/* A row: tile, name and address, then whatever sits at its end. A kept tour keeps one
+   line: tile, name, its end group. */
 .trek-dash .col-lrow {
-  display: flex; flex-wrap: wrap; column-gap: 14px; row-gap: 8px; align-items: center;
+  display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 14px; align-items: center;
   padding: 10px 14px; border-radius: var(--r-md);
   background: var(--glass-bg); border: 1px solid var(--glass-border); box-shadow: var(--sh-xs);
   cursor: pointer; transition: transform .12s, box-shadow .15s, border-color .15s;
@@ -269,16 +274,44 @@
 .trek-dash .col-lrow:hover { transform: translateX(3px); box-shadow: var(--sh-sm); }
 /* Inset ring so the highlight is never clipped by the column's overflow. */
 .trek-dash .col-lrow.sel { border-color: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent); }
-.trek-dash .col-lrow > :first-child { flex: none; }
-/* The select box is narrower than a tile; the margin keeps the names lined up. */
-.trek-dash .col-lrow > .col-lcheck { margin-inline-end: 18px; }
-.trek-dash .col-lrow .li { flex: 1 1 11rem; min-width: 0; }
+.trek-dash .col-lrow .li { min-width: 0; }
 .trek-dash .col-lrow .li .t { font-size: 14px; font-weight: 600; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .trek-dash .col-lrow .li .s { font-size: 12px; color: var(--ink-3); margin-top: 2px; display: flex; align-items: center; gap: 5px; overflow: hidden; }
 .trek-dash .col-lrow .li .s span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* The pin before the address must not be squeezed by a long address. */
 .trek-dash .col-lrow .li .s svg { flex-shrink: 0; }
-.trek-dash .col-lrow-end { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 6px 8px; flex: 0 1 auto; max-width: 100%; min-width: 0; margin-inline-start: auto; }
+.trek-dash .col-lrow-end { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+/* A place row (#2981). Its labels and category used to sit in an end group that could
+   not shrink, so with two or three long labels the name got one letter or none. Now the
+   name keeps the room it needs and the labels give way: on a wide list they share the
+   line and end in an ellipsis; on a narrow one (below 760px) the row has two fixed lines,
+   name and status on top, labels and category below, still on one line. */
+.trek-dash .col-listview { container-type: inline-size; }
+.trek-dash .col-lrow-place {
+  grid-template-columns: 40px minmax(12rem, 1fr) minmax(0, max-content) auto;
+  grid-template-areas: "tile main tags status";
+}
+.trek-dash .col-lrow-place > :first-child { grid-area: tile; }
+.trek-dash .col-lrow-place > .li { grid-area: main; }
+.trek-dash .col-lrow-tags { grid-area: tags; display: flex; align-items: center; gap: 8px; min-width: 0; overflow: hidden; }
+.trek-dash .col-lrow-tags > * { flex-shrink: 0; }
+.trek-dash .col-lrow-tags > .col-lrow-label, .trek-dash .col-lrow-tags > .col-lrow-cat { flex-shrink: 1; min-width: 0; }
+/* While the row fits its labels every chip keeps its own width (CollectionPlaceTags). */
+.trek-dash .col-lrow-tags.measuring > * { flex-shrink: 0; }
+.trek-dash .col-lrow-more { display: inline-flex; align-items: center; flex-shrink: 0; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; color: var(--ink-3); background: var(--surface-2); cursor: default; }
+.trek-dash .col-lrow-status { grid-area: status; display: flex; }
+@container (max-width: 760px) {
+  .trek-dash .col-lrow-place {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    grid-template-areas: "tile main status" "tile tags tags";
+    row-gap: 0; align-items: start;
+  }
+  .trek-dash .col-lrow-place > :first-child { align-self: center; }
+  .trek-dash .col-lrow-tags { margin-top: 8px; }
+  .trek-dash .col-lrow-tags .col-lrow-div { display: none; }
+  .trek-dash .col-lrow-tags > .col-lrow-label, .trek-dash .col-lrow-tags > .col-lrow-cat { max-width: 170px; }
+}
 .trek-dash .col-lrow-cat { display: inline-flex; align-items: center; gap: 5px; max-width: 130px; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; color: var(--cat, var(--accent)); background: color-mix(in oklch, var(--cat, var(--accent)) 14%, transparent); }
 .trek-dash .col-lrow-cat svg { flex-shrink: 0; }
 .trek-dash .col-lrow-txt { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
@@ -326,7 +359,7 @@
 /* On the map the tray joins the floating controls, so it takes their glass,
    their radius and their shadow instead of the row's flat surface. */
 .trek-dash .col-labelfilter.on-map {
-  pointer-events: auto; max-width: min(52ch, 100%); flex-wrap: nowrap; overflow-x: auto;
+  pointer-events: auto; max-width: 100%; flex-wrap: nowrap; overflow: hidden;
   border-radius: 11px; border-color: var(--glass-border); box-shadow: var(--sh-md);
   background: color-mix(in oklch, var(--surface) 92%, transparent);
   backdrop-filter: blur(8px) saturate(1.2); -webkit-backdrop-filter: blur(8px) saturate(1.2);
@@ -334,6 +367,17 @@
 }
 .trek-dash .col-labelfilter.on-map::-webkit-scrollbar { display: none; }
 .trek-dash .col-labelfilter.on-map .col-labelchip { flex-shrink: 0; }
+/* The strip takes the room the map's top bar leaves between its toggle and the search.
+   When its labels need more, it folds into one button with the labels as a list; the
+   hidden copy measures what the labels need, so the strip unfolds once the room is back. */
+.trek-dash .col-map-group:not(.right) { flex: 1 1 auto; min-width: 0; }
+.trek-dash .col-labelfilter-slot { position: relative; display: flex; flex: 1 1 0; min-width: 0; }
+.trek-dash .col-labelfilter-measure { position: absolute; top: 0; inset-inline-start: 0; width: max-content; max-width: none; visibility: hidden; pointer-events: none; }
+.trek-dash .col-labelfilter-fold { gap: 7px; padding-inline: 10px 9px; font: inherit; font-size: 12.5px; font-weight: 600; color: var(--ink-2); cursor: pointer; }
+.trek-dash .col-labelfilter-fold:hover, .trek-dash .col-labelfilter-fold.open { color: var(--ink); }
+.trek-dash .col-labelfilter-active { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; display: grid; place-items: center; font-size: 11px; font-weight: 700; color: var(--accent-text); background: var(--accent); }
+.trek-dash .col-labelfilter-pop { pointer-events: auto; }
+.trek-dash .col-labelfilter-manage { color: var(--ink-3); border-top: 1px solid var(--line); border-radius: 0 0 8px 8px; margin-top: 2px; }
 .trek-dash .col-labelfilter.on-map .col-labelchip:hover { background: var(--surface-2); }
 .trek-dash .col-labelchip { display: inline-flex; align-items: center; gap: 6px; max-width: 180px; padding: 5px 9px; border-radius: 8px; font-size: 12.5px; font-weight: 600; white-space: nowrap; color: var(--ink-2); background: transparent; border: 1px solid transparent; transition: background .12s, border-color .12s, color .12s; }
 .trek-dash .col-labelchip:hover { background: var(--surface); color: var(--ink); }
@@ -366,7 +410,21 @@
    over the map are read as a single band when the page is scrolled to the top,
    so they share a height and a top offset instead of each having their own. */
 .trek-dash { --col-ctl-h: 38px; }
-.trek-dash .col-filterbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
+/* One line on desktop: the dropdowns shorten their labels instead of pushing the sort
+   control onto a second line. Phones wrap (see the 720px block). */
+.trek-dash .col-filterbar { display: flex; flex-wrap: nowrap; align-items: center; gap: 8px; margin-bottom: 12px; min-width: 0; }
+.trek-dash .col-filterbar > * { flex-shrink: 0; }
+.trek-dash .col-filterbar > .col-filter { flex-shrink: 1; min-width: 0; }
+.trek-dash .col-filterbar > .col-filter > .col-filter-btn { max-width: 100%; min-width: 0; }
+.trek-dash .col-filterbar > .col-filter > .col-filter-btn > svg { flex-shrink: 0; }
+.trek-dash .col-filterbar > .col-filter .col-filter-lbl { min-width: 0; }
+/* Narrow: a dropdown left at its default ("All", "Default") keeps its icon and says its
+   value in its tooltip; one set to a value still shows it. */
+.trek-dash .col-filterbar { container-type: inline-size; }
+@container (max-width: 540px) {
+  .trek-dash .col-filter-btn.is-default .col-filter-lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .trek-dash .col-filter-btn.is-default { padding-inline: 9px; }
+}
 /* Beside the map, the row starts where the map's own top bar does. */
 .trek-dash .col-split-list .col-filterbar { margin-top: 12px; }
 .trek-dash .col-filter { position: relative; }
@@ -591,12 +649,13 @@
   .trek-dash .col-drawer .col-rail-new { min-height: 44px; }
   .trek-dash .col-drawer .col-rail-import { min-width: 44px; }
   /* enlarge the interactive status badge's tap area without changing its look */
-  .trek-dash .col-lrow-end > [role="button"] { position: relative; }
-  .trek-dash .col-lrow-end > [role="button"]::after { content: ''; position: absolute; inset: -9px -6px; }
+  .trek-dash .col-lrow-status > [role="button"] { position: relative; }
+  .trek-dash .col-lrow-status > [role="button"]::after { content: ''; position: absolute; inset: -9px -6px; }
 
   /* select action bar: break the bulk actions onto their own line instead of
      stranding them behind a growing spacer */
   .trek-dash .col-selbar .col-toolbar-spacer { flex-basis: 100%; height: 0; }
+  .trek-dash .col-filterbar { flex-wrap: wrap; }
 }
 
 /* ----------------- mobile rail drawer ----------------- */
