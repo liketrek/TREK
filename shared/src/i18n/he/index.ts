@@ -47,6 +47,7 @@ import mobileSettings from './mobileSettings';
 import mobileTrip from './mobileTrip';
 import mobileVacay from './mobileVacay';
 import nav from './nav';
+import native from './native';
 import notif from './notif';
 import notifications from './notifications';
 import oauth from './oauth';
@@ -124,6 +125,7 @@ const locale = {
   ...collab,
   ...perm,
   ...undo,
+  ...native,
   ...notifications,
   ...todo,
   ...notif,

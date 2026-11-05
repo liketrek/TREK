@@ -9,7 +9,7 @@
  * half-wired ever faces a customer.
  */
 
-export type IapPlatform = 'apple' | 'google';
+type IapPlatform = 'apple' | 'google';
 
 /** The receipt a completed purchase yields, in the shape `/api/iap/redeem` takes. */
 export interface Purchase {
@@ -19,7 +19,7 @@ export interface Purchase {
 }
 
 /** What a purchase attempt came to. `cancelled` is the customer backing out, not an error. */
-export type PurchaseOutcome =
+type PurchaseOutcome =
   | { kind: 'bought'; purchase: Purchase }
   | { kind: 'cancelled' }
   | { kind: 'failed' };
@@ -78,7 +78,7 @@ export const nativeIapClient: IapClient = {
  * preview build with `localStorage['trek-iap-fake'] = '1'`, so the flow can be
  * shown without a store. Off in a store build, where the native client decides.
  */
-function useFake(): boolean {
+function fakeEnabled(): boolean {
   try {
     if (import.meta.env?.DEV) return true;
     return typeof localStorage !== 'undefined' && localStorage.getItem('trek-iap-fake') === '1';
@@ -88,5 +88,5 @@ function useFake(): boolean {
 }
 
 export function getIapClient(): IapClient {
-  return useFake() ? fakeIapClient : nativeIapClient;
+  return fakeEnabled() ? fakeIapClient : nativeIapClient;
 }
