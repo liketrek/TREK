@@ -24,7 +24,11 @@ export async function ensureEmailCaseIndex(connection: Connection): Promise<void
       `(SELECT lower(email) FROM users GROUP BY lower(email) HAVING COUNT(*) > 1) ORDER BY id`,
   );
   const duplicates = new Map<string, number[]>();
-  for (const row of rows) duplicates.set(row.email_key, [...(duplicates.get(row.email_key) ?? []), row.id]);
+  for (const row of rows) {
+    const group = duplicates.get(row.email_key);
+    if (group) group.push(row.id);
+    else duplicates.set(row.email_key, [row.id]);
+  }
   if (duplicates.size > 0) {
     const ids = [...duplicates.values()].map((group) => group.join(', '));
     console.warn(
