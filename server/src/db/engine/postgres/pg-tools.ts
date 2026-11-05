@@ -1,3 +1,4 @@
+import { CURRENT_SCHEMA_TABLES_SQL } from '../../dialect/catalog';
 import { CLEAR_SCHEMA_SQL } from './clear-schema';
 import { pgConnectionEnv, run } from './pg-process';
 import { refuseToolsWithoutRestrict } from './restore-safety';
@@ -157,12 +158,7 @@ export async function pgTableNames(url: string, binDir: string | undefined): Pro
   const out = await run(
     'psql',
     binDir,
-    [
-      '--no-psqlrc',
-      '--no-align',
-      '--tuples-only',
-      '--command=select table_name from information_schema.tables where table_schema = current_schema()',
-    ],
+    ['--no-psqlrc', '--no-align', '--tuples-only', `--command=${CURRENT_SCHEMA_TABLES_SQL}`],
     pgConnectionEnv(url),
   );
   return out.split('\n').filter((line) => line !== '');

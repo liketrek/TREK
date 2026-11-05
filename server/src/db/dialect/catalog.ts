@@ -26,3 +26,12 @@ export function tableExistsSql(platform: Platform): string {
   }
   return unsupported(platform);
 }
+
+/**
+ * The tables in the current schema, one `table_name` per row in name order:
+ * the schema TREK's own tables live in. Postgres only, and the one definition
+ * of that question: the bootstrap reads it through the connection, the client
+ * tools' table listing hands it to psql.
+ */
+export const CURRENT_SCHEMA_TABLES_SQL =
+  'select table_name from information_schema.tables where table_schema = current_schema() order by table_name';

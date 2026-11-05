@@ -1,5 +1,6 @@
 import { readEnv, type AppEnv } from '../../../app-config';
 import { resolveDataPaths } from '../../../app-config/data-paths';
+import { CURRENT_SCHEMA_TABLES_SQL } from '../../dialect/catalog';
 import { knownMigrationNames } from '../../known-migrations';
 import { migrationLabel, REFUSAL, refuseNewerDatabase, type MigrationSafetyNet } from '../../legacy-baseline';
 import type { AnyOrm } from '../../orm';
@@ -32,9 +33,7 @@ export interface PostgresBootstrapDeps {
  * refused database is left exactly as it was.
  */
 async function currentTables(connection: Connection): Promise<string[]> {
-  const rows: Array<{ table_name: string }> = await connection.execute(
-    'select table_name from information_schema.tables where table_schema = current_schema() order by table_name',
-  );
+  const rows: Array<{ table_name: string }> = await connection.execute(CURRENT_SCHEMA_TABLES_SQL);
   return rows.map((row) => row.table_name);
 }
 
