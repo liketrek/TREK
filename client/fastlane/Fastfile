@@ -28,11 +28,28 @@ platform :ios do
       in_house: false,
     )
 
-    # A throwaway keychain, so the certificate's private key lives only for this run.
-    setup_ci
+    # A throwaway keychain with a known password, so fastlane can unlock the imported
+    # private key for code signing (without the password it cannot set the key's access
+    # list and the certificate is never usable).
+    keychain_name = "trek_ci.keychain"
+    keychain_password = "trek-ci-#{ENV.fetch('GITHUB_RUN_ID', 'local')}"
+    create_keychain(
+      name: keychain_name,
+      password: keychain_password,
+      default_keychain: true,
+      unlock: true,
+      timeout: 3600,
+      lock_when_sleeps: false,
+    )
+    keychain_path = File.expand_path("~/Library/Keychains/#{keychain_name}-db")
 
     # Distribution certificate into the keychain, and an App Store profile that trusts it.
-    get_certificates(api_key: key, development: false)
+    get_certificates(
+      api_key: key,
+      development: false,
+      keychain_path: keychain_path,
+      keychain_password: keychain_password,
+    )
     get_provisioning_profile(
       api_key: key,
       app_identifier: APP_IDENTIFIER,
