@@ -16,7 +16,7 @@ import {
   resolvePgTool,
 } from '../../../../../src/db/engine/postgres/pg-tools';
 
-import {
+import fs, {
   chmodSync,
   existsSync,
   mkdtempSync,
@@ -28,7 +28,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const URL_WITH_SECRET = 'postgresql://trek:s3cr%40t@db.example:6543/trek_db?sslmode=require';
 
@@ -174,6 +174,21 @@ describe('pg-tools', () => {
     expect(readFileSync(psqlLog, 'utf8')).toContain('PGOPTIONS=-c lock_timeout=60s -c client_min_messages=warning');
     expect(readFileSync(path.join(bin, 'clear.sql'), 'utf8')).toMatch(/DROP %s IF EXISTS %s CASCADE/);
     expect(readdirSync(out)).toEqual([]);
+  });
+
+  it('PGTOOLS-005b: the restore script is checked line by line, so its COPY data is never read whole', async () => {
+    const source = path.join(out, 'in.pgdump');
+    fakeTool('pg_restore', {
+      body: `printf '%s\\n' '\\restrict k1' 'CREATE TABLE public.mikro_orm_migrations (' > "\${4#--file=}"; seq 1 200000 >> "\${4#--file=}"`,
+    });
+    fakeTool('psql', { stdout: PUBLIC_SCHEMA });
+    const readWhole = vi.spyOn(fs, 'readFileSync');
+    try {
+      await pgRestore(URL_WITH_SECRET, source, bin);
+      expect(readWhole.mock.calls.filter(([file]) => String(file).endsWith('restore.sql'))).toEqual([]);
+    } finally {
+      readWhole.mockRestore();
+    }
   });
 
   it("PGTOOLS-006: reads the dump's recorded migrations from its COPY block, and none from a dump without them", async () => {

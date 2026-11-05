@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import readline from 'node:readline';
 import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
@@ -266,10 +267,31 @@ async function refuseToolsWithoutRestrict(binDir: string | undefined): Promise<v
   }
 }
 
-/** Whether the restore script creates TREK's migration table in `schema`: a dump of TREK's own schema does. */
-function scriptHoldsTrekSchema(script: string, schema: PgSchema): boolean {
-  const table = `${schema.quoted}.mikro_orm_migrations`.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return new RegExp(`^CREATE TABLE ${table} \\(`, 'm').test(fs.readFileSync(script, 'utf8'));
+/** Escapes every character a RegExp would read as syntax. */
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Whether the restore script creates TREK's migration table in `schema`: a
+ * dump of TREK's own schema does. The script is read line by line and the
+ * read stops at the first match: the COPY data that fills a large script is
+ * never loaded, and a script past V8's maximum string length would not load
+ * at all.
+ */
+async function scriptHoldsTrekSchema(script: string, schema: PgSchema): Promise<boolean> {
+  const createsHistory = new RegExp(`^CREATE TABLE ${escapeRegExp(`${schema.quoted}.mikro_orm_migrations`)} \\(`);
+  const input = fs.createReadStream(script, { encoding: 'utf8' });
+  const lines = readline.createInterface({ input, crlfDelay: Infinity });
+  try {
+    for await (const line of lines) {
+      if (createsHistory.test(line)) return true;
+    }
+    return false;
+  } finally {
+    lines.close();
+    input.destroy();
+  }
 }
 
 /**
@@ -295,7 +317,7 @@ export async function pgRestore(url: string, source: string, binDir: string | un
       ['--no-owner', '--no-privileges', `--schema=${schema.name}`, `--file=${script}`, '--', source],
       {},
     );
-    if (!scriptHoldsTrekSchema(script, schema)) {
+    if (!(await scriptHoldsTrekSchema(script, schema))) {
       throw new Error(`The backup holds no TREK tables in the schema "${schema.name}"; nothing was replaced.`);
     }
     await run(
