@@ -56,7 +56,7 @@ const native: TranslationStrings = {
   'native.plans.loadError': 'Die Tarife konnten nicht geladen werden. Prüfe deine Verbindung und versuch es erneut.',
   'native.plans.retry': 'Erneut versuchen',
   'native.plans.soon': 'In-App-Abos kommen bald. Vorerst auf der Website abschließen.',
-  'native.claim.title': 'Deine TREK einrichten',
+  'native.claim.title': 'Fast geschafft',
   'native.claim.sub': 'Wähle deine Adresse. Wir richten sie sofort ein.',
   'native.claim.addressLabel': 'Deine Adresse',
   'native.claim.taken': 'Diese Adresse ist vergeben.',
