@@ -264,8 +264,14 @@ interface Turn {
   history: AiChatMessage[];
   usage: { inputTokens: number; cachedInputTokens: number; outputTokens: number };
   knownPlaceIds: Set<string>;
-  /** Whether the turn used its one push (an empty, cut-off, announcing or wordless answer). */
+  /** Whether the turn used its one push (an empty, cut-off or announcing answer). */
   nudged: boolean;
+  /**
+   * Whether the turn already asked for the answer after a step that only
+   * offered follow-ups. Apart from the push, so a turn that was pushed once
+   * still gets its answer written (#2789); each is asked at most once.
+   */
+  askedForAnswer: boolean;
   /** The chips of follow-ups offered before any answer, shown under the answer once it is written. */
   followUps: AssistantFollowUps | null;
 }
@@ -528,7 +534,7 @@ function answeredAsk(call: AiToolCall): AssistantMessagePart {
  */
 async function askForTheAnswer(turn: Turn, rowId: number, step: StepRecord & { asks: AiToolCall[] }): Promise<null> {
   const { asks, providerState } = step;
-  turn.nudged = true;
+  turn.askedForAnswer = true;
   turn.followUps = followUpsOf(asks[asks.length - 1].args);
   const parts = [...step.parts, ...asks.map((call) => ({ ...answeredAsk(call), result: WRITE_THE_ANSWER }))];
   await turn.deps.store.saveStep(rowId, { parts, providerState }, 'complete');
@@ -560,12 +566,15 @@ async function runStep(turn: Turn, step: number): Promise<AgentOutcome | null> {
     ...searched.tail,
   ];
   const empty = received.length === 0 && !text.trim();
-  if (empty && asks.length > 0 && !turn.nudged) return askForTheAnswer(turn, rowId, { parts, providerState, asks });
+  if (empty && asks.length > 0 && !turn.askedForAnswer)
+    return askForTheAnswer(turn, rowId, { parts, providerState, asks });
   // An answer that offered follow-ups is finished, however it ends.
   const settled = asks.length > 0 && !empty;
   const announced = !settled && received.length === 0 && step === 0 && ANNOUNCED.test(text.trimEnd());
   const push = empty || (!settled && received.length === 0 && cutOff) ? GO_ON : announced ? MAKE_THE_CALLS : null;
-  if (push && !turn.nudged) {
+  // Follow-ups with no answer a second time end the turn: the model was already asked for the answer.
+  const wordlessAgain = empty && asks.length > 0;
+  if (push && !turn.nudged && !wordlessAgain) {
     turn.nudged = true;
     await deps.store.saveStep(rowId, { parts, providerState }, 'complete');
     w.finishStep();
@@ -663,6 +672,7 @@ export async function runAgentLoop(
     usage: { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0 },
     knownPlaceIds,
     nudged: false,
+    askedForAnswer: false,
     followUps: null,
   };
   return stepsFrom(turn, 0);

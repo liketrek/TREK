@@ -859,6 +859,49 @@ describe('runAgentLoop', () => {
       expect(outcome).toMatchObject({ end: 'failed', code: 'empty_answer' });
       expect(t.requests).toHaveLength(2);
     });
+
+    it('ASTAGT-045: follow-ups with no answer after an announcing first answer are still asked for the answer', async () => {
+      const t = setup([
+        [{ type: 'text-delta', delta: 'Let me check your places:' }],
+        [{ type: 'tool-call', call: { id: 'l1', name: 'list_places', args: {} } }],
+        [ask('toolu_8', ['Add Ginkaku-ji']), { type: 'finish', reason: 'tool-calls' }],
+        [{ type: 'text-delta', delta: 'Kinkaku-ji is the only place so far.' }],
+      ]);
+      const outcome = await runAgentLoop(t.deps, t.input, t.writer, new AbortController().signal);
+      expect(outcome.end).toBe('stop');
+      expect(t.requests).toHaveLength(4);
+      expect(t.requests[1].messages.at(-1)).toMatchObject({ role: 'user', text: expect.stringContaining('now') });
+      expect(t.requests[3].messages.at(-1)).toMatchObject({
+        role: 'tool',
+        toolCallId: 'toolu_8',
+        output: expect.stringContaining('Not shown yet'),
+      });
+      expect(t.chunks).toContainEqual({ type: 'data-trek-follow-ups', data: { questions: ['Add Ginkaku-ji'] } });
+      expect(t.memory.saved.map((saved) => saved.status)).not.toContain('error');
+    });
+  });
+
+  it('ASTAGT-046: a change its session sends back (called before its tools were loaded) is a tool error, never held (#2967)', async () => {
+    const t = setup([
+      [{ type: 'tool-call', call: { id: 'w1', name: 'create_place', args: { name: 'Blind' } } }],
+      [{ type: 'tool-call', call: { id: 'w2', name: 'create_place', args: { name: 'With schema' } } }],
+    ]);
+    t.tools.pinArgs.mockImplementationOnce(() => ({ error: 'create_place did not run: send it again' }));
+    const outcome = await runAgentLoop(t.deps, t.input, t.writer, new AbortController().signal);
+    expect(outcome.end).toBe('awaiting');
+    expect(t.memory.saved[0].step.parts).toContainEqual({
+      type: 'tool-call',
+      toolCallId: 'w1',
+      toolName: 'create_place',
+      args: { name: 'Blind' },
+      result: 'create_place did not run: send it again',
+      isError: true,
+    });
+    const sentBack = t.requests[1].messages.find((m) => m.role === 'tool' && m.toolCallId === 'w1');
+    expect(sentBack).toMatchObject({ isError: true, output: expect.stringContaining('did not run') });
+    expect(t.deps.describe).toHaveBeenCalledTimes(1);
+    expect(t.memory.held).toHaveLength(1);
+    expect(t.memory.held[0].held.map((call) => call.args)).toEqual([{ name: 'With schema' }]);
   });
 
   it('ASTAGT-038: followUpsOf trims, drops duplicates and blanks, cuts each to a chip and keeps three', () => {
