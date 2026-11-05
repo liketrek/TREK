@@ -34,7 +34,10 @@ concurrency:
 
 jobs:
   android:
-    if: github.repository == 'liketrek/TREK'
+    # Gated on a repository variable so the release can ship iOS alone while the
+    # Google Play account and its signing secrets are not yet in place. Set the
+    # repository variable NATIVE_RELEASE_ANDROID to 1 to turn the Android half on.
+    if: github.repository == 'liketrek/TREK' && vars.NATIVE_RELEASE_ANDROID == '1'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     environment: store
