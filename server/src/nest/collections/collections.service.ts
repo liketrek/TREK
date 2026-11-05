@@ -614,8 +614,13 @@ export class CollectionsService {
     // Snapshot recipients BEFORE the cascade wipes collection_members.
     const accepted = await this.members.acceptedUserIds(id);
     const pending = await this.members.pendingUserIds(id);
+    // The cover and the saved places' images, read before the cascade takes their rows:
+    // they go like a single place's do, unless a trip place or a copy still names them (#2924).
+    const cover = (await this.collectionsRepo.coverImage(id)) ?? null;
+    const images = await this.collectionPlaces.imageUrlsOf(id);
 
     await this.collectionsRepo.deleteById(id); // CASCADE drops members + places + tags
+    await this.release.releaseValues([cover, ...images]);
 
     [...new Set([userId, ...accepted, ...pending])] // the owner's tabs too, all but the one that asked
       .forEach(uid => this.realtime.broadcastToUser(uid, { type: 'collections:deleted', collectionId: id }, socketId));

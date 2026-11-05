@@ -137,6 +137,7 @@ async function svc(searchNominatim: OsmClient['searchNominatim']): Promise<Place
       await createTestJourneyPhotosRepo(testDb),
       await createTestJourneyEntryPhotosRepo(testDb),
       await createTestPlacesRepo(testDb),
+      { releaseValues: async () => 0 } as never, // StorageReleaseService
     ),
     storageFx.storage,
     await accommodationsOver(testDb),

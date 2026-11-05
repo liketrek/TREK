@@ -8,6 +8,7 @@ import { RealtimeService } from '../realtime/realtime.service';
 import type { JourneyStats, JourneyTrack, TrekWsUserEventName } from '@trek/shared';
 import { todayUtc } from '@trek/shared';
 import { TrekPhotoRegistrationService } from '../photos/trek-photo-registration.service';
+import { StorageReleaseService } from '../storage/storage-release.service';
 import { getCountryFromCoords } from '../atlas/atlas-geo';
 import { computeJourneyStats, countryNamesFor, type StatsInputPoint } from './journey-stats';
 import { newEntrySortOrder, placeMovedEntry } from './journey-entry-order';
@@ -101,6 +102,8 @@ export class JourneyDomainService {
     // finished via `PlacesRepository.findRaw` (this task's ONE append to
     // `Places.repository.ts`, per the task brief — nobody else holds it).
     @InjectRepository(Places) private readonly placesRepo: PlacesRepository,
+    // Deleting a journey releases the files of the photos only it held.
+    private readonly release: StorageReleaseService,
   ) {}
 
   private ts(): number {
@@ -368,7 +371,19 @@ export class JourneyDomainService {
     if (!(await this.isOwner(journeyId, userId))) return false;
     // Read first: the delete takes the contributor rows with it.
     const audience = await this.journeysRepo.listRecipientUserIds(journeyId);
-    await this.journeysRepo.deleteById(journeyId);
+    // The gallery goes with the cascade, so its photos are read first. A photo
+    // row only this journey linked goes too: left behind, it would keep naming
+    // its file and the storage reclaim would never free it (#2924). One still
+    // in a trip or another journey keeps its row, and with it its file.
+    const photos = await this.uow.transactional(async () => {
+      const gallery = await this.journeysRepo.listGalleryPhotos({ journeyId });
+      await this.journeysRepo.deleteById(journeyId);
+      await this.journeysRepo.deleteUnlinkedPhotos(gallery.map((photo) => photo.photo_id));
+      return gallery;
+    });
+    // After the commit; the release asks every source again, so a file another row names stays.
+    const photoFiles = photos.flatMap((photo) => [photo.file_path, photo.thumbnail_path]);
+    await this.release.releaseValues(photoFiles, { bare: 'journey' });
     await this.broadcastJourneyEvent(journeyId, 'journey:deleted', {}, sid, audience);
     return true;
   }

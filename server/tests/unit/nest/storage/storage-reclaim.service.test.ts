@@ -10,7 +10,7 @@
  * an owner marker of another install keeps its hands off; a restore, or a
  * database naming another install, resets the switch, the marks, the queue
  * and the reports but keeps this install's id, and so does a restore's reset
- * file whatever id the database names. RCLS-001 to RCLS-046.
+ * file whatever id the database names. RCLS-001 to RCLS-047.
  */
 import { AppSettings } from '../../../../src/db/entities/AppSettings.entity';
 import { AuditLog } from '../../../../src/db/entities/AuditLog.entity';
@@ -341,6 +341,22 @@ describe('StorageReclaimService: mark, then sweep', () => {
     const again = await reclaim.run({ now: WEEK_LATER });
     expect(again.categories.covers.objects).toBe(5);
     expect((await marksOf('covers')).map((mark) => mark.key)).toEqual(['orphan.jpg']);
+  });
+
+  it('RCLS-047: a listed name the storage layer refuses is never judged, so it cannot fail the batch it would sit in', async () => {
+    // A file put into the folder by hand with a backslash in its name: a Linux
+    // local backend lists it, but stat and delete refuse the key.
+    const listOf = storage.list.bind(storage);
+    vi.spyOn(storage, 'list').mockImplementation(async function* (category, prefix, opts) {
+      yield* listOf(category, prefix, opts);
+      if (category === 'covers') yield { key: 'trip\\photo.jpg', size: 5, mtimeMs: 1 };
+    });
+    await markedWeekOld(['orphan.jpg']);
+    expect((await marksOf('covers')).map((mark) => mark.key)).toEqual(['orphan.jpg']);
+
+    const report = await reclaim.run({ now: WEEK_LATER });
+    expect(report.categories.covers).toMatchObject({ objects: 5, deleted: { objects: 1, bytes: 5 }, skipped: null });
+    expect(fs.existsSync(objectPath('covers', 'orphan.jpg'))).toBe(false);
   });
 });
 

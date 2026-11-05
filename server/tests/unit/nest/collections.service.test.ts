@@ -700,6 +700,24 @@ describe('deleteCollection', () => {
     expect(await placesIn(col.id)).toEqual({ n: 0 });
     expect(await membersOf(col.id)).toEqual({ n: 0 });
   });
+
+  it('COLLECTIONS-SVC-040b: deleting a list releases its cover and the images of its saved places (#2924)', async () => {
+    const owner = createUser(testDb).user;
+    const col = await svc.createCollection(owner.id, { name: 'Doomed' });
+    const files = ['list-cover.jpg', 'list-place-a.jpg', 'list-place-b.jpg'].map((name) => {
+      const filePath = path.join(storageFx.root, name);
+      fs.writeFileSync(filePath, 'jpeg-bytes');
+      return filePath;
+    });
+    await svc.setCollectionCover(owner.id, col.id, '/uploads/covers/list-cover.jpg');
+    await svc.savePlace(owner.id, { collection_id: col.id, name: 'A', image_url: '/uploads/places/list-place-a.jpg' });
+    await svc.savePlace(owner.id, { collection_id: col.id, name: 'B', image_url: '/uploads/places/list-place-b.jpg' });
+    await svc.savePlace(owner.id, { collection_id: col.id, name: 'No image' });
+
+    await svc.deleteCollection(owner.id, col.id);
+
+    expect(files.map((file) => fs.existsSync(file))).toEqual([false, false, false]);
+  });
 });
 
 // ── owner_id semantics: member account deletion keeps shared content ─────────

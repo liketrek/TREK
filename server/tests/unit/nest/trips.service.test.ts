@@ -265,6 +265,7 @@ beforeAll(async () => {
     await createTestJourneyTripsRepo(testDb), await createTestJourneyEntriesRepo(testDb), await createTestTripsRepo(testDb),
     // Plan 3g Task 2 constructor-ripple: JourneyPhotosRepository/JourneyEntryPhotosRepository/PlacesRepository.
     await createTestJourneyPhotosRepo(testDb), await createTestJourneyEntryPhotosRepo(testDb), await createTestPlacesRepo(testDb),
+    { releaseValues: async () => 0 } as never, // StorageReleaseService
   ),
   makeStorageFixture('').storage,
   await accommodationsOver(testDb, realtime), await createTestUnitOfWork(testDb),
