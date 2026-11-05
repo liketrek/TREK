@@ -99,7 +99,9 @@ html,
 body {
   margin: 0;
   min-height: 100%;
-  background: var(--bg);
+  background:
+    radial-gradient(90% 55% at 50% -12%, var(--wash-1), transparent 62%),
+    radial-gradient(80% 50% at 50% 112%, var(--wash-2), transparent 64%), var(--bg);
   color: var(--ink);
   font-family: var(--font);
   -webkit-text-size-adjust: 100%;
@@ -115,14 +117,18 @@ body {
  * enough to read as decoration. Then a quiet grid that fades out through a
  * radial mask: depth, the way liketrek.com's hero carries it.
  */
+/* The grid, strongest at the top-right and fading left and down — the half the
+   photo leaves open, so the two meet in a soft seam down the middle. */
 body::before {
   content: '';
   position: fixed;
-  inset: 0;
-  background:
-    radial-gradient(90% 55% at 50% -12%, var(--wash-1), transparent 62%),
-    radial-gradient(80% 50% at 50% 112%, var(--wash-2), transparent 64%),
-    radial-gradient(60% 45% at 50% -4%, color-mix(in srgb, var(--ink) 6%, transparent), transparent 70%);
+  inset: 0 0 auto;
+  height: 440px;
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 54px 54px;
+  -webkit-mask-image: radial-gradient(135% 95% at 100% 0%, #000 34%, transparent 80%);
+  mask-image: radial-gradient(135% 95% at 100% 0%, #000 34%, transparent 80%);
   pointer-events: none;
   z-index: 0;
 }
@@ -132,27 +138,26 @@ body::before {
  * the headline stays legible. Dark-first; in light mode it steps back to the
  * quiet grid instead, which reads better on a white page.
  */
+/* The travel photo (Kyoto at dusk, as on liketrek.com), anchored left and faded
+   out toward the right so it hands over to the grid, and down into the page.
+   Dark-first; a dark photo over a white page reads badly, so light mode drops it
+   and keeps the grid alone. */
 body::after {
   content: '';
   position: fixed;
   inset: 0 0 auto;
-  height: 400px;
+  height: 440px;
   background:
-    linear-gradient(180deg, rgba(9, 9, 11, 0.46) 0%, rgba(9, 9, 11, 0.72) 58%, var(--bg) 100%),
-    url('./img/kyoto.webp') center 30% / cover no-repeat;
-  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 58%, transparent 100%);
-  mask-image: linear-gradient(180deg, #000 0%, #000 58%, transparent 100%);
+    linear-gradient(180deg, rgba(9, 9, 11, 0.4) 0%, rgba(9, 9, 11, 0.72) 62%, var(--bg) 100%),
+    url('./img/kyoto.webp') left 28% / cover no-repeat;
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 40%, transparent 80%);
+  mask-image: linear-gradient(90deg, #000 0%, #000 40%, transparent 80%);
   pointer-events: none;
   z-index: 0;
 }
 @media (prefers-color-scheme: light) {
   body::after {
-    height: 640px;
-    background:
-      linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-    background-size: 54px 54px;
-    -webkit-mask-image: radial-gradient(ellipse 78% 52% at 50% -2%, #000 26%, transparent 72%);
-    mask-image: radial-gradient(ellipse 78% 52% at 50% -2%, #000 26%, transparent 72%);
+    display: none;
   }
 }
 
@@ -458,8 +463,8 @@ body::after {
   align-self: stretch;
   width: 100%;
   margin-top: 2px;
-  padding: 14px 18px;
-  min-height: 48px;
+  padding: 9px 18px;
+  min-height: 40px;
   border-radius: var(--radius);
   border: 1px solid var(--edge);
   background: transparent;
