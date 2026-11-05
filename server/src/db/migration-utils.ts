@@ -80,10 +80,18 @@ export async function execUnlessTableMissing(migration: Migration, sql: string, 
   try {
     await migration.execute(sql, params);
   } catch (err: unknown) {
-    const missing =
-      err instanceof TableNotFoundException || (err instanceof Error && err.message.includes('no such table'));
-    if (!missing) throw err;
+    if (!isMissingTableError(err)) throw err;
   }
+}
+
+/**
+ * True when a statement failed because its table does not exist. The ORM maps
+ * SQLite's "no such table" and Postgres's SQLSTATE 42P01 to
+ * `TableNotFoundException`; the raw SQLite message is checked too, for an error
+ * that reached the caller unconverted.
+ */
+export function isMissingTableError(err: unknown): boolean {
+  return err instanceof TableNotFoundException || (err instanceof Error && err.message.includes('no such table'));
 }
 
 /**

@@ -1,6 +1,7 @@
 import { MaintenanceRepository } from '../../../../src/db/repositories/MaintenanceRepository';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+import { TableNotFoundException } from '@mikro-orm/core';
 
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -43,6 +44,20 @@ describe('MaintenanceRepository', () => {
       await expect(unwrapped.ping()).rejects.toThrow();
     } finally {
       await fresh.close(false);
+    }
+  });
+
+  it('MAINTREPO-005: deletePluginUserData skips an absent table and rethrows any other failure', async () => {
+    const spy = vi.spyOn(t.em.getConnection(), 'execute');
+    try {
+      // The first statement is the user_config delete, so the one-shot rejection lands on it.
+      spy.mockRejectedValueOnce(new TableNotFoundException(new Error('no such table: plugin_user_config')));
+      await expect(maintenance.deletePluginUserData(1)).resolves.toBeUndefined();
+
+      spy.mockRejectedValueOnce(new Error('connection lost'));
+      await expect(maintenance.deletePluginUserData(1)).rejects.toThrow('connection lost');
+    } finally {
+      spy.mockRestore();
     }
   });
 });

@@ -1,19 +1,12 @@
+import { isMissingTableError } from '../migration-utils';
 import type { EntityManager } from '@mikro-orm/core';
 
 /**
- * Plan 3i Task 3 — R1's raw-connection exception, named ahead of this plan by
- * the program brief's own rule 4 ("connection.execute() (only in
- * MaintenanceRepository/DemoRepository, with a comment)").
- *
- * Not a `TrekRepository<Entity>` — it backs no table and no entity of its
- * own. It holds the statements no entity can express that run on every
- * engine: the readiness ping and the plugin-table erasure. `find/findOne →
- * create/assign/flush → nativeUpdate/nativeDelete → em.upsert → qb() →
- * em.getKysely()` all fail for them, so `connection.execute()` (the last
- * tier in the program's query-API order) is the correct tool, not a
- * shortcut around it. The SQLite file's own maintenance (`PRAGMA
- * wal_checkpoint`, `VACUUM INTO`) is `SqliteMaintenance`, under
- * `db/engine/sqlite/`.
+ * Raw-connection statements that run on every engine and that no entity can
+ * express: the readiness ping and the plugin-table erasure. Not a
+ * `TrekRepository<Entity>`, since it backs no entity. The SQLite file's own
+ * maintenance (`PRAGMA wal_checkpoint`, `VACUUM INTO`) lives in
+ * `SqliteMaintenance`, under `db/engine/sqlite/`.
  *
  * Provided through Nest DI by `MaintenanceModule` (`nest/database/`), a
  * factory over the context-resolving global `EntityManager`; its consumers
@@ -42,37 +35,15 @@ export class MaintenanceRepository {
   }
 
   /**
-   * Plan 4 Task 4 — UC1 (`UserCleanupService.erasePluginUserData`): a
-   * best-effort per-user delete across the three plugin-held tables
-   * (`plugin_user_config`/`plugin_oauth_tokens`/`plugin_oauth_state`). These
-   * are `nest/plugins`' own tables (Plan 3b Task 5's "stays raw" ruling,
-   * narrowed by Plan 4 Task 8a to just this trio — UC2/UC3 already moved to
-   * `PluginsRepository`/`PluginUserErasureQueueRepository`), not an entity
-   * managed by any repository, so `connection.execute()` (rule 4's last
-   * tier) is the correct tool here, same shape as `ping` above and
-   * `SqliteMaintenance`'s statements — with ONE difference those don't need: this is
-   * the first `MaintenanceRepository` caller ever invoked from INSIDE an
-   * open `UnitOfWork.transactional(...)` (`deleteUserCompletely`'s
-   * transaction). `Connection#execute(query, params, method, ctx)`'s `ctx`
-   * defaults to the plain (non-transactional) Kysely client when omitted —
-   * `SqliteMaintenance`'s statements always omit it because their callers
-   * (the backup port) never run inside a transaction, but
-   * omitting it here deadlocked: this repo's `better-sqlite3` connection is
-   * single-connection/single-writer, the open transaction holds it for its
-   * whole lifetime, and a bare `execute()` tries to check out that SAME
-   * connection fresh instead of reusing the held one — a checkout that only
-   * frees once the transaction (which is itself awaiting THIS call)
-   * completes. `em.getTransactionContext()` returns the open transaction's
-   * driver handle when called from inside one (resolved the same
-   * `TransactionContext`-async-local-storage way `getContext()` is, so
-   * `this.em` need not be the transactional fork itself) and `undefined`
-   * otherwise, so passing it through is correct both inside and outside a
-   * transaction. Each statement is independently best-effort: a
-   * slimmed-down test schema may not carry one or more of these tables at
-   * all, matching the legacy per-table try/catch exactly. Each one runs in
-   * its own savepoint (a nested `em.transactional`), because on Postgres a
-   * failed statement aborts the whole transaction it is in: the savepoint
-   * rolls back that one statement and the user's erasure goes on.
+   * The per-user erasure of the three plugin-held tables (`plugin_user_config`,
+   * `plugin_oauth_tokens`, `plugin_oauth_state`), called inside the erasure's
+   * own `UnitOfWork.transactional(...)`.
+   *
+   * A table that does not exist (a slimmed-down test schema) is skipped; any
+   * other failure propagates. Each statement runs in its own savepoint, since
+   * on Postgres a failed statement aborts the whole transaction it is in.
+   * `em.getTransactionContext()` hands the statement the open transaction's
+   * connection, which a bare `execute()` would wait on forever.
    */
   async deletePluginUserData(userId: number): Promise<void> {
     this.validateRequestContext();
@@ -83,8 +54,8 @@ export class MaintenanceRepository {
             .getConnection()
             .execute(`DELETE FROM ${table} WHERE user_id = ?`, [userId], 'run', em.getTransactionContext()),
         );
-      } catch {
-        /* table absent (slim schema) */
+      } catch (err: unknown) {
+        if (!isMissingTableError(err)) throw err;
       }
     }
   }
