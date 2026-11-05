@@ -374,10 +374,10 @@ body::after {
   margin: 0;
 }
 .sub {
-  color: var(--muted);
+  color: var(--faint);
   margin: 0;
-  line-height: 1.5;
-  font-size: 0.95rem;
+  line-height: 1.55;
+  font-size: 0.9rem;
   overflow-wrap: anywhere;
 }
 
