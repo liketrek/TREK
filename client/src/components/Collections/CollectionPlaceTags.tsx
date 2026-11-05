@@ -126,7 +126,7 @@ export default function CollectionPlaceTags({
       {labels.map((l, i) => (
         <ChipTooltip key={l.id} label={l.name}>
           <span
-            className={`col-lrow-label${i < shown ? '' : ' is-over'}`}
+            className={i < shown ? 'col-lrow-label' : 'col-lrow-label is-over'}
             style={{ ['--label' as string]: l.color || 'var(--accent)' }}
             aria-hidden={i < shown ? undefined : true}
           >
