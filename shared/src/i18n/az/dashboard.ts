@@ -111,6 +111,8 @@ const dashboard: TranslationStrings = {
   'dashboard.unsplashQueryRequired': 'Axtarış sözü daxil edin',
   'dashboard.unsplashNoResults': 'Şəkil tapılmadı',
   'dashboard.coverSearchError': 'Unsplash-da axtarış aparmaq mümkün olmadı',
+  'dashboard.unsplashKeyNeeded':
+    'Unsplash bu serveri rədd etdi. Şəkil axtarışının işləməsi üçün administrator admin ayarlarında pulsuz Unsplash API açarı əlavə edə bilər.',
   'dashboard.useUnsplashPhoto': '{photographer} tərəfindən çəkilmiş Unsplash şəklindən istifadə et',
   'dashboard.titleRequired': 'Başlıq tələb olunur',
   'dashboard.endDateError': 'Bitmə tarixi başlama tarixindən sonra olmalıdır',

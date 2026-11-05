@@ -69,6 +69,8 @@ const dayplan: TranslationStrings = {
   'dayplan.pdf': 'PDF',
   'dayplan.pdfTooltip': 'Ekspordi päevaplaan PDF-ina',
   'dayplan.pdfMine': 'Minu plaan PDF-ina',
+  'dayplan.pdfRouting': 'Marsruutide arvutamine: {done}/{total}',
+  'dayplan.pdfSkipRouting': 'Ekspordi ilma ülejäänud marsruutideta',
   'dayplan.pdfMineSub': 'Ainult tegevused ja broneeringud, milles osaled',
   'dayplan.gpxTooltip': 'Ekspordi GPX-ina võrguühenduseta kaartide ja GPS-seadmete jaoks',
   'dayplan.gpxAll': 'Kogu reis',

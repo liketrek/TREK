@@ -36,6 +36,8 @@ const wanderer: TranslationStrings = {
   'wanderer.error.not_own_trail': 'Só suas próprias trilhas do wanderer podem ser importadas.',
   'wanderer.error.invalid_response':
     'A resposta não veio do wanderer. Confira se o endereço aponta para o próprio wanderer.',
+  'wanderer.error.no_author':
+    'O wanderer respondeu, mas não indica nenhum autor de trilhas para a conta deste token de API, então o TREK não consegue saber quais trilhas são suas.',
   'wanderer.error.too_large': 'O arquivo da trilha tem mais de 10 MB.',
   'wanderer.error.server_error': 'O wanderer respondeu com um erro. Tente de novo mais tarde.',
   'wanderer.error.offline': 'Você está offline. O wanderer só pode ser pesquisado online.',

@@ -178,7 +178,7 @@ export class JourneyBookDesignService {
       baseVersion: draft.baseVersion,
       expiresAt: new Date(draft.expiresAt).toISOString(),
       document: draft.doc,
-      plan: draft.plan.slice(0, BOOK_DESIGN_LIMITS.selection).map(planRowOut),
+      plan: draft.plan.map(planRowOut),
       selection: draft.selection,
     };
   }
@@ -376,7 +376,7 @@ function answerOf(draft: BookDesignDraft): BookDesignAnswer {
     expires_at: new Date(draft.expiresAt).toISOString(),
     plan: rows,
     more_rows: draft.plan.length - rows.length,
-    selected: draft.selection.slice(0, BOOK_DESIGN_LIMITS.selection),
+    selected: draft.selection,
     style: draft.style,
     photos: {
       used: draft.usedPhotos,

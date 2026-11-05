@@ -1,23 +1,22 @@
 import { Place } from '../../types';
 
 import fs from 'fs';
+import path from 'path';
 import zlib from 'zlib';
 import {
-  assetPath,
-  createFeatureSplitter,
+  admin1AssetPath,
+  getAdmin0File,
   getCountryFromCoords,
   isPointInCountryBox,
-  loadAdmin0Gz,
-  pointInGeometry,
-  type Box,
-  type CompactGeom,
+  pointInPackedGeometry,
+  type PackedGeom,
 } from '../../utils/country-borders';
 import { cacheKeyFor, getCached, nominatimFetch, setCached } from '../geo/nominatim.client';
 
 // ── Pure geo machinery for the atlas domain ─────────────────────────────────
 //
 // Plain module on purpose (same class as maps.helpers.ts / tripAccess): no DI,
-// no DB access, no Nest imports. The caches below (admin1 per-country store,
+// no DB access, no Nest imports. The caches below (parsed admin1 region features,
 // geocode/region caches, the shared Nominatim throttle and the geocodingInFlight
 // dedup set) are file-scoped so their lifetime stays process-global no matter how
 // many AtlasService instances exist (container singleton + test helpers) —
@@ -31,101 +30,94 @@ export { getCountryFromCoords, isPointInCountryBox };
 
 // ── Bundled boundary GeoJSON (admin-0 countries + admin-1 regions) ─────────
 //
-// Where the bundles come from, the path they are read from, the admin-0 gz bytes and
-// the country index built on them are in utils/country-borders.ts. The admin-1 half
+// Where the bundles come from, the path they are read from, the admin-0 file and
+// the country index built on it are in utils/country-borders.ts. The admin-1 half
 // is below.
 //
 // Neither parsed bundle is cached. admin0 (~145MB) and admin1 (~260MB) parsed at once are
 // what exhausted a 512MB host while using Atlas (#1576). Instead we retain only compact
-// derivatives: the raw admin0 .gz bytes for direct serving, a Float64Array poly/box index
-// for server-side point-in-polygon (see buildCountryIndexes in utils/country-borders.ts),
-// and admin1 pre-split per country into ready-to-serve GeoJSON strings, built by
-// streaming the gz so the full bundle is never materialised in one piece.
+// derivatives: the admin0 .gz is sent from disk and an Int16Array poly/box index serves
+// server-side point-in-polygon (see buildCountryIndexes in utils/country-borders.ts).
+// admin1 ships as one gzipped file per country, which is served from disk as it is and
+// read one country at a time for region lookups.
 
-/** admin-0 country borders as gzipped GeoJSON bytes, served to the client map with
+/** Path of the gzipped admin-0 country borders, sent to the client map with
  *  Content-Encoding: gzip so the server never holds the parsed FeatureCollection. */
-export function getCountryGeoGz(): Buffer | null {
-  return loadAdmin0Gz();
+export function getCountryGeoFile(): string | null {
+  return getAdmin0File();
 }
 
 /** Parsed admin-0 FeatureCollection, parsed on demand (not cached). Not on the client hot
- *  path — the map is served the gz bytes via getCountryGeoGz — but kept for internal/test
+ *  path — the map is sent the gz file via getCountryGeoFile — but kept for internal/test
  *  callers that need the objects. */
 export function getCountryGeo(): any {
-  const gz = loadAdmin0Gz();
-  if (!gz) return { type: 'FeatureCollection', features: [] };
-  return JSON.parse(zlib.gunzipSync(gz).toString('utf8'));
+  const file = getAdmin0File();
+  if (!file) return { type: 'FeatureCollection', features: [] };
+  return JSON.parse(zlib.gunzipSync(fs.readFileSync(file)).toString('utf8'));
 }
 
-export async function getRegionGeo(countryCodes: string[]): Promise<any> {
-  const store = await getAdmin1Store();
-  const seen = new Set<string>();
-  const parts: string[] = [];
-  for (const code of countryCodes) {
-    const c = code.toUpperCase();
-    if (seen.has(c)) continue;
-    seen.add(c);
-    const s = store.get(c);
-    if (s) parts.push(s);
+// A country's admin-1 file, or null for anything that is not a two-letter code, so
+// nothing a client sends can name a path outside the folder. A country without a file
+// has no regions; the whole folder missing is a broken install, said once.
+let admin1Checked = false;
+function admin1File(countryCode: string): string | null {
+  const cc = countryCode.toUpperCase();
+  if (!/^[A-Z]{2}$/.test(cc)) return null;
+  const file = admin1AssetPath(cc);
+  if (!admin1Checked) {
+    admin1Checked = true;
+    if (!fs.existsSync(path.dirname(file))) {
+      console.warn(`[Atlas] admin1 region files missing — run \`node scripts/build-atlas-geo.mjs\``);
+    }
   }
-  if (parts.length === 0) return { type: 'FeatureCollection', features: [] };
-  // Each stored value is that country's features as comma-joined GeoJSON text; wrap the
-  // requested subset into one FeatureCollection and parse only that (per-viewport, small).
-  return JSON.parse(`{"type":"FeatureCollection","features":[${parts.join(',')}]}`);
+  return file;
 }
 
-// admin1 regions, pre-split per ISO_A2 into comma-joined feature text. Built once by
-// streaming the gz through a brace-depth splitter that emits one Feature at a time, so the
-// ~260MB full parse never happens (it OOMs a 512MB host). Concurrent first-callers share
-// one in-flight build via admin1Building.
-let admin1Store: Map<string, string> | null = null;
-let admin1Building: Promise<Map<string, string>> | null = null;
-
-function getAdmin1Store(): Promise<Map<string, string>> {
-  if (admin1Store) return Promise.resolve(admin1Store);
-  // `=== null`, not `!admin1Building`: a Promise in a boolean condition is what
-  // no-misused-promises/checksConditionals exists to catch, and the distinction
-  // matters once every DB-touching method returns one.
-  if (admin1Building === null) {
-    admin1Building = buildAdmin1Store().then((s) => {
-      admin1Store = s;
-      admin1Building = null;
-      return s;
-    });
+// A country's admin-1 FeatureCollection as JSON bytes, or null when the bundle has no
+// regions for it. Synchronous like the parse that follows it; one country is a small file.
+function readAdmin1Json(countryCode: string): Buffer | null {
+  const file = admin1File(countryCode);
+  if (!file) return null;
+  try {
+    return zlib.gunzipSync(fs.readFileSync(file));
+  } catch {
+    return null;
   }
-  return admin1Building;
 }
 
-function buildAdmin1Store(): Promise<Map<string, string>> {
-  const file = assetPath('admin1');
-  if (!fs.existsSync(file)) {
-    console.warn(`[Atlas] admin1.geojson.gz missing — run \`node scripts/build-atlas-geo.mjs\``);
-    return Promise.resolve(new Map());
+/** One country's admin-1 regions as gzipped GeoJSON bytes, served to the client map with
+ *  Content-Encoding: gzip like getCountryGeoFile, so the server never parses them. */
+export async function getRegionGeoGz(countryCode: string): Promise<Buffer | null> {
+  const file = admin1File(countryCode);
+  if (!file) return null;
+  try {
+    return await fs.promises.readFile(file);
+  } catch {
+    return null;
   }
-  // Concatenate each country's features straight into the store as we stream, rather than
-  // collecting arrays and joining at the end (that doubling, plus the source bundle's
-  // whitespace, peaked high enough to OOM a 512MB host on the first build). Re-serialising
-  // each feature via JSON drops the source formatting (~114MB → ~68MB retained) and the
-  // parse/stringify garbage is per-feature and short-lived.
-  const store = new Map<string, string>();
-  const split = createFeatureSplitter((text) => {
-    const f = JSON.parse(text);
-    const code = f.properties?.iso_a2?.toUpperCase();
-    if (!code) return; // features with a null iso_a2 are skipped, matching the old filter
-    const compact = JSON.stringify(f);
-    const prev = store.get(code);
-    store.set(code, prev ? prev + ',' + compact : compact);
-  });
-  return new Promise((resolve, reject) => {
-    fs.createReadStream(file)
-      .pipe(zlib.createGunzip())
-      .on('data', (chunk: Buffer) => split(chunk.toString('utf8')))
-      .on('end', () => {
-        console.log(`[Atlas] Indexed admin1 GeoJSON: ${store.size} countries`);
-        resolve(store);
-      })
-      .on('error', reject);
-  });
+}
+
+// How build-atlas-geo.mjs writes every per-country file; atlasBundle.test.ts holds it to that.
+const FC_HEAD = '{"type":"FeatureCollection","features":[';
+const FC_TAIL = ']}';
+
+/**
+ * Several countries' regions as one FeatureCollection, for clients that still ask
+ * /regions/geo?countries=… from before the map fetched one country per request. Each
+ * file's features are cut out and joined as bytes, never parsed (#1576).
+ */
+export function getRegionGeoJson(countryCodes: string[]): Buffer {
+  const parts: Buffer[] = [Buffer.from(FC_HEAD)];
+  let first = true;
+  for (const cc of new Set(countryCodes.map((c) => c.toUpperCase()))) {
+    const json = readAdmin1Json(cc);
+    if (!json) continue;
+    if (!first) parts.push(Buffer.from(','));
+    parts.push(json.subarray(FC_HEAD.length, json.length - FC_TAIL.length));
+    first = false;
+  }
+  parts.push(Buffer.from(FC_TAIL));
+  return Buffer.concat(parts);
 }
 
 // ── Country names, for the address fallback ─────────────────────────────────
@@ -396,25 +388,38 @@ export async function reverseGeocodeCountry(lat: number, lng: number): Promise<s
 
 // ── Region geometry, for the ring test in utils/country-borders.ts ──────────
 
-// Flatten a GeoJSON Polygon/MultiPolygon into the same compact form the country index uses,
-// plus one bounding box per part (a part-box, like buildCountryIndexes builds, so an
-// archipelago-style region — Illes Balears, Canarias, … — gets one tight box per island
-// group rather than one box spanning the whole span between them). Used to resolve admin1
-// regions against the bundle, which are parsed per country on demand rather than held whole.
-function compactGeomFromGeometry(geometry: { type: string; coordinates: unknown }): { geom: CompactGeom; boxes: Box[] } {
+// The admin-1 bundle is quantized to ADM1_DECIMALS = 3 (scripts/build-atlas-geo.mjs), so
+// every coordinate is a whole number of thousandths and fits an Int32 exactly
+// (ATLAS-BUNDLE-009 guards it). Raise this with ADM1_DECIMALS.
+const REGION_SCALE = 1000;
+
+// Pack a GeoJSON Polygon/MultiPolygon at REGION_SCALE, plus one bounding box per part (a
+// part-box, like buildCountryIndexes builds, so an archipelago-style region — Illes Balears,
+// Canarias, … — gets one tight box per island group rather than one box spanning the whole
+// span between them), packed four values per part the same way.
+function packRegionGeometry(geometry: { type: string; coordinates: unknown }): { geom: PackedGeom; boxes: Int32Array } {
   const parts = (geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates) as number[][][][];
-  const rings: Float64Array[] = [];
-  const polyRingCounts: number[] = [];
-  const boxes: Box[] = [];
+  let points = 0;
+  let ringCount = 0;
   for (const part of parts) {
-    polyRingCounts.push(part.length);
+    ringCount += part.length;
+    for (const ring of part) points += ring.length;
+  }
+  const coords = new Int32Array(points * 2);
+  const ringStarts = new Uint32Array(ringCount + 1);
+  const polyRingCounts = new Uint32Array(parts.length);
+  const boxes = new Int32Array(parts.length * 4);
+  let p = 0;
+  let ri = 0;
+  for (const [k, part] of parts.entries()) {
+    polyRingCounts[k] = part.length;
     for (const ring of part) {
-      const flat = new Float64Array(ring.length * 2);
-      for (let i = 0; i < ring.length; i++) {
-        flat[2 * i] = ring[i][0];
-        flat[2 * i + 1] = ring[i][1];
+      ringStarts[ri++] = p;
+      for (const [lng, lat] of ring) {
+        coords[2 * p] = Math.round(lng * REGION_SCALE);
+        coords[2 * p + 1] = Math.round(lat * REGION_SCALE);
+        p++;
       }
-      rings.push(flat);
     }
     let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
     for (const [lng, lat] of part[0]) {
@@ -423,9 +428,10 @@ function compactGeomFromGeometry(geometry: { type: string; coordinates: unknown 
       if (lat < minLat) minLat = lat;
       if (lat > maxLat) maxLat = lat;
     }
-    boxes.push([minLng, minLat, maxLng, maxLat]);
+    boxes.set([minLng, minLat, maxLng, maxLat].map((v) => Math.round(v * REGION_SCALE)), 4 * k);
   }
-  return { geom: { rings, polyRingCounts }, boxes };
+  ringStarts[ri] = p;
+  return { geom: { coords, ringStarts, polyRingCounts }, boxes };
 }
 
 /**
@@ -524,34 +530,58 @@ const regionCache = new Map<string, RegionInfo | null>();
 // getCountryFromCoords does for admin0 (#1331) — sidesteps the whole class of bug: the
 // stored region_code/region_name are then guaranteed to equal a bundle feature.
 //
-// The admin1 bundle is streamed and held as per-country GeoJSON text (never parsed whole,
-// #1576), so a country's region features are parsed and flattened to CompactGeom on first
-// use and cached — only visited countries ever pay the parse.
-type RegionFeature = { code: string; name: string; nameEn: string; geom: CompactGeom; boxes: Box[] };
-const regionFeatureCache = new Map<string, RegionFeature[]>();
+// The admin1 regions ship as one file per country (never parsed whole, #1576), so a
+// country's region features are read, parsed and packed on first use and cached — only
+// visited countries ever pay the parse.
+type RegionFeature = { code: string; name: string; nameEn: string; geom: PackedGeom; boxes: Int32Array };
 
-async function getRegionFeatures(countryCode: string): Promise<RegionFeature[]> {
+// Countries least recently used first, kept while their typed arrays fit REGION_CACHE_BYTES
+// (every country packed keeps ~32 MB, CA alone ~5 MB). A country that falls out is parsed again
+// on its next lookup, which allocates ~90 MB for a while for CA, so the budget holds the
+// countries one install's places are in, and the repair pass reads its rows by country.
+const REGION_CACHE_BYTES = 16 * 1024 * 1024;
+const regionFeatureCache = new Map<string, { features: RegionFeature[]; bytes: number }>();
+let regionCacheBytes = 0;
+
+// Synchronous on purpose: a lookup that misses reads, parses and caches its country before
+// any other lookup runs, so lookups that miss the same country at once parse it only once.
+function getRegionFeatures(countryCode: string): RegionFeature[] {
   const cc = countryCode.toUpperCase();
-  const cached = regionFeatureCache.get(cc);
-  if (cached) return cached;
-  const store = await getAdmin1Store();
-  const text = store.get(cc);
-  if (!text) {
-    regionFeatureCache.set(cc, []);
-    return [];
+  const hit = regionFeatureCache.get(cc);
+  if (hit) {
+    regionFeatureCache.delete(cc);
+    regionFeatureCache.set(cc, hit);
+    return hit.features;
   }
+  const features = parseRegionFeatures(cc);
+  let bytes = 0;
+  for (const { geom, boxes } of features) {
+    bytes += geom.coords.byteLength + geom.ringStarts.byteLength + geom.polyRingCounts.byteLength + boxes.byteLength;
+  }
+  regionFeatureCache.set(cc, { features, bytes });
+  regionCacheBytes += bytes;
+  for (const [code, entry] of regionFeatureCache) {
+    if (regionCacheBytes <= REGION_CACHE_BYTES || code === cc) break;
+    regionFeatureCache.delete(code);
+    regionCacheBytes -= entry.bytes;
+  }
+  return features;
+}
+
+function parseRegionFeatures(cc: string): RegionFeature[] {
+  const json = readAdmin1Json(cc);
+  if (!json) return [];
   let features: { properties?: Record<string, string>; geometry?: { type: string; coordinates: unknown } }[];
   try {
-    features = JSON.parse(`{"type":"FeatureCollection","features":[${text}]}`).features ?? [];
+    features = JSON.parse(json.toString('utf8')).features ?? [];
   } catch {
-    regionFeatureCache.set(cc, []);
     return [];
   }
   const out: RegionFeature[] = [];
   for (const f of features) {
     const code = f.properties?.iso_3166_2;
     if (!code || !f.geometry) continue;
-    const { geom, boxes } = compactGeomFromGeometry(f.geometry);
+    const { geom, boxes } = packRegionGeometry(f.geometry);
     out.push({
       code,
       name: f.properties?.name || code,
@@ -560,7 +590,6 @@ async function getRegionFeatures(countryCode: string): Promise<RegionFeature[]> 
       boxes,
     });
   }
-  regionFeatureCache.set(cc, out);
   return out;
 }
 
@@ -570,11 +599,15 @@ async function getRegionFeatures(countryCode: string): Promise<RegionFeature[]> 
 // no admin1 coverage in the bundle or the point falls outside every polygon (simplification
 // gaps at coastlines, etc.) — callers should fall back to reverse geocoding.
 export async function getRegionFromCoords(countryCode: string, lat: number, lng: number): Promise<RegionInfo | null> {
-  const features = await getRegionFeatures(countryCode);
+  const features = getRegionFeatures(countryCode);
   if (features.length === 0) return null;
   const candidates: { f: RegionFeature; area: number }[] = [];
   for (const f of features) {
-    for (const [minLng, minLat, maxLng, maxLat] of f.boxes) {
+    for (let i = 0; i < f.boxes.length; i += 4) {
+      const minLng = f.boxes[i] / REGION_SCALE;
+      const minLat = f.boxes[i + 1] / REGION_SCALE;
+      const maxLng = f.boxes[i + 2] / REGION_SCALE;
+      const maxLat = f.boxes[i + 3] / REGION_SCALE;
       if (lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng) {
         candidates.push({ f, area: (maxLng - minLng) * (maxLat - minLat) });
         break;
@@ -583,7 +616,7 @@ export async function getRegionFromCoords(countryCode: string, lat: number, lng:
   }
   candidates.sort((a, b) => a.area - b.area);
   for (const { f } of candidates) {
-    if (pointInGeometry(lng, lat, f.geom)) {
+    if (pointInPackedGeometry(lng, lat, f.geom, REGION_SCALE)) {
       return { country_code: countryCode.toUpperCase(), region_code: f.code, region_name: f.nameEn || f.name };
     }
   }

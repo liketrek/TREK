@@ -36,6 +36,8 @@ const wanderer: TranslationStrings = {
   'wanderer.error.not_own_trail': 'Endast dina egna leder i wanderer kan importeras.',
   'wanderer.error.invalid_response':
     'Svaret kom inte från wanderer. Kontrollera att adressen pekar på själva wanderer.',
+  'wanderer.error.no_author':
+    'wanderer svarade, men anger ingen ledförfattare för kontot som den här API-token tillhör, så TREK kan inte avgöra vilka leder som är dina.',
   'wanderer.error.too_large': 'Ledens fil är större än 10 MB.',
   'wanderer.error.server_error': 'wanderer svarade med ett fel. Försök igen senare.',
   'wanderer.error.offline': 'Du är offline. wanderer kan bara sökas online.',

@@ -86,6 +86,7 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
   const [showAddItem, setShowAddItem] = useState(false)
   const [newItemName, setNewItemName] = useState('')
   const addItemRef = useRef<HTMLInputElement>(null)
+  const openAddItem = () => { setShowAddItem(true); setTimeout(() => addItemRef.current?.focus(), 30) }
   const menuBtnRef = useRef<HTMLButtonElement>(null)
   const assigneeDropdownRef = useRef<HTMLDivElement>(null)
   const { togglePackingItem } = useTripStore()
@@ -292,7 +293,7 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
             const contributions = contribFor(item.id)
             return (
               <React.Fragment key={item.id}>
-                <ArtikelZeile item={item} tripId={tripId} categories={allCategories} onCategoryChange={() => {}} onDelete={onDeleteItem} bagTrackingEnabled={bagTrackingEnabled} bags={bags} onCreateBag={onCreateBag} canEdit={canEdit} divider={index > 0}
+                <ArtikelZeile item={item} tripId={tripId} categories={allCategories} onCategoryChange={() => {}} onDelete={onDeleteItem} onPlaceholderFilled={openAddItem} bagTrackingEnabled={bagTrackingEnabled} bags={bags} onCreateBag={onCreateBag} canEdit={canEdit} divider={index > 0}
                   tripMembers={tripMembers} currentUserId={currentUserId} onSetSharing={onSetSharing} onClone={onClone} onJoin={onJoin} onLeave={onLeave}
                   drag={canEdit && reorderable ? {
                     isDragging: dragId === item.id,
@@ -343,7 +344,7 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
             // A row of its own on a faint tint, so it closes the card instead
             // of trailing off: a dashed box in the checkbox column (past the drag
             // grip's width) and the label where an item's name sits.
-            <button type="button" onClick={() => { setShowAddItem(true); setTimeout(() => addItemRef.current?.focus(), 30) }}
+            <button type="button" onClick={openAddItem}
               style={{ display: 'flex', alignItems: 'center', gap: 9, width: 'calc(100% - 8px)', margin: '6px 4px 0', paddingBlock: 8, paddingInlineEnd: 10, paddingInlineStart: 28, borderRadius: 10, border: 'none', background: 'var(--bg-secondary)', cursor: 'pointer', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500, color: 'var(--text-faint)', fontFamily: 'inherit', textAlign: 'start' }}
               onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'}
               onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>

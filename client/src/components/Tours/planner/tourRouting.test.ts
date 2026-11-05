@@ -1,17 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { valhallaBase, valhallaRun, valhallaRunOnFoot, valhallaTurn } = vi.hoisted(() => ({
+const { valhallaBase, valhallaPost, valhallaRun, valhallaRunOnFoot } = vi.hoisted(() => ({
   valhallaBase: vi.fn(),
+  valhallaPost: vi.fn(),
   valhallaRun: vi.fn(),
   valhallaRunOnFoot: vi.fn(),
-  valhallaTurn: vi.fn(async () => {}),
 }))
 
 vi.mock('../../Map/valhallaRoute', () => ({
   valhallaBase,
+  valhallaPost,
   valhallaRun,
   valhallaRunOnFoot,
-  valhallaTurn,
 }))
 
 import { enrichTourElevations, parseValhallaElevation, routeBikeTour, routeCityWalk, routeRun, routeWalkingTour, type TourRouteResult } from './tourRouting'
@@ -146,10 +146,10 @@ describe('routeWalkingTour', () => {
   )
 
   it('keeps valid route coordinates and explicit missing samples when height data is partial', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+    valhallaPost.mockReset().mockResolvedValue({
       ok: true,
       json: async () => ({ range_height: [[0, 0], [1, null], [2, ' ']] }),
-    }))
+    })
     const coordinates: [number, number][] = [[48, 11], [48.01, 11.01], [48.02, 11.02]]
 
     await expect(enrichTourElevations(coordinates)).resolves.toEqual([
@@ -157,35 +157,36 @@ describe('routeWalkingTour', () => {
     ])
   })
 
-  it('waits for its turn at the host before every height question', async () => {
-    const order: string[] = []
-    valhallaTurn.mockImplementation(async () => { order.push('turn') })
-    vi.stubGlobal('fetch', vi.fn(async (_url: string, init: { body: string }) => {
-      order.push('fetch')
-      const shape = (JSON.parse(init.body) as { shape: unknown[] }).shape
-      return { ok: true, json: async () => ({ range_height: shape.map((_, i) => [i, 100]) }) }
+  it('asks the heights of its host piece by piece, through the one door every Valhalla question takes', async () => {
+    valhallaPost.mockReset().mockImplementation(async (_base: string, _action: string, body: { shape: unknown[] }) => ({
+      ok: true,
+      json: async () => ({ range_height: body.shape.map((_, i) => [i, 100]) }),
     }))
     const coordinates = Array.from({ length: 600 }, (_, i) => [48 + i / 1000, 11] as [number, number])
 
     const result = await enrichTourElevations(coordinates)
 
-    expect(order).toEqual(['turn', 'fetch', 'turn', 'fetch'])
-    expect(valhallaTurn).toHaveBeenCalledWith('https://valhalla.test', undefined)
+    expect(valhallaPost).toHaveBeenCalledTimes(2)
+    expect(valhallaPost.mock.calls.map(([base, action, body]) => [base, action, body.shape.length, body.range])).toEqual([
+      ['https://valhalla.test', 'height', 500, true],
+      ['https://valhalla.test', 'height', 101, true],
+    ])
     expect(result!.every(point => point.length === 3)).toBe(true)
   })
 
-  it('asks nothing once the caller gave up while waiting for its turn', async () => {
+  it('gives up without heights once the caller gave up', async () => {
     const controller = new AbortController()
-    valhallaTurn.mockImplementation(async () => { controller.abort() })
-    const fetchSpy = vi.fn()
-    vi.stubGlobal('fetch', fetchSpy)
+    valhallaPost.mockReset().mockImplementation(async () => {
+      controller.abort()
+      throw new DOMException('The operation was aborted.', 'AbortError')
+    })
 
     await expect(enrichTourElevations([[48, 11], [48.01, 11.01]], controller.signal)).resolves.toBeNull()
-    expect(fetchSpy).not.toHaveBeenCalled()
+    expect(valhallaPost).toHaveBeenCalledTimes(1)
   })
 
   it('keeps the full route as 2D geometry when height enrichment is unavailable', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: async () => ({}) }))
+    valhallaPost.mockReset().mockResolvedValue({ ok: false, json: async () => ({}) })
     const coordinates: [number, number][] = [[48, 11], [48.01, 11.01]]
 
     await expect(enrichTourElevations(coordinates)).resolves.toEqual(coordinates)

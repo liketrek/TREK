@@ -46,7 +46,7 @@ const hasLock = (spread: BookSpread) => spread.elements.some((e) => e.locked);
  * inner page only while the person keeps locked pages); with `edited` also a
  * page made by hand (no entry behind it, not blank).
  */
-export function keepsStored(spread: BookSpread, keep: BookDesignDirectives['keep']): boolean {
+function keepsStored(spread: BookSpread, keep: BookDesignDirectives['keep']): boolean {
   if (spread.role !== 'inner') return hasLock(spread);
   if (keep === 'nothing') return false;
   if (hasLock(spread)) return true;

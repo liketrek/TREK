@@ -44,14 +44,16 @@ const GOOGLE_SETTINGS = { transit_provider: 'google', maps_api_key: 'test-key' }
  * `GoogleTransitProvider` no longer takes a `DatabaseService` at all. The
  * settings object already carries exactly the instance-tier value every test
  * here configures, so `appSettingsStub.getValue` wraps it directly; the
- * per-user fallback tier was never exercised by this file (none of these
- * cases seed a per-user row), so it always answers null.
+ * optional personal key exercises the last tier without reading another user.
  */
-function makeProvider(settings: Record<string, string | undefined>): GoogleTransitProvider {
+function makeProvider(
+  settings: Record<string, string | undefined>,
+  personalKey: string | null = null,
+): GoogleTransitProvider {
   const appSettingsStub = {
     getValue: async (key: string) => settings[key] ?? null,
   } as unknown as AppSettingsRepository;
-  const usersStub = { getApiKeyColumn: async () => null } as unknown as UsersRepository;
+  const usersStub = { getApiKeyColumn: async () => personalKey } as unknown as UsersRepository;
   return new GoogleTransitProvider(appSettingsStub, usersStub, noGoogleQuota);
 }
 
@@ -180,6 +182,26 @@ function subwayRoute(): FixtureRoutes {
 }
 
 describe('activation', () => {
+  it('allows an instance key for fallback without selecting Google', async () => {
+    expect(await makeProvider({ maps_api_key: 'test-key' }).isAvailableForFallback()).toBe(true);
+    expect(await makeProvider({}).isAvailableForFallback()).toBe(false);
+  });
+
+  it('refuses personal-only fallback but preserves personal keys for Google primary', async () => {
+    const provider = makeProvider({ transit_provider: 'google' }, 'personal-key');
+    expect(await provider.isAvailableForFallback()).toBe(false);
+    expect(await provider.isActive(1)).toBe(true);
+  });
+
+  it('checks quota before making Google available for fallback', async () => {
+    const provider = makeProvider({ maps_api_key: 'test-key' });
+    const exhausted = vi.spyOn(noGoogleQuota, 'exhausted').mockResolvedValue(true);
+    try {
+      expect(await provider.isAvailableForFallback()).toBe(false);
+    } finally {
+      exhausted.mockRestore();
+    }
+  });
   it('GTRANSIT-001: stays off while the instance is on Transitous, even with a key', async () => {
     const provider = makeProvider({ maps_api_key: 'test-key' });
     expect(await provider.isActive(1)).toBe(false);

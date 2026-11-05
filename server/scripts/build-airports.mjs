@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Build server/assets/airports.json from OurAirports (davidmegginson.github.io/ourairports-data).
-// License: Public Domain. Keeps large/medium airports with an IATA code; timezone derived from coords via tz-lookup.
+// License: Public Domain. Keeps large/medium airports with an IATA code, small ones only with scheduled service;
+// timezone derived from coords via tz-lookup.
 import fs from 'node:fs';
 import https from 'node:https';
 import path from 'node:path';
@@ -91,7 +92,9 @@ for (let i = 1; i < rows.length; i++) {
   if (!KEEP.has(r[TYPE])) continue;
   const iata = r[IATA]?.trim().toUpperCase();
   if (!iata || iata.length !== 3) continue;
-  if (r[SERVICE] !== 'yes') continue;
+  // The scheduled_service flag lags reality: Little Cayman (LYB) has daily flights and is
+  // marked "no". So it only filters the small fields, where it keeps every airstrip with a code out.
+  if (r[TYPE] === 'small_airport' && r[SERVICE] !== 'yes') continue;
   const lat = Number(r[LAT]);
   const lng = Number(r[LNG]);
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
@@ -130,10 +133,21 @@ for (const a of airports) {
   if (existing.icao && !a.icao) continue;
   if (!existing.icao && a.icao) seen.set(a.iata, a);
 }
+// A code a release already shipped stays resolvable. OurAirports drops one when it
+// flips a scheduled-service flag back to "no" or moves the code to a new record, and
+// a booking import or an MCP call naming that code would stop resolving with the
+// next rebuild. Upstream wins for every code it still lists.
+const previous = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : [];
+let kept = 0;
+for (const a of previous) {
+  if (seen.has(a.iata)) continue;
+  seen.set(a.iata, a);
+  kept++;
+}
 const unique = Array.from(seen.values()).sort((a, b) => a.iata.localeCompare(b.iata));
 
 fs.writeFileSync(OUT, JSON.stringify(unique));
 const size = fs.statSync(OUT).size;
 console.log(
-  `Wrote ${unique.length} airports to ${OUT} (${(size / 1024).toFixed(1)} KB); skipped ${skippedNoTz} without timezone`,
+  `Wrote ${unique.length} airports to ${OUT} (${(size / 1024).toFixed(1)} KB); kept ${kept} no longer listed; skipped ${skippedNoTz} without timezone`,
 );

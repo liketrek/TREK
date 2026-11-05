@@ -174,5 +174,14 @@ const places: TranslationStrings = {
   'places.image.needsConnection': 'En ny bild behöver en anslutning. Spara igen när du är online.',
   'places.openPhotos': 'Visa foton',
   'places.imageUploadError': 'Det gick inte att ladda upp bilden',
+  'places.refresh.pill': 'Nya platsuppgifter',
+  'places.refresh.title': 'Uppdatera platsuppgifter',
+  'places.refresh.intro':
+    'TREK känner till nyare uppgifter för den här platsen. Välj vad du vill ta över, resten förblir som det är. Spara platsen efteråt.',
+  'places.refresh.apply': 'Ta över',
+  'places.refresh.replaces': 'Ersätter det som är sparat nu',
+  'places.refresh.empty': 'tomt',
+  'places.refresh.now': 'Nu',
+  'places.refresh.new': 'Nytt',
 };
 export default places;

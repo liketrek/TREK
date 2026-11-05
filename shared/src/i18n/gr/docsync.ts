@@ -185,6 +185,13 @@ const docsync: TranslationStrings = {
   'docsync.error.provider_disabled':
     'Σε παύση: ένας διαχειριστής απενεργοποίησε αυτόν τον πάροχο. Ο συγχρονισμός θα συνεχιστεί μόλις ενεργοποιηθεί ξανά.',
   'docsync.binding.reconnect': 'Επανασύνδεση',
+  'docsync.connection.title': 'Σύνδεση',
+  'docsync.connection.hint':
+    'Η διεύθυνση και τα στοιχεία σύνδεσης που χρησιμοποιεί το TREK για αυτόν τον χώρο αποθήκευσης.',
+  'docsync.connection.edit': 'Επεξεργασία σύνδεσης',
+  'docsync.connection.remove': 'Αφαίρεση σύνδεσης',
+  'docsync.connection.confirmRemove':
+    'Το TREK ξεχνά τη διεύθυνση και τα στοιχεία σύνδεσης αυτού του χώρου αποθήκευσης και κάθε συγχρονισμός αυτού του ταξιδιού μέσω αυτού σταματά. Τα έγγραφα μένουν στο TREK και στον χώρο αποθήκευσης.',
 };
 
 export default docsync;

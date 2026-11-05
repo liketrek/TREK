@@ -20,11 +20,12 @@ import { ratingAggregate } from '../common/rowShape';
 import { UnsplashService } from '../unsplash/unsplash.service';
 import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
 import { type UpdateConflict, isUpdateConflict } from '../common/conflictResult';
-import { isUploadedPlaceImage, placeImageUrl } from './place-image';
+import { placeImageUrl } from './place-image';
 import { MAX_PLACE_IMAGE_SIZE, PLACE_IMAGE_EXTENSIONS } from '../common/place-image-upload';
 import { randomUUID } from 'node:crypto';
 import { JourneyDomainService } from '../journey/journey-domain.service';
 import { StorageService } from '../storage/storage.service';
+import { StorageReleaseService } from '../storage/storage-release.service';
 import { AccommodationsService } from '../accommodations/accommodations.service';
 import { Places } from '../../db/entities/Places.entity';
 import { Tags } from '../../db/entities/Tags.entity';
@@ -42,8 +43,6 @@ import type { CategoriesRepository } from '../../db/repositories/Categories.repo
 import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import { BudgetItems } from '../../db/entities/BudgetItems.entity';
 import type { BudgetItemsRepository } from '../../db/repositories/BudgetItems.repository';
-import { CollectionPlaces } from '../../db/entities/CollectionPlaces.entity';
-import type { CollectionPlacesRepository } from '../../db/repositories/CollectionPlaces.repository';
 
 /** Rows a place delete took down with the nights booked there, for the caller to announce. */
 export interface CancelledStays {
@@ -58,7 +57,7 @@ import {
   buildCategoryNameLookup,
   escapeLikePattern,
   dedupSetOf,
-  isPlaceDuplicate,
+  isPlaceDuplicate, lineCandidate,
   mapWithConcurrency,
   pickEnrichmentMatch,
   reclaimPhotoCache,
@@ -157,16 +156,11 @@ export class PlacesService {
     @InjectRepository(TripMembers) private readonly tripMembersRepo: TripMembersRepository,
     @InjectRepository(DayAssignments) private readonly dayAssignmentsRepo: DayAssignmentsRepository,
     @InjectRepository(Categories) private readonly categoriesRepo: CategoriesRepository,
-    // Task 9 fix wave (B-M2 / A-L3 ruling): `DatabaseService.getTripTitle`
-    // does not stay — it was the one method on that class this domain's own
-    // PL28 comment said should convert like its siblings once concurrent
-    // implementers stopped colliding on this file. `Trips` is already on
-    // `PlacesModule`'s `forFeature` list, so this needs no module change.
+    // Task 9 fix wave (B-M2 / A-L3): PL28's trip title, read here since `DatabaseService.getTripTitle` went.
     @InjectRepository(Trips) private readonly tripsRepo: TripsRepository,
     // Plan 3e Task 2 (budget) — additive, PL15/PL18/PL22 only.
     @InjectRepository(BudgetItems) private readonly budgetItemsRepo: BudgetItemsRepository,
-    // Plan 3h Task 6 (survivors) — additive, SV-PI2's `reclaimPlaceImage` only.
-    @InjectRepository(CollectionPlaces) private readonly collectionPlacesRepo: CollectionPlacesRepository,
+    private readonly release: StorageReleaseService, // the images a change or a delete left unnamed (#2924)
     // Reading files and shared lists; this service only persists what it reads.
     private readonly placeImport: PlaceImportService,
   ) {}
@@ -244,37 +238,6 @@ export class PlacesService {
     this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
-  /**
-   * Delete a custom place-image object once nothing references it any more
-   * (moved in from `place-image.ts`'s free function `reclaimPlaceImage`,
-   * option (a) — see `place-image.ts`'s own docstring for why that free
-   * function stays, unconverted, for `collections.service.ts`'s own call
-   * sites). A trip place and a collection saved-place can share the same
-   * uploaded file — save-to-collection and copy-to-trip copy `image_url` by
-   * reference — so this ref-counts across both tables before deleting.
-   *
-   * PI1 (`SELECT 1 FROM places WHERE image_url = ? LIMIT 1`) through
-   * `PlacesRepository.existsByImageUrl`; PI2 (`SELECT 1 FROM collection_places
-   * WHERE image_url = ? LIMIT 1`) through `CollectionPlacesRepository
-   * .existsByImageUrl` (Plan 3h Task 6, closing out the carve-out), evaluated
-   * only when PI1 is false — reproducing the legacy `UNION ALL … LIMIT 1`'s
-   * short-circuit by evaluation order, the same pattern
-   * `PlacePhotoCacheService.isReferenced` uses for the same two tables
-   * (Plan 3c Task 1's PP6 ruling). `path.basename()` keeps the storage name
-   * confined to the 'places' category. Best-effort: never throws (central
-   * key validation rejects a hostile stored value; the catch swallows it
-   * exactly like the legacy unlink guard).
-   */
-  private async reclaimPlaceImage(url: string | null | undefined): Promise<void> {
-    if (!isUploadedPlaceImage(url)) return;
-    if (await this.placesRepo.existsByImageUrl(url)) return;
-    // PI2 (Plan 3h Task 6) — `CollectionPlacesRepository.existsByImageUrl`.
-    if (await this.collectionPlacesRepo.existsByImageUrl(url)) return;
-    await this.storage.delete('places', path.basename(url)).catch(() => {
-      /* best-effort */
-    });
-  }
-
   // -------------------------------------------------------------------------
   // List places
   // -------------------------------------------------------------------------
@@ -319,7 +282,7 @@ export class PlacesService {
   /**
    * Makes a picture already attached in the trip the place's own image (#1242). The file
    * is copied, not pointed at: the place keeps its picture when the attachment is deleted,
-   * and the update path reclaims the copy like any other uploaded image. Returns a reason
+   * and the storage reclaim job takes the copy like any other uploaded image. Returns a reason
    * string when the file cannot serve, the updated place otherwise.
    */
   async setImageFromFile(tripId: string, placeId: string, fileId: number): Promise<'not_found' | 'not_image' | 'too_large' | Awaited<ReturnType<PlacesService['update']>>> {
@@ -335,7 +298,8 @@ export class PlacesService {
     const { stream } = await this.storage.getStream('files', path.basename(file.filename));
     await this.storage.put('places', name, stream, { contentType: mime });
     const updated = await this.update(tripId, placeId, { image_url: placeImageUrl(name) } as never);
-    if (!updated || isUpdateConflict(updated)) await this.reclaimPlaceImage(placeImageUrl(name));
+    // The copy is this request's own until the update names it, so a failed update drops it here.
+    if (!updated || isUpdateConflict(updated)) await this.storage.delete('places', name).catch(() => undefined);
     return updated;
   }
 
@@ -447,22 +411,21 @@ export class PlacesService {
     body: PlaceUpdateInput,
     ifMatch?: string,
   ): Promise<PlaceWithTags | UpdateConflict | null> {
-    const { result, reclaim } = await this.uow.transactional(() => this.applyUpdate(tripId, placeId, body, ifMatch));
-    if (reclaim !== undefined) await this.reclaimPlaceImage(reclaim);
+    const { result, previousImage } = await this.uow.transactional(() => this.applyUpdate(tripId, placeId, body, ifMatch));
+    await this.release.releaseValues([previousImage]); // after the commit: kept while a copy or a cover names it
     return result;
   }
 
   /**
    * The DB half of update(). Split out so updateMany() can run it inside the
-   * same UnitOfWork transaction and settle the storage reclaims after the
-   * transaction commits.
+   * same UnitOfWork transaction.
    */
   private async applyUpdate(
     tripId: string,
     placeId: string,
     body: PlaceUpdateInput,
     ifMatch?: string,
-  ): Promise<{ result: PlaceWithTags | UpdateConflict | null; reclaim?: string | null }> {
+  ): Promise<{ result: PlaceWithTags | UpdateConflict | null; previousImage?: string | null }> {
     // PL9 — the pre-image read every `!== undefined` fallback below needs.
     // `toRowId` first (Task 3 review H1, absorbed here): every write in
     // this method (`updatePlace`, `tagsRepo.deleteForPlace`/`insertIgnore`)
@@ -555,14 +518,8 @@ export class PlacesService {
       if (tags.length > 0) await this.tagsRepo.insertIgnore(id, await this.tagsOnTrip(tid, tags)); // PL13
     }
 
-    // A custom uploaded thumbnail (#1136) that was just replaced or cleared leaves
-    // an orphan file behind — reclaim it (in the caller, once any enclosing
-    // transaction committed) if nothing references it any more.
-    const reclaim = image_url !== undefined && image_url !== existingPlace.image_url
-      ? existingPlace.image_url
-      : undefined;
-
-    return { result: await this.placesRepo.findWithTagsAndRatings(id), reclaim }; // PL14
+    // PL14; the image this write replaced (#1136), for the caller to release once the transaction committed.
+    return { result: await this.placesRepo.findWithTagsAndRatings(id), previousImage: image_url !== undefined ? existingPlace.image_url : null };
   }
 
   // -------------------------------------------------------------------------
@@ -654,7 +611,7 @@ export class PlacesService {
       await this.placesRepo.deleteById(id);
     });
     await reclaimPhotoCache(this.photoCache, place.google_place_id, place.image_url);
-    await this.reclaimPlaceImage(place.image_url);
+    await this.release.releaseValues([place.image_url]);
     return { deleted: true, deletedTourPlaceIds: wasTour ? [id] : [], cancelled };
   }
 
@@ -699,8 +656,8 @@ export class PlacesService {
     // Reclaim after the transaction commits so isReferenced() sees the final place set.
     for (const row of reclaimable) {
       await reclaimPhotoCache(this.photoCache, row.google_place_id, row.image_url);
-      await this.reclaimPlaceImage(row.image_url);
     }
+    await this.release.releaseValues(reclaimable.map((row) => row.image_url));
     return { deleted, deletedTourPlaceIds, cancelled };
   }
 
@@ -728,19 +685,17 @@ export class PlacesService {
   async updateMany(tripId: string, ids: number[], body: PlaceUpdateInput): Promise<PlaceWithTags[]> {
     if (ids.length === 0) return [];
     const updated: PlaceWithTags[] = [];
-    const reclaims: (string | null)[] = [];
+    const previousImages: (string | null | undefined)[] = [];
     await this.uow.transactional(async () => {
       for (const id of ids) {
         // Bulk update sends no If-Match, so applyUpdate() never returns a
         // conflict here; the guard keeps the types honest.
-        const { result: place, reclaim } = await this.applyUpdate(tripId, String(id), body);
+        const { result: place, previousImage } = await this.applyUpdate(tripId, String(id), body);
         if (place && !isUpdateConflict(place)) updated.push(place);
-        if (reclaim !== undefined) reclaims.push(reclaim);
+        previousImages.push(previousImage);
       }
     });
-    // Settle reclaims after the transaction commits, so the refcount sees the
-    // final image_url state.
-    for (const reclaim of reclaims) await this.reclaimPlaceImage(reclaim);
+    await this.release.releaseValues(previousImages); // one bulk value may have replaced many uploads
     return updated;
   }
 
@@ -758,7 +713,7 @@ export class PlacesService {
   async gpxDuplicates(tripId: string, rows: PreparedGpxPlace[]): Promise<boolean[]> {
     const dedup = await this.buildDedupSet(tripId);
     return rows.map((wp) => {
-      const candidate = { name: wp.name, lat: wp.lat, lng: wp.lng };
+      const candidate = lineCandidate(wp.name, wp);
       if (isPlaceDuplicate(candidate, dedup)) return true;
       trackInsertedInDedupSet(candidate, dedup);
       return false;
@@ -925,7 +880,7 @@ export class PlacesService {
     // `findWithTagsAndRatings` INSIDE the caller's transaction, so the read
     // sees the still-uncommitted row.
     for (const wp of waypoints) {
-      if (isPlaceDuplicate({ name: wp.name, lat: wp.lat, lng: wp.lng }, dedup)) {
+      if (isPlaceDuplicate(lineCandidate(wp.name, wp), dedup)) {
         skipped++;
         continue;
       }
@@ -960,7 +915,7 @@ export class PlacesService {
       });
       const place = (await this.placesRepo.findWithTagsAndRatings(placeId))!;
       created.push(place);
-      trackInsertedInDedupSet({ name: wp.name, lat: wp.lat, lng: wp.lng }, dedup);
+      trackInsertedInDedupSet(lineCandidate(wp.name, wp), dedup);
     }
 
     return { places: created, count: created.length, skipped };
@@ -1033,7 +988,7 @@ export class PlacesService {
         const fallbackName = `Placemark ${fallbackIndex}`;
         const name = parsedPlacemark.name || fallbackName;
 
-        if (isPlaceDuplicate({ name, lat: parsedPlacemark.lat, lng: parsedPlacemark.lng }, dedup)) {
+        if (isPlaceDuplicate(lineCandidate(name, parsedPlacemark), dedup)) {
           summary.skippedCount += 1;
           dupCount++;
           fallbackIndex += 1;
@@ -1079,7 +1034,7 @@ export class PlacesService {
 
         const place = (await this.placesRepo.findWithTagsAndRatings(placeId))!;
         created.push(place);
-        trackInsertedInDedupSet({ name, lat: parsedPlacemark.lat, lng: parsedPlacemark.lng }, dedup);
+        trackInsertedInDedupSet(lineCandidate(name, parsedPlacemark), dedup);
         summary.createdCount += 1;
         fallbackIndex += 1;
       }

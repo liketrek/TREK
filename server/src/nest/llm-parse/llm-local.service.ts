@@ -26,6 +26,12 @@ const tagsResponseSchema = z.object({
 /** The OpenAI-compatible list (`GET /v1/models`) that LM Studio, vLLM and llama.cpp serve. */
 const openAiModelsSchema = z.object({ data: z.array(z.object({ id: z.string().optional() })) });
 
+/** One place a server may list its models, and how its answer reads. */
+interface ModelListSource {
+  url: string;
+  read: (body: unknown) => { name?: string; size?: number }[] | undefined;
+}
+
 /** The Bearer header the extraction sends, when a key is configured. */
 function authHeader(apiKey: string | undefined): Record<string, string> {
   return apiKey ? { authorization: `Bearer ${apiKey}` } : {};
@@ -43,9 +49,21 @@ function upstreamRefusal(status: number, apiKey: string | undefined, fallback: s
       apiKey
         ? `Local LLM server rejected the API key (${status})`
         : `Local LLM server requires an API key (${status}). Save the key for this address first.`,
+      { code: 'llm_key_refused' },
     );
   }
   return new DomainError(502, fallback);
+}
+
+/**
+ * A URL without its trailing slashes. Scanned off instead of `/\/+$/`-replaced:
+ * that pattern re-walks the slash run from every start position of the
+ * admin-supplied URL.
+ */
+function trimTrailingSlashes(url: string): string {
+  let end = url.length;
+  while (end > 0 && url.charCodeAt(end - 1) === 47 /* '/' */) end--;
+  return url.slice(0, end);
 }
 
 /**
@@ -72,11 +90,7 @@ export class LlmLocalService {
     if (url.protocol !== 'http:' && url.protocol !== 'https:') {
       throw new HttpException({ error: 'Base URL must be http(s)' }, 400);
     }
-    // Trailing slashes are scanned off instead of `/\/+$/`-replaced: that pattern
-    // re-walks the slash run from every start position of the admin-supplied URL.
-    let end = raw.length;
-    while (end > 0 && raw.charCodeAt(end - 1) === 47 /* '/' */) end--;
-    return raw.slice(0, end).replace(/\/v1$/, '');
+    return trimTrailingSlashes(raw).replace(/\/v1$/, '');
   }
 
   /**
@@ -94,39 +108,69 @@ export class LlmLocalService {
   }
 
   /**
-   * List models already pulled on the local server. A server without Ollama's
-   * `/api/tags` (LM Studio, vLLM, llama.cpp) answers 404 there, so its
-   * OpenAI-compatible `/v1/models` is asked instead.
+   * List the models the server offers. Ollama's `/api/tags` is asked first, then
+   * the OpenAI-compatible list: at the address as entered (the one the chat
+   * calls `/chat/completions` on, `https://api.groq.com/openai/v1` say), then at
+   * `/v1/models` under the root for an address given without `/v1`.
+   *
+   * An answer only counts when it reads as a model list. LM Studio answers an
+   * unknown path with 200 and an error object, and a proxy may answer it with a
+   * login page, so stopping at the first answer that is not a 404 refused
+   * servers whose list was one request further (#2808).
    */
   async listModels(
     baseUrl: string | undefined,
     apiKey?: string,
   ): Promise<{ models: { name: string; size: number }[] }> {
     const root = this.ollamaRoot(baseUrl);
-    let res = await this.getModelList(`${root}/api/tags`, root, apiKey);
-    let openAi = false;
-    if (res.status === 404) {
-      const fallback = await this.getModelList(`${root}/v1/models`, root, apiKey);
-      if (fallback.ok) {
-        discardBody(res);
-        res = fallback;
-        openAi = true;
+    const asEntered = trimTrailingSlashes((baseUrl ?? '').trim()) || root;
+    const lists: ModelListSource[] = [
+      { url: `${root}/api/tags`, read: (body) => tagsResponseSchema.safeParse(body).data?.models },
+      ...[...new Set([`${asEntered}/models`, `${root}/v1/models`])].map((url) => ({
+        url,
+        read: (body: unknown) => openAiModelsSchema.safeParse(body).data?.data.map((m) => ({ name: m.id, size: 0 })),
+      })),
+    ];
+    const seen = { firstStatus: 0, refusedStatus: 0 };
+    const listed = await this.firstModelList(lists, 0, root, apiKey, seen);
+    if (listed) return { models: listed.map((m) => ({ name: m.name ?? '', size: m.size ?? 0 })).filter((m) => m.name) };
+    if (seen.refusedStatus) throw upstreamRefusal(seen.refusedStatus, apiKey, '');
+    throw new DomainError(502, `Local LLM server sent no model list (${seen.firstStatus})`, {
+      code: 'llm_no_model_list',
+    });
+  }
+
+  /**
+   * The first of `lists`, from `index` on, that answers with a readable list,
+   * asked one after the other. Only the first request tells whether the server
+   * is there at all; a later one failing is that path, not the server.
+   */
+  private async firstModelList(
+    lists: ModelListSource[],
+    index: number,
+    root: string,
+    apiKey: string | undefined,
+    seen: { firstStatus: number; refusedStatus: number },
+  ): Promise<{ name?: string; size?: number }[] | null> {
+    const list = lists[index];
+    if (!list) return null;
+    let res: Response | null = null;
+    try {
+      res = await this.getModelList(list.url, root, apiKey);
+    } catch (err) {
+      if (index === 0) throw err;
+    }
+    if (res) {
+      seen.firstStatus ||= res.status;
+      if (res.status === 401 || res.status === 403) seen.refusedStatus ||= res.status;
+      if (res.ok) {
+        const listed = list.read(await readCappedJson<unknown>(res, MAX_LIST_BYTES).catch(() => undefined));
+        if (listed) return listed;
       } else {
-        // Neither list exists: report the first answer, as before.
-        discardBody(fallback);
+        discardBody(res);
       }
     }
-    if (!res.ok) {
-      discardBody(res);
-      throw upstreamRefusal(res.status, apiKey, `Local LLM server error (${res.status})`);
-    }
-    const body = await readCappedJson<unknown>(res, MAX_LIST_BYTES);
-    const listed = openAi
-      ? openAiModelsSchema.safeParse(body).data?.data.map((m) => ({ name: m.id, size: 0 }))
-      : tagsResponseSchema.safeParse(body).data?.models;
-    if (!listed) throw new DomainError(502, 'Local LLM server sent an unreadable model list');
-    const models = listed.map((m) => ({ name: m.name ?? '', size: m.size ?? 0 })).filter((m) => m.name);
-    return { models };
+    return this.firstModelList(lists, index + 1, root, apiKey, seen);
   }
 
   private async getModelList(url: string, root: string, apiKey: string | undefined): Promise<Response> {

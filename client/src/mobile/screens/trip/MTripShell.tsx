@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ComponentType, type ReactNode } from 'react'
 import { findFocusDayId, findTodayDayId } from '../../../components/Planner/today'
 import { takeResumeDay } from '../../../utils/resumeRoute'
 import {
@@ -266,22 +266,29 @@ export default function MTripShell({
   // screen — the rail overflows from roughly six days on — so the active chip
   // pulls itself back into view. Only when it is really clipped, so tapping a
   // chip you can already see never shifts the rail under your thumb.
+  // The opening day is chosen while the splash still covers the shell (#2880),
+  // so the rail itself is a dependency: the chip is lined up when the rail
+  // appears, in place rather than gliding across a rail nobody has seen yet.
   const chipRefs = useRef(new Map<number, HTMLButtonElement>())
-  useEffect(() => {
+  const [dayRail, setDayRail] = useState<HTMLDivElement | null>(null)
+  const alignedRailRef = useRef<HTMLDivElement | null>(null)
+  useLayoutEffect(() => {
     const chip = planner.selectedDayId != null ? chipRefs.current.get(planner.selectedDayId) : undefined
-    const rail = chip?.parentElement
-    if (!chip || !rail) return
+    if (!chip || !dayRail) return
+    const firstView = alignedRailRef.current !== dayRail
+    alignedRailRef.current = dayRail
     const c = chip.getBoundingClientRect()
-    const r = rail.getBoundingClientRect()
+    const r = dayRail.getBoundingClientRect()
     if (c.left >= r.left - 1 && c.right <= r.right + 1) return
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches
     // block:'nearest' is not optional: the shell root is `fixed inset-0`, and
     // 'center' would scroll the document behind it instead.
     chip.scrollIntoView({
-      behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ? 'auto' : 'smooth',
+      behavior: firstView || reducedMotion ? 'auto' : 'smooth',
       inline: 'center',
       block: 'nearest',
     })
-  }, [planner.selectedDayId, days])
+  }, [planner.selectedDayId, days, dayRail])
 
   const trTab = planner.activeTab
 
@@ -491,7 +498,7 @@ export default function MTripShell({
       {/* ── Day chips (z-25 — covered by non-plan tab overlays, stays mounted) ── */}
       {days.length > 0 && (
         <div className="absolute inset-x-4 z-[25] flex gap-[6px] top-[calc(var(--m-safe-top,12px)+50px)]">
-          <div className="flex flex-1 items-center gap-[2px] overflow-x-auto rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-[3px] backdrop-blur-[24px] backdrop-saturate-[1.7]">
+          <div ref={setDayRail} className="flex flex-1 items-center gap-[2px] overflow-x-auto rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-[3px] backdrop-blur-[24px] backdrop-saturate-[1.7]">
             {days.map((day, idx) => {
               const active = day.id === planner.selectedDayId
               const isToday = day.id === todayDayId

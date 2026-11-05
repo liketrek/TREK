@@ -1,4 +1,4 @@
-import { useEffect, useRef, useImperativeHandle, useCallback, type CSSProperties, type Ref } from 'react'
+import { useEffect, useRef, useImperativeHandle, useCallback, type CSSProperties, type Ref, type RefObject } from 'react'
 import { clusterPhotos, photoMarkerHtml, type MapPhoto } from './journeyPhotoLayer'
 import L from 'leaflet'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -11,7 +11,8 @@ import { escapeHtml, type JourneyTrack } from '@trek/shared'
 import { ensureJourneyPopupStyle, formatMarkerDate, journeyPopupHtml } from './journeyMapPopup'
 import { PLANNED_BADGE_SVG, type JourneyMapMark } from './journeyMapMarks'
 import { isPlannedTrack, type JourneyMapLayerVisibility } from './journeyMapLayers'
-import { NOTHING_DRAWN, drawLeafletMarks, switchLeafletLayers, type DrawnLayers, type LeafletLayerKind } from './journeyLeafletLayers'
+import { NOTHING_DRAWN, drawLeafletMarks, isLeafletLayerShown, leafletWorldPx, switchLeafletLayers, type DrawnLayers, type LeafletLayerKind } from './journeyLeafletLayers'
+import { entryConnections } from './journeyMapConnections'
 
 export interface MapMarkerItem {
   id: string
@@ -22,7 +23,7 @@ export interface MapMarkerItem {
   mood?: string | null
   time: string
   dayColor: string
-  dayLabel: number
+  dayLabel: number | null
   photoUrls: string[]
 }
 
@@ -44,7 +45,7 @@ interface MapEntry {
   mood?: string | null
   entry_date: string
   dayColor?: string
-  dayLabel?: number
+  dayLabel?: number | null
   /** Thumbnails for the marker card, already resolved by the caller (the share view signs its own). */
   photoUrls?: string[]
 }
@@ -65,15 +66,15 @@ interface Props {
   onMarkerClick?: (id: string, type?: string) => void
   fullScreen?: boolean
   /**
-   * Leave the marker labels off.
+   * Open the entry a marker card names when the card itself is tapped.
    *
-   * On the phone the map sits above a carousel whose active card already carries
-   * the entry's name, and a tooltip on touch is a tap-to-open box rather than a
-   * hover hint — so it says the same thing twice and covers the map to do it
-   * (discussion #2299). On desktop the label is the only name a marker has, so
-   * this stays off there.
+   * On a phone the card is what a tap on a pin brings up, so it has to lead
+   * somewhere (#2885). Wiring it is what makes the card take the pointer, and the
+   * card then stands over the active pin, as the GL popup does; without
+   * it the card stays a label the map's drags pass through, as on desktop, where
+   * it is a hover card the mouse cannot reach.
    */
-  hideMarkerTooltip?: boolean
+  onMarkerCardClick?: (entryId: string) => void
   paddingBottom?: number
   /** CARTO key from the share payload: the public journey has no settings store to read. */
   cartoApiKey?: string
@@ -116,7 +117,7 @@ function buildMarkerItems(entries: MapEntry[]): MapMarkerItem[] {
         mood: e.mood,
         time: e.entry_date,
         dayColor: e.dayColor || '#52525B',
-        dayLabel: e.dayLabel ?? 1,
+        dayLabel: e.dayLabel === undefined ? 1 : e.dayLabel,
         photoUrls: e.photoUrls ?? [],
       })
     }
@@ -128,12 +129,12 @@ function buildMarkerItems(entries: MapEntry[]): MapMarkerItem[] {
 const MARKER_W = 28
 const MARKER_H = 36
 
-function markerSvg(dayColor: string, dayLabel: number, highlighted: boolean, planned = false): string {
+function markerSvg(dayColor: string, dayLabel: number | null, highlighted: boolean, planned = false): string {
   const stroke = highlighted ? '#fff' : 'rgba(255,255,255,0.5)'
   const shadow = highlighted
     ? 'filter:drop-shadow(0 0 10px rgba(0,0,0,0.4)) drop-shadow(0 2px 6px rgba(0,0,0,0.4))'
     : 'filter:drop-shadow(0 2px 4px rgba(0,0,0,0.25))'
-  const label = String(dayLabel)
+  const label = dayLabel === null ? '' : String(dayLabel)
   const scale = highlighted ? 1.2 : 1
 
   return `<div style="transform:scale(${scale});transition:transform 0.2s ease;${shadow};transform-origin:bottom center">
@@ -184,6 +185,91 @@ function panToMarker(map: L.Map, marker: L.Marker): void {
   })
 }
 
+/**
+ * The same card the GL renderer shows, from the same builder: which map engine a
+ * reader happens to have selected should not change what a marker tells them
+ * (discussion #2299). The builder escapes everything that came from a person,
+ * which matters most here, since this map is what the public journey page renders.
+ */
+function entryCardHtml(item: MapMarkerItem): string {
+  return journeyPopupHtml({
+    title: item.label || item.locationName || 'Entry',
+    place: item.label ? item.locationName : '',
+    date: formatMarkerDate(item.time),
+    photoUrls: item.photoUrls,
+  })
+}
+
+const ENTRY_CARD_OPTIONS: L.TooltipOptions = { direction: 'top', offset: [0, -MARKER_H] }
+
+/**
+ * The card that opens its entry when tapped (#2885), one per map like the GL
+ * popup, shown above the active pin.
+ *
+ * It is deliberately not bound to the pins. A bound tooltip is opened and closed
+ * by Leaflet on the pin's hover and focus, and a tap on the card is, to a phone,
+ * the pointer leaving the pin: the pin's mouseout closed the card between the
+ * tap and its click. Driven by the active pin alone, nothing but a change of
+ * entry takes it away.
+ */
+function createEntryCard(open: () => void): L.Tooltip {
+  const card = L.tooltip({ ...ENTRY_CARD_OPTIONS, className: 'map-tooltip trek-journey-tooltip is-openable' })
+  // The element is built on the first open and kept for every later one.
+  card.once('add', () => {
+    const el = card.getElement()
+    if (!el) return
+    // A press on the card is not the start of a drag or a tap on the map.
+    L.DomEvent.disableClickPropagation(el)
+    L.DomEvent.on(el, 'click', (ev) => {
+      L.DomEvent.stopPropagation(ev)
+      open()
+    })
+  })
+  return card
+}
+
+interface PinRefs {
+  onCardClickRef: RefObject<((entryId: string) => void) | undefined>
+  mapRef: RefObject<L.Map | null>
+  markersRef: RefObject<Map<string, L.Marker>>
+  itemsRef: RefObject<MapMarkerItem[]>
+  highlightedRef: RefObject<string | null>
+}
+
+/**
+ * The openable card of a host that wires onMarkerCardClick. The returned sync puts
+ * it over the active pin while that pin is on the map and takes it off otherwise.
+ */
+function useEntryCardSync({ onCardClickRef, mapRef, markersRef, itemsRef, highlightedRef }: PinRefs): () => void {
+  const cardRef = useRef<L.Tooltip | null>(null)
+  const cardEntryIdRef = useRef<string | null>(null)
+
+  const sync = useCallback(() => {
+    const map = mapRef.current
+    const id = highlightedRef.current
+    const marker = id ? markersRef.current.get(id) : undefined
+    const item = id ? itemsRef.current.find(i => i.id === id) : undefined
+    if (!onCardClickRef.current || !map || !marker || !item || !map.hasLayer(marker)) {
+      cardRef.current?.remove()
+      cardEntryIdRef.current = null
+      return
+    }
+    ensureJourneyPopupStyle()
+    let card = cardRef.current
+    if (!card) {
+      card = createEntryCard(() => {
+        if (cardEntryIdRef.current) onCardClickRef.current?.(cardEntryIdRef.current)
+      })
+      cardRef.current = card
+    }
+    cardEntryIdRef.current = item.id
+    card.setLatLng(marker.getLatLng()).setContent(entryCardHtml(item))
+    if (!map.hasLayer(card)) card.addTo(map)
+  }, [onCardClickRef, mapRef, markersRef, itemsRef, highlightedRef])
+
+  return sync
+}
+
 const EMPTY_TRAIL: { lat: number; lng: number }[] = []
 const EMPTY_TRACKS: JourneyTrack[] = []
 /** Fallback when a track carries no colour of its own, matching the planner's default. */
@@ -200,12 +286,12 @@ function fitOptions(paddingBottom: number | undefined): L.FitBoundsOptions {
 }
 
 function JourneyMap(
-  { entries, photos, onPhotoClick, trail, tracks, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, cartoApiKey, hideMarkerTooltip, layerVisibility = EVERY_LAYER, marks, onMarksPick, plannedEntryIds = NO_PLANNED, ref }: Props,
+  { entries, photos, onPhotoClick, trail, tracks, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, cartoApiKey, onMarkerCardClick, layerVisibility = EVERY_LAYER, marks, onMarksPick, plannedEntryIds = NO_PLANNED, ref }: Props,
 ) {
-  // Read through a ref: the flag is fixed per surface, and putting it in the
+  // Read through a ref: the handler is fixed per surface, and putting it in the
   // marker effect's deps would rebuild every marker for nothing.
-  const hideMarkerTooltipRef = useRef(hideMarkerTooltip)
-  hideMarkerTooltipRef.current = hideMarkerTooltip
+  const onMarkerCardClickRef = useRef(onMarkerCardClick)
+  onMarkerCardClickRef.current = onMarkerCardClick
   const stableTrail = trail || EMPTY_TRAIL
   const stableTracks = tracks || EMPTY_TRACKS
   const mapTileUrl = useSettingsStore(s => s.settings.map_tile_url)
@@ -256,6 +342,8 @@ function JourneyMap(
     plannedRef.current = plannedEntryIds
   })
 
+  const syncEntryCard = useEntryCardSync({ onCardClickRef: onMarkerCardClickRef, mapRef, markersRef, itemsRef, highlightedRef })
+
   const highlightMarker = useCallback((id: string | null) => {
     const prev = highlightedRef.current
     highlightedRef.current = id
@@ -264,7 +352,8 @@ function JourneyMap(
     )
     if (prev && prev !== id) paint(prev, false)
     if (id) paint(id, true)
-  }, [])
+    syncEntryCard()
+  }, [syncEntryCard])
 
   /**
    * Bring an entry's marker under the reader without changing how far out they are.
@@ -347,7 +436,7 @@ function JourneyMap(
     iconPlannedRef.current = plannedRef.current
     const place = <T extends L.Layer>(kind: LeafletLayerKind, layer: T): T => {
       drawn[kind].push(layer)
-      if (visibilityRef.current[kind]) layer.addTo(map)
+      if (isLeafletLayerShown(kind, visibilityRef.current)) layer.addTo(map)
       return layer
     }
 
@@ -403,17 +492,18 @@ function JourneyMap(
       coords.forEach(c => trackCoords.push(c))
     }
 
-    // route trail: dashed line connecting entries in time order, same as JourneyMapGL
-    if (items.length > 1) {
-      const routeCoords = items.map(i => [i.lat, i.lng] as L.LatLngTuple)
-      place('entries', L.polyline(routeCoords, {
-        color: dark ? '#71717A' : '#A1A1AA',
-        weight: 1.5,
-        opacity: 0.5,
-        dashArray: '4 6',
-        lineCap: 'round', lineJoin: 'round',
-      }))
+    // The faint line between the entries in their order, same as JourneyMapGL, left
+    // off the stretches a recorded day already draws as travelled (#2888).
+    const connections = entryConnections(items.map(i => ({ lat: i.lat, lng: i.lng, date: i.time })), stableTracks)
+    const connectionStyle: L.PolylineOptions = {
+      color: dark ? '#71717A' : '#A1A1AA',
+      weight: 1.5,
+      opacity: 0.5,
+      dashArray: '4 6',
+      lineCap: 'round', lineJoin: 'round',
     }
+    for (const line of connections.open) place('entries', L.polyline(line, connectionStyle))
+    for (const line of connections.covered) place('coveredConnections', L.polyline(line, connectionStyle))
 
     // place markers
     items.forEach((item, i) => {
@@ -421,26 +511,11 @@ function JourneyMap(
       allCoords.push(pos)
 
       const marker = place('entries', L.marker(pos, { icon: entryIcon(item, false, plannedRef.current.has(item.id)) }))
-      // The same card the GL renderer shows, from the same builder: which map
-      // engine a reader happens to have selected should not change what a marker
-      // tells them (discussion #2299). The builder escapes everything that came
-      // from a person, which matters most here — this map is what the public
-      // journey page renders.
-      if (!hideMarkerTooltipRef.current) {
+      // A host that opens the entry from its card gets the one card that follows
+      // the active pin instead (see syncEntryCard).
+      if (!onMarkerCardClickRef.current) {
         ensureJourneyPopupStyle()
-        marker.bindTooltip(
-          journeyPopupHtml({
-            title: item.label || item.locationName || 'Entry',
-            place: item.label ? item.locationName : '',
-            date: formatMarkerDate(item.time),
-            photoUrls: item.photoUrls,
-          }),
-          {
-            direction: 'top',
-            offset: [0, -MARKER_H],
-            className: 'map-tooltip trek-journey-tooltip',
-          },
-        )
+        marker.bindTooltip(entryCardHtml(item), { ...ENTRY_CARD_OPTIONS, className: 'map-tooltip trek-journey-tooltip' })
       }
 
       marker.on('click', () => {
@@ -487,7 +562,8 @@ function JourneyMap(
   // A switch puts its layer back on the map or takes it off, exactly as drawn.
   useEffect(() => {
     shownRef.current = switchLeafletLayers(mapRef.current, drawnRef.current, shownRef.current, layerVisibility)
-  }, [layerVisibility])
+    syncEntryCard()
+  }, [layerVisibility, syncEntryCard])
 
   // The plan's check on an entry pin follows the plan layer without redrawing the map.
   useEffect(() => {
@@ -509,8 +585,8 @@ function JourneyMap(
   }, [tileUrl])
 
   // Photo layer (#1614). Its own effect on purpose: photos arriving must not tear
-  // down and rebuild the map the way the entry effect does. Redrawn on zoom and
-  // pan because the clustering is done in screen space.
+  // down and rebuild the map the way the entry effect does. Redrawn after every
+  // move, but the clusters sit on a world grid, so only a zoom regroups them.
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
@@ -522,7 +598,7 @@ function JourneyMap(
 
       // The initial view (setView/fitBounds) is set on a deferred rAF in the
       // map-build effect above, so this can run before the map has a center/zoom
-      // — latLngToContainerPoint throws in that window. Skip; the moveend/zoomend
+      // and nothing can be projected in that window. Skip; the moveend/zoomend
       // listener below redraws once the deferred view lands.
       try {
         map.getCenter()
@@ -531,7 +607,7 @@ function JourneyMap(
       }
 
       const group = L.layerGroup()
-      for (const cluster of clusterPhotos(photos, (lat, lng) => map.latLngToContainerPoint([lat, lng]))) {
+      for (const cluster of clusterPhotos(photos, leafletWorldPx(map))) {
         const marker = L.marker([cluster.lat, cluster.lng], {
           icon: L.divIcon({
             className: '',
@@ -563,7 +639,7 @@ function JourneyMap(
 
   // The plan's places and the stays of day reports (JRN-04), in their own layer
   // like the photos: below the entry pins and above the thumbnails, regrouped
-  // on every move because marks are only joined where they would overlap.
+  // on zoom because marks are only joined where they would overlap.
   useEffect(() => {
     const map = mapRef.current
     if (!map) return

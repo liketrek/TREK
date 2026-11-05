@@ -35,7 +35,7 @@ export function FigureBadge({
         style={fs(11)}
       >
         {icon}
-        <span className="truncate">{value}</span>
+        <span className="whitespace-nowrap">{value}</span>
       </span>
     </span>
   );

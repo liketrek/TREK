@@ -108,6 +108,8 @@ const dashboard: TranslationStrings = {
   'dashboard.unsplashQueryRequired': 'Πληκτρολογήστε όρο αναζήτησης',
   'dashboard.unsplashNoResults': 'Δεν βρέθηκαν εικόνες',
   'dashboard.coverSearchError': 'Αποτυχία αναζήτησης στο Unsplash',
+  'dashboard.unsplashKeyNeeded':
+    'Το Unsplash απέρριψε αυτόν τον διακομιστή. Ένας διαχειριστής μπορεί να προσθέσει ένα δωρεάν κλειδί Unsplash API στις ρυθμίσεις διαχείρισης ώστε να λειτουργεί η αναζήτηση εικόνων.',
   'dashboard.useUnsplashPhoto': 'Χρήση φωτογραφίας Unsplash από {photographer}',
   'dashboard.titleRequired': 'Ο τίτλος είναι υποχρεωτικός',
   'dashboard.endDateError': 'Η ημερομηνία λήξης πρέπει να είναι μετά την ημερομηνία έναρξης',

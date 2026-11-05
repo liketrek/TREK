@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { Copy, Mail, Phone, RotateCcw, X } from 'lucide-react'
-import type { PlaceOpeningHours } from '@trek/shared'
+import type { PlaceClientOrigin, PlaceOpeningHours } from '@trek/shared'
 import CustomTimePicker from '../shared/CustomTimePicker'
 import { Tooltip } from '../shared/Tooltip'
 import { DialogSection, fs } from '../shared/DialogShell'
@@ -16,7 +16,8 @@ interface Props {
   email: string
   /** The stored hours text (JSON), empty when the place has none of its own. */
   openingHours: string
-  onChange: (field: 'phone' | 'email' | 'opening_hours', value: string) => void
+  /** `origin` is set when the hours were taken over from the details lookup rather than typed. */
+  onChange: (field: 'phone' | 'email' | 'opening_hours', value: string, origin?: PlaceClientOrigin) => void
   /**
    * The hours the place details column looked up, as a week. A place without
    * hours of its own takes them over on its own; one that has some gets a
@@ -51,11 +52,11 @@ export function PlaceContactFields({ id: anchorId, phone, email, openingHours, o
     if (openingHours) setEditing(true)
   }, [openingHours])
 
-  const setWeek = (next: PlaceOpeningHours) => {
+  const setWeek = (next: PlaceOpeningHours, origin?: PlaceClientOrigin) => {
     setDraft(next)
     const text = writeWeek(cleanWeek(next))
     written.current = text
-    onChange('opening_hours', text)
+    onChange('opening_hours', text, origin)
   }
   const setDay = (i: number, patch: Partial<PlaceOpeningHours[number]>) =>
     setWeek(week.map((day, d) => (d === i ? { ...day, ...patch } : day)))
@@ -68,7 +69,7 @@ export function PlaceContactFields({ id: anchorId, phone, email, openingHours, o
     if (!suggestedHours || adopted.current === suggestedHours) return
     adopted.current = suggestedHours
     if (written.current) return
-    setWeek(suggestedHours)
+    setWeek(suggestedHours, 'enrichment')
     setEditing(true)
     // setWeek only reads refs and setters; the lookup is the trigger.
   }, [suggestedHours])
@@ -99,7 +100,7 @@ export function PlaceContactFields({ id: anchorId, phone, email, openingHours, o
           <div className="flex items-center gap-1">
             {canTakeOver && (
               <Tooltip label={t('places.hoursFromDetails')}>
-                <button type="button" onClick={() => setWeek(suggestedHours!)} aria-label={t('places.hoursFromDetails')}
+                <button type="button" onClick={() => setWeek(suggestedHours!, 'enrichment')} aria-label={t('places.hoursFromDetails')}
                   className="grid h-7 w-7 place-items-center rounded-full text-content-faint hover:bg-surface-hover hover:text-content">
                   <RotateCcw size={13} strokeWidth={2} />
                 </button>

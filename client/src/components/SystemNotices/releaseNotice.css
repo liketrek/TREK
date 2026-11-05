@@ -258,7 +258,7 @@
   /* Keeps the foot clear of the cards when the column has no height to spare. */
   margin-bottom: 18px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 14px;
 }
 
@@ -528,6 +528,8 @@
   background: var(--bg-hover);
 }
 
+.rn-support .rn-support-card { margin-top: 0; }
+
 .rn-support-text {
   font-size: 15.5px;
   line-height: 1.62;
@@ -555,13 +557,42 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  box-shadow: 0 2px 6px oklch(0 0 0 / 0.1);
   cursor: pointer;
-  border: 0;
-  transition: filter 0.15s ease;
+  /* Glass like the promise card, tinted with each platform's colour (set below). */
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: linear-gradient(160deg,
+    color-mix(in oklch, var(--rn-btn) 96%, white) 0%,
+    color-mix(in oklch, var(--rn-btn) 82%, transparent) 100%);
+  border: 1px solid color-mix(in oklch, var(--rn-btn) 70%, white);
+  backdrop-filter: blur(16px) saturate(1.3);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 0.45),
+    0 12px 26px -14px color-mix(in oklch, var(--rn-btn) 80%, black);
+  transition: filter 0.15s ease, transform 0.15s ease;
 }
 
-.rn-support-btn:hover { filter: brightness(0.96); }
+/* The light along the top edge and the sheen in the corner, as on the promise card. */
+.rn-support-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  inset-inline: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.75), transparent);
+}
+.rn-support-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(120% 140% at 0% 0%, oklch(1 0 0 / 0.32) 0%, transparent 55%);
+  pointer-events: none;
+}
+
+.rn-support-btn:hover { filter: brightness(1.04) saturate(1.05); transform: translateY(-1px); }
 
 /* The steam lifts off the cup in turn, and the heart beats. */
 .rn-coffee { overflow: visible; }
@@ -593,11 +624,24 @@
 [data-reduce-motion='true'] .rn-heart { animation: none; }
 
 /* Brand colours: Buy Me a Coffee and Ko-fi own these. */
-.rn-support-bmc  { background: #ffdd00; color: #101013; } /* theme-lint-disable */
-.rn-support-kofi { background: #ff5e5b; color: #ffffff; } /* theme-lint-disable */
+.rn-support-bmc  { --rn-btn: #ffdd00; color: #101013; } /* theme-lint-disable */
+.rn-support-kofi { --rn-btn: #ff5e5b; color: #ffffff; } /* theme-lint-disable */
 
 /* Narrow viewports: keep the proportions, drop the outer padding. */
 @media (max-width: 900px) {
   .rn-overlay { padding: 0; }
   .rn-panel { border-radius: 0; border: 0; max-height: 100%; }
+}
+
+/* The sponsor's name, linked wherever a line names it; it takes the colour of the line it sits in. */
+.rn-sponsor {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
+  text-underline-offset: 3px;
+  transition: text-decoration-color 160ms ease;
+}
+.rn-sponsor:hover {
+  text-decoration-color: currentColor;
 }

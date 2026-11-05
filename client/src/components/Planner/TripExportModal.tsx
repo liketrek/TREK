@@ -6,6 +6,8 @@ import { IcsSubscribeModal } from './IcsSubscribeModal'
 import { SoftPill } from './planParts'
 import { useToast } from '../shared/Toast'
 import type { Trip, Day, Place, Category, AssignmentsMap, Reservation, DayNote } from '../../types'
+import type { TourStageStops } from '../Map/dayTourProjection'
+import type { ViasByDay } from '../../utils/dayRouteVias'
 import { useTripExport } from './useTripExport'
 
 /**
@@ -31,6 +33,9 @@ interface TripExportModalProps {
   assignments: AssignmentsMap
   reservations: Reservation[]
   dayNotes: Record<string, DayNote[]>
+  /** The road trip's vias and the tour stages, so the PDF's route map matches the planner's. */
+  roadtripViasByDay?: ViasByDay
+  tourStageStops?: TourStageStops
   t: (key: string, params?: Record<string, string | number>) => string
   locale: string
   toast: ReturnType<typeof useToast>
@@ -53,15 +58,16 @@ interface TripExportModalProps {
  */
 export function TripExportModal({
   isOpen, onClose, tripId, trip, days, places, categories, assignments, reservations, dayNotes,
-  t, locale, toast, canManageShare = true,
+  roadtripViasByDay, tourStageStops, t, locale, toast, canManageShare = true,
 }: TripExportModalProps) {
   const [subscribeOpen, setSubscribeOpen] = useState(false)
   const titleId = useId()
   const {
-    fileBase, offerMine, isRunning, anyRunning, exportPdf, downloadIcs, downloadGpx,
+    fileBase, offerMine, isRunning, anyRunning, exportPdf, pdfRouting, pdfRoutingLabel, skipPdfRouting, downloadIcs, downloadGpx,
   } = useTripExport({
     tripId,
-    data: { trip, days, places, assignments, categories, reservations, dayNotes },
+    open: isOpen,
+    data: { trip, days, places, assignments, categories, reservations, dayNotes, viasByDay: roadtripViasByDay, tourStageStops },
     t,
     locale,
     toast,
@@ -94,7 +100,7 @@ export function TripExportModal({
             <ExportRow
               icon={FileText}
               title={t('dayplan.pdf')}
-              sub={t('dayplan.pdfTooltip')}
+              sub={pdfRoutingLabel('pdf') ?? t('dayplan.pdfTooltip')}
               busy={isRunning('pdf')}
               disabled={anyRunning}
               onClick={() => exportPdf()}
@@ -103,11 +109,21 @@ export function TripExportModal({
               <ExportRow
                 icon={UserRound}
                 title={t('dayplan.pdfMine')}
-                sub={t('dayplan.pdfMineSub')}
+                sub={pdfRoutingLabel('pdf:mine') ?? t('dayplan.pdfMineSub')}
                 busy={isRunning('pdf:mine')}
                 disabled={anyRunning}
                 onClick={() => exportPdf(true)}
               />
+            )}
+            {pdfRouting && (
+              <button
+                type="button"
+                onClick={skipPdfRouting}
+                className="self-end rounded-lg px-2 py-1 text-content-muted transition-colors hover:bg-surface-hover hover:text-content"
+                style={fs(11.5)}
+              >
+                {t('dayplan.pdfSkipRouting')}
+              </button>
             )}
           </div>
         </DialogSection>

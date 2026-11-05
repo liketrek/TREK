@@ -35,6 +35,8 @@ const map: TranslationStrings = {
   'map.overview.hide': 'Сховати всю подорож',
   'map.overview.total': 'Загальна відстань',
   'map.attribution': 'Джерела карти',
+  'map.overview.distanceAtLeast': 'щонайменше {distance}',
+  'map.overview.notRouted': 'маршрут не розраховано',
   'map.overview.unrouted': 'Не вдалося прокласти {count} відрізка, тому відстані неповні.',
   'map.overview.unrouted.one': 'Не вдалося прокласти {count} відрізок, тому відстані неповні.',
   'map.overview.unrouted.few': 'Не вдалося прокласти {count} відрізки, тому відстані неповні.',

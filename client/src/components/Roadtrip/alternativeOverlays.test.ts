@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { alternativeSubline, alternativesBusy, alternativesPhase, buildAlternativeOverlays, otherEngineNote, type AlternativeOverlay } from './alternativeOverlays'
 import { formatDurationShort } from './roadtripModel'
 import { ALT_PRIMARY, ALT_SECONDARY, ALT_LABEL_PRIMARY_BG, ALT_LABEL_SECONDARY_BG } from './alternativeColors'
-import type { RouteAlternative } from '../Map/RouteCalculator'
+import type { RouteAlternative } from '../Map/routeTypes'
 
 /**
  * FE-ALTOVL-001..023: turning the router's answers into something drawable.

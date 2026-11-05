@@ -58,6 +58,8 @@ const dayplan: TranslationStrings = {
   'dayplan.pdf': 'PDF',
   'dayplan.pdfTooltip': 'Exportar plan diario como PDF',
   'dayplan.pdfMine': 'Mi plan en PDF',
+  'dayplan.pdfRouting': 'Calculando rutas: {done} de {total}',
+  'dayplan.pdfSkipRouting': 'Exportar sin las rutas restantes',
   'dayplan.pdfMineSub': 'Solo las actividades y reservas en las que participas',
   'dayplan.gpxTooltip': 'Exportar como GPX para mapas sin conexión y dispositivos GPS',
   'dayplan.gpxAll': 'Todo el viaje',

@@ -62,7 +62,7 @@ import { scanForNativeBinaries } from './install/native-scan';
 import { devLinkEnabled, DEV_LINK_SOURCE } from './dev-link';
 import { pluginCodeDir, pluginDataDir } from './paths';
 import { assertHostCompatible, PluginRegistryService, RegistryError } from './registry/registry.service';
-import { hostSatisfies, hostVersion, bypassedRange, warnRangeBypass } from './install/host-compat';
+import { hostSatisfies, hostVersion, trekRangeRefusal } from './install/host-compat';
 import type { TrekRangeBypass } from './install/host-compat';
 import { keyFingerprint } from './signature-status';
 import { AuditService } from '../audit/audit.service';
@@ -639,8 +639,10 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
    * freshly-installed plugin (no prior grant) is itself the consent for its
    * declared set; widening an already-consented set requires `consentWiden` (the
    * update consent dialog), and otherwise throws PluginConsentRequired.
+   * `acceptTrekRange` is the admin's "run it anyway" outside the TREK range the author
+   * declared: for this plugin only, never a dependency, kept on its row for this version.
    */
-  async activate(id: string, consentWiden = false): Promise<void> {
+  async activate(id: string, consentWiden = false, acceptTrekRange = false): Promise<void> {
     const installed = await this.installedDepRows();
     // Deps-first order over the installed graph (throws DependencyCycleError on a
     // cycle). Missing deps aren't in `installed` so they don't appear here — the
@@ -652,6 +654,7 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     // blocked dependency never leaves the chain half-activated. Only the target
     // may consent-widen; dependencies are auto-enabled at their existing grant.
     const toCheck = rootInstalled ? order : [id];
+    if (acceptTrekRange) await this.rememberRangeAcceptance(id);
     for (const nodeId of toCheck) await this.assertActivatable(nodeId, installed, nodeId === id ? consentWiden : false);
 
     // Enable dependencies first (skip ones already enabled), then the target.
@@ -659,6 +662,16 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
       if (nodeId !== id && installed.get(nodeId)?.enabled) continue;
       await this.spawnActivated(nodeId);
     }
+  }
+
+  /**
+   * Keeps the admin's "run it anyway" for the installed version, when it is in fact outside its range.
+   * @txStandalone the admin's answer to a dialog; it stands whether or not the plugin then starts.
+   */
+  private async rememberRangeAcceptance(id: string): Promise<void> {
+    const row = await this.plugins.findActivationGate(id);
+    if (!row?.version || hostSatisfies(row.trek_range)) return;
+    await this.plugins.acceptTrekRange(id, row.version, hostVersion());
   }
 
   /** All plugin rows projected to what the dependency helpers reason over. */
@@ -682,24 +695,8 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     // it would not make the plugin start. It is also the gate that catches the case
     // install can't — TREK was upgraded PAST the plugin's declared upper bound, so code
     // that was legitimately installed no longer supports the host it's sitting on.
-    const bypass = bypassedRange(row.trek_range);
-    if (bypass) {
-      // TREK_PLUGINS_IGNORE_TREK_RANGE: the operator chose to run it anyway. Say so in the
-      // log every time it starts — the plugin list carries the same marker for the UI.
-      warnRangeBypass(id, bypass);
-    } else if (!row.trek_range) {
-      throw new PluginDependencyError(
-        `plugin ${id} does not declare which TREK versions it supports`,
-        'TREK_VERSION_UNKNOWN',
-        { trekRange: null, hostVersion: hostVersion() },
-      );
-    } else if (!hostSatisfies(row.trek_range)) {
-      throw new PluginDependencyError(
-        `plugin ${id} requires TREK ${row.trek_range} — this is TREK ${hostVersion()}`,
-        'TREK_VERSION_INCOMPATIBLE',
-        { trekRange: row.trek_range, hostVersion: hostVersion() },
-      );
-    }
+    const refusal = trekRangeRefusal(id, row);
+    if (refusal) throw new PluginDependencyError(refusal.message, refusal.code, refusal.detail);
     // Same reasoning as the TREK-version gate above: a plugin whose manifest apiVersion
     // outpaces this TREK's plugin-API surface can never run correctly, so it must be
     // refused before any consent dialog is offered.

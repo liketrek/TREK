@@ -304,7 +304,7 @@ const journey: TranslationStrings = {
   'journey.studio.autoLayout': 'Automatické rozvržení',
   'journey.studio.export': 'Exportovat',
   'journey.studio.day': 'DEN {day}',
-  'journey.studio.stations': 'Zastávky',
+  'journey.studio.stations': 'Cestou',
   'journey.studio.peersHere': 'zde',
   'journey.studio.folioAuto': 'Automaticky',
   'journey.studio.exportLayout': 'Rozvržení',

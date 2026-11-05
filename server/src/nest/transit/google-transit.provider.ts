@@ -268,6 +268,11 @@ export class GoogleTransitProvider {
     return !!(await this.resolveKey(userId)).key;
   }
 
+  /** Fallback may bill only an operator or instance key, never a personal key. */
+  async isAvailableForFallback(): Promise<boolean> {
+    return !!(await this.resolveKey(0)).key;
+  }
+
   private async call(
     endpoint: string,
     label: string,

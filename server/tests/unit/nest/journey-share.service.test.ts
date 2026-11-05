@@ -1016,12 +1016,26 @@ describe('parity — JourneyShareTokensRepository reads match the legacy stateme
         `
         SELECT je.* FROM journey_entries je
         WHERE je.journey_id = ? AND je.type != 'skeleton' AND je.dismissed = 0
-        ORDER BY je.entry_date, je.sort_order
+        ORDER BY je.entry_date, je.sort_order, je.id
       `,
       )
       .all(journey.id);
 
     expect(await journeyEntriesRepo.listPublicEntries(journey.id)).toEqual(legacy);
+  });
+
+  it('JOURNEY-SHARE-P04b: listPublicEntries breaks a sort_order tie by id, as the owner journal does (#2886)', async () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const first = createJourneyEntry(testDb, journey.id, user.id, { type: 'entry', entry_date: '2026-01-01' });
+    const second = createJourneyEntry(testDb, journey.id, user.id, { type: 'entry', entry_date: '2026-01-01' });
+    const third = createJourneyEntry(testDb, journey.id, user.id, { type: 'entry', entry_date: '2026-01-01' });
+    await updateRows(t, JourneyEntries, { id: third.id }, { sort_order: -1 });
+
+    const ids = (await journeyEntriesRepo.listPublicEntries(journey.id)).map((e) => e.id);
+
+    expect(ids).toEqual([third.id, first.id, second.id]);
+    expect(ids).toEqual((await journeyEntriesRepo.listForJourney(journey.id)).map((e) => e.id));
   });
 
   it('JOURNEY-SHARE-P05: JourneyEntryPhotosRepository.listForPublicJourney (JS14) matches the legacy JP_SELECT-shaped statement', async () => {

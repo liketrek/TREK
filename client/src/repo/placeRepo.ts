@@ -5,6 +5,16 @@ import { isEffectivelyOffline } from '../sync/networkMode'
 import { onlineThenCache } from './withOfflineFallback'
 import type { Place } from '../types'
 
+/**
+ * What of a write the optimistic row keeps. `fieldOrigins` says which fields the
+ * user typed; it travels in the queued body for the server's origin tracking and
+ * is no column of the place.
+ */
+function placeRow(data: Record<string, unknown>): Record<string, unknown> {
+  const { fieldOrigins: _origins, ...row } = data
+  return row
+}
+
 export const placeRepo = {
   async list(tripId: number | string, params?: Record<string, unknown>): Promise<{ places: Place[] }> {
     return onlineThenCache(
@@ -25,7 +35,7 @@ export const placeRepo = {
     if (isEffectivelyOffline()) {
       const tempId = nextTempId()
       const tempPlace: Place = {
-        ...(data as Partial<Place>),
+        ...(placeRow(data) as Partial<Place>),
         id: tempId,
         trip_id: Number(tripId),
         name: (data.name as string) ?? 'New place',
@@ -56,7 +66,7 @@ export const placeRepo = {
       // a row without it is invisible and never cleaned up.
       const optimistic: Place = {
         ...(existing ?? {} as Place),
-        ...(data as Partial<Place>),
+        ...(placeRow(data) as Partial<Place>),
         id: Number(id),
         trip_id: Number(tripId),
       }

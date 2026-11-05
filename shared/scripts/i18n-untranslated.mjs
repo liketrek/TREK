@@ -96,7 +96,7 @@ export const KEY_NAMES = ['Ctrl'];
  * there. Every locale folder must be listed in exactly one of the two lists,
  * so a new locale cannot slip past this rule unclassified.
  */
-export const NON_LATIN_LOCALES = ['ar', 'gr', 'ja', 'ko', 'ru', 'th', 'uk', 'zh', 'zh-TW'];
+export const NON_LATIN_LOCALES = ['ar', 'gr', 'he', 'ja', 'ko', 'ru', 'th', 'uk', 'zh', 'zh-TW'];
 export const LATIN_LOCALES = [
   'az',
   'br',

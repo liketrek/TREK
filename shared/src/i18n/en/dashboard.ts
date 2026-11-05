@@ -110,6 +110,8 @@ const dashboard: TranslationStrings = {
   'dashboard.unsplashQueryRequired': 'Enter a search term',
   'dashboard.unsplashNoResults': 'No images found',
   'dashboard.coverSearchError': 'Failed to search Unsplash',
+  'dashboard.unsplashKeyNeeded':
+    'Unsplash turned this server away. An administrator can add a free Unsplash API Key in the admin settings to make image search work.',
   'dashboard.useUnsplashPhoto': 'Use Unsplash photo by {photographer}',
   'dashboard.titleRequired': 'Title is required',
   'dashboard.endDateError': 'End date must be after start date',

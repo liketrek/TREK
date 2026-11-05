@@ -155,7 +155,8 @@ describe('Tool: create_budget_item', () => {
       });
       const data = parseToolResult(result) as any;
       expect(data.item.name).toBe('Hotel Paris');
-      expect(data.item.category).toBe('Accommodation');
+      // Stored as its fixed key, as the Costs tab shows it (#2835).
+      expect(data.item.category).toBe('accommodation');
       expect(data.item.total_price).toBe(500);
       expect(data.item.note).toBe('Prepaid');
     });
@@ -888,6 +889,104 @@ describe('Budget tools: place link', () => {
       });
       expect(result.isError).toBe(true);
       expect(errorText(result)).toBe('place_id does not belong to this trip.');
+      expect(await itemCount(trip.id)).toBe(0);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// A new expense linked to a booking, the MCP twin of POST /budget with
+// reservation_id
+// ---------------------------------------------------------------------------
+
+describe('Budget tools: booking link on create', () => {
+  async function metadataOf(reservationId: number): Promise<Record<string, unknown>> {
+    const row = await findRow(orm, Reservations, { id: reservationId });
+    if (!row) throw new Error(`no reservation ${reservationId}`);
+    return row.metadata ? JSON.parse(row.metadata) : {};
+  }
+
+  it('create_budget_item links the expense to a booking, which mirrors its total', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const booking = createReservation(testDb, trip.id, { title: 'Flight' });
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_budget_item',
+        arguments: { tripId: trip.id, name: 'Fare', total_price: 180, reservation_id: booking.id },
+      });
+      const data = parseToolResult(result) as { item: { id: number } };
+      expect((await itemRow(data.item.id)).reservation_id).toBe(booking.id);
+      expect(await metadataOf(booking.id)).toEqual({ price: '180' });
+      expect(broadcastMock.mock.calls.some((c) => c[1] === 'budget:created')).toBe(true);
+      expect(broadcastMock.mock.calls.some((c) => c[1] === 'reservation:updated')).toBe(true);
+    });
+  });
+
+  it('create_budget_item adds a second expense to a booking, which then mirrors their sum', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const booking = createReservation(testDb, trip.id, { title: 'Flight' });
+    await withHarness(user.id, async (h) => {
+      const add = (name: string, total_price: number) =>
+        h.client.callTool({
+          name: 'create_budget_item',
+          arguments: { tripId: trip.id, name, total_price, reservation_id: booking.id },
+        });
+      await add('Fare', 180);
+      await add('Seat upgrade', 35.5);
+      expect(await metadataOf(booking.id)).toEqual({ price: '215.5' });
+    });
+  });
+
+  it('create_budget_item refuses a booking from another trip and writes nothing', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const elsewhere = createTrip(testDb, user.id);
+    const foreign = createReservation(testDb, elsewhere.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_budget_item',
+        arguments: { tripId: trip.id, name: 'Fare', total_price: 180, reservation_id: foreign.id },
+      });
+      expect(result.isError).toBe(true);
+      expect(errorText(result)).toBe('reservation_id does not belong to this trip.');
+      expect(await itemCount(trip.id)).toBe(0);
+    });
+    expect(await metadataOf(foreign.id)).toEqual({});
+  });
+
+  it('create_budget_item_with_members links the expense to a booking', async () => {
+    const { user, other, trip } = tripWithTwo();
+    const booking = createReservation(testDb, trip.id, { title: 'Train' });
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_budget_item_with_members',
+        arguments: {
+          tripId: trip.id,
+          name: 'Tickets',
+          total_price: 68,
+          userIds: [user.id, other.id],
+          reservation_id: booking.id,
+        },
+      });
+      const data = parseToolResult(result) as { item: { id: number } };
+      expect((await itemRow(data.item.id)).reservation_id).toBe(booking.id);
+      expect(await metadataOf(booking.id)).toEqual({ price: '68' });
+    });
+  });
+
+  it('create_budget_item_with_members refuses a booking from another trip', async () => {
+    const { user, trip } = tripWithTwo();
+    const elsewhere = createTrip(testDb, user.id);
+    const foreign = createReservation(testDb, elsewhere.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_budget_item_with_members',
+        arguments: { tripId: trip.id, name: 'Tickets', total_price: 68, reservation_id: foreign.id },
+      });
+      expect(result.isError).toBe(true);
+      expect(errorText(result)).toBe('reservation_id does not belong to this trip.');
       expect(await itemCount(trip.id)).toBe(0);
     });
   });

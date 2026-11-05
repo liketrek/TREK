@@ -20,7 +20,10 @@ import { bookElementIdSchema, bookGridIdSchema, bookSpreadIdSchema } from './boo
 import { bookPaintInSchema } from './book-paint.schema';
 import {
   MAX_BOOK_TITLE,
-  MAX_SPREADS,
+  MAX_PATH_POINTS,
+  MAX_PATH_SEGMENTS,
+  MAX_ROAD_LEGS,
+  MAX_ROAD_POINTS,
   MAX_SPREAD_ELEMENTS,
   bookBadgeElementSchema,
   bookCountriesElementSchema,
@@ -273,11 +276,7 @@ export const addBookPagesArgs = {
 };
 export const moveBookPageArgs = {
   spreadId: bookSpreadIdSchema,
-  toIndex: z
-    .number()
-    .int()
-    .min(0)
-    .max(MAX_SPREADS - 1),
+  toIndex: z.number().int().min(0),
   expectedVersion,
 };
 export const deleteBookPagesArgs = {
@@ -302,11 +301,7 @@ export const createBookArgs = {
  * it goes back when it is gone, a page still in the book is replaced where it is.
  */
 export const bookPreviousSpreadSchema = z.object({
-  index: z
-    .number()
-    .int()
-    .min(0)
-    .max(MAX_SPREADS - 1),
+  index: z.number().int().min(0),
   spread: bookSpreadSchema,
 });
 export type BookPreviousSpread = z.infer<typeof bookPreviousSpreadSchema>;
@@ -345,6 +340,12 @@ export type BookPageDigest = z.infer<typeof bookPageDigestSchema>;
  * kind the tool's schema, which every client loads with tools/list, outgrew
  * its size. It takes the same values: restoreBookPage parses the page again as
  * a spread, which sets every default, before it puts it back.
+ *
+ * Its schema also has to read the same under JSON Schema draft-07, which the
+ * SDK writes, and 2020-12, the MCP default ChatGPT validates against, so it
+ * holds no tuple: draft-07 spells one as an array of `items`, which 2020-12
+ * refuses, and ChatGPT then drops every tool of the server, not only this one.
+ * A map's points come in as two numbers; the spread's parse checks lat and lng.
  */
 const ELEMENT_BASE = {
   id: true,
@@ -377,6 +378,11 @@ const TRAVEL_TYPE = {
 } as const;
 const kindIn = (schema: z.ZodObject) => restoredFields(schema.omit(ELEMENT_BASE));
 const travelIn = (schema: z.ZodObject) => restoredFields(schema.omit({ ...ELEMENT_BASE, ...TRAVEL_TYPE }));
+const restoredPointIn = z.array(z.number()).length(2).describe('[lat, lng]');
+const restoredMapIn = travelIn(bookMapElementSchema).extend({
+  path: z.array(z.array(restoredPointIn).max(MAX_PATH_POINTS)).max(MAX_PATH_SEGMENTS).optional(),
+  roads: z.array(z.array(restoredPointIn).max(MAX_ROAD_POINTS).nullable()).max(MAX_ROAD_LEGS).optional(),
+});
 // Each union says what it holds: a described union stays one part of the intersection instead of
 // zod writing the shared fields out into every kind again.
 const restoredElementIn = z.intersection(
@@ -393,7 +399,7 @@ const restoredElementIn = z.intersection(
         restoredFields(bookMapElementSchema.pick(TRAVEL_TYPE)),
         z
           .union([
-            travelIn(bookMapElementSchema),
+            restoredMapIn,
             travelIn(bookStatsElementSchema),
             travelIn(bookCountriesElementSchema),
             travelIn(bookBadgeElementSchema),
@@ -625,7 +631,7 @@ export const bookWriteResultSchema = z.object({
   dropped: z.array(z.string()).max(MAX_SPREAD_ELEMENTS * 2),
   previous_spreads: z.array(bookPreviousSpreadSchema).optional(),
   /** The pages the write touched as it left them, for an undo that checks only those (`expectedPages`). */
-  page_digests: z.array(bookPageDigestSchema).max(MAX_SPREADS).optional(),
+  page_digests: z.array(bookPageDigestSchema).optional(),
   from_index: z.number().int().nonnegative().optional(),
   /** From `set_book_setup`: the setup as it was, to set it back. */
   previous_setup: bookPageSetupSchema.optional(),

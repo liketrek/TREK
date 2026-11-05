@@ -62,7 +62,7 @@ const reservations: TranslationStrings = {
   'reservations.type.car': 'Autó',
   'reservations.type.cruise': 'Hajóút',
   'reservations.type.event': 'Esemény',
-  'reservations.type.tour': 'Túra',
+  'reservations.type.tour': 'Vezetett túra',
   'reservations.type.parking': 'Parkolás',
   'reservations.type.other': 'Egyéb',
   'reservations.type.bus': 'Busz',
@@ -79,8 +79,8 @@ const reservations: TranslationStrings = {
   'reservations.confirm.deleteBodyWithExpense': '"{name}" a hozzá kapcsolt költségekkel együtt véglegesen törlődik.',
   'reservations.toast.updated': 'Foglalás frissítve',
   'reservations.toast.removed': 'Foglalás törölve',
-  'reservations.toast.fileUploaded': 'Fájl feltöltve',
-  'reservations.toast.uploadError': 'Feltöltés sikertelen',
+  'reservations.toast.filesNotUploaded':
+    'A foglalás mentve, de néhány fájlt nem sikerült feltölteni. Mentsd újra, hogy elküldd őket.',
   'reservations.newTitle': 'Új foglalás',
   'reservations.bookingType': 'Foglalás típusa',
   'reservations.titleLabel': 'Cím',
@@ -140,6 +140,14 @@ const reservations: TranslationStrings = {
   'reservations.import.cta': 'Importálás fájlból',
   'reservations.import.dropHere': 'Dobja ide a foglalási visszaigazolás fájlokat, vagy kattintson a kiválasztáshoz',
   'reservations.import.dropActive': 'Dobja ide a fájlokat az importáláshoz',
+  'reservations.import.pinSearching': 'Keresés a térképen…',
+  'reservations.import.pinFound': 'A térképen',
+  'reservations.import.pinMissingTitle': 'Még nincs a térképen',
+  'reservations.import.pinMissingBody':
+    'A TREK nem találta meg ezt a szállást a térképen. Ellenőrizd a fenti nevet és címet, és keress újra, vagy mentsd el tű nélkül.',
+  'reservations.import.pinRetry': 'Keresés újra',
+  'reservations.import.savedWithoutPin':
+    'Térképtű nélkül mentve. Szerkeszd a helyet, és állítsd be a pozícióját, hogy megjelenjen a térképen.',
   'reservations.import.acceptedFormats':
     'Elfogadott: EML, PDF, PKPass, HTML, TXT (max. 10 MB darabonként, legfeljebb 5 fájl)',
   'reservations.import.acceptedPhotos': 'A fotókat (JPG, PNG, WEBP) az MI-modell olvassa be.',

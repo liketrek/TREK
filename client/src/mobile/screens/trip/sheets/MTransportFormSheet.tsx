@@ -16,11 +16,11 @@ import {
   transportDayOptions, type StationWaypointForm, type WaypointForm,
 } from '../../../../components/Planner/transportEndpoints'
 import { useTransportForm } from '../../../../components/Planner/useTransportForm'
-import { expenseRequestAfterSave, travelerIdsOf, travelersChanged, filesNeedConnection, uploadBookingFiles } from '../../../../components/Planner/bookingFormModel'
+import { expenseRequestAfterSave, travelerIdsOf, filesNeedConnection, type BookingSaveSteps } from '../../../../components/Planner/bookingFormModel'
+import { useBookingFollowUp } from '../../../../components/Planner/useBookingFollowUp'
 import { useBookingExpenseIntent } from '../../../../components/Planner/useBookingExpenseIntent'
 import { Eyebrow, FIELD_CLS, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
 import MBookingFilesCosts from './MBookingFilesCosts'
-import { useTripStore } from '../../../../store/tripStore'
 import type { Place, Reservation } from '../../../../types'
 import type { BookingReviewDraft } from '../../../../components/Planner/parsedItemToDraft'
 import type { BookingExpenseRequest } from '../../../../components/Planner/BookingCostsSection.types'
@@ -54,7 +54,6 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
     canUploadFiles,
   } = planner
   const { locale } = useTranslation()
-  const setReservationTravelers = useTripStore(s => s.setReservationTravelers)
 
   const isBudgetEnabled = useAddonStore(s => s.isEnabled('budget'))
   const tripHasDates = Boolean(trip?.start_date && trip?.end_date)
@@ -67,6 +66,13 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
     pendingFiles, setPendingFiles, travelerIds, setTravelerIds, toggleTraveler, isSaving, setIsSaving,
     seed, payload: buildPayload, writesFlightLegs, writesTrainLegs,
   } = useTransportForm(EMPTY_TRANSPORT_FIELDS)
+  // The import review hands the open sheet its next booking without closing it.
+  const session = showTransportModal ? (editingTransport ?? transportPrefill ?? 'new') : null
+  const followUp = useBookingFollowUp({
+    session,
+    tripId, original: editingTransport, travelerIds, pendingFiles, setPendingFiles,
+    upload: canUploadFiles ? fd => planner.tripActions.addFile(tripId, fd) : undefined, t,
+  })
   // Ref (not state) so handleSubmit reads the intent set by the same click — a
   // state value would be stale in that render's closure and never open the editor.
   const expense = useBookingExpenseIntent(() => handleSubmit())
@@ -94,7 +100,7 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
       stopDaysFromEndpoints: true,
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showTransportModal])
+  }, [session])
 
   const res = snap.res
   const prefill = snap.prefill
@@ -113,10 +119,11 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
   }
 
   // The single save path shared by the manual submit and the automated panel —
-  // handleSaveTransport closes the sheet on success; on an import review it also
-  // advances to the next parsed item (mirrors the desktop MTripSheets wrapper).
-  const saveTransport = async (data: Record<string, unknown> & { title: string }) => {
-    const r = await handleSaveTransport(data as never)
+  // handleSaveTransport closes the sheet once the booking and what hangs on it are
+  // written; on an import review it also advances to the next parsed item then,
+  // and not while the item's files are still going up (mirrors the desktop wrapper).
+  const saveTransport = async (data: Record<string, unknown> & { title: string }, steps?: BookingSaveSteps) => {
+    const r = await handleSaveTransport(data as never, steps)
     if (importReviewActive && r) advanceImportReview()
     return r
   }
@@ -129,20 +136,7 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
     try {
       const saved = await saveTransport(buildPayload(days, {
         reservation: res, prefill, budgetEnabled: isBudgetEnabled, anchorOnStations: true,
-      }))
-      // Persist the traveler assignment once we have the reservation id (from the
-      // save result on create, or the edited reservation) — only when it changed.
-      const savedId = saved?.id ?? res?.id
-      if (savedId) {
-        const { changed, nextIds } = travelersChanged(res, travelerIds)
-        if (changed) await setReservationTravelers(tripId, savedId, nextIds)
-      }
-      // Runs after both a create and an edit: the sheet only holds files the user just
-      // picked, so nothing is uploaded twice, and skipping the edit dropped them without
-      // a word (#2534). A save that did not come back with a record uploads nothing.
-      if (saved?.id && canUploadFiles) {
-        await uploadBookingFiles(fd => planner.tripActions.addFile(tripId, fd), saved.id, pendingFiles, form.title)
-      }
+      }), followUp.steps(form.title))
       const expenseRequest = expenseRequestAfterSave(withExpense, saved, form, days)
       if (expenseRequest) onOpenExpense(expenseRequest)
     } catch (err: unknown) {

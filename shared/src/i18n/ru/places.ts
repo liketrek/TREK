@@ -190,5 +190,14 @@ const places: TranslationStrings = {
   'places.image.needsConnection': 'Для нового изображения нужно подключение. Сохрани ещё раз, когда будешь онлайн.',
   'places.openPhotos': 'Показать фото',
   'places.imageUploadError': 'Не удалось загрузить изображение',
+  'places.refresh.pill': 'Новые данные места',
+  'places.refresh.title': 'Обновить данные места',
+  'places.refresh.intro':
+    'TREK знает более свежие данные об этом месте. Выберите, что перенять, остальное останется как есть. Затем сохраните место.',
+  'places.refresh.apply': 'Перенять',
+  'places.refresh.replaces': 'Заменит сохранённое значение',
+  'places.refresh.empty': 'пусто',
+  'places.refresh.now': 'Сейчас',
+  'places.refresh.new': 'Новое',
 };
 export default places;

@@ -41,6 +41,26 @@ export const MAP_PRESETS: MapPreset[] = [
   { name: '高德卫星 (Amap Satellite)', url: AMAP_SATELLITE },
 ];
 
+/**
+ * The presets this install offers. On a managed install Amap is the operator's
+ * service like every other keyed one: its tiles are offered only where the
+ * operator set Amap up (has_amap_key), so a hosted user is never pointed at a
+ * provider the instance does not use.
+ */
+export function mapPresetsFor(managed: boolean, hasAmapKey: boolean): MapPreset[] {
+  if (!managed || hasAmapKey) return MAP_PRESETS;
+  return MAP_PRESETS.filter((p) => p.url !== AMAP_ROAD && p.url !== AMAP_SATELLITE);
+}
+
+/**
+ * Whether Mapbox GL can be picked. A managed install brings the token with the
+ * instance and offers no field for one, so without an operator token the
+ * choice would only lead to a map that never loads.
+ */
+export function mapboxOffered(managed: boolean, token: string | null | undefined): boolean {
+  return !managed || !!token;
+}
+
 export type MapProvider = 'leaflet' | GlMapProvider;
 
 export function normalizeProvider(value: unknown): MapProvider {

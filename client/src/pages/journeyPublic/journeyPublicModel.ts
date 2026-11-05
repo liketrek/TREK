@@ -6,6 +6,8 @@
 
 export interface PublicEntry {
   id: number
+  type?: string | null
+  sort_order?: number | null
   title?: string | null
   story?: string | null
   entry_date: string

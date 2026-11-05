@@ -151,3 +151,37 @@ describe('the Web Push keys in the templates', () => {
     expect(helmConfigMap).not.toContain(name);
   });
 });
+
+describe('the TREK services switches in the templates', () => {
+  // The installation registers itself by default; an operator who wants it
+  // off, or who was issued a key, has to find the names where they look.
+  it('.env.example and docker-compose.yml document the switch and the key', () => {
+    for (const name of ['TREK_SERVICES', 'TREK_SERVICES_KEY']) {
+      expect(envExample).toContain(`# ${name}=`);
+      expect(compose).toContain(`#      - ${name}=`);
+    }
+    expect(envExample).toContain('# TREK_SERVICES_HOSTS=');
+  });
+
+  it('every template names the Photon address and the default hosts it joined', () => {
+    expect(envExample).toContain('# TREK_PHOTON_URL=https://photon.liketrek.com ');
+    expect(compose).toContain('#      - TREK_PHOTON_URL=https://photon.liketrek.com ');
+    expect(helmValues).toContain('# TREK_PHOTON_URL:');
+    expect(helmConfigMap).toContain('TREK_PHOTON_URL: {{ .Values.env.TREK_PHOTON_URL | quote }}');
+    expect(envExample).toContain('(default: places.liketrek.com,photon.liketrek.com,valhalla.liketrek.com)');
+  });
+
+  it('the Helm ConfigMap passes the switch and the hosts, the Secret carries the key', () => {
+    for (const name of ['TREK_SERVICES', 'TREK_SERVICES_HOSTS']) {
+      expect(helmValues).toContain(`# ${name}:`);
+      expect(helmConfigMap).toContain(`${name}: {{ .Values.env.${name} | quote }}`);
+    }
+    const name = 'TREK_SERVICES_KEY';
+    expect(helmValues).toContain(`  ${name}: ""`);
+    expect(helmSecret).toContain(`${name}: {{ .Values.secretEnv.${name} | b64enc | quote }}`);
+    expect(helmSecret).toContain(`${name}: {{ .Values.secretEnv.${name} | quote }}`);
+    expect(helmDeployment).toContain(`- name: ${name}\n              valueFrom:\n                secretKeyRef:`);
+    expect(helmDeployment).toContain(`key: ${name}\n                  optional: true`);
+    expect(helmConfigMap).not.toContain(name);
+  });
+});

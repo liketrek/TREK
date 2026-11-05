@@ -4,10 +4,11 @@
  */
 import { buildApp } from '../../src/bootstrap';
 import { db as testDb } from '../../src/db/database';
+import { StorageReleaseQueue } from '../../src/db/entities/StorageReleaseQueue.entity';
 import { Users } from '../../src/db/entities/Users.entity';
 import { authCookie } from '../helpers/auth';
 import { createUser, createAdmin, createTrip } from '../helpers/factories';
-import { insertRow } from '../helpers/factories/rows';
+import { findRow, insertRow } from '../helpers/factories/rows';
 import { readUser } from '../helpers/factories/users';
 import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
@@ -149,7 +150,7 @@ describe('Avatar', () => {
     expect(first).toMatch(/^[0-9a-f-]{36}\.jpg$/);
     expect(fsMod.existsSync(pathMod.join(avatarsDir, first))).toBe(true);
 
-    // Re-upload removes the previous file (saveAvatar's cleanup branch).
+    // Re-upload hands the previous file to the release queue (saveAvatar's cleanup branch).
     const second = await request(app)
       .post('/api/auth/avatar')
       .set('Cookie', authCookie(user.id))
@@ -157,7 +158,9 @@ describe('Avatar', () => {
     expect(second.status).toBe(200);
     const secondName = pathMod.basename(second.body.avatar_url);
     expect(fsMod.existsSync(pathMod.join(avatarsDir, secondName))).toBe(true);
-    expect(fsMod.existsSync(pathMod.join(avatarsDir, first))).toBe(false);
+    // The old bytes stay until the release job, a day later, finds nothing naming them.
+    expect(fsMod.existsSync(pathMod.join(avatarsDir, first))).toBe(true);
+    expect(await findRow(orm, StorageReleaseQueue, { category: 'avatars', key: first })).not.toBeNull();
   });
 
   it('PROFILE-003 — uploading non-image (PDF) is rejected', async () => {

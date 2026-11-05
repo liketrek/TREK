@@ -46,6 +46,8 @@ export const wandererErrorCodeSchema = z.enum([
   /** The trail is someone else's: only the connected account's own trails are imported. */
   'not_own_trail',
   'invalid_response',
+  /** wanderer answered, but named no local author for the token's account, so its own trails cannot be told apart. */
+  'no_author',
   'too_large',
   'server_error',
 ]);

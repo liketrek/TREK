@@ -21,7 +21,6 @@ import { bookElementPhotoIds, checkRestorablePhotos } from './book-photo-refs';
 import { bookLayoutFromSpread, nextBookLayoutName } from './book-saved-layouts';
 import {
   MAX_BOOK_LAYOUTS,
-  MAX_SPREADS,
   bookLayoutSchema,
   type BookDocument,
   type BookLayout,
@@ -106,9 +105,6 @@ export function duplicateBookPage(doc: BookDocument, args: unknown, ctx: BookOps
     if (!source) throw failOp('spread_not_found', `no page ${parsed.data.spreadId}`, null);
     if (!canEditSpread(source)) {
       throw failOp('protected_spread', `${source.id} is the ${source.role} page and cannot be copied`, null);
-    }
-    if (doc.spreads.length + 1 > MAX_SPREADS) {
-      throw failOp('too_many_spreads', `a book holds at most ${MAX_SPREADS} pages`, null);
     }
     const fresh = <E extends { id: string; kind: string }>(e: E): E => ({ ...e, id: newId(e.kind.charAt(0)) });
     const copy = checkedSpread(

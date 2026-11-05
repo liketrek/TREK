@@ -34,6 +34,8 @@ const map: TranslationStrings = {
   'map.overview.hide': 'Teljes utazás elrejtése',
   'map.overview.total': 'Teljes távolság',
   'map.attribution': 'Térkép forrásai',
+  'map.overview.distanceAtLeast': 'legalább {distance}',
+  'map.overview.notRouted': 'nincs kiszámítva',
   'map.overview.unrouted': '{count} szakaszt nem sikerült kiszámítani, ezért a távolságok hiányosak.',
   'map.overview.unrouted.one': '{count} szakaszt nem sikerült kiszámítani, ezért a távolságok hiányosak.',
   'map.overview.dayUnrouted': 'Ennek a napnak {count} szakaszát nem sikerült kiszámítani',

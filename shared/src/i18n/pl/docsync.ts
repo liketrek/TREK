@@ -183,6 +183,12 @@ const docsync: TranslationStrings = {
   'docsync.error.provider_disabled':
     'Wstrzymane: administrator wyłączył tego dostawcę. Synchronizacja zostanie wznowiona, gdy znów go włączy.',
   'docsync.binding.reconnect': 'Połącz ponownie',
+  'docsync.connection.title': 'Połączenie',
+  'docsync.connection.hint': 'Adres i dane logowania, których TREK używa dla tego magazynu.',
+  'docsync.connection.edit': 'Edytuj połączenie',
+  'docsync.connection.remove': 'Usuń połączenie',
+  'docsync.connection.confirmRemove':
+    'TREK zapomina adres i dane logowania tego magazynu, a każda synchronizacja tej podróży przez niego się zatrzymuje. Dokumenty zostają w TREK i w magazynie.',
 };
 
 export default docsync;

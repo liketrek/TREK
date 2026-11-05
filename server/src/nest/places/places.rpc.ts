@@ -5,6 +5,8 @@ import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
 import { num, schemaMessage } from '../../nest-rpc/rpc-params';
 import { JourneyDomainService } from '../journey/journey-domain.service';
 import { RealtimeService } from '../realtime/realtime.service';
+import type { OriginWriter } from './place-origins.helpers';
+import { PlaceOriginsService } from './place-origins.service';
 import { PlacesService } from './places.service';
 import type { PlaceCreateInput, PlaceUpdateInput } from './places.service';
 import {
@@ -15,6 +17,9 @@ import {
 } from '@trek/shared';
 
 const PLACE_EDIT_ACTION = 'place_edit';
+
+/** What a plugin writes is the plugin's, never shared as a user's correction. */
+const PLUGIN: OriginWriter = { kind: 'fixed', origin: 'plugin' };
 
 /**
  * The @trek/shared write schemas carry no string-length caps, so the plugin path
@@ -59,6 +64,7 @@ export class PlacesRpc {
     private readonly journey: JourneyDomainService,
     private readonly realtime: RealtimeService,
     private readonly guards: PluginGuards,
+    private readonly origins: PlaceOriginsService,
   ) {}
 
   @PluginMethod('places.create', { permission: 'db:write:places' })
@@ -72,6 +78,7 @@ export class PlacesRpc {
     await this.guards.requireTripEdit(tripId, actor, PLACE_EDIT_ACTION);
     const place = await this.places.create(String(tripId), parsed.data as unknown as PlaceCreateInput);
     this.realtime.broadcast(tripId, 'place:created', { place });
+    await this.origins.record(place.id, null, PLUGIN);
     await this.mirrorJourneys(() => this.journey.onPlaceCreated(tripId, place.id));
     return place;
   }
@@ -89,9 +96,11 @@ export class PlacesRpc {
     // update is async (it may delete a superseded storage object): await it so the
     // null-refusal check compares against the resolved place, not an always-truthy
     // Promise, and the broadcast below carries the actual place.
+    const before = await this.origins.valuesBefore(placeId);
     const place = await this.places.update(String(tripId), String(placeId), parsed.data as PlaceUpdateInput);
     if (place === null) throw new ForbiddenResource(`no place ${placeId} on trip ${tripId}`);
     this.realtime.broadcast(tripId, 'place:updated', { place });
+    if ('id' in place) await this.origins.record(place.id, before, PLUGIN);
     await this.mirrorJourneys(() => this.journey.onPlaceUpdated(placeId));
     return place;
   }

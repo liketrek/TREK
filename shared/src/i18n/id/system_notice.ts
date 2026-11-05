@@ -55,23 +55,20 @@ const system_notice: TranslationStrings = {
   'system_notice.v3014_whitespace_collision.body':
     'Pembaruan 3.0.14 mendeteksi satu atau lebih konflik nama pengguna atau email yang disebabkan oleh spasi di awal atau akhir nilai yang tersimpan. Akun yang terpengaruh telah diganti nama secara otomatis. Periksa log server untuk baris yang dimulai dengan **[migration] WHITESPACE COLLISION** guna mengidentifikasi akun mana yang perlu ditinjau.',
   'system_notice.release_notes.eyebrow': 'Pembaruan terpasang',
-  'system_notice.release_notes.headline': 'TREK terbesar sejauh ini.',
+  'system_notice.release_notes.headline': 'Tempat yang tepat, lebih dulu.',
   'system_notice.release_notes.intro':
-    'Tur untuk setiap hari di alam terbuka, studio untuk buku foto Anda, asisten yang merencanakan bersama Anda, dan bantuan di setiap layar.',
+    'Pencarian tempat, pencarian alamat, dan perutean kini berjalan di server milik TREK sendiri, disponsori oleh dataforest cloud, dan setiap TREK bisa berbagi apa yang diketahuinya tentang tempat dengan semua TREK lainnya.',
   'system_notice.release_notes.features_label': 'Sorotan utama',
   'system_notice.release_notes.features_aside': 'Masih banyak lagi',
-  'system_notice.release_notes.feature_tours_title': 'Tur',
-  'system_notice.release_notes.feature_tours_body':
-    'Pendakian, bersepeda, lari, berkuda, mendayung, jalan kaki di kota, dan hari bermain ski, dengan profil ketinggian, tingkat kesulitan, dan terbang lintas 3D.',
-  'system_notice.release_notes.feature_studio_title': 'TREK Studio', // same-as-en
-  'system_notice.release_notes.feature_studio_body':
-    'Mengubah perjalanan menjadi buku foto yang tertata: 17 tema, 34 jenis huruf, 160 stiker, dan tata letak otomatis dalam satu klik.',
-  'system_notice.release_notes.feature_assistant_title': 'Asisten AI',
-  'system_notice.release_notes.feature_assistant_body':
-    'Merencanakan bersama Anda di perjalanan nyata Anda, dengan akun AI yang sudah Anda miliki. Setiap perubahan tampil lebih dulu dan bisa dibatalkan.',
-  'system_notice.release_notes.feature_help_title': 'Bantuan di setiap layar, dalam 27 bahasa',
-  'system_notice.release_notes.feature_help_body':
-    'Sekitar 370 panduan langkah demi langkah dengan 1.600 gambar, tepat di tempat Anda membutuhkannya. Baru: Azerbaijan, Estonia, Slowakia, dan Thai.',
+  'system_notice.release_notes.feature_search_title': 'Pencarian tempat yang tepat sasaran',
+  'system_notice.release_notes.feature_search_body':
+    'Kota, pulau, landmark, dan bandara berdasarkan kodenya muncul lebih dulu, kafe diambil dari sekitar Anda, dan saran muncul saat Anda mengetik.',
+  'system_notice.release_notes.feature_share_title': 'Detail tempat, dibagikan',
+  'system_notice.release_notes.feature_share_body':
+    'Bagikan situs web, jam buka, dan foto dengan setiap TREK, kolom demi kolom, dan tempat tersimpan Anda ikut mendapatkan apa yang ditambahkan orang lain.',
+  'system_notice.release_notes.feature_routing_title': 'Perutean lebih cepat',
+  'system_notice.release_notes.feature_routing_body':
+    'Satu hari penuh dirutekan sekaligus dengan hingga dua puluh perhentian, satu rute yang lambat tidak lagi menahan yang lain, dan transportasi umum bertanya ke penyedia kedua saat yang pertama tidak menemukan apa pun.',
   'system_notice.release_notes.footnote': 'Ditambah deretan panjang perubahan kecil di bagian TREK lainnya.',
   'system_notice.release_notes.notes_label': 'Catatan rilis',
   'system_notice.release_notes.note_eyebrow': 'Catatan dari maintainer',
@@ -85,10 +82,10 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.note_body_after':
     'Lalu kalian datang. Dalam beberapa bulan saja jumlah kalian sudah ribuan: bintang, laporan bug, terjemahan ke bahasa yang tidak saya kuasai, pull request dari orang-orang yang belum pernah saya temui. Sampai sekarang, hal pertama yang saya lakukan setiap pagi masih membuka repositori, dan rasanya masih belum sepenuhnya nyata.',
   'system_notice.release_notes.note_closing': 'Terima kasih telah berada di sini. Salam hangat, Maurice.',
-  'system_notice.release_notes.support_lead':
-    'TREK gratis dan akan selalu begitu, tetapi server, domain, dan begitu banyak malam larut tidaklah gratis.',
+  'system_notice.release_notes.support_label': 'Tetap independen',
+  'system_notice.release_notes.support_lead': 'Tanpa Google dan kawan-kawan.',
   'system_notice.release_notes.support_text':
-    'Jika TREK sudah mendapat tempat dalam perjalananmu, traktir saya secangkir kopi dan bantu rilis berikutnya terus hadir.',
+    'Pencarian tempat, pencarian alamat, dan perutean berjalan di server milik TREK sendiri, saat ini disponsori oleh dataforest cloud. Saya memperjuangkannya setiap hari, dan agar tetap begitu, saya butuh dukungan Anda.',
   'system_notice.release_notes.cta_bmc': 'Traktir aku kopi',
   'system_notice.release_notes.cta_kofi': 'Dukung di Ko-fi',
 };

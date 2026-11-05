@@ -1,6 +1,7 @@
 import { cheapestEnergy, type ChargingEnergyPrice, type ChargingInfo as Info } from '@trek/shared';
 import { ChevronDown, Coins, PlugZap } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useFormatDate } from '../../hooks/useDateFormat';
 import { useTranslation } from '../../i18n/TranslationContext';
 import { chargingRepo } from '../../repo/chargingRepo';
 import { useTripStore } from '../../store/tripStore';
@@ -76,6 +77,7 @@ export default function ChargingInfo({
 }: ChargingTarget & { compact?: boolean }) {
   const tripId = useTripStore((s) => s.trip?.id);
   const { t } = useTranslation();
+  const { formatDateTime } = useFormatDate();
   const [info, setInfo] = useState<Info | null>(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -133,7 +135,7 @@ export default function ChargingInfo({
   const cheapest = info ? cheapestEnergy(info.tariffs) : null;
   const price = (value: number, currency: string) =>
     new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(value);
-  const label = `${status}${info?.updatedAt ? ` (${new Date(info.updatedAt).toLocaleString()})` : ''}`;
+  const label = `${status}${info?.updatedAt ? ` (${formatDateTime(new Date(info.updatedAt))})` : ''}`;
   if (compact)
     return (
       <ChargingBadges
@@ -211,7 +213,7 @@ export default function ChargingInfo({
             </a>
             <br />
             {info.license}
-            {info.updatedAt && ` · ${new Date(info.updatedAt).toLocaleString()}`}
+            {info.updatedAt && ` · ${formatDateTime(new Date(info.updatedAt))}`}
           </p>
         )}
       </div>

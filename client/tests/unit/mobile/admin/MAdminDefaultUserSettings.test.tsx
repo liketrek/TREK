@@ -1,4 +1,4 @@
-// FE-MOB-MDUS-001 to FE-MOB-MDUS-028
+// FE-MOB-MDUS-001 to FE-MOB-MDUS-032
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor, within, fireEvent } from '../../../helpers/render';
 import userEvent from '@testing-library/user-event';
@@ -463,5 +463,73 @@ describe('MAdminDefaultUserSettings week start (#2029)', () => {
     await user.click(screen.getByRole('tab', { name: 'Saturday' }));
     await waitFor(() => expect(screen.getByRole('tab', { name: 'Saturday' })).toHaveAttribute('aria-selected', 'true'));
     expect(puts).toEqual([{ week_start: 'saturday' }]);
+  });
+});
+
+describe('MAdminDefaultUserSettings, the routing service', () => {
+  beforeEach(() => {
+    resetAllStores();
+    seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
+  });
+
+  it('FE-MOB-MDUS-029: starts on automatic, saves a chosen service and clears it again', async () => {
+    const { puts } = stubDefaults();
+    render(<MAdminDefaultUserSettings />);
+    const picker = await screen.findByRole('combobox', { name: 'Routing service' });
+    expect(picker).toHaveValue('');
+
+    fireEvent.change(picker, { target: { value: 'trek' } });
+    await waitFor(() => expect(puts).toEqual([{ routing_valhalla_provider: 'trek' }]));
+    await waitFor(() => expect(picker).toHaveValue('trek'));
+    await waitFor(() => expect(picker).toBeEnabled());
+
+    fireEvent.change(picker, { target: { value: '' } });
+    await waitFor(() => expect(puts[1]).toEqual({ routing_valhalla_provider: null }));
+    await waitFor(() => expect(picker).toHaveValue(''));
+  });
+
+  it('FE-MOB-MDUS-030: shows the stored choice and hides it on a managed instance', async () => {
+    stubDefaults({ routing_valhalla_provider: 'fossgis' });
+    const { unmount } = render(<MAdminDefaultUserSettings />);
+    expect(await screen.findByRole('combobox', { name: 'Routing service' })).toHaveValue('fossgis');
+    unmount();
+
+    seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin(), managed: true });
+    render(<MAdminDefaultUserSettings />);
+    await screen.findByText('Default User Settings');
+    expect(screen.queryByRole('combobox', { name: 'Routing service' })).not.toBeInTheDocument();
+  });
+});
+
+describe('MAdminDefaultUserSettings date format (#2971)', () => {
+  beforeEach(() => {
+    resetAllStores();
+    seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
+  });
+
+  it('FE-MOB-MDUS-031: the date-format sheet saves its own key', async () => {
+    const user = userEvent.setup();
+    const { puts } = stubDefaults({ date_format: 'YYYY-MM-DD' });
+    render(<MAdminDefaultUserSettings />);
+    await screen.findByText('Default User Settings');
+
+    // The choices are labelled by how they write 31 December.
+    await user.click(screen.getByRole('button', { name: '2026-12-31' }));
+    const sheet = await screen.findByRole('dialog');
+    await user.click(within(sheet).getByRole('button', { name: '31.12.2026' }));
+
+    await waitFor(() => expect(puts).toEqual([{ date_format: 'DD.MM.YYYY' }]));
+  });
+
+  it('FE-MOB-MDUS-032: a stored date format can be reset', async () => {
+    const user = userEvent.setup();
+    const { puts } = stubDefaults({ date_format: 'DD/MM/YYYY' });
+    render(<MAdminDefaultUserSettings />);
+    await screen.findByText('Default User Settings');
+
+    // The only default set, so the only reset link on the page.
+    await user.click(screen.getByRole('button', { name: 'reset' }));
+
+    await waitFor(() => expect(puts).toEqual([{ date_format: null }]));
   });
 });

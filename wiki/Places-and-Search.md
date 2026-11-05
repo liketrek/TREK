@@ -94,6 +94,10 @@ The hours stay folded away until you click **Add opening hours**. Each weekday t
 
 The place inspector shows the phone and the e-mail address as pills in its head band (a click calls or writes), and your own hours win over the ones a provider knows.
 
+### Newer place details
+
+When you edit a saved place, TREK looks the place up again. If the lookup knows a description, website, phone number, e-mail address or opening hours that differ from what the place holds, a **New place details** pill with the number of differences appears in the head of the form. It opens a list with what the place holds now beside what the lookup has. A field that is empty is ticked; a field that already has a value is not, and says that it would replace it. **Take over** writes only the ticked fields into the form, and the place keeps them once you save it. A field the lookup knows nothing about is never offered, so refreshing never empties anything.
+
 ### Costs for a place
 
 With the [Costs](Budget-Tracking) addon enabled, the place form carries the same **Costs** block that bookings and transports have. **Create expense** saves the place and then opens the Costs editor for a new expense linked to it: the museum ticket, the guided tour, the entry fee. On a saved place, **Link existing expense** ties one that is already in Costs. Every linked expense is listed with edit, **Unlink, keep the expense** and **Remove expense**, and a place can carry several.
@@ -104,15 +108,15 @@ Deleting the place deletes its linked expenses too, the same way deleting a book
 
 ## Searching for a place
 
-Place search needs no API key. Two sources answer it together: the **TREK API**, TREK's own index of 73.6 million places, and **OpenStreetMap**. The index is strongest on businesses such as restaurants, shops and hotels; OpenStreetMap is where the temples, bridges, viewpoints and stations are. What the index is, where its data comes from and what TREK sends to it is on its own page: [TREK Places API](TREK-Places-API).
+Place search needs no API key. Two sources answer it together: the **TREK API**, TREK's own index of 73.6 million places, and **OpenStreetMap**, asked through the address search of the TREK services where the installation has a key and through Nominatim where it has none (see [Address search](TREK-Places-API#address-search)). The index is strongest on businesses such as restaurants, shops and hotels; OpenStreetMap is where the temples, bridges, viewpoints and stations are. What the index is, where its data comes from and what TREK sends to it is on its own page: [TREK Places API](TREK-Places-API).
 
 ### Suggestions while you type
 
 After two or more characters and a 300 ms pause, suggestions appear under the search field of the place form.
 
 - Use **↑ / ↓** to move through them, **Enter** to pick one, **Esc** to close the list.
-- Suggestions come from the TREK API, from its index and from an OpenStreetMap layer it keeps. A suggestion from that layer shows the name that matched what you typed, with the name used on the spot underneath when the two differ.
-- Only when the TREK API has nothing does TREK ask the keyed provider (Google or Amap), or, without one, OpenStreetMap's own search service.
+- Suggestions come from the TREK API, from its index and from an OpenStreetMap layer it keeps, and from the address search of the TREK services asked at the same time. A suggestion from the layer shows the name that matched what you typed, with the name used on the spot underneath when the two differ. How the rows are ordered is described in [How the list is put together](#how-the-list-is-put-together).
+- Only when both have nothing does TREK ask the keyed provider (Google or Amap), or, without one, OpenStreetMap's search on its own.
 - An installed [search plugin](Plugin-Cookbook#suggestions-while-the-user-types) whose index can keep up with typing adds up to three of its places under the suggestions, marked with the plugin's name. Picking one fills in what the plugin knows about the place, with no second lookup.
 
 ### Language of place names
@@ -121,11 +125,28 @@ By default, search, suggestions and addresses answer in the language TREK is set
 
 ### The full search
 
-Press **Enter** without picking a suggestion, or click the search button beside the field, to run a full search. It asks the TREK API and OpenStreetMap at the same time and interleaves their answers, TREK first, up to ten results. A place both of them know (within 60 metres, with a matching name) is listed once.
+Press **Enter** without picking a suggestion, or click the search button beside the field, to run a full search. It asks the TREK API and OpenStreetMap at the same time and merges their answers the same way as the suggestions, up to ten results; see [How the list is put together](#how-the-list-is-put-together).
 
 A Google or Amap key does not change this. The keyed provider is asked only when the TREK API and OpenStreetMap both come back empty; see [Google and Amap](#google-and-amap).
 
 Installed [search plugins](Plugin-Cookbook#answer-place-searches-from-your-own-index) add their results below the core list. Only the ones built for it also answer while you type; the others appear here, once the search is run.
+
+### How the list is put together
+
+The suggestions and the full search build their list the same way, so the two agree on what a name means.
+
+1. **Both are asked at once:** the index with its OpenStreetMap layer, and the address search of the TREK services. Its hits are ranked with places that have a Wikidata link before their unlinked namesakes, and streets, unlinked shops and unlinked artworks step back: "Neuschwanstein" opens on the castle, not on an artwork of that name. It leans towards the area you are planning (see [The open day steers the search](#the-open-day-steers-the-search)), more narrowly than before, so a namesake 50 km away no longer passes the real place. On an installation without a key Nominatim answers in its place, and the list has no lead.
+2. **The list opens on a lead** when the address search's answer has one:
+   - a country or a region, always;
+   - a town, an island or a sight with a Wikidata link, when it is called what you typed (or a typo of it: one letter wrong, two in a name of eight letters or more), lies within 1000 km of where you are looking, and no place of that name ranks above it. With no hint at all, a town, an island or a sight leads; a municipality or a county does not.
+3. **The rest alternate**, index and OpenStreetMap, the index first.
+4. **Doubles go:** a place both sources know (within 60 metres, with a matching name) is listed once, as the index's copy; rows of the lead's own name inside its area go, so "Berlin" no longer opens on a business filed as "Berlin" in Berlin; the same element under two ids is shown once; and rows that read the same, with the same name and the same line below it, are shown once.
+
+A three-letter code in capitals, such as `JFK` or `LHR`, is looked up in TREK's bundled airport list and asked for as that airport at its place, which then leads. Typed in lower case it stays an ordinary search, so `ber` on the way to "Berlin" still finds Berlin.
+
+The line below a row from the address search shows the street, the quarter, the town and the country, and the region only where there is no town. It never shows the postcode or the county.
+
+Measured on 5000 places from Wikidata, the right place came first while typing 65 percent of the time, against 48 before; in the full search 68 percent against 53; for cities 88 against 65; for countries 99 against 44. Rows that read the same twice are gone.
 
 ### Where each result came from
 

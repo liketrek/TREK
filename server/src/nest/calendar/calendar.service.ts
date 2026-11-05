@@ -14,6 +14,7 @@ import { addDays } from '../days/days.service';
 import { ReservationsService } from '../reservations/reservations.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
+import { isTransportReservationType } from '@trek/shared';
 
 /** The VCALENDAR preamble every TREK calendar starts with, single-trip or merged. */
 export const CALENDAR_HEADER =
@@ -572,14 +573,18 @@ export class CalendarService {
     // as the pickup. Positional first/last is only a fallback when no role is
     // present at all, and only with more than one endpoint, so a lone endpoint is
     // never both sides (#1721).
-    const windowSidesOf = (r: any): { start: WindowSide | null; end: WindowSide | null } => {
-      const eps = endpointsMap.get(r.id);
+    const endpointOf = (reservationId: number, side: 'from' | 'to') => {
+      const eps = endpointsMap.get(reservationId);
       const ordered = eps && eps.length > 0 ? [...eps].sort((a, b) => a.sequence - b.sequence) : [];
-      const roleFrom = ordered.find((e) => e.role === 'from');
-      const roleTo = ordered.find((e) => e.role === 'to');
-      const noRoles = !roleFrom && !roleTo;
-      const startEp = roleFrom ?? (noRoles && ordered.length > 1 ? ordered[0] : undefined);
-      const endEp = roleTo ?? (noRoles && ordered.length > 1 ? ordered[ordered.length - 1] : undefined);
+      const byRole = ordered.find((e) => e.role === side);
+      if (byRole) return byRole;
+      const noRoles = !ordered.some((e) => e.role === 'from' || e.role === 'to');
+      if (!noRoles || ordered.length < 2) return undefined;
+      return side === 'from' ? ordered[0] : ordered[ordered.length - 1];
+    };
+    const windowSidesOf = (r: any): { start: WindowSide | null; end: WindowSide | null } => {
+      const startEp = endpointOf(r.id, 'from');
+      const endEp = endpointOf(r.id, 'to');
 
       const fromEp = (ep: typeof startEp): WindowSide | null =>
         ep && isDate(ep.local_date) && isTime(ep.local_time)
@@ -665,6 +670,24 @@ export class CalendarService {
       return out;
     };
 
+    // Where a transport takes the traveller, as a LOCATION (and GEO) a calendar can
+    // navigate to (#2909): the route in the description is no address. The side is
+    // the one the traveller has to get to, the destination of a drive of their own
+    // and the departure of a ride they board, as the per-leg events do. A
+    // location the booking states itself still wins.
+    const SELF_DRIVEN_TYPES = new Set(['car', 'bicycle']);
+    const locationLines = (
+      r: { id: number; type?: string | null; location?: string | null },
+      side: 'from' | 'to' = SELF_DRIVEN_TYPES.has(r.type ?? '') ? 'to' : 'from',
+    ): string => {
+      if (r.location) return `LOCATION:${esc(r.location)}\r\n`;
+      const ep = isTransportReservationType(r.type) ? endpointOf(r.id, side) : undefined;
+      const name = ep?.name || ep?.code;
+      if (!ep || !name) return '';
+      const geo = Number.isFinite(ep.lat) && Number.isFinite(ep.lng) ? `GEO:${ep.lat};${ep.lng}\r\n` : '';
+      return `LOCATION:${esc(name)}\r\n${geo}`;
+    };
+
     // Reservations as events
     for (const r of reservations) {
       // The two hand-over events below stand in for this booking entirely.
@@ -701,7 +724,7 @@ export class CalendarService {
 
       const desc = describeReservation(r);
       if (desc) ev += `DESCRIPTION:${esc(desc)}\r\n`;
-      if (r.location) ev += `LOCATION:${esc(r.location)}\r\n`;
+      ev += locationLines(r);
       ev += `END:VEVENT\r\n`;
       events.push(ev);
     }
@@ -859,7 +882,8 @@ export class CalendarService {
         }
         ev += `SUMMARY:${esc(summary)}\r\n`;
         if (desc) ev += `DESCRIPTION:${esc(desc)}\r\n`;
-        if (r.location) ev += `LOCATION:${esc(r.location)}\r\n`;
+        // A hand-over happens where the car is collected or returned.
+        ev += locationLines(r, kind === 'pickup' ? 'from' : 'to');
         ev += `END:VEVENT\r\n`;
         events.push(ev);
       };

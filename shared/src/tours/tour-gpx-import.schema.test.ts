@@ -54,6 +54,24 @@ describe('Tours GPX preview', () => {
     };
     expect(tourGpxPreviewResponseSchema.parse(preview)).toEqual(preview);
   });
+
+  it('carries a track taken over from before Tours, and nothing but a boolean for it (#2810)', () => {
+    const track = {
+      name: 'Garmin hike',
+      geometry: [
+        [46.1, 11.1, 1200],
+        [46.2, 11.2, 1300],
+      ],
+      point_count: 2,
+      distance_km: 13.6,
+      elevation_gain_m: 100,
+      elevation_loss_m: 0,
+      duplicate: false,
+      adopts_track: true,
+    };
+    expect(tourGpxPreviewResponseSchema.parse({ tracks: [track] })).toEqual({ tracks: [track] });
+    expect(tourGpxPreviewResponseSchema.safeParse({ tracks: [{ ...track, adopts_track: 'yes' }] }).success).toBe(false);
+  });
 });
 
 describe('Tours KML preview (IO-02)', () => {

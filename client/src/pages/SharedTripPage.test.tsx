@@ -664,10 +664,10 @@ describe('SharedTripPage', () => {
       await waitFor(() => expect(screen.getAllByText('12,345.67 USD')).toHaveLength(4));
     });
 
-    it('reads a bill in the display currency through the trip currency too, beside what was entered', async () => {
-      // The owner reads in USD on a CHF trip. The USD bill was booked at 685.26 CHF,
-      // which today is 780.86 USD, the figure Costs and its balances use; the CHF one
-      // converts at today's rate (100 CHF = 113.95 USD).
+    it('reads a bill in the display currency as typed, as Costs does (#2965)', async () => {
+      // The owner reads in USD on a CHF trip. The USD bill reads as the 801.76 USD
+      // typed, as Costs and its balances count it; the CHF one converts at today's
+      // rate (100 CHF = 113.95 USD).
       server.use(
         http.get('https://api.frankfurter.dev/v2/rates', () => HttpResponse.json([{ quote: 'CHF', rate: 1 / 1.1395 }])),
         http.get('/api/shared/:token', ({ params }) => {
@@ -692,9 +692,9 @@ describe('SharedTripPage', () => {
       fireEvent.click(screen.getByRole('button', { name: /costs/i }));
 
       await waitFor(() => expect(screen.getAllByText('113.95 USD')).toHaveLength(3));
-      expect(screen.getAllByText('780.86 USD')).toHaveLength(3);
-      expect(screen.getByText('894.81 USD')).toBeInTheDocument();
-      expect(screen.getByText('801.76 USD')).toBeInTheDocument();
+      expect(screen.getAllByText('801.76 USD').length).toBeGreaterThan(0);
+      expect(screen.queryByText('780.86 USD')).toBeNull();
+      expect(screen.getByText('915.71 USD')).toBeInTheDocument();
       expect(screen.getByText('100.00 CHF')).toBeInTheDocument();
     });
   });

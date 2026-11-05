@@ -1,5 +1,7 @@
 import { useMemo } from 'react'
 import { Polyline } from 'react-leaflet'
+import { useLngFrame } from './lngFrameContext'
+import { frameLine } from '../../utils/lngFrame'
 import type { DawarichTrack } from '@trek/shared'
 import {
   DAWARICH_TRAIL_CASING,
@@ -37,7 +39,10 @@ export default function DawarichTrailLayer({
   /** The `trek-track-casing` pane, when the renderer supports panes. */
   casingPane?: string
 }) {
-  const segments = useMemo(() => trailSegments(track, selectedDate, hiddenDates), [track, selectedDate, hiddenDates])
+  const frame = useLngFrame()
+  // Drawn in the map's longitude frame, with the trip it was recorded on (#2975).
+  const segments = useMemo(() => trailSegments(track, selectedDate, hiddenDates)
+    .map(segment => (frame ? { ...segment, points: frameLine(frame, segment.points) } : segment)), [track, selectedDate, hiddenDates, frame])
   if (segments.length === 0) return null
 
   return (

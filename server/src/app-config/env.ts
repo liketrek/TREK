@@ -27,6 +27,7 @@ export const SECRET_ENV_KEYS: ReadonlySet<string> = new Set([
   'UNSPLASH_ACCESS_KEY',
   'ADMIN_PASSWORD',
   'PLACES_API_KEY',
+  'TREK_SERVICES_KEY',
   'AMAP_API_KEY',
   'AMAP_API_SECRET',
   'MAPBOX_ACCESS_TOKEN',

@@ -1,4 +1,10 @@
-import { deriveHttpBoot, deriveKitinerary, deriveStorage, deriveTransit } from '../../../src/app-config/boot-derive';
+import {
+  deriveHttpBoot,
+  deriveKitinerary,
+  deriveServices,
+  deriveStorage,
+  deriveTransit,
+} from '../../../src/app-config/boot-derive';
 import {
   deriveApp,
   deriveHttp,
@@ -243,6 +249,14 @@ describe('deriveIntegrations', () => {
     expect(deriveIntegrations({ OVERPASS_TIMEOUT_MS: '-1' }).overpassTimeoutMs).toBe(OVERPASS_TIMEOUT_DEFAULT_MS);
   });
 
+  it('says whether the operator set a Nominatim of their own, which keeps search off Photon', () => {
+    expect(deriveIntegrations({}).nominatimOwn).toBe(false);
+    expect(deriveIntegrations({ NOMINATIM_URL: '   ' }).nominatimOwn).toBe(false);
+    expect(deriveIntegrations({ NOMINATIM_URL: 'http://nominatim:8080' }).nominatimOwn).toBe(true);
+    // The public address spelled out is still a choice the operator made.
+    expect(deriveIntegrations({ NOMINATIM_URL: 'https://nominatim.openstreetmap.org' }).nominatimOwn).toBe(true);
+  });
+
   it('floors the LLM ceiling to a whole number — undici rejects a fractional headersTimeout', () => {
     expect(deriveIntegrations({}).llmTimeoutMs).toBe(900_000);
     expect(deriveIntegrations({ LLM_TIMEOUT_MS: '-1' }).llmTimeoutMs).toBe(900_000);
@@ -275,6 +289,47 @@ describe('deriveKitinerary (kitineraryConfig token)', () => {
     expect(deriveKitinerary({ PATH: ['/a', ' /b ', '', '/c'].join(sep) }).searchPath).toEqual(['/a', '/b', '/c']);
     expect(deriveKitinerary({ Path: ['/w1', '/w2'].join(sep) }).searchPath).toEqual(['/w1', '/w2']);
     expect(deriveKitinerary({}).searchPath).toEqual([]);
+  });
+});
+
+describe('deriveServices (servicesConfig token)', () => {
+  it('registers by itself unless TREK_SERVICES says off, and any value but auto is off', () => {
+    expect(deriveServices({}).mode).toBe('auto');
+    expect(deriveServices({ TREK_SERVICES: ' AUTO ' }).mode).toBe('auto');
+    expect(deriveServices({ TREK_SERVICES: 'off' }).mode).toBe('off');
+    expect(deriveServices({ TREK_SERVICES: 'of' }).mode).toBe('off');
+  });
+
+  it('takes a key from TREK_SERVICES_KEY, trimmed, and no key for a blank one', () => {
+    expect(deriveServices({ TREK_SERVICES_KEY: ' tk1.k.p.s ' }).key).toBe('tk1.k.p.s');
+    expect(deriveServices({ TREK_SERVICES_KEY: '  ' }).key).toBeNull();
+    expect(deriveServices({}).key).toBeNull();
+  });
+
+  it('sends the key to the three liketrek services unless TREK_SERVICES_HOSTS names others', () => {
+    const all = ['places.liketrek.com', 'photon.liketrek.com', 'valhalla.liketrek.com'];
+    expect(deriveServices({}).hosts).toEqual(all);
+    expect(deriveServices({ TREK_SERVICES_HOSTS: 'Places.LikeTrek.com, , photon.liketrek.com' }).hosts).toEqual([
+      'places.liketrek.com',
+      'photon.liketrek.com',
+    ]);
+    expect(deriveServices({ TREK_SERVICES_HOSTS: ' , ' }).hosts).toEqual(all);
+  });
+
+  it('asks photon.liketrek.com unless TREK_PHOTON_URL names another copy, trimmed and without trailing slashes', () => {
+    expect(deriveServices({}).photonUrl).toBe('https://photon.liketrek.com');
+    expect(deriveServices({ TREK_PHOTON_URL: '  ' }).photonUrl).toBe('https://photon.liketrek.com');
+    expect(deriveServices({ TREK_PHOTON_URL: ' https://geo.example.org/photon// ' }).photonUrl).toBe(
+      'https://geo.example.org/photon',
+    );
+  });
+
+  it('relays routing to valhalla.liketrek.com unless TREK_VALHALLA_URL names another, without its trailing slash', () => {
+    expect(deriveServices({}).valhallaUrl).toBe('https://valhalla.liketrek.com');
+    expect(deriveServices({ TREK_VALHALLA_URL: ' http://valhalla.lan:8002/ ' }).valhallaUrl).toBe(
+      'http://valhalla.lan:8002',
+    );
+    expect(deriveServices({ TREK_VALHALLA_URL: '  ' }).valhallaUrl).toBe('https://valhalla.liketrek.com');
   });
 });
 
@@ -380,6 +435,14 @@ describe('deriveMaps', () => {
     }
     for (const value of ['true', 'TRUE', '1', 'on', 'yes']) {
       expect(deriveMaps({ TREK_PLACES_ENABLED: value } as never).trekPlacesEnabled, value).toBe(true);
+    }
+  });
+
+  it('TREK_PLACES_CONTRIBUTE leaves the choice to an admin unless it says off, and fails closed on anything else', () => {
+    expect(deriveMaps({} as never).trekPlacesContribute).toBe('admin');
+    expect(deriveMaps({ TREK_PLACES_CONTRIBUTE: ' Admin ' } as never).trekPlacesContribute).toBe('admin');
+    for (const value of ['off', 'OFF', 'false', 'yes']) {
+      expect(deriveMaps({ TREK_PLACES_CONTRIBUTE: value } as never).trekPlacesContribute, value).toBe('off');
     }
   });
 

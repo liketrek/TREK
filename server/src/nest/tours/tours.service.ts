@@ -16,7 +16,7 @@ import { toRowId } from '../common/row-id';
 import { UnitOfWork } from '../database/unit-of-work';
 import { PlaceImportService } from '../place-import/place-import.service';
 import { PlacesService } from '../places/places.service';
-import { toActivity, trackTimesFor } from './tour-activities.helpers';
+import { recordedTimesOf, toActivity, trackTimesFor } from './tour-activities.helpers';
 import {
   copiedFacet,
   copyStart,
@@ -29,6 +29,7 @@ import { readTourFile } from './tour-file-import.helpers';
 import { provenanceSource, tourItemOf } from './tour-item.helpers';
 import { TourPaddleCheckService } from './tour-paddle-check.service';
 import { advanceTourRevision } from './tour-revision';
+import { tracksToAdopt } from './tour-track-adoption';
 import { toVisit } from './tour-visits.service';
 import { checkTourCommand, firstPointOf, importFileName, keyedWaypoints, tourRouteFields } from './tour-write.helpers';
 import { computeTourMetrics, localHashOf, parseRouteGeometry, type GeometryPoint } from './tours.helpers';
@@ -57,6 +58,30 @@ import {
   walkStationsOf,
   wandererDifficultyToSac,
 } from '@trek/shared';
+
+/** `fn` over `items` one after the other, in order: the writes of one import share a transaction. */
+async function inOrder<T, R>(items: readonly T[], fn: (item: T) => Promise<R>): Promise<R[]> {
+  return items.reduce<Promise<R[]>>(async (done, item) => [...(await done), await fn(item)], Promise.resolve([]));
+}
+
+/**
+ * What the type adds to each tour a file import makes: a bike tour and a run
+ * their profile, a paddle tour its boat and water, a ski track its discipline
+ * and technique (SKI-02). A run comes in without a pace and a ski track
+ * without a time: neither is worked out for them, so they stay unknown.
+ */
+function importedTypeFields(fields: TourGpxImportFields) {
+  return {
+    bike_profile: fields.bike_profile ?? null,
+    run_profile: fields.run_profile ?? null,
+    run_pace_seconds_per_km: null,
+    ski_discipline: fields.ski_discipline ?? null,
+    ski_technique: fields.ski_technique ?? null,
+    boat_type: fields.boat_type ?? null,
+    water_context: fields.water_context ?? null,
+    paddle_speed_kmh: null,
+  };
+}
 
 export interface ImportGpxAsTourResult {
   tours: TourListItem[];
@@ -783,88 +808,45 @@ export class ToursService {
     const { rows } = await readTourFile(this.placeImport, fileBuffer, fileName);
     if (rows.length === 0) return null;
     await this.assertTourTypeEnabled(fields.tour_type);
-    // What the type adds to each imported tour: a bike tour and a run their profile, a paddle tour its boat and water,
-    // a ski track its discipline and technique (SKI-02). A run comes in without a pace and a ski track without a
-    // time: neither is worked out for them, so they stay unknown.
-    const typeFields = {
-      bike_profile: fields.bike_profile ?? null,
-      run_profile: fields.run_profile ?? null,
-      run_pace_seconds_per_km: null,
-      ski_discipline: fields.ski_discipline ?? null,
-      ski_technique: fields.ski_technique ?? null,
-      boat_type: fields.boat_type ?? null,
-      water_context: fields.water_context ?? null,
-      paddle_speed_kmh: null,
-    };
+    const typeFields = importedTypeFields(fields);
 
+    const adopt = await this.adoptableTracks(tripId, rows);
+    const fresh = rows.filter((_, index) => !adopt.has(index));
     const tours: TourListItem[] = [];
+    const adopted: number[] = [];
     const result = await this.uow.transactional(async () => {
       // A nested transactional, so the places and their facets commit together.
-      const imported = await this.places.importPreparedGpx(tripId, rows);
-      const times = trackTimesFor(rows, imported.places);
-      for (const place of imported.places) {
-        const recorded = times.get(place.id);
-        const metrics = computeTourMetrics(parseRouteGeometry(place.route_geometry));
-        const matchConfidence = metrics.hasElevation ? 1 : 0.3;
-        await this.toursRepo.insertTour({
-          place_id: place.id,
-          tour_type: fields.tour_type,
-          ...typeFields,
-          distance: metrics.distanceKm,
-          elevation_gain: metrics.elevationGainM,
-          elevation_loss: metrics.elevationLossM,
-          duration: null,
-          planned_duration_minutes: null,
-          break_additional_minutes: null,
-          match_confidence: matchConfidence,
-          max_hiking_difficulty: null,
-          origin: 'gpx',
-          origin_file_name: importFileName(fileName),
-          track_started_at: recorded?.started ?? null,
-          track_ended_at: recorded?.ended ?? null,
-        });
-        tours.push(
-          tourItemOf({
-            place_id: place.id,
-            name: place.name,
-            description: place.description ?? null,
-            website: place.website ?? null,
-            tour_type: fields.tour_type,
-            ...typeFields,
-            distance: metrics.distanceKm,
-            elevation_gain: metrics.elevationGainM,
-            elevation_loss: metrics.elevationLossM,
-            duration: null,
-            planned_duration_minutes: null,
-            break_additional_minutes: null,
-            difficulty: null,
-            wanderer_ref: null,
-            match_confidence: matchConfidence,
-            max_hiking_difficulty: null,
-            derived_from_place_id: null,
-            origin: 'gpx',
-            portage_speed_kmh: null,
-            paddle_lake_style: null,
-            track_marks: null,
-            has_recorded_track: 0,
-            planned: 0,
-            has_waypoints: 0,
-            stage_ends: 0,
-            route_missing: 0,
-            revision: 1,
-            hiking_preferences: null,
-            track_started_at: recorded?.started ?? null,
-            track_ended_at: recorded?.ended ?? null,
-          }),
-        );
-      }
+      const imported =
+        fresh.length > 0 ? await this.places.importPreparedGpx(tripId, fresh) : { places: [], count: 0, skipped: 0 };
+      const times = trackTimesFor(fresh, imported.places);
+      tours.push(
+        ...(await inOrder(imported.places, (place) =>
+          this.insertImportedTour(
+            place,
+            place.route_geometry ?? null,
+            times.get(place.id),
+            fields,
+            typeFields,
+            fileName,
+          ),
+        )),
+      );
+      // A track from before Tours keeps its place and its line and becomes the
+      // tour; the file adds the recorded times 4.x never stored.
+      await inOrder([...adopt], async ([index, track]) => {
+        const place = await this.places.get(tripId, String(track.id));
+        if (!place) return;
+        const recorded = recordedTimesOf(rows[index]);
+        tours.push(await this.insertImportedTour(place, track.route_geometry, recorded, fields, typeFields, fileName));
+        adopted.push(place.id);
+      });
       return imported;
     });
 
-    if (result.places.length === 0) return { tours: [], caution: false, skipped: result.skipped };
+    if (tours.length === 0) return { tours: [], caution: false, skipped: result.skipped };
     this.broadcastToursChanged(
       tripId,
-      result.places.map((place) => place.id),
+      tours.map((tour) => tour.place_id),
       socketId,
     );
     for (const place of result.places) {
@@ -874,19 +856,101 @@ export class ToursService {
         this.logger.warn(`Committed GPX place ${place.id}: realtime notification failed`);
       }
     }
+    // The taken-over places now read as tours; the other clients get the row again.
+    await inOrder(adopted, async (id) => {
+      try {
+        const place = await this.places.get(tripId, String(id));
+        if (place) this.places.broadcast(tripId, 'place:updated', { place }, socketId);
+      } catch {
+        this.logger.warn(`Committed GPX tour on place ${id}: realtime notification failed`);
+      }
+    });
     return { tours, caution: tours.some((t) => t.caution), skipped: result.skipped };
+  }
+
+  /** Which rows of a file take over a track of the trip from before Tours (#2810), read off the places list. */
+  private async adoptableTracks(tripId: string, rows: ReadonlyArray<{ name: string }>) {
+    return tracksToAdopt(rows, await this.places.list(tripId, {}));
+  }
+
+  /**
+   * The `tours` row for one place of a GPX import, with its metrics read off
+   * `geometry` and the recorded times, and the list item the import answers
+   * with. A new place and a track taken over from before Tours (#2810) get the
+   * same row.
+   */
+  private async insertImportedTour(
+    place: { id: number; name: string; description?: string | null; website?: string | null },
+    geometry: string | null,
+    recorded: ReturnType<typeof recordedTimesOf> | undefined,
+    fields: TourGpxImportFields,
+    typeFields: ReturnType<typeof importedTypeFields>,
+    fileName: string | undefined,
+  ): Promise<TourListItem> {
+    const metrics = computeTourMetrics(parseRouteGeometry(geometry));
+    const matchConfidence = metrics.hasElevation ? 1 : 0.3;
+    await this.toursRepo.insertTour({
+      place_id: place.id,
+      tour_type: fields.tour_type,
+      ...typeFields,
+      distance: metrics.distanceKm,
+      elevation_gain: metrics.elevationGainM,
+      elevation_loss: metrics.elevationLossM,
+      duration: null,
+      planned_duration_minutes: null,
+      break_additional_minutes: null,
+      match_confidence: matchConfidence,
+      max_hiking_difficulty: null,
+      origin: 'gpx',
+      origin_file_name: importFileName(fileName),
+      track_started_at: recorded?.started ?? null,
+      track_ended_at: recorded?.ended ?? null,
+    });
+    return tourItemOf({
+      place_id: place.id,
+      name: place.name,
+      description: place.description ?? null,
+      website: place.website ?? null,
+      tour_type: fields.tour_type,
+      ...typeFields,
+      distance: metrics.distanceKm,
+      elevation_gain: metrics.elevationGainM,
+      elevation_loss: metrics.elevationLossM,
+      duration: null,
+      planned_duration_minutes: null,
+      break_additional_minutes: null,
+      difficulty: null,
+      wanderer_ref: null,
+      match_confidence: matchConfidence,
+      max_hiking_difficulty: null,
+      derived_from_place_id: null,
+      origin: 'gpx',
+      portage_speed_kmh: null,
+      paddle_lake_style: null,
+      track_marks: null,
+      has_recorded_track: 0,
+      planned: 0,
+      has_waypoints: 0,
+      stage_ends: 0,
+      route_missing: 0,
+      revision: 1,
+      hiking_preferences: null,
+      track_started_at: recorded?.started ?? null,
+      track_ended_at: recorded?.ended ?? null,
+    });
   }
 
   /**
    * PAD-02: what a file would import, read with the import's own parser and
    * duplicate rule and written nowhere. Null when the file holds no track or
-   * route, the import's own refusal. A KML or KMZ file also says what it holds
-   * besides its lines (IO-02).
+   * route, the import's own refusal. The preview also says what the file holds
+   * besides its lines (IO-02), a GPX file its waypoints (#2969).
    */
   async previewGpx(tripId: string, fileBuffer: Buffer, fileName?: string): Promise<TourGpxPreviewResponse | null> {
     const { rows, leftOut } = await readTourFile(this.placeImport, fileBuffer, fileName);
     if (rows.length === 0) return null;
     const duplicates = await this.places.gpxDuplicates(tripId, rows);
+    const adopt = await this.adoptableTracks(tripId, rows);
     return {
       tracks: rows.map((row, index) => {
         const geometry = parseRouteGeometry(row.routeGeometry);
@@ -900,7 +964,8 @@ export class ToursService {
           elevation_loss_m: metrics.elevationLossM,
           started_at: row.trackTimes?.startedAt ?? null,
           ended_at: row.trackTimes?.endedAt ?? null,
-          duplicate: duplicates[index] ?? false,
+          duplicate: !adopt.has(index) && (duplicates[index] ?? false),
+          ...(adopt.has(index) ? { adopts_track: true } : {}),
         };
       }),
       ...(leftOut ? { left_out: leftOut } : {}),

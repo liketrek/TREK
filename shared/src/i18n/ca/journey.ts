@@ -298,7 +298,7 @@ const journey: TranslationStrings = {
   'journey.studio.autoLayout': 'Disseny automàtic',
   'journey.studio.export': 'Exporta',
   'journey.studio.day': 'DIA {day}',
-  'journey.studio.stations': 'Etapes',
+  'journey.studio.stations': 'Pel camí',
   'journey.studio.peersHere': 'aquí',
   'journey.studio.folioAuto': 'Automàtic',
   'journey.studio.exportLayout': 'Disposició',

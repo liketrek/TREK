@@ -13,9 +13,9 @@ import { studioLayerActions, type StudioLayerActions } from './studioLayers'
  * The book being edited.
  *
  * History is snapshot-based rather than patch-based, and deliberately so: a
- * document is a few hundred kilobytes of plain JSON at most (the schema caps it
- * at 150 spreads of 60 elements), and a snapshot stack that cannot possibly
- * disagree with the document beats a patch stack that can. It is capped so a
+ * snapshot shares every page it did not change with the one before it, so even
+ * a book of hundreds of pages costs one page per step, and a snapshot stack
+ * that cannot possibly disagree with the document beats a patch stack that can. It is capped so a
  * long session does not grow without limit.
  *
  * Granularity is the part that matters for how it *feels*: a drag is one undo

@@ -177,8 +177,8 @@ describe('the one time repair of place_regions rows cached before #2527', () => 
     expect(await atlas.repairStaleRegionCache()).toEqual({ replaced: 0, dropped: 2 });
     expect(await cachedRow(beach)).toBeUndefined();
     expect(await cachedRow(cleared)).toBeUndefined();
-    // The dashboard, which reads only the cache, no longer counts France.
-    expect((await atlas.getTravelStats(userId)).countries).toEqual([]);
+    // The dashboard no longer counts France; the borders place the beach in Germany.
+    expect((await atlas.getTravelStats(userId)).countries).toEqual(['DE']);
   });
 
   it('does not write over a place that is edited while the pass runs', async () => {

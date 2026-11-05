@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import path from 'path';
 import { EntityManager } from '@mikro-orm/core';
 import { Trips } from '../../db/entities/Trips.entity';
 import { Days } from '../../db/entities/Days.entity';
@@ -44,7 +43,7 @@ import { BudgetService, type CurrencyRebase } from '../budget/budget.service';
 import { ReservationsService } from '../reservations/reservations.service';
 import { VacayService } from '../vacay/vacay.service';
 import { UnsplashService } from '../unsplash/unsplash.service';
-import { StorageService } from '../storage/storage.service';
+import { StorageReleaseService } from '../storage/storage-release.service';
 import { SettingsService } from '../settings/settings.service';
 import { escapeLikePattern } from '../places/places.helpers';
 import { NotFoundError, ValidationError } from '../common/domain-errors';
@@ -155,7 +154,7 @@ export class TripsService {
     private readonly vacay: VacayService,
     private readonly realtime: RealtimeService,
     private readonly unsplash: UnsplashService,
-    private readonly storage: StorageService,
+    private readonly release: StorageReleaseService, // the cover a change replaced, released after the commit
     private readonly uow: UnitOfWork,
     // Plan 3c Task 0b (task-0a-review-security.md F-A1): `canAccessTrip`/
     // `isOwner` below resolve `TripsRepository` directly through this,
@@ -538,6 +537,7 @@ export class TripsService {
       }
     });
     if (vacayId !== undefined) await this.vacay.notifyPlanUsers(vacayId, undefined);
+    if (cover_image !== undefined && cover_image !== trip.cover_image) await this.release.releaseValues([trip.cover_image]);
 
     const changes: Record<string, unknown> = {};
     if (title && title !== trip.title) changes.title = title;
@@ -623,17 +623,6 @@ export class TripsService {
   }
 
   // ── Cover image ───────────────────────────────────────────────────────────
-
-  async deleteOldCover(coverImage: string | null | undefined): Promise<void> {
-    if (!coverImage) return;
-    // cover_image is client-supplied, so treat it as untrusted: covers are flat
-    // filenames in the 'covers' category — basename() confines the delete to
-    // it, and central key validation rejects anything hostile (swallowed like
-    // the old containment guard; an external https URL is likewise a no-op).
-    await this.storage.delete('covers', path.basename(coverImage)).catch(() => {
-      /* external URL or already gone */
-    });
-  }
 
   /** TP35 — `TripsRepository.setCoverImage`. */
   async updateCoverImage(tripId: string | number, coverUrl: string): Promise<void> {

@@ -1,6 +1,7 @@
 import React from 'react'
 import { Loader2, Save, Plug, RefreshCw, Unplug } from 'lucide-react'
 import { useTranslation } from '../../i18n'
+import { useFormatDate } from '../../hooks/useDateFormat'
 import { useDawarichConnection } from '../../hooks/useDawarichConnection'
 import DawarichIcon from '../shared/DawarichIcon'
 import Section from './Section'
@@ -23,7 +24,7 @@ import { fs } from '../shared/DialogShell'
  * no reason is the version of this card that generates support questions.
  */
 export default function DawarichConnectionSection(): React.ReactElement {
-  const { t, locale } = useTranslation()
+  const { t } = useTranslation()
   const S = useDawarichConnection()
 
   return (
@@ -123,7 +124,7 @@ export default function DawarichConnectionSection(): React.ReactElement {
         )}
       </div>
 
-      <DawarichConnectionStatus state={S} locale={locale} />
+      <DawarichConnectionStatus state={S} />
     </Section>
   )
 }
@@ -138,12 +139,11 @@ export default function DawarichConnectionSection(): React.ReactElement {
  */
 function DawarichConnectionStatus({
   state,
-  locale,
 }: {
   state: ReturnType<typeof useDawarichConnection>
-  locale: string
 }): React.ReactElement | null {
   const { t } = useTranslation()
+  const { formatDateTime } = useFormatDate()
   if (!state.connected && !state.probeMessage) return null
 
   const missing: string[] = []
@@ -161,7 +161,7 @@ function DawarichConnectionStatus({
       {state.connected && (
         <p className="m-0 text-content-secondary">
           {state.lastSyncAt
-            ? t('dawarich.lastSync', { when: new Date(state.lastSyncAt).toLocaleString(locale) })
+            ? t('dawarich.lastSync', { when: formatDateTime(new Date(state.lastSyncAt)) })
             : t('dawarich.neverSynced')}
           {state.lastSyncState === 'partial' && `, ${t('dawarich.syncPartial')}`}
         </p>

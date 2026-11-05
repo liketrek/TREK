@@ -1,4 +1,6 @@
 /** Shared types and pure helpers for the admin page + its data hook. No React, no side effects. */
+import { readDateFormat } from '../../hooks/useDateFormat'
+import { formatDisplayDate } from '../../utils/dateFormat'
 
 export interface AdminUser {
   id: number
@@ -87,7 +89,7 @@ export function inviteMeta(
   locale: string,
 ): string {
   const parts = [`${invite.used_count}/${invite.max_uses === 0 ? '∞' : invite.max_uses} ${t('admin.invite.uses')}`]
-  if (invite.expires_at) parts.push(`${t('admin.invite.expiresAt')} ${new Date(invite.expires_at).toLocaleDateString(locale)}`)
+  if (invite.expires_at) parts.push(`${t('admin.invite.expiresAt')} ${formatDisplayDate(new Date(invite.expires_at), locale, {}, readDateFormat())}`)
   if (invite.trip_title) parts.push(t('admin.invite.boundTo', { trip: invite.trip_title }))
   parts.push(`${t('admin.invite.createdBy')} ${invite.created_by_name ?? ''}`)
   return parts.join(', ')

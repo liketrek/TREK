@@ -88,10 +88,21 @@ describe('useRouteAlternatives', () => {
     act(() => { result.current.ask(request({ avoid: ['toll'], engine: 'valhalla' })) })
 
     expect(calculateAlternatives).toHaveBeenCalledTimes(1)
-    const [from, to, profile, options] = calculateAlternatives.mock.calls[0] as [unknown, unknown, string, { avoid: string[]; signal: AbortSignal }]
+    const [from, to, profile, options] = calculateAlternatives.mock.calls[0] as [unknown, unknown, string, { avoid: string[]; signal: AbortSignal; engine: string }]
     expect([from, to, profile]).toEqual([{ lat: 53.55, lng: 9.99 }, { lat: 52.52, lng: 13.4 }, 'driving'])
     expect(options.avoid).toEqual(['toll'])
+    expect(options.engine).toBe('valhalla')
     expect(options.signal).toBeInstanceOf(AbortSignal)
+  })
+
+  it('FE-ALTHOOK-003b: a leg OSRM drew where Valhalla routes the days is offered OSRM\'s ways', () => {
+    const { result } = renderHook(() => useRouteAlternatives())
+
+    act(() => { result.current.ask(request({ engine: 'osrm' })) })
+
+    const options = calculateAlternatives.mock.calls[0][3] as { engine: string }
+    expect(options.engine).toBe('osrm')
+    expect(result.current.open?.engine).toBe('osrm')
   })
 
   it('FE-ALTHOOK-004: Current is the rail\'s own leg, priced by the rail\'s engine, and never asked for again', async () => {

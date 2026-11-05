@@ -70,6 +70,8 @@ const dayplan: TranslationStrings = {
   'dayplan.pdf': 'PDF',
   'dayplan.pdfTooltip': 'Exportera dagsplanen som PDF',
   'dayplan.pdfMine': 'Min plan som PDF',
+  'dayplan.pdfRouting': 'Beräknar rutter: {done} av {total}',
+  'dayplan.pdfSkipRouting': 'Exportera utan återstående rutter',
   'dayplan.pdfMineSub': 'Bara aktiviteter och bokningar du deltar i',
   'dayplan.gpxTooltip': 'Exportera som GPX för offlinekartor och GPS-enheter',
   'dayplan.gpxAll': 'Hela resan',

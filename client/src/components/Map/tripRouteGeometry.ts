@@ -29,7 +29,7 @@ export interface TripOverviewDay {
   modes: string[]
   /**
    * Legs drawn as a straight line because the router gave no road for them: not asked
-   * yet while the round is running, refused or cut off by the deadline once it is over.
+   * yet while the round is running, refused, timed out or skipped by the caller once it is over.
    * Those legs add nothing to `distance`, so a day with any of them reads too short.
    */
   unroutedLegs?: number
@@ -56,7 +56,7 @@ export interface TripRouteSummary {
 interface Chunk { points: DayRoutePoint[]; mode: string; waypoints: { lat: number; lng: number }[]; stopAt: number[] }
 
 /** The day inputs plus the road trip's vias, which bend a day the way it was picked there (#2580). */
-interface TripRouteInputs extends DayRouteInputs {
+export interface TripRouteInputs extends DayRouteInputs {
   /** The stored day lists the vias are anchored in, hidden rows included. Absent: `assignments`. */
   storedAssignments?: AssignmentsMap
   viasByDay?: Record<number, readonly RoadtripVia[]>
@@ -187,6 +187,15 @@ export function summariseTripRoute(days: TripOverviewDay[]): TripRouteSummary {
 const REQUEST_SPACING_MS = 1100
 /** Anything answered faster than this came out of RouteCalculator's cache, not the network. */
 const CACHE_HIT_MS = 60
+/**
+ * The longest one leg may take, its rate-limit retries included. The OSRM request has no
+ * deadline of its own, and a round that waits for every leg must not hang on a host that
+ * accepted the connection and never answered.
+ */
+const LEG_TIMEOUT_MS = 30_000
+
+/** How far a routing round has got: legs answered or given up on, out of all it asks. */
+export type TripRouteProgress = (done: number, total: number) => void
 
 /**
  * Ask the router for every leg of every day, one at a time.
@@ -206,13 +215,15 @@ const CACHE_HIT_MS = 60
  */
 export async function routeTripLegs(
   plan: TripRoutePlanDay[],
-  { tripId, signal, onAnswer, unit }: {
+  { tripId, signal, onAnswer, onProgress, unit }: {
     tripId: number | null
     signal?: AbortSignal
     /** The unit a leg bent through vias has its text written again in. */
     unit?: DistanceUnit
     /** Called after each answer, for a caller that wants to draw as they arrive. */
     onAnswer?: (routed: Answer[][][]) => void
+    /** Called once before the first leg and again after every leg, answered or not. */
+    onProgress?: TripRouteProgress
   },
 ): Promise<Answer[][][]> {
   const routed = emptyAnswers(plan)
@@ -222,25 +233,34 @@ export async function routeTripLegs(
       chunks.forEach((chunk, c) => {
         tasks.push(async () => {
           if (signal?.aborted) return
+          const leg = new AbortController()
+          const abortLeg = () => leg.abort()
+          const timer = setTimeout(abortLeg, LEG_TIMEOUT_MS)
+          signal?.addEventListener('abort', abortLeg, { once: true })
           try {
             const answer = await calculateRouteWithRetries(
               chunk.waypoints,
-              { signal, profile: chunk.mode, tripId, dayId: day.id },
+              { signal: leg.signal, profile: chunk.mode, tripId, dayId: day.id },
             )
             routed[d][r][c] = { coordinates: answer.coordinates, legs: foldViaLegs(answer.legs, chunk.stopAt, unit) }
             onAnswer?.(routed)
           } catch {
-            // Refused for good, or aborted: the leg keeps its straight line.
+            // Refused for good, timed out or aborted: the leg keeps its straight line.
+          } finally {
+            clearTimeout(timer)
+            signal?.removeEventListener('abort', abortLeg)
           }
         })
       })
     })
   })
 
+  onProgress?.(0, tasks.length)
   for (let i = 0; i < tasks.length; i++) {
     if (signal?.aborted) break
     const startedAt = performance.now()
     await tasks[i]()
+    onProgress?.(i + 1, tasks.length)
     const wasNetwork = performance.now() - startedAt > CACHE_HIT_MS
     if (wasNetwork && i < tasks.length - 1) await sleep(REQUEST_SPACING_MS, signal)
   }
@@ -250,30 +270,25 @@ export async function routeTripLegs(
 /**
  * The whole thing end to end, for a caller with no need to draw the intermediate state.
  *
- * `timeoutMs` stops waiting rather than stopping the work: legs that answered are kept
- * and the rest stay straight lines, which is what makes this usable from an export
- * somebody is standing in front of. A month-long trip with a cold cache is a few hundred
- * requests against a shared router, and no document is worth that wait.
+ * Waits for every leg: a cold month-long trip is a few minutes against a shared router,
+ * which is why `onProgress` exists, and the pacing, the retry limit and the per-leg
+ * timeout keep that wait finite. A document printed after a deadline looked finished
+ * while most of its days were straight lines (#2876). The caller's `signal` is the only
+ * way to stop early; the legs that answered by then are kept, the rest stay straight
+ * lines and are counted in `unroutedLegs`.
  */
 export async function routeTrip(
   input: TripRouteInputs,
-  { profile, tripId, signal, timeoutMs, unit }: {
+  { profile, tripId, signal, unit, onProgress }: {
     profile: RouteProfileKey
     tripId: number | null
     signal?: AbortSignal
-    timeoutMs?: number
     unit?: DistanceUnit
+    onProgress?: TripRouteProgress
   },
 ): Promise<TripRouteSummary> {
   const plan = planTripRoute(input, profile)
   if (!plan.length) return summariseTripRoute([])
-  const deadline = timeoutMs ? new AbortController() : null
-  const timer = deadline ? setTimeout(() => deadline.abort(), timeoutMs) : null
-  if (deadline && signal) signal.addEventListener('abort', () => deadline.abort(), { once: true })
-  try {
-    const routed = await routeTripLegs(plan, { tripId, signal: deadline?.signal ?? signal, unit })
-    return summariseTripRoute(assembleTripRoute(plan, routed))
-  } finally {
-    if (timer) clearTimeout(timer)
-  }
+  const routed = await routeTripLegs(plan, { tripId, signal, unit, onProgress })
+  return summariseTripRoute(assembleTripRoute(plan, routed))
 }

@@ -25,6 +25,9 @@ function renderTab(overrides: Record<string, unknown> = {}) {
 }
 
 /** The card (a settingsKit SettingsCard, a <section>) whose <h2> matches the given heading text. */
+/** The card with the TREK services, the providers and the search log, apart from the keys. */
+const SERVICES = 'Place search and routing';
+
 function card(heading: string | RegExp): HTMLElement {
   return screen.getByRole('heading', { name: heading }).closest<HTMLElement>('section')!;
 }
@@ -305,37 +308,36 @@ describe('AdminSettingsTab', () => {
     // failing, which is quiet enough to be mistaken for the provider working.
     renderTab({ placesProvider: 'amap', hasAmapKey: false });
     expect(
-      within(card('API Keys')).getByText(/TREK index and OpenStreetMap alone/i),
+      within(card(SERVICES)).getByText(/TREK index and OpenStreetMap alone/i),
     ).toBeInTheDocument();
   });
 
   it('FE-ADMSET-022d: saving the provider goes through updateAppSettings, not the keys', () => {
     const admin = renderTab({ placesProvider: 'auto' });
     // A CustomSelect: the trigger shows the current choice, the menu is portaled.
-    fireEvent.click(within(card('API Keys')).getByRole('button', { name: 'Automatic' }));
+    fireEvent.click(within(card(SERVICES)).getByRole('button', { name: 'Automatic' }));
     fireEvent.click(screen.getByRole('button', { name: 'Amap (高德地图)' }));
     expect(admin.handleSavePlacesProvider).toHaveBeenCalledWith('amap');
   });
 
-  it('FE-ADMSET-022e: a managed install hides the keys but keeps the provider choice', () => {
-    // The operator owns the credentials; which of them answers place search is
-    // still the admin's call (server managed.ts lists places_provider as theirs).
+  it('FE-ADMSET-022e: a managed install hides place search, routing and the keys', () => {
+    // All of it is the operator's there (server managed.ts locks places_provider);
+    // Share place details has a tab of its own on AdminPage.
     renderTab({ managed: true, placesProvider: 'auto' });
 
-    const keys = within(card('API Keys'));
-    expect(keys.queryByLabelText('Google Maps API Key')).not.toBeInTheDocument();
-    expect(keys.queryByLabelText(/Amap/)).not.toBeInTheDocument();
-    expect(keys.getByRole('button', { name: 'Automatic' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'API Keys' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Google Maps API Key')).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: SERVICES })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Automatic' })).not.toBeInTheDocument();
   });
 
-  it('FE-ADMSET-022f: an operator key keeps the managed install quiet', () => {
-    // The key fields are not on the page here, and an operator key set through
-    // the environment would not show up in them anyway. app-config knows.
-    renderTab({ managed: true, placesProvider: 'google', mapsKey: '', hasMapsKey: true });
+  it('FE-ADMSET-022f: a managed install moves file types to the right column', () => {
+    // With place search and the keys gone the right column would stand empty.
+    renderTab({ managed: true });
 
-    expect(
-      within(card('API Keys')).queryByText(/falls back to OpenStreetMap/i),
-    ).not.toBeInTheDocument();
+    const right = screen.getByRole('heading', { name: 'Allowed File Types' }).closest('.min-w-0');
+    expect(right).not.toBeNull();
+    expect(within(right as HTMLElement).queryByRole('heading', { name: /two-factor/i })).not.toBeInTheDocument();
   });
 
   it('FE-ADMSET-023: the maps Test button is disabled without a key', () => {
@@ -479,10 +481,10 @@ describe('AdminSettingsTab', () => {
     expect(hint.textContent).toMatch(/provider/i);
   });
 
-  it('FE-ADMSET-031: the API keys card leads with the TREK index and no weather panel', () => {
+  it('FE-ADMSET-031: the place search card leads with the TREK index and no weather panel', () => {
     renderTab();
 
-    const keys = card('API Keys');
+    const keys = card(SERVICES);
     expect(within(keys).getByRole('img', { name: 'TREK Places API' })).toBeInTheDocument();
     expect(within(keys).getByText('Recommended default')).toBeInTheDocument();
     // Weather needs no key, so it left a card about keys. The panel itself lives

@@ -1,4 +1,4 @@
-// FE-DOCSYNC-CONNECT-001 to FE-DOCSYNC-CONNECT-027
+// FE-DOCSYNC-CONNECT-001 to FE-DOCSYNC-CONNECT-030
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import en from '@trek/shared/i18n/en'
 import { render, screen, fireEvent, waitFor, act, within } from '../../../../tests/helpers/render'
@@ -13,6 +13,7 @@ const listLinks = vi.fn(async (_tripId: number | string): Promise<unknown> => []
 const status = vi.fn(async (_tripId: number | string): Promise<unknown> => ({ items: {}, links: [] }))
 const saveConnection = vi.fn(async (_tripId: number | string, _data: unknown): Promise<unknown> => ({ id: 1 }))
 const testConnection = vi.fn(async (_tripId: number | string, _data: unknown): Promise<unknown> => ({ connected: true }))
+const deleteConnection = vi.fn(async (_tripId: number | string, _id: number): Promise<unknown> => ({ success: true }))
 
 vi.mock('../../../api/client', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../api/client')>()
@@ -26,6 +27,7 @@ vi.mock('../../../api/client', async (importOriginal) => {
       listLinks: (tripId: number | string) => listLinks(tripId),
       saveConnection: (tripId: number | string, data: unknown) => saveConnection(tripId, data),
       testConnection: (tripId: number | string, data: unknown) => testConnection(tripId, data),
+      deleteConnection: (tripId: number | string, id: number) => deleteConnection(tripId, id),
     },
   }
 })
@@ -81,11 +83,13 @@ function Harness({
   provider,
   onClose,
   onConnected,
+  onRemoved,
   waitForConnection,
 }: {
   provider: DocSyncProvider
   onClose: () => void
   onConnected: (providerId: string) => void
+  onRemoved?: () => void
   /**
    * Hold the dialog back until the stored connection is in hand, the way the
    * panel does: it only offers "connect" once it knows what is already there.
@@ -94,7 +98,9 @@ function Harness({
 }) {
   const sync = useDocSync(TRIP_ID, true)
   if (waitForConnection && !sync.connectionFor(provider.id)) return null
-  return <DocSyncConnectModal provider={provider} sync={sync} onClose={onClose} onConnected={onConnected} />
+  return (
+    <DocSyncConnectModal provider={provider} sync={sync} onClose={onClose} onConnected={onConnected} onRemoved={onRemoved} />
+  )
 }
 
 /** Let the hook's initial load land before anything is asserted. */
@@ -490,5 +496,54 @@ describe('DocSyncConnectModal with a connection already stored', () => {
 
     await waitFor(() => expect(onConnected).toHaveBeenCalled())
     expect(saveConnection).toHaveBeenCalledWith(TRIP_ID, expect.objectContaining({ baseUrl: 'https://cloud.example.com' }))
+  })
+})
+
+describe('DocSyncConnectModal removal', () => {
+  const removeButton = () => screen.queryByRole('button', { name: tx('docsync.connection.remove') })
+  // The confirmation is portalled after the dialog, so its button is the last one of that name.
+  const confirmRemoval = () => {
+    const named = screen.getAllByRole('button', { name: tx('docsync.connection.remove') })
+    return named[named.length - 1]
+  }
+
+  async function openWithRemoval(stored: boolean) {
+    if (stored) listConnections.mockResolvedValue([connection()])
+    const onRemoved = vi.fn()
+    render(<Harness provider={nextcloud} onClose={vi.fn()} onConnected={vi.fn()} onRemoved={onRemoved} waitForConnection={stored} />)
+    await flush()
+    return onRemoved
+  }
+
+  it('FE-DOCSYNC-CONNECT-028: a stored connection can be removed after a confirmation, and the dialog is told', async () => {
+    const onRemoved = await openWithRemoval(true)
+    await waitFor(() => expect(removeButton()).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: tx('docsync.connection.remove') }))
+    expect(deleteConnection).not.toHaveBeenCalled()
+    await screen.findByText(tx('docsync.connection.confirmRemove'))
+    fireEvent.click(confirmRemoval())
+
+    await waitFor(() => expect(deleteConnection).toHaveBeenCalledWith(TRIP_ID, 9))
+    await waitFor(() => expect(onRemoved).toHaveBeenCalled())
+  })
+
+  it('FE-DOCSYNC-CONNECT-029: a refused removal keeps the dialog and says why', async () => {
+    deleteConnection.mockRejectedValueOnce({ response: { status: 403, data: { error: 'forbidden' } } })
+    const onRemoved = await openWithRemoval(true)
+    await waitFor(() => expect(removeButton()).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: tx('docsync.connection.remove') }))
+    await screen.findByText(tx('docsync.connection.confirmRemove'))
+    fireEvent.click(confirmRemoval())
+
+    await waitFor(() => expect(deleteConnection).toHaveBeenCalled())
+    expect(onRemoved).not.toHaveBeenCalled()
+    expect(await screen.findByText(tx('docsync.error.forbidden'))).toBeInTheDocument()
+  })
+
+  it('FE-DOCSYNC-CONNECT-030: a first connection has nothing to remove', async () => {
+    await openWithRemoval(false)
+    expect(removeButton()).not.toBeInTheDocument()
   })
 })

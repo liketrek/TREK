@@ -15,6 +15,11 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 
 const { checkSsrf } = vi.hoisted(() => ({ checkSsrf: vi.fn() }));
 vi.mock('../../../src/utils/ssrfGuard', () => ({ checkSsrf, safeFetch: vi.fn() }));
+const { logWarn } = vi.hoisted(() => ({ logWarn: vi.fn() }));
+vi.mock('../../../src/nest/audit/audit-log.logger', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../src/nest/audit/audit-log.logger')>()),
+  logWarn,
+}));
 
 const PUBLIC = { allowed: true, isPrivate: false };
 const PRIVATE = { allowed: false, isPrivate: true, resolvedIp: '192.168.1.5', error: 'private' };
@@ -374,6 +379,23 @@ describe('WandererService reads for an import', () => {
     const failing = setup(savedRow());
     failing.client.searchById.mockRejectedValueOnce(new WandererError('not_found', 'gone'));
     expect((await refusal(failing.service.findTrail(1, 'trail1'))).getStatus()).toBe(404);
+  });
+
+  it('WAND-SVC-018b: the log gets the reason an answer was not understood, which the client is not shown', async () => {
+    const { service, client } = setup(savedRow());
+    logWarn.mockClear();
+    client.ownActors.mockRejectedValueOnce(
+      new WandererError(
+        'invalid_response',
+        'wanderer answered with something TREK does not understand',
+        'hits.0.difficulty: expected number, received string',
+      ),
+    );
+    expect((await refusal(service.search(1, { q: '', page: 1 }))).getStatus()).toBe(502);
+    expect(logWarn).toHaveBeenCalledWith(
+      '[wanderer] invalid_response: wanderer answered with something TREK does not understand' +
+        ' (hits.0.difficulty: expected number, received string)',
+    );
   });
 
   it('WAND-SVC-019: a failure that is not wanderer answering is rethrown as it is', async () => {

@@ -25,7 +25,7 @@ import {
 import { devLinkEnabled } from './dev-link';
 import { readAudit } from './host/plugin-audit';
 import { pluginBudgetUsage } from './host/plugin-host-state';
-import { bypassedRange, hostSatisfies, hostVersion, trekRangeBypassed } from './install/host-compat';
+import { acceptanceHolds, bypassedRange, hostSatisfies, hostVersion, trekRangeBypassed } from './install/host-compat';
 import type { TrekRangeBypass } from './install/host-compat';
 import type { PluginDependency } from './install/manifest';
 import { pluginsEnabled } from './kill-switch';
@@ -71,6 +71,8 @@ interface PluginRawRow {
   capabilities: string;
   dependencies: string | null;
   trek_range: string | null;
+  trek_range_accepted_version: string | null;
+  trek_range_accepted_host: string | null;
   author_pubkey: string | null;
   update_block_code: string | null;
   update_block_detail: string | null;
@@ -113,9 +115,10 @@ export interface PluginListItem {
   /** The running TREK, so the UI can say "needs X, you have Y" without doing semver. */
   hostVersion: string;
   /**
-   * Non-null when the plugin is outside its declared range (or declared none) and only
-   * TREK_PLUGINS_IGNORE_TREK_RANGE lets it activate. The card shows it as a warning
-   * rather than a blocker: the admin chose this, but must keep seeing what they chose.
+   * Non-null when the plugin is outside its declared range (or declared none) and only an
+   * admin's "run it anyway" for this plugin, or TREK_PLUGINS_IGNORE_TREK_RANGE, lets it
+   * activate. The card shows it as a warning rather than a blocker: the admin chose this,
+   * but must keep seeing what they chose.
    */
   trekRangeBypassed: TrekRangeBypass | null;
   /** The concrete blockers, so the UI can render chips + the resolve dialog. */
@@ -200,7 +203,13 @@ export class PluginsService {
       const state = resolveDependencyState(deps, installed);
       // Mirrors the order of assertActivatable's gate, so the card explains the same
       // blocker the activate call would hit rather than a second, lesser one.
-      const trekBypass = bypassedRange(r.trek_range);
+      const trekBypass = bypassedRange(
+        r.trek_range,
+        acceptanceHolds(r.version, {
+          acceptedVersion: r.trek_range_accepted_version,
+          acceptedHost: r.trek_range_accepted_host,
+        }),
+      );
       const dependencyStatus: PluginDependencyStatus =
         !hostSatisfies(r.trek_range) && !trekBypass
           ? 'hostIncompatible'
@@ -213,6 +222,8 @@ export class PluginsService {
         dependencies: _raw,
         operator_egress: _oe,
         trek_range,
+        trek_range_accepted_version: _acceptedVersion,
+        trek_range_accepted_host: _acceptedHost,
         author_pubkey,
         update_block_code,
         update_block_detail,

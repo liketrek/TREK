@@ -298,7 +298,7 @@ const journey: TranslationStrings = {
   'journey.studio.autoLayout': 'Automatisk layout',
   'journey.studio.export': 'Exportera',
   'journey.studio.day': 'DAG {day}',
-  'journey.studio.stations': 'Etapper',
+  'journey.studio.stations': 'Längs vägen',
   'journey.studio.peersHere': 'här',
   'journey.studio.folioAuto': 'Automatiskt',
   'journey.studio.exportLayout': 'Layout', // same-as-en

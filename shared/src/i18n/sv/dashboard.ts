@@ -110,6 +110,8 @@ const dashboard: TranslationStrings = {
   'dashboard.unsplashQueryRequired': 'Ange en sökterm',
   'dashboard.unsplashNoResults': 'Inga bilder hittades',
   'dashboard.coverSearchError': 'Det gick inte att söka på Unsplash',
+  'dashboard.unsplashKeyNeeded':
+    'Unsplash avvisade den här servern. En administratör kan lägga till en gratis Unsplash-API-nyckel i administratörsinställningarna så att bildsökningen fungerar.',
   'dashboard.useUnsplashPhoto': 'Använd Unsplash-foto av {photographer}',
   'dashboard.titleRequired': 'Titel är obligatoriskt',
   'dashboard.endDateError': 'Slutdatumet måste ligga efter startdatumet',

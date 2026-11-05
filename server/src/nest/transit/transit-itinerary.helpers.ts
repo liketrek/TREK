@@ -11,6 +11,7 @@ import { haversineKm } from '../common/geo';
 import { localParts, resolveTimeZone } from '../common/timezoneService';
 import type { EndpointInput } from '../reservations/reservations.service';
 import { deriveTransitStats, type TransitItinerary, type TransitLeg } from './transit.helpers';
+import type { TransitProvider } from '@trek/shared';
 
 import { z } from 'zod';
 
@@ -205,10 +206,12 @@ function timezoneAt(lat: number, lng: number): string {
   return timezone;
 }
 
+/** `provider` is the backend the itinerary came from, recorded with the journey. */
 export function buildTransitReservationParts(
   from: TransitPlaceInput,
   to: TransitPlaceInput,
   itinerary: TransitItinerary,
+  provider: TransitProvider,
 ) {
   // The same stop appears up to three times below (transfer endpoint + the
   // adjacent legs' metadata) — memoise the tz lookup per coordinate pair.
@@ -276,7 +279,7 @@ export function buildTransitReservationParts(
   const stats = deriveTransitStats(itinerary.startTime, itinerary.endTime, itinerary.legs, itinerary.transfers);
   const metadata = {
     transit: {
-      provider: 'transitous',
+      provider,
       duration: stats.duration,
       transfers: stats.transfers,
       walk_seconds: stats.walkSeconds,

@@ -299,7 +299,7 @@ const journey: TranslationStrings = {
   'journey.studio.autoLayout': 'Mise en page auto',
   'journey.studio.export': 'Exporter',
   'journey.studio.day': 'JOUR {day}',
-  'journey.studio.stations': 'Étapes',
+  'journey.studio.stations': 'En chemin',
   'journey.studio.peersHere': 'ici',
   'journey.studio.folioAuto': 'Automatique',
   'journey.studio.exportLayout': 'Mise en page',

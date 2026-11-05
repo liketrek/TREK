@@ -102,16 +102,20 @@ export default function HelpPanel(): React.ReactElement | null {
           <HelpNav context={context} currentId={contextId} activeGuideId={!searching && guide ? guide.id : null} />
 
           <div className="relative flex flex-col min-h-0 bg-surface" role="main">
-            <button
-              type="button"
-              onClick={closeHelp}
-              aria-label={t('help.center.close')}
-              className="absolute top-4 end-4 z-10 w-9 h-9 rounded-full flex items-center justify-center text-content-muted bg-surface-card border border-edge shadow-card hover:text-content hover:bg-surface-hover transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            {/* The close button sits in a row of its own above the scrolling content rather
+                than floating over it, so no card ever runs up against it. */}
+            <div className="flex shrink-0 justify-end px-4 pt-4">
+              <button
+                type="button"
+                onClick={closeHelp}
+                aria-label={t('help.center.close')}
+                className="w-9 h-9 rounded-full flex items-center justify-center text-content-muted bg-surface-card border border-edge shadow-card hover:text-content hover:bg-surface-hover transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
             <div ref={scrollRef} className="trek-help-scroll flex-1 min-h-0 overflow-y-auto overscroll-contain">
-              <div className="max-w-[1080px] mx-auto px-6 sm:px-10 py-8">
+              <div className="max-w-[1080px] mx-auto px-6 sm:px-10 pt-4 pb-8">
                 {searching ? (
                   <HelpSearchResults key="search" />
                 ) : guide ? (

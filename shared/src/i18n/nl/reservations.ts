@@ -78,8 +78,8 @@ const reservations: TranslationStrings = {
   'reservations.confirm.deleteBodyWithExpense': '"{name}" en de gekoppelde kosten worden permanent verwijderd.',
   'reservations.toast.updated': 'Reservering bijgewerkt',
   'reservations.toast.removed': 'Reservering verwijderd',
-  'reservations.toast.fileUploaded': 'Bestand geüpload',
-  'reservations.toast.uploadError': 'Uploaden mislukt',
+  'reservations.toast.filesNotUploaded':
+    'De boeking is opgeslagen, maar sommige bestanden zijn niet geüpload. Sla opnieuw op om ze te versturen.',
   'reservations.newTitle': 'Nieuwe reservering',
   'reservations.bookingType': 'Boekingstype',
   'reservations.titleLabel': 'Titel',
@@ -140,6 +140,14 @@ const reservations: TranslationStrings = {
   'reservations.import.cta': 'Importeren vanuit bestand',
   'reservations.import.dropHere': 'Zet hier bevestigingsbestanden neer of klik om te selecteren',
   'reservations.import.dropActive': 'Laat bestanden los om te importeren',
+  'reservations.import.pinSearching': 'Zoeken op de kaart…',
+  'reservations.import.pinFound': 'Op de kaart',
+  'reservations.import.pinMissingTitle': 'Nog niet op de kaart',
+  'reservations.import.pinMissingBody':
+    'TREK kon dit verblijf niet op de kaart vinden. Controleer de naam en het adres hierboven en zoek opnieuw, of sla het op zonder speld.',
+  'reservations.import.pinRetry': 'Opnieuw zoeken',
+  'reservations.import.savedWithoutPin':
+    'Opgeslagen zonder speld op de kaart. Bewerk de plek en stel de locatie in om hem op de kaart te zien.',
   'reservations.import.acceptedFormats':
     'Geaccepteerd: EML, PDF, PKPass, HTML, TXT (max. 10 MB per stuk, tot 5 bestanden)',
   'reservations.import.acceptedPhotos': "Foto's (JPG, PNG, WEBP) worden door het AI-model gelezen.",

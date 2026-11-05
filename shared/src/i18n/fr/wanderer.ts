@@ -36,6 +36,8 @@ const wanderer: TranslationStrings = {
   'wanderer.error.not_own_trail': 'Seuls vos propres sentiers wanderer peuvent être importés.',
   'wanderer.error.invalid_response':
     "La réponse ne vient pas de wanderer. Vérifiez que l'adresse pointe bien vers wanderer lui-même.",
+  'wanderer.error.no_author':
+    "wanderer a répondu, mais n'indique aucun auteur de sentiers pour le compte de ce jeton API, TREK ne peut donc pas savoir quels sentiers sont les vôtres.",
   'wanderer.error.too_large': 'Le fichier du sentier dépasse 10 MB.',
   'wanderer.error.server_error': 'wanderer a répondu par une erreur. Réessayez plus tard.',
   'wanderer.error.offline': "Vous êtes hors ligne. wanderer ne peut être consulté qu'en ligne.",

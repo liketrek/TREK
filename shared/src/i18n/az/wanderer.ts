@@ -35,6 +35,8 @@ const wanderer: TranslationStrings = {
   'wanderer.error.not_found': 'Bu cığır artıq wanderer-də yoxdur.',
   'wanderer.error.not_own_trail': 'Yalnız öz wanderer cığırlarınızı idxal edə bilərsiniz.',
   'wanderer.error.invalid_response': 'Cavab wanderer-dən gəlməyib. Ünvanın birbaşa wanderer-ə yönəldiyini yoxlayın.',
+  'wanderer.error.no_author':
+    'wanderer cavab verdi, lakin bu API tokeninin hesabı üçün heç bir cığır müəllifi göstərmir, buna görə TREK hansı cığırların sizə aid olduğunu bilə bilmir.',
   'wanderer.error.too_large': 'Cığır faylı 10 MB-dan böyükdür.',
   'wanderer.error.server_error': 'wanderer xəta ilə cavab verdi. Sonra yenidən cəhd edin.',
   'wanderer.error.offline': 'Oflaynsınız. wanderer-də yalnız onlayn axtarış etmək olar.',

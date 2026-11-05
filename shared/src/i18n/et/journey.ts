@@ -299,7 +299,7 @@ const journey: TranslationStrings = {
   'journey.studio.autoLayout': 'Automaatne paigutus',
   'journey.studio.export': 'Eksport',
   'journey.studio.day': '{day}. PÄEV',
-  'journey.studio.stations': 'Peatused',
+  'journey.studio.stations': 'Teel',
   'journey.studio.peersHere': 'siin',
   'journey.studio.folioAuto': 'Automaatne',
   'journey.studio.exportLayout': 'Paigutus',

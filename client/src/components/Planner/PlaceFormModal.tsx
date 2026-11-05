@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback, useId, type ReactNode } from 'react'
-import type { RoadtripStopType, TourListItem } from '@trek/shared'
+import type { PlaceClientOrigin, RoadtripStopType, TourListItem } from '@trek/shared'
 import NoteFormatToolbar from '../shared/NoteFormatToolbar'
 import { useAuthStore } from '../../store/authStore'
 import { useAddonStore } from '../../store/addonStore'
@@ -12,7 +12,7 @@ import { PendingFiles, PlaceImageSection } from './PlaceFormMedia'
 import { usePlaceImageField } from './usePlaceImageField'
 import { useToast } from '../shared/Toast'
 import { Tooltip } from '../shared/Tooltip'
-import { Search, Loader2, Plus, RotateCcw, MapPin, Navigation, LocateFixed, PencilLine } from 'lucide-react'
+import { Search, RotateCcw, LocateFixed, PencilLine } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { PlaceContactFields } from './PlaceContactFields'
 import { weekFromPeriods } from './placeHours'
@@ -24,8 +24,6 @@ import {
 import { useNewCategory, usePlaceForm } from './usePlaceForm'
 import { usePlaceSearch } from './usePlaceSearch'
 import { guessCategoryId } from '@trek/shared'
-import { getNavigationTargets, openNavigationTarget } from './placeNavigation'
-import { NavigationMenu } from '../shared/NavigationMenu'
 import { offersGoogleRetry } from '../../utils/placeSource'
 import { safeHexColor } from '../../utils/safeColor'
 import { useLocationBias } from '../../hooks/useLocationBias'
@@ -36,14 +34,17 @@ import { NumericInput } from '../shared/NumericInput'
 import { formatDistance } from '../../utils/units'
 import ServiceStopSection from '../Roadtrip/ServiceStopSection'
 import { DEFAULT_SERVICE_KIND, serviceStopChoice, type ServiceStopMode } from '../Roadtrip/manualStop'
-import { STOP_KIND_BY_KEY, type StopKind } from '../Roadtrip/stopKinds'
+import { STOP_KIND_BY_KEY } from '../Roadtrip/stopKinds'
 import { getCategoryIcon } from '../shared/categoryIcons'
 import {
-  DialogShell, DialogHeader, DialogTile, DialogSection, DialogFooter, FooterSpacer, DialogButton, NEUTRAL_TINT, PILL, fs,
+  DialogShell, DialogHeader, DialogTile, DialogSection, DialogFooter, FooterSpacer, DialogButton, NEUTRAL_TINT, fs,
 } from '../shared/DialogShell'
-import { EditorField, GRID_2, INPUT, LABEL, PANEL, PillSelect, TEXTAREA } from '../shared/dialogParts'
+import { EditorField, GRID_2, INPUT, LABEL, PANEL, TEXTAREA } from '../shared/dialogParts'
 import { SoftPill, tintOf } from './planParts'
 import { TimeSection } from './PlaceFormTimeSection'
+import { HeaderPills } from './PlaceFormHeaderPills'
+import { PlaceRefreshPill } from './PlaceRefreshPill'
+import { usePlaceRefresh } from './usePlaceRefresh'
 
 // The submit payload mirrors the form, but lat/lng are parsed to numbers and
 // category_id is normalised, plus any files chosen before the place existed.
@@ -278,6 +279,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
       setPickedSource(null)
     },
   })
+  const refresh = usePlaceRefresh({ place, form, language: search.language })
 
   /**
    * What a stop on a drive might be a second copy of, said while the form is being filled.
@@ -292,9 +294,9 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     return findDuplicatePlace(form, places, { byName: false, byOsmId: true })?.name ?? null
   }, [serviceStop, place, form, places])
 
-  const handleChange = (field: string, value: string) => {
+  const handleChange = (field: string, value: string, origin?: PlaceClientOrigin) => {
     if (field === 'category_id') categoryGuessedRef.current = false
-    changeField(field, value)
+    changeField(field, value, origin)
   }
 
   // What is around the pin the form holds (#976).
@@ -425,6 +427,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     t,
     language: search.language,
     locale,
+    refresh,
     timeFormat,
     googleAnswers: search.googleAnswers,
     placesEnrichEnabled,
@@ -483,10 +486,6 @@ const SIDE_BUTTON = 'grid w-[38px] flex-none place-items-center rounded-[10px] t
  * for them; this gives them the eyebrow every other field here has.
  */
 const SERVICE_STOP_LABELS = '[&_label]:mb-[5px] [&_label]:block [&_label]:font-geist [&_label]:text-[length:calc(9.5px*var(--fs-scale-caption,1))] [&_label]:font-bold [&_label]:uppercase [&_label]:tracking-[.08em] [&_label]:text-content-faint'
-/** A round white button in the head band's pill row, as tall as the pills beside it. */
-const ROUND_PILL_BUTTON = 'grid h-[26px] w-[26px] flex-none place-items-center rounded-full bg-surface-card text-content-muted shadow-sm ring-1 ring-edge-faint transition-colors hover:text-content'
-
-type Translate = (key: string, params?: Record<string, string | number>) => string
 
 export default function PlaceFormModal(props: PlaceFormModalProps) {
   const S = usePlaceFormModal(props)
@@ -570,6 +569,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
             inputId: `${fieldId}-new-category`,
           }}
           pickedSource={S.pickedSource}
+          refresh={<PlaceRefreshPill {...S.refresh} onApply={handleChange} locale={S.locale} t={t} />}
           busy={isSearchingMaps}
           navPlace={form.lat && form.lng ? {
             name: form.name, address: form.address, lat: Number(form.lat), lng: Number(form.lng),
@@ -917,7 +917,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
             email={form.email ?? ''}
             openingHours={form.opening_hours ?? ''}
             suggestedHours={S.detailsHours}
-            onChange={(field, value) => handleChange(field, value)}
+            onChange={(field, value, origin) => handleChange(field, value, origin)}
           />
 
           {/* Costs — create / view the expense linked to this place (#1298).
@@ -944,154 +944,6 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
         )}
       </div>
     </DialogShell>
-  )
-}
-
-interface NewCategoryRow {
-  open: boolean
-  setOpen: (open: boolean) => void
-  name: string
-  setName: (name: string) => void
-  create: () => Promise<void>
-  inputId: string
-}
-
-/**
- * The head band's pill row. The category to pick, with a round + beside it that
- * turns the two into a field for a new one; for a stop on a drive, its kind in
- * place of both. Then where the picked place came from, and a spinner while a
- * pick is still being looked up.
- */
-function HeaderPills({ kind, categories, categoryId, onCategory, newCategory, pickedSource, busy, navPlace, t }: {
-  kind?: StopKind
-  categories: Category[] | null
-  categoryId: string
-  onCategory: (id: string) => void
-  newCategory: NewCategoryRow
-  pickedSource: string | null
-  busy: boolean
-  /** The place as the form holds it, once it has a position: opens it in a map app (#2178). */
-  navPlace: NavigablePlace | null
-  t: Translate
-}) {
-  // When the new-category field closes, the field or the button that closed it
-  // goes with it, and the focus would drop out of the dialog. It comes back to
-  // the + that opened the field, as a picker's focus comes back to its pill.
-  const plusRef = useRef<HTMLButtonElement | null>(null)
-  const wasOpen = useRef(newCategory.open)
-  useEffect(() => {
-    const closed = wasOpen.current && !newCategory.open
-    wasOpen.current = newCategory.open
-    if (!closed) return
-    const active = document.activeElement
-    if (!active || active === document.body || !active.isConnected) plusRef.current?.focus()
-  }, [newCategory.open])
-
-  const noCategory = { label: t('places.noCategory'), icon: <MapPin size={13} strokeWidth={2.2} className="text-content-faint" /> }
-  const options = [
-    { value: '', ...noCategory },
-    ...(categories || []).map(c => {
-      const Icon = getCategoryIcon(c.icon)
-      // A string like form.category_id, so the picked option hands back the same
-      // kind of value the form already keeps.
-      return { value: String(c.id), label: c.name, icon: <Icon size={13} strokeWidth={2.2} style={{ color: safeHexColor(c.color, '') || 'var(--text-muted)' }} /> }
-    }),
-  ]
-
-  let lead: ReactNode
-  if (kind) {
-    lead = <span className={PILL}><kind.Icon size={13} strokeWidth={2.2} style={{ color: kind.color }} />{t(kind.labelKey)}</span>
-  } else if (newCategory.open) {
-    lead = <NewCategoryField {...newCategory} t={t} />
-  } else {
-    lead = (
-      <>
-        <PillSelect label={t('places.formCategory')} value={categoryId} onChange={onCategory} options={options} fallback={noCategory} />
-        <Tooltip label={t('places.newCategory')}>
-          <button ref={plusRef} type="button" onClick={() => newCategory.setOpen(true)} aria-label={t('places.newCategory')} className={ROUND_PILL_BUTTON}>
-            <Plus size={13} strokeWidth={2.4} />
-          </button>
-        </Tooltip>
-      </>
-    )
-  }
-
-  return (
-    <>
-      {lead}
-      {pickedSource && (
-        <span className={PILL}>
-          <Search size={12} strokeWidth={2.2} className="text-content-faint" aria-hidden="true" />
-          {pickedSource}
-        </span>
-      )}
-      {navPlace && <OpenInMapsPill place={navPlace} t={t} />}
-      {busy && (
-        <span className={PILL} role="status" aria-label={t('places.loadingDetails')}>
-          <Loader2 size={13} className="animate-spin text-content-faint" aria-hidden="true" />
-          <span className="font-medium text-content-muted">{t('places.loadingDetails')}</span>
-        </span>
-      )}
-    </>
-  )
-}
-
-type NavigablePlace = Pick<Place, 'name' | 'address' | 'lat' | 'lng' | 'google_place_id' | 'google_ftid'>
-
-/**
- * A look at the picked place in a real map before it is saved (#2178): its reviews, its
- * photos, whether it is the right branch. The same apps the inspector offers, one tap
- * straight away when only one applies.
- */
-function OpenInMapsPill({ place, t }: { place: NavigablePlace; t: Translate }) {
-  const [open, setOpen] = useState(false)
-  const anchorRef = useRef<HTMLSpanElement>(null)
-  const targets = getNavigationTargets(place)
-  if (targets.length === 0) return null
-  return (
-    <span ref={anchorRef} className="inline-flex">
-      <Tooltip label={t('places.openInMaps')}>
-        <button type="button" aria-label={t('places.openInMaps')} aria-haspopup={targets.length > 1 ? 'menu' : undefined}
-          aria-expanded={targets.length > 1 ? open : undefined}
-          onClick={() => { if (targets.length === 1) openNavigationTarget(targets[0]); else setOpen(o => !o) }}
-          className={ROUND_PILL_BUTTON}>
-          <Navigation size={13} strokeWidth={2.2} />
-        </button>
-      </Tooltip>
-      {open && <NavigationMenu targets={targets} anchor={anchorRef.current} onClose={() => setOpen(false)} />}
-    </span>
-  )
-}
-
-/** The new category's name, typed where the category pill was, with its OK and Cancel beside it. */
-function NewCategoryField({ inputId, name, setName, create, setOpen, t }: NewCategoryRow & { t: Translate }) {
-  return (
-    // One parent for the field and both of its buttons.
-    <span className="inline-flex flex-wrap items-center gap-1.5">
-      <input
-        id={inputId}
-        type="text"
-        autoFocus
-        value={name}
-        onChange={e => setName(e.target.value)}
-        onKeyDown={e => {
-          // Enter confirms the name, like OK; it never reaches the place's own save.
-          if (e.key === 'Enter') { e.preventDefault(); void create() }
-          // Escape closes the field, like Cancel, and only the field: marked
-          // handled, the dialog around it leaves it alone and keeps what is typed.
-          if (e.key === 'Escape') { e.preventDefault(); setOpen(false) }
-        }}
-        aria-label={t('places.newCategory')}
-        placeholder={t('places.categoryNamePlaceholder')}
-        className="w-48 min-w-0 rounded-full bg-surface-card px-3 py-1 text-content shadow-sm outline-none ring-1 ring-edge-faint placeholder:text-content-faint focus:ring-2 focus:ring-[color:var(--text-primary)]"
-      />
-      <button type="button" onClick={() => void create()} className="rounded-full bg-accent px-3 py-1 font-semibold text-accent-text hover:opacity-90">
-        {t('common.ok')}
-      </button>
-      <button type="button" onClick={() => setOpen(false)} className={`${PILL} hover:opacity-80`}>
-        {t('common.cancel')}
-      </button>
-    </span>
   )
 }
 

@@ -70,7 +70,10 @@ export function activityFacts(
 }
 
 /** The times an import stores for a track, as the DATETIME columns hold them; NULL without. */
-function storedTimes(row: PreparedGpxPlace | undefined): { started: DbTimestamp | null; ended: DbTimestamp | null } {
+export function recordedTimesOf(row: PreparedGpxPlace | undefined): {
+  started: DbTimestamp | null;
+  ended: DbTimestamp | null;
+} {
   const times = row?.trackTimes;
   return times
     ? { started: dbNow(new Date(times.startedAt)), ended: dbNow(new Date(times.endedAt)) }
@@ -93,7 +96,7 @@ export function trackTimesFor(
       (row, at) => !taken.has(at) && row.name === place.name && row.lat === place.lat && row.lng === place.lng,
     );
     if (index >= 0) taken.add(index);
-    byPlace.set(place.id, storedTimes(rows[index]));
+    byPlace.set(place.id, recordedTimesOf(rows[index]));
   }
   return byPlace;
 }

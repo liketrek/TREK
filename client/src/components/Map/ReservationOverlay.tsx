@@ -9,6 +9,8 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { hopIsVisible, labelFloorPx } from '../../utils/reservationRoutes'
 import { TRANSPORT_COLOR, TRANSPORT_META, transportHop, type TransportHop, type TransportType } from './transportHops'
 import type { Reservation } from '../../types'
+import { frameLine } from '../../utils/lngFrame'
+import { useLngFrame } from './lngFrameContext'
 
 const ENDPOINT_PANE = 'reservation-endpoints'
 
@@ -48,11 +50,13 @@ function endpointIcon(type: TransportType, label: string | null): L.DivIcon {
 /** What a hop will draw: the road it was routed along when there is one, else its arcs. */
 function linesFor(item: TransportItem, roadRoutes: Map<number, [number, number][]> | undefined): [number, number][][] {
   const road = roadRoutes?.get(item.res.id)
-  return road && road.length >= 2 ? [road] : item.arcs
+  return road && road.length >= 2 ? [frameLine(item.frame, road)] : item.arcs
 }
 
 interface TransportItem extends TransportHop {
   transitSegs: TransitMapSegment[]
+  /** The map's longitude frame the hop was drawn in (#2975), for the road route that arrives later. */
+  frame: ReturnType<typeof useLngFrame>
 }
 
 interface Props {
@@ -75,16 +79,19 @@ export default function ReservationOverlay({ reservations, showConnections, onEn
     zoomend: () => setZoom(map.getZoom()),
   })
   const showEndpointLabels = useSettingsStore(s => s.settings.map_booking_labels) === true
+  const frame = useLngFrame()
 
   const items = useMemo<TransportItem[]>(() => {
     const out: TransportItem[] = []
     for (const r of reservations) {
-      const hop = transportHop(r, true)
+      const hop = transportHop(r, true, frame)
       if (!hop) continue
-      out.push({ ...hop, transitSegs: hop.type === 'transit' ? getTransitMapSegments(r) : [] })
+      const segs = hop.type === 'transit' ? getTransitMapSegments(r) : []
+      const transitSegs = frame ? segs.map(seg => ({ ...seg, coords: frameLine(frame, seg.coords) })) : segs
+      out.push({ ...hop, transitSegs, frame })
     }
     return out
-  }, [reservations])
+  }, [reservations, frame])
 
   const visibleItems = useMemo(() => {
     const project = (p: readonly [number, number]) => map.latLngToContainerPoint([p[0], p[1]])

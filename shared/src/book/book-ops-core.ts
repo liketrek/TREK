@@ -32,7 +32,6 @@ export const BOOK_OP_ERROR_CODES = [
   'layout_not_found',
   'layout_role',
   'too_many_elements',
-  'too_many_spreads',
   'parked_full',
   'empty_frame',
   'caption_missing',

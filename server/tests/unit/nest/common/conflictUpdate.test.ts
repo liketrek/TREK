@@ -165,7 +165,7 @@ beforeAll(async () => {
     await createTestCategoriesRepo(testDb),
     await createTestTripsRepo(testDb),
     await createTestBudgetItemsRepo(testDb),
-    await createTestCollectionPlacesRepo(testDb),
+    { releaseValues: async () => [] } as never, // StorageReleaseService
     buildPlaceImportService(),
   );
 });

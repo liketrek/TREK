@@ -190,5 +190,14 @@ const places: TranslationStrings = {
   'places.image.needsConnection': 'Nowy obraz wymaga połączenia. Zapisz ponownie, gdy będziesz online.',
   'places.openPhotos': 'Pokaż zdjęcia',
   'places.imageUploadError': 'Nie udało się przesłać zdjęcia',
+  'places.refresh.pill': 'Nowe dane miejsca',
+  'places.refresh.title': 'Zaktualizuj dane miejsca',
+  'places.refresh.intro':
+    'TREK zna nowsze dane tego miejsca. Wybierz, co przejąć, reszta pozostanie bez zmian. Potem zapisz miejsce.',
+  'places.refresh.apply': 'Przejmij',
+  'places.refresh.replaces': 'Zastępuje obecnie zapisaną wartość',
+  'places.refresh.empty': 'puste',
+  'places.refresh.now': 'Teraz',
+  'places.refresh.new': 'Nowe',
 };
 export default places;

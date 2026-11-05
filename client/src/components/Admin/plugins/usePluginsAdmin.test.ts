@@ -1,4 +1,4 @@
-// FE-ADMIN-PLUGINS-HOOK-001 to -012: the plugin admin logic behind both admin shells.
+// FE-ADMIN-PLUGINS-HOOK-001 to -014: the plugin admin logic behind both admin shells.
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { DragEvent } from 'react';
 
@@ -265,5 +265,37 @@ describe('usePluginsAdmin', () => {
     expect(adminApi.pluginUninstall).toHaveBeenCalledWith('alpha', true);
     expect(toast.success).toHaveBeenCalledWith('admin.plugins.uninstalled');
     expect(result.current.confirmUninstall).toBeNull();
+  });
+
+  it('FE-ADMIN-PLUGINS-HOOK-013: switching on a plugin outside its TREK range asks first, then runs it anyway', async () => {
+    serve([
+      row({ enabled: 0, dependencyStatus: 'hostIncompatible', trekRange: '>=3.2.0 <4.0.0', hostVersion: '5.0.0' }),
+    ]);
+    vi.spyOn(adminApi, 'pluginActivate').mockResolvedValue({});
+    const { result } = await mounted();
+    act(() => result.current.toggle(result.current.plugins[0] as PluginRow));
+    expect(adminApi.pluginActivate).not.toHaveBeenCalled();
+    expect(result.current.bypass.warning).toMatchObject({
+      acceptedByAdmin: true,
+      action: 'activate',
+      trekRange: '>=3.2.0 <4.0.0',
+    });
+    await act(async () => {
+      result.current.bypass.confirm();
+    });
+    await waitFor(() => expect(adminApi.pluginActivate).toHaveBeenCalledWith('alpha', false, true));
+  });
+
+  it('FE-ADMIN-PLUGINS-HOOK-014: installing behind the admin warning sends their consent for this plugin', async () => {
+    serve([], [entry({ id: 'beta', name: 'Beta' })]);
+    vi.spyOn(adminApi, 'pluginInstall').mockResolvedValue({ id: 'beta', version: '1.0.0', trekRangeBypassed: null });
+    const { result } = await mounted();
+    const warn = { name: 'Beta', trekRange: '<5.0.0', hostVersion: '5.0.0', acceptedByAdmin: true, onConfirm: null };
+    act(() => result.current.install('beta', undefined, warn));
+    expect(adminApi.pluginInstall).not.toHaveBeenCalled();
+    await act(async () => {
+      result.current.bypass.confirm();
+    });
+    await waitFor(() => expect(adminApi.pluginInstall).toHaveBeenCalledWith('beta', { acceptTrekRange: true }));
   });
 });

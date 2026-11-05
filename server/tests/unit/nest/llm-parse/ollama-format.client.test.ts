@@ -95,4 +95,79 @@ describe('extractEnforced', () => {
     mockFetch(() => jsonResponse({ error: 'model not found' }, false, 404));
     await expect(extractEnforced(INPUT)).rejects.toThrow(/Ollama \/api\/chat failed \(404\)/);
   });
+
+  it('throws for a server error without trying another path', async () => {
+    const fetchFn = mockFetch(() => jsonResponse({ error: 'boom' }, false, 500));
+    await expect(extractEnforced(INPUT)).rejects.toThrow(/failed \(500\)/);
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('extractEnforced on an OpenAI-compatible server (#2806)', () => {
+  const GROQ = { ...INPUT, baseUrl: 'https://api.groq.com/openai/v1', model: 'openai/gpt-oss-120b', apiKey: 'gsk' };
+  const chatAnswer = (content: string) => jsonResponse({ choices: [{ message: { content } }] });
+  const unknownUrl = (url: string) =>
+    jsonResponse(
+      { error: { message: `Unknown request URL: POST ${new URL(url).pathname}.`, code: 'unknown_url' } },
+      false,
+      404,
+    );
+
+  it('sends the extraction to /chat/completions at the address as entered when /api/chat is missing', async () => {
+    const fetchFn = mockFetch((url = '') =>
+      url.endsWith('/api/chat') ? unknownUrl(url) : chatAnswer('{"result":[{"name":"Hotel"}]}'),
+    );
+    expect(await extractEnforced(GROQ)).toEqual({ name: 'Hotel' });
+    expect(fetchFn.mock.calls.map((c) => c[0])).toEqual([
+      'https://api.groq.com/openai/api/chat',
+      'https://api.groq.com/openai/v1/chat/completions',
+    ]);
+    const init = fetchFn.mock.calls[1][1] as RequestInit;
+    expect((init.headers as Record<string, string>).authorization).toBe('Bearer gsk');
+    const body = JSON.parse(init.body as string);
+    expect(body.model).toBe('openai/gpt-oss-120b');
+    expect(body.response_format.json_schema.schema).toEqual({
+      type: 'object',
+      properties: { result: { type: 'array', items: { type: 'object' } } },
+      required: ['result'],
+    });
+    expect(body.messages[0].content).toContain('{"result": [object]}');
+    expect(body.messages[1].content[0].text).toBe('doc');
+  });
+
+  it('falls back on a 405 or 501 too, and on a 200 that is not an Ollama answer (LM Studio)', async () => {
+    const fallsBackAfter = async (first: Response) => {
+      mockFetch((url = '') => (url.endsWith('/api/chat') ? first : chatAnswer('{"result":[{"a":1}]}')));
+      expect(await extractEnforced(GROQ)).toEqual({ a: 1 });
+    };
+    await fallsBackAfter(jsonResponse({}, false, 405));
+    await fallsBackAfter(jsonResponse({}, false, 501));
+    await fallsBackAfter(jsonResponse({ error: 'Unexpected endpoint' }));
+  });
+
+  it('answers null when the server returns no object', async () => {
+    mockFetch((url = '') => (url.endsWith('/api/chat') ? unknownUrl(url) : chatAnswer('{"result":[]}')));
+    expect(await extractEnforced(GROQ)).toBeNull();
+  });
+
+  it('passes the images on as image parts with their type', async () => {
+    const fetchFn = mockFetch((url = '') =>
+      url.endsWith('/api/chat') ? unknownUrl(url) : chatAnswer('{"result":[{}]}'),
+    );
+    await extractEnforced({ ...GROQ, images: ['iVBORw0K', '/9j/4AAQ', 'UklGRiQA', 'R0lGODlh'] });
+    const parts = JSON.parse((fetchFn.mock.calls[1][1] as RequestInit).body as string).messages[1].content;
+    expect(parts.slice(1).map((p: { image_url: { url: string } }) => p.image_url.url.split(';')[0])).toEqual([
+      'data:image/png',
+      'data:image/jpeg',
+      'data:image/webp',
+      'data:image/gif',
+    ]);
+  });
+
+  it('reports the OpenAI-compatible failure when that path fails too', async () => {
+    mockFetch((url = '') =>
+      url.endsWith('/api/chat') ? unknownUrl(url) : jsonResponse({ error: 'bad model' }, false, 404),
+    );
+    await expect(extractEnforced(GROQ)).rejects.toThrow(/LLM request failed \(404\)/);
+  });
 });

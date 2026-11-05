@@ -293,7 +293,11 @@ export const journeyEntryUpdateToolSchema = z.strictObject({
   weather: z.string().max(100).nullable().optional(),
   tags: z.array(z.string()).nullable().optional(),
   pros_cons: journeyEntryProsConsSchema.nullable().optional().describe('Replaces the whole verdict; null clears it'),
-  visibility: journeyEntryVisibilitySchema.optional(),
+  visibility: journeyEntryVisibilitySchema
+    .optional()
+    .describe(
+      'Stored with the entry. It does not decide the share link: every entry that is not a draft shows there. Use is_draft to keep an entry to the contributors',
+    ),
   type: journeyEntryTypeSchema
     .optional()
     .describe('Promote a trip-derived "skeleton" to a real "entry" once it has been written up'),
@@ -392,6 +396,11 @@ export const journeyTrackSchema = z.object({
    * which is all GET `:id/tracks` has ever answered.
    */
   kind: z.enum(['trip_gpx', 'day_recording', 'dawarich_live']).optional(),
+  /**
+   * The day a recorded line belongs to, so the map can tell which stretches
+   * between entries it already shows as travelled. A trip's GPX has none.
+   */
+  date: journeyRecordingDateSchema.optional(),
 });
 export type JourneyTrack = z.infer<typeof journeyTrackSchema>;
 

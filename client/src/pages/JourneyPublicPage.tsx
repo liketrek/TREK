@@ -72,6 +72,20 @@ function photoUrl(p: { photo_id: number }, shareToken: string, kind: 'thumbnail'
   return `/api/public/journey/${shareToken}/photos/${p.photo_id}/${kind}`;
 }
 
+type SharedPhoto = { id: number | string; photo_id: number; caption?: string | null; media_type?: string | null };
+
+// The lightbox opens on the original and shows the thumbnail the page already
+// loaded until it arrives, instead of a black screen (#2907).
+function lightboxPhoto(p: SharedPhoto, shareToken: string) {
+  return {
+    id: String(p.id),
+    src: photoUrl(p, shareToken, 'original'),
+    thumbSrc: photoUrl(p, shareToken, 'thumbnail'),
+    caption: p.caption ?? null,
+    mediaType: p.media_type,
+  };
+}
+
 // The share route answers 404 for the thumbnail of a clip that has no poster, and
 // an <img> pointed at it draws the broken-image glyph (#2341). The black ground
 // the layouts give a video stands in for the picture.
@@ -119,6 +133,7 @@ export default function JourneyPublicPage() {
     sortedDates,
     displayDates,
     newestFirst,
+    openAtEntryId,
     setNewestFirst,
     sidebarMapItems,
     allPhotos,
@@ -172,12 +187,7 @@ export default function JourneyPublicPage() {
     const picked = allPhotos.filter((p) => wanted.has(String(p.id)));
     if (!token || picked.length === 0) return;
     setLightbox({
-      photos: picked.map((p) => ({
-        id: String(p.id),
-        src: photoUrl(p, token, 'original'),
-        caption: p.caption,
-        mediaType: p.media_type,
-      })),
+      photos: picked.map((p) => lightboxPhoto(p, token)),
       index: 0,
     });
   };
@@ -243,12 +253,7 @@ export default function JourneyPublicPage() {
                 const prosArr = entry.pros_cons?.pros ?? [];
                 const consArr = entry.pros_cons?.cons ?? [];
                 const hasProscons = prosArr.length > 0 || consArr.length > 0;
-                const lightboxPhotos = photos.map((p) => ({
-                  id: String(p.id),
-                  src: photoUrl(p, token!, 'original'),
-                  caption: p.caption,
-                  mediaType: p.media_type,
-                }));
+                const lightboxPhotos = photos.map((p) => lightboxPhoto(p, token!));
 
                 const isActive = activeEntryId === String(entry.id);
                 return (
@@ -559,12 +564,7 @@ export default function JourneyPublicPage() {
           className="relative block aspect-square w-full cursor-pointer overflow-hidden rounded-lg"
           onClick={() =>
             setLightbox({
-              photos: allPhotos.map((p) => ({
-                id: String(p.id),
-                src: photoUrl(p, token!, 'original'),
-                caption: p.caption,
-                mediaType: p.media_type,
-              })),
+              photos: allPhotos.map((p) => lightboxPhoto(p, token!)),
               index: idx,
             })
           }
@@ -696,6 +696,7 @@ export default function JourneyPublicPage() {
           {isMobile && view === 'timeline' && perms.share_timeline && perms.share_map && (
             <MobileMapTimeline
               entries={timelineEntries}
+              initialEntryId={openAtEntryId}
               mapEntries={sidebarMapItems as any}
               dark={document.documentElement.classList.contains('dark')}
               readOnly
@@ -760,12 +761,7 @@ export default function JourneyPublicPage() {
           onDelete={() => { }}
           onPhotoClick={(photos, idx) =>
             setLightbox({
-              photos: photos.map((p) => ({
-                id: String(p.id),
-                src: photoUrl(p as any, token!, 'original'),
-                caption: (p as any).caption ?? null,
-                mediaType: p.media_type,
-              })),
+              photos: photos.map((p) => lightboxPhoto(p, token!)),
               index: idx,
             })
           }

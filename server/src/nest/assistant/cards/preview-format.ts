@@ -1,3 +1,4 @@
+import { intlLocale } from '../assistant-words';
 import type { PreviewContext } from './card-types';
 import type { AssistantChangeLabelKey, AssistantChangeRow } from '@trek/shared';
 
@@ -57,7 +58,7 @@ export class Rows {
 /** A locale Intl accepts, the user's when it can. */
 export function localeOf(ctx: Pick<PreviewContext, 'locale'>): string {
   try {
-    return Intl.getCanonicalLocales(ctx.locale)[0] ?? 'en';
+    return Intl.getCanonicalLocales(intlLocale(ctx.locale))[0] ?? 'en';
   } catch {
     return 'en';
   }

@@ -87,6 +87,8 @@ const noticeReleaseSchema = z.object({
     bodyAfterKey: z.string(),
     closingKey: z.string(),
   }),
+  /** Labels the support footer as a card like the promise; without it the footer is a plain line. */
+  supportLabelKey: z.string().optional(),
   /** The support footer's opening sentence, set in bold before the rest. */
   supportLeadKey: z.string(),
   supportTextKey: z.string(),

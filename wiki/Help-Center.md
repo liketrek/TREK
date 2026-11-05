@@ -92,7 +92,7 @@ cost nothing to a visitor who never asks for help.
 
 ## Languages
 
-The guides are written in English first and translated into all 27 languages TREK speaks (see
+The guides are written in English first and translated into all 28 languages TREK speaks (see
 [Languages](Languages)). Every button
 and field a guide names is the app's own string in that language, so what you read matches what you
 see.

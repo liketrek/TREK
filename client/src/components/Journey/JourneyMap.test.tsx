@@ -1,4 +1,4 @@
-// FE-COMP-JOURNEYMAP-001 to FE-COMP-JOURNEYMAP-054
+// FE-COMP-JOURNEYMAP-001 to FE-COMP-JOURNEYMAP-062
 
 vi.mock('../../api/websocket', () => ({
   connect: vi.fn(),
@@ -12,6 +12,35 @@ vi.mock('../../api/websocket', () => ({
 
 // Leaflet does not work in jsdom — mock the entire library
 vi.mock('leaflet', () => {
+  const domEvent = {
+    on: vi.fn((el: HTMLElement, types: string, fn: (e: Event) => void) => {
+      types.split(' ').forEach(type => el.addEventListener(type, fn));
+    }),
+    stopPropagation: vi.fn((e: Event) => e.stopPropagation()),
+    disableClickPropagation: vi.fn((el: HTMLElement) => {
+      for (const type of ['mousedown', 'touchstart', 'dblclick', 'contextmenu']) el.addEventListener(type, e => e.stopPropagation());
+    }),
+  };
+  // The openable card (#2885): one per map, put on and taken off by the map itself.
+  // Its element is built on the first add, inside a stand-in for the map container.
+  const cardState = { onMap: false, element: null as HTMLElement | null, onAdd: [] as (() => void)[] };
+  const mockCard = {
+    state: cardState,
+    once: vi.fn((_type: string, fn: () => void) => { cardState.onAdd.push(fn); }),
+    setLatLng: vi.fn().mockReturnThis(),
+    setContent: vi.fn().mockReturnThis(),
+    getElement: vi.fn(() => cardState.element),
+    addTo: vi.fn(() => {
+      if (!cardState.element) {
+        cardState.element = document.createElement('div');
+        cardState.element.innerHTML = '<div class="trek-journey-popup-title">card</div>';
+        document.createElement('div').appendChild(cardState.element);
+      }
+      cardState.onMap = true;
+      cardState.onAdd.splice(0).forEach(fn => fn());
+    }),
+    remove: vi.fn(() => { cardState.onMap = false; }),
+  };
   const mockMarker = {
     addTo: vi.fn().mockReturnThis(),
     bindTooltip: vi.fn().mockReturnThis(),
@@ -38,31 +67,38 @@ vi.mock('leaflet', () => {
     getCenter: vi.fn(() => ({ lat: 0, lng: 0 })),
     zoomIn: vi.fn(),
     zoomOut: vi.fn(),
-    // The photo layer subscribes to zoom/pan and clusters in screen space (#1614).
+    // The photo and mark layers subscribe to zoom/pan and cluster in world
+    // pixels at the current zoom (#1614, #2889).
     on: vi.fn(),
     off: vi.fn(),
+    project: vi.fn(() => ({ x: 0, y: 0 })),
     latLngToContainerPoint: vi.fn(() => ({ x: 0, y: 0 })),
+    hasLayer: vi.fn((layer: unknown) => (layer === mockCard ? cardState.onMap : true)),
   };
   return {
     default: {
       map: vi.fn(() => mockMap),
       tileLayer: vi.fn(() => ({ addTo: vi.fn(), setUrl: vi.fn() })),
       marker: vi.fn(() => mockMarker),
-      polyline: vi.fn(() => { const line: any = { addTo: vi.fn(() => line), bindTooltip: vi.fn(() => line) }; return line }),
+      polyline: vi.fn(() => { const line: any = { addTo: vi.fn(() => line), bindTooltip: vi.fn(() => line), remove: vi.fn() }; return line }),
       divIcon: vi.fn(() => ({})),
       latLngBounds: vi.fn(() => ({})),
       layerGroup: vi.fn(() => ({ addLayer: vi.fn(), addTo: vi.fn(), remove: vi.fn() })),
       // The map builds its own attribution control so it can collapse to the credit
       // alone (see the GL twin: the phone lays a carousel over the bottom edge).
       control: { attribution: vi.fn(() => ({ addTo: vi.fn() })) },
+      tooltip: vi.fn(() => mockCard),
+      DomEvent: domEvent,
     },
     map: vi.fn(() => mockMap),
     tileLayer: vi.fn(() => ({ addTo: vi.fn(), setUrl: vi.fn() })),
     marker: vi.fn(() => mockMarker),
-    polyline: vi.fn(() => { const line: any = { addTo: vi.fn(() => line), bindTooltip: vi.fn(() => line) }; return line }),
+    polyline: vi.fn(() => { const line: any = { addTo: vi.fn(() => line), bindTooltip: vi.fn(() => line), remove: vi.fn() }; return line }),
     divIcon: vi.fn(() => ({})),
     latLngBounds: vi.fn(() => ({})),
     control: { attribution: vi.fn(() => ({ addTo: vi.fn() })) },
+    tooltip: vi.fn(() => mockCard),
+    DomEvent: domEvent,
   };
 });
 
@@ -76,6 +112,9 @@ import type { Mock } from 'vitest';
 import L from 'leaflet';
 import JourneyMap from './JourneyMap';
 import type { JourneyMapHandle } from './JourneyMap';
+import type { JourneyMapLayerVisibility } from './journeyMapLayers';
+import { mercatorWorldPx } from './journeyMapMarks';
+import type { JourneyMapStay } from '@trek/shared';
 
 // maplibre-gl-leaflet hangs the vector basemap into Leaflet's tile pane. The mock
 // only has to be callable and hand back a layer with the three methods the callers
@@ -178,6 +217,115 @@ describe('JourneyMap', () => {
     );
   });
 
+  describe('the marker card as a way into the entry (#2885)', () => {
+    interface MockCard {
+      state: { onMap: boolean; element: HTMLElement | null; onAdd: (() => void)[] };
+      addTo: Mock;
+      remove: Mock;
+      setContent: Mock;
+    }
+    // The leaflet mock hands every map the same card, so each case starts it unbuilt and off the map.
+    function mockedCard(): MockCard {
+      const card = vi.mocked(L.tooltip)() as unknown as MockCard;
+      vi.mocked(L.tooltip).mockClear();
+      return card;
+    }
+
+    beforeEach(() => {
+      Object.assign(mockedCard().state, { onMap: false, element: null, onAdd: [] });
+    });
+
+    function renderOpenable(onMarkerCardClick = vi.fn(), visibility?: JourneyMapLayerVisibility) {
+      const ref = React.createRef<JourneyMapHandle>();
+      const view = render(
+        <JourneyMap ref={ref} checkins={[]} entries={entriesWithCoords} onMarkerCardClick={onMarkerCardClick} layerVisibility={visibility} />,
+      );
+      return { ...view, ref, onMarkerCardClick };
+    }
+
+    function cardElement(): HTMLElement {
+      const { element } = mockedCard().state;
+      if (!element) throw new Error('the card was never built');
+      return element;
+    }
+
+    function cardTitle(): HTMLElement {
+      return cardElement().firstElementChild as HTMLElement;
+    }
+
+    it('FE-COMP-JOURNEYMAP-059: a tap on the card over the active pin opens that entry and never reaches the map', () => {
+      const { ref, onMarkerCardClick } = renderOpenable();
+      act(() => ref.current?.highlightMarker('e2'));
+
+      expect(L.tooltip).toHaveBeenCalledWith(expect.objectContaining({ className: 'map-tooltip trek-journey-tooltip is-openable' }));
+      const container = cardElement().parentElement as HTMLElement;
+      const mapClick = vi.fn();
+      const mapPress = vi.fn();
+      container.addEventListener('click', mapClick);
+      container.addEventListener('mousedown', mapPress);
+
+      cardTitle().dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+      cardTitle().click();
+      act(() => ref.current?.highlightMarker('e1'));
+      cardTitle().click();
+
+      expect(onMarkerCardClick.mock.calls).toEqual([['e2'], ['e1']]);
+      expect(mapClick).not.toHaveBeenCalled();
+      expect(mapPress).not.toHaveBeenCalled();
+    });
+
+    it('FE-COMP-JOURNEYMAP-060: the pins do not open or close the card, so leaving the pin for the card keeps it', () => {
+      const { ref } = renderOpenable();
+      act(() => ref.current?.highlightMarker('e1'));
+
+      // A bound tooltip is what Leaflet closes on the pin's mouseout and blur, which
+      // a tap on the card sends first. The pins bind none and listen for the tap alone.
+      expect(mockedMarker().bindTooltip).not.toHaveBeenCalled();
+      expect(vi.mocked(mockedMarker().on).mock.calls.map((call: unknown[]) => call[0])).toEqual(['click', 'click']);
+      expect(mockedCard().state.onMap).toBe(true);
+      expect(mockedCard().remove).not.toHaveBeenCalled();
+    });
+
+    it('FE-COMP-JOURNEYMAP-061: the card follows the active pin and leaves with it or with the pins', () => {
+      mockedMarkerWithRemove();
+      const card = mockedCard();
+      const shown = { plan: true, recorded: true, entries: true };
+      const onMarkerCardClick = vi.fn();
+      const { ref, rerender } = renderOpenable(onMarkerCardClick, shown);
+      const map = mockedMap();
+
+      act(() => ref.current?.highlightMarker('e1'));
+      expect(card.setContent).toHaveBeenLastCalledWith(expect.stringContaining('Paris'));
+      act(() => ref.current?.highlightMarker('e2'));
+      expect(card.setContent).toHaveBeenLastCalledWith(expect.stringContaining('Berlin'));
+      expect(card.addTo).toHaveBeenCalledTimes(1);
+
+      act(() => ref.current?.highlightMarker(null));
+      expect(card.state.onMap).toBe(false);
+
+      act(() => ref.current?.highlightMarker('e1'));
+      map.hasLayer.mockImplementation((layer: unknown) => layer === card && card.state.onMap);
+      try {
+        rerender(<JourneyMap ref={ref} checkins={[]} entries={entriesWithCoords} onMarkerCardClick={onMarkerCardClick} layerVisibility={{ ...shown, entries: false }} />);
+        expect(card.state.onMap).toBe(false);
+      } finally {
+        map.hasLayer.mockImplementation((layer: unknown) => (layer === card ? card.state.onMap : true));
+      }
+    });
+
+    it('FE-COMP-JOURNEYMAP-062: without a handler the card stays a hover label on each pin that the drags on the map pass through', () => {
+      const ref = React.createRef<JourneyMapHandle>();
+      render(<JourneyMap ref={ref} checkins={[]} entries={entriesWithCoords} />);
+      act(() => ref.current?.highlightMarker('e1'));
+
+      expect(mockedMarker().bindTooltip).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ className: 'map-tooltip trek-journey-tooltip' }),
+      );
+      expect(L.tooltip).not.toHaveBeenCalled();
+    });
+  });
+
   it('FE-COMP-JOURNEYMAP-006: exposes imperative handle (focusMarker)', () => {
     const ref = React.createRef<JourneyMapHandle>();
     render(
@@ -199,6 +347,15 @@ describe('JourneyMap', () => {
     expect(firstCall.html).toContain('</svg>');
     // Marker index label "1" for first entry
     expect(firstCall.html).toContain('>1<');
+  });
+
+  it('FE-COMP-JOURNEYMAP-058: a stop without a number (a draft) gets an unnumbered pin', () => {
+    render(
+      <JourneyMap checkins={[]} entries={[{ ...entriesWithCoords[0], dayLabel: null }]} />
+    );
+    const html = String(vi.mocked(L.divIcon).mock.calls[0][0]?.html);
+    expect(html).toContain('<svg');
+    expect(html).toMatch(/font-weight="700"><\/text>/);
   });
 
   it('FE-COMP-JOURNEYMAP-008: renders markers with mood-based entry labels', () => {
@@ -782,9 +939,8 @@ describe('JourneyMap', () => {
   });
 
   // #2254 — the map effect defers its opening fitBounds/setView to a rAF, so this
-  // effect can draw while the map still has no center or zoom. Clustering
-  // projects to container pixels, which throws in that window and took the whole
-  // public journey page down with it.
+  // effect can draw while the map still has no center or zoom. Projecting in that
+  // window throws and took the whole public journey page down with it.
   it('FE-COMP-JOURNEYMAP-050: waits out a map that has no view yet, then draws on moveend', () => {
     const noView = () => { throw new Error('Set map center and zoom first.'); };
     let hasView = false;
@@ -794,12 +950,12 @@ describe('JourneyMap', () => {
     // The mock hands out one shared map instance, so it can be reached — and
     // stripped of its view — before the component ever builds one. Typed down to
     // the three spies this needs: L.map's signature promises a real Leaflet map.
-    type MapProbe = { getCenter: Mock; latLngToContainerPoint: Mock; on: Mock };
+    type MapProbe = { getCenter: Mock; project: Mock; on: Mock };
     L.map(document.createElement('div'));
     const map = mockedMap() as MapProbe;
     vi.mocked(L.map).mockClear();
     map.getCenter.mockImplementation(() => (hasView ? { lat: 0, lng: 0 } : noView()));
-    map.latLngToContainerPoint.mockImplementation(() => (hasView ? { x: 0, y: 0 } : noView()));
+    map.project.mockImplementation(() => (hasView ? { x: 0, y: 0 } : noView()));
 
     try {
       // Rendering must survive the viewless window, and draw nothing in it.
@@ -820,7 +976,7 @@ describe('JourneyMap', () => {
       expect(photoHtml()[0]).toContain('/uploads/late.jpg');
     } finally {
       map.getCenter.mockImplementation(() => ({ lat: 0, lng: 0 }));
-      map.latLngToContainerPoint.mockImplementation(() => ({ x: 0, y: 0 }));
+      map.project.mockImplementation(() => ({ x: 0, y: 0 }));
     }
   });
 
@@ -867,6 +1023,108 @@ describe('JourneyMap', () => {
     render(<JourneyMap checkins={[]} entries={entriesWithCoords} plannedEntryIds={new Set(['e2'])} />);
     expect(divIconHtml(0)).not.toContain('#16a34a');
     expect(divIconHtml(1)).toContain('#16a34a');
+  });
+
+  // #2889: a pan used to shift the screen grid the layers cluster on, so photos
+  // near a cell edge changed groups, counts and thumbnails without any zoom.
+  it('FE-COMP-JOURNEYMAP-055: panning keeps the photo and mark groups, only a zoom regroups them', () => {
+    const photos = [
+      { id: 'p1', lat: 45, lng: 5, thumbUrl: '/uploads/a.jpg' },
+      { id: 'p2', lat: 45, lng: 5.05, thumbUrl: '/uploads/b.jpg' },
+    ];
+    const marks = [
+      { kind: 'stay' as const, key: 's1', lat: 45, lng: 5, color: '#14b8a6', stay: {} as JourneyMapStay },
+      { kind: 'stay' as const, key: 's2', lat: 45, lng: 5.05, color: '#14b8a6', stay: {} as JourneyMapStay },
+    ];
+    L.map(document.createElement('div'));
+    const map = mockedMap() as { project: Mock; latLngToContainerPoint: Mock; getZoom: Mock; on: Mock; off: Mock };
+    vi.mocked(L.map).mockClear();
+    let zoom = 3;
+    let pan = 0;
+    map.getZoom.mockImplementation(() => zoom);
+    map.project.mockImplementation(([lat, lng]: [number, number], z: number) => mercatorWorldPx(lat, lng, z, 256));
+    map.latLngToContainerPoint.mockImplementation(([lat, lng]: [number, number]) => {
+      const world = mercatorWorldPx(lat, lng, zoom, 256);
+      return { x: world.x - pan, y: world.y };
+    });
+    const drawnSince = (from: number) =>
+      vi.mocked(L.divIcon).mock.calls.slice(from).map(c => String(c[0]?.html)).filter(h => h.includes('/uploads/') || h.includes('#14b8a6'));
+    const moveEnd = () => act(() => {
+      const gone = new Set(map.off.mock.calls.map(c => c[1]));
+      for (const [event, handler] of map.on.mock.calls) if (event === 'moveend' && !gone.has(handler)) (handler as () => void)();
+    });
+
+    try {
+      render(<JourneyMap checkins={[]} entries={[]} photos={photos} marks={marks} />);
+      let from = vi.mocked(L.divIcon).mock.calls.length;
+      moveEnd();
+      const first = drawnSince(from);
+      expect(first.filter(h => h.includes('/uploads/'))).toEqual([expect.stringContaining('>2<')]);
+      expect(first.filter(h => h.includes('#14b8a6'))).toHaveLength(1);
+      expect(map.project).toHaveBeenCalledWith([45, 5.05], 3);
+      expect(map.latLngToContainerPoint).not.toHaveBeenCalled();
+
+      // A pan that puts a 64 px cell edge between the two photos on screen.
+      const mid = (mercatorWorldPx(45, 5, 3, 256).x + mercatorWorldPx(45, 5.05, 3, 256).x) / 2;
+      pan = mid - (Math.floor(mid / 64) + 0.5) * 64;
+      from = vi.mocked(L.divIcon).mock.calls.length;
+      moveEnd();
+      expect(drawnSince(from)).toEqual(first);
+
+      zoom = 12;
+      from = vi.mocked(L.divIcon).mock.calls.length;
+      moveEnd();
+      const zoomed = drawnSince(from);
+      expect(zoomed.filter(h => h.includes('/uploads/'))).toHaveLength(2);
+      expect(zoomed.filter(h => h.includes('#14b8a6'))).toHaveLength(2);
+    } finally {
+      map.getZoom.mockImplementation(() => 10);
+      map.project.mockImplementation(() => ({ x: 0, y: 0 }));
+      map.latLngToContainerPoint.mockImplementation(() => ({ x: 0, y: 0 }));
+    }
+  });
+
+  describe('the line between the entries on recorded days (#2888)', () => {
+    const days = [
+      { id: 'a', lat: 48.1, lng: 11.5, title: 'A', mood: null, entry_date: '2026-10-29' },
+      { id: 'b', lat: 48.2, lng: 11.6, title: 'B', mood: null, entry_date: '2026-10-29' },
+      { id: 'c', lat: 48.3, lng: 11.7, title: 'C', mood: null, entry_date: '2026-10-30' },
+    ];
+    const tracks = [
+      { place_id: -1, trip_id: 0, name: '2026-10-29', color: '#7c3aed', points: [[48.1, 11.5], [48.2, 11.6]] as [number, number][], kind: 'dawarich_live' as const, date: '2026-10-29' },
+    ];
+    const connectionLines = () => {
+      const polyline = vi.mocked(L.polyline).mock;
+      return polyline.calls
+        .map((call, i) => ({ coords: call[0], dashed: (call[1] as { dashArray?: string } | undefined)?.dashArray === '4 6', line: polyline.results[i].value as { addTo: Mock; remove: Mock } }))
+        .filter(call => call.dashed);
+    };
+
+    it('FE-COMP-JOURNEYMAP-056: leaves the recorded day to its track and keeps the jump to the next day', () => {
+      render(<JourneyMap checkins={[]} entries={days} tracks={tracks} />);
+
+      const lines = connectionLines();
+      expect(lines.map(l => l.coords)).toEqual([
+        [[48.2, 11.6], [48.3, 11.7]],
+        [[48.1, 11.5], [48.2, 11.6]],
+      ]);
+      expect(lines[0].line.addTo).toHaveBeenCalled();
+      expect(lines[1].line.addTo).not.toHaveBeenCalled();
+    });
+
+    it('FE-COMP-JOURNEYMAP-057: hiding what was recorded puts the covered stretch back, hiding the entries takes it off again', () => {
+      mockedMarkerWithRemove();
+      const shown = { plan: true, recorded: true, entries: true };
+      const { rerender } = render(<JourneyMap checkins={[]} entries={days} tracks={tracks} layerVisibility={shown} />);
+      const covered = connectionLines()[1].line;
+
+      rerender(<JourneyMap checkins={[]} entries={days} tracks={tracks} layerVisibility={{ ...shown, recorded: false }} />);
+      expect(covered.addTo).toHaveBeenCalledTimes(1);
+
+      rerender(<JourneyMap checkins={[]} entries={days} tracks={tracks} layerVisibility={{ ...shown, recorded: false, entries: false }} />);
+      expect(covered.remove).toHaveBeenCalledTimes(1);
+      expect(L.map).toHaveBeenCalledTimes(1);
+    });
   });
 });
 

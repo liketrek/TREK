@@ -117,6 +117,8 @@ const dashboard: TranslationStrings = {
   'dashboard.unsplashQueryRequired': 'Zadajte hľadaný výraz',
   'dashboard.unsplashNoResults': 'Nenašli sa žiadne obrázky',
   'dashboard.coverSearchError': 'Nepodarilo sa vyhľadať na Unsplash',
+  'dashboard.unsplashKeyNeeded':
+    'Unsplash tento server odmietol. Správca môže v nastaveniach administrácie pridať bezplatný kľúč Unsplash API, aby vyhľadávanie obrázkov fungovalo.',
   'dashboard.useUnsplashPhoto': 'Použiť fotku z Unsplash od {photographer}',
   'dashboard.titleRequired': 'Názov je povinný',
   'dashboard.endDateError': 'Dátum konca musí byť po dátume začiatku',

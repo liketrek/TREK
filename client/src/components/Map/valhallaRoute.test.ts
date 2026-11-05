@@ -5,6 +5,8 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { valhallaBase, valhallaAvailable, valhallaTurn, resetValhallaTurns, valhallaRouteAvoiding, valhallaRun, valhallaRunOnFoot, valhallaAlternates, alternatesFrom, runFrom, legAvoids, valhallaTraceAttributes } from './valhallaRoute'
 
 const FOSSGIS_VALHALLA = 'https://valhalla1.openstreetmap.de/route'
+/** The relay to the TREK services' Valhalla, the base asked when nothing else is configured. */
+const TREK_VALHALLA = '/api/routing/valhalla'
 
 /**
  * A real polyline6, encoded from three known points and verified by decoding it back.
@@ -36,7 +38,7 @@ const setSettings = (patch: Record<string, string>) =>
   useSettingsStore.setState(st => ({ settings: { ...st.settings, ...patch } }))
 
 afterEach(() => {
-  setSettings({ routing_base_url: '', valhalla_base_url: '' })
+  setSettings({ routing_base_url: '', valhalla_base_url: '', routing_valhalla_provider: '' })
   resetValhallaTurns()
 })
 
@@ -92,9 +94,18 @@ const HAMBURG = { lat: 53.5511, lng: 9.9937 }
 const BERLIN = { lat: 52.52, lng: 13.405 }
 
 describe('valhallaBase', () => {
-  it('VALHALLA-BASE-001: falls back to the public instance when nothing is configured', () => {
-    expect(valhallaBase()).toBe('https://valhalla1.openstreetmap.de')
+  it('VALHALLA-BASE-001: asks the TREK services through the relay when nothing is configured', () => {
+    expect(valhallaBase()).toBe(TREK_VALHALLA)
     expect(valhallaAvailable()).toBe(true)
+  })
+
+  it('VALHALLA-BASE-005: keeps the admin choice of a routing service', () => {
+    setSettings({ routing_valhalla_provider: 'fossgis', valhalla_base_url: 'https://v.example.org' })
+    expect(valhallaBase()).toBe('https://valhalla1.openstreetmap.de')
+    setSettings({ routing_valhalla_provider: 'custom' })
+    expect(valhallaBase()).toBe('https://v.example.org')
+    setSettings({ routing_valhalla_provider: 'trek', valhalla_base_url: '', routing_base_url: 'https://osrm.example.org' })
+    expect(valhallaBase()).toBe(TREK_VALHALLA)
   })
 
   it('VALHALLA-BASE-002: uses the configured instance and drops its trailing slashes', () => {
@@ -123,9 +134,9 @@ describe('runFrom', () => {
   it('VALHALLA-PARSE-001: decodes the shape as polyline6 and converts km to metres', () => {
     const leg = total(answer())
     expect(leg).not.toBeNull()
-    expect(leg!.coordinates).toEqual(SHAPE_POINTS)
-    expect(leg!.distance).toBeCloseTo(295700, 0)
-    expect(leg!.duration).toBe(11460)
+    expect(leg?.coordinates).toEqual(SHAPE_POINTS)
+    expect(leg?.distance).toBeCloseTo(295700, 0)
+    expect(leg?.duration).toBe(11460)
   })
 
   it('VALHALLA-PARSE-002: carries the flags through as booleans', () => {
@@ -153,15 +164,15 @@ describe('runFrom', () => {
         summary: { length: 150, time: 5400, has_toll: true, has_highway: true, has_ferry: false },
       },
     }
-    const run = runFrom(chain)!
-    expect(run.legs.map(l => l.distance)).toEqual([100000, 50000])
-    expect(run.legs.map(l => l.hasToll)).toEqual([false, true])
-    expect(run.total.distance).toBe(150000)
-    expect(run.total.duration).toBe(5400)
+    const run = runFrom(chain)
+    expect(run?.legs.map(l => l.distance)).toEqual([100000, 50000])
+    expect(run?.legs.map(l => l.hasToll)).toEqual([false, true])
+    expect(run?.total.distance).toBe(150000)
+    expect(run?.total.duration).toBe(5400)
     // One tolled leg makes the drive tolled. `every` here would call a day with a
     // single toll booth in it toll-free.
-    expect(run.total.hasToll).toBe(true)
-    expect(run.total.coordinates).toHaveLength(SHAPE_POINTS.length * 2)
+    expect(run?.total.hasToll).toBe(true)
+    expect(run?.total.coordinates).toHaveLength(SHAPE_POINTS.length * 2)
   })
 
   it('VALHALLA-PARSE-007: several legs with no summaries of their own are refused', () => {
@@ -217,7 +228,7 @@ describe('valhallaRouteAvoiding', () => {
       })
     )
     const leg = await valhallaRouteAvoiding(HAMBURG, BERLIN, 'driving', 'toll')
-    expect(leg!.distance).toBeCloseTo(295700, 0)
+    expect(leg?.distance).toBeCloseTo(295700, 0)
     expect(body).toMatchObject({
       costing: 'auto',
       costing_options: { auto: { use_tolls: 0 } },
@@ -353,6 +364,7 @@ describe('valhallaRun over a whole day', () => {
       costing: 'pedestrian',
       costing_options: { pedestrian: { max_hiking_difficulty: difficulty, use_ferry: 0 } },
       directions_options: { units: 'kilometers' },
+      directions_type: 'maneuvers',
     })
   })
 
@@ -367,8 +379,8 @@ describe('valhallaRun over a whole day', () => {
     const run = await valhallaRun(stops(6), 'driving', [])
 
     expect(calls).toBe(1)
-    expect(run!.legs).toHaveLength(5)
-    expect(run!.total.distance).toBe(50000)
+    expect(run?.legs).toHaveLength(5)
+    expect(run?.total.distance).toBe(50000)
   })
 
   it('VALHALLA-RUN-008: forwards caller-specific costing options only when supplied', async () => {
@@ -403,8 +415,8 @@ describe('valhallaRun over a whole day', () => {
     // takes the remaining five. Nine pairs plus four.
     expect(sizes).toEqual([10, 5])
     // Thirteen pairs across two requests, none lost and none counted twice.
-    expect(run!.legs).toHaveLength(13)
-    expect(run!.total.distance).toBe(130000)
+    expect(run?.legs).toHaveLength(13)
+    expect(run?.total.distance).toBe(130000)
   })
 
   it('VALHALLA-RUN-003: never sends more than ten locations, however long the day', async () => {
@@ -453,9 +465,56 @@ describe('valhallaRun over a whole day', () => {
 
     const run = await valhallaRun(stops(14), 'driving', ['toll'])
 
-    expect(run!.legs).toHaveLength(13)
+    expect(run?.legs).toHaveLength(13)
     // First piece, second piece refused, second piece again.
     expect(calls).toBe(3)
+  })
+
+  it('VALHALLA-RUN-009: asks the relay twenty locations at a time with no pause between the pieces', async () => {
+    const sizes: number[] = []
+    let fossgis = 0
+    server.use(
+      http.post('/api/routing/valhalla/:action', async ({ request }) => {
+        const body = await request.json() as { locations: unknown[] }
+        sizes.push(body.locations.length)
+        return HttpResponse.json(chain(body.locations.length - 1))
+      }),
+      http.post(FOSSGIS_VALHALLA, () => { fossgis++; return HttpResponse.json(chain(1)) }),
+    )
+    const started = Date.now()
+
+    const avoiding = await valhallaRun(stops(14), 'driving', ['toll'])
+    const long = await valhallaRun(stops(25), 'driving', ['toll'])
+
+    expect(avoiding?.legs).toHaveLength(13)
+    expect(long?.legs).toHaveLength(24)
+    expect(sizes).toEqual([14, 20, 6])
+    // The pause between pieces was 1.1 s; the relay and an own Valhalla are not paced.
+    expect(Date.now() - started).toBeLessThan(1000)
+    expect(fossgis).toBe(0)
+  })
+
+  it('VALHALLA-RUN-010: a day cut for the relay that the relay cannot answer is cut again in tens for FOSSGIS', async () => {
+    const relayed: number[] = []
+    const sizes: number[] = []
+    server.use(
+      http.post('/api/routing/valhalla/:action', async ({ request }) => {
+        relayed.push(((await request.json()) as { locations: unknown[] }).locations.length)
+        return HttpResponse.json({ error: 'down' }, { status: 502 })
+      }),
+      http.post(FOSSGIS_VALHALLA, async ({ request }) => {
+        const body = await request.json() as { locations: unknown[] }
+        sizes.push(body.locations.length)
+        return HttpResponse.json(chain(body.locations.length - 1))
+      }),
+    )
+
+    const run = await valhallaRun(stops(14), 'driving', ['toll'])
+
+    expect(run?.legs).toHaveLength(13)
+    expect(relayed).toEqual([14])
+    // FOSSGIS never saw the piece of fourteen it would have refused with error 150.
+    expect(sizes).toEqual([10, 5])
   })
 
   it('VALHALLA-RUN-005: fewer than two points is nothing to route', async () => {
@@ -703,5 +762,160 @@ describe('crossings by boat on a walk (CW-12)', () => {
     server.use(http.post('https://valhalla.test/route', () =>
       HttpResponse.json({ error_code: 154, error: 'Path distance exceeds the max distance limit' }, { status: 400 })))
     expect(await valhallaRunOnFoot(points, undefined, { use_ferry: 0 }, { exclude_ferry: true })).toBeNull()
+  })
+})
+
+describe('through the TREK services (routing relay)', () => {
+  const RELAY = '/api/routing/valhalla/:action'
+
+  it('VALHALLA-RELAY-001: asks the relay first, and FOSSGIS is not asked while it answers', async () => {
+    const relayed: Array<{ action: string; body: Record<string, unknown> }> = []
+    let fossgis = 0
+    server.use(
+      http.post(RELAY, async ({ params, request }) => {
+        relayed.push({ action: String(params.action), body: await request.json() as Record<string, unknown> })
+        return HttpResponse.json(answer({ has_toll: false }))
+      }),
+      http.post(FOSSGIS_VALHALLA, () => { fossgis++; return HttpResponse.json(answer()) }),
+    )
+    const leg = await valhallaRouteAvoiding(HAMBURG, BERLIN, 'driving', 'toll')
+    expect(leg).not.toBeNull()
+    expect(leg?.distance).toBeCloseTo(295700, 0)
+    expect(relayed).toHaveLength(1)
+    expect(relayed[0].action).toBe('route')
+    expect(relayed[0].body).toMatchObject({
+      costing: 'auto',
+      costing_options: { auto: { use_tolls: 0 } },
+      directions_type: 'maneuvers',
+    })
+    expect(fossgis).toBe(0)
+  })
+
+  it('VALHALLA-RELAY-009: a question the relay ran out of time on has no answer, without resting the relay or asking FOSSGIS', async () => {
+    let relayCalls = 0
+    let fossgis = 0
+    server.use(
+      http.post(RELAY, () => {
+        relayCalls++
+        return HttpResponse.json({ error: 'The TREK routing service took too long for this route' }, { status: 504 })
+      }),
+      http.post(FOSSGIS_VALHALLA, () => { fossgis++; return HttpResponse.json(answer()) }),
+    )
+    await expect(valhallaRouteAvoiding(HAMBURG, BERLIN, 'cycling', 'ferry')).resolves.toBeNull()
+    // Asked once: the relay would only run out of time on it again.
+    expect([relayCalls, fossgis]).toEqual([1, 0])
+    expect(valhallaBase()).toBe(TREK_VALHALLA)
+
+    server.use(http.post(RELAY, () => { relayCalls++; return HttpResponse.json(answer()) }))
+    await expect(valhallaRouteAvoiding(HAMBURG, BERLIN, 'driving', 'toll')).resolves.not.toBeNull()
+    expect([relayCalls, fossgis]).toEqual([2, 0])
+  })
+
+  it('VALHALLA-RELAY-002: turns to FOSSGIS without a word where the relay cannot answer, and leaves it alone a while', async () => {
+    for (const status of [401, 429, 503]) {
+      resetValhallaTurns()
+      let relayCalls = 0
+      let fossgis = 0
+      server.use(
+        http.post(RELAY, () => { relayCalls++; return HttpResponse.json({ error: 'no' }, { status }) }),
+        http.post(FOSSGIS_VALHALLA, () => { fossgis++; return HttpResponse.json(answer()) }),
+      )
+      await expect(valhallaRouteAvoiding(HAMBURG, BERLIN, 'driving', 'toll')).resolves.not.toBeNull()
+      expect(valhallaBase()).toBe('https://valhalla1.openstreetmap.de')
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(Date.now() + 2000)
+      await valhallaRouteAvoiding(HAMBURG, BERLIN, 'driving', 'ferry')
+      vi.useRealTimers()
+      expect([status, relayCalls, fossgis]).toEqual([status, 1, 2])
+    }
+  })
+
+  it('VALHALLA-RELAY-003: asks the relay again once the rest is over', async () => {
+    let relayCalls = 0
+    server.use(
+      http.post(RELAY, () => { relayCalls++; return HttpResponse.json({ error: 'no' }, { status: 503 }) }),
+      http.post(FOSSGIS_VALHALLA, () => HttpResponse.json(answer())),
+    )
+    await valhallaRouteAvoiding(HAMBURG, BERLIN, 'driving', 'toll')
+    expect(relayCalls).toBe(1)
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(Date.now() + 11 * 60_000)
+    expect(valhallaBase()).toBe(TREK_VALHALLA)
+    vi.useRealTimers()
+  })
+
+  it("VALHALLA-RELAY-004: reads Valhalla's own refusal through the relay as no way, without asking FOSSGIS", async () => {
+    let fossgis = 0
+    server.use(
+      http.post(RELAY, () => HttpResponse.json({ error_code: 442, error: 'No path could be found for input' }, { status: 400 })),
+      http.post(FOSSGIS_VALHALLA, () => { fossgis++; return HttpResponse.json(answer()) }),
+    )
+    const points = [HAMBURG, BERLIN]
+    expect(await valhallaRunOnFoot(points, undefined, { use_ferry: 0 }, { exclude_ferry: true })).toEqual({ noPath: true })
+    expect(fossgis).toBe(0)
+    expect(valhallaBase()).toBe(TREK_VALHALLA)
+  })
+
+  it('VALHALLA-RELAY-005: describes a line through the relay as a polyline', async () => {
+    const bodies: Record<string, unknown>[] = []
+    server.use(http.post(RELAY, async ({ request }) => {
+      bodies.push(await request.json() as Record<string, unknown>)
+      return HttpResponse.json({ edges: [] })
+    }))
+    await expect(valhallaTraceAttributes(SHAPE_POINTS)).resolves.toEqual({ edges: [] })
+    expect(bodies[0]).not.toHaveProperty('shape')
+    expect(bodies[0]).toMatchObject({ encoded_polyline: expect.any(String), costing: 'bicycle', shape_match: 'map_snap' })
+  })
+
+  it('VALHALLA-RELAY-006: reads a 400 without error_code, and a route the server does not have, as the relay unable to answer', async () => {
+    const refusals = [
+      () => HttpResponse.json({ error: 'Expected number, received string' }, { status: 400 }),
+      () => new HttpResponse('Not Found', { status: 404 }),
+      () => HttpResponse.json({ error: 'Method Not Allowed' }, { status: 405 }),
+    ]
+    for (const refusal of refusals) {
+      resetValhallaTurns()
+      let fossgis = 0
+      server.use(
+        http.post(RELAY, refusal),
+        http.post(FOSSGIS_VALHALLA, () => { fossgis++; return HttpResponse.json(answer()) }),
+      )
+      await expect(valhallaRouteAvoiding(HAMBURG, BERLIN, 'driving', 'toll')).resolves.not.toBeNull()
+      expect(fossgis).toBe(1)
+      expect(valhallaBase()).toBe('https://valhalla1.openstreetmap.de')
+    }
+  })
+
+  it('VALHALLA-RELAY-007: rests the relay as long as its Retry-After says, at most an hour', async () => {
+    for (const [retryAfter, restMs] of [['30', 30_000], ['86400', 60 * 60_000]] as const) {
+      resetValhallaTurns()
+      server.use(
+        http.post(RELAY, () => HttpResponse.json({ error: 'spent' }, { status: 429, headers: { 'Retry-After': retryAfter } })),
+        http.post(FOSSGIS_VALHALLA, () => HttpResponse.json(answer())),
+      )
+      await valhallaRouteAvoiding(HAMBURG, BERLIN, 'driving', 'toll')
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(Date.now() + restMs - 1000)
+      expect(valhallaBase()).toBe('https://valhalla1.openstreetmap.de')
+      vi.setSystemTime(Date.now() + 2000)
+      expect(valhallaBase()).toBe(TREK_VALHALLA)
+      vi.useRealTimers()
+    }
+  })
+
+  it('VALHALLA-RELAY-008: gives up on a relay that does not answer in time and asks FOSSGIS', async () => {
+    const timeout = AbortSignal.timeout.bind(AbortSignal)
+    const spy = vi.spyOn(AbortSignal, 'timeout').mockImplementation(ms =>
+      ms === 12_000 ? AbortSignal.abort(new DOMException('signal timed out', 'TimeoutError')) : timeout(ms))
+    let fossgis = 0
+    server.use(
+      http.post(RELAY, () => HttpResponse.json(answer())),
+      http.post(FOSSGIS_VALHALLA, () => { fossgis++; return HttpResponse.json(answer()) }),
+    )
+    await expect(valhallaRouteAvoiding(HAMBURG, BERLIN, 'driving', 'toll')).resolves.not.toBeNull()
+    expect(spy).toHaveBeenCalledWith(12_000)
+    expect(fossgis).toBe(1)
+    expect(valhallaBase()).toBe('https://valhalla1.openstreetmap.de')
+    spy.mockRestore()
   })
 })

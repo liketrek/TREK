@@ -9,6 +9,7 @@ import { HttpException, RequestMethod } from '@nestjs/common';
 
 import type { Response } from 'express';
 import { describe, it, expect, vi } from 'vitest';
+import zlib from 'zlib';
 
 const user = { id: 8 } as User;
 
@@ -18,10 +19,14 @@ function makeController(svc: Partial<AtlasService> & Partial<AtlasWritesService>
 }
 
 function makeRes() {
-  return { setHeader: vi.fn(), send: vi.fn(), json: vi.fn() } as unknown as Response & {
+  const res = { setHeader: vi.fn(), send: vi.fn(), sendFile: vi.fn(), json: vi.fn(), type: vi.fn() };
+  res.type.mockReturnValue(res);
+  return res as unknown as Response & {
     setHeader: ReturnType<typeof vi.fn>;
     send: ReturnType<typeof vi.fn>;
+    sendFile: ReturnType<typeof vi.fn>;
     json: ReturnType<typeof vi.fn>;
+    type: ReturnType<typeof vi.fn>;
   };
 }
 
@@ -43,40 +48,66 @@ describe('AtlasController (parity with the legacy /api/addons/atlas route)', () 
     expect(stats).toHaveBeenCalledWith(8);
   });
 
+  // The region routes read the committed per-country files (server/assets/atlas/admin1).
+  type RegionFeatures = { features: { properties: { iso_a2: string } }[] };
+  const countriesOf = (geo: RegionFeatures) => new Set(geo.features.map((f) => f.properties.iso_a2));
+
   describe('GET /regions/geo', () => {
-    it('returns an empty FeatureCollection without a cache header when no countries given', async () => {
-      const regionGeo = vi.fn();
+    it('returns an empty FeatureCollection without a cache header when no countries given', () => {
       const res = makeRes();
-      const out = await makeController({ regionGeo }).regionGeo(undefined, res);
-      expect(out).toEqual({ type: 'FeatureCollection', features: [] });
-      expect(regionGeo).not.toHaveBeenCalled();
+      makeController({}).regionGeo(undefined, res);
+      expect(res.json).toHaveBeenCalledWith({ type: 'FeatureCollection', features: [] });
       expect(res.setHeader).not.toHaveBeenCalled();
     });
 
-    it('caches a non-empty result for a day', async () => {
-      const regionGeo = vi.fn().mockResolvedValue({ type: 'FeatureCollection', features: [{ id: 1 }] });
+    it('sends the countries joined into one FeatureCollection and caches them for a day', () => {
       const res = makeRes();
-      const out = await makeController({ regionGeo }).regionGeo('DE,FR', res);
-      expect(out).toEqual({ type: 'FeatureCollection', features: [{ id: 1 }] });
-      expect(regionGeo).toHaveBeenCalledWith(['DE', 'FR']);
+      makeController({}).regionGeo('DE,FR', res);
+      expect(res.type).toHaveBeenCalledWith('application/json');
       expect(res.setHeader).toHaveBeenCalledWith('Cache-Control', 'public, max-age=86400');
+      const body = JSON.parse(String(res.send.mock.calls[0][0])) as RegionFeatures;
+      expect(countriesOf(body)).toEqual(new Set(['DE', 'FR']));
     });
   });
 
-  it('GET /countries/geo serves the gzipped admin-0 bundle with Content-Encoding', () => {
-    const gz = Buffer.from('gzipped-bytes');
-    const countryGeoGz = vi.fn().mockReturnValue(gz);
+  describe('GET /regions/geo/:code', () => {
+    it("serves the country's gzipped admin-1 file with Content-Encoding and a day of cache", async () => {
+      const res = makeRes();
+      await makeController({}).regionGeoForCountry({ code: 'NO' }, res);
+      expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'application/json; charset=utf-8');
+      expect(res.setHeader).toHaveBeenCalledWith('Content-Encoding', 'gzip');
+      expect(res.setHeader).toHaveBeenCalledWith('Cache-Control', 'public, max-age=86400');
+      const body = JSON.parse(zlib.gunzipSync(res.send.mock.calls[0][0] as Buffer).toString()) as RegionFeatures;
+      expect(countriesOf(body)).toEqual(new Set(['NO']));
+    });
+
+    it('answers a country without regions with a cached empty FeatureCollection', async () => {
+      const res = makeRes();
+      await makeController({}).regionGeoForCountry({ code: 'ZZ' }, res);
+      expect(res.json).toHaveBeenCalledWith({ type: 'FeatureCollection', features: [] });
+      expect(res.setHeader).toHaveBeenCalledWith('Cache-Control', 'public, max-age=86400');
+      expect(res.setHeader).not.toHaveBeenCalledWith('Content-Encoding', 'gzip');
+    });
+  });
+
+  it('GET /countries/geo sends the gzipped admin-0 file from disk with Content-Encoding', () => {
+    const countryGeoFile = vi.fn().mockReturnValue('/srv/trek/assets/atlas/admin0.geojson.gz');
     const res = makeRes();
-    makeController({ countryGeoGz }).countryGeo(res);
+    makeController({ countryGeoFile }).countryGeo(res);
+    expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'application/json; charset=utf-8');
     expect(res.setHeader).toHaveBeenCalledWith('Content-Encoding', 'gzip');
     expect(res.setHeader).toHaveBeenCalledWith('Cache-Control', 'public, max-age=86400');
-    expect(res.send).toHaveBeenCalledWith(gz);
+    expect(res.sendFile).toHaveBeenCalledWith('admin0.geojson.gz', {
+      root: '/srv/trek/assets/atlas',
+      acceptRanges: false,
+      lastModified: false,
+    });
   });
 
   it('GET /countries/geo falls back to an empty FeatureCollection when the bundle is missing', () => {
-    const countryGeoGz = vi.fn().mockReturnValue(null);
+    const countryGeoFile = vi.fn().mockReturnValue(null);
     const res = makeRes();
-    makeController({ countryGeoGz }).countryGeo(res);
+    makeController({ countryGeoFile }).countryGeo(res);
     expect(res.json).toHaveBeenCalledWith({ type: 'FeatureCollection', features: [] });
     expect(res.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-store');
   });

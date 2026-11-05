@@ -1,4 +1,4 @@
-// FE-JOURNEY-MAPMARKS-001 to FE-JOURNEY-MAPMARKS-003
+// FE-JOURNEY-MAPMARKS-001 to FE-JOURNEY-MAPMARKS-005
 //
 // JRN-04: the plan and stay marks both renderers draw, and how they join.
 import type { JourneyMapPlace, JourneyMapStay } from '@trek/shared';
@@ -6,7 +6,9 @@ import { describe, expect, it } from 'vitest';
 import {
   MARK_CLUSTER_PX,
   clusterPoints,
+  glWorldPx,
   markHitSvg,
+  mercatorWorldPx,
   planPinSvg,
   safeColor,
   type JourneyMapMark,
@@ -53,5 +55,40 @@ describe('journey map marks', () => {
     expect(safeColor('"/><script>')).toBe('#64748b');
     expect(safeColor(null)).toBe('#64748b');
     expect(planPinSvg('red" onload="x')).not.toContain('onload');
+  });
+
+  it('FE-JOURNEY-MAPMARKS-004: world pixels are Web Mercator at the zoom, doubling per step and clamped at the poles', () => {
+    expect(mercatorWorldPx(0, 0, 0, 512)).toEqual({ x: 256, y: 256 });
+    expect(mercatorWorldPx(0, -180, 0, 512).x).toBe(0);
+    const z5 = mercatorWorldPx(35.01, 135.68, 5, 512);
+    const z6 = mercatorWorldPx(35.01, 135.68, 6, 512);
+    expect(z6.x).toBeCloseTo(z5.x * 2, 6);
+    expect(z6.y).toBeCloseTo(z5.y * 2, 6);
+    expect(mercatorWorldPx(90, 0, 0, 512).y).toBeCloseTo(0, 3);
+    expect(mercatorWorldPx(-90, 0, 0, 512).y).toBeCloseTo(512, 3);
+  });
+
+  it('FE-JOURNEY-MAPMARKS-005: groups on the GL world grid hold however the view is panned, and split on zoom (#2889)', () => {
+    const marks = [planMark('a', 35.0), planMark('b', 35.0005), planMark('c', 35.001)];
+    const keys = (hits: { members: JourneyMapMark[] }[]) => hits.map((h) => h.members.map((m) => m.key));
+
+    // What a container point does: the same world position, less the pan.
+    const onScreen = (pan: number) =>
+      keys(
+        clusterPoints(
+          marks,
+          (lat, lng) => {
+            const world = mercatorWorldPx(lat, lng, 13, 512);
+            return { x: world.x, y: world.y - pan };
+          },
+          MARK_CLUSTER_PX
+        )
+      );
+    const screenGroupings = new Set(Array.from({ length: MARK_CLUSTER_PX }, (_, pan) => JSON.stringify(onScreen(pan))));
+    expect(screenGroupings.size).toBeGreaterThan(1);
+
+    const atZoom = (zoom: number) => keys(clusterPoints(marks, glWorldPx({ getZoom: () => zoom }), MARK_CLUSTER_PX));
+    expect(atZoom(13)).toEqual([['a', 'b', 'c']]);
+    expect(atZoom(18)).toEqual([['a'], ['b'], ['c']]);
   });
 });

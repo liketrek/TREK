@@ -59,6 +59,8 @@ describe('kitinerary mapper — multi-leg flight grouping', () => {
     expect(booking.endpoints).toHaveLength(3);
     expect(booking.endpoints!.map((e) => e.role)).toEqual(['from', 'stop', 'to']);
     expect(booking.endpoints!.map((e) => e.sequence)).toEqual([0, 1, 2]);
+    // The stop carries the onward departure, as the planner form and the MCP tools write it.
+    expect((booking.endpoints ?? []).map((e) => e.local_time)).toEqual(['10:00', '14:30', '23:30']);
     const meta = booking.metadata as any;
     expect(meta.legs).toHaveLength(2);
     expect(meta.legs[0]).toMatchObject({ from: 'FRA', to: 'BER', flight_number: 'LH 100' });
@@ -181,6 +183,38 @@ describe('kitinerary mapper — multi-leg flight grouping', () => {
     expect((items[0].endpoints ?? []).map((e) => e.role)).toEqual(['from', 'stop', 'stop', 'to']);
   });
 
+  it('prices a connection once when every leg repeats the booking total', () => {
+    const priced = (node: ReturnType<typeof flight>) => ({ ...node, totalPrice: 412.5, priceCurrency: 'EUR' });
+    const { items } = mapReservations(
+      legs(
+        priced(flight('PX1', FRA, BER, '2026-06-11T08:00:00', '2026-06-11T09:00:00', 'LH 60')),
+        priced(flight('PX1', BER, HND, '2026-06-11T11:00:00', '2026-06-12T06:00:00', 'LH 61')),
+      ),
+      'test.json',
+    );
+
+    expect(items).toHaveLength(1);
+    expect(items[0].metadata).toMatchObject({ price: 412.5, priceCurrency: 'EUR' });
+  });
+
+  it('adds the fares of a connection that are priced per leg', () => {
+    const priced = (node: ReturnType<typeof flight>, totalPrice: number) => ({
+      ...node,
+      totalPrice,
+      priceCurrency: 'EUR',
+    });
+    const { items } = mapReservations(
+      legs(
+        priced(flight('PX2', FRA, BER, '2026-06-11T08:00:00', '2026-06-11T09:00:00', 'LH 62'), 89.9),
+        priced(flight('PX2', BER, HND, '2026-06-11T11:00:00', '2026-06-12T06:00:00', 'LH 63'), 612.35),
+      ),
+      'test.json',
+    );
+
+    expect(items).toHaveLength(1);
+    expect(items[0].metadata).toMatchObject({ price: 702.25, priceCurrency: 'EUR' });
+  });
+
   it('leaves a single flight unchanged (two endpoints, no legs array)', () => {
     const { items } = mapReservations(
       [flight('S1', FRA, BER, '2026-06-11T10:00:00', '2026-06-11T12:00:00', 'LH 1')] as any,
@@ -190,6 +224,267 @@ describe('kitinerary mapper — multi-leg flight grouping', () => {
     expect(items).toHaveLength(1);
     expect(items[0].endpoints).toHaveLength(2);
     expect((items[0].metadata as any).legs).toBeUndefined();
+  });
+});
+
+const station = (name: string, lat?: number, lng?: number) => ({
+  name,
+  ...(lat === undefined ? {} : { geo: { latitude: lat, longitude: lng } }),
+});
+
+const KLU = station('Klagenfurt West', 46.63, 14.28);
+const VIL = station('Villach Hbf', 46.62, 13.85);
+const HD = station('Heidelberg Hbf', 49.4, 8.67);
+const LU = station('Ludwigshafen (Rhein) Mitte', 49.48, 8.43);
+const RHG = station('Rheingönheim', 49.44, 8.42);
+
+const train = (
+  ref: string,
+  dep: ReturnType<typeof station>,
+  arr: ReturnType<typeof station>,
+  depTime: string,
+  arrTime: string,
+  trainNumber: string,
+  extra: Record<string, unknown> = { totalPrice: 71.67, priceCurrency: 'EUR' },
+) => ({
+  '@type': 'TrainReservation',
+  reservationNumber: ref,
+  ...extra,
+  reservationFor: {
+    trainNumber,
+    departureStation: dep,
+    arrivalStation: arr,
+    departureTime: depTime,
+    arrivalTime: arrTime,
+  },
+});
+
+/** The ticket from the report: four segments under one reference, the fare repeated on each. */
+const ticket = (fares?: Record<string, unknown>[]) =>
+  [
+    train('297199016704', KLU, VIL, '2026-07-04T06:12:00', '2026-07-04T06:30:00', 'S1', fares?.[0]),
+    train('297199016704', VIL, HD, '2026-07-04T06:40:00', '2026-07-04T12:50:00', 'ICE 116', fares?.[1]),
+    train('297199016704', HD, LU, '2026-07-04T13:05:00', '2026-07-04T13:30:00', 'S1', fares?.[2]),
+    train('297199016704', LU, RHG, '2026-07-04T13:41:00', '2026-07-04T13:55:00', 'STR 7', fares?.[3]),
+  ] as unknown as KiReservation[];
+
+describe('kitinerary mapper: a rail ticket with changes (#2895)', () => {
+  it('maps the connecting segments of one ticket to one train booking priced once', () => {
+    const { items, warnings } = mapReservations(ticket(), 'db-ticket.pdf');
+
+    expect(warnings).toEqual([]);
+    expect(items).toHaveLength(1);
+    const [booking] = items;
+    expect(booking).toMatchObject({
+      type: 'train',
+      title: 'Train Klagenfurt West → Rheingönheim',
+      confirmation_number: '297199016704',
+      reservation_time: '2026-07-04T06:12:00',
+      reservation_end_time: '2026-07-04T13:55:00',
+      needs_review: false,
+      source: { fileName: 'db-ticket.pdf', index: 0 },
+    });
+    expect((booking.endpoints ?? []).map((e) => [e.role, e.sequence, e.name, e.local_time])).toEqual([
+      ['from', 0, 'Klagenfurt West', '06:12'],
+      ['stop', 1, 'Villach Hbf', '06:40'],
+      ['stop', 2, 'Heidelberg Hbf', '13:05'],
+      ['stop', 3, 'Ludwigshafen (Rhein) Mitte', '13:41'],
+      ['to', 4, 'Rheingönheim', '13:55'],
+    ]);
+    const metadata = booking.metadata as { legs: Record<string, unknown>[]; price: unknown; train_number: string };
+    expect(metadata.price).toBe(71.67);
+    expect(metadata.train_number).toBe('S1');
+    expect(metadata.legs).toHaveLength(4);
+    expect(metadata.legs[1]).toEqual({
+      from: 'Villach Hbf',
+      to: 'Heidelberg Hbf',
+      train_number: 'ICE 116',
+      dep_time: '06:40',
+      arr_time: '12:50',
+    });
+  });
+
+  it('adds fares that differ per segment in whole cents', () => {
+    const fare = (totalPrice: number) => ({ totalPrice, priceCurrency: 'EUR' });
+    const { items } = mapReservations(ticket([fare(0.1), fare(0.2), fare(50), fare(21.37)]), 'db-ticket.pdf');
+
+    expect(items).toHaveLength(1);
+    expect((items[0].metadata as { price: unknown }).price).toBe(71.67);
+  });
+
+  it('keeps the first price when the segments are priced in different currencies', () => {
+    const { items } = mapReservations(
+      ticket([{ totalPrice: 20, priceCurrency: 'EUR' }, { totalPrice: 30, priceCurrency: 'CHF' }, {}, {}]),
+      'mixed.pdf',
+    );
+
+    expect(items[0].metadata).toMatchObject({ price: 20, priceCurrency: 'EUR' });
+  });
+
+  it('joins a change of station spelling at the same place by its position', () => {
+    const villachArrival = station('Villach Hauptbahnhof', 46.6205, 13.8505);
+    const { items } = mapReservations(
+      [
+        train('R1', KLU, villachArrival, '2026-07-04T06:12:00', '2026-07-04T06:30:00', 'S1'),
+        train('R1', VIL, HD, '2026-07-04T06:40:00', '2026-07-04T12:50:00', 'ICE 116'),
+      ] as unknown as KiReservation[],
+      'spelling.pdf',
+    );
+
+    expect(items).toHaveLength(1);
+  });
+
+  it('keeps segments under different references, days apart, or out and back as separate bookings', () => {
+    const separate = (nodes: ReturnType<typeof train>[]) =>
+      mapReservations(nodes as unknown as KiReservation[], 'x.pdf').items.length;
+
+    expect(
+      separate([
+        train('A1', KLU, VIL, '2026-07-04T06:12:00', '2026-07-04T06:30:00', 'S1'),
+        train('B2', VIL, HD, '2026-07-04T06:40:00', '2026-07-04T12:50:00', 'ICE 116'),
+      ]),
+    ).toBe(2);
+    expect(
+      separate([
+        train('A1', KLU, VIL, '2026-07-04T06:12:00', '2026-07-04T06:30:00', 'S1'),
+        train('A1', VIL, HD, '2026-07-08T06:40:00', '2026-07-08T12:50:00', 'ICE 116'),
+      ]),
+    ).toBe(2);
+    expect(
+      separate([
+        train('A1', KLU, VIL, '2026-07-04T06:12:00', '2026-07-04T06:30:00', 'S1'),
+        train('A1', VIL, KLU, '2026-07-04T18:00:00', '2026-07-04T18:20:00', 'S1'),
+      ]),
+    ).toBe(2);
+    expect(
+      separate([
+        train('A1', KLU, VIL, '2026-07-04T06:12:00', '2026-07-04T06:30:00', 'S1'),
+        train('A1', HD, LU, '2026-07-04T13:05:00', '2026-07-04T13:30:00', 'S1'),
+      ]),
+    ).toBe(2);
+  });
+
+  it('books the total of an outward and a return trip under one order number once', () => {
+    const { items } = mapReservations(
+      [
+        train('ORDER1', KLU, VIL, '2026-07-04T06:12:00', '2026-07-04T06:30:00', 'S1'),
+        train('ORDER1', VIL, HD, '2026-07-04T06:40:00', '2026-07-04T12:50:00', 'ICE 116'),
+        train('ORDER1', HD, VIL, '2026-07-11T07:10:00', '2026-07-11T13:20:00', 'ICE 117'),
+        train('ORDER1', VIL, KLU, '2026-07-11T13:35:00', '2026-07-11T13:53:00', 'S1'),
+      ] as unknown as KiReservation[],
+      'return.pdf',
+    );
+
+    expect(items).toHaveLength(2);
+    expect(items.map((item) => item.metadata?.price ?? null)).toEqual([71.67, null]);
+    expect(items[1].metadata).not.toHaveProperty('priceCurrency');
+  });
+
+  it('books the total once where a change of station names it two ways and gives no position', () => {
+    const { items } = mapReservations(
+      [
+        train('297199016704', KLU, VIL, '2026-07-04T06:12:00', '2026-07-04T06:30:00', 'S1'),
+        train('297199016704', VIL, HD, '2026-07-04T06:40:00', '2026-07-04T12:50:00', 'ICE 116'),
+        train(
+          '297199016704',
+          HD,
+          station('Ludwigshafen(Rhein) Mitte'),
+          '2026-07-04T13:05:00',
+          '2026-07-04T13:30:00',
+          'S1',
+        ),
+        train('297199016704', station('LU Mitte'), RHG, '2026-07-04T13:41:00', '2026-07-04T13:55:00', 'STR 7'),
+      ] as unknown as KiReservation[],
+      'db-ticket.pdf',
+    );
+
+    expect(items.map((item) => (item.metadata?.legs as unknown[] | undefined)?.length ?? 1)).toEqual([3, 1]);
+    expect(items.map((item) => item.metadata?.price ?? null)).toEqual([71.67, null]);
+  });
+
+  it('leaves equal fares on separate bookings to the AI import, whose own net reads the document', () => {
+    const { items } = mapReservations(
+      [
+        train('ORDER1', KLU, VIL, '2026-07-04T06:12:00', '2026-07-04T06:30:00', 'S1'),
+        train('ORDER1', VIL, KLU, '2026-07-11T13:35:00', '2026-07-11T13:53:00', 'S1'),
+      ] as unknown as KiReservation[],
+      'return.pdf',
+      'ai',
+    );
+
+    expect(items.map((item) => item.metadata?.price)).toEqual([71.67, 71.67]);
+  });
+
+  it('keeps the price on the first to depart when the document lists the return first', () => {
+    const { items } = mapReservations(
+      [
+        train('ORDER2', VIL, KLU, '2026-07-11T13:35:00', '2026-07-11T13:53:00', 'S1'),
+        train('ORDER2', KLU, VIL, '2026-07-04T06:12:00', '2026-07-04T06:30:00', 'S1'),
+      ] as unknown as KiReservation[],
+      'return.pdf',
+    );
+
+    expect(items.map((item) => item.metadata?.price ?? null)).toEqual([null, 71.67]);
+  });
+
+  it('leaves fares that differ between the bookings of one order alone', () => {
+    const fare = (totalPrice: number) => ({ totalPrice, priceCurrency: 'EUR' });
+    const { items } = mapReservations(
+      [
+        train('ORDER3', KLU, VIL, '2026-07-04T06:12:00', '2026-07-04T06:30:00', 'S1', fare(9.8)),
+        train('ORDER3', VIL, KLU, '2026-07-11T13:35:00', '2026-07-11T13:53:00', 'S1', fare(12.4)),
+      ] as unknown as KiReservation[],
+      'return.pdf',
+    );
+
+    expect(items.map((item) => item.metadata?.price)).toEqual([9.8, 12.4]);
+  });
+
+  it('leaves a single train as it was, with two endpoints and no legs', () => {
+    const { items } = mapReservations(ticket().slice(1, 2), 'one.pdf');
+
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({ title: 'ICE 116 (Villach Hbf → Heidelberg Hbf)' });
+    expect(items[0].endpoints).toHaveLength(2);
+    expect(items[0].metadata).toEqual({ train_number: 'ICE 116', price: 71.67, priceCurrency: 'EUR' });
+  });
+
+  it('keeps the segments of a bus or boat ticket apart but books the repeated total once', () => {
+    const asType = (type: string, nodes: KiReservation[]) =>
+      nodes.map((node) => {
+        const trip = node.reservationFor as Record<string, unknown>;
+        const reservationFor =
+          type === 'BusReservation'
+            ? {
+                ...trip,
+                departureBusStop: trip.departureStation,
+                arrivalBusStop: trip.arrivalStation,
+                busNumber: 'FlixBus',
+              }
+            : { ...trip, departureBoatTerminal: trip.departureStation, arrivalBoatTerminal: trip.arrivalStation };
+        return { ...node, '@type': type, reservationFor };
+      });
+
+    for (const type of ['BusReservation', 'BoatReservation']) {
+      const { items } = mapReservations(asType(type, ticket().slice(0, 2)), 'coach.pdf');
+      expect(items).toHaveLength(2);
+      expect(items.map((item) => item.metadata?.price ?? null)).toEqual([71.67, null]);
+      expect(items.map((item) => item.source.index)).toEqual([0, 1]);
+    }
+
+    const fares = ticket([{ totalPrice: 10 }, { totalPrice: 25 }]).slice(0, 2);
+    const { items } = mapReservations(asType('BusReservation', fares), 'coach.pdf');
+    expect(items.map((item) => item.metadata?.price)).toEqual([10, 25]);
+  });
+
+  it('does not read a type named after an object property as transport', () => {
+    const { items, warnings } = mapReservations(
+      [{ '@type': 'constructor', reservationFor: {} }] as unknown as KiReservation[],
+      'odd.json',
+    );
+
+    expect(items).toEqual([]);
+    expect(warnings).toEqual(['Unknown type "constructor" in odd.json[0] — skipped']);
   });
 });
 

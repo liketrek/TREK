@@ -1,4 +1,4 @@
-// FE-MOB-JDET-001 to FE-MOB-JDET-045
+// FE-MOB-JDET-001 to FE-MOB-JDET-046
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '../../../helpers/render';
 import MJourneyDetail from '../../../../src/mobile/screens/journey/MJourneyDetail';
@@ -30,10 +30,14 @@ vi.mock('../../../../src/components/Journey/JourneyMapAuto', async () => {
     }));
     const entries = props.entries as { id: string }[];
     const onMarkerClick = props.onMarkerClick as ((id: string) => void) | undefined;
+    const onMarkerCardClick = props.onMarkerCardClick as ((id: string) => void) | undefined;
     return (
       <div data-testid="journey-map" data-active={String(props.activeMarkerId ?? '')} data-dark={String(props.dark)}>
         {entries.map(e => (
           <button key={e.id} type="button" onClick={() => onMarkerClick?.(e.id)}>{`marker-${e.id}`}</button>
+        ))}
+        {onMarkerCardClick && entries.map(e => (
+          <button key={`card-${e.id}`} type="button" onClick={() => onMarkerCardClick(e.id)}>{`marker-card-${e.id}`}</button>
         ))}
       </div>
     );
@@ -280,6 +284,12 @@ describe('MJourneyDetail', () => {
     setup();
     fireEvent.click(screen.getByRole('button', { name: 'marker-2' }));
     expect(screen.getByTestId('journey-map')).toHaveAttribute('data-active', '2');
+  });
+
+  it('FE-MOB-JDET-046: a tap on a marker card opens that entry in the sheet (#2885)', () => {
+    const { hook } = setup();
+    fireEvent.click(screen.getByRole('button', { name: 'marker-card-2' }));
+    expect(hook.setEditingEntry).toHaveBeenCalledWith(expect.objectContaining({ id: 2 }));
   });
 
   it('FE-MOB-JDET-007: a marker without a matching entry leaves the selection alone', () => {

@@ -17,6 +17,15 @@ export function supportedLocale(locale: string): string {
   return SUPPORTED_LANGUAGE_CODES.includes(language) ? language : 'en';
 }
 
+/**
+ * The BCP 47 tag of a request's locale, for Intl: a TREK code reads as its
+ * language ('br' is Brazilian Portuguese here, Breton to Intl), anything else
+ * is passed through.
+ */
+export function intlLocale(locale: string): string {
+  return SUPPORTED_LANGUAGE_CODES.includes(locale) ? getIntlLanguage(locale) : locale;
+}
+
 /** The words of one locale's table, or none when it cannot be read. */
 export async function localeTable(code: string): Promise<Table> {
   try {

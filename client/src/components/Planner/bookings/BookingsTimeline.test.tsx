@@ -121,7 +121,7 @@ describe('BookingsTimeline: trip view', () => {
     expect(screen.getByText('No date')).toBeInTheDocument();
     const metro = screen.getByRole('button', { name: /Metro ride/ });
     expect(metro).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: /Bonus tour/ })).toHaveTextContent('Tour, Pending');
+    expect(screen.getByRole('button', { name: /Bonus tour/ })).toHaveTextContent('Guided tour, Pending');
     expect(screen.getByRole('button', { name: /Farewell dinner/ })).toHaveTextContent('Restaurant, Confirmed');
     await userEvent.click(screen.getByRole('button', { name: /Farewell dinner/ }));
     expect(onSelect).toHaveBeenCalledWith(early);

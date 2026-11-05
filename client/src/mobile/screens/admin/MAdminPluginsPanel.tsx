@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useFormatDate } from '../../../hooks/useDateFormat'
+import MPluginVersionDate from './MPluginVersionDate'
 import {
   Blocks, AlertTriangle, PackageOpen, RefreshCw, Trash2, Download, Bug, X, ShieldCheck, UploadCloud,
   ArrowUpCircle, Github, ExternalLink, ChevronDown, Check, Lock, Search, Link2, KeyRound, ShieldAlert,
@@ -294,7 +296,7 @@ export default function MAdminPluginsPanel() {
       {bypass.copy && (
         <MConfirmSheet open onClose={bypass.dismiss} onConfirm={bypass.copy.confirm ? bypass.confirm : undefined}
           title={bypass.copy.title} message={bypass.copy.body}
-          confirmLabel={t('admin.plugins.installAnyway')} cancelLabel={bypass.copy.confirm ? t('common.cancel') : t('common.ok')} danger />
+          confirmLabel={bypass.copy.confirmLabel} cancelLabel={bypass.copy.confirm ? t('common.cancel') : t('common.ok')} danger />
       )}
 
       {/* Row ⋯ action sheet */}
@@ -311,7 +313,7 @@ export default function MAdminPluginsPanel() {
       {/* Version picker sheet */}
       {versionPicker && (
         <VersionPickerSheet plugin={versionPicker.plugin} versions={versionPicker.versions} failed={versionPicker.failed}
-          busy={busy} t={t} locale={locale} onPick={pickVersion} onClose={() => setVersionPicker(null)} />
+          busy={busy} t={t} onPick={pickVersion} onClose={() => setVersionPicker(null)} />
       )}
 
       {/* Downgrade confirm */}
@@ -806,9 +808,9 @@ function RowActionsSheet({ p, t, onClose, onRestart, onErrors, onEgress, onSetti
  * caller routes a DOWNGRADE through the data-risk confirm), an incompatible one is
  * explained and never offered.
  */
-function VersionPickerSheet({ plugin, versions, failed, busy, t, locale, onPick, onClose }: {
+function VersionPickerSheet({ plugin, versions, failed, busy, t, onPick, onClose }: {
   plugin: PluginRow; versions: VersionInfo[] | null; failed: boolean; busy: string | null
-  t: T; locale: string; onPick: (version: string) => void; onClose: () => void
+  t: T; onPick: (version: string) => void; onClose: () => void
 }) {
   return (
     <MSheet open onClose={onClose} variant="bottom" material="opaque" ariaLabel={t('admin.plugins.versionPickerTitle', { name: plugin.name })}>
@@ -823,7 +825,7 @@ function VersionPickerSheet({ plugin, versions, failed, busy, t, locale, onPick,
               <div key={v.version} data-testid={`version-row-${v.version}`}
                 className="flex items-center gap-2.5 rounded-xl px-2.5 py-2.5">
                 <span className={`text-[13px] font-semibold tabular-nums ${v.compatible ? 'text-m-ink' : 'text-m-faint'}`}>v{v.version}</span>
-                {v.publishedAt && <span className="text-[11.5px] text-m-faint">{new Date(v.publishedAt).toLocaleDateString(locale)}</span>}
+                <MPluginVersionDate at={v.publishedAt} className="text-[11.5px] text-m-faint" />
                 {v.signed && <ShieldCheck size={13} className="shrink-0 text-[color:var(--m-st-confirmed)]" />}
                 <span className="ms-auto" />
                 {current ? (
@@ -956,6 +958,7 @@ function PluginDetailSheet({ item, installed, busy, onInstall, onClose, t, local
   item: RegistryItem; installed: boolean; busy: string | null; ignoreTrekRange: boolean
   onInstall: (id: string, version?: string, warn?: RangeWarning) => void; onClose: () => void; t: T; locale: string
 }) {
+  const { formatDate: dateOf } = useFormatDate()
   const { detail, failed } = usePluginDetail<MRegistryDetail>(item.id)
 
   const manifest = detail?.manifest ?? null
@@ -1109,7 +1112,7 @@ function PluginDetailSheet({ item, installed, busy, onInstall, onClose, t, local
               {(item.trek || item.minTrekVersion) && (
                 <Meta k={t('admin.plugins.metaRequires')} v={item.trek ? `TREK ${item.trek}` : `TREK ${item.minTrekVersion}+`} />
               )}
-              {item.reviewedAt && <Meta k={t('admin.plugins.metaReviewed')} v={new Date(item.reviewedAt).toLocaleDateString(locale)} />}
+              {item.reviewedAt && <Meta k={t('admin.plugins.metaReviewed')} v={dateOf(new Date(item.reviewedAt))} />}
               {typeof item.downloadCount === 'number' && item.downloadCount > 0 && (
                 <Meta k={t('admin.plugins.downloads')} v={item.downloadCount.toLocaleString(locale)} />
               )}
@@ -1125,7 +1128,7 @@ function PluginDetailSheet({ item, installed, busy, onInstall, onClose, t, local
                 {detail!.versions!.map(v => (
                   <div key={v.version} className="flex items-center gap-2.5 py-1">
                     <span className={`text-[12.5px] font-medium tabular-nums ${v.compatible ? 'text-m-ink' : 'text-m-faint'}`}>v{v.version}</span>
-                    {v.publishedAt && <span className="text-[11.5px] text-m-faint">{new Date(v.publishedAt).toLocaleDateString(locale)}</span>}
+                    <MPluginVersionDate at={v.publishedAt} className="text-[11.5px] text-m-faint" />
                     {v.signed && <ShieldCheck size={13} className="shrink-0 text-[color:var(--m-st-confirmed)]" />}
                     <span className="ms-auto" />
                     {v.compatible ? (

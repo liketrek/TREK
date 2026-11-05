@@ -91,6 +91,27 @@ beforeEach(() => {
 })
 
 describe('TransitSearchPanel', () => {
+  it.each(['google', 'transitous'] as const)('updates attribution when a later search returns %s fallback routes', async (provider) => {
+    const user = userEvent.setup()
+    const onAdd = vi.fn().mockResolvedValue({})
+    const previous = provider === 'google' ? 'transitous' : 'google'
+    transitApiMock.plan
+      .mockResolvedValueOnce({ itineraries: [ITINERARY], provider: previous })
+      .mockResolvedValueOnce({ itineraries: [ITINERARY], provider })
+    render(<TransitSearchPanel {...makeProps({ onAdd })} />)
+    await pickFromAndTo(user)
+    await user.click(screen.getByRole('button', { name: /^Search$/ }))
+    await screen.findByText(previous === 'google' ? 'Google Maps' : 'Transitous')
+    await user.click(screen.getByRole('button', { name: /^Search$/ }))
+    expect(await screen.findByText(provider === 'google' ? 'Google Maps' : 'Transitous')).toBeInTheDocument()
+    expect(screen.queryByText(previous === 'google' ? 'Google Maps' : 'Transitous')).not.toBeInTheDocument()
+    await user.click(await screen.findByText(/08:30 – 09:00/))
+    await user.click(await screen.findByRole('button', { name: 'Add to day' }))
+    await waitFor(() => expect(onAdd).toHaveBeenCalledWith(expect.objectContaining({
+      metadata: expect.objectContaining({ transit: expect.objectContaining({ provider }) }),
+    })))
+  })
+
   it('FE-PLANNER-TRANSIT-001: renders from/to pickers, modes and preferences', () => {
     render(<TransitSearchPanel {...makeProps()} />)
     expect(screen.getAllByPlaceholderText('Search stop or station…')).toHaveLength(2)
@@ -136,6 +157,34 @@ describe('TransitSearchPanel', () => {
     expect(payload.metadata.transit.provider).toBe('transitous')
     expect(payload.metadata.transit.legs).toHaveLength(2)
     expect(payload.metadata.transit.legs[1]).toMatchObject({ mode: 'SUBWAY', line: 'U2', line_color: '#FF3300', headsign: 'Ruhleben' })
+  })
+
+  it('FE-PLANNER-TRANSIT-003b: routes Google answered name Google Maps and are saved as Google’s (#2850)', async () => {
+    const user = userEvent.setup()
+    const onAdd = vi.fn().mockResolvedValue({})
+    transitApiMock.plan.mockResolvedValueOnce({ itineraries: [ITINERARY], provider: 'google' })
+    render(<TransitSearchPanel {...makeProps({ onAdd })} />)
+    await pickFromAndTo(user)
+    await user.click(screen.getByRole('button', { name: /^Search$/ }))
+    await user.click(await screen.findByText(/08:30 – 09:00/))
+
+    // Google's terms want the words as written, so the browser must not translate them.
+    expect(screen.getByText('Google Maps')).toHaveAttribute('translate', 'no')
+    expect(screen.queryByRole('link', { name: 'Transitous' })).not.toBeInTheDocument()
+
+    await user.click(await screen.findByRole('button', { name: 'Add to day' }))
+    await waitFor(() => expect(onAdd).toHaveBeenCalled())
+    expect(onAdd.mock.calls[0][0].metadata.transit.provider).toBe('google')
+  })
+
+  it('FE-PLANNER-TRANSIT-003c: routes Transitous answered credit Transitous with its sources link', async () => {
+    const user = userEvent.setup()
+    transitApiMock.plan.mockResolvedValueOnce({ itineraries: [ITINERARY], provider: 'transitous' })
+    render(<TransitSearchPanel {...makeProps()} />)
+    await pickFromAndTo(user)
+    await user.click(screen.getByRole('button', { name: /^Search$/ }))
+    expect(await screen.findByRole('link', { name: 'Transitous' })).toHaveAttribute('href', 'https://transitous.org/sources/')
+    expect(screen.queryByText('Google Maps')).not.toBeInTheDocument()
   })
 
   it('FE-PLANNER-TRANSIT-004: search failure shows the empty state, not a crash', async () => {

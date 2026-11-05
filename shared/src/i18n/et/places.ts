@@ -175,5 +175,14 @@ const places: TranslationStrings = {
   'places.image.needsConnection': 'Uus pilt vajab ühendust. Salvesta uuesti, kui oled võrgus.',
   'places.openPhotos': 'Näita fotosid',
   'places.imageUploadError': 'Pildi üleslaadimine ebaõnnestus',
+  'places.refresh.pill': 'Uued kohaandmed',
+  'places.refresh.title': 'Uuenda kohaandmeid',
+  'places.refresh.intro':
+    'TREK teab selle koha kohta uuemaid andmeid. Vali, mida üle võtta, ülejäänu jääb samaks. Seejärel salvesta koht.',
+  'places.refresh.apply': 'Võta üle',
+  'places.refresh.replaces': 'Asendab praegu salvestatud väärtuse',
+  'places.refresh.empty': 'tühi',
+  'places.refresh.now': 'Praegu',
+  'places.refresh.new': 'Uus',
 };
 export default places;

@@ -312,7 +312,7 @@ const journey: TranslationStrings = {
   'journey.studio.autoLayout': 'Układ automatyczny',
   'journey.studio.export': 'Eksportuj',
   'journey.studio.day': 'DZIEŃ {day}',
-  'journey.studio.stations': 'Etapy',
+  'journey.studio.stations': 'Po drodze',
   'journey.studio.peersHere': 'tutaj',
   'journey.studio.folioAuto': 'Automatycznie',
   'journey.studio.exportLayout': 'Układ',

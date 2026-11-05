@@ -8,7 +8,8 @@ import type { Trip, Day, Place, Category, AssignmentsMap, DayNote, DistanceUnit,
 import { isDayInAccommodationRange, getDayOrder } from '../../utils/dayOrder'
 import { hidesOnMiddleDay, getTransportForDay, getMergedItems, getSpanPhase, getDisplayTimeForDay } from '../../utils/dayMerge'
 import { safeHexColor } from '../../utils/safeColor'
-import { pdfSwitchOn, rememberPdfSwitch } from '../../utils/pdfSwitch'
+import { pdfSwitchOn } from '../../utils/pdfSwitch'
+import { openPdfPreview, PAGE_BREAK_KEY, TRANSPORT_NOTES_KEY } from './pdfPreview'
 import { renderIconMarkup } from '../../utils/iconMarkup'
 import { formatMoney, formatMoneySum, formatClockTime, splitReservationDateTime, type MoneyEntry } from '../../utils/formatters'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -16,37 +17,12 @@ import { useTripStore } from '../../store/tripStore'
 import { useAddonStore } from '../../store/addonStore'
 import { projectDayItinerary } from '../Map/dayTourProjection'
 import { planCosts } from '../Planner/planCosts'
-import { routeTrip, type TripRouteSummary } from '../Map/tripRouteGeometry'
-import { buildTripMapSvg } from './tripMapSvg'
-import { renderTripMapImage } from './tripMapImage'
-import { formatDistance } from '../../utils/units'
+import { routeDistanceLabel } from '../Map/tripRouteLabels'
+import { drawTripRoute, type TripPdfRouteOptions } from './tripPdfRoute'
 import { fetchExchangeRates } from '../../hooks/useExchangeRates'
 import { getFlightLegs, getTrainLegs, usesStationRoute } from '../../utils/flightLegs'
-import { isServiceStopType } from '../Roadtrip/roadtripModel'
-import { onlyMyPlan } from './pdfScope'
+import { onlyMyPlan, planAssignments } from './pdfScope'
 import { createPdfMarkdown, PDF_MARKDOWN_CSS } from './pdfMarkdown'
-
-/**
- * Every day starts a new page by default. On a trip of short days that prints
- * one sheet per handful of lines, so the preview offers the flowing layout the
- * in-app view already uses, and remembers which one was picked (#1292).
- */
-const PAGE_BREAK_KEY = 'trek_pdf_page_break_per_day'
-
-/**
- * The notes of a flight, train or rental (#1571): printed by default, like the
- * notes of a place, and a switch in the preview leaves them out for a reader who
- * wants the plan without the fine print.
- */
-const TRANSPORT_NOTES_KEY = 'trek_pdf_transport_notes'
-
-/* The overlay is imperative DOM, so the switch from Settings/ToggleSwitch is
-   rebuilt here rather than rendered — as static markup it would carry no
-   behaviour. Same geometry and the same tokens, so it reads as the same control. */
-const TOGGLE_TRACK = 'position:relative;width:44px;height:24px;min-width:44px;flex-shrink:0;border-radius:12px;border:none;padding:0;cursor:pointer;transition:background 0.2s;'
-const TOGGLE_KNOB = 'position:absolute;top:2px;width:20px;height:20px;border-radius:50%;background:white;transition:left 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2);'
-const trackColour = (on: boolean) => (on ? 'var(--accent, #111827)' : 'var(--border-primary, #d1d5db)')
-const knobOffset = (on: boolean) => (on ? '22px' : '2px')
 
 function renderLucideIcon(icon:LucideIcon, props = {}) {
   return renderIconMarkup(
@@ -201,27 +177,15 @@ interface downloadTripPDFProps {
   costsEnabled?: boolean
   /** Prints only this member's plan (#2168): the stops and bookings that name them, and the ones that name nobody. */
   onlyUserId?: number
-}
-
-/**
- * The stops the day plan lists, out of everything the store holds for the trip.
- *
- * The stop a booked night wrote onto its check-in day is out whatever the switch says:
- * the day already shows that booking as its accommodation block, and the row would be
- * the same hotel a second time. The service stops go with the setting. One predicate
- * for the whole document, so the day lists, the route map, the cover's planned count
- * and every cost total agree with the plan and with each other, whichever shell asked.
- */
-function planAssignments(assignments: AssignmentsMap, showServiceStops: boolean): AssignmentsMap {
-  return Object.fromEntries(Object.entries(assignments).map(([dayId, list]) => [
-    dayId,
-    (list || []).filter(a => a.accommodation_id == null && (showServiceStops || !isServiceStopType(a.place?.stop_type))),
-  ]))
+  /** The planner's road trip vias and tour stages, and the routing progress and stop (#2876). */
+  route?: TripPdfRouteOptions
+  /** Aborted once nobody waits for the document any more (its dialog was closed): it then never opens. */
+  signal?: AbortSignal
 }
 
 // `assignments` is normalised here once, to the plan's own list; every read below
 // (and fetchPlacePhotos) relies on it being an object.
-export async function downloadTripPDF({ trip, days, places, assignments: allStored = {}, categories, dayNotes, reservations: allReservations = [], t: _t, locale: _locale, timeFormat: _timeFormat, distanceUnit: _distanceUnit, showServiceStops = true, budgetItems, costsEnabled, onlyUserId }: downloadTripPDFProps) {
+export async function downloadTripPDF({ trip, days, places, assignments: allStored = {}, categories, dayNotes, reservations: allReservations = [], t: _t, locale: _locale, timeFormat: _timeFormat, distanceUnit: _distanceUnit, showServiceStops = true, budgetItems, costsEnabled, onlyUserId, route, signal }: downloadTripPDFProps) {
   const { assignments: stored, reservations } = onlyUserId != null
     ? onlyMyPlan(allStored, allReservations, onlyUserId)
     : { assignments: allStored, reservations: allReservations }
@@ -252,56 +216,25 @@ export async function downloadTripPDF({ trip, days, places, assignments: allStor
   // just means no extra sections, the core export is untouched.
   const pluginSections = await pluginsApi.pdfSections(trip.id).then(r => r.sections || []).catch(() => [])
 
-  // The trip's route as one map (#1736), drawn from the same builder the planner map
-  // uses so the document and the screen agree. Fail-safe and time-boxed: whatever the
-  // router answered inside the budget is drawn, the rest stay straight lines, and any
-  // failure at all simply means no map rather than no PDF.
   const unit: DistanceUnit = (_distanceUnit || useSettingsStore.getState().settings.distance_unit) === 'imperial'
     ? 'imperial' : 'metric'
-  let tripRoute: TripRouteSummary | null = null
   const toursEnabled = useAddonStore.getState().isEnabled('tours')
   const hasInvalidTour = toursEnabled && Object.values(assignments).some(list =>
     projectDayItinerary(list || [], true, places).some(item => item.kind === 'tour' && !item.valid))
-  try {
-    tripRoute = await routeTrip(
-      {
-        days: sorted,
-        assignments,
-        reservations,
-        accommodations: accommodationList,
-        optimizeFromAccommodation: useSettingsStore.getState().settings.optimize_from_accommodation,
-        toursEnabled,
-        places,
-      },
-      { profile: 'driving', tripId: trip.id, timeoutMs: 8000 },
-    )
-  } catch (err) {
-    // Logged rather than swallowed: a map that is silently absent looks exactly like a
-    // trip that has no route, and the two need different answers from whoever is
-    // looking. The export itself carries on — the itinerary matters more than the map.
-    console.warn('[tripPdfMap] routing the trip failed; the export continues without a map', err)
-  }
-  // A real basemap first — at city scale the bundled outlines are a country-sized
-  // blank, and only streets carry context that small. The outline map is what is left
-  // when there is no WebGL, no network, or a style that will not load.
-  const mapFrame = { width: 720, height: 420, formatDistance: (km: number) => formatDistance(km, unit) }
-  const tripMapSvg = tripRoute
-    ? (await renderTripMapImage(tripRoute.days, {
-      ...mapFrame,
-      style: useSettingsStore.getState().settings.maplibre_style,
-    })) ?? buildTripMapSvg(tripRoute.days, mapFrame)
-    : null
-  // The other way to end up mapless, and the one that is not a failure: nothing in the
-  // trip routed. Only worth saying when there were stops to route — a trip nobody has
-  // planned yet is meant to print without a map.
-  if (tripRoute && !tripMapSvg && Object.values(assignments).some(list => list?.length)) {
-    console.warn(
-      `[tripPdfMap] no map drawn: ${tripRoute.days.length} of ${sorted.length} day(s) produced a route.`
-      + ' A day needs two located stops, or one located stop with an accommodation either side of it.',
-    )
-  }
+  const { route: tripRoute, mapSvg: tripMapSvg } = await drawTripRoute({
+    days: sorted,
+    assignments,
+    storedAssignments: allStored,
+    reservations,
+    accommodations: accommodationList,
+    optimizeFromAccommodation: useSettingsStore.getState().settings.optimize_from_accommodation,
+    toursEnabled,
+    places,
+  }, { tripId: trip.id, unit, options: route })
+  // Legs left straight, refused or skipped, make every figure below a floor; each says so.
+  const unroutedLegs = tripRoute?.unroutedLegs ?? 0
   const totalDistanceLabel = tripRoute && tripRoute.totalDistance > 0
-    ? formatDistance(tripRoute.totalDistance / 1000, unit)
+    ? routeDistanceLabel(tripRoute.totalDistance, unroutedLegs, unit, tr)
     : null
   // Each day named and coloured exactly as the legend on the planner map, so the two
   // read as the same picture. Days that routed to nothing are already out of `days`.
@@ -311,12 +244,13 @@ export async function downloadTripPDF({ trip, days, places, assignments: allStor
     <span class="trip-map-title">${escHtml(tr('pdf.mapTitle'))}</span>
     ${totalDistanceLabel ? `<span class="trip-map-total">${escHtml(tr('pdf.distanceLabel'))}: ${escHtml(totalDistanceLabel)}</span>` : ''}
   </div>
+  ${unroutedLegs ? `<div class="trip-map-note">${escHtml(tr('map.overview.unrouted', { count: unroutedLegs }))}</div>` : ''}
   ${tripMapSvg}
   <div class="trip-map-legend">
     ${tripRoute.days.filter(d => d.lines.length).map(d => `<span class="trip-map-leg">
       <span class="trip-map-dot" style="background:${hexColour(d.color.line)}"></span>
       ${escHtml(d.title || tr('dayplan.dayN', { n: d.dayNumber }))}
-      <span class="trip-map-leg-dist">${escHtml(formatDistance(d.distance / 1000, unit))}</span>
+      <span class="trip-map-leg-dist">${escHtml(routeDistanceLabel(d.distance, d.unroutedLegs ?? 0, unit, tr))}</span>
     </span>`).join('')}
   </div>
   <div class="trip-map-credit">${escHtml(tr('pdf.mapCredit'))}</div>
@@ -744,6 +678,7 @@ export async function downloadTripPDF({ trip, days, places, assignments: allStor
   .trip-map-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
   .trip-map-title { font-size: 11px; font-weight: 600; letter-spacing: 1.4px; text-transform: uppercase; color: #64748b; }
   .trip-map-total { font-size: 12px; font-weight: 600; color: #334155; }
+  .trip-map-note { font-size: 9px; font-weight: 600; margin: -4px 0 10px; }
   .trip-map-svg { width: 100%; height: auto; border-radius: 8px; border: 1px solid #e2e8f0; display: block; }
   .trip-map-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 12px; }
   .trip-map-leg { display: flex; align-items: center; gap: 6px; font-size: 9px; color: #475569; }
@@ -933,81 +868,12 @@ ${daysHtml}
 ${pluginSectionsHtml}
 </body></html>`
   markdown.dispose()
+  if (signal?.aborted) return
 
-  // Open in modal with srcdoc iframe (no URL loading = no X-Frame-Options issue)
-  const overlay = document.createElement('div')
-  overlay.id = 'pdf-preview-overlay'
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:8px;'
-  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove() }
-
-  const card = document.createElement('div')
-  card.style.cssText = 'width:100%;max-width:1000px;height:95vh;background:var(--bg-card);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3);'
-
-  const header = document.createElement('div')
-  header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--border-primary);flex-shrink:0;'
-  header.innerHTML = `
-    <span style="font-size:13px;font-weight:600;color:var(--text-primary);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(trip?.title || tr('pdf.travelPlan'))}</span>
-    <div style="display:flex;align-items:center;gap:8px">
-      ${hasTransportNotes ? previewSwitch('pdf-transport-notes-toggle', tr('pdf.transportNotes'), showTransportNotes) : ''}
-      ${previewSwitch('pdf-daybreak-toggle', tr('pdf.pageBreakPerDay'), breaksPerDay)}
-      <button type="button" id="pdf-print-btn" style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:500;color:var(--text-muted);background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:6px;font-family:inherit">${tr('pdf.saveAsPdf')}</button>
-      <button type="button" id="pdf-close-btn" style="background:none;border:none;cursor:pointer;color:var(--text-faint);display:flex;padding:4px;border-radius:6px">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
-    </div>
-  `
-
-  const iframe = document.createElement('iframe')
-  iframe.style.cssText = 'flex:1;width:100%;border:none;'
-  // No script runs inside the document (print is parent-initiated), so withhold
-  // allow-scripts to keep the sandbox tight.
-  iframe.sandbox = 'allow-same-origin allow-modals'
-  iframe.srcdoc = html
-
-  card.appendChild(header)
-  card.appendChild(iframe)
-  overlay.appendChild(card)
-  document.body.appendChild(overlay)
-
-  const closeBtn = header.querySelector<HTMLElement>('#pdf-close-btn')
-  if (closeBtn) closeBtn.onclick = () => overlay.remove()
-  const printBtn = header.querySelector<HTMLElement>('#pdf-print-btn')
-  if (printBtn) printBtn.onclick = () => { iframe.contentWindow?.print() }
-
-  // Both choices differ by one class on <body>, so switching is instant in the
-  // preview and there is no need to re-fetch photos or rebuild the document.
-  wirePreviewSwitch(header, 'pdf-daybreak-toggle', on => {
-    rememberPdfSwitch(PAGE_BREAK_KEY, on)
-    iframe.contentDocument?.body.classList.toggle('pdf-flow', !on)
-  })
-  wirePreviewSwitch(header, 'pdf-transport-notes-toggle', on => {
-    rememberPdfSwitch(TRANSPORT_NOTES_KEY, on)
-    iframe.contentDocument?.body.classList.toggle('pdf-no-transport-notes', !on)
-  })
+  openPdfPreview({ html, title: trip?.title || tr('pdf.travelPlan'), tripId: trip?.id, tr, breaksPerDay, showTransportNotes, hasTransportNotes })
 }
 
 function bodyClassAttr(breaksPerDay: boolean, showTransportNotes: boolean): string {
   const classes = [!breaksPerDay && 'pdf-flow', !showTransportNotes && 'pdf-no-transport-notes'].filter(Boolean)
   return classes.length ? ` class="${classes.join(' ')}"` : ''
-}
-
-/** A labelled switch for the preview header, as markup; wirePreviewSwitch gives it behaviour. */
-function previewSwitch(id: string, label: string, on: boolean): string {
-  return `<label for="${id}" style="font-size:12px;color:var(--text-muted);cursor:pointer;user-select:none">${escHtml(label)}</label>
-      <button id="${id}" type="button" role="switch" aria-checked="${on}" aria-label="${escHtml(label)}" style="${TOGGLE_TRACK} background:${trackColour(on)}">
-        <span style="${TOGGLE_KNOB} left:${knobOffset(on)}"></span>
-      </button>`
-}
-
-function wirePreviewSwitch(header: HTMLElement, id: string, onChange: (on: boolean) => void): void {
-  const button = header.querySelector<HTMLButtonElement>(`#${id}`)
-  if (!button) return
-  button.onclick = () => {
-    const on = button.getAttribute('aria-checked') !== 'true'
-    button.setAttribute('aria-checked', String(on))
-    button.style.background = trackColour(on)
-    const knob = button.firstElementChild as HTMLElement | null
-    if (knob) knob.style.left = knobOffset(on)
-    onChange(on)
-  }
 }

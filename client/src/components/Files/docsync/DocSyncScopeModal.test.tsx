@@ -1,4 +1,4 @@
-// FE-DOCSYNC-SCOPE-001 to FE-DOCSYNC-SCOPE-023
+// FE-DOCSYNC-SCOPE-001 to FE-DOCSYNC-SCOPE-024
 
 /**
  * The folder picker of the document-sync dialog.
@@ -84,9 +84,10 @@ function deferred<T>() {
   return { promise, resolve, reject }
 }
 
-function Harness({ suggestedName = 'trek-paris-42', providerName = 'Paperless' }: {
+function Harness({ suggestedName = 'trek-paris-42', providerName = 'Paperless', onEditConnection }: {
   suggestedName?: string
   providerName?: string
+  onEditConnection?: () => void
 }) {
   const sync = useDocSync(TRIP_ID, false)
   return (
@@ -97,6 +98,7 @@ function Harness({ suggestedName = 'trek-paris-42', providerName = 'Paperless' }
       sync={sync}
       onClose={onClose}
       onBound={onBound}
+      onEditConnection={onEditConnection}
     />
   )
 }
@@ -379,5 +381,22 @@ describe('DocSyncScopeModal errors', () => {
     // Making a new folder is still on offer: the store may well be reachable
     // for that, and it is the way out when the listing is what failed.
     expect(createButton()).toBeEnabled()
+  })
+})
+
+describe('DocSyncScopeModal connection', () => {
+  it('FE-DOCSYNC-SCOPE-024: leads back to the stored connection before a folder is chosen', async () => {
+    const editButton = () => screen.queryByRole('button', { name: S['docsync.connection.edit'] })
+    const onEditConnection = vi.fn()
+    const first = render(<Harness onEditConnection={onEditConnection} />)
+    await waitFor(() => expect(listScopes).toHaveBeenCalled())
+
+    fireEvent.click(editButton() as HTMLElement)
+    expect(onEditConnection).toHaveBeenCalledTimes(1)
+    expect(createLink).not.toHaveBeenCalled()
+    first.unmount()
+
+    render(<Harness />)
+    expect(editButton()).not.toBeInTheDocument()
   })
 })

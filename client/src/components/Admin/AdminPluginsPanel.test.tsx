@@ -489,10 +489,10 @@ describe('AdminPluginsPanel — TREK-version compatibility', () => {
     fireEvent.click(await screen.findByText('Discover'))
   }
 
-  it('blocks Install when no published version runs on this TREK, and says why', async () => {
+  it('marks a plugin no published version runs on, and still lets the admin install it', async () => {
     await openDiscover({ trek: '>=4.0.0', hostVersion: '3.3.0', compatible: false, latestCompatible: null })
-    const btn = await screen.findByRole('button', { name: /^incompatible$/i })
-    expect(btn).toBeDisabled()
+    expect(await screen.findByText('Not confirmed for TREK 3.3.0 yet')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^install$/i })).toBeEnabled()
   })
 
   it('offers the newest version that DOES run here rather than a dead button', async () => {
@@ -549,9 +549,11 @@ function panelRoot(container: HTMLElement): HTMLElement {
 }
 
 /** Opens one of the toolbar dropdowns (identified by its current title) and picks an option. */
-async function pickFilter(trigger: RegExp, option: RegExp) {
-  fireEvent.click(await screen.findByTitle(trigger))
-  fireEvent.click(await screen.findByRole('button', { name: option }))
+/** The toolbar's one Filter button; a pick in its menu leaves the menu open. */
+const filterButton = (): HTMLElement => screen.getByRole('button', { name: /^Filter/ })
+async function pickFilter(option: RegExp) {
+  if ((await screen.findByRole('button', { name: /^Filter/ })).getAttribute('aria-expanded') !== 'true') fireEvent.click(filterButton())
+  fireEvent.click(await screen.findByRole('menuitemradio', { name: option }))
 }
 
 /** The enable toggle of a named installed row. */
@@ -610,9 +612,9 @@ describe('AdminPluginsPanel — load states and toolbar', () => {
     render(<AdminPluginsPanel />)
     await screen.findByText('Gotify')
 
-    await pickFilter(/^Type: All types$/, /^Widget$/)
+    await pickFilter(/^Widget$/)
 
-    expect(await screen.findByTitle('Type: Widget')).toBeInTheDocument()
+    expect(await screen.findByRole('menuitemradio', { name: 'Widget' })).toHaveAttribute('aria-checked', 'true')
     expect(screen.getByText('Countdown')).toBeInTheDocument()
     expect(screen.queryByText('Gotify')).not.toBeInTheDocument()
   })
@@ -626,15 +628,15 @@ describe('AdminPluginsPanel — load states and toolbar', () => {
     render(<AdminPluginsPanel />)
     await screen.findByText('OnOne')
 
-    await pickFilter(/^Status: All$/, /^Off$/)
+    await pickFilter(/^Off$/)
     expect(await screen.findByText('OffOne')).toBeInTheDocument()
     expect(screen.queryByText('OnOne')).not.toBeInTheDocument()
 
-    await pickFilter(/^Status: Off$/, /^Error$/)
+    await pickFilter(/^Error$/)
     expect(await screen.findByText('BadOne')).toBeInTheDocument()
     expect(screen.getByText('boom')).toBeInTheDocument()
 
-    await pickFilter(/^Status: Error$/, /^Update available$/)
+    await pickFilter(/^Update available$/)
     expect(await screen.findByText('OnOne')).toBeInTheDocument()
     expect(screen.queryByText('BadOne')).not.toBeInTheDocument()
   })
@@ -644,11 +646,10 @@ describe('AdminPluginsPanel — load states and toolbar', () => {
     render(<AdminPluginsPanel />)
     await screen.findByText('Gotify')
 
-    await pickFilter(/^Sort: Name$/, /^Updates first$/)
-    expect(await screen.findByTitle('Sort: Updates first')).toBeInTheDocument()
-
+    await pickFilter(/^Updates first$/)
+    expect(filterButton()).toHaveTextContent('Updates first')
     await clickDiscover()
-    await waitFor(() => expect(screen.getByTitle('Sort: Name')).toBeInTheDocument())
+    await waitFor(() => expect(filterButton()).toHaveTextContent(/Name$/))
   })
 
   it('FE-COMP-PLUGINS-PANEL-008: rescan re-pulls the registry past its cache and confirms with a toast', async () => {
@@ -1663,15 +1664,16 @@ describe('AdminPluginsPanel — Discover cards and the detail modal', () => {
   })
 })
 
-describe('AdminPluginsPanel — security footer', () => {
-  it('FE-COMP-PLUGINS-PANEL-048: the containment note expands into its sections', async () => {
+describe('AdminPluginsPanel — security dialog', () => {
+  it('FE-COMP-PLUGINS-PANEL-048: the shield in the header opens how plugins are contained', async () => {
     panelWith([])
     render(<AdminPluginsPanel />)
     await screen.findByText('No plugins installed yet.')
 
     expect(screen.queryByText('Every plugin runs boxed in')).not.toBeInTheDocument()
-    fireEvent.click(screen.getByText('How plugins are contained — and the limits'))
+    fireEvent.click(screen.getByRole('button', { name: 'How plugins are secured' }))
 
+    expect(screen.getByRole('dialog', { name: 'How plugins are secured' })).toBeInTheDocument()
     expect(screen.getByText('Every plugin runs boxed in')).toBeInTheDocument()
     expect(screen.getByText('What "Reviewed" means')).toBeInTheDocument()
     expect(screen.getByText('What "Signed" means')).toBeInTheDocument()
@@ -1700,9 +1702,9 @@ describe('AdminPluginsPanel toolbar and dialogs', () => {
     row({ id: 'c-page', name: 'Gamma Page', description: 'a page', type: 'page', enabled: 1, status: 'error', last_error: 'boom' }),
   ]
 
-  const pickFilter = async (user: ReturnType<typeof userEvent.setup>, filter: RegExp, option: RegExp) => {
-    await user.click(screen.getByTitle(filter))
-    await user.click(screen.getByRole('button', { name: option }))
+  const pickFilter = async (user: ReturnType<typeof userEvent.setup>, option: RegExp) => {
+    if (filterButton().getAttribute('aria-expanded') !== 'true') await user.click(filterButton())
+    await user.click(screen.getByRole('menuitemradio', { name: option }))
   }
 
   it('FE-W5PLG-001: the search box narrows the installed list by name and description', async () => {
@@ -1734,7 +1736,7 @@ describe('AdminPluginsPanel toolbar and dialogs', () => {
     render(<AdminPluginsPanel />)
     await screen.findByText('Alpha Widget')
 
-    await pickFilter(user, /^Type:/, /^Widget$/)
+    await pickFilter(user, /^Widget$/)
 
     await waitFor(() => expect(screen.queryByText('Beta Bridge')).not.toBeInTheDocument())
     expect(screen.getByText('Alpha Widget')).toBeInTheDocument()
@@ -1746,15 +1748,15 @@ describe('AdminPluginsPanel toolbar and dialogs', () => {
     render(<AdminPluginsPanel />)
     await screen.findByText('Alpha Widget')
 
-    await pickFilter(user, /^Status:/, /^Active$/)
+    await pickFilter(user, /^Active$/)
     await waitFor(() => expect(screen.queryByText('Beta Bridge')).not.toBeInTheDocument())
     expect(screen.queryByText('Gamma Page')).not.toBeInTheDocument()
 
-    await pickFilter(user, /^Status:/, /^Off$/)
+    await pickFilter(user, /^Off$/)
     await waitFor(() => expect(screen.getByText('Beta Bridge')).toBeInTheDocument())
     expect(screen.queryByText('Alpha Widget')).not.toBeInTheDocument()
 
-    await pickFilter(user, /^Status:/, /^Error$/)
+    await pickFilter(user, /^Error$/)
     await waitFor(() => expect(screen.getByText('Gamma Page')).toBeInTheDocument())
     expect(screen.queryByText('Alpha Widget')).not.toBeInTheDocument()
   })
@@ -1766,13 +1768,13 @@ describe('AdminPluginsPanel toolbar and dialogs', () => {
     await screen.findByText('Alpha Widget')
     await waitFor(() => expect(screen.getByText(/updates? available/i)).toBeInTheDocument())
 
-    await pickFilter(user, /^Sort:/, /^Updates first$/)
+    await pickFilter(user, /^Updates first$/)
     await waitFor(() => {
       const names = screen.getAllByText(/Alpha Widget|Beta Bridge|Gamma Page/).map(e => e.textContent)
       expect(names[0]).toBe('Gamma Page')
     })
 
-    await pickFilter(user, /^Status:/, /^Update available$/)
+    await pickFilter(user, /^Update available$/)
     await waitFor(() => expect(screen.queryByText('Alpha Widget')).not.toBeInTheDocument())
     expect(screen.getByText('Gamma Page')).toBeInTheDocument()
   })
@@ -1783,11 +1785,10 @@ describe('AdminPluginsPanel toolbar and dialogs', () => {
     render(<AdminPluginsPanel />)
     await screen.findByText('Alpha Widget')
 
-    await pickFilter(user, /^Sort:/, /^Updates first$/)
-    expect(screen.getByTitle(/^Sort: Updates first$/)).toBeInTheDocument()
-
+    await pickFilter(user, /^Updates first$/)
+    expect(filterButton()).toHaveTextContent('Updates first')
     await user.click(screen.getByRole('tab', { name: /Discover/ }))
-    await waitFor(() => expect(screen.getByTitle(/^Sort: Name$/)).toBeInTheDocument())
+    await waitFor(() => expect(filterButton()).toHaveTextContent(/Name$/))
   })
 
   it('FE-W5PLG-007: the registry sorts by downloads and by review date', async () => {
@@ -1802,19 +1803,19 @@ describe('AdminPluginsPanel toolbar and dialogs', () => {
     await user.click(screen.getByRole('tab', { name: /Discover/ }))
     await screen.findByText('Old Tool')
 
-    await pickFilter(user, /^Sort:/, /^Most downloads$/)
+    await pickFilter(user, /^Most downloads$/)
     await waitFor(() => {
       const names = screen.getAllByText(/^(Old|New) Tool$/).map(e => e.textContent)
       expect(names[0]).toBe('New Tool')
     })
 
-    await pickFilter(user, /^Sort:/, /^Recently updated$/)
+    await pickFilter(user, /^Recently updated$/)
     await waitFor(() => {
       const names = screen.getAllByText(/^(Old|New) Tool$/).map(e => e.textContent)
       expect(names[0]).toBe('New Tool')
     })
 
-    await pickFilter(user, /^Sort:/, /^Name$/)
+    await pickFilter(user, /^Name$/)
     await waitFor(() => {
       const names = screen.getAllByText(/^(Old|New) Tool$/).map(e => e.textContent)
       expect(names[0]).toBe('New Tool')
@@ -1833,7 +1834,7 @@ describe('AdminPluginsPanel toolbar and dialogs', () => {
     await user.click(screen.getByRole('tab', { name: /Discover/ }))
     await screen.findByText('Mapper')
 
-    await pickFilter(user, /^Type:/, /^Page$/)
+    await pickFilter(user, /^Page$/)
     await waitFor(() => expect(screen.queryByText('Mapper')).not.toBeInTheDocument())
     expect(screen.getByText('Poster')).toBeInTheDocument()
 
@@ -1962,12 +1963,12 @@ describe('AdminPluginsPanel toolbar and dialogs', () => {
     const { container } = render(<AdminPluginsPanel />)
     await screen.findByText('Alpha Widget')
 
-    await user.click(screen.getByTitle(/^Type:/))
-    expect(screen.getByRole('button', { name: /^Widget$/ })).toBeInTheDocument()
+    await user.click(filterButton())
+    expect(screen.getByRole('menuitemradio', { name: /^Widget$/ })).toBeInTheDocument()
 
     const layer = container.querySelector('.fixed.inset-0.z-20') as HTMLElement
     fireEvent.click(layer)
-    await waitFor(() => expect(screen.queryByRole('button', { name: /^Widget$/ })).not.toBeInTheDocument())
+    await waitFor(() => expect(screen.queryByRole('menuitemradio', { name: /^Widget$/ })).not.toBeInTheDocument())
   })
 })
 
@@ -2004,12 +2005,11 @@ describe('AdminPluginsPanel registry cards and dependency chips', () => {
     await screen.findByText('Alpha Widget')
 
     await openDiscover(user)
-    await user.click(screen.getByTitle(/^Sort:/))
-    await user.click(screen.getByRole('button', { name: /^Most downloads$/ }))
-    expect(screen.getByTitle(/^Sort: Most downloads$/)).toBeInTheDocument()
-
+    await user.click(filterButton())
+    await user.click(screen.getByRole('menuitemradio', { name: /^Most downloads$/ }))
+    expect(filterButton()).toHaveTextContent('Most downloads')
     await user.click(screen.getByRole('tab', { name: /Installed/ }))
-    await waitFor(() => expect(screen.getByTitle(/^Sort: Name$/)).toBeInTheDocument())
+    await waitFor(() => expect(filterButton()).toHaveTextContent(/Name$/))
   })
 
   it('FE-W5PLG-017: an outrun release offers the newest compatible version instead of a dead button', async () => {
@@ -2026,9 +2026,8 @@ describe('AdminPluginsPanel registry cards and dependency chips', () => {
     expect(offer).not.toBeDisabled()
     expect(offer).toHaveAttribute('title', expect.stringContaining('3.5.0'))
 
-    const dead = screen.getByRole('button', { name: /^Incompatible$/ })
-    expect(dead).toBeDisabled()
-    expect(dead.getAttribute('title')).toBeTruthy()
+    // Nothing fits: no dead button any more, but a card that says so before anything installs.
+    expect(screen.getByText(/^Not confirmed for TREK .+ yet$/)).toBeInTheDocument()
   })
 
   it('FE-W5PLG-018: an already installed registry entry cannot be installed again', async () => {
@@ -2556,7 +2555,7 @@ describe('AdminPluginsPanel — TREK-range bypass (TREK_PLUGINS_IGNORE_TREK_RANG
     expect(await screen.findByText('Version checks off')).toBeInTheDocument()
   })
 
-  it('FE-PLG-BYPASS-002: offers "Install anyway" for an incompatible entry and asks before installing', async () => {
+  it('FE-PLG-BYPASS-002: offers Install for an incompatible entry and asks before installing', async () => {
     let posted: unknown = null
     bypassPanel([plugin({ id: 'something-else' })], incompatibleEntry())
     server.use(http.post('*/api/admin/plugins/install', async ({ request }) => {
@@ -2566,7 +2565,7 @@ describe('AdminPluginsPanel — TREK-range bypass (TREK_PLUGINS_IGNORE_TREK_RANG
     withToast()
     fireEvent.click(await screen.findByText('Discover'))
 
-    const btn = await screen.findByRole('button', { name: /^install anyway$/i })
+    const btn = await screen.findByRole('button', { name: /^install$/i })
     expect(btn).toBeEnabled()
     fireEvent.click(btn)
 
@@ -2585,7 +2584,7 @@ describe('AdminPluginsPanel — TREK-range bypass (TREK_PLUGINS_IGNORE_TREK_RANG
     server.use(http.post('*/api/admin/plugins/install', () => { posted = true; return HttpResponse.json({ id: 'trek-gotify', version: '2.0.0', trekRangeBypassed: null }) }))
     withToast()
     fireEvent.click(await screen.findByText('Discover'))
-    fireEvent.click(await screen.findByRole('button', { name: /^install anyway$/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /^install$/i }))
 
     const dialog = await screen.findByRole('dialog', { name: /outside its supported trek versions/i })
     fireEvent.click(within(dialog).getByRole('button', { name: /cancel/i }))

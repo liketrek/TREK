@@ -177,6 +177,12 @@ const docsync: TranslationStrings = {
   'docsync.error.provider_disabled':
     'متوقفة مؤقتاً: أوقف مسؤول الخادم هذا المزوّد. ستُستأنف المزامنة عند إعادة تشغيله.',
   'docsync.binding.reconnect': 'إعادة الاتصال',
+  'docsync.connection.title': 'الاتصال',
+  'docsync.connection.hint': 'العنوان وبيانات الدخول التي يستخدمها TREK لهذا المخزن.',
+  'docsync.connection.edit': 'تعديل الاتصال',
+  'docsync.connection.remove': 'إزالة الاتصال',
+  'docsync.connection.confirmRemove':
+    'ينسى TREK عنوان هذا المخزن وبيانات الدخول إليه، وتتوقف كل مزامنة لهذه الرحلة عبره. تبقى المستندات في TREK وفي المخزن.',
 };
 
 export default docsync;

@@ -34,6 +34,7 @@ const localeLoaders: Record<SupportedLanguageCode, () => Promise<{ default: Tran
   id:      () => import('@trek/shared/i18n/id'),
   ar:      () => import('@trek/shared/i18n/ar'),
   az:      () => import('@trek/shared/i18n/az'),
+  he:      () => import('@trek/shared/i18n/he'),
   br:      () => import('@trek/shared/i18n/br'),
   cs:      () => import('@trek/shared/i18n/cs'),
   sk:      () => import('@trek/shared/i18n/sk'),

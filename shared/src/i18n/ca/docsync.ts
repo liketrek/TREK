@@ -182,6 +182,12 @@ const docsync: TranslationStrings = {
   'docsync.error.provider_disabled':
     'En pausa: un administrador ha desactivat aquest proveïdor. La sincronització es reprèn quan es torni a activar.',
   'docsync.binding.reconnect': 'Torna a connectar',
+  'docsync.connection.title': 'Connexió',
+  'docsync.connection.hint': 'L’adreça i l’inici de sessió que TREK fa servir per a aquest emmagatzematge.',
+  'docsync.connection.edit': 'Edita la connexió',
+  'docsync.connection.remove': 'Elimina la connexió',
+  'docsync.connection.confirmRemove':
+    'TREK oblida l’adreça i l’inici de sessió d’aquest emmagatzematge, i totes les sincronitzacions d’aquest viatge a través seu s’aturen. Els documents es queden a TREK i a l’emmagatzematge.',
 };
 
 export default docsync;

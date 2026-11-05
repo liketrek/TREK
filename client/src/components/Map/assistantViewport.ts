@@ -4,6 +4,7 @@ import { useMap } from 'react-leaflet';
 
 import { useAssistantStore } from '../../store/assistantStore';
 import { useTripStore } from '../../store/tripStore';
+import { bboxOnRealWorld } from '../../utils/worldCopy';
 
 /**
  * The part of the planner's map on screen, told to the assistant after every
@@ -54,7 +55,11 @@ export function useReportViewLeaflet(): void {
     if (tripId === null) return;
     const read = () => {
       const b = map.getBounds();
-      report(tripId, { south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() });
+      // On the real world, whichever world copy (or longitude frame, #2975) the map shows.
+      report(
+        tripId,
+        bboxOnRealWorld({ south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() })
+      );
     };
     read();
     map.on('moveend', read);
@@ -87,7 +92,11 @@ export function useReportViewGL(mapRef: { readonly current: unknown }, mapReady:
     const read = () => {
       const b = getBounds();
       if (typeof b?.getSouth !== 'function') return;
-      report(tripId, { south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() });
+      // On the real world, whichever world copy (or longitude frame, #2975) the map shows.
+      report(
+        tripId,
+        bboxOnRealWorld({ south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() })
+      );
     };
     read();
     on('moveend', read);

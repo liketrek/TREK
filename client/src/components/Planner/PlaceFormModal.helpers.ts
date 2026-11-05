@@ -1,4 +1,5 @@
-import type { Assignment, Place, RoadtripStopType } from '@trek/shared'
+import type { Assignment, Place, PlaceFieldOrigins, RoadtripStopType } from '@trek/shared'
+import { originsAfterPick, resultOrigin } from './placeFieldOrigins'
 import { pendingImagePayload, type PendingImagePayload, type PendingPlaceImage } from './placeImageChoice'
 import type { PlaceDetailsSelection } from './PlaceDetailsColumn'
 
@@ -43,6 +44,9 @@ export interface PlaceFormData {
   // suggests how long that kind of pause usually takes, and the full form should not
   // throw the suggestion away on the way through. Editing a stay is the rail's job.
   duration_minutes?: number
+  // Which shareable fields the user typed and which a pick or the details column filled
+  // (placeFieldOrigins.ts). Rides along to the save as `fieldOrigins`; never shown.
+  fieldOrigins?: PlaceFieldOrigins
 }
 
 export function isGoogleMapsUrl(input: string): boolean {
@@ -237,6 +241,8 @@ export function mergeResult(
   autoFilled: Set<ResultField>,
 ): PlaceFormData {
   const next = { ...prev } as PlaceFormData & Record<string, string | undefined>
+  const written: string[] = []
+  const cleared: string[] = []
 
   for (const field of RESULT_FIELDS) {
     const raw = result[field]
@@ -245,15 +251,19 @@ export function mergeResult(
     if (value) {
       next[field] = value
       autoFilled.add(field)
+      written.push(field)
     } else if (autoFilled.has(field)) {
       // Belonged to the place that is no longer selected.
       next[field] = ''
       autoFilled.delete(field)
+      cleared.push(field)
     }
     // Otherwise the user put it there; leave it alone.
   }
 
-  return next
+  // What the pick wrote is the provider's, not the user's, wherever it ends up.
+  const merged: PlaceFormData = next
+  return { ...merged, fieldOrigins: originsAfterPick(prev.fieldOrigins, written, cleared, resultOrigin(result)) }
 }
 
 // #1152: a manually-added place is treated as a likely duplicate of an existing

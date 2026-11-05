@@ -5,19 +5,22 @@ import { useLocationBias } from '../../hooks/useLocationBias'
 import { usePlaceLanguage } from '../../hooks/usePlaceLanguage'
 import { useSuggestionDropdown } from './useSuggestionDropdown'
 import { PlaceSuggestion, SuggestionList, SuggestionRow } from './SuggestionDropdown'
+import type { MapMatch } from '../../repo/mapMatchRepo'
 
 interface Props {
   value: string
   onChange: (value: string) => void
   placeholder?: string
   className?: string
+  /** A picked suggestion's spot on the map, for a form that saves where the address is (an imported stay). */
+  onPick?: (match: MapMatch) => void
 }
 
 // Free-text address input with location autocomplete, backed by the same maps
 // search as LocationSelect. Unlike LocationSelect the typed text is
 // authoritative: every keystroke reaches the parent so a hand-written address
 // is never lost, and picking a suggestion just replaces the text (#1496).
-export default function AddressInput({ value, onChange, placeholder, className }: Props) {
+export default function AddressInput({ value, onChange, placeholder, className, onPick }: Props) {
   const { locale } = useTranslation()
   const placeLang = usePlaceLanguage()
   // Ohne Reisekontext ist der Hinweis leer, und die Suche laeuft wie bisher.
@@ -60,6 +63,9 @@ export default function AddressInput({ value, onChange, placeholder, className }
     // A response still on its way must not repopulate the list behind the pick.
     reqIdRef.current++
     onChange(r.address || r.name || '')
+    if (onPick && Number.isFinite(r.lat) && Number.isFinite(r.lng)) {
+      onPick({ lat: r.lat, lng: r.lng, label: [r.name, r.address].filter(Boolean).join(', ') })
+    }
     setOpen(false)
     setResults([])
     setLoading(false)

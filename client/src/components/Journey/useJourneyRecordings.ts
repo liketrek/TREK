@@ -105,6 +105,7 @@ export function useJourneyRecordings(
           color,
           points: segment.points,
           kind: 'day_recording',
+          date: day.date,
         }));
       }),
     [days, colorOf, t, locale]

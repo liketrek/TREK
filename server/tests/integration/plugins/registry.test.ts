@@ -1193,6 +1193,43 @@ describe('TREK-version gating on install', () => {
     expect(safeDownload).not.toHaveBeenCalled();
   });
 
+  it("an admin's install-anyway takes the newest version when none fits, and keeps that consent on the row", async () => {
+    process.env.APP_VERSION = '4.0.0'; // both versions declare <4.0.0
+    stubMulti();
+    stageMulti('2.1.0', 0);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await expect(svc.install('multi', { acceptTrekRange: true })).resolves.toEqual({
+      id: 'multi',
+      version: '2.1.0',
+      trekRangeBypassed: { trekRange: '>=3.4.0 <4.0.0', hostVersion: '4.0.0', acceptedByAdmin: true },
+    });
+    expect(warn.mock.calls.some((c) => /multi.*an admin chose to run it anyway/.test(String(c[0])))).toBe(true);
+    warn.mockRestore();
+    const row = await findRow(t, Plugins, { id: 'multi' });
+    expect(row).toMatchObject({ trek_range_accepted_version: '2.1.0', trek_range_accepted_host: '4.0.0' });
+  });
+
+  it("an admin's install-anyway still prefers a version that fits", async () => {
+    process.env.APP_VERSION = '3.3.0';
+    stubMulti();
+    stageMulti('2.0.0', 1);
+    await expect(svc.install('multi', { acceptTrekRange: true })).resolves.toEqual({
+      id: 'multi',
+      version: '2.0.0',
+      trekRangeBypassed: null,
+    });
+    expect(await findRow(t, Plugins, { id: 'multi' })).toMatchObject({ trek_range_accepted_version: null });
+  });
+
+  it("an admin's install-anyway covers the plugin they asked for, never a dependency", async () => {
+    process.env.APP_VERSION = '4.0.0';
+    stubMulti();
+    await expect(svc.resolveVersion('multi', undefined, false)).rejects.toMatchObject({
+      code: 'TREK_VERSION_INCOMPATIBLE',
+    });
+    await expect(svc.resolveVersion('multi', undefined, true)).resolves.toMatchObject({ version: '2.1.0' });
+  });
+
   it('honours an EXCLUSIVE upper bound, which minTrekVersion alone cannot express', async () => {
     // Both versions declare "<4.0.0" and neither carries a maxTrekVersion — under the old
     // min-only check TREK 4 looked compatible with everything.
@@ -1223,7 +1260,7 @@ describe('TREK-version gating on install', () => {
       await expect(svc.install('multi')).resolves.toEqual({
         id: 'multi',
         version: '2.1.0',
-        trekRangeBypassed: { trekRange: '>=3.4.0 <4.0.0', hostVersion: '3.3.0' },
+        trekRangeBypassed: { trekRange: '>=3.4.0 <4.0.0', hostVersion: '3.3.0', acceptedByAdmin: false },
       });
       expect(warn.mock.calls.some((c) => /multi.*>=3\.4\.0 <4\.0\.0.*3\.3\.0/.test(String(c[0])))).toBe(true);
       warn.mockRestore();
@@ -1235,7 +1272,7 @@ describe('TREK-version gating on install', () => {
       stageMulti('2.1.0', 0);
       await expect(svc.install('multi', { version: '2.1.0' })).resolves.toMatchObject({
         version: '2.1.0',
-        trekRangeBypassed: { trekRange: '>=3.4.0 <4.0.0', hostVersion: '3.3.0' },
+        trekRangeBypassed: { trekRange: '>=3.4.0 <4.0.0', hostVersion: '3.3.0', acceptedByAdmin: false },
       });
     });
 
@@ -1268,7 +1305,7 @@ describe('TREK-version gating on install', () => {
       safeDownload.mockResolvedValue({ bytes: artifact, sha256: sha });
       await expect(svc.install('flight-tracker')).resolves.toMatchObject({
         id: 'flight-tracker',
-        trekRangeBypassed: { trekRange: '>=3.2.0 <3.4.0', hostVersion: '3.9.0' },
+        trekRangeBypassed: { trekRange: '>=3.2.0 <3.4.0', hostVersion: '3.9.0', acceptedByAdmin: false },
       });
       expect(fs.existsSync(path.join(codeRoot, 'flight-tracker'))).toBe(true);
     });
@@ -1287,7 +1324,7 @@ describe('TREK-version gating on install', () => {
       REGISTRY.plugins[0].versions[0].sha256 = sha;
       safeDownload.mockResolvedValue({ bytes: artifact, sha256: sha });
       await expect(svc.install('flight-tracker')).resolves.toMatchObject({
-        trekRangeBypassed: { trekRange: null, hostVersion: '3.9.0' },
+        trekRangeBypassed: { trekRange: null, hostVersion: '3.9.0', acceptedByAdmin: false },
       });
     });
 
@@ -1298,13 +1335,15 @@ describe('TREK-version gating on install', () => {
       );
       expect(old).toMatchObject({
         id: 'my-upload',
-        trekRangeBypassed: { trekRange: '>=3.0.0 <3.5.0', hostVersion: '3.9.0' },
+        trekRangeBypassed: { trekRange: '>=3.0.0 <3.5.0', hostVersion: '3.9.0', acceptedByAdmin: false },
       });
       fs.rmSync(old.stagingDir, { recursive: true, force: true });
       const rangeless = svc.stageUpload(
         makeArtifact({ id: 'my-upload', name: 'Up', version: '1.0.0', type: 'integration', trek: undefined }),
       );
-      expect(rangeless).toMatchObject({ trekRangeBypassed: { trekRange: null, hostVersion: '3.9.0' } });
+      expect(rangeless).toMatchObject({
+        trekRangeBypassed: { trekRange: null, hostVersion: '3.9.0', acceptedByAdmin: false },
+      });
       fs.rmSync(rangeless.stagingDir, { recursive: true, force: true });
       const fits = svc.stageUpload(
         makeArtifact({ id: 'my-upload', name: 'Up', version: '1.0.0', type: 'integration' }),

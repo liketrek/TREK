@@ -56,23 +56,20 @@ const system_notice: TranslationStrings = {
     'Обновление 3.0.14 обнаружило один или несколько конфликтов имён пользователей или адресов электронной почты, вызванных ведущими или завершающими пробелами в сохранённых значениях. Затронутые учётные записи были автоматически переименованы. Проверьте логи сервера на строки, начинающиеся с **[migration] WHITESPACE COLLISION**, чтобы определить учётные записи, требующие проверки.',
   // The release modal. One stable set of keys: each big release swaps the copy in place.
   'system_notice.release_notes.eyebrow': 'Обновление установлено',
-  'system_notice.release_notes.headline': 'Самый большой TREK на сегодня.',
+  'system_notice.release_notes.headline': 'Нужное место, с первого раза.',
   'system_notice.release_notes.intro':
-    'Туры на любой день на природе, студия для ваших фотокниг, ассистент, который планирует вместе с вами, и справка на каждом экране.',
+    'Поиск мест, поиск адресов и построение маршрутов теперь работают на собственных серверах TREK при поддержке dataforest cloud, и каждый TREK может делиться тем, что знает о местах, со всеми остальными.',
   'system_notice.release_notes.features_label': 'Главные новинки',
   'system_notice.release_notes.features_aside': 'И это далеко не всё',
-  'system_notice.release_notes.feature_tours_title': 'Туры',
-  'system_notice.release_notes.feature_tours_body':
-    'Походы, велотуры, пробежки, конные прогулки, сплавы, прогулки по городу и дни на лыжах, с профилем высот, категориями сложности и 3D-облётом.',
-  'system_notice.release_notes.feature_studio_title': 'TREK Studio', // same-as-en
-  'system_notice.release_notes.feature_studio_body':
-    'Превращает путешествие в оформленную фотокнигу: 17 тем, 34 шрифта, 160 стикеров и автоматическая вёрстка одним нажатием.',
-  'system_notice.release_notes.feature_assistant_title': 'ИИ-ассистент',
-  'system_notice.release_notes.feature_assistant_body':
-    'Планирует вместе с вами ваши настоящие поездки через уже имеющийся у вас аккаунт ИИ. Каждое изменение вы видите заранее и можете отменить.',
-  'system_notice.release_notes.feature_help_title': 'Справка на каждом экране, на 27 языках',
-  'system_notice.release_notes.feature_help_body':
-    'Около 370 пошаговых инструкций и 1600 иллюстраций прямо там, где они нужны. Новые языки: азербайджанский, эстонский, словацкий и тайский.',
+  'system_notice.release_notes.feature_search_title': 'Поиск мест, который попадает в точку',
+  'system_notice.release_notes.feature_search_body':
+    'Города, острова, достопримечательности и аэропорты по их коду идут первыми, кафе ищутся рядом с вами, а подсказки появляются прямо во время ввода.',
+  'system_notice.release_notes.feature_share_title': 'Общие сведения о местах',
+  'system_notice.release_notes.feature_share_body':
+    'Делитесь сайтами, часами работы и фотографиями со всеми TREK, поле за полем, а ваши сохранённые места получают то, что добавили другие.',
+  'system_notice.release_notes.feature_routing_title': 'Более быстрые маршруты',
+  'system_notice.release_notes.feature_routing_body':
+    'Весь день строится за один раз, до двадцати остановок, один медленный маршрут больше не задерживает остальные, а общественный транспорт обращается ко второму провайдеру, если первый ничего не нашёл.',
   'system_notice.release_notes.footnote': 'Плюс длинный список небольших изменений во всём остальном TREK.',
   'system_notice.release_notes.notes_label': 'Заметки к релизу',
   'system_notice.release_notes.note_eyebrow': 'Слово от мейнтейнера',
@@ -86,10 +83,10 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.note_body_after':
     'А потом его открыли вы. За несколько месяцев вас стали тысячи: звёзды, отчёты об ошибках, переводы на языки, которыми я не владею, пул-реквесты от людей, с которыми я ни разу не встречался. Я до сих пор каждое утро первым делом заглядываю в репозиторий, и мне всё ещё не до конца верится, что это происходит.',
   'system_notice.release_notes.note_closing': 'Спасибо, что вы здесь. Ваш Maurice.',
-  'system_notice.release_notes.support_lead':
-    'TREK бесплатен и таким останется, а вот серверы, домены и бесконечные поздние вечера бесплатными не бывают.',
+  'system_notice.release_notes.support_label': 'Оставаться независимым',
+  'system_notice.release_notes.support_lead': 'Без Google и компании.',
   'system_notice.release_notes.support_text':
-    'Если TREK заслужил место в ваших поездках, угостите меня кофе и помогите выпустить следующий релиз.',
+    'Поиск мест, поиск адресов и маршруты работают на собственных серверах TREK, сегодня при поддержке dataforest cloud. Я борюсь за это каждый день, и чтобы так оставалось, нужна ваша поддержка.',
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
   'system_notice.release_notes.cta_kofi': 'Поддержать на Ko-fi',
 };

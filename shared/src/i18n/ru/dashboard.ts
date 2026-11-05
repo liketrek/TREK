@@ -110,6 +110,8 @@ const dashboard: TranslationStrings = {
   'dashboard.unsplashQueryRequired': 'Введите поисковый запрос',
   'dashboard.unsplashNoResults': 'Изображения не найдены',
   'dashboard.coverSearchError': 'Не удалось выполнить поиск в Unsplash',
+  'dashboard.unsplashKeyNeeded':
+    'Unsplash отклонил этот сервер. Администратор может добавить бесплатный ключ Unsplash API в настройках администрирования, чтобы заработал поиск изображений.',
   'dashboard.useUnsplashPhoto': 'Использовать фото Unsplash от {photographer}',
   'dashboard.titleRequired': 'Название обязательно',
   'dashboard.endDateError': 'Дата окончания должна быть позже даты начала',

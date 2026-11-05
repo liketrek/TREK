@@ -20,7 +20,7 @@ vi.mock('../Map/tripRouteGeometry', async (importActual) => {
 // basemap branch and the outline fallback can be exercised.
 vi.mock('./tripMapImage', () => ({ renderTripMapImage: vi.fn(async () => null) }))
 
-const { calculateRouteWithLegs } = await import('../Map/RouteCalculator')
+const { calculateRouteWithLegs, RoutingRefusedError } = await import('../Map/RouteCalculator')
 const { renderTripMapImage } = await import('./tripMapImage')
 const { routeTrip } = await import('../Map/tripRouteGeometry')
 const { downloadTripPDF } = await import('./TripPDF')
@@ -324,4 +324,84 @@ describe('trip route map in the PDF', () => {
     expect(html).not.toContain('pdf.distanceLabel')
   })
 
+  // The export used to give the router 8 s: about seven legs at a second each, so a
+  // month-long trip printed most of its days as straight lines at "0 m" under a total
+  // that looked final, and every export routed a few more days (#2876).
+  it('FE-COMP-TRIPPDF-MAP-013: a long trip prints every day on the road, however long the router takes', async () => {
+    const days = Array.from({ length: 12 }, (_, i) =>
+      ({ id: i + 1, day_number: i + 1, title: null, date: `2025-06-${String(i + 1).padStart(2, '0')}` }))
+    const assignments = Object.fromEntries(days.map(day => [String(day.id), [
+      assign(day.id * 10, day.id, 0, 45 + day.id / 10, 4.8),
+      assign(day.id * 10 + 1, day.id, 1, 45 + day.id / 10, 4.9),
+    ]]))
+    vi.mocked(calculateRouteWithLegs).mockImplementation(() => new Promise(resolve => {
+      setTimeout(() => resolve({ coordinates: [[45, 4.8], [45, 4.9]], distance: 12000, duration: 900, legs: [leg(12000)] }), 100)
+    }))
+    vi.useFakeTimers()
+    try {
+      let settled = false
+      const pending = downloadTripPDF({ ...args, days: days as never, assignments: assignments as never })
+        .finally(() => { settled = true })
+      for (let second = 0; second < 60 && !settled; second++) await vi.advanceTimersByTimeAsync(1000)
+      await pending
+    } finally {
+      vi.useRealTimers()
+    }
+
+    expect(calculateRouteWithLegs).toHaveBeenCalledTimes(12)
+    const html = srcdoc()
+    expect(html).toContain('144 km')
+    expect(html).not.toContain('map.overview.unrouted')
+    expect(html).not.toContain('map.overview.notRouted')
+  })
+
+  it('FE-COMP-TRIPPDF-MAP-014: a leg the router refused is marked, and the total says it is short', async () => {
+    vi.mocked(calculateRouteWithLegs).mockRejectedValueOnce(new RoutingRefusedError(400, null))
+    await downloadTripPDF(args)
+    const html = srcdoc()
+    const legend = html.slice(html.indexOf('class="trip-map-legend"'))
+
+    // Day 1 drove nowhere the router would say: no "0 m", but that it was not routed...
+    expect(legend).toContain('<span class="trip-map-leg-dist">map.overview.notRouted</span>')
+    expect(legend).not.toContain('>0 m<')
+    // ...and the 12 km of day 2 are a floor for the trip, said as such.
+    expect(html).toContain('pdf.distanceLabel: map.overview.distanceAtLeast')
+    expect(html).toContain('<div class="trip-map-note">map.overview.unrouted</div>')
+  })
+
+  it('FE-COMP-TRIPPDF-MAP-015: routes what the planner map routes, and reports its progress to the caller', async () => {
+    const viasByDay = { 1: [{ id: 5, day_id: 1, after_order_index: 0, sequence: 0, lat: 48.88, lng: 2.5, created_at: '' }] }
+    const tourStageStops = new Map()
+    const controller = new AbortController()
+    const onProgress = vi.fn<(done: number, total: number) => void>()
+    vi.mocked(calculateRouteWithLegs).mockImplementation(async (points) => ({
+      coordinates: points.map(p => [p.lat, p.lng] as [number, number]),
+      distance: 0, duration: 0,
+      legs: points.slice(1).map(() => leg(12000)),
+    }))
+    await downloadTripPDF({
+      ...args,
+      distanceUnit: 'imperial',
+      route: { viasByDay, tourStageStops, signal: controller.signal, onProgress },
+    })
+
+    const [input, opts] = vi.mocked(routeTrip).mock.calls[0]
+    expect(input).toMatchObject({ viasByDay, tourStageStops, storedAssignments: args.assignments })
+    expect(opts).toMatchObject({ unit: 'imperial', signal: controller.signal, onProgress })
+    // The road picked in the road trip bends day 1 here as it does on the planner map.
+    expect(vi.mocked(calculateRouteWithLegs).mock.calls[0][0].map(p => [p.lat, p.lng]))
+      .toEqual([[48.86, 2.35], [48.88, 2.5], [48.90, 2.42]])
+    expect(onProgress).toHaveBeenLastCalledWith(2, 2)
+  })
+
+  it('FE-COMP-TRIPPDF-MAP-016: an export given up while it routes opens no document', async () => {
+    const givenUp = new AbortController()
+    vi.mocked(calculateRouteWithLegs).mockImplementation(async (points) => {
+      givenUp.abort()
+      return { coordinates: points.map(p => [p.lat, p.lng] as [number, number]), distance: 0, duration: 0, legs: [leg(12000)] }
+    })
+    await downloadTripPDF({ ...args, signal: givenUp.signal })
+
+    expect(document.getElementById('pdf-preview-overlay')).toBeNull()
+  })
 })

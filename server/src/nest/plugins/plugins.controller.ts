@@ -113,8 +113,15 @@ export class PluginsController {
       // compatible version and reporting addons the admin still has to enable.
       // Dependency resolution pins versions internally but never DELIBERATELY, so
       // only the plain path below recomputes the update hold.
-      if (body.withDependencies) return await this.registry.installWithDependencies(body.id, body.constraint);
-      const res = await this.registry.install(body.id, { version: body.version, constraint: body.constraint });
+      const acceptTrekRange = body.acceptTrekRange === true;
+      if (body.withDependencies) {
+        return await this.registry.installWithDependencies(body.id, body.constraint, acceptTrekRange);
+      }
+      const res = await this.registry.install(body.id, {
+        version: body.version,
+        constraint: body.constraint,
+        acceptTrekRange,
+      });
       await this.registry.recomputeUpdateHold(res.id, res.version, !!body.version);
       return res;
     } catch (e) {
@@ -272,7 +279,7 @@ export class PluginsController {
   async activate(@Param('id') id: string, @Body() body: PluginActivateDto) {
     if (!pluginsEnabled()) throw new HttpException({ error: 'Plugins are disabled by server configuration' }, 503);
     try {
-      await this.runtime.activate(id, !!body?.consent);
+      await this.runtime.activate(id, !!body?.consent, body?.acceptTrekRange === true);
     } catch (e) {
       // Re-enabling a plugin whose update widened its permissions must NOT grant
       // them silently — surface a distinct code so the UI opens the consent dialog.

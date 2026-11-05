@@ -10,6 +10,7 @@ import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.g
 import { isDirectionsUrl, isGoogleListDataUrl } from '../place-import/place-import.service';
 import { StorageService } from '../storage/storage.service';
 import { placeImageUrl } from './place-image';
+import { TrackPlaceOrigins } from './place-origins.interceptor';
 import {
   PlaceBulkDeleteDto,
   PlaceBulkUpdateDto,
@@ -157,6 +158,7 @@ export class PlacesController {
   }
 
   @Post()
+  @TrackPlaceOrigins('client')
   async create(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
@@ -176,6 +178,7 @@ export class PlacesController {
 
   @Post('import/gpx')
   @UseInterceptors(FileInterceptor('file', UPLOAD))
+  @TrackPlaceOrigins('import')
   async importGpx(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
@@ -240,6 +243,7 @@ export class PlacesController {
 
   @Post('import/map')
   @UseInterceptors(FileInterceptor('file', UPLOAD))
+  @TrackPlaceOrigins('import')
   async importMap(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
@@ -278,6 +282,7 @@ export class PlacesController {
   }
 
   @Post('import/google-list')
+  @TrackPlaceOrigins('import')
   async importGoogle(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
@@ -288,6 +293,7 @@ export class PlacesController {
   }
 
   @Post('import/naver-list')
+  @TrackPlaceOrigins('import')
   async importNaver(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
@@ -421,6 +427,7 @@ export class PlacesController {
   @Post(':id/image')
   @HttpCode(200)
   @UseInterceptors(FileInterceptor('image', { fileFilter: PLACE_IMAGE_FILE_FILTER }))
+  @TrackPlaceOrigins('upload')
   async uploadImage(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
@@ -454,6 +461,7 @@ export class PlacesController {
   }
 
   @Put(':id/image/from-file')
+  @TrackPlaceOrigins('attachment')
   async imageFromFile(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
@@ -525,6 +533,7 @@ export class PlacesController {
   }
 
   @Put(':id')
+  @TrackPlaceOrigins('client')
   async update(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,

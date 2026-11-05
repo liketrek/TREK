@@ -38,6 +38,8 @@ const wanderer: TranslationStrings = {
   'wanderer.error.not_own_trail': 'Μπορούν να εισαχθούν μόνο τα δικά σας μονοπάτια του wanderer.',
   'wanderer.error.invalid_response':
     'Η απάντηση δεν προήλθε από το wanderer. Ελέγξτε ότι η διεύθυνση οδηγεί στο ίδιο το wanderer.',
+  'wanderer.error.no_author':
+    'Το wanderer απάντησε, αλλά δεν αναφέρει κανέναν δημιουργό μονοπατιών για τον λογαριασμό αυτού του API token, οπότε το TREK δεν μπορεί να ξέρει ποια μονοπάτια είναι δικά σας.',
   'wanderer.error.too_large': 'Το αρχείο του μονοπατιού είναι μεγαλύτερο από 10 MB.',
   'wanderer.error.server_error': 'Το wanderer απάντησε με σφάλμα. Δοκιμάστε ξανά αργότερα.',
   'wanderer.error.offline': 'Είστε εκτός σύνδεσης. Η αναζήτηση στο wanderer γίνεται μόνο με σύνδεση.',

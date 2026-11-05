@@ -57,18 +57,15 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.eyebrow': 'Güncelleme yüklendi',
   'system_notice.release_notes.features_label': 'Öne çıkanlar',
   'system_notice.release_notes.features_aside': 'Hepsi bu kadar değil',
-  'system_notice.release_notes.feature_tours_title': 'Turlar',
-  'system_notice.release_notes.feature_tours_body':
-    'Yürüyüşler, bisiklet turları, koşular, at binme, kürek, şehir yürüyüşleri ve kayak günleri; yükseklik profili, zorluk dereceleri ve 3B uçuşla.',
-  'system_notice.release_notes.feature_studio_title': 'TREK Studio', // same-as-en
-  'system_notice.release_notes.feature_studio_body':
-    'Bir yolculuğu tasarlanmış bir fotoğraf kitabına dönüştürür: 17 tema, 34 yazı tipi, 160 çıkartma ve tek tıkla otomatik yerleşim.',
-  'system_notice.release_notes.feature_assistant_title': 'Yapay zekâ asistanı',
-  'system_notice.release_notes.feature_assistant_body':
-    'Zaten sahip olduğunuz yapay zekâ hesabıyla gerçek seyahatlerinizi sizinle birlikte planlar. Her değişikliği önce görür, isterseniz geri alırsınız.',
-  'system_notice.release_notes.feature_help_title': 'Her ekranda yardım, 27 dilde',
-  'system_notice.release_notes.feature_help_body':
-    'Yaklaşık 370 adım adım rehber ve 1.600 görsel, tam ihtiyaç duyduğunuz yerde. Yeni: Azerbaycanca, Estonca, Slovakça ve Tayca.',
+  'system_notice.release_notes.feature_search_title': 'İsabetli yer arama',
+  'system_notice.release_notes.feature_search_body':
+    'Şehirler, adalar, simge yapılar ve koduyla aranan havalimanları önce gelir, kafeler çevrenizden gelir ve öneriler siz yazarken belirir.',
+  'system_notice.release_notes.feature_share_title': 'Paylaşılan yer ayrıntıları',
+  'system_notice.release_notes.feature_share_body':
+    'Web sitelerini, çalışma saatlerini ve fotoğrafları alan alan her TREK ile paylaşın, kayıtlı yerleriniz de başkalarının eklediklerini alır.',
+  'system_notice.release_notes.feature_routing_title': 'Daha hızlı rota hesaplama',
+  'system_notice.release_notes.feature_routing_body':
+    'Bütün bir gün, yirmi durağa kadar tek seferde hesaplanır, yavaş bir rota artık diğerlerini bekletmez ve toplu taşıma, ilk sağlayıcı bir şey bulamazsa ikinci bir sağlayıcıya sorar.',
   'system_notice.release_notes.footnote':
     "Ayrıca TREK'in geri kalanına yayılmış, daha küçük değişikliklerden oluşan uzun bir liste var.",
   'system_notice.release_notes.notes_label': 'Sürüm notları',
@@ -83,14 +80,14 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.note_body_after':
     "Sonra sizler açtınız. Birkaç ay içinde sayınız binleri buldu: yıldızlar, hata bildirimleri, konuşmadığım dillere çeviriler, hiç tanışmadığım insanlardan pull request'ler. Hâlâ her sabah ilk iş repoya bakıyorum ve bu hâlâ tam olarak gerçekmiş gibi gelmiyor.",
   'system_notice.release_notes.note_closing': 'Burada olduğun için teşekkür ederim. Sevgiler, Maurice.',
-  'system_notice.release_notes.support_lead':
-    'TREK ücretsiz ve hep öyle kalacak, ama sunucular, alan adları ve bir sürü geç gece ücretsiz değil.',
+  'system_notice.release_notes.support_label': 'Bağımsız kalmak',
+  'system_notice.release_notes.support_lead': 'Google ve benzerleri olmadan.',
   'system_notice.release_notes.support_text':
-    'TREK seyahatlerinde kendine bir yer edindiyse, bana bir kahve ısmarla ve bir sonraki sürümün gelmesine yardım et.',
+    "Yer arama, adres arama ve rota hesaplama TREK'in kendi sunucularında çalışıyor, bugün dataforest cloud sponsorluğunda. Bunun için her gün mücadele ediyorum ve böyle kalması sizin desteğinize bağlı.",
   'system_notice.release_notes.cta_bmc': 'Bana bir kahve ısmarla',
   'system_notice.release_notes.cta_kofi': "Ko-fi'de Destek Ol",
-  'system_notice.release_notes.headline': 'Şimdiye kadarki en büyük TREK.',
+  'system_notice.release_notes.headline': 'Önce doğru yer.',
   'system_notice.release_notes.intro':
-    'Açık havadaki her gün için turlar, fotoğraf kitaplarınız için bir stüdyo, sizinle birlikte plan yapan bir asistan ve her ekranda yardım.',
+    "Yer arama, adres arama ve rota hesaplama artık dataforest cloud sponsorluğunda TREK'in kendi sunucularında çalışıyor ve her TREK, yerler hakkında bildiklerini diğer tüm TREK'lerle paylaşabiliyor.",
 };
 export default system_notice;

@@ -21,7 +21,7 @@ TREK knows seventeen types. Six of them belong to the Bookings tab and eleven to
 | Accommodation | Bookings | **Manual Booking**, or the day plan (see [Accommodations](Accommodations)) |
 | Restaurant | Bookings | **Manual Booking** |
 | Event | Bookings | **Manual Booking** |
-| Tour | Bookings | **Manual Booking** |
+| Guided tour | Bookings | **Manual Booking** |
 | Parking | Bookings | **Manual Booking**; a booking at one fixed place, such as airport parking |
 | Other | Bookings | **Manual Booking** |
 | Flight, Train, Bus, Car, Taxi, Bicycle, Cruise, Ferry, Cable car, Other | Transports | The transport editor, see [Transport-Flights-Trains-Cars](Transport-Flights-Trains-Cars) |
@@ -141,7 +141,7 @@ The bar at the foot holds:
 
 1. Click **Manual Booking**. The editor opens as **New Reservation**.
 2. Type the title into the head band. It is the one required field; **Add** stays disabled until it has one.
-3. Pick the type with the pill in the head band: Accommodation, Restaurant, Event, Tour, Parking or Other. The pill next to it reads **Pending**; click it to make the booking **Confirmed**.
+3. Pick the type with the pill in the head band: Accommodation, Restaurant, Event, Guided tour, Parking or Other. The pill next to it reads **Pending**; click it to make the booking **Confirmed**.
 4. Optionally pick **Link to day assignment**: a searchable list of every stop in the plan, grouped by day. It pins the booking to that stop, and an empty date is filled with that day.
 5. Set **Date**, **Start time**, **End date** and **End time**. The calendars only offer days inside the trip. An end date that lies before the start is marked in red and blocks saving. If you set only an end time and it is earlier than the start time, an amber hint appears under the field (*The end time is before the start time. If it ends the next day, set an end date.*); it does not block saving.
 6. Optionally pick a **Place / Activity** from the trip. It fills the title and the address only where you left them empty. **Location / Address** takes any address.
@@ -202,6 +202,21 @@ Each saved booking appears for every trip member straight away.
 The import button is hidden only when the server has neither the `kitinerary-extractor` binary nor the [AI Parsing addon](AI-Booking-Import). With the AI addon enabled and configured, import works without the binary and every file goes straight to the model.
 
 The binary ships inside the official TREK Docker image. If you run TREK from source, install the `libkitinerary-bin` package (Debian trixie, Ubuntu 25.04 or newer) or set `KITINERARY_EXTRACTOR_PATH` to the binary's full path. See [Environment-Variables](Environment-Variables).
+
+### Your own extractors
+
+KDE Itinerary also loads extractor scripts that you write, from `/usr/local/share/kitinerary/extractors` in the container. Each extractor is a `.json` file and a `.js` file. Itinerary reads the directory on each import, so a new extractor works without a restart.
+
+With Docker Compose, mount a folder of extractors there with a plain volume:
+
+```yaml
+services:
+  app:
+    volumes:
+      - ./extractors:/usr/local/share/kitinerary/extractors:ro
+```
+
+With the Helm chart, mount a ConfigMap there with `extraVolumes` and `extraVolumeMounts`. See [Install-Helm](Install-Helm#further-volumes).
 
 ### Review mark
 

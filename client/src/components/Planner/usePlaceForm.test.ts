@@ -326,3 +326,38 @@ describe('useNewCategory', () => {
     expect(result.current.name).toBe('Bar');
   });
 });
+
+// FE-PLANNER-PLFORM-030 to FE-PLANNER-PLFORM-033: which fields the user typed and which a
+// pick, a map POI or the details column filled, for the save's fieldOrigins.
+describe('usePlaceForm field origins', () => {
+  it('FE-PLANNER-PLFORM-030: a typed shareable field is the user own; other fields report nothing', () => {
+    const { result } = setup();
+    act(() => result.current.handleChange('website', 'https://mine.example'));
+    act(() => result.current.handleChange('name', 'Mine'));
+    expect(result.current.form.fieldOrigins).toEqual({ website: 'user' });
+  });
+
+  it('FE-PLANNER-PLFORM-031: a map POI owns what it prefilled, until the user types over it', () => {
+    const { result } = setup();
+    const prefill = { lat: 1, lng: 2, name: 'Cafe', website: 'https://cafe.example', phone: '+49 1', osm_id: 'node:9' };
+    act(() => result.current.openForm(DEFAULT_FORM, null, prefill));
+    expect(result.current.form.fieldOrigins).toEqual({ website: 'osm', phone: 'osm' });
+    act(() => result.current.handleChange('phone', '+49 2'));
+    expect(result.current.form.fieldOrigins).toEqual({ website: 'osm', phone: 'user' });
+  });
+
+  it('FE-PLANNER-PLFORM-032: an adopted description and a picked photo are the details column own', () => {
+    const { result } = setup();
+    act(() => result.current.adoptDescription('A museum by the river.'));
+    act(() => result.current.pickImage('/api/maps/place-photo/x/bytes'));
+    expect(result.current.form.fieldOrigins).toEqual({ description: 'enrichment', image: 'enrichment' });
+    act(() => result.current.removeImage());
+    expect(result.current.form.fieldOrigins).toEqual({ description: 'enrichment' });
+  });
+
+  it('FE-PLANNER-PLFORM-033: hours taken over from the lookup say so', () => {
+    const { result } = setup();
+    act(() => result.current.handleChange('opening_hours', '[]', 'enrichment'));
+    expect(result.current.form.fieldOrigins).toEqual({ opening_hours: 'enrichment' });
+  });
+});

@@ -287,7 +287,7 @@ const journey: TranslationStrings = {
   'journey.studio.autoLayout': '자동 레이아웃',
   'journey.studio.export': '내보내기',
   'journey.studio.day': '{day}일차',
-  'journey.studio.stations': '경유지',
+  'journey.studio.stations': '가는 길에',
   'journey.studio.peersHere': '접속 중',
   'journey.studio.folioAuto': '자동',
   'journey.studio.exportLayout': '레이아웃',

@@ -5,7 +5,6 @@ import type { BookPhotoInfo } from '../book-ops-core';
 import { blankBook } from '../book-pages';
 import { isStale } from '../book-travel';
 import {
-  MAX_SPREADS,
   MAX_SPREAD_ELEMENTS,
   bookDocumentSchema,
   bookPhotoElementSchema,
@@ -367,10 +366,10 @@ describe('design_book', () => {
     expect(spread.notes.some((n) => n.includes('hero-script-word'))).toBe(true);
   });
 
-  it('BOOKDSN-014: stays within the spread cap beside many kept pages, the closing pages kept', () => {
+  it('BOOKDSN-014: designs every page beside hundreds of kept pages, the closing pages kept', () => {
     const stored = storedBook();
     const lockedPage = stored.spreads[2] as BookSpread;
-    const many = Array.from({ length: MAX_SPREADS - 6 }, (_, i): BookSpread => ({
+    const many = Array.from({ length: 300 }, (_, i): BookSpread => ({
       ...lockedPage,
       id: `sp-l${i}`,
       elements: lockedPage.elements.map((e) => ({ ...e, id: `t-l${i}` })),
@@ -383,10 +382,10 @@ describe('design_book', () => {
     for (const style of ['minimal', 'classic'] as const) {
       const result = designBook(full, input('rich'), { style });
       checkStructure(result);
-      expect(result.doc.spreads.length).toBeLessThanOrEqual(MAX_SPREADS);
-      expect(inner(result.doc).length).toBeLessThanOrEqual(MAX_SPREADS - 4);
+      expect(inner(result.doc).length).toBeGreaterThan(many.length);
       expect(many.every((p) => result.doc.spreads.some((s) => s.id === p.id))).toBe(true);
-      expect(result.notes.length).toBeGreaterThan(0);
+      expect(result.doc.spreads.slice(-2).map((s) => s.role)).toEqual(['last', 'back']);
+      expect(result.notes.some((n) => n.includes('left out'))).toBe(false);
     }
   });
 

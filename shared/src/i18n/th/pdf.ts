@@ -6,6 +6,8 @@ const pdf: TranslationStrings = {
   'pdf.costLabel': 'ราคา',
   'pdf.preview': 'ดูตัวอย่าง PDF',
   'pdf.saveAsPdf': 'บันทึกเป็น PDF',
+  'pdf.openInSafari': 'เปิดใน Safari',
+  'pdf.safariHint': 'iOS พิมพ์จากแอปบนหน้าจอโฮมไม่ได้ Safari จะเปิดทริปนี้พร้อมการส่งออก และคุณบันทึก PDF ได้ที่นั่น',
   'pdf.pageBreakPerDay': 'ขึ้นหน้าใหม่ทุกวัน',
   'pdf.transportNotes': 'บันทึกการเดินทาง',
   'pdf.mapTitle': 'ภาพรวมเส้นทาง',

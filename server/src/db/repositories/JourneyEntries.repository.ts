@@ -138,21 +138,29 @@ export class JourneyEntriesRepository extends TrekRepository<JourneyEntries> {
    * JS13 (Plan 4 Task 8b relocation) — the public `getPublicJourney` route's
    * entry list: `SELECT je.* FROM journey_entries je WHERE je.journey_id=?
    * AND je.type != 'skeleton' AND je.dismissed=0 AND je.is_draft=0 (#696, a draft
-   * stays off the share link) ORDER BY je.entry_date,
-   * je.sort_order`. A narrower filter than {@link listForJourney}/JG14 (adds
-   * the `type != 'skeleton'` exclusion — skeletons never appear publicly —
-   * and has no `id` ORDER BY tiebreak), so this is a distinct method, not a
-   * call to {@link listForJourney}. Previously lived as
+   * stays off the share link) ORDER BY je.entry_date, je.sort_order, je.id`.
+   * A narrower filter than {@link listForJourney}/JG14 (adds the
+   * `type != 'skeleton'` exclusion — skeletons never appear publicly), so this
+   * is a distinct method, not a call to {@link listForJourney}. The order is
+   * JG14's, `id` tiebreak included: the share link numbers its map stops in this
+   * order and has to number them as the owner's journal does (#2886). Previously lived as
    * `JourneyShareTokens.repository.ts`'s own fallback stub from 3g Task 3
    * (this repository was still mid-flight when that task landed) —
    * relocated here now that it is stable.
    */
   async listPublicEntries(journeyId: number): Promise<JourneyEntry[]> {
-    return await this.qb('je')
-      .select(['je.*'])
-      .where({ journey: journeyId, type: { $ne: 'skeleton' }, dismissed: 0, is_draft: 0 })
-      .orderBy({ entry_date: 'asc', sort_order: 'asc' })
-      .execute<JourneyEntry[]>('all', false);
+    const rows = await this.kysely<JourneyEntriesDateSortKyselyDB>()
+      .selectFrom('journey_entries')
+      .selectAll()
+      .where('journey_id', '=', journeyId)
+      .where('type', '!=', 'skeleton')
+      .where('dismissed', '=', 0)
+      .where('is_draft', '=', 0)
+      .orderBy('entry_date', 'asc')
+      .orderBy('sort_order', 'asc')
+      .orderBy('id', 'asc')
+      .execute();
+    return rows as JourneyEntry[];
   }
 
   /** JG22 — `getJourneyFull`'s `dismissed_count`: `SELECT COUNT(*) AS n FROM journey_entries WHERE journey_id = ? AND dismissed = 1`. */

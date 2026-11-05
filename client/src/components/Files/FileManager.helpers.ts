@@ -1,5 +1,7 @@
 import { FileText, FileImage, File, FileVideo, Plane, Train, Car, Ship, Bus, Sailboat, CableCar, Bike, CarTaxiFront, Route } from 'lucide-react'
 import { downloadFile } from '../../utils/fileDownload'
+import { readDateFormat } from '../../hooks/useDateFormat'
+import { formatDisplayDate } from '../../utils/dateFormat'
 
 export function isImage(mimeType?: string | null) {
   if (!mimeType) return false
@@ -57,10 +59,10 @@ export function triggerDownload(url: string, filename: string) {
   downloadFile(url, filename).catch(() => {})
 }
 
-export function formatDateWithLocale(dateStr?: string | null, locale?: string) {
+export function formatDateWithLocale(dateStr?: string | null, locale?: string, dateFormat: string = readDateFormat()) {
   if (!dateStr) return ''
   try {
-    return new Date(dateStr).toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' })
+    return formatDisplayDate(new Date(dateStr), locale, { day: '2-digit', month: '2-digit', year: 'numeric' }, dateFormat)
   } catch { return '' }
 }
 

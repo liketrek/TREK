@@ -1,14 +1,14 @@
 import { useRoadtripSettings } from '../../hooks/useRoadtripSettings'
 import { assembleRoadtrip, bookendStaysOf, carrierLegsFor, carrierSeam, foldRouteRun, hotelBookendsOn, isCarrierMode, isStationaryJoin, mergeRouteSegments, oneNightPerStay, seatCarrierStops, seatNightBookends, standsAsDay, terminalAssignmentId, viasOnLeg, type CarrierSeam, type RoadtripStop, type RoadtripRoutes, type PlanDay, type QuietDay, type RoutedLeg } from '@trek/shared/roadtrip'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { avoidedClasses, calculateRouteWithLegs, routeEngineFor, RoutingRefusedError, type RouteEngine } from '../Map/RouteCalculator'
+import { avoidedClasses, calculateRouteWithLegs, routeEngineFor, RoutingRefusedError } from '../Map/RouteCalculator'
 import { resolveLegMode } from '../Planner/legMode'
 import { splitIntoRuns, parseAvoid, type DriveLimits } from './roadtripModel'
 import { spillChains } from './nightSpill'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTripStore } from '../../store/tripStore'
 import { useVehicleRange } from './useVehicleRange'
-import type { Assignment, AssignmentsMap, Accommodation, Day, Reservation, RouteAvoidClass, SnappedWaypoint } from '../../types'
+import type { Assignment, AssignmentsMap, Accommodation, Day, Reservation, RouteAvoidClass, RouteEngine, RouteWithLegs, SnappedWaypoint } from '../../types'
 import type { RoadtripVia, RoadtripDayBoundary } from '@trek/shared'
 import { dayWindow } from './dayWindow'
 import { useTranslation } from '../../i18n/TranslationContext'
@@ -82,10 +82,32 @@ const seamShape = (from: RoadtripStop, to: RoadtripStop, viasByDay: Record<numbe
 
 /**
  * A drive between two days as it was answered: the leg, the shape it was asked for
- * (`seamShape`), whether OSRM answered in place of the engine asked (`standIn`), and the
- * classes the answer could not avoid.
+ * (`seamShape`), whether OSRM answered in place of the engine asked (`standIn`), the
+ * engine the leg is planned with (`plannedEngine`), and the classes the answer could not
+ * avoid.
  */
-type SeamLeg = RoutedLeg & { shape: string; standIn?: boolean; missed?: RouteAvoidClass[] }
+type SeamLeg = RoutedLeg & { shape: string; standIn?: boolean; engine?: RouteEngine; missed?: RouteAvoidClass[] }
+
+/**
+ * The engine a leg is planned with, read off its answer: the one that drew it. A day that
+ * avoids nothing and that Valhalla could not answer went to OSRM without a word, so it is
+ * OSRM's, and the ways offered beside it are OSRM's too. A day that avoids something stays
+ * Valhalla's while OSRM stands in for it (`standIn`), since only Valhalla can weigh it.
+ */
+const plannedEngine = (r: RouteWithLegs): RouteEngine | undefined => (r.avoidance?.fellBack ? 'valhalla' : r.engine)
+
+/**
+ * Remembers, per leg of a run, the engine it is planned with and whether OSRM stood in for
+ * it, so a picker opened on one of them knows the line on the map is not its engine's and
+ * does not read it as the road already taken.
+ */
+function noteEngines(keys: string[], r: RouteWithLegs, engines: Record<string, RouteEngine>, standIns: Set<string>): void {
+  const engine = plannedEngine(r)
+  for (const key of keys) {
+    if (engine) engines[key] = engine
+    if (r.avoidance?.fellBack) standIns.add(key)
+  }
+}
 
 /** The drive from one stop to the next, identified the same way `planKey` identifies them. */
 const legKey = (from: RoadtripStop, to: RoadtripStop): string => `${stopKey(from)}>${stopKey(to)}`
@@ -93,6 +115,7 @@ const legKey = (from: RoadtripStop, to: RoadtripStop): string => `${stopKey(from
 const EMPTY_ACCOMMODATIONS: Accommodation[] = []
 const EMPTY_RESERVATIONS: Reservation[] = []
 const NO_STAND_INS: ReadonlySet<string> = new Set()
+const NO_ENGINES: Readonly<Record<string, RouteEngine>> = {}
 
 /** One leg as the rail's own router answered it, for a surface checking a choice against it. */
 export interface RailLegRoute {
@@ -120,7 +143,7 @@ export interface RailLegRouter {
   mode: string
   /** The classes the rail weighs away on this leg: none unless the leg is driven by Valhalla. */
   avoid: RouteAvoidClass[]
-  /** Which engine prices this leg on the rail. */
+  /** Which engine prices this leg on the rail, read off its answer once there is one (`plannedEngine`). */
   engine: RouteEngine
   /**
    * True when the line the rail has for this leg came from OSRM standing in for `engine`,
@@ -249,6 +272,8 @@ export function useRoadtripRoutes(
   const [seamLegs, setSeamLegs] = useState<Record<string, SeamLeg>>({})
   /** The legs of the day runs that OSRM drew while the engine asked did not answer. */
   const [standInLegs, setStandInLegs] = useState<ReadonlySet<string>>(NO_STAND_INS)
+  /** The engine each leg of the day runs is planned with, as its answer said (`plannedEngine`). */
+  const [runEngines, setRunEngines] = useState<Readonly<Record<string, RouteEngine>>>(NO_ENGINES)
   /** Bumped to route everything again (`reroute`): every answer already cached comes back at once. */
   const [rerouteRound, setRerouteRound] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -417,6 +442,7 @@ export function useRoadtripRoutes(
       setSnapByDay({})
       setMissedByDay({})
       setStandInLegs(NO_STAND_INS)
+      setRunEngines(NO_ENGINES)
       setLoading(false)
       return
     }
@@ -428,6 +454,7 @@ export function useRoadtripRoutes(
     const collectedSnaps: Record<number, Record<string, SnappedWaypoint>> = {}
     const collectedMisses: Record<number, RouteAvoidClass[]> = {}
     const collectedStandIns = new Set<string>()
+    const collectedEngines: Record<string, RouteEngine> = {}
     const tasks: (() => Promise<void>)[] = []
 
     /**
@@ -518,9 +545,7 @@ export function useRoadtripRoutes(
               }
             }
             const folded = foldRouteRun(run, stopAt, r, mode, distanceUnit)
-            // Remembered per leg, so a picker opened on one of them knows the line on the
-            // map is not its engine's and does not read it as the road already taken.
-            if (r.avoidance?.fellBack) for (const key of Object.keys(folded)) collectedStandIns.add(key)
+            noteEngines(Object.keys(folded), r, collectedEngines, collectedStandIns)
             Object.assign(dayLegs, folded)
             return
           } catch (err) {
@@ -565,6 +590,7 @@ export function useRoadtripRoutes(
       setSnapByDay({ ...collectedSnaps })
       setMissedByDay({ ...collectedMisses })
       setStandInLegs(new Set(collectedStandIns))
+      setRunEngines({ ...collectedEngines })
     }
     void (async () => {
       for (let i = 0; i < tasks.length; i++) {
@@ -692,11 +718,19 @@ export function useRoadtripRoutes(
    * for both, so a choice being checked cannot fire into the gap a seam is keeping.
    */
   const lastSpacedRequestAt = useRef(0)
-  /** Waits until the gap since the last such request is kept, then claims the next slot. */
-  const spacedRequest = useCallback(async (signal: AbortSignal): Promise<void> => {
+  /**
+   * Waits until the gap since the last such request is kept, then claims the next slot.
+   * Hands back what gives the slot up again, for a request the cache answered.
+   */
+  const spacedRequest = useCallback(async (signal: AbortSignal): Promise<() => void> => {
     const since = performance.now() - lastSpacedRequestAt.current
     if (since < REQUEST_SPACING_MS) await sleep(REQUEST_SPACING_MS - since, signal)
-    if (!signal.aborted) lastSpacedRequestAt.current = performance.now()
+    const before = lastSpacedRequestAt.current
+    const claimed = performance.now()
+    if (!signal.aborted) lastSpacedRequestAt.current = claimed
+    return () => {
+      if (lastSpacedRequestAt.current === claimed) lastSpacedRequestAt.current = before
+    }
   }, [])
 
   useEffect(() => {
@@ -727,7 +761,7 @@ export function useRoadtripRoutes(
         // shared routing hosts answered the tail with 429, and a refused seam
         // writes no state, so nothing changed to make the effect try again: the
         // map drew the trip in pieces and the totals came back short.
-        await spacedRequest(controller.signal)
+        const release = await spacedRequest(controller.signal)
         if (controller.signal.aborted) return
         try {
           // The via points on this seam, threaded in the same way the day runs thread
@@ -735,6 +769,7 @@ export function useRoadtripRoutes(
           // shape: it is asked for on its own, so the points the traveller dropped on it
           // never reached the router and dragging one did visibly nothing.
           const shaping = viasOnLeg(seam.from, seam.to, viasByDay[seam.from.ownerDayId] ?? [])
+          const startedAt = performance.now()
           const r = await calculateRouteWithLegs(
             [
               { lat: seam.from.lat, lng: seam.from.lng },
@@ -743,6 +778,10 @@ export function useRoadtripRoutes(
             ],
             { signal: controller.signal, profile: mode, tripId: tripId ?? null, dayId: seam.dayId, avoid },
           )
+          // A seam this device routed before came back from its cache and went nowhere, so
+          // its slot goes back before the store below re-runs this effect. Holding it made a
+          // trip of connected days wait a second per join on every open (#2794).
+          if (performance.now() - startedAt <= CACHE_HIT_MS) release()
           if (controller.signal.aborted) return
           // One leg per waypoint PAIR, so a shaped seam comes back in pieces and the rail
           // wants the whole drive: merged here, exactly as a day run folds its via legs
@@ -757,6 +796,7 @@ export function useRoadtripRoutes(
               vias: [],
               shape,
               standIn: r.avoidance?.fellBack === true,
+              engine: plannedEngine(r),
               missed: r.avoidance ? r.avoidance.asked.filter(cls => !r.avoidance!.achieved.includes(cls)) : [],
             },
           }))
@@ -786,7 +826,7 @@ export function useRoadtripRoutes(
     return {
       mode,
       avoid: avoidedClasses(mode, avoid),
-      engine: routeEngineFor(mode, avoid),
+      engine: (byRun ? runEngines[key] : seamLegs[key]?.engine) ?? routeEngineFor(mode, avoid),
       standIn: byRun ? standInLegs.has(key) : seamLegs[key]?.standIn === true,
       route: async (pins, signal) => {
         await spacedRequest(signal)
@@ -803,7 +843,7 @@ export function useRoadtripRoutes(
         }
       },
     }
-  }, [legModeOf, avoid, spacedRequest, tripId, plan, legsByDay, standInLegs, seamLegs])
+  }, [legModeOf, avoid, spacedRequest, tripId, plan, legsByDay, standInLegs, runEngines, seamLegs])
 
   const reroute = useCallback(() => setRerouteRound(round => round + 1), [])
 

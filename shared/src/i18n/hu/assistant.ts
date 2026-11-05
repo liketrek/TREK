@@ -41,6 +41,8 @@ const assistant: TranslationStrings = {
   'assistant.connect.openAssistant': 'Asszisztens megnyitása',
   'assistant.connect.badKey': 'Ez a kulcs nem működik.',
   'assistant.connect.unknownModel': 'Ez a modell itt nem érhető el.',
+  'assistant.connect.noModelList':
+    'A szerver válaszolt, de nem küldött modellistát. Ellenőrizd a címet, általában /v1-re végződik.',
   'assistant.connect.getKey': 'Kulcs igénylése',
   'assistant.connect.hintAnthropic': 'A Claude Max és Team csomag API-kreditet is tartalmaz.',
   'assistant.connect.hintOpenai': 'Hozz létre egy kulcsot az OpenAI irányítópultján.',
@@ -182,6 +184,8 @@ const assistant: TranslationStrings = {
   'assistant.change.label.currency': 'Pénznem',
   'assistant.change.label.stopType': 'Megálló típusa',
   'assistant.change.label.text': 'Szöveg',
+  'assistant.change.label.title': 'Cím',
+  'assistant.change.label.content': 'Tartalom',
   'assistant.change.label.icon': 'Ikon',
   'assistant.change.label.color': 'Szín',
   'assistant.change.label.position': 'Pozíció',

@@ -5,8 +5,10 @@
  * the decision to make them is MapsService's.
  */
 import { getCountryFromCoords } from '../../utils/country-borders';
+import { mergeRanked, type RowView } from './maps-merge.helpers';
 import { buildOsmDetails, parsePoiCategories, samePlace, toApiLang } from './maps.helpers';
 import { POI_RESULT_CAP, type PoiSearchResult } from './providers/osm.client';
+import type { PhotonLead } from './providers/photon.mapping';
 import {
   INDEX_MAX_CATEGORY_CHARS,
   INDEX_MAX_LIMIT,
@@ -15,6 +17,7 @@ import {
   isOsmHit,
   osmPlaceId,
   toPlaceRecord,
+  type TrekOsmPlace,
   type TrekPlace,
   type TrekSearchHit,
 } from './trek-places.client';
@@ -333,6 +336,72 @@ export function indexSuggestions(found: TrekSearchHit[], lang?: string): MapsAut
           lng: p.lng,
         },
   );
+}
+
+type Suggestion = MapsAutocompleteResult['suggestions'][number];
+
+/**
+ * The index's suggestions with Photon's interleaved, the way the search list
+ * merges the index with Photon (#2877), through the same merge
+ * (`mergeRanked`): Photon's lead first, a row the list already holds once.
+ * A town leads only within `LEAD_TOWN_REACH_M` of where the traveller looks,
+ * so "Hamburg" asked in a Japan trip still opens on what the index found in
+ * Japan.
+ */
+export function mergeSuggestions(
+  fromIndex: Suggestion[],
+  fromPhoton: Suggestion[],
+  limit = 8,
+  opts: { lead?: PhotonLead | null; bias?: { lat: number; lng: number } } = {},
+): Suggestion[] {
+  return mergeRanked(fromIndex, fromPhoton, limit, suggestionView, opts);
+}
+
+const suggestionView = (s: Suggestion): RowView => ({
+  id: s.placeId,
+  name: s.mainText,
+  line: s.secondaryText,
+  lat: s.lat,
+  lng: s.lng,
+});
+
+/**
+ * A row of the index's OpenStreetMap layer in the shape a search answers
+ * with. The layer carries no address, so the line is the town it names and
+ * the country of its coordinate, the way its suggestion row reads.
+ */
+export function osmLayerRecord(p: TrekOsmPlace, lang?: string): Record<string, unknown> {
+  return {
+    google_place_id: null,
+    google_ftid: null,
+    osm_id: osmPlaceId(p),
+    name: p.name,
+    address: [p.locality, countryName(getCountryFromCoords(p.lat, p.lng), lang)].filter(Boolean).join(', '),
+    lat: Number.isFinite(p.lat) ? p.lat : null,
+    lng: Number.isFinite(p.lng) ? p.lng : null,
+    rating: null,
+    website: null,
+    phone: null,
+    // The layer's categories are TREK's own segments, not OpenStreetMap values.
+    category: null,
+    source: 'openstreetmap',
+  };
+}
+
+/** How long Photon's suggestions may still take once the index has answered. */
+export const PHOTON_GRACE_MS = 300;
+
+/** What `pending` answers within `ms`, or null when it takes longer than that. */
+export async function answerWithin<T>(pending: Promise<T | null>, ms: number): Promise<T | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), ms);
+  });
+  try {
+    return await Promise.race([pending, late]);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /**

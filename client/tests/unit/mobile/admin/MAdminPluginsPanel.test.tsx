@@ -359,12 +359,22 @@ describe('MAdminPluginsPanel — Discover', () => {
     await waitFor(() => expect(toastMessages()).toContain('Installed'));
   });
 
-  it('FE-MOB-PLUGP-018: an entry no published version fits gets a dead, explained button', async () => {
+  it('FE-MOB-PLUGP-018: an entry no published version fits installs only after the admin accepts the risk', async () => {
+    let body: unknown = null;
     await openDiscover([registryEntry({ trek: '>=4.0.0', hostVersion: '3.3.0', compatible: false, latestCompatible: null })]);
+    server.use(http.post('*/api/admin/plugins/install', async ({ request }) => {
+      body = await request.json();
+      return HttpResponse.json({ id: 'trek-gotify', version: '2.0.0', trekRangeBypassed: null });
+    }));
 
-    const btn = await screen.findByRole('button', { name: 'Incompatible' });
-    expect(btn).toBeDisabled();
+    const btn = await screen.findByRole('button', { name: /^Install$/ });
     expect(btn).toHaveAttribute('title', 'Needs TREK >=4.0.0 — this server runs 3.3.0');
+    fireEvent.click(btn);
+
+    const sheet = await screen.findByRole('dialog', { name: 'Untested on this TREK' });
+    expect(body).toBeNull();
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Install anyway' }));
+    await waitFor(() => expect(body).toEqual({ id: 'trek-gotify', acceptTrekRange: true }));
   });
 
   it('FE-MOB-PLUGP-019: when only an older release fits, that version is offered and installed', async () => {
@@ -1806,7 +1816,7 @@ describe('MAdminPluginsPanel — TREK-range bypass (TREK_PLUGINS_IGNORE_TREK_RAN
     expect(await screen.findByText('Version checks off')).toBeInTheDocument();
   });
 
-  it('FE-MOB-PLUGP-BYPASS-002: offers "Install anyway" and asks before installing', async () => {
+  it('FE-MOB-PLUGP-BYPASS-002: offers Install and asks before installing', async () => {
     let body: unknown = null;
     mockPanel([], [incompatibleEntry()], { ignoreTrekRange: true });
     server.use(http.post('*/api/admin/plugins/install', async ({ request }) => {
@@ -1816,7 +1826,7 @@ describe('MAdminPluginsPanel — TREK-range bypass (TREK_PLUGINS_IGNORE_TREK_RAN
     render(<MAdminPluginsPanel />);
     fireEvent.click(await screen.findByRole('tab', { name: /Discover/ }));
 
-    const btn = await screen.findByRole('button', { name: 'Install anyway' });
+    const btn = await screen.findByRole('button', { name: /^Install$/ });
     expect(btn).toBeEnabled();
     fireEvent.click(btn);
 
@@ -1834,7 +1844,7 @@ describe('MAdminPluginsPanel — TREK-range bypass (TREK_PLUGINS_IGNORE_TREK_RAN
     server.use(http.post('*/api/admin/plugins/install', () => { posted = true; return HttpResponse.json({ id: 'trek-gotify', version: '2.0.0', trekRangeBypassed: null }); }));
     render(<MAdminPluginsPanel />);
     fireEvent.click(await screen.findByRole('tab', { name: /Discover/ }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Install anyway' }));
+    fireEvent.click(await screen.findByRole('button', { name: /^Install$/ }));
 
     const sheet = await screen.findByRole('dialog', { name: 'Outside its supported TREK versions' });
     fireEvent.click(within(sheet).getByRole('button', { name: 'Cancel' }));

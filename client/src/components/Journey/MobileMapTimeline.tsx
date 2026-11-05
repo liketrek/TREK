@@ -70,7 +70,7 @@ export default function MobileMapTimeline({
 }: Props) {
   const {
     mapRef, carouselRef, cardRefs, activeIndex, setActiveIndex, scrubberDays,
-    syncMapToCard: syncMapToCarousel, handleMarkerClick, handleCardTap, jumpToDay,
+    syncMapToCard: syncMapToCarousel, handleMarkerClick, handleCardTap, openEntryById, jumpToDay,
   } = useJourneyCarouselSync({ entries, mapEntries, onOpenEntry: onEntryClick })
   // The delayed initial focus reads both through refs so it always works off
   // the current map entries, not the ones from the render that armed the timer.
@@ -169,6 +169,7 @@ export default function MobileMapTimeline({
         dark={dark}
         activeMarkerId={activeEntryId}
         onMarkerClick={handleMarkerClick}
+        onMarkerCardClick={openEntryById}
         fullScreen
         paddingBottom={250}
         cartoApiKey={cartoApiKey}

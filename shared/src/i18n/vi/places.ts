@@ -166,5 +166,14 @@ const places: TranslationStrings = {
   'places.image.needsConnection': 'Ảnh mới cần kết nối. Hãy lưu lại khi bạn trực tuyến.',
   'places.openPhotos': 'Xem ảnh',
   'places.imageUploadError': 'Không thể tải ảnh lên',
+  'places.refresh.pill': 'Thông tin địa điểm mới',
+  'places.refresh.title': 'Cập nhật thông tin địa điểm',
+  'places.refresh.intro':
+    'TREK biết thông tin mới hơn cho địa điểm này. Chọn những gì muốn lấy, phần còn lại giữ nguyên. Sau đó lưu địa điểm.',
+  'places.refresh.apply': 'Lấy',
+  'places.refresh.replaces': 'Thay thế giá trị đang lưu',
+  'places.refresh.empty': 'trống',
+  'places.refresh.now': 'Hiện tại',
+  'places.refresh.new': 'Mới',
 };
 export default places;

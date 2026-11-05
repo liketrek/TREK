@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import type { BookingImportPreviewItem } from '@trek/shared'
-import { mapsApi } from '../../api/client'
 import { receiptToPrefill } from '../../components/Budget/CostsPanel.helpers'
 import type { ExpensePrefill } from '../../components/Budget/CostsPanel'
 import { parsedItemToDraft, isTransportItem, isUnplaceableItem, type BookingReviewDraft } from '../../components/Planner/parsedItemToDraft'
+import { retriedSave, type BookingSaveSteps } from '../../components/Planner/bookingFormModel'
 import { getImportFiles, deleteImportFiles } from '../../db/offlineDb'
 import { accommodationRepo } from '../../repo/accommodationRepo'
+import { findOnMap, stayQueries } from '../../repo/mapMatchRepo'
 import { useBackgroundTasksStore } from '../../store/backgroundTasksStore'
 import type { TripStoreState } from '../../store/tripStore'
 import { isEffectivelyOffline } from '../../sync/networkMode'
-import type { Accommodation, Place } from '../../types'
+import type { Accommodation, Place, Reservation } from '../../types'
 import type { Can, PlannerBase } from './plannerTypes'
 import type { PlannerDialogs } from './usePlannerDialogs'
 
@@ -57,13 +58,23 @@ export function useBookingEdits(options: BookingEditsOptions) {
   // The value comes off the persisted job (#2076).
   const importKindRef = useRef<'transports' | 'bookings'>('bookings')
 
-  const handleSaveReservation = async (data: Record<string, string | number | null> & { title: string }) => {
+  // A save is done once the editor's own part (travellers, files) is done too:
+  // only then does it say so and close. Until then the editor stays open, so a
+  // failed upload leaves the files to try again instead of a closed dialog and a
+  // booking that silently lacks them (#2883). Undefined means not done.
+  const handleSaveReservation = async (
+    data: Record<string, string | number | null> & { title: string },
+    { saved: earlier, afterSave }: BookingSaveSteps = {},
+  ): Promise<Reservation | undefined> => {
     try {
       // Imported hotel with a reviewed address but no existing place picked: match
       // an existing place by name, else geocode the address and create one, then link it.
       const acc = (data as Record<string, any>).create_accommodation
       if (data.type === 'hotel' && acc && acc.venue && !acc.place_id) {
-        acc.place_id = (await resolveImportedPlace(acc.venue)) ?? undefined
+        const resolved = await resolveImportedPlace(acc.venue)
+        acc.place_id = resolved?.id ?? undefined
+        // Saved, but nowhere on the map: say so rather than leave the pin to go missing.
+        if (resolved && !resolved.placed) toast.warning(t('reservations.import.savedWithoutPin'))
         delete acc.venue
       }
       // A hotel's address lives on the linked place. Write an edited address
@@ -78,55 +89,54 @@ export function useBookingEdits(options: BookingEditsOptions) {
         }
         delete acc.address
       }
+      let r: Reservation
       if (editingReservation) {
         // Don't force a day here. The old code pinned it to the (often empty)
         // selected day, which dropped the booking out of the Plan; preserving the
         // old day_id instead left it stale when the date changed. Omitting it lets
         // the server derive the day from the booking's date, or keep the current
         // one when there is no date.
-        const r = await tripActions.updateReservation(tripId, editingReservation.id, data)
-        toast.success(t('trip.toast.reservationUpdated'))
-        setShowReservationModal(false)
-        setEditingReservation(null)
-        if (data.type === 'hotel') {
-          accommodationRepo.list(tripId).then(d => setTripAccommodations(d.accommodations || [])).catch(() => {})
-        }
-        return r
+        r = await tripActions.updateReservation(tripId, editingReservation.id, data)
+      } else if (earlier) {
+        r = await tripActions.updateReservation(tripId, earlier.id, retriedSave(data, earlier))
       } else {
-        const r = await tripActions.addReservation(tripId, { ...data, day_id: selectedDayId || null })
-        toast.success(t('trip.toast.reservationAdded'))
-        setShowReservationModal(false)
+        r = await tripActions.addReservation(tripId, { ...data, day_id: selectedDayId || null })
         // An imported booking auto-creates a linked cost server-side; the saving client gets
         // no budget:created echo, so refresh the budget items here to surface it without a reload.
         if ((data as Record<string, unknown>).create_budget_entry) await tripActions.loadBudgetItems?.(tripId)
-        // Refresh accommodations if hotel was created
-        if (data.type === 'hotel') {
-          accommodationRepo.list(tripId).then(d => setTripAccommodations(d.accommodations || [])).catch(() => {})
-        }
-        return r
       }
+      if (data.type === 'hotel') {
+        accommodationRepo.list(tripId).then(d => setTripAccommodations(d.accommodations || [])).catch(() => {})
+      }
+      await afterSave?.(r)
+      toast.success(t(editingReservation ? 'trip.toast.reservationUpdated' : 'trip.toast.reservationAdded'))
+      setShowReservationModal(false)
+      if (editingReservation) setEditingReservation(null)
+      return r
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }
   }
 
-  const handleSaveTransport = async (data: Record<string, any> & { title: string }) => {
+  const handleSaveTransport = async (
+    data: Record<string, any> & { title: string },
+    { saved: earlier, afterSave }: BookingSaveSteps = {},
+  ): Promise<Reservation | undefined> => {
     try {
+      let r: Reservation
       if (editingTransport) {
-        const r = await tripActions.updateReservation(tripId, editingTransport.id, data)
-        toast.success(t('trip.toast.reservationUpdated'))
-        setShowTransportModal(false)
-        setEditingTransport(null)
-        setTransportModalDayId(null)
-        return r
+        r = await tripActions.updateReservation(tripId, editingTransport.id, data)
+      } else if (earlier) {
+        r = await tripActions.updateReservation(tripId, earlier.id, retriedSave(data, earlier))
       } else {
-        const r = await tripActions.addReservation(tripId, data)
-        toast.success(t('trip.toast.reservationAdded'))
-        setShowTransportModal(false)
-        setEditingTransport(null)
-        setTransportModalDayId(null)
+        r = await tripActions.addReservation(tripId, data)
         // Surface the auto-created linked cost without a reload (no budget:created echo to us).
         if (data.create_budget_entry) await tripActions.loadBudgetItems?.(tripId)
-        return r
       }
+      await afterSave?.(r)
+      toast.success(t(editingTransport ? 'trip.toast.reservationUpdated' : 'trip.toast.reservationAdded'))
+      setShowTransportModal(false)
+      setEditingTransport(null)
+      setTransportModalDayId(null)
+      return r
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }
   }
 
@@ -141,9 +151,13 @@ export function useBookingEdits(options: BookingEditsOptions) {
   }
 
   // ── Review-before-save booking import ───────────────────────────────────────
-  // Match an existing trip place by name, else geocode the reviewed address and
-  // create one. Returns the place id (or null if even creation failed).
-  const resolveImportedPlace = async (venue: { name?: string; address?: string | null }): Promise<number | null> => {
+  // Match an existing trip place by name, else create one at the spot the review
+  // found, or the first spot the map search knows for its name and address.
+  // Returns the place and whether it has a spot on the map (null if even creation
+  // failed).
+  const resolveImportedPlace = async (
+    venue: { name?: string; address?: string | null; lat?: number; lng?: number },
+  ): Promise<{ id: number; placed: boolean } | null> => {
     const name = (venue.name || '').trim()
     const n = name.toLowerCase()
     if (n) {
@@ -153,23 +167,23 @@ export function useBookingEdits(options: BookingEditsOptions) {
       // the booking waits in the queue behind that place and is sent with its real
       // id. Online the booking goes out at once, and day_accommodations.place_id
       // carries a foreign key, so a temp id there is a 500 instead of a saved booking.
-      if (existing && (existing.id > 0 || isEffectivelyOffline())) return existing.id
+      if (existing && (existing.id > 0 || isEffectivelyOffline())) return { id: existing.id, placed: existing.lat != null && existing.lng != null }
     }
-    let lat: number | null = null
-    let lng: number | null = null
+    let lat: number | null = venue.lat ?? null
+    let lng: number | null = venue.lng ?? null
     let address: string | null = venue.address ?? null
-    try {
-      const query = venue.address ? `${name} ${venue.address}`.trim() : name
-      // Offline there is no geocoder to ask; the place is created without coords.
-      if (query && !isEffectivelyOffline()) {
-        const res = await mapsApi.search(query)
-        const hit = res?.places?.[0] as { lat?: number; lng?: number; address?: string } | undefined
-        if (hit && hit.lat != null && hit.lng != null) {
+    if (lat == null || lng == null) {
+      try {
+        // Name and address, then each alone: a booking site's romanized address
+        // often matches nothing and sinks the hotel's name with it. Offline
+        // findOnMap answers null and the place is created without coords.
+        const hit = await findOnMap(stayQueries(name, venue.address))
+        if (hit) {
           lat = hit.lat; lng = hit.lng
           if (!address && hit.address) address = hit.address
         }
-      }
-    } catch { /* geocode failure is non-fatal: create the place without coords */ }
+      } catch { /* geocode failure is non-fatal: create the place without coords, and say so */ }
+    }
     try {
       // Through the store, not placesApi directly: the API answers { place },
       // and reading .id off that wrapper linked nothing. Every save of the
@@ -178,7 +192,7 @@ export function useBookingEdits(options: BookingEditsOptions) {
       // find it. addPlace unwraps the response and puts the place into
       // `places`, so the next save reuses it.
       const place = await tripActions.addPlace(tripId, { name: name || address || 'Accommodation', lat, lng, address })
-      return place && (place.id > 0 || isEffectivelyOffline()) ? place.id : null
+      return place && (place.id > 0 || isEffectivelyOffline()) ? { id: place.id, placed: lat != null && lng != null } : null
     } catch { return null }
   }
 

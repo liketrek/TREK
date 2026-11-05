@@ -34,6 +34,8 @@ const map: TranslationStrings = {
   'map.overview.hide': 'Peida kogu reis',
   'map.overview.total': 'Kogupikkus',
   'map.attribution': 'Kaardi allikad',
+  'map.overview.distanceAtLeast': 'vähemalt {distance}',
+  'map.overview.notRouted': 'marsruut arvutamata',
   'map.overview.unrouted': '{count} lõigu marsruuti ei saanud arvutada, seega on vahemaad puudulikud.',
   'map.overview.unrouted.one': '{count} lõigu marsruuti ei saanud arvutada, seega on vahemaad puudulikud.',
   'map.overview.dayUnrouted': 'Selle päeva {count} lõigu marsruuti ei saanud arvutada',

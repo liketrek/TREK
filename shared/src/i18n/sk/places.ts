@@ -183,5 +183,14 @@ const places: TranslationStrings = {
   'places.image.needsConnection': 'Nový obrázok potrebuje pripojenie. Ulož znova, keď budeš online.',
   'places.openPhotos': 'Zobraziť fotky',
   'places.imageUploadError': 'Obrázok sa nepodarilo nahrať',
+  'places.refresh.pill': 'Nové údaje o mieste',
+  'places.refresh.title': 'Aktualizovať údaje o mieste',
+  'places.refresh.intro':
+    'TREK pozná novšie údaje o tomto mieste. Vyberte, čo chcete prevziať, zvyšok zostane bez zmeny. Potom miesto uložte.',
+  'places.refresh.apply': 'Prevziať',
+  'places.refresh.replaces': 'Nahradí aktuálne uloženú hodnotu',
+  'places.refresh.empty': 'prázdne',
+  'places.refresh.now': 'Teraz',
+  'places.refresh.new': 'Nové',
 };
 export default places;

@@ -64,6 +64,9 @@ export function collectManagedRoutes(app: INestApplication): ManagedRouteEntry[]
  */
 export const MANAGED_ROUTE_ALLOW_LIST: string[] = [
   'AdminController.rotateJwtSecret',
+  'AdminController.updatePlaceShadow',
+  'AdminController.updateToursWanderer',
+  'AdminController.updateTransitProvider',
   'AdminOidcController.get',
   'AdminOidcController.update',
   'AiAdminController.connection',
@@ -125,6 +128,7 @@ export const MANAGED_ROUTE_ALLOW_LIST: string[] = [
   'PluginsController.link',
   'PluginsController.reload',
   'PluginsController.upload',
+  'ServiceIdentityController.regenerate',
   'StorageAdminController.backfillCancel',
   'StorageAdminController.backfillStart',
   'StorageAdminController.get',
@@ -133,6 +137,9 @@ export const MANAGED_ROUTE_ALLOW_LIST: string[] = [
   'StorageAdminController.statsRefresh',
   'StorageAdminController.test',
   'StorageAdminController.update',
+  'StorageReclaimController.confirm',
+  'StorageReclaimController.run',
+  'StorageReclaimController.update',
 ];
 
 /**

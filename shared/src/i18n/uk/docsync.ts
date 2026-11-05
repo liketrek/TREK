@@ -182,6 +182,12 @@ const docsync: TranslationStrings = {
   'docsync.error.provider_disabled':
     'Призупинено: адміністратор вимкнув цього постачальника. Синхронізація відновиться, щойно його знову ввімкнуть.',
   'docsync.binding.reconnect': 'Підключити знову',
+  'docsync.connection.title': 'Підключення',
+  'docsync.connection.hint': 'Адреса й дані входу, які TREK використовує для цього сховища.',
+  'docsync.connection.edit': 'Змінити підключення',
+  'docsync.connection.remove': 'Видалити підключення',
+  'docsync.connection.confirmRemove':
+    'TREK забуде адресу й дані входу для цього сховища, і вся синхронізація цієї подорожі через нього зупиниться. Документи залишаться в TREK і в сховищі.',
 };
 
 export default docsync;

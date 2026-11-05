@@ -265,6 +265,27 @@ export function useDocSync(tripId: number | string, enabled: boolean) {
   }, [tripId, load])
 
   /**
+   * Forget a stored connection, and with it every binding of this trip that
+   * runs through it. The documents stay on both sides; what goes is the
+   * address and the login TREK kept for the store, which is the one thing a
+   * person changing accounts or folders had no way to take back.
+   */
+  const removeConnection = useCallback(async (connectionId: number) => {
+    setBusy('connection')
+    setError(null)
+    try {
+      await docsyncApi.deleteConnection(tripId, connectionId)
+      await load()
+      return true
+    } catch (e: unknown) {
+      setError(readError(e))
+      return false
+    } finally {
+      setBusy(null)
+    }
+  }, [tripId, load])
+
+  /**
    * Probe without saving. Always resolves to a verdict object: the route
    * answers 200 even for an unreachable instance, because a form showing a typo
    * needs a field to render, not an exception.
@@ -427,7 +448,7 @@ export function useDocSync(tripId: number | string, enabled: boolean) {
     connections, links, itemCounts,
     loading, busy, error,
     connectionFor, load,
-    saveConnection, testConnection,
+    saveConnection, testConnection, removeConnection,
     loadScopes, createScope,
     createLink, updateLink, removeLink, syncNow, resolveConflict,
   }

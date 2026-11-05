@@ -308,49 +308,17 @@ export default function PlaceDetailsColumn({
               t={t}
             />
             <FactList facts={data?.facts ?? []} dialog={dialog} t={t} />
-            <DescriptionBlock description={data?.description ?? null} dialog={dialog} t={t} />
+            <DescriptionBlock
+              description={data?.description ?? null}
+              dialog={dialog}
+              t={t}
+              onAdopt={() => data?.description && onAdoptDescription(data.description.text)}
+              adoptBlocked={hasDescription}
+              adoptBlockedId={adoptBlockedId}
+            />
           </>
         )}
       </div>
-
-      {/* Pinned, not scrolled. Adopting the text is the only thing this column
-          asks the reader to do, and it used to sit below a description long
-          enough to push it out of view — the button was there, just never
-          where anyone looked. */}
-      {selection && state === 'ready' && !data?.disabled && data?.description && (
-        <div className={dialog ? 'shrink-0 border-t border-edge-faint p-2.5' : 'shrink-0 border-t border-edge p-2.5'}>
-          {dialog ? (
-            // White like the dialog's other secondary buttons. While it is
-            // blocked the line under it says why, so it needs no tooltip, and
-            // that line is its description for assistive tech.
-            <button
-              type="button"
-              onClick={() => onAdoptDescription(data.description!.text)}
-              disabled={hasDescription}
-              aria-describedby={hasDescription ? adoptBlockedId : undefined}
-              className={WHITE_BUTTON}
-              style={fs(13, 'body')}
-            >
-              <ArrowRight className="w-3.5 h-3.5" />
-              {t('places.details.adopt')}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => onAdoptDescription(data.description!.text)}
-              disabled={hasDescription}
-              title={hasDescription ? t('places.details.adoptBlocked') : undefined}
-              className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-body font-medium bg-accent-subtle text-accent-on hover:bg-accent hover:text-accent-text disabled:opacity-50 disabled:hover:bg-accent-subtle disabled:hover:text-accent-on transition-colors"
-            >
-              <ArrowRight className="w-3.5 h-3.5" />
-              {t('places.details.adopt')}
-            </button>
-          )}
-          {hasDescription && (
-            <p id={dialog ? adoptBlockedId : undefined} className="mt-1 text-center text-caption text-content-faint">{t('places.details.adoptBlocked')}</p>
-          )}
-        </div>
-      )}
     </aside>
   )
 }
@@ -402,6 +370,8 @@ function descriptionSourceLabel(
       return 'Wikivoyage'
     case 'wikipedia':
       return 'Wikipedia'
+    case 'community':
+      return 'TREK Community'
     case 'website':
       try {
         return new URL(sourceUrl || '').hostname.replace(/^www\./, '')
@@ -649,10 +619,16 @@ function DescriptionBlock({
   description,
   dialog = false,
   t,
+  onAdopt,
+  adoptBlocked,
+  adoptBlockedId,
 }: {
   description: MapsPlaceEnrichmentResult['description']
   dialog?: boolean
   t: TranslationFn
+  onAdopt: () => void
+  adoptBlocked: boolean
+  adoptBlockedId: string
 }): React.ReactElement | null {
   if (!description) return null
 
@@ -690,6 +666,23 @@ function DescriptionBlock({
           )}
           {description.license && (dialog ? <span>{description.license}</span> : ` · ${description.license}`)}
         </p>
+        {/* Right under the text it copies, so the reader finds it where they
+            just read. While the form already has a description, the line under
+            it says why it is off and doubles as its description for assistive tech. */}
+        <button
+          type="button"
+          onClick={onAdopt}
+          disabled={adoptBlocked}
+          aria-describedby={adoptBlocked ? adoptBlockedId : undefined}
+          className={dialog ? WHITE_BUTTON : 'w-full inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-body font-medium bg-accent-subtle text-accent-on hover:bg-accent hover:text-accent-text disabled:opacity-50 disabled:hover:bg-accent-subtle disabled:hover:text-accent-on transition-colors'}
+          style={dialog ? fs(13, 'body') : undefined}
+        >
+          <ArrowRight className="w-3.5 h-3.5" />
+          {t('places.details.adopt')}
+        </button>
+        {adoptBlocked && (
+          <p id={adoptBlockedId} className="text-center text-caption text-content-faint">{t('places.details.adoptBlocked')}</p>
+        )}
       </div>
     </Block>
   )

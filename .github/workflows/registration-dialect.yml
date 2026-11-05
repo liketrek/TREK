@@ -1,0 +1,144 @@
+name: Registration dialect
+
+# Asks the TREK services issuer for the registration dialect of one version and
+# checks it, for docker.yml (a stable release commits it with the version bump)
+# and docker-dev.yml (a prerelease only builds it into its image).
+#
+# The issuer's answer runs here, in a job that holds no write token and keeps
+# no git credentials; the token for the issuer is in the environment of the
+# one step that fetches. The answer is held to what a dialect is
+# (scripts/ci/check-registration-dialect.mjs), then type-checked and linted
+# the way TREK's CI would see it once it is on main and dev. Only a module that
+# passes all of it goes on, as the artifact `registration-dialect`; without
+# one the caller decides what ships. This workflow never fails its caller.
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'The version the dialect is for, X.Y.Z or X.Y.Z-pre.N'
+        type: string
+        required: true
+      ref:
+        description: 'The commit whose checker, types and lint config the dialect is checked with'
+        type: string
+        required: true
+    secrets:
+      TREK_DIALECT_TOKEN:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  dialect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    # A failed or timed-out run leaves no artifact, which the caller already
+    # handles; it must not fail the release around it.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      # The only step that sees the token. The URL is fixed; the answer is
+      # bounded in time and size and goes to a file nothing runs yet.
+      - name: Fetch the dialect from the issuer
+        id: fetch
+        timeout-minutes: 3
+        env:
+          TREK_DIALECT_TOKEN: ${{ secrets.TREK_DIALECT_TOKEN }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -uo pipefail
+          out="$RUNNER_TEMP/registration-dialect.ts"
+          if [ -z "${TREK_DIALECT_TOKEN:-}" ]; then
+            echo "::warning::TREK_DIALECT_TOKEN is not set; the issuer was not asked for a dialect for $VERSION."
+            exit 0
+          fi
+          status=$(curl --silent --show-error --proto '=https' --tlsv1.2 --max-time 30 --retry 2 --retry-delay 5 \
+            --max-filesize 262144 -H "Authorization: Bearer $TREK_DIALECT_TOKEN" -H 'Content-Type: application/json' \
+            --data "{\"version\":\"$VERSION\"}" -o "$out" -w '%{http_code}' https://places.liketrek.com/v1/dialects) \
+            || status=000
+          if [ "$status" != 200 ] && [ "$status" != 201 ]; then
+            echo "::warning::The issuer handed out no registration dialect for $VERSION (HTTP $status)."
+            rm -f "$out"
+            exit 0
+          fi
+          if [ "$(wc -c < "$out")" -gt 262144 ]; then
+            echo "::warning::The issuer's registration dialect for $VERSION is larger than a dialect."
+            rm -f "$out"
+            exit 0
+          fi
+          echo "file=$out" >> "$GITHUB_OUTPUT"
+
+      # A module that computes for long is refused by the clock as well.
+      - name: Check the dialect
+        id: check
+        if: steps.fetch.outputs.file != ''
+        timeout-minutes: 2
+        env:
+          FILE: ${{ steps.fetch.outputs.file }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -uo pipefail
+          if ! node scripts/ci/check-registration-dialect.mjs "$FILE" "$VERSION"; then
+            echo "::warning::The issuer's registration dialect for $VERSION failed its check."
+            exit 0
+          fi
+          echo "What changes against the dialect in the tree:"
+          git diff --no-index -- server/src/nest/service-identity/registration-dialect.ts "$FILE" || true
+          echo "ok=true" >> "$GITHUB_OUTPUT"
+
+      - name: Install the toolchain
+        if: steps.check.outputs.ok == 'true'
+        timeout-minutes: 8
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build --workspace=shared
+
+      # The bump commit skips CI, so this is where the module meets the strict
+      # config (lint:strict lets a new file have no strict errors) and ESLint
+      # with --max-warnings 0 (lint:warnings starts a new file at none) before
+      # it lands on main.
+      - name: Type-check and lint the dialect
+        id: types
+        if: steps.check.outputs.ok == 'true'
+        timeout-minutes: 5
+        working-directory: server
+        env:
+          FILE: ${{ steps.fetch.outputs.file }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -uo pipefail
+          cp "$FILE" src/nest/service-identity/registration-dialect.ts
+          # TypeScript 6 includes no @types by default and the dialect imports nothing
+          # from node, so checked on its own it would not know Buffer: name node here.
+          printf '%s\n' '{"extends": "./tsconfig.strict.json", "compilerOptions": {"types": ["node"]}, "include": [],' \
+            '"files": ["src/nest/service-identity/registration-dialect.ts"]}' > tsconfig.dialect-check.json
+          if ! npx tsc -p tsconfig.dialect-check.json --noEmit --pretty false; then
+            echo "::warning::The issuer's registration dialect for $VERSION does not type-check under the strict config."
+            exit 0
+          fi
+          if ! npx eslint --max-warnings 0 src/nest/service-identity/registration-dialect.ts; then
+            echo "::warning::The issuer's registration dialect for $VERSION does not pass ESLint."
+            exit 0
+          fi
+          echo "ok=true" >> "$GITHUB_OUTPUT"
+
+      - name: Hand the dialect on
+        if: steps.types.outputs.ok == 'true'
+        uses: actions/upload-artifact@v6
+        with:
+          name: registration-dialect
+          path: ${{ steps.fetch.outputs.file }}
+          if-no-files-found: error
+          retention-days: 1

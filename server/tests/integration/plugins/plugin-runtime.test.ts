@@ -24,7 +24,8 @@ const { testDb } = vi.hoisted(() => {
     -- otherwise fail on the version gate before reaching the behaviour under test. The gate
     -- itself is exercised in "TREK host-version gating" below, with explicit ranges.
     trek_range TEXT DEFAULT '>=3.0.0',
-    source_repo TEXT, author_pubkey TEXT, update_block_code TEXT, update_block_detail TEXT, update_block_version TEXT);
+    source_repo TEXT, author_pubkey TEXT, update_block_code TEXT, update_block_detail TEXT, update_block_version TEXT,
+    trek_range_accepted_version TEXT, trek_range_accepted_host TEXT);
     CREATE TABLE plugin_error_log (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, level TEXT, message TEXT, ts TEXT);
     CREATE TABLE plugin_settings_fields (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, field_key TEXT, scope TEXT, secret INTEGER, default_value TEXT);
     CREATE TABLE settings (user_id INTEGER, key TEXT, value TEXT);
@@ -818,14 +819,27 @@ describe('PluginRuntimeService.retrust', () => {
  * host it declared it doesn't support — would otherwise be spawned on the next boot.
  */
 describe('TREK host-version gating', () => {
-  const seedRanged = (id: string, trekRange: string | null, enabled = 0) => {
+  const seedRanged = (
+    id: string,
+    trekRange: string | null,
+    enabled = 0,
+    accepted: { version?: string; acceptedVersion?: string; acceptedHost?: string } = {},
+  ) => {
     fs.mkdirSync(path.join(codeRoot, id, 'server'), { recursive: true });
     fs.writeFileSync(path.join(codeRoot, id, 'server', 'index.js'), 'module.exports = { async onLoad() {} };');
     testDb
       .prepare(
-        "INSERT INTO plugins (id, status, enabled, permissions, granted_permissions, config, trek_range) VALUES (?, ?, ?, '[]', '[]', '{}', ?)",
+        "INSERT INTO plugins (id, status, enabled, permissions, granted_permissions, config, trek_range, version, trek_range_accepted_version, trek_range_accepted_host) VALUES (?, ?, ?, '[]', '[]', '{}', ?, ?, ?, ?)",
       )
-      .run(id, enabled ? 'active' : 'inactive', enabled, trekRange);
+      .run(
+        id,
+        enabled ? 'active' : 'inactive',
+        enabled,
+        trekRange,
+        accepted.version ?? null,
+        accepted.acceptedVersion ?? null,
+        accepted.acceptedHost ?? null,
+      );
   };
   const cleanup = (...ids: string[]) => {
     for (const id of ids) testDb.prepare('DELETE FROM plugins WHERE id = ?').run(id);
@@ -917,6 +931,43 @@ describe('TREK host-version gating', () => {
       await rt.deactivate('undeclared-ok');
       cleanup('undeclared-ok');
     });
+  });
+
+  it("runs an outgrown plugin on the admin's say-so, and does not ask a second time", async () => {
+    process.env.APP_VERSION = '5.0.0';
+    seedRanged('say-so', '>=3.2.0 <4.0.0', 0, { version: '1.0.3' });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const rt = await createPluginRuntime(dbConn);
+    await rt.activate('say-so', false, true);
+    expect(rt.isActive('say-so')).toBe(true);
+    expect(warn.mock.calls.some((c) => /say-so.*an admin chose to run it anyway/.test(String(c[0])))).toBe(true);
+    await rt.deactivate('say-so');
+
+    // The consent was kept with the row, so switching it on again needs no second one.
+    await rt.activate('say-so');
+    expect(rt.isActive('say-so')).toBe(true);
+    await rt.deactivate('say-so');
+    warn.mockRestore();
+    cleanup('say-so');
+  });
+
+  it("keeps the admin's consent for the version and TREK major it was given on only", async () => {
+    const given = { acceptedVersion: '1.0.3', acceptedHost: '5.0.0' };
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    process.env.APP_VERSION = '5.0.1';
+    seedRanged('kept', '>=3.2.0 <4.0.0', 0, { version: '1.0.3', ...given });
+    seedRanged('updated', '>=3.2.0 <4.0.0', 0, { version: '1.1.0', ...given });
+    const rt = await createPluginRuntime(dbConn);
+    await rt.activate('kept');
+    expect(rt.isActive('kept')).toBe(true);
+    await rt.deactivate('kept');
+    // An update of the plugin asks again.
+    await expect(rt.activate('updated')).rejects.toMatchObject({ code: 'TREK_VERSION_INCOMPATIBLE' });
+    // So does a new TREK major.
+    process.env.APP_VERSION = '6.0.0';
+    await expect(rt.activate('kept')).rejects.toMatchObject({ code: 'TREK_VERSION_INCOMPATIBLE' });
+    warn.mockRestore();
+    cleanup('kept', 'updated');
   });
 
   it('checks the version BEFORE permissions — an unrunnable plugin gets no consent dialog', async () => {

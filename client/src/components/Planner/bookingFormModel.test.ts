@@ -1,4 +1,4 @@
-// FE-PLANNER-BOOKINGFORM-001 to -010: the travellers, picked files, attached files
+// FE-PLANNER-BOOKINGFORM-001 to -012: the travellers, picked files, attached files
 // and expense requests of the transport and booking forms, desktop and phone alike.
 import { typeToCostCategory } from '@trek/shared';
 import { describe, expect, it, vi } from 'vitest';
@@ -11,6 +11,7 @@ import {
   expenseRequestAfterSave,
   filesNeedConnection,
   pendingImportExpense,
+  retriedSave,
   toggledTraveler,
   travelerIdsOf,
   travelersChanged,
@@ -60,6 +61,40 @@ describe('bookingFormModel', () => {
     upload.mockClear();
     await uploadBookingFiles(upload, 42, [], 'none');
     expect(upload).not.toHaveBeenCalled();
+  });
+
+  it('FE-PLANNER-BOOKINGFORM-011: each landed file is reported, and the first failure stops the rest (#2883)', async () => {
+    const files = [new File(['a'], 'a.pdf'), new File(['b'], 'fail.pdf'), new File(['c'], 'c.pdf')];
+    const upload = vi.fn(async (fd: FormData) => {
+      if ((fd.get('file') as File).name === 'fail.pdf') throw new Error('413');
+    });
+    const onUploaded = vi.fn();
+    await expect(uploadBookingFiles(upload, 42, files, 'Hotel stay', onUploaded)).rejects.toThrow('413');
+    expect(onUploaded.mock.calls).toEqual([[files[0]]]);
+    expect(upload).toHaveBeenCalledTimes(2);
+  });
+
+  it('FE-PLANNER-BOOKINGFORM-012: a retried save creates no second cost and keeps the stay it already made', () => {
+    const stored = buildReservation({ id: 6, accommodation_id: 31 } as Partial<Reservation>);
+    expect(
+      retriedSave(
+        { title: 'Ryokan', type: 'hotel', accommodation_id: null, create_budget_entry: { total_price: 90 } },
+        stored
+      )
+    ).toEqual({
+      title: 'Ryokan',
+      type: 'hotel',
+      accommodation_id: 31,
+    });
+    expect(retriedSave({ title: 'Ryokan', type: 'hotel', accommodation_id: 12 }, stored)).toEqual({
+      title: 'Ryokan',
+      type: 'hotel',
+      accommodation_id: 12,
+    });
+    expect(retriedSave({ title: 'ICE', type: 'train', create_budget_entry: true }, stored)).toEqual({
+      title: 'ICE',
+      type: 'train',
+    });
   });
 
   it('FE-PLANNER-BOOKINGFORM-008: without an upload handler the picked files are skipped and the save is not rejected', async () => {

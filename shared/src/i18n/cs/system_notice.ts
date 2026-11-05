@@ -56,23 +56,20 @@ const system_notice: TranslationStrings = {
     'Aktualizace 3.0.14 zjistila jeden nebo více konfliktů uživatelského jména nebo e-mailu způsobených mezerami na začátku nebo konci uložených hodnot. Dotčené účty byly automaticky přejmenovány. Zkontrolujte protokoly serveru na řádky začínající **[migration] WHITESPACE COLLISION** a zjistěte, které účty vyžadují kontrolu.',
   // The release modal. One stable set of keys: each big release swaps the copy in place.
   'system_notice.release_notes.eyebrow': 'Aktualizace nainstalována',
-  'system_notice.release_notes.headline': 'Největší TREK, jaký kdy byl.',
+  'system_notice.release_notes.headline': 'Správné místo, hned napoprvé.',
   'system_notice.release_notes.intro':
-    'Výlety na každý den venku, studio pro vaše fotoknihy, asistent, který plánuje s vámi, a nápověda na každé obrazovce.',
+    'Hledání míst, hledání adres a plánování tras teď běží na vlastních serverech TREK, které sponzoruje dataforest cloud, a každý TREK může sdílet, co ví o místech, se všemi ostatními.',
   'system_notice.release_notes.features_label': 'Hlavní novinky',
   'system_notice.release_notes.features_aside': 'Zdaleka ne všechno',
-  'system_notice.release_notes.feature_tours_title': 'Výlety',
-  'system_notice.release_notes.feature_tours_body':
-    'Túry, cyklovýlety, běhy, vyjížďky na koni, pádlování, procházky městem a dny na lyžích, s výškovým profilem, obtížností a 3D přeletem.',
-  'system_notice.release_notes.feature_studio_title': 'TREK Studio', // same-as-en
-  'system_notice.release_notes.feature_studio_body':
-    'Promění cestu v navrženou fotoknihu: 17 motivů, 34 písem, 160 samolepek a automatické rozvržení jedním kliknutím.',
-  'system_notice.release_notes.feature_assistant_title': 'AI asistent',
-  'system_notice.release_notes.feature_assistant_body':
-    'Plánuje s vámi vaše skutečné cesty, přes účet AI, který už máte. Každou změnu nejdřív uvidíte a můžete ji vrátit.',
-  'system_notice.release_notes.feature_help_title': 'Nápověda na každé obrazovce, ve 27 jazycích',
-  'system_notice.release_notes.feature_help_body':
-    'Asi 370 návodů krok za krokem s 1 600 obrázky, přesně tam, kde je potřebujete. Nově: ázerbájdžánština, estonština, slovenština a thajština.',
+  'system_notice.release_notes.feature_search_title': 'Hledání míst, které se trefí',
+  'system_notice.release_notes.feature_search_body':
+    'Města, ostrovy, památky a letiště podle kódu jsou na prvním místě, kavárny se hledají ve vašem okolí a návrhy se objevují už během psaní.',
+  'system_notice.release_notes.feature_share_title': 'Sdílené podrobnosti o místech',
+  'system_notice.release_notes.feature_share_body':
+    'Sdílejte weby, otevírací dobu a fotky se všemi TREK, pole po poli, a vaše uložená místa převezmou, co doplnili ostatní.',
+  'system_notice.release_notes.feature_routing_title': 'Rychlejší trasy',
+  'system_notice.release_notes.feature_routing_body':
+    'Celý den se naplánuje najednou až s dvaceti zastávkami, jedna pomalá trasa už nezdrží ostatní a veřejná doprava se zeptá druhého poskytovatele, když první nic nenajde.',
   'system_notice.release_notes.footnote': 'A k tomu dlouhý seznam menších změn napříč zbytkem TREK.',
   'system_notice.release_notes.notes_label': 'Poznámky k vydání',
   'system_notice.release_notes.note_eyebrow': 'Slovo od autora',
@@ -86,10 +83,10 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.note_body_after':
     'A pak jste ho otevřeli. Během pár měsíců vás byly tisíce: hvězdičky, hlášení chyb, překlady do jazyků, kterými nemluvím, pull requesty od lidí, které jsem nikdy nepotkal. Každé ráno se pořád nejdřív podívám do repozitáře a pořád mi to nepřijde úplně skutečné.',
   'system_notice.release_notes.note_closing': 'Děkuji, že jste tady. Váš Maurice',
-  'system_notice.release_notes.support_lead':
-    'TREK je a vždycky bude zdarma, ale servery, domény a spousta pozdních nocí zdarma nejsou.',
+  'system_notice.release_notes.support_label': 'Zůstat nezávislý',
+  'system_notice.release_notes.support_lead': 'Bez Google a spol.',
   'system_notice.release_notes.support_text':
-    'Pokud si TREK získal místo na vašich cestách, kupte mi kávu a pomozte, aby přišlo i další vydání.',
+    'Hledání míst, hledání adres a trasy běží na vlastních serverech TREK, dnes sponzorovaných společností dataforest cloud. Bojuji za to každý den a aby to tak zůstalo, potřebuji vaši podporu.',
   'system_notice.release_notes.cta_bmc': 'Kup mi kávu',
   'system_notice.release_notes.cta_kofi': 'Podpořit na Ko-fi',
 };

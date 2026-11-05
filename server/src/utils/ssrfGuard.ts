@@ -261,6 +261,10 @@ function isLinkLocal(ip: string): boolean {
  * legitimately wait longer (see safeFetchLlm). Left unset, the caller's own
  * signal governs, and a call without one waits DEFAULT_RESPONSE_TIMEOUT_MS for
  * the response headers. `maxBytes` caps the body as in SafeFetchOptions.
+ *
+ * `reuseConnections` keeps the dispatcher for the next call to the same vetted
+ * addresses (see keptDispatcher), so a caller that asks one host many times in
+ * a row, the routing relay, does not pay DNS, TCP and TLS on every question.
  */
 export async function safeFetchAdminConfigured(
   url: string,
@@ -268,6 +272,7 @@ export async function safeFetchAdminConfigured(
   maxRedirects = 5,
   responseTimeoutMs?: number,
   maxBytes: number | null = DEFAULT_MAX_RESPONSE_BYTES,
+  reuseConnections = false,
 ): Promise<Response> {
   let currentUrl = url;
   let hopInit = init;
@@ -298,7 +303,14 @@ export async function safeFetchAdminConfigured(
       throw new SsrfBlockedError('Requests to link-local / cloud-metadata addresses are not allowed');
     }
 
-    const dispatcher = createOutboundDispatcher(currentUrl, usableIps, true, responseTimeoutMs, headersTimeoutMs);
+    const dispatcher = createOutboundDispatcher(
+      currentUrl,
+      usableIps,
+      true,
+      responseTimeoutMs,
+      headersTimeoutMs,
+      reuseConnections,
+    );
     const response = await fetch(currentUrl, { ...hopInit, redirect: 'manual', dispatcher } as any);
 
     // Only a 3xx WITH a Location header is a redirect we follow; anything else
@@ -683,14 +695,57 @@ export function createOutboundDispatcher(
   rejectUnauthorized = true,
   responseTimeoutMs?: number,
   headersTimeoutMs?: number,
+  reuseConnections = false,
 ): Dispatcher {
   const proxy = proxyFor(url);
-  if (!proxy) return createPinnedDispatcher(resolved, rejectUnauthorized, responseTimeoutMs, headersTimeoutMs);
-  return new ProxyAgent({
-    uri: proxy,
-    requestTls: { rejectUnauthorized },
-    ...dispatcherTimeouts(responseTimeoutMs, headersTimeoutMs),
-  });
+  const keepAliveMs = reuseConnections ? KEPT_ALIVE_MS : undefined;
+  const create = (): Dispatcher =>
+    proxy
+      ? new ProxyAgent({
+          uri: proxy,
+          requestTls: { rejectUnauthorized },
+          ...dispatcherTimeouts(responseTimeoutMs, headersTimeoutMs),
+          ...(keepAliveMs ? { keepAliveTimeout: keepAliveMs } : {}),
+        })
+      : createPinnedDispatcher(resolved, rejectUnauthorized, responseTimeoutMs, headersTimeoutMs, keepAliveMs);
+  if (!reuseConnections) return create();
+  // Through a proxy the proxy connects, so the addresses play no part in what the dispatcher does.
+  const addresses = proxy ? [] : typeof resolved === 'string' ? [resolved] : [...resolved];
+  const key = JSON.stringify([
+    proxy,
+    addresses,
+    rejectUnauthorized,
+    responseTimeoutMs ?? null,
+    headersTimeoutMs ?? null,
+  ]);
+  return keptDispatcher(key, create);
+}
+
+/**
+ * Dispatchers kept for the callers that reuse their connections, by everything
+ * that makes one: the proxy, the vetted addresses, the TLS check and the
+ * timeouts. The addresses are part of the key, so the pin is as strict as a
+ * new agent's: a name that now resolves elsewhere gets a dispatcher of its own
+ * and never a connection to the old address. At most MAX_KEPT_DISPATCHERS are
+ * kept; the oldest is closed, after its requests finish, when one more is needed.
+ */
+const keptDispatchers = new Map<string, Dispatcher>();
+const MAX_KEPT_DISPATCHERS = 32;
+/** How long a kept connection may sit idle, where undici's own default is four seconds. */
+const KEPT_ALIVE_MS = 10_000;
+
+function keptDispatcher(key: string, create: () => Dispatcher): Dispatcher {
+  const kept = keptDispatchers.get(key);
+  if (kept) return kept;
+  const dispatcher = create();
+  keptDispatchers.set(key, dispatcher);
+  const [oldestKey] = keptDispatchers.keys();
+  if (keptDispatchers.size > MAX_KEPT_DISPATCHERS && oldestKey !== undefined) {
+    const oldest = keptDispatchers.get(oldestKey);
+    keptDispatchers.delete(oldestKey);
+    void oldest?.close().catch(() => {});
+  }
+  return dispatcher;
 }
 
 /**
@@ -717,12 +772,15 @@ function dispatcherTimeouts(
  * `all: true` and walks the list itself, moving on after its attempt timeout
  * when one family does not answer.
  * A caller that still names one address gets exactly the old behaviour.
+ * `keepAliveMs` holds an idle connection open longer than undici's default,
+ * for a dispatcher that is kept (keptDispatcher).
  */
 export function createPinnedDispatcher(
   resolved: string | readonly string[],
   rejectUnauthorized = true,
   responseTimeoutMs?: number,
   headersTimeoutMs?: number,
+  keepAliveMs?: number,
 ): Agent {
   const addresses = (typeof resolved === 'string' ? [resolved] : [...resolved]).map((address) => ({
     address,
@@ -733,6 +791,7 @@ export function createPinnedDispatcher(
     // that cap is invisible from the call site: an AbortController set to
     // fifteen still dies at five.
     ...dispatcherTimeouts(responseTimeoutMs, headersTimeoutMs),
+    ...(keepAliveMs ? { keepAliveTimeout: keepAliveMs } : {}),
     connect: {
       rejectUnauthorized,
       lookup: (_hostname: string, opts: Record<string, unknown>, callback: Function) => {

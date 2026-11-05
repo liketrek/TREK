@@ -28,6 +28,7 @@ import MPackItemSheet from './MPackItemSheet'
 import MPackingImportSheet from './MPackingImportSheet'
 import PackingPrintPreview from '../../../../components/Packing/PackingPrintPreview'
 import { usePackingExport } from '../../../../components/Packing/usePackingExport'
+import { packingBringerNames } from '../../../../components/Packing/packingBringers'
 
 type ActionView = 'menu' | 'apply' | 'save'
 
@@ -718,7 +719,7 @@ function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTr
           </span>
         )}
         {!badgeSharedToMe && !badgeSharedByMe && badgeBroughtBy && (
-          <span className="flex flex-none items-center gap-[3px]" title={item.owner_username || undefined}>
+          <span className="flex flex-none items-center gap-[3px]" title={t('packing.broughtBy', { name: packingBringerNames(item) })} aria-label={t('packing.broughtBy', { name: packingBringerNames(item) })}>
             {ownerAvatarUrl
               ? <img src={ownerAvatarUrl} alt={item.owner_username || ''} className="h-5 w-5 flex-none rounded-full object-cover" />
               : <span className="flex h-5 w-5 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] font-geist text-[0.5625rem] font-bold text-m-muted">{(item.owner_username || '?')[0]?.toUpperCase()}</span>}

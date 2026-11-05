@@ -42,7 +42,14 @@ const settings: TranslationStrings = {
     'Öz OSRM instansiyanız. Sahə boş olduqda saniyədə təxminən bir sorğuya icazə verən ictimai serverlər istifadə edilir — bu, bir günlük plan üçün kifayətdir, avtomobil səyahəti üçün isə məhdud ola bilər. Server yenidən başladıldıqdan sonra qüvvəyə minir.',
   'settings.valhallaBase': 'Şəxsi Valhalla instansiyası',
   'settings.valhallaBaseHint':
-    'TREK ödənişli yollardan, avtomagistrallardan və bərələrdən yayınmaq üçün standart olaraq ictimai FOSSGIS Valhalla xidmətindən istifadə edir. Əvəzində öz Valhalla URL-inizdən istifadə etmək üçün onu buraya daxil edin. Yalnız fərdi marşrut instansiyası konfiqurasiya edilərsə, ictimai Valhalla istifadə olunmur. Fərdi URL daxil etdikdən sonra serveri yenidən başladın və səhifəni yeniləyin.',
+    'Öz Valhalla-nız; yuxarıdakı marşrut xidməti ona və ya Avtomatik rejimə qurulduqda soruşulur. Yalnız öz marşrut instansiyanız konfiqurasiya edilibsə və marşrut xidməti seçilməyibsə, heç bir Valhalla soruşulmur. URL daxil etdikdən sonra serveri yenidən başladın və səhifəni yeniləyin.',
+  'settings.valhallaProvider': 'Marşrut xidməti',
+  'settings.valhallaProviderHint':
+    'TREK xidmətləri və ya öz Valhalla-nızla bütün marşrutları Valhalla hesablayır: piyada, velosipedlə və avtomobillə günlər və yol səyahətləri, ödənişli yollar, avtomagistrallar və ya bərələr olmadan marşrutlar, həmçinin turların marşrutları, hündürlükləri və cığırları. Cavab verə bilmədikdə həmin günü OSRM hesablayır. TREK xidmətləri bu server vasitəsilə soruşulur. İctimai FOSSGIS Valhalla ilə marşrutları OSRM hesablayır, Valhalla isə yalnız OSRM-in bacarmadığına cavab verir. Avtomatik rejim, öz Valhalla-nız və ya yalnız öz marşrut instansiyanız təyin edilməyibsə, TREK xidmətlərini soruşur.',
+  'settings.valhallaProviderOption.auto': 'Avtomatik',
+  'settings.valhallaProviderOption.trek': 'TREK xidmətləri',
+  'settings.valhallaProviderOption.fossgis': 'İctimai Valhalla (FOSSGIS)',
+  'settings.valhallaProviderOption.custom': 'Öz Valhalla instansiyası',
   'settings.mapHint': 'Xəritə plitələri üçün URL şablonu',
   'settings.mapProvider': 'Xəritə provayderi',
   'settings.mapProviderHint':
@@ -101,6 +108,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': 'Vaxt formatı',
   'settings.weekStart': 'Həftənin başlanğıcı',
   'settings.weekStartHint': 'Bütün tarix seçicilərində həftənin ilk günü. Vacay-ın öz ayarı var.',
+  'settings.dateFormat': 'Tarix formatı',
+  'settings.dateFormatHint':
+    'Tarixlərin bütün tarix sahələrində və siyahılarda necə yazıldığı. Ay adı olan tarixlər dilinizin ifadə tərzini saxlayır.',
+  'settings.dateFormatAuto': 'Avtomatik',
   'settings.preferredNavApp': 'Yerləri açmaq üçün',
   'settings.preferredNavAppAsk': 'Hər dəfə soruş',
   'settings.preferredNavAppHint':
@@ -298,6 +309,14 @@ const settings: TranslationStrings = {
   'settings.about.featureRequest': 'Funksiya təklifi',
   'settings.about.featureRequestHint': 'Yeni funksiya təklif edin',
   'settings.about.wikiHint': 'Sənədlər və təlimatlar',
+  'settings.about.sponsor.eyebrow': 'Sponsorlu infrastruktur',
+  'settings.about.sponsor.title': 'TREK-in öz serverləri dataforest cloud üzərində işləyir',
+  'settings.about.sponsor.body':
+    'Məkan axtarışı, ünvan axtarışı və marşrutlaşdırma Google və digərlərindən deyil, TREK-in öz serverlərindən gəlir, bu serverlərin işlədiyi maşınlara isə dataforest cloud sponsorluq edir.',
+  'settings.about.sponsor.cta': 'dataforest cloud-a keçin',
+  'settings.about.sponsor.search': 'Məkan axtarışı',
+  'settings.about.sponsor.address': 'Ünvan axtarışı',
+  'settings.about.sponsor.routing': 'Marşrutlaşdırma',
   'settings.about.descriptionManaged':
     'TREK səyahətlərinizi ilk ideyadan son xatirəyədək təşkil etməyə kömək edir. Günlük planlaşdırma, büdcə, baqaj siyahıları, fotolar və daha çoxu — hamısı bir yerdə.',
   'settings.about.sourceTitle': 'Mənbə kodu',

@@ -16,6 +16,7 @@ import { VisitedRegions } from '../../src/db/entities/VisitedRegions.entity';
 import { AtlasModule } from '../../src/nest/atlas/atlas.module';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+import { getAdmin0File } from '../../src/utils/country-borders';
 import { createUser, createTrip } from '../helpers/factories';
 import { markCountryVisited } from '../helpers/factories/atlas';
 import { makePlace } from '../helpers/factories/places';
@@ -28,6 +29,7 @@ import { sessionCookie } from './harness';
 import { Test } from '@nestjs/testing';
 
 import cookieParser from 'cookie-parser';
+import fs from 'fs';
 import type { Server } from 'http';
 import request from 'supertest';
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
@@ -85,11 +87,22 @@ describe('Atlas e2e (real auth guard + real service + temp SQLite)', () => {
   it('200 countries/geo serves the bundled gzipped admin-0 that the client decompresses to a FeatureCollection', async () => {
     const res = await request(server).get('/api/addons/atlas/countries/geo').set('Cookie', sessionCookie(userId));
     expect(res.status).toBe(200);
-    expect(res.headers['content-encoding']).toBe('gzip');
+    const admin0 = getAdmin0File();
+    expect(admin0).not.toBeNull();
+    // Sent from disk with the headers res.send(buffer) gave when the bytes were kept in
+    // memory: send() replaces none of them and adds no Accept-Ranges or Last-Modified.
+    expect(res.headers).toMatchObject({
+      'content-type': 'application/json; charset=utf-8',
+      'content-encoding': 'gzip',
+      'cache-control': 'public, max-age=86400',
+      'content-length': String(fs.statSync(String(admin0)).size),
+    });
+    expect(res.headers.etag).toMatch(/^W\/"/);
+    expect(res.headers).not.toHaveProperty('accept-ranges');
+    expect(res.headers).not.toHaveProperty('last-modified');
     // superagent transparently decompresses, mirroring the browser.
     expect(res.body.type).toBe('FeatureCollection');
     expect(res.body.features.length).toBeGreaterThan(0);
-    expect(res.headers['cache-control']).toContain('max-age=86400');
   });
 
   it('200 stats for an authenticated user — the trip-less branch keeps its bespoke shape', async () => {
@@ -149,6 +162,25 @@ describe('Atlas e2e (real auth guard + real service + temp SQLite)', () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ type: 'FeatureCollection', features: [] });
     expect(res.headers['cache-control']).toBeUndefined();
+  });
+
+  it('200 regions/geo/:code serves one country gzipped, 400 for a code that is not two letters', async () => {
+    const res = await request(server).get('/api/addons/atlas/regions/geo/de').set('Cookie', sessionCookie(userId));
+    expect(res.status).toBe(200);
+    expect(res.headers['content-encoding']).toBe('gzip');
+    expect(res.headers['cache-control']).toBe('public, max-age=86400');
+    expect(res.body.type).toBe('FeatureCollection');
+    expect(res.body.features.length).toBeGreaterThan(0);
+    const codes = new Set(res.body.features.map((f: { properties: { iso_a2: string } }) => f.properties.iso_a2));
+    expect(codes).toEqual(new Set(['DE']));
+
+    const bad = await request(server).get('/api/addons/atlas/regions/geo/DEU').set('Cookie', sessionCookie(userId));
+    expect(bad.status).toBe(400);
+  });
+
+  it('401 on regions/geo/:code without a session', async () => {
+    const res = await request(server).get('/api/addons/atlas/regions/geo/DE');
+    expect(res.status).toBe(401);
   });
 
   it('201 on bucket-list create, row persisted', async () => {

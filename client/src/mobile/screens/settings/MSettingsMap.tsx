@@ -6,7 +6,7 @@ import { MapView } from '../../../components/Map/MapView'
 import ErrorBoundary from '../../../components/shared/ErrorBoundary'
 import { GlMapPreviewMapbox, GlMapPreviewMaplibre } from '../../../components/Map/glLazy'
 import { defaultStyleForProvider, getStylePresets } from '../../../components/Map/glProviders'
-import { MAP_PRESETS, PREVIEW_CENTER, PREVIEW_ZOOM, type MapProvider } from '../../../components/Settings/mapSettingsModel'
+import { PREVIEW_CENTER, PREVIEW_ZOOM, type MapProvider } from '../../../components/Settings/mapSettingsModel'
 import { useMapSettingsForm } from '../../../components/Settings/useMapSettingsForm'
 import { withTileApiKey } from '../../../utils/tileUrl'
 import MToggle from '../../components/MToggle'
@@ -20,7 +20,7 @@ import MSetPickerSheet from './MSetPickerSheet'
 export default function MSettingsMap() {
   const { t } = useTranslation()
   const {
-    managed, saving, provider, changeProvider, mapTileUrl, setMapTileUrl, mapboxToken, setMapboxToken,
+    managed, presets: tilePresets, canMapbox, saving, provider, changeProvider, mapTileUrl, setMapTileUrl, mapboxToken, setMapboxToken,
     cartoKey, setCartoKey, cartoNeedsKey, mapboxStyle, setMapboxStyle, mapbox3d, setMapbox3d,
     mapboxQuality, setMapboxQuality, previewPlaces, glPreview, webgl2Missing, save,
   } = useMapSettingsForm({ mirrorStyleBeforeSave: true })
@@ -29,7 +29,7 @@ export default function MSettingsMap() {
 
   const providers: { id: MapProvider; name: string; sub: string; icon: typeof Layers }[] = [
     { id: 'leaflet', name: 'Leaflet', sub: t('settings.mapLeafletSubtitle'), icon: Layers },
-    { id: 'mapbox-gl', name: 'Mapbox GL', sub: t('settings.mapMapboxSubtitle'), icon: Box },
+    ...(canMapbox ? [{ id: 'mapbox-gl' as const, name: 'Mapbox GL', sub: t('settings.mapMapboxSubtitle'), icon: Box }] : []),
     { id: 'maplibre-gl', name: 'MapLibre GL', sub: t('settings.mapMapLibreSubtitle'), icon: Globe2 },
   ]
 
@@ -73,7 +73,7 @@ export default function MSettingsMap() {
         <>
           <MSetEyebrow className="mb-[5px] mt-[14px]">{t('settings.mapTemplate')}</MSetEyebrow>
           <MSetSelectRow
-            label={MAP_PRESETS.find((p) => p.url === mapTileUrl)?.name || t('settings.mapTemplatePlaceholder.select')}
+            label={tilePresets.find((p) => p.url === mapTileUrl)?.name || t('settings.mapTemplatePlaceholder.select')}
             trailing={chevron}
             onClick={() => setPresetOpen(true)}
           />
@@ -221,7 +221,7 @@ export default function MSettingsMap() {
         title={t('settings.mapTemplate')}
         value={mapTileUrl}
         onSelect={setMapTileUrl}
-        options={MAP_PRESETS.map((p) => ({ value: p.url, label: p.name }))}
+        options={tilePresets.map((p) => ({ value: p.url, label: p.name }))}
       />
 
       <MSetPickerSheet

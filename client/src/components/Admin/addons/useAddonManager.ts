@@ -7,6 +7,7 @@ import { cycleMapAdminApi, hikingMapAdminApi, skiRoutingAdminApi } from '../../.
 import { wandererAdminApi } from '../../../api/wanderer';
 import { useTranslation } from '../../../i18n';
 import { useAddonStore } from '../../../store/addonStore';
+import { useAuthStore } from '../../../store/authStore';
 import { useToast } from '../../shared/Toast';
 import { type Addon, type ProviderOption, isPhotosAddon } from './addonModel';
 import { aiAddonsOf, isAiAddon } from './aiAddons';
@@ -36,6 +37,9 @@ export function useAddonManager() {
   const [addons, setAddons] = useState<Addon[]>([]);
   const [loading, setLoading] = useState(true);
   const [toursWanderer, setToursWanderer] = useState(false);
+  // wanderer sends a user's searches to a server of their choosing, which a
+  // managed install's terms do not cover; the operator decides, not the admin.
+  const wandererOffered = !useAuthStore((s) => s.managed);
   const [toursHikingMap, setToursHikingMap] = useState(false);
   const [toursCycleMap, setToursCycleMap] = useState(false);
   const [toursSkiRouting, setToursSkiRouting] = useState(false);
@@ -160,6 +164,7 @@ export function useAddonManager() {
     providerOptions,
     documentProviderOptions,
     toursWanderer,
+    wandererOffered,
     toggleToursWanderer,
     mapSwitches,
   };

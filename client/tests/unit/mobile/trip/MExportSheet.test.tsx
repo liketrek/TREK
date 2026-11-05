@@ -7,9 +7,9 @@ import type { Day, DayNote } from '../../../../src/types'
 import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import { server } from '../../../helpers/msw/server'
 import { resetAllStores, seedStore } from '../../../helpers/store'
-import { fireEvent, render, screen, waitFor } from '../../../helpers/render'
+import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-EXPSH-001 to FE-MOB-EXPSH-013
+// FE-MOB-EXPSH-001 to FE-MOB-EXPSH-016
 // This sheet reads its copy from useTranslation(), so the assertions are English.
 
 vi.mock('../../../../src/components/PDF/TripPDF', () => ({ downloadTripPDF: vi.fn() }))
@@ -220,5 +220,38 @@ describe('MExportSheet', () => {
     const { shell } = renderSheet()
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(shell.closeSheet).toHaveBeenCalledTimes(1)
+  })
+
+  it('FE-MOB-EXPSH-014: while the PDF routes the row counts the legs, and the rest can be left out (#2876)', async () => {
+    let finish = () => {}
+    vi.mocked(downloadTripPDF).mockImplementationOnce(() => new Promise<void>(res => { finish = () => res() }))
+    renderSheet()
+    fireEvent.click(screen.getByText('PDF'))
+    await waitFor(() => expect(downloadTripPDF).toHaveBeenCalledTimes(1))
+    const { route } = vi.mocked(downloadTripPDF).mock.calls[0][0]
+
+    act(() => route?.onProgress?.(3, 10))
+    expect(screen.getByText('Calculating routes: 3 of 10')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Export without the remaining routes' }))
+    expect(route?.signal?.aborted).toBe(true)
+    await act(async () => finish())
+  })
+
+  it('FE-MOB-EXPSH-015: hiding the sheet while the PDF routes gives the export up', async () => {
+    vi.mocked(downloadTripPDF).mockImplementationOnce(() => new Promise<void>(() => undefined))
+    const { rerender, planner } = renderSheet()
+    fireEvent.click(screen.getByText('PDF'))
+    await waitFor(() => expect(downloadTripPDF).toHaveBeenCalledTimes(1))
+    const { route, signal } = vi.mocked(downloadTripPDF).mock.calls[0][0]
+
+    rerender(<MExportSheet planner={planner} shell={buildShell({ sheet: { id: 'mehr' } })} />)
+    expect(route?.signal?.aborted).toBe(true)
+    expect(signal?.aborted).toBe(true)
+  })
+
+  it('FE-MOB-EXPSH-016: ?export=pdf, as Safari opens it from the iOS Home Screen app, opens the sheet', () => {
+    const shell = buildShell({ sheet: null })
+    render(<MExportSheet planner={buildPlanner({ days: DAYS })} shell={shell} />, { initialEntries: ['/trips/1?export=pdf'] })
+    expect(shell.openSheet).toHaveBeenCalledWith('export')
   })
 })

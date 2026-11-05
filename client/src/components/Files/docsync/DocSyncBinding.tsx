@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  AlertTriangle, Check, ChevronDown, Clock, Copy, FolderOpen, Link2Off, RefreshCw,
+  AlertTriangle, Check, ChevronDown, Clock, Copy, FolderOpen, KeyRound, Link2Off, RefreshCw,
 } from 'lucide-react'
 import ConfirmDialog from '../../shared/ConfirmDialog'
 import CustomSelect from '../../shared/CustomSelect'
@@ -27,6 +27,7 @@ export default function DocSyncBinding({
   sync,
   canManage,
   onReconnect,
+  onEditConnection,
 }: {
   link: DocSyncLink
   providerName: string
@@ -38,6 +39,8 @@ export default function DocSyncBinding({
    * not carry; left out, a refused credential is reported but not curable.
    */
   onReconnect?: () => void
+  /** The same form at any time, to change the address or the login, or to remove the connection. */
+  onEditConnection?: () => void
 }) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
@@ -236,6 +239,21 @@ export default function DocSyncBinding({
                     </button>
                   </div>
                 </div>
+              )}
+
+              {onEditConnection && (
+                <Row label={t('docsync.connection.title')} hint={t('docsync.connection.hint')}>
+                  <span className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={onEditConnection}
+                      className="flex items-center gap-1.5 rounded-lg border border-edge bg-surface px-2.5 py-1.5 text-caption font-medium text-content-secondary transition-colors hover:bg-surface-hover"
+                    >
+                      <KeyRound size={13} />
+                      {t('docsync.connection.edit')}
+                    </button>
+                  </span>
+                </Row>
               )}
             </div>
           )}

@@ -231,6 +231,12 @@ describe('the turn context', () => {
     expect(languageName('!!')).toBe('!!');
   });
 
+  it('ASTCTX-033: reads TREK language codes as their language, not as the BCP 47 tag they spell', () => {
+    expect(languageName('br')).toBe('Brazilian Portuguese');
+    expect(languageName('gr')).toBe('Greek');
+    expect(languageName('pt-BR')).toBe('Brazilian Portuguese');
+  });
+
   it('ASTCTX-022: carries the date, the units the user prefers and the card', () => {
     const card = buildTripCard(1, 7, SUMMARY, PLACES, null);
     const context = turnContext(card, 'Asia/Tokyo', new Date('2026-06-11T23:30:00Z'), {

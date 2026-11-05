@@ -604,7 +604,7 @@ export default function TransitSearchPanel({ day, days, places, accommodations =
         notes: null,
         metadata: {
           transit: {
-            provider: 'transitous',
+            provider: provider ?? 'transitous',
             duration: it.duration,
             transfers: it.transfers,
             walk_seconds: it.walkSeconds,
@@ -760,7 +760,10 @@ export default function TransitSearchPanel({ day, days, places, accommodations =
             ))}
             <div className="text-content-faint" style={{ fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))', textAlign: 'center', marginTop: 2 }}>
               {t('transit.attribution')}{' '}
-              <a href="https://transitous.org/sources/" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Transitous</a>
+              {/* Named after the backend that answered; Google's terms want "Google Maps" as written, never translated. */}
+              {provider === 'google'
+                ? <span translate="no">Google Maps</span>
+                : <a href="https://transitous.org/sources/" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Transitous</a>}
             </div>
           </div>
         )}

@@ -155,5 +155,41 @@ const storage: TranslationStrings = {
   'storage.migrate.promptCancel': 'Zrušiť',
   'storage.migrate.queued': 'V poradí: {categories}',
   'storage.migrate.queueDropped': 'Nepodarilo sa spustiť ďalší presun — zvyšné poradie bolo vymazané: {categories}',
+  'storage.reclaim.title': 'Nepoužívané súbory',
+  'storage.reclaim.hint':
+    'TREK každú noc hľadá nahrané súbory, ktoré už nepoužíva žiadna cesta, miesto, denník, kolekcia ani používateľ, napríklad po odstránení cesty.',
+  'storage.reclaim.check': 'Skontrolovať teraz',
+  'storage.reclaim.checked': 'Posledná kontrola: {age}',
+  'storage.reclaim.never': 'Ešte neskontrolované',
+  'storage.reclaim.delete': 'Odstraňovať nepoužívané súbory',
+  'storage.reclaim.deleteHint':
+    'Vypnuté: nočná kontrola len hlási. Zapnuté: súbor, ktorý týždeň nikto nepoužil, sa odstráni. Súbory, ktoré odstránite v TREK, sa v oboch prípadoch odstránia o deň neskôr, keď ich už nemožno vrátiť späť.',
+  'storage.reclaim.freeable': 'Možno uvoľniť',
+  'storage.reclaim.waiting': 'Nepoužité menej ako týždeň',
+  'storage.reclaim.deleted': 'Uvoľnené pri poslednom nočnom čistení',
+  'storage.reclaim.nothing': 'Nenašli sa žiadne nepoužívané súbory.',
+  'storage.reclaim.stopped': 'Posledná kontrola sa predčasne zastavila, pretože sa počas jej behu obnovila databáza.',
+  'storage.reclaim.skip.sources_missing': 'Preskočené: nebolo možné sa opýtať každej časti TREK',
+  'storage.reclaim.skip.shared_location': 'Preskočené: zdieľa umiestnenie s inou kategóriou',
+  'storage.reclaim.skip.list_failed': 'Preskočené: súbory sa nepodarilo vypísať',
+  'storage.reclaim.skip.source_failed': 'Preskočené: vyhľadávanie zlyhalo',
+  'storage.reclaim.running': 'Kontroluje sa…',
+  'storage.reclaim.stoppedFailed': 'Posledná kontrola sa zastavila po chybe. Dnes v noci sa spustí znova.',
+  'storage.reclaim.skip.foreign_install': 'Preskočené: toto úložisko používa iná inštalácia TREK',
+  'storage.reclaim.skip.owner_unknown': 'Preskočené: TREK nemohol označiť toto úložisko ako svoje',
+  'storage.reclaim.skip.delete_failed': 'Zastavené: úložisko odmietlo odstránenie',
+  'storage.reclaim.skip.interrupted': 'Zastavené pred dokončením, údaje sú neúplné',
+  'storage.reclaim.confirmNeeded':
+    'Viac ako pätina týchto súborov vyzerá ako nepoužívaná. Nič tu nebude odstránené, kým nepotvrdíte, že je to očakávané.',
+  'storage.reclaim.confirm': 'Potvrdiť',
+  'storage.reclaim.confirmed': 'Potvrdené na ďalších 14 dní.',
+  'storage.reclaim.error.reclaim_busy': 'Beží iná úloha úložiska. Skúste to o chvíľu znova.',
+  'storage.reclaim.error.reclaim_demo': 'Nie je dostupné v demo inštancii.',
+  'storage.reclaim.error.reclaim_nothing_to_confirm': 'Už nie je čo potvrdzovať. Najprv spustite kontrolu.',
+  'storage.reclaim.skip.backup_running': 'Preskočené: bežala záloha',
+  'storage.reclaim.error.reclaim_confirm_stale':
+    'Počet sa od zobrazenia zmenil. Skontrolujte nový údaj a potvrďte znova.',
+  'storage.reclaim.error.reclaim_install_unknown':
+    'TREK nemohol prečítať ID svojej inštalácie, preto nič neodstraňuje. Skontrolujte priečinok s dátami.',
 };
 export default storage;

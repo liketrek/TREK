@@ -285,7 +285,7 @@ const journey: TranslationStrings = {
   'journey.studio.autoLayout': '自動排版',
   'journey.studio.export': '匯出',
   'journey.studio.day': '第{day}天',
-  'journey.studio.stations': '途經地',
+  'journey.studio.stations': '沿途',
   'journey.studio.peersHere': '在線',
   'journey.studio.folioAuto': '自動',
   'journey.studio.exportLayout': '版面',

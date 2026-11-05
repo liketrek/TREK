@@ -110,7 +110,7 @@ export const DEFAULT_ADDONS: AddonRow[] = [
     description: 'Trip tracking & travel journal — check-ins, photos, daily stories',
     type: 'global',
     icon: 'Compass',
-    enabled: 0,
+    enabled: 1,
     sort_order: 35,
   },
   {
@@ -157,7 +157,7 @@ export const DEFAULT_ADDONS: AddonRow[] = [
       'Personal place library — save places across trips into named lists, copy into any trip, share with others',
     type: 'global',
     icon: 'Bookmark',
-    enabled: 0,
+    enabled: 1,
     sort_order: 16,
   },
 ];
@@ -169,6 +169,12 @@ export const DEFAULT_ADDONS: AddonRow[] = [
  * table-level emptiness check: an operator who has toggled an addon keeps their
  * choice, and a release that adds a new addon still gets its tile on an
  * existing install.
+ *
+ * `enabled` is the start value on a new install: every trip addon but Road trip,
+ * plus Journey, Collections, Atlas, Vacay and the Naver import. The Journey and
+ * Collections rows are written by older migrations before this runs, so a new
+ * install has them switched on by Migration20200101046360; on an existing install
+ * nothing here changes.
  */
 export class AddonSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {

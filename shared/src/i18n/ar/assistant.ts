@@ -39,6 +39,8 @@ const assistant: TranslationStrings = {
   'assistant.connect.openAssistant': 'فتح المساعد',
   'assistant.connect.badKey': 'هذا المفتاح لا يعمل.',
   'assistant.connect.unknownModel': 'هذا النموذج غير متاح هنا.',
+  'assistant.connect.noModelList':
+    'استجاب الخادم، لكنه لم يرسل قائمة بالنماذج. تحقّق من العنوان، فهو ينتهي عادةً بـ /v1.',
   'assistant.connect.getKey': 'الحصول على مفتاح',
   'assistant.connect.hintAnthropic': 'تتضمن باقتا Claude Max وTeam رصيدًا لـ API.',
   'assistant.connect.hintOpenai': 'أنشئ مفتاحًا في لوحة تحكم OpenAI.',
@@ -189,6 +191,8 @@ const assistant: TranslationStrings = {
   'assistant.change.label.currency': 'العملة',
   'assistant.change.label.stopType': 'نوع التوقف',
   'assistant.change.label.text': 'النص',
+  'assistant.change.label.title': 'العنوان',
+  'assistant.change.label.content': 'المحتوى',
   'assistant.change.label.icon': 'الأيقونة',
   'assistant.change.label.color': 'اللون',
   'assistant.change.label.position': 'الترتيب',

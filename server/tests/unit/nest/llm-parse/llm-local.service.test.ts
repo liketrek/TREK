@@ -96,11 +96,63 @@ describe('LlmLocalService.listModels', () => {
     expect(fetchFn.mock.calls[1][1].headers).toMatchObject({ authorization: 'Bearer k' });
   });
 
-  it('keeps the 404 when the OpenAI model list is missing too', async () => {
-    mockFetch(async () => ({ ok: false, status: 404, body: null }));
+  it('says no model list came, with the first status, when no list exists anywhere', async () => {
+    const fetchFn = mockFetch(async () => ({ ok: false, status: 404, body: null }));
     await expect(svc().listModels('http://nothing:1')).rejects.toMatchObject({
-      response: { error: 'Local LLM server error (404)' },
+      code: 'llm_no_model_list',
+      response: { error: 'Local LLM server sent no model list (404)' },
     });
+    expect(fetchFn.mock.calls.map((c: unknown[]) => c[0])).toEqual([
+      'http://nothing:1/api/tags',
+      'http://nothing:1/models',
+      'http://nothing:1/v1/models',
+    ]);
+  });
+
+  it('reads past an /api/tags that answers 200 without a model list, as LM Studio does (#2808)', async () => {
+    mockFetch(async (url?: string) =>
+      url?.endsWith('/api/tags')
+        ? { ok: true, status: 200, json: async () => ({ error: 'Unexpected endpoint or method. (GET /api/tags)' }) }
+        : { ok: true, status: 200, json: async () => ({ data: [{ id: 'qwen3-8b' }] }) },
+    );
+    expect((await svc().listModels('http://lmstudio:1234/v1')).models).toEqual([{ name: 'qwen3-8b', size: 0 }]);
+  });
+
+  it('asks the address as entered when it does not end in /v1 (#2808)', async () => {
+    const fetchFn = mockFetch(async (url?: string) =>
+      url === 'https://owui.example.org/api/models'
+        ? { ok: true, status: 200, json: async () => ({ data: [{ id: 'llama3.3' }] }) }
+        : { ok: false, status: 404, body: null },
+    );
+    expect((await svc().listModels('https://owui.example.org/api/', 'k')).models).toEqual([
+      { name: 'llama3.3', size: 0 },
+    ]);
+    expect(fetchFn.mock.calls.map((c: unknown[]) => c[0])).toEqual([
+      'https://owui.example.org/api/api/tags',
+      'https://owui.example.org/api/models',
+    ]);
+  });
+
+  it('reports a refused key even when the refusal came from a later list', async () => {
+    mockFetch(async (url?: string) =>
+      url?.endsWith('/api/tags') ? { ok: false, status: 404, body: null } : { ok: false, status: 401, body: null },
+    );
+    await expect(svc().listModels('https://api.groq.com/openai/v1', 'bad')).rejects.toMatchObject({
+      code: 'llm_key_refused',
+      response: { error: 'Local LLM server rejected the API key (401)' },
+    });
+  });
+
+  it('skips a later list that cannot be reached, and a body that is not JSON', async () => {
+    safeFetchLlmMock
+      .mockImplementationOnce(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => Promise.reject(new Error('html')),
+      }))
+      .mockImplementationOnce(() => Promise.reject(new Error('ECONNRESET')))
+      .mockImplementationOnce(async () => ({ ok: true, status: 200, json: async () => ({ data: [{ id: 'm' }] }) }));
+    expect((await svc().listModels('http://vllm:8000')).models).toEqual([{ name: 'm', size: 0 }]);
   });
 
   it('502s when the server is unreachable', async () => {

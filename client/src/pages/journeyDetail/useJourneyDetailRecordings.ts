@@ -6,7 +6,7 @@ import type { DawarichSuggestionsStatus } from '../../hooks/useDawarichSuggestio
 /**
  * The recorded days a journey keeps (JRN-01) as the journey page wires them:
  * their lines in the colour of the pins of their day, beside the trips' GPX
- * tracks and the live Dawarich trail. A kept day is the journey's own, so it
+ * tracks and the live Dawarich trail, which takes those colours too. A kept day is the journey's own, so it
  * draws whatever the GPX switch says, and wins over the live trail of its date.
  */
 export function useJourneyDetailRecordings({
@@ -42,9 +42,16 @@ export function useJourneyDetailRecordings({
 
   const mapTracks = useMemo(() => {
     if (recordings.tracks.length === 0 && liveTracks.length === 0) return tripTracks;
-    const live = liveTracks.filter((track) => !recordings.byDate.has(track.name));
+    // The live trail comes in Dawarich's own day palette; on a journey a day wears
+    // the colour of its entries, so the line of a day with entries takes theirs (#2906).
+    const live = liveTracks
+      .filter((track) => !track.date || !recordings.byDate.has(track.date))
+      .map((track) => {
+        const color = track.date ? colorOfDay(track.date) : null;
+        return color && color !== track.color ? { ...track, color } : track;
+      });
     return [...tripTracks, ...recordings.tracks, ...live];
-  }, [tripTracks, recordings.tracks, recordings.byDate, liveTracks]);
+  }, [tripTracks, recordings.tracks, recordings.byDate, liveTracks, colorOfDay]);
 
   return {
     recordings,

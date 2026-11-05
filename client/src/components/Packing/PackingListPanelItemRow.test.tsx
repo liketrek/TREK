@@ -257,6 +257,23 @@ describe('ArtikelZeile — renaming', () => {
     await waitFor(() => expect(screen.getByText('...')).toBeInTheDocument())
   })
 
+  it('FE-W5ROW-008b: Enter on a filled placeholder row hands the typing on, a blur does not (#2825)', async () => {
+    server.use(http.put('/api/trips/1/packing/1', () => HttpResponse.json({ item: buildPackingItem({ id: 1, name: 'Tent' }) })))
+    const onPlaceholderFilled = vi.fn()
+    setup({ item: buildPackingItem({ id: 1, name: '...', category: 'Gear' }), onPlaceholderFilled })
+
+    fireEvent.click(screen.getByText('...'))
+    fireEvent.change(screen.getByPlaceholderText('...'), { target: { value: 'Tent' } })
+    fireEvent.blur(screen.getByPlaceholderText('...'))
+    await waitFor(() => expect(screen.queryByPlaceholderText('...')).toBeNull())
+    expect(onPlaceholderFilled).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByText('...'))
+    fireEvent.change(screen.getByPlaceholderText('...'), { target: { value: 'Tent' } })
+    fireEvent.keyDown(screen.getByPlaceholderText('...'), { key: 'Enter' })
+    await waitFor(() => expect(onPlaceholderFilled).toHaveBeenCalledTimes(1))
+  })
+
   it('FE-W5ROW-009: a failing rename surfaces a save error', async () => {
     server.use(http.put('/api/trips/1/packing/1', () => new HttpResponse(null, { status: 500 })))
     setup()
@@ -402,8 +419,8 @@ describe('ArtikelZeile — sharing badges', () => {
       currentUserId: 1,
     })
 
-    // The bringer's initial on an avatar, the co-bringers as a count.
-    expect(screen.getByTitle('brought by Bob')).toHaveTextContent('B+1')
+    // The bringer's initial on an avatar, the co-bringers as a count; the title names everyone (#2782).
+    expect(screen.getByTitle('brought by Bob, cleo')).toHaveTextContent('B+1')
   })
 
   it('FE-W5ROW-022: a bringer without co-bringers shows no counter', () => {

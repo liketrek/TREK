@@ -176,5 +176,14 @@ const places: TranslationStrings = {
   'places.image.needsConnection': 'Una imatge nova necessita connexió. Torna a desar quan estiguis en línia.',
   'places.openPhotos': 'Mostra les fotos',
   'places.imageUploadError': "No s'ha pogut pujar la imatge",
+  'places.refresh.pill': 'Dades noves del lloc',
+  'places.refresh.title': 'Actualitza les dades del lloc',
+  'places.refresh.intro':
+    "TREK coneix dades més noves d'aquest lloc. Tria què vols adoptar; la resta es queda com està. Després desa el lloc.",
+  'places.refresh.apply': 'Adopta',
+  'places.refresh.replaces': 'Substitueix el que hi ha desat ara',
+  'places.refresh.empty': 'buit',
+  'places.refresh.now': 'Ara',
+  'places.refresh.new': 'Nou',
 };
 export default places;

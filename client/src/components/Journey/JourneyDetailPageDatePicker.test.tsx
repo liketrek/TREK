@@ -1,4 +1,4 @@
-// FE-COMP-JOURNEYDATEPICKER-001 to FE-COMP-JOURNEYDATEPICKER-007
+// FE-COMP-JOURNEYDATEPICKER-001 to FE-COMP-JOURNEYDATEPICKER-008
 import React from 'react'
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '../../../tests/helpers/render'
@@ -117,5 +117,30 @@ describe('DatePicker week start (#2029)', () => {
     } finally {
       useSettingsStore.setState({ settings: original })
     }
+  })
+})
+
+describe('DatePicker inside a clipping dialog (#2858)', () => {
+  it('FE-COMP-JOURNEYDATEPICKER-008: the calendar floats over the page, stays inside the viewport and closes on a click away', async () => {
+    const user = userEvent.setup()
+    const { container } = render(
+      <div style={{ overflow: 'hidden' }}>
+        <DatePicker value="2026-03-15" onChange={vi.fn()} />
+      </div>,
+    )
+    const trigger = screen.getByText(/Mar 15, 2026/).closest('button') as HTMLButtonElement
+    // A trigger at the right edge, where the end date of a range sits.
+    trigger.getBoundingClientRect = () => ({ top: 100, bottom: 136, left: window.innerWidth - 120, right: window.innerWidth - 8, width: 112, height: 36, x: 0, y: 0, toJSON: () => ({}) })
+    await user.click(trigger)
+
+    const day31 = screen.getByRole('button', { name: '31' })
+    // Rendered outside the dialog that would clip it.
+    expect(container.contains(day31)).toBe(false)
+    const panel = day31.closest('.fixed') as HTMLElement
+    expect(panel.style.top).toBe('140px')
+    expect(parseFloat(panel.style.left)).toBe(window.innerWidth - 280 - 8)
+
+    await user.click(document.querySelector('[role="presentation"]') as HTMLElement)
+    expect(screen.queryByRole('button', { name: '31' })).toBeNull()
   })
 })

@@ -6,6 +6,9 @@ const pdf: TranslationStrings = {
   'pdf.costLabel': 'Xərc',
   'pdf.preview': 'PDF önizləməsi',
   'pdf.saveAsPdf': 'PDF kimi yadda saxla',
+  'pdf.openInSafari': 'Safari-də aç',
+  'pdf.safariHint':
+    'iOS Əsas ekrandakı tətbiqdən çap edə bilmir. Safari bu səfəri ixrac hazır vəziyyətdə açır, PDF-i orada saxlaya bilərsən.',
   'pdf.pageBreakPerDay': 'Hər gün üçün yeni səhifə',
   'pdf.transportNotes': 'Nəqliyyat qeydləri',
   'pdf.mapTitle': 'Marşrutun icmalı',

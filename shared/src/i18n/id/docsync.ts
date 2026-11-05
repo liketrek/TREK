@@ -181,6 +181,12 @@ const docsync: TranslationStrings = {
   'docsync.error.provider_disabled':
     'Dijeda: administrator menonaktifkan penyedia ini. Sinkronisasi berlanjut setelah penyedia diaktifkan kembali.',
   'docsync.binding.reconnect': 'Hubungkan ulang',
+  'docsync.connection.title': 'Koneksi',
+  'docsync.connection.hint': 'Alamat dan login yang dipakai TREK untuk penyimpanan ini.',
+  'docsync.connection.edit': 'Edit koneksi',
+  'docsync.connection.remove': 'Hapus koneksi',
+  'docsync.connection.confirmRemove':
+    'TREK melupakan alamat dan login penyimpanan ini, dan semua sinkronisasi perjalanan ini melaluinya berhenti. Dokumen tetap ada di TREK dan di penyimpanan.',
 };
 
 export default docsync;

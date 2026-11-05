@@ -117,11 +117,11 @@ describe('PluginRuntimeService dev-link', () => {
     try {
       await expect(runtime.link(writeSource('oldplug-bypass', { trek: '>=2.0.0 <3.0.0' }))).resolves.toMatchObject({
         id: 'oldplug-bypass',
-        trekRangeBypassed: { trekRange: '>=2.0.0 <3.0.0', hostVersion: '3.3.0' },
+        trekRangeBypassed: { trekRange: '>=2.0.0 <3.0.0', hostVersion: '3.3.0', acceptedByAdmin: false },
       });
       await expect(runtime.link(writeSource('rangeless-bypass', { trek: '' }))).resolves.toMatchObject({
         id: 'rangeless-bypass',
-        trekRangeBypassed: { trekRange: null, hostVersion: '3.3.0' },
+        trekRangeBypassed: { trekRange: null, hostVersion: '3.3.0', acceptedByAdmin: false },
       });
       // A dir that fits is a plain link — no marker to alarm anyone with.
       await expect(runtime.link(writeSource('fits-bypass'))).resolves.toMatchObject({ trekRangeBypassed: null });

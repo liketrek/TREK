@@ -184,6 +184,12 @@ const docsync: TranslationStrings = {
   'docsync.error.provider_disabled':
     'En pause : un administrateur a désactivé ce fournisseur. La synchronisation reprendra dès qu’il sera réactivé.',
   'docsync.binding.reconnect': 'Reconnecter',
+  'docsync.connection.title': 'Connexion',
+  'docsync.connection.hint': 'L’adresse et l’identifiant que TREK utilise pour ce stockage.',
+  'docsync.connection.edit': 'Modifier la connexion',
+  'docsync.connection.remove': 'Supprimer la connexion',
+  'docsync.connection.confirmRemove':
+    'TREK oublie l’adresse et l’identifiant de ce stockage, et toute synchronisation de ce voyage par son biais s’arrête. Les documents restent dans TREK et dans le stockage.',
 };
 
 export default docsync;

@@ -253,3 +253,11 @@ export function isVapidSubject(value: string): boolean {
     return false;
   }
 }
+
+const BASE64URL_SEGMENT = /^[A-Za-z0-9_-]+$/;
+
+/** A TREK services key: `tk1.<kid>.<payload>.<signature>`, the last three base64url. */
+export function isServiceKeyShape(value: string): boolean {
+  const [version, ...parts] = value.trim().split('.');
+  return version === 'tk1' && parts.length === 3 && parts.every((part) => BASE64URL_SEGMENT.test(part));
+}

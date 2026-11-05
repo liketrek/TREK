@@ -1,10 +1,20 @@
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
-import { MASKED_SETTING_VALUE, type StorageAdminState, type StorageCategory, type StorageConfig } from '@trek/shared';
+import { MASKED_SETTING_VALUE, STORAGE_RECLAIM_CATEGORIES, type StorageAdminState, type StorageCategory, type StorageConfig, type StorageReclaimReport } from '@trek/shared';
 import { server } from '../../../helpers/msw/server';
 import { fireEvent, render, screen, waitFor, within } from '../../../helpers/render';
 import { ToastContainer } from '../../../../src/components/shared/Toast';
 import MAdminStoragePanel from '../../../../src/mobile/screens/admin/MAdminStoragePanel';
+
+/** A last check with three covers a week old and two younger ones; every other category never reclaimed. */
+function reclaimReport(): StorageReclaimReport {
+  const categories = Object.fromEntries(
+    STORAGE_RECLAIM_CATEGORIES.map((c) => [c, { objects: 0, unreferenced: { objects: 0, bytes: 0 }, eligible: { objects: 0, bytes: 0 }, deleted: { objects: 0, bytes: 0 }, confirmationRequired: false, skipped: 'not_reclaimed' as const }]),
+  ) as StorageReclaimReport['categories'];
+  categories.covers = { objects: 40, unreferenced: { objects: 5, bytes: 5000 }, eligible: { objects: 3, bytes: 3000 }, deleted: { objects: 0, bytes: 0 }, confirmationRequired: false, skipped: null };
+  categories.places = { objects: 10, unreferenced: { objects: 3, bytes: 300 }, eligible: { objects: 0, bytes: 0 }, deleted: { objects: 0, bytes: 0 }, confirmationRequired: true, skipped: null };
+  return { startedAt: Date.now() - 60_000, finishedAt: Date.now() - 30_000, mode: 'report', stopped: null, categories };
+}
 
 function baseState(overrides: Partial<StorageAdminState> = {}): StorageAdminState {
   return {
@@ -29,6 +39,7 @@ function baseState(overrides: Partial<StorageAdminState> = {}): StorageAdminStat
     },
     health: { replicaFailures: [] },
     seedFilePresent: false,
+    reclaim: null,
     usage: null,
     backfills: [],
     migrations: [],
@@ -462,5 +473,56 @@ describe('MAdminStoragePanel', () => {
     expect(posted.map((b) => b.name).sort()).toEqual(['backups-local', 'off-box']);
     expect(posted.every((b) => b.type !== 'mirror')).toBe(true);
     expect(posted.find((b) => b.name === 'off-box')?.options.endpoint).toBe('http://edited.example:9000');
+  });
+
+  it('FE-MOB-MSTOR-019: unreferenced files: the last check shows, the switch, the check and a confirmation go to the server', async () => {
+    const lastRun = reclaimReport();
+    let put: unknown = null;
+    let runs = 0;
+    let confirm: unknown = null;
+    server.use(
+      http.put('/api/admin/storage/reclaim', async ({ request }) => {
+        put = await request.json();
+        return HttpResponse.json({ deleteEnabled: true, running: false, lastRun, lastDeleteRun: null });
+      }),
+      http.post('/api/admin/storage/reclaim/run', () => {
+        runs += 1;
+        return HttpResponse.json({ started: true }, { status: 202 });
+      }),
+      http.post('/api/admin/storage/reclaim/confirm', async ({ request }) => {
+        confirm = await request.json();
+        return HttpResponse.json({ deleteEnabled: true, running: false, lastRun, lastDeleteRun: null });
+      }),
+    );
+    await renderPanel(baseState({ reclaim: { deleteEnabled: false, running: false, lastRun, lastDeleteRun: null } }));
+    // Once a check started, the state the panel polls says it runs.
+    server.use(
+      http.get('/api/admin/storage', () =>
+        HttpResponse.json(baseState({ reclaim: { deleteEnabled: true, running: runs > 0, lastRun, lastDeleteRun: null } })),
+      ),
+    );
+    expect(screen.getByText('Unreferenced files')).toBeInTheDocument();
+    expect(within(screen.getByTestId('m-storage-reclaim-covers')).getByText(/Can be freed/)).toBeInTheDocument();
+    expect(within(screen.getByTestId('m-storage-reclaim-places')).getByText(/More than a fifth/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('switch', { name: 'Delete unreferenced files' }));
+    await waitFor(() => expect(put).toEqual({ deleteEnabled: true }));
+    await waitFor(() => expect(screen.getByRole('switch', { name: 'Delete unreferenced files' })).toHaveAttribute('aria-checked', 'true'));
+    fireEvent.click(within(screen.getByTestId('m-storage-reclaim-places')).getByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(confirm).toEqual({ category: 'places', unreferenced: 3 }));
+    fireEvent.click(screen.getByRole('button', { name: 'Check now' }));
+    await waitFor(() => expect(runs).toBe(1));
+    // The check runs in the background: the panel shows it running until the state says otherwise.
+    await waitFor(() => expect(screen.getByText('Checking…')).toBeInTheDocument());
+  });
+
+  it('FE-MOB-MSTOR-019b: a refused check names the reason in the operator\'s language', async () => {
+    server.use(
+      http.post('/api/admin/storage/reclaim/run', () =>
+        HttpResponse.json({ error: 'busy', code: 'reclaim_busy' }, { status: 409 }),
+      ),
+    );
+    await renderPanel(baseState({ reclaim: { deleteEnabled: false, running: false, lastRun: null, lastDeleteRun: null } }));
+    fireEvent.click(screen.getByRole('button', { name: 'Check now' }));
+    await waitFor(() => expect(screen.getByText('Another storage task is running. Try again in a moment.')).toBeInTheDocument());
   });
 });

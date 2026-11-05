@@ -12,6 +12,7 @@ import { imageMimeType } from '../llm-parse/image-input';
 import { LlmParseService } from '../llm-parse/llm-parse.service';
 import { MapsService } from '../maps/maps.service';
 import { PermissionsService } from '../permissions/permissions.service';
+import { PlaceOriginsService } from '../places/place-origins.service';
 import { PlacesService } from '../places/places.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import { ReservationsService } from '../reservations/reservations.service';
@@ -45,6 +46,7 @@ export class BookingImportService {
     private readonly maps: MapsService,
     private readonly places: PlacesService,
     private readonly uow: UnitOfWork,
+    private readonly origins: PlaceOriginsService,
   ) {}
 
   /**
@@ -230,7 +232,7 @@ export class BookingImportService {
       if (kiItems.length === 0) {
         allWarnings.push(`${file.originalname}: no reservations found`);
       } else {
-        const { items, warnings } = mapReservations(kiItems, file.originalname);
+        const { items, warnings } = mapReservations(kiItems, file.originalname, aiUsed ? 'ai' : 'kitinerary');
         // LLM extraction is less certain than kitinerary — always flag for review.
         if (aiUsed) for (const it of items) it.needs_review = true;
 
@@ -313,6 +315,7 @@ export class BookingImportService {
     const created: Reservation[] = [];
     const confirmGeoCache = new Map<string, { lat: number; lng: number } | null>();
 
+    const venues: number[] = [];
     for (const item of items) {
       try {
         const { _venue, _accommodation, source: _src, ...reservationData } = item;
@@ -417,6 +420,7 @@ export class BookingImportService {
           },
         );
 
+        if (place) venues.push(place.id);
         if (place) this.realtime.broadcast(tripId, 'place:created', { place }, socketId);
         this.realtime.broadcast(tripId, 'reservation:created', { reservation }, socketId);
         if (accommodationCreated) {
@@ -434,6 +438,8 @@ export class BookingImportService {
       }
     }
 
+    // The venues' websites and phones come from the bookings, not from a person: an import, never shared.
+    if (venues.length > 0) await this.origins.recordImported(venues);
     return { created };
   }
 }

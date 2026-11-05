@@ -190,5 +190,14 @@ const places: TranslationStrings = {
   'places.image.needsConnection': 'Для нового зображення потрібне з’єднання. Збережи ще раз, коли будеш онлайн.',
   'places.openPhotos': 'Показати фото',
   'places.imageUploadError': 'Не вдалося завантажити зображення',
+  'places.refresh.pill': 'Нові дані місця',
+  'places.refresh.title': 'Оновити дані місця',
+  'places.refresh.intro':
+    'TREK знає новіші дані про це місце. Виберіть, що перейняти, решта залишиться як є. Потім збережіть місце.',
+  'places.refresh.apply': 'Перейняти',
+  'places.refresh.replaces': 'Замінить збережене значення',
+  'places.refresh.empty': 'порожньо',
+  'places.refresh.now': 'Зараз',
+  'places.refresh.new': 'Нове',
 };
 export default places;

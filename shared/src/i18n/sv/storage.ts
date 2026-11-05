@@ -138,5 +138,42 @@ const storage: TranslationStrings = {
   'storage.migrate.promptCancel': 'Avbryt',
   'storage.migrate.queued': 'I kö: {categories}',
   'storage.migrate.queueDropped': 'Det gick inte att starta nästa flytt — den återstående kön rensades: {categories}',
+  'storage.reclaim.title': 'Filer utan koppling',
+  'storage.reclaim.hint':
+    'Varje natt letar TREK efter uppladdade filer som ingen resa, plats, dagbok, samling eller användare längre använder, till exempel efter att en resa har raderats.',
+  'storage.reclaim.check': 'Kontrollera nu',
+  'storage.reclaim.checked': 'Senaste kontrollen: {age}',
+  'storage.reclaim.never': 'Inte kontrollerat ännu',
+  'storage.reclaim.delete': 'Radera filer utan koppling',
+  'storage.reclaim.deleteHint':
+    'Av: nattkontrollen rapporterar bara. På: en fil som ingenting har använt på en vecka raderas. Filer som du raderar i TREK tas bort en dag senare i båda fallen, när ingen ångra-funktion längre kan få tillbaka dem.',
+  'storage.reclaim.freeable': 'Kan frigöras',
+  'storage.reclaim.waiting': 'Oanvända i mindre än en vecka',
+  'storage.reclaim.deleted': 'Frigjordes vid den senaste nattliga rensningen',
+  'storage.reclaim.nothing': 'Inga filer utan koppling hittades.',
+  'storage.reclaim.stopped':
+    'Den senaste kontrollen avbröts i förtid eftersom databasen återställdes medan den pågick.',
+  'storage.reclaim.skip.sources_missing': 'Hoppades över: alla delar av TREK kunde inte tillfrågas',
+  'storage.reclaim.skip.shared_location': 'Hoppades över: delar plats med en annan kategori',
+  'storage.reclaim.skip.list_failed': 'Hoppades över: filerna kunde inte listas',
+  'storage.reclaim.skip.source_failed': 'Hoppades över: en uppslagning misslyckades',
+  'storage.reclaim.running': 'Kontrollerar…',
+  'storage.reclaim.stoppedFailed': 'Den senaste kontrollen avbröts efter ett fel. Den körs igen i natt.',
+  'storage.reclaim.skip.foreign_install': 'Hoppades över: en annan TREK-installation använder den här lagringen',
+  'storage.reclaim.skip.owner_unknown': 'Hoppades över: TREK kunde inte markera den här lagringen som sin egen',
+  'storage.reclaim.skip.delete_failed': 'Avbröts: lagringen nekade en radering',
+  'storage.reclaim.skip.interrupted': 'Avbröts innan den blev klar, siffrorna är ofullständiga',
+  'storage.reclaim.confirmNeeded':
+    'Mer än en femtedel av filerna verkar oanvända. Ingenting här raderas förrän du bekräftar att det är väntat.',
+  'storage.reclaim.confirm': 'Bekräfta',
+  'storage.reclaim.confirmed': 'Bekräftat för de kommande 14 dagarna.',
+  'storage.reclaim.error.reclaim_busy': 'En annan lagringsuppgift pågår. Försök igen om en stund.',
+  'storage.reclaim.error.reclaim_demo': 'Inte tillgängligt på en demoinstans.',
+  'storage.reclaim.error.reclaim_nothing_to_confirm': 'Det finns inget mer att bekräfta. Kör en kontroll först.',
+  'storage.reclaim.skip.backup_running': 'Hoppades över: en säkerhetskopiering pågick',
+  'storage.reclaim.error.reclaim_confirm_stale':
+    'Antalet har ändrats sedan det visades. Kontrollera den nya siffran och bekräfta igen.',
+  'storage.reclaim.error.reclaim_install_unknown':
+    'TREK kunde inte läsa sitt installations-id och raderar därför ingenting. Kontrollera datamappen.',
 };
 export default storage;

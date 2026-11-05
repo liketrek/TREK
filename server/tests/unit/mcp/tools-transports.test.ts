@@ -9,6 +9,7 @@ import { BudgetItems } from '../../../src/db/entities/BudgetItems.entity';
 import { DayAccommodations } from '../../../src/db/entities/DayAccommodations.entity';
 import { ReservationEndpoints } from '../../../src/db/entities/ReservationEndpoints.entity';
 import { Reservations } from '../../../src/db/entities/Reservations.entity';
+import { Trips } from '../../../src/db/entities/Trips.entity';
 import { AirtrailLinkService } from '../../../src/nest/integrations/airtrail-link.service';
 import { ReservationsService } from '../../../src/nest/reservations/reservations.service';
 import { createUser, createTrip, createDay, createPlace } from '../../helpers/factories';
@@ -348,7 +349,8 @@ describe('Transport tools: the price link', () => {
       const data = parseToolResult(result) as { reservation: { id: number } };
 
       const item = await findRow(orm, BudgetItems, { reservation: data.reservation.id });
-      expect(item).toMatchObject({ name: 'ZRH → CDG', category: 'Flights', total_price: 240 });
+      // Stored as its fixed Costs key (#2835).
+      expect(item).toMatchObject({ name: 'ZRH → CDG', category: 'flights', total_price: 240 });
       // The price also rides along in the reservation metadata, as the REST path does.
       expect(broadcastMock.mock.calls.some((c) => c[1] === 'budget:created')).toBe(true);
     });
@@ -364,7 +366,125 @@ describe('Transport tools: the price link', () => {
       });
       const data = parseToolResult(result) as { reservation: { id: number } };
       const item = await findRow(orm, BudgetItems, { reservation: data.reservation.id });
-      expect(item?.category).toBe('train');
+      // The type is stored as its Costs key: a train is a transport (#2835).
+      expect(item?.category).toBe('transport');
+    });
+  });
+
+  it('books a ticket with changes as one booking with legs and one cost (#2895)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_transport',
+        arguments: {
+          tripId: trip.id,
+          type: 'train',
+          title: 'Klagenfurt → Ludwigshafen',
+          confirmation_number: '297199016704',
+          price: 71.67,
+          endpoints: [
+            { role: 'from', sequence: 0, name: 'Klagenfurt West', lat: 46.63, lng: 14.28 },
+            { role: 'stop', sequence: 1, name: 'Villach Hbf', lat: 46.62, lng: 13.85 },
+            { role: 'to', sequence: 2, name: 'Heidelberg Hbf', lat: 49.4, lng: 8.67 },
+          ],
+          legs: [
+            { train_number: 'S1', dep_time: '06:12', arr_time: '06:30' },
+            { train_number: 'ICE 116', dep_time: '06:40', arr_time: '12:50' },
+          ],
+        },
+      });
+      const data = parseToolResult(result) as { reservation: { id: number }; warning?: string };
+
+      expect(data.warning).toBeUndefined();
+      expect(await countRows(orm, BudgetItems, { trip: trip.id })).toBe(1);
+      expect(await findRow(orm, BudgetItems, { reservation: data.reservation.id })).toMatchObject({
+        total_price: 71.67,
+      });
+    });
+  });
+
+  it('warns when a segment repeats the fare an earlier booking of the same reference carries (#2895)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const segment = (title: string, extra: Record<string, unknown> = {}) =>
+        h.client.callTool({
+          name: 'create_transport',
+          arguments: {
+            tripId: trip.id,
+            type: 'train',
+            title,
+            confirmation_number: '297199016704',
+            price: 71.67,
+            ...extra,
+          },
+        });
+      const first = parseToolResult(await segment('S1 Klagenfurt West → Villach')) as {
+        reservation: { id: number };
+        warning?: string;
+      };
+      expect(first.warning).toBeUndefined();
+
+      const second = parseToolResult(
+        await segment('ICE 116 Villach → Heidelberg', { confirmation_number: ' 297199016704 ' }),
+      ) as { reservation: { id: number }; warning?: string };
+      expect(second.warning).toContain(`Booking ${first.reservation.id} ("S1 Klagenfurt West → Villach")`);
+      expect(second.warning).toContain('update_transport');
+      // Still saved with its cost: two tickets can cost the same under one order.
+      expect(await findRow(orm, BudgetItems, { reservation: second.reservation.id })).toMatchObject({
+        total_price: 71.67,
+      });
+
+      const otherFare = parseToolResult(await segment('S1 Heidelberg → Ludwigshafen', { price: 12.4 })) as {
+        warning?: string;
+      };
+      expect(otherFare.warning).toBeUndefined();
+      const otherReference = parseToolResult(await segment('STR 7', { confirmation_number: 'OTHER-1' })) as {
+        warning?: string;
+      };
+      expect(otherReference.warning).toBeUndefined();
+      const unpriced = parseToolResult(await segment('Bus', { price: undefined })) as { warning?: string };
+      expect(unpriced.warning).toBeUndefined();
+    });
+  });
+
+  it('compares an earlier cost in its own currency against the trip currency after a switch', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const segment = (title: string) =>
+        h.client.callTool({
+          name: 'create_transport',
+          arguments: { tripId: trip.id, type: 'train', title, confirmation_number: 'SBB-9', price: 48 },
+        });
+      const first = parseToolResult(await segment('IC 1 Zürich → Bern')) as { reservation: { id: number } };
+
+      // A switch to CHF pins the earlier cost to the outgoing EUR: a bare 48 now is francs.
+      await updateRows(orm, Trips, { id: trip.id }, { currency: 'CHF' });
+      await updateRows(orm, BudgetItems, { reservation: first.reservation.id }, { currency: 'EUR' });
+      expect((parseToolResult(await segment('IC 8 Bern → Brig')) as { warning?: string }).warning).toBeUndefined();
+
+      // The same cost written in the trip's own currency is the same fare, and as the
+      // oldest it is the one named ahead of the bare-priced IC 8.
+      await updateRows(orm, BudgetItems, { reservation: first.reservation.id }, { currency: 'chf' });
+      expect((parseToolResult(await segment('IR 90 Brig → Sion')) as { warning?: string }).warning).toContain(
+        `Booking ${first.reservation.id} ("IC 1 Zürich → Bern")`,
+      );
+    });
+  });
+
+  it('create_reservation warns about a repeated booking total too', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const room = (title: string) =>
+        h.client.callTool({
+          name: 'create_reservation',
+          arguments: { tripId: trip.id, type: 'other', title, confirmation_number: 'HX-77', price: 300 },
+        });
+      expect((parseToolResult(await room('Room 1')) as { warning?: string }).warning).toBeUndefined();
+      expect((parseToolResult(await room('Room 2')) as { warning?: string }).warning).toContain('delete_budget_item');
     });
   });
 

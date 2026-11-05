@@ -85,6 +85,15 @@ export class AppSettingsRepository extends TrekRepository<AppSettings> {
     return rows.map((row) => toRow(row) as AppSettingsRow);
   }
 
+  /**
+   * `INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO NOTHING`:
+   * the first writer keeps the row, so several processes on one database can
+   * race to create a value and all read back the same one afterwards.
+   */
+  async insertIfAbsent(key: string, value: string): Promise<void> {
+    await this.upsert({ key, value }, { onConflictFields: ['key'], onConflictAction: 'ignore' });
+  }
+
   /** `DELETE FROM app_settings WHERE key = ?` */
   async deleteValue(key: string): Promise<number> {
     return this.nativeDelete({ key });

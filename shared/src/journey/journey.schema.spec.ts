@@ -14,6 +14,7 @@ import {
   journeyEntryVisibilitySchema,
   journeyCreateToolSchema,
   journeyUpdateToolSchema,
+  journeyTrackSchema,
 } from './journey.schema';
 
 import { describe, it, expect } from 'vitest';
@@ -140,6 +141,20 @@ describe('the entry enums and the range of a read', () => {
     });
     expect(journeyEntriesRangeSchema.safeParse({ from: '2026-02-30' }).success).toBe(false);
     expect(journeyEntriesRangeSchema.safeParse({ to: 'yesterday' }).success).toBe(false);
+  });
+});
+
+describe('journeyTrackSchema', () => {
+  const track = { place_id: -1, trip_id: 0, name: 'Day', color: null, points: [[48.1, 11.5]], kind: 'day_recording' };
+
+  it('JRNSCH-004: a recorded line may name its calendar day, a GPX track leaves it out', () => {
+    expect(journeyTrackSchema.parse({ ...track, date: '2026-10-29' }).date).toBe('2026-10-29');
+    expect(journeyTrackSchema.parse({ ...track, kind: 'trip_gpx' }).date).toBeUndefined();
+  });
+
+  it('JRNSCH-005: refuses a day that is not a calendar day', () => {
+    expect(journeyTrackSchema.safeParse({ ...track, date: '29. Oktober' }).success).toBe(false);
+    expect(journeyTrackSchema.safeParse({ ...track, date: '2026-02-30' }).success).toBe(false);
   });
 });
 

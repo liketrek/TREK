@@ -1,6 +1,8 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { sameRoad } from '@trek/shared'
-import { calculateAlternatives, type RouteAlternative, type RouteEngine } from '../Map/RouteCalculator'
+import { calculateAlternatives } from '../Map/RouteCalculator'
+import type { RouteAlternative } from '../Map/routeTypes'
+import type { RouteEngine } from '../../types'
 import type { RailLegRoute, RailLegRouter } from './useRoadtripRoutes'
 
 /** One offered way of driving a leg, with what it means for this trip. */
@@ -164,7 +166,9 @@ export function useRouteAlternatives(): RouteAlternativesState {
     const profile: 'driving' | 'walking' | 'cycling' =
       router.mode === 'walking' ? 'walking' : router.mode === 'cycling' ? 'cycling' : 'driving'
 
-    void calculateAlternatives(from, to, profile, { signal: controller.signal, avoid: router.avoid })
+    // Asked of the engine the leg is planned with, so a leg OSRM drew in a day Valhalla
+    // could not answer is offered OSRM's ways, timed alike.
+    void calculateAlternatives(from, to, profile, { signal: controller.signal, avoid: router.avoid, engine: router.engine })
       .then(alternatives => {
         if (controller.signal.aborted) return
         const routes: OfferedRoute[] = [current]

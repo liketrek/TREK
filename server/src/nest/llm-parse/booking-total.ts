@@ -43,22 +43,28 @@ const priceOf = (node: Node): number | null => {
   return amount != null && amount > 0 ? toMinor(amount) : null;
 };
 
+/** The reservations a ticket with several segments is read as, one node per segment. */
+const SEGMENT_TYPES = new Set(['FlightReservation', 'TrainReservation', 'BusReservation', 'BoatReservation']);
+
 /**
  * A model reading a round trip with one total for the whole booking puts that
  * total on every flight, and saving both legs then books the purchase twice
- * (#2651). When the flights plainly share it, the price stays on the first
- * flight to depart and leaves the others.
+ * (#2651). A rail, bus or ferry ticket with changes reads the same way, one
+ * node per segment with the ticket's total on each (#2895). When the segments
+ * plainly share it, the price stays on the first segment to depart and leaves
+ * the others.
  *
- * Plainly means: only flights, all on one booking reference, at least two of
+ * Plainly means: transport segments only, of any mix of kinds (Rail&Fly, a
+ * train with a replacement bus), all on one booking reference, at least two of
  * them priced, every price the same amount in the same currency, and the
  * document printing that amount on a total line, on fewer lines than there are
- * priced flights. Fares that differ, separate references, mixed currencies,
+ * priced segments. Fares that differ, separate references, mixed currencies,
  * other booking types, or no document text to check against (a PDF read
  * natively, a photo) leave the nodes as they are.
  */
 export function collapseRepeatedBookingTotal(nodes: Node[], documentText: string | undefined): Node[] {
   if (!documentText || nodes.length < 2) return nodes;
-  if (!nodes.every((node) => node['@type'] === 'FlightReservation')) return nodes;
+  if (!nodes.every((node) => typeof node['@type'] === 'string' && SEGMENT_TYPES.has(node['@type']))) return nodes;
   const ref = reference(nodes[0]);
   if (!ref || !nodes.every((node) => reference(node) === ref)) return nodes;
 

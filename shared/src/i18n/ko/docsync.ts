@@ -173,6 +173,12 @@ const docsync: TranslationStrings = {
   'docsync.error.unknown_provider': '이 저장소는 이 인스턴스에서 사용할 수 없습니다.',
   'docsync.error.provider_disabled': '일시 중지됨: 관리자가 이 저장소를 껐습니다. 다시 켜지면 동기화가 재개됩니다.',
   'docsync.binding.reconnect': '다시 연결',
+  'docsync.connection.title': '연결',
+  'docsync.connection.hint': 'TREK가 이 저장소에 사용하는 주소와 로그인 정보입니다.',
+  'docsync.connection.edit': '연결 편집',
+  'docsync.connection.remove': '연결 삭제',
+  'docsync.connection.confirmRemove':
+    'TREK가 이 저장소의 주소와 로그인 정보를 지우고, 이 저장소를 통한 이 여행의 모든 동기화가 중단됩니다. 문서는 TREK와 저장소에 그대로 남습니다.',
 };
 
 export default docsync;

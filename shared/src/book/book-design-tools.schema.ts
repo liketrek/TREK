@@ -7,7 +7,7 @@ import {
   bookWriteResultSchema,
   editBookPageArgs,
 } from './book-ops.schema';
-import { BOOK_FONTS_IDS, MAX_SPREADS, MAX_SPREAD_ELEMENTS, bookDocumentSchema } from './book.schema';
+import { BOOK_FONTS_IDS, MAX_SPREAD_ELEMENTS, bookDocumentSchema } from './book.schema';
 import { BOOK_DESIGN_STYLES, bookDesignDirectivesSchema } from './design/design-directives.schema';
 import { BOOK_DESIGN_ACTIONS } from './design/design-merge';
 import { BOOK_DESIGN_BEATS } from './design/design-pacing';
@@ -34,8 +34,6 @@ export const BOOK_DESIGN_LIMITS = {
   notes: 20,
   /** Pages of the book an apply answers with; every applied id is still named. */
   pages: 24,
-  /** Pages a selection names at most: every page of a book and every page it drops. */
-  selection: MAX_SPREADS * 2,
   /** Revisions a journey keeps, the newest first. */
   revisions: 5,
 } as const;
@@ -82,11 +80,7 @@ export type RestoreBookLayoutRequest = z.infer<typeof restoreBookLayoutRequestSc
 /** One page of a design's plan, as an answer and the draft route carry it. */
 export const bookDesignPlanRowSchema = z.object({
   spreadId: bookSpreadIdSchema,
-  index: z
-    .number()
-    .int()
-    .min(0)
-    .max(MAX_SPREADS * 2),
+  index: z.number().int().min(0),
   action: z.enum(BOOK_DESIGN_ACTIONS),
   beat: z.enum(BOOK_DESIGN_BEATS),
   chapter: z.string().max(80).nullable(),
@@ -121,7 +115,7 @@ export const bookDesignAnswerSchema = z.object({
   /** Plan rows past those listed. */
   more_rows: z.number().int().nonnegative(),
   /** The pages apply_book_design writes unless the person takes some out. */
-  selected: z.array(bookSpreadIdSchema).max(BOOK_DESIGN_LIMITS.selection),
+  selected: z.array(bookSpreadIdSchema),
   style: bookDesignStyleSchema,
   photos: z.object({
     used: z.number().int().nonnegative(),
@@ -159,19 +153,19 @@ export const bookDesignApplyResultSchema = bookWriteResultSchema.extend({
   design_id: bookDesignIdSchema,
   /** The revision that takes the apply back; null when the journey had no book before it. */
   revision_id: idSchema.nullable(),
-  applied: z.array(bookSpreadIdSchema).max(BOOK_DESIGN_LIMITS.selection),
-  skipped: z.array(bookDesignSkippedSchema).max(BOOK_DESIGN_LIMITS.selection),
+  applied: z.array(bookSpreadIdSchema),
+  skipped: z.array(bookDesignSkippedSchema),
 });
 export type BookDesignApplyResult = z.infer<typeof bookDesignApplyResultSchema>;
 
 /** PUT /api/journeys/:journeyId/book-designs/:designId/selection: the pages the apply writes. */
 export const bookDesignSelectionRequestSchema = z.strictObject({
-  spreadIds: z.array(bookSpreadIdSchema).max(BOOK_DESIGN_LIMITS.selection),
+  spreadIds: z.array(bookSpreadIdSchema),
 });
 export type BookDesignSelectionRequest = z.infer<typeof bookDesignSelectionRequestSchema>;
 
 export const bookDesignSelectionResponseSchema = z.object({
-  selection: z.array(bookSpreadIdSchema).max(BOOK_DESIGN_LIMITS.selection),
+  selection: z.array(bookSpreadIdSchema),
 });
 export type BookDesignSelectionResponse = z.infer<typeof bookDesignSelectionResponseSchema>;
 
@@ -181,7 +175,7 @@ export const bookDesignDraftResponseSchema = z.object({
   baseVersion: version.nullable(),
   expiresAt: z.string(),
   document: bookDocumentSchema,
-  plan: z.array(bookDesignPlanRowSchema).max(BOOK_DESIGN_LIMITS.selection),
-  selection: z.array(bookSpreadIdSchema).max(BOOK_DESIGN_LIMITS.selection),
+  plan: z.array(bookDesignPlanRowSchema),
+  selection: z.array(bookSpreadIdSchema),
 });
 export type BookDesignDraftResponse = z.infer<typeof bookDesignDraftResponseSchema>;

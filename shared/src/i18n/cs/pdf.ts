@@ -6,6 +6,9 @@ const pdf: TranslationStrings = {
   'pdf.costLabel': 'Náklady',
   'pdf.preview': 'Náhled PDF',
   'pdf.saveAsPdf': 'Uložit jako PDF',
+  'pdf.openInSafari': 'Otevřít v Safari',
+  'pdf.safariHint':
+    'iOS neumí tisknout z aplikace na ploše. Safari otevře tento výlet s připraveným exportem a tam si PDF uložíte.',
   'pdf.pageBreakPerDay': 'Zalomení stránky pro každý den',
   'pdf.transportNotes': 'Poznámky k dopravě',
   'pdf.mapTitle': 'Přehled trasy',

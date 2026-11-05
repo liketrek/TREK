@@ -1,0 +1,35 @@
+import type { TranslationStrings } from '../types';
+
+const tourPacking: TranslationStrings = {
+  'tours.packing.label': 'רשימת ציוד',
+  'tours.packing.none': 'לא מקושרת רשימת ציוד',
+  'tours.packing.link': 'קישור רשימת ציוד',
+  'tours.packing.change': 'שינוי',
+  'tours.packing.whole': 'כל רשימת הציוד',
+  'tours.packing.packed': '{packed} מתוך {count} ארוזים',
+  'tours.packing.packed.one': '{packed} מתוך {count} ארוז',
+  'tours.packing.packed.two': '{packed} מתוך {count} ארוזים',
+  'tours.packing.more': '+{count} נוספים',
+  'tours.packing.more.one': '+{count} נוסף',
+  'tours.packing.more.two': '+{count} נוספים',
+  'tours.packing.items': '{count} פריטים',
+  'tours.packing.items.one': 'פריט אחד',
+  'tours.packing.items.two': '{count} פריטים',
+  'tours.packing.allPacked': 'הכל ארוז',
+  'tours.packing.open': 'פתיחת רשימת הציוד',
+  'tours.packing.missing': 'ב־“{name}” כבר אין פריטים שאתם יכולים לראות.',
+  'tours.packing.emptyList': 'רשימת הציוד עדיין ריקה.',
+  'tours.packing.emptyCategory': 'ב־“{name}” עדיין אין פריטים.',
+  'tours.packing.addonOff': 'רשימות הציוד מושבתות, ולכן לא ניתן להציג את הרשימה.',
+  'tours.packing.loadFailed': 'לא ניתן לטעון את הקישור לרשימת הציוד.',
+  'tours.packing.dialogSub': 'זהו קישור בלבד. הרשימה והפריטים שבה נשארים במקומם.',
+  'tours.packing.choose': 'קישור אל',
+  'tours.packing.confirm': 'קישור',
+  'tours.packing.unlink': 'הסרת הקישור',
+  'tours.packing.unlinkHint': 'רשימת הציוד והפריטים שבה נשארים כפי שהם',
+  'tours.packing.linked': 'רשימת הציוד קושרה.',
+  'tours.packing.unlinked': 'הקישור הוסר. רשימת הציוד נשארת כפי שהיא.',
+  'tours.packing.failed': 'לא ניתן לשמור את הקישור.',
+};
+
+export default tourPacking;

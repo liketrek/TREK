@@ -167,6 +167,12 @@ const docsync: TranslationStrings = {
   'docsync.error.unknown_provider': '此实例不提供该文档服务。',
   'docsync.error.provider_disabled': '已暂停：管理员已关闭此文档服务。重新启用后将继续同步。',
   'docsync.binding.reconnect': '重新连接',
+  'docsync.connection.title': '连接',
+  'docsync.connection.hint': 'TREK 用于此存储的地址和登录信息。',
+  'docsync.connection.edit': '编辑连接',
+  'docsync.connection.remove': '移除连接',
+  'docsync.connection.confirmRemove':
+    'TREK 会忘记此存储的地址和登录信息，此行程经由它的所有同步都会停止。文档仍保留在 TREK 和存储中。',
 };
 
 export default docsync;

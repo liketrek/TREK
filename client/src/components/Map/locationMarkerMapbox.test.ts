@@ -97,6 +97,8 @@ describe('attachLocationMarker', () => {
     expect(root.children).toHaveLength(3)
     // The cone starts hidden — there is no heading until the first fix.
     expect((root.children[1] as HTMLElement).style.display).toBe('none')
+    // The GL marker class owns `position`; an inline one would drop it into the flow.
+    expect(root.style.position).toBe('')
   })
 
   it('FE-COMP-LOCMARKERGL-003: adds the accuracy source and fill layer when the map is already loaded', () => {

@@ -1,4 +1,5 @@
 import { tagSchema } from '../tag/tag.schema';
+import { placeFieldOriginsSchema } from './place-contrib.schema';
 import { placeEmailField, placeOpeningHoursField } from './place-hours';
 import { PLACE_WEBSITE_MAX_LENGTH, normalizePlaceWebsite } from './place-website';
 
@@ -267,6 +268,9 @@ const stopTypeField = z.object({
   // outside it on purpose — a stop that fills nothing is not a stop, and letting one
   // through would leave a range budget that never resets.
   fill_percent: fillPercentSchema,
+  // Which fields of this write the user typed and which a provider filled, for the
+  // community enrichment (place-contrib.schema.ts). Never stored on the place itself.
+  fieldOrigins: placeFieldOriginsSchema.optional(),
 });
 
 export const placeCreateRequestSchema = open.and(z.object({ name: z.string().min(1) })).and(stopTypeField);

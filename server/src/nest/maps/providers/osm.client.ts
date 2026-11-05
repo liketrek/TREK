@@ -15,11 +15,18 @@
  * search along a line takes after every Overpass endpoint failed it is the
  * instance's own: MapsModule provides one client per process.
  *
+ * Search and reverse ask Photon first (PhotonClient) where the TREK services
+ * hold a key and the operator runs no Nominatim of their own; its answers are
+ * read into Nominatim's shape, so both come out of the same mapping. Photon's
+ * half (osm-geocoding.ts) also matches identities and names an element
+ * Overpass placed; Nominatim answers installations without the services.
+ *
  * Never imports MapsService: providers sit below the orchestrator
  * (lint:boundaries holds that).
  */
 import { logWarn } from '../../audit/audit-log.logger';
 import { nominatimFetch, type GeoLane } from '../../geo/nominatim.client';
+import { markCommunityAsked, withCommunityValues } from '../community-overlay';
 import { OVERPASS_ALONG_QUERY_TIMEOUT_S, aroundPath, overpassAlongQuery } from '../maps-along.helpers';
 import { nearbyOverpassQuery, overpassNearbyRecords } from '../maps-nearby.helpers';
 import {
@@ -41,17 +48,22 @@ import {
 } from '../maps.helpers';
 import { overpassSelector, tagsMatchFilter } from '../osm-filter.helpers';
 import { OverpassBusy, hedged, lastAnsweredFirst, retryAfterMs, soonestRetryMs } from '../overpass-hedge.helpers';
-import { readWikiIdentity } from './wiki-identity';
+import { asOverpassElement, trekOsmElement } from '../trek-osm-element';
+import {
+  photonElementDetails,
+  photonIdentity,
+  photonReverse,
+  photonSearch,
+  photonSuggest,
+  searchRecord,
+  type IdentityMatch,
+} from './osm-geocoding';
+import { PhotonClient } from './photon.client';
 import { Injectable } from '@nestjs/common';
 import { normalizePlaceWebsite } from '@trek/shared';
 import type { LatLng } from '@trek/shared/roadtrip';
 
-function nominatimCategory(item: { class?: string; type?: string }): string | null {
-  if (!item.class || !item.type || item.type === 'yes') return null;
-  return item.class === 'shop' ? `shop_${item.type}` : item.type;
-}
-
-interface NominatimResult {
+export interface NominatimResult {
   osm_type: string;
   osm_id: string;
   /** The main OSM tag, key and value: `class` "tourism" with `type` "hotel". */
@@ -66,6 +78,10 @@ interface NominatimResult {
 
 export interface OverpassElement {
   tags?: Record<string, string>;
+  /** Asked for with `located`: a node's coordinate, or the centre of a way or relation. */
+  lat?: number;
+  lon?: number;
+  center?: { lat: number; lon: number };
 }
 
 interface OverpassPoiElement {
@@ -402,17 +418,36 @@ export class OsmClient {
   /** Whether this cooldown's first skip was logged, so the log holds one line per cooldown. */
   private overpassAlongSkipLogged = false;
 
+  constructor(private readonly photon: PhotonClient) {}
+
   // ── Nominatim search ───────────────────────────────────────────────────────
 
+  /** Photon's search with its lead (`photonSearch`), or null where Photon is not in use or did not answer. */
+  searchPhoton(query: string, lang?: string, bias?: { lat: number; lng: number }) {
+    return photonSearch(this.photon, query, lang, bias);
+  }
+
+  /** Whether Photon is this installation's geocoder, so a miss of it is not handed to Nominatim. */
+  photonIsGeocoder(): boolean {
+    return this.photon.inUse();
+  }
+
   /**
-   * `lane` defaults to interactive because most callers are a keystroke.
+   * Photon's answer where the installation has it, Nominatim's otherwise.
    *
+   * Photon answers whenever it is in use, an empty answer and a miss
+   * included: Nominatim is the search of an installation without the TREK
+   * services (or with an operator's own Nominatim), not a second opinion or a
+   * stand-in behind Photon. Asked
+   * beside it, every miss of Photon took a 1.1 s slot of the process-wide
+   * throttle, and a few searches at once queued for seconds.
+   *
+   * `lane` defaults to interactive because most callers are a keystroke.
    * Bulk callers must pass 'background': booking-import geocodes every venue and
    * every uncoordinated endpoint of an import in one request loop, which is up
    * to thirty sequential calls. On the interactive lane those thirty take the
-   * next slot each time, so somebody typing in the place search waits behind the
-   * whole import. Yielding does not make the import faster, it stops it from
-   * being the only thing the process will do for half a minute.
+   * next Nominatim slot each time, so somebody typing in the place search waits
+   * behind the whole import.
    */
   async searchNominatim(
     query: string,
@@ -420,6 +455,11 @@ export class OsmClient {
     lane: GeoLane = 'interactive',
     bias?: { lat: number; lng: number },
   ) {
+    const photon = await this.searchPhoton(query, lang, bias);
+    if (photon) return photon.records;
+    // Photon is this installation's geocoder and missed this one (an error, a
+    // timeout, a spent allowance): the answer is empty, not Nominatim's.
+    if (this.photon.inUse()) return [];
     const params = new URLSearchParams({
       q: query,
       format: 'json',
@@ -450,29 +490,7 @@ export class OsmClient {
       );
     }
     const data = (await response.json()) as NominatimResult[];
-    return data.map((item) => {
-      // Number.isFinite, not `|| null`: a place on the equator or prime
-      // meridian has a legitimate 0 coordinate.
-      const lat = Number.parseFloat(item.lat);
-      const lng = Number.parseFloat(item.lon);
-      return {
-        google_place_id: null,
-        google_ftid: null,
-        osm_id: `${item.osm_type}:${item.osm_id}`,
-        name: item.name || item.display_name?.split(',')[0] || '',
-        address: item.display_name || '',
-        lat: Number.isFinite(lat) ? lat : null,
-        lng: Number.isFinite(lng) ? lng : null,
-        rating: null,
-        website: null,
-        phone: null,
-        // What the place is, so the add form can preselect a category (#2282). A shop's
-        // value is the ware ("bakery"), so the key goes first and says it is a shop.
-        category: nominatimCategory(item),
-        source: 'openstreetmap',
-        ...readWikiIdentity(item.extratags),
-      };
-    });
+    return data.map(searchRecord);
   }
 
   /** Suggestions out of a Nominatim search, for an install with neither the index nor a key. */
@@ -502,6 +520,21 @@ export class OsmClient {
   }
 
   /**
+   * Suggestions from Photon, which is built for search-as-you-type, or null when
+   * it is not in use or did not answer. Never Nominatim in its place: its usage
+   * policy rules out autocomplete. Aborting `signal` drops a question nobody
+   * waits for any more.
+   */
+  async autocompletePhoton(input: string, lang?: string, bias?: { lat: number; lng: number }, signal?: AbortSignal) {
+    return (await this.suggestPhoton(input, lang, bias, signal))?.rows ?? null;
+  }
+
+  /** The same suggestions with Photon's first hit read as a lead, for the list that merges them with the index. */
+  suggestPhoton(input: string, lang?: string, bias?: { lat: number; lng: number }, signal?: AbortSignal) {
+    return photonSuggest(this.photon, input, { lang, bias, signal });
+  }
+
+  /**
    * Finds the OpenStreetMap record for a place we only know by name and
    * coordinate, and hands back its tags.
    *
@@ -524,10 +557,11 @@ export class OsmClient {
     lat: number,
     lng: number,
     opts: { lang?: string; maxDistanceM?: number; signal?: AbortSignal } = {},
-  ): Promise<{ tags: Record<string, string>; osmUrl: string | null; matchedName: string } | null> {
+  ): Promise<IdentityMatch | null> {
     const query = (name || '').trim();
     if (!query || !Number.isFinite(lat) || !Number.isFinite(lng)) return null;
     const maxDistanceM = opts.maxDistanceM ?? 2000;
+    if (this.photon.inUse()) return photonIdentity(this.photon, { query, lat, lng, maxDistanceM, lang: opts.lang });
 
     // ~2km box around the point, so Nominatim ranks locally instead of handing
     // back the most famous place on earth with this name.
@@ -630,13 +664,33 @@ export class OsmClient {
 
   // ── Nominatim reverse ──────────────────────────────────────────────────────
 
-  /** The name and address Nominatim gives a point, or nulls when it answers with an error. */
+  /** The name and address Photon or Nominatim gives a point, or nulls when Nominatim answers with an error. */
   async reverse(
     lat: string,
     lng: string,
     lang?: string,
     opts?: { lane?: GeoLane; timeoutMs?: number; locality?: boolean },
   ): Promise<{ name: string | null; address: string | null }> {
+    const data = this.photon.inUse()
+      ? await photonReverse(this.photon, Number.parseFloat(lat), Number.parseFloat(lng), {
+          lang,
+          timeoutMs: opts?.timeoutMs,
+        })
+      : await this.reverseNominatim(lat, lng, lang, opts);
+    if (!data) return { name: null, address: null };
+    const addr = data.address || {};
+    const name = opts?.locality
+      ? addr.city || addr.town || addr.village || addr.municipality || data.name || null
+      : data.name || addr.tourism || addr.amenity || addr.shop || addr.building || addr.road || null;
+    return { name, address: data.display_name || null };
+  }
+
+  private async reverseNominatim(
+    lat: string,
+    lng: string,
+    lang?: string,
+    opts?: { lane?: GeoLane; timeoutMs?: number; locality?: boolean },
+  ): Promise<NominatimReverse | null> {
     const params = new URLSearchParams({
       lat,
       lon: lng,
@@ -646,21 +700,17 @@ export class OsmClient {
       'accept-language': toApiLang(lang),
     });
     const response = await nominatimFetch('reverse', params, opts);
-    if (!response.ok) return { name: null, address: null };
-    const data = (await response.json()) as NominatimReverse;
-    const addr = data.address || {};
-    const name = opts?.locality
-      ? addr.city || addr.town || addr.village || addr.municipality || data.name || null
-      : data.name || addr.tourism || addr.amenity || addr.shop || addr.building || addr.road || null;
-    return { name, address: data.display_name || null };
+    if (!response.ok) return null;
+    return (await response.json()) as NominatimReverse;
   }
 
   /**
-   * The raw reverse answer for a point a pasted link carried, in Nominatim's
-   * default language. A non-ok answer (5xx, 429) is an empty object: the
+   * The raw reverse answer for a point a pasted link carried, in the names
+   * used on the spot. A non-ok answer (5xx, 429) is an empty object: the
    * coordinates are already known, so the caller still has something to return.
    */
   async reverseRaw(lat: number, lng: number): Promise<NominatimReverse> {
+    if (this.photon.inUse()) return (await photonReverse(this.photon, lat, lng)) ?? {};
     const res = await nominatimFetch(
       'reverse',
       new URLSearchParams({ lat: String(lat), lon: String(lng), format: 'json', addressdetails: '1' }),
@@ -682,10 +732,24 @@ export class OsmClient {
     // sent as a query of its own.
     if (!OSM_PLACE_ID.test(placeId)) return null;
     const [osmType, osmId] = placeId.split(':');
+    // Where Photon is the geocoder, Overpass places the element and Photon
+    // names it; Nominatim is asked only when Overpass could not place it.
+    // TREK's own copy of OSM first: one read on the Places API instead of the
+    // public Overpass servers, which take seconds and are often down.
+    const own = this.photon.inUse() ? await trekOsmElement(osmType, osmId) : null;
+    const located = own
+      ? asOverpassElement(own)
+      : this.photon.inUse()
+        ? await this.fetchOverpassDetails(osmType, osmId, true)
+        : undefined;
+    if (located) {
+      const answer = await photonElementDetails(this.photon, located, { osmType, osmId, placeId, lang });
+      if (answer) return own ? markCommunityAsked(withCommunityValues(answer, own)) : answer;
+    }
     // buildOsmDetails never yields name/address/coordinates — Nominatim is
-    // always the source for those (Overpass contributes the tag-derived rest).
+    // the source for those (Overpass contributes the tag-derived rest).
     const [element, nominatim] = await Promise.all([
-      this.fetchOverpassDetails(osmType, osmId),
+      located === undefined ? this.fetchOverpassDetails(osmType, osmId) : located,
       this.lookupNominatim(osmType, osmId, lang),
     ]);
     // Overpass has the fuller tag set and wins where both answer, but it is
@@ -707,7 +771,8 @@ export class OsmClient {
 
   // ── Overpass API (OSM details) ─────────────────────────────────────────────
 
-  async fetchOverpassDetails(osmType: string, osmId: string): Promise<OverpassElement | null> {
+  /** `located` asks for the element's coordinate as well: a node's own, the centre of a way or relation. */
+  async fetchOverpassDetails(osmType: string, osmId: string, located = false): Promise<OverpassElement | null> {
     const typeMap: Record<string, string> = { node: 'node', way: 'way', relation: 'rel' };
     const oType = typeMap[osmType];
     if (!oType) return null;
@@ -715,7 +780,8 @@ export class OsmClient {
     // language. An OSM element id is a number and nothing else; anything with
     // more in it is a statement of its own, sent under TREK's shared user agent.
     if (!/^\d+$/.test(osmId)) return null;
-    const query = `[out:json][timeout:5];${oType}(${osmId});out tags;`;
+    const out = !located ? 'out tags;' : oType === 'node' ? 'out;' : 'out tags center;';
+    const query = `[out:json][timeout:5];${oType}(${osmId});${out}`;
     try {
       const res = await fetch('https://overpass-api.de/api/interpreter', {
         method: 'POST',

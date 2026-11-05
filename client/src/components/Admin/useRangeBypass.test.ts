@@ -16,15 +16,23 @@ describe('rangeBypass helpers', () => {
       blocked: false, warn: true, label: 'admin.plugins.dep.trekBypassed:{"range":">=3.2.0 <4.0.0","host":"4.0.0"}',
     })
     expect(bypassChip({ trekRange: null, hostVersion: '4.0.0' }, t)).toMatchObject({ label: 'admin.plugins.dep.trekBypassedUnknown' })
+    // An admin's own "run it anyway" for this one plugin says so, not "version checks off".
+    expect(bypassChip({ trekRange: '>=3.2.0 <4.0.0', hostVersion: '5.0.0', acceptedByAdmin: true }, t)).toMatchObject({
+      warn: true, label: 'admin.plugins.dep.trekAccepted:{"range":">=3.2.0 <4.0.0","host":"5.0.0"}',
+    })
+    expect(bypassChip({ trekRange: null, hostVersion: '5.0.0', acceptedByAdmin: true }, t)).toMatchObject({
+      label: 'admin.plugins.dep.trekAcceptedUnknown',
+    })
   })
 
-  it('bypassOffer: an enabled "Install anyway" carrying what the dialog must say', () => {
+  it('bypassOffer: an enabled Install that carries what the dialog must say first', () => {
     const offer = bypassOffer({ name: 'Gotify', trek: '>=4.0.0', hostVersion: '3.3.0' }, t, 'why')
     expect(offer).toEqual({
-      blocked: false, label: 'admin.plugins.installAnyway', title: 'why',
-      warn: { name: 'Gotify', trekRange: '>=4.0.0', hostVersion: '3.3.0', onConfirm: null },
+      blocked: false, label: 'admin.plugins.install', title: 'why',
+      warn: { name: 'Gotify', trekRange: '>=4.0.0', hostVersion: '3.3.0', acceptedByAdmin: false, onConfirm: null },
     })
     expect(bypassOffer({ name: 'X' }, t, 'why').warn).toMatchObject({ trekRange: null, hostVersion: '?' })
+    expect(bypassOffer({ name: 'X' }, t, 'why', true).warn).toMatchObject({ acceptedByAdmin: true })
   })
 
   it('rangeWarningCopy: confirm vs notice title, ranged vs rangeless body', () => {
@@ -32,10 +40,25 @@ describe('rangeBypass helpers', () => {
     expect(rangeWarningCopy({ ...ranged, onConfirm: () => {} }, t)).toEqual({
       confirm: true, title: 'admin.plugins.rangeBypass.title',
       body: 'admin.plugins.rangeBypass.body:{"name":"G","range":">=4.0.0","host":"3.3.0"}',
+      confirmLabel: 'admin.plugins.installAnyway',
     })
     expect(rangeWarningCopy({ name: 'G', trekRange: null, hostVersion: '3.3.0', onConfirm: null }, t)).toEqual({
       confirm: false, title: 'admin.plugins.rangeBypass.noticeTitle',
-      body: 'admin.plugins.rangeBypass.bodyUnknown:{"name":"G","host":"3.3.0"}',
+      body: 'admin.plugins.rangeBypass.bodyUnknown:{"name":"G","range":null,"host":"3.3.0"}',
+      confirmLabel: 'admin.plugins.installAnyway',
+    })
+  })
+
+  it('rangeWarningCopy: an admin choosing for one plugin gets the short title, their own body and the right button', () => {
+    const mine = { name: 'G', trekRange: '>=4.0.0', hostVersion: '5.0.0', acceptedByAdmin: true, onConfirm: () => {} }
+    expect(rangeWarningCopy(mine, t)).toEqual({
+      confirm: true, title: 'admin.plugins.rangeBypass.titleAdmin',
+      body: 'admin.plugins.rangeBypass.bodyAdmin:{"name":"G","range":">=4.0.0","host":"5.0.0"}',
+      confirmLabel: 'admin.plugins.installAnyway',
+    })
+    expect(rangeWarningCopy({ ...mine, trekRange: null, action: 'activate' }, t)).toMatchObject({
+      body: 'admin.plugins.rangeBypass.bodyAdminUnknown:{"name":"G","range":null,"host":"5.0.0"}',
+      confirmLabel: 'admin.plugins.activateAnyway',
     })
   })
 })

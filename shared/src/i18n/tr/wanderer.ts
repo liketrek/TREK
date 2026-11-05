@@ -35,6 +35,8 @@ const wanderer: TranslationStrings = {
   'wanderer.error.not_own_trail': 'Yalnızca kendi wanderer parkurlarınız içe aktarılabilir.',
   'wanderer.error.invalid_response':
     'Yanıt wanderer’dan gelmedi. Adresin doğrudan wanderer’ı gösterdiğini kontrol edin.',
+  'wanderer.error.no_author':
+    'wanderer yanıt verdi ancak bu API belirtecinin hesabı için hiçbir parkur yazarı belirtmiyor, bu yüzden TREK hangi parkurların sizin olduğunu bilemiyor.',
   'wanderer.error.too_large': 'Parkur dosyası 10 MB’tan büyük.',
   'wanderer.error.server_error': 'wanderer bir hatayla yanıt verdi. Daha sonra tekrar deneyin.',
   'wanderer.error.offline': 'Çevrimdışısınız. wanderer’da yalnızca çevrimiçiyken arama yapılabilir.',

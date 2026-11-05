@@ -268,9 +268,11 @@ describe('the entry spreads', () => {
 })
 
 describe('the document as a whole', () => {
-  it('stays within the schema cap on spreads', () => {
+  it('lays out a long journey whole, its last page and back cover after the entries', () => {
     const many = Array.from({ length: 200 }, (_, i) => entry({ id: i + 1 }))
-    expect(build({ entries: many }).spreads.length).toBeLessThanOrEqual(150)
+    const doc = build({ entries: many })
+    expect(doc.spreads.length).toBeGreaterThan(150)
+    expect(doc.spreads.slice(-2).map(sp => sp.role)).toEqual(['last', 'back'])
   })
 
   it('gives every spread and every element an id of its own', () => {

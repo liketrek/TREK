@@ -35,6 +35,8 @@ const map: TranslationStrings = {
   'map.overview.hide': 'Απόκρυψη όλου του ταξιδιού',
   'map.overview.total': 'Συνολική απόσταση',
   'map.attribution': 'Πηγές χάρτη',
+  'map.overview.distanceAtLeast': 'τουλάχιστον {distance}',
+  'map.overview.notRouted': 'χωρίς υπολογισμό διαδρομής',
   'map.overview.unrouted': '{count} σκέλη δεν μπόρεσαν να υπολογιστούν, οπότε οι αποστάσεις είναι ελλιπείς.',
   'map.overview.unrouted.one': '{count} σκέλος δεν μπόρεσε να υπολογιστεί, οπότε οι αποστάσεις είναι ελλιπείς.',
   'map.overview.dayUnrouted': '{count} σκέλη αυτής της ημέρας δεν μπόρεσαν να υπολογιστούν',

@@ -182,6 +182,12 @@ const docsync: TranslationStrings = {
   'docsync.error.provider_disabled':
     'Pausiert: Ein Administrator hat diesen Anbieter abgeschaltet. Der Abgleich läuft weiter, sobald er wieder eingeschaltet ist.',
   'docsync.binding.reconnect': 'Neu verbinden',
+  'docsync.connection.title': 'Verbindung',
+  'docsync.connection.hint': 'Adresse und Anmeldung, mit denen TREK diesen Speicher erreicht.',
+  'docsync.connection.edit': 'Verbindung bearbeiten',
+  'docsync.connection.remove': 'Verbindung entfernen',
+  'docsync.connection.confirmRemove':
+    'TREK vergisst Adresse und Anmeldung für diesen Speicher, und jeder Abgleich dieser Reise darüber endet. Die Dokumente bleiben in TREK und im Speicher.',
 };
 
 export default docsync;

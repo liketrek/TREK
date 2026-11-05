@@ -38,7 +38,7 @@ export function SettingsHeader({ icon: Icon, title, subtitle, actions }: {
  * badge and an action on the right) and its body below. `tone` tints the band:
  * neutral for ordinary groups, danger for the destructive ones.
  */
-export function SettingsCard({ icon: Icon, title, hint, badge, action, tone = 'neutral', children, id, bodyClassName }: {
+export function SettingsCard({ icon: Icon, title, hint, badge, action, tone = 'neutral', children, id, bodyClassName, flush = false }: {
   icon?: IconLike
   title: ReactNode
   /** One line under the title in the band. */
@@ -50,10 +50,12 @@ export function SettingsCard({ icon: Icon, title, hint, badge, action, tone = 'n
   id?: string
   /** Replaces the body's padded column. */
   bodyClassName?: string
+  /** Inside another card: no gap below, the parent spaces its children. */
+  flush?: boolean
 }) {
   const tint = tone === 'danger' ? 'color-mix(in srgb, var(--danger) 9%, transparent)' : NEUTRAL_TINT
   return (
-    <section id={id} className="mb-5 overflow-hidden rounded-2xl border border-edge-faint bg-surface-secondary">
+    <section id={id} className={`${flush ? '' : 'mb-5 '}overflow-hidden rounded-2xl border border-edge-faint bg-surface-secondary`}>
       <div className="flex items-center gap-3 border-b border-edge-faint px-4 py-3" style={{ background: tint }}>
         {Icon && (
           <span className={`grid h-8 w-8 flex-none place-items-center rounded-[10px] bg-surface-card shadow-sm ${tone === 'danger' ? 'text-danger' : 'text-content-secondary'}`}>

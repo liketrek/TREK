@@ -65,7 +65,6 @@ const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'expected #rrggbb');
  * `MAX_SPREAD_ELEMENTS` belongs to this set and is declared with the spread it
  * bounds, where the salvage pass reads it too.
  */
-export const MAX_SPREADS = 150;
 export const MAX_BOOK_TITLE = 200;
 export const MAX_TEXT_LENGTH = 8000;
 /** Codes on a map or a country page, and the names printed beside them. */
@@ -76,6 +75,9 @@ export const MAX_MAP_POINT_LABEL = 120;
 /** A recorded track: segments, and points within one segment. */
 export const MAX_PATH_SEGMENTS = 40;
 export const MAX_PATH_POINTS = 1200;
+/** The roads a map draws: legs, and points along one leg. */
+export const MAX_ROAD_LEGS = 400;
+export const MAX_ROAD_POINTS = 200;
 
 /**
  * Every shape the book can draw — and, because a picture frame *is* a shape with
@@ -579,10 +581,10 @@ export const bookMapElementSchema = z.object({
     .array(
       z
         .array(z.tuple([z.number().min(-90).max(90), z.number().min(-180).max(180)]))
-        .max(200)
+        .max(MAX_ROAD_POINTS)
         .nullable(),
     )
-    .max(400)
+    .max(MAX_ROAD_LEGS)
     .default([]),
   /**
    * How much room to leave around what is drawn, as a share of its own extent.
@@ -1122,7 +1124,11 @@ const bookDocumentObject = z.object({
   schemaRev: z.number().int().min(1).optional().catch(undefined),
   title: z.string().max(MAX_BOOK_TITLE).default(''),
   page: bookPageSetupSchema.default(() => bookPageSetupSchema.parse({})),
-  spreads: z.array(bookSpreadSchema).max(MAX_SPREADS).default([]),
+  /**
+   * As many as the journey needs: a long trip's book runs to hundreds of pages,
+   * and the save route's body limit is the only bound on its size.
+   */
+  spreads: z.array(bookSpreadSchema).default([]),
   /** The book's own layouts (#2316). Optional so a document from before still reads. */
   layouts: z.array(bookLayoutSchema).max(MAX_BOOK_LAYOUTS).optional(),
   /** Palette, typefaces and motifs; elements link to it through the fields of theme/book-theme.schema.ts. */

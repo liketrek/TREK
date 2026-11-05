@@ -5,12 +5,20 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-const built = vi.hoisted(() => ({ agents: [] as unknown[], proxies: [] as Array<Record<string, unknown>> }));
+const built = vi.hoisted(() => ({
+  agents: [] as unknown[],
+  proxies: [] as Array<Record<string, unknown>>,
+  closed: [] as unknown[],
+}));
 
 vi.mock('undici', () => ({
   Agent: class {
-    constructor(opts: unknown) {
+    constructor(readonly opts: unknown) {
       built.agents.push(opts);
+    }
+    close() {
+      built.closed.push(this.opts);
+      return Promise.resolve();
     }
   },
   ProxyAgent: class {
@@ -33,6 +41,7 @@ afterEach(() => {
   for (const key of PROXY_KEYS) delete process.env[key];
   built.agents.length = 0;
   built.proxies.length = 0;
+  built.closed.length = 0;
 });
 
 describe('proxyFor', () => {
@@ -85,5 +94,83 @@ describe('createOutboundDispatcher', () => {
       headersTimeout: 30_000,
       bodyTimeout: 30_000,
     });
+  });
+});
+
+describe('createOutboundDispatcher, connections kept (the routing relay)', () => {
+  it('SSRF-KEEP-001: hands the same dispatcher back for the same vetted addresses, held open ten seconds', async () => {
+    const { createOutboundDispatcher } = await loadGuard({});
+    const first = createOutboundDispatcher(
+      'https://valhalla.liketrek.com/route',
+      ['203.0.113.7'],
+      true,
+      undefined,
+      undefined,
+      true,
+    );
+    const again = createOutboundDispatcher(
+      'https://valhalla.liketrek.com/height',
+      ['203.0.113.7'],
+      true,
+      undefined,
+      undefined,
+      true,
+    );
+    expect(again).toBe(first);
+    expect(built.agents).toHaveLength(1);
+    expect(built.agents[0]).toMatchObject({ keepAliveTimeout: 10_000 });
+  });
+
+  it('SSRF-KEEP-002: a name that resolves elsewhere, or other timeouts, get a dispatcher of their own', async () => {
+    const { createOutboundDispatcher } = await loadGuard({});
+    const first = createOutboundDispatcher(
+      'https://valhalla.liketrek.com/',
+      ['203.0.113.7'],
+      true,
+      undefined,
+      undefined,
+      true,
+    );
+    const moved = createOutboundDispatcher(
+      'https://valhalla.liketrek.com/',
+      ['203.0.113.8'],
+      true,
+      undefined,
+      undefined,
+      true,
+    );
+    const slower = createOutboundDispatcher(
+      'https://valhalla.liketrek.com/',
+      ['203.0.113.7'],
+      true,
+      60_000,
+      undefined,
+      true,
+    );
+    expect(new Set([first, moved, slower]).size).toBe(3);
+    // The new address is the one the socket gets, never the old one.
+    const lookup = (
+      built.agents[1] as { connect: { lookup: (h: string, o: object, cb: (...a: unknown[]) => void) => void } }
+    ).connect.lookup;
+    const seen: unknown[] = [];
+    lookup('valhalla.liketrek.com', {}, (...args: unknown[]) => seen.push(...args));
+    expect(seen).toContain('203.0.113.8');
+    expect(seen).not.toContain('203.0.113.7');
+  });
+
+  it('SSRF-KEEP-003: keeps at most 32 and closes the oldest; a caller that does not ask keeps none', async () => {
+    const { createOutboundDispatcher } = await loadGuard({});
+    const at = (n: number) =>
+      createOutboundDispatcher('https://h.example/', [`203.0.113.${n}`], true, undefined, undefined, true);
+    const oldest = at(0);
+    for (let n = 1; n <= 32; n++) at(n);
+    expect(built.closed).toEqual([built.agents[0]]);
+    expect(at(0)).not.toBe(oldest);
+
+    built.agents.length = 0;
+    createOutboundDispatcher('https://h.example/', ['203.0.113.1']);
+    createOutboundDispatcher('https://h.example/', ['203.0.113.1']);
+    expect(built.agents).toHaveLength(2);
+    expect(built.agents[0]).not.toHaveProperty('keepAliveTimeout');
   });
 });

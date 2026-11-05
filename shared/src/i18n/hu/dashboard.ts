@@ -98,6 +98,8 @@ const dashboard: TranslationStrings = {
   'dashboard.unsplashQueryRequired': 'Adj meg egy keresési kifejezést',
   'dashboard.unsplashNoResults': 'Nem található kép',
   'dashboard.coverSearchError': 'Nem sikerült keresni az Unsplashen',
+  'dashboard.unsplashKeyNeeded':
+    'Az Unsplash elutasította ezt a szervert. Egy rendszergazda az adminisztrációs beállításokban megadhat egy ingyenes Unsplash API-kulcsot, és akkor működik a képkeresés.',
   'dashboard.useUnsplashPhoto': '{photographer} Unsplash-fotójának használata',
   'dashboard.titleRequired': 'A cím megadása kötelező',
   'dashboard.endDateError': 'A záró dátumnak a kezdő dátum után kell lennie',

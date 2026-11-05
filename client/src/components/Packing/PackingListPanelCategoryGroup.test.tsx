@@ -485,6 +485,17 @@ describe('KategorieGruppe — inline add item', () => {
     expect(onAddItem).not.toHaveBeenCalled()
   })
 
+  it('FE-W5CAT-028a: Enter on the first item typed into the placeholder row opens the add field (#2825)', async () => {
+    server.use(http.put('/api/trips/1/packing/1', () => HttpResponse.json({ item: buildPackingItem({ id: 1, name: 'Tent', category: 'Gear' }) })))
+    setup({ items: [buildPackingItem({ id: 1, name: '...', category: 'Gear' })] })
+
+    fireEvent.click(screen.getByText('...'))
+    fireEvent.change(screen.getByPlaceholderText('...'), { target: { value: 'Tent' } })
+    fireEvent.keyDown(screen.getByPlaceholderText('...'), { key: 'Enter' })
+
+    await waitFor(() => expect(screen.getByPlaceholderText('Item name...')).toHaveFocus())
+  })
+
   it('FE-W5CAT-028: the confirm button adds the item, and stays inert while empty', () => {
     const onAddItem = vi.fn(async () => {})
     const { container } = setup({ onAddItem })

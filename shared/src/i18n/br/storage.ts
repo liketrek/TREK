@@ -138,5 +138,42 @@ const storage: TranslationStrings = {
   'storage.migrate.queued': 'Na fila: {categories}',
   'storage.migrate.queueDropped':
     'Não foi possível iniciar a próxima migração — a fila restante foi limpa: {categories}',
+  'storage.reclaim.title': 'Arquivos sem referência',
+  'storage.reclaim.hint':
+    'Toda noite o TREK procura arquivos enviados que nenhuma viagem, lugar, diário, coleção ou usuário usa mais, por exemplo depois que uma viagem foi excluída.',
+  'storage.reclaim.check': 'Verificar agora',
+  'storage.reclaim.checked': 'Última verificação: {age}',
+  'storage.reclaim.never': 'Ainda não verificado',
+  'storage.reclaim.delete': 'Excluir arquivos sem referência',
+  'storage.reclaim.deleteHint':
+    'Desativado, a verificação noturna apenas informa. Ativado, um arquivo que ninguém usa há uma semana é excluído. Arquivos que você exclui no TREK são removidos um dia depois, de qualquer forma, quando nenhum desfazer pode mais recuperá-los.',
+  'storage.reclaim.freeable': 'Pode ser liberado',
+  'storage.reclaim.waiting': 'Sem uso há menos de uma semana',
+  'storage.reclaim.deleted': 'Liberado pela última limpeza noturna',
+  'storage.reclaim.nothing': 'Nenhum arquivo sem referência encontrado.',
+  'storage.reclaim.stopped':
+    'A última verificação parou antes do fim porque o banco de dados foi restaurado durante a execução.',
+  'storage.reclaim.skip.sources_missing': 'Ignorado: nem todas as partes do TREK puderam ser consultadas',
+  'storage.reclaim.skip.shared_location': 'Ignorado: compartilha o local com outra categoria',
+  'storage.reclaim.skip.list_failed': 'Ignorado: não foi possível listar os arquivos',
+  'storage.reclaim.skip.source_failed': 'Ignorado: uma consulta falhou',
+  'storage.reclaim.running': 'Verificando…',
+  'storage.reclaim.stoppedFailed': 'A última verificação parou após um erro. Ela roda de novo esta noite.',
+  'storage.reclaim.skip.foreign_install': 'Ignorado: outra instalação do TREK usa este armazenamento',
+  'storage.reclaim.skip.owner_unknown': 'Ignorado: o TREK não conseguiu marcar este armazenamento como seu',
+  'storage.reclaim.skip.delete_failed': 'Interrompido: o armazenamento recusou uma exclusão',
+  'storage.reclaim.skip.interrupted': 'Interrompido antes de terminar, os números são parciais',
+  'storage.reclaim.confirmNeeded':
+    'Mais de um quinto destes arquivos parece sem uso. Nada aqui será excluído até você confirmar que isso é esperado.',
+  'storage.reclaim.confirm': 'Confirmar',
+  'storage.reclaim.confirmed': 'Confirmado pelos próximos 14 dias.',
+  'storage.reclaim.error.reclaim_busy': 'Outra tarefa de armazenamento está em execução. Tente novamente em instantes.',
+  'storage.reclaim.error.reclaim_demo': 'Indisponível em uma instância de demonstração.',
+  'storage.reclaim.error.reclaim_nothing_to_confirm': 'Não há mais nada a confirmar. Execute uma verificação primeiro.',
+  'storage.reclaim.skip.backup_running': 'Ignorado: um backup estava em execução',
+  'storage.reclaim.error.reclaim_confirm_stale':
+    'A contagem mudou desde que foi exibida. Verifique o novo valor e confirme novamente.',
+  'storage.reclaim.error.reclaim_install_unknown':
+    'O TREK não conseguiu ler o id da sua instalação, então não exclui nada. Verifique a pasta de dados.',
 };
 export default storage;

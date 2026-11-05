@@ -15,7 +15,7 @@ import { findByIata } from '../airports/airports.data';
 import type { EndpointInput } from './reservations.service';
 import { AssignmentsService } from '../assignments/assignments.service';
 import {
-  idSchema, transportLegInputSchema, reservationUrlSchema, type TransportLegInput,
+  idSchema, transportLegInputSchema, reservationUrlSchema, type TransportLegInput, bookingPriceSchema, bookingBudgetCategorySchema,
   TRANSPORT_RESERVATION_TYPES, MCP_CREATABLE_TRANSPORT_TYPES, LEG_RESERVATION_TYPES, BOOKING_RESERVATION_TYPES,
   RESERVATION_STATUSES, type ReservationStatus,
 } from '@trek/shared';
@@ -116,6 +116,16 @@ function parseId(value: string | string[]): number | null {
 function linkedCost(price: number | null | undefined, category: string | undefined) {
   return price != null && price > 0 ? { total_price: price, category } : undefined;
 }
+
+/** What a price field means: the whole booking's cost, written once. */
+const PRICE_FIELD =
+  'Total cost of THIS booking, shown on it and linked in the Budget tab. A ticket covering several segments under one confirmation_number is priced once, never repeated on each segment.';
+
+/** The booking is saved either way: two tickets can cost the same under one order. The caller decides. */
+const sameFareWarning = (earlier: { id: number; title: string }) =>
+  `Booking ${earlier.id} ("${earlier.title}") already carries this price under the same confirmation_number, so the Budget tab now counts it twice. `
+  + 'If both belong to one ticket or booking, its total belongs on one of them only: segments of one journey become one booking with update_transport (endpoints[] + legs[]) and the other is deleted; '
+  + 'otherwise remove this cost with delete_budget_item. Two separate tickets at the same price need no change.';
 
 // ---------------------------------------------------------------------------
 // Multi-leg bookings (#1914)
@@ -356,8 +366,8 @@ export class ReservationsMcp {
       check_in: z.string().max(10).optional().describe('Check-in time (e.g. "15:00", hotel type only)'),
       check_out: z.string().max(10).optional().describe('Check-out time (e.g. "11:00", hotel type only)'),
       assignment_id: idSchema.optional().describe('Link to a day assignment (restaurant, train, car, cruise, event, tour, activity, other)'),
-      price: z.number().nonnegative().optional().describe('Reservation cost — shown on the booking and linked in the Budget tab'),
-      budget_category: z.string().max(100).optional().describe('Budget category for the price entry (defaults to reservation type)'),
+      price: bookingPriceSchema.optional().describe(PRICE_FIELD),
+      budget_category: bookingBudgetCategorySchema.optional().describe('Budget category for the price entry (defaults to reservation type)'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     access: { group: 'reservations', mode: 'write' },
@@ -391,6 +401,7 @@ export class ReservationsMcp {
       : undefined;
 
     const metadata = price != null ? { price: String(price) } : undefined;
+    const sameFare = await this.writes.bookingWithSameFare(tripId, confirmation_number, price);
 
     // The booking and its linked cost are one write, the same use case REST runs.
     const { reservation } = await this.writes.createBooking(String(tripId), {
@@ -399,7 +410,7 @@ export class ReservationsMcp {
       create_accommodation: createAccommodation,
       metadata,
     }, linkedCost(price, budget_category || type), await this.guards.tripWriter(tripId, ctx.userId));
-    return ok({ reservation });
+    return ok(sameFare ? { reservation, warning: sameFareWarning(sameFare) } : { reservation });
   }
 
   @Tool({
@@ -643,7 +654,9 @@ export class ReservationsMcp {
 
   @Tool({
     name: 'create_transport',
-    description: 'Create a transport booking for a trip: flight, train, bus, car, taxi, bicycle, cruise, ferry or transport_other. For scheduled public transit use create_transit_journey, which attaches the provider itinerary. Use endpoints[] to record origin/destination and intermediate stops; for flights, set code to the IATA airport code (use search_airports first). For a booking WITH STOPOVERS also pass legs[] (one entry per segment, one fewer than endpoints[]), otherwise every segment inherits the stop time as both its arrival and its departure. The top-level confirmation_number is the booking reference; when a single segment was booked under its own reference, put that one on the leg instead. Created as pending, so confirm it with update_transport. Set price to record the cost; it will appear on the booking and in the Budget tab.',
+    description: 'Create a transport booking for a trip: flight, train, bus, car, taxi, bicycle, cruise, ferry or transport_other. For scheduled public transit use create_transit_journey, which attaches the provider itinerary. Use endpoints[] to record origin/destination and intermediate stops; for flights, set code to the IATA airport code (use search_airports first). For a booking WITH STOPOVERS also pass legs[] (one entry per segment, one fewer than endpoints[]), otherwise every segment inherits the stop time as both its arrival and its departure. The top-level confirmation_number is the booking reference; when a single segment was booked under its own reference, put that one on the leg instead. '
+      + 'A ticket covering several flights or trains under one reference is ONE create_transport with endpoints[] + legs[], never one call per segment: each call books its price as a cost of its own, so a fare repeated per segment is counted once per segment. '
+      + 'Created as pending, so confirm it with update_transport. Set price to record the cost; it will appear on the booking and in the Budget tab.',
     inputSchema: {
       tripId: idSchema,
       type: z.enum(CREATABLE_TRANSPORT_TYPES),
@@ -660,8 +673,8 @@ export class ReservationsMcp {
       endpoints: endpointSchema,
       legs: legsSchema,
       needs_review: z.boolean().optional(),
-      price: z.number().nonnegative().optional().describe('Transport cost — shown on the booking and linked in the Budget tab'),
-      budget_category: z.string().max(100).optional().describe('Budget category for the price entry (defaults to transport type)'),
+      price: bookingPriceSchema.optional().describe(PRICE_FIELD),
+      budget_category: bookingBudgetCategorySchema.optional().describe('Budget category for the price entry (defaults to transport type)'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     access: { group: 'reservations', mode: 'write' },
@@ -719,6 +732,7 @@ export class ReservationsMcp {
     }
 
     if (price != null) meta.price = String(price);
+    const sameFare = await this.writes.bookingWithSameFare(tripId, confirmation_number, price);
 
     const { reservation } = await this.writes.createBooking(String(tripId), {
       title,
@@ -736,7 +750,7 @@ export class ReservationsMcp {
       endpoints: transportEndpoints,
       needs_review,
     }, linkedCost(price, budget_category || type), await this.guards.tripWriter(tripId, ctx.userId));
-    return ok({ reservation });
+    return ok(sameFare ? { reservation, warning: sameFareWarning(sameFare) } : { reservation });
   }
 
   @Tool({

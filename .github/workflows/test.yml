@@ -1100,7 +1100,7 @@ jobs:
           path: plugin-sdk/coverage/
 
       - name: Scan
-        uses: SonarSource/sonarqube-scan-action@d209202bc7d53ff1cc128f7f907dac145c9d6ae9 # v8.3.0
+        uses: SonarSource/sonarqube-scan-action@4d1dc0c91ee400dcf8a6dddf2f705ac36542e304 # v8.4.0
         env:
           # SonarQube Cloud is the scan action's default host, so no
           # SONAR_HOST_URL — the token is a sonarcloud.io token for the
@@ -1161,7 +1161,7 @@ jobs:
           docker run -d --name trek-ci -p 127.0.0.1:3000:3000 \
             --read-only --tmpfs /tmp:noexec,nosuid,size=128m \
             --security-opt no-new-privileges:true \
-            --cap-drop ALL --cap-add CHOWN --cap-add SETUID --cap-add SETGID \
+            --cap-drop ALL --cap-add CHOWN --cap-add SETUID --cap-add SETGID --cap-add KILL \
             -v "$RUNNER_TEMP/trek/data:/app/data" \
             -v "$RUNNER_TEMP/trek/uploads:/app/uploads" \
             -e ENCRYPTION_KEY="$(openssl rand -hex 32)" \
@@ -1193,6 +1193,17 @@ jobs:
           [ "$version" = "0.0.0-ci" ] || { echo "::error::VERSION holds '$version'"; exit 1; }
           curl -sf http://127.0.0.1:3000/ | grep -q '<div id="root">' \
             || { echo "::error::/ does not serve the client"; exit 1; }
+
+      # Same capabilities as the shipped compose file: dumb-init has to be able
+      # to pass the stop signal on to node, or docker stop ends in SIGKILL (137).
+      - name: Stop gracefully
+        run: |
+          set -euo pipefail
+          docker stop -t 30 trek-ci >/dev/null
+          code="$(docker inspect -f '{{.State.ExitCode}}' trek-ci)"
+          [ "$code" = "0" ] || { echo "::error::docker stop ended with exit code $code, not a graceful shutdown"; exit 1; }
+          docker logs trek-ci 2>&1 | grep 'SIGTERM received' >/dev/null \
+            || { echo "::error::the server never saw SIGTERM"; exit 1; }
 
       - name: Container log
         if: always()
@@ -1252,11 +1263,39 @@ jobs:
             --set 'extraEnv[0].name=SESSION_DURATION' \
             --set 'extraEnv[0].value=7d' \
             --set 'extraEnvFrom[0].secretRef.name=trek-smtp' \
+            --set 'extraVolumes[0].name=kitinerary-extractors' \
+            --set 'extraVolumes[0].configMap.name=trek-kitinerary-extractors' \
+            --set 'extraVolumeMounts[0].name=kitinerary-extractors' \
+            --set 'extraVolumeMounts[0].mountPath=/usr/local/share/kitinerary/extractors' \
+            --set 'extraVolumeMounts[0].readOnly=true' \
             --set probes.liveness=null \
             > "$out/variants.yaml"
+          helm template trek charts/trek \
+            --set httpRoute.enabled=true \
+            --set 'httpRoute.parentRefs[0].name=gateway' \
+            > "$out/http-route.yaml"
+          helm template trek charts/trek \
+            --set podSecurityContext.runAsUser=1000 \
+            --set podSecurityContext.runAsGroup=1000 \
+            --set podSecurityContext.runAsNonRoot=true \
+            --set podSecurityContext.seccompProfile.type=RuntimeDefault \
+            --set securityContext.allowPrivilegeEscalation=false \
+            --set 'securityContext.capabilities.drop[0]=ALL' \
+            > "$out/non-root.yaml"
+          helm template trek charts/trek \
+            --set ingress.enabled=true \
+            --set fullnameOverride=custom-trek \
+            --set service.port=8080 \
+            --set-json 'httpRoute={"enabled":true,"parentRefs":[{"name":"gateway","namespace":"gateway-system","sectionName":"https"}],"hostnames":["trek.example.com"],"paths":["/","/api"],"annotations":{"example.com/note":"custom route"},"timeouts":{"request":"0s","backendRequest":"0s"}}' \
+            > "$out/http-route-variants.yaml"
 
       - name: Check the manifests against the Kubernetes schemas
-        run: kubeconform -strict -summary "$RUNNER_TEMP"/rendered/*.yaml
+        # The pinned Gateway API schema adds HTTPRoute validation without skipping unknown resources.
+        run: >-
+          kubeconform -strict -summary
+          -schema-location default
+          -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/041baf4c1d3740ca21461cab765e7432ecd073ef/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
+          "$RUNNER_TEMP"/rendered/*.yaml
 
       - name: Check every compose file
         run: |

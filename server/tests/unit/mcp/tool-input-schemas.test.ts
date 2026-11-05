@@ -8,7 +8,9 @@
  * several MCP clients do not resolve), every id field is the positive integer
  * of @trek/shared's idSchema, the shared primitive the tools derive their ids
  * from, and the book restore's schema, which carries whole pages, stays under a ceiling, as do
- * the page edit and the design revision, which take every page operation.
+ * the page edit and the design revision, which take every page operation. And an input schema
+ * reads the same under draft-07, which the SDK writes, and 2020-12, the MCP default: no tuple,
+ * since ChatGPT checks against 2020-12 and refuses the whole tool list over one tool's tuple.
  */
 import type { ToolOptions } from '../../../src/nest-mcp';
 import { getEntry, isMcpController, type ClassRef } from '../../../src/nest-mcp/metadata';
@@ -37,6 +39,22 @@ function methodNames(ctor: ClassRef): string[] {
     proto = Object.getPrototypeOf(proto);
   }
   return [...names];
+}
+
+const VALUE_KEYWORDS = new Set(['default', 'const', 'enum', 'examples']);
+
+/** Where a schema spells a tuple: `items` as an array, `additionalItems` or `prefixItems`. */
+function tuplesIn(node: unknown, at: string): string[] {
+  if (Array.isArray(node)) return node.flatMap((child, i) => tuplesIn(child, `${at}/${i}`));
+  if (!node || typeof node !== 'object') return [];
+  const schema = node as Record<string, unknown>;
+  const here = Array.isArray(schema.items) || 'additionalItems' in schema || 'prefixItems' in schema ? [at] : [];
+  const below = Object.entries(schema).flatMap(([key, value]) => {
+    if (VALUE_KEYWORDS.has(key) || !value || typeof value !== 'object') return [];
+    if (key !== 'properties') return tuplesIn(value, `${at}/${key}`);
+    return Object.entries(value).flatMap(([name, prop]) => tuplesIn(prop, `${at}/properties/${name}`));
+  });
+  return [...here, ...below];
 }
 
 async function toolSchemas(): Promise<Map<string, Record<string, unknown>>> {
@@ -105,5 +123,10 @@ describe('MCP tool input schemas', () => {
       expect(sizeOf(tool)).toBeLessThan(45_000);
     }
     expect(sizeOf('restore_book_layout')).toBeLessThan(2_000);
+  });
+
+  it('MCP-SCHEMA-005: no input schema spells a tuple, the draft-07 form 2020-12 reads differently', () => {
+    const tuples = [...schemas].flatMap(([key, json]) => tuplesIn(json, '').map((at) => `${key} ${at}`));
+    expect(tuples).toEqual([]);
   });
 });

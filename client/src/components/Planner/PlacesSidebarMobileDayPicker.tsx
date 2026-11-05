@@ -1,12 +1,15 @@
 import { createPortal } from 'react-dom'
 import { CalendarDays, Pencil, Trash2, ChevronDown, Check, Eye } from 'lucide-react'
 import type { SidebarState } from './usePlacesSidebar'
+import { useDateFormat } from '../../hooks/useDateFormat'
+import { formatDisplayDate } from '../../utils/dateFormat'
 
 export function MobileDayPickerSheet(S: SidebarState) {
   const {
     dayPickerPlace, setDayPickerPlace, setMobileShowDays, onPlaceClick, canEditPlaces, onEditPlace,
     t, days, mobileShowDays, onAssignToDay, assignments, onDeletePlace,
   } = S
+  const dateFormat = useDateFormat()
   return createPortal(
     <div
       role="presentation"
@@ -64,7 +67,7 @@ export function MobileDayPickerSheet(S: SidebarState) {
                       <div className="bg-surface-tertiary text-content" style={{ width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 700, flexShrink: 0 }}>{i + 1}</div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500 }}>{day.title || t('dayplan.dayN', { n: i + 1 })}</div>
-                        {day.date && <div className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))' }}>{new Date(day.date + 'T00:00:00Z').toLocaleDateString(undefined, { timeZone: 'UTC' })}</div>}
+                        {day.date && <div className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))' }}>{formatDisplayDate(new Date(day.date + 'T00:00:00Z'), undefined, { timeZone: 'UTC' }, dateFormat)}</div>}
                       </div>
                       {(assignments[String(day.id)] || []).some(a => a.place?.id === dayPickerPlace.id) && <Check size={14} color="var(--text-faint)" />}
                     </button>

@@ -89,6 +89,8 @@ const dashboard: TranslationStrings = {
   'dashboard.unsplashQueryRequired': 'Masukkan istilah pencarian',
   'dashboard.unsplashNoResults': 'Tidak ada gambar ditemukan',
   'dashboard.coverSearchError': 'Gagal mencari di Unsplash',
+  'dashboard.unsplashKeyNeeded':
+    'Unsplash menolak server ini. Administrator dapat menambahkan kunci API Unsplash gratis di pengaturan admin agar pencarian gambar berfungsi.',
   'dashboard.useUnsplashPhoto': 'Gunakan foto Unsplash oleh {photographer}',
   'dashboard.titleRequired': 'Judul wajib diisi',
   'dashboard.endDateError': 'Tanggal selesai harus setelah tanggal mulai',

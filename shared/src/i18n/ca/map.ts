@@ -35,6 +35,8 @@ const map: TranslationStrings = {
   'map.overview.hide': 'Amaga tot el viatge',
   'map.overview.total': 'Distància total',
   'map.attribution': 'Crèdits del mapa',
+  'map.overview.distanceAtLeast': 'almenys {distance}',
+  'map.overview.notRouted': 'ruta no calculada',
   'map.overview.unrouted': 'No s’han pogut calcular {count} trams, per això les distàncies són incompletes.',
   'map.overview.unrouted.one': 'No s’ha pogut calcular {count} tram, per això les distàncies són incompletes.',
   'map.overview.dayUnrouted': 'No s’han pogut calcular {count} trams d’aquest dia',

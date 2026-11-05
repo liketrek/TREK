@@ -9,6 +9,7 @@ import es from '../es/externalNotifications';
 import et from '../et/externalNotifications';
 import fr from '../fr/externalNotifications';
 import gr from '../gr/externalNotifications';
+import he from '../he/externalNotifications';
 import hu from '../hu/externalNotifications';
 import id from '../id/externalNotifications';
 import it from '../it/externalNotifications';
@@ -55,6 +56,7 @@ const LOCALES = {
   tr,
   ar,
   az,
+  he,
   id,
   ja,
   ko,

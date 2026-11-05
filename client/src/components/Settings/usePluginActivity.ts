@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { pluginsApi } from '../../api/client';
+import { useDateFormat } from '../../hooks/useDateFormat';
 import { useTranslation } from '../../i18n';
+import { formatDisplayDateTime } from '../../utils/dateFormat';
 
 export interface ActivityRow {
   ts: string;
@@ -18,6 +20,7 @@ export interface ActivityRow {
  */
 export function usePluginActivity() {
   const { locale } = useTranslation();
+  const dateFormat = useDateFormat();
   const [rows, setRows] = useState<ActivityRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -36,7 +39,7 @@ export function usePluginActivity() {
 
   const fmtWhen = (ts: string): string => {
     const d = new Date(ts);
-    return Number.isNaN(d.getTime()) ? ts : d.toLocaleString(locale);
+    return Number.isNaN(d.getTime()) ? ts : formatDisplayDateTime(d, locale, {}, dateFormat);
   };
 
   return { rows, loading, load, fmtWhen };

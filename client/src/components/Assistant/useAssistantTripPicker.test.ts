@@ -20,7 +20,10 @@ const trip = (id: number, start: string | null, end: string | null) => ({
   end_date: end,
 });
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+});
 
 describe('rankPickerTrips', () => {
   it('FE-AI-PICK-001: the running trip leads, then the soonest to come, then the latest past one', () => {
@@ -59,6 +62,9 @@ describe('rankPickerTrips', () => {
 
 describe('useAssistantTripPicker', () => {
   it('FE-AI-PICK-004: loads the trips once and ranks them; a failed load offers none', async () => {
+    // The hook ranks against the real clock; pin it so trip 7 keeps running.
+    vi.useFakeTimers({ shouldAdvanceTime: true, toFake: ['Date'] });
+    vi.setSystemTime(new Date(`${TODAY}T12:00:00`));
     const list = vi
       .spyOn(tripRepo, 'list')
       .mockResolvedValueOnce({ trips: [trip(7, '2026-10-01', '2026-10-30') as Trip], archivedTrips: [] });

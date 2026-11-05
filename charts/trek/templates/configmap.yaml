@@ -112,6 +112,21 @@ data:
   {{- if .Values.env.TREK_PLACES_URL }}
   TREK_PLACES_URL: {{ .Values.env.TREK_PLACES_URL | quote }}
   {{- end }}
+  {{- if .Values.env.TREK_PLACES_CONTRIBUTE }}
+  TREK_PLACES_CONTRIBUTE: {{ .Values.env.TREK_PLACES_CONTRIBUTE | quote }}
+  {{- end }}
+  {{- if .Values.env.TREK_SERVICES }}
+  TREK_SERVICES: {{ .Values.env.TREK_SERVICES | quote }}
+  {{- end }}
+  {{- if .Values.env.TREK_SERVICES_HOSTS }}
+  TREK_SERVICES_HOSTS: {{ .Values.env.TREK_SERVICES_HOSTS | quote }}
+  {{- end }}
+  {{- if .Values.env.TREK_PHOTON_URL }}
+  TREK_PHOTON_URL: {{ .Values.env.TREK_PHOTON_URL | quote }}
+  {{- end }}
+  {{- if .Values.env.TREK_VALHALLA_URL }}
+  TREK_VALHALLA_URL: {{ .Values.env.TREK_VALHALLA_URL | quote }}
+  {{- end }}
   {{- if .Values.env.GOOGLE_LIST_DATA_BASE }}
   GOOGLE_LIST_DATA_BASE: {{ .Values.env.GOOGLE_LIST_DATA_BASE | quote }}
   {{- end }}

@@ -213,7 +213,7 @@ export function JourneyDetailPageDesktop({ journeyId, embedded = false }: Journe
           onClose={() => setViewingEntry(null)}
           onEdit={() => { setViewingEntry(null); setEditingEntry(viewingEntry); }}
           onDelete={() => { setViewingEntry(null); setDeleteTarget(viewingEntry); }}
-          onPhotoClick={(photos, idx) => setLightbox({ photos: photos.map(p => ({ id: p.id, src: photoUrl(p, 'original'), caption: p.caption, provider: p.provider, asset_id: p.asset_id, owner_id: p.owner_id, mediaType: p.media_type })), index: idx })}
+          onPhotoClick={(photos, idx) => setLightbox({ photos: photos.map(p => ({ id: p.id, src: photoUrl(p, 'original'), thumbSrc: photoUrl(p, 'thumbnail'), caption: p.caption, provider: p.provider, asset_id: p.asset_id, owner_id: p.owner_id, mediaType: p.media_type })), index: idx })}
         />
       )}
 
@@ -602,7 +602,7 @@ export function JourneyDetailPageDesktop({ journeyId, embedded = false }: Journe
                                     readOnly={!canEditEntries}
                                     onEdit={() => setEditingEntry(entry)}
                                     onDelete={() => setDeleteTarget(entry)}
-                                    onPhotoClick={(photos, idx) => setLightbox({ photos: photos.map(p => ({ id: p.id, src: photoUrl(p, 'original'), caption: p.caption, provider: p.provider, asset_id: p.asset_id, owner_id: p.owner_id, mediaType: p.media_type })), index: idx })}
+                                    onPhotoClick={(photos, idx) => setLightbox({ photos: photos.map(p => ({ id: p.id, src: photoUrl(p, 'original'), thumbSrc: photoUrl(p, 'thumbnail'), caption: p.caption, provider: p.provider, asset_id: p.asset_id, owner_id: p.owner_id, mediaType: p.media_type })), index: idx })}
                                   />
                                 )}
                               </div>
@@ -656,7 +656,7 @@ export function JourneyDetailPageDesktop({ journeyId, embedded = false }: Journe
                   userId={useAuthStore.getState().user?.id || 0}
                   trips={current.trips}
                   canEdit={canEditEntries}
-                  onPhotoClick={(photos, idx) => setLightbox({ photos: photos.map(p => ({ id: p.id, src: photoUrl(p, 'original'), caption: p.caption ?? null, provider: p.provider, asset_id: p.asset_id, owner_id: p.owner_id, mediaType: p.media_type })), index: idx })}
+                  onPhotoClick={(photos, idx) => setLightbox({ photos: photos.map(p => ({ id: p.id, src: photoUrl(p, 'original'), thumbSrc: photoUrl(p, 'thumbnail'), caption: p.caption ?? null, provider: p.provider, asset_id: p.asset_id, owner_id: p.owner_id, mediaType: p.media_type })), index: idx })}
                   onRefresh={() => loadJourney(Number(id))}
                   onAddProviderPhotos={addPickedProviderPhotos}
                 />
@@ -735,7 +735,7 @@ export function JourneyDetailPageDesktop({ journeyId, embedded = false }: Journe
                     const entry = current.entries.find(e => String(e.id) === entryId)
                     if (!entry?.photos?.length) return
                     setLightbox({
-                      photos: entry.photos.map(p => ({ id: p.id, src: photoUrl(p, 'original'), caption: p.caption, provider: p.provider, asset_id: p.asset_id, owner_id: p.owner_id, mediaType: p.media_type })),
+                      photos: entry.photos.map(p => ({ id: p.id, src: photoUrl(p, 'original'), thumbSrc: photoUrl(p, 'thumbnail'), caption: p.caption, provider: p.provider, asset_id: p.asset_id, owner_id: p.owner_id, mediaType: p.media_type })),
                       index,
                     })
                   }}

@@ -60,7 +60,9 @@ function AdminPageDesktop(): React.ReactElement {
     { id: 'config', label: t('admin.tabs.config'), icon: SlidersHorizontal, group: gConfig },
     { id: 'settings', label: t('admin.tabs.settings'), icon: SettingsIcon, group: gConfig },
     { id: 'addons', label: t('admin.tabs.addons'), icon: Puzzle, group: gConfig },
-    { id: 'plugins', label: t('admin.tabs.plugins'), icon: Blocks, group: gConfig },
+    // Plugins run third-party code that can send data anywhere; a hosted instance
+    // offers none, so there is nothing to manage here (TREK_PLUGINS_ENABLED is off).
+    ...(managed ? [] : [{ id: 'plugins', label: t('admin.tabs.plugins'), icon: Blocks, group: gConfig }]),
     // Storage backends and their credentials are hoster-level configuration —
     // the server refuses the whole surface in managed mode (MANAGED_FORBIDDEN).
     ...(managed ? [] : [{ id: 'storage', label: t('admin.tabs.storage'), icon: HardDrive, group: gConfig }]),

@@ -13,7 +13,9 @@ type MarkerConstructor = new (options?: { element?: HTMLElement; anchor?: string
 // and mapbox doesn't get confused about which element to position.
 function buildLocationEl(): { root: HTMLDivElement; cone: HTMLDivElement } {
   const root = document.createElement('div')
-  root.style.cssText = 'width:28px;height:28px;position:relative;pointer-events:none;'
+  // No inline `position`: the GL marker class keeps the root absolute, which the
+  // children's insets resolve against (see the note on markers in MapViewGL).
+  root.style.cssText = 'width:28px;height:28px;pointer-events:none;'
   // Accuracy pulse behind the dot
   const pulse = document.createElement('div')
   pulse.style.cssText = `

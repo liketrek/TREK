@@ -14,6 +14,7 @@ function baseState(overrides: Partial<StorageAdminState> = {}): StorageAdminStat
     categories: { files: { backend: 'uploads-local', source: 'default' } } as StorageAdminState['categories'],
     health: { replicaFailures: [] },
     seedFilePresent: false,
+    reclaim: null,
     usage: null,
     backfills: [],
     migrations: [],

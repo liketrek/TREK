@@ -56,6 +56,7 @@ const HISTORY: Record<number, StoreSpec> = {
   11: { ferrataTiles: '[tripId+tile], tripId, fetchedAt' },
   12: { tourStationVisits: '[assignment_id+station_key], trip_id, assignment_id' },
   13: { tourDrafts: 'tripId' },
+  14: { routeCache: 'key, savedAt' },
 };
 
 const HISTORY_VERSIONS = Object.keys(HISTORY)
@@ -136,6 +137,7 @@ function rowsAt(version: number): Record<string, Record<string, unknown>> {
     ferrataTiles: { tripId: 1, tile: '930:236', fetchedAt: 11, ferratas: [] },
     tourStationVisits: { assignment_id: 71, station_key: 'stop-01', status: 'visited', trip_id: 1 },
     tourDrafts: { tripId: 1, draft: { payload: '{"version":11}', updated_at: '2026-10-22 09:00:00' } },
+    routeCache: { key: 'driving:km:11.5,48.1;11.6,48.2', route: { coordinates: [], legs: [] }, savedAt: 13 },
   };
   const tables = schemaAt(version);
   return Object.fromEntries(Object.entries(all).filter(([table]) => table in tables));
@@ -342,6 +344,24 @@ const UPGRADE_CASES: Record<number, UpgradeCase> = {
         .put({ tripId: 3, draft: { payload: '{"name":"C"}', updated_at: '2026-10-22 09:01:00' } });
       expect(await db.tourDrafts.count()).toBe(2);
       expect((await db.tourDrafts.get(3))?.draft.payload).toBe('{"name":"C"}');
+    },
+  },
+  14: {
+    intent: 'adds the road routes kept on the device and keeps the account drafts of the Tours planner',
+    check: async (db) => {
+      expect((await db.tourDrafts.get(1))?.draft.payload).toBe('{"version":11}');
+      await db.table('routeCache').bulkPut([
+        { key: 'driving:km:1,2;3,4', route: { legs: [] }, savedAt: 20 },
+        { key: 'walking:km:1,2;3,4', route: { legs: [] }, savedAt: 10 },
+      ]);
+      // One row per key: the same route answered again replaces the old one.
+      await db.table('routeCache').put({ key: 'driving:km:1,2;3,4', route: { legs: [1] }, savedAt: 30 });
+      expect(await db.routeCache.count()).toBe(2);
+      // The oldest come first, which is how the store prunes.
+      expect(await db.routeCache.orderBy('savedAt').primaryKeys()).toEqual([
+        'walking:km:1,2;3,4',
+        'driving:km:1,2;3,4',
+      ]);
     },
   },
 };

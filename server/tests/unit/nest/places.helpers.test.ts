@@ -5,6 +5,7 @@
  */
 import {
   COORD_DEDUP_TOLERANCE,
+  dedupSetOf,
   externalIdsOf,
   isPlaceDuplicate,
   mapWithConcurrency,
@@ -25,6 +26,61 @@ vi.mock('../../../src/db/database', () => ({
 const emptyDedup = (): DedupSet => ({ names: new Set(), coords: [], externalIds: new Set() });
 
 describe('isPlaceDuplicate / trackInsertedInDedupSet', () => {
+  it('matches a track only against the tracks of that name, never a sight of that name (#2810)', () => {
+    // The watch named the hike after the gorge, and the gorge is already a place of the trip.
+    const dedup = dedupSetOf([
+      { name: 'Hokitika Gorge', lat: -42.95, lng: 171.0, route_geometry: null },
+      { name: ' 008 ', lat: 1, lng: 2, route_geometry: '[[1,2],[3,4]]' },
+    ]);
+    expect(isPlaceDuplicate({ name: 'hokitika gorge', lat: -42.9, lng: 171.0, track: true }, dedup)).toBe(false);
+    expect(isPlaceDuplicate({ name: '008', lat: 1, lng: 2, track: true, routeGeometry: '[[1,2],[3,4]]' }, dedup)).toBe(
+      true,
+    );
+    // A pin still matches every place of its name, a track included.
+    expect(isPlaceDuplicate({ name: 'Hokitika Gorge', lat: null, lng: null }, dedup)).toBe(true);
+    expect(isPlaceDuplicate({ name: '008', lat: null, lng: null }, dedup)).toBe(true);
+
+    // A track imported earlier in the same file counts for the next one.
+    trackInsertedInDedupSet({ name: 'Hokitika Gorge', lat: -42.9, lng: 171.0, track: true }, dedup);
+    expect(isPlaceDuplicate({ name: 'Hokitika gorge ', lat: null, lng: null, track: true }, dedup)).toBe(true);
+    // A set built by hand without tracks matches no track by name.
+    const bare = emptyDedup();
+    trackInsertedInDedupSet({ name: 'Ridge', lat: 1, lng: 2 }, bare);
+    expect(isPlaceDuplicate({ name: 'Ridge', lat: 1, lng: 2, track: true }, bare)).toBe(false);
+    trackInsertedInDedupSet({ name: 'Lake', lat: 1, lng: 2, track: true }, bare);
+    expect([...(bare.tracks ?? [])]).toEqual(['lake\u0000']);
+  });
+
+  it('keeps two tracks of one name apart when they run differently (#2870)', () => {
+    // Two watch hikes, both called "Afternoon Hike": one up the valley, one along the coast.
+    const valley = '[[46.5,8.0,1200],[46.52,8.03,1500],[46.55,8.06,1900]]';
+    const coast = '[[43.7,7.25],[43.72,7.3],[43.74,7.35]]';
+    const dedup = dedupSetOf([{ name: 'Afternoon Hike', lat: 46.5, lng: 8.0, route_geometry: valley }]);
+    expect(
+      isPlaceDuplicate({ name: 'afternoon hike', lat: 43.7, lng: 7.25, track: true, routeGeometry: coast }, dedup),
+    ).toBe(false);
+    // The same file again is still the same track, its points rounded or thinned as they may be.
+    const valleyAgain = '[[46.50001,8.00002],[46.55,8.06]]';
+    expect(
+      isPlaceDuplicate({ name: 'Afternoon Hike', lat: 46.5, lng: 8.0, track: true, routeGeometry: valleyAgain }, dedup),
+    ).toBe(true);
+
+    // Within one file: the first of the two goes in, the second is not taken for it.
+    const batch = emptyDedup();
+    const first = { name: 'Day 1', lat: 46.5, lng: 8.0, track: true, routeGeometry: valley };
+    const second = { name: 'Day 1', lat: 43.7, lng: 7.25, track: true, routeGeometry: coast };
+    expect(isPlaceDuplicate(first, batch)).toBe(false);
+    trackInsertedInDedupSet(first, batch);
+    expect(isPlaceDuplicate(second, batch)).toBe(false);
+    trackInsertedInDedupSet(second, batch);
+    expect(isPlaceDuplicate({ ...second }, batch)).toBe(true);
+
+    // A line that does not parse falls back to the name alone, on both sides.
+    const broken = dedupSetOf([{ name: 'Loop', lat: 1, lng: 2, route_geometry: 'not json' }]);
+    expect(isPlaceDuplicate({ name: 'Loop', lat: 1, lng: 2, track: true, routeGeometry: '{}' }, broken)).toBe(true);
+    expect(isPlaceDuplicate({ name: 'Loop', lat: 1, lng: 2, track: true, routeGeometry: coast }, broken)).toBe(false);
+  });
+
   it('matches a named place case- and whitespace-insensitively', () => {
     const dedup = emptyDedup();
     trackInsertedInDedupSet({ name: '  Eiffel Tower ', lat: 1, lng: 2 }, dedup);

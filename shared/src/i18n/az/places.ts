@@ -188,6 +188,15 @@ const places: TranslationStrings = {
   'places.image.needsConnection': 'Yeni şəkil üçün bağlantı lazımdır. Onlayn olanda yenidən yadda saxla.',
   'places.openPhotos': 'Fotolara bax',
   'places.imageUploadError': 'Şəkli yükləmək mümkün olmadı',
+  'places.refresh.pill': 'Yeni məkan məlumatları',
+  'places.refresh.title': 'Məkan məlumatlarını yenilə',
+  'places.refresh.intro':
+    'TREK bu məkan haqqında daha yeni məlumatlar bilir. Nəyi götürəcəyinizi seçin, qalanı olduğu kimi qalır. Sonra məkanı yadda saxlayın.',
+  'places.refresh.apply': 'Götür',
+  'places.refresh.replaces': 'Hazırda saxlanılanı əvəz edir',
+  'places.refresh.empty': 'boş',
+  'places.refresh.now': 'İndi',
+  'places.refresh.new': 'Yeni',
 };
 
 export default places;

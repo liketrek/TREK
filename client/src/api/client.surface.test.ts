@@ -692,6 +692,7 @@ describe('client > request payloads', () => {
   it('FE-APISURF-030: adminApi.pluginActivate only sends consent when granted', async () => {
     expect((await traceOne(() => adminApi.pluginActivate('koffi'))).body).toEqual({})
     expect((await traceOne(() => adminApi.pluginActivate('koffi', true))).body).toEqual({ consent: true })
+    expect((await traceOne(() => adminApi.pluginActivate('koffi', false, true))).body).toEqual({ acceptTrekRange: true })
   })
 
   it('FE-APISURF-031: adminApi.pluginInstall spreads its options next to the id', async () => {

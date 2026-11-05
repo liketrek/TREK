@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { clusterPhotos, photoMarkerHtml } from './journeyPhotoLayer'
 
 describe('journey photo layer (#2453)', () => {
-  it('FE-JOURNEY-PHOTOLAYER-001: buckets by screen position, anchors on the first photo, badges a count', () => {
+  it('FE-JOURNEY-PHOTOLAYER-001: buckets by world position, anchors on the first photo, badges a count', () => {
     const photos = [
       { id: '1', lat: 1, lng: 1, thumbUrl: '/a.jpg' },
       { id: '2', lat: 1.2, lng: 1.2, thumbUrl: '/b.jpg' },

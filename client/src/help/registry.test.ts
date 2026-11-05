@@ -232,3 +232,30 @@ describe('help registry: helpers', () => {
     expect(docsRoute({ slug: 'Creating-a-Trip', anchor: 'fields' })).toBe('/help/Creating-a-Trip#fields')
   })
 })
+
+describe('help on a managed install', () => {
+  it('leaves out the guides and screens about what the operator runs', async () => {
+    const { useAuthStore } = await import('../store/authStore')
+    const { useAddonStore } = await import('../store/addonStore')
+    const reg = await import('./registry')
+    useAuthStore.setState({ managed: true })
+    try {
+      expect(reg.getHelpGuide('create-backup')).toBeNull()
+      expect(reg.getHelpGuide('instance-keys')).toBeNull()
+      expect(reg.getHelpContext('admin-backup')).toBeNull()
+      expect(reg.allHelpGuides().some(g => g.context === 'admin-storage')).toBe(false)
+      expect(reg.getHelpGuide('files-sync')).toBeNull()
+      // Integrations follow whether the instance has them on.
+      useAddonStore.setState({ addons: [] })
+      expect(reg.getHelpGuide('connect-dawarich')).toBeNull()
+      useAddonStore.setState({ addons: [{ id: 'dawarich', enabled: true } as never] })
+      expect(reg.getHelpGuide('connect-dawarich')).not.toBeNull()
+      // What a hosted admin can still do keeps its guide.
+      expect(reg.getHelpGuide('create-user')).not.toBeNull()
+    } finally {
+      useAuthStore.setState({ managed: false })
+      useAddonStore.setState({ addons: [] })
+    }
+    expect(reg.getHelpGuide('create-backup')).not.toBeNull()
+  })
+})

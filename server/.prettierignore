@@ -1,3 +1,7 @@
 # Written by scripts/generate-entities.ts and held byte for byte to its output
 # by check:entities, so Prettier must not rewrite them.
 src/db/entities/
+
+# Written by the TREK services issuer and committed as it wrote it: the
+# registration dialect, taken over by the release job.
+src/nest/service-identity/registration-dialect.ts

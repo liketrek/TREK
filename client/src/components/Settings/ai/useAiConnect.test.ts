@@ -326,4 +326,19 @@ describe('OpenRouter', () => {
     await waitFor(() => expect(toast.error).toHaveBeenCalledTimes(1));
     expect(repo.openrouterFinish).not.toHaveBeenCalled();
   });
+
+  it('FE-HOOK-AI-CONNECT-012b: a code OpenRouter added with a second question mark still finishes the sign-in', async () => {
+    rememberOpenrouterFlow(FLOW.flowId);
+    const onConnected = vi.fn();
+    const { result } = renderHook(
+      () => {
+        useOpenrouterReturn(onConnected);
+        return useLocation();
+      },
+      { wrapper: wrapperAt('/settings?tab=integrations&ai=openrouter?code=or-code') }
+    );
+    await waitFor(() => expect(onConnected).toHaveBeenCalledTimes(1));
+    expect(repo.openrouterFinish).toHaveBeenCalledWith({ flowId: FLOW.flowId, code: 'or-code' });
+    expect(result.current.search).toBe('?tab=integrations');
+  });
 });

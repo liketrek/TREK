@@ -26,9 +26,8 @@ import type { ReservationEndpointsRepository, TravelerOwnedEndpointRow } from '.
 import {
   getCountryFromAddress,
   getCountryFromCoords,
-  getCountryGeoGz,
+  getCountryGeoFile,
   getRegionFromCoords,
-  getRegionGeo,
   geocodingInFlight,
   resolveCountryCodeSync,
   resolveRegionFromBundle,
@@ -39,6 +38,7 @@ import { KNOWN_COUNTRIES } from './known-countries';
 import { cityFromAddress } from './city-from-address';
 import { transferEndpointIds } from './transfer-endpoints';
 import { countryVisitDates } from './visit-dates';
+import { placeCountryResolver } from './place-countries';
 import { haversineKm } from '../common/geo';
 
 /** The part of a place that its cached region is derived from. */
@@ -213,21 +213,12 @@ export class AtlasService {
     const cached = placeIds.length > 0 ? await this.placeRegions.listCountryCodesForPlaceIds(placeIds) : []; // AT3
     const cachedMap = new Map(cached.map((r) => [r.place_id, r.country_code]));
 
+    const countryOf = placeCountryResolver();
     const uncachedForGeocode: PlaceRow[] = [];
     for (const p of places) {
-      const fromDb = cachedMap.get(p.id);
-      if (fromDb) {
-        out.set(p.id, fromDb);
-        continue;
-      }
-      const sync = resolveCountryCodeSync(p);
-      if (sync) {
-        out.set(p.id, sync);
-        continue;
-      }
-      if (p.lat && p.lng && !geocodingInFlight.has(p.id)) {
-        uncachedForGeocode.push(p);
-      }
+      const code = countryOf(p, cachedMap.get(p.id));
+      if (code) out.set(p.id, code);
+      else if (p.lat && p.lng && !geocodingInFlight.has(p.id)) uncachedForGeocode.push(p);
     }
 
     this.cacheRegionsInBackground(uncachedForGeocode); // AT4
@@ -885,12 +876,8 @@ export class AtlasService {
     };
   }
 
-  regionGeo(countries: string[]) {
-    return getRegionGeo(countries);
-  }
-
-  countryGeoGz(): Buffer | null {
-    return getCountryGeoGz();
+  countryGeoFile(): string | null {
+    return getCountryGeoFile();
   }
 
   // ── Bucket list CRUD ──────────────────────────────────────────────────────
@@ -1005,11 +992,9 @@ export class AtlasService {
    * side of a work trip), and without the second key which one is "last" would be
    * whatever the storage engine happened to return first.
    *
-   * Countries come from `place_regions`, Atlas's own cache, most-visited first.
-   * No fallback to `getCountryFromCoords` here on purpose: this answers a
-   * dashboard widget, and a point-in-polygon scan over 4MB of boundaries is too
-   * much to spend on a label. An unresolved trip reports an empty list, which the
-   * caller renders as "no country" rather than as a wrong one.
+   * Countries are resolved per place the way the Atlas map resolves them, most
+   * visited first. A trip none of whose places can be placed reports an empty
+   * list, which the caller renders as "no country" rather than as a wrong one.
    */
   async lastTrip(userId: number): Promise<{ title: string; start_date: string | null; end_date: string | null; countries: string[] } | null> {
     const trip = await this.trips.lastStartedTrip(userId, todayUtc()); // AT39
@@ -1047,10 +1032,17 @@ export class AtlasService {
     };
   }
 
-  /** The countries a trip's places resolved to in `place_regions`, most-visited first. */
+  /** The countries a trip's places sit in, most-visited first, ties by code. */
   private async tripCountries(tripId: number): Promise<string[]> {
-    const rows = await this.placeRegions.countPlacesByCountryForTrip(tripId); // AT40
-    return rows.map((r) => r.country_code.toUpperCase());
+    const countryOf = placeCountryResolver();
+    const placesPerCountry = new Map<string, number>();
+    for (const place of await this.placeRegions.listPlaceCountriesForTrip(tripId)) { // AT40
+      const code = countryOf(place, place.country_code)?.toUpperCase();
+      if (code) placesPerCountry.set(code, (placesPerCountry.get(code) ?? 0) + 1);
+    }
+    return [...placesPerCountry]
+      .sort(([codeA, a], [codeB, b]) => b - a || (codeA < codeB ? -1 : 1))
+      .map(([code]) => code);
   }
 
   async getTravelStats(userId: number) {
@@ -1076,17 +1068,20 @@ export class AtlasService {
       if (cityPart) cities.add(cityPart);
     });
 
-    // Visited countries — same source the Atlas page uses: ISO-2 codes from
-    // auto-resolved place regions plus countries the user marked manually.
+    // Visited countries: the ones the user marked by hand, plus the countries of
+    // their places, resolved the way the Atlas map resolves them (#2875).
     const countryCodes = new Set<string>();
     const manualCountries = await this.visitedCountries.listCodesForUser(userId); // AT43
     manualCountries.forEach(code => { if (code) countryCodes.add(code.toUpperCase()); });
 
     // Only trips that have already started count as visited — a country you have merely
     // booked a trip to isn't stamped in the passport yet, and one you jotted down without
-    // any dates even less so (#1048). date('now') is UTC, matching tripVisitStatus.
-    const placeRegionCodes = await this.placeRegions.listVisitedCountryCodesForUser(userId, today); // AT44
-    placeRegionCodes.forEach(code => { if (code) countryCodes.add(code.toUpperCase()); });
+    // any dates even less so (#1048). `today` is UTC, matching tripVisitStatus.
+    const countryOf = placeCountryResolver();
+    for (const place of await this.placeRegions.listStartedTripPlaceCountriesForUser(userId, today)) { // AT44
+      const code = countryOf(place, place.country_code);
+      if (code) countryCodes.add(code.toUpperCase());
+    }
 
     // Transport bookings don't create a place row, so their geocoded endpoints never
     // reached place_regions — a country reached only by a flight/train (no lodging or

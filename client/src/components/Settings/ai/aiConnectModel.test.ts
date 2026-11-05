@@ -1,4 +1,4 @@
-// FE-AI-CONNECT-MODEL-001 to FE-AI-CONNECT-MODEL-007: the pure rules behind connecting an AI provider.
+// FE-AI-CONNECT-MODEL-001 to FE-AI-CONNECT-MODEL-008: the pure rules behind connecting an AI provider.
 import type { AiConnectionView } from '@trek/shared';
 import { describe, expect, it } from 'vitest';
 import { OnlineOnlyError } from '../../../repo/onlineOnly';
@@ -6,6 +6,7 @@ import {
   connectErrorKey,
   httpHostOf,
   isPublicHttpsUrl,
+  openrouterReturnCode,
   refusalCode,
   rememberOpenrouterFlow,
   repairModeOf,
@@ -44,6 +45,14 @@ describe('aiConnectModel', () => {
     expect(connectErrorKey(new OnlineOnlyError())).toBe('assistant.error.offline');
     expect(connectErrorKey(refused('forbidden'))).toBe('assistant.error.generic');
     expect(connectErrorKey(new Error('boom'))).toBe('assistant.error.generic');
+  });
+
+  it('FE-AI-CONNECT-MODEL-002b: tells an own server that answered without a model list from one that is down (#2808)', () => {
+    const noList = { response: { data: { code: 'provider_unavailable', reason: 'no_model_list' } } };
+    expect(connectErrorKey(noList)).toBe('assistant.connect.noModelList');
+    expect(connectErrorKey({ response: { data: { code: 'provider_unavailable', reason: 'other' } } })).toBe(
+      'assistant.error.providerDown'
+    );
   });
 
   it('FE-AI-CONNECT-MODEL-003: offers the way back into a broken connection, none for a working one', () => {
@@ -92,5 +101,15 @@ describe('aiConnectModel', () => {
     expect(src.startsWith('data:image/svg+xml;charset=utf-8,')).toBe(true);
     expect(src).not.toContain('<');
     expect(decodeURIComponent(src.split(',')[1])).toBe('<svg><path d="M0 0"/></svg>');
+  });
+
+  it('FE-AI-CONNECT-MODEL-008: reads the OpenRouter return with the code after an & or after a second ?', () => {
+    const read = (query: string) => openrouterReturnCode(new URLSearchParams(query));
+    expect(read('tab=integrations&ai=openrouter&code=abc')).toBe('abc');
+    expect(read('tab=integrations&ai=openrouter?code=abc')).toBe('abc');
+    expect(read('tab=addons&ai=openrouter?code=abc&state=x')).toBe('abc');
+    expect(read('ai=openrouter')).toBeNull();
+    expect(read('tab=integrations')).toBeUndefined();
+    expect(read('ai=chatgpt&code=abc')).toBeUndefined();
   });
 });

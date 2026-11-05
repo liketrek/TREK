@@ -61,7 +61,7 @@ Markers that [plugins](Places-and-Search#categories-from-plugins) put on the map
 
 A day's route is drawn as a solid blue line, a bright core over a darker casing in the look Apple Maps uses, through that day's stops in the order you arranged them. It is not on automatically: switch it on with **Route** in the route bar of the selected day (see [Day Plans and Notes](Day-Plans-and-Notes#the-route-bar)), or in the day sheet on a phone. The choice is remembered per trip in your browser, and the phone's map turns it on by default the first time you open a trip you have not decided on.
 
-A straight line is drawn immediately, then upgraded to real road geometry from a public OSRM router (or from a plugin route profile), each leg routed in the travel mode that leg carries: driving, walking or cycling. If routing fails, that leg stays a straight line between the two stops.
+A straight line is drawn immediately, then upgraded to real road geometry from the router, or from a plugin route profile, each leg routed in the travel mode that leg carries: driving, walking or cycling. With the TREK services the router is their [Valhalla](TREK-Places-API#routing), and OSRM draws only a day it cannot answer; without them it is a public OSRM router. See [Road-Trip](Road-Trip#routing-engines). If routing fails, that leg stays a straight line between the two stops.
 
 A leg you walk is drawn as a dotted line in the same colour, without the casing, so the drive stands apart from the stretches on foot.
 
@@ -105,14 +105,14 @@ Travel times are not drawn on the map; they sit in the day plan. Switch a day's 
 
 Each leg carries its own mode, so a day routed by car can still have one leg you walk. If you may edit the day, clicking a connector (*Change travel mode*) opens the mode menu for that leg alone, with **Public transit** on a trip with dates. See [Route Optimization](Route-Optimization#route-calculation).
 
-Car, foot and bicycle times come from a public OSRM router, so they follow real roads, footpaths and cycle routes instead of straight-line estimates. A plugin route profile is answered by the plugin's own route provider instead, which is what lets it fold in things like charging stops; those legs can add a short note next to the distance. When routing is unavailable the leg falls back to a straight line and shows no time.
+Car, foot and bicycle times come from the same router as the route line (the Valhalla of the TREK services, OSRM for a day it cannot answer or without them), so they follow real roads, footpaths and cycle routes instead of straight-line estimates. A plugin route profile is answered by the plugin's own route provider instead, which is what lets it fold in things like charging stops; those legs can add a short note next to the distance. When routing is unavailable the leg falls back to a straight line and shows no time.
 
 ## Reservation and transport overlay
 
 Flights, trains, cars, cruises and other bookings with a start and an end point can be drawn as routes between those points. Booking routes are **off by default**. Switch one on with the route button of its row in the days column (*Show booking routes*), or on its badge under the place it is pinned to, or use one of the bulk options below. **On map** in the booking's detail does the same and opens the plan on the booking's day; pressed again, it switches the route off. The selection is remembered per trip in your browser.
 
 - **Flights, cruises and ferries:** geodesic great-circle arcs.
-- **Cars, buses, taxis and bicycles:** real routed lines that follow actual roads, fetched on demand from a public OSRM router (driving for car, bus and taxi, cycling for bicycle). A straight line is shown while the route loads, and kept if routing fails or the trip is very long (about 2,000 km or more).
+- **Cars, buses, taxis and bicycles:** real routed lines that follow actual roads, fetched on demand from the same router as the day's route (driving for car, bus and taxi, cycling for bicycle). A straight line is shown while the route loads, and kept if routing fails or the trip is very long (about 2,000 km or more).
 - **Trains:** a straight line between the endpoints; a multi-leg train draws its whole station chain (from, stop, to).
 - **Cable cars and gondolas**, and bookings of the type **Other**: a straight line between the endpoints.
 - **Automated public transit:** a journey added from the transit search draws its real rail and bus alignment instead of a straight line: each ride leg in its line's own colour over a white casing, walking transfers as a dotted grey line. A journey whose provider sent no shape falls back to a straight line. Unlike every other type it has no route button of its own in the days column. It is drawn when the day's own **Route** is on and the journey runs on that day, and independently of that by the bulk button, the account-wide default, or **On map** in its detail. Because those are two separate gates, **Hide all booking routes** does not clear a transit journey while that day's **Route** is still on.

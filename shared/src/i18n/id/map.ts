@@ -35,6 +35,8 @@ const map: TranslationStrings = {
   'map.overview.hide': 'Sembunyikan seluruh perjalanan',
   'map.overview.total': 'Jarak total',
   'map.attribution': 'Kredit peta',
+  'map.overview.distanceAtLeast': 'minimal {distance}',
+  'map.overview.notRouted': 'rute belum dihitung',
   'map.overview.unrouted': 'Rute untuk {count} ruas tidak dapat dihitung, jadi jaraknya belum lengkap.',
   'map.overview.dayUnrouted': 'Rute untuk {count} ruas pada hari ini tidak dapat dihitung',
   'map.baseLayer.topo': 'Topografi',

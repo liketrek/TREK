@@ -245,6 +245,14 @@ export const reservationUrlSchema = z.string().refine(
   { message: 'must not be a javascript:, data: or vbscript: URL' },
 );
 
+/**
+ * The price an MCP booking tool takes and files as the booking's linked expense
+ * (create_reservation, create_transport, create_transit_journey), and the budget
+ * category of that expense.
+ */
+export const bookingPriceSchema = z.number().nonnegative();
+export const bookingBudgetCategorySchema = z.string().max(100);
+
 /** Reservation create: title is required; the many optional fields stay open. */
 export const reservationCreateRequestSchema = open.and(
   z.object({

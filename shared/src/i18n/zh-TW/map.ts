@@ -33,6 +33,8 @@ const map: TranslationStrings = {
   'map.overview.hide': '隱藏整趟行程',
   'map.overview.total': '總距離',
   'map.attribution': '地圖來源',
+  'map.overview.distanceAtLeast': '至少 {distance}',
+  'map.overview.notRouted': '未計算路線',
   'map.overview.unrouted': '有 {count} 段無法計算路線，因此距離不完整。',
   'map.overview.dayUnrouted': '本日有 {count} 段無法計算路線',
   'map.baseLayer.topo': '地形圖',

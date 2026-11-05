@@ -298,7 +298,7 @@ const journey: TranslationStrings = {
   'journey.studio.autoLayout': 'Automatikus elrendezés',
   'journey.studio.export': 'Exportálás',
   'journey.studio.day': '{day}. NAP',
-  'journey.studio.stations': 'Állomások',
+  'journey.studio.stations': 'Útközben',
   'journey.studio.peersHere': 'itt',
   'journey.studio.folioAuto': 'Automatikus',
   'journey.studio.exportLayout': 'Elrendezés',

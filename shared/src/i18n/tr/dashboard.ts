@@ -110,6 +110,8 @@ const dashboard: TranslationStrings = {
   'dashboard.unsplashQueryRequired': 'Bir arama terimi girin',
   'dashboard.unsplashNoResults': 'Görsel bulunamadı',
   'dashboard.coverSearchError': 'Unsplash araması başarısız oldu',
+  'dashboard.unsplashKeyNeeded':
+    'Unsplash bu sunucuyu reddetti. Görsel aramanın çalışması için bir yönetici, yönetici ayarlarına ücretsiz bir Unsplash API anahtarı ekleyebilir.',
   'dashboard.useUnsplashPhoto': '{photographer} tarafından çekilen Unsplash fotoğrafını kullan',
   'dashboard.titleRequired': 'Başlık gerekli',
   'dashboard.endDateError': 'Bitiş tarihi başlangıçtan sonra olmalı',

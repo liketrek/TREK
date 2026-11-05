@@ -1,4 +1,4 @@
-// FE-COMP-JENTRYVIEW-001 to FE-COMP-JENTRYVIEW-020
+// FE-COMP-JENTRYVIEW-001 to FE-COMP-JENTRYVIEW-022
 
 import { render, screen, fireEvent } from '../../../tests/helpers/render'
 import { resetAllStores, seedStore } from '../../../tests/helpers/store'
@@ -134,6 +134,18 @@ describe('MobileEntryView', () => {
     expect(images).toHaveLength(1)
     expect(images[0]).toHaveAttribute('src', '/api/photos/4/original')
     expect(container.querySelector('svg.lucide-camera')).toBeNull()
+  })
+
+  it('FE-COMP-JENTRYVIEW-021: the hero holds the proportions of the photo and shows its thumbnail before the original arrives (#2907)', () => {
+    const { container } = renderView(buildEntry({ photos: [{ ...buildPhoto(4), width: 3000, height: 2000 }] }))
+    const hero = container.querySelector('img') as HTMLImageElement
+    expect(hero.style.aspectRatio).toBe('3000 / 2000')
+    expect(hero.style.backgroundImage).toContain('/api/photos/4/thumbnail')
+  })
+
+  it('FE-COMP-JENTRYVIEW-022: a photo without recorded dimensions still reserves a 4:3 hero', () => {
+    const { container } = renderView(buildEntry({ photos: [buildPhoto(4)] }))
+    expect((container.querySelector('img') as HTMLImageElement).style.aspectRatio).toBe('4 / 3')
   })
 
   it('FE-COMP-JENTRYVIEW-008: several photos add a counter and a thumbnail strip', () => {

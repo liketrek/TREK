@@ -91,7 +91,13 @@ export const MANAGED_LOCKED_SETTING_KEYS = [
   'oidc_login',
   'oidc_registration',
   'openweather_api_key',
+  // Place search and routing are the operator's on a managed install: the
+  // services, their allowance and who answers come with the instance.
+  'places_provider',
   'routing_base_url',
+  'routing_valhalla_provider',
+  // The operator issues a managed install its key through TREK_SERVICES_KEY.
+  'service_key',
   'smtp_from',
   'smtp_host',
   'smtp_pass',
@@ -146,14 +152,11 @@ export const MANAGED_CUSTOMER_KEYS = [
   'passkey_login',
   'password_login',
   'password_registration',
-  // WHICH provider answers place search stays the admin's call even when the
-  // operator owns both credentials: it decides what their users see, not what
-  // the operator is billed for — the keys above cover that.
-  'places_provider',
   'require_mfa',
   'temperature_unit',
   'time_format',
   'week_start',
+  'date_format',
 ] as const;
 
 const LOCKED = new Set<string>(MANAGED_LOCKED_SETTING_KEYS);

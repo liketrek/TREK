@@ -69,6 +69,8 @@ const dayplan: TranslationStrings = {
   'dayplan.pdf': "PDF'ler",
   'dayplan.pdfTooltip': 'Gün planını PDF olarak dışa aktar',
   'dayplan.pdfMine': 'Planım PDF olarak',
+  'dayplan.pdfRouting': 'Rotalar hesaplanıyor: {done}/{total}',
+  'dayplan.pdfSkipRouting': 'Kalan rotalar olmadan dışa aktar',
   'dayplan.pdfMineSub': 'Yalnızca katıldığın etkinlikler ve rezervasyonlar',
   'dayplan.gpxTooltip': 'Çevrimdışı haritalar ve GPS cihazları için GPX olarak dışa aktar',
   'dayplan.gpxAll': 'Tüm gezi',

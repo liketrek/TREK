@@ -9,6 +9,7 @@ import es from './es';
 import et from './et';
 import fr from './fr';
 import gr from './gr';
+import he from './he';
 import hu from './hu';
 import id from './id';
 import itIT from './it';
@@ -61,6 +62,7 @@ const LOCALES: Record<string, TranslationStrings> = {
   et,
   fr,
   gr,
+  he,
   hu,
   id,
   it: itIT,

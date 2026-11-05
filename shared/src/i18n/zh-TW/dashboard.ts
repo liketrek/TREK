@@ -89,6 +89,8 @@ const dashboard: TranslationStrings = {
   'dashboard.unsplashQueryRequired': '請輸入搜尋詞',
   'dashboard.unsplashNoResults': '找不到圖片',
   'dashboard.coverSearchError': 'Unsplash 搜尋失敗',
+  'dashboard.unsplashKeyNeeded':
+    'Unsplash 拒絕了此伺服器。管理員可以在管理設定中新增免費的 Unsplash API 金鑰，以便使用圖片搜尋。',
   'dashboard.useUnsplashPhoto': '使用 {photographer} 的 Unsplash 照片',
   'dashboard.titleRequired': '標題為必填項',
   'dashboard.endDateError': '結束日期必須晚於開始日期',

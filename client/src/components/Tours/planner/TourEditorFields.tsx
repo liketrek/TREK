@@ -212,13 +212,17 @@ function TourTimeFields({ planner, locked }: TourFieldProps) {
           id="tour-planner-planned-duration"
           label={t('tours.planner.plannedTotalDuration')}
           value={planner.plannedDurationMinutes ?? planner.plannedTotalMinutes}
-          invalid={planner.plannedDurationInvalid}
+          invalid={planner.plannedDurationInvalid || planner.plannedTotalInvalid}
           errorId="tour-planner-planned-duration-error"
           locked={locked}
           onCommit={planner.setPlannedDurationMinutes}
         />
         {planner.plannedDurationInvalid && (
           <FieldError id="tour-planner-planned-duration-error">{t('tours.planner.timeValueInvalid')}</FieldError>
+        )}
+        {/* #2869: over a day a stage Save waits, and says why rather than only greying out. */}
+        {!planner.plannedDurationInvalid && planner.plannedTotalInvalid && (
+          <FieldError id="tour-planner-planned-duration-error">{t('tours.planner.plannedTotalOverDay')}</FieldError>
         )}
       </div>
     </div>
@@ -337,7 +341,11 @@ export function TourDetailsSection({
 }: TourFieldProps & { onDifficultyChange: (value: Difficulty) => void }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(readDetailsOpen);
-  const forcedOpen = planner.websiteInvalid || planner.plannedDurationInvalid || planner.breakAdditionalInvalid;
+  const forcedOpen =
+    planner.websiteInvalid ||
+    planner.plannedDurationInvalid ||
+    planner.breakAdditionalInvalid ||
+    planner.plannedTotalInvalid;
   const expanded = open || forcedOpen;
   const toggle = () => {
     const next = !expanded;

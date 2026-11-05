@@ -72,7 +72,7 @@ const reservations: TranslationStrings = {
   'reservations.type.car': 'Avtomobil',
   'reservations.type.cruise': 'Kruiz',
   'reservations.type.event': 'Tədbir',
-  'reservations.type.tour': 'Tur',
+  'reservations.type.tour': 'Bələdçili tur',
   'reservations.type.parking': 'Parkinq',
   'reservations.type.other': 'Digər',
   'reservations.type.bus': 'Avtobus',
@@ -91,8 +91,8 @@ const reservations: TranslationStrings = {
 
   'reservations.toast.updated': 'Rezervasiya yeniləndi',
   'reservations.toast.removed': 'Rezervasiya silindi',
-  'reservations.toast.fileUploaded': 'Fayl yükləndi',
-  'reservations.toast.uploadError': 'Faylı yükləmək mümkün olmadı',
+  'reservations.toast.filesNotUploaded':
+    'Rezervasiya yadda saxlanıldı, lakin bəzi fayllar yüklənmədi. Onları göndərmək üçün yenidən yadda saxlayın.',
 
   'reservations.newTitle': 'Yeni rezervasiya',
   'reservations.bookingType': 'Rezervasiya növü',
@@ -170,6 +170,14 @@ const reservations: TranslationStrings = {
   'reservations.import.dropHere':
     'Rezervasiya təsdiqi fayllarını buraya sürükləyib buraxın və ya seçmək üçün klikləyin',
   'reservations.import.dropActive': 'İdxal etmək üçün faylları buraya buraxın',
+  'reservations.import.pinSearching': 'Xəritədə axtarılır…',
+  'reservations.import.pinFound': 'Xəritədə',
+  'reservations.import.pinMissingTitle': 'Hələ xəritədə deyil',
+  'reservations.import.pinMissingBody':
+    'TREK bu yaşayış yerini xəritədə tapa bilmədi. Yuxarıdakı adı və ünvanı yoxlayın və yenidən axtarın, ya da onu sancaqsız yadda saxlayın.',
+  'reservations.import.pinRetry': 'Yenidən axtar',
+  'reservations.import.savedWithoutPin':
+    'Xəritə sancağı olmadan yadda saxlanıldı. Xəritədə görmək üçün yeri redaktə edin və mövqeyini təyin edin.',
   'reservations.import.acceptedFormats':
     'Qəbul edilən formatlar: EML, PDF, PKPass, HTML, TXT (hər biri maksimum 10 MB, 5 fayladək)',
   'reservations.import.acceptedPhotos': 'Fotoları (JPG, PNG, WEBP) süni intellekt modeli oxuyur.',

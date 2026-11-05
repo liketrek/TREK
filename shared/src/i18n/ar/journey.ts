@@ -321,7 +321,7 @@ const journey: TranslationStrings = {
   'journey.studio.autoLayout': 'تخطيط تلقائي',
   'journey.studio.export': 'تصدير',
   'journey.studio.day': 'اليوم {day}',
-  'journey.studio.stations': 'المحطات',
+  'journey.studio.stations': 'على الطريق',
   'journey.studio.peersHere': 'هنا',
   'journey.studio.folioAuto': 'تلقائي',
   'journey.studio.exportLayout': 'التخطيط',

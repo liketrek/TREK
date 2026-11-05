@@ -35,6 +35,8 @@ const wanderer: TranslationStrings = {
   'wanderer.error.not_own_trail': 'Only your own wanderer trails can be imported.',
   'wanderer.error.invalid_response':
     'The answer did not come from wanderer. Check that the address points at wanderer itself.',
+  'wanderer.error.no_author':
+    'wanderer answered, but names no trail author for the account of this API token, so TREK cannot tell which trails are yours.',
   'wanderer.error.too_large': 'The trail file is larger than 10 MB.',
   'wanderer.error.server_error': 'wanderer answered with an error. Try again later.',
   'wanderer.error.offline': 'You are offline. wanderer can only be searched online.',

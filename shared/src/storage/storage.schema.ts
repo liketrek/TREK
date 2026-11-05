@@ -276,6 +276,105 @@ export const storageUsageSchema = z.object({
 });
 export type StorageUsage = z.infer<typeof storageUsageSchema>;
 
+// ── Reclaim: objects no row names any more ────────────────────────────────────
+
+/** Every category the byte-paths serve, the legacy `photos` folder included: the reclaim report covers each. */
+export const STORAGE_RECLAIM_CATEGORIES = [...STORAGE_CATEGORIES, 'photos'] as const;
+export const storageReclaimCategorySchema = z.enum(STORAGE_RECLAIM_CATEGORIES);
+
+/**
+ * Why a category was not judged on a pass, or stopped short, whatever the switch says:
+ * - `not_reclaimed`: the category is never reclaimed (a cache, the backups, the legacy photos folder);
+ * - `sources_missing`: a domain whose rows can name its objects did not answer, so nothing can be proven unreferenced;
+ * - `shared_location`: its objects sit where another category's do, or where they cannot be told apart;
+ * - `foreign_install`: another TREK installation keeps its uploads in the same place (its owner marker is there);
+ * - `owner_unknown`: this installation's owner marker could not be written there, so a shared place cannot be ruled out;
+ * - `list_failed` / `source_failed`: the listing or a reference lookup failed, so the pass stopped there;
+ * - `delete_failed`: deleting failed on the backend, so the pass stopped deleting in this category;
+ * - `backup_running`: a backup was reading the uploads when this category's objects were due, so the pass
+ *   deleted nothing there (from then on, for the rest of the pass); the next pass tries again;
+ * - `interrupted`: the pass stopped (`stopped` says why) before it finished this category; its figures are partial.
+ * A skip keeps the marks it found: only a pass that judges the category moves them.
+ */
+export const STORAGE_RECLAIM_SKIP_REASONS = [
+  'not_reclaimed',
+  'sources_missing',
+  'shared_location',
+  'foreign_install',
+  'owner_unknown',
+  'list_failed',
+  'source_failed',
+  'delete_failed',
+  'backup_running',
+  'interrupted',
+] as const;
+
+const storageObjectCountSchema = z.object({ objects: z.number().int().nonnegative(), bytes: z.number().nonnegative() });
+
+export const storageReclaimCategoryReportSchema = z.object({
+  /** Objects the pass looked at; 0 when the category was skipped before it was listed. */
+  objects: z.number().int().nonnegative(),
+  /** Older than a day and named by no row. */
+  unreferenced: storageObjectCountSchema,
+  /** Unreferenced on every pass for at least a week: what a pass with deletion on removes. */
+  eligible: storageObjectCountSchema,
+  deleted: storageObjectCountSchema,
+  /**
+   * More than a fifth of the category is unreferenced and no admin confirmation
+   * covers that count: deletion waits for one (POST .../reclaim/confirm). The
+   * admin state reads false once a confirmation covers it, before the next pass.
+   */
+  confirmationRequired: z.boolean(),
+  skipped: z.enum(STORAGE_RECLAIM_SKIP_REASONS).nullable(),
+});
+export type StorageReclaimCategoryReport = z.infer<typeof storageReclaimCategoryReportSchema>;
+
+export const storageReclaimReportSchema = z.object({
+  startedAt: z.number(),
+  finishedAt: z.number(),
+  /** `delete` when the pass started with deletion switched on; a check started by hand always only reports. */
+  mode: z.enum(['report', 'delete']),
+  /**
+   * Why the pass stopped before the end: the database was swapped under it (a
+   * restore), or an unexpected error. Null when it ran through.
+   */
+  stopped: z.enum(['database_reopened', 'failed']).nullable(),
+  categories: z.record(storageReclaimCategorySchema, storageReclaimCategoryReportSchema),
+});
+export type StorageReclaimReport = z.infer<typeof storageReclaimReportSchema>;
+
+export const storageReclaimStateSchema = z.object({
+  /** Off after install, upgrade and every backup restore: a pass then only reports. */
+  deleteEnabled: z.boolean(),
+  /** A pass is running now (the nightly one or a check started by hand). */
+  running: z.boolean(),
+  /** The last pass of any kind; null before the first. */
+  lastRun: storageReclaimReportSchema.nullable(),
+  /** The last pass that ran with deletion on, which a check started by hand never replaces; null before one. */
+  lastDeleteRun: storageReclaimReportSchema.nullable(),
+});
+export type StorageReclaimState = z.infer<typeof storageReclaimStateSchema>;
+
+export const storageReclaimSettingsRequestSchema = z.strictObject({ deleteEnabled: z.boolean() });
+export type StorageReclaimSettingsRequest = z.infer<typeof storageReclaimSettingsRequestSchema>;
+
+/** POST .../reclaim/run answers 202 at once; the pass reports through the admin state. */
+export const storageReclaimRunStartedSchema = z.object({ started: z.literal(true) });
+
+/**
+ * Lets the pass delete in a category whose unreferenced share is over a
+ * fifth. `unreferenced` is the count the admin was shown; the server refuses
+ * (409 `reclaim_confirm_stale`) when its last report's count for the category
+ * differs from it by more than a tenth or by more than 50 objects. The
+ * confirmation then covers up to one and a half times that count (at least 100
+ * more) for 14 days, and is used up once the share falls under a fifth again.
+ */
+export const storageReclaimConfirmRequestSchema = z.strictObject({
+  category: storageReclaimCategorySchema,
+  unreferenced: z.number().int().nonnegative(),
+});
+export type StorageReclaimConfirmRequest = z.infer<typeof storageReclaimConfirmRequestSchema>;
+
 export const storageAdminStateSchema = z.object({
   backends: z.array(
     z.object({
@@ -295,6 +394,11 @@ export const storageAdminStateSchema = z.object({
   health: z.object({ replicaFailures: z.array(storageReplicaFailureSchema) }),
   seedFilePresent: z.boolean(),
   usage: storageUsageSchema.nullable(),
+  /**
+   * The reclaim switch and the last pass's report (`lastRun` null before the
+   * first pass). Nullable so a client reading an older server copes with it.
+   */
+  reclaim: storageReclaimStateSchema.nullable(),
   backfills: z.array(storageBackfillStatusSchema),
   migrations: z.array(storageMigrationStatusSchema),
   /** Optimistic-concurrency counter for the two settings rows (audit #7) — echo it back on the next PUT. */

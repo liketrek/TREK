@@ -70,6 +70,7 @@ import { PaddleObstaclesModule } from './paddle-obstacles/paddle-obstacles.modul
 import { PaddleRoutingModule } from './paddle-routing/paddle-routing.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { PhotosModule } from './photos/photos.module';
+import { PlaceContribModule } from './place-contrib/place-contrib.module';
 import { PlaceEnrichmentModule } from './place-enrichment/place-enrichment.module';
 import { PlaceImportModule } from './place-import/place-import.module';
 import { PlaceShadowModule } from './place-shadow/place-shadow.module';
@@ -85,8 +86,10 @@ import { ReservationImportModule } from './reservation-import/reservation-import
 import { ReservationsModule } from './reservations/reservations.module';
 import { RoadtripModule } from './roadtrip/roadtrip.module';
 import { RouteUsageModule } from './route-usage/route-usage.module';
+import { RoutingRelayModule } from './routing-relay/routing-relay.module';
 import { SchedulingModule } from './scheduling/scheduling.module';
 import { SchoolHolidaysModule } from './school-holidays/school-holidays.module';
+import { ServiceIdentityModule } from './service-identity/service-identity.module';
 import { SessionsModule } from './sessions/sessions.module';
 import { SettingsModule } from './settings/settings.module';
 import { ShareModule } from './share/share.module';
@@ -141,6 +144,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
     MapsModule,
     PlaceImportModule,
     GoogleQuotaModule,
+    PlaceContribModule,
     PlaceEnrichmentModule,
     PlaceShadowModule,
     RouteUsageModule,
@@ -183,6 +187,8 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
     TransitModule,
     FeedsModule,
     SettingsModule,
+    ServiceIdentityModule,
+    RoutingRelayModule,
     StorageModule,
     BackupModule,
     AuthModule,

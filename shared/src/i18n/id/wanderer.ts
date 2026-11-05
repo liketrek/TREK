@@ -35,6 +35,8 @@ const wanderer: TranslationStrings = {
   'wanderer.error.not_own_trail': 'Hanya jalur wanderer milik Anda sendiri yang dapat diimpor.',
   'wanderer.error.invalid_response':
     'Jawaban tidak berasal dari wanderer. Pastikan alamat mengarah ke wanderer itu sendiri.',
+  'wanderer.error.no_author':
+    'wanderer menjawab, tetapi tidak menyebutkan penulis jalur untuk akun token API ini, sehingga TREK tidak bisa mengetahui jalur mana yang milik Anda.',
   'wanderer.error.too_large': 'Berkas jalur lebih besar dari 10 MB.',
   'wanderer.error.server_error': 'wanderer menjawab dengan galat. Coba lagi nanti.',
   'wanderer.error.offline': 'Anda sedang offline. Pencarian di wanderer hanya bisa dilakukan saat online.',

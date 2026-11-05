@@ -14,9 +14,9 @@ import {
 import type { Waypoint } from '../../../types'
 import {
   valhallaBase,
+  valhallaPost,
   valhallaRun,
   valhallaRunOnFoot,
-  valhallaTurn,
   type CostingOptions,
   type FerrySpan,
   type SearchFilter,
@@ -416,19 +416,12 @@ export async function enrichTourElevations(
     if (chunk.length === 1 && offset > 0) break
     try {
       // The route came from the same host a moment ago, and the public one allows a
-      // request a second: without the wait the first height question is refused and
-      // the tour cannot be saved for want of elevation.
-      await valhallaTurn(base, signal)
-      if (signal?.aborted) return null
-      const response = await fetch(`${base}/height`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Client-Id': 'trek' },
-        body: JSON.stringify({
-          shape: chunk.map(([lat, lng]) => ({ lat, lon: lng })),
-          range: true,
-        }),
-        signal,
-      })
+      // request a second: valhallaPost waits that turn, or the first height question is
+      // refused and the tour cannot be saved for want of elevation.
+      const response = await valhallaPost(base, 'height', {
+        shape: chunk.map(([lat, lng]) => ({ lat, lon: lng })),
+        range: true,
+      }, signal)
       if (!response.ok) break
       const chunkElevations = parseElevations(await response.json() as HeightResponse, chunk.length)
       if (!chunkElevations) break

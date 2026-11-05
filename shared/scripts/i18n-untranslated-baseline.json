@@ -130,5 +130,10 @@
     "admin.ts": { "marked": 0, "identical": 1 },
     "settings.ts": { "marked": 0, "identical": 1 },
     "system_notice.ts": { "marked": 0, "identical": 2 }
+  },
+  "he": {
+    "admin.ts": { "marked": 0, "identical": 2 },
+    "settings.ts": { "marked": 0, "identical": 1 },
+    "system_notice.ts": { "marked": 0, "identical": 1 }
   }
 }

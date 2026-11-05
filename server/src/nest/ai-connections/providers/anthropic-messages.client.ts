@@ -86,9 +86,11 @@ export function toAnthropicMessages(messages: AiChatMessage[]): AnthropicMessage
  * A block of an answer as it goes back to the provider: as it came, but a text
  * block without the citations it carried, which the provider checks against
  * the search results and which the history needs no more than their words.
+ * Always a copy: the request marks its blocks for the cache in place, and a
+ * mark left on the stored answer would go out again on every later step.
  */
 function replayed(block: ContentBlock): ContentBlock {
-  return block.type === 'text' ? { type: 'text', text: asText(block.text) } : block;
+  return block.type === 'text' ? { type: 'text', text: asText(block.text) } : { ...block };
 }
 
 /** Anthropic's own web search, a server tool; a few searches a step keep the turn short. */
@@ -114,8 +116,15 @@ export function markHistoryForCache(messages: AnthropicMessage[], breakpoints: n
   last.block.cache_control = CACHED;
   let question = blocks.length - 1;
   while (question >= 0 && !(blocks[question]?.role === 'user' && blocks[question]?.block.type === 'text')) question--;
-  const before = question > 0 ? blocks[question - 1] : undefined;
+  // A replayed thinking block goes back exactly as it came, so the mark sits on the block before it.
+  let mark = question - 1;
+  while (mark >= 0 && isThinking(blocks[mark]?.block)) mark--;
+  const before = mark >= 0 ? blocks[mark] : undefined;
   if (breakpoints >= 2 && before && before !== last) before.block.cache_control = CACHED;
+}
+
+function isThinking(block: ContentBlock | undefined): boolean {
+  return block?.type === 'thinking' || block?.type === 'redacted_thinking';
 }
 
 const STOP_REASONS: Record<string, AiFinishReason> = { tool_use: 'tool-calls', max_tokens: 'length' };
@@ -207,9 +216,10 @@ interface OpenBlock {
 
 /**
  * What one streamed Messages API turn has said so far, fed one event at a
- * time. It keeps every content block as it came, so an answer that searched
- * the web can be replayed with its search and its results (state()); an
- * answer that did not is rebuilt from its text and calls as before.
+ * time. It keeps every content block as it came, thinking blocks with their
+ * signature included, so an answer that searched the web or thought can be
+ * replayed as it was (state()); any other answer is rebuilt from its text and
+ * calls as before.
  */
 class AnthropicTurn {
   inputTokens = 0;
@@ -246,6 +256,10 @@ class AnthropicTurn {
         if (delta.type === 'text_delta' && asText(delta.text)) {
           if (open) open.block.text = asText(open.block.text) + asText(delta.text);
           yield { type: 'text-delta', delta: asText(delta.text) };
+        } else if (delta.type === 'thinking_delta' && open) {
+          open.block.thinking = asText(open.block.thinking) + asText(delta.thinking);
+        } else if (delta.type === 'signature_delta' && open) {
+          open.block.signature = asText(open.block.signature) + asText(delta.signature);
         } else if (delta.type === 'input_json_delta' && open) {
           open.json += asText(delta.partial_json);
         } else if (delta.type === 'citations_delta') {
@@ -285,10 +299,17 @@ class AnthropicTurn {
     }
   }
 
-  /** The blocks to replay, for an answer that searched the web; null for one rebuilt from its text and calls. */
+  /**
+   * The blocks to replay, for an answer that searched the web or thought; null
+   * for one rebuilt from its text and calls. A model that thinks (Sonnet 5.5,
+   * Opus 5.5) wants its thinking blocks back unchanged with the rest of the
+   * turn, and writes what it says between tool calls into them: rebuilt from
+   * text and calls alone, the next step after a tool came back empty (#2789).
+   */
   state(): AiProviderState | null {
-    if (!this.searched) return null;
     const blocks = [...this.blocks.entries()].sort(([a], [b]) => a - b).map(([, open]) => open.block);
+    const thought = blocks.some(isThinking);
+    if (!this.searched && !thought) return null;
     return { adapter: 'anthropic-messages', blocks };
   }
 }

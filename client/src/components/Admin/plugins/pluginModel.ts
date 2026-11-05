@@ -298,7 +298,8 @@ export function installOffer(
       title,
     };
   }
-  return { blocked: true, label: t('admin.plugins.incompatible'), title };
+  // No version fits this TREK: the admin may still install this one plugin at their own risk.
+  return bypassOffer(item, t, title, true);
 }
 
 /**

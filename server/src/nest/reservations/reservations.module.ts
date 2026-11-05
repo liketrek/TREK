@@ -84,7 +84,8 @@ import { Module } from '@nestjs/common';
   // ReservationWritesService: the booking use cases the controller and the MCP tools share.
   // ReservationsReadMcp: the assistant's read of the bookings with their readable details.
   providers: [ReservationsService, ReservationWritesService, ReservationsMcp, ReservationsReadMcp, ReservationsRpc],
-  // For in-container consumers (ReservationsRpc, TripsService, BookingImportService).
-  exports: [ReservationsService],
+  // For in-container consumers (ReservationsRpc, TripsService, BookingImportService);
+  // ReservationWritesService for TransitMcp's create_transit_journey.
+  exports: [ReservationsService, ReservationWritesService],
 })
 export class ReservationsModule {}

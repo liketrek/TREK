@@ -174,5 +174,14 @@ const places: TranslationStrings = {
   'places.image.needsConnection': 'Új képhez kapcsolat kell. Mentsd újra, ha online vagy.',
   'places.openPhotos': 'Fotók megtekintése',
   'places.imageUploadError': 'Nem sikerült feltölteni a képet',
+  'places.refresh.pill': 'Új helyadatok',
+  'places.refresh.title': 'Helyadatok frissítése',
+  'places.refresh.intro':
+    'A TREK újabb adatokat ismer erről a helyről. Válaszd ki, mit veszel át, a többi változatlan marad. Utána mentsd a helyet.',
+  'places.refresh.apply': 'Átvétel',
+  'places.refresh.replaces': 'Lecseréli a most mentett értéket',
+  'places.refresh.empty': 'üres',
+  'places.refresh.now': 'Most',
+  'places.refresh.new': 'Új',
 };
 export default places;

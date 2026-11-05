@@ -22,6 +22,7 @@ const RATE_LIMIT_MESSAGES: Record<string, string> = {
   tr: 'Çok fazla deneme. Lütfen daha sonra tekrar deneyin.',
   ar: 'محاولات كثيرة جدًا. يرجى المحاولة لاحقًا.',
   az: 'Həddindən çox cəhd edildi. Bir az sonra yenidən cəhd edin.',
+  he: 'יותר מדי ניסיונות. נסו שוב מאוחר יותר.',
   id: 'Terlalu banyak percobaan. Coba lagi nanti.',
   ja: '試行回数が多すぎます。時間をおいて再度お試しください。',
   ko: '시도 횟수가 너무 많습니다. 잠시 후 다시 시도해 주세요.',

@@ -323,7 +323,7 @@ const journey: TranslationStrings = {
   'journey.studio.autoLayout': 'Avtomatik tərtibat',
   'journey.studio.export': 'İxrac et',
   'journey.studio.day': 'GÜN {day}',
-  'journey.studio.stations': 'Dayanacaqlar',
+  'journey.studio.stations': 'Yol boyunca',
   'journey.studio.peersHere': 'burada',
   'journey.studio.folioAuto': 'Avtomatik',
 

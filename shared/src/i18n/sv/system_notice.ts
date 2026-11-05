@@ -56,23 +56,20 @@ const system_notice: TranslationStrings = {
   'system_notice.pager.position': 'Meddlenade {current} av {total}',
   // The release modal. One stable set of keys: each big release swaps the copy in place.
   'system_notice.release_notes.eyebrow': 'Uppdatering klar',
-  'system_notice.release_notes.headline': 'Den största TREK hittills.',
+  'system_notice.release_notes.headline': 'Rätt plats, först.',
   'system_notice.release_notes.intro':
-    'Turer för varje dag ute, en studio för dina fotoböcker, en assistent som planerar med dig och hjälp på varje skärm.',
+    'Platssökning, adressökning och ruttplanering körs nu på TREKs egna servrar, sponsrade av dataforest cloud, och varje TREK kan dela det den vet om platser med alla andra.',
   'system_notice.release_notes.features_label': 'Höjdpunkterna',
   'system_notice.release_notes.features_aside': 'Långt ifrån allt',
-  'system_notice.release_notes.feature_tours_title': 'Turer',
-  'system_notice.release_notes.feature_tours_body':
-    'Vandringar, cykelturer, löprundor, ridturer, paddling, stadspromenader och skiddagar, med höjdprofil, svårighetsgrader och 3D-överflygning.',
-  'system_notice.release_notes.feature_studio_title': 'TREK Studio', // same-as-en
-  'system_notice.release_notes.feature_studio_body':
-    'Gör en resa till en formgiven fotobok: 17 teman, 34 typsnitt, 160 klistermärken och automatisk layout med ett klick.',
-  'system_notice.release_notes.feature_assistant_title': 'AI-assistent',
-  'system_notice.release_notes.feature_assistant_body':
-    'Planerar med dig i dina riktiga resor, med det AI-konto du redan har. Varje ändring ser du först och kan ångra.',
-  'system_notice.release_notes.feature_help_title': 'Hjälp på varje skärm, på 27 språk',
-  'system_notice.release_notes.feature_help_body':
-    'Omkring 370 steg-för-steg-guider med 1 600 bilder, precis där du behöver dem. Nytt: azerbajdzjanska, estniska, slovakiska och thailändska.',
+  'system_notice.release_notes.feature_search_title': 'Platssökning som träffar rätt',
+  'system_notice.release_notes.feature_search_body':
+    'Städer, öar, sevärdheter och flygplatser via sin kod kommer först, kaféer hämtas från din närhet och förslag dyker upp medan du skriver.',
+  'system_notice.release_notes.feature_share_title': 'Platsdetaljer, delade',
+  'system_notice.release_notes.feature_share_body':
+    'Dela webbplatser, öppettider och foton med varje TREK, fält för fält, och dina sparade platser får med det som andra har lagt till.',
+  'system_notice.release_notes.feature_routing_title': 'Snabbare rutter',
+  'system_notice.release_notes.feature_routing_body':
+    'En hel dag planeras i ett svep med upp till tjugo stopp, en långsam rutt håller inte längre upp resten och kollektivtrafiken frågar en andra leverantör när den första inte hittar något.',
   'system_notice.release_notes.footnote': 'Dessutom en lång rad mindre ändringar i resten av TREK.',
   'system_notice.release_notes.notes_label': 'Versionsnyheter',
   'system_notice.release_notes.note_eyebrow': 'Ett ord från utvecklaren',
@@ -86,10 +83,10 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.note_body_after':
     'Och sedan gjorde ni det. Inom några månader var ni tusentals: stjärnor, felrapporter, översättningar till språk jag inte talar, pull requests från människor jag aldrig har träffat. Jag kollar fortfarande repot varje morgon innan jag gör något annat, och det känns ännu inte riktigt verkligt.',
   'system_notice.release_notes.note_closing': 'Tack för att du är här. Hälsningar, Maurice.',
-  'system_notice.release_notes.support_lead':
-    'TREK är gratis och kommer alltid att vara det, men servrar, domäner och många sena nätter är det inte.',
+  'system_notice.release_notes.support_label': 'Förbli oberoende',
+  'system_notice.release_notes.support_lead': 'Utan Google och co.',
   'system_notice.release_notes.support_text':
-    'Om TREK har förtjänat en plats på dina resor, så bjud mig gärna på en kaffe och hjälp till att nästa utgåva blir av.',
+    'Platssökning, adressökning och ruttplanering körs på TREKs egna servrar, i dag sponsrade av dataforest cloud. Jag kämpar för det varje dag, och för att det ska förbli så behövs ditt stöd.',
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
   'system_notice.release_notes.cta_kofi': 'Stöd på Ko-fi',
 };

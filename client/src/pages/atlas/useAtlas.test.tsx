@@ -274,7 +274,7 @@ function installAtlasHandlers(over: Partial<Record<string, unknown>> = {}) {
     http.get('/api/addons/atlas/bucket-list', () => HttpResponse.json({ items: over.bucket ?? [] })),
     http.get('/api/addons/atlas/regions', () => HttpResponse.json({ regions: over.regions ?? {} })),
     http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(over.geo ?? { type: 'FeatureCollection', features: [] })),
-    http.get('/api/addons/atlas/regions/geo', () => HttpResponse.json(over.regionGeo ?? { features: [] })),
+    http.get('/api/addons/atlas/regions/geo/:code', () => HttpResponse.json(over.regionGeo ?? { features: [] })),
     http.get('/api/atlas-layers', () => HttpResponse.json({ layers: over.layers ?? [] })),
   );
 }
@@ -1053,8 +1053,8 @@ describe('useAtlas', () => {
       await waitFor(() => expect(atlas.atlas_country_options.length).toBe(seen.length));
 
       const requested: string[] = [];
-      server.use(http.get('/api/addons/atlas/regions/geo', ({ request }) => {
-        requested.push(new URL(request.url).searchParams.get('countries') ?? '');
+      server.use(http.get('/api/addons/atlas/regions/geo/:code', ({ params }) => {
+        requested.push(String(params.code));
         return HttpResponse.json(regionGeo);
       }));
 

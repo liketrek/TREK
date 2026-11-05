@@ -41,6 +41,16 @@ const MAX_COVER_BYTES = 15 * 1024 * 1024;
 // Unsplash is a third party on the request path; safeFetch adds no deadline of
 // its own, so both the search and the cover download carry one.
 const UNSPLASH_TIMEOUT_MS = 10_000;
+/**
+ * What a search is told when the keyless web endpoint turns this server away, as it
+ * does a datacenter (VPS) address: the free Access Key is the way out, and the admin
+ * who can enter it is the one to tell (#1449). The code lets the client say it in
+ * the user's language.
+ */
+const UNSPLASH_KEY_NEEDED =
+  'Unsplash refused this server. An administrator can add a free Unsplash Access Key in Admin > Settings.';
+const UNSPLASH_KEY_NEEDED_CODE = 'unsplash_key_needed';
+
 const COVER_EXT_BY_TYPE: Record<string, string> = {
   'image/jpeg': '.jpg',
   'image/png': '.png',
@@ -120,10 +130,18 @@ export class UnsplashService {
             'Sec-Fetch-Site': 'same-origin',
           },
         });
+    // Turned away without a key: a 401 or 403, or an ok answer that is a challenge page, not JSON.
+    const refused = () =>
+      new DomainError(502, UNSPLASH_KEY_NEEDED, {
+        code: UNSPLASH_KEY_NEEDED_CODE,
+        details: { code: UNSPLASH_KEY_NEEDED_CODE },
+      });
+    if (!accessKey && (response.status === 401 || response.status === 403)) throw refused();
     let data: UnsplashSearchResponse;
     try {
       data = (await response.json()) as UnsplashSearchResponse;
     } catch {
+      if (!accessKey && response.ok) throw refused();
       throw new DomainError(response.ok ? 502 : response.status, 'Unsplash search unavailable');
     }
 

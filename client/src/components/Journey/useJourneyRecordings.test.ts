@@ -47,6 +47,7 @@ describe('useJourneyRecordings', () => {
     expect(result.current.byDate.get('2026-05-15')?.id).toBe(4);
     expect(result.current.tracks).toHaveLength(3);
     expect(result.current.tracks.every((track) => track.kind === 'day_recording')).toBe(true);
+    expect(result.current.tracks.map((track) => track.date)).toEqual(['2026-05-14', '2026-05-14', '2026-05-15']);
     // One line per piece: a gap between two pieces is never drawn over.
     expect(result.current.tracks.slice(0, 2).map((track) => track.points)).toEqual([
       WALK_SEGMENT.points,

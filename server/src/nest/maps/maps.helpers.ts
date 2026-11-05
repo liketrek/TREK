@@ -80,46 +80,12 @@ export { haversineMetres };
  * list for all of them is its own maintenance problem. Anything the pair rule
  * lets through has already survived the distance check.
  */
-/**
- * Put the index's answer and OpenStreetMap's into one list.
- *
- * Overture Places is a dataset of businesses. It is very good at those and
- * largely does not carry temples, bridges, riverside walks, viewpoints or
- * observation decks, which is a fair share of what somebody planning a trip
- * searches for. Measured against 128 places out of a real trip to Japan, saved
- * through the old search: the index answered 51.6 percent inside its top five,
- * and for most of the rest it returned the shops AROUND the landmark rather
- * than nothing, which is worse than nothing because it looks like an answer.
- *
- * Three orderings were tried against that corpus, and the two clever ones lost.
- *
- * A score threshold cannot tell the cases apart: at 0.75 it catches 19 of 62
- * misses and throws away 6 of 66 hits. Promoting results whose name matches
- * what was typed is worse than it sounds, because "Hase Station" shares a word
- * with "Hase-dera" while OpenStreetMap answers in the local language and
- * returns the correct temple under a name that shares nothing at all: the rule
- * pushed seven weak index matches above the right answer, which landed at
- * position eight.
- *
- * So this does not rank. It alternates, index first, and lets each source's own
- * ordering stand. An exact business match still opens the list, because the
- * index put it first; a landmark the index does not carry is second rather than
- * eleventh. Neither source has to be judged by the other's yardstick.
- *
- * A place both sources know is kept once, as the index's copy, because that is
- * the one carrying a stable id, contact details and hours.
- */
-export function mergeSearchResults(
-  fromIndex: Record<string, unknown>[],
-  fromOsm: Record<string, unknown>[],
-  limit = 10,
-): Record<string, unknown>[] {
-  const extra = fromOsm.filter((o) => !fromIndex.some((i) => samePlace(i, o)));
-
-  const out: Record<string, unknown>[] = [];
-  for (let i = 0; i < Math.max(fromIndex.length, extra.length) && out.length < limit; i++) {
-    if (i < fromIndex.length) out.push(fromIndex[i]);
-    if (i < extra.length && out.length < limit) out.push(extra[i]);
+/** One row of each list in turn, the first list leading, up to `limit` rows. */
+export function interleave<T>(first: T[], second: T[], limit: number): T[] {
+  const out: T[] = [];
+  for (let i = 0; i < Math.max(first.length, second.length) && out.length < limit; i++) {
+    if (i < first.length) out.push(first[i]);
+    if (i < second.length && out.length < limit) out.push(second[i]);
   }
   return out;
 }

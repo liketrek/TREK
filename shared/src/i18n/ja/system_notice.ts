@@ -53,23 +53,20 @@ const system_notice: TranslationStrings = {
   'system_notice.pager.goto': '通知{n}へ',
   'system_notice.pager.position': '{total}件中{current}件目',
   'system_notice.release_notes.eyebrow': 'アップデート完了',
-  'system_notice.release_notes.headline': 'これまでで最大の TREK。',
+  'system_notice.release_notes.headline': '正しい場所を、いちばんに。',
   'system_notice.release_notes.intro':
-    'あらゆるアウトドアの一日のためのツアー、フォトブックのためのスタジオ、一緒に計画するアシスタント、そしてすべての画面にヘルプ。',
+    '場所の検索、住所の検索、ルート計算が、dataforest cloud の協賛のもと TREK 自身のサーバーで動くようになりました。さらに、どの TREK も場所について知っていることを、ほかのすべての TREK と共有できます。',
   'system_notice.release_notes.features_label': '今回の目玉',
   'system_notice.release_notes.features_aside': 'ほんの一部です',
-  'system_notice.release_notes.feature_tours_title': 'ツアー',
-  'system_notice.release_notes.feature_tours_body':
-    'ハイキング、サイクリング、ラン、乗馬、パドル、街歩き、スキーの日まで。標高プロファイル、難易度、3D フライオーバー付き。',
-  'system_notice.release_notes.feature_studio_title': 'TREK Studio', // same-as-en
-  'system_notice.release_notes.feature_studio_body':
-    '旅をデザインされたフォトブックに。17 のテーマ、34 の書体、160 のステッカー、ワンクリックの自動レイアウト。',
-  'system_notice.release_notes.feature_assistant_title': 'AI アシスタント',
-  'system_notice.release_notes.feature_assistant_body':
-    'お手持ちの AI アカウントで、実際の旅を一緒に計画します。変更はすべて先に確認でき、元に戻せます。',
-  'system_notice.release_notes.feature_help_title': 'すべての画面にヘルプ、27 言語で',
-  'system_notice.release_notes.feature_help_body':
-    '約 370 のステップごとのガイドと 1,600 枚の画像を、必要な場所に。アゼルバイジャン語、エストニア語、スロバキア語、タイ語が加わりました。',
+  'system_notice.release_notes.feature_search_title': 'ちゃんと見つかる場所検索',
+  'system_notice.release_notes.feature_search_body':
+    '都市、島、名所、そしてコードで探す空港が最初に並び、カフェはあなたの周辺から見つかります。候補は入力しているそばから表示されます。',
+  'system_notice.release_notes.feature_share_title': '場所の詳細を、みんなで',
+  'system_notice.release_notes.feature_share_body':
+    'ウェブサイト、営業時間、写真を項目ごとにすべての TREK と共有できます。保存した場所には、ほかの人が追加した情報が自動で反映されます。',
+  'system_notice.release_notes.feature_routing_title': 'もっと速いルート計算',
+  'system_notice.release_notes.feature_routing_body':
+    '最大 20 か所の立ち寄り先がある一日も、まとめて一度にルート計算。遅いルートが一つあっても、ほかを待たせません。公共交通は、最初のプロバイダーで見つからなければ別のプロバイダーにも問い合わせます。',
   'system_notice.release_notes.footnote': 'ほかにも、TREKのあちこちに細かな変更がたくさん入っています。',
   'system_notice.release_notes.notes_label': 'リリースノート',
   'system_notice.release_notes.note_eyebrow': '開発者より',
@@ -83,10 +80,10 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.note_body_after':
     'そして、あなたが開いてくれました。数か月のうちに、それが何千人にもなりました。スター、バグ報告、私の話せない言語への翻訳、会ったこともない人からのプルリクエスト。今でも毎朝いちばんにリポジトリを確認していますが、まだ少し夢のように感じています。',
   'system_notice.release_notes.note_closing': 'ここにいてくれて、ありがとう。Mauriceより',
-  'system_notice.release_notes.support_lead':
-    'TREKは無料で、これからもずっと無料です。でも、サーバーやドメイン、数えきれない夜なべはタダではありません。',
+  'system_notice.release_notes.support_label': '独立したままで',
+  'system_notice.release_notes.support_lead': 'Google などに頼らずに。',
   'system_notice.release_notes.support_text':
-    'TREKがあなたの旅に欠かせないものになっていたら、コーヒーを一杯おごってください。次のリリースを届ける力になります。',
+    '場所の検索、住所の検索、ルート計算は TREK 自身のサーバーで動いていて、今は dataforest cloud に協賛してもらっています。私はそのために毎日奮闘しています。この形を守り続けるには、あなたの応援が必要です。',
   'system_notice.release_notes.cta_bmc': 'コーヒーをおごる',
   'system_notice.release_notes.cta_kofi': 'Ko-fiで応援する',
 };

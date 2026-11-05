@@ -6,10 +6,12 @@
  * line is written as GPX.
  */
 import { PlaceImportService } from '../../../src/nest/place-import/place-import.service';
+import { PlacesService } from '../../../src/nest/places/places.service';
 import { TourFileReadService } from '../../../src/nest/tours/tour-file-read.service';
 import { gpxOfLine, splitGpxTracks } from '../../../src/nest/tours/tour-file-split.helpers';
 import { TourFilesModule } from '../../../src/nest/tours/tour-files.module';
 import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { makePlace } from '../../helpers/factories/places';
 import { makeTrip } from '../../helpers/factories/trips';
 import { makeUser } from '../../helpers/factories/users';
 import { createTestModule, type TestModule } from '../../helpers/test-module';
@@ -18,7 +20,7 @@ import { TOUR_GPX_TEXT_MAX } from '@trek/shared';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-// TOUR-FILE-READ-001 to TOUR-FILE-READ-008
+// TOUR-FILE-READ-001 to TOUR-FILE-READ-009
 
 const db = createSnapshotTestDb();
 let t: TestModule;
@@ -128,6 +130,25 @@ describe('TourFileReadService', () => {
       tracks: [],
       whole: false,
     });
+  });
+
+  it('TOUR-FILE-READ-009: a track from before Tours under the same name is proposed, for the import to take over (#2810)', async () => {
+    const trip = await tripId();
+    // 4.x stored a GPX track as a plain place: a line, no tours row.
+    await makePlace(t.get(MikroORM), trip, {
+      name: 'Saturday',
+      lat: 47.5,
+      lng: 11.1,
+      route_geometry: '[[47.5,11.1,800],[47.51,11.1,1000]]',
+    });
+    const rows = t.get(PlaceImportService).readGpx(Buffer.from(TWO_TRACKS, 'utf8'), { importTracks: true });
+    expect((await t.get(PlacesService).gpxDuplicates(String(trip), rows)).some(Boolean)).toBe(true);
+
+    const read = await files.read(trip, Buffer.from(TWO_TRACKS, 'utf8'), 'weekend.gpx');
+    expect(read.tracks.map((track) => [track.name, track.duplicate])).toEqual([
+      ['Saturday', false],
+      ['Sunday', false],
+    ]);
   });
 
   it('TOUR-FILE-READ-008: a track longer than one import takes is named but carries no text', async () => {

@@ -37,12 +37,17 @@ export function travelersChanged(reservation: Pick<Reservation, 'travelers'> | n
  * uploaded twice, and skipping the edit dropped them without a word (#2534).
  * Without an upload handler (a dialog opened with no file support) there is
  * nowhere to send them, so nothing is uploaded and the save carries on.
+ *
+ * Each file that lands is reported before the next one starts, and the first one
+ * that fails stops the rest, so the form can keep exactly the files still to send
+ * and a second save picks up where this one stopped (#2883).
  */
 export async function uploadBookingFiles(
   upload: ((fd: FormData) => Promise<unknown>) | undefined,
   savedId: number,
   files: File[],
-  description: string
+  description: string,
+  onUploaded?: (file: File) => void
 ): Promise<void> {
   if (!upload) return;
   for (const file of files) {
@@ -51,7 +56,37 @@ export async function uploadBookingFiles(
     fd.append('reservation_id', String(savedId));
     fd.append('description', description);
     await upload(fd);
+    onUploaded?.(file);
   }
+}
+
+/**
+ * How a booking editor hands its save to the planner. The planner stores the
+ * booking, waits for `afterSave` (the travellers and files that hang on it) and
+ * only then reports success and closes the editor. When that part fails the
+ * editor stays open with the booking stored, and passes it back as `saved` on
+ * the next try, so the retry updates it instead of creating a second one.
+ */
+export interface BookingSaveSteps {
+  saved?: Reservation;
+  afterSave?: (saved: Reservation) => Promise<void>;
+}
+
+/**
+ * The update a retry sends for a booking the first try already created: the cost
+ * that try linked is not created again, and a hotel keeps the stay it was given
+ * rather than gaining a second one beside it.
+ */
+export function retriedSave<T extends Record<string, unknown>>(
+  data: T,
+  stored: Pick<Reservation, 'accommodation_id'>
+): T {
+  const { create_budget_entry: _linkedCost, ...rest } = data;
+  const update = rest as Record<string, unknown>;
+  if (update.type === 'hotel' && !update.accommodation_id && stored.accommodation_id) {
+    update.accommodation_id = stored.accommodation_id;
+  }
+  return update as T;
 }
 
 /**

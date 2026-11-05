@@ -1,6 +1,7 @@
 import type { AppSettingsRepository } from '../../../../src/db/repositories/AppSettings.repository';
 import type { UsersRepository } from '../../../../src/db/repositories/Users.repository';
 import { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
+import { DomainError } from '../../../../src/nest/common/domain-error';
 import { UnsplashService } from '../../../../src/nest/unsplash/unsplash.service';
 import { asLegacyResult } from '../../../helpers/domain-error';
 import { makeStorageFixture } from '../../../helpers/storage-fixture';
@@ -39,6 +40,9 @@ const searchUnsplashPhotos = (...args: Parameters<UnsplashService['searchUnsplas
 const getUnsplashKey = svc.getUnsplashKey.bind(svc);
 const saveUnsplashCover = svc.saveUnsplashCover.bind(svc);
 const isUnsplashCoverUrl = svc.isUnsplashCoverUrl.bind(svc);
+
+const KEY_NEEDED =
+  'Unsplash refused this server. An administrator can add a free Unsplash Access Key in Admin > Settings.';
 
 const ORIGINAL_UNSPLASH_ENV = process.env.UNSPLASH_ACCESS_KEY;
 
@@ -99,13 +103,39 @@ describe('unsplashService.searchUnsplashPhotos', () => {
   it('UNSPLASH-016: a 200 carrying unparseable JSON becomes a 502, not a crash', async () => {
     // The web endpoint answers 200 with an HTML challenge page when it decides the
     // caller is a datacenter (#1449), so a parse failure on an ok response is an
-    // upstream problem, not the caller's.
+    // upstream problem, not the caller's: without a key, the key is the way out.
     const bad = fakeRes({ ok: true, type: 'text/html' });
     (bad as { json: () => Promise<unknown> }).json = async () => {
       throw new SyntaxError('Unexpected token < in JSON');
     };
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(bad));
-    expect(await searchUnsplashPhotos('paris')).toEqual({ error: 'Unsplash search unavailable', status: 502 });
+    expect(await searchUnsplashPhotos('paris')).toMatchObject({ error: KEY_NEEDED, status: 502 });
+    // With a key the official API answered, so no key is named.
+    expect(await searchUnsplashPhotos('paris', 9, 'key')).toEqual({
+      error: 'Unsplash search unavailable',
+      status: 502,
+    });
+  });
+
+  it('UNSPLASH-016b: a keyless search turned away with 401 or 403 says the Access Key is the way out (#1449)', async () => {
+    const refusedWith = (status: number) => {
+      const refused = fakeRes({ ok: false, status, type: 'text/plain' });
+      (refused as { json: () => Promise<unknown> }).json = async () => {
+        throw new SyntaxError('Unexpected token A in JSON');
+      };
+      return refused;
+    };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(refusedWith(401)).mockResolvedValueOnce(refusedWith(403)));
+    const errors = [
+      await svc.searchUnsplashPhotos('paris').catch((e: unknown) => e),
+      await svc.searchUnsplashPhotos('paris').catch((e: unknown) => e),
+    ];
+    for (const err of errors) {
+      expect(err).toBeInstanceOf(DomainError);
+      expect((err as DomainError).getStatus()).toBe(502);
+      expect(err).toMatchObject({ publicMessage: KEY_NEEDED, code: 'unsplash_key_needed' });
+      expect((err as DomainError).toBody()).toEqual({ error: KEY_NEEDED, code: 'unsplash_key_needed' });
+    }
   });
 
   it('UNSPLASH-017: a failing response with unparseable JSON keeps its own status', async () => {
@@ -134,7 +164,8 @@ describe('unsplashService.searchUnsplashPhotos', () => {
           fakeRes({ ok: false, status: 401, type: 'application/json', json: { error: 'Bad credentials' } }),
         ),
     );
-    expect(await searchUnsplashPhotos('paris')).toEqual({ error: 'Bad credentials', status: 401 });
+    // A key the official API refuses is named by Unsplash itself.
+    expect(await searchUnsplashPhotos('paris', 9, 'stale-key')).toEqual({ error: 'Bad credentials', status: 401 });
   });
 
   it('UNSPLASH-004: returns normalised photos on success and drops entries missing a url/thumb', async () => {

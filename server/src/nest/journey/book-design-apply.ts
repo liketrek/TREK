@@ -1,7 +1,6 @@
 import {
   bookSpreadPhotoIds,
   compareCodeUnits,
-  MAX_SPREADS,
   type BookDesignPlanRow,
   type BookDesignSkipped,
   type BookDocument,
@@ -176,7 +175,7 @@ export function applyDesignDraft(
       if (at < 0 || !samePage(spreads[at], base.get(row.spreadId))) return skip(row.spreadId, 'changed_since');
       spreads[at] = page;
     } else {
-      if (at >= 0 || spreads.length >= MAX_SPREADS) return skip(row.spreadId, 'changed_since');
+      if (at >= 0) return skip(row.spreadId, 'changed_since');
       spreads.splice(insertAt(spreads, draft.plan, i, page), 0, page);
     }
     applied.push(row.spreadId);

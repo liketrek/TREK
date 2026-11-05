@@ -20,6 +20,7 @@ import HelpAnchor from '../components/Help/HelpAnchor'
 import AtlasCountryPlaces from '../components/Atlas/AtlasCountryPlaces'
 import { AtlasTourActivityPane } from '../components/Atlas/tourActivity/AtlasTourActivityPane'
 import { useAddonStore } from '../store/addonStore'
+import { useFormatDate } from '../hooks/useDateFormat'
 import { getIntlLanguage } from '@trek/shared'
 
 // Fixed ids rather than useId: the page body stays free of hooks, and there is only one atlas.
@@ -448,6 +449,7 @@ interface SidebarContentProps {
 
 function SidebarContent({ data, stats, regionsVisited, countryRegions, onOpenPlaces, countries, selectedCountry, countryDetail, resolveName, onTripClick, onUnmarkCountry, bucketList, bucketTab, setBucketTab, showBucketAdd, setShowBucketAdd, bucketForm, setBucketForm, onAddBucket, onDeleteBucket, onClearBucketVisit, onSearchBucket, onSelectBucketPoi, bucketSearchResults, setBucketSearchResults, bucketPoiMonth, setBucketPoiMonth, bucketPoiYear, setBucketPoiYear, bucketSearching, bucketSearch, setBucketSearch, t, dark }: SidebarContentProps): React.ReactElement {
   const { language } = useTranslation()
+  const { formatDate } = useFormatDate()
   const toursEnabled = useAddonStore(s => s.isEnabled('tours'))
   const statsContentRef = useRef<HTMLDivElement>(null)
   const bucketSearchRowRef = useRef<HTMLDivElement>(null)
@@ -548,7 +550,7 @@ ${t('dawarich.bucket.clearVisit')}`
                   style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit' }}
                 >
                   <Check size={9} />
-                  {new Date(item.visited_at).toLocaleDateString(getIntlLanguage(language))}
+                  {formatDate(new Date(item.visited_at))}
                 </button>
               ) : (
                 <span
@@ -556,7 +558,7 @@ ${t('dawarich.bucket.clearVisit')}`
                   style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))' }}
                 >
                   <Check size={9} />
-                  {new Date(item.visited_at).toLocaleDateString(getIntlLanguage(language))}
+                  {formatDate(new Date(item.visited_at))}
                 </span>
               )}
             </Tooltip>

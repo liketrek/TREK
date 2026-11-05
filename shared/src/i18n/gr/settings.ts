@@ -30,7 +30,14 @@ const settings: TranslationStrings = {
     'Δική σας εγκατάσταση OSRM. Κενό σημαίνει τους δημόσιους διακομιστές, που επιτρέπουν περίπου ένα αίτημα ανά δευτερόλεπτο: αρκεί για μία ημέρα, λίγο για ένα οδικό ταξίδι. Ισχύει μετά από επανεκκίνηση του διακομιστή.',
   'settings.valhallaBase': 'Δική σας υπηρεσία Valhalla',
   'settings.valhallaBaseHint':
-    'Το TREK χρησιμοποιεί από προεπιλογή τη δημόσια Valhalla της FOSSGIS για την αποφυγή διοδίων, αυτοκινητοδρόμων και πορθμείων. Εισαγάγετε εδώ τη διεύθυνση URL της δικής σας Valhalla για να τη χρησιμοποιήσετε αντί της δημόσιας. Αν έχει ρυθμιστεί μόνο ιδιωτική υπηρεσία δρομολόγησης, η δημόσια Valhalla δεν χρησιμοποιείται. Αφού εισαγάγετε ιδιωτική διεύθυνση URL, επανεκκινήστε τον διακομιστή και φορτώστε ξανά τη σελίδα.',
+    'Μια δική σας Valhalla, που ερωτάται όταν η υπηρεσία δρομολόγησης παραπάνω έχει οριστεί σε αυτήν ή στο Αυτόματα. Αν έχει ρυθμιστεί μόνο δική σας υπηρεσία δρομολόγησης και δεν έχει επιλεγεί υπηρεσία, δεν ερωτάται καμία Valhalla. Αφού εισαγάγετε διεύθυνση URL, επανεκκινήστε τον διακομιστή και φορτώστε ξανά τη σελίδα.',
+  'settings.valhallaProvider': 'Υπηρεσία δρομολόγησης',
+  'settings.valhallaProviderHint':
+    'Με τις υπηρεσίες TREK ή δική σας Valhalla, η Valhalla υπολογίζει όλες τις διαδρομές: τις ημέρες και τα οδικά ταξίδια με τα πόδια, με ποδήλατο και με αυτοκίνητο, διαδρομές χωρίς διόδια, αυτοκινητοδρόμους ή πορθμεία, καθώς και τις διαδρομές, τα υψόμετρα και τα μονοπάτια των εκδρομών. Όταν δεν μπορεί να απαντήσει, το OSRM υπολογίζει εκείνη την ημέρα. Οι υπηρεσίες TREK ερωτώνται μέσω αυτού του διακομιστή. Με τη δημόσια Valhalla της FOSSGIS, το OSRM υπολογίζει τις διαδρομές και η Valhalla απαντά μόνο σε ό,τι δεν μπορεί το OSRM. Η αυτόματη επιλογή ρωτά τις υπηρεσίες TREK, εκτός αν έχει οριστεί δική σας Valhalla ή μόνο δική σας υπηρεσία δρομολόγησης.',
+  'settings.valhallaProviderOption.auto': 'Αυτόματα',
+  'settings.valhallaProviderOption.trek': 'Υπηρεσίες TREK',
+  'settings.valhallaProviderOption.fossgis': 'Δημόσια Valhalla (FOSSGIS)',
+  'settings.valhallaProviderOption.custom': 'Δική σας Valhalla',
   'settings.mapHint': 'Πρότυπο URL για πλακίδια χάρτη',
   'settings.mapProvider': 'Πάροχος Χάρτη',
   'settings.mapProviderHint':
@@ -85,6 +92,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': 'Μορφή Ώρας',
   'settings.weekStart': 'Η εβδομάδα ξεκινά την',
   'settings.weekStartHint': 'Πρώτη ημέρα της εβδομάδας σε κάθε επιλογέα ημερομηνίας. Το Vacay έχει δική του ρύθμιση.',
+  'settings.dateFormat': 'Μορφή Ημερομηνίας',
+  'settings.dateFormatHint':
+    'Πώς γράφονται οι ημερομηνίες σε κάθε πεδίο ημερομηνίας και λίστα. Οι ημερομηνίες με όνομα μήνα διατηρούν τη διατύπωση της γλώσσας σας.',
+  'settings.dateFormatAuto': 'Αυτόματο',
   'settings.preferredNavApp': 'Άνοιγμα τοποθεσιών σε',
   'settings.preferredNavAppAsk': 'Ερώτηση κάθε φορά',
   'settings.preferredNavAppHint':
@@ -268,6 +279,14 @@ const settings: TranslationStrings = {
   'settings.about.featureRequest': 'Αίτημα Λειτουργίας',
   'settings.about.featureRequestHint': 'Προτείνετε ένα νέο χαρακτηριστικό',
   'settings.about.wikiHint': 'Τεκμηρίωση & οδηγοί',
+  'settings.about.sponsor.eyebrow': 'Χορηγούμενη υποδομή',
+  'settings.about.sponsor.title': 'Οι δικοί διακομιστές του TREK τρέχουν στο dataforest cloud',
+  'settings.about.sponsor.body':
+    'Η αναζήτηση τοποθεσιών, η αναζήτηση διευθύνσεων και η δρομολόγηση προέρχονται από τους δικούς διακομιστές του TREK αντί για την Google και τους ομοίους της, και το dataforest cloud χορηγεί τα μηχανήματα στα οποία τρέχουν.',
+  'settings.about.sponsor.cta': 'Επισκεφθείτε το dataforest cloud',
+  'settings.about.sponsor.search': 'Αναζήτηση τοποθεσιών',
+  'settings.about.sponsor.address': 'Αναζήτηση διευθύνσεων',
+  'settings.about.sponsor.routing': 'Δρομολόγηση',
   'settings.about.descriptionManaged':
     'Το TREK σας βοηθά να οργανώνετε τα ταξίδια σας από την πρώτη ιδέα μέχρι την τελευταία ανάμνηση. Σχεδιασμός ημερών, προϋπολογισμός, λίστες αποσκευών, φωτογραφίες και πολλά ακόμη, όλα σε ένα μέρος.',
   'settings.about.sourceTitle': 'Πηγαίος κώδικας',

@@ -1,6 +1,7 @@
 import { type ChangeEvent, useEffect, useEffectEvent, useRef, useState } from 'react';
 
 import { backupApi } from '../../api/client';
+import { useFormatDate } from '../../hooks/useDateFormat';
 import { useTranslation } from '../../i18n';
 import { useSettingsStore } from '../../store/settingsStore';
 import { getApiErrorMessage } from '../../types';
@@ -104,7 +105,8 @@ export function useBackupAdmin({ keepSettingsWhenMissing = false }: Options = {}
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
-  const { t, locale } = useTranslation();
+  const { t } = useTranslation();
+  const { formatDateTime } = useFormatDate();
   const is12h = useSettingsStore((s) => s.settings.time_format) === '12h';
 
   const loadBackups = async () => {
@@ -241,7 +243,7 @@ export function useBackupAdmin({ keepSettingsWhenMissing = false }: Options = {}
         minute: '2-digit',
       };
       if (serverTimezone) opts.timeZone = serverTimezone;
-      return new Date(dateStr).toLocaleString(locale, opts);
+      return formatDateTime(new Date(dateStr), opts);
     } catch {
       return dateStr;
     }

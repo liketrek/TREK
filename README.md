@@ -6,14 +6,9 @@
   <img src="docs/logo-trek-dark.svg" alt="TREK" height="96" />
 </picture>
 
-<br />
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/subtitle-light.png" />
-  <source media="(prefers-color-scheme: light)" srcset="docs/subtitle-dark.png" />
-  <img src="docs/subtitle-dark.png" alt="your trip. your plan." height="28" />
-</picture>
+### Every part of your trip. One app you own.
 
-A self-hosted, real-time collaborative travel planner — with maps, budgets, packing lists, a journal, and AI built in.
+TREK has grown from a travel planner into a whole ecosystem for trips: plan together in real time on a live map, build hikes, tours and road trips, keep bookings and shared costs in order, pack, write the journal, lay out the photo book and hand the busy work to the built-in AI. Self-hosted, on the web, on your phone and offline.
 
 <br />
 
@@ -32,11 +27,16 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
 <a href="https://ko-fi.com/mauriceboe"><img alt="Ko-fi" src="https://img.shields.io/badge/Ko--fi-support-FF5E5B?style=for-the-badge" /></a>
 &nbsp;
 <a href="https://www.buymeacoffee.com/mauriceboe"><img alt="BMAC" src="https://img.shields.io/badge/BMAC-support-FFDD00?style=for-the-badge" /></a>
-<br />
-<a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-AGPL_v3-6B7280?style=flat-square" /></a>
-<a href="https://github.com/liketrek/TREK/releases"><img alt="Latest Release" src="https://img.shields.io/github/v/release/liketrek/trek?include_prereleases&style=flat-square&color=6B7280" /></a>
-<a href="https://hub.docker.com/r/mauriceboe/trek"><img alt="Docker Pulls" src="https://img.shields.io/docker/pulls/mauriceboe/trek?style=flat-square&color=6B7280" /></a>
-<a href="https://github.com/liketrek/TREK"><img alt="Stars" src="https://img.shields.io/github/stars/liketrek/trek?style=flat-square&color=6B7280" /></a>
+&nbsp;
+<a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/License-AGPL_v3-6B7280?style=for-the-badge" /></a>
+&nbsp;
+<a href="https://github.com/liketrek/TREK/releases"><img alt="Latest Release" src="https://img.shields.io/github/v/release/liketrek/trek?include_prereleases&style=for-the-badge&label=Release&color=6B7280" /></a>
+&nbsp;
+<a href="https://hub.docker.com/r/mauriceboe/trek"><img alt="Docker Pulls" src="https://img.shields.io/docker/pulls/mauriceboe/trek?style=for-the-badge&label=Docker%20pulls&color=6B7280" /></a>
+&nbsp;
+<a href="https://github.com/liketrek/TREK"><img alt="Stars" src="https://img.shields.io/github/stars/liketrek/trek?style=for-the-badge&label=Stars&color=6B7280" /></a>
+
+<sub>PUBLIC SERVICES PROUDLY SPONSORED BY</sub><br /><a href="https://cloud.dataforest.net/en?mtm_campaign=trek"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/sponsors/dataforest-light.svg" /><source media="(prefers-color-scheme: light)" srcset="docs/sponsors/dataforest-dark.svg" /><img src="docs/sponsors/dataforest-dark.svg" alt="dataforest cloud" height="30" /></picture></a>
 </div>
 
 ---
@@ -200,7 +200,7 @@ Most of what follows is an addon an admin switches on or off. Lists, Costs, Docu
 - **Admin panel**: users and the permission matrix, defaults for new users, categories and templates, addons, plugins, storage, notifications, MCP tokens, backups, audit log and releases
 - **Backups and storage**: scheduled backups with retention that restore their own secrets, and local or S3-compatible storage per content category with replicas
 - **Appearance**: light, dark or follow the OS, seven colour schemes plus a custom accent, transparency, density, reduced motion and text size
-- **27 languages**: en, de, es, fr, it, nl, hu, ru, zh, zh-TW, pl, cs, ar (right to left), br, id, tr, ja, ko, uk, gr, sv, vi, ca, az, et, sk, th
+- **28 languages**: en, de, es, fr, it, nl, hu, ru, zh, zh-TW, pl, cs, ar (right to left), he (right to left), br, id, tr, ja, ko, uk, gr, sv, vi, ca, az, et, sk, th
 - **Help center**: a ? in the top bar with 381 step-by-step guides with screenshots, searched together with the wiki that ships in the image
 
 </td>
@@ -214,7 +214,39 @@ Most of what follows is an addon an admin switches on or off. Lists, Costs, Docu
 <div align="center">
   <a href="docs/screenshots/showcase-desktop-1.webp"><img src="docs/screenshots/showcase-desktop-1.webp" alt="Atlas · dashboard · trip planner" width="100%" /></a>
   <a href="docs/screenshots/showcase-mobile.webp"><img src="docs/screenshots/showcase-mobile.webp" alt="Mobile PWA · dashboard, day plan, map, costs" width="100%" /></a>
-  <a href="docs/screenshots/showcase-desktop-2.webp"><img src="docs/screenshots/showcase-desktop-2.webp" alt="Collections · journey journal · costs" width="100%" /></a>
+</div>
+
+<br />
+
+## Powered by [dataforest cloud](https://cloud.dataforest.net/en?mtm_campaign=trek)
+
+<div align="center">
+
+<br />
+
+<a href="https://cloud.dataforest.net/en?mtm_campaign=trek">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/sponsors/dataforest-light.svg" />
+    <source media="(prefers-color-scheme: light)" srcset="docs/sponsors/dataforest-dark.svg" />
+    <img src="docs/sponsors/dataforest-dark.svg" alt="dataforest cloud" height="60" />
+  </picture>
+</a>
+
+<br />
+<br />
+
+**Every TREK installation in the world searches through servers that [dataforest cloud](https://cloud.dataforest.net/en?mtm_campaign=trek) sponsors.**
+
+The place index with over 88 million places, the address search in every TREK language and the planet-wide routing all run on [dataforest cloud](https://cloud.dataforest.net/en?mtm_campaign=trek) in Frankfurt, Germany, free of charge for everyone who self-hosts TREK. Without this sponsorship, these services would not exist in this form.
+
+Thank you, [dataforest](https://cloud.dataforest.net/en?mtm_campaign=trek), for backing open source this generously. 💚
+
+<br />
+
+<a href="https://cloud.dataforest.net/en?mtm_campaign=trek"><img alt="Visit dataforest cloud" src="https://img.shields.io/badge/Visit-dataforest_cloud-02C382?style=for-the-badge" /></a>
+
+Looking for a server for your own TREK? [dataforest cloud](https://cloud.dataforest.net/en?mtm_campaign=trek) is where TREK's own services live.
+
 </div>
 
 <br />
@@ -243,6 +275,9 @@ ENCRYPTION_KEY=$(openssl rand -hex 32) docker run -d --name trek -p 3000:3000 \
 Open `http://localhost:3000`, or `http://<server-ip>:3000` from another machine. On first boot TREK seeds an admin account — if you set `ADMIN_EMAIL`/`ADMIN_PASSWORD` those are used, otherwise the credentials are printed to the container log (`docker logs trek`).
 
 `COOKIE_SECURE=false` is only for trying TREK over plain HTTP: without it the browser drops the session cookie and the login does not stick. Once TREK sits behind HTTPS (see [Reverse Proxy](#reverse-proxy)), remove it.
+
+> [!TIP]
+> **No server yet?** TREK's own public services run on [**dataforest cloud**](https://cloud.dataforest.net/en?mtm_campaign=trek), our infrastructure sponsor. A small seed is plenty for a TREK instance and is ready within a minute.
 
 <div align="center">
 
@@ -397,16 +432,6 @@ Caddy handles TLS and WebSockets automatically.
 
 Every variable, its default and what it does: see
 [Environment Variables](https://github.com/liketrek/TREK/wiki/Environment-Variables).
-
-## Star History
-
-<a href="https://www.star-history.com/?repos=liketrek%2FTREK&type=date&legend=bottom-right">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=liketrek/TREK&type=date&theme=dark&legend=bottom-right&sealed_token=tW9agibKugOyPk0yPURgSdnizM7K72zbJENGD9iyk24ZcwYHtCUn-hk9jh1gdacO0O7xJ3Io7LaNrwYD3mChzcpzZIqDC8_HevYG1qnT0XNTmN6Ez4UZrQ" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=liketrek/TREK&type=date&legend=bottom-right&sealed_token=tW9agibKugOyPk0yPURgSdnizM7K72zbJENGD9iyk24ZcwYHtCUn-hk9jh1gdacO0O7xJ3Io7LaNrwYD3mChzcpzZIqDC8_HevYG1qnT0XNTmN6Ez4UZrQ" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=liketrek/TREK&type=date&legend=bottom-right&sealed_token=tW9agibKugOyPk0yPURgSdnizM7K72zbJENGD9iyk24ZcwYHtCUn-hk9jh1gdacO0O7xJ3Io7LaNrwYD3mChzcpzZIqDC8_HevYG1qnT0XNTmN6Ez4UZrQ" />
- </picture>
-</a>
 
 ## Data sources
 

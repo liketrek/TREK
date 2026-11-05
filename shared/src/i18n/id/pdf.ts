@@ -6,6 +6,9 @@ const pdf: TranslationStrings = {
   'pdf.costLabel': 'Biaya',
   'pdf.preview': 'Pratinjau PDF',
   'pdf.saveAsPdf': 'Simpan sebagai PDF',
+  'pdf.openInSafari': 'Buka di Safari',
+  'pdf.safariHint':
+    'iOS tidak bisa mencetak dari aplikasi di Layar Utama. Safari membuka perjalanan ini dengan ekspor yang siap, di sana kamu bisa menyimpan PDF.',
   'pdf.pageBreakPerDay': 'Pemisah halaman per hari',
   'pdf.transportNotes': 'Catatan transportasi',
   'pdf.mapTitle': 'Ringkasan rute',

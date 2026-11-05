@@ -9,6 +9,7 @@
  */
 import { PlaceDetailsCache } from '../../db/entities/PlaceDetailsCache.entity';
 import type { PlaceDetailsCacheRepository } from '../../db/repositories/PlaceDetailsCache.repository';
+import { osmDetailsWithCommunity } from './community-overlay';
 import { indexPlaceDetails } from './maps-index.helpers';
 import { toApiLang, isGooglePlaceId, OSM_PLACE_ID } from './maps.helpers';
 import { PlacesProviderSelector } from './places-provider.selector';
@@ -84,7 +85,11 @@ export class PlaceDetailsResolver {
     if (isAmapPlaceId(placeId)) return this.amapDetails(userId, placeId, lang);
 
     // OSM details: placeId is "node:123456" or "way:123456" etc.
-    if (placeId.includes(':')) return { place: await this.osm.elementDetails(placeId, lang) };
+    if (placeId.includes(':')) {
+      const place = await this.osm.elementDetails(placeId, lang);
+      // What installations published for this element, like the index rows carry it.
+      return { place: indexEnabled ? await osmDetailsWithCommunity(placeId, place) : place };
+    }
 
     // Google details
     // 'en' default, aligned with search/autocomplete and the MCP tools' ?? 'en'

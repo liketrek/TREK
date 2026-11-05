@@ -316,7 +316,6 @@
     "place-shadow -> AppSettings (owned by settings)",
     "places -> BudgetItems (owned by budget)",
     "places -> Categories (owned by categories)",
-    "places -> CollectionPlaces (owned by collections)",
     "places -> DayAssignments (owned by assignments)",
     "places -> Tags (owned by tags)",
     "places -> TripMembers (owned by trip-membership)",

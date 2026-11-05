@@ -34,6 +34,8 @@ const wanderer: TranslationStrings = {
   'wanderer.error.not_found': 'wanderer에 이 트레일이 더 이상 없습니다.',
   'wanderer.error.not_own_trail': '자신의 wanderer 트레일만 가져올 수 있습니다.',
   'wanderer.error.invalid_response': 'wanderer의 응답이 아닙니다. 주소가 wanderer 자체를 가리키는지 확인하세요.',
+  'wanderer.error.no_author':
+    'wanderer가 응답했지만 이 API 토큰의 계정에 대한 트레일 작성자를 알려 주지 않아, TREK이 어떤 트레일이 내 것인지 알 수 없습니다.',
   'wanderer.error.too_large': '트레일 파일이 10 MB보다 큽니다.',
   'wanderer.error.server_error': 'wanderer가 오류로 응답했습니다. 나중에 다시 시도하세요.',
   'wanderer.error.offline': '오프라인 상태입니다. wanderer는 온라인에서만 검색할 수 있습니다.',

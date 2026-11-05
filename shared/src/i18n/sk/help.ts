@@ -1139,7 +1139,7 @@ const help: TranslationStrings = {
   'help.ctx.settings.bullet.1':
     'Bočný panel vľavo: Všeobecné, Vzhľad, Mapa, Oznámenia, Integrácie, Offline a Účet. Pluginy sa zobrazia, keď je aktívny nejaký plugin. O aplikácii sa zobrazí, pokiaľ ju prevádzkovateľ neskryl. Verzia je úplne dole.',
   'help.ctx.settings.bullet.2':
-    'Všeobecné sa otvorí ako prvé. Obsahuje jazyk, jazyk názvov miest, jednotky, formát času, začiatok týždňa a zobrazovanú menu, ako aj správanie mapy cesty. Vzhľad obsahuje motív, farby, čitateľnosť, veľkosť písma a widgety na prehľade.',
+    'Všeobecné sa otvorí ako prvé. Obsahuje jazyk, jazyk názvov miest, jednotky, formát času, formát dátumu, začiatok týždňa a zobrazovanú menu, ako aj správanie mapy cesty. Vzhľad obsahuje motív, farby, čitateľnosť, veľkosť písma a widgety na prehľade.',
   'help.ctx.settings.bullet.3':
     '„Mapa“ nastavuje mapový engine a jeho štýl; „Oznámenia“ určujú, ktoré udalosti idú na ktorý kanál; „Integrácie“ pripájajú knižnice fotiek, AirTrail, Dawarich a wanderer a nájdete tu aj kľúče API a MCP; „Offline“ určuje, čo si toto zariadenie ukladá.',
   'help.ctx.settings.bullet.4':
@@ -1150,7 +1150,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-display.bullet.1':
     'Spustenie: Úvodná stránka sa otvára na Prehľad alebo na Aktívna cesta. Pri Aktívna cesta vyberá Úvodná karta kartu, na ktorej sa táto cesta otvorí.',
   'help.ctx.settings-display.bullet.2':
-    'Jazyk a región: Zobrazovaná mena (alebo Mena cesty, ak žiadnu nechcete), Jazyk, Názvy miest, Jednotky teploty, Jednotky vzdialenosti, Formát času a Týždeň začína.',
+    'Jazyk a región: Zobrazovaná mena (alebo Mena cesty, ak žiadnu nechcete), Jazyk, Názvy miest, Jednotky teploty, Jednotky vzdialenosti, Formát času, Týždeň začína a Formát dátumu.',
   'help.ctx.settings-display.bullet.3':
     'Cestovanie a mapa: „Otvárať miesta v“, „Dátum na začiatku nadpisov dní“, „Popisky trás rezervácií“, „Vždy zobrazovať trasy rezervácií“, „Kompaktné značky pre nenaplánované miesta“, „Objavovať miesta na mape“, „Skryť rezervačné kódy“ a „Optimalizovať trasu od ubytovania“.',
   'help.ctx.settings-appearance.title': 'Vzhľad',
@@ -1466,9 +1466,9 @@ const help: TranslationStrings = {
     'Nastavenia oprávnení dole: pri každej akcii určíte, kto ju smie robiť (Všetci, Členovia výletu, Vlastník výletu alebo Iba administrátor). Uložíte to tlačidlom Uložiť v hlavičke karty.',
   'help.ctx.admin-defaults.title': 'Predvolené nastavenia používateľa',
   'help.ctx.admin-defaults.summary':
-    'S čím nový účet začína, aby ho nikto nemusel najprv nastavovať: farebný režim, jednotky, formát času, začiatok týždňa, zobrazovaná mena a skryté rezervačné kódy, plus mapa, jej kľúče a smerovacie servery.',
+    'S čím nový účet začína, aby ho nikto nemusel najprv nastavovať: farebný režim, jednotky, formát času, formát dátumu, začiatok týždňa, zobrazovaná mena a skryté rezervačné kódy, plus mapa, jej kľúče a smerovacie servery.',
   'help.ctx.admin-defaults.bullet.1':
-    '„Predvolené nastavenia používateľa“ vľavo: Farebný režim, Jednotky teploty, Jednotky vzdialenosti, Formát času, Týždeň začína, Zobrazovaná mena a Skryť rezervačné kódy.',
+    '„Predvolené nastavenia používateľa“ vľavo: Farebný režim, Jednotky teploty, Jednotky vzdialenosti, Formát času, Týždeň začína, Formát dátumu, Zobrazovaná mena a Skryť rezervačné kódy.',
   'help.ctx.admin-defaults.bullet.2':
     'Mapa vpravo: Šablóna mapy, Zdieľaný kľúč CARTO, Vlastný smerovací server a Vlastná inštancia Valhalla, náhľad a potom Mapový engine so Štýl mapy, Zdieľaný token Mapbox, 3D budovy a terén a Režim vysokej kvality.',
   'help.ctx.admin-config.title': 'Personalizácia',
@@ -3065,7 +3065,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.summary':
     'Na tejto záložke je všetko, čo máte pre cestu rezervované okrem dopravy: ubytovanie, stoly v reštauráciách, vstupenky, prehliadky a parkovanie. Každá rezervácia je karta, riadok zoznamu alebo pruh na časovej osi so svojím kódom, dokumentmi, cestujúcimi a nákladmi. Kliknutím na rezerváciu otvoríte jej podrobnosti.',
   'help.ctx.trip-bookings.bullet.1':
-    'Ručná rezervácia na pravom konci lišty otvorí Nová rezervácia. Vytvára šesť druhov rezervácií: Ubytovanie, Reštaurácia, Udalosť, Prehliadka, Parkovanie a Iné. Lety, vlaky a ostatná doprava sú v záložke Doprava a tu sa nikdy nezobrazia.',
+    'Ručná rezervácia na pravom konci lišty otvorí Nová rezervácia. Vytvára šesť druhov rezervácií: Ubytovanie, Reštaurácia, Udalosť, Prehliadka so sprievodcom, Parkovanie a Iné. Lety, vlaky a ostatná doprava sú v záložke Doprava a tu sa nikdy nezobrazia.',
   'help.ctx.trip-bookings.bullet.2':
     'Ikona sťahovania pred Ručná rezervácia, Importovať potvrdenia rezervácií, nahrá potvrdenia, aby ich TREK vedel prečítať automaticky: EML, PDF, PKPass, HTML alebo TXT, najviac päť súborov po 10 MB, a fotky, ak AI model číta obrázky. Ikona sa zobrazí, iba ak ich server vie čítať.',
   'help.ctx.trip-bookings.bullet.3':
@@ -3107,7 +3107,7 @@ const help: TranslationStrings = {
   'help.guide.create-booking.step.1':
     'Kliknite na „Ručná rezervácia“ na pravom konci lišty. Otvorí sa „Nová rezervácia“ s názvom a dvoma štítkami v hlavičke hore.',
   'help.guide.create-booking.step.2':
-    'Kliknite na štítok typu v hornej časti, ktorý je pri novej rezervácii Ostatné, a vyberte Typ rezervácie. Táto záložka vytvára šesť typov: Ubytovanie, Reštaurácia, Udalosť, Prehliadka, Parkovanie a Ostatné. Formulár sa mení podľa vášho výberu: iba Ubytovanie používa namiesto dátumov rozsah dní.',
+    'Kliknite na štítok typu v hornej časti, ktorý je pri novej rezervácii Ostatné, a vyberte Typ rezervácie. Táto záložka vytvára šesť typov: Ubytovanie, Reštaurácia, Udalosť, Prehliadka so sprievodcom, Parkovanie a Ostatné. Formulár sa mení podľa vášho výberu: iba Ubytovanie používa namiesto dátumov rozsah dní.',
   'help.guide.create-booking.step.3':
     'Zadajte názov do hornej časti, do poľa nad štítkami. Je to jediné povinné pole a Pridať zostane sivé, kým do neho niečo nezadáte.',
   'help.guide.create-booking.step.4':
@@ -4248,7 +4248,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-about.bullet.3':
     'Cez Ko-fi, Buy Me a Coffee a Discord môžete TREK podporiť alebo sa porozprávať s ľuďmi, ktorí ho tvoria.',
   'help.guide.language-region.step.3':
-    'Nastavte „Zobrazovaná mena“, alebo ponechajte „Mena cesty“, aby sa každá cesta zobrazovala vo svojej vlastnej mene. Potom vyberte „Jednotky teploty“, „Jednotky vzdialenosti“, „Formát času“ a deň, ktorým „Týždeň začína“.',
+    'Nastavte „Zobrazovaná mena“, alebo ponechajte „Mena cesty“, aby sa každá cesta zobrazovala vo svojej vlastnej mene. Potom vyberte „Jednotky teploty“, „Jednotky vzdialenosti“, „Formát času“, deň, ktorým „Týždeň začína“, a „Formát dátumu“.',
   'help.guide.travel-map-prefs.step.3':
     '„Objavovať miesta na mape“ zobrazí panel kategórií na hľadanie miest v okolí. „Skryť rezervačné kódy“ skryje potvrdzovacie čísla, kým na ne nenabehnete myšou alebo neťuknete. „Optimalizovať trasu od ubytovania“ začne aj ukončí deň vo vašom hoteli.',
   'help.guide.web-push-device.step.2':
@@ -6263,7 +6263,7 @@ const help: TranslationStrings = {
     'Odkaz obnoviť vedľa nastaveného poľa vráti predvolenú hodnotu TREK. Vlastné nastavenie používateľa má vždy prednosť pred týmito.',
   'help.ctx.admin-settings.bullet.5': 'Nebezpečná zóna: Obnoviť tajný kľúč JWT odhlási všetkých používateľov, aj vás.',
   'help.guide.default-user-settings.step.1':
-    'Pod Predvolené nastavenia používateľa vyberte Farebný režim (Svetlé, Tmavý alebo Automatické), Jednotky teploty, Jednotky vzdialenosti, Formát času, Týždeň začína, Zobrazovaná mena a či je Skryť rezervačné kódy zapnuté alebo vypnuté. Každá voľba sa uloží okamžite.',
+    'Pod Predvolené nastavenia používateľa vyberte Farebný režim (Svetlé, Tmavý alebo Automatické), Jednotky teploty, Jednotky vzdialenosti, Formát času, Týždeň začína, Formát dátumu, Zobrazovaná mena a či je Skryť rezervačné kódy zapnuté alebo vypnuté. Každá voľba sa uloží okamžite.',
   'help.guide.admin-passkeys.step.2':
     'Zadajte Relying Party ID (doména), napríklad trek.example.org, a Povolené origins, na ktorých je váš TREK dostupný, a kliknite na Uložiť. Ak necháte obe polia prázdne, použije sa APP_URL.',
   'help.guide.rotate-jwt-secret.title': 'Odhlásenie všetkých naraz',

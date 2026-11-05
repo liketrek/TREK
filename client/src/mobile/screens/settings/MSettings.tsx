@@ -52,7 +52,7 @@ export default function MSettings() {
     { id: 'map', label: t('settings.tabs.map'), icon: Map },
     { id: 'notifications', label: t('settings.tabs.notifications'), icon: Bell },
     ...(hasIntegrations ? [{ id: 'integrations', label: t('settings.tabs.integrations'), icon: Plug }] : []),
-    ...(hasPlugins ? [{ id: 'plugins', label: t('settings.tabs.plugins'), icon: Puzzle }] : []),
+    ...(hasPlugins && !managed ? [{ id: 'plugins', label: t('settings.tabs.plugins'), icon: Puzzle }] : []),
     { id: 'offline', label: t('settings.tabs.offline'), icon: CloudOff },
     { id: 'account', label: t('settings.tabs.account'), icon: User },
     // Same call as the desktop page: About is about the project — what TREK is,
@@ -117,7 +117,7 @@ export default function MSettings() {
       {active.id === 'notifications' && <MSettingsNotifications />}
       {active.id === 'integrations' && hasIntegrations && <MSettingsIntegrations />}
       {/* Per-plugin settings still reuse the existing responsive tab. */}
-      {active.id === 'plugins' && hasPlugins && <MSettingsPlugins />}
+      {active.id === 'plugins' && hasPlugins && !managed && <MSettingsPlugins />}
       {active.id === 'offline' && <MSettingsOffline />}
       {active.id === 'account' && <MSettingsServer />}
       {active.id === 'account' && <MSettingsAccount />}

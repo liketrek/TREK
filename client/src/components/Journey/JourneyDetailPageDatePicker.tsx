@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { localIsoDate } from '../../utils/localDate'
 import { ArrowLeft, ChevronRight, Calendar } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { useWeekStartDay } from '../../hooks/useWeekStartDay'
 import { leadingBlanks, weekdayLabels } from '../../utils/calendarWeek'
+import { useAnchoredPosition } from '../../hooks/useAnchoredPosition'
 
 /**
  * The header steps up a level on each click, days → months → years, and a
@@ -14,6 +16,9 @@ import { leadingBlanks, weekdayLabels } from '../../utils/calendarWeek'
  */
 type CalendarView = 'days' | 'months' | 'years'
 const YEAR_PAGE_SIZE = 12
+/** The calendar's width; `w-[280px]` below. */
+const PANEL_WIDTH = 280
+const VIEWPORT_PAD = 8
 
 export function DatePicker({ value, onChange, tripDates }: {
   value: string
@@ -23,6 +28,13 @@ export function DatePicker({ value, onChange, tripDates }: {
   const { t, locale } = useTranslation()
   const weekStart = useWeekStartDay()
   const [open, setOpen] = useState(false)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  // The calendar used to hang absolutely under its trigger, inside dialogs that clip
+  // their content: the photo picker cut off the last week and, for the end date in
+  // the right-hand column, the last weekday (#2858). It now floats over the page,
+  // pinned to the trigger, flipped above it when below is too short and kept inside
+  // the viewport sideways.
+  const anchored = useAnchoredPosition(triggerRef, open, { estimatedHeight: 340, matchWidth: false })
   const [view, setView] = useState<CalendarView>('days')
   const [yearPageStart, setYearPageStart] = useState(0)
   const [viewMonth, setViewMonth] = useState(() => {
@@ -107,6 +119,7 @@ export function DatePicker({ value, onChange, tripDates }: {
   return (
     <div className="relative">
       <button
+        ref={triggerRef}
         type="button"
         onClick={toggleOpen}
         className="w-full px-3 py-2 border border-zinc-200 dark:border-zinc-700 rounded-lg text-[13px] bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white text-start flex items-center justify-between"
@@ -122,12 +135,20 @@ export function DatePicker({ value, onChange, tripDates }: {
         <Calendar size={13} className="text-zinc-400" />
       </button>
 
-      {open && (
+      {open && anchored && createPortal(
         <>
           {/* Click-away catcher — no semantics of its own; the trigger button
               above closes the popover again from the keyboard. */}
-          <div role="presentation" className="fixed inset-0 z-[10]" onClick={() => setOpen(false)} />
-          <div className="absolute top-full start-0 mt-1 z-[20] bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-lg p-3 w-[280px]">
+          <div role="presentation" className="fixed inset-0 z-[var(--z-toast)]" onClick={() => setOpen(false)} />
+          <div
+            className="fixed z-[var(--z-toast)] overflow-y-auto bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-lg p-3 w-[280px]"
+            style={{
+              top: anchored.top,
+              bottom: anchored.bottom,
+              left: Math.max(VIEWPORT_PAD, Math.min(anchored.left, window.innerWidth - PANEL_WIDTH - VIEWPORT_PAD)),
+              maxHeight: anchored.maxHeight,
+            }}
+          >
             {/* Header: arrows step the current view, the label climbs to the next one up */}
             <div className="flex items-center justify-between mb-2">
               <button type="button" onClick={handlePrev} aria-label={prevLabel} className={navButton}>
@@ -200,7 +221,7 @@ export function DatePicker({ value, onChange, tripDates }: {
                       >
                         {day}
                         {isTrip && !isSelected && (
-                          <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-indigo-500" />
+                          <span className="absolute bottom-1 inset-x-0 mx-auto w-1 h-1 rounded-full bg-indigo-500" />
                         )}
                       </button>
                     )
@@ -209,7 +230,8 @@ export function DatePicker({ value, onChange, tripDates }: {
               </>
             )}
           </div>
-        </>
+        </>,
+        document.body,
       )}
     </div>
   )

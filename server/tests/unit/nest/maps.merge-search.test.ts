@@ -1,5 +1,5 @@
 /**
- * MAPS-MERGE-001..008 — showing the index's answer and OpenStreetMap's together.
+ * MAPS-MERGE-001..014 — showing the index's answer and OpenStreetMap's together.
  *
  * Why this exists, in numbers. 128 places out of a real trip to Japan, all
  * saved through the old search, replayed against the index: 51.6 percent came
@@ -8,7 +8,8 @@
  * ten plausible wrong answers look like an answer and the user never learns the
  * temple was one query away in OpenStreetMap.
  */
-import { mergeSearchResults } from '../../../src/nest/maps/maps.helpers';
+import { mergeSearchResults } from '../../../src/nest/maps/maps-merge.helpers';
+import type { PhotonLead } from '../../../src/nest/maps/providers/photon.mapping';
 
 import { describe, it, expect } from 'vitest';
 
@@ -119,5 +120,38 @@ describe('mergeSearchResults', () => {
     const index = [p('Hase-dera', 35.3125, 139.5335, 'trek-places')];
     const osm = [p('長谷寺', 35.3125, 139.5335, 'openstreetmap')];
     expect(mergeSearchResults(index, osm)).toHaveLength(2);
+  });
+
+  it('MAPS-MERGE-013: opens on the lead, as the suggestions do, and drops the rows of its name inside it', () => {
+    const tokyo: PhotonLead = {
+      placeId: 'relation:1543125',
+      name: 'Tokyo',
+      reach: 'everywhere',
+      kind: 'province',
+      lat: 35.68,
+      lng: 139.76,
+      extent: [135.85, 35.9, 154.2, 20.21],
+    };
+    const index = [
+      { ...p('Tokyo Tokyo', 14.5, 121, 'trek-places'), address: 'Philippines' },
+      { ...p('Tokyo', 35.69, 139.7, 'trek-places'), address: 'Shinjuku' },
+    ];
+    const osm = [{ ...p('Tokyo', 35.68, 139.76, 'openstreetmap'), osm_id: 'relation:1543125' }];
+
+    expect(mergeSearchResults(index, osm, 10, { lead: tokyo }).map((r) => r.osm_id)).toEqual([
+      'relation:1543125',
+      'trek-places:Tokyo Tokyo',
+    ]);
+  });
+
+  it('MAPS-MERGE-014: one row for the same element under both ids, and one for rows that read the same', () => {
+    const index = [
+      { ...p('Kröpeliner Tor', 54.0893, 12.1325, 'openstreetmap'), osm_id: 'way:1' },
+      { ...p('Lidl', 54.1, 12.1, 'trek-places'), address: 'Rostock' },
+      { ...p('Lidl', 54.2, 12.2, 'trek-places'), address: 'Rostock', osm_id: 'gers:2' },
+    ];
+    const osm = [{ ...p('Kröpeliner-Tor', 54.0894, 12.1326, 'openstreetmap'), osm_id: 'way:1' }];
+
+    expect(mergeSearchResults(index, osm).map((r) => r.osm_id)).toEqual(['way:1', 'trek-places:Lidl']);
   });
 });

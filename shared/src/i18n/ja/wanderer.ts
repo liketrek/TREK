@@ -36,6 +36,8 @@ const wanderer: TranslationStrings = {
   'wanderer.error.not_own_trail': 'インポートできるのは自分のwandererトレイルのみです。',
   'wanderer.error.invalid_response':
     '応答がwandererから返されたものではありません。アドレスがwanderer自体を指しているか確認してください。',
+  'wanderer.error.no_author':
+    'wandererは応答しましたが、このAPIトークンのアカウントにトレイルの作成者が示されていないため、TREKはどのトレイルがあなたのものか判断できません。',
   'wanderer.error.too_large': 'トレイルのファイルが10 MBを超えています。',
   'wanderer.error.server_error': 'wandererがエラーを返しました。しばらくしてからもう一度お試しください。',
   'wanderer.error.offline': 'オフラインです。wandererはオンライン時のみ検索できます。',

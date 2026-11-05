@@ -6,6 +6,7 @@ import {
   hostSatisfies,
   trekRangeBypassed,
   bypassedRange,
+  acceptanceHolds,
   __resetHostWarningForTests,
 } from '../../../src/nest/plugins/install/host-compat';
 
@@ -125,6 +126,27 @@ describe('hostSatisfies', () => {
  * the truth (hostSatisfies) never changes — the UI still has to say the plugin is
  * outside its range.
  */
+describe('acceptanceHolds', () => {
+  it('holds for the same plugin version on the same TREK major only', () => {
+    process.env.APP_VERSION = '5.0.1';
+    const given = { acceptedVersion: '1.0.3', acceptedHost: '5.0.0' };
+    expect(acceptanceHolds('1.0.3', given)).toBe(true);
+    expect(acceptanceHolds('1.1.0', given)).toBe(false); // an update asks again
+    process.env.APP_VERSION = '6.0.0';
+    expect(acceptanceHolds('1.0.3', given)).toBe(false); // so does a new TREK major
+  });
+
+  it('holds nothing without a full consent or a version to compare', () => {
+    process.env.APP_VERSION = '5.0.0';
+    expect(acceptanceHolds('1.0.0', null)).toBe(false);
+    expect(acceptanceHolds('1.0.0', { acceptedVersion: '1.0.0', acceptedHost: null })).toBe(false);
+    expect(acceptanceHolds(null, { acceptedVersion: '1.0.0', acceptedHost: '5.0.0' })).toBe(false);
+    expect(acceptanceHolds('1.0.0', { acceptedVersion: '1.0.0', acceptedHost: 'not-a-version' })).toBe(false);
+    process.env.APP_VERSION = 'dev';
+    expect(acceptanceHolds('1.0.0', { acceptedVersion: '1.0.0', acceptedHost: '5.0.0' })).toBe(false);
+  });
+});
+
 describe('range bypass (TREK_PLUGINS_IGNORE_TREK_RANGE)', () => {
   it('is off by default and only an explicit truthy value turns it on', () => {
     expect(trekRangeBypassed()).toBe(false);
@@ -138,15 +160,27 @@ describe('range bypass (TREK_PLUGINS_IGNORE_TREK_RANGE)', () => {
     process.env.APP_VERSION = '3.3.0';
     expect(bypassedRange('>=4.0.0')).toBeNull(); // off → the gate refuses, nothing to report
     process.env.TREK_PLUGINS_IGNORE_TREK_RANGE = 'true';
-    expect(bypassedRange('>=4.0.0')).toEqual({ trekRange: '>=4.0.0', hostVersion: '3.3.0' });
+    expect(bypassedRange('>=4.0.0')).toEqual({ trekRange: '>=4.0.0', hostVersion: '3.3.0', acceptedByAdmin: false });
     expect(bypassedRange('>=3.2.0 <4.0.0')).toBeNull(); // fits → not a bypass, a normal install
   });
 
   it('covers a plugin that declared no range at all — the same author oversight', () => {
     process.env.APP_VERSION = '3.3.0';
     process.env.TREK_PLUGINS_IGNORE_TREK_RANGE = '1';
-    expect(bypassedRange(null)).toEqual({ trekRange: null, hostVersion: '3.3.0' });
-    expect(bypassedRange(undefined)).toEqual({ trekRange: null, hostVersion: '3.3.0' });
+    expect(bypassedRange(null)).toEqual({ trekRange: null, hostVersion: '3.3.0', acceptedByAdmin: false });
+    expect(bypassedRange(undefined)).toEqual({ trekRange: null, hostVersion: '3.3.0', acceptedByAdmin: false });
+  });
+
+  it("an admin's consent for one plugin lets it through without the switch, and says it was theirs", () => {
+    process.env.APP_VERSION = '5.0.0';
+    expect(bypassedRange('>=3.2.0 <4.0.0', true)).toEqual({
+      trekRange: '>=3.2.0 <4.0.0',
+      hostVersion: '5.0.0',
+      acceptedByAdmin: true,
+    });
+    expect(bypassedRange('>=5.0.0', true)).toBeNull(); // fits: nothing was set aside
+    process.env.TREK_PLUGINS_IGNORE_TREK_RANGE = '1';
+    expect(bypassedRange('>=3.2.0 <4.0.0', true)).toMatchObject({ acceptedByAdmin: false });
   });
 
   it('leaves hostSatisfies telling the truth while bypassed', () => {

@@ -5,7 +5,6 @@
 import { buildApp } from '../../src/bootstrap';
 import { db as testDb } from '../../src/db/database';
 import { PlaceRegions } from '../../src/db/entities/PlaceRegions.entity';
-import { getRegionGeo } from '../../src/nest/atlas/atlas-geo';
 import { authCookie } from '../helpers/auth';
 import { createUser, createTrip } from '../helpers/factories';
 import type { FactoryOrm } from '../helpers/factories/context';
@@ -53,12 +52,6 @@ beforeAll(async () => {
 
   nestApp = await buildApp();
   app = nestApp.getHttpAdapter().getInstance();
-
-  // Warm the admin-1 store here rather than inside ATLAS-013. The first call streams
-  // the multi-MB bundle through the brace-depth splitter and caches it for the process,
-  // which costs ~3s on a quiet machine and more when every worker is busy — so whichever
-  // test hit it first used to pay for it inside its own 5s budget and fail under load.
-  await getRegionGeo(['ZZ']);
 }, 60_000);
 
 beforeEach(async () => {
@@ -497,6 +490,49 @@ describe('Regions geo', () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('type', 'FeatureCollection');
+    expect(
+      new Set((res.body.features as { properties: { iso_a2: string } }[]).map((f) => f.properties.iso_a2)),
+    ).toEqual(new Set(['DE', 'FR']));
+  });
+
+  it('ATLAS-016 — GET /regions/geo/:code serves that country gzipped, cached for a day', async () => {
+    const { user } = createUser(testDb);
+
+    const res = await request(app)
+      .get('/api/addons/atlas/regions/geo/no')
+      .set('Accept-Encoding', 'gzip')
+      .set('Cookie', authCookie(user.id));
+
+    expect(res.status).toBe(200);
+    expect(res.headers['content-encoding']).toBe('gzip');
+    expect(res.headers['cache-control']).toBe('public, max-age=86400');
+    expect(res.body.type).toBe('FeatureCollection');
+    expect(res.body.features.length).toBeGreaterThan(0);
+    expect((res.body.features as { properties: { iso_a2: string } }[]).every((f) => f.properties.iso_a2 === 'NO')).toBe(
+      true,
+    );
+  });
+
+  it('ATLAS-017 — GET /regions/geo/:code answers a country without regions with an empty FeatureCollection', async () => {
+    const { user } = createUser(testDb);
+
+    const res = await request(app).get('/api/addons/atlas/regions/geo/ZZ').set('Cookie', authCookie(user.id));
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ type: 'FeatureCollection', features: [] });
+  });
+
+  it('ATLAS-018 — GET /regions/geo/:code refuses a code that is not two letters with a 400', async () => {
+    const { user } = createUser(testDb);
+
+    const codes = ['NOR', '..%2Fadmin0'];
+    const answers = await Promise.all(
+      codes.map((code) => request(app).get(`/api/addons/atlas/regions/geo/${code}`).set('Cookie', authCookie(user.id))),
+    );
+    for (const [i, res] of answers.entries()) {
+      expect(res.status, codes[i]).toBe(400);
+      expect(res.body.error, codes[i]).toMatch(/^code: /);
+    }
   });
 });
 

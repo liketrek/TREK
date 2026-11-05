@@ -59,9 +59,19 @@ export async function refusalOf(kind: AiConnectionKind, res: Response): Promise<
   // refusal the provider's own code already explains (a plan that does not cover it) keeps that code.
   const image = namesImageInput(res.status, body) && providerFailure(kind, res.status, named).code === 'generic';
   const code = image ? IMAGE_INPUT_REFUSED : named;
-  // Status and code only: an error body can quote the request, and the request holds the trip.
-  logWarn(`[ai] ${kind} refused the request: HTTP ${res.status}${code ? ` (${code})` : ''}`);
+  // Status, code and the refused field's path only: an error message can quote the request, and the
+  // request holds the trip. The path alone says which part of a replayed conversation the provider refused.
+  const param = refusedParamOf(body);
+  logWarn(
+    `[ai] ${kind} refused the request: HTTP ${res.status}${code ? ` (${code})` : ''}${param ? ` at ${param}` : ''}`,
+  );
   return providerFailure(kind, res.status, code);
+}
+
+/** The field an error body names as refused (OpenAI's `param`, such as `input[12]`), when it is a bare path. */
+function refusedParamOf(body: unknown): string | undefined {
+  const param = asRecord(asRecord(body).error).param;
+  return typeof param === 'string' && /^[\w.[\]-]{1,80}$/.test(param) ? param : undefined;
 }
 
 /** One SSE data payload as a JSON object; null for anything else (a `[DONE]`, a keepalive). */

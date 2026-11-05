@@ -37,6 +37,8 @@ const wanderer: TranslationStrings = {
   'wanderer.error.not_own_trail': 'Alleen je eigen wanderer-wandelroutes kunnen worden geïmporteerd.',
   'wanderer.error.invalid_response':
     'Het antwoord kwam niet van wanderer. Controleer of het adres naar wanderer zelf wijst.',
+  'wanderer.error.no_author':
+    'wanderer heeft geantwoord, maar noemt geen auteur van wandelroutes voor het account van dit API-token, dus TREK kan niet zien welke wandelroutes van jou zijn.',
   'wanderer.error.too_large': 'Het bestand van de wandelroute is groter dan 10 MB.',
   'wanderer.error.server_error': 'wanderer antwoordde met een fout. Probeer het later opnieuw.',
   'wanderer.error.offline': 'Je bent offline. wanderer kan alleen online worden doorzocht.',

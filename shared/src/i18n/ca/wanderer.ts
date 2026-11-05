@@ -35,6 +35,8 @@ const wanderer: TranslationStrings = {
   'wanderer.error.not_found': 'Aquest sender ja no existeix a wanderer.',
   'wanderer.error.not_own_trail': 'Només es poden importar els teus propis senders de wanderer.',
   'wanderer.error.invalid_response': "La resposta no ve de wanderer. Comprova que l'adreça apunti al mateix wanderer.",
+  'wanderer.error.no_author':
+    "wanderer ha respost, però no indica cap autor de senders per al compte d'aquest token d'API, així que TREK no pot saber quins senders són teus.",
   'wanderer.error.too_large': 'El fitxer del sender ocupa més de 10 MB.',
   'wanderer.error.server_error': 'wanderer ha respost amb un error. Torna-ho a provar més tard.',
   'wanderer.error.offline': 'No tens connexió. Només es pot cercar a wanderer amb connexió.',

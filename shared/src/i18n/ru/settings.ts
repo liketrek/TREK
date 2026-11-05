@@ -29,7 +29,14 @@ const settings: TranslationStrings = {
     'Собственный экземпляр OSRM. Пусто — используются публичные серверы с ограничением около одного запроса в секунду: на день хватает, для автопутешествия мало. Вступает в силу после перезапуска сервера.',
   'settings.valhallaBase': 'Свой сервер Valhalla',
   'settings.valhallaBaseHint':
-    'По умолчанию TREK использует публичную Valhalla FOSSGIS для объезда платных дорог, автомагистралей и паромов. Введите здесь URL собственной Valhalla, чтобы использовать её вместо публичной. Если настроен только собственный сервер маршрутизации, публичная Valhalla не используется. После ввода собственного URL перезапустите сервер и обновите страницу.',
+    'Собственная Valhalla, к которой обращаются, если сервис маршрутизации выше установлен на неё или на «Автоматически». Если настроен только собственный сервер маршрутизации и сервис не выбран, ни к какой Valhalla не обращаются. После ввода URL перезапустите сервер и обновите страницу.',
+  'settings.valhallaProvider': 'Сервис маршрутизации',
+  'settings.valhallaProviderHint':
+    'С сервисами TREK или собственной Valhalla все маршруты рассчитывает Valhalla: дни и автопутешествия пешком, на велосипеде и на машине, маршруты без платных дорог, автомагистралей и паромов, а также маршруты, высоты и тропы походов. Если она не может ответить, этот день рассчитывает OSRM. Сервисы TREK опрашиваются через этот сервер. С публичной Valhalla FOSSGIS маршруты рассчитывает OSRM, а Valhalla отвечает только на то, чего не умеет OSRM. «Автоматически» опрашивает сервисы TREK, если не задана собственная Valhalla или только собственный сервер маршрутизации.',
+  'settings.valhallaProviderOption.auto': 'Автоматически',
+  'settings.valhallaProviderOption.trek': 'Сервисы TREK',
+  'settings.valhallaProviderOption.fossgis': 'Публичная Valhalla (FOSSGIS)',
+  'settings.valhallaProviderOption.custom': 'Собственный экземпляр Valhalla',
   'settings.mapHint': 'URL-шаблон для тайлов карты',
   'settings.mapProvider': 'Провайдер карты',
   'settings.mapProviderHint': 'Применяется к Trip Planner и Journey. Atlas всегда использует Leaflet.',
@@ -79,6 +86,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': 'Формат времени',
   'settings.weekStart': 'Неделя начинается с',
   'settings.weekStartHint': 'Первый день недели во всех выборах даты. У Vacay своя настройка.',
+  'settings.dateFormat': 'Формат даты',
+  'settings.dateFormatHint':
+    'Как записываются даты во всех полях даты и списках. Даты с названием месяца сохраняют написание вашего языка.',
+  'settings.dateFormatAuto': 'Автоматически',
   'settings.preferredNavApp': 'Открывать места в',
   'settings.preferredNavAppAsk': 'Спрашивать каждый раз',
   'settings.preferredNavAppHint':
@@ -204,6 +215,14 @@ const settings: TranslationStrings = {
   'settings.about.featureRequest': 'Предложить функцию',
   'settings.about.featureRequestHint': 'Предложите новую функцию',
   'settings.about.wikiHint': 'Документация и руководства',
+  'settings.about.sponsor.eyebrow': 'Спонсорская инфраструктура',
+  'settings.about.sponsor.title': 'Собственные серверы TREK работают на dataforest cloud',
+  'settings.about.sponsor.body':
+    'Поиск мест, поиск адресов и маршруты работают на собственных серверах TREK вместо Google и компании, а машины для них спонсирует dataforest cloud.',
+  'settings.about.sponsor.cta': 'Перейти на dataforest cloud',
+  'settings.about.sponsor.search': 'Поиск мест',
+  'settings.about.sponsor.address': 'Поиск адресов',
+  'settings.about.sponsor.routing': 'Маршруты',
   'settings.about.descriptionManaged':
     'TREK помогает организовать поездки от первой идеи до последнего воспоминания. Планирование дней, бюджет, списки вещей, фото и многое другое: всё в одном месте.',
   'settings.about.sourceTitle': 'Исходный код',

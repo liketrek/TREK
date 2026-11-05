@@ -60,7 +60,7 @@ const reservations: TranslationStrings = {
   'reservations.type.car': 'Auto',
   'reservations.type.cruise': 'Plavba',
   'reservations.type.event': 'Událost',
-  'reservations.type.tour': 'Prohlídka',
+  'reservations.type.tour': 'Prohlídka s průvodcem',
   'reservations.type.parking': 'Parkování',
   'reservations.type.other': 'Jiné',
   'reservations.type.bus': 'Autobus',
@@ -77,8 +77,8 @@ const reservations: TranslationStrings = {
   'reservations.confirm.deleteBodyWithExpense': '„{name}” bude trvale smazána i s propojenými náklady.',
   'reservations.toast.updated': 'Rezervace aktualizována',
   'reservations.toast.removed': 'Rezervace smazána',
-  'reservations.toast.fileUploaded': 'Soubor byl nahrán',
-  'reservations.toast.uploadError': 'Nahrávání se nezdařilo',
+  'reservations.toast.filesNotUploaded':
+    'Rezervace je uložená, ale některé soubory se nenahrály. Ulož znovu a odešli je.',
   'reservations.newTitle': 'Nová rezervace',
   'reservations.bookingType': 'Typ rezervace',
   'reservations.titleLabel': 'Název',
@@ -139,6 +139,14 @@ const reservations: TranslationStrings = {
   'reservations.import.cta': 'Importovat ze souboru',
   'reservations.import.dropHere': 'Přetáhněte soubory s potvrzením rezervace sem nebo klikněte pro výběr',
   'reservations.import.dropActive': 'Pusťte soubory pro import',
+  'reservations.import.pinSearching': 'Hledání na mapě…',
+  'reservations.import.pinFound': 'Na mapě',
+  'reservations.import.pinMissingTitle': 'Zatím není na mapě',
+  'reservations.import.pinMissingBody':
+    'TREK toto ubytování na mapě nenašel. Zkontrolujte název a adresu výše a vyhledejte znovu, nebo ho uložte bez špendlíku.',
+  'reservations.import.pinRetry': 'Hledat znovu',
+  'reservations.import.savedWithoutPin':
+    'Uloženo bez špendlíku na mapě. Upravte místo a nastavte jeho polohu, aby se zobrazilo na mapě.',
   'reservations.import.acceptedFormats':
     'Přijímané formáty: EML, PDF, PKPass, HTML, TXT (max. 10 MB každý, až 5 souborů)',
   'reservations.import.acceptedPhotos': 'Fotografie (JPG, PNG, WEBP) čte model AI.',

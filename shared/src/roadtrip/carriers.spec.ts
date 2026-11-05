@@ -198,9 +198,7 @@ describe('a hire car', () => {
     expect(sameDesk.arrival).toMatchObject({ name: 'Europcar MUC' });
   });
 
-  it('ROADTRIP-CARRIERS-017: a hire car without a return day or a return desk stands on the road at its pick-up only, nothing is guessed', () => {
-    const noDay = carrierSeam(rental({ end_day_id: null }))!;
-    expect(noDay.arrival).toBeNull();
+  it('ROADTRIP-CARRIERS-017: a hire car without a return desk stands on the road at its pick-up only, nothing is guessed', () => {
     const noDesk = carrierSeam(
       rental({
         endpoints: [{ role: 'from', sequence: 0, name: 'Sixt Hauptbahnhof', code: null, lat: 53.55, lng: 10.0 }],
@@ -208,11 +206,63 @@ describe('a hire car', () => {
     )!;
     expect(noDesk.arrival).toBeNull();
     expect(carrierSeam(rental({ endpoints: [] }))).toBeNull();
-    const seated = seatCarrierStops(1, [stop({ ownerIndex: 0, time: '10:00' })], [0], [noDay]);
+    const seated = seatCarrierStops(1, [stop({ ownerIndex: 0, time: '10:00' })], [0], [noDesk]);
     expect(seated.map((s) => s.carrier?.role ?? s.name)).toEqual(['pickup', 'Stop 0']);
-    expect(seatCarrierStops(3, [stop({ ownerIndex: 0 })], [0], [noDay]).map((s) => s.carrier?.role ?? s.name)).toEqual([
-      'Stop 0',
+    expect(seatCarrierStops(3, [stop({ ownerIndex: 0 })], [0], [noDesk]).map((s) => s.carrier?.role ?? s.name)).toEqual(
+      ['Stop 0'],
+    );
+  });
+
+  it('ROADTRIP-CARRIERS-036: a hire car without a return day is handed back on its pick-up day, as the day plan reads it (#2894)', () => {
+    const oneWay = carrierSeam(rental({ end_day_id: null, reservation_end_time: null }))!;
+    expect(oneWay.arrival).toMatchObject({ dayId: 1, clock: null, name: 'Sixt Airport' });
+    const seated = seatCarrierStops(1, [stop({ ownerIndex: 0, time: '10:00' })], [0], [oneWay]);
+    expect(seated.map((s) => s.carrier?.role ?? s.name)).toEqual(['pickup', 'Stop 0', 'return']);
+  });
+
+  it('ROADTRIP-CARRIERS-037: two one-way cars on one day: the first goes back before the second is collected, and the road runs once through each', () => {
+    const desk = (role: 'from' | 'to', name: string, lat: number, lng: number) => ({
+      role,
+      sequence: role === 'from' ? 0 : 1,
+      name,
+      code: null,
+      lat,
+      lng,
+    });
+    const bologna = desk('from', 'Bologna', 44.49, 11.34);
+    const villach = { lat: 46.61, lng: 13.85 };
+    const outward = carrierSeam(
+      rental({
+        id: 1,
+        title: 'Bologna → Villach',
+        end_day_id: null,
+        reservation_time: '2026-11-02T08:00',
+        reservation_end_time: null,
+        endpoints: [bologna, desk('to', 'Villach', villach.lat, villach.lng)],
+      }),
+    )!;
+    const onward = carrierSeam(
+      rental({
+        id: 2,
+        title: 'Villach → Klagenfurt',
+        end_day_id: null,
+        reservation_time: '2026-11-02T17:30',
+        reservation_end_time: null,
+        endpoints: [desk('from', 'Villach', villach.lat, villach.lng), desk('to', 'Klagenfurt', 46.62, 14.31)],
+      }),
+    )!;
+    const event = stop({ ownerIndex: 0, name: 'CUAS', lat: villach.lat, lng: villach.lng, time: '13:00' });
+
+    const seated = seatCarrierStops(1, [event], [0], [onward, outward]);
+
+    expect(seated.map((s) => `${s.carrier?.role ?? 'stop'} ${s.name}`)).toEqual([
+      'pickup Bologna',
+      'stop CUAS',
+      'return Villach',
+      'pickup Villach',
+      'return Klagenfurt',
     ]);
+    expect(seated.map((s) => s.carrier?.reservationId ?? null)).toEqual([1, null, 1, 2, 2]);
   });
 
   it('ROADTRIP-CARRIERS-018: the pick-up opens its day when nothing timed comes first, the return closes its day, and the road runs through both', () => {

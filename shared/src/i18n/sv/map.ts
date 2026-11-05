@@ -34,6 +34,8 @@ const map: TranslationStrings = {
   'map.overview.hide': 'Dölj hela resan',
   'map.overview.total': 'Total sträcka',
   'map.attribution': 'Kartkällor',
+  'map.overview.distanceAtLeast': 'minst {distance}',
+  'map.overview.notRouted': 'ej beräknad',
   'map.overview.unrouted': '{count} delsträckor kunde inte beräknas, så avstånden är ofullständiga.',
   'map.overview.unrouted.one': '{count} delsträcka kunde inte beräknas, så avstånden är ofullständiga.',
   'map.overview.dayUnrouted': '{count} delsträckor för den här dagen kunde inte beräknas',

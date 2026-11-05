@@ -1,3 +1,4 @@
+import type { PlaceClientOrigin } from '@trek/shared';
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 
@@ -15,9 +16,17 @@ import {
   type PlacePrefill,
   type ResultField,
 } from './PlaceFormModal.helpers';
+import { originsAfterPick, resultOrigin, withOrigin } from './placeFieldOrigins';
 import type { PendingPlaceImage } from './placeImageChoice';
 
 type Translate = ReturnType<typeof useTranslation>['t'];
+
+/** The form with another picture, and with it the origin of that picture; null where the save route decides it. */
+const withImage = (
+  prev: PlaceFormData,
+  image: string | null | undefined,
+  origin: PlaceClientOrigin | null = null
+): PlaceFormData => ({ ...prev, image_url: image, fieldOrigins: withOrigin(prev.fieldOrigins, 'image_url', origin) });
 type Toast = ReturnType<typeof useToast>;
 
 export interface PlaceFormOptions {
@@ -70,18 +79,24 @@ export function usePlaceForm({ t, toast, canUploadFiles }: PlaceFormOptions) {
     place: Parameters<typeof openingDetailsSelection>[0],
     prefill: PlacePrefill | null | undefined
   ) => {
-    setForm(next);
-    autoFilledRef.current = openingAutoFilled(place, prefill);
+    const autoFilled = openingAutoFilled(place, prefill);
+    // A map POI's website and phone are the provider's, like a search pick's.
+    const origins = prefill
+      ? originsAfterPick(next.fieldOrigins, [...autoFilled], [], resultOrigin(prefill))
+      : undefined;
+    setForm(origins ? { ...next, fieldOrigins: origins } : next);
+    autoFilledRef.current = autoFilled;
     setDetailsSelection(openingDetailsSelection(place, prefill));
     setPendingFiles([]);
     setPendingImage(null);
     setDuplicateWarning(null);
   };
 
-  const handleChange = (field: string, value: string) => {
+  /** A field set in the form: typed by hand unless the caller says it took a looked-up value over. */
+  const handleChange = (field: string, value: string, origin: PlaceClientOrigin = 'user') => {
     // Typed by hand, so the next pick must not clear it.
     autoFilledRef.current.delete(field as ResultField);
-    setForm((prev) => ({ ...prev, [field]: value }));
+    setForm((prev) => ({ ...prev, [field]: value, fieldOrigins: withOrigin(prev.fieldOrigins, field, origin) }));
   };
 
   const addFiles = (files: File[]) => setPendingFiles((prev) => [...prev, ...files]);
@@ -110,29 +125,35 @@ export function usePlaceForm({ t, toast, canUploadFiles }: PlaceFormOptions) {
   /** A source's photo picked in the details column, or the place's own picture again. */
   const pickImage = (url: string | null) => {
     setPendingImage(null);
-    setForm((prev) => ({ ...prev, image_url: url ?? undefined }));
+    setForm((prev) => withImage(prev, url ?? undefined, url ? 'enrichment' : null));
   };
 
   /** A picture from the device, shown at once and uploaded when the form is saved. */
   const stageUpload = (file: File) => {
     setPendingImage({ kind: 'upload', file, preview: URL.createObjectURL(file) });
-    setForm((prev) => ({ ...prev, image_url: undefined }));
+    // The upload route records the picture as the user's itself.
+    setForm((prev) => withImage(prev, undefined));
   };
 
   /** An image already attached to the place, made its picture when the form is saved. */
   const stageAttached = (file: TripFile) => {
     setPendingImage({ kind: 'attached', file });
-    setForm((prev) => ({ ...prev, image_url: undefined }));
+    setForm((prev) => withImage(prev, undefined));
   };
 
   /** No picture at all: the save drops the place's own one. */
   const removeImage = () => {
     setPendingImage(null);
-    setForm((prev) => ({ ...prev, image_url: null }));
+    setForm((prev) => withImage(prev, null));
   };
 
   /** The details column's description, taken over into the form. */
-  const adoptDescription = (text: string) => setForm((prev) => ({ ...prev, description: text }));
+  const adoptDescription = (text: string) =>
+    setForm((prev) => ({
+      ...prev,
+      description: text,
+      fieldOrigins: withOrigin(prev.fieldOrigins, 'description', 'enrichment'),
+    }));
 
   /**
    * #1152: the first save of a new place warns when the trip seems to have it already;

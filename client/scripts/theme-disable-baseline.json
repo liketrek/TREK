@@ -35,7 +35,7 @@
   "components/Roadtrip/dayColors.ts": 8,
   "components/Roadtrip/nightBookend.ts": 1,
   "components/Roadtrip/stopKinds.ts": 1,
-  "components/Settings/AboutTab.tsx": 3,
+  "components/Settings/AboutTab.tsx": 5,
   "components/Settings/AccountTab.tsx": 2,
   "components/Settings/AppearanceSettingsTab.tsx": 1,
   "components/Settings/PasskeysSection.tsx": 1,

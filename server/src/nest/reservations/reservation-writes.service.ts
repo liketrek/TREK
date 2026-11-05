@@ -1,3 +1,5 @@
+import { BudgetItems } from '../../db/entities/BudgetItems.entity';
+import type { BudgetItemsRepository } from '../../db/repositories/BudgetItems.repository';
 import type { Reservation, User } from '../../types';
 import { DomainError } from '../common/domain-error';
 import { restTripWriter, type TripWriter } from '../common/trip-writer';
@@ -9,7 +11,9 @@ import {
   type CreateReservationData,
   type UpdateReservationData,
 } from './reservations.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
+import { toMinor } from '@trek/shared';
 
 /** The linked cost a booking write takes, as ReservationsService.createWithCost reads it. */
 type BudgetEntry = Parameters<ReservationsService['createWithCost']>[2];
@@ -41,6 +45,7 @@ export class ReservationWritesService {
     private readonly reservations: ReservationsService,
     private readonly airtrailLink: AirtrailLinkService,
     private readonly realtime: RealtimeService,
+    @InjectRepository(BudgetItems) private readonly budgetItems: BudgetItemsRepository,
   ) {}
 
   /** The REST caller of a booking write: skips the sender's socket, as the routes always did. */
@@ -60,6 +65,35 @@ export class ReservationWritesService {
     writer.events.emit('reservation:created', { reservation });
     await this.reservations.notifyBookingChange(tripId, writer.userId, data.title, data.type ?? '');
     return { reservation };
+  }
+
+  /**
+   * The booking of the trip whose linked cost already holds `price` under the
+   * same booking reference, or null. One ticket covering several trains or
+   * flights is one booking with legs, priced once; its fare again under its
+   * reference usually means a segment was saved as a booking of its own at the
+   * full fare, and the trip counts the ticket twice (#2895). The reference is
+   * compared trimmed and case-insensitive, the amount in whole cents. A bare
+   * price is in the trip's currency, so the earlier cost has to be in it too:
+   * its own currency, or the trip's when it names none.
+   */
+  async bookingWithSameFare(
+    tripId: number,
+    confirmationNumber: string | undefined,
+    price: number | undefined,
+  ): Promise<{ id: number; title: string } | null> {
+    const reference = confirmationNumber?.trim().toUpperCase();
+    if (!reference || price == null || !(price > 0)) return null;
+    const minor = toMinor(price);
+    const linked = await this.budgetItems.listLinkedToReferencedReservations(tripId);
+    const tripCurrency = (cost: (typeof linked)[number]) => (cost.trip_currency?.trim() || 'EUR').toUpperCase();
+    const earlier = linked.find(
+      (cost) =>
+        cost.confirmation_number?.trim().toUpperCase() === reference &&
+        toMinor(cost.total_price) === minor &&
+        (cost.currency?.trim().toUpperCase() || tripCurrency(cost)) === tripCurrency(cost),
+    );
+    return earlier ? { id: earlier.reservation_id, title: earlier.title } : null;
   }
 
   /**

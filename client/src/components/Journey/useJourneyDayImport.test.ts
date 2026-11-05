@@ -115,6 +115,8 @@ describe('useJourneyDayImport', () => {
   it('FE-JRN-DAYIMPORT-004: the route goes along only when switched on, kept as previewed', async () => {
     const { result, onKept, onClose } = setup();
     await waitFor(() => expect(result.current.route.offer).toBe('keep'));
+    expect(result.current.mapTracks.length).toBeGreaterThan(0);
+    expect(result.current.mapTracks.every((track) => track.date === '2026-05-14')).toBe(true);
     repo.save.mockResolvedValue({ day: buildRecordedDay(), outcome: 'created' });
 
     act(() => result.current.route.toggle());

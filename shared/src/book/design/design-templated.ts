@@ -9,7 +9,6 @@ import type { BookTemplateWord } from '../templates/template-words';
 import type { BookDesignInput } from './design-book';
 import { cutWords, liveBox, photoEl, textEl, type ComposeCtx } from './design-compose';
 import { composeStations } from './design-framing';
-import type { FramingNeeds } from './design-inner';
 import type { DesignedSpread } from './design-merge';
 import type { BookDesignBeat } from './design-pacing';
 import { buildChapters, type DesignChapter } from './design-pacing';
@@ -438,12 +437,11 @@ export function composeTemplatedInner(
   entries: readonly AutoEntry[],
   choice: DesignPhotoChoice,
   input: BookDesignInput,
-  needs: FramingNeeds,
   plan: TemplatedPlan,
 ): TemplatedInnerResult {
   const notes: string[] = [];
   const leftOut: BookDesignLeftOut[] = [];
-  const cap = Math.max(0, Math.min(c.directives.pages?.max ?? needs.room, needs.room));
+  const cap = Math.max(0, c.directives.pages?.max ?? Number.POSITIVE_INFINITY);
   const head = framingPages(c, plan.archetype).slice(0, Math.max(0, cap - 1));
   const base: PickBase = {
     archetype: plan.archetype,

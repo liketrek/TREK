@@ -2,6 +2,7 @@ import { findByIata } from '../airports/airports.data';
 import type {
   KiReservation,
   KiFlight,
+  KiStation,
   KiTrainTrip,
   KiBusTrip,
   KiBoatTrip,
@@ -16,7 +17,14 @@ import type {
   ParsedEndpoint,
   ParsedVenue,
 } from './kitinerary.types';
-import { normalizeLocalDateTime, splitLocalDateTime } from '@trek/shared';
+import {
+  haversineMetres,
+  LEG_RESERVATION_TYPES,
+  normalizeLocalDateTime,
+  splitLocalDateTime,
+  sumMinor,
+  toMinor,
+} from '@trek/shared';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -172,41 +180,68 @@ function mapFlight(r: KiReservation, source: ParsedBookingItem['source']): Parse
 /** The longest layover that still makes one journey, as AirTrail's import joins legs. */
 const MAX_LAYOVER_MS = 24 * 3600 * 1000;
 
+/** Two stations this close are one place, however each segment of the ticket spells its name. */
+const SAME_STATION_METRES = 500;
+
 /** Epoch ms of a kitinerary time, NaN when it is missing or cannot be read. */
 function instantMs(dt: KiDateTimeish): number {
   const iso = toIsoString(dt);
   return iso ? new Date(iso).getTime() : Number.NaN;
 }
 
+/** Where a segment leaves from or arrives at: an airport's IATA code, a station's name, and its position when known. */
+interface HopPlace {
+  key: string | null;
+  geo: { lat: number; lng: number } | null;
+}
+
+/** One segment of a journey, reduced to what tells whether the next one continues it. */
+interface Hop {
+  from: HopPlace;
+  to: HopPlace;
+  departureTime: KiDateTimeish;
+  arrivalTime: KiDateTimeish;
+}
+
+function samePlace(a: HopPlace, b: HopPlace): boolean {
+  if (a.key && a.key === b.key) return true;
+  return !!a.geo && !!b.geo && haversineMetres(a.geo.lat, a.geo.lng, b.geo.lat, b.geo.lng) <= SAME_STATION_METRES;
+}
+
 /**
- * True when flight `b` continues the `chain` of connecting flights. It has to
- * leave from where the chain's last flight landed, must not land anywhere the
- * chain has already been (that is a return, however soon it flies), and has to
- * leave within a day. The day is counted from the last flight's arrival, or
+ * True when segment `next` continues the `chain` of connecting segments. It has
+ * to leave from where the chain's last segment arrived, must not arrive anywhere
+ * the chain has already been (that is a return, however soon it runs), and has
+ * to leave within a day. The day is counted from the last segment's arrival, or
  * from its departure when no arrival is known (an AI import often has none).
- * A missing or unreadable departure fails both comparisons: two flights whose
+ * A missing or unreadable departure fails both comparisons: two segments whose
  * order cannot be told apart stay two bookings, where a guess had folded a
  * return days earlier into the outbound one (#2653).
  */
-function sameConnection(chain: KiReservation[], b: KiReservation): boolean {
-  const fa = chain[chain.length - 1].reservationFor as KiFlight | undefined;
-  const fb = b.reservationFor as KiFlight | undefined;
-  if (!fa || !fb) return false;
-  const arrIata = fa.arrivalAirport?.iataCode?.toUpperCase();
-  const depIata = fb.departureAirport?.iataCode?.toUpperCase();
-  if (!arrIata || !depIata || arrIata !== depIata) return false; // must connect at the same airport
-  const visited = new Set<string>();
-  chain.forEach((leg, i) => {
-    const f = leg.reservationFor as KiFlight | undefined;
-    if (i === 0 && f?.departureAirport?.iataCode) visited.add(f.departureAirport.iataCode.toUpperCase());
-    if (f?.arrivalAirport?.iataCode) visited.add(f.arrivalAirport.iataCode.toUpperCase());
-  });
-  const nextArr = fb.arrivalAirport?.iataCode?.toUpperCase();
-  if (nextArr && visited.has(nextArr)) return false;
-  const arrived = instantMs(fa.arrivalTime);
-  const from = Number.isNaN(arrived) ? instantMs(fa.departureTime) : arrived;
-  const gapMs = instantMs(fb.departureTime) - from;
+function continuesChain(chain: Hop[], next: Hop): boolean {
+  const last = chain[chain.length - 1];
+  if (!samePlace(last.to, next.from)) return false;
+  const visited = [chain[0].from, ...chain.map((hop) => hop.to)];
+  if (visited.some((place) => samePlace(place, next.to))) return false;
+  const arrived = instantMs(last.arrivalTime);
+  const from = Number.isNaN(arrived) ? instantMs(last.departureTime) : arrived;
+  const gapMs = instantMs(next.departureTime) - from;
   return gapMs >= 0 && gapMs <= MAX_LAYOVER_MS;
+}
+
+function flightHop(r: KiReservation): Hop | null {
+  const f = r.reservationFor as KiFlight | undefined;
+  if (!f) return null;
+  const airport = (ap: KiFlight['departureAirport']): HopPlace => ({
+    key: ap?.iataCode?.toUpperCase() ?? null,
+    geo: null,
+  });
+  return {
+    from: airport(f.departureAirport),
+    to: airport(f.arrivalAirport),
+    departureTime: f.departureTime,
+    arrivalTime: f.arrivalTime,
+  };
 }
 
 /** Collapse several connecting flight legs (same PNR) into one multi-leg booking. */
@@ -260,10 +295,13 @@ function mapFlightGroup(legs: KiReservation[], source: ParsedBookingItem['source
   const originEp = makeEndpoint(first.departureAirport, 'from', firstDep.time, firstDep.date);
   if (originEp) endpoints.push(originEp);
 
+  // A stop carries the onward departure, as the planner form saves one; the
+  // landing there stays in the leg's arr_time.
   fs.forEach((f, i) => {
     const isLast = i === fs.length - 1;
     const arr = splitIso(f.arrivalTime);
-    const arrEp = makeEndpoint(f.arrivalAirport, isLast ? 'to' : 'stop', arr.time, arr.date);
+    const onward = isLast ? arr : splitIso(fs[i + 1].departureTime);
+    const arrEp = makeEndpoint(f.arrivalAirport, isLast ? 'to' : 'stop', onward.time, onward.date);
     if (arrEp) endpoints.push(arrEp);
     const airline = f.airline?.name ?? f.airline?.iataCode ?? '';
     metaLegs.push({
@@ -303,160 +341,198 @@ function mapFlightGroup(legs: KiReservation[], source: ParsedBookingItem['source
   };
 }
 
-function mapTrain(r: KiReservation, source: ParsedBookingItem['source']): ParsedBookingItem | null {
-  const t = r.reservationFor as KiTrainTrip | undefined;
-  if (!t) return null;
+/** A train, bus or boat segment under the names all three share. */
+interface GroundSegment {
+  from?: KiStation;
+  to?: KiStation;
+  departureTime?: KiDateTimeish;
+  arrivalTime?: KiDateTimeish;
+  /** The train or bus number, or a boat's name. */
+  id: string;
+}
 
-  const depName = t.departureStation?.name ?? 'Unknown';
-  const arrName = t.arrivalStation?.name ?? 'Unknown';
-  const trainId = t.trainNumber ?? t.trainName ?? '';
-  const title = trainId ? `${trainId} (${depName} → ${arrName})` : `Train ${depName} → ${arrName}`;
+interface GroundKind {
+  type: 'train' | 'bus' | 'cruise';
+  read: (trip: Record<string, unknown>) => GroundSegment;
+  title: (id: string, route: string) => string;
+  /** Where the segment's id is kept in the metadata; a boat's name is its title instead. */
+  idKey?: 'train_number' | 'bus_number';
+}
 
-  const { date: depDate, time: depTime } = splitIso(t.departureTime);
-  const { date: arrDate, time: arrTime } = splitIso(t.arrivalTime);
+// A Map, not an object literal: the key is the document's own @type, and
+// "constructor" must not find anything.
+const GROUND_KINDS = new Map<string, GroundKind>([
+  [
+    'TrainReservation',
+    {
+      type: 'train',
+      read: (trip) => {
+        const t = trip as KiTrainTrip;
+        return {
+          from: t.departureStation,
+          to: t.arrivalStation,
+          departureTime: t.departureTime,
+          arrivalTime: t.arrivalTime,
+          id: t.trainNumber ?? t.trainName ?? '',
+        };
+      },
+      title: (id, route) => (id ? `${id} (${route})` : `Train ${route}`),
+      idKey: 'train_number',
+    },
+  ],
+  [
+    'BusReservation',
+    {
+      type: 'bus',
+      read: (trip) => {
+        const b = trip as KiBusTrip;
+        return {
+          from: b.departureBusStop,
+          to: b.arrivalBusStop,
+          departureTime: b.departureTime,
+          arrivalTime: b.arrivalTime,
+          id: b.busNumber ?? b.busName ?? '',
+        };
+      },
+      title: (id, route) => (id ? `${id} (${route})` : `Bus ${route}`),
+      idKey: 'bus_number',
+    },
+  ],
+  [
+    'BoatReservation',
+    {
+      type: 'cruise',
+      read: (trip) => {
+        const b = trip as KiBoatTrip;
+        return {
+          from: b.departureBoatTerminal,
+          to: b.arrivalBoatTerminal,
+          departureTime: b.departureTime,
+          arrivalTime: b.arrivalTime,
+          id: b.name ?? '',
+        };
+      },
+      title: (id, route) => id || `Cruise ${route}`,
+    },
+  ],
+]);
 
-  const endpoints: ParsedEndpoint[] = [];
-  const dc = coords(t.departureStation?.geo);
-  const ac = coords(t.arrivalStation?.geo);
-  // Push named endpoints even without coords — preview() geocodes them (#1969).
-  if (t.departureStation?.name)
-    endpoints.push({
-      role: 'from',
-      sequence: 0,
-      name: depName,
-      code: null,
-      lat: dc?.lat ?? null,
-      lng: dc?.lng ?? null,
-      timezone: null,
-      local_time: depTime,
-      local_date: depDate,
-    });
-  if (t.arrivalStation?.name)
-    endpoints.push({
-      role: 'to',
-      sequence: 1,
-      name: arrName,
-      code: null,
-      lat: ac?.lat ?? null,
-      lng: ac?.lng ?? null,
-      timezone: null,
-      local_time: arrTime,
-      local_date: arrDate,
-    });
+/** The types whose bookings carry one entry per segment in metadata.legs. */
+const LEG_TYPES: readonly string[] = LEG_RESERVATION_TYPES;
+
+function stationPlace(stop: KiStation | undefined): HopPlace {
+  return { key: stop?.name?.trim().toLowerCase() || null, geo: coords(stop?.geo) };
+}
+
+function groundHop(kind: GroundKind, r: KiReservation): Hop | null {
+  if (!r.reservationFor) return null;
+  const s = kind.read(r.reservationFor);
+  return {
+    from: stationPlace(s.from),
+    to: stationPlace(s.to),
+    departureTime: s.departureTime,
+    arrivalTime: s.arrivalTime,
+  };
+}
+
+/** A named stop as an endpoint, with or without coordinates: preview() geocodes the rest (#1969). */
+function stationEndpoint(
+  stop: KiStation | undefined,
+  role: ParsedEndpoint['role'],
+  sequence: number,
+  dt: KiDateTimeish,
+): ParsedEndpoint | null {
+  if (!stop?.name) return null;
+  const c = coords(stop.geo);
+  const { date, time } = splitIso(dt);
+  return {
+    role,
+    sequence,
+    name: stop.name,
+    code: null,
+    lat: c?.lat ?? null,
+    lng: c?.lng ?? null,
+    timezone: null,
+    local_time: time,
+    local_date: date,
+  };
+}
+
+const isEndpoint = (e: ParsedEndpoint | null): e is ParsedEndpoint => e !== null;
+
+function mapGround(r: KiReservation, kind: GroundKind, source: ParsedBookingItem['source']): ParsedBookingItem | null {
+  if (!r.reservationFor) return null;
+  const s = kind.read(r.reservationFor);
+  const route = `${s.from?.name ?? 'Unknown'} → ${s.to?.name ?? 'Unknown'}`;
+  const endpoints = [
+    stationEndpoint(s.from, 'from', 0, s.departureTime),
+    stationEndpoint(s.to, 'to', 1, s.arrivalTime),
+  ].filter(isEndpoint);
 
   return {
-    type: 'train',
-    title,
-    reservation_time: toIsoString(t.departureTime),
-    reservation_end_time: toIsoString(t.arrivalTime),
+    type: kind.type,
+    title: kind.title(s.id, route),
+    reservation_time: toIsoString(s.departureTime),
+    reservation_end_time: toIsoString(s.arrivalTime),
     confirmation_number: r.reservationNumber ?? null,
-    metadata: trainId ? { train_number: trainId } : undefined,
+    ...(kind.idKey && s.id ? { metadata: { [kind.idKey]: s.id } } : {}),
     endpoints,
     needs_review: endpoints.length < 2,
     source,
   };
 }
 
-function mapBus(r: KiReservation, source: ParsedBookingItem['source']): ParsedBookingItem | null {
-  const b = r.reservationFor as KiBusTrip | undefined;
-  if (!b) return null;
+/**
+ * Several connecting segments of one ticket as one booking with stops, the
+ * shape the planner form saves a train with changes in (#2895). A stop's
+ * endpoint carries the onward departure, as the form writes it; each segment's
+ * own times, number, platform and seat go into metadata.legs.
+ */
+function mapGroundGroup(
+  nodes: KiReservation[],
+  kind: GroundKind,
+  source: ParsedBookingItem['source'],
+): ParsedBookingItem | null {
+  const segments = nodes.map((node) => kind.read(node.reservationFor ?? {}));
+  const first = segments[0];
+  const last = segments[segments.length - 1];
+  const endpoints = [
+    stationEndpoint(first.from, 'from', 0, first.departureTime),
+    ...segments.map((s, i) =>
+      s === last
+        ? stationEndpoint(s.to, 'to', i + 1, s.arrivalTime)
+        : stationEndpoint(s.to, 'stop', i + 1, segments[i + 1].departureTime),
+    ),
+  ].filter(isEndpoint);
+  endpoints.forEach((e, i) => {
+    e.sequence = i;
+  });
 
-  const depName = b.departureBusStop?.name ?? 'Unknown';
-  const arrName = b.arrivalBusStop?.name ?? 'Unknown';
-  const busId = b.busNumber ?? b.busName ?? '';
-  const title = busId ? `${busId} (${depName} → ${arrName})` : `Bus ${depName} → ${arrName}`;
-
-  const { date: depDate, time: depTime } = splitIso(b.departureTime);
-  const { date: arrDate, time: arrTime } = splitIso(b.arrivalTime);
-
-  const endpoints: ParsedEndpoint[] = [];
-  const dc = coords(b.departureBusStop?.geo);
-  const ac = coords(b.arrivalBusStop?.geo);
-  if (b.departureBusStop?.name)
-    endpoints.push({
-      role: 'from',
-      sequence: 0,
-      name: depName,
-      code: null,
-      lat: dc?.lat ?? null,
-      lng: dc?.lng ?? null,
-      timezone: null,
-      local_time: depTime,
-      local_date: depDate,
-    });
-  if (b.arrivalBusStop?.name)
-    endpoints.push({
-      role: 'to',
-      sequence: 1,
-      name: arrName,
-      code: null,
-      lat: ac?.lat ?? null,
-      lng: ac?.lng ?? null,
-      timezone: null,
-      local_time: arrTime,
-      local_date: arrDate,
-    });
-
-  return {
-    type: 'bus',
-    title,
-    reservation_time: toIsoString(b.departureTime),
-    reservation_end_time: toIsoString(b.arrivalTime),
-    confirmation_number: r.reservationNumber ?? null,
-    metadata: busId ? { bus_number: busId } : undefined,
-    endpoints,
-    needs_review: endpoints.length < 2,
-    source,
-  };
-}
-
-function mapBoat(r: KiReservation, source: ParsedBookingItem['source']): ParsedBookingItem | null {
-  const b = r.reservationFor as KiBoatTrip | undefined;
-  if (!b) return null;
-
-  const depName = b.departureBoatTerminal?.name ?? 'Unknown';
-  const arrName = b.arrivalBoatTerminal?.name ?? 'Unknown';
-  const title = (b as any).name ?? `Cruise ${depName} → ${arrName}`;
-
-  const { date: depDate, time: depTime } = splitIso(b.departureTime);
-  const { date: arrDate, time: arrTime } = splitIso(b.arrivalTime);
-
-  const endpoints: ParsedEndpoint[] = [];
-  const dc = coords(b.departureBoatTerminal?.geo);
-  const ac = coords(b.arrivalBoatTerminal?.geo);
-  if (b.departureBoatTerminal?.name)
-    endpoints.push({
-      role: 'from',
-      sequence: 0,
-      name: depName,
-      code: null,
-      lat: dc?.lat ?? null,
-      lng: dc?.lng ?? null,
-      timezone: null,
-      local_time: depTime,
-      local_date: depDate,
-    });
-  if (b.arrivalBoatTerminal?.name)
-    endpoints.push({
-      role: 'to',
-      sequence: 1,
-      name: arrName,
-      code: null,
-      lat: ac?.lat ?? null,
-      lng: ac?.lng ?? null,
-      timezone: null,
-      local_time: arrTime,
-      local_date: arrDate,
-    });
+  const legs = segments.map((s, i) => {
+    const detail = segmentDetail(nodes[i]);
+    return {
+      from: s.from?.name ?? null,
+      to: s.to?.name ?? null,
+      ...(kind.idKey && s.id ? { [kind.idKey]: s.id } : {}),
+      ...(detail.platform != null ? { platform: detail.platform } : {}),
+      ...(detail.seat != null ? { seat: detail.seat } : {}),
+      dep_time: splitIso(s.departureTime).time,
+      arr_time: splitIso(s.arrivalTime).time,
+    };
+  });
 
   return {
-    type: 'cruise',
-    title,
-    reservation_time: toIsoString(b.departureTime),
-    reservation_end_time: toIsoString(b.arrivalTime),
-    confirmation_number: r.reservationNumber ?? null,
+    type: kind.type,
+    title: kind.title('', `${first.from?.name ?? 'Unknown'} → ${last.to?.name ?? 'Unknown'}`),
+    reservation_time: toIsoString(first.departureTime),
+    reservation_end_time: toIsoString(last.arrivalTime),
+    confirmation_number: nodes[0].reservationNumber ?? null,
+    metadata: {
+      ...(kind.idKey && first.id ? { [kind.idKey]: first.id } : {}),
+      legs,
+    },
     endpoints,
-    needs_review: endpoints.length < 2,
+    needs_review: endpoints.length < segments.length + 1,
     source,
   };
 }
@@ -612,10 +688,16 @@ function mapEvent(r: KiReservation, source: ParsedBookingItem['source']): Parsed
 // Public
 // ---------------------------------------------------------------------------
 
-/** Merge seat/class/platform/price into an item's metadata (type-agnostic).
+/** Seat, class, platform and price of one node (type-agnostic).
  *  Models name these inconsistently and sometimes nest them under reservationFor,
- *  so check both levels and common aliases. The item's own metadata wins. */
-function applyCommonMeta(item: ParsedBookingItem, r: KiReservation): ParsedBookingItem {
+ *  so check both levels and common aliases. */
+function segmentDetail(r: KiReservation): {
+  seat?: string;
+  class?: string;
+  platform?: string;
+  price?: unknown;
+  priceCurrency?: string;
+} {
   const rf = (r.reservationFor && typeof r.reservationFor === 'object' ? r.reservationFor : {}) as Record<
     string,
     unknown
@@ -627,19 +709,171 @@ function applyCommonMeta(item: ParsedBookingItem, r: KiReservation): ParsedBooki
     }
     return undefined;
   };
-  const m: Record<string, unknown> = {};
   const seat = pick('seat', 'seatNumber');
-  if (seat != null) m.seat = String(seat);
   const cls = pick('class', 'bookingClass', 'fareClass', 'serviceClass', 'seatingType');
-  if (cls != null) m.class = String(cls);
   const platform = pick('platform', 'departurePlatform');
-  if (platform != null) m.platform = String(platform);
   const price = pick('price', 'priceAmount', 'totalPrice', 'total');
-  if (price != null) m.price = price;
   const cur = pick('priceCurrency', 'priceCurrencyISO4217Code', 'currency');
-  if (cur != null) m.priceCurrency = String(cur);
-  if (Object.keys(m).length) item.metadata = { ...m, ...(item.metadata ?? {}) };
+  return {
+    ...(seat != null ? { seat: String(seat) } : {}),
+    ...(cls != null ? { class: String(cls) } : {}),
+    ...(platform != null ? { platform: String(platform) } : {}),
+    ...(price != null ? { price } : {}),
+    ...(cur != null ? { priceCurrency: String(cur) } : {}),
+  };
+}
+
+/** Merge a node's seat/class/platform/price into its item's metadata. The item's own metadata wins. */
+function applyCommonMeta(item: ParsedBookingItem, r: KiReservation): ParsedBookingItem {
+  const detail = segmentDetail(r);
+  if (Object.keys(detail).length) item.metadata = { ...detail, ...(item.metadata ?? {}) };
   return item;
+}
+
+interface Fare {
+  price?: unknown;
+  priceCurrency?: string;
+}
+
+const currencyOf = (fare: Fare) => fare.priceCurrency?.trim().toUpperCase();
+
+/** Whether every price is a number, all in one currency. */
+function summable(fares: Fare[]): boolean {
+  return fares.every((fare) => Number.isFinite(Number(fare.price)) && currencyOf(fare) === currencyOf(fares[0]));
+}
+
+/** Whether every price is the same amount, to the cent, in the same currency. */
+function oneAmount(fares: Fare[]): boolean {
+  return summable(fares) && fares.every((fare) => toMinor(Number(fare.price)) === toMinor(Number(fares[0].price)));
+}
+
+/**
+ * What one ticket covering several segments cost. KItinerary and the AI import
+ * both print the ticket's total on every segment, so the same amount on each is
+ * that total once, not once per segment (#2895). Amounts that differ are fares
+ * per segment and add up, in whole cents, for flights as for trains. Mixed
+ * currencies, or an amount that is not a number, keep the first segment's price.
+ */
+function ticketFare(nodes: KiReservation[]): Fare | null {
+  const priced = nodes.map(segmentDetail).filter((detail) => detail.price != null);
+  if (priced.length === 0) return null;
+  const [first] = priced;
+  const currency = first.priceCurrency != null ? { priceCurrency: first.priceCurrency } : {};
+  if (!summable(priced) || oneAmount(priced)) return { price: first.price, ...currency };
+  return { price: sumMinor(priced.map((detail) => Number(detail.price))) / 100, ...currency };
+}
+
+function withoutPrice(item: ParsedBookingItem): ParsedBookingItem {
+  if (!item.metadata) return item;
+  const { price: _price, priceCurrency: _currency, ...rest } = item.metadata;
+  return { ...item, metadata: Object.keys(rest).length ? rest : undefined };
+}
+
+function hopOf(r: KiReservation): Hop | null {
+  if (r['@type'] === 'FlightReservation') return flightHop(r);
+  const kind = GROUND_KINDS.get(r['@type']);
+  return kind ? groundHop(kind, r) : null;
+}
+
+/**
+ * The segments one ticket covers, from `start` on: consecutive nodes of the same
+ * type under the same booking reference, each leaving from where the one before
+ * it arrived (`continuesChain`). A node without a reference is a ticket of its own.
+ */
+function ticketChain(kiItems: KiReservation[], start: number): KiReservation[] {
+  const first = kiItems[start];
+  const firstHop = hopOf(first);
+  const ref = first.reservationNumber ?? null;
+  const chain = [first];
+  if (ref == null || !firstHop) return chain;
+  const hops = [firstHop];
+  for (let j = start + 1; j < kiItems.length; j++) {
+    const next = kiItems[j];
+    const hop = next['@type'] === first['@type'] && (next.reservationNumber ?? null) === ref ? hopOf(next) : null;
+    if (!hop || !continuesChain(hops, hop)) break;
+    chain.push(next);
+    hops.push(hop);
+  }
+  return chain;
+}
+
+/**
+ * The bookings one chain of connecting segments becomes. A flight or a train
+ * with connections is one booking with stops and legs, priced once. A bus or a
+ * boat has no legs to carry, so its segments stay bookings of their own, and
+ * `priceRepeatedTotalOnce` keeps a total repeated on each to one of them.
+ */
+function mapTicket(
+  chain: KiReservation[],
+  fileName: string,
+  start: number,
+  out: { items: ParsedBookingItem[]; warnings: string[] },
+): void {
+  const [first] = chain;
+  const kind = GROUND_KINDS.get(first['@type']);
+  const source = { fileName, index: start };
+
+  if (kind && chain.length > 1 && !LEG_TYPES.includes(kind.type)) {
+    chain.forEach((node, k) => {
+      const item = mapGround(node, kind, { fileName, index: start + k });
+      if (item) out.items.push(applyCommonMeta(item, node));
+      else out.warnings.push(unmappableWarning(node, fileName, start + k));
+    });
+    return;
+  }
+
+  const grouped = chain.length > 1;
+  let item: ParsedBookingItem | null;
+  if (kind) item = grouped ? mapGroundGroup(chain, kind, source) : mapGround(first, kind, source);
+  else item = grouped ? mapFlightGroup(chain, source) : mapFlight(first, source);
+  if (!item) {
+    out.warnings.push(unmappableWarning(first, fileName, start));
+    return;
+  }
+  const fare = grouped ? ticketFare(chain) : null;
+  if (fare) item.metadata = { ...(item.metadata ?? {}), ...fare };
+  out.items.push(applyCommonMeta(item, first));
+}
+
+/** The booking types a transport reservation maps to, whichever kind of ticket it came from. */
+const TRANSPORT_TYPES = new Set<string>(['flight', ...[...GROUND_KINDS.values()].map((kind) => kind.type)]);
+
+const departureMs = (item: ParsedBookingItem) =>
+  item.reservation_time ? new Date(item.reservation_time).getTime() : Number.NaN;
+
+const fareOf = (item: ParsedBookingItem): Fare => {
+  const currency = item.metadata?.priceCurrency;
+  return { price: item.metadata?.price, priceCurrency: typeof currency === 'string' ? currency : undefined };
+};
+
+/**
+ * KItinerary prints an order's total on every segment, also on segments that do
+ * not join into one booking: an outward and a return trip under one order
+ * number, a gap between two segments, a change of station whose names differ
+ * where no position is known, a bus or boat ticket with changes, a flight and a
+ * train on one Rail&Fly reference. When every priced transport booking of one
+ * reference carries the same amount in the same currency, that amount is the
+ * order's total once, so the first of them to depart keeps it and the others
+ * lose it (#2895). Amounts that differ are fares of their own and stay.
+ *
+ * Only for what KItinerary extracted. A model can read fares the document
+ * states per segment that happen to be equal; `collapseRepeatedBookingTotal`
+ * tells the two apart for the AI import by the document's own total line.
+ */
+function priceRepeatedTotalOnce(items: ParsedBookingItem[]): ParsedBookingItem[] {
+  const byReference = new Map<string, ParsedBookingItem[]>();
+  for (const item of items) {
+    const reference = item.confirmation_number?.trim().toUpperCase();
+    if (!reference || !TRANSPORT_TYPES.has(item.type) || item.metadata?.price == null) continue;
+    byReference.set(reference, [...(byReference.get(reference) ?? []), item]);
+  }
+  const repeats = new Set<ParsedBookingItem>();
+  for (const priced of byReference.values()) {
+    if (priced.length < 2 || !oneAmount(priced.map(fareOf))) continue;
+    const keeper = priced.reduce((first, item) => (departureMs(item) < departureMs(first) ? item : first), priced[0]);
+    priced.filter((item) => item !== keeper).forEach((item) => repeats.add(item));
+  }
+  return repeats.size ? items.map((item) => (repeats.has(item) ? withoutPrice(item) : item)) : items;
 }
 
 /**
@@ -660,6 +894,7 @@ function unmappableWarning(r: KiReservation, fileName: string, index: number): s
 export function mapReservations(
   kiItems: KiReservation[],
   fileName: string,
+  extractedBy: 'kitinerary' | 'ai' = 'kitinerary',
 ): { items: ParsedBookingItem[]; warnings: string[] } {
   const items: ParsedBookingItem[] = [];
   const warnings: string[] = [];
@@ -669,37 +904,14 @@ export function mapReservations(
     const source = { fileName, index: i };
     let item: ParsedBookingItem | null;
 
-    // Group consecutive connecting flight legs that share a PNR into one booking.
-    if (r['@type'] === 'FlightReservation') {
-      const pnr = r.reservationNumber ?? null;
-      const group = [r];
-      while (
-        i + 1 < kiItems.length &&
-        kiItems[i + 1]['@type'] === 'FlightReservation' &&
-        pnr != null &&
-        (kiItems[i + 1].reservationNumber ?? null) === pnr &&
-        sameConnection(group, kiItems[i + 1])
-      ) {
-        group.push(kiItems[++i]);
-      }
-      item = group.length > 1 ? mapFlightGroup(group, source) : mapFlight(r, source);
-      // `i` sits on the last leg the group swallowed, so the index comes from
-      // `source` — the node the warning is actually describing.
-      if (item) items.push(applyCommonMeta(item, r));
-      else warnings.push(unmappableWarning(r, fileName, source.index));
+    if (r['@type'] === 'FlightReservation' || GROUND_KINDS.has(r['@type'])) {
+      const chain = ticketChain(kiItems, i);
+      mapTicket(chain, fileName, i, { items, warnings });
+      i += chain.length - 1;
       continue;
     }
 
     switch (r['@type']) {
-      case 'TrainReservation':
-        item = mapTrain(r, source);
-        break;
-      case 'BusReservation':
-        item = mapBus(r, source);
-        break;
-      case 'BoatReservation':
-        item = mapBoat(r, source);
-        break;
       case 'LodgingReservation':
         item = mapLodging(r, source);
         break;
@@ -722,5 +934,5 @@ export function mapReservations(
     else warnings.push(unmappableWarning(r, fileName, i));
   }
 
-  return { items, warnings };
+  return { items: extractedBy === 'kitinerary' ? priceRepeatedTotalOnce(items) : items, warnings };
 }

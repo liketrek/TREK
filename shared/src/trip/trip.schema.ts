@@ -118,7 +118,9 @@ export const tripUpdateRequestSchema = z.object({
   reminder_days: z.number().optional(),
   day_count: z.number().optional(),
   is_archived: z.union([z.boolean(), z.number()]).optional(),
-  cover_image: z.string().nullable().optional(),
+  // Bounded like a place's image url: a replaced cover is queued for release,
+  // and every upload path the old value spells out is one queued object.
+  cover_image: z.string().max(2048).nullable().optional(),
 });
 export type TripUpdateRequest = z.infer<typeof tripUpdateRequestSchema>;
 

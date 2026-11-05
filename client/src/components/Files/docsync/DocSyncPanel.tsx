@@ -62,6 +62,9 @@ export default function DocSyncPanel({
     setSelected(prev => (sync.links.some(l => l.id === prev) ? prev : (sync.links[0]?.id ?? null)))
   }, [sync.links])
 
+  // The connection behind the folder picker, which the picker can send back to.
+  const scopeProvider = scopeFor ? sync.providers.find(p => p.id === scopeFor) : undefined
+
   const attention = ATTENTION_STATES.reduce((n, k) => n + (sync.itemCounts[k] ?? 0), 0)
   const labelId = useId()
 
@@ -113,6 +116,7 @@ export default function DocSyncPanel({
                     sync={sync}
                     canManage={canManage}
                     onReconnect={activeProvider ? () => setReconnecting(activeProvider) : undefined}
+                    onEditConnection={canManage && activeProvider ? () => setReconnecting(activeProvider) : undefined}
                   />
                   {/* Every action in this column reports here: a refused run, a
                       switch that flipped back, a conflict the server would not
@@ -141,6 +145,7 @@ export default function DocSyncPanel({
           sync={sync}
           onClose={() => setConnecting(null)}
           onConnected={id => { setConnecting(null); setScopeFor(id) }}
+          onRemoved={() => setConnecting(null)}
         />
       )}
 
@@ -149,6 +154,7 @@ export default function DocSyncPanel({
           provider={reconnecting}
           sync={sync}
           onClose={() => setReconnecting(null)}
+          onRemoved={() => setReconnecting(null)}
           onConnected={id => {
             setReconnecting(null)
             // Run straight away, as binding does: the card still reports the
@@ -168,6 +174,7 @@ export default function DocSyncPanel({
           sync={sync}
           onClose={() => setScopeFor(null)}
           onBound={() => setScopeFor(null)}
+          onEditConnection={scopeProvider ? () => { setScopeFor(null); setConnecting(scopeProvider) } : undefined}
         />
       )}
     </>

@@ -1,0 +1,40 @@
+import type { TranslationStrings } from '../types';
+
+const members: TranslationStrings = {
+  'members.inviteUser': 'הזמנת משתמש',
+  'members.selectUser': 'בחירת משתמש…',
+  'members.invite': 'הזמנה',
+  'members.allHaveAccess': 'לכל המשתמשים כבר יש גישה.',
+  'members.access': 'גישה',
+  'members.persons': 'אנשים',
+  'members.persons.one': 'אדם',
+  'members.persons.two': 'אנשים',
+  'members.you': 'את/ה',
+  'members.owner': 'בעלים',
+  'members.leaveTrip': 'עזיבת הטיול',
+  'members.removeAccess': 'הסרת גישה',
+  'members.confirmLeave': 'לעזוב את הטיול? תאבדו את הגישה אליו.',
+  'members.confirmRemove': 'להסיר את הגישה של משתמש זה?',
+  'members.loadError': 'טעינת החברים נכשלה',
+  'members.added': 'נוסף/ה',
+  'members.addError': 'ההוספה נכשלה',
+  'members.removed': 'החבר הוסר',
+  'members.removeError': 'ההסרה נכשלה',
+  'members.makeOwner': 'הפיכה לבעלים',
+  'members.confirmTransfer': 'להעביר את הבעלות ל-{name}? תהפכו לחבר רגיל.',
+  'members.transferError': 'העברת הבעלות נכשלה',
+  'members.guests': 'אורחים',
+  'members.guest': 'אורח',
+  'members.guestsHint': 'אנשים ללא חשבון. אפשר לשייך אותם להוצאות, לאריזה ולמשימות, אבל הם לא יכולים להתחבר.',
+  'members.addGuest': 'הוספת אורח',
+  'members.guestNamePlaceholder': 'שם האורח',
+  'members.guestAdded': 'האורח נוסף',
+  'members.guestAddError': 'הוספת האורח נכשלה',
+  'members.guestRenameError': 'שינוי שם האורח נכשל',
+  'members.guestRemoved': 'האורח הוסר',
+  'members.confirmRemoveGuest':
+    'להסיר את האורח? השיוכים שלו יוסרו, והחלק שלו בכל הוצאה יעבור לשאר המשתתפים בחלוקה שלה.',
+  'members.guestHasPayments': 'האורח הזה שילם על הוצאה או משתתף בתשלום שנרשם. קודם שנו את המשלם או מחקו את התשלום.',
+};
+
+export default members;

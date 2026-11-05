@@ -52,23 +52,20 @@ const system_notice: TranslationStrings = {
   'system_notice.thank_you_support.cta_kofi': 'Toeta Ko-fi kaudu',
   // The release modal. One stable set of keys: each big release swaps the copy in place.
   'system_notice.release_notes.eyebrow': 'Uuendus paigaldatud',
-  'system_notice.release_notes.headline': 'Kõigi aegade suurim TREK.',
+  'system_notice.release_notes.headline': 'Õige koht, kõige ees.',
   'system_notice.release_notes.intro':
-    'Retked igaks päevaks looduses, stuudio sinu fotoraamatutele, assistent, kes planeerib koos sinuga, ja abi igal ekraanil.',
+    'Kohaotsing, aadressiotsing ja teekonnad töötavad nüüd TREKi enda serverites, mida toetab dataforest cloud, ja iga TREK saab jagada oma teadmisi kohtade kohta kõigi teistega.',
   'system_notice.release_notes.features_label': 'Peamised uuendused',
   'system_notice.release_notes.features_aside': 'See pole kaugeltki kõik',
-  'system_notice.release_notes.feature_tours_title': 'Retked',
-  'system_notice.release_notes.feature_tours_body':
-    'Matkad, rattaretked, jooksud, ratsaretked, aerutamine, linnajalutuskäigud ja suusapäevad, kõrgusprofiili, raskusastmete ja 3D-ülelennuga.',
-  'system_notice.release_notes.feature_studio_title': 'TREK Studio', // same-as-en
-  'system_notice.release_notes.feature_studio_body':
-    'Teeb reisist kujundatud fotoraamatu: 17 teemat, 34 kirjatüüpi, 160 kleebist ja automaatne paigutus ühe klõpsuga.',
-  'system_notice.release_notes.feature_assistant_title': 'Tehisintellekti assistent',
-  'system_notice.release_notes.feature_assistant_body':
-    'Planeerib koos sinuga sinu päris reise, kasutades sinu olemasolevat tehisintellekti kontot. Iga muudatust näed enne ja saad selle tagasi võtta.',
-  'system_notice.release_notes.feature_help_title': 'Abi igal ekraanil, 27 keeles',
-  'system_notice.release_notes.feature_help_body':
-    'Umbes 370 samm-sammult juhendit 1600 pildiga, just seal, kus neid vajad. Uued keeled: aserbaidžaani, eesti, slovaki ja tai.',
+  'system_notice.release_notes.feature_search_title': 'Kohaotsing, mis tabab täppi',
+  'system_notice.release_notes.feature_search_body':
+    'Linnad, saared, vaatamisväärsused ja koodi järgi otsitud lennujaamad tulevad esimesena, kohvikud leitakse sinu lähedusest ja soovitused ilmuvad juba kirjutamise ajal.',
+  'system_notice.release_notes.feature_share_title': 'Jagatud kohaandmed',
+  'system_notice.release_notes.feature_share_body':
+    'Jaga veebilehti, lahtiolekuaegu ja fotosid iga TREKiga, välja kaupa, ja sinu salvestatud kohad saavad juurde selle, mida teised lisasid.',
+  'system_notice.release_notes.feature_routing_title': 'Kiiremad teekonnad',
+  'system_notice.release_notes.feature_routing_body':
+    'Terve päeva teekond arvutatakse korraga kuni kahekümne peatusega, üks aeglane teekond ei pidurda enam teisi ja ühistranspordi puhul küsitakse teiselt teenusepakkujalt, kui esimene midagi ei leia.',
   'system_notice.release_notes.footnote': 'Lisaks pikk loend väiksemaid muudatusi mujal TREKis.',
   'system_notice.release_notes.notes_label': 'Väljalaskemärkmed',
   'system_notice.release_notes.note_eyebrow': 'Sõnum hooldajalt',
@@ -82,10 +79,10 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.note_body_after':
     'Ja siis te avasitegi. Mõne kuuga oli teid tuhandeid: tähed, veateated, tõlked keeltesse, mida ma ei räägi, ja kooditäiendused inimestelt, keda ma pole kunagi kohanud. Vaatan ikka igal hommikul esimese asjana koodihoidlat ja see tundub endiselt veidi uskumatu.',
   'system_notice.release_notes.note_closing': 'Aitäh, et oled siin. Maurice.',
-  'system_notice.release_notes.support_lead':
-    'TREK on ja jääb tasuta, kuid serverid, domeenid ja paljud hilised tööõhtud ei ole tasuta.',
+  'system_notice.release_notes.support_label': 'Jääme sõltumatuks',
+  'system_notice.release_notes.support_lead': "Ilma Google'i ja teisteta.",
   'system_notice.release_notes.support_text':
-    'Kui TREK on leidnud koha sinu reisides, osta mulle kohv ja aita järgmisel väljalaskel valmida.',
+    'Kohaotsing, aadressiotsing ja teekonnad töötavad TREKi enda serverites, mida täna toetab dataforest cloud. Võitlen selle eest iga päev ja et see nii jääks, vajan sinu tuge.',
   'system_notice.release_notes.cta_bmc': 'Osta mulle kohv',
   'system_notice.release_notes.cta_kofi': 'Toeta Ko-fi kaudu',
   'system_notice.pager.prev': 'Eelmine teade',

@@ -37,6 +37,8 @@ const map: TranslationStrings = {
   'map.overview.hide': 'Ẩn toàn bộ chuyến đi',
   'map.overview.total': 'Tổng quãng đường',
   'map.attribution': 'Nguồn bản đồ',
+  'map.overview.distanceAtLeast': 'ít nhất {distance}',
+  'map.overview.notRouted': 'chưa tính tuyến',
   'map.overview.unrouted': 'Không thể tính đường đi cho {count} chặng, nên quãng đường chưa đầy đủ.',
   'map.overview.dayUnrouted': 'Không thể tính đường đi cho {count} chặng của ngày này',
   'map.baseLayer.topo': 'Địa hình',

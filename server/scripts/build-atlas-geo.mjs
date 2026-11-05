@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Build server/assets/atlas/{admin0,admin1}.geojson.gz from geoBoundaries (gbOpen).
+// Build server/assets/atlas/{admin0,admin1}.geojson.gz and server/assets/atlas/admin1/<ISO_A2>.geojson.gz
+// from geoBoundaries (gbOpen).
 //
 // Why: Atlas previously fetched country + sub-national boundaries from Natural Earth's
 // GitHub `master` at runtime. Natural Earth is stale (e.g. it still shows Norway's
@@ -9,8 +10,9 @@
 //
 // This downloads the *simplified* per-country gbOpen ADM0 (countries) and ADM1
 // (regions) layers from a pinned geoBoundaries revision, normalizes each feature to
-// the property names the Atlas client/server already read, and writes two gzipped
-// FeatureCollections that the server serves at runtime (no network at boot).
+// the property names the Atlas client/server already read, and writes gzipped
+// FeatureCollections that the server serves at runtime (no network at boot): one for
+// every country's borders, and one per country for its regions.
 //
 // geoBoundaries: CC BY 4.0 — https://www.geoboundaries.org/  (attribution required).
 import fs from 'node:fs';
@@ -370,8 +372,8 @@ async function pool(items, worker) {
 // the now-redundant consecutive duplicate points shrinks the bundles ~5-8x with no
 // visible effect at the atlas' zoom range (3-10). ADM0 fills are viewed zoomed out, so
 // they tolerate a coarser grid than ADM1 region borders.
-const ADM0_DECIMALS = 2; // ~1.1 km
-const ADM1_DECIMALS = 3; // ~110 m
+const ADM0_DECIMALS = 2; // ~1.1 km; the server's country index packs ×100 into Int16 (ADMIN0_SCALE in country-borders.ts), raise both
+const ADM1_DECIMALS = 3; // ~110 m; the server's region cache packs ×1000 (REGION_SCALE in atlas-geo.ts), raise both
 
 function quantizeRing(ring, decimals) {
   const m = 10 ** decimals;
@@ -461,7 +463,7 @@ function normalizeAdm1(geo, a3, countryName) {
       }
       return {
         type: 'Feature',
-        // Property names the Atlas region layer + server getRegionGeo already read.
+        // Property names the Atlas region layer + server region lookup already read.
         properties: {
           iso_a2: a2,
           iso_3166_2: code,
@@ -516,7 +518,24 @@ async function main() {
   };
 
   write('admin0', adm0Features);
+  // Read only by two shipped migrations (Migration20200101021500/…031500), whose bodies
+  // never change; the server itself reads the per-country files below.
   write('admin1', adm1Features);
+
+  // admin1 also goes out as one file per country, named by ISO_A2, so the server can hand
+  // a country's regions to the map straight from disk and read only the country it needs
+  // for a lookup — the single bundle had to be held whole in memory to do either. A
+  // feature with no alpha-2 code has no file to go in, and nothing could look it up.
+  const byCountry = new Map();
+  for (const f of adm1Features) {
+    const a2 = f.properties.iso_a2;
+    if (!a2) continue;
+    if (!byCountry.has(a2)) byCountry.set(a2, []);
+    byCountry.get(a2).push(f);
+  }
+  fs.rmSync(path.join(OUT_DIR, 'admin1'), { recursive: true, force: true });
+  fs.mkdirSync(path.join(OUT_DIR, 'admin1'));
+  for (const [a2, features] of byCountry) write(`admin1/${a2}`, features);
 
   const missing1 = COUNTRIES.filter((a3, i) => !normalizeAdm1(adm1Raw[i], a3, '').length);
   console.log(`[atlas-geo] ADM0 country features: ${adm0Features.length}`);

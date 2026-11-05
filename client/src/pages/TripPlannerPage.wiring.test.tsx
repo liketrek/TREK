@@ -1573,8 +1573,9 @@ describe('TripPlannerPage — modals', () => {
     act(() => { props('reservationModal').onClose() })
     expect(hookState.advanceImportReview).toHaveBeenCalledTimes(1)
 
-    await act(async () => { await props('reservationModal').onSave({ title: 'Ryokan' }) })
-    expect(hookState.handleSaveReservation).toHaveBeenCalledWith({ title: 'Ryokan' })
+    const steps = { afterSave: vi.fn() }
+    await act(async () => { await props('reservationModal').onSave({ title: 'Ryokan' }, steps) })
+    expect(hookState.handleSaveReservation).toHaveBeenCalledWith({ title: 'Ryokan' }, steps)
     expect(hookState.advanceImportReview).toHaveBeenCalledTimes(2)
   })
 
@@ -1595,8 +1596,9 @@ describe('TripPlannerPage — modals', () => {
     // carries tz-lookup.
     expect(await screen.findByTestId('transport-modal')).toBeInTheDocument()
 
-    await act(async () => { await props('transportModal').onSave({ title: 'ICE' }) })
-    expect(hookState.handleSaveTransport).toHaveBeenCalledWith({ title: 'ICE' })
+    const steps = { afterSave: vi.fn() }
+    await act(async () => { await props('transportModal').onSave({ title: 'ICE' }, steps) })
+    expect(hookState.handleSaveTransport).toHaveBeenCalledWith({ title: 'ICE' }, steps)
 
     act(() => { props('transportModal').onClose() })
     expect(hookState.setShowTransportModal).toHaveBeenCalledWith(false)

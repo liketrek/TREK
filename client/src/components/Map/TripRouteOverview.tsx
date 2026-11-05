@@ -2,7 +2,7 @@ import { AlertTriangle, Route } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { MapTogglePill } from './MapTogglePill'
 import { routeModeIcon } from '../Planner/routeModes'
-import { formatDistance } from '../../utils/units'
+import { routeDistanceLabel } from './tripRouteLabels'
 import type { TripRouteOverview as Overview } from './useTripRouteOverview'
 import type { DistanceUnit } from '../../types'
 
@@ -65,7 +65,7 @@ export function TripRouteOverviewPanel({ overview, unit, selectedDayId, onSelect
         {/* Same tier as the label beside it: the two read as one line rather than as a
             heading with a number stuck under it. */}
         <span className="text-content" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600 }}>
-          {formatDistance(overview.totalDistance / 1000, unit)}
+          {routeDistanceLabel(overview.totalDistance, unrouted, unit, t)}
           {/* Still routing: the number is a partial sum, and saying so beats a total
               that silently grows while you read it. */}
           {overview.loading && <span className="text-content-muted" style={{ fontWeight: 400 }}>{' '}…</span>}
@@ -112,7 +112,7 @@ export function TripRouteOverviewPanel({ overview, unit, selectedDayId, onSelect
                 />
               )}
               <span className="text-content-muted" style={{ flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
-                {formatDistance(day.distance / 1000, unit)}
+                {routeDistanceLabel(day.distance, dayUnrouted, unit, t)}
               </span>
             </>
           )

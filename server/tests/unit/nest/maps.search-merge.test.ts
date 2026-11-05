@@ -319,7 +319,13 @@ describe('MapsService.searchPlaces — the merged path', () => {
 
     await make().searchPlaces(1, "L'Osteria", 'de', { lat: 54.0879, lng: 12.1408, radius: 5000 });
 
-    expect(mockSearch).toHaveBeenCalledWith("L'Osteria", { lat: 54.0879, lng: 12.1408, limit: 10, lang: 'de' });
+    expect(mockSearch).toHaveBeenCalledWith("L'Osteria", {
+      lat: 54.0879,
+      lng: 12.1408,
+      limit: 10,
+      sources: 'index,osm',
+      lang: 'de',
+    });
     // Without the viewbox, "Hase-dera" answers with the temple in Nara rather
     // than the one the user is standing beside in Kamakura.
     const params = mockNominatim.mock.calls[0][1] as URLSearchParams;

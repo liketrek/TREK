@@ -68,8 +68,6 @@ import { JourneyEntries } from '../../../src/db/entities/JourneyEntries.entity';
 import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 import { makeStorageFixture } from '../../helpers/storage-fixture';
 import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
-import fs from 'fs';
-import path from 'path';
 import { notificationsStub } from '../../helpers/notifications';
 import { EphemeralTokenService } from '../../../src/nest/auth-core/ephemeral-token.service';
 import {
@@ -278,7 +276,7 @@ beforeAll(async () => {
   await createTestCategoriesRepo(testDb),
   await createTestTripsRepo(testDb),
   await createTestBudgetItemsRepo(testDb),
-  await createTestCollectionPlacesRepo(testDb),
+  { releaseValues: async () => [] } as never, // StorageReleaseService
   buildPlaceImportService(),
 );
   // SettingsService reads the trips a planner view may keep (#2639) through TripMembershipService,
@@ -300,12 +298,12 @@ beforeAll(async () => {
   ),
   realtime,
   undefined as never, // unsplash — not exercised here
-  coversFx.storage,
+  { releaseValues: async () => [] } as never, // StorageReleaseService: the cover release has its own suite
   await createTestUnitOfWork(testDb),
   (await sharedTestOrm(testDb)).em,
   new SettingsService(await createTestUnitOfWork(testDb), await createTestAppSettingsRepo(testDb), await createTestSettingsRepo(testDb), membership.get(TripMembershipService)),
 );
-  membersSvc = new TripMembersService(budgetSvc, new UserCleanupService(new MaintenanceRepository(dbsEm!), budgetSvc, await createTestUnitOfWork(testDb), await createTestUsersRepo(testDb), await createTestTripMembersRepo(testDb), await createTestBudgetItemsRepo(testDb), await createTestBudgetSettlementsRepo(testDb), await createTestJourneyShareTokensRepo(testDb), await createTestJourneysRepo(testDb), await createTestJourneyEntriesRepo(testDb), await createTestJourneyContributorsRepo(testDb), await createTestShareTokensRepo(testDb), await createTestPluginsRepo(testDb), await createTestPluginUserErasureQueueRepo(testDb)), new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), realtime, notificationsStub(), await createTestUnitOfWork(testDb), await createTestTripsRepo(testDb), await createTestTripMembersRepo(testDb), await createTestUsersRepo(testDb));
+  membersSvc = new TripMembersService(budgetSvc, new UserCleanupService(new MaintenanceRepository(dbsEm!), budgetSvc, await createTestUnitOfWork(testDb), await createTestUsersRepo(testDb), await createTestTripMembersRepo(testDb), await createTestBudgetItemsRepo(testDb), await createTestBudgetSettlementsRepo(testDb), await createTestJourneyShareTokensRepo(testDb), await createTestJourneysRepo(testDb), await createTestJourneyEntriesRepo(testDb), await createTestJourneyContributorsRepo(testDb), await createTestShareTokensRepo(testDb), await createTestPluginsRepo(testDb), await createTestPluginUserErasureQueueRepo(testDb), { releaseValues: async () => [] } as never), new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), realtime, notificationsStub(), await createTestUnitOfWork(testDb), await createTestTripsRepo(testDb), await createTestTripMembersRepo(testDb), await createTestUsersRepo(testDb));
   readModelSvc = new TripReadModelService(
   await createTestTripsRepo(testDb), membersSvc, daysSvc, accommodationsSvc, budgetSvc,
   new PackingService(
@@ -318,7 +316,7 @@ beforeAll(async () => {
   new CollabService(
     // Plan 4 Task 2 — CollabService's own DatabaseService param is gone:
     // canAccessTrip now reads through the TripsRepository at the end.
-    new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), realtime, notificationsStub(), coversFx.storage, new RateLimitService(), await createTestUnitOfWork(testDb),
+    new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), realtime, notificationsStub(), { releaseValues: async () => [] } as never, new RateLimitService(), await createTestUnitOfWork(testDb),
     await createTestCollabMessageReactionsRepo(testDb), await createTestCollabNotesRepo(testDb), await createTestCollabPollsRepo(testDb),
     await createTestCollabPollVotesRepo(testDb), await createTestCollabLinksRepo(testDb), await createTestCollabMessagesRepo(testDb),
     await createTestTripsRepo(testDb),
@@ -331,8 +329,7 @@ beforeAll(async () => {
   await createTestTripMembersRepo(testDb),
   ),
   new FilesService(
-    // Plan 4 Task 2 — FilesService's own canAccessTrip delegate is now
-    // TripsRepository.findAccessible, in the same constructor slot.
+    // Plan 4 Task 2 — canAccessTrip is TripsRepository.findAccessible, in the same constructor slot.
     new TripAccessService(await createTestTripsRepo(testDb)),
     new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
     realtime,
@@ -346,6 +343,7 @@ beforeAll(async () => {
     await createTestPlacesRepo(testDb),
     await createTestDayAssignmentsRepo(testDb),
     await createTestBudgetItemsRepo(testDb),
+    { releaseValues: async () => [] } as never, // StorageReleaseService
   ),
 );
 });
@@ -852,45 +850,6 @@ describe('generateDays', () => {
     // The refusals stay on the server side of the rule.
     expect(() => resolve(dated, { start_date: '2025-07-05', end_date: '2025-07-01' })).toThrow('End date must be after start date');
     expect(() => resolve(dated, { end_date: '2025-06-30' })).toThrow('End date must be after start date');
-  });
-});
-
-// ── deleteOldCover — path containment ──────────────────────────────────────────
-
-describe('deleteOldCover', () => {
-  it('TRIP-SVC-COVER-001: never deletes outside the covers category for a crafted cover_image', async () => {
-    // Attacker-controlled values aimed at auth-gated sibling upload dirs — the
-    // basename + category addressing keeps every delete inside covers/.
-    const filesDir = path.join(coversFx.root, 'files');
-    const avatarsDir = path.join(coversFx.root, 'avatars');
-    fs.mkdirSync(filesDir, { recursive: true });
-    fs.mkdirSync(avatarsDir, { recursive: true });
-    const secret = path.join(filesDir, 'secret.pdf');
-    const someone = path.join(avatarsDir, 'someone.png');
-    fs.writeFileSync(secret, 'pdf');
-    fs.writeFileSync(someone, 'png');
-
-    await svc.deleteOldCover('/uploads/files/secret.pdf');
-    await svc.deleteOldCover('/uploads/covers/../files/secret.pdf');
-    await svc.deleteOldCover('/uploads/avatars/someone.png');
-
-    expect(fs.existsSync(secret)).toBe(true);
-    expect(fs.existsSync(someone)).toBe(true);
-  });
-
-  it('TRIP-SVC-COVER-002: deletes a legitimate cover file', async () => {
-    const coversDir = path.join(coversFx.root, 'covers');
-    fs.mkdirSync(coversDir, { recursive: true });
-    const cover = path.join(coversDir, 'abc123.jpg');
-    fs.writeFileSync(cover, 'jpeg');
-
-    await svc.deleteOldCover('/uploads/covers/abc123.jpg');
-    expect(fs.existsSync(cover)).toBe(false);
-  });
-
-  it('TRIP-SVC-COVER-003: an external https cover URL is tolerated (no throw)', async () => {
-    await expect(svc.deleteOldCover('https://example.com/some/pic.jpg')).resolves.toBeUndefined();
-    await expect(svc.deleteOldCover(null)).resolves.toBeUndefined();
   });
 });
 

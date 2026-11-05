@@ -181,5 +181,14 @@ const places: TranslationStrings = {
   'places.image.needsConnection': 'A new picture needs a connection. Save again once you are online.',
   'places.openPhotos': 'Show photos',
   'places.imageUploadError': 'Could not upload image',
+  'places.refresh.pill': 'New place details',
+  'places.refresh.title': 'Update place details',
+  'places.refresh.intro':
+    'TREK knows newer details for this place. Pick what to take over; the rest stays as it is. Save the place afterwards.',
+  'places.refresh.apply': 'Take over',
+  'places.refresh.replaces': 'Replaces what is saved now',
+  'places.refresh.empty': 'empty',
+  'places.refresh.now': 'Now',
+  'places.refresh.new': 'New',
 };
 export default places;

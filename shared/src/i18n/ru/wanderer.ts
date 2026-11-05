@@ -36,6 +36,8 @@ const wanderer: TranslationStrings = {
   'wanderer.error.not_found': 'Этого маршрута больше нет в wanderer.',
   'wanderer.error.not_own_trail': 'Импортировать можно только собственные маршруты wanderer.',
   'wanderer.error.invalid_response': 'Ответ пришёл не от wanderer. Проверьте, что адрес указывает именно на wanderer.',
+  'wanderer.error.no_author':
+    'wanderer ответил, но не указывает автора маршрутов для учётной записи этого API-токена, поэтому TREK не может определить, какие маршруты ваши.',
   'wanderer.error.too_large': 'Файл маршрута больше 10 МБ.',
   'wanderer.error.server_error': 'wanderer ответил ошибкой. Повторите попытку позже.',
   'wanderer.error.offline': 'Нет подключения к сети. Поиск в wanderer доступен только онлайн.',

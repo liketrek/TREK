@@ -29,7 +29,14 @@ const settings: TranslationStrings = {
     'En egen OSRM-instans. Tomt använder de publika servrarna, som tillåter ungefär en förfrågan per sekund – nog för en dag, knappt för en bilresa. Träder i kraft efter omstart av servern.',
   'settings.valhallaBase': 'Egen Valhalla-instans',
   'settings.valhallaBaseHint':
-    'TREK använder som standard FOSSGIS publika Valhalla för att undvika vägtullar, motorvägar och färjor. Ange URL:en till din egen Valhalla här för att använda den i stället. Om bara en egen ruttserver är konfigurerad används inte den publika Valhalla. Starta om servern och ladda om sidan efter att du angett en egen URL.',
+    'En egen Valhalla, som tillfrågas när ruttjänsten ovan är inställd på den eller på Automatiskt. Om bara en egen ruttserver är konfigurerad och ingen ruttjänst är vald tillfrågas ingen Valhalla. Starta om servern och ladda om sidan efter att du angett en URL.',
+  'settings.valhallaProvider': 'Ruttjänst',
+  'settings.valhallaProviderHint':
+    'Med TREK-tjänsterna eller en egen Valhalla beräknar Valhalla alla rutter: dagar och bilresor till fots, med cykel och med bil, rutter utan vägtullar, motorvägar eller färjor samt rutter, höjder och stigar för turer. När den inte kan svara beräknar OSRM den dagen i stället. TREK-tjänsterna tillfrågas via den här servern. Med FOSSGIS publika Valhalla beräknar OSRM rutterna och Valhalla svarar bara på det OSRM inte kan. Automatiskt frågar TREK-tjänsterna, om inte en egen Valhalla eller bara en egen ruttserver är angiven.',
+  'settings.valhallaProviderOption.auto': 'Automatiskt',
+  'settings.valhallaProviderOption.trek': 'TREK-tjänster',
+  'settings.valhallaProviderOption.fossgis': 'Publik Valhalla (FOSSGIS)',
+  'settings.valhallaProviderOption.custom': 'Egen Valhalla-instans',
   'settings.mapHint': 'URL-mall för kartrutor',
   'settings.mapProvider': 'Kartleverantör',
   'settings.mapProviderHint': 'Påverkar resplaneraren och resedagbokens kartor. Atlas använder alltid Leaflet.',
@@ -80,6 +87,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': 'Tidsformat',
   'settings.weekStart': 'Vecka börjar på',
   'settings.weekStartHint': 'Veckans första dag i alla datumväljare. Vacay har en egen inställning.',
+  'settings.dateFormat': 'Datumformat',
+  'settings.dateFormatHint':
+    'Hur datum skrivs i alla datumfält och listor. Datum med månadsnamn behåller ditt språks formulering.',
+  'settings.dateFormatAuto': 'Automatiskt',
   'settings.preferredNavApp': 'Öppna platser i',
   'settings.preferredNavAppAsk': 'Fråga varje gång',
   'settings.preferredNavAppHint':
@@ -262,6 +273,14 @@ const settings: TranslationStrings = {
   'settings.about.featureRequest': 'Förslag på ny funktion',
   'settings.about.featureRequestHint': 'Föreslå en ny funktion',
   'settings.about.wikiHint': 'Dokumentation och handledningar',
+  'settings.about.sponsor.eyebrow': 'Sponsrad infrastruktur',
+  'settings.about.sponsor.title': 'TREKs egna servrar körs på dataforest cloud',
+  'settings.about.sponsor.body':
+    'Platssökning, adressökning och ruttplanering kommer från TREKs egna servrar i stället för Google och co., och dataforest cloud sponsrar maskinerna de körs på.',
+  'settings.about.sponsor.cta': 'Besök dataforest cloud',
+  'settings.about.sponsor.search': 'Platssökning',
+  'settings.about.sponsor.address': 'Adressökning',
+  'settings.about.sponsor.routing': 'Ruttplanering',
   'settings.about.descriptionManaged':
     'TREK hjälper dig att organisera dina resor, från den första idén till det sista minnet. Dagsplanering, budget, packlistor, foton och mycket mer, allt på ett ställe.',
   'settings.about.sourceTitle': 'Källkod',

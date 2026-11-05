@@ -20,10 +20,10 @@ const KML = Buffer.from(`<kml><Placemark><name>Coast</name>
   <Placemark><Polygon/></Placemark></kml>`);
 
 describe('readTourFile', () => {
-  it('TOUR-FILE-001: reads a GPX file for its tracks, never its waypoints, and counts nothing left out', async () => {
+  it('TOUR-FILE-001: reads a GPX file for its tracks, never its waypoints, and counts them as left out (#2969)', async () => {
     const read = await readTourFile(buildPlaceImportService(), GPX, 'ridge.gpx');
     expect(read.rows.map((row) => row.name)).toEqual(['ridge']);
-    expect(read.leftOut).toBeUndefined();
+    expect(read.leftOut).toEqual({ points: 1, areas: 0, other: 0 });
   });
 
   it('TOUR-FILE-002: reads a file without a known extension, or without a name, as GPX as before', async () => {

@@ -183,6 +183,12 @@ const docsync: TranslationStrings = {
   'docsync.error.provider_disabled':
     'Dayandırılıb: administrator bu provayderi deaktiv edib. O, yenidən aktivləşdirildikdə sinxronlaşdırma davam edəcək.',
   'docsync.binding.reconnect': 'Yenidən qoşul',
+  'docsync.connection.title': 'Bağlantı',
+  'docsync.connection.hint': 'TREK-in bu anbar üçün istifadə etdiyi ünvan və giriş məlumatları.',
+  'docsync.connection.edit': 'Bağlantını redaktə et',
+  'docsync.connection.remove': 'Bağlantını sil',
+  'docsync.connection.confirmRemove':
+    'TREK bu anbarın ünvanını və giriş məlumatlarını unudur, bu səyahətin onun üzərindən gedən bütün sinxronlaşdırmaları dayanır. Sənədlər TREK-də və anbarda qalır.',
 };
 
 export default docsync;

@@ -44,7 +44,7 @@ The shared connection of the AI assistant supports these providers:
 | **Gemini** | Google's OpenAI-compatible endpoint | Needs an API key. |
 | **OpenRouter** | OpenRouter's API | **Connect OpenRouter** signs you in, so there is no key to copy. |
 | **Sign in with ChatGPT** | ChatGPT | Uses a ChatGPT plan, no key. Chat only, not used for parsing. |
-| **Own server** | Your own hardware | Any OpenAI-compatible server, for example Ollama, at a **Server address** you enter. The API key is optional. |
+| **Own server** | Your own hardware, or any OpenAI-compatible service | Ollama, LM Studio, vLLM, llama.cpp, a LiteLLM proxy or a hosted endpoint such as Groq, at a **Server address** you enter: the one that `/chat/completions` follows, usually ending in `/v1` (`http://localhost:11434/v1`, `https://api.groq.com/openai/v1`). Ollama is read through its own API, every other server through `/chat/completions`. The API key is optional. |
 
 To connect, pick **Sign in with ChatGPT**, **Paste an API key** or **Own server**. When you paste a key, TREK shows *Detected: {provider}*; if it cannot tell, it asks *Which provider is this key from?*. **Connect OpenRouter** is offered as its own button.
 
@@ -84,7 +84,7 @@ The **AI Parsing** tab starts with **Reads bookings with**, which shows the conn
 The form for an **Own connection** has these fields:
 
 - **Provider**: **Local (Ollama)**, **OpenAI** or **Anthropic**.
-- **Base URL**: empty means the provider's own address: `http://localhost:11434/v1` for a local Ollama server, `https://api.openai.com/v1` for OpenAI and `https://api.anthropic.com` for Anthropic. Any OpenAI-compatible endpoint goes here. For Anthropic it can name a gateway that speaks the Anthropic Messages API; give it without `/v1`, since TREK adds `/v1/messages`, and the gateway has to accept PDF document blocks and forced tool calls. Picking another provider empties the field, so an address meant for one never receives another provider's key.
+- **Base URL**: empty means the provider's own address: `http://localhost:11434/v1` for a local Ollama server, `https://api.openai.com/v1` for OpenAI and `https://api.anthropic.com` for Anthropic. Any OpenAI-compatible endpoint goes here. For Anthropic it can name a gateway that speaks the Anthropic Messages API; give it without `/v1`, since TREK adds `/v1/messages`, and the gateway has to accept PDF document blocks and tool calls. Picking another provider empties the field, so an address meant for one never receives another provider's key.
 - **API key**: optional for a local server (the field says *Often not needed*), required for the cloud providers. It is stored **encrypted** and shown masked (`••••••••`) once saved; leaving it unchanged keeps the stored key.
 - **Model**: the model id, for example `qwen3.5:4b`, `gpt-4o` or `claude-opus-4-8`.
 

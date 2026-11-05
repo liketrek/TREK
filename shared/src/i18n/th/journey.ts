@@ -287,7 +287,7 @@ const journey: TranslationStrings = {
   'journey.studio.autoLayout': 'เค้าโครงอัตโนมัติ',
   'journey.studio.export': 'ส่งออก',
   'journey.studio.day': 'วันที่ {day}',
-  'journey.studio.stations': 'สถานี',
+  'journey.studio.stations': 'ระหว่างทาง',
   'journey.studio.peersHere': 'ที่นี่',
   'journey.studio.folioAuto': 'อัตโนมัติ',
   'journey.studio.exportLayout': 'เค้าโครง',

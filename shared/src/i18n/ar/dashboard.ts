@@ -124,6 +124,8 @@ const dashboard: TranslationStrings = {
   'dashboard.unsplashQueryRequired': 'أدخل عبارة بحث',
   'dashboard.unsplashNoResults': 'لم يتم العثور على صور',
   'dashboard.coverSearchError': 'فشل البحث في Unsplash',
+  'dashboard.unsplashKeyNeeded':
+    'رفض Unsplash هذا الخادم. يمكن للمسؤول إضافة مفتاح Unsplash API مجاني في إعدادات المسؤول لتعمل عملية البحث عن الصور.',
   'dashboard.useUnsplashPhoto': 'استخدم صورة من Unsplash بواسطة {photographer}',
   'dashboard.titleRequired': 'العنوان مطلوب',
   'dashboard.endDateError': 'يجب أن يكون تاريخ النهاية بعد البداية',

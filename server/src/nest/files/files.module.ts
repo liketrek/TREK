@@ -19,6 +19,7 @@ import { TripMembershipModule } from '../trip-membership/trip-membership.module'
 import { AllowedFileTypesModule } from './allowed-file-types.module';
 import { AllowedFileTypesService } from './allowed-file-types.service';
 import { FilesDownloadController } from './files-download.controller';
+import { FilesStorageRefsService } from './files-storage-refs.service';
 import { MAX_FILE_SIZE, MAX_VIDEO_SIZE } from './files.constants';
 import { FilesController } from './files.controller';
 import { filesUploadFileFilter } from './files.controller';
@@ -65,7 +66,7 @@ import { MulterModule } from '@nestjs/platform-express';
     AllowedFileTypesModule,
   ],
   controllers: [FilesController, FilesDownloadController],
-  providers: [FilesService, FilesRpc, FilesMcp],
+  providers: [FilesService, FilesRpc, FilesMcp, FilesStorageRefsService],
   exports: [FilesService],
 })
 export class FilesModule {}

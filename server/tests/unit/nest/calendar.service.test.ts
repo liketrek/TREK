@@ -1513,6 +1513,50 @@ describe('car rentals', () => {
     expect(ics).not.toContain('Pickup: Dayless');
     expect(ics).not.toContain('Drop-off: Dayless');
   });
+
+  // ── Where a transport goes: LOCATION and GEO from its endpoints (#2909) ─────
+
+  const eventOf = (ics: string, summary: string) =>
+    ics.replaceAll('\r\n ', '').split('BEGIN:VEVENT').find((ev) => ev.includes(`SUMMARY:${summary}\r\n`)) ?? '';
+
+  it('CAL-2909a: a drive of its own is located at its destination, each hand-over where it happens', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Road Trip' });
+    const drive = createReservation(testDb, trip.id, { title: 'Drive', type: 'car' });
+    await updateRows(orm, Reservations, { id: drive.id }, { reservation_time: null, reservation_end_time: null, location: null });
+    await insertEndpoint(drive.id, 'from', 0, '1 Origin Road, Startville', 48.1, 11.5, 'Europe/Berlin', '09:00', '2026-07-07');
+    await insertEndpoint(drive.id, 'to', 1, '123 Example Street, Sampletown', 47.5, 12.25, 'Europe/Berlin', '13:00', '2026-07-07');
+
+    const { ics } = await svc.exportICS(trip.id);
+
+    const event = eventOf(ics, 'Drive');
+    expect(event).toContain('LOCATION:123 Example Street\\, Sampletown\r\n');
+    expect(event).toContain('GEO:47.5;12.25\r\n');
+    // The route stays in the description.
+    expect(event).toContain('Route: 1 Origin Road\\, Startville → 123 Example Street\\, Sampletown');
+    expect(eventOf(ics, 'Pickup: Drive')).toContain('LOCATION:1 Origin Road\\, Startville\r\n');
+    expect(eventOf(ics, 'Drop-off: Drive')).toContain('LOCATION:123 Example Street\\, Sampletown\r\n');
+  });
+
+  it('CAL-2909b: a ride the traveller boards is located where it departs, and a stated location still wins', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Rail Trip' });
+    const train = createReservation(testDb, trip.id, { title: 'ICE 571', type: 'train' });
+    const ferry = createReservation(testDb, trip.id, { title: 'Ferry', type: 'ferry' });
+    await updateRows(orm, Reservations, { id: train.id }, { reservation_time: null, reservation_end_time: null, location: null });
+    await updateRows(orm, Reservations, { id: ferry.id }, { reservation_time: null, reservation_end_time: null, location: 'Pier 3' });
+    await insertEndpoint(train.id, 'from', 0, 'Mannheim Hbf', 49.4794, 8.4692, 'Europe/Berlin', '08:00', '2026-07-08');
+    await insertEndpoint(train.id, 'to', 1, 'Berlin Hbf', 52.525, 13.369, 'Europe/Berlin', '12:30', '2026-07-08');
+    await insertEndpoint(ferry.id, 'from', 0, 'Mannheim Hbf', 49.4794, 8.4692, 'Europe/Berlin', '08:00', '2026-07-08');
+    await insertEndpoint(ferry.id, 'to', 1, 'Berlin Hbf', 52.525, 13.369, 'Europe/Berlin', '12:30', '2026-07-08');
+
+    const { ics } = await svc.exportICS(trip.id);
+
+    expect(eventOf(ics, 'ICE 571')).toContain('LOCATION:Mannheim Hbf\r\nGEO:49.4794;8.4692\r\n');
+    const ferryEvent = eventOf(ics, 'Ferry');
+    expect(ferryEvent).toContain('LOCATION:Pier 3\r\n');
+    expect(ferryEvent).not.toContain('GEO:');
+  });
 });
 
 describe('staged bookings', () => {

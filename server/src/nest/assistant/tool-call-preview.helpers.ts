@@ -195,7 +195,7 @@ const DESCRIBERS: Readonly<Record<string, Describer>> = {
     const dayId = id(args, 'dayId');
     const rows = new Rows()
       .add('day', dayLabel(ctx, dayId))
-      .add('time', text(args.time))
+      .add('content', text(args.time))
       .add('icon', text(args.icon))
       .add('color', text(args.color));
     return { subject: text(args.text), rows, dayId, placeIds: [] };
@@ -203,8 +203,8 @@ const DESCRIBERS: Readonly<Record<string, Describer>> = {
   update_day_note: (ctx, args) => {
     const note = ctx.card.notes.get(id(args, 'noteId') ?? 0);
     const rows = new Rows();
-    if (has(args, 'text')) rows.change('text', note?.text ?? null, text(args.text));
-    if (has(args, 'time')) rows.change('time', note?.time ?? null, text(args.time));
+    if (has(args, 'text')) rows.change('title', note?.text ?? null, text(args.text));
+    if (has(args, 'time')) rows.change('content', note?.time ?? null, text(args.time));
     if (has(args, 'icon')) rows.change('icon', note?.icon ?? null, text(args.icon));
     if (has(args, 'color')) rows.change('color', note?.color ?? null, text(args.color));
     return { subject: note?.text ?? text(args.text), rows, dayId: id(args, 'dayId'), placeIds: [] };

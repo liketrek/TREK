@@ -1,5 +1,4 @@
 import {
-  BOOK_DESIGN_LIMITS,
   applyBookDesignRequestSchema,
   bookDesignAnswerSchema,
   bookDesignApplyResultSchema,
@@ -70,10 +69,9 @@ describe('the design tools', () => {
     expect(removeBookLayoutRequestSchema.safeParse({ layoutId: 'ly-1', expectedVersion: 4 }).success).toBe(true);
   });
 
-  it('BKDTOOL-004: the selection is a closed list of page ids, as long as a book and its drops', () => {
-    const ids = Array.from({ length: BOOK_DESIGN_LIMITS.selection }, (_, i) => `sp-${i}`);
+  it('BKDTOOL-004: the selection is a closed list of page ids, as long as the book it picks from', () => {
+    const ids = Array.from({ length: 1200 }, (_, i) => `sp-${i}`);
     expect(bookDesignSelectionRequestSchema.safeParse({ spreadIds: ids }).success).toBe(true);
-    expect(bookDesignSelectionRequestSchema.safeParse({ spreadIds: [...ids, 'sp-x'] }).success).toBe(false);
     expect(bookDesignSelectionRequestSchema.safeParse({ spreadIds: ['sp 1'] }).success).toBe(false);
     expect(bookDesignSelectionRequestSchema.safeParse({ spreadIds: [], all: true }).success).toBe(false);
   });

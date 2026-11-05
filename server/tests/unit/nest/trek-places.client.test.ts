@@ -13,6 +13,7 @@ import {
   trekPlacesArea,
   trekPlacesBaseUrl,
   trekPlacesById,
+  trekCommunityByKeys,
   trekPlacesHighlights,
   trekPlacesMiss,
   trekPlacesNearby,
@@ -23,6 +24,7 @@ import {
   serviceLang,
   type TrekPlace,
 } from '../../../src/nest/maps/trek-places.client';
+import { serviceIdentitySlot } from '../../../src/nest/service-identity/service-identity.interface';
 import { oneByOne } from '../../helpers/one-by-one';
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -460,6 +462,87 @@ describe('the circuit breaker', () => {
     stubFetch({ query: 'x', results: [PLACE] });
     await expect(trekPlacesSearch('x')).resolves.toHaveLength(1);
   });
+
+  it('a refused or revoked installation key is an answer, a 429 is not', async () => {
+    // A 401 or 403 says the service is there and judged the key; the identity
+    // falls back to the shared pool on its own. A 429 means the next request
+    // costs the same and gets the same, like a server error.
+    const refusals = [401, 403].flatMap((status) => Array<number>(6).fill(status));
+    await oneByOne(refusals, (status) => {
+      stubFetch({}, status);
+      return expect(trekPlacesSearch('x')).rejects.toThrow(String(status));
+    });
+    stubFetch({}, 429);
+    await oneByOne(Array.from({ length: 4 }), () => expect(trekPlacesSearch('x')).rejects.toThrow(/429/));
+    await expect(trekPlacesSearch('x')).rejects.toThrow('unreachable, not retrying yet');
+  });
+});
+
+describe('the installation identity', () => {
+  it('takes the headers from the identity port on every request and shows it every answer', async () => {
+    const seen: string[] = [];
+    const port = {
+      headersFor: vi.fn(() => ({ 'User-Agent': 'TREK/test', Authorization: 'Bearer installation-key' })),
+      observe: vi.fn((url: URL) => {
+        seen.push(url.pathname);
+      }),
+    };
+    serviceIdentitySlot.install(port);
+    try {
+      stubFetch({ query: 'x', results: [] });
+      await trekPlacesSearch('x');
+      expect(calls[0].init?.headers).toMatchObject({
+        Accept: 'application/json',
+        'X-TREK-Instance': expect.stringMatching(/^trek-/),
+        'User-Agent': 'TREK/test',
+        Authorization: 'Bearer installation-key',
+      });
+      expect(port.headersFor).toHaveBeenCalledWith(expect.any(URL));
+      expect(seen).toEqual(['/v1/search']);
+    } finally {
+      serviceIdentitySlot.release(port);
+    }
+  });
+
+  it('asks once more through the shared pool when the key is refused, and shows the identity only the refusal', async () => {
+    const port = {
+      headersFor: vi.fn(() => ({ 'User-Agent': 'TREK/test', Authorization: 'Bearer installation-key' })),
+      observe: vi.fn(),
+    };
+    serviceIdentitySlot.install(port);
+    try {
+      calls = [];
+      let answered = 0;
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (url: URL | string, init?: RequestInit) => {
+          calls.push({ url: String(url), init });
+          answered += 1;
+          const status = answered === 1 ? 401 : 200;
+          return {
+            ok: status === 200,
+            status,
+            body: null,
+            text: async () => JSON.stringify({ query: 'x', results: [PLACE] }),
+          } as unknown as Response;
+        }),
+      );
+      await expect(trekPlacesSearch('x')).resolves.toHaveLength(1);
+      expect(calls).toHaveLength(2);
+      expect(calls[1].init?.headers).not.toHaveProperty('Authorization');
+      expect(calls[1].init?.headers).toMatchObject({ 'User-Agent': 'TREK/test' });
+      expect(port.observe).toHaveBeenCalledTimes(1);
+      expect(port.observe.mock.calls[0][1]).toMatchObject({ status: 401 });
+    } finally {
+      serviceIdentitySlot.release(port);
+    }
+  });
+
+  it('sends what it always sent while no identity is installed', async () => {
+    stubFetch({ query: 'x', results: [] });
+    await trekPlacesSearch('x');
+    expect(Object.keys(calls[0].init?.headers ?? {}).sort()).toEqual(['Accept', 'X-TREK-Instance']);
+  });
 });
 
 describe('getJson request shape', () => {
@@ -756,6 +839,12 @@ describe('toPlaceRecord', () => {
     expect(r['brand:wikidata']).toBe('Q123');
     expect(r.wikidata).toBeUndefined();
     expect(r.brand).toBe("L'Osteria");
+  });
+
+  it('carries the community version the service overlays, null when it names none', () => {
+    expect(toPlaceRecord({ ...PLACE, community: { version: 4 } }).community_version).toBe(4);
+    expect(toPlaceRecord(PLACE).community_version).toBeNull();
+    expect(toPlaceRecord({ ...PLACE, community: null }).community_version).toBeNull();
   });
 
   it('reports no rating rather than a made-up one', () => {
@@ -1117,5 +1206,32 @@ describe('the layers breaker', () => {
     calls = [];
     await expect(trekPlacesSearch('x')).rejects.toThrow('unreachable, not retrying yet');
     expect(calls).toHaveLength(0);
+  });
+});
+
+describe('trekCommunityByKeys', () => {
+  it('asks /v1/community for the keys and answers its places', async () => {
+    const places = { 'osm:relation/3389505': { contact: { website: 'https://www.skybldg.co.jp/' } } };
+    stubFetch({ places });
+    expect(await trekCommunityByKeys(['osm:relation/3389505', 'osm:node/1'])).toEqual(places);
+    const url = new URL(calls[0]?.url ?? 'http://missing');
+    expect(url.pathname).toBe('/v1/community');
+    expect(url.searchParams.get('keys')).toBe('osm:relation/3389505,osm:node/1');
+  });
+
+  it('leaves out a place whose values are not in the published shape, and keeps the others', async () => {
+    const good = { contact: { phone: '+49 30 1' }, community: { version: 1 } };
+    stubFetch({ places: { 'osm:node/1': good, 'osm:node/2': { hours: { osm: 7 } } } });
+    expect(await trekCommunityByKeys(['osm:node/1', 'osm:node/2'])).toEqual({ 'osm:node/1': good });
+    stubFetch({ places: ['not', 'a', 'map'] });
+    expect(await trekCommunityByKeys(['osm:node/1'])).toEqual({});
+  });
+
+  it('asks nothing without keys, and a failing service is an empty map', async () => {
+    stubFetch({ places: {} });
+    expect(await trekCommunityByKeys([])).toEqual({});
+    expect(calls).toHaveLength(0);
+    stubFetch({ error: 'down' }, 503);
+    expect(await trekCommunityByKeys(['osm:node/1'])).toEqual({});
   });
 });

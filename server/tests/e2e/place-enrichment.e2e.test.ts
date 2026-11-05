@@ -201,10 +201,14 @@ describe('Place enrichment e2e (real auth guard + real validation pipe)', () => 
     expect(first.body.description).toMatchObject({ text: 'Ein Museum in Köln.', source: 'osm', license: 'ODbL 1.0' });
 
     (maps.details as unknown as ReturnType<typeof vi.fn>).mockClear();
+    (wiki.fetchCommonsCandidates as unknown as ReturnType<typeof vi.fn>).mockClear();
     const second = await request(server).post('/api/maps/enrichment').set('Cookie', sessionCookie(1)).send(BODY);
 
     expect(second.body.description).toEqual(first.body.description);
-    expect(maps.details).not.toHaveBeenCalled();
+    // An OSM element can hold community values, so its details are read once
+    // for the community version before the cache; nothing else runs again.
+    expect(maps.details).toHaveBeenCalledTimes(1);
+    expect(wiki.fetchCommonsCandidates).not.toHaveBeenCalled();
   });
 
   it('200 with the stored credit for a cached picture', async () => {

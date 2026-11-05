@@ -186,6 +186,8 @@ const dashboard: TranslationStrings = {
   'dashboard.unsplashQueryRequired': 'Introdueix un terme de cerca',
   'dashboard.unsplashNoResults': "No s'han trobat imatges",
   'dashboard.coverSearchError': 'Error en cercar a Unsplash',
+  'dashboard.unsplashKeyNeeded':
+    'Unsplash ha rebutjat aquest servidor. Un administrador pot afegir una clau d’API gratuïta d’Unsplash a la configuració d’administració perquè funcioni la cerca d’imatges.',
   'dashboard.useUnsplashPhoto': "Utilitzar foto d'Unsplash de {photographer}",
   'dashboard.dayCountRequired': 'El nombre de dies és obligatori',
   'dashboard.dateShiftTitle': "Nova data d'inici",

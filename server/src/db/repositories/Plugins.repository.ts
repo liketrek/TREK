@@ -26,13 +26,16 @@ export interface PluginIdPermissionRow {
   permissions: string | null;
 }
 
-/** PR17 — `SELECT permissions, granted_permissions, dependencies, trek_range, api_version FROM plugins WHERE id = ?` (`assertActivatable`'s one-row activation gate). */
+/** PR17 — the one-row activation gate `assertActivatable` reads: grants, dependencies, the TREK range and an admin's consent to run outside it. */
 export interface PluginActivationGateRow {
   permissions: string;
   granted_permissions: string;
   dependencies: string | null;
   trek_range: string | null;
   api_version: number | null;
+  version: string | null;
+  trek_range_accepted_version: string | null;
+  trek_range_accepted_host: string | null;
 }
 
 /** PR18 — `SELECT permissions, config FROM plugins WHERE id = ?` (`spawnActivated`). */
@@ -89,6 +92,8 @@ export interface PluginAdminRow {
   dependencies: string | null;
   operator_egress: number;
   trek_range: string | null;
+  trek_range_accepted_version: string | null;
+  trek_range_accepted_host: string | null;
   author_pubkey: string | null;
   update_block_code: string | null;
   update_block_detail: string | null;
@@ -144,7 +149,18 @@ export class PluginsRepository extends TrekRepository<Plugins> {
   async findActivationGate(id: string): Promise<PluginActivationGateRow | null> {
     const row = await this.findOne(
       { id },
-      { fields: ['permissions', 'granted_permissions', 'dependencies', 'trek_range', 'api_version'] },
+      {
+        fields: [
+          'permissions',
+          'granted_permissions',
+          'dependencies',
+          'trek_range',
+          'api_version',
+          'version',
+          'trek_range_accepted_version',
+          'trek_range_accepted_host',
+        ],
+      },
     );
     return row
       ? {
@@ -153,6 +169,9 @@ export class PluginsRepository extends TrekRepository<Plugins> {
           dependencies: row.dependencies ?? null,
           trek_range: row.trek_range ?? null,
           api_version: row.api_version ?? null,
+          version: row.version ?? null,
+          trek_range_accepted_version: row.trek_range_accepted_version ?? null,
+          trek_range_accepted_host: row.trek_range_accepted_host ?? null,
         }
       : null;
   }
@@ -370,6 +389,8 @@ export class PluginsRepository extends TrekRepository<Plugins> {
           'dependencies',
           'operator_egress',
           'trek_range',
+          'trek_range_accepted_version',
+          'trek_range_accepted_host',
           'author_pubkey',
           'update_block_code',
           'update_block_detail',
@@ -396,6 +417,8 @@ export class PluginsRepository extends TrekRepository<Plugins> {
       dependencies: r.dependencies ?? null,
       operator_egress: r.operator_egress,
       trek_range: r.trek_range ?? null,
+      trek_range_accepted_version: r.trek_range_accepted_version ?? null,
+      trek_range_accepted_host: r.trek_range_accepted_host ?? null,
       author_pubkey: r.author_pubkey ?? null,
       update_block_code: r.update_block_code ?? null,
       update_block_detail: r.update_block_detail ?? null,
@@ -543,6 +566,11 @@ export class PluginsRepository extends TrekRepository<Plugins> {
   /** RG6 (`recomputeUpdateHold`) — `UPDATE plugins SET update_hold = ? WHERE id = ?`. */
   async setUpdateHold(id: string, hold: boolean): Promise<void> {
     await this.nativeUpdate({ id }, { update_hold: hold ? 1 : 0 });
+  }
+
+  /** An admin accepted running this plugin version outside its TREK range, on this TREK. */
+  async acceptTrekRange(id: string, version: string, host: string): Promise<void> {
+    await this.nativeUpdate({ id }, { trek_range_accepted_version: version, trek_range_accepted_host: host });
   }
 
   /**

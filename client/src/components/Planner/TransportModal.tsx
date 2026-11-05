@@ -31,9 +31,10 @@ import {
   transportDayOptions, type StationWaypointForm, type WaypointForm,
 } from './transportEndpoints'
 import { useTransportForm } from './useTransportForm'
-import { expenseRequestAfterSave, pendingImportExpense, travelerIdsOf, travelersChanged, filesNeedConnection, uploadBookingFiles } from './bookingFormModel'
+import { expenseRequestAfterSave, pendingImportExpense, travelerIdsOf, filesNeedConnection, type BookingSaveSteps } from './bookingFormModel'
 import { useBookingExpenseIntent } from './useBookingExpenseIntent'
 import { useBookingFileAttach } from './useBookingFileAttach'
+import { useBookingFollowUp } from './useBookingFollowUp'
 
 const defaultForm = {
   ...EMPTY_TRANSPORT_FIELDS,
@@ -48,7 +49,7 @@ const defaultForm = {
 interface TransportModalProps {
   isOpen: boolean
   onClose: () => void
-  onSave: (data: Record<string, any> & { title: string }) => Promise<Reservation | undefined>
+  onSave: (data: Record<string, any> & { title: string }, steps?: BookingSaveSteps) => Promise<Reservation | undefined>
   reservation: Reservation | null
   days: Day[]
   selectedDayId: number | null
@@ -84,7 +85,6 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
   const isBudgetEnabled = useAddonStore(s => s.isEnabled('budget'))
   const budgetItems = useTripStore(s => s.budgetItems)
   const deleteBudgetItem = useTripStore(s => s.deleteBudgetItem)
-  const setReservationTravelers = useTripStore(s => s.setReservationTravelers)
   const { id: tripId } = useParams<{ id: string }>()
   // Set right before submitting when the user clicked "create/edit expense", so
   // the post-save handler knows to open the Costs editor for the saved booking.
@@ -99,11 +99,17 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
     seed, payload, writesFlightLegs, writesTrainLegs,
   } = useTransportForm(defaultForm)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const attach = useBookingFileAttach({ reservation, files, onFileUpload, setPendingFiles, toast, t })
+  const attach = useBookingFileAttach({ reservation, files, setPendingFiles })
+  const followUp = useBookingFollowUp({
+    session: isOpen ? (reservation ?? prefill ?? 'new') : null,
+    tripId, original: reservation, travelerIds, pendingFiles, setPendingFiles, upload: onFileUpload, t,
+  })
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (!isOpen) return
+    // A try that stored the booking and failed on its files keeps the form as the
+    // user left it; the costs that save reloaded must not reseed it.
+    if (!isOpen || followUp.holdsSaved()) return
     setTravelerIds(travelerIdsOf(reservation))
     // Edit uses the saved `reservation`; a review-import populates from `prefill`.
     // Either way the init reads the same fields — `reservation` still decides
@@ -143,19 +149,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
     try {
       const saved = await onSave(payload(days, {
         reservation, prefill, budgetEnabled: isBudgetEnabled, anchorOnStations: false, url: form.url,
-      }))
-      // Persist the traveler assignment once we have the reservation id (create → save
-      // result, edit → existing reservation), and only when it actually changed (#1517).
-      const savedId = saved?.id ?? reservation?.id
-      if (savedId && tripId) {
-        const { changed, nextIds } = travelersChanged(reservation, travelerIds)
-        if (changed) {
-          try { await setReservationTravelers(tripId, savedId, nextIds) } catch { toast.error(t('common.unknownError')) }
-        }
-      }
-      if (!reservation?.id && saved?.id && pendingFiles.length > 0 && onFileUpload) {
-        await uploadBookingFiles(onFileUpload, saved.id, pendingFiles, form.title)
-      }
+      }), followUp.steps(form.title))
       // The user asked to create/edit the linked expense — open the Costs editor
       // for the now-saved booking. Gated on saved?.id so a failed save doesn't.
       const expenseRequest = expenseRequestAfterSave(expense.take(), saved, form, days)
@@ -546,16 +540,15 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
           </EditorField>
 
           <BookingNotesFilesCosts
-            notes={form.notes}
-            onNotesChange={value => set('notes', value)}
-            url={form.url}
-            onUrlChange={value => set('url', value)}
+            form={form}
+            set={set}
             reservationId={reservation?.id}
             tripFiles={files}
             pendingFiles={pendingFiles}
             fileInputRef={fileInputRef}
             attach={attach}
             canAttach={!!onFileUpload}
+            saving={isSaving}
             showCosts={isBudgetEnabled}
             pendingExpense={pendingExpense}
             expense={expense}

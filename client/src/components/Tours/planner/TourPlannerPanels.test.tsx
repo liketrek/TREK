@@ -526,6 +526,18 @@ describe('TourPlannerRail', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Enter a whole value from 0 to 1,440 minutes.')
   })
 
+  it('says why Save waits on a tour over a day a stage, and opens the details to say it (#2869)', () => {
+    window.localStorage.clear()
+    render(<TourPlannerRail planner={planner({
+      mode: { type: 'new-draft' }, hasUnsavedChanges: true, canSave: false,
+      walkingDurationMinutes: 1500, plannedTotalMinutes: 1500, plannedTotalInvalid: true,
+    })} />)
+    expect(screen.getByLabelText(/Planned total duration/)).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Walking time and breaks add up to more than 24 hours a day. Make it a multi-day tour with “End stage here” at a stop, or enter a shorter planned total.',
+    )
+  })
+
   it('RS-02: Info controls are keyboard focusable and explain themselves only through the shared tooltip', async () => {
     render(<TourPlannerRail planner={planner({
       mode: { type: 'new-draft' }, hasUnsavedChanges: true, walkingDurationMinutes: 80,

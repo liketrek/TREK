@@ -126,6 +126,8 @@ const dashboard: TranslationStrings = {
   'dashboard.unsplashQueryRequired': 'Введіть пошуковий запит',
   'dashboard.unsplashNoResults': 'Зображень не знайдено',
   'dashboard.coverSearchError': 'Не вдалося виконати пошук в Unsplash',
+  'dashboard.unsplashKeyNeeded':
+    'Unsplash відхилив цей сервер. Адміністратор може додати безкоштовний ключ Unsplash API в налаштуваннях адміністрування, щоб запрацював пошук зображень.',
   'dashboard.useUnsplashPhoto': 'Використати фото Unsplash від {photographer}',
   'dashboard.titleRequired': "Назва обов'язкова",
   'dashboard.endDateError': 'Дата закінчення повинна бути пізніше дати початку',

@@ -5,7 +5,7 @@ import {
   bookPageOpSchema,
   bookSpreadIdSchema,
 } from '../../book/book-ops.schema';
-import { bookSpreadSchema, MAX_BOOK_TITLE, MAX_SPREADS } from '../../book/book.schema';
+import { bookSpreadSchema, MAX_BOOK_TITLE } from '../../book/book.schema';
 import { idSchema } from '../../common/primitives.schema';
 import { cardCountSchema, cardText } from './card-parts';
 
@@ -33,14 +33,10 @@ export const BOOK_PAGE_CARD_CHANGES = ['new', 'changed', 'moved', 'willDelete'] 
 export const bookCardPageSchema = z.object({
   spreadId: bookSpreadIdSchema,
   /** Where it stands in the book, the cover at 0. */
-  index: z
-    .number()
-    .int()
-    .min(0)
-    .max(MAX_SPREADS - 1),
+  index: z.number().int().min(0),
   role: bookSpreadSchema.shape.role.unwrap(),
   /** Its place among the double pages, from 1; null for a single page (the covers, the first and the last). */
-  number: z.number().int().min(1).max(MAX_SPREADS).nullable(),
+  number: z.number().int().min(1).nullable(),
   /** Photos placed on it. */
   photos: cardCountSchema,
 });
@@ -85,7 +81,7 @@ export const bookPageCardSchema = z.object({
   /** How many pages the change adds or deletes; for a new book, its pages. */
   count: cardCountSchema,
   /** Where a moved page lands among the double pages, from 1. */
-  movedTo: z.number().int().min(1).max(MAX_SPREADS).nullable(),
+  movedTo: z.number().int().min(1).nullable(),
   /**
    * `edit_book_page`'s operations, to draw the page after where the card has
    * no `after` or the Studio's book moved on from `baseVersion`; empty for

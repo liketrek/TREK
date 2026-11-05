@@ -177,13 +177,15 @@ export async function buildApp(): Promise<INestApplication> {
    * it is the wrong one for a photo book. A Studio document is sent WHOLE on
    * every autosave — deliberately, see book-store.schema.ts, because a patch
    * protocol would need an ordering guarantee and a merge rule per field — and
-   * the contract already caps it at 150 spreads of 90 elements. A real book of
-   * a fortnight's journey is well past a hundred kilobytes before anybody asks
+   * a book has as many pages as its journey needs. A real book of a
+   * fortnight's journey is well past a hundred kilobytes before anybody asks
    * for road geometry, and what the ceiling produces is not an error message
    * but a save that quietly fails and an editor that says "not saved" without
    * saying why.
    *
    * So the book route is measured against the size a book can actually be.
+   * An auto laid page is two to five kilobytes, so eight megabytes hold a
+   * book of a few thousand pages: the page count has no limit of its own.
    *
    * A list file is the same story at a smaller scale. Its contract allows a
    * megabyte and the import posts it whole, yet a list of a few hundred places

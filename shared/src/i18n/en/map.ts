@@ -35,6 +35,8 @@ const map: TranslationStrings = {
   'map.overview.hide': 'Hide whole trip',
   'map.overview.total': 'Total distance',
   'map.attribution': 'Map credits',
+  'map.overview.distanceAtLeast': 'at least {distance}',
+  'map.overview.notRouted': 'not routed',
   'map.overview.unrouted': '{count} legs could not be routed, so the distances are incomplete.',
   'map.overview.unrouted.one': '{count} leg could not be routed, so the distances are incomplete.',
   'map.overview.dayUnrouted': '{count} legs of this day could not be routed',

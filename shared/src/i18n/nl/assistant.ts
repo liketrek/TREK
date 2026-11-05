@@ -41,6 +41,8 @@ const assistant: TranslationStrings = {
   'assistant.connect.openAssistant': 'Assistent openen',
   'assistant.connect.badKey': 'Deze sleutel werkt niet.',
   'assistant.connect.unknownModel': 'Dit model wordt hier niet aangeboden.',
+  'assistant.connect.noModelList':
+    'De server antwoordde, maar stuurde geen lijst met modellen. Controleer het adres, dat eindigt meestal op /v1.',
   'assistant.connect.getKey': 'Sleutel aanvragen',
   'assistant.connect.hintAnthropic': 'Claude Max en Team bevatten API-tegoed.',
   'assistant.connect.hintOpenai': 'Maak een sleutel aan in je OpenAI-dashboard.',
@@ -180,6 +182,8 @@ const assistant: TranslationStrings = {
   'assistant.change.label.currency': 'Valuta',
   'assistant.change.label.stopType': 'Soort stop',
   'assistant.change.label.text': 'Tekst',
+  'assistant.change.label.title': 'Titel',
+  'assistant.change.label.content': 'Inhoud',
   'assistant.change.label.icon': 'Pictogram',
   'assistant.change.label.color': 'Kleur',
   'assistant.change.label.position': 'Positie',

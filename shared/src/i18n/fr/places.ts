@@ -176,5 +176,14 @@ const places: TranslationStrings = {
     'Une nouvelle image a besoin d’une connexion. Enregistre à nouveau une fois en ligne.',
   'places.openPhotos': 'Voir les photos',
   'places.imageUploadError': "Impossible d'importer l'image",
+  'places.refresh.pill': 'Nouvelles infos du lieu',
+  'places.refresh.title': 'Mettre à jour les infos du lieu',
+  'places.refresh.intro':
+    'TREK connaît des infos plus récentes pour ce lieu. Choisissez ce que vous reprenez ; le reste ne change pas. Enregistrez ensuite le lieu.',
+  'places.refresh.apply': 'Reprendre',
+  'places.refresh.replaces': 'Remplace la valeur enregistrée',
+  'places.refresh.empty': 'vide',
+  'places.refresh.now': 'Actuel',
+  'places.refresh.new': 'Nouveau',
 };
 export default places;

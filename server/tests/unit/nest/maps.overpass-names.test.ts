@@ -6,10 +6,11 @@
  * had there.
  */
 import { OsmClient } from '../../../src/nest/maps/providers/osm.client';
+import { photonOff } from '../../helpers/photon';
 
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
-const osm = new OsmClient();
+const osm = new OsmClient(photonOff());
 
 afterEach(() => {
   vi.unstubAllGlobals();

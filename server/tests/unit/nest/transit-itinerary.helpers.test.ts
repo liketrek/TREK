@@ -311,7 +311,7 @@ describe('buildTransitReservationParts', () => {
       ],
     };
 
-    const { endpoints, metadata } = buildTransitReservationParts(namba, kyoto, itinerary);
+    const { endpoints, metadata } = buildTransitReservationParts(namba, kyoto, itinerary, 'transitous');
 
     expect(endpoints).toEqual([
       {
@@ -407,7 +407,7 @@ describe('buildTransitReservationParts', () => {
     const kyoto = { name: 'Kyoto', lat: 35.0116, lng: 135.7681 };
     const itinerary = twoLegs();
     itinerary.legs = [{ ...itinerary.legs[0], to: stop('Umeda', 34.702, 135.496, null) }, itinerary.legs[1]];
-    const { endpoints, metadata } = buildTransitReservationParts(namba, kyoto, itinerary);
+    const { endpoints, metadata } = buildTransitReservationParts(namba, kyoto, itinerary, 'transitous');
     expect(endpoints[1]).toEqual({
       role: 'stop',
       sequence: 1,
@@ -423,14 +423,18 @@ describe('buildTransitReservationParts', () => {
   });
 
   it('TRANSIT-ITIN-020: an unresolvable endpoint timezone throws with the coordinates in the message', () => {
-    expect(() => buildTransitReservationParts({ name: 'Nowhere', lat: NaN, lng: 135.501 }, umeda, singleLeg())).toThrow(
-      'Unable to resolve timezone for NaN,135.501.',
-    );
+    expect(() =>
+      buildTransitReservationParts({ name: 'Nowhere', lat: NaN, lng: 135.501 }, umeda, singleLeg(), 'transitous'),
+    ).toThrow('Unable to resolve timezone for NaN,135.501.');
   });
 
   it('TRANSIT-ITIN-021: an unconvertible itinerary time throws with the ISO string and timezone', () => {
-    expect(() => buildTransitReservationParts(namba, umeda, singleLeg({ startTime: 'not-a-date' }))).toThrow(
-      'Unable to convert not-a-date to local time in Asia/Tokyo.',
-    );
+    expect(() =>
+      buildTransitReservationParts(namba, umeda, singleLeg({ startTime: 'not-a-date' }), 'transitous'),
+    ).toThrow('Unable to convert not-a-date to local time in Asia/Tokyo.');
+  });
+
+  it('TRANSIT-ITIN-022: the journey records the backend its itinerary came from (#2850)', () => {
+    expect(buildTransitReservationParts(namba, umeda, singleLeg(), 'google').metadata.transit.provider).toBe('google');
   });
 });

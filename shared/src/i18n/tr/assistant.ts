@@ -40,6 +40,8 @@ const assistant: TranslationStrings = {
   'assistant.connect.openAssistant': 'Asistanı aç',
   'assistant.connect.badKey': 'Bu anahtar çalışmıyor.',
   'assistant.connect.unknownModel': 'Bu model burada sunulmuyor.',
+  'assistant.connect.noModelList':
+    'Sunucu yanıt verdi ama model listesi göndermedi. Adresi kontrol edin, genellikle /v1 ile biter.',
   'assistant.connect.getKey': 'Anahtar al',
   'assistant.connect.hintAnthropic': 'Claude Max ve Team, API kredisi içerir.',
   'assistant.connect.hintOpenai': 'OpenAI panelinde bir anahtar oluştur.',
@@ -179,6 +181,8 @@ const assistant: TranslationStrings = {
   'assistant.change.label.currency': 'Para birimi',
   'assistant.change.label.stopType': 'Durak türü',
   'assistant.change.label.text': 'Metin',
+  'assistant.change.label.title': 'Başlık',
+  'assistant.change.label.content': 'İçerik',
   'assistant.change.label.icon': 'Simge',
   'assistant.change.label.color': 'Renk',
   'assistant.change.label.position': 'Sıra',

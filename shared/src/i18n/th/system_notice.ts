@@ -56,23 +56,20 @@ const system_notice: TranslationStrings = {
   'system_notice.pager.goto': 'ไปที่ประกาศ {n}',
   'system_notice.pager.position': 'ประกาศ {current} จาก {total}',
   'system_notice.release_notes.eyebrow': 'ติดตั้งอัปเดตแล้ว',
-  'system_notice.release_notes.headline': 'TREK ครั้งใหญ่ที่สุดเท่าที่เคยมีมา',
+  'system_notice.release_notes.headline': 'สถานที่ที่ใช่ ขึ้นมาก่อน',
   'system_notice.release_notes.intro':
-    'ทัวร์สำหรับทุกวันกลางแจ้ง สตูดิโอสำหรับโฟโต้บุ๊กของคุณ ผู้ช่วยที่วางแผนไปกับคุณ และความช่วยเหลือในทุกหน้าจอ',
+    'การค้นหาสถานที่ การค้นหาที่อยู่ และการคำนวณเส้นทาง ตอนนี้ทำงานบนเซิร์ฟเวอร์ของ TREK เอง โดยได้รับการสนับสนุนจาก dataforest cloud และทุก TREK ยังแบ่งปันสิ่งที่รู้เกี่ยวกับสถานที่ให้กับ TREK อื่นทั้งหมดได้',
   'system_notice.release_notes.features_label': 'ไฮไลต์สำคัญ',
   'system_notice.release_notes.features_aside': 'ไกลจากทุกสิ่ง',
-  'system_notice.release_notes.feature_tours_title': 'ทัวร์',
-  'system_notice.release_notes.feature_tours_body':
-    'เดินป่า ปั่นจักรยาน วิ่ง ขี่ม้า พายเรือ เดินชมเมือง และวันเล่นสกี พร้อมกราฟความสูง ระดับความยาก และการบินชมแบบ 3D',
-  'system_notice.release_notes.feature_studio_title': 'TREK Studio', // same-as-en
-  'system_notice.release_notes.feature_studio_body':
-    'เปลี่ยนการเดินทางให้เป็นโฟโต้บุ๊กที่ออกแบบอย่างสวยงาม: 17 ธีม 34 แบบอักษร 160 สติกเกอร์ และจัดหน้าอัตโนมัติในคลิกเดียว',
-  'system_notice.release_notes.feature_assistant_title': 'ผู้ช่วย AI',
-  'system_notice.release_notes.feature_assistant_body':
-    'วางแผนทริปจริงของคุณไปพร้อมกับคุณ ด้วยบัญชี AI ที่คุณมีอยู่แล้ว ทุกการเปลี่ยนแปลงแสดงให้เห็นก่อนและย้อนกลับได้',
-  'system_notice.release_notes.feature_help_title': 'ความช่วยเหลือในทุกหน้าจอ ใน 27 ภาษา',
-  'system_notice.release_notes.feature_help_body':
-    'คู่มือทีละขั้นตอนราว 370 รายการ พร้อมภาพ 1,600 ภาพ อยู่ตรงที่คุณต้องการ ภาษาใหม่: อาเซอร์ไบจาน เอสโตเนีย สโลวัก และไทย',
+  'system_notice.release_notes.feature_search_title': 'ค้นหาสถานที่ได้ตรงใจ',
+  'system_notice.release_notes.feature_search_body':
+    'เมือง เกาะ แลนด์มาร์ก และสนามบินที่ค้นด้วยรหัส จะขึ้นมาก่อน ส่วนคาเฟ่จะหาจากรอบตัวคุณ และคำแนะนำจะแสดงขึ้นระหว่างที่คุณพิมพ์',
+  'system_notice.release_notes.feature_share_title': 'รายละเอียดสถานที่ แบ่งปันกัน',
+  'system_notice.release_notes.feature_share_body':
+    'แบ่งปันเว็บไซต์ เวลาเปิดทำการ และรูปภาพให้กับทุก TREK ได้ทีละช่อง และสถานที่ที่คุณบันทึกไว้จะได้รับข้อมูลที่คนอื่นเพิ่มเข้ามา',
+  'system_notice.release_notes.feature_routing_title': 'คำนวณเส้นทางได้เร็วขึ้น',
+  'system_notice.release_notes.feature_routing_body':
+    'คำนวณเส้นทางทั้งวันได้ในครั้งเดียว สูงสุด 20 จุดแวะ เส้นทางที่ช้าเส้นเดียวจะไม่ทำให้เส้นอื่นต้องรออีกต่อไป และขนส่งสาธารณะจะถามผู้ให้บริการรายที่สองเมื่อรายแรกหาไม่เจอ',
   'system_notice.release_notes.footnote': 'รวมถึงรายการการเปลี่ยนแปลงเล็ก ๆ อีกยาวเหยียดทั่วทั้ง TREK',
   'system_notice.release_notes.notes_label': 'บันทึกประจำรุ่น',
   'system_notice.release_notes.note_eyebrow': 'ข้อความจากผู้ดูแลโครงการ',
@@ -86,9 +83,10 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.note_body_after':
     'แล้วคุณก็ทำเช่นนั้น ภายในไม่กี่เดือนมีคุณหลายพันคน: ดาว รายงานบั๊ก คำแปลในภาษาที่ผมพูดไม่ได้ และ pull request จากผู้คนที่ผมไม่เคยพบ ผมยังตรวจดูคลังโค้ดเป็นสิ่งแรกทุกเช้า และมันก็ยังไม่ค่อยเหมือนเรื่องจริง',
   'system_notice.release_notes.note_closing': 'ขอบคุณที่อยู่ตรงนี้ จาก Maurice',
-  'system_notice.release_notes.support_lead': 'TREK ฟรีและจะฟรีเสมอ แต่เซิร์ฟเวอร์ โดเมน และคืนดึก ๆ มากมายไม่ฟรี',
+  'system_notice.release_notes.support_label': 'อิสระต่อไป',
+  'system_notice.release_notes.support_lead': 'ไม่ต้องพึ่ง Google และเจ้าใหญ่อื่น ๆ',
   'system_notice.release_notes.support_text':
-    'หาก TREK มีที่ในทริปของคุณ ซื้อกาแฟให้ผมสักแก้วและช่วยให้อัปเดตถัดไปเกิดขึ้นได้',
+    'การค้นหาสถานที่ การค้นหาที่อยู่ และการคำนวณเส้นทาง ทำงานบนเซิร์ฟเวอร์ของ TREK เอง ซึ่งวันนี้ได้รับการสนับสนุนจาก dataforest cloud ผมสู้เพื่อสิ่งนี้ทุกวัน และการรักษามันไว้แบบนี้ต้องอาศัยการสนับสนุนจากคุณ',
   'system_notice.release_notes.cta_bmc': 'ซื้อกาแฟให้ผม',
   'system_notice.release_notes.cta_kofi': 'สนับสนุนผ่าน Ko-fi',
 };

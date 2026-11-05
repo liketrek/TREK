@@ -440,6 +440,8 @@ export const CHANGE_LABELS: Record<AssistantChangeLabelKey, { labelKey: string }
   currency: { labelKey: 'assistant.change.label.currency' },
   stopType: { labelKey: 'assistant.change.label.stopType' },
   text: { labelKey: 'assistant.change.label.text' },
+  title: { labelKey: 'assistant.change.label.title' },
+  content: { labelKey: 'assistant.change.label.content' },
   icon: { labelKey: 'assistant.change.label.icon' },
   color: { labelKey: 'assistant.change.label.color' },
   position: { labelKey: 'assistant.change.label.position' },

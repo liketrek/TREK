@@ -165,5 +165,14 @@ const places: TranslationStrings = {
   'places.image.needsConnection': 'Gambar baru butuh koneksi. Simpan lagi saat sudah online.',
   'places.openPhotos': 'Lihat foto',
   'places.imageUploadError': 'Tidak dapat mengunggah gambar',
+  'places.refresh.pill': 'Data tempat baru',
+  'places.refresh.title': 'Perbarui data tempat',
+  'places.refresh.intro':
+    'TREK mengetahui data yang lebih baru untuk tempat ini. Pilih yang ingin diambil; sisanya tetap. Simpan tempat setelahnya.',
+  'places.refresh.apply': 'Ambil',
+  'places.refresh.replaces': 'Menggantikan nilai yang tersimpan',
+  'places.refresh.empty': 'kosong',
+  'places.refresh.now': 'Sekarang',
+  'places.refresh.new': 'Baru',
 };
 export default places;

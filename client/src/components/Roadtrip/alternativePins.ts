@@ -1,5 +1,5 @@
 import { MAX_WAY_PINS, pinWay, type PinnedWay, type WayPin } from '@trek/shared'
-import type { RoadLine } from '../Map/RouteCalculator'
+import type { RoadLine } from '../Map/routeTypes'
 import { isStoredStop, type RouteSegment } from '@trek/shared/roadtrip'
 import type { RailLegRoute, RailLegRouter, RoadtripDay, RoadtripStop } from './useRoadtripRoutes'
 import type { OfferedRoute, RailDrive, ViaAnchor } from './useRouteAlternatives'

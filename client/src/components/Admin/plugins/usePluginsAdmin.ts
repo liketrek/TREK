@@ -317,9 +317,14 @@ export function usePluginsAdmin() {
       act(
         id,
         () =>
-          adminApi.pluginInstall(id, version ? { version } : undefined).then((r) => {
-            if (!warn) bypass.notice(id, r?.trekRangeBypassed);
-          }),
+          adminApi
+            .pluginInstall(id, {
+              ...(version ? { version } : {}),
+              ...(warn?.acceptedByAdmin ? { acceptTrekRange: true } : {}),
+            })
+            .then((r) => {
+              if (!warn) bypass.notice(id, r?.trekRangeBypassed);
+            }),
         t('admin.plugins.installed')
       )
     );
@@ -392,10 +397,10 @@ export function usePluginsAdmin() {
     }
   };
 
-  const attemptActivate = (p: PluginRow) => {
+  const attemptActivate = (p: PluginRow, acceptTrekRange = false) => {
     const cascaded = autoEnabledDeps(p);
     return adminApi
-      .pluginActivate(p.id)
+      .pluginActivate(p.id, false, acceptTrekRange)
       .then(() => {
         toast.success(t('admin.plugins.activated'));
         if (cascaded.length)
@@ -415,12 +420,29 @@ export function usePluginsAdmin() {
       void act(p.id, () => adminApi.pluginDeactivate(p.id), t('admin.plugins.deactivated'));
       return;
     }
-    setBusy(p.id);
-    setMenu(null);
-    attemptActivate(p).finally(() => {
-      setBusy(null);
-      refresh();
-    });
+    const run = (acceptTrekRange: boolean) => {
+      setBusy(p.id);
+      setMenu(null);
+      attemptActivate(p, acceptTrekRange).finally(() => {
+        setBusy(null);
+        refresh();
+      });
+    };
+    // Outside the TREK versions its author declared: the admin may run it anyway, after
+    // reading what that risks. The choice holds for this version of the plugin only.
+    if (p.dependencyStatus === 'hostIncompatible') {
+      const warn: RangeWarning = {
+        name: p.name,
+        trekRange: p.trekRange ?? null,
+        hostVersion: p.hostVersion ?? '?',
+        acceptedByAdmin: true,
+        onConfirm: null,
+        action: 'activate',
+      };
+      bypass.guard(warn, () => run(true));
+      return;
+    }
+    run(false);
   };
 
   // Download a missing/outdated plugin dependency (latest compatible for its range,

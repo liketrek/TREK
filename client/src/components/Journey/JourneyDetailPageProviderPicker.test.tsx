@@ -375,11 +375,12 @@ describe('ProviderPicker', () => {
     await user.click(screen.getByRole('button', { name: 'Search' }))
     expect(ranges).toHaveLength(0)
 
+    // The calendar opens in a portal, so its days are looked up on the page, not under the trigger.
     const [fromPicker, toPicker] = Array.from(baseElement.querySelectorAll('.flex-1 > .relative')) as HTMLElement[]
     await user.click(within(fromPicker).getByRole('button'))
-    await user.click(within(fromPicker).getByRole('button', { name: '3' }))
+    await user.click(screen.getByRole('button', { name: '3' }))
     await user.click(within(toPicker).getByRole('button'))
-    await user.click(within(toPicker).getByRole('button', { name: '9' }))
+    await user.click(screen.getByRole('button', { name: '9' }))
     await user.click(screen.getByRole('button', { name: 'Search' }))
 
     await waitFor(() => expect(ranges).toHaveLength(1))

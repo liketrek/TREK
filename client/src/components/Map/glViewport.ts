@@ -1,3 +1,4 @@
+import { bboxOnRealWorld } from '../../utils/worldCopy';
 import { rasterTileZoom } from './glRasterLayers';
 import type { MapViewProps } from './mapViewContract';
 
@@ -16,6 +17,11 @@ interface ViewportSource {
 export function reportGlViewport(map: ViewportSource, report: MapViewProps['onViewportChange']): void {
   const bounds = map.getBounds();
   if (!report || !bounds) return;
-  const bbox = { south: bounds.getSouth(), west: bounds.getWest(), north: bounds.getNorth(), east: bounds.getEast() };
+  const bbox = bboxOnRealWorld({
+    south: bounds.getSouth(),
+    west: bounds.getWest(),
+    north: bounds.getNorth(),
+    east: bounds.getEast(),
+  });
   report(bbox, rasterTileZoom(map.getZoom()));
 }

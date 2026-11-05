@@ -1,4 +1,4 @@
-// FE-REPO-PLACE-001 to FE-REPO-PLACE-013
+// FE-REPO-PLACE-001 to FE-REPO-PLACE-013, FE-REPO-PLACE-030
 // Offline write paths (mutation queue + optimistic Dexie rows) and the bulk
 // online paths, which tests/unit/repo/placeRepo.test.ts does not touch.
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
@@ -48,6 +48,21 @@ describe('placeRepo.create — offline', () => {
     expect(mutation.tempId).toBe(place.id)
     expect(mutation.status).toBe('pending')
     expect(mutation.body).toEqual({ name: 'Park Güell' })
+  })
+})
+
+describe('placeRepo — field origins offline', () => {
+  it('FE-REPO-PLACE-030: the queued body carries fieldOrigins for the replay, the optimistic row does not', async () => {
+    const { place } = await placeRepo.create(3, { name: 'Cafe', website: 'https://cafe.example', fieldOrigins: { website: 'user' } })
+    const cached = await offlineDb.places.get(place.id)
+    expect(cached).not.toHaveProperty('fieldOrigins')
+    expect(place).not.toHaveProperty('fieldOrigins')
+
+    await placeRepo.update(3, place.id, { phone: '+49 1', fieldOrigins: { phone: 'user' } })
+    const mutations = await queue()
+    expect(mutations.find(m => m.method === 'POST')?.body).toEqual({ name: 'Cafe', website: 'https://cafe.example', fieldOrigins: { website: 'user' } })
+    expect(mutations.find(m => m.method === 'PUT')?.body).toEqual({ phone: '+49 1', fieldOrigins: { phone: 'user' } })
+    expect(await offlineDb.places.get(place.id)).not.toHaveProperty('fieldOrigins')
   })
 })
 

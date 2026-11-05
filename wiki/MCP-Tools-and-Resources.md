@@ -24,7 +24,7 @@ Compound tools collapse multi-step workflows into a single atomic transaction. I
 |---|---|---|
 | `create_and_assign_place` | `create_place` + `assign_place_to_day` | Create a place and assign it to a day. Takes the same place fields as `create_place`, `stop_type` included. Returns `{ place, assignment }`. Requires `places:write`. |
 | `create_place_accommodation` | `create_place` + `create_accommodation` | Create a place and book it as an accommodation. Returns `{ place, accommodation }`. Requires `trips:write`. |
-| `create_budget_item_with_members` | `create_budget_item` + `set_budget_item_members` | Create a budget item and set splitting members. If `userIds` is omitted or empty, the cost is split across all trip members, like `create_budget_item` without `member_ids`. Returns `{ item }`. Requires `budget:write`. |
+| `create_budget_item_with_members` | `create_budget_item` + `set_budget_item_members` | Create a budget item and set splitting members. If `userIds` is omitted or empty, the cost is split across all trip members, like `create_budget_item` without `member_ids`. Takes the same `reservation_id` / `place_id` links. Returns `{ item }`. Requires `budget:write`. |
 
 ### Trips
 
@@ -101,8 +101,8 @@ Requires `trips:read` or `trips:write` scope.
 
 | Tool | Description |
 |---|---|
-| `create_day_note` | Add a note to a specific day with optional time label and emoji icon. |
-| `update_day_note` | Edit a day note's text, time, or icon. |
+| `create_day_note` | Add a note to a specific day: `text` is the title, `time` the Markdown body (up to 2000 characters), plus an optional icon and colour. |
+| `update_day_note` | Edit a day note's title (`text`), body (`time`), icon, colour or position. |
 | `delete_day_note` | Remove a note from a day. |
 
 ### Accommodations
@@ -128,13 +128,13 @@ Requires `reservations:write` scope.
 
 ### Automated public transit
 
-Transit search is powered by Transitous and uses the existing `geo:read` and `reservations:write` scopes.
+Transit search is powered by the configured transit provider (Transitous by default, or Google), falls back to the other one when the first finds no route, and uses the existing `geo:read` and `reservations:write` scopes.
 
 | Tool | Scope required | Description |
 |---|---|---|
 | `search_transit_stops` | `geo:read` | Search real public-transit stops and stations, optionally biased around coordinates. |
-| `search_transit_routes` | `geo:read` | Search scheduled routes between two coordinates with time, mode, and transfer filters. Also returns `dropped`, the number of provider itineraries that failed validation and are absent from the results. |
-| `create_transit_journey` | `reservations:write` | Save a selected route as a first-class automated transit journey on a trip day. |
+| `search_transit_routes` | `geo:read` | Search scheduled routes between two coordinates with time, mode, and transfer filters. Also returns `provider` (`transitous` or `google`, the backend that answered) and `dropped`, the number of provider itineraries that failed validation and are absent from the results. |
+| `create_transit_journey` | `reservations:write` | Save a selected route as a first-class automated transit journey on a trip day. Pass `provider` from `search_transit_routes` to preserve the actual source, including fallback results. Older callers that omit it retain the configured-provider behavior. `price` records the fare as an expense linked to the journey (`budget_category`, `transport` by default). |
 
 ### Reservations
 
@@ -159,7 +159,7 @@ Requires `budget:read` or `budget:write` scope. The Budget addon must be enabled
 |---|---|
 | `list_budget_items` | The trip's expenses with their ids, a page at a time (`offset`, `limit` up to 100, 50 by default). A page of long expenses ends earlier, so a client goes on at `next_offset` until it is `null`. Per expense: name, category, price and currency, date, the start of its note, the linked place or booking, who paid how much and who shares it, what a foreign expense comes to in the trip currency (`trip_amount`) and how many receipts it has (`receipt_count`). Next to the page the trip currency, the total and the totals per category over all expenses, and `unconverted_item_ids` for foreign expenses no rate converts. |
 | `get_budget_per_person` | What each person's shares of the expenses add up to and how much of that they paid, in the trip currency, as the per-person summary in the app shows it. |
-| `create_budget_item` | Add an expense with name, category, and price. |
+| `create_budget_item` | Add an expense with name, category, and price. `reservation_id` / `place_id` link it to a booking or place of the same trip. |
 | `update_budget_item` | Update an expense's details, split (persons/days), or notes. `reservation_id` / `place_id` link it to a booking or place of the same trip; `null` unlinks it. |
 | `delete_budget_item` | Remove a budget item. |
 | `set_budget_item_members` | Set which members are splitting a budget item (replaces current list). |

@@ -10,6 +10,8 @@ import { SettingsCard, SettingRows, SettingsHint, StatusPill, SETTINGS_BUTTON, S
 import type { TranslationFn } from '../../types'
 import type { useAdmin } from './useAdmin'
 import { formatLastActive, inviteMeta, inviteStatus } from './adminModel'
+import { useDateFormat } from '../../hooks/useDateFormat'
+import { formatDisplayDate } from '../../utils/dateFormat'
 
 interface AdminUsersTabProps {
   admin: ReturnType<typeof useAdmin>
@@ -36,6 +38,7 @@ function RowIconButton({ label, onClick, disabled, danger, children }: { label: 
 // "Users" admin tab: user table, invite links, permissions panel + the
 // create-invite modal. Pure layout around the useAdmin hook — no logic of its own.
 export default function AdminUsersTab({ admin, t, locale }: AdminUsersTabProps): React.ReactElement {
+  const dateFormat = useDateFormat()
   const {
     hour12, currentUser,
     users, isLoading,
@@ -112,7 +115,7 @@ export default function AdminUsersTab({ admin, t, locale }: AdminUsersTabProps):
                           : <StatusPill>{t('settings.roleUser')}</StatusPill>}
                       </td>
                       <td className={`${TD} whitespace-nowrap font-geist tabular-nums text-content-muted`} style={fs(12)}>
-                        {new Date(u.created_at).toLocaleDateString(locale)}
+                        {formatDisplayDate(new Date(u.created_at), locale, {}, dateFormat)}
                       </td>
                       <td className={`${TD} whitespace-nowrap font-geist tabular-nums text-content-muted`} style={fs(12)}>
                         {/* Activity, not only sign-ins: a renewing cookie keeps people signed in for weeks. */}

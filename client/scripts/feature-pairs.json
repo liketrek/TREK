@@ -131,6 +131,15 @@
       ]
     },
     {
+      "feature": "Booking save follow-up: travellers and files before the editor closes",
+      "hooks": ["src/components/Planner/useBookingFollowUp.ts"],
+      "desktop": ["src/components/Planner/ReservationModal.tsx", "src/components/Planner/TransportModal.tsx"],
+      "mobile": [
+        "src/mobile/screens/trip/sheets/MReservationSheet.tsx",
+        "src/mobile/screens/trip/sheets/MTransportFormSheet.tsx"
+      ]
+    },
+    {
       "feature": "Bookings and transports lists",
       "hooks": ["src/components/Planner/bookings/bookingsModel.ts"],
       "desktop": [
@@ -739,11 +748,8 @@
     {
       "feature": "Settings / Map: mapSettingsModel",
       "hooks": ["src/components/Settings/mapSettingsModel.ts"],
-      "desktop": ["src/components/Admin/DefaultUserSettingsTab.tsx", "src/components/Settings/MapSettingsTab.tsx"],
-      "mobile": [
-        "src/mobile/screens/admin/MAdminDefaultUserSettings.tsx",
-        "src/mobile/screens/settings/MSettingsMap.tsx"
-      ]
+      "desktop": ["src/components/Settings/MapSettingsTab.tsx"],
+      "mobile": ["src/mobile/screens/settings/MSettingsMap.tsx"]
     },
     {
       "feature": "Settings / Map: useMapSettingsForm",
@@ -980,8 +986,11 @@
     }
   ],
   "mobileOnly": {
+    "src/mobile/screens/admin/MAdminOidcCard.tsx": "Markup only; the OIDC card of MAdminSettingsSection, with the form state from useAdmin and the save from its useAdminSettingsActions handed in through props.",
     "src/mobile/screens/admin/MAdminResetMfaSheet.tsx": "Markup only; the 2FA reset confirm that MAdminSheets opens, with the reset handed in through props from its useAdminUserActions.",
     "src/mobile/screens/admin/MAdminUi.tsx": "Phone only admin UI primitives (button, card, field, input, secret input, sheet frame).",
+    "src/mobile/screens/admin/MPluginVersionDate.tsx": "Markup only; the published date of a plugin version in MAdminPluginsPanel, formatted with the user's date format through useFormatDate.",
+    "src/mobile/screens/admin/MStorageReclaimCard.tsx": "Markup only; renders the reclaim view and handlers that MAdminStoragePanel takes from useStoragePanel, the twin of StorageReclaimSection.",
     "src/mobile/screens/atlas/MAtlasSearch.tsx": "Phone full screen country search overlay; options, suggestions and selection come through props from MAtlas.",
     "src/mobile/screens/atlas/MAtlasStatsCard.tsx": "Markup only; renders the AtlasStats that MAtlas passes in.",
     "src/mobile/screens/collections/MCollCategoryPicker.tsx": "Phone only category dropdown; value and categories come through props from the collection sheets.",

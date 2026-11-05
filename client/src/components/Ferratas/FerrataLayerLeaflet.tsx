@@ -3,6 +3,8 @@ import { useMemo, useState } from 'react';
 import { Marker, Polyline, Tooltip, useMap, useMapEvents } from 'react-leaflet';
 
 import { useTranslation } from '../../i18n';
+import { frameLine, frameLng } from '../../utils/lngFrame';
+import { useLngFrame } from '../Map/lngFrameContext';
 import { type FerrataGroup, ferrataLabel } from './ferrataGroups';
 import { FERRATA_ICON_MIN_ZOOM, FERRATA_ICON_SIZE, ferrataIconSvg, placeFerrataIcons } from './ferrataIcon';
 import { ferrataPositions } from './ferrataModel';
@@ -81,6 +83,8 @@ export default function FerrataLayerLeaflet({
   selectedId?: string | null;
 }) {
   const paint = useFerrataPaint();
+  // Drawn in the map's longitude frame, with the trip (#2975).
+  const frame = useLngFrame();
   const iconGroups = useIconGroups(groups);
   const [hovered, setHovered] = useState<string | null>(null);
   // Rebuilt per set of ferratas and per theme: pathOptions only reach Leaflet when their reference changes.
@@ -110,7 +114,7 @@ export default function FerrataLayerLeaflet({
       group.segments.map((segment) => ({
         group,
         segment,
-        positions: ferrataPositions(segment),
+        positions: frameLine(frame, ferrataPositions(segment)),
         casing,
         litCasing,
         line,
@@ -118,7 +122,7 @@ export default function FerrataLayerLeaflet({
         hit,
       }))
     );
-  }, [groups, paint]);
+  }, [groups, paint, frame]);
 
   if (lines.length === 0) return null;
   const lit = (group: FerrataGroup) => group.id === hovered || group.id === selectedId;
@@ -163,7 +167,7 @@ export default function FerrataLayerLeaflet({
       {iconGroups.map((group) => (
         <Marker
           key={`${group.id}-icon`}
-          position={group.midpoint}
+          position={frame ? [group.midpoint[0], frameLng(frame, group.midpoint[1])] : group.midpoint}
           icon={ICON}
           keyboard={false}
           eventHandlers={{

@@ -34,6 +34,7 @@ import { StorageService } from '../storage/storage.service';
 import { TokensModule } from '../tokens/tokens.module';
 import { TripMembershipModule } from '../trip-membership/trip-membership.module';
 import { AuthPublicController } from './auth-public.controller';
+import { AuthStorageRefsService } from './auth-storage-refs.service';
 import { AuthController } from './auth.controller';
 import { AVATAR_FILE_FILTER, MAX_AVATAR_SIZE } from './auth.controller';
 import { AuthMcp } from './auth.mcp';
@@ -166,6 +167,7 @@ import { MulterModule } from '@nestjs/platform-express';
     UserCleanupService,
     WebauthnConfigService,
     AuthMcp,
+    AuthStorageRefsService,
   ],
   exports: [AuthService, LoginSessionService, RegistrationInvitesService, PasskeyService, UserCleanupService],
 })

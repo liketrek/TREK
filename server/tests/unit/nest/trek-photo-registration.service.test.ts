@@ -272,6 +272,22 @@ describe('TrekPhotoRegistrationService.deleteIfOrphan (PH10-11)', () => {
     await repo.deleteIfOrphan(id);
     expect(await rawRow(id)).not.toBeNull();
   });
+
+  it('TREKPHOTO-064: a LOCAL photo the user deleted goes once nothing links it, so its bytes can be reclaimed', async () => {
+    const id = await repo.getOrCreateLocal('journey/deleted-by-user.jpg');
+    await repo.deleteIfOrphan(id, { local: true });
+    expect(await rawRow(id)).toBeNull();
+  });
+
+  it('TREKPHOTO-065: a deleted LOCAL photo another trip still links stays', async () => {
+    const { user } = createUser(testDb);
+    const id = await repo.getOrCreateLocal('journey/still-on-a-trip.jpg');
+    const trip = createTrip(testDb, user.id);
+    await insertRow(t, TripPhotos, { trip: trip.id, user: user.id, photo: id, shared: 1 });
+
+    await repo.deleteIfOrphan(id, { local: true });
+    expect(await rawRow(id)).not.toBeNull();
+  });
 });
 
 describe('M1: TripAlbumLinksRepository/TripPhotosRepository onConflict + empty-array branches', () => {

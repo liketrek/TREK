@@ -21,7 +21,7 @@ describe('the book words', () => {
     expect(french.locale).toBe('fr-FR');
     expect(french.labels).toMatchObject({
       day: 'JOUR {day}',
-      stations: 'Étapes',
+      stations: 'En chemin',
       summary: 'Résumé',
       countries: 'Pays',
     });
@@ -30,7 +30,7 @@ describe('the book words', () => {
       locale: 'en-US',
       labels: {
         day: 'DAY {day}',
-        stations: 'Stations',
+        stations: 'Along the way',
         summary: 'Summary',
         countries: 'Countries',
         distance: 'Distance',

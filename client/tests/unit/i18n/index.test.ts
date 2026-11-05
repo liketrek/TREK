@@ -75,8 +75,9 @@ describe('getIntlLanguage', () => {
 // ── FE-COMP-I18N-007/008: isRtlLanguage ──────────────────────────────────────
 
 describe('isRtlLanguage', () => {
-  it('FE-COMP-I18N-007: returns true only for Arabic', () => {
+  it('FE-COMP-I18N-007: returns true for Arabic and Hebrew', () => {
     expect(isRtlLanguage('ar')).toBe(true)
+    expect(isRtlLanguage('he')).toBe(true)
   })
 
   it('FE-COMP-I18N-008: returns false for all other supported languages', () => {

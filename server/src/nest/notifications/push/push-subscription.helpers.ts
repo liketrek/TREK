@@ -13,6 +13,8 @@ export const PUSH_SERVICE_HOSTS: readonly string[] = [
   // Chrome, Edge on Android, and every Chromium browser that uses Google's push.
   'fcm.googleapis.com',
   'android.googleapis.com',
+  // Google's newer push host, which Chrome on Android hands out more and more (#2939).
+  'jmt17.google.com',
   // Firefox (autopush).
   'updates.push.services.mozilla.com',
   'push.services.mozilla.com',

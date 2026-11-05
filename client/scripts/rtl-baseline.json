@@ -1,5 +1,5 @@
 {
-  "components/Admin/AdminPluginsPanel.tsx": 2,
+  "components/Admin/plugins/pluginMenu.ts": 2,
   "components/Budget/BudgetPanelMemberChips.tsx": 6,
   "components/Budget/CostsPanel.tsx": 3,
   "components/Budget/ReceiptPreviewModal.tsx": 2,
@@ -34,7 +34,7 @@
   "components/Map/locationMarkerMapbox.ts": 2,
   "components/Map/nightPauseMarker.ts": 4,
   "components/Map/ratingBadge.ts": 1,
-  "components/PDF/TripPDF.tsx": 8,
+  "components/PDF/TripPDF.tsx": 7,
   "components/PDF/tripMapImage.ts": 1,
   "components/Packing/PackingListPanelBagCard.tsx": 1,
   "components/Packing/PackingListPanelCategoryGroup.tsx": 3,

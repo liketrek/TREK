@@ -63,7 +63,7 @@ const reservations: TranslationStrings = {
   'reservations.type.car': 'Auto',
   'reservations.type.cruise': 'Kreuzfahrt',
   'reservations.type.event': 'Veranstaltung',
-  'reservations.type.tour': 'Tour', // same-as-en
+  'reservations.type.tour': 'Geführte Tour',
   'reservations.type.parking': 'Parkplatz',
   'reservations.type.other': 'Sonstiges',
   'reservations.type.bus': 'Bus', // same-as-en
@@ -85,8 +85,8 @@ const reservations: TranslationStrings = {
   'reservations.toast.updateError': 'Fehler beim Aktualisieren',
   'reservations.toast.deleteError': 'Fehler beim Löschen',
   'reservations.confirm.remove': 'Reservierung für "{name}" entfernen?',
-  'reservations.toast.fileUploaded': 'Datei hochgeladen',
-  'reservations.toast.uploadError': 'Fehler beim Hochladen',
+  'reservations.toast.filesNotUploaded':
+    'Die Buchung ist gespeichert, aber einige Dateien wurden nicht hochgeladen. Speichere erneut, um sie zu senden.',
   'reservations.newTitle': 'Neue Buchung',
   'reservations.bookingType': 'Art der Buchung',
   'reservations.titleLabel': 'Titel',
@@ -143,6 +143,14 @@ const reservations: TranslationStrings = {
   'reservations.import.cta': 'Aus Datei importieren',
   'reservations.import.dropHere': 'Buchungsbestätigungsdateien hier ablegen oder klicken zum Auswählen',
   'reservations.import.dropActive': 'Dateien zum Importieren ablegen',
+  'reservations.import.pinSearching': 'Wird auf der Karte gesucht …',
+  'reservations.import.pinFound': 'Auf der Karte',
+  'reservations.import.pinMissingTitle': 'Noch nicht auf der Karte',
+  'reservations.import.pinMissingBody':
+    'TREK hat diese Unterkunft nicht auf der Karte gefunden. Prüf Name und Adresse oben und such erneut, oder speichere sie ohne Kartenpunkt.',
+  'reservations.import.pinRetry': 'Erneut suchen',
+  'reservations.import.savedWithoutPin':
+    'Ohne Kartenpunkt gespeichert. Bearbeite den Ort und setze seine Position, damit er auf der Karte erscheint.',
   'reservations.import.acceptedFormats':
     'Akzeptiert: EML, PDF, PKPass, HTML, TXT (max. 10 MB pro Datei, bis zu 5 Dateien)',
   'reservations.import.acceptedPhotos': 'Fotos (JPG, PNG, WEBP) liest das KI-Modell.',

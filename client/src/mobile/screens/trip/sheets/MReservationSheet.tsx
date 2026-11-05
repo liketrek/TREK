@@ -9,14 +9,15 @@ import CustomTimePicker from '../../../../components/shared/CustomTimePicker'
 import { CustomDatePicker } from '../../../../components/shared/CustomDateTimePicker'
 import { Eyebrow, FIELD_CLS, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
 import MBookingFilesCosts from './MBookingFilesCosts'
-import { expenseRequestAfterSave, travelerIdsOf, travelersChanged, filesNeedConnection, uploadBookingFiles } from '../../../../components/Planner/bookingFormModel'
+import { expenseRequestAfterSave, travelerIdsOf, filesNeedConnection } from '../../../../components/Planner/bookingFormModel'
+import { useBookingFollowUp } from '../../../../components/Planner/useBookingFollowUp'
 import { useBookingExpenseIntent } from '../../../../components/Planner/useBookingExpenseIntent'
 import {
   RESERVATION_TYPE_OPTIONS as TYPE_OPTIONS, reservationFieldsFrom, reservationFieldsFromPrefill, selectedDayDate,
 } from '../../../../components/Planner/reservationFormModel'
 import { useReservationForm } from '../../../../components/Planner/useReservationForm'
+import StayPinStatus from '../../../../components/Planner/StayPinStatus'
 import { buildAssignmentOptions } from '../../../../components/Planner/assignmentOptions'
-import { useTripStore } from '../../../../store/tripStore'
 import type { BookingExpenseRequest } from '../../../../components/Planner/BookingCostsSection.types'
 import type { TripPlanner } from '../MTripShell'
 import { stayPlaces } from '../../../../utils/stayPlaces'
@@ -40,7 +41,8 @@ const EMPTY = {
  * driven by the planner's own editor flags (showReservationModal / editingReservation /
  * reservationPrefill / bookingForAssignmentId) so every entry point (bookings tab, day
  * sheet, timeline, import review) opens it unchanged. Saving reuses
- * planner.handleSaveReservation, which owns the accommodation split, file upload and undo.
+ * planner.handleSaveReservation, which owns the accommodation split and closes the sheet
+ * once the travellers and files that hang on the booking are written.
  */
 export default function MReservationSheet({ planner, onOpenExpense }: MReservationSheetProps) {
   const {
@@ -53,15 +55,21 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
     handleSaveReservation, canUploadFiles,
   } = planner
   const { locale } = useTranslation()
-  const setReservationTravelers = useTripStore(s => s.setReservationTravelers)
 
   const isBudgetEnabled = useAddonStore(s => s.isEnabled('budget'))
 
   const {
     form, setForm, set, isSaving, setIsSaving, pendingFiles, setPendingFiles, travelerIds, setTravelerIds, toggleTraveler,
     isEndBeforeStart, endTimeBeforeStartTime, dateBounds, startDate, startTime, setStartDate, setStartTime, takeStopDay,
-    pickPlace, pickHotelPlace, pickHotelStart, pickHotelEnd, saveData: buildSaveData,
+    pickPlace, pickHotelPlace, pickHotelStart, pickHotelEnd, stayPin, saveData: buildSaveData,
   } = useReservationForm(EMPTY, days, places)
+  // The import review hands the open sheet its next booking without closing it.
+  const session = showReservationModal ? (editingReservation ?? reservationPrefill ?? 'new') : null
+  const followUp = useBookingFollowUp({
+    session,
+    tripId, original: editingReservation, travelerIds, pendingFiles, setPendingFiles,
+    upload: canUploadFiles ? fd => planner.tripActions.addFile(tripId, fd) : undefined, t,
+  })
   const assignmentOptions = useMemo(
     () => buildAssignmentOptions(days, assignments, t, locale),
     [days, assignments, t, locale],
@@ -85,6 +93,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
     expense.reset()
     setPendingFiles([])
     setTravelerIds(travelerIdsOf(editingReservation))
+    stayPin.reset()
 
     const res = editingReservation
     if (res) {
@@ -93,6 +102,8 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
       const pf = reservationPrefill
       setForm({ ...EMPTY, ...reservationFieldsFromPrefill(pf, days, false) })
       setPendingFiles(pf._sourceFiles ?? [])
+      // Find an imported stay on the map now, so the review says whether it will show there.
+      if (pf.type === 'hotel') stayPin.lookUp(pf._venue?.name || pf.title, pf._venue?.address)
     } else {
       // Opened from a day's toolbar: start on that day rather than on a blank
       // date the user has to look up again (#1998). A hotel spans to the next
@@ -112,7 +123,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
         : EMPTY)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showReservationModal])
+  }, [session])
 
   const res = snap.res
   const isHotel = form.type === 'hotel'
@@ -149,17 +160,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
     setIsSaving(true)
     try {
       const saveData = buildSaveData({ assignmentId, isEdit: !!snap.res?.id, withCheckInEnd: false })
-      const saved = await handleSaveReservation(saveData as never)
-      // Persist the traveler assignment once we have the reservation id (from the
-      // save result on create, or the edited reservation) — only when it changed.
-      const savedId = saved?.id ?? res?.id
-      if (savedId) {
-        const { changed, nextIds } = travelersChanged(res, travelerIds)
-        if (changed) await setReservationTravelers(tripId, savedId, nextIds)
-      }
-      if (saved?.id && canUploadFiles) {
-        await uploadBookingFiles(fd => planner.tripActions.addFile(tripId, fd), saved.id, pendingFiles, form.title)
-      }
+      const saved = await handleSaveReservation(saveData as never, followUp.steps(form.title))
       const expenseRequest = expenseRequestAfterSave(withExpense, saved, form, days)
       if (expenseRequest) onOpenExpense(expenseRequest)
       if (importReviewActive && saved) advanceImportReview()
@@ -335,6 +336,13 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
               placeholder={t('reservations.locationPlaceholder')}
               className={FIELD_CLS}
             />
+            <div className="mt-2 empty:hidden">
+              <StayPinStatus
+                pin={stayPin.pin}
+                hidden={!!form.hotel_place_id}
+                onRetry={() => stayPin.lookUp(form.title, form.hotel_address)}
+              />
+            </div>
           </>
         )}
 

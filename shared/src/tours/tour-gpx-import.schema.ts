@@ -40,14 +40,20 @@ export const tourGpxPreviewTrackSchema = z.object({
   ended_at: z.string().nullable().optional(),
   /** Already in the trip under the same name and start: the import skips it, as it always has. */
   duplicate: z.boolean(),
+  /**
+   * A track of the same name already in the trip that is not a tour yet (one
+   * imported before Tours, #2810): the import makes that place the tour
+   * instead of skipping it. Never set together with `duplicate`.
+   */
+  adopts_track: z.boolean().optional(),
 });
 export type TourGpxPreviewTrack = z.infer<typeof tourGpxPreviewTrackSchema>;
 
 const leftOutCount = z.number().int().nonnegative();
 
-/** What a KML or KMZ file held besides its lines, counted by kind; none of it is imported. */
+/** What a file held besides its lines, counted by kind; none of it becomes a tour. */
 export const tourFileLeftOutSchema = z.object({
-  /** Single points (pins). */
+  /** Single points: a KML file's pins, a GPX file's waypoints. The client can add them as places. */
   points: leftOutCount,
   /** Polygons. */
   areas: leftOutCount,
@@ -58,7 +64,7 @@ export type TourFileLeftOut = z.infer<typeof tourFileLeftOutSchema>;
 
 export const tourGpxPreviewResponseSchema = z.object({
   tracks: z.array(tourGpxPreviewTrackSchema),
-  /** Only a KML or KMZ preview counts what it leaves out; a GPX preview never counted its loose waypoints. */
+  /** Absent when the file held nothing besides its lines. A GPX file only ever has points here. */
   left_out: tourFileLeftOutSchema.optional(),
 });
 export type TourGpxPreviewResponse = z.infer<typeof tourGpxPreviewResponseSchema>;

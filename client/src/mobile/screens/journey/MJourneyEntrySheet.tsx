@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useRef, useState, type CSSProperties } from 'react'
 import { Briefcase, Camera, Plus, Image, Images, X, MapPin, Locate, Trash2, CheckCircle2, MinusCircle, ChevronUp, ChevronDown, EyeOff, Play } from 'lucide-react'
 import MSheet from '../../components/MSheet'
 import MIconBtn from '../../components/MIconBtn'
@@ -9,12 +9,22 @@ import { CustomDatePicker } from '../../../components/shared/CustomDateTimePicke
 import { isVideoFile } from '../../../utils/videoPoster'
 import type { ResilientResult, UploadProgress } from '../../../utils/uploadQueue'
 import type { JourneyEntry, JourneyPhoto, GalleryPhoto, JourneyTrip } from '../../../store/journeyStore'
-import { useAddonStore } from '../../../store/addonStore'
 import { photoUrl, posterlessVideo } from '../../../pages/journeyDetail/JourneyDetailPage.helpers'
 import JournalBody from '../../../components/Journey/JournalBody'
 import { ProviderPicker } from '../../../components/Journey/JourneyDetailPageProviderPicker'
 import { MOBILE_MOODS, MOBILE_WEATHERS } from './mobileJourneyMeta'
 import { useJourneyEntryForm, type PendingProviderGroup } from '../../../components/Journey/useJourneyEntryForm'
+
+const NO_PROVIDERS: { id: string; name: string }[] = []
+
+/**
+ * A picked mood chip: its colour as the frame and the label, a light wash of it
+ * behind. The frame is the full colour because a tint alone left the grey neutral
+ * mood looking like the chips at rest on a dark sheet (#2905).
+ */
+function moodChipActiveStyle(color: string): CSSProperties {
+  return { background: `${color}33`, color, borderColor: color }
+}
 
 const PRO_COLOR = '#2FA37A'
 const CON_COLOR = '#D6273B'
@@ -38,6 +48,12 @@ interface MJourneyEntrySheetProps {
   readOnly?: boolean
   userId?: number
   trips?: JourneyTrip[]
+  /**
+   * The photo providers (Immich, Synology Photos) connected for this user. The
+   * journey screen asks once when it opens, so the sheet has the answer the
+   * moment it appears instead of probing again and growing a button later (#2908).
+   */
+  photoProviders?: { id: string; name: string }[]
   /** The optional fields this journey still keeps (discussion #2299). Values are never cleared. */
   showVerdict?: boolean
   showMood?: boolean
@@ -68,7 +84,7 @@ interface MJourneyEntrySheetProps {
  * search, mood (4), weather (6) and tags. Read-only for viewer contributors.
  */
 export default function MJourneyEntrySheet({
-  entry, galleryPhotos, quickCapture = false, readOnly = false, userId = 0, trips = [],
+  entry, galleryPhotos, quickCapture = false, readOnly = false, userId = 0, trips = [], photoProviders: providers = NO_PROVIDERS,
   showVerdict = true, showMood = true, showWeather = true, onMoveEarlier, onMoveLater, onDismiss,
   onClose, onSave, onUploadPhotos, onAddProviderPhotos, onDelete, onDone,
 }: MJourneyEntrySheetProps) {
@@ -88,40 +104,9 @@ export default function MJourneyEntrySheet({
   })
   const [showExternal, setShowExternal] = useState(false)
   const [externalProvider, setExternalProvider] = useState<string | null>(null)
-  const [providers, setProviders] = useState<{ id: string; name: string }[]>([])
   const [captureOnly, setCaptureOnly] = useState(quickCapture)
   const fileRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
-
-  // The addon list is already in the store — this only probes which of the
-  // photo providers is actually connected for this user.
-  const addons = useAddonStore(s => s.addons)
-  const addonsLoaded = useAddonStore(s => s.loaded)
-  const photoProviders = useMemo(
-    () => addons.filter(a => a.type === 'photo_provider' && a.enabled).map(a => ({ id: a.id, name: a.name })),
-    [addons],
-  )
-
-  useEffect(() => {
-    if (readOnly) return
-    // App.tsx loads the addon list on boot, so this only reacts to it. Kicking off
-    // a second load from here would race the other consumers, and loadAddons
-    // overwrites the list unconditionally when it lands.
-    if (!addonsLoaded) return
-    if (photoProviders.length === 0) { setProviders([]); return }
-    let active = true
-    ;void (async () => {
-      const connected: { id: string; name: string }[] = []
-      for (const provider of photoProviders) {
-        try {
-          const res = await fetch(`/api/integrations/memories/${provider.id}/status`, { credentials: 'include' })
-          if (res.ok && (await res.json()).connected) connected.push(provider)
-        } catch { /* provider stays hidden */ }
-      }
-      if (active) setProviders(connected)
-    })()
-    return () => { active = false }
-  }, [readOnly, addonsLoaded, photoProviders])
 
   const activeProvider = externalProvider || providers[0]?.id || null
   const providerExistingAssetIds = providerAssetIds(activeProvider)
@@ -191,13 +176,13 @@ export default function MJourneyEntrySheet({
               >
                 {uploadProgress ? (
                   <>
-                    <span className="h-[14px] w-[14px] animate-spin rounded-full border-2 border-[color:var(--m-rowbr)] border-t-m-muted" />
-                    {t('journey.editor.uploadingProgress', { done: String(uploadProgress.done), total: String(uploadProgress.total) })}
+                    <span className="h-[14px] w-[14px] shrink-0 animate-spin rounded-full border-2 border-[color:var(--m-rowbr)] border-t-m-muted" />
+                    <span className="truncate">{t('journey.editor.uploadingProgress', { done: String(uploadProgress.done), total: String(uploadProgress.total) })}</span>
                   </>
                 ) : (
                   <>
-                    {captureOnly ? <Camera size={14} strokeWidth={2.2} /> : <Plus size={14} strokeWidth={2.2} />}
-                    {captureOnly ? t('journey.photo.add') : t('journey.editor.uploadPhotos')}
+                    {captureOnly ? <Camera size={14} strokeWidth={2.2} className="shrink-0" /> : <Plus size={14} strokeWidth={2.2} className="shrink-0" />}
+                    <span className="truncate">{captureOnly ? t('journey.photo.add') : t('journey.editor.uploadPhotos')}</span>
                   </>
                 )}
               </button>
@@ -215,12 +200,14 @@ export default function MJourneyEntrySheet({
                     : 'border-dashed border-[color:var(--m-rowbr)] text-m-muted'
                 }`}
               >
-                <Image size={14} strokeWidth={2} />
-                {captureOnly ? t('journey.share.gallery') : t('journey.editor.fromGallery')}
+                <Image size={14} strokeWidth={2} className="shrink-0" />
+                <span className="truncate">{captureOnly ? t('journey.share.gallery') : t('journey.editor.fromGallery')}</span>
               </button>
               {/* Immich/Synology, the same source the desktop editor offers (#1808).
-                  Only shown once a provider is actually connected — on a phone a
-                  button that can only say "nothing connected" is not worth its width. */}
+                  Only shown once a provider is actually connected: on a phone a
+                  button that can only say "nothing connected" is not worth its width.
+                  The icons keep their size and the labels truncate, so a third
+                  button never squeezes the other two (#2908). */}
               {!captureOnly && providers.length > 0 && (
                 <button
                   type="button"
@@ -232,8 +219,8 @@ export default function MJourneyEntrySheet({
                       : 'border-dashed border-[color:var(--m-rowbr)] text-m-muted'
                   }`}
                 >
-                  <Images size={14} strokeWidth={2} />
-                  {t('journey.editor.externalPhotos')}
+                  <Images size={14} strokeWidth={2} className="shrink-0" />
+                  <span className="truncate">{t('journey.editor.externalPhotos')}</span>
                 </button>
               )}
             </div>
@@ -627,11 +614,12 @@ export default function MJourneyEntrySheet({
                   key={m.id}
                   type="button"
                   disabled={readOnly}
+                  aria-pressed={active}
                   onClick={() => setMood(active ? '' : m.id)}
                   className={`flex items-center gap-[5px] rounded-full border px-3 py-[7px] text-[0.71875rem] font-semibold ${
                     active ? '' : 'border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-muted'
                   }`}
-                  style={active ? { background: `${m.color}24`, color: m.color, borderColor: `${m.color}4D` } : undefined}
+                  style={active ? moodChipActiveStyle(m.color) : undefined}
                 >
                   <m.icon size={13} strokeWidth={2.2} />
                   {t(m.labelKey)}

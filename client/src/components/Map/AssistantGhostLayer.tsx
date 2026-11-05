@@ -1,7 +1,9 @@
 import L from 'leaflet';
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useMap } from 'react-leaflet';
+import { frameLng } from '../../utils/lngFrame';
 import { GHOST_SIZE, mountGhosts, setGhostHot, type GhostHandlers } from './assistantGhostMarker';
+import { useLngFrame } from './lngFrameContext';
 import type { AssistantGhost } from './mapViewContract';
 
 interface AssistantGhostLayerProps {
@@ -22,6 +24,8 @@ const GHOST_Z_OFFSET = 900;
  */
 export function AssistantGhostLayer({ ghosts, hoveredId, onHover, onClick }: AssistantGhostLayerProps) {
   const map = useMap();
+  // Pinned where the map draws the trip, in its longitude frame (#2975).
+  const frame = useLngFrame();
   const handlers = useRef<GhostHandlers>({ onHover, onClick });
   useLayoutEffect(() => {
     handlers.current = { onHover, onClick };
@@ -36,7 +40,11 @@ export function AssistantGhostLayer({ ghosts, hoveredId, onHover, onClick }: Ass
         const icon = L.divIcon({ html: el, className: 'trek-ghost-pin', iconSize: [GHOST_SIZE, GHOST_SIZE] });
         const label = document.createElement('span');
         label.textContent = ghost.name;
-        const marker = L.marker([ghost.lat, ghost.lng], { icon, keyboard: false, zIndexOffset: GHOST_Z_OFFSET })
+        const marker = L.marker([ghost.lat, frameLng(frame, ghost.lng)], {
+          icon,
+          keyboard: false,
+          zIndexOffset: GHOST_Z_OFFSET,
+        })
           .bindTooltip(label, { direction: 'top', offset: [0, -GHOST_SIZE / 2], className: 'map-tooltip' })
           .addTo(map);
         return { remove: () => marker.remove() };
@@ -48,7 +56,7 @@ export function AssistantGhostLayer({ ghosts, hoveredId, onHover, onClick }: Ass
       mounted.dispose();
       elements.current = new Map();
     };
-  }, [ghosts, map]);
+  }, [ghosts, map, frame]);
 
   useEffect(() => {
     setGhostHot(elements.current, hoveredId);

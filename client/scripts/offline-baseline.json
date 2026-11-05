@@ -150,7 +150,6 @@
   "src/pages/resetPassword/useResetPassword.ts",
   "src/pages/settings/useSettings.ts",
   "src/pages/sharedTrip/useSharedTrip.ts",
-  "src/pages/tripPlanner/useBookingEdits.ts",
   "src/pages/tripPlanner/usePlaceFormOpeners.ts",
   "src/pages/tripPlanner/usePlannerDialogs.ts",
   "src/pages/tripPlanner/useTripPlanner.ts",

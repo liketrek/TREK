@@ -569,12 +569,68 @@ describe('MTripShell', () => {
 
     afterEach(() => { vi.restoreAllMocks() })
 
-    it('FE-MOB-SHELL-044: a clipped active chip pulls itself into the middle of the rail', () => {
+    it('FE-MOB-SHELL-044: a clipped active chip is in the middle of the rail the moment it appears', () => {
       const scrollIntoView = vi.mocked(Element.prototype.scrollIntoView)
       scrollIntoView.mockClear()
       stubRects({ left: 480, right: 540 })
       renderShell({ selectedDayId: 12 } as Partial<TripPlanner>)
+      expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'auto', inline: 'center', block: 'nearest' })
+    })
+
+    it('FE-MOB-SHELL-093: a later day change on the rail glides to the chip', () => {
+      const scrollIntoView = vi.mocked(Element.prototype.scrollIntoView)
+      stubRects({ left: 480, right: 540 })
+      const { planner, rerenderShell } = renderShell({ selectedDayId: 11 } as Partial<TripPlanner>)
+      scrollIntoView.mockClear()
+
+      ;(planner as { selectedDayId: number | null }).selectedDayId = 12
+      rerenderShell()
+
+      expect(scrollIntoView).toHaveBeenCalledTimes(1)
       expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+    })
+
+    // #2880: the day is seeded while the splash still covers the shell, so the
+    // rail only exists after the selection has settled.
+    it('FE-MOB-SHELL-094: the active day is brought into view once the splash lifts (#2880)', () => {
+      const scrollIntoView = vi.mocked(Element.prototype.scrollIntoView)
+      scrollIntoView.mockClear()
+      stubRects({ left: 480, right: 540 })
+      const { planner, rerenderShell } = renderShell({ selectedDayId: 12, splashDone: false } as Partial<TripPlanner>)
+      expect(scrollIntoView).not.toHaveBeenCalled()
+
+      ;(planner as { splashDone: boolean }).splashDone = true
+      rerenderShell()
+
+      expect(scrollIntoView).toHaveBeenCalledTimes(1)
+      expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'auto', inline: 'center', block: 'nearest' })
+    })
+
+    it('FE-MOB-SHELL-095: after the splash a chip already in view leaves the rail alone', () => {
+      const scrollIntoView = vi.mocked(Element.prototype.scrollIntoView)
+      scrollIntoView.mockClear()
+      stubRects({ left: 40, right: 100 })
+      const { planner, rerenderShell } = renderShell({ selectedDayId: 12, splashDone: false } as Partial<TripPlanner>)
+
+      ;(planner as { splashDone: boolean }).splashDone = true
+      rerenderShell()
+
+      expect(scrollIntoView).not.toHaveBeenCalled()
+    })
+
+    it('FE-MOB-SHELL-096: re-entering the trip lines the rail up again without a glide', () => {
+      const scrollIntoView = vi.mocked(Element.prototype.scrollIntoView)
+      stubRects({ left: 480, right: 540 })
+      const { planner, rerenderShell } = renderShell({ selectedDayId: 12 } as Partial<TripPlanner>)
+
+      ;(planner as { isLoading: boolean }).isLoading = true
+      rerenderShell()
+      scrollIntoView.mockClear()
+      ;(planner as { isLoading: boolean }).isLoading = false
+      rerenderShell()
+
+      expect(scrollIntoView).toHaveBeenCalledTimes(1)
+      expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'auto', inline: 'center', block: 'nearest' })
     })
 
     it('FE-MOB-SHELL-045: a chip already in view never shifts the rail under the thumb', () => {

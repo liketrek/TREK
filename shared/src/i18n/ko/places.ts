@@ -164,5 +164,14 @@ const places: TranslationStrings = {
   'places.image.needsConnection': '새 이미지는 연결이 필요합니다. 온라인일 때 다시 저장하세요.',
   'places.openPhotos': '사진 보기',
   'places.imageUploadError': '이미지를 업로드할 수 없습니다',
+  'places.refresh.pill': '새 장소 정보',
+  'places.refresh.title': '장소 정보 업데이트',
+  'places.refresh.intro':
+    'TREK이 이 장소의 더 새로운 정보를 알고 있습니다. 가져올 항목을 고르세요. 나머지는 그대로입니다. 그다음 장소를 저장하세요.',
+  'places.refresh.apply': '가져오기',
+  'places.refresh.replaces': '지금 저장된 값을 대체합니다',
+  'places.refresh.empty': '비어 있음',
+  'places.refresh.now': '현재',
+  'places.refresh.new': '새 값',
 };
 export default places;

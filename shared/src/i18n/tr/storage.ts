@@ -140,5 +140,41 @@ const storage: TranslationStrings = {
   'storage.migrate.promptCancel': 'İptal',
   'storage.migrate.queued': 'Sırada: {categories}',
   'storage.migrate.queueDropped': 'Sonraki taşıma başlatılamadı — kalan kuyruk temizlendi: {categories}',
+  'storage.reclaim.title': 'Başvurulmayan dosyalar',
+  'storage.reclaim.hint':
+    'TREK her gece, artık hiçbir gezi, yer, günlük, koleksiyon veya kullanıcı tarafından kullanılmayan yüklenmiş dosyaları arar, örneğin bir gezi silindikten sonra.',
+  'storage.reclaim.check': 'Şimdi kontrol et',
+  'storage.reclaim.checked': 'Son kontrol: {age}',
+  'storage.reclaim.never': 'Henüz kontrol edilmedi',
+  'storage.reclaim.delete': 'Başvurulmayan dosyaları sil',
+  'storage.reclaim.freeable': 'Boşaltılabilir',
+  'storage.reclaim.waiting': 'Bir haftadan kısa süredir kullanılmıyor',
+  'storage.reclaim.deleted': 'Son gece temizliğiyle boşaltıldı',
+  'storage.reclaim.nothing': 'Başvurulmayan dosya bulunamadı.',
+  'storage.reclaim.stopped': 'Son kontrol erken durdu, çünkü çalışırken veritabanı geri yüklendi.',
+  'storage.reclaim.skip.sources_missing': "Atlandı: TREK'in her bölümüne sorulamadı",
+  'storage.reclaim.skip.shared_location': 'Atlandı: konumunu başka bir kategoriyle paylaşıyor',
+  'storage.reclaim.skip.list_failed': 'Atlandı: dosyalar listelenemedi',
+  'storage.reclaim.skip.source_failed': 'Atlandı: bir sorgu başarısız oldu',
+  'storage.reclaim.deleteHint':
+    "Kapalıyken gece kontrolü yalnızca rapor verir. Açıkken bir hafta boyunca hiçbir yerde kullanılmayan dosya silinir. TREK'te sildiğiniz dosyalar, geri almayla artık döndürülemeyecekleri için her iki durumda da bir gün sonra kaldırılır.",
+  'storage.reclaim.running': 'Kontrol ediliyor…',
+  'storage.reclaim.stoppedFailed': 'Son kontrol bir hata nedeniyle durdu. Bu gece yeniden çalışacak.',
+  'storage.reclaim.skip.foreign_install': 'Atlandı: başka bir TREK kurulumu bu depolamayı kullanıyor',
+  'storage.reclaim.skip.owner_unknown': 'Atlandı: TREK bu depolamayı kendisine ait olarak işaretleyemedi',
+  'storage.reclaim.skip.delete_failed': 'Durduruldu: depolama bir silme işlemini reddetti',
+  'storage.reclaim.skip.interrupted': 'Bitmeden durduruldu, rakamlar eksik',
+  'storage.reclaim.confirmNeeded':
+    'Bu dosyaların beşte birinden fazlası kullanılmıyor gibi görünüyor. Bunun beklenen bir durum olduğunu onaylayana kadar burada hiçbir şey silinmez.',
+  'storage.reclaim.confirm': 'Onayla',
+  'storage.reclaim.confirmed': 'Önümüzdeki 14 gün için onaylandı.',
+  'storage.reclaim.error.reclaim_busy': 'Başka bir depolama görevi çalışıyor. Birazdan tekrar deneyin.',
+  'storage.reclaim.error.reclaim_demo': 'Demo örneğinde kullanılamaz.',
+  'storage.reclaim.error.reclaim_nothing_to_confirm': 'Onaylanacak bir şey kalmadı. Önce bir kontrol çalıştırın.',
+  'storage.reclaim.skip.backup_running': 'Atlandı: bir yedekleme çalışıyordu',
+  'storage.reclaim.error.reclaim_confirm_stale':
+    'Sayı gösterildiğinden beri değişti. Yeni rakamı kontrol edin ve tekrar onaylayın.',
+  'storage.reclaim.error.reclaim_install_unknown':
+    'TREK kurulum kimliğini okuyamadı, bu yüzden hiçbir şey silmiyor. Veri klasörünü kontrol edin.',
 };
 export default storage;

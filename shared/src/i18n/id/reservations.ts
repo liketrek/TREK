@@ -61,7 +61,7 @@ const reservations: TranslationStrings = {
   'reservations.type.car': 'Mobil',
   'reservations.type.cruise': 'Kapal Pesiar',
   'reservations.type.event': 'Acara',
-  'reservations.type.tour': 'Tur',
+  'reservations.type.tour': 'Tur berpemandu',
   'reservations.type.parking': 'Parkir',
   'reservations.type.other': 'Lainnya',
   'reservations.type.bus': 'Bus', // same-as-en
@@ -78,8 +78,8 @@ const reservations: TranslationStrings = {
   'reservations.confirm.deleteBodyWithExpense': '"{name}" beserta biaya yang terkait akan dihapus permanen.',
   'reservations.toast.updated': 'Reservasi diperbarui',
   'reservations.toast.removed': 'Reservasi dihapus',
-  'reservations.toast.fileUploaded': 'File diunggah',
-  'reservations.toast.uploadError': 'Gagal mengunggah',
+  'reservations.toast.filesNotUploaded':
+    'Pemesanan sudah tersimpan, tetapi beberapa file gagal diunggah. Simpan lagi untuk mengirimnya.',
   'reservations.newTitle': 'Reservasi Baru',
   'reservations.bookingType': 'Jenis Pemesanan',
   'reservations.titleLabel': 'Judul',
@@ -140,6 +140,14 @@ const reservations: TranslationStrings = {
   'reservations.import.cta': 'Impor dari file',
   'reservations.import.dropHere': 'Seret file konfirmasi pemesanan ke sini atau klik untuk memilih',
   'reservations.import.dropActive': 'Lepaskan file untuk mengimpor',
+  'reservations.import.pinSearching': 'Mencari di peta…',
+  'reservations.import.pinFound': 'Di peta',
+  'reservations.import.pinMissingTitle': 'Belum ada di peta',
+  'reservations.import.pinMissingBody':
+    'TREK tidak menemukan penginapan ini di peta. Periksa nama dan alamat di atas lalu cari lagi, atau simpan tanpa pin.',
+  'reservations.import.pinRetry': 'Cari lagi',
+  'reservations.import.savedWithoutPin':
+    'Disimpan tanpa pin peta. Edit tempatnya dan atur lokasinya agar muncul di peta.',
   'reservations.import.acceptedFormats': 'Diterima: EML, PDF, PKPass, HTML, TXT (maks. 10 MB per file, hingga 5 file)',
   'reservations.import.acceptedPhotos': 'Foto (JPG, PNG, WEBP) dibaca oleh model AI.',
   'reservations.import.parsing': 'Memproses file…',

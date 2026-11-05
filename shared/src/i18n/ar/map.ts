@@ -34,6 +34,8 @@ const map: TranslationStrings = {
   'map.overview.hide': 'إخفاء الرحلة كاملة',
   'map.overview.total': 'المسافة الإجمالية',
   'map.attribution': 'مصادر الخريطة',
+  'map.overview.distanceAtLeast': '{distance} على الأقل',
+  'map.overview.notRouted': 'لم يُحسب المسار',
   'map.overview.unrouted': 'تعذّر حساب {count} مرحلة، لذا المسافات غير مكتملة.',
   'map.overview.unrouted.zero': 'لا توجد مراحل تعذّر حسابها.',
   'map.overview.unrouted.one': 'تعذّر حساب مرحلة واحدة، لذا المسافات غير مكتملة.',

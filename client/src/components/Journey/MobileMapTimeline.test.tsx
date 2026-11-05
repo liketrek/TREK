@@ -1,4 +1,4 @@
-// FE-COMP-JMAPTL-001 to FE-COMP-JMAPTL-016
+// FE-COMP-JMAPTL-001 to FE-COMP-JMAPTL-018
 
 const mapHandle = vi.hoisted(() => ({
   highlightMarker: vi.fn(),
@@ -188,6 +188,16 @@ describe('MobileMapTimeline', () => {
 
     expect(lastMapProps.current.activeMarkerId).toBe('2')
     expect(Element.prototype.scrollIntoView).toHaveBeenCalled()
+  })
+
+  it('FE-COMP-JMAPTL-018: a tap on a marker card opens that entry straight away (#2885)', () => {
+    const onEntryClick = vi.fn()
+    renderTimeline({ onEntryClick })
+    const onMarkerCardClick = lastMapProps.current.onMarkerCardClick as (id: string) => void
+
+    act(() => { onMarkerCardClick('2') })
+
+    expect(onEntryClick).toHaveBeenCalledWith(entries[1])
   })
 
   it('FE-COMP-JMAPTL-007: a marker click for an unknown entry is ignored', () => {

@@ -15,7 +15,7 @@ export type JourneyMapMark =
 export const PLAN_FALLBACK_COLOR = '#64748b';
 
 /**
- * Marks closer than this on screen are one hit: the reader could not pick one
+ * Marks in one cell of this size are one hit: the reader could not pick one
  * of them anyway. Tighter than the photo grid, since a mark is a pin and not a
  * thumbnail, so marks a street apart stay apart.
  */
@@ -27,19 +27,49 @@ const STAY_DOT = 14;
 const MARK_CLUSTER_SIZE = 28;
 
 /**
- * Grid clustering in screen space, shared by both renderers: points whose
- * projected position falls in the same `px` cell become one, anchored on the
- * first so the pin points where that member is. `project` is the engine's own
- * lat/lng to container-pixel conversion.
+ * A position in world pixels: the whole map laid out at the current zoom, with
+ * the origin at its north-west corner. Unlike a container point it does not
+ * move when the map is panned, rotated or tilted.
+ */
+export type WorldPx = (lat: number, lng: number) => { x: number; y: number };
+
+const MAX_MERCATOR_LAT = 85.0511287798;
+
+/**
+ * Web Mercator world pixels at `zoom` for a tile of `tileSize` pixels. Both GL
+ * engines lay out their world on 512 px tiles; Leaflet projects through its
+ * own CRS instead, so a GCJ-02 basemap keeps its offset.
+ */
+export function mercatorWorldPx(lat: number, lng: number, zoom: number, tileSize: number): { x: number; y: number } {
+  const size = tileSize * 2 ** zoom;
+  const phi = (Math.max(-MAX_MERCATOR_LAT, Math.min(MAX_MERCATOR_LAT, lat)) * Math.PI) / 180;
+  return {
+    x: ((lng + 180) / 360) * size,
+    y: ((1 - Math.log(Math.tan(phi) + 1 / Math.cos(phi)) / Math.PI) / 2) * size,
+  };
+}
+
+/** World pixels at a GL map's current zoom, free of its centre, bearing and pitch. */
+export function glWorldPx(map: { getZoom(): number }): WorldPx {
+  const zoom = map.getZoom();
+  return (lat, lng) => mercatorWorldPx(lat, lng, zoom, 512);
+}
+
+/**
+ * Grid clustering shared by both renderers: points whose world position falls
+ * in the same `px` cell become one, anchored on the first so the pin points
+ * where that member is. The grid is laid over the world and not over the
+ * viewport, so panning keeps every group as it is and only a zoom regroups
+ * (#2889).
  */
 export function clusterPoints<T extends { lat: number; lng: number }>(
   points: readonly T[],
-  project: (lat: number, lng: number) => { x: number; y: number },
+  toWorldPx: WorldPx,
   px: number
 ): { lat: number; lng: number; members: T[] }[] {
   const buckets = new Map<string, T[]>();
   for (const point of points) {
-    const pt = project(point.lat, point.lng);
+    const pt = toWorldPx(point.lat, point.lng);
     const key = `${Math.round(pt.x / px)}:${Math.round(pt.y / px)}`;
     const list = buckets.get(key);
     if (list) list.push(point);

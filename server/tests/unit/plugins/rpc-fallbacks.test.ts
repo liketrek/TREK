@@ -33,6 +33,9 @@ import type { EntityManager } from '@mikro-orm/core';
 
 import { describe, it, expect, vi } from 'vitest';
 
+/** The origin bookkeeping a place write does after it; these cases never reach it. */
+const ORIGINS = { record: vi.fn(), recordImported: vi.fn(), valuesBefore: vi.fn(() => null) } as never;
+
 const req = (method: string, params: Record<string, unknown> = {}): RpcRequest => ({
   k: 'req',
   id: 'x',
@@ -195,7 +198,7 @@ describe('a service that says no becomes a refusal, not a crash', () => {
       'p',
       ALL,
       makeDeps(),
-      createTestPluginRegistry([new PlacesRpc(places, journey, realtime(), guards)]),
+      createTestPluginRegistry([new PlacesRpc(places, journey, realtime(), guards, ORIGINS)]),
     );
     expect(err(await host.dispatch(req('places.delete', { tripId: 1, placeId: 7 }), 42)).message).toBe(
       'no place 7 on trip 1',
@@ -408,7 +411,7 @@ describe('every schema-validated method rejects a payload its schema refuses', (
       { get: () => vi.fn(() => ({ id: 1, trip: { id: 1 }, updatedTrip: { id: 1 }, reservation: { id: 1 } })) },
     ) as never;
     const registry = createTestPluginRegistry([
-      new PlacesRpc(anything, anything, realtime(), guards),
+      new PlacesRpc(anything, anything, realtime(), guards, anything),
       new DaysRpc(anything, realtime(), guards, anything),
       new PackingRpc(anything, realtime(), guards),
       new TripsRpc(anything, anything, anything, anything, realtime(), guards, anything, anything, em),

@@ -58,6 +58,8 @@ const dayplan: TranslationStrings = {
   'dayplan.pdf': 'PDF',
   'dayplan.pdfTooltip': '导出当天计划为 PDF',
   'dayplan.pdfMine': '我的计划 PDF',
+  'dayplan.pdfRouting': '正在计算路线：{done}/{total}',
+  'dayplan.pdfSkipRouting': '导出时跳过剩余路线',
   'dayplan.pdfMineSub': '仅包含你参与的活动和预订',
   'dayplan.gpxTooltip': '导出为 GPX，用于离线地图和 GPS 设备',
   'dayplan.gpxAll': '整趟行程',

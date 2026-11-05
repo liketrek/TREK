@@ -142,5 +142,43 @@ const storage: TranslationStrings = {
   'storage.migrate.queued': 'In Warteschlange: {categories}',
   'storage.migrate.queueDropped':
     'Die nächste Verschiebung konnte nicht gestartet werden — die verbleibende Warteschlange wurde geleert: {categories}',
+  'storage.reclaim.title': 'Nicht mehr genutzte Dateien',
+  'storage.reclaim.hint':
+    'Jede Nacht sucht TREK nach hochgeladenen Dateien, die keine Reise, kein Ort, kein Reisetagebuch, keine Sammlung und kein Nutzer mehr verwendet, etwa nach dem Löschen einer Reise.',
+  'storage.reclaim.check': 'Jetzt prüfen',
+  'storage.reclaim.checked': 'Letzte Prüfung: {age}',
+  'storage.reclaim.never': 'Noch nicht geprüft',
+  'storage.reclaim.delete': 'Nicht mehr genutzte Dateien löschen',
+  'storage.reclaim.deleteHint':
+    'Aus: Die nächtliche Prüfung berichtet nur. An: Eine Datei, die eine Woche lang nichts mehr verwendet, wird gelöscht. Was du in TREK löschst, wird so oder so einen Tag später entfernt, sobald kein Rückgängig es mehr zurückholen kann.',
+  'storage.reclaim.freeable': 'Kann freigegeben werden',
+  'storage.reclaim.waiting': 'Seit weniger als einer Woche ungenutzt',
+  'storage.reclaim.deleted': 'Bei der letzten nächtlichen Bereinigung freigegeben',
+  'storage.reclaim.nothing': 'Keine ungenutzten Dateien gefunden.',
+  'storage.reclaim.stopped':
+    'Die letzte Prüfung wurde vorzeitig beendet, weil währenddessen die Datenbank wiederhergestellt wurde.',
+  'storage.reclaim.skip.sources_missing': 'Übersprungen: Nicht jeder Teil von TREK konnte gefragt werden',
+  'storage.reclaim.skip.shared_location': 'Übersprungen: teilt den Speicherort mit einer anderen Kategorie',
+  'storage.reclaim.skip.list_failed': 'Übersprungen: Die Dateien konnten nicht aufgelistet werden',
+  'storage.reclaim.skip.source_failed': 'Übersprungen: Eine Abfrage ist fehlgeschlagen',
+  'storage.reclaim.running': 'Wird geprüft…',
+  'storage.reclaim.stoppedFailed':
+    'Die letzte Prüfung wurde nach einem Fehler abgebrochen. Sie läuft heute Nacht erneut.',
+  'storage.reclaim.skip.foreign_install': 'Übersprungen: Eine andere TREK-Installation nutzt diesen Speicher',
+  'storage.reclaim.skip.owner_unknown': 'Übersprungen: TREK konnte diesen Speicher nicht als eigenen markieren',
+  'storage.reclaim.skip.delete_failed': 'Abgebrochen: Der Speicher hat ein Löschen verweigert',
+  'storage.reclaim.skip.interrupted': 'Vorzeitig beendet, die Zahlen sind unvollständig',
+  'storage.reclaim.confirmNeeded':
+    'Mehr als ein Fünftel dieser Dateien wirkt ungenutzt. Hier wird nichts gelöscht, bis du bestätigst, dass das so stimmt.',
+  'storage.reclaim.confirm': 'Bestätigen',
+  'storage.reclaim.confirmed': 'Für die nächsten 14 Tage bestätigt.',
+  'storage.reclaim.error.reclaim_busy': 'Gerade läuft eine andere Speicheraufgabe. Versuch es gleich noch einmal.',
+  'storage.reclaim.error.reclaim_demo': 'Auf einer Demo-Instanz nicht verfügbar.',
+  'storage.reclaim.error.reclaim_nothing_to_confirm': 'Es gibt nichts mehr zu bestätigen. Starte zuerst eine Prüfung.',
+  'storage.reclaim.skip.backup_running': 'Übersprungen: Ein Backup lief',
+  'storage.reclaim.error.reclaim_confirm_stale':
+    'Die Zahl hat sich seit der Anzeige geändert. Prüf den neuen Wert und bestätige noch einmal.',
+  'storage.reclaim.error.reclaim_install_unknown':
+    'TREK konnte seine Installationskennung nicht lesen und löscht deshalb nichts. Prüf den Datenordner.',
 };
 export default storage;

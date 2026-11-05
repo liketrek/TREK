@@ -57,7 +57,7 @@
   "src/nest/notifications/transports/web-push.service.ts#WebPushService.settle": 2,
   "src/nest/oidc/oidc.controller.ts#OidcController.callback": 2,
   "src/nest/place-enrichment/place-enrichment.service.ts#PlaceEnrichmentService.collectPhotos": 5,
-  "src/nest/place-enrichment/place-enrichment.service.ts#PlaceEnrichmentService.enrich": 5,
+  "src/nest/place-enrichment/place-enrichment.service.ts#PlaceEnrichmentService.enrich": 4,
   "src/nest/place-enrichment/place-enrichment.service.ts#PlaceEnrichmentService.readCache": 2,
   "src/nest/place-enrichment/place-enrichment.service.ts#PlaceEnrichmentService.storeCandidate": 2,
   "src/nest/place-photos/place-photo-cache.job.ts#PlacePhotoCacheJob.onApplicationBootstrap": 2,

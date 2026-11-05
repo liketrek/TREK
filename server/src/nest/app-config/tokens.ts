@@ -31,5 +31,11 @@ export const storageConfig = registerAs('storage', () => BOOT_DERIVERS.storage(p
 export const transitConfig = registerAs('transit', () => BOOT_DERIVERS.transit(process.env));
 /** KitineraryExtractorService's binary probe (KITINERARY_EXTRACTOR_PATH, then PATH). */
 export const kitineraryConfig = registerAs('kitinerary', () => BOOT_DERIVERS.kitinerary(process.env));
+/**
+ * The installation identity towards the liketrek services, their Photon and
+ * their Valhalla (TREK_SERVICES, TREK_SERVICES_KEY, TREK_SERVICES_HOSTS,
+ * TREK_PHOTON_URL, TREK_VALHALLA_URL).
+ */
+export const servicesConfig = registerAs('services', () => BOOT_DERIVERS.services(process.env));
 
-export const BOOT_STABLE_TOKENS = [httpConfig, storageConfig, transitConfig, kitineraryConfig];
+export const BOOT_STABLE_TOKENS = [httpConfig, storageConfig, transitConfig, kitineraryConfig, servicesConfig];

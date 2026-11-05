@@ -456,6 +456,41 @@ export class BudgetItemsRepository extends TrekRepository<BudgetItems> {
       .execute();
   }
 
+  /**
+   * Every expense of the trip that is linked to a booking carrying a booking
+   * reference, with that booking's reference and title and the trip's currency:
+   * what a new booking's price is compared against to tell a ticket's fare
+   * booked a second time (#2895).
+   */
+  async listLinkedToReferencedReservations(trip_id: number): Promise<
+    {
+      reservation_id: number;
+      title: string;
+      confirmation_number: string | null;
+      total_price: number;
+      currency: string | null;
+      trip_currency: string | null;
+    }[]
+  > {
+    return await this.kysely<Pick<DB, 'budget_items' | 'reservations' | 'trips'>>()
+      .selectFrom('budget_items as b')
+      .innerJoin('reservations as r', 'r.id', 'b.reservation_id')
+      .innerJoin('trips as t', 't.id', 'b.trip_id')
+      .select([
+        'r.id as reservation_id',
+        'r.title',
+        'r.confirmation_number',
+        'b.total_price',
+        'b.currency',
+        't.currency as trip_currency',
+      ])
+      .where('b.trip_id', '=', trip_id)
+      .where('r.trip_id', '=', trip_id)
+      .where('r.confirmation_number', 'is not', null)
+      .orderBy('b.id', 'asc')
+      .execute();
+  }
+
   /** BG17's `budget_items` half — `UPDATE budget_items SET currency = ? WHERE trip_id = ? AND (currency IS NULL OR currency = '')`. */
   async pinCurrency(trip_id: number | string, prev_currency: string): Promise<void> {
     await this.kysely<BudgetKyselyDB>()

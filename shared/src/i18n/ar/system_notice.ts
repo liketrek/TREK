@@ -54,23 +54,20 @@ const system_notice: TranslationStrings = {
   'system_notice.thank_you_support.cta_kofi': 'ادعمني على Ko-fi',
   'system_notice.pager.counter': '{current} / {total}',
   'system_notice.release_notes.eyebrow': 'تم تثبيت التحديث',
-  'system_notice.release_notes.headline': 'أكبر إصدار من TREK حتى الآن.',
+  'system_notice.release_notes.headline': 'المكان الصحيح، أولًا.',
   'system_notice.release_notes.intro':
-    'جولات لكل يوم في الهواء الطلق، واستوديو لكتب صورك، ومساعد يخطط معك، ومساعدة في كل شاشة.',
+    'يعمل البحث عن الأماكن والبحث عن العناوين وتخطيط المسارات الآن على خوادم TREK الخاصة، برعاية dataforest cloud، ويمكن لكل نسخة من TREK أن تشارك ما تعرفه عن الأماكن مع جميع النسخ الأخرى.',
   'system_notice.release_notes.features_label': 'أبرز الجديد',
   'system_notice.release_notes.features_aside': 'وهذا ليس كل شيء',
-  'system_notice.release_notes.feature_tours_title': 'الجولات',
-  'system_notice.release_notes.feature_tours_body':
-    'المشي لمسافات طويلة وركوب الدراجات والجري وركوب الخيل والتجديف والتنزه في المدن وأيام التزلج، مع مخطط الارتفاعات ودرجات الصعوبة وتحليق ثلاثي الأبعاد.',
-  'system_notice.release_notes.feature_studio_title': 'TREK Studio', // same-as-en
-  'system_notice.release_notes.feature_studio_body':
-    'يحوّل رحلتك إلى كتاب صور مصمَّم: 17 سمة و34 خطًا و160 ملصقًا وتنسيق تلقائي بنقرة واحدة.',
-  'system_notice.release_notes.feature_assistant_title': 'المساعد الذكي',
-  'system_notice.release_notes.feature_assistant_body':
-    'يخطط معك لرحلاتك الحقيقية باستخدام حساب الذكاء الاصطناعي الذي لديك بالفعل. ترى كل تغيير أولًا ويمكنك التراجع عنه.',
-  'system_notice.release_notes.feature_help_title': 'مساعدة في كل شاشة، بـ27 لغة',
-  'system_notice.release_notes.feature_help_body':
-    'نحو 370 دليلًا خطوة بخطوة مع 1600 صورة، في المكان الذي تحتاجها فيه بالضبط. جديد: الأذربيجانية والإستونية والسلوفاكية والتايلاندية.',
+  'system_notice.release_notes.feature_search_title': 'بحث عن الأماكن يصيب الهدف',
+  'system_notice.release_notes.feature_search_body':
+    'تظهر المدن والجزر والمعالم والمطارات برموزها أولًا، وتأتي المقاهي من حولك، وتظهر الاقتراحات أثناء الكتابة.',
+  'system_notice.release_notes.feature_share_title': 'تفاصيل الأماكن للجميع',
+  'system_notice.release_notes.feature_share_body':
+    'شارك المواقع الإلكترونية وساعات العمل والصور مع كل نسخ TREK، حقلًا بحقل، وتحصل أماكنك المحفوظة على ما أضافه الآخرون.',
+  'system_notice.release_notes.feature_routing_title': 'تخطيط مسارات أسرع',
+  'system_notice.release_notes.feature_routing_body':
+    'يُحسب مسار يوم كامل دفعة واحدة بما يصل إلى عشرين محطة، ولم يعد مسار بطيء واحد يؤخر البقية، وتسأل وسائل النقل العام مزودًا ثانيًا عندما لا يجد الأول شيئًا.',
   'system_notice.release_notes.footnote': 'إلى جانب قائمة طويلة من التغييرات الأصغر في بقية أرجاء TREK.',
   'system_notice.release_notes.notes_label': 'ملاحظات الإصدار',
   'system_notice.release_notes.note_eyebrow': 'كلمة من صاحب المشروع',
@@ -83,10 +80,10 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.note_body_after':
     'ثم فتحتموه. وخلال بضعة أشهر صرتم بالآلاف: نجوم، وبلاغات أخطاء، وترجمات إلى لغات لا أتحدثها، وطلبات دمج من أشخاص لم ألتقِ بهم قط. ما زلت أتفقد المستودع أول شيء كل صباح، وما زال الأمر لا يبدو حقيقيًا تمامًا.',
   'system_notice.release_notes.note_closing': 'شكرًا لوجودك هنا. مع تحياتي، Maurice.',
-  'system_notice.release_notes.support_lead':
-    'صحيح أن TREK مجاني وسيبقى كذلك دائمًا، لكن الخوادم والنطاقات والكثير من الليالي المتأخرة ليست مجانية.',
+  'system_notice.release_notes.support_label': 'نبقى مستقلين',
+  'system_notice.release_notes.support_lead': 'بدون Google وأمثالها.',
   'system_notice.release_notes.support_text':
-    'إن كان TREK قد استحق مكانًا في رحلاتك، فاشترِ لي فنجان قهوة وساعد في أن يرى الإصدار القادم النور.',
+    'يعمل البحث عن الأماكن والبحث عن العناوين وتخطيط المسارات على خوادم TREK الخاصة، برعاية dataforest cloud اليوم. أناضل من أجل ذلك كل يوم، والحفاظ عليه يحتاج إلى دعمك.',
   'system_notice.release_notes.cta_bmc': 'اشترِ لي قهوة',
   'system_notice.release_notes.cta_kofi': 'ادعمني على Ko-fi',
 };

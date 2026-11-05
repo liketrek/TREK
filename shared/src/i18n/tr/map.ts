@@ -34,6 +34,8 @@ const map: TranslationStrings = {
   'map.overview.hide': 'Tüm geziyi gizle',
   'map.overview.total': 'Toplam mesafe',
   'map.attribution': 'Harita kaynakları',
+  'map.overview.distanceAtLeast': 'en az {distance}',
+  'map.overview.notRouted': 'rota hesaplanmadı',
   'map.overview.unrouted': '{count} etap hesaplanamadı, bu yüzden mesafeler eksik.',
   'map.overview.unrouted.one': '{count} etap hesaplanamadı, bu yüzden mesafeler eksik.',
   'map.overview.dayUnrouted': 'Bu günün {count} etabı hesaplanamadı',

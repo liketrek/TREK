@@ -34,4 +34,6 @@ export interface PluginsTable {
   update_block_version: InsertOptional<string | null>;
   trek_range: InsertOptional<string | null>;
   update_hold: InsertOptional<number>;
+  trek_range_accepted_version: InsertOptional<string | null>;
+  trek_range_accepted_host: InsertOptional<string | null>;
 }

@@ -20,11 +20,37 @@ if [ ! -f /app/server/dist/index.js ] || [ ! -d /app/node_modules/tsconfig-paths
   exit 1
 fi
 
-# Best effort: a read-only host filesystem or a locked-down bind mount must keep
-# booting, exactly as it did before.
-chown -R node:node /app/data /app/uploads 2>/dev/null || true
-
 # cd into server/ so tsconfig-paths/register finds tsconfig.json and
 # ../node_modules resolves correctly.
 cd /app/server
+
+# Already started as a non-root user (Kubernetes runAsUser, docker --user): there
+# is nothing to chown and no privilege to drop, and gosu would only fail to switch
+# users. Run Node as whoever we are; the volumes are that user's to provide.
+if [ "$(id -u)" != "0" ]; then
+  exec node --require tsconfig-paths/register dist/index.js
+fi
+
+# Hand the mounted data dirs to node. A blanket `chown -R` on every start
+# rewrote, and even a search for strays still read, every inode of the volume,
+# which on a large or network-backed one (NFS, CephFS, Longhorn) kept the
+# container busy for minutes before Node printed its first line (#2918). So only
+# the dir and what sits directly in it are looked at: a volume that is not
+# node's yet (a fresh one, or one copied in as root) shows there, and is handed
+# over once. A volume that refuses chown altogether (NFS with root_squash) is
+# said once per start instead of being walked file by file; such a pod belongs
+# under runAsUser 1000, see the Helm page of the wiki. Best effort either way: a
+# read-only host filesystem or a locked-down bind mount must keep booting.
+for dir in /app/data /app/uploads; do
+  [ -d "$dir" ] || continue
+  if [ -n "$(find "$dir" -maxdepth 1 \( ! -user node -o ! -group node \) -print -quit 2>/dev/null)" ]; then
+    if chown node:node "$dir" 2>/dev/null; then
+      echo "Correcting ownership of $dir for the node user..."
+      chown -R -h node:node "$dir" 2>/dev/null || true
+    else
+      echo "WARNING: $dir cannot be handed to the node user (chown refused); run the container as uid 1000 instead."
+    fi
+  fi
+done
+
 exec gosu node node --require tsconfig-paths/register dist/index.js

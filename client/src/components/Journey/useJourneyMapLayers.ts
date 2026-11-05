@@ -163,6 +163,7 @@ export function useJourneyMapLayers({
           color,
           points,
           kind: 'day_recording',
+          date: day.date,
         }));
       }),
     [sources.recordings, colorOfDay, t, locale]
@@ -187,7 +188,7 @@ export function useJourneyMapLayers({
     [places, stays, visibility, entryIdsOnMap, stayColor]
   );
 
-  const recordedDays = useMemo(() => new Set(recorded.map((track) => track.name)).size, [recorded]);
+  const recordedDays = useMemo(() => new Set(recorded.map((track) => track.date ?? track.name)).size, [recorded]);
   const controls = useMemo(
     () =>
       buildControls({

@@ -1,3 +1,4 @@
+import { intlLocale } from './assistant-words';
 import { fileKeyOf } from './cards/card-values';
 import type { AssistantFocus, AssistantMention } from '@trek/shared';
 
@@ -412,7 +413,7 @@ export function todayIn(timeZone: string, now: Date): string {
 /** The English name of a locale's language, for the instruction to answer in it. */
 export function languageName(locale: string): string {
   try {
-    return new Intl.DisplayNames(['en'], { type: 'language' }).of(locale) ?? locale;
+    return new Intl.DisplayNames(['en'], { type: 'language' }).of(intlLocale(locale)) ?? locale;
   } catch {
     return locale;
   }

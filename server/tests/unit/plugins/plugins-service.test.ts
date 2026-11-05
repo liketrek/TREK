@@ -134,8 +134,30 @@ describe('PluginsService.list', () => {
       expect(out.ignoreTrekRange).toBe(true);
       expect(out.plugins[0]).toMatchObject({
         dependencyStatus: 'ok',
-        trekRangeBypassed: { trekRange: '>=3.0.0 <4.0.0', hostVersion: '4.1.0' },
+        trekRangeBypassed: { trekRange: '>=3.0.0 <4.0.0', hostVersion: '4.1.0', acceptedByAdmin: false },
       });
+    });
+
+    it("an admin's consent for this version lets the outgrown plugin activate and names it as theirs", async () => {
+      process.env.APP_VERSION = '4.1.0';
+      await insertRow(orm, Plugins, {
+        id: 'old',
+        name: 'Old',
+        type: 'widget',
+        status: 'inactive',
+        version: '1.0.0',
+        trek_range: '>=3.0.0 <4.0.0',
+        trek_range_accepted_version: '1.0.0',
+        trek_range_accepted_host: '4.0.0',
+      });
+      const out = await (await makeService()).list();
+      expect(out.ignoreTrekRange).toBe(false);
+      expect(out.plugins[0]).toMatchObject({
+        dependencyStatus: 'ok',
+        trekRangeBypassed: { trekRange: '>=3.0.0 <4.0.0', hostVersion: '4.1.0', acceptedByAdmin: true },
+      });
+      // The consent stays on the server: the list does not hand its columns out.
+      expect(out.plugins[0]).not.toHaveProperty('trek_range_accepted_version');
     });
 
     it('a plugin inside its range carries no marker even with the switch on', async () => {

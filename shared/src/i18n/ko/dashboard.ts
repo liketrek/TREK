@@ -104,6 +104,8 @@ const dashboard: TranslationStrings = {
   'dashboard.unsplashQueryRequired': '검색어를 입력하세요',
   'dashboard.unsplashNoResults': '이미지를 찾을 수 없습니다',
   'dashboard.coverSearchError': 'Unsplash 검색에 실패했습니다',
+  'dashboard.unsplashKeyNeeded':
+    'Unsplash가 이 서버를 거부했습니다. 관리자가 관리자 설정에서 무료 Unsplash API 키를 추가하면 이미지 검색이 작동합니다.',
   'dashboard.useUnsplashPhoto': '{photographer}님의 Unsplash 사진 사용',
   'dashboard.titleRequired': '제목을 입력하세요',
   'dashboard.endDateError': '종료일은 시작일 이후여야 합니다',

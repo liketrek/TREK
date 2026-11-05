@@ -184,6 +184,12 @@ const docsync: TranslationStrings = {
   'docsync.error.provider_disabled':
     'Приостановлено: администратор отключил этого провайдера. Синхронизация возобновится, как только его снова включат.',
   'docsync.binding.reconnect': 'Подключить заново',
+  'docsync.connection.title': 'Подключение',
+  'docsync.connection.hint': 'Адрес и данные входа, которые TREK использует для этого хранилища.',
+  'docsync.connection.edit': 'Изменить подключение',
+  'docsync.connection.remove': 'Удалить подключение',
+  'docsync.connection.confirmRemove':
+    'TREK забудет адрес и данные входа для этого хранилища, и вся синхронизация этой поездки через него остановится. Документы останутся в TREK и в хранилище.',
 };
 
 export default docsync;

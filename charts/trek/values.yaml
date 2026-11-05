@@ -10,6 +10,34 @@ image:
 # processes on one host, which network filesystems do not provide.
 updateStrategy: Recreate
 
+# Pod-level security context. fsGroup gives the node user (uid/gid 1000) group access
+# to the data and uploads volumes; OnRootMismatch lets the kubelet skip its recursive
+# permission walk once the volume root already matches, so a big PVC does not hold up
+# every start.
+#
+# By default the container starts as root, hands any files that are not node's yet to
+# node, and then drops to node itself. To start it as node straight away (needed under
+# the "restricted" Pod Security Standard), add the user here and lock the container
+# down below; the image then skips the ownership step and the privilege drop:
+#   podSecurityContext:
+#     fsGroup: 1000
+#     fsGroupChangePolicy: OnRootMismatch
+#     runAsUser: 1000
+#     runAsGroup: 1000
+#     runAsNonRoot: true
+#     seccompProfile:
+#       type: RuntimeDefault
+#   securityContext:
+#     allowPrivilegeEscalation: false
+#     capabilities:
+#       drop: [ALL]
+podSecurityContext:
+  fsGroup: 1000
+  fsGroupChangePolicy: OnRootMismatch
+
+# Security context of the trek container itself. Empty by default.
+securityContext: {}
+
 # Optional image pull secrets for private registries
 imagePullSecrets: []
   # - name: my-registry-secret
@@ -36,7 +64,7 @@ env:
   # Browser/OS language is auto-detected first; this is the fallback when no match is found.
   # Supported: ar, az, br, ca, cs, de, en, es, et, fr, gr, hu, id, it, ja, ko, nl, pl, ru, sk, sv, th, tr, uk, vi, zh, zh-TW
   # ALLOWED_ORIGINS: ""
-  # NOTE: If using ingress, ensure env.ALLOWED_ORIGINS matches the domains in ingress.hosts for proper CORS configuration.
+  # NOTE: If using ingress or HTTPRoute, ensure env.ALLOWED_ORIGINS matches the public domains for proper CORS configuration.
   # APP_URL: "https://trek.example.com"
   # Public base URL of this instance. Required when OIDC is enabled — must match the redirect URI registered with your IdP.
   # Also used as the base URL for links in email notifications and other external links.
@@ -92,7 +120,8 @@ env:
   # Custom Nominatim base URL for every geocoding call the server makes (place search, reverse lookup, Atlas region
   # fill). When set it REPLACES the public OpenStreetMap service, with no fallback, so the instance behind it needs
   # the coverage you expect and has to speak the Nominatim API. TREK keeps its ~1 request per second spacing either
-  # way. Defaults to https://nominatim.openstreetmap.org.
+  # way, and search and reverse lookups no longer go to the TREK services' Photon. Defaults to
+  # https://nominatim.openstreetmap.org.
   # OVERPASS_URL: ""
   # Custom Overpass endpoint(s) for the map POI "explore" search, comma-separated. When set, REPLACES the bundled
   # public mirrors — point it at an internal/self-hosted Overpass instance when the public mirrors are unreachable
@@ -112,6 +141,24 @@ env:
   # Base URL of a copy of the Places API you run yourself; it has to answer the same /v1 API. Read from
   # configuration rather than typed by a user, so an in-cluster address works without ALLOW_INTERNAL_NETWORK.
   # Defaults to https://places.liketrek.com.
+  # TREK_PLACES_CONTRIBUTE: "off"
+  # Whether an admin may let this installation send the place details its users typed in (website, phone, e-mail,
+  # opening hours, description, picture) to the TREK Places API. "admin" leaves the choice to the admin panel, where
+  # it stays off until an admin agrees; "off" takes it away. Defaults to admin.
+  # TREK_SERVICES: "off"
+  # Places search identifies this installation with a key it registers by itself on first use and keeps in the
+  # database. "off" sends no key; searches then use the shared pool. A key issued to you goes under
+  # secretEnv.TREK_SERVICES_KEY. Defaults to auto.
+  # TREK_SERVICES_HOSTS: ""
+  # Comma-separated hosts that receive the installation key over https. Defaults to
+  # places.liketrek.com,photon.liketrek.com,valhalla.liketrek.com.
+  # TREK_PHOTON_URL: ""
+  # The address search (Photon) of the TREK services. With a key, search and reverse lookups ask it before
+  # Nominatim and fall back to Nominatim when it does not answer. Never asked when NOMINATIM_URL is set.
+  # Defaults to https://photon.liketrek.com.
+  # TREK_VALHALLA_URL: ""
+  # The Valhalla of the TREK services, which this server relays routing to unless the admin picks another
+  # routing service. The browser never talks to it. Defaults to https://valhalla.liketrek.com.
   # AMAP_API_BASE: ""
   # Send the Amap (高德地图) calls through an egress proxy, a cache or a gateway that speaks the same API instead of
   # restapi.amap.com directly. The key itself is a credential and goes under secretEnv.AMAP_API_KEY, or into
@@ -164,6 +211,9 @@ secretEnv:
   # with signing enabled, because such a key rejects every unsigned request. Leave empty
   # otherwise. The endpoint itself is not a secret and is set under env.AMAP_API_BASE.
   AMAP_API_SECRET: ""
+  # Optional key issued for this installation by the TREK services. Wins over the key TREK
+  # registers by itself and turns that registration off. Leave empty to let TREK register.
+  TREK_SERVICES_KEY: ""
   # Optional Web Push key pair, private half (base64url, 32 bytes). Only used together with
   # env.VAPID_PUBLIC_KEY; a pair whose halves do not belong together, or only one half, turns
   # push off with an error in the log until it is fixed, and every device stays registered.
@@ -179,7 +229,7 @@ generateEncryptionKey: false
 # If set, the chart renders no Secret of its own and instead reads every secret env
 # var from this existing Kubernetes secret. Expected keys: ENCRYPTION_KEY (rename via
 # existingSecretKey), ADMIN_EMAIL, ADMIN_PASSWORD, OIDC_CLIENT_SECRET,
-# UNSPLASH_ACCESS_KEY, PLACES_API_KEY, AMAP_API_KEY, AMAP_API_SECRET,
+# UNSPLASH_ACCESS_KEY, PLACES_API_KEY, AMAP_API_KEY, AMAP_API_SECRET, TREK_SERVICES_KEY,
 # VAPID_PRIVATE_KEY, SMTP_PASS, MAPBOX_ACCESS_TOKEN, CARTO_API_KEY, DEMO_ADMIN_PASS.
 # Missing keys are simply left unset (they are optional), so only provide the ones your
 # setup needs.
@@ -242,6 +292,20 @@ extraEnv: []
 #         name: trek-smtp
 extraEnvFrom: []
 
+# Further volumes for the pod. The chart does not create the objects they name.
+#   extraVolumes:
+#     - name: kitinerary-extractors
+#       configMap:
+#         name: trek-kitinerary-extractors
+extraVolumes: []
+# Where the trek container mounts them. For example, KItinerary
+# loads extractors for the booking import from this path:
+#   extraVolumeMounts:
+#     - name: kitinerary-extractors
+#       mountPath: /usr/local/share/kitinerary/extractors
+#       readOnly: true
+extraVolumeMounts: []
+
 resources:
   requests:
     cpu: 100m
@@ -262,3 +326,20 @@ ingress:
   #  - secretName: chart-example-tls
   #    hosts:
   #      - chart-example.local
+
+httpRoute:
+  enabled: false
+  annotations: {}
+  parentRefs: []
+  #   - name: gateway
+  #     namespace: gateway-system
+  #     sectionName: https
+  hostnames: []
+  #   - trek.example.com
+  paths:
+    - /
+  # Timeout fields are Standard Channel in Gateway API v1.2; controller support varies.
+  # Leave empty for controller defaults. Use "0s" to disable the corresponding timeout.
+  timeouts: {}
+  #   request: "0s"
+  #   backendRequest: "0s"

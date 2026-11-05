@@ -1,6 +1,6 @@
 import {
-  TRANSPORT_TYPES, getAssignmentReservations, getDisplayTimeForDay, getSpanPhase, getTransportRouteEndpoints, hidesOnMiddleDay,
-  parseTimeToMinutes,
+  TRANSPORT_TYPES, chronoKeyOf, getAssignmentReservations, getDisplayTimeForDay, getSpanPhase, getTransportRouteEndpoints,
+  hidesOnMiddleDay, parseTimeToMinutes,
 } from '../../../../utils/dayMerge'
 import { getDayBookendHotels, isDayInAccommodationRange } from '../../../../utils/dayOrder'
 import type { MergedItem } from '../../../../utils/dayMerge'
@@ -310,12 +310,8 @@ export function breaksChronology(
   dayId: number,
   getDisplayTime: (r: Reservation, dayId: number) => string | null,
 ): boolean {
-  const times = order
-    .map(it => {
-      if (it.type === 'place') return parseTimeToMinutes((it.data as Assignment).place?.place_time)
-      if (it.type === 'note') return parseTimeToMinutes((it.data as DayNote).time)
-      return parseTimeToMinutes(getDisplayTime(it.data as Reservation, dayId))
-    })
-    .filter((m): m is number => m != null)
+  // The key the day is drawn by, so flights put in the order they happen across zones still read as in order (#2929).
+  const keyOf = chronoKeyOf(order, dayId, getDisplayTime)
+  const times = order.map(keyOf).filter((m): m is number => m != null)
   return times.some((m, i) => i > 0 && m < times[i - 1])
 }

@@ -1,4 +1,6 @@
 import type { HelpContext, HelpGuide } from './types'
+import { useAddonStore } from '../store/addonStore'
+import { useAuthStore } from '../store/authStore'
 import { dashboardContext, dashboardGuides } from './contexts/dashboard'
 import { vacayContext, vacayGuides } from './contexts/vacay'
 import { atlasContext, atlasGuides } from './contexts/atlas'
@@ -74,36 +76,87 @@ const GUIDE_LIST: HelpGuide[] = [
 export const HELP_CONTEXTS: ReadonlyMap<string, HelpContext> = new Map(CONTEXT_LIST.map(c => [c.id, c]))
 export const HELP_GUIDES: ReadonlyMap<string, HelpGuide> = new Map(GUIDE_LIST.map(g => [g.id, g]))
 
+/**
+ * What a managed install leaves out: the admin screens it hides (AdminPage) and
+ * the guides about what the operator runs there, such as keys, OIDC, place
+ * search, routing, backups, storage, releases and plugins. A guide that walks
+ * somebody through a panel they cannot open is worse than none.
+ */
+const MANAGED_HIDDEN_CONTEXTS: ReadonlySet<string> = new Set([
+  'admin-plugins', 'admin-storage', 'admin-github', 'admin-backup', 'settings-plugins',
+])
+const MANAGED_HIDDEN_GUIDES: ReadonlySet<string> = new Set([
+  'oidc', 'instance-keys', 'places-transit', 'rotate-jwt-secret', 'own-routing-engine',
+  'install-plugin', 'storage-backends', 'release-history', 'create-backup', 'auto-backup',
+  'plugin-settings', 'files-sync', 'files-sync-settings', 'document-providers',
+])
+
+/**
+ * Guides about an integration, shown on a managed install only while it is on
+ * there: the operator decides which integrations the instance has, and a guide
+ * to connect one it does not offer leads nowhere.
+ */
+const addonOn = (id: string) => (): boolean => useAddonStore.getState().isEnabled(id)
+const MANAGED_FEATURE_GUIDES: Readonly<Record<string, () => boolean>> = {
+  'connect-dawarich': addonOn('dawarich'),
+  'dawarich-countries': addonOn('dawarich'),
+  'dawarich-wishes': addonOn('dawarich'),
+  'dawarich-stays': addonOn('dawarich'),
+  'journey-day-stays': addonOn('dawarich'),
+  'map-dawarich-trail': addonOn('dawarich'),
+  'connect-airtrail': addonOn('airtrail'),
+  'airtrail-import': addonOn('airtrail'),
+  'photo-providers': addonOn('memories'),
+  'mcp-oauth': addonOn('mcp'),
+  'api-keys': addonOn('mcp'),
+  'mcp-tokens-admin': addonOn('mcp'),
+  'tour-connect-wanderer': () => useAddonStore.getState().toursWanderer,
+  'tour-wanderer-watch': () => useAddonStore.getState().toursWanderer,
+  'tour-import-wanderer': () => useAddonStore.getState().toursWanderer,
+}
+
+/** Read at call time: `managed` arrives with app-config, after the registry loaded. */
+const isManaged = (): boolean => useAuthStore.getState().managed
+const shownContext = (c: HelpContext): boolean => !(isManaged() && MANAGED_HIDDEN_CONTEXTS.has(c.id))
+const shownGuide = (g: HelpGuide): boolean => {
+  if (!isManaged()) return true
+  if (MANAGED_HIDDEN_GUIDES.has(g.id) || MANAGED_HIDDEN_CONTEXTS.has(g.context)) return false
+  const feature = MANAGED_FEATURE_GUIDES[g.id]
+  return feature ? feature() : true
+}
+
 export function getHelpContext(id: string | null | undefined): HelpContext | null {
-  return id ? (HELP_CONTEXTS.get(id) ?? null) : null
+  const context = id ? HELP_CONTEXTS.get(id) : undefined
+  return context && shownContext(context) ? context : null
 }
 
 export function getHelpGuide(id: string | null | undefined): HelpGuide | null {
-  return id ? (HELP_GUIDES.get(id) ?? null) : null
+  const guide = id ? HELP_GUIDES.get(id) : undefined
+  return guide && shownGuide(guide) ? guide : null
 }
 
 /** The guides of a context, in the order the context lists them. */
 export function guidesFor(context: HelpContext): HelpGuide[] {
-  return context.guides.map(id => HELP_GUIDES.get(id)).filter((g): g is HelpGuide => g !== undefined)
+  return context.guides.map(id => HELP_GUIDES.get(id)).filter((g): g is HelpGuide => g !== undefined && shownGuide(g))
 }
 
 export function allHelpGuides(): HelpGuide[] {
-  return GUIDE_LIST
+  return isManaged() ? GUIDE_LIST.filter(shownGuide) : GUIDE_LIST
 }
 
 /** Every screen that has help, in registration order, for the screen switcher. */
 export function allHelpContexts(): HelpContext[] {
-  return CONTEXT_LIST
+  return isManaged() ? CONTEXT_LIST.filter(shownContext) : CONTEXT_LIST
 }
 
 /** The screens that stand on their own; their sub-screens hang under them in the switcher. */
 export function topLevelHelpContexts(): HelpContext[] {
-  return CONTEXT_LIST.filter(c => !c.parent)
+  return CONTEXT_LIST.filter(c => !c.parent && shownContext(c))
 }
 
 /** The sub-screens of a screen, in registration order. */
 export function childHelpContexts(parentId: string): HelpContext[] {
-  return CONTEXT_LIST.filter(c => c.parent === parentId)
+  return CONTEXT_LIST.filter(c => c.parent === parentId && shownContext(c))
 }
 
 /** The screen and the screens above it, outermost first, for a breadcrumb. */

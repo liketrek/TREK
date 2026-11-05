@@ -154,6 +154,9 @@ export const ASSISTANT_CHANGE_LABEL_KEYS = [
   'currency',
   'stopType',
   'text',
+  // A day note's heading and its body; `text` and `time` stay for rows already stored.
+  'title',
+  'content',
   'icon',
   'color',
   'position',

@@ -11,7 +11,13 @@ import {
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { DayNotesService } from './day-notes.service';
-import { idSchema, NOTE_COLORS, type NoteColor } from '@trek/shared';
+import {
+  dayNoteCreateRequestSchema,
+  dayNoteUpdateRequestSchema,
+  idSchema,
+  NOTE_COLORS,
+  type NoteColor,
+} from '@trek/shared';
 
 import { z } from 'zod';
 
@@ -22,6 +28,18 @@ import { z } from 'zod';
  * colour was dropped. An enum is also how the tool tells a model what it may pick.
  */
 const noteColorSchema = z.enum(NOTE_COLORS);
+
+/**
+ * The note's two text fields carry their names from the time a note was a line
+ * with a clock time: `text` is the heading and `time` the Markdown body under it.
+ * The REST contract holds the bounds, so a note written in the planner can always
+ * be edited here; the descriptions are what tells a model which field is which.
+ */
+const NOTE_TITLE = 'The note title, shown as its heading in the day plan. Keep it short';
+const NOTE_BODY =
+  'The note body shown under the title: details, links, reminders, Markdown allowed. ' +
+  'Despite the field name this is the content, not a clock time';
+const noteTitleSchema = dayNoteCreateRequestSchema.shape.text.describe(NOTE_TITLE);
 
 function parseId(value: string | string[]): number | null {
   const n = Number(Array.isArray(value) ? value[0] : value);
@@ -52,12 +70,12 @@ export class DayNotesMcp {
 
   @Tool({
     name: 'create_day_note',
-    description: 'Add a note to a specific day in a trip.',
+    description: 'Add a note to a specific day in a trip: a title in `text` and its body in `time`.',
     inputSchema: {
       tripId: idSchema,
       dayId: idSchema,
-      text: z.string().min(1).max(500),
-      time: z.string().max(250).optional().describe('Time label (e.g. "09:00" or "Morning")'),
+      text: noteTitleSchema,
+      time: dayNoteCreateRequestSchema.shape.time.describe(NOTE_BODY),
       icon: z.string().max(64).optional().describe('Emoji icon for the note'),
       color: noteColorSchema
         .nullable()
@@ -86,7 +104,7 @@ export class DayNotesMcp {
       tripId: number;
       dayId: number;
       text: string;
-      time?: string;
+      time?: string | null;
       icon?: string;
       color?: NoteColor | null;
       sort_order?: number;
@@ -104,18 +122,14 @@ export class DayNotesMcp {
 
   @Tool({
     name: 'update_day_note',
-    description: 'Edit an existing note on a specific day.',
+    description: 'Edit an existing note on a specific day: its title is `text`, its body `time`.',
     inputSchema: {
       tripId: idSchema,
       dayId: idSchema,
       noteId: idSchema,
-      text: z.string().min(1).max(500).optional(),
-      time: z
-        .string()
-        .max(250)
-        .nullable()
-        .optional()
-        .describe('Time label (e.g. "09:00" or "Morning"), or null to clear'),
+      // The create bound, so an update cannot blank the title the planner requires.
+      text: noteTitleSchema.optional(),
+      time: dayNoteUpdateRequestSchema.shape.time.describe(`${NOTE_BODY}, or null to clear it`),
       icon: z.string().max(64).optional().describe('Emoji icon for the note'),
       color: noteColorSchema
         .nullable()

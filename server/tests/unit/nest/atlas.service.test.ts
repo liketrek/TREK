@@ -28,7 +28,7 @@ vi.mock('../../../src/db/database', async () => {
 import { db as testDb } from '../../../src/db/database';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, createReservation } from '../../helpers/factories';
-import { getCountryFromCoords, getCountryFromAddress, isPointInCountryBox, reverseGeocodeCountry, getRegionGeo, getCountryGeo } from '../../../src/nest/atlas/atlas-geo';
+import { getCountryFromCoords, getCountryFromAddress, isPointInCountryBox, reverseGeocodeCountry, getCountryGeo } from '../../../src/nest/atlas/atlas-geo';
 import { cacheKeyFor, getCached, setCached } from '../../../src/nest/geo/nominatim.client';
 import { AtlasService, BucketItemExistsError, bucketRegionCode } from '../../../src/nest/atlas/atlas.service';
 import { createTestUnitOfWork, createTestTripsRepo, createTestPlacesRepo, createTestReservationEndpointsRepo, sharedTestOrm } from '../../helpers/test-uow';
@@ -684,45 +684,6 @@ describe('reverseGeocodeCountry', () => {
     expect(second).toBe('GB');
     // fetch should have been invoked only once; the second call uses the in-memory cache
     expect(mockFetch).toHaveBeenCalledTimes(1);
-  });
-});
-
-// ── getRegionGeo ────────────────────────────────────────────────────────────
-
-// These read the committed geoBoundaries bundle (server/assets/atlas/admin1.geojson.gz),
-// so they double as a guard that the bundle ships current sub-national data (#1119).
-describe('getRegionGeo', () => {
-  // The first call streams the multi-MB admin1.geojson.gz through the brace-depth
-  // splitter and caches the result for the process. That build alone takes ~2.5s on a
-  // quiet machine and more when every vitest worker is busy, so whichever test called
-  // getRegionGeo first used to pay for it and blow the 5s default. Warm the store here
-  // with a budget that fits the build; the tests below then measure only the lookup.
-  beforeAll(async () => {
-    await getRegionGeo(['ZZ']);
-  }, 60_000);
-
-  it('ATLAS-SVC-017: returns an empty FeatureCollection for a country with no admin-1 features', async () => {
-    const result = await getRegionGeo(['ZZ']);
-    expect(result).toEqual({ type: 'FeatureCollection', features: [] });
-  });
-
-  it('ATLAS-SVC-018: returns the current geoBoundaries regions for a country, case-insensitively', async () => {
-    // Pass lowercase 'no' — getRegionGeo uppercases internally for matching.
-    const result = await getRegionGeo(['no']);
-
-    expect(result.type).toBe('FeatureCollection');
-    expect(result.features.length).toBeGreaterThan(0);
-    expect(result.features.every((f: any) => f.properties.iso_a2 === 'NO')).toBe(true);
-
-    const names = result.features.map((f: any) => f.properties.name);
-    const codes = result.features.map((f: any) => f.properties.iso_3166_2);
-    // Post-2020 reform is present…
-    expect(codes).toContain('NO-34'); // Innlandet
-    expect(codes).toContain('NO-46'); // Vestland
-    // …and the merged-away pre-2020 counties are gone (the original #1119 bug).
-    expect(names).not.toContain('Oppland');
-    expect(names).not.toContain('Hordaland');
-    expect(names).not.toContain('Sogn og Fjordane');
   });
 });
 

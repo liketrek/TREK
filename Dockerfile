@@ -91,7 +91,8 @@ ENV KITINERARY_EXTRACTOR_PATH=/usr/local/bin/kitinerary-extractor
 
 COPY --chown=node:node --from=server-builder /app/server/dist ./server/dist
 # Runtime data assets read from server/assets at runtime: airports.json (flight
-# transport search) and atlas/*.geojson.gz (Atlas country/region map). The build
+# transport search) and atlas/*.geojson.gz + atlas/admin1/*.geojson.gz (Atlas
+# country/region map). The build
 # only emits dist, so these must be copied explicitly or the features silently
 # degrade to empty in the image.
 COPY --chown=node:node --from=server-builder /app/server/assets ./server/assets

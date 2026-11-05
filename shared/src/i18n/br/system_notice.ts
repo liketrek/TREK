@@ -56,23 +56,20 @@ const system_notice: TranslationStrings = {
     'A atualização 3.0.14 detectou um ou mais conflitos de nome de usuário ou e-mail causados por espaços em branco no início ou fim dos valores armazenados. As contas afetadas foram renomeadas automaticamente. Verifique os logs do servidor por linhas começando com **[migration] WHITESPACE COLLISION** para identificar quais contas precisam de revisão.',
   // The release modal. One stable set of keys: each big release swaps the copy in place.
   'system_notice.release_notes.eyebrow': 'Atualização instalada',
-  'system_notice.release_notes.headline': 'O maior TREK até hoje.',
+  'system_notice.release_notes.headline': 'O lugar certo, primeiro.',
   'system_notice.release_notes.intro':
-    'Passeios para cada dia ao ar livre, um estúdio para os seus fotolivros, um assistente que planeja com você e ajuda em cada tela.',
+    'A busca de lugares, a busca de endereços e o cálculo de rotas agora rodam nos servidores do próprio TREK, patrocinados pela dataforest cloud, e cada TREK pode compartilhar o que sabe sobre lugares com todos os outros.',
   'system_notice.release_notes.features_label': 'Os destaques',
   'system_notice.release_notes.features_aside': 'E não é só isso',
-  'system_notice.release_notes.feature_tours_title': 'Passeios',
-  'system_notice.release_notes.feature_tours_body':
-    'Trilhas, pedaladas, corridas, cavalgadas, canoagem, caminhadas urbanas e dias de esqui, com perfil de altitude, graus de dificuldade e sobrevoo em 3D.',
-  'system_notice.release_notes.feature_studio_title': 'TREK Studio', // same-as-en
-  'system_notice.release_notes.feature_studio_body':
-    'Transforma uma viagem em um fotolivro diagramado: 17 temas, 34 fontes, 160 adesivos e diagramação automática em um clique.',
-  'system_notice.release_notes.feature_assistant_title': 'Assistente de IA',
-  'system_notice.release_notes.feature_assistant_body':
-    'Planeja com você nas suas viagens de verdade, usando a conta de IA que você já tem. Você vê cada mudança antes e pode desfazê-la.',
-  'system_notice.release_notes.feature_help_title': 'Ajuda em cada tela, em 27 idiomas',
-  'system_notice.release_notes.feature_help_body':
-    'Cerca de 370 guias passo a passo com 1.600 imagens, bem onde você precisa. Novos: azerbaijano, estoniano, eslovaco e tailandês.',
+  'system_notice.release_notes.feature_search_title': 'Uma busca de lugares que acerta',
+  'system_notice.release_notes.feature_search_body':
+    'Cidades, ilhas, pontos turísticos e aeroportos pelo código aparecem primeiro, os cafés vêm da sua região e as sugestões surgem enquanto você digita.',
+  'system_notice.release_notes.feature_share_title': 'Detalhes de lugares, compartilhados',
+  'system_notice.release_notes.feature_share_body':
+    'Compartilhe sites, horários de funcionamento e fotos com todo TREK, campo por campo, e os seus lugares salvos recebem o que outros adicionaram.',
+  'system_notice.release_notes.feature_routing_title': 'Rotas mais rápidas',
+  'system_notice.release_notes.feature_routing_body':
+    'Um dia inteiro é calculado de uma vez com até vinte paradas, uma rota lenta não segura mais as outras e o transporte público consulta um segundo provedor quando o primeiro não encontra nada.',
   'system_notice.release_notes.footnote': 'E ainda uma longa lista de mudanças menores em todo o resto do TREK.',
   'system_notice.release_notes.notes_label': 'Notas da versão',
   'system_notice.release_notes.note_eyebrow': 'Uma nota do mantenedor',
@@ -86,10 +83,10 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.note_body_after':
     'E aí vocês abriram. Em poucos meses eram milhares: estrelas, relatos de bugs, traduções para idiomas que eu não falo, pull requests de pessoas que nunca conheci. Até hoje a primeira coisa que faço toda manhã é olhar o repositório, e ainda não parece totalmente real.',
   'system_notice.release_notes.note_closing': 'Obrigado por estarem aqui. Um abraço, Maurice.',
-  'system_notice.release_notes.support_lead':
-    'O TREK é gratuito e sempre vai ser, mas servidores, domínios e muitas noites em claro não são.',
+  'system_notice.release_notes.support_label': 'Seguir independente',
+  'system_notice.release_notes.support_lead': 'Sem Google e companhia.',
   'system_notice.release_notes.support_text':
-    'Se o TREK ganhou um lugar nas suas viagens, me pague um café e ajude a fazer a próxima versão acontecer.',
+    'A busca de lugares, a busca de endereços e o cálculo de rotas rodam nos servidores do próprio TREK, hoje patrocinados pela dataforest cloud. Eu luto por isso todos os dias, e para continuar assim preciso do seu apoio.',
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
   'system_notice.release_notes.cta_kofi': 'Apoiar no Ko-fi',
 };

@@ -1,4 +1,4 @@
-// FE-JRN-DETHOOK-001 to FE-JRN-DETHOOK-039
+// FE-JRN-DETHOOK-001 to FE-JRN-DETHOOK-041
 import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
 import { useLocation, useSearchParams } from 'react-router';
 import { delay, http, HttpResponse } from 'msw';
@@ -488,6 +488,35 @@ describe('useJourneyDetail', () => {
     await waitFor(() => expect(latest.sidebarMapItems).toHaveLength(2));
     expect(latest.sidebarMapItems.map(m => m.dayLabel)).toEqual([1, 2]);
     expect(latest.sidebarMapItems[0].dayColor).toBe(latest.sidebarMapItems[1].dayColor);
+  });
+
+  it('FE-JRN-DETHOOK-040: the map counts its stops through the whole journey, as the share link does (#2886)', async () => {
+    serveJourney(buildDetail({
+      entries: [
+        buildEntry({ id: 1 }),
+        buildEntry({ id: 2, sort_order: 1 }),
+        buildEntry({ id: 3, sort_order: 2 }),
+        buildEntry({ id: 4, entry_date: '2026-05-02' }),
+        buildEntry({ id: 5, entry_date: '2026-05-02', sort_order: 1 }),
+      ],
+    }));
+    setup();
+    await waitFor(() => expect(latest.sidebarMapItems).toHaveLength(5));
+    expect(latest.sidebarMapItems.map(m => [m.id, m.dayLabel])).toEqual([['1', 1], ['2', 2], ['3', 3], ['4', 4], ['5', 5]]);
+    expect(latest.sidebarMapItems[3].dayColor).not.toBe(latest.sidebarMapItems[2].dayColor);
+  });
+
+  it('FE-JRN-DETHOOK-041: a draft keeps its pin without a number, so the published stops read as on the share link', async () => {
+    serveJourney(buildDetail({
+      entries: [
+        buildEntry({ id: 1 }),
+        buildEntry({ id: 2, sort_order: 1, is_draft: true }),
+        buildEntry({ id: 3, entry_date: '2026-05-02' }),
+      ],
+    }));
+    setup();
+    await waitFor(() => expect(latest.sidebarMapItems).toHaveLength(3));
+    expect(latest.sidebarMapItems.map(m => [m.id, m.dayLabel])).toEqual([['1', 1], ['2', null], ['3', 2]]);
   });
 
   it('FE-JRN-DETHOOK-2453: geotagged gallery photos become the map layer, and a tap opens them', async () => {

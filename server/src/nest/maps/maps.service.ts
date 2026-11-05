@@ -5,16 +5,21 @@ import type { GeoLane } from '../geo/nominatim.client';
 import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
 import type { ApiKeySource } from '../settings/instance-api-keys';
 import {
+  answerWithin,
   belonging,
   indexPoiAnswer,
   indexPoiPlan,
   indexRequests,
   indexSuggestions,
   mergeIndexPages,
+  mergeSuggestions,
+  osmLayerRecord,
+  PHOTON_GRACE_MS,
 } from './maps-index.helpers';
+import { mergeSearchResults } from './maps-merge.helpers';
 import { NEARBY_DEFAULT_LIMIT, NEARBY_DEFAULT_RADIUS_M, nearbyCacheKey, nearestFirst } from './maps-nearby.helpers';
 import { MapsUrlResolver, type ResolvedMapsUrl } from './maps-url.resolver';
-import { toApiLang, mergeSearchResults } from './maps.helpers';
+import { toApiLang } from './maps.helpers';
 import { PlaceDetailsResolver } from './place-details.resolver';
 import { PlacePhotoResolver } from './place-photo.resolver';
 import { PlacesProviderSelector, type KeyedProvider } from './places-provider.selector';
@@ -26,16 +31,15 @@ import type { PlacesProviderChoice } from './providers/places-provider';
 import { WikimediaClient, type BrandLogo } from './providers/wikimedia.client';
 import {
   trekPlacesSearch,
-  indexHitsOnly,
+  isOsmHit,
   trekPlacesArea,
   trekPlacesNearby,
   toPlaceRecord,
   type TrekHighlight,
-  type TrekPlace,
 } from './trek-places.client';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
-import { isOutsideChina } from '@trek/shared';
+import { isOutsideChina, wrapLongitude } from '@trek/shared';
 import type { MapsSearchResult, MapsAutocompleteResult, MapsPlaceDetailsResult } from '@trek/shared';
 import type { MapsPlacePhotoResult, MapsReverseResult, MapsResolveUrlResult } from '@trek/shared';
 
@@ -52,6 +56,17 @@ export { type KeyedProvider } from './places-provider.selector';
 const NEARBY_CACHE = new Map<string, { at: number; value: { places: Record<string, unknown>[]; source: string } }>();
 const NEARBY_CACHE_TTL_MS = 30 * 60 * 1000;
 const NEARBY_CACHE_MAX = 500;
+
+/**
+ * The reverse-geocode longitude, as text, moved back onto the real world when a
+ * right-click on a repeated world copy sent it past 180 (#2976): the geocoders
+ * answer nothing out there. A value already in range is passed on exactly as it came.
+ */
+function onTheRealWorld(lng: string): string {
+  const value = Number.parseFloat(lng);
+  if (!Number.isFinite(value) || (value >= -180 && value <= 180)) return lng;
+  return String(wrapLongitude(value));
+}
 
 type LocationBias = { low: { lat: number; lng: number }; high: { lat: number; lng: number } };
 
@@ -301,7 +316,7 @@ export class MapsService {
    * a Nominatim call on the background lane, waiting out its throttle. The index
    * answers most of them without leaving our own infrastructure and without a
    * throttle at all; a street address it does not know still falls through to
-   * Nominatim, which is the source that resolves addresses.
+   * Photon, which resolves addresses (Nominatim without the TREK services).
    *
    * Never throws: an import that cannot place a hotel still imports the hotel.
    */
@@ -377,38 +392,46 @@ export class MapsService {
       !(await this.selector.googleOnly(keyed, opts.googleOnly))
     ) {
       // Both at once. The index is a dataset of businesses and is very good
-      // at those; OpenStreetMap is where the temples, bridges, riverside
-      // walks and viewpoints are, and a travel search asks for those
-      // constantly. Concurrently, so the pair costs the slower one rather
-      // than the sum. This is the explicit search, not the keystroke path
-      // Nominatim's policy rules out.
+      // at those; its OpenStreetMap layer and Photon are where the temples,
+      // bridges, riverside walks, viewpoints and towns are, and a travel search
+      // asks for those constantly. Concurrently, so the pair costs the slower
+      // one rather than the sum. The list is merged the way the suggestions
+      // are (`mergeRanked`), Photon's lead first, so the search and the
+      // suggestions agree on what a name means.
       //
       // Each side catches its own failure. A rejection reaching Promise.all
       // would throw away the answer the other side had already produced — and
       // the index refusing a query is ordinary traffic, not an outage: a common
       // single word without coordinates is turned down upstream as too
-      // expensive. That used to discard ten good OpenStreetMap results and ask
-      // Nominatim the same question a second time, behind its own 1.1 s
-      // process-wide throttle.
+      // expensive.
       const [found, osm] = await Promise.all([
         trekPlacesSearch(query, {
           lat: locationBias?.lat,
           lng: locationBias?.lng,
           limit: 10,
+          sources: 'index,osm',
           lang,
-        })
-          .then(indexHitsOnly)
-          .catch((err: unknown) => {
-            console.warn('TREK Places search failed, falling back:', (err as Error).message);
-            return [] as TrekPlace[];
-          }),
-        this.osm.searchNominatim(query, lang, 'interactive', locationBias).catch((err: unknown) => {
-          console.warn('OpenStreetMap search failed, index only:', (err as Error).message);
-          return [] as Record<string, unknown>[];
+        }).catch((err: unknown) => {
+          console.warn('TREK Places search failed, falling back:', (err as Error).message);
+          return [];
         }),
+        this.osm
+          .searchPhoton(query, lang, locationBias)
+          // Nominatim only for an installation without Photon; where Photon is
+          // the geocoder its miss is an empty half, not a question for another.
+          .then(async (photon) => {
+            if (photon) return photon;
+            if (this.osm.photonIsGeocoder()) return { records: [] as Record<string, unknown>[], lead: null };
+            return { records: await this.osm.searchNominatim(query, lang, 'interactive', locationBias), lead: null };
+          })
+          .catch((err: unknown) => {
+            console.warn('OpenStreetMap search failed, index only:', (err as Error).message);
+            return { records: [] as Record<string, unknown>[], lead: null };
+          }),
       ]);
-      osmAnswer = osm;
-      const places = mergeSearchResults(found.map(toPlaceRecord), osm);
+      osmAnswer = osm.records;
+      const fromIndex = found.map((hit) => (isOsmHit(hit) ? osmLayerRecord(hit, lang) : toPlaceRecord(hit)));
+      const places = mergeSearchResults(fromIndex, osm.records, 10, { lead: osm.lead, bias: locationBias });
       if (places.length > 0) {
         // Names the sources that actually contributed, not the ones that were
         // asked. Either side can come back empty — the index turns down a common
@@ -417,7 +440,7 @@ export class MapsService {
         // scored against, so a list that is entirely OpenStreetMap must not be
         // recorded as though the index had a hand in it.
         const source =
-          found.length > 0 ? (osm.length > 0 ? 'trek-places+openstreetmap' : 'trek-places') : 'openstreetmap';
+          found.length > 0 ? (osm.records.length > 0 ? 'trek-places+openstreetmap' : 'trek-places') : 'openstreetmap';
         return { places, source };
       }
     }
@@ -542,29 +565,45 @@ export class MapsService {
     }
 
     if (this.trekPlacesEnabled() && !(await this.selector.googleOnly(keyed))) {
-      try {
-        const centre = boxCentre;
-        // Both layers here, unlike the explicit search above. That path asks
-        // Nominatim in parallel and would get the same OpenStreetMap places
-        // twice; this one asks nobody else, because Nominatim's usage policy
-        // names autocomplete as unacceptable use. So the layer is not a second
-        // opinion here, it is the only place the missing names live.
-        //
-        // Measured on the case that surfaced it: "Tokio station" typed from
-        // Tokyo returned a weigh station in Ritzville and a station in Mexico
-        // from the index alone, and "Tokio Hauptbahnhof" in second place with
-        // the layer. The index holds businesses; stations, temples and bridges
-        // are in OpenStreetMap, and so is every exonym a traveller types.
-        const found = await trekPlacesSearch(input, {
-          lat: centre?.lat,
-          lng: centre?.lng,
-          limit: 8,
-          sources: 'index,osm',
-          lang,
-        });
-        if (found.length > 0) return { suggestions: indexSuggestions(found, lang), source: 'trek-places' };
-      } catch (err: unknown) {
+      // Both layers here, unlike the explicit search above. That path asks
+      // Nominatim in parallel and would get the same OpenStreetMap places
+      // twice; this one never asks Nominatim, because its usage policy names
+      // autocomplete as unacceptable use.
+      //
+      // Measured on the case that surfaced the layer: "Tokio station" typed
+      // from Tokyo returned a weigh station in Ritzville and a station in
+      // Mexico from the index alone, and "Tokio Hauptbahnhof" in second place
+      // with the layer. The index holds businesses; stations, temples and
+      // bridges are in OpenStreetMap, and so is every exonym a traveller types.
+      //
+      // Photon beside them (#2877). The layer is a slice of OpenStreetMap, and
+      // a place missing from it showed up only once the search was sent.
+      // Photon is built for this keystroke and answers null when the services
+      // are off, so an install without Photon reads exactly as before. Each
+      // side swallows its own failure, so one that is down does not throw away
+      // what the other found. Photon is the extra here, so once the index has
+      // answered it gets a moment more and is then dropped: a slow Photon must
+      // not hold back what the index already has.
+      const typing = new AbortController();
+      const asked = this.osm.suggestPhoton(input, lang, boxCentre, typing.signal);
+      const found = await trekPlacesSearch(input, {
+        lat: boxCentre?.lat,
+        lng: boxCentre?.lng,
+        limit: 8,
+        sources: 'index,osm',
+        lang,
+      }).catch((err: unknown) => {
         console.warn('TREK Places autocomplete failed, falling back:', (err as Error).message);
+        return [];
+      });
+      const photon = found.length > 0 ? await answerWithin(asked, PHOTON_GRACE_MS) : await asked;
+      typing.abort();
+      const suggestions = mergeSuggestions(indexSuggestions(found, lang), photon?.rows ?? [], 8, {
+        lead: photon?.lead,
+        bias: boxCentre,
+      });
+      if (suggestions.length > 0) {
+        return { suggestions, source: found.length > 0 ? 'trek-places' : 'openstreetmap' };
       }
     }
 
@@ -621,6 +660,7 @@ export class MapsService {
     lang?: string,
     opts?: { lane?: GeoLane; timeoutMs?: number; locality?: boolean },
   ): Promise<{ name: string | null; address: string | null }> {
+    lng = onTheRealWorld(lng);
     // Amap answers first when it holds the keyed slot, and only for a point it
     // can possibly know: outside its box the call would cost a round trip to
     // come back empty before Nominatim is asked anyway. Resolved at userId 0,

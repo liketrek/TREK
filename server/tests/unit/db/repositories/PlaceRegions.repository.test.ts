@@ -120,104 +120,57 @@ describe('PlaceRegionsRepository.listDistinctRegionCodesForCountryAndPlaces (AT2
   });
 });
 
-describe('PlaceRegionsRepository.countPlacesByCountryForTrip (AT40)', () => {
-  it('PLACEREGREPO-007: matches the legacy GROUP BY statement, ordered by count DESC then country ASC, NULL country excluded', async () => {
+describe('PlaceRegionsRepository.listPlaceCountriesForTrip (AT40)', () => {
+  it('PLACEREGREPO-007: every place of the trip with its cached country, null where none is cached, other trips left out', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const other = createTrip(testDb, user.id);
-    const fr1 = createPlace(testDb, trip.id);
-    const fr2 = createPlace(testDb, trip.id);
-    const de1 = createPlace(testDb, trip.id);
-    const noRegion = createPlace(testDb, trip.id);
-    await insertPlaceRegion(fr1.id, 'FR', 'FR-IDF', 'Île-de-France');
-    await insertPlaceRegion(fr2.id, 'FR', 'FR-PAC', 'Provence');
-    await insertPlaceRegion(de1.id, 'DE', 'DE-BY', 'Bavaria');
-    // A different trip's place must not leak in.
+    const cached = createPlace(testDb, trip.id, { lat: 48.85, lng: 2.35 });
+    const uncached = createPlace(testDb, trip.id, { lat: 41.9022, lng: 12.4539 });
+    await insertPlaceRegion(cached.id, 'FR', 'FR-IDF', 'Île-de-France');
     const foreign = createPlace(testDb, other.id);
     await insertPlaceRegion(foreign.id, 'FR', 'FR-IDF', 'Île-de-France');
-    void noRegion;
 
-    // test-sql-allow: the raw statement is the legacy oracle this parity test holds the repository to.
-    const legacy = testDb
-      .prepare(
-        `
-      SELECT pr.country_code, COUNT(DISTINCT p.id) AS places
-      FROM place_regions pr JOIN places p ON p.id = pr.place_id
-      WHERE p.trip_id = ? AND pr.country_code IS NOT NULL
-      GROUP BY pr.country_code ORDER BY places DESC, pr.country_code ASC`,
-      )
-      .all(trip.id);
-    const typed = await repo.countPlacesByCountryForTrip(trip.id);
-    expect(typed).toEqual(legacy);
-    expect(typed).toEqual([
-      { country_code: 'FR', places: 2 },
-      { country_code: 'DE', places: 1 },
+    expect(await repo.listPlaceCountriesForTrip(trip.id)).toEqual([
+      { id: cached.id, lat: 48.85, lng: 2.35, address: null, country_code: 'FR' },
+      { id: uncached.id, lat: 41.9022, lng: 12.4539, address: null, country_code: null },
     ]);
   });
 
-  it('PLACEREGREPO-008: empty array for a trip with no geocoded places', async () => {
+  it('PLACEREGREPO-008: empty array for a trip without places', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    expect(await repo.countPlacesByCountryForTrip(trip.id)).toEqual([]);
+    expect(await repo.listPlaceCountriesForTrip(trip.id)).toEqual([]);
   });
 });
 
-describe('PlaceRegionsRepository.listVisitedCountryCodesForUser (AT44)', () => {
-  it('PLACEREGREPO-009: matches the legacy statement — owner and member trips count, only started trips, deduped, NULL country excluded', async () => {
+describe('PlaceRegionsRepository.listStartedTripPlaceCountriesForUser (AT44)', () => {
+  it('PLACEREGREPO-009: owner and member see the places of started trips once each, cached or not', async () => {
     const { user: owner } = createUser(testDb);
     const { user: member } = createUser(testDb);
+    const { user: other } = createUser(testDb);
     const { user: stranger } = createUser(testDb);
     const started = createTrip(testDb, owner.id, { start_date: '2020-01-01', end_date: '2020-01-10' });
     const notStarted = createTrip(testDb, owner.id, { start_date: '2099-01-01', end_date: '2099-01-10' });
+    const dateless = createTrip(testDb, owner.id);
+    // Two members: the trip_members join must not repeat a place per member.
     addTripMember(testDb, started.id, member.id);
+    addTripMember(testDb, started.id, other.id);
 
-    const startedPlace = createPlace(testDb, started.id);
-    await insertPlaceRegion(startedPlace.id, 'FR', 'FR-IDF', 'Île-de-France');
-    const startedPlace2 = createPlace(testDb, started.id);
-    await insertPlaceRegion(startedPlace2.id, 'FR', 'FR-PAC', 'Provence'); // same country, dedup target
-    const notStartedPlace = createPlace(testDb, notStarted.id);
-    await insertPlaceRegion(notStartedPlace.id, 'DE', 'DE-BY', 'Bavaria'); // not started, excluded
+    const cached = createPlace(testDb, started.id, { lat: 48.85, lng: 2.35 });
+    await insertPlaceRegion(cached.id, 'FR', 'FR-IDF', 'Île-de-France');
+    const uncached = createPlace(testDb, started.id, { lat: 41.9022, lng: 12.4539 });
+    const future = createPlace(testDb, notStarted.id);
+    await insertPlaceRegion(future.id, 'DE', 'DE-BY', 'Bavaria');
+    createPlace(testDb, dateless.id);
 
     const today = '2026-01-01';
-    // test-sql-allow: the raw statement is the legacy oracle this parity test holds the repository to.
-    const legacy = testDb
-      .prepare(
-        `
-      SELECT DISTINCT pr.country_code
-      FROM place_regions pr
-      JOIN places p ON p.id = pr.place_id
-      JOIN trips t ON p.trip_id = t.id
-      LEFT JOIN trip_members tm ON t.id = tm.trip_id
-      WHERE (t.user_id = ? OR tm.user_id = ?)
-        AND pr.country_code IS NOT NULL
-        AND COALESCE(t.start_date, t.end_date) IS NOT NULL
-        AND COALESCE(t.start_date, t.end_date) <= ?`,
-      )
-      .all(owner.id, owner.id, today);
-
-    const typedOwner = await repo.listVisitedCountryCodesForUser(owner.id, today);
-    expect(typedOwner).toEqual(legacy.map((r: unknown) => (r as { country_code: string }).country_code));
-    expect(typedOwner).toEqual(['FR']);
-
-    // test-sql-allow: the raw statement is the legacy oracle this parity test holds the repository to.
-    const legacyMember = testDb
-      .prepare(
-        `
-      SELECT DISTINCT pr.country_code
-      FROM place_regions pr
-      JOIN places p ON p.id = pr.place_id
-      JOIN trips t ON p.trip_id = t.id
-      LEFT JOIN trip_members tm ON t.id = tm.trip_id
-      WHERE (t.user_id = ? OR tm.user_id = ?)
-        AND pr.country_code IS NOT NULL
-        AND COALESCE(t.start_date, t.end_date) IS NOT NULL
-        AND COALESCE(t.start_date, t.end_date) <= ?`,
-      )
-      .all(member.id, member.id, today);
-    const typedMember = await repo.listVisitedCountryCodesForUser(member.id, today);
-    expect(typedMember).toEqual(legacyMember.map((r: unknown) => (r as { country_code: string }).country_code));
-    expect(typedMember).toEqual(['FR']);
-
-    expect(await repo.listVisitedCountryCodesForUser(stranger.id, today)).toEqual([]);
+    const expected = [
+      { id: cached.id, lat: 48.85, lng: 2.35, address: null, country_code: 'FR' },
+      { id: uncached.id, lat: 41.9022, lng: 12.4539, address: null, country_code: null },
+    ];
+    expect(await repo.listStartedTripPlaceCountriesForUser(owner.id, today)).toEqual(expected);
+    expect(await repo.listStartedTripPlaceCountriesForUser(member.id, today)).toEqual(expected);
+    expect(await repo.listStartedTripPlaceCountriesForUser(stranger.id, today)).toEqual([]);
   });
 });

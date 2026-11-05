@@ -54,23 +54,20 @@ const system_notice: TranslationStrings = {
     '3.0.14 版本升级检测到一个或多个由存储账户中首尾空白字符引发的用户名或邮箱冲突。受影响的账户已自动重命名。请检查服务器日志中以 **[migration] WHITESPACE COLLISION** 开头的行，以确认哪些账户需要审查。',
   // The release modal. One stable set of keys: each big release swaps the copy in place.
   'system_notice.release_notes.eyebrow': '更新已安装',
-  'system_notice.release_notes.headline': '迄今最大的 TREK。',
+  'system_notice.release_notes.headline': '对的地方，排在最前。',
   'system_notice.release_notes.intro':
-    '适合每一个户外日子的游览、为你的相册而生的工作室、与你一起规划的助手，以及每个页面上的帮助。',
+    '地点搜索、地址搜索和路线规划现在运行在 TREK 自己的服务器上，由 dataforest cloud 赞助。而且每个 TREK 都能把它对地点的了解分享给所有其他 TREK。',
   'system_notice.release_notes.features_label': '本次重头戏',
   'system_notice.release_notes.features_aside': '远不止这些',
-  'system_notice.release_notes.feature_tours_title': '游览',
-  'system_notice.release_notes.feature_tours_body':
-    '徒步、骑行、跑步、骑马、划桨、城市漫步和滑雪日，附带海拔剖面、难度等级和 3D 飞览。',
-  'system_notice.release_notes.feature_studio_title': 'TREK Studio', // same-as-en
-  'system_notice.release_notes.feature_studio_body':
-    '把一段旅程变成精心设计的相册：17 种主题、34 款字体、160 枚贴纸，一键自动排版。',
-  'system_notice.release_notes.feature_assistant_title': 'AI 助手',
-  'system_notice.release_notes.feature_assistant_body':
-    '用你已有的 AI 账户，在你真实的旅行中与你一起规划。每项更改都会先展示给你，并且可以撤销。',
-  'system_notice.release_notes.feature_help_title': '每个页面都有帮助，支持 27 种语言',
-  'system_notice.release_notes.feature_help_body':
-    '约 370 篇分步指南、1,600 张配图，就在你需要的地方。新增阿塞拜疆语、爱沙尼亚语、斯洛伐克语和泰语。',
+  'system_notice.release_notes.feature_search_title': '一搜就准的地点搜索',
+  'system_notice.release_notes.feature_search_body':
+    '城市、岛屿、地标，以及按代码搜索的机场排在最前，咖啡馆则从你身边找起，边输入边出建议。',
+  'system_notice.release_notes.feature_share_title': '地点详情，大家共享',
+  'system_notice.release_notes.feature_share_body':
+    '把网站、营业时间和照片逐项分享给每一个 TREK，你保存的地点也会自动补上别人添加的信息。',
+  'system_notice.release_notes.feature_routing_title': '更快的路线规划',
+  'system_notice.release_notes.feature_routing_body':
+    '一整天最多二十个停靠点，一次就能规划完。一条慢路线不再拖累其他路线，公共交通在第一个服务商找不到结果时，会再问第二个。',
   'system_notice.release_notes.footnote': '除此之外，TREK 的其他部分还有一长串小改动。',
   'system_notice.release_notes.notes_label': '更新说明',
   'system_notice.release_notes.note_eyebrow': '来自维护者的话',
@@ -83,9 +80,10 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.note_body_after':
     '后来，你们真的来了。短短几个月，就来了成千上万的你们：有人点星标、报 bug，有人把它翻译成我不会说的语言，还有素未谋面的人提交 pull request。直到今天，我每天早上第一件事仍是打开仓库看看，而这一切还是有点不像真的。',
   'system_notice.release_notes.note_closing': '谢谢你来到这里，Maurice 敬上。',
-  'system_notice.release_notes.support_lead': 'TREK 现在免费，以后也永远免费，但服务器、域名和无数个深夜可不是免费的。',
+  'system_notice.release_notes.support_label': '保持独立',
+  'system_notice.release_notes.support_lead': '不靠 Google 之流。',
   'system_notice.release_notes.support_text':
-    '如果它已经在你的旅行中占有一席之地，请我喝杯咖啡，帮我把下一个版本继续做出来吧。',
+    '地点搜索、地址搜索和路线规划都运行在 TREK 自己的服务器上，目前由 dataforest cloud 赞助。我每天都在为此努力，而要一直保持下去，需要你的支持。',
   'system_notice.release_notes.cta_bmc': '请我喝杯咖啡',
   'system_notice.release_notes.cta_kofi': '在 Ko-fi 上支持',
 };

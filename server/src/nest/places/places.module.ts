@@ -2,6 +2,7 @@ import { BudgetItems } from '../../db/entities/BudgetItems.entity';
 import { Categories } from '../../db/entities/Categories.entity';
 import { CollectionPlaces } from '../../db/entities/CollectionPlaces.entity';
 import { DayAssignments } from '../../db/entities/DayAssignments.entity';
+import { PlaceFieldOrigin } from '../../db/entities/PlaceFieldOrigin.entity';
 import { PlaceRatings } from '../../db/entities/PlaceRatings.entity';
 import { Places } from '../../db/entities/Places.entity';
 import { Tags } from '../../db/entities/Tags.entity';
@@ -16,6 +17,7 @@ import { JourneyDomainModule } from '../journey/journey-domain.module';
 import { MapsModule } from '../maps/maps.module';
 import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
 import { PermissionsModule } from '../permissions/permissions.module';
+import { PlaceContribModule } from '../place-contrib/place-contrib.module';
 import { PlaceImportModule } from '../place-import/place-import.module';
 import { PlacePhotosModule } from '../place-photos/place-photos.module';
 import { QueryHelpersModule } from '../query-helpers/query-helpers.module';
@@ -25,6 +27,8 @@ import { StorageModule } from '../storage/storage.module';
 import { StorageService } from '../storage/storage.service';
 import { TripMembershipModule } from '../trip-membership/trip-membership.module';
 import { UnsplashModule } from '../unsplash/unsplash.module';
+import { PlaceOriginsService } from './place-origins.service';
+import { PlacesStorageRefsService } from './places-storage-refs.service';
 import { PlacesController } from './places.controller';
 import { PlacesMcp } from './places.mcp';
 import { PlacesRpc } from './places.rpc';
@@ -71,6 +75,9 @@ import { MulterModule } from '@nestjs/platform-express';
     PluginGuardsModule,
     AssignmentsDomainModule,
     AccommodationsDomainModule,
+    // Every place write records where its shareable details came from, and the
+    // user's values go to the community enrichment's queue there.
+    PlaceContribModule,
     // Plan 3c Task 4: `PlacesService`'s and `PlacesMcp`'s own `@InjectRepository`
     // constructor params (`PlacesRepository`, `TagsRepository`,
     // `PlaceRatingsRepository`, `TripMembersRepository`,
@@ -95,10 +102,12 @@ import { MulterModule } from '@nestjs/platform-express';
       Categories,
       BudgetItems,
       CollectionPlaces,
+      PlaceFieldOrigin,
     ]),
   ],
   controllers: [PlacesController],
-  providers: [PlacesService, PlacesMcp, PlacesRpc],
-  exports: [PlacesService],
+  providers: [PlacesService, PlacesMcp, PlacesRpc, PlaceOriginsService, PlacesStorageRefsService],
+  // The origin bookkeeping too: the booking import writes places as well.
+  exports: [PlacesService, PlaceOriginsService],
 })
 export class PlacesModule {}

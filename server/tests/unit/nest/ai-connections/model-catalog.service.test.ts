@@ -201,6 +201,19 @@ describe('ModelCatalogService', () => {
     ).rejects.toMatchObject({ code: 'provider_unavailable', status: 502 });
   });
 
+  it('MCAT-007b: a custom server that refuses the key, or answers without a list, says so (#2808)', async () => {
+    const target = { kind: 'custom' as const, baseUrl: 'https://llm.example.org/v1', secret: 'k' };
+    llmLocal.listModels.mockRejectedValueOnce(new DomainError(502, 'rejected', { code: 'llm_key_refused' }));
+    await expect(catalog().list(target)).rejects.toMatchObject({ code: 'invalid_key', retryable: false });
+    llmLocal.listModels.mockRejectedValueOnce(new DomainError(502, 'no list', { code: 'llm_no_model_list' }));
+    await expect(catalog().list(target)).rejects.toMatchObject({
+      code: 'provider_unavailable',
+      providerCode: 'no_model_list',
+    });
+    llmLocal.listModels.mockRejectedValueOnce(new Error('boom'));
+    await expect(catalog().list(target)).rejects.toThrow('boom');
+  });
+
   it('MCAT-008: the default model is a capable one, else the first listed', () => {
     const list = (...ids: string[]) => ids.map((id) => ({ id, label: id, supportsTools: true }));
     expect(pickDefaultModel('anthropic', list('claude-haiku', 'claude-sonnet-5', 'claude-opus'))).toBe(

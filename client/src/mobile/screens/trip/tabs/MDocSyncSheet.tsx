@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowLeft, ArrowRight, Check, ChevronLeft, ChevronRight, FolderPlus, FolderSync, KeyRound, Link2Off,
-  Loader2, Plus, RefreshCw,
+  Loader2, Plus, RefreshCw, Trash2,
 } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import MIconBtn from '../../../components/MIconBtn'
@@ -149,6 +149,7 @@ export default function MDocSyncSheet({
               provider={pending}
               sync={sync}
               onDone={connected}
+              onRemoved={() => { setReconnectFor(null); setPending(null); setView('list') }}
             />
           ) : view === 'scope' && pending && sync.connectionFor(pending.id) ? (
             <ScopeView
@@ -156,6 +157,7 @@ export default function MDocSyncSheet({
               suggestedName={slugFor(tripTitle, tripId)}
               sync={sync}
               onBound={() => setView('list')}
+              onEditConnection={() => setView('connect')}
             />
           ) : view === 'detail' && link ? (
             <DetailView
@@ -417,6 +419,19 @@ function DetailView({
             </button>
           </SettingRow>
 
+          {onReconnect && (
+            <SettingRow label={t('docsync.connection.title')} hint={t('docsync.connection.hint')}>
+              <button
+                type="button"
+                onClick={onReconnect}
+                className="flex items-center gap-1.5 rounded-full bg-[color:var(--m-ic)] px-3 py-[6px] font-geist text-caption font-bold text-m-ink"
+              >
+                <KeyRound size={12} strokeWidth={2.2} />
+                {t('docsync.connection.edit')}
+              </button>
+            </SettingRow>
+          )}
+
           <button
             type="button"
             onClick={onUnlink}
@@ -443,14 +458,18 @@ function ConnectView({
   provider,
   sync,
   onDone,
+  onRemoved,
 }: {
   provider: DocSyncProvider
   sync: ReturnType<typeof useDocSync>
   onDone: () => void
+  onRemoved: () => void
 }) {
   const { t } = useTranslation()
-  const form = useConnectForm(provider, sync.connectionFor(provider.id), sync)
+  const existing = sync.connectionFor(provider.id)
+  const form = useConnectForm(provider, existing, sync)
   const [verdict, setVerdict] = useState<DocSyncVerdict | null>(null)
+  const [confirmRemove, setConfirmRemove] = useState(false)
 
   return (
     <div className="mt-3 flex flex-col gap-3">
@@ -534,6 +553,32 @@ function ConnectView({
           {sync.busy === 'save' ? <Loader2 size={15} className="mx-auto animate-spin" /> : t('common.save')}
         </button>
       </div>
+
+      {existing && (
+        <button
+          type="button"
+          onClick={() => setConfirmRemove(true)}
+          disabled={sync.busy === 'connection'}
+          className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-[color:var(--m-rowbr)] text-body font-bold text-[color:var(--m-st-danger)] disabled:opacity-50"
+        >
+          <Trash2 size={15} strokeWidth={2.2} />
+          {t('docsync.connection.remove')}
+        </button>
+      )}
+
+      <MConfirmSheet
+        open={confirmRemove}
+        onClose={() => setConfirmRemove(false)}
+        title={t('docsync.connection.remove')}
+        message={t('docsync.connection.confirmRemove')}
+        confirmLabel={t('docsync.connection.remove')}
+        cancelLabel={t('common.cancel')}
+        danger
+        onConfirm={() => {
+          setConfirmRemove(false)
+          if (existing) void sync.removeConnection(existing.id).then(ok => { if (ok) onRemoved() })
+        }}
+      />
     </div>
   )
 }
@@ -544,11 +589,14 @@ function ScopeView({
   suggestedName,
   sync,
   onBound,
+  onEditConnection,
 }: {
   connectionId: number
   suggestedName: string
   sync: ReturnType<typeof useDocSync>
   onBound: () => void
+  /** Back to the stored connection, to change the login or remove it before choosing a folder. */
+  onEditConnection: () => void
 }) {
   const { t } = useTranslation()
   const { scopes, error, name, setName, working, bind, createAndBind } = useScopePicker({
@@ -561,6 +609,15 @@ function ScopeView({
   return (
     <div className="mt-3 flex flex-col gap-3">
       <p className="font-geist text-[0.71875rem] leading-snug text-m-muted">{t('docsync.scope.intro')}</p>
+
+      <button
+        type="button"
+        onClick={onEditConnection}
+        className="flex h-9 items-center justify-center gap-1.5 self-start rounded-full bg-[color:var(--m-ic)] px-3 font-geist text-caption font-bold text-m-ink"
+      >
+        <KeyRound size={12} strokeWidth={2.2} />
+        {t('docsync.connection.edit')}
+      </button>
 
       <div className="flex gap-2">
         <input

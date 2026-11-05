@@ -71,6 +71,15 @@ export const regionGeoSchema = z.object({
 });
 export type RegionGeo = z.infer<typeof regionGeoSchema>;
 
+/** GET /regions/geo/:code — one country's regions, by ISO 3166-1 alpha-2 code in any case. */
+export const regionGeoParamsSchema = z.object({
+  code: z
+    .string()
+    .regex(/^[A-Za-z]{2}$/, 'a two-letter country code')
+    .transform((code) => code.toUpperCase()),
+});
+export type RegionGeoParams = z.infer<typeof regionGeoParamsSchema>;
+
 /**
  * Where a coordinate lands on the atlas map (#1115). Both fields are nullable: the
  * point may sit outside every bundled polygon (open sea, a simplification gap at a

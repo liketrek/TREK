@@ -82,6 +82,8 @@ const dayplan: TranslationStrings = {
   'dayplan.pdf': 'PDF',
   'dayplan.pdfTooltip': 'Günlük planı PDF kimi ixrac et',
   'dayplan.pdfMine': 'Mənim planım PDF kimi',
+  'dayplan.pdfRouting': 'Marşrutlar hesablanır: {done} / {total}',
+  'dayplan.pdfSkipRouting': 'Qalan marşrutlar olmadan ixrac et',
   'dayplan.pdfMineSub': 'Yalnız iştirak etdiyiniz fəaliyyətlər və rezervasiyalar',
   'dayplan.gpxTooltip': 'Oflayn xəritələr və GPS cihazları üçün GPX kimi ixrac et',
   'dayplan.gpxAll': 'Bütün səyahət',

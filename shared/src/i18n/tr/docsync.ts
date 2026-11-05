@@ -180,6 +180,12 @@ const docsync: TranslationStrings = {
   'docsync.error.provider_disabled':
     'Duraklatıldı: bir yönetici bu sağlayıcıyı kapattı. Yeniden açıldığında eşitleme kaldığı yerden devam eder.',
   'docsync.binding.reconnect': 'Yeniden bağlan',
+  'docsync.connection.title': 'Bağlantı',
+  'docsync.connection.hint': 'TREK’in bu depo için kullandığı adres ve oturum bilgileri.',
+  'docsync.connection.edit': 'Bağlantıyı düzenle',
+  'docsync.connection.remove': 'Bağlantıyı kaldır',
+  'docsync.connection.confirmRemove':
+    'TREK bu deponun adresini ve oturum bilgilerini unutur, bu seyahatin bu depo üzerinden yapılan tüm eşitlemeleri durur. Belgeler TREK’te ve depoda kalır.',
 };
 
 export default docsync;

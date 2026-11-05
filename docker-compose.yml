@@ -11,6 +11,10 @@ services:
       - CHOWN
       - SETUID
       - SETGID
+      # dumb-init runs as root and forwards SIGTERM to node, which runs as the
+      # node user; signalling another user's process needs KILL. Without it
+      # docker stop ends in SIGKILL and the graceful shutdown never runs.
+      - KILL
     tmpfs:
       - /tmp:noexec,nosuid,size=128m
     ports:
@@ -57,6 +61,11 @@ services:
 #      - UNSPLASH_ACCESS_KEY= # Optional. Unsplash Access Key for trip-cover / place-image search. Without one, TREK uses Unsplash's unauthenticated endpoint, which some datacenter/VPS IPs are blocked from (#1449). Free key at unsplash.com/developers. Can also be set per-admin in Admin > Settings; the env var overrides that.
 #      - TREK_PLACES_ENABLED=false # Optional. Place search (suggestions, full search, category buttons, Road trip search, import geocoding, offline downloads, and the OpenStreetMap ways and horse routes Tours reads) asks the TREK Places API at https://places.liketrek.com by default, so the server makes outbound requests to that host. Set false to search the way it did before 4.3.0 (OpenStreetMap, or your Google/Amap key) and send nothing there. No switch in the admin panel on purpose: whether searches leave the instance is decided here. (default: true)
 #      - TREK_PLACES_URL=https://places.liketrek.com # Optional. Base URL of a copy of the Places API you run yourself; it has to answer the same /v1 API. Read from configuration rather than typed by a user, so an address on your LAN or Docker network works without ALLOW_INTERNAL_NETWORK. (default: https://places.liketrek.com)
+#      - TREK_PLACES_CONTRIBUTE=admin # Optional. Whether an admin may let this installation send the place details its users typed in (website, phone, e-mail, opening hours, description, picture) to the TREK Places API, so every installation gets better details. admin leaves the choice to the admin panel, where it stays off until an admin agrees; off takes it away and nothing is ever sent. (default: admin)
+#      - TREK_SERVICES=off # Optional. Places search identifies this installation with a key it registers by itself on first use. off sends no key; searches then use the shared pool. (default: auto)
+#      - TREK_SERVICES_KEY= # Optional. A key issued for this installation; it wins over the stored one and turns self-registration off.
+#      - TREK_PHOTON_URL=https://photon.liketrek.com # Optional. The address search of the TREK services. With a key, search and reverse lookups ask it before Nominatim and fall back to Nominatim when it does not answer; never asked when NOMINATIM_URL is set. (default: https://photon.liketrek.com)
+#      - TREK_VALHALLA_URL=https://valhalla.liketrek.com # Optional. The Valhalla of the TREK services, which this server relays routing to unless the admin picks another routing service; the browser never talks to it. (default: https://valhalla.liketrek.com)
 #      - PLACES_API_KEY= # Optional. Google Maps API key (Places API (New) enabled) for place search, photos, details and Google transit. Overrides the key set in Admin > Settings > API Keys, whose field then shows this variable read-only.
 #      - GOOGLE_LIST_DATA_BASE= # Optional. HTTP(S) base URL of a list-data service. Pasted URLs beginning with this base are imported directly; unset keeps the Google flow.
 #      - AMAP_API_KEY= # Optional. Amap (高德地图) Web 服务 key for place search and geocoding inside mainland China. Overrides the key set in Admin > Settings > API Keys. A Web 端 (JS API) key is a different credential and is rejected with INVALID_USER_KEY.

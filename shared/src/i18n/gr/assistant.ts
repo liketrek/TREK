@@ -42,6 +42,8 @@ const assistant: TranslationStrings = {
   'assistant.connect.openAssistant': 'Άνοιγμα βοηθού',
   'assistant.connect.badKey': 'Αυτό το κλειδί δεν λειτουργεί.',
   'assistant.connect.unknownModel': 'Αυτό το μοντέλο δεν προσφέρεται εδώ.',
+  'assistant.connect.noModelList':
+    'Ο διακομιστής απάντησε, αλλά δεν έστειλε λίστα μοντέλων. Ελέγξτε τη διεύθυνση, συνήθως τελειώνει σε /v1.',
   'assistant.connect.getKey': 'Λήψη κλειδιού',
   'assistant.connect.hintAnthropic': 'Τα Claude Max και Team περιλαμβάνουν μονάδες API.',
   'assistant.connect.hintOpenai': 'Δημιουργήστε ένα κλειδί στον πίνακα ελέγχου του OpenAI.',
@@ -183,6 +185,8 @@ const assistant: TranslationStrings = {
   'assistant.change.label.currency': 'Νόμισμα',
   'assistant.change.label.stopType': 'Τύπος στάσης',
   'assistant.change.label.text': 'Κείμενο',
+  'assistant.change.label.title': 'Τίτλος',
+  'assistant.change.label.content': 'Περιεχόμενο',
   'assistant.change.label.icon': 'Εικονίδιο',
   'assistant.change.label.color': 'Χρώμα',
   'assistant.change.label.position': 'Σειρά',

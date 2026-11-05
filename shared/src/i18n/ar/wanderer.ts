@@ -38,6 +38,8 @@ const wanderer: TranslationStrings = {
   'wanderer.error.not_found': 'لم يعد هذا الدرب موجودًا في wanderer.',
   'wanderer.error.not_own_trail': 'يمكن استيراد دروبك الخاصة في wanderer فقط.',
   'wanderer.error.invalid_response': 'لم يأتِ الرد من wanderer. تحقق من أن العنوان يشير إلى wanderer نفسه.',
+  'wanderer.error.no_author':
+    'ردّ wanderer، لكنه لا يذكر أي مؤلف للدروب لحساب رمز API هذا، لذلك لا يستطيع TREK معرفة الدروب التي تخصّك.',
   'wanderer.error.too_large': 'ملف الدرب أكبر من 10 MB.',
   'wanderer.error.server_error': 'ردّ wanderer بخطأ. حاول مرة أخرى لاحقًا.',
   'wanderer.error.offline': 'أنت غير متصل بالإنترنت. لا يمكن البحث في wanderer إلا عند الاتصال.',

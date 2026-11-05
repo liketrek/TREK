@@ -287,6 +287,8 @@ export interface ReservationSaveOptions {
   isEdit: boolean;
   /** The desktop also saves the end of the check-in window. */
   withCheckInEnd: boolean;
+  /** Where the review found an imported stay on the map, so the save creates its place right there. */
+  venuePin?: { lat: number; lng: number } | null;
 }
 
 export type ReservationSaveData = Record<string, unknown> & { title: string };
@@ -344,7 +346,11 @@ export function reservationSaveData(
       // import): the save handler geocodes it and creates the place.
       venue:
         !form.hotel_place_id && (form.hotel_address || form.title)
-          ? { name: form.title, address: form.hotel_address || null }
+          ? {
+              name: form.title,
+              address: form.hotel_address || null,
+              ...(opts.venuePin ? { lat: opts.venuePin.lat, lng: opts.venuePin.lng } : {}),
+            }
           : null,
       // The typed address, so the save handler can write it through to a linked
       // place; an edited address used to be silently dropped (#1496).

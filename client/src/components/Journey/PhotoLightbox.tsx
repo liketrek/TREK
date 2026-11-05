@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Loader2, X, ZoomIn, ZoomOut } from 'lucide-react'
 import VideoPlayer from './VideoPlayerLazy'
 import { usePhotoZoom } from './usePhotoZoom'
 import { Tooltip } from '../shared/Tooltip'
@@ -8,6 +8,12 @@ import { isRtlLanguage, useTranslation } from '../../i18n'
 interface LightboxPhoto {
   id: string
   src: string
+  /**
+   * A small rendition of the same photo, usually cached already by the grid that
+   * opened the lightbox. It stands in while the original loads, which on a slow
+   * server or connection can take seconds (#2907).
+   */
+  thumbSrc?: string
   caption?: string | null
   /** Where the caption's credit points to (a photo's source page), opened in a new tab. */
   captionHref?: string | null
@@ -52,6 +58,9 @@ export default function PhotoLightbox({ photos, startIndex = 0, onClose, label }
   // Zoom starts over on every photo (#1484).
   const zoom = usePhotoZoom(photo?.id)
   const isImage = !!photo && photo.mediaType !== 'video'
+  // The id whose original has finished (or failed) loading; any other photo is still on its way.
+  const [loadedId, setLoadedId] = useState<string | null>(null)
+  const loading = isImage && loadedId !== photo.id
   const hasPrev = idx > 0
   const hasNext = idx < photos.length - 1
 
@@ -187,6 +196,8 @@ export default function PhotoLightbox({ photos, startIndex = 0, onClose, label }
             src={photo.src}
             alt={photo.caption || ''}
             draggable={false}
+            onLoad={() => setLoadedId(photo.id)}
+            onError={() => setLoadedId(photo.id)}
             {...zoom.mouse}
             style={{
               maxWidth: '92vw', maxHeight: '92vh',
@@ -196,6 +207,17 @@ export default function PhotoLightbox({ photos, startIndex = 0, onClose, label }
               ...zoom.style,
             }}
           />
+        )}
+
+        {loading && (
+          <div data-testid="lightbox-loading" aria-hidden="true" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+            {photo.thumbSrc && (
+              <img src={photo.thumbSrc} alt="" draggable={false} style={{ width: '92vw', height: '92vh', objectFit: 'contain', borderRadius: 4 }} />
+            )}
+            <span style={{ ...ROUND_BTN, position: 'absolute', cursor: 'default' }}>
+              <Loader2 size={18} className="animate-spin" />
+            </span>
+          </div>
         )}
 
         {/* Next button */}

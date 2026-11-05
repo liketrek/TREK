@@ -131,6 +131,8 @@ describe('BOOTSTRAP (F6) — unified NestJS app serves the whole surface', () =>
       .set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.headers['content-encoding']).toBe('gzip');
+    // Gzipped once: the compression middleware leaves the file's own encoding alone.
+    expect(res.body.type).toBe('FeatureCollection');
   });
 
   it('BOOTSTRAP-ORM-001: the ORM unit of work resolves from the container', () => {

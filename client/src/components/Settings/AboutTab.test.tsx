@@ -60,7 +60,8 @@ describe('AboutTab', () => {
   it('FE-COMP-ABOUT-009: all external links have rel="noopener noreferrer"', () => {
     render(<AboutTab appVersion="2.9.10" />);
     const links = document.querySelectorAll('a');
-    expect(links).toHaveLength(6);
+    // Six tiles, and the sponsor panel: its logo, its button and the name in its title and body.
+    expect(links).toHaveLength(10);
     links.forEach((link) => {
       expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     });
@@ -129,5 +130,25 @@ describe('AboutTab', () => {
     fireEvent.mouseEnter(link);
     expect(link.style.borderColor).toBe('');
     expect(link.style.boxShadow).toBe('');
+  });
+
+  it('FE-COMP-ABOUT-018: the sponsor panel links dataforest cloud wherever it is named, with both logos bundled', () => {
+    render(<AboutTab appVersion="1.0.0" />);
+    const links = document.querySelectorAll('a[href="https://cloud.dataforest.net/en?mtm_campaign=trek"]');
+    // The logo tile, the call to action, and the brand name in the title and in the body.
+    expect(links).toHaveLength(4);
+    for (const link of links) {
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    }
+    const logos = [...document.querySelectorAll('img')].map((img) => img.getAttribute('src'));
+    expect(logos).toEqual(
+      expect.arrayContaining(['/brands/dataforest-cloud.svg', '/brands/dataforest-cloud-dark.svg'])
+    );
+    // Served by TREK itself: opening Settings must not reach a third party.
+    expect(logos.every((src) => src?.startsWith('/'))).toBe(true);
+    expect(screen.getByText('Place search')).toBeInTheDocument();
+    expect(screen.getByText('Address search')).toBeInTheDocument();
+    expect(screen.getByText('Routing')).toBeInTheDocument();
   });
 });

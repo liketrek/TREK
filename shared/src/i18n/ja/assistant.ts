@@ -41,6 +41,8 @@ const assistant: TranslationStrings = {
   'assistant.connect.openAssistant': 'アシスタントを開く',
   'assistant.connect.badKey': 'このキーは使えません。',
   'assistant.connect.unknownModel': 'このモデルはここでは提供されていません。',
+  'assistant.connect.noModelList':
+    'サーバーは応答しましたが、モデル一覧が返りませんでした。アドレスを確認してください。通常は /v1 で終わります。',
   'assistant.connect.getKey': 'キーを取得',
   'assistant.connect.hintAnthropic': 'Claude Max と Team には API クレジットが含まれています。',
   'assistant.connect.hintOpenai': 'OpenAI のダッシュボードでキーを作成してください。',
@@ -174,6 +176,8 @@ const assistant: TranslationStrings = {
   'assistant.change.label.currency': '通貨',
   'assistant.change.label.stopType': '立ち寄りの種類',
   'assistant.change.label.text': 'テキスト',
+  'assistant.change.label.title': 'タイトル',
+  'assistant.change.label.content': '内容',
   'assistant.change.label.icon': 'アイコン',
   'assistant.change.label.color': '色',
   'assistant.change.label.position': '位置',

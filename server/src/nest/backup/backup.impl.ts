@@ -9,10 +9,11 @@ import { invalidatePermissionsCache } from '../permissions/permissions-cache';
 import { snapshotAllPluginDataDbs } from '../plugins/host/plugin-data.service';
 import { pluginsCodeRoot, pluginsDataRoot } from '../plugins/paths';
 import { stageExtractedPluginTrees, applyStagedRestoreNow } from '../plugins/plugin-backup';
+import { storageOwnerMarkerInstall } from '../storage/storage-reclaim.types';
 import type { StorageService } from '../storage/storage.service';
 import { StorageInvalidKeyError } from '../storage/storage.types';
 import { VALID_INTERVALS } from './auto-backup.settings';
-import { extractBackupArchive } from './backup-archive';
+import { extractBackupArchive, markReclaimResetPending } from './backup-archive';
 import { RequestContext } from '@mikro-orm/core';
 
 import archiver from 'archiver';
@@ -39,7 +40,7 @@ const describeError = (err: unknown): string => (err instanceof Error ? err.mess
 
 // The scratch and key directory. The database itself may live elsewhere
 // (TREK_DB_FILE); the database port knows where.
-const { dataDir, encryptionKeyFile } = resolveDataPaths();
+const { dataDir, encryptionKeyFile, reclaimResetFile } = resolveDataPaths();
 const PRECOMPRESSED = /\.(jpe?g|png|webp|gif|heic|heif|avif|mp4|mov|m4v|webm|pdf|zip|gz)$/i;
 
 // Compressed upload cap for restore archives. Defaults to 500 MB, raisable via
@@ -217,6 +218,10 @@ export async function createBackup(
         // In mode A the google/trek caches nest under the photos/ prefix — the
         // category walk would sweep them back in without this skip.
         if (category === 'photos' && (obj.key.startsWith('google/') || obj.key.startsWith('trek/'))) continue;
+        // The storage reclaim pass's owner marker names the install that wrote
+        // it; restored elsewhere, it would make that install's own uploads look
+        // shared with a foreign one.
+        if (storageOwnerMarkerInstall(obj.key) !== null) continue;
         // Local path available (exists on disk right now — the fail-safe half
         // of getLocalPathOrNull's contract) → push it directly: zero-copy, the
         // default-install path. Otherwise (a remote/S3 primary, or a local
@@ -477,6 +482,9 @@ export async function restoreFromZip({ storage, database }: BackupDeps, zipPath:
 
     await database.keepCopyBeforeRestore();
     const liveSessions = await readSessionsToCarry();
+    // Read again by storage reclaim once the swapped database is open, here or
+    // on the next start when the reopen below fails.
+    markReclaimResetPending(reclaimResetFile);
 
     try {
       // Closes the connection, swaps the database in and reopens it, migrating

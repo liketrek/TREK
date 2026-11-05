@@ -2,6 +2,7 @@ import { WandererConnections } from '../../db/entities/WandererConnections.entit
 import type { WandererConnectionsRepository } from '../../db/repositories/WandererConnections.repository';
 import { decodePolyline, thinLine } from '../../utils/polyline';
 import { checkSsrf } from '../../utils/ssrfGuard';
+import { logWarn } from '../audit/audit-log.logger';
 import { AuditService } from '../audit/audit.service';
 import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { DomainError } from '../common/domain-error';
@@ -183,9 +184,14 @@ export class WandererService {
     await this.connections.recordCheck(userId, ok, code);
   }
 
-  /** A failed call, with a rejected token noted on the connection so its card says so. */
+  /**
+   * A failed call, with a rejected token noted on the connection so its card
+   * says so. The log gets the reason the client is not shown: which field of
+   * wanderer's answer did not match, or what came instead of JSON.
+   */
   private async failed(userId: number, err: unknown): Promise<never> {
     if (!(err instanceof WandererError)) throw err;
+    logWarn(`[wanderer] ${err.code}: ${err.message}${err.detail ? ` (${err.detail})` : ''}`);
     if (err.code === 'unauthorized') await this.noteCheck(userId, false, err.code);
     throw refusalOf(err);
   }

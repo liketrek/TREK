@@ -41,6 +41,8 @@ const assistant: TranslationStrings = {
   'assistant.connect.openAssistant': '어시스턴트 열기',
   'assistant.connect.badKey': '이 키는 작동하지 않습니다.',
   'assistant.connect.unknownModel': '이 모델은 여기에서 제공되지 않습니다.',
+  'assistant.connect.noModelList':
+    '서버가 응답했지만 모델 목록을 보내지 않았습니다. 주소를 확인하세요. 보통 /v1로 끝납니다.',
   'assistant.connect.getKey': '키 받기',
   'assistant.connect.hintAnthropic': 'Claude Max와 Team에는 API 크레딧이 포함되어 있습니다.',
   'assistant.connect.hintOpenai': 'OpenAI 대시보드에서 키를 만드세요.',
@@ -172,6 +174,8 @@ const assistant: TranslationStrings = {
   'assistant.change.label.currency': '통화',
   'assistant.change.label.stopType': '경유지 유형',
   'assistant.change.label.text': '텍스트',
+  'assistant.change.label.title': '제목',
+  'assistant.change.label.content': '내용',
   'assistant.change.label.icon': '아이콘',
   'assistant.change.label.color': '색상',
   'assistant.change.label.position': '위치',

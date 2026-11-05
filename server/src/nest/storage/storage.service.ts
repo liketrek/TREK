@@ -9,6 +9,7 @@ import {
   isClientAbortError,
   StorageNotFoundError,
   type ByteRange,
+  type ListOptions,
   type LocalTempFile,
   type ObjectStat,
   type PutOptions,
@@ -168,9 +169,9 @@ export class StorageService {
   }
 
   /** Names in and out are category-relative — the key prefix stays a registry detail. */
-  async *list(category: ServedCategory, subPrefix = ''): AsyncIterable<ObjectStat> {
+  async *list(category: ServedCategory, subPrefix = '', opts?: ListOptions): AsyncIterable<ObjectStat> {
     const { driver, keyPrefix } = this.registry.resolve(category);
-    for await (const stat of driver.list(keyPrefix + subPrefix)) {
+    for await (const stat of driver.list(keyPrefix + subPrefix, opts)) {
       yield { ...stat, key: stat.key.slice(keyPrefix.length) };
     }
   }

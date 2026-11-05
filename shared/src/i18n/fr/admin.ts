@@ -100,11 +100,26 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.body':
     "TREK est un logiciel libre et nous ne sommes pas neutres ici. À cette échelle, les avis et les photos de commerces ordinaires n'existent que chez Google, et c'est cela, un monopole. Le champ est là faute d'alternative, pas parce que nous le recommandons. Chaque requête part alors chez Google.",
   'admin.trekApi.tagline':
-    "L'index de lieux propre à TREK. Chercher sans clé Google, sans quota et sans que personne ne compte vos recherches.",
+    "Les services propres à TREK : recherche de lieux, recherche d'adresses et calcul d'itinéraires, sans clé Google et sans clé à saisir. Chaque installation dispose d'un quota journalier équitable, et seul le nombre de requêtes est compté.",
   'admin.trekApi.factPlaces': '73,6 millions de lieux dans le monde',
-  'admin.trekApi.factNoKey': 'Sans clé, sans quota',
+  'admin.trekApi.factNoKey': 'Aucune clé à saisir, quota journalier équitable',
   'admin.trekApi.factOffline': 'Paquets par pays utilisables hors ligne',
   'admin.trekApi.factPrivacy': 'Les recherches ne sont jamais journalisées',
+  'admin.trekApi.factAddresses': 'Adresses et villes dans le monde entier, en 26 langues',
+  'admin.trekApi.factRouting': 'Itinéraires en voiture, à vélo et à pied, avec dénivelé',
+  'admin.trekApi.addrStreets': 'Rues et numéros',
+  'admin.trekApi.addrTowns': 'Villes et régions',
+  'admin.trekApi.addrReverse': "Adresse d'un point sur la carte",
+  'admin.trekApi.addrLanguages': '26 langues',
+  'admin.trekApi.addressNote':
+    "Toutes les adresses d'OpenStreetMap, pendant la saisie et depuis un point sur la carte.",
+  'admin.trekApi.routeCar': 'En voiture',
+  'admin.trekApi.routeBike': 'À vélo',
+  'admin.trekApi.routeFoot': 'À pied',
+  'admin.trekApi.routeAvoid': 'Éviter les péages, les autoroutes et les ferries',
+  'admin.trekApi.routeElevation': "Profil d'élévation",
+  'admin.trekApi.routingNote':
+    "Des itinéraires sur toute la planète, reconstruits chaque mois à partir d'OpenStreetMap, avec les altitudes issues de tuiles de relief.",
   'admin.trekApi.more': "Ce qu'il contient",
   'admin.trekApi.fieldPhone': 'Téléphone',
   'admin.trekApi.fieldStableId': 'Identifiant stable',
@@ -118,6 +133,39 @@ const admin: TranslationStrings = {
   'admin.trekApi.sourcesNote': "Chaque champ d'une réponse indique de laquelle il provient.",
   'admin.trekApi.included': 'Inclus',
   'admin.trekApi.notIncluded': 'Non inclus',
+  'admin.trekApi.quota.title': 'Quota du jour',
+  'admin.trekApi.quota.used': 'Utilisé',
+  'admin.trekApi.quota.remaining': 'Restant',
+  'admin.trekApi.quota.resets': 'Remise à zéro à',
+  'admin.trekApi.quota.limit': 'Limite',
+  'admin.trekApi.quota.key': 'Clé',
+  'admin.trekApi.quota.state.connected': 'Connecté',
+  'admin.trekApi.quota.state.registering': 'Configuration en cours',
+  'admin.trekApi.quota.state.legacy': 'Réserve partagée',
+  'admin.trekApi.quota.state.off': 'Désactivé',
+  'admin.trekApi.quota.state.revoked': 'Clé révoquée',
+  'admin.trekApi.quota.tier.std': 'Standard', // same-as-en
+  'admin.trekApi.quota.tier.hosted': 'Hébergé',
+  'admin.trekApi.quota.tier.own': 'Instance propre',
+  'admin.trekApi.quota.tier.legacy': 'Partagé',
+  'admin.trekApi.quota.hint.registering':
+    'Cette installation obtient sa clé en arrière-plan. La recherche continue de fonctionner pendant ce temps.',
+  'admin.trekApi.quota.hint.legacy':
+    "Pas encore de clé. Les recherches passent par la réserve partagée jusqu'à ce que l'installation en obtienne une lors de sa prochaine recherche.",
+  'admin.trekApi.quota.hint.off': 'Non utilisé sur cette instance : désactivé, ou dirigé vers votre propre copie.',
+  'admin.trekApi.quota.hint.revoked':
+    "La clé de cette installation a été révoquée. Les recherches passent par la réserve partagée jusqu'à ce que vous créiez une nouvelle identité.",
+  'admin.trekApi.quota.unavailable': 'Le quota ne peut pas être lu pour le moment.',
+  'admin.trekApi.quota.service.places': 'Recherche de lieux',
+  'admin.trekApi.quota.service.photon': 'Recherche d’adresses',
+  'admin.trekApi.quota.service.valhalla': 'Itinéraires',
+  'admin.trekApi.quota.notInUse': 'Non utilisé sur cette instance',
+  'admin.trekApi.quota.envKey': 'La clé provient de TREK_SERVICES_KEY.',
+  'admin.trekApi.quota.regenerate': 'Nouvelle identité',
+  'admin.trekApi.quota.regenerateTitle': 'Créer une nouvelle identité ?',
+  'admin.trekApi.quota.regenerateBody':
+    "Cette installation abandonne sa clé et en demande une nouvelle en arrière-plan. La recherche continue de fonctionner pendant ce temps. Utile après avoir copié l'installation sur une autre machine, ou si la clé a été révoquée.",
+  'admin.trekApi.quota.regenerated': 'Une nouvelle identité est en cours de configuration.',
   'admin.mapsKey': 'Clé API Google Maps',
   'admin.mapsKeyHint': 'Requise pour la recherche de lieux. Obtenez-la sur console.cloud.google.com',
   'admin.mapsKeyHintLong':
@@ -606,7 +654,17 @@ const admin: TranslationStrings = {
     '« {name} » n’indique pas quelles versions de TREK il prend en charge ; ce serveur exécute {host}. TREK le laisse passer uniquement parce que TREK_PLUGINS_IGNORE_TREK_RANGE est défini. Rien n’indique que son auteur l’a testé sur ce TREK : rien ne garantit qu’il fonctionne — et dans de rares cas, un plugin incompatible peut corrompre les données de TREK. Ne continuez que si vous acceptez ce risque.',
   'admin.plugins.dep.trekBypassed': 'Hors de sa plage TREK ({range}) — contrôles de version désactivés',
   'admin.plugins.dep.trekBypassedUnknown': 'Ne déclare aucune plage TREK — contrôles de version désactivés',
-  'admin.plugins.incompatible': 'Incompatible', // same-as-en
+  'admin.plugins.rangeBypass.titleAdmin': 'Non testé sur ce TREK',
+  'admin.plugins.rangeBypass.bodyAdmin':
+    'Selon son auteur, « {name} » prend en charge TREK {range}, et ce serveur exécute {host}. L’auteur ne l’a pas encore validé pour ce TREK : il peut ne pas fonctionner et, dans de rares cas, un plugin inadapté peut endommager les données de TREK. Vous pouvez quand même l’utiliser : votre choix ne vaut que pour ce plugin dans cette version, et TREK vous redemandera après une mise à jour.',
+  'admin.plugins.rangeBypass.bodyAdminUnknown':
+    '« {name} » n’indique pas les versions de TREK qu’il prend en charge, et ce serveur exécute {host}. Rien n’indique qu’il a été testé sur ce TREK : il peut ne pas fonctionner et, dans de rares cas, un plugin inadapté peut endommager les données de TREK. Vous pouvez quand même l’utiliser : votre choix ne vaut que pour ce plugin dans cette version, et TREK vous redemandera après une mise à jour.',
+  'admin.plugins.dep.trekAccepted': 'Conçu pour TREK {range}, utilisé à vos risques',
+  'admin.plugins.dep.trekAcceptedUnknown': 'Aucune version de TREK indiquée, utilisé à vos risques',
+  'admin.plugins.activateAnyway': 'Activer quand même',
+  'admin.plugins.untestedChip': 'Pas encore validé pour TREK {host}',
+  'admin.plugins.filters': 'Filtrer',
+  'admin.plugins.security.short': 'Comment les plugins sont sécurisés',
   'admin.plugins.accessTitle': 'Ce à quoi il peut accéder',
   'admin.plugins.connectsTitle': 'Se connecte à',
   'admin.plugins.detailsTitle': 'Détails',
@@ -1022,5 +1080,96 @@ const admin: TranslationStrings = {
   'admin.addons.ai.parsing.pullFailed': 'Impossible de télécharger le modèle',
   'admin.addons.ai.parsing.unreachable': 'Impossible de joindre le serveur local',
   'admin.addons.ai.parsing.apiKeyOptional': 'Souvent inutile',
+  'admin.contribute.title': 'Partager les détails des lieux',
+  'admin.contribute.status.active': 'Partage actif',
+  'admin.contribute.status.paused': 'En pause',
+  'admin.contribute.status.off': 'Désactivé',
+  'admin.contribute.status.unavailable': 'Indisponible',
+  'admin.contribute.noteActive':
+    'Ce que vos utilisateurs saisissent sur les lieux parvient, après vérification, à chaque TREK. Merci de votre aide.',
+  'admin.contribute.noteOff':
+    'Faites en sorte que ce que vos utilisateurs saisissent sur les lieux améliore la TREK Places API pour tout le monde.',
+  'admin.contribute.ineligible.env_off': 'Désactivé pour cette installation par TREK_PLACES_CONTRIBUTE.',
+  'admin.contribute.ineligible.not_production':
+    'Seule une installation de production peut partager des détails de lieux.',
+  'admin.contribute.ineligible.demo': 'Une installation de démonstration ne partage pas de détails de lieux.',
+  'admin.contribute.ineligible.index_off': "Le partage nécessite l'index TREK comme source de lieux.",
+  'admin.contribute.ineligible.custom_places_url':
+    "Cette installation utilise sa propre Places API, il n'y a donc personne avec qui partager.",
+  'admin.contribute.ineligible.services_off': 'Les services TREK sont désactivés pour cette installation.',
+  'admin.contribute.ineligible.no_key':
+    "Cette installation n'a pas encore de clé de services. Elle est demandée automatiquement.",
+  'admin.contribute.pause.key_invalid': "En pause : le service n'a pas accepté la clé de cette installation.",
+  'admin.contribute.pause.key_refused':
+    'En pause : le service a refusé la clé de cette installation. Une nouvelle clé reprend le partage.',
+  'admin.contribute.pause.not_accepting':
+    "En pause : le service n'accepte pas de contributions pour le moment. Les valeurs en attente seront envoyées plus tard.",
+  'admin.contribute.field.website': 'Site web',
+  'admin.contribute.field.phone': 'Téléphone',
+  'admin.contribute.field.email': 'E-mail',
+  'admin.contribute.field.opening_hours': "Horaires d'ouverture",
+  'admin.contribute.field.description': 'Description', // same-as-en
+  'admin.contribute.field.image': 'Photo', // same-as-en
+  'admin.contribute.figure.accepted': 'Acceptées',
+  'admin.contribute.figure.acceptedInfo': 'Valeurs prises en compte par le service au cours des 30 derniers jours.',
+  'admin.contribute.figure.queue': 'En attente',
+  'admin.contribute.figure.queueFull':
+    "La file d'attente est pleine. Les nouvelles valeurs attendent qu'une place se libère.",
+  'admin.contribute.figure.last': 'Dernière acceptée',
+  'admin.contribute.never': 'jamais',
+  'admin.contribute.log.title': 'Journal des transmissions',
+  'admin.contribute.log.result': 'Résultat',
+  'admin.contribute.log.field': 'Champ',
+  'admin.contribute.log.allResults': 'Tous les résultats',
+  'admin.contribute.log.allFields': 'Tous les champs',
+  'admin.contribute.log.empty': "Rien n'a encore été envoyé.",
+  'admin.contribute.log.failed': "Le journal n'a pas pu être chargé.",
+  'admin.contribute.log.previous': 'Page précédente',
+  'admin.contribute.log.next': 'Page suivante',
+  'admin.contribute.result.accepted': 'Acceptée',
+  'admin.contribute.result.duplicate': 'Déjà connue',
+  'admin.contribute.result.rejected': 'Refusée',
+  'admin.contribute.result.withheld': 'Non envoyée',
+  'admin.contribute.result.retracted': 'Retirée',
+  'admin.contribute.withdraw': 'Retirer tout ce qui a été envoyé',
+  'admin.contribute.withdrawTitle': 'Tout retirer ?',
+  'admin.contribute.withdrawMessage':
+    'Toutes les valeurs envoyées par cette installation sont supprimées de la TREK Places API et les valeurs en attente sont abandonnées. Les lieux conservent leurs détails ici.',
+  'admin.contribute.withdrawn': "Retirées de l'index : {total}",
+  'admin.contribute.offTitle': 'Arrêter le partage ?',
+  'admin.contribute.offMessage':
+    "Plus rien n'est envoyé et les valeurs en attente sont abandonnées. Ce qui a déjà été accepté reste dans l'index, sauf si vous le retirez.",
+  'admin.contribute.offConfirm': 'Arrêter le partage',
+  'admin.contribute.refused.terms_outdated': 'Les conditions ont changé entre-temps. Veuillez les relire.',
+  'admin.contribute.refused.no_field': 'Choisissez au moins un champ à partager.',
+  'admin.contribute.prompt.title': 'Aidez chaque TREK à mieux connaître les lieux',
+  'admin.contribute.prompt.lead':
+    "Lorsqu'une personne ajoute ici un site web, un numéro de téléphone, des horaires ou une description à un lieu, TREK peut les transmettre. Après vérification, chaque installation TREK les affiche, et la vôtre reçoit en retour ce que d'autres ont ajouté.",
+  'admin.contribute.prompt.why':
+    "La TREK Places API est gratuite et n'exige aucune clé Google, car elle est construite à partir de données ouvertes. Chaque détail que vous partagez l'améliore pour des milliers de voyageurs. Merci d'en faire partie.",
+  'admin.contribute.prompt.whatLabel': 'Ce qui est partagé',
+  'admin.contribute.prompt.imageNote':
+    'Les photos sont examinées à la main avant que quiconque les voie. Vous pourrez modifier chaque réglage plus tard.',
+  'admin.contribute.prompt.neverLabel': 'Jamais partagé',
+  'admin.contribute.never.notes': 'Notes', // same-as-en
+  'admin.contribute.never.files': 'Fichiers et pièces jointes',
+  'admin.contribute.never.trips': 'Voyages, jours et réservations',
+  'admin.contribute.never.people': 'Noms, e-mails et comptes',
+  'admin.contribute.never.providers': 'Détails renseignés par Google ou un autre fournisseur',
+  'admin.contribute.prompt.how':
+    "Seulement ce que vos utilisateurs ont saisi eux-mêmes, et seulement pour les lieux que l'index connaît. Aucun utilisateur, voyage ou compte n'accompagne ces données. Le journal montre chaque transmission, et vous pouvez désactiver des champs ou tout retirer à tout moment.",
+  'admin.contribute.prompt.past':
+    'Les détails que vos utilisateurs ont saisis depuis TREK 5.1 sont aussi partagés, petit à petit.',
+  'admin.contribute.prompt.openRegistration':
+    "L'inscription est ouverte sur cette installation : toute personne ayant un compte peut donc saisir des détails. Chaque valeur est vérifiée avant d'être publiée.",
+  'admin.contribute.prompt.footnote':
+    "Vous décidez pour toute l'installation. Vos utilisateurs ne sont pas sollicités.",
+  'admin.contribute.prompt.agree': 'Accepter et partager',
+  'admin.contribute.prompt.snooze': 'Pas maintenant',
+  'admin.contribute.prompt.decline': 'Non, merci',
+  'admin.contribute.prompt.thanks': 'Merci. Les détails des lieux sont désormais partagés.',
+  'admin.servicesCard.title': 'Recherche de lieux et itinéraires',
+  'admin.servicesCard.hint':
+    'Les services propres à TREK, le fournisseur qui répond à la recherche et aux transports en commun, et le journal des recherches.',
 };
 export default admin;

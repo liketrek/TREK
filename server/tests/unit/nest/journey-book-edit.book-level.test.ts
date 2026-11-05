@@ -247,7 +247,7 @@ describe('what the engine reads', () => {
 
     expect(travel.entries.map((e) => [e.id, e.title, e.mood])).toEqual([[entry.id, 'Alfama', 'amazing']]);
     expect(travel.locale).toBe('de-DE');
-    expect(travel.labels).toMatchObject({ day: 'TAG {day}', stations: 'Stationen', pros: 'Pro', cons: 'Contra' });
+    expect(travel.labels).toMatchObject({ day: 'TAG {day}', stations: 'Unterwegs', pros: 'Pro', cons: 'Contra' });
     expect(travel.path).toEqual([]);
     expect((await edit.wordsFor(owner.id)).locale).toBe('de-DE');
   });

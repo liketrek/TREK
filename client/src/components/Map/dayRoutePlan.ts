@@ -196,7 +196,10 @@ export function buildDayRouteRuns(dayId: number, input: DayRouteInputs): DayRout
     const role: CarrierEdge = side === 'first'
       ? (e.from ? 'departure' : 'arrival')
       : (e.to ? 'arrival' : 'departure')
-    return { isPlace: false, time: null, carrierEdge: e.carrier ? role : null }
+    // The booking's own point at this edge of the day, as the sidebar passes it: a taxi
+    // that starts or ends at the hotel then adds no zero-length leg to it.
+    const point = side === 'first' ? (e.from ?? e.to) : (e.to ?? e.from)
+    return { isPlace: false, time: null, carrierEdge: e.carrier ? role : null, lat: point?.lat, lng: point?.lng }
   }
   // A carrier with a located endpoint today means the day changes geography by
   // air/rail/sea — the check-in hotel is then the day's destination and the

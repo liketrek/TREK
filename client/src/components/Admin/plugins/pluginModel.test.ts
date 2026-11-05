@@ -111,8 +111,14 @@ describe('pluginModel', () => {
       blocked: false,
       version: '0.9.0',
     });
-    expect(installOffer(incompatible, t)).toMatchObject({ blocked: true, label: 'admin.plugins.incompatible' });
-    expect(installOffer(incompatible, t, true)).toMatchObject({ blocked: false, label: 'admin.plugins.installAnyway' });
+    // Nothing fits this TREK: still an Install, behind the admin's own warning for this plugin.
+    expect(installOffer(incompatible, t)).toMatchObject({
+      blocked: false,
+      label: 'admin.plugins.install',
+      warn: { acceptedByAdmin: true, trekRange: '>=9', hostVersion: '4.0.0' },
+    });
+    // TREK_PLUGINS_IGNORE_TREK_RANGE lets every plugin through, so the warning is not the admin's own choice.
+    expect(installOffer(incompatible, t, true)).toMatchObject({ blocked: false, warn: { acceptedByAdmin: false } });
   });
 
   it('FE-ADMIN-PLUGIN-MODEL-008: deriveDeps marks the blockers among the declared dependencies', () => {

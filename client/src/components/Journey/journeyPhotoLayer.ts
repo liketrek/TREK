@@ -1,4 +1,4 @@
-import { clusterPoints } from './journeyMapMarks'
+import { clusterPoints, type WorldPx } from './journeyMapMarks'
 
 /** A photo that knows where it was taken (#1614). */
 export interface MapPhoto {
@@ -9,24 +9,23 @@ export interface MapPhoto {
 }
 
 /**
- * Grid clustering in screen space, shared by the Leaflet and the GL journey map.
+ * Grid clustering of the photos, shared by the Leaflet and the GL journey map.
  *
  * The Journey maps have never had clustering, and the library the planner uses
  * hangs off react-leaflet while these maps drive their engines directly.
- * Bucketing by rounded pixel position is a few lines, is deterministic, and is
- * enough for the job: photos of one place collapse into one thumbnail with a
- * count, and pulling the map apart separates them again. `project` is the
- * engine's own lat/lng to container-pixel conversion.
+ * Bucketing by rounded world-pixel position is a few lines, is deterministic,
+ * and is enough for the job: photos of one place collapse into one thumbnail
+ * with a count, zooming in separates them again, and panning leaves them be.
  */
 export const PHOTO_CLUSTER_PX = 64
 
 export function clusterPhotos(
   photos: MapPhoto[],
-  project: (lat: number, lng: number) => { x: number; y: number },
+  toWorldPx: WorldPx,
 ): { lat: number; lng: number; members: MapPhoto[] }[] {
   // Anchored on the first member rather than the centroid: the thumbnail shown
   // is that photo's, so the pin should point where that picture was taken.
-  return clusterPoints(photos, project, PHOTO_CLUSTER_PX)
+  return clusterPoints(photos, toWorldPx, PHOTO_CLUSTER_PX)
 }
 
 export function photoMarkerHtml(thumbUrl: string, count: number): string {

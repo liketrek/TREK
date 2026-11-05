@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router';
+import { openrouterReturnCode } from '../../Settings/ai/aiConnectModel';
 import type { Addon } from './addonModel';
 import { usesConnection } from './aiAddons';
 
@@ -11,7 +12,7 @@ import { usesConnection } from './aiAddons';
  */
 export function useAiAddonTile(aiAddons: Addon[]) {
   const [params] = useSearchParams();
-  const [open, setOpen] = useState(() => params.get('ai') === 'openrouter');
+  const [open, setOpen] = useState(() => openrouterReturnCode(params) !== undefined);
   const canSetUp = usesConnection(aiAddons);
   return {
     enabledCount: aiAddons.filter((a) => a.enabled).length,

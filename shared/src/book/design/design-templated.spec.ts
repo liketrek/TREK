@@ -1,12 +1,6 @@
 import type { AutoEntry, AutoInput, AutoPhoto } from '../auto/auto-types';
 import { normalizeBookDocument } from '../book-normalize';
-import {
-  MAX_SPREADS,
-  MAX_SPREAD_ELEMENTS,
-  bookDocumentSchema,
-  type BookDocument,
-  type BookSpread,
-} from '../book.schema';
+import { MAX_SPREAD_ELEMENTS, bookDocumentSchema, type BookDocument, type BookSpread } from '../book.schema';
 import { pageFindings } from '../describe-spread';
 import { findDecoratedTemplate } from '../templates/template-catalogue';
 import { templatePhotoSlots } from '../templates/template-format';
@@ -101,13 +95,12 @@ function single(photos: number, story: boolean): BookDesignInput {
 }
 
 describe('the book on the designed templates', () => {
-  it('AUTODSN-001: is a valid book, as normalised, within the spread and element caps', () => {
+  it('AUTODSN-001: is a valid book, as normalised, within the element cap', () => {
     for (const [name, input] of inputs()) {
       for (const theme of THEMES) {
         const { doc } = laid(input, theme);
         expect(bookDocumentSchema.safeParse(doc).success, `${name} ${theme}`).toBe(true);
         expect(normalizeBookDocument(doc), `${name} ${theme}`).toEqual(doc);
-        expect(doc.spreads.length).toBeLessThanOrEqual(MAX_SPREADS);
         for (const s of doc.spreads) expect(s.elements.length).toBeLessThanOrEqual(MAX_SPREAD_ELEMENTS);
       }
     }

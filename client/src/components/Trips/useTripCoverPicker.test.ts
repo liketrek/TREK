@@ -135,6 +135,16 @@ describe('useTripCoverPicker', () => {
     expect(result.current.searchError).toBe('offline');
   });
 
+  it('FE-COMP-TRIPCOVER-010b: a server Unsplash turned away says the admin can add the key (#1449)', async () => {
+    vi.spyOn(tripsApi, 'searchCoverImages').mockRejectedValueOnce({
+      response: { status: 502, data: { error: 'Unsplash refused this server.', code: 'unsplash_key_needed' } },
+    });
+    const { result } = picker();
+    act(() => result.current.setSearchQuery('Lisbon'));
+    await act(() => result.current.search());
+    expect(result.current.searchError).toBe('dashboard.unsplashKeyNeeded');
+  });
+
   it('FE-COMP-TRIPCOVER-011: only the latest search applies its results', async () => {
     let resolveFirst!: (v: { photos: (typeof photo)[] }) => void;
     vi.spyOn(tripsApi, 'searchCoverImages')

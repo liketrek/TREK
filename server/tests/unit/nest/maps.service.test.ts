@@ -1925,12 +1925,11 @@ describe('getPlaceDetails (fetch stubbed)', () => {
     expect(place.lat).toBeCloseTo(48.85);
     expect(place.lng).toBeCloseTo(2.29);
     expect(place.source).toBe('openstreetmap');
-    // Overpass first, then Nominatim — two total fetch calls
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    const overpassUrl = fetchMock.mock.calls[0][0] as string;
-    const nominatimUrl = fetchMock.mock.calls[1][0] as string;
-    expect(overpassUrl).toContain('overpass');
-    expect(nominatimUrl).toContain('nominatim');
+    // Overpass, then Nominatim, then the element's community values, of which none are published here.
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock.mock.calls[0][0] as string).toContain('overpass');
+    expect(fetchMock.mock.calls[1][0] as string).toContain('nominatim');
+    expect(String(fetchMock.mock.calls[2][0])).toContain('/v1/community?keys=osm%3Away%2F5');
   });
 
   it('MAPS-041e: open_now is null when regularOpeningHours.openNow is undefined', async () => {

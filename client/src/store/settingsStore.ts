@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { settingsApi } from '../api/client'
 import type { Settings } from '../types'
-import { DEFAULT_APPEARANCE, DEFAULT_WEEK_START } from '@trek/shared'
+import { DEFAULT_APPEARANCE, DEFAULT_DATE_FORMAT, DEFAULT_WEEK_START } from '@trek/shared'
 import { getApiErrorMessage } from '../types'
 import { SUPPORTED_LANGUAGE_CODES } from '../i18n/supportedLanguages'
 import { detectBrowserLanguage } from '../i18n/detectBrowserLanguage'
@@ -62,9 +62,11 @@ export const DEFAULT_SETTINGS: Settings = {
   map_tile_url: '',
   // Empty = the public routing hosts TREK ships with.
   routing_base_url: '',
-  // Empty = the public Valhalla, unless routing_base_url names an own router, in which
-  // case no second engine is asked at all. See valhallaBase().
+  // Empty = no own Valhalla. Which one is asked then is valhallaBase()'s to say.
   valhalla_base_url: '',
+  // Empty = not chosen: the TREK services, FOSSGIS where they cannot answer, none
+  // beside an own router alone. See valhallaBase().
+  routing_valhalla_provider: '',
   // Empty = not said, and then a stop of either kind fills up. See refuelsRange().
   roadtrip_vehicle: '',
   // Off = the rail routes a day at a time, the way the day plan stores it, and the road
@@ -86,6 +88,7 @@ export const DEFAULT_SETTINGS: Settings = {
   distance_unit: 'metric',
   time_format: '24h',
   week_start: DEFAULT_WEEK_START,
+  date_format: DEFAULT_DATE_FORMAT,
   show_place_description: false,
   optimize_from_accommodation: true,
   map_provider: 'leaflet',

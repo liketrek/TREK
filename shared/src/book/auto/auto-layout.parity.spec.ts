@@ -108,6 +108,21 @@ describe('the auto layout moved from the Studio', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
+  it('AUTOPAR-005: lays out every entry of a long journey, the last page and the back cover after them', () => {
+    const fx = fixtures.A as Fixture;
+    const entries = Array.from({ length: 40 }, (_, round) =>
+      fx.input.entries.map((e) => ({ ...e, id: e.id + 100000 * (round + 1) })),
+    ).flat();
+    let n = 0;
+    const doc = buildBook({ ...fx.input, entries, newId: (p) => `${p}-c${++n}` });
+    expect(doc.spreads.length).toBeGreaterThan(300);
+    expect(doc.spreads.slice(-2).map((s) => s.role)).toEqual(['last', 'back']);
+    const laid = new Set(doc.spreads.map((s) => s.entryId));
+    const withPages = new Set(buildBook({ ...fx.input, newId: (p) => `${p}-d${++n}` }).spreads.map((s) => s.entryId));
+    const expected = entries.filter((e) => withPages.has(e.id % 100000));
+    expect(expected.every((e) => laid.has(e.id))).toBe(true);
+  });
+
   it('AUTOPAR-004: counts the day of an entry in calendar days, a change to summer time between', () => {
     const stats: JourneyStats = {
       journeyId: 1,

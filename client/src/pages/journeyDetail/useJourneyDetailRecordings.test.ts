@@ -1,4 +1,4 @@
-// FE-JRN-DETAIL-RECORDINGS-001 to FE-JRN-DETAIL-RECORDINGS-003
+// FE-JRN-DETAIL-RECORDINGS-001 to FE-JRN-DETAIL-RECORDINGS-004
 //
 // JRN-01: the journey page's map lines, with the days the journey keeps beside
 // the trips' GPX tracks and the live Dawarich trail.
@@ -25,8 +25,8 @@ const line = (over: Partial<JourneyTrack>): JourneyTrack => ({
 
 const GPX = [line({})];
 const LIVE = [
-  line({ place_id: -1, trip_id: 0, name: '2026-05-14', kind: 'dawarich_live' }),
-  line({ place_id: -2, trip_id: 0, name: '2026-05-15', kind: 'dawarich_live' }),
+  line({ place_id: -1, trip_id: 0, name: 'Live', kind: 'dawarich_live', date: '2026-05-14' }),
+  line({ place_id: -2, trip_id: 0, name: 'Live', kind: 'dawarich_live', date: '2026-05-15' }),
 ];
 const ITEMS = [{ entry_date: '2026-05-14', dayColor: '#ff0055' }];
 
@@ -58,7 +58,7 @@ describe('useJourneyDetailRecordings', () => {
     const kinds = result.current.mapTracks.map((track) => track.kind ?? 'trip_gpx');
     expect(kinds).toEqual(['trip_gpx', 'day_recording', 'dawarich_live']);
     expect(result.current.mapTracks[1]?.color).toBe('#ff0055');
-    expect(result.current.mapTracks[2]?.name).toBe('2026-05-15');
+    expect(result.current.mapTracks[2]?.date).toBe('2026-05-15');
   });
 
   it('FE-JRN-DETAIL-RECORDINGS-002: with nothing kept and no live trail the GPX tracks pass through as they are', async () => {
@@ -80,5 +80,16 @@ describe('useJourneyDetailRecordings', () => {
       recordingNeedsConnection: false,
     });
     expect(setup({ dawarichStatus: 'disconnected' }).result.current.canTakeOverRecording).toBe(false);
+  });
+
+  it('FE-JRN-DETAIL-RECORDINGS-004: the live trail of a day with entries wears the colour of that day, a day without keeps its own (#2906)', async () => {
+    repo.list.mockResolvedValue([]);
+    const live = [
+      line({ place_id: -1, trip_id: 0, kind: 'dawarich_live', date: '2026-05-14', color: '#2563EB' }),
+      line({ place_id: -2, trip_id: 0, kind: 'dawarich_live', date: '2026-05-15', color: '#7C3AED' }),
+    ];
+    const { result } = setup({ liveTracks: live });
+    await waitFor(() => expect(repo.list).toHaveBeenCalledWith(7));
+    expect(result.current.mapTracks.map((track) => track.color)).toEqual(['#aa0000', '#ff0055', '#7C3AED']);
   });
 });

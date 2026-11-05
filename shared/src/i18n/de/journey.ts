@@ -300,7 +300,7 @@ const journey: TranslationStrings = {
   'journey.studio.autoLayout': 'Automatisch anordnen',
   'journey.studio.export': 'Exportieren',
   'journey.studio.day': 'TAG {day}',
-  'journey.studio.stations': 'Stationen',
+  'journey.studio.stations': 'Unterwegs',
   'journey.studio.peersHere': 'hier',
   'journey.studio.folioAuto': 'Automatisch',
   'journey.studio.exportLayout': 'Layout', // same-as-en

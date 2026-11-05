@@ -174,5 +174,14 @@ const places: TranslationStrings = {
     'Sucht jeden importierten Ort nach, um Fotos, Adresse und Kontaktdaten zu ergänzen. Nutzt deinen Google-Maps-Key.',
   'places.enrichOnImportFileHint':
     'Sucht jeden importierten Punkt danach bei Google und ergänzt Foto, Adresse, Website und Telefonnummer. Pfade und Tracks bleiben, wie sie sind.',
+  'places.refresh.pill': 'Neue Ortsdaten',
+  'places.refresh.title': 'Ortsdaten aktualisieren',
+  'places.refresh.intro':
+    'TREK kennt neuere Angaben zu diesem Ort. Wähle, was du übernehmen willst, der Rest bleibt, wie er ist. Danach den Ort speichern.',
+  'places.refresh.apply': 'Übernehmen',
+  'places.refresh.replaces': 'Ersetzt den gespeicherten Wert',
+  'places.refresh.empty': 'leer',
+  'places.refresh.now': 'Jetzt',
+  'places.refresh.new': 'Neu',
 };
 export default places;

@@ -175,6 +175,12 @@ const docsync: TranslationStrings = {
   'docsync.error.provider_disabled':
     '一時停止中：管理者がこの連携先を無効にしました。再び有効になると同期が再開されます。',
   'docsync.binding.reconnect': '再接続',
+  'docsync.connection.title': '接続',
+  'docsync.connection.hint': 'TREK がこのストレージに使うアドレスとログイン情報です。',
+  'docsync.connection.edit': '接続を編集',
+  'docsync.connection.remove': '接続を削除',
+  'docsync.connection.confirmRemove':
+    'TREK はこのストレージのアドレスとログイン情報を削除し、この旅行のこのストレージ経由の同期はすべて止まります。ドキュメントは TREK とストレージの両方に残ります。',
 };
 
 export default docsync;

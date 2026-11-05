@@ -324,7 +324,21 @@ export default function App() {
         loadUser()
       }
     }
-    authApi.getAppConfig().then(async (config: { managed?: boolean; demo_mode?: boolean; dev_mode?: boolean; is_prerelease?: boolean; has_maps_key?: boolean; has_amap_key?: boolean; places_provider?: string; version?: string; timezone?: string; require_mfa?: boolean; trip_reminders_enabled?: boolean; places_photos_enabled?: boolean; places_autocomplete_enabled?: boolean; places_details_enabled?: boolean; places_enrich_enabled?: boolean; place_shadow_enabled?: boolean; max_upload_mb?: number; permissions?: Record<string, PermissionLevel> }) => {
+    // Asked again until it answers: a page opened while the server restarts got a
+    // 502 here and kept the defaults for the whole session, which on a managed
+    // install put back every setting the operator owns.
+    let cancelled = false
+    let retryTimer: ReturnType<typeof setTimeout> | undefined
+    type AppConfigAnswer = Awaited<ReturnType<typeof authApi.getAppConfig>>
+    const fetchAppConfig = (attempt: number): Promise<AppConfigAnswer> => authApi.getAppConfig().catch((err: unknown) => {
+      if (cancelled) throw err
+      return new Promise<AppConfigAnswer>((resolve, reject) => {
+        retryTimer = setTimeout(() => {
+          fetchAppConfig(attempt + 1).then(resolve, reject)
+        }, Math.min(30_000, 1_000 * 2 ** attempt))
+      })
+    })
+    fetchAppConfig(0).then(async (config: { managed?: boolean; demo_mode?: boolean; dev_mode?: boolean; is_prerelease?: boolean; has_maps_key?: boolean; has_amap_key?: boolean; places_provider?: string; version?: string; timezone?: string; require_mfa?: boolean; trip_reminders_enabled?: boolean; places_photos_enabled?: boolean; places_autocomplete_enabled?: boolean; places_details_enabled?: boolean; places_enrich_enabled?: boolean; place_shadow_enabled?: boolean; max_upload_mb?: number; permissions?: Record<string, PermissionLevel> }) => {
       setManaged(!!config?.managed)
       setDemoMode(!!config?.demo_mode)
       if (config?.dev_mode) setDevMode(true)
@@ -348,6 +362,10 @@ export default function App() {
       // Last, since a new release reloads the page from here.
       await reconcileAppVersion(config?.version)
     }).catch(() => {})
+    return () => {
+      cancelled = true
+      clearTimeout(retryTimer)
+    }
   }, [])
 
   const { settings } = useSettingsStore()
@@ -403,6 +421,10 @@ export default function App() {
   // interceptor's covers all of /public/. A route that is public to one and not
   // to the other is exactly the seam that puts a 401 back.
   const hideAuthedWidgets = isAuthPage || isAuthPublicPath(location.pathname)
+  // The Help & Docs page is the wiki, written for somebody who runs TREK
+  // themselves: keys, backups, updates, the server behind it. A managed install
+  // does not offer it; the in-app help center stays.
+  const managed = useAuthStore(s => s.managed)
 
   return (
     <TranslationProvider>
@@ -458,7 +480,7 @@ export default function App() {
             path="/help"
             element={
               <ProtectedRoute>
-                <HelpPage />
+                {managed ? <Navigate to="/dashboard" replace /> : <HelpPage />}
               </ProtectedRoute>
             }
           />
@@ -466,7 +488,7 @@ export default function App() {
             path="/help/:slug"
             element={
               <ProtectedRoute>
-                <HelpPage />
+                {managed ? <Navigate to="/dashboard" replace /> : <HelpPage />}
               </ProtectedRoute>
             }
           />

@@ -32,6 +32,8 @@ const wanderer: TranslationStrings = {
   'wanderer.error.not_found': 'wanderer 中已不存在此步道。',
   'wanderer.error.not_own_trail': '只能导入你自己的 wanderer 步道。',
   'wanderer.error.invalid_response': '该响应并非来自 wanderer。请检查地址是否指向 wanderer 本身。',
+  'wanderer.error.no_author':
+    'wanderer 已响应，但没有为此 API 令牌所属的账户给出任何步道作者，因此 TREK 无法判断哪些步道是你的。',
   'wanderer.error.too_large': '步道文件超过 10 MB。',
   'wanderer.error.server_error': 'wanderer 返回了错误。请稍后再试。',
   'wanderer.error.offline': '你处于离线状态。只能在联网时搜索 wanderer。',

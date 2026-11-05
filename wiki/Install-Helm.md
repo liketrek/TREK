@@ -190,6 +190,36 @@ persistence:
     size: 1Gi     # uploaded files — increase if you expect large media uploads
 ```
 
+### Security Context
+
+```yaml
+podSecurityContext:
+  fsGroup: 1000
+  fsGroupChangePolicy: OnRootMismatch
+securityContext: {}
+```
+
+With these defaults the container starts as root, hands `/app/data` and `/app/uploads` to the `node` user (uid 1000) if they are not `node`'s yet, and then drops to `node`. Only the two directories and what sits directly in them are checked, so a large uploads volume that already belongs to `node` does not slow down the start. If ownership has to be corrected, the log says `Correcting ownership of /app/uploads for the node user...` before TREK's own start-up lines. A volume that refuses `chown` (NFS with `root_squash`, for example) logs a warning instead; run TREK as uid 1000 then, as shown below.
+
+To run TREK as `node` from the first process on, for example in a namespace that enforces the `restricted` Pod Security Standard, set the user in the pod security context. The image notices it is not root and starts Node directly, with no ownership step and no privilege drop:
+
+```yaml
+podSecurityContext:
+  fsGroup: 1000
+  fsGroupChangePolicy: OnRootMismatch
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: [ALL]
+```
+
+The volumes then have to be writable by uid 1000 or gid 1000. `fsGroup` takes care of that on storage that supports it; on NFS and other volumes the kubelet does not relabel, give the export to uid 1000 yourself. You no longer need to override the container command for this.
+
 ### Resource Limits
 
 ```yaml
@@ -231,6 +261,21 @@ extraEnvFrom:
       name: trek-smtp
 ```
 
+### Further volumes
+
+`extraVolumes` adds volumes to the pod, and `extraVolumeMounts` mounts them in the TREK container, next to `/app/data` and `/app/uploads`. Both go into the Deployment as written, and the chart does not create the objects they name. For example, to give the booking import your own KItinerary extractors from a ConfigMap (one `.json` and one `.js` key for each extractor, see [Reservations-and-Bookings](Reservations-and-Bookings#your-own-extractors)):
+
+```yaml
+extraVolumes:
+  - name: kitinerary-extractors
+    configMap:
+      name: trek-kitinerary-extractors
+extraVolumeMounts:
+  - name: kitinerary-extractors
+    mountPath: /usr/local/share/kitinerary/extractors
+    readOnly: true
+```
+
 ### Ingress
 
 ```yaml
@@ -255,6 +300,31 @@ ingress:
 > **Note:** Keep `env.ALLOWED_ORIGINS` in sync with `ingress.hosts` — the chart does not synchronize these automatically.
 
 > **Note:** When using ingress with TLS termination, set `env.FORCE_HTTPS: "true"` and `env.TRUST_PROXY: "1"` to enable HTTPS redirects, HSTS, and secure cookies.
+
+### HTTPRoute
+
+HTTPRoute support is off by default. To attach TREK to an existing Gateway, enable it in your values file:
+
+```yaml
+httpRoute:
+  enabled: true
+  annotations: {}
+  parentRefs:
+    - name: gateway
+      namespace: gateway-system
+      sectionName: https
+  hostnames:
+    - trek.example.com
+  paths:
+    - /
+  timeouts:
+    request: "0s"
+    backendRequest: "0s"
+```
+
+The cluster needs the Gateway API `HTTPRoute` v1 CRD and a compatible controller. The chart creates only an HTTPRoute to TREK's existing Service on `service.port`; your operator must provide the Gateway and GatewayClass, configure its listener and TLS certificate, and allow routes from the chart's namespace. When enabled, `parentRefs` and `paths` must be non-empty. Paths are string prefixes. Ingress and HTTPRoute may be enabled together.
+
+Timeout fields are Standard Channel in Gateway API v1.2, though controller support varies. If omitted, the controller's timeout defaults apply. `0s` disables that request timeout; controller idle and buffering limits can still affect `/ws` and streamed assistant responses. Set `env.ALLOWED_ORIGINS` and `env.APP_URL` to the public URL. If the Gateway terminates TLS, also set `env.FORCE_HTTPS: "true"` and `env.TRUST_PROXY: "1"`.
 
 ## Upgrade
 

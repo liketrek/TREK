@@ -11,8 +11,8 @@ import zlib from 'zlib';
 // for the country an index suggestion names. Importing it from atlas tied maps into
 // an import cycle with atlas (lint:boundaries).
 //
-// atlas-geo builds its admin-1 region index on the asset path, the feature splitter
-// and the ring test exported here. The admin0 gz bytes and the country poly/box
+// atlas-geo resolves admin-1 regions with the per-country asset path and the packed ring
+// test exported here. The admin0 file path and the country poly/box
 // indexes below are file-scoped for the reason atlas-geo gives: their lifetime stays
 // process-global however many callers there are, so the indexes are built once per
 // process, which the #1576 OOM fix depends on.
@@ -20,39 +20,48 @@ import zlib from 'zlib';
 // ── Bundled boundary GeoJSON (admin-0 countries + admin-1 regions) ─────────
 //
 // Sourced from geoBoundaries (CC BY 4.0), normalized + quantized offline by
-// scripts/build-atlas-geo.mjs into gzipped FeatureCollections under server/assets.
-// They are read + decompressed once and cached in memory — no network at runtime.
+// scripts/build-atlas-geo.mjs into gzipped FeatureCollections under server/assets:
+// admin0 as one file, admin1 as one file per country (the whole admin1 bundle ships
+// too, for two migrations that read it). No network at runtime.
 // (Replaces the previous runtime fetch of Natural Earth, which was stale for recent
 // sub-national reforms and depicts some contested borders in unwanted ways.)
 //
 // __dirname is server/dist/utils at runtime and server/src/utils under vitest;
 // both resolve ../../assets to server/assets.
 
-export function assetPath(name: 'admin0' | 'admin1'): string {
+function assetPath(name: 'admin0'): string {
   return path.join(__dirname, '..', '..', 'assets', 'atlas', `${name}.geojson.gz`);
 }
 
-let admin0Gz: Buffer | null | undefined;
-export function loadAdmin0Gz(): Buffer | null {
-  if (admin0Gz !== undefined) return admin0Gz;
+/** One country's admin-1 regions, a FeatureCollection of its own, named by ISO_A2. */
+export function admin1AssetPath(countryCode: string): string {
+  return path.join(__dirname, '..', '..', 'assets', 'atlas', 'admin1', `${countryCode}.geojson.gz`);
+}
+
+// The admin0 bytes are not kept: countries/geo sends the file from disk, and the country
+// index below reads it once while it is built.
+let admin0File: string | null | undefined;
+export function getAdmin0File(): string | null {
+  if (admin0File !== undefined) return admin0File;
   const file = assetPath('admin0');
   if (!fs.existsSync(file)) {
     console.warn(`[Atlas] admin0.geojson.gz missing — run \`node scripts/build-atlas-geo.mjs\``);
-    return (admin0Gz = null);
+    return (admin0File = null);
   }
-  return (admin0Gz = fs.readFileSync(file));
+  return (admin0File = file);
 }
 
 // Feed arbitrary gunzip chunks; invokes onFeature(text) once per top-level Feature object
 // inside "features":[ … ]. `pending` holds only the unconsumed tail (at most one partial
 // feature + the current chunk), keeping memory flat regardless of bundle size.
-export function createFeatureSplitter(onFeature: (text: string) => void): (chunk: string) => void {
+function createFeatureSplitter(onFeature: (text: string) => void): (chunk: string) => void {
   let pending = '';
   let started = false;
   // Scan progress is carried across chunks so each character is examined exactly once.
   // A large Feature (e.g. Canada, ~5.5MB) spans hundreds of gunzip chunks; re-scanning the
   // accumulated partial from the start on every chunk was O(n²) per feature and pushed the
-  // one-time admin1 build past the 15s test timeout under coverage/CI (#1576-followup).
+  // one-time admin1 build (since replaced by per-country files) past the 15s test timeout
+  // under coverage/CI (#1576-followup).
   let scanning = false; // currently inside a Feature object?
   let depth = 0,
     inStr = false,
@@ -152,35 +161,43 @@ const MICRO_BOX_MAX_AREA = 2.0;
 
 // ── Point-in-polygon over the bundled admin0 borders (#1331) ─────────────────
 
-// Ray-casting (even-odd) test of (lng,lat) against a single GeoJSON ring.
-// Ray-cast on a flat [lng,lat,lng,lat,…] ring. Same algorithm as the classic number[][]
-// version, but the coordinates live in a Float64Array so the parsed admin0 geometry (with
-// its millions of tiny [lng,lat] arrays, ~145MB) need not be retained — only these rings.
-function pointInFlatRing(lng: number, lat: number, ring: Float64Array): boolean {
+// Ray-casting (even-odd) test of (lng,lat) against ring pairs [from, to) of packed
+// coordinates. Each one is divided back by the scale before use: for coordinates with no
+// more decimals than the scale holds that gives back the exact double the bundle had, so the
+// answer is the one a Float64 ring of the same points gives.
+function pointInPackedRing(
+  lng: number,
+  lat: number,
+  coords: Int16Array | Int32Array,
+  scale: number,
+  from: number,
+  to: number,
+): boolean {
   let inside = false;
-  const n = ring.length / 2;
-  for (let i = 0, j = n - 1; i < n; j = i++) {
-    const xi = ring[2 * i],
-      yi = ring[2 * i + 1];
-    const xj = ring[2 * j],
-      yj = ring[2 * j + 1];
+  let xj = coords[2 * (to - 1)] / scale;
+  let yj = coords[2 * (to - 1) + 1] / scale;
+  for (let i = from; i < to; i++) {
+    const xi = coords[2 * i] / scale;
+    const yi = coords[2 * i + 1] / scale;
     if (yi > lat !== yj > lat && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) {
       inside = !inside;
     }
+    xj = xi;
+    yj = yi;
   }
   return inside;
 }
 
-// True when (lng,lat) falls inside a compact Polygon/MultiPolygon, honouring holes.
-// `rings` is every ring flattened; `polyRingCounts[k]` is how many rings polygon k owns
-// (its first ring is the outer boundary, the rest are holes).
-export function pointInGeometry(lng: number, lat: number, geom: CompactGeom): boolean {
+// True when (lng,lat) falls inside a packed Polygon/MultiPolygon, honouring holes: the
+// first ring of each polygon is its outer boundary, the rest are holes.
+export function pointInPackedGeometry(lng: number, lat: number, geom: PackedGeom, scale: number): boolean {
+  const { coords, ringStarts, polyRingCounts } = geom;
   let ri = 0;
-  for (const rc of geom.polyRingCounts) {
-    if (pointInFlatRing(lng, lat, geom.rings[ri])) {
+  for (const rc of polyRingCounts) {
+    if (pointInPackedRing(lng, lat, coords, scale, ringStarts[ri], ringStarts[ri + 1])) {
       let inHole = false;
       for (let h = 1; h < rc; h++) {
-        if (pointInFlatRing(lng, lat, geom.rings[ri + h])) {
+        if (pointInPackedRing(lng, lat, coords, scale, ringStarts[ri + h], ringStarts[ri + h + 1])) {
           inHole = true;
           break;
         }
@@ -192,14 +209,23 @@ export function pointInGeometry(lng: number, lat: number, geom: CompactGeom): bo
   return false;
 }
 
-// Compact polygon geometry: rings flattened into Float64Arrays, grouped into polygons by
-// polyRingCounts. Replaces the retained parsed GeoJSON geometry.
-export type CompactGeom = { rings: Float64Array[]; polyRingCounts: number[] };
-export type Box = [number, number, number, number]; // [minLng, minLat, maxLng, maxLat]
+// Packed polygon geometry: every ring's [lng,lat] pairs back to back in one typed array, each
+// value times a scale. Ring r is pairs ringStarts[r] up to ringStarts[r + 1]; polyRingCounts[k]
+// is how many rings polygon k owns. Three typed arrays per geometry instead of one per ring,
+// at a quarter (Int16, admin-0) or half (Int32, admin-1) of the bytes per point.
+export type PackedGeom = { coords: Int16Array | Int32Array; ringStarts: Uint32Array; polyRingCounts: Uint32Array };
+type Box = [number, number, number, number]; // [minLng, minLat, maxLng, maxLat]
 
-// ISO_A2 → compact admin0 geometry + bounding boxes, derived from the bundled admin0
+// The admin-0 bundle is quantized to ADM0_DECIMALS = 2 (scripts/build-atlas-geo.mjs) and no
+// coordinate passes ±180, so every one is a whole number of hundredths within ±18000 and fits
+// an Int16 exactly (ATLAS-BUNDLE-010 guards it). A third decimal needs ×1000 here and an
+// Int32Array, since ±180000 does not fit an Int16.
+const ADMIN0_SCALE = 100;
+
+// ISO_A2 → packed admin0 geometry + bounding boxes, derived from the bundled admin0
 // borders on first use. The parsed FeatureCollection is dropped after this runs; only the
-// Float64Array rings and boxes are retained (≈1MB vs the ≈145MB parsed geometry, #1576).
+// Int16 coordinates and the boxes are retained (≈9MB for the 2M points, vs ≈34MB as
+// Float64Array rings and ≈145MB as the parsed geometry, #1576).
 //
 // The boxes used to be a hand-maintained table, which drifted: 43 countries (NG, BY,
 // GL, KP, TD, SS, …) had no box at all, so their coordinates fell into a *neighbour's*
@@ -210,20 +236,20 @@ export type Box = [number, number, number, number]; // [minLng, minLat, maxLng, 
 // One box is stored PER GEOMETRY PART, not per country. A single box around a country
 // that straddles the antimeridian (RU, US, FJ, KI) would span nearly the whole globe;
 // per-part boxes keep Alaska and Chukotka separate and handle the ±180 wrap for free.
-let countryPolyIndex: Map<string, CompactGeom> | null = null;
+let countryPolyIndex: Map<string, PackedGeom> | null = null;
 let countryBoxIndex: Map<string, Box[]> | null = null;
 
 function buildCountryIndexes(): void {
-  const polys = new Map<string, CompactGeom>();
+  const polys = new Map<string, PackedGeom>();
   const boxes = new Map<string, Box[]>();
 
-  const gz = loadAdmin0Gz();
-  if (gz) {
+  const file = getAdmin0File();
+  if (file) {
     // Parse ONE feature at a time off the gunzipped string rather than JSON.parse-ing the
     // whole FeatureCollection: the full parse transiently allocates ~285MB (the 145MB
     // object graph plus intermediates) and V8 keeps those pages, which alone exhausts a
     // 512MB host before admin1 even loads (#1576).
-    const json = zlib.gunzipSync(gz).toString('utf8');
+    const json = zlib.gunzipSync(fs.readFileSync(file)).toString('utf8');
     const consume = createFeatureSplitter((text) => {
       const f = JSON.parse(text);
       const raw = f.properties?.ISO_A2;
@@ -233,18 +259,27 @@ function buildCountryIndexes(): void {
       const parts = (
         f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates
       ) as number[][][][];
-      const rings: Float64Array[] = [];
-      const polyRingCounts: number[] = [];
-      const codeBoxes = boxes.get(code) ?? [];
+      let points = 0;
+      let ringCount = 0;
       for (const part of parts) {
-        polyRingCounts.push(part.length);
+        ringCount += part.length;
+        for (const ring of part) points += ring.length;
+      }
+      const coords = new Int16Array(points * 2);
+      const ringStarts = new Uint32Array(ringCount + 1);
+      const polyRingCounts = new Uint32Array(parts.length);
+      const codeBoxes = boxes.get(code) ?? [];
+      let p = 0;
+      let ri = 0;
+      for (const [k, part] of parts.entries()) {
+        polyRingCounts[k] = part.length;
         for (const ring of part) {
-          const flat = new Float64Array(ring.length * 2);
-          for (let i = 0; i < ring.length; i++) {
-            flat[2 * i] = ring[i][0];
-            flat[2 * i + 1] = ring[i][1];
+          ringStarts[ri++] = p;
+          for (const [lng, lat] of ring) {
+            coords[2 * p] = Math.round(lng * ADMIN0_SCALE);
+            coords[2 * p + 1] = Math.round(lat * ADMIN0_SCALE);
+            p++;
           }
-          rings.push(flat);
         }
         // Bounding box from the part's outer ring (part[0]).
         let minLng = Infinity,
@@ -259,9 +294,10 @@ function buildCountryIndexes(): void {
         }
         codeBoxes.push([minLng, minLat, maxLng, maxLat]);
       }
+      ringStarts[ri] = p;
       // Matches the previous index exactly: geometry is overwritten (last feature for a
       // code wins) while boxes accumulate across a code's features.
-      polys.set(code, { rings, polyRingCounts });
+      polys.set(code, { coords, ringStarts, polyRingCounts });
       boxes.set(code, codeBoxes);
     });
     consume(json);
@@ -276,7 +312,7 @@ function buildCountryIndexes(): void {
   countryBoxIndex = boxes;
 }
 
-function getCountryPolyIndex(): Map<string, CompactGeom> {
+function getCountryPolyIndex(): Map<string, PackedGeom> {
   if (!countryPolyIndex) buildCountryIndexes();
   return countryPolyIndex!;
 }
@@ -334,7 +370,7 @@ export function getCountryFromCoords(lat: number, lng: number): string | null {
       if (looseBoxFallback === null) looseBoxFallback = code;
       continue;
     }
-    if (pointInGeometry(lng, lat, poly)) return code;
+    if (pointInPackedGeometry(lng, lat, poly, ADMIN0_SCALE)) return code;
   }
   // No tight micro-box and no polygon contained the point — prefer a deferred loose box
   // (a real PS/XK point), else fall back to the smallest box (coastal slop / data gap).

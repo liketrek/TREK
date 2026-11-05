@@ -34,6 +34,8 @@ const wanderer: TranslationStrings = {
   'wanderer.error.not_own_trail': 'Chỉ có thể nhập các cung đường wanderer của chính bạn.',
   'wanderer.error.invalid_response':
     'Phản hồi không đến từ wanderer. Hãy kiểm tra địa chỉ có trỏ đúng tới wanderer hay không.',
+  'wanderer.error.no_author':
+    'wanderer đã phản hồi nhưng không nêu tác giả cung đường nào cho tài khoản của token API này, nên TREK không biết cung đường nào là của bạn.',
   'wanderer.error.too_large': 'Tệp cung đường lớn hơn 10 MB.',
   'wanderer.error.server_error': 'wanderer trả về lỗi. Vui lòng thử lại sau.',
   'wanderer.error.offline': 'Bạn đang ngoại tuyến. Chỉ có thể tìm kiếm wanderer khi trực tuyến.',

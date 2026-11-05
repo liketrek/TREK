@@ -33,6 +33,7 @@ import { PermissionsService } from '../../../src/nest/permissions/permissions.se
 import { CollectionsService } from '../../../src/nest/collections/collections.service';
 import { buildPlaceImportService } from '../../helpers/place-import';
 import { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+import { releaseDirect } from '../../helpers/storage-release';
 import { makeStorageFixture } from '../../helpers/storage-fixture';
 import { notificationsStub } from '../../helpers/notifications';
 import {
@@ -125,7 +126,7 @@ beforeAll(async () => {
   permissionsForSpy = new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb));
   svc = new CollectionsService(
     permissionsForSpy,
-    realtime, notificationsStub(notifSend), storageFx.storage, await createTestUnitOfWork(testDb),
+    realtime, notificationsStub(notifSend), releaseDirect(storageFx.storage), await createTestUnitOfWork(testDb),
     await createTestCollectionsRepo(testDb), await createTestCollectionMembersRepo(testDb),
     await createTestCollectionLabelsRepo(testDb), await createTestCategoriesRepo(testDb),
     await createTestCollectionPlacesRepo(testDb), await createTestCollectionPlaceRatingsRepo(testDb),

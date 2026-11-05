@@ -35,6 +35,8 @@ const map: TranslationStrings = {
   'map.overview.hide': 'Nascondi tutto il viaggio',
   'map.overview.total': 'Distanza totale',
   'map.attribution': 'Crediti della mappa',
+  'map.overview.distanceAtLeast': 'almeno {distance}',
+  'map.overview.notRouted': 'percorso non calcolato',
   'map.overview.unrouted':
     'Per {count} tratte non è stato possibile calcolare il percorso, quindi le distanze sono incomplete.',
   'map.overview.unrouted.one':

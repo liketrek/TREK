@@ -10,10 +10,13 @@ const DEFAULT_MAX_TOKENS = 8192;
 const ANTHROPIC_VERSION = '2023-06-01';
 
 /**
- * Anthropic Messages API client. Structured output via forced tool-use: a single
+ * Anthropic Messages API client. Structured output via tool use: a single
  * `emit_<rootKey>` tool (`emit_reservations` by default) whose `input_schema` is
- * the caller's schema, with `tool_choice` forcing it — the documented, reliable
- * way to get structured JSON.
+ * the caller's schema, which the system prompt asks the model to answer with.
+ * The tool is not forced through `tool_choice`: the current models (Claude
+ * Sonnet 5.5, Opus 5.5, Fable 5.1) refuse `{ type: 'tool' }` and `{ type: 'any' }`
+ * with a 400, while `auto` is accepted by every model and by Messages-compatible
+ * gateways (#2902). A model that answers in text instead is reported as such below.
  * PDFs go as native base64 `document` blocks (Anthropic reads scanned PDFs), photos
  * as `image` blocks.
  * Raw fetch (no SDK) to match the codebase's HTTP style.
@@ -48,7 +51,7 @@ export class AnthropicClient implements LlmExtractionClient {
     const body = {
       model: input.model,
       max_tokens: maxTokens,
-      system: input.prompt,
+      system: `${input.prompt}\n\n${toolInstruction(toolName)}`,
       tools: [
         {
           name: toolName,
@@ -56,7 +59,8 @@ export class AnthropicClient implements LlmExtractionClient {
           input_schema: input.jsonSchema,
         },
       ],
-      tool_choice: { type: 'tool', name: toolName },
+      // At most one call: the whole list goes into it.
+      tool_choice: { type: 'auto', disable_parallel_tool_use: true },
       messages: [{ role: 'user', content }],
     };
 
@@ -97,7 +101,7 @@ export class AnthropicClient implements LlmExtractionClient {
       throw new Error('Anthropic declined to process this document');
     }
     // A run that hits the cap stops mid-tool-call, so what arrives is a fragment
-    // of the list or nothing at all — and a forced tool that was not called left
+    // of the list or nothing at all — and a tool that was not called left
     // no list either. Neither is "this document holds no booking", but both came
     // back as [] and reached the person as an empty preview with nothing in the
     // log: the #2375 symptom, on the provider the dropdown offers first.
@@ -114,3 +118,8 @@ export class AnthropicClient implements LlmExtractionClient {
 }
 
 const USER_TEXT = 'Extract every travel reservation from the following document as schema.org JSON-LD.';
+
+/** What stands in for the forced tool call: the answer goes through the tool, once, and nowhere else. */
+function toolInstruction(toolName: string): string {
+  return `Answer only by calling the ${toolName} tool, exactly once, with everything you extracted. Call it with an empty list when the document holds nothing to extract. Do not answer in text.`;
+}

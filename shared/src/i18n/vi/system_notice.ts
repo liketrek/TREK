@@ -57,23 +57,20 @@ const system_notice: TranslationStrings = {
   'system_notice.pager.position': 'Thông báo {current} của {total}',
   // The release modal. One stable set of keys: each big release swaps the copy in place.
   'system_notice.release_notes.eyebrow': 'Đã cập nhật',
-  'system_notice.release_notes.headline': 'Phiên bản TREK lớn nhất từ trước đến nay.',
+  'system_notice.release_notes.headline': 'Đúng địa điểm, ngay đầu tiên.',
   'system_notice.release_notes.intro':
-    'Chuyến tham quan cho mọi ngày ngoài trời, studio cho sách ảnh của bạn, trợ lý cùng bạn lên kế hoạch và trợ giúp trên mọi màn hình.',
+    'Tìm địa điểm, tìm địa chỉ và chỉ đường giờ chạy trên máy chủ riêng của TREK, được dataforest cloud tài trợ, và mỗi TREK đều có thể chia sẻ những gì nó biết về các địa điểm với tất cả những TREK khác.',
   'system_notice.release_notes.features_label': 'Những điểm nhấn',
   'system_notice.release_notes.features_aside': 'Chưa phải tất cả',
-  'system_notice.release_notes.feature_tours_title': 'Chuyến tham quan',
-  'system_notice.release_notes.feature_tours_body':
-    'Đi bộ đường dài, đạp xe, chạy bộ, cưỡi ngựa, chèo thuyền, dạo phố và ngày trượt tuyết, với biểu đồ độ cao, cấp độ khó và bay lượn 3D.',
-  'system_notice.release_notes.feature_studio_title': 'TREK Studio', // same-as-en
-  'system_notice.release_notes.feature_studio_body':
-    'Biến chuyến đi thành một cuốn sách ảnh được thiết kế: 17 chủ đề, 34 kiểu chữ, 160 nhãn dán và tự động dàn trang chỉ với một cú nhấp.',
-  'system_notice.release_notes.feature_assistant_title': 'Trợ lý AI',
-  'system_notice.release_notes.feature_assistant_body':
-    'Cùng bạn lên kế hoạch cho những chuyến đi thật, bằng tài khoản AI bạn đã có. Mọi thay đổi đều hiện ra trước và có thể hoàn tác.',
-  'system_notice.release_notes.feature_help_title': 'Trợ giúp trên mọi màn hình, bằng 27 ngôn ngữ',
-  'system_notice.release_notes.feature_help_body':
-    'Khoảng 370 hướng dẫn từng bước cùng 1.600 hình ảnh, ngay nơi bạn cần. Mới: tiếng Azerbaijan, Estonia, Slovakia và Thái.',
+  'system_notice.release_notes.feature_search_title': 'Tìm địa điểm trúng ngay',
+  'system_notice.release_notes.feature_search_body':
+    'Thành phố, hòn đảo, địa danh và sân bay theo mã hiện lên trước, quán cà phê được tìm quanh bạn, và gợi ý xuất hiện ngay khi bạn đang gõ.',
+  'system_notice.release_notes.feature_share_title': 'Chi tiết địa điểm, cùng chia sẻ',
+  'system_notice.release_notes.feature_share_body':
+    'Chia sẻ trang web, giờ mở cửa và ảnh với mọi TREK, theo từng mục, và những địa điểm bạn đã lưu sẽ nhận thêm thông tin người khác bổ sung.',
+  'system_notice.release_notes.feature_routing_title': 'Chỉ đường nhanh hơn',
+  'system_notice.release_notes.feature_routing_body':
+    'Cả một ngày với tối đa hai mươi điểm dừng được chỉ đường trong một lần, một tuyến chậm không còn giữ chân các tuyến khác, và phương tiện công cộng sẽ hỏi nhà cung cấp thứ hai khi nhà cung cấp đầu tiên không tìm thấy gì.',
   'system_notice.release_notes.footnote':
     'Và còn cả một danh sách dài những thay đổi nhỏ hơn ở khắp phần còn lại của TREK.',
   'system_notice.release_notes.notes_label': 'Ghi chú phát hành',
@@ -88,10 +85,10 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.note_body_after':
     'Rồi các bạn đã mở nó. Chỉ trong vài tháng đã có hàng nghìn bạn: những ngôi sao, báo lỗi, bản dịch sang những ngôn ngữ tôi không biết nói, pull request từ những người tôi chưa từng gặp. Đến giờ, việc đầu tiên tôi làm mỗi sáng vẫn là mở kho mã, và cảm giác vẫn chưa hẳn là thật.',
   'system_notice.release_notes.note_closing': 'Cảm ơn bạn đã ở đây. Thân mến, Maurice.',
-  'system_notice.release_notes.support_lead':
-    'TREK miễn phí và sẽ luôn như vậy, nhưng máy chủ, tên miền và rất nhiều đêm thức khuya thì không.',
+  'system_notice.release_notes.support_label': 'Giữ sự độc lập',
+  'system_notice.release_notes.support_lead': 'Không phụ thuộc Google và các ông lớn.',
   'system_notice.release_notes.support_text':
-    'Nếu TREK đã có một chỗ trong những chuyến đi của bạn, hãy mời tôi một ly cà phê để bản phát hành tiếp theo tiếp tục ra đời.',
+    'Tìm địa điểm, tìm địa chỉ và chỉ đường chạy trên máy chủ riêng của TREK, hiện được dataforest cloud tài trợ. Tôi chiến đấu vì điều đó mỗi ngày, và để giữ được như vậy cần có sự ủng hộ của bạn.',
   'system_notice.release_notes.cta_bmc': 'Mời tôi một ly cà phê',
   'system_notice.release_notes.cta_kofi': 'Hỗ trợ trên Ko-fi',
 };

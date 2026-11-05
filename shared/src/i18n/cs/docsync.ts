@@ -178,6 +178,12 @@ const docsync: TranslationStrings = {
   'docsync.error.provider_disabled':
     'Pozastaveno: správce tohoto poskytovatele vypnul. Synchronizace bude pokračovat, jakmile ho znovu zapne.',
   'docsync.binding.reconnect': 'Znovu připojit',
+  'docsync.connection.title': 'Připojení',
+  'docsync.connection.hint': 'Adresa a přihlášení, které TREK pro toto úložiště používá.',
+  'docsync.connection.edit': 'Upravit připojení',
+  'docsync.connection.remove': 'Odebrat připojení',
+  'docsync.connection.confirmRemove':
+    'TREK zapomene adresu a přihlášení k tomuto úložišti a veškerá synchronizace této cesty přes něj se zastaví. Dokumenty zůstanou v TREKu i v úložišti.',
 };
 
 export default docsync;

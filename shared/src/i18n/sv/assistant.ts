@@ -42,6 +42,8 @@ const assistant: TranslationStrings = {
   'assistant.connect.openAssistant': 'Öppna assistenten',
   'assistant.connect.badKey': 'Den här nyckeln fungerar inte.',
   'assistant.connect.unknownModel': 'Den här modellen erbjuds inte här.',
+  'assistant.connect.noModelList':
+    'Servern svarade men skickade ingen lista med modeller. Kontrollera adressen, den slutar oftast på /v1.',
   'assistant.connect.getKey': 'Skaffa en nyckel',
   'assistant.connect.hintAnthropic': 'Claude Max och Team inkluderar API-krediter.',
   'assistant.connect.hintOpenai': 'Skapa en nyckel i din OpenAI-översikt.',
@@ -181,6 +183,8 @@ const assistant: TranslationStrings = {
   'assistant.change.label.currency': 'Valuta',
   'assistant.change.label.stopType': 'Typ av stopp',
   'assistant.change.label.text': 'Text', // same-as-en
+  'assistant.change.label.title': 'Titel',
+  'assistant.change.label.content': 'Innehåll',
   'assistant.change.label.icon': 'Ikon',
   'assistant.change.label.color': 'Färg',
   'assistant.change.label.position': 'Position', // same-as-en

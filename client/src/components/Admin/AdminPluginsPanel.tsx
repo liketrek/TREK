@@ -1,10 +1,9 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
-import { createPortal } from 'react-dom'
+import { useState, type ReactNode } from 'react'
 import {
   Blocks, AlertTriangle, RefreshCw, Trash2, Download, Bug, ShieldCheck, UploadCloud,
-  ArrowUpCircle, Github, ExternalLink, ChevronDown, Check, Lock, Search, Link2, KeyRound, ShieldAlert,
-  SlidersHorizontal, ArrowUpDown, CircleDot, MoreHorizontal, RotateCw, Database,
-  Globe, Info, History, PauseCircle, Puzzle, Bot, Loader2,
+  ArrowUpCircle, Github, ExternalLink, Check, Search, Link2, KeyRound, ShieldAlert,
+  SlidersHorizontal, CircleDot, Database,
+  Globe, History, Puzzle, Bot, Loader2,
 } from 'lucide-react'
 import PluginIcon from '../shared/PluginIcon'
 import { useInstanceSettings } from './useInstanceSettings'
@@ -12,6 +11,7 @@ import { type RangeWarning } from './useRangeBypass'
 import { deriveCaps } from './pluginCaps'
 import PluginPoiCategoryList from './PluginPoiCategoryList'
 import { useTranslation } from '../../i18n'
+import { useFormatDate } from '../../hooks/useDateFormat'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import ToggleSwitch from '../Settings/ToggleSwitch'
 import CustomSelect from '../shared/CustomSelect'
@@ -23,15 +23,18 @@ import {
   SettingsCard, SettingRows, SettingRow, SettingsHint, StatusPill,
   SETTINGS_BUTTON_PRIMARY, SETTINGS_ICON_BUTTON,
 } from '../Settings/settingsKit'
-import { POPOVER } from '../Packing/packingPopoverStyles'
 import {
-  KNOWN_TYPES, PERM_KEYS, blockIsCurrent, dependencyRows, deriveDeps, fingerprint, formatCompactCount,
-  installOffer, isRegistrySourced, parseJson, signatureBlockView, sortLabel, statusLabel,
-  type PluginDep, type PluginRow, type RegistryItem, type SigSubject, type SortKey,
-  type StatusFilter, type T, type TypeFilter, type VersionInfo, type VersionMismatch,
+  KNOWN_TYPES, PERM_KEYS, blockIsCurrent, dependencyRows, fingerprint, formatCompactCount,
+  installOffer, signatureBlockView,
+  type PluginDep, type PluginRow, type RegistryItem, type SigSubject,
+  type T, type VersionInfo, type VersionMismatch,
 } from './plugins/pluginModel'
 import { usePluginDetail } from './plugins/usePluginDetail'
 import { usePluginsAdmin } from './plugins/usePluginsAdmin'
+import PluginFilterMenu from './plugins/PluginFilterMenu'
+import PluginInstalledRow from './plugins/PluginInstalledRow'
+import PluginSecurityDialog from './plugins/PluginSecurityDialog'
+import VersionLine from './plugins/VersionLine'
 
 /**
  * Admin → Plugins (#plugins). A full plugin-management surface: a segmented
@@ -42,50 +45,19 @@ import { usePluginsAdmin } from './plugins/usePluginsAdmin'
  * tile; the security section at the bottom explains the model honestly.
  */
 
-// Runtime health → dot colour on the icon tile.
-const HEALTH: Record<string, string> = {
-  active: 'bg-success',
-  starting: 'bg-info animate-pulse',
-  error: 'bg-danger',
-  inactive: 'bg-content-faint/60',
-  disabled: 'bg-warning',
-  incompatible: 'bg-warning',
-}
-
 /** The head band of a dialog that warns before something happens: a faint wash of the warning tone. */
 const WARN_TINT = 'color-mix(in srgb, var(--warning) 10%, transparent)'
 /** The eyebrow over a block, the size the dialogs' sections use. */
 const EYEBROW = 'm-0 font-geist font-bold uppercase tracking-[.08em] text-content-faint'
-/** A capability or dependency chip on an installed row. */
-const CHIP = 'inline-flex max-w-full items-center gap-1.5 rounded-full border px-2 py-[2px] font-medium'
-const CHIP_NEUTRAL = 'border-edge-faint bg-surface-secondary text-content-secondary'
-const CHIP_NET = 'border-transparent bg-info-soft text-info'
-const CHIP_WARN = 'border-transparent bg-warning-soft text-warning'
 /** A small action inside a row or a card: the kit's button, a size down. */
 const SMALL_BUTTON = 'inline-flex flex-none items-center justify-center gap-1.5 rounded-[10px] bg-surface-card px-2.5 py-1.5 font-semibold text-content shadow-sm ring-1 ring-edge-faint hover:bg-surface-secondary disabled:cursor-default disabled:opacity-50'
 const SMALL_PRIMARY = 'inline-flex flex-none items-center justify-center gap-1.5 rounded-[10px] bg-accent px-3 py-1.5 font-semibold text-accent-text hover:opacity-90 disabled:cursor-default disabled:bg-surface-tertiary disabled:text-content-faint'
-/** A line of state under a row's name: a refused update, a paused one, an error. */
-const ROW_NOTE = 'mt-1.5 flex min-w-0 items-center gap-1.5'
-
 /** A pill that explains itself on hover. */
 function HintPill({ hint, children }: { hint: string; children: ReactNode }) {
   return (
     <Tooltip label={hint}>
       <span className="inline-flex flex-none">{children}</span>
     </Tooltip>
-  )
-}
-
-function ReviewedBadge({ t }: { t: T }) {
-  return <ShieldCheck size={13} className="text-success shrink-0" aria-label={t('admin.plugins.reviewed')} />
-}
-
-/** Marks a manually-uploaded (sideloaded) plugin: no registry, unsigned, not reviewed. */
-function SideloadedBadge({ t }: { t: T }) {
-  return (
-    <HintPill hint={t('admin.plugins.sideloadedHint')}>
-      <StatusPill tone="warning" icon={<UploadCloud size={11} />}>{t('admin.plugins.sideloaded')}</StatusPill>
-    </HintPill>
   )
 }
 
@@ -113,15 +85,6 @@ function TrustBadge({ signed, t }: { signed: boolean; t: T }) {
   )
 }
 
-/** Marks a dev-linked plugin: loaded from a local build dir + hot-reloaded (dev only). */
-function DevLinkBadge({ t }: { t: T }) {
-  return (
-    <HintPill hint={t('admin.plugins.devLinkHint')}>
-      <StatusPill icon={<Link2 size={11} />}>{t('admin.plugins.devLinkBadge')}</StatusPill>
-    </HintPill>
-  )
-}
-
 function TypeBadge({ type, t }: { type: string; t: T }) {
   return (
     <span className="inline-flex flex-none items-center rounded-full bg-surface-tertiary px-2 py-[3px] font-geist font-bold uppercase tracking-[.06em] text-content-muted" style={fs(9.5)}>
@@ -145,6 +108,7 @@ export default function AdminPluginsPanel() {
     sort, statusFilter, toggle, typeFilter, uninstallConfirmed, updatable, updateAll, updateAvailable, uploadInputRef,
     uploadPlugin, versionPicker, view,
   } = usePluginsAdmin()
+  const [securityOpen, setSecurityOpen] = useState(false)
 
   return (
     <div className="relative mb-24 sm:mb-0"
@@ -181,6 +145,9 @@ export default function AdminPluginsPanel() {
         ) : undefined}
         action={ready ? (
           <>
+            <BandButton label={t('admin.plugins.security.short')} onClick={() => setSecurityOpen(true)}>
+              <ShieldCheck size={15} strokeWidth={2} />
+            </BandButton>
             <BandButton label={t('admin.plugins.upload')} onClick={pickUpload} disabled={busy === '__upload'}>
               <UploadCloud size={15} strokeWidth={2} />
             </BandButton>
@@ -242,31 +209,9 @@ export default function AdminPluginsPanel() {
                 />
               </label>
 
-              <FilterMenu id="type" label={t('admin.plugins.filterType')} value={typeFilter} menu={menu} setMenu={setMenu} icon={<SlidersHorizontal size={14} />}
-                options={[
-                  ['all', t('admin.plugins.allTypes')], ['widget', t('admin.plugins.type.widget')],
-                  ['integration', t('admin.plugins.type.integration')], ['page', t('admin.plugins.type.page')],
-                  ['trip-page', t('admin.plugins.type.trip-page')],
-                ]}
-                valueLabel={typeFilter === 'all' ? t('admin.plugins.allTypes') : t(`admin.plugins.type.${typeFilter}` as never)}
-                onPick={v => setTypeFilter(v as TypeFilter)} />
-
-              {view === 'installed' && (
-                <FilterMenu id="status" label={t('admin.plugins.filterStatus')} value={statusFilter} menu={menu} setMenu={setMenu} icon={<CircleDot size={14} />}
-                  options={[
-                    ['all', t('admin.plugins.allStatuses')], ['on', t('admin.plugins.status.active')], ['off', t('admin.plugins.stateOff')],
-                    ['update', t('admin.plugins.filterUpdate')], ['err', t('admin.plugins.status.error')],
-                  ]}
-                  valueLabel={statusLabel(statusFilter, t)}
-                  onPick={v => setStatusFilter(v as StatusFilter)} />
-              )}
-
-              <FilterMenu id="sort" label={t('admin.plugins.sortBy')} value={sort} menu={menu} setMenu={setMenu} icon={<ArrowUpDown size={14} />}
-                options={view === 'discover'
-                  ? [['name', t('admin.plugins.sortName')], ['recent', t('admin.plugins.sortRecent')], ['downloads', t('admin.plugins.sortDownloads')]]
-                  : [['name', t('admin.plugins.sortName')], ['recent', t('admin.plugins.sortRecent')], ['updates', t('admin.plugins.sortUpdates')]]}
-                valueLabel={sortLabel(sort, t)}
-                onPick={v => setSort(v as SortKey)} />
+              <PluginFilterMenu t={t} view={view} typeFilter={typeFilter} setTypeFilter={setTypeFilter}
+                statusFilter={statusFilter} setStatusFilter={setStatusFilter} sort={sort} setSort={setSort}
+                menu={menu} setMenu={setMenu} />
             </div>
 
             {view === 'discover' ? (
@@ -299,7 +244,7 @@ export default function AdminPluginsPanel() {
                 ) : (
                   <SettingRows>
                     {shownInstalled.map(p => (
-                      <InstalledRow key={p.id} p={p} t={t} busy={busy} menu={menu} setMenu={setMenu}
+                      <PluginInstalledRow key={p.id} p={p} t={t} busy={busy} menu={menu} setMenu={setMenu}
                         hasUpdate={updateAvailable(p)} latestVer={latest[p.id]}
                         newerIncompatible={newerIncompatible(p)}
                         blocked={blockIsCurrent(p, latest[p.id])}
@@ -320,7 +265,7 @@ export default function AdminPluginsPanel() {
         )}
       </SettingsCard>
 
-      <SecurityInfo t={t} />
+      {securityOpen && <PluginSecurityDialog t={t} onClose={() => setSecurityOpen(false)} />}
 
       {/* Registry detail dialog */}
       {detailFor && (
@@ -360,7 +305,7 @@ export default function AdminPluginsPanel() {
 
       {versionPicker && (
         <VersionPickerDialog plugin={versionPicker.plugin} versions={versionPicker.versions} failed={versionPicker.failed}
-          busy={busy} t={t} locale={locale} onPick={pickVersion} onClose={() => setVersionPicker(null)} />
+          busy={busy} t={t} onPick={pickVersion} onClose={() => setVersionPicker(null)} />
       )}
 
       <ConfirmDialog
@@ -438,268 +383,6 @@ function SegBtn({ active, onClick, label, count }: { active: boolean; onClick: (
   )
 }
 
-/** Re-renders while the page moves under an open, portaled menu, so it stays pinned to its trigger. */
-function useFollowTrigger(open: boolean) {
-  const [, reanchor] = useState(0)
-  useEffect(() => {
-    if (!open) return
-    const onMove = () => reanchor(n => n + 1)
-    window.addEventListener('scroll', onMove, true)
-    window.addEventListener('resize', onMove)
-    return () => {
-      window.removeEventListener('scroll', onMove, true)
-      window.removeEventListener('resize', onMove)
-    }
-  }, [open])
-}
-
-function FilterMenu({ id, label, valueLabel, options, onPick, value, menu, setMenu, icon }: {
-  id: string; label: string; valueLabel: string
-  options: Array<[string, string]>; onPick: (v: string) => void; value: string
-  menu: string | null; setMenu: (v: string | null) => void; icon?: ReactNode
-}) {
-  const open = menu === id
-  const active = value !== options[0]?.[0]
-  const btnRef = useRef<HTMLButtonElement>(null)
-  // Portaled like the row menu: the card around the toolbar clips what overflows it.
-  useFollowTrigger(open)
-  return (
-    <div className="relative flex-none">
-      <button type="button" ref={btnRef} onClick={() => setMenu(open ? null : id)} title={`${label}: ${valueLabel}`} aria-expanded={open}
-        className={`inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-[10px] border bg-surface-card px-3 text-content-secondary transition-colors hover:text-content ${
-          active ? 'border-[color:var(--text-primary)]' : 'border-edge'}`}
-        style={fs(12.5, 'body')}>
-        <span className="flex-none text-content-faint">{icon}</span>
-        <span>{label}: </span>
-        <span className="font-semibold text-content">{valueLabel}</span>
-        <ChevronDown size={13} className={`flex-none text-content-faint transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
-      {open && createPortal(
-        <div className="min-w-[200px] max-w-[calc(100vw-2rem)]" style={{ ...POPOVER, ...anchorMenu(btnRef.current) }}>
-          {options.map(([v, lbl]) => (
-            <button type="button" key={v} onClick={() => { onPick(v); setMenu(null) }}
-              className={`${MENU_ITEM} ${value === v ? 'font-semibold text-content' : 'text-content-secondary'}`} style={fs(12.5, 'body')}>
-              <span className="min-w-0 flex-1 truncate text-start">{lbl}</span>
-              <Check size={14} className={`flex-none text-content-muted ${value === v ? 'opacity-100' : 'opacity-0'}`} />
-            </button>
-          ))}
-        </div>,
-        document.body,
-      )}
-    </div>
-  )
-}
-
-function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, newerIncompatible, blocked, onToggle, onUpdate, onRestart, onChangeVersion, onResume, onReviewBlock, onErrors, onEgress, onSettings, onUninstall }: {
-  p: PluginRow; t: T; busy: string | null; menu: string | null; setMenu: (v: string | null) => void
-  hasUpdate: boolean; latestVer?: string; newerIncompatible: { version: string; range: string } | null; blocked: boolean
-  onToggle: () => void; onUpdate: () => void; onRestart: () => void; onChangeVersion: () => void; onResume: () => void; onReviewBlock: () => void
-  onErrors: () => void; onEgress: () => void; onSettings: () => void; onUninstall: () => void
-}) {
-  const caps = deriveCaps(parseJson<string[]>(p.permissions, []), parseJson<{ widget?: { slot?: string } }>(p.capabilities, {}), t)
-  const deps = deriveDeps(p, t)
-  const menuOpen = menu === `row:${p.id}`
-  const menuBtnRef = useRef<HTMLButtonElement>(null)
-  const working = busy === p.id
-  const on = p.enabled === 1 && p.status !== 'error'
-
-  // The menu is portaled to <body> and positioned `fixed` against the ⋯ button,
-  // because the row's ancestor (PageSidebar) is `overflow-hidden` and would clip
-  // an in-flow `absolute` menu — losing Delete on the lower rows of a long list.
-  // Re-anchor while the page moves under it.
-  useFollowTrigger(menuOpen)
-
-  const hostCount = p.egressHostCount ?? 0
-
-  return (
-    <div className={`group relative flex items-start gap-3 px-3.5 py-3 transition-colors hover:bg-surface-secondary ${working ? 'opacity-60' : ''}`}>
-      <div className="relative mt-0.5 flex-none">
-        <span className="grid h-10 w-10 place-items-center rounded-[12px] border border-edge-faint bg-surface-secondary">
-          <PluginIcon name={p.icon} size={19} className="text-content-secondary" />
-        </span>
-        <Tooltip label={t(`admin.plugins.status.${p.status}` as never)}>
-          <span className={`absolute -bottom-0.5 -end-0.5 h-3 w-3 rounded-full ring-2 ring-surface-card ${HEALTH[p.status] || HEALTH.inactive}`} />
-        </Tooltip>
-      </div>
-
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="min-w-0 truncate font-semibold tracking-[-.006em] text-content" style={fs(13.5, 'body')}>{p.name}</span>
-          {p.version && <span className="font-geist font-medium tabular-nums text-content-faint" style={fs(11)}>v{p.version}</span>}
-          {p.reviewed_at && <ReviewedBadge t={t} />}
-          {p.source_repo === 'local:upload' && <SideloadedBadge t={t} />}
-          {p.source_repo === 'local:link' && <DevLinkBadge t={t} />}
-          {/* Registry plugins only — a sideloaded/dev-linked plugin already says something
-              strictly stronger, and stacking "Unsigned" on top of it just dilutes the amber. */}
-          {isRegistrySourced(p.source_repo) && <TrustBadge signed={!!p.signed} t={t} />}
-        </div>
-        {p.description && <p className="m-0 mt-0.5 truncate text-content-muted" style={fs(12, 'body')}>{p.description}</p>}
-        {/* A refused update leaves a WORKING plugin pinned at its old version — so this is
-            its own row state, not an error state, and it persists until it is resolved
-            rather than dying with the toast that first reported it. */}
-        {blocked && p.updateBlock && (
-          <div className={`${ROW_NOTE} text-warning`} style={fs(11.5)}>
-            <ShieldAlert size={13} className="flex-none" />
-            <span className="truncate">{t('admin.plugins.updateBlocked', { reason: p.updateBlock.detail ?? p.updateBlock.code })}</span>
-            <button type="button" onClick={onReviewBlock}
-              className="flex-none font-semibold underline underline-offset-2 hover:opacity-80">
-              {t('admin.plugins.reviewBlock')}
-            </button>
-          </div>
-        )}
-        {/* A newer version this TREK can't run — informational, never a button: the fix
-            is a TREK upgrade, so the row must not nag or offer a doomed install. */}
-        {newerIncompatible && (
-          <div className={`${ROW_NOTE} text-content-faint`} style={fs(11.5)}>
-            <Info size={13} className="flex-none" />
-            <span className="truncate">{t('admin.plugins.newerNeedsTrek', { version: newerIncompatible.version, range: newerIncompatible.range })}</span>
-          </div>
-        )}
-        {/* Held: the admin deliberately installed a non-latest version, so updates are
-            paused rather than nagged — resuming is one click, right where the pause shows. */}
-        {p.updateHold && (
-          <div className={`${ROW_NOTE} text-content-faint`} style={fs(11.5)}>
-            <PauseCircle size={13} className="flex-none" />
-            <span className="truncate">{t('admin.plugins.updatesHeld', { version: p.version ?? '' })}</span>
-            <button type="button" onClick={onResume} disabled={working}
-              className="flex-none font-semibold text-content-secondary underline underline-offset-2 hover:opacity-80 disabled:opacity-50">
-              {t('admin.plugins.resumeUpdates')}
-            </button>
-          </div>
-        )}
-        {p.status === 'error' && p.last_error ? (
-          <div className={`${ROW_NOTE} text-danger`} style={fs(11.5)}>
-            <AlertTriangle size={13} className="flex-none" /><span className="truncate">{p.last_error}</span>
-          </div>
-        ) : (caps.length > 0 || p.operatorEgress) && (
-          <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            {caps.map((c, i) => (
-              <span key={i} className={`${CHIP} ${c.net ? CHIP_NET : CHIP_NEUTRAL}`} style={fs(11)}>
-                <c.icon size={12} className={c.net ? 'text-info' : 'text-content-muted'} /><span className="truncate">{c.label}</span>
-              </span>
-            ))}
-            {/* This plugin talks to a service only the OPERATOR can name (a self-hosted
-                Gotify/ntfy), so its manifest can't list the host — the admin adds it.
-                Actionable, and warning-toned until at least one host exists, because
-                until then the plugin cannot reach anything and looks silently broken. */}
-            {p.operatorEgress && (
-              <Tooltip label={t('admin.plugins.allowedHosts.hint')}>
-                <button type="button" onClick={onEgress}
-                  className={`${CHIP} ${hostCount > 0 ? CHIP_NET : CHIP_WARN} hover:opacity-80`} style={fs(11)}>
-                  <Globe size={12} />
-                  {hostCount > 0
-                    ? t('admin.plugins.allowedHosts.count', { n: hostCount })
-                    : t('admin.plugins.allowedHosts.add')}
-                </button>
-              </Tooltip>
-            )}
-          </div>
-        )}
-        {deps.length > 0 && (
-          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-            {deps.map((d, i) => (
-              <span key={i} className={`${CHIP} ${d.blocked || d.warn ? CHIP_WARN : CHIP_NEUTRAL}`} style={fs(11)}>
-                <d.icon size={12} className={d.blocked || d.warn ? 'text-warning' : 'text-content-muted'} /><span className="truncate">{d.label}</span>
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="flex flex-none items-center gap-2 self-center">
-        {hasUpdate && (
-          <button type="button" onClick={onUpdate} disabled={working}
-            className="inline-flex items-center gap-1.5 rounded-full bg-warning-soft px-2.5 py-1 font-semibold text-warning hover:opacity-90 disabled:opacity-50"
-            style={fs(11.5)}>
-            <ArrowUpCircle size={13} /> <span>{t('admin.plugins.updateTo', { version: latestVer })}</span>
-          </button>
-        )}
-        <span className={`min-w-[42px] text-end font-medium ${on ? 'text-content-secondary' : 'text-content-faint'}`} style={fs(12)}>
-          {p.enabled === 1 ? t('admin.plugins.status.active') : t('admin.plugins.stateOff')}
-        </span>
-        <ToggleSwitch on={p.enabled === 1} label={t('admin.plugins.enabledToggle')} onToggle={onToggle} />
-        <div className="relative">
-          <Tooltip label={t('admin.table.actions')} disabled={menuOpen}>
-            <button type="button" ref={menuBtnRef} data-testid={`plugin-row-menu-btn-${p.id}`} onClick={() => setMenu(menuOpen ? null : `row:${p.id}`)}
-              aria-expanded={menuOpen} aria-label={t('admin.table.actions')}
-              className={`grid h-8 w-8 place-items-center rounded-[10px] transition-colors ${menuOpen ? 'bg-surface-card text-content shadow-sm ring-1 ring-edge-faint' : 'text-content-faint hover:bg-surface-card hover:text-content'}`}>
-              <MoreHorizontal size={17} />
-            </button>
-          </Tooltip>
-          {menuOpen && createPortal(
-            <div data-testid={`plugin-row-menu-${p.id}`} style={{ ...POPOVER, ...anchorMenu(menuBtnRef.current) }}
-              className="min-w-[200px]">
-              {p.enabled === 1 && (
-                <MenuItem icon={<RotateCw size={14} />} label={t('admin.plugins.restart')} onClick={onRestart} />
-              )}
-              {/* A plugin gets the item if it declares scope:'instance' fields OR actions —
-                  an action-only plugin still needs the dialog to run its buttons. */}
-              {((p.instanceSettingsCount ?? 0) > 0 || (p.instanceActionsCount ?? 0) > 0) && (
-                <MenuItem icon={<SlidersHorizontal size={14} />} label={t('admin.plugins.instanceSettings')} onClick={onSettings} />
-              )}
-              <MenuItem icon={<Bug size={14} />} label={t('admin.plugins.viewErrors')} onClick={onErrors} />
-              {/* Only a plugin that DECLARED operatorEgress gets the item — an admin must
-                  never be invited to widen egress for a plugin that didn't ask for it
-                  (same rule the row's egress chip follows). */}
-              {p.operatorEgress && (
-                <MenuItem icon={<Globe size={14} />} label={t('admin.plugins.allowedHosts')} onClick={onEgress} />
-              )}
-              {/* Registry plugins only — a sideload/dev-link has no registry versions to pick from. */}
-              {isRegistrySourced(p.source_repo) && (
-                <MenuItem icon={<History size={14} />} label={t('admin.plugins.changeVersion')} onClick={onChangeVersion} />
-              )}
-              {p.source_repo && p.source_repo !== 'local:upload' && p.source_repo !== 'local:link' && (
-                <>
-                  <a href={`https://github.com/${p.source_repo}`} target="_blank" rel="noreferrer" onClick={() => setMenu(null)}
-                    className={`${MENU_ITEM} text-content-secondary`} style={fs(12.5, 'body')}>
-                    <span className="flex w-4 flex-none justify-center text-content-muted"><Github size={14} /></span> {t('admin.plugins.sourceRepo')}
-                  </a>
-                  <a href={`https://github.com/${p.source_repo}/issues`} target="_blank" rel="noreferrer" onClick={() => setMenu(null)}
-                    className={`${MENU_ITEM} text-content-secondary`} style={fs(12.5, 'body')}>
-                    <span className="flex w-4 flex-none justify-center text-content-muted"><CircleDot size={14} /></span> {t('admin.plugins.reportIssue')}
-                  </a>
-                </>
-              )}
-              <div className="mx-1.5 my-1 h-px bg-edge-faint" />
-              <MenuItem icon={<Trash2 size={14} />} label={t('common.delete')} danger onClick={onUninstall} />
-            </div>,
-            document.body,
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-/** Tallest the ⋯ menu gets (6 items + divider + padding). Drives the flip. */
-const ROW_MENU_MAX_H = 260
-
-/** Pin a portaled menu to the right edge of its trigger, flipping up when the bottom is tight. */
-function anchorMenu(trigger: HTMLElement | null): CSSProperties {
-  const r = trigger?.getBoundingClientRect()
-  if (!r) return { position: 'fixed', top: 0, right: 0, zIndex: 100 }
-  const spaceBelow = window.innerHeight - r.bottom
-  const openUp = spaceBelow < ROW_MENU_MAX_H && r.top > spaceBelow
-  return {
-    position: 'fixed',
-    right: Math.max(8, window.innerWidth - r.right),
-    ...(openUp ? { bottom: window.innerHeight - r.top + 4 } : { top: r.bottom + 4 }),
-    zIndex: 100,
-  }
-}
-
-/** One entry of a popover menu, in the packing popovers' shape. */
-const MENU_ITEM = 'flex w-full items-center gap-2.5 rounded-[9px] px-2.5 py-2 font-medium transition-colors hover:bg-surface-tertiary'
-
-function MenuItem({ icon, label, onClick, danger }: { icon: ReactNode; label: string; onClick: () => void; danger?: boolean }) {
-  return (
-    <button type="button" onClick={onClick}
-      className={`${MENU_ITEM} ${danger ? 'text-danger hover:bg-danger-soft' : 'text-content-secondary'}`} style={fs(12.5, 'body')}>
-      <span className={`flex w-4 flex-none justify-center ${danger ? 'text-danger' : 'text-content-muted'}`}>{icon}</span> {label}
-    </button>
-  )
-}
-
 function Screenshot({ url, className, iconSize = 28 }: { url: string | null; className: string; iconSize?: number }) {
   const [failed, setFailed] = useState(false)
   return (
@@ -749,6 +432,16 @@ function RegistryGrid({ items, onInstall, onOpenDetail, busy, t, installedIds, f
               {item.reviewedAt && (
                 <span className="absolute end-2.5 top-2.5">
                   <StatusPill icon={<ShieldCheck size={11} className="text-success" />}>{t('admin.plugins.reviewed')}</StatusPill>
+                </span>
+              )}
+              {/* Says up front that this one has not been confirmed for the TREK it would run on,
+                  so "Install" never reads as a plain install; the dialog explains the risk. */}
+              {!installed && offer.warn && (
+                // Solid, not the soft pill "Reviewed" uses: it has to stand out on any screenshot.
+                <span className="absolute start-2.5 top-2.5 inline-flex max-w-[62%] items-center gap-1 rounded-full bg-warning px-2 py-[3px] font-geist font-semibold text-[color:var(--surface-card)] shadow-md"
+                  style={fs(11)}>
+                  <AlertTriangle size={11} className="flex-none" />
+                  <span className="truncate">{t('admin.plugins.untestedChip', { host: offer.warn.hostVersion })}</span>
                 </span>
               )}
               <span className="absolute -bottom-4 start-3.5 z-[1] grid h-10 w-10 place-items-center rounded-[12px] border border-edge-faint bg-surface-card shadow-sm">
@@ -829,8 +522,8 @@ function Tile({ children, warn }: { children: ReactNode; warn?: boolean }) {
  * The TREK_PLUGINS_IGNORE_TREK_RANGE warning (copy and modes from useRangeBypass). Its own
  * component rather than ConfirmDialog because the notice mode has no cancel button.
  */
-function RangeBypassDialog({ copy: { title, body, confirm }, onConfirm, onClose, t }: {
-  copy: { title: string; body: string; confirm: boolean }; onConfirm: () => void; onClose: () => void; t: T
+function RangeBypassDialog({ copy: { title, body, confirm, confirmLabel }, onConfirm, onClose, t }: {
+  copy: { title: string; body: string; confirm: boolean; confirmLabel: string }; onConfirm: () => void; onClose: () => void; t: T
 }) {
   return (
     <DialogShell
@@ -844,7 +537,7 @@ function RangeBypassDialog({ copy: { title, body, confirm }, onConfirm, onClose,
           {confirm ? (
             <>
               <DialogButton onClick={onClose}>{t('common.cancel')}</DialogButton>
-              <DialogButton variant="primary" onClick={onConfirm}>{t('admin.plugins.installAnyway')}</DialogButton>
+              <DialogButton variant="primary" onClick={onConfirm}>{confirmLabel}</DialogButton>
             </>
           ) : (
             <DialogButton variant="primary" onClick={onClose}>{t('common.ok')}</DialogButton>
@@ -1054,6 +747,7 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
   onInstall: (id: string, version?: string, warn?: RangeWarning) => void; onClose: () => void; t: T; locale: string
 }) {
   const { detail, failed } = usePluginDetail(item.id)
+  const { formatDate } = useFormatDate()
 
   const manifest = detail?.manifest ?? null
   const permissions = manifest?.permissions ?? []
@@ -1219,7 +913,7 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
           {(item.trek || item.minTrekVersion) && (
             <Meta k={t('admin.plugins.metaRequires')} v={item.trek ? `TREK ${item.trek}` : `TREK ${item.minTrekVersion}+`} />
           )}
-          {item.reviewedAt && <Meta k={t('admin.plugins.metaReviewed')} v={new Date(item.reviewedAt).toLocaleDateString(locale)} />}
+          {item.reviewedAt && <Meta k={t('admin.plugins.metaReviewed')} v={formatDate(new Date(item.reviewedAt))} />}
           {typeof item.downloadCount === 'number' && item.downloadCount > 0 && (
             <Meta k={t('admin.plugins.downloads')} v={item.downloadCount.toLocaleString(locale)} />
           )}
@@ -1243,24 +937,13 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
                 ) : (
                   <span className="text-content-faint" style={fs(11.5)}>{t('admin.plugins.versionNeedsTrek', { range: v.trek ?? '' })}</span>
                 )}>
-                <VersionLine v={v} locale={locale} />
+                <VersionLine v={v} />
               </DialogListItem>
             ))}
           </DialogList>
         </DialogSection>
       )}
     </DialogShell>
-  )
-}
-
-/** A version number with its date and, when the author signed it, a quiet tick. */
-function VersionLine({ v, locale }: { v: VersionInfo; locale: string }) {
-  return (
-    <span className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5">
-      <span className={`font-geist font-semibold tabular-nums ${v.compatible ? 'text-content' : 'text-content-faint'}`} style={fs(12.5)}>v{v.version}</span>
-      {v.publishedAt && <span className="text-content-faint" style={fs(11.5)}>{new Date(v.publishedAt).toLocaleDateString(locale)}</span>}
-      {v.signed && <ShieldCheck size={13} className="flex-none text-success" />}
-    </span>
   )
 }
 
@@ -1279,9 +962,9 @@ function Meta({ k, v }: { k: string; v: string }) {
  * caller routes a DOWNGRADE through the data-risk confirm), an incompatible one is
  * explained and never offered.
  */
-function VersionPickerDialog({ plugin, versions, failed, busy, t, locale, onPick, onClose }: {
+function VersionPickerDialog({ plugin, versions, failed, busy, t, onPick, onClose }: {
   plugin: PluginRow; versions: VersionInfo[] | null; failed: boolean; busy: string | null
-  t: T; locale: string; onPick: (version: string) => void; onClose: () => void
+  t: T; onPick: (version: string) => void; onClose: () => void
 }) {
   return (
     <DialogShell
@@ -1303,7 +986,7 @@ function VersionPickerDialog({ plugin, versions, failed, busy, t, locale, onPick
             const current = v.version === plugin.version
             return (
               <div key={v.version} data-testid={`version-row-${v.version}`} className="flex items-center gap-3 px-3.5 py-2.5">
-                <div className="min-w-0 flex-1"><VersionLine v={v} locale={locale} /></div>
+                <div className="min-w-0 flex-1"><VersionLine v={v} /></div>
                 {current ? (
                   <StatusPill tone="success" icon={<Check size={11} />}>{t('admin.plugins.installed')}</StatusPill>
                 ) : v.compatible ? (
@@ -1493,47 +1176,5 @@ function DependencyResolveDialog({ data, t, busy, installedIds, onDownload, onCl
       </SettingRows>
       {rows.some(r => !installedIds.has(r.id)) && <SettingsHint>{t('admin.plugins.dep.resolveHint')}</SettingsHint>}
     </DialogShell>
-  )
-}
-
-// Footer: a plain-language note on what "Reviewed" means, plus a collapsible
-// panel that lays out how plugins are contained, the limits, and the worst case.
-function SecurityInfo({ t }: { t: T }) {
-  const [open, setOpen] = useState(false)
-  const sections: Array<[string, string]> = [
-    ['admin.plugins.security.isolationTitle', 'admin.plugins.security.isolationBody'],
-    ['admin.plugins.security.permsTitle', 'admin.plugins.security.permsBody'],
-    ['admin.plugins.security.limitsTitle', 'admin.plugins.security.limitsBody'],
-    ['admin.plugins.security.worstTitle', 'admin.plugins.security.worstBody'],
-    ['admin.plugins.security.reviewedTitle', 'admin.plugins.security.reviewedBody'],
-    ['admin.plugins.security.signedTitle', 'admin.plugins.security.signedBody'],
-    ['admin.plugins.security.trustTitle', 'admin.plugins.security.trustBody'],
-  ]
-  return (
-    <SettingsCard
-      icon={Lock}
-      title={(
-        <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open}
-          className="inline-flex max-w-full items-center gap-1.5 text-start font-bold text-content hover:opacity-80">
-          <span className="truncate">{t('admin.plugins.security.title')}</span>
-          <ChevronDown size={15} className={`flex-none text-content-faint transition-transform ${open ? 'rotate-180' : ''}`} />
-        </button>
-      )}
-    >
-      <div className="flex items-start gap-2.5">
-        <ShieldCheck size={14} className="mt-0.5 flex-none text-content-faint" />
-        <SettingsHint>{t('admin.plugins.reviewedMeaning')}</SettingsHint>
-      </div>
-      {open && (
-        <div className="grid gap-2.5 sm:grid-cols-2">
-          {sections.map(([h, b]) => (
-            <div key={h} className="rounded-[12px] border border-edge-faint bg-surface-card px-3.5 py-3">
-              <h4 className="m-0 font-semibold text-content" style={fs(12.5, 'body')}>{t(h as never)}</h4>
-              <p className="m-0 mt-1 leading-relaxed text-content-muted" style={fs(12, 'body')}>{t(b as never)}</p>
-            </div>
-          ))}
-        </div>
-      )}
-    </SettingsCard>
   )
 }

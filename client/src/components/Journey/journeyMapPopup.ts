@@ -93,11 +93,24 @@ export function ensureJourneyPopupStyle(): void {
   s.textContent = `
     .mapboxgl-popup.trek-journey-popup,
     .maplibregl-popup.trek-journey-popup { pointer-events: none; animation: trek-journey-popup-in 180ms ease-out; }
-    /* The card as a whole never takes the pointer — it sits over the map and would
-       swallow drags. The photo strip is the one exception, and only where the host
-       wired a handler for it. */
+    /* The card sits over the map and takes the pointer only where the host gave it
+       an action: the whole card where it opens its entry (the phone, where a tap on
+       a pin is what brings it up), the photo strip where it opens the pictures.
+       Anywhere else it stays a label the map's drags pass through. */
+    .mapboxgl-popup.trek-journey-popup.is-openable .mapboxgl-popup-content,
+    .maplibregl-popup.trek-journey-popup.is-openable .maplibregl-popup-content { pointer-events: auto; cursor: pointer; }
     .trek-journey-popup.is-interactive .trek-journey-popup-shots { pointer-events: auto; cursor: zoom-in; }
     .trek-journey-popup.is-interactive .trek-journey-popup-shot:hover { filter: brightness(1.06); }
+    /* The shared map-tooltip style turns the pointer off on every Leaflet tooltip. */
+    .leaflet-tooltip.map-tooltip.trek-journey-tooltip.is-openable { pointer-events: auto; cursor: pointer; }
+    /* The press shows on what the card holds: Leaflet positions the tooltip with its
+       own transform and sets its opacity inline, so the shell itself is off limits. */
+    .mapboxgl-popup.trek-journey-popup.is-openable .mapboxgl-popup-content > *,
+    .maplibregl-popup.trek-journey-popup.is-openable .maplibregl-popup-content > *,
+    .leaflet-tooltip.trek-journey-tooltip.is-openable > * { transition: opacity 120ms ease-out; }
+    .mapboxgl-popup.trek-journey-popup.is-openable .mapboxgl-popup-content:active > *,
+    .maplibregl-popup.trek-journey-popup.is-openable .maplibregl-popup-content:active > *,
+    .leaflet-tooltip.trek-journey-tooltip.is-openable:active > * { opacity: 0.6; }
     .mapboxgl-popup.trek-journey-popup .mapboxgl-popup-content,
     .maplibregl-popup.trek-journey-popup .maplibregl-popup-content,
     .leaflet-tooltip.trek-journey-tooltip {

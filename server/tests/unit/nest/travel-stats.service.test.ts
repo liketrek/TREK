@@ -272,6 +272,116 @@ describe('getTravelStats', () => {
   });
 });
 
+/**
+ * The passport card counted a place's country only once its region sat in
+ * place_regions, while the Atlas map falls back to the borders. A place in
+ * Vatican City never gets a region row (the region bundle has none for it, and
+ * Nominatim names no region there), so the map showed VA and the card did not.
+ */
+describe('place countries without a cached region (#2875)', () => {
+  const PAST_START = '2023-05-01';
+  const PAST_END = '2023-05-10';
+  const VATICAN = { lat: 41.9022, lng: 12.4539 };
+
+  async function addPlace(
+    tripId: number,
+    name: string,
+    values: { lat?: number | null; lng?: number | null; address?: string | null },
+  ) {
+    return insertRow(await sharedTestOrm(testDb), Places, { trip: tripId, name }, { lat: null, lng: null, ...values });
+  }
+
+  async function cacheRegion(placeId: number, countryCode: string, regionCode: string) {
+    await upsertRow(await sharedTestOrm(testDb), PlaceRegions, {
+      place: placeId,
+      country_code: countryCode,
+      region_code: regionCode,
+      region_name: regionCode,
+    });
+  }
+
+  it('AUTH-DB-123: a place in Vatican City stamps VA on the passport card', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Rome', start_date: PAST_START, end_date: PAST_END });
+    await addPlace(trip.id, "St. Peter's Basilica", VATICAN);
+
+    expect((await atlas.getTravelStats(user.id)).countries).toContain('VA');
+  });
+
+  it('AUTH-DB-124: any place still waiting for its region lookup counts by its borders', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris', start_date: PAST_START, end_date: PAST_END });
+    await addPlace(trip.id, 'Louvre', { lat: 48.8606, lng: 2.3376 });
+
+    expect((await atlas.getTravelStats(user.id)).countries).toEqual(['FR']);
+  });
+
+  it('AUTH-DB-125: the passport card and the Atlas map list the same visited countries', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Rome', start_date: PAST_START, end_date: PAST_END });
+    await addPlace(trip.id, "St. Peter's Basilica", VATICAN);
+    const colosseumId = await addPlace(trip.id, 'Colosseum', { lat: 41.8902, lng: 12.4922 });
+    await cacheRegion(colosseumId, 'IT', 'IT-62');
+
+    const atlasVisited = (await atlas.stats(user.id)).countries
+      .filter((c) => !('status' in c) || c.status === 'visited')
+      .map((c) => c.code)
+      .sort();
+    expect(atlasVisited).toEqual(['IT', 'VA']);
+    expect([...(await atlas.getTravelStats(user.id)).countries].sort()).toEqual(atlasVisited);
+  });
+
+  it('AUTH-DB-126: a Vatican place on a trip that has not started stays off the card (#1048)', async () => {
+    const { user } = createUser(testDb);
+    const start = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
+    const trip = createTrip(testDb, user.id, { title: 'Rome, next month', start_date: start, end_date: start });
+    await addPlace(trip.id, "St. Peter's Basilica", VATICAN);
+
+    expect((await atlas.getTravelStats(user.id)).countries).not.toContain('VA');
+  });
+
+  it('AUTH-DB-127: a place without coordinates counts by a country its address spells out, never by a bare code (#2111)', async () => {
+    const { user } = createUser(testDb);
+    const named = createTrip(testDb, user.id, { title: 'Named', start_date: PAST_START, end_date: PAST_END });
+    await addPlace(named.id, 'Vatican Museums', { address: 'Viale Vaticano, Vatican City' });
+
+    expect((await atlas.getTravelStats(user.id)).countries).toEqual(['VA']);
+
+    const { user: other } = createUser(testDb);
+    const bare = createTrip(testDb, other.id, { title: 'Bare', start_date: PAST_START, end_date: PAST_END });
+    await addPlace(bare.id, 'Somewhere in Virginia', { address: 'Richmond, VA' });
+
+    expect((await atlas.getTravelStats(other.id)).countries).toEqual([]);
+  });
+
+  it('AUTH-DB-128: the last trip names Vatican City when that is all it went to', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, {
+      title: 'Day in the Vatican',
+      start_date: PAST_START,
+      end_date: PAST_END,
+    });
+    await addPlace(trip.id, "St. Peter's Basilica", VATICAN);
+    await addPlace(trip.id, 'Sistine Chapel', VATICAN);
+
+    expect((await atlas.lastTrip(user.id))?.countries).toEqual(['VA']);
+  });
+
+  it('AUTH-DB-129: the last trip ranks cached and resolved places together, most places first', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Rome', start_date: PAST_START, end_date: PAST_END });
+    const colosseumId = await addPlace(trip.id, 'Colosseum', { lat: 41.8902, lng: 12.4922 });
+    await cacheRegion(colosseumId, 'it', 'IT-62');
+    await addPlace(trip.id, 'Pantheon', { lat: 41.8986, lng: 12.4769 });
+    await addPlace(trip.id, "St. Peter's Basilica", VATICAN);
+    await addPlace(trip.id, 'Sistine Chapel', VATICAN);
+    await addPlace(trip.id, 'Vatican Museums', VATICAN);
+
+    // The cached lower-case "it" and the resolved IT are one country with two places.
+    expect((await atlas.lastTrip(user.id))?.countries).toEqual(['VA', 'IT']);
+  });
+});
+
 describe('travel-stats quirk fixes', () => {
   it('AUTH-DB-089: getTravelStats keeps a place at lat 0 / lng 0 (equator, prime meridian)', async () => {
     const { user } = createUser(testDb);

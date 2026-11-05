@@ -574,20 +574,21 @@ describe('PlacesRepository.listForGpx (PL29) and existsByImageUrl (PI1)', () => 
  * by, the service-level dedup tests.
  */
 describe('PlacesRepository.listDedupInputs (PL24)', () => {
-  it('PLACEREPO-048: projects exactly the seven dedup columns, scoped to the trip', async () => {
+  it('PLACEREPO-048: projects exactly the eight dedup columns, the line included (#2810), scoped to the trip', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const other = createTrip(testDb, user.id);
     await insertRow(t.orm, Places, {
       trip: trip.id, name: 'Louvre', lat: 48.86, lng: 2.34, google_place_id: 'gp1', google_ftid: 'ft1', osm_id: 'osm1', amap_poi_id: 'amap1',
+      route_geometry: '[[48.86,2.34],[48.87,2.35]]',
     });
     await insertRow(t.orm, Places, { trip: trip.id, name: '', lat: 1.1, lng: 2.2 });
     createPlace(testDb, other.id, { name: 'Not this trip' });
 
     const rows = await places.listDedupInputs(String(trip.id));
     expect(rows).toEqual([
-      { name: 'Louvre', lat: 48.86, lng: 2.34, google_place_id: 'gp1', google_ftid: 'ft1', osm_id: 'osm1', amap_poi_id: 'amap1' },
-      { name: '', lat: 1.1, lng: 2.2, google_place_id: null, google_ftid: null, osm_id: null, amap_poi_id: null },
+      { name: 'Louvre', lat: 48.86, lng: 2.34, route_geometry: '[[48.86,2.34],[48.87,2.35]]', google_place_id: 'gp1', google_ftid: 'ft1', osm_id: 'osm1', amap_poi_id: 'amap1' },
+      { name: '', lat: 1.1, lng: 2.2, route_geometry: null, google_place_id: null, google_ftid: null, osm_id: null, amap_poi_id: null },
     ]);
   });
 

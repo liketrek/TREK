@@ -297,7 +297,7 @@ const journey: TranslationStrings = {
   'journey.studio.autoLayout': 'Otomatik yerleşim',
   'journey.studio.export': 'Dışa aktar',
   'journey.studio.day': '{day}. GÜN',
-  'journey.studio.stations': 'Duraklar',
+  'journey.studio.stations': 'Yol boyunca',
   'journey.studio.peersHere': 'burada',
   'journey.studio.folioAuto': 'Otomatik',
   'journey.studio.exportLayout': 'Yerleşim',

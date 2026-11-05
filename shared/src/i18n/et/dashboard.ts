@@ -110,6 +110,8 @@ const dashboard: TranslationStrings = {
   'dashboard.unsplashQueryRequired': 'Sisesta otsingusõna',
   'dashboard.unsplashNoResults': 'Pilte ei leitud',
   'dashboard.coverSearchError': 'Unsplashi otsing ebaõnnestus',
+  'dashboard.unsplashKeyNeeded':
+    'Unsplash lükkas selle serveri tagasi. Administraator saab halduse seadetes lisada tasuta Unsplash API võtme, et pildiotsing töötaks.',
   'dashboard.useUnsplashPhoto': 'Kasuta Unsplashi fotot autorilt {photographer}',
   'dashboard.titleRequired': 'Pealkiri on kohustuslik',
   'dashboard.endDateError': 'Lõppkuupäev peab olema alguskuupäevast hilisem',

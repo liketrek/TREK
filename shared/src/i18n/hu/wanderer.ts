@@ -36,6 +36,8 @@ const wanderer: TranslationStrings = {
   'wanderer.error.not_own_trail': 'Csak a saját wanderer-túraútvonalaid importálhatók.',
   'wanderer.error.invalid_response':
     'A válasz nem a wanderer alkalmazástól érkezett. Ellenőrizd, hogy a cím magára a wanderer alkalmazásra mutat-e.',
+  'wanderer.error.no_author':
+    'A wanderer válaszolt, de ennek az API-tokennek a fiókjához nem nevez meg túraútvonal-szerzőt, így a TREK nem tudja, mely túraútvonalak a tieid.',
   'wanderer.error.too_large': 'A túraútvonal fájlja nagyobb 10 MB-nál.',
   'wanderer.error.server_error': 'A wanderer hibával válaszolt. Próbáld újra később.',
   'wanderer.error.offline': 'Offline vagy. A wanderer csak online kereshető.',

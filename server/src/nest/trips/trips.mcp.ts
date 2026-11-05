@@ -225,6 +225,7 @@ export class TripsMcp {
       is_archived: z.boolean().optional().describe('Archive (true) or unarchive (false) the trip'),
       cover_image: z
         .string()
+        .max(2048)
         .nullable()
         .optional()
         .describe('Cover image path, e.g. /uploads/covers/abc.jpg; null removes the cover'),

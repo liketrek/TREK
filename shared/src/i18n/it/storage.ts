@@ -143,5 +143,43 @@ const storage: TranslationStrings = {
   'storage.migrate.queued': 'In coda: {categories}',
   'storage.migrate.queueDropped':
     'Impossibile avviare lo spostamento successivo — la coda rimanente è stata svuotata: {categories}',
+  'storage.reclaim.title': 'File non referenziati',
+  'storage.reclaim.hint':
+    "Ogni notte TREK cerca i file caricati che nessun viaggio, luogo, diario, raccolta o utente usa più, per esempio dopo l'eliminazione di un viaggio.",
+  'storage.reclaim.check': 'Controlla ora',
+  'storage.reclaim.checked': 'Ultimo controllo: {age}',
+  'storage.reclaim.never': 'Non ancora controllato',
+  'storage.reclaim.delete': 'Elimina i file non referenziati',
+  'storage.reclaim.deleteHint':
+    'Disattivato, il controllo notturno si limita a segnalare. Attivato, un file inutilizzato da una settimana viene eliminato. I file che elimini in TREK vengono comunque rimossi un giorno dopo, quando nessun annullamento può più ripristinarli.',
+  'storage.reclaim.freeable': 'Può essere liberato',
+  'storage.reclaim.waiting': 'Inutilizzati da meno di una settimana',
+  'storage.reclaim.nothing': 'Nessun file non referenziato trovato.',
+  'storage.reclaim.stopped':
+    "L'ultimo controllo si è interrotto prima del previsto perché il database è stato ripristinato mentre era in corso.",
+  'storage.reclaim.skip.sources_missing': 'Saltato: non è stato possibile interrogare tutte le parti di TREK',
+  'storage.reclaim.skip.shared_location': "Saltato: condivide la posizione con un'altra categoria",
+  'storage.reclaim.skip.list_failed': 'Saltato: non è stato possibile elencare i file',
+  'storage.reclaim.skip.source_failed': 'Saltato: una ricerca non è riuscita',
+  'storage.reclaim.deleted': "Liberato dall'ultima pulizia notturna",
+  'storage.reclaim.running': 'Controllo in corso…',
+  'storage.reclaim.stoppedFailed': "L'ultimo controllo si è fermato dopo un errore. Verrà eseguito di nuovo stanotte.",
+  'storage.reclaim.skip.foreign_install': "Saltato: un'altra installazione di TREK usa questa archiviazione",
+  'storage.reclaim.skip.owner_unknown':
+    'Saltato: TREK non è riuscito a contrassegnare questa archiviazione come propria',
+  'storage.reclaim.skip.delete_failed': "Interrotto: l'archiviazione ha rifiutato un'eliminazione",
+  'storage.reclaim.skip.interrupted': 'Interrotto prima della fine, i valori sono parziali',
+  'storage.reclaim.confirmNeeded':
+    'Più di un quinto di questi file sembra inutilizzato. Nulla qui viene eliminato finché non confermi che è previsto.',
+  'storage.reclaim.confirm': 'Conferma',
+  'storage.reclaim.confirmed': 'Confermato per i prossimi 14 giorni.',
+  'storage.reclaim.error.reclaim_busy': "Un'altra attività di archiviazione è in corso. Riprova tra un attimo.",
+  'storage.reclaim.error.reclaim_demo': "Non disponibile su un'istanza demo.",
+  'storage.reclaim.error.reclaim_nothing_to_confirm': "Non c'è più nulla da confermare. Esegui prima un controllo.",
+  'storage.reclaim.skip.backup_running': 'Saltato: era in corso un backup',
+  'storage.reclaim.error.reclaim_confirm_stale':
+    'Il conteggio è cambiato da quando è stato mostrato. Controlla il nuovo valore e conferma di nuovo.',
+  'storage.reclaim.error.reclaim_install_unknown':
+    "TREK non è riuscito a leggere l'ID della propria installazione, quindi non elimina nulla. Controlla la cartella dei dati.",
 };
 export default storage;

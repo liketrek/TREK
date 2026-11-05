@@ -60,6 +60,7 @@ import { PackingService } from '../../src/nest/packing/packing.service';
 import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 import { TrekPhotoRegistrationService } from '../../src/nest/photos/trek-photo-registration.service';
 import { PlacePhotoCacheService } from '../../src/nest/place-photos/place-photo-cache.service';
+import type { PlaceOriginsService } from '../../src/nest/places/place-origins.service';
 import { PlacesRpc } from '../../src/nest/places/places.rpc';
 import { PlacesService } from '../../src/nest/places/places.service';
 import { PluginRpcHostFactory } from '../../src/nest/plugins/host/plugin-rpc-host.factory';
@@ -186,6 +187,19 @@ import type { ModuleRef } from '@nestjs/core';
 import type Database from 'better-sqlite3';
 
 /**
+ * The places surface records the origin of what a plugin writes; these
+ * runtime tests are about the RPC wiring, so the recording is a no-op here
+ * (its own suite is place-origins.service.test.ts).
+ */
+function placeOriginsStub(): PlaceOriginsService {
+  return {
+    valuesBefore: async () => null,
+    record: async () => undefined,
+    recordImported: async () => undefined,
+  } as unknown as PlaceOriginsService;
+}
+
+/**
  * Hand-wired counterpart of the PluginsModule DI graph for no-Nest tests
  * (same pattern as mcp-test-controllers.ts): real domain services over the
  * test DB, so runtime tests exercise the same wiring production gets from
@@ -269,12 +283,13 @@ export async function createPluginRpcHostParts(
     await createTestPlacesRepo(db),
     await createTestDayAssignmentsRepo(db),
     await createTestBudgetItemsRepo(db),
+    { releaseValues: async () => [] } as never, // StorageReleaseService
   );
   const collab = new CollabService(
     permissions,
     realtime,
     notificationsStub(),
-    generalStorage,
+    { releaseValues: async () => [] } as never, // StorageReleaseService
     new RateLimitService(),
     await createTestUnitOfWork(db),
     await createTestCollabMessageReactionsRepo(db),
@@ -446,7 +461,7 @@ export async function createPluginRpcHostParts(
     await createTestCategoriesRepo(db),
     await createTestTripsRepo(db),
     await createTestBudgetItemsRepo(db),
-    await createTestCollectionPlacesRepo(db),
+    { releaseValues: async () => [] } as never, // StorageReleaseService
     buildPlaceImportService(),
   );
   // After places: copying saved places into a trip runs the places journey hook.
@@ -454,7 +469,7 @@ export async function createPluginRpcHostParts(
     permissions,
     realtime,
     notificationsStub(),
-    generalStorage,
+    { releaseValues: async () => [] } as never, // StorageReleaseService
     await createTestUnitOfWork(db),
     // Plan 3h Task 1, the constructor-ripple fix: collections part A's own
     // repositories, first cut (`CollectionMembersRepository` extended by
@@ -513,7 +528,8 @@ export async function createPluginRpcHostParts(
     vacay,
     realtime,
     unsplash,
-    generalStorage,
+    // StorageReleaseService: a replaced cover's release has its own suites; nothing is released here.
+    { releaseValues: async () => [] } as never,
     await createTestUnitOfWork(db),
     (await sharedTestOrm(db)).em,
     new SettingsService(await createTestUnitOfWork(db), appSettings, await createTestSettingsRepo(db), membership),
@@ -537,6 +553,7 @@ export async function createPluginRpcHostParts(
       await createTestShareTokensRepo(db),
       await createTestPluginsRepo(db),
       await createTestPluginUserErasureQueueRepo(db),
+      { releaseValues: async () => [] } as never,
     ),
     permissions,
     realtime,
@@ -562,7 +579,7 @@ export async function createPluginRpcHostParts(
     new DayNotesRpc(dayNotes, realtime, guards),
     new PackingRpc(packing, realtime, guards),
     new FilesRpc(files, realtime, usersRepo, guards, generalStorage),
-    new PlacesRpc(places, journey, realtime, guards),
+    new PlacesRpc(places, journey, realtime, guards, placeOriginsStub()),
     new DaysRpc(
       days,
       realtime,

@@ -22,6 +22,26 @@ export function aiHostOf(kind: AiConnectionKind, baseUrl: string | null): string
   }
 }
 
+/**
+ * Where an own server's Chat Completions live. An address with a path, such as
+ * `https://api.groq.com/openai/v1` or `http://ollama.lan:11434/v1`, is used as
+ * entered. A bare server address gets `/v1`: Ollama, LM Studio, vLLM,
+ * llama.cpp and LiteLLM all answer there, while Ollama answers
+ * `/chat/completions` at its root with a 404. Connecting already found the
+ * model list of such an address under the root, so the chat failed where the
+ * connection had worked.
+ */
+export function ownServerChatBase(baseUrl: string | null): string {
+  const entered = (baseUrl ?? '').trim().replace(/(?<!\/)\/+$/, '');
+  try {
+    const url = new URL(entered);
+    if (url.pathname === '/' && !url.search && !url.hash) return `${entered}/v1`;
+  } catch {
+    // An address that does not parse fails on the request, as it did before.
+  }
+  return entered;
+}
+
 /** Whether OpenRouter's OAuth can send the browser back here: it only returns to an https address. */
 export function openrouterOAuthAvailable(): boolean {
   return getAppUrl().startsWith('https://');
@@ -91,7 +111,17 @@ const PROVIDER_MESSAGES: Partial<Record<AssistantErrorCode, string>> = {
   provider_unavailable: 'The provider is not responding',
 };
 
-/** A provider's failure as the refusal a REST route answers with. */
+/**
+ * A provider's failure as the refusal a REST route answers with. An own server
+ * that answered without a model list says so in `reason`, so the form can name
+ * the address instead of calling a server that is up unresponsive (#2808).
+ */
 export function providerRefusal(err: AiProviderError): DomainError {
+  if (err.providerCode === 'no_model_list') {
+    return new DomainError(REFUSAL_STATUS[err.code], 'The server answered, but sent no model list', {
+      code: err.code,
+      details: { code: err.code, reason: 'no_model_list' },
+    });
+  }
   return aiRefusal(err.code, PROVIDER_MESSAGES[err.code] ?? 'The provider refused the request');
 }

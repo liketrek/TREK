@@ -26,9 +26,12 @@ import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { UnitOfWork } from '../database/unit-of-work';
 import { MapsService } from '../maps/maps.service';
 import { PlacesService } from './places.service';
+import { PlaceOriginsService } from './place-origins.service';
+import type { OriginWriter } from './place-origins.helpers';
 import { isUpdateConflict } from '../common/conflictResult';
 import { isDirectionsUrl } from '../place-import/place-import.service';
 import { TripAccessService } from '../trip-membership/trip-access.service';
+import { inOrder } from '../common/in-order';
 
 function parseId(value: string | string[]): number | null {
   const n = Number(Array.isArray(value) ? value[0] : value);
@@ -37,6 +40,9 @@ function parseId(value: string | string[]): number | null {
 
 /** Hours as the column keeps them: JSON text, or null to clear (#2472). */
 const hoursText = (hours: PlaceOpeningHours | null | undefined): string | null => (hours ? JSON.stringify(hours) : null);
+
+/** What the assistant writes is the agent's, never shared as a user's correction. */
+const AGENT: OriginWriter = { kind: 'fixed', origin: 'agent' };
 
 /**
  * Places MCP surface — ported 1:1 from the legacy registrar
@@ -65,6 +71,7 @@ export class PlacesMcp {
     private readonly assignments: AssignmentsService,
     private readonly guards: McpToolGuardsService,
     private readonly uow: UnitOfWork,
+    private readonly origins: PlaceOriginsService,
   ) {}
 
   @Tool({
@@ -109,6 +116,7 @@ export class PlacesMcp {
     if (!(await this.guards.hasTripPermission('place_edit', tripId, ctx.userId))) return permissionDenied();
     const place = await this.places.create(String(tripId), { name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, amap_poi_id, notes, website, phone, email, opening_hours: hoursText(opening_hours), image_url, price, currency, stop_type });
     this.guards.safeBroadcast(tripId, 'place:created', { place });
+    await this.origins.record(place.id, null, AGENT);
     // The journey hook the REST route and the plugin RPC run after the same write.
     await this.places.onCreated(String(tripId), place.id);
     return ok({ place });
@@ -165,6 +173,7 @@ export class PlacesMcp {
       });
       this.guards.safeBroadcast(tripId, 'place:created', { place: result.place });
       this.guards.safeBroadcast(tripId, 'assignment:created', { assignment: result.assignment });
+      await this.origins.record(result.place.id, null, AGENT);
       try { await this.journey.reconcileTripSkeletons(tripId); } catch { /* non-fatal */ }
       return ok(result);
     } catch {
@@ -221,10 +230,12 @@ export class PlacesMcp {
   ) {
     if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('place_edit', tripId, ctx.userId))) return permissionDenied();
+    const before = await this.origins.valuesBefore(placeId);
     const place = await this.places.update(String(tripId), String(placeId), { name, description, lat, lng, address, category_id, price, currency, place_time, end_time, duration_minutes, notes, website, phone, email, opening_hours: opening_hours === undefined ? undefined : hoursText(opening_hours), image_url, transport_mode, osm_id, google_place_id, google_ftid, amap_poi_id, stop_type, fill_percent });
     // No base version is sent, so the update never answers a conflict; the guard only narrows the type.
     if (!place || isUpdateConflict(place)) return { content: [{ type: 'text' as const, text: 'Place not found.' }], isError: true };
     this.guards.safeBroadcast(tripId, 'place:updated', { place });
+    await this.origins.record(place.id, before, AGENT);
     // As on REST: the journey entries made from this place follow its new name, address and time.
     await this.places.onUpdated(place.id);
     return ok({ place });
@@ -247,12 +258,14 @@ export class PlacesMcp {
   ) {
     if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('place_edit', tripId, ctx.userId))) return permissionDenied();
+    const before = await this.origins.valuesBefore(placeId);
     const result = await this.places.setImageFromFile(String(tripId), String(placeId), fileId);
     if (result === 'not_found') return errorResult('File not found.');
     if (result === 'not_image') return errorResult('That file is not a jpg, png, gif or webp image.');
     if (result === 'too_large') return errorResult('That image is too large.');
     if (!result || isUpdateConflict(result)) return errorResult('Place not found.');
     this.guards.safeBroadcast(tripId, 'place:updated', { place: result });
+    await this.origins.record(result.id, before, { kind: 'fixed', origin: 'attachment', field: 'image' });
     await this.places.onUpdated(result.id);
     return ok({ place: result });
   }
@@ -400,6 +413,7 @@ export class PlacesMcp {
     for (const place of result.places) {
       this.guards.safeBroadcast(tripId, 'place:created', { place });
     }
+    await this.origins.recordImported(result.places.map((place) => place.id));
     return ok({ places: result.places, count: result.places.length, listName: result.listName, skipped: result.skipped });
   }
 
@@ -418,6 +432,7 @@ export class PlacesMcp {
       const imported = await this.places.importGpx(String(input.tripId), Buffer.from(input.gpx, 'utf8'), { importWaypoints: input.importWaypoints, importRoutes: input.importRoutes, importTracks: input.importTracks, defaultName: input.name });
       if (!imported) return errorResult('No matching places found in GPX.');
       for (const place of imported.places) this.guards.safeBroadcast(input.tripId, 'place:created', { place });
+      await this.origins.recordImported(imported.places.map((place) => place.id));
       if (input.enrich) this.places.enrichImportedFilePlaces(String(input.tripId), ctx.userId, imported.places);
       return ok(imported);
     } catch {
@@ -526,12 +541,16 @@ export class PlacesMcp {
       return { content: [{ type: 'text' as const, text: 'Provide at least one field to update.' }], isError: true };
     }
 
+    const before = new Map(
+      await Promise.all(placeIds.map(async (id) => [id, await this.origins.valuesBefore(id)] as const)),
+    );
     const updated = await this.places.updateMany(String(tripId), placeIds, fields);
     // Per place, the event and then the journey hook, in the order POST /places/bulk-update keeps.
-    for (const place of updated) {
+    await inOrder(updated, async (place) => {
       this.guards.safeBroadcast(tripId, 'place:updated', { place });
+      await this.origins.record(place.id, before.get(place.id) ?? null, AGENT);
       await this.places.onUpdated(place.id);
-    }
+    });
     return ok({ count: updated.length, updatedIds: updated.map(p => p.id), skipped: placeIds.length - updated.length });
   }
 

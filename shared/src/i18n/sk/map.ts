@@ -34,6 +34,8 @@ const map: TranslationStrings = {
   'map.overview.hide': 'Skryť celú cestu',
   'map.overview.total': 'Celková vzdialenosť',
   'map.attribution': 'Zdroje mapy',
+  'map.overview.distanceAtLeast': 'najmenej {distance}',
+  'map.overview.notRouted': 'trasa nevypočítaná',
   'map.overview.unrouted': 'Trasu pre {count} úsekov sa nepodarilo vypočítať, takže vzdialenosti sú neúplné.',
   'map.overview.unrouted.one': 'Trasu pre {count} úsek sa nepodarilo vypočítať, takže vzdialenosti sú neúplné.',
   'map.overview.unrouted.few': 'Trasu pre {count} úseky sa nepodarilo vypočítať, takže vzdialenosti sú neúplné.',

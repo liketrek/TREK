@@ -1,4 +1,4 @@
-// FE-PLANNER-DPTOOLBAR-001 to FE-PLANNER-DPTOOLBAR-026
+// FE-PLANNER-DPTOOLBAR-001 to FE-PLANNER-DPTOOLBAR-027
 import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render'
 import userEvent from '@testing-library/user-event'
 import { downloadTripPDF } from '../PDF/TripPDF'
@@ -82,6 +82,12 @@ describe('DayPlanSidebarToolbar', () => {
     expect(screen.queryByText('ICS')).not.toBeInTheDocument()
     expect(screen.queryByText('GPX')).not.toBeInTheDocument()
     expect(screen.queryByText('dayplan.pdf')).not.toBeInTheDocument()
+  })
+
+  it('FE-PLANNER-DPTOOLBAR-027: ?export=pdf, as Safari opens it from the iOS Home Screen app, opens the dialog', () => {
+    render(<DayPlanSidebarToolbar {...makeProps()} />, { initialEntries: ['/trips/1?export=pdf'] })
+    expect(screen.getByRole('button', { name: 'dayplan.export' })).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByText('dayplan.exportDocument')).toBeInTheDocument()
   })
 
   it('FE-PLANNER-DPTOOLBAR-002: the export button opens the dialog and closes again', async () => {

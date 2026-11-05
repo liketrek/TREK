@@ -202,6 +202,8 @@ describe('useJourneyMapLayers', () => {
     expect(result.current.tracks.every((track) => track.kind === 'day_recording' && track.color === '#14b8a6')).toBe(
       true
     );
+    // The day travels as a date of its own, so the map can tell which stretches it covers (#2888).
+    expect(result.current.tracks.map((track) => track.date)).toEqual(['2026-05-14', '2026-05-14']);
     expect(result.current.controls.map((c) => c.layer)).toEqual(['recorded', 'entries', 'photos']);
     expect(result.current.controls[0]).toEqual({ layer: 'recorded', count: 1, state: 'ready' });
   });

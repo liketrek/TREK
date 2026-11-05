@@ -62,7 +62,7 @@ const reservations: TranslationStrings = {
   'reservations.type.car': 'Voiture',
   'reservations.type.cruise': 'Croisière',
   'reservations.type.event': 'Événement',
-  'reservations.type.tour': 'Visite',
+  'reservations.type.tour': 'Visite guidée',
   'reservations.type.parking': 'Parking', // same-as-en
   'reservations.type.other': 'Autre',
   'reservations.type.bus': 'Bus', // same-as-en
@@ -79,8 +79,8 @@ const reservations: TranslationStrings = {
   'reservations.confirm.deleteBodyWithExpense': '« {name} » et ses coûts liés seront définitivement supprimés.',
   'reservations.toast.updated': 'Réservation mise à jour',
   'reservations.toast.removed': 'Réservation supprimée',
-  'reservations.toast.fileUploaded': 'Fichier importé',
-  'reservations.toast.uploadError': "Échec de l'import",
+  'reservations.toast.filesNotUploaded':
+    "La réservation est enregistrée, mais certains fichiers n'ont pas été importés. Enregistre à nouveau pour les envoyer.",
   'reservations.newTitle': 'Nouvelle réservation',
   'reservations.bookingType': 'Type de réservation',
   'reservations.titleLabel': 'Titre',
@@ -142,6 +142,14 @@ const reservations: TranslationStrings = {
   'reservations.import.dropHere':
     'Déposez les fichiers de confirmation de réservation ici ou cliquez pour sélectionner',
   'reservations.import.dropActive': 'Déposez les fichiers pour importer',
+  'reservations.import.pinSearching': 'Recherche sur la carte…',
+  'reservations.import.pinFound': 'Sur la carte',
+  'reservations.import.pinMissingTitle': 'Pas encore sur la carte',
+  'reservations.import.pinMissingBody':
+    "TREK n'a pas trouvé cet hébergement sur la carte. Vérifiez le nom et l'adresse ci-dessus et relancez la recherche, ou enregistrez-le sans repère.",
+  'reservations.import.pinRetry': 'Rechercher à nouveau',
+  'reservations.import.savedWithoutPin':
+    'Enregistré sans repère sur la carte. Modifiez le lieu et définissez sa position pour le voir sur la carte.',
   'reservations.import.acceptedFormats':
     "Acceptés : EML, PDF, PKPass, HTML, TXT (max. 10 Mo chacun, jusqu'à 5 fichiers)",
   'reservations.import.acceptedPhotos': "Les photos (JPG, PNG, WEBP) sont lues par le modèle d'IA.",

@@ -1,5 +1,5 @@
 import { stageExtractedPluginTrees } from '../plugins/plugin-backup';
-import { checkBackupDatabase, extractBackupArchive } from './backup-archive';
+import { checkBackupDatabase, extractBackupArchive, markReclaimResetPending } from './backup-archive';
 
 import fs from 'fs';
 import path from 'path';
@@ -45,6 +45,8 @@ export interface BootRestorePlan {
   dbFile: string;
   /** The data directory, for the scratch space and the at-rest key. */
   dataDir: string;
+  /** `data/.trek-reclaim-reset` (data-paths.ts), left before the database is put in place. */
+  reclaimResetFile: string;
 }
 
 export type BootRestoreOutcome =
@@ -77,6 +79,9 @@ export async function restoreOnFirstBoot(plan: BootRestorePlan): Promise<BootRes
     throw new BootRestoreError(`RESTORE_FROM_BACKUP: ${unreadable.error}`);
   }
 
+  // Storage reclaim drops what the restored database knew about its storage on
+  // the start that follows, even when the backup is this installation's own.
+  markReclaimResetPending(plan.reclaimResetFile);
   fs.mkdirSync(path.dirname(plan.dbFile), { recursive: true });
   // Copied in beside the target and renamed, so a crash leaves either nothing or a whole file.
   const tmp = `${plan.dbFile}.restore-tmp`;

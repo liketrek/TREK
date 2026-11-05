@@ -1,4 +1,4 @@
-// FE-PLANNER-RESMODAL-001 to FE-PLANNER-RESMODAL-107
+// FE-PLANNER-RESMODAL-001 to FE-PLANNER-RESMODAL-109
 import { render, screen, waitFor, fireEvent, within, act } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -9,6 +9,8 @@ import { useAddonStore } from '../../store/addonStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { isBlurred } from '../../../tests/helpers/bookingCodeBlur';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
+import { plannerSave } from '../../../tests/helpers/bookingSave';
+import { _resetNetworkMode, setForcedOffline } from '../../sync/networkMode';
 import {
   buildUser,
   buildTrip,
@@ -131,7 +133,7 @@ describe('ReservationModal', () => {
     expect(screen.getByRole('button', { name: /^Accommodation$/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Restaurant$/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Event$/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^Tour$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Guided tour$/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Parking$/i })).toBeInTheDocument();
     // The pill reads "Booking Type: Other", so only its option is named plain "Other".
     expect(screen.getAllByRole('button', { name: /^Other$/i })).toHaveLength(1);
@@ -259,7 +261,8 @@ describe('ReservationModal', () => {
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'Le Jules Verne', type: 'restaurant' })
+      expect.objectContaining({ title: 'Le Jules Verne', type: 'restaurant' }),
+      expect.anything(),
     );
   });
 
@@ -280,7 +283,8 @@ describe('ReservationModal', () => {
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'confirmed' })
+      expect.objectContaining({ status: 'confirmed' }),
+      expect.anything(),
     );
     unmount();
   });
@@ -392,7 +396,7 @@ describe('ReservationModal', () => {
     await userEvent.click(screen.getByRole('button', { name: /Create expense/i }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave).not.toHaveBeenCalledWith(expect.objectContaining({ create_budget_entry: expect.anything() }));
+    expect(onSave.mock.calls[0][0].create_budget_entry).toBeUndefined();
     await waitFor(() =>
       expect(onOpenExpense).toHaveBeenCalledWith(
         expect.objectContaining({ prefill: expect.objectContaining({ reservationId: 55 }) })
@@ -452,7 +456,8 @@ describe('ReservationModal', () => {
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'Grand Hotel', type: 'hotel' })
+      expect.objectContaining({ title: 'Grand Hotel', type: 'hotel' }),
+      expect.anything(),
     );
   });
 
@@ -466,7 +471,8 @@ describe('ReservationModal', () => {
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'Louvre Museum', type: 'event' })
+      expect.objectContaining({ title: 'Louvre Museum', type: 'event' }),
+      expect.anything(),
     );
   });
 
@@ -480,7 +486,8 @@ describe('ReservationModal', () => {
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'Airport Parking P1', type: 'parking' })
+      expect.objectContaining({ title: 'Airport Parking P1', type: 'parking' }),
+      expect.anything(),
     );
   });
 
@@ -502,13 +509,15 @@ describe('ReservationModal', () => {
     expect(screen.getByPlaceholderText(/e\.g\. ABC12345/i)).toBeInTheDocument();
   });
 
-  it('FE-PLANNER-RESMODAL-036: file upload to existing reservation calls onFileUpload', async () => {
+  it('FE-PLANNER-RESMODAL-036: a file picked on an existing reservation waits in the list and goes up on Update', async () => {
     const onFileUpload = vi.fn().mockResolvedValue(undefined);
     const res = buildReservation({ id: 10, title: 'My Trip', type: 'other' });
+    const { save: onSave } = plannerSave(res);
     render(
       <ReservationModal
         {...defaultProps}
         reservation={res}
+        onSave={onSave}
         onFileUpload={onFileUpload}
       />
     );
@@ -516,7 +525,10 @@ describe('ReservationModal', () => {
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const testFile = new File(['content'], 'boarding-pass.pdf', { type: 'application/pdf' });
     fireEvent.change(fileInput, { target: { files: [testFile] } });
+    expect(screen.getByText('boarding-pass.pdf')).toBeInTheDocument();
+    expect(onFileUpload).not.toHaveBeenCalled();
 
+    await userEvent.click(screen.getByRole('button', { name: /^Update$/i }));
     await waitFor(() => expect(onFileUpload).toHaveBeenCalled());
     const [fd] = onFileUpload.mock.calls[0] as [FormData];
     expect(fd.get('file')).toBeTruthy();
@@ -646,7 +658,8 @@ describe('ReservationModal', () => {
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'Grand Hotel', type: 'hotel' })
+      expect.objectContaining({ title: 'Grand Hotel', type: 'hotel' }),
+      expect.anything(),
     );
   });
 
@@ -695,7 +708,7 @@ describe('ReservationModal', () => {
 
   it('FE-PLANNER-RESMODAL-045: tour type shows time pickers', async () => {
     render(<ReservationModal {...defaultProps} />);
-    await pickType(/^Tour$/i);
+    await pickType(/^Guided tour$/i);
     await waitFor(() => {
       expect(screen.getAllByTestId('time-picker').length).toBeGreaterThan(0);
     });
@@ -707,7 +720,7 @@ describe('ReservationModal', () => {
     await pickType(/^Other$/i);
     await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Misc item');
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
-    await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ type: 'other' })));
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ type: 'other' }), expect.anything()));
   });
 
   it('FE-PLANNER-RESMODAL-048: clicking attach file button triggers file input', async () => {
@@ -774,7 +787,8 @@ describe('ReservationModal', () => {
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'hotel' })
+      expect.objectContaining({ type: 'hotel' }),
+      expect.anything(),
     );
   });
 
@@ -1064,7 +1078,7 @@ describe('ReservationModal', () => {
   });
 
   it('FE-PLANNER-RESMODAL-062: the parsed source document is seeded as a pending file and uploaded after save', async () => {
-    const onSave = vi.fn().mockResolvedValue({ id: 81 });
+    const { save: onSave } = plannerSave({ id: 81 });
     const onFileUpload = vi.fn().mockResolvedValue(undefined);
     const sourceFile = new File(['x'], 'booking.pdf', { type: 'application/pdf' });
     const prefill = hotelPrefill({ _sourceFiles: [sourceFile] });
@@ -1241,6 +1255,7 @@ describe('ReservationModal', () => {
         notes: 'Bring sunscreen',
         url: 'https://boats.example',
       }),
+      expect.anything(),
     );
   });
 
@@ -1252,7 +1267,7 @@ describe('ReservationModal', () => {
   ];
 
   it('FE-PLANNER-RESMODAL-072: toggling travelers persists them once the booking has an id', async () => {
-    const onSave = vi.fn().mockResolvedValue({ id: 90 });
+    const { save: onSave } = plannerSave({ id: 90 });
     let body: { user_ids: number[] } | null = null;
     server.use(
       http.put('/api/trips/1/reservations/90/travelers', async ({ request }) => {
@@ -1292,10 +1307,8 @@ describe('ReservationModal', () => {
     expect(calls).toBe(0);
   });
 
-  it('FE-PLANNER-RESMODAL-074: a failing traveler write surfaces an error toast', async () => {
-    const addToast = vi.fn();
-    window.__addToast = addToast;
-    const onSave = vi.fn().mockResolvedValue({ id: 92 });
+  it('FE-PLANNER-RESMODAL-074: a failing traveler write fails the save, so the planner keeps the dialog open', async () => {
+    const { save: onSave, failures } = plannerSave({ id: 92 });
     server.use(
       http.put('/api/trips/1/reservations/92/travelers', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
     );
@@ -1305,8 +1318,8 @@ describe('ReservationModal', () => {
     await userEvent.click(within(await openTravelers()).getByText('alice'));
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
 
-    await waitFor(() => expect(addToast).toHaveBeenCalledWith(expect.any(String), 'error', undefined));
-    delete window.__addToast;
+    await waitFor(() => expect(failures).toHaveLength(1));
+    expect(screen.getByRole('button', { name: /^Add$/i })).toBeEnabled();
   });
 
   // ── Linked cost actions ─────────────────────────────────────────────────────
@@ -1466,18 +1479,70 @@ describe('ReservationModal', () => {
     expect(screen.getByRole('button', { name: /Attach file/i })).toBeInTheDocument();
   });
 
-  it('FE-PLANNER-RESMODAL-078: a failing upload to an existing booking shows the upload error', async () => {
-    const addToast = vi.fn();
-    window.__addToast = addToast;
+  it('FE-PLANNER-RESMODAL-078: a failing upload on Update keeps the file listed and says the booking is saved', async () => {
     const onFileUpload = vi.fn().mockRejectedValue(new Error('disk full'));
     const res = buildReservation({ id: 12, title: 'My Trip', type: 'other' });
+    const { save: onSave, failures } = plannerSave(res);
 
-    render(<ReservationModal {...defaultProps} reservation={res} onFileUpload={onFileUpload} />);
+    render(<ReservationModal {...defaultProps} reservation={res} onSave={onSave} onFileUpload={onFileUpload} />);
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(fileInput, { target: { files: [new File(['x'], 'fail.pdf', { type: 'application/pdf' })] } });
+    await userEvent.click(screen.getByRole('button', { name: /^Update$/i }));
 
-    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Failed to upload', 'error', undefined));
-    delete window.__addToast;
+    await waitFor(() => expect(failures).toHaveLength(1));
+    expect(failures[0].message).toBe('The booking is saved, but some files did not upload. Save again to send them.');
+    expect(screen.getByText('fail.pdf')).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-RESMODAL-108: a new booking whose second file fails retries as an update with only that file (#2883)', async () => {
+    const onFileUpload = vi
+      .fn()
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error('413'))
+      .mockResolvedValue(undefined);
+    const { save: onSave, failures } = plannerSave({ id: 95 });
+
+    render(<ReservationModal {...defaultProps} onSave={onSave} onFileUpload={onFileUpload} />);
+    await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Ferry');
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [new File(['a'], 'ok.pdf', { type: 'application/pdf' })] } });
+    fireEvent.change(fileInput, { target: { files: [new File(['b'], 'fail.pdf', { type: 'application/pdf' })] } });
+
+    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+    await waitFor(() => expect(failures).toHaveLength(1));
+    expect(onSave.mock.calls[0][1]?.saved).toBeUndefined();
+    expect(screen.queryByText('ok.pdf')).not.toBeInTheDocument();
+    expect(screen.getByText('fail.pdf')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+    await waitFor(() => expect(onFileUpload).toHaveBeenCalledTimes(3));
+    expect(onSave).toHaveBeenCalledTimes(2);
+    expect(onSave.mock.calls[1][1]?.saved).toEqual({ id: 95 });
+    const [fd] = onFileUpload.mock.calls[2] as [FormData];
+    expect((fd.get('file') as File).name).toBe('fail.pdf');
+    expect(fd.get('reservation_id')).toBe('95');
+    expect(failures).toHaveLength(1);
+  });
+
+  it('FE-PLANNER-RESMODAL-109: offline a file picked on an existing booking holds the save back (#2601)', async () => {
+    const addToast = vi.fn();
+    window.__addToast = addToast;
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const res = buildReservation({ id: 14, title: 'My Trip', type: 'other' });
+    render(<ReservationModal {...defaultProps} reservation={res} onSave={onSave} />);
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [new File(['x'], 'ticket.pdf', { type: 'application/pdf' })] } });
+
+    setForcedOffline(true);
+    try {
+      await userEvent.click(screen.getByRole('button', { name: /^Update$/i }));
+      await waitFor(() => expect(addToast).toHaveBeenCalledWith(expect.stringMatching(/need a connection/), 'error', undefined));
+    } finally {
+      _resetNetworkMode();
+      delete window.__addToast;
+    }
+    expect(onSave).not.toHaveBeenCalled();
+    expect(screen.getByText('ticket.pdf')).toBeInTheDocument();
   });
 
   it('FE-PLANNER-RESMODAL-079: a failing unlink reports the update error but still drops the row', async () => {
@@ -1642,6 +1707,7 @@ describe('ReservationModal', () => {
     // carries a clock, and a bare date is what makes it an all-day event.
     await waitFor(() => expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({ reservation_time: '2026-05-02', reservation_end_time: '2026-05-02' }),
+      expect.anything(),
     ));
   });
 

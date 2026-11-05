@@ -1,5 +1,15 @@
+import {
+  resolveValhallaProvider,
+  VALHALLA_COSTING,
+  VALHALLA_RELAY_MAX_LOCATIONS,
+  valhallaRoutesEveryDay,
+  type ValhallaProvider,
+  type ValhallaRelayAction,
+} from '@trek/shared'
+import { valhallaRelayRepo } from '../../repo/valhallaRelayRepo'
 import { useSettingsStore } from '../../store/settingsStore'
 import { decodePolyline } from './transitGeometry'
+import { ferrySpansOf, type ValhallaManeuver } from './valhallaFerries'
 import { haversineKm } from '../../utils/geo'
 import type { Waypoint, SnappedWaypoint, RouteAvoidClass } from '../../types'
 
@@ -16,7 +26,8 @@ import type { Waypoint, SnappedWaypoint, RouteAvoidClass } from '../../types'
  * module is the adapter: same question, different engine, answer shaped like the OSRM
  * one so the callers do not have to care which engine spoke.
  *
- * Deliberately NOT a replacement for the OSRM path. Three measured reasons:
+ * On the public instance it is deliberately NOT a replacement for the OSRM path. Three
+ * measured reasons:
  *   - it caps at ten locations, and following a track sends a day's stops plus up to
  *     nine anchors, so the bundled requests would start failing;
  *   - it refuses a point it cannot bind to a road, where OSRM still snaps one. The
@@ -31,12 +42,40 @@ import type { Waypoint, SnappedWaypoint, RouteAvoidClass } from '../../types'
  *     subtracting one engine's figure from the other's, which is what an offer beside
  *     a route invites, measures the gap between two speed models and nothing else.
  *
- * Which leaves exactly the shape this module serves: two points, one avoidance, asked
- * on demand, drawn as an offer next to the route rather than replacing it.
+ * Which leaves exactly the shape this module serves there: two points, one avoidance,
+ * asked on demand, drawn as an offer next to the route rather than replacing it.
+ *
+ * The TREK services' Valhalla and an own one take twenty locations and no pace of one a
+ * second, so with either of them this engine routes every day (`valhallaDayRun`), and a
+ * day it cannot answer goes to OSRM whole. The third reason holds on every host, which
+ * is why one day is never routed by both.
  */
 
 /** The public instance, matching how the OSRM defaults are shipped rather than configured. */
 const FOSSGIS_VALHALLA = 'https://valhalla1.openstreetmap.de'
+
+/**
+ * The TREK services' Valhalla, reached through this server's relay: same origin, so no
+ * connect-src to add, and the installation key stays on the server.
+ */
+const TREK_VALHALLA = '/api/routing/valhalla'
+
+/**
+ * How long this tab leaves the relay alone after it could not answer: signed out on a
+ * shared page, the allowance spent, the services down. FOSSGIS answers meanwhile.
+ */
+const RELAY_REST_MS = 10 * 60_000
+
+/** The longest Retry-After of the relay this tab follows; a longer one is asked about again after it. */
+const RELAY_MAX_WAIT_MS = 60 * 60_000
+
+/**
+ * How long a route or a height question may take through the relay or at an own Valhalla.
+ * The server gives the TREK Valhalla ten seconds; this leaves room for its 504 to arrive
+ * first. Where the relay itself hangs, FOSSGIS answers soon after; where an own Valhalla
+ * does, OSRM routes the day, rather than the day waiting as long as the browser would.
+ */
+const ASK_TIMEOUT_MS = 12_000
 
 /**
  * How far Valhalla may look for a road under a point, in metres.
@@ -47,13 +86,6 @@ const FOSSGIS_VALHALLA = 'https://valhalla1.openstreetmap.de'
  * routes, and 200 changed nothing further. So 50 buys the fix and nothing beyond it.
  */
 const SNAP_RADIUS_M = 50
-
-/** TREK's profile names against Valhalla's costing models. */
-const COSTING: Record<'driving' | 'walking' | 'cycling', string> = {
-  driving: 'auto',
-  walking: 'pedestrian',
-  cycling: 'bicycle',
-}
 
 /** What a caller tunes in the costing model: a weighting, a switch, or a bicycle type by name. */
 export type CostingOptions = Record<string, number | string | boolean>
@@ -77,17 +109,18 @@ const AVOID_OPTION: Record<AvoidClass, string> = {
 export type AvoidClass = RouteAvoidClass
 
 /**
- * Locations one request may carry. The eleventh answers
- * `{"error_code":150,"error":"Exceeded max locations: 10"}` with HTTP 400.
+ * Locations one request to the public instance may carry. The eleventh answers
+ * `{"error_code":150,"error":"Exceeded max locations: 10"}` with HTTP 400. The TREK
+ * Valhalla and an own one take `VALHALLA_RELAY_MAX_LOCATIONS`.
  */
 const MAX_LOCATIONS = 10
 
 /**
- * Pause between the pieces of a split day, in milliseconds.
+ * The pace of the public instance, in milliseconds between two questions.
  *
- * The public instance allows about one request a second per client, and a day long
- * enough to be split is exactly the case that would fire two back to back. Matches the
- * 1100 ms the road trip rail already leaves between its own days.
+ * It allows about one request a second per client, and a day long enough to be split is
+ * exactly the case that would fire two back to back; `valhallaTurn` holds every question
+ * to it there. Matches the 1100 ms the road trip rail already leaves between its own days.
  */
 const CHUNK_PAUSE_MS = 1100
 
@@ -152,6 +185,14 @@ export interface ValhallaNoPath {
 const NO_PATH_CODES = new Set([170, 171, 442])
 const NO_PATH: ValhallaNoPath = { noPath: true }
 
+/** A host that let a question run out its deadline, apart from one that refused it. */
+const TOO_SLOW = { tooSlow: true } as const
+type TooSlow = typeof TOO_SLOW
+
+function tooSlow(answer: unknown): answer is TooSlow {
+  return answer === TOO_SLOW
+}
+
 /** A routed chain: one leg per pair of consecutive waypoints, plus the whole of it. */
 export interface ValhallaRun {
   legs: ValhallaLeg[]
@@ -169,21 +210,59 @@ export interface ValhallaRun {
   snapped: SnappedWaypoint[]
 }
 
+/** Until when this tab asks FOSSGIS instead of a relay that could not answer. */
+let relayRestingUntil = 0
+
 /**
  * The instance's Valhalla, or null when it should not ask one.
  *
- * Blank falls back to the public instance, the same reading `routing_base_url` gets —
+ * The admin's choice (`routing_valhalla_provider`) stands. Without one, an own Valhalla
+ * is asked, and otherwise the TREK services through the relay, with FOSSGIS behind it —
  * with one condition. An operator who filled in their OWN router chose deliberately
  * against the public hosts, usually because their instance is not supposed to talk to
- * third parties at all, and quietly adding a second public host they never asked for
- * would undo that choice. They lose nothing: a self-hosted OSRM built through the MLD
+ * third parties at all, and quietly adding a second host they never asked for would
+ * undo that choice. They lose nothing: a self-hosted OSRM built through the MLD
  * pipeline answers `exclude` on its own, which is exactly the fallback below.
  */
 export function valhallaBase(): string | null {
+  const { provider, own } = currentProvider()
+  if (provider === 'custom') return own
+  if (provider === 'trek') return TREK_VALHALLA
+  return provider === 'fossgis' ? FOSSGIS_VALHALLA : null
+}
+
+/**
+ * The provider as the settings choose it. Whether the TREK services can answer is the
+ * relay's to say; until it said no, it is asked, and `ignoreRest` reads past its no.
+ */
+function currentProvider(ignoreRest = false): { provider: ValhallaProvider | null; own: string } {
   const settings = useSettingsStore.getState().settings
-  const configured = settings.valhalla_base_url?.trim()
-  if (configured) return configured.replace(/\/+$/, '')
-  return settings.routing_base_url?.trim() ? null : FOSSGIS_VALHALLA
+  const own = settings.valhalla_base_url?.trim().replace(/\/+$/, '') ?? ''
+  const provider = resolveValhallaProvider({
+    provider: settings.routing_valhalla_provider,
+    valhallaUrl: own,
+    routingUrl: settings.routing_base_url,
+    trekAvailable: ignoreRest || Date.now() >= relayRestingUntil,
+  })
+  return { provider, own }
+}
+
+/**
+ * Whether the days are asked here right now rather than of OSRM: with the TREK services
+ * or an own Valhalla. While the relay rests after a failure this reads as FOSSGIS, so the
+ * days go to OSRM until it is asked again.
+ */
+export function valhallaRoutesDays(): boolean {
+  return valhallaRoutesEveryDay(currentProvider().provider)
+}
+
+/**
+ * Whether the days are planned with this engine, resting relay or not. The route cache is
+ * keyed by it: a day this device already holds from Valhalla stays found while the relay
+ * rests, offline above all, where every question to it fails and it rests at once.
+ */
+export function valhallaPlansDays(): boolean {
+  return valhallaRoutesEveryDay(currentProvider(true).provider)
 }
 
 /** True when this engine can be asked at all, so callers can skip building a request. */
@@ -193,6 +272,11 @@ export function valhallaAvailable(): boolean {
 
 /** Hosts that have already proved they are not a Valhalla, by base URL. */
 const notValhalla = new Set<string>()
+
+/** Whether a question may go to this base: a Valhalla, and the public one only where it may stand in. */
+function mayAsk(base: string | null, publicFallback: boolean): base is string {
+  return !!base && !notValhalla.has(base) && (publicFallback || base !== FOSSGIS_VALHALLA)
+}
 
 /**
  * One leg with a road class weighted away, or null when it cannot be had.
@@ -224,9 +308,9 @@ export async function valhallaRouteAvoiding(
  * came back within two metres and under a second of the same day asked whole, because
  * the shared point is routed to and from identically.
  *
- * The pieces go out one after another with a pause, since a day long enough to need
- * splitting is exactly the one that would otherwise fire two requests inside a second
- * at a host that allows one.
+ * The pieces go out one after another. Those that reach the public instance wait their
+ * turn there (`valhallaTurn`), since a day long enough to need splitting is exactly the
+ * one that would otherwise fire two requests inside a second at a host that allows one.
  */
 export async function valhallaRun(
   waypoints: Waypoint[],
@@ -235,9 +319,33 @@ export async function valhallaRun(
   signal?: AbortSignal,
   costingOptions: Readonly<CostingOptions> = {},
 ): Promise<ValhallaRun | null> {
-  const run = await chainRun(waypoints, profile, avoid, signal, { costingOptions, searchFilter: null })
+  const ask: RunAsk = { costingOptions, searchFilter: null, publicFallback: true }
+  const run = await chainRun(waypoints, profile, avoid, signal, ask)
   if (!run || 'noPath' in run) return null
   return run
+}
+
+/**
+ * A day of the planner or the road trip, routed here because this engine routes the
+ * days (`valhallaRoutesDays`) or because the day avoids something only it can avoid.
+ *
+ * A day that avoids nothing is never handed to the public instance: OSRM routes it
+ * there, as it always has, so where the TREK services cannot answer this is null and
+ * OSRM takes the whole day. A day that avoids something goes to FOSSGIS behind the
+ * relay as before, since OSRM cannot weigh a class away.
+ */
+export async function valhallaDayRun(
+  waypoints: Waypoint[],
+  profile: 'driving' | 'walking' | 'cycling',
+  avoid: readonly AvoidClass[],
+  signal?: AbortSignal,
+): Promise<ValhallaRun | null> {
+  const run = await chainRun(waypoints, profile, avoid, signal, dayAsk(avoid))
+  return run && !('noPath' in run) ? run : null
+}
+
+function dayAsk(avoid: readonly AvoidClass[]): RunAsk {
+  return { costingOptions: {}, searchFilter: null, publicFallback: avoid.length > 0 }
 }
 
 /**
@@ -253,13 +361,24 @@ export function valhallaRunOnFoot(
   costingOptions: Readonly<CostingOptions>,
   searchFilter: Readonly<SearchFilter>,
 ): Promise<ValhallaRun | ValhallaNoPath | null> {
-  return chainRun(waypoints, 'walking', [], signal, { costingOptions, searchFilter })
+  return chainRun(waypoints, 'walking', [], signal, { costingOptions, searchFilter, publicFallback: true })
 }
 
 /** How a chain is asked for besides its profile and avoidance. */
 interface RunAsk {
   costingOptions: Readonly<CostingOptions>
   searchFilter: Readonly<SearchFilter> | null
+  /** Whether FOSSGIS answers where the relay cannot; without it the question has no answer then. */
+  publicFallback: boolean
+}
+
+/**
+ * Locations one request carries: ten at the public instance, twenty at the TREK
+ * Valhalla and at an own one. A day cut for the relay that the relay then cannot
+ * answer is cut again for FOSSGIS (`chainRun`).
+ */
+function locationsPerRequest(base: string): number {
+  return base === FOSSGIS_VALHALLA ? MAX_LOCATIONS : VALHALLA_RELAY_MAX_LOCATIONS
 }
 
 async function chainRun(
@@ -270,18 +389,44 @@ async function chainRun(
   ask: RunAsk,
 ): Promise<ValhallaRun | ValhallaNoPath | null> {
   const base = valhallaBase()
-  if (!base || notValhalla.has(base) || waypoints.length < 2) return null
+  if (!mayAsk(base, ask.publicFallback) || waypoints.length < 2) return null
+  const size = locationsPerRequest(base)
+  const run = await chainRunSized(base, waypoints, { size, profile, avoid, signal, ask })
+  // The relay fell over during a day cut for it. It rests now, so the base reads as FOSSGIS
+  // and the day is asked again there in pieces of ten.
+  const recut = run === null && base === TREK_VALHALLA && ask.publicFallback && waypoints.length > MAX_LOCATIONS
+  if (recut && Date.now() < relayRestingUntil && !signal?.aborted) {
+    return chainRun(waypoints, profile, avoid, signal, ask)
+  }
+  return run
+}
 
+/** How one day is asked: in pieces of `size`, for this profile and these avoidances. */
+interface SizedRun {
+  size: number
+  profile: 'driving' | 'walking' | 'cycling'
+  avoid: readonly AvoidClass[]
+  signal: AbortSignal | undefined
+  ask: RunAsk
+}
+
+async function chainRunSized(
+  base: string,
+  waypoints: Waypoint[],
+  { size, profile, avoid, signal, ask }: SizedRun,
+): Promise<ValhallaRun | ValhallaNoPath | null> {
   const legs: ValhallaLeg[] = []
-  const chunks = chunkWaypoints(waypoints)
-  for (const [index, chunk] of chunks.entries()) {
+  // No pause between the pieces: a question that reaches FOSSGIS waits its turn in
+  // valhallaTurn, and the relay and an own Valhalla are not paced.
+  for (const chunk of chunkWaypoints(waypoints, size)) {
     if (signal?.aborted) return null
-    if (index > 0) await pause(CHUNK_PAUSE_MS, signal)
     // Retried per piece rather than per day. The caller retries the whole task, so a
     // rate limit on the last piece of a split day would otherwise throw away the pieces
     // that already answered and ask for all of them again — three times over, against a
     // host that allows one request a second.
-    const run = await askWithRetry(base, () => requestRun(base, chunk, profile, avoid, signal, ask), signal)
+    const request = () => requestRun(base, chunk, profile, avoid, signal, ask)
+    // FOSSGIS stands in only for a piece of at most ten; a longer one is cut again instead.
+    const run = await askWithRetry(base, request, signal, ask.publicFallback && chunk.length <= MAX_LOCATIONS)
     // A day is one answer or none. Half a day of legs would be worse than no answer:
     // the schedule chains leg times blindly and cannot tell that it is missing some, so
     // it would print a complete, plausible, wrong timetable rather than a gap.
@@ -314,12 +459,12 @@ function snappedFrom(legs: ValhallaLeg[], waypoints: Waypoint[]): SnappedWaypoin
   })
 }
 
-/** Runs of at most ten points, each starting on the one the previous ended at. */
-function chunkWaypoints(waypoints: Waypoint[]): Waypoint[][] {
-  if (waypoints.length <= MAX_LOCATIONS) return [waypoints]
+/** Runs of at most `size` points, each starting on the one the previous ended at. */
+function chunkWaypoints(waypoints: Waypoint[], size: number): Waypoint[][] {
+  if (waypoints.length <= size) return [waypoints]
   const chunks: Waypoint[][] = []
-  for (let start = 0; start < waypoints.length - 1; start += MAX_LOCATIONS - 1) {
-    chunks.push(waypoints.slice(start, start + MAX_LOCATIONS))
+  for (let start = 0; start < waypoints.length - 1; start += size - 1) {
+    chunks.push(waypoints.slice(start, start + size))
   }
   return chunks
 }
@@ -355,9 +500,96 @@ export async function valhallaTurn(base: string, signal?: AbortSignal): Promise<
   lastPublicAskAt = Date.now()
 }
 
-/** Forget the last turn, for tests that start from a quiet host. */
+/** Forget the last turn and a resting relay, for tests that start from a quiet host. */
 export function resetValhallaTurns(): void {
   lastPublicAskAt = 0
+  relayRestingUntil = 0
+}
+
+/**
+ * Whether the relay's answer says it cannot answer for the TREK services right now: no
+ * session (a shared page), no key, a body it does not take, a route this server does not
+ * have yet, an allowance spent, a host that is down. A 400 that carries Valhalla's
+ * `error_code` is its own refusal of the way and is read as such; one without is the
+ * relay refusing the body.
+ */
+async function relayCannotAnswer(response: Response): Promise<boolean> {
+  // 504: this one question took too long. The relay still answers the next one, and
+  // FOSSGIS would take as long over this one.
+  if (response.status === 504) return false
+  if (response.status === 400) {
+    // A body that is not JSON cannot be Valhalla's own refusal, so it reads as the relay's.
+    const data: unknown = await response.clone().json().catch(() => ({}))
+    return typeof (data as { error_code?: unknown } | null)?.error_code !== 'number'
+  }
+  return [401, 403, 404, 405, 413, 429].includes(response.status) || response.status >= 500
+}
+
+/** The relay's Retry-After in milliseconds, as seconds or an HTTP date, or null without one. */
+function relayWait(response: Response): number | null {
+  const value = response.headers.get('Retry-After')?.trim()
+  if (!value) return null
+  if (/^\d+$/.test(value)) return Number(value) * 1000
+  const at = Date.parse(value)
+  return Number.isNaN(at) ? null : Math.max(0, at - Date.now())
+}
+
+/** A route or a height question held to `ASK_TIMEOUT_MS`; a description brings its own deadline. */
+function withDeadline(action: ValhallaRelayAction, signal?: AbortSignal): AbortSignal | undefined {
+  if (action === 'trace_attributes') return signal
+  const deadline = AbortSignal.timeout(ASK_TIMEOUT_MS)
+  return signal ? AbortSignal.any([signal, deadline]) : deadline
+}
+
+async function askRelay(action: ValhallaRelayAction, body: object, signal?: AbortSignal): Promise<Response | null> {
+  let wait = RELAY_REST_MS
+  try {
+    const response = await valhallaRelayRepo.ask(action, body, withDeadline(action, signal))
+    if (!(await relayCannotAnswer(response))) return response
+    wait = Math.min(relayWait(response) ?? RELAY_REST_MS, RELAY_MAX_WAIT_MS)
+  } catch (err) {
+    if (signal?.aborted) throw err
+  }
+  relayRestingUntil = Date.now() + wait
+  return null
+}
+
+/**
+ * One question to a Valhalla, in its turn where the host is the public one. The relay
+ * is asked first where it is the base; where it cannot answer, the same question goes
+ * to FOSSGIS without a word, so a route never fails because of it. Without
+ * `publicFallback` it does not: the answer is then a 503 of this tab's own, and the
+ * caller asks OSRM.
+ */
+export async function valhallaPost(
+  base: string,
+  action: ValhallaRelayAction,
+  body: object,
+  signal?: AbortSignal,
+  { publicFallback = true }: { publicFallback?: boolean } = {},
+): Promise<Response> {
+  if (base === TREK_VALHALLA && Date.now() >= relayRestingUntil) {
+    const relayed = await askRelay(action, body, signal)
+    if (relayed) return relayed
+  }
+  if (base === TREK_VALHALLA && (!publicFallback || overPublicLimit(action, body))) return new Response(null, { status: 503 })
+  const host = base === TREK_VALHALLA ? FOSSGIS_VALHALLA : base
+  await valhallaTurn(host, signal)
+  return fetch(`${host}/${action}`, {
+    method: 'POST',
+    // A browser cannot set User-Agent, so this is the whole of what FOSSGIS asks a
+    // client to identify itself with. It costs a preflight, which is answered.
+    headers: { 'Content-Type': 'application/json', 'X-Client-Id': 'trek' },
+    body: JSON.stringify(body),
+    // An own Valhalla routes every day, so one that hangs would hold each of them up.
+    signal: host === FOSSGIS_VALHALLA ? signal : withDeadline(action, signal),
+  })
+}
+
+/** Whether a route carries more locations than the public instance takes, so it cannot stand in for the relay. */
+function overPublicLimit(action: ValhallaRelayAction, body: object): boolean {
+  const locations = (body as { locations?: unknown }).locations
+  return action === 'route' && Array.isArray(locations) && locations.length > MAX_LOCATIONS
 }
 
 /**
@@ -375,16 +607,28 @@ export function valhallaSpacing(signal?: AbortSignal): Promise<void> {
  * One question, and one more try after a pause when it earned no answer.
  *
  * Not when the host just proved it is not a Valhalla at all: that answer will not change
- * on a second ask, and asking anyway is the request the memo exists to save.
+ * on a second ask, and asking anyway is the request the memo exists to save. Nor, where
+ * nothing may stand in for this engine, when the relay now rests or the host used up its
+ * whole deadline: the second ask would not leave this tab or would most likely wait as
+ * long again, and OSRM is waiting for the day. Nor when the relay ran out of time on
+ * it: the relay does not rest for that, so the second ask would wait at the same host.
  */
-async function askWithRetry<T>(base: string, ask: () => Promise<T | null>, signal?: AbortSignal): Promise<T | null> {
+async function askWithRetry<T>(
+  base: string,
+  ask: () => Promise<T | TooSlow | null>,
+  signal: AbortSignal | undefined,
+  publicFallback: boolean,
+): Promise<T | null> {
   let answer = await ask()
-  for (let attempt = 0; !answer && attempt < CHUNK_RETRIES && !signal?.aborted; attempt++) {
+  for (let attempt = 0; (!answer || tooSlow(answer)) && attempt < CHUNK_RETRIES && !signal?.aborted; attempt++) {
     if (notValhalla.has(base)) break
+    if (!publicFallback && (tooSlow(answer) || (base === TREK_VALHALLA && Date.now() < relayRestingUntil))) break
+    // A question the relay ran out of time on would go to the same host again.
+    if (tooSlow(answer) && base === TREK_VALHALLA) break
     await pause(CHUNK_PAUSE_MS, signal)
     answer = await ask()
   }
-  return answer
+  return tooSlow(answer) ? null : answer
 }
 
 /** The request body for a chain of waypoints, weighted away from `avoid`. */
@@ -395,7 +639,7 @@ function routeBody(
   costingOptions: Readonly<CostingOptions> = {},
   searchFilter: Readonly<SearchFilter> | null = null,
 ): Record<string, unknown> {
-  const costing = COSTING[profile]
+  const costing = VALHALLA_COSTING[profile]
   // All of them in one request: the options are independent weightings, so asking to
   // leave out tolls and ferries together is one question rather than two routes to
   // reconcile. Measured Hamburg to Copenhagen: tolls, motorways and ferries weighted
@@ -412,22 +656,23 @@ function routeBody(
     costing,
     costing_options: { [costing]: options },
     directions_options: { units: 'kilometers' },
+    // The maneuvers, where the ferry spans come from, without the narrative nothing reads.
+    directions_type: 'maneuvers',
   }
 }
 
-/** The parsed answer to one POST, `NO_PATH` when the router found no way, or null for every other failure. */
-async function postRoute(base: string, body: Record<string, unknown>, signal?: AbortSignal): Promise<unknown> {
+/**
+ * The parsed answer to one POST, `NO_PATH` when the router found no way, `TOO_SLOW` when
+ * it did not answer in time, or null for every other failure.
+ */
+async function postRoute(
+  base: string,
+  body: Record<string, unknown>,
+  signal: AbortSignal | undefined,
+  publicFallback: boolean,
+): Promise<unknown> {
   try {
-    await valhallaTurn(base, signal)
-    if (signal?.aborted) return null
-    const response = await fetch(`${base}/route`, {
-      method: 'POST',
-      // A browser cannot set User-Agent, so this is the whole of what FOSSGIS asks a
-      // client to identify itself with. It costs a preflight, which is answered.
-      headers: { 'Content-Type': 'application/json', 'X-Client-Id': 'trek' },
-      body: JSON.stringify(body),
-      signal,
-    })
+    const response = await valhallaPost(base, 'route', body, signal, { publicFallback })
     if (!response.ok) {
       // 404 and 405 mean this URL is not a Valhalla — an OSRM pointed at by mistake,
       // or a proxy that swallowed the path. Every other status is about this request:
@@ -435,11 +680,13 @@ async function postRoute(base: string, body: Record<string, unknown>, signal?: A
       // is the public instance's one-per-second.
       if (response.status === 404 || response.status === 405) notValhalla.add(base)
       if (response.status === 400 && (await refusesTheWay(response))) return NO_PATH
+      // The relay's word that this question ran out its deadline, read as one that timed out here.
+      if (response.status === 504) return TOO_SLOW
       return null
     }
     return await response.json()
-  } catch {
-    return null
+  } catch (err) {
+    return err instanceof DOMException && err.name === 'TimeoutError' ? TOO_SLOW : null
   }
 }
 
@@ -506,22 +753,15 @@ export async function valhallaTraceAttributes(
   const shape = line.filter((_, index) => index % step === 0 || index === line.length - 1).map(([lat, lon]) => ({ lat, lon }))
   const bounded = signal ? AbortSignal.any([signal, AbortSignal.timeout(TRACE_TIMEOUT_MS)]) : AbortSignal.timeout(TRACE_TIMEOUT_MS)
   try {
-    await valhallaTurn(base, signal)
-    if (signal?.aborted) return null
-    const response = await fetch(`${base}/trace_attributes`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Client-Id': 'trek' },
-      body: JSON.stringify({
-        shape,
-        ...TRACE_COSTING[matching],
-        shape_match: 'map_snap',
-        filters: {
-          attributes: traceAttributesFor(matching),
-          action: 'include',
-        },
-      }),
-      signal: bounded,
-    })
+    const response = await valhallaPost(base, 'trace_attributes', {
+      shape,
+      ...TRACE_COSTING[matching],
+      shape_match: 'map_snap',
+      filters: {
+        attributes: traceAttributesFor(matching),
+        action: 'include',
+      },
+    }, bounded)
     if (!response.ok) return null
     return await response.json()
   } catch {
@@ -529,17 +769,19 @@ export async function valhallaTraceAttributes(
   }
 }
 
-/** One request, at most ten locations. */
+/** One request, at most ten locations at the public instance and twenty elsewhere. */
 async function requestRun(
   base: string,
   waypoints: Waypoint[],
   profile: 'driving' | 'walking' | 'cycling',
   avoid: readonly AvoidClass[],
   signal: AbortSignal | undefined,
-  { costingOptions, searchFilter }: RunAsk,
-): Promise<Omit<ValhallaRun, 'snapped'> | ValhallaNoPath | null> {
-  const data = await postRoute(base, routeBody(waypoints, profile, avoid, costingOptions, searchFilter), signal)
+  { costingOptions, searchFilter, publicFallback }: RunAsk,
+): Promise<Omit<ValhallaRun, 'snapped'> | ValhallaNoPath | TooSlow | null> {
+  const body = routeBody(waypoints, profile, avoid, costingOptions, searchFilter)
+  const data = await postRoute(base, body, signal, publicFallback)
   if (data === NO_PATH) return NO_PATH
+  if (tooSlow(data)) return data
   return data === null ? null : runFrom(data)
 }
 
@@ -563,13 +805,39 @@ export async function valhallaAlternates(
   signal?: AbortSignal,
   costingOptions: Readonly<CostingOptions> = {},
 ): Promise<ValhallaLeg[] | null> {
+  const ask: RunAsk = { costingOptions, searchFilter: null, publicFallback: true }
+  return alternates([from, to], profile, avoid, { count, signal, ask })
+}
+
+/**
+ * The offers for one leg of a day `valhallaDayRun` routes, asked the way that day was:
+ * a leg OSRM would otherwise drive is never asked of the public instance.
+ */
+export function valhallaDayAlternates(
+  from: Waypoint,
+  to: Waypoint,
+  profile: 'driving' | 'walking' | 'cycling',
+  avoid: readonly AvoidClass[],
+  { count, signal }: { count: number; signal?: AbortSignal },
+): Promise<ValhallaLeg[] | null> {
+  return alternates([from, to], profile, avoid, { count, signal, ask: dayAsk(avoid) })
+}
+
+async function alternates(
+  [from, to]: [Waypoint, Waypoint],
+  profile: 'driving' | 'walking' | 'cycling',
+  avoid: readonly AvoidClass[],
+  { count, signal, ask }: { count: number; signal: AbortSignal | undefined; ask: RunAsk },
+): Promise<ValhallaLeg[] | null> {
+  const { costingOptions, publicFallback } = ask
   const base = valhallaBase()
-  if (!base || notValhalla.has(base)) return null
+  if (!mayAsk(base, publicFallback)) return null
   const body = { ...routeBody([from, to], profile, avoid, costingOptions), ...(count > 0 ? { alternates: count } : {}) }
   return askWithRetry(base, async () => {
-    const data = await postRoute(base, body, signal)
+    const data = await postRoute(base, body, signal, publicFallback)
+    if (tooSlow(data)) return data
     return data === null ? null : alternatesFrom(data)
-  }, signal)
+  }, signal, publicFallback)
 }
 
 /**
@@ -664,14 +932,6 @@ export function runFrom(data: unknown): Omit<ValhallaRun, 'snapped'> | null {
 
 interface ValhallaSummary { [key: string]: number | boolean | undefined }
 
-interface ValhallaManeuver {
-  type?: number
-  ferry?: boolean
-  begin_shape_index?: number
-  end_shape_index?: number
-  time?: number
-  length?: number
-}
 
 function tripOf(data: unknown) {
   return (data as {
@@ -680,40 +940,6 @@ function tripOf(data: unknown) {
       summary?: ValhallaSummary
     }
   })?.trip
-}
-
-/** Valhalla's maneuver type for boarding a ferry; the maneuver also carries `ferry: true` for its crossing. */
-const FERRY_ENTER = 28
-
-/**
- * CW-12: the stretches of a leg the router takes by boat, read off its
- * maneuvers: a crossing is the maneuver that boards the ferry, from the point
- * it starts at to the one it ends at, with its own length and time. Measured
- * on Venice, the San Tomà to Ca' Rezzonico line came back as one maneuver of
- * type 28, ferry true, 1.236 km and 745 s over shape points 24 to 46, then the
- * walk off it. Crossings that touch are one. A leg the summary says has a
- * ferry but whose maneuvers do not say where is taken whole, without a time:
- * the crossing is somewhere on it, and none of it is counted as walked.
- */
-function ferrySpansOf(maneuvers: ValhallaManeuver[] | undefined, points: number): FerrySpan[] {
-  const spans: FerrySpan[] = []
-  for (const maneuver of maneuvers ?? []) {
-    if (maneuver.ferry !== true && maneuver.type !== FERRY_ENTER) continue
-    const from = Number(maneuver.begin_shape_index)
-    const to = Number(maneuver.end_shape_index)
-    if (!Number.isInteger(from) || !Number.isInteger(to) || from < 0 || to <= from || to >= points) continue
-    const metres = Number.isFinite(maneuver.length) ? Number(maneuver.length) * 1000 : 0
-    const seconds = Number.isFinite(maneuver.time) ? Number(maneuver.time) : null
-    const previous = spans[spans.length - 1]
-    if (previous && previous.to === from) {
-      previous.to = to
-      previous.metres += metres
-      previous.seconds = previous.seconds === null || seconds === null ? null : previous.seconds + seconds
-    } else {
-      spans.push({ from, to, metres, seconds })
-    }
-  }
-  return spans.length || points < 2 ? spans : [{ from: 0, to: points - 1, metres: 0, seconds: null }]
 }
 
 /** A summary and a shape as a leg, or null when the summary carries no numbers. */

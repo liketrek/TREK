@@ -58,6 +58,8 @@ const dayplan: TranslationStrings = {
   'dayplan.pdf': 'PDF',
   'dayplan.pdfTooltip': 'Napi terv exportálása PDF-be',
   'dayplan.pdfMine': 'Saját tervem PDF-ként',
+  'dayplan.pdfRouting': 'Útvonalak számítása: {done}/{total}',
+  'dayplan.pdfSkipRouting': 'Exportálás a hátralévő útvonalak nélkül',
   'dayplan.pdfMineSub': 'Csak azok a programok és foglalások, amelyekben részt vesz',
   'dayplan.gpxTooltip': 'Exportálás GPX-ként offline térképekhez és GPS-eszközökhöz',
   'dayplan.gpxAll': 'A teljes utazás',

@@ -13,6 +13,7 @@ import { createTestPluginRegistry } from '../../../src/nest-rpc/rpc-kit/testing'
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
 import type { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import type { PlaceOriginsService } from '../../../src/nest/places/place-origins.service';
 import { PlacesModule } from '../../../src/nest/places/places.module';
 import { PlacesRpc } from '../../../src/nest/places/places.rpc';
 import type { PlacesService } from '../../../src/nest/places/places.service';
@@ -75,15 +76,17 @@ function build(opts: { canEdit?: boolean; journeyThrows?: boolean } = {}) {
     { getRole: vi.fn(async () => 'user') } as unknown as UsersRepository,
   );
   // Each double covers only the methods PlacesRpc reaches for, hence the cast.
+  const origins = { valuesBefore: vi.fn(async () => null), record: vi.fn(async () => undefined) };
   const rpc = new PlacesRpc(
     places as unknown as PlacesService,
     journey as unknown as JourneyDomainService,
     realtime as unknown as RealtimeService,
     guards,
+    origins as unknown as PlaceOriginsService,
   );
   const host = (...grants: string[]) =>
     new PluginRpcHost('p', new Set(grants), makeDeps(), createTestPluginRegistry([rpc]));
-  return { places, journey, realtime, host };
+  return { places, journey, realtime, host, origins };
 }
 
 describe('PlacesRpc', () => {
@@ -241,5 +244,18 @@ describe('PlacesRpc', () => {
     expect(refused.error.code).toBe('BAD_PARAMS');
     expect(refused.error.message).toBe('invalid place: website must be an http or https URL');
     expect(f.places.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('PLACES-RPC-013 what a plugin writes is recorded as the plugin, never as a user', async () => {
+    const f = build();
+    const host = f.host('db:write:places');
+    await host.dispatch(
+      req('places.create', { tripId: 1, input: { name: 'Shrine', website: 'https://shrine.jp' } }),
+      42,
+    );
+    expect(f.origins.record).toHaveBeenCalledWith(10, null, { kind: 'fixed', origin: 'plugin' });
+    await host.dispatch(req('places.update', { tripId: 1, placeId: 7, input: { phone: '+81 1' } }), 42);
+    expect(f.origins.valuesBefore).toHaveBeenCalledWith(7);
+    expect(f.origins.record).toHaveBeenLastCalledWith(7, null, { kind: 'fixed', origin: 'plugin' });
   });
 });

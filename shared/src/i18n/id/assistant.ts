@@ -41,6 +41,8 @@ const assistant: TranslationStrings = {
   'assistant.connect.openAssistant': 'Buka asisten',
   'assistant.connect.badKey': 'Kunci ini tidak berfungsi.',
   'assistant.connect.unknownModel': 'Model ini tidak tersedia di sini.',
+  'assistant.connect.noModelList':
+    'Server menjawab, tetapi tidak mengirim daftar model. Periksa alamatnya, biasanya diakhiri dengan /v1.',
   'assistant.connect.getKey': 'Dapatkan kunci',
   'assistant.connect.hintAnthropic': 'Claude Max dan Team sudah termasuk kredit API.',
   'assistant.connect.hintOpenai': 'Buat kunci di dasbor OpenAI kamu.',
@@ -174,6 +176,8 @@ const assistant: TranslationStrings = {
   'assistant.change.label.currency': 'Mata uang',
   'assistant.change.label.stopType': 'Jenis pemberhentian',
   'assistant.change.label.text': 'Teks',
+  'assistant.change.label.title': 'Judul',
+  'assistant.change.label.content': 'Isi',
   'assistant.change.label.icon': 'Ikon',
   'assistant.change.label.color': 'Warna',
   'assistant.change.label.position': 'Posisi',

@@ -69,6 +69,8 @@ const dayplan: TranslationStrings = {
   'dayplan.pdf': 'PDF',
   'dayplan.pdfTooltip': 'Exportovať denný plán do PDF',
   'dayplan.pdfMine': 'Môj plán ako PDF',
+  'dayplan.pdfRouting': 'Výpočet trás: {done} z {total}',
+  'dayplan.pdfSkipRouting': 'Exportovať bez zostávajúcich trás',
   'dayplan.pdfMineSub': 'Len aktivity a rezervácie, na ktorých sa zúčastňujete',
   'dayplan.gpxTooltip': 'Exportovať ako GPX pre offline mapy a GPS zariadenia',
   'dayplan.gpxAll': 'Celá cesta',

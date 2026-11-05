@@ -166,5 +166,14 @@ const places: TranslationStrings = {
   'places.image.needsConnection': '新しい画像には接続が必要です。オンラインになってからもう一度保存してください。',
   'places.openPhotos': '写真を見る',
   'places.imageUploadError': '画像をアップロードできませんでした',
+  'places.refresh.pill': '新しい場所の情報',
+  'places.refresh.title': '場所の情報を更新',
+  'places.refresh.intro':
+    'TREK はこの場所のより新しい情報を知っています。取り込むものを選んでください。それ以外はそのままです。その後、場所を保存してください。',
+  'places.refresh.apply': '取り込む',
+  'places.refresh.replaces': '現在保存されている値を置き換えます',
+  'places.refresh.empty': '空',
+  'places.refresh.now': '現在',
+  'places.refresh.new': '新規',
 };
 export default places;

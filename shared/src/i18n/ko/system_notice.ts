@@ -55,23 +55,20 @@ const system_notice: TranslationStrings = {
   'system_notice.pager.goto': '{n}번 공지로 이동',
   'system_notice.pager.position': '공지 {current}/{total}',
   'system_notice.release_notes.eyebrow': '업데이트 완료',
-  'system_notice.release_notes.headline': '지금까지 가장 큰 TREK.',
+  'system_notice.release_notes.headline': '맞는 장소가, 먼저.',
   'system_notice.release_notes.intro':
-    '모든 야외 일정을 위한 투어, 포토북을 위한 스튜디오, 함께 계획하는 어시스턴트, 그리고 모든 화면의 도움말.',
+    '장소 검색, 주소 검색, 경로 안내가 이제 dataforest cloud의 후원으로 TREK 자체 서버에서 돌아갑니다. 그리고 모든 TREK이 장소에 대해 아는 것을 다른 모든 TREK과 나눌 수 있습니다.',
   'system_notice.release_notes.features_label': '이번 릴리스의 주역',
   'system_notice.release_notes.features_aside': '이게 전부는 아닙니다',
-  'system_notice.release_notes.feature_tours_title': '투어',
-  'system_notice.release_notes.feature_tours_body':
-    '하이킹, 자전거, 러닝, 승마, 패들링, 도시 산책, 스키까지. 고도 프로필, 난이도 등급, 3D 플라이오버와 함께.',
-  'system_notice.release_notes.feature_studio_title': 'TREK Studio', // same-as-en
-  'system_notice.release_notes.feature_studio_body':
-    '여행을 디자인된 포토북으로. 17가지 테마, 34가지 서체, 160개의 스티커, 클릭 한 번의 자동 레이아웃.',
-  'system_notice.release_notes.feature_assistant_title': 'AI 어시스턴트',
-  'system_notice.release_notes.feature_assistant_body':
-    '이미 가진 AI 계정으로 실제 여행을 함께 계획합니다. 모든 변경 사항을 먼저 확인하고 되돌릴 수 있습니다.',
-  'system_notice.release_notes.feature_help_title': '모든 화면에 도움말, 27개 언어로',
-  'system_notice.release_notes.feature_help_body':
-    '약 370개의 단계별 가이드와 1,600장의 이미지를 필요한 바로 그곳에서. 아제르바이잔어, 에스토니아어, 슬로바키아어, 태국어가 새로 추가되었습니다.',
+  'system_notice.release_notes.feature_search_title': '제대로 찾아 주는 장소 검색',
+  'system_notice.release_notes.feature_search_body':
+    '도시, 섬, 명소, 코드로 찾는 공항이 먼저 나오고, 카페는 내 주변에서 찾아 줍니다. 입력하는 동안 바로 추천이 뜹니다.',
+  'system_notice.release_notes.feature_share_title': '장소 정보, 함께 나누기',
+  'system_notice.release_notes.feature_share_body':
+    '웹사이트, 영업시간, 사진을 항목별로 모든 TREK과 공유하세요. 저장한 장소에는 다른 사람들이 추가한 정보가 채워집니다.',
+  'system_notice.release_notes.feature_routing_title': '더 빨라진 경로 안내',
+  'system_notice.release_notes.feature_routing_body':
+    '경유지가 최대 20곳인 하루 일정도 한 번에 경로를 계산합니다. 느린 경로 하나가 나머지를 붙잡지 않고, 대중교통은 첫 번째 제공자가 찾지 못하면 두 번째 제공자에게 물어봅니다.',
   'system_notice.release_notes.footnote': '그 밖에도 TREK 곳곳에 작은 변경이 많이 담겨 있습니다.',
   'system_notice.release_notes.notes_label': '릴리스 노트',
   'system_notice.release_notes.note_eyebrow': '개발자의 한마디',
@@ -85,10 +82,10 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.note_body_after':
     '그런데 여러분이 열어주셨습니다. 몇 달 만에 수천 명이 찾아와 주셨습니다. 별, 버그 보고, 제가 할 줄 모르는 언어로 된 번역, 한 번도 만난 적 없는 분들의 풀 리퀘스트까지. 지금도 매일 아침 가장 먼저 저장소를 확인하는데, 아직도 잘 실감이 나지 않습니다.',
   'system_notice.release_notes.note_closing': '함께해 주셔서 감사합니다. Maurice 드림',
-  'system_notice.release_notes.support_lead':
-    'TREK은 무료이고 앞으로도 그렇겠지만, 서버와 도메인, 수많은 늦은 밤은 무료가 아닙니다.',
+  'system_notice.release_notes.support_label': '독립을 지키며',
+  'system_notice.release_notes.support_lead': 'Google 같은 빅테크 없이.',
   'system_notice.release_notes.support_text':
-    'TREK이 여러분의 여행에 자리를 잡았다면, 커피 한 잔으로 다음 릴리스가 계속 나올 수 있게 도와주세요.',
+    '장소 검색, 주소 검색, 경로 안내는 TREK 자체 서버에서 돌아가며, 지금은 dataforest cloud가 후원하고 있습니다. 저는 매일 이것을 위해 싸우고 있고, 이대로 지켜 나가려면 여러분의 후원이 필요합니다.',
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
   'system_notice.release_notes.cta_kofi': 'Ko-fi에서 후원하기',
 };

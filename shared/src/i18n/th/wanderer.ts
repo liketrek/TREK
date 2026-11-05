@@ -32,6 +32,8 @@ const wanderer: TranslationStrings = {
   'wanderer.error.not_found': 'ไม่มีเส้นทางเดินนี้ใน wanderer แล้ว',
   'wanderer.error.not_own_trail': 'นำเข้าได้เฉพาะเส้นทางเดินของคุณเองใน wanderer เท่านั้น',
   'wanderer.error.invalid_response': 'คำตอบไม่ได้มาจาก wanderer โปรดตรวจสอบว่าที่อยู่ชี้ไปที่ wanderer โดยตรง',
+  'wanderer.error.no_author':
+    'wanderer ตอบกลับแล้ว แต่ไม่ได้ระบุผู้สร้างเส้นทางเดินสำหรับบัญชีของโทเค็น API นี้ TREK จึงไม่ทราบว่าเส้นทางเดินใดเป็นของคุณ',
   'wanderer.error.too_large': 'ไฟล์เส้นทางเดินมีขนาดใหญ่กว่า 10 MB',
   'wanderer.error.server_error': 'wanderer ตอบกลับด้วยข้อผิดพลาด โปรดลองอีกครั้งภายหลัง',
   'wanderer.error.offline': 'คุณออฟไลน์อยู่ ค้นหา wanderer ได้เฉพาะเมื่อออนไลน์เท่านั้น',

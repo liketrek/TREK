@@ -175,5 +175,14 @@ const places: TranslationStrings = {
   'places.image.needsConnection': 'Μια νέα εικόνα χρειάζεται σύνδεση. Αποθήκευσε ξανά όταν είσαι online.',
   'places.openPhotos': 'Προβολή φωτογραφιών',
   'places.imageUploadError': 'Δεν ήταν δυνατή η μεταφόρτωση της εικόνας',
+  'places.refresh.pill': 'Νέα στοιχεία τοποθεσίας',
+  'places.refresh.title': 'Ενημέρωση στοιχείων τοποθεσίας',
+  'places.refresh.intro':
+    'Το TREK γνωρίζει νεότερα στοιχεία για αυτή την τοποθεσία. Διάλεξε τι θα υιοθετήσεις, τα υπόλοιπα μένουν ως έχουν. Μετά αποθήκευσε την τοποθεσία.',
+  'places.refresh.apply': 'Υιοθέτηση',
+  'places.refresh.replaces': 'Αντικαθιστά την αποθηκευμένη τιμή',
+  'places.refresh.empty': 'κενό',
+  'places.refresh.now': 'Τώρα',
+  'places.refresh.new': 'Νέο',
 };
 export default places;

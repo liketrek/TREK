@@ -69,6 +69,7 @@ describe('dayLabel', () => {
     expect(dayLabel(ctx, 99)).toBe('#99');
     expect(dayLabel({ ...ctx, locale: 'de' }, 32)).toBe('Fr., 12. Juni');
     expect(dayLabel({ ...ctx, locale: 'not a locale!' }, 32)).toBe('Fri, Jun 12');
+    expect(dayLabel({ ...ctx, locale: 'br' }, 32)).toBe(dayLabel({ ...ctx, locale: 'pt-BR' }, 32));
   });
 });
 
@@ -141,7 +142,7 @@ describe('describeToolCall', () => {
     });
     expect(describe_('update_day_note', { dayId: 31, noteId: 41, time: null })).toMatchObject({
       subject: 'Rail pass',
-      rows: [{ op: 'change', labelKey: 'time', before: '09:00', after: '' }],
+      rows: [{ op: 'change', labelKey: 'content', before: '09:00', after: '' }],
     });
     expect(describe_('create_day_note', { dayId: 33, text: 'Laundry', icon: '🧺' }).rows).toEqual([
       { op: 'add', labelKey: 'day', before: null, after: 'Spare day' },

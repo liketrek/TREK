@@ -13,6 +13,7 @@ import type { MapsService } from '../../../src/nest/maps/maps.service';
 import type { GooglePlacesClient } from '../../../src/nest/maps/providers/google-places.provider';
 import type { OsmClient } from '../../../src/nest/maps/providers/osm.client';
 import type { WikimediaClient } from '../../../src/nest/maps/providers/wikimedia.client';
+import type { TrekCommunityService } from '../../../src/nest/maps/trek-community.service';
 import { PlaceEnrichmentService } from '../../../src/nest/place-enrichment/place-enrichment.service';
 import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
 
@@ -54,7 +55,11 @@ vi.mock('../../../src/nest/maps/trek-places.client', async (importOriginal) => (
 
 /** Every seam enrichment reaches: the maps orchestrator and the outbound clients it injects beside it. */
 type Seams<T> = { [K in keyof T]: T[K] };
-type EnrichmentSeams = Seams<MapsService> & Seams<GooglePlacesClient> & Seams<OsmClient> & Seams<WikimediaClient>;
+type EnrichmentSeams = Seams<MapsService> &
+  Seams<GooglePlacesClient> &
+  Seams<OsmClient> &
+  Seams<WikimediaClient> &
+  Seams<TrekCommunityService>;
 
 const GOOGLE_REQ = { lat: 53.6323, lng: 10.0067, name: 'Hamburg Airport', placeId: 'ChIJham', lang: 'de' };
 const OSM_REQ = { lat: 52.525, lng: 13.3694, name: 'Berlin Hauptbahnhof', placeId: 'relation:3600565', lang: 'de' };
@@ -86,6 +91,8 @@ function mapsStub(over: Partial<Record<keyof EnrichmentSeams, unknown>> = {}) {
     ),
     details: vi.fn(async () => ({ place: null })),
     trekPlacesEnabled: vi.fn(() => true),
+    photoPaths: vi.fn(async () => [] as string[]),
+    imageBytes: vi.fn(async () => null as Buffer | null),
     ...over,
   } as unknown as EnrichmentSeams;
 }
@@ -113,6 +120,7 @@ const make = (maps: EnrichmentSeams) =>
     maps as unknown as GooglePlacesClient,
     maps as unknown as OsmClient,
     maps as unknown as WikimediaClient,
+    maps as unknown as TrekCommunityService,
   );
 
 beforeEach(() => {
@@ -279,6 +287,29 @@ describe('description source order', () => {
       details: { source: 'google', google_maps_url: 'maps.google.com/x' },
     });
     expect(bare.description).toMatchObject({ source: 'google', sourceUrl: 'https://maps.google.com/x' });
+  });
+
+  it('ENRICH-075b: a description installations shared is credited to the TREK community, not to OpenStreetMap', async () => {
+    const maps = mapsStub({
+      details: vi.fn(async () => ({
+        place: {
+          source: 'openstreetmap',
+          summary: 'An Asian restaurant in Evershagen.',
+          summary_source: 'community',
+          osm_url: 'https://osm.org/n/1',
+        },
+      })),
+      fetchWikiExtractFor: vi.fn(async () => EXTRACT),
+    });
+
+    const out = await make(maps).enrich(1, OSM_REQ);
+
+    expect(out.description).toEqual({
+      text: 'An Asian restaurant in Evershagen.',
+      source: 'community',
+      sourceUrl: null,
+      license: 'CC BY 4.0',
+    });
   });
 
   it('ENRICH-075: keeps the OpenStreetMap description ahead of everything', async () => {
@@ -599,6 +630,18 @@ describe("the description on the place's own website", () => {
     const own = await make(maps).enrich(1, OSM_REQ);
     expect(own.facts).toContainEqual({ kind: 'menu', value: null, url: 'https://example.org/karte' });
     expect(mockUpsertEntry).toHaveBeenCalledTimes(1);
+  });
+
+  it('ENRICH-122: a community summary the request carried is answered, but not cached for everyone', async () => {
+    // The community credit is read off the details as well, so a request can
+    // claim it for any text; the sender sees it, the row is not written.
+    const out = await make(mapsStub()).enrich(1, {
+      ...OSM_REQ,
+      details: { source: 'openstreetmap', summary: 'Buchung nur über phish.example', summary_source: 'community' },
+    });
+
+    expect(out.description).toMatchObject({ source: 'community', text: 'Buchung nur über phish.example' });
+    expect(mockUpsertEntry).not.toHaveBeenCalled();
   });
 
   it('ENRICH-119: with the index switched off, no lookup leaves for the description', async () => {

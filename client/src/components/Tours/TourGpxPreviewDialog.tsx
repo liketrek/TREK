@@ -1,6 +1,6 @@
 import type { TourFileLeftOut, TourGpxImportFields } from '@trek/shared';
 import { AlertTriangle, Ban, Clock, FileDown, Layers, MapPin, Shapes } from 'lucide-react';
-import { useId, useMemo } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { OFM_POSITRON } from '../../constants/mapDefaults';
 import { useTileUrl } from '../../hooks/useTileUrl';
 import { useTranslation } from '../../i18n';
@@ -8,6 +8,7 @@ import { useSettingsStore } from '../../store/settingsStore';
 import { formatDistance, formatElevation } from '../../utils/units';
 import { MapViewAuto } from '../Map/MapViewAuto';
 import { SoftPill } from '../Planner/planParts';
+import ToggleSwitch from '../Settings/ToggleSwitch';
 import {
   DialogButton,
   DialogFooter,
@@ -79,6 +80,7 @@ function PreviewTrackRow({
           {track.name || name}
         </span>
         {track.duplicate && <SoftPill tone="warning">{t('tours.import.previewDuplicate')}</SoftPill>}
+        {track.adopts_track && <SoftPill>{t('tours.import.previewAdopts')}</SoftPill>}
       </div>
       <div className="flex flex-wrap items-center gap-1.5 ps-8" style={fs(11)}>
         <span className={BADGE}>{formatDistance(track.distance_km, unit)}</span>
@@ -97,8 +99,8 @@ function PreviewTrackRow({
   );
 }
 
-/** What all the files held besides their lines, summed by kind; null when they held nothing else. */
-function leftOutOf(files: readonly GpxPreviewFile[]): TourFileLeftOut | null {
+/** What all the files held besides their lines, summed by kind. */
+function leftOutOf(files: readonly GpxPreviewFile[]): TourFileLeftOut {
   const sum = { points: 0, areas: 0, other: 0 };
   for (const { leftOut } of files) {
     if (!leftOut) continue;
@@ -106,18 +108,46 @@ function leftOutOf(files: readonly GpxPreviewFile[]): TourFileLeftOut | null {
     sum.areas += leftOut.areas;
     sum.other += leftOut.other;
   }
-  return sum.points + sum.areas + sum.other > 0 ? sum : null;
+  return sum;
 }
 
 /**
- * IO-02: what a KML or KMZ file held besides its lines, named before the
- * import so nothing goes missing unseen: a dashed card with each kind as a
- * counted badge, and why in the info dot.
+ * #2969: the single points of the files (GPX waypoints, KML pins), which no
+ * tour is made of, offered as places of the trip. On by default: a file with
+ * a route and its stops is usually meant as both.
  */
-function PreviewLeftOut({ files }: { files: readonly GpxPreviewFile[] }) {
+function PreviewPoints({ count, on, onToggle }: { count: number; on: boolean; onToggle: () => void }) {
   const { t } = useTranslation();
-  const leftOut = leftOutOf(files);
-  if (!leftOut) return null;
+  const hintId = useId();
+  return (
+    <div
+      data-testid="gpx-preview-points"
+      className="mt-2 flex items-center gap-2.5 rounded-[10px] border border-edge-faint bg-surface-card px-3 py-2"
+    >
+      <MapPin size={14} strokeWidth={2} className="flex-none text-content-muted" aria-hidden="true" />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <span className="flex flex-wrap items-center gap-1.5 font-semibold text-content" style={fs(12.5, 'body')}>
+          {t('tours.import.pointsAsPlaces')}
+          <SoftPill>{t('tours.import.leftOutPoints', { count })}</SoftPill>
+        </span>
+        <span id={hintId} className="text-content-muted" style={fs(11.5, 'body')}>
+          {t('tours.import.pointsAsPlacesHint')}
+        </span>
+      </div>
+      <ToggleSwitch on={on} onToggle={onToggle} label={t('tours.import.pointsAsPlaces')} describedBy={hintId} />
+    </div>
+  );
+}
+
+/**
+ * IO-02: what a file held besides its lines and does not take in, named
+ * before the import so nothing goes missing unseen: a dashed card with each
+ * kind as a counted badge, and why in the info dot. Its points only while
+ * they are not added as places.
+ */
+function PreviewLeftOut({ leftOut }: { leftOut: TourFileLeftOut }) {
+  const { t } = useTranslation();
+  if (leftOut.points + leftOut.areas + leftOut.other === 0) return null;
   const kinds = [
     { key: 'points', count: leftOut.points, icon: MapPin, labelKey: 'tours.import.leftOutPoints' },
     { key: 'areas', count: leftOut.areas, icon: Shapes, labelKey: 'tours.import.leftOutAreas' },
@@ -169,6 +199,29 @@ export default function TourGpxPreviewDialog({
 
 const HIKE: TourGpxImportFields = { tour_type: 'hike' };
 
+/** A fresh line needs its type complete; a file of known lines can still be confirmed for its points alone. */
+function canConfirm(fresh: number, addsPoints: boolean, typeComplete: boolean): boolean {
+  return fresh > 0 ? typeComplete : addsPoints;
+}
+
+/** The points offered as places, and below them whatever else stays out. */
+function PreviewExtras({
+  leftOut,
+  withPoints,
+  onTogglePoints,
+}: {
+  leftOut: TourFileLeftOut;
+  withPoints: boolean;
+  onTogglePoints: () => void;
+}) {
+  return (
+    <>
+      {leftOut.points > 0 && <PreviewPoints count={leftOut.points} on={withPoints} onToggle={onTogglePoints} />}
+      <PreviewLeftOut leftOut={withPoints ? { ...leftOut, points: 0 } : leftOut} />
+    </>
+  );
+}
+
 function PreviewDialog({
   gpxImport,
   files,
@@ -182,6 +235,9 @@ function PreviewDialog({
   const labelId = useId();
   const tileUrl = useTileUrl(OFM_POSITRON);
   const choices = useGpxImportChoices(initial);
+  const leftOut = useMemo(() => leftOutOf(files), [files]);
+  const [withPoints, setWithPoints] = useState(true);
+  const addsPoints = withPoints && leftOut.points > 0;
 
   const tracks = files.flatMap((file) => file.tracks.map((track) => ({ file: file.file, track })));
   const fresh = tracks.filter(({ track }) => !track.duplicate).length;
@@ -193,7 +249,8 @@ function PreviewDialog({
     [files]
   );
   const focusPoints = useMemo(() => lines.flat(), [lines]);
-  const canImport = fresh > 0 && importMissing(choices.chosen) === null && !gpxImport.importing;
+  const canImport = canConfirm(fresh, addsPoints, importMissing(choices.chosen) === null) && !gpxImport.importing;
+  const confirmLabel = fresh > 0 ? t('tours.import.previewConfirm', { count: fresh }) : t('tours.import.pointsConfirm');
   const fields = importFields(choices.chosen);
   const title = files.length === 1 ? files[0].file.name : t('tours.import.previewFiles', { count: files.length });
 
@@ -230,9 +287,9 @@ function PreviewDialog({
             data-testid="gpx-preview-import"
             icon={<FileDown size={14} strokeWidth={2} />}
             disabled={!canImport}
-            onClick={() => void gpxImport.confirm(fields)}
+            onClick={() => void gpxImport.confirm(fields, { points: addsPoints })}
           >
-            {t('tours.import.previewConfirm', { count: fresh })}
+            {confirmLabel}
           </DialogButton>
         </DialogFooter>
       }
@@ -257,8 +314,8 @@ function PreviewDialog({
             <PreviewTrackRow key={`${file.name}-${index}`} name={file.name} number={index + 1} track={track} />
           ))}
         </ul>
-        <PreviewLeftOut files={files} />
-        {fresh === 0 && (
+        <PreviewExtras leftOut={leftOut} withPoints={withPoints} onTogglePoints={() => setWithPoints((on) => !on)} />
+        {fresh === 0 && !addsPoints && (
           <div className="mt-2">
             <TourNotice tone="warning" icon={<AlertTriangle size={13} strokeWidth={2} />}>
               {t('tours.import.previewAllDuplicates')}

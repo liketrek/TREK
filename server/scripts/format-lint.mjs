@@ -16,7 +16,8 @@
  *   npm run lint:format -- --update  take formatted and deleted files off the list;
  *                                    it never adds one
  *
- * src/db/entities/ is generated and checked by check:entities instead.
+ * src/db/entities/ is generated and checked by check:entities instead, and the
+ * registration dialect is written by the TREK services issuer for each release.
  *
  * To format a file: npx prettier --write <file>. The comparison lives in
  * scripts/lib/format.mjs at the repository root; Prettier and its config come
@@ -33,12 +34,15 @@ const root = fileURLToPath(new URL('..', import.meta.url));
 // byte to its output by check:entities, so their layout is the generator's, not
 // Prettier's. .prettierignore keeps `npm run format` off them for the same reason.
 const GENERATED = 'src/db/entities/';
+// The registration dialect is written by the TREK services issuer and taken
+// over unchanged by the release job, so its layout is the issuer's generator's.
+const ISSUER_WRITTEN = ['src/nest/service-identity/registration-dialect.ts'];
 await runCli('lint:format', (args) =>
   check({
     prettier,
     root,
     dirs: ['src', 'tests'],
-    accepts: (key) => key.endsWith('.ts') && !key.startsWith(GENERATED),
+    accepts: (key) => key.endsWith('.ts') && !key.startsWith(GENERATED) && !ISSUER_WRITTEN.includes(key),
     update: args.includes('--update'),
     list: args.includes('--list'),
   }),

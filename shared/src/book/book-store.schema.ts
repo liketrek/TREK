@@ -20,10 +20,10 @@ import { z } from 'zod';
  *
  * ── Why the whole document ───────────────────────────────────────────────
  *
- * Not a patch. A book is a few hundred kilobytes of JSON at most — the schema
- * caps it at 150 spreads of 60 elements — and a patch protocol would need an
- * ordering guarantee, a merge rule per field, and a way to recover when a
- * client misses one. Sending the document costs bandwidth that autosave already
+ * Not a patch. A book is a few kilobytes of JSON a page, a few megabytes for
+ * the longest journey's, and a patch protocol would need an ordering
+ * guarantee, a merge rule per field, and a way to recover when a client
+ * misses one. Sending the document costs bandwidth that autosave already
  * amortises and removes an entire class of bug.
  */
 

@@ -33,7 +33,7 @@ The trip addons are: **Lists**, **Costs**, **Documents**, **Collab** and **Tours
 
 Each sub-toggle can be disabled independently while the parent addon remains enabled.
 
-**Road trip** plans a trip as one continuous drive: search along the route, driving limits, daily travel times, via points and avoidance of toll roads, motorways and ferries. **Disabled by default.** It needs no key: routing runs on the public OSRM and Valhalla servers until you set your own under **User Defaults** (**Own routing engine**, **Own Valhalla instance**, restart required). See [Road-Trip](Road-Trip).
+**Road trip** plans a trip as one continuous drive: search along the route, driving limits, daily travel times, via points and avoidance of toll roads, motorways and ferries. **Disabled by default.** It needs no key: routing runs on the Valhalla of the TREK services, with the public OSRM servers for a day it cannot answer (the public OSRM and Valhalla servers on an installation without the TREK services), until you set your own under **User Defaults** (**Own routing engine**, **Own Valhalla instance**, restart required). See [Road-Trip](Road-Trip).
 
 **Tours** plans hikes, bike rides, ski tours, paddle tours (kayak, canoe, SUP) and other tours as tours of their own and adds them to the days of a trip. **Enabled by default.** Underneath its tile are four switches that decide which outside services Tours may use:
 
@@ -120,7 +120,7 @@ Some addons require credentials or environment variables before they are functio
 - **Journey**: works without any external integration. To embed photos from Immich or Synology Photos, enable the corresponding photo-provider toggle listed under Journey, then configure credentials per-user in **Settings → Integrations**. See [Photo-Providers](Photo-Providers).
 - **MCP**: requires `APP_URL` to be set so OAuth redirect URIs resolve correctly.
 - **AI Assistant** and **AI Parsing**: need a connection, either one shared for everyone under **Set up AI** or one per person in **Settings → Integrations**.
-- **Road trip**: works out of the box on the public routing servers. To use your own OSRM or Valhalla, set **Own routing engine** or **Own Valhalla instance** under **Admin → User Defaults**, then restart the server and reload the page. See [Road-Trip](Road-Trip#routing-engines).
+- **Road trip**: works out of the box on the TREK services' Valhalla and the public routing servers. To use your own OSRM or Valhalla, set **Own routing engine** or **Own Valhalla instance** under **Admin → User Defaults**, then restart the server and reload the page. See [Road-Trip](Road-Trip#routing-engines).
 - **Tours**: hikes need nothing more. For the obstacles on paddle tours, add the regions you paddle in under **Paddle water data** (see above), or let TREK load them.
 
 ## On a phone

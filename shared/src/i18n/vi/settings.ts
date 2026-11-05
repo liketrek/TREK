@@ -29,7 +29,14 @@ const settings: TranslationStrings = {
     'Máy chủ OSRM của riêng bạn. Để trống sẽ dùng máy chủ công cộng, cho phép khoảng một yêu cầu mỗi giây — đủ cho một ngày, chật cho chuyến đi dài. Có hiệu lực sau khi khởi động lại máy chủ.',
   'settings.valhallaBase': 'Máy chủ Valhalla riêng',
   'settings.valhallaBaseHint':
-    'Theo mặc định, TREK dùng Valhalla công cộng của FOSSGIS để tránh đường thu phí, đường cao tốc và phà. Nhập URL Valhalla riêng tại đây để dùng thay thế. Nếu chỉ cấu hình máy chủ định tuyến riêng, Valhalla công cộng sẽ không được dùng. Sau khi nhập URL riêng, hãy khởi động lại máy chủ và tải lại trang.',
+    'Valhalla riêng của bạn, được hỏi khi dịch vụ định tuyến ở trên được đặt cho nó hoặc Tự động. Nếu chỉ cấu hình máy chủ định tuyến riêng và không chọn dịch vụ định tuyến, sẽ không hỏi Valhalla nào. Sau khi nhập URL, hãy khởi động lại máy chủ và tải lại trang.',
+  'settings.valhallaProvider': 'Dịch vụ định tuyến',
+  'settings.valhallaProviderHint':
+    'Với dịch vụ TREK hoặc Valhalla riêng, Valhalla tính mọi lộ trình: các ngày và chuyến đi đường bộ khi đi bộ, đi xe đạp và đi ô tô, lộ trình tránh đường thu phí, đường cao tốc hoặc phà, cùng lộ trình, độ cao và đường đi của các chuyến đi. Khi không thể trả lời, OSRM sẽ tính ngày đó thay thế. Dịch vụ TREK được hỏi qua máy chủ này. Với Valhalla công cộng của FOSSGIS, OSRM tính các lộ trình và Valhalla chỉ trả lời những gì OSRM không làm được. Tự động sẽ hỏi dịch vụ TREK, trừ khi đã đặt Valhalla riêng hoặc chỉ máy chủ định tuyến riêng.',
+  'settings.valhallaProviderOption.auto': 'Tự động',
+  'settings.valhallaProviderOption.trek': 'Dịch vụ TREK',
+  'settings.valhallaProviderOption.fossgis': 'Valhalla công cộng (FOSSGIS)',
+  'settings.valhallaProviderOption.custom': 'Valhalla riêng',
   'settings.mapHint': 'Mẫu URL cho ô bản đồ',
   'settings.mapProvider': 'Nhà cung cấp bản đồ',
   'settings.mapProviderHint':
@@ -81,6 +88,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': 'Định dạng thời gian',
   'settings.weekStart': 'Tuần bắt đầu vào',
   'settings.weekStartHint': 'Ngày đầu tuần trong mọi bộ chọn ngày. Vacay có cài đặt riêng.',
+  'settings.dateFormat': 'Định dạng ngày',
+  'settings.dateFormatHint':
+    'Cách viết ngày trong mọi trường ngày và danh sách. Ngày có tên tháng vẫn giữ cách viết theo ngôn ngữ của bạn.',
+  'settings.dateFormatAuto': 'Tự động',
   'settings.preferredNavApp': 'Mở địa điểm bằng',
   'settings.preferredNavAppAsk': 'Hỏi mỗi lần',
   'settings.preferredNavAppHint':
@@ -263,6 +274,14 @@ const settings: TranslationStrings = {
   'settings.about.featureRequest': 'Yêu cầu tính năng',
   'settings.about.featureRequestHint': 'Đề xuất tính năng mới',
   'settings.about.wikiHint': 'Tài liệu & hướng dẫn',
+  'settings.about.sponsor.eyebrow': 'Hạ tầng được tài trợ',
+  'settings.about.sponsor.title': 'Máy chủ riêng của TREK chạy trên dataforest cloud',
+  'settings.about.sponsor.body':
+    'Tìm địa điểm, tìm địa chỉ và chỉ đường đến từ máy chủ riêng của TREK thay vì Google và các dịch vụ khác, còn dataforest cloud tài trợ những máy mà chúng chạy trên đó.',
+  'settings.about.sponsor.cta': 'Ghé thăm dataforest cloud',
+  'settings.about.sponsor.search': 'Tìm địa điểm',
+  'settings.about.sponsor.address': 'Tìm địa chỉ',
+  'settings.about.sponsor.routing': 'Chỉ đường',
   'settings.about.descriptionManaged':
     'TREK giúp bạn tổ chức các chuyến đi từ ý tưởng đầu tiên đến kỷ niệm cuối cùng. Lên kế hoạch theo ngày, ngân sách, danh sách đồ cần mang, ảnh và nhiều hơn nữa, tất cả ở một nơi.',
   'settings.about.sourceTitle': 'Mã nguồn',

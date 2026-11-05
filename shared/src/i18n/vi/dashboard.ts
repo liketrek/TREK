@@ -203,6 +203,8 @@ const dashboard: TranslationStrings = {
   'dashboard.unsplashQueryRequired': 'Nhập từ khóa tìm kiếm',
   'dashboard.unsplashNoResults': 'Không tìm thấy ảnh nào',
   'dashboard.coverSearchError': 'Tìm kiếm trên Unsplash không thành công',
+  'dashboard.unsplashKeyNeeded':
+    'Unsplash đã từ chối máy chủ này. Quản trị viên có thể thêm khóa API Unsplash miễn phí trong cài đặt quản trị để tìm kiếm hình ảnh hoạt động.',
   'dashboard.useUnsplashPhoto': 'Dùng ảnh Unsplash của {photographer}',
   'dashboard.tripChangeNeedsConnection':
     'Đổi ngày, số ngày, tiền tệ hoặc ảnh bìa cần có kết nối. Tên, mô tả và lời nhắc có thể đổi khi ngoại tuyến.',

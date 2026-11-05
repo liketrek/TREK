@@ -291,7 +291,7 @@ const journey: TranslationStrings = {
   'journey.studio.autoLayout': 'Tata letak otomatis',
   'journey.studio.export': 'Ekspor',
   'journey.studio.day': 'HARI {day}',
-  'journey.studio.stations': 'Persinggahan',
+  'journey.studio.stations': 'Sepanjang jalan',
   'journey.studio.peersHere': 'di sini',
   'journey.studio.folioAuto': 'Otomatis',
   'journey.studio.exportLayout': 'Tata letak',

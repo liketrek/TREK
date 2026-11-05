@@ -36,6 +36,8 @@ const map: TranslationStrings = {
   'map.overview.hide': 'Hele reis verbergen',
   'map.overview.total': 'Totale afstand',
   'map.attribution': 'Kaartvermeldingen',
+  'map.overview.distanceAtLeast': 'minstens {distance}',
+  'map.overview.notRouted': 'niet berekend',
   'map.overview.unrouted': '{count} etappes konden niet worden berekend, dus de afstanden zijn onvolledig.',
   'map.overview.unrouted.one': '{count} etappe kon niet worden berekend, dus de afstanden zijn onvolledig.',
   'map.overview.dayUnrouted': '{count} etappes van deze dag konden niet worden berekend',

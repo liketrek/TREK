@@ -7,12 +7,15 @@
  * autocomplete, and paying Google for a text search whose terms then forbid
  * storing what comes back.
  *
- * Everything here is read-only, unauthenticated and cacheable. There is no key
- * to configure and no quota to exhaust, so the failure modes are the network
+ * Everything here is read-only and cacheable. There is no key to configure:
+ * service-identity adds the installation's headers and reads each answer, and a
+ * refused key falls back to the shared pool. The failure modes stay the network
  * and the service being down, both of which fall back to what TREK did before.
  */
-import { readEnv, getAppUrl } from '../../app-config';
+import { readEnv } from '../../app-config';
 import { toApiLang } from './maps.helpers';
+import { trekCommunityValuesSchema, type TrekCommunityValues } from './trek-community.schema';
+import { identifiedFetch } from './trek-places.fetch';
 import {
   normalizePlaceWebsite,
   skiRouteBuildSchema,
@@ -96,34 +99,15 @@ export interface TrekPlace {
   hours: { osm: string; source: string | null; sourceUrl: string | null } | null;
   /** Quoted from the place's own site, when it publishes one for machines. */
   description?: { text: string; source: string | null; sourceUrl: string | null } | null;
+  images?: { url?: string; cover?: boolean }[] | null;
+  /** Bumped by the service whenever the community values it overlays for this place change. */
+  community?: { version?: number } | null;
   score?: number;
 }
 
 export interface TrekPlacesSearchResponse {
   query: string;
   results: TrekPlace[];
-}
-
-/**
- * One opaque string per instance, so the service can rate-limit per caller
- * instead of per IP. Derived from the instance URL rather than generated and
- * stored: it must be stable across restarts, and it must not be anything that
- * identifies a person. It is never resolved back to anything on the far side.
- */
-function instanceToken(): string {
-  // getAppUrl(), not the raw APP_URL. The variable is commented out in the
-  // shipped compose file, so reading it raw gave every default install the same
-  // string — and a token every caller shares is not a caller. One install
-  // running a large import would then rate-limit all the others, who would fall
-  // back to Nominatim with nothing to point at. The resolver falls through to
-  // ALLOWED_ORIGINS and then to the port, so an unconfigured instance still
-  // differs from its neighbours.
-  const url = getAppUrl();
-  let hash = 0;
-  for (let i = 0; i < url.length; i++) {
-    hash = ((hash << 5) - hash + url.charCodeAt(i)) | 0;
-  }
-  return `trek-${(hash >>> 0).toString(36)}`;
 }
 
 /**
@@ -259,7 +243,7 @@ function statusError(status: number): Error & { status: number } {
   return err;
 }
 
-async function getJson<T>(
+export async function getJson<T>(
   path: string,
   params: Record<string, string | number | undefined>,
   opts: { maxBytes?: number; timeoutMs?: number; breaker?: Breaker } = {},
@@ -275,13 +259,7 @@ async function getJson<T>(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), opts.timeoutMs ?? TIMEOUT_MS);
   try {
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        Accept: 'application/json',
-        'X-TREK-Instance': instanceToken(),
-      },
-    });
+    const res = await identifiedFetch(url, { Accept: 'application/json' }, controller.signal);
     if (!res.ok) throw statusError(res.status);
     // Read with a cap rather than res.json(): a hostile or broken upstream
     // should not be able to hand us an unbounded body to buffer.
@@ -420,11 +398,6 @@ export async function trekPlacesSearch(
     lang: serviceLang(opts.lang),
   });
   return Array.isArray(body.results) ? body.results.map(withLocality) : [];
-}
-
-/** The index-only rows of a mixed result, for callers that need Overture fields. */
-export function indexHitsOnly(hits: TrekSearchHit[]): TrekPlace[] {
-  return hits.filter((h): h is TrekPlace => !isOsmHit(h));
 }
 
 /**
@@ -666,6 +639,31 @@ export async function trekPlacesById(gers: string, opts: { lang?: string } = {})
   }
 }
 
+const communityAnswerSchema = z.object({ places: z.record(z.string(), z.unknown()).optional() });
+
+/**
+ * The published community values of places that are no rows of the index, by
+ * key (`osm:relation/3389505`). Nothing published, or the service not
+ * answering, is an empty map: the details are shown as they are.
+ */
+export async function trekCommunityByKeys(keys: string[]): Promise<Record<string, TrekCommunityValues>> {
+  if (keys.length === 0) return {};
+  try {
+    const body = await getJson<unknown>('/v1/community', { keys: keys.slice(0, 50).join(',') });
+    const places = communityAnswerSchema.safeParse(body);
+    if (!places.success) return {};
+    // A place whose values are not in the published shape is left out, the others still count.
+    const out: Record<string, TrekCommunityValues> = {};
+    for (const [key, raw] of Object.entries(places.data.places ?? {})) {
+      const values = trekCommunityValuesSchema.safeParse(raw);
+      if (values.success) out[key] = values.data;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
 /**
  * Map a TREK place onto the record shape the client already reads.
  *
@@ -704,6 +702,8 @@ export function toPlaceRecord(p: TrekPlace): Record<string, unknown> {
     // place cost two full round trips to the index. Left as the service shaped
     // it — the reader validates the URL before it becomes a link.
     description: p.description ?? null,
+    // Where the cached enrichment of this place has to be read again (place-enrichment).
+    community_version: typeof p.community?.version === 'number' ? p.community.version : null,
     source: 'trek-places',
   };
 }
@@ -928,9 +928,9 @@ async function getWinter(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), limits.timeoutMs);
   try {
-    const headers: Record<string, string> = { Accept: accept, 'X-TREK-Instance': instanceToken() };
+    const headers: Record<string, string> = { Accept: accept };
     if (etag) headers['If-None-Match'] = `"${etag}"`;
-    const res = await fetch(url, { signal: controller.signal, headers });
+    const res = await identifiedFetch(url, headers, controller.signal);
     if (res.status === 304 && etag) {
       layersBreaker.failures = 0;
       return { status: 'not_modified' };

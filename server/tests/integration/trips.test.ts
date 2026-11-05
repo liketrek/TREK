@@ -14,6 +14,7 @@ import { Days } from '../../src/db/entities/Days.entity';
 import { PackingItems } from '../../src/db/entities/PackingItems.entity';
 import { Places } from '../../src/db/entities/Places.entity';
 import { Reservations } from '../../src/db/entities/Reservations.entity';
+import { StorageReleaseQueue } from '../../src/db/entities/StorageReleaseQueue.entity';
 import { Tags } from '../../src/db/entities/Tags.entity';
 import { TodoItems } from '../../src/db/entities/TodoItems.entity';
 import { TripMembers } from '../../src/db/entities/TripMembers.entity';
@@ -1301,7 +1302,7 @@ describe('Trip cover upload parity', () => {
     expect(fsMod.existsSync(pathMod.join(coversDir, diskName))).toBe(true);
   });
 
-  it('TRIP-P02 — re-upload deletes the previous cover file', async () => {
+  it('TRIP-P02 — re-upload hands the previous cover to the release queue, which removes it once no undo can need it', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
 
@@ -1317,7 +1318,9 @@ describe('Trip cover upload parity', () => {
       .set('Cookie', authCookie(user.id))
       .attach('cover', FIXTURE_IMG, 'two.jpg');
     expect(second.status).toBe(201);
-    expect(fsMod.existsSync(pathMod.join(coversDir, firstName))).toBe(false);
+    // Not in the request any more: the bytes stay until the release job, a day later, finds nothing naming them.
+    expect(fsMod.existsSync(pathMod.join(coversDir, firstName))).toBe(true);
+    expect(await findRow(orm, StorageReleaseQueue, { category: 'covers', key: firstName })).not.toBeNull();
   });
 
   it('TRIP-P03 — no file → 400 "No image uploaded"', async () => {

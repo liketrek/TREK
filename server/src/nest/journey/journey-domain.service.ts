@@ -1496,7 +1496,7 @@ export class JourneyDomainService {
     // JG107 — cascade on journey_entry_photos.journey_photo_id handles junction cleanup.
     await this.uow.transactional(async () => {
       await this.photosRepo.deleteById(journeyPhotoId);
-      await this.photos.deleteIfOrphan(row.photo_id);
+      await this.photos.deleteIfOrphan(row.photo_id, { local: true });
     });
 
     return { photo_id: row.photo_id, file_path: trekRow?.file_path ?? null, thumbnail_path: trekRow?.thumbnail_path ?? null };
@@ -1558,7 +1558,7 @@ export class JourneyDomainService {
     // JG116 — same text as JG107.
     await this.uow.transactional(async () => {
       await this.photosRepo.deleteById(photoId);
-      await this.photos.deleteIfOrphan(row.photo_id);
+      await this.photos.deleteIfOrphan(row.photo_id, { local: true });
     });
 
     return { id: row.id, photo_id: row.photo_id, file_path: trekRow?.file_path ?? null, thumbnail_path: trekRow?.thumbnail_path ?? null, journey_id: row.journey_id };

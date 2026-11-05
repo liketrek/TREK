@@ -7,7 +7,8 @@ const tours: TranslationStrings = {
   'tours.mode.label': 'Προβολή προσθήκης',
   'tours.title': 'Εκδρομές',
   'tours.empty.title': 'Δεν υπάρχουν εκδρομές ακόμη',
-  'tours.empty.body': 'Σχεδιάστε μια εκδρομή ή εισαγάγετε ένα αρχείο GPX ή KML για να ξεκινήσετε.',
+  'tours.empty.body':
+    'Σχεδιάστε μια εκδρομή ή εισαγάγετε ένα αρχείο GPX ή KML για να ξεκινήσετε. Κλείσατε ξενάγηση; Αυτή μπαίνει στις Κρατήσεις.',
   'tours.addToDay': 'Προσθήκη σε ημέρα',
   'tours.badge.wanderer': 'wanderer',
   'tours.badge.gpx': 'Εισαγωγή GPX',
@@ -148,6 +149,8 @@ const tours: TranslationStrings = {
   'tours.planner.plannedTotalInfoLabel': 'Σχετικά με τη συνολική προγραμματισμένη διάρκεια',
   'tours.planner.plannedTotalManual': 'Χειροκίνητη τιμή',
   'tours.planner.timeValueInvalid': 'Εισαγάγετε ακέραια τιμή από 0 έως 1440 λεπτά.',
+  'tours.planner.plannedTotalOverDay':
+    'Ο χρόνος πεζοπορίας μαζί με τις στάσεις ξεπερνά τις 24 ώρες την ημέρα. Κάντε τη πολυήμερη με «Τέλος σκέλους εδώ» σε μια στάση ή εισαγάγετε μικρότερη συνολική προγραμματισμένη διάρκεια.',
   'tours.planner.walkingTimeUnknown': 'Δεν έχει υπολογιστεί',
   'tours.planner.walkingShort': 'Περπάτημα',
   'tours.planner.breaksShort': 'Διαλείμματα',
@@ -981,11 +984,19 @@ const tours: TranslationStrings = {
   'tours.import.leftOutAreas.one': '{count} περιοχή',
   'tours.import.leftOutOther': '{count} άλλα στοιχεία',
   'tours.import.leftOutOther.one': '{count} άλλο στοιχείο',
+  'tours.import.pointsAsPlaces': 'Προσθήκη των σημείων ως τοποθεσίες',
+  'tours.import.pointsAsPlacesHint':
+    'Τα μεμονωμένα σημεία δεν ανήκουν σε διαδρομή. Προστίθενται στις τοποθεσίες του ταξιδιού.',
+  'tours.import.pointsConfirm': 'Προσθήκη τοποθεσιών',
+  'tours.import.pointsFailedIn': 'Δεν ήταν δυνατή η προσθήκη των σημείων του {name} ως τοποθεσίες.',
+  'tours.import.pointsImported': '{count} τοποθεσίες προστέθηκαν',
+  'tours.import.pointsImported.one': '{count} τοποθεσία προστέθηκε',
   'tours.import.unreadableIn':
     'Δεν ήταν δυνατή η ανάγνωση του {name}: το αρχείο είναι κατεστραμμένο ή δεν είναι GPX, KML ή KMZ',
   'tours.import.archiveNoKmlIn': 'Δεν βρέθηκε αρχείο KML στο {name}',
   'tours.import.archiveTooLargeIn': 'Το {name} είναι πολύ μεγάλο μετά την αποσυμπίεση',
   'tours.import.previewDuplicate': 'Υπάρχει ήδη στο ταξίδι',
+  'tours.import.previewAdopts': 'Υπάρχει ήδη ως διαδρομή στο ταξίδι, γίνεται εκδρομή',
   'tours.import.previewAllDuplicates': 'Όλα τα ίχνη υπάρχουν ήδη στο ταξίδι, δεν υπάρχει τίποτα για εισαγωγή.',
   'tours.import.previewAs': 'Εισαγωγή ως',
   'tours.import.previewConfirm': 'Εισαγωγή {count} διαδρομών',

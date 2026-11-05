@@ -16,6 +16,7 @@ import { GoogleTransitProvider } from '../../../src/nest/transit/google-transit.
 import { deriveTransitStats, type TransitLeg } from '../../../src/nest/transit/transit.helpers';
 import { TransitService } from '../../../src/nest/transit/transit.service';
 import { noGoogleQuota } from '../../helpers/google-quota';
+import { Test } from '@nestjs/testing';
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
@@ -288,5 +289,105 @@ describe('upstream base URL', () => {
     fetchMock.mockResolvedValueOnce(okJson([]));
     await svc.geocode('default-base-station');
     expect(String(fetchMock.mock.calls[0][0])).toMatch(/^https:\/\/api\.transitous\.org\/api\/v1\/geocode\?/);
+  });
+});
+
+describe('empty route fallback', () => {
+  let queryNo = 0;
+  const route = { startTime: '2026-07-13T08:00:00Z', endTime: '2026-07-13T08:30:00Z', legs: [] };
+
+  describe.each(['google', 'transitous'] as const)('%s primary', (primary) => {
+    it.each(['primary-success', 'primary-error', 'empty', 'secondary-error', 'unavailable'])('%s', async (outcome) => {
+      const googlePrimary = primary === 'google';
+      const google = {
+        isActive: vi.fn().mockResolvedValue(googlePrimary),
+        isAvailableForFallback: vi.fn().mockResolvedValue(true),
+        plan: vi.fn(),
+      };
+      const module = await Test.createTestingModule({
+        providers: [
+          TransitService,
+          { provide: GoogleTransitProvider, useValue: google },
+          { provide: transitConfig.KEY, useValue: transitConfig() },
+        ],
+      }).compile();
+      try {
+        const service = module.get(TransitService);
+        google.plan.mockReset();
+        fetchMock.mockReset();
+        google.isAvailableForFallback.mockClear().mockResolvedValue(outcome !== 'unavailable');
+        const q = { from: `50.${queryNo++},13`, to: '52,14' };
+        const error = new Error('provider unavailable');
+        const primaryData = { itineraries: outcome === 'primary-success' ? [route] : [] };
+        if (googlePrimary) {
+          if (outcome === 'primary-error') google.plan.mockRejectedValue(error);
+          else google.plan.mockResolvedValue(primaryData);
+          if (outcome === 'secondary-error') fetchMock.mockRejectedValue(error);
+          else fetchMock.mockResolvedValue(okJson({ itineraries: [] }));
+        } else {
+          if (outcome === 'primary-error') fetchMock.mockRejectedValue(error);
+          else fetchMock.mockResolvedValue(okJson(primaryData));
+          if (outcome === 'secondary-error') google.plan.mockRejectedValue(error);
+          else google.plan.mockResolvedValue({ itineraries: [] });
+        }
+        if (outcome === 'primary-error') {
+          await expect(service.plan(q)).rejects.toBe(error);
+        } else {
+          const result = await service.plan(q);
+          expect(result.provider).toBe(primary);
+          expect(result.itineraries).toHaveLength(outcome === 'primary-success' ? 1 : 0);
+        }
+        if (outcome.startsWith('primary-')) {
+          expect(googlePrimary ? fetchMock : google.plan).not.toHaveBeenCalled();
+        }
+        if (!googlePrimary && outcome === 'unavailable') expect(google.plan).not.toHaveBeenCalled();
+      } finally {
+        await module.close();
+      }
+    });
+  });
+
+  it.each(['google', 'transitous'] as const)('falls back from %s and preserves request options', async (primary) => {
+    const google = {
+      isActive: vi.fn().mockResolvedValue(primary === 'google'),
+      isAvailableForFallback: vi.fn().mockResolvedValue(true),
+      plan: vi.fn().mockResolvedValue({ itineraries: primary === 'google' ? [] : [route] }),
+    };
+    const module = await Test.createTestingModule({
+      providers: [
+        TransitService,
+        { provide: GoogleTransitProvider, useValue: google },
+        { provide: transitConfig.KEY, useValue: transitConfig() },
+      ],
+    }).compile();
+    try {
+      fetchMock.mockResolvedValue(okJson({ itineraries: primary === 'google' ? [route] : [] }));
+      const q = {
+        from: `51.${queryNo++},13`,
+        to: '52,14',
+        time: '2026-07-13T08:00:00Z',
+        arriveBy: true,
+        modes: 'BUS',
+        maxTransfers: 2,
+      };
+      const service = module.get(TransitService);
+      const result = await service.plan(q, 'de', 42);
+      expect(result.provider).toBe(primary === 'google' ? 'transitous' : 'google');
+      expect(result.itineraries).toHaveLength(1);
+      expect(google.plan).toHaveBeenCalledWith(q, 'de', primary === 'google' ? 42 : 0);
+      const params = new URL(String(fetchMock.mock.calls[0][0])).searchParams;
+      expect(Object.fromEntries(params)).toMatchObject({
+        fromPlace: q.from,
+        toPlace: q.to,
+        arriveBy: 'true',
+        transitModes: 'BUS',
+        maxTransfers: '2',
+        time: '2026-07-13T08:00:00.000Z',
+      });
+      await service.plan(q, 'de', 42);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    } finally {
+      await module.close();
+    }
   });
 });

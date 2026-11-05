@@ -28,6 +28,12 @@ import { toProviderSchema, type AiFetch } from '../../../../src/nest/ai-connecti
 
 import { describe, expect, it, vi } from 'vitest';
 
+const { logWarn } = vi.hoisted(() => ({ logWarn: vi.fn() }));
+vi.mock('../../../../src/nest/audit/audit-log.logger', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../../src/nest/audit/audit-log.logger')>()),
+  logWarn,
+}));
+
 /** An SSE body from whole events, cut every `every` characters so no event arrives in one piece. */
 function sseBody(events: unknown[], every = 7): ReadableStream<Uint8Array> {
   const text = events.map((e) => `data: ${typeof e === 'string' ? e : JSON.stringify(e)}\n\n`).join('');
@@ -144,6 +150,40 @@ describe('provider errors', () => {
     expect(errorCodeOf({ detail: { code: 'deep' } })).toBe('deep');
     expect(errorCodeOf(null)).toBeUndefined();
     expect(errorCodeOf({})).toBeUndefined();
+  });
+
+  it('PERR-004: a refusal is logged with the path of the field it names, never with its message (#2845)', async () => {
+    const refused = (param: unknown) =>
+      failure(
+        new OpenAiResponsesClient(
+          'm',
+          async () => 'at',
+          fetchAnswering(
+            jsonResponse(400, {
+              error: {
+                type: 'invalid_request_error',
+                code: null,
+                message: 'No tool output found for function call call_note. Dinner in Rome at 20:00.',
+                param,
+              },
+            }),
+          ).fetcher,
+        ).stream(REQUEST, signal()),
+      );
+
+    logWarn.mockClear();
+    expect(await refused('input[3]')).toMatchObject({ code: 'generic', status: 400 });
+    expect(logWarn).toHaveBeenCalledWith(
+      '[ai] chatgpt refused the request: HTTP 400 (invalid_request_error) at input[3]',
+    );
+
+    logWarn.mockClear();
+    await refused('input[3] Dinner in Rome');
+    await refused(null);
+    expect(logWarn.mock.calls.map(([line]) => line)).toEqual([
+      '[ai] chatgpt refused the request: HTTP 400 (invalid_request_error)',
+      '[ai] chatgpt refused the request: HTTP 400 (invalid_request_error)',
+    ]);
   });
 });
 
@@ -295,6 +335,79 @@ describe('AnthropicMessagesClient', () => {
     expect(err).not.toBeInstanceOf(AiProviderError);
     expect((err as Error).name).toBe('AbortError');
   });
+
+  it('ANTH-008: an answer that thought is replayed with its thinking blocks as they came, never marked for the cache (#2789)', async () => {
+    const thinking = { type: 'thinking', thinking: '', signature: 'sig-a1b2' };
+    const call = { type: 'tool_use', id: 'toolu_02', name: 'list_accommodations', input: {} };
+    const http = fetchAnswering(
+      streamResponse([
+        { type: 'message_start', message: { usage: { input_tokens: 5, output_tokens: 1 } } },
+        { type: 'content_block_start', index: 0, content_block: { type: 'thinking', thinking: '', signature: '' } },
+        { type: 'content_block_delta', index: 0, delta: { type: 'thinking_delta', thinking: '' } },
+        { type: 'content_block_delta', index: 0, delta: { type: 'signature_delta', signature: 'sig-a1b2' } },
+        { type: 'content_block_stop', index: 0 },
+        {
+          type: 'content_block_start',
+          index: 1,
+          content_block: { type: 'tool_use', id: 'toolu_02', name: 'list_accommodations' },
+        },
+        { type: 'content_block_delta', index: 1, delta: { type: 'input_json_delta', partial_json: '{}' } },
+        { type: 'content_block_stop', index: 1 },
+        { type: 'message_delta', delta: { stop_reason: 'tool_use' }, usage: { output_tokens: 30 } },
+        { type: 'message_stop' },
+      ]),
+    );
+    const events = await run(
+      new AnthropicMessagesClient('claude-sonnet-5-5', 'k', http.fetcher).stream(REQUEST, signal()),
+    );
+    // The thinking says nothing on screen; the call and the blocks to replay come back.
+    expect(events.filter((e) => e.type === 'text-delta')).toEqual([]);
+    expect(events).toContainEqual({
+      type: 'provider-state',
+      state: { adapter: 'anthropic-messages', blocks: [thinking, call] },
+    });
+
+    const next = toAnthropicMessages([
+      { role: 'user', text: 'Where are we staying?' },
+      {
+        role: 'assistant',
+        text: '',
+        toolCalls: [{ id: 'toolu_02', name: 'list_accommodations', args: {} }],
+        providerState: { adapter: 'anthropic-messages', blocks: [thinking, call] },
+      },
+      { role: 'tool', toolCallId: 'toolu_02', name: 'list_accommodations', output: '[]' },
+      { role: 'user', text: 'And in Kyoto?' },
+    ]);
+    expect(next[1]).toEqual({ role: 'assistant', content: [thinking, call] });
+    markHistoryForCache(next, 2);
+    expect(next[1]?.content[0]).toEqual(thinking);
+
+    // An answer that ended on a thinking block: the mark before the question skips it.
+    const ended = toAnthropicMessages([
+      { role: 'user', text: 'Hi' },
+      {
+        role: 'assistant',
+        text: '',
+        toolCalls: [],
+        providerState: { adapter: 'anthropic-messages', blocks: [thinking] },
+      },
+      { role: 'user', text: 'Still there?' },
+    ]);
+    markHistoryForCache(ended, 2);
+    expect(ended[1]?.content[0]).toEqual(thinking);
+    expect(ended[0]?.content[0]?.cache_control).toEqual({ type: 'ephemeral' });
+
+    // The request is marked, the stored answer is not: a mark left on it would go out on every later step.
+    const stored = { adapter: 'anthropic-messages' as const, blocks: [{ ...thinking }, { ...call }] };
+    const marked = toAnthropicMessages([
+      { role: 'user', text: 'Hi' },
+      { role: 'assistant', text: '', toolCalls: [], providerState: stored },
+      { role: 'user', text: 'Go on' },
+    ]);
+    markHistoryForCache(marked, 2);
+    expect(marked[1]?.content[1]?.cache_control).toEqual({ type: 'ephemeral' });
+    expect(stored.blocks[1]).not.toHaveProperty('cache_control');
+  });
 });
 
 describe('OpenAiChatClient', () => {
@@ -415,6 +528,125 @@ describe('OpenAiChatClient', () => {
     expect(
       await failure(client(streamResponse([{ choices: [{ delta: { content: 'half' } }] }])).stream(REQUEST, signal())),
     ).toMatchObject({ providerCode: 'stream_cut' });
+  });
+
+  // Gemini 3 signs the first call of a step on its first piece, the way its Chat Completions endpoint streams it.
+  const SIGNED = [
+    {
+      choices: [
+        {
+          delta: {
+            tool_calls: [
+              {
+                index: 0,
+                id: 'function-call-1',
+                type: 'function',
+                function: { name: 'create_place', arguments: '{"name":"Nijo"}' },
+                extra_content: { google: { thought_signature: 'sig-A' } },
+              },
+            ],
+          },
+        },
+      ],
+    },
+    {
+      choices: [
+        {
+          delta: {
+            tool_calls: [{ index: 1, function: { name: 'list_places', arguments: '{}' } }],
+          },
+          finish_reason: 'tool_calls',
+        },
+      ],
+    },
+    '[DONE]',
+  ];
+
+  it('OACH-006: a signed call comes back as the provider state, keyed by the id it goes on with', async () => {
+    const events = await run(
+      new OpenAiChatClient(
+        'gemini',
+        'gemini-3-flash',
+        'https://g',
+        'k',
+        fetchAnswering(streamResponse(SIGNED)).fetcher,
+      ).stream(REQUEST, signal()),
+    );
+    expect(events.filter((event) => event.type === 'tool-call')).toEqual([
+      { type: 'tool-call', call: { id: 'function-call-1', name: 'create_place', args: { name: 'Nijo' } } },
+      { type: 'tool-call', call: { id: 'call_1', name: 'list_places', args: {} } },
+    ]);
+    expect(events.slice(-2)).toEqual([
+      {
+        type: 'provider-state',
+        state: { adapter: 'openai-chat', model: 'gemini-3-flash', signatures: { 'function-call-1': 'sig-A' } },
+      },
+      { type: 'finish', reason: 'tool-calls' },
+    ]);
+
+    // An unsigned turn keeps no state: nothing is stored for a provider that signs nothing.
+    const plain = await run(
+      new OpenAiChatClient('openai', 'm', 'https://x', 'k', fetchAnswering(streamResponse(STREAM)).fetcher).stream(
+        REQUEST,
+        signal(),
+      ),
+    );
+    expect(plain.some((event) => event.type === 'provider-state')).toBe(false);
+  });
+
+  it('OACH-007: the signature goes back with its call to the model that signed it, and to no other', async () => {
+    const signed: AiChatRequest = {
+      ...REQUEST,
+      messages: [
+        { role: 'user', text: 'Add Nijo' },
+        {
+          role: 'assistant',
+          text: '',
+          toolCalls: [
+            { id: 'function-call-1', name: 'create_place', args: { name: 'Nijo' } },
+            { id: 'call_1', name: 'list_places', args: {} },
+          ],
+          providerState: {
+            adapter: 'openai-chat',
+            model: 'gemini-3-flash',
+            signatures: { 'function-call-1': 'sig-A' },
+          },
+        },
+        { role: 'tool', toolCallId: 'function-call-1', name: 'create_place', output: '{"id":7}' },
+        { role: 'tool', toolCallId: 'call_1', name: 'list_places', output: '[]' },
+      ],
+    };
+    const http = fetchAnswering(streamResponse(['[DONE]']));
+    await run(
+      new OpenAiChatClient('gemini', 'gemini-3-flash', 'https://g', 'k', http.fetcher).stream(signed, signal()),
+    );
+    expect(dig(http.body(), 'messages', 2, 'tool_calls')).toEqual([
+      {
+        id: 'function-call-1',
+        type: 'function',
+        function: { name: 'create_place', arguments: '{"name":"Nijo"}' },
+        extra_content: { google: { thought_signature: 'sig-A' } },
+      },
+      { id: 'call_1', type: 'function', function: { name: 'list_places', arguments: '{}' } },
+    ]);
+
+    // A thread that moved on to another model sends the calls plain: no other model reads the signature.
+    for (const messages of [toChatMessages(signed, 'gpt-5-mini'), toChatMessages(signed)]) {
+      expect(JSON.stringify(messages)).not.toContain('extra_content');
+    }
+  });
+
+  it('OACH-008: an own server on Gemini’s endpoint gets Gemini’s narrower schemas, any other the full ones', async () => {
+    const parameters = async (baseUrl: string) => {
+      const http = fetchAnswering(streamResponse(['[DONE]']));
+      await run(new OpenAiChatClient('custom', 'm', baseUrl, 'k', http.fetcher).stream(REQUEST, signal()));
+      return dig(http.body(), 'tools', 0, 'function', 'parameters');
+    };
+    expect(await parameters('https://generativelanguage.googleapis.com/v1beta/openai')).toEqual(
+      toProviderSchema(TOOL.parameters, 'gemini'),
+    );
+    expect(await parameters('http://ollama:11434/v1')).toEqual(toProviderSchema(TOOL.parameters, 'custom'));
+    expect(await parameters('not a url')).toEqual(toProviderSchema(TOOL.parameters, 'custom'));
   });
 });
 
@@ -543,6 +775,18 @@ describe('OpenAiResponsesClient', () => {
     expect(
       await failure(new OpenAiResponsesClient('m', tokens('a', 'b'), twice.fetcher).stream(REQUEST, signal())),
     ).toMatchObject({ code: 'needs_reauth' });
+
+    // An API key has nothing to refresh: one request, and the refusal names the key (#2792).
+    const keyed = fetchAnswering(jsonResponse(401, {}), streamResponse(STREAM));
+    const key = tokens('sk-key');
+    const refused = await failure(
+      new OpenAiResponsesClient('gpt-6.1-sol', key, keyed.fetcher, 'openai').stream(REQUEST, signal()),
+    );
+    expect(refused).toMatchObject({ code: 'invalid_key' });
+    expect(key).toHaveBeenCalledTimes(1);
+    expect(keyed.calls).toHaveLength(1);
+    expect(keyed.calls[0]?.url).toBe('https://api.openai.com/v1/responses');
+    expect(keyed.calls[0]?.init.headers).toMatchObject({ authorization: 'Bearer sk-key' });
   });
 
   it('OARS-005: a used-up plan, a failed response and a stream without completion are provider errors', async () => {

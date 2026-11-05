@@ -1161,7 +1161,7 @@ const help: TranslationStrings = {
   'help.ctx.settings.bullet.1':
     'Zijbalk links: Weergave, Weergave, Kaart, Meldingen, Integraties, Offline en Account. Plugins verschijnt zodra er een plugin actief is. Over verschijnt, tenzij de beheerder van de server het heeft verborgen. Onderaan staat de versie.',
   'help.ctx.settings.bullet.2':
-    'Weergave opent als eerste. Daar vind je de taal, de taal van plaatsnamen, eenheden, tijdnotatie, de eerste dag van de week en de weergavevaluta, en hoe de reiskaart werkt. Onder Weergave staan thema, kleuren, leesbaarheid, tekstgrootte en de dashboardwidgets.',
+    'Weergave opent als eerste. Daar vind je de taal, de taal van plaatsnamen, eenheden, tijdnotatie, datumnotatie, de eerste dag van de week en de weergavevaluta, en hoe de reiskaart werkt. Onder Weergave staan thema, kleuren, leesbaarheid, tekstgrootte en de dashboardwidgets.',
   'help.ctx.settings.bullet.3':
     '‘Kaart’ stelt de kaartengine en de stijl in; ‘Meldingen’ bepaalt welke gebeurtenissen naar welk kanaal gaan; ‘Integraties’ koppelt fotobibliotheken, AirTrail, Dawarich en wanderer en bevat API-sleutels en MCP; ‘Offline’ bepaalt wat dit apparaat opslaat.',
   'help.ctx.settings.bullet.4':
@@ -1172,7 +1172,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-display.bullet.1':
     'Opstarten: ‘Startpagina’ opent het Dashboard of de ‘Actieve reis’; kies je ‘Actieve reis’, dan bepaal je met ‘Starttabblad’ op welk tabblad die reis opent.',
   'help.ctx.settings-display.bullet.2':
-    'Taal en regio: ‘Weergavevaluta’ (of ‘Valuta van de reis’ om niet om te rekenen), ‘Taal’, ‘Plaatsnamen’, ‘Temperatuureenheid’, ‘Afstandseenheid’, ‘Tijdnotatie’ en ‘Week begint op’.',
+    'Taal en regio: ‘Weergavevaluta’ (of ‘Valuta van de reis’ om niet om te rekenen), ‘Taal’, ‘Plaatsnamen’, ‘Temperatuureenheid’, ‘Afstandseenheid’, ‘Tijdnotatie’, ‘Week begint op’ en ‘Datumnotatie’.',
   'help.ctx.settings-display.bullet.3':
     'Reis en kaart: ‘Plekken openen in’, ‘Datum eerst in dagkoppen’, ‘Routelabels voor boekingen’, ‘Boekingsroutes altijd tonen’, ‘Compacte markeringen voor ongeplande plaatsen’, ‘Plaatsen op de kaart ontdekken’, ‘Boekingscodes vervagen’ en ‘Route optimaliseren vanaf accommodatie’.',
   'help.ctx.settings-appearance.title': 'Weergave',
@@ -1494,9 +1494,9 @@ const help: TranslationStrings = {
     '‘Rechtinstellingen’ onderaan: per actie wie die mag uitvoeren (Iedereen, Reisleden, Reiseigenaar of ‘Alleen beheerder’). Klik bovenaan de kaart op ‘Opslaan’ om dit op te slaan.',
   'help.ctx.admin-defaults.title': 'Standaardinstellingen',
   'help.ctx.admin-defaults.summary':
-    'Waarmee een nieuw account begint, zodat niemand eerst alles hoeft in te stellen: kleurmodus, eenheden, tijdnotatie, eerste dag van de week, weergavevaluta en vervaagde boekingscodes, plus de kaart, de sleutels ervan en de routeservers.',
+    'Waarmee een nieuw account begint, zodat niemand eerst alles hoeft in te stellen: kleurmodus, eenheden, tijdnotatie, datumnotatie, eerste dag van de week, weergavevaluta en vervaagde boekingscodes, plus de kaart, de sleutels ervan en de routeservers.',
   'help.ctx.admin-defaults.bullet.1':
-    'Links de Standaard gebruikersinstellingen: Kleurmodus, Temperatuureenheid, Afstandseenheid, Tijdnotatie, ‘Week begint op’, Weergavevaluta en ‘Boekingscodes vervagen’.',
+    'Links de Standaard gebruikersinstellingen: Kleurmodus, Temperatuureenheid, Afstandseenheid, Tijdnotatie, ‘Week begint op’, Datumnotatie, Weergavevaluta en ‘Boekingscodes vervagen’.',
   'help.ctx.admin-defaults.bullet.2':
     'Rechts de kaart: Kaartsjabloon, Gedeelde CARTO-sleutel, Eigen routeserver en Eigen Valhalla-instantie, een voorbeeld, en daarna Kaartmotor met Kaartstijl, ‘Gedeeld Mapbox-token’, ‘3D-gebouwen & terrein’ en Hogekwaliteitsmodus.',
   'help.ctx.admin-config.title': 'Personalisatie',
@@ -4346,7 +4346,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-about.bullet.3':
     'Via Ko-fi, Buy Me a Coffee en Discord kun je TREK steunen of met de makers praten.',
   'help.guide.language-region.step.3':
-    'Stel de ‘Weergavevaluta’ in, of kies ‘Valuta van de reis’ om elke reis in zijn eigen valuta te zien. Kies daarna ‘Temperatuureenheid’, ‘Afstandseenheid’, ‘Tijdnotatie’ en bij ‘Week begint op’ de eerste dag van de week.',
+    'Stel de ‘Weergavevaluta’ in, of kies ‘Valuta van de reis’ om elke reis in zijn eigen valuta te zien. Kies daarna ‘Temperatuureenheid’, ‘Afstandseenheid’, ‘Tijdnotatie’, bij ‘Week begint op’ de eerste dag van de week en de ‘Datumnotatie’.',
   'help.guide.travel-map-prefs.step.3':
     '‘Plaatsen op de kaart ontdekken’ toont de categoriepil om plaatsen in de buurt te vinden. ‘Boekingscodes vervagen’ verbergt bevestigingsnummers tot je er met de muis overheen gaat of erop tikt. ‘Route optimaliseren vanaf accommodatie’ laat een dag bij je hotel beginnen en eindigen.',
   'help.guide.web-push-device.step.2':
@@ -6433,7 +6433,7 @@ const help: TranslationStrings = {
     'Met de resetlink naast een veld dat je hebt ingesteld, zet je de standaardwaarde van TREK terug. De eigen instelling van een gebruiker gaat hier altijd boven.',
   'help.ctx.admin-settings.bullet.5': 'Gevarenzone: met ‘JWT-geheim roteren’ log je alle gebruikers uit, jezelf ook.',
   'help.guide.default-user-settings.step.1':
-    'Kies onder Standaard gebruikersinstellingen de Kleurmodus (Licht, Donker of Automatisch), Temperatuureenheid, Afstandseenheid, Tijdnotatie, ‘Week begint op’, de Weergavevaluta en of ‘Boekingscodes vervagen’ aan of uit staat. Elke keuze wordt meteen opgeslagen.',
+    'Kies onder Standaard gebruikersinstellingen de Kleurmodus (Licht, Donker of Automatisch), Temperatuureenheid, Afstandseenheid, Tijdnotatie, ‘Week begint op’, de Datumnotatie, de Weergavevaluta en of ‘Boekingscodes vervagen’ aan of uit staat. Elke keuze wordt meteen opgeslagen.',
   'help.guide.admin-passkeys.step.2':
     'Vul de ‘Relying Party ID (domein)’ in, bijvoorbeeld trek.example.org, en de ‘Toegestane origins’ waarop je TREK bereikbaar is, en klik op ‘Opslaan’. Laat beide leeg om APP_URL te gebruiken.',
   'help.guide.rotate-jwt-secret.title': 'Iedereen tegelijk uitloggen',

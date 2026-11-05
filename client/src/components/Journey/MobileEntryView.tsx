@@ -4,6 +4,7 @@ import {
   Sun, CloudSun, Cloud, CloudRain, CloudLightning, Snowflake,
   ThumbsUp, ThumbsDown,
 } from 'lucide-react'
+import type { CSSProperties } from 'react'
 import JournalBody from './JournalBody'
 import { useTranslation } from '../../i18n'
 import { formatLocationName } from '../../utils/formatters'
@@ -37,6 +38,22 @@ function photoUrl(
 ): string {
   if (builder) return builder(p.photo_id, size)
   return `/api/photos/${p.photo_id}/${size}`
+}
+
+/**
+ * The hero's box before its picture arrives (#2907): the photo's own proportions
+ * when the upload recorded them, else 4:3, so the story below does not jump down
+ * once the original has loaded. The thumbnail, usually cached by the strip or the
+ * feed already, fills that box meanwhile.
+ */
+function heroPlaceholderStyle(photo: JourneyPhoto, thumbUrl: string): CSSProperties {
+  const ratio = photo.width && photo.height ? `${photo.width} / ${photo.height}` : '4 / 3'
+  return {
+    aspectRatio: ratio,
+    backgroundImage: `url("${encodeURI(thumbUrl)}")`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+  }
 }
 
 interface Props {
@@ -114,8 +131,10 @@ export default function MobileEntryView({ entry, readOnly, publicPhotoUrl, onClo
                 <img
                   src={photoUrl(photos[0], photos[0].media_type === 'video' ? 'thumbnail' : 'original', publicPhotoUrl)}
                   alt=""
-                  className={`w-full max-h-[50vh] ${photos[0].media_type === 'video' ? 'object-contain' : 'object-cover'
+                  decoding="async"
+                  className={`block w-full max-h-[50vh] bg-surface-secondary ${photos[0].media_type === 'video' ? 'object-contain' : 'object-cover'
                     }`}
+                  style={heroPlaceholderStyle(photos[0], photoUrl(photos[0], 'thumbnail', publicPhotoUrl))}
                 />
               )}
 
@@ -143,7 +162,7 @@ export default function MobileEntryView({ entry, readOnly, publicPhotoUrl, onClo
                     key={p.id || i}
                     type="button"
                     aria-label={p.caption || t('journey.photos')}
-                    className={`relative h-16 w-16 flex-shrink-0 cursor-pointer overflow-hidden rounded-lg border-0 p-0 hover:ring-2 ring-zinc-900/30 dark:ring-white/30 transition-all ${p.media_type === 'video' ? 'bg-black' : 'bg-transparent'
+                    className={`relative h-16 w-16 flex-shrink-0 cursor-pointer overflow-hidden rounded-lg border-0 p-0 hover:ring-2 ring-zinc-900/30 dark:ring-white/30 transition-all ${p.media_type === 'video' ? 'bg-black' : 'bg-surface-secondary'
                       }`}
                     onClick={() => onPhotoClick(photos, i)}
                   >

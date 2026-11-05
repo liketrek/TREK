@@ -58,6 +58,8 @@ const dayplan: TranslationStrings = {
   'dayplan.pdf': 'PDF',
   'dayplan.pdfTooltip': 'Экспортировать план дня в PDF',
   'dayplan.pdfMine': 'Мой план в PDF',
+  'dayplan.pdfRouting': 'Расчёт маршрутов: {done} из {total}',
+  'dayplan.pdfSkipRouting': 'Экспортировать без оставшихся маршрутов',
   'dayplan.pdfMineSub': 'Только занятия и бронирования, в которых вы участвуете',
   'dayplan.gpxTooltip': 'Экспорт в GPX для офлайн-карт и GPS-устройств',
   'dayplan.gpxAll': 'Вся поездка',

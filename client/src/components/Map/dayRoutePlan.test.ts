@@ -169,6 +169,45 @@ describe('buildDayRouteRuns', () => {
     expect(hotelBookendOf(run[0], run[1])).toBe('morning')
   })
 
+  it("FE-MAP-DRP-017: the morning after a night away starts at the side trip's hotel, not the room kept at home", () => {
+    // The first hotel stays booked over the whole trip and comes first in the list; the
+    // side trip's hotel holds the night before. The day used to start with a 716 km drive
+    // from the kept room to the side trip's first stop.
+    const days = [1, 2, 3, 4, 5].map(n => buildDay({ id: n, day_number: n }))
+    const kept = { id: 1, trip_id: 1, place_lat: 13.7466, place_lng: 100.5393, start_day_id: 1, end_day_id: 5 } as unknown as Accommodation
+    const away = { id: 2, trip_id: 1, place_lat: 18.7883, place_lng: 98.9853, start_day_id: 2, end_day_id: 3 } as unknown as Accommodation
+    const runs = buildDayRouteRuns(3, inputs({
+      days,
+      assignments: { '3': [buildAssignment({ day_id: 3, order_index: 0, place: buildPlace({ lat: 18.8048, lng: 98.9216, place_time: '10:00' }) })] },
+      accommodations: [kept, away],
+      optimizeFromAccommodation: true,
+    }))
+    expect(runs[0][0]).toMatchObject({ lat: 18.7883, lng: 98.9853, hotel: 'morning' })
+    expect(runs.flat().some(p => p.hotel === 'morning' && p.lat === 13.7466)).toBe(false)
+  })
+
+  it('FE-MAP-DRP-018: a taxi that leaves from the hotel adds no road from the hotel to itself', () => {
+    const days = [1, 2, 3].map(n => buildDay({ id: n, day_number: n }))
+    const hotel = { id: 1, trip_id: 1, place_lat: 13.7466, place_lng: 100.5393, start_day_id: 1, end_day_id: 3 } as unknown as Accommodation
+    const taxi = {
+      id: 9, trip_id: 1, type: 'taxi', title: 'Taxi', status: 'confirmed', day_id: 2, end_day_id: 2,
+      reservation_time: '2026-12-02T09:00', reservation_end_time: '2026-12-02T09:40',
+      endpoints: [
+        { role: 'from', sequence: 0, name: 'Hotel', lat: 13.7466, lng: 100.5393 },
+        { role: 'to', sequence: 1, name: 'Museum', lat: 13.7516, lng: 100.4927 },
+      ],
+    } as unknown as Reservation
+    const runs = buildDayRouteRuns(2, inputs({
+      days,
+      assignments: { '2': [buildAssignment({ day_id: 2, order_index: 0, place: buildPlace({ lat: 13.7563, lng: 100.5018, place_time: '12:00' }) })] },
+      reservations: [taxi],
+      accommodations: [hotel],
+      optimizeFromAccommodation: true,
+    }))
+    const zeroLength = runs.filter(run => run.length === 2 && run[0].lat === run[1].lat && run[0].lng === run[1].lng)
+    expect(zeroLength).toEqual([])
+  })
+
   it('FE-MAP-DRP-008: a day that is not in the trip has no route', () => {
     expect(buildDayRouteRuns(99, inputs({ assignments: { '1': [at(48.86, 2.35, 0)] } }))).toEqual([])
   })

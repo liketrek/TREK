@@ -40,6 +40,8 @@ const assistant: TranslationStrings = {
   'assistant.connect.openAssistant': 'Abrir asistente',
   'assistant.connect.badKey': 'Esta clave no funciona.',
   'assistant.connect.unknownModel': 'Este modelo no está disponible aquí.',
+  'assistant.connect.noModelList':
+    'El servidor respondió, pero no envió una lista de modelos. Revisa la dirección, suele terminar en /v1.',
   'assistant.connect.getKey': 'Obtener una clave',
   'assistant.connect.hintAnthropic': 'Claude Max y Team incluyen créditos de API.',
   'assistant.connect.hintOpenai': 'Crea una clave en tu panel de OpenAI.',
@@ -179,6 +181,8 @@ const assistant: TranslationStrings = {
   'assistant.change.label.currency': 'Moneda',
   'assistant.change.label.stopType': 'Tipo de parada',
   'assistant.change.label.text': 'Texto',
+  'assistant.change.label.title': 'Título',
+  'assistant.change.label.content': 'Contenido',
   'assistant.change.label.icon': 'Icono',
   'assistant.change.label.color': 'Color',
   'assistant.change.label.position': 'Orden',

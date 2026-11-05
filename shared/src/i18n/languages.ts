@@ -17,6 +17,7 @@ export const SUPPORTED_LANGUAGES = [
   { value: 'tr', label: 'Türkçe', locale: 'tr-TR' },
   { value: 'ar', label: 'العربية', locale: 'ar-SA' },
   { value: 'az', label: 'Azərbaycanca', locale: 'az-AZ' },
+  { value: 'he', label: 'עברית', locale: 'he-IL' },
   { value: 'id', label: 'Bahasa Indonesia', locale: 'id-ID' },
   { value: 'ja', label: '日本語', locale: 'ja-JP' },
   { value: 'ko', label: '한국어', locale: 'ko-KR' },
@@ -37,7 +38,7 @@ const LOCALES: Partial<Record<string, string>> = Object.fromEntries(
 );
 
 // Languages displayed right-to-left.
-const RTL_LANGUAGES = new Set<string>(['ar']);
+const RTL_LANGUAGES = new Set<string>(['ar', 'he']);
 
 export function getLocaleForLanguage(language: string): string {
   return LOCALES[language] ?? LOCALES['en'] ?? 'en-US';

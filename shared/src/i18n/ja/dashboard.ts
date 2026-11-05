@@ -104,6 +104,8 @@ const dashboard: TranslationStrings = {
   'dashboard.unsplashQueryRequired': '検索語を入力してください',
   'dashboard.unsplashNoResults': '画像が見つかりません',
   'dashboard.coverSearchError': 'Unsplashの検索に失敗しました',
+  'dashboard.unsplashKeyNeeded':
+    'Unsplash がこのサーバーを拒否しました。管理者が管理設定で無料の Unsplash API キーを追加すると、画像検索が使えるようになります。',
   'dashboard.useUnsplashPhoto': '{photographer}さんのUnsplash写真を使用',
   'dashboard.titleRequired': 'タイトルは必須です',
   'dashboard.endDateError': '終了日は開始日より後にしてください',

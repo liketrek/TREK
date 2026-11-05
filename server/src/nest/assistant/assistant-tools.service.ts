@@ -266,6 +266,9 @@ export class AssistantToolSession {
   /** The groups this turn loaded; the core is always there. */
   private readonly loaded = new Set<string>();
 
+  /** Tools the model called before their group was loaded in this turn, by name, with that group. */
+  private readonly calledBlind = new Map<string, string>();
+
   /** Whether the session offers its tools by group: a trip's turn and a home turn do. */
   private get grouped(): boolean {
     return this.mode === 'turn' || this.mode === 'home';
@@ -307,6 +310,13 @@ export class AssistantToolSession {
     return tool?.offered ? tool.kind : null;
   }
 
+  /** The group of a tool this grouped session holds but has not loaded in this turn; null otherwise. */
+  private unloadedGroupOf(name: string): string | null {
+    const group = this.tools.get(name)?.hint.group;
+    if (!this.grouped || !group || this.loaded.has(group)) return null;
+    return group;
+  }
+
   /** The home chat offers a journal's page while the user's journals can be listed (the journal addon is on). */
   private get offersJournalChat(): boolean {
     return this.mode === 'home' && this.tools.has(OPEN_JOURNEY_CHAT_READ);
@@ -323,6 +333,15 @@ export class AssistantToolSession {
    * conversation's is refused.
    */
   pinArgs(name: string, args: ToolArgs): { args: ToolArgs } | { error: string } {
+    const unloaded = this.unloadedGroupOf(name);
+    if (unloaded) {
+      // The model called a tool it was not offered in this turn (it knows the
+      // name from an earlier turn), so it wrote the arguments without the
+      // schema (#2967). Its group is loaded here, so the next step offers the
+      // schema, and a refusal of these arguments says so (see call()).
+      this.loaded.add(unloaded);
+      this.calledBlind.set(name, unloaded);
+    }
     const given = pinNamesOf(this.pinArg).filter((key) => args[key] !== undefined);
     if (given.some((key) => Number(args[key]) !== this.pinnedId)) {
       const about = this.pinArg === PINNED_ARG ? 'trip' : 'journey';
@@ -342,6 +361,15 @@ export class AssistantToolSession {
     const final = name === TRANSIT_CREATE_TOOL ? await this.withFoundItinerary(args) : args;
     const run = await this.invoke(name, final);
     this.audit(name);
+    const blind = this.calledBlind.get(name);
+    if (!run.ok && blind) {
+      const hint = `${name} was called before the "${blind}" tools were loaded in this turn, so its arguments were written without its schema. They are loaded now and the schema is in your tools: send the call again with the arguments exactly as it describes them.`;
+      return {
+        ok: false,
+        value: `${typeof run.value === 'string' ? run.value : JSON.stringify(run.value)}
+${hint}`,
+      };
+    }
     if (name === TRANSIT_SEARCH_TOOL && run.ok) this.itineraries.keep(run.value);
     return run;
   }

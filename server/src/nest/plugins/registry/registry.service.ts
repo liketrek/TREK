@@ -392,11 +392,11 @@ export class PluginRegistryService {
    * version (`minTrekVersion`/`maxTrekVersion`). Throws if the plugin isn't in the
    * registry or nothing qualifies. Backs "download the latest compatible version".
    */
-  async resolveVersion(id: string, constraint?: string): Promise<RegistryVersion> {
+  async resolveVersion(id: string, constraint?: string, acceptTrekRange = false): Promise<RegistryVersion> {
     const reg = await this.fetchRegistry();
     const entry = reg.plugins.find((p) => p.id === id);
     if (!entry) throw new RegistryError(`plugin ${id} not in registry`);
-    const v = this.latestCompatible(entry, constraint);
+    const v = this.latestCompatible(entry, constraint) ?? (acceptTrekRange ? this.newestOf(entry, constraint) : null);
     if (!v) {
       throw new RegistryError(
         constraint
@@ -428,17 +428,30 @@ export class PluginRegistryService {
   }
 
   /**
+   * The newest version that satisfies `constraint`, whatever TREK it declares: what an
+   * admin's "install anyway" takes when no version fits this TREK. A version that does
+   * fit is always preferred over this (see {@link selectVersion}).
+   */
+  private newestOf(entry: RegistryEntry, constraint?: string): RegistryVersion | null {
+    return this.latestCompatible(entry, constraint, () => true);
+  }
+
+  /**
    * Pick the version `install()` will fetch, and refuse an incompatible one — on EVERY
    * path, which is the whole point. An explicit `version` and the bare "install latest"
    * both used to bypass the compat check entirely (only the `constraint` path went
    * through resolveVersion), so the admin UI's own Install button — which sends neither —
    * happily installed a plugin that declared it doesn't support this TREK.
    */
-  private selectVersion(entry: RegistryEntry, opts?: { version?: string; constraint?: string }): RegistryVersion {
+  private selectVersion(
+    entry: RegistryEntry,
+    opts?: { version?: string; constraint?: string; acceptTrekRange?: boolean },
+  ): RegistryVersion {
+    const accept = opts?.acceptTrekRange === true;
     if (opts?.version) {
       const ver = entry.versions.find((v) => v.version === opts.version);
       if (!ver) throw new RegistryError(`version ${opts.version} not found for ${entry.id}`);
-      if (!installable(ver, normalizedHost())) {
+      if (!accept && !installable(ver, normalizedHost())) {
         throw new RegistryError(
           `${entry.id} ${ver.version} requires TREK ${trekRequirement(ver)} — this is TREK ${hostVersion()}`,
           'TREK_VERSION_INCOMPATIBLE',
@@ -446,7 +459,8 @@ export class PluginRegistryService {
       }
       return ver;
     }
-    const ver = this.latestCompatible(entry, opts?.constraint);
+    const ver =
+      this.latestCompatible(entry, opts?.constraint) ?? (accept ? this.newestOf(entry, opts?.constraint) : null);
     if (ver) return ver;
     // Nothing compatible. Say WHY against the newest version the admin was actually
     // shown, rather than a bare "not found" — the fix is a TREK upgrade, not a retry.
@@ -476,7 +490,7 @@ export class PluginRegistryService {
    */
   async install(
     id: string,
-    opts?: { version?: string; constraint?: string; retrustKey?: string },
+    opts?: { version?: string; constraint?: string; retrustKey?: string; acceptTrekRange?: boolean },
   ): Promise<{ id: string; version: string; trekRangeBypassed: TrekRangeBypass | null }> {
     const reg = await this.fetchRegistry();
     const entry = reg.plugins.find((p) => p.id === id);
@@ -518,7 +532,7 @@ export class PluginRegistryService {
       // published entries usually carry a lower bound and no upper one at all, so a
       // plugin that declares "<4.0.0" passes the pre-download filter on TREK 4 and is
       // caught only here.
-      const trekRangeBypassed = assertHostCompatible(manifest.trekRange, id);
+      const trekRangeBypassed = assertHostCompatible(manifest.trekRange, id, opts?.acceptTrekRange === true);
       if (scanForNativeBinaries(pluginRoot).length) throw new RegistryError('artifact contains native binaries');
 
       // 6. atomic move into place
@@ -543,6 +557,9 @@ export class PluginRegistryService {
         // The plugin is now on new code that passed every check — whatever refusal was
         // recorded before no longer describes reality.
         await clearUpdateBlock(this.plugins, id);
+        // The admin's "install anyway" for this plugin, kept for the version that landed
+        // so activating it later does not ask a second time.
+        if (trekRangeBypassed?.acceptedByAdmin) await this.plugins.acceptTrekRange(id, ver.version, hostVersion());
       });
       return { id, version: ver.version, trekRangeBypassed };
     } finally {
@@ -560,6 +577,7 @@ export class PluginRegistryService {
   async installWithDependencies(
     id: string,
     constraint?: string,
+    acceptTrekRange = false,
   ): Promise<{ installed: string[]; requiredAddons: string[]; trekRangeBypassed: TrekRangeBypass | null }> {
     let trekRangeBypassed: TrekRangeBypass | null = null;
     const installedNow = new Set(await this.plugins.listAllIds());
@@ -570,12 +588,14 @@ export class PluginRegistryService {
     const visit = async (pid: string, range: string | undefined, stack: string[]): Promise<void> => {
       if (done.has(pid)) return;
       if (stack.includes(pid)) throw new RegistryError(`plugin dependency cycle: ${[...stack, pid].join(' -> ')}`);
-      const ver = await this.resolveVersion(pid, range); // throws if not in registry / unsatisfiable
+      // The admin's "install anyway" covers the plugin they asked for, never a dependency.
+      const acceptHere = acceptTrekRange && pid === id;
+      const ver = await this.resolveVersion(pid, range, acceptHere); // throws if not in registry / unsatisfiable
       if (!installedNow.has(pid)) {
         // Install the version we just RESOLVED. Passing the range back (or nothing, for
         // the root) made install() re-pick on its own and land on entry.versions[0] —
         // so the compatible version resolveVersion had chosen was computed and discarded.
-        const res = await this.install(pid, { version: ver.version });
+        const res = await this.install(pid, { version: ver.version, acceptTrekRange: acceptHere });
         // The admin asked for the root; that is the bypass they are warned about (a
         // dependency's own bypass still lands in the log).
         if (pid === id) trekRangeBypassed = res.trekRangeBypassed;
@@ -817,13 +837,14 @@ function installable(v: RegistryVersion, host: string | null): boolean {
  * every install front door (registry, sideload, dev-link) so they all fail the same way,
  * with a code the admin UI can act on rather than prose it would have to string-match.
  *
- * Under TREK_PLUGINS_IGNORE_TREK_RANGE the refusal becomes a log warning, and the
- * returned marker is what the front door hands back so the admin is told too. Null
- * means the range fits and nothing was bypassed.
+ * Under TREK_PLUGINS_IGNORE_TREK_RANGE, or when the admin `accepted` this one plugin
+ * outside its range, the refusal becomes a log warning, and the returned marker is what
+ * the front door hands back so the admin is told too. Null means the range fits and
+ * nothing was bypassed.
  */
-export function assertHostCompatible(range: string | null, id: string): TrekRangeBypass | null {
+export function assertHostCompatible(range: string | null, id: string, accepted = false): TrekRangeBypass | null {
   if (hostSatisfies(range)) return null;
-  const bypass = bypassedRange(range);
+  const bypass = bypassedRange(range, accepted);
   if (bypass) {
     warnRangeBypass(id, bypass);
     return bypass;

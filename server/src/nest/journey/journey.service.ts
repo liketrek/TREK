@@ -6,6 +6,7 @@ import { PhotoProviderRegistry } from '../memories/photo-provider.registry';
 import { PhotoResolverService } from '../memories/photo-resolver.service';
 import { JourneyDomainService } from './journey-domain.service';
 import { JourneyMapService } from './journey-map.service';
+import { JourneySettingsService } from './journey-settings.service';
 import { JourneyShareService } from './journey-share.service';
 import { Injectable } from '@nestjs/common';
 
@@ -28,6 +29,7 @@ export class JourneyService {
     private readonly share: JourneyShareService,
     private readonly immichRepo: UserImmichRepository,
     private readonly map: JourneyMapService,
+    private readonly settings: JourneySettingsService,
   ) {}
 
   async journeyAddonEnabled(): Promise<boolean> {
@@ -44,8 +46,14 @@ export class JourneyService {
   getJourneyFull(id: number, userId: number) {
     return this.journey.getJourneyFull(id, userId);
   }
-  updateJourney(id: number, userId: number, data: Parameters<typeof this.journey.updateJourney>[2], sid?: string) {
-    return this.journey.updateJourney(id, userId, data, sid);
+  /** The settings update the MCP tool makes too, so a replaced cover is released the same way on both. */
+  async updateJourney(
+    id: number,
+    userId: number,
+    data: Parameters<typeof this.journey.updateJourney>[2],
+    sid?: string,
+  ) {
+    return (await this.settings.updateWithPrevious(id, userId, data, sid))?.journey ?? null;
   }
   deleteJourney(id: number, userId: number, sid?: string) {
     return this.journey.deleteJourney(id, userId, sid);

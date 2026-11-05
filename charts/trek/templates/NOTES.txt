@@ -31,3 +31,12 @@
      The other values for that volume (size, storageClassName, annotations) are then ignored.
    - With `persistence.enabled=false` the volumes use an emptyDir — storage is ephemeral and is lost
      when the pod restarts. Use only for testing.
+{{- if .Values.httpRoute.enabled }}
+
+6. HTTPRoute:
+   - The chart creates an HTTPRoute v1 to the existing TREK Service. The Gateway, GatewayClass,
+     listeners, TLS certificates and allowedRoutes are managed by your cluster operator.
+   - Ingress and HTTPRoute may be enabled together.
+   - Timeout fields are Standard Channel in Gateway API v1.2, but controller support varies. Omit
+     them to use controller defaults; `0s` disables the corresponding timeout where supported.
+{{- end }}

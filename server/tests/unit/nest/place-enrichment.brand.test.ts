@@ -16,6 +16,7 @@ import type { MapsService } from '../../../src/nest/maps/maps.service';
 import type { GooglePlacesClient } from '../../../src/nest/maps/providers/google-places.provider';
 import type { OsmClient } from '../../../src/nest/maps/providers/osm.client';
 import type { WikimediaClient } from '../../../src/nest/maps/providers/wikimedia.client';
+import type { TrekCommunityService } from '../../../src/nest/maps/trek-community.service';
 import { PlaceEnrichmentService } from '../../../src/nest/place-enrichment/place-enrichment.service';
 import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
 
@@ -49,7 +50,11 @@ vi.mock('../../../src/utils/ssrfGuard', () => ({
 
 /** Every seam enrichment reaches: the maps orchestrator and the outbound clients it injects beside it. */
 type Seams<T> = { [K in keyof T]: T[K] };
-type EnrichmentSeams = Seams<MapsService> & Seams<GooglePlacesClient> & Seams<OsmClient> & Seams<WikimediaClient>;
+type EnrichmentSeams = Seams<MapsService> &
+  Seams<GooglePlacesClient> &
+  Seams<OsmClient> &
+  Seams<WikimediaClient> &
+  Seams<TrekCommunityService>;
 
 const REQ = { lat: 54.088, lng: 12.1409, name: "L'Osteria Rostock", placeId: 'ChIJosteria', lang: 'de' };
 
@@ -86,6 +91,9 @@ function mapsStub(over: Partial<Record<keyof EnrichmentSeams, unknown>> = {}) {
       async () => null as { tags: Record<string, string>; osmUrl: string | null; matchedName: string } | null,
     ),
     details: vi.fn(async () => ({ place: null })),
+    trekPlacesEnabled: vi.fn(() => true),
+    photoPaths: vi.fn(async () => [] as string[]),
+    imageBytes: vi.fn(async () => null as Buffer | null),
     ...over,
   } as unknown as EnrichmentSeams;
 }
@@ -113,6 +121,7 @@ const make = (maps: EnrichmentSeams) =>
     maps as unknown as GooglePlacesClient,
     maps as unknown as OsmClient,
     maps as unknown as WikimediaClient,
+    maps as unknown as TrekCommunityService,
   );
 
 /** A place whose own identity is empty but that belongs to a chain. */

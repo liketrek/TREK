@@ -12,6 +12,7 @@ import { updateRows } from '../../helpers/factories/rows';
 import { readAppSetting, setAppSetting } from '../../helpers/factories/settings';
 import { readUser } from '../../helpers/factories/users';
 import { makeStorageFixture } from '../../helpers/storage-fixture';
+import { releaseDirect } from '../../helpers/storage-release';
 import { resetTestDb } from '../../helpers/test-db';
 import {
   createTestUnitOfWork,
@@ -64,7 +65,7 @@ let profile: UserProfileService;
 
 beforeAll(async () => {
   profile = new UserProfileService(
-    avatarsFx.storage,
+    releaseDirect(avatarsFx.storage),
     await createTestUnitOfWork(testDb),
     await createTestAppSettingsRepo(testDb),
     await createTestUsersRepo(testDb),

@@ -41,6 +41,8 @@ const assistant: TranslationStrings = {
   'assistant.connect.openAssistant': 'Mở trợ lý',
   'assistant.connect.badKey': 'Khóa này không hoạt động.',
   'assistant.connect.unknownModel': 'Mô hình này không có ở đây.',
+  'assistant.connect.noModelList':
+    'Máy chủ đã phản hồi nhưng không gửi danh sách mô hình. Hãy kiểm tra địa chỉ, thường kết thúc bằng /v1.',
   'assistant.connect.getKey': 'Lấy khóa',
   'assistant.connect.hintAnthropic': 'Claude Max và Team có kèm tín dụng API.',
   'assistant.connect.hintOpenai': 'Tạo khóa trong bảng điều khiển OpenAI của bạn.',
@@ -174,6 +176,8 @@ const assistant: TranslationStrings = {
   'assistant.change.label.currency': 'Tiền tệ',
   'assistant.change.label.stopType': 'Loại điểm dừng',
   'assistant.change.label.text': 'Văn bản',
+  'assistant.change.label.title': 'Tiêu đề',
+  'assistant.change.label.content': 'Nội dung',
   'assistant.change.label.icon': 'Biểu tượng',
   'assistant.change.label.color': 'Màu',
   'assistant.change.label.position': 'Vị trí',

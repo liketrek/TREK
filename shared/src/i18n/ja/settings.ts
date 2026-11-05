@@ -29,7 +29,14 @@ const settings: TranslationStrings = {
     '自前の OSRM インスタンス。空欄なら公開サーバーを使いますが、毎秒 1 リクエスト程度の制限があり、1 日分には足りてもロードトリップには足りません。サーバー再起動後に反映されます。',
   'settings.valhallaBase': '自前の Valhalla インスタンス',
   'settings.valhallaBaseHint':
-    'TREKは、有料道路、高速道路、フェリーを避けるために、標準でFOSSGISの公開Valhallaを使用します。独自のValhallaを代わりに使う場合は、ここにURLを入力してください。独自のルーティングサーバーのみが設定されている場合、公開Valhallaは使用されません。独自のURLを入力した後は、サーバーを再起動し、ページを再読み込みしてください。',
+    '独自のValhallaです。上のルーティングサービスがこれか「自動」に設定されているときに問い合わせます。独自のルーティングサーバーのみが設定され、ルーティングサービスが選ばれていない場合、Valhallaには問い合わせません。URLを入力した後は、サーバーを再起動し、ページを再読み込みしてください。',
+  'settings.valhallaProvider': 'ルーティングサービス',
+  'settings.valhallaProviderHint':
+    'TREKサービスまたは独自のValhallaでは、すべてのルートをValhallaが計算します：徒歩・自転車・車での日ごとのルートとロードトリップ、有料道路・高速道路・フェリーを避けるルート、ツアーのルート・標高・道です。応答できない場合は、その日をOSRMが計算します。TREKサービスへの問い合わせはこのサーバー経由で行われます。FOSSGISの公開Valhallaでは、ルートはOSRMが計算し、ValhallaはOSRMにできないことだけに答えます。「自動」は、独自のValhallaや独自のルーティングサーバーのみが設定されていない限り、TREKサービスに問い合わせます。',
+  'settings.valhallaProviderOption.auto': '自動',
+  'settings.valhallaProviderOption.trek': 'TREKサービス',
+  'settings.valhallaProviderOption.fossgis': '公開Valhalla（FOSSGIS）',
+  'settings.valhallaProviderOption.custom': '独自のValhalla',
   'settings.mapHint': '地図タイルのURLテンプレート',
   'settings.mapProvider': '地図プロバイダー',
   'settings.mapProviderHint': '旅程プランナーと日記地図に影響します。Atlas は常に Leaflet を使用します。',
@@ -78,6 +85,9 @@ const settings: TranslationStrings = {
   'settings.timeFormat': '時刻形式',
   'settings.weekStart': '週の開始',
   'settings.weekStartHint': 'すべての日付選択で週の最初の曜日になります。Vacay には専用の設定があります。',
+  'settings.dateFormat': '日付形式',
+  'settings.dateFormatHint': 'すべての日付欄と一覧での日付の書き方です。月名を含む日付は言語の表記のままです。',
+  'settings.dateFormatAuto': '自動',
   'settings.preferredNavApp': '場所を開くアプリ',
   'settings.preferredNavAppAsk': '毎回確認する',
   'settings.preferredNavAppHint':
@@ -236,6 +246,14 @@ const settings: TranslationStrings = {
   'settings.about.featureRequest': '機能リクエスト',
   'settings.about.featureRequestHint': '新機能を提案',
   'settings.about.wikiHint': 'ドキュメント・ガイド',
+  'settings.about.sponsor.eyebrow': 'インフラのスポンサー',
+  'settings.about.sponsor.title': 'TREK 独自のサーバーは dataforest cloud で動いています',
+  'settings.about.sponsor.body':
+    '場所の検索、住所の検索、ルート計算は Google などではなく TREK 独自のサーバーから提供されており、そのマシンは dataforest cloud がスポンサーとして提供しています。',
+  'settings.about.sponsor.cta': 'dataforest cloud を見る',
+  'settings.about.sponsor.search': '場所の検索',
+  'settings.about.sponsor.address': '住所の検索',
+  'settings.about.sponsor.routing': 'ルート計算',
   'settings.about.descriptionManaged':
     'TREK は、最初のアイデアから最後の思い出まで、旅行の整理をお手伝いします。日程の計画、予算、持ち物リスト、写真など、すべてを一か所で。',
   'settings.about.sourceTitle': 'ソースコード',

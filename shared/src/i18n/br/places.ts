@@ -174,5 +174,14 @@ const places: TranslationStrings = {
   'places.image.needsConnection': 'Uma nova imagem precisa de conexão. Salve de novo quando estiver online.',
   'places.openPhotos': 'Ver fotos',
   'places.imageUploadError': 'Não foi possível enviar a imagem',
+  'places.refresh.pill': 'Novos dados do lugar',
+  'places.refresh.title': 'Atualizar dados do lugar',
+  'places.refresh.intro':
+    'O TREK conhece dados mais recentes deste lugar. Escolha o que quer adotar; o resto fica como está. Salve o lugar depois.',
+  'places.refresh.apply': 'Adotar',
+  'places.refresh.replaces': 'Substitui o que está salvo agora',
+  'places.refresh.empty': 'vazio',
+  'places.refresh.now': 'Agora',
+  'places.refresh.new': 'Novo',
 };
 export default places;

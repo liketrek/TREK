@@ -38,7 +38,14 @@ const settings: TranslationStrings = {
     'An OSRM instance of your own. Empty uses the public servers, which allow about one request a second — enough for a day, tight for a road trip. Takes effect after a server restart.',
   'settings.valhallaBase': 'Own Valhalla instance',
   'settings.valhallaBaseHint':
-    'TREK uses the public FOSSGIS Valhalla by default to avoid toll roads, motorways and ferries. Enter your own Valhalla URL here to use it instead. If only a custom routing instance is configured, the public Valhalla is not used. After entering a custom URL, restart the server and reload the page.',
+    'A Valhalla of your own, asked when the routing service above is set to it or to automatic. If only an own routing engine is configured and no routing service is chosen, no Valhalla is asked. After entering a URL, restart the server and reload the page.',
+  'settings.valhallaProvider': 'Routing service',
+  'settings.valhallaProviderHint':
+    'With the TREK services or an own Valhalla, Valhalla calculates every route: days and road trips on foot, by bike and by car, routes that avoid tolls, motorways or ferries, and the routes, heights and ways of tours. Where it cannot answer, OSRM calculates that day instead. The TREK services are asked through this server. With the public FOSSGIS Valhalla, OSRM calculates the routes and Valhalla only answers what OSRM cannot. Automatic asks the TREK services unless an own Valhalla or only an own routing engine is set.',
+  'settings.valhallaProviderOption.auto': 'Automatic',
+  'settings.valhallaProviderOption.trek': 'TREK services',
+  'settings.valhallaProviderOption.fossgis': 'Public Valhalla (FOSSGIS)',
+  'settings.valhallaProviderOption.custom': 'Own Valhalla instance',
   'settings.mapHint': 'URL template for map tiles',
   'settings.mapProvider': 'Map Provider',
   'settings.mapProviderHint': 'Affects Trip Planner and Journey maps. Atlas always uses Leaflet.',
@@ -87,6 +94,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': 'Time Format',
   'settings.weekStart': 'Week starts on',
   'settings.weekStartHint': 'First day of the week in every date picker. Vacay has its own setting.',
+  'settings.dateFormat': 'Date format',
+  'settings.dateFormatHint':
+    'How dates are written in every date field and list. Dates with a month name keep the wording of your language.',
+  'settings.dateFormatAuto': 'Automatic',
   'settings.preferredNavApp': 'Open places in',
   'settings.preferredNavAppAsk': 'Ask every time',
   'settings.preferredNavAppHint':
@@ -266,6 +277,14 @@ const settings: TranslationStrings = {
   'settings.about.featureRequest': 'Feature Request',
   'settings.about.featureRequestHint': 'Suggest a new feature',
   'settings.about.wikiHint': 'Documentation & guides',
+  'settings.about.sponsor.eyebrow': 'Sponsored infrastructure',
+  'settings.about.sponsor.title': "TREK's own servers run on dataforest cloud",
+  'settings.about.sponsor.body':
+    "Place search, address search and routing come from TREK's own servers instead of Google and co., and dataforest cloud sponsors the machines they run on.",
+  'settings.about.sponsor.cta': 'Visit dataforest cloud',
+  'settings.about.sponsor.search': 'Place search',
+  'settings.about.sponsor.address': 'Address search',
+  'settings.about.sponsor.routing': 'Routing',
   'settings.about.descriptionManaged':
     'TREK helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
   'settings.about.sourceTitle': 'Source code',

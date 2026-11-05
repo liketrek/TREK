@@ -803,6 +803,34 @@ describe('useRoadtripRoutes', () => {
       }
     })
 
+    it('FE-ROADTRIP-ROUTES-052: a join this device routed before is not paced like a request (#2794)', async () => {
+      // A join kept its request slot whatever answered it, so a month of connected days
+      // waited half a minute on every open with every road already on the device. The
+      // clock is held still, so every answer reads as one from the cache; a join that
+      // still waited its turn would wait 1.1 s of real time, past what waitFor gives it.
+      const clock = vi.spyOn(performance, 'now').mockImplementation(() => 10_000)
+      try {
+        const MUNICH: [number, number] = [48.1374, 11.5755]
+        const INNSBRUCK: [number, number] = [47.2692, 11.4041]
+        const BOZEN: [number, number] = [46.4983, 11.3548]
+        setting({ roadtrip_connect_days: true })
+        const daysList = [day(1, 1), day(2, 2), day(3, 3)]
+        const assignments = {
+          ...map(1, [{ id: 1, at: HAMBURG, time: '09:00' }, { id: 2, at: LUENEBURG }]),
+          ...map(2, [{ id: 3, at: BERLIN, time: '09:00' }, { id: 4, at: MUNICH }]),
+          ...map(3, [{ id: 5, at: INNSBRUCK, time: '09:00' }, { id: 6, at: BOZEN }]),
+        } as AssignmentsMap
+        renderHook(() => useRoadtripRoutes(7, daysList, assignments))
+
+        await waitFor(() => {
+          expect(askedFor(LUENEBURG, BERLIN)).toHaveLength(1)
+          expect(askedFor(MUNICH, INNSBRUCK)).toHaveLength(1)
+        })
+      } finally {
+        clock.mockRestore()
+      }
+    })
+
     it('FE-ROADTRIP-ROUTES-051: a join OSRM answered in the engine’s place is drawn, flagged, and asked for again on request', async () => {
       // Filed like any answer, it stood in for the weighed road until the page was loaded
       // again, and a picker on it read the stand-in line as the road already taken.
@@ -1121,7 +1149,8 @@ describe('a leg asked for again on demand', () => {
   })
 
   it('FE-ROADTRIP-ROUTES-047: a seam is asked under the card it arrives on, and a leg nothing weighs is OSRM\'s', () => {
-    act(() => { useSettingsStore.setState(s => ({ settings: { ...s.settings, roadtrip_avoid: 'motorway' } })) })
+    // FOSSGIS chosen: Valhalla only answers what OSRM cannot.
+    act(() => { useSettingsStore.setState(s => ({ settings: { ...s.settings, roadtrip_avoid: 'motorway', routing_valhalla_provider: 'fossgis' } })) })
     const days = [day(1, 1, { default_transport_mode: 'cycling' }), day(2, 2, { default_transport_mode: 'driving' })]
     const { result } = renderHook(() => useRoadtripRoutes(7, days, {} as AssignmentsMap))
 
@@ -1134,6 +1163,30 @@ describe('a leg asked for again on demand', () => {
     // A stop's own mode wins over any default, and a plugin prices its own leg.
     expect(result.current.legRouter!(stopOn(2, 0, BERLIN, { legMode: 'plugin:ev/fast' }), stopOn(2, 1, HAMBURG), 2))
       .toMatchObject({ mode: 'plugin:ev/fast', avoid: [], engine: 'plugin' })
+  })
+
+  it('FE-ROADTRIP-ROUTES-047b: where Valhalla routes the days, a leg nothing weighs is Valhalla\'s too', () => {
+    act(() => { useSettingsStore.setState(s => ({ settings: { ...s.settings, routing_valhalla_provider: 'trek' } })) })
+    const days = [day(1, 1, { default_transport_mode: 'cycling' }), day(2, 2, { default_transport_mode: 'driving' })]
+    const { result } = renderHook(() => useRoadtripRoutes(7, days, {} as AssignmentsMap))
+
+    expect(result.current.legRouter?.(stopOn(1, 2, HAMBURG), stopOn(1, 3, LUENEBURG), 2))
+      .toMatchObject({ mode: 'cycling', avoid: [], engine: 'valhalla' })
+    expect(result.current.legRouter?.(stopOn(2, 0, BERLIN, { legMode: 'plugin:ev/fast' }), stopOn(2, 1, HAMBURG), 2))
+      .toMatchObject({ engine: 'plugin' })
+  })
+
+  it('FE-ROADTRIP-ROUTES-047c: a day OSRM drew where Valhalla routes the days is OSRM\'s leg, not a stand-in', async () => {
+    act(() => { useSettingsStore.setState(s => ({ settings: { ...s.settings, routing_valhalla_provider: 'trek' } })) })
+    calculateRouteWithLegs.mockResolvedValue({ ...routed(1), engine: 'osrm' })
+    const { result } = renderHook(() => useRoadtripRoutes(7, [day(1, 1)], map(1, [{ id: 1, at: HAMBURG }, { id: 2, at: BERLIN }])))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    const [from, to] = result.current.days[0].stops
+    expect(result.current.legRouter?.(from, to, 1)).toMatchObject({ engine: 'osrm', standIn: false })
+
+    calculateRouteWithLegs.mockResolvedValue({ ...routed(1), engine: 'valhalla' })
+    act(() => { result.current.reroute?.() })
+    await waitFor(() => expect(result.current.legRouter?.(from, to, 1)?.engine).toBe('valhalla'))
   })
 
   it('FE-ROADTRIP-ROUTES-048: a day the stand-in engine drove while avoiding says the avoidance did not happen', async () => {

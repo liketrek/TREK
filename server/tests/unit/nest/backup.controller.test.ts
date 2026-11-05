@@ -6,12 +6,15 @@ import { BackupController } from '../../../src/nest/backup/backup.controller';
 import * as backupSvc from '../../../src/nest/backup/backup.impl';
 import { BackupService as RealBackupService } from '../../../src/nest/backup/backup.service';
 import type { BackupService } from '../../../src/nest/backup/backup.service';
+import { StorageJobsService } from '../../../src/nest/storage/storage-jobs.service';
+import { StorageRegistryService } from '../../../src/nest/storage/storage-registry.service';
 import { StorageNotFoundError } from '../../../src/nest/storage/storage.types';
 import type { User } from '../../../src/types';
 import { HttpException } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
 
 import type { Request, Response } from 'express';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
 
 vi.mock('../../../src/nest/audit/client-ip', () => ({ getClientIp: vi.fn(() => '1.2.3.4') }));
 vi.mock('../../../src/nest/audit/audit-log.logger', () => ({
@@ -374,7 +377,16 @@ describe('BackupService (wrapper)', () => {
   const database = {
     __sentinel: 'database',
   } as unknown as import('../../../src/nest/database/database-backup.interface').DatabaseBackupStrategy;
-  const wrapper = new RealBackupService(storage, database);
+  // The real one-job slot, taken from a testing module: the restore marks itself running there.
+  let jobs: StorageJobsService;
+  let wrapper: RealBackupService;
+  beforeAll(async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [StorageJobsService, { provide: StorageRegistryService, useValue: {} }],
+    }).compile();
+    jobs = moduleRef.get(StorageJobsService);
+    wrapper = new RealBackupService(storage, database, jobs);
+  });
 
   it('forwards every call straight to the legacy backup service', async () => {
     expect(await wrapper.listBackups()).toEqual([{ filename: 'svc.zip' }]);
@@ -408,6 +420,47 @@ describe('BackupService (wrapper)', () => {
 
   it('exposes the legacy rate window', () => {
     expect(wrapper.rateWindow).toBe(backupSvc.BACKUP_RATE_WINDOW);
+  });
+
+  it('BKS-RESTORE-001: a restore runs marked as such, so the reclaim pass can neither start nor go on beside it', async () => {
+    let runningInside = false;
+    vi.mocked(backupSvc.restoreFromZip).mockImplementationOnce(async () => {
+      runningInside = jobs.restoreRunning;
+      expect(jobs.claimExclusive('a storage reclaim')).toBe(false);
+      return { success: true };
+    });
+    await expect(wrapper.restoreFromZip('/tmp/a.zip')).resolves.toEqual({ success: true });
+    expect(runningInside).toBe(true);
+    expect(jobs.restoreRunning).toBe(false);
+  });
+
+  it('BKS-RESTORE-002: a restore waits for a reclaim pass in flight to let go, and a failed one still ends', async () => {
+    expect(jobs.claimExclusive('a storage reclaim')).toBe(true);
+    vi.mocked(backupSvc.restoreBackup).mockRejectedValueOnce(new Error('broken archive'));
+    const restore = wrapper.restoreBackup('svc.zip');
+    await Promise.resolve();
+    expect(jobs.restoreRunning).toBe(true);
+    expect(backupSvc.restoreBackup).not.toHaveBeenCalled();
+    jobs.releaseExclusive('a storage reclaim');
+    await expect(restore).rejects.toThrow('broken archive');
+    expect(backupSvc.restoreBackup).toHaveBeenCalledWith({ storage, database }, 'svc.zip');
+    expect(jobs.restoreRunning).toBe(false);
+    expect(jobs.claimExclusive('a storage reclaim')).toBe(true);
+    jobs.releaseExclusive('a storage reclaim');
+  });
+
+  it('BKS-BACKUP-001: a backup runs marked as reading the uploads, a failed one too, and the mark ends with it', async () => {
+    let runningInside = false;
+    vi.mocked(backupSvc.createBackup).mockImplementationOnce(async () => {
+      runningInside = jobs.backupRunning;
+      return { filename: 'svc.zip', size: 5, sizeText: '5 B', created_at: '2026-11-01T00:00:00.000Z' };
+    });
+    await wrapper.createBackup();
+    expect(runningInside).toBe(true);
+    expect(jobs.backupRunning).toBe(false);
+    vi.mocked(backupSvc.createBackup).mockRejectedValueOnce(new Error('disk full'));
+    await expect(wrapper.createBackup()).rejects.toThrow('disk full');
+    expect(jobs.backupRunning).toBe(false);
   });
 });
 

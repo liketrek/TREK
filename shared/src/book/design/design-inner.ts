@@ -41,8 +41,6 @@ import { decorateSpread } from './design-stickers';
  */
 
 export interface FramingNeeds {
-  /** Inner spreads the book has room for, the kept stored pages taken off. */
-  room: number;
   /** Bare stops one stations spread holds. */
   perStations: number;
 }
@@ -70,9 +68,8 @@ function framingInner(c: ComposeCtx): FramingKind[] {
   return out;
 }
 
-/** The most inner spreads the design may make: `pages.max`, and never past the room the book has. */
-const innerCap = (c: ComposeCtx, needs: FramingNeeds) =>
-  Math.max(0, Math.min(c.directives.pages?.max ?? needs.room, needs.room));
+/** The most inner spreads the design may make: `pages.max` when the directives set one, otherwise as many as it needs. */
+const innerCap = (c: ComposeCtx) => Math.max(0, c.directives.pages?.max ?? Number.POSITIVE_INFINITY);
 
 /**
  * The framing pages that fit beside at least one chapter spread: past the cap
@@ -316,7 +313,7 @@ export function composeDesignedInner(
 ): InnerResult {
   const notes: string[] = [];
   const leftOut: BookDesignLeftOut[] = [];
-  const cap = innerCap(c, needs);
+  const cap = innerCap(c);
   const wanted = framingInner(c);
   const framing = fittingFraming(wanted, cap);
   if (framing.length < wanted.length) {

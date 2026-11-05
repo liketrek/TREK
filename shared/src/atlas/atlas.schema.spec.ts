@@ -2,6 +2,7 @@ import {
   markRegionRequestSchema,
   createBucketItemRequestSchema,
   regionGeoSchema,
+  regionGeoParamsSchema,
   visitStatusSchema,
   todayUtc,
   tripVisitStatus,
@@ -73,6 +74,19 @@ describe('regionGeoSchema', () => {
       }).success,
     ).toBe(true);
     expect(regionGeoSchema.safeParse({ type: 'Other', features: [] }).success).toBe(false);
+  });
+});
+
+describe('regionGeoParamsSchema', () => {
+  it('takes a two-letter code from the path and uppercases it', () => {
+    expect(regionGeoParamsSchema.parse({ code: 'no' })).toEqual({ code: 'NO' });
+    expect(regionGeoParamsSchema.parse({ code: 'GB' })).toEqual({ code: 'GB' });
+  });
+
+  it('refuses anything that is not two letters', () => {
+    for (const code of ['NOR', 'N', '', '..', '../admin0', 'N/', '12']) {
+      expect(regionGeoParamsSchema.safeParse({ code }).success, code).toBe(false);
+    }
   });
 });
 

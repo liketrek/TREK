@@ -1,5 +1,5 @@
 import { useEffect, useRef, useMemo, useState, useCallback } from 'react'
-import { makeMarkerDraggable, makePoiDraggable, draggedPoiId } from './markerDrag'
+import { makeMarkerDraggable, makePoiDraggable } from './markerDrag'
 import { useStableVias } from './viaMarkerState'
 import { usePlannerWaypointMarkersGL } from './usePlannerWaypointMarkersGL'
 import { carryAssistantMarks, useAssistantMapGL } from './useAssistantMapGL'
@@ -49,17 +49,13 @@ import { buildPoiPopupHtml } from './placePopup'
 import { pluginsApi, type PluginMapMarker, type PluginMapLayer } from '../../api/client'
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
 import { alongShortestArc, computeMapViewport, TILE_SIZE_GL } from '../../utils/mapViewport'
+import { onRealWorld } from '../../utils/worldCopy'
+import { bindPoiDropTarget } from './poiDropTarget'
 import { selectedPlaceTarget } from './selectedPlaceTarget'
-import { PLACE_CLUSTER_CIRCLE_LAYER_ID, PLACE_CLUSTER_COUNT_LAYER_ID } from './placeClusterLayers'
-
-// Marker grouping for the GL map (#1385): MapLibre/Mapbox can't show the rich
-// HTML photo markers *and* cluster them natively, so we feed the place points
-// into a clustered GeoJSON source. The cluster bubbles render as GL circles +
-// a count label; the individual rich HTML markers are then only drawn for the
-// points the source reports as currently unclustered. Grouping is always on,
-// matching the Leaflet map's MarkerClusterGroup.
-const PLACE_CLUSTER_SOURCE_ID = 'trip-place-clusters'
-const PLACE_UNCLUSTERED_LAYER_ID = 'trip-place-unclustered-hit'
+import {
+  PLACE_CLUSTER_CIRCLE_LAYER_ID, PLACE_CLUSTER_COUNT_LAYER_ID, PLACE_CLUSTER_SOURCE_ID,
+  addPlaceClusterLayers, drawClusterBubbles, expandCluster,
+} from './placeClusterLayers'
 
 type PlaceWithCoords = Place & { lat: number; lng: number }
 
@@ -111,72 +107,6 @@ interface Props extends MapViewProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   gl: any
 }
-
-/**
- * How eagerly place markers merge into a cluster.
- *
- * The overview band the Leaflet map clusters in as well (`CLUSTER_UNTIL_ZOOM` there),
- * kept as plain numbers rather than shared constants so the GL bundle does not have to
- * carry Leaflet for them. Above the cutoff supercluster hands every point back on its
- * own, and the stops that share a coordinate are folded together at the pin level
- * instead — see the reconcile below.
- */
-const CLUSTER_RADIUS = 20
-const CLUSTER_MAX_ZOOM = 8
-
-/** The cluster source and the three layers over it. Extracted so the rebuild on a mode
- *  change and the initial build cannot drift apart. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function addPlaceClusterLayers(map: any): void {
-      map.addSource(PLACE_CLUSTER_SOURCE_ID, {
-        type: 'geojson',
-        data: { type: 'FeatureCollection', features: [] },
-        cluster: true,
-        clusterRadius: CLUSTER_RADIUS,
-        clusterMaxZoom: CLUSTER_MAX_ZOOM,
-      })
-      map.addLayer({
-        id: PLACE_CLUSTER_CIRCLE_LAYER_ID,
-        type: 'circle',
-        source: PLACE_CLUSTER_SOURCE_ID,
-        filter: ['has', 'point_count'],
-        paint: {
-          'circle-color': '#111827',
-          'circle-opacity': 0.97,
-          'circle-radius': ['step', ['get', 'point_count'], 18, 10, 21, 50, 24],
-          'circle-stroke-width': 2.5,
-          'circle-stroke-color': 'rgba(255,255,255,0.9)',
-        },
-      })
-      map.addLayer({
-        id: PLACE_CLUSTER_COUNT_LAYER_ID,
-        type: 'symbol',
-        source: PLACE_CLUSTER_SOURCE_ID,
-        filter: ['has', 'point_count'],
-        layout: {
-          'text-field': ['get', 'point_count_abbreviated'],
-          'text-size': 12,
-          'text-allow-overlap': true,
-        },
-        paint: {
-          'text-color': '#ffffff',
-          'text-halo-color': 'rgba(17,24,39,0.35)',
-          'text-halo-width': 1,
-        },
-      })
-      map.addLayer({
-        id: PLACE_UNCLUSTERED_LAYER_ID,
-        type: 'circle',
-        source: PLACE_CLUSTER_SOURCE_ID,
-        filter: ['!', ['has', 'point_count']],
-        paint: {
-          'circle-radius': 24,
-          'circle-opacity': 0,
-          'circle-stroke-opacity': 0,
-        },
-      })
-}
-
 
 function createMarkerElement(place: Place & PlaceMarkerFlags & { category_color?: string; category_icon?: string }, photoUrl: string | null, orderNumbers: number[] | null, selected: boolean): HTMLDivElement {
   // A stop that interrupts the drive gets its own small disc, decided before the photo
@@ -612,6 +542,8 @@ export function MapViewGL({
   useDawarichTrailGL(mapRef.current, mapReady, dawarichTrack, dawarichSelectedDate, 'trip-route-casing', dawarichHiddenDates)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const markersRef = useRef<Map<number, PlacePin>>(new Map())
+  /** The count bubbles, one per cluster the source currently reports. */
+  const clusterPinsRef = useRef<PlacePin[]>([])
   // Own layer for the hand-positioned place pins (MapLibre path, see makePlacePin).
   const pinLayerRef = useRef<HTMLDivElement | null>(null)
   const locationMarkerRef = useRef<LocationMarkerHandle | null>(null)
@@ -642,6 +574,7 @@ export function MapViewGL({
   // in the same frame the canvas draws, or the ones left out swim against the ones in.
   const repositionPins = useCallback(() => {
     markersRef.current.forEach(pin => pin.reposition())
+    clusterPinsRef.current.forEach(pin => pin.reposition())
     poiMarkersRef.current.forEach(pin => pin.reposition())
     pluginMarkersRef.current.forEach(pin => pin.reposition())
     routeViaMarkersRef.current.forEach(pin => pin.reposition())
@@ -794,7 +727,7 @@ export function MapViewGL({
           return
         }
         const rect = map.getContainer().getBoundingClientRect()
-        const at = map.unproject([e.clientX - rect.left, e.clientY - rect.top])
+        const at = onRealWorld(map.unproject([e.clientX - rect.left, e.clientY - rect.top]))
         viaHandlersRef.current.onMoveVia?.(via.day_id, via.id, at.lat, at.lng)
       }
       // The browser fires this when the captured element is torn out of the DOM,
@@ -994,7 +927,8 @@ export function MapViewGL({
       // trip reloads for a gesture the user made once. The picker is a modal
       // choice about that leg; dropping a via mid-choice is not offered anywhere.
       if (e.point && map.queryRenderedFeatures?.(e.point, { layers: ['route-alt-hit'] })?.length) return
-      onRouteClick(e.lngLat.lat, e.lngLat.lng)
+      const at = onRealWorld(e.lngLat)
+      onRouteClick(at.lat, at.lng)
     }
     const enter = () => { map.getCanvas().style.cursor = 'copy' }
     const leave = () => { map.getCanvas().style.cursor = '' }
@@ -1013,35 +947,12 @@ export function MapViewGL({
     }
   }, [mapReady, onRouteClick])
 
-  /**
-   * The map takes the drop, not the drawn route: in a GL renderer the line lives in the
-   * canvas and has no element to aim at. The coordinate under the pointer says just as
-   * much once it is projected onto the routed geometry, and it works the same in all
-   * three renderers.
-   */
+  // A POI dropped on the map lands on the drive (see poiDropTarget.ts).
   useEffect(() => {
     const map = mapRef.current
     const container = map?.getContainer?.()
     if (!container || !mapReady || !onPoiDropOnRoute) return
-    const onDragOver = (e: DragEvent) => {
-      if (!draggedPoiId(e)) return
-      e.preventDefault()
-      if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'
-    }
-    const onDrop = (e: DragEvent) => {
-      const osmId = draggedPoiId(e)
-      if (!osmId) return
-      e.preventDefault()
-      const rect = container.getBoundingClientRect()
-      const at = map.unproject([e.clientX - rect.left, e.clientY - rect.top])
-      onPoiDropOnRoute(osmId, at.lat, at.lng)
-    }
-    container.addEventListener('dragover', onDragOver)
-    container.addEventListener('drop', onDrop)
-    return () => {
-      container.removeEventListener('dragover', onDragOver)
-      container.removeEventListener('drop', onDrop)
-    }
+    return bindPoiDropTarget(container, (x, y) => map.unproject([x, y]), onPoiDropOnRoute)
   }, [mapReady, onPoiDropOnRoute])
   const onViewportChangeRef = useRef(onViewportChange)
   onViewportChangeRef.current = onViewportChange
@@ -1304,21 +1215,7 @@ export function MapViewGL({
             ? map.queryRenderedFeatures(e.point, { layers: [PLACE_CLUSTER_CIRCLE_LAYER_ID, PLACE_CLUSTER_COUNT_LAYER_ID] })
             : []
           const feature = features?.[0]
-          const clusterId = feature?.properties?.cluster_id
-          const coordinates = feature?.geometry?.coordinates
-          if (clusterId == null || !Array.isArray(coordinates)) return
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const source = map.getSource(PLACE_CLUSTER_SOURCE_ID) as any
-          const easeToZoom = (nextZoom: number) => {
-            try { map.easeTo({ center: coordinates, zoom: nextZoom, duration: 350 }) } catch { /* noop */ }
-          }
-          try {
-            const maybeZoom = source?.getClusterExpansionZoom?.(clusterId, (err: Error | null, nextZoom: number) => {
-              if (!err && typeof nextZoom === 'number') easeToZoom(nextZoom)
-            })
-            if (typeof maybeZoom === 'number') easeToZoom(maybeZoom)
-            else if (maybeZoom && typeof maybeZoom.then === 'function') maybeZoom.then(easeToZoom).catch(() => {})
-          } catch { /* noop */ }
+          expandCluster(map, feature?.properties?.cluster_id, feature?.geometry?.coordinates)
         }
         const setClusterCursor = () => {
           const canvas = typeof map.getCanvas === 'function' ? map.getCanvas() : null
@@ -1426,7 +1323,7 @@ export function MapViewGL({
         && map.queryRenderedFeatures(e.point, { layers: ['trip-route-hit'] }).length > 0
       ) return
       if (isTourLayerHit(map, e.point)) return // a picked via ferrata or paddle obstacle opens its card instead
-      onClickRefs.current.map?.({ latlng: { lat: e.lngLat.lat, lng: e.lngLat.lng } })
+      onClickRefs.current.map?.({ latlng: onRealWorld({ lat: e.lngLat.lat, lng: e.lngLat.lng }) })
     })
     // Emit the viewport (pan/zoom + once on first idle) for the POI-explore pill.
     const emitViewport = () => reportGlViewport(map, onViewportChangeRef.current)
@@ -1459,7 +1356,7 @@ export function MapViewGL({
       // timer — dedupe so the form doesn't open twice.
       if (Date.now() - lastContextFire < 700) return false
       lastContextFire = Date.now()
-      onClickRefs.current.context?.({ latlng: { lat: lngLat.lat, lng: lngLat.lng }, originalEvent })
+      onClickRefs.current.context?.({ latlng: onRealWorld({ lat: lngLat.lat, lng: lngLat.lng }), originalEvent })
       return true
     }
     // MapLibre swallows the map contextmenu at the end of a right-button
@@ -1704,8 +1601,17 @@ export function MapViewGL({
     source.setData(buildPlaceClusterData(places) as any)
     const placesById = new Map<number, PlaceWithCoords>(validPlaces.map(place => [place.id, place]))
     let raf: number | null = null
+    const dropClusterPins = () => {
+      clusterPinsRef.current.forEach(pin => pin.remove())
+      clusterPinsRef.current = []
+    }
+    const reconcileClusterPins = () => {
+      dropClusterPins()
+      clusterPinsRef.current = drawClusterBubbles(map, (el, lng, lat) => attachPin(map, gl, pinLayerRef.current, el, lng, lat))
+    }
     const runReconcile = () => {
       raf = null
+      reconcileClusterPins()
       const features = map.querySourceFeatures(PLACE_CLUSTER_SOURCE_ID, { filter: ['!', ['has', 'point_count']] }) || []
       const seen = new Set<number>()
       const visiblePlaces: PlaceWithCoords[] = []
@@ -1752,6 +1658,7 @@ export function MapViewGL({
 
     return () => {
       if (raf !== null) cancelAnimationFrame(raf)
+      dropClusterPins()
       map.off('moveend', scheduleReconcile)
       map.off('zoomend', scheduleReconcile)
       map.off('idle', scheduleReconcile)
@@ -2055,7 +1962,7 @@ export function MapViewGL({
     const fitPoints = routeCoords.length > 0 ? [...routeCoords, ...markerPoints] : markerPoints
     if (fitPoints.length === 0) return
     const bounds = new gl.LngLatBounds()
-    fitPoints.forEach(([lat, lng]) => bounds.extend([lng, lat]))
+    alongShortestArc(fitPoints).forEach(([lat, lng]) => bounds.extend([lng, lat]))
     let fitted = false
     const run = () => {
       try {

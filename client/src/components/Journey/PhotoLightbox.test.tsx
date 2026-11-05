@@ -1,4 +1,4 @@
-// FE-COMP-LIGHTBOX-001 to FE-COMP-LIGHTBOX-027
+// FE-COMP-LIGHTBOX-001 to FE-COMP-LIGHTBOX-029
 
 // Plyr needs a real media pipeline, so the player is stubbed here.
 vi.mock('./VideoPlayer', () => ({
@@ -325,5 +325,29 @@ describe('PhotoLightbox', () => {
     fireEvent.keyDown(window, { key: 'ArrowRight' });
     expect(screen.getByText('Google', { selector: 'p' })).toBeInTheDocument();
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+  it('FE-COMP-LIGHTBOX-028: the thumbnail and a spinner stand in until the original has loaded (#2907)', () => {
+    const { container } = render(
+      <PhotoLightbox photos={[{ id: 'a', src: '/a/original', thumbSrc: '/a/thumbnail' }]} onClose={vi.fn()} />,
+    );
+    const placeholder = screen.getByTestId('lightbox-loading');
+    expect(placeholder.querySelector('img')).toHaveAttribute('src', '/a/thumbnail');
+    expect(placeholder.querySelector('svg.animate-spin')).toBeInTheDocument();
+
+    fireEvent.load(container.ownerDocument.querySelector('img[src="/a/original"]') as HTMLImageElement);
+    expect(screen.queryByTestId('lightbox-loading')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-LIGHTBOX-029: the next photo waits for its own original, and a failed one drops the spinner too', () => {
+    render(
+      <PhotoLightbox photos={[{ id: 'a', src: '/a.jpg' }, { id: 'b', src: '/b.jpg' }]} onClose={vi.fn()} />,
+    );
+    fireEvent.load(document.querySelector('img[src="/a.jpg"]') as HTMLImageElement);
+    expect(screen.queryByTestId('lightbox-loading')).not.toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(screen.getByTestId('lightbox-loading')).toBeInTheDocument();
+    fireEvent.error(document.querySelector('img[src="/b.jpg"]') as HTMLImageElement);
+    expect(screen.queryByTestId('lightbox-loading')).not.toBeInTheDocument();
   });
 });

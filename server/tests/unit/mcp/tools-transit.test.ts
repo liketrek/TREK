@@ -1,4 +1,5 @@
 import { db as testDb } from '../../../src/db/database';
+import { BudgetItems } from '../../../src/db/entities/BudgetItems.entity';
 import { Days } from '../../../src/db/entities/Days.entity';
 import { Reservations } from '../../../src/db/entities/Reservations.entity';
 import { invalidatePermissionsCache } from '../../../src/nest/permissions/permissions-cache';
@@ -146,6 +147,21 @@ async function withHarness(userId: number, scopes: string[] | null, fn: (harness
 }
 
 describe('MCP transit tools', () => {
+  it.each(['google', 'transitous'] as const)('preserves the %s route provider', async (provider) => {
+    const { user } = createUser(testDb);
+    planMock.mockResolvedValue({ itineraries: [itinerary], provider });
+    await withHarness(user.id, ['geo:read'], async (harness) => {
+      const routes = parseToolResult(
+        await harness.client.callTool({
+          name: 'search_transit_routes',
+          arguments: { from, to },
+        }),
+      ) as { provider: string; itineraries: unknown[]; dropped: number };
+      expect(routes.provider).toBe(provider);
+      expect(routes.itineraries).toHaveLength(1);
+      expect(routes.dropped).toBe(0);
+    });
+  });
   it('registers search tools for geo scope and create tool for reservations scope', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, ['geo:read'], async (harness) => {
@@ -201,6 +217,7 @@ describe('MCP transit tools', () => {
       expect(routes.itineraries[0].legs[0].from.name).toBe('Namba');
       expect(routes.itineraries[0].legs[1].to.name).toBe('Umeda');
       expect(routes.itineraries).toHaveLength(1);
+      expect(routes.provider).toBe('transitous');
       expect(planMock).toHaveBeenCalledWith(expect.objectContaining({ modes: 'SUBWAY' }), undefined, user.id);
 
       const invalidNear = await harness.client.callTool({
@@ -240,7 +257,130 @@ describe('MCP transit tools', () => {
       expect(metadata.transit.walk_seconds).toBe(300);
       expect(metadata.transit.legs[1].line_color).toBe('#E5171F');
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'reservation:created', expect.anything());
-      expect(notifyBookingChangeMock).toHaveBeenCalledWith(trip.id, user.id, 'Namba → Umeda', 'transit');
+      expect(notifyBookingChangeMock).toHaveBeenCalledWith(String(trip.id), user.id, 'Namba → Umeda', 'transit');
+    });
+  });
+
+  it('files the fare as a linked expense and mirrors it in the metadata', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { start_date: '2026-12-03', end_date: '2026-12-04' });
+    const day = await dayOf(trip.id, '2026-12-03');
+    await withHarness(user.id, ['reservations:write'], async (harness) => {
+      const result = parseToolResult(
+        await harness.client.callTool({
+          name: 'create_transit_journey',
+          arguments: { tripId: trip.id, dayId: day.id, from, to, itinerary, price: 240 },
+        }),
+      ) as { reservation: { id: number; metadata: string } };
+      const item = await findRow(orm, BudgetItems, { reservation: result.reservation.id });
+      expect(item).toMatchObject({ name: 'Namba → Umeda', category: 'transport', total_price: 240 });
+      expect(JSON.parse(result.reservation.metadata).price).toBe('240');
+      expect(broadcastMock.mock.calls.some((c) => c[1] === 'budget:created')).toBe(true);
+      expect(broadcastMock.mock.calls.some((c) => c[1] === 'reservation:created')).toBe(true);
+    });
+  });
+
+  it('files the fare under the given budget category, and records none for a free journey', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { start_date: '2026-12-03', end_date: '2026-12-04' });
+    const day = await dayOf(trip.id, '2026-12-03');
+    await withHarness(user.id, ['reservations:write'], async (harness) => {
+      const paid = parseToolResult(
+        await harness.client.callTool({
+          name: 'create_transit_journey',
+          arguments: { tripId: trip.id, dayId: day.id, from, to, itinerary, price: 230, budget_category: 'Transport' },
+        }),
+      ) as { reservation: { id: number; metadata: string } };
+      expect((await findRow(orm, BudgetItems, { reservation: paid.reservation.id }))?.category).toBe('transport');
+
+      const free = parseToolResult(
+        await harness.client.callTool({
+          name: 'create_transit_journey',
+          arguments: { tripId: trip.id, dayId: day.id, from, to, itinerary, price: 0 },
+        }),
+      ) as { reservation: { id: number; metadata: string } };
+      expect(await findRow(orm, BudgetItems, { reservation: free.reservation.id })).toBeNull();
+    });
+  });
+
+  it('records Google as the provider of a journey planned while Google answers searches (#2850)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { start_date: '2026-12-03', end_date: '2026-12-04' });
+    const day = await dayOf(trip.id, '2026-12-03');
+    const active = vi.spyOn(TransitService.prototype, 'activeProvider').mockResolvedValue('google');
+    try {
+      await withHarness(user.id, ['reservations:write'], async (harness) => {
+        const result = parseToolResult(
+          await harness.client.callTool({
+            name: 'create_transit_journey',
+            arguments: { tripId: trip.id, dayId: day.id, from, to, itinerary },
+          }),
+        ) as { reservation: { metadata: string } };
+        expect(JSON.parse(result.reservation.metadata).transit.provider).toBe('google');
+      });
+      expect(active).toHaveBeenCalledWith(user.id);
+    } finally {
+      active.mockRestore();
+    }
+  });
+
+  it.each(['google', 'transitous'] as const)(
+    'saves the %s fallback source from search rather than the configured primary',
+    async (provider) => {
+      const { user } = createUser(testDb);
+      const trip = createTrip(testDb, user.id, { start_date: '2026-12-03', end_date: '2026-12-04' });
+      const day = await dayOf(trip.id, '2026-12-03');
+      const primary = provider === 'google' ? 'transitous' : 'google';
+      const active = vi.spyOn(TransitService.prototype, 'activeProvider').mockResolvedValue(primary);
+      planMock.mockResolvedValue({ provider, itineraries: [itinerary] });
+      try {
+        await withHarness(user.id, ['geo:read', 'reservations:write'], async (harness) => {
+          const routes = parseToolResult(
+            await harness.client.callTool({
+              name: 'search_transit_routes',
+              arguments: { from, to },
+            }),
+          ) as { provider: typeof provider; itineraries: (typeof itinerary)[] };
+          const result = parseToolResult(
+            await harness.client.callTool({
+              name: 'create_transit_journey',
+              arguments: {
+                tripId: trip.id,
+                dayId: day.id,
+                from,
+                to,
+                itinerary: routes.itineraries[0],
+                provider: routes.provider,
+              },
+            }),
+          ) as { reservation: { metadata: string } };
+          expect(JSON.parse(result.reservation.metadata).transit.provider).toBe(provider);
+        });
+        expect(active).not.toHaveBeenCalled();
+      } finally {
+        active.mockRestore();
+      }
+    },
+  );
+
+  it('rejects an unknown itinerary provider before creating a journey', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { start_date: '2026-12-03', end_date: '2026-12-04' });
+    const day = await dayOf(trip.id, '2026-12-03');
+    await withHarness(user.id, ['reservations:write'], async (harness) => {
+      const result = await harness.client.callTool({
+        name: 'create_transit_journey',
+        arguments: {
+          tripId: trip.id,
+          dayId: day.id,
+          from,
+          to,
+          itinerary,
+          provider: 'unknown',
+        },
+      });
+      expect(result.isError).toBe(true);
+      expect(await transitCount()).toBe(0);
     });
   });
 

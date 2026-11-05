@@ -215,7 +215,7 @@ function useDefaultAtlasHandlers() {
     // country features override this handler via server.use(...).
     http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json({ type: 'FeatureCollection', features: [] })),
     // Handler for region GeoJSON fetch (triggered by loadRegionsForViewport when intersects=true)
-    http.get('/api/addons/atlas/regions/geo', () => HttpResponse.json({ features: [] })),
+    http.get('/api/addons/atlas/regions/geo/:code', () => HttpResponse.json({ features: [] })),
   );
 }
 
@@ -1589,7 +1589,7 @@ describe('AtlasPage', () => {
       );
 
       server.use(
-        http.get('/api/addons/atlas/regions/geo', () => HttpResponse.json({ features: [] })),
+        http.get('/api/addons/atlas/regions/geo/:code', () => HttpResponse.json({ features: [] })),
       );
 
       render(<AtlasPage />);
@@ -1746,7 +1746,7 @@ describe('AtlasPage', () => {
           type: 'FeatureCollection',
           features: [{ type: 'Feature', properties: { ISO_A2: 'FR', ADM0_A3: 'FRA', ISO_A3: 'FRA', NAME: 'France', ADMIN: 'France' }, geometry: null }],
         })),
-        http.get('/api/addons/atlas/regions/geo', () => HttpResponse.json({
+        http.get('/api/addons/atlas/regions/geo/:code', () => HttpResponse.json({
           type: 'FeatureCollection',
           features: [{ type: 'Feature', properties: { iso_a2: 'FR', iso_3166_2: 'FR-IDF', name: 'Île-de-France', name_en: 'Île-de-France', admin: 'France' }, geometry: null }],
         })),

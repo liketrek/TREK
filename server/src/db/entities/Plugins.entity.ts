@@ -35,6 +35,8 @@ export class Plugins {
   update_block_version?: string | null;
   trek_range?: string | null;
   update_hold: number & Opt = 0;
+  trek_range_accepted_version?: string | null;
+  trek_range_accepted_host?: string | null;
 }
 
 export const PluginsSchema = defineEntity({
@@ -72,5 +74,7 @@ export const PluginsSchema = defineEntity({
     update_block_version: p.text().nullable(),
     trek_range: p.text().nullable(),
     update_hold: p.integer().default(0),
+    trek_range_accepted_version: p.text().nullable(),
+    trek_range_accepted_host: p.text().nullable(),
   },
 });

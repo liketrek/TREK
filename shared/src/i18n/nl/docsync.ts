@@ -179,6 +179,12 @@ const docsync: TranslationStrings = {
   'docsync.error.provider_disabled':
     'Gepauzeerd: een beheerder heeft deze aanbieder uitgeschakeld. De synchronisatie gaat verder zodra hij weer aanstaat.',
   'docsync.binding.reconnect': 'Opnieuw verbinden',
+  'docsync.connection.title': 'Verbinding',
+  'docsync.connection.hint': 'Het adres en de login die TREK voor deze opslag gebruikt.',
+  'docsync.connection.edit': 'Verbinding bewerken',
+  'docsync.connection.remove': 'Verbinding verwijderen',
+  'docsync.connection.confirmRemove':
+    'TREK vergeet het adres en de login van deze opslag, en elke synchronisatie van deze reis via deze opslag stopt. De documenten blijven in TREK en in de opslag.',
 };
 
 export default docsync;

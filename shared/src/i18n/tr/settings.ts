@@ -29,7 +29,14 @@ const settings: TranslationStrings = {
     'Kendi OSRM sunucunuz. Boş bırakılırsa saniyede yaklaşık bir istek veren genel sunucular kullanılır: bir gün için yeter, uzun yolculuk için az. Sunucu yeniden başlatıldığında etkin olur.',
   'settings.valhallaBase': 'Kendi Valhalla sunucunuz',
   'settings.valhallaBaseHint':
-    'TREK, ücretli yolları, otoyolları ve feribotları önlemek için varsayılan olarak FOSSGIS’in herkese açık Valhalla hizmetini kullanır. Bunun yerine kendi Valhalla sunucunuzu kullanmak için URL’sini buraya girin. Yalnızca özel bir rota sunucusu yapılandırılmışsa herkese açık Valhalla kullanılmaz. Özel URL girdikten sonra sunucuyu yeniden başlatın ve sayfayı yenileyin.',
+    'Kendi Valhalla sunucunuz; yukarıdaki rota hizmeti ona ya da Otomatik’e ayarlıyken sorulur. Yalnızca kendi rota sunucunuz yapılandırılmışsa ve rota hizmeti seçilmemişse hiçbir Valhalla’ya sorulmaz. URL girdikten sonra sunucuyu yeniden başlatın ve sayfayı yenileyin.',
+  'settings.valhallaProvider': 'Rota hizmeti',
+  'settings.valhallaProviderHint':
+    'TREK hizmetleri veya kendi Valhalla’nızla tüm rotaları Valhalla hesaplar: yürüyerek, bisikletle ve arabayla günler ve yol gezileri, ücretli yollar, otoyollar veya feribotlar olmadan rotalar ile turların rotaları, yükseklikleri ve yolları. Yanıt veremediğinde o günü OSRM hesaplar. TREK hizmetlerine bu sunucu üzerinden sorulur. FOSSGIS’in herkese açık Valhalla’sıyla rotaları OSRM hesaplar ve Valhalla yalnızca OSRM’nin yapamadığını yanıtlar. Otomatik, kendi Valhalla’nız ya da yalnızca kendi rota sunucunuz ayarlanmadıkça TREK hizmetlerine sorar.',
+  'settings.valhallaProviderOption.auto': 'Otomatik',
+  'settings.valhallaProviderOption.trek': 'TREK hizmetleri',
+  'settings.valhallaProviderOption.fossgis': 'Herkese açık Valhalla (FOSSGIS)',
+  'settings.valhallaProviderOption.custom': 'Kendi Valhalla sunucunuz',
   'settings.mapHint': 'Harita kutucukları için URL şablonu',
   'settings.mapProvider': 'Harita Sağlayıcısı',
   'settings.mapProviderHint': 'Seyahat planlayıcı ve Journey haritalarını etkiler. Atlas her zaman Leaflet kullanır.',
@@ -80,6 +87,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': 'Saat Biçimi',
   'settings.weekStart': 'Hafta başlangıcı',
   'settings.weekStartHint': "Tüm tarih seçicilerde haftanın ilk günü. Vacay'in kendi ayarı vardır.",
+  'settings.dateFormat': 'Tarih Biçimi',
+  'settings.dateFormatHint':
+    'Tarihlerin tüm tarih alanlarında ve listelerde nasıl yazıldığı. Ay adı içeren tarihler dilinizin ifadesini korur.',
+  'settings.dateFormatAuto': 'Otomatik',
   'settings.preferredNavApp': 'Yerleri şurada aç',
   'settings.preferredNavAppAsk': 'Her seferinde sor',
   'settings.preferredNavAppHint':
@@ -251,6 +262,14 @@ const settings: TranslationStrings = {
   'settings.about.featureRequest': 'Özellik İsteği',
   'settings.about.featureRequestHint': 'Yeni bir özellik önerin',
   'settings.about.wikiHint': 'Belgeler ve kılavuzlar',
+  'settings.about.sponsor.eyebrow': 'Sponsorlu altyapı',
+  'settings.about.sponsor.title': "TREK'in kendi sunucuları dataforest cloud üzerinde çalışır",
+  'settings.about.sponsor.body':
+    "Yer arama, adres arama ve rota hesaplama Google ve benzerleri yerine TREK'in kendi sunucularından gelir; bu sunucuların çalıştığı makinelerin sponsoru da dataforest cloud.",
+  'settings.about.sponsor.cta': "dataforest cloud'u ziyaret edin",
+  'settings.about.sponsor.search': 'Yer arama',
+  'settings.about.sponsor.address': 'Adres arama',
+  'settings.about.sponsor.routing': 'Rota hesaplama',
   'settings.about.descriptionManaged':
     'TREK, gezilerini ilk fikirden son anıya kadar düzenlemene yardım eder. Gün planı, bütçe, bavul listeleri, fotoğraflar ve çok daha fazlası: hepsi tek yerde.',
   'settings.about.sourceTitle': 'Kaynak kodu',

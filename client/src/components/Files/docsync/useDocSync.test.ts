@@ -1,4 +1,4 @@
-// FE-DOCSYNC-HOOK-001 to FE-DOCSYNC-HOOK-030
+// FE-DOCSYNC-HOOK-001 to FE-DOCSYNC-HOOK-032
 
 /**
  * The document-sync hook.
@@ -22,6 +22,7 @@ const testConnectionApi = vi.fn(async (_tripId: number | string, _data: unknown)
 const updateLinkApi = vi.fn(async (_tripId: number | string, _linkId: number, _patch: unknown): Promise<unknown> => ({}))
 const syncNowApi = vi.fn(async (_tripId: number | string, _linkId: number, _full: boolean): Promise<unknown> => ({}))
 const listScopesApi = vi.fn(async (_tripId: number | string, _connectionId: number, _q?: string): Promise<unknown> => ({ scopes: [] }))
+const deleteConnectionApi = vi.fn(async (_tripId: number | string, _id: number): Promise<unknown> => ({ success: true }))
 const resolveApi = vi.fn(async (_tripId: number | string, _itemId: number, _keep: string): Promise<unknown> => ({ success: true }))
 
 vi.mock('../../../api/client', async (importOriginal) => {
@@ -40,6 +41,7 @@ vi.mock('../../../api/client', async (importOriginal) => {
       syncNow: (tripId: number | string, linkId: number, full: boolean) => syncNowApi(tripId, linkId, full),
       listScopes: (tripId: number | string, connectionId: number, q?: string) => listScopesApi(tripId, connectionId, q),
       resolve: (tripId: number | string, itemId: number, keep: string) => resolveApi(tripId, itemId, keep),
+      deleteConnection: (tripId: number | string, id: number) => deleteConnectionApi(tripId, id),
     },
   }
 })
@@ -126,6 +128,7 @@ beforeEach(() => {
   syncNowApi.mockResolvedValue({ state: 'ok', pulled: 0, pushed: 0, conflicts: 0, missing: 0 })
   listScopesApi.mockResolvedValue({ scopes: [] })
   resolveApi.mockResolvedValue({ success: true })
+  deleteConnectionApi.mockResolvedValue({ success: true })
 })
 
 describe('useDocSync initial load', () => {
@@ -468,6 +471,38 @@ describe('useDocSync resolveConflict', () => {
     expect(outcome).toBe(true)
     expect(result.current.error).toBeNull()
     expect(resolveApi).toHaveBeenLastCalledWith(TRIP, 4, 'provider')
+  })
+})
+
+describe('useDocSync removeConnection', () => {
+  it('FE-DOCSYNC-HOOK-031: forgets the connection and reloads, so its bindings leave the screen too', async () => {
+    const { result } = await mountLoaded()
+    expect(result.current.links).toHaveLength(1)
+    // The server drops the bindings with the connection (ON DELETE CASCADE).
+    listConnectionsApi.mockResolvedValue([])
+    listLinksApi.mockResolvedValue([])
+
+    let ok: boolean | undefined
+    await act(async () => { ok = await result.current.removeConnection(9) })
+
+    expect(ok).toBe(true)
+    expect(deleteConnectionApi).toHaveBeenCalledWith(TRIP, 9)
+    expect(result.current.connectionFor('nextcloud')).toBeNull()
+    expect(result.current.links).toEqual([])
+    expect(result.current.busy).toBeNull()
+  })
+
+  it('FE-DOCSYNC-HOOK-032: a refused removal keeps everything and says why', async () => {
+    deleteConnectionApi.mockRejectedValueOnce({ response: { status: 403, data: { error: 'forbidden' } } })
+    const { result } = await mountLoaded()
+
+    let ok: boolean | undefined
+    await act(async () => { ok = await result.current.removeConnection(9) })
+
+    expect(ok).toBe(false)
+    expect(result.current.error).toBe('forbidden')
+    expect(result.current.connectionFor('nextcloud')).not.toBeNull()
+    expect(result.current.busy).toBeNull()
   })
 })
 

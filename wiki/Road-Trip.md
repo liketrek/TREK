@@ -226,14 +226,16 @@ When the instance has its own OSRM but no Valhalla, the switches are unavailable
 
 ## Routing engines
 
-Routing needs two engines, and both have public defaults, so the addon works without any setup:
+Routing uses two engines, and both have public defaults, so the addon works without any setup:
 
-| Engine | Used for | Public default | Own instance |
+| Engine | Used for | Default | Own instance |
 |---|---|---|---|
-| **OSRM** | every road route TREK draws: the road trip, the day plan, the routed booking lines | the FOSSGIS servers at `routing.openstreetmap.de` | **Own routing engine** |
-| **Valhalla** | driving around toll roads, motorways and ferries, and the **No motorway**, **No tolls** and **No ferry** offers | the FOSSGIS Valhalla at `valhalla1.openstreetmap.de` | **Own Valhalla instance** |
+| **Valhalla** | with the TREK services or an own Valhalla: every road route TREK draws (the road trip, the day plan, the routed booking lines) on foot, by bike and by car, and the other ways of a leg. With the public FOSSGIS Valhalla only driving around toll roads, motorways and ferries, and the **No motorway**, **No tolls** and **No ferry** offers | the TREK services' Valhalla through this server (**Routing service**), the FOSSGIS Valhalla at `valhalla1.openstreetmap.de` where they are off | **Own Valhalla instance** |
+| **OSRM** | every day Valhalla does not calculate: all of them with the public FOSSGIS Valhalla or without a Valhalla, and a day the TREK services or an own Valhalla cannot answer | the FOSSGIS servers at `routing.openstreetmap.de` | **Own routing engine** |
 
-The public OSRM servers allow roughly one request a second. That is enough for a day plan and tight for a road trip, which routes every leg of every day: TREK spaces its requests and retries a refused one, but a long trip takes a while to fill in. An instance with many road trippers is better off with its own.
+A day is always calculated by one engine, never one leg by each: the two estimate travel times differently, and a day's arrival times are added up leg by leg. When Valhalla cannot answer a day (the service down or its allowance spent, a question that ran out its deadline, or no way for one of its legs), OSRM calculates the whole day instead, without a message. A question that only took too long, a very long bike route for example, costs that one day: the TREK services are asked again for the next. A host that cannot be reached or fails is left to rest first (see [Admin-User-Defaults](Admin-User-Defaults#routing-service)). A day that avoids road classes still goes to the public FOSSGIS Valhalla when the TREK services cannot answer, since OSRM cannot avoid them.
+
+The public OSRM servers allow roughly one request a second, and so does the FOSSGIS Valhalla. That is enough for a day plan and tight for a road trip, which routes every leg of every day: TREK spaces its requests to those hosts 1.1 seconds apart and retries a refused one, but a long trip takes a while to fill in. An instance with many road trippers is better off with the TREK services or engines of its own. The relay keeps its connection to the TREK services open between questions, and the server, routing for the [MCP tools](#mcp-tools), asks the relay, an own OSRM and an own Valhalla without that spacing.
 
 > **Admin:** Set your own engines under **Admin → User Defaults**, in the **Map** section, on the desktop or the phone: **Own routing engine** for OSRM, **Own Valhalla instance** for Valhalla. A value saves when you leave the field, and **reset** restores the public default. Then **restart the server and reload the page.** Only an admin can set them; they apply to everyone.
 
@@ -241,15 +243,20 @@ Why a restart: routes are calculated in the browser, and the browser only talks 
 
 What the combinations do:
 
+With **Routing service** left on **Automatic**:
+
 | Own routing engine | Own Valhalla instance | Result |
 |---|---|---|
-| empty | empty | Public OSRM for routes, public Valhalla for avoidance. |
-| set | empty | Your OSRM for routes. **The public Valhalla is not used**, because an instance that runs its own router has chosen against public hosts. The avoid switches are unavailable, and **Other ways** can still offer routes without motorways or tolls if your OSRM supports excluding them. |
-| empty or set | set | Your Valhalla for avoidance. |
+| empty | empty | The TREK services' Valhalla for every route, public OSRM for a day it cannot answer. Without the TREK services: public OSRM for routes, public Valhalla for avoidance. |
+| set | empty | Your OSRM for routes. **No Valhalla is used**, because an instance that runs its own router has chosen against public hosts. The avoid switches are unavailable, and **Other ways** can still offer routes without motorways or tolls if your OSRM supports excluding them. |
+| empty or set | set | Your Valhalla for every route, OSRM (yours where set) for a day it cannot answer. |
+
+Choosing **Public Valhalla (FOSSGIS)** as **Routing service** keeps OSRM for every route and Valhalla for avoidance alone, whatever else is set.
 
 Requirements for your own instances:
 
-- **OSRM** must serve the standard layout, `<address>/route/v1/<profile>/…`, which `osrm-routed` does out of the box. It answers every route in TREK, not only road trips. The public servers refuse to exclude road classes; an OSRM of your own built through the MLD pipeline, with a profile that has those classes, can answer **No motorway** and **No tolls** in **Other ways** by itself.
+- **OSRM** must serve the standard layout, `<address>/route/v1/<profile>/…`, which `osrm-routed` does out of the box. It answers every route in TREK that Valhalla does not, not only road trips. The public servers refuse to exclude road classes; an OSRM of your own built through the MLD pipeline, with a profile that has those classes, can answer **No motorway** and **No tolls** in **Other ways** by itself.
+- **Valhalla** of your own answers every route, so it needs the `auto`, `pedestrian` and `bicycle` costings and should take twenty locations a request (`max_locations`, Valhalla's own default for `auto`); a longer day is asked in pieces of twenty that share a stop, one after another without a pause. Only a piece that goes to the public FOSSGIS Valhalla is cut to ten stops and paced.
 - **Reachable from the browser.** The browser calls the engine directly, so the address has to work from the devices your travellers plan on, not only from the TREK server. `http://localhost:5000` means the traveller's own computer to a browser. When TREK is served over HTTPS, the engine has to be HTTPS too, or the browser blocks it as mixed content.
 - **Reachable from the TREK server** for the [MCP tools](#mcp-tools), which calculate on the server. An address on your local network is accepted there without `ALLOW_INTERNAL_NETWORK`, because only an admin can set it.
 
@@ -301,7 +308,7 @@ With it on:
 - The hotel stands at the edge of the day card as a row of its own, with a bed icon and no number. In the morning it reads *Check-out · Hotel Adler* with *until 10:00* on the day you leave, and *From Hotel Adler* on a day you come back to. When the plan sets out after the check-out hour, the row adds *Leaves after check-out*. In the evening it reads *Check-in · Hotel Adler* on the day the stay begins, and *Back to Hotel Adler* on a day you come back to, or when you placed the hotel on the day yourself earlier on.
 - The drive to and from the hotel counts towards the day's distance, driving time, driving limits and range. The hotel does not count as a stop and does not refill the tank.
 - These rows are not stops you planned, and nothing is stored for them: they cannot be dragged, removed or given a stay. Clicking one opens the night's booking, or the hotel's place when there is no booking to open. On the phone, a night without a booking opens the stay for somebody who may edit days.
-- Only real nights count: a stay that checks in and out on the same day adds no row, and neither does a hotel without coordinates. Where two stays overlap, the choice is the one **Days** makes: the day ends at a stay checked in that day, otherwise at the one it started from, and it starts at a stay checked in on an earlier day, the one entered first where there are two. A drive between two different hotels is then a real drive.
+- Only real nights count: a stay that checks in and out on the same day adds no row, and neither does a hotel without coordinates. Where two stays overlap, the choice is the one **Days** makes: the day ends at a stay checked in that day, otherwise at one that runs on past that day, and it starts at the stay checked into last before that day, the one entered first where two were checked into on the same day. A drive between two different hotels is then a real drive.
 - The stop a booking put on its check-in day gives way to that evening's row, the way **Days** hides it: the day checks out, drives its places and ends at tonight's hotel, instead of visiting the hotel in the middle of the day and coming back to it at night. It stays while it is already the day's last stop, or when the day ends at a departure terminal instead. A hotel you placed on the day yourself always stays.
 - A side of the day that already starts or ends at the hotel gets no row. Neither does a day that starts where a flight, train or ferry lands or at a hire car's pick-up desk, or ends at a departure terminal or where the hire car goes back.
 - A day with one place becomes a drive from the hotel to it and back. A day between two nights in the same hotel with no place planned has no drive, and a check-out day with no places is the drive from one hotel to the next.
@@ -325,7 +332,7 @@ What the seam does not do: it never plans the ride itself, and a booking without
 
 ### Hire cars
 
-A **Car** booking is not a seam, you drive it, but its desks are where the drive starts and ends. The pick-up desk stands on the day card as a row with the car icon and *Pick-up 09:00* under its name, and it opens the day when nothing timed comes before it. The return desk closes the day it is handed back on, with *Return 11:30*. The road runs through both like any other stop, the range budget starts from a full tank at the pick-up, and both rows open the booking. The return only appears when the booking names a return day and a located return desk; nothing is guessed.
+A **Car** booking is not a seam, you drive it, but its desks are where the drive starts and ends. The pick-up desk stands on the day card as a row with the car icon and *Pick-up 09:00* under its name, and it opens the day when nothing timed comes before it. The return desk closes the day it is handed back on, with *Return 11:30*. The road runs through both like any other stop, the range budget starts from a full tank at the pick-up, and both rows open the booking. The return only appears when the booking has a located return desk; nothing is guessed. A booking without a return day is handed back on the day it is picked up, as **Days** shows it, so two one-way cars on one day each drive their own road, and one handed back without a time goes back before the next car of that day is picked up.
 
 ### Other bookings on the day
 
@@ -392,9 +399,10 @@ What TREK contacts, and from where:
 
 | Service | Asked by | When | To change it |
 |---|---|---|---|
-| OSRM (`routing.openstreetmap.de` by default) | the browser, and the TREK server for MCP | every route | **Own routing engine** |
-| Valhalla (`valhalla1.openstreetmap.de` by default) | the browser, and the TREK server for MCP | only when avoiding road classes or offering **No motorway**, **No tolls**, **No ferry** | **Own Valhalla instance**, or not at all once only **Own routing engine** is set |
-| TREK's place index and OpenStreetMap | the TREK server | the search along the route (OpenStreetMap through Overpass), and the place lookups of **Add manually** and the Google import (the usual place search) | see [TREK-Places-API](TREK-Places-API) and [Places-and-Search](Places-and-Search), and `OVERPASS_URL` and `NOMINATIM_URL` in [Environment-Variables](Environment-Variables) |
+| TREK services' Valhalla (`valhalla.liketrek.com` by default) | the TREK server, for the browser and for MCP | every route; it receives the stops' coordinates in order, the travel mode and the road classes to avoid, with the installation key, and no user or trip | **Routing service**, or `TREK_VALHALLA_URL` |
+| OSRM (`routing.openstreetmap.de` by default) | the browser, and the TREK server for MCP | every route Valhalla does not calculate | **Own routing engine** |
+| Valhalla (`valhalla1.openstreetmap.de`) | the browser, and the TREK server for MCP | with **Public Valhalla (FOSSGIS)**, or where the TREK services cannot answer: only when avoiding road classes or offering **No motorway**, **No tolls**, **No ferry** | **Own Valhalla instance**, or not at all once only **Own routing engine** is set |
+| TREK's place index and OpenStreetMap | the TREK server | the search along the route (OpenStreetMap through Overpass), and the place lookups of **Add manually** and the Google import (the usual place search: the index, then the address search of the TREK services, or Nominatim without them) | see [TREK-Places-API](TREK-Places-API) and [Places-and-Search](Places-and-Search), and `OVERPASS_URL`, `NOMINATIM_URL` and `TREK_PHOTON_URL` in [Environment-Variables](Environment-Variables) |
 | MobiData BW OCPDB | the TREK server | when a charging stop's data is shown | |
 | DWD and GDACS | the TREK server | only with **Show hazard areas** on | switch it off |
 | Google short links (`maps.app.goo.gl`) | the TREK server | only to unfold a short link during the Google import | |

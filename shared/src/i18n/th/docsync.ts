@@ -173,6 +173,12 @@ const docsync: TranslationStrings = {
   'docsync.error.provider_disabled':
     'หยุดชั่วคราว: ผู้ดูแลระบบปิดผู้ให้บริการนี้ การซิงค์จะกลับมาทำงานเมื่อเปิดอีกครั้ง',
   'docsync.binding.reconnect': 'เชื่อมต่อใหม่',
+  'docsync.connection.title': 'การเชื่อมต่อ',
+  'docsync.connection.hint': 'ที่อยู่และข้อมูลเข้าสู่ระบบที่ TREK ใช้กับที่เก็บนี้',
+  'docsync.connection.edit': 'แก้ไขการเชื่อมต่อ',
+  'docsync.connection.remove': 'ลบการเชื่อมต่อ',
+  'docsync.connection.confirmRemove':
+    'TREK จะลืมที่อยู่และข้อมูลเข้าสู่ระบบของที่เก็บนี้ และการซิงก์ทั้งหมดของทริปนี้ผ่านที่เก็บนี้จะหยุดลง เอกสารยังอยู่ใน TREK และในที่เก็บ',
 };
 
 export default docsync;

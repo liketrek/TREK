@@ -103,6 +103,8 @@ const dashboard: TranslationStrings = {
   'dashboard.unsplashQueryRequired': 'ป้อนคำค้นหา',
   'dashboard.unsplashNoResults': 'ไม่พบภาพ',
   'dashboard.coverSearchError': 'ไม่สามารถค้นหา Unsplash',
+  'dashboard.unsplashKeyNeeded':
+    'Unsplash ปฏิเสธเซิร์ฟเวอร์นี้ ผู้ดูแลระบบสามารถเพิ่มคีย์ Unsplash API ฟรีในการตั้งค่าผู้ดูแลระบบเพื่อให้การค้นหารูปภาพใช้งานได้',
   'dashboard.useUnsplashPhoto': 'ใช้รูปภาพ Unsplash โดย {photographer}',
   'dashboard.titleRequired': 'ต้องระบุชื่อ',
   'dashboard.endDateError': 'วันที่สิ้นสุดต้องอยู่หลังวันที่เริ่มต้น',

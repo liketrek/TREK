@@ -68,13 +68,47 @@ Two rules apply whatever the field says:
 
 See [Documents-and-Files](Documents-and-Files).
 
-## API Keys
+## Place search and routing
 
-Where place data comes from. The TREK index needs no key; the providers below it are optional. The card is a column of blocks, in the order TREK recommends them.
+TREK's own services, which provider answers search and transit, and the Place Search Log. Everything in this card is saved as soon as it is changed.
 
 ### TREK Places API
 
 The first block, marked **Recommended default**. It is TREK's own place index: search without a Google key, without a quota and without anyone counting your lookups. There is nothing to configure here. The fold **What is in it** lists the fields a result carries (**Included**), what it does not have (**Not included**: ratings and photos of ordinary businesses) and its **Sources** (Overture Maps Foundation, OpenStreetMap, Wikivoyage, Wikimedia). See [TREK-Places-API](TREK-Places-API).
+
+#### Share place details
+
+Inside the TREK Places API block. One switch turns sharing on for the whole installation, one per field (website, phone, e-mail, opening hours, description, photo) chooses what goes along. The figures show the values accepted in the last 30 days, the ones waiting to be sent and the day of the last accepted one. The fold **Transmission log** lists every value sent with its result, and **Withdraw everything sent** takes all of it back out of the index. The first visit of an admin opens a dialog that asks once; nothing is sent before **Agree and share**. See [Sharing place details](TREK-Places-API#sharing-place-details).
+
+### Transit Provider
+
+Which service answers public transit search. It saves as soon as you pick.
+
+- **Transitous (free)**, the default: community GTFS feeds, free and keyless, with the best coverage in Europe.
+- **Google**: uses the Google API key below, for regions Transitous has no data for. Google bills each search.
+
+With **Google** picked but no Google key configured, a warning says transit search is still using Transitous. When only your own personal Google key is set, a warning says that other members still fall back to Transitous until the key is saved under **API Keys** as the instance key. See [Transport-Flights-Trains-Cars](Transport-Flights-Trains-Cars).
+
+When the picked service finds no connection, the search asks the other one before it reports an empty result. From Google, that is Transitous. From **Transitous**, Google is asked only when an instance key (saved under **API Keys** or set through `PLACES_API_KEY`) is available and the **Daily limit for Google calls** is not reached; a member's personal key is never billed for it. Each such fallback counts as one billed Google search. An error from the picked service is shown as before and does not trigger the fallback.
+
+### Place search provider
+
+TREK's own index and OpenStreetMap answer every search. This picks who else is asked when they find nothing:
+
+- **Automatic** (default): prefers Google where a key exists, then Amap.
+- **Google Places**
+- **Amap (高德地图)**
+- **OpenStreetMap**
+
+The choice saves at once. If the selected provider has no API key, a warning says that place search is answered by the TREK index and OpenStreetMap alone. See [Places-and-Search](Places-and-Search).
+
+### Place Search Log
+
+One switch, **off by default**. When it is on, TREK records which search result was picked, so a different place index can be measured against real searches later: the search text, the picked place's name and rounded coordinates, and where it stood in the result list. No user is stored with it, and nothing leaves the instance. Rows are deleted after 180 days, also while the switch is off. An admin can read the log through `GET /api/place-shadow/summary` and `GET /api/place-shadow/export`, and delete it with `DELETE /api/place-shadow`.
+
+## API Keys
+
+The keys of the optional providers: Google Maps, Unsplash and Amap. None of them is needed, the card above works without any key. On a managed installation the keys are the operator's and the card is not shown.
 
 ### Google Maps API Key
 
@@ -109,33 +143,9 @@ For place search inside mainland China, where Google is unreachable and OpenStre
 
 A key that comes from an environment variable makes its field read-only. The field stays empty and reads **Set via** and the variable's name: `PLACES_API_KEY` for Google, `UNSPLASH_ACCESS_KEY` for Unsplash, `AMAP_API_KEY` for Amap. **Save** leaves those keys alone, and **Test** still checks the Google key from the environment. See [Environment-Variables](Environment-Variables).
 
-### Transit Provider
-
-Which service answers public transit search. It saves as soon as you pick.
-
-- **Transitous (free)**, the default: community GTFS feeds, free and keyless, with the best coverage in Europe.
-- **Google**: uses the Google API key above, for regions Transitous has no data for. Google bills each search.
-
-With **Google** picked but no Google key configured, a warning says transit search is still using Transitous. When only your own personal Google key is set, a warning says that other members still fall back to Transitous until the key is saved here as the instance key. See [Transport-Flights-Trains-Cars](Transport-Flights-Trains-Cars).
-
-### Place search provider
-
-TREK's own index and OpenStreetMap answer every search. This picks who else is asked when they find nothing:
-
-- **Automatic** (default): prefers Google where a key exists, then Amap.
-- **Google Places**
-- **Amap (高德地图)**
-- **OpenStreetMap**
-
-The choice saves at once. If the selected provider has no API key, a warning says that place search is answered by the TREK index and OpenStreetMap alone. See [Places-and-Search](Places-and-Search).
-
-### Place Search Log
-
-One switch, **off by default**. When it is on, TREK records which search result was picked, so a different place index can be measured against real searches later: the search text, the picked place's name and rounded coordinates, and where it stood in the result list. No user is stored with it, and nothing leaves the instance. Rows are deleted after 180 days, also while the switch is off. An admin can read the log through `GET /api/place-shadow/summary` and `GET /api/place-shadow/export`, and delete it with `DELETE /api/place-shadow`.
-
 ### Saving the keys
 
-The **Save** button at the bottom of the card stores the Google, Unsplash and Amap keys. Everything else on the card (the switches, the daily limit, the two provider choices) saves on its own.
+The **Save** button at the bottom of the card stores the Google, Unsplash and Amap keys. The Google switches and the daily limit under the key save on their own.
 
 ## Danger Zone
 

@@ -52,23 +52,20 @@ const system_notice: TranslationStrings = {
   'system_notice.thank_you_support.cta_kofi': 'Podporiť na Ko-fi',
   // The release modal. One stable set of keys: each big release swaps the copy in place.
   'system_notice.release_notes.eyebrow': 'Aktualizácia nainštalovaná',
-  'system_notice.release_notes.headline': 'Najväčší TREK doteraz.',
+  'system_notice.release_notes.headline': 'Správne miesto, hneď napoprvé.',
   'system_notice.release_notes.intro':
-    'Túry na každý deň vonku, štúdio pre vaše fotoknihy, asistent, ktorý plánuje s vami, a pomoc na každej obrazovke.',
+    'Vyhľadávanie miest, vyhľadávanie adries a plánovanie trás teraz bežia na vlastných serveroch TREK, ktoré sponzoruje dataforest cloud, a každý TREK môže zdieľať, čo vie o miestach, so všetkými ostatnými.',
   'system_notice.release_notes.features_label': 'Hlavné novinky',
   'system_notice.release_notes.features_aside': 'Zďaleka nie všetko',
-  'system_notice.release_notes.feature_tours_title': 'Túry',
-  'system_notice.release_notes.feature_tours_body':
-    'Turistika, cyklotúry, behy, vychádzky na koni, pádlovanie, prechádzky mestom a dni na lyžiach, s výškovým profilom, obťažnosťou a 3D preletom.',
-  'system_notice.release_notes.feature_studio_title': 'TREK Studio', // same-as-en
-  'system_notice.release_notes.feature_studio_body':
-    'Premení cestu na navrhnutú fotoknihu: 17 motívov, 34 písiem, 160 nálepiek a automatické rozloženie jedným kliknutím.',
-  'system_notice.release_notes.feature_assistant_title': 'AI asistent',
-  'system_notice.release_notes.feature_assistant_body':
-    'Plánuje s vami vaše skutočné cesty cez účet AI, ktorý už máte. Každú zmenu najprv uvidíte a môžete ju vrátiť.',
-  'system_notice.release_notes.feature_help_title': 'Pomoc na každej obrazovke, v 27 jazykoch',
-  'system_notice.release_notes.feature_help_body':
-    'Približne 370 návodov krok za krokom s 1 600 obrázkami, presne tam, kde ich potrebujete. Novinka: azerbajdžančina, estónčina, slovenčina a thajčina.',
+  'system_notice.release_notes.feature_search_title': 'Vyhľadávanie miest, ktoré trafí',
+  'system_notice.release_notes.feature_search_body':
+    'Mestá, ostrovy, pamiatky a letiská podľa kódu sú na prvom mieste, kaviarne sa hľadajú vo vašom okolí a návrhy sa zobrazujú už počas písania.',
+  'system_notice.release_notes.feature_share_title': 'Zdieľané podrobnosti o miestach',
+  'system_notice.release_notes.feature_share_body':
+    'Zdieľajte weby, otváracie hodiny a fotky so všetkými TREK, pole po poli, a vaše uložené miesta prevezmú, čo doplnili ostatní.',
+  'system_notice.release_notes.feature_routing_title': 'Rýchlejšie trasy',
+  'system_notice.release_notes.feature_routing_body':
+    'Celý deň sa naplánuje naraz až s dvadsiatimi zastávkami, jedna pomalá trasa už nezdrží ostatné a verejná doprava sa opýta druhého poskytovateľa, keď prvý nič nenájde.',
   'system_notice.release_notes.footnote': 'A k tomu dlhý zoznam menších zmien naprieč zvyškom TREK.',
   'system_notice.release_notes.notes_label': 'Poznámky k vydaniu',
   'system_notice.release_notes.note_eyebrow': 'Slovo od správcu',
@@ -82,10 +79,10 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.note_body_after':
     'A potom ste ho otvorili. V priebehu pár mesiacov vás boli tisíce: hviezdičky, hlásenia chýb, preklady do jazykov, ktorými nehovorím, pull requesty od ľudí, ktorých som nikdy nestretol. Každé ráno sa stále najprv pozriem do repozitára a stále mi to nepripadá celkom skutočné.',
   'system_notice.release_notes.note_closing': 'Ďakujem, že ste tu, váš Maurice.',
-  'system_notice.release_notes.support_lead':
-    'TREK je a vždy bude zadarmo, ale servery, domény a množstvo neskorých nocí nie sú.',
+  'system_notice.release_notes.support_label': 'Zostať nezávislý',
+  'system_notice.release_notes.support_lead': 'Bez Google a spol.',
   'system_notice.release_notes.support_text':
-    'Ak si získal miesto na vašich cestách, kúpte mi kávu a pomôžte, aby prišlo aj ďalšie vydanie.',
+    'Vyhľadávanie miest, vyhľadávanie adries a trasy bežia na vlastných serveroch TREK, dnes sponzorovaných spoločnosťou dataforest cloud. Bojujem za to každý deň a aby to tak zostalo, potrebujem vašu podporu.',
   'system_notice.release_notes.cta_bmc': 'Kúp mi kávu',
   'system_notice.release_notes.cta_kofi': 'Podporiť na Ko-fi',
   'system_notice.pager.prev': 'Predchádzajúce oznámenie',

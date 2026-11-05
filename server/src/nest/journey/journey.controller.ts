@@ -25,7 +25,7 @@ import type { User } from '../../types';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../common/demo-write';
 import { StorageService } from '../storage/storage.service';
-import { journeyThumbName } from '../memories/thumbnail.service';
+import { StorageReleaseService } from '../storage/storage-release.service';
 import { JourneyService } from './journey.service';
 import { JourneyBookService } from './journey-book.service';
 import { JourneyPhotoCaptureService, type ProviderPhotoBatch, type ProviderPhotoTarget } from './journey-photo-capture.service';
@@ -176,6 +176,8 @@ export class JourneyController {
     private readonly photoLinks: JourneyPhotoLinksService,
     // Whether DEMO_MODE is on, read on every upload (refuseDemoUpload).
     private readonly env: RuntimeEnvService,
+    // What a deleted photo named, once its row is gone (#2924).
+    private readonly release: StorageReleaseService,
   ) {}
 
   /**
@@ -464,36 +466,18 @@ export class JourneyController {
     if (!photo) {
       throw new HttpException({ error: 'Photo not found' }, 404);
     }
-    await this.deletePhotoObject(photo.file_path);
-    await this.reclaimDerived(photo.file_path, photo.thumbnail_path);
+    await this.releasePhoto(photo);
     return { success: true };
   }
 
   /**
-   * Best-effort removal of a deleted photo's bytes. file_path rows are the
-   * uploads-relative 'journey/<file>' form every writer stores; anything else
-   * (provider rows have null) has no local object.
+   * After a photo's row went: its file and its poster are queued for release,
+   * and go once no other row (another journey's photo, a journey cover) names
+   * them (#2924). The thumbnail derived from the file is the nightly thumbnail
+   * sweep's, which drops every thumb no photo row accounts for.
    */
-  private async deletePhotoObject(filePath: string | null | undefined): Promise<void> {
-    if (!filePath) return;
-    const name = filePath.startsWith('journey/') ? filePath.slice('journey/'.length) : null;
-    if (!name) return;
-    await this.storage.delete('journey', name).catch(() => { /* file already gone */ });
-  }
-
-  /**
-   * Delete a photo's derived artifacts with it (spec In-scope fix #2): the
-   * hash-named thumbnail derivable from file_path, and whatever
-   * thumbnail_path recorded — a generated thumb (usually the same object) or
-   * a video's uploaded poster. Both best-effort, both idempotent.
-   */
-  private async reclaimDerived(filePath: string | null | undefined, thumbnailPath: string | null | undefined): Promise<void> {
-    if (filePath?.startsWith('journey/')) {
-      await this.storage.delete('journey', journeyThumbName(filePath)).catch(() => { /* already gone */ });
-    }
-    if (thumbnailPath?.startsWith('journey/')) {
-      await this.storage.delete('journey', thumbnailPath.slice('journey/'.length)).catch(() => { /* already gone */ });
-    }
+  private async releasePhoto(photo: { file_path?: string | null; thumbnail_path?: string | null }): Promise<void> {
+    await this.release.releaseValues([photo.file_path, photo.thumbnail_path], { bare: 'journey' });
   }
 
   // ── Gallery (prefix /:id/gallery — before /:id) ─────────────────────────
@@ -577,8 +561,7 @@ export class JourneyController {
     if (!photo) {
       throw new HttpException({ error: 'Photo not found or not allowed' }, 404);
     }
-    await this.deletePhotoObject(photo.file_path);
-    await this.reclaimDerived(photo.file_path, photo.thumbnail_path);
+    await this.releasePhoto(photo);
   }
 
   // ── Journeys /:id ───────────────────────────────────────────────────────

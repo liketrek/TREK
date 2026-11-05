@@ -1,4 +1,4 @@
-// FE-TP-BOOKING-001 to FE-TP-BOOKING-013
+// FE-TP-BOOKING-001 to FE-TP-BOOKING-016
 //
 // Booking writes and the review before an import is saved, driven straight through
 // useBookingEdits. Every write goes to a recorded stand-in for the store's actions and
@@ -18,7 +18,7 @@ import type { Translate } from './plannerTypes'
 import { useBookingEdits } from './useBookingEdits'
 
 type Options = Parameters<typeof useBookingEdits>[0]
-type ImportedStay = { place_id?: number; venue?: { name?: string; address?: string | null }; address?: string }
+type ImportedStay = { place_id?: number; venue?: { name?: string; address?: string | null; lat?: number; lng?: number }; address?: string }
 
 const toast = { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() }
 const t = ((key: string) => key) as Translate
@@ -231,6 +231,32 @@ describe('useBookingEdits', () => {
     expect(actions.addReservation).toHaveBeenCalledTimes(4)
   })
 
+  it('FE-TP-BOOKING-007b: a stay lands where the review found it, falls back to its name, and says when it has no spot', async () => {
+    const { result } = renderEdits()
+
+    // The review already found it: no second search, the place sits right there.
+    vi.mocked(mapsApi.search).mockClear()
+    await saveHotel(result, { venue: { name: 'Gracery', address: '1-19-1 Kabukicho', lat: 35.69, lng: 139.7 } })
+    expect(mapsApi.search).not.toHaveBeenCalled()
+    expect(actions.addPlace).toHaveBeenLastCalledWith(42, { name: 'Gracery', lat: 35.69, lng: 139.7, address: '1-19-1 Kabukicho' })
+    expect(toast.warning).not.toHaveBeenCalled()
+
+    // A romanized address that matches nothing no longer sinks the hotel's name.
+    vi.mocked(mapsApi.search).mockImplementation(async (query: string) =>
+      (query === 'Gracery' ? { places: [{ lat: 35.69, lng: 139.7 }] } : { places: [] }) as never)
+    await saveHotel(result, { venue: { name: 'Gracery', address: '1-19-1 Kabukicho' } })
+    expect(vi.mocked(mapsApi.search).mock.calls.map(([q]) => q)).toEqual(['Gracery 1-19-1 Kabukicho', 'Gracery'])
+    expect(actions.addPlace).toHaveBeenLastCalledWith(42, { name: 'Gracery', lat: 35.69, lng: 139.7, address: '1-19-1 Kabukicho' })
+    expect(toast.warning).not.toHaveBeenCalled()
+
+    // Found nowhere: the booking is still saved, and the reader is told it has no pin.
+    vi.mocked(mapsApi.search).mockResolvedValue({ places: [] } as never)
+    await saveHotel(result, { venue: { name: 'Nowhere Inn', address: 'Nowhere 1' } })
+    expect(actions.addPlace).toHaveBeenLastCalledWith(42, { name: 'Nowhere Inn', lat: null, lng: null, address: 'Nowhere 1' })
+    expect(toast.warning).toHaveBeenCalledWith('reservations.import.savedWithoutPin')
+    expect(actions.addReservation).toHaveBeenCalledTimes(3)
+  })
+
   it('FE-TP-BOOKING-008: a booking that cannot be saved says so, whatever was thrown', async () => {
     const { result } = renderEdits()
 
@@ -380,5 +406,77 @@ describe('useBookingEdits', () => {
     act(() => { useBackgroundTasksStore.setState({ tasks: [receiptTask('job-n', null, [photo])] as never }) })
     await waitFor(() => expect(useBackgroundTasksStore.getState().tasks).toHaveLength(0))
     expect(result.current.receiptExpense).toBeNull()
+  })
+  it('FE-TP-BOOKING-014: the editor stays open until what hangs on the booking is written (#2883)', async () => {
+    const { result } = renderEdits()
+    let finish!: () => void
+    const afterSave = vi.fn(() => new Promise<void>(resolve => { finish = resolve }))
+
+    let pending!: Promise<unknown>
+    act(() => { pending = result.current.handleSaveReservation({ title: 'Dinner', type: 'restaurant' }, { afterSave }) })
+    await waitFor(() => expect(afterSave).toHaveBeenCalledWith({ id: 6 }))
+    expect(toast.success).not.toHaveBeenCalled()
+    expect(fixed.setShowReservationModal).not.toHaveBeenCalled()
+
+    let saved: unknown
+    await act(async () => { finish(); saved = await pending })
+    expect(saved).toEqual({ id: 6 })
+    expect(toast.success).toHaveBeenCalledWith('trip.toast.reservationAdded')
+    expect(fixed.setShowReservationModal).toHaveBeenCalledWith(false)
+  })
+
+  it('FE-TP-BOOKING-015: a failed follow-up keeps the editor open, and the retry updates the stored booking', async () => {
+    const { result } = renderEdits()
+    const afterSave = vi.fn().mockRejectedValueOnce(new Error('reservations.toast.filesNotUploaded')).mockResolvedValue(undefined)
+
+    let saved: unknown = 'unset'
+    await act(async () => {
+      saved = await result.current.handleSaveReservation({ title: 'Ryokan', type: 'hotel', create_budget_entry: 1 }, { afterSave })
+    })
+    expect(saved).toBeUndefined()
+    expect(toast.error).toHaveBeenCalledWith('reservations.toast.filesNotUploaded')
+    expect(toast.success).not.toHaveBeenCalled()
+    expect(fixed.setShowReservationModal).not.toHaveBeenCalled()
+    expect(actions.addReservation).toHaveBeenCalledTimes(1)
+    expect(actions.loadBudgetItems).toHaveBeenCalledTimes(1)
+
+    // The retry names the stored booking: it is updated, its cost and stay are not made twice.
+    const stored = buildReservation({ id: 6, type: 'hotel', accommodation_id: 31 })
+    await act(async () => {
+      saved = await result.current.handleSaveReservation(
+        { title: 'Ryokan', type: 'hotel', create_budget_entry: 1, accommodation_id: null },
+        { saved: stored, afterSave },
+      )
+    })
+    expect(actions.addReservation).toHaveBeenCalledTimes(1)
+    expect(actions.updateReservation).toHaveBeenCalledWith(42, 6, { title: 'Ryokan', type: 'hotel', accommodation_id: 31 })
+    expect(actions.loadBudgetItems).toHaveBeenCalledTimes(1)
+    expect(afterSave).toHaveBeenLastCalledWith({ id: 5 })
+    expect(saved).toEqual({ id: 5 })
+    expect(toast.success).toHaveBeenCalledWith('trip.toast.reservationAdded')
+    expect(fixed.setShowReservationModal).toHaveBeenCalledWith(false)
+  })
+
+  it('FE-TP-BOOKING-016: a transport waits for its follow-up the same way, and retries as an update', async () => {
+    const { result } = renderEdits()
+    const afterSave = vi.fn().mockRejectedValueOnce(new Error('reservations.toast.filesNotUploaded')).mockResolvedValue(undefined)
+
+    let saved: unknown = 'unset'
+    await act(async () => { saved = await result.current.handleSaveTransport({ title: 'ICE', create_budget_entry: true }, { afterSave }) })
+    expect(saved).toBeUndefined()
+    expect(toast.error).toHaveBeenCalledWith('reservations.toast.filesNotUploaded')
+    expect(fixed.setShowTransportModal).not.toHaveBeenCalled()
+
+    await act(async () => {
+      saved = await result.current.handleSaveTransport(
+        { title: 'ICE', create_budget_entry: true },
+        { saved: buildReservation({ id: 6, type: 'train' }), afterSave },
+      )
+    })
+    expect(actions.addReservation).toHaveBeenCalledTimes(1)
+    expect(actions.updateReservation).toHaveBeenCalledWith(42, 6, { title: 'ICE' })
+    expect(saved).toEqual({ id: 5 })
+    expect(toast.success).toHaveBeenCalledWith('trip.toast.reservationAdded')
+    expect(fixed.setShowTransportModal).toHaveBeenCalledWith(false)
   })
 })

@@ -1,6 +1,7 @@
 import React from 'react'
 import { Plug, Save, RefreshCw, Unplug } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
+import { useFormatDate } from '../../../hooks/useDateFormat'
 import { useDawarichConnection } from '../../../hooks/useDawarichConnection'
 import { MSetCard, MSetRow, MSetInput, MSetButton, MSetHint } from './MSettingsUi'
 import MToggle from '../../components/MToggle'
@@ -14,7 +15,8 @@ import MToggle from '../../components/MToggle'
  * sync logic would spend the whole budget on its own.
  */
 export default function MDawarichConnectionSection(): React.ReactElement {
-  const { t, locale } = useTranslation()
+  const { t } = useTranslation()
+  const { formatDateTime } = useFormatDate()
   const S = useDawarichConnection()
 
   return (
@@ -92,7 +94,7 @@ export default function MDawarichConnectionSection(): React.ReactElement {
         {S.connected && (
           <p className="font-geist text-[0.625rem] leading-relaxed text-m-muted">
             {S.lastSyncAt
-              ? t('dawarich.lastSync', { when: new Date(S.lastSyncAt).toLocaleString(locale) })
+              ? t('dawarich.lastSync', { when: formatDateTime(new Date(S.lastSyncAt)) })
               : t('dawarich.neverSynced')}
           </p>
         )}

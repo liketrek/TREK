@@ -96,6 +96,8 @@ const dashboard: TranslationStrings = {
   'dashboard.unsplashQueryRequired': 'Voer een zoekterm in',
   'dashboard.unsplashNoResults': 'Geen afbeeldingen gevonden',
   'dashboard.coverSearchError': 'Zoeken op Unsplash mislukt',
+  'dashboard.unsplashKeyNeeded':
+    'Unsplash heeft deze server geweigerd. Een beheerder kan in de beheerinstellingen een gratis Unsplash-API-sleutel toevoegen, dan werkt het zoeken naar afbeeldingen.',
   'dashboard.useUnsplashPhoto': 'Unsplash-foto van {photographer} gebruiken',
   'dashboard.titleRequired': 'Titel is verplicht',
   'dashboard.endDateError': 'Einddatum moet na de startdatum liggen',

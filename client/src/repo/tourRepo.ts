@@ -1,5 +1,5 @@
 import { computeTourMetrics, estimatePaddleTime, paddleCheckSummaryOf, paddleLayoutOfTrack, paddleMovingSeconds, recommendedPaddleSpeedKmh, type GeometryPoint, type TourActivityAssignRequest, type TourObstacleCheck, type TourObstacleReviewsRequest, type TourPaddlePlanRequest, type TourSkiClassificationRequest, type TourCreateRequest, type TourCreateResponse, type TourDetailResponse, type TourGpxImportFields, type TourGpxPreviewResponse, type TourImportGpxResponse, type TourListItem, type TourWaypoint, walkStationFacts } from '@trek/shared'
-import { toursApi } from '../api/client'
+import { placesApi, toursApi } from '../api/client'
 import { tourGpxApi } from '../api/tourGpx'
 import { recordedTrackApi } from '../api/recordedTrack'
 import { tourActivitiesApi } from '../api/tourActivities'
@@ -497,6 +497,19 @@ export const tourRepo = {
     const result = await tourGpxApi.import(tripId, file, fields)
     await offlineDb.tours.bulkPut(result.tours.map(tour => ({ ...tour, trip_id: Number(tripId) })))
     return result
+  },
+
+  /**
+   * The single points of a file (GPX waypoints, KML pins) added as places of
+   * the trip through the places import, which reads nothing else of it here
+   * (#2969). Online only, like the Tours import beside it. Answers how many
+   * places came in.
+   */
+  async importFilePoints(tripId: number | string, file: File): Promise<number> {
+    const result = file.name.toLowerCase().endsWith('.gpx')
+      ? await placesApi.importGpx(tripId, file, { waypoints: true, routes: false, tracks: false })
+      : await placesApi.importMapFile(tripId, file, { points: true, paths: false })
+    return result.count ?? 0
   },
 
   /** Reads a GPX, KML or KMZ file for its preview; online only, like the import, and nothing is cached. */

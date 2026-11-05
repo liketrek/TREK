@@ -1,6 +1,25 @@
-import React from 'react';
 import * as LucideIcons from 'lucide-react';
-import { Bike, Check, Footprints, Landmark, Plane, Sailboat, Snowflake, Sparkles, Star, TrendingUp } from 'lucide-react';
+import {
+  Bike,
+  Check,
+  Clock,
+  Coffee,
+  Footprints,
+  Globe,
+  Image as ImageIcon,
+  Landmark,
+  MapPin,
+  Phone,
+  Plane,
+  Sailboat,
+  Search,
+  Snowflake,
+  Sparkles,
+  Star,
+  TrendingUp,
+  Zap,
+} from 'lucide-react';
+import React from 'react';
 import './releaseNoticeVisuals.css';
 
 /*
@@ -127,8 +146,35 @@ function AssistantVisual() {
 
 // ── Help on every screen, in 27 languages: hello in each of them, drifting by ──
 
-const HELLO_A = ['Hallo', 'Bonjour', 'Hola', 'Ciao', 'Olá', 'Hej', 'Ahoj', 'Cześć', 'Szia', 'Tere', 'Salam', 'Bon dia', 'Halo'];
-const HELLO_B = ['Привіт', 'Привет', 'Γεια σου', 'مرحبا', 'こんにちは', '안녕하세요', '你好', '哈囉', 'สวัสดี', 'Xin chào', 'Merhaba', 'Dobrý deň'];
+const HELLO_A = [
+  'Hallo',
+  'Bonjour',
+  'Hola',
+  'Ciao',
+  'Olá',
+  'Hej',
+  'Ahoj',
+  'Cześć',
+  'Szia',
+  'Tere',
+  'Salam',
+  'Bon dia',
+  'Halo',
+];
+const HELLO_B = [
+  'Привіт',
+  'Привет',
+  'Γεια σου',
+  'مرحبا',
+  'こんにちは',
+  '안녕하세요',
+  '你好',
+  '哈囉',
+  'สวัสดี',
+  'Xin chào',
+  'Merhaba',
+  'Dobrý deň',
+];
 
 function HelloRow({ words, reverse }: { words: string[]; reverse?: boolean }) {
   // Written twice, so the row can slide by half its width and start over without a seam.
@@ -156,19 +202,133 @@ function HelpVisual() {
   );
 }
 
+// ── Place search: a query typed into the search field, the right place on top ──
+
+const RESULTS: Array<{ name: string; Kind: React.ElementType; tone: string }> = [
+  { name: 'Kölner Dom', Kind: Landmark, tone: 'sight' },
+  { name: 'CGN', Kind: Plane, tone: 'air' },
+  { name: 'Café Reichard', Kind: Coffee, tone: 'food' },
+];
+
+function SearchVisual() {
+  return (
+    <div className="rn-vis rn-vis-search">
+      <div className="rn-vis-search-field">
+        <Search size={10} strokeWidth={2.6} />
+        <span className="rn-vis-search-query">Kölner Dom</span>
+        <span className="rn-vis-search-caret" />
+      </div>
+      <div className="rn-vis-search-list">
+        {RESULTS.map(({ name, Kind, tone }, i) => (
+          <div
+            key={name}
+            className={i === 0 ? 'rn-vis-search-row rn-vis-search-row-top' : 'rn-vis-search-row'}
+            style={{ animationDelay: `${1.3 + i * 0.16}s` }}
+          >
+            <span className={`rn-vis-search-pin rn-vis-search-pin-${tone}`}>
+              <Kind size={8} strokeWidth={2.6} />
+            </span>
+            <span className="rn-vis-search-name">{name}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Place details, shared: one place's details travelling out to other TREKs ──
+
+const DETAILS = [Globe, Clock, Phone, ImageIcon];
+
+function ShareVisual() {
+  return (
+    <div className="rn-vis rn-vis-share">
+      <svg className="rn-vis-share-links" viewBox="0 0 200 112" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M82 56 C 110 56, 120 24, 156 22" />
+        <path d="M82 56 C 112 56, 126 56, 160 56" />
+        <path d="M82 56 C 110 56, 120 88, 156 90" />
+      </svg>
+      <div className="rn-vis-share-card">
+        <span className="rn-vis-share-pin">
+          <MapPin size={11} strokeWidth={2.4} />
+        </span>
+        <div className="rn-vis-share-fields">
+          {DETAILS.map((Detail, i) => (
+            <span key={i} className="rn-vis-share-field" style={{ animationDelay: `${0.5 + i * 0.18}s` }}>
+              <Detail size={8} strokeWidth={2.4} />
+              <i />
+            </span>
+          ))}
+        </div>
+      </div>
+      {['top', 'mid', 'bottom'].map((at, i) => (
+        <span
+          key={at}
+          className={`rn-vis-share-node rn-vis-share-node-${at}`}
+          style={{ animationDelay: `${1.5 + i * 0.2}s` }}
+        >
+          <img src="/icons/icon-white.svg" alt="" />
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// ── Routing: a day's stops joined in one go ──
+
+const DAY_ROUTE = 'M16 92 C 34 78, 42 84, 56 70 S 76 40, 96 48 S 120 78, 138 62 S 160 26, 184 22';
+const DAY_STOPS: Array<[number, number]> = [
+  [16, 92],
+  [56, 70],
+  [96, 48],
+  [138, 62],
+  [184, 22],
+];
+
+function RoutingVisual() {
+  return (
+    <div className="rn-vis rn-vis-route">
+      <svg className="rn-vis-route-map" viewBox="0 0 200 112" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <path
+          className="rn-vis-route-street"
+          d="M0 30 L200 44 M0 76 L200 64 M40 0 L64 112 M118 0 L104 112 M168 0 L176 112"
+        />
+        <path className="rn-vis-route-water" d="M0 104 C 50 96, 90 112, 140 102 S 190 98, 200 100 V112 H0 Z" />
+        <path className="rn-vis-route-line" d={DAY_ROUTE} pathLength={1} />
+        {DAY_STOPS.map(([cx, cy], i) => (
+          <circle
+            key={i}
+            className="rn-vis-route-stop"
+            cx={cx}
+            cy={cy}
+            r="4.2"
+            style={{ animationDelay: `${0.3 + i * 0.22}s` }}
+          />
+        ))}
+      </svg>
+      <span className="rn-vis-route-badge">
+        <Zap size={9} strokeWidth={2.6} />
+        20
+      </span>
+    </div>
+  );
+}
+
 const VISUALS: Record<string, () => React.ReactElement> = {
   tours: ToursVisual,
   studio: StudioVisual,
   assistant: AssistantVisual,
   help: HelpVisual,
+  search: SearchVisual,
+  share: ShareVisual,
+  routing: RoutingVisual,
 };
 
 /** The card's picture, or its icon when the release names no drawing this client knows. */
 export function ReleaseFeatureVisual({ visual, iconName }: { visual?: string; iconName: string }) {
   const Drawing = visual ? VISUALS[visual] : undefined;
   if (Drawing) return <Drawing />;
-  const Icon: React.ElementType =
-    ((LucideIcons as Record<string, unknown>)[iconName] as React.ElementType) ?? Sparkles;
+  const Icon: React.ElementType = ((LucideIcons as Record<string, unknown>)[iconName] as React.ElementType) ?? Sparkles;
   return (
     <div className="rn-vis rn-vis-icon">
       <Icon size={30} strokeWidth={1.6} aria-hidden="true" />

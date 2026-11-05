@@ -69,6 +69,8 @@ const dayplan: TranslationStrings = {
   'dayplan.pdf': 'PDF',
   'dayplan.pdfTooltip': 'Εξαγωγή ημερήσιου πλάνου ως PDF',
   'dayplan.pdfMine': 'Το πλάνο μου σε PDF',
+  'dayplan.pdfRouting': 'Υπολογισμός διαδρομών: {done} από {total}',
+  'dayplan.pdfSkipRouting': 'Εξαγωγή χωρίς τις υπόλοιπες διαδρομές',
   'dayplan.pdfMineSub': 'Μόνο οι δραστηριότητες και οι κρατήσεις στις οποίες συμμετέχετε',
   'dayplan.gpxTooltip': 'Εξαγωγή ως GPX για χάρτες εκτός σύνδεσης και συσκευές GPS',
   'dayplan.gpxAll': 'Όλο το ταξίδι',

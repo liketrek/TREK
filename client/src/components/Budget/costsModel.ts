@@ -1,6 +1,8 @@
 import type { BudgetParticipantFinal, BudgetUnconverted, CostCategory } from '@trek/shared';
-import { convertBooked, convertedLine, tripAmountOf } from '../../hooks/useExchangeRates';
+import { readDateFormat } from '../../hooks/useDateFormat';
+import { convertBooked, convertedLine, inDisplayCurrency, tripAmountOf } from '../../hooks/useExchangeRates';
 import type { BudgetItem } from '../../types';
+import { formatDisplayDate } from '../../utils/dateFormat';
 import { currencyDecimals } from '../../utils/formatters';
 import { currenciesWith, SYMBOLS } from './BudgetPanel.constants';
 import { paidByUser, readUserNote, settlementDate, splitEqualShares } from './CostsPanel.helpers';
@@ -30,8 +32,12 @@ export function currencyOf(e: BudgetItem, ctx: CostsCtx): string {
   return (e.currency || ctx.tripCurrency).toUpperCase();
 }
 
-/** An amount of this expense in the display currency, at the rate the expense was booked at. */
+/**
+ * An amount of this expense in the display currency, at the rate the expense was booked at;
+ * as typed when it was entered in the display currency (#2965).
+ */
 export function booked(amount: number, e: BudgetItem, ctx: CostsCtx): number {
+  if (inDisplayCurrency(e.currency, ctx.tripCurrency, ctx.displayCurrency)) return amount;
   return convertBooked(amount, e.currency, e.exchange_rate, ctx.tripCurrency, ctx.convert);
 }
 
@@ -130,9 +136,14 @@ function paymentCurrency(s: CostsSettlement, ctx: CostsCtx): string {
   return (s.currency || ctx.displayCurrency).toUpperCase();
 }
 
-/** A recorded payment in the display currency, at the rate frozen when it was settled (#1445). */
+/**
+ * A recorded payment in the display currency, at the rate frozen when it was settled (#1445);
+ * as entered when it was made in the display currency (#2965).
+ */
 export function paymentAmount(s: CostsSettlement, ctx: CostsCtx): number {
-  return convertBooked(s.amount, paymentCurrency(s, ctx), s.exchange_rate, ctx.tripCurrency, ctx.convert);
+  const currency = paymentCurrency(s, ctx);
+  if (inDisplayCurrency(currency, ctx.tripCurrency, ctx.displayCurrency)) return s.amount;
+  return convertBooked(s.amount, currency, s.exchange_rate, ctx.tripCurrency, ctx.convert);
 }
 
 /** The line under a payment shown converted, explained the way an expense's is (#2525). */
@@ -369,12 +380,17 @@ export function buildCostsCsv(items: BudgetItem[], opts: CsvBuildOptions): { fil
   const fmtDate = (iso: string) => {
     if (!iso) return '';
     try {
-      return new Date(iso + 'T00:00:00Z').toLocaleDateString(opts.locale, {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        timeZone: 'UTC',
-      });
+      return formatDisplayDate(
+        new Date(iso + 'T00:00:00Z'),
+        opts.locale,
+        {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          timeZone: 'UTC',
+        },
+        readDateFormat()
+      );
     } catch {
       return iso;
     }

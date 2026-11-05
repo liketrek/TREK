@@ -7,6 +7,7 @@ import {
   aiHostOf,
   aiRefusal,
   openrouterOAuthAvailable,
+  ownServerChatBase,
   providerRefusal,
 } from '../../../../src/nest/ai-connections/ai-connections.constants';
 import { InMemoryAiRefreshLock } from '../../../../src/nest/ai-connections/ai-refresh-lock';
@@ -127,12 +128,32 @@ describe('constants', () => {
     });
   });
 
+  it('AIHLP-031b: an own server that answered without a model list says so in reason (#2808)', () => {
+    const err = providerRefusal(new AiProviderError('provider_unavailable', 404, true, undefined, 'no_model_list'));
+    expect(err.getStatus()).toBe(502);
+    expect(err.toBody()).toEqual({
+      error: 'The server answered, but sent no model list',
+      code: 'provider_unavailable',
+      reason: 'no_model_list',
+    });
+  });
+
   it('AIHLP-032: the host a conversation goes to', () => {
     expect(aiHostOf('anthropic', null)).toBe('api.anthropic.com');
     expect(aiHostOf('chatgpt', null)).toBe('api.openai.com');
     expect(aiHostOf('custom', 'http://ollama.lan:11434/v1')).toBe('ollama.lan:11434');
     expect(aiHostOf('custom', 'not a url')).toBe('');
     expect(aiHostOf('custom', null)).toBe('');
+  });
+
+  it('AIHLP-032b: a bare own server address chats under /v1, an address with a path as entered', () => {
+    expect(ownServerChatBase('http://ollama.lan:11434')).toBe('http://ollama.lan:11434/v1');
+    expect(ownServerChatBase(' http://ollama.lan:11434/ ')).toBe('http://ollama.lan:11434/v1');
+    expect(ownServerChatBase('http://ollama.lan:11434/v1/')).toBe('http://ollama.lan:11434/v1');
+    expect(ownServerChatBase('https://api.groq.com/openai/v1')).toBe('https://api.groq.com/openai/v1');
+    expect(ownServerChatBase('https://llm.example.org/proxy')).toBe('https://llm.example.org/proxy');
+    expect(ownServerChatBase('not a url')).toBe('not a url');
+    expect(ownServerChatBase(null)).toBe('');
   });
 
   it('AIHLP-033: OpenRouter sign-in is offered only on an https app URL', () => {

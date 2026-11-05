@@ -317,18 +317,18 @@ export function useAtlas() {
     }
     if (!toLoad.length) return
     for (const code of toLoad) pendingRegionCodes.current.add(code)
-    apiClient.get(`/addons/atlas/regions/geo?countries=${toLoad.join(',')}`)
+    // One stable URL per country, so a country evicted by REGION_CACHE_MAX or seen on an earlier
+    // visit comes back from the browser cache. Every request settles; the layer rebuilds once.
+    void Promise.all(toLoad.map(c => apiClient.get(`/addons/atlas/regions/geo/${c}`)
       .then(geoRes => {
-        const geo = geoRes.data
-        if (!geo?.features) return
-        let added = false
-        for (const c of toLoad) {
-          const features = geo.features.filter((f: any) => f.properties?.iso_a2?.toUpperCase() === c)
-          if (features.length > 0) { regionGeoCache.current[c] = { type: 'FeatureCollection', features }; touchRegionCode(c); added = true }
-        }
-        if (added) { evictRegionCache(); setRegionGeoLoaded(v => v + 1) }
+        const features = (geoRes.data?.features || []).filter((f: any) => f.properties?.iso_a2?.toUpperCase() === c)
+        if (features.length === 0) return false
+        regionGeoCache.current[c] = { type: 'FeatureCollection', features }
+        touchRegionCode(c)
+        return true
       })
-      .catch(() => {})
+      .catch(() => false)))
+      .then(added => { if (added.some(Boolean)) { evictRegionCache(); setRegionGeoLoaded(v => v + 1) } })
       .finally(() => { for (const code of toLoad) pendingRegionCodes.current.delete(code) })
   }
   loadRegionsForViewportRef.current = loadRegionsForViewport

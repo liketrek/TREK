@@ -1,5 +1,5 @@
 import { useId, useMemo, useState } from 'react'
-import { FolderPlus, Loader2, Search } from 'lucide-react'
+import { FolderPlus, KeyRound, Loader2, Search } from 'lucide-react'
 import { DialogHeader, DialogShell, DialogTile, NEUTRAL_TINT } from '../../shared/DialogShell'
 import { useTranslation } from '../../../i18n/TranslationContext'
 import type { DocSyncConnection, useDocSync } from './useDocSync'
@@ -22,6 +22,7 @@ export default function DocSyncScopeModal({
   sync,
   onClose,
   onBound,
+  onEditConnection,
 }: {
   connection: DocSyncConnection
   providerName: string
@@ -30,6 +31,8 @@ export default function DocSyncScopeModal({
   sync: ReturnType<typeof useDocSync>
   onClose: () => void
   onBound: () => void
+  /** Back to the stored connection, to change the login or remove it before choosing a folder. */
+  onEditConnection?: () => void
 }) {
   const { t } = useTranslation()
   const labelId = useId()
@@ -63,7 +66,19 @@ export default function DocSyncScopeModal({
       )}
     >
       <div className="space-y-4">
-        <p className="text-caption text-content-muted">{t('docsync.scope.intro')}</p>
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-caption text-content-muted">{t('docsync.scope.intro')}</p>
+          {onEditConnection && (
+            <button
+              type="button"
+              onClick={onEditConnection}
+              className="flex shrink-0 items-center gap-1.5 rounded-lg border border-edge px-2.5 py-1 text-caption font-medium text-content-secondary transition-colors hover:bg-surface-hover"
+            >
+              <KeyRound size={13} />
+              {t('docsync.connection.edit')}
+            </button>
+          )}
+        </div>
 
         <div className="rounded-xl border border-edge bg-surface-secondary p-3">
           <span className="mb-2 block text-body font-medium text-content">{t('docsync.scope.createTitle')}</span>

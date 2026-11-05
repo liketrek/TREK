@@ -88,3 +88,44 @@ describe('collapseRepeatedBookingTotal (#2651)', () => {
     expect(collapseRepeatedBookingTotal([nodes[0]], TOTAL)).toEqual([nodes[0]]);
   });
 });
+
+describe('collapseRepeatedBookingTotal on a ticket with changes (#2895)', () => {
+  const rail = (train: string, departureTime: string, price?: unknown, type = 'TrainReservation') =>
+    leg(train, departureTime, price, { currency: 'EUR', ref: '297199016704', type });
+  const TICKET = 'Ihre Fahrkarte\nGesamtpreis 71,67 EUR';
+
+  it('keeps the total a rail ticket repeats on every segment on the first train only', () => {
+    const nodes = [
+      rail('S1', '2026-07-04T06:12', 71.67),
+      rail('ICE 116', '2026-07-04T06:40', 71.67),
+      rail('S1', '2026-07-04T13:05', 71.67),
+      rail('STR 7', '2026-07-04T13:41', 71.67),
+    ];
+    expect(prices(collapseRepeatedBookingTotal(nodes, TICKET))).toEqual([71.67, null, null, null]);
+  });
+
+  it('does the same for a bus or a ferry ticket', () => {
+    for (const type of ['BusReservation', 'BoatReservation']) {
+      const nodes = [rail('A', '2026-07-04T06:12', 71.67, type), rail('B', '2026-07-04T09:00', 71.67, type)];
+      expect(prices(collapseRepeatedBookingTotal(nodes, TICKET))).toEqual([71.67, null]);
+    }
+  });
+
+  it('books a total once across a ticket that mixes kinds of transport', () => {
+    const railAndFly = [
+      rail('LH 1', '2026-07-04T13:05', 71.67, 'FlightReservation'),
+      rail('ICE 116', '2026-07-04T06:40', 71.67),
+    ];
+    expect(prices(collapseRepeatedBookingTotal(railAndFly, TICKET))).toEqual([null, 71.67]);
+    const replacementBus = [
+      rail('ICE 116', '2026-07-04T06:40', 71.67),
+      rail('SEV', '2026-07-04T13:05', 71.67, 'BusReservation'),
+    ];
+    expect(prices(collapseRepeatedBookingTotal(replacementBus, TICKET))).toEqual([71.67, null]);
+  });
+
+  it('leaves fares that differ alone', () => {
+    const fares = [rail('S1', '2026-07-04T06:12', 10), rail('ICE 116', '2026-07-04T06:40', 61.67)];
+    expect(collapseRepeatedBookingTotal(fares, TICKET)).toBe(fares);
+  });
+});

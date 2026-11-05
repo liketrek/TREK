@@ -17,6 +17,7 @@ describe('Atlas admin0 country bundle (#1609)', () => {
   const bundlePath = path.join(__dirname, '..', '..', '..', 'assets', 'atlas', 'admin0.geojson.gz');
   const features = JSON.parse(zlib.gunzipSync(fs.readFileSync(bundlePath)).toString()).features as {
     properties: { ISO_A2: string | null; ADM0_A3: string; NAME?: string };
+    geometry: { type: string; coordinates: number[][][] | number[][][][] } | null;
   }[];
 
   it('ATLAS-BUNDLE-003 — Kosovo ships with a resolvable ISO_A2', () => {
@@ -24,15 +25,87 @@ describe('Atlas admin0 country bundle (#1609)', () => {
     expect(kosovo.length, 'exactly one Kosovo feature').toBe(1);
     expect(kosovo[0].properties.ISO_A2).toBe('XK');
   });
+
+  // The server's country index keeps every coordinate in an Int16Array ×100 (ADMIN0_SCALE in
+  // country-borders.ts) and divides it back on use. A value with a third decimal comes back
+  // changed, and one past ±327.67 wraps around without an error, so a rebuild with more
+  // decimals (ADM0_DECIMALS) must fail here, not move borders.
+  it('ATLAS-BUNDLE-010 — every admin0 coordinate round-trips through Int16 ×100 unchanged', () => {
+    const int16 = new Int16Array(1);
+    let values = 0;
+    const lossy: string[] = [];
+    for (const f of features) {
+      const g = f.geometry;
+      if (!g) continue;
+      const parts = (g.type === 'Polygon' ? [g.coordinates] : g.coordinates) as number[][][][];
+      for (const v of parts.flat(3)) {
+        values++;
+        int16[0] = Math.round(v * 100);
+        if (int16[0] / 100 !== v) lossy.push(`${f.properties.ADM0_A3}: ${v} comes back as ${int16[0] / 100}`);
+      }
+    }
+    expect(values / 2, 'coordinate pairs checked').toBeGreaterThan(2_000_000);
+    expect(lossy.slice(0, 5)).toEqual([]);
+  });
 });
 
 describe('Atlas admin1 region bundle (#1217)', () => {
-  const bundlePath = path.join(__dirname, '..', '..', '..', 'assets', 'atlas', 'admin1.geojson.gz');
-  const features = JSON.parse(zlib.gunzipSync(fs.readFileSync(bundlePath)).toString()).features as {
+  const dir = path.join(__dirname, '..', '..', '..', 'assets', 'atlas', 'admin1');
+  const files = fs
+    .readdirSync(dir)
+    .filter((name) => name.endsWith('.geojson.gz'))
+    .map((name) => ({ name, text: zlib.gunzipSync(fs.readFileSync(path.join(dir, name))).toString() }));
+  const features = files.flatMap(({ text }) => JSON.parse(text).features) as {
     properties: { iso_a2: string | null; iso_3166_2: string };
   }[];
 
   const regions = (a2: string) => features.filter((f) => f.properties.iso_a2 === a2);
+
+  // The server joins countries for /regions/geo?countries= by cutting each file's
+  // features out between these two, and a lookup reads the file its name points at.
+  it('ATLAS-BUNDLE-007 — one compact FeatureCollection per country, named by its ISO_A2', () => {
+    expect(files.length).toBeGreaterThan(150);
+    for (const { name, text } of files) {
+      expect(text.startsWith('{"type":"FeatureCollection","features":[{'), name).toBe(true);
+      expect(text.endsWith('}]}'), name).toBe(true);
+      const a2s = new Set(
+        JSON.parse(text).features.map((f: { properties: { iso_a2: string } }) => f.properties.iso_a2),
+      );
+      expect(
+        [...a2s].map((a2) => `${a2}.geojson.gz`),
+        name,
+      ).toEqual([name]);
+    }
+  });
+
+  // admin1.geojson.gz stays for the two shipped migrations that read it; the server reads
+  // the per-country files. Both have to carry the same regions.
+  it('ATLAS-BUNDLE-008 — the per-country files hold exactly the features of admin1.geojson.gz', () => {
+    const bundle = JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(dir, '..', 'admin1.geojson.gz'))).toString())
+      .features as unknown[];
+    const key = (f: unknown) => JSON.stringify(f);
+    expect(features.map(key).sort()).toEqual(bundle.map(key).sort());
+  });
+
+  // The server's region cache keeps every coordinate as an Int32 ×1000 (REGION_SCALE in
+  // atlas-geo.ts) and divides it back on use. That is exact only while the bundle has no more
+  // than three decimals (ADM1_DECIMALS); a rebuild with more must raise the scale with it.
+  it('ATLAS-BUNDLE-009 — every admin1 coordinate round-trips through Int32 ×1000 unchanged', () => {
+    type Geometry = { type: string; coordinates: number[][][] | number[][][][] };
+    let values = 0;
+    const lossy: string[] = [];
+    for (const f of features as unknown as { properties: { iso_3166_2: string }; geometry: Geometry }[]) {
+      const g = f.geometry;
+      const parts = (g.type === 'Polygon' ? [g.coordinates] : g.coordinates) as number[][][][];
+      for (const v of parts.flat(3)) {
+        values++;
+        const packed = Math.round(v * 1000);
+        if (packed / 1000 !== v || Math.abs(packed) > 2 ** 31 - 1) lossy.push(`${f.properties.iso_3166_2}: ${v}`);
+      }
+    }
+    expect(values / 2, 'coordinate pairs checked').toBeGreaterThan(3_000_000);
+    expect(lossy.slice(0, 5)).toEqual([]);
+  });
 
   it('ATLAS-BUNDLE-001 — previously-broken countries now have distinct region codes', () => {
     for (const a2 of ['ES', 'CN', 'CL', 'OM']) {

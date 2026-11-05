@@ -1185,9 +1185,14 @@ describe('MapView map event wiring', () => {
   it('FE-COMP-MAPVIEW-046: a map-click handler is attached and detached again', () => {
     const onMapClick = vi.fn()
     const { unmount } = render(<MapView onMapClick={onMapClick} />)
-    expect(mapMock.on).toHaveBeenCalledWith('click', onMapClick)
+    const bound = mapMock.on.mock.calls.find(c => c[0] === 'click')?.[1]
+    expect(bound).toEqual(expect.any(Function))
+    // A click on the real world reaches the caller as the very event the map fired.
+    const event = { latlng: { lat: 48, lng: 2 } }
+    bound(event)
+    expect(onMapClick).toHaveBeenCalledWith(event)
     unmount()
-    expect(mapMock.off).toHaveBeenCalledWith('click', onMapClick)
+    expect(mapMock.off).toHaveBeenCalledWith('click', bound)
   })
 
   it('FE-COMP-MAPVIEW-047: without a click handler nothing is bound', () => {
@@ -1198,9 +1203,13 @@ describe('MapView map event wiring', () => {
   it('FE-COMP-MAPVIEW-048: a context-menu handler is attached and detached again', () => {
     const onMapContextMenu = vi.fn()
     const { unmount } = render(<MapView onMapContextMenu={onMapContextMenu} />)
-    expect(mapMock.on).toHaveBeenCalledWith('contextmenu', onMapContextMenu)
+    const bound = mapMock.on.mock.calls.find(c => c[0] === 'contextmenu')?.[1]
+    expect(bound).toEqual(expect.any(Function))
+    const event = { latlng: { lat: 48, lng: 2 } }
+    bound(event)
+    expect(onMapContextMenu).toHaveBeenCalledWith(event)
     unmount()
-    expect(mapMock.off).toHaveBeenCalledWith('contextmenu', onMapContextMenu)
+    expect(mapMock.off).toHaveBeenCalledWith('contextmenu', bound)
   })
 
   it('FE-COMP-MAPVIEW-049: changing the center prop moves the camera there', () => {

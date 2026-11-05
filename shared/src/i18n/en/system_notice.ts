@@ -52,23 +52,20 @@ const system_notice: TranslationStrings = {
   'system_notice.thank_you_support.cta_kofi': 'Support on Ko-fi',
   // The release modal. One stable set of keys: each big release swaps the copy in place.
   'system_notice.release_notes.eyebrow': 'Update installed',
-  'system_notice.release_notes.headline': 'The biggest TREK yet.',
+  'system_notice.release_notes.headline': 'The right place, first.',
   'system_notice.release_notes.intro':
-    'Tours for every kind of day outdoors, a studio for your photo books, an assistant that plans with you, and help on every screen.',
+    "Place search, address search and routing now run on TREK's own servers, sponsored by dataforest cloud, and every TREK can share what it knows about places with all the others.",
   'system_notice.release_notes.features_label': 'The headliners',
   'system_notice.release_notes.features_aside': 'Far from everything',
-  'system_notice.release_notes.feature_tours_title': 'Tours',
-  'system_notice.release_notes.feature_tours_body':
-    'Hikes, bike tours, runs, rides, paddling, city walks and ski days, with an elevation profile, grades and a 3D flyover.',
-  'system_notice.release_notes.feature_studio_title': 'TREK Studio',
-  'system_notice.release_notes.feature_studio_body':
-    'Turns a journey into a designed photo book: 17 themes, 34 typefaces, 160 stickers and auto layout in one click.',
-  'system_notice.release_notes.feature_assistant_title': 'AI Assistant',
-  'system_notice.release_notes.feature_assistant_body':
-    'Plans with you on your real trips, using the AI account you already have. You see every change first and can undo it.',
-  'system_notice.release_notes.feature_help_title': 'Help on every screen, in 27 languages',
-  'system_notice.release_notes.feature_help_body':
-    'About 370 step-by-step guides with 1,600 pictures, right where you need them. New: Azerbaijani, Estonian, Slovak and Thai.',
+  'system_notice.release_notes.feature_search_title': 'Place search that gets it right',
+  'system_notice.release_notes.feature_search_body':
+    'Cities, islands, landmarks and airports by their code come first, cafés come from around you, and suggestions appear while you type.',
+  'system_notice.release_notes.feature_share_title': 'Place details, shared',
+  'system_notice.release_notes.feature_share_body':
+    'Share websites, opening hours and photos with every TREK, field by field, and your saved places pick up what others added.',
+  'system_notice.release_notes.feature_routing_title': 'Faster routing',
+  'system_notice.release_notes.feature_routing_body':
+    'A whole day routes in one go with up to twenty stops, one slow route no longer holds up the rest, and transit asks a second provider when the first finds nothing.',
   'system_notice.release_notes.footnote': 'Plus a long list of smaller changes across the rest of TREK.',
   'system_notice.release_notes.notes_label': 'Release notes',
   'system_notice.release_notes.note_eyebrow': 'A note from the maintainer',
@@ -82,10 +79,10 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.note_body_after':
     'Then you did. Within a few months there were thousands of you: stars, bug reports, translations into languages I do not speak, pull requests from people I have never met. I still check the repository first thing every morning, and it still does not quite feel real.',
   'system_notice.release_notes.note_closing': 'Thank you for being here, from Maurice.',
-  'system_notice.release_notes.support_lead':
-    'TREK is free and always will be, but servers, domains and a lot of late nights are not.',
+  'system_notice.release_notes.support_label': 'Staying independent',
+  'system_notice.release_notes.support_lead': 'Without Google and co.',
   'system_notice.release_notes.support_text':
-    'If it has earned a place in your trips, buy me a coffee and help keep the next release coming.',
+    "Place search, address search and routing run on TREK's own servers, sponsored by dataforest cloud today. I fight for that every day, and keeping it that way takes your support.",
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
   'system_notice.release_notes.cta_kofi': 'Support on Ko-fi',
   'system_notice.pager.prev': 'Previous notice',

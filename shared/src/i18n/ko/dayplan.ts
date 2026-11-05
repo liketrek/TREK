@@ -69,6 +69,8 @@ const dayplan: TranslationStrings = {
   'dayplan.pdf': 'PDF',
   'dayplan.pdfTooltip': '일별 계획을 PDF로 내보내기',
   'dayplan.pdfMine': '내 계획을 PDF로',
+  'dayplan.pdfRouting': '경로 계산 중: {done}/{total}',
+  'dayplan.pdfSkipRouting': '남은 경로 없이 내보내기',
   'dayplan.pdfMineSub': '내가 참여하는 활동과 예약만',
   'dayplan.gpxTooltip': '오프라인 지도와 GPS 기기용 GPX로 내보내기',
   'dayplan.gpxAll': '여행 전체',

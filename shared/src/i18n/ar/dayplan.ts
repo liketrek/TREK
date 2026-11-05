@@ -60,6 +60,8 @@ const dayplan: TranslationStrings = {
   'dayplan.pendingRes': 'قيد الانتظار',
   'dayplan.pdfTooltip': 'تصدير خطة اليوم بصيغة PDF',
   'dayplan.pdfMine': 'خطتي بصيغة PDF',
+  'dayplan.pdfRouting': 'جارٍ حساب المسارات: {done} من {total}',
+  'dayplan.pdfSkipRouting': 'التصدير دون المسارات المتبقية',
   'dayplan.pdfMineSub': 'الأنشطة والحجوزات التي تشارك فيها فقط',
   'dayplan.gpxTooltip': 'تصدير كملف GPX للخرائط دون اتصال وأجهزة GPS',
   'dayplan.gpxAll': 'الرحلة كاملة',

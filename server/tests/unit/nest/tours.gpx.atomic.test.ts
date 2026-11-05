@@ -27,8 +27,8 @@ import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { ToursService } from '../../../src/nest/tours/tours.service';
 import { UnsplashService } from '../../../src/nest/unsplash/unsplash.service';
 import { accommodationsOver } from '../../helpers/accommodations-service';
-import { createTrip, createUser } from '../../helpers/factories';
-import { countRows, findRows } from '../../helpers/factories/rows';
+import { createPlace, createTrip, createUser } from '../../helpers/factories';
+import { countRows, findRows, updateRows } from '../../helpers/factories/rows';
 import { noPaddleChecks } from '../../helpers/fake-paddle-checks';
 import { tourStageDays } from '../../helpers/fake-tour-stage-days';
 import { createTestBudgetItemsRepo } from '../../helpers/files-repos';
@@ -57,7 +57,6 @@ import {
   createTestDayAssignmentsRepo,
   createTestCategoriesRepo,
   createTestTripsRepo,
-  createTestCollectionPlacesRepo,
   sharedTestOrm,
 } from '../../helpers/test-uow';
 import {
@@ -86,7 +85,7 @@ const mixedGpx = Buffer.from(`<gpx>
   </trkseg><trkseg><trkpt lat="49.02" lon="12.02"><ele>120</ele></trkpt></trkseg></trk>
 </gpx>`);
 
-const TRIGGERS = ['fail_facet', 'fail_place', 'fail_color'];
+const TRIGGERS = ['fail_facet', 'fail_place', 'fail_color', 'fail_adopt'];
 
 /** The collaborator set the container hands PlacesService (the places.service.test.ts builder). */
 async function makePlacesService(): Promise<PlacesService> {
@@ -139,7 +138,7 @@ async function makePlacesService(): Promise<PlacesService> {
     await createTestCategoriesRepo(testDb),
     await createTestTripsRepo(testDb),
     await createTestBudgetItemsRepo(testDb),
-    await createTestCollectionPlacesRepo(testDb),
+    { releaseValues: async () => [] } as never, // StorageReleaseService
     buildPlaceImportService(),
   );
 }
@@ -314,6 +313,21 @@ describe('Tours GPX atomic persistence and postcommit publication', () => {
     await expectEmpty();
   });
 
+  it('rolls the new places back too when taking over a track from before Tours fails (#2810)', async () => {
+    const legacy = createPlace(testDb, Number(tripId), { name: 'Ridge' }).id;
+    await updateRows(
+      await sharedTestOrm(testDb),
+      Places,
+      { id: legacy },
+      { route_geometry: '[[49,12,100],[49.01,12.01,150]]' },
+    );
+    testDb.exec(`CREATE TRIGGER fail_adopt BEFORE INSERT ON tours WHEN NEW.place_id = ${legacy}
+      BEGIN SELECT RAISE(ABORT, 'adopt failure'); END;`);
+    await expect(tours.importGpxAsTour(tripId, mixedGpx)).rejects.toThrow('adopt failure');
+    expect(await Promise.all([count('places'), count('tours')])).toEqual([1, 0]);
+    expect(broadcast).not.toHaveBeenCalled();
+  });
+
   it('rolls back carriers and earlier colors when later coloring fails', async () => {
     testDb.exec(`CREATE TRIGGER fail_color BEFORE UPDATE OF route_color ON places WHEN NEW.name = 'Ridge'
       BEGIN SELECT RAISE(ABORT, 'color failure'); END;`);
@@ -403,9 +417,10 @@ describe('Tours GPX atomic persistence and postcommit publication', () => {
   });
 
   it('imports only the new tracks and publishes only committed rows in a mixed result', async () => {
+    // The same Ridge as in the mixed file, line and all: a track is a duplicate only of one that runs alike (#2870).
     const existing = Buffer.from(`<gpx><trk><name>Ridge</name><trkseg>
       <trkpt lat="49" lon="12"><ele>100</ele></trkpt><trkpt lat="49.01" lon="12.01"><ele>150</ele></trkpt>
-    </trkseg></trk></gpx>`);
+    </trkseg><trkseg><trkpt lat="49.02" lon="12.02"><ele>120</ele></trkpt></trkseg></trk></gpx>`);
     expect((await tours.importGpxAsTour(tripId, existing))?.tours).toHaveLength(1);
     broadcast.mockClear();
 

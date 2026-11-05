@@ -1120,7 +1120,7 @@ const help: TranslationStrings = {
   'help.ctx.settings.bullet.1':
     'Postranní panel vlevo: „Zobrazení“, „Vzhled“, „Mapa“, „Oznámení“, „Integrace“, „Offline“ a „Účet“. „Pluginy“ se zobrazí, jakmile je aktivní nějaký plugin. „O aplikaci“ se zobrazí, pokud ho provozovatel neskryl. Verze je uvedená dole.',
   'help.ctx.settings.bullet.2':
-    'Jako první se otevře „Zobrazení“. Obsahuje jazyk, jazyk názvů míst, jednotky, formát času, začátek týdne a zobrazovanou měnu a také chování mapy cesty. „Vzhled“ obsahuje motiv, barvy, čitelnost, velikost písma a widgety přehledu.',
+    'Jako první se otevře „Zobrazení“. Obsahuje jazyk, jazyk názvů míst, jednotky, formát času, formát data, začátek týdne a zobrazovanou měnu a také chování mapy cesty. „Vzhled“ obsahuje motiv, barvy, čitelnost, velikost písma a widgety přehledu.',
   'help.ctx.settings.bullet.3':
     '„Mapa“ určuje, čím se mapa vykresluje, a její styl; „Oznámení“ určuje, které události chodí kterým kanálem; „Integrace“ propojuje knihovny fotek, AirTrail, Dawarich a wanderer a obsahuje API klíče a MCP; „Offline“ určuje, co si toto zařízení ukládá.',
   'help.ctx.settings.bullet.4':
@@ -1131,7 +1131,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-display.bullet.1':
     '„Spuštění“: „Úvodní stránka“ otevře „Přehled“ nebo „Aktivní cesta“; u „Aktivní cesta“ vyberete v „Úvodní karta“, na které kartě se cesta otevře.',
   'help.ctx.settings-display.bullet.2':
-    'Jazyk a region: „Zobrazovaná měna“ (nebo „Měna cesty“ bez přepočtu), „Jazyk“, „Názvy míst“, „Jednotky teploty“, „Jednotky vzdálenosti“, „Formát času“ a „Týden začíná“.',
+    'Jazyk a region: „Zobrazovaná měna“ (nebo „Měna cesty“ bez přepočtu), „Jazyk“, „Názvy míst“, „Jednotky teploty“, „Jednotky vzdálenosti“, „Formát času“, „Týden začíná“ a „Formát data“.',
   'help.ctx.settings-display.bullet.3':
     'Cestování a mapa: „Otevírat místa v“, „Datum na začátku nadpisů dnů“, „Popisky tras rezervací“, „Vždy zobrazovat trasy rezervací“, „Kompaktní značky pro nenaplánovaná místa“, „Objevovat místa na mapě“, „Skrýt rezervační kódy“ a „Optimalizovat trasu od ubytování“.',
   'help.ctx.settings-appearance.title': 'Vzhled',
@@ -1445,9 +1445,9 @@ const help: TranslationStrings = {
     '„Nastavení oprávnění“ dole: u každé akce, kdo ji smí provádět („Všichni“, „Členové výletu“, „Vlastník výletu“ nebo „Pouze administrátor“). Uložíte tlačítkem „Uložit“ nahoře na kartě.',
   'help.ctx.admin-defaults.title': 'Výchozí nastavení uživatele',
   'help.ctx.admin-defaults.summary':
-    'S čím nový účet začíná, aby nikdo nemusel nic nastavovat hned na začátku: barevné schéma, jednotky, formát času, začátek týdne, zobrazovaná měna a skryté rezervační kódy, a k tomu mapa, její klíče a servery pro plánování tras.',
+    'S čím nový účet začíná, aby nikdo nemusel nic nastavovat hned na začátku: barevné schéma, jednotky, formát času, formát data, začátek týdne, zobrazovaná měna a skryté rezervační kódy, a k tomu mapa, její klíče a servery pro plánování tras.',
   'help.ctx.admin-defaults.bullet.1':
-    '„Výchozí nastavení uživatele“ vlevo: „Barevné schéma“, „Jednotky teploty“, „Jednotky vzdálenosti“, „Formát času“, „Týden začíná“, „Zobrazovaná měna“ a „Skrýt rezervační kódy“.',
+    '„Výchozí nastavení uživatele“ vlevo: „Barevné schéma“, „Jednotky teploty“, „Jednotky vzdálenosti“, „Formát času“, „Týden začíná“, „Formát data“, „Zobrazovaná měna“ a „Skrýt rezervační kódy“.',
   'help.ctx.admin-defaults.bullet.2':
     'Mapa vpravo: „Šablona mapy“, „Sdílený klíč CARTO“, „Vlastní směrovací server“ a „Vlastní instance Valhalla“, náhled, pak „Mapový engine“ se „Styl mapy“, „Sdílený token Mapbox“, „3D budovy & terén“ a „Režim vysoké kvality“.',
   'help.ctx.admin-config.title': 'Personalizace',
@@ -3345,7 +3345,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.summary':
     'Tato karta obsahuje vše, co je pro cestu zarezervované, kromě dopravy: ubytování, stoly, vstupenky, prohlídky a parkování. Každá rezervace je kartou, řádkem seznamu nebo pruhem na časové ose s kódem, dokumenty, cestujícími a cenou. Kliknutím na rezervaci otevřete její podrobnosti.',
   'help.ctx.trip-bookings.bullet.1':
-    '„Ruční rezervace“ na pravém konci lišty otevře „Nová rezervace“. Vytvoříte tak šest druhů rezervací: Ubytování, Restaurace, Událost, Prohlídka, Parkování a Ostatní. Lety, vlaky a další doprava jsou na kartě „Doprava“ a tady se nikdy nezobrazí.',
+    '„Ruční rezervace“ na pravém konci lišty otevře „Nová rezervace“. Vytvoříte tak šest druhů rezervací: Ubytování, Restaurace, Událost, Prohlídka s průvodcem, Parkování a Ostatní. Lety, vlaky a další doprava jsou na kartě „Doprava“ a tady se nikdy nezobrazí.',
   'help.ctx.trip-bookings.bullet.2':
     'Ikona stažení před „Ruční rezervace“, „Importovat potvrzení rezervace“, nahraje potvrzení, aby je TREK mohl automaticky přečíst: EML, PDF, PKPass, HTML nebo TXT, nejvýše pět souborů po 10 MB, a fotky, pokud model AI umí číst obrázky. Ikona se zobrazuje, jen když je server umí číst.',
   'help.ctx.trip-bookings.bullet.3':
@@ -3387,7 +3387,7 @@ const help: TranslationStrings = {
   'help.guide.create-booking.step.1':
     'Klikněte na „Ruční rezervace“ na pravém konci lišty. Otevře se „Nová rezervace“ se záhlavím nahoře, ve kterém je název a dva štítky.',
   'help.guide.create-booking.step.2':
-    'Klikněte na štítek typu v horním pruhu, u nové rezervace je na něm „Ostatní“, a vyberte „Typ rezervace“. Na této kartě vytvoříte šest typů: Ubytování, Restaurace, Událost, Prohlídka, Parkování a Ostatní. Formulář se podle volby změní: jen Ubytování používá místo dat rozsah dnů.',
+    'Klikněte na štítek typu v horním pruhu, u nové rezervace je na něm „Ostatní“, a vyberte „Typ rezervace“. Na této kartě vytvoříte šest typů: Ubytování, Restaurace, Událost, Prohlídka s průvodcem, Parkování a Ostatní. Formulář se podle volby změní: jen Ubytování používá místo dat rozsah dnů.',
   'help.guide.create-booking.step.3':
     'Napište název do pruhu nahoře, do pole nad štítky. Je to jediné povinné pole a tlačítko „Přidat“ zůstane šedé, dokud něco nevyplníte.',
   'help.guide.create-booking.step.4':
@@ -4224,7 +4224,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-about.bullet.3':
     'Přes Ko-fi, Buy Me a Coffee a Discord můžete TREK podpořit nebo si promluvit s lidmi, kteří ho vyvíjejí.',
   'help.guide.language-region.step.3':
-    'Nastavte „Zobrazovaná měna“, nebo ponechte „Měna cesty“, aby se každá cesta zobrazovala ve své vlastní měně. Pak zvolte „Jednotky teploty“, „Jednotky vzdálenosti“, „Formát času“ a den, kterým začíná týden („Týden začíná“).',
+    'Nastavte „Zobrazovaná měna“, nebo ponechte „Měna cesty“, aby se každá cesta zobrazovala ve své vlastní měně. Pak zvolte „Jednotky teploty“, „Jednotky vzdálenosti“, „Formát času“, den, kterým začíná týden („Týden začíná“), a „Formát data“.',
   'help.guide.travel-map-prefs.step.3':
     '„Objevovat místa na mapě“ zobrazí pilulku s kategoriemi pro hledání míst v okolí. „Skrýt rezervační kódy“ skryje čísla potvrzení, dokud na ně nenajedete myší nebo neklepnete. „Optimalizovat trasu od ubytování“ začíná a končí den u vašeho hotelu.',
   'help.guide.web-push-device.step.2':
@@ -6256,7 +6256,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-settings.bullet.5':
     '„Nebezpečná zóna“: „Obnovit tajný klíč JWT“ odhlásí všechny uživatele včetně vás.',
   'help.guide.default-user-settings.step.1':
-    'V části „Výchozí nastavení uživatele“ vyberte „Barevné schéma“ („Světlé“, „Tmavá“ nebo „Automatické“), „Jednotky teploty“, „Jednotky vzdálenosti“, „Formát času“, „Týden začíná“, „Zobrazovaná měna“ a zda je „Skrýt rezervační kódy“ zapnuté, nebo vypnuté. Každá volba se uloží okamžitě.',
+    'V části „Výchozí nastavení uživatele“ vyberte „Barevné schéma“ („Světlé“, „Tmavá“ nebo „Automatické“), „Jednotky teploty“, „Jednotky vzdálenosti“, „Formát času“, „Týden začíná“, „Formát data“, „Zobrazovaná měna“ a zda je „Skrýt rezervační kódy“ zapnuté, nebo vypnuté. Každá volba se uloží okamžitě.',
   'help.guide.admin-passkeys.step.2':
     'Zadejte „Relying Party ID (doména)“, například trek.example.org, a „Povolené origins“, na kterých je váš TREK dostupný, a klikněte na „Uložit“. Pokud obě pole necháte prázdná, použije se APP_URL.',
   'help.guide.rotate-jwt-secret.title': 'Odhlášení všech najednou',

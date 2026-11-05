@@ -29,7 +29,14 @@ const settings: TranslationStrings = {
     'Una tua istanza OSRM. Vuoto usa i server pubblici, che consentono circa una richiesta al secondo: sufficiente per un giorno, poco per un viaggio in auto. Ha effetto dopo il riavvio del server.',
   'settings.valhallaBase': 'Istanza Valhalla propria',
   'settings.valhallaBaseHint':
-    'TREK usa per impostazione predefinita la Valhalla pubblica di FOSSGIS per evitare pedaggi, autostrade e traghetti. Inserisci qui l’URL della tua Valhalla per usarla al suo posto. Se è configurata solo un’istanza di routing personalizzata, la Valhalla pubblica non viene usata. Dopo aver inserito un URL personalizzato, riavvia il server e ricarica la pagina.',
+    'Una Valhalla personale, interrogata quando il servizio di percorsi qui sopra è impostato su di essa o su Automatico. Se è configurata solo un’istanza di routing personalizzata e non è scelto alcun servizio di percorsi, nessuna Valhalla viene interrogata. Dopo aver inserito un URL, riavvia il server e ricarica la pagina.',
+  'settings.valhallaProvider': 'Servizio di percorsi',
+  'settings.valhallaProviderHint':
+    'Con i servizi TREK o una Valhalla propria, Valhalla calcola tutti i percorsi: le giornate e i viaggi su strada a piedi, in bici e in auto, i percorsi senza pedaggi, autostrade o traghetti, e i percorsi, le altitudini e i sentieri delle escursioni. Se non può rispondere, OSRM calcola quella giornata al suo posto. I servizi TREK vengono interrogati tramite questo server. Con la Valhalla pubblica di FOSSGIS, OSRM calcola i percorsi e Valhalla risponde solo a ciò che OSRM non sa fare. Automatico interroga i servizi TREK, a meno che non sia configurata una Valhalla propria o solo un’istanza di routing personalizzata.',
+  'settings.valhallaProviderOption.auto': 'Automatico',
+  'settings.valhallaProviderOption.trek': 'Servizi TREK',
+  'settings.valhallaProviderOption.fossgis': 'Valhalla pubblica (FOSSGIS)',
+  'settings.valhallaProviderOption.custom': 'Istanza Valhalla personale',
   'settings.mapHint': 'Modello URL per i tile della mappa',
   'settings.mapProvider': 'Provider mappa',
   'settings.mapProviderHint': 'Influisce sulle mappe Trip Planner e Journey. Atlas usa sempre Leaflet.',
@@ -81,6 +88,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': 'Formato Ora',
   'settings.weekStart': 'La settimana inizia il',
   'settings.weekStartHint': 'Primo giorno della settimana in ogni selettore di date. Vacay ha una sua impostazione.',
+  'settings.dateFormat': 'Formato Data',
+  'settings.dateFormatHint':
+    'Come vengono scritte le date in ogni campo data e in ogni elenco. Le date con il nome del mese mantengono la forma della tua lingua.',
+  'settings.dateFormatAuto': 'Automatico',
   'settings.preferredNavApp': 'Apri i luoghi in',
   'settings.preferredNavAppAsk': 'Chiedi ogni volta',
   'settings.preferredNavAppHint':
@@ -205,6 +216,14 @@ const settings: TranslationStrings = {
   'settings.about.featureRequest': 'Richiedi funzionalità',
   'settings.about.featureRequestHint': 'Suggerisci una nuova funzionalità',
   'settings.about.wikiHint': 'Documentazione e guide',
+  'settings.about.sponsor.eyebrow': 'Infrastruttura sponsorizzata',
+  'settings.about.sponsor.title': 'I server di TREK girano su dataforest cloud',
+  'settings.about.sponsor.body':
+    'Ricerca dei luoghi, ricerca degli indirizzi e calcolo dei percorsi arrivano dai server di TREK invece che da Google e simili, e dataforest cloud sponsorizza le macchine su cui girano.',
+  'settings.about.sponsor.cta': 'Visita dataforest cloud',
+  'settings.about.sponsor.search': 'Ricerca luoghi',
+  'settings.about.sponsor.address': 'Ricerca indirizzi',
+  'settings.about.sponsor.routing': 'Percorsi',
   'settings.about.descriptionManaged':
     "TREK ti aiuta a organizzare i tuoi viaggi, dalla prima idea all'ultimo ricordo. Pianificazione dei giorni, budget, liste valigia, foto e molto altro, tutto in un unico posto.",
   'settings.about.sourceTitle': 'Codice sorgente',

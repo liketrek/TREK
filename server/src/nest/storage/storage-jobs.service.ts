@@ -41,13 +41,98 @@ export class StorageJobsService {
   private readonly jobs = new Map<string, ActiveJob>();
   private readonly migrations = new Map<string, ActiveMigration>();
   private ttlMs = 10 * 60_000;
+  /** A pass that holds the one-job slot without a status of its own (the reclaim pass), by name. */
+  private exclusive: string | null = null;
+  /** Restores in progress: no exclusive pass starts while one runs, and one in flight stops. */
+  private restores = 0;
+  /** Backups in progress: the reclaim pass deletes nothing while one reads the uploads. */
+  private backups = 0;
+  /** Settles once the exclusive pass holding the slot releases it; settled while none does. */
+  private exclusiveReleased: Promise<void> = Promise.resolve();
+  private onExclusiveReleased: (() => void) | null = null;
 
-  /** One storage job at a time, across both backfills and category migrations. */
+  /** One storage job at a time, across backfills, category migrations and the reclaim pass. */
   private anyJobRunning(): boolean {
     return (
+      this.exclusive !== null ||
       [...this.jobs.values()].some((j) => j.status.status === 'running') ||
       [...this.migrations.values()].some((m) => m.status.status === 'running')
     );
+  }
+
+  /** The refusal a start meets while the slot is taken, naming what holds it. */
+  private busyError(fallback: string): BackfillBusyError {
+    return new BackfillBusyError(this.exclusive ? `${this.exclusive} is running, one storage job at a time` : fallback);
+  }
+
+  /**
+   * Takes the one-job slot for a pass that runs in the caller (the reclaim
+   * pass): false while a backfill, a migration, another such pass or a
+   * restore runs.
+   * The caller releases it in a finally.
+   */
+  claimExclusive(name: string): boolean {
+    if (this.restores > 0 || this.anyJobRunning()) return false;
+    this.exclusive = name;
+    this.exclusiveReleased = new Promise((resolve) => {
+      this.onExclusiveReleased = resolve;
+    });
+    return true;
+  }
+
+  releaseExclusive(name: string): void {
+    if (this.exclusive !== name) return;
+    this.exclusive = null;
+    this.onExclusiveReleased?.();
+    this.onExclusiveReleased = null;
+  }
+
+  /** True while a backup restore swaps the database and the uploads. */
+  get restoreRunning(): boolean {
+    return this.restores > 0;
+  }
+
+  /** True while a backup reads the uploads: the reclaim pass deletes nothing then, the archive may still want them. */
+  get backupRunning(): boolean {
+    return this.backups > 0;
+  }
+
+  /** The exclusive pass holding the one-job slot now, by name; null while none does. */
+  get exclusiveHolder(): string | null {
+    return this.exclusive;
+  }
+
+  /**
+   * Settles once no exclusive pass holds the slot (at once when none does): the
+   * nightly usage scan waits here, so its figures follow what a reclaim pass freed.
+   */
+  async exclusiveIdle(): Promise<void> {
+    await this.exclusiveReleased;
+  }
+
+  /** A backup started reading the uploads; the caller calls `endBackup` in a finally. */
+  beginBackup(): void {
+    this.backups += 1;
+  }
+
+  endBackup(): void {
+    if (this.backups > 0) this.backups -= 1;
+  }
+
+  /**
+   * Marks a restore as running and waits until an exclusive pass in flight
+   * (the reclaim pass, which stops at its next check of `restoreRunning`) has
+   * let go, so none of its deletes can land on the uploads the restore puts
+   * back. Backfills and migrations are not waited for, as before. The caller
+   * calls `endRestore` in a finally.
+   */
+  async beginRestore(): Promise<void> {
+    this.restores += 1;
+    await this.exclusiveReleased;
+  }
+
+  endRestore(): void {
+    if (this.restores > 0) this.restores -= 1;
   }
 
   constructor(private readonly registry: StorageRegistryService) {}
@@ -74,7 +159,7 @@ export class StorageJobsService {
       throw new BackfillTargetError(`'${mirrorName}' is not a mirror backend`);
     }
     if (this.anyJobRunning()) {
-      throw new BackfillBusyError('a sync is already running — one backfill at a time');
+      throw this.busyError('a sync is already running — one backfill at a time');
     }
     const prefixes = resolved.map((r) => r.keyPrefix);
 
@@ -156,7 +241,7 @@ export class StorageJobsService {
     const target = this.registry.driverByName(to);
     if (!target) throw new MigrationTargetError(`no backend named '${to}'`);
     if (this.anyJobRunning()) {
-      throw new BackfillBusyError('a sync is already running — one storage job at a time');
+      throw this.busyError('a sync is already running — one storage job at a time');
     }
     // The DESTINATION prefix, computed for `to` before the flip — may differ
     // from `current.keyPrefix` (audit #8: a mode-A '' source migrating onto a

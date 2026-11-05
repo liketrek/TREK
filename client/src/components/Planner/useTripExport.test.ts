@@ -1,4 +1,4 @@
-// FE-PLANNER-TRIPEXPORT-001 to -010: the trip exports behind the desktop export
+// FE-PLANNER-TRIPEXPORT-001 to -013: the trip exports behind the desktop export
 // dialog and the phone's export sheet.
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
@@ -19,6 +19,7 @@ const NOTES = { '7': [{ id: 1, text: 'Pack' }] as unknown as DayNote[] };
 function options(overrides: Partial<TripExportOptions> = {}): TripExportOptions {
   return {
     tripId: 3,
+    open: true,
     data: { trip, days: [], places: [], assignments: {}, categories: [], reservations: [], dayNotes: NOTES },
     t,
     locale: 'en-US',
@@ -237,5 +238,84 @@ describe('useTripExport', () => {
     expect(opts.toast.error).toHaveBeenCalledWith('dayplan.gpxFailed');
     expect(opts.onExported).toHaveBeenCalledTimes(1);
     expect(result.current.anyRunning).toBe(false);
+  });
+
+  it('FE-PLANNER-TRIPEXPORT-011: the PDF routes what the planner draws, counts its legs and can print without the rest', async () => {
+    const pdf = deferred();
+    vi.mocked(downloadTripPDF).mockReturnValue(pdf.promise);
+    const viasByDay = { 7: [] };
+    const tourStageStops = new Map();
+    const opts = options({ data: { ...options().data, viasByDay, tourStageStops } });
+    const { result } = renderHook(() => useTripExport(opts));
+    let running!: Promise<void>;
+    act(() => {
+      running = result.current.exportPdf();
+    });
+    await vi.waitFor(() => expect(downloadTripPDF).toHaveBeenCalled());
+    const { route } = vi.mocked(downloadTripPDF).mock.calls[0][0];
+    expect(route).toMatchObject({ viasByDay, tourStageStops });
+    expect(result.current.pdfRouting).toBeNull();
+
+    act(() => route?.onProgress?.(0, 60));
+    act(() => route?.onProgress?.(23, 60));
+    expect(result.current.pdfRouting).toEqual({ done: 23, total: 60 });
+    expect(result.current.pdfRoutingLabel('pdf')).toBe('dayplan.pdfRouting');
+    expect(result.current.pdfRoutingLabel('pdf:mine')).toBeNull();
+
+    // Skipping stops the routing, not the export: the document still comes out.
+    act(() => result.current.skipPdfRouting());
+    expect(route?.signal?.aborted).toBe(true);
+    expect(vi.mocked(downloadTripPDF).mock.calls[0][0].signal?.aborted).toBe(false);
+    expect(result.current.pdfRouting).toBeNull();
+    // The leg that was already on its way still reports; the row does not come back for it.
+    act(() => route?.onProgress?.(24, 60));
+    expect(result.current.pdfRouting).toBeNull();
+    expect(result.current.isRunning('pdf')).toBe(true);
+    await act(async () => {
+      pdf.resolve();
+      await running;
+    });
+    expect(result.current.anyRunning).toBe(false);
+    expect(opts.onExported).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-PLANNER-TRIPEXPORT-012: closing the dialog while the PDF routes gives the export up, and nothing opens', async () => {
+    const pdf = deferred();
+    vi.mocked(downloadTripPDF).mockReturnValue(pdf.promise);
+    const opts = options();
+    const { result, rerender } = renderHook((open: boolean) => useTripExport({ ...opts, open }), {
+      initialProps: true,
+    });
+    let running!: Promise<void>;
+    act(() => {
+      running = result.current.exportPdf();
+    });
+    await vi.waitFor(() => expect(downloadTripPDF).toHaveBeenCalled());
+    const { route, signal } = vi.mocked(downloadTripPDF).mock.calls[0][0];
+
+    rerender(false);
+    expect(route?.signal?.aborted).toBe(true);
+    expect(signal?.aborted).toBe(true);
+    await act(async () => {
+      pdf.resolve();
+      await running;
+    });
+    expect(opts.onExported).not.toHaveBeenCalled();
+    expect(opts.toast.error).not.toHaveBeenCalled();
+    expect(result.current.anyRunning).toBe(false);
+  });
+
+  it('FE-PLANNER-TRIPEXPORT-013: leaving the trip while the PDF routes gives the export up too', async () => {
+    vi.mocked(downloadTripPDF).mockReturnValue(deferred().promise);
+    const { result, unmount } = renderHook(() => useTripExport(options(PHONE)));
+    act(() => {
+      void result.current.exportPdf();
+    });
+    await vi.waitFor(() => expect(downloadTripPDF).toHaveBeenCalled());
+    const { route, signal } = vi.mocked(downloadTripPDF).mock.calls[0][0];
+
+    unmount();
+    expect(route?.signal?.aborted).toBe(true);
+    expect(signal?.aborted).toBe(true);
   });
 });

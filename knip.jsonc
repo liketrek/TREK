@@ -51,6 +51,9 @@
         // The plugin-author-facing API the forked child exposes; its exported
         // types are the contract for plugin code outside this repository.
         "src/nest/plugins/runtime/plugin-sdk.ts",
+        // The release pipeline loads the registration dialect by path
+        // (scripts/ci/check-registration-dialect.mjs) and runs its SELF_CHECK.
+        "src/nest/service-identity/registration-dialect.ts",
         // Found by the migrator and the seeder through a glob, never imported.
         "src/db/migrations/*.ts",
         "src/db/seeders/*.ts",

@@ -23,9 +23,14 @@ describe('editingCurrencyOf', () => {
 
 describe('expenseFxPreview', () => {
   it('previews an edit that keeps the currency at the rate frozen on entry', () => {
-    const fx = expenseFxPreview({ ...base, total: 801.76, currency: 'USD' })!
+    const fx = expenseFxPreview({ ...base, total: 801.76, currency: 'USD', base: 'GBP' })!
     expect(fx.inTrip).toBeCloseTo(685.26, 2)
-    expect(fx.shown).toBeCloseTo(791.55, 2)
+    expect(fx.shown).toBeCloseTo(convert(801.76 / 1.17, 'EUR'), 2)
+  })
+
+  it('has nothing to preview for a bill in the display currency, which counts as typed (#2965)', () => {
+    // Frozen at 1.17 while a euro buys 1.1551 today: still the dollars typed.
+    expect(expenseFxPreview({ ...base, total: 801.76, currency: 'USD', base: 'USD' })).toBeNull()
   })
 
   it('has nothing to preview for a bill in the display currency that reads back as typed', () => {
@@ -47,8 +52,8 @@ describe('expenseFxPreview', () => {
 
 describe('splitShareLabel', () => {
   it('prints the entered share, then the share the row lends or borrows', () => {
-    const fx = expenseFxPreview({ ...base, total: 801.76, currency: 'USD' })
-    expect(splitShareLabel(400.88, 'USD', fx, 2, 'USD', 'en-US')).toBe('$400.88 → $395.77')
+    const fx = expenseFxPreview({ ...base, total: 1700, currency: 'JPY', editing: null })
+    expect(splitShareLabel(850, 'JPY', fx, 2, 'USD', 'en-US')).toBe(`${formatMoney(850, 'JPY', 'en-US')} → ${formatMoney(convert(1700, 'JPY') / 2, 'USD', 'en-US')}`)
     // Read in the trip currency, the share is the booked euros.
     const inEur = expenseFxPreview({ ...base, base: 'EUR', total: 801.76, currency: 'USD' })
     expect(splitShareLabel(400.88, 'USD', inEur, 2, 'EUR', 'en-US')).toBe(`$400.88 → ${formatMoney(342.63, 'EUR', 'en-US')}`)

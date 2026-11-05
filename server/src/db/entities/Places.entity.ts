@@ -9,6 +9,8 @@ import { DayAssignments } from './DayAssignments.entity';
 import { FileLinks } from './FileLinks.entity';
 import { JourneyEntries } from './JourneyEntries.entity';
 import { Photos } from './Photos.entity';
+import { PlaceContribOutbox } from './PlaceContribOutbox.entity';
+import { PlaceFieldOrigin } from './PlaceFieldOrigin.entity';
 import { PlaceRatings } from './PlaceRatings.entity';
 import { PlaceRegions } from './PlaceRegions.entity';
 import { Reservations } from './Reservations.entity';
@@ -65,6 +67,8 @@ export class Places {
   file_links_collection = new Collection<FileLinks>(this);
   journey_entries_collection = new Collection<JourneyEntries>(this);
   photos_collection = new Collection<Photos>(this);
+  place_contrib_outbox_collection = new Collection<PlaceContribOutbox>(this);
+  place_field_origin_collection = new Collection<PlaceFieldOrigin>(this);
   place_ratings_collection = new Collection<PlaceRatings>(this);
   place_regions: Ref<PlaceRegions> | null = null;
   reservations_collection = new Collection<Reservations>(this);
@@ -123,6 +127,8 @@ export const PlacesSchema = defineEntity({
     file_links_collection: () => p.oneToMany(FileLinks).mappedBy('place').hidden(),
     journey_entries_collection: () => p.oneToMany(JourneyEntries).mappedBy('sourcePlace').hidden(),
     photos_collection: () => p.oneToMany(Photos).mappedBy('place').hidden(),
+    place_contrib_outbox_collection: () => p.oneToMany(PlaceContribOutbox).mappedBy('place').hidden(),
+    place_field_origin_collection: () => p.oneToMany(PlaceFieldOrigin).mappedBy('place').hidden(),
     place_ratings_collection: () => p.oneToMany(PlaceRatings).mappedBy('place').hidden(),
     place_regions: () => p.oneToOne(PlaceRegions).ref().mappedBy('place').hidden(),
     reservations_collection: () => p.oneToMany(Reservations).mappedBy('place').hidden(),

@@ -576,7 +576,7 @@ describe('AnthropicClient', () => {
     expect(fetchFn.mock.calls[0][0]).toBe('http://gateway.lan:4000/v1/messages');
     expect(fetchFn.mock.calls[1][0]).toBe('https://api.anthropic.com/v1/messages');
     const body = JSON.parse((fetchFn.mock.calls[0][1] as RequestInit).body as string);
-    expect(body.tool_choice).toMatchObject({ type: 'tool', name: 'emit_reservations' });
+    expect(body.tool_choice).toEqual({ type: 'auto', disable_parallel_tool_use: true });
   });
 
   it('tells a prompt too long for a gateway apart from other refusals', async () => {
@@ -632,7 +632,7 @@ describe('AnthropicClient', () => {
     expect(blockOf(1).type).toBe('document');
   });
 
-  it('forces the emit_reservations tool and reads its input', async () => {
+  it('asks for the emit_reservations tool without forcing it and reads its input (#2902)', async () => {
     const fetchFn = mockFetch(() =>
       jsonResponse({
         stop_reason: 'tool_use',
@@ -644,8 +644,12 @@ describe('AnthropicClient', () => {
     const out = await new AnthropicClient().extract(baseInput);
     expect(out).toEqual([{ '@type': 'LodgingReservation' }]);
     const body = JSON.parse((fetchFn.mock.calls[0][1] as RequestInit).body as string);
-    expect(body.tool_choice).toEqual({ type: 'tool', name: 'emit_reservations' });
+    // Claude Sonnet 5.5, Opus 5.5 and Fable 5.1 refuse a forced tool_choice with a 400;
+    // auto with one call at most is accepted by every model, the prompt names the tool.
+    expect(body.tool_choice).toEqual({ type: 'auto', disable_parallel_tool_use: true });
     expect(body.tools[0].name).toBe('emit_reservations');
+    expect(body.system.startsWith(baseInput.prompt)).toBe(true);
+    expect(body.system).toContain('Answer only by calling the emit_reservations tool, exactly once');
   });
 
   /*
@@ -702,7 +706,7 @@ describe('AnthropicClient', () => {
   });
 
   /*
-   * A forced tool that was never called, and a run that stopped at the cap with a
+   * A tool that was never called, and a run that stopped at the cap with a
    * fragment of one, both came back as [] — so a long voucher reached the person
    * as "no reservations found", with an empty warnings array and nothing in the
    * log. That is the #2375 symptom on the provider the dropdown offers first, so
@@ -734,7 +738,7 @@ describe('AnthropicClient', () => {
     }
   });
 
-  it('throws when the forced tool was never called (#2375)', async () => {
+  it('throws when the tool was never called (#2375)', async () => {
     mockFetch(() =>
       jsonResponse({
         stop_reason: 'end_turn',

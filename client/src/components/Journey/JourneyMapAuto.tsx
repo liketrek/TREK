@@ -23,7 +23,8 @@ interface MapEntry {
   mood?: string | null
   entry_date: string
   dayColor?: string
-  dayLabel?: number
+  /** Null leaves the pin unnumbered: a draft the share link does not count. */
+  dayLabel?: number | null
 }
 
 interface Props {
@@ -38,7 +39,8 @@ interface Props {
   onMarkerClick?: (id: string, type?: string) => void
   fullScreen?: boolean
   paddingBottom?: number
-  hideMarkerTooltip?: boolean
+  /** Open the entry a marker card names when the card is tapped, both renderers. */
+  onMarkerCardClick?: (entryId: string) => void
   /** Open an entry's photos from the marker card's thumbnail strip. GL renderer only. */
   onMarkerPhotoClick?: (entryId: string, photoIndex: number) => void
   /** Geotagged photos as thumbnails on the map, both renderers (#2453). */

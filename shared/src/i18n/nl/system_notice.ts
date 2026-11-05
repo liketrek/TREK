@@ -56,23 +56,20 @@ const system_notice: TranslationStrings = {
     'De 3.0.14-upgrade heeft één of meer conflicten in gebruikersnaam of e-mailadres gedetecteerd, veroorzaakt door spaties aan het begin of einde van opgeslagen waarden. Getroffen accounts zijn automatisch hernoemd. Controleer de serverlogboeken op regels die beginnen met **[migration] WHITESPACE COLLISION** om te achterhalen welke accounts moeten worden beoordeeld.',
   // The release modal. One stable set of keys: each big release swaps the copy in place.
   'system_notice.release_notes.eyebrow': 'Update geïnstalleerd',
-  'system_notice.release_notes.headline': 'De grootste TREK tot nu toe.',
+  'system_notice.release_notes.headline': 'De juiste plek, eerst.',
   'system_notice.release_notes.intro':
-    'Tochten voor elke dag buiten, een studio voor je fotoboeken, een assistent die met je meeplant en hulp op elk scherm.',
+    'Plaatsen zoeken, adressen zoeken en routeplanning draaien nu op eigen servers van TREK, gesponsord door dataforest cloud, en elke TREK kan wat hij over plaatsen weet delen met alle andere.',
   'system_notice.release_notes.features_label': 'De hoogtepunten',
   'system_notice.release_notes.features_aside': 'Lang niet alles',
-  'system_notice.release_notes.feature_tours_title': 'Tochten',
-  'system_notice.release_notes.feature_tours_body':
-    'Wandelingen, fietstochten, hardlooprondes, ritten te paard, peddeltochten, stadswandelingen en skidagen, met hoogteprofiel, moeilijkheidsgraden en een 3D-vlucht.',
-  'system_notice.release_notes.feature_studio_title': 'TREK Studio', // same-as-en
-  'system_notice.release_notes.feature_studio_body':
-    'Maakt van een reis een ontworpen fotoboek: 17 thema’s, 34 lettertypen, 160 stickers en automatische opmaak in één klik.',
-  'system_notice.release_notes.feature_assistant_title': 'AI-assistent',
-  'system_notice.release_notes.feature_assistant_body':
-    'Plant met je mee in je echte reizen, met het AI-account dat je al hebt. Elke wijziging zie je eerst en kun je ongedaan maken.',
-  'system_notice.release_notes.feature_help_title': 'Hulp op elk scherm, in 27 talen',
-  'system_notice.release_notes.feature_help_body':
-    'Zo’n 370 stapsgewijze handleidingen met 1.600 afbeeldingen, precies waar je ze nodig hebt. Nieuw: Azerbeidzjaans, Ests, Slowaaks en Thai.',
+  'system_notice.release_notes.feature_search_title': 'Plaatsen zoeken dat klopt',
+  'system_notice.release_notes.feature_search_body':
+    'Steden, eilanden, bezienswaardigheden en luchthavens op hun code komen eerst, cafés komen uit je omgeving en suggesties verschijnen terwijl je typt.',
+  'system_notice.release_notes.feature_share_title': 'Plaatsdetails, gedeeld',
+  'system_notice.release_notes.feature_share_body':
+    'Deel websites, openingstijden en foto’s met elke TREK, veld voor veld, en je opgeslagen plaatsen nemen over wat anderen hebben toegevoegd.',
+  'system_notice.release_notes.feature_routing_title': 'Snellere routes',
+  'system_notice.release_notes.feature_routing_body':
+    'Een hele dag wordt in één keer gepland met tot twintig stops, één trage route houdt de rest niet meer op en het openbaar vervoer vraagt een tweede aanbieder als de eerste niets vindt.',
   'system_notice.release_notes.footnote': 'En daarnaast een lange lijst kleinere wijzigingen in de rest van TREK.',
   'system_notice.release_notes.notes_label': 'Release notes',
   'system_notice.release_notes.note_eyebrow': 'Een woord van de maintainer',
@@ -86,10 +83,10 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.note_body_after':
     'En toen kwamen jullie. Binnen een paar maanden waren jullie met duizenden: sterren, bugmeldingen, vertalingen in talen die ik niet spreek, pull requests van mensen die ik nooit heb ontmoet. Nog altijd kijk ik elke ochtend als eerste in de repository, en het voelt nog steeds niet helemaal echt.',
   'system_notice.release_notes.note_closing': 'Bedankt dat je er bent. Groetjes, Maurice.',
-  'system_notice.release_notes.support_lead':
-    'TREK is gratis en blijft dat ook, maar servers, domeinen en heel wat late avonden zijn dat niet.',
+  'system_notice.release_notes.support_label': 'Onafhankelijk blijven',
+  'system_notice.release_notes.support_lead': 'Zonder Google en co.',
   'system_notice.release_notes.support_text':
-    'Als TREK een plek in je reizen heeft verdiend, trakteer me dan op een kopje koffie en help zo de volgende release op weg.',
+    'Plaatsen zoeken, adressen zoeken en routeplanning draaien op eigen servers van TREK, vandaag gesponsord door dataforest cloud. Daar vecht ik elke dag voor, en om het zo te houden is jouw steun nodig.',
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
   'system_notice.release_notes.cta_kofi': 'Steun op Ko-fi',
 };

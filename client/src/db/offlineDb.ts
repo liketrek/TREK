@@ -70,6 +70,19 @@ interface CachedTourDraft {
   draft: TourDraft;
 }
 
+/**
+ * A road route as the router answered it, kept on the device so a trip opens
+ * with its roads drawn instead of asking the router for every leg again (#2794).
+ * `key` is RouteCalculator's cache key (profile, unit, waypoints, avoided
+ * roads), `route` its answer as it came, `savedAt` when it came: an old answer
+ * is asked again, and the oldest give way first.
+ */
+interface CachedRoute {
+  key: string;
+  route: unknown;
+  savedAt: number;
+}
+
 // ── Queue + sync types ────────────────────────────────────────────────────────
 
 // 'conflict' is terminal-until-resolved: the server rejected the replay because
@@ -279,6 +292,7 @@ export class TrekOfflineDb extends Dexie {
   ferrataTiles!: Table<CachedFerrataTile, [number, string]>;
   tourStationVisits!: Table<CachedTourStationVisit, [number, string]>;
   tourDrafts!: Table<CachedTourDraft, number>;
+  routeCache!: Table<CachedRoute, string>;
 
   constructor(name: string = ANON_DB_NAME) {
     super(name);
@@ -366,6 +380,11 @@ export class TrekOfflineDb extends Dexie {
     // v13: the Tours planner's unsaved draft as the account last said it, one
     // per trip (the database is the signed-in user's own), so it opens offline.
     this.version(13).stores({ tourDrafts: 'tripId' });
+
+    // v14: road routes the router answered, by their cache key, so a trip with its
+    // whole route shown opens drawn instead of re-routing every leg (#2794). Not per
+    // trip: the same waypoints are the same road in any trip; `savedAt` to prune.
+    this.version(14).stores({ routeCache: 'key, savedAt' });
   }
 }
 

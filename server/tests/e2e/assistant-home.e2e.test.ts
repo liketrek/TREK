@@ -100,6 +100,16 @@ async function answer(req: IncomingMessage, res: ServerResponse): Promise<void> 
 let nestApp: INestApplication;
 let orm: MikroORM;
 let fake: HttpServer;
+let adminId: number;
+
+/** The instance connection, pointed at the fake under `path`: `/v1`, or nothing as an Ollama address is often entered. */
+function connectAt(path: string) {
+  const { port } = fake.address() as AddressInfo;
+  return request(nestApp.getHttpServer())
+    .put('/api/admin/ai/connection')
+    .set('Cookie', sessionCookie(adminId))
+    .send({ kind: 'custom', baseUrl: `http://127.0.0.1:${port}${path}`, model: 'fake-model' });
+}
 
 beforeAll(async () => {
   fake = createServer((req, res) => {
@@ -110,13 +120,8 @@ beforeAll(async () => {
   orm = nestApp.get(MikroORM);
   await setAddonEnabled(orm, 'ai_assistant', true);
   await setAddonEnabled(orm, 'atlas', true);
-  const adminId = (await makeUser(orm, { role: 'admin' })).user.id;
-  const { port } = fake.address() as AddressInfo;
-  const res = await request(nestApp.getHttpServer())
-    .put('/api/admin/ai/connection')
-    .set('Cookie', sessionCookie(adminId))
-    .send({ kind: 'custom', baseUrl: `http://127.0.0.1:${port}/v1`, model: 'fake-model' });
-  expect(res.status).toBe(200);
+  adminId = (await makeUser(orm, { role: 'admin' })).user.id;
+  expect((await connectAt('/v1')).status).toBe(200);
 });
 
 beforeEach(async () => {
@@ -341,5 +346,24 @@ describe('Home assistant e2e', () => {
     expect(removed.status).toBe(200);
     expect(await countRows(orm, AssistantThreads, { id: homeThread })).toBe(0);
     expect(await countRows(orm, AssistantThreads, { id: tripThread })).toBe(1);
+  });
+
+  it('ASTHE2E-007: an Ollama address entered without /v1 chats at /v1/chat/completions, where Ollama answers', async () => {
+    const h = await ownerWithTrips();
+    expect((await connectAt('')).status).toBe(200);
+    try {
+      provider.script = [say('Hello from Ollama.')];
+      const res = await post(`${BASE}/chat`, h.userId, { ...CTX, threadId: null, text: 'hi' });
+      expect(res.status).toBe(200);
+      expect(provider.requests).toHaveLength(1);
+      expect(
+        ofType(res.chunks, 'text-delta')
+          .map((c) => c.delta)
+          .join(''),
+      ).toBe('Hello from Ollama.');
+      expect(ofType(res.chunks, 'error')).toEqual([]);
+    } finally {
+      expect((await connectAt('/v1')).status).toBe(200);
+    }
   });
 });

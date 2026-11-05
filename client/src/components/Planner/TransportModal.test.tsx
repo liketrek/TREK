@@ -1,4 +1,4 @@
-// FE-PLANNER-TRANSMODAL-001 to FE-PLANNER-TRANSMODAL-082
+// FE-PLANNER-TRANSMODAL-001 to FE-PLANNER-TRANSMODAL-083
 import { render, screen, waitFor, fireEvent, within, act } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -9,6 +9,7 @@ import { useAddonStore } from '../../store/addonStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { isBlurred } from '../../../tests/helpers/bookingCodeBlur';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
+import { plannerSave } from '../../../tests/helpers/bookingSave';
 import {
   buildUser,
   buildTrip,
@@ -189,7 +190,7 @@ describe('TransportModal', () => {
     await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'LH456');
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
     await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ title: 'LH456', type: 'flight' }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ title: 'LH456', type: 'flight' }), expect.anything());
   });
 
   it('FE-PLANNER-TRANSMODAL-010: switching to train type calls onSave with train type', async () => {
@@ -199,7 +200,7 @@ describe('TransportModal', () => {
     await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Eurostar');
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
     await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ type: 'train' }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ type: 'train' }), expect.anything());
   });
 
   // ── Budget addon ─────────────────────────────────────────────────────────────
@@ -230,7 +231,7 @@ describe('TransportModal', () => {
     await userEvent.click(screen.getByRole('button', { name: /Create expense/i }));
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     // The legacy auto-budget mechanism is gone; the expense is created via the editor instead.
-    expect(onSave).not.toHaveBeenCalledWith(expect.objectContaining({ create_budget_entry: expect.anything() }));
+    expect(onSave.mock.calls[0][0].create_budget_entry).toBeUndefined();
     await waitFor(() =>
       expect(onOpenExpense).toHaveBeenCalledWith(
         expect.objectContaining({ prefill: expect.objectContaining({ reservationId: 42 }) })
@@ -269,16 +270,20 @@ describe('TransportModal', () => {
     await waitFor(() => expect(screen.getByText('itinerary.pdf')).toBeInTheDocument());
   });
 
-  it('FE-PLANNER-TRANSMODAL-018: file upload to existing transport calls onFileUpload with correct FormData', async () => {
+  it('FE-PLANNER-TRANSMODAL-018: a file picked on an existing transport waits and goes up on Update with correct FormData', async () => {
     const onFileUpload = vi.fn().mockResolvedValue(undefined);
     const res = buildReservation({ id: 10, type: 'train', title: 'Eurostar' });
+    const { save: onSave } = plannerSave(res);
 
-    render(<TransportModal {...defaultProps} reservation={res} onFileUpload={onFileUpload} />);
+    render(<TransportModal {...defaultProps} reservation={res} onSave={onSave} onFileUpload={onFileUpload} />);
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const testFile = new File(['content'], 'ticket.pdf', { type: 'application/pdf' });
     fireEvent.change(fileInput, { target: { files: [testFile] } });
+    expect(screen.getByText('ticket.pdf')).toBeInTheDocument();
+    expect(onFileUpload).not.toHaveBeenCalled();
 
+    await userEvent.click(screen.getByRole('button', { name: /^Update$/i }));
     await waitFor(() => expect(onFileUpload).toHaveBeenCalled());
     const [fd] = onFileUpload.mock.calls[0] as [FormData];
     expect(fd.get('file')).toBeTruthy();
@@ -407,8 +412,7 @@ describe('TransportModal', () => {
   });
 
   it('FE-PLANNER-TRANSMODAL-025: pending files flushed after saving new transport', async () => {
-    const savedReservation = buildReservation({ id: 99, type: 'flight' });
-    const onSave = vi.fn().mockResolvedValue(savedReservation);
+    const { save: onSave } = plannerSave(buildReservation({ id: 99, type: 'flight' }));
     const onFileUpload = vi.fn().mockResolvedValue(undefined);
 
     render(<TransportModal {...defaultProps} onSave={onSave} onFileUpload={onFileUpload} reservation={null} />);
@@ -1078,7 +1082,7 @@ describe('TransportModal', () => {
   ];
 
   it('FE-PLANNER-TRANSMODAL-044: assigned travelers are written back after the save resolves', async () => {
-    const onSave = vi.fn().mockResolvedValue({ id: 60 });
+    const { save: onSave } = plannerSave({ id: 60 });
     let body: { user_ids: number[] } | null = null;
     server.use(
       http.put('/api/trips/1/reservations/60/travelers', async ({ request }) => {
@@ -1096,10 +1100,8 @@ describe('TransportModal', () => {
     expect(body!.user_ids).toEqual([2]);
   });
 
-  it('FE-PLANNER-TRANSMODAL-045: a failing traveler write surfaces an error toast', async () => {
-    const addToast = vi.fn();
-    window.__addToast = addToast;
-    const onSave = vi.fn().mockResolvedValue({ id: 61 });
+  it('FE-PLANNER-TRANSMODAL-045: a failing traveler write fails the save, so the planner keeps the dialog open', async () => {
+    const { save: onSave, failures } = plannerSave({ id: 61 });
     server.use(
       http.put('/api/trips/1/reservations/61/travelers', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
     );
@@ -1109,8 +1111,37 @@ describe('TransportModal', () => {
     await userEvent.click(within(await openTravelers()).getByText('alice'));
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
 
-    await waitFor(() => expect(addToast).toHaveBeenCalledWith(expect.any(String), 'error', undefined));
-    delete window.__addToast;
+    await waitFor(() => expect(failures).toHaveLength(1));
+    expect(screen.getByRole('button', { name: /^Add$/i })).toBeEnabled();
+  });
+
+  it('FE-PLANNER-TRANSMODAL-083: a new transport whose upload fails retries as an update with only that file (#2883)', async () => {
+    const onFileUpload = vi
+      .fn()
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error('413'))
+      .mockResolvedValue(undefined);
+    const { save: onSave, failures } = plannerSave({ id: 64 });
+
+    render(<TransportModal {...defaultProps} onSave={onSave} onFileUpload={onFileUpload} />);
+    await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'LH 400');
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [new File(['a'], 'ok.pdf', { type: 'application/pdf' })] } });
+    fireEvent.change(fileInput, { target: { files: [new File(['b'], 'fail.pdf', { type: 'application/pdf' })] } });
+
+    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+    await waitFor(() => expect(failures).toHaveLength(1));
+    expect(screen.queryByText('ok.pdf')).not.toBeInTheDocument();
+    expect(screen.getByText('fail.pdf')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+    await waitFor(() => expect(onFileUpload).toHaveBeenCalledTimes(3));
+    expect(onSave.mock.calls[0][1]?.saved).toBeUndefined();
+    expect(onSave.mock.calls[1][1]?.saved).toEqual({ id: 64 });
+    const [fd] = onFileUpload.mock.calls[2] as [FormData];
+    expect((fd.get('file') as File).name).toBe('fail.pdf');
+    expect(fd.get('reservation_id')).toBe('64');
+    expect(failures).toHaveLength(1);
   });
 
   // ── Linked cost actions ─────────────────────────────────────────────────────
@@ -1192,18 +1223,19 @@ describe('TransportModal', () => {
     expect(screen.getByRole('button', { name: /Attach file/i })).toBeInTheDocument();
   });
 
-  it('FE-PLANNER-TRANSMODAL-050: a failing upload to an existing booking shows the upload error', async () => {
-    const addToast = vi.fn();
-    window.__addToast = addToast;
+  it('FE-PLANNER-TRANSMODAL-050: a failing upload on Update keeps the file listed and says the booking is saved', async () => {
     const onFileUpload = vi.fn().mockRejectedValue(new Error('disk full'));
     const res = buildReservation({ id: 20, type: 'train', title: 'Eurostar' });
+    const { save: onSave, failures } = plannerSave(res);
 
-    render(<TransportModal {...defaultProps} reservation={res} onFileUpload={onFileUpload} />);
+    render(<TransportModal {...defaultProps} reservation={res} onSave={onSave} onFileUpload={onFileUpload} />);
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(fileInput, { target: { files: [new File(['x'], 'fail.pdf', { type: 'application/pdf' })] } });
+    await userEvent.click(screen.getByRole('button', { name: /^Update$/i }));
 
-    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Failed to upload', 'error', undefined));
-    delete window.__addToast;
+    await waitFor(() => expect(failures).toHaveLength(1));
+    expect(failures[0].message).toBe('The booking is saved, but some files did not upload. Save again to send them.');
+    expect(screen.getByText('fail.pdf')).toBeInTheDocument();
   });
 
   it('FE-PLANNER-TRANSMODAL-051: a failing unlink reports the update error', async () => {
@@ -1271,7 +1303,7 @@ describe('TransportModal', () => {
   });
 
   it('FE-PLANNER-TRANSMODAL-055: an existing traveler list is toggled off and written back empty', async () => {
-    const onSave = vi.fn().mockResolvedValue({ id: 63 });
+    const { save: onSave } = plannerSave({ id: 63 });
     let body: { user_ids: number[] } | null = null;
     server.use(
       http.put('/api/trips/1/reservations/63/travelers', async ({ request }) => {

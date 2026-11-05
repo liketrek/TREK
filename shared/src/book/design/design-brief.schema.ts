@@ -1,7 +1,6 @@
 import { BOOK_COVER_ARCHETYPES, type BookCoverArchetype } from '../book-archetypes';
 import { bookPageOpSchema } from '../book-ops.schema';
 import { bookLockupIdSchema } from '../book-text-ops.schema';
-import { MAX_SPREADS } from '../book.schema';
 import { BOOK_THEME_DECORATIONS, BOOK_THEME_IDS } from '../theme/book-theme.schema';
 
 import { z } from 'zod';
@@ -97,12 +96,7 @@ const overrideTemplateSchema = z
 
 export const bookDesignPageOverrideSchema = z
   .strictObject({
-    index: z
-      .number()
-      .int()
-      .min(2)
-      .max(MAX_SPREADS - 1)
-      .describe('The page by its index in the plan design_book answered; the cover is 0.'),
+    index: z.number().int().min(2).describe('The page by its index in the plan design_book answered; the cover is 0.'),
     beat: z
       .enum(BOOK_DESIGN_OVERRIDE_BEATS)
       .describe(

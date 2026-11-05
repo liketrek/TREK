@@ -182,6 +182,12 @@ const docsync: TranslationStrings = {
   'docsync.error.provider_disabled':
     'En pausa: un administrador ha desactivado este proveedor. La sincronización se reanuda en cuanto vuelva a activarse.',
   'docsync.binding.reconnect': 'Volver a conectar',
+  'docsync.connection.title': 'Conexión',
+  'docsync.connection.hint': 'La dirección y el inicio de sesión que TREK usa para este almacenamiento.',
+  'docsync.connection.edit': 'Editar conexión',
+  'docsync.connection.remove': 'Eliminar conexión',
+  'docsync.connection.confirmRemove':
+    'TREK olvida la dirección y el inicio de sesión de este almacenamiento, y se detiene toda sincronización de este viaje a través de él. Los documentos se quedan en TREK y en el almacenamiento.',
 };
 
 export default docsync;

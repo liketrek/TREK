@@ -23,6 +23,7 @@ import {
 import { GooglePlacesClient } from '../maps/providers/google-places.provider';
 import { OsmClient } from '../maps/providers/osm.client';
 import { WikimediaClient } from '../maps/providers/wikimedia.client';
+import { communityKeyOf, TrekCommunityService } from '../maps/trek-community.service';
 import { trekPlacesById } from '../maps/trek-places.client';
 import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
@@ -160,6 +161,27 @@ interface CachedEnrichment {
 
 interface CachePayload extends CachedEnrichment {
   v?: number;
+  /** The community version the index served for a gers place when the row was written. */
+  cv?: number | null;
+}
+
+/**
+ * The community version the service serves for a gers or OSM place, from the
+ * details record the request carries; null for any other place, or when it says none.
+ * A cached answer written under another version is read again, so a value
+ * another installation contributed shows up on the next open, not a week later.
+ * A sender who puts another number here only makes their own request compute
+ * afresh: nothing of the record is what gets cached.
+ */
+/** Whether the TREK Places API can hold community values for the place: an index place or an OSM element. */
+function isCommunityPlace(placeId: string): boolean {
+  return placeId.startsWith('gers:') || communityKeyOf(placeId) !== null;
+}
+
+function communityVersion(placeId: string, details: Record<string, unknown> | null | undefined): number | null {
+  if (!isCommunityPlace(placeId)) return null;
+  const version = details?.community_version;
+  return typeof version === 'number' && Number.isInteger(version) && version >= 0 ? version : null;
 }
 
 /**
@@ -366,6 +388,7 @@ export class PlaceEnrichmentService {
     private readonly googlePlaces: GooglePlacesClient,
     private readonly osm: OsmClient,
     private readonly wiki: WikimediaClient,
+    private readonly community: TrekCommunityService,
   ) {}
 
   /**
@@ -385,7 +408,13 @@ export class PlaceEnrichmentService {
     const placeId = req.placeId?.trim() || `coords:${req.lat}:${req.lng}`;
     const lang = req.lang;
 
-    const cached = await this.readCache(placeId, lang);
+    // A saved place being edited comes without details, so without the community
+    // version: read them first for a place that has one, or a picture another
+    // installation contributed since would wait a week behind the cached answer.
+    const communityPlace = isCommunityPlace(placeId);
+    const early = !req.details && communityPlace ? await this.readDetails(userId, placeId, lang) : null;
+    const served = communityVersion(placeId, req.details ?? early);
+    const cached = await this.readCache(placeId, lang, served);
     if (cached) return cached;
 
     // One details lookup feeds all three halves: the pictures need its Commons
@@ -395,7 +424,7 @@ export class PlaceEnrichmentService {
     // The dialog already fetched this when the user picked the result, so it
     // comes along with the request. Refetching cost 12.8 seconds on a large
     // OSM relation, and it ran in parallel with the client's own lookup.
-    const details = req.details ?? (await this.readDetails(userId, placeId, lang));
+    const details = req.details ?? (communityPlace ? early : await this.readDetails(userId, placeId, lang));
     const identity = await this.resolveIdentity(req, details);
 
     const [photos, description] = await Promise.all([
@@ -425,16 +454,19 @@ export class PlaceEnrichmentService {
       rating: collectRating(details) ?? collectRating(osmDetails),
     };
     // The cache is keyed by place and language, so a row written here is what
-    // every user of the instance sees for a week. An OpenStreetMap summary and
-    // a menu link are the two things read straight off the request's own
-    // `details` that become a link on every screen, and when the request
-    // carried those, the text and the link are the caller's word rather than
-    // the map's: fine to answer them with, not to serve to everyone else. The
-    // row simply is not written, and the next request computes its own answer.
-    // A summary or a link the lookup here fetched itself is the map's and keeps.
+    // every user of the instance sees for a week. An OpenStreetMap or community
+    // summary and a menu link are the things read straight off the request's
+    // own `details` that end up on every screen, and when the request carried
+    // those, the text and the link are the caller's word rather than the
+    // map's: fine to answer them with, not to serve to everyone else. The row
+    // simply is not written, and the next request computes its own answer. A
+    // summary or a link the lookup here fetched itself is the map's and keeps.
     const fromCaller =
-      req.details != null && (description?.source === 'osm' || ownFacts.some((fact) => fact.url != null));
-    if (!fromCaller) await this.writeCache(placeId, lang, result);
+      req.details != null &&
+      (description?.source === 'osm' ||
+        description?.source === 'community' ||
+        ownFacts.some((fact) => fact.url != null));
+    if (!fromCaller) await this.writeCache(placeId, lang, { ...result, cv: communityVersion(placeId, details) });
     return result;
   }
 
@@ -571,8 +603,26 @@ export class PlaceEnrichmentService {
     // One ranking pass over everything: the same file reaches us from several
     // rungs and only the page id catches that.
     const ranked = rankCommonsCandidates(commonsPool, COMMONS_CAP, { perAuthor: curated > 0 ? 2 : 1 });
-    // Google leads the strip — its pictures are of the business itself.
+    // The community's pictures lead: a person checked each one in review, and
+    // they show the place as someone who was there saw it. Then Google, whose
+    // pictures are of the business itself.
+    // Only index and OSM places have any; off means nothing leaves for the API.
+    const community =
+      isCommunityPlace(placeId) && this.maps.trekPlacesEnabled() ? await this.community.photoPaths(placeId) : [];
     const pending: PendingCandidate[] = [
+      ...community.map((path) => ({
+        identity: `community:${path}`,
+        candidate: {
+          key: '',
+          url: '',
+          attribution: 'TREK Community',
+          license: 'CC BY 4.0',
+          licenseUrl: 'https://creativecommons.org/licenses/by/4.0/',
+          sourceUrl: null,
+          source: 'community' as const,
+        },
+        fetchBytes: () => this.community.imageBytes(path),
+      })),
       ...googleRefs.map((ref) => ({
         identity: `google:${ref.name}`,
         candidate: {
@@ -688,10 +738,14 @@ export class PlaceEnrichmentService {
     if (!this.maps.trekPlacesEnabled()) return null;
     try {
       const got = (
-        (await trekPlacesById(placeId.slice(5))) as { description?: { text?: string; sourceUrl?: string } } | null
+        (await trekPlacesById(placeId.slice(5))) as {
+          description?: { text?: string; sourceUrl?: string; source?: string };
+        } | null
       )?.description;
       const text = typeof got?.text === 'string' ? got.text.trim() : '';
       if (!text) return null;
+      // A description installations shared and review published, laid over the index row.
+      if (got?.source === 'community') return { text, source: 'community', sourceUrl: null, license: 'CC BY 4.0' };
       // Through the same allow-list a place's website goes through: this
       // becomes an href on the client, and the value comes from whatever the
       // configured index answered with. Anything but http(s) loses the link and
@@ -722,6 +776,9 @@ export class PlaceEnrichmentService {
     // OpenStreetMap first: it costs nothing, it is already fetched, and a
     // description someone wrote into the map data beats a generated blurb.
     const osmSummary = typeof details?.summary === 'string' ? details.summary.trim() : '';
+    if (osmSummary && details?.summary_source === 'community') {
+      return { text: osmSummary, source: 'community', sourceUrl: null, license: 'CC BY 4.0' };
+    }
     if (osmSummary && details?.source === 'openstreetmap') {
       return {
         text: osmSummary,
@@ -850,6 +907,9 @@ export class PlaceEnrichmentService {
    * This is the same lookup the dialog already made when the user picked the
    * search result, and it is row-cached, so in practice it is a cache read
    * rather than a second provider call.
+   *
+   * @txStandalone the only write is the details row cache filling itself; a
+   * failure reads as no details and nothing else is written with it.
    */
   private async readDetails(
     userId: number,
@@ -866,12 +926,17 @@ export class PlaceEnrichmentService {
 
   // ── Result cache ───────────────────────────────────────────────────────────
 
-  private async readCache(placeId: string, lang: string | undefined): Promise<CachedEnrichment | null> {
+  private async readCache(
+    placeId: string,
+    lang: string | undefined,
+    servedVersion: number | null,
+  ): Promise<CachedEnrichment | null> {
     try {
       const row = await this.cache.findEntry(placeId, lang ?? '', CACHE_KIND);
       if (!row) return null;
       const parsed = JSON.parse(row.payload_json) as CachePayload;
       if (parsed.v !== CACHE_VERSION) return null;
+      if (servedVersion !== null && (parsed.cv ?? null) !== servedVersion) return null;
 
       // A cached candidate is only usable while its bytes are still on disk, and
       // the nightly sweep deletes every picture nobody picked — which is most of
@@ -898,7 +963,11 @@ export class PlaceEnrichmentService {
     }
   }
 
-  private async writeCache(placeId: string, lang: string | undefined, value: CachedEnrichment): Promise<void> {
+  private async writeCache(
+    placeId: string,
+    lang: string | undefined,
+    value: CachedEnrichment & { cv: number | null },
+  ): Promise<void> {
     try {
       await this.cache.upsertEntry({
         place_id: placeId,

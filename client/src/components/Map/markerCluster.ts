@@ -1,5 +1,6 @@
 import L from 'leaflet'
 import { STACK_RADIUS_PX } from './coincidentPlaces'
+import { clusterBubbleSize } from './placeClusterLayers'
 
 /** Up to here the map is an overview, where stops merge to keep the world readable. */
 export const CLUSTER_UNTIL_ZOOM = 9
@@ -66,7 +67,7 @@ export interface ClusterLike {
 /** A count bubble sized by its count, styled by `.marker-cluster-custom` in index.css. */
 export function createClusterIcon(cluster: ClusterLike) {
   const count = cluster.getChildCount()
-  const size = count < 10 ? 36 : count < 50 ? 42 : 48
+  const size = clusterBubbleSize(count)
   return L.divIcon({
     html: `<div class="marker-cluster-custom" style="width:${size}px;height:${size}px;"><span>${count}</span></div>`,
     className: 'marker-cluster-wrapper',

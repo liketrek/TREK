@@ -10,10 +10,11 @@ import { useSettingsStore } from '../../../../src/store/settingsStore'
 import { isBlurred } from '../../../helpers/bookingCodeBlur'
 import type { Accommodation, Assignment, Day, Place, Reservation, TripMember } from '../../../../src/types'
 import { buildPlanner } from '../../../helpers/mobileTrip'
+import { plannerSave } from '../../../helpers/bookingSave'
 import { resetAllStores } from '../../../helpers/store'
 import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-RESSH-001 to FE-MOB-RESSH-068 (plus 037b)
+// FE-MOB-RESSH-001 to FE-MOB-RESSH-070 (plus 037b)
 
 // Date/time/select pickers have their own suites — here they only have to be
 // addressable, so they render as plain controls.
@@ -118,7 +119,7 @@ function makePlanner(overrides: Record<string, unknown> = {}) {
     selectedDayId: 12,
     showReservationModal: true,
     canUploadFiles: true,
-    handleSaveReservation: vi.fn(async () => ({ id: 99 })),
+    handleSaveReservation: plannerSave({ id: 99 }).save,
     ...overrides,
   } as never)
 }
@@ -694,11 +695,11 @@ describe('MReservationSheet', () => {
     expect(setTravelers).not.toHaveBeenCalled()
   })
 
-  it('FE-MOB-RESSH-035: removing a traveler falls back to the edited booking id', async () => {
+  it('FE-MOB-RESSH-035: removing a traveler writes the empty list to the edited booking', async () => {
     const planner = makePlanner({
       tripMembers: MEMBERS,
       editingReservation: DINNER,
-      handleSaveReservation: vi.fn(async () => undefined),
+      handleSaveReservation: plannerSave(DINNER).save,
     })
     setup(planner)
     fireEvent.click(screen.getByText('Ana'))
@@ -725,7 +726,7 @@ describe('MReservationSheet', () => {
   })
 
   it('FE-MOB-RESSH-037: files attached while editing a booking are uploaded against it (#2534)', async () => {
-    const { planner } = setup(makePlanner({ editingReservation: DINNER, handleSaveReservation: vi.fn(async () => DINNER) }))
+    const { planner } = setup(makePlanner({ editingReservation: DINNER, handleSaveReservation: plannerSave(DINNER).save }))
     const input = document.querySelector('input[type="file"]') as HTMLInputElement
     fireEvent.change(input, { target: { files: [new File(['a'], 'a.pdf'), new File(['b'], 'b.pdf')] } })
     fireEvent.click(submitBtn())
@@ -745,6 +746,52 @@ describe('MReservationSheet', () => {
     fireEvent.click(submitBtn())
     await waitFor(() => expect(planner.handleSaveReservation).toHaveBeenCalled())
     expect(planner.tripActions.addFile).not.toHaveBeenCalled()
+  })
+
+  it('FE-MOB-RESSH-069: a failed upload keeps the sheet and the files left, and the retry updates the same booking (#2883)', async () => {
+    const { save, failures } = plannerSave({ id: 99 })
+    const planner = makePlanner({ importReviewActive: true, handleSaveReservation: save })
+    vi.mocked(planner.tripActions.addFile)
+      .mockResolvedValueOnce(undefined as never)
+      .mockRejectedValueOnce(new Error('413'))
+      .mockResolvedValue(undefined as never)
+    setup(planner)
+    type(titleField(), 'Flight docs')
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement
+    fireEvent.change(input, { target: { files: [new File(['a'], 'ok.pdf'), new File(['b'], 'fail.pdf')] } })
+    fireEvent.click(submitBtn())
+
+    await waitFor(() => expect(failures).toHaveLength(1))
+    expect(planner.advanceImportReview).not.toHaveBeenCalled()
+    expect(screen.queryByText('ok.pdf')).not.toBeInTheDocument()
+    expect(screen.getByText('fail.pdf')).toBeInTheDocument()
+    expect(save.mock.calls[0][1]?.saved).toBeUndefined()
+
+    fireEvent.click(submitBtn())
+    await waitFor(() => expect(planner.advanceImportReview).toHaveBeenCalledTimes(1))
+    expect(save.mock.calls[1][1]?.saved).toEqual({ id: 99 })
+    expect(planner.tripActions.addFile).toHaveBeenCalledTimes(3)
+    const [, fd] = vi.mocked(planner.tripActions.addFile).mock.calls[2] as [number, FormData]
+    expect((fd.get('file') as File).name).toBe('fail.pdf')
+    expect(fd.get('reservation_id')).toBe('99')
+  })
+
+  it('FE-MOB-RESSH-070: the next booking of an import review is added, not written over the one saved before it', async () => {
+    // The review keeps the sheet open and only swaps the draft, so the open flag never changes.
+    const { save } = plannerSave({ id: 99 })
+    const review = { importReviewActive: true, handleSaveReservation: save }
+    const first = makePlanner({ ...review, reservationPrefill: { title: 'First tour', type: 'tour', metadata: null } })
+    const { rerender, onOpenExpense } = setup(first)
+    fireEvent.click(submitBtn())
+    await waitFor(() => expect(first.advanceImportReview).toHaveBeenCalledTimes(1))
+
+    const second = makePlanner({ ...review, reservationPrefill: { title: 'Second tour', type: 'tour', metadata: null } })
+    rerender(<MReservationSheet planner={second} onOpenExpense={onOpenExpense} />)
+    expect(titleField()).toHaveValue('Second tour')
+    fireEvent.click(submitBtn())
+    await waitFor(() => expect(second.advanceImportReview).toHaveBeenCalledTimes(1))
+    expect(save).toHaveBeenCalledTimes(2)
+    expect(save.mock.calls[1][1]?.saved).toBeUndefined()
   })
 
   it('FE-MOB-RESSH-038: without upload permission the attachment block is gone', () => {

@@ -6,6 +6,10 @@
  */
 import type { AssistantMessageRow } from '../../../../src/db/repositories/AssistantMessages.repository';
 import type { AssistantToolCallRow } from '../../../../src/db/repositories/AssistantToolCalls.repository';
+import type { AiChatMessage } from '../../../../src/nest/ai-connections/ai-chat-client.interface';
+import { toAnthropicMessages } from '../../../../src/nest/ai-connections/providers/anthropic-messages.client';
+import { toChatMessages } from '../../../../src/nest/ai-connections/providers/openai-chat.client';
+import { toResponsesInput } from '../../../../src/nest/ai-connections/providers/openai-responses.client';
 import {
   messageIdOf,
   outputText,
@@ -249,7 +253,7 @@ describe('toChatHistory', () => {
     ]);
   });
 
-  it('ASTHIS-005d: the text of a file the user let the model read comes after the step, once, cut in earlier turns', () => {
+  it('ASTHIS-005d: the text of a file the user let the model read answers its read, once, cut in earlier turns', () => {
     const id = '0b7c2f0e-6f6d-4a8e-9b1a-3d2c1e0f9a87';
     type CallPart = Extract<AssistantMessagePart, { type: 'tool-call' }>;
     const read = (toolCallId: string, extra: Partial<CallPart>): AssistantMessagePart => ({
@@ -270,20 +274,27 @@ describe('toChatHistory', () => {
       row('user', [{ type: 'text', text: 'Thanks' }]),
     ];
     const history = toChatHistory(rows, new Map(), new Map([[id, long]]));
-    expect(history.map((message) => message.role)).toEqual(['user', 'assistant', 'user', 'user', 'user']);
-    expect(history[1]).toMatchObject({ role: 'assistant', text: 'I need to read it first.', toolCalls: [] });
-    const told = (history[2] as { text: string }).text;
+    expect(history.map((message) => message.role)).toEqual(['user', 'assistant', 'tool', 'assistant', 'tool', 'user']);
+    expect(history[1]).toMatchObject({
+      role: 'assistant',
+      text: 'I need to read it first.',
+      toolCalls: [{ id: 'r1', name: 'read_attached_file' }],
+    });
+    expect(history[2]).toMatchObject({ role: 'tool', toolCallId: 'r1' });
+    const told = (history[2] as { output: string }).output;
     expect(told).toContain('The user let you read the attached file "AirBnB Buchung.pdf".');
     expect(told).toContain('Casa Lisboa');
     // An earlier turn's text is cut so it does not crowd out the conversation.
     expect(told.length).toBeLessThan(long.length);
     expect(told.endsWith('[...]')).toBe(true);
-    expect((history[3] as { text: string }).text).toBe(
-      'You read the attached file "AirBnB Buchung.pdf" again; its text is above.',
-    );
+    expect(history[4]).toMatchObject({
+      role: 'tool',
+      toolCallId: 'r2',
+      output: 'You read the attached file "AirBnB Buchung.pdf" again; its text is above.',
+    });
     // The latest turn keeps the whole text.
     const latest = toChatHistory(rows.slice(0, 2), new Map(), new Map([[id, long]]));
-    expect((latest[2] as { text: string }).text).toContain(long);
+    expect((latest[2] as { output: string }).output).toContain(long);
   });
 
   it('ASTHIS-005e: a read the user did not allow, one still waiting, a refused one and a swept file say so', () => {
@@ -303,21 +314,21 @@ describe('toChatHistory', () => {
           ]),
         ],
         new Map(),
-      ).map((message) => (message as { text: string }).text);
-    expect(step({ approval: { id: 'r', approved: false } })[1]).toBe(
+      ).map((message) => (message.role === 'tool' ? message.output : null));
+    expect(step({ approval: { id: 'r', approved: false } })[2]).toBe(
       'The user did not let you read the attached file "a.pdf".',
     );
-    expect(step({ approval: { id: 'r' } })[1]).toContain("waits for the user's agreement; you have not read it.");
-    expect(step({ approval: { id: 'r', resolution: 'expired' } })[1]).toContain('you have not read it');
-    expect(step({ result: 'No such attachment in this conversation.', isError: true })[1]).toBe(
+    expect(step({ approval: { id: 'r' } })[2]).toContain("waits for the user's agreement; you have not read it.");
+    expect(step({ approval: { id: 'r', resolution: 'expired' } })[2]).toContain('you have not read it');
+    expect(step({ result: 'No such attachment in this conversation.', isError: true })[2]).toBe(
       'Reading the attached file "a.pdf" failed: No such attachment in this conversation.',
     );
-    expect(step({ result: { read: true } })[1]).toBe(
+    expect(step({ result: { read: true } })[2]).toBe(
       'The attached file "a.pdf" is no longer kept; you cannot read it again.',
     );
   });
 
-  it('ASTHIS-005f: keeping an attached file is told after its step, whatever became of it', () => {
+  it('ASTHIS-005f: keeping an attached file is answered with what became of it', () => {
     const keep = (extra: Partial<Extract<AssistantMessagePart, { type: 'tool-call' }>>) =>
       toChatHistory(
         [
@@ -336,11 +347,12 @@ describe('toChatHistory', () => {
         new Map(),
       );
     const kept = keep({ approval: { id: 'k', approved: true }, result: { file: { id: 31 } } });
-    expect(kept.map((message) => message.role)).toEqual(['user', 'assistant', 'user']);
-    expect((kept[2] as { text: string }).text).toBe(
-      'The attached file "a.pdf" is in the trip\'s Files now (file id 31).',
-    );
-    const lastOf = (extra: Parameters<typeof keep>[0]) => (keep(extra).at(-1) as { text: string }).text;
+    expect(kept.map((message) => message.role)).toEqual(['user', 'assistant', 'tool']);
+    expect(kept[2]).toMatchObject({
+      toolCallId: 'k',
+      output: 'The attached file "a.pdf" is in the trip\'s Files now (file id 31).',
+    });
+    const lastOf = (extra: Parameters<typeof keep>[0]) => (keep(extra).at(-1) as { output: string }).output;
     expect(
       lastOf({ approval: { id: 'k', approved: true }, result: 'The file could not be kept.', isError: true }),
     ).toBe('The attached file "a.pdf" could not be kept in Files: The file could not be kept.');
@@ -445,6 +457,228 @@ describe('toChatHistory', () => {
     expect(JSON.stringify(history)).not.toContain('aGVsbG8=');
     const [, answer] = toThreadMessages(rows, new Map(), NOW);
     expect(answer?.parts[1]).toEqual({ type: 'data-trek-page-view', data: view });
+  });
+});
+
+describe('toChatHistory: calls the model made of the server tools (#2845)', () => {
+  /**
+   * The thread of #2845: a step that kept a trip note on the way (it runs at
+   * once), then a step whose changes the user applied, both with the
+   * provider's own record of the step stored beside them.
+   */
+  function appliedAfterANote(
+    noteState: Record<string, unknown>,
+    changeState: Record<string, unknown>,
+  ): AiChatMessage[] {
+    const rows = [
+      row('user', [{ type: 'text', text: 'Dinner at 20:00 on day 2, and remember we like late dinners' }]),
+      row(
+        'assistant',
+        [
+          {
+            type: 'tool-call',
+            toolCallId: 'call_note',
+            toolName: 'remember_for_trip',
+            args: { note: 'Likes late dinners' },
+            result: { notes: 'Likes late dinners' },
+          },
+        ],
+        { provider_state: JSON.stringify(noteState) },
+      ),
+      row(
+        'assistant',
+        [
+          { type: 'text', text: 'Shall I move it?' },
+          {
+            type: 'tool-call',
+            toolCallId: 'held-1',
+            toolName: 'update_assignment_time',
+            args: { assignmentId: 7, place_time: '20:00' },
+            result: { assignment: { id: 7 } },
+            approval: { id: 'held-1', approved: true },
+          },
+        ],
+        { provider_state: JSON.stringify(changeState) },
+      ),
+    ];
+    return toChatHistory(rows, new Map([['held-1', 'call_move']]));
+  }
+
+  it('ASTHIS-015: the Responses API gets an answer for every call it made, a kept note included', () => {
+    const history = appliedAfterANote(
+      {
+        adapter: 'openai-responses',
+        items: [
+          { type: 'reasoning', id: 'rs_1', encrypted_content: 'x' },
+          { type: 'function_call', call_id: 'call_note', name: 'remember_for_trip', arguments: '{}' },
+        ],
+      },
+      {
+        adapter: 'openai-responses',
+        items: [
+          { type: 'reasoning', id: 'rs_2', encrypted_content: 'y' },
+          { type: 'message', role: 'assistant', content: [{ type: 'output_text', text: 'Shall I move it?' }] },
+          { type: 'function_call', call_id: 'call_move', name: 'update_assignment_time', arguments: '{}' },
+        ],
+      },
+    );
+    const input = toResponsesInput({ system: '', messages: history, tools: [] });
+    const made = input.filter((item) => item.type === 'function_call').map((item) => item.call_id);
+    const answered = input.filter((item) => item.type === 'function_call_output').map((item) => item.call_id);
+    expect(made).toEqual(['call_note', 'call_move']);
+    expect(answered).toEqual(['call_note', 'call_move']);
+    for (const id of made) {
+      const call = input.findIndex((item) => item.type === 'function_call' && item.call_id === id);
+      const output = input.findIndex((item) => item.type === 'function_call_output' && item.call_id === id);
+      expect(output).toBeGreaterThan(call);
+    }
+    expect(input.find((item) => item.type === 'function_call_output' && item.call_id === 'call_note')).toMatchObject({
+      output: '{"notes":"Likes late dinners"}',
+    });
+    // Nothing empty goes out as the user's: a kept note is no step of the server to tell.
+    const userTexts = input
+      .filter((item) => item.type === 'message' && item.role === 'user')
+      .flatMap((item) => (item.content as Array<{ text?: string }>).map((part) => part.text ?? ''));
+    expect(userTexts).toEqual(['Dinner at 20:00 on day 2, and remember we like late dinners']);
+  });
+
+  it('ASTHIS-016: Anthropic gets a tool_result for every tool_use it replays, a kept note included', () => {
+    const history = appliedAfterANote(
+      {
+        adapter: 'anthropic-messages',
+        blocks: [
+          { type: 'thinking', thinking: 'note it', signature: 's1' },
+          { type: 'tool_use', id: 'call_note', name: 'remember_for_trip', input: {} },
+        ],
+      },
+      {
+        adapter: 'anthropic-messages',
+        blocks: [
+          { type: 'thinking', thinking: 'move it', signature: 's2' },
+          { type: 'text', text: 'Shall I move it?' },
+          { type: 'tool_use', id: 'call_move', name: 'update_assignment_time', input: {} },
+        ],
+      },
+    );
+    const messages = toAnthropicMessages(history);
+    const uses = messages.flatMap((message) => message.content).filter((block) => block.type === 'tool_use');
+    expect(uses.map((block) => block.id)).toEqual(['call_note', 'call_move']);
+    messages.forEach((message, index) => {
+      const ids = message.content.filter((block) => block.type === 'tool_use').map((block) => block.id);
+      if (ids.length === 0) return;
+      const next = messages[index + 1];
+      expect(next?.role).toBe('user');
+      const results = next.content.filter((block) => block.type === 'tool_result').map((block) => block.tool_use_id);
+      expect(results).toEqual(ids);
+    });
+    expect(messages.flatMap((message) => message.content).some((block) => block.text === '')).toBe(false);
+  });
+
+  it('ASTHIS-018: Gemini gets every stored call back with its thought signature, an applied change included', () => {
+    const state = (id: string, signature: string) => ({
+      adapter: 'openai-chat',
+      model: 'gemini-3-flash',
+      signatures: { [id]: signature },
+    });
+    type SentCall = { id: string; extra_content?: { google: { thought_signature: string } } };
+    const history = appliedAfterANote(state('call_note', 'sig-note'), state('call_move', 'sig-move'));
+    const sent = toChatMessages({ system: '', messages: history, tools: [] }, 'gemini-3-flash')
+      .flatMap((message) => (message.tool_calls ?? []) as SentCall[])
+      .map((call) => [call.id, call.extra_content?.google.thought_signature]);
+    expect(sent).toEqual([
+      ['call_note', 'sig-note'],
+      ['call_move', 'sig-move'],
+    ]);
+  });
+
+  /** A step stopped while its calls ran: the provider's record holds both calls, the parts only the one that ran. */
+  function stoppedMidStep(state: Record<string, unknown>): AiChatMessage[] {
+    return toChatHistory(
+      [
+        row('user', [{ type: 'text', text: 'Plan Friday' }]),
+        row(
+          'assistant',
+          [
+            { type: 'text', text: 'Let me look.' },
+            { type: 'tool-call', toolCallId: 'call_1', toolName: 'list_places', args: {}, result: { places: [] } },
+          ],
+          { provider_state: JSON.stringify(state), status: 'aborted' },
+        ),
+        row('user', [{ type: 'text', text: 'Hello?' }]),
+      ],
+      new Map(),
+    );
+  }
+
+  it('ASTHIS-019: Anthropic gets a call of a stopped step that never ran answered, so the thread goes on', () => {
+    const history = stoppedMidStep({
+      adapter: 'anthropic-messages',
+      blocks: [
+        { type: 'text', text: 'Let me look.' },
+        { type: 'tool_use', id: 'call_1', name: 'list_places', input: {} },
+        { type: 'tool_use', id: 'call_2', name: 'get_weather', input: {} },
+      ],
+    });
+    expect(history.filter((message) => message.role === 'tool')).toEqual([
+      expect.objectContaining({ toolCallId: 'call_1' }),
+      {
+        role: 'tool',
+        toolCallId: 'call_2',
+        name: 'get_weather',
+        output: expect.stringContaining('did not run'),
+        isError: true,
+      },
+    ]);
+    const messages = toAnthropicMessages(history);
+    const results = messages[2].content
+      .filter((block) => block.type === 'tool_result')
+      .map((block) => block.tool_use_id);
+    expect(results).toEqual(['call_1', 'call_2']);
+    expect(messages).toHaveLength(3);
+  });
+
+  it('ASTHIS-020: the Responses API gets a function call of a stopped step that never ran answered', () => {
+    const history = stoppedMidStep({
+      adapter: 'openai-responses',
+      items: [
+        { type: 'function_call', call_id: 'call_1', name: 'list_places', arguments: '{}' },
+        { type: 'function_call', call_id: 'call_2', name: 'get_weather', arguments: '{}' },
+      ],
+    });
+    const outputs = toResponsesInput({ system: '', messages: history, tools: [] })
+      .filter((item) => item.type === 'function_call_output')
+      .map((item) => item.call_id);
+    expect(outputs).toEqual(['call_1', 'call_2']);
+  });
+
+  it('ASTHIS-017: a step that only kept a note is the model call it was, answered with what was kept', () => {
+    const history = toChatHistory(
+      [
+        row('user', [{ type: 'text', text: 'Remember the ferry leaves at 7' }]),
+        row('assistant', [
+          {
+            type: 'tool-call',
+            toolCallId: 'n1',
+            toolName: 'remember_for_trip',
+            args: { note: 'Ferry at 7' },
+            result: { notes: 'Ferry at 7' },
+          },
+        ]),
+        row('assistant', [{ type: 'text', text: 'Noted.' }]),
+      ],
+      new Map(),
+    );
+    expect(history).toEqual([
+      { role: 'user', text: 'Remember the ferry leaves at 7' },
+      {
+        role: 'assistant',
+        text: '',
+        toolCalls: [{ id: 'n1', name: 'remember_for_trip', args: { note: 'Ferry at 7' } }],
+        providerState: null,
+      },
+      { role: 'tool', toolCallId: 'n1', name: 'remember_for_trip', output: '{"notes":"Ferry at 7"}' },
+      { role: 'assistant', text: 'Noted.', toolCalls: [], providerState: null },
+    ]);
   });
 });
 

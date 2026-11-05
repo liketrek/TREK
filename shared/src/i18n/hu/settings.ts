@@ -29,7 +29,14 @@ const settings: TranslationStrings = {
     'Saját OSRM-példány. Üresen hagyva a nyilvános kiszolgálókat használja, amelyek másodpercenként körülbelül egy kérést engednek — egy napra elég, egy autós útra kevés. A kiszolgáló újraindítása után lép életbe.',
   'settings.valhallaBase': 'Saját Valhalla-példány',
   'settings.valhallaBaseHint':
-    'A TREK alapértelmezés szerint a FOSSGIS nyilvános Valhalláját használja a fizetős utak, autópályák és kompok elkerüléséhez. Itt megadhatja saját Valhallája URL-jét, hogy azt használja helyette. Ha csak saját útvonaltervező van beállítva, a nyilvános Valhalla nem használatos. Saját URL megadása után indítsa újra a szervert, és töltse újra az oldalt.',
+    'Saját Valhalla, amelyet akkor kérdez, ha a fenti útvonaltervező szolgáltatás rá vagy Automatikusra van állítva. Ha csak saját útvonaltervező van beállítva, és nincs kiválasztva szolgáltatás, egyik Valhalla sem kap kérdést. URL megadása után indítsa újra a szervert, és töltse újra az oldalt.',
+  'settings.valhallaProvider': 'Útvonaltervező szolgáltatás',
+  'settings.valhallaProviderHint':
+    'A TREK-szolgáltatásokkal vagy saját Valhallával minden útvonalat a Valhalla számol: a napokat és az autós utakat gyalog, kerékpárral és autóval, a fizetős utak, autópályák vagy kompok nélküli útvonalakat, valamint a túrák útvonalait, magasságait és ösvényeit. Ha nem tud válaszolni, az adott napot az OSRM számolja. A TREK-szolgáltatásokat ez a szerver kérdezi meg. A FOSSGIS nyilvános Valhallájával az OSRM számolja az útvonalakat, a Valhalla pedig csak arra válaszol, amire az OSRM nem képes. Az Automatikus a TREK-szolgáltatásokat kérdezi, hacsak nincs megadva saját Valhalla vagy csak saját útvonaltervező.',
+  'settings.valhallaProviderOption.auto': 'Automatikus',
+  'settings.valhallaProviderOption.trek': 'TREK-szolgáltatások',
+  'settings.valhallaProviderOption.fossgis': 'Nyilvános Valhalla (FOSSGIS)',
+  'settings.valhallaProviderOption.custom': 'Saját Valhalla-példány',
   'settings.mapHint': 'URL sablon a térképcsempékhez',
   'settings.mapProvider': 'Térkép szolgáltató',
   'settings.mapProviderHint': 'A Trip Planner és Journey térképekre érvényes. Az Atlas mindig Leafletet használ.',
@@ -81,6 +88,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': 'Időformátum',
   'settings.weekStart': 'A hét kezdőnapja',
   'settings.weekStartHint': 'A hét első napja minden dátumválasztóban. A Vacay saját beállítást használ.',
+  'settings.dateFormat': 'Dátumformátum',
+  'settings.dateFormatHint':
+    'Hogyan jelennek meg a dátumok minden dátummezőben és listában. A hónapnevet tartalmazó dátumok megtartják a nyelved megfogalmazását.',
+  'settings.dateFormatAuto': 'Automatikus',
   'settings.preferredNavApp': 'Helyek megnyitása itt',
   'settings.preferredNavAppAsk': 'Mindig kérdezzen',
   'settings.preferredNavAppHint':
@@ -205,6 +216,14 @@ const settings: TranslationStrings = {
   'settings.about.featureRequest': 'Funkció javaslat',
   'settings.about.featureRequestHint': 'Javasolj egy új funkciót',
   'settings.about.wikiHint': 'Dokumentáció és útmutatók',
+  'settings.about.sponsor.eyebrow': 'Szponzorált infrastruktúra',
+  'settings.about.sponsor.title': 'A TREK saját szerverei a dataforest cloud gépein futnak',
+  'settings.about.sponsor.body':
+    'A helykeresés, a címkeresés és az útvonaltervezés a TREK saját szervereiről érkezik a Google és társai helyett, a gépeket pedig, amelyeken futnak, a dataforest cloud szponzorálja.',
+  'settings.about.sponsor.cta': 'dataforest cloud megnyitása',
+  'settings.about.sponsor.search': 'Helykeresés',
+  'settings.about.sponsor.address': 'Címkeresés',
+  'settings.about.sponsor.routing': 'Útvonaltervezés',
   'settings.about.descriptionManaged':
     'A TREK segít megszervezni az utazásaidat az első ötlettől az utolsó emlékig. Napi tervezés, költségvetés, csomagolólisták, fotók és még sok más, egy helyen.',
   'settings.about.sourceTitle': 'Forráskód',

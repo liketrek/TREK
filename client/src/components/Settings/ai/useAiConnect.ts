@@ -9,6 +9,7 @@ import {
   callbackMatchesFlow,
   connectErrorKey,
   httpHostOf,
+  openrouterReturnCode,
   refusalCode,
   rememberOpenrouterFlow,
   takeOpenrouterFlow,
@@ -366,9 +367,9 @@ export function useOpenrouterReturn(onConnected: () => void) {
   });
 
   useEffect(() => {
-    if (handled.current || params.get('ai') !== 'openrouter') return;
+    const code = openrouterReturnCode(params);
+    if (handled.current || code === undefined) return;
     handled.current = true;
-    const code = params.get('code');
     setParams(
       (prev) => {
         const next = new URLSearchParams(prev);

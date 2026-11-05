@@ -162,5 +162,13 @@ const places: TranslationStrings = {
   'places.image.needsConnection': '新圖片需要連線。連線後請再儲存一次。',
   'places.openPhotos': '查看照片',
   'places.imageUploadError': '無法上傳圖片',
+  'places.refresh.pill': '新的地點資訊',
+  'places.refresh.title': '更新地點資訊',
+  'places.refresh.intro': 'TREK 知道這個地點更新的資訊。選擇要採用的內容，其餘保持不變。之後儲存地點。',
+  'places.refresh.apply': '採用',
+  'places.refresh.replaces': '取代目前儲存的值',
+  'places.refresh.empty': '空',
+  'places.refresh.now': '目前',
+  'places.refresh.new': '新',
 };
 export default places;

@@ -166,5 +166,14 @@ const places: TranslationStrings = {
   'places.dayScoped': 'แสดงเฉพาะวันที่เปิดอยู่',
   'places.dayScopedClear': 'แสดงทั้งทริป',
   'places.source.amap': 'Amap',
+  'places.refresh.pill': 'ข้อมูลสถานที่ใหม่',
+  'places.refresh.title': 'อัปเดตข้อมูลสถานที่',
+  'places.refresh.intro':
+    'TREK มีข้อมูลที่ใหม่กว่าสำหรับสถานที่นี้ เลือกสิ่งที่ต้องการนำมาใช้ ส่วนที่เหลือคงเดิม จากนั้นบันทึกสถานที่',
+  'places.refresh.apply': 'นำมาใช้',
+  'places.refresh.replaces': 'แทนที่ค่าที่บันทึกไว้ตอนนี้',
+  'places.refresh.empty': 'ว่าง',
+  'places.refresh.now': 'ตอนนี้',
+  'places.refresh.new': 'ใหม่',
 };
 export default places;

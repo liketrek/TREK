@@ -1,6 +1,6 @@
 # Languages
 
-TREK ships with translations for 27 languages, the [Help Center](Help-Center) guides included. You can change your language at any time without logging out.
+TREK ships with translations for 28 languages, the [Help Center](Help-Center) guides included. You can change your language at any time without logging out.
 
 ## Supported languages
 
@@ -24,6 +24,7 @@ TREK ships with translations for 27 languages, the [Help Center](Help-Center) gu
 | `tr` | Türkçe |
 | `ar` | العربية |
 | `az` | Azərbaycanca |
+| `he` | עברית |
 | `id` | Bahasa Indonesia |
 | `ja` | 日本語 |
 | `ko` | 한국어 |
@@ -40,11 +41,11 @@ Place search, suggestions, place details and addresses follow the app language b
 
 ## RTL support
 
-Arabic (`ar`) uses a right-to-left layout. All other languages use left-to-right. In Arabic, spacing, indents, alignment and the corners of cards and menus follow the reading direction; maps, timelines and other things placed by position stay as they are.
+Arabic (`ar`) and Hebrew (`he`) use a right-to-left layout. All other languages use left-to-right. In Arabic and Hebrew, spacing, indents, alignment and the corners of cards and menus follow the reading direction; maps, timelines and other things placed by position stay as they are.
 
 ## Counts
 
-Texts that count something use the forms each language has for numbers: one place and five places in English, and the separate forms Russian, Polish, Czech, Ukrainian and Arabic use for 2, 5 or 21 of something. Languages without plural forms, such as Japanese or Chinese, use one form for every number.
+Texts that count something use the forms each language has for numbers: one place and five places in English, and the separate forms Russian, Polish, Czech, Ukrainian, Arabic and Hebrew use for 2, 5 or 21 of something. Languages without plural forms, such as Japanese or Chinese, use one form for every number.
 
 ## How language is detected
 

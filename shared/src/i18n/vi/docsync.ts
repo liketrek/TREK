@@ -178,6 +178,12 @@ const docsync: TranslationStrings = {
   'docsync.error.provider_disabled':
     'Đã tạm dừng: quản trị viên đã tắt nhà cung cấp này. Việc đồng bộ sẽ tiếp tục khi nó được bật lại.',
   'docsync.binding.reconnect': 'Kết nối lại',
+  'docsync.connection.title': 'Kết nối',
+  'docsync.connection.hint': 'Địa chỉ và thông tin đăng nhập TREK dùng cho kho lưu trữ này.',
+  'docsync.connection.edit': 'Sửa kết nối',
+  'docsync.connection.remove': 'Xóa kết nối',
+  'docsync.connection.confirmRemove':
+    'TREK quên địa chỉ và thông tin đăng nhập của kho lưu trữ này, và mọi đồng bộ của chuyến đi này qua kho đó đều dừng. Tài liệu vẫn còn trong TREK và trong kho lưu trữ.',
 };
 
 export default docsync;

@@ -2,17 +2,29 @@ name: Build & Push Docker Image
 
 # The stable release. Dispatched by hand on main, it:
 #   1. refuses to run unless ci-ok passed on the main commit it releases,
-#   2. works out the version from the tags and the bump input, commits the
-#      bump to package.json, the lockfile and Chart.yaml, tags it and pushes,
-#   3. builds both platforms from exactly that bump commit (never from
+#   2. works out the version from the tags and the bump input,
+#   3. asks the TREK services issuer for the registration dialect of that
+#      version and checks it, in a job without write access
+#      (registration-dialect.yml); without one the release ships the dialect
+#      already on main, but only while that one still has 90 days to run,
+#   4. commits the bump to package.json, the lockfile, Chart.yaml and the
+#      dialect, tags it and pushes,
+#   5. builds both platforms from exactly that bump commit (never from
 #      whatever main points to by then) and publishes :VERSION,
 #      :MAJOR.MINOR, :MAJOR and :latest,
-#   4. publishes the Helm chart from the same commit.
+#   6. publishes the Helm chart from the same commit.
 #
 # Big or risky changes go out as a prerelease first (docker-dev.yml, tagged
 # :latest-pre and :<next>-pre.N); bump=auto here then finalizes that line.
 # Without a prerelease in flight there is no default: the run stops until
 # someone picks patch, minor or major.
+#
+# Each stable release registers new installations in a dialect of its own,
+# which the issuer accepts for 180 days, and for as long as it is the newest
+# release's; renewing a key needs none. dev gets the module when main is merged
+# back into dev after the release; a prerelease asks the issuer for one of its
+# own (docker-dev.yml). The issuer's side, and what to set up before the first
+# release with a dialect, is in the operations guide of the TREK services.
 
 on:
   workflow_dispatch:
@@ -26,6 +38,14 @@ on:
         description: "Type MAJOR (all caps) to confirm a major release"
         type: string
         default: ''
+      ci_from:
+        description: 'Take ci-ok from this earlier commit instead of the one on main, when main differs from it only under .github/ (a fix to a release workflow needs no second test run)'
+        type: string
+        default: ''
+      allow_stale_dialect:
+        description: 'Ship without a dialect of its own even if the one on main is the original one or has under 90 days left'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -36,13 +56,16 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  version-bump:
+  version:
     if: github.repository == 'liketrek/TREK'
     runs-on: ubuntu-24.04
-    timeout-minutes: 120
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      checks: read
     outputs:
       version: ${{ steps.bump.outputs.VERSION }}
-      sha: ${{ steps.bump.outputs.SHA }}
+      base: ${{ steps.base.outputs.SHA }}
     steps:
       - name: Release from main only
         if: github.ref != 'refs/heads/main'
@@ -50,17 +73,17 @@ jobs:
           echo "::error::Dispatch this workflow on main, not on $GITHUB_REF."
           exit 1
 
-      - uses: actions/create-github-app-token@v3
-        id: app-token
-        with:
-          app-id: ${{ secrets.RELEASE_APP_ID }}
-          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
-
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           fetch-tags: true
-          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
+
+      # The bump job checks out exactly this commit, so what ci-ok was checked
+      # on is what gets released, however long the dialect takes.
+      - name: Note the commit being released
+        id: base
+        run: echo "SHA=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       # The dev push, the main push and any manual run each leave a ci-ok on
       # this commit. scripts/ci/ci-ok-verdict.mjs counts the newest attempt of
@@ -68,6 +91,7 @@ jobs:
       # finished last to be green, so a later green run supersedes a flaky or
       # cancelled one. It prints the link of every run it counted.
       - name: Require a green ci-ok on the commit being released
+        if: inputs.ci_from == ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -77,14 +101,43 @@ jobs:
           gh api "repos/$GITHUB_REPOSITORY/commits/$sha/check-runs?check_name=ci-ok&filter=all&per_page=100" > "$runs"
           node scripts/ci/ci-ok-verdict.mjs "$runs" "$sha"
 
-      - name: Determine bump type and update version
+      # ci_from: main carries only workflow changes on top of a commit that
+      # already passed. That commit must be an ancestor of main, everything
+      # outside .github/ must be identical, and one of its ci-ok runs must be
+      # green (its dev push, typically).
+      - name: Require a green ci-ok on the commit main's code comes from
+        if: inputs.ci_from != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CI_FROM: ${{ inputs.ci_from }}
+        run: |
+          set -euo pipefail
+          from="$(git rev-parse --verify "$CI_FROM^{commit}")"
+          if ! git merge-base --is-ancestor "$from" HEAD; then
+            echo "::error::$from is not an ancestor of main."
+            exit 1
+          fi
+          outside="$(git diff --name-only "$from" HEAD -- . ':(exclude).github/**')"
+          if [ -n "$outside" ]; then
+            echo "::error::main differs from $from outside .github/:"
+            echo "$outside"
+            exit 1
+          fi
+          green="$(gh api "repos/$GITHUB_REPOSITORY/commits/$from/check-runs?check_name=ci-ok&filter=all&per_page=100" \
+            --jq '[.check_runs[] | select(.status == "completed" and .conclusion == "success")] | length')"
+          if [ "$green" -lt 1 ]; then
+            echo "::error::$from has no green ci-ok."
+            exit 1
+          fi
+          echo "main differs from $from only under .github/, and $from has $green green ci-ok run(s)."
+
+      - name: Determine bump type and version
         id: bump
         env:
           BUMP_INPUT: ${{ inputs.bump || 'auto' }}
           CONFIRM_MAJOR: ${{ inputs.confirm_major }}
         run: |
           set -eu
-          git fetch --tags
 
           # Derive version from git tags, no package.json dependency
           STABLE_TAG=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | grep -v '\-pre\.' | sort -V | tail -1)
@@ -143,6 +196,107 @@ jobs:
           echo "VERSION=$NEW_VERSION" >> "$GITHUB_OUTPUT"
           echo "$STABLE to $NEW_VERSION ($BUMP)"
 
+  # The registration dialect of this version, fetched and checked in a job
+  # without write access. It never fails; without an artifact from it the
+  # bump decides below whether the dialect on main may ship.
+  dialect:
+    needs: version
+    uses: ./.github/workflows/registration-dialect.yml
+    with:
+      version: ${{ needs.version.outputs.version }}
+      ref: ${{ needs.version.outputs.base }}
+    secrets:
+      TREK_DIALECT_TOKEN: ${{ secrets.TREK_DIALECT_TOKEN }}
+
+  # Runs whatever became of the dialect job, a timeout or a lost runner
+  # included: no artifact means the dialect on main, if it may still ship.
+  version-bump:
+    needs: [version, dialect]
+    if: ${{ !cancelled() && needs.version.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    outputs:
+      sha: ${{ steps.commit.outputs.SHA }}
+    steps:
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.version.outputs.base }}
+          fetch-depth: 0
+          fetch-tags: true
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Take over the checked dialect
+        id: take
+        uses: actions/download-artifact@v7
+        continue-on-error: true
+        with:
+          name: registration-dialect
+          path: ${{ runner.temp }}/dialect
+
+      # Without a dialect of its own the release ships the one on main, but
+      # only while the issuer takes new registrations in it for 90 more days:
+      # dialect 0 closes on the issuer's transition date, and a dialect with
+      # little left would shut out new installations of this release soon after
+      # it is out. Then this stops before anything is committed, unless
+      # allow_stale_dialect says to ship anyway. The issuer keeps the newest
+      # release's dialect open past its date, so the date here is the least it
+      # has, not the most.
+      - name: Place the dialect
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          TAKEN: ${{ steps.take.outcome }}
+          ALLOW_STALE: ${{ inputs.allow_stale_dialect }}
+        run: |
+          set -u
+          target=server/src/nest/service-identity/registration-dialect.ts
+          fetched="$RUNNER_TEMP/dialect/registration-dialect.ts"
+          dialect_id() { sed -n "s/^const DIALECT = '\(.*\)';$/\1/p" "$1"; }
+          report() {
+            echo "$2$1"
+            printf '### Registration dialect\n%s\n' "$1" >> "$GITHUB_STEP_SUMMARY"
+          }
+          if [ "$TAKEN" = success ] && [ -f "$fetched" ]; then
+            cp "$fetched" "$target"
+            report "$VERSION registers in dialect $(dialect_id "$target"), written by the issuer for it." ""
+            exit 0
+          fi
+          id="$(dialect_id "$target")"
+          created="$(sed -n "s/^  createdAt: '\(.*\)',$/\1/p" "$target")"
+          left=""
+          if [ -n "$id" ] && [ "$id" != 0 ] && made="$(date -u -d "$created" +%s 2>/dev/null)"; then
+            left=$(( (made + 180 * 86400 - $(date -u +%s)) / 86400 ))
+          fi
+          if [ -n "$left" ] && [ "$left" -ge 90 ]; then
+            report "$VERSION ships without a dialect of its own and registers in dialect $id from $created, which the issuer takes for new installations for $left more days at least. Its operator can write one by hand for the next patch." "::warning::"
+            exit 0
+          fi
+          if [ "$id" = 0 ]; then
+            what="the original registration, which the issuer accepts only until the end of its transition period"
+          elif [ -n "$left" ]; then
+            what="dialect $id from $created, which has $left days left"
+          else
+            what="a dialect whose id or date cannot be read from $target"
+          fi
+          if [ "$ALLOW_STALE" = true ]; then
+            report "$VERSION ships without a dialect of its own and registers in $what, as allow_stale_dialect asked." "::warning::"
+            exit 0
+          fi
+          report "$VERSION got no dialect of its own and would register in $what. Nothing was committed or pushed. Make sure the issuer runs with its dialect seed and release token and that TREK_DIALECT_TOKEN is set, then run the release again, or tick allow_stale_dialect to ship anyway." "::error::"
+          exit 1
+
+      - name: Update the version, commit, tag and push
+        id: commit
+        env:
+          NEW_VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          set -eu
+
           # Update all workspace + root package.json files and the root lockfile in one shot
           npm version "$NEW_VERSION" --workspaces --include-workspace-root --no-git-tag-version
           sed -i "s/^version: .*/version: $NEW_VERSION/" charts/trek/Chart.yaml
@@ -153,7 +307,8 @@ jobs:
           # landed on main in the meantime.
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add package.json package-lock.json server/package.json client/package.json shared/package.json charts/trek/Chart.yaml
+          git add package.json package-lock.json server/package.json client/package.json shared/package.json \
+            charts/trek/Chart.yaml server/src/nest/service-identity/registration-dialect.ts
           git commit -m "chore: bump version to $NEW_VERSION [skip ci]"
           git tag -a "v$NEW_VERSION" -m "v$NEW_VERSION"
           git push origin HEAD:main --follow-tags
@@ -164,7 +319,9 @@ jobs:
   build:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 120
-    needs: version-bump
+    needs: [version, version-bump]
+    # version-bump may run after a failed dialect job; that alone must not skip what follows it.
+    if: ${{ !cancelled() && needs.version-bump.result == 'success' }}
     strategy:
       fail-fast: false
       matrix:
@@ -185,7 +342,7 @@ jobs:
 
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
-      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -205,7 +362,7 @@ jobs:
           outputs: type=image,name=mauriceboe/trek,push-by-digest=true,name-canonical=true,push=true
           no-cache: true
           build-args: |
-            APP_VERSION=${{ needs.version-bump.outputs.version }}
+            APP_VERSION=${{ needs.version.outputs.version }}
           labels: |
             org.opencontainers.image.revision=${{ steps.meta.outputs.revision }}
             org.opencontainers.image.created=${{ steps.meta.outputs.created }}
@@ -227,7 +384,8 @@ jobs:
   merge:
     runs-on: ubuntu-24.04
     timeout-minutes: 120
-    needs: [version-bump, build]
+    needs: [version, version-bump, build]
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -243,7 +401,7 @@ jobs:
 
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
-      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -252,7 +410,7 @@ jobs:
         working-directory: /tmp/digests
         run: |
           set -euo pipefail
-          VERSION="${{ needs.version-bump.outputs.version }}"
+          VERSION="${{ needs.version.outputs.version }}"
           MAJOR_TAG="$(echo "$VERSION" | cut -d. -f1)"
           # :MAJOR.MINOR takes the patches of one minor line and nothing else,
           # the conservative pin for an install that wants to wait out a
@@ -292,6 +450,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     needs: version-bump
+    if: ${{ !cancelled() && needs.version-bump.result == 'success' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6

@@ -38,7 +38,7 @@ function SettingsPageDesktop(): React.ReactElement {
     // Always there: API keys sit in this tab and need no addon. The addon backed
     // sections inside it gate themselves.
     { id: 'integrations', label: t('settings.tabs.integrations'), icon: Plug },
-    ...(hasPlugins
+    ...(hasPlugins && !managed
       ? [{ id: 'plugins', label: t('settings.tabs.plugins'), icon: Blocks }]
       : []),
     { id: 'offline', label: t('settings.tabs.offline'), icon: CloudOff },
@@ -87,7 +87,7 @@ function SettingsPageDesktop(): React.ReactElement {
             {activeTab === 'map' && <MapSettingsTab />}
             {activeTab === 'notifications' && <NotificationsTab />}
             {activeTab === 'integrations' && <IntegrationsTab />}
-            {activeTab === 'plugins' && hasPlugins && <PluginSettingsTab />}
+            {activeTab === 'plugins' && hasPlugins && !managed && <PluginSettingsTab />}
             {activeTab === 'offline' && <OfflineTab />}
             {activeTab === 'account' && <AccountTab />}
             {activeTab === 'about' && appVersion && <AboutTab appVersion={appVersion} />}

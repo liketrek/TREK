@@ -100,6 +100,9 @@ describe('TripRouteOverviewPanel', () => {
 
     expect(screen.getByTestId('trip-overview-unrouted')).toHaveTextContent('map.overview.unrouted')
     expect(screen.getAllByRole('img', { name: 'map.overview.dayUnrouted' })).toHaveLength(1)
+    // The short figures read as floors, the trip's and the day's, not as measurements (#2876).
+    expect(screen.getAllByText('map.overview.distanceAtLeast')).toHaveLength(2)
+    expect(screen.getByText('140.5 km')).toBeInTheDocument()
   })
 
   it('FE-MAP-TROU-010: does not call a leg unrouted while the round is still running', () => {

@@ -12,6 +12,7 @@ export function creditOf(photo: PlacePhotoCandidate): string {
 export function sourceLabelFor(source: PlacePhotoCandidate['source']): string {
   if (source === 'google') return 'Google';
   if (source === 'wikipedia') return 'Wikipedia';
+  if (source === 'community') return 'TREK Community';
   return 'Wikimedia Commons';
 }
 

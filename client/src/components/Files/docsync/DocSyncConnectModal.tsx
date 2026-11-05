@@ -1,6 +1,7 @@
 import { useId, useState } from 'react'
 import { AlertTriangle, Check, Loader2, Plug, ShieldAlert } from 'lucide-react'
-import { DialogButton, DialogFooter, DialogHeader, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT } from '../../shared/DialogShell'
+import { DeleteButton, DialogButton, DialogFooter, DialogHeader, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT } from '../../shared/DialogShell'
+import ConfirmDialog from '../../shared/ConfirmDialog'
 import { Tooltip } from '../../shared/Tooltip'
 import ToggleSwitch from '../../Settings/ToggleSwitch'
 import { useTranslation } from '../../../i18n/TranslationContext'
@@ -22,11 +23,14 @@ export default function DocSyncConnectModal({
   sync,
   onClose,
   onConnected,
+  onRemoved,
 }: {
   provider: DocSyncProvider
   sync: ReturnType<typeof useDocSync>
   onClose: () => void
   onConnected: (providerId: string) => void
+  /** After the stored connection was removed from here; left out, the form offers no removal. */
+  onRemoved?: () => void
 }) {
   const { t } = useTranslation()
   const existing = sync.connectionFor(provider.id)
@@ -34,6 +38,11 @@ export default function DocSyncConnectModal({
 
   const form = useConnectForm(provider, existing, sync)
   const [verdict, setVerdict] = useState<DocSyncVerdict | null>(null)
+  const [confirmRemove, setConfirmRemove] = useState(false)
+
+  const remove = async () => {
+    if (existing && (await sync.removeConnection(existing.id))) onRemoved?.()
+  }
 
   const test = async () => setVerdict(await form.probe())
   const labelId = useId()
@@ -46,6 +55,7 @@ export default function DocSyncConnectModal({
     <DialogShell
       onClose={onClose}
       labelledBy={labelId}
+      blocked={confirmRemove}
       header={(
         <DialogHeader
           tile={<DialogTile>{Icon ? <Icon className="h-5 w-5 text-content" /> : <Plug size={20} strokeWidth={1.9} className="text-content-muted" />}</DialogTile>}
@@ -57,6 +67,13 @@ export default function DocSyncConnectModal({
       )}
       footer={(
         <DialogFooter>
+          {existing && onRemoved && (
+            <DeleteButton
+              label={t('docsync.connection.remove')}
+              onClick={() => setConfirmRemove(true)}
+              disabled={sync.busy === 'connection'}
+            />
+          )}
           <Verdict verdict={verdict} busy={sync.busy === 'test'} failure={sync.error} />
           <FooterSpacer />
           <DialogButton onClick={() => void test()} disabled={!form.complete || sync.busy === 'test'}>
@@ -101,6 +118,15 @@ export default function DocSyncConnectModal({
           </span>
         </label>
       </div>
+
+      <ConfirmDialog
+        isOpen={confirmRemove}
+        onClose={() => setConfirmRemove(false)}
+        onConfirm={() => void remove()}
+        title={t('docsync.connection.remove')}
+        message={t('docsync.connection.confirmRemove')}
+        confirmLabel={t('docsync.connection.remove')}
+      />
     </DialogShell>
   )
 }

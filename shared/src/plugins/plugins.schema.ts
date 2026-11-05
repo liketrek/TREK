@@ -98,6 +98,8 @@ export const pluginInstallRequestSchema = z.looseObject({
   version: z.string().optional(),
   constraint: z.string().optional(),
   withDependencies: z.boolean().optional(),
+  /** The admin's "install anyway" for this plugin when no version declares this TREK. */
+  acceptTrekRange: z.boolean().optional(),
 });
 export type PluginInstallRequest = z.infer<typeof pluginInstallRequestSchema>;
 
@@ -106,7 +108,11 @@ export const pluginLinkRequestSchema = z.looseObject({ path: z.string().optional
 export type PluginLinkRequest = z.infer<typeof pluginLinkRequestSchema>;
 
 /** POST /api/admin/plugins/:id/activate */
-export const pluginActivateRequestSchema = z.looseObject({ consent: z.boolean().optional() });
+export const pluginActivateRequestSchema = z.looseObject({
+  consent: z.boolean().optional(),
+  /** The admin's "run it anyway" for this plugin outside the TREK versions it declares. */
+  acceptTrekRange: z.boolean().optional(),
+});
 export type PluginActivateRequest = z.infer<typeof pluginActivateRequestSchema>;
 
 /** POST /api/admin/plugins/:id/uninstall */

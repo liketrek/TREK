@@ -61,7 +61,7 @@ const reservations: TranslationStrings = {
   'reservations.type.car': 'Auto',
   'reservations.type.cruise': 'Crociera',
   'reservations.type.event': 'Evento',
-  'reservations.type.tour': 'Tour', // same-as-en
+  'reservations.type.tour': 'Visita guidata',
   'reservations.type.parking': 'Parcheggio',
   'reservations.type.other': 'Altro',
   'reservations.type.bus': 'Autobus',
@@ -78,8 +78,8 @@ const reservations: TranslationStrings = {
   'reservations.confirm.deleteBodyWithExpense': '"{name}" e i costi collegati verranno eliminati in modo permanente.',
   'reservations.toast.updated': 'Prenotazione aggiornata',
   'reservations.toast.removed': 'Prenotazione eliminata',
-  'reservations.toast.fileUploaded': 'File caricato',
-  'reservations.toast.uploadError': 'Impossibile caricare',
+  'reservations.toast.filesNotUploaded':
+    'La prenotazione è salvata, ma alcuni file non sono stati caricati. Salva di nuovo per inviarli.',
   'reservations.newTitle': 'Nuova prenotazione',
   'reservations.bookingType': 'Tipo di prenotazione',
   'reservations.titleLabel': 'Titolo',
@@ -140,6 +140,14 @@ const reservations: TranslationStrings = {
   'reservations.import.cta': 'Importa da file',
   'reservations.import.dropHere': 'Trascina i file di conferma prenotazione qui o clicca per selezionare',
   'reservations.import.dropActive': 'Rilascia i file per importare',
+  'reservations.import.pinSearching': 'Ricerca sulla mappa…',
+  'reservations.import.pinFound': 'Sulla mappa',
+  'reservations.import.pinMissingTitle': 'Non ancora sulla mappa',
+  'reservations.import.pinMissingBody':
+    "TREK non ha trovato questo alloggio sulla mappa. Controlla il nome e l'indirizzo qui sopra e cerca di nuovo, oppure salvalo senza segnaposto.",
+  'reservations.import.pinRetry': 'Cerca di nuovo',
+  'reservations.import.savedWithoutPin':
+    'Salvato senza segnaposto sulla mappa. Modifica il luogo e imposta la sua posizione per vederlo sulla mappa.',
   'reservations.import.acceptedFormats': 'Accettati: EML, PDF, PKPass, HTML, TXT (max 10 MB ciascuno, fino a 5 file)',
   'reservations.import.acceptedPhotos': 'Le foto (JPG, PNG, WEBP) vengono lette dal modello di IA.',
   'reservations.import.parsing': 'Analisi dei file in corso…',

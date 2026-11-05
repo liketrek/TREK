@@ -3,6 +3,7 @@ import { ArrowRightLeft, Building2, Calendar, CalendarRange, CalendarX, ChevronD
 import MSheet from '../../components/MSheet'
 import MIconBtn from '../../components/MIconBtn'
 import MToggle from '../../components/MToggle'
+import { CustomDatePicker } from '../../../components/shared/CustomDateTimePicker'
 import ConfirmDialog from '../../../components/shared/ConfirmDialog'
 import { useVacayStore } from '../../../store/vacayStore'
 import { useTranslation } from '../../../i18n'
@@ -338,13 +339,14 @@ function YearTypeRows() {
 
       {type === 'anniversary' && (
         <div className="ms-7">
-          <input
-            type="date"
-            value={yearSettings.hire_date || ''}
-            onChange={e => save({ hire_date: e.target.value || null })}
-            aria-label={t('vacay.hireDate')}
-            className="mt-[7px] w-full rounded-[10px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] px-[11px] py-[9px] font-[inherit] text-[0.78125rem] font-semibold text-m-ink outline-none"
-          />
+          <div className="mt-[7px]">
+            <CustomDatePicker
+              value={yearSettings.hire_date || ''}
+              onChange={v => save({ hire_date: v || null })}
+              placeholder={t('vacay.hireDate')}
+              ariaLabel={t('vacay.hireDate')}
+            />
+          </div>
         </div>
       )}
 

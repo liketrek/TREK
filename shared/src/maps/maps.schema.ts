@@ -159,7 +159,7 @@ export type MapsResolveUrlResult = z.infer<typeof mapsResolveUrlResultSchema>;
  * Everything nullable is genuinely optional per source — Commons gives us a
  * licence and an author, Google gives us neither in a form we may reproduce.
  */
-export const placePhotoSourceSchema = z.enum(['google', 'wikimedia', 'wikipedia', 'cached']);
+export const placePhotoSourceSchema = z.enum(['google', 'wikimedia', 'wikipedia', 'cached', 'community']);
 export type PlacePhotoSource = z.infer<typeof placePhotoSourceSchema>;
 
 export const placePhotoCandidateSchema = z.object({
@@ -185,6 +185,8 @@ export const placeDescriptionSourceSchema = z.enum([
   'wikipedia',
   /** Quoted from the place's own site, via the TREK Places API. */
   'website',
+  /** Written by a TREK user, shared by an installation and checked before it was published. */
+  'community',
 ]);
 export type PlaceDescriptionSource = z.infer<typeof placeDescriptionSourceSchema>;
 

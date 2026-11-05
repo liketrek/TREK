@@ -206,5 +206,14 @@ const places: TranslationStrings = {
   'places.image.needsConnection': 'تحتاج الصورة الجديدة إلى اتصال. احفظ مجددًا عند الاتصال بالإنترنت.',
   'places.openPhotos': 'عرض الصور',
   'places.imageUploadError': 'تعذّر رفع الصورة',
+  'places.refresh.pill': 'تفاصيل جديدة للمكان',
+  'places.refresh.title': 'تحديث تفاصيل المكان',
+  'places.refresh.intro':
+    'يعرف TREK تفاصيل أحدث لهذا المكان. اختر ما تريد اعتماده، ويبقى الباقي كما هو. احفظ المكان بعد ذلك.',
+  'places.refresh.apply': 'اعتماد',
+  'places.refresh.replaces': 'يستبدل القيمة المحفوظة الآن',
+  'places.refresh.empty': 'فارغ',
+  'places.refresh.now': 'الآن',
+  'places.refresh.new': 'جديد',
 };
 export default places;

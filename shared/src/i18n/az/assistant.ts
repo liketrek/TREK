@@ -41,6 +41,8 @@ const assistant: TranslationStrings = {
   'assistant.connect.openAssistant': 'Köməkçini aç',
   'assistant.connect.badKey': 'Bu açar işləmir.',
   'assistant.connect.unknownModel': 'Bu model burada təklif olunmur.',
+  'assistant.connect.noModelList':
+    'Server cavab verdi, amma model siyahısı göndərmədi. Ünvanı yoxlayın, adətən /v1 ilə bitir.',
   'assistant.connect.getKey': 'Açar əldə et',
   'assistant.connect.hintAnthropic': 'Claude Max və Team planlarına API kreditləri daxildir.',
   'assistant.connect.hintOpenai': 'OpenAI panelinizdə açar yaradın.',
@@ -180,6 +182,8 @@ const assistant: TranslationStrings = {
   'assistant.change.label.currency': 'Valyuta',
   'assistant.change.label.stopType': 'Dayanacaq növü',
   'assistant.change.label.text': 'Mətn',
+  'assistant.change.label.title': 'Başlıq',
+  'assistant.change.label.content': 'Məzmun',
   'assistant.change.label.icon': 'İkon',
   'assistant.change.label.color': 'Rəng',
   'assistant.change.label.position': 'Sıra',

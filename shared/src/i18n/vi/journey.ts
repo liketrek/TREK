@@ -292,7 +292,7 @@ const journey: TranslationStrings = {
   'journey.studio.autoLayout': 'Bố cục tự động',
   'journey.studio.export': 'Xuất',
   'journey.studio.day': 'NGÀY {day}',
-  'journey.studio.stations': 'Chặng dừng',
+  'journey.studio.stations': 'Dọc đường',
   'journey.studio.peersHere': 'ở đây',
   'journey.studio.folioAuto': 'Tự động',
   'journey.studio.exportLayout': 'Bố cục',

@@ -19,7 +19,6 @@ import {
   bookPhotoElementSchema,
   bookShapeElementSchema,
   bookTextElementSchema,
-  MAX_SPREADS,
   type BookDesignPlanRow,
   type BookDocument,
   type BookSpread,
@@ -310,15 +309,15 @@ describe('applyDesignDraft', () => {
     expect(out.doc.spreads).toEqual(base.spreads);
   });
 
-  it('JBAPPLY-014: a book at the page limit takes no new page, the page named as changed since', () => {
-    const inner = Array.from({ length: MAX_SPREADS - 1 }, (_, i) => page(`i${i}`, 'inner'));
-    const full = book([page('c', 'cover'), ...inner]);
-    const draft: DraftToApply = { base: full, doc: book(pages('n')), plan: [row('n', 'insert')], selection: ['n'] };
+  it('JBAPPLY-014: a book of hundreds of pages still takes a new page', () => {
+    const inner = Array.from({ length: 400 }, (_, i) => page(`i${i}`, 'inner'));
+    const long = book([page('c', 'cover'), ...inner]);
+    const draft: DraftToApply = { base: long, doc: book(pages('n')), plan: [row('n', 'insert')], selection: ['n'] };
 
-    const out = applyDesignDraft(full, draft, new Set());
+    const out = applyDesignDraft(long, draft, new Set());
 
-    expect(out.skipped).toEqual([{ spreadId: 'n', reason: 'changed_since' }]);
-    expect(out.doc.spreads).toHaveLength(MAX_SPREADS);
+    expect([out.applied, out.skipped]).toEqual([['n'], []]);
+    expect(out.doc.spreads).toHaveLength(402);
   });
 
   it('JBAPPLY-015: a page whose letters are filled with a photo gone since stays out, as a frame of it would', () => {

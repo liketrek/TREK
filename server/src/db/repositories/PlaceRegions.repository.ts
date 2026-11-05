@@ -10,6 +10,15 @@ export interface PlaceRegionRow {
   region_name: string;
 }
 
+/** A place's location next to the country its cached region holds, null while it has no cached region. */
+interface PlaceCountryRow {
+  id: number;
+  lat: number | null;
+  lng: number | null;
+  address: string | null;
+  country_code: string | null;
+}
+
 type PlaceRegionsKyselyDB = Pick<DB, 'place_regions' | 'places' | 'trips' | 'trip_members'>;
 
 /**
@@ -18,7 +27,7 @@ type PlaceRegionsKyselyDB = Pick<DB, 'place_regions' | 'places' | 'trips' | 'tri
  * but atlas is its only writer and its only reader beyond that FK — the
  * inventory's own "effectively an atlas-owned repository" note — so every
  * statement that reads or writes it, including the ones that join out to
- * `places`/`trips`/`trip_members` for `getTravelStats`'s country lists
+ * `places`/`trips`/`trip_members` for the dashboard's country lists
  * (AT40/AT44), lives here rather than split across those tables' own
  * repositories.
  */
@@ -92,7 +101,9 @@ export class PlaceRegionsRepository extends TrekRepository<PlaceRegions> {
   /**
    * AT49 (`repairStaleRegionCache`'s read, #2527) — `SELECT pr.place_id AS id, pr.country_code,
    * pr.region_code, p.lat, p.lng, p.address FROM place_regions pr JOIN places p
-   * ON p.id = pr.place_id ORDER BY pr.place_id`.
+   * ON p.id = pr.place_id ORDER BY pr.country_code, pr.place_id`. By country first, so the
+   * pass resolves one country's places after another and its region cache, which keeps only
+   * so many countries, parses each country once.
    */
   async listWithPlaceLocation(): Promise<
     {
@@ -108,6 +119,7 @@ export class PlaceRegionsRepository extends TrekRepository<PlaceRegions> {
       .selectFrom('place_regions as pr')
       .innerJoin('places as p', 'p.id', 'pr.place_id')
       .select(['pr.place_id as id', 'pr.country_code', 'pr.region_code', 'p.lat', 'p.lng', 'p.address'])
+      .orderBy('pr.country_code')
       .orderBy('pr.place_id')
       .execute();
   }
@@ -162,50 +174,45 @@ export class PlaceRegionsRepository extends TrekRepository<PlaceRegions> {
   }
 
   /**
-   * AT40 (`lastTrip`) — `SELECT pr.country_code, COUNT(DISTINCT p.id) AS
-   * places FROM place_regions pr JOIN places p ON p.id = pr.place_id WHERE
-   * p.trip_id = ? AND pr.country_code IS NOT NULL GROUP BY pr.country_code
-   * ORDER BY places DESC, pr.country_code ASC`.
+   * AT40 (`lastTrip`/`nextTrip`) — `SELECT p.id, p.lat, p.lng, p.address,
+   * pr.country_code FROM places p LEFT JOIN place_regions pr ON pr.place_id =
+   * p.id WHERE p.trip_id = ? ORDER BY p.id`. A place without a cached region
+   * comes back with a null country, for the caller to resolve from its
+   * location (#2875).
    */
-  async countPlacesByCountryForTrip(tripId: number): Promise<{ country_code: string; places: number }[]> {
-    const rows = await this.db()
-      .selectFrom('place_regions as pr')
-      .innerJoin('places as p', 'p.id', 'pr.place_id')
-      .select((eb) => ['pr.country_code', eb.fn.count<number>('p.id').distinct().as('places')])
+  async listPlaceCountriesForTrip(tripId: number): Promise<PlaceCountryRow[]> {
+    return await this.db()
+      .selectFrom('places as p')
+      .leftJoin('place_regions as pr', 'pr.place_id', 'p.id')
+      .select(['p.id', 'p.lat', 'p.lng', 'p.address', 'pr.country_code'])
       .where('p.trip_id', '=', tripId)
-      .where('pr.country_code', 'is not', null)
-      .groupBy('pr.country_code')
-      .orderBy('places', 'desc')
-      .orderBy('pr.country_code', 'asc')
+      .orderBy('p.id')
       .execute();
-    return rows.map((r) => ({ country_code: r.country_code, places: Number(r.places) }));
   }
 
   /**
-   * AT44 (`getTravelStats`) — `SELECT DISTINCT pr.country_code FROM
-   * place_regions pr JOIN places p ON p.id = pr.place_id JOIN trips t ON
-   * p.trip_id = t.id LEFT JOIN trip_members tm ON t.id = tm.trip_id WHERE
-   * (t.user_id = ? OR tm.user_id = ?) AND pr.country_code IS NOT NULL AND
+   * AT44 (`getTravelStats`) — `SELECT DISTINCT p.id, p.lat, p.lng, p.address,
+   * pr.country_code FROM places p JOIN trips t ON p.trip_id = t.id LEFT JOIN
+   * trip_members tm ON t.id = tm.trip_id LEFT JOIN place_regions pr ON
+   * pr.place_id = p.id WHERE (t.user_id = ? OR tm.user_id = ?) AND
    * COALESCE(t.start_date, t.end_date) IS NOT NULL AND COALESCE(t.start_date,
-   * t.end_date) <= date('now')` — "only started trips count" (#1048).
-   * `today` (`date('now')`, UTC) is resolved by the caller once
-   * (`todayUtc()`, the same value `stats()`/`lastTrip` already compute) and
-   * bound here, the `TripsRepository.activeTrip(user_id, today)` precedent
-   * for a literal `date('now')` comparison.
+   * t.end_date) <= ? ORDER BY p.id` — "only started trips count" (#1048).
+   * Every place comes back, a place without a cached region with a null
+   * country (#2875). `today` (UTC) is resolved by the caller once
+   * (`todayUtc()`) and bound here.
    */
-  async listVisitedCountryCodesForUser(userId: number, today: string): Promise<string[]> {
-    const rows = await this.db()
-      .selectFrom('place_regions as pr')
-      .innerJoin('places as p', 'p.id', 'pr.place_id')
+  async listStartedTripPlaceCountriesForUser(userId: number, today: string): Promise<PlaceCountryRow[]> {
+    return await this.db()
+      .selectFrom('places as p')
       .innerJoin('trips as t', 't.id', 'p.trip_id')
       .leftJoin('trip_members as tm', 'tm.trip_id', 't.id')
-      .select('pr.country_code')
+      .leftJoin('place_regions as pr', 'pr.place_id', 'p.id')
+      .select(['p.id', 'p.lat', 'p.lng', 'p.address', 'pr.country_code'])
       .distinct()
       .where((eb) => eb.or([eb('t.user_id', '=', userId), eb('tm.user_id', '=', userId)]))
-      .where('pr.country_code', 'is not', null)
       .where((eb) => eb(eb.fn.coalesce('t.start_date', 't.end_date'), 'is not', null))
       .where((eb) => eb(eb.fn.coalesce('t.start_date', 't.end_date'), '<=', today))
+      .orderBy('p.id')
       .execute();
-    return rows.map((r) => r.country_code);
   }
 }

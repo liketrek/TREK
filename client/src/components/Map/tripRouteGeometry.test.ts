@@ -78,31 +78,61 @@ describe('tripRouteGeometry', () => {
     expect(calculateRouteWithLegs).not.toHaveBeenCalled()
   })
 
-  it('FE-MAP-TRG-005: the deadline gives back what answered and leaves the rest as straight lines', async () => {
-    neverAnswers()
+  // The PDF used to route under an 8 s deadline: with a second between two requests that
+  // is about seven legs, so a month-long trip printed most of its days as straight lines
+  // and a total that looked final, and every export routed a few more days (#2876).
+  it('FE-MAP-TRG-005: a long trip is routed to its last leg, and says how far it has got', async () => {
+    const days = Array.from({ length: 12 }, (_, i) => buildDay({ id: i + 1, day_number: i + 1 }))
+    const assignments: AssignmentsMap = Object.fromEntries(days.map(day => [
+      String(day.id),
+      [at(48 + day.id / 10, 2.35, 0, day.id), at(48 + day.id / 10, 2.45, 1, day.id)],
+    ]))
     vi.useFakeTimers()
     try {
-      const pending = routeTrip(input, { profile: 'driving', tripId: 7, timeoutMs: 8000 })
-      await vi.advanceTimersByTimeAsync(8100)
+      vi.mocked(calculateRouteWithLegs).mockImplementation(() => new Promise(resolve => {
+        setTimeout(() => resolve({ coordinates: [[48.86, 2.35], [48.90, 2.42]], distance: 10000, duration: 600, legs: [leg(10000)] }), 100)
+      }))
+      const onProgress = vi.fn<(done: number, total: number) => void>()
+      const pending = routeTrip({ ...input, days, assignments }, { profile: 'driving', tripId: 7, onProgress })
+      await vi.advanceTimersByTimeAsync(12 * 1200)
       const summary = await pending
 
-      // The shape of the trip survives...
-      expect(summary.lines).toHaveLength(2)
-      expect(summary.lines[0]).toEqual([[48.86, 2.35], [48.90, 2.42]])
-      // ...and nothing that never answered is counted.
-      expect(summary.totalDistance).toBe(0)
+      expect(calculateRouteWithLegs).toHaveBeenCalledTimes(12)
+      expect(summary.unroutedLegs).toBe(0)
+      expect(summary.totalDistance).toBe(120000)
+      expect(onProgress.mock.calls[0]).toEqual([0, 12])
+      expect(onProgress.mock.calls.map(([done]) => done)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+      expect(onProgress.mock.calls.every(([, total]) => total === 12)).toBe(true)
     } finally {
       vi.useRealTimers()
     }
   })
 
-  it('FE-MAP-TRG-006: a caller\'s own abort cuts the routing short too', async () => {
+  it("FE-MAP-TRG-006: a caller's own abort cuts the routing short, and what never answered is counted", async () => {
     neverAnswers()
     const controller = new AbortController()
-    const pending = routeTrip(input, { profile: 'driving', tripId: 7, timeoutMs: 60_000, signal: controller.signal })
+    const pending = routeTrip(input, { profile: 'driving', tripId: 7, signal: controller.signal })
     controller.abort()
 
-    await expect(pending).resolves.toMatchObject({ totalDistance: 0 })
+    await expect(pending).resolves.toMatchObject({ totalDistance: 0, unroutedLegs: 2 })
+  })
+
+  it('FE-MAP-TRG-014: a host that never answers costs one leg its road, not the whole round', async () => {
+    neverAnswers()
+    vi.useFakeTimers()
+    try {
+      const pending = routeTrip(input, { profile: 'driving', tripId: 7 })
+      await vi.advanceTimersByTimeAsync(30_000)
+      expect(calculateRouteWithLegs).toHaveBeenCalledTimes(1)
+      await vi.advanceTimersByTimeAsync(1100 + 30_000)
+      const summary = await pending
+
+      expect(calculateRouteWithLegs).toHaveBeenCalledTimes(2)
+      expect(summary.lines).toHaveLength(2)
+      expect(summary.unroutedLegs).toBe(2)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   // The public OSRM hosts allow about one request a second. Every leg of every day at

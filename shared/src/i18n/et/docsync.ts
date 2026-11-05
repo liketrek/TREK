@@ -178,6 +178,12 @@ const docsync: TranslationStrings = {
   'docsync.error.provider_disabled':
     'Peatatud: administraator on selle teenuse välja lülitanud. Sünkroonimine jätkub, kui see uuesti lubatakse.',
   'docsync.binding.reconnect': 'Ühenda uuesti',
+  'docsync.connection.title': 'Ühendus',
+  'docsync.connection.hint': 'Aadress ja sisselogimine, mida TREK selle hoidla jaoks kasutab.',
+  'docsync.connection.edit': 'Muuda ühendust',
+  'docsync.connection.remove': 'Eemalda ühendus',
+  'docsync.connection.confirmRemove':
+    'TREK unustab selle hoidla aadressi ja sisselogimise ning kõik selle reisi sünkroonimised selle kaudu peatuvad. Dokumendid jäävad TREKi ja hoidlasse.',
 };
 
 export default docsync;

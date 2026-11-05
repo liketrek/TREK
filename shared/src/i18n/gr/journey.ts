@@ -302,7 +302,7 @@ const journey: TranslationStrings = {
   'journey.studio.autoLayout': 'Αυτόματη διάταξη',
   'journey.studio.export': 'Εξαγωγή',
   'journey.studio.day': 'ΗΜΕΡΑ {day}',
-  'journey.studio.stations': 'Στάσεις',
+  'journey.studio.stations': 'Στη διαδρομή',
   'journey.studio.peersHere': 'εδώ',
   'journey.studio.folioAuto': 'Αυτόματα',
   'journey.studio.exportLayout': 'Διάταξη',

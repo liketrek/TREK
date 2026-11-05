@@ -312,7 +312,7 @@ const journey: TranslationStrings = {
   'journey.studio.autoLayout': 'Автомакет',
   'journey.studio.export': 'Экспорт',
   'journey.studio.day': 'ДЕНЬ {day}',
-  'journey.studio.stations': 'Остановки',
+  'journey.studio.stations': 'По пути',
   'journey.studio.peersHere': 'здесь',
   'journey.studio.folioAuto': 'Автоматически',
   'journey.studio.exportLayout': 'Макет',

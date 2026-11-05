@@ -4,6 +4,7 @@ import { tripsApi } from '../../api/client';
 import { useTranslation } from '../../i18n';
 import { isEffectivelyOffline } from '../../sync/networkMode';
 import { getApiErrorMessage } from '../../types';
+import { getApiErrorCode } from '../../utils/apiError';
 import { normalizeImageFile } from '../../utils/convertHeic';
 import { refusedOffline } from '../../utils/needsConnection';
 import { useToast } from '../shared/Toast';
@@ -149,7 +150,12 @@ export function useTripCoverPicker({ trip, title, onCoverUpdate, releasePreviewO
       if (photos.length === 0) setSearchError(t('dashboard.unsplashNoResults'));
     } catch (err: unknown) {
       if (seq !== coverSearchSeq.current) return;
-      setSearchError(getApiErrorMessage(err, t('dashboard.coverSearchError')));
+      // #1449: Unsplash turns a datacenter address away until an admin enters the free key.
+      setSearchError(
+        getApiErrorCode(err) === 'unsplash_key_needed'
+          ? t('dashboard.unsplashKeyNeeded')
+          : getApiErrorMessage(err, t('dashboard.coverSearchError'))
+      );
     } finally {
       if (seq === coverSearchSeq.current) setSearching(false);
     }

@@ -9,7 +9,7 @@
  *   node --import tsx scripts/migrate-encryption.ts
  *
  * Usage (Docker):
- *   docker exec -it trek node --import tsx scripts/migrate-encryption.ts
+ *   docker exec -it -u node -w /app/server trek node --import tsx scripts/migrate-encryption.ts
  *
  * The script will prompt for the old and new keys interactively so they never
  * appear in shell history, process arguments, or log output.
@@ -152,6 +152,23 @@ async function main() {
 
   console.log(`Database: ${dbPath}\n`);
 
+  // SQLite silently opens an unwritable file read-only (#2933); db.readonly can't tell.
+  const notWritable = [dbPath, path.dirname(dbPath)].find((p) => {
+    try {
+      fs.accessSync(p, fs.constants.W_OK);
+      return false;
+    } catch {
+      return true;
+    }
+  });
+  if (notWritable) {
+    rl.close();
+    console.error(`Cannot write to ${notWritable} as uid ${process.getuid?.() ?? '?'}.`);
+    console.error('Run this script as the user that owns the data directory. In the Docker image that is node:');
+    console.error('  docker exec -it -u node -w /app/server trek node --import tsx scripts/migrate-encryption.ts');
+    process.exit(1);
+  }
+
   // Collect keys interactively
   const oldKey = await promptSecret('Old ENCRYPTION_KEY: ');
   const newKey = await promptSecret('New ENCRYPTION_KEY: ');
@@ -193,7 +210,8 @@ async function main() {
   // copy is only the fallback for when it cannot (disk, lock).
   try {
     db.exec(`VACUUM INTO '${backupPath.replace(/'/g, "''")}'`);
-  } catch {
+  } catch (err) {
+    console.warn(`VACUUM INTO failed (${(err as Error).message}); falling back to checkpoint + copy.`);
     db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
     fs.copyFileSync(dbPath, backupPath);
   }
@@ -295,6 +313,10 @@ async function main() {
     // web_push_vapid_private_key is the Web Push signing key VapidKeysService
     // generates. Missed here it would no longer decrypt under the new key, and
     // push would stay off on every device until the old key came back.
+    //
+    // service_key is the installation's key towards the liketrek services.
+    // Missed here it reads back as unusable, the installation registers anew and
+    // loses its id, and a revoked key would come back as a fresh one.
     for (const key of [
       'oidc_client_secret',
       'smtp_pass',
@@ -304,6 +326,7 @@ async function main() {
       'unsplash_api_key',
       'amap_api_key',
       'web_push_vapid_private_key',
+      'service_key',
     ]) {
       const row = db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key) as { value: string } | undefined;
       if (!row?.value) continue;

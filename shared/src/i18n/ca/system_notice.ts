@@ -56,21 +56,18 @@ const system_notice: TranslationStrings = {
   'system_notice.thank_you_support.cta_bmc': 'Buy Me a Coffee',
   'system_notice.thank_you_support.cta_kofi': 'Dona suport a Ko-fi',
   'system_notice.release_notes.eyebrow': 'Actualització instal·lada',
-  'system_notice.release_notes.headline': 'El TREK més gran fins ara.',
+  'system_notice.release_notes.headline': 'El lloc correcte, primer.',
   'system_notice.release_notes.features_label': 'Els protagonistes',
   'system_notice.release_notes.features_aside': 'I això no és tot',
-  'system_notice.release_notes.feature_tours_title': 'Excursions',
-  'system_notice.release_notes.feature_tours_body':
-    'Excursions a peu, en bici, curses, sortides a cavall, rem, passejades per la ciutat i dies d’esquí, amb perfil d’altitud, graus de dificultat i sobrevol en 3D.',
-  'system_notice.release_notes.feature_studio_title': 'TREK Studio', // same-as-en
-  'system_notice.release_notes.feature_studio_body':
-    'Converteix un viatge en un fotollibre dissenyat: 17 temes, 34 tipografies, 160 adhesius i maquetació automàtica amb un clic.',
-  'system_notice.release_notes.feature_assistant_title': 'Assistent d’IA',
-  'system_notice.release_notes.feature_assistant_body':
-    'Planifica amb tu sobre els teus viatges reals, amb el compte d’IA que ja tens. Cada canvi es mostra primer i es pot desfer.',
-  'system_notice.release_notes.feature_help_title': 'Ajuda a cada pantalla, en 27 idiomes',
-  'system_notice.release_notes.feature_help_body':
-    'Unes 370 guies pas a pas amb 1.600 imatges, just on les necessites. Novetat: azerbaidjanès, estonià, eslovac i tai.',
+  'system_notice.release_notes.feature_search_title': 'Una cerca de llocs que l’encerta',
+  'system_notice.release_notes.feature_search_body':
+    'Ciutats, illes, monuments i aeroports pel seu codi surten primer, les cafeteries surten del teu voltant i els suggeriments apareixen mentre escrius.',
+  'system_notice.release_notes.feature_share_title': 'Detalls dels llocs, compartits',
+  'system_notice.release_notes.feature_share_body':
+    'Comparteix webs, horaris i fotos amb cada TREK, camp per camp, i els teus llocs desats s’omplen amb el que altres han afegit.',
+  'system_notice.release_notes.feature_routing_title': 'Rutes més ràpides',
+  'system_notice.release_notes.feature_routing_body':
+    'Un dia sencer es calcula d’una tirada amb fins a vint parades, una ruta lenta ja no frena les altres i el transport públic consulta un segon proveïdor quan el primer no troba res.',
   'system_notice.release_notes.footnote': 'I una llarga llista de canvis més petits a la resta de TREK.',
   'system_notice.release_notes.notes_label': 'Notes de la versió',
   'system_notice.release_notes.note_eyebrow': 'Una nota del mantenidor',
@@ -84,13 +81,13 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.note_body_after':
     "I llavors el vau obrir. En pocs mesos éreu milers: estrelles, informes d'errors, traduccions a llengües que no parlo, pull requests de gent que no he conegut mai. El primer que faig cada matí continua sent mirar el repositori, i encara em costa creure-m'ho.",
   'system_notice.release_notes.note_closing': 'Gràcies per ser aquí. Una abraçada, Maurice.',
-  'system_notice.release_notes.support_lead':
-    'TREK és gratuït i ho serà sempre, però els servidors, els dominis i tantes nits llargues no ho són.',
+  'system_notice.release_notes.support_label': 'Continuar independents',
+  'system_notice.release_notes.support_lead': 'Sense Google i companyia.',
   'system_notice.release_notes.support_text':
-    "Si s'ha guanyat un lloc als teus viatges, convida'm a un cafè i ajuda a fer que arribi la propera versió.",
+    'La cerca de llocs, la cerca d’adreces i el càlcul de rutes funcionen en servidors propis de TREK, avui patrocinats per dataforest cloud. Hi lluito cada dia, i perquè continuï així cal el teu suport.',
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
   'system_notice.release_notes.cta_kofi': 'Dona suport a Ko-fi',
   'system_notice.release_notes.intro':
-    'Excursions per a cada dia a l’aire lliure, un estudi per als teus fotollibres, un assistent que planifica amb tu i ajuda a cada pantalla.',
+    'La cerca de llocs, la cerca d’adreces i el càlcul de rutes ara funcionen en servidors propis de TREK, patrocinats per dataforest cloud, i cada TREK pot compartir el que sap dels llocs amb tots els altres.',
 };
 export default system_notice;

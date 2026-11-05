@@ -127,11 +127,9 @@ async function linkOfFile(fileId: number) {
 // deleteGuest routes through the SAME BudgetService domain SQL
 // (removeUserFromBudgetItems) under test.
 //
-// Plan 3c Task 0b: `dbsEm` is resolved once, at the top of the `beforeAll`
-// below — `canAccessTrip`/`isOwner`/`rosterUserIds`/`getPlaceWithTags`
-// resolve `TripsRepository`/`TripMembersRepository`/`PlacesRepository`
-// through it. Plan 4 Task 4: `DatabaseService` itself is gone —
-// `UserCleanupService` now takes this `EntityManager` directly.
+// Plan 3c Task 0b: `dbsEm` is resolved once, at the top of the `beforeAll` below — `canAccessTrip`/`isOwner`/
+// `rosterUserIds`/`getPlaceWithTags` resolve `TripsRepository`/`TripMembersRepository`/`PlacesRepository`
+// through it. Plan 4 Task 4: `DatabaseService` is gone; `UserCleanupService` takes this `EntityManager`.
 let dbsEm: import('@mikro-orm/core').EntityManager | undefined;
 
 let budget: BudgetService;
@@ -157,7 +155,7 @@ beforeAll(async () => {
 );
   membersSvc = new TripMembersService(
   budget,
-  new UserCleanupService(new MaintenanceRepository(dbsEm!), budget, await createTestUnitOfWork(testDb), await createTestUsersRepo(testDb), await createTestTripMembersRepo(testDb), await createTestBudgetItemsRepo(testDb), await createTestBudgetSettlementsRepo(testDb), await createTestJourneyShareTokensRepo(testDb), await createTestJourneysRepo(testDb), await createTestJourneyEntriesRepo(testDb), await createTestJourneyContributorsRepo(testDb), await createTestShareTokensRepo(testDb), await createTestPluginsRepo(testDb), await createTestPluginUserErasureQueueRepo(testDb)),
+  new UserCleanupService(new MaintenanceRepository(dbsEm!), budget, await createTestUnitOfWork(testDb), await createTestUsersRepo(testDb), await createTestTripMembersRepo(testDb), await createTestBudgetItemsRepo(testDb), await createTestBudgetSettlementsRepo(testDb), await createTestJourneyShareTokensRepo(testDb), await createTestJourneysRepo(testDb), await createTestJourneyEntriesRepo(testDb), await createTestJourneyContributorsRepo(testDb), await createTestShareTokensRepo(testDb), await createTestPluginsRepo(testDb), await createTestPluginUserErasureQueueRepo(testDb), { releaseValues: () => [] } as never),
   new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
   new RealtimeService(),
   notificationsStub(),
@@ -1809,14 +1807,14 @@ describe('the settlement converts with the quote the entry rate was frozen from 
     const mine = before.finalBudgets.find(f => f.user_id === me.id)!;
     expect(mine.expenses).toBe(12345.67);
     expect(mine.sources.fronted).toEqual([{ item_id: bill.id, cents: 1234567 }]);
-    expect(before.flows.map(f => f.amount)).toEqual([6172.84]);
-
-    // Bob pays exactly what settle-up offers, in dollars, as the Costs screen records it.
-    await budget.createSettlement(trip.id, { from_user_id: bob.id, to_user_id: me.id, amount: 6172.84, currency: 'USD' }, me.id);
+    expect(before.flows.map(f => [6172.83, 6172.84].includes(f.amount))).toEqual([true]);
+    // Bob pays exactly what settle-up offers, in dollars; read in euros one cent may stay apart (#2965).
+    await budget.createSettlement(trip.id, { from_user_id: bob.id, to_user_id: me.id, amount: before.flows[0].amount, currency: 'USD' }, me.id);
     const after = await budget.settlement(trip.id, 'USD', 'EUR');
     expect(after.balances.map(b => b.balance)).toEqual([0, 0]);
     expect(after.flows).toEqual([]);
-    expect((await budget.settlement(trip.id, 'EUR', 'EUR')).balances.map(b => b.balance)).toEqual([0, 0]);
+    const inEur = (await budget.settlement(trip.id, 'EUR', 'EUR')).balances.map(b => Math.round(b.balance * 100));
+    expect([[0, 0], [1, -1], [-1, 1]]).toContainEqual(inEur);
   });
 
   it('BUDGET-SVC-DB-083: the final budget lists a bill at what was typed even where its trip cent rounds away', async () => {

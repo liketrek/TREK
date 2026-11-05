@@ -1,6 +1,6 @@
 import { bookElementId } from '../book-ids';
 import { blankBook, blankSpread } from '../book-pages';
-import { MAX_BOOK_TITLE, MAX_SPREADS, type BookDocument, type BookPageSetup, type BookSpread } from '../book.schema';
+import { MAX_BOOK_TITLE, type BookDocument, type BookPageSetup, type BookSpread } from '../book.schema';
 import type { JourneyStats } from '../journey-stats.schema';
 import {
   STATIONS_PER_PAGE,
@@ -155,7 +155,7 @@ export function buildBook(input: AutoInput): BookDocument {
     version: 1,
     title: input.title.slice(0, MAX_BOOK_TITLE),
     page: withFirstPage(input.page),
-    spreads: spreads.slice(0, MAX_SPREADS),
+    spreads,
   };
 }
 

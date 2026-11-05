@@ -114,6 +114,12 @@ export class AddonsService {
     return this.writeFlag('ski_routing_enabled', enabled);
   }
 
+  /** The photo providers users can connect: none while the journey addon is off. */
+  async enabledPhotoProviderIds(): Promise<string[]> {
+    if (!(await this.isAddonEnabled(ADDON_IDS.JOURNEY))) return [];
+    return this.photoProviders.listEnabledIds();
+  }
+
   /** wanderer may be used: Tours is on and the admin allowed it under Tours. */
   async isWandererAvailable(): Promise<boolean> {
     return (await this.isAddonEnabled(ADDON_IDS.TOURS)) && (await this.getToursWanderer()).enabled;

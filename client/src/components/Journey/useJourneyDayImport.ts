@@ -155,8 +155,9 @@ function useDayMap(
         color: dayColor,
         points: segment.points,
         kind: 'day_recording',
+        date,
       })),
-    [route, dayColor, t]
+    [route, dayColor, date, t]
   );
   return { entries, tracks };
 }

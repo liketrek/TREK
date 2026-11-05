@@ -69,6 +69,8 @@ const dayplan: TranslationStrings = {
   'dayplan.pdf': 'PDF',
   'dayplan.pdfTooltip': 'Kế hoạch ngày xuất dưới dạng PDF',
   'dayplan.pdfMine': 'Kế hoạch của tôi dạng PDF',
+  'dayplan.pdfRouting': 'Đang tính tuyến đường: {done}/{total}',
+  'dayplan.pdfSkipRouting': 'Xuất mà không có các tuyến còn lại',
   'dayplan.pdfMineSub': 'Chỉ các hoạt động và đặt chỗ bạn tham gia',
   'dayplan.gpxTooltip': 'Xuất ra GPX cho bản đồ ngoại tuyến và thiết bị GPS',
   'dayplan.gpxAll': 'Toàn bộ chuyến đi',

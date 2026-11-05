@@ -290,7 +290,7 @@ const journey: TranslationStrings = {
   'journey.studio.autoLayout': '自動レイアウト',
   'journey.studio.export': 'エクスポート',
   'journey.studio.day': '{day}日目',
-  'journey.studio.stations': '立ち寄り先',
+  'journey.studio.stations': '道中で',
   'journey.studio.peersHere': '閲覧中',
   'journey.studio.folioAuto': '自動',
   'journey.studio.exportLayout': 'レイアウト',

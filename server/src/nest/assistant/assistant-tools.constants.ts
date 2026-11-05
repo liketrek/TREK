@@ -255,6 +255,18 @@ export const ASSISTANT_SERVER_TOOLS: ReadonlySet<string> = new Set([
   ...Object.keys(ASSISTANT_SERVER_WRITE_TOOLS),
 ]);
 
+/**
+ * The server's tools the model calls itself. TREK answers them, but they are
+ * calls in the provider's own record of the step, so a replayed step has to
+ * answer them like any other; the rest of the server's tools are steps the
+ * server took, which the provider never saw.
+ */
+export const ASSISTANT_MODEL_CALLED_SERVER_TOOLS: ReadonlySet<string> = new Set([
+  REMEMBER_TOOL,
+  READ_ATTACHED_FILE_TOOL,
+  KEEP_ATTACHED_FILE_TOOL,
+]);
+
 /** The largest file the assistant reads. */
 export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 

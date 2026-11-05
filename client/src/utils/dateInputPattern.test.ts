@@ -15,4 +15,18 @@ describe('dateInputPattern', () => {
     expect(dateInputPattern('ar')).not.toMatch(/[٠-٩\d]/);
     expect(dateInputPattern('ar')).toContain('YYYY');
   });
+
+  it('writes a chosen date format (#2971) as its own pattern, whatever the language', () => {
+    expect(dateInputPattern('en-US', 'YYYY-MM-DD')).toBe('YYYY-MM-DD');
+    expect(dateInputPattern('en-US', 'DD.MM.YYYY')).toBe('DD.MM.YYYY');
+    expect(dateInputPattern('de-DE', 'MM/DD/YYYY')).toBe('MM/DD/YYYY');
+    expect(dateInputPattern('ko-KR', 'YYYY/MM/DD')).toBe('YYYY/MM/DD');
+  });
+
+  it('keeps the locale pattern for auto, an unknown value or none', () => {
+    expect(dateInputPattern('de-DE', 'auto')).toBe('DD.MM.YYYY');
+    expect(dateInputPattern('en-US', 'auto')).toBe('MM/DD/YYYY');
+    expect(dateInputPattern('en-GB', 'DD-MM-YY')).toBe('DD/MM/YYYY');
+    expect(dateInputPattern('en-GB', null)).toBe('DD/MM/YYYY');
+  });
 });

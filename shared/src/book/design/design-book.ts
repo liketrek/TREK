@@ -9,7 +9,7 @@ import type { BookPhotoInfo } from '../book-ops-core';
 import type { BookFinding } from '../book-ops.schema';
 import { bookPageSetupForPreset } from '../book-pages';
 import type { BookTravelContext } from '../book-travel';
-import { MAX_BOOK_TITLE, MAX_SPREADS, type BookDocument, type BookPageSetup, type BookSpread } from '../book.schema';
+import { MAX_BOOK_TITLE, type BookDocument, type BookPageSetup, type BookSpread } from '../book.schema';
 import { pageFindings } from '../describe-spread';
 import type { PhotoPickCandidate } from '../photo-pick';
 import { isBookFontFamily, mutedOn, readableOn } from '../theme/book-theme';
@@ -25,7 +25,7 @@ import {
 import { composeBack, composeCover, composeTitlePage, stationsPerSpread } from './design-framing';
 import { composeDesignedInner, type FramingNeeds } from './design-inner';
 import { isLivelyBeat } from './design-lively-pacing';
-import { keepsStored, mergeDesign, type BookDesignPlanRow, type DesignedSpread } from './design-merge';
+import { mergeDesign, type BookDesignPlanRow, type DesignedSpread } from './design-merge';
 import { applyPageOverrides } from './design-overrides';
 import type { BookDesignBeat } from './design-pacing';
 import {
@@ -140,23 +140,6 @@ function classicOnly(d: BookDesignDirectives): boolean {
   return d.chapters === 'entry' && d.density === 'balanced';
 }
 
-/**
- * The designed pages within the spread cap: inner pages past `room` are left
- * off the end (the framing pages always stay), and the note says how many.
- */
-function withinRoom(designed: readonly DesignedSpread[], room: number, notes: string[]): DesignedSpread[] {
-  const inner = designed.filter((d) => d.spread.role === 'inner');
-  const over = inner.length - Math.max(0, room);
-  if (over <= 0) return [...designed];
-  const cut = new Set(inner.slice(inner.length - over).map((d) => d.spread.id));
-  notes.push(`the book holds ${MAX_SPREADS} spreads, so the last ${over} designed pages are left out`);
-  return designed.filter((d) => !cut.has(d.spread.id));
-}
-
-/** Inner spreads the book has room for once the stored pages it keeps are counted. */
-const roomFor = (doc: BookDocument | null, keep: BookDesignDirectives['keep']) =>
-  MAX_SPREADS - 4 - (doc?.spreads ?? []).filter((s) => s.role === 'inner' && keepsStored(s, keep)).length;
-
 /** The travel context the travel elements read: the journey's figures, route, entries and labels. */
 function travelOf(input: BookDesignInput, entries: readonly AutoEntry[]): BookTravelContext {
   return {
@@ -205,14 +188,13 @@ function classicDesign(
     chapter: entries.find((e) => e.id === spread.entryId)?.title ?? null,
     findings: pageFindings(spread, page, input.photos),
   }));
-  const designed = withinRoom(all, roomFor(doc, directives.keep), notes);
-  const merged = mergeDesign(doc, designed, directives.keep);
+  const merged = mergeDesign(doc, all, directives.keep);
   const finalDoc: BookDocument = {
     ...built,
     spreads: merged.spreads,
     ...(doc?.layouts ? { layouts: doc.layouts } : {}),
   };
-  const residual = designed.flatMap((d) => d.findings.filter((f) => f.severity !== 'info'));
+  const residual = all.flatMap((d) => d.findings.filter((f) => f.severity !== 'info'));
   return {
     doc: finalDoc,
     plan: merged.plan,
@@ -274,7 +256,7 @@ export function designBook(
     notes: [],
     art,
   };
-  const needs: FramingNeeds = { room: roomFor(doc, directives.keep), perStations: stationsPerSpread(c) };
+  const needs: FramingNeeds = { perStations: stationsPerSpread(c) };
   const inner = composeDesignedInner(c, placed, choice, input, needs);
 
   const words = {
@@ -547,8 +529,7 @@ function templatedDesign(
   raw: BookDesignDirectivesInput,
 ): BookDesignResult {
   const { c, archetype, calm, placed, rest, choice, finish } = templatedSetting(doc, input, raw);
-  const needs: FramingNeeds = { room: roomFor(doc, c.directives.keep), perStations: stationsPerSpread(c) };
-  const inner = composeTemplatedInner(c, placed, choice, input, needs, { archetype, calm, rest });
+  const inner = composeTemplatedInner(c, placed, choice, input, { archetype, calm, rest });
   const usedPhotos = [...choice.byEntry.values()].flat();
   const designed = templatedPages(c, input, { placed, usedPhotos, inner: inner.spreads, archetype });
   const done = designed.map((d): DesignedSpread => ({ ...d, ...finish(d.spread, !!d.template) }));
@@ -569,8 +550,7 @@ interface TemplatedParts {
 function templatedResult(doc: BookDocument | null, input: BookDesignInput, parts: TemplatedParts): BookDesignResult {
   const { c, finish, placed, notes } = parts;
   const { look, directives, page } = c;
-  const designed = withinRoom(parts.done, roomFor(doc, directives.keep), notes);
-  const laid = mergeDesign(doc, designed, directives.keep);
+  const laid = mergeDesign(doc, parts.done, directives.keep);
   const built: BookDocument = {
     version: 1,
     title: (directives.cover?.title ?? input.title).slice(0, MAX_BOOK_TITLE),
@@ -586,7 +566,7 @@ function templatedResult(doc: BookDocument | null, input: BookDesignInput, parts
     : { doc: built, plan: laid.plan, notes: [] };
   const residual = overrides.length
     ? redesignedFindings(merged.doc, merged.plan, input.photos)
-    : designed.flatMap((d) => d.findings.filter((f) => f.severity !== 'info'));
+    : parts.done.flatMap((d) => d.findings.filter((f) => f.severity !== 'info'));
   const judged = briefOf(c);
   const brief = judged ? briefFindings(merged.doc, judged, briefScope(merged.plan)) : [];
   const used = [...new Set(merged.plan.flatMap((r) => (r.action === 'drop' ? [] : r.photoIds)))];

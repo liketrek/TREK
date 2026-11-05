@@ -55,23 +55,20 @@ const system_notice: TranslationStrings = {
   'system_notice.v3014_whitespace_collision.body':
     'A 3.0.14-es frissítés egy vagy több felhasználónév- vagy e-mail-ütközést észlelt, amelyeket a tárolt értékek elején vagy végén lévő szóközök okoztak. Az érintett fiókok automatikusan át lettek nevezve. Ellenőrizze a szervernaplókat a **[migration] WHITESPACE COLLISION** kezdetű soroknál a felülvizsgálatot igénylő fiókok azonosításához.',
   'system_notice.release_notes.eyebrow': 'Frissítés telepítve',
-  'system_notice.release_notes.headline': 'Az eddigi legnagyobb TREK.',
+  'system_notice.release_notes.headline': 'Elsőre a jó hely.',
   'system_notice.release_notes.intro':
-    'Túrák minden szabadban töltött napra, stúdió a fotókönyveidhez, asszisztens, amely veled együtt tervez, és súgó minden képernyőn.',
+    'A helykeresés, a címkeresés és az útvonaltervezés mostantól a TREK saját szerverein fut, a dataforest cloud támogatásával, és minden TREK megoszthatja a helyekről szerzett tudását az összes többivel.',
   'system_notice.release_notes.features_label': 'A fő újdonságok',
   'system_notice.release_notes.features_aside': 'És ez még nem minden',
-  'system_notice.release_notes.feature_tours_title': 'Túrák',
-  'system_notice.release_notes.feature_tours_body':
-    'Gyalogtúrák, kerékpártúrák, futások, lovaglások, evezés, városi séták és síelős napok, magassági profillal, nehézségi fokozatokkal és 3D-s átrepüléssel.',
-  'system_notice.release_notes.feature_studio_title': 'TREK Studio', // same-as-en
-  'system_notice.release_notes.feature_studio_body':
-    'Egy utazásból megtervezett fotókönyvet készít: 17 téma, 34 betűtípus, 160 matrica és automatikus elrendezés egy kattintással.',
-  'system_notice.release_notes.feature_assistant_title': 'MI-asszisztens',
-  'system_notice.release_notes.feature_assistant_body':
-    'Veled együtt tervez a valódi utazásaidon, a már meglévő MI-fiókoddal. Minden módosítást előbb látsz, és vissza is vonhatod.',
-  'system_notice.release_notes.feature_help_title': 'Súgó minden képernyőn, 27 nyelven',
-  'system_notice.release_notes.feature_help_body':
-    'Körülbelül 370 lépésről lépésre útmutató 1600 képpel, pont ott, ahol szükséged van rájuk. Új: azerbajdzsáni, észt, szlovák és thai.',
+  'system_notice.release_notes.feature_search_title': 'Helykeresés, ami eltalálja',
+  'system_notice.release_notes.feature_search_body':
+    'A városok, szigetek, látnivalók és a kódjukkal keresett repülőterek kerülnek előre, a kávézók a környékedről jönnek, a javaslatok pedig már gépelés közben megjelennek.',
+  'system_notice.release_notes.feature_share_title': 'Megosztott helyadatok',
+  'system_notice.release_notes.feature_share_body':
+    'Oszd meg a weboldalakat, a nyitvatartást és a fotókat minden TREK-kel, mezőnként, a mentett helyeid pedig megkapják, amit mások hozzáadtak.',
+  'system_notice.release_notes.feature_routing_title': 'Gyorsabb útvonaltervezés',
+  'system_notice.release_notes.feature_routing_body':
+    'Egy egész nap egyszerre tervezhető, akár húsz megállóval, egy lassú útvonal már nem tartja fel a többit, a tömegközlekedés pedig egy második szolgáltatót is megkérdez, ha az első semmit sem talál.',
   'system_notice.release_notes.footnote': 'Plusz rengeteg kisebb változás a TREK többi részében.',
   'system_notice.release_notes.notes_label': 'Kiadási jegyzetek',
   'system_notice.release_notes.note_eyebrow': 'Egy szó a fejlesztőtől',
@@ -85,10 +82,10 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.note_body_after':
     'Aztán megnyitottátok. Néhány hónap alatt több ezren lettetek: csillagok, hibajelentések, fordítások olyan nyelvekre, amelyeket nem beszélek, pull requestek olyanoktól, akikkel sosem találkoztam. Még mindig a repóval kezdem minden reggelt, és még mindig nem egészen tűnik valóságosnak.',
   'system_notice.release_notes.note_closing': 'Köszönöm, hogy itt vagy. Maurice',
-  'system_notice.release_notes.support_lead':
-    'A TREK ingyenes, és mindig az is marad, de a szerverek, a domainek és a sok késő éjszaka nem azok.',
+  'system_notice.release_notes.support_label': 'A függetlenségért',
+  'system_notice.release_notes.support_lead': 'Google és társai nélkül.',
   'system_notice.release_notes.support_text':
-    'Ha kiérdemelt egy helyet az utazásaid között, hívj meg egy kávéra, és segíts, hogy jöhessen a következő kiadás.',
+    'A helykeresés, a címkeresés és az útvonaltervezés a TREK saját szerverein fut, ma a dataforest cloud támogatásával. Minden nap küzdök ezért, és hogy így is maradjon, szükségem van a támogatásodra.',
   'system_notice.release_notes.cta_bmc': 'Vegyél nekem egy kávét',
   'system_notice.release_notes.cta_kofi': 'Támogass a Ko-fi-n',
 };

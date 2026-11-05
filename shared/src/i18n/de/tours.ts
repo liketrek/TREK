@@ -7,7 +7,8 @@ const tours: TranslationStrings = {
   'tours.mode.label': 'Ansicht zum Hinzufügen',
   'tours.title': 'Touren',
   'tours.empty.title': 'Noch keine Touren',
-  'tours.empty.body': 'Plane eine Tour oder importiere eine GPX- oder KML-Datei.',
+  'tours.empty.body':
+    'Plane eine Tour oder importiere eine GPX- oder KML-Datei. Eine geführte Tour gebucht? Die gehört unter Buchungen.',
   'tours.addToDay': 'Zum Tag hinzufügen',
   'tours.badge.wanderer': 'wanderer',
   'tours.badge.gpx': 'GPX-Import',
@@ -144,6 +145,8 @@ const tours: TranslationStrings = {
   'tours.planner.breaksAdditional': 'Pausen / zusätzliche Zeit',
   'tours.planner.plannedTotalManual': 'Manuell angepasst',
   'tours.planner.timeValueInvalid': 'Ganze Minuten von 0 bis 1.440 eingeben.',
+  'tours.planner.plannedTotalOverDay':
+    'Gehzeit und Pausen ergeben mehr als 24 Stunden am Tag. Mach eine Mehrtagestour daraus, mit „Etappe hier beenden“ an einem Halt, oder gib eine kürzere geplante Gesamtdauer ein.',
   'tours.planner.walkingTimeUnknown': 'Noch nicht berechnet',
   'tours.planner.walkingShort': 'Gehzeit',
   'tours.planner.breaksShort': 'Pausen',
@@ -970,11 +973,19 @@ const tours: TranslationStrings = {
   'tours.import.leftOutAreas.one': '{count} Fläche',
   'tours.import.leftOutOther': '{count} weitere Elemente',
   'tours.import.leftOutOther.one': '{count} weiteres Element',
+  'tours.import.pointsAsPlaces': 'Punkte als Orte hinzufügen',
+  'tours.import.pointsAsPlacesHint':
+    'Einzelne Punkte gehören zu keiner Tour. Sie kommen stattdessen zu den Orten der Reise.',
+  'tours.import.pointsConfirm': 'Orte hinzufügen',
+  'tours.import.pointsFailedIn': 'Die Punkte aus {name} konnten nicht als Orte hinzugefügt werden.',
+  'tours.import.pointsImported': '{count} Orte hinzugefügt',
+  'tours.import.pointsImported.one': '{count} Ort hinzugefügt',
   'tours.import.unreadableIn':
     '{name} konnte nicht gelesen werden: Die Datei ist beschädigt oder kein GPX, KML oder KMZ',
   'tours.import.archiveNoKmlIn': 'Keine KML-Datei in {name} gefunden',
   'tours.import.archiveTooLargeIn': '{name} ist entpackt zu groß',
   'tours.import.previewDuplicate': 'Schon in der Reise',
+  'tours.import.previewAdopts': 'Schon als Track in der Reise, wird zur Tour',
   'tours.import.previewAllDuplicates': 'Alle Tracks sind schon in der Reise, es gibt nichts zu importieren.',
   'tours.import.previewAs': 'Importieren als',
   'tours.import.previewConfirm': '{count} Touren importieren',

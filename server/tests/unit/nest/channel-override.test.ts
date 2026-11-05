@@ -27,7 +27,7 @@ import { NtfyService } from '../../../src/nest/notifications/transports/ntfy.ser
 import { WebhookService } from '../../../src/nest/notifications/transports/webhook.service';
 import { createUser, createAdmin, setAppSetting, setNotificationChannels } from '../../helpers/factories';
 import { makePlugin } from '../../helpers/factories/plugins';
-import { makeNotificationsService } from '../../helpers/notifications';
+import { everyFeatureOn, makeNotificationsService } from '../../helpers/notifications';
 import { createTestNotificationChannelPreferencesRepo } from '../../helpers/notifications-repos';
 import { createPluginRuntime } from '../../helpers/plugin-host';
 import { resetTestDb } from '../../helpers/test-db';
@@ -114,6 +114,7 @@ beforeAll(async () => {
     await createTestUnitOfWork(testDb),
     await createTestAppSettingsRepo(testDb),
     await createTestNotificationChannelPreferencesRepo(testDb),
+    everyFeatureOn(),
   );
   notifications = await makeNotificationsService(testDb);
 });

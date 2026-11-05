@@ -29,7 +29,7 @@ const reservations: TranslationStrings = {
   'reservations.type.car': 'Coche',
   'reservations.type.cruise': 'Crucero',
   'reservations.type.event': 'Evento',
-  'reservations.type.tour': 'Excursión',
+  'reservations.type.tour': 'Visita guiada',
   'reservations.type.parking': 'Aparcamiento',
   'reservations.type.other': 'Otro',
   'reservations.type.bus': 'Autobús',
@@ -46,8 +46,8 @@ const reservations: TranslationStrings = {
   'reservations.confirm.deleteBodyWithExpense': '« {name} » y sus costes vinculados se eliminarán permanentemente.',
   'reservations.toast.updated': 'Reserva actualizada',
   'reservations.toast.removed': 'Reserva eliminada',
-  'reservations.toast.fileUploaded': 'Archivo subido',
-  'reservations.toast.uploadError': 'No se pudo subir',
+  'reservations.toast.filesNotUploaded':
+    'La reserva se ha guardado, pero algunos archivos no se subieron. Guarda de nuevo para enviarlos.',
   'reservations.newTitle': 'Nueva reserva',
   'reservations.bookingType': 'Tipo de reserva',
   'reservations.titleLabel': 'Título',
@@ -141,6 +141,14 @@ const reservations: TranslationStrings = {
   'reservations.import.cta': 'Importar desde archivo',
   'reservations.import.dropHere': 'Suelta los archivos de confirmación de reserva aquí o haz clic para seleccionar',
   'reservations.import.dropActive': 'Suelta los archivos para importar',
+  'reservations.import.pinSearching': 'Buscando en el mapa…',
+  'reservations.import.pinFound': 'En el mapa',
+  'reservations.import.pinMissingTitle': 'Todavía no está en el mapa',
+  'reservations.import.pinMissingBody':
+    'TREK no ha encontrado este alojamiento en el mapa. Revisa el nombre y la dirección de arriba y vuelve a buscar, o guárdalo sin chincheta.',
+  'reservations.import.pinRetry': 'Buscar de nuevo',
+  'reservations.import.savedWithoutPin':
+    'Guardado sin chincheta en el mapa. Edita el lugar y fija su ubicación para verlo en el mapa.',
   'reservations.import.acceptedFormats':
     'Aceptados: EML, PDF, PKPass, HTML, TXT (máx. 10 MB por archivo, hasta 5 archivos)',
   'reservations.import.acceptedPhotos': 'El modelo de IA lee las fotos (JPG, PNG, WEBP).',

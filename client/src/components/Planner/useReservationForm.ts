@@ -19,6 +19,7 @@ import {
   withStartDate,
   withStartTime,
 } from './reservationFormModel';
+import { useStayPin } from './useStayPin';
 
 /**
  * The booking form behind the desktop ReservationModal and the phone's booking
@@ -39,6 +40,8 @@ export function useReservationForm<F extends ReservationFields & CheckInEndField
 
   const set = (field: keyof F, value: string | number) => setForm((prev) => ({ ...prev, [field]: value }));
   const toggleTraveler = (id: number) => setTravelerIds((prev) => toggledTraveler(prev, id));
+  // Where an imported stay will land on the map, looked up while it is reviewed.
+  const stayPin = useStayPin();
 
   // Restrict non-hotel booking dates to the trip's span (#1662). Hotels already
   // constrain to trip days via their day dropdowns.
@@ -71,6 +74,7 @@ export function useReservationForm<F extends ReservationFields & CheckInEndField
     pickHotelPlace: (value: string | number) => setForm((prev) => withHotelPlace(prev, value, places)),
     pickHotelStart: (value: string | number) => setForm((prev) => withHotelStart(prev, value, days)),
     pickHotelEnd: (value: string | number) => setForm((prev) => withHotelEnd(prev, value, days)),
-    saveData: (opts: ReservationSaveOptions) => reservationSaveData(form, opts),
+    stayPin,
+    saveData: (opts: ReservationSaveOptions) => reservationSaveData(form, { ...opts, venuePin: stayPin.match }),
   };
 }

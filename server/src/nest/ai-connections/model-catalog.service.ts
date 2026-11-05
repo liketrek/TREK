@@ -238,7 +238,15 @@ export class ModelCatalogService {
       const { models } = await this.llmLocal.listModels(baseUrl ?? undefined, apiKey ?? undefined);
       return models.map((m) => ({ id: m.name, label: m.name, supportsTools: true }));
     } catch (err) {
-      if (err instanceof DomainError) throw new AiProviderError('provider_unavailable', err.getStatus(), true);
+      // The server's own answer decides what the admin reads: a refused key, a
+      // server that answered without a model list, or one that is not there.
+      // All three read as "not responding" before, which sent people looking
+      // at a server that was up (#2808).
+      if (err instanceof DomainError) {
+        if (err.code === 'llm_key_refused') throw new AiProviderError('invalid_key', err.getStatus(), false);
+        const reason = err.code === 'llm_no_model_list' ? 'no_model_list' : undefined;
+        throw new AiProviderError('provider_unavailable', err.getStatus(), true, undefined, reason);
+      }
       throw err;
     }
   }

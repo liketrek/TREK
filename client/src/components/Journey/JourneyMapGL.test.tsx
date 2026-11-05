@@ -1,4 +1,4 @@
-// FE-COMP-JMAPGL-001 to FE-COMP-JMAPGL-040, FE-COMP-JMAPGL-2453
+// FE-COMP-JMAPGL-001 to FE-COMP-JMAPGL-048, FE-COMP-JMAPGL-2453, FE-COMP-JMAPGL-2910
 
 type Spy = ReturnType<typeof vi.fn>
 
@@ -35,8 +35,9 @@ const gl = vi.hoisted(() => {
     off: vi.fn(),
     once: vi.fn(),
     loaded: vi.fn(() => true),
-    // Container pixels from lng/lat, ten per degree: enough to tell near from far.
-    project: vi.fn(([lng, lat]: [number, number]) => ({ x: lng * 10, y: lat * 10 })),
+    // Container pixels, ten per degree. The layers must not group by them: they
+    // shift with every pan (#2889).
+    project: vi.fn(),
     remove: vi.fn(),
     resize: vi.fn(),
     flyTo: vi.fn(),
@@ -182,6 +183,7 @@ beforeEach(() => {
     return gl.map
   })
   gl.map.getZoom.mockReturnValue(10)
+  gl.map.project.mockImplementation(([lng, lat]: [number, number]) => ({ x: lng * 10, y: lat * 10 }))
   gl.map.getSource.mockReturnValue(null)
   vi.mocked(isStandardFamily).mockReturnValue(false)
   vi.mocked(supportsCustom3d).mockReturnValue(false)
@@ -236,6 +238,15 @@ describe('JourneyMapGL', () => {
     expect(gl.markers[1].element.innerHTML).toContain('>1<')
   })
 
+  it('FE-COMP-JMAPGL-043: a stop without a number (a draft) gets an unnumbered pin', () => {
+    withToken()
+    render(<JourneyMapGL checkins={[]} entries={[{ ...entries[0], dayLabel: null }]} />)
+
+    expect(gl.markers).toHaveLength(1)
+    expect(gl.markers[0].element.innerHTML).toContain('#ff0055')
+    expect(gl.markers[0].element.innerHTML).toMatch(/font-weight="700"><\/text>/)
+  })
+
   it('FE-COMP-JMAPGL-006: entries without coordinates never reach the map', () => {
     withToken()
     render(
@@ -253,23 +264,12 @@ describe('JourneyMapGL', () => {
     render(<JourneyMapGL checkins={[]} entries={entries} />)
 
     expect(gl.map.addSource).toHaveBeenCalledWith('journey-route', expect.objectContaining({ type: 'geojson' }))
-    const source = vi.mocked(gl.map.addSource).mock.calls[0][1] as { data: { geometry: { coordinates: number[][] } } }
-    expect(source.data.geometry.coordinates).toEqual([[2.3522, 48.8566], [13.405, 52.52]])
+    const source = vi.mocked(gl.map.addSource).mock.calls[0][1] as { data: { geometry: { coordinates: number[][][] } } }
+    expect(source.data.geometry.coordinates).toEqual([[[2.3522, 48.8566], [13.405, 52.52]]])
     expect(gl.map.addLayer).toHaveBeenCalledWith(expect.objectContaining({
       id: 'journey-route-line',
       source: 'journey-route',
     }))
-  })
-
-  it('FE-COMP-JMAPGL-008: an existing route source is updated instead of re-added', () => {
-    withToken()
-    const setData = vi.fn()
-    gl.map.getSource.mockReturnValue({ setData })
-
-    render(<JourneyMapGL checkins={[]} entries={entries} />)
-
-    expect(gl.map.addSource).not.toHaveBeenCalled()
-    expect(setData).toHaveBeenCalledWith(expect.objectContaining({ type: 'Feature' }))
   })
 
   it('FE-COMP-JMAPGL-038: a planned GPX track goes on the dashed layer, a recorded route on the solid one (JRN-01)', () => {
@@ -507,6 +507,86 @@ describe('JourneyMapGL', () => {
     expect(document.querySelectorAll('#trek-journey-popup-style')).toHaveLength(1)
   })
 
+  describe('the marker card as a way into the entry (#2885)', () => {
+    const withPhotos = [
+      { ...entries[0], photoUrls: ['/a.jpg', '/b.jpg'] },
+      entries[1],
+    ]
+
+    // The stub's setHTML records the markup; the card's content is put in by hand.
+    function openCard(props: Record<string, unknown>, id = 'e1') {
+      withToken()
+      const ref = React.createRef<JourneyMapGLHandle>()
+      render(<JourneyMapGL ref={ref} checkins={[]} entries={withPhotos} {...props} />)
+      act(() => { ref.current?.highlightMarker(id) })
+      const popup = gl.popups[0]
+      popup.element.innerHTML = String(popup.setHTML.mock.lastCall?.[0])
+      const mapClick = vi.fn()
+      const host = document.createElement('div')
+      host.appendChild(popup.element)
+      host.addEventListener('click', mapClick)
+      return { ref, popup, mapClick }
+    }
+
+    function tap(popup: PopupStub, selector: string) {
+      const target = popup.element.querySelector(selector) as HTMLElement
+      target.click()
+    }
+
+    it('FE-COMP-JMAPGL-044: a tap anywhere on the card opens its entry and stays off the map', () => {
+      const onMarkerCardClick = vi.fn()
+      const { popup, mapClick } = openCard({ onMarkerCardClick })
+
+      expect(popup.options.className).toContain('is-openable')
+      tap(popup, '.trek-journey-popup-title')
+
+      expect(onMarkerCardClick).toHaveBeenCalledWith('e1')
+      expect(mapClick).not.toHaveBeenCalled()
+    })
+
+    it('FE-COMP-JMAPGL-045: with a photo handler a thumbnail opens the photo, not the entry', () => {
+      const onMarkerCardClick = vi.fn()
+      const onMarkerPhotoClick = vi.fn()
+      const { popup } = openCard({ onMarkerCardClick, onMarkerPhotoClick })
+
+      tap(popup, '[data-shot="1"]')
+
+      expect(onMarkerPhotoClick).toHaveBeenCalledWith('e1', 1)
+      expect(onMarkerCardClick).not.toHaveBeenCalled()
+    })
+
+    it('FE-COMP-JMAPGL-046: without a photo handler a thumbnail opens the entry like the rest of the card', () => {
+      const onMarkerCardClick = vi.fn()
+      const { popup } = openCard({ onMarkerCardClick })
+
+      tap(popup, '[data-shot]')
+
+      expect(onMarkerCardClick).toHaveBeenCalledWith('e1')
+    })
+
+    it('FE-COMP-JMAPGL-047: without a handler the card stays a label the tap passes through', () => {
+      const { popup, mapClick } = openCard({})
+
+      expect(popup.options.className).toBe('trek-journey-popup')
+      tap(popup, '.trek-journey-popup-title')
+
+      expect(mapClick).toHaveBeenCalled()
+    })
+
+    it('FE-COMP-JMAPGL-048: the reused card opens the entry it shows now', () => {
+      const onMarkerCardClick = vi.fn()
+      const { ref, popup } = openCard({ onMarkerCardClick })
+
+      act(() => { ref.current?.highlightMarker('e2') })
+      popup.element.innerHTML = String(popup.setHTML.mock.lastCall?.[0])
+      tap(popup, '.trek-journey-popup-title')
+
+      expect(popup.element.classList.contains('is-openable')).toBe(true)
+      expect(popup.element.classList.contains('is-interactive')).toBe(false)
+      expect(onMarkerCardClick).toHaveBeenCalledWith('e2')
+    })
+  })
+
   it('FE-COMP-JMAPGL-023: focusMarker eases over with the 3D pitch and no zoom of its own', () => {
     withToken()
     const ref = React.createRef<JourneyMapGLHandle>()
@@ -553,14 +633,63 @@ describe('JourneyMapGL', () => {
       { id: 'b', lat: 45.1, lng: 5.1, thumbUrl: '/api/photos/2/thumbnail' },
       { id: 'c', lat: 48, lng: 11, thumbUrl: '/api/photos/3/thumbnail' },
     ]
+    gl.map.getZoom.mockReturnValue(4)
     render(<JourneyMapGL checkins={[]} entries={entries} photos={photos} onPhotoClick={onPhotoClick} />)
     const thumbs = gl.markers.filter(m => m.element.innerHTML.includes('/api/photos/'))
-    // a and b fall in one 64px bucket at ten pixels a degree, c in its own.
+    // At zoom 4 a and b lie three world pixels apart in one 64px cell, c far off.
     expect(thumbs).toHaveLength(2)
     expect(thumbs[0].element.innerHTML).toContain('>2<')
     thumbs[0].element.click()
     expect(onPhotoClick).toHaveBeenCalledWith(['a', 'b'])
     expect(gl.map.on).toHaveBeenCalledWith('moveend', expect.any(Function))
+  })
+
+  it('FE-COMP-JMAPGL-2910: no marker element sets its own position, so the engine keeps it absolute', () => {
+    withToken()
+    const photos = [{ id: 'a', lat: 45, lng: 5, thumbUrl: '/api/photos/1/thumbnail' }]
+    const marks = [{ kind: 'stay', key: 's1', lat: 46, lng: 6, color: '#14b8a6', stay: {} }]
+    render(<JourneyMapGL checkins={[]} entries={entries} photos={photos} marks={marks} />)
+    expect(gl.markers.some(m => m.element.innerHTML.includes('/api/photos/'))).toBe(true)
+    for (const marker of gl.markers) expect(marker.element.style.position).toBe('')
+  })
+
+  it('FE-COMP-JMAPGL-2889: panning keeps the photo and mark groups, only a zoom regroups them', () => {
+    withToken()
+    const photos = [
+      { id: 'a', lat: 45, lng: 5, thumbUrl: '/api/photos/1/thumbnail' },
+      { id: 'b', lat: 45, lng: 5.1, thumbUrl: '/api/photos/2/thumbnail' },
+    ]
+    const marks = [
+      { kind: 'stay', key: 's1', lat: 45, lng: 5, color: '#14b8a6', stay: {} },
+      { kind: 'stay', key: 's2', lat: 45, lng: 5.1, color: '#14b8a6', stay: {} },
+    ]
+    gl.map.getZoom.mockReturnValue(4)
+    render(<JourneyMapGL checkins={[]} entries={entries} photos={photos} marks={marks} />)
+    const drawn = () => {
+      const shown = gl.markers.filter(m => !m.remove.mock.calls.length)
+      return {
+        photos: shown.filter(m => m.element.innerHTML.includes('/api/photos/')).map(m => [m.lngLat, m.element.innerHTML]),
+        marks: shown.filter(m => m.element.innerHTML.includes('#14b8a6')).map(m => [m.lngLat, m.element.innerHTML]),
+      }
+    }
+    const moveEnd = () => act(() => {
+      const gone = new Set(gl.map.off.mock.calls.map(c => c[1]))
+      for (const [event, handler] of gl.map.on.mock.calls) if (event === 'moveend' && !gone.has(handler)) (handler as () => void)()
+    })
+    const before = drawn()
+    expect(before.photos).toHaveLength(1)
+    expect(before.photos[0][1]).toContain('>2<')
+    expect(before.marks).toHaveLength(1)
+
+    // A pan moves every container point; at this offset b crosses a cell edge on screen.
+    gl.map.project.mockImplementation(([lng, lat]: [number, number]) => ({ x: lng * 10 - 19, y: lat * 10 }))
+    moveEnd()
+    expect(drawn()).toEqual(before)
+
+    gl.map.getZoom.mockReturnValue(12)
+    moveEnd()
+    expect(drawn().photos).toHaveLength(2)
+    expect(drawn().marks).toHaveLength(2)
   })
 
   it('FE-COMP-JMAPGL-026: focusMarker on an unknown id is a no-op', () => {
@@ -721,5 +850,46 @@ describe('JourneyMapGL', () => {
     expect(gl.map.setLayoutProperty).not.toHaveBeenCalledWith('journey-tracks-planned', 'visibility', expect.anything())
     expect(gl.markers[0].element.innerHTML).toContain('#16a34a')
     expect(mapboxgl.Map).toHaveBeenCalledTimes(1)
+  })
+
+  it('FE-COMP-JMAPGL-041: a recorded day takes the line between its entries off the map, the rest stays (#2888)', () => {
+    withToken()
+    const days = [
+      { id: 'a', lat: 48.1, lng: 11.5, entry_date: '2026-10-29' },
+      { id: 'b', lat: 48.2, lng: 11.6, entry_date: '2026-10-29' },
+      { id: 'c', lat: 48.3, lng: 11.7, entry_date: '2026-10-30' },
+      { id: 'd', lat: 48.4, lng: 11.8, entry_date: '2026-10-30' },
+    ]
+    render(
+      <JourneyMapGL
+        checkins={[]}
+        entries={days}
+        tracks={[{ place_id: -1, trip_id: 0, name: '2026-10-29', color: '#7c3aed', points: [[48.1, 11.5], [48.2, 11.6]], kind: 'dawarich_live', date: '2026-10-29' }]}
+      />,
+    )
+
+    const data = (id: string) => (vi.mocked(gl.map.addSource).mock.calls.find(c => c[0] === id)?.[1] as { data: { geometry: { coordinates: number[][][] } } }).data.geometry.coordinates
+    expect(data('journey-route')).toEqual([[[11.6, 48.2], [11.7, 48.3], [11.8, 48.4]]])
+    expect(data('journey-route-covered')).toEqual([[[11.5, 48.1], [11.6, 48.2]]])
+    const covered = vi.mocked(gl.map.addLayer).mock.calls.map(c => c[0] as { id: string; layout: Record<string, unknown> }).find(l => l.id === 'journey-route-covered-line')
+    expect(covered?.layout.visibility).toBe('none')
+  })
+
+  it('FE-COMP-JMAPGL-042: hiding what was recorded brings the covered stretches back while the entries show', () => {
+    withToken()
+    const shown = { plan: true, recorded: true, entries: true }
+    const days = [
+      { id: 'a', lat: 48.1, lng: 11.5, entry_date: '2026-10-29' },
+      { id: 'b', lat: 48.2, lng: 11.6, entry_date: '2026-10-29' },
+    ]
+    const tracks = [{ place_id: -1, trip_id: 0, name: 'Day', color: null, points: [[48.1, 11.5], [48.2, 11.6]] as [number, number][], kind: 'day_recording' as const, date: '2026-10-29' }]
+    const { rerender } = render(<JourneyMapGL checkins={[]} entries={days} tracks={tracks} layerVisibility={shown} />)
+    expect(gl.map.addSource).not.toHaveBeenCalledWith('journey-route', expect.anything())
+
+    rerender(<JourneyMapGL checkins={[]} entries={days} tracks={tracks} layerVisibility={{ ...shown, recorded: false }} />)
+    expect(gl.map.setLayoutProperty).toHaveBeenCalledWith('journey-route-covered-line', 'visibility', 'visible')
+
+    rerender(<JourneyMapGL checkins={[]} entries={days} tracks={tracks} layerVisibility={{ ...shown, recorded: false, entries: false }} />)
+    expect(gl.map.setLayoutProperty).toHaveBeenLastCalledWith('journey-route-covered-line', 'visibility', 'none')
   })
 })

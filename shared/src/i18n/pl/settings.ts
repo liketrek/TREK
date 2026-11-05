@@ -29,7 +29,14 @@ const settings: TranslationStrings = {
     'Własna instancja OSRM. Puste używa serwerów publicznych, które pozwalają na około jedno zapytanie na sekundę — wystarczy na dzień, mało na road trip. Działa po restarcie serwera.',
   'settings.valhallaBase': 'Własna instancja Valhalli',
   'settings.valhallaBaseHint':
-    'TREK domyślnie używa publicznej Valhalli FOSSGIS do omijania opłat, autostrad i promów. Wpisz tutaj URL własnej Valhalli, aby używać jej zamiast publicznej. Jeśli skonfigurowano tylko własną instancję wyznaczania tras, publiczna Valhalla nie jest używana. Po wpisaniu własnego adresu URL uruchom ponownie serwer i odśwież stronę.',
+    'Własna Valhalla, pytana, gdy usługa wyznaczania tras powyżej jest ustawiona na nią lub na Automatycznie. Jeśli skonfigurowano tylko własną instancję wyznaczania tras i nie wybrano usługi, żadna Valhalla nie jest pytana. Po wpisaniu adresu URL uruchom ponownie serwer i odśwież stronę.',
+  'settings.valhallaProvider': 'Usługa wyznaczania tras',
+  'settings.valhallaProviderHint':
+    'Z usługami TREK lub własną Valhallą wszystkie trasy wyznacza Valhalla: dni i podróże drogowe pieszo, rowerem i samochodem, trasy bez opłat, autostrad i promów oraz trasy, wysokości i ścieżki wycieczek. Gdy nie może odpowiedzieć, ten dzień wyznacza OSRM. Usługi TREK są pytane przez ten serwer. Z publiczną Valhallą FOSSGIS trasy wyznacza OSRM, a Valhalla odpowiada tylko na to, czego OSRM nie potrafi. Automatycznie pyta usługi TREK, chyba że ustawiono własną Valhallę albo tylko własną instancję wyznaczania tras.',
+  'settings.valhallaProviderOption.auto': 'Automatycznie',
+  'settings.valhallaProviderOption.trek': 'Usługi TREK',
+  'settings.valhallaProviderOption.fossgis': 'Publiczna Valhalla (FOSSGIS)',
+  'settings.valhallaProviderOption.custom': 'Własna instancja Valhalli',
   'settings.mapHint': 'Szablon URL dla kafelków mapy',
   'settings.mapProvider': 'Dostawca mapy',
   'settings.mapProviderHint': 'Dotyczy map Trip Planner i Journey. Atlas zawsze używa Leaflet.',
@@ -79,6 +86,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': 'Format czasu',
   'settings.weekStart': 'Tydzień zaczyna się w',
   'settings.weekStartHint': 'Pierwszy dzień tygodnia we wszystkich wyborach daty. Vacay ma własne ustawienie.',
+  'settings.dateFormat': 'Format daty',
+  'settings.dateFormatHint':
+    'Sposób zapisu dat we wszystkich polach daty i na listach. Daty z nazwą miesiąca zachowują brzmienie Twojego języka.',
+  'settings.dateFormatAuto': 'Automatycznie',
   'settings.preferredNavApp': 'Otwieraj miejsca w',
   'settings.preferredNavAppAsk': 'Pytaj za każdym razem',
   'settings.preferredNavAppHint':
@@ -202,6 +213,14 @@ const settings: TranslationStrings = {
   'settings.about.featureRequest': 'Zaproponuj funkcję',
   'settings.about.featureRequestHint': 'Zaproponuj nową funkcję',
   'settings.about.wikiHint': 'Dokumentacja i poradniki',
+  'settings.about.sponsor.eyebrow': 'Sponsorowana infrastruktura',
+  'settings.about.sponsor.title': 'Własne serwery TREK działają na dataforest cloud',
+  'settings.about.sponsor.body':
+    'Wyszukiwanie miejsc, wyszukiwanie adresów i trasy pochodzą z własnych serwerów TREK zamiast od Google i spółki, a maszyny, na których działają, sponsoruje dataforest cloud.',
+  'settings.about.sponsor.cta': 'Odwiedź dataforest cloud',
+  'settings.about.sponsor.search': 'Wyszukiwanie miejsc',
+  'settings.about.sponsor.address': 'Wyszukiwanie adresów',
+  'settings.about.sponsor.routing': 'Trasy',
   'settings.about.descriptionManaged':
     'TREK pomaga organizować podróże od pierwszego pomysłu do ostatniego wspomnienia. Plan dnia, budżet, listy pakowania, zdjęcia i wiele więcej, wszystko w jednym miejscu.',
   'settings.about.sourceTitle': 'Kod źródłowy',

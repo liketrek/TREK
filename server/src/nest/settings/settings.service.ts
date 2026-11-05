@@ -13,9 +13,11 @@ import {
   MASKED_SETTING_VALUE,
   PLANNER_TRIP_VIEWS_KEY,
   WEEK_START_VALUES,
+  DATE_FORMAT_VALUES,
   compactPlannerTripViews,
   normalizeAppearance,
   plannerTripViewsSchema,
+  valhallaProviderSchema,
   type PlannerTripViews,
 } from '@trek/shared';
 
@@ -42,6 +44,8 @@ export const DEFAULTABLE_USER_SETTING_KEYS = [
   'time_format',
   // First day of the week in every date picker (#2029).
   'week_start',
+  // How dates are written in numbers, in every date field and list (#2971).
+  'date_format',
   // Instance-wide default currency for Costs (new users inherit it until they
   // pick their own). Free-form ISO code, validated on the client.
   'default_currency',
@@ -71,6 +75,14 @@ export const DEFAULTABLE_USER_SETTING_KEYS = [
    * party they never asked for.
    */
   'valhalla_base_url',
+  /**
+   * Which Valhalla answers: `fossgis` (the public one), `trek` (the TREK services' one,
+   * relayed by this server with the installation key) or `custom` (valhalla_base_url).
+   * Unset reads as before the choice existed: an own Valhalla is custom, an own OSRM
+   * alone means none, and otherwise the TREK services where they can be asked
+   * (`resolveValhallaProvider`). Same-origin or public, so no restart is needed.
+   */
+  'routing_valhalla_provider',
   // CARTO stamps an "API KEY REQUIRED" watermark into keyless tiles (#2054), and
   // the key is per-instance rather than per-person: defaultable so one admin
   // value clears the watermark for everybody at once.
@@ -101,9 +113,11 @@ const VALID_VALUES: Partial<Record<DefaultableKey, unknown[]>> = {
   distance_unit: ['metric', 'imperial'],
   time_format: ['12h', '24h'],
   week_start: [...WEEK_START_VALUES],
+  date_format: [...DATE_FORMAT_VALUES],
   dark_mode: [true, false, 'light', 'dark', 'auto'],
   map_provider: ['leaflet', 'mapbox-gl', 'maplibre-gl'],
   llm_provider: ['local', 'openai', 'anthropic'],
+  routing_valhalla_provider: [...valhallaProviderSchema.options],
 };
 
 const BOOLEAN_KEYS = new Set<DefaultableKey>([
@@ -130,6 +144,9 @@ const BOOLEAN_KEYS = new Set<DefaultableKey>([
  * the whole app stops routing with no catchable error. Refusing it here means
  * the caller finds out instead of silently breaking their own map.
  *
+ * `routing_valhalla_provider` picks between those same instance engines, so it is
+ * set where they are.
+ *
  * Clearing stays open to everyone: the Settings sections send an empty string
  * while the field is hidden, so a row written before this rule cleans itself up
  * on the next save instead of blocking it.
@@ -139,6 +156,7 @@ export function isAdminOnlyEndpointSetting(key: string, value: unknown): boolean
     return typeof value === 'string' && value.trim() !== '';
   }
   if (key === 'llm_provider') return value === 'local';
+  if (key === 'routing_valhalla_provider') return typeof value === 'string' && value.trim() !== '';
   return false;
 }
 
@@ -381,6 +399,21 @@ export class SettingsService {
   /** The stored text of a registered instance setting, or null without a row, for a domain that keeps one there. */
   async getAppSetting(key: AppSettingKey): Promise<string | null> {
     return await readAppSetting(this.appSettings, key);
+  }
+
+  /** Writes a registered instance setting only while it has no row; the first of several processes keeps it. */
+  async insertAppSettingIfAbsent(key: AppSettingKey, value: string): Promise<void> {
+    await this.appSettings.insertIfAbsent(key, value);
+  }
+
+  /** Removes registered instance settings together. */
+  async deleteAppSettings(keys: AppSettingKey[]): Promise<void> {
+    await this.uow.transactional(() =>
+      keys.reduce<Promise<void>>(async (previous, key) => {
+        await previous;
+        await this.appSettings.deleteValue(key);
+      }, Promise.resolve()),
+    );
   }
 
   /** Registered instance settings written together: every value lands, or none does. */

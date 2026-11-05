@@ -4,6 +4,7 @@ import type { DB } from '../kysely/db';
 import { travelerOwnsExpr, type ReservationTravelersOwnsKyselyDB } from './_shared/reservation-travelers-owns';
 import { type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
+import { wrapLongitude } from '@trek/shared';
 
 /** A `reservation_endpoints` row exactly as `r.*`/`SELECT *` read it (every scalar column). */
 export interface ReservationEndpointRow {
@@ -82,7 +83,7 @@ export class ReservationEndpointsRepository extends TrekRepository<ReservationEn
       name: input.name,
       code: input.code,
       lat: input.lat,
-      lng: input.lng,
+      lng: wrapLongitude(input.lng),
       timezone: input.timezone,
       local_time: input.local_time,
       local_date: input.local_date,

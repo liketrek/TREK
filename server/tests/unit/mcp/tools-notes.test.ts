@@ -99,6 +99,43 @@ describe('Tool: create_day_note', () => {
     });
   });
 
+  it('describes text as the title and time as the body, as the planner shows them', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const { tools } = await h.client.listTools();
+      for (const name of ['create_day_note', 'update_day_note']) {
+        const props = tools.find((t) => t.name === name)?.inputSchema.properties as Record<string, unknown>;
+        // The nullable body may come out as an anyOf, so read the property whole.
+        const time = JSON.stringify(props.time);
+        expect(JSON.stringify(props.text)).toMatch(/title/i);
+        expect(time).toMatch(/body/i);
+        expect(time).not.toMatch(/time label/i);
+        expect(time).toContain('"maxLength":2000');
+      }
+    });
+  });
+
+  it('takes a body of 2000 characters, the bound the planner allows, and refuses one more', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    await withHarness(user.id, async (h) => {
+      const body = 'b'.repeat(2000);
+      const result = await h.client.callTool({
+        name: 'create_day_note',
+        arguments: { tripId: trip.id, dayId: day.id, text: 'Museum day', time: body },
+      });
+      const data = parseToolResult(result) as { note: { id: number } };
+      expect((await dayNote(data.note.id)).time).toBe(body);
+      const tooLong = await h.client.callTool({
+        name: 'create_day_note',
+        arguments: { tripId: trip.id, dayId: day.id, text: 'Museum day', time: `${body}b` },
+      });
+      expect(tooLong.isError).toBe(true);
+      expect(await countRows(orm, DayNotes, { day: day.id })).toBe(1);
+    });
+  });
+
   it('defaults icon to 📝', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
@@ -217,6 +254,45 @@ describe('Tool: update_day_note', () => {
       expect(data.note.text).toBe('New text');
       expect(data.note.time).toBe('14:00');
       expect(data.note.icon).toBe('🍽️');
+    });
+  });
+
+  it('edits a note whose body is longer than 250 characters without shortening it', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    const longBody = 'Opening hours and the ticket links. '.repeat(20);
+    const note = createDayNote(testDb, day.id, trip.id, { text: 'Museum day', time: longBody });
+    await withHarness(user.id, async (h) => {
+      const renamed = await h.client.callTool({
+        name: 'update_day_note',
+        arguments: { tripId: trip.id, dayId: day.id, noteId: note.id, text: 'Museums' },
+      });
+      expect(renamed.isError).toBeFalsy();
+      const longer = `${longBody}Bring the pass.`;
+      const rewritten = await h.client.callTool({
+        name: 'update_day_note',
+        arguments: { tripId: trip.id, dayId: day.id, noteId: note.id, time: longer },
+      });
+      expect(rewritten.isError).toBeFalsy();
+      const row = await dayNote(note.id);
+      expect(row.text).toBe('Museums');
+      expect(row.time).toBe(longer);
+    });
+  });
+
+  it('refuses an empty title on update and keeps the stored one', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    const note = createDayNote(testDb, day.id, trip.id, { text: 'Keep me' });
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'update_day_note',
+        arguments: { tripId: trip.id, dayId: day.id, noteId: note.id, text: '' },
+      });
+      expect(result.isError).toBe(true);
+      expect((await dayNote(note.id)).text).toBe('Keep me');
     });
   });
 

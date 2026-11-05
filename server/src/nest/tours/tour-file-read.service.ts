@@ -3,6 +3,7 @@ import type { PreparedGpxPlace } from '../place-import/place-import.types';
 import { PlacesService } from '../places/places.service';
 import { readTourFile } from './tour-file-import.helpers';
 import { gpxOfLine, splitGpxTrackPieces } from './tour-file-split.helpers';
+import { tracksToAdopt } from './tour-track-adoption';
 import { computeTourMetrics, parseRouteGeometry } from './tours.helpers';
 import { Injectable } from '@nestjs/common';
 import { TOUR_GPX_TEXT_MAX, type TourFileLeftOut } from '@trek/shared';
@@ -15,7 +16,10 @@ export interface TourFileTrack {
   point_count: number;
   distance_km: number;
   has_heights: boolean;
-  /** A track already in the trip under the same name and start, which the import would skip. */
+  /**
+   * A track already in the trip under the same name and start, which the import would skip. A track
+   * from before Tours under the same name is none: the import takes it over as a tour (#2810).
+   */
   duplicate: boolean;
 }
 
@@ -55,7 +59,9 @@ export class TourFileReadService {
   async read(tripId: number, buffer: Buffer, fileName: string): Promise<TourFileTracks> {
     const { rows, leftOut } = await readTourFile(this.placeImport, buffer, fileName);
     if (rows.length === 0) return { tracks: [], whole: false };
-    const duplicates = await this.places.gpxDuplicates(String(tripId), rows);
+    const found = await this.places.gpxDuplicates(String(tripId), rows);
+    const adopt = tracksToAdopt(rows, await this.places.list(String(tripId), {}));
+    const duplicates = found.map((duplicate, index) => duplicate && !adopt.has(index));
     const extra = leftOut ? { left_out: leftOut } : {};
     if (!isGpxName(fileName)) {
       const tracks = rows.map((row, index) =>

@@ -1,4 +1,4 @@
-// FE-DOCSYNC-BIND-001 to FE-DOCSYNC-BIND-030
+// FE-DOCSYNC-BIND-001 to FE-DOCSYNC-BIND-032
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import en from '@trek/shared/i18n/en'
 import { render, screen, fireEvent, waitFor, within } from '../../../../tests/helpers/render'
@@ -66,6 +66,7 @@ function renderCard(
     canManage?: boolean
     providerName?: string
     onReconnect?: () => void
+    onEditConnection?: () => void
   } = {},
 ) {
   const utils = render(
@@ -75,6 +76,7 @@ function renderCard(
       sync={makeSync(opts.sync)}
       canManage={opts.canManage ?? true}
       onReconnect={opts.onReconnect}
+      onEditConnection={opts.onEditConnection}
     />,
   )
   const header = utils.container.querySelector('header') as HTMLElement
@@ -419,5 +421,33 @@ describe('DocSyncBinding: the direction lanes', () => {
     expect(lane).toBeDisabled()
     fireEvent.click(lane)
     expect(updateLink).not.toHaveBeenCalled()
+  })
+})
+
+describe('DocSyncBinding: the connection behind it', () => {
+  const S = en as unknown as Record<string, string>
+  const editButton = () => screen.queryByRole('button', { name: S['docsync.connection.edit'] })
+
+  it('FE-DOCSYNC-BIND-031: the settings open the stored connection at any time, not only after a refusal', () => {
+    const onEditConnection = vi.fn()
+    renderCard({ link: { lastSyncState: 'ok' }, onEditConnection })
+
+    expect(editButton()).not.toBeInTheDocument()
+    openSettings()
+    expect(screen.getByText(S['docsync.connection.title'])).toBeInTheDocument()
+    fireEvent.click(editButton() as HTMLElement)
+
+    expect(onEditConnection).toHaveBeenCalledTimes(1)
+  })
+
+  it('FE-DOCSYNC-BIND-032: a member, or a panel without the form, gets no way to the connection', () => {
+    const member = renderCard({ canManage: false, onEditConnection: vi.fn() })
+    expect(screen.queryByRole('button', { name: 'Settings' })).not.toBeInTheDocument()
+    expect(editButton()).not.toBeInTheDocument()
+    member.unmount()
+
+    renderCard()
+    openSettings()
+    expect(editButton()).not.toBeInTheDocument()
   })
 })

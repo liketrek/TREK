@@ -61,7 +61,7 @@ const reservations: TranslationStrings = {
   'reservations.type.car': 'Bil',
   'reservations.type.cruise': 'Kryssning',
   'reservations.type.event': 'Evenemang',
-  'reservations.type.tour': 'Rundtur',
+  'reservations.type.tour': 'Guidad tur',
   'reservations.type.parking': 'Parkering',
   'reservations.type.other': 'Övrigt',
   'reservations.type.bus': 'Buss',
@@ -78,8 +78,8 @@ const reservations: TranslationStrings = {
   'reservations.confirm.deleteBodyWithExpense': '"{name}" och de kopplade kostnaderna kommer att raderas permanent.',
   'reservations.toast.updated': 'Bokning uppdaterad',
   'reservations.toast.removed': 'Bokning borttagen',
-  'reservations.toast.fileUploaded': 'Fil uppladdad',
-  'reservations.toast.uploadError': 'Det gick inte att ladda upp',
+  'reservations.toast.filesNotUploaded':
+    'Bokningen är sparad, men vissa filer laddades inte upp. Spara igen för att skicka dem.',
   'reservations.newTitle': 'Ny bokning',
   'reservations.bookingType': 'Bokningstyp',
   'reservations.titleLabel': 'Titel',
@@ -140,6 +140,14 @@ const reservations: TranslationStrings = {
   'reservations.import.cta': 'Importera från fil',
   'reservations.import.dropHere': 'Dra och släpp bokningsbekräftelser här, eller klicka för att välja',
   'reservations.import.dropActive': 'Dra och släpp filerna som ska importeras',
+  'reservations.import.pinSearching': 'Söker på kartan…',
+  'reservations.import.pinFound': 'På kartan',
+  'reservations.import.pinMissingTitle': 'Inte på kartan än',
+  'reservations.import.pinMissingBody':
+    'TREK hittade inte boendet på kartan. Kontrollera namnet och adressen ovan och sök igen, eller spara det utan nål.',
+  'reservations.import.pinRetry': 'Sök igen',
+  'reservations.import.savedWithoutPin':
+    'Sparat utan nål på kartan. Redigera platsen och ange dess position för att se den på kartan.',
   'reservations.import.acceptedFormats':
     'Godkända filformat: EML, PDF, PKPass, HTML, TXT (högst 10 MB per fil, upp till 5 filer)',
   'reservations.import.acceptedPhotos': 'Foton (JPG, PNG, WEBP) läses av AI-modellen.',

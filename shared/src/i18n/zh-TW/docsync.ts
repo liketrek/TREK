@@ -168,6 +168,12 @@ const docsync: TranslationStrings = {
   'docsync.error.unknown_provider': '這個提供者在此執行個體上無法使用。',
   'docsync.error.provider_disabled': '已暫停：管理員已停用此提供者。重新啟用後會繼續同步。',
   'docsync.binding.reconnect': '重新連線',
+  'docsync.connection.title': '連線',
+  'docsync.connection.hint': 'TREK 用於此儲存空間的位址與登入資訊。',
+  'docsync.connection.edit': '編輯連線',
+  'docsync.connection.remove': '移除連線',
+  'docsync.connection.confirmRemove':
+    'TREK 會忘記此儲存空間的位址與登入資訊，此行程經由它的所有同步都會停止。文件仍保留在 TREK 與儲存空間中。',
 };
 
 export default docsync;

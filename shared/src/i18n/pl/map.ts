@@ -35,6 +35,8 @@ const map: TranslationStrings = {
   'map.overview.hide': 'Ukryj całą podróż',
   'map.overview.total': 'Łączny dystans',
   'map.attribution': 'Źródła mapy',
+  'map.overview.distanceAtLeast': 'co najmniej {distance}',
+  'map.overview.notRouted': 'trasa nieobliczona',
   'map.overview.unrouted': 'Nie udało się wyznaczyć {count} odcinka, więc odległości są niepełne.',
   'map.overview.unrouted.one': 'Nie udało się wyznaczyć {count} odcinka, więc odległości są niepełne.',
   'map.overview.unrouted.few': 'Nie udało się wyznaczyć {count} odcinków, więc odległości są niepełne.',

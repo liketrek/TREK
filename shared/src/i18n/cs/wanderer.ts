@@ -36,6 +36,8 @@ const wanderer: TranslationStrings = {
   'wanderer.error.not_own_trail': 'Importovat lze pouze vaše vlastní trasy z aplikace wanderer.',
   'wanderer.error.invalid_response':
     'Odpověď nepřišla z aplikace wanderer. Zkontrolujte, zda adresa vede přímo na wanderer.',
+  'wanderer.error.no_author':
+    'wanderer odpověděl, ale pro účet tohoto API tokenu neuvádí žádného autora tras, takže TREK nepozná, které trasy jsou vaše.',
   'wanderer.error.too_large': 'Soubor trasy je větší než 10 MB.',
   'wanderer.error.server_error': 'wanderer odpověděl chybou. Zkuste to později.',
   'wanderer.error.offline': 'Jste offline. V aplikaci wanderer lze vyhledávat jen online.',

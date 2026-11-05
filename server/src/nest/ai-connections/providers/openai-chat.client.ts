@@ -26,16 +26,29 @@ import type { AiConnectionKind } from '@trek/shared';
 /** The end of an OpenAI-compatible stream. */
 const DONE = '[DONE]';
 
+/** The host of Gemini's OpenAI-compatible endpoint, which an admin may also enter as their own server. */
+const GEMINI_HOST = 'generativelanguage.googleapis.com';
+
+function isGeminiHost(baseUrl: string): boolean {
+  try {
+    return new URL(baseUrl).hostname === GEMINI_HOST;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * The provider-neutral history as Chat Completions messages, the instructions
  * and the trip card first. A tool message takes no image, so the images of a
- * step's tool results follow its last result as one user message.
+ * step's tool results follow its last result as one user message. `model` is
+ * the one the request goes to: a thought signature goes back only to the model
+ * that signed it, since another one cannot read it.
  */
-export function toChatMessages(request: AiChatRequest): Record<string, unknown>[] {
+export function toChatMessages(request: AiChatRequest, model?: string): Record<string, unknown>[] {
   const system = [request.system, request.context].filter(Boolean).join('\n\n');
   const out: Record<string, unknown>[] = [{ role: 'system', content: system }];
   request.messages.forEach((message, index) => {
-    out.push(toChatMessage(message));
+    out.push(toChatMessage(message, model));
     const withImages = toolImagesEndingAt(request.messages, index);
     if (withImages.length === 0) return;
     const content = withImages.flatMap((tool) => [
@@ -51,12 +64,14 @@ function imagePart(image: AiImage): Record<string, unknown> {
   return { type: 'image_url', image_url: { url: imageDataUrl(image), detail: image.detail ?? 'high' } };
 }
 
-function toChatMessage(message: AiChatMessage): Record<string, unknown> {
+function toChatMessage(message: AiChatMessage, model: string | undefined): Record<string, unknown> {
   if (message.role === 'user') {
     if (!message.images?.length) return { role: 'user', content: message.text };
     return { role: 'user', content: [{ type: 'text', text: message.text }, ...message.images.map(imagePart)] };
   }
   if (message.role === 'tool') return { role: 'tool', tool_call_id: message.toolCallId, content: message.output };
+  const state = message.providerState;
+  const signatures = state?.adapter === 'openai-chat' && state.model === model ? state.signatures : {};
   return {
     role: 'assistant',
     content: message.text || null,
@@ -66,10 +81,21 @@ function toChatMessage(message: AiChatMessage): Record<string, unknown> {
             id: call.id,
             type: 'function',
             function: { name: call.name, arguments: JSON.stringify(call.args) },
+            ...(signatures[call.id] ? { extra_content: { google: { thought_signature: signatures[call.id] } } } : {}),
           })),
         }
       : {}),
   };
+}
+
+/** Gemini signs a tool call on its first piece; the call has to go back with it or the next request is refused. */
+function thoughtSignatureOf(piece: Record<string, unknown>): string {
+  return asText(asRecord(asRecord(piece.extra_content).google).thought_signature);
+}
+
+/** The id a call goes on with; a provider that names none gets one from the call's position. */
+function callId(index: number, id: string): string {
+  return id || `call_${index}`;
 }
 
 const FINISH_REASONS: Record<string, AiFinishReason> = { tool_calls: 'tool-calls', length: 'length' };
@@ -78,7 +104,9 @@ const FINISH_REASONS: Record<string, AiFinishReason> = { tool_calls: 'tool-calls
  * The OpenAI-compatible Chat Completions API, streamed: OpenAI itself, Gemini
  * (its `/v1beta/openai` endpoint), OpenRouter and an admin's own server. The
  * kind decides only what a request may carry: Gemini gets its narrower tool
- * schemas, OpenAI the prompt cache key, which the others do not know.
+ * schemas, also when an admin enters its endpoint as their own server, and
+ * OpenAI the prompt cache key, which the others do not know. Gemini's thought
+ * signatures come back as the turn's provider state.
  */
 export class OpenAiChatClient implements AiChatClient {
   /** OpenRouter searches the web for any model through its web plugin; the others have no search here. */
@@ -86,20 +114,25 @@ export class OpenAiChatClient implements AiChatClient {
     return this.kind === 'openrouter';
   }
 
+  /** The kind whose tool schemas the endpoint takes. */
+  private readonly schemaKind: AiConnectionKind;
+
   constructor(
     readonly kind: AiConnectionKind,
     readonly model: string,
     private readonly baseUrl: string,
     private readonly apiKey: string | null,
     private readonly fetcher: AiFetch,
-  ) {}
+  ) {
+    this.schemaKind = kind === 'custom' && isGeminiHost(baseUrl) ? 'gemini' : kind;
+  }
 
   async *stream(request: AiChatRequest, signal: AbortSignal): AsyncGenerator<AiChatEvent> {
     const body = {
       model: this.model,
       stream: true,
       stream_options: { include_usage: true },
-      messages: toChatMessages(request),
+      messages: toChatMessages(request, this.model),
       ...(request.tools.length > 0
         ? {
             tools: request.tools.map((tool) => ({
@@ -107,7 +140,7 @@ export class OpenAiChatClient implements AiChatClient {
               function: {
                 name: tool.name,
                 description: tool.description,
-                parameters: toProviderSchema(tool.parameters, this.kind),
+                parameters: toProviderSchema(tool.parameters, this.schemaKind),
               },
             })),
             tool_choice: 'auto',
@@ -153,8 +186,20 @@ export class OpenAiChatClient implements AiChatClient {
       cachedInputTokens: turn.cachedInputTokens,
       outputTokens: turn.outputTokens,
     };
+    const signatures = turn.signatures();
+    if (Object.keys(signatures).length > 0) {
+      yield { type: 'provider-state', state: { adapter: 'openai-chat', model: this.model, signatures } };
+    }
     yield { type: 'finish', reason: turn.finishReason() };
   }
+}
+
+/** A tool call while it streams in: its id, name and arguments so far, and Gemini's signature. */
+interface PendingCall {
+  id: string;
+  name: string;
+  args: string;
+  signature: string;
 }
 
 /**
@@ -168,7 +213,7 @@ class ChatTurn {
   outputTokens = 0;
   reason: string | null = null;
   done = false;
-  private readonly pending = new Map<number, { id: string; name: string; args: string }>();
+  private readonly pending = new Map<number, PendingCall>();
   private readonly cited = new Set<string>();
   private fresh: AiSource[] = [];
 
@@ -199,10 +244,11 @@ class ChatTurn {
       const piece = asRecord(raw);
       const index = typeof piece.index === 'number' ? piece.index : position;
       const fn = asRecord(piece.function);
-      const call = this.pending.get(index) ?? { id: '', name: '', args: '' };
+      const call = this.pending.get(index) ?? { id: '', name: '', args: '', signature: '' };
       call.id ||= asText(piece.id);
       call.name ||= asText(fn.name);
       call.args += asText(fn.arguments);
+      call.signature ||= thoughtSignatureOf(piece);
       this.pending.set(index, call);
     });
     return asText(delta.content);
@@ -216,10 +262,24 @@ class ChatTurn {
   }
 
   calls(): AiToolCall[] {
-    return [...this.pending.entries()]
-      .sort(([a], [b]) => a - b)
-      .filter(([, call]) => call.name)
-      .map(([index, call]) => ({ id: call.id || `call_${index}`, name: call.name, args: parseToolArgs(call.args) }));
+    return this.named().map(([index, call]) => ({
+      id: callId(index, call.id),
+      name: call.name,
+      args: parseToolArgs(call.args),
+    }));
+  }
+
+  /** The thought signature of each signed call, by the id the call goes back with. */
+  signatures(): Record<string, string> {
+    return Object.fromEntries(
+      this.named()
+        .filter(([, call]) => call.signature)
+        .map(([index, call]) => [callId(index, call.id), call.signature]),
+    );
+  }
+
+  private named(): [number, PendingCall][] {
+    return [...this.pending.entries()].sort(([a], [b]) => a - b).filter(([, call]) => call.name);
   }
 
   finishReason(): AiFinishReason {

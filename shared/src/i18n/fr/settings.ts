@@ -29,7 +29,14 @@ const settings: TranslationStrings = {
     'Votre propre instance OSRM. Vide utilise les serveurs publics, limités à environ une requête par seconde : suffisant pour une journée, juste pour un road trip. Prend effet après un redémarrage du serveur.',
   'settings.valhallaBase': 'Instance Valhalla propre',
   'settings.valhallaBaseHint':
-    'TREK utilise par défaut la Valhalla publique de FOSSGIS pour éviter les péages, autoroutes et ferries. Saisissez ici l’URL de votre propre Valhalla pour l’utiliser à la place. Si seule une instance de routage personnalisée est configurée, la Valhalla publique n’est pas utilisée. Après avoir saisi une URL personnalisée, redémarrez le serveur et rechargez la page.',
+    'Une Valhalla personnelle, interrogée lorsque le service d’itinéraire ci-dessus est réglé sur elle ou sur Automatique. Si seule une instance de routage personnalisée est configurée et qu’aucun service d’itinéraire n’est choisi, aucune Valhalla n’est interrogée. Après avoir saisi une URL, redémarrez le serveur et rechargez la page.',
+  'settings.valhallaProvider': 'Service d’itinéraire',
+  'settings.valhallaProviderHint':
+    'Avec les services TREK ou une Valhalla personnelle, Valhalla calcule tous les itinéraires : les journées et les road trips à pied, à vélo et en voiture, les itinéraires sans péages, autoroutes ni ferries, ainsi que les itinéraires, altitudes et chemins des randonnées. Si elle ne peut pas répondre, OSRM calcule cette journée à sa place. Les services TREK sont interrogés via ce serveur. Avec la Valhalla publique de FOSSGIS, OSRM calcule les itinéraires et Valhalla ne répond qu’à ce qu’OSRM ne sait pas faire. Automatique interroge les services TREK, sauf si une Valhalla personnelle ou seulement une instance de routage personnalisée est configurée.',
+  'settings.valhallaProviderOption.auto': 'Automatique',
+  'settings.valhallaProviderOption.trek': 'Services TREK',
+  'settings.valhallaProviderOption.fossgis': 'Valhalla publique (FOSSGIS)',
+  'settings.valhallaProviderOption.custom': 'Instance Valhalla personnelle',
   'settings.mapHint': "Modèle d'URL pour les tuiles de carte",
   'settings.mapProvider': 'Fournisseur de carte',
   'settings.mapProviderHint': 'Affecte les cartes Trip Planner et Journey. Atlas utilise toujours Leaflet.',
@@ -83,6 +90,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': "Format de l'heure",
   'settings.weekStart': 'La semaine commence le',
   'settings.weekStartHint': 'Premier jour de la semaine dans tous les sélecteurs de date. Vacay a son propre réglage.',
+  'settings.dateFormat': 'Format de date',
+  'settings.dateFormatHint':
+    "Façon dont les dates s'écrivent dans tous les champs de date et toutes les listes. Les dates avec un nom de mois gardent la formulation de votre langue.",
+  'settings.dateFormatAuto': 'Automatique',
   'settings.preferredNavApp': 'Ouvrir les lieux dans',
   'settings.preferredNavAppAsk': 'Demander à chaque fois',
   'settings.preferredNavAppHint':
@@ -208,6 +219,14 @@ const settings: TranslationStrings = {
   'settings.about.featureRequest': 'Proposer une fonctionnalité',
   'settings.about.featureRequestHint': 'Suggérez une nouvelle fonctionnalité',
   'settings.about.wikiHint': 'Documentation et guides',
+  'settings.about.sponsor.eyebrow': 'Infrastructure sponsorisée',
+  'settings.about.sponsor.title': 'Les serveurs de TREK tournent sur dataforest cloud',
+  'settings.about.sponsor.body':
+    'La recherche de lieux, la recherche d’adresses et le calcul d’itinéraires passent par les propres serveurs de TREK plutôt que par Google et consorts, et dataforest cloud sponsorise les machines qui les font tourner.',
+  'settings.about.sponsor.cta': 'Découvrir dataforest cloud',
+  'settings.about.sponsor.search': 'Recherche de lieux',
+  'settings.about.sponsor.address': 'Recherche d’adresses',
+  'settings.about.sponsor.routing': 'Itinéraires',
   'settings.about.descriptionManaged':
     'TREK vous aide à organiser vos voyages, de la première idée au dernier souvenir. Planning des jours, budget, listes de bagages, photos et bien plus, tout au même endroit.',
   'settings.about.sourceTitle': 'Code source',

@@ -17,6 +17,7 @@ import MToggle from '../../components/MToggle'
 import MStorageTestResult from '../../components/MStorageTestResult'
 import MSetPickerSheet from '../settings/MSetPickerSheet'
 import MConfirmSheet from '../settings/MConfirmSheet'
+import MStorageReclaimCard from './MStorageReclaimCard'
 import { MSetSelectRow } from '../settings/MSettingsUi'
 import { MAdminButton, MAdminCard, MAdminCardHead, MAdminField, MAdminInput, MAdminSecretInput } from './MAdminUi'
 
@@ -172,6 +173,7 @@ export default function MAdminStoragePanel(): React.ReactElement {
   const {
     admin, editing, setEditing, confirmRemove, setConfirmRemove, syncPrompt, setSyncPrompt, migratePrompt,
     handleCancelMigration, handleRefreshStats, handleStartBackfill, handleCancelBackfill, loaded,
+    reclaim, reclaimChecking, reclaimSaving, reclaimConfirming, handleReclaimCheck, handleReclaimDelete, handleReclaimConfirm,
   } = useStoragePanel()
   const [categoryPicker, setCategoryPicker] = useState<StorageCategory | null>(null)
 
@@ -564,6 +566,16 @@ export default function MAdminStoragePanel(): React.ReactElement {
           )}
         </div>
       )}
+
+      <MStorageReclaimCard
+        reclaim={reclaim}
+        checking={reclaimChecking}
+        saving={reclaimSaving}
+        confirming={reclaimConfirming}
+        onConfirm={(request) => void handleReclaimConfirm(request)}
+        onCheck={() => void handleReclaimCheck()}
+        onDelete={(enabled) => void handleReclaimDelete(enabled)}
+      />
 
       <MConfirmSheet
         open={confirmRemove !== null}

@@ -57,23 +57,20 @@ const system_notice: TranslationStrings = {
   'system_notice.pager.goto': 'Μετάβαση στην ειδοποίηση {n}',
   'system_notice.pager.position': 'Ειδοποίηση {current} από {total}',
   'system_notice.release_notes.eyebrow': 'Ενημερώθηκε',
-  'system_notice.release_notes.headline': 'Το μεγαλύτερο TREK μέχρι σήμερα.',
+  'system_notice.release_notes.headline': 'Πρώτα το σωστό μέρος.',
   'system_notice.release_notes.intro':
-    'Εκδρομές για κάθε μέρα στη φύση, ένα στούντιο για τα φωτοβιβλία σας, ένας βοηθός που σχεδιάζει μαζί σας και βοήθεια σε κάθε οθόνη.',
+    'Η αναζήτηση τοποθεσιών, η αναζήτηση διευθύνσεων και η δρομολόγηση τρέχουν πλέον στους δικούς διακομιστές του TREK, με χορηγία της dataforest cloud, και κάθε TREK μπορεί να μοιράζεται όσα ξέρει για τα μέρη με όλα τα άλλα.',
   'system_notice.release_notes.features_label': 'Τα σημαντικότερα',
   'system_notice.release_notes.features_aside': 'Και δεν είναι μόνο αυτά',
-  'system_notice.release_notes.feature_tours_title': 'Εκδρομές',
-  'system_notice.release_notes.feature_tours_body':
-    'Πεζοπορίες, ποδηλατάδες, τρέξιμο, ιππασία, κουπί, βόλτες στην πόλη και μέρες σκι, με υψομετρικό προφίλ, βαθμούς δυσκολίας και τρισδιάστατη πτήση.',
-  'system_notice.release_notes.feature_studio_title': 'TREK Studio', // same-as-en
-  'system_notice.release_notes.feature_studio_body':
-    'Μετατρέπει ένα ταξίδι σε σχεδιασμένο φωτοβιβλίο: 17 θέματα, 34 γραμματοσειρές, 160 αυτοκόλλητα και αυτόματη σελιδοποίηση με ένα κλικ.',
-  'system_notice.release_notes.feature_assistant_title': 'Βοηθός τεχνητής νοημοσύνης',
-  'system_notice.release_notes.feature_assistant_body':
-    'Σχεδιάζει μαζί σας τα πραγματικά σας ταξίδια, με τον λογαριασμό τεχνητής νοημοσύνης που ήδη έχετε. Κάθε αλλαγή τη βλέπετε πρώτα και μπορείτε να την αναιρέσετε.',
-  'system_notice.release_notes.feature_help_title': 'Βοήθεια σε κάθε οθόνη, σε 27 γλώσσες',
-  'system_notice.release_notes.feature_help_body':
-    'Περίπου 370 οδηγοί βήμα προς βήμα με 1.600 εικόνες, εκεί που τις χρειάζεστε. Νέες γλώσσες: αζερικά, εσθονικά, σλοβακικά και ταϊλανδικά.',
+  'system_notice.release_notes.feature_search_title': 'Αναζήτηση τοποθεσιών που πετυχαίνει',
+  'system_notice.release_notes.feature_search_body':
+    'Πόλεις, νησιά, αξιοθέατα και αεροδρόμια με τον κωδικό τους βγαίνουν πρώτα, τα καφέ έρχονται από την περιοχή σας και οι προτάσεις εμφανίζονται όσο πληκτρολογείτε.',
+  'system_notice.release_notes.feature_share_title': 'Λεπτομέρειες τοποθεσιών, για όλους',
+  'system_notice.release_notes.feature_share_body':
+    'Μοιραστείτε ιστοσελίδες, ωράρια λειτουργίας και φωτογραφίες με κάθε TREK, πεδίο προς πεδίο, και οι αποθηκευμένες τοποθεσίες σας παίρνουν όσα πρόσθεσαν άλλοι.',
+  'system_notice.release_notes.feature_routing_title': 'Ταχύτερη δρομολόγηση',
+  'system_notice.release_notes.feature_routing_body':
+    'Μια ολόκληρη μέρα δρομολογείται μονομιάς με έως είκοσι στάσεις, μια αργή διαδρομή δεν καθυστερεί πια τις υπόλοιπες, και τα μέσα μαζικής μεταφοράς ρωτούν δεύτερο πάροχο όταν ο πρώτος δεν βρίσκει τίποτα.',
   'system_notice.release_notes.footnote': 'Και ακόμη μια μεγάλη λίστα με μικρότερες αλλαγές σε όλο το υπόλοιπο TREK.',
   'system_notice.release_notes.notes_label': 'Σημειώσεις έκδοσης',
   'system_notice.release_notes.note_eyebrow': 'Μια σημείωση από τον δημιουργό',
@@ -87,10 +84,10 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.note_body_after':
     'Και τότε το ανοίξατε. Μέσα σε λίγους μήνες γίνατε χιλιάδες: αστέρια, αναφορές σφαλμάτων, μεταφράσεις σε γλώσσες που δεν μιλάω, pull requests από ανθρώπους που δεν έχω γνωρίσει ποτέ. Ακόμα ανοίγω το αποθετήριο πρώτο πράγμα κάθε πρωί, και ακόμα δεν μου φαίνεται εντελώς αληθινό.',
   'system_notice.release_notes.note_closing': 'Σας ευχαριστώ που είστε εδώ. Φιλικά, Maurice.',
-  'system_notice.release_notes.support_lead':
-    'Το TREK είναι δωρεάν και θα είναι πάντα, όμως οι servers, τα domains και τα πολλά ξενύχτια δεν είναι.',
+  'system_notice.release_notes.support_label': 'Μένουμε ανεξάρτητοι',
+  'system_notice.release_notes.support_lead': 'Χωρίς Google και σία.',
   'system_notice.release_notes.support_text':
-    'Αν έχει κερδίσει μια θέση στα ταξίδια σας, κεράστε με έναν καφέ και βοηθήστε να έρθει η επόμενη έκδοση.',
+    'Η αναζήτηση τοποθεσιών, η αναζήτηση διευθύνσεων και η δρομολόγηση τρέχουν στους δικούς διακομιστές του TREK, σήμερα με χορηγία της dataforest cloud. Το παλεύω κάθε μέρα, και για να μείνει έτσι χρειάζομαι τη στήριξή σας.',
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
   'system_notice.release_notes.cta_kofi': 'Στηρίξτε στο Ko-fi',
 };

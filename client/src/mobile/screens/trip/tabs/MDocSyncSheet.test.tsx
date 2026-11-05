@@ -1,4 +1,4 @@
-// FE-DOCSYNC-MOBILE-001 to FE-DOCSYNC-MOBILE-024
+// FE-DOCSYNC-MOBILE-001 to FE-DOCSYNC-MOBILE-027
 import type { ComponentProps } from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, within } from '../../../../../tests/helpers/render'
@@ -137,6 +137,12 @@ beforeEach(() => {
   vi.spyOn(docsyncApi, 'createLink').mockResolvedValue({})
   vi.spyOn(docsyncApi, 'items').mockResolvedValue([])
   vi.spyOn(docsyncApi, 'resolve').mockResolvedValue({ success: true })
+  vi.spyOn(docsyncApi, 'deleteConnection').mockImplementation(async (_tripId, id) => {
+    // The bindings go with their connection, as ON DELETE CASCADE has it.
+    connections = connections.filter(c => c.id !== id)
+    links = links.filter(l => l.connectionId !== id)
+    return { success: true }
+  })
 })
 
 /** The status route with a number of conflicts on it, holdings as usual. */
@@ -526,5 +532,47 @@ describe('MDocSyncSheet: what a member may do', () => {
     expect(screen.queryByText('Connect a provider')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Nextcloud/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Papra/ })).not.toBeInTheDocument()
+  })
+})
+
+describe('MDocSyncSheet: the stored connection', () => {
+  const removeButtons = () => screen.getAllByRole('button', { name: 'Remove connection' })
+
+  it('FE-DOCSYNC-MOBILE-025: a binding opens its connection at any time, and removing it asks first', async () => {
+    renderSheet()
+    await openDetail()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit connection' }))
+    expect(await screen.findByPlaceholderText('https://paperless.example')).toHaveValue('https://paperless.example')
+
+    fireEvent.click(removeButtons()[0])
+    expect(docsyncApi.deleteConnection).not.toHaveBeenCalled()
+    expect(await screen.findByText(/TREK forgets the address and login/)).toBeInTheDocument()
+    // The confirmation sheet opens over the form, so its button is the last one of that name.
+    const named = removeButtons()
+    fireEvent.click(named[named.length - 1])
+
+    await waitFor(() => expect(docsyncApi.deleteConnection).toHaveBeenCalledWith(TRIP_ID, 5))
+    // Back at the list, with Paperless offered again from scratch.
+    expect(await screen.findByText('Connect a provider')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Sync now' })).not.toBeInTheDocument()
+  })
+
+  it('FE-DOCSYNC-MOBILE-026: a stored connection without a binding can be edited from the folder picker', async () => {
+    renderSheet()
+    fireEvent.click(await screen.findByRole('button', { name: /Nextcloud/ }))
+    await screen.findByText('Photos')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit connection' }))
+
+    expect(await screen.findByRole('button', { name: 'Remove connection' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument()
+  })
+
+  it('FE-DOCSYNC-MOBILE-027: a member sees no way to the connection', async () => {
+    renderSheet({ canManage: false })
+    await openDetail()
+
+    expect(screen.queryByRole('button', { name: 'Edit connection' })).not.toBeInTheDocument()
   })
 })
