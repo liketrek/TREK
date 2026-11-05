@@ -61,14 +61,25 @@ describe('entrypoint script', () => {
 
   it('never walks the volumes on a start where they already belong to node', () => {
     // Only the dir and its direct entries are looked at, never the whole tree.
-    expect(code).toContain('find "$dir" -maxdepth 1 \\( ! -user node -o ! -group node \\) -print -quit');
+    expect(code).toContain('find "$dir" -maxdepth 1 \\( ! -user node -o -group 0 \\) -print -quit');
     expect(code).not.toMatch(/find "\$dir" \\\(/);
     // The recursive hand-over sits behind that check and behind a chown of the dir that worked.
     const check = code.indexOf('-maxdepth 1');
-    const dirChown = code.indexOf('if chown node:node "$dir"');
+    const dirChown = code.indexOf('if chown node "$dir"');
     expect(dirChown).toBeGreaterThan(check);
     expect(code.indexOf('chown -R')).toBeGreaterThan(dirChown);
+    expect(code.indexOf('find "$dir" -group 0 -exec chgrp -h node {} +')).toBeGreaterThan(code.indexOf('chown -R'));
     expect(code).toContain('Correcting ownership of $dir for the node user...');
+  });
+
+  // A Kubernetes fsGroup other than 1000 gives every file that gid. Handing the
+  // group back to node would leave the kubelet's OnRootMismatch with a mismatched
+  // root on the next start, and the two recursive walks would undo each other on
+  // every start (#2918 again). So only the user is taken over, plus a root group.
+  it('takes over the owning user and a root group, never a foreign fsGroup', () => {
+    expect(code).not.toContain('-group node');
+    expect(code).not.toContain('node:node');
+    expect(code).toContain('chown -R -h node "$dir"');
   });
 
   it('says so once instead of walking a volume that refuses chown', () => {

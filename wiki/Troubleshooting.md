@@ -179,6 +179,12 @@ Keep only `./data:/app/data` and `./uploads:/app/uploads`, then recreate the con
 > ```bash
 > sudo chown -R 1000:1000 ./data ./uploads
 > ```
+>
+> The start-up step only looks at `data`, `uploads` and what sits directly in them. Files copied in as root further down, into a subdirectory that already belongs to `node` (for example a restore with `docker cp ./photos/. trek:/app/uploads/photos/` or with `sudo cp` on the bind mount), stay root-owned across restarts. Hand them over once:
+>
+> ```bash
+> docker exec trek chown -R node:node /app/uploads /app/data
+> ```
 
 ---
 
