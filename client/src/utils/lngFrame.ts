@@ -106,3 +106,19 @@ export function frameLine<T extends readonly [number, number]>(
   }
   return out;
 }
+
+/**
+ * A frame for layers fetched for the visible area rather than drawn with the trip,
+ * such as the POIs the explore pill finds: those come back at their real longitudes
+ * and belong on the copy the user is looking at, even outside the trip's frame.
+ *
+ * The frame in use is kept while the view's centre stays within a quarter world of
+ * its middle, so a pan does not redraw every marker; past that it is centred on the
+ * view. Either way a view up to half a world wide lies inside it. `null` is the
+ * plain world, whose middle is 0, and is kept as null while it fits.
+ */
+export function viewLngFrame(current: LngFrame | null, centerLng: number): LngFrame | null {
+  const middle = current ? current.seam + 180 : 0;
+  if (Math.abs(centerLng - middle) <= 90) return current;
+  return { seam: centerLng - 180 };
+}

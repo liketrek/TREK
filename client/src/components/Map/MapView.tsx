@@ -523,8 +523,8 @@ import { useIsPhone } from '../../mobile/useIsPhone'
 import type { GeoPosition, TrackingMode } from '../../hooks/useGeolocation'
 import { selectedPlaceTarget } from './selectedPlaceTarget'
 import { LngFrameProvider, useLngFrame, useTripLngFrame } from './lngFrameContext'
-import { frameLine, frameLng } from '../../utils/lngFrame'
-import { LngFrameFollower, MapClickHandler, MapContextMenuHandler, PoiDropTarget, ViewportController } from './leafletMapBridges'
+import { frameLine, frameLng, viewLngFrame, type LngFrame } from '../../utils/lngFrame'
+import { LngFrameFollower, MapClickHandler, MapContextMenuHandler, PoiDropTarget, ViewCenterTracker, ViewportController } from './leafletMapBridges'
 
 function LeafletLocationLayer({ position: fix, mode }: { position: GeoPosition | null; mode: TrackingMode }) {
   const map = useMap()
@@ -774,11 +774,15 @@ export const MapView = memo(function MapView({
   // drawn in a longitude frame that keeps it on one copy (#2975). Null for every other
   // trip, and then each layer below draws exactly what it always drew.
   const lngFrame = useTripLngFrame(places, dayPlaces, reservations)
+  // The POIs are fetched for the visible area, which can lie outside the trip's frame
+  // or on another world copy, so they are drawn on the copy in view instead.
+  const [poiFrame, setPoiFrame] = useState<LngFrame | null>(null)
+  const followView = useCallback((centerLng: number) => setPoiFrame(current => viewLngFrame(current, centerLng)), [])
   const poiMarkers = useMemo(() => (pois as Poi[]).map((poi: Poi) => (
     <Marker
       key={`poi-${poi.osm_id}`}
       alt={poi.name}
-      position={[poi.lat, frameLng(lngFrame, poi.lng)]}
+      position={[poi.lat, frameLng(poiFrame, poi.lng)]}
       icon={createPoiIcon(poi, poi.brand_wikidata)}
       zIndexOffset={500}
       eventHandlers={{
@@ -797,7 +801,7 @@ export const MapView = memo(function MapView({
     >
       <Tooltip direction="top" offset={[0, -10]} opacity={1} className="map-tooltip"><PoiTooltipBody poi={poi} /></Tooltip>
     </Marker>
-  )), [pois, onPoiClick, onPoiDropOnRoute, lngFrame])
+  )), [pois, onPoiClick, onPoiDropOnRoute, poiFrame])
   const visibleReservations = useMemo(() => (
     visibleRouteReservations(reservations, { visibleConnectionIds, showTransitRoutes, selectedDayId, days, scopeConnectionsToDay })
   ), [reservations, visibleConnectionIds, showTransitRoutes, selectedDayId, days, scopeConnectionsToDay])
@@ -1079,6 +1083,7 @@ export const MapView = memo(function MapView({
       <MapContextMenuHandler onContextMenu={onMapContextMenu} />
       <CameraHoverGuard movingRef={mapMovingRef} onMoveStart={clearHover} onZoom={setMapZoom} />
       <ViewportController onViewportChange={onViewportChange} />
+      <ViewCenterTracker onChange={followView} />
       <PoiDropTarget onPoiDropOnRoute={onPoiDropOnRoute} />
       <LeafletLocationLayer position={userPosition} mode={trackingMode} />
 
@@ -1223,7 +1228,7 @@ export const MapView = memo(function MapView({
         hiddenDates={dawarichHiddenDates}
         casingPane={hasCasingPane ? TRACK_CASING_PANE : undefined}
       />
-      <ClusteredPois pois={pois} enabled={clusterLoosely} onPoiClick={onPoiClick}>{poiMarkers}</ClusteredPois>
+      <ClusteredPois pois={pois} frame={poiFrame} enabled={clusterLoosely} onPoiClick={onPoiClick}>{poiMarkers}</ClusteredPois>
       {/* Charging stops / rest areas a plugin route places on the drawn day route.
           Host-vetted data (server-normalized), rendered as plain tone dots. */}
       {(routeVias as RouteVia[]).filter(v => !v.nightPause || mapZoom >= NIGHT_PAUSE_MIN_ZOOM).map((v, i) => (

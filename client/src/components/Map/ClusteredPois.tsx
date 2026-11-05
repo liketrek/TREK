@@ -4,14 +4,14 @@ import L from 'leaflet'
 import { useTranslation } from '../../i18n/TranslationContext'
 import type { Poi } from './poiCategories'
 import { clusterPois, poiClusterMarkup, poiClusterList, POI_CLUSTER_DETAIL_ZOOM } from './poiClusters'
-import { useLngFrame } from './lngFrameContext'
-import { frameLng } from '../../utils/lngFrame'
+import { frameLng, type LngFrame } from '../../utils/lngFrame'
 
-export default function ClusteredPois({ pois, enabled, onPoiClick, children }: {
+export default function ClusteredPois({ pois, frame, enabled, onPoiClick, children }: {
   pois: Poi[]; enabled: boolean; onPoiClick?: (poi: Poi) => void; children: ReactNode[]
+  /** The frame the markers in `children` are drawn in: the view's, not the trip's (see MapView). */
+  frame: LngFrame | null
 }) {
   const map = useMap()
-  const frame = useLngFrame()
   const { t } = useTranslation()
   const [zoom, setZoom] = useState(() => map.getZoom())
   const popup = useRef<L.Popup | null>(null)
@@ -21,7 +21,7 @@ export default function ClusteredPois({ pois, enabled, onPoiClick, children }: {
     map.on('zoomend', update)
     return () => { map.off('zoomend', update) }
   }, [map])
-  // Measured and placed where the map draws them, in its longitude frame (#2975).
+  // Measured and placed where the markers are drawn, on the world copy in view (#2975).
   const groups = useMemo(() => enabled ? clusterPois(pois, poi => map.latLngToContainerPoint([poi.lat, frameLng(frame, poi.lng)]), zoom) : [], [pois, enabled, map, zoom, frame])
   const markers = new Map(pois.map((poi, index) => [poi.osm_id, children[index]]))
   if (!enabled) return <>{children}</>
