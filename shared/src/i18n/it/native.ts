@@ -62,7 +62,7 @@ const native: TranslationStrings = {
   'native.claim.invalid': 'Almeno tre lettere, numeri o trattini.',
   'native.claim.reserved': 'Questo indirizzo è riservato.',
   'native.claim.free': 'Disponibile',
-  'native.claim.emailLabel': 'Email',
+  'native.claim.emailLabel': 'Email', // same-as-en
   'native.claim.emailHint': 'Per il tuo account e le ricevute.',
   'native.claim.subscribe': 'Abbonati per {price}',
   'native.claim.cancelled': 'Acquisto annullato.',

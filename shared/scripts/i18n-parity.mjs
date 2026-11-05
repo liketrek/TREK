@@ -102,6 +102,8 @@ export const NOT_PLURAL = [
   { key: 'dawarich.duration.hours', because: 'a duration in a unit symbol (h), the same for any number' },
   { key: 'dawarich.duration.hoursMinutes', because: 'a duration in unit symbols (h, min), the same for any number' },
   { key: 'files.uploadErrorSize', because: 'a size limit in a unit symbol (MB), the same for any number' },
+  { key: 'native.plans.storage', because: 'a storage size in a unit symbol (GB), the same for any number' },
+  { key: 'native.plans.aiDocs', because: 'a monthly document allowance, always in the tens, so no singular ever shows' },
 ];
 
 /**

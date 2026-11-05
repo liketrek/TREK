@@ -63,7 +63,7 @@ const native: TranslationStrings = {
   'native.claim.invalid': 'Τρία ή περισσότερα γράμματα, αριθμοί και παύλες.',
   'native.claim.reserved': 'Αυτή η διεύθυνση είναι δεσμευμένη.',
   'native.claim.free': 'Διαθέσιμη',
-  'native.claim.emailLabel': 'Email',
+  'native.claim.emailLabel': 'Ηλ. ταχυδρομείο',
   'native.claim.emailHint': 'Για τον λογαριασμό και τις αποδείξεις σας.',
   'native.claim.subscribe': 'Εγγραφή για {price}',
   'native.claim.cancelled': 'Η αγορά ακυρώθηκε.',

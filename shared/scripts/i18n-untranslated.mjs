@@ -75,6 +75,8 @@ export const BRAND_NAMES = [
   'Studio',
   'Synology',
   'Synology Photos',
+  // The hosted TREK offering, a product name like Vacay and Atlas.
+  'TREK Cloud',
   'Vacay',
   'Webhook',
   'wanderer',

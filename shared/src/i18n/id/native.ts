@@ -61,7 +61,7 @@ const native: TranslationStrings = {
   'native.claim.invalid': 'Tiga huruf, angka, atau tanda hubung atau lebih.',
   'native.claim.reserved': 'Alamat itu dicadangkan.',
   'native.claim.free': 'Tersedia',
-  'native.claim.emailLabel': 'Email',
+  'native.claim.emailLabel': 'Email', // same-as-en
   'native.claim.emailHint': 'Untuk akun dan tanda terima Anda.',
   'native.claim.subscribe': 'Berlangganan seharga {price}',
   'native.claim.cancelled': 'Pembelian dibatalkan.',

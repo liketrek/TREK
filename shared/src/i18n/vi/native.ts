@@ -62,7 +62,7 @@ const native: TranslationStrings = {
   'native.claim.invalid': 'Từ ba chữ cái, chữ số và dấu gạch nối trở lên.',
   'native.claim.reserved': 'Địa chỉ đó đã được giữ chỗ.',
   'native.claim.free': 'Có sẵn',
-  'native.claim.emailLabel': 'Email',
+  'native.claim.emailLabel': 'Email', // same-as-en
   'native.claim.emailHint': 'Cho tài khoản và biên nhận của bạn.',
   'native.claim.subscribe': 'Đăng ký với giá {price}',
   'native.claim.cancelled': 'Đã hủy mua.',
