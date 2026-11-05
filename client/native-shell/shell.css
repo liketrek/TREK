@@ -517,3 +517,138 @@ a.linkbtn {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* ── Plan picker (cloud subscription) ────────────────────────────────────── */
+.segmented {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--edge);
+  border-radius: 13px;
+  align-self: stretch;
+}
+.segmented button {
+  flex: 1;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 9px;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    color 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+.segmented button[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.segmented .save {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ok) 22%, transparent);
+  color: var(--ok);
+}
+.segmented button[aria-pressed='true'] .save {
+  background: color-mix(in srgb, var(--accent-ink) 16%, transparent);
+  color: var(--accent-ink);
+}
+
+.plans {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.plan {
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
+  padding: 16px;
+  background: var(--surface);
+  transition:
+    border-color 0.2s,
+    transform 0.14s var(--ease);
+}
+.plan:active {
+  transform: scale(0.99);
+}
+.plan.featured {
+  border-color: var(--edge-strong);
+  background: var(--surface-2);
+}
+.plan-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.plan-name {
+  font-weight: 700;
+  font-size: 1.12rem;
+}
+.plan-price {
+  font-weight: 700;
+  font-size: 1.3rem;
+  letter-spacing: -0.01em;
+}
+.plan-price small {
+  font-weight: 500;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-left: 3px;
+}
+.plan-feats {
+  margin: 10px 0 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+.plan-feats span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.plan-feats svg {
+  flex: none;
+  color: var(--ok);
+}
+.plan .btn {
+  width: 100%;
+  min-height: 48px;
+  padding: 13px;
+}
+.plan:not(.featured) .btn {
+  background: var(--surface-2);
+  color: var(--ink);
+  border-color: var(--edge);
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  padding: 40px 0;
+}
+.loading .spinner {
+  width: 26px;
+  height: 26px;
+  border-color: var(--edge-strong);
+  border-top-color: var(--ink);
+}
+.note {
+  text-align: center;
+  color: var(--faint);
+  font-size: 0.84rem;
+  margin: 2px 0 0;
+  line-height: 1.45;
+}

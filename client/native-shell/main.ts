@@ -246,8 +246,11 @@ function feature(path: string, text: string): HTMLElement {
 }
 
 function showCloud(opts: { back?: boolean } = {}): void {
-  const cta = el('a', { className: 'btn', href: CLOUD_URL, target: '_blank', rel: 'noopener noreferrer' }, t('native.cloud.cta'), icon(I.chevron, 20, 'chev'))
-  cta.addEventListener('click', () => void tap())
+  const cta = el('button', { type: 'button', className: 'btn' }, t('native.cloud.cta'), icon(I.chevron, 20, 'chev'))
+  cta.addEventListener('click', () => {
+    void tap()
+    showPlans()
+  })
 
   const have = el('button', { type: 'button', className: 'linkbtn' }, t('native.cloud.haveServer'))
   have.addEventListener('click', () => {
@@ -269,6 +272,128 @@ function showCloud(opts: { back?: boolean } = {}): void {
     ),
     opts,
   )
+}
+
+// ── Choose a plan (TREK Cloud) ──────────────────────────────────────────────
+interface CloudPlan {
+  id: string
+  name: string
+  monthlyCents: number
+  yearlyCents: number
+  aiDocuments: number
+  storageGb: number
+}
+
+function money(cents: number): string {
+  return new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR' }).format(cents / 100)
+}
+
+async function fetchPlans(): Promise<CloudPlan[] | null> {
+  try {
+    const res = await get(`${CLOUD_URL}/api/plans`)
+    const data = typeof res.data === 'string' ? JSON.parse(res.data) : res.data
+    const plans = (data as { plans?: CloudPlan[] })?.plans
+    return Array.isArray(plans) && plans.length ? plans : null
+  } catch {
+    return null
+  }
+}
+
+function subscribe(plan: CloudPlan): void {
+  void tap(ImpactStyle.Medium)
+  // Phase 2: the subscription is an Apple/Google in-app purchase. Until the
+  // store products exist, the order is finished on the web for this plan.
+  window.open(`${CLOUD_URL}/order?plan=${encodeURIComponent(plan.id)}`, '_blank', 'noopener')
+}
+
+function planCard(plan: CloudPlan, interval: 'month' | 'year', featured: boolean): HTMLElement {
+  const price = interval === 'year' ? plan.yearlyCents : plan.monthlyCents
+  const per = interval === 'year' ? t('native.plans.perYear') : t('native.plans.perMonth')
+  const feat = (text: string) => el('span', {}, icon(I.check, 16), text)
+  const sub = el('button', { type: 'button', className: 'btn' }, t('native.plans.subscribe'))
+  sub.addEventListener('click', () => subscribe(plan))
+  return el(
+    'div',
+    { className: featured ? 'plan featured' : 'plan' },
+    el(
+      'div',
+      { className: 'plan-top' },
+      el('span', { className: 'plan-name' }, plan.name),
+      el('span', { className: 'plan-price' }, money(price), el('small', {}, per)),
+    ),
+    el(
+      'div',
+      { className: 'plan-feats' },
+      feat(t('native.plans.unlimited')),
+      feat(t('native.plans.storage', { n: String(plan.storageGb) })),
+      feat(plan.aiDocuments > 0 ? t('native.plans.aiDocs', { n: String(plan.aiDocuments) }) : t('native.plans.noAi')),
+    ),
+    sub,
+  )
+}
+
+function showPlans(opts: { back?: boolean } = {}): void {
+  let interval: 'month' | 'year' = 'month'
+  let plans: CloudPlan[] | null = null
+
+  const content = el('div', { className: 'loading' }, el('span', { className: 'spinner' }))
+
+  const monthBtn = el('button', { type: 'button' }, t('native.plans.monthly'))
+  const yearBtn = el('button', { type: 'button' }, t('native.plans.yearly'), el('span', { className: 'save' }, t('native.plans.save')))
+  const seg = el('div', { className: 'segmented' }, monthBtn, yearBtn)
+
+  const paintSeg = () => {
+    monthBtn.setAttribute('aria-pressed', String(interval === 'month'))
+    yearBtn.setAttribute('aria-pressed', String(interval === 'year'))
+  }
+  const renderList = () => {
+    const list = plans
+    if (!list) return
+    content.className = 'plans'
+    content.replaceChildren(...list.map((p, i) => planCard(p, interval, i === list.length - 1)))
+  }
+  const choose = (next: 'month' | 'year') => {
+    if (interval === next) return
+    void tap()
+    interval = next
+    paintSeg()
+    renderList()
+  }
+  monthBtn.addEventListener('click', () => choose('month'))
+  yearBtn.addEventListener('click', () => choose('year'))
+  paintSeg()
+
+  const load = async () => {
+    plans = await fetchPlans()
+    if (plans) {
+      renderList()
+      return
+    }
+    content.className = ''
+    const retry = el('button', { type: 'button', className: 'btn btn-ghost' }, t('native.plans.retry'))
+    retry.addEventListener('click', () => {
+      void tap()
+      content.className = 'loading'
+      content.replaceChildren(el('span', { className: 'spinner' }))
+      void load()
+    })
+    content.replaceChildren(el('p', { className: 'error' }, t('native.plans.loadError')), retry)
+  }
+
+  show(
+    el(
+      'div',
+      {},
+      topbar(() => showCloud({ back: true })),
+      el('h1', { className: 'title-sm' }, t('native.plans.title')),
+      el('p', { className: 'sub' }, t('native.plans.sub')),
+      seg,
+      content,
+      el('p', { className: 'note' }, t('native.plans.soon')),
+    ),
+    opts,
+  )
+  void load()
 }
 
 // ── Shared actions ──────────────────────────────────────────────────────────

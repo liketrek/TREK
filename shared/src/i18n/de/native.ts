@@ -40,6 +40,21 @@ const native: TranslationStrings = {
   'native.cloud.haveServer': 'Ich habe schon ein TREK',
   'native.connecting': 'Verbinde mit {host}',
   'native.back': 'Zurück',
+  'native.plans.title': 'Tarif wählen',
+  'native.plans.sub': 'Gehostetes TREK auf deiner eigenen Adresse. Jederzeit änder- oder kündbar.',
+  'native.plans.monthly': 'Monatlich',
+  'native.plans.yearly': 'Jährlich',
+  'native.plans.save': '2 Monate gratis',
+  'native.plans.perMonth': 'pro Monat',
+  'native.plans.perYear': 'pro Jahr',
+  'native.plans.aiDocs': '{n} KI-Dokumente im Monat',
+  'native.plans.noAi': 'Keine KI-Dokumente',
+  'native.plans.storage': '{n} GB Speicher',
+  'native.plans.unlimited': 'Unbegrenzt Orte, Reisen und Personen',
+  'native.plans.subscribe': 'Abonnieren',
+  'native.plans.loadError': 'Die Tarife konnten nicht geladen werden. Prüfe deine Verbindung und versuch es erneut.',
+  'native.plans.retry': 'Erneut versuchen',
+  'native.plans.soon': 'In-App-Abos kommen bald. Vorerst auf der Website abschließen.',
 };
 
 export default native;

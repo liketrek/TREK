@@ -41,6 +41,21 @@ const native: TranslationStrings = {
   'native.cloud.haveServer': 'I already have a TREK',
   'native.connecting': 'Connecting to {host}',
   'native.back': 'Back',
+  'native.plans.title': 'Choose your plan',
+  'native.plans.sub': 'Hosted TREK on your own address. Change or cancel anytime.',
+  'native.plans.monthly': 'Monthly',
+  'native.plans.yearly': 'Yearly',
+  'native.plans.save': '2 months free',
+  'native.plans.perMonth': 'per month',
+  'native.plans.perYear': 'per year',
+  'native.plans.aiDocs': '{n} AI documents a month',
+  'native.plans.noAi': 'No AI documents',
+  'native.plans.storage': '{n} GB storage',
+  'native.plans.unlimited': 'Unlimited places, trips and people',
+  'native.plans.subscribe': 'Subscribe',
+  'native.plans.loadError': 'Could not load the plans. Check your connection and try again.',
+  'native.plans.retry': 'Try again',
+  'native.plans.soon': 'In-app subscriptions are coming. For now, finish on the website.',
 };
 
 export default native;
