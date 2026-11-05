@@ -26,7 +26,7 @@ async function main(): Promise<void> {
   // serialised straight after.
   const orm = await createStandaloneOrm();
   try {
-    await runSchemaBootstrap(orm);
+    await runSchemaBootstrap(orm, { snapshot: true });
     writeSchemaSnapshot(getRawConnection().serialize());
     console.log(`[test-db] schema snapshot written to ${schemaSnapshotPath()}`);
   } finally {

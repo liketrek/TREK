@@ -7,13 +7,9 @@ import type { AnyEntity, EntityClass, EntityManager, EntitySchema, IDatabaseDriv
 import type { Migrator } from '@mikro-orm/migrations';
 
 /**
- * Schema ownership at startup.
- *
- * This replaces `createTables()` → `runMigrations()` → `runSeeds()`, which used
- * to run synchronously inside `database.ts::initDb()` at module load. The
- * migrator is async, so the work moved to `buildApp()`, which is the first place
- * in the boot with an await and still runs before anything reads the database
- * (`bootstrap.ts` resolves SettingsService right after).
+ * Schema ownership at startup. The migrator is async, so the schema is brought
+ * to head from `DatabaseLifecycle.open()`, which `buildApp()` calls before
+ * anything reads the database. Nothing runs at module load.
  */
 
 /**
@@ -33,10 +29,10 @@ export type AnyOrm = MikroORM<
  * Migrate to head, then seed. Safe to call again, both halves are idempotent.
  *
  * `snapshot: false` skips the pre-migration copy (`pre-migrate-snapshot.ts`).
- * Only the restore hook passes it: the file it migrates was just unpacked from
- * a backup archive, which is still there to go back to.
+ * Only the reopen after a restore passes it: the file it migrates was just
+ * unpacked from a backup archive, which is still there to go back to.
  */
-export async function runSchemaBootstrap(orm: AnyOrm, { snapshot = true }: { snapshot?: boolean } = {}): Promise<void> {
+export async function runSchemaBootstrap(orm: AnyOrm, { snapshot }: { snapshot: boolean }): Promise<void> {
   const migrator = orm.config.getExtension('@mikro-orm/migrator') as Migrator;
   const connection = orm.em.getConnection();
   // A database the retired positional runner migrated has no migrator rows yet;

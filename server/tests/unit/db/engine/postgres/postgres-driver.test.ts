@@ -23,7 +23,8 @@ describe('postgres driver', () => {
     expect(parseNumeric('2.5000000000000000')).toBe(2.5);
     expect(parseNumeric('-7')).toBe(-7);
     expect(() => parseNumeric('9007199254740993')).toThrow(/beyond what TREK reads exactly/);
-    expect(() => parseNumeric('NaN')).toThrow(/beyond what TREK reads exactly/);
+    expect(() => parseNumeric('NaN')).toThrow(/not a finite number/);
+    expect(() => parseNumeric('Infinity')).toThrow(/not a finite number/);
   });
 
   it("PGDRIVER-002: the pool parses int8 as a number and keeps MikroORM's text dates", () => {
