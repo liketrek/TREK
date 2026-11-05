@@ -1,8 +1,8 @@
 import { PLACE_DETAILS_CACHE_PAYLOAD } from '../../db/json-columns';
 import type { CachedProviderPayload, PlaceShareableRow } from '../../db/repositories/PlaceFieldOrigin.repository';
 import { decodeJson } from '../../utils/json-column';
-import { PLACE_CONTRIB_COLUMN } from '../place-contrib/place-contrib.helpers';
 import {
+  PLACE_CONTRIB_COLUMN,
   PLACE_CONTRIB_FIELDS,
   normalizePlaceWebsite,
   type PlaceContribField,

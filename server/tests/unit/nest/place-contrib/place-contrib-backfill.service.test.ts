@@ -115,15 +115,7 @@ async function agree(fields: PlaceContribFieldSwitches = ALL): Promise<void> {
 
 /** A place with a website, whose origin is recorded as `origin` for the value given (the current one by default). */
 async function placeWith(
-  opts: {
-    osmId?: string | null;
-    origin?: string;
-    typed?: string;
-    website?: string;
-    lat?: number | null;
-    lng?: number | null;
-    address?: string;
-  } = {},
+  opts: { osmId?: string | null; origin?: string; typed?: string; website?: string } = {},
 ): Promise<number> {
   const website = opts.website ?? 'https://cafe-luna.de';
   const { user } = await makeUser(orm());
@@ -132,9 +124,8 @@ async function placeWith(
     name: 'Café Luna',
     osm_id: opts.osmId === undefined ? GERS : opts.osmId,
     website,
-    lat: opts.lat === undefined ? 54.08 : opts.lat,
-    lng: opts.lng === undefined ? 12.13 : opts.lng,
-    address: opts.address ?? null,
+    lat: 54.08,
+    lng: 12.13,
   });
   await insertRow(orm(), PlaceFieldOrigin, {
     place: id,
@@ -371,12 +362,5 @@ describe('PlaceContribBackfill', () => {
       fields: ['website', 'phone', 'email', 'opening_hours', 'description', 'image'],
       afterId: 0,
     });
-  });
-
-  it('PCB-018: the country comes from the address when the coordinates do not give one, as on a save', async () => {
-    await placeWith({ lat: null, lng: null, address: 'Lange Straße 1, 18055 Rostock, Germany' });
-    await agree();
-    expect(await backfill().step(NOW)).toBe(1);
-    expect((await findRows(orm(), PlaceContribOutbox, {})).map((row) => row.country)).toEqual(['DE']);
   });
 });

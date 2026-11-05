@@ -18,21 +18,6 @@ const OSM_ID = /^(node|way|relation):(\d{1,15})$/;
 export const UPLOADED_IMAGE_PREFIX = '/uploads/places/';
 
 /**
- * The places column each field is stored in. The origin hash, the catch-up
- * and the sender all read a field through this one map: a value is shared
- * only while the column's hash matches the origin, so two copies drifting
- * apart would skip a field without a word.
- */
-export const PLACE_CONTRIB_COLUMN = {
-  website: 'website',
-  phone: 'phone',
-  email: 'email',
-  opening_hours: 'opening_hours',
-  description: 'description',
-  image: 'image_url',
-} as const satisfies Record<PlaceContribField, string>;
-
-/**
  * The key the service files a place under: `gers:<id>` for a place from the
  * TREK index, `osm:<type>/<id>` for an OpenStreetMap element. A place without
  * one (a free pin, a Google or Amap place) is not sent in this version.

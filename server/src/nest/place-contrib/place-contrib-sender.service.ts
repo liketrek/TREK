@@ -23,7 +23,6 @@ import {
   PLACES_PER_RUN,
 } from './place-contrib.constants';
 import {
-  PLACE_CONTRIB_COLUMN,
   UPLOADED_IMAGE_PREFIX,
   baseHashOf,
   dayOf,
@@ -37,6 +36,7 @@ import {
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
 import {
+  PLACE_CONTRIB_COLUMN,
   PLACE_CONTRIB_TERMS_VERSION,
   type PlaceContribField,
   type PlaceContribImageAnswer,

@@ -4,7 +4,6 @@ import type { AssistantToolCallRow } from '../../db/repositories/AssistantToolCa
 import { parseDbTimestamp, utcSuffix } from '../../db/types';
 import { decodeJson } from '../../utils/json-column';
 import type { AiChatMessage, AiProviderState, AiToolCall } from '../ai-connections/ai-chat-client.interface';
-import { asRecord, asText, parseToolArgs } from '../ai-connections/providers/provider-http';
 import { tourFileOutcome, tourFileReadNote, tourStopOutcome } from './assistant-history-tours';
 import { fitToSize } from './assistant-output';
 import {
@@ -26,6 +25,19 @@ import {
   type AssistantMessagePart,
   type AssistantToolApproval,
 } from '@trek/shared';
+
+/** A recorded call's arguments as an object: given as one, or as JSON text; anything else is none. */
+function recordOf(value: unknown): Record<string, unknown> {
+  let parsed = value;
+  if (typeof value === 'string') {
+    try {
+      parsed = JSON.parse(value);
+    } catch {
+      return {};
+    }
+  }
+  return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : {};
+}
 
 /**
  * A thread's stored messages, read two ways: as the conversation the
@@ -58,11 +70,11 @@ function recordedCalls(state: AiProviderState | null): AiToolCall[] {
     state?.adapter === 'anthropic-messages'
       ? state.blocks
           .filter((block) => block.type === 'tool_use')
-          .map((block) => ({ id: block.id, name: block.name, args: asRecord(block.input) }))
+          .map((block) => ({ id: block.id, name: block.name, args: recordOf(block.input) }))
       : state?.adapter === 'openai-responses'
         ? state.items
             .filter((item) => item.type === 'function_call')
-            .map((item) => ({ id: item.call_id, name: item.name, args: parseToolArgs(asText(item.arguments)) }))
+            .map((item) => ({ id: item.call_id, name: item.name, args: recordOf(item.arguments) }))
         : [];
   return calls.flatMap(({ id, name, args }) =>
     typeof id === 'string' ? [{ id, name: typeof name === 'string' ? name : '', args }] : [],

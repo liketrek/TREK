@@ -1,18 +1,18 @@
 import { PlaceContribOutbox } from '../../db/entities/PlaceContribOutbox.entity';
 import type { PlacesContributeBackfill } from '../../db/json-columns';
 import type { PlaceContribOutboxRepository, PlaceTypedRow } from '../../db/repositories/PlaceContribOutbox.repository';
-import { resolveCountryCodeSync } from '../atlas/atlas-geo';
+import { getCountryFromCoords } from '../../utils/country-borders';
 import { logInfo } from '../audit/audit-log.logger';
 import { inOrder } from '../common/in-order';
 import { valueHash } from '../common/value-hash';
 import { UnitOfWork } from '../database/unit-of-work';
 import { PlaceContribQueue } from './place-contrib-queue';
 import { PlaceContribSettings } from './place-contrib-settings';
-import { PLACE_CONTRIB_COLUMN, contribKeyOf } from './place-contrib.helpers';
+import { contribKeyOf } from './place-contrib.helpers';
 import type { ContribWrite } from './place-contrib.types';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
-import type { PlaceContribField } from '@trek/shared';
+import { PLACE_CONTRIB_COLUMN, type PlaceContribField } from '@trek/shared';
 
 /** Places read per step of the catch-up. */
 const BACKFILL_PAGE = 100;
@@ -104,8 +104,8 @@ function typedWrite(row: PlaceTypedRow, fields: readonly PlaceContribField[]): C
     name: place.name,
     lat: place.lat,
     lng: place.lng,
-    // Resolved the way a save resolves it, so a place goes out with the same country either way.
-    country: values.length > 0 ? resolveCountryCodeSync(place) : null,
+    country:
+      values.length > 0 && place.lat !== null && place.lng !== null ? getCountryFromCoords(place.lat, place.lng) : null,
     values,
     dropped: [],
   };
