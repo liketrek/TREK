@@ -145,17 +145,6 @@ export class CollectionPlacesRepository extends TrekRepository<CollectionPlaces>
     return row?.image_url;
   }
 
-  /** `deleteCollection`'s pre-delete read: every saved place's image, released once the list and its places are gone. */
-  async imageUrlsOf(collectionId: number): Promise<Array<string | null>> {
-    const rows = await this.db_()
-      .selectFrom('collection_places')
-      .select('image_url')
-      .where('collection_id', '=', collectionId)
-      .where('image_url', 'is not', null)
-      .execute();
-    return rows.map((row) => row.image_url);
-  }
-
   /**
    * CL48 (`updatePlace`, TX) — the allow-listed dynamic `UPDATE
    * collection_places SET ... WHERE id=?`, including the cross-list move

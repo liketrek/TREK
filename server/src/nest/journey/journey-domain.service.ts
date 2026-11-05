@@ -85,25 +85,12 @@ export class JourneyDomainService {
     // (Task 0's confirmation: `canAccessTrip` IS `findAccessible`, not
     // merely equivalent to it).
     @InjectRepository(Trips) private readonly tripsRepo: TripsRepository,
-    // Plan 3g Task 2 (Part B) — the full photos surface (JG19/JG87-116),
-    // finishing the two sites Task 1 left raw (JG15/JG19) because their
-    // owning repositories did not exist yet. A genuine new constructor
-    // parameter pair beyond what Task 1's own constructor-ripple fix
-    // anticipated — flagged in task-2-report.md per the brief's own
-    // contingency instruction, with the companion edits to
-    // `journey-domain.module.ts`'s `forFeature` array and the two shared
-    // test-wiring helpers (`plugin-host.ts`/`mcp-test-controllers.ts`,
-    // both confirmed clean via `git status` before editing, per the
-    // brief's "constructor-ripple rule" allowance) made in this same
-    // change.
+    // The journey's photos and the entries they hang on (JG15/JG19/JG87-116).
     @InjectRepository(JourneyPhotos) private readonly photosRepo: JourneyPhotosRepository,
     @InjectRepository(JourneyEntryPhotos) private readonly entryPhotosRepo: JourneyEntryPhotosRepository,
-    // JG44 — `onPlaceUpdated`'s bare `SELECT * FROM places WHERE id = ?`,
-    // finished via `PlacesRepository.findRaw` (this task's ONE append to
-    // `Places.repository.ts`, per the task brief — nobody else holds it).
+    // JG44 — `onPlaceUpdated` reads the place it follows (`PlacesRepository.findRaw`).
     @InjectRepository(Places) private readonly placesRepo: PlacesRepository,
-    // Deleting a journey releases the files of the photos only it held.
-    private readonly release: StorageReleaseService,
+    private readonly release: StorageReleaseService, // frees the files of a deleted journey's own photos
   ) {}
 
   private ts(): number {
@@ -371,10 +358,8 @@ export class JourneyDomainService {
     if (!(await this.isOwner(journeyId, userId))) return false;
     // Read first: the delete takes the contributor rows with it.
     const audience = await this.journeysRepo.listRecipientUserIds(journeyId);
-    // The gallery goes with the cascade, so its photos are read first. A photo
-    // row only this journey linked goes too: left behind, it would keep naming
-    // its file and the storage reclaim would never free it (#2924). One still
-    // in a trip or another journey keeps its row, and with it its file.
+    // The gallery goes with the cascade, so it is read first; a photo row only this journey linked goes too, or
+    // it would keep naming its file and the reclaim never free it (#2924). One a trip still links stays.
     const photos = await this.uow.transactional(async () => {
       const gallery = await this.journeysRepo.listGalleryPhotos({ journeyId });
       await this.journeysRepo.deleteById(journeyId);

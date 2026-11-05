@@ -92,5 +92,27 @@ export function storedCostCategory(category: string | null | undefined): string 
   return costCategoryOf(category) ?? (category || 'other');
 }
 
+/** The booking types whose cost the type map filed under `other` before 5.1.1. */
+const FILED_AS_OTHER_BEFORE = new Set([
+  'cable_car',
+  'event',
+  'tour',
+  'cruise',
+  'bicycle',
+  'transit',
+  'transport_other',
+]);
+
+/**
+ * Whether a booking's expense still carries the category derived from its type, so it
+ * moves with a type change; one picked by hand stays. Read through costCategoryOf, so a
+ * label stored before the fixed keys ("Flight") counts as the key it stands for, and an
+ * `other` on a type the old map filed there still counts as derived.
+ */
+export function isDerivedCostCategory(category: string | null | undefined, type: string): boolean {
+  if (costCategoryOf(category) === typeToCostCategory(type)) return true;
+  return category === 'other' && FILED_AS_OTHER_BEFORE.has(type);
+}
+
 /** What the MCP tells an assistant about the category field. */
 export const COST_CATEGORY_HINT = `One of the Costs categories: ${COST_CATEGORIES.join(', ')}. Another case or a common name (Hotel, Flight, Food) is stored as its key; any other text is kept as given and shows as other`;

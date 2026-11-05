@@ -1,7 +1,13 @@
-// COST-CATEGORY-001 to COST-CATEGORY-007: a typed category read as one of the fixed keys.
+// COST-CATEGORY-001 to COST-CATEGORY-008: a typed category read as one of the fixed keys.
 import { RESERVATION_TYPES } from '../reservation/reservation-types';
 import { COST_CATEGORIES } from './budget.schema';
-import { COST_CATEGORY_HINT, costCategoryOf, storedCostCategory, typeToCostCategory } from './cost-category';
+import {
+  COST_CATEGORY_HINT,
+  costCategoryOf,
+  isDerivedCostCategory,
+  storedCostCategory,
+  typeToCostCategory,
+} from './cost-category';
 
 import { describe, expect, it } from 'vitest';
 
@@ -57,5 +63,14 @@ describe('costCategoryOf', () => {
     expect(typeToCostCategory('')).toBe('other');
     expect(typeToCostCategory(null)).toBe('other');
     expect(typeToCostCategory(undefined)).toBe('other');
+  });
+
+  it('COST-CATEGORY-008: an expense moves with its booking type only while it carries the derived category', () => {
+    expect(isDerivedCostCategory('flights', 'flight')).toBe(true);
+    expect(isDerivedCostCategory('Flight', 'flight')).toBe(true);
+    expect(isDerivedCostCategory('other', 'event')).toBe(true);
+    expect(isDerivedCostCategory('activities', 'event')).toBe(true);
+    expect(isDerivedCostCategory('other', 'flight')).toBe(false);
+    expect(isDerivedCostCategory('food', 'train')).toBe(false);
   });
 });

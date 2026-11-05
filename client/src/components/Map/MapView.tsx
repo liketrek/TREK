@@ -3,7 +3,7 @@ import DOM from 'react-dom'
 import { categoryIconSvg } from './categoryIconSvg'
 import { MapContainer, TileLayer, Marker, Polyline, CircleMarker, Circle, useMap, Tooltip } from 'react-leaflet'
 import MarkerClusterGroup from 'react-leaflet-cluster'
-import { makeMarkerDraggable, makePoiDraggable } from './markerDrag'
+import { makeMarkerDraggable } from './markerDrag'
 import { CLUSTER_OPTIONS, createClusterIcon, revealInCluster, type ClusterGroupLike } from './markerCluster'
 import RoadtripViaMarkers from './RoadtripViaMarkers'
 import PlannerWaypointMarker from './PlannerWaypointMarker'
@@ -55,11 +55,10 @@ import type { Day, Place, Reservation, RouteVia } from '../../types'
 import type { MapHoverInfo } from './mapHover'
 import { nightPauseMarker, NIGHT_PAUSE_MIN_ZOOM } from './nightPauseMarker'
 import NightPauseTooltip from './NightPauseTooltip'
-import ClusteredPois from './ClusteredPois'
+import PoiMarkers from './PoiMarkers'
 import { NightPauseDrag } from './NightPauseDrag'
 import type { DayBoundaryControls } from './dayBoundaryDrag'
 import type { Poi } from './poiCategories'
-import { poiDetailRowKey, poiDetailRows, poiPinCacheKey, poiPinParts } from './poiMarker'
 import { resolveTrackColor, hasManualTrackColor } from './trackColors'
 import { SelectedTrackLine, TrackLines } from './TrackLines'
 import DawarichTrailLayer from './DawarichTrailLayer'
@@ -226,59 +225,6 @@ function createPlaceIcon(place, orderNumbers, isSelected) {
   })
   iconCache.set(cacheKey, fallbackIcon)
   return fallbackIcon
-}
-
-// Small coloured pin for an OSM "explore" POI — distinct from the photo-circle
-// markers of planned places; the colour matches its pill category.
-const poiIconCache = new Map<string, L.DivIcon>()
-function createPoiIcon(poi: Pick<Poi, 'category' | 'icon' | 'color'>, brandWikidata?: string | null) {
-  // One flat disc in the category's colour with its icon, and never the chain's logo.
-  // The brands turned a corridor full of petrol stations into a row of advertisements,
-  // they were unreadable at pin size, and a brand with no logo on file fell back to a
-  // different picture entirely — so no two pins looked alike. `brandWikidata` is kept in
-  // the signature because the callers still have it; it simply no longer changes anything.
-  void brandWikidata
-  // A plugin category's key carries its colour and icon too, so two looks never share a pin.
-  const cacheKey = poiPinCacheKey(poi)
-  const cached = poiIconCache.get(cacheKey)
-  if (cached) return cached
-  const { color, svg } = poiPinParts(poi)
-  const icon = L.divIcon({
-    className: '',
-    html: `<div style="position:relative;width:26px;height:26px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 5px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;">${svg}</div>`,
-    iconSize: [26, 26],
-    iconAnchor: [13, 13],
-    tooltipAnchor: [0, -14],
-  })
-  poiIconCache.set(cacheKey, icon)
-  return icon
-}
-
-/**
- * The hover tooltip of an explore POI: its name, and for a plugin POI the rows the
- * plugin knows about it (the GL hover card shows the same, see buildPoiPopupHtml).
- * React text throughout, so nothing a plugin sends is ever read as markup. A POI
- * without rows keeps the bare name it has always had.
- */
-function PoiTooltipBody({ poi }: Readonly<{ poi: Poi }>) {
-  const rows = poiDetailRows(poi)
-  if (!rows.length) return poi.name
-  // w-max because Leaflet's tooltip pane is 0px wide: without an intrinsic width the
-  // tooltip shrinks to its narrowest layout and the values wrap a letter per line. The
-  // label column stops at 45% and wraps, so a long label leaves its value room too.
-  return (
-    <div className="w-max max-w-56 whitespace-normal">
-      <div className="truncate font-semibold">{poi.name}</div>
-      <div className="mt-1 grid grid-cols-[fit-content(45%)_1fr] gap-x-1.5 font-normal" data-testid="poi-details">
-        {rows.map(row => (
-          <div key={poiDetailRowKey(row)} className="contents">
-            <span className="text-content-muted [overflow-wrap:anywhere]">{row.label}</span>
-            <span className="[overflow-wrap:anywhere]">{row.value}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
 }
 
 // Clears the hover tooltip the moment the camera starts moving and suppresses
@@ -523,8 +469,8 @@ import { useIsPhone } from '../../mobile/useIsPhone'
 import type { GeoPosition, TrackingMode } from '../../hooks/useGeolocation'
 import { selectedPlaceTarget } from './selectedPlaceTarget'
 import { LngFrameProvider, useLngFrame, useTripLngFrame } from './lngFrameContext'
-import { frameLine, frameLng, viewLngFrame, type LngFrame } from '../../utils/lngFrame'
-import { LngFrameFollower, MapClickHandler, MapContextMenuHandler, PoiDropTarget, ViewCenterTracker, ViewportController } from './leafletMapBridges'
+import { frameLine, frameLng } from '../../utils/lngFrame'
+import { LngFrameFollower, MapClickHandler, MapContextMenuHandler, PoiDropTarget, ViewportController } from './leafletMapBridges'
 
 function LeafletLocationLayer({ position: fix, mode }: { position: GeoPosition | null; mode: TrackingMode }) {
   const map = useMap()
@@ -761,8 +707,6 @@ export const MapView = memo(function MapView({
   // that is decides which layer draws it. A saved raster template still wins,
   // the default is a vector style.
   const basemap = useMemo(() => resolveBasemap(tileUrl, OFM_POSITRON), [tileUrl])
-  const poiClickRef = useRef(onPoiClick)
-  poiClickRef.current = onPoiClick
   /**
    * Amap's tiles are drawn in GCJ-02 (see gcj02Crs.ts). The projection has to be
    * decided before the map is constructed, because Leaflet cannot change a map's
@@ -774,34 +718,6 @@ export const MapView = memo(function MapView({
   // drawn in a longitude frame that keeps it on one copy (#2975). Null for every other
   // trip, and then each layer below draws exactly what it always drew.
   const lngFrame = useTripLngFrame(places, dayPlaces, reservations)
-  // The POIs are fetched for the visible area, which can lie outside the trip's frame
-  // or on another world copy, so they are drawn on the copy in view instead.
-  const [poiFrame, setPoiFrame] = useState<LngFrame | null>(null)
-  const followView = useCallback((centerLng: number) => setPoiFrame(current => viewLngFrame(current, centerLng)), [])
-  const poiMarkers = useMemo(() => (pois as Poi[]).map((poi: Poi) => (
-    <Marker
-      key={`poi-${poi.osm_id}`}
-      alt={poi.name}
-      position={[poi.lat, frameLng(poiFrame, poi.lng)]}
-      icon={createPoiIcon(poi, poi.brand_wikidata)}
-      zIndexOffset={500}
-      eventHandlers={{
-        click: () => onPoiClick?.(poi),
-        // Wired on add rather than in a layout effect: Leaflet builds the icon element
-        // itself, and this is the first moment there is one to attach to.
-        add: (e: { target: { getElement: () => HTMLElement | undefined } }) => {
-          const el = e.target.getElement()
-          if (!el) return
-          // Native clicks avoid Leaflet suppressing a click after an earlier map drag.
-          el.setAttribute('aria-label', poi.name)
-          el.onclick = event => { event.stopPropagation(); poiClickRef.current?.(poi) }
-          if (onPoiDropOnRoute) makePoiDraggable(el, poi.osm_id)
-        },
-      }}
-    >
-      <Tooltip direction="top" offset={[0, -10]} opacity={1} className="map-tooltip"><PoiTooltipBody poi={poi} /></Tooltip>
-    </Marker>
-  )), [pois, onPoiClick, onPoiDropOnRoute, poiFrame])
   const visibleReservations = useMemo(() => (
     visibleRouteReservations(reservations, { visibleConnectionIds, showTransitRoutes, selectedDayId, days, scopeConnectionsToDay })
   ), [reservations, visibleConnectionIds, showTransitRoutes, selectedDayId, days, scopeConnectionsToDay])
@@ -1083,7 +999,6 @@ export const MapView = memo(function MapView({
       <MapContextMenuHandler onContextMenu={onMapContextMenu} />
       <CameraHoverGuard movingRef={mapMovingRef} onMoveStart={clearHover} onZoom={setMapZoom} />
       <ViewportController onViewportChange={onViewportChange} />
-      <ViewCenterTracker onChange={followView} />
       <PoiDropTarget onPoiDropOnRoute={onPoiDropOnRoute} />
       <LeafletLocationLayer position={userPosition} mode={trackingMode} />
 
@@ -1228,7 +1143,7 @@ export const MapView = memo(function MapView({
         hiddenDates={dawarichHiddenDates}
         casingPane={hasCasingPane ? TRACK_CASING_PANE : undefined}
       />
-      <ClusteredPois pois={pois} frame={poiFrame} enabled={clusterLoosely} onPoiClick={onPoiClick}>{poiMarkers}</ClusteredPois>
+      <PoiMarkers pois={pois as Poi[]} clusterLoosely={clusterLoosely} onPoiClick={onPoiClick} draggable={!!onPoiDropOnRoute} />
       {/* Charging stops / rest areas a plugin route places on the drawn day route.
           Host-vetted data (server-normalized), rendered as plain tone dots. */}
       {(routeVias as RouteVia[]).filter(v => !v.nightPause || mapZoom >= NIGHT_PAUSE_MIN_ZOOM).map((v, i) => (

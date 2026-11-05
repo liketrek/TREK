@@ -58,23 +58,6 @@ export function ViewportController({ onViewportChange }: { onViewportChange?: Ma
 }
 
 /**
- * Reports the longitude of the view's centre once the map is laid out and after every
- * move, for the layers drawn on the world copy in view rather than in the trip's frame.
- */
-export function ViewCenterTracker({ onChange }: { onChange: (centerLng: number) => void }) {
-  const map = useMap();
-  useEffect(() => {
-    const emit = () => onChange(map.getCenter().lng);
-    map.whenReady(emit);
-    map.on('moveend', emit);
-    return () => {
-      map.off('moveend', emit);
-    };
-  }, [map, onChange]);
-  return null;
-}
-
-/**
  * Moves the view along when the longitude frame changes under it (#2975): the trip
  * is then drawn one world further east or west, and a view left where it was would
  * look at an empty copy. One jump of a whole world, so nothing on screen changes.

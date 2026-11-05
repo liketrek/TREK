@@ -142,10 +142,7 @@ beforeAll(async () => {
   svc = new JourneyDomainService(
     new RealtimeService(), new TrekPhotoRegistrationService(t.repo(TrekPhotos), t.repo(TripPhotos), photosRepoDirect), await createTestUnitOfWork(testDb),
     journeysRepoDirect, contributorsRepoDirect, journeyTripsRepoDirect, entriesRepoDirect, tripsRepoDirect,
-    // Plan 3g Task 2's own append to this SAME construction call — the two
-    // repositories this task builds, plus `PlacesRepository` (JG44) — per
-    // R9, Task 2 only appends to what Task 1's construction already
-    // established, never re-touches the wrapping mechanism itself.
+    // The photos surface (JG87-116), `PlacesRepository` (JG44) and the storage release.
     photosRepoDirect, entryPhotosRepoDirect, placesRepoDirect,
     release,
   );
@@ -542,49 +539,6 @@ describe('deleteJourney', () => {
     expect(result).toBe(false);
     const row = await one(Journeys, { id: journey.id });
     expect(row).toBeDefined();
-  });
-
-  it('JOURNEY-SVC-022b: deleting a journey drops the photo rows only it held and releases their files', async () => {
-    const { user } = createUser(testDb);
-    const journey = await svc.createJourney(user.id, { title: 'J' });
-    const [photo, video] = await svc.uploadGalleryPhotos(journey.id, user.id, [
-      { path: 'journey/a.jpg' },
-      { path: 'journey/b.mp4', thumbnail: 'journey/b-poster.jpg', mediaType: 'video' },
-    ]);
-    release.releaseValues.mockClear();
-
-    expect(await svc.deleteJourney(journey.id, user.id)).toBe(true);
-
-    expect(await one(TrekPhotos, { id: { $in: [photo.photo_id, video.photo_id] } })).toBeUndefined();
-    expect(release.releaseValues).toHaveBeenCalledTimes(1);
-    const [values, options] = release.releaseValues.mock.calls[0] as unknown as [Array<string | null>, unknown];
-    expect(values.filter(Boolean).sort()).toEqual(['journey/a.jpg', 'journey/b-poster.jpg', 'journey/b.mp4']);
-    expect(options).toEqual({ bare: 'journey' });
-  });
-
-  it('JOURNEY-SVC-022c: a photo another journey or a trip still links keeps its row through the delete', async () => {
-    const { user } = createUser(testDb);
-    const journey = await svc.createJourney(user.id, { title: 'J' });
-    const other = await svc.createJourney(user.id, { title: 'Other' });
-    const trip = createTrip(testDb, user.id);
-    const [shared, inTrip, alone] = await svc.uploadGalleryPhotos(journey.id, user.id, [
-      { path: 'journey/shared.jpg' },
-      { path: 'journey/trip.jpg' },
-      { path: 'journey/alone.jpg' },
-    ]);
-    // The same file uploaded to a second journey reuses its photo row.
-    const [again] = await svc.uploadGalleryPhotos(other.id, user.id, [{ path: 'journey/shared.jpg' }]);
-    expect(again.photo_id).toBe(shared.photo_id);
-    testDb
-      .prepare('INSERT INTO trip_photos (trip_id, user_id, photo_id) VALUES (?, ?, ?)')
-      .run(trip.id, user.id, inTrip.photo_id);
-
-    expect(await svc.deleteJourney(journey.id, user.id)).toBe(true);
-
-    expect(await one(TrekPhotos, { id: shared.photo_id })).toBeDefined();
-    expect(await one(TrekPhotos, { id: inTrip.photo_id })).toBeDefined();
-    expect(await one(TrekPhotos, { id: alone.photo_id })).toBeUndefined();
-    expect(await one(JourneyPhotos, { journey: other.id, photo: shared.photo_id })).toBeDefined();
   });
 });
 

@@ -31,7 +31,7 @@ import { BUDGET_ITEM_TICKET, RESERVATION_METADATA } from '../../db/json-columns'
 import { decodeJson, decodeJsonResult, encodeJson } from '../../utils/json-column';
 import { DomainError } from '../common/domain-error';
 import { GUEST_HAS_PAYMENTS, shareAfterLeaving } from './budget-departure.helpers';
-import { customSplitCents, isFrozenRate, NOT_FROZEN_RATE, settlementFx, summaryShareCents, sumMoney, tripConverter } from './budget-money.helpers';
+import { applyTransfer, customSplitCents, isFrozenRate, NOT_FROZEN_RATE, settlementFx, summaryShareCents, sumMoney, tripConverter } from './budget-money.helpers';
 
 type Trip = TripAccess;
 
@@ -1230,48 +1230,8 @@ export class BudgetService {
       }
       const from = ensureSettled(s.from_user_id, s.from_username, s.from_avatar_url);
       const to = ensureSettled(s.to_user_id, s.to_username, s.to_avatar_url);
-      // A transfer in the display currency first pays what the payer owes the
-      // receiver in display-currency expenses, as typed (#2965); only the rest
-      // goes through the trip currency at its frozen rate, which keeps a debt
-      // in the trip currency settled when rates move (#1445).
-      const total = Math.round(s.amount * 100);
-      const inDisplay = isDirect(s.currency);
-      const room = inDisplay ? Math.max(0, Math.min(-from.direct, to.direct)) : 0;
-      // In whole steps of the display currency, like the direct half it pays (#2604).
-      const paidDirect = total > 0 ? Math.floor(Math.min(total, room) / displayUnit) * displayUnit : 0;
-      from.direct += paidDirect;
-      to.direct -= paidDirect;
-      // Rounded to a trip cent per transfer, so recording one in a display currency
-      // can't leave a sliver of a cent behind to accumulate over a trip's lifetime.
-      const rest = total === 0 ? 0 : (total - paidDirect) / total;
-      const exact = convert(s.amount) * 100 * rest;
-      const inTrip = Math.round(exact);
-      from.cents += inTrip;
-      to.cents -= inTrip;
-      // When the two halves point opposite ways between this pair (the payer is owed
-      // in display-currency expenses but owes more in the trip currency: one paid a
-      // euro train, the other a yen hotel), the transfer settles the net of both.
-      // The display-currency credit then moves into the trip half at this
-      // transfer's frozen rate, against the trip debt it was netted with. Left where
-      // it was, it stayed fixed while the yen it offset floated with the live rate,
-      // and a settled trip reopened as soon as the rate moved (#1445). Only as much
-      // moves as both halves hold, so neither side ends up owing the other way.
-      let back = 0;
-      let backExact = 0;
-      if (inDisplay && total > 0) {
-        const directRoom = Math.min(from.direct, -to.direct);
-        const tripRoom = Math.min(-from.cents, to.cents);
-        if (directRoom > 0 && tripRoom > 0) {
-          const fits = Math.round(tripRoom / convert(1) / displayUnit) * displayUnit;
-          back = Math.max(0, Math.min(directRoom, fits));
-          backExact = convert(back / 100) * 100;
-          const backTrip = Math.round(backExact);
-          from.direct -= back;
-          to.direct += back;
-          from.cents += backTrip;
-          to.cents -= backTrip;
-        }
-      }
+      // Both halves of the ledger take the transfer, the display currency's first (applyTransfer).
+      const { paidDirect, exact, back, backExact } = applyTransfer(from, to, s.amount, isDirect(s.currency), convert, displayUnit);
       const movedDirect = paidDirect - back;
       reimbursedDirect[s.to_user_id] = (reimbursedDirect[s.to_user_id] || 0) + movedDirect;
       reimbursedDirect[s.from_user_id] = (reimbursedDirect[s.from_user_id] || 0) - movedDirect;

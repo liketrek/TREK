@@ -10,7 +10,7 @@ import { keepMirroredPrice } from './reservation-metadata';
 import { endpointRows, groupDayPositions, groupEndpointsByReservation } from './reservations.helpers';
 import type { Reservation, User } from '../../types';
 import { BudgetService } from '../budget/budget.service';
-import { costCategoryOf, typeToCostCategory } from '@trek/shared';
+import { isDerivedCostCategory, typeToCostCategory } from '@trek/shared';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AccommodationsService, noStayMirror, type AccommodationMirror } from '../accommodations/accommodations.service';
 import { toRowId, legacyBoundIntegerText } from '../common/row-id';
@@ -157,9 +157,6 @@ type AccommodationTimesMeta = {
  * transaction, the linked-cost side effects and the booking notification, so
  * REST, MCP and the plugin RPC (ReservationsRpc) stay thin.
  */
-/** The booking types whose cost the old type map filed under 'other' (see syncBudgetOnUpdate). */
-const FILED_AS_OTHER_BEFORE = new Set(['cable_car', 'event', 'tour', 'cruise', 'bicycle', 'transit', 'transport_other']);
-
 @Injectable()
 export class ReservationsService {
   constructor(
@@ -1151,14 +1148,8 @@ export class ReservationsService {
       const oldCat = typeToCostCategory(currentType);
       const newCat = typeToCostCategory(type);
       // RS51. Every linked expense (#2084), each only while it still has the derived category.
-      // Read through costCategoryOf, so a label stored before the fixed keys ("Flight")
-      // counts as the key it stands for and moves with the type too.
-      // Before 5.1.1 these types filed their cost under 'other', so an 'other' on one of
-      // them is still the derived category and moves with the type as it did.
-      const derived = (category: string | null) =>
-        costCategoryOf(category) === oldCat || (category === 'other' && FILED_AS_OTHER_BEFORE.has(currentType));
       const linked = oldCat === newCat ? [] : await this.budgetItemsRepo.listIdAndCategoryByReservation(tripId, id);
-      for (const item of linked.filter(i => derived(i.category))) {
+      for (const item of linked.filter(i => isDerivedCostCategory(i.category, currentType))) {
         const updated = await this.budget.updateBudgetItem(item.id, tripId, { category: newCat });
         this.sendCost(tripId, { event: 'budget:updated', payload: { item: updated } }, socketId, collect);
       }

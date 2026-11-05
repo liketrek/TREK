@@ -255,6 +255,23 @@ export class CollectionsRepository extends TrekRepository<Collections> {
   }
 
   /**
+   * `deleteCollection`: deletes a list like `deleteById` and hands back the uploads it
+   * named, its cover and its saved places' images, read before the cascade takes their
+   * rows, so they can go like a single place's do once nothing else names them (#2924).
+   */
+  async deleteWithImages(id: number): Promise<Array<string | null>> {
+    const cover = (await this.coverImage(id)) ?? null;
+    const places = await this.readDb()
+      .selectFrom('collection_places')
+      .select('image_url')
+      .where('collection_id', '=', id)
+      .where('image_url', 'is not', null)
+      .execute();
+    await this.deleteById(id);
+    return [cover, ...places.map((place) => place.image_url)];
+  }
+
+  /**
    * CL36 (`reorderCollections`, TX `:712`) — `UPDATE collections SET
    * sort_order=? WHERE id=?`, looped per visible id. The legacy statement
    * is a `this.db.prepare(...)` reused across the loop (a single compiled
