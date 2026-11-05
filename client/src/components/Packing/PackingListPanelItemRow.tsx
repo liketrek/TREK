@@ -18,9 +18,9 @@ import { PopoverItem } from './PackingPopover'
 import { POPOVER, POPOVER_CAPTION, POPOVER_DIVIDER } from './packingPopoverStyles'
 import type { TripMember } from './usePackingListPanel'
 import { NumericInput } from '../shared/NumericInput'
-import { packingBringerNames } from './packingBringers'
+import { bringersOf, packingBringerNames } from './packingBringers'
 import { Tooltip } from '../shared/Tooltip'
-import { BringerAvatar, BringersCard, MoreBringers, bringersOf } from './PackingBringersCard'
+import { BringerAvatar, BringersCard, MoreBringers } from './PackingBringersCard'
 
 interface ArtikelZeileProps {
   item: PackingItem

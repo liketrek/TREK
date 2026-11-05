@@ -108,7 +108,7 @@ describe('DayHeader', () => {
     const tileDate = (time_format: string, date_format: string): string | null => {
       useSettingsStore.setState({ settings: { distance_unit: 'metric', time_format, date_format } as never })
       const { container, unmount } = wrap(<DayHeader day={day({ date: '2026-10-05' })} />)
-      const text = container.querySelector('time')!.textContent
+      const text = container.querySelector('time')?.textContent ?? null
       unmount()
       return text
     }

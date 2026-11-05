@@ -671,7 +671,10 @@ describe('toChatHistory: calls the model made of the server tools (#2845)', () =
     const chat = toChatMessages({ system: '', messages: anthropic, tools: [] });
     chat.forEach((message, index) => {
       if (message.role !== 'tool') return;
-      const before = chat.slice(0, index).reverse().find((earlier) => earlier.role === 'assistant');
+      const before = chat
+        .slice(0, index)
+        .reverse()
+        .find((earlier) => earlier.role === 'assistant');
       const named = ((before?.tool_calls ?? []) as Array<{ id: string }>).map((call) => call.id);
       expect(named).toContain(message.tool_call_id);
     });

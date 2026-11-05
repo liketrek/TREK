@@ -1,7 +1,8 @@
 // FE-PACK-BRINGERCARD-001 to FE-PACK-BRINGERCARD-004
 import { describe, expect, it } from 'vitest';
 import { render, screen } from '../../../tests/helpers/render';
-import { BringersCard, MoreBringers, bringersOf } from './PackingBringersCard';
+import { BringersCard, MoreBringers } from './PackingBringersCard';
+import { bringersOf } from './packingBringers';
 
 const members = [
   { id: 1, username: 'anna', avatar_url: '/uploads/avatars/anna.jpg' },

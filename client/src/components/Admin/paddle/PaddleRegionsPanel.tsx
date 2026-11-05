@@ -3,6 +3,7 @@ import { Check, ChevronRight, Loader2, Plus, RefreshCw, Search, Trash2, Waves, W
 import { useId } from 'react';
 import { useDateFormat } from '../../../hooks/useDateFormat';
 import { useTranslation } from '../../../i18n';
+import { formatDisplayDate } from '../../../utils/dateFormat';
 import {
   SettingRows,
   SETTINGS_BUTTON,
@@ -16,7 +17,6 @@ import { EditorField, INPUT } from '../../shared/dialogParts';
 import { fs } from '../../shared/DialogShell';
 import ErrorBoundary from '../../shared/ErrorBoundary';
 import { Tooltip } from '../../shared/Tooltip';
-import { formatDisplayDate } from '../../../utils/dateFormat';
 import { AutoLoadSettings, AutoOriginPill, RequestList } from './PaddleAutoLoadParts';
 import { progressPercent, regionStatusTone } from './paddleRegionsModel';
 import { usePaddleRegionsAdmin } from './usePaddleRegionsAdmin';

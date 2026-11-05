@@ -740,7 +740,7 @@ describe('getMergedItems: bookings in different time zones (#2929)', () => {
     const laxSea = { ...toSeattle, endpoints: ends(LAX, SEA) }
     const stopAt = (id: number, time: string, lat: number, lng: number) =>
       ({ id, order_index: id, place: { place_time: time, lat, lng } })
-    const drawn = (dayAssignments: any[], dayTransports: any[]) =>
+    const drawn = (dayAssignments: Parameters<typeof getMergedItems>[0]['dayAssignments'], dayTransports: Parameters<typeof getMergedItems>[0]['dayTransports']) =>
       getMergedItems({ dayAssignments, dayNotes: [], dayTransports, dayId: DAY })
     const labels = (items: MergedItem[]) => items.map(i => `${i.type}:${i.data.id}`)
 

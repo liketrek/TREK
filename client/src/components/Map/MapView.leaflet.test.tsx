@@ -506,6 +506,8 @@ describe('MapView on a real Leaflet map', () => {
       return found as L.Marker | null
     }
     await waitFor(() => expect(marker()?.getLatLng().lng).toBeCloseTo(23.73, 6))
-    expect(map.getBounds().contains(marker()!.getLatLng())).toBe(true)
+    const drawnMarker = marker()
+    expect(drawnMarker).not.toBeNull()
+    expect(drawnMarker && map.getBounds().contains(drawnMarker.getLatLng())).toBe(true)
   })
 })

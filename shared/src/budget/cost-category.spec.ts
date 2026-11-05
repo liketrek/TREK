@@ -1,7 +1,7 @@
 // COST-CATEGORY-001 to COST-CATEGORY-007: a typed category read as one of the fixed keys.
+import { RESERVATION_TYPES } from '../reservation/reservation-types';
 import { COST_CATEGORIES } from './budget.schema';
 import { COST_CATEGORY_HINT, costCategoryOf, storedCostCategory, typeToCostCategory } from './cost-category';
-import { RESERVATION_TYPES } from '../reservation/reservation-types';
 
 import { describe, expect, it } from 'vitest';
 
