@@ -43,10 +43,14 @@ platform :ios do
     )
     keychain_path = File.expand_path("~/Library/Keychains/#{keychain_name}-db")
 
-    # Distribution certificate into the keychain, and an App Store profile that trusts it.
-    get_certificates(
-      api_key: key,
-      development: false,
+    # Import the one distribution certificate from its stored .p12, rather than
+    # minting a new one each run — Apple caps distribution certificates at two, so
+    # a fresh one per build would quickly hit the limit. The matching App Store
+    # profile is created (or reused) through the API key.
+    import_certificate(
+      certificate_path: ENV.fetch("CERT_P12_PATH"),
+      certificate_password: ENV.fetch("CERT_P12_PASSWORD"),
+      keychain_name: keychain_name,
       keychain_path: keychain_path,
       keychain_password: keychain_password,
     )
