@@ -46,7 +46,7 @@ export interface ReservationAllColumnsRow {
  * r.place_id = p.id LEFT JOIN day_accommodations ap ON r.accommodation_id =
  * ap.id LEFT JOIN places acc_p ON ap.place_id = acc_p.id`. The service
  * folds `accommodation_id` (`Math.trunc(Number(x))`), `day_positions`,
- * `endpoints` and `travelers` on afterward (unchanged from the legacy split).
+ * `endpoints` and `travelers` on afterward.
  */
 export interface ReservationJoinRow extends ReservationAllColumnsRow {
   day_number: number | null;
