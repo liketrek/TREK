@@ -5,7 +5,7 @@ import { coalesceOverride, columnRef, dayDistance } from '../dialect/sql-functio
 import { castIntegerKysely, concatKysely, startsWithIsoDateKysely, substringKysely } from '../dialect/kysely-functions';
 import { publicReservationExpr, publicStayExists, type ReservationVisibilityKyselyDB } from './_shared/reservation-visibility';
 import type { DayAssignmentRow } from './day-assignment-rows';
-import { selectReservationsWithJoins, type ReservationJoinKyselyDB, type ReservationJoinRow } from './reservation-join';
+import type { ReservationAllColumnsRow, ReservationJoinKyselyDB, ReservationJoinRow } from './reservation-rows';
 import { TrekRepository } from './_shared/trek-repository';
 import type { DB } from '../kysely/db';
 import { ROADTRIP_RESERVATION_TYPES } from '@trek/shared';
@@ -19,8 +19,9 @@ import type {
   PublicApiUnscheduledReservationRow,
 } from './reservation-public-api-rows';
 
-// The joined and public API row types moved to their own modules; re-exported so callers keep one import path.
+// The row types moved to their own modules; re-exported so callers keep one import path.
 export type {
+  ReservationAllColumnsRow,
   ReservationJoinRow,
   PublicApiAccommodationRow,
   PublicApiScheduledReservationRow,
@@ -348,8 +349,29 @@ type SharePublicAccommodationKyselyDB = ReservationVisibilityKyselyDB & Pick<DB,
 type FlightsMissingEndpointsKyselyDB = Pick<DB, 'reservations' | 'reservation_endpoints'>;
 
 export class ReservationsRepository extends TrekRepository<Reservations> {
+  /**
+   * `accommodation_id` is TEXT and `ap.id` INTEGER, so the text side is cast
+   * for the join: SQLite coerces the bare comparison, Postgres refuses it.
+   */
   private joinedQuery() {
-    return selectReservationsWithJoins(this.kysely<ReservationJoinKyselyDB>(), this.getEntityManager().getPlatform());
+    const platform = this.getEntityManager().getPlatform();
+    return this.kysely<ReservationJoinKyselyDB>()
+      .selectFrom('reservations as r')
+      .leftJoin('days as d', 'd.id', 'r.day_id')
+      .leftJoin('places as p', 'p.id', 'r.place_id')
+      .leftJoin('day_accommodations as ap', (join) =>
+        join.on((eb) => eb(castIntegerKysely(platform, eb, 'r.accommodation_id'), '=', eb.ref('ap.id'))),
+      )
+      .leftJoin('places as acc_p', 'acc_p.id', 'ap.place_id')
+      .selectAll('r')
+      .select([
+        'd.day_number as day_number',
+        'p.name as place_name',
+        'ap.place_id as accommodation_place_id',
+        'acc_p.name as accommodation_name',
+        'ap.start_day_id as accommodation_start_day_id',
+        'ap.end_day_id as accommodation_end_day_id',
+      ]);
   }
 
   /**
@@ -1484,35 +1506,4 @@ export interface RoadtripCarrierRow {
   reservation_end_time: string | null;
   metadata: string | null;
   day_plan_position: number | null;
-}
-
-/** `SELECT *` — every scalar column of `Reservations`, RS35's shape. */
-export interface ReservationAllColumnsRow {
-  id: number;
-  trip_id: number;
-  day_id: number | null;
-  end_day_id: number | null;
-  place_id: number | null;
-  assignment_id: number | null;
-  title: string;
-  accommodation_id: string | null;
-  reservation_time: string | null;
-  reservation_end_time: string | null;
-  location: string | null;
-  confirmation_number: string | null;
-  notes: string | null;
-  status: string | null;
-  type: string | null;
-  created_at: string | null;
-  metadata: string | null;
-  day_plan_position: number | null;
-  needs_review: number;
-  external_source: string | null;
-  external_id: string | null;
-  external_owner_user_id: number | null;
-  external_synced_at: string | null;
-  sync_enabled: number | null;
-  external_hash: string | null;
-  url: string | null;
-  ingest_state: string;
 }
