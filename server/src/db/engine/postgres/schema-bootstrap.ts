@@ -38,51 +38,77 @@ async function currentTables(connection: Connection): Promise<string[]> {
 }
 
 /**
- * Brings a Postgres database to the current schema.
+ * Creates the schema in an empty Postgres database: the baseline's statements
+ * and the record of every migration it stands for, in one transaction (DDL is
+ * transactional on Postgres, so the database ends with all of it or none). A
+ * database holding tables beside no TREK history is refused before anything is
+ * written.
+ */
+async function createFromBaseline(
+  connection: Connection,
+  storage: ReturnType<Migrator['getStorage']>,
+  tables: readonly string[],
+  historyTable: string,
+  baseline: () => PostgresBaseline,
+): Promise<void> {
+  const foreign = tables.filter((table) => table !== historyTable);
+  if (foreign.length > 0) {
+    throw new Error(
+      `${REFUSAL} the database holds ${foreign.length} table(s) (${foreign.slice(0, 5).join(', ')}) but no TREK ` +
+        'migration history. Point TREK_DB_URL at an empty database.',
+    );
+  }
+  await storage.ensureTable();
+  const schema = baseline();
+  logger.log(`Creating the schema in an empty Postgres database (through ${migrationLabel(schema.through)})`);
+  await connection.transactional(async (trx) => {
+    await connection.execute(schema.statements.join(';\n'), [], 'run', trx);
+    await Promise.all(schema.migrations.map((name) => storage.logMigration({ name }, trx)));
+  });
+}
+
+/**
+ * Refuses a database whose recorded history names a migration this build does
+ * not know: a newer TREK migrated it. The refusal names the copy taken before
+ * that migration, when there is one.
+ */
+async function refuseNewerHistory(executed: string[], deps: PostgresBootstrapDeps): Promise<void> {
+  const thisRelease = migrationLabel([...deps.known].sort().at(-1) ?? '');
+  refuseNewerDatabase(executed, deps.known, await deps.safetyNet.restoreHint(thisRelease));
+}
+
+/**
+ * Brings a Postgres database to the current schema: inspect what it holds,
+ * then create the schema or verify the history it has, then migrate.
  *
- * - No migration recorded and no table: the baseline runs and every migration
- *   it stands for is recorded as executed, in one transaction (DDL is
- *   transactional on Postgres, so the database ends with all of it or none).
+ * - No migration recorded and no table: the baseline is created
+ *   (`createFromBaseline`).
  * - No migration recorded but tables present: refused, naming a few of them.
- * - Migrations recorded: refused when one is unknown to this build (a newer
- *   TREK migrated it), else the pending migrations run, after the safety net.
- *   A database the baseline just created runs the migrations after the
- *   baseline's cut without it: there is nothing yet to lose.
+ * - Migrations recorded: refused when one is unknown to this build, else the
+ *   pending migrations run, after the safety net. A database the baseline just
+ *   created runs the migrations after the baseline's cut without it: there is
+ *   nothing yet to lose.
  */
 export async function bootstrapPostgresSchema(orm: AnyOrm, deps: PostgresBootstrapDeps): Promise<void> {
   const migrator = orm.config.getExtension('@mikro-orm/migrator') as Migrator;
   const connection = orm.em.getConnection();
-  const storage = migrator.getStorage();
   const historyTable = orm.config.get('migrations').tableName ?? 'mikro_orm_migrations';
+
   const tables = await currentTables(connection);
   const executed = tables.includes(historyTable) ? (await migrator.getExecuted()).map((row) => row.name) : [];
-  const created = executed.length === 0;
 
-  if (created) {
-    const foreign = tables.filter((table) => table !== historyTable);
-    if (foreign.length > 0) {
-      throw new Error(
-        `${REFUSAL} the database holds ${foreign.length} table(s) (${foreign.slice(0, 5).join(', ')}) but no TREK ` +
-          'migration history. Point TREK_DB_URL at an empty database.',
-      );
-    }
-    await storage.ensureTable();
-    const baseline = deps.baseline();
-    logger.log(`Creating the schema in an empty Postgres database (through ${migrationLabel(baseline.through)})`);
-    await connection.transactional(async (trx) => {
-      // One round trip: without parameters pg sends it as a simple query, which may hold many statements.
-      await connection.execute(baseline.statements.join(';\n'), [], 'run', trx);
-      await Promise.all(baseline.migrations.map((name) => storage.logMigration({ name }, trx)));
-    });
+  if (executed.length === 0) {
+    await createFromBaseline(connection, migrator.getStorage(), tables, historyTable, deps.baseline);
   } else {
-    const thisRelease = migrationLabel([...deps.known].sort().at(-1) ?? '');
-    refuseNewerDatabase(executed, deps.known, await deps.safetyNet.restoreHint(thisRelease));
+    await refuseNewerHistory(executed, deps);
   }
 
   const pending = await migrator.getPending();
   if (pending.length === 0) return;
-  // A database created just now holds nothing a migration could lose.
-  if (!created) await deps.safetyNet.beforeMigrate(migrationLabel([...executed].sort().at(-1) as string));
+  // Only a database with history has a last migration to label its copy by; a
+  // database the baseline just created has nothing yet to lose.
+  const latest = [...executed].sort().at(-1);
+  if (latest !== undefined) await deps.safetyNet.beforeMigrate(migrationLabel(latest));
   logger.log(`Applying ${pending.length} pending migration(s)`);
   await migrator.up();
 }
