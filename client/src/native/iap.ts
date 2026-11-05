@@ -19,10 +19,7 @@ export interface Purchase {
 }
 
 /** What a purchase attempt came to. `cancelled` is the customer backing out, not an error. */
-type PurchaseOutcome =
-  | { kind: 'bought'; purchase: Purchase }
-  | { kind: 'cancelled' }
-  | { kind: 'failed' };
+type PurchaseOutcome = { kind: 'bought'; purchase: Purchase } | { kind: 'cancelled' } | { kind: 'failed' };
 
 export interface IapClient {
   /** Whether this build can take a payment: the plugin is present and the store products exist. */

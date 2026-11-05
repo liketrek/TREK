@@ -25,13 +25,15 @@ const native: TranslationStrings = {
   'native.settings.server': 'Sunucu',
   'native.settings.serverHint': 'Bu uygulama {server} adresine bağlı.',
   'native.welcome.headline': 'Gezileri birlikte planlayın.',
-  'native.welcome.sub': 'TREK her günü, yeri, rezervasyonu ve masrafı tüm grubun birlikte düzenlediği tek bir canlı planda tutar.',
+  'native.welcome.sub':
+    'TREK her günü, yeri, rezervasyonu ve masrafı tüm grubun birlikte düzenlediği tek bir canlı planda tutar.',
   'native.welcome.connect': 'TREK’inizi bağlayın',
   'native.welcome.connectSub': 'Zaten kullandığınız adresi açın',
   'native.welcome.getCloud': 'TREK Cloud’u edinin',
   'native.welcome.getCloudSub': 'Sizin için barındırılır, kurulum yok',
   'native.cloud.title': 'TREK Cloud',
-  'native.cloud.sub': 'TREK’i sizin için, kendi adresinizde barındırırız. Kuracak bir şey yok, bakımı yok: dakikalar içinde hazır.',
+  'native.cloud.sub':
+    'TREK’i sizin için, kendi adresinizde barındırırız. Kuracak bir şey yok, bakımı yok: dakikalar içinde hazır.',
   'native.cloud.f1': 'Kendi adresiniz, Almanya’daki sunucularda',
   'native.cloud.f2': 'Dakikalar içinde hazır, güncellemeler bizden',
   'native.cloud.f3': 'Verileriniz sizin kalır: reklam yok, takip yok',

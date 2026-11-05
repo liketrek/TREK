@@ -26,13 +26,15 @@ const native: TranslationStrings = {
   'native.settings.server': 'Szerver',
   'native.settings.serverHint': 'Ez az alkalmazás ehhez csatlakozik: {server}.',
   'native.welcome.headline': 'Tervezzetek utakat együtt.',
-  'native.welcome.sub': 'A TREK minden napot, helyet, foglalást és költséget egyetlen élő tervben tart, amelyet az egész csapat együtt szerkeszt.',
+  'native.welcome.sub':
+    'A TREK minden napot, helyet, foglalást és költséget egyetlen élő tervben tart, amelyet az egész csapat együtt szerkeszt.',
   'native.welcome.connect': 'Csatlakoztasd a TREK-edet',
   'native.welcome.connectSub': 'Nyisd meg a címet, amit már használsz',
   'native.welcome.getCloud': 'TREK Cloud beszerzése',
   'native.welcome.getCloudSub': 'Neked tárolva, telepítés nélkül',
   'native.cloud.title': 'TREK Cloud',
-  'native.cloud.sub': 'A TREK-et neked üzemeltetjük, a saját címeden. Semmit nem kell telepíteni, semmit karbantartani: percek alatt kész.',
+  'native.cloud.sub':
+    'A TREK-et neked üzemeltetjük, a saját címeden. Semmit nem kell telepíteni, semmit karbantartani: percek alatt kész.',
   'native.cloud.f1': 'Saját cím, németországi szervereken',
   'native.cloud.f2': 'Percek alatt kész, a frissítéseket mi intézzük',
   'native.cloud.f3': 'Az adataid a tieid maradnak: nincs hirdetés, nincs követés',
@@ -71,7 +73,8 @@ const native: TranslationStrings = {
   'native.provisioning.title': 'A TREK-edet állítjuk be',
   'native.provisioning.sub': 'A(z) {host} előkészítése. Csak egy percet vesz igénybe.',
   'native.provisioning.failedTitle': 'Majdnem kész',
-  'native.provisioning.failedSub': 'A TREK-ed úton van. Próbáld újra egy pillanat múlva, vagy nyisd meg az appot később.',
+  'native.provisioning.failedSub':
+    'A TREK-ed úton van. Próbáld újra egy pillanat múlva, vagy nyisd meg az appot később.',
   'native.provisioning.retry': 'Próbáld most',
 };
 

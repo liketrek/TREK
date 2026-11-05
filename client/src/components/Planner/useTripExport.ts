@@ -5,8 +5,8 @@ import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import type { AssignmentsMap, Category, Day, DayNote, Place, Reservation, Trip } from '../../types';
 import { importChunk } from '../../utils/chunkReload';
-import { downloadBlob } from '../../utils/fileDownload';
 import type { ViasByDay } from '../../utils/dayRouteVias';
+import { downloadBlob } from '../../utils/fileDownload';
 import type { TourStageStops } from '../Map/dayTourProjection';
 import { hasPersonalPlan } from '../PDF/pdfScope';
 

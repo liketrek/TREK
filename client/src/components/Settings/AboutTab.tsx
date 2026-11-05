@@ -15,10 +15,10 @@ import {
 import React, { type CSSProperties, type ReactNode } from 'react';
 import { useTranslation } from '../../i18n';
 import { useAuthStore } from '../../store/authStore';
+import { donationsShown } from '../../utils/donations';
 import { fs } from '../shared/DialogShell';
 import Section from './Section';
 import { StatusPill } from './settingsKit';
-import { donationsShown } from '../../utils/donations';
 
 interface Props {
   appVersion: string;

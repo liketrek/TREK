@@ -25,13 +25,15 @@ const native: TranslationStrings = {
   'native.settings.server': 'サーバー',
   'native.settings.serverHint': 'このアプリは {server} に接続されています。',
   'native.welcome.headline': 'みんなで旅を計画。',
-  'native.welcome.sub': 'TREKは、毎日・場所・予約・費用を、グループ全員で一緒に編集できる1つのライブプランにまとめます。',
+  'native.welcome.sub':
+    'TREKは、毎日・場所・予約・費用を、グループ全員で一緒に編集できる1つのライブプランにまとめます。',
   'native.welcome.connect': 'あなたのTREKに接続',
   'native.welcome.connectSub': 'すでに使っているアドレスを開く',
   'native.welcome.getCloud': 'TREK Cloudを始める',
   'native.welcome.getCloudSub': 'あなたのために用意、設定不要',
   'native.cloud.title': 'TREK Cloud',
-  'native.cloud.sub': 'TREKをあなたのために、あなた専用のアドレスでホストします。インストールも管理も不要で、数分で使えます。',
+  'native.cloud.sub':
+    'TREKをあなたのために、あなた専用のアドレスでホストします。インストールも管理も不要で、数分で使えます。',
   'native.cloud.f1': '専用アドレス、ドイツのサーバー上',
   'native.cloud.f2': '数分で準備完了、アップデートはお任せ',
   'native.cloud.f3': 'データはあなたのもの。広告なし、追跡なし',
@@ -70,7 +72,8 @@ const native: TranslationStrings = {
   'native.provisioning.title': 'TREKを準備中',
   'native.provisioning.sub': '{host} を準備しています。1分ほどで完了します。',
   'native.provisioning.failedTitle': 'もうすぐ完了',
-  'native.provisioning.failedSub': 'TREKはまもなく準備できます。少ししてからもう一度試すか、後でアプリを開いてください。',
+  'native.provisioning.failedSub':
+    'TREKはまもなく準備できます。少ししてからもう一度試すか、後でアプリを開いてください。',
   'native.provisioning.retry': '今すぐ試す',
 };
 

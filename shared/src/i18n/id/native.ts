@@ -25,13 +25,15 @@ const native: TranslationStrings = {
   'native.settings.server': 'Server', // same-as-en
   'native.settings.serverHint': 'Aplikasi ini terhubung ke {server}.',
   'native.welcome.headline': 'Rencanakan perjalanan bersama.',
-  'native.welcome.sub': 'TREK menyatukan setiap hari, tempat, pemesanan, dan biaya dalam satu rencana langsung yang diedit seluruh grup bersama.',
+  'native.welcome.sub':
+    'TREK menyatukan setiap hari, tempat, pemesanan, dan biaya dalam satu rencana langsung yang diedit seluruh grup bersama.',
   'native.welcome.connect': 'Hubungkan TREK Anda',
   'native.welcome.connectSub': 'Buka alamat yang sudah Anda pakai',
   'native.welcome.getCloud': 'Dapatkan TREK Cloud',
   'native.welcome.getCloudSub': 'Dihosting untuk Anda, tanpa penyiapan',
   'native.cloud.title': 'TREK Cloud',
-  'native.cloud.sub': 'Kami menghosting TREK untuk Anda, di alamat Anda sendiri. Tidak ada yang perlu dipasang atau dirawat: siap dalam hitungan menit.',
+  'native.cloud.sub':
+    'Kami menghosting TREK untuk Anda, di alamat Anda sendiri. Tidak ada yang perlu dipasang atau dirawat: siap dalam hitungan menit.',
   'native.cloud.f1': 'Alamat Anda sendiri, di server di Jerman',
   'native.cloud.f2': 'Siap dalam hitungan menit, pembaruan kami yang urus',
   'native.cloud.f3': 'Data Anda tetap milik Anda: tanpa iklan, tanpa pelacakan',
@@ -70,7 +72,8 @@ const native: TranslationStrings = {
   'native.provisioning.title': 'Menyiapkan TREK Anda',
   'native.provisioning.sub': 'Menyiapkan {host}. Ini hanya perlu satu menit.',
   'native.provisioning.failedTitle': 'Hampir siap',
-  'native.provisioning.failedSub': 'TREK Anda sedang dalam perjalanan. Coba lagi sebentar lagi, atau buka aplikasi nanti.',
+  'native.provisioning.failedSub':
+    'TREK Anda sedang dalam perjalanan. Coba lagi sebentar lagi, atau buka aplikasi nanti.',
   'native.provisioning.retry': 'Coba sekarang',
 };
 

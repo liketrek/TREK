@@ -25,13 +25,15 @@ const native: TranslationStrings = {
   'native.settings.server': 'Сервер',
   'native.settings.serverHint': 'Приложение подключено к {server}.',
   'native.welcome.headline': 'Планируйте поездки вместе.',
-  'native.welcome.sub': 'TREK хранит каждый день, место, бронирование и расход в одном живом плане, который вся группа редактирует вместе.',
+  'native.welcome.sub':
+    'TREK хранит каждый день, место, бронирование и расход в одном живом плане, который вся группа редактирует вместе.',
   'native.welcome.connect': 'Подключите свой TREK',
   'native.welcome.connectSub': 'Откройте адрес, которым уже пользуетесь',
   'native.welcome.getCloud': 'Получить TREK Cloud',
   'native.welcome.getCloudSub': 'Размещён для вас, без настройки',
   'native.cloud.title': 'TREK Cloud',
-  'native.cloud.sub': 'Мы разместим TREK для вас, на вашем собственном адресе. Ничего не нужно устанавливать и обслуживать: готово за минуты.',
+  'native.cloud.sub':
+    'Мы разместим TREK для вас, на вашем собственном адресе. Ничего не нужно устанавливать и обслуживать: готово за минуты.',
   'native.cloud.f1': 'Собственный адрес, на серверах в Германии',
   'native.cloud.f2': 'Готово за минуты, обновления берём на себя',
   'native.cloud.f3': 'Ваши данные остаются вашими: без рекламы, без слежки',
@@ -70,7 +72,8 @@ const native: TranslationStrings = {
   'native.provisioning.title': 'Настраиваем ваш TREK',
   'native.provisioning.sub': 'Готовим {host}. Это займёт всего минуту.',
   'native.provisioning.failedTitle': 'Почти готово',
-  'native.provisioning.failedSub': 'Ваш TREK уже в пути. Повторите попытку через мгновение или откройте приложение позже.',
+  'native.provisioning.failedSub':
+    'Ваш TREK уже в пути. Повторите попытку через мгновение или откройте приложение позже.',
   'native.provisioning.retry': 'Повторить сейчас',
 };
 

@@ -25,13 +25,15 @@ const native: TranslationStrings = {
   'native.settings.server': 'Server', // same-as-en
   'native.settings.serverHint': 'See rakendus on ühendatud serveriga {server}.',
   'native.welcome.headline': 'Planeerige reise koos.',
-  'native.welcome.sub': 'TREK hoiab iga päeva, koha, broneeringu ja kulu ühes elavas plaanis, mida kogu rühm koos muudab.',
+  'native.welcome.sub':
+    'TREK hoiab iga päeva, koha, broneeringu ja kulu ühes elavas plaanis, mida kogu rühm koos muudab.',
   'native.welcome.connect': 'Ühenda oma TREK',
   'native.welcome.connectSub': 'Ava aadress, mida juba kasutad',
   'native.welcome.getCloud': 'Hangi TREK Cloud',
   'native.welcome.getCloudSub': 'Majutatud sinu eest, seadistamiseta',
   'native.cloud.title': 'TREK Cloud',
-  'native.cloud.sub': 'Majutame TREK-i sinu eest, sinu enda aadressil. Midagi pole vaja paigaldada ega hallata: valmis mõne minutiga.',
+  'native.cloud.sub':
+    'Majutame TREK-i sinu eest, sinu enda aadressil. Midagi pole vaja paigaldada ega hallata: valmis mõne minutiga.',
   'native.cloud.f1': 'Sinu enda aadress, Saksamaa serverites',
   'native.cloud.f2': 'Valmis mõne minutiga, uuendused teeme meie',
   'native.cloud.f3': 'Sinu andmed jäävad sinu omaks: reklaamideta, jälgimiseta',

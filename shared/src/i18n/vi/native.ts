@@ -26,13 +26,15 @@ const native: TranslationStrings = {
   'native.settings.server': 'Máy chủ',
   'native.settings.serverHint': 'Ứng dụng này đang kết nối với {server}.',
   'native.welcome.headline': 'Cùng nhau lên kế hoạch chuyến đi.',
-  'native.welcome.sub': 'TREK giữ mọi ngày, địa điểm, đặt chỗ và chi phí trong một kế hoạch trực tiếp mà cả nhóm cùng chỉnh sửa.',
+  'native.welcome.sub':
+    'TREK giữ mọi ngày, địa điểm, đặt chỗ và chi phí trong một kế hoạch trực tiếp mà cả nhóm cùng chỉnh sửa.',
   'native.welcome.connect': 'Kết nối TREK của bạn',
   'native.welcome.connectSub': 'Mở địa chỉ bạn vẫn dùng',
   'native.welcome.getCloud': 'Nhận TREK Cloud',
   'native.welcome.getCloudSub': 'Được lưu trữ sẵn cho bạn, không cần cài đặt',
   'native.cloud.title': 'TREK Cloud',
-  'native.cloud.sub': 'Chúng tôi lưu trữ TREK cho bạn, trên địa chỉ của riêng bạn. Không cần cài đặt, không cần bảo trì: sẵn sàng trong vài phút.',
+  'native.cloud.sub':
+    'Chúng tôi lưu trữ TREK cho bạn, trên địa chỉ của riêng bạn. Không cần cài đặt, không cần bảo trì: sẵn sàng trong vài phút.',
   'native.cloud.f1': 'Địa chỉ riêng của bạn, trên máy chủ ở Đức',
   'native.cloud.f2': 'Sẵn sàng trong vài phút, bản cập nhật do chúng tôi lo',
   'native.cloud.f3': 'Dữ liệu của bạn vẫn là của bạn: không quảng cáo, không theo dõi',

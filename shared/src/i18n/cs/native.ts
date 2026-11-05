@@ -25,13 +25,15 @@ const native: TranslationStrings = {
   'native.settings.server': 'Server', // same-as-en
   'native.settings.serverHint': 'Tato aplikace je připojena k {server}.',
   'native.welcome.headline': 'Plánujte cesty společně.',
-  'native.welcome.sub': 'TREK drží každý den, místo, rezervaci i výdaj v jednom živém plánu, který celá skupina upravuje společně.',
+  'native.welcome.sub':
+    'TREK drží každý den, místo, rezervaci i výdaj v jednom živém plánu, který celá skupina upravuje společně.',
   'native.welcome.connect': 'Připojte svůj TREK',
   'native.welcome.connectSub': 'Otevřete adresu, kterou už používáte',
   'native.welcome.getCloud': 'Získat TREK Cloud',
   'native.welcome.getCloudSub': 'Hostováno za vás, bez instalace',
   'native.cloud.title': 'TREK Cloud',
-  'native.cloud.sub': 'TREK hostujeme za vás, na vaší vlastní adrese. Nic neinstalujete, nic neudržujete: hotovo za pár minut.',
+  'native.cloud.sub':
+    'TREK hostujeme za vás, na vaší vlastní adrese. Nic neinstalujete, nic neudržujete: hotovo za pár minut.',
   'native.cloud.f1': 'Vlastní adresa, na serverech v Německu',
   'native.cloud.f2': 'Hotovo za pár minut, aktualizace řešíme my',
   'native.cloud.f3': 'Vaše data zůstávají vaše: žádné reklamy, žádné sledování',

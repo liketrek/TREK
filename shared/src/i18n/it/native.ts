@@ -26,13 +26,15 @@ const native: TranslationStrings = {
   'native.settings.server': 'Server', // same-as-en
   'native.settings.serverHint': 'Questa app è collegata a {server}.',
   'native.welcome.headline': 'Pianificate i viaggi insieme.',
-  'native.welcome.sub': 'TREK raccoglie ogni giorno, luogo, prenotazione e spesa in un unico piano dal vivo che tutto il gruppo modifica insieme.',
+  'native.welcome.sub':
+    'TREK raccoglie ogni giorno, luogo, prenotazione e spesa in un unico piano dal vivo che tutto il gruppo modifica insieme.',
   'native.welcome.connect': 'Collega il tuo TREK',
   'native.welcome.connectSub': 'Apri l’indirizzo che già usi',
   'native.welcome.getCloud': 'Attiva TREK Cloud',
   'native.welcome.getCloudSub': 'Ospitato per te, senza installazione',
   'native.cloud.title': 'TREK Cloud',
-  'native.cloud.sub': 'Ospitiamo TREK per te, sul tuo indirizzo. Niente da installare, niente da mantenere: pronto in pochi minuti.',
+  'native.cloud.sub':
+    'Ospitiamo TREK per te, sul tuo indirizzo. Niente da installare, niente da mantenere: pronto in pochi minuti.',
   'native.cloud.f1': 'Il tuo indirizzo, su server in Germania',
   'native.cloud.f2': 'Pronto in pochi minuti, aggiornamenti inclusi',
   'native.cloud.f3': 'I tuoi dati restano tuoi: niente pubblicità, niente tracciamento',
