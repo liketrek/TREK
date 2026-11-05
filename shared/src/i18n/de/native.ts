@@ -51,7 +51,7 @@ const native: TranslationStrings = {
   'native.plans.aiDocs': '{n} KI-Dokumente im Monat',
   'native.plans.noAi': 'Keine KI-Dokumente',
   'native.plans.storage': '{n} GB Speicher',
-  'native.plans.unlimited': 'Unbegrenzt Orte, Reisen und Personen',
+  'native.plans.unlimited': 'Unbegrenzt Orte, Reisen & Personen',
   'native.plans.subscribe': 'Abonnieren',
   'native.plans.loadError': 'Die Tarife konnten nicht geladen werden. Prüfe deine Verbindung und versuch es erneut.',
   'native.plans.retry': 'Erneut versuchen',

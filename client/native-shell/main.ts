@@ -374,6 +374,9 @@ function planCard(plan: CloudPlan, interval: 'month' | 'year', featured: boolean
   const price = interval === 'year' ? plan.yearlyCents : plan.monthlyCents;
   const per = interval === 'year' ? t('native.plans.perYear') : t('native.plans.perMonth');
   const feat = (text: string) => el('span', {}, icon(I.check, 16), text);
+  // An absent feature (e.g. a plan with no AI documents): a muted dash, not a
+  // green tick, so "none" never reads as a perk.
+  const featOff = (text: string) => el('span', { className: 'off' }, icon('M5 12h14', 16), text);
   const sub = el('button', { type: 'button', className: 'btn' }, t('native.plans.subscribe'));
   sub.addEventListener('click', () => subscribe(plan, interval));
   return el(
@@ -390,7 +393,9 @@ function planCard(plan: CloudPlan, interval: 'month' | 'year', featured: boolean
       { className: 'plan-feats' },
       feat(t('native.plans.unlimited')),
       feat(t('native.plans.storage', { n: String(plan.storageGb) })),
-      feat(plan.aiDocuments > 0 ? t('native.plans.aiDocs', { n: String(plan.aiDocuments) }) : t('native.plans.noAi'))
+      plan.aiDocuments > 0
+        ? feat(t('native.plans.aiDocs', { n: String(plan.aiDocuments) }))
+        : featOff(t('native.plans.noAi'))
     ),
     sub
   );
@@ -414,7 +419,7 @@ function showPlans(opts: { back?: boolean } = {}): void {
     const list = plans;
     if (!list) return;
     content.className = 'plans';
-    content.replaceChildren(...list.map((p, i) => planCard(p, interval, i === list.length - 1)));
+    content.replaceChildren(...list.map((p) => planCard(p, interval, false)));
   };
   const choose = (next: 'month' | 'year') => {
     if (interval === next) return;

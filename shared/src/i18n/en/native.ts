@@ -25,8 +25,7 @@ const native: TranslationStrings = {
   'native.settings.server': 'Server',
   'native.settings.serverHint': 'This app is connected to {server}.',
   'native.welcome.headline': 'Your Trip.\nYour Plan.',
-  'native.welcome.sub':
-    'Plan together in real time: tours, budgets, journals, photo book — with AI. Web, phone, offline.',
+  'native.welcome.sub': 'Plan together in real time: tours, budgets, journals, photo book — with AI.',
   'native.welcome.connect': 'Connect your TREK',
   'native.welcome.connectSub': 'Open the address you already use',
   'native.welcome.getCloud': 'Get TREK Cloud',
@@ -51,7 +50,7 @@ const native: TranslationStrings = {
   'native.plans.aiDocs': '{n} AI documents a month',
   'native.plans.noAi': 'No AI documents',
   'native.plans.storage': '{n} GB storage',
-  'native.plans.unlimited': 'Unlimited places, trips and people',
+  'native.plans.unlimited': 'Unlimited places, trips & people',
   'native.plans.subscribe': 'Subscribe',
   'native.plans.loadError': 'Could not load the plans. Check your connection and try again.',
   'native.plans.retry': 'Try again',
