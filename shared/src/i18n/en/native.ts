@@ -55,7 +55,7 @@ const native: TranslationStrings = {
   'native.plans.loadError': 'Could not load the plans. Check your connection and try again.',
   'native.plans.retry': 'Try again',
   'native.plans.soon': 'In-app subscriptions are coming. For now, finish on the website.',
-  'native.claim.title': 'Create your TREK',
+  'native.claim.title': 'Almost there',
   'native.claim.sub': 'Choose your address. We set it up right away.',
   'native.claim.addressLabel': 'Your address',
   'native.claim.taken': 'That address is taken.',

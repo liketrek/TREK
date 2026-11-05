@@ -516,6 +516,7 @@ function showClaim(plan: CloudPlan, interval: 'month' | 'year', opts: { back?: b
     autocapitalize: 'off',
     spellcheck: false,
     value: '',
+    placeholder: t('native.claim.addressLabel'),
   });
   slugInput.setAttribute('inputmode', 'url');
   slugInput.setAttribute('autocomplete', 'off');
@@ -529,7 +530,13 @@ function showClaim(plan: CloudPlan, interval: 'month' | 'year', opts: { back?: b
   );
   const slugNote = el('p', { className: 'hint' });
 
-  const emailInput = el('input', { type: 'email', value: '', autocapitalize: 'off', spellcheck: false });
+  const emailInput = el('input', {
+    type: 'email',
+    value: '',
+    autocapitalize: 'off',
+    spellcheck: false,
+    placeholder: t('native.claim.emailLabel'),
+  });
   emailInput.setAttribute('inputmode', 'email');
   emailInput.setAttribute('autocomplete', 'email');
   emailInput.setAttribute('enterkeyhint', 'go');

@@ -565,8 +565,8 @@ a.linkbtn {
 .field input {
   width: 100%;
   font: inherit;
-  font-size: 1.05rem;
-  padding: 16px 18px;
+  font-size: 1rem;
+  padding: 13px 16px;
   border-radius: var(--radius);
   border: 1px solid var(--edge);
   background: var(--surface);
@@ -884,21 +884,44 @@ a.linkbtn {
 }
 
 /* ── Claim: address + email, and the provisioning wait ───────────────────── */
+/* One rounded field holding the address input and its fixed ".liketrek.com"
+   suffix — the input itself is seamless, the box and its states live here. */
 .slug-field {
   display: flex;
   align-items: center;
-  padding-right: 14px;
+  padding-right: 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--edge);
+  background: var(--surface);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 color-mix(in srgb, var(--ink) 4%, transparent);
+  transition:
+    border-color 0.2s,
+    box-shadow 0.25s;
 }
 .slug-field .slug-input {
   flex: 1;
   min-width: 0;
-  text-align: right;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.slug-field:focus-within {
+  border-color: var(--edge-strong);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--ink) 9%, transparent);
+}
+.slug-field.bad {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--danger) 16%, transparent);
+  animation: shake 0.3s;
 }
 .slug-suffix {
   flex: none;
   color: var(--muted);
-  font-size: 0.98rem;
-  padding-left: 2px;
+  font-size: 0.95rem;
+  padding-left: 4px;
   user-select: none;
 }
 .hint {
