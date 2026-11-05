@@ -7,6 +7,7 @@ import {
   type TourOwnEntry,
 } from '@trek/shared';
 import { Ban, CircleDashed, ListChecks, type LucideIcon } from 'lucide-react';
+import { formatDisplayDate } from '../../../utils/dateFormat';
 
 type Translate = (key: string, params?: Record<string, string | number>) => string;
 
@@ -52,8 +53,11 @@ export function paddleCheckFact(check: PaddleCheck, t: Translate): { icon: Lucid
 
 const MONTH = /^(\d{4})-(\d{2})$/;
 
-/** A date of the checklist in the user's locale: a bare `YYYY-MM` (an OSM check date) reads as month and year. */
-export function formatCheckDate(value: string, locale: string): string {
+/**
+ * A date of the checklist in the user's locale: a bare `YYYY-MM` (an OSM check date) reads as month and year.
+ * `format` is the user's date format, which the day takes where the language writes it in numbers.
+ */
+export function formatCheckDate(value: string, locale: string, format?: string | null): string {
   const month = MONTH.exec(value);
   try {
     if (month) {
@@ -64,7 +68,7 @@ export function formatCheckDate(value: string, locale: string): string {
     if (Number.isNaN(date.getTime())) return value;
     // A bare day is a calendar day, not an instant in the user's zone.
     const timeZone = /^\d{4}-\d{2}-\d{2}$/.test(value) ? 'UTC' : undefined;
-    return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone }).format(date);
+    return formatDisplayDate(date, locale, { dateStyle: 'medium', timeZone }, format);
   } catch {
     return value;
   }

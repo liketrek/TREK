@@ -35,18 +35,51 @@ export function dateLayout(format: string | null | undefined): DateLayout | null
   return LAYOUTS[format as keyof typeof LAYOUTS] ?? null;
 }
 
+/** 31 December: no day of it reads as a month, so every example and probe of a layout is unambiguous. */
+const SAMPLE = new Date(Date.UTC(2026, 11, 31));
+
 const DATE_KEYS = ['day', 'month', 'year'] as const;
 const TIME_KEYS = ['hour', 'minute', 'second', 'dayPeriod', 'fractionalSecondDigits'] as const;
 
 /**
  * Whether these options write the date in numbers only: no weekday, no month
- * name, no era. `dateStyle: 'short'` is numeric in every language; the longer
- * styles name the month.
+ * name, no era. `dateStyle: 'short'` is numeric in every language. The longer
+ * styles depend on the language: 'medium' names the month in English or French
+ * but is all numbers in German ("31.12.2026"), Czech or Japanese ("2026/12/31"),
+ * so those are asked of `Intl` for the given locale.
  */
-export function isNumericDate(opts: Intl.DateTimeFormatOptions = {}): boolean {
+export function isNumericDate(opts: Intl.DateTimeFormatOptions = {}, locale?: string): boolean {
   if (opts.weekday || opts.era) return false;
-  if (opts.dateStyle) return opts.dateStyle === 'short';
+  if (opts.dateStyle) return opts.dateStyle === 'short' || isNumericStyle(opts.dateStyle, locale);
   return !opts.month || opts.month === 'numeric' || opts.month === '2-digit';
+}
+
+const numericStyles = new Map<string, boolean>();
+
+/**
+ * Whether a language writes this dateStyle as digits and punctuation alone. A
+ * month name, a weekday or a word between the numbers ("2026年12月31日") keeps
+ * it with the language, the same as a month name in explicit options would.
+ */
+function isNumericStyle(dateStyle: NonNullable<Intl.DateTimeFormatOptions['dateStyle']>, locale?: string): boolean {
+  const key = `${locale ?? ''}|${dateStyle}`;
+  let numeric = numericStyles.get(key);
+  if (numeric === undefined) {
+    // Separators may carry the bidi marks Arabic puts around them (\p{Cf}).
+    try {
+      numeric = new Intl.DateTimeFormat(locale, { dateStyle, timeZone: 'UTC' })
+        .formatToParts(SAMPLE)
+        .every((part) =>
+          part.type === 'literal'
+            ? /^[\s\p{P}\p{Cf}]*$/u.test(part.value)
+            : (part.type === 'day' || part.type === 'month' || part.type === 'year') && /^\p{Nd}+$/u.test(part.value)
+        );
+    } catch {
+      numeric = false;
+    }
+    numericStyles.set(key, numeric);
+  }
+  return numeric;
 }
 
 const hasAny = (opts: Intl.DateTimeFormatOptions, keys: readonly string[]) =>
@@ -98,7 +131,7 @@ export function formatDisplayDate(
     const weekday = date.toLocaleDateString(locale, { weekday: opts.weekday, timeZone: opts.timeZone });
     return `${weekday}, ${numericDate(date, opts, layout)}`;
   }
-  if (!isNumericDate(opts)) return date.toLocaleDateString(locale, opts);
+  if (!isNumericDate(opts, locale)) return date.toLocaleDateString(locale, opts);
   return numericDate(date, opts, layout);
 }
 
@@ -122,34 +155,12 @@ export function formatDisplayDateTime(
   const layout = dateLayout(format);
   const named = hasAny(opts, DATE_KEYS) || !!opts.dateStyle;
   const timed = hasAny(opts, TIME_KEYS) || !!opts.timeStyle;
-  if (!layout || !isNumericDate(opts) || Number.isNaN(date.getTime())) return date.toLocaleString(locale, opts);
+  if (!layout || !isNumericDate(opts, locale) || Number.isNaN(date.getTime())) return date.toLocaleString(locale, opts);
   if (!named && timed) return date.toLocaleString(locale, opts);
   const day = numericDate(date, opts, layout);
   if (named && !timed) return day;
   const time = date.toLocaleTimeString(locale, timed ? timeOptions(opts) : { timeZone: opts.timeZone });
   return `${day} ${time}`;
-}
-
-/**
- * A drop-in for `new Intl.DateTimeFormat(locale, opts)` where only `.format()`
- * is used: numeric dates in the chosen format, the rest by `Intl`.
- */
-export function displayDateFormatter(
-  locale: string | undefined,
-  opts: Intl.DateTimeFormatOptions = {},
-  format?: string | null
-): { format: (date: Date | number) => string } {
-  const intl = new Intl.DateTimeFormat(locale, opts);
-  const layout = dateLayout(format);
-  if (!layout || !isNumericDate(opts)) return { format: (date) => intl.format(date) };
-  return {
-    format: (date) => {
-      const value = typeof date === 'number' ? new Date(date) : date;
-      return hasAny(opts, TIME_KEYS) || opts.timeStyle
-        ? formatDisplayDateTime(value, locale, opts, format)
-        : formatDisplayDate(value, locale, opts, format);
-    },
-  };
 }
 
 /** The order the fields of a typed date are read in: the chosen format's, or the language's. */
@@ -161,9 +172,6 @@ export function dateFieldOrder(locale: string | undefined, format?: string | nul
     .filter((part) => part.type === 'day' || part.type === 'month' || part.type === 'year')
     .map((part) => part.type as DateField);
 }
-
-/** 31 December: no day of it reads as a month, so every option's example is unambiguous. */
-const SAMPLE = new Date(Date.UTC(2026, 11, 31));
 
 /**
  * The choices of the setting, each labelled by how it writes 31 December, and

@@ -1,10 +1,9 @@
-// FE-UTIL-DATEFMT-001 to FE-UTIL-DATEFMT-020
+// FE-UTIL-DATEFMT-001 to FE-UTIL-DATEFMT-023
 import { describe, expect, it } from 'vitest';
 import {
   dateFieldOrder,
   dateFormatOptions,
   dateLayout,
-  displayDateFormatter,
   formatDisplayDate,
   formatDisplayDateTime,
   isNumericDate,
@@ -78,11 +77,25 @@ describe('dateFormat (#2971)', () => {
         { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' },
         { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' },
         { month: 'long', year: 'numeric', timeZone: 'UTC' },
-        { dateStyle: 'medium', timeZone: 'UTC' },
+        { dateStyle: 'long', timeZone: 'UTC' },
+        { dateStyle: 'full', timeZone: 'UTC' },
       ];
       for (const opts of named) {
         expect(formatDisplayDate(NYE, 'de-DE', opts, 'YYYY-MM-DD')).toBe(NYE.toLocaleDateString('de-DE', opts));
       }
+    });
+
+    it('FE-UTIL-DATEFMT-022: dateStyle medium follows the format where the language writes it in numbers', () => {
+      const opts: Intl.DateTimeFormatOptions = { dateStyle: 'medium', timeZone: 'UTC' };
+      // German "31.12.2026", Japanese "2026/12/31", Czech "31. 12. 2026", Korean "2026. 12. 31.".
+      for (const locale of ['de-DE', 'ja-JP', 'cs-CZ', 'ko-KR']) {
+        expect(formatDisplayDate(NYE, locale, opts, 'YYYY-MM-DD')).toBe('2026-12-31');
+      }
+      // English and French name the month, Chinese writes words between the numbers.
+      for (const locale of ['en-US', 'fr-FR', 'zh-CN']) {
+        expect(formatDisplayDate(NYE, locale, opts, 'YYYY-MM-DD')).toBe(NYE.toLocaleDateString(locale, opts));
+      }
+      expect(formatDisplayDate(NYE, 'de-DE', opts, 'auto')).toBe(NYE.toLocaleDateString('de-DE', opts));
     });
 
     it('FE-UTIL-DATEFMT-021: a weekday beside a numeric date keeps the language, the date takes the format', () => {
@@ -157,30 +170,12 @@ describe('dateFormat (#2971)', () => {
       };
       expect(formatDisplayDateTime(NYE, 'en-US', named, 'YYYY-MM-DD')).toBe(NYE.toLocaleString('en-US', named));
     });
-  });
 
-  describe('displayDateFormatter', () => {
-    it('FE-UTIL-DATEFMT-015: auto behaves like Intl.DateTimeFormat', () => {
-      const intl = new Intl.DateTimeFormat('en-US', NUMERIC);
-      expect(displayDateFormatter('en-US', NUMERIC, 'auto').format(NYE)).toBe(intl.format(NYE));
-      expect(displayDateFormatter('en-US', NUMERIC).format(NYE.getTime())).toBe(intl.format(NYE));
-    });
-
-    it('FE-UTIL-DATEFMT-016: numeric dates follow the format, for Date and timestamp alike', () => {
-      const f = displayDateFormatter('en-US', NUMERIC, 'DD.MM.YYYY');
-      expect(f.format(NYE)).toBe('31.12.2026');
-      expect(f.format(NYE.getTime())).toBe('31.12.2026');
-      const withTime = displayDateFormatter('en-US', { ...NUMERIC, hour: '2-digit', minute: '2-digit' }, 'YYYY-MM-DD');
-      expect(withTime.format(NYE)).toBe(
-        `2026-12-31 ${NYE.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}`
-      );
-    });
-
-    it('FE-UTIL-DATEFMT-017: a named month is left to Intl', () => {
-      const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long', timeZone: 'UTC' };
-      expect(displayDateFormatter('de-DE', opts, 'YYYY-MM-DD').format(NYE)).toBe(
-        new Intl.DateTimeFormat('de-DE', opts).format(NYE)
-      );
+    it('FE-UTIL-DATEFMT-023: dateStyle medium with a time puts the numeric date in the format', () => {
+      const opts: Intl.DateTimeFormatOptions = { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' };
+      const time = NYE.toLocaleTimeString('de-DE', { timeStyle: 'short', timeZone: 'UTC' });
+      expect(formatDisplayDateTime(NYE, 'de-DE', opts, 'DD/MM/YYYY')).toBe(`31/12/2026 ${time}`);
+      expect(formatDisplayDateTime(NYE, 'en-US', opts, 'DD/MM/YYYY')).toBe(NYE.toLocaleString('en-US', opts));
     });
   });
 
@@ -206,6 +201,10 @@ describe('dateFormat (#2971)', () => {
       expect(isNumericDate({ era: 'short' })).toBe(false);
       expect(isNumericDate({ dateStyle: 'short' })).toBe(true);
       expect(isNumericDate({ dateStyle: 'long' })).toBe(false);
+      expect(isNumericDate({ dateStyle: 'medium' }, 'de-DE')).toBe(true);
+      expect(isNumericDate({ dateStyle: 'medium' }, 'ja-JP')).toBe(true);
+      expect(isNumericDate({ dateStyle: 'medium' }, 'en-US')).toBe(false);
+      expect(isNumericDate({ dateStyle: 'long' }, 'de-DE')).toBe(false);
     });
   });
 

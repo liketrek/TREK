@@ -299,6 +299,19 @@ function PollCardRow({ poll, canEdit, currentUserId, t, onVote, onClosePoll, onD
   )
 }
 
+const BARE_DAY = /^(\d{4})-(\d{2})-(\d{2})$/
+
+/**
+ * The instant a deadline from the picker stands for. With its time cleared the picker
+ * hands back the day alone, and `new Date('2030-08-01')` reads that as UTC midnight,
+ * hours off the reader's own day; a day without a time runs to its end on their clock.
+ */
+function deadlineInstant(value: string): string {
+  const day = BARE_DAY.exec(value)
+  const date = day ? new Date(Number(day[1]), Number(day[2]) - 1, Number(day[3]), 23, 59) : new Date(value)
+  return date.toISOString()
+}
+
 function PollFormSheet({ open, onClose, onSubmit, t }: {
   open: boolean
   onClose: () => void
@@ -330,7 +343,7 @@ function PollFormSheet({ open, onClose, onSubmit, t }: {
         question: question.trim(),
         options: trimmedOptions,
         multipleChoice,
-        deadline: deadline ? new Date(deadline).toISOString() : null,
+        deadline: deadline ? deadlineInstant(deadline) : null,
       })
       onClose()
     } catch {

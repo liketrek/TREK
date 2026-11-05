@@ -1,17 +1,23 @@
 import { compareCodeUnits } from '@trek/shared';
 import { AlertTriangle, Info, Loader2, WifiOff } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
+import { useDateFormat } from '../../../hooks/useDateFormat';
 import { useTranslation } from '../../../i18n';
 import { usePaddleObstacleStore } from '../../../store/paddleObstacleStore';
+import { formatDisplayDate } from '../../../utils/dateFormat';
 import { TourNotice } from '../tourParts';
 
 /** The oldest data date among the regions, as a short local date; the route is only as current as its oldest part. */
-function dataDate(regions: readonly { source_timestamp?: string | null }[], language: string): string | null {
+function dataDate(
+  regions: readonly { source_timestamp?: string | null }[],
+  language: string,
+  dateFormat: string
+): string | null {
   const times = regions
     .map((region) => region.source_timestamp)
     .filter((time): time is string => !!time)
     .sort(compareCodeUnits);
-  return times[0] ? new Date(times[0]).toLocaleDateString(language, { dateStyle: 'medium' }) : null;
+  return times[0] ? formatDisplayDate(new Date(times[0]), language, { dateStyle: 'medium' }, dateFormat) : null;
 }
 
 /**
@@ -23,6 +29,7 @@ function dataDate(regions: readonly { source_timestamp?: string | null }[], lang
  */
 export function PaddleObstacleNotice() {
   const { t, language } = useTranslation();
+  const dateFormat = useDateFormat();
   const { status, coverage, related, regions, truncated } = usePaddleObstacleStore(
     useShallow((state) => ({
       status: state.status,
@@ -43,7 +50,7 @@ export function PaddleObstacleNotice() {
   if (status === 'offline')
     return <TourNotice icon={<WifiOff size={13} strokeWidth={2} />}>{t('tours.paddle.obstacles.offline')}</TourNotice>;
   if (status === 'error') return <TourNotice icon={warn}>{t('tours.paddle.obstacles.error')}</TourNotice>;
-  const date = dataDate(regions, language) ?? t('tours.paddle.obstacles.dateUnknown');
+  const date = dataDate(regions, language, dateFormat) ?? t('tours.paddle.obstacles.dateUnknown');
   if (coverage === 'none') return <TourNotice icon={warn}>{t('tours.paddle.obstacles.none')}</TourNotice>;
   if (coverage === 'partial')
     return <TourNotice icon={warn}>{t('tours.paddle.obstacles.partial', { date })}</TourNotice>;

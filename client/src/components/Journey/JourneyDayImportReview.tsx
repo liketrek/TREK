@@ -1,6 +1,8 @@
 import { Clock, FilePen, Loader2, RefreshCw, Route, Users } from 'lucide-react';
+import { useDateFormat } from '../../hooks/useDateFormat';
 import { useTranslation } from '../../i18n';
 import { useSettingsStore } from '../../store/settingsStore';
+import { formatDisplayDateTime } from '../../utils/dateFormat';
 import { formatClockTime } from '../../utils/formatters';
 import { formatDistance } from '../../utils/units';
 import { SoftPill } from '../Planner/planParts';
@@ -26,6 +28,7 @@ type Props = { state: JourneyDayImportState; dayColor: string; prep?: JourneyRec
  */
 function DayNotices({ state, prep }: { state: JourneyDayImportState; prep?: JourneyRecordingPrepState }) {
   const { t, locale } = useTranslation();
+  const dateFormat = useDateFormat();
   const { review, outcome } = state;
   const reason = review ? reasonText(review.error, t) : '';
   const day = prep?.dayPrep(state.date);
@@ -43,7 +46,12 @@ function DayNotices({ state, prep }: { state: JourneyDayImportState; prep?: Jour
           {review.syncedAt
             ? t('journey.dayImport.stale', {
                 reason,
-                date: new Date(review.syncedAt).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' }),
+                date: formatDisplayDateTime(
+                  new Date(review.syncedAt),
+                  locale,
+                  { dateStyle: 'medium', timeStyle: 'short' },
+                  dateFormat
+                ),
               })
             : t('journey.dayImport.staleNever', { reason })}
         </Notice>

@@ -104,6 +104,24 @@ describe('DayHeader', () => {
     expect(container.querySelector('time')).toHaveTextContent('6/2')
   })
 
+  it('FE-ROADTRIP-HEADERS-003c: a chosen date format sets the order and separator on the tile, whatever the clock', () => {
+    const tileDate = (time_format: string, date_format: string): string | null => {
+      useSettingsStore.setState({ settings: { distance_unit: 'metric', time_format, date_format } as never })
+      const { container, unmount } = wrap(<DayHeader day={day({ date: '2026-10-05' })} />)
+      const text = container.querySelector('time')!.textContent
+      unmount()
+      return text
+    }
+    // 5 October: a 12-hour reader who writes the day first no longer sees "10/5".
+    expect(tileDate('12h', 'DD/MM/YYYY')).toBe('5/10')
+    expect(tileDate('24h', 'YYYY-MM-DD')).toBe('10-5')
+    expect(tileDate('12h', 'DD.MM.YYYY')).toBe('5.10.')
+    expect(tileDate('24h', 'MM/DD/YYYY')).toBe('10/5')
+    // On auto the clock still decides, as before the format existed.
+    expect(tileDate('12h', 'auto')).toBe('10/5')
+    expect(tileDate('24h', 'auto')).toBe('5.10.')
+  })
+
   it('FE-ROADTRIP-HEADERS-004: the pills never wrap but give way in steps as the row narrows, and a day of only its night has no drive and no count', () => {
     // Room for everything: the drive with its time, the count with its word. The old
     // narrow flag no longer decides it; the row measures its own room.
