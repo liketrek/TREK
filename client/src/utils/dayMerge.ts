@@ -4,6 +4,7 @@ import { nightVisits, rideSeatAfter, sameDayRide, type CarrierBooking, type Seat
 // that documents the multi-leg model. Sorting endpoints a second time here is how
 // the two drift.
 import { orderedEndpoints, parseReservationMetadata } from './flightLegs'
+import { haversineKm, MAX_DAY_TRIP_KM } from './geo'
 import { zonedInstant } from './zonedTime'
 
 export const TRANSPORT_TYPES = new Set(['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'cable_car', 'transit', 'transport_other'])
@@ -361,9 +362,10 @@ function applyChronoOrder(
 
 /**
  * The minutes the day orders an item by: its own clock, or for a booking in a known
- * zone the clock slot it takes among the day's zoned bookings (#2929). The checks
- * that ask whether a move keeps the day in order read the same key, or a day whose
- * flights were put in the order they happen would read as out of order on every move.
+ * zone and a stop near one of its endpoints the clock slot it takes among the day's
+ * zoned items (#2929, see zonedClockSlots). The checks that ask whether a move keeps the
+ * day in order read the same key, or a day whose flights and stops were put in the order
+ * they happen would read as out of order on every move.
  */
 export function chronoKeyOf(
   items: readonly MergedItem[],
@@ -399,13 +401,22 @@ function transportTimeZone(r: MergedItem['data'], dayId: number): string | null 
 }
 
 /**
- * The clock slots of the day's bookings whose time names an instant: a dated time in a
- * known zone. Each local time reads in its own zone, so across zones the clock can run
- * backwards: a flight leaving Auckland at 20:20 lands in Los Angeles at 12:25 the same
- * date, and the 17:00 flight on from there sorted ahead of it (#2929). Such bookings
- * keep the clock slots they hold between them and take them in the order they happen,
- * so stops, notes and bookings without a zone stay where the clock puts them. With fewer
- * than two the map is empty and the day orders by the clock as before.
+ * The clock slots of the day's items whose time names an instant: a booking's dated time
+ * in a known zone, and a stop near one of those bookings' endpoints. Each local time reads
+ * in its own zone, so across zones the clock can run backwards: a flight leaving Auckland
+ * at 20:20 lands in Los Angeles at 12:25 the same date, and the 17:00 flight on from there
+ * sorted ahead of it (#2929). Such items keep the clock slots they hold between them and
+ * take them in the order they happen.
+ *
+ * A stop has to join them, or swapping the flights' slots moves every stop timed between
+ * the two clocks to the wrong side of the flight it belongs after: a 19:45 dinner in
+ * Seattle was drawn above the flight to Seattle. A stop carries no zone of its own, so it
+ * reads the zone of the nearest endpoint within a day's reach, which tells the 19:45
+ * dinner in Seattle from a 19:45 dinner in Auckland before the flight out. Notes, stops
+ * without coordinates or far from every endpoint, and bookings without a zone stay where
+ * their clock puts them. With fewer than two such items the map is empty and the day
+ * orders by the clock as before. Where every zone is the same, the order by instant is
+ * the order by clock and nothing moves.
  */
 function zonedClockSlots(
   items: MergedItem[],
@@ -413,12 +424,14 @@ function zonedClockSlots(
   getDisplayTime: DisplayTimeOf,
   clockOf: (it: MergedItem) => number | null
 ): Map<MergedItem, number> {
-  const zoned = items.flatMap((it, index) => {
+  const bookings = items.flatMap((it, index) => {
     if (it.type !== 'transport') return []
     const clock = clockOf(it)
-    const instant = zonedInstant(getDisplayTime(it.data, dayId), transportTimeZone(it.data, dayId))
-    return clock === null || instant === null ? [] : [{ it, index, clock, instant }]
+    const time = getDisplayTime(it.data, dayId)
+    const instant = zonedInstant(time, transportTimeZone(it.data, dayId))
+    return clock === null || instant === null ? [] : [{ it, index, clock, instant, date: (time as string).slice(0, 10) }]
   })
+  const zoned = [...bookings, ...stopsInZone(items, bookings, clockOf)]
   const slots = new Map<MergedItem, number>()
   if (zoned.length < 2) return slots
   const clocks = zoned.map(z => z.clock).sort((a, b) => a - b)
@@ -470,6 +483,41 @@ export function yieldTimedBookings(
   const at = kept.indexOf(moved)
   const result = [...kept.slice(0, at), ...ahead, moved, ...behind, ...kept.slice(at + 1)]
   return drawnAsIs(result, dayId, getDisplayTime) ? result : null
+}
+
+/**
+ * The timed stops of the day that sit within a day's reach of an endpoint of the zoned
+ * bookings, with the instant their clock names in that endpoint's zone. The date is the
+ * one the bookings' times carry on this day; bookings that disagree on it leave every
+ * stop on its clock.
+ */
+function stopsInZone(
+  items: MergedItem[],
+  bookings: readonly { it: MergedItem; date: string }[],
+  clockOf: (it: MergedItem) => number | null
+): { it: MergedItem; index: number; clock: number; instant: number }[] {
+  const dates = new Set(bookings.map(b => b.date))
+  if (dates.size !== 1) return []
+  const [date] = dates
+  const anchors = bookings.flatMap(b => orderedEndpoints(b.it.data))
+    .filter(e => Number.isFinite(e.lat) && Number.isFinite(e.lng) && !!e.timezone)
+  if (anchors.length === 0) return []
+  return items.flatMap((it, index) => {
+    if (it.type !== 'place') return []
+    const clock = clockOf(it)
+    const place = it.data?.place
+    if (clock === null || !Number.isFinite(place?.lat) || !Number.isFinite(place?.lng)) return []
+    let zone: string | null = null
+    let nearest = MAX_DAY_TRIP_KM
+    for (const e of anchors) {
+      const km = haversineKm({ lat: place.lat, lng: place.lng }, { lat: e.lat, lng: e.lng })
+      if (km <= nearest) { nearest = km; zone = e.timezone as string }
+    }
+    const hh = String(Math.floor(clock / 60)).padStart(2, '0')
+    const mm = String(clock % 60).padStart(2, '0')
+    const instant = zone ? zonedInstant(`${date}T${hh}:${mm}`, zone) : null
+    return instant === null ? [] : [{ it, index, clock, instant }]
+  })
 }
 
 /**

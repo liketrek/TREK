@@ -716,14 +716,63 @@ describe('getMergedItems: bookings in different time zones (#2929)', () => {
     }
   })
 
-  it('keeps the stops of the day where their clock puts them', () => {
+  it('keeps a stop with no location, and a note, where their clock puts them', () => {
     const dayAssignments = [
       { id: 10, order_index: 0, place: { place_time: '09:00' } },
       { id: 11, order_index: 1, place: { place_time: '18:00' } },
     ]
-    const result = getMergedItems({ dayAssignments, dayNotes: [], dayTransports: [toSeattle, toLA], dayId: DAY })
-    // The flights swap the slots they hold between them (17:00 and 20:20); the stops stay put.
-    expect(result.map(i => `${i.type}:${i.data.id}`)).toEqual(['place:10', 'transport:1', 'place:11', 'transport:2'])
+    const dayNotes = [{ id: 30, sort_order: 2, time: '18:30' }]
+    const result = getMergedItems({ dayAssignments, dayNotes, dayTransports: [toSeattle, toLA], dayId: DAY })
+    // The flights swap the slots they hold between them (17:00 and 20:20). Without
+    // coordinates there is no zone to read 18:00 or 18:30 in, so those keep their clock.
+    expect(result.map(i => `${i.type}:${i.data.id}`)).toEqual(['place:10', 'transport:1', 'place:11', 'note:30', 'transport:2'])
+  })
+
+  describe('a stop near an endpoint reads the zone of that endpoint', () => {
+    const AKL = { lat: -37.0, lng: 174.8, timezone: 'Pacific/Auckland' }
+    const LAX = { lat: 33.9, lng: -118.4, timezone: 'America/Los_Angeles' }
+    const SEA = { lat: 47.4, lng: -122.3, timezone: 'America/Los_Angeles' }
+    const ends = (from: typeof AKL, to: typeof AKL) => [
+      { role: 'from', sequence: 0, name: 'A', code: null, local_time: null, local_date: null, ...from },
+      { role: 'to', sequence: 1, name: 'B', code: null, local_time: null, local_date: null, ...to },
+    ]
+    const aklLax = { ...toLA, endpoints: ends(AKL, LAX) }
+    const laxSea = { ...toSeattle, endpoints: ends(LAX, SEA) }
+    const stopAt = (id: number, time: string, lat: number, lng: number) =>
+      ({ id, order_index: id, place: { place_time: time, lat, lng } })
+    const drawn = (dayAssignments: any[], dayTransports: any[]) =>
+      getMergedItems({ dayAssignments, dayNotes: [], dayTransports, dayId: DAY })
+    const labels = (items: MergedItem[]) => items.map(i => `${i.type}:${i.data.id}`)
+
+    it('draws a Seattle dinner after the flight to Seattle, and an Auckland breakfast first', () => {
+      const stops = [stopAt(10, '09:00', -36.85, 174.76), stopAt(12, '19:45', 47.61, -122.33)]
+      const items = drawn(stops, [laxSea, aklLax])
+      expect(labels(items)).toEqual(['place:10', 'transport:1', 'transport:2', 'place:12'])
+      // The move checks read the same keys, so the drawn order reads as in order.
+      const keys = items.map(chronoKeyOf(items, DAY, getDisplayTimeForDay))
+      expect(keys).toEqual([9 * 60, 17 * 60, 19 * 60 + 45, 20 * 60 + 20])
+    })
+
+    it('draws a dinner in Auckland at the same clock ahead of the flight out', () => {
+      expect(labels(drawn([stopAt(11, '19:45', -36.85, 174.76)], [laxSea, aklLax])))
+        .toEqual(['place:11', 'transport:1', 'transport:2'])
+    })
+
+    it('draws a lunch in Los Angeles after the Auckland flight that lands there', () => {
+      expect(labels(drawn([stopAt(13, '13:00', 34.05, -118.24)], [aklLax]))).toEqual(['transport:1', 'place:13'])
+    })
+
+    it('leaves a stop far from every endpoint on its clock', () => {
+      // Hawaii is no day out from Auckland, Los Angeles or Seattle, so its 19:45 reads no zone.
+      expect(labels(drawn([stopAt(14, '19:45', 21.3, -157.85)], [laxSea, aklLax])))
+        .toEqual(['transport:1', 'place:14', 'transport:2'])
+    })
+
+    it('changes nothing on a day whose stops and bookings share one zone', () => {
+      const hop = { ...laxSea, id: 4, reservation_time: '2026-11-20T08:00', endpoints: ends(LAX, SEA) }
+      const stops = [stopAt(15, '07:00', 34.05, -118.24), stopAt(16, '12:00', 47.61, -122.33), stopAt(17, '18:00', 47.61, -122.33)]
+      expect(labels(drawn(stops, [laxSea, hop]))).toEqual(['place:15', 'transport:4', 'place:16', 'transport:2', 'place:17'])
+    })
   })
 
   it('reads the zone from the endpoints when the metadata names none', () => {
