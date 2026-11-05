@@ -28,9 +28,10 @@ const MAX_DEPTH = 4;
 /**
  * The label of the flag in the repositories' `[present: boolean, value]`
  * pairs (`presenceSet`): a patch whose pairs are all absent sends no SQL, so
- * this one boolean is sampled true. Every other boolean stays false.
+ * this one boolean is sampled true. Every other boolean stays false. The
+ * label is spelled in `presenceSet`'s signature, which a test pins.
  */
-const PRESENCE_LABEL = 'present';
+export const PRESENCE_LABEL = 'present';
 const SAMPLE_DATE = '2026-01-01';
 const SAMPLE_TIMESTAMP = '2026-01-01 00:00:00';
 
@@ -98,7 +99,12 @@ function sampleObjectType(checker: ts.TypeChecker, type: ts.ObjectType, name: st
     const labels = ((type as ts.TypeReference).target as ts.TupleType).labeledElementDeclarations;
     for (const [i, element] of checker.getTypeArguments(type as ts.TypeReference).entries()) {
       const label = labels?.[i]?.name;
-      const sample = sampleFor(checker, element, label && ts.isIdentifier(label) ? label.text : `${name}[${i}]`, depth + 1);
+      const sample = sampleFor(
+        checker,
+        element,
+        label && ts.isIdentifier(label) ? label.text : `${name}[${i}]`,
+        depth + 1,
+      );
       if (!sample.ok) return sample;
       values.push(sample.value);
     }
