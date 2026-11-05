@@ -2,7 +2,7 @@
 
 By default TREK keeps all data in one SQLite file, `travel.db`, in the data directory. Setting `TREK_DB_URL` runs TREK on a PostgreSQL database instead. Without that variable nothing changes, and every page of this wiki that describes `travel.db` still applies to an install on SQLite.
 
-> **Status:** Postgres support is new. It has been checked end to end against PostgreSQL 17 in Docker (first boot, sign-in, trips, backup and restore, the copy before a migration, `RESTORE_FROM_BACKUP`). The checks against Supabase are still pending; see [Manual verification checklist](#manual-verification-checklist-pending) below.
+> **Status:** Postgres support is new. It has been checked end to end against PostgreSQL 17 in Docker (first boot, sign-in, trips, backup and restore, the copy before a migration, `RESTORE_FROM_BACKUP`). The same checks have been run against a Supabase project over its direct connection; see [Supabase](#supabase) and the [Manual verification checklist](#manual-verification-checklist) below.
 
 ## When to use it
 
@@ -115,19 +115,21 @@ Restoring a backup on Postgres follows these rules:
 
 ## Supabase
 
-Supabase runs PostgreSQL and can host TREK's database. These notes describe the connection setup. They have not been tested against a Supabase project; see the checklist below.
+Supabase runs PostgreSQL and can host TREK's database. The checklist below has been run against a Supabase project over the direct connection: first boot on an empty database, sign-in, trips, backup, restore, restart, and the copy taken before a pending migration. The session pooler has not been checked yet.
 
-- **Use the direct connection or the session pooler.** The direct connection uses port 5432. Its host resolves to IPv6 unless the project has the IPv4 add-on, so on a network without IPv6 use the session pooler, which also listens on port 5432 on its own host.
+- **Use the direct connection or the session pooler.** The direct connection uses port 5432. Its host resolves only to IPv6 unless the project has the IPv4 add-on. A container on a network without IPv6 (Docker Desktop's default network, for example) cannot reach it; use the session pooler there, which also listens on port 5432 on its own host.
 - **Do not use the transaction pooler** (port 6543) for TREK. `pg_dump` and `psql` need a session that lasts for the whole run, and the transaction pooler does not give one.
-- **Use `sslmode=require`.** If Supabase's certificate is not trusted by the system certificate authorities in the TREK container, mount its CA file and add `sslrootcert=` with the path inside the container.
-- **The role must be able to create the collation.** The schema creates the `nocase` collation. The `postgres` role that Supabase gives the project is expected to have that right. This has not been checked against a project.
-- **The database's `public` schema must hold no tables** when TREK first starts, because TREK refuses a database with tables it did not create.
+- **Verify the server with Supabase's CA.** Supabase's certificate is signed by its own certificate authority, which the system's trusted authorities do not include, so `sslmode=require` alone fails for the backup and restore tools. Download the CA certificate from the project's database settings, mount it into the container, and use `sslmode=verify-full&sslrootcert=/certs/<file>.crt` with the path inside the container.
+- **The `postgres` role works as TREK's role.** It is not a superuser, and it can create the schema and the `nocase` collation.
+- **The database's `public` schema must hold no tables** when TREK first starts, because TREK refuses a database with tables it did not create. A new project's `public` schema is empty.
+- **Backups hold only TREK's schema.** The project's own schemas (`auth`, `storage` and the others Supabase manages) are left out of every backup, and a restore replaces only TREK's schema.
+- **Pick a region close to the TREK server.** Every statement crosses the network, so a distant region makes the first boot and a restore take minutes. During a restore, scheduled jobs that touch the database can log statement timeouts; they run again on their next schedule.
 
-## Manual verification checklist (pending)
+## Manual verification checklist
 
-This checklist has not been run against Supabase yet. It is the test to complete before a Supabase install relies on this page. Run it once with the direct connection and once with the session pooler, against a throwaway database.
+Run it against a throwaway database before an install relies on this page. On Supabase, steps 1 to 6 have been run over the direct connection, and step 7 by marking the last applied migration as pending instead of starting an older image; step 8 and the session pooler have not.
 
-1. Create an empty database and a non-superuser role that owns it. Set `TREK_DB_URL` with `sslmode=require` for Supabase, or with the server's own setting otherwise.
+1. Create an empty database and a non-superuser role that owns it. Set `TREK_DB_URL` with a verifying `sslmode` (on Supabase, `verify-full` with `sslrootcert`), or with the server's own setting otherwise.
 2. Start one TREK process. Confirm the log reports the Postgres engine, the schema is created, and the admin account exists.
 3. Sign in, create a trip, and confirm it appears after a page reload.
 4. Create a backup from the Backup tab. Confirm the archive holds `travel.pgdump` and no `travel.db`.
