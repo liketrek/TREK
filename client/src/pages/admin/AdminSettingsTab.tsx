@@ -390,12 +390,11 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
               as it is changed. */}
           {/* On a managed install place search and routing are the operator's: the
               services, their allowance and the providers behind them come with the
-              instance. Share place details stays the admin's call and has a tab of
-              its own there (AdminPage). */}
+              instance, so the whole card is left out. Share place details stays the
+              admin's call and is rendered on its own just above (PlaceContribPanel). */}
           {!managed && (
           <SettingsCard icon={Compass} title={t('admin.servicesCard.title')} hint={t('admin.servicesCard.hint')}>
-          <TrekApiCard t={t} managed={managed} />
-          {!managed && (<>
+          <TrekApiCard t={t} />
           {/* Transit Backend (#1699) — Transitous has no GTFS for much of Asia,
               so an install can point transit search at Google instead, on the
               same key. Falls back to Transitous when no key resolves. A block of
@@ -448,10 +447,9 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
               <Callout>{t('admin.transitProvider.personalKeyWarning')}</Callout>
             )}
           </ProviderBlock>
-          </>)}
-          {/* Which keyed provider answers place search. Outside the managed guard
-              on purpose: the operator owns the credentials, but what their users
-              search against is still the admin's call (see server managed.ts). */}
+          {/* Which keyed provider answers place search. Never shown on a managed
+              install: places_provider is operator-locked there (MANAGED_LOCKED_SETTING_KEYS
+              in server managed.ts), so a pick would be dropped on save. */}
           <ProviderBlock title={t('admin.placesProvider.title')}>
             <SettingsHint>{t('admin.placesProvider.subtitle')}</SettingsHint>
             <div className={savingPlacesProvider ? 'opacity-60' : undefined}>
@@ -504,9 +502,9 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
           )}
 
           {/* API Keys: only the keyed providers, Google, Unsplash and Amap. They are
-              the operator's on a managed install, so the card is not shown there;
-              which provider answers search stays the admin's call in the card above
-              (server managed.ts). The per-place Google switches sit under the key
+              the operator's on a managed install, so the card is not shown there
+              (server managed.ts), and neither is the provider pick in the card
+              above. The per-place Google switches sit under the key
               because they are set once and then never touched. */}
           {!managed && (
           <SettingsCard icon={KeyRound} title={t('admin.apiKeys')} hint={t('admin.apiKeysHint')}>

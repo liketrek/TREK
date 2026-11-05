@@ -434,6 +434,22 @@ describe('AddonsService addon/feature flags', () => {
     expect((await svc.list()).toursWanderer).toBe(false);
   });
 
+  it('wanderer is never available on a managed install, whatever the stored switch says', async () => {
+    const saved = process.env.TREK_MANAGED;
+    try {
+      await insertAddon({ id: 'tours', name: 'Tours', enabled: 1 });
+      await svc.updateToursWanderer(true);
+      expect(await svc.isWandererAvailable()).toBe(true);
+
+      process.env.TREK_MANAGED = '1';
+      expect(await svc.isWandererAvailable()).toBe(false);
+      expect((await svc.list()).toursWanderer).toBe(false);
+    } finally {
+      if (saved === undefined) delete process.env.TREK_MANAGED;
+      else process.env.TREK_MANAGED = saved;
+    }
+  });
+
   it('OpenHikingMap under Tours is on until an admin switches it off, and offered only with Tours (MAP-01)', async () => {
     expect(await svc.getToursHikingMap()).toEqual({ enabled: true }); // absent row → ON
     expect((await svc.list()).toursHikingMap).toBe(false); // Tours is off

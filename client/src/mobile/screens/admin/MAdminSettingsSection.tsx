@@ -192,7 +192,8 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
       </MAdminCard>
 
       {/* API keys, place search and routing: the operator's on a managed install,
-          same as the desktop tab. Share place details has its own section there. */}
+          same as the desktop tab, so the whole card is left out. Unlike the desktop
+          tab, the phone has no share place details section for a managed install. */}
       {!managed && (
       <MAdminCard>
         <MAdminCardHead title={t('admin.apiKeys')} hint={t('admin.apiKeysHint')} />
@@ -204,9 +205,6 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
               laptop. */}
           <MTrekApiBlock />
 
-          {/* The keys belong to the operator on a managed install, same as on the
-              desktop tab; the provider choice below stays the admin's. */}
-          {!managed && (<>
           <MProviderBlock title={t('admin.mapsKey')} badge={t('admin.googleCaveat.badge')} tone="caution">
             {/* Said before the field, not after it: somebody about to paste a key
                 should read this while deciding, not once they already have. */}
@@ -325,7 +323,6 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
               {...keyInputProps('unsplash')}
             />
           </MProviderBlock>
-          </>)}
 
           <MAdminField label={t('admin.placesProvider.title')} hint={t('admin.placesProvider.subtitle')}>
             {/* The app's own picker rather than a bare <select>: a native one is
@@ -378,11 +375,9 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
             />
           </div>
 
-          {!managed && (
-            <MAdminButton busy={savingKeys} onClick={handleSaveApiKeys}>
-              {t('common.save')}
-            </MAdminButton>
-          )}
+          <MAdminButton busy={savingKeys} onClick={handleSaveApiKeys}>
+            {t('common.save')}
+          </MAdminButton>
         </div>
       </MAdminCard>
       )}

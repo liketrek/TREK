@@ -4,7 +4,7 @@ import { StorageEventsService } from '../../../../src/nest/storage/storage-event
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
 
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, vi, beforeAll, afterAll, afterEach } from 'vitest';
 
 // L4 (task-7-review.md): `orm` is now a required constructor param — in
 // production it is always injected, so `@Optional()` was a fail-open seam
@@ -19,6 +19,12 @@ beforeAll(async () => {
 afterAll(async () => {
   await t.close();
   testDb.close();
+});
+
+const savedManaged = process.env.TREK_MANAGED;
+afterEach(() => {
+  if (savedManaged === undefined) delete process.env.TREK_MANAGED;
+  else process.env.TREK_MANAGED = savedManaged;
 });
 
 describe('StorageHealthNotifierService', () => {
@@ -46,5 +52,15 @@ describe('StorageHealthNotifierService', () => {
     const notifier = new StorageHealthNotifierService(events, { send } as unknown as NotificationsService, t.orm);
     notifier.onApplicationBootstrap();
     expect(() => events.emitReplicaFailure({ backend: 'b', key: 'k', op: 'delete', error: 'e', at: 3 })).not.toThrow();
+  });
+
+  it('NOTIF-003 a managed install sends nothing, since its admins have no row to mute the alert', () => {
+    process.env.TREK_MANAGED = '1';
+    const events = new StorageEventsService();
+    const send = vi.fn().mockResolvedValue(undefined);
+    const notifier = new StorageHealthNotifierService(events, { send } as unknown as NotificationsService, t.orm);
+    notifier.onApplicationBootstrap();
+    events.emitReplicaFailure({ backend: 's3-bkp', key: 'backups/db.zip', op: 'put', error: 'timeout', at: 4 });
+    expect(send).not.toHaveBeenCalled();
   });
 });

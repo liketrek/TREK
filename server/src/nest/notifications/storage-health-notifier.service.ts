@@ -1,5 +1,6 @@
 import { withRequestContext } from '../database/request-context';
 import { StorageEventsService } from '../storage/storage-events.service';
+import { offeredEventTypes } from './notification-preferences.service';
 import { NotificationsService } from './notifications.service';
 import { ReplicaFailureDebouncer } from './replica-failure-debouncer';
 import { MikroORM } from '@mikro-orm/core';
@@ -44,8 +45,19 @@ export class StorageHealthNotifierService implements OnApplicationBootstrap {
 
   onApplicationBootstrap(): void {
     this.events.onReplicaFailure((failure) => {
+      // On a managed install the replicas are the operator's, and the
+      // preference matrix has no row to mute this event, so the admins there
+      // would get alerts they can neither act on nor switch off. The warning
+      // keeps the failure in the operator's logs, behind the same debounce so
+      // an outage is one line an hour per backend rather than one per write.
       const suppressed = this.debouncer.admit(failure.backend);
       if (suppressed === null) return;
+      if (!offeredEventTypes().includes('replica_failure')) {
+        this.logger.warn(
+          `replica ${failure.op} failed on ${failure.backend}: ${failure.error} (${suppressed} suppressed)`,
+        );
+        return;
+      }
       const sendNotification = () =>
         this.notifications
           .send({
