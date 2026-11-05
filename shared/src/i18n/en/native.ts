@@ -6,7 +6,7 @@ const native: TranslationStrings = {
   'native.connect.placeholder': 'https://trek.example.com',
   'native.connect.submit': 'Connect',
   'native.connect.checking': 'Checking…',
-  'native.connect.tryDemo': 'No server yet? Try the demo',
+  'native.connect.tryDemo': 'Try the demo',
   'native.connect.whatIsServer': 'What is a TREK server?',
   'native.connect.errorInvalid': 'That does not look like a web address.',
   'native.connect.errorUnreachable': 'No server answered at this address. Check the address and your connection.',
@@ -24,7 +24,7 @@ const native: TranslationStrings = {
   'native.privacy': 'Privacy policy',
   'native.settings.server': 'Server',
   'native.settings.serverHint': 'This app is connected to {server}.',
-  'native.welcome.headline': 'Plan trips together.',
+  'native.welcome.headline': 'Your Trip.\nYour Plan.',
   'native.welcome.sub':
     'TREK keeps every day, place, booking and cost in one live plan your whole group edits together.',
   'native.welcome.connect': 'Connect your TREK',

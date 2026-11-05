@@ -119,18 +119,34 @@ body::before {
   pointer-events: none;
   z-index: 0;
 }
+/*
+ * A travel photo as a top band (Kyoto at dusk, the same image liketrek.com uses
+ * in its pricing section), under a dark gradient and faded out at the bottom so
+ * the headline stays legible. Dark-first; in light mode it steps back to the
+ * quiet grid instead, which reads better on a white page.
+ */
 body::after {
   content: '';
   position: fixed;
   inset: 0 0 auto;
-  height: 640px;
-  background-image:
-    linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-  background-size: 54px 54px;
-  -webkit-mask-image: radial-gradient(ellipse 78% 52% at 50% -2%, #000 26%, transparent 72%);
-  mask-image: radial-gradient(ellipse 78% 52% at 50% -2%, #000 26%, transparent 72%);
+  height: 400px;
+  background:
+    linear-gradient(180deg, rgba(9, 9, 11, 0.46) 0%, rgba(9, 9, 11, 0.72) 58%, var(--bg) 100%),
+    url('./img/kyoto.webp') center 30% / cover no-repeat;
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 58%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 58%, transparent 100%);
   pointer-events: none;
   z-index: 0;
+}
+@media (prefers-color-scheme: light) {
+  body::after {
+    height: 640px;
+    background:
+      linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 54px 54px;
+    -webkit-mask-image: radial-gradient(ellipse 78% 52% at 50% -2%, #000 26%, transparent 72%);
+    mask-image: radial-gradient(ellipse 78% 52% at 50% -2%, #000 26%, transparent 72%);
+  }
 }
 
 .shell {
@@ -286,7 +302,7 @@ body::after {
 }
 .hero-logo img {
   display: block;
-  height: 46px;
+  height: 62px;
   width: auto;
 }
 .hero-logo .on-light {
@@ -327,6 +343,8 @@ body::after {
   font-weight: 700;
   letter-spacing: -0.03em;
   margin: 0;
+  /* Honour the newline in the headline string (e.g. "Deine Reisen.\nDein Plan."). */
+  white-space: pre-line;
 }
 .title-sm {
   font-size: 1.5rem;
@@ -338,8 +356,8 @@ body::after {
 .sub {
   color: var(--muted);
   margin: 0;
-  line-height: 1.55;
-  font-size: 1.02rem;
+  line-height: 1.5;
+  font-size: 0.95rem;
   overflow-wrap: anywhere;
 }
 
@@ -416,6 +434,35 @@ body::after {
   align-self: center;
   transition: color 0.2s;
 }
+
+/* "Try the demo": a tertiary action, but a tidy pill so it reads as a choice, not stray text. */
+.demo-link {
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.9rem;
+  align-self: center;
+  margin-top: 2px;
+  padding: 11px 20px;
+  border-radius: 999px;
+  border: 1px solid var(--edge);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.2),
+    inset 0 0 0 1px color-mix(in srgb, var(--ink) 3%, transparent);
+  transition:
+    color 0.2s,
+    background 0.2s,
+    border-color 0.2s,
+    transform 0.14s var(--ease);
+}
+.demo-link:active {
+  transform: scale(0.97);
+  background: var(--surface-2);
+  color: var(--ink);
+}
 .linkbtn:active {
   color: var(--ink);
 }
@@ -427,14 +474,21 @@ a.linkbtn {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 2px 18px;
+  gap: 4px 22px;
   margin-top: 6px;
+  padding-top: 16px;
+  border-top: 1px solid var(--edge);
   font-size: 0.86rem;
 }
 .foot-links a {
-  color: var(--faint);
+  color: var(--muted);
+  font-weight: 500;
   text-decoration: none;
-  padding: 8px 2px;
+  padding: 6px 2px;
+  transition: color 0.2s;
+}
+.foot-links a:active {
+  color: var(--ink);
 }
 
 /* ── Address form ────────────────────────────────────────────────────────── */
