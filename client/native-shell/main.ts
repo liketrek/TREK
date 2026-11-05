@@ -336,15 +336,27 @@ function money(cents: number): string {
   return new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR' }).format(cents / 100);
 }
 
+// A sample catalogue for the dev preview only: the cloud site is behind a gate
+// during development, so its /api/plans is unreachable from a local build. Never
+// used in a real build (see the import.meta.env.DEV guard below).
+const SAMPLE_PLANS: CloudPlan[] = [
+  { id: 'start', name: 'Start', monthlyCents: 599, yearlyCents: 5990, aiDocuments: 0, storageGb: 10 },
+  { id: 'plus', name: 'Plus', monthlyCents: 999, yearlyCents: 9990, aiDocuments: 100, storageGb: 50 },
+  { id: 'pro', name: 'Pro', monthlyCents: 1599, yearlyCents: 15990, aiDocuments: 500, storageGb: 200 },
+  { id: 'studio', name: 'Studio', monthlyCents: 2399, yearlyCents: 23990, aiDocuments: 2000, storageGb: 1000 },
+];
+
 async function fetchPlans(): Promise<CloudPlan[] | null> {
   try {
     const res = await get(`${CLOUD_URL}/api/plans`);
     const data = typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
     const plans = (data as { plans?: CloudPlan[] })?.plans;
-    return Array.isArray(plans) && plans.length ? plans : null;
+    if (Array.isArray(plans) && plans.length) return plans;
   } catch {
-    return null;
+    // Fall through to the preview fallback.
   }
+  if (import.meta.env?.DEV) return SAMPLE_PLANS;
+  return null;
 }
 
 function subscribe(plan: CloudPlan, interval: 'month' | 'year'): void {
@@ -391,12 +403,7 @@ function showPlans(opts: { back?: boolean } = {}): void {
   const content = el('div', { className: 'loading' }, el('span', { className: 'spinner' }));
 
   const monthBtn = el('button', { type: 'button' }, t('native.plans.monthly'));
-  const yearBtn = el(
-    'button',
-    { type: 'button' },
-    t('native.plans.yearly'),
-    el('span', { className: 'save' }, t('native.plans.save'))
-  );
+  const yearBtn = el('button', { type: 'button' }, t('native.plans.yearly'));
   const seg = el('div', { className: 'segmented' }, monthBtn, yearBtn);
 
   const paintSeg = () => {
