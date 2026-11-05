@@ -275,6 +275,41 @@ body::after {
   filter: drop-shadow(0 14px 36px color-mix(in srgb, var(--wash-1) 90%, transparent))
     drop-shadow(0 6px 16px color-mix(in srgb, var(--ink) 22%, transparent));
 }
+
+/* The full TREK wordmark on the welcome screen, in the variant that reads on the scheme. */
+.hero-logo {
+  display: block;
+  margin-bottom: 22px;
+  filter: drop-shadow(0 14px 36px color-mix(in srgb, var(--wash-1) 90%, transparent))
+    drop-shadow(0 6px 16px color-mix(in srgb, var(--ink) 22%, transparent));
+  animation: logoRise 0.7s var(--ease) both;
+}
+.hero-logo img {
+  display: block;
+  height: 46px;
+  width: auto;
+}
+.hero-logo .on-light {
+  display: none;
+}
+@media (prefers-color-scheme: light) {
+  .hero-logo .on-dark {
+    display: none;
+  }
+  .hero-logo .on-light {
+    display: block;
+  }
+}
+@keyframes logoRise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
 @keyframes floaty {
   0%,
   100% {

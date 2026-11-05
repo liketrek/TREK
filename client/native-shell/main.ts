@@ -3,6 +3,8 @@ import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import logoUrl from '../public/icons/icon-white.svg';
+import logoBlack from '../public/logo-dark.svg'; // #000 wordmark, for light backgrounds
+import logoWhite from '../public/logo-light.svg'; // #fff wordmark, for dark backgrounds
 import { getIapClient, productIdFor, type Purchase } from '../src/native/iap';
 import { CLOUD_URL, PRIVACY_URL, SERVER_DOCS_URL } from '../src/native/links';
 import { probeDemo, probeServer, type ProbeFailure, type ProbeGet } from '../src/native/serverAddress';
@@ -147,7 +149,13 @@ function topbar(onBack: () => void): HTMLElement {
 
 // ── Welcome ─────────────────────────────────────────────────────────────────
 function showWelcome(opts: { back?: boolean } = {}): void {
-  const hero = el('img', { src: logoUrl, alt: '', className: 'hero-mark' });
+  // The full TREK wordmark, in the variant that reads on the current scheme.
+  const hero = el(
+    'span',
+    { className: 'hero-logo' },
+    el('img', { src: logoWhite, alt: 'TREK', className: 'on-dark' }),
+    el('img', { src: logoBlack, alt: '', className: 'on-light' })
+  );
 
   const connect = el(
     'button',
