@@ -186,7 +186,7 @@ async function pgCurrentSchema(url: string, binDir: string | undefined): Promise
       '--no-psqlrc',
       '--no-align',
       '--tuples-only',
-      "--command=select current_schema() || E'\\t' || quote_ident(current_schema())",
+      "--command=select concat_ws(E'\\t', current_schema(), quote_ident(current_schema()))",
     ],
     pgConnectionEnv(url),
   );
