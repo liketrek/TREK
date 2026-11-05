@@ -85,10 +85,8 @@ for (const viewport of [
         await expectInside(row);
         // Every label is either on the row or counted by its "+N" chip.
         const shown = await row.locator('.col-lrow-label:not(.is-over)').count();
-        const more = await row
-          .locator('.col-lrow-more')
-          .textContent()
-          .catch(() => null);
+        // Read without waiting: a row whose labels all fit has no "+N".
+        const [more] = await row.locator('.col-lrow-more').allTextContents();
         expect(shown + (more ? Number(more.replace('+', '')) : 0)).toBe(place.labels.length);
       }
       // The map's label strip stays inside the map: whole, or folded into its button.
