@@ -6,15 +6,9 @@
  * refusal when a tool is missing. The real tools against a real database are
  * exercised by the Postgres lane.
  */
-import {
-  hasRestrictFix,
-  pgConnectionEnv,
-  pgDump,
-  pgDumpMigrations,
-  pgRestore,
-  PgToolMissingError,
-  resolvePgTool,
-} from '../../../../../src/db/engine/postgres/pg-tools';
+import { PgToolMissingError, pgConnectionEnv, resolvePgTool } from '../../../../../src/db/engine/postgres/pg-process';
+import { pgDump, pgDumpMigrations, pgRestore } from '../../../../../src/db/engine/postgres/pg-tools';
+import { hasRestrictFix } from '../../../../../src/db/engine/postgres/restore-safety';
 
 import fs, {
   chmodSync,
