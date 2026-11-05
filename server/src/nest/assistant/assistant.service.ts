@@ -366,6 +366,7 @@ export class AssistantService {
       const decided = await this.claimDecisions(threadId, req.decisions);
       // Taken but not run yet: whatever ends the turn before a change ran records it as failed.
       const unrun = new Set(decided.filter(({ approved }) => approved).map(({ call }) => call.id));
+      const settle = () => this.failUnrun(threadId, decided, unrun);
       try {
         const stream = channel.open();
         const w = new UiStreamWriter(stream);
@@ -387,20 +388,26 @@ export class AssistantService {
           firstRowId: null,
           renders: req.renders === true,
         };
-        await this.converse(spec, stream, w, signal, (session) =>
-          this.applyDecisions(
-            (name, args) => this.runChange(session, { userId, scope, threadId }, name, args),
-            threadId,
-            decided,
-            {
-              w,
-              unrun,
-              scope,
-            },
-          ),
+        await this.converse(
+          spec,
+          stream,
+          w,
+          signal,
+          (session) =>
+            this.applyDecisions(
+              (name, args) => this.runChange(session, { userId, scope, threadId }, name, args),
+              threadId,
+              decided,
+              {
+                w,
+                unrun,
+                scope,
+              },
+            ),
+          settle,
         );
       } finally {
-        if (unrun.size > 0) await this.failUnrun(threadId, decided, unrun);
+        await settle();
       }
     });
   }
@@ -440,8 +447,11 @@ export class AssistantService {
         w.finish('error');
       } finally {
         await opened?.close();
-        w.close();
-        if (unrun.size > 0) await this.failUnrun(threadId, decided, unrun);
+        try {
+          await this.failUnrun(threadId, decided, unrun);
+        } finally {
+          w.close();
+        }
       }
     });
   }
@@ -732,21 +742,26 @@ export class AssistantService {
   /**
    * The approved changes the turn ended before running (the tool session did
    * not open, the stream broke): recorded as failed, so the thread shows them
-   * as not applied and nobody takes them for a change that ran.
+   * as not applied and nobody takes them for a change that ran. Once: the set
+   * is emptied first, so the stream's close and the caller's cleanup do not
+   * both record them.
    *
    * @txIndependent each outcome is written on its own, like the ones that ran.
    */
   private async failUnrun(
     threadId: number,
     decided: Array<{ call: AssistantToolCallRow; approved: boolean }>,
-    unrun: ReadonlySet<string>,
+    unrun: Set<string>,
   ): Promise<void> {
+    if (unrun.size === 0) return;
+    const pending = new Set(unrun);
+    unrun.clear();
     const outcomes = new Map<string, Outcome>();
     for (const { call, approved } of decided) {
       if (!approved) outcomes.set(call.id, { approved: false, result: DISCARDED, isError: false });
-      else if (unrun.has(call.id)) outcomes.set(call.id, { approved: true, result: NOT_RUN, isError: true });
+      else if (pending.has(call.id)) outcomes.set(call.id, { approved: true, result: NOT_RUN, isError: true });
     }
-    const failed = decided.filter(({ call, approved }) => approved && unrun.has(call.id));
+    const failed = decided.filter(({ call, approved }) => approved && pending.has(call.id));
     await Promise.all(
       failed.map(({ call }) =>
         this.inContext(() =>
@@ -810,6 +825,7 @@ export class AssistantService {
     w: UiStreamWriter,
     signal: AbortSignal,
     prelude?: (session: AssistantToolSession) => Promise<void>,
+    settle?: () => Promise<void>,
   ): Promise<void> {
     const stopKeepalive = armKeepalive(stream);
     let opened: AssistantToolSession | null = null;
@@ -884,7 +900,12 @@ export class AssistantService {
     } finally {
       stopKeepalive();
       await opened?.close();
-      w.close();
+      try {
+        // Before the close: the client reads the thread again once the stream ends.
+        await settle?.();
+      } finally {
+        w.close();
+      }
     }
   }
 
