@@ -849,6 +849,10 @@ a.linkbtn {
   flex: none;
   color: var(--ok);
 }
+.plan-feats .off,
+.plan-feats .off svg {
+  color: var(--faint);
+}
 .plan .btn {
   width: 100%;
   min-height: 48px;
