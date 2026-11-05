@@ -428,20 +428,65 @@ function zonedClockSlots(
   return slots
 }
 
+/** Whether the list draws `order` as it stands. */
+function drawnAsIs(order: readonly MergedItem[], dayId: number, getDisplayTime: DisplayTimeOf): boolean {
+  return applyChronoOrder([...order], dayId, getDisplayTime).every((it, i) => it === order[i])
+}
+
+/**
+ * A day order with the row at `index` kept where it is, and the other timed bookings it
+ * puts out of time order moved next to it: the ones due earlier right ahead of it, the
+ * later ones right behind it, each group in the order it had. Stops and notes never move.
+ * Null when the row has no time, when no booking is out of order, or when the result is
+ * still not the order the list draws, which is when a timed stop or note stands against it.
+ *
+ * A booking nobody can drag otherwise blocks every slot on its far side: with a 06:30
+ * flight listed below the day's untimed stops, a 13:00 transit dropped between two of
+ * them went back behind the flight on every drop (#2983).
+ */
+export function yieldTimedBookings(
+  order: readonly MergedItem[],
+  index: number,
+  dayId: number,
+  getDisplayTime: DisplayTimeOf = getDisplayTimeForDay
+): MergedItem[] | null {
+  const moved = order[index]
+  if (!moved || moved.type === 'place') return null
+  const keyOf = chronoKeyOf(order, dayId, getDisplayTime)
+  const own = keyOf(moved)
+  if (own === null) return null
+  const ahead: MergedItem[] = []
+  const behind: MergedItem[] = []
+  order.forEach((it, i) => {
+    if (it === moved || it.type !== 'transport') return
+    const key = keyOf(it)
+    if (key === null) return
+    if (i > index && key < own) ahead.push(it)
+    else if (i < index && key > own) behind.push(it)
+  })
+  if (!ahead.length && !behind.length) return null
+  const yielding = new Set([...ahead, ...behind])
+  const kept = order.filter(it => !yielding.has(it))
+  const at = kept.indexOf(moved)
+  const result = [...kept.slice(0, at), ...ahead, moved, ...behind, ...kept.slice(at + 1)]
+  return drawnAsIs(result, dayId, getDisplayTime) ? result : null
+}
+
 /**
  * A day order with a dragged booking or note at `index`, moved to the nearest slot the
  * list draws it in. A row with a time is drawn by it, and the untimed rows behind it
  * take that time too. Dropped against its time, a train went back to its time on the
  * next render and took every untimed stop behind the drop with it, and the next drag
- * stored that order (#2631). So it lands as close to the drop as its time allows and
- * nothing else moves. A row without a time, or one the list draws where it was
- * dropped, is returned as it came.
+ * stored that order (#2631). So it stays where it was dropped when only other bookings
+ * stand against its time, and they make room (`yieldTimedBookings`); against a timed
+ * stop or note it lands as close to the drop as its time allows and nothing else moves.
+ * A row without a time, or one the list draws where it was dropped, is returned as it came.
  */
 export function seatTimedDrop(
   order: readonly MergedItem[],
   index: number,
   dayId: number,
-  getDisplayTime: (r: MergedItem['data'], dayId: number) => string | null = getDisplayTimeForDay
+  getDisplayTime: DisplayTimeOf = getDisplayTimeForDay
 ): MergedItem[] {
   const moved = order[index]
   if (!moved || moved.type === 'place') return [...order]
@@ -449,16 +494,18 @@ export function seatTimedDrop(
     ? parseTimeToMinutes(moved.data?.time)
     : parseTimeToMinutes(getDisplayTime(moved.data, dayId))
   if (minutes === null) return [...order]
+  if (drawnAsIs(order, dayId, getDisplayTime)) return [...order]
+  const yielded = yieldTimedBookings(order, index, dayId, getDisplayTime)
+  if (yielded) return yielded
   const rest = order.filter((_, i) => i !== index)
-  const drawnAsIs = (at: number): MergedItem[] | null => {
+  const seatAt = (at: number): MergedItem[] | null => {
     const candidate = [...rest.slice(0, at), moved, ...rest.slice(at)]
-    const drawn = applyChronoOrder(candidate, dayId, getDisplayTime)
-    return drawn.every((it, i) => it === candidate[i]) ? candidate : null
+    return drawnAsIs(candidate, dayId, getDisplayTime) ? candidate : null
   }
-  for (let dist = 0; dist <= rest.length; dist++) {
-    for (const at of dist === 0 ? [index] : [index - dist, index + dist]) {
+  for (let dist = 1; dist <= rest.length; dist++) {
+    for (const at of [index - dist, index + dist]) {
       if (at < 0 || at > rest.length) continue
-      const seated = drawnAsIs(at)
+      const seated = seatAt(at)
       if (seated) return seated
     }
   }

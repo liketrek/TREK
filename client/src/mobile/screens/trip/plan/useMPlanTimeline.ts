@@ -7,7 +7,7 @@ import { toDisplayTemp } from '../../../../components/Planner/dayDetailModel'
 import { getDayBookendHotels } from '../../../../utils/dayOrder'
 import { dayWeatherAnchor } from '../../../../utils/dayWeather'
 import { metadataWithLegPositions, planMergedOrder, withTransportPositions } from '../../../../utils/mergedOrder'
-import { getDisplayTimeForDay, getMergedItems, getTransportForDay, hasCarrierEndpointOnDay, isCarrierTransport, stopDayIds } from '../../../../utils/dayMerge'
+import { getDisplayTimeForDay, getMergedItems, getTransportForDay, hasCarrierEndpointOnDay, isCarrierTransport, stopDayIds, yieldTimedBookings } from '../../../../utils/dayMerge'
 import { dayCoMapsUrl, dayExportStops, dayGoogleMapsUrl, optimizeDayOrder, type DayCarrier } from '../../../../components/Planner/dayRoute'
 import type { PlannedTransitLeg, TransitLeg } from '../../../../components/Planner/transitLeg'
 import { useTransitLegPlanner } from '../../../../components/Planner/useTransitLegPlanner'
@@ -208,10 +208,17 @@ export function useMPlanTimeline(planner: TripPlanner) {
     const newOrder = [...merged]
     newOrder.splice(idx, 1)
     newOrder.splice(toIndex, 0, item)
-    // Same guard as the desktop arrow buttons: a TIMED item may not jump past
-    // other timed items (untimed items move freely and keep their neighbours).
+    // A TIMED item may not jump past other timed items (untimed items move freely and
+    // keep their neighbours). Bookings it passes make room when they can, as on a desktop
+    // drop (#2983); a timed stop or note in the way, or a move that leaves the day as it
+    // was, is refused.
     if (itemHasTime(item, day.id) && breaksChronology(newOrder, day.id, getDisplayTimeForDay)) {
-      toast.info(t('dayplan.cannotBreakChronology'))
+      const yielded = yieldTimedBookings(newOrder, toIndex, day.id, getDisplayTimeForDay)
+      if (!yielded || yielded.every((it, i) => it === merged[i])) {
+        toast.info(t('dayplan.cannotBreakChronology'))
+        return
+      }
+      void applyMergedOrder(day.id, yielded)
       return
     }
     void applyMergedOrder(day.id, newOrder)

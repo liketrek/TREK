@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseTimeToMinutes, getSpanPhase, hidesOnMiddleDay, getTransportRouteEndpoints, getDisplayTimeForDay, getTransportForDay, getAssignmentReservations, pinnedAway, stopDayIds, getPlaceBookings, getMergedItems, chronoKeyOf, nightRowsOf, rideSeatKey, seatTimedDrop, stayStartingOn, storedRideSlot, timedSlot, type MergedItem } from './dayMerge'
+import { parseTimeToMinutes, getSpanPhase, hidesOnMiddleDay, getTransportRouteEndpoints, getDisplayTimeForDay, getTransportForDay, getAssignmentReservations, pinnedAway, stopDayIds, getPlaceBookings, getMergedItems, chronoKeyOf, nightRowsOf, rideSeatKey, seatTimedDrop, yieldTimedBookings, stayStartingOn, storedRideSlot, timedSlot, type MergedItem } from './dayMerge'
 import { planMergedOrder, withTransportPositions } from './mergedOrder'
 
 describe('parseTimeToMinutes', () => {
@@ -645,6 +645,52 @@ describe('seatTimedDrop', () => {
   it('returns a dropped stop as it came', () => {
     const order = draw(setup())
     expect(seatTimedDrop(order, 1, DAY)).toEqual(order)
+  })
+
+  // #2983: a flight listed below the day's untimed stops held every slot among them.
+  const untimedDay = (rides: ReturnType<typeof ride>[]): Day => ({
+    stops: [stop(1, 'Hotel'), stop(2, 'Shrine'), stop(3, 'Crossing'), stop(4, 'Tower')].map((a, i) => ({ ...a, order_index: i })),
+    rides,
+    notes: [],
+  })
+
+  it('a ride dropped among untimed stops stays there, and an earlier booking below them makes room ahead of it', () => {
+    const day = untimedDay([ride(101, '06:30', 3.5), ride(102, '13:00', 3.6)])
+    expect(draw(day).map(label)).toEqual(['Hotel', 'Shrine', 'Crossing', 'Tower', 'ride 06:30', 'ride 13:00'])
+    const { seated, drawn } = drop(day, isRide(102), isStop('Shrine'))
+    expect(drawn).toEqual(seated)
+    expect(drawn).toEqual(['Hotel', 'Shrine', 'ride 06:30', 'ride 13:00', 'Crossing', 'Tower'])
+  })
+
+  it('a later booking ahead of the drop moves behind it, and the stops keep their order', () => {
+    const day = untimedDay([ride(101, '09:00', -0.5), ride(102, '18:00', 1.5)])
+    expect(draw(day).map(label)).toEqual(['ride 09:00', 'Hotel', 'Shrine', 'ride 18:00', 'Crossing', 'Tower'])
+    const { seated, drawn } = drop(day, isRide(101), isStop('Tower'))
+    expect(drawn).toEqual(seated)
+    expect(drawn).toEqual(['Hotel', 'Shrine', 'Crossing', 'Tower', 'ride 09:00', 'ride 18:00'])
+  })
+
+  it('a timed stop in the way still sends the ride back to its time, the bookings stay put', () => {
+    const day = untimedDay([ride(101, '06:30', 3.5), ride(102, '13:00', 3.6)])
+    day.stops[2] = { ...day.stops[2], place: { name: 'Crossing', place_time: '12:00' } }
+    expect(draw(day).map(label)).toEqual(['Hotel', 'Shrine', 'ride 06:30', 'Crossing', 'Tower', 'ride 13:00'])
+    const { seated, drawn } = drop(day, isRide(102), isStop('Shrine'))
+    expect(drawn).toEqual(seated)
+    expect(drawn).toEqual(['Hotel', 'Shrine', 'ride 06:30', 'Crossing', 'ride 13:00', 'Tower'])
+  })
+})
+
+describe('yieldTimedBookings', () => {
+  const DAY = 1
+  const row = (type: MergedItem['type'], data: Record<string, unknown>): MergedItem => ({ type, sortKey: 0, data })
+  const place = (id: number) => row('place', { id, place: { place_time: null } })
+  const booking = (id: number, time: string | null) => row('transport', { id, day_id: DAY, reservation_time: time })
+
+  it('leaves an untimed row, a stop and an order without a booking out of place to the caller', () => {
+    const order = [place(1), booking(2, null), booking(3, '2026-11-20T08:00')]
+    expect(yieldTimedBookings(order, 1, DAY)).toBeNull()
+    expect(yieldTimedBookings(order, 0, DAY)).toBeNull()
+    expect(yieldTimedBookings(order, 2, DAY)).toBeNull()
   })
 })
 
