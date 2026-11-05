@@ -189,7 +189,7 @@ function showWelcome(opts: { back?: boolean } = {}): void {
     showCloud();
   });
 
-  const demo = el('button', { type: 'button', className: 'linkbtn' }, t('native.connect.tryDemo'));
+  const demo = el('button', { type: 'button', className: 'demo-link' }, t('native.connect.tryDemo'));
   demo.addEventListener('click', () => runDemo(demo));
 
   show(
@@ -256,7 +256,7 @@ function showConnect(prefill = '', opts: { back?: boolean } = {}): void {
     fail(result.reason);
   });
 
-  const demo = el('button', { type: 'button', className: 'linkbtn' }, t('native.connect.tryDemo'));
+  const demo = el('button', { type: 'button', className: 'demo-link' }, t('native.connect.tryDemo'));
   demo.addEventListener('click', () => runDemo(demo, error));
 
   show(
