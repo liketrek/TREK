@@ -256,9 +256,6 @@ function showConnect(prefill = '', opts: { back?: boolean } = {}): void {
     fail(result.reason);
   });
 
-  const demo = el('button', { type: 'button', className: 'demo-link' }, t('native.connect.tryDemo'));
-  demo.addEventListener('click', () => runDemo(demo, error));
-
   show(
     el(
       'div',
@@ -267,7 +264,6 @@ function showConnect(prefill = '', opts: { back?: boolean } = {}): void {
       el('h1', { className: 'title-sm' }, t('native.connect.title')),
       el('p', { className: 'sub' }, t('native.connect.hint')),
       form,
-      demo,
       footLinks(externalLink(t('native.connect.whatIsServer'), SERVER_DOCS_URL))
     ),
     opts
