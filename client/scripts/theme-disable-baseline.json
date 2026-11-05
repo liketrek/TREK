@@ -20,7 +20,7 @@
   "components/Map/DawarichTrailLayer.tsx": 1,
   "components/Map/dawarichTrail.ts": 10,
   "components/Map/useDawarichTrailGL.ts": 1,
-  "components/Packing/PackingListPanelItemRow.tsx": 1,
+  "components/Packing/PackingBringersCard.tsx": 1,
   "components/Planner/DayReorderPopup.tsx": 1,
   "components/Planner/bookings/bookingsModel.ts": 1,
   "components/Planner/bookings/transitParts.tsx": 1,

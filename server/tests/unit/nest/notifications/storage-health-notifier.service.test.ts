@@ -27,12 +27,18 @@ afterEach(() => {
   else process.env.TREK_MANAGED = savedManaged;
 });
 
+/** The notifier over a fresh event bus and `send`, subscribed the way bootstrap does it. */
+function subscribed(send: ReturnType<typeof vi.fn>): StorageEventsService {
+  const events = new StorageEventsService();
+  const notifier = new StorageHealthNotifierService(events, { send } as unknown as NotificationsService, t.orm);
+  notifier.onApplicationBootstrap();
+  return events;
+}
+
 describe('StorageHealthNotifierService', () => {
   it('NOTIF-001 subscribes on bootstrap and sends an admin-scoped replica_failure with params', () => {
-    const events = new StorageEventsService();
     const send = vi.fn().mockResolvedValue(undefined);
-    const notifier = new StorageHealthNotifierService(events, { send } as unknown as NotificationsService, t.orm);
-    notifier.onApplicationBootstrap();
+    const events = subscribed(send);
     events.emitReplicaFailure({ backend: 's3-bkp', key: 'backups/db.zip', op: 'put', error: 'timeout', at: 1 });
     expect(send).toHaveBeenCalledWith({
       event: 'replica_failure',
@@ -47,19 +53,15 @@ describe('StorageHealthNotifierService', () => {
   });
 
   it('NOTIF-002 a rejected send never throws into the emitter (write path stays safe)', () => {
-    const events = new StorageEventsService();
     const send = vi.fn().mockRejectedValue(new Error('smtp down'));
-    const notifier = new StorageHealthNotifierService(events, { send } as unknown as NotificationsService, t.orm);
-    notifier.onApplicationBootstrap();
+    const events = subscribed(send);
     expect(() => events.emitReplicaFailure({ backend: 'b', key: 'k', op: 'delete', error: 'e', at: 3 })).not.toThrow();
   });
 
   it('NOTIF-003 a managed install sends nothing, since its admins have no row to mute the alert', () => {
     process.env.TREK_MANAGED = '1';
-    const events = new StorageEventsService();
     const send = vi.fn().mockResolvedValue(undefined);
-    const notifier = new StorageHealthNotifierService(events, { send } as unknown as NotificationsService, t.orm);
-    notifier.onApplicationBootstrap();
+    const events = subscribed(send);
     events.emitReplicaFailure({ backend: 's3-bkp', key: 'backups/db.zip', op: 'put', error: 'timeout', at: 4 });
     expect(send).not.toHaveBeenCalled();
   });

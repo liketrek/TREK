@@ -97,7 +97,7 @@
     "tests/unit/nest/memories/trek-photo-cache.job.test.ts": 1,
     "tests/unit/nest/notification-preferences.service.test.ts": 4,
     "tests/unit/nest/notification-transports.test.ts": 3,
-    "tests/unit/nest/notifications/storage-health-notifier.service.test.ts": 2,
+    "tests/unit/nest/notifications/storage-health-notifier.service.test.ts": 1,
     "tests/unit/nest/notifications/vapid-keys.service.test.ts": 2,
     "tests/unit/nest/notifications/web-push.service.test.ts": 1,
     "tests/unit/nest/oauth.controller.test.ts": 1,

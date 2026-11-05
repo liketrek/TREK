@@ -77,14 +77,17 @@ export default function PoiMarkers({
 }) {
   const map = useMap();
   const [frame, setFrame] = useState<LngFrame | null>(null);
+  // Followed only while there are POIs to draw, so a map without them keeps no listeners.
+  const tracking = pois.length > 0;
   useEffect(() => {
+    if (!tracking) return undefined;
     const follow = () => setFrame((current) => viewLngFrame(current, map.getCenter().lng));
     map.whenReady(follow);
     map.on('moveend', follow);
     return () => {
       map.off('moveend', follow);
     };
-  }, [map]);
+  }, [map, tracking]);
   // Native clicks keep the newest handler without rebuilding every marker.
   const clickRef = useRef(onPoiClick);
   useEffect(() => {

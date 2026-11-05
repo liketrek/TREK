@@ -48,7 +48,7 @@ describe('BringersCard', () => {
     expect(rows).toHaveLength(2);
     expect(rows[0]).toHaveTextContent('anna');
     expect(rows[1]).toHaveTextContent('carla');
-    expect(screen.getByText('packing.bringersTitle')).toBeInTheDocument();
+    expect(screen.getByText('Brought by')).toBeInTheDocument();
   });
 
   it('FE-PACK-BRINGERCARD-004: the "+N" circle counts the others', () => {

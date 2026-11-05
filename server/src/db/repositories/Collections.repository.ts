@@ -261,7 +261,7 @@ export class CollectionsRepository extends TrekRepository<Collections> {
    */
   async deleteWithImages(id: number): Promise<Array<string | null>> {
     const cover = (await this.coverImage(id)) ?? null;
-    const places = await this.readDb()
+    const places = await this.placesReadDb()
       .selectFrom('collection_places')
       .select('image_url')
       .where('collection_id', '=', id)

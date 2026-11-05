@@ -1,76 +1,59 @@
 /**
- * JOURNEY-SVC-022b/022c: what deleting a journey does with the photos of its gallery
- * (#2924). Split from journey-domain.service.test.ts, which is at its size baseline;
- * the service is built the same way.
+ * JourneyDomainService: what deleting a journey does with the photos of its gallery
+ * (#2924). A photo row only this journey linked goes with it and its files are handed
+ * to the storage release; one a trip or another journey still links keeps its row.
+ * The service comes from its module over a snapshot test db, the release is a spy.
  */
-import { db as testDb } from '../../../src/db/database';
 import { JourneyPhotos } from '../../../src/db/entities/JourneyPhotos.entity';
 import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
 import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
+import { JourneyDomainModule } from '../../../src/nest/journey/journey-domain.module';
 import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
-import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { createUser, createTrip } from '../../helpers/factories';
-import { findRows } from '../../helpers/factories/rows';
-import {
-  createTestJourneysRepo,
-  createTestJourneyContributorsRepo,
-  createTestJourneyTripsRepo,
-  createTestJourneyEntriesRepo,
-  createTestJourneyPhotosRepo,
-  createTestJourneyEntryPhotosRepo,
-} from '../../helpers/journey-repos';
+import { StorageReleaseService } from '../../../src/nest/storage/storage-release.service';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { findRows, insertRow } from '../../helpers/factories/rows';
+import { makeTrip } from '../../helpers/factories/trips';
+import { makeUser } from '../../helpers/factories/users';
 import { releaseNothing } from '../../helpers/storage-release';
 import { resetTestDb } from '../../helpers/test-db';
-import { createTestUnitOfWork, sharedTestOrm, createTestTripsRepo, createTestPlacesRepo } from '../../helpers/test-uow';
+import { createTestModule, type TestModule } from '../../helpers/test-module';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
 import type { EntityClass, EntityDTO, FilterQuery } from '@mikro-orm/core';
 
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb } = await import('../../helpers/db-mock');
-  const db = createSnapshotTestDb();
-  return { db, closeDb: () => {}, reinitialize: () => {} };
-});
-
-const orm = () => sharedTestOrm(testDb);
+const db = createSnapshotTestDb();
 const release = releaseNothing();
+let t: TestModule;
+let orm: TestOrm;
 let svc: JourneyDomainService;
 
 async function one<T extends object>(entity: EntityClass<T>, where: FilterQuery<T>) {
-  return (await findRows(await orm(), entity, where))[0] as EntityDTO<T> | undefined;
+  return (await findRows(orm, entity, where))[0] as EntityDTO<T> | undefined;
 }
 
 beforeAll(async () => {
-  const t = await sharedTestOrm(testDb);
-  const photosRepo = await createTestJourneyPhotosRepo(testDb);
-  svc = new JourneyDomainService(
-    new RealtimeService(),
-    new TrekPhotoRegistrationService(t.repo(TrekPhotos), t.repo(TripPhotos), photosRepo),
-    await createTestUnitOfWork(testDb),
-    await createTestJourneysRepo(testDb),
-    await createTestJourneyContributorsRepo(testDb),
-    await createTestJourneyTripsRepo(testDb),
-    await createTestJourneyEntriesRepo(testDb),
-    await createTestTripsRepo(testDb),
-    photosRepo,
-    await createTestJourneyEntryPhotosRepo(testDb),
-    await createTestPlacesRepo(testDb),
-    release,
-  );
+  t = await createTestModule({
+    db,
+    imports: [JourneyDomainModule],
+    overrides: [{ provide: StorageReleaseService, useValue: release }],
+  });
+  svc = t.get(JourneyDomainService);
+  orm = await createTestOrm(db);
 });
-
 beforeEach(() => {
-  resetTestDb(testDb);
+  resetTestDb(db);
+  orm.clear();
 });
-
-afterAll(() => {
-  testDb.close();
+afterAll(async () => {
+  await orm.close();
+  await t.close();
+  db.close();
 });
 
 describe('deleteJourney and its gallery', () => {
   it('JOURNEY-SVC-022b: deleting a journey drops the photo rows only it held and releases their files', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const journey = await svc.createJourney(user.id, { title: 'J' });
     const [photo, video] = await svc.uploadGalleryPhotos(journey.id, user.id, [
       { path: 'journey/a.jpg' },
@@ -88,10 +71,10 @@ describe('deleteJourney and its gallery', () => {
   });
 
   it('JOURNEY-SVC-022c: a photo another journey or a trip still links keeps its row through the delete', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const journey = await svc.createJourney(user.id, { title: 'J' });
     const other = await svc.createJourney(user.id, { title: 'Other' });
-    const trip = createTrip(testDb, user.id);
+    const trip = await makeTrip(orm, user.id);
     const [shared, inTrip, alone] = await svc.uploadGalleryPhotos(journey.id, user.id, [
       { path: 'journey/shared.jpg' },
       { path: 'journey/trip.jpg' },
@@ -100,9 +83,7 @@ describe('deleteJourney and its gallery', () => {
     // The same file uploaded to a second journey reuses its photo row.
     const [again] = await svc.uploadGalleryPhotos(other.id, user.id, [{ path: 'journey/shared.jpg' }]);
     expect(again.photo_id).toBe(shared.photo_id);
-    testDb
-      .prepare('INSERT INTO trip_photos (trip_id, user_id, photo_id) VALUES (?, ?, ?)')
-      .run(trip.id, user.id, inTrip.photo_id);
+    await insertRow(orm, TripPhotos, { trip: trip.id, user: user.id, photo: inTrip.photo_id, shared: 1 });
 
     expect(await svc.deleteJourney(journey.id, user.id)).toBe(true);
 

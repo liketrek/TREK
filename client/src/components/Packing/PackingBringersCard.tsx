@@ -24,7 +24,7 @@ export function BringerAvatar({ bringer }: { bringer: Bringer }) {
       style={{
         ...CIRCLE,
         background: `hsl(${((bringer.name.codePointAt(0) ?? 0) * 37) % 360}, 55%, 55%)`, // theme-lint-disable: the colour comes from the bringer's name
-        color: 'white', // theme-lint-disable: the letter sits on the name's own colour
+        color: 'white',
         textTransform: 'uppercase',
       }}
     >
