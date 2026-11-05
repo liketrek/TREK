@@ -36,13 +36,18 @@ import { MikroORM } from '@mikro-orm/postgresql';
 import Database from 'better-sqlite3';
 import fs from 'node:fs';
 
-/** The baseline the entities and the migrations on disk describe now. */
-export async function generatePostgresBaseline(known: Set<string> = knownMigrationNames()): Promise<PostgresBaseline> {
+/** What one pass over the migrated SQLite database yields: the baseline, and the triggers the migrations leave there. */
+interface BaselinePass {
+  baseline: PostgresBaseline;
+  sqliteTriggers: string[];
+}
+
+/** The baseline the entities and the migrations on disk describe now, from one migration of the SQLite database. */
+async function generateBaseline(known: Set<string> = knownMigrationNames()): Promise<BaselinePass> {
   const migrations = [...known].sort();
   const through = migrations.at(-1);
   if (!through) throw new Error('no migrations found');
   const orm = await MikroORM.init({
-    // Never contacted: init() only discovers metadata, and the schema generator needs nothing else.
     clientUrl: 'postgresql://generator@localhost/trek',
     entities: [...ALL_ENTITIES],
     discovery: { warnWhenNoEntities: false },
@@ -56,19 +61,26 @@ export async function generatePostgresBaseline(known: Set<string> = knownMigrati
       ...migrated.tables.flatMap((table) => rowStatements(table.name, table.rows)),
       ...Object.values(POSTGRES_TRIGGERS).flat(),
     ];
-    return { through, migrations, statements };
+    return { baseline: { through, migrations, statements }, sqliteTriggers: migrated.triggers };
   } finally {
     await orm.close();
   }
 }
 
 /**
- * What `--check` holds. While no migration is newer than the committed
- * baseline, the baseline must be exactly what the entities generate. Once one
- * is, the baseline is frozen and only its manifest is checked: every migration
- * it names exists, and it names every migration up to `through`.
+ * What `--check` holds, as the problems it finds. Every manifest must name
+ * migrations that exist and every migration up to `through`. While no migration
+ * is newer than the committed baseline (`through` matches), the baseline is
+ * not frozen: it must be exactly what the entities generate, and each SQLite
+ * trigger needs a port. Once a newer migration lands, the baseline is frozen
+ * and only the manifest is checked.
  */
-export function checkBaseline(committed: PostgresBaseline, generated: PostgresBaseline, matches: boolean): string[] {
+export function checkBaseline(
+  committed: PostgresBaseline,
+  generated: PostgresBaseline,
+  matches: boolean,
+  sqliteTriggers: readonly string[],
+): string[] {
   const known = new Set(generated.migrations);
   const problems: string[] = [];
   const missing = committed.migrations.filter((name) => !known.has(name));
@@ -78,9 +90,10 @@ export function checkBaseline(committed: PostgresBaseline, generated: PostgresBa
   );
   if (unlisted.length > 0)
     problems.push(`migrations up to ${committed.through} are missing from it: ${unlisted.join(', ')}`);
-  if (committed.through === generated.through && !matches) {
-    problems.push('the entities generate a different schema; run npm run gen:pg-baseline');
-  }
+  const frozen = committed.through !== generated.through;
+  if (frozen) return problems;
+  if (!matches) problems.push('the entities generate a different schema; run npm run gen:pg-baseline');
+  problems.push(...triggerPortProblems(sqliteTriggers, Object.keys(POSTGRES_TRIGGERS)));
   return problems;
 }
 
@@ -90,32 +103,48 @@ const BOOKKEEPING_TABLES = new Set(['mikro_orm_migrations', 'migrations', 'schem
 type Row = Record<string, unknown>;
 
 /** What the migrations leave in a SQLite database: its triggers, and the rows they insert, table by table in creation order. */
-async function readMigratedSqlite(): Promise<{ triggers: string[]; tables: Array<{ name: string; rows: Row[] }> }> {
+interface MigratedSchema {
+  triggers: string[];
+  tables: Array<{ name: string; rows: Row[] }>;
+}
+
+/** The tables and triggers of a SQLite database in creation order, each as its type and name. */
+function listSchemaObjects(conn: Database.Database): Array<{ type: string; name: string }> {
+  return conn
+    .prepare(
+      "select type, name from sqlite_master where type in ('table', 'trigger') and name not like 'sqlite_%' order by rowid",
+    )
+    .all() as Array<{ type: string; name: string }>;
+}
+
+/** Reads a migrated SQLite database, read-only. */
+function readMigratedSchema(dbPath: string): MigratedSchema {
+  const conn = new Database(dbPath, { readonly: true });
+  try {
+    const objects = listSchemaObjects(conn);
+    const tables = objects
+      .filter((object) => object.type === 'table' && !BOOKKEEPING_TABLES.has(object.name))
+      .map((object) => ({
+        name: object.name,
+        rows: conn.prepare(`select * from "${object.name}" order by rowid`).all() as Row[],
+      }))
+      .filter((table) => table.rows.length > 0);
+    const triggers = objects
+      .filter((object) => object.type === 'trigger')
+      .map((object) => object.name)
+      .sort();
+    return { triggers, tables };
+  } finally {
+    conn.close();
+  }
+}
+
+/** Migrates a temporary SQLite database and reads what the migrations leave in it; the file is removed afterwards. */
+async function readMigratedSqlite(): Promise<MigratedSchema> {
   const dbPath = tempDbPath();
   try {
     await migrateTempDb(dbPath);
-    const conn = new Database(dbPath, { readonly: true });
-    try {
-      const objects = conn
-        .prepare(
-          "select type, name from sqlite_master where type in ('table', 'trigger') and name not like 'sqlite_%' order by rowid",
-        )
-        .all() as Array<{ type: string; name: string }>;
-      const tables = objects
-        .filter((object) => object.type === 'table' && !BOOKKEEPING_TABLES.has(object.name))
-        .map((object) => ({
-          name: object.name,
-          rows: conn.prepare(`select * from "${object.name}" order by rowid`).all() as Row[],
-        }))
-        .filter((table) => table.rows.length > 0);
-      const triggers = objects
-        .filter((object) => object.type === 'trigger')
-        .map((object) => object.name)
-        .sort();
-      return { triggers, tables };
-    } finally {
-      conn.close();
-    }
+    return readMigratedSchema(dbPath);
   } finally {
     fs.rmSync(dbPath, { force: true });
   }
@@ -143,7 +172,6 @@ export function rowStatements(table: string, rows: readonly Row[]): string[] {
   const statements = [
     `insert into "${table}" (${columns.map((c) => `"${c}"`).join(', ')}) values ${values.join(', ')}`,
   ];
-  // A text key (addons.id) has no sequence; a numeric one may.
   if (rows.every((row) => typeof row.id === 'number')) {
     statements.push(
       `select setval(seq, greatest(max_id, 1)) from (select pg_get_serial_sequence('"${table}"', 'id') as seq, ` +
@@ -169,24 +197,28 @@ export function triggerPortProblems(sqliteTriggers: readonly string[], ported: r
   return problems;
 }
 
-async function main(): Promise<void> {
-  const generated = await generatePostgresBaseline();
-  if (!process.argv.slice(2).includes('--check')) {
-    writePostgresBaseline(generated);
-    console.log(`[generate-pg-baseline] wrote ${generated.statements.length} statements through ${generated.through}`);
-    return;
-  }
+/** The default mode: writes the baseline the entities and the migrations describe. */
+async function writeMode(): Promise<void> {
+  const { baseline } = await generateBaseline();
+  writePostgresBaseline(baseline);
+  console.log(`[generate-pg-baseline] wrote ${baseline.statements.length} statements through ${baseline.through}`);
+}
+
+/** `--check` (CI): exits 1, naming every problem, when the committed baseline has drifted. */
+async function checkMode(): Promise<void> {
+  const { baseline: generated, sqliteTriggers } = await generateBaseline();
   const committed = readPostgresBaseline();
-  const problems = checkBaseline(committed, generated, baselineMatches(generated));
-  // Once frozen, a later migration's trigger reaches Postgres through the migrator, not this list.
-  if (committed.through === generated.through) {
-    problems.push(...triggerPortProblems((await readMigratedSqlite()).triggers, Object.keys(POSTGRES_TRIGGERS)));
-  }
+  const problems = checkBaseline(committed, generated, baselineMatches(generated), sqliteTriggers);
   if (problems.length > 0) {
     for (const problem of problems) console.error(`[generate-pg-baseline] ${problem}`);
     process.exit(1);
   }
   console.log('[generate-pg-baseline] --check: the Postgres baseline matches the entities and the migrations');
+}
+
+async function main(): Promise<void> {
+  if (process.argv.slice(2).includes('--check')) await checkMode();
+  else await writeMode();
 }
 
 if (require.main === module) {

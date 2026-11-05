@@ -41,17 +41,26 @@ export function renderBaseline(baseline: PostgresBaseline): { sql: string; manif
   };
 }
 
+/**
+ * Whether `data` is a manifest a baseline can be read from: a `through` naming
+ * one of a non-empty list of `migrations`, every entry a string.
+ */
+function isBaselineManifest(data: unknown): data is BaselineManifest {
+  if (typeof data !== 'object' || data === null || !('through' in data) || !('migrations' in data)) return false;
+  const { through, migrations } = data;
+  return (
+    typeof through === 'string' &&
+    Array.isArray(migrations) &&
+    migrations.length > 0 &&
+    migrations.every((name): name is string => typeof name === 'string') &&
+    migrations.includes(through)
+  );
+}
+
 function parseManifest(text: string, file: string): BaselineManifest {
   const data: unknown = JSON.parse(text);
-  const manifest = data as Partial<BaselineManifest>;
-  const valid =
-    typeof manifest.through === 'string' &&
-    Array.isArray(manifest.migrations) &&
-    manifest.migrations.length > 0 &&
-    manifest.migrations.every((name) => typeof name === 'string') &&
-    manifest.migrations.includes(manifest.through);
-  if (!valid) throw new Error(`${file} must name "through" and list it among "migrations"`);
-  return { through: manifest.through as string, migrations: manifest.migrations as string[] };
+  if (!isBaselineManifest(data)) throw new Error(`${file} must name "through" and list it among "migrations"`);
+  return { through: data.through, migrations: data.migrations };
 }
 
 /** Reads the committed baseline; a missing or malformed one throws, so a boot cannot start from half a schema. */
