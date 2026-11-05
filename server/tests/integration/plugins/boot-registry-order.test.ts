@@ -17,6 +17,7 @@
  * asserts the plugin still comes up clean.
  */
 import { db as testDb } from '../../../src/db/database';
+import { SqliteEngine } from '../../../src/db/engine/sqlite/sqlite-engine';
 import { Addons } from '../../../src/db/entities/Addons.entity';
 import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
 import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
@@ -173,7 +174,7 @@ describe('plugin boot vs registry scan ordering', () => {
               (t as TestOrm).repo(NotificationChannelPreferences),
               // Plan 4 Task 4: `uow` is no longer `@Optional()` — ordered ahead
               // of `registry?`/`hostFactory?`, matching the real constructor.
-              new UnitOfWork((t as TestOrm).em),
+              new UnitOfWork((t as TestOrm).em, new SqliteEngine()),
               undefined,
               hostFactory,
               t?.orm,
@@ -264,7 +265,7 @@ describe('plugin boot vs registry scan ordering', () => {
         t2.repo(PhotoProviderFields),
         t2.repo(AppSettings),
         t2.repo(Users),
-        new UnitOfWork(t2.em),
+        new UnitOfWork(t2.em, new SqliteEngine()),
       );
       const auditLogRepo2 = t2.repo(AuditLog);
       const usersRepo2 = t2.repo(Users);
@@ -293,7 +294,7 @@ describe('plugin boot vs registry scan ordering', () => {
                 t2.repo(PluginCapabilityAudit),
                 t2.repo(Settings),
                 t2.repo(NotificationChannelPreferences),
-                new UnitOfWork(t2.em),
+                new UnitOfWork(t2.em, new SqliteEngine()),
                 undefined,
                 hostFactory2,
                 t2.orm,

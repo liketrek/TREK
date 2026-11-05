@@ -1,8 +1,25 @@
 import type { PlaceWithTagsRow as PlaceWithTags } from '../../db/repositories/Places.repository';
 import { haversineMetres } from '../common/geo';
+import { toRowId } from '../common/row-id';
 import type { KmlImportSummary } from '../place-import/place-import.types';
 import type { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
 import { externalIdsOf, normalizePlaceName, placeMatchStrategies, type PlaceMatchCandidate } from '@trek/shared';
+
+/**
+ * The category and tag ids a place list filters by, from their query-string
+ * values. An absent or empty filter is left out; an id that is not canonical
+ * (`toRowId`) matches no place, so the list is `null` and the answer is empty
+ * without a query. The repository binds numbers only.
+ */
+export function placeListIdFilters(filters: {
+  category?: string;
+  tag?: string;
+}): { category?: number; tag?: number } | null {
+  const category = filters.category ? toRowId(filters.category) : undefined;
+  const tag = filters.tag ? toRowId(filters.tag) : undefined;
+  if (category === null || tag === null) return null;
+  return { category, tag };
+}
 
 /**
  * Pure helpers and module-scope constants of the places domain, moved verbatim

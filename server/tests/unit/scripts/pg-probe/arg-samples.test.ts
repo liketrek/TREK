@@ -7,13 +7,14 @@
  * sample (or a pinned reason it has none).
  */
 import {
+  PRESENCE_LABEL,
   planRepositories,
   readCompilerOptions,
   sampleString,
   type MethodPlan,
 } from '../../../../scripts/pg-probe/arg-samples';
 
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import ts from 'typescript';
@@ -47,6 +48,7 @@ export class ThingsRepository {
   async record(r: Record<string, number>): Promise<void> {}
   async literals(n: bigint, flag: true): Promise<void> {}
   async destructured({ id, label }: { id: number; label: string }): Promise<void> {}
+  async presence(write: { name?: readonly [present: boolean, value: string]; flag?: readonly [boolean, number] }): Promise<void> {}
 }
 export abstract class AbstractRepository {
   async skipped(): Promise<void> {}
@@ -102,6 +104,7 @@ describe('pg-probe argument samples', () => {
         'literals',
         'nullable',
         'optionalCallback',
+        'presence',
         'record',
         'rest',
         'tuple',
@@ -143,6 +146,28 @@ describe('pg-probe argument samples', () => {
     expect(argsOf('rest')).toEqual([1]);
     expect(argsOf('tuple')).toEqual([[1, 'probe']]);
     expect(argsOf('collections')).toEqual([new Set([1]), new Map([['1', 1]])]);
+  });
+
+  it('PGPROBE-037: a presence pair is present, so a patch built from it reaches its SQL', () => {
+    // The repositories' partial updates take `[present: boolean, value]` pairs
+    // and send nothing when no pair is present; a false flag would leave the
+    // method unmeasured. Only the element labelled `present` turns true.
+    expect(argsOf('presence')).toEqual([{ name: [true, 'probe'], flag: [false, 1] }]);
+  });
+
+  it('PGPROBE-038: the presence label the sampler reads is the one presenceSet declares', () => {
+    // The sampler matches the tuple label by name; a rename in the repository
+    // helper would stop the flag being sampled true, silently unmeasuring every
+    // partial update. Read the real signature, not a copy of it.
+    const file = path.join(__dirname, '../../../../src/db/repositories/_shared/presence-set.ts');
+    const source = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true);
+    const labels: string[] = [];
+    const visit = (node: ts.Node): void => {
+      if (ts.isNamedTupleMember(node)) labels.push(node.name.text);
+      ts.forEachChild(node, visit);
+    };
+    visit(source);
+    expect(labels).toContain(PRESENCE_LABEL);
   });
 
   it('PGPROBE-035: a required callback makes the method unprobeable, an optional one is left off', () => {

@@ -25,11 +25,10 @@ import path from 'node:path';
  * migrated; `TREK_DB_PRE_MIGRATE_SNAPSHOT=false` is the way past that.
  */
 
-const PREFIX = 'pre-migrate-';
-const SNAPSHOT_FILE = /^pre-migrate-.+\.db$/;
+export const PREFIX = 'pre-migrate-';
 
 /** `20261008T091500Z`: sortable, and free of the colons Windows refuses in a file name. */
-function stamp(now: Date): string {
+export function stamp(now: Date): string {
   return now
     .toISOString()
     .replace(/\.\d+Z$/, 'Z')
@@ -51,11 +50,11 @@ async function holdsAnything(connection: Connection): Promise<boolean> {
   return rows.length > 0;
 }
 
-/** The snapshots in `dir`, newest first. */
-export function listSnapshots(dir: string): string[] {
+/** The snapshots in `dir`, newest first: the SQLite file's (`.db`) or a Postgres engine's (`.pgdump`). */
+export function listSnapshots(dir: string, extension = '.db'): string[] {
   let entries: string[];
   try {
-    entries = fs.readdirSync(dir).filter((entry) => SNAPSHOT_FILE.test(entry));
+    entries = fs.readdirSync(dir).filter((entry) => entry.startsWith(PREFIX) && entry.endsWith(extension));
   } catch {
     return [];
   }
@@ -66,8 +65,8 @@ export function listSnapshots(dir: string): string[] {
 }
 
 /** Deletes all but the newest `keep`. A failure only warns: the new snapshot is already safe. */
-export function pruneSnapshots(dir: string, keep: number): void {
-  for (const file of listSnapshots(dir).slice(keep)) {
+export function pruneSnapshots(dir: string, keep: number, extension = '.db'): void {
+  for (const file of listSnapshots(dir, extension).slice(keep)) {
     try {
       fs.rmSync(file, { force: true });
     } catch (err) {

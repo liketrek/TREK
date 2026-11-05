@@ -1,5 +1,7 @@
+import { pgRestore, pgTableNames } from '../../db/engine/postgres/pg-tools';
 import { stageExtractedPluginTrees } from '../plugins/plugin-backup';
 import { checkBackupDatabase, extractBackupArchive, markReclaimResetPending } from './backup-archive';
+import { checkPostgresDump, PG_ARCHIVE_ENTRY } from './postgres-database-backup';
 
 import fs from 'fs';
 import path from 'path';
@@ -47,6 +49,11 @@ export interface BootRestorePlan {
   dataDir: string;
   /** `data/.trek-reclaim-reset` (data-paths.ts), left before the database is put in place. */
   reclaimResetFile: string;
+  /**
+   * Set when TREK runs on Postgres (TREK_DB_URL): the archive's dump is loaded
+   * into the database, which must hold no table yet, instead of `dbFile`.
+   */
+  postgres?: { url: string; binDir: string | undefined };
 }
 
 export type BootRestoreOutcome =
@@ -56,11 +63,38 @@ export type BootRestoreOutcome =
 
 export class BootRestoreError extends Error {}
 
+/** A database is there already: on a file, the file; on Postgres, any table in its schema. */
+async function existingDatabase(plan: BootRestorePlan): Promise<string | null> {
+  if (!plan.postgres) return fs.existsSync(plan.dbFile) ? plan.dbFile : null;
+  const tables = await pgTableNames(plan.postgres.url, plan.postgres.binDir);
+  return tables.length > 0 ? `the Postgres database (${tables.length} table(s))` : null;
+}
+
+/** Why the unpacked archive's database cannot be restored here, or null. */
+async function checkArchiveDatabase(plan: BootRestorePlan, staging: string): Promise<string | null> {
+  if (plan.postgres) return checkPostgresDump(staging, plan.postgres.binDir);
+  return checkBackupDatabase(staging)?.error ?? null;
+}
+
+/** Puts the archive's database in place: renamed in beside the file, or loaded into Postgres in one transaction. */
+async function putDatabaseInPlace(plan: BootRestorePlan, staging: string): Promise<void> {
+  if (plan.postgres) {
+    await pgRestore(plan.postgres.url, path.join(staging, PG_ARCHIVE_ENTRY), plan.postgres.binDir);
+    return;
+  }
+  fs.mkdirSync(path.dirname(plan.dbFile), { recursive: true });
+  // Copied in beside the target and renamed, so a crash leaves either nothing or a whole file.
+  const tmp = `${plan.dbFile}.restore-tmp`;
+  fs.copyFileSync(path.join(staging, 'travel.db'), tmp);
+  fs.renameSync(tmp, plan.dbFile);
+}
+
 export async function restoreOnFirstBoot(plan: BootRestorePlan): Promise<BootRestoreOutcome> {
   if (!plan.archive) return { restored: false, reason: 'unset' };
-  if (fs.existsSync(plan.dbFile)) {
+  const existing = await existingDatabase(plan);
+  if (existing) {
     console.warn(
-      `[restore] RESTORE_FROM_BACKUP is set, but ${plan.dbFile} already exists. The backup is only restored on a first start; remove the variable to silence this.`,
+      `[restore] RESTORE_FROM_BACKUP is set, but ${existing} already exists. The backup is only restored on a first start; remove the variable to silence this.`,
     );
     return { restored: false, reason: 'database-exists' };
   }
@@ -73,20 +107,16 @@ export async function restoreOnFirstBoot(plan: BootRestorePlan): Promise<BootRes
   const refused = await extractBackupArchive(plan.archive, staging);
   if (refused) throw new BootRestoreError(`RESTORE_FROM_BACKUP: ${refused.error}`);
 
-  const unreadable = checkBackupDatabase(staging);
+  const unreadable = await checkArchiveDatabase(plan, staging);
   if (unreadable) {
     fs.rmSync(staging, { recursive: true, force: true });
-    throw new BootRestoreError(`RESTORE_FROM_BACKUP: ${unreadable.error}`);
+    throw new BootRestoreError(`RESTORE_FROM_BACKUP: ${unreadable}`);
   }
 
   // Storage reclaim drops what the restored database knew about its storage on
   // the start that follows, even when the backup is this installation's own.
   markReclaimResetPending(plan.reclaimResetFile);
-  fs.mkdirSync(path.dirname(plan.dbFile), { recursive: true });
-  // Copied in beside the target and renamed, so a crash leaves either nothing or a whole file.
-  const tmp = `${plan.dbFile}.restore-tmp`;
-  fs.copyFileSync(path.join(staging, 'travel.db'), tmp);
-  fs.renameSync(tmp, plan.dbFile);
+  await putDatabaseInPlace(plan, staging);
 
   // The key the archive's secrets were encrypted with. An ENCRYPTION_KEY in the
   // environment still wins over the file, exactly as on any other start.

@@ -24,7 +24,7 @@ The compose file ships with several hardening options enabled by default:
 
 | Host path | Container path | Contents |
 |---|---|---|
-| `./data` | `/app/data` | SQLite database, logs, `.jwt_secret`, `.encryption_key` |
+| `./data` | `/app/data` | SQLite database (not used with `TREK_DB_URL`), logs, `.jwt_secret`, `.encryption_key`, pre-migration and pre-restore copies |
 | `./uploads` | `/app/uploads` | Uploaded files (photos, documents, covers, avatars) |
 
 ### Named Volumes
@@ -115,6 +115,21 @@ docker compose logs -f
 This compose file is designed for deployments where a reverse proxy (nginx, Caddy, Traefik) terminates TLS in front of TREK. To enable HTTPS redirects and secure cookies, uncomment `FORCE_HTTPS=true` and `TRUST_PROXY=1`.
 
 See [Reverse-Proxy](Reverse-Proxy) for complete proxy configuration examples.
+
+## Running on Postgres
+
+[`docker-compose.postgres.yml`](https://github.com/liketrek/TREK/blob/main/docker-compose.postgres.yml) runs TREK beside a `postgres:17` service instead of the SQLite file. Its `db` service keeps the database in a named volume and publishes no port, and the `trek` service waits for the database's health check before it starts.
+
+Put a password in a `.env` file beside the compose file, then start it:
+
+```bash
+echo 'POSTGRES_PASSWORD=<a long random value>' > .env
+docker compose -f docker-compose.postgres.yml up -d
+```
+
+The password goes into `TREK_DB_URL`, so use URL-safe characters or percent-encode it. Without `POSTGRES_PASSWORD` the database does not initialize and TREK does not start. To run it against a database that already exists elsewhere, use the plain `docker-compose.yml` and set `TREK_DB_URL` yourself.
+
+Read [Database: Postgres](Database-Postgres) before you use it. It covers the requirements, SSL, backups and restores, and the limits of a Postgres install.
 
 ## Next Steps
 

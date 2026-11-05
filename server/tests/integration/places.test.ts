@@ -468,6 +468,23 @@ describe('Search places', () => {
     expect(res.body.places).toHaveLength(1);
     expect(res.body.places[0].name).toBe('Scenic Place');
   });
+
+  it('PLACE-017c — GET ?category= or ?tag= with an id that is not a number matches nothing', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    createPlace(testDb, trip.id, { name: 'Somewhere' });
+
+    const queries = ['category=abc', 'tag=abc', 'category=1.5', 'tag=-1', 'category=0', 'tag=0'];
+    const responses = await Promise.all(
+      queries.map((query) =>
+        request(app).get(`/api/trips/${trip.id}/places?${query}`).set('Cookie', authCookie(user.id)),
+      ),
+    );
+    for (const [i, res] of responses.entries()) {
+      expect(res.status, queries[i]).toBe(200);
+      expect(res.body.places, queries[i]).toEqual([]);
+    }
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

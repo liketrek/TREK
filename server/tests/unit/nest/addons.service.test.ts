@@ -21,6 +21,7 @@
  * filter itself (the disabled row is excluded) alongside the boolean coercion
  * of the enabled row that remains.
  */
+import { SqliteEngine } from '../../../src/db/engine/sqlite/sqlite-engine';
 import { Addons } from '../../../src/db/entities/Addons.entity';
 import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
 import { PhotoProviderFields } from '../../../src/db/entities/PhotoProviderFields.entity';
@@ -195,7 +196,7 @@ beforeEach(() => {
     photoProviderFieldsRepo,
     appSettingsRepo,
     usersRepo,
-    new UnitOfWork(t.em),
+    new UnitOfWork(t.em, new SqliteEngine()),
   );
 });
 

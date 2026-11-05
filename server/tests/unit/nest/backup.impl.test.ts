@@ -2,7 +2,7 @@
  * Unit tests for backupService.
  * Covers BACKUP-031 to BACKUP-060.
  */
-import type { MaintenanceRepository } from '../../../src/db/repositories/MaintenanceRepository';
+import type { SqliteMaintenance } from '../../../src/db/engine/sqlite/sqlite-maintenance';
 import {
   formatSize,
   parseIntField,
@@ -78,9 +78,9 @@ const dbMock = vi.hoisted(() => ({
 }));
 
 // The database port's SQLite implementation is built for real below with this
-// stand-in for the MaintenanceRepository Nest injects into it: the WAL
+// stand-in for the SqliteMaintenance Nest injects into it: the WAL
 // checkpoint and the VACUUM INTO snapshot are what a backup and a restore ask
-// of it. The real statements are MaintenanceRepository.test.ts's coverage.
+// of it. The real statements are sqlite-maintenance.test.ts's coverage.
 const maintenanceRepoMock = vi.hoisted(() => ({
   walCheckpoint: vi.fn().mockResolvedValue(undefined),
   vacuumInto: vi.fn().mockResolvedValue(undefined),
@@ -121,7 +121,7 @@ const lifecycleStub = {
 function deps(storage: StorageService) {
   return {
     storage,
-    database: new SqliteDatabaseBackup(lifecycleStub, maintenanceRepoMock as unknown as MaintenanceRepository),
+    database: new SqliteDatabaseBackup(lifecycleStub, maintenanceRepoMock as unknown as SqliteMaintenance),
   };
 }
 

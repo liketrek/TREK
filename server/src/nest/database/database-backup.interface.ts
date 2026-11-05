@@ -1,14 +1,15 @@
+import { describeError } from '../common/describe-error';
+
 /**
  * How a backup, a restore and the demo reset get at the core database, without
  * knowing which engine holds it.
  *
  * The admin backup (`nest/backup/backup.impl.ts`), its restore, and the demo
  * baseline save and hourly reset (`demo/demo-reset.ts`) all go through this
- * port. The only implementation today is `SqliteDatabaseBackup`
- * (`nest/backup/`), which does what those paths always did: `VACUUM INTO` for a
- * consistent copy of the file, a file swap under a closed connection for a
- * restore. An engine that is not one local file would plug in here with a
- * logical dump and load instead.
+ * port. Each engine has an adapter in `nest/backup/`, chosen by the engine in
+ * use: SQLite copies the file (`VACUUM INTO`) and swaps it under a closed
+ * connection; Postgres dumps and restores it with pg_dump and pg_restore. The
+ * two adapters answer every method the same way, so the callers do not branch.
  *
  * Lives in the shared database kernel, not in the backup domain, so the admin
  * domain (the demo reset job, the baseline route) can inject it without
@@ -42,10 +43,11 @@ export interface DatabaseBackupStrategy {
   snapshot(target: string): Promise<void>;
 
   /**
-   * Checks an unpacked archive's database before anything is replaced. Returns
-   * null when it can be restored, or the refusal in the restore route's words.
+   * Checks an unpacked archive's database before anything is replaced. Resolves
+   * when it can be restored; otherwise throws a DomainError (status 400) that
+   * carries the refusal in the restore route's words.
    */
-  verify(extractDir: string): DatabaseBackupRefusal | null;
+  verify(extractDir: string): Promise<void>;
 
   /**
    * Keeps a copy of the database a restore is about to replace. Best effort: a
@@ -67,7 +69,7 @@ export interface DatabaseBackupStrategy {
   replace(source: string): Promise<{ reopenError: unknown }>;
 }
 
-/** A refusal in the restore route's own words and status. */
+/** A refusal in the restore route's own words and status, as `verify` reports it. */
 export interface DatabaseBackupRefusal {
   error: string;
   status: number;
@@ -75,8 +77,6 @@ export interface DatabaseBackupRefusal {
 
 /** Injection token for the active `DatabaseBackupStrategy`. */
 export const DATABASE_BACKUP = Symbol('DATABASE_BACKUP');
-
-const describeError = (err: unknown): string => (err instanceof Error ? err.message : String(err));
 
 /**
  * Thrown by `replace` when the swap failed and the reopen that always follows

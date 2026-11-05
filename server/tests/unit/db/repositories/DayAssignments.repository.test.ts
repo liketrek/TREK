@@ -3,6 +3,7 @@
  * assignment-with-place projection contract (built here, Task 3 consumes it
  * unchanged for AS1/AS3).
  */
+import { SqliteEngine } from '../../../../src/db/engine/sqlite/sqlite-engine';
 import { DayAccommodations } from '../../../../src/db/entities/DayAccommodations.entity';
 import { DayAssignments } from '../../../../src/db/entities/DayAssignments.entity';
 import { Places } from '../../../../src/db/entities/Places.entity';
@@ -35,7 +36,7 @@ let uow: UnitOfWork;
 beforeAll(async () => {
   t = await createTestOrm(testDb);
   assignments = t.repo(DayAssignments);
-  uow = new UnitOfWork(t.em);
+  uow = new UnitOfWork(t.em, new SqliteEngine());
 });
 beforeEach(() => {
   resetTestDb(testDb);

@@ -1,5 +1,5 @@
 import swc from 'unplugin-swc';
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 
 export default defineConfig({
   // SWC transform so NestJS decorator metadata is emitted in tests
@@ -25,6 +25,8 @@ export default defineConfig({
   test: {
     root: '.',
     include: ['tests/**/*.test.ts'],
+    // The Postgres-only suites run in their own lane (vitest.pg.config.ts, `npm run test:pg`).
+    exclude: [...configDefaults.exclude, 'tests/postgres/**'],
     globals: true,
     // Migrates one database for the whole run and snapshots it; workers open a
     // copy instead of replaying 242 migrations per file. See tests/global-setup.ts.

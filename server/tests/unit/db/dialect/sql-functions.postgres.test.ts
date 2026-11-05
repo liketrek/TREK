@@ -34,6 +34,7 @@ import {
   dateOf,
   dayDistance,
   foundAgainState,
+  ilike,
   lower,
   lowerParam,
   lowerTrim,
@@ -175,6 +176,9 @@ describe('sql-functions (postgres)', () => {
       'CAST(trunc(CAST(vr.accommodation_id AS numeric)) AS integer)',
     );
     expect(collateNoCase(pg, 'name').sql).toBe('name COLLATE "nocase"');
+    expect(ilike(pg, ['p.name', 'p.address'])).toBe("(p.name ILIKE ? ESCAPE '\\' OR p.address ILIKE ? ESCAPE '\\')");
+    expect(ilike(new SqlitePlatform(), ['p.name'])).toBe("(p.name LIKE ? ESCAPE '\\')");
+    expect(() => ilike(pg, ['p.name; drop'])).toThrow(/not a column reference/);
     const whileSame = coalesceOverrideWhileSame(pg, null, 'u.tls', 'u.url', 'https://a');
     expect(whileSame.sql).toBe(
       'CASE WHEN u.url IS NOT DISTINCT FROM ? THEN COALESCE(?, u.tls) ELSE COALESCE(?, 0) END',

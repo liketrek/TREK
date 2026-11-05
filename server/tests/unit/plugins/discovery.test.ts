@@ -8,6 +8,7 @@
  * bundle), via a real MikroORM over the full migrated schema (`createSnapshotTestDb`
  * + `createTestOrm`) rather than a hand-rolled `:memory:` table set.
  */
+import { SqliteEngine } from '../../../src/db/engine/sqlite/sqlite-engine';
 import { PluginActions } from '../../../src/db/entities/PluginActions.entity';
 import { PluginErrorLog } from '../../../src/db/entities/PluginErrorLog.entity';
 import { PluginSettingsFields } from '../../../src/db/entities/PluginSettingsFields.entity';
@@ -47,7 +48,7 @@ beforeAll(async () => {
     actions: t.repo(PluginActions),
     settingsFields: t.repo(PluginSettingsFields),
     errorLog: t.repo(PluginErrorLog),
-    uow: new UnitOfWork(t.em),
+    uow: new UnitOfWork(t.em, new SqliteEngine()),
   };
 });
 beforeEach(() => {

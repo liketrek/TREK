@@ -1,4 +1,6 @@
 import type { DB } from '../../kysely/db';
+import { accommodationIdMatches } from './reservation-accommodation';
+import type { Platform } from '@mikro-orm/core';
 
 import type { Kysely } from 'kysely';
 
@@ -9,14 +11,18 @@ export type ReservationJoinDB = Pick<DB, 'reservations' | 'days' | 'places' | 'd
  * A booking with its day number, its place's name and its stay's place and
  * times: the projection `ReservationsRepository.listForTrip` and
  * `findWithJoins` narrow with their own `WHERE`. Kept out of the repository
- * file, which is at its size baseline.
+ * file, which is at its size baseline. `accommodation_id` is TEXT and `ap.id`
+ * INTEGER, so the stay is matched through accommodationIdMatches: SQLite
+ * coerces the bare comparison, Postgres refuses it.
  */
-export function joinedReservationQuery(kysely: Kysely<ReservationJoinDB>) {
+export function joinedReservationQuery(kysely: Kysely<ReservationJoinDB>, platform: Platform) {
   return kysely
     .selectFrom('reservations as r')
     .leftJoin('days as d', 'd.id', 'r.day_id')
     .leftJoin('places as p', 'p.id', 'r.place_id')
-    .leftJoin('day_accommodations as ap', 'ap.id', 'r.accommodation_id')
+    .leftJoin('day_accommodations as ap', (join) =>
+      join.on((eb) => accommodationIdMatches(platform, eb, 'r.accommodation_id', 'ap.id')),
+    )
     .leftJoin('places as acc_p', 'acc_p.id', 'ap.place_id')
     .selectAll('r')
     .select([

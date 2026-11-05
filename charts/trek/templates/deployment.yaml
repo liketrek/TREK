@@ -1,3 +1,6 @@
+{{- if and .Values.database.url (not .Values.database.existingSecret) .Values.existingSecret }}
+{{- fail "database.url is written into the chart's own Secret, which existingSecret replaces. Put TREK_DB_URL in your Secret and set database.existingSecret instead." }}
+{{- end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -5,11 +8,13 @@ metadata:
   labels:
     app: {{ include "trek.name" . }}
 spec:
+  # One replica. Its rate limits, pending codes, permission cache and WebSocket
+  # connections live in the process's memory, so a second pod would not share them. That
+  # holds with database.url (PostgreSQL) too; see updateStrategy in values.yaml.
   replicas: 1
-  # TREK is a single-writer SQLite app on a ReadWriteOnce PVC, so the default
-  # RollingUpdate would start a second pod holding the same volume before the old one
-  # exits — a Multi-Attach deadlock, or two processes on one travel.db. Recreate tears
-  # the old pod down first. Keep it, see updateStrategy in values.yaml.
+  # The default RollingUpdate would start a second pod on the same ReadWriteOnce PVC
+  # before the old one exits: a Multi-Attach deadlock, or two processes on one travel.db.
+  # Recreate tears the old pod down first. Keep it, see updateStrategy in values.yaml.
   strategy:
     type: {{ .Values.updateStrategy | default "Recreate" }}
   selector:
@@ -61,6 +66,14 @@ spec:
                   name: {{ default (printf "%s-secret" (include "trek.fullname" .)) .Values.existingSecret }}
                   key: {{ .Values.existingSecretKey | default "ENCRYPTION_KEY" }}
                   optional: true
+            {{- if or .Values.database.url .Values.database.existingSecret }}
+            # Required when set: a missing key stops the pod rather than starting it on SQLite.
+            - name: TREK_DB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ default (printf "%s-secret" (include "trek.fullname" .)) .Values.database.existingSecret }}
+                  key: {{ if .Values.database.existingSecret }}{{ .Values.database.existingSecretKey | default "TREK_DB_URL" }}{{ else }}TREK_DB_URL{{ end }}
+            {{- end }}
             - name: ADMIN_EMAIL
               valueFrom:
                 secretKeyRef:

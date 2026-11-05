@@ -34,7 +34,7 @@ import { TripMembers } from '../../db/entities/TripMembers.entity';
 import { DayAssignments } from '../../db/entities/DayAssignments.entity';
 import { Categories } from '../../db/entities/Categories.entity';
 import { Trips } from '../../db/entities/Trips.entity';
-import type { PlacesRepository, PlaceListRow, PlaceWithTagsRow as PlaceWithTags } from '../../db/repositories/Places.repository';
+import type { PlacesRepository, PlaceWithTagsRow as PlaceWithTags } from '../../db/repositories/Places.repository';
 import type { TagsRepository } from '../../db/repositories/Tags.repository';
 import type { PlaceRatingsRepository } from '../../db/repositories/PlaceRatings.repository';
 import type { TripMembersRepository } from '../../db/repositories/TripMembers.repository';
@@ -73,6 +73,7 @@ import {
   type ListImportOptions,
   type ListImportResult,
   type PlaceImportResult,
+  placeListIdFilters,
 } from './places.helpers';
 
 type Trip = TripAccess;
@@ -247,16 +248,13 @@ export class PlacesService {
     filters: { search?: string; category?: string; tag?: string; assignment?: 'all' | 'unassigned' | 'assigned' },
   ) {
     // ESCAPE so a `%` or `_` the user typed matches literally instead of
-    // acting as a LIKE wildcard (a bare '%' used to return the whole trip) —
-    // the coercion stays here (the service), the repository binds the
+    // acting as a LIKE wildcard (a bare `%` would match every place in the
+    // trip). The coercion stays here (the service); the repository binds the
     // already-built pattern verbatim (PL3).
     const searchPattern = filters.search ? `%${escapeLikePattern(filters.search)}%` : undefined;
-    const places: PlaceListRow[] = await this.placesRepo.listForTrip(tripId, {
-      searchPattern,
-      category: filters.category,
-      tag: filters.tag,
-      assignment: filters.assignment,
-    });
+    const ids = placeListIdFilters(filters);
+    if (!ids) return [];
+    const places = await this.placesRepo.listForTrip(tripId, { searchPattern, ...ids, assignment: filters.assignment });
 
     const placeIds = places.map(p => p.id);
     const tagsByPlaceId = await this.queryHelpers.loadTagsByPlaceIds(placeIds);

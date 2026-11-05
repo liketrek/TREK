@@ -11,7 +11,7 @@
  * cases assert is which file each step names.
  *
  * The port is the real `SqliteDatabaseBackup` over a lifecycle stand-in (the
- * file, close, reopen) and a MaintenanceRepository stand-in (checkpoint,
+ * file, close, reopen) and a SqliteMaintenance stand-in (checkpoint,
  * VACUUM INTO). The file system is spied rather than written to, because the
  * baseline path is fixed at data/travel-baseline.db and a developer running a
  * demo instance has a real one sitting there.
@@ -21,7 +21,7 @@
  * `withRequestContext` over a real (empty) test database: the reads find
  * nothing and the restore-writes are skipped.
  */
-import type { MaintenanceRepository } from '../../../src/db/repositories/MaintenanceRepository';
+import type { SqliteMaintenance } from '../../../src/db/engine/sqlite/sqlite-maintenance';
 import { resetDemoUser, saveBaseline } from '../../../src/demo/demo-reset';
 import { SqliteDatabaseBackup } from '../../../src/nest/backup/sqlite-database-backup';
 import { DatabaseConnectionLostError } from '../../../src/nest/database/database-backup.interface';
@@ -65,7 +65,7 @@ describe('demo-reset DB path', () => {
     maintenance = { walCheckpoint: vi.fn(async () => {}), vacuumInto: vi.fn(async () => {}) };
     database = new SqliteDatabaseBackup(
       lifecycle as unknown as DatabaseLifecycle,
-      maintenance as unknown as MaintenanceRepository,
+      maintenance as unknown as SqliteMaintenance,
     );
   });
 

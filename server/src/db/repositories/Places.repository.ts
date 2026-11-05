@@ -1,6 +1,6 @@
 import type { Places } from '../entities/Places.entity';
 import { wrapOptionalLongitude } from '@trek/shared';
-import { absDifference, coalesceParam, columnRef, currentTimestamp, lowerTrim } from '../dialect/sql-functions';
+import { absDifference, coalesceParam, columnRef, currentTimestamp, ilike, lowerTrim } from '../dialect/sql-functions';
 import { type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
 import { tourPlaceTextPatch, type TourPlaceWrite } from './tour-place-write';
@@ -659,8 +659,8 @@ export class PlacesRepository extends TrekRepository<Places> {
    */
   async listForTrip(trip_id: string, filters: {
     searchPattern?: string;
-    category?: string;
-    tag?: string;
+    category?: number;
+    tag?: number;
     assignment?: 'all' | 'unassigned' | 'assigned';
   }): Promise<PlaceListRow[]> {
     const platform = this.getEntityManager().getPlatform();
@@ -680,15 +680,13 @@ export class PlacesRepository extends TrekRepository<Places> {
       .where('p.trip_id = ?', [trip_id]);
 
     if (filters.searchPattern) {
-      qb.andWhere(
-        "(p.name LIKE ? ESCAPE '\\' OR p.address LIKE ? ESCAPE '\\' OR p.description LIKE ? ESCAPE '\\')",
-        [filters.searchPattern, filters.searchPattern, filters.searchPattern],
-      );
+      const fields = ['p.name', 'p.address', 'p.description'];
+      qb.andWhere(ilike(platform, fields), fields.map(() => filters.searchPattern));
     }
-    if (filters.category) {
+    if (filters.category !== undefined) {
       qb.andWhere('p.category_id = ?', [filters.category]);
     }
-    if (filters.tag) {
+    if (filters.tag !== undefined) {
       qb.andWhere('p.id IN (SELECT place_id FROM place_tags WHERE tag_id = ?)', [filters.tag]);
     }
     if (filters.assignment === 'unassigned') {

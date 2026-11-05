@@ -1,3 +1,4 @@
+import { SqliteEngine } from '../../../../src/db/engine/sqlite/sqlite-engine';
 import { Trips } from '../../../../src/db/entities/Trips.entity';
 import { Users } from '../../../../src/db/entities/Users.entity';
 import type { TripsRepository } from '../../../../src/db/repositories/Trips.repository';
@@ -20,7 +21,7 @@ let uow: UnitOfWork;
 beforeAll(async () => {
   t = await createTestOrm(testDb);
   trips = t.repo(Trips);
-  uow = new UnitOfWork(t.em);
+  uow = new UnitOfWork(t.em, new SqliteEngine());
 });
 beforeEach(() => {
   resetTestDb(testDb);

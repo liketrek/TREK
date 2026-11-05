@@ -1,3 +1,5 @@
+import { columnNamesSql, tableExistsSql } from './dialect/catalog';
+import { TableNotFoundException } from '@mikro-orm/core';
 import type { Migration } from '@mikro-orm/migrations';
 
 /**
@@ -8,7 +10,7 @@ import type { Migration } from '@mikro-orm/migrations';
  * a migration class.
  */
 
-/** A single `pragma_table_info` row — only the column name is ever read. */
+/** A catalog row (`dialect/catalog.ts`): only the name is ever read. */
 interface ColumnRow {
   name: string;
 }
@@ -30,21 +32,18 @@ export async function addColumnIfMissing(
   column: string,
   definition: string,
 ): Promise<void> {
-  const existing = (await migration.execute('select name from pragma_table_info(?) where name = ?', [
-    table,
-    column,
-  ])) as ColumnRow[];
-  if (existing.length > 0) return;
-  await migration.execute(`alter table \`${table}\` add column ${definition}`);
+  if ((await columnNames(migration, table)).has(column)) return;
+  const platform = migration.getEntityManager().getPlatform();
+  await migration.execute(`alter table ${platform.quoteIdentifier(table)} add column ${definition}`);
 }
 
 /** True when `table` exists in the current database. */
 export async function tableExists(migration: Migration, table: string): Promise<boolean> {
-  const rows = await migration.execute(`select name from sqlite_master where type = 'table' and name = ?`, [table]);
+  const rows = await migration.execute(tableExistsSql(migration.getEntityManager().getPlatform()), [table]);
   return rows.length > 0;
 }
 
-/** The `CREATE TABLE` DDL SQLite stored for `table`, or null when it does not exist. */
+/** The `CREATE TABLE` DDL SQLite stored for `table`, or null when it does not exist. SQLite only: Postgres keeps no such text. */
 export async function tableSql(migration: Migration, table: string): Promise<string | null> {
   const rows = (await migration.execute(`select sql from sqlite_master where name = ?`, [table])) as {
     sql: string | null;
@@ -68,7 +67,8 @@ export async function execBestEffort(migration: Migration, sql: string, params?:
 
 /** The column names of `table`, or an empty set when the table does not exist. */
 export async function columnNames(migration: Migration, table: string): Promise<Set<string>> {
-  const rows = (await migration.execute('select name from pragma_table_info(?)', [table])) as ColumnRow[];
+  const sql = columnNamesSql(migration.getEntityManager().getPlatform());
+  const rows = (await migration.execute(sql, [table])) as ColumnRow[];
   return new Set(rows.map((r) => r.name));
 }
 
@@ -80,8 +80,18 @@ export async function execUnlessTableMissing(migration: Migration, sql: string, 
   try {
     await migration.execute(sql, params);
   } catch (err: unknown) {
-    if (!(err instanceof Error) || !err.message.includes('no such table')) throw err;
+    if (!isMissingTableError(err)) throw err;
   }
+}
+
+/**
+ * True when a statement failed because its table does not exist. The ORM maps
+ * SQLite's "no such table" and Postgres's SQLSTATE 42P01 to
+ * `TableNotFoundException`; the raw SQLite message is checked too, for an error
+ * that reached the caller unconverted.
+ */
+export function isMissingTableError(err: unknown): boolean {
+  return err instanceof TableNotFoundException || (err instanceof Error && err.message.includes('no such table'));
 }
 
 /**

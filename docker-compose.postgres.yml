@@ -1,0 +1,87 @@
+# TREK on a Postgres database instead of the SQLite file. See the wiki page
+# Database-Postgres for what this changes, the requirements and the backups.
+#
+# Set the database password in a .env file beside this file (or in the
+# shell) before the first start:
+#   POSTGRES_PASSWORD=<a long random value>
+# The password goes into TREK_DB_URL below, so keep it to URL-safe characters
+# or percent-encode it. Without POSTGRES_PASSWORD the postgres image refuses to
+# initialize its database, and TREK does not start.
+services:
+  db:
+    image: postgres:17
+    container_name: trek-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-trek}
+      - POSTGRES_USER=${POSTGRES_USER:-trek}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-}
+    security_opt:
+      - no-new-privileges:true
+    # No ports are published: only the trek service on the compose network reaches the database.
+    volumes:
+      - trek-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  app:
+    image: mauriceboe/trek:latest
+    container_name: trek
+    depends_on:
+      db:
+        condition: service_healthy
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+      # dumb-init runs as root and forwards SIGTERM to node, which runs as the
+      # node user; signalling another user's process needs KILL. See docker-compose.yml.
+      - KILL
+    tmpfs:
+      - /tmp:noexec,nosuid,size=128m
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-} # Recommended. Generate with: openssl rand -hex 32.
+      - TZ=${TZ:-UTC}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-}
+      # The database URL. Its host is the service name above; sslmode=disable is
+      # right on the compose network. Use sslmode=verify-full with sslrootcert=
+      # for a database reached over a network you do not control.
+      - TREK_DB_URL=postgres://${POSTGRES_USER:-trek}:${POSTGRES_PASSWORD:-}@db:5432/${POSTGRES_DB:-trek}?sslmode=disable
+      # Scale-out is not supported: keep one trek container (see Database-Postgres).
+    volumes:
+      - ./data:/app/data
+      - ./uploads:/app/uploads
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:$${PORT:-3000}/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  trek-pgdata:
