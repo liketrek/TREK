@@ -21,7 +21,7 @@ interface BaselineManifest {
 /**
  * The schema a fresh Postgres database starts from.
  *
- * The 331 migrations up to `through` are written in SQLite and frozen, so a
+ * The migrations up to `through` are written in SQLite and frozen, so a
  * Postgres database does not replay them: it runs these statements, generated
  * from the entities (`npm run gen:pg-baseline`), and records every migration
  * in `migrations` as executed in the same transaction. Migrations after
