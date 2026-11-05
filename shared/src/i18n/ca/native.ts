@@ -24,6 +24,21 @@ const native: TranslationStrings = {
   'native.privacy': 'Política de privadesa',
   'native.settings.server': 'Servidor',
   'native.settings.serverHint': 'Aquesta app està connectada a {server}.',
+  'native.welcome.headline': 'Plan trips together.',
+  'native.welcome.sub': 'TREK keeps every day, place, booking and cost in one live plan your whole group edits together.',
+  'native.welcome.connect': 'Connect your TREK',
+  'native.welcome.connectSub': 'Open the address you already use',
+  'native.welcome.getCloud': 'Get TREK Cloud',
+  'native.welcome.getCloudSub': 'Hosted for you, no setup',
+  'native.cloud.title': 'TREK Cloud',
+  'native.cloud.sub': 'We host TREK for you, on your own address. Nothing to install, nothing to maintain — ready in minutes.',
+  'native.cloud.f1': 'Your own address, on servers in Germany',
+  'native.cloud.f2': 'Set up in minutes, updates handled for you',
+  'native.cloud.f3': 'Your data stays yours — no ads, no tracking',
+  'native.cloud.cta': 'Get started',
+  'native.cloud.haveServer': 'I already have a TREK',
+  'native.connecting': 'Connecting to {host}',
+  'native.back': 'Back',
 };
 
 export default native;

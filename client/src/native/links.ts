@@ -11,3 +11,6 @@ export const SERVER_DOCS_URL = 'https://github.com/liketrek/TREK#readme';
 
 /** The public demo the address screen offers to someone without a server. */
 export const DEMO_SERVER_URL = 'https://demo.liketrek.com';
+
+/** TREK Cloud, for someone who wants a hosted TREK rather than running their own. */
+export const CLOUD_URL = 'https://liketrek.com';
