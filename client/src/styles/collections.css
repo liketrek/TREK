@@ -289,16 +289,16 @@
    name and status on top, labels and category below, still on one line. */
 .trek-dash .col-listview { container-type: inline-size; }
 .trek-dash .col-lrow-place {
-  grid-template-columns: 40px minmax(12rem, 1fr) minmax(0, max-content) auto;
+  grid-template-columns: 40px minmax(12rem, max-content) minmax(0, 1fr) auto;
   grid-template-areas: "tile main tags status";
 }
 .trek-dash .col-lrow-place > :first-child { grid-area: tile; }
 .trek-dash .col-lrow-place > .li { grid-area: main; }
-.trek-dash .col-lrow-tags { grid-area: tags; display: flex; align-items: center; gap: 8px; min-width: 0; overflow: hidden; }
+.trek-dash .col-lrow-tags { grid-area: tags; position: relative; display: flex; justify-content: flex-end; align-items: center; gap: 8px; min-width: 0; overflow: hidden; }
+/* A label the row has no room for stays in it, out of sight, so it can be measured. */
+.trek-dash .col-lrow-tags > .is-over { position: absolute; inset-inline-start: 0; visibility: hidden; pointer-events: none; }
 .trek-dash .col-lrow-tags > * { flex-shrink: 0; }
 .trek-dash .col-lrow-tags > .col-lrow-label, .trek-dash .col-lrow-tags > .col-lrow-cat { flex-shrink: 1; min-width: 0; }
-/* While the row fits its labels every chip keeps its own width (CollectionPlaceTags). */
-.trek-dash .col-lrow-tags.measuring > * { flex-shrink: 0; }
 .trek-dash .col-lrow-more { display: inline-flex; align-items: center; flex-shrink: 0; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; color: var(--ink-3); background: var(--surface-2); cursor: default; }
 .trek-dash .col-lrow-status { grid-area: status; display: flex; }
 @container (max-width: 760px) {
@@ -308,7 +308,7 @@
     row-gap: 0; align-items: start;
   }
   .trek-dash .col-lrow-place > :first-child { align-self: center; }
-  .trek-dash .col-lrow-tags { margin-top: 8px; }
+  .trek-dash .col-lrow-tags { margin-top: 8px; justify-content: flex-start; }
   .trek-dash .col-lrow-tags .col-lrow-div { display: none; }
   .trek-dash .col-lrow-tags > .col-lrow-label, .trek-dash .col-lrow-tags > .col-lrow-cat { max-width: 170px; }
 }
