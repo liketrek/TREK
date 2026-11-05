@@ -303,7 +303,13 @@ function showCloud(opts: { back?: boolean } = {}): void {
       'div',
       {},
       topbar(() => showWelcome({ back: true })),
-      el('h1', { className: 'title-sm' }, t('native.cloud.title')),
+      el(
+        'div',
+        { className: 'cloud-wordmark', role: 'img', ariaLabel: t('native.cloud.title') },
+        el('img', { src: logoWhite, alt: '', className: 'on-dark' }),
+        el('img', { src: logoBlack, alt: '', className: 'on-light' }),
+        el('span', { className: 'cloud-tag' }, 'cloud')
+      ),
       el('p', { className: 'sub' }, t('native.cloud.sub')),
       el(
         'div',
