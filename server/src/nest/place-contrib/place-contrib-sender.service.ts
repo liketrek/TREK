@@ -23,6 +23,7 @@ import {
   PLACES_PER_RUN,
 } from './place-contrib.constants';
 import {
+  PLACE_CONTRIB_COLUMN,
   UPLOADED_IMAGE_PREFIX,
   baseHashOf,
   dayOf,
@@ -336,7 +337,7 @@ function staleReason(
 
 /** The column a field is stored in. */
 function columnOf(row: OutboxCurrentRow, field: PlaceContribField): string | null {
-  return field === 'image' ? row.image_url : row[field];
+  return row[PLACE_CONTRIB_COLUMN[field]];
 }
 
 /** What the index serves for a field, in the form a queued value has; null when it serves nothing. */

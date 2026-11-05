@@ -27,6 +27,7 @@ export interface PlaceTypedRow {
     name: string;
     lat: number | null;
     lng: number | null;
+    address: string | null;
     osm_id: string | null;
     website: string | null;
     phone: string | null;
@@ -305,6 +306,7 @@ export class PlaceContribOutboxRepository extends TrekRepository<PlaceContribOut
         'name',
         'lat',
         'lng',
+        'address',
         'osm_id',
         'website',
         'phone',

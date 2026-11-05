@@ -99,7 +99,8 @@ export class PlaceContribService {
         if (!anyField(request.fields)) throw badRequest('Pick at least one field to share', { reason: 'no_field' });
         // A new agreement is a fresh start: a pause over a key or a wait the
         // service asked for is tried again on the next run, and what users
-        // typed before the agreement goes out too, caught up page by page.
+        // typed before the agreement goes out too, caught up page by page,
+        // withdrawn fields included, since the admin agreed to that anew.
         await this.uow.transactional(async () => {
           await this.store.writeConsent({
             enabled: true,
@@ -177,9 +178,13 @@ export class PlaceContribService {
         reason: 'withdraw_all',
       }),
     );
-    // Everything taken back stays back: the catch-up does not send it again.
+    // Everything taken back stays back: the catch-up running now ends, and a
+    // field switched on later under this agreement does not catch up either.
+    // Only a new agreement shares the earlier values again.
     const cleared = await this.uow.transactional(async () => {
       await this.log.insertLines(lines);
+      const consent = await this.store.consent();
+      await this.store.writeConsent({ ...consent, withdrawnFields: [...PLACE_CONTRIB_FIELDS] });
       await this.store.writeBackfill(null);
       return this.outbox.deleteAll();
     });
@@ -235,17 +240,33 @@ export class PlaceContribService {
     if (!anyField(fields)) throw badRequest('Pick at least one field to share', { reason: 'no_field' });
     const removed = PLACE_CONTRIB_FIELDS.filter((field) => consent.fields[field] && !fields[field]);
     const added = PLACE_CONTRIB_FIELDS.filter((field) => !consent.fields[field] && fields[field]);
-    const catchUp = added.length > 0 && consent.includesEarlier === true;
+    const withdrawn = PLACE_CONTRIB_FIELDS.filter(
+      (field) => consent.withdrawnFields?.includes(field) || (opts.withdraw && removed.includes(field)),
+    );
+    // A field switched on catches up too, under an agreement that said so,
+    // unless its earlier values were withdrawn: those stay taken back.
+    const earlier = consent.includesEarlier === true ? added.filter((field) => !withdrawn.includes(field)) : [];
+    const catchUp = earlier.length > 0;
     await this.uow.transactional(async () => {
-      await this.store.writeConsent({ ...consent, fields, ...opts.decided });
+      await this.store.writeConsent({
+        ...consent,
+        fields,
+        ...opts.decided,
+        ...(withdrawn.length > 0 ? { withdrawnFields: withdrawn } : {}),
+      });
       await this.outbox.deleteFields(removed);
-      // A field switched on catches up too, under an agreement that said so.
+      const pending = await this.store.backfill();
+      const pendingFields = (pending?.fields ?? []).filter((field) => !withdrawn.includes(field));
       // The catch-up keeps one position, so it starts over for every field it
       // still had to do; what went out already is answered as a duplicate.
       if (catchUp) {
-        const pending = (await this.store.backfill())?.fields ?? [];
-        const catchUpFields = PLACE_CONTRIB_FIELDS.filter((field) => added.includes(field) || pending.includes(field));
+        const catchUpFields = PLACE_CONTRIB_FIELDS.filter(
+          (field) => earlier.includes(field) || pendingFields.includes(field),
+        );
         await this.store.writeBackfill({ fields: catchUpFields, afterId: 0 });
+      } else if (pending && pendingFields.length < pending.fields.length) {
+        // A field withdrawn while its catch-up was still under way leaves it.
+        await this.store.writeBackfill(pendingFields.length > 0 ? { ...pending, fields: pendingFields } : null);
       }
     });
     if (catchUp) this.job.sendSoon();

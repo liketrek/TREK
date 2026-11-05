@@ -1,13 +1,14 @@
 import { PlaceContribOutbox } from '../../db/entities/PlaceContribOutbox.entity';
+import type { PlacesContributeBackfill } from '../../db/json-columns';
 import type { PlaceContribOutboxRepository, PlaceTypedRow } from '../../db/repositories/PlaceContribOutbox.repository';
-import { getCountryFromCoords } from '../../utils/country-borders';
+import { resolveCountryCodeSync } from '../atlas/atlas-geo';
 import { logInfo } from '../audit/audit-log.logger';
 import { inOrder } from '../common/in-order';
 import { valueHash } from '../common/value-hash';
 import { UnitOfWork } from '../database/unit-of-work';
 import { PlaceContribQueue } from './place-contrib-queue';
 import { PlaceContribSettings } from './place-contrib-settings';
-import { contribKeyOf } from './place-contrib.helpers';
+import { PLACE_CONTRIB_COLUMN, contribKeyOf } from './place-contrib.helpers';
 import type { ContribWrite } from './place-contrib.types';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
@@ -17,15 +18,6 @@ import type { PlaceContribField } from '@trek/shared';
 const BACKFILL_PAGE = 100;
 /** The catch-up only adds to the queue while it holds fewer values than this, so new writes never wait behind it. */
 export const BACKFILL_LOW_WATER = 200;
-
-const COLUMN = {
-  website: 'website',
-  phone: 'phone',
-  email: 'email',
-  opening_hours: 'opening_hours',
-  description: 'description',
-  image: 'image_url',
-} as const satisfies Record<PlaceContribField, keyof PlaceTypedRow['place']>;
 
 /**
  * The catch-up after an agreement: everything users typed into places since
@@ -70,13 +62,30 @@ export class PlaceContribBackfill {
       logInfo('Places contribution: the place details typed before the agreement are all queued');
       return 0;
     }
-    const writes = page.map((row) => typedWrite(row, fields)).filter((write) => write.values.length > 0);
-    await this.uow.transactional(async () => {
-      await inOrder(writes, (write) => this.queue.put(write, fields, now, { keepQueued: true }));
-      await this.store.writeBackfill({ fields, afterId: page[page.length - 1].place.id });
+    // The reads above ran outside the transaction, so a withdrawal, a switch
+    // off or a field change may have committed meanwhile. Only a catch-up that
+    // still stands where it was read goes on, and only for fields still on:
+    // what was just taken back must not be queued again.
+    return this.uow.transactional(async () => {
+      if (!sameBackfill(await this.store.backfill(), pending)) return 0;
+      const stillActive = await this.store.activeFields();
+      const live = fields.filter((field) => stillActive.includes(field));
+      if (live.length === 0) return 0;
+      const writes = page.map((row) => typedWrite(row, live)).filter((write) => write.values.length > 0);
+      await inOrder(writes, (write) => this.queue.put(write, live, now, { keepQueued: true }));
+      await this.store.writeBackfill({ fields: live, afterId: page[page.length - 1].place.id });
+      return writes.length;
     });
-    return writes.length;
   }
+}
+
+function sameBackfill(current: PlacesContributeBackfill | null, read: PlacesContributeBackfill): boolean {
+  return (
+    current !== null &&
+    current.afterId === read.afterId &&
+    current.fields.length === read.fields.length &&
+    current.fields.every((field, i) => field === read.fields[i])
+  );
 }
 
 /** The values of one place that are still the ones a user typed, for a place the service can key. */
@@ -85,7 +94,7 @@ function typedWrite(row: PlaceTypedRow, fields: readonly PlaceContribField[]): C
   const keyed = contribKeyOf(place.osm_id) !== null;
   const values = row.typed.flatMap(({ field, value_hash }) => {
     const known = fields.find((candidate) => candidate === field);
-    const value = known ? place[COLUMN[known]] : null;
+    const value = known ? place[PLACE_CONTRIB_COLUMN[known]] : null;
     if (!keyed || !known || typeof value !== 'string' || value.trim() === '') return [];
     return valueHash(value) === value_hash ? [{ field: known, value }] : [];
   });
@@ -95,8 +104,8 @@ function typedWrite(row: PlaceTypedRow, fields: readonly PlaceContribField[]): C
     name: place.name,
     lat: place.lat,
     lng: place.lng,
-    country:
-      values.length > 0 && place.lat !== null && place.lng !== null ? getCountryFromCoords(place.lat, place.lng) : null,
+    // Resolved the way a save resolves it, so a place goes out with the same country either way.
+    country: values.length > 0 ? resolveCountryCodeSync(place) : null,
     values,
     dropped: [],
   };

@@ -114,6 +114,13 @@ export const placeContribConsentSchema = z.object({
    * later catch up too. Absent on an agreement from 5.1.0.
    */
   includesEarlier: z.boolean().optional(),
+  /**
+   * The fields an admin withdrew under this agreement (all of them after
+   * "withdraw everything"). Switching one of them on again shares what users
+   * type from then on, not the history taken back; a new agreement clears it.
+   * Absent until something was withdrawn.
+   */
+  withdrawnFields: z.array(placeContribFieldSchema).optional(),
 });
 export type PlaceContribConsent = z.infer<typeof placeContribConsentSchema>;
 
