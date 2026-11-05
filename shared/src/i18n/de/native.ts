@@ -27,7 +27,7 @@ const native: TranslationStrings = {
   'native.settings.serverHint': 'Diese App ist mit {server} verbunden.',
   'native.welcome.headline': 'Deine Reisen.\nDein Plan.',
   'native.welcome.sub':
-    'TREK hält jeden Tag, Ort, jede Buchung und Kosten in einem gemeinsamen Plan, den eure ganze Gruppe live bearbeitet.',
+    'Plant gemeinsam in Echtzeit auf einer Live-Karte — Touren, Buchungen, Budgets, Packlisten, Journal und Fotobuch, den Rest erledigt die KI. Im Web, am Handy und offline.',
   'native.welcome.connect': 'Mit deinem TREK verbinden',
   'native.welcome.connectSub': 'Die Adresse öffnen, die du schon nutzt',
   'native.welcome.getCloud': 'TREK Cloud holen',
