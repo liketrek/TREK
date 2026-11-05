@@ -69,7 +69,7 @@ describe('CollectionPlaceTags', () => {
 
   it('FE-COMP-COLTAGS-004: the "+N" names the hidden labels in its tooltip', async () => {
     layout();
-    render(<CollectionPlaceTags place={place(null)} labels={LABELS} />);
+    render(<CollectionPlaceTags place={place()} labels={LABELS} />);
     fireEvent.mouseEnter(screen.getByText('+2'));
     expect(await screen.findByRole('tooltip')).toHaveTextContent('Heritage, Pair with another stop');
   });
