@@ -159,7 +159,7 @@ function showWelcome(opts: { back?: boolean } = {}): void {
 
   const connect = el(
     'button',
-    { type: 'button', className: 'btn' },
+    { type: 'button', className: 'btn btn-ghost' },
     el(
       'span',
       { className: 'btn-row' },
@@ -175,7 +175,7 @@ function showWelcome(opts: { back?: boolean } = {}): void {
 
   const cloud = el(
     'button',
-    { type: 'button', className: 'btn btn-ghost' },
+    { type: 'button', className: 'btn' },
     el(
       'span',
       { className: 'btn-row' },
@@ -199,8 +199,8 @@ function showWelcome(opts: { back?: boolean } = {}): void {
       hero,
       el('h1', { className: 'title brand-title' }, t('native.welcome.headline')),
       el('p', { className: 'sub' }, t('native.welcome.sub')),
-      connect,
       cloud,
+      connect,
       demo,
       footLinks(externalLink(t('native.connect.whatIsServer'), SERVER_DOCS_URL))
     ),
