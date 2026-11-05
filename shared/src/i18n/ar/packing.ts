@@ -135,6 +135,7 @@ const packing: TranslationStrings = {
   'packing.sharedWithCount.few': 'مشترك مع {count} أشخاص',
   'packing.sharedWithCount.many': 'مشترك مع {count} شخصًا',
   'packing.broughtBy': 'يحضره {name}',
+  'packing.bringersTitle': 'يحضره',
   'packing.alsoBring': 'يمكنني إحضاره أيضًا',
   'packing.alsoBringingStop': 'لن أحضره',
   'packing.cloneToMine': 'نسخ إلى قائمتي',

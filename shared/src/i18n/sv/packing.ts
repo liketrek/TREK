@@ -103,6 +103,7 @@ const packing: TranslationStrings = {
   'packing.sharedWithCount': 'delat med {count}',
   'packing.sharedWithCount.one': 'delat med {count}',
   'packing.broughtBy': 'tas med av {name}',
+  'packing.bringersTitle': 'Tar med',
   'packing.alsoBring': 'Jag kan ta med det också',
   'packing.alsoBringingStop': 'Jag tar inte med det',
   'packing.cloneToMine': 'Kopiera till min lista',

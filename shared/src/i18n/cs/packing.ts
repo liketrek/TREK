@@ -111,6 +111,7 @@ const packing: TranslationStrings = {
   'packing.sharedWithCount.one': 'sdíleno s {count} osobou',
   'packing.sharedWithCount.few': 'sdíleno s {count} osobami',
   'packing.broughtBy': 'přináší {name}',
+  'packing.bringersTitle': 'Přinese',
   'packing.alsoBring': 'Můžu to vzít taky',
   'packing.alsoBringingStop': 'Neberu to',
   'packing.cloneToMine': 'Kopírovat do mého seznamu',

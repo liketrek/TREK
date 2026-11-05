@@ -94,6 +94,7 @@ const packing: TranslationStrings = {
   'packing.takenCareOf': '由 {name} 负责',
   'packing.sharedWithCount': '已共享给 {count} 人',
   'packing.broughtBy': '由 {name} 带',
+  'packing.bringersTitle': '携带者',
   'packing.alsoBring': '我也可以带',
   'packing.alsoBringingStop': '我不带了',
   'packing.cloneToMine': '复制到我的清单',

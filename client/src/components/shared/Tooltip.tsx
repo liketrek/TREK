@@ -11,10 +11,15 @@ interface TooltipProps {
   disabled?: boolean
   /** The keys that do the same, shown beside the label: ["⌘", "K"]. */
   shortcut?: readonly string[]
+  /**
+   * Shown in place of the label when the tip holds more than words, such as a list of
+   * people with their pictures. `label` still names it and decides whether it opens.
+   */
+  content?: React.ReactNode
   children: React.ReactElement
 }
 
-export function Tooltip({ label, placement = 'bottom', delay = 250, disabled, shortcut, children }: TooltipProps) {
+export function Tooltip({ label, placement = 'bottom', delay = 250, disabled, shortcut, content, children }: TooltipProps) {
   const [open, setOpen] = useState(false)
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null)
   const triggerRef = useRef<HTMLElement | null>(null)
@@ -93,8 +98,8 @@ export function Tooltip({ label, placement = 'bottom', delay = 250, disabled, sh
             zIndex: 100000,
             fontSize: 'calc(11px * var(--fs-scale-caption, 1))',
             fontWeight: 500,
-            padding: '5px 10px',
-            borderRadius: 8,
+            padding: content ? '8px 10px' : '5px 10px',
+            borderRadius: content ? 10 : 8,
             // A label of several lines (the paddle check bench) breaks at its lines and wraps within the window.
             whiteSpace: label.includes('\n') ? 'pre-line' : 'nowrap',
             maxWidth: label.includes('\n') ? 'min(22rem, calc(100vw - 12px))' : undefined,
@@ -103,12 +108,12 @@ export function Tooltip({ label, placement = 'bottom', delay = 250, disabled, sh
             transformOrigin: placement === 'top' ? 'bottom center' : placement === 'bottom' ? 'top center' : placement === 'left' ? 'center right' : 'center left',
           }}
         >
-          {shortcut && shortcut.length > 0 ? (
+          {content ?? (shortcut && shortcut.length > 0 ? (
             <span className="inline-flex items-center gap-2">
               {label}
               <Kbd keys={shortcut} />
             </span>
-          ) : label}
+          ) : label)}
         </div>,
         document.body,
       )}

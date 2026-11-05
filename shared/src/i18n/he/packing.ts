@@ -99,6 +99,7 @@ const packing: TranslationStrings = {
   'packing.sharedWithCount.one': 'משותף עם אדם אחד',
   'packing.sharedWithCount.two': 'משותף עם שני אנשים',
   'packing.broughtBy': '{name} מביא/ה',
+  'packing.bringersTitle': 'מביאים',
   'packing.alsoBring': 'גם אני יכול/ה להביא',
   'packing.alsoBringingStop': 'אני לא מביא/ה',
   'packing.cloneToMine': 'העתקה לרשימה שלי',

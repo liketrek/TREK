@@ -94,6 +94,7 @@ const packing: TranslationStrings = {
   'packing.takenCareOf': '{name} 담당',
   'packing.sharedWithCount': '{count}명과 공유',
   'packing.broughtBy': '{name}님이 가져옴',
+  'packing.bringersTitle': '가져오는 사람',
   'packing.alsoBring': '저도 가져갈 수 있어요',
   'packing.alsoBringingStop': '안 가져갈게요',
   'packing.cloneToMine': '내 목록으로 복사',

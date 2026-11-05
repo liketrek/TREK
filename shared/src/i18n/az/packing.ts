@@ -105,6 +105,7 @@ const packing: TranslationStrings = {
   'packing.sharedWithCount': '{count} nəfərlə paylaşılıb',
   'packing.sharedWithCount.one': '{count} nəfərlə paylaşılıb',
   'packing.broughtBy': '{name} gətirir',
+  'packing.bringersTitle': 'Gətirənlər',
   'packing.alsoBring': 'Mən də bunu gətirə bilərəm',
   'packing.alsoBringingStop': 'Mən bunu gətirməyəcəyəm',
   'packing.cloneToMine': 'Mənim siyahıma köçür',

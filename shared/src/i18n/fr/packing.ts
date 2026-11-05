@@ -103,6 +103,7 @@ const packing: TranslationStrings = {
   'packing.sharedWithCount': 'partagé avec {count}',
   'packing.sharedWithCount.one': 'partagé avec {count}',
   'packing.broughtBy': 'apporté par {name}',
+  'packing.bringersTitle': 'Apporté par',
   'packing.alsoBring': "Je peux l'apporter aussi",
   'packing.alsoBringingStop': "Je ne l'apporte pas",
   'packing.cloneToMine': 'Copier dans ma liste',

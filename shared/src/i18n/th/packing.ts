@@ -87,6 +87,7 @@ const packing: TranslationStrings = {
   'packing.takenCareOf': 'โดย {name}',
   'packing.sharedWithCount': 'แชร์กับ {count}',
   'packing.broughtBy': '{name} จะนำมา',
+  'packing.bringersTitle': 'ผู้นำมา',
   'packing.alsoBring': 'ฉันก็สามารถนำสิ่งนั้นมาได้เช่นกัน',
   'packing.alsoBringingStop': 'ฉันไม่เอามันมา',
   'packing.cloneToMine': 'คัดลอกไปยังรายการของฉัน',

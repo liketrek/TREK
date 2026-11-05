@@ -95,6 +95,7 @@ const packing: TranslationStrings = {
   'packing.takenCareOf': 'oleh {name}',
   'packing.sharedWithCount': 'dibagikan dengan {count}',
   'packing.broughtBy': 'dibawa oleh {name}',
+  'packing.bringersTitle': 'Dibawa oleh',
   'packing.alsoBring': 'Saya juga bisa membawanya',
   'packing.alsoBringingStop': 'Saya tidak membawanya',
   'packing.cloneToMine': 'Salin ke daftar saya',

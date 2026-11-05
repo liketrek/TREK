@@ -104,6 +104,7 @@ const packing: TranslationStrings = {
   'packing.sharedWithCount': 'κοινό με {count} άτομα',
   'packing.sharedWithCount.one': 'κοινό με {count} άτομο',
   'packing.broughtBy': 'φέρνει ο/η {name}',
+  'packing.bringersTitle': 'Το φέρνει',
   'packing.alsoBring': 'Μπορώ να το φέρω κι εγώ',
   'packing.alsoBringingStop': 'Δεν το φέρνω',
   'packing.cloneToMine': 'Αντιγραφή στη λίστα μου',
