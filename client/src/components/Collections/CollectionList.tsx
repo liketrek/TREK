@@ -70,7 +70,7 @@ export default function CollectionList({
             <div className="col-lrow-end">
               {placeLabels.slice(0, 2).map(l => (
                 <span key={l.id} className="col-lrow-label" style={{ ['--label' as string]: l.color || 'var(--accent)' }} title={l.name}>
-                  <span className="col-labelchip-dot" /> {l.name}
+                  <span className="col-labelchip-dot" /> <span className="col-lrow-txt">{l.name}</span>
                 </span>
               ))}
               {placeLabels.length > 2 && <span className="col-lrow-label more" title={placeLabels.map(l => l.name).join(', ')}>+{placeLabels.length - 2}</span>}
@@ -79,7 +79,7 @@ export default function CollectionList({
                 return (
                   <>
                     <span className="col-lrow-cat" style={{ ['--cat' as string]: place.category.color || '#6366f1' }}>
-                      <CatIcon size={11} /> {place.category.name}
+                      <CatIcon size={11} /> <span className="col-lrow-txt">{place.category.name}</span>
                     </span>
                     <span className="col-lrow-div" aria-hidden />
                   </>
