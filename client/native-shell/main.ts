@@ -5,6 +5,7 @@ import { StatusBar, Style } from '@capacitor/status-bar'
 import { TrekShell } from '../src/native/trekShell'
 import { probeDemo, probeServer, type ProbeFailure, type ProbeGet } from '../src/native/serverAddress'
 import { CLOUD_URL, PRIVACY_URL, SERVER_DOCS_URL } from '../src/native/links'
+import { getIapClient, type Purchase, productIdFor } from '../src/native/iap'
 import { pickLocale, translator } from './i18n'
 import logoUrl from '../public/icons/icon-white.svg'
 import './shell.css'
@@ -23,6 +24,19 @@ document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr'
 
 const root = document.getElementById('shell')!
 const PROBE_TIMEOUT_MS = 8000
+
+const iap = getIapClient()
+/** Whether this build can take a payment in-app; decided once at start. Until then, and in a store build without the purchase plugin, the plan picker finishes on the web. */
+let iapAvailable = false
+
+/** The subdomain suffix a cloud instance sits on, from the cloud address: `liketrek.com` → `.liketrek.com`. */
+function cloudSuffix(): string {
+  try {
+    return `.${new URL(CLOUD_URL).host}`
+  } catch {
+    return '.liketrek.com'
+  }
+}
 
 // Native HTTP rather than fetch: the probe goes to a server of the user's
 // choosing, which has no reason to answer this page's origin with CORS.
@@ -302,11 +316,15 @@ async function fetchPlans(): Promise<CloudPlan[] | null> {
   }
 }
 
-function subscribe(plan: CloudPlan): void {
+function subscribe(plan: CloudPlan, interval: 'month' | 'year'): void {
   void tap(ImpactStyle.Medium)
-  // Phase 2: the subscription is an Apple/Google in-app purchase. Until the
-  // store products exist, the order is finished on the web for this plan.
-  window.open(`${CLOUD_URL}/order?plan=${encodeURIComponent(plan.id)}`, '_blank', 'noopener')
+  // In-app purchase when this build can take one; otherwise finish on the web, so
+  // nothing half-wired faces a customer until the store products exist.
+  if (iapAvailable) {
+    showClaim(plan, interval)
+  } else {
+    window.open(`${CLOUD_URL}/order?plan=${encodeURIComponent(plan.id)}`, '_blank', 'noopener')
+  }
 }
 
 function planCard(plan: CloudPlan, interval: 'month' | 'year', featured: boolean): HTMLElement {
@@ -314,7 +332,7 @@ function planCard(plan: CloudPlan, interval: 'month' | 'year', featured: boolean
   const per = interval === 'year' ? t('native.plans.perYear') : t('native.plans.perMonth')
   const feat = (text: string) => el('span', {}, icon(I.check, 16), text)
   const sub = el('button', { type: 'button', className: 'btn' }, t('native.plans.subscribe'))
-  sub.addEventListener('click', () => subscribe(plan))
+  sub.addEventListener('click', () => subscribe(plan, interval))
   return el(
     'div',
     { className: featured ? 'plan featured' : 'plan' },
@@ -397,6 +415,234 @@ function showPlans(opts: { back?: boolean } = {}): void {
     opts,
   )
   void load()
+}
+
+// ── Claim a TREK Cloud instance (choose address, buy, provision) ────────────
+type SlugStatus = 'available' | 'taken' | 'invalid' | 'reserved' | 'error'
+
+async function slugStatus(slug: string): Promise<SlugStatus> {
+  try {
+    const res = await get(`${CLOUD_URL}/api/slug/check?slug=${encodeURIComponent(slug)}`)
+    const data = typeof res.data === 'string' ? JSON.parse(res.data) : res.data
+    const status = (data as { status?: string })?.status
+    if (status === 'available' || status === 'taken' || status === 'invalid' || status === 'reserved') return status
+    return 'error'
+  } catch {
+    return 'error'
+  }
+}
+
+interface RedeemOk {
+  ok: true
+  instanceUrl: string
+}
+async function redeemPurchase(slug: string, email: string, purchase: Purchase): Promise<RedeemOk | { ok: false; code: string }> {
+  try {
+    const res = await CapacitorHttp.post({
+      url: `${CLOUD_URL}/api/iap/redeem`,
+      headers: { 'content-type': 'application/json' },
+      connectTimeout: PROBE_TIMEOUT_MS,
+      readTimeout: PROBE_TIMEOUT_MS,
+      data: { platform: purchase.platform, productId: purchase.productId, receipt: purchase.receipt, slug, email },
+    })
+    const data = typeof res.data === 'string' ? JSON.parse(res.data) : res.data
+    const body = (data ?? {}) as { instanceUrl?: string; code?: string }
+    if ((res.status === 200 || res.status === 201) && typeof body.instanceUrl === 'string') {
+      return { ok: true, instanceUrl: body.instanceUrl }
+    }
+    return { ok: false, code: body.code ?? 'redeem-failed' }
+  } catch {
+    return { ok: false, code: 'redeem-failed' }
+  }
+}
+
+function showClaim(plan: CloudPlan, interval: 'month' | 'year', opts: { back?: boolean } = {}): void {
+  const price = interval === 'year' ? plan.yearlyCents : plan.monthlyCents
+
+  const slugInput = el('input', { type: 'text', className: 'slug-input', autocapitalize: 'off', spellcheck: false, value: '' })
+  slugInput.setAttribute('inputmode', 'url')
+  slugInput.setAttribute('autocomplete', 'off')
+  slugInput.setAttribute('maxlength', '40')
+  slugInput.setAttribute('aria-label', t('native.claim.addressLabel'))
+  const slugField = el('div', { className: 'field slug-field' }, slugInput, el('span', { className: 'slug-suffix' }, cloudSuffix()))
+  const slugNote = el('p', { className: 'hint' })
+
+  const emailInput = el('input', { type: 'email', value: '', autocapitalize: 'off', spellcheck: false })
+  emailInput.setAttribute('inputmode', 'email')
+  emailInput.setAttribute('autocomplete', 'email')
+  emailInput.setAttribute('enterkeyhint', 'go')
+  emailInput.setAttribute('aria-label', t('native.claim.emailLabel'))
+  const emailField = el('div', { className: 'field' }, emailInput)
+
+  const submit = el('button', { type: 'submit', className: 'btn' }, t('native.claim.subscribe', { price: money(price) }))
+  const error = el('p', { className: 'error', role: 'alert' })
+  const form = el(
+    'form',
+    { className: 'form', noValidate: true },
+    slugField,
+    slugNote,
+    emailField,
+    el('p', { className: 'hint' }, t('native.claim.emailHint')),
+    submit,
+    error,
+  )
+
+  let status: SlugStatus | null = null
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const noteFor: Partial<Record<SlugStatus, string>> = {
+    available: t('native.claim.free'),
+    taken: t('native.claim.taken'),
+    invalid: t('native.claim.invalid'),
+    reserved: t('native.claim.reserved'),
+  }
+  slugInput.addEventListener('input', () => {
+    clearTimeout(timer)
+    status = null
+    slugNote.textContent = ''
+    slugNote.className = 'hint'
+    slugField.classList.remove('bad')
+    const value = slugInput.value.trim().toLowerCase()
+    if (value.length < 3) return
+    timer = setTimeout(async () => {
+      const result = await slugStatus(value)
+      if (slugInput.value.trim().toLowerCase() !== value) return
+      status = result
+      slugNote.textContent = noteFor[result] ?? ''
+      slugNote.className = `hint ${result === 'available' ? 'ok' : result === 'error' ? '' : 'bad'}`
+    }, 350)
+  })
+
+  const shake = (field: HTMLElement): void => {
+    void notify(NotificationType.Error)
+    field.classList.add('bad')
+    setTimeout(() => field.classList.remove('bad'), 350)
+  }
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault()
+    error.textContent = ''
+    const slug = slugInput.value.trim().toLowerCase()
+    const email = emailInput.value.trim()
+    if (slug.length < 3 || status === 'taken' || status === 'invalid' || status === 'reserved') {
+      shake(slugField)
+      slugInput.focus()
+      return
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      shake(emailField)
+      emailInput.focus()
+      return
+    }
+
+    void tap(ImpactStyle.Medium)
+    const lock = (on: boolean) => {
+      slugInput.disabled = on
+      emailInput.disabled = on
+      submit.disabled = on
+    }
+    lock(true)
+    submit.replaceChildren(el('span', { className: 'spinner' }), t('native.connect.checking'))
+    const restore = () => {
+      lock(false)
+      submit.replaceChildren(t('native.claim.subscribe', { price: money(price) }))
+    }
+
+    const outcome = await iap.purchase(productIdFor(plan.id, interval))
+    if (outcome.kind === 'cancelled') {
+      restore()
+      error.textContent = t('native.claim.cancelled')
+      return
+    }
+    if (outcome.kind === 'failed') {
+      void notify(NotificationType.Error)
+      restore()
+      error.textContent = t('native.claim.failed')
+      return
+    }
+
+    const redeemed = await redeemPurchase(slug, email, outcome.purchase)
+    if (redeemed.ok) {
+      showProvisioning(redeemed.instanceUrl)
+      return
+    }
+    void notify(NotificationType.Error)
+    restore()
+    if (redeemed.code === 'slug-taken') {
+      shake(slugField)
+      slugNote.textContent = t('native.claim.taken')
+      slugNote.className = 'hint bad'
+    } else {
+      error.textContent = t('native.claim.redeemFailed')
+    }
+  })
+
+  show(
+    el(
+      'div',
+      {},
+      topbar(() => showPlans({ back: true })),
+      el('h1', { className: 'title-sm' }, t('native.claim.title')),
+      el('p', { className: 'sub' }, t('native.claim.sub')),
+      form,
+    ),
+    opts,
+  )
+  requestAnimationFrame(() => slugInput.focus())
+}
+
+/** The build runs on the server; the app waits on the new address and loads it the moment it answers. */
+function showProvisioning(instanceUrl: string): void {
+  const host = (() => {
+    try {
+      return new URL(instanceUrl).host
+    } catch {
+      return instanceUrl
+    }
+  })()
+
+  const spinner = el('div', { className: 'provision-mark' }, el('span', { className: 'spinner' }))
+  show(
+    el(
+      'div',
+      { className: 'screen-center' },
+      spinner,
+      el('h1', { className: 'title-sm' }, t('native.provisioning.title')),
+      el('p', { className: 'sub' }, t('native.provisioning.sub', { host })),
+    ),
+  )
+
+  const deadline = Date.now() + 180_000
+  const poll = async (): Promise<void> => {
+    const result = await probeServer(instanceUrl, get)
+    if (result.ok) {
+      await connected(result.url)
+      return
+    }
+    if (Date.now() > deadline) {
+      showProvisioningSlow(instanceUrl)
+      return
+    }
+    setTimeout(() => void poll(), 4000)
+  }
+  setTimeout(() => void poll(), 3000)
+}
+
+function showProvisioningSlow(instanceUrl: string): void {
+  void notify(NotificationType.Warning)
+  const retry = el('button', { type: 'button', className: 'btn' }, t('native.provisioning.retry'))
+  retry.addEventListener('click', () => {
+    void tap()
+    showProvisioning(instanceUrl)
+  })
+  show(
+    el(
+      'div',
+      { className: 'screen-center' },
+      el('h1', { className: 'title-sm' }, t('native.provisioning.failedTitle')),
+      el('p', { className: 'sub' }, t('native.provisioning.failedSub')),
+      retry,
+    ),
+  )
 }
 
 // ── Shared actions ──────────────────────────────────────────────────────────
@@ -487,6 +733,9 @@ async function paintStatusBar(): Promise<void> {
 
 async function start(): Promise<void> {
   void paintStatusBar()
+  iap.isAvailable().then((ok) => {
+    iapAvailable = ok
+  })
   const { url } = await TrekShell.getServer()
   if (!url) {
     showWelcome()

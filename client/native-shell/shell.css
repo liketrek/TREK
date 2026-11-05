@@ -652,3 +652,61 @@ a.linkbtn {
   margin: 2px 0 0;
   line-height: 1.45;
 }
+
+/* ── Claim: address + email, and the provisioning wait ───────────────────── */
+.slug-field {
+  display: flex;
+  align-items: center;
+  padding-right: 14px;
+}
+.slug-field .slug-input {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+}
+.slug-suffix {
+  flex: none;
+  color: var(--muted);
+  font-size: 0.98rem;
+  padding-left: 2px;
+  user-select: none;
+}
+.hint {
+  margin: -6px 2px 2px;
+  font-size: 0.84rem;
+  color: var(--faint);
+  min-height: 1.1em;
+  transition: color 0.2s;
+}
+.hint.ok {
+  color: var(--ok);
+}
+.hint.bad {
+  color: var(--danger);
+}
+
+.screen-center {
+  justify-content: center;
+  text-align: center;
+  align-items: center;
+  gap: 18px;
+}
+.screen-center .title-sm,
+.screen-center .sub {
+  text-align: center;
+}
+.provision-mark {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+.provision-mark .spinner {
+  width: 40px;
+  height: 40px;
+  border-width: 3px;
+  border-color: var(--edge-strong);
+  border-top-color: var(--accent);
+}
