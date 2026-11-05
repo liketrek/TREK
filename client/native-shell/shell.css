@@ -31,6 +31,13 @@
   font-display: swap;
   src: url('./fonts/poppins-latin-700.woff2') format('woff2');
 }
+@font-face {
+  font-family: 'MuseoModerno';
+  font-style: normal;
+  font-weight: 600 700;
+  font-display: swap;
+  src: url('./fonts/museomoderno-latin-600.woff2') format('woff2');
+}
 
 :root {
   --bg: #09090b;
@@ -346,6 +353,14 @@ body::after {
   /* Honour the newline in the headline string (e.g. "Deine Reisen.\nDein Plan."). */
   white-space: pre-line;
 }
+/* The welcome headline as the brand says it: MuseoModerno, lower case. */
+.brand-title {
+  font-family: 'MuseoModerno', 'Poppins', sans-serif;
+  font-weight: 700;
+  text-transform: lowercase;
+  letter-spacing: -0.01em;
+  line-height: 1.08;
+}
 .title-sm {
   font-size: 1.5rem;
   line-height: 1.18;
@@ -439,19 +454,18 @@ body::after {
 .demo-link {
   font: inherit;
   font-weight: 600;
-  font-size: 0.9rem;
-  align-self: center;
+  font-size: 0.95rem;
+  align-self: stretch;
+  width: 100%;
   margin-top: 2px;
-  padding: 11px 20px;
-  border-radius: 999px;
+  padding: 14px 18px;
+  min-height: 48px;
+  border-radius: var(--radius);
   border: 1px solid var(--edge);
-  background: var(--surface);
+  background: transparent;
   color: var(--muted);
   cursor: pointer;
   white-space: nowrap;
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.2),
-    inset 0 0 0 1px color-mix(in srgb, var(--ink) 3%, transparent);
   transition:
     color 0.2s,
     background 0.2s,

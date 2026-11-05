@@ -197,7 +197,7 @@ function showWelcome(opts: { back?: boolean } = {}): void {
       'div',
       {},
       hero,
-      el('h1', { className: 'title' }, t('native.welcome.headline')),
+      el('h1', { className: 'title brand-title' }, t('native.welcome.headline')),
       el('p', { className: 'sub' }, t('native.welcome.sub')),
       connect,
       cloud,
