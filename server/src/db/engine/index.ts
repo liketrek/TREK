@@ -1,4 +1,6 @@
 import { readEnv } from '../../app-config';
+import type { DbEngineSettings } from '../../app-config/db-settings';
+import type { DbSettings } from '../../app-config/derive';
 import { ALL_ENTITIES } from '../entities';
 import type { DatabaseEngine } from './engine';
 import { PostgresEngine } from './postgres/postgres-engine';
@@ -15,9 +17,20 @@ export type { DatabaseEngine } from './engine';
  * call, like everything `readEnv()` answers, so nothing caches a choice a test
  * or a restart changes.
  */
-export function resolveEngine(db: ReturnType<typeof readEnv>['db'] = readEnv().db): DatabaseEngine {
-  if (db.engine === 'postgres' && db.url) return new PostgresEngine({ url: db.url, poolMax: db.poolMax });
+export function resolveEngine(db: DbEngineSettings = readEnv().db): DatabaseEngine {
+  if (db.engine === 'postgres') return new PostgresEngine(db);
   return new SqliteEngine();
+}
+
+/**
+ * The Postgres URL and the directory of its client tools, when the settings
+ * name a Postgres database; null on SQLite. For the code that drives pg_dump
+ * and pg_restore, which needs both and must not read them from the environment
+ * again.
+ */
+export function postgresTarget(db: DbSettings): { url: string; binDir: string | undefined } | null {
+  if (db.engine !== 'postgres') return null;
+  return { url: db.url, binDir: db.pgBinDir };
 }
 
 /**

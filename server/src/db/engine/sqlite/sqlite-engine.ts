@@ -14,7 +14,6 @@ import type { EntityManager } from '@mikro-orm/core';
  */
 export class SqliteEngine implements DatabaseEngine {
   readonly id = 'sqlite';
-  readonly reopenSwapsConnection = true;
 
   describe(): string {
     return `SQLite file ${resolveDbPath()}`;
@@ -24,11 +23,23 @@ export class SqliteEngine implements DatabaseEngine {
     return { driver: SharedSqliteDriver, dbName: resolveDbPath() };
   }
 
-  open(onReopened: () => Promise<void>): void {
-    // Normally a no-op: the ORM's first connect inside NestFactory.create()
-    // already opened it. Said here so the boot does not depend on that.
+  /**
+   * Opens the file (normally a no-op: the ORM's first connect inside
+   * NestFactory.create() already did, said here so the boot does not depend on
+   * that), and registers the reopen. A reopen swaps the file under the same
+   * handle, which Kysely caches, so the ORM's connection is closed and connected
+   * again first: the driver then reaches the new handle through
+   * `createKyselyDialect()`. The bound driver's `destroy()` is a no-op
+   * (`orm-driver.ts`), so the close never reaches the handle `db/database.ts` owns.
+   */
+  open(orm: AnyOrm, onReopened: () => Promise<void>): void {
     getRawConnection();
-    registerReinitializeHook(onReopened);
+    registerReinitializeHook(async () => {
+      const connection = orm.em.getConnection();
+      await connection.close(true);
+      await connection.connect();
+      await onReopened();
+    });
   }
 
   close(): void {
@@ -43,8 +54,8 @@ export class SqliteEngine implements DatabaseEngine {
     return runSchemaBootstrap(orm, options);
   }
 
+  /** A no-op: SQLite has one connection and one writer, so its transactions already run one at a time. */
   serializeWrites(_em: EntityManager): Promise<void> {
-    // One connection, one writer: SQLite serializes the transactions already.
     return Promise.resolve();
   }
 }

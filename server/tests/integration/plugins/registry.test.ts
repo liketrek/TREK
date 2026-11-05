@@ -3,6 +3,7 @@
  * install a pinned version through the full verify -> extract -> validate ->
  * move -> register pipeline (with the network download mocked).
  */
+import { SqliteEngine } from '../../../src/db/engine/sqlite/sqlite-engine';
 import { PluginActions } from '../../../src/db/entities/PluginActions.entity';
 import { PluginErrorLog } from '../../../src/db/entities/PluginErrorLog.entity';
 import { PluginSettingsFields } from '../../../src/db/entities/PluginSettingsFields.entity';
@@ -148,7 +149,7 @@ beforeEach(() => {
     t.repo(PluginActions),
     t.repo(PluginSettingsFields),
     t.repo(PluginErrorLog),
-    new UnitOfWork(t.em),
+    new UnitOfWork(t.em, new SqliteEngine()),
   );
 });
 afterEach(() => {

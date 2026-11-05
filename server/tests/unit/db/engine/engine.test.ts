@@ -1,8 +1,9 @@
 import { deriveDb } from '../../../../src/app-config/derive';
 import { buildOrmConfig, resolveEngine } from '../../../../src/db/engine';
 import { TrekPostgreSqlDriver } from '../../../../src/db/engine/postgres/postgres-driver';
-import { sslOptionFor } from '../../../../src/db/engine/postgres/postgres-engine';
+import { sslOptionFor } from '../../../../src/db/engine/postgres/ssl';
 import { redactUrl } from '../../../../src/db/engine/redact-url';
+import type { AnyOrm } from '../../../../src/db/orm';
 import { SharedSqliteDriver } from '../../../../src/db/orm-driver';
 import type { EntityManager } from '@mikro-orm/core';
 
@@ -112,7 +113,8 @@ describe('buildOrmConfig', () => {
     const engine = resolveEngine(deriveDb({ TREK_DB_URL: PG_URL }));
     await expect(engine.reopen()).rejects.toThrow(/reopened before it was opened/);
     const onReopened = vi.fn(async () => undefined);
-    expect(() => engine.open(onReopened)).not.toThrow();
+    const orm = {} as unknown as AnyOrm;
+    expect(() => engine.open(orm, onReopened)).not.toThrow();
     expect(() => engine.close()).not.toThrow();
     await engine.reopen();
     expect(onReopened).toHaveBeenCalledTimes(1);

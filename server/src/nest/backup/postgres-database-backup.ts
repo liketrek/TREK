@@ -1,22 +1,19 @@
-import { readEnv } from '../../app-config';
-import { resolveEngine } from '../../db/engine';
+import type { DbSettings } from '../../app-config';
+import { postgresTarget, type DatabaseEngine } from '../../db/engine';
 import { pgDump, pgDumpMigrations, pgRestore } from '../../db/engine/postgres/pg-tools';
 import { unknownMigrations } from '../../db/known-migrations';
 import { DataPathsService } from '../app-config/data-paths.service';
-import { logInfo, logWarn } from '../audit/audit-log.logger';
+import { logWarn } from '../audit/audit-log.logger';
+import { describeError } from '../common/describe-error';
 import { DomainError } from '../common/domain-error';
-import {
-  DatabaseConnectionLostError,
-  type DatabaseBackupRefusal,
-  type DatabaseBackupStrategy,
-} from '../database/database-backup.interface';
+import type { DatabaseBackupStrategy } from '../database/database-backup.interface';
+import { DATABASE_ENGINE, DATABASE_SETTINGS } from '../database/database-engine.module';
 import { DatabaseLifecycle } from '../database/database-lifecycle.service';
-import { Injectable } from '@nestjs/common';
+import { keepRestoreCopy, replaceThenReopen } from './database-swap';
+import { Inject, Injectable } from '@nestjs/common';
 
 import fs from 'fs';
 import path from 'path';
-
-const describeError = (err: unknown): string => (err instanceof Error ? err.message : String(err));
 
 /** The name a Postgres database takes inside a backup archive: a pg_dump custom-format file. */
 export const PG_ARCHIVE_ENTRY = 'travel.pgdump';
@@ -67,21 +64,25 @@ export async function checkPostgresDump(extractDir: string, binDir: string | und
 @Injectable()
 export class PostgresDatabaseBackup implements DatabaseBackupStrategy {
   readonly archiveEntry = PG_ARCHIVE_ENTRY;
+  /** The URL and the tools' directory; null on SQLite, where this provider is built but never called. */
+  private readonly target: ReturnType<typeof postgresTarget>;
 
   constructor(
     private readonly lifecycle: DatabaseLifecycle,
     private readonly paths: DataPathsService,
-  ) {}
+    @Inject(DATABASE_ENGINE) private readonly engine: DatabaseEngine,
+    @Inject(DATABASE_SETTINGS) settings: DbSettings,
+  ) {
+    this.target = postgresTarget(settings);
+  }
 
-  /** The URL and the tools' directory, read when used: on SQLite this provider is built but never called. */
-  private get settings(): { url: string; binDir: string | undefined } {
-    const { url, pgBinDir } = readEnv().db;
-    if (!url) throw new Error('The Postgres backup was used without TREK_DB_URL.');
-    return { url, binDir: pgBinDir };
+  private get connection(): { url: string; binDir: string | undefined } {
+    if (!this.target) throw new Error('The Postgres backup was used without TREK_DB_URL.');
+    return this.target;
   }
 
   location(): string {
-    return resolveEngine().describe();
+    return this.engine.describe();
   }
 
   /** A Postgres database is always there to copy; a missing pg_dump fails the snapshot, loudly. */
@@ -95,51 +96,32 @@ export class PostgresDatabaseBackup implements DatabaseBackupStrategy {
 
   /** pg_dump writes beside `target` and renames into place: a failed dump leaves nothing there. */
   async snapshot(target: string): Promise<void> {
-    const { url, binDir } = this.settings;
+    const { url, binDir } = this.connection;
     await pgDump(url, target, binDir);
   }
 
-  /** Refuses (a DomainError, 400) an archive this database cannot take, before anything is replaced. */
-  async verify(extractDir: string): Promise<DatabaseBackupRefusal | null> {
-    const refusal = await checkPostgresDump(extractDir, this.settings.binDir);
+  /** Throws a DomainError (400) with the refusal when the archive cannot be restored here, before anything is replaced. */
+  async verify(extractDir: string): Promise<void> {
+    const refusal = await checkPostgresDump(extractDir, this.connection.binDir);
     if (refusal) throw new DomainError(400, refusal);
-    return null;
   }
 
   /** A dump of the database a restore is about to replace, in the data directory. */
-  async keepCopyBeforeRestore(): Promise<string | null> {
+  keepCopyBeforeRestore(): Promise<string | null> {
     const target = path.join(this.paths.dataDir, `pre-restore-${Date.now()}.pgdump`);
-    try {
-      await this.snapshot(target);
-      logInfo(`Restore: the replaced database was kept as ${target}`);
-      return target;
-    } catch (err) {
-      logWarn(`Restore: could not keep a copy of the current database (${describeError(err)})`);
-      return null;
-    }
+    return keepRestoreCopy(target, (copy) => this.snapshot(copy));
   }
 
-  async replace(source: string): Promise<{ reopenError: unknown }> {
-    let swapError: unknown = null;
-    try {
-      const { url, binDir } = this.settings;
-      await pgRestore(url, source, binDir);
-    } catch (err) {
-      swapError = err ?? new Error('pg_restore failed');
-    }
-
-    // As on SQLite: the reopen always runs, so the ORM never keeps a stale pool,
-    // and both errors go up together when the restore failed as well.
-    let reopenError: unknown = null;
-    try {
-      await this.lifecycle.reopen();
-    } catch (err) {
-      reopenError = err;
-    }
-    if (swapError) {
-      if (reopenError) throw new DatabaseConnectionLostError(swapError, reopenError);
-      throw swapError;
-    }
-    return { reopenError };
+  replace(source: string): Promise<{ reopenError: unknown }> {
+    return replaceThenReopen(
+      async () => {
+        const { url, binDir } = this.connection;
+        // A rejection with no reason still has to fail the swap, so it is never swallowed.
+        await pgRestore(url, source, binDir).catch((err: unknown) => {
+          throw err ?? new Error('pg_restore failed');
+        });
+      },
+      () => this.lifecycle.reopen(),
+    );
   }
 }

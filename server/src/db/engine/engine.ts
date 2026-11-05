@@ -1,8 +1,6 @@
+import type { EngineId } from '../../app-config/db-settings';
 import type { AnyOrm } from '../orm';
 import type { EntityManager, Options } from '@mikro-orm/core';
-
-/** The databases TREK can be pointed at. MySQL/MariaDB are out of scope (server/CLAUDE.md). */
-type EngineId = 'sqlite' | 'postgres';
 
 /**
  * One database engine: what the ORM needs to reach it, how the connection
@@ -22,21 +20,19 @@ export interface DatabaseEngine {
   /** What MikroORM needs to reach the database: the driver and its target, the pool, driver options. */
   ormOptions(): Partial<Options>;
   /**
-   * Whether a reopen hands the ORM a different connection, so its client has
-   * to be closed and connected again around it. SQLite swaps the file under
-   * one handle; a Postgres restore replaces the contents of the same database,
-   * which the pool's connections keep reaching.
+   * Called once at boot, before the schema bootstrap. `onReopened` runs after
+   * each later reopen, once the ORM is pointed at the reopened database: the
+   * engine does what its own reopen needs first (SQLite hands the ORM a new
+   * handle, so the ORM's connection is closed and connected again), then calls
+   * it, and the caller migrates the database and runs whatever follows.
    */
-  readonly reopenSwapsConnection: boolean;
-  /**
-   * Called once at boot, before the schema bootstrap. `onReopened` is what
-   * has to follow a later reopen (rebinding the ORM, migrating the restored
-   * database forward).
-   */
-  open(onReopened: () => Promise<void>): void;
+  open(orm: AnyOrm, onReopened: () => Promise<void>): void;
   /** Closes what the engine itself holds; the ORM's own pool is closed with the Nest container. */
   close(): void;
-  /** Comes back after the database was replaced by a restore, then runs `onReopened`. */
+  /**
+   * Comes back after the database was replaced by a restore, then runs the
+   * `onReopened` that `open` registered. Throws when `open` has not run.
+   */
   reopen(): Promise<void>;
   /**
    * Brings the database to the current schema, then seeds it. `snapshot:

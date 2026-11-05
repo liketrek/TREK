@@ -9,6 +9,7 @@
  * listed here pass through untouched (Zod strips unknown keys, it does not
  * reject them).
  */
+import { DB_POOL_MAX_CEILING } from './db-settings';
 import {
   isP256PrivateKey,
   isServiceKeyShape,
@@ -167,7 +168,7 @@ export const envSchema = z.object({
   // A Postgres database instead of the SQLite file. Its value is a secret (it
   // carries the password), so it is masked in the boot report.
   TREK_DB_URL: postgresUrl,
-  TREK_DB_POOL_MAX: integer(1, 100),
+  TREK_DB_POOL_MAX: integer(1, DB_POOL_MAX_CEILING),
   TREK_DB_PG_BIN_DIR: anyString,
   TREK_DB_FILE: anyString,
   // The two SQLite pragmas are deliberately unvalidated: a typo here must fall

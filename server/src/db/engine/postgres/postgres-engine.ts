@@ -1,59 +1,15 @@
+import type { DbEngineSettings } from '../../../app-config/db-settings';
 import { NO_SAFETY_NET } from '../../legacy-baseline';
 import { finishSchemaBootstrap, type AnyOrm } from '../../orm';
 import type { DatabaseEngine } from '../engine';
 import { redactUrl } from '../redact-url';
 import { TrekPostgreSqlDriver } from './postgres-driver';
 import { bootstrapPostgresSchema, defaultPostgresBootstrapDeps, type PostgresBootstrapDeps } from './schema-bootstrap';
+import { sslOptionFor } from './ssl';
 import type { EntityManager } from '@mikro-orm/core';
 
-import { readFileSync } from 'node:fs';
-
-/** What `TREK_DB_URL` and `TREK_DB_POOL_MAX` resolve to (`readEnv().db`). */
-export interface PostgresSettings {
-  url: string;
-  poolMax: number;
-}
-
-/** The `ssl` option of a `pg` pool, as `sslOptionFor` builds it. */
-export type PgSslOption = false | { rejectUnauthorized: true; ca?: string };
-
-/** The sslmode values that verify the server, read the way the `pg` driver reads them. */
-const VERIFYING_MODES = new Set(['require', 'verify-ca', 'verify-full']);
-
-/**
- * The `ssl` option for the pool, from the URL's `sslmode` and `sslrootcert`.
- *
- * MikroORM builds the pool from the URL's host, port, user, password and
- * database alone and drops the rest of the query, so an `sslmode` in
- * `TREK_DB_URL` would be ignored without this. `require`, `verify-ca` and
- * `verify-full` all verify the server's certificate, as the `pg` driver itself
- * treats them; `disable` turns SSL off, and no `sslmode` leaves the driver's
- * default (no SSL). A mode that would connect without verifying (`prefer`,
- * `allow`, `no-verify`) or that is misspelt refuses, rather than quietly
- * connecting with less than was asked. `sslrootcert` names the CA file a host
- * that signs its own certificates needs (Supabase's, say).
- */
-export function sslOptionFor(url: string): PgSslOption | undefined {
-  const params = new URL(url).searchParams;
-  const mode = params.get('sslmode');
-  const rootCert = params.get('sslrootcert');
-  if (mode === null) {
-    if (rootCert !== null) throw new Error('TREK_DB_URL names an sslrootcert without sslmode=verify-full.');
-    return undefined;
-  }
-  if (mode === 'disable') return false;
-  if (!VERIFYING_MODES.has(mode)) {
-    throw new Error(
-      `TREK_DB_URL has sslmode "${mode}"; use disable, require, verify-ca or verify-full (all but disable verify the server).`,
-    );
-  }
-  if (rootCert === null) return { rejectUnauthorized: true };
-  try {
-    return { rejectUnauthorized: true, ca: readFileSync(rootCert, 'utf8') };
-  } catch (error) {
-    throw new Error(`TREK_DB_URL names sslrootcert ${rootCert}, which cannot be read.`, { cause: error });
-  }
-}
+/** What `TREK_DB_URL` and `TREK_DB_POOL_MAX` resolve to, when they name a Postgres database. */
+type PostgresSettings = Extract<DbEngineSettings, { engine: 'postgres' }>;
 
 /** The advisory lock key every write transaction takes: "TREK" in ASCII. */
 const TREK_WRITE_LOCK = 0x5452454b;
@@ -67,12 +23,6 @@ const TREK_WRITE_LOCK = 0x5452454b;
  */
 export class PostgresEngine implements DatabaseEngine {
   readonly id = 'postgres';
-  /**
-   * The pool stays: ending it waits for every connection it has lent out, and
-   * one lent to a job while the restore ran was never handed back to the
-   * ending pool, so the restore never returned.
-   */
-  readonly reopenSwapsConnection = false;
 
   constructor(
     private readonly settings: PostgresSettings,
@@ -81,8 +31,14 @@ export class PostgresEngine implements DatabaseEngine {
 
   private onReopened: (() => Promise<void>) | null = null;
 
-  /** Nothing of its own to open (the ORM connects the pool); keeps what a reopen runs. */
-  open(onReopened: () => Promise<void>): void {
+  /**
+   * Nothing of its own to open: the ORM connects the pool. Keeps what a reopen
+   * runs. A reopen replaces the database's contents, which the pool's own
+   * connections keep reaching, so the ORM is not pointed at anything new and
+   * the pool is never closed (ending a pool waits for every connection it has
+   * lent out, and one lent to a job during the restore would never come back).
+   */
+  open(_orm: AnyOrm, onReopened: () => Promise<void>): void {
     this.onReopened = onReopened;
   }
 

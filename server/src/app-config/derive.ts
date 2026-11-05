@@ -14,6 +14,7 @@
  * call, which is what keeps the runtime env-mutation semantics the test suite
  * depends on. Zod validation runs once at boot (env.schema.ts), never here.
  */
+import { DB_POOL_MAX_CEILING, DB_POOL_MAX_DEFAULT, type DbEngineSettings } from './db-settings';
 import { imageVersion } from './image-version';
 import {
   csvList,
@@ -336,16 +337,23 @@ export function deriveBackup(raw: RawEnv) {
   };
 }
 
+/** The database settings `readEnv().db` answers with. */
+export type DbSettings = ReturnType<typeof deriveDb>;
+
 export function deriveDb(raw: RawEnv) {
   const durability = resolveDurability(raw.TREK_DB_JOURNAL_MODE, raw.TREK_DB_SYNCHRONOUS);
   const url = raw.TREK_DB_URL?.trim() || undefined;
+  const engine: DbEngineSettings = url
+    ? {
+        engine: 'postgres',
+        // The connection URL carries the password, so it is never logged (db/engine/redact-url.ts).
+        url,
+        poolMax: Math.min(positiveIntOr(raw.TREK_DB_POOL_MAX, DB_POOL_MAX_DEFAULT), DB_POOL_MAX_CEILING),
+      }
+    : { engine: 'sqlite' };
   return {
     /** Which database this process runs on: Postgres when TREK_DB_URL names one, the SQLite file otherwise. */
-    engine: (url ? 'postgres' : 'sqlite') as 'sqlite' | 'postgres',
-    /** The Postgres connection URL; it carries the password, so never log it (db/engine/redact-url.ts). */
-    url,
-    /** The largest number of connections the Postgres pool opens. */
-    poolMax: Math.min(positiveIntOr(raw.TREK_DB_POOL_MAX, 10), 100),
+    ...engine,
     /** Where pg_dump and pg_restore are; unset, the usual install directories are tried (never PATH). */
     pgBinDir: raw.TREK_DB_PG_BIN_DIR?.trim() || undefined,
     trekDbFile: raw.TREK_DB_FILE,

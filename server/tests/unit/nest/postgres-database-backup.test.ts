@@ -4,6 +4,8 @@
  * tests/helpers/fake-pg-tools.ts) and a stand-in DatabaseLifecycle. The tools'
  * own arguments are pinned in tests/unit/db/engine/postgres/pg-tools.test.ts.
  */
+import { deriveDb } from '../../../src/app-config/derive';
+import { resolveEngine } from '../../../src/db/engine';
 import { knownMigrationNames } from '../../../src/db/known-migrations';
 import type { DataPathsService } from '../../../src/nest/app-config/data-paths.service';
 import { PostgresDatabaseBackup } from '../../../src/nest/backup/postgres-database-backup';
@@ -31,6 +33,17 @@ let extract: string;
 let reopen: ReturnType<typeof vi.fn>;
 let backup: PostgresDatabaseBackup;
 
+/** The adapter over the settings a process reads from these variables, with stand-ins for the lifecycle and the data directory. */
+function postgresBackup(env: Record<string, string>): PostgresDatabaseBackup {
+  const db = deriveDb(env);
+  return new PostgresDatabaseBackup(
+    { reopen } as unknown as DatabaseLifecycle,
+    { dataDir: root } as unknown as DataPathsService,
+    resolveEngine(db),
+    db,
+  );
+}
+
 beforeEach(() => {
   root = mkdtempSync(path.join(tmpdir(), 'trek-pg-backup-'));
   bin = path.join(root, 'bin');
@@ -38,13 +51,8 @@ beforeEach(() => {
   mkdirSync(bin);
   mkdirSync(extract);
   installFakeTool(bin, 'psql', { snippets: [answersSchema()] });
-  vi.stubEnv('TREK_DB_URL', 'postgresql://trek:pw@db/trek');
-  vi.stubEnv('TREK_DB_PG_BIN_DIR', bin);
   reopen = vi.fn(async () => undefined);
-  backup = new PostgresDatabaseBackup(
-    { reopen } as unknown as DatabaseLifecycle,
-    { dataDir: root } as unknown as DataPathsService,
-  );
+  backup = postgresBackup({ TREK_DB_URL: 'postgresql://trek:pw@db/trek', TREK_DB_PG_BIN_DIR: bin });
 });
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -78,7 +86,7 @@ describe('PostgresDatabaseBackup', () => {
   it('PGBACKUP-002: verify accepts a TREK dump this build knows', async () => {
     writeFileSync(path.join(extract, 'travel.pgdump'), 'dump');
     installFakeTool(bin, 'pg_restore', { snippets: [listsMigrations(KNOWN.slice(0, 3))] });
-    await expect(backup.verify(extract)).resolves.toBeNull();
+    await expect(backup.verify(extract)).resolves.toBeUndefined();
   });
 
   it('PGBACKUP-002a: verify refuses an archive without a TREK dump in it', async () => {
@@ -159,7 +167,6 @@ describe('PostgresDatabaseBackup', () => {
 
   it('PGBACKUP-006: names the database without its password, and refuses to run without TREK_DB_URL', async () => {
     expect(backup.location()).toBe('Postgres postgresql://trek:***@db/trek');
-    vi.stubEnv('TREK_DB_URL', '');
-    await expect(backup.snapshot(path.join(root, 'c.pgdump'))).rejects.toThrow(/without TREK_DB_URL/);
+    await expect(postgresBackup({}).snapshot(path.join(root, 'c.pgdump'))).rejects.toThrow(/without TREK_DB_URL/);
   });
 });

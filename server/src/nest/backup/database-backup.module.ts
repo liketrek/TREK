@@ -1,5 +1,6 @@
-import { resolveEngine } from '../../db/engine';
+import type { DatabaseEngine } from '../../db/engine';
 import { DATABASE_BACKUP, type DatabaseBackupStrategy } from '../database/database-backup.interface';
+import { DatabaseEngineModule, DATABASE_ENGINE } from '../database/database-engine.module';
 import { DatabaseLifecycleModule } from '../database/database-lifecycle.module';
 import { MaintenanceModule } from '../database/maintenance.module';
 import { PostgresDatabaseBackup } from './postgres-database-backup';
@@ -8,7 +9,7 @@ import { Global, Module } from '@nestjs/common';
 
 /**
  * Binds the database backup port (`DATABASE_BACKUP`) to the engine in use
- * (`TREK_DB_URL`, read at boot through `resolveEngine()`).
+ * (`TREK_DB_URL`, the one `DATABASE_ENGINE` provides).
  *
  * Global because its consumers sit in two domains: the backup domain itself
  * and the admin domain (the demo reset job and the baseline route). Admin
@@ -22,15 +23,18 @@ import { Global, Module } from '@nestjs/common';
  */
 @Global()
 @Module({
-  imports: [DatabaseLifecycleModule, MaintenanceModule],
+  imports: [DatabaseEngineModule, DatabaseLifecycleModule, MaintenanceModule],
   providers: [
     SqliteDatabaseBackup,
     PostgresDatabaseBackup,
     {
       provide: DATABASE_BACKUP,
-      useFactory: (sqlite: SqliteDatabaseBackup, postgres: PostgresDatabaseBackup): DatabaseBackupStrategy =>
-        ({ sqlite, postgres })[resolveEngine().id],
-      inject: [SqliteDatabaseBackup, PostgresDatabaseBackup],
+      useFactory: (
+        engine: DatabaseEngine,
+        sqlite: SqliteDatabaseBackup,
+        postgres: PostgresDatabaseBackup,
+      ): DatabaseBackupStrategy => ({ sqlite, postgres })[engine.id],
+      inject: [DATABASE_ENGINE, SqliteDatabaseBackup, PostgresDatabaseBackup],
     },
   ],
   exports: [DATABASE_BACKUP],

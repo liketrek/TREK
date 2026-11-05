@@ -14,6 +14,7 @@ import { resolveDataPaths } from './app-config/data-paths';
 // keeping the require after the restore keeps that true by construction.
 import type * as Bootstrap from './bootstrap';
 import { resolveDbPath } from './db/db-path';
+import { postgresTarget } from './db/engine';
 import { flushLogFileSync, logError } from './nest/audit/audit-log.logger';
 import type { DatabaseLifecycle } from './nest/database/database-lifecycle.service';
 import { ReadinessService } from './nest/health/readiness.service';
@@ -150,7 +151,7 @@ async function restoreBeforeTheDatabaseOpens() {
     dbFile: resolveDbPath(),
     dataDir: paths.dataDir,
     reclaimResetFile: paths.reclaimResetFile,
-    postgres: env.db.url ? { url: env.db.url, binDir: env.db.pgBinDir } : undefined,
+    postgres: postgresTarget(env.db) ?? undefined,
   });
 }
 

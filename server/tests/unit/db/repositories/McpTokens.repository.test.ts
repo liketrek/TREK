@@ -1,3 +1,4 @@
+import { SqliteEngine } from '../../../../src/db/engine/sqlite/sqlite-engine';
 import { McpTokens } from '../../../../src/db/entities/McpTokens.entity';
 import type { McpTokensRepository } from '../../../../src/db/repositories/McpTokens.repository';
 import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
@@ -449,7 +450,7 @@ describe('McpTokensRepository', () => {
       // read, nativeUpdate, flush, still correct — is still worth pinning.
       const { user } = createUser(testDb);
       const created = createMcpToken(testDb, user.id, { name: 'stays-original' });
-      const uow = new UnitOfWork(t.em);
+      const uow = new UnitOfWork(t.em, new SqliteEngine());
 
       await uow.transactional(async () => {
         const basic = await tokens.findBasic(created.id);
@@ -516,7 +517,7 @@ describe('McpTokensRepository', () => {
     it('MCPTOKREPO-023: projection A then projection B then a nativeUpdate on an A-only column, inside uow.transactional — the nativeUpdate survives the closing flush', async () => {
       const { user } = createUser(testDb);
       const created = createMcpToken(testDb, user.id, { name: 'stays-original', scope_mode: 'all' });
-      const uow = new UnitOfWork(t.em);
+      const uow = new UnitOfWork(t.em, new SqliteEngine());
 
       await uow.transactional(async () => {
         // Projection A: selects `scope_mode` among its columns.

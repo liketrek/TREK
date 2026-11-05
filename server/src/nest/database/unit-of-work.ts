@@ -1,6 +1,7 @@
-import { resolveEngine } from '../../db/engine';
+import type { DatabaseEngine } from '../../db/engine';
+import { DATABASE_ENGINE } from './database-engine.module';
 import { EntityManager } from '@mikro-orm/core';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 
 /**
  * The one way a service opens a transaction.
@@ -26,9 +27,10 @@ import { Injectable } from '@nestjs/common';
  */
 @Injectable()
 export class UnitOfWork {
-  private readonly engine = resolveEngine();
-
-  constructor(private readonly em: EntityManager) {}
+  constructor(
+    private readonly em: EntityManager,
+    @Inject(DATABASE_ENGINE) private readonly engine: DatabaseEngine,
+  ) {}
 
   transactional<T>(fn: () => Promise<T>): Promise<T> {
     return this.em.transactional(async (em) => {

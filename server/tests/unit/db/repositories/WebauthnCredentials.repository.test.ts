@@ -1,3 +1,4 @@
+import { SqliteEngine } from '../../../../src/db/engine/sqlite/sqlite-engine';
 import { WebauthnCredentials } from '../../../../src/db/entities/WebauthnCredentials.entity';
 import type { WebauthnCredentialsRepository } from '../../../../src/db/repositories/WebauthnCredentials.repository';
 import { withRequestContext } from '../../../../src/nest/database/request-context';
@@ -317,7 +318,7 @@ describe('WebauthnCredentialsRepository', () => {
     it('WEBAUTHN-CRED-REPO-017: a nativeUpdate inside uow.transactional is not discarded by a stale entity read earlier under a different projection', async () => {
       const { user } = createUser(testDb);
       const cred = await insertCredential(user.id, { counter: 1 });
-      const uow = new UnitOfWork(t.em);
+      const uow = new UnitOfWork(t.em, new SqliteEngine());
 
       await withRequestContext(t.orm, async () => {
         // Projection A — wide, full row, carries `counter` (PK9's shape: findByCredentialId).

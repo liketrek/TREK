@@ -9,6 +9,7 @@
  */
 import { SqliteMaintenance } from '../../../src/db/engine/sqlite/sqlite-maintenance';
 import { SqliteDatabaseBackup } from '../../../src/nest/backup/sqlite-database-backup';
+import { DomainError } from '../../../src/nest/common/domain-error';
 import { DatabaseConnectionLostError } from '../../../src/nest/database/database-backup.interface';
 import type { DatabaseLifecycle } from '../../../src/nest/database/database-lifecycle.service';
 import { withRequestContext } from '../../../src/nest/database/request-context';
@@ -146,11 +147,16 @@ describe('SqliteDatabaseBackup', () => {
     expect(fs.existsSync(target)).toBe(false);
   });
 
-  it('SQLBK-007: verify refuses an unpacked archive without a database', async () => {
-    await expect(portWith(maintenanceStub()).verify(dir)).resolves.toEqual({
-      error: 'Invalid backup: travel.db not found',
-      status: 400,
-    });
+  it('SQLBK-007: verify refuses an unpacked archive without a database, as a DomainError the restore route answers', async () => {
+    const refusal = await portWith(maintenanceStub())
+      .verify(dir)
+      .then(
+        () => null,
+        (err: unknown) => err,
+      );
+    expect(refusal).toBeInstanceOf(DomainError);
+    expect((refusal as DomainError).publicMessage).toBe('Invalid backup: travel.db not found');
+    expect((refusal as DomainError).getStatus()).toBe(400);
   });
 
   it('SQLBK-008: keeps a copy of the database a restore replaces next to it, and says where', async () => {

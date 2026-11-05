@@ -1,3 +1,4 @@
+import { SqliteEngine } from '../../src/db/engine/sqlite/sqlite-engine';
 import { AppSettings } from '../../src/db/entities/AppSettings.entity';
 import { AssignmentParticipants } from '../../src/db/entities/AssignmentParticipants.entity';
 import { Categories } from '../../src/db/entities/Categories.entity';
@@ -143,7 +144,7 @@ export function createTestUnitOfWork(db: Database.Database): Promise<UnitOfWork>
   // which is exactly what no-misused-promises/checksConditionals rejects.
   const existing = perHandle.get(db);
   if (existing !== undefined) return existing;
-  const pending = sharedTestOrm(db).then((t) => new UnitOfWork(t.em));
+  const pending = sharedTestOrm(db).then((t) => new UnitOfWork(t.em, new SqliteEngine()));
   perHandle.set(db, pending);
   return pending;
 }

@@ -1,29 +1,22 @@
 import { SqliteMaintenance } from '../../db/engine/sqlite/sqlite-maintenance';
-import { logInfo, logWarn } from '../audit/audit-log.logger';
-import {
-  DatabaseConnectionLostError,
-  type DatabaseBackupRefusal,
-  type DatabaseBackupStrategy,
-} from '../database/database-backup.interface';
+import { DomainError } from '../common/domain-error';
+import type { DatabaseBackupStrategy } from '../database/database-backup.interface';
 import { DatabaseLifecycle } from '../database/database-lifecycle.service';
 import { checkBackupDatabase } from './backup-archive';
+import { keepRestoreCopy, replaceThenReopen } from './database-swap';
 import { Injectable } from '@nestjs/common';
 
 import fs from 'fs';
 import path from 'path';
 
-const describeError = (err: unknown): string => (err instanceof Error ? err.message : String(err));
-
 /**
- * The backup port for the one engine TREK runs on: a SQLite file.
+ * The backup port on a SQLite file, the engine TREK runs on by default.
  *
- * Every step is what `backup.impl.ts` and `demo/demo-reset.ts` did inline
- * before the port existed. A snapshot is `VACUUM INTO`, which takes a
- * consistent copy even under concurrent writers. A restore closes the
- * connection, swaps the file by copy and rename (a crash mid-swap leaves the
- * old or the new file, never neither), drops the old `-wal`/`-shm` sidecars,
- * and reopens through `DatabaseLifecycle`, which migrates the restored file
- * forward.
+ * A snapshot is `VACUUM INTO`, which takes a consistent copy even under
+ * concurrent writers. A restore closes the connection, swaps the file by copy
+ * and rename (a crash mid-swap leaves the old or the new file, never neither),
+ * drops the old `-wal`/`-shm` sidecars, and reopens through `DatabaseLifecycle`,
+ * which migrates the restored file forward.
  *
  * The file is always `DatabaseLifecycle.file`, the path the connection was
  * opened on, so `TREK_DB_FILE` moves the backup, the restore and the demo reset
@@ -62,66 +55,42 @@ export class SqliteDatabaseBackup implements DatabaseBackupStrategy {
     }
   }
 
-  async verify(extractDir: string): Promise<DatabaseBackupRefusal | null> {
-    return checkBackupDatabase(extractDir);
+  /** Throws a DomainError carrying the refusal when the archive's database cannot be restored here. */
+  async verify(extractDir: string): Promise<void> {
+    const refusal = checkBackupDatabase(extractDir);
+    if (refusal) throw new DomainError(refusal.status, refusal.error);
   }
 
-  /**
-   * A copy of the database a restore is about to replace, next to it. The swap
-   * deletes the current file, and a restore of the wrong archive used to leave
-   * nothing to go back to.
-   */
-  async keepCopyBeforeRestore(): Promise<string | null> {
+  /** A copy of the database a restore is about to replace, next to it: the swap deletes the current file. */
+  keepCopyBeforeRestore(): Promise<string | null> {
     const target = path.join(path.dirname(this.lifecycle.file), `pre-restore-${Date.now()}.db`);
-    try {
-      await this.snapshot(target);
-      logInfo(`Restore: the replaced database was kept as ${target}`);
-      return target;
-    } catch (err) {
-      logWarn(`Restore: could not keep a copy of the current database (${describeError(err)})`);
-      return null;
-    }
+    return keepRestoreCopy(target, (copy) => this.snapshot(copy));
   }
 
   async replace(source: string): Promise<{ reopenError: unknown }> {
     const dest = this.lifecycle.file;
     this.lifecycle.close();
-    let swapFailed = false;
-    let swapError: unknown = null;
-    try {
-      // Copy to a temp file on the SAME filesystem, drop the old sidecars (they
-      // belong to the database being replaced and would corrupt the new one),
-      // then rename into place. The rename is atomic.
-      const tmp = dest + '.restore-tmp';
-      fs.copyFileSync(source, tmp);
-      for (const ext of ['-wal', '-shm']) {
-        try {
-          fs.unlinkSync(dest + ext);
-        } catch {
-          /* no sidecar to drop */
-        }
-      }
-      fs.renameSync(tmp, dest);
-    } catch (err) {
-      swapFailed = true;
-      swapError = err;
-    }
-
-    // Reopening must always run, even when the swap threw, so the process is
-    // never left without a connection. After a swap that landed, a reopen
-    // failure is reported, not thrown: the files are in place and the caller
-    // has to say "restart". After a swap that failed, both errors go up
-    // together, because the swap's alone would hide that the connection is gone.
-    let reopenError: unknown = null;
-    try {
-      await this.lifecycle.reopen();
-    } catch (err) {
-      reopenError = err;
-    }
-    if (swapFailed) {
-      if (reopenError) throw new DatabaseConnectionLostError(swapError, reopenError);
-      throw swapError;
-    }
-    return { reopenError };
+    return replaceThenReopen(
+      () => swapFile(source, dest),
+      () => this.lifecycle.reopen(),
+    );
   }
+}
+
+/**
+ * Puts `source` at `dest` by copying it to a temp file on the same filesystem
+ * and renaming it into place. The old sidecars go first: they belong to the
+ * database being replaced and would corrupt the new one.
+ */
+function swapFile(source: string, dest: string): void {
+  const tmp = dest + '.restore-tmp';
+  fs.copyFileSync(source, tmp);
+  for (const ext of ['-wal', '-shm']) {
+    try {
+      fs.unlinkSync(dest + ext);
+    } catch {
+      /* no sidecar to drop */
+    }
+  }
+  fs.renameSync(tmp, dest);
 }

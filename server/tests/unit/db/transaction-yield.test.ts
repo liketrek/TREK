@@ -35,6 +35,7 @@
  * docstring: NESTED propagation) rather than the independent, connection-mutex-
  * queued transaction two unrelated concurrent requests actually are.
  */
+import { SqliteEngine } from '../../../src/db/engine/sqlite/sqlite-engine';
 import { Trips } from '../../../src/db/entities/Trips.entity';
 import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
 import { withRequestContext } from '../../../src/nest/database/request-context';
@@ -57,7 +58,7 @@ let uow: UnitOfWork;
 beforeAll(async () => {
   t = await createTestOrm(testDb);
   trips = t.repo(Trips);
-  uow = new UnitOfWork(t.em);
+  uow = new UnitOfWork(t.em, new SqliteEngine());
 });
 beforeEach(() => {
   resetTestDb(testDb);

@@ -1,3 +1,4 @@
+import { SqliteEngine } from '../../src/db/engine/sqlite/sqlite-engine';
 import { Addons } from '../../src/db/entities/Addons.entity';
 import { AppSettings } from '../../src/db/entities/AppSettings.entity';
 import { PhotoProviderFields } from '../../src/db/entities/PhotoProviderFields.entity';
@@ -42,6 +43,6 @@ export async function createTestAddonsService(db: Database.Database): Promise<Ad
     t.repo(PhotoProviderFields),
     t.repo(AppSettings),
     t.repo(Users),
-    new UnitOfWork(t.em),
+    new UnitOfWork(t.em, new SqliteEngine()),
   );
 }
