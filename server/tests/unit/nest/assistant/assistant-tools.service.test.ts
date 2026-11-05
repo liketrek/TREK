@@ -446,6 +446,22 @@ describe('an assistant tool session', () => {
     }
   });
 
+  it('ASTTOOL-028: a change called before its group was loaded is held as always when its arguments already fit', async () => {
+    const { userId, tripId } = await ownerWithTrips();
+    const session = await tools.open(userId, tripId);
+    try {
+      session.specs();
+      const fits = { placeId: 530, expected_revision: 3, stop: { name: 'Hut', lat: 47.1, lng: 11.2 } };
+      expect(session.pinArgs('insert_tour_stop', fits)).toEqual({ args: fits });
+      // Written as text, the same call is still sent back with the schema loaded.
+      expect(session.pinArgs('create_city_walk', { stations: '[1, 2]' })).toEqual({
+        error: expect.stringContaining('did not run'),
+      });
+    } finally {
+      await session.close();
+    }
+  });
+
   it('ASTTOOL-026: only the blind call itself is told about the schema; a later failure of the same tool is not', async () => {
     const { userId, tripId } = await ownerWithTrips();
     const session = await tools.open(userId, tripId);

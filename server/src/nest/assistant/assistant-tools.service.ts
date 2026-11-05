@@ -59,6 +59,7 @@ import {
   TRANSIT_CREATE_TOOL,
   TRANSIT_SEARCH_TOOL,
 } from './cards/roadtrip/transit-restore';
+import { argsFitSchema } from './tool-args-fit';
 import { MikroORM } from '@mikro-orm/core';
 import { Client } from '@modelcontextprotocol/sdk/client/index';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory';
@@ -350,9 +351,11 @@ export class AssistantToolSession {
     const group = this.tools.get(name)?.hint.group;
     if (group && this.unoffered.has(group)) {
       // A change is never run in the turn but held as a card, and the turn
-      // ends there: its arguments would only fail once the user applies it,
-      // with the model long gone. It is sent back for the next step instead.
-      if (this.tools.get(name)?.kind === 'write') {
+      // ends there: arguments written without the schema would only fail once
+      // the user applies it, with the model long gone. Such a call is sent back
+      // for the next step; one whose arguments already fit is held as always.
+      const tool = this.tools.get(name);
+      if (tool?.kind === 'write' && !argsFitSchema(args, modelSchema(name, tool.inputSchema, this.pinArg))) {
         return {
           error: `${name} belongs to the "${group}" tools, which were not loaded in this turn, so it did not run. They are loaded now: send the call again with the arguments exactly as its schema describes them.`,
         };
