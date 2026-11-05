@@ -782,7 +782,17 @@ async function start(): Promise<void> {
   iap.isAvailable().then((ok) => {
     iapAvailable = ok;
   });
-  const { url } = await TrekShell.getServer();
+  let url: string | null = null;
+  try {
+    ({ url } = await TrekShell.getServer());
+  } catch {
+    // No native shell under us (a web preview, or a simulator without the
+    // plugin): there is no remembered server, so start at the welcome screen
+    // rather than leaving a blank page.
+    showWelcome();
+    await SplashScreen.hide().catch(() => {});
+    return;
+  }
   if (!url) {
     showWelcome();
   } else {

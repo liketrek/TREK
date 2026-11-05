@@ -4,6 +4,34 @@
  * background and never flashes. Everything past this screen is the UI the
  * chosen server delivers.
  */
+
+/*
+ * TREK's own type, self-hosted (latin subset, bundled — the shell loads offline
+ * and hotlinks nothing). Poppins is the display face across the app and
+ * liketrek.com; MuseoModerno draws the "cloud" of the TREK Cloud wordmark.
+ */
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/poppins-latin-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/poppins-latin-600.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/poppins-latin-700.woff2') format('woff2');
+}
+
 :root {
   --bg: #09090b;
   --bg-2: #101013;
@@ -18,6 +46,11 @@
   --accent-ink: #09090b;
   --danger: #f87171;
   --ok: #4ade80;
+  /* The hairline the ambient grid is drawn in, and a travel-dusk wash for depth. */
+  --grid: rgba(255, 255, 255, 0.055);
+  --wash-1: rgba(129, 140, 248, 0.12);
+  --wash-2: rgba(244, 114, 182, 0.08);
+  --font: 'Poppins', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, system-ui, sans-serif;
   --radius: 16px;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
@@ -39,6 +72,9 @@
     --accent-ink: #ffffff;
     --danger: #dc2626;
     --ok: #16a34a;
+    --grid: rgba(0, 0, 0, 0.045);
+    --wash-1: rgba(79, 70, 229, 0.07);
+    --wash-2: rgba(219, 39, 119, 0.05);
     color-scheme: light;
   }
   .shell-logo,
@@ -58,7 +94,7 @@ body {
   min-height: 100%;
   background: var(--bg);
   color: var(--ink);
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, system-ui, sans-serif;
+  font-family: var(--font);
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -66,14 +102,33 @@ body {
   -webkit-user-select: none;
 }
 
-/* An ambient glow behind the content, so the flat dark gains a little depth. */
+/*
+ * The backdrop, in two fixed layers behind the content. First a soft dusk wash
+ * at top and bottom — a trace of the colour the app's photos carry, never loud
+ * enough to read as decoration. Then a quiet grid that fades out through a
+ * radial mask: depth, the way liketrek.com's hero carries it.
+ */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(60% 50% at 50% -5%, color-mix(in srgb, var(--ink) 7%, transparent), transparent 70%),
-    radial-gradient(50% 40% at 50% 110%, color-mix(in srgb, var(--ink) 4%, transparent), transparent 70%);
+    radial-gradient(90% 55% at 50% -12%, var(--wash-1), transparent 62%),
+    radial-gradient(80% 50% at 50% 112%, var(--wash-2), transparent 64%),
+    radial-gradient(60% 45% at 50% -4%, color-mix(in srgb, var(--ink) 6%, transparent), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0 0 auto;
+  height: 640px;
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 54px 54px;
+  -webkit-mask-image: radial-gradient(ellipse 78% 52% at 50% -2%, #000 26%, transparent 72%);
+  mask-image: radial-gradient(ellipse 78% 52% at 50% -2%, #000 26%, transparent 72%);
   pointer-events: none;
   z-index: 0;
 }
@@ -213,11 +268,12 @@ body::before {
 
 /* The big hero mark on the welcome screen, with a gentle breathing float. */
 .hero-mark {
-  width: 76px;
-  height: 76px;
-  margin-bottom: 18px;
+  width: 80px;
+  height: 80px;
+  margin-bottom: 20px;
   animation: floaty 6s ease-in-out infinite;
-  filter: drop-shadow(0 10px 30px color-mix(in srgb, var(--ink) 18%, transparent));
+  filter: drop-shadow(0 14px 36px color-mix(in srgb, var(--wash-1) 90%, transparent))
+    drop-shadow(0 6px 16px color-mix(in srgb, var(--ink) 22%, transparent));
 }
 @keyframes floaty {
   0%,
@@ -231,17 +287,17 @@ body::before {
 
 /* ── Type ────────────────────────────────────────────────────────────────── */
 .title {
-  font-size: 1.9rem;
-  line-height: 1.12;
+  font-size: 2.05rem;
+  line-height: 1.1;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
   margin: 0;
 }
 .title-sm {
-  font-size: 1.45rem;
-  line-height: 1.2;
+  font-size: 1.5rem;
+  line-height: 1.18;
   font-weight: 700;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.025em;
   margin: 0;
 }
 .sub {
@@ -263,10 +319,14 @@ body::before {
   background: var(--accent);
   color: var(--accent-ink);
   cursor: pointer;
+  box-shadow:
+    0 6px 20px -8px color-mix(in srgb, var(--accent) 60%, transparent),
+    0 1px 2px rgba(0, 0, 0, 0.25);
   transition:
     transform 0.14s var(--ease),
     opacity 0.2s,
     background 0.2s,
+    box-shadow 0.2s,
     border-color 0.2s;
   display: inline-flex;
   align-items: center;
@@ -284,6 +344,9 @@ body::before {
   background: var(--surface);
   color: var(--ink);
   border-color: var(--edge);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.22),
+    inset 0 0 0 1px color-mix(in srgb, var(--ink) 4%, transparent);
 }
 .btn-ghost:active {
   background: var(--surface-2);
@@ -358,6 +421,9 @@ a.linkbtn {
   background: var(--surface);
   color: var(--ink);
   outline: none;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 color-mix(in srgb, var(--ink) 4%, transparent);
   transition:
     border-color 0.2s,
     box-shadow 0.25s;
@@ -574,9 +640,18 @@ a.linkbtn {
   border-radius: var(--radius);
   padding: 16px;
   background: var(--surface);
+  box-shadow:
+    0 2px 10px -4px rgba(0, 0, 0, 0.3),
+    inset 0 0 0 1px color-mix(in srgb, var(--ink) 3%, transparent);
   transition:
     border-color 0.2s,
+    box-shadow 0.2s,
     transform 0.14s var(--ease);
+}
+.plan.featured {
+  box-shadow:
+    0 10px 30px -10px color-mix(in srgb, var(--wash-1) 85%, transparent),
+    0 2px 8px -3px rgba(0, 0, 0, 0.35);
 }
 .plan:active {
   transform: scale(0.99);
