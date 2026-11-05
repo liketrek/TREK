@@ -26,8 +26,7 @@ const native: TranslationStrings = {
   'native.settings.server': 'Server', // same-as-en
   'native.settings.serverHint': 'Diese App ist mit {server} verbunden.',
   'native.welcome.headline': 'Deine Reisen.\nDein Plan.',
-  'native.welcome.sub':
-    'Gemeinsam in Echtzeit planen: Touren, Budgets, Journal, Fotobuch — mit KI. Web, Handy, offline.',
+  'native.welcome.sub': 'Gemeinsam in Echtzeit planen: Touren, Budgets, Journal, Fotobuch — mit KI.',
   'native.welcome.connect': 'Mit deinem TREK verbinden',
   'native.welcome.connectSub': 'Die Adresse öffnen, die du schon nutzt',
   'native.welcome.getCloud': 'TREK Cloud holen',
@@ -39,7 +38,7 @@ const native: TranslationStrings = {
   'native.cloud.f2': 'In Minuten eingerichtet, Updates übernehmen wir',
   'native.cloud.f3': 'Deine Daten bleiben deine — keine Werbung, kein Tracking',
   'native.cloud.cta': 'Loslegen',
-  'native.cloud.haveServer': 'Ich habe schon ein TREK',
+  'native.cloud.haveServer': 'Ich habe schon einen TREK-Server',
   'native.connecting': 'Verbinde mit {host}',
   'native.back': 'Zurück',
   'native.plans.title': 'Tarif wählen',

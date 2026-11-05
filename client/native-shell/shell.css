@@ -38,6 +38,14 @@
   font-display: swap;
   src: url('./fonts/museomoderno-latin-600.woff2') format('woff2');
 }
+/* Italic, subset to the letters of "cloud" — the wordmark's badge, nothing else. */
+@font-face {
+  font-family: 'MuseoModerno';
+  font-style: italic;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/museomoderno-italic-600.woff2') format('woff2');
+}
 
 :root {
   --bg: #09090b;
@@ -365,6 +373,41 @@ body::after {
   text-transform: lowercase;
   letter-spacing: -0.01em;
   line-height: 1.08;
+}
+
+/* The TREK Cloud lockup (cloud intro screen): the wordmark plus the "cloud"
+   badge in italic MuseoModerno, an inverted pill, exactly as on liketrek.com. */
+.cloud-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+.cloud-wordmark img {
+  display: block;
+  height: 38px;
+  width: auto;
+}
+.cloud-wordmark .on-light {
+  display: none;
+}
+@media (prefers-color-scheme: light) {
+  .cloud-wordmark .on-dark {
+    display: none;
+  }
+  .cloud-wordmark .on-light {
+    display: block;
+  }
+}
+.cloud-tag {
+  font-family: 'MuseoModerno', system-ui, sans-serif;
+  font-style: italic;
+  font-weight: 600;
+  font-size: 0.95rem;
+  line-height: 1.35;
+  padding: 2px 11px;
+  border-radius: 999px;
+  color: var(--bg);
+  background: var(--ink);
 }
 .title-sm {
   font-size: 1.5rem;
