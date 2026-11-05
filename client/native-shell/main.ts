@@ -1,6 +1,7 @@
 import { CapacitorHttp } from '@capacitor/core'
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics'
 import { SplashScreen } from '@capacitor/splash-screen'
+import { StatusBar, Style } from '@capacitor/status-bar'
 import { TrekShell } from '../src/native/trekShell'
 import { probeDemo, probeServer, type ProbeFailure, type ProbeGet } from '../src/native/serverAddress'
 import { CLOUD_URL, PRIVACY_URL, SERVER_DOCS_URL } from '../src/native/links'
@@ -186,6 +187,8 @@ function showConnect(prefill = '', opts: { back?: boolean } = {}): void {
   })
   input.setAttribute('inputmode', 'url')
   input.setAttribute('autocomplete', 'url')
+  // The on-screen keyboard's return key submits the address; it reads "Go", not a newline.
+  input.setAttribute('enterkeyhint', 'go')
   input.setAttribute('aria-label', t('native.connect.title'))
   const field = el('div', { className: 'field' }, input)
 
@@ -468,7 +471,22 @@ function showUnreachable(server: string): void {
 }
 
 // ── Start ───────────────────────────────────────────────────────────────────
+/**
+ * The address screen is always on the near-black surface, so the status bar must
+ * draw its clock and icons in light. The server's UI sets its own style once it
+ * loads (native/nativeApp.ts); this is only for the screen the app ships. Fails
+ * quietly where there is no status bar (web, the simulator without the plugin).
+ */
+async function paintStatusBar(): Promise<void> {
+  try {
+    await StatusBar.setStyle({ style: Style.Dark })
+  } catch {
+    /* web / unavailable: no native status bar to style */
+  }
+}
+
 async function start(): Promise<void> {
+  void paintStatusBar()
   const { url } = await TrekShell.getServer()
   if (!url) {
     showWelcome()
