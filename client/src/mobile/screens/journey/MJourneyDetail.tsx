@@ -498,7 +498,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
         />
         <div
           ref={carouselRef}
-          className="flex items-end gap-[10px] overflow-x-auto px-4 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none]"
+          className="flex items-end gap-[22px] overflow-x-auto px-6 pb-1 pt-[30px] [-webkit-overflow-scrolling:touch] [scrollbar-width:none]"
           style={{ scrollSnapType: 'x mandatory' }}
         >
           {entries.map((entry, i) => (

@@ -103,8 +103,13 @@ export default function JourneyEntryCover({
       // The whole card is the photo, so its own ring is what separates it from the
       // map behind. A suggestion is drawn as an outline rather than a solid thing:
       // it is somewhere you planned to be, not somewhere you have written about.
-      className={`relative flex-none overflow-hidden rounded-[18px] text-start transition-[width,height] duration-150 ${
-        isActive ? 'h-[180px] w-[164px] shadow-[0_18px_40px_-16px_rgba(0,0,0,.55)]' : 'h-[152px] w-[136px] shadow-[0_10px_24px_-14px_rgba(0,0,0,.5)]'
+      //
+      // Every card takes the same room and the active one is only drawn larger:
+      // growing its box moved every card after it once a swipe had landed, and the
+      // snap then pulled the strip again, which read as a jolt (carousels keep the
+      // room for it with their gap and top padding).
+      className={`relative h-[152px] w-[136px] flex-none origin-bottom overflow-hidden rounded-[18px] text-start transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(.2,.8,.2,1)] motion-reduce:transition-none ${
+        isActive ? 'z-[1] scale-[1.18] shadow-[0_18px_40px_-16px_rgba(0,0,0,.55)]' : 'scale-100 shadow-[0_10px_24px_-14px_rgba(0,0,0,.5)]'
       } ${src ? '' : emptyGround} ${isSuggestion ? 'opacity-90' : ''}`}
       // backgroundImage, not background: the shorthand would drop the opaque colour
       // the class supplies and leave the map showing through a card that is only a

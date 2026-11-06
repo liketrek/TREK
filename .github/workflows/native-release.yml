@@ -161,6 +161,19 @@ jobs:
       # development profile, which needs a registered device), so client/fastlane/Fastfile
       # imports the stored distribution certificate and creates the App Store profile
       # through the API key.
+      # The tag's message, past its subject line, is what testers read under
+      # "What to Test": one short line per change worth trying.
+      - name: TestFlight notes from the tag
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          git fetch --force --depth=1 origin "+${GITHUB_REF}:${GITHUB_REF}"
+          {
+            echo 'TESTFLIGHT_NOTES<<TREK_NOTES_END'
+            # A signed tag carries its signature at the end of the message.
+            git for-each-ref "$GITHUB_REF" --format='%(contents:body)' | sed '/-----BEGIN .*SIGNATURE-----/,$d'
+            echo 'TREK_NOTES_END'
+          } >> "$GITHUB_ENV"
+
       - name: Build and upload to TestFlight
         working-directory: client
         env:

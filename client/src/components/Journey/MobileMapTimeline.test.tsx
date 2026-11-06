@@ -150,7 +150,7 @@ describe('MobileMapTimeline', () => {
     await userEvent.click(segments[1])
 
     const { cards } = carouselOf(container)
-    expect(cards[1].querySelector('button')!.className).toContain('w-[164px]')
+    expect(cards[1].querySelector('button')!.className).toContain('scale-[1.18]')
   })
 
   it('FE-COMP-JMAPTL-003: the first entry starts out active and drives the map highlight', () => {

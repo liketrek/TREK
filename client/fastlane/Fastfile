@@ -103,9 +103,13 @@ platform :ios do
 
     # Upload to App Store Connect; it shows up in TestFlight after Apple finishes processing.
     # Internal testing needs no App Review, so nothing here submits the app for review.
+    # "What to Test" comes from the release tag's message (native-release.yml). Apple only
+    # takes it once the build is processed, so with notes the lane waits for that.
+    notes = ENV.fetch("TESTFLIGHT_NOTES", "").strip
     upload_to_testflight(
       api_key: key,
-      skip_waiting_for_build_processing: true,
+      changelog: notes.empty? ? nil : notes,
+      skip_waiting_for_build_processing: notes.empty?,
       skip_submission: true,
     )
   end

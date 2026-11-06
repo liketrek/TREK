@@ -95,9 +95,18 @@ export function useJourneyCarouselSync<E extends CarouselEntry>({
       if (settleTimer != null) window.clearTimeout(settleTimer);
       settleTimer = window.setTimeout(pickNearestCard, 150);
     };
+    // Where the browser says when the snap has landed, the card grows right then
+    // instead of a beat later; the timer stays for the ones that do not.
+    const onScrollEnd = () => {
+      if (settleTimer != null) window.clearTimeout(settleTimer);
+      settleTimer = null;
+      pickNearestCard();
+    };
     el.addEventListener('scroll', onScroll, { passive: true });
+    el.addEventListener('scrollend', onScrollEnd, { passive: true });
     return () => {
       el.removeEventListener('scroll', onScroll);
+      el.removeEventListener('scrollend', onScrollEnd);
       if (settleTimer != null) window.clearTimeout(settleTimer);
     };
   }, [entries.length, pickNearestCard]);

@@ -187,7 +187,7 @@ export default function MobileMapTimeline({
         />
         <div
           ref={carouselRef}
-          className="flex items-end gap-[10px] overflow-x-auto px-4 pb-3 pt-1"
+          className="flex items-end gap-[22px] overflow-x-auto px-6 pb-3 pt-[30px]"
           style={{
             scrollSnapType: 'x mandatory',
             WebkitOverflowScrolling: 'touch',
