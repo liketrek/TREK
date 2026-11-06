@@ -63,9 +63,9 @@ function formatCents(cents: number): string {
 
 /**
  * Budget MCP surface — ported from the legacy registrars: the eleven tools
- * from src/mcp/tools/budget.ts and the trek://trips/{tripId}/budget,
+ * from the budget registrar and the trek://trips/{tripId}/budget,
  * …/budget/per-person and …/budget/settlement resources from
- * src/mcp/resources.ts (identical names, descriptions, schemas, annotations
+ * the retired resources registrar (identical names, descriptions, schemas, annotations
  * and error shapes). The registration-time gates map to `when` (the
  * whole-registrar budget-addon check) plus the declarative budget read/write
  * access markers (the legacy `if (R)` / `if (W)` checks, resolved by

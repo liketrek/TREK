@@ -68,8 +68,8 @@ function fail(err: unknown) {
 const collectionsAddonOn = addonGate(ADDON_IDS.COLLECTIONS);
 
 /**
- * Collections MCP surface (#1435) — ported 1:1 from the legacy registrar
- * src/mcp/tools/collections.ts: the full set of actions a member can take on
+ * Collections MCP surface (#1435) — ported 1:1 from the retired
+ * the collections registrar: the full set of actions a member can take on
  * a saved-places list (browse, CRUD lists + places, status, collaborative star
  * ratings, per-list labels, sharing, and copy-into-a-trip) with identical
  * names, descriptions, schemas, annotations and error/payload shapes. Every

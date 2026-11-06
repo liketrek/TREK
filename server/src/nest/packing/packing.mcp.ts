@@ -47,8 +47,8 @@ function parseId(value: string | string[]): number | null {
 
 /**
  * Packing MCP surface — ported from the legacy registrars: the seventeen
- * tools from src/mcp/tools/packing.ts and the trek://trips/{tripId}/packing +
- * trek://trips/{tripId}/packing/bags resources from src/mcp/resources.ts
+ * tools from the packing registrar and the trek://trips/{tripId}/packing +
+ * trek://trips/{tripId}/packing/bags resources from the retired resources registrar
  * (identical names, descriptions, schemas, annotations and error/payload
  * shapes; the one deviation is the packing:bag-deleted payload, aligned with
  * the REST route). The registration-time gates map to `when` (the

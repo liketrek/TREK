@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 /**
  * Airport lookup MCP tools, moved 1:1 from the legacy registrar in
- * src/mcp/tools/mapsWeather.ts. Same names, descriptions, input schemas and
+ * the mapsWeather registrar. Same names, descriptions, input schemas and
  * result shapes; the registration-time `canRead(scopes, 'geo')` gate became the
  * declarative `access` marker, matching maps.mcp.ts.
  *

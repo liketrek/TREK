@@ -31,8 +31,8 @@ function parseId(value: string | string[]): number | null {
 
 /**
  * Todo MCP surface — ported 1:1 from the legacy registrars: the eight tools
- * from src/mcp/tools/todos.ts and the trek://trips/{tripId}/todos resource
- * from src/mcp/resources.ts (identical names, descriptions, schemas,
+ * from the todos registrar and the trek://trips/{tripId}/todos resource
+ * from the retired resources registrar (identical names, descriptions, schemas,
  * annotations, error/payload shapes and broadcasts). The registration-time
  * gates map to `when` (the whole-registrar packing-addon early return) plus
  * the declarative todos read/write access markers (the legacy `if (R)` /

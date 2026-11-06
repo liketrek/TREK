@@ -18,10 +18,10 @@ import { idSchema, createCategoryRequestSchema, updateCategoryRequestSchema } fr
 
 /**
  * Categories MCP surface — ported 1:1 from the legacy registrars: the
- * list_categories tool from src/mcp/tools/places.ts (identical name,
+ * list_categories tool from the places registrar (identical name,
  * description, annotations and places-read gating via the declarative access
  * marker + trekMcpAccessPolicy) and the trek://categories resource from
- * src/mcp/resources.ts (first production @Resource; intentionally ungated —
+ * the retired resources registrar (first production @Resource; intentionally ungated —
  * the legacy registration was unconditional, safe for any authenticated
  * session — and the payload reproduces the legacy jsonContent shape verbatim).
  *

@@ -34,8 +34,8 @@ function jsonContent(uri: string, data: unknown) {
 
 /**
  * Notifications MCP surface — ported 1:1 from the legacy registrars: the five
- * tools from src/mcp/tools/notifications.ts and the trek://notifications/in-app
- * resource from src/mcp/resources.ts (identical names, descriptions, zod input
+ * tools from the notifications registrar and the trek://notifications/in-app
+ * resource from the retired resources registrar (identical names, descriptions, zod input
  * schemas, annotations and error/payload shapes — including the legacy
  * 'Notification not found.' wording, which differs from the REST route's
  * 'Not found'). The legacy `if (R)` / `if (W)` scope checks map to the

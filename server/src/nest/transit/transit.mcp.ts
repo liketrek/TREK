@@ -54,8 +54,8 @@ async function rateLimit(limiter: RateLimitService, userId: number, bucket: stri
 }
 
 /**
- * Transit MCP surface — ported 1:1 from the legacy registrar
- * src/mcp/tools/transit.ts (identical names, descriptions, schemas,
+ * Transit MCP surface — ported 1:1 from the retired
+ * the transit registrar (identical names, descriptions, schemas,
  * annotations, error/payload shapes, rate limits and broadcasts). The
  * registration-time gates map to the declarative access markers: the
  * `canRead(scopes, 'geo')` wrap on the two search tools ('geo' is a read-only
