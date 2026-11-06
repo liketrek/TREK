@@ -1,0 +1,130 @@
+/* The host's design tokens (MCP Apps style variables), with TREK's own as the fallback. */
+:root {
+  color-scheme: light dark;
+  --trek-bg: var(--color-background-primary, #ffffff);
+  --trek-surface: var(--color-background-secondary, #f4f4f5);
+  --trek-text: var(--color-text-primary, #18181b);
+  --trek-muted: var(--color-text-secondary, #52525b);
+  --trek-border: var(--color-border-primary, #e4e4e7);
+  --trek-accent: var(--color-text-info, #2563eb);
+  --trek-ring: var(--color-ring-primary, #2563eb);
+  --trek-radius: var(--border-radius-lg, 12px);
+  --trek-font: var(--font-sans, system-ui, -apple-system, 'Segoe UI', sans-serif);
+  --trek-text-sm: var(--font-text-sm-size, 0.8125rem);
+  --trek-text-md: var(--font-text-md-size, 0.9375rem);
+  --trek-space: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --trek-bg: var(--color-background-primary, #18181b);
+    --trek-surface: var(--color-background-secondary, #27272a);
+    --trek-text: var(--color-text-primary, #fafafa);
+    --trek-muted: var(--color-text-secondary, #a1a1aa);
+    --trek-border: var(--color-border-primary, #3f3f46);
+    --trek-accent: var(--color-text-info, #60a5fa);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--trek-bg);
+  color: var(--trek-text);
+  font-family: var(--trek-font);
+  font-size: var(--trek-text-md);
+}
+
+.trek-muted {
+  color: var(--trek-muted);
+  font-size: var(--trek-text-sm);
+}
+
+.trek-button {
+  appearance: none;
+  border: 1px solid var(--trek-border);
+  background: var(--trek-bg);
+  color: var(--trek-text);
+  border-radius: var(--border-radius-full, 999px);
+  padding: 6px 12px;
+  font: inherit;
+  font-size: var(--trek-text-sm);
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.trek-button:hover {
+  background: var(--trek-surface);
+}
+
+.trek-button:focus-visible {
+  outline: 2px solid var(--trek-ring);
+  outline-offset: 2px;
+}
+
+.trek-button--primary {
+  border-color: transparent;
+  color: var(--trek-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.trek-widget {
+  padding: var(--trek-space);
+}
+
+.trek-state {
+  margin: 0;
+  padding: var(--trek-space);
+}
+
+.trek-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--trek-space);
+  margin-bottom: var(--trek-space);
+}
+
+.trek-header__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.trek-header__title {
+  margin: 0;
+  font-size: var(--font-heading-sm-size, 1rem);
+  font-weight: var(--font-weight-semibold, 600);
+  overflow-wrap: anywhere;
+}
+
+.trek-header__subtitle {
+  margin: 2px 0 0;
+}
+
+.trek-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Every control a finger may hit is at least 44px tall. */
+.trek-hit {
+  min-height: 44px;
+}
+
+.trek-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

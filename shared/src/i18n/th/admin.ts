@@ -1095,5 +1095,7 @@ const admin: TranslationStrings = {
   'admin.contribute.prompt.thanks': 'ขอบคุณ ตอนนี้รายละเอียดสถานที่ถูกแชร์แล้ว',
   'admin.servicesCard.title': 'การค้นหาสถานที่และเส้นทาง',
   'admin.servicesCard.hint': 'บริการของ TREK เอง ผู้ให้บริการที่ตอบการค้นหาและการขนส่งสาธารณะ และบันทึกการค้นหา',
+  'admin.mcpApps.title': 'มุมมองแบบโต้ตอบ',
+  'admin.mcpApps.subtitle': 'ให้โฮสต์ MCP ที่รองรับแสดงทริป รายการ และแผนที่เป็นมุมมองแบบโต้ตอบข้างคำตอบ',
 };
 export default admin;

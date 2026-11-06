@@ -1158,5 +1158,8 @@ const admin: TranslationStrings = {
   'admin.servicesCard.title': 'Busca de lugares e rotas',
   'admin.servicesCard.hint':
     'Os serviços próprios do TREK, qual provedor responde à busca e ao transporte público, e o registro de buscas.',
+  'admin.mcpApps.title': 'Visualizações interativas',
+  'admin.mcpApps.subtitle':
+    'Permite que hosts MCP compatíveis mostrem viagens, listas e mapas como visualizações interativas ao lado da resposta',
 };
 export default admin;

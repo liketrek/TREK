@@ -27,6 +27,9 @@ export async function registerTools(
   onInvoke?: McpAttachOptions['onInvoke'],
   dynamicTools: McpAttachOptions['dynamicTools'] = getPluginMcpToolSource() ?? undefined,
   around?: McpAttachOptions['around'],
+  apps?: McpAttachOptions['apps'],
 ): Promise<void> {
-  if (registry) await registry.attach(server, { userId, scopes, isStaticToken }, { onInvoke, dynamicTools, around });
+  if (registry) {
+    await registry.attach(server, { userId, scopes, isStaticToken }, { onInvoke, dynamicTools, around, apps });
+  }
 }

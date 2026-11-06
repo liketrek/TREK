@@ -1142,5 +1142,8 @@ const admin: TranslationStrings = {
   'admin.servicesCard.title': 'Pencarian tempat dan rute',
   'admin.servicesCard.hint':
     'Layanan milik TREK sendiri, penyedia yang menjawab pencarian dan transportasi umum, serta log pencarian.',
+  'admin.mcpApps.title': 'Tampilan interaktif',
+  'admin.mcpApps.subtitle':
+    'Izinkan host MCP yang mendukung menampilkan perjalanan, daftar, dan peta sebagai tampilan interaktif di samping jawaban',
 };
 export default admin;

@@ -95,6 +95,7 @@
 - [[MCP Tools and Resources|MCP-Tools-and-Resources]]
 - [[MCP Addon Tools|MCP-Addon-Tools]]
 - [[MCP Prompts|MCP-Prompts]]
+- [[MCP Apps|MCP-Apps]]
 
 ## Integrations
 - [[Dawarich]]

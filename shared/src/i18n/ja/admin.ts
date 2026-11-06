@@ -1099,5 +1099,8 @@ const admin: TranslationStrings = {
   'admin.contribute.prompt.thanks': 'ありがとうございます。場所の詳細の共有を開始しました。',
   'admin.servicesCard.title': '場所検索とルート案内',
   'admin.servicesCard.hint': 'TREK独自のサービス、検索と公共交通に応答するプロバイダー、そして検索ログ。',
+  'admin.mcpApps.title': 'インタラクティブビュー',
+  'admin.mcpApps.subtitle':
+    '対応する MCP ホストで、旅行・リスト・地図を回答の横にインタラクティブなビューとして表示します',
 };
 export default admin;

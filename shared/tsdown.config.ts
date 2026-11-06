@@ -9,6 +9,8 @@ export default defineConfig({
     'src/roadtrip/planning.ts',
     'src/sanitize/sanitize.ts',
     'src/book/stickers/index.ts',
+    // The MCP views' contracts on their own, so a widget document carries them and not every schema.
+    'src/mcp-apps/index.ts',
     'src/i18n/index.ts',
     'src/i18n/*/index.ts',
   ],

@@ -1172,5 +1172,8 @@ const admin: TranslationStrings = {
   'admin.servicesCard.title': 'Helykeresés és útvonaltervezés',
   'admin.servicesCard.hint':
     'A TREK saját szolgáltatásai, melyik szolgáltató válaszol a keresésre és a tömegközlekedésre, valamint a keresési napló.',
+  'admin.mcpApps.title': 'Interaktív nézetek',
+  'admin.mcpApps.subtitle':
+    'A támogató MCP-gazdák a válasz mellett interaktív nézetként mutathatják az utazásokat, listákat és térképeket',
 };
 export default admin;

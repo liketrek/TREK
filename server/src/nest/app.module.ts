@@ -59,6 +59,7 @@ import { TripJournalLinkModule } from './journey/trip-journal-link.module';
 import { LlmParseModule } from './llm-parse/llm-parse.module';
 import { ManagedExtModule } from './managed/managed-ext.module';
 import { MapsModule } from './maps/maps.module';
+import { McpAppsModule } from './mcp-apps/mcp-apps.module';
 import { McpTransportModule } from './mcp-transport/mcp-transport.module';
 import { MemoriesModule } from './memories/memories.module';
 import { NativeAuthModule } from './native-auth/native-auth.module';
@@ -134,6 +135,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
     }),
     HealthModule,
     PlatformModule,
+    McpAppsModule,
     McpTransportModule,
     WeatherModule,
     PublicApiModule,

@@ -24,6 +24,7 @@ import type {
   ResourceTemplateOptions,
   ToolOptions,
 } from './types';
+import { withoutUiMeta } from './ui-meta';
 import { ResourceTemplate as SdkResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 
@@ -462,7 +463,7 @@ export class McpRegistry {
       inputSchema: advertisedInputSchema(options),
       outputSchema: options.outputSchema,
       annotations: options.annotations,
-      _meta: options._meta,
+      _meta: opts?.apps === false ? withoutUiMeta(options._meta) : options._meta,
     };
     // The SDK invokes the callback as (args, extra) when inputSchema is
     // present (even an empty shape) and as (extra) otherwise — normalize so

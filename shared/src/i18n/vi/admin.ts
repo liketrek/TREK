@@ -1140,5 +1140,8 @@ const admin: TranslationStrings = {
   'admin.servicesCard.title': 'Tìm kiếm địa điểm và chỉ đường',
   'admin.servicesCard.hint':
     'Các dịch vụ riêng của TREK, nhà cung cấp trả lời tìm kiếm và giao thông công cộng, và nhật ký tìm kiếm.',
+  'admin.mcpApps.title': 'Chế độ xem tương tác',
+  'admin.mcpApps.subtitle':
+    'Cho phép các máy chủ MCP hỗ trợ hiển thị chuyến đi, danh sách và bản đồ dưới dạng chế độ xem tương tác bên cạnh câu trả lời',
 };
 export default admin;

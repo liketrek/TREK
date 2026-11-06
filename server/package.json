@@ -119,6 +119,7 @@
     "@eslint/js": "^10.0.1",
     "@mikro-orm/entity-generator": "^7.2.1",
     "@mikro-orm/postgresql": "^7.2.1",
+    "@modelcontextprotocol/ext-apps": "^1.7.5",
     "@nestjs/testing": "^11.2.5",
     "@swc/core": "^1.16.2",
     "@trivago/prettier-plugin-sort-imports": "^6.0.2",

@@ -1183,6 +1183,9 @@ const admin: TranslationStrings = {
   'admin.servicesCard.title': 'Məkan axtarışı və marşrutlaşdırma',
   'admin.servicesCard.hint':
     'TREK-in öz xidmətləri, axtarışa və ictimai nəqliyyata hansı provayderin cavab verdiyi və axtarış jurnalı.',
+  'admin.mcpApps.title': 'İnteraktiv görünüşlər',
+  'admin.mcpApps.subtitle':
+    'Dəstəkləyən MCP hostlarına səyahətləri, siyahıları və xəritələri cavabın yanında interaktiv görünüş kimi göstərməyə icazə ver',
 };
 
 export default admin;

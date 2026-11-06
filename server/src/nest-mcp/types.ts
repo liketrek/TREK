@@ -229,6 +229,14 @@ export interface McpAttachOptions {
    * it never costs a registered entry.
    */
   dynamicTools?: McpDynamicToolSource;
+  /**
+   * Whether this session may point a host at an interactive widget (an MCP
+   * App). False strips every tool's widget keys from its `_meta` (see
+   * `withoutUiMeta`), so a host draws nothing and reads only the text and the
+   * `structuredContent`; the widget resources gate themselves. Omitted, the
+   * `_meta` goes out as declared.
+   */
+  apps?: boolean;
 }
 
 /** One host-contributed tool, supplied per session by an `McpDynamicToolSource`. */

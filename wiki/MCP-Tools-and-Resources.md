@@ -328,6 +328,14 @@ Resources provide read-only access via `trek://` URIs. Read them to understand c
 
 For addon-gated resources (Budget, Packing, To-Dos, Collab, Atlas, Vacay, Journey), see [MCP-Addon-Tools](MCP-Addon-Tools).
 
+### View resources (MCP Apps)
+
+Hosts that support MCP Apps read these to draw a tool's answer as an interactive view. They are listed only while the admin's **Interactive views** switch is on. See [MCP-Apps](MCP-Apps).
+
+| URI | Scope required | Drawn for |
+|---|---|---|
+| `ui://trek/trip-list.html` | `trips:read` | `list_trips` |
+
 ---
 
 ## Related

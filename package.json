@@ -8,7 +8,8 @@
   "workspaces": [
     "client",
     "server",
-    "shared"
+    "shared",
+    "mcp-apps"
   ],
   "scripts": {
     "version:major": "npm version major --workspaces --include-workspace-root --no-git-tag-version",
@@ -18,18 +19,18 @@
     "version:preminor": "npm version preminor --preid=beta --workspaces --include-workspace-root --no-git-tag-version",
     "version:prepatch": "npm version prepatch --preid=alpha --workspaces --include-workspace-root --no-git-tag-version",
     "version:prerelease": "npm version prerelease --preid=pre --workspaces --include-workspace-root --no-git-tag-version",
-    "dev": "npm run build --workspace=shared && concurrently --names shared,server,client \"npm run build:watch --workspace=shared\" \"npm run dev --workspace=server\" \"npm run dev --workspace=client\"",
-    "build": "npm run build --workspace=shared && npm run build --workspace=server && npm run build --workspace=client",
-    "test": "npm run test --workspace=shared && npm run test --workspace=server && npm run test --workspace=client",
-    "test:cov": "npm run test:coverage --workspace=shared && npm run test:coverage --workspace=server && npm run test:coverage --workspace=client && npm run test:coverage --prefix plugin-sdk",
+    "dev": "npm run build --workspace=shared && npm run build --workspace=mcp-apps && concurrently --names shared,server,client \"npm run build:watch --workspace=shared\" \"npm run dev --workspace=server\" \"npm run dev --workspace=client\"",
+    "build": "npm run build --workspace=shared && npm run build --workspace=mcp-apps && npm run build --workspace=server && npm run build --workspace=client",
+    "test": "npm run test --workspace=shared && npm run test --workspace=mcp-apps && npm run test --workspace=server && npm run test --workspace=client",
+    "test:cov": "npm run test:coverage --workspace=shared && npm run test:coverage --workspace=mcp-apps && npm run test:coverage --workspace=server && npm run test:coverage --workspace=client && npm run test:coverage --prefix plugin-sdk",
     "test:e2e": "npm run test:e2e --workspace=server",
     "test:ci-scripts": "node --test scripts/ci/*.test.mjs",
     "test:lib-scripts": "node --test scripts/lib/*.test.mjs",
     "lint:knip": "node scripts/ci/knip-ratchet.mjs",
-    "lint": "npm run lint --workspace=shared && npm run lint --workspace=server && npm run lint --workspace=client",
+    "lint": "npm run lint --workspace=shared && npm run lint --workspace=mcp-apps && npm run lint --workspace=server && npm run lint --workspace=client",
     "lint:fix": "npm run lint:fix --workspace=shared && npm run lint:fix --workspace=server",
-    "format": "npm run format --workspace=shared && npm run format --workspace=server && npm run format --workspace=client",
-    "format:check": "npm run format:check --workspace=shared && npm run format:check --workspace=server && npm run format:check --workspace=client"
+    "format": "npm run format --workspace=shared && npm run format --workspace=mcp-apps && npm run format --workspace=server && npm run format --workspace=client",
+    "format:check": "npm run format:check --workspace=shared && npm run format:check --workspace=mcp-apps && npm run format:check --workspace=server && npm run format:check --workspace=client"
   },
   "devDependencies": {
     "concurrently": "^10.0.6",

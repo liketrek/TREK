@@ -1163,5 +1163,8 @@ const admin: TranslationStrings = {
   'admin.servicesCard.title': 'Yer arama ve rota',
   'admin.servicesCard.hint':
     "TREK'in kendi hizmetleri, aramaya ve toplu taşımaya hangi sağlayıcının yanıt verdiği ve arama kaydı.",
+  'admin.mcpApps.title': 'Etkileşimli görünümler',
+  'admin.mcpApps.subtitle':
+    'Destekleyen MCP ana bilgisayarlarının seyahatleri, listeleri ve haritaları yanıtın yanında etkileşimli görünüm olarak göstermesine izin ver',
 };
 export default admin;

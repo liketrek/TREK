@@ -1172,5 +1172,8 @@ const admin: TranslationStrings = {
   'admin.servicesCard.title': 'Cerca de llocs i rutes',
   'admin.servicesCard.hint':
     'Els serveis propis de TREK, quin proveïdor respon la cerca i el transport públic, i el registre de cerques.',
+  'admin.mcpApps.title': 'Vistes interactives',
+  'admin.mcpApps.subtitle':
+    'Permet que els amfitrions MCP compatibles mostrin viatges, llistes i mapes com a vistes interactives al costat de la resposta',
 };
 export default admin;

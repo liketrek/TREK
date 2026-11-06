@@ -103,6 +103,15 @@ export const adminHandlers = [
     return HttpResponse.json({ enabled: body.enabled });
   }),
 
+  http.get('/api/admin/mcp-apps', () => {
+    return HttpResponse.json({ enabled: true });
+  }),
+
+  http.put('/api/admin/mcp-apps', async ({ request }) => {
+    const body = await request.json() as Record<string, unknown>;
+    return HttpResponse.json({ enabled: body.enabled });
+  }),
+
   http.get('/api/admin/addons', () => {
     return HttpResponse.json({ addons: [] });
   }),

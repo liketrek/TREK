@@ -1155,5 +1155,8 @@ const admin: TranslationStrings = {
   'admin.servicesCard.title': 'Platssökning och vägvisning',
   'admin.servicesCard.hint':
     'TREKs egna tjänster, vilken leverantör som svarar på sökning och kollektivtrafik, och sökloggen.',
+  'admin.mcpApps.title': 'Interaktiva vyer',
+  'admin.mcpApps.subtitle':
+    'Låt MCP-värdar som stöder det visa resor, listor och kartor som interaktiva vyer bredvid svaret',
 };
 export default admin;
