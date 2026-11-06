@@ -10,8 +10,11 @@ Some MCP hosts can draw a small interactive view next to a tool's answer. Claude
 | `get_trip_overview` | One trip as a card: its dates, how many days, places, bookings and travelers it has, and its next days with their stops. **Show this day** asks the assistant about that day for you. |
 | `list_packing_items` | The packing list as a checklist. Tick items off right in the view. The tick goes through your own MCP connection, so it needs the `packing:write` scope and is audited like any other call. Filter by bag. **Show all** unfolds a list longer than a dozen items. |
 | `get_weather` | The day's forecast, or the climate average for a day too far ahead, as a card. |
+| `search_place` | The places found, as cards with their address and rating. **Add to trip** asks the assistant to add that place, naming it by its map id only. **Tell the assistant about this place** lets the assistant know which one you mean without sending a message. |
+| `list_budget_items`, `get_budget_per_person` | The budget as a card: the total and a bar per category, or each traveler's share and what they paid. Switching between the two reads the other side through your connection. Read only. |
+| `list_todos` | The trip's to-dos as a checklist, the open ones first, each with its due date. Ticking one off goes through your connection like the packing list, so it needs the `todos:write` scope. |
 
-More views follow the same pattern. The tool still answers in text and with a structured result, and the view draws that result. A view never fetches anything on its own and never writes to your trips.
+More views follow the same pattern. The tool still answers in text and with a structured result, and the view draws that result. A view never fetches anything on its own. It changes a trip only when you tick or press something in it, and then through your own MCP connection and its scopes.
 
 ## Switching them off
 

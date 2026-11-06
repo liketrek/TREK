@@ -12,12 +12,13 @@ import {
   errorResult,
   ok,
   okStructured,
+  uiTool,
 } from '../../nest-mcp';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { TodoService } from './todo.service';
-import { idSchema, listTodosOutputSchema } from '@trek/shared';
+import { idSchema, listTodosOutputSchema, mcpAppUri } from '@trek/shared';
 
 import { z } from 'zod';
 
@@ -54,6 +55,7 @@ export class TodoMcp {
       tripId: idSchema,
     },
     outputSchema: listTodosOutputSchema,
+    _meta: uiTool(mcpAppUri('todos'), { invoking: 'Reading the to-dos…', invoked: 'To-dos loaded' }),
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: packingAddonOn,
     access: { group: 'todos', mode: 'read' },

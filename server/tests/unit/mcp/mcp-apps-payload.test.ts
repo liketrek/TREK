@@ -5,11 +5,14 @@
  * seeded trip, every view's result stays under 60 KB.
  */
 import { ADDON_IDS } from '../../../src/addons';
+import { MapsService } from '../../../src/nest/maps/maps.service';
 import { McpAppsService } from '../../../src/nest/mcp-apps/mcp-apps.service';
 import { WeatherService } from '../../../src/nest/weather/weather.service';
+import { makeBudgetItem } from '../../helpers/factories/budget';
 import { makePackingItem } from '../../helpers/factories/packing';
 import { makePlace } from '../../helpers/factories/places';
 import { setAddonEnabled } from '../../helpers/factories/settings';
+import { makeTodoItem } from '../../helpers/factories/todos';
 import { makeDay, makeTrip } from '../../helpers/factories/trips';
 import { makeUser } from '../../helpers/factories/users';
 import { createMcpHarness, type McpHarness } from '../../helpers/mcp-harness';
@@ -36,6 +39,16 @@ const FORECAST = {
     humidity: 70,
   })),
 };
+const SEARCH = {
+  source: 'openstreetmap',
+  places: Array.from({ length: 10 }, (_, i) => ({
+    name: `Place ${i}`,
+    address: `Rua ${i}, Lisboa`,
+    lat: 38.7 + i / 100,
+    lng: -9.1,
+    osm_id: `node:${i}`,
+  })),
+};
 const SEEDED_TRIPS = 12;
 
 let harness: McpHarness;
@@ -47,10 +60,20 @@ const argsFor = (): Record<string, Record<string, unknown>> => ({
   get_trip_overview: {},
   list_packing_items: {},
   get_weather: { lat: 38.7, lng: -9.1, date: '2027-05-12' },
+  search_place: { query: 'Lisbon cafe' },
+  list_budget_items: {},
+  get_budget_per_person: {},
+  list_todos: {},
 });
 
 /** The trip-scoped tools get the seeded trip on top of their own arguments. */
-const TRIP_SCOPED = new Set<string>(['get_trip_overview', 'list_packing_items']);
+const TRIP_SCOPED = new Set<string>([
+  'get_trip_overview',
+  'list_packing_items',
+  'list_budget_items',
+  'get_budget_per_person',
+  'list_todos',
+]);
 
 beforeAll(async () => {
   const app = await bootTestApp();
@@ -58,6 +81,7 @@ beforeAll(async () => {
   vi.spyOn(app.get(McpAppsService), 'html').mockReturnValue('<!doctype html>');
   // The forecast comes from Open-Meteo; the size is about what TREK sends, so it answers a fixed day here.
   vi.spyOn(app.get(WeatherService), 'get').mockResolvedValue(FORECAST);
+  vi.spyOn(app.get(MapsService), 'searchPlaces').mockResolvedValue(SEARCH);
   await Promise.all(Object.values(ADDON_IDS).map((id) => setAddonEnabled(orm, id, true)));
   const userId = (await makeUser(orm)).user.id;
   const trips = await Promise.all(Array.from({ length: SEEDED_TRIPS }, () => makeTrip(orm, userId)));
@@ -65,6 +89,8 @@ beforeAll(async () => {
   await Promise.all(Array.from({ length: 5 }, (_, i) => makeDay(orm, tripId, { day_number: i + 1 })));
   await Promise.all(Array.from({ length: 20 }, () => makePlace(orm, tripId)));
   await Promise.all(Array.from({ length: 60 }, () => makePackingItem(orm, tripId)));
+  await Promise.all(Array.from({ length: 40 }, (_, i) => makeBudgetItem(orm, tripId, { total_price: (i + 1) * 10 })));
+  await Promise.all(Array.from({ length: 40 }, () => makeTodoItem(orm, tripId)));
   harness = await createMcpHarness({ userId });
 });
 

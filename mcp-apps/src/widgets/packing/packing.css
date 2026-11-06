@@ -10,60 +10,6 @@
   border-color: var(--trek-text);
 }
 
-.packing__item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 6px 0;
-  border: 0;
-  border-top: 1px solid var(--trek-border);
-  background: none;
-  color: inherit;
-  font: inherit;
-  text-align: start;
-  cursor: pointer;
-}
-
-li:first-child > .packing__item {
-  border-top: 0;
-}
-
-.packing__item:focus-visible {
-  outline: 2px solid var(--trek-ring);
-  outline-offset: -2px;
-}
-
-.packing__box {
-  flex: none;
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--trek-muted);
-  border-radius: var(--border-radius-sm, 6px);
-  transition: background-color 150ms ease;
-}
-
-.packing__item[aria-checked='true'] .packing__box {
-  background: var(--trek-accent);
-  border-color: var(--trek-accent);
-}
-
-.packing__item[aria-checked='true'] .packing__name {
-  color: var(--trek-muted);
-  text-decoration: line-through;
-}
-
-.packing__name {
-  flex: 1;
-  min-width: 0;
-}
-
-.packing__error {
-  margin: 0 0 var(--trek-space);
-  color: var(--color-text-danger, #b91c1c);
-  font-size: var(--trek-text-sm);
-}
-
 .packing__more {
   margin-top: var(--trek-space);
 }

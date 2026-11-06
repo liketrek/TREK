@@ -4,6 +4,7 @@ import {
   TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   errorResult, ok,
   okStructured,
+  uiTool,
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import {
@@ -19,6 +20,7 @@ import {
   type RoadtripGpxImport,
   type RoadtripStopType,
   idSchema,
+  mcpAppUri,
   autocompletePlaceOutputSchema,
   getPlaceOutputSchema,
   listPlacesOutputSchema,
@@ -382,6 +384,7 @@ export class PlacesMcp {
       provider: mapsSearchRequestSchema.shape.provider.describe('"google" sends this one search to Google Places alone instead of the TREK index and OpenStreetMap, the same as the "search Google instead" link under the results in the app. Ignored unless Google holds the keyed slot: an instance without a Google key, or one whose admin picked Amap or OpenStreetMap as the places provider, answers from the TREK index and OpenStreetMap as usual'),
     },
     outputSchema: searchPlaceOutputSchema,
+    _meta: uiTool(mcpAppUri('place-results'), { invoking: 'Searching for places…', invoked: 'Places found' }),
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'places', mode: 'read' },
   })

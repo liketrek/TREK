@@ -15,16 +15,3 @@ export function itemsInBag(items: PackingItem[], filter: BagFilter): PackingItem
   if (filter === 'none') return items.filter((item) => item.bag_id == null);
   return items.filter((item) => item.bag_id === filter);
 }
-
-/** An item counts as packed when it is ticked off. */
-export function isPacked(item: PackingItem, overrides: ReadonlyMap<number, boolean>): boolean {
-  return overrides.get(item.id) ?? item.checked === 1;
-}
-
-/** Packed and total over a list, with the ticks made here counted in. */
-export function progress(
-  items: PackingItem[],
-  overrides: ReadonlyMap<number, boolean>
-): { packed: number; total: number } {
-  return { packed: items.filter((item) => isPacked(item, overrides)).length, total: items.length };
-}
