@@ -2,6 +2,7 @@ import { ChevronRight, MapPinned } from 'lucide-react';
 import type { DayRouteTarget } from '../../../../components/Planner/dayRouteApps';
 import type { TranslationFn } from '../../../../types';
 import MSheet from '../../../components/MSheet';
+import { TileHeader } from '../sheets/MTripSheetUi'
 
 /** Opens a target: a web link in a new tab (the app takes it over), geo: in place. */
 export function openRouteTarget(target: DayRouteTarget): void {
@@ -27,10 +28,14 @@ export default function MRouteAppsSheet({
 }) {
   return (
     <MSheet open={open} onClose={onClose} variant="bottom" ariaLabel={t('mobileTrip.openRouteIn')}>
-      <div className="px-4 pb-4 pt-6">
-        <div className="mb-3 flex items-center gap-2 px-1 text-[length:calc(13px*var(--fs-scale-body,1))] font-bold text-m-ink">
-          <MapPinned size={16} strokeWidth={2.2} className="text-m-muted" aria-hidden="true" />
-          {t('mobileTrip.openRouteIn')}
+      <div className="px-[18px] pb-4 pt-4">
+        <div className="mb-3">
+          <TileHeader
+            icon={<MapPinned size={19} strokeWidth={1.8} />}
+            title={t('mobileTrip.openRouteIn')}
+            onClose={onClose}
+            closeLabel={t('common.close')}
+          />
         </div>
         <div className="flex flex-col gap-2">
           {targets.map((target) => (

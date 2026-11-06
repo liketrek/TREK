@@ -10,6 +10,7 @@ import { tripsApi } from '../../api/client';
 import { useTranslation } from '../../i18n';
 import MSheet from '../../mobile/components/MSheet';
 import { useSharedImportStore } from '../../native/sharedFiles';
+import { TileHeader } from '../../mobile/screens/trip/sheets/MTripSheetUi'
 
 interface TripRow {
   id: number;
@@ -52,16 +53,16 @@ export default function NativeImportSheet(): React.ReactElement | null {
 
   return (
     <MSheet open={open} onClose={() => setFile(null)} variant="bottom" ariaLabel={t('native.share.title')}>
-      <div className="px-4 pb-4 pt-6">
-        <div className="mb-1 px-1 text-[length:calc(13px*var(--fs-scale-body,1))] font-bold text-m-ink">
-          {t('native.share.title')}
+      <div className="px-[18px] pb-4 pt-4">
+        <div className="mb-3">
+          <TileHeader
+            icon={<FileText size={19} strokeWidth={1.8} />}
+            title={t('native.share.title')}
+            sub={file?.name}
+            onClose={() => setFile(null)}
+            closeLabel={t('common.close')}
+          />
         </div>
-        {file && (
-          <div className="mb-3 flex items-center gap-2 px-1 font-geist text-[length:calc(11px*var(--fs-scale-body,1))] text-m-muted">
-            <FileText size={13} aria-hidden="true" />
-            <span className="truncate">{file.name}</span>
-          </div>
-        )}
         <div className="flex max-h-[50vh] flex-col gap-2 overflow-y-auto">
           {trips.map((trip) => (
             <button
