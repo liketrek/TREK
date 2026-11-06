@@ -79,5 +79,6 @@ const common: TranslationStrings = {
     'このタブを開いている間に TREK が更新されました。再読み込みして新しいバージョンを取得してください。',
   'common.errorPluginTitle': 'このプラグインを表示できませんでした',
   'common.needsConnection': 'この操作には接続が必要です。TREK がオンラインに戻ってから、もう一度お試しください。',
+  'common.errorDetails': '詳細',
 };
 export default common;

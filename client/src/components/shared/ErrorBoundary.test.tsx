@@ -205,7 +205,20 @@ describe('ErrorBoundary', () => {
     );
     // --m-* only resolves inside MobileShell's .m-root; the desktop classes would
     // render an invisible card there.
-    expect(screen.getByRole('alert').className).toContain('bg-m-card');
+    expect(screen.getByRole('alert').querySelector('.bg-m-card')).not.toBeNull();
+    expect(screen.getByRole('alert').querySelector('.bg-surface-card')).toBeNull();
+  });
+
+  it('FE-COMP-ERRBOUND-014b: the technical message stays for an issue report, folded away', () => {
+    render(
+      <ErrorBoundary boundaryId="route" level="route">
+        <Boom />
+      </ErrorBoundary>,
+    );
+    // The message stays in the page for an issue report, inside a closed details.
+    const details = screen.getByText('kaboom').closest('details') as HTMLDetailsElement;
+    expect(details).not.toBeNull();
+    expect(details.open).toBe(false);
   });
 });
 

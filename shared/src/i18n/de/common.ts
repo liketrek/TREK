@@ -81,5 +81,6 @@ const common: TranslationStrings = {
     'TREK wurde aktualisiert, während dieser Tab offen war. Lade neu, um die neue Version zu erhalten.',
   'common.errorPluginTitle': 'Dieses Plugin konnte nicht angezeigt werden',
   'common.needsConnection': 'Dafür braucht es eine Verbindung. Versuch es noch einmal, sobald TREK wieder online ist.',
+  'common.errorDetails': 'Details', // same-as-en
 };
 export default common;

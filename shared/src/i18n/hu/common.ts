@@ -80,5 +80,6 @@ const common: TranslationStrings = {
   'common.errorUpdateBody': 'A TREK frissült, amíg ez a lap nyitva volt. Töltse újra az új verzióért.',
   'common.errorPluginTitle': 'Ezt a bővítményt nem sikerült megjeleníteni',
   'common.needsConnection': 'Ehhez kapcsolat kell. Próbáld újra, amint a TREK újra online lesz.',
+  'common.errorDetails': 'Részletek',
 };
 export default common;

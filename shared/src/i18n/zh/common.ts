@@ -78,5 +78,6 @@ const common: TranslationStrings = {
   'common.errorUpdateBody': '此标签页打开期间 TREK 已更新。请重新加载以获取新版本。',
   'common.errorPluginTitle': '无法显示此插件',
   'common.needsConnection': '此操作需要网络连接。请在 TREK 恢复联网后重试。',
+  'common.errorDetails': '详细信息',
 };
 export default common;

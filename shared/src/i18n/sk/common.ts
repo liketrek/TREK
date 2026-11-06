@@ -83,5 +83,6 @@ const common: TranslationStrings = {
     'TREK bol aktualizovaný, kým bola táto karta otvorená. Znova načítajte stránku pre novú verziu.',
   'common.errorPluginTitle': 'Tento plugin sa nepodarilo zobraziť',
   'common.needsConnection': 'Na toto je potrebné pripojenie. Skús to znova, keď bude TREK opäť online.',
+  'common.errorDetails': 'Podrobnosti',
 };
 export default common;
