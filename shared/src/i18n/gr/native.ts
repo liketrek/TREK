@@ -98,6 +98,14 @@ const native: TranslationStrings = {
   'native.widget.noTodos': 'Δεν απομένει τίποτα',
   'native.widget.now': 'Τώρα',
   'native.widget.travellers': 'ταξιδιώτες',
+  'native.widget.missing': 'για πακετάρισμα',
+  'native.widget.countries': 'χώρες',
+  'native.widget.world': 'του κόσμου',
+  'native.widget.group': 'Ομάδα ταξιδιού',
+  'native.widget.poll': 'Ψηφοφορία',
+  'native.widget.votes': 'ψήφοι',
+  'native.widget.noMessages': 'Δεν υπάρχουν ακόμα μηνύματα',
+  'native.widget.departure': 'Αναχώρηση',
 };
 
 export default native;

@@ -7,3 +7,9 @@
 "widget.bookings.description" = "Els teus propers vols, trens, hotels i taules, i quan toquen.";
 "widget.todos.name" = "Tasques";
 "widget.todos.description" = "El que encara queda per al viatge i com va l'equipatge.";
+"widget.packing.name" = "Equipatge";
+"widget.packing.description" = "Com de plenes són les maletes, el pes i el que encara falta.";
+"widget.atlas.name" = "Mapa del món";
+"widget.atlas.description" = "Els països on has estat, brillant al mapa.";
+"widget.collab.name" = "Grup de viatge";
+"widget.collab.description" = "Qui ve, els darrers missatges i la votació oberta.";

@@ -93,6 +93,14 @@ const native: TranslationStrings = {
   'native.widget.noTodos': 'ไม่มีอะไรค้างแล้ว',
   'native.widget.now': 'ตอนนี้',
   'native.widget.travellers': 'ผู้เดินทาง',
+  'native.widget.missing': 'ยังต้องจัด',
+  'native.widget.countries': 'ประเทศ',
+  'native.widget.world': 'ของโลก',
+  'native.widget.group': 'กลุ่มเดินทาง',
+  'native.widget.poll': 'โหวต',
+  'native.widget.votes': 'เสียง',
+  'native.widget.noMessages': 'ยังไม่มีข้อความ',
+  'native.widget.departure': 'ออกเดินทาง',
 };
 
 export default native;

@@ -96,6 +96,14 @@ const native: TranslationStrings = {
   'native.widget.noTodos': 'Không còn việc gì',
   'native.widget.now': 'Bây giờ',
   'native.widget.travellers': 'du khách',
+  'native.widget.missing': 'còn phải soạn',
+  'native.widget.countries': 'quốc gia',
+  'native.widget.world': 'thế giới',
+  'native.widget.group': 'Nhóm du lịch',
+  'native.widget.poll': 'Bình chọn',
+  'native.widget.votes': 'phiếu',
+  'native.widget.noMessages': 'Chưa có tin nhắn',
+  'native.widget.departure': 'Khởi hành',
 };
 
 export default native;

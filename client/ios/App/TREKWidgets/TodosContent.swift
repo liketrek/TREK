@@ -13,7 +13,7 @@ struct TodosContent: View {
         let labels = snapshot?.labels
         if family.isAccessory {
             accessory(todos, labels)
-        } else if let labels, let todos, todos.total > 0 || snapshot?.packing != nil {
+        } else if let labels, let todos, todos.total > 0 {
             switch family {
             case .small: small(todos, labels)
             case .medium:
@@ -31,7 +31,6 @@ struct TodosContent: View {
                         rings(todos, labels, size: 96)
                         VStack(alignment: .leading, spacing: 8) {
                             header(labels, todos)
-                            if let packing = snapshot?.packing { PackingBar(packing: packing, labels: labels) }
                         }
                     }
                     Divider().overlay(Trek.track(scheme)).padding(.vertical, 10)
@@ -75,18 +74,12 @@ struct TodosContent: View {
         }
     }
 
-    /// The to-dos as the outer ring and the packing list as the inner one.
+    /// The share of the to-dos done as a ring, the open ones in the middle.
     private func rings(_ todos: WidgetSnapshot.Todos, _ labels: WidgetSnapshot.Labels, size: CGFloat) -> some View {
         let done = todos.total > 0 ? Double(todos.total - todos.open) / Double(todos.total) : 1
-        let packing = snapshot?.packing
-        let packed = packing.map { $0.total > 0 ? Double($0.packed) / Double($0.total) : 1 }
-        let width = size * 0.085
+        let width = size * 0.1
         return ZStack {
             ProgressRing(value: done, lineWidth: width, colors: [Color(hex: 0x4A7DDB), Color(hex: 0x6A5BE0)], trackColor: Trek.track(scheme)) { EmptyView() }
-            if let packed {
-                ProgressRing(value: packed, lineWidth: width, colors: [Color(hex: 0x2FA37A), Color(hex: 0x7BC96F)], trackColor: Trek.track(scheme)) { EmptyView() }
-                    .padding(width * 1.45)
-            }
             VStack(spacing: -2) {
                 Text("\(todos.open)").font(Trek.number(size * 0.3, .heavy)).foregroundStyle(Trek.ink(scheme))
                 Image(systemName: "checklist").font(.system(size: size * 0.11, weight: .bold)).foregroundStyle(Trek.muted(scheme))
@@ -99,9 +92,6 @@ struct TodosContent: View {
     private func legend(_ todos: WidgetSnapshot.Todos, _ labels: WidgetSnapshot.Labels) -> some View {
         HStack(spacing: 8) {
             LegendPill(color: Color(hex: 0x5A6CDE), symbol: "checklist", text: labels.todos ?? "", count: "\(todos.total - todos.open)/\(todos.total)")
-            if let packing = snapshot?.packing {
-                LegendPill(color: Trek.confirmed, symbol: "suitcase.rolling.fill", text: labels.packing ?? "", count: "\(packing.packed)/\(packing.total)")
-            }
             Spacer(minLength: 0)
         }
     }

@@ -7,3 +7,9 @@
 "widget.bookings.description" = "Penerbangan, kereta, hotel, dan meja berikutnya, beserta waktunya.";
 "widget.todos.name" = "Tugas";
 "widget.todos.description" = "Yang masih tersisa untuk perjalanan dan sejauh mana persiapan barang.";
+"widget.packing.name" = "Barang bawaan";
+"widget.packing.description" = "Seberapa penuh tas, beratnya, dan yang masih kurang.";
+"widget.atlas.name" = "Peta dunia";
+"widget.atlas.description" = "Negara yang pernah kamu kunjungi, bersinar di peta.";
+"widget.collab.name" = "Rombongan";
+"widget.collab.description" = "Siapa yang ikut, pesan terbaru, dan polling yang terbuka.";

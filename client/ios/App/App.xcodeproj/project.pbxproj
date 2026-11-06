@@ -26,6 +26,10 @@
 		7A1E00052C0000000000A005 /* TrekBridgeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1E00042C0000000000A004 /* TrekBridgeViewController.swift */; };
 		7A1E00072C0000000000A007 /* TrekShellPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1E00062C0000000000A006 /* TrekShellPlugin.swift */; };
 		7FB730DC35C234816EAE65AF /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBF6D74B7888714BF264E0E6 /* WidgetSnapshot.swift */; };
+		157A7B737E3FFB610A218D47 /* AtlasContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D004544572B0E85DE29A7B8 /* AtlasContent.swift */; };
+		FEB91385917AC44D5CDAA59C /* PackingContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04C0771C8582246A26E0C98E /* PackingContent.swift */; };
+		EA5EDDD4E5F9BC9BC46C563F /* CollabContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D5041DDDAFF5B491B053999 /* CollabContent.swift */; };
+		45B990B86488D5CC2B5222B5 /* WorldGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0AC751335E0136865E08990 /* WorldGrid.swift */; };
 		1A0A6E71365C0A1178B85CB8 /* TrekStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15CAD7E43FE81EA6E2DD2585 /* TrekStyle.swift */; };
 		612BB9680DC27BB8BF553060 /* TrekFamily.swift in Sources */ = {isa = PBXBuildFile; fileRef = A030A06726542A2D7F61C54B /* TrekFamily.swift */; };
 		8FC5873BE6A8CB2AFB31A46A /* TripContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE6873D246AC6B8E2CB6C8B4 /* TripContent.swift */; };
@@ -104,6 +108,10 @@
 		BE41D7212DCB0C78E00A8462 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		C7064A9DA92FCC8ACAA4F22A /* NextTripWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NextTripWidget.swift; sourceTree = "<group>"; };
 		DBF6D74B7888714BF264E0E6 /* WidgetSnapshot.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSnapshot.swift; sourceTree = "<group>"; };
+		4D004544572B0E85DE29A7B8 /* AtlasContent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AtlasContent.swift; sourceTree = "<group>"; };
+		04C0771C8582246A26E0C98E /* PackingContent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PackingContent.swift; sourceTree = "<group>"; };
+		7D5041DDDAFF5B491B053999 /* CollabContent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CollabContent.swift; sourceTree = "<group>"; };
+		D0AC751335E0136865E08990 /* WorldGrid.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WorldGrid.swift; sourceTree = "<group>"; };
 		15CAD7E43FE81EA6E2DD2585 /* TrekStyle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TrekStyle.swift; sourceTree = "<group>"; };
 		A030A06726542A2D7F61C54B /* TrekFamily.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TrekFamily.swift; sourceTree = "<group>"; };
 		DE6873D246AC6B8E2CB6C8B4 /* TripContent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TripContent.swift; sourceTree = "<group>"; };
@@ -254,6 +262,10 @@
 				337775CD9091673D0ADDF325 /* TripDayAttributes.swift */,
 				3259F6C40216CECEBAC6F307 /* TripDayLiveActivity.swift */,
 				DBF6D74B7888714BF264E0E6 /* WidgetSnapshot.swift */,
+				4D004544572B0E85DE29A7B8 /* AtlasContent.swift */,
+				04C0771C8582246A26E0C98E /* PackingContent.swift */,
+				7D5041DDDAFF5B491B053999 /* CollabContent.swift */,
+				D0AC751335E0136865E08990 /* WorldGrid.swift */,
 				15CAD7E43FE81EA6E2DD2585 /* TrekStyle.swift */,
 				A030A06726542A2D7F61C54B /* TrekFamily.swift */,
 				DE6873D246AC6B8E2CB6C8B4 /* TripContent.swift */,
@@ -458,6 +470,10 @@
 				492FA24FBB57059B0B5007CE /* TripDayAttributes.swift in Sources */,
 				DF633789F2F667C4CF264C9E /* TripDayLiveActivity.swift in Sources */,
 				7FB730DC35C234816EAE65AF /* WidgetSnapshot.swift in Sources */,
+				157A7B737E3FFB610A218D47 /* AtlasContent.swift in Sources */,
+				FEB91385917AC44D5CDAA59C /* PackingContent.swift in Sources */,
+				EA5EDDD4E5F9BC9BC46C563F /* CollabContent.swift in Sources */,
+				45B990B86488D5CC2B5222B5 /* WorldGrid.swift in Sources */,
 				1A0A6E71365C0A1178B85CB8 /* TrekStyle.swift in Sources */,
 				612BB9680DC27BB8BF553060 /* TrekFamily.swift in Sources */,
 				8FC5873BE6A8CB2AFB31A46A /* TripContent.swift in Sources */,

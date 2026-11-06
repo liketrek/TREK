@@ -12,6 +12,7 @@ import { useTranslation } from '../../i18n';
 import { useNativeCapabilities } from '../../native/capabilities';
 import { bookingsAhead, packingSummary, todosSummary, tripPlace } from '../../native/widgetExtras';
 import { widgetCover, widgetWeather } from '../../native/widgetMedia';
+import { atlasSummary, collabSummary, packingDetail } from '../../native/widgetOnline';
 import {
   buildSnapshot,
   pickTrip,
@@ -22,6 +23,7 @@ import {
   withBookings,
   type WidgetLabels,
 } from '../../native/widgets';
+import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import type { Day, Place, TranslationFn, Trip } from '../../types';
 import { formatTime } from '../../utils/formatters';
@@ -53,6 +55,14 @@ function labels(t: TranslationFn): WidgetLabels {
     places: t('dashboard.places'),
     travellers: t('native.widget.travellers'),
     allDone: t('native.widget.dayDone'),
+    missing: t('native.widget.missing'),
+    countries: t('native.widget.countries'),
+    world: t('native.widget.world'),
+    group: t('native.widget.group'),
+    poll: t('native.widget.poll'),
+    votes: t('native.widget.votes'),
+    noMessages: t('native.widget.noMessages'),
+    departure: t('native.widget.departure'),
   };
 }
 
@@ -72,13 +82,15 @@ interface SyncContext {
 }
 
 async function tripExtras(trip: Trip, days: Day[], { today, language, unit, time }: SyncContext) {
-  const [places, reservations, todos, packing, members] = await Promise.all([
+  const [places, reservations, todos, packing, memberRows] = await Promise.all([
     offlineDb.places.where('trip_id').equals(trip.id).toArray(),
     offlineDb.reservations.where('trip_id').equals(trip.id).toArray(),
     offlineDb.todoItems.where('trip_id').equals(trip.id).toArray(),
     offlineDb.packingItems.where('trip_id').equals(trip.id).toArray(),
-    offlineDb.tripMembers.where('tripId').equals(trip.id).count(),
+    offlineDb.tripMembers.where('tripId').equals(trip.id).toArray(),
   ]);
+  const members = memberRows.length;
+  const names = [trip.owner_username, ...memberRows.map((m) => m.username)].filter((n): n is string => !!n);
   const path = `/trips/${trip.id}`;
   const place = tripPlace(places);
   // While the trip runs, today where it is; before, its first day, once that is in forecast range.
@@ -89,10 +101,18 @@ async function tripExtras(trip: Trip, days: Day[], { today, language, unit, time
     days.find((d) => (d.date ?? '').slice(0, 10) === weatherDate),
     places
   );
-  const [weather, cover] = await Promise.all([
+  const [weather, cover, bags, collab] = await Promise.all([
     spot && inRange ? widgetWeather(spot, { date: weatherDate, lang: language, unit, place }) : Promise.resolve(null),
     widgetCover(trip.cover_image),
+    packingDetail(trip.id, packing),
+    collabSummary(
+      trip.id,
+      `/trips/${trip.id}?tab=collab`,
+      [...new Set(names)],
+      useAuthStore.getState().user?.id ?? null
+    ),
   ]);
+  const packed = packingSummary(packing, `/trips/${trip.id}?tab=listen`);
   const dayDates = new Map(days.map((d) => [d.id, (d.date ?? '').slice(0, 10)]));
   return {
     reservations,
@@ -105,7 +125,8 @@ async function tripExtras(trip: Trip, days: Day[], { today, language, unit, time
       weather,
       bookings: bookingsAhead(reservations, { dayDates, today, tripPath: path, formatTime: time }),
       todos: todosSummary(todos, `${path}?tab=listen`),
-      packing: packingSummary(packing, `${path}?tab=listen`),
+      packing: packed && bags ? { ...packed, ...bags } : packed,
+      collab,
     },
   };
 }
@@ -127,11 +148,15 @@ export default function NativeWidgetsSync(): null {
       const trips = await offlineDb.trips.toArray();
       const trip = pickTrip(trips, today);
       const days = trip ? await offlineDb.days.where('trip_id').equals(trip.id).toArray() : [];
-      const extra = trip ? await tripExtras(trip, days, { today, language, unit, time }) : null;
+      const [extra, atlas] = await Promise.all([
+        trip ? tripExtras(trip, days, { today, language, unit, time }) : Promise.resolve(null),
+        // The countries do not depend on a trip: the atlas widget fills without one.
+        atlasSummary(language),
+      ]);
       const plain = trip ? todayOf(trip, days, today, (n, m) => t('native.widget.dayOf', { n, m }), time) : null;
       const day = plain ? withBookings(plain, extra?.reservations ?? [], today, time) : null;
       if (cancelled) return;
-      const snapshot = buildSnapshot(trip, day, labels(t), extra?.extras);
+      const snapshot = buildSnapshot(trip, day, labels(t), { ...extra?.extras, atlas });
       const live = day ? tripDayState(day, now.getHours() * 60 + now.getMinutes(), t('native.widget.dayDone')) : null;
       await publishWidgets(snapshot, live);
     };

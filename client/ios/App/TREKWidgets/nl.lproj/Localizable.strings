@@ -7,3 +7,9 @@
 "widget.bookings.description" = "Je volgende vluchten, treinen, hotels en tafels, en wanneer ze zijn.";
 "widget.todos.name" = "Taken";
 "widget.todos.description" = "Wat er nog openstaat voor de reis en hoe ver het inpakken is.";
+"widget.packing.name" = "Bagage";
+"widget.packing.description" = "Hoe vol de tassen zijn, hun gewicht en wat er nog mist.";
+"widget.atlas.name" = "Wereldkaart";
+"widget.atlas.description" = "De landen waar je bent geweest, oplichtend op de kaart.";
+"widget.collab.name" = "Reisgezelschap";
+"widget.collab.description" = "Wie er meegaat, de nieuwste berichten en de open peiling.";

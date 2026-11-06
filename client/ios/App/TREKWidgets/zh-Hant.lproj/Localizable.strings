@@ -7,3 +7,9 @@
 "widget.bookings.description" = "你接下來的航班、火車、飯店與餐廳，以及時間。";
 "widget.todos.name" = "待辦";
 "widget.todos.description" = "旅行還剩哪些事沒做，以及行李整理到哪一步。";
+"widget.packing.name" = "行李";
+"widget.packing.description" = "包包裝得多滿、重量多少，以及還缺什麼。";
+"widget.atlas.name" = "世界地圖";
+"widget.atlas.description" = "你去過的國家在地圖上亮起。";
+"widget.collab.name" = "旅行小組";
+"widget.collab.description" = "誰一起去、最新訊息與進行中的投票。";

@@ -7,3 +7,9 @@
 "widget.bookings.description" = "다가오는 항공편, 기차, 호텔, 식당과 그 시간.";
 "widget.todos.name" = "할 일";
 "widget.todos.description" = "여행을 위해 남은 일과 짐 싸기 진행 상황.";
+"widget.packing.name" = "짐 싸기";
+"widget.packing.description" = "가방이 얼마나 찼는지, 무게, 아직 빠진 것.";
+"widget.atlas.name" = "세계 지도";
+"widget.atlas.description" = "다녀온 나라가 지도 위에서 빛납니다.";
+"widget.collab.name" = "여행 그룹";
+"widget.collab.description" = "함께 가는 사람, 최근 메시지, 진행 중인 투표.";

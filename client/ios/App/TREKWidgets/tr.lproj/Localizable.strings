@@ -7,3 +7,9 @@
 "widget.bookings.description" = "Sıradaki uçuşların, trenlerin, otellerin ve masaların, ne zaman oldukları ile.";
 "widget.todos.name" = "Yapılacaklar";
 "widget.todos.description" = "Seyahat için hâlâ açık olanlar ve bavulun ne durumda olduğu.";
+"widget.packing.name" = "Bavul";
+"widget.packing.description" = "Çantaların ne kadar dolu olduğu, ağırlıkları ve eksikler.";
+"widget.atlas.name" = "Dünya haritası";
+"widget.atlas.description" = "Bulunduğun ülkeler haritada parlıyor.";
+"widget.collab.name" = "Seyahat grubu";
+"widget.collab.description" = "Kimler geliyor, son mesajlar ve açık anket.";

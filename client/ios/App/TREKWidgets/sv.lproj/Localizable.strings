@@ -7,3 +7,9 @@
 "widget.bookings.description" = "Dina nästa flyg, tåg, hotell och bord, och när de är.";
 "widget.todos.name" = "Att göra";
 "widget.todos.description" = "Vad som återstår inför resan och hur långt packningen har kommit.";
+"widget.packing.name" = "Packning";
+"widget.packing.description" = "Hur fulla väskorna är, deras vikt och vad som fortfarande saknas.";
+"widget.atlas.name" = "Världskarta";
+"widget.atlas.description" = "Länderna du har besökt, lysande på kartan.";
+"widget.collab.name" = "Resesällskap";
+"widget.collab.description" = "Vem som följer med, de senaste meddelandena och den öppna omröstningen.";

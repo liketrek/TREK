@@ -174,3 +174,72 @@ private struct TodosFamilyView: View {
     let entry: TrekEntry
     var body: some View { TodosContent(snapshot: entry.snapshot, family: TrekFamily(family), now: entry.date) }
 }
+
+// MARK: - Packing
+
+struct PackingWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: "TripPacking", provider: TrekProvider()) { entry in
+            TrekContainer(link: entry.snapshot?.packing.flatMap { WidgetSnapshot.link($0.path) }) {
+                PackingFamilyView(entry: entry)
+            } background: {
+                TrekPaper()
+            }
+        }
+        .configurationDisplayName("widget.packing.name")
+        .description("widget.packing.description")
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryCircular, .accessoryRectangular])
+    }
+}
+
+private struct PackingFamilyView: View {
+    @Environment(\.widgetFamily) private var family
+    let entry: TrekEntry
+    var body: some View { PackingContent(snapshot: entry.snapshot, family: TrekFamily(family), now: entry.date) }
+}
+
+// MARK: - Atlas
+
+struct AtlasWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: "TripAtlas", provider: TrekProvider()) { entry in
+            TrekContainer(link: WidgetSnapshot.link("/atlas")) {
+                AtlasFamilyView(entry: entry)
+            } background: {
+                TrekPaper(contours: false)
+            }
+        }
+        .configurationDisplayName("widget.atlas.name")
+        .description("widget.atlas.description")
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryCircular, .accessoryRectangular, .accessoryInline])
+    }
+}
+
+private struct AtlasFamilyView: View {
+    @Environment(\.widgetFamily) private var family
+    let entry: TrekEntry
+    var body: some View { AtlasContent(snapshot: entry.snapshot, family: TrekFamily(family)) }
+}
+
+// MARK: - Travel group
+
+struct CollabWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: "TripCollab", provider: TrekProvider()) { entry in
+            TrekContainer(link: entry.snapshot?.collab.flatMap { WidgetSnapshot.link($0.path) }) {
+                CollabFamilyView(entry: entry)
+            } background: {
+                TrekPaper()
+            }
+        }
+        .configurationDisplayName("widget.collab.name")
+        .description("widget.collab.description")
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryRectangular])
+    }
+}
+
+private struct CollabFamilyView: View {
+    @Environment(\.widgetFamily) private var family
+    let entry: TrekEntry
+    var body: some View { CollabContent(snapshot: entry.snapshot, family: TrekFamily(family)) }
+}

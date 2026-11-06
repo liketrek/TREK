@@ -7,3 +7,9 @@
 "widget.bookings.description" = "次のフライト、列車、ホテル、レストランとその日時。";
 "widget.todos.name" = "やること";
 "widget.todos.description" = "旅行のために残っていることと、荷造りの進み具合。";
+"widget.packing.name" = "持ち物";
+"widget.packing.description" = "バッグの詰め具合と重さ、まだ足りないもの。";
+"widget.atlas.name" = "世界地図";
+"widget.atlas.description" = "訪れた国が地図上で光ります。";
+"widget.collab.name" = "旅行グループ";
+"widget.collab.description" = "一緒に行くメンバー、最新のメッセージ、受付中の投票。";

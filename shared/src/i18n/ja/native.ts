@@ -96,6 +96,14 @@ const native: TranslationStrings = {
   'native.widget.noTodos': 'やることはありません',
   'native.widget.now': '現在',
   'native.widget.travellers': '旅行者',
+  'native.widget.missing': '未パッキング',
+  'native.widget.countries': 'か国',
+  'native.widget.world': '世界の',
+  'native.widget.group': '旅行グループ',
+  'native.widget.poll': '投票',
+  'native.widget.votes': '票',
+  'native.widget.noMessages': 'まだメッセージはありません',
+  'native.widget.departure': '出発',
 };
 
 export default native;

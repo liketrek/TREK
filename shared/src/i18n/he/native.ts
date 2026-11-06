@@ -93,6 +93,14 @@ const native: TranslationStrings = {
   'native.widget.noTodos': 'לא נשאר מה לעשות',
   'native.widget.now': 'עכשיו',
   'native.widget.travellers': 'מטיילים',
+  'native.widget.missing': 'עוד לארוז',
+  'native.widget.countries': 'מדינות',
+  'native.widget.world': 'מהעולם',
+  'native.widget.group': 'קבוצת הטיול',
+  'native.widget.poll': 'סקר',
+  'native.widget.votes': 'קולות',
+  'native.widget.noMessages': 'אין עדיין הודעות',
+  'native.widget.departure': 'יציאה',
 };
 
 export default native;

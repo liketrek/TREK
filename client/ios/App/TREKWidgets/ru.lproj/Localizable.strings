@@ -7,3 +7,9 @@
 "widget.bookings.description" = "Ближайшие рейсы, поезда, отели и столики и когда они.";
 "widget.todos.name" = "Задачи";
 "widget.todos.description" = "Что ещё осталось сделать к поездке и как идут сборы.";
+"widget.packing.name" = "Сборы";
+"widget.packing.description" = "Насколько заполнены сумки, их вес и чего ещё не хватает.";
+"widget.atlas.name" = "Карта мира";
+"widget.atlas.description" = "Страны, где вы были, светятся на карте.";
+"widget.collab.name" = "Группа поездки";
+"widget.collab.description" = "Кто едет, последние сообщения и открытый опрос.";

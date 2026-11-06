@@ -7,3 +7,9 @@
 "widget.bookings.description" = "A következő járataid, vonataid, szállásaid és asztalfoglalásaid, és hogy mikor esedékesek.";
 "widget.todos.name" = "Teendők";
 "widget.todos.description" = "Ami még hátravan az utazáshoz, és hol tart a csomagolás.";
+"widget.packing.name" = "Csomagolás";
+"widget.packing.description" = "Mennyire telik a táska, a súlya, és mi hiányzik még.";
+"widget.atlas.name" = "Világtérkép";
+"widget.atlas.description" = "Az országok, ahol jártál, világítva a térképen.";
+"widget.collab.name" = "Útitársak";
+"widget.collab.description" = "Ki jön veled, a legújabb üzenetek és a nyitott szavazás.";

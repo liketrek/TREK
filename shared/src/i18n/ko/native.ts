@@ -94,6 +94,14 @@ const native: TranslationStrings = {
   'native.widget.noTodos': '남은 할 일이 없습니다',
   'native.widget.now': '지금',
   'native.widget.travellers': '여행자',
+  'native.widget.missing': '챙길 짐',
+  'native.widget.countries': '개국',
+  'native.widget.world': '전 세계의',
+  'native.widget.group': '여행 그룹',
+  'native.widget.poll': '투표',
+  'native.widget.votes': '표',
+  'native.widget.noMessages': '아직 메시지가 없습니다',
+  'native.widget.departure': '출발',
 };
 
 export default native;

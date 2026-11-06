@@ -7,3 +7,9 @@
 "widget.bookings.description" = "เที่ยวบิน รถไฟ โรงแรม และร้านอาหารถัดไปของคุณ และเวลาของแต่ละรายการ";
 "widget.todos.name" = "สิ่งที่ต้องทำ";
 "widget.todos.description" = "สิ่งที่ยังค้างอยู่สำหรับทริป และความคืบหน้าการจัดกระเป๋า";
+"widget.packing.name" = "จัดกระเป๋า";
+"widget.packing.description" = "กระเป๋าเต็มแค่ไหน น้ำหนัก และอะไรที่ยังขาด";
+"widget.atlas.name" = "แผนที่โลก";
+"widget.atlas.description" = "ประเทศที่คุณเคยไป ส่องแสงบนแผนที่";
+"widget.collab.name" = "กลุ่มเดินทาง";
+"widget.collab.description" = "ใครไปด้วย ข้อความล่าสุด และโหวตที่เปิดอยู่";

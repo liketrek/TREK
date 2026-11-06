@@ -96,6 +96,14 @@ const native: TranslationStrings = {
   'native.widget.noTodos': 'Semua beres',
   'native.widget.now': 'Sekarang',
   'native.widget.travellers': 'pelancong',
+  'native.widget.missing': 'belum dikemas',
+  'native.widget.countries': 'negara',
+  'native.widget.world': 'dari dunia',
+  'native.widget.group': 'Rombongan',
+  'native.widget.poll': 'Polling',
+  'native.widget.votes': 'suara',
+  'native.widget.noMessages': 'Belum ada pesan',
+  'native.widget.departure': 'Keberangkatan',
 };
 
 export default native;

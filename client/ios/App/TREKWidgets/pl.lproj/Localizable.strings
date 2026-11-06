@@ -7,3 +7,9 @@
 "widget.bookings.description" = "Twoje najbliższe loty, pociągi, hotele i stoliki oraz ich terminy.";
 "widget.todos.name" = "Zadania";
 "widget.todos.description" = "Co jeszcze zostało do zrobienia przed podróżą i jak idzie pakowanie.";
+"widget.packing.name" = "Pakowanie";
+"widget.packing.description" = "Jak pełne są torby, ich waga i czego jeszcze brakuje.";
+"widget.atlas.name" = "Mapa świata";
+"widget.atlas.description" = "Kraje, w których byłeś, świecące na mapie.";
+"widget.collab.name" = "Grupa podróży";
+"widget.collab.description" = "Kto jedzie, najnowsze wiadomości i otwarta ankieta.";

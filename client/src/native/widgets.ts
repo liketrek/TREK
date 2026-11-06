@@ -6,6 +6,7 @@ import { isNativeIos } from './platform';
 import { reportNativeFailure } from './reportFailure';
 import { TrekShell } from './trekShell';
 import { stopLook, type WidgetBooking, type WidgetPacking, type WidgetTodos } from './widgetExtras';
+import type { WidgetAtlas, WidgetCollab, WidgetPackingDetail } from './widgetOnline';
 
 /**
  * What the home-screen widgets and the travel-day Live Activity show, built from
@@ -38,6 +39,14 @@ export interface WidgetLabels {
   places?: string;
   travellers?: string;
   allDone?: string;
+  missing?: string;
+  countries?: string;
+  world?: string;
+  group?: string;
+  poll?: string;
+  votes?: string;
+  noMessages?: string;
+  departure?: string;
 }
 
 interface WidgetStop {
@@ -74,7 +83,9 @@ export interface WidgetSnapshot {
   weather?: WidgetWeather;
   bookings?: WidgetBooking[];
   todos?: WidgetTodos;
-  packing?: WidgetPacking;
+  packing?: WidgetPacking & Partial<WidgetPackingDetail>;
+  atlas?: WidgetAtlas;
+  collab?: WidgetCollab;
   labels: WidgetLabels;
 }
 
@@ -99,7 +110,9 @@ interface SnapshotExtras {
   weather?: WidgetWeather | null;
   bookings?: WidgetBooking[];
   todos?: WidgetTodos;
-  packing?: WidgetPacking | null;
+  packing?: (WidgetPacking & Partial<WidgetPackingDetail>) | null;
+  atlas?: WidgetAtlas | null;
+  collab?: WidgetCollab | null;
 }
 
 export interface TripDay {
@@ -259,6 +272,8 @@ export function buildSnapshot(
   if (extras.bookings) snapshot.bookings = extras.bookings;
   if (extras.todos) snapshot.todos = extras.todos;
   if (extras.packing) snapshot.packing = extras.packing;
+  if (extras.atlas) snapshot.atlas = extras.atlas;
+  if (extras.collab) snapshot.collab = extras.collab;
   return snapshot;
 }
 

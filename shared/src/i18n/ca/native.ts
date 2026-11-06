@@ -95,6 +95,14 @@ const native: TranslationStrings = {
   'native.widget.noTodos': 'No queda res per fer',
   'native.widget.now': 'Ara',
   'native.widget.travellers': 'viatgers',
+  'native.widget.missing': 'per fer la maleta',
+  'native.widget.countries': 'països',
+  'native.widget.world': 'del món',
+  'native.widget.group': 'Grup de viatge',
+  'native.widget.poll': 'Votació',
+  'native.widget.votes': 'vots',
+  'native.widget.noMessages': 'Encara no hi ha missatges',
+  'native.widget.departure': 'Sortida',
 };
 
 export default native;

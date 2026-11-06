@@ -33,7 +33,7 @@ extension WidgetSnapshot {
             return formatter.string(from: calendar.date(byAdding: .day, value: offset, to: now) ?? now)
         }
         let start = running ? -2 : 12
-        return WidgetSnapshot(
+        var snapshot = WidgetSnapshot(
             trip: Trip(
                 title: "Autumn in Kyoto", start: iso(start), end: iso(start + 8), path: "/trips/1",
                 place: "Kyoto, Japan", cover: nil, dayCount: 9, placeCount: 34, memberCount: 3
@@ -76,9 +76,57 @@ extension WidgetSnapshot {
                 days: "days", dayOf: "Day {n} of {m}", bookings: "Coming up", noBookings: "No bookings ahead",
                 todos: "To-dos", noTodos: "All done", packing: "Packing", packed: "packed",
                 confirmed: "Confirmed", pending: "Pending", todayShort: "Today", tomorrowShort: "Tomorrow",
-                now: "Now", places: "places", travellers: "travellers", allDone: "Day done", openTrek: "Open TREK"
+                now: "Now", places: "places", travellers: "travellers", allDone: "Day done", openTrek: "Open TREK",
+                missing: "still to pack", countries: "countries", world: "of the world", group: "Travel group",
+                poll: "Poll", votes: "votes", noMessages: "No messages yet", departure: "Departure"
             )
         )
+        snapshot.packing?.bags = [
+            .init(name: "Suitcase", color: "#4A7DDB", grams: 14_200, limit: 23_000, packed: 15, total: 19),
+            .init(name: "Daypack", color: "#2FA37A", grams: 4_100, limit: 8_000, packed: 8, total: 12),
+        ]
+        snapshot.packing?.missing = [
+            .init(name: "Rain jacket", category: "Clothes", color: "#4A7DDB"),
+            .init(name: "Power bank", category: "Tech", color: "#2FA37A"),
+            .init(name: "Passport", category: "Documents", color: "#2FA37A"),
+            .init(name: "Sandals", category: "Shoes", color: "#4A7DDB"),
+            .init(name: "Travel adapter", category: "Tech", color: "#2FA37A"),
+            .init(name: "Sunscreen", category: "Toiletries", color: nil),
+            .init(name: "Earplugs", category: nil, color: nil),
+            .init(name: "Book", category: nil, color: nil),
+        ]
+        snapshot.atlas = Atlas(
+            count: 23,
+            codes: ["DE", "AT", "CH", "FR", "IT", "ES", "PT", "NL", "BE", "DK", "NO", "SE", "GB", "IE", "GR", "HR",
+                    "JP", "TH", "VN", "US", "CA", "MA", "AU"],
+            recent: [
+                .init(code: "JP", name: "Japan"), .init(code: "NO", name: "Norway"),
+                .init(code: "PT", name: "Portugal"), .init(code: "MA", name: "Morocco"),
+            ],
+            continents: [
+                .init(name: "Europe", count: 16), .init(name: "Asia", count: 3), .init(name: "North America", count: 2),
+                .init(name: "Africa", count: 1), .init(name: "Oceania", count: 1),
+            ],
+            trips: 41, days: 318
+        )
+        snapshot.collab = Collab(
+            members: [
+                .init(name: "Maurice", initials: "MA"), .init(name: "Julien", initials: "JU"),
+                .init(name: "Elmo", initials: "EL"), .init(name: "Sara", initials: "SA"),
+            ],
+            messages: [
+                .init(author: "Julien", initials: "JU", text: "Got the JR Pass vouchers, all four of us", at: nil, mine: false),
+                .init(author: "Sara", initials: "SA", text: "Can we push dinner to 20:00? Train is late", at: nil, mine: false),
+                .init(author: "Maurice", initials: "MA", text: "Sure, I moved the table at Pontocho", at: nil, mine: true),
+            ],
+            poll: .init(
+                question: "Day trip on Saturday?",
+                options: [.init(label: "Nara", votes: 3), .init(label: "Uji", votes: 1), .init(label: "Kurama", votes: 0)],
+                voters: 4
+            ),
+            path: "/trips/1?tab=collab"
+        )
+        return snapshot
     }
 
     /// An empty state: no trip at all.
@@ -90,6 +138,8 @@ extension WidgetSnapshot {
         snapshot.bookings = []
         snapshot.todos = Todos(open: 0, total: 0, items: [], path: "/")
         snapshot.packing = nil
+        snapshot.atlas = Atlas(count: 0, codes: [], recent: [], continents: [])
+        snapshot.collab = nil
         return snapshot
     }
 }

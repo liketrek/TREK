@@ -85,6 +85,79 @@ struct WidgetSnapshot: Codable {
         var packed: Int
         var total: Int
         var path: String
+        var bags: [Bag]?
+        var missing: [Item]?
+
+        struct Bag: Codable, Hashable {
+            var name: String
+            /// #rrggbb
+            var color: String
+            var grams: Int
+            /// The bag's weight limit in grams, if it has one.
+            var limit: Int?
+            var packed: Int
+            var total: Int
+        }
+
+        struct Item: Codable, Hashable {
+            var name: String
+            var category: String?
+            /// The colour of the bag it goes in.
+            var color: String?
+        }
+    }
+
+    /// The countries of the Atlas, independent of any trip.
+    struct Atlas: Codable {
+        var count: Int
+        /// ISO 3166-1 alpha-2 codes.
+        var codes: [String]
+        var recent: [Country]
+        var continents: [Continent]
+        var trips: Int?
+        var days: Int?
+
+        struct Country: Codable, Hashable {
+            var code: String
+            var name: String
+        }
+
+        struct Continent: Codable, Hashable {
+            var name: String
+            var count: Int
+        }
+    }
+
+    /// Who travels along, the trip chat and its open poll.
+    struct Collab: Codable {
+        var members: [Member]
+        var messages: [Message]
+        var poll: Poll?
+        var path: String
+
+        struct Member: Codable, Hashable {
+            var name: String
+            var initials: String
+        }
+
+        struct Message: Codable, Hashable {
+            var author: String
+            var initials: String
+            var text: String
+            var at: String?
+            var mine: Bool
+        }
+
+        struct Poll: Codable {
+            var question: String
+            var options: [Option]
+            var voters: Int
+
+            struct Option: Codable, Hashable {
+                var label: String
+                var votes: Int
+            }
+        }
     }
 
     struct Labels: Codable {
@@ -112,6 +185,14 @@ struct WidgetSnapshot: Codable {
         var travellers: String?
         var allDone: String?
         var openTrek: String?
+        var missing: String?
+        var countries: String?
+        var world: String?
+        var group: String?
+        var poll: String?
+        var votes: String?
+        var noMessages: String?
+        var departure: String?
     }
 
     var trip: Trip?
@@ -120,6 +201,8 @@ struct WidgetSnapshot: Codable {
     var bookings: [Booking]?
     var todos: Todos?
     var packing: Packing?
+    var atlas: Atlas?
+    var collab: Collab?
     var labels: Labels
 
     static func load() -> WidgetSnapshot? {

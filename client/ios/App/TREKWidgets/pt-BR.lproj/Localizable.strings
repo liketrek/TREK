@@ -7,3 +7,9 @@
 "widget.bookings.description" = "Seus próximos voos, trens, hotéis e mesas, e quando acontecem.";
 "widget.todos.name" = "Tarefas";
 "widget.todos.description" = "O que ainda falta para a viagem e quanto da mala já está pronto.";
+"widget.packing.name" = "Bagagem";
+"widget.packing.description" = "Quão cheias estão as malas, o peso e o que ainda falta.";
+"widget.atlas.name" = "Mapa-múndi";
+"widget.atlas.description" = "Os países em que você esteve, brilhando no mapa.";
+"widget.collab.name" = "Grupo de viagem";
+"widget.collab.description" = "Quem vai junto, as mensagens recentes e a votação aberta.";

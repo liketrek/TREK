@@ -7,3 +7,9 @@
 "widget.bookings.description" = "Sinu järgmised lennud, rongid, hotellid ja lauad ning millal need on.";
 "widget.todos.name" = "Ülesanded";
 "widget.todos.description" = "Mis reisi jaoks veel tegemata on ja kui kaugel pakkimine on.";
+"widget.packing.name" = "Pakkimine";
+"widget.packing.description" = "Kui täis kotid on, nende kaal ja mis veel puudu on.";
+"widget.atlas.name" = "Maailmakaart";
+"widget.atlas.description" = "Riigid, kus oled käinud, kaardil helendamas.";
+"widget.collab.name" = "Reisiseltskond";
+"widget.collab.description" = "Kes tuleb kaasa, viimased sõnumid ja avatud hääletus.";

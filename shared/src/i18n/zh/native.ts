@@ -93,6 +93,14 @@ const native: TranslationStrings = {
   'native.widget.noTodos': '没有待办事项',
   'native.widget.now': '现在',
   'native.widget.travellers': '旅行者',
+  'native.widget.missing': '待打包',
+  'native.widget.countries': '个国家',
+  'native.widget.world': '全世界的',
+  'native.widget.group': '旅行小组',
+  'native.widget.poll': '投票',
+  'native.widget.votes': '票',
+  'native.widget.noMessages': '还没有消息',
+  'native.widget.departure': '出发',
 };
 
 export default native;

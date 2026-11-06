@@ -7,3 +7,9 @@
 "widget.bookings.description" = "Növbəti uçuşlar, qatarlar, otellər və restoranlar, nə vaxt olduqları ilə.";
 "widget.todos.name" = "Tapşırıqlar";
 "widget.todos.description" = "Səyahət üçün hələ nəyin qaldığı və yığışmağın nə yerdə olduğu.";
+"widget.packing.name" = "Yük siyahısı";
+"widget.packing.description" = "Çantaların doluluğu, çəkisi və hələ nəyin çatışmadığı.";
+"widget.atlas.name" = "Dünya xəritəsi";
+"widget.atlas.description" = "Olduğun ölkələr xəritədə parlayır.";
+"widget.collab.name" = "Səyahət qrupu";
+"widget.collab.description" = "Kim gəlir, son mesajlar və açıq səsvermə.";

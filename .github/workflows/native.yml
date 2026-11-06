@@ -150,7 +150,7 @@ jobs:
         working-directory: client/ios/WidgetPreviews
         run: |
           mkdir -p Sources/WidgetPreviews/Widgets
-          cp ../App/TREKWidgets/WidgetSnapshot.swift ../App/TREKWidgets/TrekStyle.swift ../App/TREKWidgets/TrekFamily.swift \
+          cp ../App/TREKWidgets/WidgetSnapshot.swift ../App/TREKWidgets/TrekStyle.swift ../App/TREKWidgets/TrekFamily.swift ../App/TREKWidgets/WorldGrid.swift \
             ../App/TREKWidgets/*Content.swift Sources/WidgetPreviews/Widgets/
           swift run -c release WidgetPreviews out
 

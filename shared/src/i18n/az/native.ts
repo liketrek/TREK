@@ -95,6 +95,14 @@ const native: TranslationStrings = {
   'native.widget.noTodos': 'Görüləsi iş qalmayıb',
   'native.widget.now': 'İndi',
   'native.widget.travellers': 'səyyah',
+  'native.widget.missing': 'hələ yığılacaq',
+  'native.widget.countries': 'ölkə',
+  'native.widget.world': 'dünyanın',
+  'native.widget.group': 'Səyahət qrupu',
+  'native.widget.poll': 'Səsvermə',
+  'native.widget.votes': 'səs',
+  'native.widget.noMessages': 'Hələ mesaj yoxdur',
+  'native.widget.departure': 'Yola düşmə',
 };
 
 export default native;

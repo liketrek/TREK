@@ -7,3 +7,9 @@
 "widget.bookings.description" = "Tvoje ďalšie lety, vlaky, hotely a stoly a kedy ťa čakajú.";
 "widget.todos.name" = "Úlohy";
 "widget.todos.description" = "Čo ešte zostáva na cestu a ako ďaleko je balenie.";
+"widget.packing.name" = "Balenie";
+"widget.packing.description" = "Aké plné sú tašky, ich váha a čo ešte chýba.";
+"widget.atlas.name" = "Mapa sveta";
+"widget.atlas.description" = "Krajiny, kde si bol, žiariace na mape.";
+"widget.collab.name" = "Cestovná skupina";
+"widget.collab.description" = "Kto ide s tebou, najnovšie správy a otvorené hlasovanie.";

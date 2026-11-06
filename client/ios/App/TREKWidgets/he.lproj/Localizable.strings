@@ -7,3 +7,9 @@
 "widget.bookings.description" = "הטיסות, הרכבות, המלונות והשולחנות הבאים שלך, ומתי הם.";
 "widget.todos.name" = "משימות";
 "widget.todos.description" = "מה עוד פתוח לטיול וכמה התקדמה האריזה.";
+"widget.packing.name" = "אריזה";
+"widget.packing.description" = "כמה מלאים התיקים, המשקל שלהם ומה עוד חסר.";
+"widget.atlas.name" = "מפת העולם";
+"widget.atlas.description" = "המדינות שביקרת בהן, זוהרות על המפה.";
+"widget.collab.name" = "קבוצת הטיול";
+"widget.collab.description" = "מי מצטרף, ההודעות האחרונות והסקר הפתוח.";

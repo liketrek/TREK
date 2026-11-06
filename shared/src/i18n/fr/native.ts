@@ -96,6 +96,14 @@ const native: TranslationStrings = {
   'native.widget.noTodos': 'Plus rien à faire',
   'native.widget.now': 'Maintenant',
   'native.widget.travellers': 'voyageurs',
+  'native.widget.missing': 'encore à emballer',
+  'native.widget.countries': 'pays',
+  'native.widget.world': 'du monde',
+  'native.widget.group': 'Groupe de voyage',
+  'native.widget.poll': 'Sondage',
+  'native.widget.votes': 'voix',
+  'native.widget.noMessages': 'Pas encore de messages',
+  'native.widget.departure': 'Départ',
 };
 
 export default native;

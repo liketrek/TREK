@@ -7,3 +7,9 @@
 "widget.bookings.description" = "Deine nächsten Flüge, Züge, Hotels und Tische, und wann sie anstehen.";
 "widget.todos.name" = "To-dos";
 "widget.todos.description" = "Was für die Reise noch offen ist und wie weit das Packen ist.";
+"widget.packing.name" = "Packliste";
+"widget.packing.description" = "Wie voll die Taschen sind, ihr Gewicht und was noch fehlt.";
+"widget.atlas.name" = "Weltkarte";
+"widget.atlas.description" = "Die Länder, in denen du warst, leuchtend auf der Karte.";
+"widget.collab.name" = "Reisegruppe";
+"widget.collab.description" = "Wer mitreist, die neuesten Nachrichten und die offene Abstimmung.";

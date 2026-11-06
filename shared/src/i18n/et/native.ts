@@ -95,6 +95,14 @@ const native: TranslationStrings = {
   'native.widget.noTodos': 'Kõik on tehtud',
   'native.widget.now': 'Praegu',
   'native.widget.travellers': 'reisijat',
+  'native.widget.missing': 'veel pakkida',
+  'native.widget.countries': 'riiki',
+  'native.widget.world': 'maailmast',
+  'native.widget.group': 'Reisiseltskond',
+  'native.widget.poll': 'Hääletus',
+  'native.widget.votes': 'häält',
+  'native.widget.noMessages': 'Sõnumeid veel pole',
+  'native.widget.departure': 'Väljasõit',
 };
 
 export default native;

@@ -96,6 +96,14 @@ const native: TranslationStrings = {
   'native.widget.noTodos': 'Inget kvar att göra',
   'native.widget.now': 'Nu',
   'native.widget.travellers': 'resenärer',
+  'native.widget.missing': 'kvar att packa',
+  'native.widget.countries': 'länder',
+  'native.widget.world': 'av världen',
+  'native.widget.group': 'Resesällskap',
+  'native.widget.poll': 'Omröstning',
+  'native.widget.votes': 'röster',
+  'native.widget.noMessages': 'Inga meddelanden än',
+  'native.widget.departure': 'Avresa',
 };
 
 export default native;

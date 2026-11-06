@@ -95,6 +95,14 @@ const native: TranslationStrings = {
   'native.widget.noTodos': 'Vše hotovo',
   'native.widget.now': 'Teď',
   'native.widget.travellers': 'cestovatelů',
+  'native.widget.missing': 'zbývá zabalit',
+  'native.widget.countries': 'zemí',
+  'native.widget.world': 'světa',
+  'native.widget.group': 'Cestovní skupina',
+  'native.widget.poll': 'Hlasování',
+  'native.widget.votes': 'hlasů',
+  'native.widget.noMessages': 'Zatím žádné zprávy',
+  'native.widget.departure': 'Odjezd',
 };
 
 export default native;

@@ -97,6 +97,14 @@ const native: TranslationStrings = {
   'native.widget.noTodos': 'Minden kész',
   'native.widget.now': 'Most',
   'native.widget.travellers': 'utazó',
+  'native.widget.missing': 'még bepakolni',
+  'native.widget.countries': 'ország',
+  'native.widget.world': 'a világból',
+  'native.widget.group': 'Útitársak',
+  'native.widget.poll': 'Szavazás',
+  'native.widget.votes': 'szavazat',
+  'native.widget.noMessages': 'Még nincs üzenet',
+  'native.widget.departure': 'Indulás',
 };
 
 export default native;

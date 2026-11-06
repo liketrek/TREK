@@ -39,6 +39,10 @@ struct Render {
                     }
                 }
             }
+            let showcase = NewWidgets(snapshot: states[0].1, now: now)
+                .environment(\.colorScheme, scheme)
+                .environment(\.trekStaticPreview, true)
+            try write(showcase, to: out.appendingPathComponent("new-widgets-\(schemeName).png"))
             for (stateName, snapshot) in states where stateName != "empty" {
                 let sheet = HomeScreen(snapshot: snapshot, now: now)
                     .environment(\.colorScheme, scheme)
@@ -85,7 +89,7 @@ struct Render {
 }
 
 enum WidgetKind: String, CaseIterable {
-    case trip, today, bookings, todos
+    case trip, today, bookings, todos, packing, atlas, collab
 
     var families: [TrekFamily] {
         switch self {
@@ -93,6 +97,9 @@ enum WidgetKind: String, CaseIterable {
         case .today: return [.medium, .large]
         case .bookings: return [.small, .medium, .large, .rectangular, .inline]
         case .todos: return [.small, .medium, .large, .circular, .rectangular]
+        case .packing: return [.small, .medium, .large, .circular, .rectangular]
+        case .atlas: return [.small, .medium, .large, .circular, .rectangular, .inline]
+        case .collab: return [.small, .medium, .large, .rectangular]
         }
     }
 }
@@ -132,6 +139,9 @@ struct WidgetFrame: View {
         case .today: TodayContent(snapshot: snapshot, family: family, now: now)
         case .bookings: BookingsContent(snapshot: snapshot, family: family, now: now)
         case .todos: TodosContent(snapshot: snapshot, family: family, now: now)
+        case .packing: PackingContent(snapshot: snapshot, family: family, now: now)
+        case .atlas: AtlasContent(snapshot: snapshot, family: family)
+        case .collab: CollabContent(snapshot: snapshot, family: family)
         }
     }
 
@@ -140,7 +150,7 @@ struct WidgetFrame: View {
         if kind == .trip && snapshot.trip != nil {
             TripBackdrop(trip: snapshot.trip)
         } else {
-            TrekPaper()
+            TrekPaper(contours: kind != .atlas)
         }
     }
 }
@@ -222,5 +232,39 @@ struct Ridge: Shape {
         path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
         path.closeSubpath()
         return path
+    }
+}
+
+/// The packing, atlas and group widgets side by side, the sheet to judge them by.
+struct NewWidgets: View {
+    let snapshot: WidgetSnapshot
+    let now: Date
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        VStack(spacing: 22) {
+            HStack(spacing: 22) {
+                WidgetFrame(kind: .packing, family: .small, snapshot: snapshot, now: now)
+                WidgetFrame(kind: .atlas, family: .small, snapshot: snapshot, now: now)
+            }
+            WidgetFrame(kind: .atlas, family: .medium, snapshot: snapshot, now: now)
+            WidgetFrame(kind: .packing, family: .medium, snapshot: snapshot, now: now)
+            WidgetFrame(kind: .collab, family: .medium, snapshot: snapshot, now: now)
+            HStack(spacing: 22) {
+                WidgetFrame(kind: .collab, family: .small, snapshot: snapshot, now: now)
+                WidgetFrame(kind: .todos, family: .small, snapshot: snapshot, now: now)
+            }
+            WidgetFrame(kind: .atlas, family: .large, snapshot: snapshot, now: now)
+            WidgetFrame(kind: .packing, family: .large, snapshot: snapshot, now: now)
+            WidgetFrame(kind: .collab, family: .large, snapshot: snapshot, now: now)
+        }
+        .padding(.vertical, 60)
+        .padding(.horizontal, 24)
+        .background(
+            LinearGradient(
+                colors: scheme == .dark ? [Color(hex: 0x1D2440), Color(hex: 0x0B0F1E)] : [Color(hex: 0xC9D8F0), Color(hex: 0xF3E3D3)],
+                startPoint: .top, endPoint: .bottom
+            )
+        )
     }
 }
