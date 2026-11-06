@@ -19,6 +19,7 @@
   "components/Journey/journeyPhotoLayer.ts": 2,
   "components/Map/DawarichTrailLayer.tsx": 1,
   "components/Map/dawarichTrail.ts": 10,
+  "components/Map/markerLook.ts": 1,
   "components/Map/useDawarichTrailGL.ts": 1,
   "components/Packing/PackingBringersCard.tsx": 1,
   "components/Planner/DayReorderPopup.tsx": 1,

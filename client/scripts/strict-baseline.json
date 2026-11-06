@@ -38,7 +38,7 @@
   "src/components/Journey/journeyGeo.ts": 4,
   "src/components/Layout/Navbar.test.tsx": 1,
   "src/components/Map/MapView.test.tsx": 2,
-  "src/components/Map/MapView.tsx": 8,
+  "src/components/Map/MapView.tsx": 7,
   "src/components/Map/MapViewGL.tsx": 1,
   "src/components/Map/ReservationOverlay.test.tsx": 1,
   "src/components/Map/transitGeometry.ts": 1,

@@ -8,6 +8,7 @@ import { useTrackPortageParts } from '../../components/Tours/paddle/useTrackPort
 import { usePaddleObstacleSync } from '../../components/Tours/paddle/usePaddleObstacleSync'
 import { tourPlannedTimes as projectTourPlannedTimes } from '../../components/Tours/tourPresentation'
 import { usePlanMapViewport } from '../../hooks/usePlanMapViewport'
+import { useMeasuredHeight } from '../../hooks/useReportedHeight'
 import { usePaddleObstacleStore } from '../../store/paddleObstacleStore'
 import { useHighlightedRoute } from '../../components/Tours/bike/useHighlightedRoute'
 import { useLegVariantLines } from '../../components/Tours/planner/legVariantPaint'
@@ -101,6 +102,8 @@ export function useTripPlannerPage() {
   }, [activeTab, closeGpxTour])
 
   const poi = usePoiExplore()
+  // The place card's height over the desktop map, so the selection pans its pin above it (#2991).
+  const inspectorCard = useMeasuredHeight()
   const poiViewportChangeRef = useRef(poi.onViewportChange)
   poiViewportChangeRef.current = poi.onViewportChange
   // The place search looks where the plan map looks, and only while it is on screen.
@@ -163,5 +166,6 @@ export function useTripPlannerPage() {
     // The day plan's tours: which places are tours, their planned times and where their stages run (MDT-02).
     dayPlanTours: { tourPlaceIds: planner.tourPlaceIds, plannedTourDurations, tourStageStops: planner.tourStageStops },
     placeForm: { close: closePlaceForm, ...placeFormContext(planner.editingPlace, planner.assignments, tours) },
+    inspectorCard,
   }
 }

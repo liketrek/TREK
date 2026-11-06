@@ -15,7 +15,9 @@ import { isTourLayerHit, useTourMapLayersGL } from './mapRasterOverlay'
 import { MapLayerSwitcher, TourMapLayerSwitcher, MAP_LAYER_SWITCHER_INSET, type BaseLayer, type TourBaseLayer } from './MapLayerSwitcher'
 import { MapLockPill } from './MapLockPill'
 import { useMarkerThumbs } from './useMarkerThumbs'
-import { placeMarkerLook, type PlaceMarkerFlags } from './markerLook'
+import { placeMarkerFrame, placeMarkerLook, type PlaceMarkerFlags } from './markerLook'
+import { bottomChromePadding } from './mapChromePadding'
+import { useSelectionCameraGL } from './useSelectionCameraGL'
 import { markerPhotoHtml, placePhotoFull, placePhotoUrl } from './placePhoto'
 import { isStandardFamily, supportsCustom3d, wantsTerrain, addCustom3dBuildings, addTerrainAndSky } from './mapboxSetup'
 import { attachLocationMarker, type LocationMarkerHandle } from './locationMarkerMapbox'
@@ -51,7 +53,6 @@ import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../../constants/mapDefault
 import { alongShortestArc, computeMapViewport, TILE_SIZE_GL } from '../../utils/mapViewport'
 import { onRealWorld } from '../../utils/worldCopy'
 import { bindPoiDropTarget } from './poiDropTarget'
-import { selectedPlaceTarget } from './selectedPlaceTarget'
 import {
   PLACE_CLUSTER_CIRCLE_LAYER_ID, PLACE_CLUSTER_COUNT_LAYER_ID, PLACE_CLUSTER_SOURCE_ID,
   addPlaceClusterLayers, drawClusterBubbles, expandCluster,
@@ -124,10 +125,7 @@ function createMarkerElement(place: Place & PlaceMarkerFlags & { category_color?
   const look = placeMarkerLook(place, selected)
   const { size, borderWidth } = look
   // See MapView: allow-listed rather than escaped, because this is a CSS context.
-  const borderColor = selected ? '#111827' : safeHexColor(place.category_color, 'white')
-  const shadow = selected
-    ? '0 0 0 3px rgba(17,24,39,0.25), 0 4px 14px rgba(0,0,0,0.3)'
-    : '0 2px 8px rgba(0,0,0,0.22)'
+  const { borderColor, shadow, className: frameClass } = placeMarkerFrame(selected, safeHexColor(place.category_color, 'white'))
   const bgColor = safeHexColor(place.category_color, '#6b7280')
 
   // The visual circle is `size` + 2*border on each side. To make the
@@ -169,7 +167,7 @@ function createMarkerElement(place: Place & PlaceMarkerFlags & { category_color?
   const hasPhoto = look.showPhoto && photoUrl && (photoUrl.startsWith('data:') || photoUrl.startsWith('/api/maps/place-photo/') || photoUrl.startsWith('/uploads/'))
   if (hasPhoto) {
     wrap.innerHTML = `
-      <div style="
+      <div class="${frameClass}" style="
         position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
         width:${size}px;height:${size}px;border-radius:50%;
         border:${borderWidth}px solid ${borderColor};
@@ -183,7 +181,7 @@ function createMarkerElement(place: Place & PlaceMarkerFlags & { category_color?
     `
   } else {
     wrap.innerHTML = `
-      <div style="
+      <div class="${frameClass}" style="
         position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
         width:${size}px;height:${size}px;border-radius:50%;
         border:${borderWidth}px solid ${borderColor};
@@ -455,6 +453,7 @@ export function MapViewGL({
   leftWidth = 0,
   rightWidth = 0,
   hasInspector = false,
+  inspectorHeight = 0,
   hasDayDetail = false,
   reservations = NO_RESERVATIONS,
   visibleConnectionIds = NO_CONNECTION_IDS,
@@ -1917,9 +1916,9 @@ export function MapViewGL({
   const paddingOpts = useMemo(() => {
     if (isMobile) return { top: 40, right: 20, bottom: 40, left: 20 }
     const top = 60
-    const bottom = hasInspector ? 320 : hasDayDetail ? 280 : 60
+    const bottom = bottomChromePadding({ hasInspector, inspectorHeight, hasDayDetail })
     return { top, right: rightWidth + 40, bottom, left: leftWidth + 40 }
-  }, [isMobile, leftWidth, rightWidth, hasInspector, hasDayDetail])
+  }, [isMobile, leftWidth, rightWidth, hasInspector, inspectorHeight, hasDayDetail])
   useAssistantMapGL({ mapRef, mapReady, gl, pinsRef: assistantGhostPinsRef, attachPin: attachPlannerWaypointPin, markersRef, padding: paddingOpts, assistant })
 
   const prevFitKey = useRef<number | null>(-1)
@@ -2011,25 +2010,10 @@ export function MapViewGL({
     } catch { /* noop */ }
   }, [focusPoints, focusKey, fitPaddingKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // flyTo selected place
-  useEffect(() => {
-    const map = mapRef.current
-    if (!map || !selectedPlaceId || !followSelection) return
-    const target = selectedPlaceTarget(selectedPlaceId, places, dayPlaces, selectedPlace)
-    if (!target?.lat || !target?.lng) return
-    try {
-      map.flyTo({
-        center: [target.lng, target.lat],
-        zoom: Math.max(map.getZoom(), 14),
-        pitch: enableMapbox3d ? 45 : 0,
-        duration: 400,
-        // Account for the side panels and the bottom inspector / day-detail panel
-        // so the selected pin lands in the centre of the *visible* map area rather
-        // than the geometric centre (where the bottom panel would cover it).
-        padding: paddingOpts,
-      })
-    } catch { /* noop */ }
-  }, [selectedPlaceId, enableMapbox3d]) // eslint-disable-line react-hooks/exhaustive-deps
+  useSelectionCameraGL({
+    mapRef, selectedPlaceId, places, dayPlaces, selectedPlace,
+    follow: followSelection, padding: paddingOpts, enableMapbox3d,
+  })
 
   // External center/zoom prop changes — jump without animation
   const jumpedToRef = useRef<[number, number] | null>(null)

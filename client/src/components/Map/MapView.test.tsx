@@ -1,5 +1,5 @@
 import React from 'react'
-import { describe, it, expect, vi, afterEach } from 'vitest'
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
 import { render, screen } from '../../../tests/helpers/render'
 import { act, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -85,7 +85,7 @@ const clusterMock = vi.hoisted(() => {
     group: {
       getVisibleParent(marker: unknown) {
         clusterMock.asked.push(marker)
-        return clusterMock.stacked ? { spiderfy } : marker
+        return clusterMock.stacked ? { spiderfy, getChildCount: () => 2 } : marker
       },
     },
   }
@@ -1281,6 +1281,50 @@ describe('MapView selection panning (#921)', () => {
       delete projectable.project
       delete projectable.unproject
     }
+  })
+
+  describe('a place card that grows over the selected pin (#2991)', () => {
+    const projectable = mapMock as unknown as Record<string, unknown>
+    // The flat projection of the mock puts lat 0.7 / lng 0.5 at (500, 700) in a 1000x1200 map.
+    const covered = buildMapPlace({ id: 21, lat: 0.7, lng: 0.5 })
+    const clear = buildMapPlace({ id: 22, lat: 0.2, lng: 0.5 })
+    beforeEach(() => {
+      projectable.project = vi.fn(() => ({ add: vi.fn(() => ({ x: 0, y: 0 })) }))
+      projectable.unproject = vi.fn(() => [1, 1])
+      projectable.getSize = vi.fn(() => ({ x: 1000, y: 1200 }))
+    })
+    afterEach(() => {
+      delete projectable.project
+      delete projectable.unproject
+      delete projectable.getSize
+    })
+
+    it('FE-COMP-MAPVIEW-090: pans the pin back out once the card measured taller than the allowance', () => {
+      const places = [covered]
+      const { rerender } = render(<MapView places={places} leftWidth={300} rightWidth={300} selectedPlaceId={21} hasInspector />)
+      mapMock.panTo.mockClear()
+
+      rerender(<MapView places={places} leftWidth={300} rightWidth={300} selectedPlaceId={21} hasInspector inspectorHeight={820} />)
+      expect(mapMock.panTo).toHaveBeenCalledTimes(1)
+    })
+
+    it('FE-COMP-MAPVIEW-091: leaves a pin that is still in the open alone', () => {
+      const places = [clear]
+      const { rerender } = render(<MapView places={places} leftWidth={300} rightWidth={300} selectedPlaceId={22} hasInspector />)
+      mapMock.panTo.mockClear()
+
+      rerender(<MapView places={places} leftWidth={300} rightWidth={300} selectedPlaceId={22} hasInspector inspectorHeight={820} />)
+      expect(mapMock.panTo).not.toHaveBeenCalled()
+    })
+
+    it('FE-COMP-MAPVIEW-092: pans only once when the selection and the card arrive together', () => {
+      const places = [covered]
+      const { rerender } = render(<MapView places={places} leftWidth={300} rightWidth={300} selectedPlaceId={null} />)
+      mapMock.panTo.mockClear()
+
+      rerender(<MapView places={places} leftWidth={300} rightWidth={300} selectedPlaceId={21} hasInspector inspectorHeight={820} />)
+      expect(mapMock.panTo).toHaveBeenCalledTimes(1)
+    })
   })
 
   it('FE-COMP-MAPVIEW-052: falls back to a plain pan when the map cannot project', () => {

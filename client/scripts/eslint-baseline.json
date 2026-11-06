@@ -11,7 +11,7 @@
     "react-hooks/refs": 553,
     "react-hooks/set-state-in-effect": 193,
     "@typescript-eslint/no-floating-promises": 164,
-    "react-hooks/exhaustive-deps": 116,
+    "react-hooks/exhaustive-deps": 115,
     "@typescript-eslint/no-unused-vars": 124,
     "react-hooks/immutability": 28,
     "max-lines-per-function": 130,
@@ -31,7 +31,7 @@
   },
   "suppressed": {
     "@typescript-eslint/no-explicit-any": 38,
-    "react-hooks/exhaustive-deps": 46
+    "react-hooks/exhaustive-deps": 45
   },
   "tests": {
     "@typescript-eslint/no-explicit-any": 489,

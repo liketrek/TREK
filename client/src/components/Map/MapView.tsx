@@ -49,7 +49,8 @@ import { PluginMapLayers } from './MapPluginLayers'
 import { useTransportRoutes } from '../../hooks/useTransportRoutes'
 import { visibleRouteReservations } from '../../utils/reservationRoutes'
 import { safeHexColor } from '../../utils/safeColor'
-import { placeMarkerLook } from './markerLook'
+import { placeMarkerFrame, placeMarkerLook } from './markerLook'
+import { bottomChromePadding } from './mapChromePadding'
 import { escapeHtml } from '@trek/shared'
 import type { Day, Place, Reservation, RouteVia } from '../../types'
 import type { MapHoverInfo } from './mapHover'
@@ -152,10 +153,7 @@ function createPlaceIcon(place, orderNumbers, isSelected) {
   const { size, borderWidth } = look
   // Allow-listed, not escaped: the value lands in style="…" of a divIcon, where
   // escaping stops the attribute breakout but still permits a CSS url().
-  const borderColor = isSelected ? '#111827' : safeHexColor(place.category_color, 'white')
-  const shadow = isSelected
-    ? '0 0 0 3px rgba(17,24,39,0.25), 0 4px 14px rgba(0,0,0,0.3)'
-    : '0 2px 8px rgba(0,0,0,0.22)'
+  const { borderColor, shadow, className: frameClass } = placeMarkerFrame(isSelected, safeHexColor(place.category_color, 'white'))
   const bgColor = safeHexColor(place.category_color, '#6b7280')
 
   // Number badges (bottom-right), or the rating where there are none: a numbered stop
@@ -187,7 +185,7 @@ function createPlaceIcon(place, orderNumbers, isSelected) {
         width:${size}px;height:${size}px;
         cursor:pointer;position:relative;
       ">
-        <div style="
+        <div class="${frameClass}" style="
           width:${size}px;height:${size}px;border-radius:50%;
           border:${borderWidth}px solid ${borderColor};
           box-shadow:${shadow};
@@ -207,7 +205,7 @@ function createPlaceIcon(place, orderNumbers, isSelected) {
 
   const fallbackIcon = L.divIcon({
     className: '',
-    html: `<div style="
+    html: `<div class="${frameClass}" style="
       width:${size}px;height:${size}px;border-radius:50%;
       border:${borderWidth}px solid ${borderColor};
       box-shadow:${shadow};
@@ -256,46 +254,6 @@ function MapCameraSnapshot({ onChange }: { onChange: (center: [number, number], 
     map.on('moveend zoomend', save)
     return () => { map.off('moveend zoomend', save) }
   }, [map, onChange])
-  return null
-}
-
-interface SelectionControllerProps {
-  /** False while the traveller locked the map (#2010): a pick changes nothing on it. */
-  follow: boolean
-  places: Place[]
-  selectedPlaceId: number | null
-  dayPlaces: Place[]
-  selectedPlace: Place | null
-  paddingOpts: L.FitBoundsOptions
-}
-
-function SelectionController({ follow, places, selectedPlaceId, dayPlaces, selectedPlace, paddingOpts }: SelectionControllerProps) {
-  const map = useMap()
-  const frame = useLngFrame()
-  const prev = useRef(null)
-
-  useEffect(() => {
-    if (follow && selectedPlaceId && selectedPlaceId !== prev.current) {
-      // Pan to the selected place without changing zoom. Offset the centre by the
-      // side-panel + bottom-inspector padding so the pin lands in the middle of the
-      // *visible* map area rather than the geometric centre (where the bottom panel
-      // would cover it). Reuses the same paddingOpts the fit-bounds path uses.
-      const selected = selectedPlaceTarget(selectedPlaceId, places, dayPlaces, selectedPlace)
-      if (selected?.lat != null && selected?.lng != null) {
-        const latlng: [number, number] = [selected.lat, frameLng(frame, selected.lng)]
-        const tl = paddingOpts.paddingTopLeft as [number, number] | undefined
-        const br = paddingOpts.paddingBottomRight as [number, number] | undefined
-        if (tl && br && typeof map.project === 'function' && typeof map.unproject === 'function') {
-          const point = map.project(latlng).add([(br[0] - tl[0]) / 2, (br[1] - tl[1]) / 2])
-          map.panTo(map.unproject(point), { animate: true })
-        } else {
-          map.panTo(latlng, { animate: true })
-        }
-      }
-    }
-    prev.current = selectedPlaceId
-  }, [selectedPlaceId, places, dayPlaces, selectedPlace, map, follow, frame])
-
   return null
 }
 
@@ -467,7 +425,7 @@ import { useIsPhone } from '../../mobile/useIsPhone'
 // shared useGeolocation hook so the Leaflet and Mapbox variants behave
 // identically. Heading is shown as a rotated conic SVG when available.
 import type { GeoPosition, TrackingMode } from '../../hooks/useGeolocation'
-import { selectedPlaceTarget } from './selectedPlaceTarget'
+import { SelectionController } from './SelectionController'
 import { LngFrameProvider, useLngFrame, useTripLngFrame } from './lngFrameContext'
 import { frameLine, frameLng } from '../../utils/lngFrame'
 import { LngFrameFollower, MapClickHandler, MapContextMenuHandler, PoiDropTarget, ViewportController } from './leafletMapBridges'
@@ -655,6 +613,7 @@ export const MapView = memo(function MapView({
   leftWidth = 0,
   rightWidth = 0,
   hasInspector = false,
+  inspectorHeight = 0,
   hasDayDetail = false,
   reservations = [] as Reservation[],
   showReservationStats = false,
@@ -735,10 +694,10 @@ export const MapView = memo(function MapView({
     return {
       top: 60,
       right: rightWidth + 40,
-      bottom: hasInspector ? 320 : hasDayDetail ? 280 : 60,
+      bottom: bottomChromePadding({ hasInspector, inspectorHeight, hasDayDetail }),
       left: leftWidth + 40,
     }
-  }, [isMobile, leftWidth, rightWidth, hasInspector, hasDayDetail])
+  }, [isMobile, leftWidth, rightWidth, hasInspector, inspectorHeight, hasDayDetail])
 
   const paddingOpts = useMemo(() => leafletPadding(paddingBox), [paddingBox])
 
@@ -994,7 +953,7 @@ export const MapView = memo(function MapView({
       <MapController center={center} zoom={zoom} />
       {hasViewBaseLayer && <MapCameraSnapshot onChange={saveCameraSnapshot} />}
       <BoundsController places={dayPlaces.length > 0 ? dayPlaces : places} routeCoords={dayPlaces.length > 0 ? routeCoords : []} fitKey={fitKey} paddingOpts={paddingOpts} framedOnMount={initialView.framed} focusPoints={focusPoints} focusKey={focusKey} fitPadding={fitPadding} follow={followSelection} />
-      <SelectionController follow={followSelection} places={places} selectedPlaceId={selectedPlaceId} dayPlaces={dayPlaces} selectedPlace={selectedPlace} paddingOpts={paddingOpts} />
+      <SelectionController follow={followSelection} places={places} selectedPlaceId={selectedPlaceId} dayPlaces={dayPlaces} selectedPlace={selectedPlace} paddingBox={paddingBox} />
       <MapClickHandler onClick={onMapClick} />
       <MapContextMenuHandler onContextMenu={onMapContextMenu} />
       <CameraHoverGuard movingRef={mapMovingRef} onMoveStart={clearHover} onZoom={setMapZoom} />
