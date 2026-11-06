@@ -99,8 +99,8 @@ const PHOTO_PROVIDER = z.enum(['immich', 'synologyphotos']);
 const MAX_PROVIDER_PHOTOS_PER_CALL = 100;
 
 /**
- * Journey MCP surface — ported 1:1 from the legacy registrar
- * src/mcp/tools/journey.ts (23 tools): identical names, descriptions, zod input
+ * Journey MCP surface — ported 1:1 from the retired
+ * the journey registrar (23 tools): identical names, descriptions, zod input
  * schemas, annotations, and error/payload shapes. The legacy `if (R)` / `if (W)`
  * checks become declarative read/write markers; the three `if (S)` share tools
  * become `{ group: 'journey', mode: 'share' }`, which is why McpAccessMode is
@@ -770,7 +770,7 @@ export class JourneyMcp {
   }
 
   // --- RESOURCES ---
-  // Ported 1:1 from src/mcp/resources.ts (the last legacy registrar): identical
+  // Ported 1:1 from the retired resources registrar (the last legacy registrar): identical
   // names, URIs, descriptions and payload shapes. The legacy registration-time
   // gate `isAddonEnabled(JOURNEY) && canRead(scopes, 'journey')` becomes
   // `when: journeyAddonOn` + the declarative read marker.

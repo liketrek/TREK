@@ -52,9 +52,9 @@ const hoursText = (hours: PlaceOpeningHours | null | undefined): string | null =
 const AGENT: OriginWriter = { kind: 'fixed', origin: 'agent' };
 
 /**
- * Places MCP surface — ported 1:1 from the legacy registrar
- * src/mcp/tools/places.ts (ten tools) plus the trek://trips/{tripId}/places
- * resource from src/mcp/resources.ts: identical names, descriptions, input
+ * Places MCP surface — ported 1:1 from the retired
+ * the places registrar (ten tools) plus the trek://trips/{tripId}/places
+ * resource from the retired resources registrar: identical names, descriptions, input
  * schemas, annotations, error/payload shapes and safeBroadcast events. The
  * registration-time `canWrite/canRead(scopes, 'places')` gates became the
  * declarative access markers, resolved by trekMcpAccessPolicy.

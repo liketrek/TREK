@@ -6,7 +6,7 @@ import { z } from 'zod';
 
 /**
  * Geo MCP tools, moved 1:1 from the legacy registrar in
- * src/mcp/tools/mapsWeather.ts when the maps domain went DI-native (the weather
+ * the mapsWeather registrar when the maps domain went DI-native (the weather
  * and airport tools stay there until their services migrate). Same names,
  * descriptions, input schemas and result shapes; the legacy registration-time
  * `canRead(scopes, 'geo')` gate became the declarative `access` marker ('geo'

@@ -17,7 +17,7 @@ import { z } from 'zod';
 
 /**
  * Tags MCP tools — pilot for the decorator-driven registry. Ported 1:1 from
- * the legacy src/mcp/tools/tags.ts registrar: identical names, descriptions,
+ * the retired tags registrar: identical names, descriptions,
  * schemas, annotations, scope gating (places read/write via the declarative
  * access markers + trekMcpAccessPolicy) and error/payload shapes.
  */

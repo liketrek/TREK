@@ -7,7 +7,7 @@ import { z } from 'zod';
 
 /**
  * Weather MCP tools, moved 1:1 from the legacy registrar in
- * src/mcp/tools/mapsWeather.ts. Same names, descriptions, input schemas and
+ * the mapsWeather registrar. Same names, descriptions, input schemas and
  * result shapes; the registration-time `canRead(scopes, 'weather')` gate became
  * the declarative `access` marker ('weather' is read-only — there is no
  * weather:write).

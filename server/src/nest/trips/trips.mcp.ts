@@ -65,10 +65,10 @@ function jsonContent(uri: string, data: unknown) {
 
 /**
  * Trip MCP surface — ported 1:1 from the legacy registrars: ten tools from
- * src/mcp/tools/trips.ts (the three share-link tools moved to
+ * the trips registrar (the three share-link tools moved to
  * src/nest/share/share.mcp.ts), the trek://trips, trek://trips/{tripId} and
- * trek://trips/{tripId}/members resources from src/mcp/resources.ts, and the
- * trip-summary prompt from src/mcp/tools/prompts.ts (identical names,
+ * trek://trips/{tripId}/members resources from the retired resources registrar, and the
+ * trip-summary prompt from the prompts registrar (identical names,
  * descriptions, schemas, annotations, error/payload shapes and broadcasts).
  *
  * Access markers deviate from the declarative default in two places, on

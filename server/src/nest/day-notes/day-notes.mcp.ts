@@ -52,8 +52,8 @@ function parseId(value: string | string[]): number | null {
 
 /**
  * Day-note MCP surface — ported 1:1 from the legacy registrars: the three
- * tools from the DAY NOTES block of src/mcp/tools/days.ts and the
- * trek://trips/{tripId}/days/{dayId}/notes resource from src/mcp/resources.ts
+ * tools from the DAY NOTES block of the days registrar and the
+ * trek://trips/{tripId}/days/{dayId}/notes resource from the retired resources registrar
  * (identical names, descriptions, schemas, annotations, error/payload shapes
  * and broadcasts). The legacy registration-time gates map to the declarative
  * trips write/read access markers (registerDayTools' whole-registrar

@@ -50,9 +50,9 @@ function jsonContent(uri: string, data: unknown) {
 }
 
 /**
- * Atlas MCP surface — ported 1:1 from the legacy registrar
- * src/mcp/tools/atlas.ts (10 tools) and the four atlas resources in
- * src/mcp/resources.ts: identical names, descriptions, zod input schemas,
+ * Atlas MCP surface — ported 1:1 from the retired
+ * the atlas registrar (10 tools) and the four atlas resources in
+ * the retired resources registrar: identical names, descriptions, zod input schemas,
  * annotations, and error/payload shapes. The legacy `if (R)` / `if (W)` scope
  * checks map to the declarative atlas read/write access markers (resolved by
  * trekMcpAccessPolicy) and the registration-time addon early-return becomes
@@ -465,7 +465,7 @@ export class AtlasMcp {
   }
 
   // -------------------------------------------------------------------------
-  // Resources (from src/mcp/resources.ts — payloads reproduce jsonContent verbatim)
+  // Resources (from the retired resources registrar — payloads reproduce jsonContent verbatim)
   // -------------------------------------------------------------------------
 
   @Resource({

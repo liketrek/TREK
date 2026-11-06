@@ -61,8 +61,8 @@ function jsonContent(uri: string, data: unknown) {
 
 /**
  * Collab MCP surface — ported 1:1 from the legacy registrars: the twelve tools
- * from src/mcp/tools/collab.ts and the trek://trips/{tripId}/collab-notes,
- * …/collab/polls and …/collab/messages resources from src/mcp/resources.ts
+ * from the collab registrar and the trek://trips/{tripId}/collab-notes,
+ * …/collab/polls and …/collab/messages resources from the retired resources registrar
  * (identical names, descriptions, schemas, annotations, error/payload shapes
  * and broadcasts). The registration-time gates map to the composite `when`
  * thunks (collab addon AND per-sub-feature flag) plus the declarative collab

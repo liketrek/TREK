@@ -35,7 +35,7 @@ function parseId(value: string | string[]): number | null {
 
 /**
  * Day MCP surface — ported 1:1 from the legacy registrars: the seven tools of
- * src/mcp/tools/days.ts and the trek://trips/{tripId}/days resource from src/mcp/resources.ts
+ * the days registrar and the trek://trips/{tripId}/days resource from the retired resources registrar
  * (identical names, descriptions, schemas, annotations, error/payload shapes
  * and broadcasts). The legacy registration-time gates map to the declarative
  * trips write/read access markers (registerDayTools' whole-registrar

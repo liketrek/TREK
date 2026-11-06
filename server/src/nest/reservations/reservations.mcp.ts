@@ -323,8 +323,8 @@ const LEGS_IN_METADATA_ERROR =
 
 /**
  * Reservations MCP surface — ported 1:1 from the legacy registrars: the five
- * tools from src/mcp/tools/reservations.ts and the
- * trek://trips/{tripId}/reservations resource from src/mcp/resources.ts
+ * tools from the reservations registrar and the
+ * trek://trips/{tripId}/reservations resource from the retired resources registrar
  * (identical names, descriptions, schemas, annotations, error/payload shapes
  * and broadcasts). The registration-time gates map to the declarative
  * reservations read/write access markers (the legacy `if (canWrite)` /
@@ -651,7 +651,7 @@ export class ReservationsMcp {
   // -------------------------------------------------------------------------
   // Transports
   //
-  // Ported 1:1 from the legacy registrar src/mcp/tools/transports.ts. They live
+  // Ported 1:1 from the retired transports registrar. They live
   // here rather than in a domain of their own because a transport IS a
   // reservation — same table, same service, same 'reservation_edit' permission
   // — and this class already injects everything they need. The registration-time

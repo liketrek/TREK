@@ -73,8 +73,8 @@ function calendarRegionCodes(country: string, data: unknown): { region: string; 
 
 /**
  * Vacay MCP surface — ported 1:1 from the legacy registrars: the 26 tools from
- * src/mcp/tools/vacay.ts and the trek://vacay/{plan,entries,holidays} resources
- * from src/mcp/resources.ts (identical names, descriptions, schemas,
+ * the vacay registrar and the trek://vacay/{plan,entries,holidays} resources
+ * from the retired resources registrar (identical names, descriptions, schemas,
  * annotations and error/payload shapes; broadcasts happen inside VacayService,
  * driven by the socketId argument every tool passes as undefined). The
  * registration-time gates map to `when` (the whole-registrar vacay-addon check)
@@ -711,7 +711,7 @@ export class VacayMcp {
   }
 
   // -------------------------------------------------------------------------
-  // Resources (from src/mcp/resources.ts — payloads reproduce jsonContent verbatim)
+  // Resources (from the retired resources registrar — payloads reproduce jsonContent verbatim)
   // -------------------------------------------------------------------------
 
   @Resource({
