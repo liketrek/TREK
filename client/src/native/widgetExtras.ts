@@ -81,6 +81,17 @@ const SYMBOLS: Record<string, string> = {
   Luggage: 'suitcase.rolling.fill',
   Backpack: 'backpack.fill',
   Zap: 'bolt.fill',
+  // The emoji icons of the categories older installs were seeded with.
+  '🏨': 'bed.double.fill',
+  '🍽️': 'fork.knife',
+  '🏛️': 'building.columns.fill',
+  '🛍️': 'bag.fill',
+  '🚌': 'bus.fill',
+  '🎯': 'figure.walk',
+  '☕': 'cup.and.saucer.fill',
+  '🏖️': 'beach.umbrella.fill',
+  '🌿': 'leaf.fill',
+  '📍': 'mappin',
 };
 
 const HEX = /^#[0-9a-f]{6}$/i;

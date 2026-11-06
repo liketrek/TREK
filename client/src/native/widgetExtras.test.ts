@@ -150,6 +150,7 @@ describe('stopLook and temperature', () => {
   it('maps a category to a colour and an SF Symbol, ignoring what it cannot use', () => {
     expect(stopLook({ color: '#E8A13A', icon: 'Coffee' })).toEqual({ color: '#E8A13A', symbol: 'cup.and.saucer.fill' });
     expect(stopLook({ color: 'red', icon: 'Unknown' })).toEqual({ color: null, symbol: null });
+    expect(stopLook({ color: '#84cc16', icon: '🌿' })).toEqual({ color: '#84cc16', symbol: 'leaf.fill' });
     expect(stopLook(null)).toEqual({ color: null, symbol: null });
   });
 
