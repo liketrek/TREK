@@ -1,5 +1,6 @@
 import type { Day, Reservation, Trip } from '../types';
 import { splitReservationDateTime } from '../utils/formatters';
+import { heroTrip, sortTripsByRelevance } from '../utils/heroTrip';
 import { hasNativeFeature } from './capabilities';
 import { isNativeIos } from './platform';
 import { reportNativeFailure } from './reportFailure';
@@ -121,17 +122,13 @@ function minutesOf(time: string | null | undefined): number | null {
 }
 
 /**
- * The running trip if there is one, else the next to start. Trips without dates
- * and trips already over are not candidates.
+ * The trip the dashboard's hero features (utils/heroTrip.ts): the running one,
+ * else the next to start, so the widgets show the trip the app opens on.
+ * Archived trips are not candidates, as on the dashboard.
  */
 export function pickTrip(trips: Trip[], today: string): Trip | null {
-  const dated = trips.flatMap((t) =>
-    t.start_date && t.end_date && !t.is_archived ? [{ trip: t, start: t.start_date, end: t.end_date }] : []
-  );
-  const running = dated.find((d) => d.start <= today && d.end >= today);
-  if (running) return running.trip;
-  const upcoming = dated.filter((d) => d.start > today).sort((a, b) => a.start.localeCompare(b.start));
-  return upcoming[0]?.trip ?? null;
+  const active = trips.filter((t) => !t.is_archived);
+  return heroTrip(sortTripsByRelevance(active, today), today);
 }
 
 /** The symbols of the booking kinds a day's timeline shows next to its stops. */

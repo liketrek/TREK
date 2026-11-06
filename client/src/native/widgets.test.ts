@@ -51,6 +51,15 @@ describe('pickTrip', () => {
     expect(pickTrip(trips, '2026-11-12')?.id).toBe(2);
   });
 
+  it('of several running trips takes the dashboard hero: the one that started first', () => {
+    const trips = [
+      trip(1, '2026-11-02', '2026-11-06'),
+      trip(2, '2026-10-20', '2026-11-18'),
+      trip(3, '2026-11-04', '2026-11-12'),
+    ];
+    expect(pickTrip(trips, '2026-11-06')?.id).toBe(2);
+  });
+
   it('skips undated, archived and finished trips', () => {
     expect(
       pickTrip(

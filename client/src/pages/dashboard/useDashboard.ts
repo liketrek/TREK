@@ -9,6 +9,7 @@ import { useTranslation } from '../../i18n'
 import { useToast } from '../../components/shared/Toast'
 import { getApiErrorMessage } from '../../types'
 import { localIsoToday } from './dashboardModel'
+import { heroTrip } from '../../utils/heroTrip'
 import { useTripSearch } from './useTripSearch'
 import type { TripCreateRequest } from '@trek/shared'
 import {
@@ -120,9 +121,7 @@ export function useDashboard() {
   // A trip the hero features on its own merit: one that is running, else the next
   // one coming up. Only that one is taken out of the grid below, so the same trip
   // isn't shown twice.
-  const featured = trips.find(t => t.start_date && t.end_date && t.start_date <= today && t.end_date >= today)
-    || trips.find(t => t.start_date && t.start_date >= today)
-    || null
+  const featured = heroTrip(trips, today)
   // With neither, the hero still shows something rather than sitting empty — but
   // that trip is only borrowed for the header and must stay in the grid, or a user
   // whose trips are all finished (or undated) sees "No trips yet". #1706
