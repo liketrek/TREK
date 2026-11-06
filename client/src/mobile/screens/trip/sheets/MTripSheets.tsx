@@ -1,5 +1,3 @@
-import { useEffect, useRef } from 'react'
-import { createPortal } from 'react-dom'
 import TransitJourneyModal from '../../../../components/Planner/TransitJourneyModal'
 import BookingImportModal from '../../../../components/Planner/BookingImportModal'
 import AirTrailImportModal from '../../../../components/Planner/AirTrailImportModal'
@@ -34,60 +32,39 @@ import MRtInfoSheet from '../roadtrip/MRtInfoSheet'
 import MRtCorridorSheet from '../roadtrip/MRtCorridorSheet'
 import MRtDraftSheet from '../roadtrip/MRtDraftSheet'
 import type { MTripSheetsProps } from '../MTripShell'
-import { lockBodyScroll } from '../../../../utils/bodyScrollLock'
-import { focusDialog, trapTab } from '../../../../components/shared/dialogFocus'
+import MTourDetailShell, { TourSheetOpen } from './MTourDetailShell'
+import { useLastOpen } from '../../../../components/shared/usePresence'
 
-/** The one global mobile tour-detail owner, independent of which surface selected it. */
+/**
+ * The one global mobile tour-detail owner, independent of which surface
+ * selected it. The tour shows in a sheet like every other detail
+ * (MTourDetailShell); it keeps the tour it showed last while it slides away.
+ */
 export function MSelectedTourDetail({ planner }: Pick<MTripSheetsProps, 'planner'>) {
-  const panelRef = useRef<HTMLDivElement>(null)
-  const selectedTourId = planner.selectedTour?.place_id ?? null
-  const selectedPlaceId = planner.selectedPlace?.id ?? null
-  useEffect(() => {
-    if (selectedTourId == null || selectedPlaceId == null) return
-    const previous = document.activeElement as HTMLElement | null
-    const release = lockBodyScroll()
-    const panel = panelRef.current
-    if (panel) focusDialog(panel)
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape' || event.defaultPrevented) return
-      const openPanels = document.querySelectorAll('[data-m-sheet="open"]')
-      if (openPanels.length && openPanels[openPanels.length - 1] !== panel) return
-      event.preventDefault()
-      planner.setSelectedPlaceId(null)
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => {
-      document.removeEventListener('keydown', onKeyDown)
-      release()
-      if (previous?.isConnected) previous.focus()
-    }
-  }, [planner.setSelectedPlaceId, selectedPlaceId, selectedTourId])
+  const open = !!(planner.selectedTour && planner.selectedPlace)
+  const tour = useLastOpen(planner.selectedTour, open)
+  const place = useLastOpen(planner.selectedPlace, open)
+  if (!tour || !place) return null
 
-  if (!planner.selectedTour || !planner.selectedPlace) return null
-
-  return createPortal(
-    <div className="bg-[rgba(0,0,0,0.3)]" style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 'var(--bottom-nav-h)' }} role="presentation" onClick={() => planner.setSelectedPlaceId(null)}>
-      <div ref={panelRef} style={{ width: '100%', maxHeight: '85vh' }} role="dialog" aria-modal="true" aria-label={planner.selectedPlace.name}
-        data-m-sheet="open"
-        tabIndex={-1} onClick={event => event.stopPropagation()} onKeyDown={event => trapTab(event, panelRef.current!)}>
-        <TourDetailDialog
-          tour={planner.selectedTour}
-          place={planner.selectedPlace}
-          days={planner.days}
-          selectedDayId={planner.selectedDayId}
-          selectedAssignmentId={planner.selectedAssignmentId}
-          assignments={planner.assignments}
-          files={planner.files}
-          readOnly
-          canEdit={false}
-          canAssign={planner.can('day_edit', planner.trip)}
-          onClose={() => planner.setSelectedPlaceId(null)}
-          onAssignToDay={planner.handleAssignToDay}
-          onRemoveAssignment={planner.handleRemoveAssignment}
-        />
-      </div>
-    </div>,
-    document.body,
+  return (
+    <TourSheetOpen.Provider value={{ open, label: place.name }}>
+      <TourDetailDialog
+        shell={MTourDetailShell}
+        tour={tour}
+        place={place}
+        days={planner.days}
+        selectedDayId={planner.selectedDayId}
+        selectedAssignmentId={planner.selectedAssignmentId}
+        assignments={planner.assignments}
+        files={planner.files}
+        readOnly
+        canEdit={false}
+        canAssign={planner.can('day_edit', planner.trip)}
+        onClose={() => planner.setSelectedPlaceId(null)}
+        onAssignToDay={planner.handleAssignToDay}
+        onRemoveAssignment={planner.handleRemoveAssignment}
+      />
+    </TourSheetOpen.Provider>
   )
 }
 

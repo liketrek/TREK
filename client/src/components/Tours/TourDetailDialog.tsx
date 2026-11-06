@@ -22,7 +22,7 @@ import {
   Ruler,
   Upload,
 } from 'lucide-react';
-import { createElement, useEffect, useMemo, useRef, useState } from 'react';
+import { createElement, useEffect, useMemo, useRef, useState, type ComponentType } from 'react';
 import Markdown from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
@@ -38,7 +38,7 @@ import { inheritedTrackColor, resolveTrackColor } from '../Map/trackColors';
 import { BOX } from '../Planner/bookings/bookingParts';
 import { getNavigationTargets, navigationTargetLabel, openNavigationTarget } from '../Planner/placeNavigation';
 import { SoftPill, tintOf } from '../Planner/planParts';
-import DetailShell from '../shared/DetailShell';
+import DetailShell, { type DetailShellProps } from '../shared/DetailShell';
 import { DeleteButton, DialogButton, DialogSection, FooterSpacer, fs } from '../shared/DialogShell';
 import ElevationProfile from '../shared/ElevationProfile';
 import { NavigationMenu } from '../shared/NavigationMenu';
@@ -108,6 +108,8 @@ interface TourDetailDialogProps extends TourPermissionProps {
   readOnly?: boolean;
   /** Desktop-only opener; the map detail stays non-modal and returns focus when closed. */
   desktopFocusReturnTarget?: HTMLElement | null;
+  /** The frame it renders into: the desktop's card over the map, or the phone's sheet. */
+  shell?: ComponentType<DetailShellProps>;
 }
 
 /** The pills of the head band: white like a place's, one fact each. */
@@ -518,6 +520,7 @@ export default function TourDetailDialog({
   desktopNonModal = false,
   readOnly = false,
   desktopFocusReturnTarget = null,
+  shell: Shell = DetailShell,
   canEdit: editPermission,
   canAssign: assignPermission,
 }: TourDetailDialogProps) {
@@ -701,7 +704,7 @@ export default function TourDetailDialog({
   );
 
   return (
-    <DetailShell
+    <Shell
       testId="tour-detail"
       header={header}
       footer={footer}
@@ -797,7 +800,7 @@ export default function TourDetailDialog({
 
       <TourProvenanceBlock tripId={place.trip_id} tour={tour} canCheck={canEdit} onReimported={onSourceReimported} />
       <TourFilesSection placeId={place.id} files={placeFiles} onFileUpload={canEdit ? onFileUpload : undefined} />
-    </DetailShell>
+    </Shell>
   );
 }
 

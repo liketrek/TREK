@@ -65,7 +65,7 @@ beforeEach(() => {
 })
 
 describe('MSelectedTourDetail', () => {
-  it('is the single mobile modal owner for Escape, focus containment, scroll lock and focus return', () => {
+  it('shows the tour in a mobile sheet that owns Escape, focus containment, scroll lock and focus return', () => {
     const opener = document.createElement('button')
     opener.textContent = 'Open mobile Tour'
     document.body.appendChild(opener)
