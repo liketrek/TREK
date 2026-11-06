@@ -11,6 +11,7 @@ import {
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   errorResult,
   ok,
+  okStructured,
 } from '../../nest-mcp';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
@@ -28,6 +29,7 @@ import {
   type PackingListItemsRequest,
   type PackingVisibility,
   idSchema,
+  listPackingItemsOutputSchema,
 } from '@trek/shared';
 
 import { z } from 'zod';
@@ -340,6 +342,7 @@ export class PackingMcp {
         "How the list is shown: by 'category' (the default) or by 'bag'. It filters nothing",
       ),
     },
+    outputSchema: listPackingItemsOutputSchema,
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: packingAddonOn,
     access: { group: 'packing', mode: 'read' },
@@ -359,7 +362,7 @@ export class PackingMcp {
     );
     const bags = await this.packing.listBags(tripId);
     const category_assignees = await this.packing.getCategoryAssignees(tripId);
-    return ok({ items, bags, category_assignees });
+    return okStructured({ items, bags, category_assignees });
   }
 
   @Tool({

@@ -3,6 +3,7 @@ export {
   demoDenied,
   errorResult,
   ok,
+  okStructured,
   TOOL_ANNOTATIONS_DELETE,
   TOOL_ANNOTATIONS_DELETE_NON_IDEMPOTENT,
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,

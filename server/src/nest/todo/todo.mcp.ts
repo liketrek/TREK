@@ -11,12 +11,13 @@ import {
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   errorResult,
   ok,
+  okStructured,
 } from '../../nest-mcp';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { TodoService } from './todo.service';
-import { idSchema } from '@trek/shared';
+import { idSchema, listTodosOutputSchema } from '@trek/shared';
 
 import { z } from 'zod';
 
@@ -52,6 +53,7 @@ export class TodoMcp {
     inputSchema: {
       tripId: idSchema,
     },
+    outputSchema: listTodosOutputSchema,
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: packingAddonOn,
     access: { group: 'todos', mode: 'read' },
@@ -59,7 +61,7 @@ export class TodoMcp {
   async listTodos({ tripId }: { tripId: number }, ctx: McpContext) {
     if (!(await this.todos.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     const items = await this.todos.listItems(tripId);
-    return ok({ items });
+    return okStructured({ items });
   }
 
   @Tool({

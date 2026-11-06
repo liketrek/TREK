@@ -28,7 +28,9 @@ vi.mock('../../../src/db/database', async () => {
 // starts and stops its cache sweep through it.
 vi.mock('../../../src/nest/weather/weather.impl', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../src/nest/weather/weather.impl')>()),
-  getWeather: vi.fn().mockResolvedValue({ temp: 20, condition: 'sunny' }),
+  getWeather: vi
+    .fn()
+    .mockResolvedValue({ temp: 20, main: 'Clear', description: 'sunny', type: 'forecast', condition: 'sunny' }),
   getDetailedWeather: vi.fn().mockResolvedValue({ hourly: [] }),
 }));
 
