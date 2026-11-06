@@ -12,6 +12,11 @@ import {
   useDefaultVacayPerson, useVacayCalendarLogic, vacayWindowShape, type VacayMode,
 } from '../../../components/Vacay/useVacayCalendarLogic'
 
+/** The full name of a month in the user's language ("März"). */
+function longMonthName(locale: string, m: { year: number; month: number }): string {
+  return new Intl.DateTimeFormat(locale, { month: 'long' }).format(new Date(m.year, m.month, 1))
+}
+
 export type MVacayView = 'grid' | 'edit'
 export type MVacayMode = VacayMode
 export type MVacaySheet = 'invite' | 'settings' | 'share' | 'people' | 'legend' | null
@@ -91,17 +96,11 @@ export function useMVacay() {
     return months.map(({ year, month }) => fmt.format(new Date(year, month, 1)))
   }, [locale, months])
 
-  const monthNameLong = useMemo(
-    () => new Intl.DateTimeFormat(locale, { month: 'long' }).format(new Date(activeMonth.year, activeMonth.month, 1)),
-    [locale, activeMonth],
-  )
+  const monthNameLong = useMemo(() => longMonthName(locale, activeMonth), [locale, activeMonth])
 
   // The pagers draw the neighbours of the open month and year too: the long name
   // of any slot of the window, and the twelve months of any year.
-  const monthNameLongFor = useCallback((slot: number) => {
-    const m = months[slot] ?? months[0]
-    return new Intl.DateTimeFormat(locale, { month: 'long' }).format(new Date(m.year, m.month, 1))
-  }, [locale, months])
+  const monthNameLongFor = useCallback((slot: number) => longMonthName(locale, months[slot] ?? months[0]), [locale, months])
   const monthsFor = useCallback((year: number) => windowMonths(year, yearSettings), [yearSettings])
 
   const selectedUser = users.find(u => u.id === selectedUserId)

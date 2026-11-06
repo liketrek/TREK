@@ -80,7 +80,7 @@ const REGIONAL_GLYPHS: { box: [number, number, number, number]; ranges: string[]
 ]
 
 /** The glyph ranges a map of `bbox` needs: the common ones plus its region's scripts. */
-export function glyphRangesFor(bbox: TileBbox | null): string[] {
+function glyphRangesFor(bbox: TileBbox | null): string[] {
   const out = new Set(GLYPH_RANGES)
   if (bbox) {
     for (const { box, ranges } of REGIONAL_GLYPHS) {
@@ -148,11 +148,8 @@ async function warm(cache: Cache | null, url: string): Promise<number> {
     if (cache && (await cache.match(url))) return 0
     const res = await fetch(url, { mode: 'cors' })
     if (!res.ok) return 0
-    // The length header when the server sends one; otherwise the body itself.
-    const header = Number(res.headers.get('content-length'))
-    const size = header > 0 ? header : (await res.clone().blob()).size || 1
-    await cache?.put(url, res)
-    return size
+    await cache?.put(url, res.clone())
+    return await sizeOf(res)
   } catch {
     return 0
   }
@@ -248,12 +245,13 @@ async function prefetchStyle(styleUrl: string, bbox: TileBbox | null = null): Pr
     ])
   }
 
-  if (style.glyphs) {
+  const glyphs = style.glyphs
+  if (glyphs) {
     // Through the same pool as the tiles: a trip in East Asia asks for a few
     // hundred glyph ranges, and OpenFreeMap allows four requests at a time.
     const urls = fontStacks(style).flatMap(stack =>
       glyphRangesFor(bbox).map(range =>
-        style.glyphs!.replace('{fontstack}', encodeURIComponent(stack)).replace('{range}', range),
+        glyphs.replace('{fontstack}', encodeURIComponent(stack)).replace('{range}', range),
       ),
     )
     await inPool(urls, url => warm(cache, url))
@@ -309,6 +307,21 @@ export async function prefetchVectorForPlaces(
 
   await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()))
   return { tiles: fetched, template }
+}
+
+/**
+ * The bytes a response brought, for the run's budget: the length header when
+ * the server sends one, else the body itself, and at least 1 so a fetched tile
+ * always counts as fetched.
+ */
+async function sizeOf(res: Response): Promise<number> {
+  const header = Number(res.headers?.get('content-length'))
+  if (header > 0) return header
+  try {
+    return (await res.blob()).size || 1
+  } catch {
+    return 1
+  }
 }
 
 /** Runs `task` over `items`, CONCURRENCY at a time. */

@@ -2,13 +2,8 @@ import { ChevronRight, MapPinned } from 'lucide-react';
 import type { DayRouteTarget } from '../../../../components/Planner/dayRouteApps';
 import type { TranslationFn } from '../../../../types';
 import MSheet from '../../../components/MSheet';
-import { TileHeader } from '../sheets/MTripSheetUi'
-
-/** Opens a target: a web link in a new tab (the app takes it over), geo: in place. */
-export function openRouteTarget(target: DayRouteTarget): void {
-  if (target.url.startsWith('geo:')) window.location.assign(target.url);
-  else window.open(target.url, '_blank', 'noopener,noreferrer');
-}
+import { TileHeader } from '../sheets/MTripSheetUi';
+import { openRouteTarget } from './openRouteTarget';
 
 /**
  * The plan's one Maps button, asked: which app should get the day. A docked

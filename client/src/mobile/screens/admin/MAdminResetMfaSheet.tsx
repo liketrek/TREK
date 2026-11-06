@@ -33,7 +33,7 @@ export default function MAdminResetMfaSheet({ open, onClose, user, onReset, t }:
     <MSheet open={open} onClose={onClose} ariaLabel={t('admin.mfa.reset')}>
       <MAdminSheetFrame
         icon={<ShieldOff size={19} strokeWidth={1.8} />}
-          title={t('admin.mfa.reset')}
+        title={t('admin.mfa.reset')}
         onClose={onClose}
         footer={
           <>

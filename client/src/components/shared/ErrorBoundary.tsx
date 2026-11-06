@@ -111,6 +111,19 @@ interface FallbackProps extends FallbackState {
   label?: string
 }
 
+/** What the fallback says: an update, a plugin, a panel or the whole page that failed. */
+function fallbackText(
+  t: (key: string) => string,
+  isChunkError: boolean,
+  isPlugin: boolean,
+  isPanel: boolean
+): { title: string; body: string } {
+  if (isChunkError) return { title: t('common.errorUpdateTitle'), body: t('common.errorUpdateBody') }
+  const body = isPanel ? t('common.errorPanelBody') : t('common.errorBody')
+  if (isPlugin) return { title: t('common.errorPluginTitle'), body }
+  return { title: isPanel ? t('common.errorPanelTitle') : t('common.errorTitle'), body }
+}
+
 /**
  * The visible half. A function component so it can translate; anything mounted
  * above TranslationProvider gets RootErrorFallback instead, which has no keys to
@@ -121,14 +134,7 @@ export function ErrorFallback({ error, reset, isChunkError, level, variant, labe
   const isPanel = level === 'panel'
   const mobile = variant === 'mobile'
 
-  const title = isChunkError
-    ? t('common.errorUpdateTitle')
-    : label
-      ? t('common.errorPluginTitle')
-      : isPanel ? t('common.errorPanelTitle') : t('common.errorTitle')
-  const body = isChunkError
-    ? t('common.errorUpdateBody')
-    : isPanel ? t('common.errorPanelBody') : t('common.errorBody')
+  const { title, body } = fallbackText(t, isChunkError, !!label, isPanel)
 
   const message = error instanceof Error ? error.message : null
   const Icon = isChunkError ? Sparkles : AlertTriangle

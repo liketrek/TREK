@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 
 /**
  * The overlays open on screen, newest last, so a way back closes the one on
@@ -25,7 +25,9 @@ export function hasOpenOverlay(): boolean {
 /** Registers an overlay while `open`, with the way it closes. */
 export function useOverlay(open: boolean, close: Close): void {
   const closeRef = useRef(close);
-  closeRef.current = close;
+  useLayoutEffect(() => {
+    closeRef.current = close;
+  });
   useEffect(() => {
     if (!open) return;
     const entry = { id: nextId++, close: () => closeRef.current() };

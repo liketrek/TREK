@@ -28,11 +28,16 @@ export default function AppLockGate(): React.ReactElement | null {
     if (ok) setLocked(false);
   }, [t]);
 
-  // At launch, once the capabilities are known.
+  // At launch, once the capabilities are known: locked in the same render the
+  // capabilities arrive in, so nothing of the app shows before the prompt.
+  const [capsSeen, setCapsSeen] = useState<typeof caps | undefined>(undefined);
+  if (caps !== capsSeen) {
+    setCapsSeen(caps);
+    if (isAppLockEnabled()) setLocked(true);
+  }
   useEffect(() => {
-    if (!isAppLockEnabled()) return;
-    setLocked(true);
-    void ask();
+    // Asked after the effect, not inside it: the prompt's answer sets state.
+    if (isAppLockEnabled()) void Promise.resolve().then(ask);
   }, [caps, ask]);
 
   // Back from the background after a while.

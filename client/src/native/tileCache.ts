@@ -16,7 +16,7 @@ import { isNativeIos } from './platform';
  * Nothing is prefetched through here: Mapbox forbids bulk downloads, and the
  * OpenFreeMap region a trip stores goes through Cache Storage (offlineTiles.ts).
  */
-export const TILE_CACHE_SCHEME = 'trek-tile';
+const TILE_CACHE_SCHEME = 'trek-tile';
 
 export function tileCacheActive(): boolean {
   return isNativeIos() && hasNativeFeature('tileCache');

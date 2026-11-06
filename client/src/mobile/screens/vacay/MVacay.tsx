@@ -150,7 +150,7 @@ export default function MVacay() {
                 aria-haspopup="dialog"
                 className={GLASS_PILL_BUTTON}
               >
-                <span className="flex -space-x-1">
+                <span className="flex [&>*+*]:-ms-1">
                   {v.users.slice(0, 4).map(u => (
                     <span
                       key={u.id}
@@ -509,11 +509,11 @@ function FuseInfo({ icon: Icon, text }: { icon: LucideIcon; text: string }) {
 /** The editor's month picker: the window's twelve months on one glass surface. */
 function MonthQuickNav({ names, slot, onPick }: { names: string[]; slot: number; onPick: (slot: number) => void }) {
   const trackRef = useRef<HTMLDivElement>(null)
-  const pill = useActivePill(trackRef, '[data-active="true"]', [slot, names.length], true)
+  const pill = useActivePill(trackRef, '[data-active="true"]', `${slot}:${names.length}`, true)
   return (
     <div className="mb-[10px] rounded-[22px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-1.5 shadow-[0_8px_24px_-16px_rgba(0,0,0,.3)] backdrop-blur-[24px] backdrop-saturate-[1.7]">
       <div ref={trackRef} className="relative grid grid-cols-6 gap-1">
-        {pill && <span aria-hidden="true" className="pointer-events-none absolute left-0 rounded-full bg-m-act" style={pill} />}
+        {/* rtl-lint-disable: the pill moves by the measured offsetLeft (useActivePill) */}{pill && <span aria-hidden="true" className="pointer-events-none absolute left-0 rounded-full bg-m-act" style={pill} />}
         {names.map((name, i) => (
           <button
             key={i}

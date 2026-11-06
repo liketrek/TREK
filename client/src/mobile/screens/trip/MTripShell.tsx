@@ -300,13 +300,13 @@ export default function MTripShell({
   // The active day's pill glides to the next chip rather than jumping there.
   // A booking document shared to TREK, and this trip picked for it: open the import.
   const sharedTripId = useSharedImportStore(s => s.tripId)
+  const { setBookingImportKind, setShowBookingImport } = planner
   useEffect(() => {
     if (sharedTripId == null || sharedTripId !== Number(tripId)) return
-    planner.setBookingImportKind('bookings')
-    planner.setShowBookingImport(true)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sharedTripId, tripId])
-  const dayPill = useActivePill(dayRail, '[aria-current="true"]', [railDayId, days, dayRail, language])
+    setBookingImportKind('bookings')
+    setShowBookingImport(true)
+  }, [sharedTripId, tripId, setBookingImportKind, setShowBookingImport])
+  const dayPill = useActivePill(dayRail, '[aria-current="true"]', `${railDayId}:${days.map(d => d.id).join(',')}:${language}`)
 
   const trTab = planner.activeTab
 
@@ -516,7 +516,7 @@ export default function MTripShell({
             {dayPill && (
               <span
                 aria-hidden="true"
-                className="pointer-events-none absolute bottom-[3px] left-0 top-[3px] rounded-full bg-m-act shadow-[0_6px_16px_-6px_rgba(0,0,0,.4)]"
+                className="pointer-events-none absolute bottom-[3px] left-0 top-[3px] rounded-full bg-m-act shadow-[0_6px_16px_-6px_rgba(0,0,0,.4)]" // rtl-lint-disable: moved by the measured offsetLeft (useActivePill)
                 style={dayPill}
               />
             )}

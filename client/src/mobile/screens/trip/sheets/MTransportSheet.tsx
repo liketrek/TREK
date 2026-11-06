@@ -16,6 +16,7 @@ import { useSearchParams } from 'react-router'
 import { isTransportReservationType } from '@trek/shared'
 import { useBookingLink } from '../../../../hooks/useBookingLink'
 import { bookingFacts, stayStats } from '../../../../components/Planner/bookings/bookingFacts'
+import { parseMeta } from '../../../../components/Planner/bookings/bookingsModel'
 import { Eyebrow, INNER_CLS, StatBox, TileHeader, displayTime } from './MTripSheetUi'
 
 interface TransportSheetPayload {
@@ -178,7 +179,7 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
   const hotelStats = res.type === 'hotel'
     ? stayStats(
         bookingFacts(res, { t, locale, timeFormat, days: planner.days, assignmentLookup: {}, hasLinkedCost: false }),
-        meta,
+        parseMeta(res),
         t,
         locale,
       )

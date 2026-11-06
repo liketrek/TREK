@@ -36,11 +36,8 @@ export default function BookingImportModal({ isOpen, onClose, tripId, kind }: Bo
   const mouseDownTarget = useRef<EventTarget | null>(null)
 
   const [files, setFiles] = useState<File[]>([])
-  // A booking document shared to TREK lands here already chosen.
   useEffect(() => {
-    if (!isOpen) return
-    const shared = useSharedImportStore.getState().file
-    if (shared) setFiles([useSharedImportStore.getState().take() ?? shared])
+    if (isOpen && useSharedImportStore.getState().file) useSharedImportStore.getState().take()
   }, [isOpen])
   const [isDragOver, setIsDragOver] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -50,18 +47,27 @@ export default function BookingImportModal({ isOpen, onClose, tripId, kind }: Bo
   // Only a model that reads images can do anything with a photo, so photos are offered only then.
   const acceptedExts: readonly string[] = readsPhotos ? [...ACCEPTED_EXTS, ...LLM_PHOTO_EXTENSIONS] : ACCEPTED_EXTS
 
+  // A booking document shared to TREK lands here already chosen: picked up in
+  // the render that opens the modal, and taken out of the store once shown.
+  const [openSeen, setOpenSeen] = useState(false)
+  if (isOpen !== openSeen) {
+    setOpenSeen(isOpen)
+    if (isOpen) {
+      // Opens clean, but with a shared document already in the list.
+      const shared = useSharedImportStore.getState().file
+      setFiles(shared ? [shared] : [])
+      setIsDragOver(false)
+      setLoading(false)
+      setError('')
+    }
+  }
+
   const reset = () => {
     setFiles([])
     setIsDragOver(false)
     setLoading(false)
     setError('')
   }
-
-  useEffect(() => {
-    if (isOpen) reset()
-    // reset is stable — intentional
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen])
 
   useEffect(() => {
     if (!isOpen) return

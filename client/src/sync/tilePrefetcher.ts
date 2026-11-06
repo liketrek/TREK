@@ -27,10 +27,9 @@ import type { Place } from '../types'
 import { offlineDb, upsertSyncMeta } from '../db/offlineDb'
 import { isAuthed } from './authGate'
 import { isStoragePersisted } from './persistentStorage'
-import { isVectorStyle, normalizeTileUrl, resolveTileUrl, withTileApiKey } from '../utils/tileUrl'
+import { isOfflineForbiddenTemplate, isVectorStyle, normalizeTileUrl, resolveTileUrl, withTileApiKey } from '../utils/tileUrl'
 import { OFM_DARK, OFM_POSITRON } from '../constants/mapDefaults'
 import { clearVectorCache, prefetchStyleAssets, prefetchVectorForPlaces } from './glPrefetcher'
-import { isOfflineForbiddenTemplate } from '../components/Map/offlineBasemap'
 import { isNativeIos } from '../native/platform'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -391,6 +390,13 @@ function sameBbox(a: [number, number, number, number], b: TileBbox): boolean {
 const OFFLINE_BASEMAPS: readonly string[] = [OFM_POSITRON, OFM_DARK]
 
 /**
+ * The offline basemap is a best-effort extra: a failed request leaves its tile
+ * uncached and the next sync tries again, so it stops neither the raster run
+ * nor the sync.
+ */
+function basemapFailed(): void {}
+
+/**
  * The trip's region of the offline basemap: the light style's tiles, style,
  * sprite and glyphs, and the dark style's own style, sprite and glyphs on top,
  * whose tiles are the same ones.
@@ -398,8 +404,8 @@ const OFFLINE_BASEMAPS: readonly string[] = [OFM_POSITRON, OFM_DARK]
 async function prefetchOfflineBasemap(places: Place[], template: string, cancelled: () => boolean): Promise<void> {
   const light = template === OFM_DARK ? OFM_DARK : OFM_POSITRON
   const other = light === OFM_DARK ? OFM_POSITRON : OFM_DARK
-  await prefetchVectorForPlaces(places, light, cancelled).catch(console.error)
-  if (!cancelled()) await prefetchStyleAssets(other, computeBbox(places)).catch(console.error)
+  await prefetchVectorForPlaces(places, light, cancelled).catch(basemapFailed)
+  if (!cancelled()) await prefetchStyleAssets(other, computeBbox(places)).catch(basemapFailed)
 }
 
 /**

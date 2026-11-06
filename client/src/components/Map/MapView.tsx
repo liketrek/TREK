@@ -154,7 +154,7 @@ function createPlaceIcon(place, orderNumbers, isSelected) {
   const { size, borderWidth } = look
   // Allow-listed, not escaped: the value lands in style="…" of a divIcon, where
   // escaping stops the attribute breakout but still permits a CSS url().
-  const { borderColor, shadow, className: frameClass } = placeMarkerFrame(isSelected, safeHexColor(place.category_color, 'white'))
+  const { borderColor, shadow, className: frameClass } = placeMarkerFrame(isSelected, place.category_color)
   const bgColor = safeHexColor(place.category_color, '#6b7280')
 
   // Number badges (bottom-right), or the rating where there are none: a numbered stop

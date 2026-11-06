@@ -22,6 +22,9 @@ const SETTLE_MS = 800;
 let skipNext = false;
 let current: ViewTransition | null = null;
 
+/** A newer navigation skipped this transition: its promises reject, and that is no error. */
+function skippedByNewer(): void {}
+
 /** The edge-swipe back gesture already slid the page away: the next change goes without a transition. */
 export function skipNextRouteTransition(): void {
   skipNext = true;
@@ -85,14 +88,12 @@ export function useRouteTransition(location: Location, navigationType: Navigatio
     });
     current = transition;
     // A newer navigation skips this one: both promises then reject, which is no error.
-    transition.ready.catch(() => {});
-    void transition.finished
-      .catch(() => {})
-      .finally(() => {
-        // Only the newest transition clears the direction, or a skipped one would
-        // take it away from the one that replaced it.
-        if (current === transition) delete root.dataset.routeTransition;
-      });
+    transition.ready.catch(skippedByNewer);
+    void transition.finished.catch(skippedByNewer).finally(() => {
+      // Only the newest transition clears the direction, or a skipped one would
+      // take it away from the one that replaced it.
+      if (current === transition) delete root.dataset.routeTransition;
+    });
   }, [location, navigationType, enabled]);
 
   return enabled ? shown : location;

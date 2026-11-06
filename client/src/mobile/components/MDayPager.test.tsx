@@ -2,7 +2,8 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { tickHaptic } from '../../native/haptics';
 import type { Day } from '../../types';
-import MDayPager, { pagesFor } from './MDayPager';
+import MDayPager from './MDayPager';
+import { pagesFor } from './dayPagerPages';
 
 vi.mock('../../native/haptics', () => ({ tickHaptic: vi.fn() }));
 

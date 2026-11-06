@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '../../../tests/helpers/render';
-import { tripsApi } from '../../api/client';
 import { useSharedImportStore } from '../../native/sharedFiles';
+import { tripRepo } from '../../repo/tripRepo';
 import NativeImportSheet from './NativeImportSheet';
 
 const navigate = vi.hoisted(() => vi.fn());
@@ -11,14 +11,17 @@ vi.mock('react-router', async (importOriginal) => ({
 }));
 
 beforeEach(() => {
+  // A second spyOn returns the first spy with its calls; start every test clean.
+  vi.restoreAllMocks();
   navigate.mockReset();
   useSharedImportStore.setState({ file: null, tripId: null });
-  vi.spyOn(tripsApi, 'list').mockResolvedValue({
+  vi.spyOn(tripRepo, 'list').mockResolvedValue({
     trips: [
       { id: 1, title: 'Past trip', start_date: '2020-01-01', end_date: '2020-01-05' },
       { id: 2, title: 'Japan', start_date: '2099-03-01', end_date: '2099-03-10' },
     ],
-  });
+    archivedTrips: [],
+  } as unknown as Awaited<ReturnType<typeof tripRepo.list>>);
 });
 
 describe('NativeImportSheet', () => {
@@ -38,6 +41,6 @@ describe('NativeImportSheet', () => {
   it('stays closed with nothing shared', () => {
     render(<NativeImportSheet />);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(tripsApi.list).not.toHaveBeenCalled();
+    expect(tripRepo.list).not.toHaveBeenCalled();
   });
 });

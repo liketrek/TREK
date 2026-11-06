@@ -57,7 +57,7 @@ function toError(e: { code: number; message: string }): GeolocationPositionError
 function dispatch(payload: NativeLocationPayload): void {
   for (const [id, w] of [...watchers]) {
     if (payload.error) w.failure?.(toError(payload.error));
-    else w.success(toPosition(payload));
+    else w.success(toPosition(payload as Extract<NativeLocationPayload, { latitude: number }>));
     if (w.once) watchers.delete(id);
   }
   syncStream();

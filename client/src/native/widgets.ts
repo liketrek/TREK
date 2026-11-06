@@ -20,7 +20,7 @@ export interface WidgetLabels {
   nothingPlanned: string;
 }
 
-export interface WidgetStop {
+interface WidgetStop {
   time: string | null;
   name: string;
   /** Minutes after midnight, for picking the next stop; not sent to the widget. */
@@ -54,13 +54,13 @@ function minutesOf(time: string | null | undefined): number | null {
  * and trips already over are not candidates.
  */
 export function pickTrip(trips: Trip[], today: string): Trip | null {
-  const dated = trips.filter((t) => t.start_date && t.end_date && !t.is_archived);
-  const running = dated.find((t) => t.start_date! <= today && t.end_date! >= today);
-  if (running) return running;
-  const upcoming = dated
-    .filter((t) => t.start_date! > today)
-    .sort((a, b) => a.start_date!.localeCompare(b.start_date!));
-  return upcoming[0] ?? null;
+  const dated = trips.flatMap((t) =>
+    t.start_date && t.end_date && !t.is_archived ? [{ trip: t, start: t.start_date, end: t.end_date }] : []
+  );
+  const running = dated.find((d) => d.start <= today && d.end >= today);
+  if (running) return running.trip;
+  const upcoming = dated.filter((d) => d.start > today).sort((a, b) => a.start.localeCompare(b.start));
+  return upcoming[0]?.trip ?? null;
 }
 
 /** Today's day of the trip with its stops in plan order, if the trip runs today. */
@@ -77,18 +77,25 @@ export function todayOf(
   const day = ordered[index];
   const stops = [...(day.assignments ?? [])]
     .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
-    .filter((a) => a.place?.name)
-    .map((a) => ({
-      name: a.place!.name,
-      time: a.place?.place_time ? formatTime(a.place.place_time.slice(0, 5)) : null,
-      minutes: minutesOf(a.place?.place_time),
-    }));
+    .flatMap((a) =>
+      a.place?.name
+        ? [
+            {
+              name: a.place.name,
+              time: a.place.place_time ? formatTime(a.place.place_time.slice(0, 5)) : null,
+              minutes: minutesOf(a.place.place_time),
+            },
+          ]
+        : []
+    );
   return { tripTitle: trip.title, path: `/trips/${trip.id}`, dayLabel: dayLabel(index + 1, ordered.length), stops };
 }
 
 export function buildSnapshot(trip: Trip | null, day: TripDay | null, labels: WidgetLabels): WidgetSnapshot {
   return {
-    trip: trip ? { title: trip.title, start: trip.start_date!, end: trip.end_date!, path: `/trips/${trip.id}` } : null,
+    trip: trip
+      ? { title: trip.title, start: trip.start_date ?? '', end: trip.end_date ?? '', path: `/trips/${trip.id}` }
+      : null,
     today: day ? { dayLabel: day.dayLabel, stops: day.stops.map(({ time, name }) => ({ time, name })) } : null,
     labels,
   };

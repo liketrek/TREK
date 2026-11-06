@@ -230,9 +230,20 @@ describe('MPlanTimeline', () => {
       expect(screen.getByTitle('Shibuya')).toBeInTheDocument()
     })
 
-    it('FE-MOB-PLTL-006: a stay chip opens the stay editor for members who may edit days (#2210)', () => {
+    it('FE-MOB-PLTL-006: a stay chip opens the overview of its booking, not the editor (#2210)', () => {
+      const { shell } = renderTimeline(
+        { hotelChips: [{ key: 'in-3', variant: 'checkin', name: 'Capsule Tokyo', time: '15:00:00', accId: 3, placeId: 301 }] },
+        { reservations: [{ id: 44, type: 'hotel', accommodation_id: 3 }] as unknown as TripPlanner['reservations'] },
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: 'day.checkIn · Capsule Tokyo · 15:00' }))
+
+      expect(shell.openSheet).toHaveBeenCalledWith('transport', { reservationId: 44 })
+    })
+
+    it('FE-MOB-PLTL-006d: a stay with neither booking nor place opens the editor for members who may edit days', () => {
       const { shell } = renderTimeline({
-        hotelChips: [{ key: 'in-3', variant: 'checkin', name: 'Capsule Tokyo', time: '15:00:00', accId: 3, placeId: 301 }],
+        hotelChips: [{ key: 'in-3', variant: 'checkin', name: 'Capsule Tokyo', time: '15:00:00', accId: 3, placeId: null }],
       })
 
       fireEvent.click(screen.getByRole('button', { name: 'day.checkIn · Capsule Tokyo · 15:00' }))

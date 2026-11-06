@@ -105,7 +105,7 @@
   "src/mobile/screens/trip/map/MMapArea.tsx": 1,
   "src/mobile/screens/trip/places/MPlacesBrowser.tsx": 2,
   "src/mobile/screens/trip/plan/planTimelineModel.ts": 1,
-  "src/mobile/screens/trip/roadtrip/MRoadtripTab.tsx": 2,
+  "src/mobile/screens/trip/roadtrip/MRoadtripTab.tsx": 1,
   "src/mobile/screens/trip/roadtrip/MRtAlternativesBar.tsx": 1,
   "src/mobile/screens/trip/roadtrip/MRtCorridorBar.tsx": 1,
   "src/mobile/screens/trip/roadtrip/MRtCorridorSheet.tsx": 2,

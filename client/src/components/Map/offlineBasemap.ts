@@ -1,6 +1,6 @@
 import { OFM_DARK, OFM_POSITRON } from '../../constants/mapDefaults';
 import { isNativeIos } from '../../native/platform';
-import { isVectorStyle } from '../../utils/tileUrl';
+import { isOfflineForbiddenTemplate, isVectorStyle } from '../../utils/tileUrl';
 import { normalizeStyleForProvider, type GlMapProvider } from './glProviders';
 
 /**
@@ -14,23 +14,11 @@ import { normalizeStyleForProvider, type GlMapProvider } from './glProviders';
  * and glyphs. A fallback has to be exactly a style that was stored, or its
  * sprite and labels are missing offline.
  */
-export const OFFLINE_STYLES: readonly string[] = [OFM_POSITRON, OFM_DARK];
+const OFFLINE_STYLES: readonly string[] = [OFM_POSITRON, OFM_DARK];
 
 /** The stored style that matches the colour scheme. */
 export function offlineStyleFor(dark: boolean): string {
   return dark ? OFM_DARK : OFM_POSITRON;
-}
-
-/** Hosts whose tiles may not be stored for offline use at all (OSM tile usage policy). */
-const NO_OFFLINE_HOSTS = ['tile.openstreetmap.org'];
-
-export function isOfflineForbiddenTemplate(template: string): boolean {
-  try {
-    const host = new URL(template.replace(/\{s\}/g, 'a')).hostname;
-    return NO_OFFLINE_HOSTS.some((h) => host === h || host.endsWith(`.${h}`));
-  } catch {
-    return false;
-  }
 }
 
 /**

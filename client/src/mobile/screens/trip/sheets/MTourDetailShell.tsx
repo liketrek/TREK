@@ -1,14 +1,9 @@
 import { X } from 'lucide-react';
-import { createContext, useContext } from 'react';
+import { useContext } from 'react';
 import type { DetailShellProps } from '../../../../components/shared/DetailShell';
 import MIconBtn from '../../../components/MIconBtn';
 import MSheet from '../../../components/MSheet';
-
-/**
- * Whether the tour sheet is open (false while it slides away with the tour it
- * showed last) and the tour's name, which names the dialog.
- */
-export const TourSheetOpen = createContext<{ open: boolean; label: string }>({ open: true, label: '' });
+import { TourSheetOpen } from './tourSheetOpen';
 
 /**
  * The phone's frame for the tour detail: the desktop dialog's head, sections

@@ -30,7 +30,7 @@ describe('shared booking documents', () => {
     await startSharedFiles();
     expect(useSharedImportStore.getState().file?.name).toBe('booking.pdf');
 
-    const listener = vi.mocked(TrekShell.addListener).mock.calls[0][1] as (p: typeof PDF) => void;
+    const listener = vi.mocked(TrekShell.addListener).mock.calls[0][1] as unknown as (p: typeof PDF) => void;
     listener({ ...PDF, name: 'train.ics', mimeType: 'text/calendar' });
     expect(useSharedImportStore.getState().file?.name).toBe('train.ics');
   });

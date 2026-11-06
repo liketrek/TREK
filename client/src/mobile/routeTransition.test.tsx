@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react';
-import type { Location, NavigationType } from 'react-router';
+import { NavigationType, type Location } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { skipNextRouteTransition, transitionKind, useRouteTransition } from './routeTransition';
 
@@ -7,11 +7,11 @@ const loc = (pathname: string, key = pathname): Location => ({ pathname, key, se
 
 describe('transitionKind', () => {
   it('slides deeper pages forward and back, cross-fades between sections', () => {
-    expect(transitionKind(loc('/dashboard'), loc('/trips/4'), 'PUSH')).toBe('forward');
-    expect(transitionKind(loc('/trips/4'), loc('/dashboard'), 'POP')).toBe('back');
-    expect(transitionKind(loc('/trips/4'), loc('/trips/4/files'), 'PUSH')).toBe('forward');
-    expect(transitionKind(loc('/dashboard'), loc('/atlas'), 'PUSH')).toBe('tab');
-    expect(transitionKind(loc('/vacay'), loc('/dashboard'), 'POP')).toBe('tab');
+    expect(transitionKind(loc('/dashboard'), loc('/trips/4'), NavigationType.Push)).toBe('forward');
+    expect(transitionKind(loc('/trips/4'), loc('/dashboard'), NavigationType.Pop)).toBe('back');
+    expect(transitionKind(loc('/trips/4'), loc('/trips/4/files'), NavigationType.Push)).toBe('forward');
+    expect(transitionKind(loc('/dashboard'), loc('/atlas'), NavigationType.Push)).toBe('tab');
+    expect(transitionKind(loc('/vacay'), loc('/dashboard'), NavigationType.Pop)).toBe('tab');
   });
 });
 
@@ -37,14 +37,14 @@ describe('useRouteTransition', () => {
   function render(initial: Location, enabled = true) {
     return renderHook(
       ({ location, type }: { location: Location; type: NavigationType }) => useRouteTransition(location, type, enabled),
-      { initialProps: { location: initial, type: 'PUSH' as NavigationType } }
+      { initialProps: { location: initial, type: NavigationType.Push } }
     );
   }
 
   it('swaps the page inside a view transition and marks its direction', async () => {
     const hook = render(loc('/dashboard'));
     await act(async () => {
-      hook.rerender({ location: loc('/trips/1'), type: 'PUSH' });
+      hook.rerender({ location: loc('/trips/1'), type: NavigationType.Push });
     });
     expect(start).toHaveBeenCalledTimes(1);
     expect(hook.result.current.pathname).toBe('/trips/1');
@@ -54,16 +54,16 @@ describe('useRouteTransition', () => {
     const hook = render(loc('/trips/1'));
     skipNextRouteTransition();
     await act(async () => {
-      hook.rerender({ location: loc('/dashboard'), type: 'POP' });
+      hook.rerender({ location: loc('/dashboard'), type: NavigationType.Pop });
     });
     await act(async () => {
-      hook.rerender({ location: { ...loc('/dashboard', 'k2'), search: '?f=1' }, type: 'PUSH' });
+      hook.rerender({ location: { ...loc('/dashboard', 'k2'), search: '?f=1' }, type: NavigationType.Push });
     });
     expect(start).not.toHaveBeenCalled();
     expect(hook.result.current.key).toBe('k2');
 
     const off = render(loc('/dashboard'), false);
-    off.rerender({ location: loc('/trips/2'), type: 'PUSH' });
+    off.rerender({ location: loc('/trips/2'), type: NavigationType.Push });
     expect(off.result.current.pathname).toBe('/trips/2');
     expect(start).not.toHaveBeenCalled();
   });

@@ -99,7 +99,7 @@ function nativeIosWithoutStore(nativeStore: boolean): boolean | undefined {
   return nativeStore ? false : undefined
 }
 
-const PILL = 'absolute left-1/2 z-[5] flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-edge bg-surface-card px-3 py-1 text-caption font-semibold text-content-secondary shadow-sm backdrop-blur-md bottom-[calc(var(--bottom-nav-h,0px)+12px)]'
+const PILL = 'absolute inset-x-0 z-[5] mx-auto flex w-fit items-center gap-1.5 rounded-full border border-edge bg-surface-card px-3 py-1 text-caption font-semibold text-content-secondary shadow-sm backdrop-blur-md bottom-[calc(var(--bottom-nav-h,0px)+12px)]'
 
 /**
  * Says the map on screen is the stored offline basemap, not the user's own. With

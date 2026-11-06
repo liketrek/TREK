@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type RefObject } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { tickHaptic } from '../native/haptics';
 import { hasOpenOverlay } from './overlayStack';
 
@@ -9,6 +9,9 @@ const MAX_PULL = 110;
 const MIN_SPIN_MS = 450;
 
 export type PullState = { distance: number; refreshing: boolean; armed: boolean };
+
+/** The screen's own refresh reports its failures (a toast, its error state); the pull only lets go. */
+function refreshFailed(): void {}
 
 /**
  * Pull-to-refresh on a page whose scroller is the window, as the mobile
@@ -29,7 +32,9 @@ export function usePullToRefresh(
 ): PullState {
   const [state, setState] = useState<PullState>({ distance: 0, refreshing: false, armed: false });
   const refreshRef = useRef(onRefresh);
-  refreshRef.current = onRefresh;
+  useLayoutEffect(() => {
+    refreshRef.current = onRefresh;
+  });
 
   useEffect(() => {
     if (!enabled) return;
@@ -98,7 +103,7 @@ export function usePullToRefresh(
       const began = Date.now();
       void Promise.resolve()
         .then(() => refreshRef.current())
-        .catch(() => {})
+        .catch(refreshFailed)
         .then(() => new Promise((resolve) => setTimeout(resolve, Math.max(0, MIN_SPIN_MS - (Date.now() - began)))))
         .then(() => {
           busy = false;

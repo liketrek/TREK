@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { tickHaptic } from '../../native/haptics';
-import type { Day } from '../../types';
+import { pagesFor, type PagerItem } from './dayPagerPages';
 
 /**
  * Pages through the trip's days the way a native pager does: the previous,
@@ -28,7 +28,6 @@ const SETTLE_MS = 90;
 const REST_PX = 2;
 
 /** Anything with an id pages: trip days, a leave year's months, the plan's years. */
-export type PagerItem = Pick<Day, 'id'>;
 
 export interface MDayPagerProps {
   days: PagerItem[];
@@ -55,33 +54,6 @@ export interface MDayPagerProps {
   onPreview?: (dayId: number | null) => void;
 }
 
-interface Page {
-  key: string;
-  dayId: number | null;
-  active: boolean;
-}
-
-/** The window of pages around the selection. A selection that points at no
- *  day (the whole-trip view, or a day deleted remotely) still gets its page,
- *  with the first day next to it as a way back. */
-export function pagesFor(days: PagerItem[], selectedDayId: number | null): Page[] {
-  const i = days.findIndex((d) => d.id === selectedDayId);
-  if (i < 0) {
-    const first = days[0];
-    return [
-      { key: 'none', dayId: selectedDayId, active: true },
-      ...(first ? [{ key: `d${first.id}`, dayId: first.id, active: false }] : []),
-    ];
-  }
-  const pages: Page[] = [];
-  const prev = days[i - 1];
-  const next = days[i + 1];
-  if (prev) pages.push({ key: `d${prev.id}`, dayId: prev.id, active: false });
-  pages.push({ key: `d${days[i].id}`, dayId: days[i].id, active: true });
-  if (next) pages.push({ key: `d${next.id}`, dayId: next.id, active: false });
-  return pages;
-}
-
 export default function MDayPager({
   days,
   selectedDayId,
@@ -99,7 +71,9 @@ export default function MDayPager({
 
   // The handlers below are attached once, so they read the props through here.
   const latest = useRef({ days, onSelectDay, describeDay, selectedDayId, onPreview });
-  latest.current = { days, onSelectDay, describeDay, selectedDayId, onPreview };
+  useLayoutEffect(() => {
+    latest.current = { days, onSelectDay, describeDay, selectedDayId, onPreview };
+  });
   /** The day a landed swipe asked for, until the selection catches up. Stops a
    *  late scroll event from selecting it twice. */
   const requested = useRef<number | null>(null);

@@ -6,11 +6,11 @@
 import { ChevronRight, FileText } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { tripsApi } from '../../api/client';
 import { useTranslation } from '../../i18n';
-import MSheet from '../../mobile/components/MSheet';
 import { useSharedImportStore } from '../../native/sharedFiles';
-import { TileHeader } from '../../mobile/screens/trip/sheets/MTripSheetUi'
+import { tripRepo } from '../../repo/tripRepo';
+import { TileHeader } from '../screens/trip/sheets/MTripSheetUi';
+import MSheet from './MSheet';
 
 interface TripRow {
   id: number;
@@ -32,7 +32,7 @@ export default function NativeImportSheet(): React.ReactElement | null {
 
   useEffect(() => {
     if (!open) return;
-    tripsApi.list().then(
+    tripRepo.list().then(
       (data: { trips?: TripRow[] }) => {
         const today = new Date().toISOString().slice(0, 10);
         const list = [...(data.trips ?? [])];
@@ -48,7 +48,7 @@ export default function NativeImportSheet(): React.ReactElement | null {
 
   const pick = (id: number) => {
     chooseTrip(id);
-    navigate(`/trips/${id}`);
+    void navigate(`/trips/${id}`);
   };
 
   return (

@@ -45,6 +45,8 @@ vi.mock('../../../src/native/platform', async importOriginal => ({
 beforeEach(async () => {
   await clearAll();
   setAuthed(true);
+  // restoreAllMocks leaves a vi.fn's return value as a test set it; the iOS case below sets true.
+  vi.mocked(isNativeIos).mockReturnValue(false);
   Object.defineProperty(navigator, 'onLine', { value: true, writable: true, configurable: true });
   // Stub fetch + serviceWorker so prefetch path is exercised
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));

@@ -50,6 +50,7 @@ import { poiPinParts } from './poiMarker'
 import { addGpxTrackLayers, GPX_HIT_LAYER_ID, hasGpxTrackLayers, selectGpxTrack, setGpxTracks } from './gpxTrackLayers'
 import { buildPoiPopupHtml } from './placePopup'
 import { pluginsApi, type PluginMapMarker, type PluginMapLayer } from '../../api/client'
+import { PLUGIN_TONE_COLORS, buildPluginLayerData } from './pluginLayerGeo'
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
 import { alongShortestArc, computeMapViewport, TILE_SIZE_GL } from '../../utils/mapViewport'
 import { onRealWorld } from '../../utils/worldCopy'
@@ -128,7 +129,7 @@ function createMarkerElement(place: Place & PlaceMarkerFlags & { category_color?
   const look = placeMarkerLook(place, selected)
   const { size, borderWidth } = look
   // See MapView: allow-listed rather than escaped, because this is a CSS context.
-  const { borderColor, shadow, className: frameClass } = placeMarkerFrame(selected, safeHexColor(place.category_color, 'white'))
+  const { borderColor, shadow, className: frameClass } = placeMarkerFrame(selected, place.category_color)
   const bgColor = safeHexColor(place.category_color, '#6b7280')
 
   // The visual circle is `size` + 2*border on each side. To make the
@@ -213,66 +214,6 @@ const PLUGIN_LINE_LAYER_IDS: Record<'solid' | 'dash' | 'dot', string> = {
   dot: 'trek-plugin-layers-line-dot',
 }
 const PLUGIN_FILL_LAYER_ID = 'trek-plugin-layers-fill'
-const PLUGIN_TONE_COLORS: Record<string, string> = {
-  default: '#4F46E5',
-  success: '#10b981',
-  warn: '#f59e0b',
-  danger: '#ef4444',
-}
-
-// GL circle layers size in screen pixels, so a metric circle has to become a
-// polygon. Equirectangular approximation — plenty for a display-only overlay.
-function circleToRing(center: [number, number], radiusM: number): [number, number][] {
-  const [lat, lng] = center
-  const dLat = radiusM / 111_320
-  const cos = Math.cos((lat * Math.PI) / 180)
-  const dLng = radiusM / (111_320 * Math.max(0.01, Math.abs(cos)))
-  const ring: [number, number][] = []
-  for (let i = 0; i <= 64; i++) {
-    const a = (i / 64) * 2 * Math.PI
-    ring.push([lng + Math.cos(a) * dLng, lat + Math.sin(a) * dLat])
-  }
-  return ring
-}
-
-interface PluginLayerGeoFeature {
-  type: 'Feature'
-  properties: { id: string; color: string; width: number; opacity: number; dash: string; fillOpacity: number; label: string }
-  geometry: { type: 'LineString'; coordinates: number[][] } | { type: 'Polygon'; coordinates: number[][][] }
-}
-
-function buildPluginLayerData(layers: PluginMapLayer[]) {
-  const features = layers.flatMap(layer => layer.features.flatMap((f, i): PluginLayerGeoFeature[] => {
-    const color = PLUGIN_TONE_COLORS[f.tone] ?? PLUGIN_TONE_COLORS.default
-    const properties = {
-      id: `${layer.pluginId}:${layer.id}:${i}`,
-      color,
-      width: f.width,
-      opacity: f.opacity,
-      dash: f.dash,
-      fillOpacity: f.fill ? Math.min(0.25, f.opacity) : 0,
-      label: f.label || '',
-    }
-    if (f.type === 'polyline' && f.points) {
-      return [{
-        type: 'Feature' as const,
-        properties,
-        geometry: { type: 'LineString' as const, coordinates: f.points.map(([lat, lng]) => [lng, lat]) },
-      }]
-    }
-    if (f.type === 'polygon' && f.points) {
-      const ring = f.points.map(([lat, lng]) => [lng, lat])
-      if (ring.length && (ring[0][0] !== ring[ring.length - 1][0] || ring[0][1] !== ring[ring.length - 1][1])) ring.push(ring[0])
-      return [{ type: 'Feature' as const, properties, geometry: { type: 'Polygon' as const, coordinates: [ring] } }]
-    }
-    if (f.type === 'circle' && f.center && f.radiusM) {
-      return [{ type: 'Feature' as const, properties, geometry: { type: 'Polygon' as const, coordinates: [circleToRing(f.center, f.radiusM)] } }]
-    }
-    return []
-  }))
-  return { type: 'FeatureCollection' as const, features }
-}
-
 /**
  * A place pin on the map, whatever is carrying it.
  *

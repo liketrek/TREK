@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import './presence.css';
 
 /**
  * How long a closing dialog, confirm or menu stays for its exit animation
@@ -14,25 +15,23 @@ export const EXIT_MS = import.meta.env.MODE === 'test' ? 0 : 170;
  */
 export function usePresence(open: boolean, ms: number = EXIT_MS): { mounted: boolean; closing: boolean } {
   const animated = ms > 0 && EXIT_MS > 0;
+  // The open state of the last render, kept in state so the render that closes
+  // already knows it closed (React's "storing information from previous renders").
+  const [prevOpen, setPrevOpen] = useState(open);
   const [lingering, setLingering] = useState(false);
-  const wasOpen = useRef(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    setLingering(!open && animated);
+  }
 
   useEffect(() => {
-    if (open) {
-      wasOpen.current = true;
-      setLingering(false);
-      return;
-    }
-    if (!wasOpen.current) return;
-    wasOpen.current = false;
-    if (!animated) return;
-    setLingering(true);
+    if (!lingering) return;
     const timer = window.setTimeout(() => setLingering(false), ms);
     return () => window.clearTimeout(timer);
-  }, [open, ms, animated]);
+  }, [lingering, ms]);
 
-  // The first render after closing already counts as closing, before the effect runs.
-  const closing = animated && !open && (lingering || wasOpen.current);
+  // The first render after closing already counts as closing, before the state update lands.
+  const closing = animated && !open && (lingering || prevOpen);
   return { mounted: open || closing, closing };
 }
 

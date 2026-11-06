@@ -1,4 +1,5 @@
 import './selectedMarker.css'
+import { safeHexColor } from '../../utils/safeColor'
 
 /**
  * Two ways a place marker can be told apart from the rest, set on the place object the
@@ -57,8 +58,11 @@ export const SELECTED_MARKER = {
 } as const
 
 /** The border colour and shadow of a round place marker, selected or not. */
-export function placeMarkerFrame(selected: boolean, categoryBorder: string): { borderColor: string; shadow: string; className: string } {
+export function placeMarkerFrame(
+  selected: boolean,
+  categoryColor: string | null | undefined
+): { borderColor: string; shadow: string; className: string } {
   return selected
     ? { borderColor: SELECTED_MARKER.border, shadow: SELECTED_MARKER.ring, className: SELECTED_MARKER.className }
-    : { borderColor: categoryBorder, shadow: '0 2px 8px rgba(0,0,0,0.22)', className: '' }
+    : { borderColor: safeHexColor(categoryColor, 'white'), shadow: '0 2px 8px rgba(0,0,0,0.22)', className: '' }
 }

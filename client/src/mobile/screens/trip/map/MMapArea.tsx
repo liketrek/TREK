@@ -271,7 +271,9 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
    * store write and on every sheet it opens, this handler's own included.
    */
   const latest = useRef({ planner, shell, stage })
-  latest.current = { planner, shell, stage }
+  useLayoutEffect(() => {
+    latest.current = { planner, shell, stage }
+  })
   const openStagePin = useCallback((placeId?: number) => {
     const { planner: now, shell: chrome, stage: card } = latest.current
     const stop = placeId == null ? null : firstStopOfPlace(card ? [card] : now.roadtripRoutes.days, placeId)

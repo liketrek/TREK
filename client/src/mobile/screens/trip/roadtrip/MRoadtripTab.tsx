@@ -126,7 +126,7 @@ export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
  * ones either side. Each page reads its own stage, so the one that slides in is
  * exactly the one that lands.
  */
-function RoadtripStagePage({ planner, shell, dayId: pageDayId, alts, chrome }: MTripTabPanelProps & {
+function RoadtripStagePage({ planner, shell, dayId: pageDayId, alts, chrome }: Omit<MTripTabPanelProps, 'tab'> & {
   dayId: number | null
   alts: ReturnType<typeof useMRtAlternatives>
   chrome: RowChrome

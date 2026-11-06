@@ -28,7 +28,7 @@ export default function MSegmented<T extends string = string>({
   className = '',
 }: MSegmentedProps<T>) {
   const trackRef = useRef<HTMLDivElement>(null)
-  const pill = useActivePill(trackRef, '[data-active="true"]', [value, options.length])
+  const pill = useActivePill(trackRef, '[data-active="true"]', `${String(value)}:${options.length}`)
 
   return (
     <div

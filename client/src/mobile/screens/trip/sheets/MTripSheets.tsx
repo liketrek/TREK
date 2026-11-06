@@ -32,7 +32,8 @@ import MRtInfoSheet from '../roadtrip/MRtInfoSheet'
 import MRtCorridorSheet from '../roadtrip/MRtCorridorSheet'
 import MRtDraftSheet from '../roadtrip/MRtDraftSheet'
 import type { MTripSheetsProps } from '../MTripShell'
-import MTourDetailShell, { TourSheetOpen } from './MTourDetailShell'
+import MTourDetailShell from './MTourDetailShell'
+import { TourSheetOpen } from './tourSheetOpen'
 import { useLastOpen } from '../../../../components/shared/usePresence'
 
 /**

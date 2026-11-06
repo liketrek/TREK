@@ -95,6 +95,8 @@ export const NOT_PLURAL = [
   { key: 'help.center.step', because: 'the position of a step in a guide' },
   { key: 'help.center.stepOf', because: 'the position of a step in a guide' },
   { key: 'help.center.imageAlt', because: 'the position of a step in a guide' },
+  { key: 'native.widget.dayOf', because: 'the position of a day in the trip ("Day 2 of 5")' },
+  { key: 'native.widget.inDays', because: 'filled in by the native widget, which says "Tomorrow" for one day, so the number is always two or more' },
   { key: 'system_notice.pager.goto', because: 'the position of a notice in the pager' },
   { key: 'tours.addedToDay', because: 'the number of the day a tour was added to' },
   { key: 'tours.planner.waypointLabel', because: 'the position of a waypoint on the tour' },

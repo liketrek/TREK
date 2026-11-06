@@ -134,7 +134,7 @@ export function bookingFacts(r: Reservation, c: FactsContext): BookingFacts {
   }
 }
 
-export function nightsBetween(a: string | null, b: string | null): number {
+function nightsBetween(a: string | null, b: string | null): number {
   if (!a || !b) return 0
   const n = Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 864e5)
   return n > 0 ? n : 0

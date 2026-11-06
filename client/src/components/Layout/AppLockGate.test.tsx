@@ -12,7 +12,7 @@ vi.mock('../../native/appLock', () => ({
 }));
 
 function stateListener(): (state: { isActive: boolean }) => void {
-  const call = vi.mocked(App.addListener).mock.calls.find(([name]) => name === 'appStateChange');
+  const call = vi.mocked(App.addListener).mock.calls.find(([name]) => (name as string) === 'appStateChange');
   if (!call) throw new Error('no appStateChange listener');
   return call[1] as unknown as (state: { isActive: boolean }) => void;
 }

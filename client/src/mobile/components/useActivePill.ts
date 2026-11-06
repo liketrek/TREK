@@ -1,4 +1,4 @@
-import type { CSSProperties, DependencyList, RefObject } from 'react';
+import type { CSSProperties, RefObject } from 'react';
 import { useLayoutEffect, useState } from 'react';
 
 /**
@@ -17,15 +17,18 @@ export function useActivePill(
   /** The track, as a ref or as the element itself (a callback-ref'd rail). */
   trackRef: RefObject<HTMLElement | null> | HTMLElement | null,
   selector: string,
-  deps: DependencyList,
+  /** What moves the active item, as one value: a change re-measures the pill. */
+  key: string | number,
   /** Follow the item across rows too (a grid of chips): the pill then also takes
    *  the item's top and height, and the caller leaves top/bottom unset. */
   rows = false
 ): CSSProperties | null {
-  const [box, setBox] = useState<{ left: number; top: number; width: number; height: number; animate: boolean } | null>(null);
+  const [box, setBox] = useState<{ x: number; y: number; width: number; height: number; animate: boolean } | null>(
+    null
+  );
 
   useLayoutEffect(() => {
-    const track = trackRef && 'current' in trackRef ? trackRef.current : trackRef;
+    const track = trackRef instanceof HTMLElement ? trackRef : (trackRef?.current ?? null);
     if (!track) return;
     const measure = () => {
       const active = track.querySelector<HTMLElement>(selector);
@@ -34,8 +37,8 @@ export function useActivePill(
         return;
       }
       setBox((prev) => ({
-        left: active.offsetLeft,
-        top: active.offsetTop,
+        x: active.offsetLeft,
+        y: active.offsetTop,
         width: active.offsetWidth,
         height: active.offsetHeight,
         animate: prev !== null,
@@ -46,14 +49,12 @@ export function useActivePill(
     const observer = new ResizeObserver(measure);
     observer.observe(track);
     return () => observer.disconnect();
-    // The caller names what moves the active item; the ref and selector are stable.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
+  }, [trackRef, selector, key]);
 
   if (!box) return null;
   const transition = box.animate ? 'transform 320ms var(--ease-drawer), width 320ms var(--ease-drawer)' : 'none';
   if (rows) {
-    return { top: 0, width: box.width, height: box.height, transform: `translate(${box.left}px, ${box.top}px)`, transition };
+    return { top: 0, width: box.width, height: box.height, transform: `translate(${box.x}px, ${box.y}px)`, transition };
   }
-  return { width: box.width, transform: `translateX(${box.left}px)`, transition };
+  return { width: box.width, transform: `translateX(${box.x}px)`, transition };
 }

@@ -99,7 +99,8 @@ describe('todayOf and tripDayState', () => {
       '2026-11-06',
       () => 'D',
       (t) => t
-    )!;
+    );
+    if (!today) throw new Error('the trip runs today');
     expect(tripDayState(today, 8 * 60, 'done')).toMatchObject({ nextName: 'Museum', done: 0, total: 2 });
     expect(tripDayState(today, 12 * 60, 'done')).toMatchObject({ nextName: 'Dinner', nextTime: '19:30', done: 1 });
     expect(tripDayState(today, 22 * 60, 'done')).toMatchObject({ nextName: 'done', done: 2, nextTime: undefined });
@@ -119,6 +120,7 @@ describe('publishWidgets', () => {
       path: '/trips/1',
       dayLabel: 'D',
       nextName: 'x',
+      nextTime: undefined,
       done: 0,
       total: 0,
     });

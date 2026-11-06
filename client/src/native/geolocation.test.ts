@@ -23,7 +23,7 @@ beforeEach(() => {
   vi.mocked(TrekShell.addListener)
     .mockReset()
     .mockImplementation(async (_event, listener) => {
-      emit = listener;
+      emit = listener as unknown as typeof emit;
       return { remove: async () => {} };
     });
 });

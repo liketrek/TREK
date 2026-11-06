@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useLayoutEffect } from 'react'
 import { usePoiExplore, type Bbox } from '../../components/Map/usePoiExplore'
 import { placeActions } from '../../components/Planner/usePlaceActions'
 import { tourRouteStyle } from '../../components/Tours/planner/tourRouteStyle'
@@ -105,7 +105,9 @@ export function useTripPlannerPage() {
   // The place card's height over the desktop map, so the selection pans its pin above it (#2991).
   const inspectorCard = useMeasuredHeight()
   const poiViewportChangeRef = useRef(poi.onViewportChange)
-  poiViewportChangeRef.current = poi.onViewportChange
+  useLayoutEffect(() => {
+    poiViewportChangeRef.current = poi.onViewportChange
+  })
   // The place search looks where the plan map looks, and only while it is on screen.
   const reportViewport = usePlanMapViewport(tripId, activeTab === 'plan')
   const captureViewport = useCallback((bounds: Bbox) => {

@@ -70,7 +70,10 @@ export function nativeCapabilities(): NativeCapabilities {
  */
 export async function checkAppUpdate(fetchFeatures: () => Promise<{ minNativeShellApi?: unknown }>): Promise<boolean> {
   if (!isNativeApp()) return false;
-  const [caps, features] = await Promise.all([loadNativeCapabilities(), fetchFeatures().catch(() => ({}))]);
+  const [caps, features] = await Promise.all([
+    loadNativeCapabilities(),
+    fetchFeatures().catch((): { minNativeShellApi?: unknown } => ({})),
+  ]);
   const min = typeof features.minNativeShellApi === 'number' ? features.minNativeShellApi : 0;
   updateRequired = caps.shellApi < min;
   emit();

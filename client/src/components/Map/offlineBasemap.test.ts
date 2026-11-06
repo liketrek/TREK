@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { OFM_DARK, OFM_POSITRON } from '../../constants/mapDefaults';
-import { glWorksOffline, isOfflineForbiddenTemplate, leafletWorksOffline, offlineStyleFor } from './offlineBasemap';
+import { isOfflineForbiddenTemplate } from '../../utils/tileUrl';
+import { glWorksOffline, leafletWorksOffline, offlineStyleFor } from './offlineBasemap';
 
 describe('offlineBasemap', () => {
   it('picks the stored style for the colour scheme', () => {
