@@ -44,33 +44,9 @@ export function retryUrlFor(error: unknown): string | null {
   return busted.href;
 }
 
-/** Every route loader, so the phone can fetch them ahead while idle (preloadLazyRoutes). */
-const loaders: (() => Promise<unknown>)[] = [];
-
-/**
- * Fetches every lazily loaded page in the background, a few at a time, so
- * opening one later does not wait for the network. A loader that fails is
- * simply tried again when the page is opened. Skipped where the user asked to
- * save data.
- */
-export function preloadLazyRoutes(): void {
-  const connection = (navigator as { connection?: { saveData?: boolean } }).connection;
-  if (connection?.saveData) return;
-  const queue = [...loaders];
-  const next = () => {
-    const load = queue.shift();
-    if (!load) return;
-    void load()
-      .catch(() => {})
-      .then(next);
-  };
-  for (let i = 0; i < 3; i++) next();
-}
-
 export function lazyWithRetry<T extends ComponentType<any>>(
   load: () => Promise<{ default: T }>
 ): LazyExoticComponent<T> {
-  loaders.push(load);
   return lazy(() =>
     load()
       .catch((error: unknown) => {
