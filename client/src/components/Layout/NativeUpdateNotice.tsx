@@ -26,7 +26,7 @@ export default function NativeUpdateNotice(): React.ReactElement | null {
     <div
       role="status"
       style={{ bottom: 'calc(var(--bottom-nav-h) + 56px)' }}
-      className="fixed inset-x-4 z-[9999] flex items-center gap-3 rounded-2xl border border-edge bg-surface-elevated px-4 py-3 text-content shadow-lg"
+      className="fixed inset-x-4 z-[var(--z-notice)] flex items-center gap-3 rounded-2xl border border-edge bg-surface-elevated px-4 py-3 text-content shadow-lg"
     >
       <Download size={18} className="shrink-0 text-content-muted" aria-hidden="true" />
       <div className="min-w-0 flex-1">

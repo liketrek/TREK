@@ -82,5 +82,6 @@ const common: TranslationStrings = {
   'common.errorPluginTitle': 'Seda pluginat ei saanud kuvada',
   'common.needsConnection': 'Selleks on vaja ühendust. Proovi uuesti, kui TREK on taas võrgus.',
   'common.errorDetails': 'Üksikasjad',
+  'common.share': 'Jaga',
 };
 export default common;

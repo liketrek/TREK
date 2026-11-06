@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
-import { X, Image, Plus, Trash2, UserPlus, Link as LinkIcon, List, Grid3x3, MapPin, Route, Archive, ArchiveRestore, Undo2, Link2, ListChecks, RefreshCw } from 'lucide-react'
+import { X, Image, Plus, Trash2, UserPlus, Link as LinkIcon, List, Grid3x3, MapPin, Route, Archive, ArchiveRestore, Undo2, Link2, ListChecks, RefreshCw, Share as ShareIcon } from 'lucide-react'
+import { canShareLink, shareLink } from '../../../native/shareLink'
 import MSheet from '../../components/MSheet'
 import MIconBtn from '../../components/MIconBtn'
 import MToggle from '../../components/MToggle'
@@ -266,6 +267,16 @@ export default function MJourneySettingsSheet({
               >
                 {copied ? t('journey.share.copied') : t('journey.share.copy')}
               </button>
+              {canShareLink() && shareUrl && (
+                <button
+                  type="button"
+                  aria-label={t('common.share')}
+                  onClick={() => void shareLink(shareUrl)}
+                  className="flex h-[26px] w-[26px] flex-none items-center justify-center rounded-full bg-m-act text-m-actfg"
+                >
+                  <ShareIcon size={12} strokeWidth={2.4} />
+                </button>
+              )}
             </div>
             {([
               { key: 'share_timeline' as const, label: t('journey.share.timeline'), icon: List },

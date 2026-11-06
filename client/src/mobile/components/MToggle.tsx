@@ -1,3 +1,4 @@
+import { selectionHaptic } from '../../native/haptics'
 interface MToggleProps {
   checked: boolean
   onChange: (checked: boolean) => void
@@ -15,7 +16,10 @@ export default function MToggle({ checked, onChange, ariaLabel, disabled = false
       aria-checked={checked}
       aria-label={ariaLabel}
       disabled={disabled}
-      onClick={() => onChange(!checked)}
+      onClick={() => {
+        selectionHaptic()
+        onChange(!checked)
+      }}
       className={`box-border h-[22px] w-10 flex-none rounded-full p-[2px] transition-colors duration-[180ms] disabled:opacity-50 ${
         checked ? 'bg-m-act' : 'bg-[color:var(--m-trackoff)]'
       } ${className}`}

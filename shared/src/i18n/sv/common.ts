@@ -82,5 +82,6 @@ const common: TranslationStrings = {
   'common.errorPluginTitle': 'Det här tillägget kunde inte visas',
   'common.needsConnection': 'Det här kräver en anslutning. Försök igen när TREK är online igen.',
   'common.errorDetails': 'Detaljer',
+  'common.share': 'Dela',
 };
 export default common;

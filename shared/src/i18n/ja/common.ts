@@ -80,5 +80,6 @@ const common: TranslationStrings = {
   'common.errorPluginTitle': 'このプラグインを表示できませんでした',
   'common.needsConnection': 'この操作には接続が必要です。TREK がオンラインに戻ってから、もう一度お試しください。',
   'common.errorDetails': '詳細',
+  'common.share': '共有',
 };
 export default common;

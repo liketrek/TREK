@@ -2,6 +2,7 @@ import type { RefObject } from 'react';
 import { useEffect } from 'react';
 import { tickHaptic } from '../../native/haptics';
 import { closeTopOverlay, hasOpenOverlay } from '../overlayStack';
+import { skipNextRouteTransition } from '../routeTransition';
 
 /**
  * The swipe from the left edge that goes back, the way every iOS app has it.
@@ -96,6 +97,7 @@ export default function MEdgeBack({ target, enabled }: { target: RefObject<HTMLE
       }
       move(width, 'transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1)');
       window.setTimeout(() => {
+        skipNextRouteTransition();
         window.history.back();
         // The page that comes back takes the place without a slide of its own.
         requestAnimationFrame(() => move(0, 'none'));

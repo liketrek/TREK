@@ -16,9 +16,9 @@ import { FALLBACK_PERSON_COLOR } from './vacayDayModel'
 import { fmtDays } from '../../../components/Vacay/vacayFormat'
 
 /** The company-holiday tint the calendar cells use (vacayDayModel). */
-const COMPANY_COLOR = '#F5D9A6' // theme-lint-disable: the cells' fixed company-day tint
-const GLASS_PILL_BUTTON = 'inline-flex h-8 min-w-0 flex-1 basis-0 items-center justify-center gap-2 rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-3 text-[0.75rem] font-bold text-m-ink backdrop-blur-[24px] backdrop-saturate-[1.7] transition-transform active:scale-[.97]'
-const SHEET_ROW = 'flex items-center gap-3 rounded-[16px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-4 py-3 text-start text-[0.875rem] font-bold transition-transform active:scale-[.98]'
+const COMPANY_COLOR = 'var(--m-vacay-company)'
+const GLASS_PILL_BUTTON = 'inline-flex h-8 min-w-0 flex-1 basis-0 items-center justify-center gap-2 rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-3 text-[length:calc(12px*var(--fs-scale-body,1))] font-bold text-m-ink backdrop-blur-[24px] backdrop-saturate-[1.7] transition-transform active:scale-[.97]'
+const SHEET_ROW = 'flex items-center gap-3 rounded-[16px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-4 py-3 text-start text-[length:calc(14px*var(--fs-scale-body,1))] font-bold transition-transform active:scale-[.98]'
 
 const WEEKDAY_KEYS_MONDAY = ['vacay.mon', 'vacay.tue', 'vacay.wed', 'vacay.thu', 'vacay.fri', 'vacay.sat', 'vacay.sun'] as const
 const WEEKDAY_KEYS_SUNDAY = ['vacay.sun', 'vacay.mon', 'vacay.tue', 'vacay.wed', 'vacay.thu', 'vacay.fri', 'vacay.sat'] as const
@@ -203,7 +203,7 @@ export default function MVacay() {
                 <button
                   type="button"
                   onClick={() => v.openMonthSlot(slot)}
-                  className="mb-[6px] w-full rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] py-[6px] text-center text-[0.75rem] font-extrabold capitalize shadow-[0_4px_12px_-8px_rgba(0,0,0,.25)] backdrop-blur-[24px] backdrop-saturate-[1.7] transition-transform active:scale-[.97]"
+                  className="mb-[6px] w-full rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] py-[6px] text-center text-[length:calc(12px*var(--fs-scale-body,1))] font-extrabold capitalize shadow-[0_4px_12px_-8px_rgba(0,0,0,.25)] backdrop-blur-[24px] backdrop-saturate-[1.7] transition-transform active:scale-[.97]"
                 >
                   {v.monthNamesShort[slot]}
                 </button>
@@ -246,7 +246,7 @@ export default function MVacay() {
                 <button type="button" onClick={v.prevMonth} aria-label={t('mobileVacay.prevMonth')} className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-[color:var(--m-ic)]">
                   <ChevronLeft size={16} strokeWidth={2.2} />
                 </button>
-                <span className="flex-1 text-center text-[1rem] font-extrabold capitalize">{v.monthNameLongFor(slot)}</span>
+                <span className="flex-1 text-center text-[length:calc(16px*var(--fs-scale-body,1))] font-extrabold capitalize">{v.monthNameLongFor(slot)}</span>
                 <button type="button" onClick={v.nextMonth} aria-label={t('mobileVacay.nextMonth')} className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-[color:var(--m-ic)]">
                   <ChevronRight size={16} strokeWidth={2.2} />
                 </button>
@@ -365,7 +365,7 @@ export default function MVacay() {
       <MVacayShareSheet open={v.sheet === 'share'} onClose={() => v.setSheet(null)} />
       <MSheet open={v.sheet === 'people'} onClose={() => v.setSheet(null)} variant="bottom" ariaLabel={t('mobileVacay.people')}>
         <div className="px-4 pb-4 pt-6">
-          <div className="mb-3 px-1 text-[0.8125rem] font-bold">{t('mobileVacay.people')}</div>
+          <div className="mb-3 px-1 text-[length:calc(13px*var(--fs-scale-body,1))] font-bold">{t('mobileVacay.people')}</div>
           <div className="flex flex-col gap-2">
             {v.users.map(u => {
               const color = u.color || FALLBACK_PERSON_COLOR
@@ -388,7 +388,7 @@ export default function MVacay() {
           {/* Shared read-only calendars: a tap shows or hides that person's ring overlay. */}
           {v.incomingShares.length > 0 && (
             <>
-              <div className="mb-2 mt-4 px-1 font-geist text-[0.625rem] font-bold uppercase tracking-[.09em] text-m-faint">{t('vacay.sharedCalendars')}</div>
+              <div className="mb-2 mt-4 px-1 font-geist text-[length:calc(10px*var(--fs-scale-body,1))] font-bold uppercase tracking-[.09em] text-m-faint">{t('vacay.sharedCalendars')}</div>
               <div className="flex flex-col gap-2">
                 {v.incomingShares.map(sh => (
                   <button
@@ -412,10 +412,10 @@ export default function MVacay() {
       </MSheet>
       <MSheet open={v.sheet === 'legend'} onClose={() => v.setSheet(null)} variant="bottom" ariaLabel={t('mobileVacay.legend')}>
         <div className="px-4 pb-4 pt-6">
-          <div className="mb-3 px-1 text-[0.8125rem] font-bold">{t('mobileVacay.legend')}</div>
+          <div className="mb-3 px-1 text-[length:calc(13px*var(--fs-scale-body,1))] font-bold">{t('mobileVacay.legend')}</div>
           <div className="flex flex-col gap-1">
             {legendItems.map(item => (
-              <div key={item.key} className="flex items-center gap-3 px-1 py-2 text-[0.875rem] font-semibold">
+              <div key={item.key} className="flex items-center gap-3 px-1 py-2 text-[length:calc(14px*var(--fs-scale-body,1))] font-semibold">
                 <span className="h-[14px] w-[14px] flex-none rounded-[4px]" style={{ background: item.color }} />
                 <span className="min-w-0 flex-1 truncate">{item.label}</span>
               </div>
@@ -506,7 +506,7 @@ function MonthQuickNav({ names, slot, onPick }: { names: string[]; slot: number;
             data-active={i === slot}
             aria-pressed={i === slot}
             onClick={() => onPick(i)}
-            className={`relative z-[1] whitespace-nowrap rounded-full py-[7px] text-center text-[0.71875rem] font-bold capitalize transition-colors duration-200 ${
+            className={`relative z-[1] whitespace-nowrap rounded-full py-[7px] text-center text-[length:calc(11.5px*var(--fs-scale-body,1))] font-bold capitalize transition-colors duration-200 ${
               i === slot ? `text-m-actfg ${pill ? '' : 'bg-m-act'}` : 'text-m-ink active:bg-[color:var(--m-ic)]'
             }`}
           >

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, ReactNode, Suspense } from 'react'
-import { Routes, Route, Navigate, useLocation } from 'react-router'
+import { Routes, Route, Navigate, useLocation, useNavigationType } from 'react-router'
 import { useAuthStore } from './store/authStore'
 import { useSettingsStore } from './store/settingsStore'
 import { applyAppearance } from './theme/applyAppearance'
@@ -21,6 +21,7 @@ import { lazyWithRetry } from './utils/lazyWithRetry'
 import { reconcileAppVersion } from './utils/versionHandover'
 import { useServerVersionStore } from './store/serverVersionStore'
 import { useIsPhone } from './mobile/useIsPhone'
+import { useRouteTransition } from './mobile/routeTransition'
 import { TranslationProvider, useTranslation } from './i18n'
 import { authApi, isAuthPublicPath } from './api/client'
 import { tripRepo } from './repo/tripRepo'
@@ -411,6 +412,9 @@ export default function App() {
   }, [settings.dark_mode, settings.appearance, isSharedPage])
 
   const isPhone = useIsPhone()
+  // On the phone, pages slide like a native navigation stack (mobile/routeTransition.ts).
+  const navigationType = useNavigationType()
+  const routedLocation = useRouteTransition(location, navigationType, isPhone)
   const keepingTour = useSaveToCollectionStore(s => s.tour !== null)
   const isAuthPage = location.pathname.startsWith('/login')
     || location.pathname.startsWith('/register')
@@ -455,7 +459,7 @@ export default function App() {
           so a mounted boundary keeps the current page on screen instead of flashing
           a spinner on every jump — the spinner is for the first paint of a deep link. */}
       <Suspense fallback={<RouteFallback />}>
-        <Routes>
+        <Routes location={routedLocation}>
           <Route path="/" element={<RootRedirect />} />
           <Route path="/login" element={<PublicRoute redirectAuthed><LoginPage /></PublicRoute>} />
           <Route path="/shared/:token" element={<PublicRoute><SharedTripPage /></PublicRoute>} />

@@ -120,7 +120,7 @@ export default function MBottomNav() {
         </div>
       )}
 
-      <nav className="fixed inset-x-4 z-40 flex h-[62px] items-center rounded-[31px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-3 shadow-[0_16px_44px_-14px_rgba(0,0,0,.35)] backdrop-blur-[30px] backdrop-saturate-[1.8] bottom-[calc(env(safe-area-inset-bottom,0px)+12px)]">
+      <nav className="m-dock-vt fixed inset-x-4 z-40 flex h-[62px] items-center rounded-[31px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-3 shadow-[0_16px_44px_-14px_rgba(0,0,0,.35)] backdrop-blur-[30px] backdrop-saturate-[1.8] bottom-[calc(env(safe-area-inset-bottom,0px)+12px)]">
         <div className="flex min-w-0 flex-1 items-center justify-around">{left.map(renderItem)}</div>
 
         {logoSlot ? (

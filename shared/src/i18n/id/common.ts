@@ -79,5 +79,6 @@ const common: TranslationStrings = {
   'common.errorPluginTitle': 'Plugin ini tidak dapat ditampilkan',
   'common.needsConnection': 'Ini memerlukan koneksi. Coba lagi begitu TREK kembali online.',
   'common.errorDetails': 'Detail',
+  'common.share': 'Bagikan',
 };
 export default common;

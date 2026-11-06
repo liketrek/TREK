@@ -53,9 +53,11 @@ export default function NativeImportSheet(): React.ReactElement | null {
   return (
     <MSheet open={open} onClose={() => setFile(null)} variant="bottom" ariaLabel={t('native.share.title')}>
       <div className="px-4 pb-4 pt-6">
-        <div className="mb-1 px-1 text-[0.8125rem] font-bold text-m-ink">{t('native.share.title')}</div>
+        <div className="mb-1 px-1 text-[length:calc(13px*var(--fs-scale-body,1))] font-bold text-m-ink">
+          {t('native.share.title')}
+        </div>
         {file && (
-          <div className="mb-3 flex items-center gap-2 px-1 font-geist text-[0.6875rem] text-m-muted">
+          <div className="mb-3 flex items-center gap-2 px-1 font-geist text-[length:calc(11px*var(--fs-scale-body,1))] text-m-muted">
             <FileText size={13} aria-hidden="true" />
             <span className="truncate">{file.name}</span>
           </div>
@@ -68,11 +70,17 @@ export default function NativeImportSheet(): React.ReactElement | null {
               onClick={() => pick(trip.id)}
               className="flex items-center gap-3 rounded-[16px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-4 py-3 text-start transition-transform active:scale-[.98]"
             >
-              <span className="min-w-0 flex-1 truncate text-[0.875rem] font-bold text-m-ink">{trip.title}</span>
+              <span className="min-w-0 flex-1 truncate text-[length:calc(14px*var(--fs-scale-body,1))] font-bold text-m-ink">
+                {trip.title}
+              </span>
               <ChevronRight size={16} className="flex-none text-m-faint" aria-hidden="true" />
             </button>
           ))}
-          {trips.length === 0 && <p className="px-1 text-[0.75rem] text-m-muted">{t('native.share.noTrips')}</p>}
+          {trips.length === 0 && (
+            <p className="px-1 text-[length:calc(12px*var(--fs-scale-body,1))] text-m-muted">
+              {t('native.share.noTrips')}
+            </p>
+          )}
         </div>
       </div>
     </MSheet>

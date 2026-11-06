@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
   Archive, ArchiveRestore, ArrowRight, Bell, CalendarDays, CalendarPlus, Copy,
   LayoutGrid, List, MapPin, Pencil, Plus, RefreshCw, Sparkles, Trash2, Users,
@@ -26,6 +26,8 @@ import MUserMenu from './MUserMenu'
 import { useMobileDashOrder, useMobileDashVisibility, MobileDashWidget } from './MDashWidgets'
 import MNewTripSheet from './MNewTripSheet'
 import type { MobileDashToken } from '@trek/shared'
+import { usePullToRefresh } from '../../usePullToRefresh'
+import MPullIndicator from '../../components/MPullIndicator'
 
 type TripFilter = 'planned' | 'archive' | 'completed'
 
@@ -44,7 +46,7 @@ interface CardAction {
 export default function MDashboard(): React.ReactElement {
   const {
     demoMode, locale, t, navigate,
-    spotlight, upcoming, gridTrips, isLoading, loadError, retryLoad,
+    spotlight, upcoming, gridTrips, isLoading, loadError, retryLoad, refreshQuietly,
     tripFilter, setTripFilter, viewMode, toggleViewMode,
     showForm, setShowForm, editingTrip, setEditingTrip,
     deleteTrip, setDeleteTrip, copyTrip, setCopyTrip, applyCoverUpdate,
@@ -70,6 +72,10 @@ export default function MDashboard(): React.ReactElement {
   const dashVisible = useMobileDashVisibility()
 
   useEffect(() => { if (isAuthenticated) fetchUnreadCount() }, [isAuthenticated, fetchUnreadCount])
+  const contentRef = useRef<HTMLDivElement>(null)
+  const pull = usePullToRefresh(contentRef, async () => {
+    await Promise.all([refreshQuietly(), fetchUnreadCount()])
+  })
 
   const openCreate = () => { setEditingTrip(null); setShowForm(true) }
   const openEdit = (trip: DashboardTrip) => { setEditingTrip(trip); setShowForm(true) }
@@ -249,7 +255,8 @@ export default function MDashboard(): React.ReactElement {
 
       {demoMode && <DemoWelcome />}
 
-      <div className="px-4 pb-[calc(var(--bottom-nav-h,84px)+32px)] pt-[calc(var(--m-safe-top,12px)+82px)]">
+      <MPullIndicator state={pull} label={t('common.loading')} />
+      <div ref={contentRef} className="px-4 pb-[calc(var(--bottom-nav-h,84px)+32px)] pt-[calc(var(--m-safe-top,12px)+82px)]">
         {loadError && (
           <div role="alert" className="mb-3 flex items-center gap-3 rounded-[20px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-[14px]">
             <span className="min-w-0 flex-1 text-[0.8125rem] font-medium text-m-ink">{t('dashboard.loadErrorBanner')}</span>

@@ -83,6 +83,7 @@ const common: TranslationStrings = {
   'common.errorPluginTitle': 'לא ניתן להציג את התוסף הזה',
   'common.needsConnection': 'הפעולה הזו דורשת חיבור. נסו שוב כש-TREK יחזור לרשת.',
   'common.errorDetails': 'פרטים',
+  'common.share': 'שיתוף',
 };
 
 export default common;

@@ -1,11 +1,11 @@
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { tickHaptic, toastHaptic } from './haptics';
+import { pressHaptic, selectionHaptic, tickHaptic, toastHaptic } from './haptics';
 import { isNativeApp } from './platform';
 
 vi.mock('@capacitor/haptics', () => ({
-  Haptics: { notification: vi.fn(), impact: vi.fn() },
-  ImpactStyle: { Light: 'LIGHT' },
+  Haptics: { notification: vi.fn(), impact: vi.fn(), selectionChanged: vi.fn() },
+  ImpactStyle: { Light: 'LIGHT', Medium: 'MEDIUM' },
   NotificationType: { Success: 'SUCCESS', Warning: 'WARNING', Error: 'ERROR' },
 }));
 vi.mock('./platform', () => ({ isNativeApp: vi.fn() }));
@@ -13,6 +13,7 @@ vi.mock('./platform', () => ({ isNativeApp: vi.fn() }));
 beforeEach(() => {
   vi.mocked(Haptics.notification).mockReset().mockResolvedValue();
   vi.mocked(Haptics.impact).mockReset().mockResolvedValue();
+  vi.mocked(Haptics.selectionChanged).mockReset().mockResolvedValue();
   vi.mocked(isNativeApp).mockReturnValue(true);
 });
 
@@ -55,5 +56,19 @@ describe('tickHaptic', () => {
     vi.mocked(isNativeApp).mockReturnValue(false);
     tickHaptic();
     expect(Haptics.impact).not.toHaveBeenCalled();
+  });
+});
+
+describe('selectionHaptic and pressHaptic', () => {
+  it('click on a changed value and bump on a long press, in the app only', () => {
+    selectionHaptic();
+    pressHaptic();
+    expect(Haptics.selectionChanged).toHaveBeenCalledTimes(1);
+    expect(Haptics.impact).toHaveBeenCalledWith({ style: ImpactStyle.Medium });
+    vi.mocked(isNativeApp).mockReturnValue(false);
+    selectionHaptic();
+    pressHaptic();
+    expect(Haptics.selectionChanged).toHaveBeenCalledTimes(1);
+    expect(Haptics.impact).toHaveBeenCalledTimes(1);
   });
 });

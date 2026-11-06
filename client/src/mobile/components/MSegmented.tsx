@@ -1,5 +1,6 @@
 import { ReactNode, useRef } from 'react'
 import { useActivePill } from './useActivePill'
+import { selectionHaptic } from '../../native/haptics'
 
 export interface MSegmentedOption<T extends string = string> {
   value: T
@@ -45,7 +46,10 @@ export default function MSegmented<T extends string = string>({
             role="tab"
             aria-selected={active}
             data-active={active}
-            onClick={() => onChange(opt.value)}
+            onClick={() => {
+              if (!active) selectionHaptic()
+              onChange(opt.value)
+            }}
             className={`relative z-[1] rounded-full py-[7px] text-center ${
               variant === 'intrinsic'
                 ? 'whitespace-nowrap px-[11px] text-[0.75rem]'

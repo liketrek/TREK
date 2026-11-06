@@ -79,5 +79,6 @@ const common: TranslationStrings = {
   'common.errorPluginTitle': '이 플러그인을 표시할 수 없습니다',
   'common.needsConnection': '연결이 필요한 작업입니다. TREK가 다시 온라인이 되면 다시 시도하세요.',
   'common.errorDetails': '세부 정보',
+  'common.share': '공유',
 };
 export default common;

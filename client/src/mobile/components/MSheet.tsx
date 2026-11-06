@@ -6,6 +6,7 @@ import { useDiscardGuard } from '../../components/shared/useDiscardGuard'
 import { keepTabInside, useModalFocus } from './modalFocus'
 import { useSheetDrag } from './useSheetDrag'
 import { useOverlay } from '../overlayStack'
+import { tickHaptic } from '../../native/haptics'
 
 export type MSheetVariant = 'card' | 'bottom' | 'drawer'
 export type MSheetMaterial = 'glass' | 'bar-glass' | 'opaque'
@@ -106,6 +107,7 @@ export default function MSheet({
         return false
       }
       setFlung(true)
+      tickHaptic()
       onClose()
       return true
     },

@@ -83,5 +83,6 @@ const common: TranslationStrings = {
   'common.errorPluginTitle': "No s'ha pogut mostrar aquest connector",
   'common.needsConnection': 'Això necessita connexió. Torna-ho a provar quan TREK torni a estar en línia.',
   'common.errorDetails': 'Detalls',
+  'common.share': 'Comparteix',
 };
 export default common;

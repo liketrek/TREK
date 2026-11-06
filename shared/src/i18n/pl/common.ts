@@ -85,5 +85,6 @@ const common: TranslationStrings = {
   'common.errorPluginTitle': 'Nie udało się wyświetlić tej wtyczki',
   'common.needsConnection': 'To wymaga połączenia. Spróbuj ponownie, gdy TREK znów będzie online.',
   'common.errorDetails': 'Szczegóły',
+  'common.share': 'Udostępnij',
 };
 export default common;

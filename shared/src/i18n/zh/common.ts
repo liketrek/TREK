@@ -79,5 +79,6 @@ const common: TranslationStrings = {
   'common.errorPluginTitle': '无法显示此插件',
   'common.needsConnection': '此操作需要网络连接。请在 TREK 恢复联网后重试。',
   'common.errorDetails': '详细信息',
+  'common.share': '分享',
 };
 export default common;

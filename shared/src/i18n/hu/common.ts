@@ -81,5 +81,6 @@ const common: TranslationStrings = {
   'common.errorPluginTitle': 'Ezt a bővítményt nem sikerült megjeleníteni',
   'common.needsConnection': 'Ehhez kapcsolat kell. Próbáld újra, amint a TREK újra online lesz.',
   'common.errorDetails': 'Részletek',
+  'common.share': 'Megosztás',
 };
 export default common;

@@ -412,3 +412,69 @@
 .m-hscroll::-webkit-scrollbar {
   display: none;
 }
+
+/* ── Page transitions (mobile/routeTransition.ts) ───────────────────────────
+   The way a native navigation stack moves: forward slides the new page in from
+   the trailing edge over the old one, which drifts a little the other way and
+   dims; back is the mirror; switching between the dock's sections only
+   cross-fades. --m-vt-dir flips the travel for right-to-left languages. The
+   dock keeps its own name, so it stands still while the pages move under it. */
+:root {
+  --m-vt-dir: 1;
+  /* The company-holiday tint of the Vacay cells (vacayDayModel), for the legend chip. */
+  --m-vacay-company: #f5d9a6;
+}
+:root[dir='rtl'] {
+  --m-vt-dir: -1;
+}
+.m-dock-vt {
+  view-transition-name: m-dock;
+}
+@keyframes m-vt-in-trailing {
+  from {
+    transform: translateX(calc(100% * var(--m-vt-dir)));
+  }
+}
+@keyframes m-vt-out-leading {
+  to {
+    transform: translateX(calc(-30% * var(--m-vt-dir)));
+    filter: brightness(0.82);
+  }
+}
+@keyframes m-vt-in-leading {
+  from {
+    transform: translateX(calc(-30% * var(--m-vt-dir)));
+    filter: brightness(0.82);
+  }
+}
+@keyframes m-vt-out-trailing {
+  to {
+    transform: translateX(calc(100% * var(--m-vt-dir)));
+  }
+}
+:root[data-route-transition='forward']::view-transition-old(root) {
+  animation: m-vt-out-leading 0.4s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+:root[data-route-transition='forward']::view-transition-new(root) {
+  animation: m-vt-in-trailing 0.4s cubic-bezier(0.32, 0.72, 0, 1) both;
+  box-shadow: -16px 0 40px -12px rgb(0 0 0 / 0.35);
+}
+:root[data-route-transition='back']::view-transition-old(root) {
+  z-index: 1;
+  animation: m-vt-out-trailing 0.34s cubic-bezier(0.32, 0.72, 0, 1) both;
+  box-shadow: -16px 0 40px -12px rgb(0 0 0 / 0.35);
+}
+:root[data-route-transition='back']::view-transition-new(root) {
+  animation: m-vt-in-leading 0.34s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+:root[data-route-transition='tab']::view-transition-old(root),
+:root[data-route-transition='tab']::view-transition-new(root) {
+  animation-duration: 0.18s;
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

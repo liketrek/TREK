@@ -81,5 +81,6 @@ const common: TranslationStrings = {
   'common.errorPluginTitle': 'Bu eklenti gösterilemedi',
   'common.needsConnection': 'Bunun için bağlantı gerekiyor. TREK yeniden çevrimiçi olduğunda tekrar dene.',
   'common.errorDetails': 'Ayrıntılar',
+  'common.share': 'Paylaş',
 };
 export default common;

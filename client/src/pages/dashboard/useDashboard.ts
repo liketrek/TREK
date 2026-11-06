@@ -97,7 +97,7 @@ export function useDashboard() {
   // client) is read back quietly, one read per burst: no loading state and no
   // toast, since nobody here asked for it. trips:changed goes to the acting user
   // only; trip:deleted goes to the trip's room, which this page is never in.
-  useServerPing('trips:changed', true, async () => {
+  const refreshQuietly = async () => {
     try {
       const { trips, archivedTrips } = await tripRepo.list()
       setTrips(sortTrips(trips))
@@ -106,7 +106,8 @@ export function useDashboard() {
     } catch {
       // The list on screen stays; the next visit reads it again.
     }
-  })
+  }
+  useServerPing('trips:changed', true, refreshQuietly)
 
   // Re-run both the trip fetch and the auth check so a recovered backend clears
   // the error banner (loadUser resets authCheckFailed on success). #1283
@@ -240,6 +241,8 @@ export function useDashboard() {
     // data + derived
     spotlight, heroBundle, stats, upcoming, gridTrips, isLoading,
     loadError: loadError || authCheckFailed, retryLoad,
+    // Pull-to-refresh on mobile: the same quiet read, no loading state.
+    refreshQuietly,
     // ui state
     tripFilter, setTripFilter, viewMode, toggleViewMode,
     showForm, setShowForm, editingTrip, setEditingTrip,

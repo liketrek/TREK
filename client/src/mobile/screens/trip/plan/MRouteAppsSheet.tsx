@@ -28,7 +28,7 @@ export default function MRouteAppsSheet({
   return (
     <MSheet open={open} onClose={onClose} variant="bottom" ariaLabel={t('mobileTrip.openRouteIn')}>
       <div className="px-4 pb-4 pt-6">
-        <div className="mb-3 flex items-center gap-2 px-1 text-[0.8125rem] font-bold text-m-ink">
+        <div className="mb-3 flex items-center gap-2 px-1 text-[length:calc(13px*var(--fs-scale-body,1))] font-bold text-m-ink">
           <MapPinned size={16} strokeWidth={2.2} className="text-m-muted" aria-hidden="true" />
           {t('mobileTrip.openRouteIn')}
         </div>
@@ -44,11 +44,11 @@ export default function MRouteAppsSheet({
               className="flex items-center gap-3 rounded-[18px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-4 py-3 text-start transition-transform active:scale-[.98]"
             >
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[0.9375rem] font-bold text-m-ink">
+                <span className="block truncate text-[length:calc(15px*var(--fs-scale-body,1))] font-bold text-m-ink">
                   {target.labelKey ? t(target.labelKey) : target.label}
                 </span>
                 {target.firstStopOnly && (
-                  <span className="mt-0.5 block font-geist text-[0.6875rem] text-m-muted">
+                  <span className="mt-0.5 block font-geist text-[length:calc(11px*var(--fs-scale-body,1))] text-m-muted">
                     {t('mobileTrip.firstStopOnly')}
                   </span>
                 )}

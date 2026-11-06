@@ -83,5 +83,6 @@ const common: TranslationStrings = {
   'common.errorPluginTitle': 'Tento plugin se nepodařilo zobrazit',
   'common.needsConnection': 'Na tohle je potřeba připojení. Zkus to znovu, až bude TREK zase online.',
   'common.errorDetails': 'Podrobnosti',
+  'common.share': 'Sdílet',
 };
 export default common;

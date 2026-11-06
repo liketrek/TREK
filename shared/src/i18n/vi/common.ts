@@ -79,5 +79,6 @@ const common: TranslationStrings = {
   'common.errorPluginTitle': 'Không thể hiển thị plugin này',
   'common.needsConnection': 'Thao tác này cần kết nối. Hãy thử lại khi TREK trực tuyến trở lại.',
   'common.errorDetails': 'Chi tiết',
+  'common.share': 'Chia sẻ',
 };
 export default common;

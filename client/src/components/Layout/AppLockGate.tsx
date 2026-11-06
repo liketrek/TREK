@@ -62,7 +62,7 @@ export default function AppLockGate(): React.ReactElement | null {
       role="dialog"
       aria-modal="true"
       aria-label={t('native.lock.title')}
-      className="fixed inset-0 z-[100001] flex flex-col items-center justify-center gap-5 bg-surface p-8 text-center backdrop-blur-2xl"
+      className="fixed inset-0 z-[calc(var(--z-toast)+1)] flex flex-col items-center justify-center gap-5 bg-surface p-8 text-center backdrop-blur-2xl"
     >
       <span className="flex h-16 w-16 items-center justify-center rounded-full bg-surface-card text-content shadow-lg">
         <Lock size={26} strokeWidth={2} aria-hidden="true" />

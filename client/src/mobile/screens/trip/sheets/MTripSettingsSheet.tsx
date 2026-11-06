@@ -8,6 +8,7 @@ import {
   Plus,
   RefreshCw,
   Settings2,
+  Share as ShareIcon,
   Trash2,
   UserMinus,
   UserPlus,
@@ -26,6 +27,7 @@ import {
   type ListedMember,
 } from '../../../../components/Trips/useTripShare';
 import { useTranslation } from '../../../../i18n';
+import { canShareLink, shareLink } from '../../../../native/shareLink';
 import MChip from '../../../components/MChip';
 import MSheet from '../../../components/MSheet';
 import MConfirmSheet from '../../settings/MConfirmSheet';
@@ -122,6 +124,16 @@ function LinkField({
         {copied ? <Check size={13} strokeWidth={2.4} /> : <Copy size={13} strokeWidth={2.2} />}
         {copied ? t('common.copied') : t('common.copy')}
       </button>
+      {canShareLink() && (
+        <button
+          type="button"
+          aria-label={t('common.share')}
+          onClick={() => void shareLink(url)}
+          className={`${PRIMARY} h-[32px] w-[32px] justify-center px-0`}
+        >
+          <ShareIcon size={13} strokeWidth={2.2} />
+        </button>
+      )}
     </div>
   );
 }

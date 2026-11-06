@@ -81,5 +81,6 @@ const common: TranslationStrings = {
   'common.errorPluginTitle': 'Bu plagini göstərmək mümkün olmadı',
   'common.needsConnection': 'Bunun üçün bağlantı lazımdır. TREK yenidən onlayn olduqda bir daha cəhd edin.',
   'common.errorDetails': 'Təfərrüatlar',
+  'common.share': 'Paylaş',
 };
 export default common;

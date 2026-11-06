@@ -85,5 +85,6 @@ const common: TranslationStrings = {
   'common.errorPluginTitle': 'Не вдалося показати цей плагін',
   'common.needsConnection': "Для цього потрібне з'єднання. Спробуйте ще раз, коли TREK знову буде онлайн.",
   'common.errorDetails': 'Подробиці',
+  'common.share': 'Поділитися',
 };
 export default common;

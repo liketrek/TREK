@@ -89,5 +89,6 @@ const common: TranslationStrings = {
   'common.errorPluginTitle': 'تعذّر عرض هذه الإضافة',
   'common.needsConnection': 'يتطلب هذا اتصالاً. حاول مرة أخرى عندما يعود TREK للاتصال.',
   'common.errorDetails': 'التفاصيل',
+  'common.share': 'مشاركة',
 };
 export default common;

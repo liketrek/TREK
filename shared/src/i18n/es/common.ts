@@ -82,5 +82,6 @@ const common: TranslationStrings = {
   'common.errorPluginTitle': 'No se pudo mostrar este plugin',
   'common.needsConnection': 'Esto necesita conexión. Vuelve a intentarlo cuando TREK esté de nuevo en línea.',
   'common.errorDetails': 'Detalles',
+  'common.share': 'Compartir',
 };
 export default common;
