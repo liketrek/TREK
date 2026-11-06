@@ -78,7 +78,8 @@ export async function packingDetail(
     const grams = b.total_weight_grams ?? inBag.reduce((sum, i) => sum + (i.weight_grams ?? 0) * (i.quantity ?? 1), 0);
     return {
       name: b.name,
-      color: HEX.test(b.color) ? b.color : '#4A7DDB',
+      // Empty when the bag has no usable colour: the widget then uses its own blue.
+      color: HEX.test(b.color) ? b.color : '',
       grams,
       ...(b.weight_limit_grams ? { limit: b.weight_limit_grams } : {}),
       packed: inBag.filter((i) => i.checked).length,

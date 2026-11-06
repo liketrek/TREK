@@ -129,7 +129,7 @@ describe('useJourneyCarouselSync', () => {
     carousel.dispatchEvent(new Event('scroll'));
     act(() => vi.advanceTimersByTime(100));
     carousel.dispatchEvent(new Event('scroll'));
-    act(() => vi.advanceTimersByTime(149));
+    act(() => vi.advanceTimersByTime(89));
     expect(hook.result.current.activeIndex).toBe(0);
     act(() => vi.advanceTimersByTime(1));
     // Centre 250: card 1 spans 200 to 300.
@@ -170,7 +170,7 @@ describe('useJourneyCarouselSync', () => {
       Object.defineProperty(carousel, 'scrollLeft', { value: scrollLeft, configurable: true });
       carousel.dispatchEvent(new Event('scroll'));
       act(() => {
-        vi.advanceTimersByTime(150);
+        vi.advanceTimersByTime(90);
       });
     };
 

@@ -693,8 +693,10 @@ function JourneyMap(
       />
       {/* A finger zooms with a pinch, and on a phone these sat under the bottom bar (#3001). */}
       <div
-        className="[@media(pointer:coarse)]:hidden"
-        style={{ position: 'absolute', bottom: 12, right: 12, zIndex: 400, display: 'flex', flexDirection: 'column', gap: 4 }}
+        // The display lives in the classes, not the style: an inline display beat the
+        // hidden class and left the buttons on phones.
+        className="flex flex-col gap-1 [@media(pointer:coarse)]:hidden"
+        style={{ position: 'absolute', bottom: 12, right: 12, zIndex: 400 }}
       >
         <button type="button" onClick={() => zoom(true)} style={zoomButtonStyle(dark)}>+</button>
         <button type="button" onClick={() => zoom(false)} style={zoomButtonStyle(dark)}>−</button>

@@ -69,7 +69,7 @@ export default function MobileMapTimeline({
   controlsTop,
 }: Props) {
   const {
-    mapRef, carouselRef, cardRefs, activeIndex, setActiveIndex, scrubberDays,
+    mapRef, carouselRef, cardRefs, activeIndex, focusIndex, setActiveIndex, scrubberDays,
     syncMapToCard: syncMapToCarousel, handleMarkerClick, handleCardTap, openEntryById, jumpToDay,
   } = useJourneyCarouselSync({ entries, mapEntries, onOpenEntry: onEntryClick })
   // The delayed initial focus reads both through refs so it always works off
@@ -207,7 +207,7 @@ export default function MobileMapTimeline({
               <JourneyEntryCover
                 entry={entry}
                 dayColor={dayColorOf(scrubberDays, entry.entry_date)}
-                isActive={i === activeIndex}
+                isActive={i === focusIndex}
                 onClick={() => handleCardTap(entry, i)}
                 showMood={showMood}
                 showWeather={showWeather}

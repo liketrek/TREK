@@ -102,7 +102,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
   )
 
   const {
-    mapRef, carouselRef, cardRefs, activeIndex, setActiveIndex, scrubberDays,
+    mapRef, carouselRef, cardRefs, activeIndex, focusIndex, setActiveIndex, scrubberDays,
     syncMapToCard, handleMarkerClick, handleCardTap, openEntryById, jumpToDay,
   } = useJourneyCarouselSync<JourneyEntry>({ entries, mapEntries: sidebarMapItems, onOpenEntry: setEditingEntry, syncMapOnTap: true })
 
@@ -510,7 +510,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
               <JourneyEntryCover
                 entry={entry}
                 dayColor={dayColorOf(scrubberDays, entry.entry_date)}
-                isActive={i === activeIndex}
+                isActive={i === focusIndex}
                 onClick={() => handleCardTap(entry, i)}
                 showMood={current.show_mood !== 0}
                 showWeather={current.show_weather !== 0}

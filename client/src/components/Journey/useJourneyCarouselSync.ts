@@ -25,6 +25,13 @@ export interface JourneyCarouselSyncOptions<E extends CarouselEntry> {
  * once scrolling settles, and the map follows it; a marker, a day on the scrubber or a
  * tap brings its card to the centre.
  */
+/**
+ * How long the strip has to be still before the swipe counts as landed: long
+ * enough to see past the gaps between scroll events of a momentum swipe, short
+ * enough that the map follows the card without a noticeable wait.
+ */
+const SETTLE_MS = 90;
+
 export function useJourneyCarouselSync<E extends CarouselEntry>({
   entries,
   mapEntries,
@@ -35,6 +42,10 @@ export function useJourneyCarouselSync<E extends CarouselEntry>({
   const carouselRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const [activeIndex, setActiveIndex] = useState(0);
+  // The card nearest the centre while a swipe is still moving: drawn larger at
+  // once (a transform, so nothing reflows), while the active card and the map
+  // only follow once the strip settles. Null when not swiping.
+  const [liveIndex, setLiveIndex] = useState<number | null>(null);
 
   const scrubberDays = useMemo(() => journeyDays(entries), [entries]);
 
@@ -57,9 +68,9 @@ export function useJourneyCarouselSync<E extends CarouselEntry>({
   // Pick the card closest to the horizontal centre. More stable than
   // IntersectionObserver thresholds when the active card can drift toward the
   // viewport edge with proximity snapping.
-  const pickNearestCard = useCallback(() => {
+  const nearestCard = useCallback((): number | null => {
     const el = carouselRef.current;
-    if (!el) return;
+    if (!el) return null;
     const center = el.getBoundingClientRect().left + el.clientWidth / 2;
     let bestIdx = 0;
     let bestDist = Infinity;
@@ -79,11 +90,18 @@ export function useJourneyCarouselSync<E extends CarouselEntry>({
     const scrolled = Math.abs(el.scrollLeft);
     if (travel > 1 && scrolled >= travel - 1) bestIdx = cardRefs.current.size - 1;
     else if (travel > 1 && scrolled <= 0) bestIdx = 0;
+    return bestIdx;
+  }, []);
+
+  const pickNearestCard = useCallback(() => {
+    const bestIdx = nearestCard();
+    if (bestIdx == null) return;
+    setLiveIndex(null);
     setActiveIndex((prev) => {
       if (prev !== bestIdx) syncMapToCard(bestIdx);
       return bestIdx;
     });
-  }, [syncMapToCard]);
+  }, [nearestCard, syncMapToCard]);
 
   // Defer every state update until scrolling settles: updating the active card
   // mid swipe resizes the cards and reflows the layout on every frame.
@@ -91,9 +109,16 @@ export function useJourneyCarouselSync<E extends CarouselEntry>({
     const el = carouselRef.current;
     if (!el || entries.length === 0) return;
     let settleTimer: number | null = null;
+    let frame: number | null = null;
     const onScroll = () => {
+      if (frame == null) {
+        frame = window.requestAnimationFrame(() => {
+          frame = null;
+          setLiveIndex(nearestCard());
+        });
+      }
       if (settleTimer != null) window.clearTimeout(settleTimer);
-      settleTimer = window.setTimeout(pickNearestCard, 150);
+      settleTimer = window.setTimeout(pickNearestCard, SETTLE_MS);
     };
     // Where the browser says when the snap has landed, the card grows right then
     // instead of a beat later; the timer stays for the ones that do not.
@@ -108,8 +133,9 @@ export function useJourneyCarouselSync<E extends CarouselEntry>({
       el.removeEventListener('scroll', onScroll);
       el.removeEventListener('scrollend', onScrollEnd);
       if (settleTimer != null) window.clearTimeout(settleTimer);
+      if (frame != null) window.cancelAnimationFrame(frame);
     };
-  }, [entries.length, pickNearestCard]);
+  }, [entries.length, pickNearestCard, nearestCard]);
 
   const scrollCardIntoCenter = useCallback((idx: number) => {
     cardRefs.current.get(idx)?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
@@ -168,6 +194,8 @@ export function useJourneyCarouselSync<E extends CarouselEntry>({
     carouselRef,
     cardRefs,
     activeIndex,
+    /** The card to draw as the active one: the one at the centre while swiping, else the active card. */
+    focusIndex: liveIndex ?? activeIndex,
     setActiveIndex,
     scrubberDays,
     syncMapToCard,
