@@ -33,7 +33,14 @@ import { TripReadModelService } from '../trip-read-model/trip-read-model.service
 import { TripWritesService, type TripListWriter } from './trip-writes.service';
 import { tripUpdatePermissions } from './trips.helpers';
 import { TripsService, NotFoundError, ValidationError } from './trips.service';
-import { idSchema, MAX_TRIP_DAYS, listTripsOutputSchema, MCP_APP_URL_META_KEY, mcpAppUri } from '@trek/shared';
+import {
+  idSchema,
+  MAX_TRIP_DAYS,
+  listTripsOutputSchema,
+  MCP_APP_URL_META_KEY,
+  mcpAppUri,
+  tripOverviewOutputSchema,
+} from '@trek/shared';
 
 import { z } from 'zod';
 
@@ -398,6 +405,26 @@ export class TripsMcp {
   async listTrips({ include_archived }: { include_archived?: boolean }, ctx: McpContext) {
     const trips = await this.trips.list(ctx.userId, include_archived ? null : 0);
     return withResultMeta(okStructured({ trips }), { [MCP_APP_URL_META_KEY]: getAppUrl() });
+  }
+
+  // --- TRIP OVERVIEW ---
+
+  @Tool({
+    name: 'get_trip_overview',
+    title: 'Get trip overview',
+    description:
+      'A trip in a few lines: dates, how many days, places, bookings and travelers it has, and its next days with their stop counts. Use get_trip_summary for the whole trip.',
+    inputSchema: { tripId: idSchema },
+    outputSchema: tripOverviewOutputSchema,
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    access: { group: 'trips', mode: 'read' },
+    _meta: uiTool(mcpAppUri('trip-overview'), { invoking: 'Reading the trip…', invoked: 'Trip loaded' }),
+  })
+  async getTripOverview({ tripId }: { tripId: number }, ctx: McpContext) {
+    if (!(await this.trips.canAccessTrip(tripId, ctx.userId))) return noAccess();
+    const overview = await this.readModel.getTripOverview(tripId);
+    if (!overview) return noAccess();
+    return withResultMeta(okStructured({ ...overview }), { [MCP_APP_URL_META_KEY]: getAppUrl() });
   }
 
   // --- TRIP SUMMARY ---

@@ -42,4 +42,46 @@ export class McpAppsMcp {
   async tripListWidget(uri: URL) {
     return this.read(uri, 'trip-list');
   }
+
+  @Resource({
+    name: 'widget-trip-overview',
+    title: 'Trip overview view',
+    uri: mcpAppUri('trip-overview'),
+    description: 'The interactive view get_trip_overview draws its card with.',
+    mimeType: MCP_APP_MIME_TYPE,
+    _meta: uiResource({ prefersBorder: true }),
+    when: offered('trip-overview'),
+    access: { group: 'trips', mode: 'read' },
+  })
+  async tripOverviewWidget(uri: URL) {
+    return this.read(uri, 'trip-overview');
+  }
+
+  @Resource({
+    name: 'widget-packing',
+    title: 'Packing list view',
+    uri: mcpAppUri('packing'),
+    description: 'The interactive checklist list_packing_items draws its items with.',
+    mimeType: MCP_APP_MIME_TYPE,
+    _meta: uiResource({ prefersBorder: true }),
+    when: offered('packing'),
+    access: { group: 'packing', mode: 'read' },
+  })
+  async packingWidget(uri: URL) {
+    return this.read(uri, 'packing');
+  }
+
+  @Resource({
+    name: 'widget-weather',
+    title: 'Weather view',
+    uri: mcpAppUri('weather'),
+    description: 'The card get_weather draws its forecast with.',
+    mimeType: MCP_APP_MIME_TYPE,
+    _meta: uiResource({ prefersBorder: true }),
+    when: offered('weather'),
+    access: { group: 'weather', mode: 'read' },
+  })
+  async weatherWidget(uri: URL) {
+    return this.read(uri, 'weather');
+  }
 }

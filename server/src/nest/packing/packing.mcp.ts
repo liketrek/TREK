@@ -1,4 +1,5 @@
 import { ADDON_IDS } from '../../addons';
+import { getAppUrl } from '../../app-config';
 import { noAccess, permissionDenied, adminRequired } from '../../mcp/tools/_shared';
 import {
   McpController,
@@ -12,6 +13,8 @@ import {
   errorResult,
   ok,
   okStructured,
+  uiTool,
+  withResultMeta,
 } from '../../nest-mcp';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
@@ -19,6 +22,8 @@ import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { PackingWritesService } from './packing-writes.service';
 import { PackingService } from './packing.service';
 import {
+  MCP_APP_URL_META_KEY,
+  mcpAppUri,
   packingApplyTemplateRequestSchema,
   packingCreateBagRequestSchema,
   packingCreateItemRequestSchema,
@@ -346,6 +351,7 @@ export class PackingMcp {
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: packingAddonOn,
     access: { group: 'packing', mode: 'read' },
+    _meta: uiTool(mcpAppUri('packing'), { invoking: 'Reading the packing list…', invoked: 'Packing list loaded' }),
   })
   async listPackingItems(
     { tripId, category, bag_id, status }: { tripId: number } & PackingListItemsRequest,
@@ -362,7 +368,7 @@ export class PackingMcp {
     );
     const bags = await this.packing.listBags(tripId);
     const category_assignees = await this.packing.getCategoryAssignees(tripId);
-    return okStructured({ items, bags, category_assignees });
+    return withResultMeta(okStructured({ items, bags, category_assignees }), { [MCP_APP_URL_META_KEY]: getAppUrl() });
   }
 
   @Tool({

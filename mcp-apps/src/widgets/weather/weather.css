@@ -1,0 +1,38 @@
+.weather__title {
+  margin: 0 0 var(--trek-space);
+  font-size: var(--trek-text-md);
+  font-weight: var(--font-weight-semibold, 600);
+}
+
+.weather__now {
+  display: flex;
+  align-items: center;
+  gap: var(--trek-space);
+}
+
+.weather__now p {
+  margin: 0;
+}
+
+.weather__temp {
+  font-size: var(--font-heading-2xl-size, 2.5rem);
+  font-weight: var(--font-weight-semibold, 600);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.weather__description::first-letter {
+  text-transform: uppercase;
+}
+
+.weather__facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 8px;
+  margin: var(--trek-space) 0 0;
+}
+
+.weather__facts dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
