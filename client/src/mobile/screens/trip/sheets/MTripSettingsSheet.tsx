@@ -50,6 +50,8 @@ const FIELD =
   'h-[42px] min-w-0 flex-1 rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[14px] text-[length:calc(13px*var(--fs-scale-body,1))] font-medium text-m-ink outline-none placeholder:text-m-faint';
 const PRIMARY =
   'flex h-[42px] flex-none items-center gap-1.5 rounded-full bg-m-act px-4 text-[length:calc(13px*var(--fs-scale-body,1))] font-semibold text-m-actfg disabled:opacity-40';
+/** The round icon buttons next to a link: copy, share. */
+const LINK_ACTION = 'flex h-[34px] w-[34px] flex-none items-center justify-center rounded-full bg-m-act text-m-actfg';
 const ROUND =
   'flex h-[34px] w-[34px] flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-muted disabled:opacity-40';
 const PILL =
@@ -118,20 +120,20 @@ function LinkField({
       />
       <button
         type="button"
+        aria-label={copied ? t('common.copied') : t('common.copy')}
         onClick={onCopy}
-        className={`${PRIMARY} h-[32px] px-3 text-[length:calc(11.5px*var(--fs-scale-caption,1))]`}
+        className={LINK_ACTION}
       >
-        {copied ? <Check size={13} strokeWidth={2.4} /> : <Copy size={13} strokeWidth={2.2} />}
-        {copied ? t('common.copied') : t('common.copy')}
+        {copied ? <Check size={15} strokeWidth={2.4} /> : <Copy size={15} strokeWidth={2.2} />}
       </button>
       {canShareLink() && (
         <button
           type="button"
           aria-label={t('common.share')}
           onClick={() => void shareLink(url)}
-          className={`${PRIMARY} h-[32px] w-[32px] justify-center px-0`}
+          className={LINK_ACTION}
         >
-          <ShareIcon size={13} strokeWidth={2.2} />
+          <ShareIcon size={15} strokeWidth={2.2} />
         </button>
       )}
     </div>
@@ -474,7 +476,7 @@ export default function MTripSettingsSheet({
           />
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-[18px] pb-[18px] pt-3">
+        <div className="m-scroll-fade mt-2 flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-[18px] pb-[18px] pt-[14px]">
           <AccessSection m={m} ask={setQuestion} />
           <GuestsSection m={m} ask={setQuestion} />
           {m.canManageShare && <ShareLinkSection tripId={tripId} />}

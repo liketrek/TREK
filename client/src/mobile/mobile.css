@@ -478,3 +478,10 @@
     animation: none !important;
   }
 }
+
+/* A scroll box under a fixed header: content fades out over the padding at its
+   edges instead of being cut off in a hard line right under the header. */
+.m-scroll-fade {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 14px, black calc(100% - 14px), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, black 14px, black calc(100% - 14px), transparent 100%);
+}

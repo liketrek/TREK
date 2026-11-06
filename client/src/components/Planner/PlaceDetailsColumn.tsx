@@ -26,7 +26,6 @@ import { mapsApi } from '../../api/client'
 import { resolveOpenNow, resolvePlaceTimeZone, placeWeekdayIndex } from './placeOpenState'
 import { convertHoursLine, isUnknownHoursLine, splitHoursLine } from './placeHoursFormat'
 import { safeHttpUrl } from '../../utils/safeUrl'
-import EmptyState from '../shared/EmptyState'
 import { Tooltip } from '../shared/Tooltip'
 import { fs } from '../shared/DialogShell'
 import { LABEL } from '../shared/dialogParts'
@@ -66,8 +65,8 @@ interface PlaceDetailsColumnProps {
   fluid?: boolean
   /**
    * 'dialog' is the desktop add place dialog: a grey panel of white cards under
-   * small eyebrows, and a quiet hint card where the sheet shows the mascot. The
-   * default is the phone sheet's look, which this prop leaves exactly as it was.
+   * small eyebrows. The default is the phone sheet's look: a card in the mobile
+   * tokens with the same one-line hints.
    */
   variant?: 'sheet' | 'dialog'
   /** False on an instance with no Google key, which is most of them. */
@@ -75,6 +74,16 @@ interface PlaceDetailsColumnProps {
 }
 
 type LoadState = 'idle' | 'loading' | 'ready' | 'error'
+
+/** The phone sheet's quiet one-line state: an icon and a sentence, no mascot taking half the screen. */
+function SheetHint({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <p className="flex items-center gap-2 rounded-[12px] bg-[color:var(--m-ic)] px-3 py-2.5 text-caption text-m-muted">
+      <span className="flex-none">{icon}</span>
+      {children}
+    </p>
+  )
+}
 
 /**
  * Overline label, the section heading Vacay and the dashboard widgets share.
@@ -225,17 +234,17 @@ export default function PlaceDetailsColumn({
     // tiles, which is too small to tell a facade from a foyer. The column is
     // stretched to the form's height by the row it sits in, so the extra room
     // costs nothing that was being used.
-    <aside className={dialog ? `${SIDE_COLUMN} ${fluid ? '' : 'sm:w-80'}` : `w-full ${fluid ? '' : 'sm:w-80'} shrink-0 flex flex-col rounded-xl border border-edge bg-surface-secondary overflow-hidden self-stretch`}>
+    <aside className={dialog ? `${SIDE_COLUMN} ${fluid ? '' : 'sm:w-80'}` : `w-full ${fluid ? '' : 'sm:w-80'} shrink-0 flex flex-col rounded-[18px] border border-[color:var(--m-cbr)] bg-[color:var(--m-card)] overflow-hidden self-stretch`}>
       {dialog ? (
         <ColumnHead icon={<Landmark size={13} strokeWidth={2.2} />}>{t('places.details.title')}</ColumnHead>
       ) : (
-        <div className="flex items-center gap-2 px-3 py-2.5 border-b border-edge shrink-0">
-          <Landmark size={15} className="text-accent" />
-          <span className="text-body font-semibold text-content">{t('places.details.title')}</span>
+        <div className="flex shrink-0 items-center gap-2 px-3 pt-3">
+          <Landmark size={14} className="text-m-muted" />
+          <span className="text-caption font-semibold text-m-ink">{t('places.details.title')}</span>
         </div>
       )}
 
-      <div className={dialog ? 'flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-3 pb-3' : 'flex-1 min-h-0 overflow-y-auto p-3 space-y-3.5'}>
+      <div className={dialog ? 'flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-3 pb-3' : 'flex-1 min-h-0 overflow-y-auto p-3 space-y-3'}>
         {/* The place's picture first: its own ones are there whatever the sources answer. */}
         <PictureBlock
           photos={state === 'ready' && !data?.disabled ? (data?.photos ?? []) : []}
@@ -246,19 +255,13 @@ export default function PlaceDetailsColumn({
           t={t}
         />
 
-        {/* Nothing picked yet, which is a state rather than a fault: the mascot
-            waits with an idle look instead of a sad one. The dialog says the
-            same in a quiet card, and the column keeps its width either way. */}
+        {/* Nothing picked yet, which is a state rather than a fault: one quiet
+            line, in the dialog and on the phone alike, so the form's own fields
+            stay in view instead of sitting under a mascot half a screen high. */}
         {!selection && (dialog ? (
           <HintCard icon={<ImageIcon size={15} strokeWidth={2} />}>{t('places.details.empty')}</HintCard>
         ) : (
-          <EmptyState
-            scene="idle"
-            title={t('places.details.empty')}
-            size={92}
-            fill
-            surface="var(--bg-secondary)"
-          />
+          <SheetHint icon={<ImageIcon size={14} strokeWidth={2} />}>{t('places.details.empty')}</SheetHint>
         ))}
 
         {selection && state === 'loading' && (dialog ? (
@@ -278,22 +281,13 @@ export default function PlaceDetailsColumn({
           ? <HintCard icon={<Landmark size={15} strokeWidth={2} />}>{t('places.details.disabled')}</HintCard>
           : <p className="text-caption text-content-muted">{t('places.details.disabled')}</p>)}
 
-        {/* The mascot rather than a line of grey text and, under it, a paragraph
-            telling the reader to go and ask an administrator for a Google key.
-            Nothing came back for this place, which is worth saying once and
+        {/* Nothing came back for this place, which is worth saying once and
             plainly; whose key is missing is not this panel's business, and on a
             place the free sources describe fine it read as an advert. */}
         {isEmpty && (dialog ? (
           <HintCard icon={<SearchX size={15} strokeWidth={2} />}>{t('places.details.nothing')}</HintCard>
         ) : (
-          <EmptyState
-            scene="search"
-            mood="sad"
-            title={t('places.details.nothing')}
-            size={92}
-            fill
-            surface="var(--bg-secondary)"
-          />
+          <SheetHint icon={<SearchX size={14} strokeWidth={2} />}>{t('places.details.nothing')}</SheetHint>
         ))}
 
         {selection && state === 'ready' && !data?.disabled && !isEmpty && (

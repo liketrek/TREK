@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { X, Image, Plus, Trash2, UserPlus, Link as LinkIcon, List, Grid3x3, MapPin, Route, Archive, ArchiveRestore, Undo2, Link2, ListChecks, RefreshCw, Share as ShareIcon } from 'lucide-react'
+import { X, Image, Plus, Trash2, UserPlus, Link as LinkIcon, List, Grid3x3, MapPin, Route, Archive, ArchiveRestore, Undo2, Link2, ListChecks, RefreshCw, Share as ShareIcon, Copy, Check } from 'lucide-react'
 import { canShareLink, shareLink } from '../../../native/shareLink'
 import MSheet from '../../components/MSheet'
 import MIconBtn from '../../components/MIconBtn'
@@ -262,19 +262,20 @@ export default function MJourneySettingsSheet({
               <span className="min-w-0 flex-1 truncate font-geist text-[0.6875rem] text-m-muted">{shareUrl}</span>
               <button
                 type="button"
+                aria-label={copied ? t('journey.share.copied') : t('journey.share.copy')}
                 onClick={copyShareUrl}
-                className="flex-none rounded-full bg-m-act px-3 py-[5px] font-geist text-[0.65625rem] font-bold text-m-actfg"
+                className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-m-act text-m-actfg"
               >
-                {copied ? t('journey.share.copied') : t('journey.share.copy')}
+                {copied ? <Check size={13} strokeWidth={2.4} /> : <Copy size={13} strokeWidth={2.2} />}
               </button>
               {canShareLink() && shareUrl && (
                 <button
                   type="button"
                   aria-label={t('common.share')}
                   onClick={() => void shareLink(shareUrl)}
-                  className="flex h-[26px] w-[26px] flex-none items-center justify-center rounded-full bg-m-act text-m-actfg"
+                  className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-m-act text-m-actfg"
                 >
-                  <ShareIcon size={12} strokeWidth={2.4} />
+                  <ShareIcon size={13} strokeWidth={2.2} />
                 </button>
               )}
             </div>

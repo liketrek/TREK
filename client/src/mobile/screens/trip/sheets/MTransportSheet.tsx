@@ -197,7 +197,7 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
         />
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px]">
+      <div className="m-scroll-fade mt-2 min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px] pt-[14px]">
         {/* ── Times / seat stats ── */}
         {(depTime || arrTime || seat || platform) && (
           <div className="mt-[14px] flex gap-[6px]">
