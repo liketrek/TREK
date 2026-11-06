@@ -65,7 +65,7 @@ describe('list_book_assets', () => {
     const entry = getEntry(JourneyBookMcp as unknown as ClassRef, 'listAssets');
     if (entry?.kind !== 'tool') throw new Error('listAssets is no tool');
     expect(entry.options.name).toBe('list_book_assets');
-    expect(entry.options.access).toEqual({ group: 'journey', mode: 'read' });
+    expect(entry.options.access).toEqual({ group: 'studio', mode: 'read' });
     expect(entry.options.annotations?.readOnlyHint).toBe(true);
     const enabled = vi.spyOn(t.get(AddonsService), 'isAddonEnabled');
     enabled.mockResolvedValue(false);

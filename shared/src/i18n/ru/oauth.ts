@@ -76,6 +76,25 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:write.description': 'Создание, обновление и удаление путешествий и их записей',
   'oauth.scope.journey:share.label': 'Управление ссылками на путешествия',
   'oauth.scope.journey:share.description': 'Создание, обновление и отзыв публичных ссылок для путешествий',
+  'oauth.scope.group.tours': 'Туры',
+  'oauth.scope.group.roadtrip': 'Автопутешествие',
+  'oauth.scope.group.studio': 'Студия',
+  'oauth.scope.tours:read.label': 'Просмотр туров',
+  'oauth.scope.tours:read.description':
+    'Читать походы, прогулки, велопоездки, сплавы и лыжные туры с остановками и сборами',
+  'oauth.scope.tours:write.label': 'Планирование туров',
+  'oauth.scope.tours:write.description':
+    'Предлагать, создавать, изменять и удалять туры, их остановки, активности и связи со сборами',
+  'oauth.scope.roadtrip:read.label': 'Просмотр автопутешествий',
+  'oauth.scope.roadtrip:read.description': 'Читать маршруты, дни в пути, остановки для зарядки и опасности на дороге',
+  'oauth.scope.roadtrip:write.label': 'Планирование автопутешествий',
+  'oauth.scope.roadtrip:write.description':
+    'Рассчитывать маршруты, задавать дни в пути и предпочтения, импортировать маршруты',
+  'oauth.scope.studio:read.label': 'Просмотр книг путешествий',
+  'oauth.scope.studio:read.description': 'Читать страницы, оформление и фотографии книги путешествия',
+  'oauth.scope.studio:write.label': 'Оформление книг путешествий',
+  'oauth.scope.studio:write.description':
+    'Создавать, изменять, переоформлять и восстанавливать страницы книги путешествия',
   'oauth.authorize.authorizing': 'Авторизация…',
   'oauth.authorize.loading': 'Загрузка…',
   'oauth.authorize.errorTitle': 'Ошибка авторизации',

@@ -68,7 +68,7 @@ export class TourPlanMcp {
     inputSchema: { tripId: idSchema, ...tourProposeRequestSchema.shape },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'tours', mode: 'read' },
   })
   async proposeTour({ tripId, ...request }: { tripId: number } & TourProposeRequest, ctx: McpContext) {
     if (!(await this.access.findAccessible(tripId, ctx.userId))) return noAccess();
@@ -87,7 +87,7 @@ export class TourPlanMcp {
     inputSchema: { tripId: idSchema.describe('The trip to create the tour in'), ...tourPlanCreateRequestSchema.shape },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'tours', mode: 'write' },
   })
   async createTour({ tripId, ...request }: { tripId: number } & TourPlanCreateRequest, ctx: McpContext) {
     if (!(await this.access.findAccessible(tripId, ctx.userId))) return noAccess();
@@ -109,7 +109,7 @@ export class TourPlanMcp {
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'tours', mode: 'write' },
   })
   async createPaddleTour({ tripId, ...request }: { tripId: number } & PaddleTourCreateRequest, ctx: McpContext) {
     if (!(await this.access.findAccessible(tripId, ctx.userId))) return noAccess();
@@ -128,7 +128,7 @@ export class TourPlanMcp {
     inputSchema: { tripId: idSchema.describe('The trip to create the tour in'), ...skiTourCreateRequestSchema.shape },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'tours', mode: 'write' },
   })
   async createSkiTour({ tripId, ...request }: { tripId: number } & SkiTourCreateRequest, ctx: McpContext) {
     if (!(await this.access.findAccessible(tripId, ctx.userId))) return noAccess();

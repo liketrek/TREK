@@ -406,7 +406,7 @@ describe('TourChangeMcp.saveTourChange (MCP-T03)', () => {
     expect([options.name, options.annotations?.readOnlyHint, options.access]).toEqual([
       'save_tour_change',
       false,
-      { group: 'trips', mode: 'write' },
+      { group: 'tours', mode: 'write' },
     ]);
     const terms = [
       'confirmed',

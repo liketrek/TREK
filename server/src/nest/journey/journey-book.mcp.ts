@@ -99,7 +99,7 @@ export class JourneyBookMcp {
     inputSchema: { journeyId: idSchema },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: journeyAddonOn,
-    access: { group: 'journey', mode: 'read' },
+    access: { group: 'studio', mode: 'read' },
   })
   async getBook({ journeyId }: OnJourney, ctx: McpContext) {
     return ok(await this.books.overview(journeyId, ctx.userId));
@@ -112,7 +112,7 @@ export class JourneyBookMcp {
     inputSchema: { journeyId: idSchema, ...describeBookPageArgs },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: journeyAddonOn,
-    access: { group: 'journey', mode: 'read' },
+    access: { group: 'studio', mode: 'read' },
   })
   async describeBookPage(
     { journeyId, spreadId, designId }: OnJourney & { spreadId: string; designId?: string },
@@ -128,7 +128,7 @@ export class JourneyBookMcp {
     inputSchema: { journeyId: idSchema, ...listBookLayoutsArgs },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: journeyAddonOn,
-    access: { group: 'journey', mode: 'read' },
+    access: { group: 'studio', mode: 'read' },
   })
   async listLayouts({ journeyId, role }: OnJourney & { role?: 'inner' | 'single' }, ctx: McpContext) {
     return ok(await this.books.layouts(journeyId, ctx.userId, role));
@@ -142,7 +142,7 @@ export class JourneyBookMcp {
     inputSchema: { journeyId: idSchema, ...listBookAssetsArgs },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: journeyAddonOn,
-    access: { group: 'journey', mode: 'read' },
+    access: { group: 'studio', mode: 'read' },
   })
   async listAssets({ journeyId, ...search }: OnJourney & ListBookAssetsRequest, ctx: McpContext) {
     return ok(await this.books.assets(journeyId, ctx.userId, search));
@@ -157,7 +157,7 @@ export class JourneyBookMcp {
     inputSchema: { journeyId: idSchema, ...createBookArgs },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: journeyAddonOn,
-    access: { group: 'journey', mode: 'write' },
+    access: { group: 'studio', mode: 'write' },
   })
   async createBook({ journeyId, ...args }: OnJourney & CreateBookRequest, ctx: McpContext) {
     return ok(await this.books.createBook(journeyId, ctx.userId, args));
@@ -170,7 +170,7 @@ export class JourneyBookMcp {
     inputSchema: { journeyId: idSchema, ...addBookPagesArgs },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: journeyAddonOn,
-    access: { group: 'journey', mode: 'write' },
+    access: { group: 'studio', mode: 'write' },
   })
   async addBookPages({ journeyId, ...args }: OnJourney & AddBookPagesRequest, ctx: McpContext) {
     return ok(await this.books.addPages(journeyId, ctx.userId, args));
@@ -183,7 +183,7 @@ export class JourneyBookMcp {
     inputSchema: { journeyId: idSchema, ...moveBookPageArgs },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: journeyAddonOn,
-    access: { group: 'journey', mode: 'write' },
+    access: { group: 'studio', mode: 'write' },
   })
   async moveBookPage({ journeyId, ...args }: OnJourney & MoveBookPageRequest, ctx: McpContext) {
     return ok(await this.books.movePage(journeyId, ctx.userId, args));
@@ -196,7 +196,7 @@ export class JourneyBookMcp {
     inputSchema: { journeyId: idSchema, ...deleteBookPagesArgs },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: journeyAddonOn,
-    access: { group: 'journey', mode: 'write' },
+    access: { group: 'studio', mode: 'write' },
   })
   async deleteBookPages({ journeyId, ...args }: OnJourney & DeleteBookPagesRequest, ctx: McpContext) {
     return ok(await this.books.deletePages(journeyId, ctx.userId, args));
@@ -213,7 +213,7 @@ export class JourneyBookMcp {
     inputSchema: { journeyId: idSchema, ...editBookPageArgs },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: journeyAddonOn,
-    access: { group: 'journey', mode: 'write' },
+    access: { group: 'studio', mode: 'write' },
   })
   async editBookPage({ journeyId, ...args }: OnJourney & EditBookPageRequest, ctx: McpContext) {
     return ok(await this.books.editPage(journeyId, ctx.userId, args));
@@ -226,7 +226,7 @@ export class JourneyBookMcp {
     inputSchema: { journeyId: idSchema, ...setBookCoverArgs },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: journeyAddonOn,
-    access: { group: 'journey', mode: 'write' },
+    access: { group: 'studio', mode: 'write' },
   })
   async setBookCover({ journeyId, ...args }: OnJourney & SetBookCoverRequest, ctx: McpContext) {
     return ok(await this.books.setCover(journeyId, ctx.userId, args));
@@ -239,7 +239,7 @@ export class JourneyBookMcp {
     inputSchema: { journeyId: idSchema, ...setBookSetupArgs },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: journeyAddonOn,
-    access: { group: 'journey', mode: 'write' },
+    access: { group: 'studio', mode: 'write' },
   })
   async setBookSetup({ journeyId, ...args }: OnJourney & SetBookSetupRequest, ctx: McpContext) {
     return ok(await this.books.setSetup(journeyId, ctx.userId, args));
@@ -255,7 +255,7 @@ export class JourneyBookMcp {
     inputSchema: { journeyId: idSchema, ...setBookThemeArgs },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: journeyAddonOn,
-    access: { group: 'journey', mode: 'write' },
+    access: { group: 'studio', mode: 'write' },
   })
   async setBookTheme({ journeyId, ...args }: OnJourney & SetBookThemeRequest, ctx: McpContext) {
     return ok(await this.books.setTheme(journeyId, ctx.userId, args));
@@ -268,7 +268,7 @@ export class JourneyBookMcp {
     inputSchema: { journeyId: idSchema, ...duplicateBookPageArgs },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: journeyAddonOn,
-    access: { group: 'journey', mode: 'write' },
+    access: { group: 'studio', mode: 'write' },
   })
   async duplicateBookPage({ journeyId, ...args }: OnJourney & DuplicateBookPageRequest, ctx: McpContext) {
     return ok(await this.books.duplicatePage(journeyId, ctx.userId, args));
@@ -281,7 +281,7 @@ export class JourneyBookMcp {
     inputSchema: { journeyId: idSchema, ...saveBookLayoutArgs },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: journeyAddonOn,
-    access: { group: 'journey', mode: 'write' },
+    access: { group: 'studio', mode: 'write' },
   })
   async saveBookLayout({ journeyId, ...args }: OnJourney & SaveBookLayoutRequest, ctx: McpContext) {
     return ok(await this.books.saveLayout(journeyId, ctx.userId, args));
@@ -294,7 +294,7 @@ export class JourneyBookMcp {
     inputSchema: { journeyId: idSchema, ...removeBookLayoutArgs },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: journeyAddonOn,
-    access: { group: 'journey', mode: 'write' },
+    access: { group: 'studio', mode: 'write' },
   })
   async removeBookLayout({ journeyId, ...args }: OnJourney & RemoveBookLayoutRequest, ctx: McpContext) {
     return ok(await this.books.removeLayout(journeyId, ctx.userId, args));
@@ -307,7 +307,7 @@ export class JourneyBookMcp {
     inputSchema: { journeyId: idSchema, ...restoreBookLayoutArgs },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: journeyAddonOn,
-    access: { group: 'journey', mode: 'write' },
+    access: { group: 'studio', mode: 'write' },
   })
   async restoreBookLayout({ journeyId, ...args }: OnJourney & RestoreBookLayoutRequest, ctx: McpContext) {
     return ok(await this.books.restoreLayout(journeyId, ctx.userId, args));
@@ -324,7 +324,7 @@ export class JourneyBookMcp {
     inputSchema: { journeyId: idSchema, ...restoreBookPageArgs },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: journeyAddonOn,
-    access: { group: 'journey', mode: 'write' },
+    access: { group: 'studio', mode: 'write' },
   })
   async restoreBookPage({ journeyId, ...args }: OnJourney & RestoreBookPageRequest, ctx: McpContext) {
     return ok(await this.books.restorePage(journeyId, ctx.userId, args));

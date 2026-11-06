@@ -259,10 +259,10 @@ describe('HikePlanMcp: the tools and their gates', () => {
     expect(
       tools.map((tool) => [tool.name, tool.annotations?.readOnlyHint, tool.annotations?.idempotentHint, tool.access]),
     ).toEqual([
-      ['propose_hike', true, true, { group: 'trips', mode: 'read' }],
-      ['create_hike', false, false, { group: 'trips', mode: 'write' }],
-      ['update_tour', false, true, { group: 'trips', mode: 'write' }],
-      ['import_tour_gpx', false, false, { group: 'trips', mode: 'write' }],
+      ['propose_hike', true, true, { group: 'tours', mode: 'read' }],
+      ['create_hike', false, false, { group: 'tours', mode: 'write' }],
+      ['update_tour', false, true, { group: 'tours', mode: 'write' }],
+      ['import_tour_gpx', false, false, { group: 'tours', mode: 'write' }],
     ]);
     expect(helpOf(tools[0])).toContain('variant_label');
     expect(helpOf(tools[0])).toContain('never list coordinates');

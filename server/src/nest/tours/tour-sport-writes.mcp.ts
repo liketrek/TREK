@@ -121,7 +121,7 @@ export class TourSportWritesMcp {
     inputSchema: { tripId: idSchema, ...skiClassifyToolRequestSchema.shape },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'tours', mode: 'write' },
   })
   async classifySkiTrack(
     { tripId, placeId, ...request }: { tripId: number } & SkiClassifyToolRequest,
@@ -160,7 +160,7 @@ export class TourSportWritesMcp {
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'tours', mode: 'write' },
   })
   async setPaddlePlan(
     { tripId, placeId, ...request }: { tripId: number; placeId: number } & TourPaddlePlanRequest,
@@ -193,7 +193,7 @@ export class TourSportWritesMcp {
     inputSchema: { tripId: idSchema, ...obstacleDecisionsToolRequestSchema.shape },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'tours', mode: 'write' },
   })
   async decidePaddleObstacles(
     { tripId, placeId, ops }: { tripId: number } & ObstacleDecisionsToolRequest,
@@ -217,7 +217,7 @@ export class TourSportWritesMcp {
     inputSchema: { tripId: idSchema, ...tourRefToolRequestSchema.shape },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'tours', mode: 'write' },
   })
   async restoreRecordedTrack({ tripId, placeId }: { tripId: number } & TourRefToolRequest, ctx: McpContext) {
     const refused = await this.editRefusal(tripId, ctx.userId);
@@ -235,7 +235,7 @@ export class TourSportWritesMcp {
     inputSchema: { tripId: idSchema, ...tourRefToolRequestSchema.shape },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'tours', mode: 'read' },
   })
   async getTourTrailDetails({ tripId, placeId }: { tripId: number } & TourRefToolRequest, ctx: McpContext) {
     // A read, like the REST route: seeing the trip is enough.
@@ -251,7 +251,7 @@ export class TourSportWritesMcp {
     inputSchema: { tripId: idSchema, ...horseRoutesToolRequestSchema.shape },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'tours', mode: 'read' },
   })
   async findHorseRoutes({ tripId, bbox }: { tripId: number } & HorseRoutesToolRequest, ctx: McpContext) {
     if (!(await this.access.findAccessible(tripId, ctx.userId))) return noAccess();

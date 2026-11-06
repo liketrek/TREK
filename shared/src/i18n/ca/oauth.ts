@@ -75,6 +75,26 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:write.description': 'Crea, actualitza i elimina travesies i les seves entrades',
   'oauth.scope.journey:share.label': 'Gestiona els enllaços de travesies',
   'oauth.scope.journey:share.description': 'Crea, actualitza i revoca enllaços públics per compartir per a travesies',
+  'oauth.scope.group.tours': 'Excursions',
+  'oauth.scope.group.roadtrip': 'Viatge per carretera',
+  'oauth.scope.group.studio': 'Studio', // same-as-en
+  'oauth.scope.tours:read.label': 'Veure les excursions',
+  'oauth.scope.tours:read.description':
+    'Llegir rutes a peu, passejades, sortides en bici, en caiac i d’esquí amb les parades i l’equipatge',
+  'oauth.scope.tours:write.label': 'Planificar excursions',
+  'oauth.scope.tours:write.description':
+    'Proposar, crear, editar i eliminar excursions, les parades, activitats i enllaços d’equipatge',
+  'oauth.scope.roadtrip:read.label': 'Veure els viatges per carretera',
+  'oauth.scope.roadtrip:read.description':
+    'Llegir rutes, dies de conducció, parades de càrrega i perills a la carretera',
+  'oauth.scope.roadtrip:write.label': 'Planificar viatges per carretera',
+  'oauth.scope.roadtrip:write.description':
+    'Calcular rutes, definir dies de conducció i preferències, i importar rutes',
+  'oauth.scope.studio:read.label': 'Veure els llibres de viatge',
+  'oauth.scope.studio:read.description': 'Llegir les pàgines, el disseny i les fotos d’un llibre de viatge',
+  'oauth.scope.studio:write.label': 'Dissenyar llibres de viatge',
+  'oauth.scope.studio:write.description':
+    'Crear, editar, canviar l’estil i restaurar les pàgines d’un llibre de viatge',
   'oauth.authorize.authorizing': 'Autoritzant…',
   'oauth.authorize.loading': 'Carregant…',
   'oauth.authorize.errorTitle': "Error d'autorització",

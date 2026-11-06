@@ -75,7 +75,7 @@ export class PaddleRoutingMcp {
     inputSchema: { tripId: idSchema, ...paddleRouteRequestSchema.shape, include_geometry: includeGeometryFlagSchema },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'tours', mode: 'read' },
   })
   async planPaddleRoute(
     { tripId, include_geometry, ...request }: PaddleRouteInput & { tripId: number; include_geometry?: boolean },

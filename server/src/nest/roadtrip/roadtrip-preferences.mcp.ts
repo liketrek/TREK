@@ -34,7 +34,7 @@ export class RoadtripPreferencesMcp {
       'Read the shared driving preferences for one trip, including daily start and end times, day-ending behavior, vehicle specifications, range, fill percentage, driving limits, avoided road classes and route display options. Every member of this trip sees the same preferences. Missing numbers mean no limit, missing daily times disable automatic scheduling, missing vehicle means unspecified, and missing end mode means route. Missing roadtrip_hotel_bookends means off. Range and consumption always use kilometres, litres and kWh. Instance URLs and credentials are not exposed.',
     inputSchema: { tripId: idSchema },
     annotations: TOOL_ANNOTATIONS_READONLY,
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'roadtrip', mode: 'read' },
     when,
   })
   async read({ tripId }: { tripId: number }, ctx: McpContext) {
@@ -49,7 +49,7 @@ export class RoadtripPreferencesMcp {
       'Change the shared driving preferences for this trip. Changes apply to all its travellers and require permission to edit days. Read get_roadtrip_settings first for relative changes. Daily times use HH:mm; clear either with an empty string to disable automatic daily scheduling. Fixed visit times retain priority. Numeric zero clears a limit. Vehicle specifications take precedence over manual range when complete; clear the relevant specifications to use a manual range. Avoid classes are a comma-separated selection of toll,motorway,ferry. Unspecified fields remain unchanged. End mode route pauses at the cutoff; stop ends at the last reachable visit. Set roadtrip_hotel_bookends true to start and end each day at the stay: a day after a booked night starts where it was slept, a day before one ends there. False, like missing, drives each day from its first stored stop, as before. Per-visit end_day and dragged boundaries are edited with set_assignment_end_day and set_day_boundary. This never changes instance routing URLs or credentials.',
     inputSchema: { tripId: idSchema, settings: roadtripPreferencesUpdateSchema },
     annotations: TOOL_ANNOTATIONS_WRITE,
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'roadtrip', mode: 'write' },
     when,
   })
   async update({ tripId, settings }: { tripId: number; settings: RoadtripPreferences }, ctx: McpContext) {

@@ -76,6 +76,23 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:share.label': 'Gerenciar links de jornadas',
   'oauth.scope.journey:share.description':
     'Criar, atualizar e revogar links de compartilhamento públicos para jornadas',
+  'oauth.scope.group.tours': 'Passeios',
+  'oauth.scope.group.roadtrip': 'Viagem de carro',
+  'oauth.scope.group.studio': 'Studio', // same-as-en
+  'oauth.scope.tours:read.label': 'Ver passeios',
+  'oauth.scope.tours:read.description':
+    'Ler trilhas, caminhadas, pedaladas, passeios de remo e de esqui com suas paradas e bagagem',
+  'oauth.scope.tours:write.label': 'Planejar passeios',
+  'oauth.scope.tours:write.description':
+    'Propor, criar, editar e excluir passeios, suas paradas, atividades e vínculos de bagagem',
+  'oauth.scope.roadtrip:read.label': 'Ver viagens de carro',
+  'oauth.scope.roadtrip:read.description': 'Ler rotas, dias de estrada, paradas de recarga e perigos na estrada',
+  'oauth.scope.roadtrip:write.label': 'Planejar viagens de carro',
+  'oauth.scope.roadtrip:write.description': 'Calcular rotas, definir dias de estrada e preferências e importar rotas',
+  'oauth.scope.studio:read.label': 'Ver livros de viagem',
+  'oauth.scope.studio:read.description': 'Ler as páginas, o design e as fotos de um livro de viagem',
+  'oauth.scope.studio:write.label': 'Criar livros de viagem',
+  'oauth.scope.studio:write.description': 'Criar, editar, mudar o estilo e restaurar as páginas de um livro de viagem',
   'oauth.authorize.authorizing': 'Autorizando…',
   'oauth.authorize.loading': 'Carregando…',
   'oauth.authorize.errorTitle': 'Erro de autorização',

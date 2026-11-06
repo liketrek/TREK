@@ -84,6 +84,26 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:share.label': 'Səyahət gündəliyi keçidlərini idarə et',
   'oauth.scope.journey:share.description':
     'Səyahət gündəlikləri üçün açıq paylaşma keçidləri yaratmaq, yeniləmək və ləğv etmək',
+  'oauth.scope.group.tours': 'Turlar',
+  'oauth.scope.group.roadtrip': 'Avtomobil səyahəti',
+  'oauth.scope.group.studio': 'Studio', // same-as-en
+  'oauth.scope.tours:read.label': 'Turlara baxmaq',
+  'oauth.scope.tours:read.description':
+    'Piyada, gəzinti, velosiped, avar və xizək turlarını dayanacaqları və yükləri ilə oxumaq',
+  'oauth.scope.tours:write.label': 'Turları planlaşdırmaq',
+  'oauth.scope.tours:write.description':
+    'Turları, onların dayanacaqlarını, fəaliyyətlərini və yük bağlantılarını təklif etmək, yaratmaq, redaktə etmək və silmək',
+  'oauth.scope.roadtrip:read.label': 'Avtomobil səyahətlərinə baxmaq',
+  'oauth.scope.roadtrip:read.description':
+    'Marşrutları, sürüş günlərini, enerji doldurma dayanacaqlarını və yol təhlükələrini oxumaq',
+  'oauth.scope.roadtrip:write.label': 'Avtomobil səyahətlərini planlaşdırmaq',
+  'oauth.scope.roadtrip:write.description':
+    'Marşrut hesablamaq, sürüş günlərini və seçimləri təyin etmək, marşrut idxal etmək',
+  'oauth.scope.studio:read.label': 'Səyahət kitablarına baxmaq',
+  'oauth.scope.studio:read.description': 'Səyahət kitabının səhifələrini, dizaynını və fotolarını oxumaq',
+  'oauth.scope.studio:write.label': 'Səyahət kitablarını tərtib etmək',
+  'oauth.scope.studio:write.description':
+    'Səyahət kitabının səhifələrini yaratmaq, redaktə etmək, üslubunu dəyişmək və bərpa etmək',
   'oauth.authorize.authorizing': 'İcazə verilir…',
   'oauth.authorize.loading': 'Yüklənir…',
   'oauth.authorize.errorTitle': 'İcazə xətası',

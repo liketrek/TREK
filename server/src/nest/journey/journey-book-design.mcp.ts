@@ -70,7 +70,7 @@ export class JourneyBookDesignMcp {
     inputSchema: { journeyId: idSchema, ...designBookArgs },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: journeyAddonOn,
-    access: { group: 'journey', mode: 'read' },
+    access: { group: 'studio', mode: 'read' },
   })
   async designBook({ journeyId, directives }: OnJourney & DesignBookRequest, ctx: McpContext) {
     return ok(await this.designs.design(journeyId, ctx.userId, directives));
@@ -83,7 +83,7 @@ export class JourneyBookDesignMcp {
     inputSchema: { journeyId: idSchema, ...getBookDesignArgs },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: journeyAddonOn,
-    access: { group: 'journey', mode: 'read' },
+    access: { group: 'studio', mode: 'read' },
   })
   async getBookDesign({ journeyId, designId }: OnJourney & GetBookDesignRequest, ctx: McpContext) {
     return ok(await this.designs.describeDraft(journeyId, ctx.userId, designId));
@@ -100,7 +100,7 @@ export class JourneyBookDesignMcp {
     inputSchema: { journeyId: idSchema, ...reviseBookDesignArgs },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: journeyAddonOn,
-    access: { group: 'journey', mode: 'read' },
+    access: { group: 'studio', mode: 'read' },
   })
   async reviseBookDesign({ journeyId, ...args }: OnJourney & ReviseBookDesignRequest, ctx: McpContext) {
     return ok(await this.designs.revise(journeyId, ctx.userId, args));
@@ -113,7 +113,7 @@ export class JourneyBookDesignMcp {
     inputSchema: { journeyId: idSchema, ...applyBookDesignArgs },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: journeyAddonOn,
-    access: { group: 'journey', mode: 'write' },
+    access: { group: 'studio', mode: 'write' },
   })
   async applyBookDesign({ journeyId, ...args }: OnJourney & ApplyBookDesignRequest, ctx: McpContext) {
     return ok(await this.designs.apply(journeyId, ctx.userId, args));
@@ -127,7 +127,7 @@ export class JourneyBookDesignMcp {
     inputSchema: { journeyId: idSchema, ...restoreBookRevisionArgs },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: journeyAddonOn,
-    access: { group: 'journey', mode: 'write' },
+    access: { group: 'studio', mode: 'write' },
   })
   async restoreBookRevision({ journeyId, ...args }: OnJourney & RestoreBookRevisionRequest, ctx: McpContext) {
     return ok(await this.designs.restoreRevision(journeyId, ctx.userId, args));

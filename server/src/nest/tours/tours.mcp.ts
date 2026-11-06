@@ -138,7 +138,7 @@ export class ToursMcp {
     inputSchema: { tripId: idSchema },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'tours', mode: 'read' },
   })
   async listTours({ tripId }: { tripId: number }, ctx: McpContext) {
     if (!(await this.access.findAccessible(tripId, ctx.userId))) return noAccess();
@@ -163,7 +163,7 @@ export class ToursMcp {
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'tours', mode: 'read' },
   })
   async getTourPlan({ tripId, placeId, dayId }: { tripId: number; placeId: number; dayId?: number }, ctx: McpContext) {
     if (!(await this.access.findAccessible(tripId, ctx.userId))) return noAccess();
@@ -213,7 +213,7 @@ export class ToursMcp {
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'tours', mode: 'read' },
   })
   async getCityWalkProgress(
     { tripId, placeId, dayId, assignmentId }: { tripId: number; placeId: number; dayId: number; assignmentId?: number },
@@ -249,7 +249,7 @@ export class ToursMcp {
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'tours', mode: 'write' },
   })
   async setCityWalkVisit(
     {
@@ -310,7 +310,7 @@ export class ToursMcp {
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'tours', mode: 'read' },
   })
   async getCityWalkRemainingTime(
     { tripId, placeId, dayId, assignmentId }: { tripId: number; placeId: number; dayId: number; assignmentId?: number },
@@ -332,7 +332,7 @@ export class ToursMcp {
     inputSchema: { tripId: idSchema, dayId: idSchema },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'tours', mode: 'read' },
   })
   async findToursForDay({ tripId, dayId }: { tripId: number; dayId: number }, ctx: McpContext) {
     if (!(await this.access.findAccessible(tripId, ctx.userId))) return noAccess();
@@ -349,7 +349,7 @@ export class ToursMcp {
     inputSchema: { tripId: idSchema, placeId: idSchema.describe('The place id of the tour, as list_tours gives it') },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'tours', mode: 'read' },
   })
   async exportTourGpx({ tripId, placeId }: { tripId: number; placeId: number }, ctx: McpContext) {
     // A read, like the REST route: seeing the trip is enough.
@@ -376,7 +376,7 @@ export class ToursMcp {
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'tours', mode: 'read' },
   })
   async searchTourPois(
     {

@@ -360,7 +360,7 @@ describe('browser-independent roadtrip calculation', () => {
         described.set(name, config.description ?? '');
       },
     };
-    await registry.attach(registrar as never, { ...ctx, scopes: ['trips:read'] });
+    await registry.attach(registrar as never, { ...ctx, scopes: ['roadtrip:read'] });
     expect(helpOf(calculateOptions())).toContain('undatedRides');
   });
   it('keeps explicit end-day visits and manual boundaries in the shared planning path', async () => {
@@ -422,7 +422,7 @@ describe('Roadtrip MCP registration and search', () => {
         names.push(name);
       },
     };
-    await registry.attach(registrar as never, { ...ctx, scopes: ['trips:read'] });
+    await registry.attach(registrar as never, { ...ctx, scopes: ['roadtrip:read'] });
     expect(names).toContain('get_roadtrip_settings');
     expect(names).not.toContain('update_roadtrip_settings');
     names.length = 0;

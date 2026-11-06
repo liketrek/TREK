@@ -1,5 +1,5 @@
 import { ADDON_IDS } from '../../addons';
-import { canRead, canReadTrips, canWrite } from '../../mcp/scopes';
+import { canRead, canWrite } from '../../mcp/scopes';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import {
   McpController,
@@ -61,7 +61,7 @@ export class TourPackingMcp {
     inputSchema: tourIds,
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: tourPackingOn,
-    access: (ctx) => canReadTrips(ctx.scopes) && canRead(ctx.scopes, 'packing'),
+    access: (ctx) => canRead(ctx.scopes, 'tours') && canRead(ctx.scopes, 'packing'),
   })
   async getTourPacking({ tripId, placeId }: { tripId: number; placeId: number }, ctx: McpContext) {
     const refused = await this.refusal(tripId, ctx.userId, false);
@@ -77,7 +77,7 @@ export class TourPackingMcp {
     inputSchema: { ...tourIds, category: tourPackingLinkRequestSchema.shape.category },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: tourPackingOn,
-    access: (ctx) => canWrite(ctx.scopes, 'trips') && canRead(ctx.scopes, 'packing'),
+    access: (ctx) => canWrite(ctx.scopes, 'tours') && canRead(ctx.scopes, 'packing'),
   })
   async linkTourPacking(
     { tripId, placeId, category }: { tripId: number; placeId: number } & TourPackingLinkRequest,
@@ -98,7 +98,7 @@ export class TourPackingMcp {
     inputSchema: tourIds,
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: tourPackingOn,
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'tours', mode: 'write' },
   })
   async unlinkTourPacking({ tripId, placeId }: { tripId: number; placeId: number }, ctx: McpContext) {
     const refused = await this.refusal(tripId, ctx.userId, true);

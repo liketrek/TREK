@@ -64,7 +64,7 @@ export class RoadtripMcp {
       dayId: idSchema.optional().describe('Omit to list the vias of every day of the trip'),
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'roadtrip', mode: 'read' },
     when: roadtripAddonOn,
   })
   async listVias({ tripId, dayId }: { tripId: number; dayId?: number }, ctx: McpContext) {
@@ -88,7 +88,7 @@ export class RoadtripMcp {
       lng: z.number().min(-180).max(180),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'roadtrip', mode: 'write' },
     when: roadtripAddonOn,
   })
   async addVia(
@@ -153,7 +153,7 @@ export class RoadtripMcp {
         ),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'roadtrip', mode: 'write' },
     when: roadtripAddonOn,
   })
   async addVias(
@@ -213,7 +213,7 @@ export class RoadtripMcp {
         ),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'roadtrip', mode: 'write' },
     when: roadtripAddonOn,
   })
   async reanchorVias(
@@ -243,7 +243,7 @@ export class RoadtripMcp {
       viaId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE_NON_IDEMPOTENT,
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'roadtrip', mode: 'write' },
     when: roadtripAddonOn,
   })
   async removeVia({ tripId, dayId, viaId }: { tripId: number; dayId: number; viaId: number }, ctx: McpContext) {
@@ -262,7 +262,7 @@ export class RoadtripMcp {
       'Move an existing via point and optionally attach it to another outgoing leg of the same day. This is the same change as dragging a route handle. A via bends the route and does not add a stop or stay.',
     inputSchema: { tripId: idSchema, dayId: idSchema, viaId: idSchema, ...roadtripViaUpdateRequestSchema.shape },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'roadtrip', mode: 'write' },
     when: roadtripAddonOn,
   })
   async updateVia(input: RoadtripViaUpdateRequest & { tripId: number; dayId: number; viaId: number }, ctx: McpContext) {

@@ -6,9 +6,9 @@
       "tokens": 116430
     },
     "core": {
-      "tools": 209,
-      "bytes": 288294,
-      "tokens": 72074
+      "tools": 144,
+      "bytes": 167862,
+      "tokens": 41966
     },
     "readonly": {
       "tools": 143,
@@ -16,9 +16,9 @@
       "tokens": 38965
     },
     "trips": {
-      "tools": 95,
-      "bytes": 150933,
-      "tokens": 37733
+      "tools": 32,
+      "bytes": 32919,
+      "tokens": 8230
     }
   },
   "tools": {

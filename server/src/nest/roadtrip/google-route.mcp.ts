@@ -34,7 +34,7 @@ export class GoogleRouteMcp {
       'Read ordered stops from a Google Maps directions link. No changes are saved. Review geocoded positions and unresolved stops before importing. The exact Google road geometry is not imported.',
     inputSchema: googleRoutePreviewRequestSchema.shape,
     annotations: TOOL_ANNOTATIONS_READONLY,
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'roadtrip', mode: 'read' },
     when: addonGate(ADDON_IDS.ROADTRIP),
   })
   async preview({ url }: { url: string }) {

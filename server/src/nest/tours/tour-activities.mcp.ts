@@ -66,7 +66,7 @@ export class TourActivitiesMcp {
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'tours', mode: 'write' },
   })
   async assignTourTrack(
     { tripId, placeId, ...body }: { tripId: number; placeId: number } & TourActivityAssignRequest,
@@ -94,7 +94,7 @@ export class TourActivitiesMcp {
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'tours', mode: 'write' },
   })
   async unassignTourTrack(
     { tripId, placeId, activityId }: { tripId: number; placeId: number; activityId: number },

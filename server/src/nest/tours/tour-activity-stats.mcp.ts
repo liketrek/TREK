@@ -64,7 +64,7 @@ export class TourActivityStatsMcp {
     inputSchema: { from: query.from, to: query.to, type: query.type },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'tours', mode: 'read' },
   })
   async getTourActivityStats(input: TourActivityStatsQuery, ctx: McpContext) {
     return ok(answer(await this.stats.stats(ctx.userId), input));
@@ -78,7 +78,7 @@ export class TourActivityStatsMcp {
     inputSchema: { place_id: exclusion.place_id, excluded: exclusion.excluded },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'tours', mode: 'write' },
   })
   async setTourActivityExcluded(input: TourActivityExclusionRequest, ctx: McpContext) {
     try {

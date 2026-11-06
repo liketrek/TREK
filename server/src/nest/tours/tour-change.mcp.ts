@@ -67,7 +67,7 @@ export class TourChangeMcp {
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'tours', mode: 'read' },
   })
   async prepareTourChange(
     { tripId, placeId, changes }: { tripId: number; placeId: number } & TourChangeRequest,
@@ -103,7 +103,7 @@ export class TourChangeMcp {
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'tours', mode: 'write' },
   })
   async saveTourChange(
     { tripId, placeId, ...request }: { tripId: number; placeId: number } & TourChangeSaveRequest,

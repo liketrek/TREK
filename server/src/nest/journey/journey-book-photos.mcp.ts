@@ -38,7 +38,7 @@ export class JourneyBookPhotosMcp {
     inputSchema: { journeyId: idSchema, ...suggestBookPhotosArgs },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: journeyAddonOn,
-    access: { group: 'journey', mode: 'read' },
+    access: { group: 'studio', mode: 'read' },
   })
   async suggestBookPhotos({ journeyId, ...args }: { journeyId: number } & SuggestBookPhotosRequest, ctx: McpContext) {
     return ok(await this.photos.suggest(journeyId, ctx.userId, args));

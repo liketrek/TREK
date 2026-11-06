@@ -79,7 +79,7 @@ export class SkiRoutingMcp {
     inputSchema: { tripId: idSchema, ...skiRouteRequestSchema.shape, include_geometry: includeGeometryFlagSchema },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'tours', mode: 'read' },
   })
   async planSkiRoute(
     { tripId, include_geometry, ...request }: SkiRouteInput & { tripId: number; include_geometry?: boolean },
