@@ -74,6 +74,12 @@ const native: TranslationStrings = {
   'native.update.title': '請更新 TREK 應用程式',
   'native.update.body': '此伺服器需要較新版本的應用程式才能正常使用所有功能。',
   'native.update.open': '更新',
+  'native.lock.title': 'TREK 已鎖定',
+  'native.lock.unlock': '解鎖',
+  'native.lock.reason': '解鎖 TREK',
+  'native.lock.settingTitle': 'App 鎖定',
+  'native.lock.setting': '使用 Face ID 或密碼鎖定',
+  'native.lock.settingHint': '開啟 TREK 時以及在背景停留半分鐘後會要求驗證，並在 App 切換器中隱藏內容。',
 };
 
 export default native;

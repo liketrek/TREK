@@ -76,6 +76,13 @@ const native: TranslationStrings = {
   'native.update.title': 'Perbarui aplikasi TREK',
   'native.update.body': 'Server ini memerlukan versi aplikasi yang lebih baru agar semuanya berfungsi.',
   'native.update.open': 'Perbarui',
+  'native.lock.title': 'TREK terkunci',
+  'native.lock.unlock': 'Buka kunci',
+  'native.lock.reason': 'Buka kunci TREK',
+  'native.lock.settingTitle': 'Kunci aplikasi',
+  'native.lock.setting': 'Kunci dengan Face ID atau kode sandi',
+  'native.lock.settingHint':
+    'Meminta saat TREK dibuka dan setelah setengah menit di latar belakang, serta menyembunyikan aplikasi di pengalih aplikasi.',
 };
 
 export default native;

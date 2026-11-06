@@ -75,6 +75,13 @@ const native: TranslationStrings = {
   'native.update.title': 'TREK tətbiqini yeniləyin',
   'native.update.body': 'Hər şeyin işləməsi üçün bu server tətbiqin daha yeni versiyasını tələb edir.',
   'native.update.open': 'Yenilə',
+  'native.lock.title': 'TREK kilidlənib',
+  'native.lock.unlock': 'Kilidi aç',
+  'native.lock.reason': 'TREK kilidini aç',
+  'native.lock.settingTitle': 'Tətbiq kilidi',
+  'native.lock.setting': 'Face ID və ya kodla kilidlə',
+  'native.lock.settingHint':
+    'TREK açılanda və arxa fonda yarım dəqiqədən sonra soruşur, tətbiqi tətbiq dəyişdiricisində gizlədir.',
 };
 
 export default native;

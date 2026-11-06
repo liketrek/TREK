@@ -77,6 +77,13 @@ const native: TranslationStrings = {
   'native.update.title': 'Frissítsd a TREK alkalmazást',
   'native.update.body': 'Ehhez a szerverhez az alkalmazás újabb verziója kell, hogy minden működjön.',
   'native.update.open': 'Frissítés',
+  'native.lock.title': 'A TREK zárolva van',
+  'native.lock.unlock': 'Feloldás',
+  'native.lock.reason': 'TREK feloldása',
+  'native.lock.settingTitle': 'Alkalmazászár',
+  'native.lock.setting': 'Zárolás Face ID-val vagy kóddal',
+  'native.lock.settingHint':
+    'Rákérdez a TREK megnyitásakor és fél perc háttérben töltött idő után, és elrejti az alkalmazást az alkalmazásváltóban.',
 };
 
 export default native;

@@ -76,6 +76,13 @@ const native: TranslationStrings = {
   'native.update.title': 'Aggiorna l’app TREK',
   'native.update.body': 'Questo server richiede una versione più recente dell’app perché tutto funzioni.',
   'native.update.open': 'Aggiorna',
+  'native.lock.title': 'TREK è bloccato',
+  'native.lock.unlock': 'Sblocca',
+  'native.lock.reason': 'Sblocca TREK',
+  'native.lock.settingTitle': 'Blocco app',
+  'native.lock.setting': 'Blocca con Face ID o codice',
+  'native.lock.settingHint':
+    'Lo chiede all’apertura di TREK e dopo mezzo minuto in background, e nasconde l’app nel selettore delle app.',
 };
 
 export default native;

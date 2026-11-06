@@ -75,6 +75,13 @@ const native: TranslationStrings = {
   'native.update.title': 'Uuenda TREK-i rakendust',
   'native.update.body': 'See server vajab kõige toimimiseks rakenduse uuemat versiooni.',
   'native.update.open': 'Uuenda',
+  'native.lock.title': 'TREK on lukus',
+  'native.lock.unlock': 'Ava lukk',
+  'native.lock.reason': 'Ava TREK',
+  'native.lock.settingTitle': 'Rakenduse lukk',
+  'native.lock.setting': 'Lukusta Face ID või pääsukoodiga',
+  'native.lock.settingHint':
+    'Küsib TREK-i avamisel ja pärast poolt minutit taustal ning peidab rakenduse rakenduste vahetajas.',
 };
 
 export default native;

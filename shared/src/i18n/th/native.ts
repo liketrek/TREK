@@ -74,6 +74,12 @@ const native: TranslationStrings = {
   'native.update.title': 'อัปเดตแอป TREK',
   'native.update.body': 'เซิร์ฟเวอร์นี้ต้องใช้แอปเวอร์ชันใหม่กว่าเพื่อให้ทุกอย่างทำงานได้',
   'native.update.open': 'อัปเดต',
+  'native.lock.title': 'TREK ถูกล็อกอยู่',
+  'native.lock.unlock': 'ปลดล็อก',
+  'native.lock.reason': 'ปลดล็อก TREK',
+  'native.lock.settingTitle': 'ล็อกแอป',
+  'native.lock.setting': 'ล็อกด้วย Face ID หรือรหัส',
+  'native.lock.settingHint': 'ถามเมื่อเปิด TREK และหลังจากอยู่เบื้องหลังครึ่งนาที และซ่อนแอปในตัวสลับแอป',
 };
 
 export default native;

@@ -74,6 +74,12 @@ const native: TranslationStrings = {
   'native.update.title': '请更新 TREK 应用',
   'native.update.body': '此服务器需要更新版本的应用才能正常使用全部功能。',
   'native.update.open': '更新',
+  'native.lock.title': 'TREK 已锁定',
+  'native.lock.unlock': '解锁',
+  'native.lock.reason': '解锁 TREK',
+  'native.lock.settingTitle': '应用锁',
+  'native.lock.setting': '使用面容 ID 或密码锁定',
+  'native.lock.settingHint': '打开 TREK 时以及在后台停留半分钟后会要求验证，并在应用切换器中隐藏内容。',
 };
 
 export default native;

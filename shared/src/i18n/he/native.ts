@@ -74,6 +74,12 @@ const native: TranslationStrings = {
   'native.update.title': 'עדכנו את אפליקציית TREK',
   'native.update.body': 'השרת הזה צריך גרסה חדשה יותר של האפליקציה כדי שהכול יעבוד.',
   'native.update.open': 'עדכון',
+  'native.lock.title': 'TREK נעול',
+  'native.lock.unlock': 'ביטול נעילה',
+  'native.lock.reason': 'ביטול נעילת TREK',
+  'native.lock.settingTitle': 'נעילת אפליקציה',
+  'native.lock.setting': 'נעילה עם Face ID או קוד',
+  'native.lock.settingHint': 'מבקש בעת פתיחת TREK ואחרי חצי דקה ברקע, ומסתיר את האפליקציה במחליף האפליקציות.',
 };
 
 export default native;

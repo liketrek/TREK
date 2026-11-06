@@ -74,6 +74,12 @@ const native: TranslationStrings = {
   'native.update.title': 'حدّث تطبيق TREK',
   'native.update.body': 'يحتاج هذا الخادم إلى إصدار أحدث من التطبيق ليعمل كل شيء.',
   'native.update.open': 'تحديث',
+  'native.lock.title': 'TREK مقفل',
+  'native.lock.unlock': 'فتح القفل',
+  'native.lock.reason': 'افتح قفل TREK',
+  'native.lock.settingTitle': 'قفل التطبيق',
+  'native.lock.setting': 'القفل باستخدام Face ID أو رمز المرور',
+  'native.lock.settingHint': 'يطلب ذلك عند فتح TREK وبعد نصف دقيقة في الخلفية، ويخفي التطبيق في مبدّل التطبيقات.',
 };
 
 export default native;

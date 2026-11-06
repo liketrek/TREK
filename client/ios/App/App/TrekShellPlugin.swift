@@ -1,5 +1,6 @@
 import AuthenticationServices
 import Capacitor
+import LocalAuthentication
 import UIKit
 import WebKit
 
@@ -19,6 +20,9 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
         CAPPluginMethod(name: "getCapabilities", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getTileCacheUsage", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "clearTileCache", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "biometryInfo", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "authenticateBiometric", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setPrivacyCover", returnType: CAPPluginReturnPromise),
     ]
 
     /// What this binary offers the server's UI, raised with every native feature
@@ -26,7 +30,46 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
     /// and a server can require a minimum (minNativeShellApi in /api/health/features).
     static let shellApi = 2
     /// The native features by name, so the UI can turn each on by itself.
-    static let features: [String] = ["capabilities", "edgeBack", "tileCache"]
+    static let features: [String] = ["capabilities", "edgeBack", "tileCache", "biometricLock"]
+
+    // MARK: - App lock
+
+    /// Which biometry the device offers for the app lock, if any.
+    @objc func biometryInfo(_ call: CAPPluginCall) {
+        let context = LAContext()
+        var error: NSError?
+        let available = context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error)
+        let type: String
+        switch context.biometryType {
+        case .faceID: type = "faceID"
+        case .touchID: type = "touchID"
+        default: type = "none"
+        }
+        call.resolve(["available": available, "type": type])
+    }
+
+    /// Face ID / Touch ID with the passcode as the way out, the way system apps
+    /// lock. Rejects with CANCELLED when the user backs out.
+    @objc func authenticateBiometric(_ call: CAPPluginCall) {
+        let reason = call.getString("reason") ?? "Unlock TREK"
+        let context = LAContext()
+        context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) { ok, error in
+            if ok {
+                call.resolve(["ok": true])
+            } else if let laError = error as? LAError, [.userCancel, .appCancel, .systemCancel].contains(laError.code) {
+                call.reject("Unlock cancelled", "CANCELLED")
+            } else {
+                call.reject(error?.localizedDescription ?? "Unlock failed", "FAILED")
+            }
+        }
+    }
+
+    /// While on, the app switcher shows a blurred cover instead of the screen
+    /// (SceneDelegate), so a locked app does not show its content there.
+    @objc func setPrivacyCover(_ call: CAPPluginCall) {
+        TrekPrivacyCover.enabled = call.getBool("enabled") ?? false
+        call.resolve()
+    }
 
     // MARK: - Map tile store
 

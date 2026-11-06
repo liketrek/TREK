@@ -78,6 +78,13 @@ const native: TranslationStrings = {
   'native.update.title': 'Ενημερώστε την εφαρμογή TREK',
   'native.update.body': 'Αυτός ο διακομιστής χρειάζεται νεότερη έκδοση της εφαρμογής για να λειτουργούν όλα.',
   'native.update.open': 'Ενημέρωση',
+  'native.lock.title': 'Το TREK είναι κλειδωμένο',
+  'native.lock.unlock': 'Ξεκλείδωμα',
+  'native.lock.reason': 'Ξεκλείδωμα του TREK',
+  'native.lock.settingTitle': 'Κλείδωμα εφαρμογής',
+  'native.lock.setting': 'Κλείδωμα με Face ID ή κωδικό',
+  'native.lock.settingHint':
+    'Ζητείται κατά το άνοιγμα του TREK και μετά από μισό λεπτό στο παρασκήνιο, και η εφαρμογή κρύβεται στην εναλλαγή εφαρμογών.',
 };
 
 export default native;

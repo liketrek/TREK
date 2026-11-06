@@ -75,6 +75,13 @@ const native: TranslationStrings = {
   'native.update.title': 'Aktualizujte aplikaci TREK',
   'native.update.body': 'Tento server potřebuje novější verzi aplikace, aby vše fungovalo.',
   'native.update.open': 'Aktualizovat',
+  'native.lock.title': 'TREK je zamčený',
+  'native.lock.unlock': 'Odemknout',
+  'native.lock.reason': 'Odemknout TREK',
+  'native.lock.settingTitle': 'Zámek aplikace',
+  'native.lock.setting': 'Zamknout pomocí Face ID nebo kódu',
+  'native.lock.settingHint':
+    'Zeptá se při otevření TREK a po půl minutě na pozadí a skryje aplikaci v přepínači aplikací.',
 };
 
 export default native;

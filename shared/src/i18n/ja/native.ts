@@ -76,6 +76,13 @@ const native: TranslationStrings = {
   'native.update.title': 'TREKアプリを更新してください',
   'native.update.body': 'すべての機能を使うには、このサーバーに対応した新しいバージョンのアプリが必要です。',
   'native.update.open': '更新',
+  'native.lock.title': 'TREKはロックされています',
+  'native.lock.unlock': 'ロック解除',
+  'native.lock.reason': 'TREKのロックを解除',
+  'native.lock.settingTitle': 'アプリロック',
+  'native.lock.setting': 'Face IDまたはパスコードでロック',
+  'native.lock.settingHint':
+    'TREKを開いたときと、バックグラウンドで30秒経過したあとに確認し、アプリスイッチャーでは内容を隠します。',
 };
 
 export default native;

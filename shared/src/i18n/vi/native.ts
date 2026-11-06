@@ -76,6 +76,13 @@ const native: TranslationStrings = {
   'native.update.title': 'Cập nhật ứng dụng TREK',
   'native.update.body': 'Máy chủ này cần phiên bản ứng dụng mới hơn để mọi thứ hoạt động.',
   'native.update.open': 'Cập nhật',
+  'native.lock.title': 'TREK đang bị khóa',
+  'native.lock.unlock': 'Mở khóa',
+  'native.lock.reason': 'Mở khóa TREK',
+  'native.lock.settingTitle': 'Khóa ứng dụng',
+  'native.lock.setting': 'Khóa bằng Face ID hoặc mật mã',
+  'native.lock.settingHint':
+    'Hỏi khi mở TREK và sau nửa phút chạy nền, đồng thời ẩn ứng dụng trong trình chuyển ứng dụng.',
 };
 
 export default native;

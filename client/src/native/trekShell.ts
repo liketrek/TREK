@@ -36,6 +36,12 @@ export interface TrekShellPlugin {
   getTileCacheUsage(): Promise<{ bytes: number; limit: number }>;
   /** iOS, feature tileCache: empties the map tile store. */
   clearTileCache(): Promise<void>;
+  /** Feature biometricLock: which biometry the device offers for the app lock. */
+  biometryInfo(): Promise<{ available: boolean; type: string }>;
+  /** Feature biometricLock: Face ID, Touch ID or the passcode. Rejects with CANCELLED or FAILED. */
+  authenticateBiometric(options: { reason: string }): Promise<{ ok: true }>;
+  /** Feature biometricLock: a blurred cover in the app switcher while the lock is on. */
+  setPrivacyCover(options: { enabled: boolean }): Promise<void>;
 }
 
 export const TrekShell = registerPlugin<TrekShellPlugin>('TrekShell');

@@ -31,7 +31,7 @@ public class TrekShellPlugin extends Plugin {
      */
     static final int SHELL_API = 2;
     /** The native features by name, so the UI can turn each on by itself. */
-    static final String[] FEATURES = { "capabilities" };
+    static final String[] FEATURES = { "capabilities", "biometricLock" };
 
     @PluginMethod
     public void getCapabilities(PluginCall call) {
@@ -53,6 +53,72 @@ public class TrekShellPlugin extends Plugin {
         for (String feature : FEATURES) features.put(feature);
         result.put("features", features);
         call.resolve(result);
+    }
+
+    // ---- App lock ----
+
+    private static final int AUTHENTICATORS =
+        androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK
+            | androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL;
+
+    /** Which biometry the device offers for the app lock, if any. */
+    @PluginMethod
+    public void biometryInfo(PluginCall call) {
+        int status = androidx.biometric.BiometricManager.from(getContext()).canAuthenticate(AUTHENTICATORS);
+        JSObject result = new JSObject();
+        result.put("available", status == androidx.biometric.BiometricManager.BIOMETRIC_SUCCESS);
+        result.put("type", "biometric");
+        call.resolve(result);
+    }
+
+    /** The system biometric prompt with the screen lock as the way out. */
+    @PluginMethod
+    public void authenticateBiometric(PluginCall call) {
+        String reason = call.getString("reason", "Unlock TREK");
+        getActivity().runOnUiThread(() -> {
+            androidx.fragment.app.FragmentActivity activity = (androidx.fragment.app.FragmentActivity) getActivity();
+            androidx.biometric.BiometricPrompt prompt = new androidx.biometric.BiometricPrompt(
+                activity,
+                androidx.core.content.ContextCompat.getMainExecutor(getContext()),
+                new androidx.biometric.BiometricPrompt.AuthenticationCallback() {
+                    @Override
+                    public void onAuthenticationSucceeded(androidx.biometric.BiometricPrompt.AuthenticationResult result) {
+                        JSObject ok = new JSObject();
+                        ok.put("ok", true);
+                        call.resolve(ok);
+                    }
+
+                    @Override
+                    public void onAuthenticationError(int code, CharSequence message) {
+                        boolean cancelled = code == androidx.biometric.BiometricPrompt.ERROR_USER_CANCELED
+                            || code == androidx.biometric.BiometricPrompt.ERROR_NEGATIVE_BUTTON
+                            || code == androidx.biometric.BiometricPrompt.ERROR_CANCELED;
+                        call.reject(message.toString(), cancelled ? "CANCELLED" : "FAILED");
+                    }
+                }
+            );
+            androidx.biometric.BiometricPrompt.PromptInfo info = new androidx.biometric.BiometricPrompt.PromptInfo.Builder()
+                .setTitle(reason)
+                .setAllowedAuthenticators(AUTHENTICATORS)
+                .build();
+            prompt.authenticate(info);
+        });
+    }
+
+    /** While on, the recent-apps screen shows no snapshot of the app. */
+    @PluginMethod
+    public void setPrivacyCover(PluginCall call) {
+        boolean enabled = Boolean.TRUE.equals(call.getBoolean("enabled", false));
+        getActivity().runOnUiThread(() -> {
+            if (android.os.Build.VERSION.SDK_INT >= 33) {
+                getActivity().setRecentsScreenshotEnabled(!enabled);
+            } else if (enabled) {
+                getActivity().getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
+            } else {
+                getActivity().getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
+            }
+        });
+        call.resolve();
     }
 
     @PluginMethod

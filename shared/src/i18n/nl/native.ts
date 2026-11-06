@@ -75,6 +75,13 @@ const native: TranslationStrings = {
   'native.update.title': 'Werk de TREK-app bij',
   'native.update.body': 'Deze server heeft een nieuwere versie van de app nodig om alles te laten werken.',
   'native.update.open': 'Bijwerken',
+  'native.lock.title': 'TREK is vergrendeld',
+  'native.lock.unlock': 'Ontgrendelen',
+  'native.lock.reason': 'TREK ontgrendelen',
+  'native.lock.settingTitle': 'App-vergrendeling',
+  'native.lock.setting': 'Vergrendelen met Face ID of toegangscode',
+  'native.lock.settingHint':
+    'Vraagt erom bij het openen van TREK en na een halve minuut op de achtergrond, en verbergt de app in de appkiezer.',
 };
 
 export default native;

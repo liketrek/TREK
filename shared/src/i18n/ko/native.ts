@@ -74,6 +74,13 @@ const native: TranslationStrings = {
   'native.update.title': 'TREK 앱을 업데이트하세요',
   'native.update.body': '모든 기능을 사용하려면 이 서버에 맞는 최신 앱 버전이 필요합니다.',
   'native.update.open': '업데이트',
+  'native.lock.title': 'TREK이 잠겨 있습니다',
+  'native.lock.unlock': '잠금 해제',
+  'native.lock.reason': 'TREK 잠금 해제',
+  'native.lock.settingTitle': '앱 잠금',
+  'native.lock.setting': 'Face ID 또는 암호로 잠금',
+  'native.lock.settingHint':
+    'TREK을 열 때와 백그라운드에서 30초가 지난 후에 확인하며, 앱 전환기에서는 내용을 숨깁니다.',
 };
 
 export default native;
