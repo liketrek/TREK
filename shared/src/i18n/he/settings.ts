@@ -644,6 +644,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': 'סיום',
   'settings.mcp.deprecated': 'מיושן',
   'settings.offline.cache.dateRange': '{start} עד {end}',
+  'settings.offline.tileStore.title': 'אריחי מפה שנצפו',
+  'settings.offline.tileStore.usage': '{used} מתוך {limit} במכשיר הזה, נשמרים עד 30 יום',
+  'settings.offline.tileStore.clear': 'ניקוי',
 };
 
 export default settings;

@@ -17,6 +17,8 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
         CAPPluginMethod(name: "refreshOfflineCopy", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "openOfflineCopy", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getCapabilities", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getTileCacheUsage", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "clearTileCache", returnType: CAPPluginReturnPromise),
     ]
 
     /// What this binary offers the server's UI, raised with every native feature
@@ -24,7 +26,20 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
     /// and a server can require a minimum (minNativeShellApi in /api/health/features).
     static let shellApi = 2
     /// The native features by name, so the UI can turn each on by itself.
-    static let features: [String] = ["capabilities", "edgeBack"]
+    static let features: [String] = ["capabilities", "edgeBack", "tileCache"]
+
+    // MARK: - Map tile store
+
+    /// How much the stored map tiles take on disk, for the offline settings.
+    @objc func getTileCacheUsage(_ call: CAPPluginCall) {
+        TrekTileStore.shared.usage { bytes in
+            call.resolve(["bytes": bytes, "limit": TrekTileStore.maxBytes])
+        }
+    }
+
+    @objc func clearTileCache(_ call: CAPPluginCall) {
+        TrekTileStore.shared.clear { call.resolve() }
+    }
 
     @objc func getCapabilities(_ call: CAPPluginCall) {
         let info = Bundle.main.infoDictionary

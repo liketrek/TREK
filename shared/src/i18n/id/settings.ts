@@ -665,6 +665,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': 'Selesai',
   'settings.mcp.deprecated': 'Usang',
   'settings.offline.cache.dateRange': '{start} sampai {end}',
+  'settings.offline.tileStore.title': 'Ubin peta yang dilihat',
+  'settings.offline.tileStore.usage': '{used} dari {limit} di perangkat ini, disimpan hingga 30 hari',
+  'settings.offline.tileStore.clear': 'Kosongkan',
 };
 
 export default settings;

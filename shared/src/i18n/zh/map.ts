@@ -41,5 +41,6 @@ const map: TranslationStrings = {
   'map.webgl2.fallback': '此浏览器不支持 GL 地图所需的 WebGL2，因此地图改用 Leaflet 显示。',
   'map.webgl2.terrain': '3D 需要 WebGL2，而此浏览器不支持。地图保持 2D。',
   'map.offlineBasemap': '离线地图',
+  'map.offlineShowStored': '显示离线地图',
 };
 export default map;

@@ -636,6 +636,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': '完了',
   'settings.mcp.deprecated': '非推奨',
   'settings.offline.cache.dateRange': '{start}から{end}',
+  'settings.offline.tileStore.title': '表示した地図タイル',
+  'settings.offline.tileStore.usage': 'この端末で {limit} 中 {used}、最長30日間保存',
+  'settings.offline.tileStore.clear': '消去',
 };
 
 export default settings;

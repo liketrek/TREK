@@ -68,6 +68,7 @@ import { tileHealthHandlers, tourRasterBaseOf } from './tourRasterBases'
 import { crsForBasemap } from './gcj02Crs'
 import { isGcj02Basemap, resolveBasemap } from '../../utils/tileUrl'
 import VectorBasemap from './VectorBasemap'
+import { nativeRasterTemplate } from '../../native/tileCache'
 import { useSettingsStore } from '../../store/settingsStore'
 import { TourMapLayersLeaflet } from './RasterOverlayLeaflet'
 import { MapLayerSwitcher, TourMapLayerSwitcher, MAP_LAYER_SWITCHER_INSET, type TourBaseLayer } from './MapLayerSwitcher'
@@ -938,7 +939,7 @@ export const MapView = memo(function MapView({
       ) : (
         <TileLayer
           key="raster"
-          url={basemap.url}
+          url={nativeRasterTemplate(basemap.url)}
           attribution={attributionForTile(basemap.url)}
           maxZoom={19}
           keepBuffer={8}

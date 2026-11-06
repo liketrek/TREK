@@ -43,5 +43,6 @@ const map: TranslationStrings = {
   'map.webgl2.fallback': '이 브라우저는 GL 지도에 필요한 WebGL2를 지원하지 않아 지도를 Leaflet으로 표시합니다.',
   'map.webgl2.terrain': '3D에는 WebGL2가 필요하지만 이 브라우저는 지원하지 않습니다. 지도는 2D로 유지됩니다.',
   'map.offlineBasemap': '오프라인 지도',
+  'map.offlineShowStored': '오프라인 지도 보기',
 };
 export default map;

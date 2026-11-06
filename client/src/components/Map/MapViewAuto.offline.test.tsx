@@ -6,14 +6,14 @@
  * markers and routes, and says so.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '../../../tests/helpers/render';
+import { fireEvent, render, screen } from '../../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { OFM_DARK, OFM_POSITRON } from '../../constants/mapDefaults';
 import { useSettingsStore } from '../../store/settingsStore';
 import { resetWebGLProbe } from '../../utils/webgl';
 import { MapViewAuto } from './MapViewAuto';
 
-const env = vi.hoisted(() => ({ offline: false, dark: false }));
+const env = vi.hoisted(() => ({ offline: false, dark: false, tileStore: false }));
 const seen = vi.hoisted(() => ({
   leaflet: null as null | { tileUrl?: string },
   gl: null as null | { engine: string; glProvider?: string; styleOverride?: string },
@@ -40,6 +40,7 @@ vi.mock('../../hooks/useNetworkMode', () => ({
   useNetworkMode: () => ({ offline: env.offline, forced: false, setForced: () => {} }),
 }));
 vi.mock('../../hooks/useIsDark', () => ({ useIsDark: () => env.dark }));
+vi.mock('../../native/tileCache', () => ({ tileCacheActive: () => env.tileStore }));
 vi.mock('../../native/platform', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../native/platform')>()),
   isNativeIos: () => false,
@@ -52,6 +53,7 @@ beforeEach(() => {
   resetWebGLProbe();
   env.offline = false;
   env.dark = false;
+  env.tileStore = false;
   seen.leaflet = null;
   seen.gl = null;
   const ctx = { getExtension: () => ({ loseContext: () => {} }) };
@@ -119,5 +121,31 @@ describe('MapViewAuto offline', () => {
 
     expect(seen.leaflet?.tileUrl).toBe('https://tiles.example.com/{z}/{x}/{y}.png');
     expect(pill()).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-MAPAUTO-OFFLINE-006: in the iOS app with its tile store, Mapbox stays offline and the pill switches to the stored map', async () => {
+    seedStore(useSettingsStore, { settings: { map_provider: 'mapbox-gl', mapbox_access_token: 'pk.test' } });
+    env.offline = true;
+    env.tileStore = true;
+
+    render(<MapViewAuto places={[]} />);
+
+    await screen.findByTestId('gl-map');
+    expect(seen.gl).toMatchObject({ engine: 'mapbox', styleOverride: undefined });
+    const toggle = screen.getByRole('button', { pressed: false });
+    fireEvent.click(toggle);
+    await screen.findByTestId('gl-map');
+    expect(seen.gl).toMatchObject({ engine: 'maplibre', styleOverride: OFM_POSITRON });
+    expect(screen.getByRole('button', { pressed: true })).toBeInTheDocument();
+  });
+
+  it('FE-COMP-MAPAUTO-OFFLINE-007: with the tile store, a raster template stays offline in the app too', () => {
+    seedStore(useSettingsStore, { settings: { map_provider: 'leaflet' } });
+    env.offline = true;
+    env.tileStore = true;
+
+    render(<MapViewAuto places={[]} tileUrl="https://tiles.example.com/{z}/{x}/{y}.png" />);
+
+    expect(seen.leaflet?.tileUrl).toBe('https://tiles.example.com/{z}/{x}/{y}.png');
   });
 });

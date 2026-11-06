@@ -671,6 +671,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': 'Hotovo',
   'settings.mcp.deprecated': 'Zastaralé',
   'settings.offline.cache.dateRange': '{start} až {end}',
+  'settings.offline.tileStore.title': 'Zobrazené dlaždice mapy',
+  'settings.offline.tileStore.usage': '{used} z {limit} v tomto zařízení, uchovává se až 30 dní',
+  'settings.offline.tileStore.clear': 'Vymazat',
 };
 
 export default settings;

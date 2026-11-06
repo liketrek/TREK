@@ -686,6 +686,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': 'تم',
   'settings.mcp.deprecated': 'مهجور',
   'settings.offline.cache.dateRange': 'من {start} إلى {end}',
+  'settings.offline.tileStore.title': 'مربعات الخريطة المعروضة',
+  'settings.offline.tileStore.usage': '{used} من {limit} على هذا الجهاز، تُحفظ حتى 30 يومًا',
+  'settings.offline.tileStore.clear': 'مسح',
 };
 
 export default settings;

@@ -4,6 +4,7 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { isStandardFamily, supportsCustom3d, wantsTerrain, addCustom3dBuildings, addTerrainAndSky } from '../Map/mapboxSetup'
 import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, basemapLanguage, type GlMapProvider } from '../Map/glProviders'
 import { buildGlMap, initialMapStyle } from '../Map/glSupport'
+import { mapboxTileCacheRequest, tileCacheActive } from '../../native/tileCache'
 import type { JourneyTrack } from '@trek/shared'
 import { SHOT_INDEX_ATTR, ensureJourneyPopupStyle, formatMarkerDate, journeyPopupHtml } from './journeyMapPopup'
 import { clusterPhotos, photoMarkerHtml, type MapPhoto } from './journeyPhotoLayer'
@@ -395,6 +396,9 @@ function JourneyMapGL(
       antialias: mapboxQuality,
     }
     if (!isMapLibre) mapOptions.projection = mapboxQuality ? 'globe' : 'mercator'
+    // In the iOS app, Mapbox's own resources go through the app's tile store, so
+    // what was viewed stays on the device for up to 30 days (native/tileCache.ts).
+    if (!isMapLibre && tileCacheActive()) mapOptions.transformRequest = mapboxTileCacheRequest
     // MapLibre's around-center mouse rotate ping-pongs near mid-screen (#1545)
     // — see MapViewGL. Keep the plain dx-based rotate everywhere.
     if (isMapLibre) mapOptions.aroundCenter = false

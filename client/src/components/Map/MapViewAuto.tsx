@@ -1,4 +1,4 @@
-import { Suspense } from 'react'
+import { Suspense, useState } from 'react'
 import { AlertTriangle, Clock, CloudOff, Info } from 'lucide-react'
 import { Tooltip } from '../shared/Tooltip'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -13,6 +13,7 @@ import { useNetworkMode } from '../../hooks/useNetworkMode'
 import { useIsDark } from '../../hooks/useIsDark'
 import { OFM_POSITRON } from '../../constants/mapDefaults'
 import { glWorksOffline, leafletWorksOffline, offlineStyleFor } from './offlineBasemap'
+import { tileCacheActive } from '../../native/tileCache'
 
 // Auto-selects the map renderer based on user settings. Keeps the existing
 // Leaflet MapView untouched so the Mapbox GL variant can mature iteratively
@@ -43,12 +44,26 @@ export function MapViewAuto(props: MapViewAutoProps) {
   const { offline } = useNetworkMode()
   const dark = useIsDark()
   const offlineStyle = offlineStyleFor(dark)
-  // Offline on a basemap that has nothing stored: draw the stored one with MapLibre.
-  const glFallback = !!configuredGl && offline && !glWorksOffline(configuredGl, maplibreStyle)
+  // In the iOS app with its tile store, a Mapbox map keeps what was viewed for 30
+  // days, so offline it stays Mapbox, and the pill offers the stored trip region
+  // instead for the places never looked at. Everywhere else a basemap with
+  // nothing stored is swapped for the stored one straight away.
+  const nativeStore = tileCacheActive()
+  const [preferStored, setPreferStored] = useState(false)
+  const mapboxKept = configuredGl === 'mapbox-gl' && nativeStore
+  const glFallback = !!configuredGl && offline && !glWorksOffline(configuredGl, maplibreStyle) && (!mapboxKept || preferStored)
   const glProvider = glFallback ? 'maplibre-gl' : configuredGl
-  const leafletFallback = !configuredGl && offline && !leafletWorksOffline(mapProps.tileUrl ?? OFM_POSITRON)
+  const leafletFallback = !configuredGl && offline && !leafletWorksOffline(mapProps.tileUrl ?? OFM_POSITRON, nativeIosWithoutStore(nativeStore))
   if (leafletFallback) mapProps.tileUrl = offlineStyle
-  const pill = (glFallback || leafletFallback) && <OfflineBasemapPill label={t('map.offlineBasemap')} />
+  const pill = offline && mapboxKept
+    ? (
+      <OfflineBasemapPill
+        label={preferStored ? t('map.offlineBasemap') : t('map.offlineShowStored')}
+        pressed={preferStored}
+        onToggle={() => setPreferStored(v => !v)}
+      />
+    )
+    : (glFallback || leafletFallback) && <OfflineBasemapPill label={t('map.offlineBasemap')} />
   // One chunk per engine: picking the binding here is what keeps mapbox-gl and
   // maplibre-gl out of each other's downloads.
   const MapViewGL = glProvider === 'maplibre-gl' ? MapViewGLMaplibre : MapViewGLMapbox
@@ -79,13 +94,29 @@ export function MapViewAuto(props: MapViewAutoProps) {
   )
 }
 
-/** Says the map on screen is the stored offline basemap, not the user's own. */
-function OfflineBasemapPill({ label }: { label: string }) {
+/** A raster template cannot be served offline in the iOS app unless it has its tile store. */
+function nativeIosWithoutStore(nativeStore: boolean): boolean | undefined {
+  return nativeStore ? false : undefined
+}
+
+const PILL = 'absolute left-1/2 z-[5] flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-edge bg-surface-card px-3 py-1 text-caption font-semibold text-content-secondary shadow-sm backdrop-blur-md bottom-[calc(var(--bottom-nav-h,0px)+12px)]'
+
+/**
+ * Says the map on screen is the stored offline basemap, not the user's own. With
+ * onToggle it is a switch between the user's map (as far as it was viewed and
+ * stored) and the stored trip region.
+ */
+function OfflineBasemapPill({ label, pressed, onToggle }: { label: string; pressed?: boolean; onToggle?: () => void }) {
+  if (onToggle) {
+    return (
+      <button type="button" onClick={onToggle} aria-pressed={pressed} className={`${PILL} pointer-events-auto`}>
+        <CloudOff size={13} strokeWidth={2.2} aria-hidden="true" />
+        {label}
+      </button>
+    )
+  }
   return (
-    <div
-      role="status"
-      className="pointer-events-none absolute left-1/2 z-[5] flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-edge bg-surface-card px-3 py-1 text-caption font-semibold text-content-secondary shadow-sm backdrop-blur-md bottom-[calc(var(--bottom-nav-h,0px)+12px)]"
-    >
+    <div role="status" className={`${PILL} pointer-events-none`}>
       <CloudOff size={13} strokeWidth={2.2} aria-hidden="true" />
       {label}
     </div>

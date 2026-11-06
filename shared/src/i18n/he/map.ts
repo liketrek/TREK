@@ -46,6 +46,7 @@ const map: TranslationStrings = {
   'map.webgl2.fallback': 'הדפדפן הזה לא תומך ב-WebGL2, שמפות GL צריכות, ולכן המפות מוצגות עם Leaflet.',
   'map.webgl2.terrain': 'תלת-ממד דורש WebGL2, והדפדפן הזה לא תומך בו. המפה נשארת בדו-ממד.',
   'map.offlineBasemap': 'מפה לא מקוונת',
+  'map.offlineShowStored': 'הצגת מפה לא מקוונת',
 };
 
 export default map;

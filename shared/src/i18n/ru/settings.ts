@@ -694,6 +694,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': 'Готово',
   'settings.mcp.deprecated': 'Устарело',
   'settings.offline.cache.dateRange': 'с {start} по {end}',
+  'settings.offline.tileStore.title': 'Просмотренные тайлы карты',
+  'settings.offline.tileStore.usage': '{used} из {limit} на этом устройстве, хранятся до 30 дней',
+  'settings.offline.tileStore.clear': 'Очистить',
 };
 
 export default settings;

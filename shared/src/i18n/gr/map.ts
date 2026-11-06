@@ -47,5 +47,6 @@ const map: TranslationStrings = {
   'map.webgl2.terrain':
     'Το 3D χρειάζεται WebGL2, που αυτό το πρόγραμμα περιήγησης δεν προσφέρει. Ο χάρτης μένει σε 2D.',
   'map.offlineBasemap': 'Χάρτης εκτός σύνδεσης',
+  'map.offlineShowStored': 'Εμφάνιση χάρτη εκτός σύνδεσης',
 };
 export default map;

@@ -648,6 +648,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.copyFailed': 'ไม่สามารถคัดลอกได้ เลือกข้อความและคัดลอกด้วยตนเอง',
   'settings.mcp.deprecated': 'เลิกใช้แล้ว',
   'settings.offline.cache.dateRange': '{start} ถึง {end}',
+  'settings.offline.tileStore.title': 'ไทล์แผนที่ที่ดูแล้ว',
+  'settings.offline.tileStore.usage': '{used} จาก {limit} บนอุปกรณ์นี้ เก็บไว้สูงสุด 30 วัน',
+  'settings.offline.tileStore.clear': 'ล้าง',
 };
 
 export default settings;

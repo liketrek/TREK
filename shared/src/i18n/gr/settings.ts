@@ -692,6 +692,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': 'Έτοιμο',
   'settings.mcp.deprecated': 'Απαρχαιωμένο',
   'settings.offline.cache.dateRange': 'από {start} έως {end}',
+  'settings.offline.tileStore.title': 'Πλακίδια χάρτη που προβλήθηκαν',
+  'settings.offline.tileStore.usage': '{used} από {limit} σε αυτή τη συσκευή, φυλάσσονται έως 30 ημέρες',
+  'settings.offline.tileStore.clear': 'Εκκαθάριση',
 };
 
 export default settings;

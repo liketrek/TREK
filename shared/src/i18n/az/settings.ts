@@ -728,6 +728,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': 'Hazır',
   'settings.mcp.deprecated': 'Köhnəlmiş',
   'settings.offline.cache.dateRange': '{start} tarixindən {end} tarixinədək',
+  'settings.offline.tileStore.title': 'Baxılmış xəritə kafelləri',
+  'settings.offline.tileStore.usage': 'Bu cihazda {limit}-dən {used}, 30 günə qədər saxlanılır',
+  'settings.offline.tileStore.clear': 'Təmizlə',
 };
 
 export default settings;

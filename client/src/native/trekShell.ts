@@ -32,6 +32,10 @@ export interface TrekShellPlugin {
   openOfflineCopy(): Promise<{ opened: boolean }>;
   /** What this binary offers the UI (native/capabilities.ts). Missing before shell API 2. */
   getCapabilities(): Promise<NativeCapabilities>;
+  /** iOS, feature tileCache: what the map tile store takes on disk, and its limit. */
+  getTileCacheUsage(): Promise<{ bytes: number; limit: number }>;
+  /** iOS, feature tileCache: empties the map tile store. */
+  clearTileCache(): Promise<void>;
 }
 
 export const TrekShell = registerPlugin<TrekShellPlugin>('TrekShell');

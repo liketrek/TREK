@@ -45,5 +45,6 @@ const map: TranslationStrings = {
   'map.webgl2.fallback': 'Trình duyệt này không hỗ trợ WebGL2 mà bản đồ GL cần, nên bản đồ được hiển thị bằng Leaflet.',
   'map.webgl2.terrain': 'Chế độ 3D cần WebGL2, nhưng trình duyệt này không hỗ trợ. Bản đồ vẫn ở dạng 2D.',
   'map.offlineBasemap': 'Bản đồ ngoại tuyến',
+  'map.offlineShowStored': 'Hiện bản đồ ngoại tuyến',
 };
 export default map;

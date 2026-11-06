@@ -686,6 +686,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': 'Terminé',
   'settings.mcp.deprecated': 'Obsolète',
   'settings.offline.cache.dateRange': 'du {start} au {end}',
+  'settings.offline.tileStore.title': 'Tuiles de carte consultées',
+  'settings.offline.tileStore.usage': '{used} sur {limit} sur cet appareil, conservées jusqu’à 30 jours',
+  'settings.offline.tileStore.clear': 'Vider',
 };
 
 export default settings;

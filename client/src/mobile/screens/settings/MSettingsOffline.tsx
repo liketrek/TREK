@@ -16,6 +16,7 @@ import type { QueuedMutation } from '../../../db/offlineDb'
 import { MSetCard, MSetEyebrow, MSetRow, MSetSegments, MSetButton } from './MSettingsUi'
 import MToggle from '../../components/MToggle'
 import MConfirmSheet from './MConfirmSheet'
+import MTileCacheUsage from './MTileCacheUsage'
 
 function conflictName(m: QueuedMutation): string {
   const body = (m.body ?? {}) as { name?: unknown }
@@ -159,6 +160,8 @@ export default function MSettingsOffline() {
             sub={t('settings.offline.storage.tilesHint')}
             trailing={<MToggle checked={prefs.cacheTiles} onChange={handleToggleTiles} ariaLabel={t('settings.offline.storage.tiles')} />}
           />
+          {/* The iOS app's own store of the map tiles looked at, beside the trip regions above. */}
+          <MTileCacheUsage />
         </div>
         {allTrips.length > 0 && (
           <div className="mt-3 border-t border-[color:var(--m-rowbr)] pt-3">

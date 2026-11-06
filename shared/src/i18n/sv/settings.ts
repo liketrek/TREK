@@ -668,6 +668,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': 'Klar',
   'settings.mcp.deprecated': 'Utfasad',
   'settings.offline.cache.dateRange': '{start} till {end}',
+  'settings.offline.tileStore.title': 'Visade kartrutor',
+  'settings.offline.tileStore.usage': '{used} av {limit} på den här enheten, sparas i upp till 30 dagar',
+  'settings.offline.tileStore.clear': 'Rensa',
 };
 
 export default settings;

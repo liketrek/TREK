@@ -614,6 +614,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': '完成',
   'settings.mcp.deprecated': '已弃用',
   'settings.offline.cache.dateRange': '{start} 至 {end}',
+  'settings.offline.tileStore.title': '已查看的地图瓦片',
+  'settings.offline.tileStore.usage': '本设备上已用 {used}，上限 {limit}，最多保存 30 天',
+  'settings.offline.tileStore.clear': '清除',
 };
 
 export default settings;

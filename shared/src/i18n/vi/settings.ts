@@ -665,6 +665,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': 'Xong',
   'settings.mcp.deprecated': 'Không còn được khuyến nghị',
   'settings.offline.cache.dateRange': '{start} đến {end}',
+  'settings.offline.tileStore.title': 'Ô bản đồ đã xem',
+  'settings.offline.tileStore.usage': '{used} trên {limit} trên thiết bị này, lưu tối đa 30 ngày',
+  'settings.offline.tileStore.clear': 'Xóa',
 };
 
 export default settings;

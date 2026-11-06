@@ -675,6 +675,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': 'Concluído',
   'settings.mcp.deprecated': 'Obsoleto',
   'settings.offline.cache.dateRange': '{start} a {end}',
+  'settings.offline.tileStore.title': 'Blocos de mapa vistos',
+  'settings.offline.tileStore.usage': '{used} de {limit} neste aparelho, guardados por até 30 dias',
+  'settings.offline.tileStore.clear': 'Limpar',
 };
 
 export default settings;

@@ -646,6 +646,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': '완료',
   'settings.mcp.deprecated': '지원 중단 예정',
   'settings.offline.cache.dateRange': '{start}부터 {end}까지',
+  'settings.offline.tileStore.title': '본 지도 타일',
+  'settings.offline.tileStore.usage': '이 기기에서 {limit} 중 {used}, 최대 30일간 보관',
+  'settings.offline.tileStore.clear': '비우기',
 };
 
 export default settings;

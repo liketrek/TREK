@@ -671,6 +671,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': 'Tamam',
   'settings.mcp.deprecated': 'Kullanımdan kalkıyor',
   'settings.offline.cache.dateRange': '{start} ile {end} arası',
+  'settings.offline.tileStore.title': 'Görüntülenen harita karoları',
+  'settings.offline.tileStore.usage': 'Bu cihazda {limit} içinden {used}, 30 güne kadar saklanır',
+  'settings.offline.tileStore.clear': 'Temizle',
 };
 
 export default settings;

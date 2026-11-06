@@ -45,5 +45,6 @@ const map: TranslationStrings = {
     'Ez a böngésző nem kínál WebGL2-t, amelyre a GL-térképeknek szükségük van, ezért a térképek Leaflettel jelennek meg.',
   'map.webgl2.terrain': 'A 3D-hez WebGL2 kell, amelyet ez a böngésző nem kínál. A térkép 2D-ben marad.',
   'map.offlineBasemap': 'Offline térkép',
+  'map.offlineShowStored': 'Offline térkép megjelenítése',
 };
 export default map;

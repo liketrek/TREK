@@ -692,6 +692,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': 'Готово',
   'settings.mcp.deprecated': 'Застаріло',
   'settings.offline.cache.dateRange': 'з {start} по {end}',
+  'settings.offline.tileStore.title': 'Переглянуті плитки карти',
+  'settings.offline.tileStore.usage': '{used} з {limit} на цьому пристрої, зберігаються до 30 днів',
+  'settings.offline.tileStore.clear': 'Очистити',
 };
 
 export default settings;

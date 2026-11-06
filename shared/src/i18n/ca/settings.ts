@@ -677,6 +677,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': 'Fet',
   'settings.mcp.deprecated': 'Obsolet',
   'settings.offline.cache.dateRange': 'del {start} al {end}',
+  'settings.offline.tileStore.title': 'Tessel·les de mapa vistes',
+  'settings.offline.tileStore.usage': '{used} de {limit} en aquest dispositiu, es guarden fins a 30 dies',
+  'settings.offline.tileStore.clear': 'Buida',
 };
 
 export default settings;

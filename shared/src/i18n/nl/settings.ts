@@ -678,6 +678,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': 'Klaar',
   'settings.mcp.deprecated': 'Verouderd',
   'settings.offline.cache.dateRange': '{start} tot {end}',
+  'settings.offline.tileStore.title': 'Bekeken kaarttegels',
+  'settings.offline.tileStore.usage': '{used} van {limit} op dit apparaat, maximaal 30 dagen bewaard',
+  'settings.offline.tileStore.clear': 'Wissen',
 };
 
 export default settings;

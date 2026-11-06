@@ -692,6 +692,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': 'Gotowe',
   'settings.mcp.deprecated': 'Przestarzałe',
   'settings.offline.cache.dateRange': '{start} do {end}',
+  'settings.offline.tileStore.title': 'Obejrzane kafelki mapy',
+  'settings.offline.tileStore.usage': '{used} z {limit} na tym urządzeniu, przechowywane do 30 dni',
+  'settings.offline.tileStore.clear': 'Wyczyść',
 };
 
 export default settings;

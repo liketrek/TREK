@@ -677,6 +677,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': 'Kész',
   'settings.mcp.deprecated': 'Elavult',
   'settings.offline.cache.dateRange': '{start} és {end} között',
+  'settings.offline.tileStore.title': 'Megtekintett térképcsempék',
+  'settings.offline.tileStore.usage': '{used} / {limit} ezen az eszközön, legfeljebb 30 napig őrizve',
+  'settings.offline.tileStore.clear': 'Ürítés',
 };
 
 export default settings;

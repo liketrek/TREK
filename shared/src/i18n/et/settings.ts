@@ -669,6 +669,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': 'Valmis',
   'settings.mcp.deprecated': 'Aegunud',
   'settings.offline.cache.dateRange': '{start} kuni {end}',
+  'settings.offline.tileStore.title': 'Vaadatud kaardiruudud',
+  'settings.offline.tileStore.usage': '{used} / {limit} selles seadmes, hoitakse kuni 30 päeva',
+  'settings.offline.tileStore.clear': 'Tühjenda',
 };
 
 export default settings;
