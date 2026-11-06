@@ -18,6 +18,7 @@ export class MapsMcp {
 
   @Tool({
     name: 'get_place_details',
+    title: 'Get place details',
     description:
       'Fetch detailed information about a place by its Google Place ID. The plain lookup returns name, address, coordinates, rating, opening hours, phone and website, and always answers with an empty review list. Set expand only when visitor reviews or the editorial summary are what was actually asked for: that field mask bills as a Google Enterprise SKU and costs the instance owner several times a plain lookup.',
     inputSchema: {
@@ -68,6 +69,7 @@ export class MapsMcp {
 
   @Tool({
     name: 'reverse_geocode',
+    title: 'Reverse geocode coordinates',
     description: 'Get a human-readable address for given coordinates.',
     inputSchema: {
       lat: z.number(),
@@ -84,6 +86,7 @@ export class MapsMcp {
 
   @Tool({
     name: 'resolve_maps_url',
+    title: 'Resolve maps share link',
     description: 'Resolve a Google Maps or Amap (高德地图) share URL to coordinates and place name.',
     inputSchema: {
       url: z.string().describe('Google Maps or Amap share URL'),
@@ -99,6 +102,7 @@ export class MapsMcp {
   /** The MCP side of POST /api/maps/nearby (#976), with the same caps. */
   @Tool({
     name: 'search_nearby_places',
+    title: 'Search nearby places',
     description:
       'List named places of any kind around a coordinate, nearest first, each with its distance in metres (`distance_m`). No category and no name needed: use it for "what is at this spot", e.g. where a photo was taken. Answers from the TREK place index first, from Google Places only when the instance has a key and the index found nothing, and from OpenStreetMap otherwise; `source` says which. Prefer search_pois for one kind of place across a whole area, and search_place when the user named the place.',
     inputSchema: {
@@ -129,6 +133,7 @@ export class MapsMcp {
    */
   @Tool({
     name: 'search_pois',
+    title: 'Search points of interest',
     description:
       'List points of interest of one category inside a map rectangle, with address, opening hours, website, phone and cuisine wherever the source carries them. Answers from the TREK place index where it can and from OpenStreetMap otherwise; each result names which one it came from in its `source` field. A charging station also reports its sockets: which plug families it has, how many of each and at what power, plus how many vehicles fit and whether it charges a fee. OSM states a socket type on roughly a third of them and a power on fewer, so treat a missing figure as unknown rather than as absent. ebike_charging finds only charging points tagged for bicycles, many of them unnamed (an empty name), and reports beside the sockets whether they are made for bikes or let them charge (bicycle) and who may use them (access). This is the discovery tool: use it to answer "what is around here" for a neighbourhood or a whole city district. Prefer search_place when the user already named the place they mean. Never calls Google, so it costs nothing and works on an instance with no Places key.',
     inputSchema: {

@@ -16,6 +16,7 @@ import { PermissionsModule } from '../permissions/permissions.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { TripMembershipModule } from '../trip-membership/trip-membership.module';
 import { BudgetItemsMcp } from './budget-items.mcp';
+import { BudgetResourcesMcp } from './budget-resources.mcp';
 import { BudgetWritesService } from './budget-writes.service';
 import { BudgetController } from './budget.controller';
 import { BudgetMcp } from './budget.mcp';
@@ -65,6 +66,7 @@ import { Module } from '@nestjs/common';
     BudgetWritesService,
     ExchangeRatesService,
     BudgetMcp,
+    BudgetResourcesMcp,
     BudgetItemsMcp,
     ExchangeRatesRpc,
     CostsRpc,

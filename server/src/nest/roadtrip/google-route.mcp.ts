@@ -29,6 +29,7 @@ export class GoogleRouteMcp {
   ) {}
   @Tool({
     name: 'preview_google_maps_route',
+    title: 'Preview a Google Maps route',
     description:
       'Read ordered stops from a Google Maps directions link. No changes are saved. Review geocoded positions and unresolved stops before importing. The exact Google road geometry is not imported.',
     inputSchema: googleRoutePreviewRequestSchema.shape,
@@ -42,6 +43,7 @@ export class GoogleRouteMcp {
 
   @Tool({
     name: 'import_google_maps_route',
+    title: 'Import Google Maps stops',
     description:
       'Append reviewed Google Maps stops to an existing trip day in supplied order. Creates places and visits atomically. Requires place and day editing permissions. Existing visits remain. TREK calculates the road geometry; no Google route geometry is preserved.',
     inputSchema: {

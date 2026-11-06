@@ -6,6 +6,7 @@ import {
   TOOL_ANNOTATIONS_READONLY,
   TOOL_ANNOTATIONS_WRITE,
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  TOOL_ANNOTATIONS_OPEN_WORLD_READONLY,
   errorResult,
   ok,
 } from '../../nest-mcp';
@@ -63,6 +64,7 @@ export class DawarichMcp {
 
   @Tool({
     name: 'list_dawarich_suggestions',
+    title: 'List Dawarich suggestions',
     description:
       "List the stays TREK pulled from the caller's connected Dawarich instance and is holding for review: where they were, when they arrived and left, how long they stayed, and which trip the stay falls into. Each entry carries the id the accept tools take. Use it to answer what someone actually did on a trip, or to fill a travel journal from what was recorded rather than from memory. Nothing here has been added to a trip yet — accepting is a separate, explicit step.",
     inputSchema: {
@@ -103,6 +105,7 @@ export class DawarichMcp {
 
   @Tool({
     name: 'accept_dawarich_suggestion_as_place',
+    title: 'Accept suggestion as place',
     description:
       'Turn a reviewed Dawarich stay into a place on a trip, optionally pinned to one of its days. Call list_dawarich_suggestions first for the id. Correct the name or the coordinates in the same call if the detector got them wrong — that is what the review step is for. Use this when the stay is somewhere worth having on the itinerary; use accept_dawarich_suggestion_as_journal_entry when it is a moment worth writing about instead.',
     inputSchema: {
@@ -136,6 +139,7 @@ export class DawarichMcp {
 
   @Tool({
     name: 'accept_dawarich_suggestion_as_journal_entry',
+    title: 'Accept suggestion as journal entry',
     description:
       "Turn a reviewed Dawarich stay into a dated entry in a travel journal. Call list_dawarich_suggestions first for the id. The stay's own date, arrival time, name and coordinates prefill the entry; pass a title or a story to write it properly rather than leaving the detector's label. Use this to fill in a journal after a trip from what was actually recorded.",
     inputSchema: {
@@ -166,6 +170,7 @@ export class DawarichMcp {
 
   @Tool({
     name: 'mark_bucket_list_item_visited_from_dawarich',
+    title: 'Mark bucket item visited',
     description:
       'Tick a bucket-list wish off because a recorded stay proves the caller got there. Call list_dawarich_suggestions first: a stay that sits on top of a wish already carries its id as matchedBucketListItemId. Use it when someone asks which of the places they wanted to see they have actually reached.',
     inputSchema: {
@@ -187,6 +192,7 @@ export class DawarichMcp {
 
   @Tool({
     name: 'dismiss_dawarich_suggestion',
+    title: 'Dismiss Dawarich suggestion',
     description:
       'Take a Dawarich stay out of the review list without adding it anywhere, or put a dismissed one back. Use it for the stays a detector produces that are not places anyone went — a traffic jam, a car park, the office.',
     inputSchema: {
@@ -205,6 +211,7 @@ export class DawarichMcp {
 
   @Tool({
     name: 'get_dawarich_trip_track',
+    title: 'Get Dawarich trip track',
     description:
       "Fetch the route actually recorded during a trip, grouped by local day, straight from the caller's Dawarich instance. Each day carries its segments with start and end times and, where Dawarich classified it, how it was travelled. Use it to answer what route someone really took, or how a day's movement compares with what was planned. This is a live read of the recording and stores nothing; a day is kept in a journey only when the traveller confirms it through save_journey_recorded_day.",
     inputSchema: {
@@ -221,7 +228,7 @@ export class DawarichMcp {
         .describe('Narrow to this last day'),
     },
     // Reaches a remote instance rather than TREK's own database.
-    annotations: { ...TOOL_ANNOTATIONS_READONLY, openWorldHint: true },
+    annotations: TOOL_ANNOTATIONS_OPEN_WORLD_READONLY,
     access: { group: 'journey', mode: 'read' },
     when: dawarichAddonOn,
   })

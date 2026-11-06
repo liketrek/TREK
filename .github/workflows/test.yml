@@ -24,8 +24,8 @@ permissions:
 #                            the shared ratchet code, the source ratchets
 #                            (size, boundaries, dialect, tx, test SQL, test
 #                            mocks, hand-built services, query API, MCP zod,
-#                            error envelopes, response contracts), open
-#                            request schemas, knip
+#                            error envelopes, response contracts), the MCP
+#                            tool-list budget, open request schemas, knip
 #   Server: Tests n/7        one slice of the server suite, with coverage
 #   Server: Coverage         merges the slices, checks the per-domain
 #                            thresholds, uploads lcov
@@ -402,6 +402,13 @@ jobs:
         # scripts/mcp-inline-zod-baseline.json. A tool field derives from the
         # request schema in @trek/shared or a shared primitive (idSchema).
         run: cd server && npm run lint:mcp-zod
+
+      - name: MCP tool list may only shrink
+        # Boots the container with every addon on and measures tools/list for
+        # four reference sessions (full, core preset, read-only, trips) against
+        # scripts/mcp-surface-baseline.json: an existing tool may not grow, a
+        # new one may not pass 4 KB. Needs shared built, like the suite.
+        run: cd server && npm run lint:mcp-surface
 
       - name: Error envelopes may only shrink
         # Counts status: 4xx/5xx literals and new HttpException in services, and

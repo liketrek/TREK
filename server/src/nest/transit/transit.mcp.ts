@@ -87,6 +87,7 @@ export class TransitMcp {
 
   @Tool({
     name: 'search_transit_stops',
+    title: 'Find transit stops',
     description:
       'Search real public-transit stops and stations via Transitous. Use the returned coordinates with search_transit_routes.',
     inputSchema: {
@@ -115,6 +116,7 @@ export class TransitMcp {
 
   @Tool({
     name: 'search_transit_routes',
+    title: 'Find transit routes',
     description:
       'Search scheduled public-transit routes between two coordinates, via the backend the instance is configured for, falling back to the other backend when it finds no route. Returns itineraries that can be passed unchanged to create_transit_journey, and `provider`, the backend that answered. `dropped` counts provider itineraries that failed validation and are therefore absent from the results — a non-zero value means the provider offered routes this tool could not represent.',
     inputSchema: {
@@ -183,8 +185,10 @@ export class TransitMcp {
 
   @Tool({
     name: 'create_transit_journey',
+    title: 'Add a transit journey',
     description:
       'Add one itinerary returned by search_transit_routes to a trip day as a first-class automated public-transit journey. Pass the search response provider unchanged so fallback routes retain their source. Set price to record the fare; it will appear on the journey and in the Budget tab.',
+    detail: { fields: ['itinerary'] },
     inputSchema: {
       tripId: idSchema,
       dayId: idSchema.describe('Trip day on which the journey departs'),

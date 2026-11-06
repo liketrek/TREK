@@ -44,6 +44,11 @@ export const TOOL_ANNOTATIONS_WRITE = {
   openWorldHint: false,
 } as const;
 
+export const TOOL_ANNOTATIONS_OPEN_WORLD_WRITE = {
+  ...TOOL_ANNOTATIONS_WRITE,
+  openWorldHint: true,
+} as const;
+
 export const TOOL_ANNOTATIONS_DELETE = {
   readOnlyHint: false,
   destructiveHint: true,
@@ -61,4 +66,10 @@ export const TOOL_ANNOTATIONS_NON_IDEMPOTENT = {
 export const TOOL_ANNOTATIONS_OPEN_WORLD_NON_IDEMPOTENT = {
   ...TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   openWorldHint: true,
+} as const;
+
+/** Takes something away (a stop, a via point) and running it twice takes two. */
+export const TOOL_ANNOTATIONS_DELETE_NON_IDEMPOTENT = {
+  ...TOOL_ANNOTATIONS_DELETE,
+  idempotentHint: false,
 } as const;

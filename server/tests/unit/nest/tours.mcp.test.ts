@@ -9,6 +9,7 @@ import { TourStationVisits } from '../../../src/db/entities/TourStationVisits.en
 import { TourWaypoints } from '../../../src/db/entities/TourWaypoints.entity';
 import { Tours } from '../../../src/db/entities/Tours.entity';
 import type { McpContext } from '../../../src/nest-mcp';
+import { renderToolHelp, toolHelpTopic } from '../../../src/nest-mcp/input-detail';
 import { getEntry, type ClassRef } from '../../../src/nest-mcp/metadata';
 import { McpToolGuardsService } from '../../../src/nest/mcp-shared/mcp-tool-guards.service';
 import { PlacesMcp } from '../../../src/nest/places/places.mcp';
@@ -39,6 +40,10 @@ import { createTour } from '../../helpers/tours-repos';
 import { DEFAULT_SKI_ROUTE_OPTIONS } from '@trek/shared';
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+
+/** The help page of a tool with a detail (its text is there, not in the listing); its description otherwise. */
+const helpOf = (o: Parameters<typeof toolHelpTopic>[0]): string =>
+  o.detail ? renderToolHelp(toolHelpTopic(o)) : (o.description ?? '');
 
 const db = createSnapshotTestDb();
 let t: TestModule;
@@ -445,7 +450,7 @@ describe('ToursMcp', () => {
     const description = (ctor: unknown, method: string) => {
       const entry = getEntry(ctor as ClassRef, method);
       if (!entry || entry.kind !== 'tool') throw new Error(`${method} is no MCP tool`);
-      return entry.options.description ?? '';
+      return helpOf(entry.options);
     };
     expect(description(ToursMcp, 'listTours')).toMatch(/station_count.*route_pending/);
     expect(description(ToursMcp, 'listTours')).toContain('stage_count');
@@ -636,7 +641,7 @@ describe('ToursMcp', () => {
     expect(byId.get(gorge.id)).toMatchObject({ tour_type: 'hike' });
     expect(byId.get(gorge.id)).not.toHaveProperty('winter_activity');
     const entry = getEntry(ToursMcp as unknown as ClassRef, 'listTours');
-    const description = entry?.kind === 'tool' ? (entry.options.description ?? '') : '';
+    const description = entry?.kind === 'tool' ? helpOf(entry.options) : '';
     expect(description).not.toContain('winter_activity');
     expect(description).toContain('a hike is summer only');
   });
@@ -660,7 +665,7 @@ describe('ToursMcp', () => {
     });
     expect(byId.get(gorge.id)).toMatchObject({ run_profile: null, run_pace_seconds_per_km: null });
     const entry = getEntry(ToursMcp as unknown as ClassRef, 'listTours');
-    const description = entry?.kind === 'tool' ? (entry.options.description ?? '') : '';
+    const description = entry?.kind === 'tool' ? helpOf(entry.options) : '';
     expect(description).toMatch(/run_profile: running/);
     expect(description).toContain('no climb, descent or difficulty is in it');
     expect(description).toContain('never a recorded time');
@@ -680,7 +685,7 @@ describe('ToursMcp', () => {
     const listed = tours.find((tour: { place_id: number }) => tour.place_id === ridge.id);
     expect(listed).toMatchObject({ tour_type: 'run', run_profile: 'trail', run_pace_seconds_per_km: 450 });
     const entry = getEntry(ToursMcp as unknown as ClassRef, 'listTours');
-    const description = entry?.kind === 'tool' ? (entry.options.description ?? '') : '';
+    const description = entry?.kind === 'tool' ? helpOf(entry.options) : '';
     expect(description).toContain('trail for forest tracks and natural paths up to mountain paths (T2)');
     expect(description).toContain('never a statement that a way can be run');
   });
@@ -704,7 +709,7 @@ describe('ToursMcp', () => {
     });
     expect(byId.get(gorge.id)).toMatchObject({ ski_discipline: null, ski_technique: null });
     const entry = getEntry(ToursMcp as unknown as ClassRef, 'listTours');
-    const description = entry?.kind === 'tool' ? (entry.options.description ?? '') : '';
+    const description = entry?.kind === 'tool' ? helpOf(entry.options) : '';
     expect(description).toContain('ski_discipline: alpine, snowboard, cross_country, touring for ski touring');
     expect(description).toContain('snowshoe or winter_hike');
     expect(description).toContain('planned by the piste router along the runs, lifts and trails');
@@ -751,11 +756,11 @@ describe('ToursMcp', () => {
     const planned = read(await mcp.getTourPlan({ tripId: trip.id, placeId: gorge.id }, ctx(user.id)));
     expect(planned.derived).not.toContain('tour.time_estimate');
     const entry = getEntry(ToursMcp as unknown as ClassRef, 'listTours');
-    const description = entry?.kind === 'tool' ? (entry.options.description ?? '') : '';
+    const description = entry?.kind === 'tool' ? helpOf(entry.options) : '';
     expect(description).toContain('time_estimate');
     expect(description).toContain('never a recorded or planned time');
     const planEntry = getEntry(ToursMcp as unknown as ClassRef, 'getTourPlan');
-    const planDescription = planEntry?.kind === 'tool' ? (planEntry.options.description ?? '') : '';
+    const planDescription = planEntry?.kind === 'tool' ? helpOf(planEntry.options) : '';
     expect(planDescription).toContain(
       'never present them as saved facts. tour.time_estimate is one of them where present',
     );
@@ -840,11 +845,11 @@ describe('ToursMcp', () => {
     expect(await kinds(timed.id)).toEqual(['routed']);
     expect(await kinds(untimed.id)).toEqual(['free']);
     const listEntry = getEntry(ToursMcp as unknown as ClassRef, 'listTours');
-    expect(listEntry?.kind === 'tool' ? listEntry.options.description : '').toContain(
+    expect(listEntry?.kind === 'tool' ? helpOf(listEntry.options) : '').toContain(
       'ski_planned_legs: the legs it planned',
     );
     const planEntry = getEntry(ToursMcp as unknown as ClassRef, 'getTourPlan');
-    expect(planEntry?.kind === 'tool' ? planEntry.options.description : '').toContain(
+    expect(planEntry?.kind === 'tool' ? helpOf(planEntry.options) : '').toContain(
       'routed where the piste router planned it and free',
     );
   });
@@ -1018,7 +1023,7 @@ describe('ToursMcp', () => {
 
   it('TOURS-MCP-032: the remaining time names its reference, its bounds and that no live position is known', () => {
     const entry = getEntry(ToursMcp as unknown as ClassRef, 'getCityWalkRemainingTime');
-    const description = entry?.kind === 'tool' ? (entry.options.description ?? '') : '';
+    const description = entry?.kind === 'tool' ? helpOf(entry.options) : '';
     for (const field of [
       'reference',
       'live_position',
@@ -1034,6 +1039,6 @@ describe('ToursMcp', () => {
       expect(description).toContain(field);
     }
     const progress = getEntry(ToursMcp as unknown as ClassRef, 'getCityWalkProgress');
-    expect(progress?.kind === 'tool' ? progress.options.description : '').toContain('get_city_walk_remaining_time');
+    expect(progress?.kind === 'tool' ? helpOf(progress.options) : '').toContain('get_city_walk_remaining_time');
   });
 });

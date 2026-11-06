@@ -22,6 +22,7 @@ export class JourneyBookPhotosMcp {
 
   @Tool({
     name: 'suggest_book_photos',
+    title: 'Suggest book photos',
     description:
       `Photos of a journey's gallery for a page of its book or for the cover, without looking at them: grouped by day ` +
       `(the linked entry's date, else when the photo was taken) and by place (${PHOTO_PICK.placeRadiusM} m around, ` +

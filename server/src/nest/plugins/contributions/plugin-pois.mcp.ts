@@ -21,6 +21,7 @@ export class PluginPoisMcp {
 
   @Tool({
     name: 'list_plugin_poi_categories',
+    title: 'List plugin POI categories',
     description:
       'List the extra place categories installed plugins add to the trip map\'s "Explore places" bar, such as hiking trailheads, EV chargers, wheelchair-accessible places, public toilets and drinking water, or campsites. Each entry names the plugin (`pluginId`) and its own category id (`id`), which is what search_plugin_pois takes. Returns an empty list when no plugin adds categories, which is the normal case; the built-in categories are the ones search_pois covers.',
     inputSchema: {
@@ -39,6 +40,7 @@ export class PluginPoisMcp {
 
   @Tool({
     name: 'search_plugin_pois',
+    title: 'Search plugin POIs',
     description:
       'List the places of one plugin-provided category (from list_plugin_poi_categories) inside a map rectangle, as the plugin answers them. Results have the shape search_pois returns, plus the `pluginId` that answered, a `rating` where the plugin has one, and `details`: up to six label and value rows only that plugin knows, such as a trail length or a step-free entrance. Use search_pois for the built-in categories. Never calls Google.',
     inputSchema: {

@@ -32,6 +32,7 @@ export class ShareMcp {
 
   @Tool({
     name: 'get_share_link',
+    title: 'Read trip share link',
     description:
       'Get the current public share link for a trip, including its permission flags. Returns null if no share link exists.',
     inputSchema: {
@@ -53,6 +54,7 @@ export class ShareMcp {
 
   @Tool({
     name: 'create_share_link',
+    title: 'Create trip share link',
     description:
       'Create or update the public share link for a trip. Set permission flags to control what is visible to guests.',
     inputSchema: {
@@ -118,6 +120,7 @@ export class ShareMcp {
 
   @Tool({
     name: 'delete_share_link',
+    title: 'Revoke trip share link',
     description: 'Revoke the public share link for a trip. Guests will no longer be able to access the shared view.',
     inputSchema: {
       tripId: idSchema,

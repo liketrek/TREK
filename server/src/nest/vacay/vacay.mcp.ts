@@ -100,6 +100,7 @@ export class VacayMcp {
 
   @Tool({
     name: 'get_vacay_plan',
+    title: 'Read vacation plan',
     description: "Get the current user's active vacation plan (own or joined).",
     inputSchema: {},
     annotations: TOOL_ANNOTATIONS_READONLY,
@@ -113,6 +114,7 @@ export class VacayMcp {
 
   @Tool({
     name: 'get_vacay_year_settings',
+    title: 'Read vacation year settings',
     description:
       "Get the caller's leave-year window: 'calendar' runs January to December, 'fiscal' starts on a configured month and day, 'anniversary' on the hire date's month and day. Read this before interpreting a year in get_vacay_stats or get_vacay_entries, which count over that window rather than the calendar year.",
     inputSchema: {},
@@ -126,6 +128,7 @@ export class VacayMcp {
 
   @Tool({
     name: 'update_vacay_plan',
+    title: 'Update vacation plan',
     description:
       'Update vacation plan settings (weekend blocking and which weekdays count as weekend, public and school holidays, company holidays, carry-over).',
     inputSchema: {
@@ -176,6 +179,7 @@ export class VacayMcp {
 
   @Tool({
     name: 'set_vacay_color',
+    title: 'Set vacation plan color',
     description: "Set the current user's color in the vacation plan calendar.",
     inputSchema: {
       color: z.string().describe('Hex color e.g. #6366f1'),
@@ -193,6 +197,7 @@ export class VacayMcp {
 
   @Tool({
     name: 'get_available_vacay_users',
+    title: 'List users to invite',
     description: 'List users who can be invited to the current vacation plan.',
     inputSchema: {},
     annotations: TOOL_ANNOTATIONS_READONLY,
@@ -207,6 +212,7 @@ export class VacayMcp {
 
   @Tool({
     name: 'send_vacay_invite',
+    title: 'Send vacation plan invite',
     description: 'Invite a user to join the vacation plan by their user ID.',
     inputSchema: {
       targetUserId: idSchema,
@@ -225,6 +231,7 @@ export class VacayMcp {
 
   @Tool({
     name: 'accept_vacay_invite',
+    title: 'Accept vacation plan invite',
     description: "Accept a pending invitation to join another user's vacation plan.",
     inputSchema: {
       planId: idSchema,
@@ -240,6 +247,7 @@ export class VacayMcp {
 
   @Tool({
     name: 'decline_vacay_invite',
+    title: 'Decline vacation plan invite',
     description: 'Decline a pending vacation plan invitation.',
     inputSchema: {
       planId: idSchema,
@@ -255,11 +263,12 @@ export class VacayMcp {
 
   @Tool({
     name: 'cancel_vacay_invite',
+    title: 'Cancel vacation plan invite',
     description: 'Cancel an outgoing invitation (owner cancels invite they sent).',
     inputSchema: {
       targetUserId: idSchema,
     },
-    annotations: TOOL_ANNOTATIONS_WRITE,
+    annotations: TOOL_ANNOTATIONS_DELETE,
     when: vacayAddonOn,
     access: { group: 'vacay', mode: 'write' },
   })
@@ -271,6 +280,7 @@ export class VacayMcp {
 
   @Tool({
     name: 'dissolve_vacay_plan',
+    title: 'Dissolve vacation plan',
     description:
       'Dissolve the shared plan — all members are removed and everyone returns to their own individual plan.',
     inputSchema: {},
@@ -285,6 +295,7 @@ export class VacayMcp {
 
   @Tool({
     name: 'list_vacay_years',
+    title: 'List vacation years',
     description: 'List calendar years tracked in the current vacation plan.',
     inputSchema: {},
     annotations: TOOL_ANNOTATIONS_READONLY,
@@ -299,6 +310,7 @@ export class VacayMcp {
 
   @Tool({
     name: 'add_vacay_year',
+    title: 'Add a vacation year',
     description: 'Add a calendar year to the vacation plan.',
     inputSchema: {
       year: z.number().int().min(2000).max(2100),
@@ -315,6 +327,7 @@ export class VacayMcp {
 
   @Tool({
     name: 'delete_vacay_year',
+    title: 'Remove a vacation year',
     description: 'Remove a calendar year from the vacation plan.',
     inputSchema: {
       year: z.number().int(),
@@ -331,6 +344,7 @@ export class VacayMcp {
 
   @Tool({
     name: 'get_vacay_entries',
+    title: 'List vacation entries',
     description: 'Get all vacation day entries for a plan and year.',
     inputSchema: {
       year: z.number().int(),
@@ -347,6 +361,7 @@ export class VacayMcp {
 
   @Tool({
     name: 'toggle_vacay_entry',
+    title: 'Toggle a vacation day',
     description:
       'Toggle a day in the vacation calendar. Repeating a date with the same fraction and kind clears it, a different fraction or kind converts the day in place. Defaults to a full vacation day for the calling user.',
     inputSchema: {
@@ -391,6 +406,7 @@ export class VacayMcp {
 
   @Tool({
     name: 'toggle_company_holiday',
+    title: 'Toggle a company holiday',
     description:
       'Toggle a date as a company holiday for the whole plan, whole or half. The same size again removes it; the other size converts it. A half company holiday leaves room for a half vacation day.',
     inputSchema: {
@@ -410,6 +426,7 @@ export class VacayMcp {
 
   @Tool({
     name: 'get_vacay_stats',
+    title: 'Read vacation stats',
     description: 'Get vacation statistics for a specific year (days used, remaining, carried over).',
     inputSchema: {
       year: z.number().int(),
@@ -426,6 +443,7 @@ export class VacayMcp {
 
   @Tool({
     name: 'update_vacay_stats',
+    title: 'Update vacation allowance',
     description: 'Update the vacation day allowance for a specific user and year.',
     inputSchema: {
       year: z.number().int(),
@@ -443,6 +461,7 @@ export class VacayMcp {
 
   @Tool({
     name: 'add_holiday_calendar',
+    title: 'Add a holiday calendar',
     description:
       "Add a holiday calendar (by region code) to the vacation plan. Public holidays take a country or country-region code from list_holiday_countries; a school-holiday calendar needs type 'school_holiday' plus a subdivision code from list_school_holiday_regions, and only shows up once update_vacay_plan has school_holidays_enabled set.",
     inputSchema: {
@@ -495,6 +514,7 @@ export class VacayMcp {
 
   @Tool({
     name: 'update_holiday_calendar',
+    title: 'Update a holiday calendar',
     description: 'Update label or color for a holiday calendar.',
     inputSchema: {
       calendarId: idSchema,
@@ -517,6 +537,7 @@ export class VacayMcp {
 
   @Tool({
     name: 'delete_holiday_calendar',
+    title: 'Remove a holiday calendar',
     description: 'Remove a holiday calendar from the vacation plan.',
     inputSchema: {
       calendarId: idSchema,
@@ -533,6 +554,7 @@ export class VacayMcp {
 
   @Tool({
     name: 'list_holiday_countries',
+    title: 'List public holiday countries',
     description: 'List countries available for public holiday calendars.',
     inputSchema: {},
     annotations: TOOL_ANNOTATIONS_OPEN_WORLD_READONLY,
@@ -546,6 +568,7 @@ export class VacayMcp {
 
   @Tool({
     name: 'list_holidays',
+    title: 'List public holidays',
     description: 'List public holidays for a country and year.',
     inputSchema: {
       country: z.string().describe('ISO 3166-1 alpha-2 code'),
@@ -562,6 +585,7 @@ export class VacayMcp {
 
   @Tool({
     name: 'list_school_holiday_regions',
+    title: 'Find school holiday regions',
     description:
       "List a country's school-holiday regions. Use calendar_regions[].region verbatim as add_holiday_calendar's region: a group is stored as COUNTRY|group:CODE and a bare group code would be read back as a subdivision, leaving the calendar empty. The raw provider payload is alongside it under regions, and its plain codes are what list_school_holidays filters by. Public holiday calendars use list_holiday_countries instead.",
     inputSchema: {
@@ -578,6 +602,7 @@ export class VacayMcp {
 
   @Tool({
     name: 'list_school_holidays',
+    title: 'Find school holidays',
     description:
       'List school holidays for a country and year, narrowed to a subdivision or group code from list_school_holiday_regions. School holidays are term breaks, so prefer list_holidays for the public holidays a day off is normally counted against.',
     inputSchema: {
@@ -606,6 +631,7 @@ export class VacayMcp {
 
   @Tool({
     name: 'list_vacay_shares',
+    title: 'List calendar shares',
     description:
       'List read-only calendar shares: who the current user shares their vacation calendar with, and which calendars are shared with them.',
     inputSchema: {},
@@ -619,6 +645,7 @@ export class VacayMcp {
 
   @Tool({
     name: 'get_shareable_vacay_users',
+    title: 'List users to share with',
     description:
       "List the users the caller can share their calendar with, for share_vacay_calendar's targetUserId. This is a wider set than get_available_vacay_users, which lists candidates for merging plans and therefore leaves out everyone who already sits in a plan of their own.",
     inputSchema: {},
@@ -632,6 +659,7 @@ export class VacayMcp {
 
   @Tool({
     name: 'share_vacay_calendar',
+    title: 'Share vacation calendar',
     description: "Share the current user's vacation calendar with another user (view only, no merge).",
     inputSchema: {
       targetUserId: idSchema,
@@ -649,6 +677,7 @@ export class VacayMcp {
 
   @Tool({
     name: 'unshare_vacay_calendar',
+    title: 'Unshare vacation calendar',
     description:
       'Remove a read-only calendar share the current user is part of (revoke as owner, or remove a calendar shared with them).',
     inputSchema: {
@@ -667,6 +696,7 @@ export class VacayMcp {
 
   @Tool({
     name: 'get_shared_vacay_calendars',
+    title: 'Read shared vacation calendars',
     description:
       'Get the read-only vacation calendars shared with the current user for a year (entries and company holidays per sharer).',
     inputSchema: {

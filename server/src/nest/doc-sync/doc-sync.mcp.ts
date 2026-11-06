@@ -44,6 +44,7 @@ export class DocSyncMcp {
 
   @Tool({
     name: 'get_trip_document_sync',
+    title: 'Get document sync status',
     description:
       "Show whether this trip's documents are synced with an external document store (Paperless-ngx, Papra, Nextcloud, OpenCloud or a Synology NAS), which folder or tag they are bound to, when the last run happened, and how many documents are waiting, in conflict or missing at the provider. Use this before telling someone where their documents live.",
     inputSchema: {
@@ -60,6 +61,7 @@ export class DocSyncMcp {
 
   @Tool({
     name: 'list_trip_document_sync_issues',
+    title: 'List document sync issues',
     description:
       'List the documents that need a person to look at them: conflicts where both copies changed, documents the provider refused because of their type or size, and documents that disappeared at the provider. Returns an empty list when everything is in step.',
     inputSchema: {
@@ -78,6 +80,7 @@ export class DocSyncMcp {
 
   @Tool({
     name: 'sync_trip_documents',
+    title: 'Sync trip documents now',
     description:
       'Run the document sync for this trip now instead of waiting for the next scheduled check. Reports how many documents were pulled in from the provider, pushed out to it, and how many are in conflict. Safe to call repeatedly: a run that is already in progress is not started twice.',
     inputSchema: {

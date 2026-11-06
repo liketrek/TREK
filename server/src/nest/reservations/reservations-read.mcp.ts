@@ -99,6 +99,7 @@ export class ReservationsReadMcp {
 
   @Tool({
     name: 'list_reservations',
+    title: 'List trip reservations',
     description:
       'List the bookings of a trip with their readable details: flights, trains and hire cars (kinds ["transport"]), hotels, tables, tickets and tours (kinds ["booking"]), or both. Each carries its days, times, route endpoints, status, travellers and `details` (airline, flight or train number, platform, seat, legs of a stopover booking, check-in and check-out times, price). Use it to answer about bookings instead of get_trip_summary, which leaves these details out. dayId keeps the bookings on that day.',
     inputSchema: listReservationsRequestSchema.shape,

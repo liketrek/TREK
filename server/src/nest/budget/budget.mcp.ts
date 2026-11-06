@@ -7,7 +7,6 @@ import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import {
   McpController,
   Tool,
-  ResourceTemplate,
   type McpContext,
   TOOL_ANNOTATIONS_READONLY,
   TOOL_ANNOTATIONS_WRITE,
@@ -24,7 +23,6 @@ import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { TripMembershipService } from '../trip-membership/trip-membership.service';
 import { BudgetWritesService } from './budget-writes.service';
 import { BudgetService } from './budget.service';
-import { ExchangeRatesService } from './exchange-rates.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { COST_CATEGORY_HINT, idSchema, sumMinor, toMinor } from '@trek/shared';
 
@@ -59,11 +57,6 @@ const splitMembersSchema = z
     'Unequal split: what each participant owes, in the expense currency. The amounts must add up to the expense total. Ask the user; do not guess.',
   );
 
-function parseId(value: string | string[]): number | null {
-  const n = Number(Array.isArray(value) ? value[0] : value);
-  return Number.isInteger(n) && n > 0 ? n : null;
-}
-
 function formatCents(cents: number): string {
   return (cents / 100).toFixed(2);
 }
@@ -93,7 +86,6 @@ function formatCents(cents: number): string {
 export class BudgetMcp {
   constructor(
     private readonly budget: BudgetService,
-    private readonly exchangeRates: ExchangeRatesService,
     private readonly env: RuntimeEnvService,
     private readonly membership: TripMembershipService,
     readonly addons: AddonsService,
@@ -195,6 +187,7 @@ export class BudgetMcp {
 
   @Tool({
     name: 'create_budget_item',
+    title: 'Add budget item',
     description:
       'Add a budget/expense item to a trip. The cost is split equally among member_ids (omit to split across all trip members, or pass [] for a planning-only entry with no split); for an uneven split, give `members` the amount each participant owes instead. Use `payers` to record who actually paid and how much. Ask the user which trip members share this expense and who paid (resolve user IDs with list_trip_members) rather than guessing. A foreign currency is frozen at the exchange rate the server quotes today; when the server has none, the expense counts in no balance or total and is listed under `unconverted` in get_settlement_summary until freeze_budget_rates pins one.',
     inputSchema: {
@@ -313,6 +306,7 @@ export class BudgetMcp {
 
   @Tool({
     name: 'delete_budget_item',
+    title: 'Delete budget item',
     description: 'Delete a budget item from a trip.',
     inputSchema: {
       tripId: idSchema,
@@ -335,6 +329,7 @@ export class BudgetMcp {
 
   @Tool({
     name: 'update_budget_item',
+    title: 'Update budget item',
     description:
       'Update an existing budget/expense item in a trip. You can also re-split it (equally via member_ids, unevenly via members), change the currency it was entered in, move it to another date, and record who actually paid via payers (amounts in the expense currency). When changing who shares an expense or who paid, ask the user rather than guessing; resolve user IDs with list_trip_members. A foreign currency is frozen at the exchange rate the server quotes today; when the server has none, the expense counts in no balance or total and is listed under `unconverted` in get_settlement_summary until freeze_budget_rates pins one.',
     inputSchema: {
@@ -477,6 +472,7 @@ export class BudgetMcp {
 
   @Tool({
     name: 'create_budget_item_with_members',
+    title: 'Add budget item with members',
     description:
       'Create a budget/expense item and set the trip members splitting it equally in one atomic operation. If userIds is omitted or empty, the cost is split across all trip members; pass an explicit list to split among a subset. For a planning-only entry with no split, use create_budget_item with member_ids []. Ask the user which members share this expense rather than guessing; resolve user IDs with list_trip_members. Only use when the item does not yet exist; if it already exists, use set_budget_item_members directly. For an uneven split, a foreign currency or a date, use create_budget_item instead.',
     inputSchema: {
@@ -545,6 +541,7 @@ export class BudgetMcp {
 
   @Tool({
     name: 'set_budget_item_members',
+    title: 'Set budget item members',
     description:
       'Set which trip members are splitting a budget item (replaces current member list). Ask the user which members share the expense; resolve user IDs with list_trip_members.',
     inputSchema: {
@@ -575,6 +572,7 @@ export class BudgetMcp {
 
   @Tool({
     name: 'toggle_budget_member_paid',
+    title: 'Toggle member paid status',
     description: 'Mark or unmark a member as having paid their share of a budget item.',
     inputSchema: {
       tripId: idSchema,
@@ -601,6 +599,7 @@ export class BudgetMcp {
 
   @Tool({
     name: 'get_settlement_summary',
+    title: 'Get settlement summary',
     description:
       "See each member's net balance, the suggested payments to settle shared expenses, and what the trip finally costs each member once every reimbursement is accounted for (`finalBudgets`, each figure with the rows it is made of under `sources`). Amounts are in `summary.currency`: the `base` asked for when the server can quote it, otherwise the trip's base currency. An expense or payment in a foreign currency with no exchange rate is left out of every figure and listed under `summary.unconverted` (item_ids, settlement_ids, currencies); freeze_budget_rates pins today's rate on those. Call this before recording a settlement so you know who should pay whom and how much.",
     inputSchema: {
@@ -626,6 +625,7 @@ export class BudgetMcp {
 
   @Tool({
     name: 'list_settlements',
+    title: 'List settlements',
     description: 'List the recorded settle-up payments for a trip (who paid whom, how much, when).',
     inputSchema: {
       tripId: idSchema,
@@ -641,6 +641,7 @@ export class BudgetMcp {
 
   @Tool({
     name: 'create_settlement',
+    title: 'Record settlement',
     description:
       "Record a settle-up payment: from_user_id paid to_user_id the given amount to settle shared expenses, optionally with a note. The amount is in the trip's base currency unless `currency` says otherwise. Use get_settlement_summary first to find who owes whom and how much. When the server has no exchange rate for a foreign `currency`, the payment counts in no balance and is listed under `unconverted` in get_settlement_summary until freeze_budget_rates pins one.",
     inputSchema: {
@@ -711,6 +712,7 @@ export class BudgetMcp {
 
   @Tool({
     name: 'update_settlement',
+    title: 'Update settlement',
     description:
       'Update a recorded settle-up payment (who paid, who received, the amount, the currency it was made in and its note). Every field is a full replace, so restate the ones that stay the same. When the server has no exchange rate for a foreign `currency`, the payment counts in no balance and is listed under `unconverted` in get_settlement_summary until freeze_budget_rates pins one.',
     inputSchema: {
@@ -785,6 +787,7 @@ export class BudgetMcp {
 
   @Tool({
     name: 'delete_settlement',
+    title: 'Delete settlement',
     description:
       'Delete a recorded settle-up payment. This is the undo for create_settlement and restores the affected balances.',
     inputSchema: {
@@ -808,6 +811,7 @@ export class BudgetMcp {
 
   @Tool({
     name: 'freeze_budget_rates',
+    title: 'Freeze budget exchange rates',
     description:
       "Pin today's server exchange rate on every expense and settle-up payment of a trip that is in a foreign currency and has no rate frozen yet. That takes in the rows get_settlement_summary lists under `unconverted`, which count in no balance or total until then, and also foreign rows it still converts at today's live rate. Rows that already carry a frozen rate, rows in the trip currency and rows without a currency are never touched, and no rate is taken from the caller. Returns the rows it froze (`items`, `settlements`) and the currencies the server could not quote (`unresolved`), whose rows stay unfrozen.",
     inputSchema: {
@@ -828,115 +832,6 @@ export class BudgetMcp {
     for (const settlement of healed.settlements)
       this.guards.safeBroadcast(tripId, 'budget:settlement-updated', { settlement });
     return ok(healed);
-  }
-
-  // --- RESOURCES ---
-
-  @ResourceTemplate({
-    name: 'trip-budget',
-    uriTemplate: 'trek://trips/{tripId}/budget',
-    description: 'Budget and expense items for a trip',
-    mimeType: 'application/json',
-    when: budgetAddonOn,
-    access: { group: 'budget', mode: 'read' },
-  })
-  async tripBudgetResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
-    const id = parseId(tripId);
-    if (id === null || !(await this.budget.verifyTripAccess(id, ctx.userId))) {
-      return {
-        contents: [
-          {
-            uri: uri.href,
-            mimeType: 'application/json',
-            text: JSON.stringify({ error: 'Trip not found or access denied' }),
-          },
-        ],
-      };
-    }
-    const items = await this.budget.listBudgetItems(id);
-    return {
-      contents: [
-        {
-          uri: uri.href,
-          mimeType: 'application/json',
-          text: JSON.stringify(items, null, 2),
-        },
-      ],
-    };
-  }
-
-  @ResourceTemplate({
-    name: 'trip-budget-per-person',
-    uriTemplate: 'trek://trips/{tripId}/budget/per-person',
-    description: 'Per-person budget summary for a trip (total spent per member, split breakdown)',
-    mimeType: 'application/json',
-    when: budgetAddonOn,
-    access: { group: 'budget', mode: 'read' },
-  })
-  async tripBudgetPerPersonResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
-    const id = parseId(tripId);
-    if (id === null || !(await this.budget.verifyTripAccess(id, ctx.userId))) {
-      return {
-        contents: [
-          {
-            uri: uri.href,
-            mimeType: 'application/json',
-            text: JSON.stringify({ error: 'Trip not found or access denied' }),
-          },
-        ],
-      };
-    }
-    // In the trip currency, each share at the rate its expense was booked at (#2525).
-    const summary = await this.budget.perPersonSummary(id);
-    return {
-      contents: [
-        {
-          uri: uri.href,
-          mimeType: 'application/json',
-          text: JSON.stringify(summary, null, 2),
-        },
-      ],
-    };
-  }
-
-  @ResourceTemplate({
-    name: 'trip-budget-settlement',
-    uriTemplate: 'trek://trips/{tripId}/budget/settlement',
-    description: 'Suggested settlement transactions to balance who owes whom',
-    mimeType: 'application/json',
-    when: budgetAddonOn,
-    access: { group: 'budget', mode: 'read' },
-  })
-  async tripBudgetSettlementResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
-    const id = parseId(tripId);
-    if (id === null || !(await this.budget.verifyTripAccess(id, ctx.userId))) {
-      return {
-        contents: [
-          {
-            uri: uri.href,
-            mimeType: 'application/json',
-            text: JSON.stringify({ error: 'Trip not found or access denied' }),
-          },
-        ],
-      };
-    }
-    // Resolve the trip currency + live rates like get_settlement_summary — the
-    // legacy resource called calculateSettlement(id) bare, silently netting a
-    // non-EUR trip in EUR with no FX conversion.
-    const currency = await this.trips.getCurrency(id);
-    const tripCurrency = currency || 'EUR';
-    const effectiveBase = tripCurrency.toUpperCase();
-    const rates = await this.exchangeRates.getRates(effectiveBase);
-    const settlement = await this.budget.calculateSettlement(id, { base: effectiveBase, rates, tripCurrency });
-    return {
-      contents: [
-        {
-          uri: uri.href,
-          mimeType: 'application/json',
-          text: JSON.stringify(settlement, null, 2),
-        },
-      ],
-    };
   }
 
   // The budget-overview prompt moved to trips/trip-prompts.mcp.ts: it reads the

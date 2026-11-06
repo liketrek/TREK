@@ -130,6 +130,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
         useFactory: (demo: DemoService) => trekDemoToolGate((id) => demo.isDemoUserId(id)),
       },
       errorMapper: trekMcpErrorMapper,
+      requireToolTitles: true,
     }),
     HealthModule,
     PlatformModule,

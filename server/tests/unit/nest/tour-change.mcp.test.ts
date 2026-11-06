@@ -12,6 +12,7 @@ import { TourStationVisits } from '../../../src/db/entities/TourStationVisits.en
 import { TourWaypoints } from '../../../src/db/entities/TourWaypoints.entity';
 import { Tours } from '../../../src/db/entities/Tours.entity';
 import type { McpContext } from '../../../src/nest-mcp';
+import { renderToolHelp, toolHelpTopic } from '../../../src/nest-mcp/input-detail';
 import { getEntry, type ClassRef } from '../../../src/nest-mcp/metadata';
 import { catchDomainError, DomainError } from '../../../src/nest/common/domain-error';
 import { McpToolGuardsService } from '../../../src/nest/mcp-shared/mcp-tool-guards.service';
@@ -33,6 +34,10 @@ import { MikroORM } from '@mikro-orm/core';
 import type { TourChange } from '@trek/shared';
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+
+/** The help page of a tool with a detail (its text is there, not in the listing); its description otherwise. */
+const helpOf = (o: Parameters<typeof toolHelpTopic>[0]): string =>
+  o.detail ? renderToolHelp(toolHelpTopic(o)) : (o.description ?? '');
 
 const db = createSnapshotTestDb();
 const route = vi.fn();
@@ -291,7 +296,7 @@ describe('TourChangeMcp (MCP-T02)', () => {
       { group: 'trips', mode: 'read' },
     ]);
     const terms = ['revision', 'spontaneous stop', 'protected', 'visited or skipped', 'data_gaps', 'create_place'];
-    for (const term of terms) expect(options.description).toContain(term);
+    for (const term of terms) expect(helpOf(options)).toContain(term);
     const isAddonEnabled = vi.fn(async (id: string) => id === 'tours');
     expect(await options.when?.(ctx(1), { addons: { isAddonEnabled } })).toBe(true);
     expect(isAddonEnabled).toHaveBeenCalledWith('tours');

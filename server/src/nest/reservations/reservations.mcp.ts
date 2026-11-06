@@ -348,6 +348,7 @@ export class ReservationsMcp {
 
   @Tool({
     name: 'create_reservation',
+    title: 'Add trip reservation',
     description: 'Recommend a reservation for a trip. Created as pending, so the user must confirm it. For anything travelled ON (flight, train, bus, car, taxi, bicycle, cruise, ferry, transport_other) use create_transport instead. Linking: hotel → use place_id + start_day_id + end_day_id (all three required to create the accommodation link); restaurant/event/tour/activity/parking/other → use assignment_id. Set price to record the cost; it will appear on the booking and in the Budget tab.',
     inputSchema: {
       tripId: idSchema,
@@ -415,6 +416,7 @@ export class ReservationsMcp {
 
   @Tool({
     name: 'update_reservation',
+    title: 'Update trip reservation',
     description: 'Update an existing reservation in a trip. Use status "confirmed" to confirm a pending recommendation, or "pending" to revert it. For anything travelled ON (flight, train, bus, car, taxi, bicycle, cruise, ferry, transport_other) use update_transport instead. Linking: hotel → use place_id to link to an accommodation place; restaurant/event/tour/activity/parking/other → use assignment_id to link to a day assignment.',
     inputSchema: {
       tripId: idSchema,
@@ -465,6 +467,7 @@ export class ReservationsMcp {
 
   @Tool({
     name: 'delete_reservation',
+    title: 'Delete trip reservation',
     description: 'Delete a reservation from a trip. Expenses linked to it are deleted with it, and so is the stay a hotel booking created.',
     inputSchema: {
       tripId: idSchema,
@@ -481,6 +484,7 @@ export class ReservationsMcp {
 
   @Tool({
     name: 'set_reservation_travelers',
+    title: 'Set reservation travelers',
     description: 'Set who is travelling on a booking, replacing the current list. Pass the user IDs of trip members or guests from list_trip_members; an empty array clears the list. Somebody who is not on the trip is ignored rather than added: use add_trip_member for a person with a TREK account, or create_trip_guest for one without.',
     inputSchema: {
       tripId: idSchema,
@@ -515,6 +519,7 @@ export class ReservationsMcp {
 
   @Tool({
     name: 'reorder_reservations',
+    title: 'Reorder reservations',
     description: 'Update the display order of reservations within a day.',
     inputSchema: {
       tripId: idSchema,
@@ -546,6 +551,7 @@ export class ReservationsMcp {
 
   @Tool({
     name: 'link_hotel_accommodation',
+    title: 'Link hotel check-in and out',
     description: 'Set or update the check-in/check-out day links for a hotel reservation. Creates or updates the accommodation record that ties the reservation to a place and a date range. Use the day IDs from get_trip_summary.',
     inputSchema: {
       tripId: idSchema,
@@ -602,6 +608,7 @@ export class ReservationsMcp {
 
   @Tool({
     name: 'list_upcoming_reservations',
+    title: 'List upcoming reservations',
     description: 'The next bookings across ALL of the user\'s trips, soonest first: "what is coming up?", "when is my next flight?". Prefer this over get_trip_summary when no particular trip is in question, or when the trip is unknown. Hotel stays appear as their check-in and check-out moments (the stay itself covers a range and is not a point in time), which no per-trip reservation list reports. Cancelled bookings, planned public-transit journeys and archived trips are left out.',
     inputSchema: {
       limit: z.number().int().min(1).max(50).optional().describe('How many entries to return, soonest first (default 6, the dashboard widget\'s size)'),
@@ -654,9 +661,13 @@ export class ReservationsMcp {
 
   @Tool({
     name: 'create_transport',
-    description: 'Create a transport booking for a trip: flight, train, bus, car, taxi, bicycle, cruise, ferry or transport_other. For scheduled public transit use create_transit_journey, which attaches the provider itinerary. Use endpoints[] to record origin/destination and intermediate stops; for flights, set code to the IATA airport code (use search_airports first). For a booking WITH STOPOVERS also pass legs[] (one entry per segment, one fewer than endpoints[]), otherwise every segment inherits the stop time as both its arrival and its departure. The top-level confirmation_number is the booking reference; when a single segment was booked under its own reference, put that one on the leg instead. '
-      + 'A ticket covering several flights or trains under one reference is ONE create_transport with endpoints[] + legs[], never one call per segment: each call books its price as a cost of its own, so a fare repeated per segment is counted once per segment. '
-      + 'Created as pending, so confirm it with update_transport. Set price to record the cost; it will appear on the booking and in the Budget tab.',
+    title: 'Add transport booking',
+    description:
+      'Create a transport booking for a trip: flight, train, bus, car, taxi, bicycle, cruise, ferry or transport_other. For scheduled public transit use create_transit_journey, which attaches the provider itinerary. A ticket covering several flights or trains under one reference is ONE create_transport with endpoints[] + legs[], never one call per segment: each call books its price as a cost of its own, so a fare repeated per segment is counted once per segment. Created as pending, so confirm it with update_transport.',
+    detail: {
+      fields: ['endpoints', 'legs'],
+      text: 'Create a transport booking for a trip: flight, train, bus, car, taxi, bicycle, cruise, ferry or transport_other. Use endpoints[] to record origin/destination and intermediate stops; for flights, set code to the IATA airport code (use search_airports first). For a booking WITH STOPOVERS also pass legs[] (one entry per segment, one fewer than endpoints[]), otherwise every segment inherits the stop time as both its arrival and its departure. The top-level confirmation_number is the booking reference; when a single segment was booked under its own reference, put that one on the leg instead. Set price to record the cost; it will appear on the booking and in the Budget tab.',
+    },
     inputSchema: {
       tripId: idSchema,
       type: z.enum(CREATABLE_TRANSPORT_TYPES),
@@ -755,7 +766,13 @@ export class ReservationsMcp {
 
   @Tool({
     name: 'update_transport',
-    description: 'Update an existing transport booking. Pass endpoints[] to replace the full list of stops (origin, destination, intermediates), and legs[] to write the per-segment times of a stopover booking. Sending legs[] without metadata keeps the stored metadata (departure_airport, airtrail_ids, transit) and only replaces the segments. A per-segment booking reference lives on the leg (legs[].confirmation_number); the top-level one stays the booking reference. Use status "confirmed" to confirm.',
+    title: 'Update transport booking',
+    description:
+      'Update an existing transport booking. Pass endpoints[] to replace the full list of stops (origin, destination, intermediates), and legs[] to write the per-segment times of a stopover booking. Use status "confirmed" to confirm.',
+    detail: {
+      fields: ['endpoints', 'legs'],
+      text: 'Update an existing transport booking. Sending legs[] without metadata keeps the stored metadata (departure_airport, airtrail_ids, transit) and only replaces the segments. A per-segment booking reference lives on the leg (legs[].confirmation_number); the top-level one stays the booking reference.',
+    },
     inputSchema: {
       tripId: idSchema,
       reservationId: idSchema,
@@ -873,6 +890,7 @@ export class ReservationsMcp {
 
   @Tool({
     name: 'delete_transport',
+    title: 'Delete transport booking',
     description: 'Delete a transport booking from a trip.',
     inputSchema: {
       tripId: idSchema,

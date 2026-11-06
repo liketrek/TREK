@@ -138,6 +138,24 @@ export interface ToolOptions extends McpEntryOptionsBase {
   outputSchema?: ZodRawShape;
   annotations?: Record<string, unknown>;
   _meta?: Record<string, unknown>;
+  /** What of the tool moves out of tools/list into its help topic; see `ToolDetail`. */
+  detail?: ToolDetail;
+}
+
+/**
+ * The part of a tool that lives in its help topic (`tool/<name>`, read with
+ * `get_help_page`) instead of `tools/list` (src/nest-mcp/input-detail.ts).
+ *
+ * `fields` names top-level `inputSchema` fields (a shape only) whose full
+ * schema is too large to advertise: tools/list shows a permissive stand-in, and
+ * the registry parses every call against the full shape before the handler
+ * runs, so the handler sees exactly what it did before. `text` is the long
+ * explanation the description used to carry. A tool with a `detail` gets the
+ * pointer to its topic appended to its description.
+ */
+export interface ToolDetail {
+  fields?: readonly string[];
+  text?: string;
 }
 
 /** Mirrors `registerResource(name, uri, metadata, cb)` for a fixed URI. */
@@ -308,6 +326,8 @@ export interface McpModuleOptions {
   toolGate?: McpToolGateProvider;
   /** See `McpErrorMapper`. Static: it needs nothing from the container. */
   errorMapper?: McpErrorMapper;
+  /** Fail boot on a registered tool without a `title` (see `McpRegistry.validate()`). */
+  requireToolTitles?: boolean;
 }
 
 /** Injection token for the resolved `McpToolGate` (null when none was configured). */

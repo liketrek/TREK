@@ -81,6 +81,33 @@ export const OPT_IN_ONLY_SCOPES: readonly Scope[] = ['plugins:use'];
  */
 export const DEFAULT_CLIENT_SCOPES: Scope[] = ALL_SCOPES.filter((s) => !OPT_IN_ONLY_SCOPES.includes(s));
 
+/**
+ * The core of what a client usually needs: the trip, its places and days, the
+ * map and weather, packing, budget, bookings and to-dos, and read access to
+ * files, settings and notifications. The heavier families (tours, road trip,
+ * the journey and its Studio, collections, atlas, vacay, collab) are opt-in on
+ * the consent screen. `lint:mcp-surface` measures this set as its `core` session.
+ */
+export const CORE_CLIENT_SCOPES: readonly Scope[] = [
+  'trips:read',
+  'trips:write',
+  'places:read',
+  'places:write',
+  'geo:read',
+  'weather:read',
+  'packing:read',
+  'packing:write',
+  'budget:read',
+  'budget:write',
+  'reservations:read',
+  'reservations:write',
+  'todos:read',
+  'todos:write',
+  'files:read',
+  'settings:read',
+  'notifications:read',
+];
+
 export interface ScopeInfo {
   label: string;
   description: string;

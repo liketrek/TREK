@@ -1,4 +1,15 @@
-import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, errorResult, ok, type McpContext } from '../../nest-mcp';
+import {
+  McpController,
+  McpRegistryService,
+  renderToolHelp,
+  Tool,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_HELP_PREFIX,
+  toolHelpSlug,
+  errorResult,
+  ok,
+  type McpContext,
+} from '../../nest-mcp';
 import { getWikiIndex, getWikiPage, searchWiki, WikiNotFound, type WikiPage } from './wiki';
 
 import { z } from 'zod';
@@ -16,8 +27,11 @@ import { z } from 'zod';
  * are registered the same way, for the same reason: a client needs them to find
  * its bearings before it knows what else to ask for.
  *
- * No injected service, like airports.mcp.ts: the help domain is a set of plain
- * readers over the `wiki/` directory rather than a provider.
+ * The wiki itself is read through plain readers over the `wiki/` directory. The
+ * one injection is the MCP registry: a tool that moved its long reference out of
+ * tools/list (`detail`, src/nest-mcp/input-detail.ts) is served here as the
+ * page `tool/<name>`, rendered from the tool's own Zod shape, and listed apart
+ * from the wiki's sections as `tool_references`.
  *
  * GET /api/help/asset/* has no tool on purpose. It answers with image bytes for
  * an <img> tag, which is not something a tool result carries.
@@ -32,8 +46,33 @@ const HELP_PAGE_CHARS = 40_000;
 
 @McpController()
 export class HelpMcp {
+  constructor(private readonly registry: McpRegistryService) {}
+
+  /** The page by slug, or why there is none: a tool's reference (`tool/<name>`) or a page of the wiki. */
+  private async loadPage(slug: string): Promise<WikiPage | string> {
+    const toolPage = slug.startsWith(TOOL_HELP_PREFIX) ? this.toolPage(slug) : null;
+    if (toolPage) return toolPage;
+    try {
+      return await getWikiPage(slug);
+    } catch (err) {
+      // The route collapses both into "Help page unavailable" with a 404/502
+      // split in the status. A model cannot read the status, and only one of
+      // the two is worth retrying with a different slug, so say which it is.
+      if (err instanceof WikiNotFound)
+        return `No help page named "${slug}". Call list_help_topics for the slugs this instance ships.`;
+      return 'Help page unavailable.';
+    }
+  }
+
+  /** The page `tool/<name>` for a tool with a reference, built like a wiki page. */
+  private toolPage(slug: string): WikiPage | null {
+    const topic = this.registry.toolHelpTopic(slug.slice(TOOL_HELP_PREFIX.length));
+    return topic ? { slug, title: topic.title, markdown: renderToolHelp(topic) } : null;
+  }
+
   @Tool({
     name: 'list_help_topics',
+    title: 'List help topics',
     description:
       "List the table of contents of the TREK user manual bundled with this instance: sections, page titles, and the slugs get_help_page takes. Start here when the user asks how something in TREK works or how to do something in the app, then read the matching page. This is documentation about the product, never the user's own data: for that use list_trips or get_trip_summary.",
     inputSchema: {},
@@ -42,7 +81,10 @@ export class HelpMcp {
   async listHelpTopics(_args: Record<string, never>, _ctx: McpContext) {
     try {
       const { sections } = await getWikiIndex();
-      return ok({ sections });
+      const tool_references = this.registry
+        .toolHelpTopics()
+        .map((topic) => ({ title: topic.title, slug: toolHelpSlug(topic.name) }));
+      return ok(tool_references.length ? { sections, tool_references } : { sections });
     } catch {
       // The route lets this reach the global error envelope; a tool has to
       // answer, and a missing sidebar reads to a model like any other
@@ -53,6 +95,7 @@ export class HelpMcp {
 
   @Tool({
     name: 'get_help_page',
+    title: 'Read help page',
     description:
       'Read one page of the bundled TREK user manual as markdown, addressed by a slug from list_help_topics. Prefer it over answering from memory whenever the user asks how a TREK feature behaves: the pages ship with the running version, so they describe this instance rather than some other release. Long pages arrive in chunks, so when the result says truncated, call again with next_offset.',
     inputSchema: {
@@ -68,17 +111,8 @@ export class HelpMcp {
   })
   async getHelpPage({ slug, offset }: { slug: string; offset?: number }, _ctx: McpContext) {
     const from = offset ?? 0;
-    let page: WikiPage;
-    try {
-      page = await getWikiPage(slug);
-    } catch (err) {
-      // The route collapses both into "Help page unavailable" with a 404/502
-      // split in the status. A model cannot read the status, and only one of
-      // the two is worth retrying with a different slug, so say which it is.
-      if (err instanceof WikiNotFound)
-        return errorResult(`No help page named "${slug}". Call list_help_topics for the slugs this instance ships.`);
-      return errorResult('Help page unavailable.');
-    }
+    const page = await this.loadPage(slug);
+    if (typeof page === 'string') return errorResult(page);
 
     const full = page.markdown;
     if (from > 0 && from >= full.length)
@@ -97,6 +131,7 @@ export class HelpMcp {
 
   @Tool({
     name: 'search_help',
+    title: 'Search help manual',
     description:
       "Full-text search across the bundled TREK user manual, the same search the in-app help panel uses. Returns the best-matching pages with the section heading the match sits under and a snippet, so a question like 'how do I split a cost' lands on the right page without reading the whole table of contents first. Follow up with get_help_page on a hit's slug.",
     inputSchema: {
