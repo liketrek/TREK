@@ -275,21 +275,19 @@ struct LockPage: View {
     let now: Date
 
     var body: some View {
-        ZStack(alignment: .top) {
-            TripBackdrop(trip: snapshot.trip, shade: 0.35)
-            VStack(spacing: 0) {
+        VStack(spacing: 0) {
                 StatusBar(dark: true)
                 Image(systemName: "lock.fill").font(.system(size: 18, weight: .semibold)).foregroundStyle(.white).padding(.top, 6)
-                WidgetFrame(kind: .trip, family: .inline, snapshot: snapshot, now: now)
+                LockAccessory(kind: .trip, family: .inline, snapshot: snapshot, now: now)
                     .padding(.top, 10)
                 Text("9:41")
                     .font(.system(size: 104, weight: .semibold, design: .rounded))
                     .foregroundStyle(.white.opacity(0.92))
                     .padding(.top, -6)
-                HStack(spacing: 10) {
-                    WidgetFrame(kind: .trip, family: .circular, snapshot: snapshot, now: now)
-                    WidgetFrame(kind: .todos, family: .circular, snapshot: snapshot, now: now)
-                    WidgetFrame(kind: .bookings, family: .rectangular, snapshot: snapshot, now: now)
+                HStack(spacing: 14) {
+                    LockAccessory(kind: .trip, family: .circular, snapshot: snapshot, now: now)
+                    LockAccessory(kind: .packing, family: .circular, snapshot: snapshot, now: now)
+                    LockAccessory(kind: .bookings, family: .rectangular, snapshot: snapshot, now: now)
                 }
                 .padding(.top, 4)
                 Spacer(minLength: 0)
@@ -303,9 +301,10 @@ struct LockPage: View {
                 .padding(.horizontal, 46)
                 .padding(.top, 22)
                 Capsule().fill(.white).frame(width: 140, height: 5).padding(.top, 20).padding(.bottom, 10)
-            }
         }
         .frame(width: 402, height: 874)
+        // Behind, not inside: a photo filled into a stack would widen it past the screen.
+        .background(TripBackdrop(trip: snapshot.trip, shade: 0.35).frame(width: 402, height: 874).clipped())
         .clipShape(RoundedRectangle(cornerRadius: 56, style: .continuous))
         .padding(30)
         .background(Color(hex: 0x111214))
@@ -359,5 +358,31 @@ struct LiveActivityMock: View {
         }
         .padding(16)
         .background(RoundedRectangle(cornerRadius: 26, style: .continuous).fill(Color(hex: 0x0C0C0F).opacity(0.78)))
+    }
+}
+
+/// A lock-screen accessory as the system draws it: white on the wallpaper,
+/// the circular ones on a soft disc, no box of their own.
+struct LockAccessory: View {
+    let kind: WidgetKind
+    let family: TrekFamily
+    let snapshot: WidgetSnapshot
+    let now: Date
+
+    var body: some View {
+        let size = family.previewSize
+        Group {
+            switch kind {
+            case .trip: TripContent(snapshot: snapshot, family: family, now: now)
+            case .bookings: BookingsContent(snapshot: snapshot, family: family, now: now)
+            case .todos: TodosContent(snapshot: snapshot, family: family, now: now)
+            case .packing: PackingContent(snapshot: snapshot, family: family, now: now)
+            case .atlas: AtlasContent(snapshot: snapshot, family: family)
+            default: EmptyView()
+            }
+        }
+        .foregroundStyle(.white)
+        .frame(width: size.width, height: size.height)
+        .background(Circle().fill(Color.white.opacity(family == .circular ? 0.16 : 0)))
     }
 }
