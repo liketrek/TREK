@@ -33,5 +33,24 @@ const mcpApps: TranslationStrings = {
   'mcpApps.weather.sunset': 'Coucher du soleil',
   'mcpApps.weather.unavailable': 'Pas de prévision pour ce jour',
   'mcpApps.weather.climate': 'Moyenne climatique',
+  'mcpApps.places.title': 'Lieux trouvés',
+  'mcpApps.places.empty': 'Aucun lieu trouvé',
+  'mcpApps.places.add': 'Ajouter au voyage',
+  'mcpApps.places.addAsk': 'Ajoute le lieu {id} de ces résultats de recherche à mon voyage.',
+  'mcpApps.places.select': 'Parler de ce lieu à l’assistant',
+  'mcpApps.places.rating': 'Note',
+  'mcpApps.budget.title': 'Budget', // same-as-en
+  'mcpApps.budget.total': 'Total', // same-as-en
+  'mcpApps.budget.byCategory': 'Par catégorie',
+  'mcpApps.budget.byPerson': 'Par personne',
+  'mcpApps.budget.share': 'Part',
+  'mcpApps.budget.paid': 'Payé',
+  'mcpApps.budget.empty': 'Aucune dépense pour l’instant',
+  'mcpApps.budget.uncategorized': 'Sans catégorie',
+  'mcpApps.todos.title': 'Tâches',
+  'mcpApps.todos.empty': 'Rien à faire ici',
+  'mcpApps.todos.due': 'Échéance',
+  'mcpApps.todos.done': 'Faites',
+  'mcpApps.todos.toggleError': 'Impossible de mettre à jour la tâche. Réessayez.',
 };
 export default mcpApps;

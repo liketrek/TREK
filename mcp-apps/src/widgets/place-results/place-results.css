@@ -1,0 +1,44 @@
+.places__title {
+  margin-bottom: var(--trek-space);
+}
+
+.places__track {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(220px, 260px);
+  gap: var(--trek-space);
+  padding-bottom: 4px;
+  overflow-x: auto;
+  scroll-snap-type: inline mandatory;
+  overscroll-behavior-inline: contain;
+}
+
+.places__card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--trek-space);
+  background: var(--trek-surface);
+  border: 1px solid var(--trek-border);
+  border-radius: var(--trek-radius);
+  scroll-snap-align: start;
+}
+
+.places__card p {
+  margin: 0;
+}
+
+.places__name {
+  margin: 0;
+  font-size: var(--trek-text-md);
+  font-weight: var(--font-weight-semibold, 600);
+  overflow-wrap: anywhere;
+}
+
+.places__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 6px;
+}

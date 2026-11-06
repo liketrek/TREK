@@ -58,8 +58,35 @@ export type ListPackingItemsOutput = z.infer<typeof listPackingItemsOutputSchema
 export const listTodosOutputSchema = looseOutput(todoListResponseSchema);
 export type ListTodosOutput = z.infer<typeof listTodosOutputSchema>;
 
-/** `list_budget_items`: one page of the trip's expenses with the totals. */
-export const listBudgetItemsOutputSchema = looseOutput(budgetItemsPageSchema);
+/** One expense as a list_budget_items page carries it, slimmed to what a reader needs. */
+const budgetPageItemSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  category: z.string().nullable().optional(),
+  total_price: z.number().nullable().optional(),
+  currency: z.string(),
+  /** The amount in the trip currency, when the expense was in another one and a rate converts it. */
+  trip_amount: z.number().nullable(),
+  expense_date: z.string().nullable(),
+});
+
+/**
+ * `list_budget_items`: one page of the trip's expenses with the totals. The
+ * totals are in the trip currency, in major units; by_category sums them per
+ * cost category.
+ */
+export const listBudgetItemsOutputSchema = looseOutput(
+  budgetItemsPageSchema.extend({
+    currency: z.string(),
+    total: z.number(),
+    by_category: z.record(z.string(), z.number()),
+    unconverted_item_ids: z.array(z.number()),
+    item_count: z.number(),
+    next_offset: z.number().nullable(),
+    items: z.array(budgetPageItemSchema),
+    people: z.array(z.object({ user_id: z.number(), username: z.string() })),
+  }),
+);
 export type ListBudgetItemsOutput = z.infer<typeof listBudgetItemsOutputSchema>;
 
 /** One member's share of the trip's expenses, in the trip currency. */
@@ -81,6 +108,23 @@ export type BudgetPerPersonOutput = z.infer<typeof budgetPerPersonOutputSchema>;
 /** `get_weather`: the forecast (or the climate average) for one place and day. */
 export const weatherOutputSchema = looseOutput(z.object({ weather: weatherResultSchema }));
 export type WeatherOutput = z.infer<typeof weatherOutputSchema>;
+
+/**
+ * One place a search found, as the place-results view reads it: the fields
+ * every index fills (Google, the TREK index, OpenStreetMap). A row is open
+ * otherwise; the view skips one that lacks a name.
+ */
+export const placeSearchCardSchema = z.object({
+  name: z.string().min(1),
+  address: z.string().nullable().optional(),
+  lat: z.number().nullable().optional(),
+  lng: z.number().nullable().optional(),
+  osm_id: z.string().nullable().optional(),
+  google_place_id: z.string().nullable().optional(),
+  rating: z.number().nullable().optional(),
+  website: z.string().nullable().optional(),
+});
+export type PlaceSearchCard = z.infer<typeof placeSearchCardSchema>;
 
 /** `search_place`: the places found and which index answered. */
 export const searchPlaceOutputSchema = looseOutput(mapsSearchResultSchema);

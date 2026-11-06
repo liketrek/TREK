@@ -84,4 +84,46 @@ export class McpAppsMcp {
   async weatherWidget(uri: URL) {
     return this.read(uri, 'weather');
   }
+
+  @Resource({
+    name: 'widget-place-results',
+    title: 'Place search results view',
+    uri: mcpAppUri('place-results'),
+    description: 'The cards search_place draws its results with.',
+    mimeType: MCP_APP_MIME_TYPE,
+    _meta: uiResource({ prefersBorder: true }),
+    when: offered('place-results'),
+    access: { group: 'places', mode: 'read' },
+  })
+  async placeResultsWidget(uri: URL) {
+    return this.read(uri, 'place-results');
+  }
+
+  @Resource({
+    name: 'widget-budget',
+    title: 'Budget view',
+    uri: mcpAppUri('budget'),
+    description: 'The card list_budget_items and get_budget_per_person draw the budget with.',
+    mimeType: MCP_APP_MIME_TYPE,
+    _meta: uiResource({ prefersBorder: true }),
+    when: offered('budget'),
+    access: { group: 'budget', mode: 'read' },
+  })
+  async budgetWidget(uri: URL) {
+    return this.read(uri, 'budget');
+  }
+
+  @Resource({
+    name: 'widget-todos',
+    title: 'To-do view',
+    uri: mcpAppUri('todos'),
+    description: 'The interactive checklist list_todos draws its items with.',
+    mimeType: MCP_APP_MIME_TYPE,
+    _meta: uiResource({ prefersBorder: true }),
+    when: offered('todos'),
+    access: { group: 'todos', mode: 'read' },
+  })
+  async todosWidget(uri: URL) {
+    return this.read(uri, 'todos');
+  }
 }

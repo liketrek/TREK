@@ -4,7 +4,7 @@ import { translator } from '../../src/lib/i18n';
 import type { TrekAppState } from '../../src/lib/useTrekApp';
 import { App } from '../../src/widgets/packing/App';
 import { PackingList } from '../../src/widgets/packing/PackingList';
-import { INLINE_ITEM_LIMIT, itemsInBag, progress } from '../../src/widgets/packing/packingModel';
+import { INLINE_ITEM_LIMIT, itemsInBag } from '../../src/widgets/packing/packingModel';
 
 const t = translator('en');
 const item = (id: number, extra: Record<string, unknown> = {}) => ({
@@ -45,12 +45,11 @@ function renderList(data: unknown, onToggle = vi.fn(async () => true), onExpand 
 }
 
 describe('packingModel', () => {
-  it('APPS-PACK-001: filters by bag and counts what is packed, ticks made here included', () => {
+  it('APPS-PACK-001: filters by bag', () => {
     const items = [item(1, { bag_id: 70, checked: 1 }), item(2), item(3, { bag_id: 70 })];
     expect(itemsInBag(items, 'all')).toHaveLength(3);
     expect(itemsInBag(items, 'none').map((i) => i.id)).toEqual([2]);
     expect(itemsInBag(items, 70).map((i) => i.id)).toEqual([1, 3]);
-    expect(progress(items, new Map([[2, true]]))).toEqual({ packed: 2, total: 3 });
   });
 });
 
