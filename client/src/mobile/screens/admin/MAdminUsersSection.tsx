@@ -1,4 +1,4 @@
-import { Copy, Link2, Trash2, UserPlus } from 'lucide-react'
+import { Copy, Link2, Trash2, UserPlus, Ticket } from 'lucide-react'
 import type { TranslationFn } from '../../../types'
 import type { useAdmin } from '../../../pages/admin/useAdmin'
 import { inviteMeta, inviteStatus } from '../../../pages/admin/adminModel'
@@ -167,6 +167,7 @@ export default function MAdminUsersSection({ admin, t, locale }: MAdminUsersSect
       {/* Create invite sheet */}
       <MSheet open={showCreateInvite} onClose={() => setShowCreateInvite(false)} ariaLabel={t('admin.invite.create')}>
         <MAdminSheetFrame
+          icon={<Ticket size={19} strokeWidth={1.8} />}
           title={t('admin.invite.create')}
           onClose={() => setShowCreateInvite(false)}
           footer={

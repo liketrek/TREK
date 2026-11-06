@@ -300,7 +300,7 @@ export default function MSettingsMcp() {
           if (!createdClient) setCreateOpen(false)
         }}
         variant="card"
-        material="opaque"
+        material="glass"
         ariaLabel={t('settings.oauth.modal.createTitle')}
       >
         <div className="min-h-0 overflow-y-auto p-[18px]">
@@ -409,7 +409,7 @@ export default function MSettingsMcp() {
           if (!createdToken) setTokenModalOpen(false)
         }}
         variant="card"
-        material="opaque"
+        material="glass"
         ariaLabel={t('settings.mcp.modal.createTitle')}
       >
         <div className="p-[18px]">
@@ -461,7 +461,7 @@ export default function MSettingsMcp() {
       </MSheet>
 
       {/* Rotated secret display */}
-      <MSheet open={rotatedSecret !== null} onClose={() => setRotatedSecret(null)} variant="card" material="opaque" ariaLabel={t('settings.oauth.rotateSecretDoneTitle')}>
+      <MSheet open={rotatedSecret !== null} onClose={() => setRotatedSecret(null)} variant="card" material="glass" ariaLabel={t('settings.oauth.rotateSecretDoneTitle')}>
         <div className="p-[18px]">
           <div className="text-[0.9375rem] font-extrabold text-m-ink">{t('settings.oauth.rotateSecretDoneTitle')}</div>
           <p className="mt-2 rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-3 font-geist text-[0.625rem] leading-relaxed text-[color:var(--m-st-pending)]">

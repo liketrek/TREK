@@ -172,7 +172,7 @@ export default function MRtInfoSheet({ planner, shell }: MTripSheetsProps) {
   ]
 
   return (
-    <MSheet open={open} onClose={shell.closeSheet} variant="bottom" material="opaque" ariaLabel={t('mobileTrip.rtInfoTitle')}>
+    <MSheet open={open} onClose={shell.closeSheet} variant="bottom" material="glass" ariaLabel={t('mobileTrip.rtInfoTitle')}>
       <div className="flex-none px-[18px] pt-4">
         <TileHeader
           icon={<VehicleIcon size={19} strokeWidth={1.8} />}

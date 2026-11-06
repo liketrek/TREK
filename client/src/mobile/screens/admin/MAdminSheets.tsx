@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AlertTriangle, CheckCircle, ExternalLink, Fingerprint, ShieldOff, Trash2 } from 'lucide-react'
+import { AlertTriangle, CheckCircle, ExternalLink, Fingerprint, ShieldOff, Trash2, UserPlus, UserCog, Download, KeyRound, RotateCcw } from 'lucide-react'
 import { useAdminUserActions } from '../../../components/Admin/useAdminUserActions'
 import type { TranslationFn } from '../../../types'
 import type { useAdmin } from '../../../pages/admin/useAdmin'
@@ -63,6 +63,7 @@ export default function MAdminSheets({ admin, t }: MAdminSheetsProps) {
       {/* Create user */}
       <MSheet open={showCreateUser} onClose={() => setShowCreateUser(false)} ariaLabel={t('admin.createUser')}>
         <MAdminSheetFrame
+          icon={<UserPlus size={19} strokeWidth={1.8} />}
           title={t('admin.createUser')}
           onClose={() => setShowCreateUser(false)}
           footer={
@@ -115,6 +116,7 @@ export default function MAdminSheets({ admin, t }: MAdminSheetsProps) {
       {/* Edit user */}
       <MSheet open={!!editingUser} onClose={() => setEditingUser(null)} ariaLabel={t('admin.editUser')}>
         <MAdminSheetFrame
+          icon={<UserCog size={19} strokeWidth={1.8} />}
           title={t('admin.editUser')}
           onClose={() => setEditingUser(null)}
           footer={
@@ -205,6 +207,7 @@ export default function MAdminSheets({ admin, t }: MAdminSheetsProps) {
       {/* How to update */}
       <MSheet open={showUpdateModal} onClose={() => setShowUpdateModal(false)} ariaLabel={t('admin.update.howTo')}>
         <MAdminSheetFrame
+          icon={<Download size={19} strokeWidth={1.8} />}
           title={t('admin.update.howTo')}
           onClose={() => setShowUpdateModal(false)}
           footer={<MAdminButton onClick={() => setShowUpdateModal(false)}>{t('common.close')}</MAdminButton>}
@@ -256,6 +259,7 @@ export default function MAdminSheets({ admin, t }: MAdminSheetsProps) {
       {/* Reset passkeys confirm */}
       <MSheet open={showResetPasskeys} onClose={() => setShowResetPasskeys(false)} ariaLabel={t('admin.passkey.reset')}>
         <MAdminSheetFrame
+          icon={<KeyRound size={19} strokeWidth={1.8} />}
           title={t('admin.passkey.reset')}
           onClose={() => setShowResetPasskeys(false)}
           footer={
@@ -288,6 +292,7 @@ export default function MAdminSheets({ admin, t }: MAdminSheetsProps) {
       {/* Rotate JWT confirm */}
       <MSheet open={showRotateJwtModal} onClose={() => setShowRotateJwtModal(false)} ariaLabel={t('admin.rotateJwt.title')}>
         <MAdminSheetFrame
+          icon={<RotateCcw size={19} strokeWidth={1.8} />}
           title={t('admin.rotateJwt.title')}
           onClose={() => setShowRotateJwtModal(false)}
           footer={

@@ -175,7 +175,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
     <MSheet
       open={showReservationModal}
       onClose={handleClose}
-      material="opaque"
+      material="glass"
       ariaLabel={res ? t('reservations.editTitle') : t('reservations.newTitle')}
       discardGuard={showReservationModal ? { form, files: pendingFiles.length, travelers: [...travelerIds] } : undefined}
     >

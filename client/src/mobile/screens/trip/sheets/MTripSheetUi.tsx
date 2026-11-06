@@ -76,7 +76,8 @@ export function SheetSection({
 }
 
 interface TileHeaderProps {
-  icon: ReactNode
+  /** Left out for a plain picker; every other sheet shows its icon tile. */
+  icon?: ReactNode
   title: ReactNode
   sub?: ReactNode
   /** Let a sentence-length subtitle wrap instead of truncating it to one line. */
@@ -97,9 +98,11 @@ interface TileHeaderProps {
 export function TileHeader({ icon, title, sub, subWrap = false, onClose, closeLabel }: TileHeaderProps) {
   return (
     <div className="flex items-center gap-3">
-      <div className="flex h-10 w-10 flex-none items-center justify-center rounded-[13px] bg-[color:var(--m-ic)]">
-        {icon}
-      </div>
+      {icon && (
+        <div className="flex h-10 w-10 flex-none items-center justify-center rounded-[13px] bg-[color:var(--m-ic)]">
+          {icon}
+        </div>
+      )}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-[6px] text-[1.0625rem] font-bold leading-tight">{title}</div>
         {sub && (

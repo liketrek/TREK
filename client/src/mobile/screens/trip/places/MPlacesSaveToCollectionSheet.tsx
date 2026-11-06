@@ -1,6 +1,6 @@
-import { ArrowRight, Bookmark, Loader2, Plus, X } from 'lucide-react'
+import { ArrowRight, Bookmark, Loader2, Plus } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
-import MIconBtn from '../../../components/MIconBtn'
+import { TileHeader } from '../sheets/MTripSheetUi'
 import { useTranslation } from '../../../../i18n'
 import { useSaveTripPlacesToList } from '../../../../components/Collections/useSaveTripPlacesToList'
 
@@ -25,14 +25,14 @@ export default function MPlacesSaveToCollectionSheet({ open, tripId, placeIds, o
   })
 
   return (
-    <MSheet open={open} onClose={onClose} variant="card" ariaLabel={t('collections.saveNToList', { count: placeIds.length })}>
-      <div className="flex flex-none items-center border-b border-[color:var(--m-rowbr)] px-[18px] pb-[11px] pt-4">
-        <div className="min-w-0 flex-1 text-[1.03125rem] font-bold text-m-ink">
-          {t('collections.saveNToList', { count: placeIds.length })}
-        </div>
-        <MIconBtn variant="neutral" size={34} onClick={onClose} ariaLabel={t('common.close')}>
-          <X size={15} strokeWidth={2.2} />
-        </MIconBtn>
+    <MSheet open={open} onClose={onClose} variant="card" material="glass" ariaLabel={t('collections.saveNToList', { count: placeIds.length })}>
+      <div className="flex-none px-[18px] pt-4">
+        <TileHeader
+          icon={<Bookmark size={19} strokeWidth={1.8} />}
+          title={t('collections.saveNToList', { count: placeIds.length })}
+          onClose={onClose}
+          closeLabel={t('common.close')}
+        />
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-[14px] pb-[14px] pt-1">
         {lists.length > 5 && (

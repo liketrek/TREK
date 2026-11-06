@@ -122,7 +122,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
     <MSheet
       open={open}
       onClose={requestClose}
-      material="opaque"
+      material="glass"
       ariaLabel={editing ? t('costs.editExpense') : t('costs.addExpense')}
     >
       <FormSheetHeader

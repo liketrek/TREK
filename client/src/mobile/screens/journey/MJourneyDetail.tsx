@@ -528,7 +528,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
       {/* Opaque, not the glass default: these two sit over a full-screen map whose
           card carousel is bright and busy, and the frosted material let the titles
           behind read straight through the menu. */}
-      <MSheet open={showUploadMenu} onClose={() => setShowUploadMenu(false)} variant="bottom" material="opaque" ariaLabel={t('common.upload')}>
+      <MSheet open={showUploadMenu} onClose={() => setShowUploadMenu(false)} variant="bottom" material="glass" ariaLabel={t('common.upload')}>
         <div className="flex flex-col gap-2 p-[10px]">
           <MListRow
             icon={Camera}
@@ -547,7 +547,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
       </MSheet>
 
       {/* Journey actions: book export, suggestions switch, settings */}
-      <MSheet open={showActionMenu} onClose={() => setShowActionMenu(false)} variant="bottom" material="opaque" ariaLabel={t('files.menu')}>
+      <MSheet open={showActionMenu} onClose={() => setShowActionMenu(false)} variant="bottom" material="glass" ariaLabel={t('files.menu')}>
         <div className="flex flex-col gap-1 p-[10px]">
           <div className="flex items-center gap-[11px] px-[10px] py-[11px]">
             <EyeOff size={16} strokeWidth={2} className="flex-none text-m-muted" />

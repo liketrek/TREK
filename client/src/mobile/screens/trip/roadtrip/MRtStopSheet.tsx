@@ -290,7 +290,7 @@ export default function MRtStopSheet({ planner, shell }: MTripSheetsProps) {
   const tiles = (navTargets.length > 0 ? 1 : 0) + 1
 
   return (
-    <MSheet open={open && !!live} onClose={shell.closeSheet} variant="bottom" material="opaque" ariaLabel={stop.name}>
+    <MSheet open={open && !!live} onClose={shell.closeSheet} variant="bottom" material="glass" ariaLabel={stop.name}>
       {/* ── Header: the disc the chain draws, the name, the way to the editor and the way out ── */}
       <div className="flex-none px-[18px] pt-4">
         {/* Centred, not top-aligned: one line of the name is shorter than the 34px disc, so
