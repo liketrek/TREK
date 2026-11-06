@@ -1,4 +1,4 @@
-// FE-COMP-MCP-HOOK-001 to -012: the MCP configuration logic the desktop tab and the phone card share.
+// FE-COMP-MCP-HOOK-001 to -013: the MCP configuration logic the desktop tab and the phone card share.
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { authApi, oauthApi } from '../../api/client';
 import { OAUTH_PRESETS, useMcpIntegration, type OAuthClient } from './useMcpIntegration';
@@ -72,11 +72,19 @@ describe('useMcpIntegration', () => {
     expect(OAUTH_PRESETS.map((p) => p.id)).toEqual([
       'claude-web',
       'claude-desktop',
+      'chatgpt',
       'cursor',
       'vscode',
       'windsurf',
       'zed',
     ]);
+  });
+
+  it('FE-COMP-MCP-HOOK-013: the ChatGPT preset sends the browser back to ChatGPT with the core scopes', () => {
+    const chatgpt = OAUTH_PRESETS.find((p) => p.id === 'chatgpt');
+    expect(chatgpt?.uris).toBe('https://chatgpt.com/connector_platform_oauth_redirect');
+    expect(chatgpt?.scopes).toEqual(OAUTH_PRESETS.find((p) => p.id === 'claude-web')?.scopes);
+    expect(chatgpt?.scopes).not.toContain('tours:read');
   });
 
   it('FE-COMP-MCP-HOOK-003: a client needs a name and, unless it is a machine client, redirect URIs', async () => {
