@@ -634,3 +634,23 @@ describe('kitinerary mapper: a prompt-shaped AI lodging (#2477)', () => {
     });
   });
 });
+
+describe('kitinerary mapper: the seat as KItinerary writes it', () => {
+  it('reads a flight seat from airplaneSeat', () => {
+    const node = {
+      ...flight('CE9P8V', SFO, JFK, '2026-06-11T10:00:00', '2026-06-11T18:30:00', '450'),
+      airplaneSeat: '4D',
+    };
+    const { items } = mapReservations(legs(node), 'test.json');
+    expect(items[0].metadata).toMatchObject({ seat: '4D' });
+  });
+
+  it('reads a seat from reservedTicket.ticketedSeat.seatNumber', () => {
+    const node = {
+      ...flight('CE9P8V', SFO, JFK, '2026-06-11T10:00:00', '2026-06-11T18:30:00', '450'),
+      reservedTicket: { ticketedSeat: { seatNumber: '23A' } },
+    };
+    const { items } = mapReservations(legs(node), 'test.json');
+    expect(items[0].metadata).toMatchObject({ seat: '23A' });
+  });
+});

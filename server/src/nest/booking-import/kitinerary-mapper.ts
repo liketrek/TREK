@@ -709,7 +709,12 @@ function segmentDetail(r: KiReservation): {
     }
     return undefined;
   };
-  const seat = pick('seat', 'seatNumber');
+  // KItinerary writes a flight seat as airplaneSeat and a rail seat as
+  // reservedTicket.ticketedSeat.seatNumber, and drops any other seat key.
+  const ticket = r.reservedTicket as { ticketedSeat?: { seatNumber?: unknown } } | undefined;
+  const ticketSeat = ticket?.ticketedSeat?.seatNumber;
+  const seat =
+    pick('seat', 'seatNumber', 'airplaneSeat') ?? (ticketSeat != null && ticketSeat !== '' ? ticketSeat : undefined);
   const cls = pick('class', 'bookingClass', 'fareClass', 'serviceClass', 'seatingType');
   const platform = pick('platform', 'departurePlatform');
   const price = pick('price', 'priceAmount', 'totalPrice', 'total');
