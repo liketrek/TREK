@@ -136,6 +136,9 @@ export default function PlaceDetailsColumn({
   const adoptBlockedId = useId()
   const [data, setData] = useState<MapsPlaceEnrichmentResult | null>(null)
   const [state, setState] = useState<LoadState>('idle')
+  // The phone sheet folds the card away to give the form's own fields the room.
+  const [open, setOpen] = useState(true)
+  const bodyId = useId()
   const abortRef = useRef<AbortController | null>(null)
 
   const selectionKey = selection ? cacheKeyFor(selection, language) : null
@@ -239,15 +242,32 @@ export default function PlaceDetailsColumn({
       {dialog ? (
         <ColumnHead icon={<Landmark size={13} strokeWidth={2.2} />}>{t('places.details.title')}</ColumnHead>
       ) : (
-        <div className="flex shrink-0 items-center gap-2.5 border-b border-[color:var(--m-rowbr)] px-3 py-2.5">
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={bodyId}
+          onClick={() => setOpen(o => !o)}
+          className={`flex w-full shrink-0 items-center gap-2.5 px-3 py-2.5 text-start ${open ? 'border-b border-[color:var(--m-rowbr)]' : ''}`}
+        >
           <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-ink">
             <Landmark size={15} strokeWidth={2} />
           </span>
-          <span className="text-body font-semibold text-m-ink">{t('places.details.title')}</span>
-        </div>
+          <span className="min-w-0 flex-1 text-body font-semibold text-m-ink">{t('places.details.title')}</span>
+          <ChevronDown
+            size={16}
+            strokeWidth={2.2}
+            className={`flex-none text-m-muted transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+          />
+        </button>
       )}
 
-      <div className={dialog ? 'flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-3 pb-3' : 'flex-1 min-h-0 overflow-y-auto p-3 space-y-3'}>
+      {/* Folding on the phone: the grid row eases between its height and none. */}
+      <div
+        id={bodyId}
+        className={dialog ? 'contents' : `grid transition-[grid-template-rows] duration-300 ease-out ${open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
+      >
+      <div className={dialog ? 'flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-3 pb-3' : `min-h-0 overflow-hidden ${open ? '' : 'invisible'}`}>
+      <div className={dialog ? 'contents' : 'p-3 space-y-3'}>
         {/* The place's picture first: its own ones are there whatever the sources answer. */}
         <PictureBlock
           photos={state === 'ready' && !data?.disabled ? (data?.photos ?? []) : []}
@@ -315,6 +335,8 @@ export default function PlaceDetailsColumn({
             />
           </>
         )}
+      </div>
+      </div>
       </div>
     </aside>
   )
