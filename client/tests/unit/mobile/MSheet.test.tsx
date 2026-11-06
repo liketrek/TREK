@@ -385,6 +385,34 @@ describe('MSheet', () => {
       expect(dialog.style.transform).toBe('translateY(0px)');
     });
 
+    it('FE-MOB-SHEET-027: a mouse pull that starts on a button carries the sheet and does not press it', () => {
+      const pressed = vi.fn();
+      const { dialog, onClose } = renderBottom(vi.fn(), <button type="button" onClick={pressed}>Go</button>);
+      const button = screen.getByRole('button', { name: 'Go' });
+
+      fireEvent.pointerDown(button, { pointerType: 'mouse', button: 0, clientX: 100, clientY: 100 });
+      fireEvent.pointerMove(window, { pointerType: 'mouse', clientX: 100, clientY: 140 });
+      fireEvent.pointerMove(window, { pointerType: 'mouse', clientX: 100, clientY: 300 });
+      expect(dialog.style.transform).toBe('translateY(160px)');
+      fireEvent.pointerUp(window, { pointerType: 'mouse', clientX: 100, clientY: 300 });
+      fireEvent.click(button);
+
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(pressed).not.toHaveBeenCalled();
+    });
+
+    it('FE-MOB-SHEET-028: a plain click on a button in the sheet still presses it', () => {
+      const pressed = vi.fn();
+      renderBottom(vi.fn(), <button type="button" onClick={pressed}>Go</button>);
+      const button = screen.getByRole('button', { name: 'Go' });
+
+      fireEvent.pointerDown(button, { pointerType: 'mouse', button: 0, clientX: 100, clientY: 100 });
+      fireEvent.pointerUp(window, { pointerType: 'mouse', clientX: 100, clientY: 101 });
+      fireEvent.click(button);
+
+      expect(pressed).toHaveBeenCalledTimes(1);
+    });
+
     it('FE-MOB-SHEET-026: the docked sheet rises from below, the card pops in place', () => {
       const { dialog } = renderBottom();
       expect(dialog.className).toContain('m-sheet-up');

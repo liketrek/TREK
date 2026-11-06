@@ -8,6 +8,7 @@ import { useTripPlanner } from '../../../pages/tripPlanner/useTripPlanner'
 import { pickDockTabs } from './dockTabs'
 import MBadge from '../../components/MBadge'
 import MIconBtn from '../../components/MIconBtn'
+import { useActivePill } from '../../components/useActivePill'
 import MPlanTimeline from './plan/MPlanTimeline'
 import MMapArea from './map/MMapArea'
 import MPlacesBrowser from './places/MPlacesBrowser'
@@ -289,6 +290,8 @@ export default function MTripShell({
       block: 'nearest',
     })
   }, [planner.selectedDayId, days, dayRail])
+  // The active day's pill glides to the next chip rather than jumping there.
+  const dayPill = useActivePill(dayRail, '[aria-current="true"]', [planner.selectedDayId, days, dayRail, language])
 
   const trTab = planner.activeTab
 
@@ -498,7 +501,14 @@ export default function MTripShell({
       {/* ── Day chips (z-25 — covered by non-plan tab overlays, stays mounted) ── */}
       {days.length > 0 && (
         <div className="absolute inset-x-4 z-[25] flex gap-[6px] top-[calc(var(--m-safe-top,12px)+50px)]">
-          <div ref={setDayRail} className="flex flex-1 items-center gap-[2px] overflow-x-auto rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-[3px] backdrop-blur-[24px] backdrop-saturate-[1.7]">
+          <div ref={setDayRail} className="relative flex flex-1 items-center gap-[2px] overflow-x-auto rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-[3px] backdrop-blur-[24px] backdrop-saturate-[1.7]">
+            {dayPill && (
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute bottom-[3px] left-0 top-[3px] rounded-full bg-m-act shadow-[0_6px_16px_-6px_rgba(0,0,0,.4)]"
+                style={dayPill}
+              />
+            )}
             {days.map((day, idx) => {
               const active = day.id === planner.selectedDayId
               const isToday = day.id === todayDayId
@@ -516,8 +526,8 @@ export default function MTripShell({
                   // the active chip's bg-m-act class.
                   style={active ? undefined : { background: dayTintBackground(tint, 'badge', '--day-tint-chip') }}
                   data-today={isToday || undefined}
-                  className={`flex flex-1 items-center justify-center gap-[3px] whitespace-nowrap rounded-full px-3 py-[5px] text-center text-[0.75rem] font-semibold ${
-                    active ? 'bg-m-act text-m-actfg shadow-[0_6px_16px_-6px_rgba(0,0,0,.4)]' : 'text-m-ink'
+                  className={`relative flex flex-1 items-center justify-center gap-[3px] whitespace-nowrap rounded-full px-3 py-[5px] text-center text-[0.75rem] font-semibold transition-colors duration-200 ${
+                    active ? `text-m-actfg ${dayPill ? '' : 'bg-m-act'}` : 'text-m-ink'
                   } ${isToday && !active ? 'ring-[1.5px] ring-inset ring-[color:var(--m-st-info)]' : ''}`}
                 >
                   {isToday && (

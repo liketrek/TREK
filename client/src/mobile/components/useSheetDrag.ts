@@ -6,7 +6,8 @@ import { useCallback, useEffect, useRef } from 'react';
  *
  * Two ways in. The grab strip along the top edge answers pointers, so a mouse
  * or a pen on a narrow window can pull it too. And the sheet's content answers
- * a finger pulling down once whatever it scrolls is at its top: the gesture
+ * a finger, a mouse or a pen pulling down once whatever it scrolls is at its top
+ * (a pull that starts on a button is a pull, and its click is swallowed): the gesture
  * that would otherwise only rubber-band the list carries the whole sheet, as
  * on iOS. A content drag is claimed on the first move or not at all, so the
  * list's own scroll and any horizontal scroller inside keep their gestures.
@@ -34,7 +35,8 @@ const STRETCH_MAX = 20;
 export const SPRING_BACK = 'transform 280ms var(--ease-drawer)';
 
 /** Controls that own a downward finger themselves. */
-const OWNS_GESTURE = 'input[type="range"], textarea, select, [data-sheet-nodrag]';
+const OWNS_GESTURE =
+  'input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]), textarea, select, [contenteditable="true"], [data-sheet-nodrag]';
 
 interface Drag {
   y0: number;
@@ -156,68 +158,115 @@ export function useSheetDrag({ enabled, panelRef, onDismiss }: SheetDragOptions)
     [release]
   );
 
-  // ── The content: touch events, claimed on the first move ──────────────────
+  // ── The content: a finger (touch events) or a mouse or pen (pointer events),
+  // claimed on the first move or let go ─────────────────────────────────────
   useEffect(() => {
     const panel = panelRef.current;
     if (!enabled || !panel) return;
+    /** Set by a claimed drag: the click the browser sends after it is not a tap. */
+    let swallowClick = false;
 
-    const onStart = (e: TouchEvent) => {
+    const begin = (x: number, y: number, t: number, target: EventTarget | null): boolean => {
+      const el = target as Element | null;
+      if (el?.closest?.('[data-sheet-grab]') || el?.closest?.(OWNS_GESTURE)) return false;
+      swallowClick = false;
+      drag.current = { y0: y, x0: x, samples: [{ y, t }], claimed: false, scroller: nearestScroller(target, panel) };
+      return true;
+    };
+    /** False once the gesture is not ours, so the caller lets it go. */
+    const advance = (x: number, y: number, t: number): boolean => {
+      const d = drag.current;
+      if (!d) return false;
+      if (!d.claimed) {
+        const dy = y - d.y0;
+        const dx = x - d.x0;
+        if (Math.abs(dy) <= CLASSIFY_PX && Math.abs(dx) <= CLASSIFY_PX) return true;
+        const atTop = !d.scroller || d.scroller.scrollTop <= 0;
+        if (!(dy > 0 && Math.abs(dy) > Math.abs(dx) * AXIS_BIAS && atTop)) {
+          drag.current = null;
+          return false;
+        }
+        d.claimed = true;
+        // Measured from here, so the sheet does not jump by the classify slop.
+        d.y0 = y;
+        d.samples = [{ y, t }];
+      }
+      sample(d, y, t);
+      follow(y - d.y0);
+      return true;
+    };
+    const finish = (y: number | undefined) => {
+      const d = drag.current;
+      drag.current = null;
+      if (!d?.claimed) return;
+      swallowClick = true;
+      const last = d.samples[d.samples.length - 1];
+      release(d, y ?? last.y);
+    };
+
+    const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length !== 1) {
         drag.current = null;
         return;
       }
-      const target = e.target as Element | null;
-      if (target?.closest?.('[data-sheet-grab]') || target?.closest?.(OWNS_GESTURE)) return;
       const t = e.touches[0];
-      drag.current = {
-        y0: t.clientY,
-        x0: t.clientX,
-        samples: [{ y: t.clientY, t: e.timeStamp }],
-        claimed: false,
-        scroller: nearestScroller(e.target, panel),
-      };
+      begin(t.clientX, t.clientY, e.timeStamp, e.target);
     };
-    const onMove = (e: TouchEvent) => {
-      const d = drag.current;
-      if (!d || e.touches.length !== 1) return;
+    const onTouchMove = (e: TouchEvent) => {
+      if (!drag.current || e.touches.length !== 1) return;
       const t = e.touches[0];
-      const dy = t.clientY - d.y0;
-      const dx = t.clientX - d.x0;
-      if (!d.claimed) {
-        if (Math.abs(dy) <= CLASSIFY_PX && Math.abs(dx) <= CLASSIFY_PX) return;
-        const atTop = !d.scroller || d.scroller.scrollTop <= 0;
-        if (dy > 0 && Math.abs(dy) > Math.abs(dx) * AXIS_BIAS && atTop) {
-          d.claimed = true;
-          // Measured from here, so the sheet does not jump by the classify slop.
-          d.y0 = t.clientY;
-          d.samples = [{ y: t.clientY, t: e.timeStamp }];
-        } else {
-          drag.current = null;
-          return;
-        }
+      if (advance(t.clientX, t.clientY, e.timeStamp) && drag.current?.claimed && e.cancelable) e.preventDefault();
+    };
+    const onTouchEnd = (e: TouchEvent) => finish(e.changedTouches[0]?.clientY);
+
+    // Touch has its own path above: a touch pointer is cancelled the moment the
+    // browser starts scrolling, so only mouse and pen come through here.
+    const onPointerDown = (e: PointerEvent) => {
+      if (e.pointerType === 'touch' || e.button !== 0) return;
+      if (!begin(e.clientX, e.clientY, e.timeStamp, e.target)) return;
+      window.addEventListener('pointermove', onPointerMove);
+      window.addEventListener('pointerup', onPointerUp);
+      window.addEventListener('pointercancel', onPointerUp);
+    };
+    const onPointerMove = (e: PointerEvent) => {
+      if (!advance(e.clientX, e.clientY, e.timeStamp)) {
+        stopPointer();
+        return;
       }
-      if (e.cancelable) e.preventDefault();
-      sample(d, t.clientY, e.timeStamp);
-      follow(t.clientY - d.y0);
+      // No text selection while the sheet is being pulled.
+      if (drag.current?.claimed) e.preventDefault();
     };
-    const onEnd = (e: TouchEvent) => {
-      const d = drag.current;
-      drag.current = null;
-      if (!d?.claimed) return;
-      const last = d.samples[d.samples.length - 1];
-      release(d, e.changedTouches[0]?.clientY ?? last.y);
+    const onPointerUp = (e: PointerEvent) => {
+      stopPointer();
+      finish(e.type === 'pointercancel' ? undefined : e.clientY);
+    };
+    const stopPointer = () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
+    };
+    const onClickCapture = (e: MouseEvent) => {
+      if (!swallowClick) return;
+      swallowClick = false;
+      e.preventDefault();
+      e.stopPropagation();
     };
 
-    panel.addEventListener('touchstart', onStart, { passive: true });
-    panel.addEventListener('touchmove', onMove, { passive: false });
-    panel.addEventListener('touchend', onEnd, { passive: true });
-    panel.addEventListener('touchcancel', onEnd, { passive: true });
+    panel.addEventListener('touchstart', onTouchStart, { passive: true });
+    panel.addEventListener('touchmove', onTouchMove, { passive: false });
+    panel.addEventListener('touchend', onTouchEnd, { passive: true });
+    panel.addEventListener('touchcancel', onTouchEnd, { passive: true });
+    panel.addEventListener('pointerdown', onPointerDown);
+    panel.addEventListener('click', onClickCapture, true);
     return () => {
       cancelAnimationFrame(frame.current);
-      panel.removeEventListener('touchstart', onStart);
-      panel.removeEventListener('touchmove', onMove);
-      panel.removeEventListener('touchend', onEnd);
-      panel.removeEventListener('touchcancel', onEnd);
+      stopPointer();
+      panel.removeEventListener('touchstart', onTouchStart);
+      panel.removeEventListener('touchmove', onTouchMove);
+      panel.removeEventListener('touchend', onTouchEnd);
+      panel.removeEventListener('touchcancel', onTouchEnd);
+      panel.removeEventListener('pointerdown', onPointerDown);
+      panel.removeEventListener('click', onClickCapture, true);
     };
   }, [enabled, panelRef, follow, release]);
 
