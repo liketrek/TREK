@@ -1,4 +1,9 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#elseif canImport(AppKit)
+import AppKit
+#endif
 
 /// The Atlas on the home screen: the world as dots, the visited countries
 /// glowing, the latest one ringed, and how many there are.
@@ -156,10 +161,24 @@ struct DotWorld: View {
         }
     }
 
-    /// The accent at a point from west (0) to east (1).
+    /// The accent at a point from west (0) to east (1), blended between its colours.
     private func blend(_ t: CGFloat) -> Color {
-        guard accent.count > 1 else { return accent.first ?? .white }
-        return t < 0.5 ? accent[0] : accent[accent.count - 1]
+        guard accent.count > 1, let from = rgb(accent[0]), let to = rgb(accent[accent.count - 1]) else { return accent.first ?? .white }
+        let k = Double(max(0, min(1, t)))
+        return Color(.sRGB, red: from.0 + (to.0 - from.0) * k, green: from.1 + (to.1 - from.1) * k, blue: from.2 + (to.2 - from.2) * k)
+    }
+
+    private func rgb(_ color: Color) -> (Double, Double, Double)? {
+        #if canImport(UIKit)
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        guard UIColor(color).getRed(&r, green: &g, blue: &b, alpha: &a) else { return nil }
+        return (Double(r), Double(g), Double(b))
+        #elseif canImport(AppKit)
+        guard let c = NSColor(color).usingColorSpace(.sRGB) else { return nil }
+        return (Double(c.redComponent), Double(c.greenComponent), Double(c.blueComponent))
+        #else
+        return nil
+        #endif
     }
 }
 

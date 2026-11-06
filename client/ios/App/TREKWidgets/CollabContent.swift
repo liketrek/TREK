@@ -114,12 +114,12 @@ struct AvatarStack: View {
     let scheme: ColorScheme
 
     var body: some View {
-        HStack(spacing: -size * 0.3) {
+        HStack(spacing: -size * 0.18) {
             ForEach(Array(members.prefix(4).enumerated()), id: \.offset) { _, member in
                 Circle()
                     .fill(LinearGradient(colors: [Trek.personColor(member.name), Trek.personColor(member.name).opacity(0.75)], startPoint: .top, endPoint: .bottom))
                     .frame(width: size, height: size)
-                    .overlay(Text(member.initials).font(.system(size: size * 0.38, weight: .heavy)).foregroundStyle(.white))
+                    .overlay(Text(member.initials).font(.system(size: size * 0.34, weight: .heavy)).minimumScaleFactor(0.7).lineLimit(1).foregroundStyle(.white).padding(.horizontal, size * 0.1))
                     .overlay(Circle().stroke(scheme == .dark ? Color(hex: 0x111115) : Color(hex: 0xF4F2EE), lineWidth: 2))
             }
             if members.count > 4 {
