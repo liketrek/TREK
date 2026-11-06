@@ -29,9 +29,6 @@ export default function MSegmented<T extends string = string>({
   const trackRef = useRef<HTMLDivElement>(null)
   const pill = useActivePill(trackRef, '[data-active="true"]', [value, options.length])
 
-  return () => ro.disconnect()
-  }, [value, options.length])
-
   return (
     <div
       ref={trackRef}

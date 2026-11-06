@@ -4,7 +4,6 @@ import { MapCompassPill, type CompassMap } from '../../../../components/Map/MapC
 import { MAP_LAYER_SWITCHER_INSET, MAP_ROUND_CONTROL_SIZE } from '../../../../components/Map/MapLayerSwitcher'
 import { TripRouteOverviewPill, TripRouteOverviewPanel } from '../../../../components/Map/TripRouteOverview'
 import { DawarichTrailPill } from '../../../../components/Map/DawarichTrailPill'
-import { MPlacesFilterPill } from './MPlacesFilterPill'
 import PoiCategoryPill from '../../../../components/Map/PoiCategoryPill'
 import { usePoiExplore } from '../../../../components/Map/usePoiExplore'
 import { useMergedMapPois } from '../../../../components/Map/useMergedMapPois'
@@ -453,27 +452,38 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
         </div>
       )}
 
-      {/* Compass, GL maps only (Leaflet cannot rotate). Both engines draw the base-layer
-          switcher in the bottom left corner, so the compass stands on top of it, on the
-          same left edge: beside it the two read as one crowded row next to the dock.
-          The offsets are inline because they are computed from the switcher's own
-          numbers. */}
-      {mapActive && glMap && (
-        <div className="pointer-events-none absolute z-[25]" style={{ left: COMPASS_LEFT, bottom: `calc(var(--bottom-nav-h, 84px) + ${12 + COMPASS_RAISE}px)` }}>
-          <MapCompassPill map={glMap} />
+      {/* The left column, over the base-layer switcher both engines draw in the bottom
+          left corner: the recorded Dawarich route, and the compass, which only shows
+          while the map is turned off north. Two round controls a side at most, one
+          frosted style and one 8px gap, so neither corner crowds the dock. The offsets
+          are inline because they are computed from the switcher's own numbers. */}
+      {mapActive && (glMap || planner.dawarichEnabled) && (
+        <div
+          className="pointer-events-none absolute z-[25] flex flex-col-reverse items-start gap-2"
+          style={{ left: COMPASS_LEFT, bottom: `calc(var(--bottom-nav-h, 84px) + ${12 + COMPASS_RAISE}px)` }}
+        >
+          {/* Kept in road-trip mode: the recorded route beside the planned one is
+              exactly the comparison a drive invites. */}
+          {!onStage && planner.dawarichEnabled && (
+            <DawarichTrailPill
+              active={planner.dawarichTrailShown}
+              status={planner.dawarichTrail.status}
+              onToggle={planner.toggleDawarichTrail}
+            />
+          )}
+          {glMap && <MapCompassPill map={glMap} onlyWhenRotated />}
         </div>
       )}
 
-      {/* Whole-trip overview (#1736): the stages stack above their toggle on the right,
-          clear of the round-controls band below it and of the base-layer switcher and
-          the compass, which both sit bottom left. The offset is Tailwind rather than
-          inline because the compass band is identified by being the one element with
-          an inline --bottom-nav-h, and a second would make that ambiguous. The places
-          filter closes the stack, under the toggles, so the overview card stays
-          right above its own toggle: it decides which pins the plan map shows, so it is
-          there whatever else is; the stage draws its own pins and has no use for it. */}
+      {/* The right column: the whole-trip overview (#1736) over the locate button, its
+          stages stacking above their toggle. 20px off the edge and 8px over the locate
+          button, mirroring the left column. The places filter has no button here: it
+          is set in the places tab, whose filter the map's pins follow. The offset is
+          Tailwind rather than inline because the compass band is identified by being
+          the one element with an inline --bottom-nav-h, and a second would make that
+          ambiguous. */}
       {mapActive && !onStage && (
-        <div className="pointer-events-none absolute inset-x-3 z-[25] flex flex-col items-end gap-2 bottom-[calc(var(--bottom-nav-h,84px)+58px)]">
+        <div className="pointer-events-none absolute inset-x-5 z-[25] flex flex-col items-end gap-2 bottom-[calc(var(--bottom-nav-h,84px)+62px)]">
           {!planner.roadtripActive && planner.overviewActive && (
             <TripRouteOverviewPanel
               overview={planner.tripOverview}
@@ -488,16 +498,6 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
           {!planner.roadtripActive && (
             <TripRouteOverviewPill active={planner.overviewShown} onToggle={planner.toggleOverview} />
           )}
-          {/* Kept in road-trip mode: the recorded route beside the planned one is
-              exactly the comparison a drive invites. */}
-          {planner.dawarichEnabled && (
-            <DawarichTrailPill
-              active={planner.dawarichTrailShown}
-              status={planner.dawarichTrail.status}
-              onToggle={planner.toggleDawarichTrail}
-            />
-          )}
-          <MPlacesFilterPill onOpen={() => shell.openSheet('placesFilter')} />
         </div>
       )}
     </div>

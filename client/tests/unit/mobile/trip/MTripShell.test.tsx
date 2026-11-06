@@ -668,31 +668,25 @@ describe('MTripShell', () => {
       { id: 22, day_number: 2, date: todayIso() },
       { id: 23, day_number: 3, date: shift(1) },
     ] as unknown as Day[]
-    const jump = () => screen.getByRole('button', { name: 'mobileTrip.jumpToToday' })
+    const jump = () => screen.queryByRole('button', { name: 'mobileTrip.jumpToToday' })
 
-    it('FE-MOB-SHELL-090: marks today and jumps back to it from another day', () => {
-      const { planner, container } = renderShell({ days: running(), selectedDayId: 21 } as Partial<TripPlanner>)
+    it('FE-MOB-SHELL-090: marks today on its chip, and puts no extra button beside the rail', () => {
+      const { container } = renderShell({ days: running(), selectedDayId: 21 } as Partial<TripPlanner>)
       const marked = container.querySelectorAll('[data-today]')
       expect(marked).toHaveLength(1)
       expect(marked[0].className).toContain('ring-inset')
       expect(marked[0]).toHaveTextContent('mobileTrip.today')
-
-      expect(jump()).toBeEnabled()
-      fireEvent.click(jump())
-      expect(planner.handleSelectDay).toHaveBeenLastCalledWith(22, true)
+      expect(jump()).toBeNull()
     })
 
-    it('FE-MOB-SHELL-091: with today open the button stays, dimmed, so the rail does not move', () => {
+    it('FE-MOB-SHELL-091: with today open the active chip keeps its own look, the dot says which day is today', () => {
       const { container } = renderShell({ days: running(), selectedDayId: 22 } as Partial<TripPlanner>)
-      expect(jump()).toBeDisabled()
-      // The active chip keeps its own look; the dot still says which day is today.
       expect(container.querySelector('[data-today]')?.className).not.toContain('ring-inset')
     })
 
-    it('FE-MOB-SHELL-092: outside the trip dates there is no today and no button', () => {
+    it('FE-MOB-SHELL-092: outside the trip dates there is no today', () => {
       const { container } = renderShell()
       expect(container.querySelector('[data-today]')).toBeNull()
-      expect(screen.queryByRole('button', { name: 'mobileTrip.jumpToToday' })).toBeNull()
     })
   })
 

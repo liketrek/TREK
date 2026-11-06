@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ComponentType, type 
 import { findFocusDayId, findTodayDayId } from '../../../components/Planner/today'
 import { takeResumeDay } from '../../../utils/resumeRoute'
 import {
-  CalendarCheck, CalendarDays, ChevronDown, ChevronLeft, Download, FileDown, FolderSync, List, Map as MapIcon, MoreHorizontal, Plane, Plus, Route, Rows3, SlidersHorizontal, Trash2, Upload,
+  CalendarDays, ChevronDown, ChevronLeft, Download, FileDown, FolderSync, List, Map as MapIcon, MoreHorizontal, Plane, Plus, Route, Rows3, SlidersHorizontal, Trash2, Upload,
 } from 'lucide-react'
 import { useTripPlanner } from '../../../pages/tripPlanner/useTripPlanner'
 import { pickDockTabs } from './dockTabs'
@@ -57,7 +57,7 @@ export type MTripCollabTab = 'chat' | 'notes' | 'links' | 'polls'
  * { dayId, note? }), 'accommodation' (payload { dayId?, accId?, from? }),
  * 'transport' (payload { reservationId }), 'bract'
  * (payload { placeId, dayPicker? }), 'import', 'export', 'members',
- * 'tripedit', 'bags', 'task', 'placesFilter' (the map's places filter). The place inspector keys off the planner's
+ * 'tripedit', 'bags', 'task'. The place inspector keys off the planner's
  * place selection instead of a sheet id, and planner-backed editors (place
  * form, transport, booking, expense) keep using the planner's own modal flags.
  */
@@ -417,14 +417,10 @@ export default function MTripShell({
   const dockTabs = pickDockTabs(enabledTabIds)
   const tabLabel = (id: string) => mobileTabs.find(tab => tab.id === id)?.label ?? id
 
-  // While the trip runs, today's chip carries a ring and a button jumps back to it
-  // from wherever the rail was scrolled (#2392). Null outside the trip's dates.
+  // While the trip runs, today's chip carries a ring and a dot (#2392). That mark
+  // is the whole of it: a second button beside the rail only crowded the chrome.
+  // Null outside the trip's dates.
   const todayDayId = findTodayDayId(days)
-  const jumpToToday = () => {
-    if (todayDayId == null || todayDayId === planner.selectedDayId) return
-    if (view === 'map') selectDayOnMap(todayDayId)
-    else planner.handleSelectDay(todayDayId, true)
-  }
 
   const onDayChipTap = (dayId: number) => {
     if (dayId === planner.selectedDayId) openSheet('day', { dayId })
@@ -542,20 +538,6 @@ export default function MTripShell({
               )
             })}
           </div>
-          {/* Back to today from anywhere on the rail (#2392). Mounted for the whole
-              running trip and dimmed while today is already open, so it never
-              appears under the thumb and shoves the rail aside. */}
-          {todayDayId != null && (
-            <button
-              type="button"
-              onClick={jumpToToday}
-              disabled={todayDayId === planner.selectedDayId}
-              aria-label={t('mobileTrip.jumpToToday')}
-              className="flex w-9 flex-none items-center justify-center rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] text-[color:var(--m-st-info)] backdrop-blur-[24px] backdrop-saturate-[1.7] transition-opacity disabled:opacity-40"
-            >
-              <CalendarCheck size={15} strokeWidth={2.4} aria-hidden="true" />
-            </button>
-          )}
           {/* Drop the day filter and show the whole trip (#2257). Map only: the
               plan timeline and the road trip chain are both single-day, so there is
               nothing to widen there. Stays mounted while a day is active rather than
