@@ -133,3 +133,43 @@ export type NotificationPreferencesOutput = z.infer<typeof notificationPreferenc
 /** `autocomplete_place`: the suggestions for a partial name, as the search box shows them. */
 export const autocompletePlaceOutputSchema = looseOutput(mapsAutocompleteResultSchema);
 export type AutocompletePlaceOutput = z.infer<typeof autocompletePlaceOutputSchema>;
+
+/** How many of a trip's days get_trip_overview lists: the coming week, or the first one. */
+export const TRIP_OVERVIEW_DAY_LIMIT = 7;
+
+/** One day as get_trip_overview lists it: when, what it is called, and how many stops it has. */
+export const tripOverviewDaySchema = z.object({
+  id: z.number(),
+  day_number: z.number().nullable(),
+  date: z.string().nullable(),
+  title: z.string().nullable(),
+  stops: z.number(),
+});
+
+/**
+ * `get_trip_overview`: a trip in a few lines, small enough to draw as a card.
+ * The trip, how much it holds, and its next days (from today on while it is
+ * under way or ahead, from its first day otherwise). get_trip_summary is the
+ * whole trip; this is what the overview card reads.
+ */
+export const tripOverviewOutputSchema = looseOutput(
+  z.object({
+    trip: z.object({
+      id: z.number(),
+      title: z.string(),
+      description: z.string().nullable(),
+      start_date: z.string().nullable(),
+      end_date: z.string().nullable(),
+      currency: z.string(),
+      is_archived: z.number(),
+    }),
+    counts: z.object({
+      days: z.number(),
+      places: z.number(),
+      reservations: z.number(),
+      members: z.number(),
+    }),
+    days: z.array(tripOverviewDaySchema),
+  }),
+);
+export type TripOverviewOutput = z.infer<typeof tripOverviewOutputSchema>;

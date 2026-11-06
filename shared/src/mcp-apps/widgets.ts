@@ -5,7 +5,7 @@
  * all read the names from here, so a widget cannot be built without being
  * served or pointed at without being built.
  */
-export const MCP_APP_WIDGETS = ['trip-list'] as const;
+export const MCP_APP_WIDGETS = ['trip-list', 'trip-overview', 'packing', 'weather'] as const;
 
 export type McpAppWidget = (typeof MCP_APP_WIDGETS)[number];
 

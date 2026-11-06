@@ -1,7 +1,15 @@
-import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, ok, type McpContext, okStructured } from '../../nest-mcp';
+import {
+  McpController,
+  Tool,
+  TOOL_ANNOTATIONS_READONLY,
+  ok,
+  type McpContext,
+  okStructured,
+  uiTool,
+} from '../../nest-mcp';
 import { WeatherService } from './weather.service';
 import { WindService } from './wind.service';
-import { WIND_FORECAST_DAYS, windQuerySchema, type WindQuery, weatherOutputSchema } from '@trek/shared';
+import { mcpAppUri, WIND_FORECAST_DAYS, windQuerySchema, type WindQuery, weatherOutputSchema } from '@trek/shared';
 
 import { z } from 'zod';
 
@@ -38,6 +46,7 @@ export class WeatherMcp {
     outputSchema: weatherOutputSchema,
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'weather', mode: 'read' },
+    _meta: uiTool(mcpAppUri('weather'), { invoking: 'Checking the weather…', invoked: 'Forecast ready' }),
   })
   async getWeather(
     { lat, lng, date, lang }: { lat: number; lng: number; date: string; lang?: string },

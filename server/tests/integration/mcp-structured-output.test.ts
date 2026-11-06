@@ -90,6 +90,7 @@ describe('structured output of the read tools', () => {
         'get_budget_per_person',
         'get_notification_preferences',
         'get_place',
+        'get_trip_overview',
         'get_weather',
         'list_budget_items',
         'list_collab_polls',

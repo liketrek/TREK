@@ -1,24 +1,24 @@
 {
   "sessions": {
     "full": {
-      "tools": 424,
-      "bytes": 478379,
-      "tokens": 119595
+      "tools": 427,
+      "bytes": 480698,
+      "tokens": 120175
     },
     "core": {
-      "tools": 152,
-      "bytes": 173416,
-      "tokens": 43354
+      "tools": 153,
+      "bytes": 174025,
+      "tokens": 43506
     },
     "readonly": {
-      "tools": 150,
-      "bytes": 163237,
-      "tokens": 40809
+      "tools": 152,
+      "bytes": 164430,
+      "tokens": 41108
     },
     "trips": {
-      "tools": 34,
-      "bytes": 34242,
-      "tokens": 8561
+      "tools": 35,
+      "bytes": 34851,
+      "tokens": 8713
     }
   },
   "tools": {
@@ -35,6 +35,7 @@
     "add_route_via": 844,
     "add_route_vias": 2472,
     "add_trip_member": 761,
+    "add_trip_photos": 1126,
     "add_vacay_year": 463,
     "apply_book_design": 1345,
     "apply_packing_template": 842,
@@ -199,6 +200,7 @@
     "get_trip_document_sync": 799,
     "get_trip_invite_link": 654,
     "get_trip_journal": 649,
+    "get_trip_overview": 609,
     "get_trip_summary": 796,
     "get_trip_warnings": 965,
     "get_unread_notification_count": 413,
@@ -269,6 +271,7 @@
     "list_trip_file_links": 803,
     "list_trip_files": 857,
     "list_trip_members": 494,
+    "list_trip_photos": 584,
     "list_trips": 543,
     "list_upcoming_reservations": 983,
     "list_vacay_shares": 480,

@@ -33,6 +33,7 @@ Requires `trips:read` or `trips:write` scope.
 | Tool | Description |
 |---|---|
 | `list_trips` | List all trips you own or are a member of. Supports `include_archived` flag. |
+| `get_trip_overview` | A trip in a few lines: dates, the number of days, places, bookings and travelers, and its next days with their stop counts. Lighter than `get_trip_summary`. |
 | `create_trip` | Create a trip with title, dates, and currency. Days are auto-generated from the date range. Without a currency the trip takes your display currency (Settings → General, or the admin's User Defaults preset), and EUR when that is left on *Trip currency*; see [Currencies](Currencies). |
 | `update_trip` | Update a trip's title, description, dates, or currency. Day plans follow their position, so dates that hold fewer days remove the last days with what is on them, also when only the start moved later. Every day a change removes is listed in `removed_days`, with its id, number and date as they stood before and a reason: `overflow` for a day past the new range, `spare` for an empty day without a date. |
 | `search_cover_images` | Search Unsplash for candidate cover photos and return their URLs, thumbnails and photographer credits. Nothing is saved; pass the chosen photo's URL to `update_trip` as `cover_image`. |
@@ -335,6 +336,9 @@ Hosts that support MCP Apps read these to draw a tool's answer as an interactive
 | URI | Scope required | Drawn for |
 |---|---|---|
 | `ui://trek/trip-list.html` | `trips:read` | `list_trips` |
+| `ui://trek/trip-overview.html` | `trips:read` | `get_trip_overview` |
+| `ui://trek/packing.html` | `packing:read` | `list_packing_items` |
+| `ui://trek/weather.html` | `weather:read` | `get_weather` |
 
 ---
 
