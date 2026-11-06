@@ -205,16 +205,42 @@ struct WidgetSnapshot: Codable {
     var collab: Collab?
     var labels: Labels
 
+    /// The dashboard's snapshot.
     static func load() -> WidgetSnapshot? {
+        read("widget.snapshot").flatMap { try? JSONDecoder().decode(WidgetSnapshot.self, from: $0) }
+    }
+
+    /// The snapshot of the trip a widget is set to, the dashboard's for none or
+    /// "auto", and the dashboard's too while the app has not written that trip yet.
+    static func load(trip id: String?) -> WidgetSnapshot? {
+        guard let id, id != "auto", let data = read("widget.trip.\(id)"),
+              var snapshot = try? JSONDecoder().decode(WidgetSnapshot.self, from: data) else { return load() }
+        if snapshot.atlas == nil { snapshot.atlas = load()?.atlas }
+        return snapshot
+    }
+
+    /// A trip a widget can be set to, as the app lists them.
+    struct TripRef: Codable {
+        var id: Int
+        var title: String
+        var start: String
+        var end: String
+    }
+
+    static func tripIndex() -> [TripRef] {
+        read("widget.trips").flatMap { try? JSONDecoder().decode([TripRef].self, from: $0) } ?? []
+    }
+
+    private static func read(_ account: String) -> Data? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: "com.liketrek.trek.push",
-            kSecAttrAccount as String: "widget.snapshot",
+            kSecAttrAccount as String: account,
             kSecReturnData as String: true,
         ]
         var result: CFTypeRef?
-        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess, let data = result as? Data else { return nil }
-        return try? JSONDecoder().decode(WidgetSnapshot.self, from: data)
+        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess else { return nil }
+        return result as? Data
     }
 
     /// Whole days from today to the trip's start, in the device's calendar.

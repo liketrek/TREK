@@ -13,3 +13,8 @@
 "widget.atlas.description" = "Els països on has estat, brillant al mapa.";
 "widget.collab.name" = "Grup de viatge";
 "widget.collab.description" = "Qui ve, els darrers missatges i la votació oberta.";
+"widget.intent.title" = "Tria el viatge";
+"widget.intent.description" = "El viatge que mostra aquest giny.";
+"widget.intent.trip" = "Viatge";
+"widget.intent.auto" = "Automàtic";
+"widget.intent.autoHint" = "El mateix viatge que el tauler";

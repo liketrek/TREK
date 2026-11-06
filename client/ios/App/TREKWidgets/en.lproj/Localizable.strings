@@ -13,3 +13,8 @@
 "widget.atlas.description" = "The countries you have been to, glowing on the map.";
 "widget.collab.name" = "Travel group";
 "widget.collab.description" = "Who comes along, the latest messages and the open poll.";
+"widget.intent.title" = "Choose trip";
+"widget.intent.description" = "The trip this widget shows.";
+"widget.intent.trip" = "Trip";
+"widget.intent.auto" = "Automatic";
+"widget.intent.autoHint" = "Same trip as the dashboard";

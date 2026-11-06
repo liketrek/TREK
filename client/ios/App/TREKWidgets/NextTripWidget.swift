@@ -1,7 +1,8 @@
 import SwiftUI
 import WidgetKit
 
-/// The home-screen and lock-screen widgets; their gallery names and
+/// The home-screen and lock-screen widgets; all but the Atlas show one trip,
+/// the dashboard's or the one picked in Edit Widget (TripIntent.swift). Their gallery names and
 /// descriptions are in <language>.lproj/Localizable.strings. Each reads the snapshot the app
 /// last wrote (WidgetSnapshot) and draws it with the views in *Content.swift,
 /// which know nothing of WidgetKit so the preview renderer can draw them too.
@@ -27,7 +28,10 @@ struct TrekProvider: TimelineProvider {
     /// the next stop move on without the app; the app reloads the timeline
     /// whenever it writes a new snapshot.
     func getTimeline(in context: Context, completion: @escaping (Timeline<TrekEntry>) -> Void) {
-        let snapshot = WidgetSnapshot.load()
+        completion(TrekProvider.timeline(WidgetSnapshot.load()))
+    }
+
+    static func timeline(_ snapshot: WidgetSnapshot?) -> Timeline<TrekEntry> {
         let now = Date()
         let calendar = Calendar.current
         let minute = calendar.component(.minute, from: now)
@@ -38,7 +42,7 @@ struct TrekProvider: TimelineProvider {
                 entries.append(TrekEntry(date: calendar.date(bySetting: .second, value: 0, of: date) ?? date, snapshot: snapshot))
             }
         }
-        completion(Timeline(entries: entries, policy: .atEnd))
+        return Timeline(entries: entries, policy: .atEnd)
     }
 }
 
@@ -83,7 +87,7 @@ struct TrekContainer<Content: View, Background: View>: View {
 struct NextTripWidget: Widget {
     var body: some WidgetConfiguration {
         // The kind stays "NextTrip" so widgets placed before the redesign keep working.
-        StaticConfiguration(kind: "NextTrip", provider: TrekProvider()) { entry in
+        AppIntentConfiguration(kind: "NextTrip", intent: SelectTripIntent.self, provider: TrekTripProvider()) { entry in
             TripWidgetView(entry: entry)
         }
         .configurationDisplayName("widget.trip.name")
@@ -110,7 +114,7 @@ struct TripWidgetView: View {
 
 struct TodayWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "TripToday", provider: TrekProvider()) { entry in
+        AppIntentConfiguration(kind: "TripToday", intent: SelectTripIntent.self, provider: TrekTripProvider()) { entry in
             TrekContainer(link: entry.snapshot?.trip.flatMap { WidgetSnapshot.link($0.path) }) {
                 TodayFamilyView(entry: entry)
             } background: {
@@ -133,7 +137,7 @@ private struct TodayFamilyView: View {
 
 struct BookingsWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "TripBookings", provider: TrekProvider()) { entry in
+        AppIntentConfiguration(kind: "TripBookings", intent: SelectTripIntent.self, provider: TrekTripProvider()) { entry in
             TrekContainer(link: entry.snapshot?.bookings?.first.flatMap { WidgetSnapshot.link($0.path) }) {
                 BookingsFamilyView(entry: entry)
             } background: {
@@ -156,7 +160,7 @@ private struct BookingsFamilyView: View {
 
 struct TodosWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "TripTodos", provider: TrekProvider()) { entry in
+        AppIntentConfiguration(kind: "TripTodos", intent: SelectTripIntent.self, provider: TrekTripProvider()) { entry in
             TrekContainer(link: entry.snapshot?.todos.flatMap { WidgetSnapshot.link($0.path) }) {
                 TodosFamilyView(entry: entry)
             } background: {
@@ -179,7 +183,7 @@ private struct TodosFamilyView: View {
 
 struct PackingWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "TripPacking", provider: TrekProvider()) { entry in
+        AppIntentConfiguration(kind: "TripPacking", intent: SelectTripIntent.self, provider: TrekTripProvider()) { entry in
             TrekContainer(link: entry.snapshot?.packing.flatMap { WidgetSnapshot.link($0.path) }) {
                 PackingFamilyView(entry: entry)
             } background: {
@@ -225,7 +229,7 @@ private struct AtlasFamilyView: View {
 
 struct CollabWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "TripCollab", provider: TrekProvider()) { entry in
+        AppIntentConfiguration(kind: "TripCollab", intent: SelectTripIntent.self, provider: TrekTripProvider()) { entry in
             TrekContainer(link: entry.snapshot?.collab.flatMap { WidgetSnapshot.link($0.path) }) {
                 CollabFamilyView(entry: entry)
             } background: {

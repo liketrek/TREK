@@ -13,3 +13,8 @@
 "widget.atlas.description" = "Krajiny, kde si bol, žiariace na mape.";
 "widget.collab.name" = "Cestovná skupina";
 "widget.collab.description" = "Kto ide s tebou, najnovšie správy a otvorené hlasovanie.";
+"widget.intent.title" = "Vybrať cestu";
+"widget.intent.description" = "Cesta, ktorú zobrazuje tento widget.";
+"widget.intent.trip" = "Cesta";
+"widget.intent.auto" = "Automaticky";
+"widget.intent.autoHint" = "Rovnaká cesta ako na nástenke";

@@ -13,3 +13,8 @@
 "widget.atlas.description" = "Les pays où vous êtes allé, illuminés sur la carte.";
 "widget.collab.name" = "Groupe de voyage";
 "widget.collab.description" = "Qui vient, les derniers messages et le sondage ouvert.";
+"widget.intent.title" = "Choisir le voyage";
+"widget.intent.description" = "Le voyage affiché par ce widget.";
+"widget.intent.trip" = "Voyage";
+"widget.intent.auto" = "Automatique";
+"widget.intent.autoHint" = "Le même voyage que le tableau de bord";

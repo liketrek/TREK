@@ -13,3 +13,8 @@
 "widget.atlas.description" = "다녀온 나라가 지도 위에서 빛납니다.";
 "widget.collab.name" = "여행 그룹";
 "widget.collab.description" = "함께 가는 사람, 최근 메시지, 진행 중인 투표.";
+"widget.intent.title" = "여행 선택";
+"widget.intent.description" = "이 위젯에 표시할 여행.";
+"widget.intent.trip" = "여행";
+"widget.intent.auto" = "자동";
+"widget.intent.autoHint" = "대시보드와 같은 여행";

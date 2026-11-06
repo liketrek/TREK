@@ -13,3 +13,8 @@
 "widget.atlas.description" = "Die Länder, in denen du warst, leuchtend auf der Karte.";
 "widget.collab.name" = "Reisegruppe";
 "widget.collab.description" = "Wer mitreist, die neuesten Nachrichten und die offene Abstimmung.";
+"widget.intent.title" = "Reise wählen";
+"widget.intent.description" = "Die Reise, die dieses Widget zeigt.";
+"widget.intent.trip" = "Reise";
+"widget.intent.auto" = "Automatisch";
+"widget.intent.autoHint" = "Dieselbe Reise wie im Dashboard";

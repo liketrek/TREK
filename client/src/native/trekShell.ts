@@ -60,7 +60,8 @@ export interface TrekShellPlugin {
   /** Feature nativePush: the notification the app was opened from, before the UI ran. */
   takeOpenedPush(): Promise<{ url: string | null }>;
   /** Feature widgets: what the home-screen widget shows (native/widgets.ts), as JSON. */
-  setWidgetSnapshot(options: { json: string }): Promise<void>;
+  /** Feature widgetTrips adds `key`: "trip.<id>" for one trip's snapshot, "trips" for the list a widget picks from. */
+  setWidgetSnapshot(options: { json: string; key?: string }): Promise<void>;
   /** Feature liveActivity: starts the travel day's Live Activity, or updates the running one. */
   syncTripDay(options: {
     tripTitle: string;

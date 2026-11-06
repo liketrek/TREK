@@ -13,3 +13,8 @@
 "widget.atlas.description" = "Страны, где вы были, светятся на карте.";
 "widget.collab.name" = "Группа поездки";
 "widget.collab.description" = "Кто едет, последние сообщения и открытый опрос.";
+"widget.intent.title" = "Выбрать поездку";
+"widget.intent.description" = "Поездка, которую показывает этот виджет.";
+"widget.intent.trip" = "Поездка";
+"widget.intent.auto" = "Автоматически";
+"widget.intent.autoHint" = "Та же поездка, что и на главной";

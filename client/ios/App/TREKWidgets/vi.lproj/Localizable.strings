@@ -13,3 +13,8 @@
 "widget.atlas.description" = "Những quốc gia bạn đã đến, sáng lên trên bản đồ.";
 "widget.collab.name" = "Nhóm du lịch";
 "widget.collab.description" = "Ai đi cùng, tin nhắn mới nhất và cuộc bình chọn đang mở.";
+"widget.intent.title" = "Chọn chuyến đi";
+"widget.intent.description" = "Chuyến đi mà tiện ích này hiển thị.";
+"widget.intent.trip" = "Chuyến đi";
+"widget.intent.auto" = "Tự động";
+"widget.intent.autoHint" = "Cùng chuyến đi với bảng điều khiển";

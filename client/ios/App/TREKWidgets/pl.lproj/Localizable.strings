@@ -13,3 +13,8 @@
 "widget.atlas.description" = "Kraje, w których byłeś, świecące na mapie.";
 "widget.collab.name" = "Grupa podróży";
 "widget.collab.description" = "Kto jedzie, najnowsze wiadomości i otwarta ankieta.";
+"widget.intent.title" = "Wybierz podróż";
+"widget.intent.description" = "Podróż, którą pokazuje ten widżet.";
+"widget.intent.trip" = "Podróż";
+"widget.intent.auto" = "Automatycznie";
+"widget.intent.autoHint" = "Ta sama podróż co na pulpicie";

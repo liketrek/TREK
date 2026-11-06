@@ -13,3 +13,8 @@
 "widget.atlas.description" = "Az országok, ahol jártál, világítva a térképen.";
 "widget.collab.name" = "Útitársak";
 "widget.collab.description" = "Ki jön veled, a legújabb üzenetek és a nyitott szavazás.";
+"widget.intent.title" = "Utazás választása";
+"widget.intent.description" = "Az utazás, amelyet ez a widget mutat.";
+"widget.intent.trip" = "Utazás";
+"widget.intent.auto" = "Automatikus";
+"widget.intent.autoHint" = "Ugyanaz az utazás, mint az irányítópulton";

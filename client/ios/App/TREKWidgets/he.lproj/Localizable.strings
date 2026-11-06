@@ -13,3 +13,8 @@
 "widget.atlas.description" = "המדינות שביקרת בהן, זוהרות על המפה.";
 "widget.collab.name" = "קבוצת הטיול";
 "widget.collab.description" = "מי מצטרף, ההודעות האחרונות והסקר הפתוח.";
+"widget.intent.title" = "בחירת טיול";
+"widget.intent.description" = "הטיול שהווידג׳ט הזה מציג.";
+"widget.intent.trip" = "טיול";
+"widget.intent.auto" = "אוטומטי";
+"widget.intent.autoHint" = "אותו טיול כמו בלוח הבקרה";

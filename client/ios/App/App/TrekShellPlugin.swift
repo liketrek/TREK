@@ -46,7 +46,7 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
     /// and a server can require a minimum (minNativeShellApi in /api/health/features).
     static let shellApi = 2
     /// The native features by name, so the UI can turn each on by itself.
-    static let features: [String] = ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation", "sharedFiles", "nativePush", "widgets", "liveActivity"]
+    static let features: [String] = ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation", "sharedFiles", "nativePush", "widgets", "liveActivity", "widgetTrips"]
 
     // MARK: - Shared booking documents
 
@@ -63,12 +63,19 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
 
     /// Stores what the home-screen widget shows (native/widgets.ts builds it, texts
     /// already translated) where the widget extension reads it, and redraws it.
+    /// `key` (feature widgetTrips) stores one trip's snapshot ("trip.<id>") or the
+    /// list of trips a widget can be set to ("trips"); without it, the dashboard's.
     @objc func setWidgetSnapshot(_ call: CAPPluginCall) {
         guard let json = call.getString("json"), let data = json.data(using: .utf8) else {
             call.reject("json is required")
             return
         }
-        TrekSharedKeychain.write("widget.snapshot", data)
+        let key = call.getString("key") ?? "snapshot"
+        guard key == "snapshot" || key == "trips" || key.range(of: "^trip\\.[0-9]{1,12}$", options: .regularExpression) != nil else {
+            call.reject("key must be snapshot, trips or trip.<id>")
+            return
+        }
+        TrekSharedKeychain.write("widget.\(key)", data)
         WidgetCenter.shared.reloadAllTimelines()
         call.resolve()
     }

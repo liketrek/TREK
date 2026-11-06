@@ -13,7 +13,15 @@ vi.mock('./trekShell', () => ({
 }));
 
 import { TrekShell } from './trekShell';
-import { buildSnapshot, pickTrip, publishWidgets, todayOf, tripDayState, withBookings } from './widgets';
+import {
+  buildSnapshot,
+  pickTrip,
+  publishWidgets,
+  todayOf,
+  tripDayState,
+  widgetTripChoices,
+  withBookings,
+} from './widgets';
 
 const trip = (id: number, start: string | null, end: string | null, archived = 0) =>
   ({ id, title: `Trip ${id}`, start_date: start, end_date: end, is_archived: archived }) as unknown as Trip;
@@ -218,5 +226,30 @@ describe('the richer snapshot', () => {
     expect(snapshot.bookings).toEqual([]);
     expect(snapshot.todos?.open).toBe(1);
     expect(snapshot).not.toHaveProperty('packing');
+  });
+});
+
+describe('widgets set to a trip', () => {
+  it('offers the trips running or ahead, in the dashboard order, at most six', () => {
+    const trips = [
+      trip(1, '2026-01-01', '2026-01-05'),
+      trip(2, '2026-12-01', '2026-12-05'),
+      trip(3, '2026-11-04', '2026-11-12'),
+      trip(4, '2026-11-20', '2026-11-22', 1),
+      trip(5, null, null),
+      ...[6, 7, 8, 9, 10, 11].map((id) => trip(id, `2027-0${id - 5}-01`, `2027-0${id - 5}-03`)),
+    ];
+    expect(widgetTripChoices(trips, '2026-11-06').map((t) => t.id)).toEqual([3, 2, 6, 7, 8, 9]);
+  });
+
+  it('writes each trip under its own key and the list to pick from', async () => {
+    vi.mocked(TrekShell.setWidgetSnapshot).mockClear();
+    const snapshot = buildSnapshot(trip(2, '2026-12-01', '2026-12-05'), null, labels);
+    await publishWidgets(snapshot, null, [
+      { id: 2, title: 'Trip 2', start: '2026-12-01', end: '2026-12-05', snapshot },
+    ]);
+    const calls = vi.mocked(TrekShell.setWidgetSnapshot).mock.calls.map(([options]) => options);
+    expect(calls.map((c) => c.key)).toEqual([undefined, 'trip.2', 'trips']);
+    expect(JSON.parse(calls[2].json)).toEqual([{ id: 2, title: 'Trip 2', start: '2026-12-01', end: '2026-12-05' }]);
   });
 });

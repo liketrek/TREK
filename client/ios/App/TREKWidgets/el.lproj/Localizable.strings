@@ -13,3 +13,8 @@
 "widget.atlas.description" = "Οι χώρες που έχεις επισκεφθεί, φωτεινές στον χάρτη.";
 "widget.collab.name" = "Ομάδα ταξιδιού";
 "widget.collab.description" = "Ποιος έρχεται, τα τελευταία μηνύματα και η ανοιχτή ψηφοφορία.";
+"widget.intent.title" = "Επιλογή ταξιδιού";
+"widget.intent.description" = "Το ταξίδι που δείχνει αυτό το widget.";
+"widget.intent.trip" = "Ταξίδι";
+"widget.intent.auto" = "Αυτόματα";
+"widget.intent.autoHint" = "Το ίδιο ταξίδι με τον πίνακα";

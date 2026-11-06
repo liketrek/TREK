@@ -13,3 +13,8 @@
 "widget.atlas.description" = "الدول التي زرتها مضيئة على الخريطة.";
 "widget.collab.name" = "مجموعة السفر";
 "widget.collab.description" = "من يرافقك وأحدث الرسائل والتصويت المفتوح.";
+"widget.intent.title" = "اختر الرحلة";
+"widget.intent.description" = "الرحلة التي تعرضها هذه الأداة.";
+"widget.intent.trip" = "الرحلة";
+"widget.intent.auto" = "تلقائي";
+"widget.intent.autoHint" = "نفس رحلة لوحة التحكم";

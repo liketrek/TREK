@@ -42,25 +42,33 @@ export async function widgetWeather(
   return value;
 }
 
-const COVER_KEY = 'trek.widgetCover';
+const COVER_KEY = 'trek.widgetCovers';
+/** Covers kept, one per trip a widget can show (widgetTripChoices). */
+const COVER_KEEP = 6;
 const COVER_MAX_PX = 720;
 const COVER_MAX_BYTES = 15 * 1024 * 1024;
 /** Kept under this so the keychain item the widget reads stays small. */
 const COVER_MAX_BASE64 = 160_000;
 
-function storedCover(url: string): string | null {
+function storedCovers(): { url: string; data: string }[] {
   try {
     const raw = localStorage.getItem(COVER_KEY);
-    const parsed = raw ? (JSON.parse(raw) as { url?: string; data?: string }) : null;
-    return parsed?.url === url && parsed.data ? parsed.data : null;
+    const parsed: unknown = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? (parsed as { url: string; data: string }[]) : [];
   } catch {
-    return null;
+    return [];
   }
 }
 
+function storedCover(url: string): string | null {
+  return storedCovers().find((c) => c.url === url)?.data ?? null;
+}
+
+/** Newest first, the oldest dropped past COVER_KEEP. */
 function storeCover(url: string, data: string): void {
   try {
-    localStorage.setItem(COVER_KEY, JSON.stringify({ url, data }));
+    const rest = storedCovers().filter((c) => c.url !== url);
+    localStorage.setItem(COVER_KEY, JSON.stringify([{ url, data }, ...rest].slice(0, COVER_KEEP)));
   } catch {
     // Storage full: the cover is fetched again next time, nothing else depends on it.
   }

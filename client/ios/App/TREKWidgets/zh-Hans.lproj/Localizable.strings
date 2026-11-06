@@ -13,3 +13,8 @@
 "widget.atlas.description" = "你去过的国家在地图上亮起。";
 "widget.collab.name" = "旅行小组";
 "widget.collab.description" = "谁一起去、最新消息和进行中的投票。";
+"widget.intent.title" = "选择旅行";
+"widget.intent.description" = "此小组件显示的旅行。";
+"widget.intent.trip" = "旅行";
+"widget.intent.auto" = "自动";
+"widget.intent.autoHint" = "与仪表板相同的旅行";

@@ -144,6 +144,16 @@ export function pickTrip(trips: Trip[], today: string): Trip | null {
   return heroTrip(sortTripsByRelevance(active, today), today);
 }
 
+/**
+ * The trips a widget can be set to in Edit Widget: the ones running or coming
+ * up, in the dashboard's order (so the hero's trip comes first), at most `limit`,
+ * each of which gets a snapshot of its own.
+ */
+export function widgetTripChoices(trips: Trip[], today: string, limit = 6): Trip[] {
+  const ahead = trips.filter((t) => !t.is_archived && t.start_date && (t.end_date ?? t.start_date) >= today);
+  return sortTripsByRelevance(ahead, today).slice(0, limit);
+}
+
 /** The symbols of the booking kinds a day's timeline shows next to its stops. */
 const RESERVATION_SYMBOLS: Record<string, string> = {
   flight: 'airplane',
@@ -294,12 +304,32 @@ export function tripDayState(day: TripDay, nowMinutes: number, allDone: string) 
   };
 }
 
+/** A trip a widget can be set to in Edit Widget, and its snapshot. */
+export interface TripWidgetSnapshot {
+  id: number;
+  title: string;
+  start: string;
+  end: string;
+  snapshot: WidgetSnapshot;
+}
+
 export async function publishWidgets(
   snapshot: WidgetSnapshot,
-  liveDay: ReturnType<typeof tripDayState> | null
+  liveDay: ReturnType<typeof tripDayState> | null,
+  trips: TripWidgetSnapshot[] = []
 ): Promise<void> {
   if (!widgetsActive()) return;
   await TrekShell.setWidgetSnapshot({ json: JSON.stringify(snapshot) }).catch(reportNativeFailure);
+  // An app binary without widgetTrips would take every one of these for the dashboard's snapshot.
+  if (hasNativeFeature('widgetTrips')) {
+    for (const trip of trips) {
+      await TrekShell.setWidgetSnapshot({ json: JSON.stringify(trip.snapshot), key: `trip.${trip.id}` }).catch(
+        reportNativeFailure
+      );
+    }
+    const index = trips.map(({ id, title, start, end }) => ({ id, title, start, end }));
+    await TrekShell.setWidgetSnapshot({ json: JSON.stringify(index), key: 'trips' }).catch(reportNativeFailure);
+  }
   if (!hasNativeFeature('liveActivity')) return;
   if (liveDay && liveDay.total > 0) await TrekShell.syncTripDay(liveDay).catch(reportNativeFailure);
   else await TrekShell.endTripDay().catch(reportNativeFailure);

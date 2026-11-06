@@ -42,6 +42,21 @@ export interface WidgetCollab {
 
 const HEX = /^#[0-9a-f]{6}$/i;
 
+/**
+ * Server answers kept for a while: the widgets sync every quarter hour for up
+ * to six trips, and bags, chat and polls do not change that fast.
+ */
+const NETWORK_TTL_MS = 10 * 60 * 1000;
+const networkCache = new Map<string, { at: number; value: unknown }>();
+
+async function cached<T>(key: string, read: () => Promise<T>): Promise<T> {
+  const hit = networkCache.get(key);
+  if (hit && Date.now() - hit.at < NETWORK_TTL_MS) return hit.value as T;
+  const value = await read();
+  networkCache.set(key, { at: Date.now(), value });
+  return value;
+}
+
 function initials(name: string): string {
   const parts = name
     .trim()
@@ -66,7 +81,7 @@ export async function packingDetail(
     total_weight_grams?: number;
   }[] = [];
   try {
-    const res = (await packingApi.listBags(tripId)) as { bags?: typeof bags };
+    const res = await cached(`bags:${tripId}`, () => packingApi.listBags(tripId) as Promise<{ bags?: typeof bags }>);
     bags = res.bags ?? [];
   } catch {
     // Offline or no bags: the widget shows the items without them.
@@ -173,8 +188,8 @@ export async function collabSummary(
   let polls: Poll[] = [];
   try {
     const [m, p] = await Promise.all([
-      collabApi.getMessages(tripId) as Promise<{ messages?: Message[] }>,
-      collabApi.getPolls(tripId) as Promise<{ polls?: Poll[] }>,
+      cached(`messages:${tripId}`, () => collabApi.getMessages(tripId) as Promise<{ messages?: Message[] }>),
+      cached(`polls:${tripId}`, () => collabApi.getPolls(tripId) as Promise<{ polls?: Poll[] }>),
     ]);
     messages = m.messages ?? [];
     polls = p.polls ?? [];

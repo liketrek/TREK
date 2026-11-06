@@ -13,3 +13,8 @@
 "widget.atlas.description" = "Olduğun ölkələr xəritədə parlayır.";
 "widget.collab.name" = "Səyahət qrupu";
 "widget.collab.description" = "Kim gəlir, son mesajlar və açıq səsvermə.";
+"widget.intent.title" = "Səyahəti seç";
+"widget.intent.description" = "Bu vidcetin göstərdiyi səyahət.";
+"widget.intent.trip" = "Səyahət";
+"widget.intent.auto" = "Avtomatik";
+"widget.intent.autoHint" = "İdarə panelindəki səyahət";

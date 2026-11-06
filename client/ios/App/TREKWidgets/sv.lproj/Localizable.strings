@@ -13,3 +13,8 @@
 "widget.atlas.description" = "Länderna du har besökt, lysande på kartan.";
 "widget.collab.name" = "Resesällskap";
 "widget.collab.description" = "Vem som följer med, de senaste meddelandena och den öppna omröstningen.";
+"widget.intent.title" = "Välj resa";
+"widget.intent.description" = "Resan som den här widgeten visar.";
+"widget.intent.trip" = "Resa";
+"widget.intent.auto" = "Automatiskt";
+"widget.intent.autoHint" = "Samma resa som på startsidan";

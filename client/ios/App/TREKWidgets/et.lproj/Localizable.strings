@@ -13,3 +13,8 @@
 "widget.atlas.description" = "Riigid, kus oled käinud, kaardil helendamas.";
 "widget.collab.name" = "Reisiseltskond";
 "widget.collab.description" = "Kes tuleb kaasa, viimased sõnumid ja avatud hääletus.";
+"widget.intent.title" = "Vali reis";
+"widget.intent.description" = "Reis, mida see vidin näitab.";
+"widget.intent.trip" = "Reis";
+"widget.intent.auto" = "Automaatne";
+"widget.intent.autoHint" = "Sama reis mis töölaual";

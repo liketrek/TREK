@@ -13,3 +13,8 @@
 "widget.atlas.description" = "Negara yang pernah kamu kunjungi, bersinar di peta.";
 "widget.collab.name" = "Rombongan";
 "widget.collab.description" = "Siapa yang ikut, pesan terbaru, dan polling yang terbuka.";
+"widget.intent.title" = "Pilih perjalanan";
+"widget.intent.description" = "Perjalanan yang ditampilkan widget ini.";
+"widget.intent.trip" = "Perjalanan";
+"widget.intent.auto" = "Otomatis";
+"widget.intent.autoHint" = "Perjalanan yang sama dengan dasbor";

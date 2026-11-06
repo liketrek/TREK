@@ -12,15 +12,17 @@ import { useTranslation } from '../../i18n';
 import { useNativeCapabilities } from '../../native/capabilities';
 import { bookingsAhead, packingSummary, todosSummary, tripPlace } from '../../native/widgetExtras';
 import { widgetCover, widgetWeather } from '../../native/widgetMedia';
-import { atlasSummary, collabSummary, packingDetail } from '../../native/widgetOnline';
+import { atlasSummary, collabSummary, packingDetail, type WidgetAtlas } from '../../native/widgetOnline';
 import {
   buildSnapshot,
   pickTrip,
   publishWidgets,
   todayOf,
   tripDayState,
+  widgetTripChoices,
   widgetsActive,
   withBookings,
+  type TripWidgetSnapshot,
   type WidgetLabels,
 } from '../../native/widgets';
 import { useAuthStore } from '../../store/authStore';
@@ -141,24 +143,43 @@ export default function NativeWidgetsSync(): null {
     if (!widgetsActive()) return;
     let cancelled = false;
 
+    /** One trip's snapshot with its day, as the widgets set to that trip show it. */
+    const tripSnapshot = async (trip: Trip | null, context: SyncContext, atlas: WidgetAtlas | null) => {
+      const days = trip ? await offlineDb.days.where('trip_id').equals(trip.id).toArray() : [];
+      const extra = trip ? await tripExtras(trip, days, context) : null;
+      const plain = trip
+        ? todayOf(trip, days, context.today, (n, m) => t('native.widget.dayOf', { n, m }), context.time)
+        : null;
+      const day = plain ? withBookings(plain, extra?.reservations ?? [], context.today, context.time) : null;
+      return { day, snapshot: buildSnapshot(trip, day, labels(t), { ...extra?.extras, atlas }) };
+    };
+
     const sync = async () => {
       const now = new Date();
       const today = localDateStr(now.getFullYear(), now.getMonth(), now.getDate());
-      const time = (value: string) => formatTime(value, language, timeFormat);
+      const context: SyncContext = { today, language, unit, time: (value) => formatTime(value, language, timeFormat) };
       const trips = await offlineDb.trips.toArray();
-      const trip = pickTrip(trips, today);
-      const days = trip ? await offlineDb.days.where('trip_id').equals(trip.id).toArray() : [];
-      const [extra, atlas] = await Promise.all([
-        trip ? tripExtras(trip, days, { today, language, unit, time }) : Promise.resolve(null),
-        // The countries do not depend on a trip: the atlas widget fills without one.
-        atlasSummary(language),
-      ]);
-      const plain = trip ? todayOf(trip, days, today, (n, m) => t('native.widget.dayOf', { n, m }), time) : null;
-      const day = plain ? withBookings(plain, extra?.reservations ?? [], today, time) : null;
+      const hero = pickTrip(trips, today);
+      // The countries do not depend on a trip: the atlas widget fills without one.
+      const atlas = await atlasSummary(language);
+      const main = await tripSnapshot(hero, context, atlas);
+      // Every trip running or ahead also gets its own, for widgets set to it in Edit Widget.
+      const choices: TripWidgetSnapshot[] = [];
+      for (const trip of widgetTripChoices(trips, today)) {
+        const own = trip.id === hero?.id ? main : await tripSnapshot(trip, context, null);
+        choices.push({
+          id: trip.id,
+          title: trip.title,
+          start: trip.start_date ?? '',
+          end: trip.end_date ?? '',
+          snapshot: own.snapshot,
+        });
+      }
       if (cancelled) return;
-      const snapshot = buildSnapshot(trip, day, labels(t), { ...extra?.extras, atlas });
-      const live = day ? tripDayState(day, now.getHours() * 60 + now.getMinutes(), t('native.widget.dayDone')) : null;
-      await publishWidgets(snapshot, live);
+      const live = main.day
+        ? tripDayState(main.day, now.getHours() * 60 + now.getMinutes(), t('native.widget.dayDone'))
+        : null;
+      await publishWidgets(main.snapshot, live, choices);
     };
 
     void sync();

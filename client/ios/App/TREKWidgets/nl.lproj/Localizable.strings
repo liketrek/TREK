@@ -13,3 +13,8 @@
 "widget.atlas.description" = "De landen waar je bent geweest, oplichtend op de kaart.";
 "widget.collab.name" = "Reisgezelschap";
 "widget.collab.description" = "Wie er meegaat, de nieuwste berichten en de open peiling.";
+"widget.intent.title" = "Reis kiezen";
+"widget.intent.description" = "De reis die deze widget toont.";
+"widget.intent.trip" = "Reis";
+"widget.intent.auto" = "Automatisch";
+"widget.intent.autoHint" = "Dezelfde reis als het dashboard";
