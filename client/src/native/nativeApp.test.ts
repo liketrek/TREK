@@ -6,7 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { closeTopOverlay } from '../mobile/overlayStack';
 import { isEffectivelyOffline } from '../sync/networkMode';
 import { checkAppUpdate } from './capabilities';
-import { startNativeApp } from './nativeApp';
+import { installNativeGeolocation } from './geolocation';
+import { scrollToTop, startNativeApp } from './nativeApp';
 import { keepOfflineShellFresh } from './offlineShell';
 import { isNativeApp, isNativeIos } from './platform';
 
@@ -17,7 +18,11 @@ vi.mock('@capacitor/status-bar', () => ({ StatusBar: { setStyle: vi.fn() }, Styl
 vi.mock('./platform', () => ({ isNativeApp: vi.fn(), isNativeIos: vi.fn() }));
 vi.mock('./offlineShell', () => ({ keepOfflineShellFresh: vi.fn() }));
 vi.mock('../sync/networkMode', () => ({ isEffectivelyOffline: vi.fn() }));
-vi.mock('./capabilities', () => ({ checkAppUpdate: vi.fn(async () => false) }));
+vi.mock('./capabilities', () => ({
+  checkAppUpdate: vi.fn(async () => false),
+  loadNativeCapabilities: vi.fn(async () => ({})),
+}));
+vi.mock('./geolocation', () => ({ installNativeGeolocation: vi.fn() }));
 vi.mock('../mobile/overlayStack', () => ({ closeTopOverlay: vi.fn(() => false) }));
 
 function backButtonHandler(): (event: { canGoBack: boolean }) => void {
@@ -57,6 +62,24 @@ describe('startNativeApp', () => {
     backButtonHandler()({ canGoBack: true });
     expect(back).toHaveBeenCalledTimes(1);
     back.mockRestore();
+  });
+
+  it('puts the app location under navigator.geolocation once the binary has answered', async () => {
+    vi.useRealTimers();
+    startNativeApp();
+    await vi.waitFor(() => expect(installNativeGeolocation).toHaveBeenCalled());
+  });
+
+  it('a status bar tap scrolls the list in the middle of the screen back to the top', () => {
+    const list = document.createElement('div');
+    list.style.overflowY = 'auto';
+    Object.defineProperty(list, 'scrollTop', { configurable: true, value: 300 });
+    list.scrollTo = vi.fn();
+    document.body.appendChild(list);
+    document.elementFromPoint = vi.fn(() => list);
+    scrollToTop();
+    expect(list.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
+    list.remove();
   });
 
   it('asks the binary what it can do and the server which binary it needs', () => {

@@ -1,5 +1,6 @@
 import AuthenticationServices
 import Capacitor
+import CoreLocation
 import LocalAuthentication
 import UIKit
 import WebKit
@@ -23,6 +24,8 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
         CAPPluginMethod(name: "biometryInfo", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "authenticateBiometric", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setPrivacyCover", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "startLocation", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "stopLocation", returnType: CAPPluginReturnPromise),
     ]
 
     /// What this binary offers the server's UI, raised with every native feature
@@ -30,7 +33,30 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
     /// and a server can require a minimum (minNativeShellApi in /api/health/features).
     static let shellApi = 2
     /// The native features by name, so the UI can turn each on by itself.
-    static let features: [String] = ["capabilities", "edgeBack", "tileCache", "biometricLock"]
+    static let features: [String] = ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation"]
+
+    // MARK: - Location
+
+    /// One CoreLocation stream for the UI's navigator.geolocation (native/geolocation.ts).
+    /// The WebView's own asks for every server origin, and again and again; this
+    /// is the one system prompt the app's location string describes.
+    private lazy var location = TrekLocation { [weak self] payload in
+        self?.notifyListeners("location", data: payload)
+    }
+
+    @objc func startLocation(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            self.location.start(highAccuracy: call.getBool("highAccuracy") ?? false)
+            call.resolve()
+        }
+    }
+
+    @objc func stopLocation(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            self.location.stop()
+            call.resolve()
+        }
+    }
 
     // MARK: - App lock
 
@@ -76,7 +102,7 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
     /// How much the stored map tiles take on disk, for the offline settings.
     @objc func getTileCacheUsage(_ call: CAPPluginCall) {
         TrekTileStore.shared.usage { bytes in
-            call.resolve(["bytes": bytes, "limit": TrekTileStore.maxBytes])
+            call.resolve(["bytes": Int(bytes), "limit": Int(TrekTileStore.maxBytes)])
         }
     }
 
@@ -215,5 +241,74 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
             call.resolve(["opened": true])
             webView.loadSimulatedRequest(URLRequest(url: url), response: response, responseData: html)
         }
+    }
+}
+
+/// Positions and errors for the UI, shaped like the Geolocation API's, with the
+/// When-In-Use permission asked the first time.
+final class TrekLocation: NSObject, CLLocationManagerDelegate {
+    private let manager = CLLocationManager()
+    private let emit: ([String: Any]) -> Void
+    private var running = false
+
+    init(emit: @escaping ([String: Any]) -> Void) {
+        self.emit = emit
+        super.init()
+        manager.delegate = self
+    }
+
+    func start(highAccuracy: Bool) {
+        manager.desiredAccuracy = highAccuracy ? kCLLocationAccuracyBest : kCLLocationAccuracyHundredMeters
+        running = true
+        switch manager.authorizationStatus {
+        case .notDetermined:
+            manager.requestWhenInUseAuthorization()
+        case .denied, .restricted:
+            emitError(code: 1, message: "Location permission denied")
+        default:
+            manager.startUpdatingLocation()
+            manager.startUpdatingHeading()
+        }
+    }
+
+    func stop() {
+        running = false
+        manager.stopUpdatingLocation()
+        manager.stopUpdatingHeading()
+    }
+
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        guard running else { return }
+        switch manager.authorizationStatus {
+        case .authorizedWhenInUse, .authorizedAlways:
+            manager.startUpdatingLocation()
+            manager.startUpdatingHeading()
+        case .denied, .restricted:
+            emitError(code: 1, message: "Location permission denied")
+        default:
+            break
+        }
+    }
+
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let last = locations.last else { return }
+        emit([
+            "latitude": last.coordinate.latitude,
+            "longitude": last.coordinate.longitude,
+            "accuracy": last.horizontalAccuracy,
+            "altitude": last.verticalAccuracy >= 0 ? last.altitude as Any : NSNull(),
+            "speed": last.speed >= 0 ? last.speed as Any : NSNull(),
+            "heading": last.course >= 0 ? last.course as Any : NSNull(),
+            "timestamp": last.timestamp.timeIntervalSince1970 * 1000,
+        ])
+    }
+
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        let code = (error as? CLError)?.code == .denied ? 1 : 2
+        emitError(code: code, message: error.localizedDescription)
+    }
+
+    private func emitError(code: Int, message: String) {
+        emit(["error": ["code": code, "message": message]])
     }
 }

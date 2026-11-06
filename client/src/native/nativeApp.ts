@@ -4,7 +4,8 @@ import { SplashScreen } from '@capacitor/splash-screen';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { closeTopOverlay } from '../mobile/overlayStack';
 import { isEffectivelyOffline } from '../sync/networkMode';
-import { checkAppUpdate } from './capabilities';
+import { checkAppUpdate, loadNativeCapabilities } from './capabilities';
+import { installNativeGeolocation } from './geolocation';
 import { keepOfflineShellFresh } from './offlineShell';
 import { isNativeApp, isNativeIos } from './platform';
 import { reportNativeFailure } from './reportFailure';
@@ -24,6 +25,12 @@ export function startNativeApp(): void {
 
   // What this binary can do, and whether this server's UI needs a newer one.
   void checkAppUpdate(fetchServerFeatures);
+  // The app's own location under navigator.geolocation, where the binary has it.
+  void loadNativeCapabilities().then(() => installNativeGeolocation());
+
+  // A tap on the status bar scrolls the list under it back to the top, as in
+  // every iOS app (the status-bar plugin fires statusTap on iOS).
+  window.addEventListener('statusTap', scrollToTop);
 
   // Android's back gesture: through the app's own history first, and only
   // then out of the app, the way a browser tab would behave.
@@ -71,4 +78,18 @@ async function fetchServerFeatures(): Promise<{ minNativeShellApi?: unknown }> {
   const res = await fetch('/api/health/features', { credentials: 'same-origin', signal: AbortSignal.timeout(8000) });
   if (!res.ok) return {};
   return (await res.json()) as { minNativeShellApi?: unknown };
+}
+
+/** The scrolled list in the middle of the screen, else the page, back to its top. */
+export function scrollToTop(): void {
+  let el = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2) as HTMLElement | null;
+  while (el && el !== document.body) {
+    const overflow = getComputedStyle(el).overflowY;
+    if ((overflow === 'auto' || overflow === 'scroll') && el.scrollTop > 0) {
+      el.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    el = el.parentElement;
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }

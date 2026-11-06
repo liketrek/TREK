@@ -42,7 +42,28 @@ export interface TrekShellPlugin {
   authenticateBiometric(options: { reason: string }): Promise<{ ok: true }>;
   /** Feature biometricLock: a blurred cover in the app switcher while the lock is on. */
   setPrivacyCover(options: { enabled: boolean }): Promise<void>;
+  /** iOS, feature geolocation: starts the native location stream (the "location" event). */
+  startLocation(options: { highAccuracy: boolean }): Promise<void>;
+  stopLocation(): Promise<void>;
+  addListener(
+    event: 'location',
+    listener: (payload: NativeLocationPayload) => void
+  ): Promise<{ remove: () => Promise<void> }>;
 }
+
+/** A position, or an error shaped like GeolocationPositionError (1 denied, 2 unavailable). */
+export type NativeLocationPayload =
+  | {
+      latitude: number;
+      longitude: number;
+      accuracy: number;
+      altitude: number | null;
+      speed: number | null;
+      heading: number | null;
+      timestamp: number;
+      error?: undefined;
+    }
+  | { error: { code: number; message: string } };
 
 export const TrekShell = registerPlugin<TrekShellPlugin>('TrekShell');
 
