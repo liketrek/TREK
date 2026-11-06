@@ -101,18 +101,33 @@ describe('ContextMenu', () => {
     expect(onClose).toHaveBeenCalledTimes(2)
   })
 
-  it('FE-W4CTX-010: flips the menu back inside the viewport when it would overflow', () => {
-    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
-      width: 200, height: 120, top: 0, left: 0, right: 0, bottom: 0, x: 0, y: 0, toJSON: () => ({}),
-    } as DOMRect)
+  function layoutSize(width: number, height: number) {
+    vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(width)
+    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(height)
     Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 400 })
     Object.defineProperty(window, 'innerHeight', { writable: true, configurable: true, value: 300 })
+  }
+
+  it('FE-W4CTX-010: flips the menu back inside the viewport when it would overflow', () => {
+    layoutSize(200, 120)
 
     const { baseElement } = render(<ContextMenu menu={{ x: 380, y: 290, items: [{ label: 'Open' }] }} onClose={() => {}} />)
 
     const menu = baseElement.querySelector('.trek-popover-enter') as HTMLElement
     expect(menu.style.left).toBe('192px')
     expect(menu.style.top).toBe('172px')
+  })
+
+  it('FE-W4CTX-010b: keeps an end-aligned menu off the left edge, and caps one taller than the screen', () => {
+    layoutSize(200, 500)
+
+    const { baseElement } = render(<ContextMenu menu={{ x: 40, y: 20, alignEnd: true, items: [{ label: 'Open' }] }} onClose={() => {}} />)
+
+    const menu = baseElement.querySelector('.trek-popover-enter') as HTMLElement
+    expect(menu.style.left).toBe('8px')
+    expect(menu.style.top).toBe('8px')
+    expect(menu.style.maxHeight).toBe('284px')
+    expect(menu.style.overflowY).toBe('auto')
   })
 
   it('FE-W4CTX-011: Escape, a scroll and a resize close it', () => {

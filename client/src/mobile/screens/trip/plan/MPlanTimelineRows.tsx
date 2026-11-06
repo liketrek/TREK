@@ -468,23 +468,23 @@ function TravelLine({ seg }: { seg: RouteSegment }) {
   const mode = seg.mode
   const Icon = routeModeIcon(mode)
   const durationText = seg.durationText ?? (mode === 'walking' ? seg.walkingText : seg.drivingText)
+  // One pill between two hairlines, as the desktop day plan draws a leg: the mode,
+  // the time in full weight and the distance muted beside it, no dot between them.
   return (
     <>
       <span className="h-px flex-1 bg-[color:var(--m-rowbr)]" />
-      <span className="inline-flex items-center gap-[3px] whitespace-nowrap font-geist text-[0.59375rem] font-semibold text-m-faint">
-        <Icon size={10} strokeWidth={2} />
-        {durationText}
+      <span className="inline-flex items-center gap-[6px] whitespace-nowrap rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-2.5 py-[3px] font-geist text-[0.6875rem] leading-none">
+        <Icon size={12} strokeWidth={2.2} className="flex-none text-m-muted" />
+        <span className="font-semibold text-m-ink">{durationText}</span>
+        {seg.distanceText && <span className="text-m-muted">{seg.distanceText}</span>}
+        {/* Extra text a plugin route attached to this leg (e.g. "25 min charge"). */}
+        {seg.noteText && (
+          <span className="inline-flex items-center gap-[3px] text-m-muted">
+            <Zap size={11} strokeWidth={2} />
+            {seg.noteText}
+          </span>
+        )}
       </span>
-      <span className="whitespace-nowrap font-geist text-[0.59375rem] font-semibold text-m-faint">
-        · {seg.distanceText}
-      </span>
-      {/* Extra text a plugin route attached to this leg (e.g. "25 min charge"). */}
-      {seg.noteText && (
-        <span className="inline-flex items-center gap-[3px] whitespace-nowrap font-geist text-[0.59375rem] font-semibold text-m-faint">
-          <Zap size={10} strokeWidth={2} />
-          {seg.noteText}
-        </span>
-      )}
       <span className="h-px flex-1 bg-[color:var(--m-rowbr)]" />
     </>
   )
@@ -493,7 +493,7 @@ function TravelLine({ seg }: { seg: RouteSegment }) {
 export function ConnRow({ seg, onTap }: { seg: RouteSegment; onTap?: (e: MouseEvent) => void }) {
   // Tap to change the leg's mode (#1281).
   const inner = <TravelLine seg={seg} />
-  const cls = 'mt-[5px] flex w-full items-center gap-2 py-px text-[color:var(--m-conn)]'
+  const cls = 'mt-[6px] flex w-full items-center gap-2 py-px text-[color:var(--m-conn)] transition-transform active:scale-[.98]'
   return onTap
     ? <button type="button" onClick={onTap} className={cls}>{inner}</button>
     : <div className={cls}>{inner}</div>

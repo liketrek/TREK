@@ -34,6 +34,10 @@ import MDayPager from '../../../components/MDayPager'
  */
 
 const GLASS_PILL = 'rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)]'
+/** A tappable pill in the same glass, 28px tall like GLASS_ROUND, for a label. */
+const GLASS_CHIP = `relative flex h-7 flex-none items-center whitespace-nowrap font-geist text-[0.6875rem] font-semibold text-m-ink transition-transform active:scale-95 ${GLASS_PILL}`
+/** A round control the size of a GLASS_PILL row, with a 44px hit area around it. */
+const GLASS_ROUND = `relative flex h-7 w-7 flex-none items-center justify-center text-m-muted transition-transform active:scale-95 before:absolute before:-inset-2 before:content-[''] ${GLASS_PILL}`
 
 export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
   const { t, trip, can } = planner
@@ -178,17 +182,18 @@ function PlanDayPage({ planner, shell, dayId: pageDayId, active, editing, legMen
   const chrome = { editing, t, language: tl.language, timeFormat: tl.timeFormat }
 
   return (
-    <div className="absolute inset-0">
+    // One column under the day chips: the UP-NEXT card (go mode) or the edit
+    // header, then the timeline card filling the rest, 12px apart whatever height
+    // the card above it has. A day without an up-next starts the timeline right
+    // under the chips.
+    <div className="absolute inset-x-4 flex flex-col gap-3 top-[calc(var(--m-safe-top,12px)+102px)] bottom-[calc(env(safe-area-inset-bottom,0px)+90px)]">
       {!editing && <UpNextCard tl={tl} t={t} onOpen={openPlace} />}
       {editing && <EditHeader tl={tl} planner={planner} shell={shell} />}
 
-      {/* Timeline card — go mode leaves room for the UP-NEXT card above, but
-          collapses that reserved space up to the day chips when the day has no
-          up-next (no places), so an empty day shows no gap. */}
       <div
         data-touch-drag={editing && active ? '' : undefined}
-        className="absolute inset-x-4 overflow-x-hidden overflow-y-auto overscroll-y-contain rounded-[22px] border border-[color:var(--m-cbr)] bg-[color:var(--m-card)] px-3.5 pb-2 pt-1 backdrop-blur-[24px] backdrop-saturate-[1.6] bottom-[calc(env(safe-area-inset-bottom,0px)+90px)]"
-        style={{ top: `calc(var(--m-safe-top, 12px) + ${editing ? 140 : tl.upNext ? 216 : 102}px)` }}
+        data-timeline-card=""
+        className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain rounded-[22px] border border-[color:var(--m-cbr)] bg-[color:var(--m-card)] px-3.5 pb-2 pt-1 backdrop-blur-[24px] backdrop-saturate-[1.6]"
       >
         {planner.toursEnabled && tl.rows.some(row => row.kind === 'place' && row.invalidTour) && (
           <div role="status" className="border-b border-[color:var(--warning)] p-2 text-sm text-[color:var(--warning)]">
@@ -342,7 +347,7 @@ function UpNextCard({ tl, t, onOpen }: {
     <button
       type="button"
       onClick={() => onOpen(upNext.assignment)}
-      className="absolute inset-x-4 cursor-pointer rounded-[22px] border border-[color:var(--m-inbr)] bg-[color:var(--m-inner)] px-4 py-3.5 text-start shadow-[0_18px_44px_-18px_rgba(0,0,0,.3)] backdrop-blur-[28px] backdrop-saturate-[1.8] top-[calc(var(--m-safe-top,12px)+102px)]"
+      className="flex-none cursor-pointer rounded-[22px] border border-[color:var(--m-inbr)] bg-[color:var(--m-inner)] px-4 py-3.5 text-start shadow-[0_18px_44px_-18px_rgba(0,0,0,.3)] backdrop-blur-[28px] backdrop-saturate-[1.8]"
     >
       <div className="flex items-center justify-between">
         <span className="whitespace-nowrap font-geist text-[0.65625rem] font-bold uppercase tracking-[.08em] text-m-muted">
@@ -391,7 +396,7 @@ function EditHeader({ tl, planner, shell }: {
   }
 
   return (
-    <div className="absolute inset-x-4 flex items-center gap-2 top-[calc(var(--m-safe-top,12px)+102px)]">
+    <div className="flex flex-none items-center gap-2">
       {renaming ? (
         <input
           autoFocus
@@ -421,17 +426,17 @@ function EditHeader({ tl, planner, shell }: {
             type="button"
             aria-label={t('mobileTrip.renameDay')}
             onClick={() => { setDraft(tl.day?.title ?? ''); setRenaming(true) }}
-            className="flex-none text-m-faint"
+            className={GLASS_ROUND}
           >
-            <Pencil size={14} strokeWidth={2} />
+            <Pencil size={13} strokeWidth={2.2} />
           </button>
           <button
             type="button"
             aria-label={t('dayplan.reorderDays')}
             onClick={() => shell.openSheet('days')}
-            className="flex-none text-m-faint"
+            className={GLASS_ROUND}
           >
-            <CalendarRange size={14} strokeWidth={2} />
+            <CalendarRange size={13} strokeWidth={2.2} />
           </button>
         </>
       )}
@@ -476,15 +481,23 @@ function TimelineHeader({ tl, dayLabel, openLabel, weatherLabel, onOpenDay, onOp
           the browser's: while the chips overflow they pan first, and the pager
           takes over at their end or when they fit. */}
       <span className="flex min-w-0 items-center gap-1.5 overflow-x-auto">
+        {/* The same glass controls as the edit header's: a round one when the day
+            is already named above it, a pill with the day's name otherwise. */}
         <button
           type="button"
           onClick={onOpenDay}
           aria-label={openLabel}
-          className="flex flex-none items-center gap-[5px] whitespace-nowrap rounded-full bg-[color:var(--m-ic)] px-2.5 py-1 font-geist text-[0.6875rem] font-semibold"
+          // No widened hit area here: inside the scrolling chip strip it would add
+          // a few pixels of sideways scroll.
+          className={dayLabel ? `${GLASS_CHIP} gap-[5px] px-2.5` : `${GLASS_CHIP} w-7 justify-center`}
         >
-          <CalendarDays size={12} strokeWidth={2.2} className="text-m-muted" />
-          {dayLabel}
-          <ChevronRight size={11} strokeWidth={2.4} aria-hidden="true" className="text-m-faint" />
+          <CalendarDays size={13} strokeWidth={2.2} className="text-m-muted" />
+          {dayLabel && (
+            <>
+              {dayLabel}
+              <ChevronRight size={11} strokeWidth={2.4} aria-hidden="true" className="text-m-faint" />
+            </>
+          )}
         </button>
         {tl.hotelChips.map(chip => (
           <button
@@ -492,7 +505,7 @@ function TimelineHeader({ tl, dayLabel, openLabel, weatherLabel, onOpenDay, onOp
             type="button"
             onClick={() => onOpenStay(chip)}
             aria-label={stayLabel(chip)}
-            className="flex flex-none items-center gap-[5px] whitespace-nowrap rounded-full bg-[color:var(--m-ic)] px-2.5 py-1 font-geist text-[0.6875rem] font-semibold"
+            className={`${GLASS_CHIP} gap-[5px] px-2.5`}
           >
             <HotelChipIcon variant={chip.variant} />
             {chip.name}
@@ -506,7 +519,7 @@ function TimelineHeader({ tl, dayLabel, openLabel, weatherLabel, onOpenDay, onOp
           onClick={onOpenDay}
           aria-label={weatherLabel || openLabel}
           title={tl.weatherPlaceName || undefined}
-          className="ms-auto flex flex-none items-center gap-1 whitespace-nowrap px-1.5 py-1 text-[0.71875rem] font-semibold"
+          className={`${GLASS_CHIP} ms-auto gap-1 px-2.5`}
         >
           <WeatherIcon size={13} strokeWidth={2} />
           {tl.weatherTemp}°

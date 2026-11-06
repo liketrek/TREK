@@ -176,14 +176,19 @@ describe('MPlanTimeline', () => {
       expect(screen.queryByText('Museum Rd 1')).not.toBeInTheDocument()
     })
 
-    it('FE-MOB-PLTL-004: collapses the reserved space when the day has no up next', () => {
+    it('FE-MOB-PLTL-004: the timeline follows the up-next card in one column, and starts at the top without one', () => {
       const { container, unmount } = renderTimeline()
-      expect(card(container).style.top).toContain('216px')
+      // The card flows under the up-next card at a fixed gap, whatever its height,
+      // rather than at an offset that assumed an address line (a gap without one).
+      const upNext = screen.getByText('mobileTrip.upNext').closest('button') as HTMLElement
+      expect(upNext.nextElementSibling).toBe(card(container))
+      expect(card(container).parentElement).toHaveClass('flex-col', 'gap-3')
+      expect(card(container).style.top).toBe('')
       unmount()
 
       const empty = renderTimeline({ upNext: null, rows: [], merged: [] })
       expect(screen.queryByText('mobileTrip.upNext')).not.toBeInTheDocument()
-      expect(card(empty.container).style.top).toContain('102px')
+      expect(card(empty.container).previousElementSibling).toBeNull()
     })
   })
 
@@ -532,7 +537,8 @@ describe('MPlanTimeline', () => {
       const { container } = renderTimeline({}, {}, { mode: 'edit' })
 
       expect(screen.queryByText('mobileTrip.upNext')).not.toBeInTheDocument()
-      expect(card(container).style.top).toContain('140px')
+      // The edit header takes the up-next card's place, the timeline right under it.
+      expect(card(container).previousElementSibling).toContainElement(screen.getByLabelText('mobileTrip.renameDay'))
     })
 
     it('FE-MOB-PLTL-026: splits the day title into city pills', () => {

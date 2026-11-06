@@ -441,6 +441,7 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
         <div className="pointer-events-none absolute inset-x-4 z-[25] flex flex-col items-center gap-2 top-[calc(var(--m-safe-top,12px)+96px)]">
           <PoiCategoryPill
             fullWidth
+            phoneChrome
             categories={poi.categories}
             active={poi.active}
             onToggle={poi.toggle}

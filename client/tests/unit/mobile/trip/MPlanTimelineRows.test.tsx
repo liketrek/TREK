@@ -390,7 +390,10 @@ describe('ConnRow', () => {
     const { container } = render(<ConnRow seg={SEG} />)
 
     expect(screen.getByText('14 min')).toBeInTheDocument()
-    expect(screen.getByText('· 5.4 km')).toBeInTheDocument()
+    // The distance sits in the same pill as the time, with no dot between them.
+    expect(screen.getByText('5.4 km')).toBeInTheDocument()
+    expect(screen.getByText('14 min').parentElement).toBe(screen.getByText('5.4 km').parentElement)
+    expect(container.textContent).not.toContain('·')
     expect(container.querySelector('button')).toBeNull()
   })
 
@@ -448,7 +451,7 @@ describe('HotelConnRow', () => {
 
     expect(top.children[0].textContent).toBe('Hotel Sacher')
     expect(top.children[1].textContent).toContain('14 min')
-    expect(top.children[1].textContent).toContain('· 5.4 km')
+    expect(top.children[1].textContent).toContain('5.4 km')
     unmount()
 
     const bottom = render(<HotelConnRow seg={SEG} name="Hotel Sacher" placement="bottom" />)
