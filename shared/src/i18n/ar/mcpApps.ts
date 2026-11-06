@@ -52,5 +52,16 @@ const mcpApps: TranslationStrings = {
   'mcpApps.todos.due': 'الموعد',
   'mcpApps.todos.done': 'منجزة',
   'mcpApps.todos.toggleError': 'تعذّر تحديث المهمة. حاول مرة أخرى.',
+  'mcpApps.map.title': 'خريطة الرحلة',
+  'mcpApps.map.count': 'الأماكن على الخريطة',
+  'mcpApps.map.zoomIn': 'تكبير',
+  'mcpApps.map.zoomOut': 'تصغير',
+  'mcpApps.map.fullscreen': 'ملء الشاشة',
+  'mcpApps.map.empty': 'لا توجد أماكن لها موقع بعد',
+  'mcpApps.dayPlan.day': 'اليوم {day}',
+  'mcpApps.dayPlan.empty': 'لا شيء مخطط لهذا اليوم',
+  'mcpApps.dayPlan.moveUp': 'نقل لأعلى',
+  'mcpApps.dayPlan.moveDown': 'نقل لأسفل',
+  'mcpApps.dayPlan.reorderError': 'تعذّر تغيير الترتيب. حاول مرة أخرى.',
 };
 export default mcpApps;

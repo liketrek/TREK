@@ -52,5 +52,16 @@ const mcpApps: TranslationStrings = {
   'mcpApps.todos.due': 'Tähtaeg',
   'mcpApps.todos.done': 'Tehtud',
   'mcpApps.todos.toggleError': 'Ülesannet ei õnnestunud uuendada. Proovi uuesti.',
+  'mcpApps.map.title': 'Reisi kaart',
+  'mcpApps.map.count': 'Kohad kaardil',
+  'mcpApps.map.zoomIn': 'Suurenda',
+  'mcpApps.map.zoomOut': 'Vähenda',
+  'mcpApps.map.fullscreen': 'Täisekraan',
+  'mcpApps.map.empty': 'Asukohaga kohti pole veel',
+  'mcpApps.dayPlan.day': 'Päev {day}',
+  'mcpApps.dayPlan.empty': 'Selleks päevaks pole midagi planeeritud',
+  'mcpApps.dayPlan.moveUp': 'Liiguta üles',
+  'mcpApps.dayPlan.moveDown': 'Liiguta alla',
+  'mcpApps.dayPlan.reorderError': 'Järjekorda ei õnnestunud muuta. Proovi uuesti.',
 };
 export default mcpApps;

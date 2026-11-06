@@ -11,6 +11,7 @@ import {
   errorResult,
   ok,
   okStructured,
+  uiTool,
 } from '../../nest-mcp';
 import type { MirrorSender } from '../accommodations/accommodations.service';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
@@ -21,8 +22,10 @@ import {
   dayCreateRequestSchema,
   dayReorderRequestSchema,
   dayUpdateRequestSchema,
+  dayPlanOutputSchema,
   idSchema,
   listDaysOutputSchema,
+  mcpAppUri,
 } from '@trek/shared';
 import type { DayCreateRequest, DayReorderRequest, DayUpdateRequest } from '@trek/shared';
 
@@ -295,5 +298,35 @@ export class DaysMcp {
   async listDays({ tripId }: { tripId: number }, ctx: McpContext) {
     if (!(await this.days.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     return okStructured(await this.days.list(tripId));
+  }
+
+  @Tool({
+    name: 'get_day_plan',
+    title: 'Day plan',
+    description:
+      "One day of a trip with its stops in their order: each stop's assignment_id, place_id, name, time, end_time and address. Pass the assignment ids to reorder_day_assignments to change the order. list_days has every day at once.",
+    inputSchema: { tripId: idSchema, dayId: idSchema },
+    outputSchema: dayPlanOutputSchema,
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    _meta: uiTool(mcpAppUri('day-plan'), { invoking: 'Reading the day…', invoked: 'Day loaded' }),
+    access: { group: 'trips', mode: 'read' },
+  })
+  async getDayPlan({ tripId, dayId }: { tripId: number; dayId: number }, ctx: McpContext) {
+    if (!(await this.days.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    const day = await this.days.getDay(dayId, tripId);
+    if (!day) return errorResult('Day not found.');
+    const assignments = await this.days.getAssignmentsForDay(dayId);
+    return okStructured({
+      trip_id: tripId,
+      day: { id: day.id, day_number: day.day_number ?? null, date: day.date ?? null, title: day.title ?? null },
+      stops: assignments.map((a) => ({
+        assignment_id: a.id,
+        place_id: a.place.id,
+        name: a.place.name,
+        time: a.place.place_time ?? null,
+        end_time: a.place.end_time ?? null,
+        address: a.place.address ?? null,
+      })),
+    });
   }
 }

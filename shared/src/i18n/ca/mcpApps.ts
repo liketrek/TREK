@@ -52,5 +52,16 @@ const mcpApps: TranslationStrings = {
   'mcpApps.todos.due': 'Venciment',
   'mcpApps.todos.done': 'Fetes',
   'mcpApps.todos.toggleError': 'No s’ha pogut actualitzar la tasca. Torna-ho a provar.',
+  'mcpApps.map.title': 'Mapa del viatge',
+  'mcpApps.map.count': 'Llocs al mapa',
+  'mcpApps.map.zoomIn': 'Apropa',
+  'mcpApps.map.zoomOut': 'Allunya',
+  'mcpApps.map.fullscreen': 'Pantalla completa',
+  'mcpApps.map.empty': 'Encara no hi ha llocs amb ubicació',
+  'mcpApps.dayPlan.day': 'Dia {day}',
+  'mcpApps.dayPlan.empty': 'No hi ha res planificat per a aquest dia',
+  'mcpApps.dayPlan.moveUp': 'Mou amunt',
+  'mcpApps.dayPlan.moveDown': 'Mou avall',
+  'mcpApps.dayPlan.reorderError': 'No s’ha pogut canviar l’ordre. Torna-ho a provar.',
 };
 export default mcpApps;

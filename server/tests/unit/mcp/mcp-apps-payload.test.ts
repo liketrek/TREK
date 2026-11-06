@@ -9,6 +9,7 @@ import { MapsService } from '../../../src/nest/maps/maps.service';
 import { McpAppsService } from '../../../src/nest/mcp-apps/mcp-apps.service';
 import { WeatherService } from '../../../src/nest/weather/weather.service';
 import { makeBudgetItem } from '../../helpers/factories/budget';
+import { makeDayAssignment } from '../../helpers/factories/itinerary';
 import { makePackingItem } from '../../helpers/factories/packing';
 import { makePlace } from '../../helpers/factories/places';
 import { setAddonEnabled } from '../../helpers/factories/settings';
@@ -53,6 +54,7 @@ const SEEDED_TRIPS = 12;
 
 let harness: McpHarness;
 let tripId: number;
+let dayId: number;
 
 /** The arguments each view's tool is measured with; a tool that draws a view and is missing here fails PAYLOAD-001. */
 const argsFor = (): Record<string, Record<string, unknown>> => ({
@@ -64,6 +66,8 @@ const argsFor = (): Record<string, Record<string, unknown>> => ({
   list_budget_items: {},
   get_budget_per_person: {},
   list_todos: {},
+  get_trip_map: {},
+  get_day_plan: { dayId },
 });
 
 /** The trip-scoped tools get the seeded trip on top of their own arguments. */
@@ -73,6 +77,8 @@ const TRIP_SCOPED = new Set<string>([
   'list_budget_items',
   'get_budget_per_person',
   'list_todos',
+  'get_trip_map',
+  'get_day_plan',
 ]);
 
 beforeAll(async () => {
@@ -86,8 +92,12 @@ beforeAll(async () => {
   const userId = (await makeUser(orm)).user.id;
   const trips = await Promise.all(Array.from({ length: SEEDED_TRIPS }, () => makeTrip(orm, userId)));
   tripId = trips[0].id;
-  await Promise.all(Array.from({ length: 5 }, (_, i) => makeDay(orm, tripId, { day_number: i + 1 })));
-  await Promise.all(Array.from({ length: 20 }, () => makePlace(orm, tripId)));
+  const days = await Promise.all(Array.from({ length: 5 }, (_, i) => makeDay(orm, tripId, { day_number: i + 1 })));
+  dayId = days[0].id;
+  const places = await Promise.all(
+    Array.from({ length: 20 }, (_, i) => makePlace(orm, tripId, { lat: 38.7 + i / 100, lng: -9.1 })),
+  );
+  await Promise.all(places.slice(0, 8).map((place) => makeDayAssignment(orm, dayId, place.id)));
   await Promise.all(Array.from({ length: 60 }, () => makePackingItem(orm, tripId)));
   await Promise.all(Array.from({ length: 40 }, (_, i) => makeBudgetItem(orm, tripId, { total_price: (i + 1) * 10 })));
   await Promise.all(Array.from({ length: 40 }, () => makeTodoItem(orm, tripId)));

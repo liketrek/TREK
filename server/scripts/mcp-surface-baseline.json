@@ -1,24 +1,24 @@
 {
   "sessions": {
     "full": {
-      "tools": 427,
-      "bytes": 480698,
-      "tokens": 120175
+      "tools": 429,
+      "bytes": 482407,
+      "tokens": 120602
     },
     "core": {
-      "tools": 153,
-      "bytes": 174025,
-      "tokens": 43506
+      "tools": 155,
+      "bytes": 175734,
+      "tokens": 43934
     },
     "readonly": {
-      "tools": 152,
-      "bytes": 164430,
-      "tokens": 41108
+      "tools": 154,
+      "bytes": 166139,
+      "tokens": 41535
     },
     "trips": {
-      "tools": 35,
-      "bytes": 34851,
-      "tokens": 8713
+      "tools": 36,
+      "bytes": 35587,
+      "tokens": 8897
     }
   },
   "tools": {
@@ -167,6 +167,7 @@
     "get_collection_tour": 1011,
     "get_country_atlas_places": 525,
     "get_dawarich_trip_track": 1141,
+    "get_day_plan": 736,
     "get_detailed_weather": 600,
     "get_display_settings": 1439,
     "get_help_page": 1058,
@@ -200,6 +201,7 @@
     "get_trip_document_sync": 799,
     "get_trip_invite_link": 654,
     "get_trip_journal": 649,
+    "get_trip_map": 973,
     "get_trip_overview": 609,
     "get_trip_summary": 796,
     "get_trip_warnings": 965,

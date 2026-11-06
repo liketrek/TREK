@@ -52,5 +52,16 @@ const mcpApps: TranslationStrings = {
   'mcpApps.todos.due': '截止',
   'mcpApps.todos.done': '已完成',
   'mcpApps.todos.toggleError': '无法更新待办事项，请重试。',
+  'mcpApps.map.title': '行程地图',
+  'mcpApps.map.count': '地图上的地点',
+  'mcpApps.map.zoomIn': '放大',
+  'mcpApps.map.zoomOut': '缩小',
+  'mcpApps.map.fullscreen': '全屏',
+  'mcpApps.map.empty': '还没有带位置的地点',
+  'mcpApps.dayPlan.day': '第 {day} 天',
+  'mcpApps.dayPlan.empty': '这一天没有安排',
+  'mcpApps.dayPlan.moveUp': '上移',
+  'mcpApps.dayPlan.moveDown': '下移',
+  'mcpApps.dayPlan.reorderError': '无法更改顺序，请重试。',
 };
 export default mcpApps;

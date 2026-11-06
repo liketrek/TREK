@@ -52,5 +52,16 @@ const mcpApps: TranslationStrings = {
   'mcpApps.todos.due': 'Termín',
   'mcpApps.todos.done': 'Hotovo',
   'mcpApps.todos.toggleError': 'Úlohu sa nepodarilo aktualizovať. Skúste to znova.',
+  'mcpApps.map.title': 'Mapa cesty',
+  'mcpApps.map.count': 'Miesta na mape',
+  'mcpApps.map.zoomIn': 'Priblížiť',
+  'mcpApps.map.zoomOut': 'Oddialiť',
+  'mcpApps.map.fullscreen': 'Celá obrazovka',
+  'mcpApps.map.empty': 'Zatiaľ žiadne miesta s polohou',
+  'mcpApps.dayPlan.day': 'Deň {day}',
+  'mcpApps.dayPlan.empty': 'Na tento deň nie je nič naplánované',
+  'mcpApps.dayPlan.moveUp': 'Posunúť nahor',
+  'mcpApps.dayPlan.moveDown': 'Posunúť nadol',
+  'mcpApps.dayPlan.reorderError': 'Poradie sa nepodarilo zmeniť. Skúste to znova.',
 };
 export default mcpApps;

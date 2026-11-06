@@ -128,3 +128,10 @@ body {
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/* A refusal shown above what it concerns. */
+.trek-error {
+  margin: 0 0 var(--trek-space);
+  color: var(--color-text-danger, #b91c1c);
+  font-size: var(--trek-text-sm);
+}

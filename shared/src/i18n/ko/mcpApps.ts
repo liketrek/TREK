@@ -52,5 +52,16 @@ const mcpApps: TranslationStrings = {
   'mcpApps.todos.due': '마감',
   'mcpApps.todos.done': '완료',
   'mcpApps.todos.toggleError': '할 일을 업데이트하지 못했습니다. 다시 시도하세요.',
+  'mcpApps.map.title': '여행 지도',
+  'mcpApps.map.count': '지도 위 장소',
+  'mcpApps.map.zoomIn': '확대',
+  'mcpApps.map.zoomOut': '축소',
+  'mcpApps.map.fullscreen': '전체 화면',
+  'mcpApps.map.empty': '아직 위치가 있는 장소가 없습니다',
+  'mcpApps.dayPlan.day': '{day}일차',
+  'mcpApps.dayPlan.empty': '이 날은 계획된 것이 없습니다',
+  'mcpApps.dayPlan.moveUp': '위로 이동',
+  'mcpApps.dayPlan.moveDown': '아래로 이동',
+  'mcpApps.dayPlan.reorderError': '순서를 바꾸지 못했습니다. 다시 시도하세요.',
 };
 export default mcpApps;

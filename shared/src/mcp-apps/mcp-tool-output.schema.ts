@@ -217,3 +217,83 @@ export const tripOverviewOutputSchema = looseOutput(
   }),
 );
 export type TripOverviewOutput = z.infer<typeof tripOverviewOutputSchema>;
+
+/** How many places one get_trip_map call returns at most, and by default. */
+export const TRIP_MAP_PAGE_MAX = 500;
+export const TRIP_MAP_PAGE_DEFAULT = 200;
+
+/** get_trip_map's paging: from which place on, and how many. */
+export const tripMapPageSchema = z.object({
+  offset: z.number().int().min(0).optional().describe('Index of the first place to return; 0 when left out'),
+  limit: z
+    .number()
+    .int()
+    .min(1)
+    .max(TRIP_MAP_PAGE_MAX)
+    .optional()
+    .describe(`How many places to return, at most ${TRIP_MAP_PAGE_MAX}; ${TRIP_MAP_PAGE_DEFAULT} when left out`),
+});
+export type TripMapPage = z.infer<typeof tripMapPageSchema>;
+
+/**
+ * The raster tiles a map view draws: an https URL template with {z}, {x} and
+ * {y}, the credit the provider asks for, and the deepest zoom it serves.
+ */
+export const mapTilesSchema = z.object({
+  url: z.string(),
+  attribution: z.string(),
+  max_zoom: z.number(),
+});
+export type MapTiles = z.infer<typeof mapTilesSchema>;
+
+/** One place on the trip map: where it is and what it is called. */
+export const tripMapPlaceSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  lat: z.number(),
+  lng: z.number(),
+  address: z.string().nullable(),
+});
+export type TripMapPlace = z.infer<typeof tripMapPlaceSchema>;
+
+/**
+ * `get_trip_map`: one page of the trip's places that have a location, the
+ * count over all of them, and the tiles the caller's map settings name.
+ */
+export const tripMapOutputSchema = looseOutput(
+  z.object({
+    trip_id: z.number(),
+    place_count: z.number(),
+    offset: z.number(),
+    next_offset: z.number().nullable(),
+    places: z.array(tripMapPlaceSchema),
+    tiles: mapTilesSchema,
+  }),
+);
+export type TripMapOutput = z.infer<typeof tripMapOutputSchema>;
+
+/** One stop of a day as get_day_plan lists it, in the day's order. */
+export const dayPlanStopSchema = z.object({
+  assignment_id: z.number(),
+  place_id: z.number(),
+  name: z.string(),
+  time: z.string().nullable(),
+  end_time: z.string().nullable(),
+  address: z.string().nullable(),
+});
+export type DayPlanStop = z.infer<typeof dayPlanStopSchema>;
+
+/** `get_day_plan`: one day of a trip and its stops in order. */
+export const dayPlanOutputSchema = looseOutput(
+  z.object({
+    trip_id: z.number(),
+    day: z.object({
+      id: z.number(),
+      day_number: z.number().nullable(),
+      date: z.string().nullable(),
+      title: z.string().nullable(),
+    }),
+    stops: z.array(dayPlanStopSchema),
+  }),
+);
+export type DayPlanOutput = z.infer<typeof dayPlanOutputSchema>;

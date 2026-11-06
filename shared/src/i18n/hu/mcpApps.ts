@@ -52,5 +52,16 @@ const mcpApps: TranslationStrings = {
   'mcpApps.todos.due': 'Határidő',
   'mcpApps.todos.done': 'Kész',
   'mcpApps.todos.toggleError': 'A teendőt nem sikerült frissíteni. Próbáld újra.',
+  'mcpApps.map.title': 'Utazási térkép',
+  'mcpApps.map.count': 'Helyek a térképen',
+  'mcpApps.map.zoomIn': 'Nagyítás',
+  'mcpApps.map.zoomOut': 'Kicsinyítés',
+  'mcpApps.map.fullscreen': 'Teljes képernyő',
+  'mcpApps.map.empty': 'Még nincs hely megadott helyszínnel',
+  'mcpApps.dayPlan.day': '{day}. nap',
+  'mcpApps.dayPlan.empty': 'Erre a napra nincs semmi tervezve',
+  'mcpApps.dayPlan.moveUp': 'Feljebb',
+  'mcpApps.dayPlan.moveDown': 'Lejjebb',
+  'mcpApps.dayPlan.reorderError': 'A sorrendet nem sikerült módosítani. Próbáld újra.',
 };
 export default mcpApps;

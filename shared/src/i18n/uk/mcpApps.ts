@@ -52,5 +52,16 @@ const mcpApps: TranslationStrings = {
   'mcpApps.todos.due': 'Термін',
   'mcpApps.todos.done': 'Виконано',
   'mcpApps.todos.toggleError': 'Не вдалося оновити завдання. Спробуйте ще раз.',
+  'mcpApps.map.title': 'Карта подорожі',
+  'mcpApps.map.count': 'Місця на карті',
+  'mcpApps.map.zoomIn': 'Наблизити',
+  'mcpApps.map.zoomOut': 'Віддалити',
+  'mcpApps.map.fullscreen': 'На весь екран',
+  'mcpApps.map.empty': 'Ще немає місць із координатами',
+  'mcpApps.dayPlan.day': 'День {day}',
+  'mcpApps.dayPlan.empty': 'На цей день нічого не заплановано',
+  'mcpApps.dayPlan.moveUp': 'Вище',
+  'mcpApps.dayPlan.moveDown': 'Нижче',
+  'mcpApps.dayPlan.reorderError': 'Не вдалося змінити порядок. Спробуйте ще раз.',
 };
 export default mcpApps;

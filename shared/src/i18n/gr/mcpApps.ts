@@ -52,5 +52,16 @@ const mcpApps: TranslationStrings = {
   'mcpApps.todos.due': 'Προθεσμία',
   'mcpApps.todos.done': 'Ολοκληρώθηκαν',
   'mcpApps.todos.toggleError': 'Δεν ήταν δυνατή η ενημέρωση της εργασίας. Δοκιμάστε ξανά.',
+  'mcpApps.map.title': 'Χάρτης ταξιδιού',
+  'mcpApps.map.count': 'Μέρη στον χάρτη',
+  'mcpApps.map.zoomIn': 'Μεγέθυνση',
+  'mcpApps.map.zoomOut': 'Σμίκρυνση',
+  'mcpApps.map.fullscreen': 'Πλήρης οθόνη',
+  'mcpApps.map.empty': 'Δεν υπάρχουν ακόμη μέρη με τοποθεσία',
+  'mcpApps.dayPlan.day': 'Ημέρα {day}',
+  'mcpApps.dayPlan.empty': 'Δεν υπάρχει τίποτα προγραμματισμένο για αυτή την ημέρα',
+  'mcpApps.dayPlan.moveUp': 'Μετακίνηση πάνω',
+  'mcpApps.dayPlan.moveDown': 'Μετακίνηση κάτω',
+  'mcpApps.dayPlan.reorderError': 'Δεν ήταν δυνατή η αλλαγή της σειράς. Δοκιμάστε ξανά.',
 };
 export default mcpApps;
