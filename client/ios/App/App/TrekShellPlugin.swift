@@ -1,6 +1,9 @@
 import AuthenticationServices
 import Capacitor
 import CoreLocation
+import CryptoKit
+import Security
+import UserNotifications
 import LocalAuthentication
 import UIKit
 import WebKit
@@ -27,6 +30,8 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
         CAPPluginMethod(name: "startLocation", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "stopLocation", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "takeSharedFile", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "registerPush", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "takeOpenedPush", returnType: CAPPluginReturnPromise),
     ]
 
     /// What this binary offers the server's UI, raised with every native feature
@@ -34,13 +39,42 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
     /// and a server can require a minimum (minNativeShellApi in /api/health/features).
     static let shellApi = 2
     /// The native features by name, so the UI can turn each on by itself.
-    static let features: [String] = ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation", "sharedFiles"]
+    static let features: [String] = ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation", "sharedFiles", "nativePush"]
 
     // MARK: - Shared booking documents
 
     override public func load() {
         TrekSharedFiles.onReceive = { [weak self] file in
             DispatchQueue.main.async { self?.notifyListeners("sharedFile", data: file) }
+        }
+        TrekPush.shared.onOpen = { [weak self] url in
+            DispatchQueue.main.async { self?.notifyListeners("pushOpened", data: ["url": url]) }
+        }
+    }
+
+    // MARK: - Push
+
+    /// Asks for permission, registers with APNs and answers with a Web Push
+    /// subscription the server stores like a browser's (native/push.ts): the
+    /// relay endpoint for this device's token, and this device's keys, which the
+    /// notification extension uses to decrypt.
+    @objc func registerPush(_ call: CAPPluginCall) {
+        TrekPush.shared.register { result in
+            switch result {
+            case .success(let subscription): call.resolve(subscription)
+            case .failure(let error):
+                let code = (error as? TrekPush.PushError) == .denied ? "DENIED" : "FAILED"
+                call.reject(error.localizedDescription, code)
+            }
+        }
+    }
+
+    /// The notification the app was opened from, before the UI was there to hear of it.
+    @objc func takeOpenedPush(_ call: CAPPluginCall) {
+        if let url = TrekPush.shared.takeOpened() {
+            call.resolve(["url": url])
+        } else {
+            call.resolve(["url": NSNull()])
         }
     }
 
@@ -328,5 +362,145 @@ final class TrekLocation: NSObject, CLLocationManagerDelegate {
 
     private func emitError(code: Int, message: String) {
         emit(["error": ["code": code, "message": message]])
+    }
+}
+
+/// The app's side of TREK push: an APNs token, the device's Web Push keys in the
+/// keychain group the notification extension shares, and the relay endpoint
+/// that ties them together.
+final class TrekPush {
+    static let shared = TrekPush()
+    static let relay = "https://push.liketrek.com/v1/apns"
+    /// The keychain group the notification extension reads the keys from.
+    static let keychainGroup = "com.liketrek.trek.shared"
+
+    enum PushError: Error, Equatable { case denied, failed }
+
+    private var pending: [(Result<[String: Any], Error>) -> Void] = []
+    private var openedURL: String?
+    var onOpen: ((String) -> Void)?
+
+    func register(_ done: @escaping (Result<[String: Any], Error>) -> Void) {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
+            guard granted else {
+                done(.failure(PushError.denied))
+                return
+            }
+            DispatchQueue.main.async {
+                self.pending.append(done)
+                UIApplication.shared.registerForRemoteNotifications()
+            }
+        }
+    }
+
+    func didRegister(token: Data) {
+        let hex = token.map { String(format: "%02x", $0) }.joined()
+        #if DEBUG
+        let environment = "sandbox"
+        #else
+        let environment = "production"
+        #endif
+        let result: Result<[String: Any], Error>
+        if let keys = TrekPushKeys.loadOrCreate() {
+            result = .success([
+                "endpoint": "\(TrekPush.relay)/\(environment)/\(hex)",
+                "keys": ["p256dh": keys.publicKey, "auth": keys.auth],
+            ])
+        } else {
+            result = .failure(PushError.failed)
+        }
+        let waiting = pending
+        pending.removeAll()
+        waiting.forEach { $0(result) }
+    }
+
+    func didFail(_ error: Error) {
+        let waiting = pending
+        pending.removeAll()
+        waiting.forEach { $0(.failure(error)) }
+    }
+
+    func opened(url: String) {
+        if let onOpen { onOpen(url) } else { openedURL = url }
+    }
+
+    func takeOpened() -> String? {
+        defer { openedURL = nil }
+        return openedURL
+    }
+}
+
+/// The device's Web Push key pair (P-256) and auth secret, kept in the shared
+/// keychain group so the notification extension can decrypt what the server
+/// encrypted for them (RFC 8291). Base64url without padding, as the server reads them.
+enum TrekPushKeys {
+    private static let privateKeyAccount = "push.privateKey"
+    private static let authAccount = "push.auth"
+
+    static func loadOrCreate() -> (publicKey: String, auth: String)? {
+        if let raw = read(privateKeyAccount), let auth = read(authAccount),
+           let key = try? P256.KeyAgreement.PrivateKey(rawRepresentation: raw) {
+            return (base64url(key.publicKey.x963Representation), base64url(auth))
+        }
+        let key = P256.KeyAgreement.PrivateKey()
+        var auth = Data(count: 16)
+        let status = auth.withUnsafeMutableBytes { SecRandomCopyBytes(kSecRandomDefault, 16, $0.baseAddress!) }
+        guard status == errSecSuccess, write(privateKeyAccount, key.rawRepresentation), write(authAccount, auth) else { return nil }
+        return (base64url(key.publicKey.x963Representation), base64url(auth))
+    }
+
+    private static func query(_ account: String) -> [String: Any] {
+        [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: "com.liketrek.trek.push",
+            kSecAttrAccount as String: account,
+            kSecAttrAccessGroup as String: accessGroup,
+        ]
+    }
+
+    /// The team-prefixed group, read from the app's own entitlement at runtime.
+    private static var accessGroup: String {
+        let probe: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: "push.groupProbe",
+            kSecAttrService as String: "com.liketrek.trek.push",
+            kSecReturnAttributes as String: true,
+        ]
+        var result: CFTypeRef?
+        var status = SecItemCopyMatching(probe as CFDictionary, &result)
+        if status == errSecItemNotFound {
+            var add = probe
+            add.removeValue(forKey: kSecReturnAttributes as String)
+            add[kSecValueData as String] = Data()
+            SecItemAdd(add as CFDictionary, nil)
+            status = SecItemCopyMatching(probe as CFDictionary, &result)
+        }
+        // The default group is the first one in the entitlement: "TEAMID.com.liketrek.trek.shared".
+        if status == errSecSuccess, let attributes = result as? [String: Any],
+           let group = attributes[kSecAttrAccessGroup as String] as? String,
+           let prefix = group.split(separator: ".").first {
+            return "\(prefix).\(TrekPush.keychainGroup)"
+        }
+        return TrekPush.keychainGroup
+    }
+
+    private static func read(_ account: String) -> Data? {
+        var q = query(account)
+        q[kSecReturnData as String] = true
+        var result: CFTypeRef?
+        return SecItemCopyMatching(q as CFDictionary, &result) == errSecSuccess ? result as? Data : nil
+    }
+
+    private static func write(_ account: String, _ data: Data) -> Bool {
+        SecItemDelete(query(account) as CFDictionary)
+        var q = query(account)
+        q[kSecValueData as String] = data
+        q[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
+        return SecItemAdd(q as CFDictionary, nil) == errSecSuccess
+    }
+
+    static func base64url(_ data: Data) -> String {
+        data.base64EncodedString().replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
     }
 }

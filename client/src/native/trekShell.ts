@@ -55,6 +55,14 @@ export interface TrekShellPlugin {
   ): Promise<{ remove: () => Promise<void> }>;
   /** Feature sharedFiles: the booking document shared to TREK before the UI ran. */
   takeSharedFile(): Promise<{ file: SharedFilePayload | null }>;
+  /** Feature nativePush: permission, APNs and the device keys, as a Web Push subscription. Rejects with DENIED. */
+  registerPush(): Promise<{ endpoint: string; keys: { p256dh: string; auth: string } }>;
+  /** Feature nativePush: the notification the app was opened from, before the UI ran. */
+  takeOpenedPush(): Promise<{ url: string | null }>;
+  addListener(
+    event: 'pushOpened',
+    listener: (payload: { url: string }) => void
+  ): Promise<{ remove: () => Promise<void> }>;
 }
 
 /** A document shared to TREK, as the native side reads it. */

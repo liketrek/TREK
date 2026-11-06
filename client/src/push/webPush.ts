@@ -2,6 +2,7 @@ import type { PushSubscriptionInput, PushUnsubscribeRequest } from '@trek/shared
 import { pushApi } from '../api/push'
 import { isEffectivelyOffline } from '../sync/networkMode'
 import { isIosDevice, isIosStandalone } from '../utils/iosDevice'
+import { NativePushDenied, forgetNativePush, nativePushActive, nativePushEndpoint, registerNativePush } from '../native/push'
 
 /**
  * Web Push on this device: whether it can work here, and switching it on and
@@ -72,6 +73,9 @@ function hasPushApis(): boolean {
  */
 export function getWebPushSupport(): WebPushSupport {
   if (typeof window === 'undefined') return unsupported('unsupported')
+  // Inside the app the app makes the subscription (native/push.ts), with no
+  // service worker and no Notification API in the WebView.
+  if (nativePushActive()) return { supported: true, reason: null }
   // A service worker, and push with it, exists only in a secure context: HTTPS,
   // or localhost while developing. A plain http LAN address never gets one.
   if (window.isSecureContext === false) return unsupported('insecure')
@@ -175,6 +179,7 @@ export async function loadPushPublicKey(): Promise<string | null> {
 
 /** What the settings card shows for this device. Never rejects. */
 export async function readWebPushDeviceState(): Promise<WebPushDeviceState> {
+  if (nativePushActive()) return nativePushEndpoint() ? 'on' : 'off'
   const { reason } = getWebPushSupport()
   if (reason) return reason
   if (getPushPermission() === 'denied') return 'denied'
@@ -215,6 +220,7 @@ async function subscribeWithKey(
  * spend it. The permission request is therefore the first thing that runs.
  */
 export async function enableWebPush(publicKey: string, registration?: ServiceWorkerRegistration | null): Promise<void> {
+  if (nativePushActive()) return enableNativePush()
   const permission =
     Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission()
   if (permission === 'denied') throw new WebPushError('denied')
@@ -247,6 +253,12 @@ export async function enableWebPush(publicKey: string, registration?: ServiceWor
  * push service answers 404 or 410 for on its next send.
  */
 export async function disableWebPush(): Promise<void> {
+  if (nativePushActive()) {
+    const endpoint = nativePushEndpoint()
+    if (endpoint) await bestEffort('forgetting the device on the server', () => pushApi.unsubscribe(endpoint))
+    forgetNativePush()
+    return
+  }
   const subscription = await currentPushSubscription()
   if (!subscription) return
   await bestEffort('forgetting the device on the server', () => pushApi.unsubscribe(subscription.endpoint))
@@ -265,6 +277,12 @@ export async function disableWebPush(): Promise<void> {
  * to switch it on. Never rejects.
  */
 export async function resyncPushSubscription(): Promise<void> {
+  if (nativePushActive()) {
+    // The app's subscription carries no server key, so only the row is restored.
+    if (!nativePushEndpoint() || isEffectivelyOffline()) return
+    await bestEffort('re-registering this device', async () => pushApi.subscribe(await registerNativePush()))
+    return
+  }
   if (!getWebPushSupport().supported || getPushPermission() !== 'granted' || isEffectivelyOffline()) return
   await bestEffort('re-registering this device', async () => {
     const registration = await existingRegistration()
@@ -325,6 +343,14 @@ async function forgetOnServerAtLogout(endpoint: string, timeoutMs: number): Prom
  * or 410.
  */
 export async function forgetPushDeviceOnLogout(timeoutMs = LOGOUT_PUSH_TIMEOUT_MS): Promise<void> {
+  if (nativePushActive()) {
+    const endpoint = nativePushEndpoint()
+    forgetNativePush()
+    if (endpoint) {
+      await withTimeout(bestEffort('forgetting this device at logout', () => forgetOnServerAtLogout(endpoint, timeoutMs)), timeoutMs, undefined)
+    }
+    return
+  }
   if (!hasPushApis()) return
   const teardown = bestEffort('forgetting this device at logout', async () => {
     const subscription = await currentPushSubscription()
@@ -335,4 +361,20 @@ export async function forgetPushDeviceOnLogout(timeoutMs = LOGOUT_PUSH_TIMEOUT_M
     ])
   })
   await withTimeout(teardown, timeoutMs, undefined)
+}
+
+/** Push on for the app: its own subscription, then the server, rolled back if the server refuses. */
+async function enableNativePush(): Promise<void> {
+  let subscription: PushSubscriptionInput
+  try {
+    subscription = await registerNativePush()
+  } catch (err) {
+    throw new WebPushError(err instanceof NativePushDenied ? 'denied' : 'failed', err)
+  }
+  try {
+    await pushApi.subscribe(subscription)
+  } catch (err) {
+    forgetNativePush()
+    throw err instanceof WebPushError ? err : new WebPushError('failed', err)
+  }
 }
