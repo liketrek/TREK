@@ -1,25 +1,23 @@
 import { ArrowLeft, ArrowRight, Clock, ExternalLink, Images, RotateCcw } from 'lucide-react';
 import { lazy, Suspense } from 'react';
-import { useTranslation } from '../../i18n';
-import MSheet from '../../mobile/components/MSheet';
-import { Eyebrow, SHEET_PRIMARY, SHEET_SECONDARY } from '../../mobile/screens/trip/sheets/MTripSheetUi';
-import { FormSheetHeader } from '../../mobile/screens/trip/sheets/PlSheetChrome';
-import ErrorBoundary from '../shared/ErrorBoundary';
-import TrekIcon from '../shared/TrekIcon';
-import { DEMO_FEATURES, DEMO_FULL_VERSION, DEMO_LIMITS, TREK_REPO_URL, type DemoLine } from './demoWelcomeModel';
+import {
+  DEMO_FEATURES,
+  DEMO_FULL_VERSION,
+  DEMO_LIMITS,
+  TREK_REPO_URL,
+  type DemoLine,
+} from '../../../components/Demo/demoWelcomeModel';
+import { useDemoWelcome } from '../../../components/Demo/useDemoWelcome';
+import ErrorBoundary from '../../../components/shared/ErrorBoundary';
+import TrekIcon from '../../../components/shared/TrekIcon';
+import { useTranslation } from '../../../i18n';
+import MSheet from '../../components/MSheet';
+import { Eyebrow, SHEET_PRIMARY, SHEET_SECONDARY } from '../trip/sheets/MTripSheetUi';
+import { FormSheetHeader } from '../trip/sheets/PlSheetChrome';
 
-const DemoCredits = lazy(() => import('./DemoCredits'));
+const DemoCredits = lazy(() => import('../../../components/Demo/DemoCredits'));
 
 type Translate = ReturnType<typeof useTranslation>['t'];
-
-interface MDemoWelcomeProps {
-  open: boolean;
-  close: () => void;
-  countdown: string;
-  creditsOpen: boolean;
-  openCredits: () => void;
-  closeCredits: () => void;
-}
 
 const CARD = 'rounded-[18px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)]';
 
@@ -90,15 +88,9 @@ function Welcome({ t }: { t: Translate }) {
  * screen. The head stays small so the list gets the room, the start button
  * runs the full width, and the two links sit under it.
  */
-export default function MDemoWelcome({
-  open,
-  close,
-  countdown,
-  creditsOpen,
-  openCredits,
-  closeCredits,
-}: MDemoWelcomeProps) {
+export default function MDemoWelcome() {
   const { t } = useTranslation();
+  const { open, close, countdown, creditsOpen, openCredits, closeCredits } = useDemoWelcome();
   const title = t(creditsOpen ? 'demo.credits.title' : 'demo.welcome.title');
 
   return (
