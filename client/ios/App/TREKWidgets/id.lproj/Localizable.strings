@@ -1,0 +1,9 @@
+/* The widget gallery: names and descriptions (TREKWidgets/NextTripWidget.swift). */
+"widget.trip.name" = "Perjalanan";
+"widget.trip.description" = "Menghitung mundur ke perjalanan berikutnya, lalu menampilkan hari dan apa yang berikutnya.";
+"widget.today.name" = "Hari ini";
+"widget.today.description" = "Rencana hari ini sebagai linimasa, dengan cuaca dan perhentian berikutnya.";
+"widget.bookings.name" = "Pemesanan";
+"widget.bookings.description" = "Penerbangan, kereta, hotel, dan meja berikutnya, beserta waktunya.";
+"widget.todos.name" = "Tugas";
+"widget.todos.description" = "Yang masih tersisa untuk perjalanan dan sejauh mana persiapan barang.";

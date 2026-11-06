@@ -1,0 +1,9 @@
+/* The widget gallery: names and descriptions (TREKWidgets/NextTripWidget.swift). */
+"widget.trip.name" = "ทริป";
+"widget.trip.description" = "นับถอยหลังสู่ทริปถัดไป และระหว่างทริปแสดงวันนี้และสิ่งที่จะตามมา";
+"widget.today.name" = "วันนี้";
+"widget.today.description" = "แผนของวันนี้เป็นไทม์ไลน์ พร้อมสภาพอากาศและจุดหมายถัดไป";
+"widget.bookings.name" = "การจอง";
+"widget.bookings.description" = "เที่ยวบิน รถไฟ โรงแรม และร้านอาหารถัดไปของคุณ และเวลาของแต่ละรายการ";
+"widget.todos.name" = "สิ่งที่ต้องทำ";
+"widget.todos.description" = "สิ่งที่ยังค้างอยู่สำหรับทริป และความคืบหน้าการจัดกระเป๋า";

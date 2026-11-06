@@ -1,0 +1,9 @@
+/* The widget gallery: names and descriptions (TREKWidgets/NextTripWidget.swift). */
+"widget.trip.name" = "Ταξίδι";
+"widget.trip.description" = "Μετρά αντίστροφα ως το επόμενο ταξίδι και στη διάρκειά του δείχνει τη μέρα και τι ακολουθεί.";
+"widget.today.name" = "Σήμερα";
+"widget.today.description" = "Το πρόγραμμα της ημέρας ως χρονολόγιο, με τον καιρό και την επόμενη στάση.";
+"widget.bookings.name" = "Κρατήσεις";
+"widget.bookings.description" = "Οι επόμενες πτήσεις, τα τρένα, τα ξενοδοχεία και τα τραπέζια σου, και πότε είναι.";
+"widget.todos.name" = "Εκκρεμότητες";
+"widget.todos.description" = "Τι μένει ακόμα για το ταξίδι και πόσο έχει προχωρήσει το πακετάρισμα.";

@@ -1,0 +1,9 @@
+/* The widget gallery: names and descriptions (TREKWidgets/NextTripWidget.swift). */
+"widget.trip.name" = "旅行";
+"widget.trip.description" = "倒數到下一次旅行，旅途中顯示當天行程與接下來的安排。";
+"widget.today.name" = "今天";
+"widget.today.description" = "以時間軸顯示今天的計畫，附上天氣與下一站。";
+"widget.bookings.name" = "預訂";
+"widget.bookings.description" = "你接下來的航班、火車、飯店與餐廳，以及時間。";
+"widget.todos.name" = "待辦";
+"widget.todos.description" = "旅行還剩哪些事沒做，以及行李整理到哪一步。";

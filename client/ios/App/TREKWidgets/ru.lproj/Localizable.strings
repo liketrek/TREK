@@ -1,0 +1,9 @@
+/* The widget gallery: names and descriptions (TREKWidgets/NextTripWidget.swift). */
+"widget.trip.name" = "Поездка";
+"widget.trip.description" = "Отсчитывает дни до следующей поездки, а в пути показывает день и что дальше.";
+"widget.today.name" = "Сегодня";
+"widget.today.description" = "План дня в виде ленты времени, с погодой и следующей остановкой.";
+"widget.bookings.name" = "Бронирования";
+"widget.bookings.description" = "Ближайшие рейсы, поезда, отели и столики и когда они.";
+"widget.todos.name" = "Задачи";
+"widget.todos.description" = "Что ещё осталось сделать к поездке и как идут сборы.";

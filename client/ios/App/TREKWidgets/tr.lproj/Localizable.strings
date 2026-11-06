@@ -1,0 +1,9 @@
+/* The widget gallery: names and descriptions (TREKWidgets/NextTripWidget.swift). */
+"widget.trip.name" = "Seyahat";
+"widget.trip.description" = "Sonraki seyahate kalan günleri sayar, yolculukta günü ve sırada ne olduğunu gösterir.";
+"widget.today.name" = "Bugün";
+"widget.today.description" = "Günün planı zaman çizelgesi olarak, hava durumu ve sonraki durakla.";
+"widget.bookings.name" = "Rezervasyonlar";
+"widget.bookings.description" = "Sıradaki uçuşların, trenlerin, otellerin ve masaların, ne zaman oldukları ile.";
+"widget.todos.name" = "Yapılacaklar";
+"widget.todos.description" = "Seyahat için hâlâ açık olanlar ve bavulun ne durumda olduğu.";

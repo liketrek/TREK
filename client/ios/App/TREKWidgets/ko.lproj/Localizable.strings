@@ -1,0 +1,9 @@
+/* The widget gallery: names and descriptions (TREKWidgets/NextTripWidget.swift). */
+"widget.trip.name" = "여행";
+"widget.trip.description" = "다음 여행까지 남은 날을 세고, 여행 중에는 오늘과 다음 일정을 보여 줍니다.";
+"widget.today.name" = "오늘";
+"widget.today.description" = "오늘 일정을 타임라인으로, 날씨와 다음 장소와 함께 보여 줍니다.";
+"widget.bookings.name" = "예약";
+"widget.bookings.description" = "다가오는 항공편, 기차, 호텔, 식당과 그 시간.";
+"widget.todos.name" = "할 일";
+"widget.todos.description" = "여행을 위해 남은 일과 짐 싸기 진행 상황.";

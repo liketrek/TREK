@@ -1,0 +1,9 @@
+/* The widget gallery: names and descriptions (TREKWidgets/NextTripWidget.swift). */
+"widget.trip.name" = "Cesta";
+"widget.trip.description" = "Odpočítava dni do ďalšej cesty a počas nej ukazuje deň a čo príde ďalej.";
+"widget.today.name" = "Dnes";
+"widget.today.description" = "Plán dňa ako časová os, s počasím a ďalšou zastávkou.";
+"widget.bookings.name" = "Rezervácie";
+"widget.bookings.description" = "Tvoje ďalšie lety, vlaky, hotely a stoly a kedy ťa čakajú.";
+"widget.todos.name" = "Úlohy";
+"widget.todos.description" = "Čo ešte zostáva na cestu a ako ďaleko je balenie.";

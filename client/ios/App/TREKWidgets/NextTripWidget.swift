@@ -1,7 +1,8 @@
 import SwiftUI
 import WidgetKit
 
-/// The home-screen and lock-screen widgets. Each reads the snapshot the app
+/// The home-screen and lock-screen widgets; their gallery names and
+/// descriptions are in <language>.lproj/Localizable.strings. Each reads the snapshot the app
 /// last wrote (WidgetSnapshot) and draws it with the views in *Content.swift,
 /// which know nothing of WidgetKit so the preview renderer can draw them too.
 struct TrekEntry: TimelineEntry {
@@ -85,8 +86,8 @@ struct NextTripWidget: Widget {
         StaticConfiguration(kind: "NextTrip", provider: TrekProvider()) { entry in
             TripWidgetView(entry: entry)
         }
-        .configurationDisplayName("Trip")
-        .description("Counts down to your next trip, then shows the day and what comes next.")
+        .configurationDisplayName("widget.trip.name")
+        .description("widget.trip.description")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryCircular, .accessoryRectangular, .accessoryInline])
     }
 }
@@ -116,8 +117,8 @@ struct TodayWidget: Widget {
                 TrekPaper()
             }
         }
-        .configurationDisplayName("Today")
-        .description("Today's plan as a timeline, with the weather and what is next.")
+        .configurationDisplayName("widget.today.name")
+        .description("widget.today.description")
         .supportedFamilies([.systemMedium, .systemLarge])
     }
 }
@@ -139,8 +140,8 @@ struct BookingsWidget: Widget {
                 TrekPaper()
             }
         }
-        .configurationDisplayName("Bookings")
-        .description("Your next flights, trains, hotels and tables, and when they are due.")
+        .configurationDisplayName("widget.bookings.name")
+        .description("widget.bookings.description")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryRectangular, .accessoryInline])
     }
 }
@@ -162,8 +163,8 @@ struct TodosWidget: Widget {
                 TrekPaper()
             }
         }
-        .configurationDisplayName("To-dos")
-        .description("What is still open for the trip, and how far the packing has come.")
+        .configurationDisplayName("widget.todos.name")
+        .description("widget.todos.description")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryCircular, .accessoryRectangular])
     }
 }

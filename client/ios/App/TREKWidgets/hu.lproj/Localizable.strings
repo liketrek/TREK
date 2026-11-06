@@ -1,0 +1,9 @@
+/* The widget gallery: names and descriptions (TREKWidgets/NextTripWidget.swift). */
+"widget.trip.name" = "Utazás";
+"widget.trip.description" = "Visszaszámol a következő utazásig, útközben pedig a napot és a következő programot mutatja.";
+"widget.today.name" = "Ma";
+"widget.today.description" = "A nap terve idővonalon, az időjárással és a következő megállóval.";
+"widget.bookings.name" = "Foglalások";
+"widget.bookings.description" = "A következő járataid, vonataid, szállásaid és asztalfoglalásaid, és hogy mikor esedékesek.";
+"widget.todos.name" = "Teendők";
+"widget.todos.description" = "Ami még hátravan az utazáshoz, és hol tart a csomagolás.";

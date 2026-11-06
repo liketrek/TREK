@@ -16,10 +16,16 @@ struct Render {
         components.minute = 10
         let now = Calendar.current.date(from: components) ?? Date()
 
+        var withCover = WidgetSnapshot.sample(running: false, now: now)
+        withCover.trip?.cover = sampleCover()
+        var runningCover = WidgetSnapshot.sample(running: true, now: now)
+        runningCover.trip?.cover = withCover.trip?.cover
         let states: [(String, WidgetSnapshot)] = [
             ("upcoming", .sample(running: false, now: now)),
             ("running", .sample(running: true, now: now)),
             ("empty", .sampleEmpty),
+            ("cover", withCover),
+            ("coverrunning", runningCover),
         ]
         for scheme in [ColorScheme.light, .dark] {
             let schemeName = scheme == .dark ? "dark" : "light"
@@ -33,16 +39,35 @@ struct Render {
                     }
                 }
             }
-            for (stateName, snapshot) in states.prefix(2) {
+            for (stateName, snapshot) in states where stateName != "empty" {
                 let sheet = HomeScreen(snapshot: snapshot, now: now)
                     .environment(\.colorScheme, scheme)
                     .environment(\.trekStaticPreview, true)
                 try write(sheet, to: out.appendingPathComponent("home-\(stateName)-\(schemeName).png"))
             }
-            let lock = LockScreen(snapshots: states.map(\.1), now: now).environment(\.colorScheme, scheme)
+            let lock = LockScreen(snapshots: states.prefix(3).map(\.1), now: now).environment(\.colorScheme, scheme)
             try write(lock, to: out.appendingPathComponent("lock-\(schemeName).png"))
         }
         print("wrote \(try FileManager.default.contentsOfDirectory(atPath: out.path).count) images to \(out.path)")
+    }
+
+    /// A stand-in for a trip's cover photo: dusk over layered mountains, as the
+    /// small JPEG the app would send.
+    @MainActor
+    static func sampleCover() -> String? {
+        let scene = ZStack(alignment: .bottom) {
+            LinearGradient(colors: [Color(hex: 0x2B3A67), Color(hex: 0xC0617A), Color(hex: 0xF3A65A)], startPoint: .top, endPoint: .bottom)
+            Circle().fill(Color(hex: 0xFFE2A8)).frame(width: 120, height: 120).offset(x: 140, y: -170).blur(radius: 2)
+            Ridge(height: 0.55, seed: 3).fill(Color(hex: 0x6B4A6E))
+            Ridge(height: 0.42, seed: 7).fill(Color(hex: 0x3E2E4F))
+            Ridge(height: 0.26, seed: 11).fill(Color(hex: 0x1C1726))
+        }
+        .frame(width: 720, height: 480)
+        let renderer = ImageRenderer(content: scene)
+        renderer.scale = 1
+        guard let image = renderer.nsImage, let tiff = image.tiffRepresentation, let bitmap = NSBitmapImageRep(data: tiff),
+              let jpeg = bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.74]) else { return nil }
+        return jpeg.base64EncodedString()
     }
 
     @MainActor
@@ -83,13 +108,12 @@ struct WidgetFrame: View {
     var body: some View {
         let size = family.previewSize
         if family.isAccessory {
+            // As the lock screen draws them: white on the wallpaper, no box of their own
+            // (the circular one gets the system's soft disc).
             content
                 .foregroundStyle(.white)
                 .frame(width: size.width, height: size.height)
-                .background(
-                    RoundedRectangle(cornerRadius: family == .circular ? size.width / 2 : 12, style: .continuous)
-                        .fill(Color.white.opacity(family == .inline ? 0 : 0.14))
-                )
+                .background(Circle().fill(Color.white.opacity(family == .circular ? 0.14 : 0)))
                 .padding(6)
                 .background(Color(hex: 0x1E2A3A))
         } else {
@@ -176,5 +200,27 @@ struct LockScreen: View {
         }
         .padding(24)
         .background(Color(hex: 0x1E2A3A))
+    }
+}
+
+/// A mountain ridge across the bottom of its frame.
+struct Ridge: Shape {
+    let height: CGFloat
+    let seed: Int
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX, y: rect.maxY))
+        let steps = 48
+        for step in 0...steps {
+            let x: CGFloat = rect.minX + rect.width * CGFloat(step) / CGFloat(steps)
+            let phase: CGFloat = CGFloat(step) * 0.35 + CGFloat(seed)
+            let wave: CGFloat = sin(phase) * 0.06 + sin(phase * 2.7) * 0.035
+            let y: CGFloat = rect.maxY - rect.height * (height + wave)
+            path.addLine(to: CGPoint(x: x, y: y))
+        }
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+        path.closeSubpath()
+        return path
     }
 }

@@ -1,0 +1,9 @@
+/* The widget gallery: names and descriptions (TREKWidgets/NextTripWidget.swift). */
+"widget.trip.name" = "Resa";
+"widget.trip.description" = "Räknar ner till nästa resa och visar under resan dagen och vad som kommer härnäst.";
+"widget.today.name" = "Idag";
+"widget.today.description" = "Dagens plan som tidslinje, med vädret och nästa stopp.";
+"widget.bookings.name" = "Bokningar";
+"widget.bookings.description" = "Dina nästa flyg, tåg, hotell och bord, och när de är.";
+"widget.todos.name" = "Att göra";
+"widget.todos.description" = "Vad som återstår inför resan och hur långt packningen har kommit.";

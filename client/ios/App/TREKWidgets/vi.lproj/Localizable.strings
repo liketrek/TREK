@@ -1,0 +1,9 @@
+/* The widget gallery: names and descriptions (TREKWidgets/NextTripWidget.swift). */
+"widget.trip.name" = "Chuyến đi";
+"widget.trip.description" = "Đếm ngược đến chuyến đi tiếp theo, trong chuyến đi thì hiện ngày và điểm tiếp theo.";
+"widget.today.name" = "Hôm nay";
+"widget.today.description" = "Kế hoạch hôm nay dạng dòng thời gian, kèm thời tiết và điểm dừng tiếp theo.";
+"widget.bookings.name" = "Đặt chỗ";
+"widget.bookings.description" = "Các chuyến bay, tàu, khách sạn và bàn sắp tới của bạn, cùng thời gian.";
+"widget.todos.name" = "Việc cần làm";
+"widget.todos.description" = "Những gì còn lại cho chuyến đi và việc soạn hành lý đã tới đâu.";

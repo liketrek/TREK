@@ -1,0 +1,9 @@
+/* The widget gallery: names and descriptions (TREKWidgets/NextTripWidget.swift). */
+"widget.trip.name" = "Reis";
+"widget.trip.description" = "Loeb päevi järgmise reisini ja näitab reisi ajal päeva ning seda, mis järgmisena tuleb.";
+"widget.today.name" = "Täna";
+"widget.today.description" = "Päeva plaan ajajoonena, koos ilma ja järgmise peatusega.";
+"widget.bookings.name" = "Broneeringud";
+"widget.bookings.description" = "Sinu järgmised lennud, rongid, hotellid ja lauad ning millal need on.";
+"widget.todos.name" = "Ülesanded";
+"widget.todos.description" = "Mis reisi jaoks veel tegemata on ja kui kaugel pakkimine on.";

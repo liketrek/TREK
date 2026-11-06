@@ -1,0 +1,9 @@
+/* The widget gallery: names and descriptions (TREKWidgets/NextTripWidget.swift). */
+"widget.trip.name" = "Reise";
+"widget.trip.description" = "Zählt die Tage bis zur nächsten Reise und zeigt unterwegs den Tag und was als Nächstes kommt.";
+"widget.today.name" = "Heute";
+"widget.today.description" = "Der Tagesplan als Zeitleiste, mit dem Wetter und dem nächsten Stopp.";
+"widget.bookings.name" = "Buchungen";
+"widget.bookings.description" = "Deine nächsten Flüge, Züge, Hotels und Tische, und wann sie anstehen.";
+"widget.todos.name" = "To-dos";
+"widget.todos.description" = "Was für die Reise noch offen ist und wie weit das Packen ist.";
