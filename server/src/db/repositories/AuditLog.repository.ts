@@ -48,6 +48,17 @@ export interface AuditLogPageRow {
   ip: string | null;
 }
 
+/** One MCP tool's calls over a span, as the admin's tool-usage table lists them. */
+export interface McpToolUsageRow {
+  tool: string;
+  calls: number;
+  users: number;
+  last_called_at: string;
+}
+
+/** The action the MCP transport audits every tool call under, with the tool's name as the resource. */
+const MCP_TOOL_CALL_ACTION = 'mcp.tool_call';
+
 /** The tables the `listPage` join reads. */
 type AuditLogKyselyDB = Pick<DB, 'audit_log' | 'users'>;
 
@@ -132,5 +143,34 @@ export class AuditLogRepository extends TrekRepository<AuditLog> {
    */
   override async count(): Promise<number> {
     return await super.count();
+  }
+
+  /**
+   * The MCP tool calls since `since` (canonical `YYYY-MM-DD HH:MM:SS` UTC), per
+   * tool: how many, by how many users and when the last one was, the most
+   * called first. Counts are read as numbers whatever the driver hands back.
+   */
+  async mcpToolUsageSince(since: string): Promise<McpToolUsageRow[]> {
+    const rows = await this.kysely<Pick<DB, 'audit_log'>>()
+      .selectFrom('audit_log')
+      .where('action', '=', MCP_TOOL_CALL_ACTION)
+      .where('created_at', '>=', since)
+      .where('resource', 'is not', null)
+      .select((eb) => [
+        'resource',
+        eb.fn.countAll<number>().as('calls'),
+        eb.fn.count<number>('user_id').distinct().as('users'),
+        eb.fn.max('created_at').as('last_called_at'),
+      ])
+      .groupBy('resource')
+      .orderBy('calls', 'desc')
+      .orderBy('resource', 'asc')
+      .execute();
+    return rows.map((row) => ({
+      tool: String(row.resource),
+      calls: Number(row.calls),
+      users: Number(row.users),
+      last_called_at: String(row.last_called_at),
+    }));
   }
 }

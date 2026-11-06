@@ -772,6 +772,16 @@ const admin: TranslationStrings = {
   'admin.mcpTokens.deleteSuccess': 'Token verwijderd',
   'admin.mcpTokens.deleteError': 'Token kon niet worden verwijderd',
   'admin.mcpTokens.loadError': 'Tokens konden niet worden geladen',
+  'admin.mcpToolUsage.title': 'Gebruik van hulpmiddelen',
+  'admin.mcpToolUsage.subtitle':
+    'Welke MCP-hulpmiddelen zijn aangeroepen, door hoeveel mensen en wanneer voor het laatst',
+  'admin.mcpToolUsage.empty': 'In deze periode is geen MCP-hulpmiddel aangeroepen',
+  'admin.mcpToolUsage.loadError': 'Gebruik van hulpmiddelen kon niet worden geladen',
+  'admin.mcpToolUsage.tool': 'Hulpmiddel',
+  'admin.mcpToolUsage.calls': 'Aanroepen',
+  'admin.mcpToolUsage.users': 'Gebruikers',
+  'admin.mcpToolUsage.lastCall': 'Laatste aanroep',
+  'admin.mcpToolUsage.period': 'Periode (dagen)',
   'admin.oauthSessions.sectionTitle': 'OAuth-sessies',
   'admin.oauthSessions.clientName': 'Client', // same-as-en
   'admin.oauthSessions.owner': 'Eigenaar',

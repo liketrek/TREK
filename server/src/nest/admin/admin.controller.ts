@@ -25,6 +25,7 @@ import {
   AdminCollabFeaturesDto,
   AdminTestNotificationDto,
   AdminTransitProviderDto,
+  AdminMcpToolUsageQueryDto,
 } from './admin.dto';
 import { AdminService } from './admin.service';
 import {
@@ -42,7 +43,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { adminFeatureToggleResponseSchema } from '@trek/shared';
+import { adminFeatureToggleResponseSchema, adminMcpToolUsageResponseSchema } from '@trek/shared';
 
 import type { Request } from 'express';
 
@@ -545,6 +546,12 @@ export class AdminController {
   }
 
   // ── MCP tokens / OAuth sessions ──
+  @Get('mcp/tool-usage')
+  @ResponseContract(adminMcpToolUsageResponseSchema)
+  mcpToolUsage(@Query() query: AdminMcpToolUsageQueryDto) {
+    return this.admin.getMcpToolUsage(query.days);
+  }
+
   @Get('mcp-tokens')
   async listMcpTokens() {
     return { tokens: await this.tokens.listAllMcpTokens() };
