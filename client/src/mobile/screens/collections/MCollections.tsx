@@ -73,16 +73,25 @@ export default function MCollections() {
   // The bottom-nav "+" hands off via the ?create= contract.
   const [searchParams, setSearchParams] = useSearchParams()
   const createParam = searchParams.get('create')
-  const { activeId, canEdit, setShowAddPlace, ownedLists } = c
+  const { activeId, canEdit, setShowAddPlace, ownedLists, setEditorTarget } = c
+  const listCount = c.collections.length
+  const listsLoading = c.loading
   useEffect(() => {
     if (createParam !== 'place' && createParam !== '1') return
+    // Wait for the lists: whether there is one decides what "+" means.
+    if (listsLoading) return
     const next = new URLSearchParams(searchParams)
     next.delete('create')
     setSearchParams(next, { replace: true })
+    // Without a list yet, "+" starts the first one; places come after.
+    if (listCount === 0) {
+      setEditorTarget('new')
+      return
+    }
     // Open whenever the user can add somewhere: an editable active list, or at
     // least one owned list to pick as the target in the sheet.
     if ((typeof activeId === 'number' && canEdit) || ownedLists.length > 0) setShowAddPlace(true)
-  }, [createParam, searchParams, setSearchParams, activeId, canEdit, ownedLists.length, setShowAddPlace])
+  }, [createParam, searchParams, setSearchParams, activeId, canEdit, ownedLists.length, setShowAddPlace, listsLoading, listCount, setEditorTarget])
 
   // Close transient popovers when the active list changes under them.
   useEffect(() => {
@@ -219,12 +228,8 @@ export default function MCollections() {
         </div>
       ) : noLists ? (
         <div className="mt-6">
+          {/* The dock's "+" starts the first list (see the ?create= handoff above). */}
           <EmptyNote scene="collections" title={t('collections.empty.firstTitle')} />
-          <div className="mt-4 flex justify-center">
-            <PrimaryPill onClick={openNewList}>
-              <Bookmark size={14} strokeWidth={2.2} /> {t('collections.newList')}
-            </PrimaryPill>
-          </div>
         </div>
       ) : (
         <>

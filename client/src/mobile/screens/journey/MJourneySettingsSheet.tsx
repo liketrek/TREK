@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
-import { X, Image, Plus, Trash2, UserPlus, Link as LinkIcon, List, Grid3x3, MapPin, Route, Archive, ArchiveRestore, Undo2, Link2, ListChecks, RefreshCw, Share as ShareIcon, Copy, Check } from 'lucide-react'
-import { canShareLink, shareLink } from '../../../native/shareLink'
+import { X, Image, Plus, Trash2, UserPlus, Link as LinkIcon, List, Grid3x3, MapPin, Route, Archive, ArchiveRestore, Undo2, Link2, ListChecks, RefreshCw } from 'lucide-react'
+import MLinkField from '../../components/MLinkField'
 import MSheet from '../../components/MSheet'
 import MIconBtn from '../../components/MIconBtn'
 import MToggle from '../../components/MToggle'
@@ -257,28 +257,16 @@ export default function MJourneySettingsSheet({
           </button>
         ) : (
           <>
-            <div className="flex items-center gap-2 rounded-[14px] bg-[color:var(--m-ic)] px-3 py-[10px]">
-              <LinkIcon size={13} className="flex-none text-m-faint" />
-              <span className="min-w-0 flex-1 truncate font-geist text-[0.6875rem] text-m-muted">{shareUrl}</span>
-              <button
-                type="button"
-                aria-label={copied ? t('journey.share.copied') : t('journey.share.copy')}
-                onClick={copyShareUrl}
-                className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-m-act text-m-actfg"
-              >
-                {copied ? <Check size={13} strokeWidth={2.4} /> : <Copy size={13} strokeWidth={2.2} />}
-              </button>
-              {canShareLink() && shareUrl && (
-                <button
-                  type="button"
-                  aria-label={t('common.share')}
-                  onClick={() => void shareLink(shareUrl)}
-                  className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-m-act text-m-actfg"
-                >
-                  <ShareIcon size={13} strokeWidth={2.2} />
-                </button>
-              )}
-            </div>
+            {shareUrl && (
+              <MLinkField
+                url={shareUrl}
+                copied={copied}
+                onCopy={copyShareUrl}
+                copyLabel={t('journey.share.copy')}
+                copiedLabel={t('journey.share.copied')}
+                shareLabel={t('common.share')}
+              />
+            )}
             {([
               { key: 'share_timeline' as const, label: t('journey.share.timeline'), icon: List },
               { key: 'share_gallery' as const, label: t('journey.share.gallery'), icon: Grid3x3 },
@@ -294,9 +282,9 @@ export default function MJourneySettingsSheet({
             <button
               type="button"
               onClick={deleteShareLink}
-              className="mt-1 font-geist text-[0.6875rem] font-semibold text-[color:var(--m-st-danger)]"
+              className="flex h-[38px] w-full items-center justify-center gap-1.5 rounded-full text-[length:calc(12px*var(--fs-scale-body,1))] font-semibold text-[color:var(--m-st-danger)]"
             >
-              {t('journey.share.removeLink')}
+              <Trash2 size={13} strokeWidth={2.2} /> {t('journey.share.removeLink')}
             </button>
           </>
         )}
@@ -425,11 +413,12 @@ function MRecordingPrepRow({ prep, enabled }: { prep: JourneyRecordingPrepState;
 function MShareMapExtras({ link, onToggle }: { link: JourneyShareLink; onToggle: (key: JourneyShareMapExtra) => unknown }) {
   const { t } = useTranslation()
   return (
-    <>
+    // Hangs under the map row: a line from below its pin, smaller labels.
+    <div className="mb-1 ms-[9px] border-s-2 border-[color:var(--m-rowbr)] ps-[16px]">
       {SHARE_MAP_EXTRAS.map(({ key, labelKey, hintKey }) => (
-        <div key={key} className={`flex items-center gap-[11px] py-[8px] ps-[29px] pe-[2px] ${link.share_map ? '' : 'opacity-50'}`}>
+        <div key={key} className={`flex items-center gap-[11px] py-[7px] pe-[2px] ${link.share_map ? '' : 'opacity-50'}`}>
           <span className="flex min-w-0 flex-1 flex-col">
-            <span className="text-body font-bold">{t(labelKey)}</span>
+            <span className="text-[length:calc(13px*var(--fs-scale-body,1))] font-semibold">{t(labelKey)}</span>
             <span className="font-geist text-caption text-m-muted">
               {link.share_map ? t(hintKey) : t('journey.share.needsMap')}
             </span>
@@ -442,6 +431,6 @@ function MShareMapExtras({ link, onToggle }: { link: JourneyShareLink; onToggle:
           />
         </div>
       ))}
-    </>
+    </div>
   )
 }

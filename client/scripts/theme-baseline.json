@@ -190,7 +190,7 @@
   "mobile/screens/journey/MJourneyCreateSheet.tsx": 10,
   "mobile/screens/journey/MJourneyDetail.tsx": 6,
   "mobile/screens/journey/MJourneyEntrySheet.tsx": 52,
-  "mobile/screens/journey/MJourneySettingsSheet.tsx": 31,
+  "mobile/screens/journey/MJourneySettingsSheet.tsx": 29,
   "mobile/screens/journey/mobileJourneyMeta.ts": 4,
   "mobile/screens/notifications/MNotificationRow.tsx": 4,
   "mobile/screens/notifications/MNotifications.tsx": 3,

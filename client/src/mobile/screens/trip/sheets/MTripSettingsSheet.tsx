@@ -1,6 +1,5 @@
 import {
   Check,
-  Copy,
   Crown,
   Link2,
   LogOut,
@@ -8,7 +7,6 @@ import {
   Plus,
   RefreshCw,
   Settings2,
-  Share as ShareIcon,
   Trash2,
   UserMinus,
   UserPlus,
@@ -27,8 +25,8 @@ import {
   type ListedMember,
 } from '../../../../components/Trips/useTripShare';
 import { useTranslation } from '../../../../i18n';
-import { canShareLink, shareLink } from '../../../../native/shareLink';
 import MChip from '../../../components/MChip';
+import MLinkField from '../../../components/MLinkField';
 import MSheet from '../../../components/MSheet';
 import MConfirmSheet from '../../settings/MConfirmSheet';
 import { Eyebrow, INNER_CLS, TileHeader } from './MTripSheetUi';
@@ -51,17 +49,37 @@ const FIELD =
 const PRIMARY =
   'flex h-[42px] flex-none items-center gap-1.5 rounded-full bg-m-act px-4 text-[length:calc(13px*var(--fs-scale-body,1))] font-semibold text-m-actfg disabled:opacity-40';
 /** The round icon buttons next to a link: copy, share. */
-const LINK_ACTION = 'flex h-[34px] w-[34px] flex-none items-center justify-center rounded-full bg-m-act text-m-actfg';
+/** The round, filled icon button next to a picker or field: invite, add. */
+const ROUND_PRIMARY =
+  'flex h-[42px] w-[42px] flex-none items-center justify-center rounded-full bg-m-act text-m-actfg disabled:opacity-40';
 const ROUND =
-  'flex h-[34px] w-[34px] flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-muted disabled:opacity-40';
+  'flex h-[42px] w-[42px] flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-muted disabled:opacity-40';
 const PILL =
   'flex h-[22px] flex-none items-center gap-[3px] rounded-full px-[8px] font-geist text-[length:calc(9.5px*var(--fs-scale-caption,1))] font-bold uppercase tracking-[.06em]';
 
 /** A titled block of the sheet: the eyebrow, an optional line under it and the content on the inner surface. */
-function Section({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
+function Section({
+  title,
+  count,
+  hint,
+  children,
+}: {
+  title: string;
+  /** How many there are, as a small badge next to the title rather than glued onto it. */
+  count?: number;
+  hint?: string;
+  children: ReactNode;
+}) {
   return (
     <section className={`rounded-[18px] p-3 ${INNER_CLS}`}>
-      <Eyebrow className="uppercase">{title}</Eyebrow>
+      <div className="flex items-center gap-1.5">
+        <Eyebrow className="uppercase">{title}</Eyebrow>
+        {count != null && (
+          <span className="flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-[color:var(--m-ic)] px-[5px] font-geist text-[length:calc(9.5px*var(--fs-scale-caption,1))] font-bold text-m-muted">
+            {count}
+          </span>
+        )}
+      </div>
       {hint && (
         <p className="mt-1 font-geist text-[length:calc(11px*var(--fs-scale-caption,1))] leading-snug text-m-muted">
           {hint}
@@ -98,48 +116,6 @@ function PersonRow({
   );
 }
 
-/** A link with its copy button, read-only, the way the phone shows one to hand on. */
-function LinkField({
-  url,
-  copied,
-  onCopy,
-  t,
-}: {
-  url: string;
-  copied: boolean;
-  onCopy: () => void;
-  t: (key: string) => string;
-}) {
-  return (
-    <div className="flex items-center gap-2 rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] py-1 pe-1 ps-[14px]">
-      <input
-        readOnly
-        value={url}
-        aria-label={url}
-        className="min-w-0 flex-1 border-none bg-transparent font-geist text-[length:calc(11px*var(--fs-scale-caption,1))] text-m-muted outline-none"
-      />
-      <button
-        type="button"
-        aria-label={copied ? t('common.copied') : t('common.copy')}
-        onClick={onCopy}
-        className={LINK_ACTION}
-      >
-        {copied ? <Check size={15} strokeWidth={2.4} /> : <Copy size={15} strokeWidth={2.2} />}
-      </button>
-      {canShareLink() && (
-        <button
-          type="button"
-          aria-label={t('common.share')}
-          onClick={() => void shareLink(url)}
-          className={LINK_ACTION}
-        >
-          <ShareIcon size={15} strokeWidth={2.2} />
-        </button>
-      )}
-    </div>
-  );
-}
-
 function ShareLinkSection({ tripId }: { tripId: number }) {
   const { t } = useTranslation();
   const link = useShareLink(tripId);
@@ -168,7 +144,14 @@ function ShareLinkSection({ tripId }: { tripId: number }) {
       </div>
       {link.url ? (
         <>
-          <LinkField url={link.url} copied={link.copied} onCopy={() => void link.copy()} t={t} />
+          <MLinkField
+            url={link.url}
+            copied={link.copied}
+            onCopy={() => void link.copy()}
+            copyLabel={t('common.copy')}
+            copiedLabel={t('common.copied')}
+            shareLabel={t('common.share')}
+          />
           <button
             type="button"
             onClick={() => void link.remove()}
@@ -194,7 +177,14 @@ function InviteLinkSection({ tripId }: { tripId: number }) {
     <Section title={t('trip.invite.linkTitle')} hint={t('trip.invite.linkHint')}>
       {invite.url ? (
         <>
-          <LinkField url={invite.url} copied={invite.copied} onCopy={() => void invite.copy()} t={t} />
+          <MLinkField
+            url={invite.url}
+            copied={invite.copied}
+            onCopy={() => void invite.copy()}
+            copyLabel={t('common.copy')}
+            copiedLabel={t('common.copied')}
+            shareLabel={t('common.share')}
+          />
           <div className="flex gap-2">
             <button
               type="button"
@@ -298,7 +288,7 @@ function MemberBadges({ member, m }: { member: ListedMember; m: Members }) {
 function AccessSection({ m, ask }: { m: Members; ask: Ask }) {
   const { t } = useTranslation();
   return (
-    <Section title={`${t('members.access')} ${m.realMembers.length}`}>
+    <Section title={t('members.access')} count={m.realMembers.length}>
       {m.canManageMembers && (
         <div className="flex gap-2">
           <CustomSelect
@@ -318,7 +308,7 @@ function AccessSection({ m, ask }: { m: Members; ask: Ask }) {
             onClick={() => void m.add()}
             disabled={m.adding || !m.selectedUserId}
             aria-label={t('members.invite')}
-            className={PRIMARY}
+            className={ROUND_PRIMARY}
           >
             <UserPlus size={14} strokeWidth={2.2} />
           </button>
@@ -404,7 +394,8 @@ function GuestsSection({ m, ask }: { m: Members; ask: Ask }) {
   if (!m.isCurrentOwner && m.guests.length === 0) return null;
   return (
     <Section
-      title={m.guests.length > 0 ? `${t('members.guests')} ${m.guests.length}` : t('members.guests')}
+      title={t('members.guests')}
+      count={m.guests.length > 0 ? m.guests.length : undefined}
       hint={t('members.guestsHint')}
     >
       {m.guests.map((guest) => (
@@ -427,7 +418,7 @@ function GuestsSection({ m, ask }: { m: Members; ask: Ask }) {
             onClick={() => void m.addGuest()}
             disabled={m.addingGuest || !m.newGuestName.trim()}
             aria-label={t('members.addGuest')}
-            className={PRIMARY}
+            className={ROUND_PRIMARY}
           >
             <Plus size={15} strokeWidth={2.2} />
           </button>
