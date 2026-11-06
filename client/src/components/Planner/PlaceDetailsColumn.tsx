@@ -91,7 +91,8 @@ function SheetHint({ icon, children }: { icon: React.ReactNode; children: React.
  */
 function Overline({ children }: { children: React.ReactNode }): React.ReactElement {
   return (
-    <p className="text-caption font-semibold uppercase tracking-[0.14em] text-content-faint">{children}</p>
+    // The phone form's eyebrow (mobile Eyebrow), so these labels match Name, Notes and the rest below.
+    <p className="font-geist text-[length:calc(10px*var(--fs-scale-caption,1))] font-bold uppercase tracking-[.09em] text-m-faint">{children}</p>
   )
 }
 
@@ -102,7 +103,7 @@ function Overline({ children }: { children: React.ReactNode }): React.ReactEleme
 function Block({ label, dialog, children }: { label: React.ReactNode; dialog: boolean; children: React.ReactNode }): React.ReactElement {
   if (!dialog) {
     return (
-      <div className="space-y-2">
+      <div className="space-y-[5px]">
         <Overline>{label}</Overline>
         {children}
       </div>
@@ -238,9 +239,11 @@ export default function PlaceDetailsColumn({
       {dialog ? (
         <ColumnHead icon={<Landmark size={13} strokeWidth={2.2} />}>{t('places.details.title')}</ColumnHead>
       ) : (
-        <div className="flex shrink-0 items-center gap-2 px-3 pt-3">
-          <Landmark size={14} className="text-m-muted" />
-          <span className="text-caption font-semibold text-m-ink">{t('places.details.title')}</span>
+        <div className="flex shrink-0 items-center gap-2.5 border-b border-[color:var(--m-rowbr)] px-3 py-2.5">
+          <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-ink">
+            <Landmark size={15} strokeWidth={2} />
+          </span>
+          <span className="text-body font-semibold text-m-ink">{t('places.details.title')}</span>
         </div>
       )}
 
@@ -636,7 +639,7 @@ function DescriptionBlock({
 
   return (
     <Block label={aboutBrand ? t('places.details.aboutBrand') : t('places.details.description')} dialog={dialog}>
-      <div className={dialog ? `${COLUMN_CARD} p-3 space-y-2` : 'rounded-lg border border-edge bg-surface p-2.5 space-y-2'}>
+      <div className={dialog ? `${COLUMN_CARD} p-3 space-y-2` : 'rounded-[14px] bg-[color:var(--m-ic)] p-3 space-y-2'}>
         {aboutBrand && (
           <p className="flex items-start gap-1.5 text-caption leading-tight text-content-faint">
             <Building2 className="mt-px h-3 w-3 shrink-0" />
@@ -668,7 +671,7 @@ function DescriptionBlock({
           onClick={onAdopt}
           disabled={adoptBlocked}
           aria-describedby={adoptBlocked ? adoptBlockedId : undefined}
-          className={dialog ? WHITE_BUTTON : 'w-full inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-body font-medium bg-accent-subtle text-accent-on hover:bg-accent hover:text-accent-text disabled:opacity-50 disabled:hover:bg-accent-subtle disabled:hover:text-accent-on transition-colors'}
+          className={dialog ? WHITE_BUTTON : 'inline-flex h-8 items-center justify-center gap-1.5 rounded-full bg-m-act px-3.5 text-caption font-semibold text-m-actfg transition-transform active:scale-[.97] disabled:opacity-40'}
           style={dialog ? fs(13, 'body') : undefined}
         >
           <ArrowRight className="w-3.5 h-3.5" />
