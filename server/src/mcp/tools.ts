@@ -30,6 +30,7 @@ export async function registerTools(
   apps?: McpAttachOptions['apps'],
 ): Promise<void> {
   if (registry) {
-    await registry.attach(server, { userId, scopes, isStaticToken }, { onInvoke, dynamicTools, around, apps });
+    const client = () => server.server.getClientVersion()?.name ?? null;
+    await registry.attach(server, { userId, scopes, isStaticToken, client }, { onInvoke, dynamicTools, around, apps });
   }
 }

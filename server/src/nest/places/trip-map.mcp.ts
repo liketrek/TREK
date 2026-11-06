@@ -35,7 +35,11 @@ export class TripMapMcp {
     inputSchema: { tripId: idSchema, ...tripMapPageSchema.shape },
     outputSchema: tripMapOutputSchema,
     annotations: TOOL_ANNOTATIONS_READONLY,
-    _meta: uiTool(mcpAppUri('trip-map'), { invoking: 'Drawing the map…', invoked: 'Map ready' }),
+    _meta: uiTool(mcpAppUri('trip-map'), {
+      invoking: 'Drawing the map…',
+      invoked: 'Map ready',
+      visibility: ['model', 'app'],
+    }),
     access: { group: 'places', mode: 'read' },
   })
   async getTripMap({ tripId, offset, limit }: { tripId: number } & TripMapPage, ctx: McpContext) {

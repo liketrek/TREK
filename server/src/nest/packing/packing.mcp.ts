@@ -15,6 +15,7 @@ import {
   okStructured,
   uiTool,
   withResultMeta,
+  appCallable,
 } from '../../nest-mcp';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
@@ -163,6 +164,7 @@ export class PackingMcp {
       itemId: idSchema,
       checked: z.boolean(),
     },
+    _meta: appCallable(),
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: packingAddonOn,
     access: { group: 'packing', mode: 'write' },

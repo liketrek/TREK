@@ -80,7 +80,7 @@ Grant only what you need. Some examples:
 | Packing list assistant | `trips:read` + `packing:read` + `packing:write` |
 | Journey writer | `trips:read` + `journey:read` + `journey:write` (+ `studio:write` to design the book) |
 
-The preset buttons in your **Settings → Integrations → MCP Configuration → OAuth 2.1 Clients** fill in a reasonable scope set for common clients. VS Code defaults to read-only scopes; Claude.ai, Claude Desktop, Cursor, Windsurf and Zed default to the **core set**, which keeps the tool list a client loads small (about 210 tools instead of 400). The other groups (tours, road trip, journey, Studio, collections, atlas, vacation, collaboration) stay visible in the same picker, one tick away. A client that registers itself (Dynamic Client Registration) without naming scopes gets the core set too. No preset includes `plugins:use`.
+The preset buttons in your **Settings → Integrations → MCP Configuration → OAuth 2.1 Clients** fill in a reasonable scope set for common clients. VS Code defaults to read-only scopes; Claude.ai, Claude Desktop, Cursor, Windsurf and Zed default to the **core set**, which keeps the tool list a client loads small (about 155 tools instead of 430). The other groups (tours, road trip, journey, Studio, collections, atlas, vacation, collaboration) stay visible in the same picker, one tick away. A client that registers itself (Dynamic Client Registration) without naming scopes gets the core set too. No preset includes `plugins:use`.
 
 ## Related
 

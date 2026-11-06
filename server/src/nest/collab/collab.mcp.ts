@@ -12,12 +12,14 @@ import {
   errorResult,
   ok,
   okStructured,
+  appCallable,
+  uiTool,
 } from '../../nest-mcp';
 import { collabFeatureGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { CollabService } from './collab.service';
-import { idSchema, listCollabPollsOutputSchema } from '@trek/shared';
+import { idSchema, listCollabPollsOutputSchema, mcpAppUri } from '@trek/shared';
 
 import { z } from 'zod';
 
@@ -246,6 +248,7 @@ export class CollabMcp {
       tripId: idSchema,
     },
     outputSchema: listCollabPollsOutputSchema,
+    _meta: uiTool(mcpAppUri('poll'), { invoking: 'Reading the polls…', invoked: 'Polls loaded' }),
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: collabPollsOn,
     access: { group: 'collab', mode: 'read' },
@@ -306,6 +309,7 @@ export class CollabMcp {
       pollId: idSchema,
       optionIndex: z.number().int().min(0).describe('Zero-based index of the option to vote for'),
     },
+    _meta: appCallable(),
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: collabPollsOn,
     access: { group: 'collab', mode: 'write' },

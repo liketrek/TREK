@@ -63,5 +63,9 @@ const mcpApps: TranslationStrings = {
   'mcpApps.dayPlan.moveUp': 'نقل لأعلى',
   'mcpApps.dayPlan.moveDown': 'نقل لأسفل',
   'mcpApps.dayPlan.reorderError': 'تعذّر تغيير الترتيب. حاول مرة أخرى.',
+  'mcpApps.polls.title': 'الاستطلاعات',
+  'mcpApps.polls.empty': 'لا توجد استطلاعات بعد',
+  'mcpApps.polls.closed': 'مغلق',
+  'mcpApps.polls.voteError': 'تعذّر حفظ صوتك. حاول مرة أخرى.',
 };
 export default mcpApps;

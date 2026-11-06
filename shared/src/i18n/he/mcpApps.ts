@@ -63,5 +63,9 @@ const mcpApps: TranslationStrings = {
   'mcpApps.dayPlan.moveUp': 'הזזה למעלה',
   'mcpApps.dayPlan.moveDown': 'הזזה למטה',
   'mcpApps.dayPlan.reorderError': 'לא ניתן לשנות את הסדר. נסו שוב.',
+  'mcpApps.polls.title': 'סקרים',
+  'mcpApps.polls.empty': 'עדיין אין סקרים',
+  'mcpApps.polls.closed': 'סגור',
+  'mcpApps.polls.voteError': 'לא ניתן לשמור את ההצבעה. נסו שוב.',
 };
 export default mcpApps;

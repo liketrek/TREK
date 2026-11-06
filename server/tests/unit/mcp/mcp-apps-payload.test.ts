@@ -68,6 +68,7 @@ const argsFor = (): Record<string, Record<string, unknown>> => ({
   list_todos: {},
   get_trip_map: {},
   get_day_plan: { dayId },
+  list_collab_polls: {},
 });
 
 /** The trip-scoped tools get the seeded trip on top of their own arguments. */
@@ -79,6 +80,7 @@ const TRIP_SCOPED = new Set<string>([
   'list_todos',
   'get_trip_map',
   'get_day_plan',
+  'list_collab_polls',
 ]);
 
 beforeAll(async () => {
@@ -111,7 +113,9 @@ afterAll(async () => {
 
 describe('MCP Apps payloads', () => {
   it('PAYLOAD-001: every tool that draws a view answers under 60 KB of structured content', async () => {
-    const tools = (await harness.client.listTools()).tools.filter((t) => t._meta?.ui);
+    const tools = (await harness.client.listTools()).tools.filter(
+      (t) => (t._meta?.ui as { resourceUri?: string } | undefined)?.resourceUri,
+    );
     const args = argsFor();
     expect(tools.map((t) => t.name).sort()).toEqual(Object.keys(args).sort());
     const results = await Promise.all(
@@ -128,6 +132,26 @@ describe('MCP Apps payloads', () => {
       const bytes = Buffer.byteLength(JSON.stringify(result.structuredContent ?? null));
       expect(bytes, name).toBeGreaterThan(2);
       expect(bytes, name).toBeLessThan(MAX_STRUCTURED_BYTES);
+    }
+  });
+
+  it('PAYLOAD-002: every tool a view calls is open to the app, under ChatGPT’s key too', async () => {
+    const tools = new Map<string, Record<string, unknown>>(
+      (await harness.client.listTools()).tools.map((t) => [t.name, t._meta ?? {}]),
+    );
+    for (const name of [
+      'toggle_packing_item',
+      'toggle_todo',
+      'reorder_day_assignments',
+      'vote_collab_poll',
+      'get_trip_map',
+      'list_budget_items',
+      'get_budget_per_person',
+    ]) {
+      const meta = tools.get(name);
+      expect(meta, name).toBeDefined();
+      expect((meta?.ui as { visibility?: string[] }).visibility, name).toEqual(['model', 'app']);
+      expect(meta?.['openai/widgetAccessible'], name).toBe(true);
     }
   });
 });

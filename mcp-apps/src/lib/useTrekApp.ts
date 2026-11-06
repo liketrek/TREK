@@ -30,6 +30,20 @@ export function readToolResult(result: ToolResult): ToolResultState {
   return { structuredContent: result.structuredContent ?? null, appUrl };
 }
 
+/** The display modes every TREK view can be drawn in; a host that offers fullscreen may expand one. */
+export const DISPLAY_MODES = ['inline', 'fullscreen'] as const;
+
+type SafeArea = NonNullable<McpUiHostContext['safeAreaInsets']>;
+
+/** Pads the page by the host's safe area (a phone's notch and home bar), or clears the padding. */
+export function applySafeArea(insets: SafeArea | undefined, root: HTMLElement = document.documentElement): void {
+  for (const side of ['top', 'right', 'bottom', 'left'] as const) {
+    const value = insets?.[side];
+    if (typeof value === 'number' && value > 0) root.style.setProperty(`--trek-safe-${side}`, `${value}px`);
+    else root.style.removeProperty(`--trek-safe-${side}`);
+  }
+}
+
 /**
  * Connects the widget to its host and keeps the latest tool result and the
  * host's locale. The handlers are set in `onAppCreated`, before the handshake,
@@ -41,7 +55,7 @@ export function useTrekApp(name: string): TrekAppState {
   const [hostContext, setHostContext] = useState<McpUiHostContext | undefined>(undefined);
   const { app, error } = useApp({
     appInfo: { name: `trek-${name}`, version: '1.0.0' },
-    capabilities: {},
+    capabilities: { availableDisplayModes: [...DISPLAY_MODES] },
     onAppCreated: (created) => {
       created.ontoolinput = (params) => setInput(params.arguments ?? null);
       created.ontoolresult = (params) => setResult(readToolResult(params));
@@ -49,7 +63,10 @@ export function useTrekApp(name: string): TrekAppState {
     },
   });
   useHostStyles(app, app?.getHostContext());
-  const locale = hostContext?.locale ?? app?.getHostContext()?.locale ?? navigator.language;
+  const context = { ...app?.getHostContext(), ...hostContext };
+  const locale = context.locale ?? navigator.language;
+  const insets = context.safeAreaInsets;
+  useEffect(() => applySafeArea(insets), [insets]);
   const language = trekLanguage(locale);
   const t = useMemo(() => translator(language), [language]);
   useEffect(() => {

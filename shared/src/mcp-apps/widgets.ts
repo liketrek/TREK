@@ -15,6 +15,7 @@ export const MCP_APP_WIDGETS = [
   'todos',
   'trip-map',
   'day-plan',
+  'poll',
 ] as const;
 
 export type McpAppWidget = (typeof MCP_APP_WIDGETS)[number];

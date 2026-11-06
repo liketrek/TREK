@@ -63,5 +63,9 @@ const mcpApps: TranslationStrings = {
   'mcpApps.dayPlan.moveUp': 'Posunúť nahor',
   'mcpApps.dayPlan.moveDown': 'Posunúť nadol',
   'mcpApps.dayPlan.reorderError': 'Poradie sa nepodarilo zmeniť. Skúste to znova.',
+  'mcpApps.polls.title': 'Ankety',
+  'mcpApps.polls.empty': 'Zatiaľ žiadne ankety',
+  'mcpApps.polls.closed': 'Uzavretá',
+  'mcpApps.polls.voteError': 'Hlas sa nepodarilo uložiť. Skúste to znova.',
 };
 export default mcpApps;

@@ -63,5 +63,9 @@ const mcpApps: TranslationStrings = {
   'mcpApps.dayPlan.moveUp': '위로 이동',
   'mcpApps.dayPlan.moveDown': '아래로 이동',
   'mcpApps.dayPlan.reorderError': '순서를 바꾸지 못했습니다. 다시 시도하세요.',
+  'mcpApps.polls.title': '투표',
+  'mcpApps.polls.empty': '아직 투표가 없습니다',
+  'mcpApps.polls.closed': '마감됨',
+  'mcpApps.polls.voteError': '투표를 저장하지 못했습니다. 다시 시도하세요.',
 };
 export default mcpApps;

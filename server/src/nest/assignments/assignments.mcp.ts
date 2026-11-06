@@ -9,6 +9,7 @@ import {
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   errorResult,
   ok,
+  appCallable,
 } from '../../nest-mcp';
 import { DaysService } from '../days/days.service';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
@@ -420,6 +421,7 @@ export class AssignmentsMcp {
       dayId: idSchema,
       assignmentIds: z.array(idSchema).min(1).max(200).describe('Assignment IDs in desired display order'),
     },
+    _meta: appCallable(),
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'places', mode: 'write' },
   })

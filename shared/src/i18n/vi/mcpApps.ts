@@ -63,5 +63,9 @@ const mcpApps: TranslationStrings = {
   'mcpApps.dayPlan.moveUp': 'Lên trên',
   'mcpApps.dayPlan.moveDown': 'Xuống dưới',
   'mcpApps.dayPlan.reorderError': 'Không đổi được thứ tự. Hãy thử lại.',
+  'mcpApps.polls.title': 'Bình chọn',
+  'mcpApps.polls.empty': 'Chưa có cuộc bình chọn nào',
+  'mcpApps.polls.closed': 'Đã đóng',
+  'mcpApps.polls.voteError': 'Không lưu được phiếu của bạn. Hãy thử lại.',
 };
 export default mcpApps;

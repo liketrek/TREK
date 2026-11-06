@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { readToolResult, useTrekApp } from '../../src/lib/useTrekApp';
+import { applySafeArea, DISPLAY_MODES, readToolResult, useTrekApp } from '../../src/lib/useTrekApp';
 
 type Handler = ((params: Record<string, unknown>) => void) | undefined;
 const fakeApp = {
@@ -10,9 +10,11 @@ const fakeApp = {
   getHostContext: () => ({ locale: 'de-DE' }),
 };
 
+const useAppOptions = vi.fn();
 vi.mock('@modelcontextprotocol/ext-apps/react', () => ({
-  useApp: ({ onAppCreated }: { onAppCreated: (app: typeof fakeApp) => void }) => {
-    onAppCreated(fakeApp);
+  useApp: (options: { onAppCreated: (app: typeof fakeApp) => void }) => {
+    useAppOptions(options);
+    options.onAppCreated(fakeApp);
     return { app: fakeApp, isConnected: true, error: null };
   },
   useHostStyles: vi.fn(),
@@ -60,5 +62,27 @@ describe('useTrekApp', () => {
     expect(result.current.locale).toBe('ar');
     expect(document.documentElement.dir).toBe('rtl');
     expect(document.documentElement.lang).toBe('ar');
+  });
+});
+
+describe('host polish', () => {
+  it('APPS-HOOK-006: tells the host every view can go full screen', () => {
+    renderHook(() => useTrekApp('test'));
+    expect(useAppOptions).toHaveBeenLastCalledWith(
+      expect.objectContaining({ capabilities: { availableDisplayModes: [...DISPLAY_MODES] } })
+    );
+    expect(DISPLAY_MODES).toEqual(['inline', 'fullscreen']);
+  });
+
+  it('APPS-HOOK-007: pads the page by the host’s safe area and clears it again', () => {
+    const { unmount } = renderHook(() => useTrekApp('test'));
+    act(() => fakeApp.onhostcontextchanged?.({ safeAreaInsets: { top: 44, right: 0, bottom: 34, left: 0 } }));
+    const style = document.documentElement.style;
+    expect(style.getPropertyValue('--trek-safe-top')).toBe('44px');
+    expect(style.getPropertyValue('--trek-safe-bottom')).toBe('34px');
+    expect(style.getPropertyValue('--trek-safe-left')).toBe('');
+    unmount();
+    applySafeArea(undefined);
+    expect(style.getPropertyValue('--trek-safe-top')).toBe('');
   });
 });
