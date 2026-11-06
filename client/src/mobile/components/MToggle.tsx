@@ -20,7 +20,9 @@ export default function MToggle({ checked, onChange, ariaLabel, disabled = false
         selectionHaptic()
         onChange(!checked)
       }}
-      className={`box-border h-[22px] w-10 flex-none rounded-full p-[2px] transition-colors duration-[180ms] disabled:opacity-50 ${
+      // Width in px like the knob and its travel: w-10 is rem and followed the text size,
+      // so a smaller text setting left the knob hanging over the end of the track.
+      className={`box-border h-[22px] w-[40px] flex-none rounded-full p-[2px] transition-colors duration-[180ms] disabled:opacity-50 ${
         checked ? 'bg-m-act' : 'bg-[color:var(--m-trackoff)]'
       } ${className}`}
     >
