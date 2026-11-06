@@ -26,6 +26,12 @@
 		7A1E00052C0000000000A005 /* TrekBridgeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1E00042C0000000000A004 /* TrekBridgeViewController.swift */; };
 		7A1E00072C0000000000A007 /* TrekShellPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1E00062C0000000000A006 /* TrekShellPlugin.swift */; };
 		7FB730DC35C234816EAE65AF /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBF6D74B7888714BF264E0E6 /* WidgetSnapshot.swift */; };
+		1A0A6E71365C0A1178B85CB8 /* TrekStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15CAD7E43FE81EA6E2DD2585 /* TrekStyle.swift */; };
+		612BB9680DC27BB8BF553060 /* TrekFamily.swift in Sources */ = {isa = PBXBuildFile; fileRef = A030A06726542A2D7F61C54B /* TrekFamily.swift */; };
+		8FC5873BE6A8CB2AFB31A46A /* TripContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE6873D246AC6B8E2CB6C8B4 /* TripContent.swift */; };
+		9A175689CFCC630BE9BB9EE1 /* TodayContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24B175DE91E1E6E850DB0285 /* TodayContent.swift */; };
+		5A4D344328829E0F0B4D2B94 /* BookingsContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6D2F4930E5F152C8090C4F8 /* BookingsContent.swift */; };
+		F1E29B18C5B1E75A5BC01B57 /* TodosContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEF7DCAA1AEE67F1291668D1 /* TodosContent.swift */; };
 		84EB79E4B677229481809933 /* NotificationService.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A03A384FE54FAD1ED68E12DC /* NotificationService.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9582B6822FE993A50072D4E8 /* SceneDelegate.swift */; };
 		A8FDD4DBE3F078BF935CC4B9 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFA8802204810ED580DE46F3 /* NotificationService.swift */; };
@@ -97,6 +103,12 @@
 		BE41D7212DCB0C78E00A8462 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		C7064A9DA92FCC8ACAA4F22A /* NextTripWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NextTripWidget.swift; sourceTree = "<group>"; };
 		DBF6D74B7888714BF264E0E6 /* WidgetSnapshot.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSnapshot.swift; sourceTree = "<group>"; };
+		15CAD7E43FE81EA6E2DD2585 /* TrekStyle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TrekStyle.swift; sourceTree = "<group>"; };
+		A030A06726542A2D7F61C54B /* TrekFamily.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TrekFamily.swift; sourceTree = "<group>"; };
+		DE6873D246AC6B8E2CB6C8B4 /* TripContent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TripContent.swift; sourceTree = "<group>"; };
+		24B175DE91E1E6E850DB0285 /* TodayContent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TodayContent.swift; sourceTree = "<group>"; };
+		E6D2F4930E5F152C8090C4F8 /* BookingsContent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BookingsContent.swift; sourceTree = "<group>"; };
+		AEF7DCAA1AEE67F1291668D1 /* TodosContent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TodosContent.swift; sourceTree = "<group>"; };
 		FFA8802204810ED580DE46F3 /* NotificationService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -212,6 +224,12 @@
 				337775CD9091673D0ADDF325 /* TripDayAttributes.swift */,
 				3259F6C40216CECEBAC6F307 /* TripDayLiveActivity.swift */,
 				DBF6D74B7888714BF264E0E6 /* WidgetSnapshot.swift */,
+				15CAD7E43FE81EA6E2DD2585 /* TrekStyle.swift */,
+				A030A06726542A2D7F61C54B /* TrekFamily.swift */,
+				DE6873D246AC6B8E2CB6C8B4 /* TripContent.swift */,
+				24B175DE91E1E6E850DB0285 /* TodayContent.swift */,
+				E6D2F4930E5F152C8090C4F8 /* BookingsContent.swift */,
+				AEF7DCAA1AEE67F1291668D1 /* TodosContent.swift */,
 			);
 			name = TREKWidgets;
 			path = TREKWidgets;
@@ -382,6 +400,12 @@
 				492FA24FBB57059B0B5007CE /* TripDayAttributes.swift in Sources */,
 				DF633789F2F667C4CF264C9E /* TripDayLiveActivity.swift in Sources */,
 				7FB730DC35C234816EAE65AF /* WidgetSnapshot.swift in Sources */,
+				1A0A6E71365C0A1178B85CB8 /* TrekStyle.swift in Sources */,
+				612BB9680DC27BB8BF553060 /* TrekFamily.swift in Sources */,
+				8FC5873BE6A8CB2AFB31A46A /* TripContent.swift in Sources */,
+				9A175689CFCC630BE9BB9EE1 /* TodayContent.swift in Sources */,
+				5A4D344328829E0F0B4D2B94 /* BookingsContent.swift in Sources */,
+				F1E29B18C5B1E75A5BC01B57 /* TodosContent.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

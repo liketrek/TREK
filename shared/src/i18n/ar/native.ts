@@ -89,6 +89,10 @@ const native: TranslationStrings = {
   'native.widget.tomorrow': 'غدًا',
   'native.widget.nothingPlanned': 'لا شيء مخطط لليوم',
   'native.widget.dayDone': 'انتهى كل شيء لليوم',
+  'native.widget.noBookings': 'لا توجد حجوزات قادمة',
+  'native.widget.noTodos': 'لم يتبق شيء',
+  'native.widget.now': 'الآن',
+  'native.widget.travellers': 'مسافرون',
 };
 
 export default native;

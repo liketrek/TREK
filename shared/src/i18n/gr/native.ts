@@ -94,6 +94,10 @@ const native: TranslationStrings = {
   'native.widget.tomorrow': 'Αύριο',
   'native.widget.nothingPlanned': 'Τίποτα προγραμματισμένο για σήμερα',
   'native.widget.dayDone': 'Όλα έγιναν για σήμερα',
+  'native.widget.noBookings': 'Καμία επερχόμενη κράτηση',
+  'native.widget.noTodos': 'Δεν απομένει τίποτα',
+  'native.widget.now': 'Τώρα',
+  'native.widget.travellers': 'ταξιδιώτες',
 };
 
 export default native;

@@ -91,6 +91,10 @@ const native: TranslationStrings = {
   'native.widget.tomorrow': 'Sabah',
   'native.widget.nothingPlanned': 'Bu gün üçün plan yoxdur',
   'native.widget.dayDone': 'Bu gün üçün hər şey bitdi',
+  'native.widget.noBookings': 'Qarşıda bron yoxdur',
+  'native.widget.noTodos': 'Görüləsi iş qalmayıb',
+  'native.widget.now': 'İndi',
+  'native.widget.travellers': 'səyyah',
 };
 
 export default native;

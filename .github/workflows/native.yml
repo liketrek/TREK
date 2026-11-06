@@ -130,3 +130,32 @@ jobs:
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO
+
+  # The widgets drawn to PNGs (client/ios/WidgetPreviews): every size, light and
+  # dark, for a trip ahead, a trip under way and none, plus a home screen and
+  # a lock screen of them. Nobody has to install a build to see a widget change.
+  widget-previews:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Select Xcode 26
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
+          test -n "$XCODE"
+          sudo xcode-select -s "$XCODE"
+
+      - name: Render the widgets
+        working-directory: client/ios/WidgetPreviews
+        run: |
+          mkdir -p Sources/WidgetPreviews/Widgets
+          cp ../App/TREKWidgets/WidgetSnapshot.swift ../App/TREKWidgets/TrekStyle.swift ../App/TREKWidgets/TrekFamily.swift \
+            ../App/TREKWidgets/*Content.swift Sources/WidgetPreviews/Widgets/
+          swift run -c release WidgetPreviews out
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: widget-previews
+          path: client/ios/WidgetPreviews/out
+          retention-days: 14

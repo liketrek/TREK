@@ -92,6 +92,10 @@ const native: TranslationStrings = {
   'native.widget.tomorrow': 'Ngày mai',
   'native.widget.nothingPlanned': 'Hôm nay không có kế hoạch',
   'native.widget.dayDone': 'Hôm nay đã xong',
+  'native.widget.noBookings': 'Không có đặt chỗ sắp tới',
+  'native.widget.noTodos': 'Không còn việc gì',
+  'native.widget.now': 'Bây giờ',
+  'native.widget.travellers': 'du khách',
 };
 
 export default native;

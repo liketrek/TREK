@@ -90,6 +90,10 @@ const native: TranslationStrings = {
   'native.widget.tomorrow': '내일',
   'native.widget.nothingPlanned': '오늘은 계획이 없습니다',
   'native.widget.dayDone': '오늘 일정 완료',
+  'native.widget.noBookings': '예정된 예약이 없습니다',
+  'native.widget.noTodos': '남은 할 일이 없습니다',
+  'native.widget.now': '지금',
+  'native.widget.travellers': '여행자',
 };
 
 export default native;

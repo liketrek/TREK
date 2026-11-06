@@ -93,6 +93,10 @@ const native: TranslationStrings = {
   'native.widget.tomorrow': 'Holnap',
   'native.widget.nothingPlanned': 'Mára nincs semmi tervezve',
   'native.widget.dayDone': 'Mára minden kész',
+  'native.widget.noBookings': 'Nincs közelgő foglalás',
+  'native.widget.noTodos': 'Minden kész',
+  'native.widget.now': 'Most',
+  'native.widget.travellers': 'utazó',
 };
 
 export default native;

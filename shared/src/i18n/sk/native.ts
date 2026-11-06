@@ -91,6 +91,10 @@ const native: TranslationStrings = {
   'native.widget.tomorrow': 'Zajtra',
   'native.widget.nothingPlanned': 'Na dnes nič naplánované',
   'native.widget.dayDone': 'Na dnes hotovo',
+  'native.widget.noBookings': 'Žiadne nadchádzajúce rezervácie',
+  'native.widget.noTodos': 'Všetko hotové',
+  'native.widget.now': 'Teraz',
+  'native.widget.travellers': 'cestovateľov',
 };
 
 export default native;

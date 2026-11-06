@@ -13,7 +13,7 @@ vi.mock('./trekShell', () => ({
 }));
 
 import { TrekShell } from './trekShell';
-import { buildSnapshot, pickTrip, publishWidgets, todayOf, tripDayState } from './widgets';
+import { buildSnapshot, pickTrip, publishWidgets, todayOf, tripDayState, withBookings } from './widgets';
 
 const trip = (id: number, start: string | null, end: string | null, archived = 0) =>
   ({ id, title: `Trip ${id}`, start_date: start, end_date: end, is_archived: archived }) as unknown as Trip;
@@ -127,5 +127,87 @@ describe('publishWidgets', () => {
     expect(JSON.parse(vi.mocked(TrekShell.setWidgetSnapshot).mock.calls[0][0].json).trip.path).toBe('/trips/1');
     expect(TrekShell.endTripDay).toHaveBeenCalled();
     expect(TrekShell.syncTripDay).not.toHaveBeenCalled();
+  });
+});
+
+describe('the richer snapshot', () => {
+  it('puts the timed bookings of the day between the stops and gives the day its place in the trip', () => {
+    const days = [
+      day(1, 1, '2026-11-06', [{ name: 'Museum', time: '09:00' }, { name: 'Walk' }, { name: 'Dinner', time: '19:30' }]),
+      day(2, 2, '2026-11-07', []),
+    ];
+    const plain = todayOf(
+      trip(1, '2026-11-06', '2026-11-07'),
+      days,
+      '2026-11-06',
+      () => 'D',
+      (t) => t
+    );
+    if (!plain) throw new Error('the trip runs today');
+    const today = withBookings(
+      plain,
+      [
+        { id: 1, trip_id: 1, title: 'Train', type: 'train', status: 'confirmed', reservation_time: '2026-11-06T12:15' },
+        {
+          id: 2,
+          trip_id: 1,
+          title: 'Tomorrow',
+          type: 'flight',
+          status: 'confirmed',
+          reservation_time: '2026-11-07T08:00',
+        },
+        { id: 3, trip_id: 1, title: 'Gone', type: 'event', status: 'cancelled', reservation_time: '2026-11-06T10:00' },
+      ] as never,
+      '2026-11-06',
+      (t) => t
+    );
+    expect(today.stops.map((s) => s.name)).toEqual(['Museum', 'Walk', 'Train', 'Dinner']);
+    expect(today.stops[2]).toMatchObject({ time: '12:15', minutes: 735, symbol: 'tram.fill' });
+    expect(today).toMatchObject({ index: 1, total: 2 });
+    expect(withBookings(plain, [], '2026-11-06', (t) => t)).toBe(plain);
+  });
+
+  it('carries the extras and leaves out what is empty', () => {
+    const snapshot = buildSnapshot(
+      { ...trip(1, '2026-11-06', '2026-11-07'), day_count: 2 } as Trip,
+      {
+        tripTitle: 'Trip 1',
+        path: '/trips/1',
+        dayLabel: 'D',
+        index: 1,
+        total: 2,
+        stops: [{ name: 'Tea', time: '10:00', minutes: 600, color: '#2FA37A', symbol: 'leaf.fill' }],
+      },
+      labels,
+      {
+        place: 'Kyoto, Japan',
+        cover: null,
+        placeCount: 12,
+        memberCount: 0,
+        weather: { temp: 18, main: 'Clear', label: 'Sunny' },
+        bookings: [],
+        todos: { open: 1, total: 2, items: [], path: '/trips/1?tab=listen' },
+        packing: null,
+      }
+    );
+    expect(snapshot.trip).toEqual({
+      title: 'Trip 1',
+      start: '2026-11-06',
+      end: '2026-11-07',
+      path: '/trips/1',
+      place: 'Kyoto, Japan',
+      dayCount: 2,
+      placeCount: 12,
+    });
+    expect(snapshot.today).toEqual({
+      dayLabel: 'D',
+      index: 1,
+      total: 2,
+      stops: [{ name: 'Tea', time: '10:00', minutes: 600, color: '#2FA37A', symbol: 'leaf.fill' }],
+    });
+    expect(snapshot.weather).toEqual({ temp: 18, main: 'Clear', label: 'Sunny' });
+    expect(snapshot.bookings).toEqual([]);
+    expect(snapshot.todos?.open).toBe(1);
+    expect(snapshot).not.toHaveProperty('packing');
   });
 });

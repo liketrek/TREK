@@ -1,118 +1,175 @@
 import SwiftUI
 import WidgetKit
 
-/// "Next trip" on the home screen: the trip and how far off it is, or while it
-/// runs, today's day and the next stops (medium size).
-struct NextTripEntry: TimelineEntry {
+/// The home-screen and lock-screen widgets. Each reads the snapshot the app
+/// last wrote (WidgetSnapshot) and draws it with the views in *Content.swift,
+/// which know nothing of WidgetKit so the preview renderer can draw them too.
+struct TrekEntry: TimelineEntry {
     let date: Date
     let snapshot: WidgetSnapshot?
 }
 
-struct NextTripProvider: TimelineProvider {
-    func placeholder(in context: Context) -> NextTripEntry {
-        NextTripEntry(date: Date(), snapshot: nil)
+struct TrekProvider: TimelineProvider {
+    func placeholder(in context: Context) -> TrekEntry {
+        TrekEntry(date: Date(), snapshot: .sample(running: false))
     }
 
-    func getSnapshot(in context: Context, completion: @escaping (NextTripEntry) -> Void) {
-        completion(NextTripEntry(date: Date(), snapshot: WidgetSnapshot.load()))
+    /// The gallery shows the user's own trip when the app has written one, a
+    /// sample trip before that.
+    func getSnapshot(in context: Context, completion: @escaping (TrekEntry) -> Void) {
+        let stored = WidgetSnapshot.load()
+        let snapshot: WidgetSnapshot? = (stored?.trip != nil || !context.isPreview) ? stored : WidgetSnapshot.sample(running: false)
+        completion(TrekEntry(date: Date(), snapshot: snapshot))
     }
 
-    /// The app reloads the timeline whenever it writes a new snapshot; past
-    /// midnight the countdown moves on by itself.
-    func getTimeline(in context: Context, completion: @escaping (Timeline<NextTripEntry>) -> Void) {
+    /// An entry every quarter hour for the next six hours, so the now line and
+    /// the next stop move on without the app; the app reloads the timeline
+    /// whenever it writes a new snapshot.
+    func getTimeline(in context: Context, completion: @escaping (Timeline<TrekEntry>) -> Void) {
+        let snapshot = WidgetSnapshot.load()
         let now = Date()
-        let midnight = Calendar.current.startOfDay(for: now.addingTimeInterval(86_400))
-        let entry = NextTripEntry(date: now, snapshot: WidgetSnapshot.load())
-        completion(Timeline(entries: [entry], policy: .after(midnight)))
+        let calendar = Calendar.current
+        let minute = calendar.component(.minute, from: now)
+        let firstStep = calendar.date(byAdding: .minute, value: 15 - minute % 15, to: now) ?? now
+        var entries = [TrekEntry(date: now, snapshot: snapshot)]
+        for step in 0..<24 {
+            if let date = calendar.date(byAdding: .minute, value: step * 15, to: firstStep) {
+                entries.append(TrekEntry(date: calendar.date(bySetting: .second, value: 0, of: date) ?? date, snapshot: snapshot))
+            }
+        }
+        completion(Timeline(entries: entries, policy: .atEnd))
     }
 }
 
-struct NextTripWidgetView: View {
+extension TrekFamily {
+    init(_ family: WidgetFamily) {
+        switch family {
+        case .systemSmall: self = .small
+        case .systemMedium: self = .medium
+        case .accessoryCircular: self = .circular
+        case .accessoryRectangular: self = .rectangular
+        case .accessoryInline: self = .inline
+        default: self = .large
+        }
+    }
+}
+
+/// The widget's ground: the content on its background, through the container
+/// background on iOS 17 (which the system can tint and remove), the plain way before.
+struct TrekContainer<Content: View, Background: View>: View {
     @Environment(\.widgetFamily) private var family
-    let entry: NextTripEntry
+    let link: URL?
+    @ViewBuilder var content: () -> Content
+    @ViewBuilder var background: () -> Background
 
     var body: some View {
-        content
-            .widgetURL(entry.snapshot?.trip.flatMap { WidgetSnapshot.link($0.path) })
-            .modifier(WidgetBackground())
-    }
-
-    @ViewBuilder
-    private var content: some View {
-        if let snapshot = entry.snapshot, let trip = snapshot.trip {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(snapshot.today == nil ? snapshot.labels.nextTrip : snapshot.labels.today)
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .textCase(.uppercase)
-                Text(trip.title)
-                    .font(.headline)
-                    .lineLimit(2)
-                if let today = snapshot.today {
-                    Text(today.dayLabel)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                    if family != .systemSmall {
-                        stops(today.stops, nothing: snapshot.labels.nothingPlanned)
-                    }
-                } else if let days = snapshot.daysUntilStart(from: entry.date), days > 0 {
-                    Spacer(minLength: 0)
-                    Text(days == 1 ? snapshot.labels.tomorrow : snapshot.labels.inDays.replacingOccurrences(of: "{n}", with: String(days)))
-                        .font(.title3.weight(.bold))
+        let accessory = TrekFamily(family).isAccessory
+        Group {
+            if #available(iOSApplicationExtension 17.0, *) {
+                content().containerBackground(for: .widget) {
+                    if accessory { Color.clear } else { background() }
                 }
-                Spacer(minLength: 0)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        } else {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("TREK").font(.headline)
-                Text(entry.snapshot?.labels.noTrip ?? "")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer(minLength: 0)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    @ViewBuilder
-    private func stops(_ stops: [WidgetSnapshot.Stop], nothing: String) -> some View {
-        if stops.isEmpty {
-            Text(nothing).font(.caption).foregroundStyle(.secondary)
-        } else {
-            VStack(alignment: .leading, spacing: 2) {
-                ForEach(Array(stops.prefix(3).enumerated()), id: \.offset) { _, stop in
-                    HStack(spacing: 6) {
-                        Text(stop.time ?? "")
-                            .font(.caption2.monospacedDigit().weight(.semibold))
-                            .foregroundStyle(.secondary)
-                            .frame(minWidth: 36, alignment: .leading)
-                        Text(stop.name).font(.caption).lineLimit(1)
-                    }
-                }
+            } else {
+                content().padding(accessory ? 0 : 16).background(accessory ? nil : background())
             }
         }
+        .widgetURL(link)
     }
 }
 
-/// The system background on iOS 17 and later, the plain one before.
-struct WidgetBackground: ViewModifier {
-    func body(content: Content) -> some View {
-        if #available(iOSApplicationExtension 17.0, *) {
-            content.containerBackground(.fill.tertiary, for: .widget)
-        } else {
-            content.padding()
-        }
-    }
-}
+// MARK: - Trip
 
 struct NextTripWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "NextTrip", provider: NextTripProvider()) { entry in
-            NextTripWidgetView(entry: entry)
+        // The kind stays "NextTrip" so widgets placed before the redesign keep working.
+        StaticConfiguration(kind: "NextTrip", provider: TrekProvider()) { entry in
+            TripWidgetView(entry: entry)
         }
-        .configurationDisplayName("TREK")
-        .description("Your next trip, and today's plan while you travel.")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        .configurationDisplayName("Trip")
+        .description("Counts down to your next trip, then shows the day and what comes next.")
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryCircular, .accessoryRectangular, .accessoryInline])
     }
+}
+
+struct TripWidgetView: View {
+    @Environment(\.widgetFamily) private var family
+    let entry: TrekEntry
+
+    var body: some View {
+        let snapshot = entry.snapshot
+        TrekContainer(link: snapshot?.trip.flatMap { WidgetSnapshot.link($0.path) }) {
+            TripContent(snapshot: snapshot, family: TrekFamily(family), now: entry.date)
+        } background: {
+            if snapshot?.trip != nil { TripBackdrop(trip: snapshot?.trip) } else { TrekPaper() }
+        }
+    }
+}
+
+// MARK: - Today
+
+struct TodayWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: "TripToday", provider: TrekProvider()) { entry in
+            TrekContainer(link: entry.snapshot?.trip.flatMap { WidgetSnapshot.link($0.path) }) {
+                TodayFamilyView(entry: entry)
+            } background: {
+                TrekPaper()
+            }
+        }
+        .configurationDisplayName("Today")
+        .description("Today's plan as a timeline, with the weather and what is next.")
+        .supportedFamilies([.systemMedium, .systemLarge])
+    }
+}
+
+private struct TodayFamilyView: View {
+    @Environment(\.widgetFamily) private var family
+    let entry: TrekEntry
+    var body: some View { TodayContent(snapshot: entry.snapshot, family: TrekFamily(family), now: entry.date) }
+}
+
+// MARK: - Bookings
+
+struct BookingsWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: "TripBookings", provider: TrekProvider()) { entry in
+            TrekContainer(link: entry.snapshot?.bookings?.first.flatMap { WidgetSnapshot.link($0.path) }) {
+                BookingsFamilyView(entry: entry)
+            } background: {
+                TrekPaper()
+            }
+        }
+        .configurationDisplayName("Bookings")
+        .description("Your next flights, trains, hotels and tables, and when they are due.")
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryRectangular, .accessoryInline])
+    }
+}
+
+private struct BookingsFamilyView: View {
+    @Environment(\.widgetFamily) private var family
+    let entry: TrekEntry
+    var body: some View { BookingsContent(snapshot: entry.snapshot, family: TrekFamily(family), now: entry.date) }
+}
+
+// MARK: - To-dos
+
+struct TodosWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: "TripTodos", provider: TrekProvider()) { entry in
+            TrekContainer(link: entry.snapshot?.todos.flatMap { WidgetSnapshot.link($0.path) }) {
+                TodosFamilyView(entry: entry)
+            } background: {
+                TrekPaper()
+            }
+        }
+        .configurationDisplayName("To-dos")
+        .description("What is still open for the trip, and how far the packing has come.")
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryCircular, .accessoryRectangular])
+    }
+}
+
+private struct TodosFamilyView: View {
+    @Environment(\.widgetFamily) private var family
+    let entry: TrekEntry
+    var body: some View { TodosContent(snapshot: entry.snapshot, family: TrekFamily(family), now: entry.date) }
 }

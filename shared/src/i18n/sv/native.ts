@@ -92,6 +92,10 @@ const native: TranslationStrings = {
   'native.widget.tomorrow': 'I morgon',
   'native.widget.nothingPlanned': 'Inget planerat i dag',
   'native.widget.dayDone': 'Allt klart för i dag',
+  'native.widget.noBookings': 'Inga kommande bokningar',
+  'native.widget.noTodos': 'Inget kvar att göra',
+  'native.widget.now': 'Nu',
+  'native.widget.travellers': 'resenärer',
 };
 
 export default native;

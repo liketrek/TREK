@@ -89,6 +89,10 @@ const native: TranslationStrings = {
   'native.widget.tomorrow': 'พรุ่งนี้',
   'native.widget.nothingPlanned': 'วันนี้ไม่มีแผน',
   'native.widget.dayDone': 'วันนี้เสร็จหมดแล้ว',
+  'native.widget.noBookings': 'ไม่มีการจองที่กำลังจะมาถึง',
+  'native.widget.noTodos': 'ไม่มีอะไรค้างแล้ว',
+  'native.widget.now': 'ตอนนี้',
+  'native.widget.travellers': 'ผู้เดินทาง',
 };
 
 export default native;

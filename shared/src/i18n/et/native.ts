@@ -91,6 +91,10 @@ const native: TranslationStrings = {
   'native.widget.tomorrow': 'Homme',
   'native.widget.nothingPlanned': 'Tänaseks pole midagi planeeritud',
   'native.widget.dayDone': 'Tänaseks kõik tehtud',
+  'native.widget.noBookings': 'Eesootavaid broneeringuid pole',
+  'native.widget.noTodos': 'Kõik on tehtud',
+  'native.widget.now': 'Praegu',
+  'native.widget.travellers': 'reisijat',
 };
 
 export default native;

@@ -92,6 +92,10 @@ const native: TranslationStrings = {
   'native.widget.tomorrow': 'Завтра',
   'native.widget.nothingPlanned': 'На сегодня ничего не запланировано',
   'native.widget.dayDone': 'На сегодня всё',
+  'native.widget.noBookings': 'Предстоящих бронирований нет',
+  'native.widget.noTodos': 'Всё сделано',
+  'native.widget.now': 'Сейчас',
+  'native.widget.travellers': 'путешественников',
 };
 
 export default native;
