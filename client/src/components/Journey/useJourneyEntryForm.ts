@@ -4,11 +4,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { journeyApi, mapsApi, weatherApi } from '../../api/client';
 import { getCurrentPositionOnce } from '../../hooks/useGeolocation';
 import { usePlaceLanguage } from '../../hooks/usePlaceLanguage';
+import { usePlaceSuggestions } from '../../hooks/usePlaceSuggestions';
 import { useTranslation } from '../../i18n';
 import type { GalleryPhoto, JourneyEntry, JourneyPhoto, JourneyTrip } from '../../store/journeyStore';
 import { getApiErrorMessage } from '../../types';
 import { normalizeImageFiles } from '../../utils/convertHeic';
 import { localIsoDate } from '../../utils/localDate';
+import { PlacesSession } from '../../utils/placesSession';
 import type { ResilientResult, UploadProgress } from '../../utils/uploadQueue';
 import { useToast } from '../shared/Toast';
 import type { ProviderPhotoGroup } from './JourneyDetailPageProviderPicker';
@@ -22,8 +24,10 @@ export type PendingProviderGroup = ProviderPhotoGroup & { provider: string };
 export interface LocationResult {
   name: string;
   address?: string;
-  lat: number;
-  lng: number;
+  /** Null for a suggestion while typing: its point comes with the details when it is picked. */
+  lat: number | null;
+  lng: number | null;
+  placeId?: string;
 }
 
 export interface JourneyEntryFormOptions {
@@ -104,6 +108,11 @@ export function useJourneyEntryForm({
   const locationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Counts location lookups, so an answer that comes back after the field moved on is dropped.
   const locationSearchSeqRef = useRef(0);
+  // The planner's typed-ahead search (usePlaceSuggestions): names and their place in the
+  // user's language as the provider has them, billed as one session per search (#3003).
+  const { autocomplete } = usePlaceSuggestions();
+  const placesSessionRef = useRef(new PlacesSession());
+  const suggestAbortRef = useRef<AbortController | null>(null);
   const [mood, setMood] = useState(entry.mood || '');
   const [weather, setWeather] = useState(entry.weather || '');
   // The icon the form filled in by itself (see the weather effect below). It is a
@@ -456,7 +465,33 @@ export function useJourneyEntryForm({
     }
     locationTimerRef.current = setTimeout(async () => {
       setLocationSearching(true);
+      suggestAbortRef.current?.abort();
+      const controller = new AbortController();
+      suggestAbortRef.current = controller;
       try {
+        // Suggestions first, as the planner does; the full search when they bring nothing.
+        const suggested = await autocomplete(
+          query,
+          placeLang,
+          undefined,
+          controller.signal,
+          placesSessionRef.current.current()
+        )
+          .then((r) => r.suggestions ?? [])
+          .catch(() => []);
+        if (seq !== locationSearchSeqRef.current) return;
+        if (suggested.length > 0) {
+          setLocationResults(
+            suggested.slice(0, 6).map((sg) => ({
+              name: sg.mainText,
+              address: sg.secondaryText || undefined,
+              lat: sg.lat ?? null,
+              lng: sg.lng ?? null,
+              placeId: sg.placeId,
+            }))
+          );
+          return;
+        }
         const res = await mapsApi.search(query, placeLang);
         if (seq !== locationSearchSeqRef.current) return;
         setLocationResults(
@@ -478,7 +513,7 @@ export function useJourneyEntryForm({
   };
 
   const pickLocation = (r: LocationResult) => {
-    locationSearchSeqRef.current++;
+    const seq = ++locationSearchSeqRef.current;
     setLocationSearching(false);
     setLocationName(r.name);
     setLocationLat(r.lat);
@@ -486,6 +521,26 @@ export function useJourneyEntryForm({
     setLocationQuery('');
     setShowLocationResults(false);
     setLocationResults([]);
+    if (r.lat != null && r.lng != null) {
+      placesSessionRef.current.end();
+      return;
+    }
+    // A suggestion names the place; its point comes with the details, which close the session.
+    if (!r.placeId) return;
+    void mapsApi
+      .details(r.placeId, placeLang, placesSessionRef.current.peek())
+      .then((res) => {
+        if (seq !== locationSearchSeqRef.current) return;
+        const place = res.place;
+        if (place?.lat == null || place?.lng == null) return;
+        setLocationLat(Number(place.lat));
+        setLocationLng(Number(place.lng));
+      })
+      .catch(() => {
+        // The name stays without a point, as a typed one would; the map simply has no pin for it.
+        if (seq === locationSearchSeqRef.current) setLocationLat(null);
+      })
+      .finally(() => placesSessionRef.current.end());
   };
 
   const handleUseCurrentLocation = async () => {
