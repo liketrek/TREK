@@ -29,7 +29,15 @@ import MChip from '../../../components/MChip';
 import MLinkField from '../../../components/MLinkField';
 import MSheet from '../../../components/MSheet';
 import MConfirmSheet from '../../settings/MConfirmSheet';
-import { Eyebrow, INNER_CLS, TileHeader } from './MTripSheetUi';
+import {
+  SHEET_FIELD as FIELD,
+  SHEET_PILL as PILL,
+  SHEET_PRIMARY as PRIMARY,
+  SHEET_ROUND as ROUND,
+  SHEET_ROUND_PRIMARY as ROUND_PRIMARY,
+  SheetSection as Section,
+  TileHeader,
+} from './MTripSheetUi';
 
 interface MTripSettingsSheetProps {
   open: boolean;
@@ -43,52 +51,6 @@ type Question =
   | { kind: 'transfer'; id: number; name: string }
   | { kind: 'remove'; id: number; self: boolean }
   | { kind: 'guest'; id: number };
-
-const FIELD =
-  'h-[42px] min-w-0 flex-1 rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[14px] text-[length:calc(13px*var(--fs-scale-body,1))] font-medium text-m-ink outline-none placeholder:text-m-faint';
-const PRIMARY =
-  'flex h-[42px] flex-none items-center gap-1.5 rounded-full bg-m-act px-4 text-[length:calc(13px*var(--fs-scale-body,1))] font-semibold text-m-actfg disabled:opacity-40';
-/** The round icon buttons next to a link: copy, share. */
-/** The round, filled icon button next to a picker or field: invite, add. */
-const ROUND_PRIMARY =
-  'flex h-[42px] w-[42px] flex-none items-center justify-center rounded-full bg-m-act text-m-actfg disabled:opacity-40';
-const ROUND =
-  'flex h-[42px] w-[42px] flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-muted disabled:opacity-40';
-const PILL =
-  'flex h-[22px] flex-none items-center gap-[3px] rounded-full px-[8px] font-geist text-[length:calc(9.5px*var(--fs-scale-caption,1))] font-bold uppercase tracking-[.06em]';
-
-/** A titled block of the sheet: the eyebrow, an optional line under it and the content on the inner surface. */
-function Section({
-  title,
-  count,
-  hint,
-  children,
-}: {
-  title: string;
-  /** How many there are, as a small badge next to the title rather than glued onto it. */
-  count?: number;
-  hint?: string;
-  children: ReactNode;
-}) {
-  return (
-    <section className={`rounded-[18px] p-3 ${INNER_CLS}`}>
-      <div className="flex items-center gap-1.5">
-        <Eyebrow className="uppercase">{title}</Eyebrow>
-        {count != null && (
-          <span className="flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-[color:var(--m-ic)] px-[5px] font-geist text-[length:calc(9.5px*var(--fs-scale-caption,1))] font-bold text-m-muted">
-            {count}
-          </span>
-        )}
-      </div>
-      {hint && (
-        <p className="mt-1 font-geist text-[length:calc(11px*var(--fs-scale-caption,1))] leading-snug text-m-muted">
-          {hint}
-        </p>
-      )}
-      <div className="mt-2.5 flex flex-col gap-2">{children}</div>
-    </section>
-  );
-}
 
 /** A person of the trip: the avatar, the name with its badges, and the round actions. */
 function PersonRow({
