@@ -21,13 +21,13 @@ import { entityGradient } from '../../../utils/gradients'
 import MGlassBar from '../../components/MGlassBar'
 import MIconBtn from '../../components/MIconBtn'
 import MSegmented from '../../components/MSegmented'
-import MSheet from '../../components/MSheet'
 import MUserMenu from './MUserMenu'
 import { useMobileDashOrder, useMobileDashVisibility, MobileDashWidget } from './MDashWidgets'
 import MNewTripSheet from './MNewTripSheet'
 import type { MobileDashToken } from '@trek/shared'
 import { usePullToRefresh } from '../../usePullToRefresh'
 import MPullIndicator from '../../components/MPullIndicator'
+import SharedConfirmSheet from '../settings/MConfirmSheet'
 
 type TripFilter = 'planned' | 'archive' | 'completed'
 
@@ -581,36 +581,11 @@ function ListStat({ value, label }: { value: number; label: string }): React.Rea
   )
 }
 
-// ── Confirm sheet (delete / copy) ────────────────────────────────────────────
-function MConfirmSheet({ open, title, message, confirmLabel, danger = false, onConfirm, onClose }: {
+// ── Confirm sheet (delete / copy): the shared one, with the common cancel ─────
+function MConfirmSheet(props: {
   open: boolean; title: string; message: string; confirmLabel: string
   danger?: boolean; onConfirm: () => void; onClose: () => void
 }): React.ReactElement {
   const { t } = useTranslation()
-  return (
-    <MSheet open={open} onClose={onClose} variant="card" ariaLabel={title}>
-      <div className="p-5">
-        <div className="text-[1.0625rem] font-bold">{title}</div>
-        <div className="mt-2 text-[0.8125rem] leading-relaxed text-m-muted">{message}</div>
-        <div className="mt-5 flex gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 rounded-full bg-[color:var(--m-ic)] py-[10px] text-[0.8125rem] font-semibold text-m-ink"
-          >
-            {t('common.cancel')}
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            className={`flex-1 rounded-full py-[10px] text-[0.8125rem] font-semibold ${
-              danger ? 'bg-[color:var(--m-st-danger)] text-white' : 'bg-m-act text-m-actfg'
-            }`}
-          >
-            {confirmLabel}
-          </button>
-        </div>
-      </div>
-    </MSheet>
-  )
+  return <SharedConfirmSheet {...props} cancelLabel={t('common.cancel')} />
 }

@@ -29,6 +29,9 @@ export const SHEET_ROUND_PRIMARY =
 /** The quiet action with a label: add, invite, end. Full width in a section. */
 export const SHEET_SECONDARY =
   'flex h-[42px] items-center justify-center gap-1.5 rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-4 text-[length:calc(13px*var(--fs-scale-body,1))] font-semibold text-m-ink disabled:opacity-40'
+/** A destructive action with a label: the quiet button's shape, the danger colour on its text. */
+export const SHEET_DANGER =
+  'flex h-[42px] items-center justify-center gap-1.5 rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-4 text-[length:calc(13px*var(--fs-scale-body,1))] font-semibold text-[color:var(--m-st-danger)] disabled:opacity-40'
 /** The quiet round icon action of a row: remove, rename, make owner. */
 export const SHEET_ROUND =
   'flex h-[42px] w-[42px] flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-muted disabled:opacity-40'
