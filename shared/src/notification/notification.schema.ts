@@ -17,6 +17,12 @@ import { z } from 'zod';
 export const preferencesUpdateRequestSchema = z.record(z.string(), z.record(z.string(), z.boolean()));
 export type PreferencesUpdateRequest = z.infer<typeof preferencesUpdateRequestSchema>;
 
+/** Set one in-app notification read or unread (the MCP tool set_notification_read). */
+export const notificationReadStateRequestSchema = z.object({
+  read: z.boolean().describe('true marks it read, false unread'),
+});
+export type NotificationReadStateRequest = z.infer<typeof notificationReadStateRequestSchema>;
+
 export const testSmtpRequestSchema = z.object({ email: z.string().optional() });
 export const testWebhookRequestSchema = z.object({
   url: z.string().optional(),

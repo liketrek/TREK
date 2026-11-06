@@ -291,6 +291,13 @@ export const collabTrip: CaseGroup = {
       expect: [{ event: 'notification:updated', ...userPing }],
     },
     {
+      tool: 'set_notification_read',
+      needs: ['notification'],
+      args: (s) => ({ notificationId: s.notification.id, read: true }),
+      rest: { method: 'put', path: (s) => `/api/notifications/in-app/${s.notification.id}/read` },
+      expect: [{ event: 'notification:updated', ...userPing }],
+    },
+    {
       tool: 'mark_notification_unread',
       needs: ['notification'],
       args: (s) => ({ notificationId: s.notification.id }),

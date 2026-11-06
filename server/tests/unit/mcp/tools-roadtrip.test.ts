@@ -384,17 +384,17 @@ describe('road-trip MCP tools', () => {
     expect(await countRows(orm, RoadtripPreferences, { trip: trip.id })).toBe(0);
   });
 
-  it('MCP-ROADTRIP-014: both via tools say that a via on the drive into a booked night is kept and not used', async () => {
+  it('MCP-ROADTRIP-014: add_route_vias says that a via on the drive into a booked night is kept and not used', async () => {
     // The planner refuses that click with a sentence; a tool stores the via as asked, so
     // the note on the tool is the only place the assistant can learn it changes nothing.
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
       const tools = (await h.client.listTools()).tools;
-      for (const name of ['add_route_via', 'add_route_vias']) {
-        const description = tools.find((t) => t.name === name)?.description ?? '';
-        expect(description, name).toContain('roadtrip_hotel_bookends');
-        expect(description, name).toContain('kept but not used');
-      }
+      const description = tools.find((t) => t.name === 'add_route_vias')?.description ?? '';
+      expect(description).toContain('roadtrip_hotel_bookends');
+      expect(description).toContain('kept but not used');
+      // The single-via tool it replaced only points there now.
+      expect(tools.find((t) => t.name === 'add_route_via')?.description).toBe('Deprecated: use add_route_vias.');
     });
   });
 

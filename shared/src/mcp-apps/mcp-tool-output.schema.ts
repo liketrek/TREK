@@ -2,7 +2,9 @@ import { budgetItemsPageSchema } from '../budget/budget.schema';
 import { collabPollsResponseSchema } from '../collab/collab.schema';
 import { mapsSearchResultSchema } from '../maps/maps.schema';
 import { packingBagSchema, packingItemSchema } from '../packing/packing.schema';
+import { paddleRouteResponseSchema } from '../paddle/paddle-route.schema';
 import { placeSchema } from '../place/place.schema';
+import { skiRouteResponseSchema } from '../ski/ski-route.schema';
 import { todoListResponseSchema } from '../todo/todo.schema';
 import { tripSchema } from '../trip/trip.schema';
 import { weatherResultSchema } from '../weather/weather.schema';
@@ -84,3 +86,23 @@ export type SearchPlaceOutput = z.infer<typeof searchPlaceOutputSchema>;
 /** `list_collab_polls`: the trip's polls with their options and voters. */
 export const listCollabPollsOutputSchema = looseOutput(collabPollsResponseSchema);
 export type ListCollabPollsOutput = z.infer<typeof listCollabPollsOutputSchema>;
+
+/**
+ * A planned leg as propose_paddle_route and propose_ski_route summarise it:
+ * a failed leg as the router answers it, a planned one with its lengths and
+ * stretches measured along it. Only the outcome is pinned; the rest of the
+ * row is open, as every output object is.
+ */
+const routeLegSummarySchema = z.object({ status: z.string() });
+
+/** propose_paddle_route: the legs and the water data they were planned on. */
+export const paddleRouteProposalOutputSchema = looseOutput(
+  paddleRouteResponseSchema.extend({ legs: z.array(routeLegSummarySchema) }),
+);
+export type PaddleRouteProposalOutput = z.infer<typeof paddleRouteProposalOutputSchema>;
+
+/** propose_ski_route: the legs, the piste data build and the areas they were planned on. */
+export const skiRouteProposalOutputSchema = looseOutput(
+  skiRouteResponseSchema.extend({ legs: z.array(routeLegSummarySchema) }),
+);
+export type SkiRouteProposalOutput = z.infer<typeof skiRouteProposalOutputSchema>;

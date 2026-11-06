@@ -94,6 +94,8 @@ describe('structured output of the read tools', () => {
         'list_places',
         'list_todos',
         'list_trips',
+        'propose_paddle_route',
+        'propose_ski_route',
         'search_place',
       ].sort(),
     );

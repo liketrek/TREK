@@ -8,7 +8,7 @@ import {
   ok,
 } from '../../nest-mcp';
 import { NotificationsService } from './notifications.service';
-import { idSchema } from '@trek/shared';
+import { idSchema, notificationReadStateRequestSchema } from '@trek/shared';
 
 import { z } from 'zod';
 
@@ -79,8 +79,8 @@ export class NotificationsMcp {
 
   @Tool({
     name: 'mark_notification_read',
-    title: 'Mark notification as read',
-    description: 'Mark a single notification as read.',
+    title: 'Mark notification read',
+    description: 'Deprecated: use set_notification_read.',
     inputSchema: {
       notificationId: idSchema,
     },
@@ -96,8 +96,8 @@ export class NotificationsMcp {
 
   @Tool({
     name: 'mark_notification_unread',
-    title: 'Mark notification as unread',
-    description: 'Mark a single notification as unread.',
+    title: 'Mark notification unread',
+    description: 'Deprecated: use set_notification_read.',
     inputSchema: {
       notificationId: idSchema,
     },
@@ -108,6 +108,23 @@ export class NotificationsMcp {
     const success = await this.notifications.markUnread(notificationId, ctx.userId, undefined);
     if (!success) return { content: [{ type: 'text' as const, text: 'Notification not found.' }], isError: true };
     return ok({ success: true });
+  }
+
+  @Tool({
+    name: 'set_notification_read',
+    title: 'Set notification read',
+    description: 'Mark a single notification read, or unread again.',
+    inputSchema: {
+      notificationId: idSchema,
+      ...notificationReadStateRequestSchema.shape,
+    },
+    annotations: TOOL_ANNOTATIONS_WRITE,
+    access: { group: 'notifications', mode: 'write' },
+  })
+  async setNotificationRead({ notificationId, read }: { notificationId: number; read: boolean }, ctx: McpContext) {
+    return read
+      ? this.markNotificationRead({ notificationId }, ctx)
+      : this.markNotificationUnread({ notificationId }, ctx);
   }
 
   @Tool({

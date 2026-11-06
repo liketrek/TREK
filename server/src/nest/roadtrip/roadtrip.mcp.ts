@@ -79,7 +79,7 @@ export class RoadtripMcp {
   @Tool({
     name: 'add_route_via',
     title: 'Add a route via point',
-    description: `Make a day's drive pass through a point without stopping there: use it to send the route over a particular road or away from one. For somewhere the traveller actually stops, add a place and assign it to the day instead. ${BOOKEND_VIA_NOTE}`,
+    description: 'Deprecated: use add_route_vias.',
     inputSchema: {
       tripId: idSchema,
       dayId: idSchema,

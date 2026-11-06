@@ -268,6 +268,17 @@ export const plan: CaseGroup = {
       expect: ['assignment:updated'],
     },
     {
+      tool: 'update_assignment',
+      needs: ['assignment'],
+      args: (s) => ({ ...onAssignment(s), notes: 'Tickets at the side door' }),
+      rest: {
+        method: 'put',
+        path: (s) => `${assignmentPath(s)}/notes`,
+        body: () => ({ notes: 'Tickets at the side door' }),
+      },
+      expect: ['assignment:updated'],
+    },
+    {
       tool: 'set_leg_transport_mode',
       needs: ['assignment'],
       args: (s) => ({ ...onAssignment(s), transport_mode: 'walking' }),

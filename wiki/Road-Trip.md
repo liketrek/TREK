@@ -383,7 +383,7 @@ With the [MCP](MCP-Overview) addon on as well, an assistant can plan and check a
 | `search_roadtrip_corridor` | Searches along a calculated day, with the same kinds, filters and sources as the panel. It never adds anything. | `trips:read` |
 | `list_route_vias`, `add_route_via`, `add_route_vias`, `update_route_via`, `reanchor_route_vias`, `remove_route_via` | List, add, move, re-pin and remove via points. | `trips:read`, `trips:write` |
 | `list_day_boundaries`, `set_day_boundary` | Read or set dragged day endings. | `trips:read`, `trips:write` |
-| `set_assignment_end_day` | **End the day here** for one visit. | `places:write` |
+| `set_assignment_end_day` | **Deprecated:** use `update_assignment`. **End the day here** for one visit. | `places:write` |
 | `get_roadtrip_hazards` | Reads the current DWD and GDACS notices. | `trips:read` |
 | `get_roadtrip_charging_info`, `lookup_roadtrip_charging_info` | Availability and published tariffs, for a charging stop on the trip or for any station by position. | `trips:read` |
 | `preview_google_maps_route`, `import_google_maps_route` | Reads a Google Maps directions link, then appends the reviewed stops to a day. | `trips:read`, `places:write` |
