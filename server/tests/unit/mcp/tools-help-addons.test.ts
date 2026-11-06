@@ -300,6 +300,50 @@ describe('Tool: get_help_page', () => {
 });
 
 // ---------------------------------------------------------------------------
+// tool references (tools that moved part of themselves out of tools/list)
+// ---------------------------------------------------------------------------
+
+describe('Tool references in the help', () => {
+  it('lists the reference of every detailed tool apart from the wiki sections', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const data = parseToolResult(await h.client.callTool({ name: 'list_help_topics', arguments: {} })) as {
+        sections: unknown;
+        tool_references: { title: string; slug: string }[];
+      };
+      expect(data.sections).toEqual(SECTIONS);
+      expect(data.tool_references).toContainEqual({ title: 'Edit a book page', slug: 'tool/edit_book_page' });
+    });
+  });
+
+  it('serves tool/<name> from the tool itself, with the full input schema the slim list leaves out', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'get_help_page', arguments: { slug: 'tool/edit_book_page' } });
+      expect(result.isError).toBeFalsy();
+      const page = parseToolResult(result) as HelpPagePayload;
+      expect(page.slug).toBe('tool/edit_book_page');
+      expect(page.title).toBe('Edit a book page');
+      expect(page.markdown).toContain('## Input schema');
+      expect(page.markdown).toContain('"place_photo"');
+      expect(wiki.getWikiPage).not.toHaveBeenCalled();
+    });
+  });
+
+  it('falls through to the wiki for a tool/ slug no detailed tool owns', async () => {
+    const { user } = createUser(testDb);
+    wiki.getWikiPage.mockRejectedValue(new wiki.WikiNotFound('missing'));
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'get_help_page', arguments: { slug: 'tool/list_trips' } });
+      expect(result.isError).toBe(true);
+      expect(toolText(result)).toBe(
+        'No help page named "tool/list_trips". Call list_help_topics for the slugs this instance ships.',
+      );
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
 // search_help
 // ---------------------------------------------------------------------------
 

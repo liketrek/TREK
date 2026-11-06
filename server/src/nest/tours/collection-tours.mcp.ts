@@ -54,6 +54,7 @@ export class CollectionToursMcp {
 
   @Tool({
     name: 'list_collection_tours',
+    title: 'List collection tours',
     description:
       'List the whole tours kept in a collection (a saved-places list), the newest first: name, type, distance in km, ascent and descent in metres, the planned times, how many control points it keeps, whether it has a line, the trip and tour it was saved from and who saved it. Each is an independent snapshot; later changes to the tour it came from do not reach it. Values a tour does not have stay null.',
     inputSchema: { collection_id: idSchema.describe('The collection to read') },
@@ -67,6 +68,7 @@ export class CollectionToursMcp {
 
   @Tool({
     name: 'get_collection_tour',
+    title: 'Read a collection tour',
     description:
       'One tour kept in a collection, with what taking it into a trip asks about: its facts, its line thinned to at most 400 points, its control points in order with their roles (start, via, end), names and whether they only shape the route, and every trip the user can open with can_add saying whether they may add a tour to it.',
     inputSchema: {
@@ -84,6 +86,7 @@ export class CollectionToursMcp {
 
   @Tool({
     name: 'save_tour_to_collection',
+    title: 'Save tour to collection',
     description:
       'Keep a saved tour of a trip in a collection the user may add to, as an independent snapshot: its line, type, measures, settings and control points in order with their roles, and the trip and tour it came from. Its days, its links to places of the trip and the obstacle decisions taken there stay in the trip. Later changes to the tour do not reach the kept one, and the trip is not changed. Give name to keep it under another name.',
     inputSchema: {
@@ -103,6 +106,7 @@ export class CollectionToursMcp {
 
   @Tool({
     name: 'take_over_collection_tour',
+    title: 'Take over a collection tour',
     description:
       'Make a new, independent tour of a trip from a tour kept in a collection. include_waypoints must be said: true brings its control points along in their order with their roles, false keeps only its line as saved and adds no points (a kept tour without a line needs its points). It gets no days and no new places, remembers the trip and tour it was first saved from, and neither the collection nor the tour it came from changes. Needs place_edit on the trip.',
     inputSchema: {
@@ -131,6 +135,7 @@ export class CollectionToursMcp {
 
   @Tool({
     name: 'delete_collection_tour',
+    title: 'Delete a collection tour',
     description:
       'Remove a tour kept in a collection. Only the collection’s owner or an admin of it may. Tours already made from it in trips stay as they are.',
     inputSchema: {

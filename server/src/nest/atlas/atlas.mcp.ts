@@ -84,6 +84,7 @@ export class AtlasMcp {
 
   @Tool({
     name: 'list_bucket_list',
+    title: 'List bucket list',
     description:
       'List your travel bucket list: each wish with its id, name, country and region, target date, notes and when it was reached. The ids are what update_bucket_list_item and delete_bucket_list_item take.',
     inputSchema: {},
@@ -99,6 +100,7 @@ export class AtlasMcp {
 
   @Tool({
     name: 'create_bucket_list_item',
+    title: 'Add bucket list item',
     description: 'Add a destination to your personal travel bucket list.',
     inputSchema: {
       name: z.string().min(1).max(200).describe('Destination or experience name'),
@@ -166,6 +168,7 @@ export class AtlasMcp {
 
   @Tool({
     name: 'delete_bucket_list_item',
+    title: 'Delete bucket list item',
     description: 'Remove an item from your travel bucket list.',
     inputSchema: {
       itemId: idSchema,
@@ -184,6 +187,7 @@ export class AtlasMcp {
 
   @Tool({
     name: 'mark_country_visited',
+    title: 'Mark country visited',
     description: 'Mark a country as visited in your Atlas.',
     inputSchema: {
       country_code: z.string().length(2).toUpperCase().describe('ISO 3166-1 alpha-2 country code (e.g. "FR", "JP")'),
@@ -201,6 +205,7 @@ export class AtlasMcp {
 
   @Tool({
     name: 'unmark_country_visited',
+    title: 'Unmark country visited',
     description: 'Remove a country from your visited countries in Atlas.',
     inputSchema: {
       country_code: z.string().length(2).toUpperCase().describe('ISO 3166-1 alpha-2 country code'),
@@ -220,6 +225,7 @@ export class AtlasMcp {
 
   @Tool({
     name: 'get_atlas_stats',
+    title: 'Get atlas statistics',
     description:
       'Get the full travel picture in one call: visited/planned countries with per-country place and trip counts, continent breakdown, trip and day totals, plus the passport figures the dashboard shows (the cities visited by name and the total distance flown). Prefer this over get_country_atlas_places, which answers for one country only.',
     inputSchema: {
@@ -246,6 +252,7 @@ export class AtlasMcp {
 
   @Tool({
     name: 'list_visited_regions',
+    title: 'List visited regions',
     description:
       'List visited sub-country regions grouped by country, the way the Atlas map paints them: regions derived from the places on your trips, each with a place count and a visited/planned/idea status, merged with the ones marked by hand and minus the ones dismissed.',
     inputSchema: {},
@@ -263,6 +270,7 @@ export class AtlasMcp {
 
   @Tool({
     name: 'locate_atlas_region',
+    title: 'Locate atlas region',
     description:
       'Resolve a coordinate to the country and admin1 region the Atlas map can highlight. This is where the regionCode/countryCode pair mark_region_visited expects comes from. Prefer reverse_geocode when you want a postal address instead of atlas codes.',
     inputSchema: {
@@ -283,6 +291,7 @@ export class AtlasMcp {
 
   @Tool({
     name: 'mark_region_visited',
+    title: 'Mark region visited',
     description:
       'Mark a sub-country region as visited. When you only know a place or a coordinate, get the codes from locate_atlas_region first.',
     inputSchema: {
@@ -314,6 +323,7 @@ export class AtlasMcp {
 
   @Tool({
     name: 'unmark_region_visited',
+    title: 'Unmark region visited',
     description:
       'Remove a region from the visited list. Removing the last region of a country also removes the country, unless it was marked visited itself.',
     inputSchema: {
@@ -342,6 +352,7 @@ export class AtlasMcp {
 
   @Tool({
     name: 'get_country_atlas_places',
+    title: 'Get places in a country',
     description: "Get places saved in the user's atlas for a specific country.",
     inputSchema: {
       countryCode: z.string().describe('ISO 3166-1 alpha-2 country code'),
@@ -359,6 +370,7 @@ export class AtlasMcp {
 
   @Tool({
     name: 'update_bucket_list_item',
+    title: 'Update bucket list item',
     description: 'Update a bucket list item (notes, name, target date, location).',
     inputSchema: {
       itemId: idSchema,

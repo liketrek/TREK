@@ -71,6 +71,7 @@ export class FeedsMcp {
 
   @Tool({
     name: 'get_trip_calendar_feed',
+    title: 'Get trip calendar feed',
     description:
       'Get the subscribable calendar feed URL of one trip, or null when the feed is switched off. This is a live subscription a calendar app re-reads hourly, so it keeps up with the itinerary. Prefer export_trip_ics when the user wants a one-off .ics file to import once and be done.',
     inputSchema: {
@@ -87,6 +88,7 @@ export class FeedsMcp {
 
   @Tool({
     name: 'enable_trip_calendar_feed',
+    title: 'Enable trip calendar feed',
     description:
       "Switch on the subscribable calendar feed of one trip and return its URL. Safe to repeat: a trip that already has a feed keeps the URL it has, so subscriptions somebody already set up survive. The URL carries a secret token and asks for no login, so whoever holds it can read the trip's dates.",
     inputSchema: {
@@ -103,6 +105,7 @@ export class FeedsMcp {
 
   @Tool({
     name: 'rotate_trip_calendar_feed',
+    title: 'Rotate trip calendar feed',
     description:
       "Issue a fresh URL for one trip's calendar feed. Every calendar subscribed to the old URL silently stops updating, so use this when the old link leaked or the user asked to cut it off, not to switch the feed on: enable_trip_calendar_feed does that without breaking anything.",
     inputSchema: {
@@ -119,6 +122,7 @@ export class FeedsMcp {
 
   @Tool({
     name: 'disable_trip_calendar_feed',
+    title: 'Disable trip calendar feed',
     description:
       "Switch off one trip's calendar feed. The URL stops resolving and every subscription to it breaks. Calling enable_trip_calendar_feed afterwards hands out a different URL, so everybody has to subscribe again.",
     inputSchema: {
@@ -141,6 +145,7 @@ export class FeedsMcp {
 
   @Tool({
     name: 'get_all_trips_calendar_feed',
+    title: 'Get all-trips calendar feed',
     description:
       'Get the subscribable calendar feed URL covering every trip the user can open, or null when it is switched off. One feed for the whole travel calendar; get_trip_calendar_feed is the per-trip one.',
     inputSchema: {},
@@ -153,6 +158,7 @@ export class FeedsMcp {
 
   @Tool({
     name: 'enable_all_trips_calendar_feed',
+    title: 'Enable all-trips calendar feed',
     description:
       "Switch on the calendar feed covering every trip the user can open and return its URL. Safe to repeat: an existing feed keeps its URL. The URL needs no login and follows the user's trips as they change, so a trip added later shows up in it without anyone re-subscribing.",
     inputSchema: {},
@@ -165,6 +171,7 @@ export class FeedsMcp {
 
   @Tool({
     name: 'rotate_all_trips_calendar_feed',
+    title: 'Rotate all-trips calendar feed',
     description:
       'Issue a fresh URL for the all-trips calendar feed. Every calendar subscribed to the old URL stops updating. Use it when that link leaked; enable_all_trips_calendar_feed is the way to switch the feed on without breaking existing subscriptions.',
     inputSchema: {},
@@ -177,6 +184,7 @@ export class FeedsMcp {
 
   @Tool({
     name: 'disable_all_trips_calendar_feed',
+    title: 'Disable all-trips calendar feed',
     description:
       'Switch off the all-trips calendar feed. The URL stops resolving and every subscription to it breaks. Per-trip feeds are unaffected: disable_trip_calendar_feed switches those off one at a time.',
     inputSchema: {},

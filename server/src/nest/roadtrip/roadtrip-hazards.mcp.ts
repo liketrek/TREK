@@ -16,6 +16,7 @@ export class RoadtripHazardsMcp {
   ) {}
   @Tool({
     name: 'get_roadtrip_hazards',
+    title: 'Check road hazard notices',
     description:
       'Read current DWD and GDACS hazard notices, geometry, source timestamps and feed availability. These are current notices, not forecasts for the trip dates or confirmed road closures. A point means no affected-area polygon is available. Coverage can be incomplete. This does not change routes. The shared roadtrip_show_hazards preference controls map display.',
     inputSchema: { tripId: idSchema },

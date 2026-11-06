@@ -47,6 +47,7 @@ export class TodoMcp {
 
   @Tool({
     name: 'list_todos',
+    title: 'List trip to-dos',
     description: 'List all to-do items for a trip, ordered by position.',
     inputSchema: {
       tripId: idSchema,
@@ -63,6 +64,7 @@ export class TodoMcp {
 
   @Tool({
     name: 'create_todo',
+    title: 'Add a to-do',
     description: 'Create a new to-do item for a trip.',
     inputSchema: {
       tripId: idSchema,
@@ -123,6 +125,7 @@ export class TodoMcp {
 
   @Tool({
     name: 'update_todo',
+    title: 'Update a to-do',
     description:
       'Update an existing to-do item. Only provided fields are changed; omitted fields stay as-is. Pass null to clear a nullable field.',
     inputSchema: {
@@ -194,6 +197,7 @@ export class TodoMcp {
 
   @Tool({
     name: 'toggle_todo',
+    title: 'Toggle a to-do',
     description: 'Mark a to-do item as checked (done) or unchecked.',
     inputSchema: {
       tripId: idSchema,
@@ -215,6 +219,7 @@ export class TodoMcp {
 
   @Tool({
     name: 'delete_todo',
+    title: 'Delete a to-do',
     description: 'Delete a to-do item.',
     inputSchema: {
       tripId: idSchema,
@@ -235,6 +240,7 @@ export class TodoMcp {
 
   @Tool({
     name: 'reorder_todos',
+    title: 'Reorder to-dos',
     description: 'Reorder to-do items within a trip by providing a new ordered list of item IDs.',
     inputSchema: {
       tripId: idSchema,
@@ -251,6 +257,7 @@ export class TodoMcp {
 
   @Tool({
     name: 'get_todo_category_assignees',
+    title: 'Read to-do category assignees',
     description: 'Get the default assignees configured per to-do category for a trip.',
     inputSchema: {
       tripId: idSchema,
@@ -267,6 +274,7 @@ export class TodoMcp {
 
   @Tool({
     name: 'set_todo_category_assignees',
+    title: 'Set to-do category assignees',
     description: 'Set the default assignees for a to-do category on a trip. Pass an empty array to clear.',
     inputSchema: {
       tripId: idSchema,

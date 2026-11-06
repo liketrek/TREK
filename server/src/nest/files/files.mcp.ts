@@ -74,6 +74,7 @@ export class FilesMcp {
 
   @Tool({
     name: 'list_trip_files',
+    title: 'List trip files',
     description:
       "List the documents on a trip: name, type, size, who uploaded it, what it is attached to, whether it is starred, and when it was moved to the trash. This is the way to find a file ID; to read what is inside one, follow up with read_trip_file. Set trash to true to list the trip's deleted files instead of its live ones.",
     inputSchema: {
@@ -90,6 +91,7 @@ export class FilesMcp {
 
   @Tool({
     name: 'read_trip_file',
+    title: 'Read trip file',
     description: `Read what is inside one uploaded document, e.g. a booking confirmation or a ticket. Text files come back as readable text, anything else base64-encoded, with "encoding" saying which. Files over ${CONTENT_MAX_MB} MB are refused outright, so point the user at the file in TREK rather than retrying. Reading contents is a separate permission from listing files, so this can be refused on a trip where list_trip_files works.`,
     inputSchema: {
       tripId: idSchema,
@@ -124,6 +126,7 @@ export class FilesMcp {
 
   @Tool({
     name: 'upload_trip_file',
+    title: 'Upload trip file',
     description: `Add a document to a trip, e.g. a booking confirmation PDF or a ticket, and optionally attach it to a booking or a place in the same call. Pass the bytes base64-encoded in content, up to ${UPLOAD_MAX_MB} MB decoded. The file name has to carry an extension the trip's file manager accepts; the type is derived from it. Returns the new file, whose ID works with read_trip_file and link_trip_file.`,
     inputSchema: {
       tripId: idSchema,
@@ -190,6 +193,7 @@ export class FilesMcp {
 
   @Tool({
     name: 'update_trip_file',
+    title: 'Update trip file',
     description:
       "Set a file's description and attach it to a booking or a place. Fields left out keep their current value, null detaches. place_id and reservation_id are the file's primary attachment, the one the file manager shows next to it. To attach one document to several bookings or places at once, use link_trip_file instead.",
     inputSchema: {
@@ -238,6 +242,7 @@ export class FilesMcp {
 
   @Tool({
     name: 'link_trip_file',
+    title: 'Link file to items',
     description:
       'Attach a file to one more booking, place or day assignment on the same trip, keeping every attachment it already has. Prefer update_trip_file when the document belongs to a single booking or place; use this one for a document that covers several, such as one group ticket or one rental agreement. Returns every link the file now carries.',
     inputSchema: {
@@ -274,6 +279,7 @@ export class FilesMcp {
 
   @Tool({
     name: 'unlink_trip_file',
+    title: 'Unlink file from item',
     description:
       'Remove one attachment between a file and a booking, place or day assignment. The file itself stays on the trip and its other attachments are untouched. Take linkId from list_trip_file_links, it is not the booking or place ID.',
     inputSchema: {
@@ -300,6 +306,7 @@ export class FilesMcp {
 
   @Tool({
     name: 'list_trip_file_links',
+    title: 'List file links',
     description:
       'List everything one file is attached to: bookings (with their title), places and day assignments, each with the linkId that unlink_trip_file needs. list_trip_files already reports the linked booking and place IDs, so reach for this one when you need the link IDs themselves.',
     inputSchema: {

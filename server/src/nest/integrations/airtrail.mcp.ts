@@ -72,6 +72,7 @@ export class AirtrailMcp {
 
   @Tool({
     name: 'list_airtrail_flights',
+    title: 'List AirTrail flights',
     description:
       "List the flights in the caller's connected AirTrail account, which are the ones available to import into a trip. Each entry carries the id that import_airtrail_flights takes, plus route, times, airline and flight number, so call this first and pass the ids you picked to that tool. Use it for flights that have already been flown or booked and recorded in AirTrail; a flight that exists nowhere yet is created with create_transport instead. Narrow it with from/to to the trip window rather than pulling a whole flight history.",
     inputSchema: {

@@ -42,6 +42,7 @@ export class NotificationsMcp {
 
   @Tool({
     name: 'list_notifications',
+    title: 'List notifications',
     description: 'List in-app notifications for the current user.',
     inputSchema: {
       limit: idSchema.optional().default(20),
@@ -65,6 +66,7 @@ export class NotificationsMcp {
 
   @Tool({
     name: 'get_unread_notification_count',
+    title: 'Count unread notifications',
     description: 'Get the number of unread in-app notifications.',
     inputSchema: {},
     annotations: TOOL_ANNOTATIONS_READONLY,
@@ -77,6 +79,7 @@ export class NotificationsMcp {
 
   @Tool({
     name: 'mark_notification_read',
+    title: 'Mark notification as read',
     description: 'Mark a single notification as read.',
     inputSchema: {
       notificationId: idSchema,
@@ -93,6 +96,7 @@ export class NotificationsMcp {
 
   @Tool({
     name: 'mark_notification_unread',
+    title: 'Mark notification as unread',
     description: 'Mark a single notification as unread.',
     inputSchema: {
       notificationId: idSchema,
@@ -108,6 +112,7 @@ export class NotificationsMcp {
 
   @Tool({
     name: 'mark_all_notifications_read',
+    title: 'Mark all notifications read',
     description: "Mark all of the current user's notifications as read.",
     inputSchema: {},
     annotations: TOOL_ANNOTATIONS_WRITE,

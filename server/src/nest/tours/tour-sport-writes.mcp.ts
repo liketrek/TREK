@@ -115,6 +115,7 @@ export class TourSportWritesMcp {
 
   @Tool({
     name: 'classify_ski_track',
+    title: 'Reclassify a ski track',
     description:
       'Classify a ski and winter tour (tour_type ski, usually an imported track) again when its discipline is not the right one: ski_discipline alpine, snowboard, cross_country, touring for ski touring, snowshoe or winter_hike, and for cross_country only ski_technique (classic, skating, or unknown when the travellers do not know). Only the classification changes: the track, its measures, its days and where it came from stay as they are, and nothing is planned. Any other type is refused. expected_revision (tour.revision of get_tour_plan) refuses it once the tour changed since. The answer gives the tour as now saved and previous, the discipline and technique before. Needs place editing permission on the trip. Change it only after the traveller said yes.',
     inputSchema: { tripId: idSchema, ...skiClassifyToolRequestSchema.shape },
@@ -146,6 +147,7 @@ export class TourSportWritesMcp {
 
   @Tool({
     name: 'set_paddle_plan',
+    title: 'Set a paddle plan',
     description:
       "Lay the paddle plan onto a recorded paddle track (tour_type kayak without control points of its own, an import), as the track's plan card does: the portages (from_m and to_m, metres from the start of the track, and extra_minutes for getting out and back in, null for TREK's starting value) and locks (at_m with wait_minutes and transit_minutes, null where not known) in track_marks, the paddle_speed_kmh (null for the boat's suggested speed) and the portage_speed_kmh (null for the starting value). The track is never redrawn; its moving time is reckoned anew from the plan. The plan given replaces the whole plan: send every portage and lock to keep. A planned paddle tour saves its portages and locks with its route in the planner and is refused here, and so is a mark past the end of the track. The answer gives the tour as now saved and previous, the plan before. Needs place editing permission on the trip. Change it only after the traveller said yes.",
     inputSchema: {
@@ -185,6 +187,7 @@ export class TourSportWritesMcp {
 
   @Tool({
     name: 'decide_paddle_obstacles',
+    title: 'Decide paddle obstacles',
     description:
       "Record what the paddlers decided about the obstacles of a paddle tour (tour_type kayak), as its obstacle checklist does: read get_tour_plan first and take each entry's key and basis from its obstacle_check, since a decision is bound to the route and the data the travellers saw. op decide stores decision pass, portage, reroute or not_affected with that basis (and a note), note changes the note only, clear takes the decision back, keep keeps a decision about an object the data no longer holds; each obstacle at most once. A decision is the paddlers' own planning, never a safety or legal clearance, and a ban in the data counts whatever was decided. The answer is the checklist as it now stands (obstacle_check) with the tour. Refused while the obstacle data cannot be read. Needs place editing permission on the trip. Decide only what the traveller decided.",
     inputSchema: { tripId: idSchema, ...obstacleDecisionsToolRequestSchema.shape },
@@ -208,6 +211,7 @@ export class TourSportWritesMcp {
 
   @Tool({
     name: 'restore_recorded_track',
+    title: 'Restore recorded track',
     description:
       'Take an import that was planned over in place (tour.has_recorded_track true) back to the track it was recorded with: its line, the distance and heights read from it and the grade its source gave, without control points; the planning is dropped and cannot be brought back here (copy_tour it first to keep it). The tour keeps its id, days and notes; a split into stages ends, so a day that held a stage no longer does. A tour without a recorded track to go back to is refused. The answer is the tour as now saved. Needs place editing permission on the trip. Do it only after the traveller said yes.',
     inputSchema: { tripId: idSchema, ...tourRefToolRequestSchema.shape },
@@ -225,6 +229,7 @@ export class TourSportWritesMcp {
 
   @Tool({
     name: 'get_tour_trail_details',
+    title: 'Read tour trail details',
     description:
       "Read what OpenStreetMap records for the ways a saved tour runs on, along its saved line, as the planner's trail details show it: sac (the SAC hiking grades: highest from 1 for T1 to 6 for T6, the graded stretches in metres along the line, unknown_share), mtb (the mountain bike scale mtb:scale, its hardest value and the metres of each), surface and highway (the metres and share of each value as OpenStreetMap writes it, such as asphalt, gravel, path or track), unknown_share (the part whose way carries none of these or could not be asked about) and length_m. A way without a value is unknown, never easy, paved or rideable; ways_unanswered counts ways the data could not be asked about this time, truncated says a very long line was only read in part. A tour saved with its points only has no line yet and is refused. Reading changes nothing.",
     inputSchema: { tripId: idSchema, ...tourRefToolRequestSchema.shape },
@@ -240,6 +245,7 @@ export class TourSportWritesMcp {
 
   @Tool({
     name: 'find_horse_routes',
+    title: 'Find horse routes',
     description:
       'Find the signposted horse routes OpenStreetMap knows inside a map view, as the horse tour planner shows them: each route (id relation/<n>, name, ref, osm_url, continues when it runs on past the view) with its sections, the stretches a ride can take whole (number, length_m, from and to as [lat, lng], access: the metres of each horse=* value its ways carry, unknown where untagged, and signposted: with or against the direction it is listed in, null both ways). bbox is the view as south,west,north,east; a view too large is refused with the advice to zoom in. Being on a horse route is no permission to ride it. truncated says the view held more than one answer carries. Reading changes nothing; nothing about the trip goes out.',
     inputSchema: { tripId: idSchema, ...horseRoutesToolRequestSchema.shape },

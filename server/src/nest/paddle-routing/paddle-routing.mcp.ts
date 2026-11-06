@@ -69,6 +69,7 @@ export class PaddleRoutingMcp {
 
   @Tool({
     name: 'plan_paddle_route',
+    title: 'Plan paddle route',
     description:
       'Plan the legs of a paddle tour on the water, on the water network TREK builds from the OpenStreetMap data of the paddle regions an admin added. Each leg (from, to) is planned along rivers and canals and across lakes, with short portages where a weir, dam or waterfall bars the way and through or around locks (lock_policy). lake_style direct crosses lakes straight, shore keeps near the shore (for wind). Answers per leg its length, how far its ends were moved onto the water, and its stretches (water, lake, portage with its source, lock, gap) with where each starts and ends in metres along the leg (from_m, to_m); a leg that cannot be planned says why (not_on_water, no_region, no_water_path, cross_region). A planning aid, never a safety or legal clearance; nothing is saved.',
     inputSchema: { tripId: idSchema, ...paddleRouteRequestSchema.shape, include_geometry: includeGeometryFlagSchema },

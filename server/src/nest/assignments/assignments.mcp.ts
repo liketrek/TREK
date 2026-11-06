@@ -41,6 +41,7 @@ export class AssignmentsMcp {
 
   @Tool({
     name: 'assign_place_to_day',
+    title: 'Add place to a day',
     description:
       'Assign a place to a specific day in a trip. For a multi-day tour, pass tourStageKey to put one of its stages on the day instead of the whole tour: the key of the stop the stage starts at, from the stage_stops list_tours gives (every stop but the last starts a stage). A stage is on one day at most, and a day holds a tour, or one of its stages, once.',
     inputSchema: {
@@ -79,6 +80,7 @@ export class AssignmentsMcp {
 
   @Tool({
     name: 'set_assignment_end_day',
+    title: 'Set assignment end day',
     description:
       'End the travel day after this visit and its stay. Applies only with daily travel times enabled. Pass false to follow the default again.',
     inputSchema: {
@@ -104,6 +106,7 @@ export class AssignmentsMcp {
 
   @Tool({
     name: 'unassign_place',
+    title: 'Remove place from day',
     description: 'Remove a place assignment from a day.',
     inputSchema: {
       tripId: idSchema,
@@ -129,6 +132,7 @@ export class AssignmentsMcp {
 
   @Tool({
     name: 'clear_day_assignments',
+    title: 'Clear places from day',
     description:
       'Remove every place from one day in a single step. The day itself, its notes and its bookings stay; the places stay in the trip and can be planned again. Returns the removed assignment ids.',
     inputSchema: {
@@ -151,6 +155,7 @@ export class AssignmentsMcp {
 
   @Tool({
     name: 'update_assignment_time',
+    title: 'Set place visit times',
     description:
       'Set the start and/or end time for a place assignment on a day (e.g. "09:00", "11:30"). Pass null to clear a time.',
     inputSchema: {
@@ -195,6 +200,7 @@ export class AssignmentsMcp {
 
   @Tool({
     name: 'update_assignment_notes',
+    title: 'Set place day note',
     description:
       'Set or clear the day-specific note on a place assignment (the note assign_place_to_day and create_and_assign_place accept at creation). Pass null or an empty string to clear it.',
     inputSchema: {
@@ -223,6 +229,7 @@ export class AssignmentsMcp {
 
   @Tool({
     name: 'set_leg_transport_mode',
+    title: 'Set leg transport mode',
     description:
       'Set the travel mode of a route leg for a place assignment. Use direction "outgoing" (default) for the common case: the leg leaving this stop toward the next. Use direction "incoming" ONLY when this stop\'s arriving leg originates from something that is not itself a place assignment (e.g. a flight/train booking arrival, or a morning hotel departure) – setting "incoming" on an ordinary place-to-place leg is stored but has no effect on route rendering, because it targets a column that is only read for non-place origins. transport_mode is a route profile key: "driving", "walking", "cycling", or a plugin profile written as "plugin:<pluginId>/<profileId>". Any other value is stored but drawn as a driving route. null clears it so the leg inherits the day default.',
     inputSchema: {
@@ -269,6 +276,7 @@ export class AssignmentsMcp {
 
   @Tool({
     name: 'set_assignment_route_excluded',
+    title: 'Exclude stop from route',
     description:
       'Keep a place on its day but leave it out of that day route, or put it back. An excluded stop still shows in the day plan and on the map, and the route runs from the stop before it straight to the one after. Use it for a place only visited on foot from somewhere nearby, or one that is just a point of interest.',
     inputSchema: {
@@ -294,6 +302,7 @@ export class AssignmentsMcp {
 
   @Tool({
     name: 'move_assignment',
+    title: 'Move place to another day',
     description: 'Move a place assignment to a different day.',
     inputSchema: {
       tripId: idSchema,
@@ -342,6 +351,7 @@ export class AssignmentsMcp {
 
   @Tool({
     name: 'get_assignment_participants',
+    title: 'Get place participants',
     description: 'Get the list of users participating in a specific place assignment.',
     inputSchema: {
       tripId: idSchema,
@@ -360,6 +370,7 @@ export class AssignmentsMcp {
 
   @Tool({
     name: 'set_assignment_participants',
+    title: 'Set place participants',
     description: 'Set the participants for a place assignment (replaces current list).',
     inputSchema: {
       tripId: idSchema,
@@ -384,6 +395,7 @@ export class AssignmentsMcp {
 
   @Tool({
     name: 'reorder_day_assignments',
+    title: 'Reorder places in day',
     description: 'Reorder places within a day by providing the assignment IDs in the desired order.',
     inputSchema: {
       tripId: idSchema,

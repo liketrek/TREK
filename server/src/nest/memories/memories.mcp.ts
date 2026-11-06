@@ -101,6 +101,7 @@ export class MemoriesMcp {
 
   @Tool({
     name: 'search_provider_photos',
+    title: 'Search provider photos',
     description:
       'Search a connected photo library (Immich or Synology Photos) by capture date and return the matching asset ids with their capture time, place and coordinates. Start here when the user asks for the photos of a trip, a journey or a single day, then pass the ids on to add_journey_provider_photos. Prefer list_provider_albums when the user names an album instead of a date range. Metadata only: no image data crosses the wire, and the pictures themselves are fetched by the app, not by this tool.',
     inputSchema: {
@@ -184,6 +185,7 @@ export class MemoriesMcp {
 
   @Tool({
     name: 'list_provider_albums',
+    title: 'List provider albums',
     description:
       'List the albums of a connected photo library (Immich or Synology Photos), with each album id, name and photo count. Use this when the user names an album ("the Rome album") rather than a date range, then read its photos with list_provider_album_photos. For "photos from that week" use search_provider_photos instead.',
     inputSchema: {
@@ -213,6 +215,7 @@ export class MemoriesMcp {
 
   @Tool({
     name: 'list_provider_album_photos',
+    title: 'List provider album photos',
     description:
       'List every photo in one album of a connected library, with asset ids, capture times and coordinates. Follow list_provider_albums with this once the right album is known, then hand the asset ids to add_journey_provider_photos. Metadata only, and unpaginated: a large album comes back whole.',
     inputSchema: {

@@ -54,6 +54,7 @@ export class TripInviteMcp {
 
   @Tool({
     name: 'get_trip_invite_link',
+    title: 'Read trip invite link',
     description:
       "Get the trip's current invite link, the one that adds whoever opens it to the trip as a member. Returns null when the trip has none. This is not the read-only public view link: get_share_link is that one.",
     inputSchema: {
@@ -71,6 +72,7 @@ export class TripInviteMcp {
 
   @Tool({
     name: 'create_trip_invite_link',
+    title: 'Create trip invite link',
     description:
       "Create the trip's invite link, or rotate it: a trip has exactly one, so calling this again issues a fresh token and the previous link stops working immediately. Anyone with a TREK account who opens the link and signs in becomes a member of the trip, which makes it a different and far stronger thing than create_share_link, whose link only shows a read-only public view. Use add_trip_member instead when the person already has an account and is known by name or email.",
     inputSchema: {
@@ -112,6 +114,7 @@ export class TripInviteMcp {
 
   @Tool({
     name: 'delete_trip_invite_link',
+    title: 'Revoke trip invite link',
     description:
       "Revoke the trip's invite link. The URL stops working at once, so nobody else can join through it. Members who already joined stay on the trip: remove_trip_member is what takes somebody off it.",
     inputSchema: {

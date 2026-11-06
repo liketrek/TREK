@@ -38,6 +38,7 @@ export class TourLibraryMcp {
 
   @Tool({
     name: 'list_tour_library',
+    title: 'Browse tour library',
     description:
       'List the saved tours of every trip the user can open, to choose one to take over into another trip: name, type, distance in km, ascent and descent in metres, the planned times, and the trip each one is in. Narrow it with q (a part of the name), type, trip_id, or leave the trip being planned out with exclude_trip_id. Up to 100 tours; truncated says there were more. Values a tour does not have stay null.',
     inputSchema: {
@@ -56,6 +57,7 @@ export class TourLibraryMcp {
 
   @Tool({
     name: 'take_over_tour',
+    title: 'Take over a tour',
     description:
       'Copy a saved tour of another trip (as list_tour_library gives it) into a trip, as an independent tour of that trip: its line, measures, settings and control points, without its days, its links to places of the other trip or the decisions taken there about obstacles. The copy remembers which trip and tour it was taken from. A city walk keeps its stations with their keys, names, stays, importance, protection and opening hours; what was checked off on the days of the other trip stays there, and a walk still waiting for its way (route_pending) is copied as it is. Nothing changes in the source trip.',
     inputSchema: {

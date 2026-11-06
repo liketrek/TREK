@@ -96,6 +96,7 @@ export class CollectionsMcp {
 
   @Tool({
     name: 'list_collections',
+    title: 'List collections',
     description:
       "List all saved-place collections (lists) the user owns or has accepted a share for, plus any pending incoming invites. Use get_collection for a list's places.",
     inputSchema: {},
@@ -113,6 +114,7 @@ export class CollectionsMcp {
 
   @Tool({
     name: 'get_collection',
+    title: 'Get collection',
     description:
       'Get one collection with its members, labels, and all saved places. Each place includes rating_avg / rating_count and the per-member ratings (#1435) so you can plan around highly-rated spots.',
     inputSchema: { collectionId: idSchema },
@@ -130,6 +132,7 @@ export class CollectionsMcp {
 
   @Tool({
     name: 'available_collection_users',
+    title: 'List invitable collection users',
     description:
       'List users who can still be invited to a collection (excludes current members and guests). Use the returned ids with invite_to_collection.',
     inputSchema: { collectionId: idSchema },
@@ -156,6 +159,7 @@ export class CollectionsMcp {
 
   @Tool({
     name: 'find_place_in_collections',
+    title: 'Find place in collections',
     description:
       'Answer "is this place already on one of my lists?" across the whole library in one call, and name the lists it is on with its status in each. Prefer this over walking get_collection list by list: it applies the same provider-id and coordinate-proximity match the app\'s own saved indicator uses, which a name comparison over the returned places cannot reproduce. Identify the place by google_place_id / google_ftid (from search_place) or by lat+lng; without one of those there is no signal strong enough to claim it is the same place and nothing is reported as saved.',
     inputSchema: {
@@ -188,6 +192,7 @@ export class CollectionsMcp {
 
   @Tool({
     name: 'get_collection_items',
+    title: 'Get collection items by ID',
     description:
       'Read saved places and labels by their own ids across every list the user can see, without loading whole lists: each place with its status, labels, rating and notes, and the lists they sit in with their colour, size, labels and members. Saved place ids are collection place ids, never trip place ids. Ids the user cannot see are left out.',
     inputSchema: collectionItemsRequestSchema.shape,
@@ -207,6 +212,7 @@ export class CollectionsMcp {
 
   @Tool({
     name: 'create_collection',
+    title: 'Create collection',
     description: 'Create a new saved-place collection (list) owned by the user.',
     inputSchema: { ...collectionCreateRequestSchema.shape, links: linksInput },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
@@ -223,6 +229,7 @@ export class CollectionsMcp {
 
   @Tool({
     name: 'update_collection',
+    title: 'Update collection',
     description:
       "Update a collection's name, description, colour, icon, cover, links, or sort order. Owner/admin only.",
     inputSchema: { collectionId: idSchema, ...collectionUpdateRequestSchema.shape, links: linksInput },
@@ -243,6 +250,7 @@ export class CollectionsMcp {
 
   @Tool({
     name: 'delete_collection',
+    title: 'Delete collection',
     description: 'Permanently delete a collection and all its saved places. Owner only. This cannot be undone.',
     inputSchema: { collectionId: idSchema },
     annotations: TOOL_ANNOTATIONS_DELETE,
@@ -260,6 +268,7 @@ export class CollectionsMcp {
 
   @Tool({
     name: 'reorder_collections',
+    title: 'Reorder collections',
     description: "Reorder the user's collections. Pass every collection id in the desired order.",
     inputSchema: { orderedIds: z.array(idSchema).min(1) },
     annotations: TOOL_ANNOTATIONS_WRITE,
@@ -279,6 +288,7 @@ export class CollectionsMcp {
 
   @Tool({
     name: 'save_place_to_collection',
+    title: 'Save place to collection',
     description:
       'Save a place into a collection from a raw payload (name required; set google_place_id/osm_id from search_place for rich details). Returns a duplicate marker instead of saving when a similar place already exists, unless force is true.',
     inputSchema: { ...collectionSavePlaceRequestSchema.shape, links: linksInput },
@@ -296,6 +306,7 @@ export class CollectionsMcp {
 
   @Tool({
     name: 'save_trip_places_to_collection',
+    title: 'Save trip places to collection',
     description:
       'Copy one or more existing trip places into a collection (the server reads each place). Their star ratings (#1435) travel along for members shared on both. Duplicates are skipped unless force is true.',
     inputSchema: {
@@ -326,6 +337,7 @@ export class CollectionsMcp {
 
   @Tool({
     name: 'update_collection_place',
+    title: 'Update collection place',
     description:
       "Update a saved place's name, address, coordinates (lat/lng), description, notes, status, category, links, tags, labels, image, or move it to another collection (set collection_id). Moving a place out of a list needs the same role there as deleting it (owner or admin).",
     inputSchema: { placeId: idSchema, ...collectionPlaceUpdateRequestSchema.shape, links: linksInput },
@@ -346,6 +358,7 @@ export class CollectionsMcp {
 
   @Tool({
     name: 'set_collection_place_status',
+    title: 'Set collection place status',
     description: "Set a saved place's status: idea, want, or visited.",
     inputSchema: { placeId: idSchema, status: z.enum(COLLECTION_STATUSES) },
     annotations: TOOL_ANNOTATIONS_WRITE,
@@ -362,6 +375,7 @@ export class CollectionsMcp {
 
   @Tool({
     name: 'set_collection_place_status_from_trip',
+    title: 'Set status from trip places',
     description:
       'Set a status on every saved copy of the given TRIP places, in every list they are on. Use this after a day out to mark places visited: set_collection_place_status takes one collection_places id, so the same trip place saved to three lists would need three calls and a lookup to find them. Ids here are trip place ids. Lists the user may only read are skipped rather than refused. Returns how many saved places changed and how many of the trip places were found in at least one list.',
     inputSchema: collectionSetStatusFromTripRequestSchema.shape,
@@ -382,6 +396,7 @@ export class CollectionsMcp {
 
   @Tool({
     name: 'rate_collection_place',
+    title: 'Rate collection place',
     description:
       "Set or clear the current user's 1-5 star rating on a saved collection place (#1435). Every member rates independently; the place shows the average. Pass null (or omit rating) to remove the user's vote. Ratings a member casts here follow the place into any trip it is later copied to. Use the ratings to capture the user's preferences.",
     inputSchema: {
@@ -402,6 +417,7 @@ export class CollectionsMcp {
 
   @Tool({
     name: 'delete_collection_place',
+    title: 'Delete collection place',
     description: 'Remove a saved place from its collection. Requires delete permission on the list.',
     inputSchema: { placeId: idSchema },
     annotations: TOOL_ANNOTATIONS_DELETE,
@@ -419,6 +435,7 @@ export class CollectionsMcp {
 
   @Tool({
     name: 'copy_collection_places_to_trip',
+    title: 'Copy collection places to trip',
     description:
       'Copy one or more saved collection places into a trip (dedup precheck on the server). Ratings (#1435) travel into the trip; trip members keep voting there. Requires edit access to the target trip.',
     inputSchema: collectionCopyToTripRequestSchema.shape,
@@ -439,6 +456,7 @@ export class CollectionsMcp {
 
   @Tool({
     name: 'create_collection_label',
+    title: 'Create collection label',
     description: 'Create a custom per-collection label (name + optional hex colour) for grouping/filtering places.',
     inputSchema: collectionLabelCreateRequestSchema.shape,
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
@@ -455,6 +473,7 @@ export class CollectionsMcp {
 
   @Tool({
     name: 'update_collection_label',
+    title: 'Update collection label',
     description: 'Rename or recolour a collection label, or change its sort order.',
     inputSchema: { labelId: idSchema, ...collectionLabelUpdateRequestSchema.shape },
     annotations: TOOL_ANNOTATIONS_WRITE,
@@ -474,6 +493,7 @@ export class CollectionsMcp {
 
   @Tool({
     name: 'delete_collection_label',
+    title: 'Delete collection label',
     description: 'Delete a collection label; its assignments on places are cleared.',
     inputSchema: { labelId: idSchema },
     annotations: TOOL_ANNOTATIONS_DELETE,
@@ -491,6 +511,7 @@ export class CollectionsMcp {
 
   @Tool({
     name: 'assign_collection_labels',
+    title: 'Assign collection labels',
     description:
       "Add (or with remove=true, take away) one or more labels across a set of saved places. Only labels belonging to each place's own list are applied.",
     inputSchema: { ...collectionLabelAssignRequestSchema.shape, remove: z.boolean().optional() },
@@ -513,6 +534,7 @@ export class CollectionsMcp {
 
   @Tool({
     name: 'invite_to_collection',
+    title: 'Invite user to collection',
     description:
       'Invite a user (by id, from available_collection_users) to collaborate on a collection, with a role of viewer, editor, or admin (default editor). Owner only.',
     inputSchema: collectionInviteRequestSchema.shape,
@@ -534,6 +556,7 @@ export class CollectionsMcp {
 
   @Tool({
     name: 'set_collection_member_role',
+    title: 'Set collection member role',
     description: "Change an accepted member's permission role (viewer, editor, or admin). Owner only.",
     inputSchema: {
       collectionId: idSchema,
@@ -558,6 +581,7 @@ export class CollectionsMcp {
 
   @Tool({
     name: 'remove_collection_member',
+    title: 'Remove collection member',
     description: 'Remove an accepted member from a shared collection (a kick). Owner only.',
     inputSchema: { collectionId: idSchema, userId: idSchema },
     annotations: TOOL_ANNOTATIONS_DELETE,
@@ -578,9 +602,10 @@ export class CollectionsMcp {
 
   @Tool({
     name: 'cancel_collection_invite',
+    title: 'Cancel collection invite',
     description: 'Cancel a pending invite you sent to a user for a collection. Owner only.',
     inputSchema: { collectionId: idSchema, userId: idSchema },
-    annotations: TOOL_ANNOTATIONS_WRITE,
+    annotations: TOOL_ANNOTATIONS_DELETE,
     when: collectionsAddonOn,
     access: { group: 'collections', mode: 'write' },
   })
@@ -598,6 +623,7 @@ export class CollectionsMcp {
 
   @Tool({
     name: 'accept_collection_invite',
+    title: 'Accept collection invite',
     description: 'Accept a pending invite to join a shared collection.',
     inputSchema: { collectionId: idSchema },
     annotations: TOOL_ANNOTATIONS_WRITE,
@@ -616,6 +642,7 @@ export class CollectionsMcp {
 
   @Tool({
     name: 'decline_collection_invite',
+    title: 'Decline collection invite',
     description: 'Decline a pending invite to a shared collection.',
     inputSchema: { collectionId: idSchema },
     annotations: TOOL_ANNOTATIONS_WRITE,
@@ -633,9 +660,10 @@ export class CollectionsMcp {
 
   @Tool({
     name: 'leave_collection',
+    title: 'Leave collection',
     description: 'Leave a shared collection you are a member of. The owner cannot leave (delete the list instead).',
     inputSchema: { collectionId: idSchema },
-    annotations: TOOL_ANNOTATIONS_WRITE,
+    annotations: TOOL_ANNOTATIONS_DELETE,
     when: collectionsAddonOn,
     access: { group: 'collections', mode: 'write' },
   })

@@ -65,6 +65,7 @@ export class TourEditMcp {
 
   @Tool({
     name: 'update_tour_details',
+    title: 'Update tour details',
     description:
       'Change the words and planned times of a saved tour of any type (a hike, a city walk, a bike tour, a run, a paddle, ski or horse tour, a recorded track too) without touching its route, its points or its days: name, description, website (an https URL), break_additional_minutes (the breaks on top of the moving time) and planned_duration_minutes (the time out in all the travellers set themselves, breaks included); only the fields given change, null clears one. expected_revision is tour.revision from get_tour_plan or list_tours: a tour changed since is refused as a conflict, read it again. The moving time and the breaks stay within a day (a day a stage for a tour over several days) unless a planned total is set, as in the planner. The answer gives the tour as now saved with its new revision, and previous, the values before. Needs place editing permission on the trip. Change it only after the traveller said yes.',
     inputSchema: { tripId: idSchema, ...tourDetailsUpdateRequestSchema.shape },
@@ -82,6 +83,7 @@ export class TourEditMcp {
 
   @Tool({
     name: 'set_tour_route_color',
+    title: 'Set tour route color',
     description:
       'Draw the line of a saved tour in another colour on the map, as the colour picker of the tour detail does: route_color is a hex colour such as "#e11d48", null draws it in the colour of its tour type again. Only the colour changes: the route, the revision and the days stay as they are. The answer gives route_color and previous_route_color. Needs place editing permission on the trip.',
     inputSchema: { tripId: idSchema, ...tourRouteColorRequestSchema.shape },
@@ -100,6 +102,7 @@ export class TourEditMcp {
 
   @Tool({
     name: 'copy_tour',
+    title: 'Copy a tour',
     description:
       'Save a tour of the trip again as a new, independent tour of the same trip under its own name, as the planner\'s "save as new tour" does: the copy has its own id, line and control points, the same type, measures and settings, its stops keep their links to the trip\'s places, and it is on no day yet (put it on one with assign_place_to_day). Use it to try a variant without losing the original: copy first, then change the copy. The answer is the copy as list_tours reads it (tour.place_id is its id, revision 1). Needs place editing permission on the trip. Copy only when the traveller asked for it.',
     inputSchema: { tripId: idSchema, ...tourCopyToolRequestSchema.shape },

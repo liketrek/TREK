@@ -17,6 +17,7 @@ export class ChargingMcp {
   ) {}
   @Tool({
     name: 'get_roadtrip_charging_info',
+    title: 'Check a charging stop',
     description:
       'Read open charging availability and published tariffs for a saved charging stop. No API key required. Coverage varies by region and operator. Unknown or stale status is not available capacity. Prices can have conditions and extra fees and are not personalized roaming quotes.',
     inputSchema: { tripId: idSchema, placeId: idSchema },
@@ -30,6 +31,7 @@ export class ChargingMcp {
   }
   @Tool({
     name: 'lookup_roadtrip_charging_info',
+    title: 'Look up a charging station',
     description:
       'Read open charging availability and published tariffs for a charging station by coordinate, before it is added to a trip. Needs a trip only for access control. No API key required. Every caveat of get_roadtrip_charging_info applies unchanged: coverage varies by region and operator, unknown or stale status is not available capacity, prices are gross per-component figures that can carry conditions and extra fees and are not personalized roaming quotes. Report the source, licence and timestamp alongside any figure from it. Charging power, socket types and socket counts are not in this answer; they come from the place search.',
     inputSchema: { tripId: idSchema, ...chargingLookupSchema.shape },

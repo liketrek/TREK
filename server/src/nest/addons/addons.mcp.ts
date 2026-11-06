@@ -25,6 +25,7 @@ export class AddonsMcp {
 
   @Tool({
     name: 'list_addons',
+    title: 'List instance add-ons',
     description:
       'Report which optional add-ons are enabled on this TREK instance, which collab sub-features (chat, notes, polls, whatsnext) are switched on, and whether packing bag tracking is on. Only enabled entries are listed, so anything absent is off here. Tools belonging to a disabled add-on are never registered, so call this to tell "the feature is off on this instance" apart from "the tool call failed", and before promising a user that budget, packing, collab, atlas, vacay, journey or collections will work.',
     inputSchema: {},

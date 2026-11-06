@@ -70,6 +70,7 @@ export class DayNotesMcp {
 
   @Tool({
     name: 'create_day_note',
+    title: 'Add day note',
     description: 'Add a note to a specific day in a trip: a title in `text` and its body in `time`.',
     inputSchema: {
       tripId: idSchema,
@@ -122,6 +123,7 @@ export class DayNotesMcp {
 
   @Tool({
     name: 'update_day_note',
+    title: 'Update day note',
     description: 'Edit an existing note on a specific day: its title is `text`, its body `time`.',
     inputSchema: {
       tripId: idSchema,
@@ -182,6 +184,7 @@ export class DayNotesMcp {
 
   @Tool({
     name: 'delete_day_note',
+    title: 'Delete day note',
     description: 'Delete a note from a specific day.',
     inputSchema: {
       tripId: idSchema,

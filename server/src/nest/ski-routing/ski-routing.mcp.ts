@@ -73,6 +73,7 @@ export class SkiRoutingMcp {
 
   @Tool({
     name: 'plan_ski_route',
+    title: 'Plan a ski route',
     description:
       'Plan the legs of a ski and winter tour on the runs, lifts, cross-country trails, ski touring and winter paths of OpenStreetMap, for a discipline (alpine, snowboard, cross_country with a technique of classic, skating or unknown, touring, snowshoe, winter_hike) and its options (max_difficulty from novice to expert, allow_freeride, avoid_lifts by class, allow_lift_down, priority fastest, most_skiing or easiest, pace, groomed_only and lit_only for cross-country, touring_uphill_on_pistes, use_lifts, avoid_inferred_links). Each leg (from, to) answers its length, climb and descent, its time split into skiing, lifts, waiting at lifts and walking, how far its ends were moved onto the network, its stretches (run with difficulty, lift with type, link the map data does not hold, and so on, each with where it starts and ends in metres along the leg, from_m and to_m) and notes on what it rests on; a leg that cannot be planned says why (not_on_piste, no_area, cross_area, disconnected, blocked_by_difficulty with the level it needs, blocked_by_lift_avoid, blocked_by_technique, needs_ride_down, uphill_only, loading while an area downloads, places_unavailable, disabled). Times are estimates from the run difficulties and lift types, waits are guesses, and nothing says what is open, groomed or safe today; nothing is saved.',
     inputSchema: { tripId: idSchema, ...skiRouteRequestSchema.shape, include_geometry: includeGeometryFlagSchema },

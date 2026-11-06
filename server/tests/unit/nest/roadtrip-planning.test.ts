@@ -1,6 +1,8 @@
 import { trekMcpAccessPolicy, trekMcpValidateAccess } from '../../../src/mcp/nest-mcp-policy';
 import type { McpContext } from '../../../src/nest-mcp';
 import { createTestRegistry } from '../../../src/nest-mcp';
+import { renderToolHelp, toolHelpTopic } from '../../../src/nest-mcp/input-detail';
+import { getEntry, type ClassRef } from '../../../src/nest-mcp/metadata';
 import type { UnitOfWork } from '../../../src/nest/database/unit-of-work';
 import { PlacesMcp } from '../../../src/nest/places/places.mcp';
 import { RoadtripPlanService } from '../../../src/nest/roadtrip/roadtrip-plan.service';
@@ -12,6 +14,16 @@ import { callGatedTool } from '../../helpers/mcp-gate';
 import { roadtripPreferencesUpdateSchema } from '@trek/shared';
 
 import { describe, it, expect, vi } from 'vitest';
+
+/** The help page of a tool with a detail (its text is there, not in the listing); its description otherwise. */
+const helpOf = (o: Parameters<typeof toolHelpTopic>[0]): string =>
+  o.detail ? renderToolHelp(toolHelpTopic(o)) : (o.description ?? '');
+
+const calculateOptions = () => {
+  const entry = getEntry(RoadtripPlanningMcp as unknown as ClassRef, 'calculate');
+  if (!entry || entry.kind !== 'tool') throw new Error('calculate is no MCP tool');
+  return entry.options;
+};
 
 const ctx = { userId: 5 } as McpContext;
 /**
@@ -349,7 +361,7 @@ describe('browser-independent roadtrip calculation', () => {
       },
     };
     await registry.attach(registrar as never, { ...ctx, scopes: ['trips:read'] });
-    expect(described.get('calculate_roadtrip')).toContain('undatedRides');
+    expect(helpOf(calculateOptions())).toContain('undatedRides');
   });
   it('keeps explicit end-day visits and manual boundaries in the shared planning path', async () => {
     const s = setup();
@@ -445,8 +457,8 @@ describe('Roadtrip MCP registration and search', () => {
     expect(descriptions.update_roadtrip_settings).toContain(
       'Set roadtrip_hotel_bookends true to start and end each day at the stay',
     );
-    expect(descriptions.calculate_roadtrip).toContain('With roadtrip_hotel_bookends switched on (missing means off)');
-    expect(descriptions.calculate_roadtrip).toContain('{roadtrip_hotel_bookends:true}');
+    expect(helpOf(calculateOptions())).toContain('With roadtrip_hotel_bookends switched on (missing means off)');
+    expect(helpOf(calculateOptions())).toContain('{roadtrip_hotel_bookends:true}');
     expect(descriptions.get_roadtrip_context).toContain('stays lists every booked stay');
     expect(descriptions.search_roadtrip_corridor).toContain('With roadtrip_hotel_bookends on');
   });

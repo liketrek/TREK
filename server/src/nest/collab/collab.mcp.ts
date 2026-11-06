@@ -85,6 +85,7 @@ export class CollabMcp {
 
   @Tool({
     name: 'create_collab_note',
+    title: 'Create collab note',
     description: 'Create a shared collaborative note on a trip (visible to all trip members in the Collab tab).',
     inputSchema: {
       tripId: idSchema,
@@ -141,6 +142,7 @@ export class CollabMcp {
 
   @Tool({
     name: 'update_collab_note',
+    title: 'Update collab note',
     description: 'Edit an existing collaborative note on a trip.',
     inputSchema: {
       tripId: idSchema,
@@ -197,6 +199,7 @@ export class CollabMcp {
 
   @Tool({
     name: 'delete_collab_note',
+    title: 'Delete collab note',
     description: 'Delete a collaborative note from a trip.',
     inputSchema: {
       tripId: idSchema,
@@ -217,6 +220,7 @@ export class CollabMcp {
 
   @Tool({
     name: 'list_collab_notes',
+    title: 'List collab notes',
     description: 'List the shared notes of a trip, pinned first, with their category, colour, link and files.',
     inputSchema: {
       tripId: idSchema,
@@ -235,6 +239,7 @@ export class CollabMcp {
 
   @Tool({
     name: 'list_collab_polls',
+    title: 'List collab polls',
     description: 'List all polls for a trip.',
     inputSchema: {
       tripId: idSchema,
@@ -251,6 +256,7 @@ export class CollabMcp {
 
   @Tool({
     name: 'create_collab_poll',
+    title: 'Create collab poll',
     description: 'Create a new poll in the collab panel.',
     inputSchema: {
       tripId: idSchema,
@@ -291,6 +297,7 @@ export class CollabMcp {
 
   @Tool({
     name: 'vote_collab_poll',
+    title: 'Vote on collab poll',
     description: 'Vote on a poll option (or remove vote if already voted for that option).',
     inputSchema: {
       tripId: idSchema,
@@ -315,6 +322,7 @@ export class CollabMcp {
 
   @Tool({
     name: 'close_collab_poll',
+    title: 'Close collab poll',
     description: 'Close a poll so no more votes can be cast.',
     inputSchema: {
       tripId: idSchema,
@@ -335,6 +343,7 @@ export class CollabMcp {
 
   @Tool({
     name: 'delete_collab_poll',
+    title: 'Delete collab poll',
     description: 'Delete a poll and all its votes.',
     inputSchema: {
       tripId: idSchema,
@@ -355,6 +364,7 @@ export class CollabMcp {
 
   @Tool({
     name: 'list_collab_messages',
+    title: 'List collab chat messages',
     description: 'List chat messages for a trip (most recent 100, oldest-first).',
     inputSchema: {
       tripId: idSchema,
@@ -372,6 +382,7 @@ export class CollabMcp {
 
   @Tool({
     name: 'send_collab_message',
+    title: 'Send collab chat message',
     description: "Send a chat message to a trip's collab channel.",
     inputSchema: {
       tripId: idSchema,
@@ -396,6 +407,7 @@ export class CollabMcp {
 
   @Tool({
     name: 'delete_collab_message',
+    title: 'Delete collab chat message',
     description: 'Delete a chat message (only the message owner can delete their own messages).',
     inputSchema: {
       tripId: idSchema,
@@ -416,6 +428,7 @@ export class CollabMcp {
 
   @Tool({
     name: 'react_collab_message',
+    title: 'React to collab message',
     description: 'Toggle a reaction emoji on a chat message (adds if not present, removes if already reacted).',
     inputSchema: {
       tripId: idSchema,

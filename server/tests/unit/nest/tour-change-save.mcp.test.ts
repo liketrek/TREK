@@ -16,6 +16,7 @@ import { TourWaypoints } from '../../../src/db/entities/TourWaypoints.entity';
 import { Tours } from '../../../src/db/entities/Tours.entity';
 import { TourChangeStepsRepository } from '../../../src/db/repositories/TourChangeSteps.repository';
 import type { McpContext } from '../../../src/nest-mcp';
+import { renderToolHelp, toolHelpTopic } from '../../../src/nest-mcp/input-detail';
 import { getEntry, type ClassRef } from '../../../src/nest-mcp/metadata';
 import { catchDomainError, DomainError } from '../../../src/nest/common/domain-error';
 import { McpToolGuardsService } from '../../../src/nest/mcp-shared/mcp-tool-guards.service';
@@ -41,6 +42,10 @@ import { stationKeySchema, TOUR_REVISION_CONFLICT, type TourChange, type TourCha
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z, type ZodRawShape } from 'zod';
+
+/** The help page of a tool with a detail (its text is there, not in the listing); its description otherwise. */
+const helpOf = (o: Parameters<typeof toolHelpTopic>[0]): string =>
+  o.detail ? renderToolHelp(toolHelpTopic(o)) : (o.description ?? '');
 
 const db = createSnapshotTestDb();
 const route = vi.fn();
@@ -412,7 +417,7 @@ describe('TourChangeMcp.saveTourChange (MCP-T03)', () => {
       'get_tour_plan',
       'create_city_walk',
     ];
-    for (const term of terms) expect(options.description).toContain(term);
+    for (const term of terms) expect(helpOf(options)).toContain(term);
     // The fields are zod schemas from @trek/shared, read here by what they answer.
     const fields = ['tripId', 'placeId', 'changes', 'expected_revision', 'proposal_id', 'confirmed'];
     expect(Object.keys(options.inputSchema as ZodRawShape)).toEqual(fields);

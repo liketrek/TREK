@@ -57,6 +57,7 @@ export class ToursWandererMcp {
 
   @Tool({
     name: 'search_wanderer_trails',
+    title: 'Search wanderer trails',
     description:
       "Search the traveller's own wanderer trails (their connected wanderer instance, a trail database) by words (q: a place, summit or region), page and part of the map (bbox), for a trip. The answer lists trails with id, name, description, location, distanceM, durationS, elevationGainM, elevationLossM, difficulty (easy, moderate, difficult), public, author, externalUrl and importedAs (the tours of this trip already imported from the trail), with total, page and pageSize. A traveller without a wanderer connection gets an error saying so. Preview a trail with preview_wanderer_trail before importing it. Needs place editing permission on the trip.",
     inputSchema: { tripId: idSchema, ...wandererMcpSearchRequestSchema.shape },
@@ -74,6 +75,7 @@ export class ToursWandererMcp {
 
   @Tool({
     name: 'preview_wanderer_trail',
+    title: 'Preview a wanderer trail',
     description:
       'Preview one wanderer trail before it is imported into the trip, without writing anything: its facts, distanceKm, elevationGainM and elevationLossM measured from its full GPX, points, contentHash (what import_wanderer_trail takes), state (new: not in the trip yet; unchanged: already imported as it is; changed: imported, and the trail changed since), snapshot (the tour imported last: placeId, name, importedAt, editedLocally) and changes (name, description, route). The chat shows the trail as a card: never list its figures, say in a sentence what matters. Import it only after the traveller said yes. Needs place editing permission on the trip.',
     inputSchema: { tripId: idSchema, ...wandererMcpPreviewRequestSchema.shape },
@@ -94,6 +96,7 @@ export class ToursWandererMcp {
 
   @Tool({
     name: 'import_wanderer_trail',
+    title: 'Import a wanderer trail',
     description:
       "Import a wanderer trail into the trip as a tour (a hike with the trail's full line, its source noted), as the Tours tab's wanderer import does: trailId and the contentHash preview_wanderer_trail gave. Refused when the trail changed since the preview (preview it again) or when the trip already holds this very content (the error names its placeId). An earlier import of the trail stays as it is: a changed trail comes in as a new tour beside it. The answer is the tour as list_tours reads it (tour.place_id is its id). Needs place editing permission on the trip. Import only after the traveller said yes.",
     inputSchema: { tripId: idSchema, ...wandererMcpImportRequestSchema.shape },
@@ -109,6 +112,7 @@ export class ToursWandererMcp {
 
   @Tool({
     name: 'check_tour_source',
+    title: 'Check a tour source',
     description:
       "Ask wanderer whether the trail a tour of the trip was imported from (origin wanderer) changed since, without changing the tour. state: unchanged, changed (changes names name, description or route; reimport has the trailId and contentHash to import the trail again as a new tour, which import_wanderer_trail does once the traveller said yes), unknown (imported before TREK kept a fingerprint; reimport is given), unavailable (the trail is gone or no longer the traveller's to read), not_connected (no wanderer connection) or other_instance (the connection is to another instance). editedLocally says whether the tour was changed in TREK since the import. A tour that did not come from wanderer is refused. Needs place editing permission on the trip.",
     inputSchema: { tripId: idSchema, ...wandererMcpSourceRequestSchema.shape },

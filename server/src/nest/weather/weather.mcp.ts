@@ -27,6 +27,7 @@ export class WeatherMcp {
 
   @Tool({
     name: 'get_weather',
+    title: 'Get a weather forecast',
     description: 'Get weather forecast for a location and date.',
     inputSchema: {
       lat: z.number(),
@@ -51,6 +52,7 @@ export class WeatherMcp {
 
   @Tool({
     name: 'get_detailed_weather',
+    title: 'Get hourly weather forecast',
     description: 'Get hourly/detailed weather forecast for a location and date.',
     inputSchema: {
       lat: z.number(),
@@ -75,6 +77,7 @@ export class WeatherMcp {
 
   @Tool({
     name: 'get_wind_forecast',
+    title: 'Get a wind forecast',
     description: `Get the wind forecast for a location (lat, lng) on one day (date, YYYY-MM-DD): per local hour the mean speed and the gusts in km/h and the direction the wind comes from in degrees, and for the day the strongest mean, the strongest gust and the dominant direction. Only a forecast is answered: a day in the past or more than ${WIND_FORECAST_DAYS} days ahead comes back with its status (past, beyond_horizon) and no figures. A value the source did not give is null, never calm.`,
     inputSchema: windQuerySchema.shape,
     annotations: TOOL_ANNOTATIONS_READONLY,

@@ -30,6 +30,7 @@ export class TourWalkImportMcp {
 
   @Tool({
     name: 'preview_google_maps_walk',
+    title: 'Preview a Google Maps walk',
     description:
       'Read the stops of a Google Maps walking route shared as a link (a maps.app.goo.gl short link or a google.com/maps/dir link), in order, for a city walk (tour_type walk): each stop with the name the link gives it and its position, or null coordinates when the link gives none (such a stop is not looked up or guessed), and resolved_url, the long link that was read. Only a route Google Maps marks as on foot is read; a car, bike or transit route, or one that does not say, is refused. Nothing is saved, and the line drawn in Google Maps is not taken over: TREK plans the way on foot between the stops again when the walk is created. Needs place editing permission on the trip.',
     inputSchema: {
