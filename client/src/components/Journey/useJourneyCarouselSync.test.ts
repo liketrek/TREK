@@ -127,7 +127,7 @@ describe('useJourneyCarouselSync', () => {
     });
 
     carousel.dispatchEvent(new Event('scroll'));
-    act(() => vi.advanceTimersByTime(100));
+    act(() => vi.advanceTimersByTime(60));
     carousel.dispatchEvent(new Event('scroll'));
     act(() => vi.advanceTimersByTime(89));
     expect(hook.result.current.activeIndex).toBe(0);

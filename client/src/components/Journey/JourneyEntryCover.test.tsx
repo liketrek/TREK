@@ -88,8 +88,8 @@ describe('JourneyEntryCover', () => {
 
     rerender(<JourneyEntryCover entry={buildEntry()} dayColor="#6366f1" isActive onClick={() => {}} />)
     // Drawn larger, not laid out larger: the box stays, so nothing beside it moves.
-    expect(container.querySelector('button')!.className).toContain('scale-[1.18]')
-    expect(container.querySelector('button')!.className).toContain('w-[136px]')
+    expect(container.querySelector('button')?.className).toContain('scale-[1.18]')
+    expect(container.querySelector('button')?.className).toContain('w-[136px]')
   })
 
   it('FE-JRN-COVER-007: a shared journey serves its photos through the share token', () => {

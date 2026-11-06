@@ -1,3 +1,4 @@
+import type { MapsAutocompleteResult } from '@trek/shared';
 import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -477,8 +478,8 @@ export function useJourneyEntryForm({
           controller.signal,
           placesSessionRef.current.current()
         )
-          .then((r) => r.suggestions ?? [])
-          .catch(() => []);
+          .then((r): MapsAutocompleteResult['suggestions'] => r.suggestions ?? [])
+          .catch((): MapsAutocompleteResult['suggestions'] => []);
         if (seq !== locationSearchSeqRef.current) return;
         if (suggested.length > 0) {
           setLocationResults(

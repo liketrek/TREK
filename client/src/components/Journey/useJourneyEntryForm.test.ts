@@ -281,6 +281,8 @@ describe('useJourneyEntryForm', () => {
     vi.useFakeTimers();
     const places = Array.from({ length: 8 }, (_, i) => ({ name: `P${i}`, lat: String(i), lng: '1' }));
     const search = vi.spyOn(mapsApi, 'search').mockResolvedValue({ places } as never);
+    // No suggestions: the full search answers.
+    vi.spyOn(mapsApi, 'autocomplete').mockResolvedValue({ suggestions: [], source: 'none' } as never);
     const { result } = setup();
     act(() => result.current.searchLocation('R'));
     expect(result.current.showLocationResults).toBe(true);

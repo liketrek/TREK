@@ -9,7 +9,7 @@ import type { PackingItem } from '../types';
  * client/ios/App/TREKWidgets/WidgetSnapshot.swift reads the shapes.
  */
 
-export interface WidgetBag {
+interface WidgetBag {
   name: string;
   color: string;
   grams: number;
