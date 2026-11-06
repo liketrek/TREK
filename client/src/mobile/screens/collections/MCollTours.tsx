@@ -211,8 +211,9 @@ function MCollTourSheet({
   const tour = takeOver.tour;
   const title = tour?.name ?? t('tours.collection.add');
   return (
-    <MSheet open={takeOver.open} onClose={takeOver.close} material="opaque" ariaLabel={title}>
-      <SheetHeader title={title} onClose={takeOver.close} closeLabel={t('common.close')} />
+    <MSheet open={takeOver.open} onClose={takeOver.close} material="glass" ariaLabel={title}>
+      <SheetHeader
+        icon={<Route size={19} strokeWidth={1.8} />} title={title} onClose={takeOver.close} closeLabel={t('common.close')} />
       <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px] pt-[14px]">
         {tour && (
           <p className="mb-3 mt-0 font-geist text-m-muted" style={fs(11)}>

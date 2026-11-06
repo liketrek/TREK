@@ -1,4 +1,4 @@
-import { CalendarDays, Copy, Loader2, MapPin, Search } from 'lucide-react'
+import { CalendarDays, Copy, Loader2, MapPin, Search, Luggage } from 'lucide-react'
 import type { TranslationFn } from '../../../types'
 import { useTripCopyPicker } from '../../../components/Collections/useTripCopyPicker'
 import MSheet from '../../components/MSheet'
@@ -23,8 +23,9 @@ export default function MCollTripPickerSheet({ open, count, onCopy, onClose, t }
   const title = t('collections.copyN', { count })
 
   return (
-    <MSheet open={open} onClose={onClose} material="opaque" ariaLabel={title}>
-      <SheetHeader title={title} onClose={onClose} closeLabel={t('common.close')} />
+    <MSheet open={open} onClose={onClose} material="glass" ariaLabel={title}>
+      <SheetHeader
+        icon={<Luggage size={19} strokeWidth={1.8} />} title={title} onClose={onClose} closeLabel={t('common.close')} />
       <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px] pt-[14px]">
         <div className="mb-2 flex h-9 items-center gap-2 rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] px-[13px]">
           <Search size={15} strokeWidth={2.2} className="flex-none text-m-muted" />

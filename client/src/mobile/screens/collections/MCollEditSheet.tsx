@@ -1,4 +1,4 @@
-import { Image, Loader2, Search, Trash2 } from 'lucide-react'
+import { Image, Loader2, Search, Trash2, Bookmark } from 'lucide-react'
 import type { Collection } from '@trek/shared'
 import type { TranslationFn } from '../../../types'
 import { useListEditor } from '../../../components/Collections/useListEditor'
@@ -6,7 +6,7 @@ import { normalizeLinkUrl } from '../../../pages/collections/collectionsModel'
 import MSheet from '../../components/MSheet'
 import MCollLinksEditor from './MCollLinksEditor'
 import { listCoverGradient, SWATCH_COLORS } from './collectionsMobileModel'
-import { CancelPill, PrimaryPill, SheetFooter, SheetHeader, TEXTAREA_CLS } from './MCollSheetKit'
+import { CancelPill, INPUT_CLS, PrimaryPill, SheetFooter, SheetHeader, TEXTAREA_CLS } from './MCollSheetKit'
 
 // Scrims over the cover photo / Unsplash thumbs — fixed dark overlays in both themes.
 const COVER_OVERLAY =
@@ -34,22 +34,24 @@ export default function MCollEditSheet({ target, onClose, onCreated, onRequestDe
     coverPreview, coverQuery, setCoverQuery, coverResults, searchingCover, saving, close, pickCover, searchCover, pickUnsplash, save,
   } = useListEditor({ target, onClose, onCreated, t, defaultColor: SWATCH_COLORS[0], holdLastTarget: true, normalizeLinkUrl })
 
-  const label = 'mb-[5px] font-geist text-[0.6875rem] font-bold text-m-muted'
+  // The sheets' eyebrow (Eyebrow), uppercase over each field.
+  const label = 'mb-[5px] font-geist text-[0.625rem] font-bold uppercase tracking-[.09em] text-m-faint'
   const canDeleteList = editing != null && editing.is_owner !== false
 
   return (
     <MSheet
       open={target != null}
       onClose={close}
-      material="opaque"
+      material="glass"
       ariaLabel={editing ? t('collections.editListTitle') : t('collections.newList')}
     >
       <SheetHeader
+        icon={<Bookmark size={19} strokeWidth={1.8} />}
         title={editing ? t('collections.editListTitle') : t('collections.newList')}
         onClose={close}
         closeLabel={t('common.close')}
       />
-      <div className="min-h-0 flex-1 overflow-y-auto px-[18px] py-[14px]">
+      <div className="m-scroll-fade min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px] pt-[14px]">
         <div className={label}>{t('collections.coverImage')}</div>
         <button
           type="button"
@@ -75,13 +77,13 @@ export default function MCollEditSheet({ target, onClose, onCreated, onRequestDe
             onChange={e => setCoverQuery(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void searchCover() } }}
             placeholder={t('dashboard.unsplashSearchPlaceholder')}
-            className="min-w-0 flex-1 rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] px-3 py-[10px] font-geist text-[0.71875rem] text-m-ink outline-none placeholder:text-m-faint"
+            className={`${INPUT_CLS} min-w-0 flex-1`}
           />
           <button
             type="button"
             onClick={searchCover}
             disabled={searchingCover || (!coverQuery.trim() && !name.trim())}
-            className="flex flex-none items-center gap-[5px] rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] px-3 py-[10px] text-[0.71875rem] font-semibold text-m-ink disabled:opacity-40"
+            className="flex h-[42px] flex-none items-center gap-[5px] rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-4 text-[length:calc(13px*var(--fs-scale-body,1))] font-semibold text-m-ink disabled:opacity-40"
           >
             {searchingCover ? <Loader2 size={12} className="animate-spin" /> : <Search size={12} strokeWidth={2} />} Unsplash
           </button>
@@ -113,7 +115,7 @@ export default function MCollEditSheet({ target, onClose, onCreated, onRequestDe
           value={name}
           onChange={e => setName(e.target.value)}
           placeholder={t('collections.listNamePlaceholder')}
-          className="w-full box-border rounded-[12px] border-[1.5px] border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] px-[13px] py-[11px] font-[inherit] text-[0.84375rem] font-semibold text-m-ink outline-none placeholder:text-m-faint"
+          className={`${INPUT_CLS} font-semibold`}
         />
 
         <div className={`${label} mt-[14px] mb-[6px]`}>{t('collections.listColor')}</div>
