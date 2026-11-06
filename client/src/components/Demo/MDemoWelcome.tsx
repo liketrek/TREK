@@ -102,7 +102,7 @@ export default function MDemoWelcome({
   const title = t(creditsOpen ? 'demo.credits.title' : 'demo.welcome.title');
 
   return (
-    <MSheet open={open} onClose={close} variant="bottom" material="glass" ariaLabel={t('demo.welcome.eyebrow')}>
+    <MSheet open={open} onClose={close} variant="bottom" material="opaque" ariaLabel={t('demo.welcome.eyebrow')}>
       <div className="flex max-h-[88dvh] min-h-0 flex-col">
         <FormSheetHeader
           leading={
