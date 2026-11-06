@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, type ComponentType, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { LucideIcon } from 'lucide-react'
+import { useLastOpen, usePresence } from './usePresence'
 
 interface MenuItem {
   label?: string
@@ -50,6 +51,13 @@ interface ContextMenuProps {
 }
 
 export function ContextMenu({ menu, onClose }: ContextMenuProps) {
+  const { mounted, closing } = usePresence(menu != null, 130)
+  // The items stay on screen while the menu fades, after its owner set it to null.
+  const shown = useLastOpen(menu, menu != null)
+  return mounted && shown ? <ContextMenuFrame menu={shown} onClose={onClose} closing={closing} /> : null
+}
+
+function ContextMenuFrame({ menu, onClose, closing }: { menu: MenuState; onClose: () => void; closing: boolean }) {
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -120,10 +128,8 @@ export function ContextMenu({ menu, onClose }: ContextMenuProps) {
     }
   }, [menu])
 
-  if (!menu) return null
-
   return createPortal(
-    <div ref={ref} role="menu" tabIndex={-1} onKeyDown={moveFocus} className="trek-popover-enter" style={{
+    <div ref={ref} role="menu" tabIndex={-1} onKeyDown={moveFocus} className={`trek-popover-enter ${closing ? 'trek-popover-exit pointer-events-none' : ''}`} style={{
       position: 'fixed', left: menu.x, top: menu.y, zIndex: 999999,
       background: 'var(--bg-card)', borderRadius: 10, padding: '4px',
       border: '1px solid var(--border-primary)',

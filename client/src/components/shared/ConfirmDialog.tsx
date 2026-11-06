@@ -4,6 +4,7 @@ import { AlertTriangle, HelpCircle } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { useIsPhone } from '../../mobile/useIsPhone'
 import { DialogTile, NEUTRAL_TINT, fs } from './DialogShell'
+import { useLastOpen, usePresence } from './usePresence'
 
 interface ConfirmDialogProps {
   isOpen: boolean
@@ -28,7 +29,14 @@ function runConfirm(onConfirm: () => void): void {
   }
 }
 
-export default function ConfirmDialog({
+export default function ConfirmDialog(props: ConfirmDialogProps) {
+  const { mounted, closing } = usePresence(props.isOpen)
+  // The question stays readable while it fades, even when its owner clears the subject on close.
+  const shown = useLastOpen(props, props.isOpen)
+  return mounted ? <ConfirmDialogFrame {...shown} isOpen={props.isOpen} closing={closing} /> : null
+}
+
+function ConfirmDialogFrame({
   isOpen,
   onClose,
   onConfirm,
@@ -38,7 +46,8 @@ export default function ConfirmDialog({
   cancelLabel,
   danger = true,
   children,
-}: ConfirmDialogProps) {
+  closing = false,
+}: ConfirmDialogProps & { closing?: boolean }) {
   const { t } = useTranslation()
   const isPhone = useIsPhone()
 
@@ -57,14 +66,14 @@ export default function ConfirmDialog({
     return () => document.removeEventListener('keydown', handleEsc, true)
   }, [isOpen, handleEsc])
 
-  if (!isOpen) return null
+  if (!isOpen && !closing) return null
 
   return createPortal(
     <div
       // Backdrop only — Escape (above) and the Cancel button below are the
       // keyboard routes out of the dialog.
       role="presentation"
-      className="fixed inset-0 z-[10000] flex items-center justify-center px-4 trek-backdrop-enter bg-[rgba(15,23,42,0.5)]"
+      className={`fixed inset-0 z-[10000] flex items-center justify-center px-4 trek-backdrop-enter bg-[rgba(15,23,42,0.5)] ${closing ? 'trek-backdrop-exit pointer-events-none' : ''}`}
       style={{ paddingBottom: 'var(--bottom-nav-h)' }}
       onClick={onClose}
     >
@@ -74,7 +83,7 @@ export default function ConfirmDialog({
             own, and the two buttons below it always stay in reach. */}
         <div
           role="presentation"
-          className={`trek-modal-enter flex max-h-[calc(100dvh-2rem-var(--bottom-nav-h,0px))] flex-col rounded-2xl shadow-2xl w-full ${children ? 'max-w-md' : 'max-w-sm'} p-6 bg-surface-card`}
+          className={`trek-modal-enter ${closing ? 'trek-modal-exit' : ''} flex max-h-[calc(100dvh-2rem-var(--bottom-nav-h,0px))] flex-col rounded-2xl shadow-2xl w-full ${children ? 'max-w-md' : 'max-w-sm'} p-6 bg-surface-card`}
           onClick={e => e.stopPropagation()}
         >
           <div className="flex min-h-0 items-start gap-4 overflow-y-auto overscroll-contain">
@@ -117,7 +126,7 @@ export default function ConfirmDialog({
         // with its tile, the message below, the answers in a bar at the foot.
         <div
           role="presentation"
-          className={`trek-modal-enter flex max-h-[calc(100dvh-2rem-var(--bottom-nav-h,0px))] w-full flex-col overflow-hidden rounded-[22px] bg-surface-card shadow-2xl ${children ? 'max-w-md' : 'max-w-sm'}`}
+          className={`trek-modal-enter ${closing ? 'trek-modal-exit' : ''} flex max-h-[calc(100dvh-2rem-var(--bottom-nav-h,0px))] w-full flex-col overflow-hidden rounded-[22px] bg-surface-card shadow-2xl ${children ? 'max-w-md' : 'max-w-sm'}`}
           onClick={e => e.stopPropagation()}
         >
           <div className={`flex flex-none items-center gap-3.5 px-6 pb-4 pt-5 ${danger ? 'bg-danger-soft' : ''}`} style={danger ? undefined : { background: NEUTRAL_TINT }}>
