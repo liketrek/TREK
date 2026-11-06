@@ -199,7 +199,12 @@ const accommodationName = (a: Accommodation): string => a.place_name || a.reserv
 export function hotelChipsForDay(day: Day, days: Day[], accommodations: Accommodation[]): HotelChip[] {
   const inRange = accommodations.filter(a => isDayInAccommodationRange(day, a.start_day_id, a.end_day_id, days))
   const chips: HotelChip[] = []
+  // The list repeats a stay once per linked booking (the server's join keeps
+  // one row per booking); a stay with two bookings is still one stay.
+  const seen = new Set<number>()
   for (const a of inRange) {
+    if (seen.has(a.id)) continue
+    seen.add(a.id)
     const stay = { name: accommodationName(a), accId: a.id, placeId: a.place_id ?? null }
     if (a.end_day_id === day.id) {
       chips.push({ ...stay, key: `out-${a.id}`, variant: 'checkout', time: a.check_out || null })

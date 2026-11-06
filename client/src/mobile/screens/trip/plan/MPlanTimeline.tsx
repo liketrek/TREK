@@ -124,14 +124,17 @@ function PlanDayPage({ planner, shell, dayId: pageDayId, active, editing, legMen
   }
   const day = tl.day
   const dayId = day?.id
-  // A stay chip opens the stay, the same way the stay card in the day sheet
-  // does: the editor for members who may edit days, otherwise the hotel's
-  // place. A stay with neither still leads to the day sheet, so the chip
-  // never goes dead (#2210).
+  // A stay chip shows the stay before anything can be changed, as on the
+  // desktop: its booking's overview (dates, nights, status, Edit) where one is
+  // booked, else the hotel's place. Only a stay with neither opens the editor
+  // for members who may edit days, or the day sheet, so the chip never goes
+  // dead (#2210).
   const openStay = (chip: HotelChip) => {
     if (!day) return
-    if (canEdit) shell.openSheet('accommodation', { dayId: day.id, accId: chip.accId, from: 'timeline' })
+    const booking = planner.reservations.find(r => r.accommodation_id != null && String(r.accommodation_id) === String(chip.accId))
+    if (booking) shell.openSheet('transport', { reservationId: booking.id })
     else if (chip.placeId != null) planner.handlePlaceClick(chip.placeId)
+    else if (canEdit) shell.openSheet('accommodation', { dayId: day.id, accId: chip.accId, from: 'timeline' })
     else shell.openSheet('day', { dayId: day.id })
   }
   // The icon alone tells check-out from check-in; the accessible name says it.
