@@ -1,4 +1,5 @@
 import { safeFetch, SsrfBlockedError, type SafeFetchOptions } from '../../utils/ssrfGuard';
+import { DomainError } from '../common/domain-error';
 
 import { Response } from 'express';
 import { Readable } from 'node:stream';
@@ -24,6 +25,16 @@ export function fail(error: string, status: number): ServiceError {
 
 export function success<T>(data: T): ServiceResult<T> {
   return { success: true, data: data };
+}
+
+/**
+ * The data of a successful result, or the refusal as a DomainError: for the
+ * callers that speak exceptions (an MCP tool), so they need not branch on the
+ * envelope the REST controllers still answer with.
+ */
+export function dataOrThrow<T>(result: ServiceResult<T>): T {
+  if ('error' in result) throw new DomainError(result.error.status, result.error.message);
+  return result.data;
 }
 
 export function mapDbError(error: Error, fallbackMessage: string): ServiceError {

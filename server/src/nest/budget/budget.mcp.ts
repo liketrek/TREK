@@ -24,7 +24,7 @@ import { TripMembershipService } from '../trip-membership/trip-membership.servic
 import { BudgetWritesService } from './budget-writes.service';
 import { BudgetService } from './budget.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { COST_CATEGORY_HINT, idSchema, sumMinor, toMinor } from '@trek/shared';
+import { COST_CATEGORY_HINT, budgetReorderItemsRequestSchema, idSchema, sumMinor, toMinor } from '@trek/shared';
 
 import { z } from 'zod';
 
@@ -836,4 +836,25 @@ export class BudgetMcp {
   // The budget-overview prompt moved to trips/trip-prompts.mcp.ts: it reads the
   // whole-trip summary, and the read model lives above this module (the fold
   // that deleted trips.bridge).
+
+  @Tool({
+    name: 'reorder_budget_items',
+    title: 'Reorder budget items',
+    description:
+      "Set the order of the trip's expenses, as list_budget_items returns them. Pass every expense id, in the order wanted.",
+    inputSchema: {
+      tripId: idSchema,
+      orderedIds: budgetReorderItemsRequestSchema.shape.orderedIds.describe('Expense ids in the order wanted'),
+    },
+    annotations: TOOL_ANNOTATIONS_WRITE,
+    when: budgetAddonOn,
+    access: { group: 'budget', mode: 'write' },
+  })
+  async reorderBudgetItems({ tripId, orderedIds }: { tripId: number; orderedIds: number[] }, ctx: McpContext) {
+    if (!(await this.budget.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('budget_edit', tripId, ctx.userId))) return permissionDenied();
+    await this.budget.reorderItems(String(tripId), orderedIds);
+    this.guards.safeBroadcast(tripId, 'budget:reordered', { orderedIds });
+    return ok({ success: true });
+  }
 }

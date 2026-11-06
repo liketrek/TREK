@@ -6,6 +6,7 @@ import { Settings } from '../../db/entities/Settings.entity';
 import { TodoItems } from '../../db/entities/TodoItems.entity';
 import { Trips } from '../../db/entities/Trips.entity';
 import { AddonsModule } from '../addons/addons.module';
+import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
 import { SchedulingModule } from '../scheduling/scheduling.module';
 import { StorageModule } from '../storage/storage.module';
 import { MailerModule } from './mailer/mailer.module';
@@ -65,6 +66,7 @@ import { Module } from '@nestjs/common';
     ]),
 
     AddonsModule,
+    McpSharedModule,
     MailerModule,
     SchedulingModule,
     StorageModule,

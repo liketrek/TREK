@@ -6,9 +6,17 @@ import {
   TOOL_ANNOTATIONS_READONLY,
   TOOL_ANNOTATIONS_WRITE,
   ok,
+  okStructured,
 } from '../../nest-mcp';
+import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { NotificationsService } from './notifications.service';
-import { idSchema, notificationReadStateRequestSchema } from '@trek/shared';
+import {
+  idSchema,
+  notificationPreferencesOutputSchema,
+  notificationReadStateRequestSchema,
+  preferencesUpdateRequestSchema,
+  type PreferencesUpdateRequest,
+} from '@trek/shared';
 
 import { z } from 'zod';
 
@@ -38,7 +46,16 @@ function jsonContent(uri: string, data: unknown) {
  */
 @McpController()
 export class NotificationsMcp {
-  constructor(private readonly notifications: NotificationsService) {}
+  constructor(
+    private readonly notifications: NotificationsService,
+    private readonly guards: McpToolGuardsService,
+  ) {}
+
+  /** The matrix GET /api/notifications/preferences answers, for the caller's own role. */
+  private async preferencesOf(userId: number) {
+    const role = (await this.guards.isAdminUser(userId)) ? 'admin' : 'user';
+    return await this.notifications.getPreferences(userId, role);
+  }
 
   @Tool({
     name: 'list_notifications',
@@ -150,5 +167,35 @@ export class NotificationsMcp {
   async inAppNotificationsResource(uri: URL, ctx: McpContext) {
     const result = await this.notifications.listInApp(ctx.userId, { limit: 50 });
     return jsonContent(uri.href, result);
+  }
+
+  @Tool({
+    name: 'get_notification_preferences',
+    title: 'Notification preferences',
+    description:
+      'Which notifications you get over which channel: preferences maps an event type to its channels (true on, false off), channels lists the channels, implemented_combos the channels each event can use at all, locked the cells the admin switched off for everyone.',
+    inputSchema: {},
+    outputSchema: notificationPreferencesOutputSchema,
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    access: { group: 'notifications', mode: 'read' },
+  })
+  async getNotificationPreferences(_args: Record<string, never>, ctx: McpContext) {
+    return okStructured({ ...(await this.preferencesOf(ctx.userId)) });
+  }
+
+  @Tool({
+    name: 'set_notification_preferences',
+    title: 'Set notification preferences',
+    description:
+      'Switch notifications on or off per event and channel: { eventType: { channel: true|false } }. Cells left out keep their value; take the names from get_notification_preferences. Returns the whole matrix.',
+    inputSchema: {
+      preferences: preferencesUpdateRequestSchema.describe('Event type to channel to on (true) or off (false)'),
+    },
+    annotations: TOOL_ANNOTATIONS_WRITE,
+    access: { group: 'notifications', mode: 'write' },
+  })
+  async setNotificationPreferences({ preferences }: { preferences: PreferencesUpdateRequest }, ctx: McpContext) {
+    await this.notifications.setPreferences(ctx.userId, preferences);
+    return ok(await this.preferencesOf(ctx.userId));
   }
 }

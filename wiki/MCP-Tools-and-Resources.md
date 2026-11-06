@@ -57,6 +57,7 @@ Requires `places:read` or `places:write` scope.
 | Tool | Description |
 |---|---|
 | `list_places` | List places in a trip, optionally filtered by assignment status, category, tag, or search query. |
+| `get_place` | One place of the trip's pool with all its fields. Returns structured output. |
 | `create_place` | Add a place with name, coordinates, address, category, notes, website, phone, email, and optional `google_place_id` / `osm_id` / `amap_poi_id`. `opening_hours` takes the place's own hours, seven days starting on Monday (`closed`, `open`, `close` as `HH:MM`), shown instead of looked-up hours; `null` clears them. An optional `stop_type` (`fuel`, `charging`, `rest_area`, `campsite`, `restaurant`, `sights` or `hotel`) marks it as a service stop on a drive rather than a destination, so it is left out of the day's stop count; see [Road-Trip](Road-Trip). Leave it unset for an ordinary place. |
 | `update_place` | Update any field of an existing place including phone, email, opening hours, transport mode, timing, price and `stop_type`. Pass `stop_type: null` to turn a service stop back into an ordinary place. |
 | `rate_place` | Set or clear your own 1–5 star rating on a place. Every trip member rates independently and the place shows the average. Pass `null` to clear the vote. |
@@ -69,6 +70,7 @@ Requires `places:read` or `places:write` scope.
 | `update_category` | Rename a category or change its colour or icon. Every place already carrying it follows the change. Admin only. Requires `places:write`. |
 | `delete_category` | Remove a category from the palette. Places keep their data but lose the category, across every trip. Admin only. Requires `places:write`. |
 | `search_place` | Search for a place by name or address, the way the full search in the app does: TREK's own place index and OpenStreetMap together, and Google or Amap only when both are empty. Returns `osm_id` (and `google_place_id` / `google_ftid` when Google answered) for use in `create_place`. Takes an optional `locationBias` to rank results around the trip's destination, and an optional `provider: 'google'` that sends this one search to Google Places alone, the same as the **Search Google instead** line under a result list in the app; it is ignored unless Google holds the keyed slot: an instance without a Google key, or one whose admin picked Amap or OpenStreetMap as the places provider, answers from the index and OpenStreetMap as usual. With the admin switch **Search with Google only** on (see [Places-and-Search](Places-and-Search#with-a-google-maps-api-key)), every call goes to Google whatever is passed, and the index and OpenStreetMap are never asked, so no result carries an `osm_id`. |
+| `autocomplete_place` | Suggestions for a partial place name, as the search box offers them while typing. Returns structured output. |
 | `search_places_via_plugins` | Search the place indexes installed plugins provide, alongside `search_place` rather than instead of it. Results have the shape `search_place` returns plus a `rating` and the `pluginId` that found them; only these results can carry a rating. Empty when no plugin offers a search index. Requires `places:read`. |
 
 ### Day Planning
@@ -78,6 +80,7 @@ Requires `trips:read` or `trips:write` scope.
 | Tool | Description |
 |---|---|
 | `update_day` | Set or clear a day's title. |
+| `list_days` | The trip's days in order, with their scheduled places and notes. Returns structured output. |
 | `create_day` | Add a new day to a trip with optional date and notes. With `position` an empty day is slotted in at that place. With `dated` the trip grows by the calendar day after its last date: the new day gets that date and goes right behind the last dated day, days without a date move one place back, and the end date of the trip moves to the new day. `dated` only works on a trip with dates, is refused once the trip spans 999 days, and cannot be combined with `date` or `position`; its result carries the updated `trip` next to the `day`. |
 | `delete_day` | Delete a day from a trip. Its places stay in the place list, its notes and texts go, and bookings on it stay without a day. A stay that checks in or out on the day is cancelled with its booking and expense; a stay that only runs across the day is kept. Later days move up one place; on a dated trip they and their bookings take the date one slot earlier, and the trip ends a day earlier when no day without a date is left to take the last date. The last day of a trip cannot be deleted. |
 | `reorder_days` | Reorder whole days by listing every day ID of the trip in the desired order. Each day keeps its places, notes, stays and bookings; on a dated trip the dates stay pinned to their slots, so the content moves across them. For places inside one day use `reorder_day_assignments`. Requires `trips:write`. |
@@ -105,6 +108,7 @@ Requires `trips:read` or `trips:write` scope.
 | `create_day_note` | Add a note to a specific day: `text` is the title, `time` the Markdown body (up to 2000 characters), plus an optional icon and colour. |
 | `update_day_note` | Edit a day note's title (`text`), body (`time`), icon, colour or position. |
 | `delete_day_note` | Remove a note from a day. |
+| `list_day_notes` | One day's notes in their order. Returns structured output. |
 
 ### Accommodations
 
@@ -163,6 +167,7 @@ Requires `budget:read` or `budget:write` scope. The Budget addon must be enabled
 | `create_budget_item` | Add an expense with name, category, and price. `reservation_id` / `place_id` link it to a booking or place of the same trip. |
 | `update_budget_item` | Update an expense's details, split (persons/days), or notes. `reservation_id` / `place_id` link it to a booking or place of the same trip; `null` unlinks it. |
 | `delete_budget_item` | Remove a budget item. |
+| `reorder_budget_items` | Set the order of the trip's expenses. |
 | `set_budget_item_members` | Set which members are splitting a budget item (replaces current list). |
 | `toggle_budget_member_paid` | Mark or unmark a member as having paid their share. |
 | `get_settlement_summary` | Each member's net balance, the suggested payments to settle shared expenses, and each member's final budget (`finalBudgets`: expenses paid, net reimbursements, pending reimbursements, final cost, each figure with the rows it is made of under `sources`). `currency` says what the amounts are in: the `base` asked for when the server can quote it, otherwise the trip's base currency. An expense or payment in a foreign currency with no frozen rate, while the server has no live rate for it either, is left out of every figure and listed under `unconverted` (`item_ids`, `settlement_ids`, `currencies`). Call this before recording a settlement. |
@@ -212,6 +217,8 @@ Requires `notifications:read` or `notifications:write` scope.
 | `mark_notification_read` | **Deprecated:** use `set_notification_read`. Mark a notification as read. |
 | `mark_notification_unread` | **Deprecated:** use `set_notification_read`. Mark a notification as unread. |
 | `mark_all_notifications_read` | Mark all notifications as read. |
+| `get_notification_preferences` | Which notifications you get over which channel. Returns structured output. |
+| `set_notification_preferences` | Switch notifications on or off per event and channel; cells left out keep their value. |
 
 ### Files
 
@@ -226,6 +233,9 @@ Requires `files:read` or `files:write`. Reading what is inside a document needs 
 | `link_trip_file` | Link a file to one more booking, place, day assignment or expense (`budget_item_id`, a receipt). |
 | `unlink_trip_file` | Remove one link. The file stays. |
 | `list_trip_file_links` | List everything a file is linked to. |
+| `star_trip_file` | Star a file or take the star off (sets the state rather than toggling). |
+| `delete_trip_file` | Move a file to the trash, or with `permanent` remove one already there for good. |
+| `restore_trip_file` | Bring a file back from the trash. |
 
 ### Settings
 
@@ -279,6 +289,8 @@ Requires `journey:read`, or `journey:write` to attach. Needs a configured Immich
 | `search_provider_photos` | Search the connected photo library. |
 | `list_provider_albums` | List its albums. |
 | `list_provider_album_photos` | List one album's photos. |
+| `list_trip_photos` | The provider photos on a trip that you may see. Returns structured output. |
+| `add_trip_photos` | Add photos from a connected library to a trip by their asset ids. |
 | `add_journey_provider_photos` | Attach photos from the library to a journey, or to one of its entries, by the asset ids the tools above return. Requires `journey:write` and the Journey addon; listed under [MCP-Addon-Tools](MCP-Addon-Tools). |
 
 Photo bytes are never returned: those are image URLs the app renders.

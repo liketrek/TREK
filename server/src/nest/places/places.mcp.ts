@@ -19,8 +19,12 @@ import {
   type RoadtripGpxImport,
   type RoadtripStopType,
   idSchema,
+  autocompletePlaceOutputSchema,
+  getPlaceOutputSchema,
   listPlacesOutputSchema,
+  mapsAutocompleteRequestSchema,
   searchPlaceOutputSchema,
+  type MapsAutocompleteRequest,
 } from '@trek/shared';
 import { z } from 'zod';
 import { AssignmentsService } from '../assignments/assignments.service';
@@ -599,5 +603,46 @@ export class PlacesMcp {
         text: JSON.stringify(places, null, 2),
       }],
     };
+  }
+
+  @Tool({
+    name: 'get_place',
+    title: 'Get place',
+    description: "One place of the trip's pool with all its fields: address, coordinates, category, tags, opening hours, notes and links.",
+    inputSchema: { tripId: idSchema, placeId: idSchema },
+    outputSchema: getPlaceOutputSchema,
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    access: { group: 'places', mode: 'read' },
+  })
+  async getPlace({ tripId, placeId }: { tripId: number; placeId: number }, ctx: McpContext) {
+    if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
+    const place = await this.places.get(String(tripId), String(placeId));
+    if (!place) return errorResult('Place not found.');
+    return okStructured({ place });
+  }
+
+  @Tool({
+    name: 'autocomplete_place',
+    title: 'Autocomplete a place',
+    description:
+      'Suggestions for a partial place name, as the search box offers them while typing: placeId, the main and secondary text, and coordinates where the index gives them. Cheaper than search_place for narrowing down a name; follow up with search_place for the full result to create a place from.',
+    inputSchema: {
+      input: mapsAutocompleteRequestSchema.shape.input.describe('The partial name or address'),
+      lang: mapsAutocompleteRequestSchema.shape.lang.describe('BCP 47 language for the suggestions, e.g. "de"'),
+      locationBias: mapsAutocompleteRequestSchema.shape.locationBias.describe(
+        'Prefer suggestions inside this box: { low: { lat, lng }, high: { lat, lng } }',
+      ),
+    },
+    outputSchema: autocompletePlaceOutputSchema,
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    access: { group: 'places', mode: 'read' },
+  })
+  async autocompletePlace({ input, lang, locationBias }: Omit<MapsAutocompleteRequest, 'sessionToken'>, ctx: McpContext) {
+    if (await this.maps.autocompleteDisabled()) return okStructured({ suggestions: [], source: 'disabled' });
+    try {
+      return okStructured(await this.maps.autocomplete(ctx.userId, input, lang, locationBias, undefined));
+    } catch {
+      return errorResult('Place autocomplete failed.');
+    }
   }
 }

@@ -14,7 +14,13 @@ import { contentTypeFor } from '../storage/content-type';
 import { AllowedFileTypesService } from './allowed-file-types.service';
 import { MAX_FILE_SIZE, isUploadTypeAllowed } from './files.constants';
 import { FilesService, FileContentError, FILE_CONTENT_MAX } from './files.service';
-import { idSchema, fileLinkRequestSchema, fileUpdateRequestSchema } from '@trek/shared';
+import {
+  idSchema,
+  fileDeleteRequestSchema,
+  fileLinkRequestSchema,
+  fileStarRequestSchema,
+  fileUpdateRequestSchema,
+} from '@trek/shared';
 import type { FileLinkRequest, FileUpdateRequest } from '@trek/shared';
 
 import { z } from 'zod';
@@ -320,5 +326,72 @@ export class FilesMcp {
     if (!(await this.files.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.files.getFileById(fileId, tripId))) return errorResult('File not found.');
     return ok({ links: await this.files.getFileLinks(fileId) });
+  }
+
+  @Tool({
+    name: 'star_trip_file',
+    title: 'Star trip file',
+    description: 'Star a file so it sorts first in the file manager, or take the star off. Returns the file.',
+    inputSchema: { tripId: idSchema, fileId: idSchema, ...fileStarRequestSchema.shape },
+    annotations: TOOL_ANNOTATIONS_WRITE,
+    access: { group: 'files', mode: 'write' },
+  })
+  async starTripFile(
+    { tripId, fileId, starred }: { tripId: number; fileId: number; starred: boolean },
+    ctx: McpContext,
+  ) {
+    if (!(await this.files.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('file_edit', tripId, ctx.userId))) return permissionDenied();
+    const current = await this.files.getFileById(fileId, tripId);
+    if (!current) return errorResult('File not found.');
+    // The route toggles; a tool sets, so a retried call cannot flip the star back.
+    if (Boolean(current.starred) === starred) return ok({ file: current });
+    const file = await this.files.toggleStarred(fileId, current.starred ?? undefined);
+    this.guards.safeBroadcast(tripId, 'file:updated', { file });
+    return ok({ file });
+  }
+
+  @Tool({
+    name: 'delete_trip_file',
+    title: 'Delete trip file',
+    description:
+      'Move a file to the trash, where restore_trip_file brings it back. With permanent, remove a file that is already in the trash for good; that cannot be undone, so confirm with the user first.',
+    inputSchema: { tripId: idSchema, fileId: idSchema, ...fileDeleteRequestSchema.shape },
+    annotations: TOOL_ANNOTATIONS_DELETE,
+    access: { group: 'files', mode: 'write' },
+  })
+  async deleteTripFile(
+    { tripId, fileId, permanent }: { tripId: number; fileId: number; permanent?: boolean },
+    ctx: McpContext,
+  ) {
+    if (!(await this.files.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('file_delete', tripId, ctx.userId))) return permissionDenied();
+    if (permanent) {
+      const trashed = await this.files.getDeletedFile(fileId, tripId);
+      if (!trashed) return errorResult('File not found in trash.');
+      await this.files.permanentDeleteFile(trashed);
+    } else {
+      if (!(await this.files.getFileById(fileId, tripId))) return errorResult('File not found.');
+      await this.files.softDeleteFile(fileId);
+    }
+    this.guards.safeBroadcast(tripId, 'file:deleted', { fileId });
+    return ok({ success: true });
+  }
+
+  @Tool({
+    name: 'restore_trip_file',
+    title: 'Restore trip file',
+    description: 'Bring a file back from the trash (list_trip_files with trash true lists them). Returns the file.',
+    inputSchema: { tripId: idSchema, fileId: idSchema },
+    annotations: TOOL_ANNOTATIONS_WRITE,
+    access: { group: 'files', mode: 'write' },
+  })
+  async restoreTripFile({ tripId, fileId }: { tripId: number; fileId: number }, ctx: McpContext) {
+    if (!(await this.files.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('file_delete', tripId, ctx.userId))) return permissionDenied();
+    if (!(await this.files.getDeletedFile(fileId, tripId))) return errorResult('File not found in trash.');
+    const file = await this.files.restoreFile(fileId);
+    this.guards.safeBroadcast(tripId, 'file:created', { file });
+    return ok({ file });
   }
 }

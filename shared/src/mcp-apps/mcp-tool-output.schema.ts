@@ -1,6 +1,9 @@
 import { budgetItemsPageSchema } from '../budget/budget.schema';
 import { collabPollsResponseSchema } from '../collab/collab.schema';
-import { mapsSearchResultSchema } from '../maps/maps.schema';
+import { dayNoteSchema, daySchema } from '../day/day.schema';
+import { mapsAutocompleteResultSchema, mapsSearchResultSchema } from '../maps/maps.schema';
+import { tripPhotoSchema } from '../memories/memories.schema';
+import { preferencesMatrixSchema } from '../notification/notification.schema';
 import { packingBagSchema, packingItemSchema } from '../packing/packing.schema';
 import { paddleRouteResponseSchema } from '../paddle/paddle-route.schema';
 import { placeSchema } from '../place/place.schema';
@@ -106,3 +109,27 @@ export const skiRouteProposalOutputSchema = looseOutput(
   skiRouteResponseSchema.extend({ legs: z.array(routeLegSummarySchema) }),
 );
 export type SkiRouteProposalOutput = z.infer<typeof skiRouteProposalOutputSchema>;
+
+/** `list_days`: the trip's days in order, each with its scheduled places and its notes. */
+export const listDaysOutputSchema = looseOutput(z.object({ days: z.array(daySchema) }));
+export type ListDaysOutput = z.infer<typeof listDaysOutputSchema>;
+
+/** `list_day_notes`: one day's notes in their order. */
+export const listDayNotesOutputSchema = looseOutput(z.object({ notes: z.array(dayNoteSchema) }));
+export type ListDayNotesOutput = z.infer<typeof listDayNotesOutputSchema>;
+
+/** `get_place`: one place of the trip's pool. */
+export const getPlaceOutputSchema = looseOutput(z.object({ place: placeSchema }));
+export type GetPlaceOutput = z.infer<typeof getPlaceOutputSchema>;
+
+/** `list_trip_photos`: the provider photos on a trip the caller may see. */
+export const listTripPhotosOutputSchema = looseOutput(z.object({ photos: z.array(tripPhotoSchema) }));
+export type ListTripPhotosOutput = z.infer<typeof listTripPhotosOutputSchema>;
+
+/** `get_notification_preferences`: the caller's channel matrix. */
+export const notificationPreferencesOutputSchema = looseOutput(preferencesMatrixSchema);
+export type NotificationPreferencesOutput = z.infer<typeof notificationPreferencesOutputSchema>;
+
+/** `autocomplete_place`: the suggestions for a partial name, as the search box shows them. */
+export const autocompletePlaceOutputSchema = looseOutput(mapsAutocompleteResultSchema);
+export type AutocompletePlaceOutput = z.infer<typeof autocompletePlaceOutputSchema>;
