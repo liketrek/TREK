@@ -32,6 +32,8 @@ export function useJourneyPublic() {
   const [showLangPicker, setShowLangPicker] = useState(false)
   const locale = useSettingsStore(s => s.settings.language) || 'en'
   const mapRef = useRef<JourneyMapHandle>(null)
+  // The desktop feed, for the day picker to scroll (#2998).
+  const feedRef = useRef<HTMLDivElement>(null)
   const [activeEntryId, setActiveEntryId] = useState<string | null>(null)
   const [viewingEntry, setViewingEntry] = useState<PublicEntry | null>(null)
 
@@ -170,7 +172,7 @@ export function useJourneyPublic() {
   return {
     token, data, loading, error, isMobile, locale,
     view, setView, lightbox, setLightbox, showLangPicker, setShowLangPicker,
-    mapRef, activeEntryId, setActiveEntryId, viewingEntry, setViewingEntry, handleMarkerClick,
+    mapRef, feedRef, activeEntryId, setActiveEntryId, viewingEntry, setViewingEntry, handleMarkerClick,
     perms, journey, stats,
     timelineEntries, groupedEntries, sortedDates, displayDates, sidebarMapItems, allPhotos, stopNumberById, mapPhotos,
     mapLayers, entryTitleOf,

@@ -108,8 +108,8 @@ export default function MobileMapTimeline({
   if (entries.length === 0) {
     return (
       <div
-        className="fixed inset-x-0 z-10"
-        style={{ top: 'var(--nav-h, 0px)', bottom: 'env(safe-area-inset-bottom, 0px)' }}
+        className="fixed inset-x-0 bottom-0 z-10"
+        style={{ top: 'var(--nav-h, 0px)' }}
       >
         <JourneyLayeredMap
           ref={mapRef}
@@ -147,8 +147,10 @@ export default function MobileMapTimeline({
 
   return (
     <div
-      className="fixed inset-x-0 z-10"
-      style={{ top: 'var(--nav-h, 0px)', bottom: 'env(safe-area-inset-bottom, 0px)' }}
+      // Down to the very edge: Safari draws its toolbar over the page, and a map
+      // that stopped at the safe area left a bare strip under it (#3002).
+      className="fixed inset-x-0 bottom-0 z-10"
+      style={{ top: 'var(--nav-h, 0px)' }}
     >
       {/* Full-screen map */}
       <JourneyLayeredMap

@@ -20,6 +20,7 @@ import {
   ThumbsUp,
 } from 'lucide-react';
 import { DAY_COLORS } from '../components/Journey/dayColors';
+import JourneyDayJump from '../components/Journey/JourneyDayJump';
 import JournalBody from '../components/Journey/JournalBody';
 import JourneyLayeredMap from '../components/Journey/JourneyLayeredMap';
 import MobileEntryView from '../components/Journey/MobileEntryView';
@@ -120,6 +121,7 @@ export default function JourneyPublicPage() {
     showLangPicker,
     setShowLangPicker,
     mapRef,
+    feedRef,
     activeEntryId,
     setActiveEntryId,
     viewingEntry,
@@ -227,7 +229,7 @@ export default function JourneyPublicPage() {
         const dayIdx = sortedDates.indexOf(date);
         const dayColor = DAY_COLORS[dayIdx % DAY_COLORS.length];
         return (
-          <div key={date}>
+          <div key={date} data-day={date}>
             {/* Day header */}
             <div className="mb-4 flex items-center gap-3">
               <div
@@ -624,9 +626,24 @@ export default function JourneyPublicPage() {
         // ── Desktop two-column: scrollable timeline feed + sticky map ──────────
         <div className="mx-auto flex max-w-[1440px]" style={{ alignItems: 'flex-start' }}>
           {/* Left: feed */}
-          <div className="min-w-0 flex-1 px-8 py-6 xl:max-w-[50%]">
+          <div ref={feedRef} className="min-w-0 flex-1 px-8 py-6 xl:max-w-[50%]">
             {view === 'timeline' && perms.share_timeline && renderTimeline()}
             {view === 'gallery' && perms.share_gallery && renderGallery()}
+            {/* Every day and its entries one click away, as in the journal itself (#2998). */}
+            {view === 'timeline' && perms.share_timeline && sortedDates.length > 1 && (
+              <div className="pointer-events-none sticky bottom-0 z-20 h-0">
+                <div className="pointer-events-auto absolute inset-x-0 bottom-6 mx-auto w-fit">
+                  <JourneyDayJump
+                    feedRef={feedRef}
+                    days={sortedDates.map((date, i) => ({
+                      date,
+                      color: DAY_COLORS[i % DAY_COLORS.length],
+                      entries: (groupedEntries.get(date) ?? []).map(e => ({ id: e.id, title: e.title || e.location_name || t('journey.detail.newEntry') })),
+                    }))}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Right: sticky map — matches auth page aside proportions */}
