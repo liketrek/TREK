@@ -8,7 +8,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addTransportShort': 'Transport', // same-as-en
   'mobileTrip.allDays': 'Kõik päevad',
   'mobileTrip.today': 'Täna',
-  'mobileTrip.jumpToToday': 'Mine tänasele päevale',
   'mobileTrip.assignedDays': 'Määratud päevad',
   'mobileTrip.assignmentNotes': 'Päevapõhised märkmed',
   'mobileTrip.bookingsEmpty': 'Broneeringuid veel pole',
@@ -20,8 +19,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.filesEmpty': 'Faile veel pole',
   'mobileTrip.filesNext': 'Järgmine fail',
   'mobileTrip.filesPrev': 'Eelmine fail',
-  'mobileTrip.googleMaps': 'Google Maps',
-  'mobileTrip.coMaps': 'CoMaps',
   'mobileTrip.icsDownload': 'Laadi alla .ics',
   'mobileTrip.icsSubscribe': 'Telli kalender',
   'mobileTrip.icsSubscribeSub': 'Uueneb sinu kalendrirakenduses automaatselt',

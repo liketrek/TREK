@@ -8,7 +8,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addTransportShort': 'Transport', // same-as-en
   'mobileTrip.allDays': 'Alla dagar',
   'mobileTrip.today': 'Idag',
-  'mobileTrip.jumpToToday': 'Gå till idag',
   'mobileTrip.assignedDays': 'Tilldelade dagar',
   'mobileTrip.assignmentNotes': 'Dagsspecifika anteckningar',
   'mobileTrip.bookingsEmpty': 'Inga bokningar än',
@@ -20,8 +19,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.filesEmpty': 'Inga filer ännu',
   'mobileTrip.filesNext': 'Nästa fil',
   'mobileTrip.filesPrev': 'Föregående fil',
-  'mobileTrip.googleMaps': 'Google Maps',
-  'mobileTrip.coMaps': 'CoMaps',
   'mobileTrip.icsDownload': 'Ladda ner .ics',
   'mobileTrip.icsSubscribe': 'Prenumerera på kalender',
   'mobileTrip.icsSubscribeSub': 'Uppdateras automatiskt i din kalenderapp',

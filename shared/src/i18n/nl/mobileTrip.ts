@@ -8,7 +8,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addTransportShort': 'Transport', // same-as-en
   'mobileTrip.allDays': 'Alle dagen',
   'mobileTrip.today': 'Vandaag',
-  'mobileTrip.jumpToToday': 'Naar vandaag',
   'mobileTrip.assignedDays': 'Toegewezen dagen',
   'mobileTrip.assignmentNotes': 'Dagspecifieke notities',
   'mobileTrip.bookingsEmpty': 'Nog geen boekingen',
@@ -20,8 +19,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.filesEmpty': 'Nog geen bestanden',
   'mobileTrip.filesNext': 'Volgend bestand',
   'mobileTrip.filesPrev': 'Vorig bestand',
-  'mobileTrip.googleMaps': 'Google Maps',
-  'mobileTrip.coMaps': 'CoMaps',
   'mobileTrip.icsDownload': '.ics downloaden',
   'mobileTrip.icsSubscribe': 'Abonneren op kalender',
   'mobileTrip.icsSubscribeSub': 'Wordt automatisch bijgewerkt in je agenda-app',

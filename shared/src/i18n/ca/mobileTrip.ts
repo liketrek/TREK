@@ -8,7 +8,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addTransportShort': 'Transport', // same-as-en
   'mobileTrip.allDays': 'Tots els dies',
   'mobileTrip.today': 'Avui',
-  'mobileTrip.jumpToToday': 'Ves a avui',
   'mobileTrip.assignedDays': 'Dies assignats',
   'mobileTrip.assignmentNotes': 'Notes específiques del dia',
   'mobileTrip.bookingsEmpty': 'Encara no hi ha reserves',
@@ -20,8 +19,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.filesEmpty': 'Encara no hi ha fitxers',
   'mobileTrip.filesNext': 'Fitxer següent',
   'mobileTrip.filesPrev': 'Fitxer anterior',
-  'mobileTrip.googleMaps': 'Google Maps',
-  'mobileTrip.coMaps': 'CoMaps',
   'mobileTrip.icsDownload': 'Baixa .ics',
   'mobileTrip.icsSubscribe': 'Subscriu-te al calendari',
   'mobileTrip.icsSubscribeSub': "S'actualitza automàticament a la teva app de calendari",
