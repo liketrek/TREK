@@ -60,6 +60,15 @@
 
         </activity>
 
+        <!-- Push: the relay's data messages, decrypted and shown here. -->
+        <service
+            android:name=".TrekPushService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -86,5 +95,7 @@
          Play hide the app from tablets and other GPS-less devices. -->
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Android 13 and later ask before an app may show notifications. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 </manifest>

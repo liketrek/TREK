@@ -1,15 +1,16 @@
 import type { PushSubscriptionInput } from '@trek/shared';
 import { hasNativeFeature } from './capabilities';
-import { isNativeIos } from './platform';
+import { isNativeApp } from './platform';
 import { reportNativeFailure } from './reportFailure';
 import { TrekShell } from './trekShell';
 
 /**
  * Push inside the app: the same Web Push subscription a browser makes, only
  * the app makes it (TrekShell.registerPush). Its endpoint is liketrek's relay
- * for this device's APNs token and its keys live on the device, so the server
- * encrypts exactly as for a browser and the relay hands on ciphertext that the
- * app's notification extension decrypts. push/webPush.ts takes this path
+ * for this device's APNs or FCM token and its keys live on the device, so the
+ * server encrypts exactly as for a browser and the relay hands on ciphertext
+ * that the app decrypts (iOS: the notification extension, Android:
+ * TrekPushService). push/webPush.ts takes this path
  * wherever the binary reports the nativePush feature; the settings card, the
  * test push and the logout teardown stay what they are.
  *
@@ -19,7 +20,7 @@ import { TrekShell } from './trekShell';
 const KEY = 'trek.nativePushEndpoint';
 
 export function nativePushActive(): boolean {
-  return isNativeIos() && hasNativeFeature('nativePush');
+  return isNativeApp() && hasNativeFeature('nativePush');
 }
 
 export function nativePushEndpoint(): string | null {

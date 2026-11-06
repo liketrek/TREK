@@ -57,6 +57,9 @@ dependencies {
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation "androidx.browser:browser:$androidxBrowserVersion"
     implementation "androidx.biometric:biometric:1.1.0"
+    // Push through liketrek's relay. No google-services plugin: Firebase reads
+    // its project from res/values/firebase.xml, the strings the plugin would generate.
+    implementation "com.google.firebase:firebase-messaging:24.1.2"
     implementation project(':capacitor-android')
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"

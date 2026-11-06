@@ -80,7 +80,7 @@ jobs:
       # unsigned: the upload key only exists in native-release.yml.
       - name: Assemble debug and release APKs
         working-directory: client/android
-        run: ./gradlew assembleDebug assembleRelease lintDebug --no-daemon
+        run: ./gradlew assembleDebug assembleRelease lintDebug testDebugUnitTest --no-daemon
 
       - uses: actions/upload-artifact@v6
         with:

@@ -1,19 +1,29 @@
 package com.liketrek.trek;
 
+import android.Manifest;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import androidx.browser.customtabs.CustomTabsIntent;
+import androidx.core.app.NotificationManagerCompat;
 import com.getcapacitor.JSObject;
+import com.getcapacitor.PermissionState;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
+import com.getcapacitor.annotation.PermissionCallback;
+import com.google.firebase.messaging.FirebaseMessaging;
 import org.json.JSONObject;
 
 /** The native half of client/src/native/trekShell.ts. */
-@CapacitorPlugin(name = "TrekShell")
+@CapacitorPlugin(
+    name = "TrekShell",
+    permissions = { @Permission(strings = { Manifest.permission.POST_NOTIFICATIONS }, alias = "notifications") }
+)
 public class TrekShellPlugin extends Plugin {
 
     /** How long to wait after returning from the browser for the redirect to land. */
@@ -31,7 +41,13 @@ public class TrekShellPlugin extends Plugin {
      */
     static final int SHELL_API = 2;
     /** The native features by name, so the UI can turn each on by itself. */
-    static final String[] FEATURES = { "capabilities", "biometricLock", "sharedFiles" };
+    static final String[] FEATURES = { "capabilities", "biometricLock", "sharedFiles", "nativePush" };
+
+    /** liketrek's push relay: the endpoint for this device's FCM token (trek-hosted push-relay.ts). */
+    static final String PUSH_RELAY = "https://push.liketrek.com/v1/fcm/";
+
+    /** The notification the app was started from, until the UI asks for it. */
+    private String openedPushUrl;
 
     @PluginMethod
     public void getCapabilities(PluginCall call) {
@@ -60,6 +76,71 @@ public class TrekShellPlugin extends Plugin {
     @Override
     public void load() {
         TrekSharedFiles.setListener(file -> notifyListeners("sharedFile", file));
+        if (getActivity() != null && getActivity().getIntent() != null) {
+            openedPushUrl = getActivity().getIntent().getStringExtra(TrekPushService.EXTRA_URL);
+            getActivity().getIntent().removeExtra(TrekPushService.EXTRA_URL);
+        }
+    }
+
+    // ---- Push ----
+
+    /**
+     * Permission, the FCM token and the device keys, as the Web Push subscription
+     * the server stores (native/push.ts). Rejects with DENIED when the user
+     * refuses notifications, as on iOS.
+     */
+    @PluginMethod
+    public void registerPush(PluginCall call) {
+        if (Build.VERSION.SDK_INT >= 33 && getPermissionState("notifications") != PermissionState.GRANTED) {
+            requestPermissionForAlias("notifications", call, "pushPermissionAnswered");
+            return;
+        }
+        subscribePush(call);
+    }
+
+    @PermissionCallback
+    private void pushPermissionAnswered(PluginCall call) {
+        if (getPermissionState("notifications") != PermissionState.GRANTED) {
+            call.reject("Notifications are not allowed", "DENIED");
+            return;
+        }
+        subscribePush(call);
+    }
+
+    private void subscribePush(PluginCall call) {
+        if (!NotificationManagerCompat.from(getContext()).areNotificationsEnabled()) {
+            call.reject("Notifications are not allowed", "DENIED");
+            return;
+        }
+        TrekPushService.ensureChannel(getContext());
+        final TrekPushKeys keys;
+        try {
+            keys = TrekPushKeys.loadOrCreate(getContext());
+        } catch (Exception e) {
+            call.reject("Could not create the push keys", e);
+            return;
+        }
+        FirebaseMessaging.getInstance().getToken().addOnCompleteListener(task -> {
+            if (!task.isSuccessful() || task.getResult() == null) {
+                call.reject("Could not get a push token", task.getException());
+                return;
+            }
+            JSObject subscription = new JSObject();
+            subscription.put("endpoint", PUSH_RELAY + task.getResult());
+            JSObject keyObject = new JSObject();
+            keyObject.put("p256dh", TrekPushKeys.base64url(keys.publicKey));
+            keyObject.put("auth", TrekPushKeys.base64url(keys.auth));
+            subscription.put("keys", keyObject);
+            call.resolve(subscription);
+        });
+    }
+
+    @PluginMethod
+    public void takeOpenedPush(PluginCall call) {
+        JSObject result = new JSObject();
+        result.put("url", openedPushUrl == null ? JSONObject.NULL : openedPushUrl);
+        openedPushUrl = null;
+        call.resolve(result);
     }
 
     /** The document shared to TREK before the UI was there to hear of it. */
@@ -200,6 +281,14 @@ public class TrekShellPlugin extends Plugin {
     @Override
     protected void handleOnNewIntent(Intent intent) {
         super.handleOnNewIntent(intent);
+        String pushUrl = intent.getStringExtra(TrekPushService.EXTRA_URL);
+        if (pushUrl != null) {
+            intent.removeExtra(TrekPushService.EXTRA_URL);
+            JSObject opened = new JSObject();
+            opened.put("url", pushUrl);
+            notifyListeners("pushOpened", opened);
+            return;
+        }
         Uri data = intent.getData();
         PluginCall call = pendingAuthCall();
         if (call == null || data == null || !authScheme.equals(data.getScheme())) return;

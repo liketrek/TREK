@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { hasNativeFeature } from './capabilities';
-import { isNativeIos } from './platform';
+import { isNativeApp } from './platform';
 import {
   NativePushDenied,
   forgetNativePush,
@@ -12,7 +12,7 @@ import {
 } from './push';
 import { TrekShell } from './trekShell';
 
-vi.mock('./platform', () => ({ isNativeIos: vi.fn() }));
+vi.mock('./platform', () => ({ isNativeApp: vi.fn() }));
 vi.mock('./capabilities', () => ({ hasNativeFeature: vi.fn() }));
 vi.mock('./trekShell', () => ({
   TrekShell: {
@@ -29,7 +29,7 @@ const SUB = {
 
 beforeEach(() => {
   window.localStorage.clear();
-  vi.mocked(isNativeIos).mockReturnValue(true);
+  vi.mocked(isNativeApp).mockReturnValue(true);
   vi.mocked(hasNativeFeature).mockReturnValue(true);
   vi.mocked(TrekShell.registerPush).mockReset().mockResolvedValue(SUB);
   vi.mocked(TrekShell.takeOpenedPush).mockReset().mockResolvedValue({ url: null });
