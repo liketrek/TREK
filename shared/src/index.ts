@@ -234,6 +234,7 @@ export * from './sessions/sessions.schema';
 export * from './oidc/oidc.schema';
 export * from './native-auth/native-auth.schema';
 export * from './oauth/oauth.schema';
+export * from './oauth/scopes';
 export * from './admin/admin.schema';
 export * from './service-identity/service-identity.schema';
 export * from './routing-relay/routing-relay.schema';

@@ -116,6 +116,13 @@ export const DYNAMIC_ALLOWED = [
       'a key builder over the registered help contexts and guides; src/help/registry.test.ts resolves every ' +
       'key of every registered entry against en',
   })),
+  ...['oauth.scope.${scope}.label', 'oauth.scope.${scope}.description'].map((template) => ({
+    file: 'api/oauthScopes.ts',
+    template,
+    because:
+      'scope iterates ALL_SCOPES from @trek/shared; i18n-scope-keys.spec.ts in shared holds every scope of the ' +
+      'catalogue to a label and a description in en',
+  })),
   {
     file: 'mobile/screens/dashboard/MUserMenu.tsx',
     template: 'settings.${mode}',

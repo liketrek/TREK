@@ -49,7 +49,7 @@ export class TourLibraryMcp {
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'tours', mode: 'read' },
   })
   async listTourLibrary(input: TourLibraryQuery, ctx: McpContext) {
     return ok(await this.library.list(ctx.userId, input));
@@ -68,7 +68,7 @@ export class TourLibraryMcp {
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'tours', mode: 'write' },
   })
   async takeOverTour(
     input: { tripId: number; source_trip_id: number; source_place_id: number; name?: string },

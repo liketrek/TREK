@@ -40,7 +40,7 @@ export class RoadtripPlanningMcp {
       'Read the saved roadtrip days, visits, pinned times, end times (when the drive leaves a visit), stays, stop types, fill levels, travel modes, via points, followed tracks, manual day endings and the carrier bookings (flight, train, ferry, cruise, bus) that seam the drive at their terminals, plus the hire cars whose pick-up and return desks stand on it. stays lists every booked stay with its check-in and check-out day, its place and the earliest linked reservation (reservation_id). Includes the shared driving preferences for this trip. No routing request and no browser needed. Coordinates missing from a visit prevent it from being routed. Use calculate_roadtrip to get the derived day layout. Edit visits with the existing place and assignment tools; change their saved order with reorder_day_assignments. Settings, visits and manual boundaries all belong to the shared trip.',
     inputSchema: { tripId: idSchema },
     annotations: TOOL_ANNOTATIONS_READONLY,
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'roadtrip', mode: 'read' },
     when,
   })
   async context({ tripId }: { tripId: number }, ctx: McpContext) {
@@ -58,7 +58,7 @@ export class RoadtripPlanningMcp {
     },
     inputSchema: roadtripPlanRequestSchema.shape,
     annotations: TOOL_ANNOTATIONS_READONLY,
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'roadtrip', mode: 'read' },
     when,
   })
   async calculate(input: RoadtripPlanRequest, ctx: McpContext) {
@@ -103,7 +103,7 @@ export class RoadtripPlanningMcp {
       'Search for fuel, charging, rest areas, campsites, food, sights or accommodation along a calculated roadtrip day, without a browser. Uses the routed road, not a straight line, and leaves out the ride between the two terminals of a flight, train, ferry, cruise or bus booking: no rectangle is searched under it and nothing found there is a hit. Returns distance along the route, distance from it and the names of the two stops of the day each hit lies between. Search rectangles are paged in batches of six; continue with nextOffset until null for full coverage. Optional name, socket family and minimum power filter the matches; missing charging details mean unknown. Does not add stops. Add a chosen place and assign it to the appropriate stored day, preserving any via anchors. With roadtrip_hotel_bookends on, the road of the day includes the drive from the stay slept in and to the stay of that night; a place found there belongs at the start or the end of the stored day. Routing failures refuse the corridor search rather than searching an invented line.',
     inputSchema: roadtripCorridorRequestSchema.shape,
     annotations: TOOL_ANNOTATIONS_READONLY,
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'roadtrip', mode: 'read' },
     when,
   })
   async corridor(input: RoadtripCorridorRequest, ctx: McpContext) {

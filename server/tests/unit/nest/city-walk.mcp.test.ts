@@ -536,12 +536,12 @@ describe('CityWalkMcp (CW-11)', () => {
     expect([propose.name, propose.annotations?.readOnlyHint, propose.access]).toEqual([
       'propose_city_walk',
       true,
-      { group: 'trips', mode: 'read' },
+      { group: 'tours', mode: 'read' },
     ]);
     expect([create.name, create.annotations?.readOnlyHint, create.access]).toEqual([
       'create_city_walk',
       false,
-      { group: 'trips', mode: 'write' },
+      { group: 'tours', mode: 'write' },
     ]);
     expect(propose.description).toContain('stations_for_create');
     expect(create.description).toContain('route_pending');

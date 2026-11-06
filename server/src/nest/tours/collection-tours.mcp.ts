@@ -1,5 +1,5 @@
 import { ADDON_IDS } from '../../addons';
-import { canRead, canReadTrips, canWrite } from '../../mcp/scopes';
+import { canRead, canWrite } from '../../mcp/scopes';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import {
   McpController,
@@ -77,7 +77,7 @@ export class CollectionToursMcp {
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: keptToursOn,
-    access: (ctx) => canRead(ctx.scopes, 'collections') && canReadTrips(ctx.scopes),
+    access: (ctx) => canRead(ctx.scopes, 'collections') && canRead(ctx.scopes, 'tours'),
   })
   async getCollectionTour(input: { collection_id: number; collection_tour_id: number }, ctx: McpContext) {
     const role = (await this.guards.isAdminUser(ctx.userId)) ? 'admin' : 'user';
@@ -97,7 +97,7 @@ export class CollectionToursMcp {
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: keptToursOn,
-    access: (ctx) => canWrite(ctx.scopes, 'collections') && canReadTrips(ctx.scopes),
+    access: (ctx) => canWrite(ctx.scopes, 'collections') && canRead(ctx.scopes, 'tours'),
   })
   async saveTourToCollection(input: { collection_id: number } & CollectionTourSaveRequest, ctx: McpContext) {
     const { collection_id, ...body } = input;
@@ -118,7 +118,7 @@ export class CollectionToursMcp {
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: keptToursOn,
-    access: (ctx) => canWrite(ctx.scopes, 'trips') && canRead(ctx.scopes, 'collections'),
+    access: (ctx) => canWrite(ctx.scopes, 'tours') && canRead(ctx.scopes, 'collections'),
   })
   async takeOverCollectionTour(input: { tripId: number } & CollectionTourTakeOverRequest, ctx: McpContext) {
     const { tripId, ...body } = input;

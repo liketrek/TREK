@@ -53,7 +53,7 @@ export class TourChangeUndoMcp {
     inputSchema: { tripId: idSchema, placeId },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'tours', mode: 'read' },
   })
   async listTourChangeSteps({ tripId, placeId }: { tripId: number; placeId: number }, ctx: McpContext) {
     if (!(await this.access.findAccessible(tripId, ctx.userId))) return noAccess();
@@ -72,7 +72,7 @@ export class TourChangeUndoMcp {
     inputSchema: { tripId: idSchema, placeId, stepId: undo.step_id },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'tours', mode: 'read' },
   })
   async prepareTourUndo(
     { tripId, placeId, stepId }: { tripId: number; placeId: number; stepId: number },
@@ -102,7 +102,7 @@ export class TourChangeUndoMcp {
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'tours', mode: 'write' },
   })
   async undoTourChange(
     { tripId, placeId, ...request }: { tripId: number; placeId: number } & TourChangeUndoRequest,

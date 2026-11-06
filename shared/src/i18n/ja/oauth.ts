@@ -75,6 +75,23 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:write.description': '日記やエントリーの作成・編集・削除',
   'oauth.scope.journey:share.label': '日記共有を管理',
   'oauth.scope.journey:share.description': '公開共有リンクの作成・更新・無効化',
+  'oauth.scope.group.tours': 'ツアー',
+  'oauth.scope.group.roadtrip': 'ロードトリップ',
+  'oauth.scope.group.studio': 'Studio', // same-as-en
+  'oauth.scope.tours:read.label': 'ツアーを表示',
+  'oauth.scope.tours:read.description':
+    'ハイキング、散策、サイクリング、パドル、スキーのツアーを立ち寄り先や持ち物とともに読み取る',
+  'oauth.scope.tours:write.label': 'ツアーを計画',
+  'oauth.scope.tours:write.description':
+    'ツアーとその立ち寄り先、アクティビティ、持ち物のリンクを提案・作成・編集・削除する',
+  'oauth.scope.roadtrip:read.label': 'ロードトリップを表示',
+  'oauth.scope.roadtrip:read.description': 'ルート、運転日、充電スポット、道路上の危険を読み取る',
+  'oauth.scope.roadtrip:write.label': 'ロードトリップを計画',
+  'oauth.scope.roadtrip:write.description': 'ルートを計算し、運転日と設定を決め、ルートをインポートする',
+  'oauth.scope.studio:read.label': '旅の本を表示',
+  'oauth.scope.studio:read.description': '旅の本のページ、デザイン、写真を読み取る',
+  'oauth.scope.studio:write.label': '旅の本をデザイン',
+  'oauth.scope.studio:write.description': '旅の本のページを作成・編集・スタイル変更・復元する',
   'oauth.authorize.authorizing': '認可中…',
   'oauth.authorize.loading': '読み込み中…',
   'oauth.authorize.errorTitle': '認可エラー',

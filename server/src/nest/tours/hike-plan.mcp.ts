@@ -64,7 +64,7 @@ export class HikePlanMcp {
     inputSchema: { tripId: idSchema, ...hikeProposeRequestSchema.shape },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'tours', mode: 'read' },
   })
   async proposeHike({ tripId, ...request }: { tripId: number } & HikeProposeRequest, ctx: McpContext) {
     if (!(await this.access.findAccessible(tripId, ctx.userId))) return noAccess();
@@ -83,7 +83,7 @@ export class HikePlanMcp {
     inputSchema: { tripId: idSchema.describe('The trip to create the hike in'), ...hikeCreateRequestSchema.shape },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'tours', mode: 'write' },
   })
   async createHike({ tripId, ...request }: { tripId: number } & HikeCreateRequest, ctx: McpContext) {
     if (!(await this.access.findAccessible(tripId, ctx.userId))) return noAccess();
@@ -107,7 +107,7 @@ export class HikePlanMcp {
     inputSchema: { tripId: idSchema, ...tourUpdateRequestSchema.shape },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'tours', mode: 'write' },
   })
   async updateTour({ tripId, ...request }: { tripId: number } & TourUpdateRequest, ctx: McpContext) {
     if (!(await this.access.findAccessible(tripId, ctx.userId))) return noAccess();
@@ -128,7 +128,7 @@ export class HikePlanMcp {
     inputSchema: { tripId: idSchema, ...tourGpxImportRequestSchema.shape },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'tours', mode: 'write' },
   })
   async importTourGpx({ tripId, ...request }: { tripId: number } & TourGpxImportRequest, ctx: McpContext) {
     if (!(await this.access.findAccessible(tripId, ctx.userId))) return noAccess();

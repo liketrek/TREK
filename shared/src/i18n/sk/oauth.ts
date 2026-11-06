@@ -75,6 +75,23 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:write.description': 'Vytvárať, aktualizovať a mazať cestovné denníky a ich záznamy',
   'oauth.scope.journey:share.label': 'Spravovať odkazy na cestovné denníky',
   'oauth.scope.journey:share.description': 'Vytvárať, aktualizovať a rušiť verejné zdieľané odkazy na cestovné denníky',
+  'oauth.scope.group.tours': 'Túry',
+  'oauth.scope.group.roadtrip': 'Cesta autom',
+  'oauth.scope.group.studio': 'Studio', // same-as-en
+  'oauth.scope.tours:read.label': 'Zobraziť túry',
+  'oauth.scope.tours:read.description':
+    'Čítať túry, prechádzky, cyklovýlety, výlety na lodi a na lyžiach s ich zastávkami a balením',
+  'oauth.scope.tours:write.label': 'Plánovať túry',
+  'oauth.scope.tours:write.description':
+    'Navrhovať, vytvárať, upravovať a mazať túry, ich zastávky, aktivity a prepojenia s balením',
+  'oauth.scope.roadtrip:read.label': 'Zobraziť cesty autom',
+  'oauth.scope.roadtrip:read.description': 'Čítať trasy, dni jazdy, nabíjacie zastávky a nebezpečenstvá na ceste',
+  'oauth.scope.roadtrip:write.label': 'Plánovať cesty autom',
+  'oauth.scope.roadtrip:write.description': 'Počítať trasy, nastavovať dni jazdy a predvoľby a importovať trasy',
+  'oauth.scope.studio:read.label': 'Zobraziť cestovné knihy',
+  'oauth.scope.studio:read.description': 'Čítať stránky, vzhľad a fotky cestovnej knihy',
+  'oauth.scope.studio:write.label': 'Navrhovať cestovné knihy',
+  'oauth.scope.studio:write.description': 'Vytvárať, upravovať, meniť vzhľad a obnovovať stránky cestovnej knihy',
   'oauth.authorize.authorizing': 'Autorizuje sa…',
   'oauth.authorize.loading': 'Načítava sa…',
   'oauth.authorize.errorTitle': 'Chyba autorizácie',

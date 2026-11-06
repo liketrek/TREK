@@ -239,10 +239,10 @@ describe('TourPlanMcp: the tools and their gates', () => {
     };
     const tools = ['proposeTour', 'createTour', 'createPaddleTour', 'createSkiTour'].map(options);
     expect(tools.map((tool) => [tool.name, tool.annotations?.readOnlyHint, tool.access])).toEqual([
-      ['propose_tour', true, { group: 'trips', mode: 'read' }],
-      ['create_tour', false, { group: 'trips', mode: 'write' }],
-      ['create_paddle_tour', false, { group: 'trips', mode: 'write' }],
-      ['create_ski_tour', false, { group: 'trips', mode: 'write' }],
+      ['propose_tour', true, { group: 'tours', mode: 'read' }],
+      ['create_tour', false, { group: 'tours', mode: 'write' }],
+      ['create_paddle_tour', false, { group: 'tours', mode: 'write' }],
+      ['create_ski_tour', false, { group: 'tours', mode: 'write' }],
     ]);
     // The model is told which tool plans which type, and which profile to pick.
     expect(helpOf(tools[0])).toContain('propose_hike');

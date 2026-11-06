@@ -71,7 +71,7 @@ export class TourEditMcp {
     inputSchema: { tripId: idSchema, ...tourDetailsUpdateRequestSchema.shape },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'tours', mode: 'write' },
   })
   async updateTourDetails({ tripId, ...request }: { tripId: number } & TourDetailsUpdateRequest, ctx: McpContext) {
     const refused = await this.refusal(tripId, ctx.userId);
@@ -89,7 +89,7 @@ export class TourEditMcp {
     inputSchema: { tripId: idSchema, ...tourRouteColorRequestSchema.shape },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'tours', mode: 'write' },
   })
   async setTourRouteColor(
     { tripId, placeId, route_color }: { tripId: number } & TourRouteColorRequest,
@@ -108,7 +108,7 @@ export class TourEditMcp {
     inputSchema: { tripId: idSchema, ...tourCopyToolRequestSchema.shape },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'tours', mode: 'write' },
   })
   async copyTour({ tripId, placeId, name }: { tripId: number } & TourCopyToolRequest, ctx: McpContext) {
     const refused = await this.refusal(tripId, ctx.userId);

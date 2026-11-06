@@ -80,6 +80,23 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:write.description': 'Skapa, uppdatera och ta bort journeys och deras poster',
   'oauth.scope.journey:share.label': 'Hantera journey länkar',
   'oauth.scope.journey:share.description': 'Skapa, uppdatera och återkalla offentliga delningslänkar för journeys',
+  'oauth.scope.group.tours': 'Turer',
+  'oauth.scope.group.roadtrip': 'Bilresa',
+  'oauth.scope.group.studio': 'Studio', // same-as-en
+  'oauth.scope.tours:read.label': 'Visa turer',
+  'oauth.scope.tours:read.description':
+    'Läsa vandringar, promenader, cykelturer, paddel- och skidturer med stopp och packning',
+  'oauth.scope.tours:write.label': 'Planera turer',
+  'oauth.scope.tours:write.description':
+    'Föreslå, skapa, redigera och ta bort turer, deras stopp, aktiviteter och packningskopplingar',
+  'oauth.scope.roadtrip:read.label': 'Visa bilresor',
+  'oauth.scope.roadtrip:read.description': 'Läsa rutter, köradagar, laddstopp och faror på vägen',
+  'oauth.scope.roadtrip:write.label': 'Planera bilresor',
+  'oauth.scope.roadtrip:write.description': 'Beräkna rutter, ange köradagar och inställningar samt importera rutter',
+  'oauth.scope.studio:read.label': 'Visa reseböcker',
+  'oauth.scope.studio:read.description': 'Läsa sidorna, utformningen och fotona i en resebok',
+  'oauth.scope.studio:write.label': 'Utforma reseböcker',
+  'oauth.scope.studio:write.description': 'Skapa, redigera, ändra stil på och återställa sidorna i en resebok',
   'oauth.authorize.authorizing': 'Autentiserar…',
   'oauth.authorize.loading': 'Laddar…',
   'oauth.authorize.errorTitle': 'Auktoriseringsfel',

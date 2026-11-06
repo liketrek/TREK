@@ -40,7 +40,7 @@ export class HikeWaysMcp {
     inputSchema: { tripId: idSchema, ...hikeRoundProposeRequestSchema.shape },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'tours', mode: 'read' },
   })
   async proposeRoundHike({ tripId, ...request }: { tripId: number } & HikeRoundProposeRequest, ctx: McpContext) {
     if (!(await this.access.findAccessible(tripId, ctx.userId))) return noAccess();
@@ -59,7 +59,7 @@ export class HikeWaysMcp {
     inputSchema: { tripId: idSchema, ...hikeLegWayRequestSchema.shape },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'tours', mode: 'read' },
   })
   async proposeHikeLegWay({ tripId, ...request }: { tripId: number } & HikeLegWayRequest, ctx: McpContext) {
     if (!(await this.access.findAccessible(tripId, ctx.userId))) return noAccess();

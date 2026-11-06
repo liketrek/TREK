@@ -183,10 +183,10 @@ describe('wanderer over MCP', () => {
       return entry.options;
     });
     expect(options.map((tool) => [tool.name, tool.annotations?.readOnlyHint, tool.access])).toEqual([
-      ['search_wanderer_trails', true, { group: 'trips', mode: 'read' }],
-      ['preview_wanderer_trail', true, { group: 'trips', mode: 'read' }],
-      ['import_wanderer_trail', false, { group: 'trips', mode: 'write' }],
-      ['check_tour_source', true, { group: 'trips', mode: 'read' }],
+      ['search_wanderer_trails', true, { group: 'tours', mode: 'read' }],
+      ['preview_wanderer_trail', true, { group: 'tours', mode: 'read' }],
+      ['import_wanderer_trail', false, { group: 'tours', mode: 'write' }],
+      ['check_tour_source', true, { group: 'tours', mode: 'read' }],
     ]);
     const gate = options[0]?.when;
     expect(await gate?.(ctx(1), mcp)).toBe(true);

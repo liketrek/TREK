@@ -37,7 +37,7 @@ export class DayBoundariesMcp {
     description: 'List manual road trip day endings. They apply only with daily travel times enabled.',
     inputSchema: { tripId: idSchema },
     annotations: TOOL_ANNOTATIONS_READONLY,
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'roadtrip', mode: 'read' },
     when,
   })
   async list({ tripId }: { tripId: number }, ctx: McpContext) {
@@ -56,7 +56,7 @@ export class DayBoundariesMcp {
       boundary: roadtripDayBoundarySchema.nullable(),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'roadtrip', mode: 'write' },
     when,
   })
   async save(

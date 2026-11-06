@@ -55,7 +55,7 @@ export class CityWalkMcp {
     inputSchema: { tripId: idSchema, ...cityWalkBriefingRequestSchema.shape },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'tours', mode: 'read' },
   })
   async proposeCityWalk({ tripId, ...briefing }: { tripId: number } & CityWalkBriefingRequest, ctx: McpContext) {
     if (!(await this.access.findAccessible(tripId, ctx.userId))) return noAccess();
@@ -75,7 +75,7 @@ export class CityWalkMcp {
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'tours', mode: 'write' },
   })
   async createCityWalk({ tripId, ...body }: { tripId: number } & CityWalkCreateRequest, ctx: McpContext) {
     if (!(await this.access.findAccessible(tripId, ctx.userId))) return noAccess();

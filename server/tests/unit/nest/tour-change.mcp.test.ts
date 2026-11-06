@@ -293,7 +293,7 @@ describe('TourChangeMcp (MCP-T02)', () => {
     expect([options.name, options.annotations?.readOnlyHint, options.access]).toEqual([
       'prepare_tour_change',
       true,
-      { group: 'trips', mode: 'read' },
+      { group: 'tours', mode: 'read' },
     ]);
     const terms = ['revision', 'spontaneous stop', 'protected', 'visited or skipped', 'data_gaps', 'create_place'];
     for (const term of terms) expect(helpOf(options)).toContain(term);

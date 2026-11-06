@@ -40,7 +40,7 @@ export class TourWalkImportMcp {
     // Open world: a short link is followed to Google on every call.
     annotations: TOOL_ANNOTATIONS_OPEN_WORLD_READONLY,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'tours', mode: 'read' },
   })
   async previewGoogleMapsWalk({ tripId, url }: { tripId: number; url: string }, ctx: McpContext) {
     if (!(await this.access.findAccessible(tripId, ctx.userId))) return noAccess();

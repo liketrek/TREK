@@ -76,6 +76,23 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:share.label': 'Zarządzaj linkami dzienników podróży',
   'oauth.scope.journey:share.description':
     'Twórz, aktualizuj i unieważniaj publiczne linki udostępniania dzienników podróży',
+  'oauth.scope.group.tours': 'Wycieczki',
+  'oauth.scope.group.roadtrip': 'Podróż samochodowa',
+  'oauth.scope.group.studio': 'Studio', // same-as-en
+  'oauth.scope.tours:read.label': 'Przeglądanie wycieczek',
+  'oauth.scope.tours:read.description':
+    'Odczyt wędrówek, spacerów, wycieczek rowerowych, kajakowych i narciarskich z przystankami i bagażem',
+  'oauth.scope.tours:write.label': 'Planowanie wycieczek',
+  'oauth.scope.tours:write.description':
+    'Proponowanie, tworzenie, edycja i usuwanie wycieczek, ich przystanków, aktywności i powiązań z bagażem',
+  'oauth.scope.roadtrip:read.label': 'Przeglądanie podróży samochodowych',
+  'oauth.scope.roadtrip:read.description': 'Odczyt tras, dni jazdy, postojów na ładowanie i zagrożeń na drodze',
+  'oauth.scope.roadtrip:write.label': 'Planowanie podróży samochodowych',
+  'oauth.scope.roadtrip:write.description': 'Wyznaczanie tras, ustawianie dni jazdy i preferencji oraz import tras',
+  'oauth.scope.studio:read.label': 'Przeglądanie książek z podróży',
+  'oauth.scope.studio:read.description': 'Odczyt stron, układu i zdjęć książki z podróży',
+  'oauth.scope.studio:write.label': 'Projektowanie książek z podróży',
+  'oauth.scope.studio:write.description': 'Tworzenie, edycja, zmiana stylu i przywracanie stron książki z podróży',
   'oauth.authorize.authorizing': 'Autoryzowanie…',
   'oauth.authorize.loading': 'Ładowanie…',
   'oauth.authorize.errorTitle': 'Błąd autoryzacji',

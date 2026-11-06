@@ -10,7 +10,11 @@ import {
   canDeleteTrips,
   canShareTrips,
   ALL_SCOPES,
+  CORE_CLIENT_SCOPES,
+  DEFAULT_CLIENT_SCOPES,
+  IMPLIED_SCOPE_GROUPS,
   SCOPE_INFO,
+  withImpliedScopes,
 } from '../../../src/mcp/scopes';
 
 import { describe, it, expect } from 'vitest';
@@ -47,7 +51,7 @@ describe('ALL_SCOPES', () => {
     expect(ALL_SCOPES.length).toBeGreaterThan(0);
   });
 
-  it('derives exactly the 17 known scope groups (ScopeGroup lockstep)', () => {
+  it('derives exactly the 20 known scope groups (ScopeGroup lockstep)', () => {
     // The runtime half of the ScopeGroup lockstep — the type half is
     // MCP_ACCESS_GROUPS_MATCH_SCOPE_GROUPS in src/mcp/nest-mcp-policy.ts,
     // covered by `npm run typecheck`. If this list changes, the MCP
@@ -66,8 +70,11 @@ describe('ALL_SCOPES', () => {
       'places',
       'plugins',
       'reservations',
+      'roadtrip',
       'settings',
+      'studio',
       'todos',
+      'tours',
       'trips',
       'vacay',
       'weather',
@@ -79,6 +86,33 @@ describe('ALL_SCOPES', () => {
     expect(ALL_SCOPES).not.toContain('weather:write');
     expect(ALL_SCOPES).toContain('geo:read');
     expect(ALL_SCOPES).toContain('weather:read');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The tours / road trip / Studio split
+// ---------------------------------------------------------------------------
+
+describe('scopes split off an older group', () => {
+  it('SCOPES-SPLIT-001: trips implies tours and road trip, places road trip, journey the Studio', () => {
+    expect(IMPLIED_SCOPE_GROUPS).toEqual({ trips: ['tours', 'roadtrip'], places: ['roadtrip'], journey: ['studio'] });
+  });
+
+  it('SCOPES-SPLIT-002: a client allowed the newer groups that asks for the older one is given both', () => {
+    const allowed = [...ALL_SCOPES];
+    expect(withImpliedScopes(['trips:read', 'journey:write'], allowed)).toEqual([
+      'trips:read',
+      'journey:write',
+      'tours:read',
+      'roadtrip:read',
+      'studio:write',
+    ]);
+  });
+
+  it('SCOPES-SPLIT-003: a core client is not handed the heavier groups through the map', () => {
+    expect(withImpliedScopes([...CORE_CLIENT_SCOPES], CORE_CLIENT_SCOPES)).toEqual([...CORE_CLIENT_SCOPES]);
+    expect(DEFAULT_CLIENT_SCOPES).toEqual([...CORE_CLIENT_SCOPES]);
+    expect(DEFAULT_CLIENT_SCOPES).not.toContain('plugins:use');
   });
 });
 

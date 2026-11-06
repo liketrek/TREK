@@ -63,7 +63,7 @@ export class ToursWandererMcp {
     inputSchema: { tripId: idSchema, ...wandererMcpSearchRequestSchema.shape },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: wandererOn,
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'tours', mode: 'read' },
   })
   async searchTrails({ tripId, q, page, bbox }: { tripId: number } & WandererMcpSearchRequest, ctx: McpContext) {
     const refused = await this.refusal(tripId, ctx.userId);
@@ -81,7 +81,7 @@ export class ToursWandererMcp {
     inputSchema: { tripId: idSchema, ...wandererMcpPreviewRequestSchema.shape },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: wandererOn,
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'tours', mode: 'read' },
   })
   async previewTrail(
     { tripId, trailId, include_geometry }: { tripId: number } & WandererMcpPreviewRequest,
@@ -102,7 +102,7 @@ export class ToursWandererMcp {
     inputSchema: { tripId: idSchema, ...wandererMcpImportRequestSchema.shape },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: wandererOn,
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'tours', mode: 'write' },
   })
   async importTrail({ tripId, ...request }: { tripId: number } & WandererMcpImportRequest, ctx: McpContext) {
     const refused = await this.refusal(tripId, ctx.userId);
@@ -118,7 +118,7 @@ export class ToursWandererMcp {
     inputSchema: { tripId: idSchema, ...wandererMcpSourceRequestSchema.shape },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: wandererOn,
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'tours', mode: 'read' },
   })
   async checkSource({ tripId, placeId }: { tripId: number } & WandererMcpSourceRequest, ctx: McpContext) {
     const refused = await this.refusal(tripId, ctx.userId);

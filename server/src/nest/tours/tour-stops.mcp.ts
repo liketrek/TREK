@@ -54,7 +54,7 @@ export class TourStopsMcp {
     inputSchema: { tripId: idSchema, ...tourStopInsertRequestSchema.shape },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'tours', mode: 'write' },
   })
   async insertTourStop({ tripId, ...request }: { tripId: number } & TourStopInsertRequest, ctx: McpContext) {
     if (!(await this.access.findAccessible(tripId, ctx.userId))) return noAccess();
@@ -74,7 +74,7 @@ export class TourStopsMcp {
     inputSchema: { tripId: idSchema, ...tourStopRemoveRequestSchema.shape },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'tours', mode: 'write' },
   })
   async removeTourStop({ tripId, ...request }: { tripId: number } & TourStopRemoveRequest, ctx: McpContext) {
     if (!(await this.access.findAccessible(tripId, ctx.userId))) return noAccess();
