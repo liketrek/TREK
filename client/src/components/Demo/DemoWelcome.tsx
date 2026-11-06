@@ -1,6 +1,7 @@
 import { ArrowLeft, ArrowRight, Clock, ExternalLink, Images, RotateCcw } from 'lucide-react';
 import { lazy, Suspense, useId } from 'react';
 import { useTranslation } from '../../i18n';
+import { useIsPhone } from '../../mobile/useIsPhone';
 import {
   DialogButton,
   DialogFooter,
@@ -16,6 +17,7 @@ import {
 import ErrorBoundary from '../shared/ErrorBoundary';
 import TrekIcon from '../shared/TrekIcon';
 import { DEMO_FEATURES, DEMO_FULL_VERSION, DEMO_LIMITS, TREK_REPO_URL, type DemoLine } from './demoWelcomeModel';
+import MDemoWelcome from './MDemoWelcome';
 import { useDemoWelcome } from './useDemoWelcome';
 
 // The credits and their photo list load when a visitor opens them, not with the dashboard.
@@ -138,6 +140,20 @@ export default function DemoWelcome() {
   const { t } = useTranslation();
   const labelId = useId();
   const { open, close, countdown, creditsOpen, backFromCredits, openCredits, closeCredits } = useDemoWelcome();
+  const phone = useIsPhone();
+
+  // On a phone the welcome is a sheet of the phone shell, not the desktop dialog made narrow.
+  if (phone)
+    return (
+      <MDemoWelcome
+        open={open}
+        close={close}
+        countdown={countdown}
+        creditsOpen={creditsOpen}
+        openCredits={openCredits}
+        closeCredits={closeCredits}
+      />
+    );
 
   return (
     <DialogShell

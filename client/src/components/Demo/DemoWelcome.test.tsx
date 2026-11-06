@@ -1,10 +1,14 @@
-import { act, fireEvent, within } from '@testing-library/react';
+import { act, fireEvent, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '../../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { useAuthStore } from '../../store/authStore';
 import DemoWelcome from './DemoWelcome';
+
+// useIsPhone follows matchMedia, which the global stub always answers with false.
+const phone = vi.hoisted(() => ({ value: false }));
+vi.mock('../../mobile/useIsPhone', () => ({ useIsPhone: () => phone.value }));
 
 beforeEach(() => {
   resetAllStores();
@@ -13,6 +17,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
+  phone.value = false;
 });
 
 describe('DemoWelcome', () => {
@@ -145,5 +150,19 @@ describe('DemoWelcome', () => {
       'href',
       'https://creativecommons.org/licenses/by-sa/3.0/'
     );
+  });
+
+  it('FE-COMP-DEMOWELCOME-030: on a phone it is a sheet with the same content and a full-width start', async () => {
+    phone.value = true;
+    render(<DemoWelcome />);
+    const sheet = screen.getByRole('dialog', { name: 'Live demo' });
+    expect(sheet).toHaveTextContent('Welcome to TREK');
+    expect(within(sheet).getByTestId('demo-countdown')).toBeInTheDocument();
+    expect(within(sheet).getByText('Everything resets every hour')).toBeInTheDocument();
+    expect(within(sheet).getByText('Trip planner')).toBeInTheDocument();
+    expect(within(sheet).getByText('Automatic backups')).toBeInTheDocument();
+    expect(within(sheet).getByRole('link', { name: /source code/i })).toHaveAttribute('target', '_blank');
+    await userEvent.click(within(sheet).getByRole('button', { name: /start exploring/i }));
+    await waitFor(() => expect(screen.queryByText('Trip planner')).not.toBeInTheDocument());
   });
 });
