@@ -546,29 +546,27 @@ describe('MCP transport parity pins (Nest-hosted /mcp)', () => {
     expect(res.status).toBe(200);
   });
 
-  it('MCP-P09 — a static-token session carries the deprecation notice on the first tool call only', async () => {
+  it('MCP-P09 — a static-token session hears of the deprecation in its instructions, never in a tool result', async () => {
     const { user } = createUser(testDb);
     const { rawToken } = createMcpToken(testDb, user.id);
-    const sessionId = await createSession(rawToken);
+    const init = await request(app)
+      .post('/mcp')
+      .set('Authorization', `Bearer ${rawToken}`)
+      .set('Accept', 'application/json, text/event-stream')
+      .send(initBody);
+    expect(init.status).toBe(200);
+    expect(init.text).toContain('Deprecated authentication');
+    const sessionId = init.headers['mcp-session-id'] as string;
 
-    const callBody = { jsonrpc: '2.0', method: 'tools/call', id: 3, params: { name: 'list_trips', arguments: {} } };
-    const first = await request(app)
+    const call = await request(app)
       .post('/mcp')
       .set('Authorization', `Bearer ${rawToken}`)
       .set('mcp-session-id', sessionId)
       .set('Accept', 'application/json, text/event-stream')
-      .send(callBody);
-    expect(first.status).toBe(200);
-    expect(first.text).toContain('Deprecated authentication');
-
-    const second = await request(app)
-      .post('/mcp')
-      .set('Authorization', `Bearer ${rawToken}`)
-      .set('mcp-session-id', sessionId)
-      .set('Accept', 'application/json, text/event-stream')
-      .send({ ...callBody, id: 4 });
-    expect(second.status).toBe(200);
-    expect(second.text).not.toContain('Deprecated authentication');
+      .send({ jsonrpc: '2.0', method: 'tools/call', id: 3, params: { name: 'list_trips', arguments: {} } });
+    expect(call.status).toBe(200);
+    expect(call.text).not.toContain('Deprecated authentication');
+    expect(call.text).not.toContain('"isError":true');
   });
 
   it('MCP-P13 — an authorized tools/call writes exactly one mcp.tool_call audit row', async () => {

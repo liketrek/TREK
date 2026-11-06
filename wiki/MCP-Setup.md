@@ -127,7 +127,7 @@ Machine clients are designed for **AI agent frameworks and custom MCP client imp
 
 > **Deprecated:** Static tokens will stop working in a future version of TREK. Migrate to OAuth 2.1 or machine clients.
 
-Static tokens grant full access to all tools and resources with no scope restrictions. A static-token session is warned about the deprecation once, not on every call: the notice rides along with the result of the first `list_trips` or `get_trip_summary` in that session — the trip-discovery tools an AI client normally reaches for first — for the client to surface to you. The tool's own payload still comes with it, and every later call in that session returns a plain result. The notice is also part of the session instructions the server sends when the connection initializes.
+Static tokens grant full access to all tools and resources with no scope restrictions. A static-token session is told about the deprecation in the session instructions the server sends when the connection initializes, and through the `token_auth_notice` prompt, which clients that list prompts show to you. Tool results stay plain: `list_trips` and `get_trip_summary` answer with their data like in any other session, so a client never reads a successful call as a failure.
 
 1. Go to your **Settings → Integrations → MCP Configuration**, switch to **API Tokens**, and click **Create New Token**.
 2. Give the token a name and copy it immediately — it is shown only once. The token starts with `trek_`.
