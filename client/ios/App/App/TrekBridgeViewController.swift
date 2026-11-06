@@ -19,9 +19,11 @@ class TrekBridgeViewController: CAPBridgeViewController {
 
     override func capacitorDidLoad() {
         bridge?.registerPluginInstance(TrekShellPlugin())
-        // The swipe from the left edge that goes back in every iOS app. It walks
-        // the SPA's history, the same entries Android's back button uses.
-        webView?.allowsBackForwardNavigationGestures = true
+        // WebKit's own swipe back slides away a screenshot of the whole page,
+        // closes no sheet and takes every drag near the edge from the UI. The UI
+        // draws its own (mobile/components/MEdgeBack.tsx, feature "edgeBack"):
+        // the page follows the finger and an open sheet closes first.
+        webView?.allowsBackForwardNavigationGestures = false
     }
 }
 

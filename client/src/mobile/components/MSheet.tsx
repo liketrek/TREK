@@ -5,6 +5,7 @@ import { useTranslation } from '../../i18n'
 import { useDiscardGuard } from '../../components/shared/useDiscardGuard'
 import { keepTabInside, useModalFocus } from './modalFocus'
 import { useSheetDrag } from './useSheetDrag'
+import { useOverlay } from '../overlayStack'
 
 export type MSheetVariant = 'card' | 'bottom' | 'drawer'
 export type MSheetMaterial = 'glass' | 'bar-glass' | 'opaque'
@@ -150,6 +151,10 @@ export default function MSheet({
     if (!open) return
     return lockBodyScroll()
   }, [open])
+
+  // A way back (the edge swipe, Android's back gesture) closes the sheet on top
+  // first, through the same path as the scrim, so unsaved changes still ask.
+  useOverlay(open && rendered, requestClose)
 
   // Move focus into the dialog on open, hand it back on close.
   useModalFocus(panelRef, open && rendered)

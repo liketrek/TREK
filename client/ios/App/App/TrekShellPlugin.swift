@@ -24,7 +24,7 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
     /// and a server can require a minimum (minNativeShellApi in /api/health/features).
     static let shellApi = 2
     /// The native features by name, so the UI can turn each on by itself.
-    static let features: [String] = ["capabilities"]
+    static let features: [String] = ["capabilities", "edgeBack"]
 
     @objc func getCapabilities(_ call: CAPPluginCall) {
         let info = Bundle.main.infoDictionary

@@ -2,6 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import MSheet from '../../../src/mobile/components/MSheet';
+import { closeTopOverlay } from '../../../src/mobile/overlayStack';
 
 // FE-MOB-SHEET-001 onwards
 
@@ -291,6 +292,23 @@ describe('MSheet', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(onCloseTop).toHaveBeenCalledTimes(1);
     expect(baseCalls).toEqual([]);
+  });
+
+  it('FE-MOB-SHEET-030: a way back (edge swipe, Android back) closes the open sheet first', () => {
+    const onClose = vi.fn();
+    const { rerender } = render(
+      <MSheet open onClose={onClose} ariaLabel="Back">
+        <span>Sheet content</span>
+      </MSheet>,
+    );
+    expect(closeTopOverlay()).toBe(true);
+    expect(onClose).toHaveBeenCalledTimes(1);
+    rerender(
+      <MSheet open={false} onClose={onClose} ariaLabel="Back">
+        <span>Sheet content</span>
+      </MSheet>,
+    );
+    expect(closeTopOverlay()).toBe(false);
   });
 
   describe('dragging the docked sheet', () => {

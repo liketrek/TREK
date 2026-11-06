@@ -3,6 +3,7 @@ import { Keyboard } from '@capacitor/keyboard';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { closeTopOverlay } from '../mobile/overlayStack';
 import { isEffectivelyOffline } from '../sync/networkMode';
 import { checkAppUpdate } from './capabilities';
 import { startNativeApp } from './nativeApp';
@@ -17,6 +18,7 @@ vi.mock('./platform', () => ({ isNativeApp: vi.fn(), isNativeIos: vi.fn() }));
 vi.mock('./offlineShell', () => ({ keepOfflineShellFresh: vi.fn() }));
 vi.mock('../sync/networkMode', () => ({ isEffectivelyOffline: vi.fn() }));
 vi.mock('./capabilities', () => ({ checkAppUpdate: vi.fn(async () => false) }));
+vi.mock('../mobile/overlayStack', () => ({ closeTopOverlay: vi.fn(() => false) }));
 
 function backButtonHandler(): (event: { canGoBack: boolean }) => void {
   const call = vi.mocked(App.addListener).mock.calls.find(([name]) => name === 'backButton');
@@ -44,6 +46,17 @@ describe('startNativeApp', () => {
     startNativeApp();
     expect(App.addListener).not.toHaveBeenCalled();
     expect(StatusBar.setStyle).not.toHaveBeenCalled();
+  });
+
+  it("Android's back gesture closes an open sheet before it leaves the page", () => {
+    const back = vi.spyOn(window.history, 'back').mockImplementation(() => {});
+    vi.mocked(closeTopOverlay).mockReturnValueOnce(true);
+    startNativeApp();
+    backButtonHandler()({ canGoBack: true });
+    expect(back).not.toHaveBeenCalled();
+    backButtonHandler()({ canGoBack: true });
+    expect(back).toHaveBeenCalledTimes(1);
+    back.mockRestore();
   });
 
   it('asks the binary what it can do and the server which binary it needs', () => {

@@ -2,6 +2,7 @@ import { App } from '@capacitor/app';
 import { Keyboard } from '@capacitor/keyboard';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { StatusBar, Style } from '@capacitor/status-bar';
+import { closeTopOverlay } from '../mobile/overlayStack';
 import { isEffectivelyOffline } from '../sync/networkMode';
 import { checkAppUpdate } from './capabilities';
 import { keepOfflineShellFresh } from './offlineShell';
@@ -27,6 +28,8 @@ export function startNativeApp(): void {
   // Android's back gesture: through the app's own history first, and only
   // then out of the app, the way a browser tab would behave.
   void App.addListener('backButton', ({ canGoBack }) => {
+    // An open sheet closes first, as on iOS's edge swipe.
+    if (closeTopOverlay()) return;
     if (canGoBack) window.history.back();
     else void App.minimizeApp();
   });
