@@ -80,4 +80,16 @@ describe('usePullToRefresh', () => {
     expect(onRefresh).not.toHaveBeenCalled();
     expect(el.style.transform).toBe('');
   });
+
+  it('reads the scroll position of its own scroll box when given one', () => {
+    const el = document.createElement('div');
+    const scroller = document.createElement('div');
+    Object.defineProperty(scroller, 'scrollTop', { value: 120, configurable: true });
+    const onRefresh = vi.fn(async () => {});
+    renderHook(() => usePullToRefresh({ current: el }, onRefresh, true, { current: scroller }));
+    touch('touchstart', 100, 100);
+    expect(touch('touchmove', 100, 400).defaultPrevented).toBe(false);
+    touch('touchend');
+    expect(onRefresh).not.toHaveBeenCalled();
+  });
 });

@@ -23,7 +23,9 @@ export type PullState = { distance: number; refreshing: boolean; armed: boolean 
 export function usePullToRefresh(
   contentRef: RefObject<HTMLElement | null>,
   onRefresh: () => Promise<unknown>,
-  enabled = true
+  enabled = true,
+  /** The element that scrolls, where that is not the window (a screen with its own scroll box). */
+  scrollerRef?: RefObject<HTMLElement | null>
 ): PullState {
   const [state, setState] = useState<PullState>({ distance: 0, refreshing: false, armed: false });
   const refreshRef = useRef(onRefresh);
@@ -36,6 +38,7 @@ export function usePullToRefresh(
     let armed = false;
     let busy = false;
     let distance = 0;
+    const scrolled = () => (scrollerRef?.current ? scrollerRef.current.scrollTop : window.scrollY);
 
     const place = (value: number, animate: boolean) => {
       const el = contentRef.current;
@@ -45,7 +48,7 @@ export function usePullToRefresh(
     };
 
     const onStart = (e: TouchEvent) => {
-      if (busy || e.touches.length !== 1 || window.scrollY > 0 || hasOpenOverlay()) return;
+      if (busy || e.touches.length !== 1 || scrolled() > 0 || hasOpenOverlay()) return;
       start = { x: e.touches[0].clientX, y: e.touches[0].clientY };
       pulling = false;
     };
@@ -57,7 +60,7 @@ export function usePullToRefresh(
       if (!pulling) {
         // Decide once: a sideways or upward start belongs to whatever is under the finger.
         if (Math.abs(dy) < 8 && Math.abs(dx) < 8) return;
-        if (dy <= 0 || Math.abs(dx) > Math.abs(dy) || window.scrollY > 0) {
+        if (dy <= 0 || Math.abs(dx) > Math.abs(dy) || scrolled() > 0) {
           start = null;
           return;
         }
@@ -117,7 +120,7 @@ export function usePullToRefresh(
       window.removeEventListener('touchcancel', onEnd);
       place(0, false);
     };
-  }, [contentRef, enabled]);
+  }, [contentRef, enabled, scrollerRef]);
 
   return state;
 }

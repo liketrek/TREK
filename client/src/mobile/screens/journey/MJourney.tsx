@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { Plus, NotebookPen, Image, MapPin } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
 import { useJourney } from '../../../pages/journey/useJourney'
@@ -5,6 +6,8 @@ import type { Journey } from '../../../store/journeyStore'
 import MJourneyCreateSheet from './MJourneyCreateSheet'
 import MDancingTrek from '../../components/MDancingTrek'
 import { journeyCoverSrc, journeyCoverStyle } from './mobileJourneyMeta'
+import { usePullToRefresh } from '../../usePullToRefresh'
+import MPullIndicator from '../../components/MPullIndicator'
 
 type JourneyListItem = Journey & {
   entry_count?: number
@@ -16,11 +19,13 @@ type JourneyListItem = Journey & {
 export default function MJourney() {
   const { t } = useTranslation()
   const {
-    navigate, journeys, loading,
+    navigate, journeys, loading, loadJourneys,
     showCreate, setShowCreate, newTitle, setNewTitle,
     availableTrips, selectedTripIds, setSelectedTripIds,
     openCreateModal, handleCreate, activeJourney,
   } = useJourney()
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const pull = usePullToRefresh(scrollRef, loadJourneys, true, scrollRef)
 
   const list = journeys as JourneyListItem[]
   const hero = (activeJourney as JourneyListItem | null) ?? list[0] ?? null
@@ -43,7 +48,8 @@ export default function MJourney() {
         </button>
       </div>
 
-      <div className="h-full overflow-y-auto px-4 pt-[calc(var(--m-safe-top,12px)+52px)] pb-[calc(var(--bottom-nav-h,84px)+16px)]">
+      <MPullIndicator state={pull} label={t('common.loading')} />
+      <div ref={scrollRef} className="h-full overflow-y-auto px-4 pt-[calc(var(--m-safe-top,12px)+52px)] pb-[calc(var(--bottom-nav-h,84px)+16px)]">
         {loading && list.length === 0 ? (
           <div className="flex justify-center py-16">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-[color:var(--m-rowbr)] border-t-m-ink" />
