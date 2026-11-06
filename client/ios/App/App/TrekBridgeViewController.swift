@@ -29,8 +29,20 @@ class TrekBridgeViewController: CAPBridgeViewController {
         return configuration
     }
 
+    /// Kept alive here: WKWebView holds its navigation delegate weakly.
+    private var navigationProxy: TrekNavigationProxy?
+
     override func capacitorDidLoad() {
         TrekTileStore.shared.prune()
+        // Capacitor shows its error page for every failed navigation, a replaced
+        // one included: the UI moving to /login while the first page still loads
+        // cancels that load (-999), and a first-time user landed on "Server not
+        // reachable" with a server that was there all along.
+        if let webView, let inner = webView.navigationDelegate {
+            let proxy = TrekNavigationProxy(inner: inner)
+            navigationProxy = proxy
+            webView.navigationDelegate = proxy
+        }
         bridge?.registerPluginInstance(TrekShellPlugin())
         // WebKit's own swipe back slides away a screenshot of the whole page,
         // closes no sheet and takes every drag near the edge from the UI. The UI
@@ -270,5 +282,41 @@ final class TrekTileSchemeHandler: NSObject, WKURLSchemeHandler {
         task.didReceive(response)
         task.didReceive(data)
         task.didFinish()
+    }
+}
+
+/// Stands in front of Capacitor's navigation delegate and hands it everything
+/// but the failures of a navigation that another one replaced: a cancelled
+/// load (NSURLErrorCancelled) or an interrupted frame load (WebKit 102). Those
+/// are no fault, and Capacitor would answer them with its error page.
+final class TrekNavigationProxy: NSObject, WKNavigationDelegate {
+    private let inner: WKNavigationDelegate
+
+    init(inner: WKNavigationDelegate) {
+        self.inner = inner
+    }
+
+    static func isReplaced(_ error: Error) -> Bool {
+        let error = error as NSError
+        return (error.domain == NSURLErrorDomain && error.code == NSURLErrorCancelled)
+            || (error.domain == "WebKitErrorDomain" && error.code == 102)
+    }
+
+    override func responds(to aSelector: Selector!) -> Bool {
+        super.responds(to: aSelector) || (inner as AnyObject).responds(to: aSelector)
+    }
+
+    override func forwardingTarget(for aSelector: Selector!) -> Any? {
+        (inner as AnyObject).responds(to: aSelector) ? inner : nil
+    }
+
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        if Self.isReplaced(error) { return }
+        inner.webView?(webView, didFail: navigation, withError: error)
+    }
+
+    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        if Self.isReplaced(error) { return }
+        inner.webView?(webView, didFailProvisionalNavigation: navigation, withError: error)
     }
 }

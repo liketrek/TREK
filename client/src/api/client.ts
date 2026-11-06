@@ -77,6 +77,7 @@ import { getSocketId } from './websocket'
 import { probeNow } from '../sync/connectivity'
 import { downloadBlob } from '../utils/fileDownload'
 import { translateRateLimit } from './rateLimitMessage'
+import { isNativeApp } from '../native/platform'
 
 /**
  * Validate a response payload against its @trek/shared Zod schema — but only in
@@ -150,6 +151,20 @@ export function isAuthPublicPath(pathname: string): boolean {
   return publicPaths.includes(pathname) || publicPrefixes.some((p) => pathname.startsWith(p))
 }
 
+/**
+ * A full page load to `url`. In the apps it waits for the first page to finish
+ * loading: started earlier, it cancels that load, and the shell answers a
+ * cancelled load with its "Server not reachable" page, which is where a
+ * signed-out user opening the app for the first time ended up.
+ */
+function hardNavigate(url: string): void {
+  const go = () => {
+    window.location.href = url
+  }
+  if (isNativeApp() && document.readyState !== 'complete') window.addEventListener('load', go, { once: true })
+  else go()
+}
+
 // Unregisters the SW before reloading so the navigation reaches the network.
 // Without this, WorkBox's NavigationRoute serves the cached SPA shell and the
 // upstream proxy (CF Access / Pangolin) never gets to challenge the user.
@@ -218,7 +233,7 @@ apiClient.interceptors.response.use(
         const { pathname } = window.location
         if (!isAuthPublicPath(pathname)) {
           const currentPath = pathname + window.location.search + window.location.hash
-          window.location.href = '/login?redirect=' + encodeURIComponent(currentPath)
+          hardNavigate('/login?redirect=' + encodeURIComponent(currentPath))
         }
       }
       if (
@@ -226,7 +241,7 @@ apiClient.interceptors.response.use(
           (error.response?.data as { code?: string } | undefined)?.code === 'MFA_REQUIRED' &&
           !window.location.pathname.startsWith('/settings')
       ) {
-        window.location.href = '/settings?mfa=required'
+        hardNavigate('/settings?mfa=required')
       }
       if (error.response?.status === 429) {
         const translated = translateRateLimit()
