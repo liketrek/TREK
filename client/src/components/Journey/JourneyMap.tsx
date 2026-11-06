@@ -691,7 +691,11 @@ function JourneyMap(
         ref={containerRef}
         style={{ width: '100%', height: '100%' }}
       />
-      <div style={{ position: 'absolute', bottom: 12, right: 12, zIndex: 400, display: 'flex', flexDirection: 'column', gap: 4 }}>
+      {/* A finger zooms with a pinch, and on a phone these sat under the bottom bar (#3001). */}
+      <div
+        className="[@media(pointer:coarse)]:hidden"
+        style={{ position: 'absolute', bottom: 12, right: 12, zIndex: 400, display: 'flex', flexDirection: 'column', gap: 4 }}
+      >
         <button type="button" onClick={() => zoom(true)} style={zoomButtonStyle(dark)}>+</button>
         <button type="button" onClick={() => zoom(false)} style={zoomButtonStyle(dark)}>−</button>
       </div>
