@@ -3,6 +3,7 @@ import { Keyboard } from '@capacitor/keyboard';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { closeTopOverlay } from '../mobile/overlayStack';
+import { useSettingsStore } from '../store/settingsStore';
 import { isEffectivelyOffline } from '../sync/networkMode';
 import { checkAppUpdate, loadNativeCapabilities } from './capabilities';
 import { installNativeGeolocation } from './geolocation';
@@ -64,7 +65,7 @@ export function startNativeApp(): void {
       if (isEffectivelyOffline()) return;
       // Not refreshed this time is no harm: the next launch tries again. An app
       // older than the offline copy has no such method, which is no failure.
-      keepOfflineShellFresh().catch((err: unknown) => {
+      keepOfflineShellFresh(fetch, useSettingsStore.getState().settings.language).catch((err: unknown) => {
         if (!isUnimplemented(err)) reportNativeFailure(err);
       });
     }, OFFLINE_SHELL_DELAY_MS);

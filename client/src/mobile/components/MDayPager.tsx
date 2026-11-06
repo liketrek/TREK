@@ -47,6 +47,12 @@ export interface MDayPagerProps {
    * (Vacay's month editor and year grid) rather than over the whole screen.
    */
   inFlow?: boolean;
+  /**
+   * The day a swipe is heading for, as soon as its page is the nearer one, and
+   * null when the swipe falls back: lets a day rail follow the finger before
+   * the snap lands and onSelectDay fires.
+   */
+  onPreview?: (dayId: number | null) => void;
 }
 
 interface Page {
@@ -84,6 +90,7 @@ export default function MDayPager({
   locked = false,
   describeDay,
   inFlow = false,
+  onPreview,
 }: MDayPagerProps) {
   const stripRef = useRef<HTMLDivElement>(null);
   const [announcement, setAnnouncement] = useState('');
@@ -91,8 +98,8 @@ export default function MDayPager({
   const windowKey = pages.map((p) => p.key).join(',');
 
   // The handlers below are attached once, so they read the props through here.
-  const latest = useRef({ days, onSelectDay, describeDay, selectedDayId });
-  latest.current = { days, onSelectDay, describeDay, selectedDayId };
+  const latest = useRef({ days, onSelectDay, describeDay, selectedDayId, onPreview });
+  latest.current = { days, onSelectDay, describeDay, selectedDayId, onPreview };
   /** The day a landed swipe asked for, until the selection catches up. Stops a
    *  late scroll event from selecting it twice. */
   const requested = useRef<number | null>(null);
@@ -126,6 +133,31 @@ export default function MDayPager({
     if (!strip) return;
     let timer = 0;
     let touching = false;
+    let previewed: number | null = null;
+
+    // The nearer page while the strip moves: a page past the middle is where the
+    // swipe will land unless the finger turns back.
+    const preview = () => {
+      const notify = latest.current.onPreview;
+      if (!notify) return;
+      const left = strip.getBoundingClientRect().left;
+      let nearest: HTMLElement | null = null;
+      let distance = Infinity;
+      for (const child of Array.from(strip.children) as HTMLElement[]) {
+        const d = Math.abs(child.getBoundingClientRect().left - left);
+        if (d < distance) {
+          distance = d;
+          nearest = child;
+        }
+      }
+      if (!nearest) return;
+      const raw = nearest.hasAttribute('data-page-active') ? '' : nearest.dataset.dayId;
+      const dayId = raw ? Number(raw) : null;
+      const next = dayId != null && Number.isFinite(dayId) ? dayId : null;
+      if (next === previewed) return;
+      previewed = next;
+      notify(next);
+    };
 
     const settle = () => {
       if (touching) return;
@@ -140,6 +172,7 @@ export default function MDayPager({
       const dayId = raw ? Number(raw) : NaN;
       if (!Number.isFinite(dayId) || requested.current === dayId) return;
       requested.current = dayId;
+      previewed = null;
       const s = latest.current;
       tickHaptic();
       s.onSelectDay(dayId);
@@ -162,14 +195,18 @@ export default function MDayPager({
       later();
     };
 
-    strip.addEventListener('scroll', later, { passive: true });
+    const onScroll = () => {
+      preview();
+      later();
+    };
+    strip.addEventListener('scroll', onScroll, { passive: true });
     strip.addEventListener('scrollend', onScrollEnd);
     strip.addEventListener('touchstart', onTouchStart, { passive: true });
     strip.addEventListener('touchend', onTouchEnd, { passive: true });
     strip.addEventListener('touchcancel', onTouchEnd, { passive: true });
     return () => {
       window.clearTimeout(timer);
-      strip.removeEventListener('scroll', later);
+      strip.removeEventListener('scroll', onScroll);
       strip.removeEventListener('scrollend', onScrollEnd);
       strip.removeEventListener('touchstart', onTouchStart);
       strip.removeEventListener('touchend', onTouchEnd);

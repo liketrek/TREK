@@ -26,6 +26,7 @@ import type { ReactNode } from 'react'
 import { useSettingsStore } from '../../../../store/settingsStore'
 import MRouteAppsSheet, { openRouteTarget } from './MRouteAppsSheet'
 import MDayPager from '../../../components/MDayPager'
+import { useDayPreviewStore } from '../../../dayPreviewStore'
 
 /**
  * Plan-tab timeline of the mobile trip screen: the UP-NEXT card in go mode,
@@ -60,6 +61,7 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
   const isTouch = useIsTouch()
   useTouchDragBridge(editing && isTouch)
   const [dragging, setDragging] = useState(false)
+  const setDayPreview = useDayPreviewStore(s => s.setDayId)
 
   return (
     <div className="absolute inset-0">
@@ -72,6 +74,7 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
         // skipFit, exactly like the chip tap in plan view: the map underneath stays
         // mounted, and re-framing it here would move it somewhere nobody asked for.
         onSelectDay={dayId => planner.handleSelectDay(dayId, true)}
+        onPreview={setDayPreview}
         locked={dragging || legMenu.menu != null}
         describeDay={(i, n) => t('mobileTrip.dayAnnounce', { current: i + 1, total: n })}
         renderDay={(dayId, active) => (

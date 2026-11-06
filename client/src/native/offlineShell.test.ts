@@ -17,6 +17,7 @@ const manifest = {
 
 beforeEach(() => {
   vi.mocked(TrekShell.refreshOfflineCopy).mockReset().mockResolvedValue({ saved: true });
+  window.localStorage.clear();
 });
 
 describe('manifestFiles', () => {
@@ -66,5 +67,36 @@ describe('keepOfflineShellFresh', () => {
     const fetchImpl = vi.fn(async () => new Response('', { status: 404 })) as unknown as typeof fetch;
     await keepOfflineShellFresh(fetchImpl);
     expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it('fetches at low priority, only the own language, and once per build', async () => {
+    const withLocales = {
+      ...manifest,
+      '../shared/dist/i18n/de/index.mjs': { file: 'assets/de-aaaa1111.js' },
+      '../shared/dist/i18n/fr/index.mjs': { file: 'assets/fr-bbbb2222.js' },
+      '../shared/dist/i18n/en/index.mjs': { file: 'assets/en-cccc3333.js' },
+    };
+    const inits: (RequestInit | undefined)[] = [];
+    const fetched: string[] = [];
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url === '/asset-manifest.json') return new Response(JSON.stringify(withLocales));
+      fetched.push(url);
+      inits.push(init);
+      return new Response('x');
+    }) as unknown as typeof fetch;
+
+    await keepOfflineShellFresh(fetchImpl, 'de');
+    expect(fetched).toContain('/assets/de-aaaa1111.js');
+    expect(fetched).toContain('/assets/en-cccc3333.js');
+    expect(fetched).not.toContain('/assets/fr-bbbb2222.js');
+    expect(inits.every((i) => (i as { priority?: string } | undefined)?.priority === 'low')).toBe(true);
+
+    const before = fetched.length;
+    await keepOfflineShellFresh(fetchImpl, 'de');
+    expect(fetched.length).toBe(before);
+
+    await keepOfflineShellFresh(fetchImpl, 'fr');
+    expect(fetched).toContain('/assets/fr-bbbb2222.js');
   });
 });

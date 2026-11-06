@@ -18,7 +18,7 @@ import type { Location, NavigationType } from 'react-router';
  */
 export type RouteTransitionKind = 'forward' | 'back' | 'tab';
 
-const SETTLE_MS = 800;
+const SETTLE_MS = 300;
 let skipNext = false;
 let current: ViewTransition | null = null;
 

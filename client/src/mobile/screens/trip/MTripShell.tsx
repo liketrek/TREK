@@ -28,6 +28,7 @@ import { canManageDocSync } from '../../../components/Files/docsync/useDocSync'
 import { useDocSyncOffered } from '../../../components/Files/docsync/useDocSyncOffered'
 import type { Day, Trip } from '../../../types'
 import { getIntlLanguage } from '@trek/shared'
+import { useDayPreviewStore } from '../../dayPreviewStore'
 
 /**
  * Mobile trip screen frame. Owns the chrome the design shares across every
@@ -271,11 +272,16 @@ export default function MTripShell({
   // The opening day is chosen while the splash still covers the shell (#2880),
   // so the rail itself is a dependency: the chip is lined up when the rail
   // appears, in place rather than gliding across a rail nobody has seen yet.
+  // The rail lights the day a swipe is heading for before the plan switches (dayPreviewStore).
+  const previewDayId = useDayPreviewStore(s => s.dayId)
+  const clearDayPreview = useDayPreviewStore(s => s.setDayId)
+  useEffect(() => { clearDayPreview(null) }, [planner.selectedDayId, clearDayPreview])
+  const railDayId = previewDayId ?? planner.selectedDayId
   const chipRefs = useRef(new Map<number, HTMLButtonElement>())
   const [dayRail, setDayRail] = useState<HTMLDivElement | null>(null)
   const alignedRailRef = useRef<HTMLDivElement | null>(null)
   useLayoutEffect(() => {
-    const chip = planner.selectedDayId != null ? chipRefs.current.get(planner.selectedDayId) : undefined
+    const chip = railDayId != null ? chipRefs.current.get(railDayId) : undefined
     if (!chip || !dayRail) return
     const firstView = alignedRailRef.current !== dayRail
     alignedRailRef.current = dayRail
@@ -290,7 +296,7 @@ export default function MTripShell({
       inline: 'center',
       block: 'nearest',
     })
-  }, [planner.selectedDayId, days, dayRail])
+  }, [railDayId, days, dayRail])
   // The active day's pill glides to the next chip rather than jumping there.
   // A booking document shared to TREK, and this trip picked for it: open the import.
   const sharedTripId = useSharedImportStore(s => s.tripId)
@@ -300,7 +306,7 @@ export default function MTripShell({
     planner.setShowBookingImport(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sharedTripId, tripId])
-  const dayPill = useActivePill(dayRail, '[aria-current="true"]', [planner.selectedDayId, days, dayRail, language])
+  const dayPill = useActivePill(dayRail, '[aria-current="true"]', [railDayId, days, dayRail, language])
 
   const trTab = planner.activeTab
 
@@ -515,7 +521,7 @@ export default function MTripShell({
               />
             )}
             {days.map((day, idx) => {
-              const active = day.id === planner.selectedDayId
+              const active = day.id === railDayId
               const isToday = day.id === todayDayId
               const tint = dayTints[day.id]
               return (

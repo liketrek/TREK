@@ -453,23 +453,23 @@
   }
 }
 :root[data-route-transition='forward']::view-transition-old(root) {
-  animation: m-vt-out-leading 0.4s cubic-bezier(0.32, 0.72, 0, 1) both;
+  animation: m-vt-out-leading 0.3s cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 :root[data-route-transition='forward']::view-transition-new(root) {
-  animation: m-vt-in-trailing 0.4s cubic-bezier(0.32, 0.72, 0, 1) both;
+  animation: m-vt-in-trailing 0.3s cubic-bezier(0.32, 0.72, 0, 1) both;
   box-shadow: -16px 0 40px -12px rgb(0 0 0 / 0.35);
 }
 :root[data-route-transition='back']::view-transition-old(root) {
   z-index: 1;
-  animation: m-vt-out-trailing 0.34s cubic-bezier(0.32, 0.72, 0, 1) both;
+  animation: m-vt-out-trailing 0.26s cubic-bezier(0.32, 0.72, 0, 1) both;
   box-shadow: -16px 0 40px -12px rgb(0 0 0 / 0.35);
 }
 :root[data-route-transition='back']::view-transition-new(root) {
-  animation: m-vt-in-leading 0.34s cubic-bezier(0.32, 0.72, 0, 1) both;
+  animation: m-vt-in-leading 0.26s cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 :root[data-route-transition='tab']::view-transition-old(root),
 :root[data-route-transition='tab']::view-transition-new(root) {
-  animation-duration: 0.18s;
+  animation-duration: 0.15s;
 }
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*),

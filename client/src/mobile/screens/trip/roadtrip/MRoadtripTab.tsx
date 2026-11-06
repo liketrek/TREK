@@ -24,6 +24,7 @@ import { bookendBooking } from '../../../../components/Roadtrip/nightBookend'
 import { getDayOrder } from '../../../../utils/dayOrder'
 import { undatedRides } from '@trek/shared/roadtrip'
 import type { Reservation, TranslationFn } from '../../../../types'
+import { useDayPreviewStore } from '../../../dayPreviewStore'
 
 /**
  * The road trip tab: one day of the drive, as a chain or on the map.
@@ -39,6 +40,7 @@ import type { Reservation, TranslationFn } from '../../../../types'
  * scroll, the day tints, the label format and the second tap that opens the day sheet.
  */
 export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
+  const setDayPreview = useDayPreviewStore(s => s.setDayId)
   const { t, days } = planner
   const rt = useMRoadtrip(planner)
   const corridor = useMRtCorridor(planner, shell)
@@ -107,6 +109,7 @@ export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
         // skipFit: the map underneath stays mounted, and the stage's own focus points
         // frame it as soon as the selection moves.
         onSelectDay={dayId => planner.handleSelectDay(dayId, true)}
+        onPreview={setDayPreview}
         locked={!!shell.sheet}
         describeDay={(i, n) => t('mobileTrip.dayAnnounce', { current: i + 1, total: n })}
         renderDay={dayId => (

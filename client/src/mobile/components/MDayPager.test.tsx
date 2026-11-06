@@ -82,6 +82,22 @@ describe('MDayPager', () => {
     expect(screen.getByRole('status')).toHaveTextContent('day 3 of 4');
   });
 
+  it('previews the day a swipe heads for while the strip still moves, and takes it back', () => {
+    const onPreview = vi.fn();
+    const { strip, onSelectDay } = setup(2, { onPreview });
+
+    place(strip, 3, true);
+    fireEvent.scroll(strip);
+    fireEvent.scroll(strip);
+    expect(onPreview).toHaveBeenCalledTimes(1);
+    expect(onPreview).toHaveBeenLastCalledWith(3);
+    expect(onSelectDay).not.toHaveBeenCalled();
+
+    place(strip, 2, true);
+    fireEvent.scroll(strip);
+    expect(onPreview).toHaveBeenLastCalledWith(null);
+  });
+
   it('asks once, however many events report the same landing', () => {
     const { strip, onSelectDay } = setup(2);
 
