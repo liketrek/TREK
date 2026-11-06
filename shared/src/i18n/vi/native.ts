@@ -83,6 +83,8 @@ const native: TranslationStrings = {
   'native.lock.setting': 'Khóa bằng Face ID hoặc mật mã',
   'native.lock.settingHint':
     'Hỏi khi mở TREK và sau nửa phút chạy nền, đồng thời ẩn ứng dụng trong trình chuyển ứng dụng.',
+  'native.share.title': 'Nhập vào chuyến đi nào?',
+  'native.share.noTrips': 'Chưa có chuyến đi nào. Hãy tạo một chuyến trước rồi chia sẻ lại tài liệu.',
 };
 
 export default native;

@@ -1,4 +1,5 @@
 import { createPortal } from 'react-dom'
+import { useSharedImportStore } from '../../native/sharedFiles'
 import { useState, useRef, useEffect } from 'react'
 import { Upload, X } from 'lucide-react'
 import { useTranslation } from '../../i18n'
@@ -35,6 +36,12 @@ export default function BookingImportModal({ isOpen, onClose, tripId, kind }: Bo
   const mouseDownTarget = useRef<EventTarget | null>(null)
 
   const [files, setFiles] = useState<File[]>([])
+  // A booking document shared to TREK lands here already chosen.
+  useEffect(() => {
+    if (!isOpen) return
+    const shared = useSharedImportStore.getState().file
+    if (shared) setFiles([useSharedImportStore.getState().take() ?? shared])
+  }, [isOpen])
   const [isDragOver, setIsDragOver] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')

@@ -82,6 +82,8 @@ const native: TranslationStrings = {
   'native.lock.setting': 'Lukusta Face ID või pääsukoodiga',
   'native.lock.settingHint':
     'Küsib TREK-i avamisel ja pärast poolt minutit taustal ning peidab rakenduse rakenduste vahetajas.',
+  'native.share.title': 'Millisesse reisi importida?',
+  'native.share.noTrips': 'Reise veel pole. Loo esmalt üks ja jaga dokumenti uuesti.',
 };
 
 export default native;

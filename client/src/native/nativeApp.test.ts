@@ -23,6 +23,7 @@ vi.mock('./capabilities', () => ({
   loadNativeCapabilities: vi.fn(async () => ({})),
 }));
 vi.mock('./geolocation', () => ({ installNativeGeolocation: vi.fn() }));
+vi.mock('./sharedFiles', () => ({ startSharedFiles: vi.fn(async () => {}) }));
 vi.mock('../mobile/overlayStack', () => ({ closeTopOverlay: vi.fn(() => false) }));
 
 function backButtonHandler(): (event: { canGoBack: boolean }) => void {

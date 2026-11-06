@@ -9,6 +9,7 @@ import { installNativeGeolocation } from './geolocation';
 import { keepOfflineShellFresh } from './offlineShell';
 import { isNativeApp, isNativeIos } from './platform';
 import { reportNativeFailure } from './reportFailure';
+import { startSharedFiles } from './sharedFiles';
 import { isUnimplemented } from './trekShell';
 
 /** Long enough that the warm-up never competes with the first screen's requests. */
@@ -27,6 +28,8 @@ export function startNativeApp(): void {
   void checkAppUpdate(fetchServerFeatures);
   // The app's own location under navigator.geolocation, where the binary has it.
   void loadNativeCapabilities().then(() => installNativeGeolocation());
+  // Booking documents shared to TREK, waiting for a trip to import into.
+  void startSharedFiles();
 
   // A tap on the status bar scrolls the list under it back to the top, as in
   // every iOS app (the status-bar plugin fires statusTap on iOS).

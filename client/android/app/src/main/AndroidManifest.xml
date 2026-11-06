@@ -23,6 +23,16 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- "Open in TREK" / share a booking document into the import. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/pdf" />
+                <data android:mimeType="text/calendar" />
+                <data android:mimeType="application/vnd.apple.pkpass" />
+                <data android:mimeType="message/rfc822" />
+            </intent-filter>
 
             <!-- Deep links.
 

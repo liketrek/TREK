@@ -9,6 +9,7 @@ import { pickDockTabs } from './dockTabs'
 import MBadge from '../../components/MBadge'
 import MIconBtn from '../../components/MIconBtn'
 import { useActivePill } from '../../components/useActivePill'
+import { useSharedImportStore } from '../../../native/sharedFiles'
 import MPlanTimeline from './plan/MPlanTimeline'
 import MMapArea from './map/MMapArea'
 import MPlacesBrowser from './places/MPlacesBrowser'
@@ -291,6 +292,14 @@ export default function MTripShell({
     })
   }, [planner.selectedDayId, days, dayRail])
   // The active day's pill glides to the next chip rather than jumping there.
+  // A booking document shared to TREK, and this trip picked for it: open the import.
+  const sharedTripId = useSharedImportStore(s => s.tripId)
+  useEffect(() => {
+    if (sharedTripId == null || sharedTripId !== Number(tripId)) return
+    planner.setBookingImportKind('bookings')
+    planner.setShowBookingImport(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sharedTripId, tripId])
   const dayPill = useActivePill(dayRail, '[aria-current="true"]', [planner.selectedDayId, days, dayRail, language])
 
   const trTab = planner.activeTab

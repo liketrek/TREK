@@ -82,6 +82,8 @@ const native: TranslationStrings = {
   'native.lock.setting': 'Zamknout pomocí Face ID nebo kódu',
   'native.lock.settingHint':
     'Zeptá se při otevření TREK a po půl minutě na pozadí a skryje aplikaci v přepínači aplikací.',
+  'native.share.title': 'Importovat do které cesty?',
+  'native.share.noTrips': 'Zatím žádná cesta. Nejdřív nějakou vytvořte a pak dokument sdílejte znovu.',
 };
 
 export default native;

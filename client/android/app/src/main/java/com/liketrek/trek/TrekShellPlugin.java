@@ -31,7 +31,7 @@ public class TrekShellPlugin extends Plugin {
      */
     static final int SHELL_API = 2;
     /** The native features by name, so the UI can turn each on by itself. */
-    static final String[] FEATURES = { "capabilities", "biometricLock" };
+    static final String[] FEATURES = { "capabilities", "biometricLock", "sharedFiles" };
 
     @PluginMethod
     public void getCapabilities(PluginCall call) {
@@ -52,6 +52,22 @@ public class TrekShellPlugin extends Plugin {
         com.getcapacitor.JSArray features = new com.getcapacitor.JSArray();
         for (String feature : FEATURES) features.put(feature);
         result.put("features", features);
+        call.resolve(result);
+    }
+
+    // ---- Shared booking documents ----
+
+    @Override
+    public void load() {
+        TrekSharedFiles.setListener(file -> notifyListeners("sharedFile", file));
+    }
+
+    /** The document shared to TREK before the UI was there to hear of it. */
+    @PluginMethod
+    public void takeSharedFile(PluginCall call) {
+        JSObject result = new JSObject();
+        JSObject file = TrekSharedFiles.take();
+        result.put("file", file == null ? JSONObject.NULL : file);
         call.resolve(result);
     }
 

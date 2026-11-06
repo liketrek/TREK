@@ -83,6 +83,8 @@ const native: TranslationStrings = {
   'native.lock.setting': 'Mit Face ID oder Code sperren',
   'native.lock.settingHint':
     'Fragt beim Öffnen und nach einer halben Minute im Hintergrund nach und verbirgt TREK im App-Umschalter.',
+  'native.share.title': 'In welchen Trip importieren?',
+  'native.share.noTrips': 'Noch kein Trip. Lege zuerst einen an und teile das Dokument dann erneut.',
 };
 
 export default native;

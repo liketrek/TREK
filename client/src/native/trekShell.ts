@@ -49,6 +49,20 @@ export interface TrekShellPlugin {
     event: 'location',
     listener: (payload: NativeLocationPayload) => void
   ): Promise<{ remove: () => Promise<void> }>;
+  addListener(
+    event: 'sharedFile',
+    listener: (payload: SharedFilePayload) => void
+  ): Promise<{ remove: () => Promise<void> }>;
+  /** Feature sharedFiles: the booking document shared to TREK before the UI ran. */
+  takeSharedFile(): Promise<{ file: SharedFilePayload | null }>;
+}
+
+/** A document shared to TREK, as the native side reads it. */
+export interface SharedFilePayload {
+  name: string;
+  mimeType: string;
+  /** base64 */
+  data: string;
 }
 
 /** A position, or an error shaped like GeolocationPositionError (1 denied, 2 unavailable). */

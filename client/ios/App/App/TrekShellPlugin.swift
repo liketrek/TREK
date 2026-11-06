@@ -26,6 +26,7 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
         CAPPluginMethod(name: "setPrivacyCover", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "startLocation", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "stopLocation", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "takeSharedFile", returnType: CAPPluginReturnPromise),
     ]
 
     /// What this binary offers the server's UI, raised with every native feature
@@ -33,7 +34,24 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
     /// and a server can require a minimum (minNativeShellApi in /api/health/features).
     static let shellApi = 2
     /// The native features by name, so the UI can turn each on by itself.
-    static let features: [String] = ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation"]
+    static let features: [String] = ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation", "sharedFiles"]
+
+    // MARK: - Shared booking documents
+
+    override public func load() {
+        TrekSharedFiles.onReceive = { [weak self] file in
+            DispatchQueue.main.async { self?.notifyListeners("sharedFile", data: file) }
+        }
+    }
+
+    /// The document shared to TREK before the UI was there to hear of it.
+    @objc func takeSharedFile(_ call: CAPPluginCall) {
+        if let file = TrekSharedFiles.take() {
+            call.resolve(["file": file])
+        } else {
+            call.resolve(["file": NSNull()])
+        }
+    }
 
     // MARK: - Location
 

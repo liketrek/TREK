@@ -82,6 +82,8 @@ const native: TranslationStrings = {
   'native.lock.setting': 'Lock with Face ID or passcode',
   'native.lock.settingHint':
     'Asks when TREK opens and after half a minute in the background, and hides the app in the app switcher.',
+  'native.share.title': 'Import into which trip?',
+  'native.share.noTrips': 'No trip yet. Create one first, then share the document again.',
 };
 
 export default native;

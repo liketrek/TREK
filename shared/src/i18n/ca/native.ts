@@ -82,6 +82,8 @@ const native: TranslationStrings = {
   'native.lock.setting': 'Bloqueja amb Face ID o codi',
   'native.lock.settingHint':
     'Ho demana en obrir TREK i després de mig minut en segon pla, i amaga l’app al selector d’apps.',
+  'native.share.title': 'A quin viatge vols importar-ho?',
+  'native.share.noTrips': 'Encara no hi ha cap viatge. Crea’n un i torna a compartir el document.',
 };
 
 export default native;

@@ -26,6 +26,13 @@ public class MainActivity extends BridgeActivity {
         bridge.getWebView().setOverScrollMode(View.OVER_SCROLL_NEVER);
         // Set before any WebView callback can run: they are posted to this thread.
         if (onServer) bridge.setWebViewClient(new TrekWebViewClient(bridge, this::showAddressScreen));
+        TrekSharedFiles.receive(this, getIntent());
+    }
+
+    @Override
+    public void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        TrekSharedFiles.receive(this, intent);
     }
 
     private boolean leavingServer;

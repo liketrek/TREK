@@ -83,6 +83,8 @@ const native: TranslationStrings = {
   'native.lock.setting': 'Face IDまたはパスコードでロック',
   'native.lock.settingHint':
     'TREKを開いたときと、バックグラウンドで30秒経過したあとに確認し、アプリスイッチャーでは内容を隠します。',
+  'native.share.title': 'どの旅行に取り込みますか？',
+  'native.share.noTrips': 'まだ旅行がありません。先に作成してから、もう一度ドキュメントを共有してください。',
 };
 
 export default native;

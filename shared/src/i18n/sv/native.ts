@@ -83,6 +83,8 @@ const native: TranslationStrings = {
   'native.lock.setting': 'Lås med Face ID eller lösenkod',
   'native.lock.settingHint':
     'Frågar när TREK öppnas och efter en halv minut i bakgrunden, och döljer appen i appväxlaren.',
+  'native.share.title': 'Importera till vilken resa?',
+  'native.share.noTrips': 'Ingen resa ännu. Skapa en först och dela sedan dokumentet igen.',
 };
 
 export default native;

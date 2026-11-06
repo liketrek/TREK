@@ -82,6 +82,8 @@ const native: TranslationStrings = {
   'native.lock.setting': 'Face ID və ya kodla kilidlə',
   'native.lock.settingHint':
     'TREK açılanda və arxa fonda yarım dəqiqədən sonra soruşur, tətbiqi tətbiq dəyişdiricisində gizlədir.',
+  'native.share.title': 'Hansı səyahətə idxal edilsin?',
+  'native.share.noTrips': 'Hələ səyahət yoxdur. Əvvəlcə birini yaradın, sonra sənədi yenidən paylaşın.',
 };
 
 export default native;

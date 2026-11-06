@@ -80,6 +80,8 @@ const native: TranslationStrings = {
   'native.lock.settingTitle': 'נעילת אפליקציה',
   'native.lock.setting': 'נעילה עם Face ID או קוד',
   'native.lock.settingHint': 'מבקש בעת פתיחת TREK ואחרי חצי דקה ברקע, ומסתיר את האפליקציה במחליף האפליקציות.',
+  'native.share.title': 'לייבא לאיזה טיול?',
+  'native.share.noTrips': 'אין עדיין טיול. צרו טיול ואז שתפו את המסמך שוב.',
 };
 
 export default native;

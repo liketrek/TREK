@@ -82,6 +82,8 @@ const native: TranslationStrings = {
   'native.lock.setting': 'Блокувати за допомогою Face ID або коду',
   'native.lock.settingHint':
     'Запитує під час відкриття TREK і після пів хвилини у фоні, а в перемикачі застосунків вміст приховано.',
+  'native.share.title': 'До якої подорожі імпортувати?',
+  'native.share.noTrips': 'Подорожей ще немає. Спершу створіть подорож, а потім знову поділіться документом.',
 };
 
 export default native;

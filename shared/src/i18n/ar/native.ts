@@ -80,6 +80,8 @@ const native: TranslationStrings = {
   'native.lock.settingTitle': 'قفل التطبيق',
   'native.lock.setting': 'القفل باستخدام Face ID أو رمز المرور',
   'native.lock.settingHint': 'يطلب ذلك عند فتح TREK وبعد نصف دقيقة في الخلفية، ويخفي التطبيق في مبدّل التطبيقات.',
+  'native.share.title': 'الاستيراد إلى أي رحلة؟',
+  'native.share.noTrips': 'لا توجد رحلة بعد. أنشئ رحلة أولًا ثم شارك المستند مجددًا.',
 };
 
 export default native;

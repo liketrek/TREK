@@ -80,6 +80,8 @@ const native: TranslationStrings = {
   'native.lock.settingTitle': 'ล็อกแอป',
   'native.lock.setting': 'ล็อกด้วย Face ID หรือรหัส',
   'native.lock.settingHint': 'ถามเมื่อเปิด TREK และหลังจากอยู่เบื้องหลังครึ่งนาที และซ่อนแอปในตัวสลับแอป',
+  'native.share.title': 'นำเข้าไปยังทริปไหน',
+  'native.share.noTrips': 'ยังไม่มีทริป สร้างทริปก่อนแล้วแชร์เอกสารอีกครั้ง',
 };
 
 export default native;

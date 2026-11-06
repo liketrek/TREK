@@ -85,6 +85,8 @@ const native: TranslationStrings = {
   'native.lock.setting': 'Κλείδωμα με Face ID ή κωδικό',
   'native.lock.settingHint':
     'Ζητείται κατά το άνοιγμα του TREK και μετά από μισό λεπτό στο παρασκήνιο, και η εφαρμογή κρύβεται στην εναλλαγή εφαρμογών.',
+  'native.share.title': 'Εισαγωγή σε ποιο ταξίδι;',
+  'native.share.noTrips': 'Δεν υπάρχει ακόμα ταξίδι. Δημιουργήστε ένα πρώτα και κοινοποιήστε ξανά το έγγραφο.',
 };
 
 export default native;

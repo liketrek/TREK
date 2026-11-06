@@ -80,6 +80,8 @@ const native: TranslationStrings = {
   'native.lock.settingTitle': '应用锁',
   'native.lock.setting': '使用面容 ID 或密码锁定',
   'native.lock.settingHint': '打开 TREK 时以及在后台停留半分钟后会要求验证，并在应用切换器中隐藏内容。',
+  'native.share.title': '导入到哪个行程？',
+  'native.share.noTrips': '还没有行程。请先创建一个，然后再次分享该文档。',
 };
 
 export default native;

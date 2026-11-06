@@ -83,6 +83,8 @@ const native: TranslationStrings = {
   'native.lock.setting': 'Face ID veya parola ile kilitle',
   'native.lock.settingHint':
     'TREK açılırken ve arka planda yarım dakika sonra sorar, uygulamayı uygulama değiştiricide gizler.',
+  'native.share.title': 'Hangi geziye aktarılsın?',
+  'native.share.noTrips': 'Henüz gezi yok. Önce bir gezi oluşturun, sonra belgeyi yeniden paylaşın.',
 };
 
 export default native;

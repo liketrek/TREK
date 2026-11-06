@@ -80,6 +80,8 @@ const native: TranslationStrings = {
   'native.lock.settingTitle': 'App 鎖定',
   'native.lock.setting': '使用 Face ID 或密碼鎖定',
   'native.lock.settingHint': '開啟 TREK 時以及在背景停留半分鐘後會要求驗證，並在 App 切換器中隱藏內容。',
+  'native.share.title': '要匯入到哪個行程？',
+  'native.share.noTrips': '還沒有行程。請先建立一個，然後再次分享該文件。',
 };
 
 export default native;

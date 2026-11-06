@@ -84,6 +84,27 @@
 	     apple-app-site-association, and a self-hosted app has no single domain to
 	     verify against. SceneDelegate already forwards openURLContexts to
 	     Capacitor, so no Swift change is needed. -->
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Booking document</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.adobe.pdf</string>
+				<string>com.apple.ical.ics</string>
+				<string>com.apple.pkpass</string>
+				<string>com.apple.mail.email</string>
+				<string>public.email-message</string>
+			</array>
+		</dict>
+	</array>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<false/>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

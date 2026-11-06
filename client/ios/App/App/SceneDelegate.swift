@@ -11,6 +11,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window?.rootViewController = TrekBridgeViewController()
         window?.makeKeyAndVisible()
 
+        // Launched by "Open in TREK" on a booking document.
+        for context in connectionOptions.urlContexts where context.url.isFileURL {
+            TrekSharedFiles.receive(context.url)
+        }
         SceneDelegateProxy.shared.scene(scene, willConnectTo: session, options: connectionOptions)
     }
 
@@ -25,7 +29,12 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
-        SceneDelegateProxy.shared.scene(scene, openURLContexts: URLContexts)
+        // A booking document shared to TREK goes to the UI's import; anything
+        // else (the sign-in callback) stays with Capacitor.
+        let files = URLContexts.filter { $0.url.isFileURL }
+        for context in files { TrekSharedFiles.receive(context.url) }
+        let others = URLContexts.subtracting(files)
+        if !others.isEmpty { SceneDelegateProxy.shared.scene(scene, openURLContexts: others) }
     }
 
     func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
@@ -56,5 +65,43 @@ enum TrekPrivacyCover {
     static func hide() {
         cover?.removeFromSuperview()
         cover = nil
+    }
+}
+
+/// Booking documents shared to TREK ("Open in TREK"), held until the UI takes
+/// them (TrekShell.takeSharedFile) and announced if it is already running.
+enum TrekSharedFiles {
+    /// Above this the file is not a booking confirmation, and base64 over the
+    /// bridge would only stall the app.
+    static let maxBytes = 15 * 1024 * 1024
+    private(set) static var pending: [String: Any]?
+    static var onReceive: (([String: Any]) -> Void)?
+
+    static func receive(_ url: URL) {
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        guard let data = try? Data(contentsOf: url), data.count <= maxBytes else { return }
+        let file: [String: Any] = [
+            "name": url.lastPathComponent,
+            "mimeType": mimeType(for: url.pathExtension.lowercased()),
+            "data": data.base64EncodedString(),
+        ]
+        pending = file
+        onReceive?(file)
+    }
+
+    static func take() -> [String: Any]? {
+        defer { pending = nil }
+        return pending
+    }
+
+    private static func mimeType(for ext: String) -> String {
+        switch ext {
+        case "pdf": return "application/pdf"
+        case "ics": return "text/calendar"
+        case "pkpass": return "application/vnd.apple.pkpass"
+        case "eml": return "message/rfc822"
+        default: return "application/octet-stream"
+        }
     }
 }

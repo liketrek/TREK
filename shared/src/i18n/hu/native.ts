@@ -84,6 +84,8 @@ const native: TranslationStrings = {
   'native.lock.setting': 'Zárolás Face ID-val vagy kóddal',
   'native.lock.settingHint':
     'Rákérdez a TREK megnyitásakor és fél perc háttérben töltött idő után, és elrejti az alkalmazást az alkalmazásváltóban.',
+  'native.share.title': 'Melyik utazásba importáljuk?',
+  'native.share.noTrips': 'Még nincs utazás. Előbb hozz létre egyet, aztán oszd meg újra a dokumentumot.',
 };
 
 export default native;

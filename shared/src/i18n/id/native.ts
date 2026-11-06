@@ -83,6 +83,8 @@ const native: TranslationStrings = {
   'native.lock.setting': 'Kunci dengan Face ID atau kode sandi',
   'native.lock.settingHint':
     'Meminta saat TREK dibuka dan setelah setengah menit di latar belakang, serta menyembunyikan aplikasi di pengalih aplikasi.',
+  'native.share.title': 'Impor ke perjalanan mana?',
+  'native.share.noTrips': 'Belum ada perjalanan. Buat satu dulu, lalu bagikan dokumennya lagi.',
 };
 
 export default native;
