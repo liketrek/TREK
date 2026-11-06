@@ -24,14 +24,6 @@ export interface McpContext {
   userId: number;
   scopes: string[] | null;
   isStaticToken: boolean;
-  /**
-   * Fire-once static-token deprecation notice closure (built per session in
-   * src/nest/mcp-transport/mcp-transport.service.ts and threaded through
-   * registerTools → registry.attach).
-   * Optional so direct createTestRegistry ctxs without it keep working —
-   * consumers (list_trips / get_trip_summary) treat absence as "no notice".
-   */
-  getDeprecationNotice?: () => string | null;
 }
 
 /**

@@ -8,8 +8,8 @@
  *
  * The threat is not a plugin crashing. It is a plugin writing instructions into
  * every user's assistant context, invisibly to the admin who granted it, and
- * being obeyed. TREK's own code is the proof that the channel works: the
- * static-token deprecation notice is delivered in a tool RESULT precisely
+ * being obeyed. TREK's own code was the proof that the channel works: the
+ * static-token deprecation notice used to ride in a tool RESULT precisely
  * because that is what an assistant reliably surfaces.
  */
 import type { McpZodSchema } from '../../nest-mcp';

@@ -161,7 +161,8 @@ export class McpTransportService {
       return { user: result.user, scopes: result.scopes, clientId: result.clientId, isStaticToken: false };
     }
 
-    // Long-lived static MCP token (trek_...) — full access + deprecation notice
+    // Long-lived static MCP token (trek_...) — full access; the session's
+    // instructions and the token_auth_notice prompt carry the deprecation notice
     if (token.startsWith('trek_')) {
       const user = await this.tokens.verifyMcpToken(token);
       if (!user) return null;
@@ -283,15 +284,6 @@ export class McpTransportService {
         instructions: BASE_MCP_INSTRUCTIONS + (isStaticToken ? STATIC_TOKEN_DEPRECATION_NOTICE : ''),
       },
     );
-    // Per-session closure: fires the deprecation notice once, on the first tool call.
-    // Tool results are the only mechanism Claude reliably surfaces to the user;
-    // the instructions field is only background context and won't trigger a proactive warning.
-    let _noticeEmitted = false;
-    const getDeprecationNotice = (): string | null => {
-      if (!isStaticToken || _noticeEmitted) return null;
-      _noticeEmitted = true;
-      return STATIC_TOKEN_DEPRECATION_NOTICE;
-    };
 
     // Tool-call audit trail: who called which tool, when, from where. Fired by
     // the registry immediately before each tool handler runs (the nest-mcp
@@ -326,17 +318,7 @@ export class McpTransportService {
     const around = (info: { kind: string; name: string }, call: () => unknown): unknown =>
       traceEntry('mcp', `${info.kind} ${info.name} user=${user.id}`, call);
 
-    await registerTools(
-      this.registry,
-      server,
-      user.id,
-      scopes,
-      isStaticToken,
-      getDeprecationNotice,
-      onInvoke,
-      undefined,
-      around,
-    );
+    await registerTools(this.registry, server, user.id, scopes, isStaticToken, onInvoke, undefined, around);
 
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: () => randomUUID(),
