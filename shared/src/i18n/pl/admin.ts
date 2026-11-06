@@ -1208,5 +1208,8 @@ const admin: TranslationStrings = {
   'admin.servicesCard.title': 'Wyszukiwanie miejsc i wyznaczanie tras',
   'admin.servicesCard.hint':
     'Własne usługi TREK, dostawca odpowiadający na wyszukiwanie i transport publiczny oraz dziennik wyszukiwań.',
+  'admin.mcpApps.title': 'Widoki interaktywne',
+  'admin.mcpApps.subtitle':
+    'Pozwól obsługującym to hostom MCP pokazywać podróże, listy i mapy jako widoki interaktywne obok odpowiedzi',
 };
 export default admin;

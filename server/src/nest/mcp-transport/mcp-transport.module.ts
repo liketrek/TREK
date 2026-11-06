@@ -1,6 +1,7 @@
 import { AddonsModule } from '../addons/addons.module';
 import { AuditModule } from '../audit/audit.module';
 import { AuthModule } from '../auth/auth.module';
+import { McpAppsModule } from '../mcp-apps/mcp-apps.module';
 import { OauthModule } from '../oauth/oauth.module';
 import { TokensModule } from '../tokens/tokens.module';
 import { McpTransportController } from './mcp-transport.controller';
@@ -15,7 +16,7 @@ import { Module } from '@nestjs/common';
  * bearer verification, session create/resume, rate limiting, SSE keep-alive.
  */
 @Module({
-  imports: [AuthModule, TokensModule, OauthModule, AddonsModule, AuditModule],
+  imports: [AuthModule, TokensModule, OauthModule, AddonsModule, AuditModule, McpAppsModule],
   controllers: [McpTransportController],
   providers: [McpTransportService],
 })

@@ -71,6 +71,7 @@ export const DEMO_ADDON_POLICY = {
     tours_hiking_map_enabled: 'true',
     tours_cycle_map_enabled: 'true',
     ski_routing_enabled: 'true',
+    mcp_apps_enabled: 'true',
     bag_tracking_enabled: 'true',
     collab_chat_enabled: 'true',
     collab_notes_enabled: 'true',

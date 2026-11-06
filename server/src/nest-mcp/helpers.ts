@@ -31,6 +31,18 @@ export function okStructured<T extends Record<string, unknown>>(data: T): McpStr
   return { ...ok(data), structuredContent: data };
 }
 
+/**
+ * The same result with a `_meta` of its own: what a host hands an MCP App beside
+ * the result (a link back into TREK, say) without touching the text a host
+ * without views reads, nor the `structuredContent` the output schema checks.
+ */
+export function withResultMeta<T extends McpTextResult>(
+  result: T,
+  meta: Record<string, unknown>,
+): T & { _meta: Record<string, unknown> } {
+  return { ...result, _meta: meta };
+}
+
 /** Error result with a verbatim message (no formatting, no prefix). */
 export function errorResult(text: string): McpTextResult {
   return { content: [{ type: 'text' as const, text }], isError: true };

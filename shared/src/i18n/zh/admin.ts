@@ -1041,5 +1041,7 @@ const admin: TranslationStrings = {
   'admin.contribute.prompt.thanks': '谢谢。地点详情现在已开始分享。',
   'admin.servicesCard.title': '地点搜索与路线',
   'admin.servicesCard.hint': 'TREK 自有服务、负责搜索和公共交通的提供方，以及搜索日志。',
+  'admin.mcpApps.title': '交互式视图',
+  'admin.mcpApps.subtitle': '允许支持的 MCP 主机在回答旁以交互式视图显示行程、列表和地图',
 };
 export default admin;

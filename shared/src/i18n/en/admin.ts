@@ -1128,5 +1128,8 @@ const admin: TranslationStrings = {
   'admin.contribute.prompt.thanks': 'Thank you. Place details are now shared.',
   'admin.servicesCard.title': 'Place search and routing',
   'admin.servicesCard.hint': "TREK's own services, which provider answers search and transit, and the search log.",
+  'admin.mcpApps.title': 'Interactive views',
+  'admin.mcpApps.subtitle':
+    'Let MCP hosts that support it show trips, lists and maps as interactive views next to the answer',
 };
 export default admin;

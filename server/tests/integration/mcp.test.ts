@@ -587,7 +587,8 @@ describe('MCP transport parity pins (Nest-hosted /mcp)', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].user_id).toBe(user.id);
     expect(rows[0].resource).toBe('list_trips');
-    expect(JSON.parse(String(rows[0].details))).toEqual({ clientId });
+    // The host's own name from its initialize rides beside the OAuth client (A8's per-host usage).
+    expect(JSON.parse(String(rows[0].details))).toEqual({ clientId, client: 'test' });
   });
 
   it('MCP-P14 — tools/list and resource reads write no mcp.tool_call rows', async () => {
@@ -704,7 +705,8 @@ describe('MCP transport parity pins (Nest-hosted /mcp)', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].user_id).toBe(user.id);
     expect(rows[0].resource).toBe('plugin_demo_echo');
-    expect(JSON.parse(String(rows[0].details))).toEqual({ clientId });
+    // The host's own name from its initialize rides beside the OAuth client (A8's per-host usage).
+    expect(JSON.parse(String(rows[0].details))).toEqual({ clientId, client: 'test' });
   });
 
   it('MCP-P18 — a token without plugins:use is never shown a plugin tool', async () => {

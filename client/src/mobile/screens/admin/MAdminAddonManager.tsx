@@ -1,9 +1,9 @@
-import { type ComponentType } from 'react'
+import { type ComponentType, Fragment } from 'react'
 import { useTranslation } from '../../../i18n'
 import { useIsDark } from '../../../hooks/useIsDark'
 import {
   Puzzle, ListChecks, Wallet, FileText, CalendarDays, Globe, Briefcase, Image, Terminal, Link2, Compass, BookOpen,
-  Sparkles, Luggage, Plane, Bookmark, Users, Loader2, Mountain, CarFront, Settings2, ChevronRight,
+  Sparkles, Luggage, Plane, Bookmark, Users, Loader2, Mountain, CarFront, Settings2, ChevronRight, AppWindow,
 } from 'lucide-react'
 import DawarichIcon from '../../../components/shared/DawarichIcon'
 import AirTrailIcon from '../../../components/shared/AirTrailIcon'
@@ -295,14 +295,24 @@ function MAiAddons({ addons, onToggle }: { addons: Addon[]; onToggle: (addon: Ad
       {addons.map(addon => {
         const label = getAddonLabel(t, addon)
         return (
-          <MSubRow
-            key={addon.id}
-            icon={AI_ADDON_ICONS[addon.id as AiAddonId]}
-            title={label.name}
-            subtitle={label.description}
-            enabled={addon.enabled}
-            onToggle={() => onToggle(addon)}
-          />
+          <Fragment key={addon.id}>
+            <MSubRow
+              icon={AI_ADDON_ICONS[addon.id as AiAddonId]}
+              title={label.name}
+              subtitle={label.description}
+              enabled={addon.enabled}
+              onToggle={() => onToggle(addon)}
+            />
+            {addon.id === 'mcp' && tile.mcpApps && (
+              <MSubRow
+                icon={AppWindow}
+                title={t('admin.mcpApps.title')}
+                subtitle={t('admin.mcpApps.subtitle')}
+                enabled={tile.mcpApps.enabled}
+                onToggle={() => void tile.mcpApps?.toggle()}
+              />
+            )}
+          </Fragment>
         )
       })}
       {tile.canSetUp && (

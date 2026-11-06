@@ -1170,5 +1170,8 @@ const admin: TranslationStrings = {
   'admin.servicesCard.title': 'Vyhľadávanie miest a trasovanie',
   'admin.servicesCard.hint':
     'Vlastné služby TREK, ktorý poskytovateľ odpovedá na vyhľadávanie a verejnú dopravu, a protokol vyhľadávania.',
+  'admin.mcpApps.title': 'Interaktívne zobrazenia',
+  'admin.mcpApps.subtitle':
+    'Umožniť hostiteľom MCP, ktorí to podporujú, zobrazovať cesty, zoznamy a mapy ako interaktívne zobrazenia vedľa odpovede',
 };
 export default admin;

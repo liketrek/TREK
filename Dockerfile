@@ -30,6 +30,19 @@ COPY client/ ./client/
 ARG APP_VERSION=dev
 RUN npm run build --workspace=client
 
+# ── Stage 2b: MCP views ──────────────────────────────────────────────────────
+# One self-contained HTML document per widget (mcp-apps/scripts/build.mjs), served
+# by the server as ui:// resources. Without them every tool answers as text alone.
+FROM node:24-alpine AS mcp-apps-builder
+WORKDIR /app
+COPY package.json package-lock.json ./
+COPY shared/package.json ./shared/
+COPY mcp-apps/package.json ./mcp-apps/
+RUN npm ci --workspace=mcp-apps
+COPY --from=shared-builder /app/shared/dist ./shared/dist
+COPY mcp-apps/ ./mcp-apps/
+RUN npm run build --workspace=mcp-apps
+
 # ── Stage 3: server ──────────────────────────────────────────────────────────
 # --ignore-scripts: nothing here needs a postinstall, tsc only reads types. The one
 # native module, better-sqlite3, ships its binaries inside the npm tarball since 13.x.
@@ -111,6 +124,7 @@ COPY --chown=node:node server/reset-admin.js ./server/reset-admin.js
 COPY --chown=node:node --from=shared-builder /app/shared/dist ./shared/dist
 COPY --chown=node:node --from=client-builder /app/client/dist ./server/public
 COPY --chown=node:node --from=client-builder /app/client/public/fonts ./server/public/fonts
+COPY --chown=node:node --from=mcp-apps-builder /app/server/mcp-apps ./server/mcp-apps
 
 # journey/ and places/ must be listed here and in server/src/index.ts (#1762) —
 # a dir created lazily on first upload needs write permission on the uploads

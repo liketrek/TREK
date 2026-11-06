@@ -1198,5 +1198,8 @@ const admin: TranslationStrings = {
   'admin.servicesCard.title': 'Поиск мест и маршруты',
   'admin.servicesCard.hint':
     'Собственные сервисы TREK, какой провайдер отвечает за поиск и общественный транспорт, и журнал поиска.',
+  'admin.mcpApps.title': 'Интерактивные представления',
+  'admin.mcpApps.subtitle':
+    'Разрешить поддерживающим это хостам MCP показывать поездки, списки и карты в виде интерактивных представлений рядом с ответом',
 };
 export default admin;

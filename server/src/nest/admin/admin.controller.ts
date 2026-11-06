@@ -344,6 +344,25 @@ export class AdminController {
     return result;
   }
 
+  @Get('mcp-apps')
+  @ResponseContract(adminFeatureToggleResponseSchema)
+  getMcpApps() {
+    return this.addons.getMcpApps();
+  }
+
+  @Put('mcp-apps')
+  @ResponseContract(adminFeatureToggleResponseSchema)
+  async updateMcpApps(@CurrentUser() user: User, @Body() body: AdminFeatureToggleDto, @Req() req: Request) {
+    const result = await this.addons.updateMcpApps(body.enabled);
+    await this.audit.writeAudit({
+      userId: user.id,
+      action: 'admin.mcp_apps',
+      ip: getClientIp(req),
+      details: { enabled: result.enabled },
+    });
+    return result;
+  }
+
   @Get('tours-ski-routing')
   @ResponseContract(adminFeatureToggleResponseSchema)
   getToursSkiRouting() {

@@ -1193,5 +1193,7 @@ const admin: TranslationStrings = {
   'admin.contribute.prompt.thanks': 'شكرًا لك. تُشارك تفاصيل الأماكن الآن.',
   'admin.servicesCard.title': 'البحث عن الأماكن والتوجيه',
   'admin.servicesCard.hint': 'خدمات TREK الخاصة، والمزوّد الذي يجيب عن البحث والنقل العام، وسجل البحث.',
+  'admin.mcpApps.title': 'العروض التفاعلية',
+  'admin.mcpApps.subtitle': 'السماح لمضيفي MCP الداعمين بعرض الرحلات والقوائم والخرائط كعروض تفاعلية بجانب الإجابة',
 };
 export default admin;

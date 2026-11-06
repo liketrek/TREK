@@ -10,6 +10,7 @@ import { AuditService } from '../audit/audit.service';
 import { getClientIp } from '../audit/client-ip';
 import { traceEntry } from '../audit/entry-trace.logger';
 import { AuthService } from '../auth/auth.service';
+import { McpAppsService } from '../mcp-apps/mcp-apps.service';
 import { OauthService } from '../oauth/oauth.service';
 import { TokenService } from '../tokens/token.service';
 import { buildInstructions } from './mcp-instructions';
@@ -127,6 +128,7 @@ export class McpTransportService {
     private readonly oauth: OauthService,
     private readonly addons: AddonsService,
     private readonly audit: AuditService,
+    private readonly mcpApps: McpAppsService,
     private readonly registry: McpRegistryService,
   ) {}
 
@@ -315,7 +317,8 @@ export class McpTransportService {
           userId: user.id,
           action: 'mcp.tool_call',
           resource: info.name,
-          details: { clientId: clientId ?? 'native' },
+          // The host's own name (Claude, ChatGPT, an IDE) from its initialize, beside the OAuth client.
+          details: { clientId: clientId ?? 'native', client: server.server.getClientVersion()?.name ?? null },
           ip,
         });
       })().catch((err: unknown) => {
@@ -328,7 +331,10 @@ export class McpTransportService {
     const around = (info: { kind: string; name: string }, call: () => unknown): unknown =>
       traceEntry('mcp', `${info.kind} ${info.name} user=${user.id}`, call);
 
-    await registerTools(this.registry, server, user.id, scopes, isStaticToken, onInvoke, undefined, around);
+    // The interactive views (MCP Apps) are offered only while the admin's switch is on and the
+    // widgets are built; otherwise every tool goes out without the keys that point a host at a view.
+    const apps = await this.mcpApps.offeredToSessions();
+    await registerTools(this.registry, server, user.id, scopes, isStaticToken, onInvoke, undefined, around, apps);
 
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: () => randomUUID(),

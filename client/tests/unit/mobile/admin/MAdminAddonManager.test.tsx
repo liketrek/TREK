@@ -570,4 +570,24 @@ describe('MAdminAddonManager', () => {
     await user.click(toggle);
     await waitFor(() => expect(puts).toEqual([{ enabled: true }]));
   });
+
+  it('FE-MOB-AADD-031: the interactive views switch hangs off an enabled MCP and saves', async () => {
+    const user = userEvent.setup();
+    const puts: unknown[] = [];
+    server.use(
+      addonsRoute([buildAddon({ id: 'mcp', name: 'MCP', icon: 'Terminal', type: 'integration', enabled: true })]),
+      http.get('/api/admin/mcp-apps', () => HttpResponse.json({ enabled: false })),
+      http.put('/api/admin/mcp-apps', async ({ request }) => {
+        puts.push(await request.json());
+        return HttpResponse.json({ enabled: true });
+      })
+    );
+    render(<MAdminAddonManager />);
+
+    const toggle = await screen.findByRole('switch', { name: 'Interactive views' });
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    await user.click(toggle);
+    await waitFor(() => expect(puts).toEqual([{ enabled: true }]));
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+  });
 });

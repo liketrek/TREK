@@ -61,6 +61,16 @@
         "default": "./dist/book/stickers/index.cjs"
       }
     },
+    "./mcp-apps": {
+      "import": {
+        "types": "./dist/mcp-apps/index.d.mts",
+        "default": "./dist/mcp-apps/index.mjs"
+      },
+      "require": {
+        "types": "./dist/mcp-apps/index.d.cts",
+        "default": "./dist/mcp-apps/index.cjs"
+      }
+    },
     "./sanitize": {
       "import": {
         "types": "./dist/sanitize/sanitize.d.mts",

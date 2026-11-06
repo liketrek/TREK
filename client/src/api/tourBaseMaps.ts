@@ -16,3 +16,5 @@ export const hikingMapAdminApi = tourBaseMapAdminApi('/admin/tours-hiking-map');
 export const cycleMapAdminApi = tourBaseMapAdminApi('/admin/tours-cycle-map');
 /** SKI-02: the piste router, which plans ski tours on the Places host's piste data. */
 export const skiRoutingAdminApi = tourBaseMapAdminApi('/admin/tours-ski-routing');
+/** The interactive views (MCP Apps) MCP hosts may draw next to a tool result. */
+export const mcpAppsAdminApi = tourBaseMapAdminApi('/admin/mcp-apps');

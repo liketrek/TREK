@@ -1165,5 +1165,8 @@ const admin: TranslationStrings = {
   'admin.servicesCard.title': 'Plaatsen zoeken en routeplanning',
   'admin.servicesCard.hint':
     'De eigen diensten van TREK, welke aanbieder zoeken en openbaar vervoer beantwoordt, en het zoeklogboek.',
+  'admin.mcpApps.title': 'Interactieve weergaven',
+  'admin.mcpApps.subtitle':
+    'Laat MCP-hosts die het ondersteunen reizen, lijsten en kaarten als interactieve weergaven naast het antwoord tonen',
 };
 export default admin;

@@ -1,4 +1,5 @@
 import { ADDON_IDS } from '../../addons';
+import { getAppUrl } from '../../app-config';
 import { canRead, canReadTrips, canDeleteTrips } from '../../mcp/scopes';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import {
@@ -16,6 +17,8 @@ import {
   errorResult,
   ok,
   okStructured,
+  uiTool,
+  withResultMeta,
 } from '../../nest-mcp';
 import { AddonsService } from '../addons/addons.service';
 import { CalendarService } from '../calendar/calendar.service';
@@ -30,7 +33,7 @@ import { TripReadModelService } from '../trip-read-model/trip-read-model.service
 import { TripWritesService, type TripListWriter } from './trip-writes.service';
 import { tripUpdatePermissions } from './trips.helpers';
 import { TripsService, NotFoundError, ValidationError } from './trips.service';
-import { idSchema, MAX_TRIP_DAYS, listTripsOutputSchema } from '@trek/shared';
+import { idSchema, MAX_TRIP_DAYS, listTripsOutputSchema, MCP_APP_URL_META_KEY, mcpAppUri } from '@trek/shared';
 
 import { z } from 'zod';
 
@@ -390,10 +393,11 @@ export class TripsMcp {
     },
     outputSchema: listTripsOutputSchema,
     annotations: TOOL_ANNOTATIONS_READONLY,
+    _meta: uiTool(mcpAppUri('trip-list'), { invoking: 'Reading your trips…', invoked: 'Trips loaded' }),
   })
   async listTrips({ include_archived }: { include_archived?: boolean }, ctx: McpContext) {
     const trips = await this.trips.list(ctx.userId, include_archived ? null : 0);
-    return okStructured({ trips });
+    return withResultMeta(okStructured({ trips }), { [MCP_APP_URL_META_KEY]: getAppUrl() });
   }
 
   // --- TRIP SUMMARY ---

@@ -1152,5 +1152,8 @@ const admin: TranslationStrings = {
   'admin.servicesCard.title': 'Kohtade otsing ja marsruutimine',
   'admin.servicesCard.hint':
     'TREKi enda teenused, milline teenusepakkuja vastab otsingule ja ühistranspordile, ning otsingulogi.',
+  'admin.mcpApps.title': 'Interaktiivsed vaated',
+  'admin.mcpApps.subtitle':
+    'Luba toetavatel MCP hostidel näidata reise, loendeid ja kaarte vastuse kõrval interaktiivsete vaadetena',
 };
 export default admin;

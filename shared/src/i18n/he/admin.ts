@@ -1107,6 +1107,8 @@ const admin: TranslationStrings = {
   'admin.contribute.prompt.thanks': 'תודה. פרטי המקומות משותפים עכשיו.',
   'admin.servicesCard.title': 'חיפוש מקומות וניווט',
   'admin.servicesCard.hint': 'השירותים של TREK עצמו, איזה ספק עונה לחיפוש ולתחבורה ציבורית, ויומן החיפוש.',
+  'admin.mcpApps.title': 'תצוגות אינטראקטיביות',
+  'admin.mcpApps.subtitle': 'לאפשר למארחי MCP שתומכים בכך להציג טיולים, רשימות ומפות כתצוגות אינטראקטיביות לצד התשובה',
 };
 
 export default admin;

@@ -1166,5 +1166,8 @@ const admin: TranslationStrings = {
   'admin.servicesCard.title': 'Ortssuche und Routing',
   'admin.servicesCard.hint':
     'TREKs eigene Dienste, welcher Anbieter Suche und ÖPNV beantwortet, und das Suchprotokoll.',
+  'admin.mcpApps.title': 'Interaktive Ansichten',
+  'admin.mcpApps.subtitle':
+    'MCP-Hosts, die es unterstützen, Reisen, Listen und Karten als interaktive Ansichten neben der Antwort zeigen lassen',
 };
 export default admin;

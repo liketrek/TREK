@@ -114,6 +114,7 @@ Logging out writes no row, and neither do the sessions a password change, a rese
 | `admin.tours_hiking_map` | The Hiking map (OpenHikingMap) switch under Tours toggled |
 | `admin.tours_cycle_map` | The Cycling map (CyclOSM) switch under Tours toggled |
 | `admin.tours_ski_routing` | The Piste router switch under Tours toggled |
+| `admin.mcp_apps` | The interactive views switch under MCP toggled |
 | `admin.paddle_region_add` | A paddle water region added |
 | `admin.paddle_region_remove` | A paddle water region removed |
 | `admin.paddle_region_refresh` | A paddle water region read again |

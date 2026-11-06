@@ -82,6 +82,8 @@ export const REFERENCE_ROOTS = [
   join(HERE, '..', '..', 'server', 'src'),
   join(HERE, '..', '..', 'plugin-sdk', 'src'),
   join(HERE, '..', '..', 'shared', 'src', 'book'),
+  // The MCP views (mcp-apps workspace): their own builds, reading only the mcpApps.* strings.
+  join(HERE, '..', '..', 'mcp-apps', 'src'),
 ];
 
 /** How many en keys a template may reach and still pass without an entry below. */
