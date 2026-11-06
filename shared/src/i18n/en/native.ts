@@ -24,7 +24,7 @@ const native: TranslationStrings = {
   'native.privacy': 'Privacy policy',
   'native.settings.server': 'Server',
   'native.settings.serverHint': 'This app is connected to {server}.',
-  'native.welcome.headline': 'Your Trip.\nYour Plan.',
+  'native.welcome.headline': 'Your Trips.\nYour Plan.',
   'native.welcome.sub': 'Plan together in real time: tours, budgets, journals, photo book — with AI.',
   'native.welcome.connect': 'Connect your TREK',
   'native.welcome.connectSub': 'Open the address you already use',
