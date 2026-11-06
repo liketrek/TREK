@@ -1,8 +1,9 @@
 import { useRef, useState, type CSSProperties } from 'react'
-import { Briefcase, Camera, Plus, Image, Images, X, MapPin, Locate, Trash2, CheckCircle2, MinusCircle, ChevronUp, ChevronDown, EyeOff, Play } from 'lucide-react'
+import { Briefcase, Camera, Plus, Image, Images, X, MapPin, Locate, Trash2, CheckCircle2, MinusCircle, ChevronUp, ChevronDown, EyeOff, Play, NotebookPen } from 'lucide-react'
 import MSheet from '../../components/MSheet'
 import MIconBtn from '../../components/MIconBtn'
 import MToggle from '../../components/MToggle'
+import { SHEET_PRIMARY, SHEET_SECONDARY } from '../trip/sheets/MTripSheetUi'
 import { useTranslation } from '../../../i18n'
 import CustomTimePicker from '../../../components/shared/CustomTimePicker'
 import { CustomDatePicker } from '../../../components/shared/CustomDateTimePicker'
@@ -124,11 +125,15 @@ export default function MJourneyEntrySheet({
       open
       onClose={handleClose}
       variant="card"
-      material="opaque"
+      material="glass"
       ariaLabel={entry.id === 0 ? t('journey.detail.newEntry') : t('journey.detail.editEntry')}
     >
-      <div className="flex flex-none items-center border-b border-[color:var(--m-rowbr)] px-[18px] pb-[10px] pt-4">
-        <span className="flex-1 text-[1.0625rem] font-bold">
+      {/* TileHeader's shape, with the move buttons between the title and the close. */}
+      <div className="flex flex-none items-center gap-3 px-[18px] pb-1 pt-4">
+        <span className="flex h-10 w-10 flex-none items-center justify-center rounded-[13px] bg-[color:var(--m-ic)] text-m-ink">
+          <NotebookPen size={19} strokeWidth={1.8} />
+        </span>
+        <span className="min-w-0 flex-1 truncate text-[1.0625rem] font-bold leading-tight">
           {entry.id === 0 ? t('journey.detail.newEntry') : t('journey.detail.editEntry')}
         </span>
         {(onMoveEarlier || onMoveLater) && (
@@ -146,7 +151,7 @@ export default function MJourneyEntrySheet({
         </MIconBtn>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-[18px] py-3">
+      <div className="m-scroll-fade mt-2 min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px] pt-[14px]">
         {/* Quick capture had no title field at all: it asked for a note and nothing
             else, so every entry caught on the move arrived nameless and the day's
             list read as a column of identical placeholders (discussion #2299). The
@@ -713,17 +718,17 @@ export default function MJourneyEntrySheet({
           <button
             type="button"
             onClick={onDelete}
-            className="flex items-center gap-[5px] text-[0.75rem] font-bold text-[color:var(--m-st-danger)]"
+            aria-label={t('common.delete')}
+            className="flex h-[42px] w-[42px] flex-none items-center justify-center rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-[color:var(--m-st-danger)]"
           >
-            <Trash2 size={13} strokeWidth={2} />
-            {t('common.delete')}
+            <Trash2 size={15} strokeWidth={2} />
           </button>
         )}
         {!readOnly && captureOnly && (
           <button
             type="button"
             onClick={() => setCaptureOnly(false)}
-            className="whitespace-nowrap rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-4 py-[9px] text-[0.78125rem] font-semibold"
+            className={`${SHEET_SECONDARY} whitespace-nowrap`}
           >
             {t('journey.editor.addDetails')}
           </button>
@@ -731,7 +736,7 @@ export default function MJourneyEntrySheet({
         <button
           type="button"
           onClick={handleClose}
-          className="ms-auto rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-4 py-[9px] text-[0.78125rem] font-semibold"
+          className={`${SHEET_SECONDARY} ms-auto`}
         >
           {t('common.cancel')}
         </button>
@@ -740,7 +745,7 @@ export default function MJourneyEntrySheet({
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="rounded-full bg-m-act px-[18px] py-[9px] text-[0.78125rem] font-semibold text-m-actfg disabled:opacity-50"
+            className={SHEET_PRIMARY}
           >
             {saving ? t('common.saving') : t('common.save')}
           </button>

@@ -141,7 +141,7 @@ export default function MCollShareSheet({
                     onClick={handleInvite}
                     disabled={selectedUserId == null || inviting}
                     aria-label={t('collections.share.sendInvite')}
-                    className="flex w-11 flex-none items-center justify-center rounded-[12px] bg-m-act text-m-actfg disabled:opacity-40"
+                    className="flex h-[42px] w-[42px] flex-none items-center justify-center self-center rounded-full bg-m-act text-m-actfg disabled:opacity-40"
                   >
                     {inviting ? <Loader2 size={16} className="animate-spin" /> : <UserPlus size={16} strokeWidth={2.2} />}
                   </button>
