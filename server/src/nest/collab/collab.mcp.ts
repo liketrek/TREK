@@ -11,12 +11,13 @@ import {
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   errorResult,
   ok,
+  okStructured,
 } from '../../nest-mcp';
 import { collabFeatureGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { CollabService } from './collab.service';
-import { idSchema } from '@trek/shared';
+import { idSchema, listCollabPollsOutputSchema } from '@trek/shared';
 
 import { z } from 'zod';
 
@@ -244,6 +245,7 @@ export class CollabMcp {
     inputSchema: {
       tripId: idSchema,
     },
+    outputSchema: listCollabPollsOutputSchema,
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: collabPollsOn,
     access: { group: 'collab', mode: 'read' },
@@ -251,7 +253,7 @@ export class CollabMcp {
   async listCollabPolls({ tripId }: { tripId: number }, ctx: McpContext) {
     if (!(await this.collab.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     const polls = await this.collab.listPolls(tripId);
-    return ok({ polls });
+    return okStructured({ polls });
   }
 
   @Tool({

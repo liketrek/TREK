@@ -37,6 +37,7 @@ export * from './packing/packing.schema';
 export * from './packing/packed-count';
 export * from './packing/packing-placeholder';
 export * from './todo/todo.schema';
+export * from './mcp-apps';
 export * from './budget/budget.schema';
 export * from './budget/cost-category';
 export * from './budget/receipt-scan.schema';

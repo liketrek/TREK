@@ -28,6 +28,7 @@
     "lint:query-api": "node scripts/query-api-ratchet.mjs",
     "lint:mcp-zod": "node scripts/mcp-inline-zod.mjs",
     "lint:mcp-surface": "node scripts/mcp-surface.mjs",
+    "lint:mcp-output-schema": "node scripts/mcp-output-schema.mjs",
     "lint:service-http": "node scripts/service-http-ratchet.mjs",
     "lint:response-contracts": "node scripts/response-contract-ratchet.mjs",
     "contracts:dto-open": "node scripts/dto-open-shapes.mjs",

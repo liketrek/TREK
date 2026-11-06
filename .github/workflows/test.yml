@@ -24,8 +24,9 @@ permissions:
 #                            the shared ratchet code, the source ratchets
 #                            (size, boundaries, dialect, tx, test SQL, test
 #                            mocks, hand-built services, query API, MCP zod,
-#                            error envelopes, response contracts), the MCP
-#                            tool-list budget, open request schemas, knip
+#                            MCP output schemas, error envelopes, response
+#                            contracts), the MCP tool-list budget, open
+#                            request schemas, knip
 #   Server: Tests n/7        one slice of the server suite, with coverage
 #   Server: Coverage         merges the slices, checks the per-domain
 #                            thresholds, uploads lcov
@@ -409,6 +410,13 @@ jobs:
         # scripts/mcp-surface-baseline.json: an existing tool may not grow, a
         # new one may not pass 4 KB. Needs shared built, like the suite.
         run: cd server && npm run lint:mcp-surface
+
+      - name: MCP read tools without an output schema may only shrink
+        # Counts the read-only @Tool decorators per *.mcp.ts that declare no
+        # outputSchema against scripts/mcp-output-schema-baseline.json. A read
+        # tool declares its result in @trek/shared (mcp-apps/) and answers with
+        # okStructured.
+        run: cd server && npm run lint:mcp-output-schema
 
       - name: Error envelopes may only shrink
         # Counts status: 4xx/5xx literals and new HttpException in services, and

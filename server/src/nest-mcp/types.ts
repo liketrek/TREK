@@ -127,7 +127,8 @@ export interface McpZodSchema {
  */
 export interface ToolOptions extends McpEntryOptionsBase {
   inputSchema?: ZodRawShape | McpZodSchema;
-  outputSchema?: ZodRawShape;
+  /** Pass a whole schema (an `mcp-apps` output schema) so the root stays open too; a shape is closed by the SDK. */
+  outputSchema?: ZodRawShape | McpZodSchema;
   annotations?: Record<string, unknown>;
   _meta?: Record<string, unknown>;
   /** What of the tool moves out of tools/list into its help topic; see `ToolDetail`. */

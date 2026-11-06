@@ -3,6 +3,7 @@ import {
   TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
   TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   errorResult, ok,
+  okStructured,
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import {
@@ -18,6 +19,8 @@ import {
   type RoadtripGpxImport,
   type RoadtripStopType,
   idSchema,
+  listPlacesOutputSchema,
+  searchPlaceOutputSchema,
 } from '@trek/shared';
 import { z } from 'zod';
 import { AssignmentsService } from '../assignments/assignments.service';
@@ -343,6 +346,7 @@ export class PlacesMcp {
       tag: z.string().optional(),
       assignment: z.enum(['all', 'unassigned', 'assigned']).optional().default('all').describe('Filter by assignment status: "all" (default), "unassigned" (not on any day), or "assigned" (scheduled on a day)'),
     },
+    outputSchema: listPlacesOutputSchema,
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'places', mode: 'read' },
   })
@@ -355,7 +359,7 @@ export class PlacesMcp {
   ) {
     if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
     const places = await this.places.list(String(tripId), { search, category, tag, assignment });
-    return ok({ places });
+    return okStructured({ places });
   }
 
   // The list_categories tool moved to the DI-discovered
@@ -373,6 +377,7 @@ export class PlacesMcp {
       lang: z.string().max(35).optional().describe('BCP 47 language for the result names, e.g. "de" or "ja". Defaults to English'),
       provider: mapsSearchRequestSchema.shape.provider.describe('"google" sends this one search to Google Places alone instead of the TREK index and OpenStreetMap, the same as the "search Google instead" link under the results in the app. Ignored unless Google holds the keyed slot: an instance without a Google key, or one whose admin picked Amap or OpenStreetMap as the places provider, answers from the TREK index and OpenStreetMap as usual'),
     },
+    outputSchema: searchPlaceOutputSchema,
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'places', mode: 'read' },
   })
@@ -384,7 +389,7 @@ export class PlacesMcp {
   ) {
     try {
       const result = await this.maps.searchPlaces(ctx.userId, query, lang, locationBias, { googleOnly: provider === 'google' });
-      return ok(result);
+      return okStructured(result);
     } catch {
       return errorResult('Place search failed.');
     }

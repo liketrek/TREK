@@ -1,7 +1,7 @@
-import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, ok, type McpContext } from '../../nest-mcp';
+import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, ok, type McpContext, okStructured } from '../../nest-mcp';
 import { WeatherService } from './weather.service';
 import { WindService } from './wind.service';
-import { WIND_FORECAST_DAYS, windQuerySchema, type WindQuery } from '@trek/shared';
+import { WIND_FORECAST_DAYS, windQuerySchema, type WindQuery, weatherOutputSchema } from '@trek/shared';
 
 import { z } from 'zod';
 
@@ -35,6 +35,7 @@ export class WeatherMcp {
       date: z.string().describe('ISO date YYYY-MM-DD'),
       lang: z.string().optional().default('en'),
     },
+    outputSchema: weatherOutputSchema,
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'weather', mode: 'read' },
   })
@@ -44,7 +45,7 @@ export class WeatherMcp {
   ) {
     try {
       const weather = await this.weather.get(String(lat), String(lng), date, lang ?? 'en');
-      return ok({ weather });
+      return okStructured({ weather });
     } catch (err) {
       return unavailable(err);
     }
