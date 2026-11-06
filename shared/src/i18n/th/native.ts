@@ -43,7 +43,6 @@ const native: TranslationStrings = {
   'native.plans.sub': 'TREK ที่โฮสต์บนที่อยู่ของคุณเอง เปลี่ยนหรือยกเลิกได้ทุกเมื่อ',
   'native.plans.monthly': 'รายเดือน',
   'native.plans.yearly': 'รายปี',
-  'native.plans.save': 'ฟรี 2 เดือน',
   'native.plans.perMonth': 'ต่อเดือน',
   'native.plans.perYear': 'ต่อปี',
   'native.plans.aiDocs': 'เอกสาร AI {n} ฉบับต่อเดือน',

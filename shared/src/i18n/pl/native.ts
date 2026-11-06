@@ -44,7 +44,6 @@ const native: TranslationStrings = {
   'native.plans.sub': 'TREK hostowany pod Twoim własnym adresem. Zmieniaj lub anuluj w każdej chwili.',
   'native.plans.monthly': 'Miesięcznie',
   'native.plans.yearly': 'Rocznie',
-  'native.plans.save': '2 miesiące gratis',
   'native.plans.perMonth': 'miesięcznie',
   'native.plans.perYear': 'rocznie',
   'native.plans.aiDocs': '{n} dokumentów AI miesięcznie',

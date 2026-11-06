@@ -811,7 +811,7 @@ async function start(): Promise<void> {
   iap.isAvailable().then((ok) => {
     iapAvailable = ok;
   });
-  let url: string | null = null;
+  let url: string | null;
   try {
     ({ url } = await TrekShell.getServer());
   } catch {

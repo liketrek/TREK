@@ -44,7 +44,6 @@ const native: TranslationStrings = {
   'native.plans.sub': 'TREK majutatud sinu enda aadressil. Muuda või tühista igal ajal.',
   'native.plans.monthly': 'Kuus',
   'native.plans.yearly': 'Aastas',
-  'native.plans.save': '2 kuud tasuta',
   'native.plans.perMonth': 'kuus',
   'native.plans.perYear': 'aastas',
   'native.plans.aiDocs': '{n} AI-dokumenti kuus',

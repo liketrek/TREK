@@ -44,7 +44,6 @@ const native: TranslationStrings = {
   'native.plans.sub': 'Öz ünvanınızda hostlanan TREK. İstənilən vaxt dəyişin və ya ləğv edin.',
   'native.plans.monthly': 'Aylıq',
   'native.plans.yearly': 'İllik',
-  'native.plans.save': '2 ay pulsuz',
   'native.plans.perMonth': 'ayda',
   'native.plans.perYear': 'ildə',
   'native.plans.aiDocs': 'ayda {n} süni intellekt sənədi',

@@ -44,7 +44,6 @@ const native: TranslationStrings = {
   'native.plans.sub': 'TREK allotjat a la teva pròpia adreça. Canvia o cancel·la quan vulguis.',
   'native.plans.monthly': 'Mensual',
   'native.plans.yearly': 'Anual',
-  'native.plans.save': '2 mesos gratis',
   'native.plans.perMonth': 'al mes',
   'native.plans.perYear': 'a l’any',
   'native.plans.aiDocs': '{n} documents amb IA al mes',

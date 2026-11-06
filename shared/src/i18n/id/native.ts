@@ -44,7 +44,6 @@ const native: TranslationStrings = {
   'native.plans.sub': 'TREK dihosting di alamat Anda sendiri. Ubah atau batalkan kapan saja.',
   'native.plans.monthly': 'Bulanan',
   'native.plans.yearly': 'Tahunan',
-  'native.plans.save': '2 bulan gratis',
   'native.plans.perMonth': 'per bulan',
   'native.plans.perYear': 'per tahun',
   'native.plans.aiDocs': '{n} dokumen AI per bulan',

@@ -47,7 +47,6 @@ const native: TranslationStrings = {
   'native.plans.sub': 'TREK στη δική σας διεύθυνση. Αλλάξτε ή ακυρώστε όποτε θέλετε.',
   'native.plans.monthly': 'Μηνιαία',
   'native.plans.yearly': 'Ετήσια',
-  'native.plans.save': '2 μήνες δωρεάν',
   'native.plans.perMonth': 'τον μήνα',
   'native.plans.perYear': 'τον χρόνο',
   'native.plans.aiDocs': '{n} έγγραφα AI τον μήνα',

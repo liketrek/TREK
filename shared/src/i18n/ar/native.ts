@@ -43,7 +43,6 @@ const native: TranslationStrings = {
   'native.plans.sub': 'TREK مُستضاف على عنوانك الخاص. غيّر أو ألغِ في أي وقت.',
   'native.plans.monthly': 'شهريًا',
   'native.plans.yearly': 'سنويًا',
-  'native.plans.save': 'شهران مجانًا',
   'native.plans.perMonth': 'شهريًا',
   'native.plans.perYear': 'سنويًا',
   'native.plans.aiDocs': '{n} مستند بالذكاء الاصطناعي شهريًا',

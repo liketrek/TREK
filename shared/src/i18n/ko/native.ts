@@ -43,7 +43,6 @@ const native: TranslationStrings = {
   'native.plans.sub': '나만의 주소로 호스팅되는 TREK. 언제든 변경하거나 해지하세요.',
   'native.plans.monthly': '월간',
   'native.plans.yearly': '연간',
-  'native.plans.save': '2개월 무료',
   'native.plans.perMonth': '월',
   'native.plans.perYear': '년',
   'native.plans.aiDocs': '월 {n}개의 AI 문서',

@@ -45,7 +45,6 @@ const native: TranslationStrings = {
   'native.plans.sub': 'TREK a saját címeden üzemeltetve. Bármikor módosíthatod vagy lemondhatod.',
   'native.plans.monthly': 'Havi',
   'native.plans.yearly': 'Éves',
-  'native.plans.save': '2 hónap ingyen',
   'native.plans.perMonth': 'havonta',
   'native.plans.perYear': 'évente',
   'native.plans.aiDocs': 'havi {n} MI-dokumentum',

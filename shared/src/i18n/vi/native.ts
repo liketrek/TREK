@@ -45,7 +45,6 @@ const native: TranslationStrings = {
   'native.plans.sub': 'TREK lưu trữ trên địa chỉ riêng của bạn. Thay đổi hoặc hủy bất cứ lúc nào.',
   'native.plans.monthly': 'Hằng tháng',
   'native.plans.yearly': 'Hằng năm',
-  'native.plans.save': 'Miễn phí 2 tháng',
   'native.plans.perMonth': 'mỗi tháng',
   'native.plans.perYear': 'mỗi năm',
   'native.plans.aiDocs': '{n} tài liệu AI mỗi tháng',

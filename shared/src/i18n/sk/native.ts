@@ -44,7 +44,6 @@ const native: TranslationStrings = {
   'native.plans.sub': 'TREK hostovaný na vašej vlastnej adrese. Kedykoľvek zmeňte alebo zrušte.',
   'native.plans.monthly': 'Mesačne',
   'native.plans.yearly': 'Ročne',
-  'native.plans.save': '2 mesiace zadarmo',
   'native.plans.perMonth': 'mesačne',
   'native.plans.perYear': 'ročne',
   'native.plans.aiDocs': '{n} dokumentov s AI mesačne',

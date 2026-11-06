@@ -43,7 +43,6 @@ const native: TranslationStrings = {
   'native.plans.sub': 'TREK מתארח על כתובת משלכם. שנו או בטלו בכל עת.',
   'native.plans.monthly': 'חודשי',
   'native.plans.yearly': 'שנתי',
-  'native.plans.save': 'חודשיים חינם',
   'native.plans.perMonth': 'לחודש',
   'native.plans.perYear': 'לשנה',
   'native.plans.aiDocs': '{n} מסמכי AI בחודש',

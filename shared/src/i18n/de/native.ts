@@ -45,7 +45,6 @@ const native: TranslationStrings = {
   'native.plans.sub': 'Gehostetes TREK auf deiner eigenen Adresse. Jederzeit änder- oder kündbar.',
   'native.plans.monthly': 'Monatlich',
   'native.plans.yearly': 'Jährlich',
-  'native.plans.save': '2 Monate gratis',
   'native.plans.perMonth': 'pro Monat',
   'native.plans.perYear': 'pro Jahr',
   'native.plans.aiDocs': '{n} KI-Dokumente im Monat',

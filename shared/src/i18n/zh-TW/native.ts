@@ -43,7 +43,6 @@ const native: TranslationStrings = {
   'native.plans.sub': '使用你自己的網址託管的 TREK。隨時變更或取消。',
   'native.plans.monthly': '每月',
   'native.plans.yearly': '每年',
-  'native.plans.save': '免費 2 個月',
   'native.plans.perMonth': '每月',
   'native.plans.perYear': '每年',
   'native.plans.aiDocs': '每月 {n} 份 AI 文件',
