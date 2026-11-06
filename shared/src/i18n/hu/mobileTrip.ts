@@ -84,5 +84,8 @@ const mobileTrip: TranslationStrings = {
     '{count} szakaszon több találat volt, mint amennyi egy válaszba belefér. Válassz kevesebb fajtát, hogy lásd a többit.',
   'mobileTrip.rtNoDay': 'Nincs kiválasztott nap',
   'mobileTrip.rtNoDayHint': 'A térkép a teljes utat mutatja. Koppints fent egy napra a napi útvonalhoz.',
+  'mobileTrip.maps': 'Térképek',
+  'mobileTrip.openRouteIn': 'Nap megnyitása ebben',
+  'mobileTrip.firstStopOnly': 'Csak az első megálló',
 };
 export default mobileTrip;

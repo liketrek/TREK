@@ -84,5 +84,8 @@ const mobileTrip: TranslationStrings = {
     'Sur {count} tronçon, il y en avait plus que ce qu’une réponse peut contenir. Choisissez moins de types pour voir le reste.',
   'mobileTrip.rtNoDay': 'Aucun jour sélectionné',
   'mobileTrip.rtNoDayHint': 'La carte affiche tout le voyage. Touchez un jour ci-dessus pour voir son trajet.',
+  'mobileTrip.maps': 'Cartes',
+  'mobileTrip.openRouteIn': 'Ouvrir la journée dans',
+  'mobileTrip.firstStopOnly': 'Premier arrêt seulement',
 };
 export default mobileTrip;

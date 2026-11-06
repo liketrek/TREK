@@ -83,5 +83,8 @@ const mobileTrip: TranslationStrings = {
     '{count} kesimde tek bir yanıta sığandan fazlası vardı. Geri kalanı görmek için daha az tür seçin.',
   'mobileTrip.rtNoDay': 'Gün seçilmedi',
   'mobileTrip.rtNoDayHint': 'Harita tüm yolculuğu gösteriyor. Günün sürüşünü görmek için yukarıdan bir güne dokunun.',
+  'mobileTrip.maps': 'Haritalar',
+  'mobileTrip.openRouteIn': 'Günü şurada aç',
+  'mobileTrip.firstStopOnly': 'Yalnızca ilk durak',
 };
 export default mobileTrip;

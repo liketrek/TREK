@@ -83,5 +83,8 @@ const mobileTrip: TranslationStrings = {
     '{count} stuk had meer dan in één antwoord past. Kies minder soorten om de rest te zien.',
   'mobileTrip.rtNoDay': 'Geen dag gekozen',
   'mobileTrip.rtNoDayHint': 'De kaart toont de hele reis. Tik hierboven op een dag om de rit te zien.',
+  'mobileTrip.maps': 'Kaarten',
+  'mobileTrip.openRouteIn': 'Dag openen in',
+  'mobileTrip.firstStopOnly': 'Alleen de eerste stop',
 };
 export default mobileTrip;

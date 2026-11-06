@@ -9,6 +9,7 @@ import { dayWeatherAnchor } from '../../../../utils/dayWeather'
 import { metadataWithLegPositions, planMergedOrder, withTransportPositions } from '../../../../utils/mergedOrder'
 import { getDisplayTimeForDay, getMergedItems, getTransportForDay, hasCarrierEndpointOnDay, isCarrierTransport, stopDayIds, yieldTimedBookings } from '../../../../utils/dayMerge'
 import { dayCoMapsUrl, dayExportStops, dayGoogleMapsUrl, optimizeDayOrder, type DayCarrier } from '../../../../components/Planner/dayRoute'
+import { dayRouteTargets } from '../../../../components/Planner/dayRouteApps'
 import type { PlannedTransitLeg, TransitLeg } from '../../../../components/Planner/transitLeg'
 import { useTransitLegPlanner } from '../../../../components/Planner/useTransitLegPlanner'
 import { dayItemOverrun } from '../../../../components/Tours/tourDayTime'
@@ -316,6 +317,17 @@ export function useMPlanTimeline(planner: TripPlanner, forDayId?: number | null)
     [day, days, dayAssignments, tripAccommodations, settings, dayCarrier],
   )
 
+  // The apps behind the plan's one Maps button, with the same bookended stops.
+  const routeTargets = useMemo(
+    () => (day
+      ? dayRouteTargets(
+        dayExportStops(day, days, dayAssignments, tripAccommodations, settings.optimize_from_accommodation !== false, dayCarrier),
+        day.default_transport_mode ?? routeProfile,
+      )
+      : []),
+    [day, days, dayAssignments, tripAccommodations, settings, dayCarrier, routeProfile],
+  )
+
   const exportGoogleMaps = useCallback(() => {
     if (!day) return
     // Bookend the exported route with the day's accommodation the same way the
@@ -401,7 +413,7 @@ export function useMPlanTimeline(planner: TripPlanner, forDayId?: number | null)
     moveRow, removeAssignment, editAssignment, editTransport, openTransitJourney,
     moveRowTo,
     addPlace, addBooking, addTransport,
-    optimize, canExportRoute, exportGoogleMaps, exportCoMaps, renameDay, fullPlaceOf,
+    optimize, canExportRoute, routeTargets, exportGoogleMaps, exportCoMaps, renameDay, fullPlaceOf,
     routeModeOptions, setLegMode, transitLegFor, planTransitLeg, journeyLate, tourOverrun,
   }
 }

@@ -76,5 +76,8 @@ const mobileTrip: TranslationStrings = {
     '{count} đoạn có nhiều kết quả hơn mức một phản hồi chứa được. Chọn ít loại hơn để xem phần còn lại.',
   'mobileTrip.rtNoDay': 'Chưa chọn ngày',
   'mobileTrip.rtNoDayHint': 'Bản đồ đang hiển thị cả chuyến đi. Chạm vào một ngày ở trên để xem chặng lái.',
+  'mobileTrip.maps': 'Bản đồ',
+  'mobileTrip.openRouteIn': 'Mở ngày này trong',
+  'mobileTrip.firstStopOnly': 'Chỉ điểm dừng đầu tiên',
 };
 export default mobileTrip;

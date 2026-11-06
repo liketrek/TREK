@@ -88,6 +88,9 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtTruncated.two': 'בשני קטעים היו יותר תוצאות ממה שנכנס בתשובה אחת. בחרו פחות סוגים כדי לראות את השאר.',
   'mobileTrip.rtNoDay': 'לא נבחר יום',
   'mobileTrip.rtNoDayHint': 'המפה מציגה את כל הטיול. הקישו על יום למעלה כדי לראות את הנסיעה שלו.',
+  'mobileTrip.maps': 'מפות',
+  'mobileTrip.openRouteIn': 'פתיחת היום ב־',
+  'mobileTrip.firstStopOnly': 'רק העצירה הראשונה',
 };
 
 export default mobileTrip;

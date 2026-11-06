@@ -75,5 +75,8 @@ const mobileTrip: TranslationStrings = {
     '{count}개 구간은 결과가 너무 많아 한 번에 모두 표시하지 못했습니다. 종류를 줄이면 나머지도 볼 수 있습니다.',
   'mobileTrip.rtNoDay': '선택된 날이 없습니다',
   'mobileTrip.rtNoDayHint': '지도에 전체 여행이 표시됩니다. 위에서 날짜를 눌러 해당 일정을 확인하세요.',
+  'mobileTrip.maps': '지도',
+  'mobileTrip.openRouteIn': '이 날을 열 앱',
+  'mobileTrip.firstStopOnly': '첫 번째 장소만',
 };
 export default mobileTrip;

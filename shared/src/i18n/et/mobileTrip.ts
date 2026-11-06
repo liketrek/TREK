@@ -84,5 +84,8 @@ const mobileTrip: TranslationStrings = {
     'Ühel lõigul oli rohkem tulemusi, kui vastusesse mahub. Ülejäänute nägemiseks vali vähem liike.',
   'mobileTrip.rtNoDay': 'Päev valimata',
   'mobileTrip.rtNoDayHint': 'Kaardil on kogu reis. Selle päeva sõidu nägemiseks puuduta ülal päeva.',
+  'mobileTrip.maps': 'Kaardid',
+  'mobileTrip.openRouteIn': 'Ava päev rakenduses',
+  'mobileTrip.firstStopOnly': 'Ainult esimene peatus',
 };
 export default mobileTrip;

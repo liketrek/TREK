@@ -74,5 +74,8 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtTruncated.other': '{count} 区間で一度に返せる件数を超えました。種類を減らすと残りを確認できます。',
   'mobileTrip.rtNoDay': '日が選択されていません',
   'mobileTrip.rtNoDayHint': '地図には旅程全体が表示されています。上の日をタップするとその日の行程が見られます。',
+  'mobileTrip.maps': 'マップ',
+  'mobileTrip.openRouteIn': 'この日を開くアプリ',
+  'mobileTrip.firstStopOnly': '最初の立ち寄り先のみ',
 };
 export default mobileTrip;

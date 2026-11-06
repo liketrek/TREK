@@ -148,6 +148,13 @@ describe('useMPlanTimeline', () => {
     expect(weatherApi.get).not.toHaveBeenCalled()
   })
 
+  it('FE-MOB-PLTL-005b: offers the map apps for the selected day, and none without one', async () => {
+    const { result } = await renderTimeline(makePlanner())
+    expect(result.current.routeTargets.map(t => t.id)).toEqual(expect.arrayContaining(['google', 'comaps', 'waze']))
+    const none = await renderTimeline(makePlanner({ selectedDayId: null }))
+    expect(none.result.current.routeTargets).toEqual([])
+  })
+
   it('FE-MOB-PLTL-006: keeps every day-scoped action inert without a selected day', async () => {
     const planner = makePlanner({ selectedDayId: null })
     const { result } = await renderTimeline(planner)

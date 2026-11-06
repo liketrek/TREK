@@ -84,6 +84,9 @@ const mobileTrip: TranslationStrings = {
     '{count} tram tenia més del que cap en una resposta. Tria menys tipus per veure la resta.',
   'mobileTrip.rtNoDay': 'Cap dia seleccionat',
   'mobileTrip.rtNoDayHint': 'El mapa mostra tot el viatge. Toca un dia a dalt per veure’n el trajecte.',
+  'mobileTrip.maps': 'Mapes',
+  'mobileTrip.openRouteIn': 'Obre el dia a',
+  'mobileTrip.firstStopOnly': 'Només la primera parada',
 };
 
 export default mobileTrip;

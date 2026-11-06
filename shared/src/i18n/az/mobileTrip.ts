@@ -84,6 +84,9 @@ const mobileTrip: TranslationStrings = {
     '{count} marşrut hissəsində bir cavaba sığmayacaq qədər nəticə var. Qalanlarını görmək üçün daha az növ seçin.',
   'mobileTrip.rtNoDay': 'Gün seçilməyib',
   'mobileTrip.rtNoDayHint': 'Xəritə bütün səyahəti göstərir. Avtomobil marşrutunu görmək üçün yuxarıdan bir gün seçin.',
+  'mobileTrip.maps': 'Xəritələr',
+  'mobileTrip.openRouteIn': 'Günü burada aç',
+  'mobileTrip.firstStopOnly': 'Yalnız ilk dayanacaq',
 };
 
 export default mobileTrip;

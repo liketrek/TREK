@@ -72,5 +72,8 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtTruncated.other': '有 {count} 段路的结果超出单次查询上限。少选几类就能看到其余的。',
   'mobileTrip.rtNoDay': '未选择日期',
   'mobileTrip.rtNoDayHint': '地图显示的是整个行程。点按上方的日期查看当天路线。',
+  'mobileTrip.maps': '地图',
+  'mobileTrip.openRouteIn': '在以下应用中打开当天',
+  'mobileTrip.firstStopOnly': '仅第一站',
 };
 export default mobileTrip;

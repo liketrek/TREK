@@ -84,5 +84,8 @@ const mobileTrip: TranslationStrings = {
     '1 τμήμα είχε περισσότερα από όσα χωρούν σε μία απάντηση. Διαλέξτε λιγότερα είδη για να δείτε τα υπόλοιπα.',
   'mobileTrip.rtNoDay': 'Δεν επιλέχθηκε ημέρα',
   'mobileTrip.rtNoDayHint': 'Ο χάρτης δείχνει ολόκληρο το ταξίδι. Πατήστε μια ημέρα παραπάνω για τη διαδρομή της.',
+  'mobileTrip.maps': 'Χάρτες',
+  'mobileTrip.openRouteIn': 'Άνοιγμα της ημέρας σε',
+  'mobileTrip.firstStopOnly': 'Μόνο η πρώτη στάση',
 };
 export default mobileTrip;

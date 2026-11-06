@@ -100,5 +100,8 @@ const mobileTrip: TranslationStrings = {
     'На {count} участках нашлось больше, чем помещается в один ответ. Выберите меньше видов, чтобы увидеть остальное.',
   'mobileTrip.rtNoDay': 'День не выбран',
   'mobileTrip.rtNoDayHint': 'На карте вся поездка. Нажмите на день выше, чтобы увидеть его маршрут.',
+  'mobileTrip.maps': 'Карты',
+  'mobileTrip.openRouteIn': 'Открыть день в',
+  'mobileTrip.firstStopOnly': 'Только первая остановка',
 };
 export default mobileTrip;

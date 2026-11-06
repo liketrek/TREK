@@ -401,7 +401,7 @@ function UpNext({ planner, shell, rt, stageDayId, onOpen }: {
   const targets = place ? getNavigationTargets(place) : []
 
   return (
-    <section className="mt-2.5 rounded-[22px] border border-[color:var(--m-inbr)] bg-[color:var(--m-inner)] px-4 py-3.5 shadow-[0_18px_44px_-18px_rgba(0,0,0,.3)]">
+    <section className="mt-2.5 rounded-[22px] border border-[color:var(--m-cbr)] bg-[color:var(--m-card)] px-4 py-3.5">
       <button type="button" onClick={() => onOpen(next.row)} className="w-full text-start">
         <span className="flex items-center justify-between gap-2">
           <span className="font-geist text-[0.65625rem] font-bold uppercase tracking-[.08em] text-m-muted">

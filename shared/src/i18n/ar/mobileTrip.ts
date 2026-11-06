@@ -112,5 +112,8 @@ const mobileTrip: TranslationStrings = {
     'في {count} مقطعًا كانت النتائج أكثر مما تتسع له إجابة واحدة. اختر أنواعًا أقل لرؤية الباقي.',
   'mobileTrip.rtNoDay': 'لم يتم اختيار يوم',
   'mobileTrip.rtNoDayHint': 'تعرض الخريطة الرحلة كاملة. اضغط على يوم في الأعلى لعرض مسيره.',
+  'mobileTrip.maps': 'الخرائط',
+  'mobileTrip.openRouteIn': 'افتح اليوم في',
+  'mobileTrip.firstStopOnly': 'المحطة الأولى فقط',
 };
 export default mobileTrip;

@@ -82,5 +82,8 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtTruncated.one': '{count} stretch had more than fits in one answer. Pick fewer kinds to see the rest.',
   'mobileTrip.rtNoDay': 'No day picked',
   'mobileTrip.rtNoDayHint': 'The map is showing the whole trip. Tap a day above to see its drive.',
+  'mobileTrip.maps': 'Maps',
+  'mobileTrip.openRouteIn': 'Open the day in',
+  'mobileTrip.firstStopOnly': 'First stop only',
 };
 export default mobileTrip;

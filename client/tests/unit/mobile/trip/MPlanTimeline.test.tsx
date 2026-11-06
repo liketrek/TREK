@@ -8,6 +8,8 @@ import type { PlanRow, TransitMeta, TransportEntry } from '../../../../src/mobil
 import type { MergedItem } from '../../../../src/utils/dayMerge'
 import type { Assignment, Day, DayNote, Place, RouteSegment } from '../../../../src/types'
 import MPlanTimeline from '../../../../src/mobile/screens/trip/plan/MPlanTimeline'
+import { resetAllStores, seedStore } from '../../../helpers/store'
+import { useSettingsStore } from '../../../../src/store/settingsStore'
 
 // FE-MOB-PLTL-001 to FE-MOB-PLTL-049
 
@@ -113,6 +115,11 @@ function buildTl(over: Record<string, unknown> = {}): MPlanTimelineController {
     canExportRoute: true,
     exportGoogleMaps: vi.fn(),
     exportCoMaps: vi.fn(),
+    routeTargets: [
+      { id: 'google', label: 'Google Maps', url: 'https://www.google.com/maps/dir/1,2/3,4' },
+      { id: 'comaps', label: 'CoMaps', url: 'https://comaps.at/route?x' },
+      { id: 'waze', label: 'Waze', url: 'https://waze.com/ul?ll=1,2&navigate=yes', firstStopOnly: true },
+    ],
     renameDay: vi.fn(),
     fullPlaceOf: vi.fn(() => undefined as Place | undefined),
     routeModeOptions: [
@@ -145,6 +152,7 @@ function renderTimeline(
 
 describe('MPlanTimeline', () => {
   beforeEach(() => {
+    resetAllStores()
     mocks.schedule = EMPTY_SCHEDULE
   })
 
@@ -625,23 +633,46 @@ describe('MPlanTimeline', () => {
       fireEvent.click(screen.getByText('mobileTrip.addBookingShort'))
       fireEvent.click(screen.getByText('mobileTrip.addTransportShort'))
       fireEvent.click(screen.getByText('dayplan.optimize'))
-      fireEvent.click(screen.getByText('mobileTrip.googleMaps'))
 
       expect(mocks.tl.addPlace).toHaveBeenCalledTimes(1)
       expect(shell.openSheet).toHaveBeenCalledWith('note', { dayId: 2 })
       expect(mocks.tl.addBooking).toHaveBeenCalledTimes(1)
       expect(mocks.tl.addTransport).toHaveBeenCalledTimes(1)
       expect(mocks.tl.optimize).toHaveBeenCalledTimes(1)
-      expect(mocks.tl.exportGoogleMaps).toHaveBeenCalledTimes(1)
     })
 
-    it('FE-MOB-PLTL-049: a day with no route to hand over offers no Google Maps or CoMaps tile (#2476)', () => {
+    it('FE-MOB-PLTL-033b: one Maps tile asks which app gets the day, and the pick opens it', async () => {
+      const open = vi.spyOn(window, 'open').mockReturnValue(null)
+      renderTimeline({}, {}, { mode: 'edit' })
+
+      fireEvent.click(screen.getByText('mobileTrip.maps'))
+      const sheet = await screen.findByRole('dialog', { name: 'mobileTrip.openRouteIn' })
+      // The app that only takes one place says so.
+      expect(within(sheet).getByText('mobileTrip.firstStopOnly')).toBeInTheDocument()
+      fireEvent.click(within(sheet).getByText('Google Maps'))
+
+      expect(open).toHaveBeenCalledWith('https://www.google.com/maps/dir/1,2/3,4', '_blank', 'noopener,noreferrer')
+      open.mockRestore()
+    })
+
+    it('FE-MOB-PLTL-033c: with a preferred map app set, the Maps tile opens it straight away (#2423)', () => {
+      const open = vi.spyOn(window, 'open').mockReturnValue(null)
+      seedStore(useSettingsStore, { settings: { preferred_nav_app: 'comaps' } })
+      renderTimeline({}, {}, { mode: 'edit' })
+
+      fireEvent.click(screen.getByText('mobileTrip.maps'))
+
+      expect(open).toHaveBeenCalledWith('https://comaps.at/route?x', '_blank', 'noopener,noreferrer')
+      expect(screen.queryByRole('dialog', { name: 'mobileTrip.openRouteIn' })).not.toBeInTheDocument()
+      open.mockRestore()
+    })
+
+    it('FE-MOB-PLTL-049: a day with no route to hand over offers no Maps tile (#2476)', () => {
       // A moving day whose only content is the flight: the export would be a drive
-      // from one hotel to the other, so the two tiles are left out, not left dead.
+      // from one hotel to the other, so the tile is left out, not left dead.
       renderTimeline({ canExportRoute: false }, {}, { mode: 'edit' })
 
-      expect(screen.queryByText('mobileTrip.googleMaps')).not.toBeInTheDocument()
-      expect(screen.queryByText('mobileTrip.coMaps')).not.toBeInTheDocument()
+      expect(screen.queryByText('mobileTrip.maps')).not.toBeInTheDocument()
       expect(screen.getByText('dayplan.optimize')).toBeInTheDocument()
     })
 

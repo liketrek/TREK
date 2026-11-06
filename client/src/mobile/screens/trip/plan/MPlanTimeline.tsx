@@ -1,5 +1,5 @@
 import { useEffect, useState, type MouseEvent } from 'react'
-import { ArrowRight, BedDouble, CalendarDays, CalendarRange, ChevronRight, Compass, LogIn, LogOut, MapPin, Pencil, PencilLine, Route, Ticket, TrainFront, Undo2 } from 'lucide-react'
+import { ArrowRight, BedDouble, CalendarDays, CalendarRange, ChevronRight, LogIn, LogOut, Map as MapIcon, MapPin, Pencil, PencilLine, Route, Ticket, TrainFront, Undo2 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useContextMenu, ContextMenu } from '../../../../components/shared/ContextMenu'
 import MarkdownText from '../../../../components/shared/MarkdownText'
@@ -22,8 +22,9 @@ import type { MPlanTimelineProps } from '../MTripShell'
 import type { MergedItem } from '../../../../utils/dayMerge'
 import type { RouteSegment } from '../../../../types'
 import type { Assignment } from '../../../../types'
-import type { ComponentType, ReactNode } from 'react'
-import GoogleMapsIcon from '../../../../components/shared/GoogleMapsIcon'
+import type { ReactNode } from 'react'
+import { useSettingsStore } from '../../../../store/settingsStore'
+import MRouteAppsSheet, { openRouteTarget } from './MRouteAppsSheet'
 import MDayPager from '../../../components/MDayPager'
 
 /**
@@ -181,11 +182,23 @@ function PlanDayPage({ planner, shell, dayId: pageDayId, active, editing, legMen
 
   const chrome = { editing, t, language: tl.language, timeFormat: tl.timeFormat }
 
+  // One Maps button for every app the day can be opened in: the preferred app
+  // from settings (#2423) opens straight away, otherwise the sheet asks.
+  const [mapsOpen, setMapsOpen] = useState(false)
+  const preferredNavApp = useSettingsStore(s => s.settings.preferred_nav_app)
+  const openMaps = () => {
+    const preferred = preferredNavApp ? tl.routeTargets.find(target => target.id === preferredNavApp) : undefined
+    if (preferred) openRouteTarget(preferred)
+    else setMapsOpen(true)
+  }
+
   return (
-    // One column under the day chips: the UP-NEXT card (go mode) or the edit
-    // header, then the timeline card filling the rest, 12px apart whatever height
-    // the card above it has. A day without an up-next starts the timeline right
-    // under the chips.
+    <>
+    <MRouteAppsSheet open={mapsOpen} onClose={() => setMapsOpen(false)} targets={tl.routeTargets} t={t} />
+    {/* One column under the day chips: the UP-NEXT card (go mode) or the edit
+        header, then the timeline card filling the rest, 12px apart whatever height
+        the card above it has. A day without an up-next starts the timeline right
+        under the chips. */}
     <div className="absolute inset-x-4 flex flex-col gap-3 top-[calc(var(--m-safe-top,12px)+102px)] bottom-[calc(env(safe-area-inset-bottom,0px)+90px)]">
       {!editing && <UpNextCard tl={tl} t={t} onOpen={openPlace} />}
       {editing && <EditHeader tl={tl} planner={planner} shell={shell} />}
@@ -308,7 +321,9 @@ function PlanDayPage({ planner, shell, dayId: pageDayId, active, editing, legMen
         )}
 
         {editing && (
-          <div className="mt-3 grid grid-cols-3 gap-2">
+          // The day's actions as one group on one glass surface, the way iOS groups
+          // its controls: each a round icon over its label.
+          <div className="mt-3 grid grid-cols-3 gap-x-1 gap-y-2 rounded-[22px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-2 shadow-[0_8px_24px_-16px_rgba(0,0,0,.35)] backdrop-blur-[24px] backdrop-saturate-[1.7]">
             <PlanAction icon={MapPin} label={t('mobileTrip.addPlaceShort')} onClick={tl.addPlace} />
             <PlanAction
               icon={PencilLine}
@@ -318,16 +333,14 @@ function PlanDayPage({ planner, shell, dayId: pageDayId, active, editing, legMen
             <PlanAction icon={Ticket} label={t('mobileTrip.addBookingShort')} onClick={tl.addBooking} />
             <PlanAction icon={TrainFront} label={t('mobileTrip.addTransportShort')} onClick={tl.addTransport} />
             <PlanAction icon={Route} label={t('dayplan.optimize')} onClick={() => void tl.optimize()} />
-            {tl.canExportRoute && (
-              <>
-                <PlanAction icon={GoogleMapsIcon} label={t('mobileTrip.googleMaps')} onClick={tl.exportGoogleMaps} />
-                <PlanAction icon={Compass} label={t('mobileTrip.coMaps')} onClick={tl.exportCoMaps} />
-              </>
+            {tl.canExportRoute && tl.routeTargets.length > 0 && (
+              <PlanAction icon={MapIcon} label={t('mobileTrip.maps')} onClick={openMaps} />
             )}
           </div>
         )}
       </div>
     </div>
+    </>
   )
 }
 
@@ -347,7 +360,9 @@ function UpNextCard({ tl, t, onOpen }: {
     <button
       type="button"
       onClick={() => onOpen(upNext.assignment)}
-      className="flex-none cursor-pointer rounded-[22px] border border-[color:var(--m-inbr)] bg-[color:var(--m-inner)] px-4 py-3.5 text-start shadow-[0_18px_44px_-18px_rgba(0,0,0,.3)] backdrop-blur-[28px] backdrop-saturate-[1.8]"
+      // The same surface as the timeline card under it: the two are one plan, and
+      // the place at the top plus the round arrow already say which stop is next.
+      className="flex-none cursor-pointer rounded-[22px] border border-[color:var(--m-cbr)] bg-[color:var(--m-card)] px-4 py-3.5 text-start backdrop-blur-[24px] backdrop-saturate-[1.6] transition-transform active:scale-[.99]"
     >
       <div className="flex items-center justify-between">
         <span className="whitespace-nowrap font-geist text-[0.65625rem] font-bold uppercase tracking-[.08em] text-m-muted">
@@ -536,10 +551,10 @@ function HotelChipIcon({ variant }: { variant: 'checkout' | 'checkin' | 'stay' }
   return <BedDouble size={12} strokeWidth={2.2} className="text-m-muted" />
 }
 
-/** Edit-mode action tile — Place · Note · Booking · Transport · Optimize · Google Maps, three per row. */
+/** One action of the edit-mode group: Place, Note, Booking, Transport, Optimize, Maps,
+ *  three per row, a round icon over its label. */
 function PlanAction({ icon: Icon, label, onClick }: {
-  // Google Maps hands in its own brand mark, which is not a lucide icon (#2005).
-  icon: LucideIcon | ComponentType<{ size?: number; className?: string }>
+  icon: LucideIcon
   label: string
   onClick: () => void
 }) {
@@ -547,10 +562,12 @@ function PlanAction({ icon: Icon, label, onClick }: {
     <button
       type="button"
       onClick={onClick}
-      className="flex min-w-0 flex-col items-center justify-center gap-1.5 rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-1 py-2.5 transition-transform active:scale-[.97]"
+      className="group flex min-w-0 flex-col items-center justify-center gap-1.5 rounded-[16px] px-1 py-2 transition-transform active:scale-[.94]"
     >
-      <Icon size={17} strokeWidth={2} className="text-m-muted" />
-      <span className="max-w-full text-center font-geist text-[0.625rem] font-semibold leading-tight text-m-ink">{label}</span>
+      <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-ink transition-colors group-active:bg-[color:var(--m-rowbr)]">
+        <Icon size={19} strokeWidth={2} />
+      </span>
+      <span className="max-w-full text-center font-geist text-[0.6875rem] font-semibold leading-tight text-m-ink">{label}</span>
     </button>
   )
 }

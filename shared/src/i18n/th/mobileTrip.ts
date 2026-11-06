@@ -74,5 +74,8 @@ const mobileTrip: TranslationStrings = {
     'มี {count} ช่วงที่มีผลลัพธ์มากเกินกว่าจะแสดงในคำตอบเดียว เลือกประเภทให้น้อยลงเพื่อดูที่เหลือ',
   'mobileTrip.rtNoDay': 'ยังไม่ได้เลือกวัน',
   'mobileTrip.rtNoDayHint': 'แผนที่แสดงทั้งการเดินทาง แตะวันด้านบนเพื่อดูเส้นทางขับรถของวันนั้น',
+  'mobileTrip.maps': 'แผนที่',
+  'mobileTrip.openRouteIn': 'เปิดวันนี้ใน',
+  'mobileTrip.firstStopOnly': 'เฉพาะจุดแรก',
 };
 export default mobileTrip;

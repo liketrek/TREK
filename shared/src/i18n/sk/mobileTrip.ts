@@ -92,5 +92,8 @@ const mobileTrip: TranslationStrings = {
     '{count} úseky mali viac, než sa zmestí do jednej odpovede. Vyberte menej druhov, aby ste videli zvyšok.',
   'mobileTrip.rtNoDay': 'Nie je vybraný žiadny deň',
   'mobileTrip.rtNoDayHint': 'Mapa zobrazuje celú cestu. Ťuknite hore na deň a zobrazí sa jeho trasa.',
+  'mobileTrip.maps': 'Mapy',
+  'mobileTrip.openRouteIn': 'Otvoriť deň v',
+  'mobileTrip.firstStopOnly': 'Len prvá zastávka',
 };
 export default mobileTrip;

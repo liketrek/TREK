@@ -100,5 +100,8 @@ const mobileTrip: TranslationStrings = {
     'Na {count} odcinkach było więcej, niż mieści się w jednej odpowiedzi. Wybierz mniej rodzajów, by zobaczyć resztę.',
   'mobileTrip.rtNoDay': 'Nie wybrano dnia',
   'mobileTrip.rtNoDayHint': 'Mapa pokazuje całą podróż. Dotknij dnia powyżej, aby zobaczyć jego trasę.',
+  'mobileTrip.maps': 'Mapy',
+  'mobileTrip.openRouteIn': 'Otwórz dzień w',
+  'mobileTrip.firstStopOnly': 'Tylko pierwszy przystanek',
 };
 export default mobileTrip;

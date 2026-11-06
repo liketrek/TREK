@@ -84,5 +84,8 @@ const mobileTrip: TranslationStrings = {
     'Auf {count} Abschnitt gab es mehr, als in eine Antwort passt. Wähl weniger Arten, um den Rest zu sehen.',
   'mobileTrip.rtNoDay': 'Kein Tag gewählt',
   'mobileTrip.rtNoDayHint': 'Die Karte zeigt die ganze Reise. Tippe oben auf einen Tag, um seine Fahrt zu sehen.',
+  'mobileTrip.maps': 'Karten',
+  'mobileTrip.openRouteIn': 'Tag öffnen in',
+  'mobileTrip.firstStopOnly': 'Nur der erste Halt',
 };
 export default mobileTrip;

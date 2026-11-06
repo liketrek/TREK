@@ -76,5 +76,8 @@ const mobileTrip: TranslationStrings = {
     '{count} ruas punya lebih banyak hasil daripada yang muat dalam satu jawaban. Pilih lebih sedikit jenis untuk melihat sisanya.',
   'mobileTrip.rtNoDay': 'Belum ada hari yang dipilih',
   'mobileTrip.rtNoDayHint': 'Peta menampilkan seluruh perjalanan. Ketuk hari di atas untuk melihat rutenya.',
+  'mobileTrip.maps': 'Peta',
+  'mobileTrip.openRouteIn': 'Buka hari ini di',
+  'mobileTrip.firstStopOnly': 'Hanya perhentian pertama',
 };
 export default mobileTrip;
