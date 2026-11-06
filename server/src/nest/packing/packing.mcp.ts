@@ -795,4 +795,25 @@ export class PackingMcp {
   // The packing-list prompt moved to trips/trip-prompts.mcp.ts: it reads the
   // whole-trip summary for the title, and the read model lives above this
   // module (the fold that deleted trips.bridge).
+
+  @Tool({
+    name: 'clone_packing_item',
+    title: 'Clone packing item',
+    description:
+      'Copy one packing item into a new item of your own on the same trip, unchecked, the way "copy to my list" does in the app. Returns the copy.',
+    inputSchema: { tripId: idSchema, itemId: idSchema },
+    annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+    when: packingAddonOn,
+    access: { group: 'packing', mode: 'write' },
+  })
+  async clonePackingItem({ tripId, itemId }: { tripId: number; itemId: number }, ctx: McpContext) {
+    if (!(await this.packing.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('packing_edit', tripId, ctx.userId))) return permissionDenied();
+    const item = await this.packing.cloneItem(tripId, itemId, ctx.userId);
+    if (!item) return errorResult('Item not found.');
+    // The copy is the caller's own: only the sockets that may see it hear of it.
+    this.packing.emitToViewers(String(tripId), 'packing:created', { item }, item, undefined);
+    this.packing.broadcastBagTotals(String(tripId));
+    return ok({ item });
+  }
 }

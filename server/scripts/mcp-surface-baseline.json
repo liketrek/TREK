@@ -1,24 +1,24 @@
 {
   "sessions": {
     "full": {
-      "tools": 413,
-      "bytes": 470160,
-      "tokens": 117540
+      "tools": 424,
+      "bytes": 478379,
+      "tokens": 119595
     },
     "core": {
-      "tools": 145,
-      "bytes": 168241,
-      "tokens": 42060
+      "tools": 152,
+      "bytes": 173416,
+      "tokens": 43354
     },
     "readonly": {
-      "tools": 145,
-      "bytes": 159418,
-      "tokens": 39855
+      "tools": 150,
+      "bytes": 163237,
+      "tokens": 40809
     },
     "trips": {
-      "tools": 32,
-      "bytes": 32919,
-      "tokens": 8230
+      "tools": 34,
+      "bytes": 34242,
+      "tokens": 8561
     }
   },
   "tools": {
@@ -41,6 +41,7 @@
     "assign_collection_labels": 736,
     "assign_place_to_day": 1207,
     "assign_tour_track": 2062,
+    "autocomplete_place": 1241,
     "available_collection_users": 616,
     "bulk_delete_places": 1051,
     "bulk_import_packing": 1093,
@@ -51,6 +52,7 @@
     "classify_ski_track": 2000,
     "clear_bucket_list_visit": 722,
     "clear_day_assignments": 722,
+    "clone_packing_item": 673,
     "close_collab_poll": 571,
     "confirm_bucket_list_visits": 867,
     "copy_collection_places_to_trip": 726,
@@ -128,6 +130,7 @@
     "delete_todo": 539,
     "delete_transport": 587,
     "delete_trip": 482,
+    "delete_trip_file": 859,
     "delete_trip_guest": 906,
     "delete_trip_invite_link": 647,
     "delete_vacay_year": 497,
@@ -175,7 +178,9 @@
     "get_journey_suggestions": 456,
     "get_journey_tracks": 893,
     "get_manual_school_holiday_region": 657,
+    "get_notification_preferences": 622,
     "get_packing_category_assignees": 530,
+    "get_place": 633,
     "get_place_details": 1278,
     "get_roadtrip_charging_info": 818,
     "get_roadtrip_context": 1329,
@@ -232,6 +237,8 @@
     "list_collections": 502,
     "list_dawarich_suggestions": 1225,
     "list_day_boundaries": 527,
+    "list_day_notes": 658,
+    "list_days": 665,
     "list_help_topics": 715,
     "list_holiday_countries": 416,
     "list_holidays": 566,
@@ -305,6 +312,7 @@
     "remove_tour_stop": 1883,
     "remove_trip_member": 792,
     "rename_trip_guest": 746,
+    "reorder_budget_items": 683,
     "reorder_collections": 572,
     "reorder_day_assignments": 826,
     "reorder_days": 1001,
@@ -319,6 +327,7 @@
     "restore_book_revision": 903,
     "restore_journey_suggestions": 581,
     "restore_recorded_track": 1202,
+    "restore_trip_file": 625,
     "reverse_geocode": 517,
     "review_journey_day_stays": 1125,
     "revise_book_design": 1288,
@@ -363,6 +372,7 @@
     "set_day_default_transport_mode": 1000,
     "set_journey_photo_caption": 819,
     "set_leg_transport_mode": 1656,
+    "set_notification_preferences": 846,
     "set_notification_read": 599,
     "set_packing_category_assignees": 703,
     "set_packing_item_sharing": 1229,
@@ -375,6 +385,7 @@
     "set_trip_journal_members": 923,
     "set_vacay_color": 495,
     "share_vacay_calendar": 549,
+    "star_trip_file": 714,
     "suggest_atlas_countries": 1113,
     "suggest_book_photos": 1894,
     "sync_trip_documents": 859,

@@ -17,6 +17,21 @@ import { z } from 'zod';
 export const preferencesUpdateRequestSchema = z.record(z.string(), z.record(z.string(), z.boolean()));
 export type PreferencesUpdateRequest = z.infer<typeof preferencesUpdateRequestSchema>;
 
+/**
+ * GET /api/notifications/preferences: the caller's matrix, the channels to draw
+ * it with, the events it covers, which event goes over which channel at all, and
+ * the cells the admin switched off for everyone.
+ */
+export const preferencesMatrixSchema = z.object({
+  preferences: z.record(z.string(), z.record(z.string(), z.boolean())),
+  channels: z.array(z.looseObject({ id: z.string() })),
+  event_types: z.array(z.string()),
+  implemented_combos: z.record(z.string(), z.array(z.string())),
+  defaults: z.object({ ntfyServer: z.string().nullable() }).optional(),
+  locked: z.record(z.string(), z.array(z.string())).optional(),
+});
+export type PreferencesMatrixResponse = z.infer<typeof preferencesMatrixSchema>;
+
 /** Set one in-app notification read or unread (the MCP tool set_notification_read). */
 export const notificationReadStateRequestSchema = z.object({
   read: z.boolean().describe('true marks it read, false unread'),

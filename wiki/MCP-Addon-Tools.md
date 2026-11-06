@@ -17,6 +17,7 @@ Requires `packing:read` or `packing:write` scope. The Packing addon is listed as
 | `update_packing_item` | Rename an item, change its category, or count how many of it are already packed. |
 | `set_packing_item_sharing` | Move an item between the three sharing tiers: `common` puts it in the pool the whole trip packs from, `personal` keeps it to its owner, `shared` covers the trip members in `recipient_ids`. Only the item's owner may change this. |
 | `toggle_packing_item` | Check or uncheck a packing item. |
+| `clone_packing_item` | Copy one packing item into a new item of your own on the same trip. |
 | `delete_packing_item` | Remove a packing item. |
 | `reorder_packing_items` | Set the display order of packing items within a trip. |
 | `bulk_import_packing` | Import multiple packing items at once from a list (with optional quantity). |

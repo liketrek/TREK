@@ -7,8 +7,10 @@ import {
   TOOL_ANNOTATIONS_WRITE,
   TOOL_ANNOTATIONS_DELETE,
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  TOOL_ANNOTATIONS_READONLY,
   errorResult,
   ok,
+  okStructured,
 } from '../../nest-mcp';
 import type { MirrorSender } from '../accommodations/accommodations.service';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
@@ -20,6 +22,7 @@ import {
   dayReorderRequestSchema,
   dayUpdateRequestSchema,
   idSchema,
+  listDaysOutputSchema,
 } from '@trek/shared';
 import type { DayCreateRequest, DayReorderRequest, DayUpdateRequest } from '@trek/shared';
 
@@ -277,5 +280,20 @@ export class DaysMcp {
         },
       ],
     };
+  }
+
+  @Tool({
+    name: 'list_days',
+    title: 'List trip days',
+    description:
+      "The trip's days in order, each with its date, title, the places scheduled on it (assignments, with their times) and its notes. get_trip_summary holds the same days next to everything else; use this one when the days are all you need.",
+    inputSchema: { tripId: idSchema },
+    outputSchema: listDaysOutputSchema,
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    access: { group: 'trips', mode: 'read' },
+  })
+  async listDays({ tripId }: { tripId: number }, ctx: McpContext) {
+    if (!(await this.days.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    return okStructured(await this.days.list(tripId));
   }
 }

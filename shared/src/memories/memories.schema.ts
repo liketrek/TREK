@@ -130,6 +130,40 @@ export const addTripPhotosSchema = z.looseObject({
   shared: z.unknown().optional(),
 });
 
+/**
+ * MCP `add_trip_photos`: the route's body without its lenient fallbacks. A tool
+ * call that names no asset made a mistake, and a boolean says what `shared`
+ * means where the route reads any value for its truthiness.
+ */
+export const addTripPhotosToolRequestSchema = z.object({
+  selections: z
+    .array(
+      z.object({
+        provider: z
+          .string()
+          .min(1)
+          .describe('The photo provider the assets live in, e.g. "immich" or "synologyphotos"'),
+        asset_ids: z.array(z.string().min(1)).min(1).describe('Asset ids from search_provider_photos'),
+      }),
+    )
+    .min(1),
+  shared: z.boolean().optional().describe('Whether the other trip members see the photos too; true when left out'),
+});
+export type AddTripPhotosToolRequest = z.infer<typeof addTripPhotosToolRequestSchema>;
+
+/** One photo on a trip, as GET /api/trips/:tripId/photos lists it. */
+export const tripPhotoSchema = z.object({
+  photo_id: z.number(),
+  asset_id: z.string(),
+  provider: z.string(),
+  user_id: z.number(),
+  shared: z.number(),
+  added_at: z.string().nullable(),
+  username: z.string().nullable(),
+  avatar: z.string().nullable(),
+});
+export type TripPhoto = z.infer<typeof tripPhotoSchema>;
+
 export const setTripPhotoSharingSchema = z.looseObject({
   photo_id: looseNumber,
   shared: z.unknown().optional(),

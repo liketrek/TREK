@@ -86,13 +86,19 @@ describe('structured output of the read tools', () => {
     const tools = (await harness.client.listTools()).tools.filter((t) => t.outputSchema);
     expect(tools.map((t) => t.name).sort()).toEqual(
       [
+        'autocomplete_place',
         'get_budget_per_person',
+        'get_notification_preferences',
+        'get_place',
         'get_weather',
         'list_budget_items',
         'list_collab_polls',
+        'list_day_notes',
+        'list_days',
         'list_packing_items',
         'list_places',
         'list_todos',
+        'list_trip_photos',
         'list_trips',
         'propose_paddle_route',
         'propose_ski_route',

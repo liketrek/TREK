@@ -155,7 +155,7 @@ export class UnifiedMemoriesService {
     userId: number,
     shared: boolean,
     selections: Selection[],
-    sid: string,
+    sid: string | undefined,
     albumLinkId?: string,
   ): Promise<ServiceResult<{ added: number; shared: boolean }>> {
     const access = await this.trips.findAccessible(tripId, userId);

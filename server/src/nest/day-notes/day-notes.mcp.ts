@@ -7,7 +7,10 @@ import {
   TOOL_ANNOTATIONS_WRITE,
   TOOL_ANNOTATIONS_DELETE,
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  TOOL_ANNOTATIONS_READONLY,
+  errorResult,
   ok,
+  okStructured,
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { DayNotesService } from './day-notes.service';
@@ -15,6 +18,7 @@ import {
   dayNoteCreateRequestSchema,
   dayNoteUpdateRequestSchema,
   idSchema,
+  listDayNotesOutputSchema,
   NOTE_COLORS,
   type NoteColor,
 } from '@trek/shared';
@@ -239,5 +243,21 @@ export class DayNotesMcp {
         },
       ],
     };
+  }
+
+  @Tool({
+    name: 'list_day_notes',
+    title: 'List day notes',
+    description:
+      "One day's notes in their order: the title (text), the body (time), icon and colour, with the ids update_day_note and delete_day_note take.",
+    inputSchema: { tripId: idSchema, dayId: idSchema },
+    outputSchema: listDayNotesOutputSchema,
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    access: { group: 'trips', mode: 'read' },
+  })
+  async listDayNotes({ tripId, dayId }: { tripId: number; dayId: number }, ctx: McpContext) {
+    if (!(await this.notes.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.notes.dayExists(dayId, tripId))) return errorResult('Day not found.');
+    return okStructured({ notes: await this.notes.list(dayId, tripId) });
   }
 }

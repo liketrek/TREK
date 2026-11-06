@@ -479,6 +479,16 @@ const journeyCases: ParityCase[] = [
     expect: [{ event: 'journey:updated', user: 'actor' }],
   },
   {
+    tool: 'add_trip_photos',
+    args: (s) => ({ tripId: s.trip.id, selections: [{ provider: 'immich', asset_ids: [`asset-${s.n}`] }] }),
+    rest: {
+      method: 'post',
+      path: (s) => `/api/integrations/memories/unified/trips/${s.trip.id}/photos`,
+      body: (s) => ({ selections: [{ provider: 'immich', asset_ids: [`asset-${s.n}`] }] }),
+    },
+    expect: ['memories:updated'],
+  },
+  {
     tool: 'add_journey_provider_photos',
     needs: ['journey'],
     args: (s) => ({ journeyId: s.journey.id, provider: 'immich', asset_ids: [`asset-${s.n}`] }),
