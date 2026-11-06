@@ -95,13 +95,24 @@
 
 /* ── Keyframes ──────────────────────────────────────────────────────────── */
 
+/* The floating card pops in place, the way a native alert does. */
 @keyframes m-sheet-in {
-  from { opacity: 0; transform: translateY(24px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(10px) scale(.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 @keyframes m-sheet-out {
-  from { opacity: 1; transform: translateY(0); }
-  to { opacity: 0; transform: translateY(24px); }
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(6px) scale(.97); }
+}
+/* The docked sheet rises from below the screen edge and sinks back there: it
+   sits above the nav, so it travels its own height plus that gap. */
+@keyframes m-sheet-up {
+  from { transform: translateY(calc(100% + var(--bottom-nav-h, 84px) + 24px)); }
+  to { transform: translateY(0); }
+}
+@keyframes m-sheet-down {
+  from { transform: translateY(0); }
+  to { transform: translateY(calc(100% + var(--bottom-nav-h, 84px) + 24px)); }
 }
 @keyframes m-drawer-in {
   from { transform: translateX(-100%); }
@@ -132,8 +143,10 @@
   to { opacity: 0; transform: translateY(6px); }
 }
 
-.m-sheet-in { animation: m-sheet-in 280ms var(--ease-drawer) both; }
-.m-sheet-out { animation: m-sheet-out 280ms var(--ease-drawer) both; }
+.m-sheet-in { animation: m-sheet-in 260ms var(--ease-out-quint) both; }
+.m-sheet-out { animation: m-sheet-out 220ms var(--ease-drawer) both; }
+.m-sheet-up { animation: m-sheet-up 420ms var(--ease-drawer) both; }
+.m-sheet-down { animation: m-sheet-down 300ms var(--ease-drawer) both; }
 .m-drawer-in { animation: m-drawer-in 280ms var(--ease-drawer) both; }
 .m-drawer-out { animation: m-drawer-out 280ms var(--ease-drawer) both; }
 .m-fade-in { animation: m-fade-in 280ms var(--ease-drawer) both; }
@@ -144,10 +157,10 @@
 
 /* Reduced motion: gentler, not zero (same rule the desktop keyframes follow). */
 @media (prefers-reduced-motion: reduce) {
-  .m-sheet-in, .m-drawer-in, .m-pop-in, .m-toast-in {
+  .m-sheet-in, .m-sheet-up, .m-drawer-in, .m-pop-in, .m-toast-in {
     animation: m-fade-in 120ms ease-out both;
   }
-  .m-sheet-out, .m-drawer-out, .m-toast-out {
+  .m-sheet-out, .m-sheet-down, .m-drawer-out, .m-toast-out {
     animation: m-fade-out 120ms ease-out both;
   }
 }

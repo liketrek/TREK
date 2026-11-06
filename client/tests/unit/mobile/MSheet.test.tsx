@@ -293,6 +293,104 @@ describe('MSheet', () => {
     expect(baseCalls).toEqual([]);
   });
 
+  describe('dragging the docked sheet', () => {
+    const touch = (y: number, x = 100) => ({ touches: [{ clientX: x, clientY: y }], changedTouches: [{ clientX: x, clientY: y }] });
+
+    function renderBottom(onClose = vi.fn(), content: React.ReactNode = <div>Sheet content</div>) {
+      HTMLElement.prototype.setPointerCapture = vi.fn();
+      render(
+        <MSheet open onClose={onClose} variant="bottom" ariaLabel="Bottom">
+          {content}
+        </MSheet>,
+      );
+      const dialog = screen.getByRole('dialog');
+      Object.defineProperty(dialog, 'offsetHeight', { configurable: true, value: 400 });
+      return { dialog, onClose };
+    }
+
+    it('FE-MOB-SHEET-022: a pull down on the content carries the sheet and throws it off past a third', () => {
+      const { dialog, onClose } = renderBottom();
+      const content = screen.getByText('Sheet content');
+
+      fireEvent.touchStart(content, touch(100));
+      fireEvent.touchMove(content, touch(140));
+      fireEvent.touchMove(content, touch(300));
+      expect(dialog.style.transform).toBe('translateY(160px)');
+
+      fireEvent.touchEnd(content, touch(300));
+      expect(onClose).toHaveBeenCalledTimes(1);
+      // Thrown from where the finger let go, not replayed from the rest position.
+      expect(dialog.style.transform).toMatch(/translateY\(\d+px\)/);
+      expect(dialog.className).not.toContain('m-sheet-down');
+    });
+
+    it('FE-MOB-SHEET-023: content scrolled down keeps its own scroll, and a sideways pan is let go', () => {
+      const { dialog, onClose } = renderBottom(vi.fn(), (
+        <div data-testid="list" style={{ overflowY: 'auto' }}>
+          <span>row</span>
+        </div>
+      ));
+      const list = screen.getByTestId('list');
+      Object.defineProperty(list, 'scrollHeight', { configurable: true, value: 900 });
+      Object.defineProperty(list, 'clientHeight', { configurable: true, value: 300 });
+      Object.defineProperty(list, 'scrollTop', { configurable: true, writable: true, value: 120 });
+
+      fireEvent.touchStart(screen.getByText('row'), touch(100));
+      fireEvent.touchMove(screen.getByText('row'), touch(200));
+      fireEvent.touchEnd(screen.getByText('row'), touch(200));
+
+      list.scrollTop = 0;
+      fireEvent.touchStart(list, touch(100, 100));
+      fireEvent.touchMove(list, touch(110, 160));
+      fireEvent.touchEnd(list, touch(110, 160));
+
+      expect(dialog.style.transform).toBe('');
+      expect(onClose).not.toHaveBeenCalled();
+    });
+
+    it('FE-MOB-SHEET-024: pulling up past the rest position only stretches a little', () => {
+      const { dialog } = renderBottom();
+      const strip = dialog.querySelector('.cursor-grab') as HTMLElement;
+
+      fireEvent.pointerDown(strip, { pointerId: 1, clientY: 300 });
+      fireEvent.pointerMove(strip, { pointerId: 1, clientY: 0 });
+
+      expect(dialog.style.transform).toBe('translateY(-20px)');
+    });
+
+    it('FE-MOB-SHEET-025: with unsaved changes a flick springs back and asks', () => {
+      HTMLElement.prototype.setPointerCapture = vi.fn();
+      const onClose = vi.fn();
+      function Form() {
+        const [name, setName] = React.useState('');
+        return (
+          <MSheet open onClose={onClose} variant="bottom" ariaLabel="Form" discardGuard={{ name }}>
+            <input aria-label="Name" value={name} onChange={e => setName(e.target.value)} />
+          </MSheet>
+        );
+      }
+      render(<Form />);
+      const input = screen.getByRole('textbox', { name: 'Name' });
+      fireEvent.pointerDown(input);
+      fireEvent.change(input, { target: { value: 'Porto' } });
+      const dialog = screen.getByRole('dialog', { name: 'Form' });
+      const strip = dialog.querySelector('.cursor-grab') as HTMLElement;
+
+      fireEvent.pointerDown(strip, { pointerId: 1, clientY: 100 });
+      fireEvent.pointerMove(strip, { pointerId: 1, clientY: 160 });
+      fireEvent.pointerUp(strip, { pointerId: 1, clientY: 160 });
+
+      expect(onClose).not.toHaveBeenCalled();
+      expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+      expect(dialog.style.transform).toBe('translateY(0px)');
+    });
+
+    it('FE-MOB-SHEET-026: the docked sheet rises from below, the card pops in place', () => {
+      const { dialog } = renderBottom();
+      expect(dialog.className).toContain('m-sheet-up');
+    });
+  });
+
   describe('the unsaved-changes question', () => {
     function Form({ open, onClose }: { open: boolean; onClose: () => void }) {
       const [name, setName] = React.useState('');
