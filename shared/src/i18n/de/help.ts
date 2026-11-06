@@ -59,7 +59,7 @@ const help: TranslationStrings = {
   'help.ctx.dashboard.bullet.2':
     'Reisestatistik: besuchte Länder, Reisen, Tage unterwegs und geflogene Strecke, über alle deine Reisen hinweg.',
   'help.ctx.dashboard.bullet.3':
-    'Reisekarten, gefiltert nach „Geplant“, „Archiviert“ und „Abgeschlossen“, als Raster oder Liste. Das Suchfeld darüber durchsucht alle Reisen auf einmal, nach Titel, Datum oder einem Ort der Reise. „Bearbeiten“, „Duplizieren“, „Archivieren“ und „Löschen“ findest du oben rechts im Foto jeder Karte.',
+    'Reisekarten, gefiltert nach „Geplant“, „Archiviert“ und „Beendet“, als Raster oder Liste. Das Suchfeld darüber durchsucht alle Reisen auf einmal, nach Titel, Datum oder einem Ort der Reise. „Bearbeiten“, „Duplizieren“, „Archivieren“ und „Löschen“ findest du oben rechts im Foto jeder Karte.',
   'help.ctx.dashboard.bullet.4':
     'Rechts stehen die Widgets: Währungsrechner, Sammlungen (wenn das Add-on „Sammlungen“ aktiv ist), Weltzeituhren, anstehende Reservierungen und Widgets aus Plugins. Die eingebauten kannst du in den Einstellungen unter „Darstellung“ ausschalten.',
   'help.ctx.dashboard.bullet.5':
@@ -124,7 +124,7 @@ const help: TranslationStrings = {
   'help.guide.archive-trip.step.1': 'Klicke oben rechts auf der Karte auf das Archiv-Icon.',
   'help.guide.archive-trip.step.2': 'Stell den Filter über den Karten auf „Archiviert“, um sie wieder zu sehen.',
   'help.guide.archive-trip.step.3':
-    'Klick auf der Karte auf „Wiederherstellen“. Die Reise kommt zurück zu „Geplant“ oder, wenn ihr Zeitraum schon vorbei ist, zu „Abgeschlossen“.',
+    'Klick auf der Karte auf „Wiederherstellen“. Die Reise kommt zurück zu „Geplant“ oder, wenn ihr Zeitraum schon vorbei ist, zu „Beendet“.',
   'help.guide.archive-trip.result':
     'Archivierte Reisen behalten alle Daten. Sie erscheinen nur nicht mehr im Dashboard und im Kalender-Feed aller Reisen.',
 
@@ -138,11 +138,11 @@ const help: TranslationStrings = {
     'Die Reise wird samt Tagen, Orten, Buchungen und Dateien gelöscht. Das lässt sich nicht rückgängig machen. Bist du unsicher, archiviere die Reise lieber.',
 
   // filter-and-view
-  'help.guide.filter-and-view.title': 'Abgeschlossene Reisen finden, zwischen Raster und Liste wechseln',
+  'help.guide.filter-and-view.title': 'Beendete Reisen finden, zwischen Raster und Liste wechseln',
   'help.guide.filter-and-view.goal':
     'Zeig beendete oder archivierte Reisen an und wähle die Ansicht, die dir am besten gefällt.',
   'help.guide.filter-and-view.step.1':
-    'Nutze „Geplant“, „Archiviert“ und „Abgeschlossen“ über den Karten. Unter „Abgeschlossen“ stehen alle Reisen, deren Enddatum vorbei ist.',
+    'Nutze „Geplant“, „Archiviert“ und „Beendet“ über den Karten. Unter „Beendet“ stehen alle Reisen, deren Enddatum vorbei ist.',
   'help.guide.filter-and-view.step.2':
     'Klick auf das Listensymbol, um zur kompakten Liste zu wechseln, und noch einmal, um zum Raster zurückzukehren.',
   'help.guide.filter-and-view.result': 'Das Dashboard merkt sich dein Layout auf diesem Gerät.',
@@ -203,7 +203,7 @@ const help: TranslationStrings = {
   'help.guide.search-trips.tip.1':
     'Du kannst auch nach Datum suchen: Gib einen Monat mit Jahr ein, etwa Mai 2027 oder 2027-05, und du findest die Reisen in diesem Monat.',
   'help.guide.search-trips.tip.2':
-    'Während einer Suche gilt der Schalter „Geplant“, „Archiviert“ und „Abgeschlossen“ nicht. So verschwindet keine Reise hinter dem falschen Filter.',
+    'Während einer Suche gilt der Schalter „Geplant“, „Archiviert“ und „Beendet“ nicht. So verschwindet keine Reise hinter dem falschen Filter.',
 
   // ── Screen: vacay ──────────────────────────────────────────────────────────
   'help.ctx.vacay.title': 'Vacay',

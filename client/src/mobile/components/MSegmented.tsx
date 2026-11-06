@@ -48,7 +48,7 @@ export default function MSegmented<T extends string = string>({
             onClick={() => onChange(opt.value)}
             className={`relative z-[1] rounded-full py-[7px] text-center ${
               variant === 'intrinsic'
-                ? 'whitespace-nowrap px-[13px] text-[0.75rem]'
+                ? 'whitespace-nowrap px-[11px] text-[0.75rem]'
                 : 'flex-1 text-[0.71875rem]'
             } ${active ? 'font-semibold text-m-actfg' : 'font-medium text-m-ink'}`}
           >
