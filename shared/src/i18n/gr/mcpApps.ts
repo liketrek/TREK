@@ -63,5 +63,9 @@ const mcpApps: TranslationStrings = {
   'mcpApps.dayPlan.moveUp': 'Μετακίνηση πάνω',
   'mcpApps.dayPlan.moveDown': 'Μετακίνηση κάτω',
   'mcpApps.dayPlan.reorderError': 'Δεν ήταν δυνατή η αλλαγή της σειράς. Δοκιμάστε ξανά.',
+  'mcpApps.polls.title': 'Δημοσκοπήσεις',
+  'mcpApps.polls.empty': 'Δεν υπάρχουν ακόμη δημοσκοπήσεις',
+  'mcpApps.polls.closed': 'Κλειστή',
+  'mcpApps.polls.voteError': 'Δεν ήταν δυνατή η αποθήκευση της ψήφου σας. Δοκιμάστε ξανά.',
 };
 export default mcpApps;

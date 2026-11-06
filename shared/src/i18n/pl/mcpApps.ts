@@ -63,5 +63,9 @@ const mcpApps: TranslationStrings = {
   'mcpApps.dayPlan.moveUp': 'Przesuń w górę',
   'mcpApps.dayPlan.moveDown': 'Przesuń w dół',
   'mcpApps.dayPlan.reorderError': 'Nie udało się zmienić kolejności. Spróbuj ponownie.',
+  'mcpApps.polls.title': 'Ankiety',
+  'mcpApps.polls.empty': 'Brak ankiet',
+  'mcpApps.polls.closed': 'Zamknięta',
+  'mcpApps.polls.voteError': 'Nie udało się zapisać głosu. Spróbuj ponownie.',
 };
 export default mcpApps;

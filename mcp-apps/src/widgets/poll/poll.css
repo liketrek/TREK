@@ -1,0 +1,68 @@
+.poll__title {
+  margin-bottom: var(--trek-space);
+}
+
+.poll {
+  padding: 10px 0;
+  border-top: 1px solid var(--trek-border);
+}
+
+.poll:first-child {
+  border-top: 0;
+}
+
+.poll__question {
+  margin: 0 0 6px;
+  font-size: var(--trek-text-md);
+  font-weight: var(--font-weight-semibold, 600);
+}
+
+.poll__option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  inline-size: 100%;
+  margin-block: 4px;
+  padding: 0 10px;
+  overflow: hidden;
+  border: 1px solid var(--trek-border);
+  border-radius: var(--trek-radius);
+  background: var(--trek-bg);
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.poll__option:disabled {
+  cursor: default;
+}
+
+.poll__option:focus-visible {
+  outline: 2px solid var(--trek-ring);
+  outline-offset: 2px;
+}
+
+.poll__bar {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  background: var(--trek-surface);
+}
+
+.poll__text {
+  position: relative;
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.poll__share {
+  position: relative;
+  color: var(--trek-muted);
+  font-size: var(--trek-text-sm);
+  font-variant-numeric: tabular-nums;
+}

@@ -14,6 +14,7 @@
  * does. A parity test in tests/unit/nest-mcp/ checks the standard keys against
  * what that helper writes.
  */
+import { createHash } from 'node:crypto';
 
 /** The MIME type of an MCP App resource. */
 export const MCP_APP_MIME_TYPE = 'text/html;profile=mcp-app';
@@ -50,6 +51,25 @@ export function uiTool(resourceUri: string, options: UiToolOptions = {}): Record
     ...(invoked ? { [`${OPENAI_PREFIX}toolInvocation/invoked`]: invoked } : {}),
     ...(visibility?.includes('app') ? { [`${OPENAI_PREFIX}widgetAccessible`]: true } : {}),
   };
+}
+
+/**
+ * A tool's `_meta` when a widget calls it (a tick, a vote, a reorder) without
+ * drawing one of its own: visible to the model and to the app, and to ChatGPT
+ * under its own key, which it requires before a widget may call a tool.
+ */
+export function appCallable(): Record<string, unknown> {
+  return { ui: { visibility: ['model', 'app'] }, [`${OPENAI_PREFIX}widgetAccessible`]: true };
+}
+
+/** Claude's sandbox domain for an MCP server: the first 32 hex of the SHA-256 of its exact URL. */
+export function claudeUiDomain(serverUrl: string): string {
+  return `${createHash('sha256').update(serverUrl).digest('hex').slice(0, 32)}.claudemcpcontent.com`;
+}
+
+/** Whether the client that introduced itself is one of Claude's apps (claude.ai, Desktop, mobile). */
+export function isClaudeClient(name: string | null | undefined): boolean {
+  return typeof name === 'string' && /^claude/i.test(name);
 }
 
 /** The origins a widget may reach: `connectDomains` for fetch, `resourceDomains` for images and fonts. */

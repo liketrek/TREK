@@ -63,5 +63,9 @@ const mcpApps: TranslationStrings = {
   'mcpApps.dayPlan.moveUp': 'Mou amunt',
   'mcpApps.dayPlan.moveDown': 'Mou avall',
   'mcpApps.dayPlan.reorderError': 'No s’ha pogut canviar l’ordre. Torna-ho a provar.',
+  'mcpApps.polls.title': 'Enquestes',
+  'mcpApps.polls.empty': 'Encara no hi ha enquestes',
+  'mcpApps.polls.closed': 'Tancada',
+  'mcpApps.polls.voteError': 'No s’ha pogut desar el vot. Torna-ho a provar.',
 };
 export default mcpApps;

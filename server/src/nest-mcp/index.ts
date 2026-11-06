@@ -20,7 +20,7 @@ export { McpRegistryService } from './mcp-registry.service';
 export { McpModule } from './mcp.module';
 export { createLocalMcpServer, McpRegistry, type McpRegistryOptions } from './registry';
 export { createTestRegistry } from './testing';
-export { MCP_APP_MIME_TYPE, uiResource, uiTool } from './ui-meta';
+export { appCallable, claudeUiDomain, isClaudeClient, MCP_APP_MIME_TYPE, uiResource, uiTool } from './ui-meta';
 export {
   type McpAccess,
   type McpAccessGroup,

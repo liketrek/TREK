@@ -32,6 +32,8 @@
 
 body {
   margin: 0;
+  /* The host's safe area on a phone (notch, home bar), set by useTrekApp; 0 elsewhere. */
+  padding: var(--trek-safe-top, 0) var(--trek-safe-right, 0) var(--trek-safe-bottom, 0) var(--trek-safe-left, 0);
   background: var(--trek-bg);
   color: var(--trek-text);
   font-family: var(--trek-font);

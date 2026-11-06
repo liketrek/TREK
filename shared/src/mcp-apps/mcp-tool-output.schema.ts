@@ -1,5 +1,5 @@
 import { budgetItemsPageSchema } from '../budget/budget.schema';
-import { collabPollsResponseSchema } from '../collab/collab.schema';
+import { collabPollResponseSchema, collabPollsResponseSchema } from '../collab/collab.schema';
 import { dayNoteSchema, daySchema } from '../day/day.schema';
 import { mapsAutocompleteResultSchema, mapsSearchResultSchema } from '../maps/maps.schema';
 import { tripPhotoSchema } from '../memories/memories.schema';
@@ -133,6 +133,10 @@ export type SearchPlaceOutput = z.infer<typeof searchPlaceOutputSchema>;
 /** `list_collab_polls`: the trip's polls with their options and voters. */
 export const listCollabPollsOutputSchema = looseOutput(collabPollsResponseSchema);
 export type ListCollabPollsOutput = z.infer<typeof listCollabPollsOutputSchema>;
+
+/** `vote_collab_poll`: the poll as it stands after the vote, which the poll view reads back. */
+export const votedPollOutputSchema = looseOutput(collabPollResponseSchema);
+export type VotedPollOutput = z.infer<typeof votedPollOutputSchema>;
 
 /**
  * A planned leg as propose_paddle_route and propose_ski_route summarise it:

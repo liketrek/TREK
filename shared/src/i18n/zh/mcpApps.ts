@@ -63,5 +63,9 @@ const mcpApps: TranslationStrings = {
   'mcpApps.dayPlan.moveUp': '上移',
   'mcpApps.dayPlan.moveDown': '下移',
   'mcpApps.dayPlan.reorderError': '无法更改顺序，请重试。',
+  'mcpApps.polls.title': '投票',
+  'mcpApps.polls.empty': '还没有投票',
+  'mcpApps.polls.closed': '已关闭',
+  'mcpApps.polls.voteError': '无法保存你的投票，请重试。',
 };
 export default mcpApps;

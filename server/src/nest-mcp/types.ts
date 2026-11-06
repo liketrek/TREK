@@ -24,6 +24,12 @@ export interface McpContext {
   userId: number;
   scopes: string[] | null;
   isStaticToken: boolean;
+  /**
+   * The host's own name from its initialize (`clientInfo.name`: "claude-ai",
+   * "chatgpt", an IDE), or null before the handshake or outside a transport.
+   * A function, since the session is built before the client introduces itself.
+   */
+  client?: () => string | null;
 }
 
 /**

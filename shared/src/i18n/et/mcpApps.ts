@@ -63,5 +63,9 @@ const mcpApps: TranslationStrings = {
   'mcpApps.dayPlan.moveUp': 'Liiguta üles',
   'mcpApps.dayPlan.moveDown': 'Liiguta alla',
   'mcpApps.dayPlan.reorderError': 'Järjekorda ei õnnestunud muuta. Proovi uuesti.',
+  'mcpApps.polls.title': 'Küsitlused',
+  'mcpApps.polls.empty': 'Küsitlusi pole veel',
+  'mcpApps.polls.closed': 'Suletud',
+  'mcpApps.polls.voteError': 'Häält ei õnnestunud salvestada. Proovi uuesti.',
 };
 export default mcpApps;

@@ -4,6 +4,9 @@
  * where the reference SDK puts them.
  */
 import {
+  appCallable,
+  claudeUiDomain,
+  isClaudeClient,
   MCP_APP_EXTENSION_ID,
   MCP_APP_MIME_TYPE,
   uiResource,
@@ -18,6 +21,7 @@ import {
   registerAppTool,
 } from '@modelcontextprotocol/ext-apps/server';
 
+import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 
 const URI = 'ui://trek/trip-list.html';
@@ -102,5 +106,27 @@ describe('withoutUiMeta', () => {
     expect(withoutUiMeta(undefined)).toBeUndefined();
     expect(withoutUiMeta(uiTool(URI, { invoking: 'x' }))).toBeUndefined();
     expect(withoutUiMeta({ ...uiTool(URI), 'trek/other': 1 })).toEqual({ 'trek/other': 1 });
+  });
+});
+
+describe('host polish', () => {
+  it('UIMETA-007: lets a widget call a tool without pointing the tool at a view', () => {
+    expect(appCallable()).toEqual({ ui: { visibility: ['model', 'app'] }, 'openai/widgetAccessible': true });
+    expect(withoutUiMeta(appCallable())).toBeUndefined();
+  });
+
+  it('UIMETA-008: derives Claude’s sandbox domain from the exact server URL', () => {
+    const url = 'https://trek.example/mcp';
+    const hash = createHash('sha256').update(url).digest('hex');
+    expect(claudeUiDomain(url)).toBe(`${hash.slice(0, 32)}.claudemcpcontent.com`);
+    expect(claudeUiDomain(url)).toMatch(/^[0-9a-f]{32}\.claudemcpcontent\.com$/);
+    expect(claudeUiDomain('https://trek.example/mcp/')).not.toBe(claudeUiDomain(url));
+  });
+
+  it('UIMETA-009: knows Claude’s clients by name', () => {
+    expect(isClaudeClient('claude-ai')).toBe(true);
+    expect(isClaudeClient('Claude Desktop')).toBe(true);
+    expect(isClaudeClient('chatgpt')).toBe(false);
+    expect(isClaudeClient(null)).toBe(false);
   });
 });

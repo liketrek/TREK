@@ -346,6 +346,7 @@ Hosts that support MCP Apps read these to draw a tool's answer as an interactive
 | `ui://trek/todos.html` | `todos:read` | `list_todos` |
 | `ui://trek/trip-map.html` | `places:read` | `get_trip_map` |
 | `ui://trek/day-plan.html` | `trips:read` | `get_day_plan` |
+| `ui://trek/poll.html` | `collab:read` | `list_collab_polls` |
 
 ---
 

@@ -1,0 +1,39 @@
+import { useTrekApp } from '../../lib/useTrekApp';
+import { WidgetState } from '../../lib/WidgetState';
+import { votedPoll } from './pollModel';
+import { Polls } from './Polls';
+
+/**
+ * The poll widget: list_collab_polls' polls, voted on through vote_collab_poll
+ * on the host's own session. The question and options are other travellers'
+ * words; they are only shown, never sent anywhere in the reader's name.
+ */
+export function App() {
+  const state = useTrekApp('poll');
+  const { app, locale, t } = state;
+  return (
+    <WidgetState state={state}>
+      {(result) => (
+        <Polls
+          data={result.structuredContent}
+          locale={locale}
+          t={t}
+          onVote={async (poll, optionIndex) => {
+            if (!app) return null;
+            try {
+              const answer = await app.callServerTool({
+                name: 'vote_collab_poll',
+                arguments: { tripId: poll.trip_id, pollId: poll.id, optionIndex },
+              });
+              if (answer.isError) return null;
+              const text = answer.content.find((block) => block.type === 'text');
+              return votedPoll(text?.type === 'text' ? text.text : undefined);
+            } catch {
+              return null;
+            }
+          }}
+        />
+      )}
+    </WidgetState>
+  );
+}

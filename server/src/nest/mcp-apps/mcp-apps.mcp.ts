@@ -1,5 +1,13 @@
-import { getAppUrl } from '../../app-config';
-import { McpController, MCP_APP_MIME_TYPE, Resource, uiResource, type McpContext } from '../../nest-mcp';
+import { getAppUrl, getMcpSafeUrl } from '../../app-config';
+import {
+  claudeUiDomain,
+  isClaudeClient,
+  McpController,
+  MCP_APP_MIME_TYPE,
+  Resource,
+  uiResource,
+  type McpContext,
+} from '../../nest-mcp';
 import { tileOrigin } from './map-tiles.helpers';
 import { McpAppsService } from './mcp-apps.service';
 import { mcpAppUri, type McpAppWidget } from '@trek/shared';
@@ -7,6 +15,19 @@ import { mcpAppUri, type McpAppWidget } from '@trek/shared';
 /** A widget resource is listed only while its view may be offered (see McpAppsService.available). */
 const offered = (widget: McpAppWidget) => (_ctx: McpContext, self: object) =>
   (self as McpAppsMcp).apps.available(widget);
+
+/**
+ * The dedicated sandbox origin Claude draws this server's views in, for a
+ * Claude client only and only while APP_URL is an address the MCP SDK accepts
+ * as it is: Claude derives the origin from the exact server URL, so a domain
+ * computed from a fallback address would not match and the view would fail.
+ */
+export function sandboxDomain(ctx: McpContext): string | undefined {
+  if (!isClaudeClient(ctx.client?.())) return undefined;
+  const appUrl = getAppUrl().replace(/\/+$/, '');
+  if (getMcpSafeUrl().replace(/\/+$/, '') !== appUrl || !appUrl.startsWith('https://')) return undefined;
+  return claudeUiDomain(`${appUrl}/mcp`);
+}
 
 /**
  * The widget documents, one `ui://` resource each. A widget reaches nothing on
@@ -19,14 +40,18 @@ export class McpAppsMcp {
   constructor(readonly apps: McpAppsService) {}
 
   /** The widget's document, allowed to load images from this install and from the given origins. */
-  private read(uri: URL, widget: McpAppWidget, imageOrigins: string[] = []) {
+  private read(uri: URL, widget: McpAppWidget, ctx: McpContext, imageOrigins: string[] = []) {
     return {
       contents: [
         {
           uri: uri.href,
           mimeType: MCP_APP_MIME_TYPE,
           text: this.apps.html(widget) ?? '',
-          _meta: uiResource({ csp: { resourceDomains: [getAppUrl(), ...imageOrigins] }, prefersBorder: true }),
+          _meta: uiResource({
+            csp: { resourceDomains: [getAppUrl(), ...imageOrigins] },
+            prefersBorder: true,
+            domain: sandboxDomain(ctx),
+          }),
         },
       ],
     };
@@ -42,8 +67,8 @@ export class McpAppsMcp {
     when: offered('trip-list'),
     access: { group: 'trips', mode: 'read' },
   })
-  async tripListWidget(uri: URL) {
-    return this.read(uri, 'trip-list');
+  async tripListWidget(uri: URL, ctx: McpContext) {
+    return this.read(uri, 'trip-list', ctx);
   }
 
   @Resource({
@@ -56,8 +81,8 @@ export class McpAppsMcp {
     when: offered('trip-overview'),
     access: { group: 'trips', mode: 'read' },
   })
-  async tripOverviewWidget(uri: URL) {
-    return this.read(uri, 'trip-overview');
+  async tripOverviewWidget(uri: URL, ctx: McpContext) {
+    return this.read(uri, 'trip-overview', ctx);
   }
 
   @Resource({
@@ -70,8 +95,8 @@ export class McpAppsMcp {
     when: offered('packing'),
     access: { group: 'packing', mode: 'read' },
   })
-  async packingWidget(uri: URL) {
-    return this.read(uri, 'packing');
+  async packingWidget(uri: URL, ctx: McpContext) {
+    return this.read(uri, 'packing', ctx);
   }
 
   @Resource({
@@ -84,8 +109,8 @@ export class McpAppsMcp {
     when: offered('weather'),
     access: { group: 'weather', mode: 'read' },
   })
-  async weatherWidget(uri: URL) {
-    return this.read(uri, 'weather');
+  async weatherWidget(uri: URL, ctx: McpContext) {
+    return this.read(uri, 'weather', ctx);
   }
 
   @Resource({
@@ -98,8 +123,8 @@ export class McpAppsMcp {
     when: offered('place-results'),
     access: { group: 'places', mode: 'read' },
   })
-  async placeResultsWidget(uri: URL) {
-    return this.read(uri, 'place-results');
+  async placeResultsWidget(uri: URL, ctx: McpContext) {
+    return this.read(uri, 'place-results', ctx);
   }
 
   @Resource({
@@ -112,8 +137,8 @@ export class McpAppsMcp {
     when: offered('budget'),
     access: { group: 'budget', mode: 'read' },
   })
-  async budgetWidget(uri: URL) {
-    return this.read(uri, 'budget');
+  async budgetWidget(uri: URL, ctx: McpContext) {
+    return this.read(uri, 'budget', ctx);
   }
 
   @Resource({
@@ -126,8 +151,8 @@ export class McpAppsMcp {
     when: offered('todos'),
     access: { group: 'todos', mode: 'read' },
   })
-  async todosWidget(uri: URL) {
-    return this.read(uri, 'todos');
+  async todosWidget(uri: URL, ctx: McpContext) {
+    return this.read(uri, 'todos', ctx);
   }
 
   @Resource({
@@ -141,7 +166,7 @@ export class McpAppsMcp {
     access: { group: 'places', mode: 'read' },
   })
   async tripMapWidget(uri: URL, ctx: McpContext) {
-    return this.read(uri, 'trip-map', [tileOrigin(await this.apps.mapTiles(ctx.userId))]);
+    return this.read(uri, 'trip-map', ctx, [tileOrigin(await this.apps.mapTiles(ctx.userId))]);
   }
 
   @Resource({
@@ -154,7 +179,21 @@ export class McpAppsMcp {
     when: offered('day-plan'),
     access: { group: 'trips', mode: 'read' },
   })
-  async dayPlanWidget(uri: URL) {
-    return this.read(uri, 'day-plan');
+  async dayPlanWidget(uri: URL, ctx: McpContext) {
+    return this.read(uri, 'day-plan', ctx);
+  }
+
+  @Resource({
+    name: 'widget-poll',
+    title: 'Poll view',
+    uri: mcpAppUri('poll'),
+    description: 'The polls list_collab_polls draws, with their results.',
+    mimeType: MCP_APP_MIME_TYPE,
+    _meta: uiResource({ prefersBorder: true }),
+    when: offered('poll'),
+    access: { group: 'collab', mode: 'read' },
+  })
+  async pollWidget(uri: URL, ctx: McpContext) {
+    return this.read(uri, 'poll', ctx);
   }
 }

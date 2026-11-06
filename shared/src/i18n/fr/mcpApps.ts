@@ -63,5 +63,9 @@ const mcpApps: TranslationStrings = {
   'mcpApps.dayPlan.moveUp': 'Monter',
   'mcpApps.dayPlan.moveDown': 'Descendre',
   'mcpApps.dayPlan.reorderError': 'Impossible de changer l’ordre. Réessayez.',
+  'mcpApps.polls.title': 'Sondages',
+  'mcpApps.polls.empty': 'Aucun sondage pour l’instant',
+  'mcpApps.polls.closed': 'Clos',
+  'mcpApps.polls.voteError': 'Impossible d’enregistrer votre vote. Réessayez.',
 };
 export default mcpApps;

@@ -63,5 +63,9 @@ const mcpApps: TranslationStrings = {
   'mcpApps.dayPlan.moveUp': 'Pindah ke atas',
   'mcpApps.dayPlan.moveDown': 'Pindah ke bawah',
   'mcpApps.dayPlan.reorderError': 'Urutan tidak dapat diubah. Coba lagi.',
+  'mcpApps.polls.title': 'Jajak pendapat',
+  'mcpApps.polls.empty': 'Belum ada jajak pendapat',
+  'mcpApps.polls.closed': 'Ditutup',
+  'mcpApps.polls.voteError': 'Suara Anda tidak dapat disimpan. Coba lagi.',
 };
 export default mcpApps;

@@ -13,6 +13,7 @@ import {
   ok,
   okStructured,
   uiTool,
+  appCallable,
 } from '../../nest-mcp';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
@@ -208,6 +209,7 @@ export class TodoMcp {
       itemId: idSchema,
       checked: z.boolean().describe('True to mark done, false to uncheck'),
     },
+    _meta: appCallable(),
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: packingAddonOn,
     access: { group: 'todos', mode: 'write' },

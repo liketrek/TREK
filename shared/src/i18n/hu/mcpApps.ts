@@ -63,5 +63,9 @@ const mcpApps: TranslationStrings = {
   'mcpApps.dayPlan.moveUp': 'Feljebb',
   'mcpApps.dayPlan.moveDown': 'Lejjebb',
   'mcpApps.dayPlan.reorderError': 'A sorrendet nem sikerült módosítani. Próbáld újra.',
+  'mcpApps.polls.title': 'Szavazások',
+  'mcpApps.polls.empty': 'Még nincs szavazás',
+  'mcpApps.polls.closed': 'Lezárva',
+  'mcpApps.polls.voteError': 'A szavazatot nem sikerült menteni. Próbáld újra.',
 };
 export default mcpApps;

@@ -63,5 +63,9 @@ const mcpApps: TranslationStrings = {
   'mcpApps.dayPlan.moveUp': 'Omhoog',
   'mcpApps.dayPlan.moveDown': 'Omlaag',
   'mcpApps.dayPlan.reorderError': 'De volgorde kon niet worden gewijzigd. Probeer het opnieuw.',
+  'mcpApps.polls.title': 'Peilingen',
+  'mcpApps.polls.empty': 'Nog geen peilingen',
+  'mcpApps.polls.closed': 'Gesloten',
+  'mcpApps.polls.voteError': 'Je stem kon niet worden opgeslagen. Probeer het opnieuw.',
 };
 export default mcpApps;

@@ -63,5 +63,9 @@ const mcpApps: TranslationStrings = {
   'mcpApps.dayPlan.moveUp': 'Yuxarı apar',
   'mcpApps.dayPlan.moveDown': 'Aşağı apar',
   'mcpApps.dayPlan.reorderError': 'Sıra dəyişdirilmədi. Yenidən cəhd edin.',
+  'mcpApps.polls.title': 'Sorğular',
+  'mcpApps.polls.empty': 'Hələ sorğu yoxdur',
+  'mcpApps.polls.closed': 'Bağlıdır',
+  'mcpApps.polls.voteError': 'Səsiniz saxlanmadı. Yenidən cəhd edin.',
 };
 export default mcpApps;
