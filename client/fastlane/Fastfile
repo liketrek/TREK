@@ -18,6 +18,14 @@ default_platform(:ios)
 APP_IDENTIFIER = "com.liketrek.trek"
 PROJECT = "ios/App/App.xcodeproj"
 
+# Every signed target with its bundle identifier: the app and its extensions
+# (ios/scripts/add-extension.rb put them in the project). Each gets its own App
+# Store profile, created or reused through the API key like the app's.
+SIGNED_TARGETS = {
+  "App" => APP_IDENTIFIER,
+  "NotificationService" => "com.liketrek.trek.notifications",
+}
+
 platform :ios do
   desc "Build the signed Release app and upload it to TestFlight (internal testing)."
   lane :beta do
@@ -54,23 +62,27 @@ platform :ios do
       keychain_path: keychain_path,
       keychain_password: keychain_password,
     )
-    get_provisioning_profile(
-      api_key: key,
-      app_identifier: APP_IDENTIFIER,
-      development: false,
-    )
+    profiles = {}
+    SIGNED_TARGETS.each do |target, identifier|
+      get_provisioning_profile(
+        api_key: key,
+        app_identifier: identifier,
+        development: false,
+      )
+      profiles[identifier] = lane_context[SharedValues::SIGH_NAME]
 
-    # Pin the project to that profile for this build; automatic signing stays the default
-    # a developer sees when they open the project in Xcode.
-    update_code_signing_settings(
-      path: PROJECT,
-      use_automatic_signing: false,
-      team_id: ENV.fetch("APPLE_TEAM_ID"),
-      code_sign_identity: "Apple Distribution",
-      bundle_identifier: APP_IDENTIFIER,
-      profile_name: lane_context[SharedValues::SIGH_NAME],
-      targets: ["App"],
-    )
+      # Pin each target to its profile for this build; automatic signing stays the
+      # default a developer sees when they open the project in Xcode.
+      update_code_signing_settings(
+        path: PROJECT,
+        use_automatic_signing: false,
+        team_id: ENV.fetch("APPLE_TEAM_ID"),
+        code_sign_identity: "Apple Distribution",
+        bundle_identifier: identifier,
+        profile_name: profiles[identifier],
+        targets: [target],
+      )
+    end
 
     build_app(
       project: PROJECT,
@@ -84,7 +96,7 @@ platform :ios do
       ].join(" "),
       export_options: {
         signingStyle: "manual",
-        provisioningProfiles: { APP_IDENTIFIER => lane_context[SharedValues::SIGH_NAME] },
+        provisioningProfiles: profiles,
       },
     )
 
