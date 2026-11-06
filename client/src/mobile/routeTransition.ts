@@ -44,13 +44,19 @@ function canAnimate(): boolean {
   );
 }
 
-/** Resolves once no route fallback is on screen, or after SETTLE_MS. */
+/**
+ * Resolves once no route fallback is on screen, or after SETTLE_MS. Polled with
+ * a timer, never requestAnimationFrame: while a view transition waits for its
+ * update, the browser renders no frames, so a frame callback never came and the
+ * transition hung until the browser gave up after four seconds, on every
+ * navigation.
+ */
 function settled(): Promise<void> {
   const began = performance.now();
   return new Promise((resolve) => {
     const check = () => {
       if (!document.querySelector('[data-route-fallback]') || performance.now() - began > SETTLE_MS) resolve();
-      else requestAnimationFrame(check);
+      else window.setTimeout(check, 16);
     };
     check();
   });
