@@ -65,6 +65,8 @@
   --grid: rgba(255, 255, 255, 0.055);
   --wash-1: rgba(129, 140, 248, 0.12);
   --wash-2: rgba(244, 114, 182, 0.08);
+  --veil-top: rgba(9, 9, 11, 0.4);
+  --veil-mid: rgba(9, 9, 11, 0.72);
   --font: 'Poppins', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, system-ui, sans-serif;
   --radius: 16px;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
@@ -87,9 +89,11 @@
     --accent-ink: #ffffff;
     --danger: #dc2626;
     --ok: #16a34a;
-    --grid: rgba(0, 0, 0, 0.045);
-    --wash-1: rgba(79, 70, 229, 0.07);
-    --wash-2: rgba(219, 39, 119, 0.05);
+    --grid: rgba(17, 24, 39, 0.075);
+    --wash-1: rgba(79, 70, 229, 0.1);
+    --wash-2: rgba(219, 39, 119, 0.07);
+    --veil-top: rgba(255, 255, 255, 0.12);
+    --veil-mid: rgba(255, 255, 255, 0.74);
     color-scheme: light;
   }
   .shell-logo,
@@ -148,25 +152,20 @@ body::before {
  */
 /* The travel photo (Kyoto at dusk, as on liketrek.com), anchored left and faded
    out toward the right so it hands over to the grid, and down into the page.
-   Dark-first; a dark photo over a white page reads badly, so light mode drops it
-   and keeps the grid alone. */
+   The veil over it takes the scheme's page colour: a dark dusk in dark mode, a
+   bright morning haze in light mode, so the black wordmark still reads on it. */
 body::after {
   content: '';
   position: fixed;
   inset: 0 0 auto;
   height: 440px;
   background:
-    linear-gradient(180deg, rgba(9, 9, 11, 0.4) 0%, rgba(9, 9, 11, 0.72) 62%, var(--bg) 100%),
+    linear-gradient(180deg, var(--veil-top) 0%, var(--veil-mid) 62%, var(--bg) 100%),
     url('./img/kyoto.webp') left 28% / cover no-repeat;
   -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 40%, transparent 80%);
   mask-image: linear-gradient(90deg, #000 0%, #000 40%, transparent 80%);
   pointer-events: none;
   z-index: 0;
-}
-@media (prefers-color-scheme: light) {
-  body::after {
-    display: none;
-  }
 }
 
 .shell {
