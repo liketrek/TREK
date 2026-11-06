@@ -15,7 +15,7 @@ import { fmtDays } from '../../../components/Vacay/vacayFormat'
 
 /** The company-holiday tint the calendar cells use (vacayDayModel). */
 const COMPANY_COLOR = '#F5D9A6' // theme-lint-disable: the cells' fixed company-day tint
-const GLASS_PILL_BUTTON = 'inline-flex h-8 flex-none items-center gap-2 rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-3 text-[0.75rem] font-bold text-m-ink backdrop-blur-[24px] backdrop-saturate-[1.7] transition-transform active:scale-[.97]'
+const GLASS_PILL_BUTTON = 'inline-flex h-8 min-w-0 flex-1 basis-0 items-center justify-center gap-2 rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-3 text-[0.75rem] font-bold text-m-ink backdrop-blur-[24px] backdrop-saturate-[1.7] transition-transform active:scale-[.97]'
 const SHEET_ROW = 'flex items-center gap-3 rounded-[16px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-4 py-3 text-start text-[0.875rem] font-bold transition-transform active:scale-[.98]'
 
 const WEEKDAY_KEYS_MONDAY = ['vacay.mon', 'vacay.tue', 'vacay.wed', 'vacay.thu', 'vacay.fri', 'vacay.sat', 'vacay.sun'] as const
@@ -165,7 +165,7 @@ export default function MVacay() {
                 type="button"
                 onClick={() => v.setSheet('legend')}
                 aria-haspopup="dialog"
-                className={`${GLASS_PILL_BUTTON} ms-auto`}
+                className={GLASS_PILL_BUTTON}
               >
                 <span className="flex gap-[3px]">
                   {legendItems.slice(0, 3).map(item => (
