@@ -30,6 +30,19 @@ Claude Desktop supports native MCP connections — no JSON config file required:
 3. Give the client a name, adjust scopes if needed, and save. Copy the client ID and client secret — the secret is shown only once.
 4. In Claude Desktop, open Settings → MCP and add a new server using your TREK URL (`https://<your-trek-instance>/mcp`). Claude Desktop will open your browser to complete the OAuth consent flow.
 
+### ChatGPT
+
+ChatGPT connects to remote MCP servers as a connector (an app in developer mode):
+
+1. In TREK, go to your **Settings → Integrations → MCP Configuration → OAuth 2.1 Clients** and click **New Client**.
+2. Select the **ChatGPT** preset. This fills in the redirect URI (`https://chatgpt.com/connector_platform_oauth_redirect`) and the core scope set.
+3. Give the client a name, adjust scopes if needed, and save. Copy the client ID and client secret — the secret is shown only once.
+4. In ChatGPT, turn on developer mode (**Settings → Apps & Connectors → Advanced**), create a connector with your TREK URL (`https://<your-trek-instance>/mcp`), choose OAuth and paste the client ID and secret. ChatGPT opens your browser for the consent step.
+
+ChatGPT can also register itself (dynamic client registration); then skip steps 1 to 3. Read tools answer with `structuredContent` next to the text, which ChatGPT uses as is.
+
+> **Behind Cloudflare?** Bot Fight Mode blocks ChatGPT's requests to `/mcp` while Claude's pass. See [Troubleshooting → MCP requests blocked by Cloudflare WAF](Troubleshooting#mcp-requests-blocked-by-cloudflare-waf-bot-fight-mode).
+
 ### Cursor, VS Code, Windsurf, and Zed
 
 Clients that support `mcp-remote` can connect in one of two ways.
@@ -80,7 +93,7 @@ TREK answers the discovery documents both at the origin (`/.well-known/oauth-aut
 
 ### Redirect URI
 
-The redirect URI belongs to **your client, not to TREK**: it is the address the client wants the browser sent back to, so it is never your TREK URL and never `/mcp`. Open WebUI, for example, uses `{your Open WebUI URL}/oauth/clients/mcp:{ID}/callback`, where `{ID}` is the ID of the tool server connection with `mcp:` put in front of it (matched exactly, capitals included), the Claude clients use their own callbacks, and the editors use `http://localhost`. When the client supports dynamic registration, let it register itself and the URI is filled in for you. A mismatch shows up at the consent step as `invalid_request: Unregistered redirect_uri`.
+The redirect URI belongs to **your client, not to TREK**: it is the address the client wants the browser sent back to, so it is never your TREK URL and never `/mcp`. Open WebUI, for example, uses `{your Open WebUI URL}/oauth/clients/mcp:{ID}/callback`, where `{ID}` is the ID of the tool server connection with `mcp:` put in front of it (matched exactly, capitals included), the Claude clients and ChatGPT use their own callbacks, and the editors use `http://localhost`. When the client supports dynamic registration, let it register itself and the URI is filled in for you. A mismatch shows up at the consent step as `invalid_request: Unregistered redirect_uri`.
 
 TREK accepts `https://` URIs, plain HTTP only on `localhost` or `127.0.0.1`, and private custom schemes such as `myapp://callback`. A client running on a LAN address over plain HTTP is refused for that reason; put it behind HTTPS.
 
@@ -92,7 +105,7 @@ Your **Settings → Integrations → MCP Configuration → OAuth 2.1 Clients** p
 
 - A fixed, named scope list defined up front
 - A client secret (`trekcs_` prefix, shown once) for confidential client mode
-- **Quick presets** for Claude.ai, Claude Desktop, Cursor, VS Code, Windsurf, and Zed that fill in the correct redirect URIs and a sensible default scope set
+- **Quick presets** for Claude.ai, Claude Desktop, ChatGPT, Cursor, VS Code, Windsurf, and Zed that fill in the correct redirect URIs and a sensible default scope set
 
 Each user can have up to **10 OAuth clients**.
 
