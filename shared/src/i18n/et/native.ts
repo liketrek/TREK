@@ -72,6 +72,9 @@ const native: TranslationStrings = {
   'native.provisioning.failedTitle': 'Peaaegu valmis',
   'native.provisioning.failedSub': 'Sinu TREK on teel. Proovi hetke pärast uuesti või ava rakendus hiljem.',
   'native.provisioning.retry': 'Proovi nüüd',
+  'native.update.title': 'Uuenda TREK-i rakendust',
+  'native.update.body': 'See server vajab kõige toimimiseks rakenduse uuemat versiooni.',
+  'native.update.open': 'Uuenda',
 };
 
 export default native;

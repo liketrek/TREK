@@ -71,6 +71,9 @@ const native: TranslationStrings = {
   'native.provisioning.failedTitle': '即將就緒',
   'native.provisioning.failedSub': '你的 TREK 即將就緒。請稍後重試，或稍後開啟應用程式。',
   'native.provisioning.retry': '立即重試',
+  'native.update.title': '請更新 TREK 應用程式',
+  'native.update.body': '此伺服器需要較新版本的應用程式才能正常使用所有功能。',
+  'native.update.open': '更新',
 };
 
 export default native;

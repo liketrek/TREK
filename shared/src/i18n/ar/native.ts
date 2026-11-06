@@ -71,6 +71,9 @@ const native: TranslationStrings = {
   'native.provisioning.failedTitle': 'شارف على الجهوزية',
   'native.provisioning.failedSub': 'TREK الخاص بك في الطريق. حاول مرة أخرى بعد قليل، أو افتح التطبيق لاحقًا.',
   'native.provisioning.retry': 'حاول الآن',
+  'native.update.title': 'حدّث تطبيق TREK',
+  'native.update.body': 'يحتاج هذا الخادم إلى إصدار أحدث من التطبيق ليعمل كل شيء.',
+  'native.update.open': 'تحديث',
 };
 
 export default native;

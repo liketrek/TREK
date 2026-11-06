@@ -4,6 +4,7 @@ import { SplashScreen } from '@capacitor/splash-screen';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { isEffectivelyOffline } from '../sync/networkMode';
+import { checkAppUpdate } from './capabilities';
 import { startNativeApp } from './nativeApp';
 import { keepOfflineShellFresh } from './offlineShell';
 import { isNativeApp, isNativeIos } from './platform';
@@ -15,6 +16,7 @@ vi.mock('@capacitor/status-bar', () => ({ StatusBar: { setStyle: vi.fn() }, Styl
 vi.mock('./platform', () => ({ isNativeApp: vi.fn(), isNativeIos: vi.fn() }));
 vi.mock('./offlineShell', () => ({ keepOfflineShellFresh: vi.fn() }));
 vi.mock('../sync/networkMode', () => ({ isEffectivelyOffline: vi.fn() }));
+vi.mock('./capabilities', () => ({ checkAppUpdate: vi.fn(async () => false) }));
 
 function backButtonHandler(): (event: { canGoBack: boolean }) => void {
   const call = vi.mocked(App.addListener).mock.calls.find(([name]) => name === 'backButton');
@@ -42,6 +44,11 @@ describe('startNativeApp', () => {
     startNativeApp();
     expect(App.addListener).not.toHaveBeenCalled();
     expect(StatusBar.setStyle).not.toHaveBeenCalled();
+  });
+
+  it('asks the binary what it can do and the server which binary it needs', () => {
+    startNativeApp();
+    expect(checkAppUpdate).toHaveBeenCalledWith(expect.any(Function));
   });
 
   it('hides the splash after the first frame', () => {

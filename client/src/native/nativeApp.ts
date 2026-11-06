@@ -3,6 +3,7 @@ import { Keyboard } from '@capacitor/keyboard';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { isEffectivelyOffline } from '../sync/networkMode';
+import { checkAppUpdate } from './capabilities';
 import { keepOfflineShellFresh } from './offlineShell';
 import { isNativeApp, isNativeIos } from './platform';
 import { reportNativeFailure } from './reportFailure';
@@ -19,6 +20,9 @@ export function startNativeApp(): void {
   if (!isNativeApp()) return;
 
   followThemeInStatusBar();
+
+  // What this binary can do, and whether this server's UI needs a newer one.
+  void checkAppUpdate(fetchServerFeatures);
 
   // Android's back gesture: through the app's own history first, and only
   // then out of the app, the way a browser tab would behave.
@@ -57,4 +61,11 @@ function followThemeInStatusBar(): void {
   };
   apply();
   new MutationObserver(apply).observe(root, { attributes: true, attributeFilter: ['class'] });
+}
+
+/** The server's feature flags, bounded so a slow server cannot hold anything up. */
+async function fetchServerFeatures(): Promise<{ minNativeShellApi?: unknown }> {
+  const res = await fetch('/api/health/features', { credentials: 'same-origin', signal: AbortSignal.timeout(8000) });
+  if (!res.ok) return {};
+  return (await res.json()) as { minNativeShellApi?: unknown };
 }

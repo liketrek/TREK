@@ -1,4 +1,5 @@
 import { registerPlugin } from '@capacitor/core';
+import type { NativeCapabilities } from './capabilities';
 
 /**
  * The app's own native plugin, implemented in
@@ -29,6 +30,8 @@ export interface TrekShellPlugin {
   refreshOfflineCopy(): Promise<{ saved: boolean }>;
   /** iOS: loads that copy under the server's origin. False when there is none. */
   openOfflineCopy(): Promise<{ opened: boolean }>;
+  /** What this binary offers the UI (native/capabilities.ts). Missing before shell API 2. */
+  getCapabilities(): Promise<NativeCapabilities>;
 }
 
 export const TrekShell = registerPlugin<TrekShellPlugin>('TrekShell');

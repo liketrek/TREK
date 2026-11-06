@@ -72,6 +72,9 @@ const native: TranslationStrings = {
   'native.provisioning.failedTitle': 'Demək olar ki hazırdır',
   'native.provisioning.failedSub': 'TREK-iniz yoldadır. Bir azdan yenidən cəhd edin və ya tətbiqi sonra açın.',
   'native.provisioning.retry': 'İndi cəhd edin',
+  'native.update.title': 'TREK tətbiqini yeniləyin',
+  'native.update.body': 'Hər şeyin işləməsi üçün bu server tətbiqin daha yeni versiyasını tələb edir.',
+  'native.update.open': 'Yenilə',
 };
 
 export default native;

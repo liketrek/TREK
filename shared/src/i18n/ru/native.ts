@@ -73,6 +73,9 @@ const native: TranslationStrings = {
   'native.provisioning.failedSub':
     'Ваш TREK уже в пути. Повторите попытку через мгновение или откройте приложение позже.',
   'native.provisioning.retry': 'Повторить сейчас',
+  'native.update.title': 'Обновите приложение TREK',
+  'native.update.body': 'Для полной работы этому серверу нужна более новая версия приложения.',
+  'native.update.open': 'Обновить',
 };
 
 export default native;

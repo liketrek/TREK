@@ -71,6 +71,9 @@ const native: TranslationStrings = {
   'native.provisioning.failedTitle': 'เกือบเสร็จแล้ว',
   'native.provisioning.failedSub': 'TREK ของคุณกำลังมา ลองอีกครั้งในอีกสักครู่ หรือเปิดแอปในภายหลัง',
   'native.provisioning.retry': 'ลองตอนนี้',
+  'native.update.title': 'อัปเดตแอป TREK',
+  'native.update.body': 'เซิร์ฟเวอร์นี้ต้องใช้แอปเวอร์ชันใหม่กว่าเพื่อให้ทุกอย่างทำงานได้',
+  'native.update.open': 'อัปเดต',
 };
 
 export default native;

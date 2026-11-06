@@ -72,6 +72,9 @@ const native: TranslationStrings = {
   'native.provisioning.failedTitle': 'Almost ready',
   'native.provisioning.failedSub': 'Your TREK is on its way. Try again in a moment, or open the app later.',
   'native.provisioning.retry': 'Try now',
+  'native.update.title': 'Update the TREK app',
+  'native.update.body': 'This server needs a newer version of the app for everything to work.',
+  'native.update.open': 'Update',
 };
 
 export default native;

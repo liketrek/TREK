@@ -38,6 +38,7 @@ describe('FeaturesController (GET /api/health/features)', () => {
       aiAssistant: true,
       nativeApp: true,
       nativeApi: 1,
+      minNativeShellApi: 1,
     });
   });
 
@@ -49,6 +50,7 @@ describe('FeaturesController (GET /api/health/features)', () => {
       aiAssistant: false,
       nativeApp: true,
       nativeApi: 1,
+      minNativeShellApi: 1,
     });
   });
 
@@ -59,6 +61,7 @@ describe('FeaturesController (GET /api/health/features)', () => {
       aiAssistant: false,
       nativeApp: true,
       nativeApi: 1,
+      minNativeShellApi: 1,
     });
     expect(await make(false, true).controller.features()).toEqual({
       bookingImport: false,
@@ -66,6 +69,7 @@ describe('FeaturesController (GET /api/health/features)', () => {
       aiAssistant: true,
       nativeApp: true,
       nativeApi: 1,
+      minNativeShellApi: 1,
     });
   });
 
@@ -91,6 +95,8 @@ describe('FeaturesController (GET /api/health/features)', () => {
     const features = await make(false, false).controller.features();
     expect(features.nativeApp).toBe(true);
     expect(features.nativeApi).toBe(1);
+    // And which app binaries its UI still works with.
+    expect(features.minNativeShellApi).toBe(1);
   });
 
   it('FEAT-005: bookingImport is read live, not cached at construction', async () => {

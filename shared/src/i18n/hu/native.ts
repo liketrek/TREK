@@ -74,6 +74,9 @@ const native: TranslationStrings = {
   'native.provisioning.failedSub':
     'A TREK-ed úton van. Próbáld újra egy pillanat múlva, vagy nyisd meg az appot később.',
   'native.provisioning.retry': 'Próbáld most',
+  'native.update.title': 'Frissítsd a TREK alkalmazást',
+  'native.update.body': 'Ehhez a szerverhez az alkalmazás újabb verziója kell, hogy minden működjön.',
+  'native.update.open': 'Frissítés',
 };
 
 export default native;

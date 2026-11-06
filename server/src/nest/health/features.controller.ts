@@ -70,6 +70,10 @@ export class FeaturesController {
       // routes, the shell bridge in the served UI). Raised only for a change an
       // older app cannot follow; the app refuses a server below its minimum.
       nativeApi: 1,
+      // The other way round: the oldest app binary this server's UI works with,
+      // as the shell API the app reports (TrekShell.getCapabilities). An app
+      // below it is asked to update instead of running native calls it lacks.
+      minNativeShellApi: 1,
     };
   }
 }

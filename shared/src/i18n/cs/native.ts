@@ -72,6 +72,9 @@ const native: TranslationStrings = {
   'native.provisioning.failedTitle': 'Téměř hotovo',
   'native.provisioning.failedSub': 'Váš TREK je na cestě. Zkuste to za chvíli znovu nebo otevřete aplikaci později.',
   'native.provisioning.retry': 'Zkusit teď',
+  'native.update.title': 'Aktualizujte aplikaci TREK',
+  'native.update.body': 'Tento server potřebuje novější verzi aplikace, aby vše fungovalo.',
+  'native.update.open': 'Aktualizovat',
 };
 
 export default native;

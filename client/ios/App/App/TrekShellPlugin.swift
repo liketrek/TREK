@@ -16,7 +16,26 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
         CAPPluginMethod(name: "authenticate", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "refreshOfflineCopy", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "openOfflineCopy", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getCapabilities", returnType: CAPPluginReturnPromise),
     ]
+
+    /// What this binary offers the server's UI, raised with every native feature
+    /// an older binary lacks. The UI asks before it calls (native/capabilities.ts),
+    /// and a server can require a minimum (minNativeShellApi in /api/health/features).
+    static let shellApi = 2
+    /// The native features by name, so the UI can turn each on by itself.
+    static let features: [String] = ["capabilities"]
+
+    @objc func getCapabilities(_ call: CAPPluginCall) {
+        let info = Bundle.main.infoDictionary
+        call.resolve([
+            "shellApi": TrekShellPlugin.shellApi,
+            "platform": "ios",
+            "appVersion": info?["CFBundleShortVersionString"] as? String ?? "",
+            "build": info?["CFBundleVersion"] as? String ?? "",
+            "features": TrekShellPlugin.features,
+        ])
+    }
 
     private var authSession: ASWebAuthenticationSession?
 

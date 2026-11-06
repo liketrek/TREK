@@ -73,6 +73,9 @@ const native: TranslationStrings = {
   'native.provisioning.failedTitle': 'Snart klart',
   'native.provisioning.failedSub': 'Din TREK är på väg. Försök igen om en stund eller öppna appen senare.',
   'native.provisioning.retry': 'Försök nu',
+  'native.update.title': 'Uppdatera TREK-appen',
+  'native.update.body': 'Den här servern behöver en nyare version av appen för att allt ska fungera.',
+  'native.update.open': 'Uppdatera',
 };
 
 export default native;

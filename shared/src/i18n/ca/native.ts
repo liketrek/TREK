@@ -72,6 +72,9 @@ const native: TranslationStrings = {
   'native.provisioning.failedTitle': 'Gairebé a punt',
   'native.provisioning.failedSub': 'El teu TREK està en camí. Torna-ho a provar en un moment o obre l’app més tard.',
   'native.provisioning.retry': 'Prova-ho ara',
+  'native.update.title': 'Actualitza l’app TREK',
+  'native.update.body': 'Aquest servidor necessita una versió més nova de l’app perquè tot funcioni.',
+  'native.update.open': 'Actualitza',
 };
 
 export default native;

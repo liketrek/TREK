@@ -71,6 +71,9 @@ const native: TranslationStrings = {
   'native.provisioning.failedTitle': '거의 준비됐어요',
   'native.provisioning.failedSub': 'TREK이 곧 준비됩니다. 잠시 후 다시 시도하거나 나중에 앱을 열어 보세요.',
   'native.provisioning.retry': '지금 시도',
+  'native.update.title': 'TREK 앱을 업데이트하세요',
+  'native.update.body': '모든 기능을 사용하려면 이 서버에 맞는 최신 앱 버전이 필요합니다.',
+  'native.update.open': '업데이트',
 };
 
 export default native;

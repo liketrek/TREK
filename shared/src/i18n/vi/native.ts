@@ -73,6 +73,9 @@ const native: TranslationStrings = {
   'native.provisioning.failedTitle': 'Gần xong',
   'native.provisioning.failedSub': 'TREK của bạn đang trên đường. Hãy thử lại sau giây lát, hoặc mở ứng dụng sau.',
   'native.provisioning.retry': 'Thử ngay',
+  'native.update.title': 'Cập nhật ứng dụng TREK',
+  'native.update.body': 'Máy chủ này cần phiên bản ứng dụng mới hơn để mọi thứ hoạt động.',
+  'native.update.open': 'Cập nhật',
 };
 
 export default native;

@@ -75,6 +75,9 @@ const native: TranslationStrings = {
   'native.provisioning.failedTitle': 'Σχεδόν έτοιμο',
   'native.provisioning.failedSub': 'Το TREK σας έρχεται. Δοκιμάστε ξανά σε λίγο ή ανοίξτε την εφαρμογή αργότερα.',
   'native.provisioning.retry': 'Δοκιμάστε τώρα',
+  'native.update.title': 'Ενημερώστε την εφαρμογή TREK',
+  'native.update.body': 'Αυτός ο διακομιστής χρειάζεται νεότερη έκδοση της εφαρμογής για να λειτουργούν όλα.',
+  'native.update.open': 'Ενημέρωση',
 };
 
 export default native;

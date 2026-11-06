@@ -24,6 +24,37 @@ public class TrekShellPlugin extends Plugin {
     private boolean authBrowserOpen;
     private final Handler handler = new Handler(Looper.getMainLooper());
 
+    /**
+     * What this binary offers the server's UI, raised with every native feature
+     * an older binary lacks. The UI asks before it calls (native/capabilities.ts),
+     * and a server can require a minimum (minNativeShellApi in /api/health/features).
+     */
+    static final int SHELL_API = 2;
+    /** The native features by name, so the UI can turn each on by itself. */
+    static final String[] FEATURES = { "capabilities" };
+
+    @PluginMethod
+    public void getCapabilities(PluginCall call) {
+        JSObject result = new JSObject();
+        result.put("shellApi", SHELL_API);
+        result.put("platform", "android");
+        String version = "";
+        String build = "";
+        try {
+            android.content.pm.PackageInfo info = getContext().getPackageManager().getPackageInfo(getContext().getPackageName(), 0);
+            version = info.versionName == null ? "" : info.versionName;
+            build = String.valueOf(androidx.core.content.pm.PackageInfoCompat.getLongVersionCode(info));
+        } catch (android.content.pm.PackageManager.NameNotFoundException ignored) {
+            // Our own package is always there; the fields simply stay empty.
+        }
+        result.put("appVersion", version);
+        result.put("build", build);
+        com.getcapacitor.JSArray features = new com.getcapacitor.JSArray();
+        for (String feature : FEATURES) features.put(feature);
+        result.put("features", features);
+        call.resolve(result);
+    }
+
     @PluginMethod
     public void getServer(PluginCall call) {
         String url = TrekServerStore.getUrl(getContext());

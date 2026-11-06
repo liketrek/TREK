@@ -73,6 +73,9 @@ const native: TranslationStrings = {
   'native.provisioning.failedSub':
     'TREK Anda sedang dalam perjalanan. Coba lagi sebentar lagi, atau buka aplikasi nanti.',
   'native.provisioning.retry': 'Coba sekarang',
+  'native.update.title': 'Perbarui aplikasi TREK',
+  'native.update.body': 'Server ini memerlukan versi aplikasi yang lebih baru agar semuanya berfungsi.',
+  'native.update.open': 'Perbarui',
 };
 
 export default native;
