@@ -17,9 +17,12 @@ export function useActivePill(
   /** The track, as a ref or as the element itself (a callback-ref'd rail). */
   trackRef: RefObject<HTMLElement | null> | HTMLElement | null,
   selector: string,
-  deps: DependencyList
+  deps: DependencyList,
+  /** Follow the item across rows too (a grid of chips): the pill then also takes
+   *  the item's top and height, and the caller leaves top/bottom unset. */
+  rows = false
 ): CSSProperties | null {
-  const [box, setBox] = useState<{ left: number; width: number; animate: boolean } | null>(null);
+  const [box, setBox] = useState<{ left: number; top: number; width: number; height: number; animate: boolean } | null>(null);
 
   useLayoutEffect(() => {
     const track = trackRef && 'current' in trackRef ? trackRef.current : trackRef;
@@ -30,7 +33,13 @@ export function useActivePill(
         setBox(null);
         return;
       }
-      setBox((prev) => ({ left: active.offsetLeft, width: active.offsetWidth, animate: prev !== null }));
+      setBox((prev) => ({
+        left: active.offsetLeft,
+        top: active.offsetTop,
+        width: active.offsetWidth,
+        height: active.offsetHeight,
+        animate: prev !== null,
+      }));
     };
     measure();
     if (typeof ResizeObserver === 'undefined') return;
@@ -42,9 +51,9 @@ export function useActivePill(
   }, deps);
 
   if (!box) return null;
-  return {
-    width: box.width,
-    transform: `translateX(${box.left}px)`,
-    transition: box.animate ? 'transform 320ms var(--ease-drawer), width 320ms var(--ease-drawer)' : 'none',
-  };
+  const transition = box.animate ? 'transform 320ms var(--ease-drawer), width 320ms var(--ease-drawer)' : 'none';
+  if (rows) {
+    return { top: 0, width: box.width, height: box.height, transform: `translate(${box.left}px, ${box.top}px)`, transition };
+  }
+  return { width: box.width, transform: `translateX(${box.left}px)`, transition };
 }

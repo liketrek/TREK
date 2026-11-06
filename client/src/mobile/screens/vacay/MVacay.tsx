@@ -1,9 +1,11 @@
+import { useRef } from 'react'
 import { Building2, Check, ChevronDown, ChevronLeft, ChevronRight, Eye, EyeOff, Minus, PenLine, Pencil, Plus, Settings2, Share2, ShieldCheck, Trash2, Unlink, UserPlus } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import MSheet from '../../components/MSheet'
 import MIconBtn from '../../components/MIconBtn'
 import MProgress from '../../components/MProgress'
 import MDayPager from '../../components/MDayPager'
+import { useActivePill } from '../../components/useActivePill'
 import { useTranslation } from '../../../i18n'
 import { useMVacay } from './useMVacay'
 import MVacayMonth from './MVacayMonth'
@@ -201,7 +203,7 @@ export default function MVacay() {
                 <button
                   type="button"
                   onClick={() => v.openMonthSlot(slot)}
-                  className="mb-[6px] w-full rounded-[11px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] py-[7px] text-center text-[0.75rem] font-extrabold capitalize"
+                  className="mb-[6px] w-full rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] py-[6px] text-center text-[0.75rem] font-extrabold capitalize shadow-[0_4px_12px_-8px_rgba(0,0,0,.25)] backdrop-blur-[24px] backdrop-saturate-[1.7] transition-transform active:scale-[.97]"
                 >
                   {v.monthNamesShort[slot]}
                 </button>
@@ -225,24 +227,9 @@ export default function MVacay() {
         {/* Edit view: month quick nav + single month */}
         {edit && (
           <>
-            <div className="mb-[10px] rounded-2xl border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-2">
-              <div className="grid grid-cols-6 gap-[5px]">
-                {v.monthNamesShort.map((name, slot) => (
-                  <button
-                    key={slot}
-                    type="button"
-                    onClick={() => v.setMonthSlot(slot)}
-                    className={`whitespace-nowrap rounded-[11px] py-[7px] text-center text-[0.71875rem] font-bold capitalize ${
-                      slot === v.monthSlot
-                        ? 'bg-m-act text-m-actfg'
-                        : 'border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-ink'
-                    }`}
-                  >
-                    {name}
-                  </button>
-                ))}
-              </div>
-            </div>
+            {/* One glass surface for the twelve months, the picked one under a pill
+                that glides to it, across the rows too. */}
+            <MonthQuickNav names={v.monthNamesShort} slot={v.monthSlot} onPick={v.setMonthSlot} />
             {/* Swipe between the months of the window, like pages. */}
             <MDayPager
               inFlow
@@ -500,6 +487,33 @@ function FuseInfo({ icon: Icon, text }: { icon: LucideIcon; text: string }) {
     <div className="flex items-start gap-[9px] rounded-xl bg-[color:var(--m-ic)] px-3 py-2">
       <Icon size={14} strokeWidth={2} className="mt-[1px] flex-none text-m-muted" />
       <span className="font-geist text-[0.6875rem] leading-snug">{text}</span>
+    </div>
+  )
+}
+
+/** The editor's month picker: the window's twelve months on one glass surface. */
+function MonthQuickNav({ names, slot, onPick }: { names: string[]; slot: number; onPick: (slot: number) => void }) {
+  const trackRef = useRef<HTMLDivElement>(null)
+  const pill = useActivePill(trackRef, '[data-active="true"]', [slot, names.length], true)
+  return (
+    <div className="mb-[10px] rounded-[22px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-1.5 shadow-[0_8px_24px_-16px_rgba(0,0,0,.3)] backdrop-blur-[24px] backdrop-saturate-[1.7]">
+      <div ref={trackRef} className="relative grid grid-cols-6 gap-1">
+        {pill && <span aria-hidden="true" className="pointer-events-none absolute left-0 rounded-full bg-m-act" style={pill} />}
+        {names.map((name, i) => (
+          <button
+            key={i}
+            type="button"
+            data-active={i === slot}
+            aria-pressed={i === slot}
+            onClick={() => onPick(i)}
+            className={`relative z-[1] whitespace-nowrap rounded-full py-[7px] text-center text-[0.71875rem] font-bold capitalize transition-colors duration-200 ${
+              i === slot ? `text-m-actfg ${pill ? '' : 'bg-m-act'}` : 'text-m-ink active:bg-[color:var(--m-ic)]'
+            }`}
+          >
+            {name}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }
