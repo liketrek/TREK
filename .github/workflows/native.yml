@@ -152,7 +152,7 @@ jobs:
           mkdir -p Sources/WidgetPreviews/Widgets
           cp ../App/TREKWidgets/WidgetSnapshot.swift ../App/TREKWidgets/TrekStyle.swift ../App/TREKWidgets/TrekFamily.swift ../App/TREKWidgets/WorldGrid.swift \
             ../App/TREKWidgets/*Content.swift Sources/WidgetPreviews/Widgets/
-          swift run -c release WidgetPreviews out
+          swift run -c release WidgetPreviews out "$PWD/../App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png"
 
       - uses: actions/upload-artifact@v6
         with:

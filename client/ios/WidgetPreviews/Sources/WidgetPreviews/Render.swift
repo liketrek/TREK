@@ -52,6 +52,8 @@ struct Render {
             let lock = LockScreen(snapshots: states.prefix(3).map(\.1), now: now).environment(\.colorScheme, scheme)
             try write(lock, to: out.appendingPathComponent("lock-\(schemeName).png"))
         }
+        let args = Array(CommandLine.arguments.dropFirst())
+        try Mockups.render(to: out, iconPath: args.count > 1 ? args[1] : nil, now: now)
         print("wrote \(try FileManager.default.contentsOfDirectory(atPath: out.path).count) images to \(out.path)")
     }
 
