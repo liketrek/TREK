@@ -14,7 +14,7 @@ import {
 
 export type MVacayView = 'grid' | 'edit'
 export type MVacayMode = VacayMode
-export type MVacaySheet = 'invite' | 'settings' | 'share' | null
+export type MVacaySheet = 'invite' | 'settings' | 'share' | 'people' | 'legend' | null
 
 /**
  * Screen state of the mobile Vacay experience. Data loading, WebSocket sync
@@ -96,6 +96,14 @@ export function useMVacay() {
     [locale, activeMonth],
   )
 
+  // The pagers draw the neighbours of the open month and year too: the long name
+  // of any slot of the window, and the twelve months of any year.
+  const monthNameLongFor = useCallback((slot: number) => {
+    const m = months[slot] ?? months[0]
+    return new Intl.DateTimeFormat(locale, { month: 'long' }).format(new Date(m.year, m.month, 1))
+  }, [locale, months])
+  const monthsFor = useCallback((year: number) => windowMonths(year, yearSettings), [yearSettings])
+
   const selectedUser = users.find(u => u.id === selectedUserId)
   const selectedColor = selectedUser?.color || FALLBACK_PERSON_COLOR
   const selectedStat = stats.find(s => s.user_id === selectedUserId)
@@ -156,6 +164,12 @@ export function useMVacay() {
     else { await handleAddPrevYear(); setSelectedYear(selectedYear - 1) }
   }, [years, selectedYear, setSelectedYear, handleAddPrevYear])
 
+  // A swipe only moves between years the plan already has; creating one stays
+  // with the arrows, where it is a deliberate step.
+  const selectYear = useCallback((year: number) => {
+    if (years.includes(year)) setSelectedYear(year)
+  }, [years, setSelectedYear])
+
   const nextYear = useCallback(async () => {
     const idx = years.indexOf(selectedYear)
     if (idx >= 0 && idx < years.length - 1) setSelectedYear(years[idx + 1])
@@ -172,7 +186,7 @@ export function useMVacay() {
   const tripDotColor = users.find(u => u.id === currentUser?.id)?.color || 'var(--m-st-info)'
 
   return {
-    loading, plan, selectedYear,
+    loading, plan, selectedYear, years, selectYear, monthsFor, monthNameLongFor,
     users, isFused, currentUser,
     incomingInvites, acceptInvite, declineInvite,
     incomingShares, toggleShareHidden,

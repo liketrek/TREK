@@ -27,8 +27,11 @@ const SETTLE_MS = 90;
 /** How close to a page edge counts as resting on it. */
 const REST_PX = 2;
 
+/** Anything with an id pages: trip days, a leave year's months, the plan's years. */
+export type PagerItem = Pick<Day, 'id'>;
+
 export interface MDayPagerProps {
-  days: Day[];
+  days: PagerItem[];
   selectedDayId: number | null;
   onSelectDay: (dayId: number) => void;
   /** Draws one day. Pages other than the current one are inert and hidden
@@ -38,6 +41,12 @@ export interface MDayPagerProps {
   locked?: boolean;
   /** Live-region text after a swipe lands on a day. */
   describeDay: (index: number, total: number) => string;
+  /**
+   * In the page's flow instead of filling a positioned parent: the strip takes
+   * the height of its tallest page, for content that sits in a scrolling column
+   * (Vacay's month editor and year grid) rather than over the whole screen.
+   */
+  inFlow?: boolean;
 }
 
 interface Page {
@@ -49,7 +58,7 @@ interface Page {
 /** The window of pages around the selection. A selection that points at no
  *  day (the whole-trip view, or a day deleted remotely) still gets its page,
  *  with the first day next to it as a way back. */
-export function pagesFor(days: Day[], selectedDayId: number | null): Page[] {
+export function pagesFor(days: PagerItem[], selectedDayId: number | null): Page[] {
   const i = days.findIndex((d) => d.id === selectedDayId);
   if (i < 0) {
     const first = days[0];
@@ -74,6 +83,7 @@ export default function MDayPager({
   renderDay,
   locked = false,
   describeDay,
+  inFlow = false,
 }: MDayPagerProps) {
   const stripRef = useRef<HTMLDivElement>(null);
   const [announcement, setAnnouncement] = useState('');
@@ -177,7 +187,7 @@ export default function MDayPager({
       <div
         ref={stripRef}
         data-day-pager=""
-        className={`absolute inset-0 flex snap-x snap-mandatory overflow-y-hidden overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${locked ? 'overflow-x-hidden' : 'overflow-x-auto'}`}
+        className={`${inFlow ? 'relative items-start' : 'absolute inset-0'} flex snap-x snap-mandatory overflow-y-hidden overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${locked ? 'overflow-x-hidden' : 'overflow-x-auto'}`}
       >
         {pages.map((page) => (
           <div
@@ -186,7 +196,7 @@ export default function MDayPager({
             data-page-active={page.active ? '' : undefined}
             inert={!page.active}
             aria-hidden={page.active ? undefined : true}
-            className="relative h-full w-full flex-none snap-center snap-always"
+            className={`relative w-full flex-none snap-center snap-always ${inFlow ? '' : 'h-full'}`}
           >
             {renderDay(page.dayId, page.active)}
           </div>

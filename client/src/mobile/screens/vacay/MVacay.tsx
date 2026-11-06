@@ -1,8 +1,9 @@
-import { Building2, ChevronLeft, ChevronRight, Eye, Minus, PenLine, Pencil, Plus, Settings2, Share2, ShieldCheck, Trash2, Unlink, UserPlus } from 'lucide-react'
+import { Building2, Check, ChevronDown, ChevronLeft, ChevronRight, Eye, EyeOff, Minus, PenLine, Pencil, Plus, Settings2, Share2, ShieldCheck, Trash2, Unlink, UserPlus } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import MSheet from '../../components/MSheet'
 import MIconBtn from '../../components/MIconBtn'
 import MProgress from '../../components/MProgress'
+import MDayPager from '../../components/MDayPager'
 import { useTranslation } from '../../../i18n'
 import { useMVacay } from './useMVacay'
 import MVacayMonth from './MVacayMonth'
@@ -11,6 +12,11 @@ import MVacaySettingsSheet from './MVacaySettingsSheet'
 import MVacayShareSheet from './MVacayShareSheet'
 import { FALLBACK_PERSON_COLOR } from './vacayDayModel'
 import { fmtDays } from '../../../components/Vacay/vacayFormat'
+
+/** The company-holiday tint the calendar cells use (vacayDayModel). */
+const COMPANY_COLOR = '#F5D9A6' // theme-lint-disable: the cells' fixed company-day tint
+const GLASS_PILL_BUTTON = 'inline-flex h-8 flex-none items-center gap-2 rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-3 text-[0.75rem] font-bold text-m-ink backdrop-blur-[24px] backdrop-saturate-[1.7] transition-transform active:scale-[.97]'
+const SHEET_ROW = 'flex items-center gap-3 rounded-[16px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-4 py-3 text-start text-[0.875rem] font-bold transition-transform active:scale-[.98]'
 
 const WEEKDAY_KEYS_MONDAY = ['vacay.mon', 'vacay.tue', 'vacay.wed', 'vacay.thu', 'vacay.fri', 'vacay.sat', 'vacay.sun'] as const
 const WEEKDAY_KEYS_SUNDAY = ['vacay.sun', 'vacay.mon', 'vacay.tue', 'vacay.wed', 'vacay.thu', 'vacay.fri', 'vacay.sat'] as const
@@ -41,6 +47,14 @@ export default function MVacay() {
     ? (stat.remaining < 0 ? 'var(--m-st-danger)' : 'var(--m-st-pending)')
     : v.selectedColor
   const weekdayKeys = v.weekStart === 0 ? WEEKDAY_KEYS_SUNDAY : WEEKDAY_KEYS_MONDAY
+  // People to pick between: fused members, or shared calendars to show or hide.
+  const peopleChoosable = v.users.length > 1 || v.incomingShares.length > 0
+  const legendItems = [
+    ...(v.companyHolidaysEnabled ? [{ key: 'company', color: COMPANY_COLOR, label: t('mobileVacay.companyLegend') }] : []),
+    ...(v.holidaysEnabled ? (v.plan?.holiday_calendars ?? []).map(cal => ({ key: `cal-${cal.id}`, color: cal.color, label: cal.label || cal.region })) : []),
+  ]
+  const yearPages = v.years.map(year => ({ id: year }))
+  const monthPages = v.months.map((_, slot) => ({ id: slot }))
 
   return (
     // h-dvh, not h-full: the shell stopped providing a definite height (#1809).
@@ -121,56 +135,64 @@ export default function MVacay() {
           </div>
         )}
 
-        {/* Person + legend chips */}
-        <div className="mx-[2px] mb-2 mt-[9px] flex flex-wrap items-center gap-[6px]">
-          {v.users.map(u => {
-            const color = u.color || FALLBACK_PERSON_COLOR
-            const active = u.id === v.selectedUserId
-            return (
+        {/* Who the calendar is for, and what its colours mean: two compact pills
+            instead of a row of chips. Only the people are a choice; the legend is
+            explanation, so it waits behind its own pill. */}
+        {(peopleChoosable || legendItems.length > 0) && (
+          <div className="mx-[2px] mb-2 mt-[9px] flex items-center gap-2">
+            {peopleChoosable && (
               <button
-                key={u.id}
                 type="button"
-                onClick={() => v.selectPerson(u.id)}
-                className="box-border inline-flex min-w-0 flex-[1_1_calc(25%-6px)] items-center justify-center gap-1 rounded-full px-1 py-1 font-geist text-[0.625rem] font-bold"
-                style={active
-                  ? { background: `${color}1f`, border: `1px solid ${color}`, color: 'var(--m-ink)' }
-                  : { background: 'var(--m-sheetop)', border: '1px solid var(--m-rowbr)', color: 'var(--m-muted)' }}
+                onClick={() => v.setSheet('people')}
+                aria-haspopup="dialog"
+                className={GLASS_PILL_BUTTON}
               >
-                <span className="h-[9px] w-[9px] flex-none rounded-[3px]" style={{ background: color }} />
-                <span className="truncate">{u.username}</span>
+                <span className="flex -space-x-1">
+                  {v.users.slice(0, 4).map(u => (
+                    <span
+                      key={u.id}
+                      className="h-[14px] w-[14px] rounded-full ring-2 ring-[color:var(--m-glass)]"
+                      style={{ background: u.color || FALLBACK_PERSON_COLOR }}
+                    />
+                  ))}
+                </span>
+                {t('mobileVacay.people')}
+                <ChevronDown size={13} strokeWidth={2.4} className="text-m-faint" aria-hidden="true" />
               </button>
-            )
-          })}
-          {/* Shared read-only calendars: tap toggles that person's ring overlay. */}
-          {v.incomingShares.map(s => (
-            <button
-              key={`share-${s.id}`}
-              type="button"
-              onClick={() => v.toggleShareHidden(s.id, !s.hidden)}
-              aria-pressed={!s.hidden}
-              className="box-border inline-flex min-w-0 flex-[1_1_calc(25%-6px)] items-center justify-center gap-1 rounded-full px-1 py-1 font-geist text-[0.625rem] font-bold"
-              style={s.hidden
-                ? { background: 'var(--m-sheetop)', border: '1px solid var(--m-rowbr)', color: 'var(--m-faint)', opacity: 0.7 }
-                : { background: `${s.color}1f`, border: `1px solid ${s.color}`, color: 'var(--m-ink)' }}
-            >
-              <span className="h-[9px] w-[9px] flex-none rounded-[3px]" style={{ border: `2px solid ${s.color}` }} />
-              <span className="truncate">{s.username}</span>
-            </button>
-          ))}
-          {v.companyHolidaysEnabled && (
-            <LegendChip color="#F5D9A6" label={t('mobileVacay.companyLegend')} />
-          )}
-          {v.holidaysEnabled && (v.plan?.holiday_calendars ?? []).map(cal => (
-            <LegendChip key={cal.id} color={cal.color} label={cal.label || cal.region} />
-          ))}
-        </div>
+            )}
+            {legendItems.length > 0 && (
+              <button
+                type="button"
+                onClick={() => v.setSheet('legend')}
+                aria-haspopup="dialog"
+                className={`${GLASS_PILL_BUTTON} ms-auto`}
+              >
+                <span className="flex gap-[3px]">
+                  {legendItems.slice(0, 3).map(item => (
+                    <span key={item.key} className="h-[9px] w-[9px] rounded-[3px]" style={{ background: item.color }} />
+                  ))}
+                </span>
+                {t('mobileVacay.legend')}
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Year grid */}
+        {/* Swipe between the plan's years, like pages. The neighbouring year
+            draws its calendar at once; its entries arrive once it lands. */}
         {!edit && (
+          <MDayPager
+            inFlow
+            days={yearPages}
+            selectedDayId={v.selectedYear}
+            onSelectDay={v.selectYear}
+            describeDay={i => String(v.years[i] ?? '')}
+            renderDay={pageYear => (
           <div className="grid grid-cols-2 gap-[10px]">
             {/* Twelve months from the window start (#737) — Jan–Dec on a calendar
                 year, Jul–Jun once the leave year is shifted. */}
-            {v.months.map(({ year, month }, slot) => (
+            {v.monthsFor(pageYear ?? v.selectedYear).map(({ year, month }, slot) => (
               <div key={`${year}-${month}`} className="rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] p-2">
                 {/* The month name is the comfortable way into the editor: the mini
                     cells below it are ~21px on a phone, precise enough to navigate
@@ -196,6 +218,8 @@ export default function MVacay() {
               </div>
             ))}
           </div>
+            )}
+          />
         )}
 
         {/* Edit view: month quick nav + single month */}
@@ -219,12 +243,23 @@ export default function MVacay() {
                 ))}
               </div>
             </div>
+            {/* Swipe between the months of the window, like pages. */}
+            <MDayPager
+              inFlow
+              days={monthPages}
+              selectedDayId={v.monthSlot}
+              onSelectDay={v.setMonthSlot}
+              describeDay={i => v.monthNameLongFor(i)}
+              renderDay={pageSlot => {
+                const slot = pageSlot ?? v.monthSlot
+                const m = v.months[slot] ?? v.activeMonth
+                return (
             <div className="rounded-[18px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] p-[11px]">
               <div className="mb-[7px] flex items-center gap-2">
                 <button type="button" onClick={v.prevMonth} aria-label={t('mobileVacay.prevMonth')} className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-[color:var(--m-ic)]">
                   <ChevronLeft size={16} strokeWidth={2.2} />
                 </button>
-                <span className="flex-1 text-center text-[1rem] font-extrabold capitalize">{v.monthNameLong}</span>
+                <span className="flex-1 text-center text-[1rem] font-extrabold capitalize">{v.monthNameLongFor(slot)}</span>
                 <button type="button" onClick={v.nextMonth} aria-label={t('mobileVacay.nextMonth')} className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-[color:var(--m-ic)]">
                   <ChevronRight size={16} strokeWidth={2.2} />
                 </button>
@@ -235,8 +270,8 @@ export default function MVacay() {
                 ))}
               </div>
               <MVacayMonth
-                year={v.activeMonth.year}
-                month={v.activeMonth.month}
+                year={m.year}
+                month={m.month}
                 variant="full"
                 weekStart={v.weekStart}
                 ctx={v.dayCtx}
@@ -245,6 +280,9 @@ export default function MVacay() {
                 onDayTap={v.handleDayTap}
               />
             </div>
+                )
+              }}
+            />
           </>
         )}
       </div>
@@ -338,6 +376,66 @@ export default function MVacay() {
       <MVacayInviteSheet open={v.sheet === 'invite'} onClose={() => v.setSheet(null)} />
       <MVacaySettingsSheet open={v.sheet === 'settings'} onClose={() => v.setSheet(null)} />
       <MVacayShareSheet open={v.sheet === 'share'} onClose={() => v.setSheet(null)} />
+      <MSheet open={v.sheet === 'people'} onClose={() => v.setSheet(null)} variant="bottom" ariaLabel={t('mobileVacay.people')}>
+        <div className="px-4 pb-4 pt-6">
+          <div className="mb-3 px-1 text-[0.8125rem] font-bold">{t('mobileVacay.people')}</div>
+          <div className="flex flex-col gap-2">
+            {v.users.map(u => {
+              const color = u.color || FALLBACK_PERSON_COLOR
+              const active = u.id === v.selectedUserId
+              return (
+                <button
+                  key={u.id}
+                  type="button"
+                  onClick={() => { v.selectPerson(u.id); v.setSheet(null) }}
+                  aria-pressed={active}
+                  className={`${SHEET_ROW} ${active ? 'border-transparent bg-m-act text-m-actfg' : ''}`}
+                >
+                  <span className="h-[14px] w-[14px] flex-none rounded-full" style={{ background: color }} />
+                  <span className="min-w-0 flex-1 truncate">{u.username}</span>
+                  {active && <Check size={16} strokeWidth={2.4} aria-hidden="true" />}
+                </button>
+              )
+            })}
+          </div>
+          {/* Shared read-only calendars: a tap shows or hides that person's ring overlay. */}
+          {v.incomingShares.length > 0 && (
+            <>
+              <div className="mb-2 mt-4 px-1 font-geist text-[0.625rem] font-bold uppercase tracking-[.09em] text-m-faint">{t('vacay.sharedCalendars')}</div>
+              <div className="flex flex-col gap-2">
+                {v.incomingShares.map(sh => (
+                  <button
+                    key={`share-${sh.id}`}
+                    type="button"
+                    onClick={() => v.toggleShareHidden(sh.id, !sh.hidden)}
+                    aria-pressed={!sh.hidden}
+                    className={`${SHEET_ROW} ${sh.hidden ? 'opacity-60' : ''}`}
+                  >
+                    <span className="h-[14px] w-[14px] flex-none rounded-full" style={{ border: `2px solid ${sh.color}` }} />
+                    <span className="min-w-0 flex-1 truncate">{sh.username}</span>
+                    {sh.hidden
+                      ? <EyeOff size={16} strokeWidth={2.2} className="text-m-faint" aria-hidden="true" />
+                      : <Eye size={16} strokeWidth={2.2} className="text-m-muted" aria-hidden="true" />}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </MSheet>
+      <MSheet open={v.sheet === 'legend'} onClose={() => v.setSheet(null)} variant="bottom" ariaLabel={t('mobileVacay.legend')}>
+        <div className="px-4 pb-4 pt-6">
+          <div className="mb-3 px-1 text-[0.8125rem] font-bold">{t('mobileVacay.legend')}</div>
+          <div className="flex flex-col gap-1">
+            {legendItems.map(item => (
+              <div key={item.key} className="flex items-center gap-3 px-1 py-2 text-[0.875rem] font-semibold">
+                <span className="h-[14px] w-[14px] flex-none rounded-[4px]" style={{ background: item.color }} />
+                <span className="min-w-0 flex-1 truncate">{item.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </MSheet>
       <MVacayIncomingInvite
         invites={v.incomingInvites}
         onAccept={v.acceptInvite}
@@ -347,14 +445,6 @@ export default function MVacay() {
   )
 }
 
-function LegendChip({ color, label }: { color: string; label: string }) {
-  return (
-    <span className="box-border inline-flex min-w-0 flex-[1_1_calc(25%-6px)] items-center justify-center gap-1 rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] px-1 py-1 font-geist text-[0.625rem] font-bold text-m-muted">
-      <span className="h-[9px] w-[9px] flex-none rounded-[3px]" style={{ background: color }} />
-      <span className="truncate">{label}</span>
-    </span>
-  )
-}
 
 /** Forced Fusion-request card — stays open until accepted or declined. */
 function MVacayIncomingInvite({ invites, onAccept, onDecline }: {

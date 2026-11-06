@@ -14,6 +14,8 @@ const mobileVacay: TranslationStrings = {
   'mobileVacay.companyLegend': 'Ngày nghỉ công ty',
   'mobileVacay.editCalendar': 'Sửa lịch',
   'mobileVacay.viewYear': 'Xem năm',
+  'mobileVacay.people': 'Mọi người',
+  'mobileVacay.legend': 'Chú thích',
 };
 
 export default mobileVacay;

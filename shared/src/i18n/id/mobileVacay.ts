@@ -14,6 +14,8 @@ const mobileVacay: TranslationStrings = {
   'mobileVacay.companyLegend': 'Libur perusahaan',
   'mobileVacay.editCalendar': 'Edit kalender',
   'mobileVacay.viewYear': 'Lihat tahun',
+  'mobileVacay.people': 'Orang',
+  'mobileVacay.legend': 'Keterangan',
 };
 
 export default mobileVacay;
