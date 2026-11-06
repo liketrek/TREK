@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { Building2, Check, ChevronDown, ChevronLeft, ChevronRight, Eye, EyeOff, Minus, PenLine, Pencil, Plus, Settings2, Share2, ShieldCheck, Trash2, Unlink, UserPlus } from 'lucide-react'
+import { Building2, Check, ChevronDown, ChevronLeft, ChevronRight, Eye, EyeOff, Minus, PenLine, Pencil, Plus, Settings2, Share2, ShieldCheck, Trash2, Unlink, UserPlus, Users, Palette } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import MSheet from '../../components/MSheet'
 import MIconBtn from '../../components/MIconBtn'
@@ -14,6 +14,7 @@ import MVacaySettingsSheet from './MVacaySettingsSheet'
 import MVacayShareSheet from './MVacayShareSheet'
 import { FALLBACK_PERSON_COLOR } from './vacayDayModel'
 import { fmtDays } from '../../../components/Vacay/vacayFormat'
+import { TileHeader } from '../trip/sheets/MTripSheetUi'
 
 /** The company-holiday tint the calendar cells use (vacayDayModel). */
 const COMPANY_COLOR = 'var(--m-vacay-company)'
@@ -364,8 +365,15 @@ export default function MVacay() {
       <MVacaySettingsSheet open={v.sheet === 'settings'} onClose={() => v.setSheet(null)} />
       <MVacayShareSheet open={v.sheet === 'share'} onClose={() => v.setSheet(null)} />
       <MSheet open={v.sheet === 'people'} onClose={() => v.setSheet(null)} variant="bottom" ariaLabel={t('mobileVacay.people')}>
-        <div className="px-4 pb-4 pt-6">
-          <div className="mb-3 px-1 text-[length:calc(13px*var(--fs-scale-body,1))] font-bold">{t('mobileVacay.people')}</div>
+        <div className="px-[18px] pb-4 pt-4">
+          <div className="mb-3">
+            <TileHeader
+              icon={<Users size={19} strokeWidth={1.8} />}
+              title={t('mobileVacay.people')}
+              onClose={() => v.setSheet(null)}
+              closeLabel={t('common.close')}
+            />
+          </div>
           <div className="flex flex-col gap-2">
             {v.users.map(u => {
               const color = u.color || FALLBACK_PERSON_COLOR
@@ -411,8 +419,15 @@ export default function MVacay() {
         </div>
       </MSheet>
       <MSheet open={v.sheet === 'legend'} onClose={() => v.setSheet(null)} variant="bottom" ariaLabel={t('mobileVacay.legend')}>
-        <div className="px-4 pb-4 pt-6">
-          <div className="mb-3 px-1 text-[length:calc(13px*var(--fs-scale-body,1))] font-bold">{t('mobileVacay.legend')}</div>
+        <div className="px-[18px] pb-4 pt-4">
+          <div className="mb-3">
+            <TileHeader
+              icon={<Palette size={19} strokeWidth={1.8} />}
+              title={t('mobileVacay.legend')}
+              onClose={() => v.setSheet(null)}
+              closeLabel={t('common.close')}
+            />
+          </div>
           <div className="flex flex-col gap-1">
             {legendItems.map(item => (
               <div key={item.key} className="flex items-center gap-3 px-1 py-2 text-[length:calc(14px*var(--fs-scale-body,1))] font-semibold">

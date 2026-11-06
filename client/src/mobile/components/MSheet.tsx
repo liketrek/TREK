@@ -170,7 +170,8 @@ export default function MSheet({
   const exitClass = EXIT[variant]
   const animation = open ? (entered ? '' : enterClass) : flung ? '' : exitClass
 
-  const resolvedMaterial = material ?? (variant === 'bottom' ? 'bar-glass' : 'glass')
+  // One material for every sheet, docked or floating, so they all read the same.
+  const resolvedMaterial = material ?? 'glass'
 
   return createPortal(
     // m-root on the overlay so the --m-* tokens resolve even when the portal
