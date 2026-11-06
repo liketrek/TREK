@@ -62,7 +62,7 @@ struct TripContent: View {
                         .minimumScaleFactor(0.8)
                         .padding(.top, 3)
                     if let place = trip.place {
-                        Label(place, systemImage: "mappin.and.ellipse")
+                        Label(place, systemImage: "location.fill")
                             .font(.system(size: 11.5, weight: .semibold))
                             .foregroundStyle(.white.opacity(0.82))
                             .lineLimit(1)
@@ -101,7 +101,7 @@ struct TripContent: View {
                             .lineLimit(2)
                             .minimumScaleFactor(0.75)
                         if let place = trip.place {
-                            Label(place, systemImage: "mappin.and.ellipse")
+                            Label(place, systemImage: "location.fill")
                                 .font(.system(size: 12.5, weight: .semibold))
                                 .foregroundStyle(.white.opacity(0.85))
                         }
@@ -212,9 +212,13 @@ struct TripContent: View {
                     if let weather = snapshot.weather { BigWeather(weather: weather) }
                 }
                 DaySegments(index: index, total: total, color: .white, track: .white.opacity(0.25)).padding(.top, 10)
-                Spacer(minLength: 10)
                 GlassPanel {
-                    StopList(stops: today.stops, nowMinutes: nowMinutes, limit: 5, onPhoto: true, nothing: snapshot.labels.nothingPlanned, nowLabel: snapshot.labels.now)
+                    StopList(stops: today.stops, nowMinutes: nowMinutes, limit: 6, onPhoto: true, nothing: snapshot.labels.nothingPlanned, nowLabel: snapshot.labels.now)
+                }
+                .padding(.top, 14)
+                Spacer(minLength: 8)
+                if let booking = snapshot.bookings?.first {
+                    NextBookingStrip(booking: booking, labels: snapshot.labels, now: now)
                 }
             }
         }
@@ -325,6 +329,8 @@ struct NextBookingStrip: View {
     let booking: WidgetSnapshot.Booking
     let labels: WidgetSnapshot.Labels
     let now: Date
+    var onPhoto = true
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         HStack(spacing: 9) {
@@ -343,11 +349,11 @@ struct NextBookingStrip: View {
                 if let time = booking.time { Text(time).font(Trek.number(14, .heavy)) }
             }
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(onPhoto ? .white : Trek.ink(scheme))
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.black.opacity(0.3)))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Color.white.opacity(0.16), lineWidth: 0.7))
+        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(onPhoto ? Color.black.opacity(0.3) : Trek.card(scheme)))
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(onPhoto ? Color.white.opacity(0.16) : Trek.cardBorder(scheme), lineWidth: 0.7))
     }
 }
 

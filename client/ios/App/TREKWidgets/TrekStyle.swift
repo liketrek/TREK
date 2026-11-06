@@ -234,6 +234,35 @@ struct RouteArc: View {
 
 // MARK: - Components
 
+private struct StaticPreviewKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    /// Set by the preview renderer, which cannot draw a Link.
+    var trekStaticPreview: Bool {
+        get { self[StaticPreviewKey.self] }
+        set { self[StaticPreviewKey.self] = newValue }
+    }
+}
+
+/// A row that opens its own place in the app, or just the row in a preview.
+struct RowLink<Label: View>: View {
+    let path: String
+    @ViewBuilder var label: () -> Label
+    @Environment(\.trekStaticPreview) private var staticPreview
+
+    var body: some View {
+        if staticPreview {
+            label()
+        } else if let url = WidgetSnapshot.link(path) {
+            Link(destination: url) { label() }
+        } else {
+            label()
+        }
+    }
+}
+
 /// A ring that fills with progress, a soft track under it.
 struct ProgressRing<Label: View>: View {
     let value: Double

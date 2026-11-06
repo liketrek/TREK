@@ -35,8 +35,9 @@ struct TodosContent: View {
                         }
                     }
                     Divider().overlay(Trek.track(scheme)).padding(.vertical, 10)
-                    items(Array(todos.items.prefix(6)), labels)
-                    Spacer(minLength: 0)
+                    items(Array(todos.items.prefix(7)), labels)
+                    Spacer(minLength: 8)
+                    legend(todos, labels)
                 }
             }
         } else {
@@ -92,6 +93,17 @@ struct TodosContent: View {
             }
         }
         .frame(width: size, height: size)
+    }
+
+    /// What the two rings stand for, with their counts.
+    private func legend(_ todos: WidgetSnapshot.Todos, _ labels: WidgetSnapshot.Labels) -> some View {
+        HStack(spacing: 8) {
+            LegendPill(color: Color(hex: 0x5A6CDE), symbol: "checklist", text: labels.todos ?? "", count: "\(todos.total - todos.open)/\(todos.total)")
+            if let packing = snapshot?.packing {
+                LegendPill(color: Trek.confirmed, symbol: "suitcase.rolling.fill", text: labels.packing ?? "", count: "\(packing.packed)/\(packing.total)")
+            }
+            Spacer(minLength: 0)
+        }
     }
 
     private func header(_ labels: WidgetSnapshot.Labels, _ todos: WidgetSnapshot.Todos) -> some View {
@@ -164,6 +176,28 @@ struct TodosContent: View {
         default:
             Text("\(Image(systemName: "checklist")) \(open) \(labels?.todos ?? "")")
         }
+    }
+}
+
+/// A ring's colour, what it counts, and how far it is.
+struct LegendPill: View {
+    let color: Color
+    let symbol: String
+    let text: String
+    let count: String
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Circle().fill(color).frame(width: 7, height: 7)
+            Image(systemName: symbol).font(.system(size: 10, weight: .bold)).foregroundStyle(color)
+            Text(text).font(.system(size: 11, weight: .bold)).foregroundStyle(Trek.ink(scheme)).lineLimit(1)
+            Text(count).font(Trek.number(11, .heavy)).foregroundStyle(Trek.muted(scheme))
+        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 5)
+        .background(Capsule().fill(Trek.card(scheme)))
+        .overlay(Capsule().stroke(Trek.cardBorder(scheme), lineWidth: 0.6))
     }
 }
 

@@ -36,13 +36,20 @@ struct TodayContent: View {
                 if family == .large {
                     DayProgress(done: done, total: timed.count, scheme: scheme, label: snapshot.labels.allDone)
                         .padding(.top, 12)
+                        .padding(.bottom, 14)
+                } else {
+                    Spacer(minLength: 8)
                 }
-                Spacer(minLength: family == .large ? 12 : 8)
                 StopList(
-                    stops: today.stops, nowMinutes: nowMinutes, limit: family == .large ? 8 : 3,
+                    stops: today.stops, nowMinutes: nowMinutes, limit: family == .large ? 7 : 3,
                     nothing: snapshot.labels.nothingPlanned, nowLabel: snapshot.labels.now
                 )
-                if family == .large { Spacer(minLength: 0) }
+                if family == .large {
+                    Spacer(minLength: 8)
+                    if let booking = snapshot.bookings?.first {
+                        NextBookingStrip(booking: booking, labels: snapshot.labels, now: now, onPhoto: false)
+                    }
+                }
             }
         } else if let snapshot, let trip = snapshot.trip {
             // Before the trip there is no day yet: count down to it instead.

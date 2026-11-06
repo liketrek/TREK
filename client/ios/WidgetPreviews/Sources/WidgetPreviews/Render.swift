@@ -28,12 +28,15 @@ struct Render {
                     for family in kind.families {
                         let view = WidgetFrame(kind: kind, family: family, snapshot: snapshot, now: now)
                             .environment(\.colorScheme, scheme)
+                            .environment(\.trekStaticPreview, true)
                         try write(view, to: out.appendingPathComponent("\(kind.rawValue)-\(family.rawValue)-\(stateName)-\(schemeName).png"))
                     }
                 }
             }
             for (stateName, snapshot) in states.prefix(2) {
-                let sheet = HomeScreen(snapshot: snapshot, now: now).environment(\.colorScheme, scheme)
+                let sheet = HomeScreen(snapshot: snapshot, now: now)
+                    .environment(\.colorScheme, scheme)
+                    .environment(\.trekStaticPreview, true)
                 try write(sheet, to: out.appendingPathComponent("home-\(stateName)-\(schemeName).png"))
             }
             let lock = LockScreen(snapshots: states.map(\.1), now: now).environment(\.colorScheme, scheme)

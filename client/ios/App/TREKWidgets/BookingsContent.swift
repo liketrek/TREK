@@ -81,7 +81,7 @@ struct BookingsContent: View {
                 if let trip = snapshot?.trip { Text(trip.title).font(.system(size: 11, weight: .semibold)).foregroundStyle(Trek.faint(scheme)).lineLimit(1) }
             }
             ForEach(Array(bookings.enumerated()), id: \.offset) { index, booking in
-                Link(destination: WidgetSnapshot.link(booking.path) ?? URL(string: "com.liketrek.trek://")!) {
+                RowLink(path: booking.path) {
                     if index == 0 && featureFirst {
                         featured(booking, labels)
                     } else {
