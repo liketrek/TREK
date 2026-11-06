@@ -473,8 +473,7 @@ export class BudgetMcp {
   @Tool({
     name: 'create_budget_item_with_members',
     title: 'Add budget item with members',
-    description:
-      'Create a budget/expense item and set the trip members splitting it equally in one atomic operation. If userIds is omitted or empty, the cost is split across all trip members; pass an explicit list to split among a subset. For a planning-only entry with no split, use create_budget_item with member_ids []. Ask the user which members share this expense rather than guessing; resolve user IDs with list_trip_members. Only use when the item does not yet exist; if it already exists, use set_budget_item_members directly. For an uneven split, a foreign currency or a date, use create_budget_item instead.',
+    description: 'Deprecated: use create_budget_item.',
     inputSchema: {
       tripId: idSchema,
       name: z.string().min(1).max(200),

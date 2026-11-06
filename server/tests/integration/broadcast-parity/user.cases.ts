@@ -135,6 +135,12 @@ const atlasCases: ParityCase[] = [
     expect: [{ event: 'atlas:changed', user: 'actor' }],
   },
   {
+    tool: 'set_atlas_visited',
+    args: () => ({ country_code: 'PT', visited: true }),
+    rest: { method: 'post', path: () => `${ATLAS}/country/PT/mark` },
+    expect: [{ event: 'atlas:changed', user: 'actor' }],
+  },
+  {
     tool: 'unmark_country_visited',
     args: () => ({ country_code: 'PT' }),
     rest: { method: 'delete', path: () => `${ATLAS}/country/PT/mark` },
@@ -1188,6 +1194,14 @@ const bookCases: ParityCase[] = [
     needs: ['journey'],
     setup: seedBook,
     args: (s) => ({ journeyId: s.journey.id, title: `Lisbon ${s.n}` }),
+    rest: saveBook(1),
+    expect: [{ event: 'journey:book:saved', user: 'actor' }],
+  },
+  {
+    tool: 'update_book',
+    needs: ['journey'],
+    setup: seedBook,
+    args: (s) => ({ journeyId: s.journey.id, cover: { title: `Lisbon ${s.n}` } }),
     rest: saveBook(1),
     expect: [{ event: 'journey:book:saved', user: 'actor' }],
   },

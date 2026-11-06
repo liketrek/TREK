@@ -24,7 +24,7 @@ Compound tools collapse multi-step workflows into a single atomic transaction. I
 |---|---|---|
 | `create_and_assign_place` | `create_place` + `assign_place_to_day` | Create a place and assign it to a day. Takes the same place fields as `create_place`, `stop_type` included. Returns `{ place, assignment }`. Requires `places:write`. |
 | `create_place_accommodation` | `create_place` + `create_accommodation` | Create a place and book it as an accommodation. Returns `{ place, accommodation }`. Requires `trips:write`. |
-| `create_budget_item_with_members` | `create_budget_item` + `set_budget_item_members` | Create a budget item and set splitting members. If `userIds` is omitted or empty, the cost is split across all trip members, like `create_budget_item` without `member_ids`. Takes the same `reservation_id` / `place_id` links. Returns `{ item }`. Requires `budget:write`. |
+| `create_budget_item_with_members` | **Deprecated:** use `create_budget_item`. `create_budget_item` + `set_budget_item_members` | Create a budget item and set splitting members. If `userIds` is omitted or empty, the cost is split across all trip members, like `create_budget_item` without `member_ids`. Takes the same `reservation_id` / `place_id` links. Returns `{ item }`. Requires `budget:write`. |
 
 ### Trips
 
@@ -85,15 +85,16 @@ Requires `trips:read` or `trips:write` scope.
 | `assign_place_to_day` | Pin a place to a specific day in the itinerary. Requires `places:write`. |
 | `unassign_place` | Remove a place assignment from a day. Requires `places:write`. |
 | `clear_day_assignments` | Remove every place from one day at once. The day, its notes and its bookings stay. Requires `places:write`. |
-| `set_assignment_route_excluded` | Keep a place on its day but out of the day's route, or route it again. Requires `places:write`. |
+| `set_assignment_route_excluded` | **Deprecated:** use `update_assignment`. Keep a place on its day but out of the day's route, or route it again. Requires `places:write`. |
 | `set_place_image_from_file` | Use a picture already attached in the trip as a place image (the file is copied). Requires `places:write`. |
 | `reorder_day_assignments` | Reorder places within a day by providing assignment IDs in order. Requires `places:write`. |
-| `update_assignment_time` | Set start/end times for a place assignment (e.g. `"09:00"` – `"11:30"`). Pass `null` to clear. Requires `places:write`. |
+| `update_assignment` | Change a place assignment on its day in one call, passing only what changes: `place_time`/`end_time` (null clears one), `notes` (null or empty clears it), `end_day` (end the travel day after this visit; daily travel times only), `route_excluded` (keep the stop on its day but out of the day route) and `participant_ids` (replaces who takes part). Replaces the single-field tools below, which stay for one release. |
+| `update_assignment_time` | **Deprecated:** use `update_assignment`. Set start/end times for a place assignment (e.g. `"09:00"` – `"11:30"`). Pass `null` to clear. Requires `places:write`. |
 | `move_assignment` | Move a place assignment to a different day. Requires `places:write`. |
-| `update_assignment_notes` | Set or clear the day-specific note on a place assignment, the one `assign_place_to_day` and `create_and_assign_place` accept at creation. Pass `null` or an empty string to clear it. Requires `places:write`. |
+| `update_assignment_notes` | **Deprecated:** use `update_assignment`. Set or clear the day-specific note on a place assignment, the one `assign_place_to_day` and `create_and_assign_place` accept at creation. Pass `null` or an empty string to clear it. Requires `places:write`. |
 | `set_leg_transport_mode` | Set the travel mode of a route leg for a place assignment. `direction` `"outgoing"` (default) targets the leg leaving the stop, `"incoming"` the arriving one. Pass `null` to inherit the day default. Requires `places:write`. |
 | `get_assignment_participants` | Get users participating in a specific place assignment. Requires `places:read` or `places:write`. |
-| `set_assignment_participants` | Set participants for a place assignment (replaces current list). Requires `places:write`. |
+| `set_assignment_participants` | **Deprecated:** use `update_assignment`. Set participants for a place assignment (replaces current list). Requires `places:write`. |
 
 ### Day Notes
 
@@ -207,8 +208,9 @@ Requires `notifications:read` or `notifications:write` scope.
 |---|---|
 | `list_notifications` | List in-app notifications with pagination and optional unread filter. |
 | `get_unread_notification_count` | Get the unread notification count. |
-| `mark_notification_read` | Mark a notification as read. |
-| `mark_notification_unread` | Mark a notification as unread. |
+| `set_notification_read` | Mark one notification read (`read: true`) or unread again (`read: false`). |
+| `mark_notification_read` | **Deprecated:** use `set_notification_read`. Mark a notification as read. |
+| `mark_notification_unread` | **Deprecated:** use `set_notification_read`. Mark a notification as unread. |
 | `mark_all_notifications_read` | Mark all notifications as read. |
 
 ### Files

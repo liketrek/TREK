@@ -6,6 +6,7 @@ import {
   TOOL_ANNOTATIONS_READONLY,
   TOOL_ANNOTATIONS_WRITE,
   Tool,
+  errorResult,
   ok,
   type McpContext,
 } from '../../nest-mcp';
@@ -34,6 +35,9 @@ import {
   setBookCoverArgs,
   setBookSetupArgs,
   setBookThemeArgs,
+  setBookCoverRequestSchema,
+  setBookSetupRequestSchema,
+  setBookThemeRequestSchema,
   bookThemeCatalogue,
   type AddBookPagesRequest,
   type CreateBookRequest,
@@ -222,7 +226,7 @@ export class JourneyBookMcp {
   @Tool({
     name: 'set_book_cover',
     title: 'Set book cover',
-    description: `The cover of a journey's book: its layout (a built-in or decorated single-page template from list_book_layouts), its photo (from the journey's gallery, into a free frame, else a full bleed one behind everything), its title and its subtitle. A title or subtitle bound to the journey's own stays bound unless other words are given. With returnPrevious the answer also holds the cover as it was, under previous_spreads, and a digest of the cover as the write left it under page_digests (for restore_book_page expectedPages). ${WRITE_ANSWER}`,
+    description: 'Deprecated: use update_book.',
     inputSchema: { journeyId: idSchema, ...setBookCoverArgs },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: journeyAddonOn,
@@ -235,7 +239,7 @@ export class JourneyBookMcp {
   @Tool({
     name: 'set_book_setup',
     title: 'Set book page format',
-    description: `The page format of a journey's book (preset, or pageWidth and pageHeight in mm, bleed and safe margin) and its page numbers (show, startAt, position, margin, size, autoColor, color, font). Elements keep their size and place, as in the Studio, so check the pages after a change of format. The answer also holds the setup as it was, under previous_setup. ${WRITE_ANSWER}`,
+    description: 'Deprecated: use update_book.',
     inputSchema: { journeyId: idSchema, ...setBookSetupArgs },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: journeyAddonOn,
@@ -248,10 +252,7 @@ export class JourneyBookMcp {
   @Tool({
     name: 'set_book_theme',
     title: 'Set book theme',
-    description: `Apply a theme to a journey's book: its paper, ink and three accents, its display, heading, body and script faces, and the motifs and decoration it suits.`,
-    detail: {
-      text: `Start from a built-in theme (theme) or the book's own, change any colour, face, motif or decoration on top, and apply it to every page or only to spreadIds. Only colours and texts linked to the theme change (describe_book_page says what each element follows); with adopt (the default) what is not linked yet is linked first, words in white over photos staying as they are. Positions, photos and words never move. The themes: ${bookThemeCatalogue()} The answer names the revision the book was kept as before it, under revision_id. ${WRITE_ANSWER}`,
-    },
+    description: 'Deprecated: use update_book.',
     inputSchema: { journeyId: idSchema, ...setBookThemeArgs },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: journeyAddonOn,
@@ -259,6 +260,37 @@ export class JourneyBookMcp {
   })
   async setBookTheme({ journeyId, ...args }: OnJourney & SetBookThemeRequest, ctx: McpContext) {
     return ok(await this.books.setTheme(journeyId, ctx.userId, args));
+  }
+
+  @Tool({
+    name: 'update_book',
+    title: 'Update book',
+    description: `Change a journey's book as a whole: setup (page format and page numbers), theme (colours, faces, motifs, decoration) and cover (layout, photo, title, subtitle). Pass only what changes; they are applied in that order in one write, all or nothing.`,
+    detail: {
+      fields: ['setup', 'theme', 'cover'],
+      text: `setup: preset, or pageWidth and pageHeight in mm, bleed and safe margin, and the page numbers (show, startAt, position, margin, size, autoColor, color, font). Elements keep their size and place, so check the pages after a change of format; the answer then holds previous_setup. theme: start from a built-in theme or the book's own, change any colour, face, motif or decoration on top, and apply it to every page or only to spreadIds. Only colours and texts linked to the theme change; with adopt (the default) what is not linked yet is linked first. Positions, photos and words never move. The themes: ${bookThemeCatalogue()} With a theme the answer names the revision kept before the write, under revision_id. cover: a single-page layout (built-in or decorated), a photo from the journey's gallery, the title and subtitle; a title or subtitle bound to the journey's own stays bound unless other words are given; with returnPrevious the answer holds the cover as it was under previous_spreads. ${WRITE_ANSWER}`,
+    },
+    inputSchema: {
+      journeyId: idSchema,
+      setup: setBookSetupRequestSchema.optional(),
+      theme: setBookThemeRequestSchema.optional(),
+      cover: setBookCoverRequestSchema.optional(),
+    },
+    annotations: TOOL_ANNOTATIONS_WRITE,
+    when: journeyAddonOn,
+    access: { group: 'studio', mode: 'write' },
+  })
+  async updateBook(
+    {
+      journeyId,
+      setup,
+      theme,
+      cover,
+    }: OnJourney & { setup?: SetBookSetupRequest; theme?: SetBookThemeRequest; cover?: SetBookCoverRequest },
+    ctx: McpContext,
+  ) {
+    if (!setup && !theme && !cover) return errorResult('Pass setup, theme or cover.');
+    return ok(await this.books.updateBook(journeyId, ctx.userId, { setup, theme, cover }));
   }
 
   @Tool({

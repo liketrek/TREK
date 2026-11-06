@@ -334,6 +334,26 @@ export class JourneyBookEditService {
   }
 
   /**
+   * `update_book`: the setup, the theme and the cover, applied in that order to
+   * the same book in one write, so they land together at one version or not at
+   * all. The answer carries what each part's own tool answers: `previous_setup`,
+   * `revision_id` (the book as it was, for the theme's undo) and, with the
+   * cover's returnPrevious, `previous_spreads`.
+   */
+  async updateBook(journeyId: number, userId: number, changes: BookUpdate): Promise<BookWriteAnswer> {
+    const { setup, theme, cover } = changes;
+    const steps: BookChange[] = [];
+    if (setup) steps.push((doc) => setBookSetup(stored(doc), setup));
+    if (theme) steps.push((doc) => setBookTheme(stored(doc), theme));
+    if (cover) steps.push((doc, ctx) => setBookCover(stored(doc), cover, ctx));
+    return this.write(journeyId, userId, (doc, ctx) => chained(doc, ctx, steps), {
+      returnPrevious: cover?.returnPrevious,
+      keepRevision: theme !== undefined,
+      extra: (before) => (setup && before ? { previous_setup: before.page } : {}),
+    });
+  }
+
+  /**
    * `set_book_setup`: the page format and the page numbers, elements not
    * rescaled; the answer holds the setup as it was under `previous_setup`.
    * The assistant's undo sets it back naming `expectedVersion`.
@@ -548,6 +568,30 @@ function parsedJson(text: string): unknown {
 }
 
 /** Every write but `create_book` needs a book to change. */
+/** update_book's parts, each what its own tool takes. */
+export interface BookUpdate {
+  setup?: SetBookSetupRequest;
+  theme?: SetBookThemeRequest;
+  cover?: SetBookCoverRequest;
+}
+
+/** The steps run one after the other on the same book; the first refusal stops them all. */
+function chained(doc: BookDocument | null, ctx: BookOpsContext, steps: readonly BookChange[]): BookEditResult {
+  let current = doc;
+  const spreadIds = new Set<string>();
+  const created: string[] = [];
+  const dropped: string[] = [];
+  for (const step of steps) {
+    const made = step(current, ctx);
+    if (!made.ok) return made;
+    current = made.doc;
+    for (const id of made.spreadIds) spreadIds.add(id);
+    created.push(...made.created);
+    dropped.push(...made.dropped);
+  }
+  return { ok: true, doc: stored(current), spreadIds: [...spreadIds], created, dropped };
+}
+
 function stored(doc: BookDocument | null): BookDocument {
   if (!doc) throw noBook();
   return doc;

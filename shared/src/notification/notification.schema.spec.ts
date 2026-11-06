@@ -1,4 +1,5 @@
 import {
+  notificationReadStateRequestSchema,
   preferencesUpdateRequestSchema,
   notificationRespondRequestSchema,
   channelTestResultSchema,
@@ -201,5 +202,13 @@ describe('pushPayloadSchema', () => {
     expect(pushPayloadSchema.safeParse({ title: 'T', body: 'B', tag: 5 }).success).toBe(false);
     expect(pushPayloadSchema.safeParse({ title: 'T', body: 'B', event: 'trip_invite' }).success).toBe(true);
     expect(pushPayloadSchema.safeParse({ title: 'T', body: 'B', event: 1 }).success).toBe(false);
+  });
+});
+
+describe('notificationReadStateRequestSchema', () => {
+  it('takes a boolean read flag and nothing looser', () => {
+    expect(notificationReadStateRequestSchema.parse({ read: false })).toEqual({ read: false });
+    expect(notificationReadStateRequestSchema.safeParse({ read: 1 }).success).toBe(false);
+    expect(notificationReadStateRequestSchema.safeParse({}).success).toBe(false);
   });
 });

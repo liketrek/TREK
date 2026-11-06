@@ -75,7 +75,6 @@ describe('Tool: move_assignment', () => {
           tripId: trip.id,
           assignmentId: assignment.id,
           newDayId: day2.id,
-          oldDayId: day1.id,
           orderIndex: 0,
         },
       });
@@ -100,7 +99,7 @@ describe('Tool: move_assignment', () => {
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'move_assignment',
-        arguments: { tripId: trip.id, assignmentId: 1, newDayId: day.id, oldDayId: day.id },
+        arguments: { tripId: trip.id, assignmentId: 1, newDayId: day.id },
       });
       expect(result.isError).toBe(true);
     });
@@ -114,7 +113,7 @@ describe('Tool: move_assignment', () => {
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'move_assignment',
-        arguments: { tripId: trip.id, assignmentId: 1, newDayId: day.id, oldDayId: day.id },
+        arguments: { tripId: trip.id, assignmentId: 1, newDayId: day.id },
       });
       expect(result.isError).toBe(true);
     });
