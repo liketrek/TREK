@@ -84,6 +84,13 @@ const native: TranslationStrings = {
     'Küsib TREK-i avamisel ja pärast poolt minutit taustal ning peidab rakenduse rakenduste vahetajas.',
   'native.share.title': 'Millisesse reisi importida?',
   'native.share.noTrips': 'Reise veel pole. Loo esmalt üks ja jaga dokumenti uuesti.',
+  'native.widget.dayOf': 'Päev {n}/{m}',
+  'native.widget.today': 'Täna',
+  'native.widget.noTrip': 'Reisi pole veel planeeritud',
+  'native.widget.inDays': '{n} päeva pärast',
+  'native.widget.tomorrow': 'Homme',
+  'native.widget.nothingPlanned': 'Tänaseks pole midagi planeeritud',
+  'native.widget.dayDone': 'Tänaseks kõik tehtud',
 };
 
 export default native;

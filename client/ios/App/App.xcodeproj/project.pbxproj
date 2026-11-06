@@ -7,8 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		01FD437981FC32C2C2C5BDCE /* TREKWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 702D0DF4A7E323CEA94CA03F /* TREKWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		0C2D60A4950D7293E1F282CB /* TripDayAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 337775CD9091673D0ADDF325 /* TripDayAttributes.swift */; };
+		2162CD349AFFDF070C16A58A /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6E901288FC198E4D33BE754F /* SwiftUI.framework */; };
 		2CFE220A73ACB585F3D4CB8F /* UserNotifications.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2EE43D236E661AA975612A4B /* UserNotifications.framework */; };
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
+		32797E66C09CF7579AC323FD /* TREKWidgetsBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C2E47D0B005674C2B4ADA56 /* TREKWidgetsBundle.swift */; };
+		3FB1872A25267A8E88FCBE3C /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC64330AC19625949E8DC05A /* WidgetKit.framework */; };
+		492FA24FBB57059B0B5007CE /* TripDayAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 337775CD9091673D0ADDF325 /* TripDayAttributes.swift */; };
 		4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */ = {isa = PBXBuildFile; productRef = 4D22ABE82AF431CB00220026 /* CapApp-SPM */; };
 		50379B232058CBB4000EE86E /* capacitor.config.json in Resources */ = {isa = PBXBuildFile; fileRef = 50379B222058CBB4000EE86E /* capacitor.config.json */; };
 		504EC3081FED79650016851F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504EC3071FED79650016851F /* AppDelegate.swift */; };
@@ -19,9 +25,13 @@
 		7A1E00032C0000000000A003 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 7A1E00022C0000000000A002 /* PrivacyInfo.xcprivacy */; };
 		7A1E00052C0000000000A005 /* TrekBridgeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1E00042C0000000000A004 /* TrekBridgeViewController.swift */; };
 		7A1E00072C0000000000A007 /* TrekShellPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1E00062C0000000000A006 /* TrekShellPlugin.swift */; };
+		7FB730DC35C234816EAE65AF /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBF6D74B7888714BF264E0E6 /* WidgetSnapshot.swift */; };
 		84EB79E4B677229481809933 /* NotificationService.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A03A384FE54FAD1ED68E12DC /* NotificationService.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9582B6822FE993A50072D4E8 /* SceneDelegate.swift */; };
 		A8FDD4DBE3F078BF935CC4B9 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFA8802204810ED580DE46F3 /* NotificationService.swift */; };
+		B4C0FC386F71D849E141C91E /* NextTripWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7064A9DA92FCC8ACAA4F22A /* NextTripWidget.swift */; };
+		B65B7CFC62EEFF443491EA64 /* ActivityKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 192E69C7E66646BC39566925 /* ActivityKit.framework */; };
+		DF633789F2F667C4CF264C9E /* TripDayLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3259F6C40216CECEBAC6F307 /* TripDayLiveActivity.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -31,6 +41,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = 9480DFBC2C2A112973DA468A;
 			remoteInfo = NotificationService;
+		};
+		B8BBE7F7A64678D780A7F3D1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A3BE5653156025C97CA62C68;
+			remoteInfo = TREKWidgets;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -42,6 +59,7 @@
 			dstSubfolderSpec = 13;
 			files = (
 				84EB79E4B677229481809933 /* NotificationService.appex in Embed Foundation Extensions */,
+				01FD437981FC32C2C2C5BDCE /* TREKWidgets.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -49,9 +67,12 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		192E69C7E66646BC39566925 /* ActivityKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ActivityKit.framework; path = System/Library/Frameworks/ActivityKit.framework; sourceTree = SDKROOT; };
 		1E7522315D47F086145DC4B8 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		2EE43D236E661AA975612A4B /* UserNotifications.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotifications.framework; path = System/Library/Frameworks/UserNotifications.framework; sourceTree = SDKROOT; };
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
+		3259F6C40216CECEBAC6F307 /* TripDayLiveActivity.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TripDayLiveActivity.swift; sourceTree = "<group>"; };
+		337775CD9091673D0ADDF325 /* TripDayAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TripDayAttributes.swift; sourceTree = "<group>"; };
 		3DF4F4305878F949DD09193F /* NotificationService.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = NotificationService.entitlements; sourceTree = "<group>"; };
 		50379B222058CBB4000EE86E /* capacitor.config.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = capacitor.config.json; sourceTree = "<group>"; };
 		504EC3041FED79650016851F /* App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = App.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -61,17 +82,35 @@
 		504EC3111FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		504EC3131FED79650016851F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
+		6E901288FC198E4D33BE754F /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		702D0DF4A7E323CEA94CA03F /* TREKWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TREKWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		7A1E00012C0000000000A001 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 		7A1E00022C0000000000A002 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		7A1E00042C0000000000A004 /* TrekBridgeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrekBridgeViewController.swift; sourceTree = "<group>"; };
 		7A1E00062C0000000000A006 /* TrekShellPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrekShellPlugin.swift; sourceTree = "<group>"; };
+		8C2E47D0B005674C2B4ADA56 /* TREKWidgetsBundle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TREKWidgetsBundle.swift; sourceTree = "<group>"; };
 		9582B6822FE993A50072D4E8 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
 		A03A384FE54FAD1ED68E12DC /* NotificationService.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = NotificationService.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		BBB2E19CD540AB30B44BECCA /* TREKWidgets.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = TREKWidgets.entitlements; sourceTree = "<group>"; };
+		BC64330AC19625949E8DC05A /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		BE41D7212DCB0C78E00A8462 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		C7064A9DA92FCC8ACAA4F22A /* NextTripWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NextTripWidget.swift; sourceTree = "<group>"; };
+		DBF6D74B7888714BF264E0E6 /* WidgetSnapshot.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSnapshot.swift; sourceTree = "<group>"; };
 		FFA8802204810ED580DE46F3 /* NotificationService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		0A579FBACE2CF30B89370F8E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3FB1872A25267A8E88FCBE3C /* WidgetKit.framework in Frameworks */,
+				2162CD349AFFDF070C16A58A /* SwiftUI.framework in Frameworks */,
+				B65B7CFC62EEFF443491EA64 /* ActivityKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		504EC3011FED79650016851F /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -106,6 +145,7 @@
 				504EC3051FED79650016851F /* Products */,
 				5198C9768EB9762A60701C92 /* Frameworks */,
 				74C1FC6022E562372A71EEC9 /* NotificationService */,
+				FB9226BC82835538BCE3DC0A /* TREKWidgets */,
 			);
 			sourceTree = "<group>";
 		};
@@ -114,6 +154,7 @@
 			children = (
 				504EC3041FED79650016851F /* App.app */,
 				A03A384FE54FAD1ED68E12DC /* NotificationService.appex */,
+				702D0DF4A7E323CEA94CA03F /* TREKWidgets.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -143,6 +184,9 @@
 			children = (
 				0FC8613857BD976EB58ECE0B /* iOS */,
 				2EE43D236E661AA975612A4B /* UserNotifications.framework */,
+				BC64330AC19625949E8DC05A /* WidgetKit.framework */,
+				6E901288FC198E4D33BE754F /* SwiftUI.framework */,
+				192E69C7E66646BC39566925 /* ActivityKit.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -156,6 +200,21 @@
 			);
 			name = NotificationService;
 			path = NotificationService;
+			sourceTree = "<group>";
+		};
+		FB9226BC82835538BCE3DC0A /* TREKWidgets */ = {
+			isa = PBXGroup;
+			children = (
+				BE41D7212DCB0C78E00A8462 /* Info.plist */,
+				C7064A9DA92FCC8ACAA4F22A /* NextTripWidget.swift */,
+				BBB2E19CD540AB30B44BECCA /* TREKWidgets.entitlements */,
+				8C2E47D0B005674C2B4ADA56 /* TREKWidgetsBundle.swift */,
+				337775CD9091673D0ADDF325 /* TripDayAttributes.swift */,
+				3259F6C40216CECEBAC6F307 /* TripDayLiveActivity.swift */,
+				DBF6D74B7888714BF264E0E6 /* WidgetSnapshot.swift */,
+			);
+			name = TREKWidgets;
+			path = TREKWidgets;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -174,6 +233,7 @@
 			);
 			dependencies = (
 				E23A0A46599B8EE7A5B74F45 /* PBXTargetDependency */,
+				4CD7F5AF02CB806E4189489A /* PBXTargetDependency */,
 			);
 			name = App;
 			packageProductDependencies = (
@@ -198,6 +258,23 @@
 			name = NotificationService;
 			productName = NotificationService;
 			productReference = A03A384FE54FAD1ED68E12DC /* NotificationService.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		A3BE5653156025C97CA62C68 /* TREKWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9DE86AC1D6A95987925D7982 /* Build configuration list for PBXNativeTarget "TREKWidgets" */;
+			buildPhases = (
+				92D923C146596E50655B451D /* Sources */,
+				0A579FBACE2CF30B89370F8E /* Frameworks */,
+				04A03741C8AD60E63D4B11E7 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = TREKWidgets;
+			productName = TREKWidgets;
+			productReference = 702D0DF4A7E323CEA94CA03F /* TREKWidgets.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
@@ -239,11 +316,19 @@
 			targets = (
 				504EC3031FED79650016851F /* App */,
 				9480DFBC2C2A112973DA468A /* NotificationService */,
+				A3BE5653156025C97CA62C68 /* TREKWidgets */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		04A03741C8AD60E63D4B11E7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		504EC3021FED79650016851F /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -284,12 +369,31 @@
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
 				7A1E00052C0000000000A005 /* TrekBridgeViewController.swift in Sources */,
 				7A1E00072C0000000000A007 /* TrekShellPlugin.swift in Sources */,
+				0C2D60A4950D7293E1F282CB /* TripDayAttributes.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		92D923C146596E50655B451D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B4C0FC386F71D849E141C91E /* NextTripWidget.swift in Sources */,
+				32797E66C09CF7579AC323FD /* TREKWidgetsBundle.swift in Sources */,
+				492FA24FBB57059B0B5007CE /* TripDayAttributes.swift in Sources */,
+				DF633789F2F667C4CF264C9E /* TripDayLiveActivity.swift in Sources */,
+				7FB730DC35C234816EAE65AF /* WidgetSnapshot.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		4CD7F5AF02CB806E4189489A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = TREKWidgets;
+			target = A3BE5653156025C97CA62C68 /* TREKWidgets */;
+			targetProxy = B8BBE7F7A64678D780A7F3D1 /* PBXContainerItemProxy */;
+		};
 		E23A0A46599B8EE7A5B74F45 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = NotificationService;
@@ -318,6 +422,31 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		3ECF3537A139DB5CAC23E502 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = TREKWidgets/TREKWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = TREKWidgets/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.liketrek.trek.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
 		504EC3141FED79650016851F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 958DCC722DB07C7200EA8C5F /* debug.xcconfig */;
@@ -524,6 +653,32 @@
 			};
 			name = Release;
 		};
+		C5621F5D75100AAEBB1BD22A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = TREKWidgets/TREKWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = TREKWidgets/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.liketrek.trek.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -550,6 +705,15 @@
 			buildConfigurations = (
 				504EC3171FED79650016851F /* Debug */,
 				504EC3181FED79650016851F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9DE86AC1D6A95987925D7982 /* Build configuration list for PBXNativeTarget "TREKWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C5621F5D75100AAEBB1BD22A /* Release */,
+				3ECF3537A139DB5CAC23E502 /* Debug */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

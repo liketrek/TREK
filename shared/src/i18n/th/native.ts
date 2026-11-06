@@ -82,6 +82,13 @@ const native: TranslationStrings = {
   'native.lock.settingHint': 'ถามเมื่อเปิด TREK และหลังจากอยู่เบื้องหลังครึ่งนาที และซ่อนแอปในตัวสลับแอป',
   'native.share.title': 'นำเข้าไปยังทริปไหน',
   'native.share.noTrips': 'ยังไม่มีทริป สร้างทริปก่อนแล้วแชร์เอกสารอีกครั้ง',
+  'native.widget.dayOf': 'วันที่ {n} จาก {m}',
+  'native.widget.today': 'วันนี้',
+  'native.widget.noTrip': 'ยังไม่มีทริปที่วางแผนไว้',
+  'native.widget.inDays': 'อีก {n} วัน',
+  'native.widget.tomorrow': 'พรุ่งนี้',
+  'native.widget.nothingPlanned': 'วันนี้ไม่มีแผน',
+  'native.widget.dayDone': 'วันนี้เสร็จหมดแล้ว',
 };
 
 export default native;

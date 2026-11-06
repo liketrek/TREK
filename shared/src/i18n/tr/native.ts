@@ -85,6 +85,13 @@ const native: TranslationStrings = {
     'TREK açılırken ve arka planda yarım dakika sonra sorar, uygulamayı uygulama değiştiricide gizler.',
   'native.share.title': 'Hangi geziye aktarılsın?',
   'native.share.noTrips': 'Henüz gezi yok. Önce bir gezi oluşturun, sonra belgeyi yeniden paylaşın.',
+  'native.widget.dayOf': '{m} günün {n}. günü',
+  'native.widget.today': 'Bugün',
+  'native.widget.noTrip': 'Henüz planlanmış gezi yok',
+  'native.widget.inDays': '{n} gün sonra',
+  'native.widget.tomorrow': 'Yarın',
+  'native.widget.nothingPlanned': 'Bugün için plan yok',
+  'native.widget.dayDone': 'Bugünlük her şey tamam',
 };
 
 export default native;

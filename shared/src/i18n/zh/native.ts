@@ -82,6 +82,13 @@ const native: TranslationStrings = {
   'native.lock.settingHint': '打开 TREK 时以及在后台停留半分钟后会要求验证，并在应用切换器中隐藏内容。',
   'native.share.title': '导入到哪个行程？',
   'native.share.noTrips': '还没有行程。请先创建一个，然后再次分享该文档。',
+  'native.widget.dayOf': '第 {n} 天，共 {m} 天',
+  'native.widget.today': '今天',
+  'native.widget.noTrip': '还没有计划中的行程',
+  'native.widget.inDays': '{n} 天后',
+  'native.widget.tomorrow': '明天',
+  'native.widget.nothingPlanned': '今天没有安排',
+  'native.widget.dayDone': '今天的行程已全部完成',
 };
 
 export default native;

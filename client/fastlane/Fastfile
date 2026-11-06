@@ -24,6 +24,7 @@ PROJECT = "ios/App/App.xcodeproj"
 SIGNED_TARGETS = {
   "App" => APP_IDENTIFIER,
   "NotificationService" => "com.liketrek.trek.notifications",
+  "TREKWidgets" => "com.liketrek.trek.widgets",
 }
 
 platform :ios do

@@ -8,10 +8,10 @@ import { checkAppUpdate, loadNativeCapabilities } from './capabilities';
 import { installNativeGeolocation } from './geolocation';
 import { keepOfflineShellFresh } from './offlineShell';
 import { isNativeApp, isNativeIos } from './platform';
-import { startNativePush } from './push';
+import { openPushTarget, startNativePush } from './push';
 import { reportNativeFailure } from './reportFailure';
 import { startSharedFiles } from './sharedFiles';
-import { isUnimplemented } from './trekShell';
+import { APP_URL_SCHEME, isUnimplemented } from './trekShell';
 
 /** Long enough that the warm-up never competes with the first screen's requests. */
 const OFFLINE_SHELL_DELAY_MS = 15_000;
@@ -33,6 +33,12 @@ export function startNativeApp(): void {
   void startSharedFiles();
   // Taps on TREK notifications open the place they point at.
   void loadNativeCapabilities().then(() => startNativePush());
+
+  // A widget or Live Activity tap opens com.liketrek.trek://navigate/<path>.
+  void App.addListener('appUrlOpen', ({ url }) => {
+    const prefix = `${APP_URL_SCHEME}://navigate`;
+    if (url.startsWith(prefix)) openPushTarget(url.slice(prefix.length) || '/');
+  });
 
   // A tap on the status bar scrolls the list under it back to the top, as in
   // every iOS app (the status-bar plugin fires statusTap on iOS).

@@ -85,6 +85,13 @@ const native: TranslationStrings = {
     'Lo chiede all’apertura di TREK e dopo mezzo minuto in background, e nasconde l’app nel selettore delle app.',
   'native.share.title': 'Importare in quale viaggio?',
   'native.share.noTrips': 'Ancora nessun viaggio. Creane uno, poi condividi di nuovo il documento.',
+  'native.widget.dayOf': 'Giorno {n} di {m}',
+  'native.widget.today': 'Oggi',
+  'native.widget.noTrip': 'Nessun viaggio ancora in programma',
+  'native.widget.inDays': 'tra {n} giorni',
+  'native.widget.tomorrow': 'Domani',
+  'native.widget.nothingPlanned': 'Niente in programma oggi',
+  'native.widget.dayDone': 'Tutto fatto per oggi',
 };
 
 export default native;

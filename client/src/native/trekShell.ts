@@ -59,6 +59,19 @@ export interface TrekShellPlugin {
   registerPush(): Promise<{ endpoint: string; keys: { p256dh: string; auth: string } }>;
   /** Feature nativePush: the notification the app was opened from, before the UI ran. */
   takeOpenedPush(): Promise<{ url: string | null }>;
+  /** Feature widgets: what the home-screen widget shows (native/widgets.ts), as JSON. */
+  setWidgetSnapshot(options: { json: string }): Promise<void>;
+  /** Feature liveActivity: starts the travel day's Live Activity, or updates the running one. */
+  syncTripDay(options: {
+    tripTitle: string;
+    path: string;
+    dayLabel: string;
+    nextName: string;
+    nextTime?: string;
+    done: number;
+    total: number;
+  }): Promise<{ running: boolean }>;
+  endTripDay(): Promise<void>;
   addListener(
     event: 'pushOpened',
     listener: (payload: { url: string }) => void

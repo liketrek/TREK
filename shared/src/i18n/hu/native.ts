@@ -86,6 +86,13 @@ const native: TranslationStrings = {
     'Rákérdez a TREK megnyitásakor és fél perc háttérben töltött idő után, és elrejti az alkalmazást az alkalmazásváltóban.',
   'native.share.title': 'Melyik utazásba importáljuk?',
   'native.share.noTrips': 'Még nincs utazás. Előbb hozz létre egyet, aztán oszd meg újra a dokumentumot.',
+  'native.widget.dayOf': '{m}/{n}. nap',
+  'native.widget.today': 'Ma',
+  'native.widget.noTrip': 'Még nincs tervezett utazás',
+  'native.widget.inDays': '{n} nap múlva',
+  'native.widget.tomorrow': 'Holnap',
+  'native.widget.nothingPlanned': 'Mára nincs semmi tervezve',
+  'native.widget.dayDone': 'Mára minden kész',
 };
 
 export default native;

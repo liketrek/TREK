@@ -85,6 +85,13 @@ const native: TranslationStrings = {
     'Запрашивается при открытии TREK и через полминуты в фоне, а в переключателе приложений содержимое скрыто.',
   'native.share.title': 'В какую поездку импортировать?',
   'native.share.noTrips': 'Поездок пока нет. Сначала создайте поездку, затем снова поделитесь документом.',
+  'native.widget.dayOf': 'День {n} из {m}',
+  'native.widget.today': 'Сегодня',
+  'native.widget.noTrip': 'Поездок пока не запланировано',
+  'native.widget.inDays': 'через {n} дн.',
+  'native.widget.tomorrow': 'Завтра',
+  'native.widget.nothingPlanned': 'На сегодня ничего не запланировано',
+  'native.widget.dayDone': 'На сегодня всё',
 };
 
 export default native;

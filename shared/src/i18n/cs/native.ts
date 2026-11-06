@@ -84,6 +84,13 @@ const native: TranslationStrings = {
     'Zeptá se při otevření TREK a po půl minutě na pozadí a skryje aplikaci v přepínači aplikací.',
   'native.share.title': 'Importovat do které cesty?',
   'native.share.noTrips': 'Zatím žádná cesta. Nejdřív nějakou vytvořte a pak dokument sdílejte znovu.',
+  'native.widget.dayOf': 'Den {n} z {m}',
+  'native.widget.today': 'Dnes',
+  'native.widget.noTrip': 'Zatím žádná naplánovaná cesta',
+  'native.widget.inDays': 'za {n} dní',
+  'native.widget.tomorrow': 'Zítra',
+  'native.widget.nothingPlanned': 'Na dnešek nic naplánováno',
+  'native.widget.dayDone': 'Na dnešek hotovo',
 };
 
 export default native;

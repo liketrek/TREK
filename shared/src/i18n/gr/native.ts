@@ -87,6 +87,13 @@ const native: TranslationStrings = {
     'Ζητείται κατά το άνοιγμα του TREK και μετά από μισό λεπτό στο παρασκήνιο, και η εφαρμογή κρύβεται στην εναλλαγή εφαρμογών.',
   'native.share.title': 'Εισαγωγή σε ποιο ταξίδι;',
   'native.share.noTrips': 'Δεν υπάρχει ακόμα ταξίδι. Δημιουργήστε ένα πρώτα και κοινοποιήστε ξανά το έγγραφο.',
+  'native.widget.dayOf': 'Ημέρα {n} από {m}',
+  'native.widget.today': 'Σήμερα',
+  'native.widget.noTrip': 'Δεν υπάρχει ακόμα προγραμματισμένο ταξίδι',
+  'native.widget.inDays': 'σε {n} ημέρες',
+  'native.widget.tomorrow': 'Αύριο',
+  'native.widget.nothingPlanned': 'Τίποτα προγραμματισμένο για σήμερα',
+  'native.widget.dayDone': 'Όλα έγιναν για σήμερα',
 };
 
 export default native;

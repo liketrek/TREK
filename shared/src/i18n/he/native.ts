@@ -82,6 +82,13 @@ const native: TranslationStrings = {
   'native.lock.settingHint': 'מבקש בעת פתיחת TREK ואחרי חצי דקה ברקע, ומסתיר את האפליקציה במחליף האפליקציות.',
   'native.share.title': 'לייבא לאיזה טיול?',
   'native.share.noTrips': 'אין עדיין טיול. צרו טיול ואז שתפו את המסמך שוב.',
+  'native.widget.dayOf': 'יום {n} מתוך {m}',
+  'native.widget.today': 'היום',
+  'native.widget.noTrip': 'עדיין לא תוכנן טיול',
+  'native.widget.inDays': 'בעוד {n} ימים',
+  'native.widget.tomorrow': 'מחר',
+  'native.widget.nothingPlanned': 'אין תוכניות להיום',
+  'native.widget.dayDone': 'הכול הושלם להיום',
 };
 
 export default native;

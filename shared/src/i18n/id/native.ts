@@ -85,6 +85,13 @@ const native: TranslationStrings = {
     'Meminta saat TREK dibuka dan setelah setengah menit di latar belakang, serta menyembunyikan aplikasi di pengalih aplikasi.',
   'native.share.title': 'Impor ke perjalanan mana?',
   'native.share.noTrips': 'Belum ada perjalanan. Buat satu dulu, lalu bagikan dokumennya lagi.',
+  'native.widget.dayOf': 'Hari {n} dari {m}',
+  'native.widget.today': 'Hari ini',
+  'native.widget.noTrip': 'Belum ada perjalanan yang direncanakan',
+  'native.widget.inDays': '{n} hari lagi',
+  'native.widget.tomorrow': 'Besok',
+  'native.widget.nothingPlanned': 'Tidak ada rencana hari ini',
+  'native.widget.dayDone': 'Semua selesai hari ini',
 };
 
 export default native;

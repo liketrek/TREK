@@ -85,6 +85,13 @@ const native: TranslationStrings = {
     'Hỏi khi mở TREK và sau nửa phút chạy nền, đồng thời ẩn ứng dụng trong trình chuyển ứng dụng.',
   'native.share.title': 'Nhập vào chuyến đi nào?',
   'native.share.noTrips': 'Chưa có chuyến đi nào. Hãy tạo một chuyến trước rồi chia sẻ lại tài liệu.',
+  'native.widget.dayOf': 'Ngày {n}/{m}',
+  'native.widget.today': 'Hôm nay',
+  'native.widget.noTrip': 'Chưa có chuyến đi nào được lên kế hoạch',
+  'native.widget.inDays': 'còn {n} ngày',
+  'native.widget.tomorrow': 'Ngày mai',
+  'native.widget.nothingPlanned': 'Hôm nay không có kế hoạch',
+  'native.widget.dayDone': 'Hôm nay đã xong',
 };
 
 export default native;

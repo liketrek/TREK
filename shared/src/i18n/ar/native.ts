@@ -82,6 +82,13 @@ const native: TranslationStrings = {
   'native.lock.settingHint': 'يطلب ذلك عند فتح TREK وبعد نصف دقيقة في الخلفية، ويخفي التطبيق في مبدّل التطبيقات.',
   'native.share.title': 'الاستيراد إلى أي رحلة؟',
   'native.share.noTrips': 'لا توجد رحلة بعد. أنشئ رحلة أولًا ثم شارك المستند مجددًا.',
+  'native.widget.dayOf': 'اليوم {n} من {m}',
+  'native.widget.today': 'اليوم',
+  'native.widget.noTrip': 'لا توجد رحلة مخططة بعد',
+  'native.widget.inDays': 'بعد {n} أيام',
+  'native.widget.tomorrow': 'غدًا',
+  'native.widget.nothingPlanned': 'لا شيء مخطط لليوم',
+  'native.widget.dayDone': 'انتهى كل شيء لليوم',
 };
 
 export default native;

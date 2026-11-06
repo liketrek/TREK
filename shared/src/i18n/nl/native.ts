@@ -84,6 +84,13 @@ const native: TranslationStrings = {
     'Vraagt erom bij het openen van TREK en na een halve minuut op de achtergrond, en verbergt de app in de appkiezer.',
   'native.share.title': 'In welke reis importeren?',
   'native.share.noTrips': 'Nog geen reis. Maak er eerst een aan en deel het document dan opnieuw.',
+  'native.widget.dayOf': 'Dag {n} van {m}',
+  'native.widget.today': 'Vandaag',
+  'native.widget.noTrip': 'Nog geen reis gepland',
+  'native.widget.inDays': 'over {n} dagen',
+  'native.widget.tomorrow': 'Morgen',
+  'native.widget.nothingPlanned': 'Niets gepland voor vandaag',
+  'native.widget.dayDone': 'Alles gedaan voor vandaag',
 };
 
 export default native;

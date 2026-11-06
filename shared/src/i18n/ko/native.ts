@@ -83,6 +83,13 @@ const native: TranslationStrings = {
     'TREK을 열 때와 백그라운드에서 30초가 지난 후에 확인하며, 앱 전환기에서는 내용을 숨깁니다.',
   'native.share.title': '어느 여행으로 가져올까요?',
   'native.share.noTrips': '아직 여행이 없습니다. 먼저 여행을 만든 뒤 문서를 다시 공유하세요.',
+  'native.widget.dayOf': '{m}일 중 {n}일째',
+  'native.widget.today': '오늘',
+  'native.widget.noTrip': '아직 계획된 여행이 없습니다',
+  'native.widget.inDays': '{n}일 후',
+  'native.widget.tomorrow': '내일',
+  'native.widget.nothingPlanned': '오늘은 계획이 없습니다',
+  'native.widget.dayDone': '오늘 일정 완료',
 };
 
 export default native;

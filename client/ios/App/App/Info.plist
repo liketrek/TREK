@@ -71,6 +71,8 @@
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>TREK saves photos and exports you download from your trips back to your photo library.</string>
 	<!-- navigator.geolocation in the WebView ("locate me" on the map). -->
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>NSFaceIDUsageDescription</key>
 	<string>TREK uses Face ID to unlock the app when you turn on the app lock.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>

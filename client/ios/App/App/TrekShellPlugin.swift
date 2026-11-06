@@ -4,6 +4,10 @@ import CoreLocation
 import CryptoKit
 import Security
 import UserNotifications
+import WidgetKit
+#if canImport(ActivityKit)
+import ActivityKit
+#endif
 import LocalAuthentication
 import UIKit
 import WebKit
@@ -32,6 +36,9 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
         CAPPluginMethod(name: "takeSharedFile", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "registerPush", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "takeOpenedPush", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setWidgetSnapshot", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "syncTripDay", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "endTripDay", returnType: CAPPluginReturnPromise),
     ]
 
     /// What this binary offers the server's UI, raised with every native feature
@@ -39,7 +46,7 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
     /// and a server can require a minimum (minNativeShellApi in /api/health/features).
     static let shellApi = 2
     /// The native features by name, so the UI can turn each on by itself.
-    static let features: [String] = ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation", "sharedFiles", "nativePush"]
+    static let features: [String] = ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation", "sharedFiles", "nativePush", "widgets", "liveActivity"]
 
     // MARK: - Shared booking documents
 
@@ -50,6 +57,69 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
         TrekPush.shared.onOpen = { [weak self] url in
             DispatchQueue.main.async { self?.notifyListeners("pushOpened", data: ["url": url]) }
         }
+    }
+
+    // MARK: - Widgets and the travel-day Live Activity
+
+    /// Stores what the home-screen widget shows (native/widgets.ts builds it, texts
+    /// already translated) where the widget extension reads it, and redraws it.
+    @objc func setWidgetSnapshot(_ call: CAPPluginCall) {
+        guard let json = call.getString("json"), let data = json.data(using: .utf8) else {
+            call.reject("json is required")
+            return
+        }
+        TrekSharedKeychain.write("widget.snapshot", data)
+        WidgetCenter.shared.reloadAllTimelines()
+        call.resolve()
+    }
+
+    /// Starts the travel day's Live Activity, or updates the one running.
+    @objc func syncTripDay(_ call: CAPPluginCall) {
+        guard let title = call.getString("tripTitle"), let path = call.getString("path"),
+              let dayLabel = call.getString("dayLabel"), let nextName = call.getString("nextName") else {
+            call.reject("tripTitle, path, dayLabel and nextName are required")
+            return
+        }
+        #if canImport(ActivityKit)
+        if #available(iOS 16.2, *) {
+            guard ActivityAuthorizationInfo().areActivitiesEnabled else {
+                call.resolve(["running": false])
+                return
+            }
+            let state = TripDayAttributes.ContentState(
+                dayLabel: dayLabel,
+                nextName: nextName,
+                nextTime: call.getString("nextTime"),
+                done: call.getInt("done") ?? 0,
+                total: call.getInt("total") ?? 0
+            )
+            // Stale at the end of the day, so a forgotten one fades out on its own.
+            let stale = Calendar.current.startOfDay(for: Date().addingTimeInterval(86_400))
+            let content = ActivityContent(state: state, staleDate: stale)
+            if let running = Activity<TripDayAttributes>.activities.first(where: { $0.attributes.path == path }) {
+                Task { await running.update(content) }
+            } else {
+                for other in Activity<TripDayAttributes>.activities {
+                    Task { await other.end(nil, dismissalPolicy: .immediate) }
+                }
+                _ = try? Activity.request(attributes: TripDayAttributes(tripTitle: title, path: path), content: content)
+            }
+            call.resolve(["running": true])
+            return
+        }
+        #endif
+        call.resolve(["running": false])
+    }
+
+    @objc func endTripDay(_ call: CAPPluginCall) {
+        #if canImport(ActivityKit)
+        if #available(iOS 16.2, *) {
+            for activity in Activity<TripDayAttributes>.activities {
+                Task { await activity.end(nil, dismissalPolicy: .immediate) }
+            }
+        }
+        #endif
+        call.resolve()
     }
 
     // MARK: - Push
@@ -438,32 +508,46 @@ enum TrekPushKeys {
     private static let authAccount = "push.auth"
 
     static func loadOrCreate() -> (publicKey: String, auth: String)? {
-        if let raw = read(privateKeyAccount), let auth = read(authAccount),
+        if let raw = TrekSharedKeychain.read(privateKeyAccount), let auth = TrekSharedKeychain.read(authAccount),
            let key = try? P256.KeyAgreement.PrivateKey(rawRepresentation: raw) {
             return (base64url(key.publicKey.x963Representation), base64url(auth))
         }
         let key = P256.KeyAgreement.PrivateKey()
         var auth = Data(count: 16)
         let status = auth.withUnsafeMutableBytes { SecRandomCopyBytes(kSecRandomDefault, 16, $0.baseAddress!) }
-        guard status == errSecSuccess, write(privateKeyAccount, key.rawRepresentation), write(authAccount, auth) else { return nil }
+        guard status == errSecSuccess,
+              TrekSharedKeychain.write(privateKeyAccount, key.rawRepresentation),
+              TrekSharedKeychain.write(authAccount, auth) else { return nil }
         return (base64url(key.publicKey.x963Representation), base64url(auth))
     }
+
+    static func base64url(_ data: Data) -> String {
+        data.base64EncodedString().replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+    }
+}
+
+/// Items the app shares with its extensions (the notification extension, the
+/// widgets) through one keychain group, so no App Group is needed: the push keys
+/// and the widget snapshot.
+enum TrekSharedKeychain {
+    static let service = "com.liketrek.trek.push"
 
     private static func query(_ account: String) -> [String: Any] {
         [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: "com.liketrek.trek.push",
+            kSecAttrService as String: service,
             kSecAttrAccount as String: account,
             kSecAttrAccessGroup as String: accessGroup,
         ]
     }
 
-    /// The team-prefixed group, read from the app's own entitlement at runtime.
-    private static var accessGroup: String {
+    /// The team-prefixed shared group, read off a probe item in the default group.
+    static var accessGroup: String = {
         let probe: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: "push.groupProbe",
-            kSecAttrService as String: "com.liketrek.trek.push",
+            kSecAttrService as String: service,
             kSecReturnAttributes as String: true,
         ]
         var result: CFTypeRef?
@@ -482,25 +566,21 @@ enum TrekPushKeys {
             return "\(prefix).\(TrekPush.keychainGroup)"
         }
         return TrekPush.keychainGroup
-    }
+    }()
 
-    private static func read(_ account: String) -> Data? {
+    static func read(_ account: String) -> Data? {
         var q = query(account)
         q[kSecReturnData as String] = true
         var result: CFTypeRef?
         return SecItemCopyMatching(q as CFDictionary, &result) == errSecSuccess ? result as? Data : nil
     }
 
-    private static func write(_ account: String, _ data: Data) -> Bool {
+    @discardableResult
+    static func write(_ account: String, _ data: Data) -> Bool {
         SecItemDelete(query(account) as CFDictionary)
         var q = query(account)
         q[kSecValueData as String] = data
         q[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
         return SecItemAdd(q as CFDictionary, nil) == errSecSuccess
-    }
-
-    static func base64url(_ data: Data) -> String {
-        data.base64EncodedString().replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_")
-            .replacingOccurrences(of: "=", with: "")
     }
 }
