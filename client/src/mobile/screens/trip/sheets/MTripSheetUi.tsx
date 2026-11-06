@@ -43,7 +43,8 @@ export function SheetSection({
   hint,
   children,
 }: {
-  title: string
+  /** Left out where each field below carries its own label. */
+  title?: string
   /** How many there are, as a small badge next to the title rather than glued onto it. */
   count?: number
   hint?: string
@@ -51,6 +52,7 @@ export function SheetSection({
 }) {
   return (
     <section className={`rounded-[18px] p-3 ${INNER_CLS}`}>
+      {title && (
       <div className="flex items-center gap-1.5">
         <Eyebrow className="uppercase">{title}</Eyebrow>
         {count != null && (
@@ -59,12 +61,13 @@ export function SheetSection({
           </span>
         )}
       </div>
+      )}
       {hint && (
         <p className="mt-1 font-geist text-[length:calc(11px*var(--fs-scale-caption,1))] leading-snug text-m-muted">
           {hint}
         </p>
       )}
-      <div className="mt-2.5 flex flex-col gap-2">{children}</div>
+      <div className={`${title || hint ? 'mt-2.5 ' : ''}flex flex-col gap-2`}>{children}</div>
     </section>
   )
 }

@@ -485,3 +485,17 @@
   -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 14px, black calc(100% - 14px), transparent 100%);
   mask-image: linear-gradient(to bottom, transparent 0, black 14px, black calc(100% - 14px), transparent 100%);
 }
+
+/* The shared pickers (select, date, time) inside the phone UI look like the
+   sheets' own fields: a 42 px round field on the field surface. They style
+   themselves inline for the desktop, hence the !important. */
+.m-root [data-field-trigger] {
+  min-height: 42px;
+  border-radius: 9999px !important;
+  border: 1px solid var(--m-rowbr) !important;
+  background: var(--m-ic) !important;
+}
+.m-root button[data-field-trigger],
+.m-root [data-field-trigger='pad'] {
+  padding-inline: 14px !important;
+}

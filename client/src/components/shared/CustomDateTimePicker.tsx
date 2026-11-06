@@ -298,6 +298,7 @@ export function CustomDatePicker({
         <div style={{ display: 'flex', gap: 4, alignItems: 'stretch' }}>
           {/* Calendar trigger */}
           <button
+            data-field-trigger={compact || borderless ? undefined : ''}
             type="button"
             onClick={() => setOpen((o) => !o)}
             disabled={disabled}
@@ -345,6 +346,7 @@ export function CustomDatePicker({
           {/* Keyboard / text-input trigger (non-compact only; compact gets it in the popup footer) */}
           {!compact && !borderless && (
             <button
+              data-field-trigger=""
               type="button"
               onClick={() => {
                 setTextInput(inputValue || '');

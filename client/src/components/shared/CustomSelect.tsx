@@ -186,6 +186,7 @@ export default function CustomSelect({
       <button
         ref={triggerRef}
         id={id}
+        data-field-trigger=""
         type="button"
         aria-label={ariaLabel}
         aria-expanded={open}
