@@ -100,6 +100,8 @@ const NO_DAYS: Day[] = []
 /** The GL renderer: the shared map contract plus the engine it is bound to. */
 interface Props extends MapViewProps {
   glProvider?: GlMapProvider
+  /** Draws this style instead of the user's: the offline basemap (offlineBasemap.ts). */
+  styleOverride?: string
   /**
    * The GL engine, injected instead of imported. Both SDKs used to be pulled in
    * statically here, so a single 2.8 MB chunk carried mapbox-gl and maplibre-gl
@@ -482,6 +484,7 @@ export function MapViewGL({
   onRemoveVia,
   onViewportChange,
   glProvider = 'mapbox-gl',
+  styleOverride,
   gl,
   onMapReady,
   ...assistant
@@ -506,7 +509,7 @@ export function MapViewGL({
   const showEndpointLabels = useSettingsStore(s => s.settings.map_booking_labels) === true
   const mapLang = useSettingsStore(s => s.settings.language)
   const isMapLibre = glProvider === 'maplibre-gl'
-  const glStyle = styleForActiveProvider(glProvider, rawMapboxStyle, rawMaplibreStyle)
+  const glStyle = styleOverride ?? styleForActiveProvider(glProvider, rawMapboxStyle, rawMaplibreStyle)
   const enableMapbox3d = !isMapLibre && mapbox3d
   const [mapReady, setMapReady] = useState(false)
   const [readyMap, setReadyMap] = useState<FerrataGlMap | null>(null) // the ready map, read without touching mapRef

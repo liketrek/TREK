@@ -52,5 +52,6 @@ const map: TranslationStrings = {
   'map.webgl2.fallback':
     'لا يوفّر هذا المتصفح WebGL2 الذي تحتاجه خرائط GL، لذا تُعرض الخرائط باستخدام Leaflet بدلًا منها.',
   'map.webgl2.terrain': 'يحتاج العرض ثلاثي الأبعاد إلى WebGL2، وهذا المتصفح لا يوفّره. تبقى الخريطة ثنائية الأبعاد.',
+  'map.offlineBasemap': 'خريطة دون اتصال',
 };
 export default map;

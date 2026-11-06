@@ -40,5 +40,6 @@ const map: TranslationStrings = {
   'map.baseLayer.topo': '地形圖',
   'map.webgl2.fallback': '此瀏覽器不支援 GL 地圖所需的 WebGL2，因此地圖改用 Leaflet 顯示。',
   'map.webgl2.terrain': '3D 需要 WebGL2，而此瀏覽器不支援。地圖維持 2D。',
+  'map.offlineBasemap': '離線地圖',
 };
 export default map;

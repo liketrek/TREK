@@ -25,8 +25,15 @@ const VECTOR_MAX_ZOOM = 14
 // The low zooms cost a few dozen tiles at most.
 const VECTOR_MIN_ZOOM = 0
 
-/** Requests in flight, kept low for the same reason the raster side keeps it low. */
-const CONCURRENCY = 6
+/**
+ * Requests in flight. OpenFreeMap allows offline downloads with at most four
+ * parallel requests, at most 3000 tiles and at most 50 MB each
+ * (openfreemap.org/tos), so the run keeps under all three.
+ */
+const CONCURRENCY = 4
+
+/** Byte budget per run, the 50 MB OpenFreeMap allows for one download. */
+const MAX_RUN_BYTES = 50 * 1024 * 1024
 
 /**
  * Hard cap on vector tiles per run. Each is far larger than a raster tile but
@@ -38,11 +45,51 @@ const MAX_VECTOR_TILES = 2000
 export const VECTOR_CACHE = 'gl-map-offline'
 
 /**
- * Latin glyph ranges. A label needs the range its codepoints fall in, and Latin
- * text lives in the first few; asking for all 256 ranges would download megabytes
- * of CJK nobody on this map is going to render.
+ * Glyph ranges every map needs: Latin, Greek, Cyrillic, Hebrew, Arabic and the
+ * punctuation blocks. A label needs the range its codepoints fall in; asking for
+ * all 256 ranges would download megabytes of scripts nobody on this map renders.
  */
 const GLYPH_RANGES = ['0-255', '256-511', '512-767', '768-1023', '1024-1279', '1280-1535', '1536-1791', '8192-8447', '8448-8703']
+
+/** One range string per 256 codepoints from `from` up to `to`. */
+function rangesBetween(from: number, to: number): string[] {
+  const out: string[] = []
+  for (let start = from - (from % 256); start <= to; start += 256) out.push(`${start}-${start + 255}`)
+  return out
+}
+
+/**
+ * Scripts whose labels a trip in that part of the world shows in the local
+ * name, so a trip there gets their ranges too, or its labels render blank
+ * offline. Boxes are generous [minLng, minLat, maxLng, maxLat].
+ */
+const REGIONAL_GLYPHS: { box: [number, number, number, number]; ranges: string[] }[] = [
+  // China, Japan, Korea, Taiwan: kana and CJK punctuation, unified ideographs, Hangul, full-width forms.
+  {
+    box: [73, 18, 146, 54],
+    ranges: [...rangesBetween(0x3000, 0x30ff), ...rangesBetween(0x4e00, 0x9fff), ...rangesBetween(0xac00, 0xd7af), ...rangesBetween(0xff00, 0xffef)],
+  },
+  // Thailand, Laos, Cambodia, Myanmar.
+  { box: [92, 5, 110, 28], ranges: rangesBetween(0x0e00, 0x0eff).concat(rangesBetween(0x1000, 0x109f), rangesBetween(0x1780, 0x17ff)) },
+  // India, Nepal, Bangladesh, Sri Lanka: Devanagari through Malayalam, Sinhala.
+  { box: [60, 5, 98, 36], ranges: rangesBetween(0x0900, 0x0dff) },
+  // Georgia and Armenia.
+  { box: [39, 38, 47, 44], ranges: rangesBetween(0x0530, 0x058f).concat(rangesBetween(0x10a0, 0x10ff)) },
+  // Ethiopia and Eritrea.
+  { box: [33, 3, 48, 18], ranges: rangesBetween(0x1200, 0x139f) },
+]
+
+/** The glyph ranges a map of `bbox` needs: the common ones plus its region's scripts. */
+export function glyphRangesFor(bbox: TileBbox | null): string[] {
+  const out = new Set(GLYPH_RANGES)
+  if (bbox) {
+    for (const { box, ranges } of REGIONAL_GLYPHS) {
+      const overlaps = bbox.minLng <= box[2] && bbox.maxLng >= box[0] && bbox.minLat <= box[3] && bbox.maxLat >= box[1]
+      if (overlaps) for (const r of ranges) out.add(r)
+    }
+  }
+  return [...out]
+}
 
 interface StyleSource {
   type?: string
@@ -96,15 +143,18 @@ function fontStacks(style: StyleDoc): string[] {
  * the Service Worker's handler, so a repeated or resumed run over a warm cache
  * costs almost nothing. Same reasoning as the raster side.
  */
-async function warm(cache: Cache | null, url: string): Promise<boolean> {
+async function warm(cache: Cache | null, url: string): Promise<number> {
   try {
-    if (cache && (await cache.match(url))) return false
+    if (cache && (await cache.match(url))) return 0
     const res = await fetch(url, { mode: 'cors' })
-    if (!res.ok) return false
-    await cache?.put(url, res.clone())
-    return true
+    if (!res.ok) return 0
+    // The length header when the server sends one; otherwise the body itself.
+    const header = Number(res.headers.get('content-length'))
+    const size = header > 0 ? header : (await res.clone().blob()).size || 1
+    await cache?.put(url, res)
+    return size
   } catch {
-    return false
+    return 0
   }
 }
 
@@ -178,11 +228,11 @@ async function readTileSources(style: StyleDoc, cache: Cache | null): Promise<Ti
  * The device-wide half: the style, its TileJSON, the sprite and the glyphs.
  * Returns the vector tile URL template, or null when the style could not be read.
  */
-export async function prefetchStyleAssets(styleUrl: string): Promise<string | null> {
-  return (await prefetchStyle(styleUrl))?.[0]?.template ?? null
+export async function prefetchStyleAssets(styleUrl: string, bbox: TileBbox | null = null): Promise<string | null> {
+  return (await prefetchStyle(styleUrl, bbox))?.[0]?.template ?? null
 }
 
-async function prefetchStyle(styleUrl: string): Promise<TileSource[] | null> {
+async function prefetchStyle(styleUrl: string, bbox: TileBbox | null = null): Promise<TileSource[] | null> {
   const cache = await openVectorCache()
   const style = await fetchJson<StyleDoc>(styleUrl)
   if (!style) return null
@@ -199,14 +249,14 @@ async function prefetchStyle(styleUrl: string): Promise<TileSource[] | null> {
   }
 
   if (style.glyphs) {
-    const stacks = fontStacks(style)
-    await Promise.all(
-      stacks.flatMap(stack =>
-        GLYPH_RANGES.map(range =>
-          warm(cache, style.glyphs!.replace('{fontstack}', encodeURIComponent(stack)).replace('{range}', range)),
-        ),
+    // Through the same pool as the tiles: a trip in East Asia asks for a few
+    // hundred glyph ranges, and OpenFreeMap allows four requests at a time.
+    const urls = fontStacks(style).flatMap(stack =>
+      glyphRangesFor(bbox).map(range =>
+        style.glyphs!.replace('{fontstack}', encodeURIComponent(stack)).replace('{range}', range),
       ),
     )
+    await inPool(urls, url => warm(cache, url))
   }
 
   return readTileSources(style, cache)
@@ -233,7 +283,7 @@ export async function prefetchVectorForPlaces(
   const bbox = computeBbox(places)
   if (!bbox) return { tiles: 0, template: null }
 
-  const sources = await prefetchStyle(styleUrl)
+  const sources = await prefetchStyle(styleUrl, bbox)
   const template = sources?.[0]?.template ?? null
   if (!sources?.length || isCancelled()) return { tiles: 0, template }
 
@@ -242,18 +292,36 @@ export async function prefetchVectorForPlaces(
 
   let cursor = 0
   let fetched = 0
+  let bytes = 0
 
   async function worker(): Promise<void> {
     while (cursor < urls.length) {
-      if (isCancelled() || !navigator.onLine) return
+      if (isCancelled() || !navigator.onLine || bytes >= MAX_RUN_BYTES) return
       const url = urls[cursor++]
       if (!url) return
-      if (await warm(cache, url)) fetched++
+      const size = await warm(cache, url)
+      if (size > 0) {
+        fetched++
+        bytes += size
+      }
     }
   }
 
   await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()))
   return { tiles: fetched, template }
+}
+
+/** Runs `task` over `items`, CONCURRENCY at a time. */
+async function inPool<T>(items: T[], task: (item: T) => Promise<unknown>): Promise<void> {
+  let cursor = 0
+  async function worker(): Promise<void> {
+    while (cursor < items.length) {
+      const item = items[cursor++]
+      if (item === undefined) return
+      await task(item)
+    }
+  }
+  await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()))
 }
 
 /** Drop the offline vector basemap, alongside the raster cache. */

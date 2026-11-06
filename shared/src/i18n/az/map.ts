@@ -50,6 +50,7 @@ const map: TranslationStrings = {
   'map.webgl2.fallback':
     'Bu brauzer GL xəritələrinin ehtiyac duyduğu WebGL2-ni təqdim etmir, ona görə xəritələr Leaflet ilə göstərilir.',
   'map.webgl2.terrain': '3D üçün WebGL2 lazımdır, bu brauzer isə onu təqdim etmir. Xəritə 2D olaraq qalır.',
+  'map.offlineBasemap': 'Oflayn xəritə',
 };
 
 export default map;
