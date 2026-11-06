@@ -33,11 +33,15 @@ const placeIdsOf = (items: Assignment[]): number[] =>
  * remove/edit place, the add bars, optimize and the Google-Maps export.
  * Reads tripStore directly only for dayNotes, which the planner doesn't expose.
  */
-export function useMPlanTimeline(planner: TripPlanner) {
+export function useMPlanTimeline(planner: TripPlanner, forDayId?: number | null) {
   const {
-    tripId, days, assignments, reservations, tripAccommodations, selectedDayId,
+    tripId, days, assignments, reservations, tripAccommodations,
     t, language, settings, toast, tripActions, pushUndo, updateRouteForDay, routeProfile,
   } = planner
+  // The day pager draws the neighbours of the selected day too, each through its
+  // own instance of this hook, so the day is a parameter. Left out, it is the
+  // planner's selection.
+  const selectedDayId = forDayId === undefined ? planner.selectedDayId : forDayId
 
   const dayNotes = useTripStore(s => s.dayNotes)
   const day = days.find(d => d.id === selectedDayId)

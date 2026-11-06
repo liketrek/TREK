@@ -1,4 +1,4 @@
-import { useRef, useState, type MouseEvent } from 'react'
+import { useEffect, useState, type MouseEvent } from 'react'
 import { ArrowRight, BedDouble, CalendarDays, CalendarRange, ChevronRight, Compass, LogIn, LogOut, MapPin, Pencil, PencilLine, Route, Ticket, TrainFront, Undo2 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useContextMenu, ContextMenu } from '../../../../components/shared/ContextMenu'
@@ -24,8 +24,7 @@ import type { RouteSegment } from '../../../../types'
 import type { Assignment } from '../../../../types'
 import type { ComponentType, ReactNode } from 'react'
 import GoogleMapsIcon from '../../../../components/shared/GoogleMapsIcon'
-import { isRtlLanguage } from '../../../../i18n'
-import { useMPlanDaySwipe } from './useMPlanDaySwipe'
+import MDayPager from '../../../components/MDayPager'
 
 /**
  * Plan-tab timeline of the mobile trip screen: the UP-NEXT card in go mode,
@@ -37,13 +36,74 @@ import { useMPlanDaySwipe } from './useMPlanDaySwipe'
 const GLASS_PILL = 'rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)]'
 
 export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
-  const tl = useMPlanTimeline(planner)
+  const { t, trip, can } = planner
+  const editing = shell.mode === 'edit' && can('day_edit', trip)
+  // Per-segment travel mode (#1281): one menu for the whole pager, opened from
+  // whichever day is current.
+  const legMenu = useContextMenu()
+  // Plugin time contributions in the day plan (dayScheduleProvider hook) —
+  // slotted under their anchor rows, same as the desktop sidebar.
+  const daySchedule = usePluginDaySchedule(planner.tripId)
+  // Long-press drag reordering (#1997). Armed only in edit mode, so go-mode taps,
+  // map pans and plain list scrolling keep the gesture — which is what kept
+  // #1432/#1440 from coming back when the old document-wide polyfill was dropped.
+  // Coarse pointers only: a hybrid laptop narrow enough to land in the phone
+  // shell already loads drag-drop-touch (utils/touchDragPolyfill), and two
+  // bridges would fight over one gesture. The rows' native drag props serve
+  // both, so nothing is lost there. One bridge for the pager: it listens on
+  // the document, and only the current day arms its rows.
+  const isTouch = useIsTouch()
+  useTouchDragBridge(editing && isTouch)
+  const [dragging, setDragging] = useState(false)
+
+  return (
+    <div className="absolute inset-0">
+      <ContextMenu menu={legMenu.menu} onClose={legMenu.close} />
+      {/* Swipe the days like pages (#2051): the one-handed way to the next day,
+          since the chip rail is pinned to the top of the screen. */}
+      <MDayPager
+        days={planner.days}
+        selectedDayId={planner.selectedDayId}
+        // skipFit, exactly like the chip tap in plan view: the map underneath stays
+        // mounted, and re-framing it here would move it somewhere nobody asked for.
+        onSelectDay={dayId => planner.handleSelectDay(dayId, true)}
+        locked={dragging || legMenu.menu != null}
+        describeDay={(i, n) => t('mobileTrip.dayAnnounce', { current: i + 1, total: n })}
+        renderDay={(dayId, active) => (
+          <PlanDayPage
+            planner={planner}
+            shell={shell}
+            dayId={dayId}
+            active={active}
+            editing={editing}
+            legMenu={legMenu}
+            daySchedule={daySchedule}
+            onDragging={active ? setDragging : undefined}
+          />
+        )}
+      />
+    </div>
+  )
+}
+
+/**
+ * One day of the timeline: the UP-NEXT card or the edit header, and the frosted
+ * card. The pager draws the current day and its two neighbours with this; only
+ * the current one is live, the others are inert previews of the same markup so
+ * the page that slides in is exactly what lands.
+ */
+function PlanDayPage({ planner, shell, dayId: pageDayId, active, editing, legMenu, daySchedule, onDragging }: MPlanTimelineProps & {
+  dayId: number | null
+  active: boolean
+  editing: boolean
+  legMenu: ReturnType<typeof useContextMenu>
+  daySchedule: ReturnType<typeof usePluginDaySchedule>
+  onDragging?: (dragging: boolean) => void
+}) {
+  const tl = useMPlanTimeline(planner, pageDayId)
   const { t, trip, can } = planner
   const canEdit = can('day_edit', trip)
-  const editing = shell.mode === 'edit' && canEdit
   const canEditPlaces = can('place_edit', trip)
-  // Per-segment travel mode (#1281): tap a connector → pick the leg's mode.
-  const legMenu = useContextMenu()
   const openLegMenu = (e: MouseEvent, assignmentId: number, seg: RouteSegment) => {
     // Public transit sits under the road profiles, as on the desktop (#2398).
     const transitLeg = tl.transitLegFor(seg)
@@ -54,9 +114,6 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
       transitLeg ? () => tl.planTransitLeg(transitLeg, assignmentId) : undefined,
     ))
   }
-  // Plugin time contributions in the day plan (dayScheduleProvider hook) —
-  // slotted under their anchor rows, same as the desktop sidebar.
-  const daySchedule = usePluginDaySchedule(planner.tripId)
   const day = tl.day
   const dayId = day?.id
   // A stay chip opens the stay, the same way the stay card in the day sheet
@@ -90,39 +147,14 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
     planner.handlePlaceClick(assignment.place?.id ?? null, assignment.id)
   }
 
-  // Long-press drag reordering (#1997). Armed only in edit mode, so go-mode taps,
-  // map pans and plain list scrolling keep the gesture — which is what kept
-  // #1432/#1440 from coming back when the old document-wide polyfill was dropped.
-  // Coarse pointers only: a hybrid laptop narrow enough to land in the phone
-  // shell already loads drag-drop-touch (utils/touchDragPolyfill), and two
-  // bridges would fight over one gesture. The rows' native drag props serve
-  // both, so nothing is lost there.
-  const isTouch = useIsTouch()
-  useTouchDragBridge(editing && isTouch)
   const dnd = useMPlanDragReorder({
     merged: tl.merged,
     dayId,
     onMove: tl.moveRowTo,
-    enabled: editing,
+    enabled: editing && active,
   })
-  // Swipe the whole panel left/right to step days (#2051) — the one-handed way
-  // to the next day, since the chip rail is pinned to the top of the screen.
-  const panelRef = useRef<HTMLDivElement>(null)
-  const cardRef = useRef<HTMLDivElement>(null)
-  const daySwipe = useMPlanDaySwipe({
-    days: planner.days,
-    selectedDayId: planner.selectedDayId,
-    // skipFit, exactly like the chip tap in plan view: the map underneath stays
-    // mounted, and re-framing it here would move it somewhere nobody asked for.
-    onSelectDay: dayId => planner.handleSelectDay(dayId, true),
-    panelRef,
-    cardRef,
-    editing,
-    dragging: dnd.draggingKey != null,
-    menuOpen: legMenu.menu != null,
-    rtl: isRtlLanguage(planner.language),
-    describeDay: (i, n) => t('mobileTrip.dayAnnounce', { current: i + 1, total: n }),
-  })
+  const draggingNow = dnd.draggingKey != null
+  useEffect(() => { onDragging?.(draggingNow) }, [onDragging, draggingNow])
 
   const dragFor = (row: PlanRow): RowDrag | undefined => {
     const props = dnd.dragPropsFor(row)
@@ -146,12 +178,7 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
   const chrome = { editing, t, language: tl.language, timeFormat: tl.timeFormat }
 
   return (
-    <div ref={panelRef} className="absolute inset-0" {...daySwipe.handlers}>
-      <ContextMenu menu={legMenu.menu} onClose={legMenu.close} />
-      {/* Swipe-committed day changes only — a chip tap already speaks its own
-          button label plus the aria-current flip, so announcing there would say
-          the day twice. */}
-      <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">{daySwipe.announcement}</span>
+    <div className="absolute inset-0">
       {!editing && <UpNextCard tl={tl} t={t} onOpen={openPlace} />}
       {editing && <EditHeader tl={tl} planner={planner} shell={shell} />}
 
@@ -159,9 +186,8 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
           collapses that reserved space up to the day chips when the day has no
           up-next (no places), so an empty day shows no gap. */}
       <div
-        ref={cardRef}
-        data-touch-drag={editing ? '' : undefined}
-        className="absolute inset-x-4 overflow-x-hidden overflow-y-auto overscroll-contain rounded-[22px] border border-[color:var(--m-cbr)] bg-[color:var(--m-card)] px-3.5 pb-2 pt-1 backdrop-blur-[24px] backdrop-saturate-[1.6] bottom-[calc(env(safe-area-inset-bottom,0px)+90px)]"
+        data-touch-drag={editing && active ? '' : undefined}
+        className="absolute inset-x-4 overflow-x-hidden overflow-y-auto overscroll-y-contain rounded-[22px] border border-[color:var(--m-cbr)] bg-[color:var(--m-card)] px-3.5 pb-2 pt-1 backdrop-blur-[24px] backdrop-saturate-[1.6] bottom-[calc(env(safe-area-inset-bottom,0px)+90px)]"
         style={{ top: `calc(var(--m-safe-top, 12px) + ${editing ? 140 : tl.upNext ? 216 : 102}px)` }}
       >
         {planner.toursEnabled && tl.rows.some(row => row.kind === 'place' && row.invalidTour) && (
@@ -446,10 +472,10 @@ function TimelineHeader({ tl, dayLabel, openLabel, weatherLabel, onOpenDay, onOp
   const WeatherIcon = weatherIconFor(tl.weather?.main)
   return (
     <div className="flex items-center gap-1.5 border-b border-[color:var(--m-rowbr)] px-0.5 py-[9px]">
-      {/* The one horizontal scroller inside the swipe zone, marked so a swipe
-          that starts here is handed back to it — but only while it really
-          overflows, so a short day title still swipes. */}
-      <span data-hswipe-ignore className="flex min-w-0 items-center gap-1.5 overflow-x-auto">
+      {/* The one horizontal scroller inside the day pager. Nested scrolling is
+          the browser's: while the chips overflow they pan first, and the pager
+          takes over at their end or when they fit. */}
+      <span className="flex min-w-0 items-center gap-1.5 overflow-x-auto">
         <button
           type="button"
           onClick={onOpenDay}

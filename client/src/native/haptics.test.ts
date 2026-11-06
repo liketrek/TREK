@@ -1,16 +1,18 @@
-import { Haptics, NotificationType } from '@capacitor/haptics';
+import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { toastHaptic } from './haptics';
+import { tickHaptic, toastHaptic } from './haptics';
 import { isNativeApp } from './platform';
 
 vi.mock('@capacitor/haptics', () => ({
-  Haptics: { notification: vi.fn() },
+  Haptics: { notification: vi.fn(), impact: vi.fn() },
+  ImpactStyle: { Light: 'LIGHT' },
   NotificationType: { Success: 'SUCCESS', Warning: 'WARNING', Error: 'ERROR' },
 }));
 vi.mock('./platform', () => ({ isNativeApp: vi.fn() }));
 
 beforeEach(() => {
   vi.mocked(Haptics.notification).mockReset().mockResolvedValue();
+  vi.mocked(Haptics.impact).mockReset().mockResolvedValue();
   vi.mocked(isNativeApp).mockReturnValue(true);
 });
 
@@ -40,5 +42,18 @@ describe('toastHaptic', () => {
     toastHaptic('error');
     await vi.waitFor(() => expect(report).toHaveBeenCalledWith(expect.any(Error)));
     vi.unstubAllGlobals();
+  });
+});
+
+describe('tickHaptic', () => {
+  it('gives a light detent in the app', () => {
+    tickHaptic();
+    expect(Haptics.impact).toHaveBeenCalledWith({ style: ImpactStyle.Light });
+  });
+
+  it('stays still in a browser', () => {
+    vi.mocked(isNativeApp).mockReturnValue(false);
+    tickHaptic();
+    expect(Haptics.impact).not.toHaveBeenCalled();
   });
 });

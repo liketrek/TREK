@@ -19,7 +19,7 @@ import { openLeg } from '../../../helpers/legAlternatives'
 // reads two flags out of it, so the hook is the smaller seam.
 const mocks = vi.hoisted(() => ({
   prefs: {} as Record<string, unknown>,
-  swipe: {} as { onSelectDay: (id: number) => void; describeDay: (i: number, n: number) => string },
+  pager: {} as { onSelectDay: (id: number) => void; describeDay: (i: number, n: number) => string; locked?: boolean },
 }))
 
 vi.mock('../../../../src/hooks/useRoadtripSettings', () => ({
@@ -35,18 +35,14 @@ vi.mock('../../../../src/services/photoService', () => ({
   onThumbReady: () => () => {},
 }))
 
-// The swipe itself is the plan tab's, tested there; this keeps the real hook and only
-// records what the road trip tab hands it.
-vi.mock('../../../../src/mobile/screens/trip/plan/useMPlanDaySwipe', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../../../src/mobile/screens/trip/plan/useMPlanDaySwipe')>()
-  return {
-    ...actual,
-    useMPlanDaySwipe: (config: Parameters<typeof actual.useMPlanDaySwipe>[0]) => {
-      mocks.swipe = config as unknown as typeof mocks.swipe
-      return actual.useMPlanDaySwipe(config)
-    },
-  }
-})
+// The paging itself is MDayPager's, tested there. This draws only the current page, so
+// the stage under test is the one on screen, and records what the tab hands the pager.
+vi.mock('../../../../src/mobile/components/MDayPager', () => ({
+  default: (props: { selectedDayId: number | null; renderDay: (id: number | null, active: boolean) => unknown }) => {
+    mocks.pager = props as unknown as typeof mocks.pager
+    return props.renderDay(props.selectedDayId, true)
+  },
+}))
 
 const DAYS = [
   { id: 1, trip_id: 7, day_number: 1, date: '2026-05-01', title: null },
@@ -1041,17 +1037,22 @@ describe('MRoadtripTab', () => {
     })
   })
 
-  describe('day swipe', () => {
+  describe('day pager', () => {
     it('FE-MOB-RTTAB-027: steps the stage without refitting the map, and announces the day it landed on', () => {
       const p = planner()
       renderTab(p)
 
-      mocks.swipe.onSelectDay(1)
+      mocks.pager.onSelectDay(1)
 
       // The second argument is skipFit: the map stays where it is, the stage's own
       // focus points frame it.
       expect(p.handleSelectDay).toHaveBeenCalledWith(1, true)
-      expect(mocks.swipe.describeDay(0, 2)).toBe('mobileTrip.dayAnnounce:1,2')
+      expect(mocks.pager.describeDay(0, 2)).toBe('mobileTrip.dayAnnounce:1,2')
+    })
+
+    it('FE-MOB-RTTAB-028: an open sheet holds the stages still', () => {
+      renderTab(planner(), buildShell({ sheet: { kind: 'rtsearch' } as never }))
+      expect(mocks.pager.locked).toBe(true)
     })
   })
 })

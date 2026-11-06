@@ -43,8 +43,11 @@ export interface MRoadtripController {
  * quietly lies once you leave twenty minutes late, and the fix is arithmetic on the
  * schedule rather than a request. Nothing here asks the network for anything.
  */
-export function useMRoadtrip(planner: TripPlanner): MRoadtripController {
-  const { roadtripRoutes, selectedDayId, days } = planner
+export function useMRoadtrip(planner: TripPlanner, forDayId?: number | null): MRoadtripController {
+  const { roadtripRoutes, days } = planner
+  // The day pager draws the stages beside the selected one too, each through its own
+  // instance of this hook. Left out, the day is the planner's selection.
+  const selectedDayId = forDayId === undefined ? planner.selectedDayId : forDayId
   const vehicle = useRoadtripSettings(s => s.roadtrip_vehicle, planner.tripId)
   const [minutes, setMinutes] = useState(localMinutes)
   const [offline, setOffline] = useState(isEffectivelyOffline)
