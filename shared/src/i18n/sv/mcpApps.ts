@@ -52,5 +52,16 @@ const mcpApps: TranslationStrings = {
   'mcpApps.todos.due': 'Förfaller',
   'mcpApps.todos.done': 'Klara',
   'mcpApps.todos.toggleError': 'Det gick inte att uppdatera uppgiften. Försök igen.',
+  'mcpApps.map.title': 'Resekarta',
+  'mcpApps.map.count': 'Platser på kartan',
+  'mcpApps.map.zoomIn': 'Zooma in',
+  'mcpApps.map.zoomOut': 'Zooma ut',
+  'mcpApps.map.fullscreen': 'Helskärm',
+  'mcpApps.map.empty': 'Inga platser med position än',
+  'mcpApps.dayPlan.day': 'Dag {day}',
+  'mcpApps.dayPlan.empty': 'Inget planerat den här dagen',
+  'mcpApps.dayPlan.moveUp': 'Flytta upp',
+  'mcpApps.dayPlan.moveDown': 'Flytta ner',
+  'mcpApps.dayPlan.reorderError': 'Det gick inte att ändra ordningen. Försök igen.',
 };
 export default mcpApps;

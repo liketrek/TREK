@@ -64,7 +64,7 @@ describe('MCP Apps resources', () => {
       const [content] = reads[i].contents;
       expect(content).toMatchObject({ mimeType: MCP_APP_MIME_TYPE, text: HTML });
       expect(content._meta).toMatchObject({
-        ui: { prefersBorder: true, csp: { resourceDomains: [expect.any(String)] } },
+        ui: { prefersBorder: true, csp: { resourceDomains: expect.arrayContaining([expect.any(String)]) } },
       });
     }
   });

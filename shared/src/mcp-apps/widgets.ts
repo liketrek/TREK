@@ -13,6 +13,8 @@ export const MCP_APP_WIDGETS = [
   'place-results',
   'budget',
   'todos',
+  'trip-map',
+  'day-plan',
 ] as const;
 
 export type McpAppWidget = (typeof MCP_APP_WIDGETS)[number];

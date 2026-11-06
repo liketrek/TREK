@@ -52,5 +52,16 @@ const mcpApps: TranslationStrings = {
   'mcpApps.todos.due': 'Due',
   'mcpApps.todos.done': 'Done',
   'mcpApps.todos.toggleError': 'Could not update the to-do. Try again.',
+  'mcpApps.map.title': 'Trip map',
+  'mcpApps.map.count': 'Places on the map',
+  'mcpApps.map.zoomIn': 'Zoom in',
+  'mcpApps.map.zoomOut': 'Zoom out',
+  'mcpApps.map.fullscreen': 'Full screen',
+  'mcpApps.map.empty': 'No places with a location yet',
+  'mcpApps.dayPlan.day': 'Day {day}',
+  'mcpApps.dayPlan.empty': 'Nothing planned for this day',
+  'mcpApps.dayPlan.moveUp': 'Move up',
+  'mcpApps.dayPlan.moveDown': 'Move down',
+  'mcpApps.dayPlan.reorderError': 'Could not change the order. Try again.',
 };
 export default mcpApps;

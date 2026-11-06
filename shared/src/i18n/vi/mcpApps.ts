@@ -52,5 +52,16 @@ const mcpApps: TranslationStrings = {
   'mcpApps.todos.due': 'Hạn',
   'mcpApps.todos.done': 'Đã xong',
   'mcpApps.todos.toggleError': 'Không cập nhật được việc cần làm. Hãy thử lại.',
+  'mcpApps.map.title': 'Bản đồ chuyến đi',
+  'mcpApps.map.count': 'Địa điểm trên bản đồ',
+  'mcpApps.map.zoomIn': 'Phóng to',
+  'mcpApps.map.zoomOut': 'Thu nhỏ',
+  'mcpApps.map.fullscreen': 'Toàn màn hình',
+  'mcpApps.map.empty': 'Chưa có địa điểm nào có vị trí',
+  'mcpApps.dayPlan.day': 'Ngày {day}',
+  'mcpApps.dayPlan.empty': 'Không có kế hoạch cho ngày này',
+  'mcpApps.dayPlan.moveUp': 'Lên trên',
+  'mcpApps.dayPlan.moveDown': 'Xuống dưới',
+  'mcpApps.dayPlan.reorderError': 'Không đổi được thứ tự. Hãy thử lại.',
 };
 export default mcpApps;

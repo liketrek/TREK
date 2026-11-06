@@ -1,0 +1,52 @@
+.day__stop {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--trek-border);
+}
+
+.day__stop:first-child {
+  border-top: 0;
+}
+
+.day__number {
+  flex: none;
+  display: grid;
+  place-items: center;
+  inline-size: 26px;
+  block-size: 26px;
+  border-radius: 50%;
+  background: var(--trek-accent);
+  color: var(--trek-bg);
+  font-size: var(--trek-text-sm);
+  font-weight: var(--font-weight-semibold, 600);
+  font-variant-numeric: tabular-nums;
+}
+
+.day__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-inline-size: 0;
+}
+
+.day__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.day__moves {
+  display: flex;
+  gap: 4px;
+}
+
+.day__moves .trek-button {
+  min-inline-size: 44px;
+}
+
+.day__moves .trek-button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}

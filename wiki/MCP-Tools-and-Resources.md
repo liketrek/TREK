@@ -58,6 +58,7 @@ Requires `places:read` or `places:write` scope.
 | Tool | Description |
 |---|---|
 | `list_places` | List places in a trip, optionally filtered by assignment status, category, tag, or search query. |
+| `get_trip_map` | The trip's places that have a location, for a map: id, name, coordinates and address, a page at a time, with the tiles your map settings use. |
 | `get_place` | One place of the trip's pool with all its fields. Returns structured output. |
 | `create_place` | Add a place with name, coordinates, address, category, notes, website, phone, email, and optional `google_place_id` / `osm_id` / `amap_poi_id`. `opening_hours` takes the place's own hours, seven days starting on Monday (`closed`, `open`, `close` as `HH:MM`), shown instead of looked-up hours; `null` clears them. An optional `stop_type` (`fuel`, `charging`, `rest_area`, `campsite`, `restaurant`, `sights` or `hotel`) marks it as a service stop on a drive rather than a destination, so it is left out of the day's stop count; see [Road-Trip](Road-Trip). Leave it unset for an ordinary place. |
 | `update_place` | Update any field of an existing place including phone, email, opening hours, transport mode, timing, price and `stop_type`. Pass `stop_type: null` to turn a service stop back into an ordinary place. |
@@ -82,6 +83,7 @@ Requires `trips:read` or `trips:write` scope.
 |---|---|
 | `update_day` | Set or clear a day's title. |
 | `list_days` | The trip's days in order, with their scheduled places and notes. Returns structured output. |
+| `get_day_plan` | One day with its stops in order: each stop's assignment id, name, times and address. |
 | `create_day` | Add a new day to a trip with optional date and notes. With `position` an empty day is slotted in at that place. With `dated` the trip grows by the calendar day after its last date: the new day gets that date and goes right behind the last dated day, days without a date move one place back, and the end date of the trip moves to the new day. `dated` only works on a trip with dates, is refused once the trip spans 999 days, and cannot be combined with `date` or `position`; its result carries the updated `trip` next to the `day`. |
 | `delete_day` | Delete a day from a trip. Its places stay in the place list, its notes and texts go, and bookings on it stay without a day. A stay that checks in or out on the day is cancelled with its booking and expense; a stay that only runs across the day is kept. Later days move up one place; on a dated trip they and their bookings take the date one slot earlier, and the trip ends a day earlier when no day without a date is left to take the last date. The last day of a trip cannot be deleted. |
 | `reorder_days` | Reorder whole days by listing every day ID of the trip in the desired order. Each day keeps its places, notes, stays and bookings; on a dated trip the dates stay pinned to their slots, so the content moves across them. For places inside one day use `reorder_day_assignments`. Requires `trips:write`. |
@@ -342,6 +344,8 @@ Hosts that support MCP Apps read these to draw a tool's answer as an interactive
 | `ui://trek/place-results.html` | `places:read` | `search_place` |
 | `ui://trek/budget.html` | `budget:read` | `list_budget_items`, `get_budget_per_person` |
 | `ui://trek/todos.html` | `todos:read` | `list_todos` |
+| `ui://trek/trip-map.html` | `places:read` | `get_trip_map` |
+| `ui://trek/day-plan.html` | `trips:read` | `get_day_plan` |
 
 ---
 

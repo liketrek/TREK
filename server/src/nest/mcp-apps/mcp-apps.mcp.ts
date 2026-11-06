@@ -1,5 +1,6 @@
 import { getAppUrl } from '../../app-config';
 import { McpController, MCP_APP_MIME_TYPE, Resource, uiResource, type McpContext } from '../../nest-mcp';
+import { tileOrigin } from './map-tiles.helpers';
 import { McpAppsService } from './mcp-apps.service';
 import { mcpAppUri, type McpAppWidget } from '@trek/shared';
 
@@ -10,20 +11,22 @@ const offered = (widget: McpAppWidget) => (_ctx: McpContext, self: object) =>
 /**
  * The widget documents, one `ui://` resource each. A widget reaches nothing on
  * its own: the host hands it the tool result, and the images it shows come from
- * this install, which is the one origin its sandbox may load from.
+ * this install, which is the one origin its sandbox may load from. The map view
+ * also loads the tiles of the provider the reader's map settings name.
  */
 @McpController()
 export class McpAppsMcp {
   constructor(readonly apps: McpAppsService) {}
 
-  private read(uri: URL, widget: McpAppWidget) {
+  /** The widget's document, allowed to load images from this install and from the given origins. */
+  private read(uri: URL, widget: McpAppWidget, imageOrigins: string[] = []) {
     return {
       contents: [
         {
           uri: uri.href,
           mimeType: MCP_APP_MIME_TYPE,
           text: this.apps.html(widget) ?? '',
-          _meta: uiResource({ csp: { resourceDomains: [getAppUrl()] }, prefersBorder: true }),
+          _meta: uiResource({ csp: { resourceDomains: [getAppUrl(), ...imageOrigins] }, prefersBorder: true }),
         },
       ],
     };
@@ -125,5 +128,33 @@ export class McpAppsMcp {
   })
   async todosWidget(uri: URL) {
     return this.read(uri, 'todos');
+  }
+
+  @Resource({
+    name: 'widget-trip-map',
+    title: 'Trip map view',
+    uri: mcpAppUri('trip-map'),
+    description: 'The map get_trip_map draws the trip places on.',
+    mimeType: MCP_APP_MIME_TYPE,
+    _meta: uiResource({ prefersBorder: true }),
+    when: offered('trip-map'),
+    access: { group: 'places', mode: 'read' },
+  })
+  async tripMapWidget(uri: URL, ctx: McpContext) {
+    return this.read(uri, 'trip-map', [tileOrigin(await this.apps.mapTiles(ctx.userId))]);
+  }
+
+  @Resource({
+    name: 'widget-day-plan',
+    title: 'Day plan view',
+    uri: mcpAppUri('day-plan'),
+    description: 'The timeline get_day_plan draws a day with.',
+    mimeType: MCP_APP_MIME_TYPE,
+    _meta: uiResource({ prefersBorder: true }),
+    when: offered('day-plan'),
+    access: { group: 'trips', mode: 'read' },
+  })
+  async dayPlanWidget(uri: URL) {
+    return this.read(uri, 'day-plan');
   }
 }

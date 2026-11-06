@@ -52,5 +52,16 @@ const mcpApps: TranslationStrings = {
   'mcpApps.todos.due': 'กำหนด',
   'mcpApps.todos.done': 'เสร็จแล้ว',
   'mcpApps.todos.toggleError': 'อัปเดตสิ่งที่ต้องทำไม่สำเร็จ โปรดลองอีกครั้ง',
+  'mcpApps.map.title': 'แผนที่ทริป',
+  'mcpApps.map.count': 'สถานที่บนแผนที่',
+  'mcpApps.map.zoomIn': 'ซูมเข้า',
+  'mcpApps.map.zoomOut': 'ซูมออก',
+  'mcpApps.map.fullscreen': 'เต็มหน้าจอ',
+  'mcpApps.map.empty': 'ยังไม่มีสถานที่ที่มีตำแหน่ง',
+  'mcpApps.dayPlan.day': 'วันที่ {day}',
+  'mcpApps.dayPlan.empty': 'ไม่มีแผนสำหรับวันนี้',
+  'mcpApps.dayPlan.moveUp': 'เลื่อนขึ้น',
+  'mcpApps.dayPlan.moveDown': 'เลื่อนลง',
+  'mcpApps.dayPlan.reorderError': 'เปลี่ยนลำดับไม่สำเร็จ โปรดลองอีกครั้ง',
 };
 export default mcpApps;

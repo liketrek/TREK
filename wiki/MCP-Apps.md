@@ -12,6 +12,8 @@ Some MCP hosts can draw a small interactive view next to a tool's answer. Claude
 | `get_weather` | The day's forecast, or the climate average for a day too far ahead, as a card. |
 | `search_place` | The places found, as cards with their address and rating. **Add to trip** asks the assistant to add that place, naming it by its map id only. **Tell the assistant about this place** lets the assistant know which one you mean without sending a message. |
 | `list_budget_items`, `get_budget_per_person` | The budget as a card: the total and a bar per category, or each traveler's share and what they paid. Switching between the two reads the other side through your connection. Read only. |
+| `get_trip_map` | The trip's places on a map. Drag to move it, use the buttons to zoom, and **Full screen** for the whole window. Picking a place tells the assistant which one you mean. The tiles come from the provider in your map settings, or from OpenStreetMap when that provider needs a key or is not an https raster source. |
+| `get_day_plan` | One day as a numbered list of its stops with their times. The arrows move a stop up or down, and the new order is saved through your connection, so it needs the `places:write` scope and the trip's day editing permission. |
 | `list_todos` | The trip's to-dos as a checklist, the open ones first, each with its due date. Ticking one off goes through your connection like the packing list, so it needs the `todos:write` scope. |
 
 More views follow the same pattern. The tool still answers in text and with a structured result, and the view draws that result. A view never fetches anything on its own. It changes a trip only when you tick or press something in it, and then through your own MCP connection and its scopes.
@@ -28,7 +30,7 @@ The switch only shows while the MCP addon is on, and it starts out on. Changes a
 ## How it works
 
 - Each view is one self-contained HTML document, served as a `ui://trek/<name>.html` resource with the MIME type `text/html;profile=mcp-app`.
-- The host runs the document in a sandboxed frame. Its content security policy only allows images from your TREK address, and the view makes no network requests of its own.
+- The host runs the document in a sandboxed frame. Its content security policy only allows images from your TREK address, plus the tile host for the map view, and the view makes no network requests of its own.
 - The tool's result carries your TREK address in its `_meta` (`trek/appUrl`), so the text content stays exactly what a host without views reads.
 - Views follow the host's light or dark theme and its language. The view texts are translated into every language TREK supports.
 

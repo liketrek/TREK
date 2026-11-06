@@ -52,5 +52,16 @@ const mcpApps: TranslationStrings = {
   'mcpApps.todos.due': 'Termin',
   'mcpApps.todos.done': 'Zrobione',
   'mcpApps.todos.toggleError': 'Nie udało się zaktualizować zadania. Spróbuj ponownie.',
+  'mcpApps.map.title': 'Mapa podróży',
+  'mcpApps.map.count': 'Miejsca na mapie',
+  'mcpApps.map.zoomIn': 'Przybliż',
+  'mcpApps.map.zoomOut': 'Oddal',
+  'mcpApps.map.fullscreen': 'Pełny ekran',
+  'mcpApps.map.empty': 'Brak miejsc z lokalizacją',
+  'mcpApps.dayPlan.day': 'Dzień {day}',
+  'mcpApps.dayPlan.empty': 'Na ten dzień nic nie zaplanowano',
+  'mcpApps.dayPlan.moveUp': 'Przesuń w górę',
+  'mcpApps.dayPlan.moveDown': 'Przesuń w dół',
+  'mcpApps.dayPlan.reorderError': 'Nie udało się zmienić kolejności. Spróbuj ponownie.',
 };
 export default mcpApps;

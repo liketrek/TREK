@@ -45,9 +45,3 @@ li:first-child > .checklist__row {
   flex: 1;
   min-width: 0;
 }
-
-.checklist__error {
-  margin: 0 0 var(--trek-space);
-  color: var(--color-text-danger, #b91c1c);
-  font-size: var(--trek-text-sm);
-}

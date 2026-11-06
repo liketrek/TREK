@@ -88,8 +88,10 @@ describe('structured output of the read tools', () => {
       [
         'autocomplete_place',
         'get_budget_per_person',
+        'get_day_plan',
         'get_notification_preferences',
         'get_place',
+        'get_trip_map',
         'get_trip_overview',
         'get_weather',
         'list_budget_items',

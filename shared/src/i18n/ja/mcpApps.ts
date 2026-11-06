@@ -52,5 +52,16 @@ const mcpApps: TranslationStrings = {
   'mcpApps.todos.due': '期限',
   'mcpApps.todos.done': '完了',
   'mcpApps.todos.toggleError': 'ToDoを更新できませんでした。もう一度お試しください。',
+  'mcpApps.map.title': '旅行マップ',
+  'mcpApps.map.count': '地図上の場所',
+  'mcpApps.map.zoomIn': '拡大',
+  'mcpApps.map.zoomOut': '縮小',
+  'mcpApps.map.fullscreen': '全画面',
+  'mcpApps.map.empty': '位置情報のある場所はまだありません',
+  'mcpApps.dayPlan.day': '{day}日目',
+  'mcpApps.dayPlan.empty': 'この日の予定はありません',
+  'mcpApps.dayPlan.moveUp': '上へ移動',
+  'mcpApps.dayPlan.moveDown': '下へ移動',
+  'mcpApps.dayPlan.reorderError': '順番を変更できませんでした。もう一度お試しください。',
 };
 export default mcpApps;

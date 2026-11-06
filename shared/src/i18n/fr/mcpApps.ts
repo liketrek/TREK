@@ -52,5 +52,16 @@ const mcpApps: TranslationStrings = {
   'mcpApps.todos.due': 'Échéance',
   'mcpApps.todos.done': 'Faites',
   'mcpApps.todos.toggleError': 'Impossible de mettre à jour la tâche. Réessayez.',
+  'mcpApps.map.title': 'Carte du voyage',
+  'mcpApps.map.count': 'Lieux sur la carte',
+  'mcpApps.map.zoomIn': 'Zoom avant',
+  'mcpApps.map.zoomOut': 'Zoom arrière',
+  'mcpApps.map.fullscreen': 'Plein écran',
+  'mcpApps.map.empty': 'Aucun lieu localisé pour l’instant',
+  'mcpApps.dayPlan.day': 'Jour {day}',
+  'mcpApps.dayPlan.empty': 'Rien de prévu ce jour-là',
+  'mcpApps.dayPlan.moveUp': 'Monter',
+  'mcpApps.dayPlan.moveDown': 'Descendre',
+  'mcpApps.dayPlan.reorderError': 'Impossible de changer l’ordre. Réessayez.',
 };
 export default mcpApps;

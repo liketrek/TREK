@@ -52,5 +52,16 @@ const mcpApps: TranslationStrings = {
   'mcpApps.todos.due': 'Uiterlijk',
   'mcpApps.todos.done': 'Klaar',
   'mcpApps.todos.toggleError': 'De taak kon niet worden bijgewerkt. Probeer het opnieuw.',
+  'mcpApps.map.title': 'Reiskaart',
+  'mcpApps.map.count': 'Plekken op de kaart',
+  'mcpApps.map.zoomIn': 'Inzoomen',
+  'mcpApps.map.zoomOut': 'Uitzoomen',
+  'mcpApps.map.fullscreen': 'Volledig scherm',
+  'mcpApps.map.empty': 'Nog geen plekken met een locatie',
+  'mcpApps.dayPlan.day': 'Dag {day}',
+  'mcpApps.dayPlan.empty': 'Niets gepland voor deze dag',
+  'mcpApps.dayPlan.moveUp': 'Omhoog',
+  'mcpApps.dayPlan.moveDown': 'Omlaag',
+  'mcpApps.dayPlan.reorderError': 'De volgorde kon niet worden gewijzigd. Probeer het opnieuw.',
 };
 export default mcpApps;

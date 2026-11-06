@@ -5,6 +5,7 @@
 import { AddonsService } from '../../../../src/nest/addons/addons.service';
 import { MCP_APPS_DIR } from '../../../../src/nest/mcp-apps/mcp-apps.constants';
 import { McpAppsService } from '../../../../src/nest/mcp-apps/mcp-apps.service';
+import { SettingsService } from '../../../../src/nest/settings/settings.service';
 import { Test } from '@nestjs/testing';
 import { MCP_APP_WIDGETS } from '@trek/shared';
 
@@ -15,12 +16,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 let dir: string;
 const mcpAppsEnabled = vi.fn(async () => true);
+const getUserSettings = vi.fn(async (): Promise<Record<string, unknown>> => ({}));
 
 async function service(): Promise<McpAppsService> {
   const moduleRef = await Test.createTestingModule({
     providers: [
       McpAppsService,
       { provide: AddonsService, useValue: { mcpAppsEnabled } },
+      { provide: SettingsService, useValue: { getUserSettings } },
       { provide: MCP_APPS_DIR, useValue: dir },
     ],
   }).compile();
@@ -60,5 +63,12 @@ describe('McpAppsService', () => {
     mcpAppsEnabled.mockResolvedValue(false);
     expect(await built.available('trip-list')).toBe(false);
     expect(await built.offeredToSessions()).toBe(false);
+  });
+  it('MCPAPPS-SVC-004: draws the map from the user’s own tile setting', async () => {
+    getUserSettings.mockResolvedValueOnce({ map_tile_url: 'https://tiles.example.org/{z}/{x}/{y}.png' });
+    const apps = await service();
+    expect((await apps.mapTiles(7)).url).toBe('https://tiles.example.org/{z}/{x}/{y}.png');
+    expect(getUserSettings).toHaveBeenCalledWith(7);
+    expect((await apps.mapTiles(7)).url).toBe('https://tile.openstreetmap.org/{z}/{x}/{y}.png');
   });
 });

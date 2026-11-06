@@ -52,5 +52,16 @@ const mcpApps: TranslationStrings = {
   'mcpApps.todos.due': 'מועד',
   'mcpApps.todos.done': 'בוצעו',
   'mcpApps.todos.toggleError': 'לא ניתן לעדכן את המשימה. נסו שוב.',
+  'mcpApps.map.title': 'מפת הטיול',
+  'mcpApps.map.count': 'מקומות על המפה',
+  'mcpApps.map.zoomIn': 'התקרבות',
+  'mcpApps.map.zoomOut': 'התרחקות',
+  'mcpApps.map.fullscreen': 'מסך מלא',
+  'mcpApps.map.empty': 'עדיין אין מקומות עם מיקום',
+  'mcpApps.dayPlan.day': 'יום {day}',
+  'mcpApps.dayPlan.empty': 'לא תוכנן דבר ליום הזה',
+  'mcpApps.dayPlan.moveUp': 'הזזה למעלה',
+  'mcpApps.dayPlan.moveDown': 'הזזה למטה',
+  'mcpApps.dayPlan.reorderError': 'לא ניתן לשנות את הסדר. נסו שוב.',
 };
 export default mcpApps;

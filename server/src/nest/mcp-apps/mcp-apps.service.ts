@@ -1,7 +1,9 @@
 import { AddonsService } from '../addons/addons.service';
+import { SettingsService } from '../settings/settings.service';
+import { rasterTiles } from './map-tiles.helpers';
 import { MCP_APPS_DIR } from './mcp-apps.constants';
 import { Inject, Injectable } from '@nestjs/common';
-import { MCP_APP_WIDGETS, type McpAppWidget } from '@trek/shared';
+import { MCP_APP_WIDGETS, type MapTiles, type McpAppWidget } from '@trek/shared';
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -17,6 +19,7 @@ export class McpAppsService {
 
   constructor(
     private readonly addons: AddonsService,
+    private readonly settings: SettingsService,
     @Inject(MCP_APPS_DIR) private readonly dir: string,
   ) {}
 
@@ -43,5 +46,10 @@ export class McpAppsService {
    */
   async offeredToSessions(): Promise<boolean> {
     return (await this.addons.mcpAppsEnabled()) && MCP_APP_WIDGETS.every((w) => this.html(w) !== null);
+  }
+
+  /** The raster tiles the user's map settings name, as a map view can draw them (see rasterTiles). */
+  async mapTiles(userId: number): Promise<MapTiles> {
+    return rasterTiles((await this.settings.getUserSettings(userId)).map_tile_url);
   }
 }

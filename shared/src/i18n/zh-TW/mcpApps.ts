@@ -52,5 +52,16 @@ const mcpApps: TranslationStrings = {
   'mcpApps.todos.due': '截止',
   'mcpApps.todos.done': '已完成',
   'mcpApps.todos.toggleError': '無法更新待辦事項，請再試一次。',
+  'mcpApps.map.title': '行程地圖',
+  'mcpApps.map.count': '地圖上的地點',
+  'mcpApps.map.zoomIn': '放大',
+  'mcpApps.map.zoomOut': '縮小',
+  'mcpApps.map.fullscreen': '全螢幕',
+  'mcpApps.map.empty': '還沒有帶位置的地點',
+  'mcpApps.dayPlan.day': '第 {day} 天',
+  'mcpApps.dayPlan.empty': '這一天沒有安排',
+  'mcpApps.dayPlan.moveUp': '上移',
+  'mcpApps.dayPlan.moveDown': '下移',
+  'mcpApps.dayPlan.reorderError': '無法變更順序，請再試一次。',
 };
 export default mcpApps;

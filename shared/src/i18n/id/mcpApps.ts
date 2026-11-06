@@ -52,5 +52,16 @@ const mcpApps: TranslationStrings = {
   'mcpApps.todos.due': 'Tenggat',
   'mcpApps.todos.done': 'Selesai',
   'mcpApps.todos.toggleError': 'Tugas tidak dapat diperbarui. Coba lagi.',
+  'mcpApps.map.title': 'Peta perjalanan',
+  'mcpApps.map.count': 'Tempat di peta',
+  'mcpApps.map.zoomIn': 'Perbesar',
+  'mcpApps.map.zoomOut': 'Perkecil',
+  'mcpApps.map.fullscreen': 'Layar penuh',
+  'mcpApps.map.empty': 'Belum ada tempat dengan lokasi',
+  'mcpApps.dayPlan.day': 'Hari {day}',
+  'mcpApps.dayPlan.empty': 'Tidak ada rencana untuk hari ini',
+  'mcpApps.dayPlan.moveUp': 'Pindah ke atas',
+  'mcpApps.dayPlan.moveDown': 'Pindah ke bawah',
+  'mcpApps.dayPlan.reorderError': 'Urutan tidak dapat diubah. Coba lagi.',
 };
 export default mcpApps;

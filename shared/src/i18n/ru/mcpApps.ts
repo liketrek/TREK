@@ -52,5 +52,16 @@ const mcpApps: TranslationStrings = {
   'mcpApps.todos.due': 'Срок',
   'mcpApps.todos.done': 'Выполнено',
   'mcpApps.todos.toggleError': 'Не удалось обновить задачу. Попробуйте ещё раз.',
+  'mcpApps.map.title': 'Карта поездки',
+  'mcpApps.map.count': 'Места на карте',
+  'mcpApps.map.zoomIn': 'Приблизить',
+  'mcpApps.map.zoomOut': 'Отдалить',
+  'mcpApps.map.fullscreen': 'Во весь экран',
+  'mcpApps.map.empty': 'Пока нет мест с координатами',
+  'mcpApps.dayPlan.day': 'День {day}',
+  'mcpApps.dayPlan.empty': 'На этот день ничего не запланировано',
+  'mcpApps.dayPlan.moveUp': 'Выше',
+  'mcpApps.dayPlan.moveDown': 'Ниже',
+  'mcpApps.dayPlan.reorderError': 'Не удалось изменить порядок. Попробуйте ещё раз.',
 };
 export default mcpApps;

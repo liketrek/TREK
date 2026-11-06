@@ -52,5 +52,16 @@ const mcpApps: TranslationStrings = {
   'mcpApps.todos.due': 'Son tarix',
   'mcpApps.todos.done': 'Edilib',
   'mcpApps.todos.toggleError': 'Tapşırıq yenilənmədi. Yenidən cəhd edin.',
+  'mcpApps.map.title': 'Səyahət xəritəsi',
+  'mcpApps.map.count': 'Xəritədəki yerlər',
+  'mcpApps.map.zoomIn': 'Yaxınlaşdır',
+  'mcpApps.map.zoomOut': 'Uzaqlaşdır',
+  'mcpApps.map.fullscreen': 'Tam ekran',
+  'mcpApps.map.empty': 'Hələ məkanı olan yer yoxdur',
+  'mcpApps.dayPlan.day': '{day}. gün',
+  'mcpApps.dayPlan.empty': 'Bu gün üçün heç nə planlaşdırılmayıb',
+  'mcpApps.dayPlan.moveUp': 'Yuxarı apar',
+  'mcpApps.dayPlan.moveDown': 'Aşağı apar',
+  'mcpApps.dayPlan.reorderError': 'Sıra dəyişdirilmədi. Yenidən cəhd edin.',
 };
 export default mcpApps;

@@ -44,7 +44,7 @@ export function Checklist({
   return (
     <>
       {failed ? (
-        <p role="alert" className="checklist__error">
+        <p role="alert" className="trek-error">
           {errorText}
         </p>
       ) : null}
