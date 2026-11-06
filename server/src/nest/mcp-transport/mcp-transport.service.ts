@@ -12,7 +12,8 @@ import { traceEntry } from '../audit/entry-trace.logger';
 import { AuthService } from '../auth/auth.service';
 import { OauthService } from '../oauth/oauth.service';
 import { TokenService } from '../tokens/token.service';
-import { BASE_MCP_INSTRUCTIONS, STATIC_TOKEN_DEPRECATION_NOTICE } from './mcp-transport.constants';
+import { buildInstructions } from './mcp-instructions';
+import { STATIC_TOKEN_DEPRECATION_NOTICE } from './mcp-transport.constants';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp';
 import { Injectable } from '@nestjs/common';
@@ -269,6 +270,15 @@ export class McpTransportService {
       );
     }
 
+    // The instructions name only the add-ons switched on here and the groups this token reaches.
+    const instructions = buildInstructions({
+      addons: await this.enabledAddons(),
+      scopes,
+      // MCP Apps is announced by the client in initialize, after the server is built; the
+      // apps-aware wording joins once the host is known to render views.
+      hostSupportsApps: false,
+    });
+
     // Create a new per-user MCP server and session
     const server = new McpServer(
       {
@@ -281,7 +291,7 @@ export class McpTransportService {
           tools: { listChanged: true },
           prompts: { listChanged: true },
         },
-        instructions: BASE_MCP_INSTRUCTIONS + (isStaticToken ? STATIC_TOKEN_DEPRECATION_NOTICE : ''),
+        instructions: instructions + (isStaticToken ? `\n\n${STATIC_TOKEN_DEPRECATION_NOTICE}` : ''),
       },
     );
 
@@ -388,5 +398,12 @@ export class McpTransportService {
         }
       }
     }
+  }
+
+  /** The add-ons switched on for this instance, as a new session's instructions name them. */
+  private async enabledAddons(): Promise<Set<string>> {
+    const ids = Object.values(ADDON_IDS);
+    const enabled = await Promise.all(ids.map((id) => this.addons.isAddonEnabled(id)));
+    return new Set(ids.filter((_, index) => enabled[index]));
   }
 }

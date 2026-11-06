@@ -11,3 +11,9 @@ export const tripIdPromptArg = z
   .regex(/^[1-9]\d*$/, 'Trip ID must be a positive integer')
   .transform(Number)
   .pipe(z.number().int().positive());
+
+/** A calendar date, as the trip's days are keyed. */
+export const datePromptArg = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD');
+
+/** What the traveller is looking for, in their own words. */
+export const queryPromptArg = z.string().trim().min(1).max(200);
