@@ -80,6 +80,8 @@ describe('checkPushEndpoint / checkPushSubscription', () => {
       'https://web.push.apple.com/QGx9',
       'https://api.push.apple.com/3/device/x',
       'https://wns2-par02p.notify.windows.com/w/?token=BQYAAA',
+      // The TREK apps' relay, which hands the ciphertext on to Apple or Google.
+      'https://push.liketrek.com/v1/apns/production/abc123',
     ]) {
       expect(checkPushEndpoint(endpoint), endpoint).toBe('ok');
       expect(isPushServiceEndpoint(endpoint)).toBe(true);
@@ -117,6 +119,8 @@ describe('checkPushEndpoint / checkPushSubscription', () => {
       'https://evilnotify.windows.com/x',
       'https://.notify.windows.com/x',
       'https://push.apple.com/x',
+      'https://push.liketrek.com.evil.test/v1/apns/x',
+      'https://evilpush.liketrek.com/v1/apns/x',
     ]) {
       expect(checkPushEndpoint(endpoint), endpoint).not.toBe('ok');
     }
