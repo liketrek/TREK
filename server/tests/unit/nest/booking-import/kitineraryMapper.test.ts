@@ -657,25 +657,26 @@ describe('kitinerary mapper: the seat as KItinerary writes it', () => {
 
 describe('kitinerary mapper: the seat on each leg of a connecting flight', () => {
   it('keeps every leg its own seat', () => {
-    const { items } = mapReservations(
-      legs(
-        { ...flight('ABC123', FRA, BER, '2026-06-11T10:00:00', '2026-06-11T12:00:00', 'LH 100'), airplaneSeat: '12C' },
-        { ...flight('ABC123', BER, HND, '2026-06-11T14:30:00', '2026-06-11T23:30:00', 'LH 200'), airplaneSeat: '40A' },
-      ),
-      'test.json',
-    );
+    const first = {
+      ...flight('ABC123', FRA, BER, '2026-06-11T10:00:00', '2026-06-11T12:00:00', 'LH 100'),
+      airplaneSeat: '12C',
+    };
+    const second = {
+      ...flight('ABC123', BER, HND, '2026-06-11T14:30:00', '2026-06-11T23:30:00', 'LH 200'),
+      airplaneSeat: '40A',
+    };
+    const { items } = mapReservations(legs(first, second), 'test.json');
     const legsMeta = (items[0].metadata as { legs: { seat?: string }[] }).legs;
     expect(legsMeta.map((leg) => leg.seat)).toEqual(['12C', '40A']);
   });
 
   it('leaves the seat off a leg that has none', () => {
-    const { items } = mapReservations(
-      legs(flight('ABC123', FRA, BER, '2026-06-11T10:00:00', '2026-06-11T12:00:00', 'LH 100'), {
-        ...flight('ABC123', BER, HND, '2026-06-11T14:30:00', '2026-06-11T23:30:00', 'LH 200'),
-        airplaneSeat: '40A',
-      }),
-      'test.json',
-    );
+    const first = flight('ABC123', FRA, BER, '2026-06-11T10:00:00', '2026-06-11T12:00:00', 'LH 100');
+    const second = {
+      ...flight('ABC123', BER, HND, '2026-06-11T14:30:00', '2026-06-11T23:30:00', 'LH 200'),
+      airplaneSeat: '40A',
+    };
+    const { items } = mapReservations(legs(first, second), 'test.json');
     const legsMeta = (items[0].metadata as { legs: Record<string, unknown>[] }).legs;
     expect(legsMeta[0]).not.toHaveProperty('seat');
     expect(legsMeta[1]).toMatchObject({ seat: '40A' });
