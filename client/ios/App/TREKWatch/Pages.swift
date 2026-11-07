@@ -346,17 +346,22 @@ struct BookingSummary: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: WatchScreen.compact ? 4 : 6) {
-            // The kind and the status in one line: "FLIGHT · Confirmed".
-            HStack(spacing: 5) {
-                KindBadge(kind: booking.kind, size: 20)
-                Text(WatchLook.kindName(booking.kind)).watchEyebrow(.white.opacity(0.85))
-                Circle().fill(booking.confirmed ? Trek.confirmed : Trek.pending).frame(width: 5, height: 5)
-                Text(L(booking.confirmed ? "booking.confirmed" : "booking.pending"))
-                    .font(.system(.caption2, design: .rounded).weight(.medium))
-                    .foregroundStyle(WatchLook.muted)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                Spacer(minLength: 0)
+            // The kind and the status in one line ("FLIGHT · Confirmed"), the status under it when that is too long.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 5) {
+                    KindBadge(kind: booking.kind, size: 20)
+                    kindLabel.fixedSize()
+                    status.fixedSize()
+                    Spacer(minLength: 0)
+                }
+                HStack(spacing: 6) {
+                    KindBadge(kind: booking.kind, size: 22)
+                    VStack(alignment: .leading, spacing: 0) {
+                        kindLabel
+                        status
+                    }
+                    Spacer(minLength: 0)
+                }
             }
             .accessibilityElement(children: .combine)
             if let route = booking.route {
@@ -365,7 +370,7 @@ struct BookingSummary: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.55)
                 Text(booking.carrier ?? booking.title)
-                    .font(.system(.footnote, design: .rounded).weight(.medium))
+                    .font(.system(WatchScreen.compact ? .caption : .footnote, design: .rounded).weight(.medium))
                     .foregroundStyle(WatchLook.muted)
                     .lineLimit(1)
             } else {
@@ -392,6 +397,7 @@ struct BookingSummary: View {
             let label = running ? L("booking.checkOut") : dayLabel(moment)
             ViewThatFits(in: .horizontal) {
                 timeLine(clock: clock, label: label, moment: moment, pill: true)
+                timeLine(clock: clock, label: nil, moment: moment, pill: true)
                 VStack(alignment: .leading, spacing: 4) {
                     timeLine(clock: clock, label: label, moment: moment, pill: false)
                     countdownPill(moment)
@@ -430,6 +436,25 @@ struct BookingSummary: View {
                 .padding(.horizontal, 7)
                 .padding(.vertical, 3)
                 .background(Capsule().fill(Trek.booking(booking.kind).color.opacity(0.85)))
+        }
+    }
+
+    private var kindLabel: some View {
+        Text(WatchLook.kindName(booking.kind))
+            .font(.system(.caption2, design: .rounded).weight(.bold))
+            .textCase(.uppercase)
+            .tracking(0.4)
+            .foregroundStyle(.white.opacity(0.85))
+            .lineLimit(1)
+    }
+
+    private var status: some View {
+        HStack(spacing: 4) {
+            Circle().fill(booking.confirmed ? Trek.confirmed : Trek.pending).frame(width: 5, height: 5)
+            Text(L(booking.confirmed ? "booking.confirmed" : "booking.pending"))
+                .font(.system(.caption2, design: .rounded).weight(.medium))
+                .foregroundStyle(WatchLook.muted)
+                .lineLimit(1)
         }
     }
 
@@ -564,24 +589,26 @@ struct MenuRow: View {
     let value: String?
 
     var body: some View {
-        HStack(spacing: 8) {
+        let compact = WatchScreen.compact
+        HStack(spacing: compact ? 6 : 8) {
             Image(systemName: symbol)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: compact ? 11 : 13, weight: .semibold))
                 .foregroundStyle(.white)
-                .frame(width: 26, height: 26)
+                .frame(width: compact ? 22 : 26, height: compact ? 22 : 26)
                 .background(Circle().fill(color.gradient))
             Text(title)
-                .font(.system(.body, design: .rounded).weight(.semibold))
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 4)
+                .font(.system(compact ? .callout : .body, design: .rounded).weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.78)
+                .allowsTightening(true)
+            Spacer(minLength: 2)
             if let value {
                 Text(value)
                     .font(.system(.footnote, design: .rounded).weight(.semibold).monospacedDigit())
                     .foregroundStyle(WatchLook.muted)
             }
         }
-        .padding(.horizontal, 10)
+        .padding(.horizontal, WatchScreen.compact ? 8 : 10)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
         .watchCard(cornerRadius: 16)

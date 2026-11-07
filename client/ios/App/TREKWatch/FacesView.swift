@@ -14,23 +14,22 @@ struct FacesView: View {
         let state = ComplicationState(snapshot, now: now)
         ScrollView {
             VStack(alignment: .leading, spacing: 8) {
-                caption("circular")
                 HStack(spacing: 8) {
                     round { NextStopComplication(state: state, family: .circular, now: now) }
                     round { CountdownComplication(state: state, family: .circular, now: now) }
                     round { TripDayComplication(state: state, family: .circular) }
                 }
-                caption("corner")
+                Divider().opacity(0.3)
                 HStack(spacing: 8) {
                     round { NextStopComplication(state: state, family: .corner, now: now) }
                     round { CountdownComplication(state: state, family: .corner, now: now) }
                     round { TripDayComplication(state: state, family: .corner) }
                 }
-                caption("rectangular")
+                Divider().opacity(0.3)
                 wide(56) { NextStopComplication(state: state, family: .rectangular, now: now) }
                 wide(56) { CountdownComplication(state: state, family: .rectangular, now: now) }
                 wide(56) { TripDayComplication(state: state, family: .rectangular) }
-                caption("inline")
+                Divider().opacity(0.3)
                 wide(18) { NextStopComplication(state: state, family: .inline, now: now) }
                 wide(18) { CountdownComplication(state: state, family: .inline, now: now) }
                 wide(18) { TripDayComplication(state: state, family: .inline) }
@@ -42,10 +41,6 @@ struct FacesView: View {
                 dial = min(50, max(38, (width - 16) / 3))
             }
         }
-    }
-
-    private func caption(_ text: String) -> some View {
-        Text(text).watchEyebrow(WatchLook.faint)
     }
 
     private func round<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {

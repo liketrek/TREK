@@ -221,7 +221,7 @@ struct MiniMap: View {
         let coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lng)
         // From above, without street names or points of interest, so the stop's
         // own pin is what stands out; Apple's attribution stays in its corner.
-        Map(initialPosition: .region(MKCoordinateRegion(center: coordinate, latitudinalMeters: 700, longitudinalMeters: 700)), interactionModes: []) {
+        Map(initialPosition: .region(MKCoordinateRegion(center: coordinate, latitudinalMeters: 1100, longitudinalMeters: 1100)), interactionModes: []) {
             Annotation(name, coordinate: coordinate, anchor: .center) {
                 Circle()
                     .fill(color.gradient)
@@ -231,8 +231,15 @@ struct MiniMap: View {
             }
             .annotationTitles(.hidden)
         }
-        .mapStyle(.imagery(elevation: .flat))
-        .frame(height: 104)
+        .mapStyle(.standard(elevation: .flat, emphasis: .muted, pointsOfInterest: .excludingAll, showsTraffic: false))
+        .frame(height: 118)
+        // A soft fade over the top edge only, where labels would be cut; the
+        // attribution sits at the bottom and stays as MapKit draws it.
+        .overlay(alignment: .top) {
+            LinearGradient(colors: [.black.opacity(0.55), .clear], startPoint: .top, endPoint: .bottom)
+                .frame(height: 26)
+                .allowsHitTesting(false)
+        }
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .accessibilityHidden(true)
     }
@@ -384,7 +391,7 @@ struct PackingListView: View {
             color: WatchLook.packing,
             open: items.filter { !$0.done },
             done: items.filter(\.done),
-            summary: packing.map { "\($0.packed)/\($0.total)" },
+            progress: packing.map { ($0.packed, $0.total) },
             doneTitle: L("packing.packedSection"),
             allDone: L("packing.allPacked"),
             grouped: true
@@ -403,7 +410,7 @@ struct TodoListView: View {
             color: WatchLook.todo,
             open: items.filter { !$0.done },
             done: items.filter(\.done),
-            summary: todos.map { "\($0.total - $0.open)/\($0.total)" },
+            progress: todos.map { ($0.total - $0.open, $0.total) },
             doneTitle: L("todos.doneSection"),
             allDone: L("todos.allDone"),
             grouped: false
@@ -417,7 +424,7 @@ struct ChecklistView: View {
     let color: Color
     let open: [WatchSnapshot.Item]
     let done: [WatchSnapshot.Item]
-    let summary: String?
+    let progress: (done: Int, total: Int)?
     let doneTitle: String
     let allDone: String
     let grouped: Bool
@@ -426,11 +433,18 @@ struct ChecklistView: View {
 
     var body: some View {
         List {
-            if let summary {
-                Text(summary)
-                    .font(.system(.title3, design: .rounded).weight(.heavy).monospacedDigit())
-                    .foregroundStyle(color)
-                    .listRowBackground(Color.clear)
+            if let progress {
+                HStack(spacing: 8) {
+                    ProgressView(value: Double(progress.done), total: Double(max(progress.total, 1)))
+                        .tint(color)
+                    Text("\(progress.done)/\(progress.total)")
+                        .font(.system(.footnote, design: .rounded).weight(.bold).monospacedDigit())
+                        .foregroundStyle(color)
+                        .fixedSize()
+                }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 0, leading: 6, bottom: 0, trailing: 6))
+                .accessibilityElement(children: .combine)
             }
             if open.isEmpty {
                 Label(allDone, systemImage: "checkmark.circle.fill")
