@@ -25,16 +25,18 @@ import kotlinx.coroutines.launch
  * are in CSS pixels, relative to the window.
  */
 object TrekWindowLayout {
-    @Volatile var latest: JSObject = JSObject()
-        private set
+    /** The last WindowLayoutInfo WindowManager reported, with the fold in it. */
+    @Volatile private var lastInfo: WindowLayoutInfo? = null
+
+    /** The window now, with the posture last reported: what getWindowLayout answers. */
+    fun current(activity: Activity): JSObject = describe(activity, lastInfo)
 
     fun observe(activity: ComponentActivity, emit: (JSObject) -> Unit) {
-        latest = describe(activity, null)
         activity.lifecycleScope.launch {
             activity.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 WindowInfoTracker.getOrCreate(activity).windowLayoutInfo(activity).collect { info ->
-                    latest = describe(activity, info)
-                    emit(latest)
+                    lastInfo = info
+                    emit(describe(activity, info))
                 }
             }
         }

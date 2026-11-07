@@ -67,6 +67,7 @@
         <activity
             android:name=".share.ShareActivity"
             android:theme="@style/AppTheme.Sheet"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation"
             android:excludeFromRecents="true"
             android:taskAffinity="com.liketrek.trek.share"
             android:launchMode="standard"
@@ -91,8 +92,8 @@
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
+                <!-- content:// only: a file:// path would be read with TREK's own rights. -->
                 <data android:scheme="content" />
-                <data android:scheme="file" />
                 <data android:mimeType="application/pdf" />
                 <data android:mimeType="text/calendar" />
                 <data android:mimeType="application/vnd.apple.pkpass" />

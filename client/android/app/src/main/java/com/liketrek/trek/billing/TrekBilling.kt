@@ -41,6 +41,14 @@ object TrekBilling {
 
     private val listener = PurchasesUpdatedListener { result, purchases -> onPurchasesUpdated(result, purchases) }
 
+    /**
+     * Told of a purchase that went through outside a purchase sheet: a payment
+     * that was pending (cash, some carrier billing) and cleared later. The shell
+     * redeems it like a restore (the "storeTransaction" event), since Play refunds
+     * what is not acknowledged within three days.
+     */
+    var onTransaction: ((JSObject) -> Unit)? = null
+
     private fun client(context: Context): BillingClient = client ?: BillingClient.newBuilder(context.applicationContext)
         .setListener(listener)
         .enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().enablePrepaidPlans().build())
@@ -134,7 +142,14 @@ object TrekBilling {
     }
 
     private fun onPurchasesUpdated(result: BillingResult, purchases: List<Purchase>?) {
-        if (pendingPurchase == null) return // A renewal or a pending one going through later: a restore picks it up.
+        if (pendingPurchase == null) {
+            // No sheet waiting: a pending purchase that cleared, or a renewal. Only an
+            // undelivered one matters; renewals are acknowledged already.
+            if (result.responseCode == BillingClient.BillingResponseCode.OK) {
+                undelivered(purchases.orEmpty(), PREFIX)?.let { onTransaction?.invoke(receipt(it)) }
+            }
+            return
+        }
         when (result.responseCode) {
             BillingClient.BillingResponseCode.OK -> {
                 val purchase = purchases?.firstOrNull { pendingProduct in it.products } ?: purchases?.firstOrNull()
@@ -145,11 +160,28 @@ object TrekBilling {
                 }
             }
             BillingClient.BillingResponseCode.USER_CANCELED -> settle("cancelled", null)
-            // Already subscribed on this Google account: the shell offers the restore.
-            BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> settle("failed", null)
+            // Already subscribed on this Google account (a reinstall, another phone, a
+            // redeem that never happened): that subscription is the purchase, and the
+            // shell redeems it as it would a new one.
+            BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> settleOwned()
             else -> settle("failed", null)
         }
     }
+
+    private fun settleOwned() {
+        val call = pendingPurchase ?: return
+        val params = QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.SUBS).build()
+        client?.queryPurchasesAsync(params) { result, purchases ->
+            val owned = if (result.responseCode == BillingClient.BillingResponseCode.OK) newest(purchases, PREFIX) else null
+            if (pendingPurchase !== call) return@queryPurchasesAsync
+            settle(if (owned != null) "bought" else "failed", owned)
+        } ?: settle("failed", null)
+    }
+
+    private fun receipt(purchase: Purchase): JSObject = JSObject()
+        .put("purchaseToken", purchase.purchaseToken)
+        .put("transactionId", purchase.purchaseToken)
+        .put("productId", purchase.products.firstOrNull { it.startsWith(PREFIX) } ?: purchase.products.firstOrNull())
 
     private fun settle(kind: String, purchase: Purchase?) {
         val call = pendingPurchase ?: return
@@ -194,6 +226,27 @@ object TrekBilling {
             }
         }
     }
+
+    /**
+     * A paid cloud purchase that was never delivered (not acknowledged), for the
+     * shell to redeem at its start: one that cleared while the app was closed.
+     */
+    fun unfinished(context: Context, call: PluginCall) {
+        val prefix = call.getString("prefix") ?: PREFIX
+        ready(context) { ok ->
+            if (!ok) return@ready call.resolve(JSObject())
+            val params = QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.SUBS).build()
+            client(context).queryPurchasesAsync(params) { result, purchases ->
+                val found = if (result.responseCode == BillingClient.BillingResponseCode.OK) undelivered(purchases, prefix) else null
+                call.resolve(found?.let(::receipt) ?: JSObject())
+            }
+        }
+    }
+
+    internal fun undelivered(purchases: List<Purchase>, prefix: String): Purchase? =
+        newest(purchases.filter { !it.isAcknowledged }, prefix)
+
+    private const val PREFIX = "cloud."
 
     internal fun newest(purchases: List<Purchase>, prefix: String): Purchase? = purchases
         .filter { p -> p.purchaseState == Purchase.PurchaseState.PURCHASED && p.products.any { it.startsWith(prefix) } }

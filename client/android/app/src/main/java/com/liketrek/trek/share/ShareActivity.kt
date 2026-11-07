@@ -121,7 +121,12 @@ class ShareActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         trips = ShareHandoff.trips(this)
         val shortcutTrip = intent.getStringExtra(ShortcutManagerCompat.EXTRA_SHORTCUT_ID)?.removePrefix("trip.")?.toLongOrNull()
-        selected = shortcutTrip?.takeIf { id -> trips.any { it.id == id } } ?: trips.firstOrNull()?.id
+        selected = if (savedInstanceState?.containsKey(SELECTED) == true) {
+            // The trip picked before the system recreated the sheet; -1 is "choose later".
+            savedInstanceState.getLong(SELECTED).takeIf { it >= 0 }
+        } else {
+            shortcutTrip?.takeIf { id -> trips.any { it.id == id } } ?: trips.firstOrNull()?.id
+        }
         val incoming = intent
         lifecycleScope.launch {
             phase = try {
@@ -138,6 +143,11 @@ class ShareActivity : ComponentActivity() {
                 Sheet()
             }
         }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putLong(SELECTED, selected ?: -1L)
     }
 
     private fun add() {
@@ -413,5 +423,9 @@ class ShareActivity : ComponentActivity() {
         ShareItem.Kind.TEXT -> R.string.share_kind_text
         ShareItem.Kind.IMAGE -> R.string.share_kind_image
         ShareItem.Kind.FILE -> R.string.share_kind_file
+    }
+
+    private companion object {
+        const val SELECTED = "trek.share.selected"
     }
 }

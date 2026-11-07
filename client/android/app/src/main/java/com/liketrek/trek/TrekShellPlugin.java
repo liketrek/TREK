@@ -94,6 +94,14 @@ public class TrekShellPlugin extends Plugin {
     @Override
     public void load() {
         TrekSharedFiles.setListener(file -> notifyListeners("sharedFile", file));
+        // A reloaded page starts without a stream; whatever the old one ran is stopped.
+        if (location != null) location.stop();
+        locationActive = false;
+        // A pending purchase that cleared while the shell runs: redeemed like a restore.
+        com.liketrek.trek.billing.TrekBilling.INSTANCE.setOnTransaction(receipt -> {
+            notifyListeners("storeTransaction", receipt);
+            return kotlin.Unit.INSTANCE;
+        });
         com.liketrek.trek.screen.TrekKeyCommands.INSTANCE.setOnPress(id -> {
             JSObject pressed = new JSObject();
             pressed.put("id", id);
@@ -284,6 +292,8 @@ public class TrekShellPlugin extends Plugin {
 
     /** The server URL is part of the bridge's configuration, so it takes a new activity. */
     private void restart() {
+        locationActive = false;
+        if (location != null) location.stop();
         TrekServerStore.markRestart(getContext());
         getActivity().runOnUiThread(() -> getActivity().recreate());
     }
@@ -336,6 +346,7 @@ public class TrekShellPlugin extends Plugin {
     @Override
     protected void handleOnResume() {
         super.handleOnResume();
+        if (locationActive && location != null && locationAllowed()) location.start(locationHighAccuracy);
         if (!authBrowserOpen) return;
         authBrowserOpen = false;
         handler.postDelayed(() -> {
@@ -468,23 +479,40 @@ public class TrekShellPlugin extends Plugin {
         return location;
     }
 
-    /** One location stream for the UI's navigator.geolocation, asking for the permission the first time. */
+    /** Whether the app may know where the device is: precisely, or "Approximate" only. */
+    private boolean locationAllowed() {
+        return androidx.core.content.ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION)
+                == android.content.pm.PackageManager.PERMISSION_GRANTED
+            || androidx.core.content.ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_COARSE_LOCATION)
+                == android.content.pm.PackageManager.PERMISSION_GRANTED;
+    }
+
+    /** True while the UI has a stream running, so it resumes after the app was in the background. */
+    private boolean locationActive;
+
+    /**
+     * One location stream for the UI's navigator.geolocation, asking for the
+     * permission the first time. "Approximate" counts as allowed; the stream then
+     * runs on the coarse fixes Android gives.
+     */
     @PluginMethod
     public void startLocation(PluginCall call) {
         locationHighAccuracy = Boolean.TRUE.equals(call.getBoolean("highAccuracy", false));
-        if (getPermissionState("location") != PermissionState.GRANTED) {
+        if (!locationAllowed()) {
             requestPermissionForAlias("location", call, "locationPermissionAnswered");
             return;
         }
+        locationActive = true;
         location().start(locationHighAccuracy);
         call.resolve();
     }
 
     @PermissionCallback
     private void locationPermissionAnswered(PluginCall call) {
-        if (getPermissionState("location") != PermissionState.GRANTED) {
+        if (!locationAllowed()) {
             location().emitError(1, "Location permission denied");
         } else {
+            locationActive = true;
             location().start(locationHighAccuracy);
         }
         call.resolve();
@@ -492,8 +520,24 @@ public class TrekShellPlugin extends Plugin {
 
     @PluginMethod
     public void stopLocation(PluginCall call) {
+        locationActive = false;
         if (location != null) location.stop();
         call.resolve();
+    }
+
+    /** No location in the background, as in a browser: paused with the app, resumed with it. */
+    @Override
+    protected void handleOnPause() {
+        super.handleOnPause();
+        if (location != null) location.stop();
+    }
+
+    /** The page and the activity are gone: nothing can stop the stream any more but this. */
+    @Override
+    protected void handleOnDestroy() {
+        locationActive = false;
+        if (location != null) location.stop();
+        super.handleOnDestroy();
     }
 
     // ---- Map tile store ----
@@ -538,6 +582,12 @@ public class TrekShellPlugin extends Plugin {
         com.liketrek.trek.billing.TrekBilling.INSTANCE.restore(getContext(), call);
     }
 
+    /** A paid subscription never delivered (it cleared while the app was closed), for the shell to redeem. */
+    @PluginMethod
+    public void storeUnfinished(PluginCall call) {
+        com.liketrek.trek.billing.TrekBilling.INSTANCE.unfinished(getContext(), call);
+    }
+
     // ---- Google Wallet ----
 
     /** The only links this hands on: Google Wallet's save-to-wallet page. */
@@ -577,6 +627,7 @@ public class TrekShellPlugin extends Plugin {
     /** Feature windowLayout: the window's size classes and a foldable's posture and hinge. */
     @PluginMethod
     public void getWindowLayout(PluginCall call) {
-        getActivity().runOnUiThread(() -> call.resolve(com.liketrek.trek.screen.TrekWindowLayout.INSTANCE.describe(getActivity(), null)));
+        // The last layout WindowManager reported, posture and hinge included; the bare window before the first.
+        getActivity().runOnUiThread(() -> call.resolve(com.liketrek.trek.screen.TrekWindowLayout.INSTANCE.current(getActivity())));
     }
 }

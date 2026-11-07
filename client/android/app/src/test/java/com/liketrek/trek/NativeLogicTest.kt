@@ -8,6 +8,7 @@ import com.liketrek.trek.screen.TrekWindowLayout
 import com.liketrek.trek.share.ShareHandoff
 import com.liketrek.trek.share.ShareItem
 import com.liketrek.trek.share.ShareLoader
+import com.liketrek.trek.tiles.TrekTileStore
 import java.time.LocalDate
 import org.json.JSONArray
 import org.json.JSONObject
@@ -114,5 +115,47 @@ class NativeLogicTest {
         )
         assertEquals("token-cloud.plus.yearly-2000", found?.purchaseToken)
         assertNull(TrekBilling.newest(emptyList(), "cloud."))
+    }
+
+    @Test
+    fun mapboxRequestsKeepTheWebViewsHeaders() {
+        val forwarded = TrekTileStore.forwardedHeaders(
+            mapOf(
+                "Referer" to "https://trek.example.com/",
+                "Origin" to "https://trek.example.com",
+                "User-Agent" to "Mozilla/5.0 (Linux; Android 16; wv)",
+                "Accept" to "application/x-protobuf",
+                "Accept-Encoding" to "gzip",
+                "Connection" to "keep-alive",
+                "Host" to "api.mapbox.com",
+            ),
+        )
+        // A URL-restricted token is checked against the Referer, so it has to go along.
+        assertEquals("https://trek.example.com/", forwarded["Referer"])
+        assertEquals("https://trek.example.com", forwarded["Origin"])
+        assertEquals("Mozilla/5.0 (Linux; Android 16; wv)", forwarded["User-Agent"])
+        assertEquals("application/x-protobuf", forwarded["Accept"])
+        assertNull(forwarded["Accept-Encoding"])
+        assertNull(forwarded["Connection"])
+        assertNull(forwarded["Host"])
+        assertEquals(emptyMap<String, String>(), TrekTileStore.forwardedHeaders(null))
+    }
+
+    @Test
+    fun aPaymentThatClearedLaterIsTheUndeliveredOne() {
+        fun purchase(product: String, time: Long, acknowledged: Boolean) = Purchase(
+            JSONObject()
+                .put("productIds", JSONArray().put(product))
+                .put("purchaseTime", time)
+                .put("purchaseState", 0)
+                .put("acknowledged", acknowledged)
+                .put("purchaseToken", "token-$time")
+                .toString(),
+            "sig",
+        )
+        val renewed = purchase("cloud.plus.yearly", 3000, acknowledged = true)
+        val cleared = purchase("cloud.start.monthly", 2000, acknowledged = false)
+        assertEquals("token-2000", TrekBilling.undelivered(listOf(renewed, cleared), "cloud.")?.purchaseToken)
+        assertNull(TrekBilling.undelivered(listOf(renewed), "cloud."))
     }
 }

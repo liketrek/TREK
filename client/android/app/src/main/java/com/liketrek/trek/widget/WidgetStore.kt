@@ -2,6 +2,8 @@ package com.liketrek.trek.widget
 
 import android.content.Context
 import java.io.File
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Where the widgets' snapshots live: one JSON file per key in the app's own
@@ -13,6 +15,15 @@ object WidgetStore {
     private val KEY = Regex("^(snapshot|trips|trip\\.[0-9]{1,12})$")
     private const val PREFS = "trek.widgets"
     const val AUTO = "auto"
+
+    private val changes = MutableStateFlow(0L)
+
+    /**
+     * Counts every write and every trip picked for a widget. A widget reads its
+     * data inside its composition, keyed on this, so a write that lands while its
+     * Glance session still runs is drawn too, not only the first one.
+     */
+    val version: StateFlow<Long> = changes
 
     fun isValidKey(key: String): Boolean = KEY.matches(key)
 
@@ -27,6 +38,7 @@ object WidgetStore {
             target.delete()
             temp.renameTo(target)
         }
+        changes.value++
     }
 
     fun read(context: Context, key: String): String? {
@@ -56,7 +68,8 @@ object WidgetStore {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("trip.$appWidgetId", AUTO) ?: AUTO
 
     fun setTripFor(context: Context, appWidgetId: Int, tripId: String) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString("trip.$appWidgetId", tripId).apply()
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString("trip.$appWidgetId", tripId).commit()
+        changes.value++
     }
 
     fun forget(context: Context, appWidgetIds: IntArray) {

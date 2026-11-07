@@ -84,9 +84,10 @@ class WidgetConfigActivity : ComponentActivity() {
         lifecycleScope.launch {
             val manager = GlanceAppWidgetManager(this@WidgetConfigActivity)
             val glanceId = runCatching { manager.getGlanceIdBy(appWidgetId) }.getOrNull()
-            if (glanceId != null) {
-                for (widget in TrekWidgetUpdater.widgets()) runCatching { widget.update(this@WidgetConfigActivity, glanceId) }
-            }
+            // Only the widget this id belongs to: Glance keys a session by the id alone,
+            // so another class updating it would draw its own layout there.
+            val widget = TrekWidgetUpdater.widgetFor(this@WidgetConfigActivity, appWidgetId)
+            if (glanceId != null && widget != null) runCatching { widget.update(this@WidgetConfigActivity, glanceId) }
             setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId))
             finish()
         }

@@ -10,6 +10,9 @@ import androidx.compose.material.icons.rounded.Luggage
 import androidx.compose.material.icons.rounded.Place
 import androidx.compose.material.icons.rounded.Public
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -75,9 +78,16 @@ abstract class TrekWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val appWidgetId = runCatching { GlanceAppWidgetManager(context).getAppWidgetId(id) }.getOrDefault(-1)
-        val tripId = if (perTrip && appWidgetId >= 0) WidgetStore.tripFor(context, appWidgetId) else WidgetStore.AUTO
-        val snapshot = WidgetStore.load(context, tripId)
-        provideContent { TrekWidgetTheme.Themed { Content(snapshot) } }
+        provideContent {
+            // Read inside the composition: a session outlives one update, and every
+            // write (the dashboard's, then each trip's) must reach it.
+            val version by WidgetStore.version.collectAsState()
+            val snapshot = remember(version) {
+                val tripId = if (perTrip && appWidgetId >= 0) WidgetStore.tripFor(context, appWidgetId) else WidgetStore.AUTO
+                WidgetStore.load(context, tripId)
+            }
+            TrekWidgetTheme.Themed { Content(snapshot) }
+        }
     }
 
     override suspend fun providePreview(context: Context, widgetCategory: Int) {

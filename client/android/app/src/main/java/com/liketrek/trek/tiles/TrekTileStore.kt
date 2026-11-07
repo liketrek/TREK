@@ -76,7 +76,9 @@ object TrekTileStore {
             val connection = URL(url.toString()).openConnection() as HttpURLConnection
             connection.connectTimeout = TIMEOUT_MS
             connection.readTimeout = TIMEOUT_MS
-            request.requestHeaders["Accept"]?.let { connection.setRequestProperty("Accept", it) }
+            // The WebView's own headers go along: Mapbox checks a URL-restricted token
+            // against the Referer, and the server's origin is what the token allows.
+            for ((name, value) in forwardedHeaders(request.requestHeaders)) connection.setRequestProperty(name, value)
             try {
                 val code = connection.responseCode
                 if (code == 200) {
@@ -86,11 +88,9 @@ object TrekTileStore {
                         store(body, meta, bytes, type, now)
                         return response(bytes, type)
                     }
-                } else {
-                    // 401, 404 and the like belong to the map, which reports them itself.
-                    val error = connection.errorStream?.use { it.readBytes() } ?: ByteArray(0)
-                    return WebResourceResponse(connection.contentType ?: "text/plain", null, code, connection.responseMessage ?: "Error", cors(), ByteArrayInputStream(error))
                 }
+                // Anything but a tile (401/403 for a token, 404, a 5xx) the WebView asks for
+                // itself, with everything a browser sends, and the map reports what it gets.
             } finally {
                 connection.disconnect()
             }
@@ -101,6 +101,12 @@ object TrekTileStore {
     }
 
     /** HttpURLConnection has already undone any gzip, so no Content-Encoding goes along. */
+    /** Headers that are the request's own; the connection sets the hop-by-hop ones itself. */
+    private val HOP_BY_HOP = setOf("connection", "keep-alive", "transfer-encoding", "te", "upgrade", "host", "content-length", "accept-encoding")
+
+    internal fun forwardedHeaders(headers: Map<String, String>?): Map<String, String> =
+        headers.orEmpty().filterKeys { it.lowercase() !in HOP_BY_HOP }
+
     private fun response(bytes: ByteArray, type: String): WebResourceResponse {
         val mime = type.substringBefore(';').trim()
         val charset = Regex("charset=([^;]+)").find(type)?.groupValues?.get(1)

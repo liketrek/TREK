@@ -62,6 +62,14 @@ object TrekWidgetUpdater {
         CollabWidgetReceiver::class,
     )
 
+    /** The widget a placed widget id belongs to, by its provider. */
+    fun widgetFor(context: Context, appWidgetId: Int): GlanceAppWidget? {
+        val provider = android.appwidget.AppWidgetManager.getInstance(context).getAppWidgetInfo(appWidgetId)?.provider?.className
+            ?: return null
+        val receiver = receivers.firstOrNull { it.java.name == provider } ?: return null
+        return receiver.java.getDeclaredConstructor().newInstance().glanceAppWidget
+    }
+
     fun widgets(): List<GlanceAppWidget> =
         listOf(TripWidget(), TodayWidget(), BookingsWidget(), TodosWidget(), PackingWidget(), AtlasWidget(), CollabWidget())
 

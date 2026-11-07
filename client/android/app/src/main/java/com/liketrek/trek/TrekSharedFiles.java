@@ -46,11 +46,12 @@ final class TrekSharedFiles {
         Uri uri = null;
         // A view intent also brings sign-in callbacks and widget links; only a file is a document.
         if (Intent.ACTION_VIEW.equals(intent.getAction()) && intent.getData() != null
-            && ("content".equals(intent.getData().getScheme()) || "file".equals(intent.getData().getScheme()))) {
+            && "content".equals(intent.getData().getScheme())) {
             uri = intent.getData();
         }
         else if (Intent.ACTION_SEND.equals(intent.getAction())) uri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
-        if (uri == null) return;
+        // content:// only: a file:// path would be read with TREK's own rights.
+        if (uri == null || !"content".equals(uri.getScheme())) return;
         try (InputStream in = context.getContentResolver().openInputStream(uri)) {
             if (in == null) return;
             ByteArrayOutputStream out = new ByteArrayOutputStream();

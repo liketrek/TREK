@@ -52,12 +52,19 @@ object ShareLoader {
         throw ShareLoadException(ShareLoadException.Reason.UNSUPPORTED)
     }
 
+    /**
+     * The shared document, content:// only. The share target is open to every app,
+     * and a file:// path would be read with TREK's rights, its own private files
+     * included; every sender today shares through a content provider anyway.
+     */
     private fun streamOf(intent: Intent): Uri? = when (intent.action) {
-        Intent.ACTION_VIEW -> intent.data?.takeIf { it.scheme == ContentResolver.SCHEME_CONTENT || it.scheme == ContentResolver.SCHEME_FILE }
+        Intent.ACTION_VIEW -> intent.data
         Intent.ACTION_SEND -> parcelable(intent, Intent.EXTRA_STREAM)
         Intent.ACTION_SEND_MULTIPLE -> parcelableList(intent)?.firstOrNull()
         else -> null
-    }
+    }?.takeIf(::isShareable)
+
+    internal fun isShareable(uri: Uri): Boolean = uri.scheme == ContentResolver.SCHEME_CONTENT
 
     @Suppress("DEPRECATION")
     private fun parcelable(intent: Intent, key: String): Uri? =

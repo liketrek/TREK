@@ -252,7 +252,7 @@ object RelativeDay {
         return DateTimeFormatter.ofPattern(DateFormat.getBestDateTimePattern(locale, skeleton), locale).format(date)
     }
 
-    /** "1 – 9 Oct" in the device's own way of writing a range. */
+    /** "1-9 Oct" in the device's own way of writing a range. */
     fun range(context: Context, start: String, end: String): String? {
         val from = WidgetSnapshot.day(start) ?: return null
         val to = WidgetSnapshot.day(end) ?: return null
