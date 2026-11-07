@@ -3,19 +3,23 @@ import { fireEvent, render, screen, waitFor } from '../../../tests/helpers/rende
 import MWalletButton from './MWalletButton';
 
 const wallet = vi.hoisted(() => ({
-  can: true,
+  kind: 'apple' as 'apple' | 'google' | null,
   add: vi.fn(),
+  addGoogle: vi.fn(),
 }));
 
 vi.mock('../../native/wallet', () => ({
-  canAddToWallet: () => wallet.can,
+  bookingWallet: () => wallet.kind,
+  useGoogleWalletAvailable: () => wallet.kind === 'google',
   addReservationToWallet: wallet.add,
+  addReservationToGoogleWallet: wallet.addGoogle,
 }));
 vi.mock('../../native/capabilities', () => ({ useNativeCapabilities: () => ({ caps: {}, updateRequired: false }) }));
 
 beforeEach(() => {
-  wallet.can = true;
+  wallet.kind = 'apple';
   wallet.add.mockReset();
+  wallet.addGoogle.mockReset();
 });
 
 describe('MWalletButton', () => {
@@ -30,7 +34,7 @@ describe('MWalletButton', () => {
   });
 
   it('is not there where the app cannot add a pass', () => {
-    wallet.can = false;
+    wallet.kind = null;
     render(<MWalletButton tripId={42} reservationId={7} onError={vi.fn()} />);
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
@@ -55,5 +59,17 @@ describe('MWalletButton', () => {
     wallet.add.mockResolvedValueOnce('failed');
     fireEvent.click(screen.getByRole('button'));
     await waitFor(() => expect(onError).toHaveBeenLastCalledWith(expect.stringMatching(/could not be made/i)));
+  });
+
+  it('on Android adds the booking to Google Wallet, under its own name', async () => {
+    wallet.kind = 'google';
+    wallet.addGoogle.mockResolvedValue('added');
+    const onError = vi.fn();
+    render(<MWalletButton tripId={42} reservationId={7} onError={onError} />);
+    expect(screen.getByRole('button')).toHaveTextContent(/Google Wallet/);
+    fireEvent.click(screen.getByRole('button'));
+    await waitFor(() => expect(wallet.addGoogle).toHaveBeenCalledWith(42, 7, expect.any(String)));
+    expect(wallet.add).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
   });
 });

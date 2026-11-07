@@ -2,7 +2,12 @@ import { Loader2, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from '../../i18n';
 import { useNativeCapabilities } from '../../native/capabilities';
-import { addReservationToGoogleWallet, addReservationToWallet, bookingWallet } from '../../native/wallet';
+import {
+  addReservationToGoogleWallet,
+  addReservationToWallet,
+  bookingWallet,
+  useGoogleWalletAvailable,
+} from '../../native/wallet';
 
 interface MWalletButtonProps {
   tripId: number;
@@ -24,6 +29,8 @@ export default function MWalletButton({ tripId, reservationId, onError, classNam
   const { t, language } = useTranslation();
   // Re-renders once the app binary has said what it can do.
   useNativeCapabilities();
+  // Re-renders once the server has said whether Google Wallet works here.
+  useGoogleWalletAvailable(tripId);
   const [busy, setBusy] = useState(false);
   const wallet = bookingWallet();
   if (reservationId === undefined || !wallet) return null;

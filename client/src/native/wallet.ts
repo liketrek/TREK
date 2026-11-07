@@ -1,3 +1,4 @@
+import { useEffect, useSyncExternalStore } from 'react';
 import { toBase64 } from './blobBase64';
 import { hasNativeFeature } from './capabilities';
 import { isNativeAndroid, isNativeIos } from './platform';
@@ -65,11 +66,63 @@ export function canAddToGoogleWallet(): boolean {
   return isNativeAndroid() && hasNativeFeature('googleWallet');
 }
 
-/** The wallet a booking's button adds to here, if any: Apple Wallet on iOS, Google Wallet on Android. */
+/**
+ * Whether this server can make Google Wallet passes, asked once per session
+ * (GET /api/trips/:tripId/reservations/google-wallet): the TREK services can
+ * only once liketrek has a Wallet issuer, and an older server has no such route.
+ * Until it says yes the Android app offers no button, so nobody taps one that
+ * can only fail.
+ */
+let googleState: 'unknown' | 'asking' | 'yes' | 'no' = 'unknown';
+const googleListeners = new Set<() => void>();
+
+function setGoogleState(next: typeof googleState): void {
+  googleState = next;
+  for (const listener of googleListeners) listener();
+}
+
+export async function loadGoogleWalletAvailability(tripId: number): Promise<boolean> {
+  if (!canAddToGoogleWallet()) return false;
+  if (googleState === 'yes' || googleState === 'no') return googleState === 'yes';
+  if (googleState === 'asking') return false;
+  setGoogleState('asking');
+  try {
+    const response = await fetch(`/api/trips/${tripId}/reservations/google-wallet`, { credentials: 'include' });
+    const body = response.ok ? ((await response.json()) as { available?: unknown }) : {};
+    setGoogleState(body.available === true ? 'yes' : 'no');
+  } catch {
+    // Offline: ask again next time.
+    setGoogleState('unknown');
+  }
+  return googleState === 'yes';
+}
+
+/** True once this server has said Google Wallet works; asks it the first time a booking shows. */
+export function useGoogleWalletAvailable(tripId: number): boolean {
+  const available = useSyncExternalStore(
+    (listener) => {
+      googleListeners.add(listener);
+      return () => googleListeners.delete(listener);
+    },
+    () => googleState === 'yes'
+  );
+  useEffect(() => {
+    void loadGoogleWalletAvailability(tripId);
+  }, [tripId]);
+  return available;
+}
+
+/** The wallet a booking's button adds to here, if any: Apple Wallet on iOS, Google Wallet on Android where the server can. */
 export function bookingWallet(): 'apple' | 'google' | null {
   if (canAddToWallet()) return 'apple';
-  if (canAddToGoogleWallet()) return 'google';
+  if (canAddToGoogleWallet() && googleState === 'yes') return 'google';
   return null;
+}
+
+/** Test helper: forget what the server said. */
+export function _resetGoogleWalletAvailability(): void {
+  googleState = 'unknown';
+  googleListeners.clear();
 }
 
 /**
@@ -94,6 +147,8 @@ export async function addReservationToGoogleWallet(
     return 'failed';
   }
   if (response.status === 422) return 'undated';
+  // Google Wallet went away here (switched off, issuer gone): the button goes with it.
+  if (response.status === 404) setGoogleState('no');
   if (!response.ok) return 'failed';
   try {
     const { saveUrl } = (await response.json()) as { saveUrl?: unknown };

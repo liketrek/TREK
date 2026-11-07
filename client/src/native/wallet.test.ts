@@ -13,6 +13,7 @@ vi.mock('./trekShell', () => ({ TrekShell: shell }));
 vi.mock('./reportFailure', () => ({ reportNativeFailure: report }));
 
 import {
+  _resetGoogleWalletAvailability,
   addReservationToGoogleWallet,
   addReservationToWallet,
   addToWallet,
@@ -20,6 +21,7 @@ import {
   canAddToGoogleWallet,
   canAddToWallet,
   isWalletPassName,
+  loadGoogleWalletAvailability,
 } from './wallet';
 
 const pass = new Blob(['PK\u0003\u0004pass'], { type: 'application/vnd.apple.pkpass' });
@@ -117,10 +119,49 @@ describe('Google Wallet', () => {
     env.android = true;
     env.wallet = false;
     env.googleWallet = true;
+    _resetGoogleWalletAvailability();
   });
 
-  it('is offered only on Android with the googleWallet feature, and names its wallet', () => {
+  const available = (body: unknown, status = 200) =>
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify(body), { status }))
+    );
+
+  it('offers no button until the server says Google Wallet works, and asks it once', async () => {
+    expect(bookingWallet()).toBeNull();
+    available({ available: false });
+    expect(await loadGoogleWalletAvailability(42)).toBe(false);
+    expect(bookingWallet()).toBeNull();
+    available({ available: true });
+    expect(await loadGoogleWalletAvailability(42)).toBe(false);
+    expect(fetch).not.toHaveBeenCalled();
+    _resetGoogleWalletAvailability();
+    expect(await loadGoogleWalletAvailability(42)).toBe(true);
+    expect(fetch).toHaveBeenCalledWith('/api/trips/42/reservations/google-wallet', { credentials: 'include' });
+    expect(bookingWallet()).toBe('google');
+    vi.unstubAllGlobals();
+  });
+
+  it('an older server without the route, or one offline, offers none', async () => {
+    available({}, 404);
+    expect(await loadGoogleWalletAvailability(42)).toBe(false);
+    _resetGoogleWalletAvailability();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new Error('offline');
+      })
+    );
+    expect(await loadGoogleWalletAvailability(42)).toBe(false);
+    vi.unstubAllGlobals();
+  });
+
+  it('is offered only on Android with the googleWallet feature, and names its wallet', async () => {
     expect(canAddToGoogleWallet()).toBe(true);
+    available({ available: true });
+    await loadGoogleWalletAvailability(42);
+    vi.unstubAllGlobals();
     expect(bookingWallet()).toBe('google');
     env.googleWallet = false;
     expect(canAddToGoogleWallet()).toBe(false);
