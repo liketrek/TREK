@@ -36,10 +36,14 @@ export default function MAdminUsersSection({ admin, t, locale }: MAdminUsersSect
   return (
     <div className="space-y-3">
       <MAdminCard>
-        <div className="mb-1 flex items-center gap-2">
-          <span className="text-[0.875rem] font-extrabold text-m-ink">{t('admin.tabs.users')}</span>
-          <span className="font-geist text-[0.625rem] font-bold text-m-faint">
-            {users.length} {t('admin.stats.users', { count: users.length })}
+        {/* Wraps rather than overflows: in a long language the button moves under
+            the title and its count, inside the card, instead of past its edge. */}
+        <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-2">
+          <span className="flex min-w-0 items-baseline gap-2">
+            <span className="text-[0.875rem] font-extrabold text-m-ink">{t('admin.tabs.users')}</span>
+            <span className="whitespace-nowrap font-geist text-[0.625rem] font-bold text-m-faint">
+              {users.length} {t('admin.stats.users', { count: users.length })}
+            </span>
           </span>
           <MAdminButton className="ms-auto" onClick={() => setShowCreateUser(true)}>
             <UserPlus size={12} strokeWidth={2.2} />
@@ -77,9 +81,11 @@ export default function MAdminUsersSection({ admin, t, locale }: MAdminUsersSect
               </span>
               <span
                 className={`flex-none whitespace-nowrap rounded-full px-[9px] py-[3px] font-geist text-[0.5625rem] font-extrabold ${
+                  // Dark mode lifts the words towards the ink: the plain status red on a
+                  // dark red ground and grey on grey were both below 4.5:1 there.
                   u.role === 'admin'
-                    ? 'bg-[color:color-mix(in_srgb,var(--m-st-danger)_12%,transparent)] text-[color:var(--m-st-danger)]'
-                    : 'bg-[color:var(--m-ic)] text-m-muted'
+                    ? 'bg-[color:color-mix(in_srgb,var(--m-st-danger)_12%,transparent)] text-[color:var(--m-st-danger)] dark:bg-[color:color-mix(in_srgb,var(--m-st-danger)_18%,transparent)] dark:text-[color:color-mix(in_srgb,var(--m-st-danger)_55%,var(--m-ink))]'
+                    : 'bg-[color:var(--m-ic)] text-m-muted dark:text-m-ink'
                 }`}
               >
                 {u.role === 'admin' ? t('settings.roleAdmin') : t('settings.roleUser')}

@@ -33,6 +33,15 @@ export function MSectionRow({ section, active, current = false, onPick }: MSecti
   );
 }
 
+/**
+ * The frame of a settings-like screen (settings, administration), one rule for
+ * both: the page column on a phone, a centred column on a wide window, and from
+ * the split size class the list of sections beside a page that runs to the same
+ * width on both screens.
+ */
+export const SECTION_SCREEN =
+  'px-4 pb-[calc(var(--bottom-nav-h,84px)+16px)] pt-[var(--m-safe-top,12px)] wide:mx-auto wide:max-w-[1040px] wide:px-6 split:grid split:max-w-[1240px] split:grid-cols-[260px_minmax(0,1fr)] split:items-start split:gap-8';
+
 interface MSectionNavProps {
   title: string;
   backLabel: string;
@@ -40,7 +49,10 @@ interface MSectionNavProps {
   sections: MSection[];
   activeId: string;
   onPick: (id: string) => void;
-  /** An action of the screen, at the end of the list's head (admin: a new user). */
+  /**
+   * An action of the screen (admin: a new user), on a line of its own under the
+   * title, so a long title in a long language keeps the whole width.
+   */
   action?: ReactNode;
 }
 
@@ -74,8 +86,8 @@ export default function MSectionNav({
           <ChevronLeft size={18} strokeWidth={2.2} className="rtl:-scale-x-100" />
         </button>
         <span className="min-w-0 flex-1 truncate text-subtitle font-bold text-m-ink">{title}</span>
-        {action}
       </div>
+      {action && <div className="mb-1 px-[4px]">{action}</div>}
       {sections.map((section) => (
         <MSectionRow
           key={section.id}

@@ -46,7 +46,7 @@ import MAdminUsersSection from './MAdminUsersSection'
 import { MAdminButton } from './MAdminUi'
 import { managedAdminTabs } from '../../../managed'
 import { useIsSplit } from '../../../hooks/sizeClass'
-import MSectionNav, { MSectionRow, type MSection } from '../../components/MSectionNav'
+import MSectionNav, { MSectionRow, SECTION_SCREEN, type MSection } from '../../components/MSectionNav'
 
 // Stat card of the 2×2 grid (design §6.3): 34px icon tile, 19px/800 number,
 // small tracking label. Count-up animation matches the desktop stat cards.
@@ -57,9 +57,9 @@ function MAdminStat({ label, value, icon: Icon }: { label: string; value: number
       <span className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-[11px] bg-[color:var(--m-ic)] text-m-ink">
         <Icon size={16} strokeWidth={2} />
       </span>
-      <div>
+      <div className="min-w-0">
         <div className="text-[1.1875rem] font-extrabold leading-none text-m-ink">{animated}</div>
-        <div className="mt-[2px] font-geist text-[0.59375rem] font-bold tracking-[0.06em] text-m-faint">{label}</div>
+        <div className="mt-[2px] truncate font-geist text-[0.59375rem] font-bold tracking-[0.06em] text-m-faint" title={label}>{label}</div>
       </div>
     </div>
   )
@@ -112,7 +112,7 @@ export default function MAdmin() {
   return (
     // Flow screen: scrolls with the document (#1809), so no height and no
     // scroll container of its own.
-    <div className="px-4 pb-[calc(var(--bottom-nav-h,84px)+16px)] pt-[var(--m-safe-top,12px)] wide:mx-auto wide:max-w-[1040px] wide:px-6 split:grid split:max-w-[1240px] split:grid-cols-[260px_minmax(0,1fr)] split:items-start split:gap-8">
+    <div className={SECTION_SCREEN}>
       {split && (
         <MSectionNav
           title={t('admin.title')}
@@ -124,11 +124,11 @@ export default function MAdmin() {
           action={
             <button
               type="button"
-              aria-label={t('admin.createUser')}
               onClick={() => setShowCreateUser(true)}
-              className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-full bg-m-act text-m-actfg outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--m-act)] focus-visible:ring-offset-2"
+              className="flex h-[34px] w-full items-center justify-center gap-[7px] rounded-full bg-m-act px-3 text-[length:calc(12px*var(--fs-scale-body,1))] font-bold text-m-actfg outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--m-act)] focus-visible:ring-offset-2"
             >
-              <UserPlus size={15} strokeWidth={2.2} />
+              <UserPlus size={14} strokeWidth={2.2} className="flex-none" />
+              <span className="truncate">{t('admin.createUser')}</span>
             </button>
           }
         />
@@ -143,7 +143,7 @@ export default function MAdmin() {
           onClick={() => navigate('/dashboard')}
           className="flex h-[38px] w-[38px] flex-none items-center justify-center rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-sheet)] text-m-ink shadow-[0_5px_12px_-8px_rgba(0,0,0,.18)]"
         >
-          <ChevronLeft size={18} strokeWidth={2.2} />
+          <ChevronLeft size={18} strokeWidth={2.2} className="rtl:-scale-x-100" />
         </button>
         <button
           type="button"

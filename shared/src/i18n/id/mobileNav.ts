@@ -5,6 +5,9 @@ const mobileNav: TranslationStrings = {
   'mobileNav.collectionsSub': 'Tempat tersimpan',
   'mobileNav.more': 'Lainnya',
   'mobileNav.navigation': 'Navigasi',
+  'mobileNav.railSettings': 'Pengaturan',
+  'mobileNav.railAdmin': 'Admin', // same-as-en
+  'mobileNav.railCollections': 'Koleksi',
 };
 
 export default mobileNav;

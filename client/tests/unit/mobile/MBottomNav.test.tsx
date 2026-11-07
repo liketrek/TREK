@@ -259,4 +259,25 @@ describe('MBottomNav', () => {
     });
     expect([placeholder.left.children.length, placeholder.right.children.length]).toEqual(groups);
   });
+
+  it("FE-MOB-NAV-020: More is marked for its screens with a ring, not the centre button's fill", () => {
+    seedAddons(['vacay', 'atlas', 'journey', 'collections']);
+    nav('/atlas');
+    const more = screen.getByRole('button', { name: 'More' });
+    expect(more).toHaveAttribute('aria-current', 'page');
+    expect(more.className).toContain('ring-[color:var(--m-act)]');
+    expect(more.className).not.toContain('bg-m-act');
+  });
+
+  it('FE-MOB-NAV-021: a list fades out under the dock, a map runs to the edge', () => {
+    seedAddons(['atlas', 'journey']);
+    const dashboard = nav('/dashboard');
+    expect(dashboard.container.querySelector('.m-dock-scrim')).toBeInTheDocument();
+    dashboard.unmount();
+    for (const path of ['/atlas', '/journey/3']) {
+      const screenOverMap = nav(path);
+      expect([path, screenOverMap.container.querySelector('.m-dock-scrim')]).toEqual([path, null]);
+      screenOverMap.unmount();
+    }
+  });
 });

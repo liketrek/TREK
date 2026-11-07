@@ -1,4 +1,4 @@
-// FE-COMP-JOURNEYMAP-001 to FE-COMP-JOURNEYMAP-062
+// FE-COMP-JOURNEYMAP-001 to FE-COMP-JOURNEYMAP-063
 
 vi.mock('../../api/websocket', () => ({
   connect: vi.fn(),
@@ -588,6 +588,28 @@ describe('JourneyMap', () => {
         expect.objectContaining({ paddingBottomRight: [50, 200] }),
       );
     } finally {
+      globalThis.requestAnimationFrame = origRAF;
+    }
+  });
+
+  it('FE-COMP-JOURNEYMAP-063: paddingStart keeps the journey clear of a rail on the leading side, either way round', () => {
+    const origRAF = globalThis.requestAnimationFrame;
+    globalThis.requestAnimationFrame = (cb: FrameRequestCallback) => { cb(0); return 0; };
+    try {
+      const { unmount } = render(<JourneyMap checkins={[]} entries={entriesWithCoords} paddingBottom={200} paddingStart={100} />);
+      expect(mockedMap().fitBounds).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({ paddingTopLeft: [150, 50], paddingBottomRight: [50, 200] }),
+      );
+      unmount();
+      document.documentElement.dir = 'rtl';
+      render(<JourneyMap checkins={[]} entries={entriesWithCoords} paddingBottom={200} paddingStart={100} />);
+      expect(mockedMap().fitBounds).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({ paddingTopLeft: [50, 50], paddingBottomRight: [150, 200] }),
+      );
+    } finally {
+      document.documentElement.dir = '';
       globalThis.requestAnimationFrame = origRAF;
     }
   });

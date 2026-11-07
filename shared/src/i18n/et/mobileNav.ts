@@ -5,6 +5,9 @@ const mobileNav: TranslationStrings = {
   'mobileNav.collectionsSub': 'Salvestatud kohad',
   'mobileNav.more': 'Veel',
   'mobileNav.navigation': 'Navigeerimine',
+  'mobileNav.railSettings': 'Seaded',
+  'mobileNav.railAdmin': 'Haldus',
+  'mobileNav.railCollections': 'Kogumikud',
 };
 
 export default mobileNav;

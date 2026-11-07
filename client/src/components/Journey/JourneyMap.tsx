@@ -1,4 +1,4 @@
-import { useEffect, useRef, useImperativeHandle, useCallback, type CSSProperties, type Ref, type RefObject } from 'react'
+import { useEffect, useLayoutEffect, useRef, useImperativeHandle, useCallback, type CSSProperties, type Ref, type RefObject } from 'react'
 import { clusterPhotos, photoMarkerHtml, type MapPhoto } from './journeyPhotoLayer'
 import L from 'leaflet'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -76,6 +76,12 @@ interface Props {
    */
   onMarkerCardClick?: (entryId: string) => void
   paddingBottom?: number
+  /**
+   * How much of the map's leading edge a bar laid over it covers (the touch
+   * shell's rail), in px: framing keeps the journey clear of it. Read when the
+   * map frames, so a change alone does not rebuild the map.
+   */
+  paddingStart?: number
   /** CARTO key from the share payload: the public journey has no settings store to read. */
   cartoApiKey?: string
   /**
@@ -281,13 +287,23 @@ function markCoords(marks: JourneyMapMark[] | undefined): L.LatLngTuple[] {
   return (marks ?? []).map(mark => [mark.lat, mark.lng] as L.LatLngTuple)
 }
 
-function fitOptions(paddingBottom: number | undefined): L.FitBoundsOptions {
-  return { paddingTopLeft: [50, 50], paddingBottomRight: [50, paddingBottom || 50], maxZoom: 16 }
+function fitOptions(paddingBottom: number | undefined, paddingStart = 0): L.FitBoundsOptions {
+  const rtl = typeof document !== 'undefined' && document.documentElement.dir === 'rtl'
+  return {
+    paddingTopLeft: [50 + (rtl ? 0 : paddingStart), 50],
+    paddingBottomRight: [50 + (rtl ? paddingStart : 0), paddingBottom || 50],
+    maxZoom: 16,
+  }
 }
 
 function JourneyMap(
-  { entries, photos, onPhotoClick, trail, tracks, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, cartoApiKey, onMarkerCardClick, layerVisibility = EVERY_LAYER, marks, onMarksPick, plannedEntryIds = NO_PLANNED, ref }: Props,
+  { entries, photos, onPhotoClick, trail, tracks, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, paddingStart = 0, cartoApiKey, onMarkerCardClick, layerVisibility = EVERY_LAYER, marks, onMarksPick, plannedEntryIds = NO_PLANNED, ref }: Props,
 ) {
+  // The leading inset is read when the map frames, not a reason to rebuild it.
+  const paddingStartRef = useRef(paddingStart)
+  useLayoutEffect(() => {
+    paddingStartRef.current = paddingStart
+  })
   // Read through a ref: the handler is fixed per surface, and putting it in the
   // marker effect's deps would rebuild every marker for nothing.
   const onMarkerCardClickRef = useRef(onMarkerCardClick)
@@ -536,7 +552,7 @@ function JourneyMap(
         const pointCoords = [...allCoords, ...markCoords(marksRef.current)]
         const fitCoords = pointCoords.length > 0 ? pointCoords : trackCoords
         marksFramedRef.current = (marksRef.current?.length ?? 0) > 0
-        if (fitCoords.length > 0) map.fitBounds(L.latLngBounds(fitCoords), fitOptions(paddingBottom))
+        if (fitCoords.length > 0) map.fitBounds(L.latLngBounds(fitCoords), fitOptions(paddingBottom, paddingStartRef.current))
         else map.setView([30, 0], 2)
       } catch {}
     })
@@ -652,7 +668,7 @@ function JourneyMap(
     const coords = markCoords(marks)
     if (!marksFramedRef.current && coords.length > 0) {
       marksFramedRef.current = true
-      if (!readerMovedRef.current) map.fitBounds(L.latLngBounds([...entryCoordsRef.current, ...coords]), fitOptions(paddingBottom))
+      if (!readerMovedRef.current) map.fitBounds(L.latLngBounds([...entryCoordsRef.current, ...coords]), fitOptions(paddingBottom, paddingStartRef.current))
     }
 
     draw()

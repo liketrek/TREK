@@ -5,6 +5,9 @@ const mobileNav: TranslationStrings = {
   'mobileNav.collectionsSub': 'Uložené miesta',
   'mobileNav.more': 'Viac',
   'mobileNav.navigation': 'Navigácia',
+  'mobileNav.railSettings': 'Nastavenia',
+  'mobileNav.railAdmin': 'Správa',
+  'mobileNav.railCollections': 'Zbierky',
 };
 
 export default mobileNav;

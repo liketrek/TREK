@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { useSearchParams } from 'react-router'
 import { ChevronLeft, MapPin, Grid3x3, MoreHorizontal, Play, Image, Camera, EyeOff, Settings2, X, Route, ListChecks } from 'lucide-react'
 import JourneyLayeredMap from '../../../components/Journey/JourneyLayeredMap'
@@ -42,12 +42,31 @@ import MJourneyRecordingSheet from './MJourneyRecordingSheet'
  * (`embedded`): the trip's back button and controls sit on top, so the screen
  * drops its own back button and leaves the trip's URL alone.
  */
+/** A phone on its side: too short for the regular strip of cards and the map above it. */
+const SHORT_WINDOW = '(max-height: 500px)'
+function subscribeShort(onChange: () => void) {
+  const mq = window.matchMedia(SHORT_WINDOW)
+  mq.addEventListener('change', onChange)
+  return () => mq.removeEventListener('change', onChange)
+}
+const readShort = () => window.matchMedia(SHORT_WINDOW).matches
+
 export default function MJourneyDetail({ journeyId, embedded = false }: JourneyDetailOptions = {}) {
   // Larger cards on a wide window, where the strip has the room for the whole name.
   const wide = useIsWide()
   // With room for two panes the entries stand as a feed beside the map (MJourneyFeed)
   // instead of the strip of cards over it.
   const split = useIsSplit()
+  // On a short window the cards are smaller and the map is framed above them.
+  const short = useSyncExternalStore(subscribeShort, readShort, () => false)
+  // The map runs under the rail (m-bleed); framing keeps the journey clear of it.
+  // The rail's share is the root's own negative margin, as the browser resolves it.
+  const rootRef = useRef<HTMLDivElement>(null)
+  const [railInset, setRailInset] = useState(0)
+  useLayoutEffect(() => {
+    const root = rootRef.current
+    if (root) setRailInset(Math.max(0, -parseFloat(getComputedStyle(root).marginInlineStart) || 0))
+  }, [wide])
   const {
     id, navigate, toast, t, locale,
     current, loading,
@@ -315,7 +334,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
   return (
     // h-dvh, not h-full: the shell stopped providing a definite height (#1809)
     // and a map on a percentage of an auto-height parent collapses to zero.
-    <div className="m-bleed relative h-dvh overflow-hidden">
+    <div ref={rootRef} className="m-bleed relative h-dvh overflow-hidden">
       {/* Integrated map — always mounted, the gallery overlays it. Beside the feed
           it begins where the feed ends, so its controls and its framing stay in
           the part that can be seen. */}
@@ -341,7 +360,8 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
           onMarkerClick={handleMarkerClick}
           onMarkerCardClick={openEntryById}
           fullScreen
-          paddingBottom={250}
+          paddingBottom={short ? 280 : 250}
+          paddingStart={feed ? 0 : railInset}
         />
       </div>
 
@@ -434,7 +454,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
             aria-label={t('journey.detail.backToJourney')}
             className="flex h-[38px] w-[38px] flex-none items-center justify-center rounded-full bg-[color:var(--m-sheet)] text-m-ink shadow-[0_5px_14px_-6px_rgba(0,0,0,.3)]"
           >
-            <ChevronLeft size={18} strokeWidth={2.2} />
+            <ChevronLeft size={18} strokeWidth={2.2} className="rtl:-scale-x-100" />
           </button>
         )}
         <div className="absolute left-1/2 top-0 flex -translate-x-1/2 rounded-full bg-[color:var(--m-sheet)] p-[3px] shadow-[0_5px_14px_-6px_rgba(0,0,0,.3)]">
@@ -541,14 +561,18 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
           gives the strip the rest. */}
       {view === 'timeline' && entries.length > 0 && !feed && (
         <div ref={railRef} className="m-span-x absolute z-[8] bottom-[calc(var(--bottom-nav-h,84px)+2px)]">
-        <JourneyDayScrubber
-          days={scrubberDays}
-          activeDate={entries[activeIndex]?.entry_date ?? null}
-          onPick={jumpToDay}
-        />
+        {/* The days and the date on a plate of their own, so the map's names do
+            not run through them. */}
+        <div className="mx-3 rounded-[18px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] pt-[6px] backdrop-blur-[18px] backdrop-saturate-[1.4] empty:hidden">
+          <JourneyDayScrubber
+            days={scrubberDays}
+            activeDate={entries[activeIndex]?.entry_date ?? null}
+            onPick={jumpToDay}
+          />
+        </div>
         <div
           ref={carouselRef}
-          className="flex items-end gap-[22px] overflow-x-auto px-6 pb-1 pt-[30px] [-webkit-overflow-scrolling:touch] [scrollbar-width:none]"
+          className={`flex items-end gap-[22px] overflow-x-auto px-6 pb-1 ${short ? 'pt-[22px]' : 'pt-[30px]'} [-webkit-overflow-scrolling:touch] [scrollbar-width:none]`}
           style={{ scrollSnapType: 'x mandatory' }}
         >
           {entries.map((entry, i) => (
@@ -565,7 +589,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
                 showMood={current.show_mood !== 0}
                 showWeather={current.show_weather !== 0}
                 tone="mobile"
-                size={wide ? 'large' : 'regular'}
+                size={wide ? 'large' : short ? 'compact' : 'regular'}
               />
             </div>
           ))}

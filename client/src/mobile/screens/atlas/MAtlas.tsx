@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { CalendarClock, X } from 'lucide-react'
 import { useAtlas } from '../../../pages/atlas/useAtlas'
@@ -28,7 +28,21 @@ const removeBtnCls = 'mt-4 w-full rounded-full bg-[rgba(214,39,59,.12)] py-[11px
  * useAtlas hook — this file is presentation and wiring only.
  */
 export default function MAtlas() {
-  const atlas = useAtlas()
+  const rootRef = useRef<HTMLDivElement>(null)
+  const headerRef = useRef<HTMLDivElement>(null)
+  // The map runs under the rail (m-bleed) and the header: the camera keeps clear
+  // of both. The rail's share is the root's own negative margin, resolved by the
+  // browser; the header's is how far down it reaches.
+  const atlas = useAtlas({
+    chromeInsets: () => {
+      const root = rootRef.current
+      if (!root) return { top: 0, start: 0 }
+      const start = Math.max(0, -parseFloat(getComputedStyle(root).marginInlineStart) || 0)
+      const header = headerRef.current?.getBoundingClientRect()
+      const top = header ? Math.max(0, header.bottom - root.getBoundingClientRect().top) : 0
+      return { top, start }
+    },
+  })
   const {
     t,
     navigate,
@@ -109,7 +123,7 @@ export default function MAtlas() {
   return (
     // h-dvh, not h-full: the shell stopped providing a definite height (#1809)
     // and a map on a percentage of an auto-height parent collapses to zero.
-    <div className="m-bleed relative h-dvh overflow-hidden">
+    <div ref={rootRef} className="m-bleed relative h-dvh overflow-hidden">
       <div ref={mapRef} className="absolute inset-0 z-[1] bg-[color:var(--m-mapb)] [&_.leaflet-control-zoom]:hidden" />
       {/* Region hover tooltip — positioned imperatively by useAtlas. */}
       <div
@@ -120,7 +134,7 @@ export default function MAtlas() {
 
       {/* Full-width bucket-list button. The bottom nav makes a back button
           redundant on this main-nav screen, so the header spans the width. */}
-      <div className="m-bar-x absolute top-[var(--m-safe-top,12px)] z-[5] flex items-center gap-2 wide:mx-auto wide:max-w-[720px]">
+      <div ref={headerRef} className="m-bar-x absolute top-[var(--m-safe-top,12px)] z-[5] flex items-center gap-2 wide:mx-auto wide:max-w-[720px]">
         <button
           type="button"
           onClick={() => setBucketOpen(true)}

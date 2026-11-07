@@ -5,6 +5,9 @@ const mobileNav: TranslationStrings = {
   'mobileNav.collectionsSub': 'Αποθηκευμένες τοποθεσίες',
   'mobileNav.more': 'Περισσότερα',
   'mobileNav.navigation': 'Πλοήγηση',
+  'mobileNav.railSettings': 'Ρυθμίσεις',
+  'mobileNav.railAdmin': 'Διαχείριση',
+  'mobileNav.railCollections': 'Συλλογές',
 };
 
 export default mobileNav;

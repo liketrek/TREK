@@ -5,6 +5,9 @@ const mobileNav: TranslationStrings = {
   'mobileNav.collectionsSub': 'Lugares guardados',
   'mobileNav.more': 'Más',
   'mobileNav.navigation': 'Navegación',
+  'mobileNav.railSettings': 'Ajustes',
+  'mobileNav.railAdmin': 'Admin', // same-as-en
+  'mobileNav.railCollections': 'Colecciones',
 };
 
 export default mobileNav;

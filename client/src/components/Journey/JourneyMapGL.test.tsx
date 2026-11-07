@@ -317,6 +317,14 @@ describe('JourneyMapGL', () => {
     expect(gl.map.addLayer).toHaveBeenCalledWith(expect.objectContaining({ id: 'journey-route-line' }))
   })
 
+  it('FE-COMP-JMAPGL-049: paddingStart widens the fit on the side of the rail', () => {
+    withToken()
+    render(<JourneyMapGL checkins={[]} entries={entries} paddingBottom={200} paddingStart={100} fullScreen />)
+    expect(gl.map.fitBounds).toHaveBeenCalledWith(gl.boundsList[0], expect.objectContaining({
+      padding: { top: 50, bottom: 200, left: 150, right: 50 },
+    }))
+  })
+
   it('FE-COMP-JMAPGL-010: the camera fits entries and trail with the requested bottom padding', () => {
     withToken()
     render(

@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { useNavigate } from 'react-router'
-import { ArrowLeft, CheckCheck, Trash2 } from 'lucide-react'
+import { CheckCheck, ChevronLeft, Trash2 } from 'lucide-react'
 import MDancingTrek from '../../components/MDancingTrek'
 import ConfirmDialog from '../../../components/shared/ConfirmDialog'
 import { useTranslation } from '../../../i18n'
@@ -40,10 +40,11 @@ export default function MNotifications() {
 
   return (
     <>
-      {/* On a wide window the bar keeps to the column of the list below it. */}
-      <MGlassBar className="wide:mx-auto wide:max-w-[760px]">
+      {/* On a wide window the bar keeps to the column of the list below it. The
+          way back is the round chevron every other screen has. */}
+      <MGlassBar column="wide:max-w-[808px]">
         <MIconBtn ariaLabel={t('common.back')} onClick={() => navigate(-1)}>
-          <ArrowLeft size={18} strokeWidth={2} />
+          <ChevronLeft size={18} strokeWidth={2.2} className="rtl:-scale-x-100" />
         </MIconBtn>
         <div className="flex min-w-0 flex-1 items-center gap-2">
           {/* Two lines, hyphenated, before an ellipsis: "Benachrichtigungen" was

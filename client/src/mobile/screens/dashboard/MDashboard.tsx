@@ -29,6 +29,7 @@ import type { MobileDashToken } from '@trek/shared'
 import { usePullToRefresh } from '../../usePullToRefresh'
 import MPullIndicator from '../../components/MPullIndicator'
 import SharedConfirmSheet from '../settings/MConfirmSheet'
+import { edgeFadeClass, useEdgeFade } from '../../components/useEdgeFade'
 
 type TripFilter = 'planned' | 'archive' | 'completed'
 
@@ -62,6 +63,10 @@ export default function MDashboard(): React.ReactElement {
   const split = useIsSplit()
   const { available: assistantAvailable, open: openAssistant } = useAssistantHomeLauncher()
   const [subOpen, setSubOpen] = useState(false)
+  // The filter chips scroll when a language's words do not fit beside the two
+  // buttons, and fade out where more of them waits.
+  const [filterStrip, setFilterStrip] = useState<HTMLDivElement | null>(null)
+  const filterFade = useEdgeFade(filterStrip)
 
   // Plugin dashboard widgets + trip-card badges, mirroring the desktop page:
   // same slot filter (only true dashboard widgets), one badge fetch for all
@@ -134,7 +139,7 @@ export default function MDashboard(): React.ReactElement {
               forced zoom. min-w-max keeps the pill track wrapping its chips,
               and the box stays content-wide (no flex-1) so the pill still hugs
               them on wide phones while ms-auto parks the icons at the end. */}
-          <div className="m-hscroll min-w-0">
+          <div ref={setFilterStrip} className={`m-hscroll min-w-0 ${edgeFadeClass(filterFade)}`}>
             <MSegmented<TripFilter>
               value={tripFilter}
               onChange={setTripFilter}
@@ -216,7 +221,8 @@ export default function MDashboard(): React.ReactElement {
 
   return (
     <>
-      <MGlassBar floating>
+      {/* In the column the cards below stand in, so their edges line up. */}
+      <MGlassBar column="wide:max-w-[1280px]">
         <button
           type="button"
           // The page itself is the scroller since #1809, no inner container to walk up to.
@@ -391,7 +397,9 @@ function MSpotlightCard({ trip, t, onOpen, actions }: {
       tabIndex={0}
       onClick={onOpen}
       onKeyDown={e => { if (e.key === 'Enter') onOpen() }}
-      className="relative h-[300px] cursor-pointer overflow-hidden rounded-[26px] shadow-[0_24px_56px_-22px_rgba(0,0,0,.5)] outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--m-act)] wide:h-[clamp(300px,42vh,440px)]"
+      // A phone on its side has no 300px to spare between the top bar and the dock:
+      // the card ends above the dock rather than under it.
+      className="relative h-[clamp(200px,calc(100svh-var(--m-safe-top,12px)-82px-var(--bottom-nav-h,84px)-14px),300px)] cursor-pointer overflow-hidden rounded-[26px] shadow-[0_24px_56px_-22px_rgba(0,0,0,.5)] outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--m-act)] wide:h-[clamp(300px,42vh,440px)]"
     >
       {trip.cover_image
         ? <img src={trip.cover_image} alt={trip.title} className="absolute inset-0 h-full w-full object-cover" />
@@ -416,7 +424,7 @@ function MSpotlightCard({ trip, t, onOpen, actions }: {
             <span className="absolute bottom-0 left-0 top-0 rounded-full bg-white" style={{ width: `${progress}%` }} />
           </div>
         )}
-        <div className={`flex gap-[6px] ${ongoing ? '' : 'mt-[9px]'}`}>
+        <div className={`flex flex-wrap gap-[6px] ${ongoing ? '' : 'mt-[9px]'}`}>
           <SpotlightPill icon={<CalendarDays size={11} strokeWidth={2.2} />} label={t('dashboard.mobile.spotlightDays', { count: days })} />
           <SpotlightPill icon={<MapPin size={11} strokeWidth={2.2} />} label={t('dashboard.hero.destinations', { count: places })} />
           <SpotlightPill icon={<Users size={11} strokeWidth={2.2} />} label={t('dashboard.hero.travelers', { count: people })} />
@@ -439,7 +447,8 @@ function MSpotlightCard({ trip, t, onOpen, actions }: {
  */
 function SpotlightPill({ icon, label }: { icon: React.ReactElement; label: string }): React.ReactElement {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-white/[.28] px-[9px] py-[3px] font-geist text-[0.5625rem] font-bold tracking-[.07em] text-white uppercase">
+    // One line per chip: a narrow card wraps whole chips rather than breaking the number from its word.
+    <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-white/[.28] px-[9px] py-[3px] font-geist text-[0.5625rem] font-bold tracking-[.07em] text-white uppercase">
       {icon}
       {label}
     </span>
@@ -453,7 +462,9 @@ function CoverActionBtn({ action }: { action: CardAction }): React.ReactElement 
       type="button"
       aria-label={action.label}
       onClick={e => { e.stopPropagation(); action.onClick() }}
-      className="flex h-[34px] w-[34px] items-center justify-center rounded-full border border-white/30 bg-white/[.22] text-white backdrop-blur-[8px]"
+      // A dark ground, not a white veil: over a bright sky the veil and its white
+      // icon disappeared together.
+      className="flex h-[34px] w-[34px] items-center justify-center rounded-full border border-white/25 bg-[color:var(--overlay)] text-white backdrop-blur-[8px]"
     >
       {action.icon}
     </button>
@@ -529,14 +540,13 @@ function MTripGridCard({ trip, locale, badge, pluginBadges, actions, onOpen }: {
         </div>
       </div>
       <div className="p-[9px_12px_12px]">
-        <div className="flex items-center gap-2">
-          <div className="min-w-0 flex-1 truncate text-[0.875rem] font-semibold">{trip.title}</div>
-          <span className="inline-flex flex-none items-center gap-[6px] rounded-full bg-[color:var(--m-ic)] px-[10px] py-1 font-geist text-[0.6875rem] font-semibold text-m-ink">
-            <span>{fullDate(trip.start_date, locale) ?? '—'}</span>
-            <ArrowRight size={12} strokeWidth={2.2} className="text-m-faint" />
-            <span>{fullDate(trip.end_date, locale) ?? '—'}</span>
-          </span>
-        </div>
+        {/* The name has the card's whole width; the dates take the line under it. */}
+        <div className="truncate text-[0.875rem] font-semibold">{trip.title}</div>
+        <span className="mt-[6px] inline-flex max-w-full items-center gap-[6px] rounded-full bg-[color:var(--m-ic)] px-[10px] py-1 font-geist text-[0.6875rem] font-semibold text-m-ink">
+          <span className="truncate">{fullDate(trip.start_date, locale) ?? '—'}</span>
+          <ArrowRight size={12} strokeWidth={2.2} className="flex-none text-m-faint" />
+          <span className="truncate">{fullDate(trip.end_date, locale) ?? '—'}</span>
+        </span>
         <MTripBadges items={pluginBadges} />
       </div>
     </div>

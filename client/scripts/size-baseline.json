@@ -20,7 +20,7 @@
   "src/pages/JourneyDetailPage.test.tsx": 4028,
   "src/pages/LoginPage.tsx": 1347,
   "src/pages/TripPlannerPage.tsx": 1128,
-  "src/pages/atlas/useAtlas.ts": 1210,
+  "src/pages/atlas/useAtlas.ts": 1207,
   "src/pages/tripPlanner/useTripPlanner.roadtrip.test.tsx": 3518,
   "src/pages/tripPlanner/useTripPlanner.test.tsx": 3270,
   "src/styles/studio.css": 1918

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useLocation } from 'react-router'
+import { useNavigate, useLocation, matchPath } from 'react-router'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTranslation } from '../../i18n'
 import { ChevronRight, MoreHorizontal, Plus, Search, Sparkles, Upload } from 'lucide-react'
@@ -9,6 +9,7 @@ import { useNavItems, splitMobileNav } from '../../components/Layout/navItems'
 import { isNavItemActive, useCreateAction } from '../../components/Layout/useCreateAction'
 import MFab from './MFab'
 import { useAssistantHomeLauncher } from '../../components/Assistant/useAssistantHome'
+import MDockScrim from './MDockScrim'
 
 interface NavItem { to: string; label: string; icon: LucideIcon }
 
@@ -72,6 +73,14 @@ export default function MBottomNav() {
     `flex h-[42px] w-[42px] flex-none items-center justify-center rounded-full ${
       active ? 'bg-m-act text-m-actfg' : 'text-m-muted'
     }`
+  // More stands for whichever of its screens is on show, so it is marked as a
+  // ring: a filled circle beside the filled "+" read as two of the same action.
+  const moreCls = (active: boolean) =>
+    `flex h-[42px] w-[42px] flex-none items-center justify-center rounded-full ${
+      active ? 'bg-[color:var(--m-ic)] text-m-ink ring-[1.5px] ring-inset ring-[color:var(--m-act)]' : 'text-m-muted'
+    }`
+  // A map runs to the screen's edge on purpose; everything else fades out under the dock.
+  const overMap = location.pathname.startsWith('/atlas') || matchPath('/journey/:id', location.pathname) !== null
 
   const renderItem = ({ to, label, icon: Icon }: NavItem) => {
     const active = isActive(to)
@@ -120,7 +129,8 @@ export default function MBottomNav() {
         </div>
       )}
 
-      <nav className="m-dock-vt fixed inset-x-4 z-40 flex h-[62px] items-center rounded-[31px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-3 shadow-[0_16px_44px_-14px_rgba(0,0,0,.35)] backdrop-blur-[30px] backdrop-saturate-[1.8] bottom-[calc(env(safe-area-inset-bottom,0px)+12px)]">
+      {!overMap && <MDockScrim />}
+      <nav className="m-dock-vt fixed inset-x-4 z-40 flex h-[62px] items-center rounded-[31px] border border-[color:var(--m-gbr)] bg-[color:var(--m-dock)] px-3 shadow-[0_16px_44px_-14px_rgba(0,0,0,.35)] backdrop-blur-[30px] backdrop-saturate-[1.4] bottom-[calc(env(safe-area-inset-bottom,0px)+12px)]">
         <div className="flex min-w-0 flex-1 items-center justify-around">{left.map(renderItem)}</div>
 
         {logoSlot ? (
@@ -151,7 +161,7 @@ export default function MBottomNav() {
               aria-label={t('mobileNav.more')}
               aria-expanded={moreOpen}
               aria-current={moreActive ? 'page' : undefined}
-              className={circleCls(moreActive)}
+              className={moreCls(moreActive)}
             >
               <MoreHorizontal size={21} strokeWidth={1.9} />
             </button>

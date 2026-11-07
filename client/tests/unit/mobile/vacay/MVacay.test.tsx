@@ -1,8 +1,10 @@
-// FE-MOB-MVACSCR-001 to FE-MOB-MVACSCR-021
+// FE-MOB-MVACSCR-001 to FE-MOB-MVACSCR-023
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, within } from '../../../helpers/render';
 import MVacay from '../../../../src/mobile/screens/vacay/MVacay';
+import MNavRail from '../../../../src/mobile/components/MNavRail';
+import { setSizeClass } from '../../../helpers/sizeClass';
 import type { DayVisualContext } from '../../../../src/mobile/screens/vacay/vacayDayModel';
 
 const mocks = vi.hoisted(() => ({ v: {} as Record<string, unknown> }));
@@ -426,5 +428,31 @@ describe('MVacay', () => {
     mocks.v = buildV({ loading: true });
     rerender(<MVacay />);
     expect(container.firstElementChild).toHaveClass('h-dvh');
+  });
+
+  it('FE-MOB-MVACSCR-022: on a wide window the switch stands at the head of the rail, not over the calendar', () => {
+    setSizeClass('wide');
+    render(
+      <>
+        <MNavRail />
+        <MVacay />
+      </>,
+      { initialEntries: ['/vacay'] }
+    );
+    const rail = screen.getByRole('navigation', { name: 'Navigation' });
+    // One switch, and it is the rail's first button.
+    expect(screen.getAllByRole('button', { name: 'Edit calendar' })).toHaveLength(1);
+    const head = within(rail).getAllByRole('button')[0];
+    expect(head).toHaveAccessibleName('Edit calendar');
+    fireEvent.click(head);
+    expect(mocks.v.toggleView).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-MOB-MVACSCR-023: each month of the year grid names its weekday columns, from the first day of the week', () => {
+    mocks.v = buildV({ weekStart: 0 });
+    render(<MVacay />);
+    const grid = screen.getAllByRole('button', { name: 'Jan' })[0].parentElement as HTMLElement;
+    const letters = Array.from(grid.querySelectorAll('[aria-hidden="true"] > span')).map((el) => el.textContent);
+    expect(letters).toEqual(['S', 'M', 'T', 'W', 'T', 'F', 'S']);
   });
 });

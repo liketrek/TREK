@@ -8,6 +8,8 @@ import MDancingTrek from '../../components/MDancingTrek'
 import { journeyCoverSrc, journeyCoverStyle } from './mobileJourneyMeta'
 import { usePullToRefresh } from '../../usePullToRefresh'
 import MPullIndicator from '../../components/MPullIndicator'
+import MGlassBar from '../../components/MGlassBar'
+import { useIsWide } from '../../../hooks/sizeClass'
 
 type JourneyListItem = Journey & {
   entry_count?: number
@@ -25,6 +27,7 @@ export default function MJourney() {
     openCreateModal, handleCreate, activeJourney,
   } = useJourney()
   const scrollRef = useRef<HTMLDivElement>(null)
+  const wide = useIsWide()
   const pull = usePullToRefresh(scrollRef, loadJourneys, true, scrollRef)
 
   const list = journeys as JourneyListItem[]
@@ -36,22 +39,22 @@ export default function MJourney() {
     // The feed below keeps its own scroller, so this screen does not move the
     // document and Safari's address bar stays put here.
     <div className="relative h-dvh">
-      {/* Floating header: back + create pill. On a wide window it keeps to the
-          column of cards and names the page at its start, as an iPad title bar does. */}
-      <div className="m-bar-x fixed top-[var(--m-safe-top,12px)] z-30 flex items-center gap-[10px] wide:mx-auto wide:max-w-[1040px]">
-        <h1 className="hidden min-w-0 flex-1 truncate text-title font-extrabold text-m-ink wide:block">{t('journey.title')}</h1>
-        <button
-          type="button"
-          onClick={() => openCreateModal()}
-          className="flex h-[38px] flex-1 items-center justify-center gap-[6px] whitespace-nowrap rounded-full bg-m-act px-[15px] text-[0.78125rem] font-bold text-m-actfg wide:ms-auto wide:flex-none wide:px-5"
-        >
-          <Plus size={14} strokeWidth={2.4} />
-          {t('journey.frontpage.createJourney')}
-        </button>
-      </div>
+      {/* Floating header: the create pill. On a wide window it is the glass bar
+          the dashboard and the notifications have, in the column of cards below
+          it, and names the page at its start, as an iPad title bar does. */}
+      {wide ? (
+        <MGlassBar column="wide:max-w-[1088px]">
+          <h1 className="min-w-0 flex-1 truncate ps-1 text-subtitle font-extrabold text-m-ink">{t('journey.title')}</h1>
+          <CreateButton label={t('journey.frontpage.createJourney')} onClick={() => openCreateModal()} />
+        </MGlassBar>
+      ) : (
+        <div className="m-bar-x fixed top-[var(--m-safe-top,12px)] z-30 flex items-center gap-[10px]">
+          <CreateButton label={t('journey.frontpage.createJourney')} onClick={() => openCreateModal()} grow />
+        </div>
+      )}
 
       <MPullIndicator state={pull} label={t('common.loading')} />
-      <div ref={scrollRef} className="h-full overflow-y-auto px-4 pt-[calc(var(--m-safe-top,12px)+52px)] pb-[calc(var(--bottom-nav-h,84px)+16px)] wide:px-6 wide:[&>*]:mx-auto wide:[&>*]:max-w-[1040px]">
+      <div ref={scrollRef} className="h-full overflow-y-auto px-4 pt-[calc(var(--m-safe-top,12px)+52px)] pb-[calc(var(--bottom-nav-h,84px)+16px)] wide:px-6 wide:pt-[calc(var(--m-safe-top,12px)+72px)] wide:[&>*]:mx-auto wide:[&>*]:max-w-[1040px]">
         {loading && list.length === 0 ? (
           <div className="flex justify-center py-16">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-[color:var(--m-rowbr)] border-t-m-ink" />
@@ -67,8 +70,10 @@ export default function MJourney() {
 
             {rest.length > 0 && (
               <>
+                {/* On a wide window it stands at the start, over the cards it
+                    introduces, like every section label; the phone centres it. */}
                 <div className="mx-[2px] mb-3 mt-[2px] flex items-center gap-[10px]">
-                  <span className="h-px flex-1 bg-[color:var(--m-rowbr)]" />
+                  <span className="h-px flex-1 bg-[color:var(--m-rowbr)] wide:hidden" />
                   <span className="font-geist text-[0.625rem] font-bold uppercase tracking-[.09em] text-m-faint">
                     {t('mobileJourney.otherJourneys')}
                   </span>
@@ -103,6 +108,21 @@ export default function MJourney() {
         onClose={() => setShowCreate(false)}
       />
     </div>
+  )
+}
+
+function CreateButton({ label, onClick, grow = false }: { label: string; onClick: () => void; grow?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex h-[38px] items-center justify-center gap-[6px] whitespace-nowrap rounded-full bg-m-act text-[0.78125rem] font-bold text-m-actfg ${
+        grow ? 'flex-1 px-[15px]' : 'flex-none px-5'
+      }`}
+    >
+      <Plus size={14} strokeWidth={2.4} />
+      {label}
+    </button>
   )
 }
 

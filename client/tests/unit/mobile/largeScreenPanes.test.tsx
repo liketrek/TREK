@@ -2,7 +2,7 @@ import userEvent from '@testing-library/user-event';
 import { Settings2, Users } from 'lucide-react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { MRailButton } from '../../../src/mobile/components/MRail';
+import { MRail, MRailButton } from '../../../src/mobile/components/MRail';
 import MSectionNav from '../../../src/mobile/components/MSectionNav';
 import MCollListNav from '../../../src/mobile/screens/collections/MCollListNav';
 import MJourneyFeed from '../../../src/mobile/screens/journey/MJourneyFeed';
@@ -25,68 +25,62 @@ import { setSizeClass } from '../../helpers/sizeClass';
 const echo = (key: string, params?: Record<string, string | number>) =>
   params ? `${key}:${Object.values(params).join(',')}` : key;
 
-describe('rail labels that fit', () => {
-  // jsdom lays nothing out, so the label measures what these getters say: a word
-  // `width` px wide at full size in a 64px box, narrower once it may hyphenate.
-  function measureLike(width: number, hyphenated: number) {
-    const proto = HTMLSpanElement.prototype;
-    vi.spyOn(proto, 'scrollWidth', 'get').mockImplementation(function (this: HTMLElement) {
-      const fit = Number(this.style.getPropertyValue('--fit') || 1);
-      return (this.style.hyphens === 'auto' ? hyphenated : width) * fit;
+describe('rail labels', () => {
+  // jsdom lays nothing out: a name measures as two lines when its scrollHeight
+  // says so, against the 12px line its computed style reports.
+  function measureLike(twoLines: string[]) {
+    vi.spyOn(HTMLSpanElement.prototype, 'scrollHeight', 'get').mockImplementation(function (this: HTMLElement) {
+      return twoLines.includes(this.textContent ?? '') ? 24 : 12;
     });
-    vi.spyOn(proto, 'clientWidth', 'get').mockReturnValue(64);
+    const real = window.getComputedStyle;
+    vi.spyOn(window, 'getComputedStyle').mockImplementation((el, pseudo) => {
+      const style = real(el, pseudo);
+      return new Proxy(style, {
+        get: (target, prop) => (prop === 'lineHeight' ? '12px' : Reflect.get(target, prop)),
+      });
+    });
   }
 
   afterEach(() => vi.restoreAllMocks());
 
-  function label() {
-    return screen.getByText('Einstellungen');
+  function railOf(names: string[]) {
+    return render(
+      <MRail label="Navigation">
+        {names.map((name) => (
+          <MRailButton key={name} label={name} active={false} onClick={() => {}}>
+            x
+          </MRailButton>
+        ))}
+      </MRail>
+    );
   }
+  const list = () => screen.getByText('Atlas').closest('nav')?.lastElementChild as HTMLElement;
 
-  it('FE-MOB-PANES-001: a name that fits keeps its size and its words whole', () => {
-    measureLike(60, 60);
-    render(
-      <MRailButton label="Einstellungen" active={false} onClick={() => {}}>
-        x
-      </MRailButton>
-    );
-    expect(label().style.getPropertyValue('--fit')).toBe('1');
-    expect(label().style.hyphens).toBe('manual');
-    expect(label().style.overflowWrap).toBe('normal');
+  it('FE-MOB-PANES-001: every name is drawn at the one caption size, none shrunk to fit', () => {
+    measureLike([]);
+    railOf(['Atlas', 'Einstellungen']);
+    for (const name of ['Atlas', 'Einstellungen']) {
+      const label = screen.getByText(name);
+      expect(label.className).toContain('text-[length:calc(10px*var(--fs-scale-caption,1))]');
+      expect(label.style.getPropertyValue('--fit')).toBe('');
+    }
   });
 
-  it('FE-MOB-PANES-002: a word a little too wide shrinks the name instead of splitting it', () => {
-    measureLike(72, 40);
-    render(
-      <MRailButton label="Einstellungen" active={false} onClick={() => {}}>
-        x
-      </MRailButton>
-    );
-    const fit = Number(label().style.getPropertyValue('--fit'));
-    expect(fit).toBeLessThan(1);
-    expect(72 * fit).toBeLessThanOrEqual(64.5);
-    expect(label().style.hyphens).toBe('manual');
+  it('FE-MOB-PANES-002: names that all fit on one line keep the rail at one line each', () => {
+    measureLike([]);
+    railOf(['Atlas', 'Vacay', 'Journey']);
+    expect(list().style.getPropertyValue('--m-rail-lines')).toBe('1');
   });
 
-  it('FE-MOB-PANES-003: a word too long even when small is hyphenated, and broken only past that', () => {
-    measureLike(140, 60);
-    const { unmount } = render(
-      <MRailButton label="Einstellungen" active={false} onClick={() => {}}>
-        x
-      </MRailButton>
-    );
-    expect(label().style.hyphens).toBe('auto');
-    expect(label().style.overflowWrap).toBe('normal');
-    unmount();
-
-    vi.restoreAllMocks();
-    measureLike(140, 140);
-    render(
-      <MRailButton label="Einstellungen" active={false} onClick={() => {}}>
-        x
-      </MRailButton>
-    );
-    expect(label().style.overflowWrap).toBe('anywhere');
+  it('FE-MOB-PANES-003: one name on two lines gives every entry room for two, so the rhythm holds', () => {
+    measureLike(['Мои поездки']);
+    railOf(['Мои поездки', 'Atlas', 'Vacay']);
+    expect(list().style.getPropertyValue('--m-rail-lines')).toBe('2');
+    // Each name reserves the lines the rail settled on, and wraps balanced, hyphenating only a word too long.
+    const label = screen.getByText('Atlas');
+    expect(label.className).toContain('min-h-[calc(1.2em*var(--m-rail-lines,1))]');
+    expect(label.className).toContain('[text-wrap:balance]');
+    expect(label.className).toContain('[hyphens:auto]');
   });
 });
 
@@ -427,7 +421,7 @@ describe('files as tiles and a preview', () => {
     expect(onMenu).toHaveBeenCalled();
   });
 
-  it('FE-MOB-PANES-016: without the right to edit files the preview only opens', () => {
+  it('FE-MOB-PANES-017: without the right to edit files the preview only opens', () => {
     vi.spyOn(fileRepo, 'previewUrl').mockResolvedValue('/signed/1');
     const planner = buildPlanner({ can: vi.fn(() => false) } as never);
     render(

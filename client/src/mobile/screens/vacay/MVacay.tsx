@@ -15,6 +15,8 @@ import MVacayShareSheet from './MVacayShareSheet'
 import { FALLBACK_PERSON_COLOR } from './vacayDayModel'
 import { fmtDays } from '../../../components/Vacay/vacayFormat'
 import { TileHeader } from '../trip/sheets/MTripSheetUi'
+import { useIsWide } from '../../../hooks/sizeClass'
+import { useScreenRailAction } from '../../components/railAction'
 
 /** The company-holiday tint the calendar cells use (vacayDayModel). */
 const COMPANY_COLOR = 'var(--m-vacay-company)'
@@ -25,6 +27,18 @@ const WEEKDAY_KEYS_MONDAY = ['vacay.mon', 'vacay.tue', 'vacay.wed', 'vacay.thu',
 const WEEKDAY_KEYS_SUNDAY = ['vacay.sun', 'vacay.mon', 'vacay.tue', 'vacay.wed', 'vacay.thu', 'vacay.fri', 'vacay.sat'] as const
 
 /**
+ * The seven columns of a month in the year grid, as single letters in the
+ * reader's language (M T W T F S S, П В С Ч П С В), from the week's first day.
+ * Narrow forms, because a column of the year grid is a few points wide and the
+ * edit view's day names (Arabic spells them out) do not fit there.
+ */
+function narrowWeekdays(locale: string, weekStart: number): string[] {
+  const format = new Intl.DateTimeFormat(locale, { weekday: 'narrow' })
+  // 2023-01-01 was a Sunday: day 0 of the week.
+  return Array.from({ length: 7 }, (_, i) => format.format(new Date(2023, 0, 1 + ((weekStart + i) % 7))))
+}
+
+/**
  * Mobile Vacay screen: year pill header, person card with inline entitlement
  * stepper, member/legend chips and the 12-month grid — or, in edit mode, the
  * single-month editor with quick month nav and the person/company mode
@@ -32,8 +46,24 @@ const WEEKDAY_KEYS_SUNDAY = ['vacay.sun', 'vacay.mon', 'vacay.tue', 'vacay.wed',
  * the editor logs; the screen's own FAB in the dock centre flips back.
  */
 export default function MVacay() {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   const v = useMVacay()
+  const wide = useIsWide()
+  const edit = v.view === 'edit'
+
+  // On a wide window there is no dock to hold the year/editor switch, and a
+  // circle floating over the calendar hid the days under it: it goes to the head
+  // of the rail instead, where the "+" stands on the other screens.
+  useScreenRailAction(
+    wide && !v.loading
+      ? {
+          label: edit ? t('mobileVacay.viewYear') : t('mobileVacay.editCalendar'),
+          icon: edit ? Eye : PenLine,
+          pressed: edit,
+          run: v.toggleView,
+        }
+      : null
+  )
 
   if (v.loading) {
     return (
@@ -43,13 +73,13 @@ export default function MVacay() {
     )
   }
 
-  const edit = v.view === 'edit'
   const stat = v.selectedStat
   const pct = stat && stat.total_available > 0 ? Math.round((stat.used / stat.total_available) * 100) : 0
   const leftColor = stat && stat.remaining <= 0
     ? (stat.remaining < 0 ? 'var(--m-st-danger)' : 'var(--m-st-pending)')
     : v.selectedColor
   const weekdayKeys = v.weekStart === 0 ? WEEKDAY_KEYS_SUNDAY : WEEKDAY_KEYS_MONDAY
+  const weekdayLetters = narrowWeekdays(locale, v.weekStart)
   // People to pick between: fused members, or shared calendars to show or hide.
   const peopleChoosable = v.users.length > 1 || v.incomingShares.length > 0
   const legendItems = [
@@ -85,7 +115,7 @@ export default function MVacay() {
       </div>
 
       {/* Scroll container */}
-      <div className="absolute inset-0 overflow-y-auto px-4 pt-[calc(var(--m-safe-top,12px)+44px)] pb-[calc(var(--bottom-nav-h,84px)+12px)]">
+      <div className={`absolute inset-0 overflow-y-auto px-4 pt-[calc(var(--m-safe-top,12px)+44px)] pb-[calc(var(--bottom-nav-h,84px)+12px)] ${edit ? 'wide:pb-[calc(env(safe-area-inset-bottom,0px)+84px)]' : ''}`}>
         {/* Selected person card */}
         {v.selectedUser && stat && (
           <div className="mt-2 flex items-center gap-3 rounded-[18px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-[14px] py-[9px]">
@@ -208,6 +238,12 @@ export default function MVacay() {
                 >
                   {v.monthNamesShort[slot]}
                 </button>
+                {/* The columns named, where a wide window gives them room for it. */}
+                <div aria-hidden="true" className="mb-[2px] hidden grid-cols-7 gap-[2px] wide:grid">
+                  {weekdayLetters.map((letter, i) => (
+                    <span key={i} className="text-center font-geist text-[length:calc(8px*var(--fs-scale-caption,1))] font-bold uppercase text-m-faint">{letter}</span>
+                  ))}
+                </div>
                 <MVacayMonth
                   year={year}
                   month={month}
@@ -277,7 +313,7 @@ export default function MVacay() {
 
       {/* Mode switch (edit only) */}
       {edit && v.selectedUser && (
-        <div className="m-span-x fixed z-[30] flex justify-center bottom-[calc(var(--bottom-nav-h,84px)+2px)] wide:bottom-[calc(env(safe-area-inset-bottom,0px)+84px)]">
+        <div className="m-span-x fixed z-[30] flex justify-center bottom-[calc(var(--bottom-nav-h,84px)+2px)] wide:bottom-[calc(env(safe-area-inset-bottom,0px)+16px)]">
           <div className="flex items-center gap-[5px] rounded-full border border-[color:var(--m-shbr)] bg-[color:var(--m-sheet)] p-[5px] shadow-[0_12px_30px_-12px_rgba(0,0,0,.4)]">
             <button
               type="button"
@@ -342,7 +378,9 @@ export default function MVacay() {
       )}
 
       {/* View/edit FAB. It sits in the dock's centre slot, which MBottomNav leaves
-          empty on /vacay so this stays the only action there (#1811). */}
+          empty on /vacay so this stays the only action there (#1811). A wide
+          window has the rail instead, and the switch stands at its head. */}
+      {!wide && (
       <button
         type="button"
         onClick={v.toggleView}
@@ -359,6 +397,7 @@ export default function MVacay() {
             : <PenLine size={24} strokeWidth={2.3} />}
         </span>
       </button>
+      )}
 
       {/* Sheets */}
       <MVacayInviteSheet open={v.sheet === 'invite'} onClose={() => v.setSheet(null)} />

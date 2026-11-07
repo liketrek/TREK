@@ -1,7 +1,8 @@
-import { FolderOpen, Map as MapIcon } from 'lucide-react';
+import { FolderOpen, Map as MapIcon, PenLine } from 'lucide-react';
 import { useLocation } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MNavRail from '../../../src/mobile/components/MNavRail';
+import { useScreenRailAction } from '../../../src/mobile/components/railAction';
 import MobileShell from '../../../src/mobile/MobileShell';
 import MTripRail from '../../../src/mobile/screens/trip/MTripRail';
 import { useAddonStore } from '../../../src/store/addonStore';
@@ -86,6 +87,43 @@ describe('MNavRail', () => {
     render(<MNavRail />, { initialEntries: ['/settings'] });
     expect(within(rail()).getAllByRole('button')[0]).toHaveAccessibleName('My Trips');
   });
+
+  it('FE-MOB-RAIL-009: the head is the same 56px circle on every top-level page, so no entry moves', () => {
+    const head = () => rail().firstElementChild?.firstElementChild as HTMLElement;
+    for (const path of ['/dashboard', '/atlas', '/settings', '/admin', '/vacay']) {
+      const { unmount } = render(<MNavRail />, { initialEntries: [path] });
+      expect([path, head().className]).toEqual([path, expect.stringContaining('h-14 w-14')]);
+      unmount();
+    }
+  });
+
+  it("FE-MOB-RAIL-010: on the vacation calendar the head is the screen's own switch", () => {
+    const toggle = vi.fn();
+    function Vacay({ editing }: { editing: boolean }) {
+      useScreenRailAction({ label: editing ? 'Year' : 'Edit calendar', icon: PenLine, pressed: editing, run: toggle });
+      return null;
+    }
+    const { rerender } = render(
+      <>
+        <MNavRail />
+        <Vacay editing={false} />
+      </>,
+      { initialEntries: ['/vacay'] }
+    );
+    const first = within(rail()).getAllByRole('button')[0];
+    expect(first).toHaveAccessibleName('Edit calendar');
+    fireEvent.click(first);
+    expect(toggle).toHaveBeenCalledOnce();
+
+    rerender(
+      <>
+        <MNavRail />
+        <Vacay editing />
+      </>
+    );
+    expect(within(rail()).getAllByRole('button')[0]).toHaveAccessibleName('Year');
+    expect(within(rail()).getAllByRole('button')[0].className).toContain('border-2');
+  });
 });
 
 describe('MTripRail', () => {
@@ -160,6 +198,19 @@ describe('MobileShell on a wide window', () => {
     expect(screen.getByRole('button', { name: 'My Trips' })).toBeInTheDocument();
     expect((screen.getByLabelText('note') as HTMLInputElement).value).toBe('typed before the fold');
     expect(screen.getByLabelText('note')).toBe(field);
+  });
+
+  it('FE-MOB-RAIL-011: the rail comes before the page, so a keyboard reaches the navigation first', () => {
+    setSizeClass('wide');
+    const { container } = render(
+      <MobileShell isPhone>
+        <button type="button">in the page</button>
+      </MobileShell>,
+      { initialEntries: ['/dashboard'] }
+    );
+    const page = screen.getByRole('button', { name: 'in the page' });
+    expect(rail().compareDocumentPosition(page) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(container.querySelector('.m-shell')?.getAttribute('data-size')).toBe('wide');
   });
 
   it('FE-MOB-RAIL-008: no rail inside a trip, which brings its own', () => {

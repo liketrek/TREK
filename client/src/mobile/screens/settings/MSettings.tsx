@@ -27,7 +27,7 @@ import MSettingsAccount from './MSettingsAccount'
 import MSettingsAbout from './MSettingsAbout'
 import MSettingsServer from './MSettingsServer'
 import { useIsSplit } from '../../../hooks/sizeClass'
-import MSectionNav, { MSectionRow, type MSection } from '../../components/MSectionNav'
+import MSectionNav, { MSectionRow, SECTION_SCREEN, type MSection } from '../../components/MSectionNav'
 
 /**
  * Mobile settings screen: back + section-switcher pill on top, the section
@@ -64,7 +64,9 @@ export default function MSettings() {
   const active = tabs.find((tab) => tab.id === activeTab) || tabs[0]
 
   return (
-    <div className="px-4 pb-[calc(var(--bottom-nav-h,84px)+16px)] pt-[var(--m-safe-top,12px)] wide:px-6 split:mx-auto split:grid split:max-w-[1120px] split:grid-cols-[260px_minmax(0,1fr)] split:items-start split:gap-8">
+    // The same frame as administration's: beside the sections the page runs to
+    // the same width there and here.
+    <div className={SECTION_SCREEN}>
       {split && (
         <MSectionNav
           title={t('settings.title')}
@@ -75,7 +77,7 @@ export default function MSettings() {
           onPick={setActiveTab}
         />
       )}
-      <div className="min-w-0 wide:mx-auto wide:w-full wide:max-w-[720px] split:mx-0">
+      <div className="min-w-0">
       {/* Header: back + section switcher pill */}
       {!split && (
       <div className="mb-3 flex items-center gap-2">
@@ -85,7 +87,7 @@ export default function MSettings() {
           onClick={() => navigate('/dashboard')}
           className="flex h-[38px] w-[38px] flex-none items-center justify-center rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-sheet)] text-m-ink shadow-[0_5px_12px_-8px_rgba(0,0,0,.18)]"
         >
-          <ChevronLeft size={18} strokeWidth={2.2} />
+          <ChevronLeft size={18} strokeWidth={2.2} className="rtl:-scale-x-100" />
         </button>
         <button
           type="button"
