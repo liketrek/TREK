@@ -1,5 +1,5 @@
 import { isNativeAndroid, isNativeIos } from './platform';
-import { TrekShell } from './trekShell';
+import { TrekShell, type StoreRestoreResult } from './trekShell';
 
 /**
  * In-app purchase, from the app's side. A seam, like {@link TrekShell}: the
@@ -162,7 +162,10 @@ export const nativeIapClient: IapClient = {
   },
   async restore() {
     try {
-      const { jws, purchaseToken, productId, transactionId } = await TrekShell.storeRestore({ prefix: PRODUCT_PREFIX });
+      // Google Play answers with a purchase token where the App Store answers with a signed transaction.
+      const { jws, purchaseToken, productId, transactionId }: StoreRestoreResult = await TrekShell.storeRestore({
+        prefix: PRODUCT_PREFIX,
+      });
       if (purchaseToken && transactionId) {
         return { platform: 'google', productId: productId ?? '', receipt: purchaseToken, transactionId };
       }

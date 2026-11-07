@@ -96,10 +96,12 @@ export interface TrekShellPlugin {
   storeFinish(options: { transactionId: string }): Promise<void>;
   /** iOS, feature wallet: adds a .pkpass (base64) to Apple Wallet, or opens it there when it is already in. */
   addToWallet(options: { data: string }): Promise<{ result: 'added' | 'opened' | 'cancelled' }>;
-  /** The newest active subscription under `prefix` on this Apple ID or Google account, if any. */
-  storeRestore(options: {
-    prefix: string;
-  }): Promise<{ jws?: string; purchaseToken?: string; productId?: string; transactionId?: string }>;
+  /** iOS, feature storeKit: the newest active subscription under `prefix` on this Apple ID, if any. */
+  storeRestore(options: { prefix: string }): Promise<{ jws?: string; transactionId?: string }>;
+  addListener(
+    event: 'pushOpened',
+    listener: (payload: { url: string }) => void
+  ): Promise<{ remove: () => Promise<void> }>;
   /** Android, feature googleWallet: opens a Google Wallet save link (https://pay.google.com/gp/v/save/...). */
   addToGoogleWallet(options: { url: string }): Promise<{ result: 'opened' }>;
   /** Android, feature windowLayout: the window's size classes and a foldable's posture and hinge. */
@@ -108,10 +110,14 @@ export interface TrekShellPlugin {
     event: 'windowLayout',
     listener: (payload: NativeWindowLayout) => void
   ): Promise<{ remove: () => Promise<void> }>;
-  addListener(
-    event: 'pushOpened',
-    listener: (payload: { url: string }) => void
-  ): Promise<{ remove: () => Promise<void> }>;
+}
+
+/** What Google Play Billing answers a restore with (Android, feature playBilling), beside iOS's `jws`. */
+export interface StoreRestoreResult {
+  jws?: string;
+  purchaseToken?: string;
+  productId?: string;
+  transactionId?: string;
 }
 
 /** A document shared to TREK, as the native side reads it. */
