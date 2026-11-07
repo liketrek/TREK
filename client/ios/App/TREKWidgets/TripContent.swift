@@ -201,10 +201,17 @@ struct TripContent: View {
         switch family {
         case .small:
             VStack(alignment: .leading, spacing: 0) {
-                HStack(alignment: .top) {
-                    Text(today.dayLabel).trekEyebrowOnPhoto()
-                    Spacer(minLength: 0)
-                    if let weather = snapshot.weather { WeatherChip(weather: weather, onPhoto: true, compact: true) }
+                // An iPad mini's small widget has no room for both: the day stays, the weather gives way.
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .top) {
+                        Text(today.dayLabel).trekEyebrowOnPhoto()
+                        Spacer(minLength: 0)
+                        if let weather = snapshot.weather { WeatherChip(weather: weather, onPhoto: true, compact: true) }
+                    }
+                    HStack(alignment: .top) {
+                        Text(today.dayLabel).trekEyebrowOnPhoto()
+                        Spacer(minLength: 0)
+                    }
                 }
                 DaySegments(index: index, total: total, color: .white, track: .white.opacity(0.25)).padding(.top, 7)
                 Spacer(minLength: 0)
@@ -222,34 +229,43 @@ struct TripContent: View {
                 Text(trip.title).font(.system(size: 11, weight: .medium)).foregroundStyle(.white.opacity(0.7)).lineLimit(1).padding(.top, 2)
             }
         case .medium:
-            HStack(spacing: 14) {
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(trip.title).trekEyebrowOnPhoto()
-                    Text(today.dayLabel)
-                        .font(.system(size: 21, weight: .heavy))
-                        .foregroundStyle(.white)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                        .padding(.top, 3)
-                    DaySegments(index: index, total: total, color: .white, track: .white.opacity(0.25)).padding(.top, 8)
-                    Spacer(minLength: 0)
-                    if let weather = snapshot.weather {
-                        HStack(spacing: 6) {
-                            WeatherChip(weather: weather, onPhoto: true)
-                            if let high = weather.high, let low = weather.low {
-                                Text("\(high)° / \(low)°").font(Trek.number(11.5, .semibold)).foregroundStyle(.white.opacity(0.8))
+            // 176 pt for the stops on an iPhone and an 11" or 13" iPad; an iPad
+            // mini's medium widget is narrower, so the panel gives up some width
+            // and the weather keeps to its chip, and the day still reads whole.
+            GeometryReader { geo in
+                let narrow = geo.size.width < 300
+                HStack(spacing: 14) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(trip.title).trekEyebrowOnPhoto()
+                        Text(today.dayLabel)
+                            .font(.system(size: 21, weight: .heavy))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                            .padding(.top, 3)
+                        DaySegments(index: index, total: total, color: .white, track: .white.opacity(0.25)).padding(.top, 8)
+                        Spacer(minLength: 0)
+                        if let weather = snapshot.weather {
+                            HStack(spacing: 6) {
+                                WeatherChip(weather: weather, onPhoto: true, compact: narrow)
+                                if !narrow, let high = weather.high, let low = weather.low {
+                                    Text("\(high)° / \(low)°").font(Trek.number(11.5, .semibold)).foregroundStyle(.white.opacity(0.8))
+                                }
                             }
                         }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    GlassPanel {
+                        StopList(stops: today.stops, nowMinutes: nowMinutes, limit: 3, onPhoto: true, nothing: snapshot.labels.nothingPlanned, nowLabel: snapshot.labels.now)
+                    }
+                    .frame(width: narrow ? 150 : 176)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                GlassPanel {
-                    StopList(stops: today.stops, nowMinutes: nowMinutes, limit: 3, onPhoto: true, nothing: snapshot.labels.nothingPlanned, nowLabel: snapshot.labels.now)
-                }
-                .frame(width: 176)
+                .frame(width: geo.size.width, height: geo.size.height)
             }
         case .extraLarge:
-            // The iPad's wide widget: the day on the left, its stops beside it.
+            // The iPad's wide widget: the day and the next stop on the left, the
+            // day's stops and the next booking on the right, each column
+            // anchored at its top and its foot.
             HStack(alignment: .top, spacing: 20) {
                 VStack(alignment: .leading, spacing: 0) {
                     HStack(alignment: .top) {
@@ -268,23 +284,29 @@ struct TripContent: View {
                     Spacer(minLength: 8)
                     if let next {
                         Text(next.time ?? snapshot.labels.today)
-                            .font(Trek.number(30, .heavy))
+                            .font(Trek.number(34, .heavy))
                             .foregroundStyle(.white)
                         Text(next.name)
-                            .font(.system(size: 16, weight: .bold))
+                            .font(.system(size: 17, weight: .bold))
                             .foregroundStyle(.white)
-                            .lineLimit(1)
-                            .padding(.bottom, 10)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.85)
+                    } else {
+                        Text(snapshot.labels.nothingPlanned).font(.system(size: 17, weight: .bold)).foregroundStyle(.white).lineLimit(2)
                     }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                VStack(alignment: .leading, spacing: 10) {
+                    GlassPanel {
+                        StopList(stops: today.stops, nowMinutes: nowMinutes, limit: 6, onPhoto: true, nothing: snapshot.labels.nothingPlanned, nowLabel: snapshot.labels.now)
+                    }
+                    Spacer(minLength: 0)
                     if let booking = snapshot.bookings?.first {
                         NextBookingStrip(booking: booking, labels: snapshot.labels, now: now)
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-                GlassPanel {
-                    StopList(stops: today.stops, nowMinutes: nowMinutes, limit: 7, onPhoto: true, nothing: snapshot.labels.nothingPlanned, nowLabel: snapshot.labels.now)
-                }
                 .frame(width: 300)
+                .frame(maxHeight: .infinity, alignment: .top)
             }
         default:
             VStack(alignment: .leading, spacing: 0) {

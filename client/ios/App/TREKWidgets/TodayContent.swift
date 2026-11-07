@@ -18,23 +18,12 @@ struct TodayContent: View {
                 wide(snapshot, trip, today, total: total, done: done, timed: timed.count, nowMinutes: nowMinutes)
             } else {
                 VStack(alignment: .leading, spacing: 0) {
-                    HStack(alignment: .center, spacing: 10) {
-                        DayBadge(index: today.index ?? 1, total: total)
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(trip.title).trekEyebrow(scheme)
-                            Text(today.dayLabel)
-                                .font(.system(size: family == .large ? 19 : 16, weight: .heavy))
-                                .foregroundStyle(Trek.ink(scheme))
-                                .lineLimit(1)
-                        }
-                        Spacer(minLength: 0)
-                        if let weather = snapshot.weather {
-                            if family == .large {
-                                PaperWeather(weather: weather)
-                            } else {
-                                WeatherChip(weather: weather)
-                            }
-                        }
+                    // On a narrow widget (an iPad mini's) the weather shrinks to its
+                    // chip, then steps aside, before the trip's name is cut short.
+                    ViewThatFits(in: .horizontal) {
+                        header(trip, today, total: total, weather: family == .large ? .full : .chip)
+                        header(trip, today, total: total, weather: .chip)
+                        header(trip, today, total: total, weather: .hidden)
                     }
                     if family == .large {
                         DayProgress(done: done, total: timed.count, scheme: scheme, label: snapshot.labels.allDone)
@@ -76,43 +65,61 @@ struct TodayContent: View {
 }
 
 extension TodayContent {
-    /// The iPad's extra large: the day, its progress, the weather and the next
-    /// booking in a column, the day's stops as a timeline beside it.
+    enum HeaderWeather { case full, chip, hidden }
+
+    /// The day's badge, the trip and the day, and the weather as much as fits.
+    func header(_ trip: WidgetSnapshot.Trip, _ today: WidgetSnapshot.Today, total: Int, weather: HeaderWeather) -> some View {
+        HStack(alignment: .center, spacing: 10) {
+            DayBadge(index: today.index ?? 1, total: total)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(trip.title).trekEyebrow(scheme)
+                Text(today.dayLabel)
+                    .font(.system(size: family == .medium ? 16 : 19, weight: .heavy))
+                    .foregroundStyle(Trek.ink(scheme))
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 0)
+            if let forecast = snapshot?.weather {
+                switch weather {
+                case .full: PaperWeather(weather: forecast)
+                case .chip: WeatherChip(weather: forecast)
+                case .hidden: EmptyView()
+                }
+            }
+        }
+    }
+
+    /// The iPad's extra large: the day, its progress and the weather beside
+    /// the day's timeline, and the next two bookings across the foot.
     func wide(
         _ snapshot: WidgetSnapshot, _ trip: WidgetSnapshot.Trip, _ today: WidgetSnapshot.Today,
         total: Int, done: Int, timed: Int, nowMinutes: Int
     ) -> some View {
-        HStack(alignment: .top, spacing: 22) {
-            VStack(alignment: .leading, spacing: 0) {
-                HStack(alignment: .center, spacing: 10) {
-                    DayBadge(index: today.index ?? 1, total: total)
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(trip.title).trekEyebrow(scheme)
-                        Text(today.dayLabel)
-                            .font(.system(size: 19, weight: .heavy))
-                            .foregroundStyle(Trek.ink(scheme))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .top, spacing: 22) {
+                VStack(alignment: .leading, spacing: 0) {
+                    header(trip, today, total: total, weather: .hidden)
+                    DayProgress(done: done, total: timed, scheme: scheme, label: snapshot.labels.allDone)
+                        .padding(.top, 12)
+                    if let weather = snapshot.weather {
+                        PaperWeather(weather: weather).padding(.top, 16)
                     }
-                    Spacer(minLength: 0)
                 }
-                DayProgress(done: done, total: timed, scheme: scheme, label: snapshot.labels.allDone)
-                    .padding(.top, 12)
-                if let weather = snapshot.weather {
-                    PaperWeather(weather: weather).padding(.top, 16)
-                }
-                Spacer(minLength: 8)
-                if let booking = snapshot.bookings?.first {
-                    NextBookingStrip(booking: booking, labels: snapshot.labels, now: now, onPhoto: false)
+                .frame(width: 250)
+                StopList(
+                    stops: today.stops, nowMinutes: nowMinutes, limit: 6,
+                    nothing: snapshot.labels.nothingPlanned, nowLabel: snapshot.labels.now
+                )
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+            }
+            Spacer(minLength: 10)
+            if let bookings = snapshot.bookings, !bookings.isEmpty {
+                HStack(spacing: 12) {
+                    ForEach(Array(bookings.prefix(2).enumerated()), id: \.offset) { _, booking in
+                        NextBookingStrip(booking: booking, labels: snapshot.labels, now: now, onPhoto: false)
+                    }
                 }
             }
-            .frame(width: 250)
-            .frame(maxHeight: .infinity, alignment: .top)
-            StopList(
-                stops: today.stops, nowMinutes: nowMinutes, limit: 8,
-                nothing: snapshot.labels.nothingPlanned, nowLabel: snapshot.labels.now
-            )
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
     }
 }
@@ -228,7 +235,7 @@ struct TripDayBanner: View {
                     Text(dayLabel).font(.system(size: 11, weight: .bold)).foregroundStyle(.white.opacity(0.65)).lineLimit(1)
                 }
                 HStack(alignment: .firstTextBaseline) {
-                    Text(nextName).font(.system(size: 18, weight: .heavy)).foregroundStyle(.white).lineLimit(1)
+                    Text(nextName).font(.system(size: 18, weight: .heavy)).foregroundStyle(.white).lineLimit(1).minimumScaleFactor(0.8)
                     Spacer(minLength: 4)
                     if let nextTime {
                         Text(nextTime).font(Trek.number(18, .heavy)).foregroundStyle(.white)

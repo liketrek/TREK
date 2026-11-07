@@ -75,7 +75,8 @@ struct BookingsContent: View {
     // MARK: Medium and large: a list, the first one featured
 
     private func list(_ bookings: [WidgetSnapshot.Booking], _ labels: WidgetSnapshot.Labels, featureFirst: Bool) -> some View {
-        VStack(alignment: .leading, spacing: family.isTall ? 8 : 7) {
+        // The extra large's list stands beside a card as tall as the widget: its rows space out to match.
+        VStack(alignment: .leading, spacing: family == .extraLarge ? 14 : family.isTall ? 8 : 7) {
             HStack {
                 Text(labels.bookings ?? "").trekEyebrow(scheme)
                 Spacer(minLength: 0)

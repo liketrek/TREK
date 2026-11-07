@@ -44,9 +44,16 @@ struct AtlasContent: View {
             Text("\(Image(systemName: "globe.europe.africa.fill")) \(atlas?.count ?? 0) \(labels?.countries ?? "")")
         case .small:
             VStack(alignment: .leading, spacing: 0) {
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    Text("\(atlas?.count ?? 0)").font(Trek.number(38, .heavy)).foregroundStyle(ink)
-                    Text(labels?.countries ?? "").font(.system(size: 13, weight: .bold)).foregroundStyle(muted)
+                // The word goes under the number where both do not fit on one line (an iPad mini).
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        Text("\(atlas?.count ?? 0)").font(Trek.number(38, .heavy)).foregroundStyle(ink)
+                        Text(labels?.countries ?? "").font(.system(size: 13, weight: .bold)).foregroundStyle(muted)
+                    }
+                    VStack(alignment: .leading, spacing: -2) {
+                        Text("\(atlas?.count ?? 0)").font(Trek.number(38, .heavy)).foregroundStyle(ink)
+                        Text(labels?.countries ?? "").font(.system(size: 13, weight: .bold)).foregroundStyle(muted)
+                    }
                 }
                 Text(share(atlas?.count ?? 0, labels)).font(.system(size: 11, weight: .semibold)).foregroundStyle(muted)
                 Spacer(minLength: 6)
@@ -71,18 +78,15 @@ struct AtlasContent: View {
             }
         default:
             VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .lastTextBaseline, spacing: 6) {
-                    Text("\(atlas?.count ?? 0)").font(Trek.number(40, .heavy)).foregroundStyle(ink)
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(labels?.countries ?? "").font(.system(size: 14, weight: .heavy)).foregroundStyle(ink)
-                        Text(share(atlas?.count ?? 0, labels)).font(.system(size: 11, weight: .semibold)).foregroundStyle(muted)
-                    }
-                    Spacer(minLength: 4)
-                    if let trips = atlas?.trips { Stat(value: "\(trips)", symbol: "airplane", scheme: scheme) }
-                    if let days = atlas?.days { Stat(value: "\(days)", symbol: "calendar", scheme: scheme) }
+                // The trips and days step aside before the share of the world is cut (an iPad mini).
+                ViewThatFits(in: .horizontal) {
+                    largeHeader(atlas, labels, stats: true)
+                    largeHeader(atlas, labels, stats: false)
                 }
+                // The map takes what the rows leave, so a smaller large widget (an
+                // iPad mini's) keeps the continents and the latest countries whole.
                 DotWorld(visited: visited, latest: latest, accent: glow, rest: rest, dot: 2.2)
-                    .frame(height: 150)
+                    .frame(minHeight: 60, maxHeight: 150)
                 ContinentBars(continents: atlas?.continents ?? [], scheme: scheme)
                 HStack(spacing: 6) {
                     ForEach(Array((atlas?.recent ?? []).prefix(3).enumerated()), id: \.offset) { index, country in
@@ -91,6 +95,19 @@ struct AtlasContent: View {
                     Spacer(minLength: 0)
                 }
             }
+        }
+    }
+
+    private func largeHeader(_ atlas: WidgetSnapshot.Atlas?, _ labels: WidgetSnapshot.Labels?, stats: Bool) -> some View {
+        HStack(alignment: .lastTextBaseline, spacing: 6) {
+            Text("\(atlas?.count ?? 0)").font(Trek.number(40, .heavy)).foregroundStyle(ink)
+            VStack(alignment: .leading, spacing: 0) {
+                Text(labels?.countries ?? "").font(.system(size: 14, weight: .heavy)).foregroundStyle(ink)
+                Text(share(atlas?.count ?? 0, labels)).font(.system(size: 11, weight: .semibold)).foregroundStyle(muted)
+            }
+            Spacer(minLength: 4)
+            if stats, let trips = atlas?.trips { Stat(value: "\(trips)", symbol: "airplane", scheme: scheme) }
+            if stats, let days = atlas?.days { Stat(value: "\(days)", symbol: "calendar", scheme: scheme) }
         }
     }
 
