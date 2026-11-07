@@ -78,6 +78,12 @@ export interface ManagedAdminTab {
   group?: 'users' | 'config' | 'integration' | 'maintenance'
   /** Rendered in the tab body. /admin already requires an admin to get here. */
   element: ReactElement
+  /**
+   * The same tab laid out for a phone, in the mobile admin's section picker.
+   * Without it the phone shows `element`, which then has to hold up on a narrow
+   * screen by itself.
+   */
+  mobileElement?: ReactElement
 }
 
 /** Extra protected routes. Spread into the router next to the built-in ones. */

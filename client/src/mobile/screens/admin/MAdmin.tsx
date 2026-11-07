@@ -44,6 +44,7 @@ import MAdminSheets from './MAdminSheets'
 import MAdminStoragePanel from './MAdminStoragePanel'
 import MAdminUsersSection from './MAdminUsersSection'
 import { MAdminButton } from './MAdminUi'
+import { managedAdminTabs } from '../../../managed'
 
 // Stat card of the 2×2 grid (design §6.3): 34px icon tile, 19px/800 number,
 // small tracking label. Count-up animation matches the desktop stat cards.
@@ -98,6 +99,8 @@ export default function MAdmin() {
     ...(managed ? [] : [{ id: 'backup', label: t('admin.tabs.backup'), icon: Database }]),
     { id: 'audit', label: t('admin.tabs.audit'), icon: ScrollText },
     ...(devMode ? [{ id: 'dev-notifications', label: 'Dev: Notifications', icon: Bug }] : []),
+    // The install's own tabs (managed/index.tsx), after the built-in ones as on the desktop.
+    ...managedAdminTabs.map(tab => ({ id: tab.id, label: tab.label, icon: tab.Icon })),
   ]
   const activeSection = sections.find((s) => s.id === activeTab) ?? sections[0]
 
@@ -227,6 +230,9 @@ export default function MAdmin() {
       {activeTab === 'backup' && <MAdminBackupPanel />}
       {activeTab === 'audit' && <MAdminAuditLogPanel serverTimezone={serverTimezone} />}
       {activeTab === 'dev-notifications' && <MAdminDevNotificationsPanel />}
+      {managedAdminTabs.map(tab =>
+        activeTab === tab.id ? <div key={tab.id}>{tab.mobileElement ?? tab.element}</div> : null,
+      )}
 
       <MAdminSheets admin={admin} t={t} />
     </div>
