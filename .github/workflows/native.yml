@@ -205,6 +205,16 @@ jobs:
           test -n "$XCODE"
           sudo xcode-select -s "$XCODE"
 
+      # The project resolves the Capacitor packages from node_modules, even for
+      # a target that uses none of them.
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci --workspace=shared --workspace=client
+
       - name: Make sure a watchOS simulator runtime is there
         run: |
           xcrun simctl list runtimes | grep -q watchOS || xcodebuild -downloadPlatform watchOS
