@@ -10,6 +10,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Taps on a TREK notification, and banners while the app is open.
         UNUserNotificationCenter.current().delegate = self
+        // Early, so ticks the watch sent while the app was closed arrive with this launch.
+        TrekWatchLink.shared.activate()
         return true
     }
 

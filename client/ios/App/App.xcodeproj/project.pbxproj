@@ -10,11 +10,19 @@
 		01FD437981FC32C2C2C5BDCE /* TREKWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 702D0DF4A7E323CEA94CA03F /* TREKWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		0520A7C30D8D3FACCBB784BE /* ShareItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2A15008B5664C48B639F94 /* ShareItem.swift */; };
 		0C2D60A4950D7293E1F282CB /* TripDayAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 337775CD9091673D0ADDF325 /* TripDayAttributes.swift */; };
+		0D801738BB09A41A62E9B57F /* TrekStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15CAD7E43FE81EA6E2DD2585 /* TrekStyle.swift */; };
+		1091DAAC693DAE3E1CBB7D69 /* WatchStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8850ACF43C79E9D879ACC44 /* WatchStore.swift */; };
+		11B5B80E66AB03C92B0EADBD /* TREKWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96CE3377B458EDD77B809F61 /* TREKWatchApp.swift */; };
 		157A7B737E3FFB610A218D47 /* AtlasContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D004544572B0E85DE29A7B8 /* AtlasContent.swift */; };
 		1A0A6E71365C0A1178B85CB8 /* TrekStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15CAD7E43FE81EA6E2DD2585 /* TrekStyle.swift */; };
+		1F8D58E1B4FD9BB84172527A /* WatchSample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10FB55D221F4BA18795F33B5 /* WatchSample.swift */; };
 		2162CD349AFFDF070C16A58A /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6E901288FC198E4D33BE754F /* SwiftUI.framework */; };
+		228EA0E0270314581194EC3A /* TREKWatchWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4D88ABD8284E0A39E7586BE /* TREKWatchWidgets.swift */; };
+		239FC886F02275957A1D449A /* FacesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 787A9D6B7D9EB7FED319C1B5 /* FacesView.swift */; };
 		2CFE220A73ACB585F3D4CB8F /* UserNotifications.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2EE43D236E661AA975612A4B /* UserNotifications.framework */; };
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
+		2FB9B214E9DA5C7A25BE0EA1 /* TrekStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15CAD7E43FE81EA6E2DD2585 /* TrekStyle.swift */; };
+		318BBC653A438E6D1D493F50 /* DemoMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9B6357E3FBBA4D9CDD1C7A3 /* DemoMode.swift */; };
 		32797E66C09CF7579AC323FD /* TREKWidgetsBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C2E47D0B005674C2B4ADA56 /* TREKWidgetsBundle.swift */; };
 		3FB1872A25267A8E88FCBE3C /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC64330AC19625949E8DC05A /* WidgetKit.framework */; };
 		45B990B86488D5CC2B5222B5 /* WorldGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0AC751335E0136865E08990 /* WorldGrid.swift */; };
@@ -31,30 +39,56 @@
 		5A4D344328829E0F0B4D2B94 /* BookingsContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6D2F4930E5F152C8090C4F8 /* BookingsContent.swift */; };
 		5BBE9EE02A47EC67C31F5E21 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = D0A4B2C6C93971E884561CFA /* Localizable.strings */; };
 		612BB9680DC27BB8BF553060 /* TrekFamily.swift in Sources */ = {isa = PBXBuildFile; fileRef = A030A06726542A2D7F61C54B /* TrekFamily.swift */; };
+		634F4E63DC7C2A0027F0D118 /* Details.swift in Sources */ = {isa = PBXBuildFile; fileRef = F406A4A31BD875A880A7CA14 /* Details.swift */; };
+		661AEED37F1F278677F4F306 /* WatchStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = B991C938B24A275550C15977 /* WatchStyle.swift */; };
+		6680B5C572AA37E6E3DFC3A2 /* ComplicationViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9F0323803613DBCB2ADEF2F /* ComplicationViews.swift */; };
+		6EB76B1C6AB4AC78FF021994 /* WatchStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8850ACF43C79E9D879ACC44 /* WatchStore.swift */; };
+		7060F9DB820849A45ECE0507 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3C3D5E2482AC7D20D2054623 /* Assets.xcassets */; };
 		7A1E00032C0000000000A003 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 7A1E00022C0000000000A002 /* PrivacyInfo.xcprivacy */; };
 		7A1E00052C0000000000A005 /* TrekBridgeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1E00042C0000000000A004 /* TrekBridgeViewController.swift */; };
 		7A1E00072C0000000000A007 /* TrekShellPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1E00062C0000000000A006 /* TrekShellPlugin.swift */; };
 		7FB730DC35C234816EAE65AF /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBF6D74B7888714BF264E0E6 /* WidgetSnapshot.swift */; };
+		81E4582AD7514CA1AF373E48 /* WatchSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 842D54F96D80A1D1C4C21457 /* WatchSnapshot.swift */; };
 		84EB79E4B677229481809933 /* NotificationService.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A03A384FE54FAD1ED68E12DC /* NotificationService.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		8925D4B7322D6930F3C02959 /* TrekWatchLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 125A1BB381BBF7E58B8902FD /* TrekWatchLink.swift */; };
+		896952F864B35C647FF6910A /* WatchSample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10FB55D221F4BA18795F33B5 /* WatchSample.swift */; };
 		8FC5873BE6A8CB2AFB31A46A /* TripContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE6873D246AC6B8E2CB6C8B4 /* TripContent.swift */; };
+		8FFB2B488E43AD339D0BB450 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 3A6054202DCC03D83C2C9602 /* Localizable.strings */; };
+		91B14997828BEF884E1239B4 /* Pages.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB5322D218E340690F499CA2 /* Pages.swift */; };
 		9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9582B6822FE993A50072D4E8 /* SceneDelegate.swift */; };
 		96DBDCE4766AC9F13F100A06 /* SharePage.js in Resources */ = {isa = PBXBuildFile; fileRef = 9DC696E1A1FD3A1A1695F9EA /* SharePage.js */; };
 		9A175689CFCC630BE9BB9EE1 /* TodayContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24B175DE91E1E6E850DB0285 /* TodayContent.swift */; };
 		A0E8821CA7CF51AF2D6D8422 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 248A72D1C511B4969D89333A /* Localizable.strings */; };
 		A2B048E183B19BB17E264FDE /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED561D7B7219D23A99FAEB11 /* ShareViewController.swift */; };
 		A8FDD4DBE3F078BF935CC4B9 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFA8802204810ED580DE46F3 /* NotificationService.swift */; };
+		AAE5F2A3903F1E241C395BB8 /* WatchModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42EBD981456D3493C3947441 /* WatchModel.swift */; };
+		AEE032DFFB63C7BEB8AFABBF /* TREKWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = CF4BA0BDDABFBDB24394025D /* TREKWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		B4C0FC386F71D849E141C91E /* NextTripWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7064A9DA92FCC8ACAA4F22A /* NextTripWidget.swift */; };
 		B65B7CFC62EEFF443491EA64 /* ActivityKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 192E69C7E66646BC39566925 /* ActivityKit.framework */; };
 		B8D1816D155C8D52DFCAE25B /* ShareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6831E849332626BE8D54CEF /* ShareView.swift */; };
 		BE2DBB926DB04D6CEEFD8B43 /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 694631A1018DCE5678F29930 /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		C109B48C5A072AF9BE685BE4 /* ComplicationViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9F0323803613DBCB2ADEF2F /* ComplicationViews.swift */; };
+		C3959ACB55B495F7A86F89A9 /* WatchStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = B991C938B24A275550C15977 /* WatchStyle.swift */; };
+		D0983EB4FB8015F96E232919 /* WatchSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 842D54F96D80A1D1C4C21457 /* WatchSnapshot.swift */; };
 		D3C699E2258FBA6A11C1DDE4 /* TripIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8442B4B8988AF5D1BFA3ADE3 /* TripIntent.swift */; };
+		DE14C398EAFA594CB32ABBF2 /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBF6D74B7888714BF264E0E6 /* WidgetSnapshot.swift */; };
 		DF633789F2F667C4CF264C9E /* TripDayLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3259F6C40216CECEBAC6F307 /* TripDayLiveActivity.swift */; };
 		EA5EDDD4E5F9BC9BC46C563F /* CollabContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D5041DDDAFF5B491B053999 /* CollabContent.swift */; };
 		F1E29B18C5B1E75A5BC01B57 /* TodosContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEF7DCAA1AEE67F1291668D1 /* TodosContent.swift */; };
+		F30AA6CFFE04035E7D6AC546 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 3A6054202DCC03D83C2C9602 /* Localizable.strings */; };
+		F9947489F5B9323E519D3903 /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBF6D74B7888714BF264E0E6 /* WidgetSnapshot.swift */; };
 		FEB91385917AC44D5CDAA59C /* PackingContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04C0771C8582246A26E0C98E /* PackingContent.swift */; };
+		FECB6034B17C07C879908CEF /* TREKWatchWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 0DA9D9714D1E594A44A3569F /* TREKWatchWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		201AA9320B6C5DCBCC3429BF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 59A840D13C3074A09FCCC7CB;
+			remoteInfo = TREKWatch;
+		};
 		3BB8A38B2B2C8614B24CF2AD /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
@@ -76,9 +110,38 @@
 			remoteGlobalIDString = A3BE5653156025C97CA62C68;
 			remoteInfo = TREKWidgets;
 		};
+		EA68232794738AB11E866FA3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5B5EA8FB8F58C6BFA3B77661;
+			remoteInfo = TREKWatchWidgets;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		9545786868FF757328C69E1E /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				FECB6034B17C07C879908CEF /* TREKWatchWidgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		986D3C6100A1AB6BE603CF1C /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				AEE032DFFB63C7BEB8AFABBF /* TREKWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A8F12B42B22FCA041C6AA0DA /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -95,14 +158,22 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		00B7BB68930D45D35C9AD54A /* az */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = az; path = az.lproj/Localizable.strings; sourceTree = "<group>"; };
 		037DA05706AE051CEFCA7D75 /* ru */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ru; path = ru.lproj/Localizable.strings; sourceTree = "<group>"; };
 		04C0771C8582246A26E0C98E /* PackingContent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PackingContent.swift; sourceTree = "<group>"; };
+		07C00C53BA5641B009E40EF1 /* zh-Hans */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
+		07DF720DA5E63F842526A075 /* vi */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = vi; path = vi.lproj/Localizable.strings; sourceTree = "<group>"; };
 		090D74588DA8436DEC275567 /* sk */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = sk; path = sk.lproj/Localizable.strings; sourceTree = "<group>"; };
 		095A4E5D36F6E22070842EC1 /* nl */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = nl; path = nl.lproj/Localizable.strings; sourceTree = "<group>"; };
 		0A7C4491A7ABDDBEBE00E5BF /* sk */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = sk; path = sk.lproj/Localizable.strings; sourceTree = "<group>"; };
 		0BA66BF6D1F4FB57EFF31981 /* ShareExtension.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = ShareExtension.entitlements; sourceTree = "<group>"; };
+		0CC4BCF06E7719280549FFF1 /* el */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = el; path = el.lproj/Localizable.strings; sourceTree = "<group>"; };
+		0DA9D9714D1E594A44A3569F /* TREKWatchWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TREKWatchWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		10FB55D221F4BA18795F33B5 /* WatchSample.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchSample.swift; sourceTree = "<group>"; };
 		114C13FB91B554AE8DC4372B /* et */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = et; path = et.lproj/Localizable.strings; sourceTree = "<group>"; };
+		125A1BB381BBF7E58B8902FD /* TrekWatchLink.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TrekWatchLink.swift; sourceTree = "<group>"; };
 		12DE24E0B7E2E5F3564D952B /* he */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = he; path = he.lproj/Localizable.strings; sourceTree = "<group>"; };
+		1335F1EEB49D744B27A00F31 /* th */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = th; path = th.lproj/Localizable.strings; sourceTree = "<group>"; };
 		15884CA899CAD3FFD98BA927 /* hu */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = hu; path = hu.lproj/Localizable.strings; sourceTree = "<group>"; };
 		15CAD7E43FE81EA6E2DD2585 /* TrekStyle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TrekStyle.swift; sourceTree = "<group>"; };
 		192E69C7E66646BC39566925 /* ActivityKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ActivityKit.framework; path = System/Library/Frameworks/ActivityKit.framework; sourceTree = SDKROOT; };
@@ -111,19 +182,27 @@
 		1E7522315D47F086145DC4B8 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		1ED347C91E03E51FDF8ABC1A /* zh-Hant */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hant"; path = "zh-Hant.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		22A904A2E55946892F488B1A /* th */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = th; path = th.lproj/Localizable.strings; sourceTree = "<group>"; };
+		230D9B2E5898FCEC3EC4FB44 /* pl */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = pl; path = pl.lproj/Localizable.strings; sourceTree = "<group>"; };
+		23AE662FD3762641A2047F72 /* ja */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = ja; path = ja.lproj/Localizable.strings; sourceTree = "<group>"; };
 		241C37D114DDD53C7E915CB8 /* id */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = id; path = id.lproj/Localizable.strings; sourceTree = "<group>"; };
 		24B175DE91E1E6E850DB0285 /* TodayContent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TodayContent.swift; sourceTree = "<group>"; };
+		2D75538DBBAA6B2366CD8B69 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		2EE43D236E661AA975612A4B /* UserNotifications.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotifications.framework; path = System/Library/Frameworks/UserNotifications.framework; sourceTree = SDKROOT; };
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
+		2FD81D4601E9EB8744171B09 /* zh-Hant */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = "zh-Hant"; path = "zh-Hant.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		3259F6C40216CECEBAC6F307 /* TripDayLiveActivity.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TripDayLiveActivity.swift; sourceTree = "<group>"; };
 		32A62EE30F8AD514D7DB2CAA /* pl */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = pl; path = pl.lproj/Localizable.strings; sourceTree = "<group>"; };
 		337775CD9091673D0ADDF325 /* TripDayAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TripDayAttributes.swift; sourceTree = "<group>"; };
+		37FA9D6C0C247EC699CF326C /* TREKWatchWidgets.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = TREKWatchWidgets.entitlements; sourceTree = "<group>"; };
 		38C632E7EE9C0DF1CA0BF0A0 /* cs */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = cs; path = cs.lproj/Localizable.strings; sourceTree = "<group>"; };
+		3C3D5E2482AC7D20D2054623 /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		3CB565FC61AB5AEA87A3F615 /* vi */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = vi; path = vi.lproj/Localizable.strings; sourceTree = "<group>"; };
 		3DF4F4305878F949DD09193F /* NotificationService.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = NotificationService.entitlements; sourceTree = "<group>"; };
 		405B04DFF3A978D1046147C6 /* ca */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ca; path = ca.lproj/Localizable.strings; sourceTree = "<group>"; };
 		408F0E543D49BFCCF6B19194 /* es */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/Localizable.strings; sourceTree = "<group>"; };
 		4167040E2C29E44D55580916 /* ru */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = ru; path = ru.lproj/Localizable.strings; sourceTree = "<group>"; };
+		42EBD981456D3493C3947441 /* WatchModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchModel.swift; sourceTree = "<group>"; };
+		467929A8EB65D22F8FA91588 /* ca */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = ca; path = ca.lproj/Localizable.strings; sourceTree = "<group>"; };
 		4D004544572B0E85DE29A7B8 /* AtlasContent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AtlasContent.swift; sourceTree = "<group>"; };
 		50379B222058CBB4000EE86E /* capacitor.config.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = capacitor.config.json; sourceTree = "<group>"; };
 		504EC3041FED79650016851F /* App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = App.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -134,6 +213,7 @@
 		504EC3131FED79650016851F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
 		56050CCA8DE4BEB4680D9E0B /* ShareHandoff.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareHandoff.swift; sourceTree = "<group>"; };
+		57DF93CD1B88A7135481BF03 /* de */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/Localizable.strings; sourceTree = "<group>"; };
 		5C0109EA628FA897B7BFDD3E /* th */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = th; path = th.lproj/Localizable.strings; sourceTree = "<group>"; };
 		608F00CBD96957EEA888E50A /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		60EB00F3670B41B898765DF9 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/Localizable.strings; sourceTree = "<group>"; };
@@ -143,24 +223,34 @@
 		683725459244601B71D92E2D /* nl */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = nl; path = nl.lproj/Localizable.strings; sourceTree = "<group>"; };
 		6932A417DC4BC05BF07D80E2 /* it */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = it; path = it.lproj/Localizable.strings; sourceTree = "<group>"; };
 		694631A1018DCE5678F29930 /* ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		697E5726770333015DDD444D /* TREKWatch.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = TREKWatch.entitlements; sourceTree = "<group>"; };
 		6E901288FC198E4D33BE754F /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		702D0DF4A7E323CEA94CA03F /* TREKWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TREKWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		7328217E23761C22814FEC25 /* az */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = az; path = az.lproj/Localizable.strings; sourceTree = "<group>"; };
+		772816394C94096090C2F8FE /* ar */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = ar; path = ar.lproj/Localizable.strings; sourceTree = "<group>"; };
 		77A0112CA76E5C1787073AEB /* hu */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = hu; path = hu.lproj/Localizable.strings; sourceTree = "<group>"; };
 		77C217524DA98A6A92F422F4 /* zh-Hant */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = "zh-Hant"; path = "zh-Hant.lproj/Localizable.strings"; sourceTree = "<group>"; };
+		787A9D6B7D9EB7FED319C1B5 /* FacesView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FacesView.swift; sourceTree = "<group>"; };
+		7887877A91D6C782111A8388 /* it */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = it; path = it.lproj/Localizable.strings; sourceTree = "<group>"; };
 		7A1E00012C0000000000A001 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 		7A1E00022C0000000000A002 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		7A1E00042C0000000000A004 /* TrekBridgeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrekBridgeViewController.swift; sourceTree = "<group>"; };
 		7A1E00062C0000000000A006 /* TrekShellPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrekShellPlugin.swift; sourceTree = "<group>"; };
 		7D5041DDDAFF5B491B053999 /* CollabContent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CollabContent.swift; sourceTree = "<group>"; };
 		7D525040492AFBC121FD4CC6 /* ar */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = ar; path = ar.lproj/Localizable.strings; sourceTree = "<group>"; };
+		842D54F96D80A1D1C4C21457 /* WatchSnapshot.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchSnapshot.swift; sourceTree = "<group>"; };
 		8442B4B8988AF5D1BFA3ADE3 /* TripIntent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TripIntent.swift; sourceTree = "<group>"; };
+		849A85B6008760CCD7D9AE6A /* id */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = id; path = id.lproj/Localizable.strings; sourceTree = "<group>"; };
 		84CB5C3B6BD4E1DE1A8BD2B4 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		889DA33D98BC601268861D54 /* fr */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/Localizable.strings; sourceTree = "<group>"; };
 		8A0289CB321AE008D8815A19 /* ja */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ja; path = ja.lproj/Localizable.strings; sourceTree = "<group>"; };
 		8C2E47D0B005674C2B4ADA56 /* TREKWidgetsBundle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TREKWidgetsBundle.swift; sourceTree = "<group>"; };
+		8CBB0E5B9BE05CE82C8DA7F4 /* sv */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = sv; path = sv.lproj/Localizable.strings; sourceTree = "<group>"; };
 		8D361F7B14AE9F5ACE3BFE78 /* et */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = et; path = et.lproj/Localizable.strings; sourceTree = "<group>"; };
+		91F0DD852C0D6D4578449977 /* en */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		9582B6822FE993A50072D4E8 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
+		96CE3377B458EDD77B809F61 /* TREKWatchApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TREKWatchApp.swift; sourceTree = "<group>"; };
 		9A3FAA9DBC67D12389EEF0CF /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/Localizable.strings; sourceTree = "<group>"; };
 		9D673E1909A5B750376ECB41 /* en */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		9DC696E1A1FD3A1A1695F9EA /* SharePage.js */ = {isa = PBXFileReference; includeInIndex = 1; path = SharePage.js; sourceTree = "<group>"; };
@@ -172,35 +262,56 @@
 		A479036A85683EFF2922D096 /* el */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = el; path = el.lproj/Localizable.strings; sourceTree = "<group>"; };
 		A5C182FC253CBEE8D5439536 /* ca */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = ca; path = ca.lproj/Localizable.strings; sourceTree = "<group>"; };
 		AA02F5CBC22E08415CC1C9BE /* pl */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = pl; path = pl.lproj/Localizable.strings; sourceTree = "<group>"; };
+		AB5322D218E340690F499CA2 /* Pages.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Pages.swift; sourceTree = "<group>"; };
 		AEF7DCAA1AEE67F1291668D1 /* TodosContent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TodosContent.swift; sourceTree = "<group>"; };
 		B0450E66BFCF00CC4097330A /* he */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = he; path = he.lproj/Localizable.strings; sourceTree = "<group>"; };
 		B680CBF1268D2EE1982B165C /* el */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = el; path = el.lproj/Localizable.strings; sourceTree = "<group>"; };
 		B7F33B7A5C27C126DF29DCA4 /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ko; path = ko.lproj/Localizable.strings; sourceTree = "<group>"; };
+		B8850ACF43C79E9D879ACC44 /* WatchStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchStore.swift; sourceTree = "<group>"; };
+		B991C938B24A275550C15977 /* WatchStyle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchStyle.swift; sourceTree = "<group>"; };
+		B9F0323803613DBCB2ADEF2F /* ComplicationViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ComplicationViews.swift; sourceTree = "<group>"; };
 		BB2A15008B5664C48B639F94 /* ShareItem.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareItem.swift; sourceTree = "<group>"; };
 		BBB2E19CD540AB30B44BECCA /* TREKWidgets.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = TREKWidgets.entitlements; sourceTree = "<group>"; };
 		BC64330AC19625949E8DC05A /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		BE41D7212DCB0C78E00A8462 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		BF10C31D56A1C10C6BF62046 /* pt-BR */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = "pt-BR"; path = "pt-BR.lproj/Localizable.strings"; sourceTree = "<group>"; };
+		C24CDF14EBF4CF52CBF3DDD0 /* he */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = he; path = he.lproj/Localizable.strings; sourceTree = "<group>"; };
+		C333CDB6CAD048E3F9242222 /* ru */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = ru; path = ru.lproj/Localizable.strings; sourceTree = "<group>"; };
+		C6A6008115A85C9AAE181C5E /* sk */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = sk; path = sk.lproj/Localizable.strings; sourceTree = "<group>"; };
 		C7064A9DA92FCC8ACAA4F22A /* NextTripWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NextTripWidget.swift; sourceTree = "<group>"; };
+		C73847E8A007B21B8AD1DCD4 /* tr */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = tr; path = tr.lproj/Localizable.strings; sourceTree = "<group>"; };
 		C996A3060A2D20A4B5C9C377 /* ko */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = ko; path = ko.lproj/Localizable.strings; sourceTree = "<group>"; };
+		C9B6357E3FBBA4D9CDD1C7A3 /* DemoMode.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DemoMode.swift; sourceTree = "<group>"; };
 		CC077989456FB9DB5F4FF676 /* pt-BR */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "pt-BR"; path = "pt-BR.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		CD6763B965A87DDB6FCC2D05 /* de */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/Localizable.strings; sourceTree = "<group>"; };
+		CD83ADB6D661D6F7A64CDAB6 /* es */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/Localizable.strings; sourceTree = "<group>"; };
 		CE79157F1170A47CF7FC6FE0 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		CF4BA0BDDABFBDB24394025D /* TREKWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TREKWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D0AC751335E0136865E08990 /* WorldGrid.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WorldGrid.swift; sourceTree = "<group>"; };
 		D84D92C18CC022646692CB9B /* sv */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = sv; path = sv.lproj/Localizable.strings; sourceTree = "<group>"; };
+		D863C8994C9DAA79D236401C /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		DBF6D74B7888714BF264E0E6 /* WidgetSnapshot.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSnapshot.swift; sourceTree = "<group>"; };
 		DC0C9AB4D77D77A7BC2BA85B /* ja */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = ja; path = ja.lproj/Localizable.strings; sourceTree = "<group>"; };
 		DD341749E47B7DF89BA9A46D /* cs */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = cs; path = cs.lproj/Localizable.strings; sourceTree = "<group>"; };
+		DE0046E6067251CB0D61EC7A /* et */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = et; path = et.lproj/Localizable.strings; sourceTree = "<group>"; };
 		DE6873D246AC6B8E2CB6C8B4 /* TripContent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TripContent.swift; sourceTree = "<group>"; };
 		DE8B592FE52EC6FFB589751E /* fr */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/Localizable.strings; sourceTree = "<group>"; };
 		E2CFBDBCC474A7A72E053A8E /* uk */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = uk; path = uk.lproj/Localizable.strings; sourceTree = "<group>"; };
 		E45050B942C96E1ACCAB7CE9 /* UniformTypeIdentifiers.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UniformTypeIdentifiers.framework; path = System/Library/Frameworks/UniformTypeIdentifiers.framework; sourceTree = SDKROOT; };
+		E47D5FF1A217D5F77B3C7548 /* uk */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = uk; path = uk.lproj/Localizable.strings; sourceTree = "<group>"; };
+		E4AA747C2B20D0CDA0A9538A /* hu */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = hu; path = hu.lproj/Localizable.strings; sourceTree = "<group>"; };
 		E5800E4ECECED54A47CDABAA /* tr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = tr; path = tr.lproj/Localizable.strings; sourceTree = "<group>"; };
 		E6831E849332626BE8D54CEF /* ShareView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareView.swift; sourceTree = "<group>"; };
 		E6D2F4930E5F152C8090C4F8 /* BookingsContent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BookingsContent.swift; sourceTree = "<group>"; };
 		EAFBDD97043B34E4B64FDA86 /* pt-BR */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = "pt-BR"; path = "pt-BR.lproj/Localizable.strings"; sourceTree = "<group>"; };
+		EC8D1292C9FC6430C059960A /* nl */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = nl; path = nl.lproj/Localizable.strings; sourceTree = "<group>"; };
 		ECC80E1314B31ED2D2347411 /* ar */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ar; path = ar.lproj/Localizable.strings; sourceTree = "<group>"; };
 		ED561D7B7219D23A99FAEB11 /* ShareViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		EE30A6DF943052C6ADE92D63 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/Localizable.strings; sourceTree = "<group>"; };
+		F406A4A31BD875A880A7CA14 /* Details.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Details.swift; sourceTree = "<group>"; };
+		F410423B093EBD2DD11C0FFC /* ko */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = ko; path = ko.lproj/Localizable.strings; sourceTree = "<group>"; };
+		F4D88ABD8284E0A39E7586BE /* TREKWatchWidgets.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TREKWatchWidgets.swift; sourceTree = "<group>"; };
+		FB2D9CFF5AC22AEB8CA3D7BD /* cs */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = cs; path = cs.lproj/Localizable.strings; sourceTree = "<group>"; };
 		FFA8802204810ED580DE46F3 /* NotificationService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -220,6 +331,20 @@
 			buildActionMask = 2147483647;
 			files = (
 				4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		622430061CE31239E1D64FB8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		69112BCF6652B92DFA2AE6BB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -259,6 +384,9 @@
 				74C1FC6022E562372A71EEC9 /* NotificationService */,
 				FB9226BC82835538BCE3DC0A /* TREKWidgets */,
 				DFD2010504102AC0E682D00F /* ShareExtension */,
+				A5731FDC6B43DF41413C28A6 /* TREKWatch */,
+				83BCA52D4B145E66DC1B0111 /* TREKWatchKit */,
+				F3ECD357918C4A98B023F65F /* TREKWatchWidgets */,
 			);
 			sourceTree = "<group>";
 		};
@@ -269,6 +397,8 @@
 				A03A384FE54FAD1ED68E12DC /* NotificationService.appex */,
 				702D0DF4A7E323CEA94CA03F /* TREKWidgets.appex */,
 				694631A1018DCE5678F29930 /* ShareExtension.appex */,
+				CF4BA0BDDABFBDB24394025D /* TREKWatch.app */,
+				0DA9D9714D1E594A44A3569F /* TREKWatchWidgets.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -289,6 +419,7 @@
 				7A1E00022C0000000000A002 /* PrivacyInfo.xcprivacy */,
 				2FAD9762203C412B000D30F8 /* config.xml */,
 				50B271D01FEDC1A000F3C39B /* public */,
+				125A1BB381BBF7E58B8902FD /* TrekWatchLink.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -302,6 +433,7 @@
 				6E901288FC198E4D33BE754F /* SwiftUI.framework */,
 				192E69C7E66646BC39566925 /* ActivityKit.framework */,
 				E45050B942C96E1ACCAB7CE9 /* UniformTypeIdentifiers.framework */,
+				DC1BBE9AA7035B32D3653122 /* watchOS */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -315,6 +447,44 @@
 			);
 			name = NotificationService;
 			path = NotificationService;
+			sourceTree = "<group>";
+		};
+		83BCA52D4B145E66DC1B0111 /* TREKWatchKit */ = {
+			isa = PBXGroup;
+			children = (
+				B9F0323803613DBCB2ADEF2F /* ComplicationViews.swift */,
+				10FB55D221F4BA18795F33B5 /* WatchSample.swift */,
+				842D54F96D80A1D1C4C21457 /* WatchSnapshot.swift */,
+				B8850ACF43C79E9D879ACC44 /* WatchStore.swift */,
+				B991C938B24A275550C15977 /* WatchStyle.swift */,
+			);
+			name = TREKWatchKit;
+			path = TREKWatchKit;
+			sourceTree = "<group>";
+		};
+		A5731FDC6B43DF41413C28A6 /* TREKWatch */ = {
+			isa = PBXGroup;
+			children = (
+				3C3D5E2482AC7D20D2054623 /* Assets.xcassets */,
+				C9B6357E3FBBA4D9CDD1C7A3 /* DemoMode.swift */,
+				F406A4A31BD875A880A7CA14 /* Details.swift */,
+				787A9D6B7D9EB7FED319C1B5 /* FacesView.swift */,
+				D863C8994C9DAA79D236401C /* Info.plist */,
+				AB5322D218E340690F499CA2 /* Pages.swift */,
+				697E5726770333015DDD444D /* TREKWatch.entitlements */,
+				96CE3377B458EDD77B809F61 /* TREKWatchApp.swift */,
+				42EBD981456D3493C3947441 /* WatchModel.swift */,
+				3A6054202DCC03D83C2C9602 /* Localizable.strings */,
+			);
+			name = TREKWatch;
+			path = TREKWatch;
+			sourceTree = "<group>";
+		};
+		DC1BBE9AA7035B32D3653122 /* watchOS */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = watchOS;
 			sourceTree = "<group>";
 		};
 		DFD2010504102AC0E682D00F /* ShareExtension */ = {
@@ -331,6 +501,17 @@
 			);
 			name = ShareExtension;
 			path = ShareExtension;
+			sourceTree = "<group>";
+		};
+		F3ECD357918C4A98B023F65F /* TREKWatchWidgets */ = {
+			isa = PBXGroup;
+			children = (
+				2D75538DBBAA6B2366CD8B69 /* Info.plist */,
+				37FA9D6C0C247EC699CF326C /* TREKWatchWidgets.entitlements */,
+				F4D88ABD8284E0A39E7586BE /* TREKWatchWidgets.swift */,
+			);
+			name = TREKWatchWidgets;
+			path = TREKWatchWidgets;
 			sourceTree = "<group>";
 		};
 		FB9226BC82835538BCE3DC0A /* TREKWidgets */ = {
@@ -388,6 +569,7 @@
 				504EC3011FED79650016851F /* Frameworks */,
 				504EC3021FED79650016851F /* Resources */,
 				A8F12B42B22FCA041C6AA0DA /* Embed Foundation Extensions */,
+				986D3C6100A1AB6BE603CF1C /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
@@ -395,6 +577,7 @@
 				E23A0A46599B8EE7A5B74F45 /* PBXTargetDependency */,
 				4CD7F5AF02CB806E4189489A /* PBXTargetDependency */,
 				855AE76937B942D62DFFD7E2 /* PBXTargetDependency */,
+				DC6A321F5C3C7D5EF0973677 /* PBXTargetDependency */,
 			);
 			name = App;
 			packageProductDependencies = (
@@ -403,6 +586,42 @@
 			productName = App;
 			productReference = 504EC3041FED79650016851F /* App.app */;
 			productType = "com.apple.product-type.application";
+		};
+		59A840D13C3074A09FCCC7CB /* TREKWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DF9244A5B1D6A7560CB92D4E /* Build configuration list for PBXNativeTarget "TREKWatch" */;
+			buildPhases = (
+				B3023E0FD7245E6465981AC5 /* Sources */,
+				622430061CE31239E1D64FB8 /* Frameworks */,
+				E46DCC12600D7B9D1381FBCE /* Resources */,
+				9545786868FF757328C69E1E /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5D0E9608BF309D8A27F5C4B6 /* PBXTargetDependency */,
+			);
+			name = TREKWatch;
+			productName = TREKWatch;
+			productReference = CF4BA0BDDABFBDB24394025D /* TREKWatch.app */;
+			productType = "com.apple.product-type.application";
+		};
+		5B5EA8FB8F58C6BFA3B77661 /* TREKWatchWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C24DF86369B92FC86F735AEE /* Build configuration list for PBXNativeTarget "TREKWatchWidgets" */;
+			buildPhases = (
+				068381E1E877C97A3390DE57 /* Sources */,
+				69112BCF6652B92DFA2AE6BB /* Frameworks */,
+				F36545081C7270E279639BF4 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = TREKWatchWidgets;
+			productName = TREKWatchWidgets;
+			productReference = 0DA9D9714D1E594A44A3569F /* TREKWatchWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 		9480DFBC2C2A112973DA468A /* NotificationService */ = {
 			isa = PBXNativeTarget;
@@ -506,6 +725,8 @@
 				9480DFBC2C2A112973DA468A /* NotificationService */,
 				A3BE5653156025C97CA62C68 /* TREKWidgets */,
 				01A63CD6CFBC1463CAA8FFF0 /* ShareExtension */,
+				59A840D13C3074A09FCCC7CB /* TREKWatch */,
+				5B5EA8FB8F58C6BFA3B77661 /* TREKWatchWidgets */,
 			);
 		};
 /* End PBXProject section */
@@ -540,6 +761,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E46DCC12600D7B9D1381FBCE /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7060F9DB820849A45ECE0507 /* Assets.xcassets in Resources */,
+				8FFB2B488E43AD339D0BB450 /* Localizable.strings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		EB430D4F409D7961AF5603C9 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -549,9 +779,32 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F36545081C7270E279639BF4 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F30AA6CFFE04035E7D6AC546 /* Localizable.strings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		068381E1E877C97A3390DE57 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				228EA0E0270314581194EC3A /* TREKWatchWidgets.swift in Sources */,
+				C109B48C5A072AF9BE685BE4 /* ComplicationViews.swift in Sources */,
+				896952F864B35C647FF6910A /* WatchSample.swift in Sources */,
+				81E4582AD7514CA1AF373E48 /* WatchSnapshot.swift in Sources */,
+				6EB76B1C6AB4AC78FF021994 /* WatchStore.swift in Sources */,
+				661AEED37F1F278677F4F306 /* WatchStyle.swift in Sources */,
+				0D801738BB09A41A62E9B57F /* TrekStyle.swift in Sources */,
+				DE14C398EAFA594CB32ABBF2 /* WidgetSnapshot.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		1EA0B85A2E70AC56F83C09C9 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -569,6 +822,7 @@
 				7A1E00052C0000000000A005 /* TrekBridgeViewController.swift in Sources */,
 				7A1E00072C0000000000A007 /* TrekShellPlugin.swift in Sources */,
 				0C2D60A4950D7293E1F282CB /* TripDayAttributes.swift in Sources */,
+				8925D4B7322D6930F3C02959 /* TrekWatchLink.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -595,6 +849,26 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B3023E0FD7245E6465981AC5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				318BBC653A438E6D1D493F50 /* DemoMode.swift in Sources */,
+				634F4E63DC7C2A0027F0D118 /* Details.swift in Sources */,
+				239FC886F02275957A1D449A /* FacesView.swift in Sources */,
+				91B14997828BEF884E1239B4 /* Pages.swift in Sources */,
+				11B5B80E66AB03C92B0EADBD /* TREKWatchApp.swift in Sources */,
+				AAE5F2A3903F1E241C395BB8 /* WatchModel.swift in Sources */,
+				6680B5C572AA37E6E3DFC3A2 /* ComplicationViews.swift in Sources */,
+				1F8D58E1B4FD9BB84172527A /* WatchSample.swift in Sources */,
+				D0983EB4FB8015F96E232919 /* WatchSnapshot.swift in Sources */,
+				1091DAAC693DAE3E1CBB7D69 /* WatchStore.swift in Sources */,
+				C3959ACB55B495F7A86F89A9 /* WatchStyle.swift in Sources */,
+				2FB9B214E9DA5C7A25BE0EA1 /* TrekStyle.swift in Sources */,
+				F9947489F5B9323E519D3903 /* WidgetSnapshot.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E0B13DA0CF9C1103058FE869 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -615,11 +889,23 @@
 			target = A3BE5653156025C97CA62C68 /* TREKWidgets */;
 			targetProxy = B8BBE7F7A64678D780A7F3D1 /* PBXContainerItemProxy */;
 		};
+		5D0E9608BF309D8A27F5C4B6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = TREKWatchWidgets;
+			target = 5B5EA8FB8F58C6BFA3B77661 /* TREKWatchWidgets */;
+			targetProxy = EA68232794738AB11E866FA3 /* PBXContainerItemProxy */;
+		};
 		855AE76937B942D62DFFD7E2 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = ShareExtension;
 			target = 01A63CD6CFBC1463CAA8FFF0 /* ShareExtension */;
 			targetProxy = 64B91219C04CABCE204C7CCC /* PBXContainerItemProxy */;
+		};
+		DC6A321F5C3C7D5EF0973677 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = TREKWatch;
+			target = 59A840D13C3074A09FCCC7CB /* TREKWatch */;
+			targetProxy = 201AA9320B6C5DCBCC3429BF /* PBXContainerItemProxy */;
 		};
 		E23A0A46599B8EE7A5B74F45 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -661,6 +947,41 @@
 				3CB565FC61AB5AEA87A3F615 /* vi */,
 				608F00CBD96957EEA888E50A /* zh-Hans */,
 				1ED347C91E03E51FDF8ABC1A /* zh-Hant */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+		3A6054202DCC03D83C2C9602 /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				772816394C94096090C2F8FE /* ar */,
+				00B7BB68930D45D35C9AD54A /* az */,
+				467929A8EB65D22F8FA91588 /* ca */,
+				FB2D9CFF5AC22AEB8CA3D7BD /* cs */,
+				57DF93CD1B88A7135481BF03 /* de */,
+				0CC4BCF06E7719280549FFF1 /* el */,
+				91F0DD852C0D6D4578449977 /* en */,
+				CD83ADB6D661D6F7A64CDAB6 /* es */,
+				DE0046E6067251CB0D61EC7A /* et */,
+				889DA33D98BC601268861D54 /* fr */,
+				C24CDF14EBF4CF52CBF3DDD0 /* he */,
+				E4AA747C2B20D0CDA0A9538A /* hu */,
+				849A85B6008760CCD7D9AE6A /* id */,
+				7887877A91D6C782111A8388 /* it */,
+				23AE662FD3762641A2047F72 /* ja */,
+				F410423B093EBD2DD11C0FFC /* ko */,
+				EC8D1292C9FC6430C059960A /* nl */,
+				230D9B2E5898FCEC3EC4FB44 /* pl */,
+				BF10C31D56A1C10C6BF62046 /* pt-BR */,
+				C333CDB6CAD048E3F9242222 /* ru */,
+				C6A6008115A85C9AAE181C5E /* sk */,
+				8CBB0E5B9BE05CE82C8DA7F4 /* sv */,
+				1335F1EEB49D744B27A00F31 /* th */,
+				C73847E8A007B21B8AD1DCD4 /* tr */,
+				E47D5FF1A217D5F77B3C7548 /* uk */,
+				07DF720DA5E63F842526A075 /* vi */,
+				07C00C53BA5641B009E40EF1 /* zh-Hans */,
+				2FD81D4601E9EB8744171B09 /* zh-Hant */,
 			);
 			name = Localizable.strings;
 			sourceTree = "<group>";
@@ -719,6 +1040,33 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		1F7D993B412B63E918648BA1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = TREKWatch/TREKWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = TREKWatch/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.liketrek.trek.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 11.0;
+			};
+			name = Release;
+		};
 		31CC9E868E52D06AD12E83D6 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -950,6 +1298,32 @@
 			};
 			name = Release;
 		};
+		57D289EF9468E358528F5FBB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = TREKWatch/TREKWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = TREKWatch/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.liketrek.trek.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 11.0;
+			};
+			name = Debug;
+		};
 		686FA31AEC6FE5BA3EF95E99 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1001,6 +1375,30 @@
 			};
 			name = Release;
 		};
+		C04A1F63D9298FA52E6C727E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = TREKWatchWidgets/TREKWatchWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = TREKWatchWidgets/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.liketrek.trek.watchkitapp.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 11.0;
+			};
+			name = Debug;
+		};
 		C5621F5D75100AAEBB1BD22A /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1024,6 +1422,31 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		DF4816365A7D101A9EA8A0C7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = TREKWatchWidgets/TREKWatchWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = TREKWatchWidgets/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.liketrek.trek.watchkitapp.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 11.0;
 			};
 			name = Release;
 		};
@@ -1071,6 +1494,24 @@
 			buildConfigurations = (
 				C5621F5D75100AAEBB1BD22A /* Release */,
 				3ECF3537A139DB5CAC23E502 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C24DF86369B92FC86F735AEE /* Build configuration list for PBXNativeTarget "TREKWatchWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DF4816365A7D101A9EA8A0C7 /* Release */,
+				C04A1F63D9298FA52E6C727E /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DF9244A5B1D6A7560CB92D4E /* Build configuration list for PBXNativeTarget "TREKWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1F7D993B412B63E918648BA1 /* Release */,
+				57D289EF9468E358528F5FBB /* Debug */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -46,6 +46,8 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
         CAPPluginMethod(name: "storeFinish", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "storeRestore", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "addToWallet", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setWatchSnapshot", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "takeWatchActions", returnType: CAPPluginReturnPromise),
     ]
 
     /// What this binary offers the server's UI, raised with every native feature
@@ -53,7 +55,7 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
     /// and a server can require a minimum (minNativeShellApi in /api/health/features).
     static let shellApi = 2
     /// The native features by name, so the UI can turn each on by itself.
-    static let features: [String] = ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation", "sharedFiles", "nativePush", "widgets", "liveActivity", "widgetTrips", "storeKit", "shareSheet", "wallet"]
+    static let features: [String] = ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation", "sharedFiles", "nativePush", "widgets", "liveActivity", "widgetTrips", "storeKit", "shareSheet", "wallet", "watch"]
 
     // MARK: - Shared booking documents
 
@@ -65,6 +67,7 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
             DispatchQueue.main.async { self?.notifyListeners("pushOpened", data: ["url": url]) }
         }
         TrekStore.watchUpdates()
+        TrekWatchLink.shared.onAction = { [weak self] in self?.notifyListeners("watchAction", data: [:]) }
     }
 
     // MARK: - Widgets and the travel-day Live Activity
@@ -135,6 +138,23 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
         }
         #endif
         call.resolve()
+    }
+
+    // MARK: - Apple Watch
+
+    /// Passes what the watch app shows (native/watch.ts builds it) on to the watch.
+    @objc func setWatchSnapshot(_ call: CAPPluginCall) {
+        guard let json = call.getString("json"), let data = json.data(using: .utf8) else {
+            call.reject("json is required")
+            return
+        }
+        TrekWatchLink.shared.publish(data)
+        call.resolve()
+    }
+
+    /// The packing items and to-dos ticked on the watch since the last call, oldest first.
+    @objc func takeWatchActions(_ call: CAPPluginCall) {
+        call.resolve(["actions": TrekWatchLink.shared.takeActions()])
     }
 
     // MARK: - Push

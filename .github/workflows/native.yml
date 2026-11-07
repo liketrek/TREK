@@ -17,6 +17,7 @@ on:
       - 'client/ios/**'
       - 'client/native-shell/**'
       - 'client/src/native/trekShell.ts'
+      - 'client/src/native/watch.ts'
       - 'client/src/native/serverAddress.ts'
       - 'client/capacitor.config.ts'
       - 'client/vite.native.config.js'
@@ -103,7 +104,7 @@ jobs:
           xcodebuild -version
 
       - name: Check the property lists
-        run: plutil -lint client/ios/App/App/Info.plist client/ios/ExportOptions.plist client/ios/App/NotificationService/Info.plist client/ios/App/NotificationService/NotificationService.entitlements client/ios/App/App/App.entitlements client/ios/App/TREKWidgets/Info.plist client/ios/App/TREKWidgets/TREKWidgets.entitlements client/ios/App/TREKWidgets/*.lproj/Localizable.strings client/ios/App/ShareExtension/Info.plist client/ios/App/ShareExtension/ShareExtension.entitlements client/ios/App/ShareExtension/*.lproj/Localizable.strings
+        run: plutil -lint client/ios/App/App/Info.plist client/ios/ExportOptions.plist client/ios/App/NotificationService/Info.plist client/ios/App/NotificationService/NotificationService.entitlements client/ios/App/App/App.entitlements client/ios/App/TREKWidgets/Info.plist client/ios/App/TREKWidgets/TREKWidgets.entitlements client/ios/App/TREKWidgets/*.lproj/Localizable.strings client/ios/App/ShareExtension/Info.plist client/ios/App/ShareExtension/ShareExtension.entitlements client/ios/App/ShareExtension/*.lproj/Localizable.strings client/ios/App/TREKWatch/Info.plist client/ios/App/TREKWatch/TREKWatch.entitlements client/ios/App/TREKWatch/*.lproj/Localizable.strings client/ios/App/TREKWatchWidgets/Info.plist client/ios/App/TREKWatchWidgets/TREKWatchWidgets.entitlements
 
       - uses: actions/setup-node@v6
         with:
@@ -120,6 +121,8 @@ jobs:
         working-directory: client
         run: npm run cap:sync -- ios
 
+      # No -sdk: the scheme builds the embedded watch app and its complications
+      # against the watchOS simulator SDK and the rest against the iOS one.
       - name: Build for the simulator
         working-directory: client/ios/App
         run: |
@@ -127,7 +130,6 @@ jobs:
             -project App.xcodeproj \
             -scheme App \
             -configuration Debug \
-            -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO
 
@@ -158,4 +160,73 @@ jobs:
         with:
           name: widget-previews
           path: client/ios/WidgetPreviews/out
+          retention-days: 14
+
+  # The watch's half in the UI (client/src/native/watch.ts): the snapshot it
+  # builds and the ticks it takes back, typechecked and tested here as well,
+  # so a change to the bridge is checked next to the Swift that reads it.
+  watch-bridge:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci --workspace=shared --workspace=client
+
+      - name: Build shared
+        run: npm run build --workspace=shared
+
+      - name: Typecheck the client
+        working-directory: client
+        run: npm run typecheck
+
+      - name: Test the widget and watch snapshots
+        working-directory: client
+        run: npx vitest run src/native/watch.test.ts src/native/widgets.test.ts src/native/widgetExtras.test.ts
+
+  # The watch app on watchOS simulators in its screenshot mode (DemoMode.swift):
+  # every screen on the largest and the smallest watch, the main ones in every
+  # language, and the complications, as PNGs to look at without a watch.
+  watch-screens:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Select Xcode 26
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
+          test -n "$XCODE"
+          sudo xcode-select -s "$XCODE"
+
+      - name: Make sure a watchOS simulator runtime is there
+        run: |
+          xcrun simctl list runtimes | grep -q watchOS || xcodebuild -downloadPlatform watchOS
+          xcrun simctl list runtimes
+
+      - name: Build the watch app for the simulator
+        working-directory: client/ios/App
+        run: |
+          xcodebuild build \
+            -project App.xcodeproj \
+            -target TREKWatch \
+            -configuration Debug \
+            -sdk watchsimulator \
+            SYMROOT="$PWD/build" \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Capture the screens
+        run: bash client/ios/scripts/watch-screens.sh client/ios/App/build/Debug-watchsimulator/TREKWatch.app "$PWD/watch-screens"
+
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: watch-screens
+          path: watch-screens
           retention-days: 14

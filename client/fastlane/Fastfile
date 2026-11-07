@@ -26,6 +26,8 @@ SIGNED_TARGETS = {
   "NotificationService" => "com.liketrek.trek.notifications",
   "TREKWidgets" => "com.liketrek.trek.widgets",
   "ShareExtension" => "com.liketrek.trek.share",
+  "TREKWatch" => "com.liketrek.trek.watchkitapp",
+  "TREKWatchWidgets" => "com.liketrek.trek.watchkitapp.widgets",
 }
 
 platform :ios do
