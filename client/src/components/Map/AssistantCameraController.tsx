@@ -1,8 +1,10 @@
 import L from 'leaflet';
 import { useCallback, useEffect } from 'react';
 import { useMap } from 'react-leaflet';
+import { frameLng } from '../../utils/lngFrame';
 import { MAX_ZOOM_RASTER, type ViewportPadding } from '../../utils/mapViewport';
 import { ASSISTANT_CAMERA_MS, centreOf, coverPadding, useCameraRequest, useUserMoveClock } from './assistantCamera';
+import { useLngFrame } from './lngFrameContext';
 import type { AssistantCamera } from './mapViewContract';
 
 interface AssistantCameraControllerProps {
@@ -18,12 +20,17 @@ interface AssistantCameraControllerProps {
  */
 export function AssistantCameraController({ camera, padding }: AssistantCameraControllerProps) {
   const map = useMap();
+  // The points are framed the way the map draws them (#2975).
+  const frame = useLngFrame();
   const getContainer = useCallback(() => map.getContainer(), [map]);
   const userMovedAt = useUserMoveClock(getContainer, true);
   const request = useCameraRequest(camera, userMovedAt);
 
   useEffect(() => {
-    request((next) => {
+    request((camera) => {
+      const next = frame
+        ? { ...camera, points: camera.points.map(([lat, lng]) => [lat, frameLng(frame, lng)] as [number, number]) }
+        : camera;
       const duration = ASSISTANT_CAMERA_MS / 1000;
       if (next.mode === 'pan') {
         const centre = centreOf(next.points);
@@ -39,7 +46,7 @@ export function AssistantCameraController({ camera, padding }: AssistantCameraCo
         duration,
       });
     });
-  }, [map, padding, request]);
+  }, [map, padding, request, frame]);
 
   return null;
 }

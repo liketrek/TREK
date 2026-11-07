@@ -436,6 +436,28 @@ describe('App — on-mount effects', () => {
     await waitFor(() => expect(setManaged).toHaveBeenCalledWith(false))
   })
 
+  it('FE-COMP-APP-018c: app-config is asked again after a failed answer, so managed is not lost', async () => {
+    // A page opened while the server restarts got a 502 here and kept every
+    // default for the session, which brought back the operator's settings.
+    let calls = 0
+    server.use(
+      http.get('/api/auth/app-config', () => {
+        calls += 1
+        return calls === 1 ? new HttpResponse(null, { status: 502 }) : HttpResponse.json({ managed: true })
+      })
+    )
+    const setManaged = vi.fn()
+    useAuthStore.setState({
+      isLoading: false,
+      isAuthenticated: false,
+      loadUser: vi.fn().mockResolvedValue(undefined),
+      setManaged,
+    })
+    renderApp('/')
+    await waitFor(() => expect(setManaged).toHaveBeenCalledWith(true), { timeout: 4000 })
+    expect(calls).toBe(2)
+  })
+
   it('FE-COMP-APP-019: loadSettings is called once the user is authenticated', async () => {
     const loadSettings = vi.fn().mockResolvedValue(undefined)
     seedAuth({ isAuthenticated: true, user: buildUser() })

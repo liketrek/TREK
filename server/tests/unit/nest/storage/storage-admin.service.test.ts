@@ -4,6 +4,7 @@ import { encrypt_api_key } from '../../../../src/nest/common/crypto/apiKeyCrypto
 import { StorageAdminService } from '../../../../src/nest/storage/storage-admin.service';
 import { StorageEventsService } from '../../../../src/nest/storage/storage-events.service';
 import { StorageJobsService } from '../../../../src/nest/storage/storage-jobs.service';
+import type { StorageReclaimService } from '../../../../src/nest/storage/storage-reclaim.service';
 import {
   StorageRegistryService,
   BACKENDS_KEY,
@@ -74,7 +75,11 @@ async function makeService(opts: { uploadsRoot?: string } = {}) {
   const storage = new StorageService(registry);
   const jobs = new StorageJobsService(registry);
   const stats = new StorageStatsService(storage, appSettings);
-  const service = new StorageAdminService(appSettings, registry, storage, jobs, stats, uow);
+  // The reclaim state has its own suite (storage-reclaim.service.test.ts); here it only rides along.
+  const reclaim = {
+    state: async () => ({ deleteEnabled: false, running: false, lastRun: null, lastDeleteRun: null }),
+  } as unknown as StorageReclaimService;
+  const service = new StorageAdminService(appSettings, registry, storage, jobs, stats, uow, reclaim);
   return { service, registry, uploadsRoot, stats, jobs, uow };
 }
 

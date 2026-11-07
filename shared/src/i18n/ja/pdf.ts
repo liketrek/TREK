@@ -6,6 +6,9 @@ const pdf: TranslationStrings = {
   'pdf.costLabel': '費用',
   'pdf.preview': 'PDFプレビュー',
   'pdf.saveAsPdf': 'PDFとして保存',
+  'pdf.openInSafari': 'Safari で開く',
+  'pdf.safariHint':
+    'iOS ではホーム画面のアプリから印刷できません。Safari でこの旅行をエクスポートの準備ができた状態で開き、そこで PDF を保存できます。',
   'pdf.pageBreakPerDay': '日ごとに改ページ',
   'pdf.transportNotes': '交通機関のメモ',
   'pdf.mapTitle': 'ルート概要',

@@ -139,6 +139,9 @@ export default defineConfig({
         'src/nest/mcp-shared/**/*.ts': { statements: 84, branches: 59, functions: 99, lines: 88 },
         'src/nest/mcp-transport/**/*.ts': { statements: 89, branches: 79, functions: 87, lines: 90 },
         'src/nest/memories/**/*.ts': { statements: 92, branches: 83, functions: 97, lines: 94 },
+        // New domain in this change, fully covered by its unit and e2e suites.
+        // Pinned a little under that until a full run regenerates the block.
+        'src/nest/native-auth/**/*.ts': { statements: 95, branches: 90, functions: 95, lines: 95 },
         'src/nest/notifications/**/*.ts': { statements: 83, branches: 72, functions: 85, lines: 87 },
         'src/nest/oauth/**/*.ts': { statements: 96, branches: 95, functions: 97, lines: 97 },
         'src/nest/oidc/**/*.ts': { statements: 88, branches: 83, functions: 91, lines: 92 },
@@ -221,6 +224,9 @@ export default defineConfig({
         'src/nest/trips/**/*.ts': { statements: 95, branches: 86, functions: 95, lines: 96 },
         'src/nest/unsplash/**/*.ts': { statements: 99, branches: 88, functions: 99, lines: 99 },
         'src/nest/vacay/**/*.ts': { statements: 82, branches: 66, functions: 90, lines: 86 },
+        // New domain in this change (Apple Wallet passes), unmeasured: pinned at the 80 floor
+        // until the first full run regenerates it.
+        'src/nest/wallet-pass/**/*.ts': { statements: 80, branches: 80, functions: 80, lines: 80 },
         'src/nest/wanderer/**/*.ts': { statements: 80, branches: 80, functions: 80, lines: 80 },
         'src/nest/weather/**/*.ts': { statements: 93, branches: 78, functions: 91, lines: 97 },
         'src/nest/**/*.ts': { statements: 80, branches: 80, functions: 80, lines: 80 },

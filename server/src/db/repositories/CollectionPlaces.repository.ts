@@ -3,6 +3,7 @@ import type { CollectionPlaces } from '../entities/CollectionPlaces.entity';
 import type { DB } from '../kysely/db';
 import type { CollectionPlaceRow } from './Collections.repository';
 import { TrekRepository } from './_shared/trek-repository';
+import { wrapOptionalLongitude } from '@trek/shared';
 
 /**
  * `collection_places` (Plan 3h Task 2, part B — saved places CRUD, dedup,
@@ -115,7 +116,7 @@ export class CollectionPlacesRepository extends TrekRepository<CollectionPlaces>
       name: row.name,
       description: row.description,
       lat: row.lat,
-      lng: row.lng,
+      lng: wrapOptionalLongitude(row.lng),
       address: row.address,
       category: row.category_id,
       price: row.price,
@@ -181,6 +182,7 @@ export class CollectionPlacesRepository extends TrekRepository<CollectionPlaces>
       { id },
       {
         ...rest,
+        ...(rest.lng !== undefined ? { lng: wrapOptionalLongitude(rest.lng) } : {}),
         ...(category_id !== undefined ? { category: category_id } : {}),
         ...(collection_id !== undefined ? { collection: collection_id } : {}),
         ...(owner_id !== undefined ? { owner: owner_id } : {}),
@@ -453,23 +455,6 @@ export class CollectionPlacesRepository extends TrekRepository<CollectionPlaces>
   // Plan 3h Task 6 (survivors — `places.service.ts` SV-PI2, `place-photo-
   // cache.service.ts` SV-PP6, `place-image.ts` SV-PLACEIMG-2) — additive.
   // ---------------------------------------------------------------------
-
-  /**
-   * SV-PI2 (`places.service.ts::reclaimPlaceImage`) / SV-PLACEIMG-2
-   * (`CollectionsService`'s own private `reclaimPlaceImage`, replacing
-   * `place-image.ts`'s free function) — `SELECT 1 FROM collection_places
-   * WHERE image_url = ? LIMIT 1`. Trip-agnostic, same shape as
-   * `PlacesRepository.existsByImageUrl` for its own table.
-   */
-  async existsByImageUrl(imageUrl: string): Promise<boolean> {
-    const row = await this.db_()
-      .selectFrom('collection_places')
-      .select('id')
-      .where('image_url', '=', imageUrl)
-      .limit(1)
-      .executeTakeFirst();
-    return !!row;
-  }
 
   /**
    * SV-PP6 (`place-photo-cache.service.ts::isReferenced`) — `SELECT 1 FROM

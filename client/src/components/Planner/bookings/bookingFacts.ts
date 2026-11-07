@@ -133,3 +133,28 @@ export function bookingFacts(r: Reservation, c: FactsContext): BookingFacts {
     isHotel,
   }
 }
+
+function nightsBetween(a: string | null, b: string | null): number {
+  if (!a || !b) return 0
+  const n = Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 864e5)
+  return n > 0 ? n : 0
+}
+
+/**
+ * A stay's three tiles: check-in and check-out with their dates and times, and
+ * the nights between. The desktop booking dialog and the phone's booking sheet
+ * show the same ones.
+ */
+export function stayStats(
+  facts: BookingFacts,
+  meta: { check_in_time?: string | null; check_out_time?: string | null },
+  t: FactsContext['t'],
+  locale: string,
+): { value: string; label: string }[] {
+  const stats: { value: string; label: string }[] = []
+  if (facts.startDate) stats.push({ value: formatDay(facts.startDate, locale, false), label: t('reservations.meta.checkIn') + (meta.check_in_time ? ` ${meta.check_in_time}` : '') })
+  if (facts.endDate) stats.push({ value: formatDay(facts.endDate, locale, false), label: t('reservations.meta.checkOut') + (meta.check_out_time ? ` ${meta.check_out_time}` : '') })
+  const nights = nightsBetween(facts.startDate, facts.endDate)
+  if (nights) stats.push({ value: String(nights), label: t('reservations.nights', { count: nights }) })
+  return stats
+}

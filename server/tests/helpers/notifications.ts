@@ -1,3 +1,4 @@
+import type { AddonsService } from '../../src/nest/addons/addons.service';
 import { MailerService } from '../../src/nest/notifications/mailer/mailer.service';
 import { NotificationPreferencesService } from '../../src/nest/notifications/notification-preferences.service';
 import { NotificationsService } from '../../src/nest/notifications/notifications.service';
@@ -62,7 +63,7 @@ export async function makeNotificationsService(
     mailer,
     new WebhookService(settingsRepo, appSettings),
     new NtfyService(settingsRepo, appSettings),
-    new NotificationPreferencesService(mailer, uow, appSettings, channelPrefsRepo),
+    new NotificationPreferencesService(mailer, uow, appSettings, channelPrefsRepo, everyFeatureOn()),
     uow,
     notificationsRepo,
     await makeWebPushService(db),
@@ -98,7 +99,23 @@ export async function makeNotificationPreferencesService(
     await createTestUnitOfWork(db),
     appSettings,
     channelPrefsRepo,
+    everyFeatureOn(),
   );
+}
+
+/**
+ * The addon answers for the preference matrices with every feature on, so a
+ * suite sees every event row unless it is about the narrowing itself.
+ */
+export function everyFeatureOn(
+  overrides: Partial<Pick<AddonsService, 'isAddonEnabled' | 'isWandererAvailable' | 'enabledPhotoProviderIds'>> = {},
+): AddonsService {
+  return {
+    isAddonEnabled: async () => true,
+    isWandererAvailable: async () => true,
+    enabledPhotoProviderIds: async () => ['immich', 'synologyphotos'],
+    ...overrides,
+  } as unknown as AddonsService;
 }
 
 /**

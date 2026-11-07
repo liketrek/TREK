@@ -8,7 +8,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addTransportShort': 'النقل',
   'mobileTrip.allDays': 'كل الأيام',
   'mobileTrip.today': 'اليوم',
-  'mobileTrip.jumpToToday': 'الانتقال إلى اليوم',
   'mobileTrip.assignedDays': 'الأيام المخصصة',
   'mobileTrip.assignmentNotes': 'ملاحظات خاصة باليوم',
   'mobileTrip.bookingsEmpty': 'لا توجد حجوزات بعد',
@@ -20,8 +19,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.filesEmpty': 'لا توجد ملفات بعد',
   'mobileTrip.filesNext': 'الملف التالي',
   'mobileTrip.filesPrev': 'الملف السابق',
-  'mobileTrip.googleMaps': 'Google Maps',
-  'mobileTrip.coMaps': 'CoMaps',
   'mobileTrip.icsDownload': 'تنزيل .ics',
   'mobileTrip.icsSubscribe': 'الاشتراك في التقويم',
   'mobileTrip.icsSubscribeSub': 'تحديث تلقائي في تطبيق التقويم لديك',
@@ -112,5 +109,8 @@ const mobileTrip: TranslationStrings = {
     'في {count} مقطعًا كانت النتائج أكثر مما تتسع له إجابة واحدة. اختر أنواعًا أقل لرؤية الباقي.',
   'mobileTrip.rtNoDay': 'لم يتم اختيار يوم',
   'mobileTrip.rtNoDayHint': 'تعرض الخريطة الرحلة كاملة. اضغط على يوم في الأعلى لعرض مسيره.',
+  'mobileTrip.maps': 'الخرائط',
+  'mobileTrip.openRouteIn': 'افتح اليوم في',
+  'mobileTrip.firstStopOnly': 'المحطة الأولى فقط',
 };
 export default mobileTrip;

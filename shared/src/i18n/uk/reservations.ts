@@ -60,7 +60,7 @@ const reservations: TranslationStrings = {
   'reservations.type.car': 'Автомобіль',
   'reservations.type.cruise': 'Круїз',
   'reservations.type.event': 'Заходи',
-  'reservations.type.tour': 'Екскурсія',
+  'reservations.type.tour': 'Екскурсія з гідом',
   'reservations.type.parking': 'Паркування',
   'reservations.type.other': 'Інше',
   'reservations.type.bus': 'Автобус',
@@ -287,5 +287,9 @@ const reservations: TranslationStrings = {
     "Для завантаження файлів потрібне з'єднання. Видаліть нові, щоб зберегти бронювання офлайн, або збережіть, коли знову будете онлайн.",
   'reservations.needsConnection': "Для цього потрібне з'єднання. Спробуйте ще раз, коли TREK знову буде онлайн.",
   'reservations.exportCsvFiltered': 'Експортувати показані рядки: {shown} із {total} (CSV)',
+  'reservations.wallet.add': 'Додати до Apple Wallet',
+  'reservations.wallet.addGoogle': 'Додати до Google Wallet',
+  'reservations.wallet.failed': 'Не вдалося створити картку Wallet. Повторіть спробу.',
+  'reservations.wallet.undated': 'Спершу вкажіть дату бронювання: Wallet показує картку ближче до цього часу.',
 };
 export default reservations;

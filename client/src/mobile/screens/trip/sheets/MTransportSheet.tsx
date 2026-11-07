@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowRight, Footprints, Paperclip, Pencil, Route as RouteIcon, Trash2 } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
+import MWalletButton from '../../../components/MWalletButton'
 import type { MTripSheetsProps } from '../MTripShell'
 import { useTranslation } from '../../../../i18n'
 import { useSettingsStore } from '../../../../store/settingsStore'
@@ -15,6 +16,8 @@ import type { Reservation } from '../../../../types'
 import { useSearchParams } from 'react-router'
 import { isTransportReservationType } from '@trek/shared'
 import { useBookingLink } from '../../../../hooks/useBookingLink'
+import { bookingFacts, stayStats } from '../../../../components/Planner/bookings/bookingFacts'
+import { parseMeta } from '../../../../components/Planner/bookings/bookingsModel'
 import { Eyebrow, INNER_CLS, StatBox, TileHeader, displayTime } from './MTripSheetUi'
 
 interface TransportSheetPayload {
@@ -173,10 +176,27 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
     revealOnMap(res)
   }
 
+  // A stay shows its check-in, check-out and nights, as the desktop dialog does.
+  const hotelStats = res.type === 'hotel'
+    ? stayStats(
+        bookingFacts(res, { t, locale, timeFormat, days: planner.days, assignmentLookup: {}, hasLinkedCost: false }),
+        parseMeta(res),
+        t,
+        locale,
+      )
+    : []
+
+  // The editor that fits the booking: transports have their own, everything
+  // else (a stay, a table, a ticket) the booking editor, as in the Bookings tab.
   const editTransport = () => {
-    planner.setEditingTransport(res)
-    planner.setTransportModalDayId(res.day_id ?? null)
-    planner.setShowTransportModal(true)
+    if (isTransportReservationType(res.type)) {
+      planner.setEditingTransport(res)
+      planner.setTransportModalDayId(res.day_id ?? null)
+      planner.setShowTransportModal(true)
+    } else {
+      planner.setEditingReservation(res)
+      planner.setShowReservationModal(true)
+    }
     shell.closeSheet()
   }
 
@@ -197,9 +217,16 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
         />
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px]">
+      <div className="m-scroll-fade mt-2 min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px] pt-[14px]">
+        {/* ── A stay: check-in, check-out, nights ── */}
+        {hotelStats.length > 0 && (
+          <div className="mt-[14px] flex gap-[6px]">
+            {hotelStats.map(s => <StatBox key={s.label} value={s.value} label={s.label} />)}
+          </div>
+        )}
+
         {/* ── Times / seat stats ── */}
-        {(depTime || arrTime || seat || platform) && (
+        {hotelStats.length === 0 && (depTime || arrTime || seat || platform) && (
           <div className="mt-[14px] flex gap-[6px]">
             {depTime && (
               <StatBox value={displayTime(depTime, locale, timeFormat)} label={depLabel} />
@@ -322,6 +349,7 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
             <RouteIcon size={13} strokeWidth={2} />
             {t('mobileTrip.onMap')}
           </button>
+          <MWalletButton tripId={planner.tripId} reservationId={payload.reservationId} onError={planner.toast.error} />
           {resFiles.map(f => (
             <button
               key={f.id}

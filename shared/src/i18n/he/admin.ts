@@ -1088,6 +1088,7 @@ const admin: TranslationStrings = {
   'admin.contribute.never.providers': 'פרטים שמולאו על ידי Google או ספק אחר',
   'admin.contribute.prompt.how':
     'רק מה שהמשתמשים שלכם הקלידו בעצמם, ורק עבור מקומות שהאינדקס מכיר. שום משתמש, טיול או חשבון לא נשלח יחד איתו. היומן מציג כל שליחה, ואפשר לכבות שדות או למשוך הכול בכל עת.',
+  'admin.contribute.prompt.past': 'גם פרטים שהמשתמשים שלך הקלידו מאז TREK 5.1 משותפים, בהדרגה.',
   'admin.contribute.prompt.openRegistration':
     'ההרשמה פתוחה בהתקנה הזו, כך שכל מי שיש לו חשבון יכול להקליד פרטים. כל ערך נבדק לפני שהוא מתפרסם.',
   'admin.contribute.prompt.footnote': 'אתם מחליטים על זה עבור ההתקנה כולה. המשתמשים שלכם לא נשאלים.',

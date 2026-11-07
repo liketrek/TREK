@@ -2301,15 +2301,12 @@ describe('CostsPanel: a bill entered in the display currency (#2525)', () => {
     mount([hotel()])
 
     await screen.findByText('Aparthotel Silver')
-    // The entered amount was nowhere on the row, so $791.57 read as a wrong copy of
-    // the 801.76 in the dialog. The pill beside the line is the last step.
-    expect(screen.getByText(/^\$801\.76 → 685,26\s€$/)).toBeInTheDocument()
-    // Row total and payer chip stay the booked euros at today's rate, and so does what
-    // I lent: half of 685.26 EUR, the figure settle-up offers. Printing $400.88 here
-    // had Bob pay back more than he owed and reopened the trip.
-    expect(screen.getAllByText('$791.55')).toHaveLength(2)
-    expect(screen.getByText('you lent $395.77')).toBeInTheDocument()
-    expect(screen.queryByText('you lent $400.88')).toBeNull()
+    // A bill in the display currency counts as typed (#2965), as the balances net it:
+    // row total and payer chip read the dollars entered, nothing to explain under it,
+    // and what I lent is half of them, which settle-up offers too.
+    expect(screen.queryByText(/^\$801\.76 → /)).toBeNull()
+    expect(screen.getAllByText('$801.76')).toHaveLength(2)
+    expect(screen.getByText('you lent $400.88')).toBeInTheDocument()
   })
 
   it('FE-W5COSTS-087: a bill booked at today\'s rate reads exactly as typed everywhere on the page', async () => {
@@ -2344,7 +2341,8 @@ describe('CostsPanel: a bill entered in the display currency (#2525)', () => {
       await waitFor(() => expect(exported).toBeTruthy())
       const lines = (await exported!.text()).replace(/^\uFEFF/, '').split('\r\n')
       expect(lines[0]).toBe('Date;Name;Category;Amount;Currency;Amount (EUR);Amount (USD);Note')
-      expect(lines[1]).toMatch(/;801\.76;USD;685\.26;791\.55;$/)
+      // The trip-currency figure it was booked at, then the dollars as typed (#2965).
+      expect(lines[1]).toMatch(/;801\.76;USD;685\.26;801\.76;$/)
     } finally {
       createObjURL.mockRestore(); revokeObjURL.mockRestore(); clickSpy.mockRestore()
     }
@@ -2357,13 +2355,13 @@ describe('CostsPanel: a bill entered in the display currency (#2525)', () => {
     ])
 
     await screen.findByText('Aparthotel Silver')
-    // 120 USD at 1.17 is 102.56 EUR, $118.47 today; with the hotel's $791.55 that is
-    // $910.02, on the day header and on the total spend card.
-    expect(screen.getByText(/^\$120\.00 → 102,56\s€$/)).toBeInTheDocument()
-    expect(screen.getByText('$910.02 spent')).toBeInTheDocument()
+    // Both in the display currency, both as typed (#2965): $801.76 and $120.00 make
+    // $921.76, on the day header and on the total spend card.
+    expect(screen.queryByText(/^\$120\.00 → /)).toBeNull()
+    expect(screen.getByText('$921.76 spent')).toBeInTheDocument()
     // Label, its text block, the header row, then the card itself.
     const card = screen.getByText('Total trip spend').parentElement!.parentElement!.parentElement!
-    expect(card.textContent).toContain('$910.02')
+    expect(card.textContent).toContain('$921.76')
   })
 
   it('FE-W5COSTS-084: the totals follow the rates when they arrive after the expenses', async () => {
@@ -2399,7 +2397,7 @@ describe('CostsPanel: a bill entered in the display currency (#2525)', () => {
     expect(screen.queryByText(/^\$50\.00 →/)).toBeNull()
   })
 
-  it('FE-W5COSTS-082: a payment recorded in dollars is booked like an expense, a legacy one stays as entered', async () => {
+  it('FE-W5COSTS-082: a payment recorded in dollars reads as entered, a legacy one too (#2965)', async () => {
     mount([hotel()], {
       settlements: [
         { id: 21, from_user_id: 2, to_user_id: 1, amount: 400.88, currency: 'USD', exchange_rate: 1.17, created_at: '2026-08-07 09:00:00' },
@@ -2410,29 +2408,26 @@ describe('CostsPanel: a bill entered in the display currency (#2525)', () => {
     })
 
     await screen.findByText('Aparthotel Silver')
-    expect(await screen.findByText(/\$400\.88 → 342,63\s€$/)).toBeInTheDocument()
     // The hotel's split chips can carry the same figure, so look past them to the payment.
     const outsideChips = (text: string) => screen.queryAllByText(text).filter(el => !el.closest('[data-testid="split-chip"]'))
-    expect(outsideChips('$395.77')).toHaveLength(1)
+    expect(await screen.findByText('$30.00')).toBeInTheDocument()
+    expect(screen.queryByText(/\$400\.88 → /)).toBeNull()
+    expect(outsideChips('$400.88')).toHaveLength(1)
     expect(outsideChips('$30.00')).toHaveLength(1)
     expect(screen.queryByText('$34.65')).toBeNull()
   })
 
-  it('FE-W5COSTS-085: the edit dialog previews the rate the save keeps, the one the row was booked at', async () => {
+  it('FE-W5COSTS-085: the edit dialog has nothing to convert for a bill in the display currency (#2965)', async () => {
     const user = userEvent.setup()
     mount([hotel()])
 
     await screen.findByText('Aparthotel Silver')
     await user.click(screen.getByRole('button', { name: /^Edit(:|$)/ }))
     expect(await screen.findByDisplayValue('801.76')).toBeInTheDocument()
-    // Same currency as the list, so the dialog said nothing, and 801.76 there beside
-    // $791.57 in the list looked like two different expenses.
-    const hint = screen.getByText(/live rate/).parentElement as HTMLElement
-    expect(within(hint).getByText('$801.76')).toBeInTheDocument()
-    expect(within(hint).getByText(/^685,26\s€$/)).toBeInTheDocument()
-    expect(within(hint).getByText('$791.55')).toBeInTheDocument()
-    // Each share next to what it counts as, the figure the row's "you lent" is made of.
-    expect(screen.getByText(/\$400\.88 → \$395\.77 per person/)).toBeInTheDocument()
+    // The list reads the dollars typed, so there is no conversion to preview.
+    expect(screen.queryByText(/live rate/)).toBeNull()
+    expect(screen.getByText(/\$400\.88 per person/)).toBeInTheDocument()
+    expect(screen.queryByText(/\$400\.88 → /)).toBeNull()
   })
 
   it('FE-W5COSTS-086: the final budget names the bill by what was entered beside its booked figure', async () => {

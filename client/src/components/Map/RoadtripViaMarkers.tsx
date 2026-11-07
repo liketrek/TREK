@@ -3,6 +3,9 @@ import { Marker, Tooltip, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { useTranslation } from '../../i18n/TranslationContext'
 import { useStableVias } from './viaMarkerState'
+import { useLngFrame } from './lngFrameContext'
+import { frameLng } from '../../utils/lngFrame'
+import { onRealWorld } from '../../utils/worldCopy'
 import type { RoadtripVia } from '@trek/shared'
 
 /**
@@ -64,12 +67,14 @@ export default function RoadtripViaMarkers({
     return () => { map.off('zoomend', update) }
   }, [map])
 
+  const frame = useLngFrame()
   const markers = useMemo(() => vias.map(via => ({
     via,
-    position: [via.lat, via.lng] as [number, number],
+    position: [via.lat, frameLng(frame, via.lng)] as [number, number],
     handlers: {
       dragend: (e: { target: { getLatLng: () => { lat: number; lng: number } } }) => {
-        const at = e.target.getLatLng()
+        // Saved on the real world, whichever copy of it the handle was dragged on (#2976).
+        const at = onRealWorld(e.target.getLatLng())
         handlersRef.current.onMoveVia?.(via.day_id, via.id, at.lat, at.lng)
       },
       // Right-click rather than a delete handle: a 12px dot has no room for one,
@@ -79,7 +84,7 @@ export default function RoadtripViaMarkers({
         handlersRef.current.onRemoveVia?.(via.day_id, via.id)
       },
     },
-  })), [vias])
+  })), [vias, frame])
 
   if (!markers.length || !zoomedIn) return null
 

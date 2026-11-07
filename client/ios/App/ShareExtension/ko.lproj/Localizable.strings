@@ -1,0 +1,26 @@
+/* The share sheet ("TREK" in the share menu): ShareExtension/ShareView.swift. */
+"share.title" = "TREK에 추가";
+"share.cancel" = "취소";
+"share.close" = "닫기";
+"share.trip" = "여행";
+"share.noTrips" = "TREK을 한 번 열면 여기에 여행이 표시됩니다.";
+"share.hint" = "TREK이 예약을 읽고 여행에 추가합니다.";
+"share.later" = "나중에 선택";
+"share.add" = "추가";
+"share.addTo" = "%@에 추가";
+"share.added" = "추가됨";
+"share.reading" = "읽는 중…";
+"share.tooLarge" = "이 파일은 가져오기에는 너무 큽니다.";
+"share.unsupported" = "TREK에서 가져올 수 없는 항목입니다.";
+"share.failed" = "TREK에 전달하지 못했습니다. 다시 시도하세요.";
+"share.now" = "진행 중";
+"share.past" = "지난 여행";
+"share.tomorrow" = "내일";
+"share.inDays" = "%d일 후";
+"share.kind.pass" = "Wallet 패스";
+"share.kind.pdf" = "PDF";
+"share.kind.mail" = "이메일";
+"share.kind.page" = "웹 페이지";
+"share.kind.text" = "텍스트";
+"share.kind.image" = "사진";
+"share.kind.file" = "파일";

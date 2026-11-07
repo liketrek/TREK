@@ -8,7 +8,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addTransportShort': 'Μεταφορά',
   'mobileTrip.allDays': 'Όλες οι Ημέρες',
   'mobileTrip.today': 'Σήμερα',
-  'mobileTrip.jumpToToday': 'Μετάβαση στο σήμερα',
   'mobileTrip.assignedDays': 'Ανατεθειμένες ημέρες',
   'mobileTrip.assignmentNotes': 'Σημειώσεις ημέρας',
   'mobileTrip.bookingsEmpty': 'Δεν υπάρχουν κρατήσεις ακόμη',
@@ -20,8 +19,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.filesEmpty': 'Δεν υπάρχουν αρχεία ακόμη',
   'mobileTrip.filesNext': 'Επόμενο αρχείο',
   'mobileTrip.filesPrev': 'Προηγούμενο αρχείο',
-  'mobileTrip.googleMaps': 'Google Maps',
-  'mobileTrip.coMaps': 'CoMaps',
   'mobileTrip.icsDownload': 'Λήψη .ics',
   'mobileTrip.icsSubscribe': 'Εγγραφή στο ημερολόγιο',
   'mobileTrip.icsSubscribeSub': 'Ενημερώνεται αυτόματα στην εφαρμογή ημερολογίου σας',
@@ -84,5 +81,8 @@ const mobileTrip: TranslationStrings = {
     '1 τμήμα είχε περισσότερα από όσα χωρούν σε μία απάντηση. Διαλέξτε λιγότερα είδη για να δείτε τα υπόλοιπα.',
   'mobileTrip.rtNoDay': 'Δεν επιλέχθηκε ημέρα',
   'mobileTrip.rtNoDayHint': 'Ο χάρτης δείχνει ολόκληρο το ταξίδι. Πατήστε μια ημέρα παραπάνω για τη διαδρομή της.',
+  'mobileTrip.maps': 'Χάρτες',
+  'mobileTrip.openRouteIn': 'Άνοιγμα της ημέρας σε',
+  'mobileTrip.firstStopOnly': 'Μόνο η πρώτη στάση',
 };
 export default mobileTrip;

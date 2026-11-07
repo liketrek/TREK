@@ -4,6 +4,9 @@ import { lockBodyScroll } from '../../utils/bodyScrollLock'
 import { useTranslation } from '../../i18n'
 import { useDiscardGuard } from '../../components/shared/useDiscardGuard'
 import { keepTabInside, useModalFocus } from './modalFocus'
+import { useSheetDrag } from './useSheetDrag'
+import { useOverlay } from '../overlayStack'
+import { tickHaptic } from '../../native/haptics'
 
 export type MSheetVariant = 'card' | 'bottom' | 'drawer'
 export type MSheetMaterial = 'glass' | 'bar-glass' | 'opaque'
@@ -31,7 +34,7 @@ interface MSheetProps {
   discardGuard?: unknown
 }
 
-const EXIT_MS = 280
+const EXIT_MS = 300
 
 const DISCARD_BUTTON = 'rounded-full bg-danger px-4 py-2 text-body font-semibold text-white' // theme-lint-disable: white on the danger fill, as ConfirmDialog draws it
 
@@ -59,14 +62,20 @@ const MATERIAL: Record<MSheetMaterial, string> = {
   opaque: 'bg-[color:var(--m-sheetop)] border border-[color:var(--m-shbr)]',
 }
 
+// The docked sheet rises from below the screen edge like a native sheet; the
+// card pops in place like an alert; the drawer slides from the side.
+const ENTER: Record<MSheetVariant, string> = { card: 'm-sheet-in', bottom: 'm-sheet-up', drawer: 'm-drawer-in' }
+const EXIT: Record<MSheetVariant, string> = { card: 'm-sheet-out', bottom: 'm-sheet-down', drawer: 'm-drawer-out' }
+
 function sheetRoot(): HTMLElement {
   return document.getElementById('m-sheet-root') ?? document.body
 }
 
 /**
  * The one sheet primitive of the mobile design system. Handles portal,
- * scrim, ESC/backdrop dismissal, body scroll lock, focus trapping, 280ms
- * enter/exit and — for the bottom variant — drag-to-dismiss on the top edge.
+ * scrim, ESC/backdrop dismissal, body scroll lock, focus trapping, native
+ * enter/exit motion and — for the bottom variant — drag-to-dismiss from the top
+ * edge or from content scrolled to its top (useSheetDrag).
  */
 export default function MSheet({
   open,
@@ -80,23 +89,43 @@ export default function MSheet({
   discardGuard,
 }: MSheetProps) {
   const { t } = useTranslation()
-  const { asking, markStart, requestClose, keepEditing, discard, reset } = useDiscardGuard(discardGuard, onClose)
+  const { asking, markStart, requestClose, wouldAsk, keepEditing, discard, reset } = useDiscardGuard(discardGuard, onClose)
   const [rendered, setRendered] = useState(open)
   // Once the enter animation has played it is removed again: its forwards
   // fill would otherwise override the inline drag transform for good.
   const [entered, setEntered] = useState(false)
-  const [dragY, setDragY] = useState<number | null>(null)
+  // Thrown off screen by a drag: it leaves from where the finger let go, so the
+  // exit animation (which starts from the rest position) must not play.
+  const [flung, setFlung] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
-  const dragRef = useRef<{ startY: number; lastY: number; lastT: number; velocity: number } | null>(null)
+  const sheetDrag = useSheetDrag({
+    enabled: variant === 'bottom' && open && rendered,
+    panelRef,
+    onDismiss: () => {
+      if (wouldAsk()) {
+        requestClose()
+        return false
+      }
+      setFlung(true)
+      tickHaptic()
+      onClose()
+      return true
+    },
+  })
 
   // Keep the sheet mounted through the exit animation.
   useEffect(() => {
     if (open) {
       setRendered(true)
+      setFlung(false)
+      const panel = panelRef.current
+      if (panel) {
+        panel.style.transform = ''
+        panel.style.transition = ''
+      }
       return
     }
     setEntered(false)
-    setDragY(null)
     // The sheet stays mounted between openings; the next one starts afresh.
     reset()
     const t = setTimeout(() => setRendered(false), EXIT_MS)
@@ -125,50 +154,24 @@ export default function MSheet({
     return lockBodyScroll()
   }, [open])
 
+  // A way back (the edge swipe, Android's back gesture) closes the sheet on top
+  // first, through the same path as the scrim, so unsaved changes still ask.
+  useOverlay(open && rendered, requestClose)
+
   // Move focus into the dialog on open, hand it back on close.
   useModalFocus(panelRef, open && rendered)
 
   if (!rendered) return null
 
-  const handlePointerDown = (e: React.PointerEvent) => {
-    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
-    dragRef.current = { startY: e.clientY, lastY: e.clientY, lastT: e.timeStamp, velocity: 0 }
-    setDragY(0)
-  }
-
-  const handlePointerMove = (e: React.PointerEvent) => {
-    const d = dragRef.current
-    if (!d) return
-    d.velocity = (e.clientY - d.lastY) / Math.max(1, e.timeStamp - d.lastT)
-    d.lastY = e.clientY
-    d.lastT = e.timeStamp
-    setDragY(Math.max(0, e.clientY - d.startY))
-  }
-
-  const handlePointerEnd = () => {
-    const d = dragRef.current
-    if (!d) return
-    dragRef.current = null
-    const height = panelRef.current?.offsetHeight ?? 0
-    const dy = Math.max(0, d.lastY - d.startY)
-    setDragY(null)
-    // Past 30% of the panel or a decisive flick → dismiss.
-    if ((height > 0 && dy > height * 0.3) || d.velocity > 0.6) requestClose()
-  }
-
   // Keep Tab inside the dialog while it is open.
   const handleKeyDown = (e: React.KeyboardEvent) => keepTabInside(e, panelRef.current)
 
-  const enterClass = variant === 'drawer' ? 'm-drawer-in' : 'm-sheet-in'
-  const exitClass = variant === 'drawer' ? 'm-drawer-out' : 'm-sheet-out'
-  const animation = open ? (entered ? '' : enterClass) : exitClass
+  const enterClass = ENTER[variant]
+  const exitClass = EXIT[variant]
+  const animation = open ? (entered ? '' : enterClass) : flung ? '' : exitClass
 
-  const resolvedMaterial = material ?? (variant === 'bottom' ? 'bar-glass' : 'glass')
-
-  const dragStyle: React.CSSProperties =
-    dragY !== null
-      ? { transform: `translateY(${dragY}px)`, transition: 'none' }
-      : { transition: 'transform 280ms var(--ease-drawer)' }
+  // One material for every sheet, docked or floating, so they all read the same.
+  const resolvedMaterial = material ?? 'glass'
 
   return createPortal(
     // m-root on the overlay so the --m-* tokens resolve even when the portal
@@ -193,7 +196,6 @@ export default function MSheet({
           data-m-sheet={open ? 'open' : 'closing'}
           tabIndex={-1}
           className={`relative flex flex-col overflow-hidden outline-none text-m-ink ${SHAPE[variant]} ${MATERIAL[resolvedMaterial]} ${animation} ${className}`}
-          style={variant === 'bottom' ? dragStyle : undefined}
           onClick={(e) => e.stopPropagation()}
           onKeyDown={handleKeyDown}
           onKeyDownCapture={markStart}
@@ -203,14 +205,12 @@ export default function MSheet({
           }}
         >
           {variant === 'bottom' && (
-            // Invisible drag strip along the top edge — the design shows no
-            // handle, the panel starts directly with its content.
+            // Invisible grab strip along the top edge — the design shows no
+            // handle, the panel starts directly with its content. The content
+            // pulls the sheet too, once it is scrolled to its top.
             <div
-              className="absolute inset-x-0 top-0 z-[1] h-5 cursor-grab touch-none active:cursor-grabbing"
-              onPointerDown={handlePointerDown}
-              onPointerMove={handlePointerMove}
-              onPointerUp={handlePointerEnd}
-              onPointerCancel={handlePointerEnd}
+              className="absolute inset-x-0 top-0 z-[1] h-6 cursor-grab touch-none active:cursor-grabbing"
+              {...sheetDrag.strip}
             />
           )}
           {children}

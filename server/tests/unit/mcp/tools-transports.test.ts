@@ -349,7 +349,8 @@ describe('Transport tools: the price link', () => {
       const data = parseToolResult(result) as { reservation: { id: number } };
 
       const item = await findRow(orm, BudgetItems, { reservation: data.reservation.id });
-      expect(item).toMatchObject({ name: 'ZRH → CDG', category: 'Flights', total_price: 240 });
+      // Stored as its fixed Costs key (#2835).
+      expect(item).toMatchObject({ name: 'ZRH → CDG', category: 'flights', total_price: 240 });
       // The price also rides along in the reservation metadata, as the REST path does.
       expect(broadcastMock.mock.calls.some((c) => c[1] === 'budget:created')).toBe(true);
     });
@@ -365,7 +366,8 @@ describe('Transport tools: the price link', () => {
       });
       const data = parseToolResult(result) as { reservation: { id: number } };
       const item = await findRow(orm, BudgetItems, { reservation: data.reservation.id });
-      expect(item?.category).toBe('train');
+      // The type is stored as its Costs key: a train is a transport (#2835).
+      expect(item?.category).toBe('transport');
     });
   });
 

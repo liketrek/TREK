@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Flag or clear wrong base branch
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const base = context.payload.pull_request.base.ref;

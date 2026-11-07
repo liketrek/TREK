@@ -39,7 +39,7 @@ import {
 } from './trek-places.client';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
-import { isOutsideChina } from '@trek/shared';
+import { isOutsideChina, wrapLongitude } from '@trek/shared';
 import type { MapsSearchResult, MapsAutocompleteResult, MapsPlaceDetailsResult } from '@trek/shared';
 import type { MapsPlacePhotoResult, MapsReverseResult, MapsResolveUrlResult } from '@trek/shared';
 
@@ -56,6 +56,17 @@ export { type KeyedProvider } from './places-provider.selector';
 const NEARBY_CACHE = new Map<string, { at: number; value: { places: Record<string, unknown>[]; source: string } }>();
 const NEARBY_CACHE_TTL_MS = 30 * 60 * 1000;
 const NEARBY_CACHE_MAX = 500;
+
+/**
+ * The reverse-geocode longitude, as text, moved back onto the real world when a
+ * right-click on a repeated world copy sent it past 180 (#2976): the geocoders
+ * answer nothing out there. A value already in range is passed on exactly as it came.
+ */
+function onTheRealWorld(lng: string): string {
+  const value = Number.parseFloat(lng);
+  if (!Number.isFinite(value) || (value >= -180 && value <= 180)) return lng;
+  return String(wrapLongitude(value));
+}
 
 type LocationBias = { low: { lat: number; lng: number }; high: { lat: number; lng: number } };
 
@@ -649,6 +660,7 @@ export class MapsService {
     lang?: string,
     opts?: { lane?: GeoLane; timeoutMs?: number; locality?: boolean },
   ): Promise<{ name: string | null; address: string | null }> {
+    lng = onTheRealWorld(lng);
     // Amap answers first when it holds the keyed slot, and only for a point it
     // can possibly know: outside its box the call would cost a round trip to
     // come back empty before Nominatim is asked anyway. Resolved at userId 0,

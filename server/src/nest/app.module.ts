@@ -61,6 +61,7 @@ import { ManagedExtModule } from './managed/managed-ext.module';
 import { MapsModule } from './maps/maps.module';
 import { McpTransportModule } from './mcp-transport/mcp-transport.module';
 import { MemoriesModule } from './memories/memories.module';
+import { NativeAuthModule } from './native-auth/native-auth.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { OauthModule } from './oauth/oauth.module';
 import { OidcModule } from './oidc/oidc.module';
@@ -102,6 +103,7 @@ import { TransitModule } from './transit/transit.module';
 import { TripInviteModule } from './trip-invite/trip-invite.module';
 import { TripsModule } from './trips/trips.module';
 import { VacayModule } from './vacay/vacay.module';
+import { WalletPassModule } from './wallet-pass/wallet-pass.module';
 import { WandererModule } from './wanderer/wanderer.module';
 import { WeatherModule } from './weather/weather.module';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
@@ -188,11 +190,13 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
     SettingsModule,
     ServiceIdentityModule,
     RoutingRelayModule,
+    WalletPassModule,
     StorageModule,
     BackupModule,
     AuthModule,
     SessionsModule,
     OidcModule,
+    NativeAuthModule,
     OauthModule,
     AdminModule,
     AddonsModule,

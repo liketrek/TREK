@@ -26,14 +26,15 @@ import { UnitOfWork } from '../database/unit-of-work';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { RealtimeService } from '../realtime/realtime.service';
-import { StorageService } from '../storage/storage.service';
+import { StorageReleaseService } from '../storage/storage-release.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
 import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 
-import path from 'path';
-
 type Trip = TripAccess;
+
+/** How a `trip_files.filename` names its object: the bare name, after any legacy path. */
+const TRIP_FILE_KEYS = { bare: 'files', basename: true } as const;
 
 // Half a megabyte of markup is far more than any og:/<title> block needs, and
 // the URL is caller-supplied, so read no further than that.
@@ -169,7 +170,7 @@ export class CollabService {
     private readonly permissions: PermissionsService,
     private readonly realtime: RealtimeService,
     private readonly notifications: NotificationsService,
-    private readonly storage: StorageService,
+    private readonly release: StorageReleaseService,
     private readonly rateLimit: RateLimitService,
     private readonly uow: UnitOfWork,
     @InjectRepository(CollabMessageReactions) private readonly messageReactionsRepo: CollabMessageReactionsRepository,
@@ -381,20 +382,18 @@ export class CollabService {
     const existing = await this.notesRepo.findInTrip(idNum, tripIdNum);
     if (!existing) return false;
 
-    // Clean up attached objects first (delete-first is intentional — a failed
-    // row delete leaves dangling rows, never orphaned files). basename()
-    // tolerates any legacy 'files/'-prefixed row the boot migration has not
-    // seen.
+    // The rows go first, then the release of what they named: a failed delete
+    // keeps note, rows and bytes together, and an attachment another row still
+    // names (a trip copy's file) keeps its bytes (#2924).
     const noteFiles = await this.notesRepo.listFilenamesForNote(existing.id);
-    for (const f of noteFiles) {
-      await this.storage.delete('files', path.basename(f.filename)).catch(() => {
-        /* ignore */
-      });
-    }
     await this.uow.transactional(async () => {
       await this.notesRepo.deleteAttachmentsForNote(existing.id);
       await this.notesRepo.delete(existing.id);
     });
+    await this.release.releaseValues(
+      noteFiles.map((f) => f.filename),
+      TRIP_FILE_KEYS,
+    );
     return true;
   }
 
@@ -449,11 +448,8 @@ export class CollabService {
     const file = await this.notesRepo.findScopedForNote(fileIdNum, noteIdNum, tripIdNum);
     if (!file) return false;
 
-    await this.storage.delete('files', path.basename(file.filename)).catch(() => {
-      /* ignore */
-    });
-
     await this.notesRepo.deleteAttachmentById(file.id);
+    await this.release.releaseValues([file.filename], TRIP_FILE_KEYS);
     return true;
   }
 
@@ -750,11 +746,10 @@ export class CollabService {
     // Only once the rows are actually gone. Dropping the blobs first left a
     // live message pointing at attachments whose bytes no longer existed
     // whenever the second statement failed.
-    for (const file of attachments) {
-      void this.storage.delete('files', path.basename(file.filename)).catch(() => {
-        /* best effort */
-      });
-    }
+    await this.release.releaseValues(
+      attachments.map((file) => file.filename),
+      TRIP_FILE_KEYS,
+    );
     // Read before the delete; see the class docstring's `username` note.
     return { username: author?.username };
   }

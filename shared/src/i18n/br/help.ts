@@ -1157,7 +1157,7 @@ const help: TranslationStrings = {
   'help.ctx.settings.bullet.1':
     'Barra lateral à esquerda: Exibição, Aparência, Mapa, Notificações, Integrações, Offline e Conta. Plugins aparece quando há um plugin ativo. Sobre aparece, a menos que o operador o tenha ocultado. A versão aparece no fim.',
   'help.ctx.settings.bullet.2':
-    'Exibição abre primeiro. Ela reúne o idioma, o idioma dos nomes de lugares, as unidades, o formato de hora, o início da semana e a moeda de exibição, além do comportamento do mapa da viagem. Aparência reúne tema, cores, legibilidade, tamanho do texto e os widgets do painel.',
+    'Exibição abre primeiro. Ela reúne o idioma, o idioma dos nomes de lugares, as unidades, o formato de hora, o formato de data, o início da semana e a moeda de exibição, além do comportamento do mapa da viagem. Aparência reúne tema, cores, legibilidade, tamanho do texto e os widgets do painel.',
   'help.ctx.settings.bullet.3':
     'Mapa define o motor de mapa e o estilo; Notificações define quais eventos vão para qual canal; Integrações conecta bibliotecas de fotos, AirTrail, Dawarich e wanderer, e reúne as chaves de API e o MCP; Offline define o que este dispositivo armazena.',
   'help.ctx.settings.bullet.4':
@@ -1168,7 +1168,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-display.bullet.1':
     'Inicialização: “Página inicial” abre no Painel ou na “Viagem ativa”; com “Viagem ativa”, “Aba inicial” escolhe em que aba essa viagem abre.',
   'help.ctx.settings-display.bullet.2':
-    'Idioma e região: “Moeda de exibição” (ou “Moeda da viagem” para não converter), Idioma, “Nomes de lugares”, “Unidade de temperatura”, “Unidade de distância”, “Formato de hora” e “Semana começa em”.',
+    'Idioma e região: “Moeda de exibição” (ou “Moeda da viagem” para não converter), Idioma, “Nomes de lugares”, “Unidade de temperatura”, “Unidade de distância”, “Formato de hora”, “Semana começa em” e “Formato de data”.',
   'help.ctx.settings-display.bullet.3':
     'Viagem e mapa: “Abrir lugares em”, “Data primeiro nos títulos dos dias”, “Rótulos das rotas de reservas”, “Sempre mostrar rotas de reserva”, “Marcadores compactos para lugares não planejados”, “Explorar lugares no mapa”, “Ocultar códigos de reserva” e “Otimizar rota a partir da hospedagem”.',
   'help.ctx.settings-appearance.title': 'Aparência',
@@ -1484,9 +1484,9 @@ const help: TranslationStrings = {
     '“Configurações de Permissões”, no fim: para cada ação, quem pode realizá-la (Todos, “Membros da viagem”, “Dono da viagem” ou “Apenas administrador”). Clique em Salvar no topo do cartão para salvar.',
   'help.ctx.admin-defaults.title': 'Padrões do usuário',
   'help.ctx.admin-defaults.summary':
-    'Com o que uma conta nova já começa, para ninguém precisar configurar antes: tema de cores, unidades, formato de hora, início da semana, moeda de exibição e códigos de reserva ocultos, além do mapa, das chaves dele e dos servidores de rotas.',
+    'Com o que uma conta nova já começa, para ninguém precisar configurar antes: tema de cores, unidades, formato de hora, formato de data, início da semana, moeda de exibição e códigos de reserva ocultos, além do mapa, das chaves dele e dos servidores de rotas.',
   'help.ctx.admin-defaults.bullet.1':
-    '“Configurações padrão do usuário”, à esquerda: “Tema de cores”, “Unidade de temperatura”, “Unidade de distância”, “Formato de hora”, “Semana começa em”, “Moeda de exibição” e “Ocultar códigos de reserva”.',
+    '“Configurações padrão do usuário”, à esquerda: “Tema de cores”, “Unidade de temperatura”, “Unidade de distância”, “Formato de hora”, “Semana começa em”, “Formato de data”, “Moeda de exibição” e “Ocultar códigos de reserva”.',
   'help.ctx.admin-defaults.bullet.2':
     'Mapa, à direita: “Modelo de mapa”, “Chave CARTO compartilhada”, “Servidor de rotas próprio” e “Instância Valhalla própria”, uma pré-visualização e depois “Motor de mapas”, com “Estilo do mapa”, “Token compartilhado do Mapbox”, “Edifícios & relevo em 3D” e “Modo de alta qualidade”.',
   'help.ctx.admin-config.title': 'Personalização',
@@ -3419,7 +3419,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.summary':
     'Esta aba reúne tudo o que foi reservado para a viagem, menos transporte: hospedagens, mesas, ingressos, passeios e estacionamentos. Cada reserva é um cartão, uma linha de lista ou uma barra na linha do tempo, com código, documentos, viajantes e custo. Clique em uma reserva para abrir os detalhes.',
   'help.ctx.trip-bookings.bullet.1':
-    '“Reserva manual”, na ponta direita da barra, abre “Nova reserva”. Ela cria seis tipos de reserva: Hospedagem, Restaurante, Evento, Passeio, Estacionamento e Outro. Voos, trens e outros transportes ficam na aba Transportes e nunca aparecem aqui.',
+    '“Reserva manual”, na ponta direita da barra, abre “Nova reserva”. Ela cria seis tipos de reserva: Hospedagem, Restaurante, Evento, Passeio guiado, Estacionamento e Outro. Voos, trens e outros transportes ficam na aba Transportes e nunca aparecem aqui.',
   'help.ctx.trip-bookings.bullet.2':
     'O ícone de download antes de “Reserva manual”, “Importar confirmações de reserva”, envia confirmações para o TREK ler automaticamente: EML, PDF, PKPass, HTML ou TXT, no máximo cinco arquivos de 10 MB, e fotos quando o modelo de IA lê imagens. O ícone só aparece quando o servidor consegue ler esses arquivos.',
   'help.ctx.trip-bookings.bullet.3':
@@ -3461,7 +3461,7 @@ const help: TranslationStrings = {
   'help.guide.create-booking.step.1':
     'Clique em “Reserva manual”, na ponta direita da barra. Abre “Nova reserva”, com o título e dois selos num cabeçalho no topo.',
   'help.guide.create-booking.step.2':
-    'Clique no rótulo do tipo na faixa do topo, que mostra “Outro” numa reserva nova, e escolha o “Tipo de reserva”. Esta aba cria seis tipos: Hospedagem, Restaurante, Evento, Passeio, Estacionamento e Outro. O formulário muda conforme a escolha: só Hospedagem usa um intervalo de dias em vez de datas.',
+    'Clique no rótulo do tipo na faixa do topo, que mostra “Outro” numa reserva nova, e escolha o “Tipo de reserva”. Esta aba cria seis tipos: Hospedagem, Restaurante, Evento, Passeio guiado, Estacionamento e Outro. O formulário muda conforme a escolha: só Hospedagem usa um intervalo de dias em vez de datas.',
   'help.guide.create-booking.step.3':
     'Digite o título na faixa do topo, o campo acima das etiquetas. É o único campo obrigatório, e “Adicionar” fica cinza até você preencher algo.',
   'help.guide.create-booking.step.4':
@@ -4304,7 +4304,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-about.bullet.3':
     'No Ko-fi, no Buy Me a Coffee e no Discord você pode apoiar o TREK ou conversar com quem o desenvolve.',
   'help.guide.language-region.step.3':
-    'Defina a “Moeda de exibição” ou mantenha “Moeda da viagem” para ver cada viagem na própria moeda. Depois escolha “Unidade de temperatura”, “Unidade de distância”, “Formato de hora” e o dia em “Semana começa em”.',
+    'Defina a “Moeda de exibição” ou mantenha “Moeda da viagem” para ver cada viagem na própria moeda. Depois escolha “Unidade de temperatura”, “Unidade de distância”, “Formato de hora”, o dia em “Semana começa em” e o “Formato de data”.',
   'help.guide.travel-map-prefs.step.3':
     '“Explorar lugares no mapa” mostra a pílula de categorias para encontrar lugares próximos. “Ocultar códigos de reserva” esconde os números de confirmação até você passar o mouse ou tocar neles. “Otimizar rota a partir da hospedagem” faz o dia começar e terminar no seu hotel.',
   'help.guide.web-push-device.step.2':
@@ -6377,7 +6377,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-settings.bullet.5':
     'Zona de perigo: “Rotacionar segredo JWT” desconecta todos os usuários, inclusive você.',
   'help.guide.default-user-settings.step.1':
-    'Em “Configurações padrão do usuário”, escolha “Tema de cores” (Claro, Escuro ou Automático), “Unidade de temperatura”, “Unidade de distância”, “Formato de hora”, “Semana começa em”, a “Moeda de exibição” e se “Ocultar códigos de reserva” fica ativado ou desativado. Cada escolha é salva na hora.',
+    'Em “Configurações padrão do usuário”, escolha “Tema de cores” (Claro, Escuro ou Automático), “Unidade de temperatura”, “Unidade de distância”, “Formato de hora”, “Semana começa em”, o “Formato de data”, a “Moeda de exibição” e se “Ocultar códigos de reserva” fica ativado ou desativado. Cada escolha é salva na hora.',
   'help.guide.admin-passkeys.step.2':
     'Informe o “Relying Party ID (domínio)”, como trek.example.org, e as “Origens permitidas” pelas quais o seu TREK é acessado, e clique em Salvar. Deixe os dois em branco para usar APP_URL.',
   'help.guide.rotate-jwt-secret.title': 'Desconectar todos de uma vez',

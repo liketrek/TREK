@@ -83,7 +83,7 @@ export function MAdminClampedText({ children, className = '' }: { children: stri
 export function MAdminField({ label, hint, children }: { label: ReactNode; hint?: ReactNode; children: ReactNode }) {
   return (
     <div>
-      <div className="mb-[6px] text-[0.75rem] font-semibold text-m-ink">{label}</div>
+      <div className="mb-[5px] font-geist text-[0.625rem] font-bold uppercase tracking-[.09em] text-m-faint">{label}</div>
       {children}
       {hint && <div className="mt-[5px] font-geist text-[0.625rem] leading-relaxed text-m-muted">{hint}</div>}
     </div>
@@ -94,7 +94,7 @@ export function MAdminInput({ className = '', ...props }: InputHTMLAttributes<HT
   return (
     <input
       {...props}
-      className={`h-[42px] w-full rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 text-[0.84375rem] text-m-ink outline-none placeholder:text-m-faint focus:border-[color:var(--m-faint)] disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
+      className={`h-[42px] w-full rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[14px] text-[0.84375rem] text-m-ink outline-none placeholder:text-m-faint focus:border-[color:var(--m-faint)] disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
     />
   )
 }
@@ -161,11 +161,14 @@ export function MAdminButton({
 /** Sheet body frame: title row + close, scrollable content, optional footer. */
 export function MAdminSheetFrame({
   title,
+  icon,
   onClose,
   footer,
   children,
 }: {
   title: ReactNode
+  /** The icon tile in front of the title, as every phone sheet has. */
+  icon?: ReactNode
   onClose: () => void
   footer?: ReactNode
   children: ReactNode
@@ -173,15 +176,22 @@ export function MAdminSheetFrame({
   const { t } = useTranslation()
   return (
     <>
-      <div className="flex flex-none items-center gap-2 px-4 pb-2 pt-4">
-        <div className="min-w-0 flex-1 truncate text-[0.9375rem] font-extrabold text-m-ink">{title}</div>
+      {/* TileHeader's shape: the icon tile, the title and the round close. */}
+      <div className="flex flex-none items-center gap-3 px-[18px] pb-1 pt-4">
+        {icon && (
+          <span className="flex h-10 w-10 flex-none items-center justify-center rounded-[13px] bg-[color:var(--m-ic)] text-m-ink">
+            {icon}
+          </span>
+        )}
+        <div className="min-w-0 flex-1 truncate text-[1.0625rem] font-bold leading-tight text-m-ink">{title}</div>
         <MIconBtn variant="neutral" size={34} ariaLabel={t('common.close')} onClick={onClose}>
-          <X size={16} strokeWidth={2.2} />
+          <X size={15} strokeWidth={2.2} />
         </MIconBtn>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">{children}</div>
+      <div className="m-scroll-fade mt-2 min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px] pt-[14px]">{children}</div>
       {footer && (
-        <div className="flex flex-none items-center justify-end gap-2 border-t border-[color:var(--m-rowbr)] px-4 py-3">
+        // The footer's buttons take the sheets' 42 px size; elsewhere MAdminButton stays a small pill.
+        <div className="flex flex-none items-center justify-end gap-2 border-t border-[color:var(--m-rowbr)] px-[18px] pb-4 pt-3 [&>button]:h-[42px] [&>button]:px-4 [&>button]:text-[length:calc(13px*var(--fs-scale-body,1))] [&>button]:font-semibold">
           {footer}
         </div>
       )}

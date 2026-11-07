@@ -69,7 +69,7 @@ export default function MobileMapTimeline({
   controlsTop,
 }: Props) {
   const {
-    mapRef, carouselRef, cardRefs, activeIndex, setActiveIndex, scrubberDays,
+    mapRef, carouselRef, cardRefs, activeIndex, focusIndex, setActiveIndex, scrubberDays,
     syncMapToCard: syncMapToCarousel, handleMarkerClick, handleCardTap, openEntryById, jumpToDay,
   } = useJourneyCarouselSync({ entries, mapEntries, onOpenEntry: onEntryClick })
   // The delayed initial focus reads both through refs so it always works off
@@ -108,8 +108,8 @@ export default function MobileMapTimeline({
   if (entries.length === 0) {
     return (
       <div
-        className="fixed inset-x-0 z-10"
-        style={{ top: 'var(--nav-h, 0px)', bottom: 'env(safe-area-inset-bottom, 0px)' }}
+        className="fixed inset-x-0 bottom-0 z-10"
+        style={{ top: 'var(--nav-h, 0px)' }}
       >
         <JourneyLayeredMap
           ref={mapRef}
@@ -147,8 +147,10 @@ export default function MobileMapTimeline({
 
   return (
     <div
-      className="fixed inset-x-0 z-10"
-      style={{ top: 'var(--nav-h, 0px)', bottom: 'env(safe-area-inset-bottom, 0px)' }}
+      // Down to the very edge: Safari draws its toolbar over the page, and a map
+      // that stopped at the safe area left a bare strip under it (#3002).
+      className="fixed inset-x-0 bottom-0 z-10"
+      style={{ top: 'var(--nav-h, 0px)' }}
     >
       {/* Full-screen map */}
       <JourneyLayeredMap
@@ -187,7 +189,7 @@ export default function MobileMapTimeline({
         />
         <div
           ref={carouselRef}
-          className="flex items-end gap-[10px] overflow-x-auto px-4 pb-3 pt-1"
+          className="flex items-end gap-[22px] overflow-x-auto px-6 pb-3 pt-[30px]"
           style={{
             scrollSnapType: 'x mandatory',
             WebkitOverflowScrolling: 'touch',
@@ -205,7 +207,7 @@ export default function MobileMapTimeline({
               <JourneyEntryCover
                 entry={entry}
                 dayColor={dayColorOf(scrubberDays, entry.entry_date)}
-                isActive={i === activeIndex}
+                isActive={i === focusIndex}
                 onClick={() => handleCardTap(entry, i)}
                 showMood={showMood}
                 showWeather={showWeather}

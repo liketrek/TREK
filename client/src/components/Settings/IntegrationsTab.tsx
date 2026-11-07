@@ -1,6 +1,7 @@
 import Section from './Section'
 import React, { useId } from 'react'
 import { useTranslation } from '../../i18n'
+import { useFormatDate } from '../../hooks/useDateFormat'
 import { useToast } from '../shared/Toast'
 import { Trash2, Copy, Terminal, Plus, Check, Key, KeyRound, ChevronRight, RefreshCw, AlertTriangle, Link2 } from 'lucide-react'
 import PhotoProvidersSection from './PhotoProvidersSection'
@@ -62,12 +63,13 @@ export default function IntegrationsTab(): React.ReactElement {
 
 function useIntegrations() {
   const { t, locale } = useTranslation()
+  const { formatDate } = useFormatDate()
   const toast = useToast()
   const { mcpEnabled, airtrailEnabled, llmEnabled, aiAssistantEnabled, aiConnectionEnabled, ownParsing, dawarichEnabled, wandererEnabled, managed } = useIntegrationGates({ reloadAddons: true })
 
   const mcp = useMcpIntegration({ enabled: mcpEnabled, reloadClientsAfterWrite: false })
 
-  return { t, locale, toast, mcpEnabled, airtrailEnabled, llmEnabled, aiAssistantEnabled, aiConnectionEnabled, ownParsing, dawarichEnabled,
+  return { t, locale, formatDate, toast, mcpEnabled, airtrailEnabled, llmEnabled, aiAssistantEnabled, aiConnectionEnabled, ownParsing, dawarichEnabled,
     wandererEnabled,
     managed, ...mcp,
   }
@@ -171,7 +173,7 @@ function ConfigBlock({ open, onToggle, json, hint, copied, onCopy, t }: {
 
 /** One registered OAuth client: what it is, the scopes it may use, and its two actions. */
 function OAuthClientRow({ client, S }: { client: OAuthClient; S: IntegrationsState }) {
-  const { t, locale, oauthScopesExpanded, setOauthScopesExpanded, setOauthRotateId, setOauthDeleteId } = S
+  const { t, formatDate, oauthScopesExpanded, setOauthScopesExpanded, setOauthRotateId, setOauthDeleteId } = S
   const expanded = !!oauthScopesExpanded[client.id]
   return (
     <div className={`${ROW} items-start`}>
@@ -185,7 +187,7 @@ function OAuthClientRow({ client, S }: { client: OAuthClient; S: IntegrationsSta
         </div>
         <div className="mt-0.5 flex min-w-0 flex-wrap gap-x-3 text-content-faint" style={fs(11.5)}>
           <span className="min-w-0 truncate font-geist">{t('settings.oauth.clientId')}: {client.client_id}</span>
-          <span className="tabular-nums">{t('settings.mcp.tokenCreatedAt')} {new Date(client.created_at).toLocaleDateString(locale)}</span>
+          <span className="tabular-nums">{t('settings.mcp.tokenCreatedAt')} {formatDate(new Date(client.created_at))}</span>
         </div>
         <div className="mt-2 flex flex-wrap gap-1" style={fs(10.5)}>
           {(expanded ? client.allowed_scopes : client.allowed_scopes.slice(0, 5)).map(s => (
@@ -216,7 +218,7 @@ function OAuthClientRow({ client, S }: { client: OAuthClient; S: IntegrationsSta
 /** The OAuth tab: the snippet, the registered clients and the sessions they hold. */
 function OAuthTab({ S }: { S: IntegrationsState }) {
   const {
-    t, locale, oauthClients, oauthSessions, setOauthCreateOpen, setOauthNewName, setOauthNewUris, setOauthNewScopes, setOauthCreatedClient, setOauthRevokeId, setOauthIsMachine, configOpenOAuth, setConfigOpenOAuth, copiedKey, mcpJsonConfigOAuth, handleCopy,
+    t, formatDate, oauthClients, oauthSessions, setOauthCreateOpen, setOauthNewName, setOauthNewUris, setOauthNewScopes, setOauthCreatedClient, setOauthRevokeId, setOauthIsMachine, configOpenOAuth, setConfigOpenOAuth, copiedKey, mcpJsonConfigOAuth, handleCopy,
   } = S
   return (
     <>
@@ -260,7 +262,7 @@ function OAuthTab({ S }: { S: IntegrationsState }) {
                   <p className="m-0 truncate font-semibold text-content" style={fs(13, 'body')}>{session.client_name}</p>
                   <p className="m-0 mt-0.5 flex min-w-0 flex-wrap gap-x-3 text-content-faint" style={fs(11.5)}>
                     <span className="min-w-0 truncate">{t('settings.oauth.sessionScopes')}: {session.scopes.join(', ')}</span>
-                    <span className="tabular-nums">{t('settings.oauth.sessionExpires')} {new Date(session.access_token_expires_at).toLocaleDateString(locale)}</span>
+                    <span className="tabular-nums">{t('settings.oauth.sessionExpires')} {formatDate(new Date(session.access_token_expires_at))}</span>
                   </p>
                 </div>
                 <button type="button" onClick={() => setOauthRevokeId(session.id)}
@@ -278,7 +280,7 @@ function OAuthTab({ S }: { S: IntegrationsState }) {
 
 /** The deprecated API tokens tab: the warning, the snippet and the tokens. */
 function ApiTokensTab({ S }: { S: IntegrationsState }) {
-  const { t, locale, configOpenToken, setConfigOpenToken, mcpTokens, setMcpModalOpen, setMcpNewName, setMcpCreatedToken, setMcpDeleteId, copiedKey, mcpJsonConfig, handleCopy } = S
+  const { t, formatDate, configOpenToken, setConfigOpenToken, mcpTokens, setMcpModalOpen, setMcpNewName, setMcpCreatedToken, setMcpDeleteId, copiedKey, mcpJsonConfig, handleCopy } = S
   return (
     <>
       <WarningNote>{t('settings.mcp.apiTokensDeprecated')}</WarningNote>
@@ -311,9 +313,9 @@ function ApiTokensTab({ S }: { S: IntegrationsState }) {
                 <p className="m-0 truncate font-semibold text-content" style={fs(13, 'body')}>{token.name}</p>
                 <p className="m-0 mt-0.5 flex min-w-0 flex-wrap gap-x-3 text-content-faint" style={fs(11.5)}>
                   <span className="font-geist">{token.token_prefix}...</span>
-                  <span className="tabular-nums">{t('settings.mcp.tokenCreatedAt')} {new Date(token.created_at).toLocaleDateString(locale)}</span>
+                  <span className="tabular-nums">{t('settings.mcp.tokenCreatedAt')} {formatDate(new Date(token.created_at))}</span>
                   {token.last_used_at && (
-                    <span className="tabular-nums">{t('settings.mcp.tokenUsedAt')} {new Date(token.last_used_at).toLocaleDateString(locale)}</span>
+                    <span className="tabular-nums">{t('settings.mcp.tokenUsedAt')} {formatDate(new Date(token.last_used_at))}</span>
                   )}
                 </p>
               </div>

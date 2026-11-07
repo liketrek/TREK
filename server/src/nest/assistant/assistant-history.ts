@@ -3,7 +3,7 @@ import type { AssistantMessageRow } from '../../db/repositories/AssistantMessage
 import type { AssistantToolCallRow } from '../../db/repositories/AssistantToolCalls.repository';
 import { parseDbTimestamp, utcSuffix } from '../../db/types';
 import { decodeJson } from '../../utils/json-column';
-import type { AiChatMessage, AiToolCall } from '../ai-connections/ai-chat-client.interface';
+import type { AiChatMessage, AiProviderState, AiToolCall } from '../ai-connections/ai-chat-client.interface';
 import { tourFileOutcome, tourFileReadNote, tourStopOutcome } from './assistant-history-tours';
 import { fitToSize } from './assistant-output';
 import {
@@ -26,6 +26,19 @@ import {
   type AssistantToolApproval,
 } from '@trek/shared';
 
+/** A recorded call's arguments as an object: given as one, or as JSON text; anything else is none. */
+function recordOf(value: unknown): Record<string, unknown> {
+  let parsed = value;
+  if (typeof value === 'string') {
+    try {
+      parsed = JSON.parse(value);
+    } catch {
+      return {};
+    }
+  }
+  return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : {};
+}
+
 /**
  * A thread's stored messages, read two ways: as the conversation the
  * provider is sent, and as the messages the client shows.
@@ -40,6 +53,33 @@ const EARLIER_TOOL_OUTPUT_CHARS = 8_000;
 
 /** What the model is told about a held change that never ran. */
 const NOT_APPLIED = JSON.stringify({ applied: false, reason: 'The user did not apply this change.' });
+
+/** What the model is told of a call it made that never ran, because the answer was stopped before it. */
+const NOT_RUN = 'This call did not run: the answer was stopped before it.';
+
+/**
+ * The calls a provider's own record of a step holds, which it replays as they
+ * came and wants answered: Anthropic's tool uses, the Responses API's function
+ * calls. A step stopped while its calls ran (the user left the page) keeps the
+ * whole record but answers only the calls that ran. The arguments come along,
+ * so an adapter that rebuilds the step from its calls (another provider than
+ * the one that recorded it) still finds every call an answer names.
+ */
+function recordedCalls(state: AiProviderState | null): AiToolCall[] {
+  const calls =
+    state?.adapter === 'anthropic-messages'
+      ? state.blocks
+          .filter((block) => block.type === 'tool_use')
+          .map((block) => ({ id: block.id, name: block.name, args: recordOf(block.input) }))
+      : state?.adapter === 'openai-responses'
+        ? state.items
+            .filter((item) => item.type === 'function_call')
+            .map((item) => ({ id: item.call_id, name: item.name, args: recordOf(item.arguments) }))
+        : [];
+  return calls.flatMap(({ id, name, args }) =>
+    typeof id === 'string' ? [{ id, name: typeof name === 'string' ? name : '', args }] : [],
+  );
+}
 
 /** The stable id a message has on the wire and in the thread: its first row. */
 export function messageIdOf(rowId: number): string {
@@ -252,7 +292,8 @@ function replayedOutput(
  * must be answered. That includes the server's tools the model called itself
  * (a trip note, an attached file): the providers that replay their own record
  * of a step refuse it with a call left unanswered, and every later message of
- * the thread with it. `providerIds` maps a held call's own id to the id the
+ * the thread with it; a call of a stopped step that never ran is answered
+ * that it did not. `providerIds` maps a held call's own id to the id the
  * provider gave it.
  */
 export function toChatHistory(
@@ -292,7 +333,16 @@ export function toChatHistory(
     const text = textOf(parts);
     if (!text && toolCalls.length === 0) return;
     const providerState = decodeJson(ASSISTANT_PROVIDER_STATE, row.provider_state, `message ${row.id}`);
-    history.push({ role: 'assistant', text, toolCalls, providerState });
+    // The recorded calls that never ran go into the step's calls as well: an adapter that does not
+    // replay this record rebuilds the step from them, and would otherwise find answers to calls it never made.
+    const answered = new Set(toolCalls.map((call) => call.id));
+    const unrun: AiToolCall[] = [];
+    for (const recorded of recordedCalls(providerState)) {
+      if (answered.has(recorded.id)) continue;
+      answered.add(recorded.id);
+      unrun.push(recorded);
+    }
+    history.push({ role: 'assistant', text, toolCalls: [...toolCalls, ...unrun], providerState });
     calls.forEach((part, index) => {
       history.push({
         role: 'tool',
@@ -302,6 +352,9 @@ export function toChatHistory(
         ...(part.isError ? { isError: true } : {}),
       });
     });
+    for (const call of unrun) {
+      history.push({ role: 'tool', toolCallId: call.id, name: call.name, output: NOT_RUN, isError: true });
+    }
   });
   return history;
 }

@@ -239,7 +239,7 @@ describe('ReleaseNoticeModal', () => {
     const links = screen.getAllByRole('link', { name: 'dataforest cloud' });
     expect(links).toHaveLength(2);
     for (const link of links) {
-      expect(link).toHaveAttribute('href', 'https://cloud.dataforest.net/?mtm_campaign=trek');
+      expect(link).toHaveAttribute('href', 'https://cloud.dataforest.net/en?mtm_campaign=trek');
       expect(link).toHaveAttribute('target', '_blank');
       expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     }

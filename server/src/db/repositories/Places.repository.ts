@@ -1,4 +1,5 @@
 import type { Places } from '../entities/Places.entity';
+import { wrapOptionalLongitude } from '@trek/shared';
 import { absDifference, coalesceParam, columnRef, currentTimestamp, lowerTrim } from '../dialect/sql-functions';
 import { type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
@@ -347,10 +348,8 @@ export class PlacesRepository extends TrekRepository<Places> {
    * builds. Every value here is already fully coerced by the caller (the
    * `?? null` vs `|| null` split PL4's own legacy comment documents — 0 is
    * legitimate for `lat`/`lng`/`price`/`fill_percent`, and
-   * `duration_minutes` defaults to 60 — stays the service's decision, this
-   * writes exactly what it is handed, `DaysRepository.createDay`'s split).
-   * `em.insert()` returns the generated PK (R6's `lastInsertRowid`
-   * replacement).
+   * `duration_minutes` defaults to 60 — stays the service's decision), but
+   * `lng` is stored on the real world (#2976). Returns the generated PK.
    */
   async insertPlace(input: {
     trip_id: number;
@@ -386,7 +385,7 @@ export class PlacesRepository extends TrekRepository<Places> {
       name: input.name,
       description: input.description,
       lat: input.lat,
-      lng: input.lng,
+      lng: wrapOptionalLongitude(input.lng),
       address: input.address,
       category: input.category_id,
       price: input.price,
@@ -466,7 +465,7 @@ export class PlacesRepository extends TrekRepository<Places> {
       name: write.name,
       description: write.description,
       lat: write.lat,
-      lng: write.lng,
+      lng: wrapOptionalLongitude(write.lng),
       address: write.address,
       category: write.category_id,
       price: write.price,
@@ -963,7 +962,7 @@ export class PlacesRepository extends TrekRepository<Places> {
       name: input.name,
       description: input.description,
       lat: input.lat,
-      lng: input.lng,
+      lng: wrapOptionalLongitude(input.lng),
       address: input.address,
       category: input.category_id,
       price: input.price,
@@ -1338,7 +1337,7 @@ export class PlacesRepository extends TrekRepository<Places> {
       trip: input.trip_id,
       name: input.name,
       lat: input.lat,
-      lng: input.lng,
+      lng: wrapOptionalLongitude(input.lng),
       transport_mode: 'walking',
       route_geometry: input.route_geometry,
       description: input.description ?? null,
@@ -1360,7 +1359,7 @@ export class PlacesRepository extends TrekRepository<Places> {
       {
         name: input.name,
         lat: input.lat,
-        lng: input.lng,
+        lng: wrapOptionalLongitude(input.lng),
         transport_mode: 'walking',
         route_geometry: input.route_geometry,
         ...tourPlaceTextPatch(input),

@@ -39,7 +39,7 @@ const PlacesSidebar = React.memo(function PlacesSidebar(props: PlacesSidebarProp
       onDragOver={dragDisabled ? undefined : handleSidebarDragOver}
       onDragLeave={dragDisabled ? undefined : handleSidebarDragLeave}
       onDrop={dragDisabled ? undefined : handleSidebarDrop}
-      className="relative flex h-full flex-col"
+      className="relative flex h-full min-h-0 flex-col"
       style={{ fontFamily: 'var(--font-system)' }}
     >
       {((!dragDisabled && sidebarDragOver) || tourFileImport.importing) && <PlacesDropOverlay {...S} />}
@@ -83,7 +83,7 @@ const PlacesSidebar = React.memo(function PlacesSidebar(props: PlacesSidebarProp
         initialFiles={fileImportFiles}
       />
       {/* With Tours on, a route or track file from this column lands in the Tours preview. */}
-      <TourGpxPreviewDialog gpxImport={tourFileImport} />
+      <TourGpxPreviewDialog gpxImport={tourFileImport} offerPoints />
       <ContextMenu menu={ctxMenu.menu} onClose={ctxMenu.close} />
       {categoryPickerOpen && (
         <PlacesBulkCategoryModal

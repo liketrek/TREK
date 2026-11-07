@@ -61,7 +61,7 @@ const reservations: TranslationStrings = {
   'reservations.type.car': 'Auto',
   'reservations.type.cruise': 'Crociera',
   'reservations.type.event': 'Evento',
-  'reservations.type.tour': 'Tour', // same-as-en
+  'reservations.type.tour': 'Visita guidata',
   'reservations.type.parking': 'Parcheggio',
   'reservations.type.other': 'Altro',
   'reservations.type.bus': 'Autobus',
@@ -274,5 +274,9 @@ const reservations: TranslationStrings = {
     'I file hanno bisogno di una connessione per essere caricati. Rimuovi quelli nuovi per salvare la prenotazione offline, oppure salva quando sei di nuovo online.',
   'reservations.needsConnection': 'Serve una connessione. Riprova quando TREK tornerà online.',
   'reservations.exportCsvFiltered': 'Esporta le {shown} righe mostrate su {total} (CSV)',
+  'reservations.wallet.add': 'Aggiungi ad Apple Wallet',
+  'reservations.wallet.addGoogle': 'Aggiungi a Google Wallet',
+  'reservations.wallet.failed': 'Impossibile creare il pass di Wallet. Riprova.',
+  'reservations.wallet.undated': 'Prima dai una data alla prenotazione: Wallet mostra il pass intorno a quel momento.',
 };
 export default reservations;

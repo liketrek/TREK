@@ -7,11 +7,13 @@ import type {
   StorageConfig,
   StorageConfigPut,
   StorageMigrationStatus,
+  StorageReclaimConfirmRequest,
 } from '@trek/shared';
 
 import { useTranslation } from '../../../i18n';
 import { formatBytes } from '../../../utils/formatBytes';
 import { useToast } from '../../shared/Toast';
+import { reclaimView } from './reclaimModel';
 import {
   adoptedMirrorFor,
   computeMigrationCandidates,
@@ -31,7 +33,7 @@ import {
   type FoldedBackendRow,
   type MigrationCandidate,
 } from './storageModel';
-import { useStorageAdmin } from './useStorageAdmin';
+import { useStorageAdmin, type ReclaimFailure } from './useStorageAdmin';
 
 /** Display-name mapper for joined category lists: the raw id renders only in the badge. */
 export const categoryNames = (t: (key: string) => string, ids: readonly string[]): string =>
@@ -164,6 +166,35 @@ export function useStoragePanel() {
     const error = await admin.refreshStats();
     if (error) toast.error(error);
   };
+
+  // The click itself, until the server answered; the pass that follows shows through `reclaim.running`.
+  const [reclaimStarting, setReclaimStarting] = useState(false);
+  const [reclaimSaving, setReclaimSaving] = useState(false);
+  const reclaimError = (failure: ReclaimFailure) =>
+    'code' in failure ? t(`storage.reclaim.error.${failure.code}`) : failure.message;
+  const handleReclaimCheck = async () => {
+    setReclaimStarting(true);
+    const failure = await admin.checkReclaim();
+    setReclaimStarting(false);
+    if (failure) toast.error(reclaimError(failure));
+  };
+  const handleReclaimDelete = async (enabled: boolean) => {
+    setReclaimSaving(true);
+    const failure = await admin.setReclaimDelete(enabled);
+    setReclaimSaving(false);
+    if (failure) toast.error(reclaimError(failure));
+  };
+  // The category whose confirmation is on its way, so its button waits for the answer.
+  const [reclaimConfirming, setReclaimConfirming] = useState<StorageReclaimConfirmRequest['category'] | null>(null);
+  const handleReclaimConfirm = async (request: StorageReclaimConfirmRequest) => {
+    setReclaimConfirming(request.category);
+    const failure = await admin.confirmReclaim(request);
+    setReclaimConfirming(null);
+    if (failure) toast.error(reclaimError(failure));
+    else toast.success(t('storage.reclaim.confirmed'));
+  };
+  const reclaim = reclaimView(admin.state?.reclaim ?? null);
+  const reclaimChecking = reclaimStarting || reclaim.running;
 
   const handleStartBackfill = async (row: FoldedBackendRow) => {
     if (!row.mirrorName) return;
@@ -371,6 +402,13 @@ export function useStoragePanel() {
     migrationQueue,
     handleCancelMigration,
     handleRefreshStats,
+    reclaim,
+    reclaimChecking,
+    reclaimSaving,
+    reclaimConfirming,
+    handleReclaimCheck,
+    handleReclaimDelete,
+    handleReclaimConfirm,
     handleStartBackfill,
     handleCancelBackfill,
     loaded,

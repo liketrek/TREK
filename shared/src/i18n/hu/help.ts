@@ -1177,7 +1177,7 @@ const help: TranslationStrings = {
   'help.ctx.settings.bullet.1':
     'Bal oldalsáv: „Általános”, „Megjelenés”, „Térkép”, „Értesítések”, „Integráció”, „Offline” és „Fiók”. A „Pluginok” akkor jelenik meg, ha van aktív plugin. A „Névjegy” akkor látszik, ha az üzemeltető nem rejtette el. A verziószám alul látható.',
   'help.ctx.settings.bullet.2':
-    'Elsőként az „Általános” fül nyílik meg. Itt van a nyelv, a helynevek nyelve, a mértékegységek, az időformátum, a hét kezdőnapja és a megjelenítési pénznem, valamint az utazástérkép viselkedése. A „Megjelenés” fülön a téma, a színek, az olvashatóság, a szövegméret és az irányítópult-widgetek találhatók.',
+    'Elsőként az „Általános” fül nyílik meg. Itt van a nyelv, a helynevek nyelve, a mértékegységek, az időformátum, a dátumformátum, a hét kezdőnapja és a megjelenítési pénznem, valamint az utazástérkép viselkedése. A „Megjelenés” fülön a téma, a színek, az olvashatóság, a szövegméret és az irányítópult-widgetek találhatók.',
   'help.ctx.settings.bullet.3':
     'A „Térkép” fülön a térképmotort és a stílusát állítod be; az „Értesítések” fülön azt, melyik esemény melyik csatornára menjen; az „Integráció” fülön fotókönyvtárakat, az AirTrailt, a Dawarichot és a wanderert csatlakoztathatod, és itt vannak az API-kulcsok és az MCP is; az „Offline” fülön azt, mit tároljon ez az eszköz.',
   'help.ctx.settings.bullet.4':
@@ -1188,7 +1188,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-display.bullet.1':
     '„Indítás”: a „Kezdőoldal” az „Irányítópult” vagy az „Aktív utazás” lehet; az „Aktív utazás” választásakor a „Kezdő fül” határozza meg, melyik fülön nyíljon meg az utazás.',
   'help.ctx.settings-display.bullet.2':
-    'Nyelv és régió: „Megjelenítési pénznem” (átváltás nélkül „Az utazás pénzneme”), „Nyelv”, „Helynevek”, „Hőmérséklet egység”, „Távolság egység”, „Időformátum” és „A hét kezdőnapja”.',
+    'Nyelv és régió: „Megjelenítési pénznem” (átváltás nélkül „Az utazás pénzneme”), „Nyelv”, „Helynevek”, „Hőmérséklet egység”, „Távolság egység”, „Időformátum”, „A hét kezdőnapja” és „Dátumformátum”.',
   'help.ctx.settings-display.bullet.3':
     'Utazás és térkép: „Helyek megnyitása itt”, „Dátum elöl a napok fejlécében”, „Útvonal-címkék a foglalásokhoz”, „Mindig jelenjenek meg a foglalási útvonalak”, „Kompakt jelölők a nem tervezett helyekhez”, „Helyek felfedezése a térképen”, „Foglalási kódok elrejtése” és „Útvonal optimalizálása a szállástól”.',
   'help.ctx.settings-appearance.title': 'Megjelenés',
@@ -1516,9 +1516,9 @@ const help: TranslationStrings = {
     'Alul a „Jogosultsági beállítások”: műveletenként megadhatod, ki végezheti el („Mindenki”, „Utazás tagjai”, „Utazás tulajdonosa” vagy „Csak adminisztrátor”). A mentéshez kattints a kártya tetején lévő „Mentés” gombra.',
   'help.ctx.admin-defaults.title': 'Alapértelmezett beállítások',
   'help.ctx.admin-defaults.summary':
-    'Itt állítod be, mivel induljon egy új fiók, hogy senkinek ne kelljen előbb beállítgatnia: színmód, mértékegységek, időformátum, a hét kezdőnapja, megjelenítési pénznem és a foglalási kódok elrejtése, valamint a térkép, a kulcsai és az útvonaltervező szerverek.',
+    'Itt állítod be, mivel induljon egy új fiók, hogy senkinek ne kelljen előbb beállítgatnia: színmód, mértékegységek, időformátum, dátumformátum, a hét kezdőnapja, megjelenítési pénznem és a foglalási kódok elrejtése, valamint a térkép, a kulcsai és az útvonaltervező szerverek.',
   'help.ctx.admin-defaults.bullet.1':
-    'Bal oldalon az „Alapértelmezett felhasználói beállítások”: „Színmód”, „Hőmérséklet egység”, „Távolság egység”, „Időformátum”, „A hét kezdőnapja”, „Megjelenítési pénznem” és „Foglalási kódok elrejtése”.',
+    'Bal oldalon az „Alapértelmezett felhasználói beállítások”: „Színmód”, „Hőmérséklet egység”, „Távolság egység”, „Időformátum”, „A hét kezdőnapja”, „Dátumformátum”, „Megjelenítési pénznem” és „Foglalási kódok elrejtése”.',
   'help.ctx.admin-defaults.bullet.2':
     'Jobb oldalon a „Térkép”: „Térkép sablon”, „Megosztott CARTO-kulcs”, „Saját útvonaltervező” és „Saját Valhalla-példány”, egy előnézet, majd a „Térképmotor” a „Térképstílus”, a „Megosztott Mapbox-token”, a „3D épületek & domborzat” és a „Kiváló minőségű mód” beállítással.',
   'help.ctx.admin-config.title': 'Személyre szabás',
@@ -3484,7 +3484,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.summary':
     'Ezen a fülön minden olyan foglalás megtalálható, amely nem közlekedés: szállások, asztalfoglalások, jegyek, túrák és parkolás. Minden foglalás egy kártya, egy listasor vagy egy sáv az idővonalon, a kódjával, dokumentumaival, utazóival és költségével. A részletek megnyitásához kattints egy foglalásra.',
   'help.ctx.trip-bookings.bullet.1':
-    'A sáv jobb végén lévő „Kézi foglalás” megnyitja az „Új foglalás” ablakot. Hatféle foglalást hozhatsz létre: „Szállás”, „Étterem”, „Esemény”, „Túra”, „Parkolás” és „Egyéb”. A repülőjáratok, vonatok és egyéb közlekedési eszközök a „Közlekedés” fülön vannak, és itt sosem jelennek meg.',
+    'A sáv jobb végén lévő „Kézi foglalás” megnyitja az „Új foglalás” ablakot. Hatféle foglalást hozhatsz létre: „Szállás”, „Étterem”, „Esemény”, „Vezetett túra”, „Parkolás” és „Egyéb”. A repülőjáratok, vonatok és egyéb közlekedési eszközök a „Közlekedés” fülön vannak, és itt sosem jelennek meg.',
   'help.ctx.trip-bookings.bullet.2':
     'A „Kézi foglalás” előtti letöltés ikonnal („Foglalási visszaigazolások importálása”) visszaigazolásokat tölthetsz fel, amelyeket a TREK automatikusan feldolgoz: EML, PDF, PKPass, HTML vagy TXT, legfeljebb öt fájl, egyenként 10 MB-ig, valamint fotók, ha az AI-modell képeket is tud olvasni. Az ikon csak akkor jelenik meg, ha a szerver képes feldolgozni őket.',
   'help.ctx.trip-bookings.bullet.3':
@@ -3526,7 +3526,7 @@ const help: TranslationStrings = {
   'help.guide.create-booking.step.1':
     'Kattints a sáv jobb végén a „Kézi foglalás” gombra. Megnyílik az „Új foglalás” ablak, felül egy fejlécben a címmel és két címkével.',
   'help.guide.create-booking.step.2':
-    'Kattints a felső sávban a típuscímkére (új foglalásnál „Egyéb” áll rajta), és válaszd ki a „Foglalás típusa” értékét. Ezen a fülön hat típust hozhatsz létre: „Szállás”, „Étterem”, „Esemény”, „Túra”, „Parkolás” és „Egyéb”. Az űrlap a választásodtól függően változik: csak a „Szállás” használ dátumok helyett naptartományt.',
+    'Kattints a felső sávban a típuscímkére (új foglalásnál „Egyéb” áll rajta), és válaszd ki a „Foglalás típusa” értékét. Ezen a fülön hat típust hozhatsz létre: „Szállás”, „Étterem”, „Esemény”, „Vezetett túra”, „Parkolás” és „Egyéb”. Az űrlap a választásodtól függően változik: csak a „Szállás” használ dátumok helyett naptartományt.',
   'help.guide.create-booking.step.3':
     'Írd be a címet a felső sávba, a címkék fölötti mezőbe. Ez az egyetlen kötelező mező, és amíg nem írsz bele semmit, a „Hozzáadás” gomb szürke marad.',
   'help.guide.create-booking.step.4':
@@ -4376,7 +4376,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-about.bullet.3':
     'A Ko-fi, a Buy Me a Coffee és a Discord oldalán támogathatod a TREK-et, vagy beszélgethetsz a fejlesztőkkel.',
   'help.guide.language-region.step.3':
-    'Állítsd be a „Megjelenítési pénznem” értékét, vagy hagyd „Az utazás pénzneme” beállításon, hogy minden utazást a saját pénznemében láss. Ezután válaszd ki a „Hőmérséklet egység”, a „Távolság egység” és az „Időformátum” értékét, valamint azt, melyik nappal kezdődjön a hét („A hét kezdőnapja”).',
+    'Állítsd be a „Megjelenítési pénznem” értékét, vagy hagyd „Az utazás pénzneme” beállításon, hogy minden utazást a saját pénznemében láss. Ezután válaszd ki a „Hőmérséklet egység”, a „Távolság egység”, az „Időformátum” és a „Dátumformátum” értékét, valamint azt, melyik nappal kezdődjön a hét („A hét kezdőnapja”).',
   'help.guide.travel-map-prefs.step.3':
     'A „Helyek felfedezése a térképen” megjeleníti a kategóriagombot, amellyel a közeli helyeket keresheted. A „Foglalási kódok elrejtése” addig takarja a visszaigazolási számokat, amíg föléjük nem viszed az egeret, vagy rájuk nem koppintasz. Az „Útvonal optimalizálása a szállástól” beállítással a nap a szállásodon kezdődik és ott is ér véget.',
   'help.guide.web-push-device.step.2':
@@ -6466,7 +6466,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-settings.bullet.5':
     '„Veszélyzóna”: a „JWT-titok cseréje” minden felhasználót kijelentkeztet, téged is.',
   'help.guide.default-user-settings.step.1':
-    'Az „Alapértelmezett felhasználói beállítások” részben válaszd ki a „Színmód” („Világos”, „Sötét” vagy „Automatikus”), a „Hőmérséklet egység”, a „Távolság egység”, az „Időformátum”, „A hét kezdőnapja” és a „Megjelenítési pénznem” értékét, valamint azt, hogy a „Foglalási kódok elrejtése” be vagy ki legyen kapcsolva. Minden választás azonnal mentődik.',
+    'Az „Alapértelmezett felhasználói beállítások” részben válaszd ki a „Színmód” („Világos”, „Sötét” vagy „Automatikus”), a „Hőmérséklet egység”, a „Távolság egység”, az „Időformátum”, „A hét kezdőnapja”, a „Dátumformátum” és a „Megjelenítési pénznem” értékét, valamint azt, hogy a „Foglalási kódok elrejtése” be vagy ki legyen kapcsolva. Minden választás azonnal mentődik.',
   'help.guide.admin-passkeys.step.2':
     'Add meg a Relying Party ID (domain) értékét, például trek.example.org, és az „Engedélyezett origók” közé azokat a címeket, amelyeken a TREK-ed elérhető, majd kattints a „Mentés” gombra. Ha mindkettőt üresen hagyod, a TREK az APP_URL értékét használja.',
   'help.guide.rotate-jwt-secret.title': 'Mindenki kijelentkeztetése egyszerre',

@@ -6,6 +6,7 @@ import { NEUTRAL_TINT, fs } from '../shared/DialogShell'
 import { BarButton, PANEL_BAR } from './planParts'
 import { useToast } from '../shared/Toast'
 import { TripExportModal } from './TripExportModal'
+import { useExportDeepLink } from '../../hooks/useExportDeepLink'
 import { isRoutableReservation } from '../../utils/reservationRoutes'
 import type { DayAddControls } from '../../utils/dayAdd'
 import type { DayDeleteQuestion } from '../../utils/dayImpactLines'
@@ -63,6 +64,8 @@ export function DayPlanSidebarToolbar({
 }: DayPlanSidebarToolbarProps) {
   const [reorderOpen, setReorderOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
+  // The iOS Home Screen app hands the PDF to Safari, which lands here with ?export=pdf.
+  useExportDeepLink(() => setExportOpen(true))
 
   const allExpanded = days.length > 0 && days.every(d => expandedDays.has(d.id))
   const expandLabel = allExpanded ? t('dayplan.collapseAll') : t('dayplan.expandAll')

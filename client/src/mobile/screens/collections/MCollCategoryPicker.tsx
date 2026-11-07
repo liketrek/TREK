@@ -32,10 +32,10 @@ export default function MCollCategoryPicker({ categories, value, onChange, t }: 
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
-        className="flex w-full items-center gap-[9px] rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] px-[13px] py-[11px] text-start"
+        className="flex h-[42px] w-full items-center gap-[9px] rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] pe-[14px] ps-[8px] text-start"
       >
         <span
-          className="flex h-[26px] w-[26px] flex-none items-center justify-center rounded-lg"
+          className="flex h-[28px] w-[28px] flex-none items-center justify-center rounded-full"
           style={{ background: tint(selectedMeta.color, '1f'), color: selectedMeta.color }}
         >
           <SelectedIcon size={14} strokeWidth={2.2} />

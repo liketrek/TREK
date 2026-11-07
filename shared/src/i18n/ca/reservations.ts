@@ -29,7 +29,7 @@ const reservations: TranslationStrings = {
   'reservations.type.car': 'Cotxe',
   'reservations.type.cruise': 'Creuer',
   'reservations.type.event': 'Esdeveniment',
-  'reservations.type.tour': 'Excursió',
+  'reservations.type.tour': 'Visita guiada',
   'reservations.type.parking': 'Aparcament',
   'reservations.type.other': 'Altres',
   'reservations.type.bus': 'Autobús',
@@ -276,5 +276,10 @@ const reservations: TranslationStrings = {
     'Els fitxers necessiten connexió per pujar-se. Treu els nous per desar la reserva sense connexió, o desa quan tornis a estar en línia.',
   'reservations.needsConnection': 'Això necessita connexió. Torna-ho a provar quan TREK torni a estar en línia.',
   'reservations.exportCsvFiltered': 'Exporta les {shown} de {total} files mostrades (CSV)',
+  'reservations.wallet.add': 'Afegeix a Apple Wallet',
+  'reservations.wallet.addGoogle': 'Afegeix a Google Wallet',
+  'reservations.wallet.failed': 'No s’ha pogut crear el passi de Wallet. Torna-ho a provar.',
+  'reservations.wallet.undated':
+    'Primer posa una data a la reserva: Wallet mostra el passi al voltant d’aquell moment.',
 };
 export default reservations;

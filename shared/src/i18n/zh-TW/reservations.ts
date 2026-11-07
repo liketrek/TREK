@@ -60,7 +60,7 @@ const reservations: TranslationStrings = {
   'reservations.type.car': '汽車',
   'reservations.type.cruise': '郵輪',
   'reservations.type.event': '活動',
-  'reservations.type.tour': '旅遊團',
+  'reservations.type.tour': '導覽行程',
   'reservations.type.parking': '停車',
   'reservations.type.other': '其他',
   'reservations.type.bus': '公車',
@@ -261,5 +261,9 @@ const reservations: TranslationStrings = {
   'reservations.filesNeedConnection': '上傳檔案需要網路連線。移除新檔案即可離線儲存這筆預訂，或在恢復連線後再儲存。',
   'reservations.needsConnection': '此操作需要網路連線。請在 TREK 恢復連線後再試一次。',
   'reservations.exportCsvFiltered': '匯出顯示的 {shown}/{total} 列 (CSV)',
+  'reservations.wallet.add': '加入 Apple 錢包',
+  'reservations.wallet.addGoogle': '加入 Google 錢包',
+  'reservations.wallet.failed': '無法產生錢包票卡。請重試。',
+  'reservations.wallet.undated': '請先為訂位設定日期：錢包會在那個時間前後顯示票卡。',
 };
 export default reservations;

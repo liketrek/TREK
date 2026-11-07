@@ -2,12 +2,14 @@ import { useEffect, useLayoutEffect, useRef, useState, type ComponentType, type 
 import { findFocusDayId, findTodayDayId } from '../../../components/Planner/today'
 import { takeResumeDay } from '../../../utils/resumeRoute'
 import {
-  CalendarCheck, CalendarDays, ChevronDown, ChevronLeft, Download, FileDown, FolderSync, List, Map as MapIcon, MoreHorizontal, Plane, Plus, Route, Rows3, SlidersHorizontal, Trash2, Upload,
+  CalendarDays, ChevronDown, ChevronLeft, Download, FileDown, FolderSync, List, Map as MapIcon, MoreHorizontal, Plane, Plus, Route, Rows3, SlidersHorizontal, Trash2, Upload,
 } from 'lucide-react'
 import { useTripPlanner } from '../../../pages/tripPlanner/useTripPlanner'
 import { pickDockTabs } from './dockTabs'
 import MBadge from '../../components/MBadge'
 import MIconBtn from '../../components/MIconBtn'
+import { useActivePill } from '../../components/useActivePill'
+import { useSharedImportStore } from '../../../native/sharedFiles'
 import MPlanTimeline from './plan/MPlanTimeline'
 import MMapArea from './map/MMapArea'
 import MPlacesBrowser from './places/MPlacesBrowser'
@@ -26,6 +28,7 @@ import { canManageDocSync } from '../../../components/Files/docsync/useDocSync'
 import { useDocSyncOffered } from '../../../components/Files/docsync/useDocSyncOffered'
 import type { Day, Trip } from '../../../types'
 import { getIntlLanguage } from '@trek/shared'
+import { useDayPreviewStore } from '../../dayPreviewStore'
 
 /**
  * Mobile trip screen frame. Owns the chrome the design shares across every
@@ -56,7 +59,7 @@ export type MTripCollabTab = 'chat' | 'notes' | 'links' | 'polls'
  * { dayId, note? }), 'accommodation' (payload { dayId?, accId?, from? }),
  * 'transport' (payload { reservationId }), 'bract'
  * (payload { placeId, dayPicker? }), 'import', 'export', 'members',
- * 'tripedit', 'bags', 'task', 'placesFilter' (the map's places filter). The place inspector keys off the planner's
+ * 'tripedit', 'bags', 'task'. The place inspector keys off the planner's
  * place selection instead of a sheet id, and planner-backed editors (place
  * form, transport, booking, expense) keep using the planner's own modal flags.
  */
@@ -269,11 +272,16 @@ export default function MTripShell({
   // The opening day is chosen while the splash still covers the shell (#2880),
   // so the rail itself is a dependency: the chip is lined up when the rail
   // appears, in place rather than gliding across a rail nobody has seen yet.
+  // The rail lights the day a swipe is heading for before the plan switches (dayPreviewStore).
+  const previewDayId = useDayPreviewStore(s => s.dayId)
+  const clearDayPreview = useDayPreviewStore(s => s.setDayId)
+  useEffect(() => { clearDayPreview(null) }, [planner.selectedDayId, clearDayPreview])
+  const railDayId = previewDayId ?? planner.selectedDayId
   const chipRefs = useRef(new Map<number, HTMLButtonElement>())
   const [dayRail, setDayRail] = useState<HTMLDivElement | null>(null)
   const alignedRailRef = useRef<HTMLDivElement | null>(null)
   useLayoutEffect(() => {
-    const chip = planner.selectedDayId != null ? chipRefs.current.get(planner.selectedDayId) : undefined
+    const chip = railDayId != null ? chipRefs.current.get(railDayId) : undefined
     if (!chip || !dayRail) return
     const firstView = alignedRailRef.current !== dayRail
     alignedRailRef.current = dayRail
@@ -288,7 +296,17 @@ export default function MTripShell({
       inline: 'center',
       block: 'nearest',
     })
-  }, [planner.selectedDayId, days, dayRail])
+  }, [railDayId, days, dayRail])
+  // The active day's pill glides to the next chip rather than jumping there.
+  // A booking document shared to TREK, and this trip picked for it: open the import.
+  const sharedTripId = useSharedImportStore(s => s.tripId)
+  const { setBookingImportKind, setShowBookingImport } = planner
+  useEffect(() => {
+    if (sharedTripId == null || sharedTripId !== Number(tripId)) return
+    setBookingImportKind('bookings')
+    setShowBookingImport(true)
+  }, [sharedTripId, tripId, setBookingImportKind, setShowBookingImport])
+  const dayPill = useActivePill(dayRail, '[aria-current="true"]', `${railDayId}:${days.map(d => d.id).join(',')}:${language}`)
 
   const trTab = planner.activeTab
 
@@ -414,14 +432,10 @@ export default function MTripShell({
   const dockTabs = pickDockTabs(enabledTabIds)
   const tabLabel = (id: string) => mobileTabs.find(tab => tab.id === id)?.label ?? id
 
-  // While the trip runs, today's chip carries a ring and a button jumps back to it
-  // from wherever the rail was scrolled (#2392). Null outside the trip's dates.
+  // While the trip runs, today's chip carries a ring and a dot (#2392). That mark
+  // is the whole of it: a second button beside the rail only crowded the chrome.
+  // Null outside the trip's dates.
   const todayDayId = findTodayDayId(days)
-  const jumpToToday = () => {
-    if (todayDayId == null || todayDayId === planner.selectedDayId) return
-    if (view === 'map') selectDayOnMap(todayDayId)
-    else planner.handleSelectDay(todayDayId, true)
-  }
 
   const onDayChipTap = (dayId: number) => {
     if (dayId === planner.selectedDayId) openSheet('day', { dayId })
@@ -498,9 +512,16 @@ export default function MTripShell({
       {/* ── Day chips (z-25 — covered by non-plan tab overlays, stays mounted) ── */}
       {days.length > 0 && (
         <div className="absolute inset-x-4 z-[25] flex gap-[6px] top-[calc(var(--m-safe-top,12px)+50px)]">
-          <div ref={setDayRail} className="flex flex-1 items-center gap-[2px] overflow-x-auto rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-[3px] backdrop-blur-[24px] backdrop-saturate-[1.7]">
+          <div ref={setDayRail} className="relative flex flex-1 items-center gap-[2px] overflow-x-auto rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-[3px] backdrop-blur-[24px] backdrop-saturate-[1.7]">
+            {dayPill && (
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute bottom-[3px] left-0 top-[3px] rounded-full bg-m-act shadow-[0_6px_16px_-6px_rgba(0,0,0,.4)]" // rtl-lint-disable: moved by the measured offsetLeft (useActivePill)
+                style={dayPill}
+              />
+            )}
             {days.map((day, idx) => {
-              const active = day.id === planner.selectedDayId
+              const active = day.id === railDayId
               const isToday = day.id === todayDayId
               const tint = dayTints[day.id]
               return (
@@ -516,8 +537,8 @@ export default function MTripShell({
                   // the active chip's bg-m-act class.
                   style={active ? undefined : { background: dayTintBackground(tint, 'badge', '--day-tint-chip') }}
                   data-today={isToday || undefined}
-                  className={`flex flex-1 items-center justify-center gap-[3px] whitespace-nowrap rounded-full px-3 py-[5px] text-center text-[0.75rem] font-semibold ${
-                    active ? 'bg-m-act text-m-actfg shadow-[0_6px_16px_-6px_rgba(0,0,0,.4)]' : 'text-m-ink'
+                  className={`relative flex flex-1 items-center justify-center gap-[3px] whitespace-nowrap rounded-full px-3 py-[5px] text-center text-[0.75rem] font-semibold transition-colors duration-200 ${
+                    active ? `text-m-actfg ${dayPill ? '' : 'bg-m-act'}` : 'text-m-ink'
                   } ${isToday && !active ? 'ring-[1.5px] ring-inset ring-[color:var(--m-st-info)]' : ''}`}
                 >
                   {isToday && (
@@ -532,20 +553,6 @@ export default function MTripShell({
               )
             })}
           </div>
-          {/* Back to today from anywhere on the rail (#2392). Mounted for the whole
-              running trip and dimmed while today is already open, so it never
-              appears under the thumb and shoves the rail aside. */}
-          {todayDayId != null && (
-            <button
-              type="button"
-              onClick={jumpToToday}
-              disabled={todayDayId === planner.selectedDayId}
-              aria-label={t('mobileTrip.jumpToToday')}
-              className="flex w-9 flex-none items-center justify-center rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] text-[color:var(--m-st-info)] backdrop-blur-[24px] backdrop-saturate-[1.7] transition-opacity disabled:opacity-40"
-            >
-              <CalendarCheck size={15} strokeWidth={2.4} aria-hidden="true" />
-            </button>
-          )}
           {/* Drop the day filter and show the whole trip (#2257). Map only: the
               plan timeline and the road trip chain are both single-day, so there is
               nothing to widen there. Stays mounted while a day is active rather than

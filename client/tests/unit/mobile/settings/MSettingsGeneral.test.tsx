@@ -231,3 +231,24 @@ describe('MSettingsGeneral week start (#2029)', () => {
     expect(updateSetting).toHaveBeenCalledWith('week_start', 'saturday');
   });
 });
+
+describe('MSettingsGeneral date format (#2971)', () => {
+  it('FE-MOB-SET-018: the date-format row shows the language format when unset and the sheet saves a pick', async () => {
+    const user = userEvent.setup();
+    const updateSetting = vi.fn().mockResolvedValue(undefined);
+    seedStore(useSettingsStore, { settings: buildSettings({ language: 'en', date_format: undefined }), updateSetting });
+    render(<MSettingsGeneral />);
+
+    // The choices are labelled by how they write 31 December; auto adds the language's own way.
+    await user.click(screen.getByRole('button', { name: /\(12\/31\/2026\)/ }));
+    await user.click(await screen.findByRole('button', { name: '31.12.2026' }));
+    expect(updateSetting).toHaveBeenCalledWith('date_format', 'DD.MM.YYYY');
+  });
+
+  it('FE-MOB-SET-019: a stored format is shown on its row', () => {
+    seedStore(useSettingsStore, { settings: buildSettings({ language: 'en', date_format: 'YYYY/MM/DD' }) });
+    render(<MSettingsGeneral />);
+
+    expect(screen.getByRole('button', { name: '2026/12/31' })).toBeInTheDocument();
+  });
+});

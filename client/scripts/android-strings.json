@@ -1,0 +1,254 @@
+{
+  "en": {
+    "push_channel_chat": "Trip chat",
+    "push_channel_trips": "Trip updates",
+    "push_channel_invites": "Invitations and shares",
+    "push_channel_name": "General",
+    "push_channel_tripday": "Travel day",
+    "push_fallback_body": "New notification",
+    "push_channel_tripday_description": "The day of a running trip and its next stop."
+  },
+  "ar": {
+    "push_channel_chat": "دردشة الرحلة",
+    "push_channel_trips": "تحديثات الرحلة",
+    "push_channel_invites": "الدعوات والمشاركات",
+    "push_channel_name": "عام",
+    "push_channel_tripday": "يوم السفر",
+    "push_fallback_body": "إشعار جديد",
+    "push_channel_tripday_description": "يوم الرحلة الجارية ومحطتها التالية."
+  },
+  "az": {
+    "push_channel_chat": "Səyahət söhbəti",
+    "push_channel_trips": "Səyahət yenilikləri",
+    "push_channel_invites": "Dəvətlər və paylaşımlar",
+    "push_channel_name": "Ümumi",
+    "push_channel_tripday": "Səyahət günü",
+    "push_fallback_body": "Yeni bildiriş",
+    "push_channel_tripday_description": "Davam edən səyahətin günü və növbəti dayanacağı."
+  },
+  "ca": {
+    "push_channel_chat": "Xat del viatge",
+    "push_channel_trips": "Novetats del viatge",
+    "push_channel_invites": "Invitacions i comparticions",
+    "push_channel_name": "General",
+    "push_channel_tripday": "Dia de viatge",
+    "push_fallback_body": "Notificació nova",
+    "push_channel_tripday_description": "El dia d'un viatge en curs i la seva propera parada."
+  },
+  "cs": {
+    "push_channel_chat": "Chat výletu",
+    "push_channel_trips": "Novinky z výletu",
+    "push_channel_invites": "Pozvánky a sdílení",
+    "push_channel_name": "Obecné",
+    "push_channel_tripday": "Cestovní den",
+    "push_fallback_body": "Nové oznámení",
+    "push_channel_tripday_description": "Den probíhajícího výletu a jeho další zastávka."
+  },
+  "de": {
+    "push_channel_chat": "Reise-Chat",
+    "push_channel_trips": "Neues zur Reise",
+    "push_channel_invites": "Einladungen und Freigaben",
+    "push_channel_name": "Allgemein",
+    "push_channel_tripday": "Reisetag",
+    "push_fallback_body": "Neue Benachrichtigung",
+    "push_channel_tripday_description": "Der Tag einer laufenden Reise und der nächste Stopp."
+  },
+  "el": {
+    "push_channel_chat": "Συνομιλία ταξιδιού",
+    "push_channel_trips": "Ενημερώσεις ταξιδιού",
+    "push_channel_invites": "Προσκλήσεις και κοινοποιήσεις",
+    "push_channel_name": "Γενικά",
+    "push_channel_tripday": "Ημέρα ταξιδιού",
+    "push_fallback_body": "Νέα ειδοποίηση",
+    "push_channel_tripday_description": "Η ημέρα ενός ταξιδιού σε εξέλιξη και η επόμενη στάση του."
+  },
+  "es": {
+    "push_channel_chat": "Chat del viaje",
+    "push_channel_trips": "Novedades del viaje",
+    "push_channel_invites": "Invitaciones y compartidos",
+    "push_channel_name": "General",
+    "push_channel_tripday": "Día de viaje",
+    "push_fallback_body": "Notificación nueva",
+    "push_channel_tripday_description": "El día de un viaje en curso y su próxima parada."
+  },
+  "et": {
+    "push_channel_chat": "Reisi vestlus",
+    "push_channel_trips": "Reisi uudised",
+    "push_channel_invites": "Kutsed ja jagamised",
+    "push_channel_name": "Üldine",
+    "push_channel_tripday": "Reisipäev",
+    "push_fallback_body": "Uus teavitus",
+    "push_channel_tripday_description": "Käimasoleva reisi päev ja järgmine peatus."
+  },
+  "fr": {
+    "push_channel_chat": "Discussion du voyage",
+    "push_channel_trips": "Nouvelles du voyage",
+    "push_channel_invites": "Invitations et partages",
+    "push_channel_name": "Général",
+    "push_channel_tripday": "Jour de voyage",
+    "push_fallback_body": "Nouvelle notification",
+    "push_channel_tripday_description": "La journée d'un voyage en cours et sa prochaine étape."
+  },
+  "he": {
+    "push_channel_chat": "צ׳אט הטיול",
+    "push_channel_trips": "עדכוני הטיול",
+    "push_channel_invites": "הזמנות ושיתופים",
+    "push_channel_name": "כללי",
+    "push_channel_tripday": "יום טיול",
+    "push_fallback_body": "התראה חדשה",
+    "push_channel_tripday_description": "היום של טיול פעיל והעצירה הבאה שלו."
+  },
+  "hu": {
+    "push_channel_chat": "Utazási csevegés",
+    "push_channel_trips": "Utazási hírek",
+    "push_channel_invites": "Meghívások és megosztások",
+    "push_channel_name": "Általános",
+    "push_channel_tripday": "Utazási nap",
+    "push_fallback_body": "Új értesítés",
+    "push_channel_tripday_description": "Egy folyamatban lévő utazás napja és a következő megálló."
+  },
+  "id": {
+    "push_channel_chat": "Obrolan perjalanan",
+    "push_channel_trips": "Kabar perjalanan",
+    "push_channel_invites": "Undangan dan berbagi",
+    "push_channel_name": "Umum",
+    "push_channel_tripday": "Hari perjalanan",
+    "push_fallback_body": "Notifikasi baru",
+    "push_channel_tripday_description": "Hari dari perjalanan yang berlangsung dan perhentian berikutnya."
+  },
+  "it": {
+    "push_channel_chat": "Chat del viaggio",
+    "push_channel_trips": "Novità del viaggio",
+    "push_channel_invites": "Inviti e condivisioni",
+    "push_channel_name": "Generali",
+    "push_channel_tripday": "Giorno di viaggio",
+    "push_fallback_body": "Nuova notifica",
+    "push_channel_tripday_description": "La giornata di un viaggio in corso e la prossima tappa."
+  },
+  "ja": {
+    "push_channel_chat": "旅行チャット",
+    "push_channel_trips": "旅行の更新",
+    "push_channel_invites": "招待と共有",
+    "push_channel_name": "一般",
+    "push_channel_tripday": "旅行日",
+    "push_fallback_body": "新しい通知",
+    "push_channel_tripday_description": "進行中の旅行の一日と次の立ち寄り先。"
+  },
+  "ko": {
+    "push_channel_chat": "여행 채팅",
+    "push_channel_trips": "여행 소식",
+    "push_channel_invites": "초대 및 공유",
+    "push_channel_name": "일반",
+    "push_channel_tripday": "여행일",
+    "push_fallback_body": "새 알림",
+    "push_channel_tripday_description": "진행 중인 여행의 하루와 다음 장소."
+  },
+  "nl": {
+    "push_channel_chat": "Reischat",
+    "push_channel_trips": "Reisupdates",
+    "push_channel_invites": "Uitnodigingen en delen",
+    "push_channel_name": "Algemeen",
+    "push_channel_tripday": "Reisdag",
+    "push_fallback_body": "Nieuwe melding",
+    "push_channel_tripday_description": "De dag van een lopende reis en de volgende stop."
+  },
+  "pl": {
+    "push_channel_chat": "Czat podróży",
+    "push_channel_trips": "Nowości o podróży",
+    "push_channel_invites": "Zaproszenia i udostępnienia",
+    "push_channel_name": "Ogólne",
+    "push_channel_tripday": "Dzień podróży",
+    "push_fallback_body": "Nowe powiadomienie",
+    "push_channel_tripday_description": "Dzień trwającej podróży i jej następny przystanek."
+  },
+  "pt-BR": {
+    "push_channel_chat": "Chat da viagem",
+    "push_channel_trips": "Novidades da viagem",
+    "push_channel_invites": "Convites e compartilhamentos",
+    "push_channel_name": "Geral",
+    "push_channel_tripday": "Dia de viagem",
+    "push_fallback_body": "Nova notificação",
+    "push_channel_tripday_description": "O dia de uma viagem em andamento e sua próxima parada."
+  },
+  "ru": {
+    "push_channel_chat": "Чат поездки",
+    "push_channel_trips": "Новости поездки",
+    "push_channel_invites": "Приглашения и доступ",
+    "push_channel_name": "Общие",
+    "push_channel_tripday": "День поездки",
+    "push_fallback_body": "Новое уведомление",
+    "push_channel_tripday_description": "День текущей поездки и следующая остановка."
+  },
+  "sk": {
+    "push_channel_chat": "Chat výletu",
+    "push_channel_trips": "Novinky z výletu",
+    "push_channel_invites": "Pozvánky a zdieľania",
+    "push_channel_name": "Všeobecné",
+    "push_channel_tripday": "Cestovný deň",
+    "push_fallback_body": "Nové upozornenie",
+    "push_channel_tripday_description": "Deň prebiehajúceho výletu a jeho ďalšia zastávka."
+  },
+  "sv": {
+    "push_channel_chat": "Resechatt",
+    "push_channel_trips": "Nytt om resan",
+    "push_channel_invites": "Inbjudningar och delningar",
+    "push_channel_name": "Allmänt",
+    "push_channel_tripday": "Resdag",
+    "push_fallback_body": "Ny avisering",
+    "push_channel_tripday_description": "Dagen för en pågående resa och nästa stopp."
+  },
+  "th": {
+    "push_channel_chat": "แชทการเดินทาง",
+    "push_channel_trips": "อัปเดตการเดินทาง",
+    "push_channel_invites": "คำเชิญและการแชร์",
+    "push_channel_name": "ทั่วไป",
+    "push_channel_tripday": "วันเดินทาง",
+    "push_fallback_body": "การแจ้งเตือนใหม่",
+    "push_channel_tripday_description": "วันของทริปที่กำลังดำเนินอยู่และจุดหมายถัดไป"
+  },
+  "tr": {
+    "push_channel_chat": "Seyahat sohbeti",
+    "push_channel_trips": "Seyahat güncellemeleri",
+    "push_channel_invites": "Davetler ve paylaşımlar",
+    "push_channel_name": "Genel",
+    "push_channel_tripday": "Seyahat günü",
+    "push_fallback_body": "Yeni bildirim",
+    "push_channel_tripday_description": "Süren bir seyahatin günü ve sonraki durağı."
+  },
+  "uk": {
+    "push_channel_chat": "Чат подорожі",
+    "push_channel_trips": "Новини подорожі",
+    "push_channel_invites": "Запрошення та доступ",
+    "push_channel_name": "Загальні",
+    "push_channel_tripday": "День подорожі",
+    "push_fallback_body": "Нове сповіщення",
+    "push_channel_tripday_description": "День поточної подорожі та наступна зупинка."
+  },
+  "vi": {
+    "push_channel_chat": "Trò chuyện chuyến đi",
+    "push_channel_trips": "Cập nhật chuyến đi",
+    "push_channel_invites": "Lời mời và chia sẻ",
+    "push_channel_name": "Chung",
+    "push_channel_tripday": "Ngày đi",
+    "push_fallback_body": "Thông báo mới",
+    "push_channel_tripday_description": "Ngày của chuyến đi đang diễn ra và điểm dừng tiếp theo."
+  },
+  "zh-Hans": {
+    "push_channel_chat": "行程聊天",
+    "push_channel_trips": "行程动态",
+    "push_channel_invites": "邀请与共享",
+    "push_channel_name": "常规",
+    "push_channel_tripday": "旅行日",
+    "push_fallback_body": "新通知",
+    "push_channel_tripday_description": "进行中行程的当天安排和下一站。"
+  },
+  "zh-Hant": {
+    "push_channel_chat": "行程聊天",
+    "push_channel_trips": "行程動態",
+    "push_channel_invites": "邀請與共享",
+    "push_channel_name": "一般",
+    "push_channel_tripday": "旅行日",
+    "push_fallback_body": "新通知",
+    "push_channel_tripday_description": "進行中行程的當天安排與下一站。"
+  }
+}

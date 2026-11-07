@@ -164,7 +164,7 @@ const dashboard: TranslationStrings = {
   'dashboard.mobile.spotlightDays.one': '{count} Tag',
   'dashboard.mobile.inMonths': 'In {count} Monaten',
   'dashboard.mobile.inMonths.one': 'In {count} Monat',
-  'dashboard.mobile.completed': 'Abgeschlossen',
+  'dashboard.mobile.completed': 'Beendet',
   'dashboard.mobile.currencyConverter': 'Währungsrechner',
   'dashboard.filter.planned': 'Geplant',
   'dashboard.hero.badgeLive': 'JETZT LIVE',

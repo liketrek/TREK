@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowRightLeft, Building2, Calendar, CalendarRange, CalendarX, ChevronDown, Globe, GraduationCap, Loader2, Plus, Trash2, Unlink, X } from 'lucide-react'
+import { ArrowRightLeft, Building2, Calendar, CalendarRange, CalendarX, ChevronDown, Globe, GraduationCap, Loader2, Plus, Trash2, Unlink, X, Settings2 } from 'lucide-react'
 import MSheet from '../../components/MSheet'
 import MIconBtn from '../../components/MIconBtn'
 import MToggle from '../../components/MToggle'
+import { CustomDatePicker } from '../../../components/shared/CustomDateTimePicker'
 import ConfirmDialog from '../../../components/shared/ConfirmDialog'
 import { useVacayStore } from '../../../store/vacayStore'
 import { useTranslation } from '../../../i18n'
@@ -12,6 +13,7 @@ import {
 } from '../../../components/Vacay/useVacaySettings'
 import { FALLBACK_PERSON_COLOR } from './vacayDayModel'
 import type { VacayHolidayCalendar } from '../../../types'
+import { INNER_CLS, TileHeader } from '../trip/sheets/MTripSheetUi'
 
 const CALENDAR_COLORS = ['#fecaca', '#fed7aa', '#fde68a', '#bbf7d0', '#a5f3fc', '#c7d2fe', '#e9d5ff', '#fda4af']
 
@@ -27,6 +29,9 @@ interface MVacaySettingsSheetProps {
  * start, carry-over, company holidays, public-holiday calendars (nager.at —
  * label/color/country/region, several) and dissolving the Fusion.
  */
+/** Each setting is a card on the inner surface, as the trip settings' sections. */
+const CARD = `flex-none rounded-[18px] px-3 pb-1 ${INNER_CLS}`
+
 export default function MVacaySettingsSheet({ open, onClose }: MVacaySettingsSheetProps) {
   const { t, language } = useTranslation()
   const { plan, updatePlan, addHolidayCalendar, updateHolidayCalendar, deleteHolidayCalendar, isFused, users } = useVacayStore()
@@ -51,15 +56,18 @@ export default function MVacaySettingsSheet({ open, onClose }: MVacaySettingsShe
   ]
 
   return (
-    <MSheet open={open} onClose={onClose} variant="card" material="opaque" ariaLabel={t('vacay.settings')} className="h-[calc(100dvh-120px)]">
-      <div className="flex flex-none items-center gap-3 border-b border-[color:var(--m-rowbr)] px-[18px] pb-[10px] pt-4">
-        <div className="flex-1 text-[1.0625rem] font-bold">{t('vacay.settings')}</div>
-        <MIconBtn variant="neutral" size={34} onClick={onClose} ariaLabel={t('common.close')}>
-          <X size={15} strokeWidth={2.2} />
-        </MIconBtn>
+    <MSheet open={open} onClose={onClose} variant="card" material="glass" ariaLabel={t('vacay.settings')} className="h-[calc(100dvh-120px)]">
+      <div className="flex-none px-[18px] pt-4">
+        <TileHeader
+          icon={<Settings2 size={19} strokeWidth={1.8} />}
+          title={t('vacay.settings')}
+          onClose={onClose}
+          closeLabel={t('common.close')}
+        />
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px] pt-2">
+      <div className="m-scroll-fade mt-2 flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-[18px] pb-[18px] pt-[14px]">
+        <section className={CARD}>
         {/* Block weekends */}
         <div className="flex items-start gap-[11px] py-3">
           <CalendarX size={17} strokeWidth={2} className="mt-[1px] flex-none text-m-muted" />
@@ -93,7 +101,8 @@ export default function MVacaySettingsSheet({ open, onClose }: MVacaySettingsShe
             </div>
           </>
         )}
-        <div className="my-2 h-px bg-[color:var(--m-rowbr)]" />
+        </section>
+        <section className={CARD}>
 
         {/* Week start */}
         <div className="flex items-start gap-[11px] py-3">
@@ -120,7 +129,8 @@ export default function MVacaySettingsSheet({ open, onClose }: MVacaySettingsShe
             })}
           </span>
         </div>
-        <div className="my-2 h-px bg-[color:var(--m-rowbr)]" />
+        </section>
+        <section className={CARD}>
 
         {/* Carry over */}
         <div className="flex items-start gap-[11px] py-3">
@@ -131,11 +141,13 @@ export default function MVacaySettingsSheet({ open, onClose }: MVacaySettingsShe
           </div>
           <MToggle checked={plan.carry_over_enabled} onChange={() => updatePlan({ carry_over_enabled: !plan.carry_over_enabled })} ariaLabel={t('vacay.carryOver')} />
         </div>
-        <div className="my-2 h-px bg-[color:var(--m-rowbr)]" />
+        </section>
+        <section className={CARD}>
 
         {/* Vacation year (#737) — personal, unlike the plan settings around it */}
         <YearTypeRows />
-        <div className="my-2 h-px bg-[color:var(--m-rowbr)]" />
+        </section>
+        <section className={CARD}>
 
         {/* Company holidays */}
         <div className="flex items-start gap-[11px] py-3">
@@ -146,7 +158,8 @@ export default function MVacaySettingsSheet({ open, onClose }: MVacaySettingsShe
           </div>
           <MToggle checked={plan.company_holidays_enabled} onChange={() => updatePlan({ company_holidays_enabled: !plan.company_holidays_enabled })} ariaLabel={t('vacay.companyHolidays')} />
         </div>
-        <div className="my-2 h-px bg-[color:var(--m-rowbr)]" />
+        </section>
+        <section className={CARD}>
 
         {/* Public holidays + calendar editor */}
         <div className="flex items-start gap-[11px] py-3">
@@ -188,7 +201,8 @@ export default function MVacaySettingsSheet({ open, onClose }: MVacaySettingsShe
             )}
           </>
         )}
-        <div className="my-2 h-px bg-[color:var(--m-rowbr)]" />
+        </section>
+        <section className={CARD}>
 
         {/* School holidays + calendar editor */}
         <div className="flex items-start gap-[11px] py-3">
@@ -231,6 +245,8 @@ export default function MVacaySettingsSheet({ open, onClose }: MVacaySettingsShe
             )}
           </>
         )}
+
+        </section>
 
         {/* Dissolve Fusion */}
         {isFused && (
@@ -338,13 +354,14 @@ function YearTypeRows() {
 
       {type === 'anniversary' && (
         <div className="ms-7">
-          <input
-            type="date"
-            value={yearSettings.hire_date || ''}
-            onChange={e => save({ hire_date: e.target.value || null })}
-            aria-label={t('vacay.hireDate')}
-            className="mt-[7px] w-full rounded-[10px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] px-[11px] py-[9px] font-[inherit] text-[0.78125rem] font-semibold text-m-ink outline-none"
-          />
+          <div className="mt-[7px]">
+            <CustomDatePicker
+              value={yearSettings.hire_date || ''}
+              onChange={v => save({ hire_date: v || null })}
+              placeholder={t('vacay.hireDate')}
+              ariaLabel={t('vacay.hireDate')}
+            />
+          </div>
         </div>
       )}
 

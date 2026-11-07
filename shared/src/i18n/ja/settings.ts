@@ -85,6 +85,9 @@ const settings: TranslationStrings = {
   'settings.timeFormat': '時刻形式',
   'settings.weekStart': '週の開始',
   'settings.weekStartHint': 'すべての日付選択で週の最初の曜日になります。Vacay には専用の設定があります。',
+  'settings.dateFormat': '日付形式',
+  'settings.dateFormatHint': 'すべての日付欄と一覧での日付の書き方です。月名を含む日付は言語の表記のままです。',
+  'settings.dateFormatAuto': '自動',
   'settings.preferredNavApp': '場所を開くアプリ',
   'settings.preferredNavAppAsk': '毎回確認する',
   'settings.preferredNavAppHint':
@@ -633,6 +636,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': '完了',
   'settings.mcp.deprecated': '非推奨',
   'settings.offline.cache.dateRange': '{start}から{end}',
+  'settings.offline.tileStore.title': '表示した地図タイル',
+  'settings.offline.tileStore.usage': 'この端末で {limit} 中 {used}、最長30日間保存',
+  'settings.offline.tileStore.clear': '消去',
 };
 
 export default settings;

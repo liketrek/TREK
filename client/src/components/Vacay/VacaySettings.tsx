@@ -3,6 +3,7 @@ import { type LucideIcon, CalendarOff, AlertCircle, Building2, Unlink, ArrowRigh
 import { useVacayStore } from '../../store/vacayStore'
 import { useTranslation } from '../../i18n'
 import CustomSelect from '../shared/CustomSelect'
+import { CustomDatePicker } from '../shared/CustomDateTimePicker'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import { useSchoolHolidayCountries } from './useSchoolHolidayCountries'
 import type { VacayHolidayCalendar } from '../../types'
@@ -355,12 +356,12 @@ function YearTypePicker() {
 
       {type === 'anniversary' && (
         <div style={{ paddingInlineStart: 36, marginTop: 8 }}>
-          <input
-            type="date"
+          <CustomDatePicker
             value={yearSettings.hire_date || ''}
-            onChange={e => save({ hire_date: e.target.value || null })}
-            aria-label={t('vacay.hireDate')}
-            style={{ width: '100%', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500, padding: '8px 14px', borderRadius: 10, background: 'var(--bg-input)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none' }}
+            onChange={v => save({ hire_date: v || null })}
+            placeholder={t('vacay.hireDate')}
+            ariaLabel={t('vacay.hireDate')}
+            style={{ width: '100%' }}
           />
           {!yearSettings.hire_date && (
             <p className="text-[11px] mt-1 text-content-faint">{t('vacay.hireDateHint')}</p>

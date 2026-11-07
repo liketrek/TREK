@@ -7,6 +7,7 @@
 
 import type { Trip } from '../../types'
 import { localIsoDate } from '../../utils/localDate'
+import { sortTripsByRelevance } from '../../utils/heroTrip'
 
 // The dashboard works with the canonical Trip shape returned by the list/get
 // endpoints (it already carries the computed day_count/place_count/is_owner/
@@ -83,17 +84,5 @@ export function getTripStatus(trip: DashboardTrip): 'ongoing' | 'today' | 'tomor
 }
 
 export function sortTrips(trips: DashboardTrip[]): DashboardTrip[] {
-  const today = localIsoToday()
-  const rank = (t: DashboardTrip) => {
-    if (t.start_date && t.end_date && t.start_date <= today && t.end_date >= today) return 0
-    if (t.start_date && t.start_date >= today) return 1
-    return 2
-  }
-  return [...trips].sort((a, b) => {
-    const ra = rank(a), rb = rank(b)
-    if (ra !== rb) return ra - rb
-    const ad = a.start_date || '', bd = b.start_date || ''
-    if (ra <= 1) return ad.localeCompare(bd)
-    return bd.localeCompare(ad)
-  })
+  return sortTripsByRelevance(trips, localIsoToday())
 }

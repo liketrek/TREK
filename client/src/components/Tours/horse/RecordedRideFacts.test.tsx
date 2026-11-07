@@ -121,7 +121,7 @@ describe('a ride taken from a GPX file (HOR-02)', () => {
     expect(gpxImport.confirm).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByTestId('gpx-preview-import'));
-    expect(gpxImport.confirm).toHaveBeenCalledWith({ tour_type: 'horse' });
+    expect(gpxImport.confirm).toHaveBeenCalledWith({ tour_type: 'horse' }, { points: false });
   });
 
   it('FE-HORSE-IMPORT-005: a recorded ride in view carries the card, with the heights its file lacks named', () => {

@@ -14,6 +14,8 @@ const mobileVacay: TranslationStrings = {
   'mobileVacay.companyLegend': 'วันของบริษัท',
   'mobileVacay.editCalendar': 'แก้ไขปฏิทิน',
   'mobileVacay.viewYear': 'ดูปี',
+  'mobileVacay.people': 'บุคคล',
+  'mobileVacay.legend': 'คำอธิบายสัญลักษณ์',
 };
 
 export default mobileVacay;

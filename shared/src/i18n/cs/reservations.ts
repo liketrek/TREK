@@ -60,7 +60,7 @@ const reservations: TranslationStrings = {
   'reservations.type.car': 'Auto',
   'reservations.type.cruise': 'Plavba',
   'reservations.type.event': 'Událost',
-  'reservations.type.tour': 'Prohlídka',
+  'reservations.type.tour': 'Prohlídka s průvodcem',
   'reservations.type.parking': 'Parkování',
   'reservations.type.other': 'Jiné',
   'reservations.type.bus': 'Autobus',
@@ -280,5 +280,9 @@ const reservations: TranslationStrings = {
     'Soubory potřebují k nahrání připojení. Odeber nové, abys rezervaci uložil offline, nebo ulož, až budeš znovu online.',
   'reservations.needsConnection': 'Na tohle je potřeba připojení. Zkus to znovu, až bude TREK zase online.',
   'reservations.exportCsvFiltered': 'Exportovat zobrazené řádky, {shown} z {total} (CSV)',
+  'reservations.wallet.add': 'Přidat do Apple Wallet',
+  'reservations.wallet.addGoogle': 'Přidat do Google Wallet',
+  'reservations.wallet.failed': 'Kartu do Wallet se nepodařilo vytvořit. Zkuste to znovu.',
+  'reservations.wallet.undated': 'Nejdřív rezervaci zadejte datum: Wallet kartu zobrazí kolem toho času.',
 };
 export default reservations;

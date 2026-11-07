@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from '../../../i18n/TranslationContext'
+import { useFormatDate } from '../../../hooks/useDateFormat'
 import { relativeTime } from '../../../utils/relativeTime'
 import { Tooltip } from '../../shared/Tooltip'
 
@@ -83,11 +84,12 @@ export function StateBadge({ state, compact }: { state: string; compact?: boolea
 
 /** "2h ago", or "never" when a binding has not run yet. */
 export function LastRun({ at }: { at: string | null }) {
-  const { t, language, locale } = useTranslation()
+  const { t, language } = useTranslation()
+  const { formatDateTime } = useFormatDate()
   if (!at) return <span className="text-content-faint">{t('docsync.binding.neverRun')}</span>
   const ms = Date.parse(at)
   if (Number.isNaN(ms)) return null
-  return <Tooltip label={new Date(ms).toLocaleString(locale)}><span>{relativeTime(ms, language)}</span></Tooltip>
+  return <Tooltip label={formatDateTime(new Date(ms))}><span>{relativeTime(ms, language)}</span></Tooltip>
 }
 
 /**

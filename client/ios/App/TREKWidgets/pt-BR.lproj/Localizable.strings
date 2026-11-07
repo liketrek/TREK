@@ -1,0 +1,20 @@
+/* The widget gallery: names and descriptions (TREKWidgets/NextTripWidget.swift). */
+"widget.trip.name" = "Viagem";
+"widget.trip.description" = "Conta os dias até a próxima viagem e, durante ela, mostra o dia e o que vem a seguir.";
+"widget.today.name" = "Hoje";
+"widget.today.description" = "O plano do dia como linha do tempo, com o clima e a próxima parada.";
+"widget.bookings.name" = "Reservas";
+"widget.bookings.description" = "Seus próximos voos, trens, hotéis e mesas, e quando acontecem.";
+"widget.todos.name" = "Tarefas";
+"widget.todos.description" = "O que ainda falta para a viagem e quanto da mala já está pronto.";
+"widget.packing.name" = "Bagagem";
+"widget.packing.description" = "Quão cheias estão as malas, o peso e o que ainda falta.";
+"widget.atlas.name" = "Mapa-múndi";
+"widget.atlas.description" = "Os países em que você esteve, brilhando no mapa.";
+"widget.collab.name" = "Grupo de viagem";
+"widget.collab.description" = "Quem vai junto, as mensagens recentes e a votação aberta.";
+"widget.intent.title" = "Escolher viagem";
+"widget.intent.description" = "A viagem que este widget mostra.";
+"widget.intent.trip" = "Viagem";
+"widget.intent.auto" = "Automático";
+"widget.intent.autoHint" = "A mesma viagem do painel";

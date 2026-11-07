@@ -41,5 +41,7 @@ const map: TranslationStrings = {
   'map.baseLayer.topo': 'ภูมิประเทศ',
   'map.webgl2.fallback': 'เบราว์เซอร์นี้ไม่รองรับ WebGL2 ที่แผนที่ GL ต้องใช้ จึงแสดงแผนที่ด้วย Leaflet แทน',
   'map.webgl2.terrain': 'โหมด 3D ต้องใช้ WebGL2 ซึ่งเบราว์เซอร์นี้ไม่รองรับ แผนที่จึงยังคงเป็น 2D',
+  'map.offlineBasemap': 'แผนที่ออฟไลน์',
+  'map.offlineShowStored': 'แสดงแผนที่ออฟไลน์',
 };
 export default map;

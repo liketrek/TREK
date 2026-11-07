@@ -78,5 +78,7 @@ const common: TranslationStrings = {
   'common.errorUpdateBody': 'TREK diperbarui saat tab ini terbuka. Muat ulang untuk mendapatkan versi baru.',
   'common.errorPluginTitle': 'Plugin ini tidak dapat ditampilkan',
   'common.needsConnection': 'Ini memerlukan koneksi. Coba lagi begitu TREK kembali online.',
+  'common.errorDetails': 'Detail',
+  'common.share': 'Bagikan',
 };
 export default common;

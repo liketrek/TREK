@@ -35,15 +35,15 @@ describe('MBookingCodeStatus', () => {
     fireEvent.change(input, { target: { value: 'XYZ9' } });
     expect(onCodeChange).toHaveBeenCalledWith('XYZ9');
 
-    fireEvent.click(screen.getByRole('button', { name: 'reservations.confirmed' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'reservations.confirmed' }));
     expect(onStatusChange).toHaveBeenCalledWith('confirmed');
   });
 
   it('FE-COMP-MBOOKINGFIELDS-002: marks the current status as the active segment', () => {
     render(<MBookingCodeStatus t={t} code="" onCodeChange={vi.fn()} status="confirmed" onStatusChange={vi.fn()} />);
 
-    expect(screen.getByRole('button', { name: 'reservations.confirmed' }).className).toContain('bg-m-act');
-    expect(screen.getByRole('button', { name: 'reservations.pending' }).className).toContain('text-m-muted');
+    expect(screen.getByRole('radio', { name: 'reservations.confirmed' }).className).toContain('bg-m-act');
+    expect(screen.getByRole('radio', { name: 'reservations.pending' }).className).toContain('text-m-muted');
   });
 });
 

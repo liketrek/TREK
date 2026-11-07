@@ -16,8 +16,9 @@ import { useSettingSaver } from './useSettingSaver'
 import { TRIP_TAB_IDS, TRIP_TAB_LABEL_KEYS } from '../../constants/tripTabs'
 import { DEFAULT_START_PAGE, DEFAULT_START_TRIP_TAB } from '../../utils/startDestination'
 import type { DistanceUnit } from '../../types'
-import { DEFAULT_WEEK_START } from '@trek/shared'
+import { DEFAULT_DATE_FORMAT, DEFAULT_WEEK_START } from '@trek/shared'
 import { weekStartOptions } from '../../utils/calendarWeek'
+import { dateFormatOptions } from '../../utils/dateFormat'
 import DemoLock from '../Demo/DemoLock'
 import { useDemoAccountLock } from '../Demo/useDemoLock'
 
@@ -261,6 +262,23 @@ export default function DisplaySettingsTab(): React.ReactElement {
                     await save('week_start', String(v))
                   }}
                   options={weekStartOptions(locale)}
+                />
+              </div>
+            }
+          />
+
+          {/* Date format: every date field and every date written in numbers (#2971) */}
+          <SettingRow
+            label={t('settings.dateFormat')}
+            hint={t('settings.dateFormatHint')}
+            control={
+              <div className={SELECT_BOX}>
+                <CustomSelect
+                  value={settings.date_format || DEFAULT_DATE_FORMAT}
+                  onChange={v => {
+                    void save('date_format', String(v))
+                  }}
+                  options={dateFormatOptions(locale, t('settings.dateFormatAuto'))}
                 />
               </div>
             }

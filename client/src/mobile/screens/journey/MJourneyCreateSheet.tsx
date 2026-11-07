@@ -1,6 +1,6 @@
-import { Feather, Calendar, MapPin, Check, X } from 'lucide-react'
+import { Feather, Calendar, MapPin, Check, NotebookPen } from 'lucide-react'
 import MSheet from '../../components/MSheet'
-import MIconBtn from '../../components/MIconBtn'
+import { SHEET_PRIMARY, SHEET_SECONDARY, TileHeader } from '../trip/sheets/MTripSheetUi'
 import { useTranslation } from '../../../i18n'
 import { pickGradient } from '../../../pages/journeyDetail/JourneyDetailPage.helpers'
 
@@ -38,24 +38,27 @@ export default function MJourneyCreateSheet({
   const { t } = useTranslation()
 
   return (
-    <MSheet open={open} onClose={onClose} variant="card" material="opaque" ariaLabel={t('journey.frontpage.createJourney')}>
-      <div className="flex flex-none items-center border-b border-[color:var(--m-rowbr)] px-[18px] pb-[10px] pt-4">
-        <div className="flex-1 text-[1.0625rem] font-bold">{t('journey.frontpage.createJourney')}</div>
-        <MIconBtn variant="neutral" size={34} onClick={onClose} ariaLabel={t('common.cancel')}>
-          <X size={15} strokeWidth={2.2} />
-        </MIconBtn>
+    <MSheet open={open} onClose={onClose} variant="card" material="glass" ariaLabel={t('journey.frontpage.createJourney')}>
+      <div className="flex-none px-[18px] pt-4">
+        <TileHeader
+          icon={<NotebookPen size={19} strokeWidth={1.8} />}
+          title={t('journey.frontpage.createJourney')}
+          onClose={onClose}
+          closeLabel={t('common.cancel')}
+        />
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-[18px] py-3">
+      <div className="m-scroll-fade mt-2 min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px] pt-[14px]">
         <div className="mb-[6px] font-geist text-[0.625rem] font-bold uppercase tracking-[.09em] text-m-faint">
           {t('journey.frontpage.journeyName')}
         </div>
-        <div className="flex items-center gap-[10px] rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[14px] py-3">
+        <div className="flex h-[42px] items-center gap-[10px] rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[14px]">
           <Feather size={16} strokeWidth={2} className="flex-none text-m-muted" />
           <input
             value={title}
             onChange={e => onTitleChange(e.target.value)}
             placeholder={t('journey.frontpage.namePlaceholder')}
+            aria-label={t('journey.frontpage.journeyName')}
             className="min-w-0 flex-1 bg-transparent text-[0.875rem] font-semibold text-m-ink outline-none placeholder:text-m-faint"
           />
         </div>
@@ -120,19 +123,10 @@ export default function MJourneyCreateSheet({
       </div>
 
       <div className="flex flex-none items-center gap-2 border-t border-[color:var(--m-rowbr)] px-[18px] pb-4 pt-3">
-        <button
-          type="button"
-          onClick={onClose}
-          className="ms-auto rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-4 py-[9px] text-[0.78125rem] font-semibold"
-        >
+        <button type="button" onClick={onClose} className={`${SHEET_SECONDARY} ms-auto`}>
           {t('common.cancel')}
         </button>
-        <button
-          type="button"
-          onClick={onCreate}
-          disabled={!title.trim()}
-          className="flex-1 rounded-full bg-m-act px-[18px] py-[9px] text-center text-[0.78125rem] font-semibold text-m-actfg disabled:opacity-40"
-        >
+        <button type="button" onClick={onCreate} disabled={!title.trim()} className={SHEET_PRIMARY}>
           {t('journey.create')}
         </button>
       </div>

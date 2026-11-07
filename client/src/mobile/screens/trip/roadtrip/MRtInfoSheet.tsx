@@ -172,7 +172,7 @@ export default function MRtInfoSheet({ planner, shell }: MTripSheetsProps) {
   ]
 
   return (
-    <MSheet open={open} onClose={shell.closeSheet} variant="bottom" material="opaque" ariaLabel={t('mobileTrip.rtInfoTitle')}>
+    <MSheet open={open} onClose={shell.closeSheet} variant="bottom" material="glass" ariaLabel={t('mobileTrip.rtInfoTitle')}>
       <div className="flex-none px-[18px] pt-4">
         <TileHeader
           icon={<VehicleIcon size={19} strokeWidth={1.8} />}
@@ -182,7 +182,7 @@ export default function MRtInfoSheet({ planner, shell }: MTripSheetsProps) {
         />
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px]">
+      <div className="m-scroll-fade mt-2 min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px] pt-[14px]">
         {/* ── Vehicle: how far it goes, drawn as the tank it leaves the factory with ── */}
         <div className="mt-[14px]">
           <InfoCard label={t('roadtrip.limit.sectionVehicle')}>

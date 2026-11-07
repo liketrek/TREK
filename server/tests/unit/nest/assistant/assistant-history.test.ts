@@ -591,6 +591,124 @@ describe('toChatHistory: calls the model made of the server tools (#2845)', () =
     ]);
   });
 
+  /** A step stopped while its calls ran: the provider's record holds both calls, the parts only the one that ran. */
+  function stoppedMidStep(state: Record<string, unknown>): AiChatMessage[] {
+    return toChatHistory(
+      [
+        row('user', [{ type: 'text', text: 'Plan Friday' }]),
+        row(
+          'assistant',
+          [
+            { type: 'text', text: 'Let me look.' },
+            { type: 'tool-call', toolCallId: 'call_1', toolName: 'list_places', args: {}, result: { places: [] } },
+          ],
+          { provider_state: JSON.stringify(state), status: 'aborted' },
+        ),
+        row('user', [{ type: 'text', text: 'Hello?' }]),
+      ],
+      new Map(),
+    );
+  }
+
+  it('ASTHIS-019: Anthropic gets a call of a stopped step that never ran answered, so the thread goes on', () => {
+    const history = stoppedMidStep({
+      adapter: 'anthropic-messages',
+      blocks: [
+        { type: 'text', text: 'Let me look.' },
+        { type: 'tool_use', id: 'call_1', name: 'list_places', input: {} },
+        { type: 'tool_use', id: 'call_2', name: 'get_weather', input: {} },
+      ],
+    });
+    expect(history.filter((message) => message.role === 'tool')).toEqual([
+      expect.objectContaining({ toolCallId: 'call_1' }),
+      {
+        role: 'tool',
+        toolCallId: 'call_2',
+        name: 'get_weather',
+        output: expect.stringContaining('did not run'),
+        isError: true,
+      },
+    ]);
+    const messages = toAnthropicMessages(history);
+    const results = messages[2].content
+      .filter((block) => block.type === 'tool_result')
+      .map((block) => block.tool_use_id);
+    expect(results).toEqual(['call_1', 'call_2']);
+    expect(messages).toHaveLength(3);
+  });
+
+  it('ASTHIS-020: the Responses API gets a function call of a stopped step that never ran answered', () => {
+    const history = stoppedMidStep({
+      adapter: 'openai-responses',
+      items: [
+        { type: 'function_call', call_id: 'call_1', name: 'list_places', arguments: '{}' },
+        { type: 'function_call', call_id: 'call_2', name: 'get_weather', arguments: '{}' },
+      ],
+    });
+    const outputs = toResponsesInput({ system: '', messages: history, tools: [] })
+      .filter((item) => item.type === 'function_call_output')
+      .map((item) => item.call_id);
+    expect(outputs).toEqual(['call_1', 'call_2']);
+  });
+
+  it('ASTHIS-021: a stopped step replayed on another provider names every call it answers', () => {
+    const anthropic = stoppedMidStep({
+      adapter: 'anthropic-messages',
+      blocks: [
+        { type: 'text', text: 'Let me look.' },
+        { type: 'tool_use', id: 'call_1', name: 'list_places', input: {} },
+        { type: 'tool_use', id: 'call_2', name: 'get_weather', input: { day: 3 } },
+      ],
+    });
+    expect(anthropic.find((message) => message.role === 'assistant')).toMatchObject({
+      toolCalls: [
+        { id: 'call_1', name: 'list_places', args: {} },
+        { id: 'call_2', name: 'get_weather', args: { day: 3 } },
+      ],
+    });
+
+    // Chat Completions: every tool message follows an assistant message whose tool_calls name it.
+    const chat = toChatMessages({ system: '', messages: anthropic, tools: [] });
+    chat.forEach((message, index) => {
+      if (message.role !== 'tool') return;
+      const before = chat
+        .slice(0, index)
+        .reverse()
+        .find((earlier) => earlier.role === 'assistant');
+      const named = ((before?.tool_calls ?? []) as Array<{ id: string }>).map((call) => call.id);
+      expect(named).toContain(message.tool_call_id);
+    });
+
+    // Responses: every function_call_output has its function_call before it.
+    const items = toResponsesInput({ system: '', messages: anthropic, tools: [] });
+    items.forEach((item, index) => {
+      if (item.type !== 'function_call_output') return;
+      const made = items
+        .slice(0, index)
+        .some((earlier) => earlier.type === 'function_call' && earlier.call_id === item.call_id);
+      expect(made).toBe(true);
+    });
+
+    // Anthropic: a step the Responses API recorded is rebuilt with every tool_use its results answer.
+    const responses = stoppedMidStep({
+      adapter: 'openai-responses',
+      items: [
+        { type: 'function_call', call_id: 'call_1', name: 'list_places', arguments: '{}' },
+        { type: 'function_call', call_id: 'call_2', name: 'get_weather', arguments: 'not json' },
+      ],
+    });
+    const messages = toAnthropicMessages(responses);
+    const uses = messages[1].content.filter((block) => block.type === 'tool_use');
+    expect(uses.map((block) => [block.id, block.input])).toEqual([
+      ['call_1', {}],
+      ['call_2', {}],
+    ]);
+    const results = messages[2].content
+      .filter((block) => block.type === 'tool_result')
+      .map((block) => block.tool_use_id);
+    expect(results).toEqual(['call_1', 'call_2']);
+  });
+
   it('ASTHIS-017: a step that only kept a note is the model call it was, answered with what was kept', () => {
     const history = toChatHistory(
       [

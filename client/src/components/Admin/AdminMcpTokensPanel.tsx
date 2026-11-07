@@ -1,6 +1,7 @@
 import { type ReactNode } from 'react'
 import { Key, Trash2, User, Loader2, Shield, KeyRound, Bot } from 'lucide-react'
 import { useTranslation } from '../../i18n'
+import { useFormatDate } from '../../hooks/useDateFormat'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import { Tooltip } from '../shared/Tooltip'
 import { fs } from '../shared/DialogShell'
@@ -64,9 +65,10 @@ export default function AdminMcpTokensPanel() {
     sessions, sessionsLoading, tokens, tokensLoading, expandedScopes, toggleScopes,
     revokeConfirmId, setRevokeConfirmId, deleteConfirmId, setDeleteConfirmId, handleRevoke, handleDelete,
   } = useMcpTokensAdmin()
-  const { t, locale } = useTranslation()
+  const { t } = useTranslation()
+  const { formatDate } = useFormatDate()
 
-  const date = (iso: string) => new Date(iso).toLocaleDateString(locale)
+  const date = (iso: string) => formatDate(new Date(iso))
 
   return (
     <div>

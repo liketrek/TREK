@@ -1069,6 +1069,7 @@ const admin: TranslationStrings = {
   'admin.contribute.never.providers': 'Google이나 다른 제공자가 채운 정보',
   'admin.contribute.prompt.how':
     '사용자가 직접 입력한 내용만, 그리고 색인이 아는 장소에 대해서만 전송됩니다. 사용자, 여행, 계정 정보는 함께 가지 않습니다. 로그에 모든 전송이 표시되며, 필드를 끄거나 모두 철회하는 것은 언제든 가능합니다.',
+  'admin.contribute.prompt.past': 'TREK 5.1 이후 사용자가 입력한 정보도 조금씩 공유됩니다.',
   'admin.contribute.prompt.openRegistration':
     '이 설치는 가입이 열려 있어 계정이 있는 누구나 정보를 입력할 수 있습니다. 모든 값은 게시 전에 확인됩니다.',
   'admin.contribute.prompt.footnote': '이 결정은 설치 전체에 적용됩니다. 사용자에게는 묻지 않습니다.',

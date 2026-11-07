@@ -94,6 +94,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': 'Formát času',
   'settings.weekStart': 'Týždeň začína',
   'settings.weekStartHint': 'Prvý deň týždňa vo všetkých výberoch dátumu. Vacay má vlastné nastavenie.',
+  'settings.dateFormat': 'Formát dátumu',
+  'settings.dateFormatHint':
+    'Ako sa zapisujú dátumy vo všetkých dátumových poliach a zoznamoch. Dátumy s názvom mesiaca si zachovávajú znenie vášho jazyka.',
+  'settings.dateFormatAuto': 'Automaticky',
   'settings.preferredNavApp': 'Otvárať miesta v',
   'settings.preferredNavAppAsk': 'Zakaždým sa opýtať',
   'settings.preferredNavAppHint':
@@ -674,6 +678,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': 'Hotovo',
   'settings.mcp.deprecated': 'Zastarané',
   'settings.offline.cache.dateRange': '{start} až {end}',
+  'settings.offline.tileStore.title': 'Zobrazené dlaždice mapy',
+  'settings.offline.tileStore.usage': '{used} z {limit} v tomto zariadení, uchováva sa až 30 dní',
+  'settings.offline.tileStore.clear': 'Vymazať',
 };
 
 export default settings;

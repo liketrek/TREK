@@ -1151,6 +1151,8 @@ const admin: TranslationStrings = {
   'admin.contribute.never.providers': 'A Google vagy más szolgáltató által kitöltött adatok',
   'admin.contribute.prompt.how':
     'Csak amit a felhasználóid maguk írtak be, és csak olyan helyekhez, amelyeket az index ismer. Felhasználó, út vagy fiók nem megy vele. A napló minden átvitelt megmutat, a mezőket bármikor kikapcsolhatod, vagy mindent visszavonhatsz.',
+  'admin.contribute.prompt.past':
+    'A felhasználók által a TREK 5.1 óta beírt adatok is megosztásra kerülnek, fokozatosan.',
   'admin.contribute.prompt.openRegistration':
     'Ezen a telepítésen nyitott a regisztráció, így bárki, akinek van fiókja, beírhat adatokat. Minden értéket ellenőrzünk a közzététel előtt.',
   'admin.contribute.prompt.footnote': 'Ezt az egész telepítésre döntöd el. A felhasználóidat nem kérdezzük.',

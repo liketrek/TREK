@@ -94,6 +94,7 @@ const packing: TranslationStrings = {
   'packing.takenCareOf': '{name} さん担当',
   'packing.sharedWithCount': '{count} 人と共有',
   'packing.broughtBy': '{name} さんが持参',
+  'packing.bringersTitle': '持っていく人',
   'packing.alsoBring': '私も持っていけます',
   'packing.alsoBringingStop': 'やっぱり持っていきません',
   'packing.cloneToMine': 'マイリストにコピー',

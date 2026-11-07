@@ -1336,7 +1336,7 @@ const help: TranslationStrings = {
   'help.ctx.settings.bullet.1':
     'Sidebar on the left: General, Appearance, Map, Notifications, Integrations, Offline and Account. Plugins appears once a plugin is active. About appears unless the operator has hidden it. The version is shown at the bottom.',
   'help.ctx.settings.bullet.2':
-    'General opens first. It holds the language, the language of place names, units, time format, week start and display currency, plus how the trip map behaves. Appearance holds theme, colours, readability, text size and the dashboard widgets.',
+    'General opens first. It holds the language, the language of place names, units, time format, date format, week start and display currency, plus how the trip map behaves. Appearance holds theme, colours, readability, text size and the dashboard widgets.',
   'help.ctx.settings.bullet.3':
     'Map sets the map engine and its style; Notifications sets which events go to which channel; Integrations connects photo libraries, AirTrail, Dawarich and wanderer, and contains API keys and MCP; Offline sets what this device stores.',
   'help.ctx.settings.bullet.4':
@@ -1347,7 +1347,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-display.bullet.1':
     'Startup: Start page opens on the Dashboard or on the Active trip; with Active trip, Start tab picks the tab that trip opens on.',
   'help.ctx.settings-display.bullet.2':
-    'Language & region: Display currency (or Trip currency for none), Language, Place names, Temperature Unit, Distance Unit, Time Format and Week starts on.',
+    'Language & region: Display currency (or Trip currency for none), Language, Place names, Temperature Unit, Distance Unit, Time Format, Week starts on and Date format.',
   'help.ctx.settings-display.bullet.3':
     'Travel & map: Open places in, Date first in day headings, Booking route labels, Always show booking routes, Compact markers for unplanned places, Explore places on the map, Blur Booking Codes and Optimize route from accommodation.',
   'help.ctx.settings-appearance.title': 'Appearance',
@@ -1445,7 +1445,7 @@ const help: TranslationStrings = {
   'help.guide.language-region.step.2':
     'Place names sets the language that place search, suggestions and addresses use; Same as the app follows the interface language.',
   'help.guide.language-region.step.3':
-    'Set the Display currency, or keep Trip currency to see each trip in its own. Then choose Temperature Unit, Distance Unit, Time Format and the day the Week starts on.',
+    'Set the Display currency, or keep Trip currency to see each trip in its own. Then choose Temperature Unit, Distance Unit, Time Format, the day the Week starts on and the Date format.',
   'help.guide.language-region.result':
     'Dates, distances and money are shown in the format you expect. In Costs, amounts are shown in your display currency for display only; the amounts that were entered do not change.',
   'help.guide.language-region.tip.1': 'Trip currency shows every trip in its own currency, without converting.',
@@ -1751,9 +1751,9 @@ const help: TranslationStrings = {
     'Permission Settings at the bottom: per action, who may do it (Everyone, Trip members, Trip owner or Admin only). Click Save at the top of the card to save it.',
   'help.ctx.admin-defaults.title': 'User Defaults',
   'help.ctx.admin-defaults.summary':
-    'What a new account starts with, so nobody has to set it up first: colour mode, units, time format, week start, display currency and blurred booking codes, plus the map, its keys and the routing servers.',
+    'What a new account starts with, so nobody has to set it up first: colour mode, units, time format, date format, week start, display currency and blurred booking codes, plus the map, its keys and the routing servers.',
   'help.ctx.admin-defaults.bullet.1':
-    'Default User Settings on the left: Color Mode, Temperature Unit, Distance Unit, Time Format, Week starts on, Display currency and Blur Booking Codes.',
+    'Default User Settings on the left: Color Mode, Temperature Unit, Distance Unit, Time Format, Week starts on, Date format, Display currency and Blur Booking Codes.',
   'help.ctx.admin-defaults.bullet.2':
     'Map on the right: Map Template, Shared CARTO key, Own routing engine and Own Valhalla instance, a preview, then Map engine with Map style, Shared Mapbox token, 3D buildings & terrain and High-quality mode.',
   'help.ctx.admin-defaults.bullet.3':
@@ -1903,7 +1903,7 @@ const help: TranslationStrings = {
   'help.guide.default-user-settings.goal':
     'Give every account sensible units, colour mode and currency without anyone opening Settings.',
   'help.guide.default-user-settings.step.1':
-    'Under Default User Settings, pick Color Mode (Light, Dark or Auto), Temperature Unit, Distance Unit, Time Format, Week starts on, the Display currency and whether Blur Booking Codes is On or Off. Each choice saves at once.',
+    'Under Default User Settings, pick Color Mode (Light, Dark or Auto), Temperature Unit, Distance Unit, Time Format, Week starts on, Date format, the Display currency and whether Blur Booking Codes is On or Off. Each choice saves at once.',
   'help.guide.default-user-settings.step.2':
     "A field you set gets a reset link beside its name; it restores TREK's built-in default.",
   'help.guide.default-user-settings.result':
@@ -3627,7 +3627,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.summary':
     'This tab holds everything booked for the trip except transport: places to stay, tables, tickets, tours and parking. Every booking is a card, a list row or a bar on the timeline, with its code, its documents, its travellers and its cost. Click a booking to open its details.',
   'help.ctx.trip-bookings.bullet.1':
-    'Manual Booking at the right end of the bar opens New Reservation. It creates six kinds of bookings: Accommodation, Restaurant, Event, Tour, Parking and Other. Flights, trains and other transport are on the Transports tab and never appear here.',
+    'Manual Booking at the right end of the bar opens New Reservation. It creates six kinds of bookings: Accommodation, Restaurant, Event, Guided tour, Parking and Other. Flights, trains and other transport are on the Transports tab and never appear here.',
   'help.ctx.trip-bookings.bullet.2':
     'The download icon before Manual Booking, Import booking confirmations, uploads confirmations so TREK can read them automatically: EML, PDF, PKPass, HTML or TXT, five files of 10 MB at most, and photos when the AI model reads pictures. The icon is only there when the server can read them.',
   'help.ctx.trip-bookings.bullet.3':
@@ -3684,7 +3684,7 @@ const help: TranslationStrings = {
   'help.guide.create-booking.step.1':
     'Click Manual Booking at the right end of the bar. New Reservation opens, with the title and two pills in a header at the top.',
   'help.guide.create-booking.step.2':
-    'Click the type label in the top band, which reads Other on a new booking, and pick the Booking Type. This tab creates six types: Accommodation, Restaurant, Event, Tour, Parking and Other. The form changes with your choice: only Accommodation uses a range of days instead of dates.',
+    'Click the type label in the top band, which reads Other on a new booking, and pick the Booking Type. This tab creates six types: Accommodation, Restaurant, Event, Guided tour, Parking and Other. The form changes with your choice: only Accommodation uses a range of days instead of dates.',
   'help.guide.create-booking.step.3':
     'Type the title into the band at the top, the field above the pills. It is the only required field, and Add stays greyed out until you enter something.',
   'help.guide.create-booking.step.4':

@@ -48,6 +48,13 @@ describe('tripUpdateRequestSchema', () => {
     expect(tripUpdateRequestSchema.safeParse({}).success).toBe(true);
     expect(tripUpdateRequestSchema.safeParse({ is_archived: 1, cover_image: null }).success).toBe(true);
   });
+
+  it('bounds cover_image like a place image url: a replaced cover is queued for release', () => {
+    expect(tripUpdateRequestSchema.safeParse({ cover_image: `/uploads/covers/${'a'.repeat(2000)}` }).success).toBe(
+      true,
+    );
+    expect(tripUpdateRequestSchema.safeParse({ cover_image: 'x'.repeat(2049) }).success).toBe(false);
+  });
 });
 
 describe('tripAddMemberRequestSchema', () => {

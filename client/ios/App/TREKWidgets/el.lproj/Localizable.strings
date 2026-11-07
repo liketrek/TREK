@@ -1,0 +1,20 @@
+/* The widget gallery: names and descriptions (TREKWidgets/NextTripWidget.swift). */
+"widget.trip.name" = "Ταξίδι";
+"widget.trip.description" = "Μετρά αντίστροφα ως το επόμενο ταξίδι και στη διάρκειά του δείχνει τη μέρα και τι ακολουθεί.";
+"widget.today.name" = "Σήμερα";
+"widget.today.description" = "Το πρόγραμμα της ημέρας ως χρονολόγιο, με τον καιρό και την επόμενη στάση.";
+"widget.bookings.name" = "Κρατήσεις";
+"widget.bookings.description" = "Οι επόμενες πτήσεις, τα τρένα, τα ξενοδοχεία και τα τραπέζια σου, και πότε είναι.";
+"widget.todos.name" = "Εκκρεμότητες";
+"widget.todos.description" = "Τι μένει ακόμα για το ταξίδι και πόσο έχει προχωρήσει το πακετάρισμα.";
+"widget.packing.name" = "Αποσκευές";
+"widget.packing.description" = "Πόσο γεμάτες είναι οι τσάντες, το βάρος τους και τι λείπει ακόμα.";
+"widget.atlas.name" = "Παγκόσμιος χάρτης";
+"widget.atlas.description" = "Οι χώρες που έχεις επισκεφθεί, φωτεινές στον χάρτη.";
+"widget.collab.name" = "Ομάδα ταξιδιού";
+"widget.collab.description" = "Ποιος έρχεται, τα τελευταία μηνύματα και η ανοιχτή ψηφοφορία.";
+"widget.intent.title" = "Επιλογή ταξιδιού";
+"widget.intent.description" = "Το ταξίδι που δείχνει αυτό το widget.";
+"widget.intent.trip" = "Ταξίδι";
+"widget.intent.auto" = "Αυτόματα";
+"widget.intent.autoHint" = "Το ίδιο ταξίδι με τον πίνακα";

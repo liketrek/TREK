@@ -22,13 +22,16 @@ import {
   writeInstanceApiKey,
   type InstanceApiKeyName,
 } from '../settings/instance-api-keys';
-import { StorageService } from '../storage/storage.service';
+import { StorageReleaseService } from '../storage/storage-release.service';
 import { EMAIL_REGEX, mask_stored_api_key } from './auth.helpers';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
 
 /** A key check is a single request to a provider; one that hangs must not hold the settings page. */
 const KEY_CHECK_TIMEOUT_MS = 10_000;
+
+/** `users.avatar` holds the bare name of an uploaded avatar. */
+const AVATAR_KEYS = { bare: 'avatars' } as const;
 
 /**
  * The account a user administers about themselves: display settings, avatar,
@@ -51,7 +54,7 @@ const KEY_CHECK_TIMEOUT_MS = 10_000;
 @Injectable()
 export class UserProfileService {
   constructor(
-    private readonly storage: StorageService,
+    private readonly release: StorageReleaseService,
     private readonly uow: UnitOfWork,
     @InjectRepository(AppSettings) private readonly appSettings: AppSettingsRepository,
     @InjectRepository(Users) private readonly usersRepo: UsersRepository,
@@ -359,16 +362,10 @@ export class UserProfileService {
 
   async saveAvatar(userId: number, filename: string) {
     const current = await this.usersRepo.getAvatar(userId);
-    // Only a locally uploaded file has something to clean up. An OIDC picture URL
-    // (#1399) has no storage object, so skip the delete entirely.
-    if (current && !/^https:\/\//i.test(current)) {
-      // Fire-and-forget parity: leftover objects are harmless; the DB update is
-      // the source of truth for which avatar is current. The catch also
-      // swallows a hostile stored value the central key validation rejects.
-      await this.storage.delete('avatars', current).catch(() => {});
-    }
-
     await this.usersRepo.setAvatar(userId, filename);
+    // The replaced upload goes once the row names the new one. An OIDC picture
+    // URL (#1399) names no object of ours, and a hostile value names nothing.
+    await this.release.releaseValues([current], AVATAR_KEYS);
 
     const updated = await this.usersRepo.findProfileBasic(userId);
     return { success: true, avatar_url: avatarUrl(updated || {}) };
@@ -376,11 +373,8 @@ export class UserProfileService {
 
   async deleteAvatar(userId: number) {
     const current = await this.usersRepo.getAvatar(userId);
-    // An OIDC picture URL (#1399) has no storage object — only delete an uploaded one.
-    if (current && !/^https:\/\//i.test(current)) {
-      await this.storage.delete('avatars', current).catch(() => {});
-    }
     await this.usersRepo.setAvatar(userId, null);
+    await this.release.releaseValues([current], AVATAR_KEYS); // an OIDC picture URL (#1399) names no object
     return { success: true };
   }
 

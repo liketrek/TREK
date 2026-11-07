@@ -36,7 +36,7 @@ TREK has grown from a travel planner into a whole ecosystem for trips: plan toge
 &nbsp;
 <a href="https://github.com/liketrek/TREK"><img alt="Stars" src="https://img.shields.io/github/stars/liketrek/trek?style=for-the-badge&label=Stars&color=6B7280" /></a>
 
-<sub>PUBLIC SERVICES PROUDLY SPONSORED BY</sub><br /><a href="https://cloud.dataforest.net/?mtm_campaign=trek"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/sponsors/dataforest-light.svg" /><source media="(prefers-color-scheme: light)" srcset="docs/sponsors/dataforest-dark.svg" /><img src="docs/sponsors/dataforest-dark.svg" alt="dataforest cloud" height="30" /></picture></a>
+<sub>PUBLIC SERVICES PROUDLY SPONSORED BY</sub><br /><a href="https://cloud.dataforest.net/en?mtm_campaign=trek"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/sponsors/dataforest-light.svg" /><source media="(prefers-color-scheme: light)" srcset="docs/sponsors/dataforest-dark.svg" /><img src="docs/sponsors/dataforest-dark.svg" alt="dataforest cloud" height="30" /></picture></a>
 </div>
 
 ---
@@ -182,7 +182,7 @@ Most of what follows is an addon an admin switches on or off. Lists, Costs, Docu
 
 #### 📱 Mobile and offline
 
-- **Installable**: iOS and Android straight from the browser, no App Store, standalone with a themed status bar
+- **Apps**: TREK Travel Planner for iPhone, iPad and Android connects to any TREK server, and the browser installs TREK as a standalone app with a themed status bar too
 - **Phone layouts**: their own screens for every part of the app, with a bottom bar and dashboard widgets the user orders
 - **Offline reads**: the app shell is precached and trips, places, tours, files and nearby places live in a per-user IndexedDB store, so a trip opens with no network
 - **Offline writes**: changes queue and replay with an `X-Idempotency-Key`, and a stale edit waits for a keep-mine or keep-theirs choice
@@ -218,13 +218,13 @@ Most of what follows is an addon an admin switches on or off. Lists, Costs, Docu
 
 <br />
 
-## Powered by dataforest cloud
+## Powered by [dataforest cloud](https://cloud.dataforest.net/en?mtm_campaign=trek)
 
 <div align="center">
 
 <br />
 
-<a href="https://cloud.dataforest.net/?mtm_campaign=trek">
+<a href="https://cloud.dataforest.net/en?mtm_campaign=trek">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/sponsors/dataforest-light.svg" />
     <source media="(prefers-color-scheme: light)" srcset="docs/sponsors/dataforest-dark.svg" />
@@ -235,17 +235,17 @@ Most of what follows is an addon an admin switches on or off. Lists, Costs, Docu
 <br />
 <br />
 
-**Every TREK installation in the world searches through servers that dataforest cloud sponsors.**
+**Every TREK installation in the world searches through servers that [dataforest cloud](https://cloud.dataforest.net/en?mtm_campaign=trek) sponsors.**
 
-The place index with over 88 million places, the address search in every TREK language and the planet-wide routing all run on dataforest cloud in Frankfurt, Germany, free of charge for everyone who self-hosts TREK. Without this sponsorship, these services would not exist in this form.
+The place index with over 88 million places, the address search in every TREK language and the planet-wide routing all run on [dataforest cloud](https://cloud.dataforest.net/en?mtm_campaign=trek) in Frankfurt, Germany, free of charge for everyone who self-hosts TREK. Without this sponsorship, these services would not exist in this form.
 
-Thank you, dataforest, for backing open source this generously. 💚
+Thank you, [dataforest](https://cloud.dataforest.net/en?mtm_campaign=trek), for backing open source this generously. 💚
 
 <br />
 
-<a href="https://cloud.dataforest.net/?mtm_campaign=trek"><img alt="Visit dataforest cloud" src="https://img.shields.io/badge/Visit-dataforest_cloud-02C382?style=for-the-badge" /></a>
+<a href="https://cloud.dataforest.net/en?mtm_campaign=trek"><img alt="Visit dataforest cloud" src="https://img.shields.io/badge/Visit-dataforest_cloud-02C382?style=for-the-badge" /></a>
 
-Looking for a server for your own TREK? dataforest cloud is where TREK's own services live.
+Looking for a server for your own TREK? [dataforest cloud](https://cloud.dataforest.net/en?mtm_campaign=trek) is where TREK's own services live.
 
 </div>
 
@@ -277,7 +277,7 @@ Open `http://localhost:3000`, or `http://<server-ip>:3000` from another machine.
 `COOKIE_SECURE=false` is only for trying TREK over plain HTTP: without it the browser drops the session cookie and the login does not stick. Once TREK sits behind HTTPS (see [Reverse Proxy](#reverse-proxy)), remove it.
 
 > [!TIP]
-> **No server yet?** TREK's own public services run on [**dataforest cloud**](https://cloud.dataforest.net/?mtm_campaign=trek), our infrastructure sponsor. A small seed is plenty for a TREK instance and is ready within a minute.
+> **No server yet?** TREK's own public services run on [**dataforest cloud**](https://cloud.dataforest.net/en?mtm_campaign=trek), our infrastructure sponsor. A small seed is plenty for a TREK instance and is ready within a minute.
 
 <div align="center">
 
@@ -335,7 +335,7 @@ See [`charts/README.md`](https://github.com/liketrek/TREK/blob/main/charts/READM
 
 <h2 id="install-as-app-pwa">Install as App (PWA)</h2>
 
-TREK works as a Progressive Web App — no App Store needed.
+TREK works as a Progressive Web App, and the TREK Travel Planner app for iPhone, iPad and Android connects to the same server ([Native Apps](https://github.com/liketrek/TREK/wiki/Native-Apps)). To install the web app instead:
 
 1. Open TREK in the browser (HTTPS required)
 2. **iOS**: Share ▸ *Add to Home Screen*

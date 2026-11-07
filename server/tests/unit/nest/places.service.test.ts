@@ -66,8 +66,6 @@ import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-phot
 import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
 import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
 import { BudgetItems } from '../../../src/db/entities/BudgetItems.entity';
-import { CollectionPlaces } from '../../../src/db/entities/CollectionPlaces.entity';
-import { Collections } from '../../../src/db/entities/Collections.entity';
 import { DayAccommodations } from '../../../src/db/entities/DayAccommodations.entity';
 import { DayAssignments } from '../../../src/db/entities/DayAssignments.entity';
 import { FileLinks } from '../../../src/db/entities/FileLinks.entity';
@@ -85,7 +83,7 @@ import { makeStorageFixture } from '../../helpers/storage-fixture';
 import { noGoogleQuota } from '../../helpers/google-quota';
 import { createTestUnitOfWork, createTestAppSettingsRepo, createTestUsersRepo, createTestTagsRepo, createTestPlaceRatingsRepo, createTestAssignmentParticipantsRepo, createTestPlacesRepo, createTestTripMembersRepo, createTestDayAssignmentsRepo, createTestCategoriesRepo, createTestTripsRepo, sharedTestOrm } from '../../helpers/test-uow';
 import { createTestBudgetItemsRepo } from '../../helpers/files-repos';
-import { createTestCollectionPlacesRepo } from '../../helpers/test-uow';
+import { releaseNothing } from '../../helpers/storage-release';
 import {
   createTestJourneysRepo, createTestJourneyContributorsRepo, createTestJourneyTripsRepo, createTestJourneyEntriesRepo,
   createTestJourneyPhotosRepo, createTestJourneyEntryPhotosRepo,
@@ -129,6 +127,8 @@ const KML_FIXTURE = path.join(__dirname, '../../fixtures/test.kml');
  * `maps` is a parameter because the enrichment cases hand in their own provider.
  */
 const placesStorageFx = makeStorageFixture('');
+/** What the place writes hand to the storage release, which has its own suites. */
+const placesRelease = releaseNothing();
 
 async function makePlacesService(
   maps: MapsService = buildMapsService(photoCacheStub, noAppSettings, noUsers, {} as never, {} as never, noGoogleQuota),
@@ -145,7 +145,7 @@ async function makePlacesService(
       await createTestJourneysRepo(testDb), await createTestJourneyContributorsRepo(testDb),
       await createTestJourneyTripsRepo(testDb), await createTestJourneyEntriesRepo(testDb), await createTestTripsRepo(testDb),
       // Plan 3g Task 2 constructor-ripple: JourneyPhotosRepository/JourneyEntryPhotosRepository/PlacesRepository.
-      await createTestJourneyPhotosRepo(testDb), await createTestJourneyEntryPhotosRepo(testDb), await createTestPlacesRepo(testDb),
+      await createTestJourneyPhotosRepo(testDb), await createTestJourneyEntryPhotosRepo(testDb), await createTestPlacesRepo(testDb), { releaseValues: async () => 0 } as never,
     ),
     placesStorageFx.storage,
     await accommodationsOver(testDb), await createTestUnitOfWork(testDb),
@@ -157,7 +157,7 @@ async function makePlacesService(
     await createTestCategoriesRepo(testDb),
   await createTestTripsRepo(testDb),
   await createTestBudgetItemsRepo(testDb),
-  await createTestCollectionPlacesRepo(testDb),
+  placesRelease,
     buildPlaceImportService(),
   );
 }
@@ -1498,68 +1498,52 @@ describe('importKmlPlaces — full stored row and atomicity (M2/L2)', () => {
   });
 });
 
-// ── Custom place image reclaim (#1136) ──────────────────────────────────────────
+// ── Replaced and deleted place images go to the storage release (#1136, #2924) ─────────────
 
-describe('custom place image reclaim', () => {
-  function writePlaceImage(name: string): string {
-    const filePath = path.join(placesStorageFx.root, name);
-    fs.writeFileSync(filePath, 'jpeg-bytes');
-    return filePath;
+describe('custom place images', () => {
+  beforeEach(() => placesRelease.releaseValues.mockClear());
+
+  async function placeWithImage(image: string) {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Photo' }) as { id: number };
+    await updateRows(orm, Places, { id: place.id }, { image_url: image });
+    return { trip, place };
   }
 
-  it('PLACE-SVC-046 — replacing image_url unlinks the previous upload once unreferenced', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'Photo' }) as any;
-    const fileA = writePlaceImage('svc-replace-a.jpg');
-    await updateRows(orm, Places, { id: place.id }, { image_url: '/uploads/places/svc-replace-a.jpg' });
-    expect(fs.existsSync(fileA)).toBe(true);
-
+  it('PLACE-SVC-046 — replacing image_url hands the previous value to the release once it is written', async () => {
+    const { trip, place } = await placeWithImage('/uploads/places/svc-replace-a.jpg');
     await svc.update(String(trip.id), String(place.id), { image_url: '/uploads/places/svc-replace-b.jpg' });
-    expect(fs.existsSync(fileA)).toBe(false);
+    expect(placesRelease.releaseValues).toHaveBeenCalledWith(['/uploads/places/svc-replace-a.jpg']);
+    expect((await findRow(orm, Places, { id: place.id }))?.image_url).toBe('/uploads/places/svc-replace-b.jpg');
   });
 
-  it('PLACE-SVC-047 — clearing image_url to null unlinks the previous upload', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'Photo' }) as any;
-    const fileA = writePlaceImage('svc-clear.jpg');
-    await updateRows(orm, Places, { id: place.id }, { image_url: '/uploads/places/svc-clear.jpg' });
-    expect(fs.existsSync(fileA)).toBe(true);
-
+  it('PLACE-SVC-047 — clearing image_url releases the previous upload; a write leaving it alone releases nothing', async () => {
+    const { trip, place } = await placeWithImage('/uploads/places/svc-clear.jpg');
     await svc.update(String(trip.id), String(place.id), { image_url: null } as any);
-    expect(fs.existsSync(fileA)).toBe(false);
+    expect(placesRelease.releaseValues).toHaveBeenLastCalledWith(['/uploads/places/svc-clear.jpg']);
+    await svc.update(String(trip.id), String(place.id), { name: 'Renamed' });
+    expect(placesRelease.releaseValues).toHaveBeenLastCalledWith([null]);
   });
 
-  it('PLACE-SVC-048 — remove unlinks the uploaded image', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'Photo' }) as any;
-    const fileA = writePlaceImage('svc-delete.jpg');
-    await updateRows(orm, Places, { id: place.id }, { image_url: '/uploads/places/svc-delete.jpg' });
-    expect(fs.existsSync(fileA)).toBe(true);
-
+  it('PLACE-SVC-048 — remove and removeMany release the images of the places they deleted', async () => {
+    const { trip, place } = await placeWithImage('/uploads/places/svc-delete.jpg');
     await svc.remove(String(trip.id), String(place.id));
-    expect(fs.existsSync(fileA)).toBe(false);
+    expect(placesRelease.releaseValues).toHaveBeenLastCalledWith(['/uploads/places/svc-delete.jpg']);
+    const second = await placeWithImage('/uploads/places/svc-many.jpg');
+    await svc.removeMany(String(second.trip.id), [second.place.id]);
+    expect(placesRelease.releaseValues).toHaveBeenLastCalledWith(['/uploads/places/svc-many.jpg']);
   });
 
-  it('PLACE-SVC-049 — a collection_places reference keeps the file when the trip place is deleted', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'Shared Photo' }) as any;
-    const fileA = writePlaceImage('svc-shared.jpg');
-    await updateRows(orm, Places, { id: place.id }, { image_url: '/uploads/places/svc-shared.jpg' });
-    // A saved-place in a collection holds the same uploaded file — the ref-count guard must protect it.
-    const col = await insertRow(orm, Collections, { owner: user.id, name: 'Saved' });
-    await insertRow(orm, CollectionPlaces, { collection: col, owner: user.id, name: 'Shared Photo', image_url: '/uploads/places/svc-shared.jpg' });
-    expect(fs.existsSync(fileA)).toBe(true);
-
-    await svc.remove(String(trip.id), String(place.id));
-    expect(fs.existsSync(fileA)).toBe(true);
-
-    // resetTestDb does not clear collections; drop what this test inserted and its file.
-    testDb.exec('DELETE FROM collection_places; DELETE FROM collections;');
-    fs.unlinkSync(fileA);
+  it('PLACE-SVC-049 — updateMany releases every image the bulk value replaced, after its transaction', async () => {
+    const { trip, place } = await placeWithImage('/uploads/places/svc-bulk-a.jpg');
+    const other = createPlace(testDb, trip.id, { name: 'Other' }) as { id: number };
+    await updateRows(orm, Places, { id: other.id }, { image_url: '/uploads/places/svc-bulk-b.jpg' });
+    await svc.updateMany(String(trip.id), [place.id, other.id], { image_url: '/uploads/places/svc-bulk-c.jpg' });
+    expect(placesRelease.releaseValues).toHaveBeenCalledWith([
+      '/uploads/places/svc-bulk-a.jpg',
+      '/uploads/places/svc-bulk-b.jpg',
+    ]);
   });
 
   // ── Collaborative ratings (#1435) ──────────────────────────────────────────

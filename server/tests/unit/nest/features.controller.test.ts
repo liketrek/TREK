@@ -32,12 +32,26 @@ function make(available: boolean, aiEnabled: boolean) {
 describe('FeaturesController (GET /api/health/features)', () => {
   it('FEAT-001: reports both flags on', async () => {
     const { controller } = make(true, true);
-    expect(await controller.features()).toEqual({ bookingImport: true, aiParsing: true, aiAssistant: true });
+    expect(await controller.features()).toEqual({
+      bookingImport: true,
+      aiParsing: true,
+      aiAssistant: true,
+      nativeApp: true,
+      nativeApi: 1,
+      minNativeShellApi: 1,
+    });
   });
 
   it('FEAT-002: reports both flags off', async () => {
     const { controller } = make(false, false);
-    expect(await controller.features()).toEqual({ bookingImport: false, aiParsing: false, aiAssistant: false });
+    expect(await controller.features()).toEqual({
+      bookingImport: false,
+      aiParsing: false,
+      aiAssistant: false,
+      nativeApp: true,
+      nativeApi: 1,
+      minNativeShellApi: 1,
+    });
   });
 
   it('FEAT-003: the two flags are independent', async () => {
@@ -45,11 +59,17 @@ describe('FeaturesController (GET /api/health/features)', () => {
       bookingImport: true,
       aiParsing: false,
       aiAssistant: false,
+      nativeApp: true,
+      nativeApi: 1,
+      minNativeShellApi: 1,
     });
     expect(await make(false, true).controller.features()).toEqual({
       bookingImport: false,
       aiParsing: true,
       aiAssistant: true,
+      nativeApp: true,
+      nativeApi: 1,
+      minNativeShellApi: 1,
     });
   });
 
@@ -69,6 +89,14 @@ describe('FeaturesController (GET /api/health/features)', () => {
     } finally {
       vi.unstubAllEnvs();
     }
+  });
+
+  it('FEAT-014: tells the native apps it speaks their sign-in hand-off, and at which version', async () => {
+    const features = await make(false, false).controller.features();
+    expect(features.nativeApp).toBe(true);
+    expect(features.nativeApi).toBe(1);
+    // And which app binaries its UI still works with.
+    expect(features.minNativeShellApi).toBe(1);
   });
 
   it('FEAT-005: bookingImport is read live, not cached at construction', async () => {

@@ -6,6 +6,9 @@ const pdf: TranslationStrings = {
   'pdf.costLabel': 'Kostnad',
   'pdf.preview': 'Förhandsgranskning av PDF',
   'pdf.saveAsPdf': 'Spara som PDF',
+  'pdf.openInSafari': 'Öppna i Safari',
+  'pdf.safariHint':
+    'iOS kan inte skriva ut från appen på hemskärmen. Safari öppnar resan med exporten redo, där kan du spara PDF:en.',
   'pdf.pageBreakPerDay': 'Sidbrytning per dag',
   'pdf.transportNotes': 'Anteckningar om transporter',
   'pdf.mapTitle': 'Ruttöversikt',

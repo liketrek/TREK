@@ -147,6 +147,11 @@ export class TrekPhotosRepository extends TrekRepository<TrekPhotos> {
     return await this.nativeDelete({ id, provider: { $ne: 'local' } });
   }
 
+  /** `DELETE FROM trek_photos WHERE id = ?`, whatever the provider: a photo the user deleted. */
+  async deleteById(id: number): Promise<number> {
+    return await this.nativeDelete({ id });
+  }
+
   /**
    * TH1 — `SELECT file_path FROM trek_photos WHERE file_path LIKE 'journey/%'`.
    * The caller (`ThumbnailService.sweepOrphanThumbs`) always passes the

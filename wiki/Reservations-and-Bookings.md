@@ -21,7 +21,7 @@ TREK knows seventeen types. Six of them belong to the Bookings tab and eleven to
 | Accommodation | Bookings | **Manual Booking**, or the day plan (see [Accommodations](Accommodations)) |
 | Restaurant | Bookings | **Manual Booking** |
 | Event | Bookings | **Manual Booking** |
-| Tour | Bookings | **Manual Booking** |
+| Guided tour | Bookings | **Manual Booking** |
 | Parking | Bookings | **Manual Booking**; a booking at one fixed place, such as airport parking |
 | Other | Bookings | **Manual Booking** |
 | Flight, Train, Bus, Car, Taxi, Bicycle, Cruise, Ferry, Cable car, Other | Transports | The transport editor, see [Transport-Flights-Trains-Cars](Transport-Flights-Trains-Cars) |
@@ -141,7 +141,7 @@ The bar at the foot holds:
 
 1. Click **Manual Booking**. The editor opens as **New Reservation**.
 2. Type the title into the head band. It is the one required field; **Add** stays disabled until it has one.
-3. Pick the type with the pill in the head band: Accommodation, Restaurant, Event, Tour, Parking or Other. The pill next to it reads **Pending**; click it to make the booking **Confirmed**.
+3. Pick the type with the pill in the head band: Accommodation, Restaurant, Event, Guided tour, Parking or Other. The pill next to it reads **Pending**; click it to make the booking **Confirmed**.
 4. Optionally pick **Link to day assignment**: a searchable list of every stop in the plan, grouped by day. It pins the booking to that stop, and an empty date is filled with that day.
 5. Set **Date**, **Start time**, **End date** and **End time**. The calendars only offer days inside the trip. An end date that lies before the start is marked in red and blocks saving. If you set only an end time and it is earlier than the start time, an amber hint appears under the field (*The end time is before the start time. If it ends the next day, set an end date.*); it does not block saving.
 6. Optionally pick a **Place / Activity** from the trip. It fills the title and the address only where you left them empty. **Location / Address** takes any address.

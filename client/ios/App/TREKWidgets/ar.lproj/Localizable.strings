@@ -1,0 +1,20 @@
+/* The widget gallery: names and descriptions (TREKWidgets/NextTripWidget.swift). */
+"widget.trip.name" = "رحلة";
+"widget.trip.description" = "عدّ تنازلي لرحلتك القادمة، ثم اليوم وما يليه أثناء السفر.";
+"widget.today.name" = "اليوم";
+"widget.today.description" = "خطة اليوم كخط زمني، مع الطقس والمحطة التالية.";
+"widget.bookings.name" = "الحجوزات";
+"widget.bookings.description" = "رحلاتك وقطاراتك وفنادقك وحجوزات المطاعم القادمة ومواعيدها.";
+"widget.todos.name" = "المهام";
+"widget.todos.description" = "ما تبقى للرحلة، ومدى تقدم تجهيز الأمتعة.";
+"widget.packing.name" = "قائمة الأمتعة";
+"widget.packing.description" = "مدى امتلاء الحقائب ووزنها وما الذي ما زال ناقصًا.";
+"widget.atlas.name" = "خريطة العالم";
+"widget.atlas.description" = "الدول التي زرتها مضيئة على الخريطة.";
+"widget.collab.name" = "مجموعة السفر";
+"widget.collab.description" = "من يرافقك وأحدث الرسائل والتصويت المفتوح.";
+"widget.intent.title" = "اختر الرحلة";
+"widget.intent.description" = "الرحلة التي تعرضها هذه الأداة.";
+"widget.intent.trip" = "الرحلة";
+"widget.intent.auto" = "تلقائي";
+"widget.intent.autoHint" = "نفس رحلة لوحة التحكم";

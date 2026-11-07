@@ -7,6 +7,7 @@ import { useCollabChatData } from '../../../../components/Collab/useCollabChatDa
 import { useAuthStore } from '../../../../store/authStore'
 import { useTranslation } from '../../../../i18n'
 import type { TripPlanner } from '../MTripShell'
+import { pressHaptic } from '../../../../native/haptics'
 import {
   OTHER_BUBBLE_RADIUS,
   OWN_BUBBLE_RADIUS,
@@ -252,6 +253,7 @@ function ChatBubbleRow({ msg, own, showHeader, isLastInGroup, marginTop, is12h, 
     startRef.current = { x: e.clientX, y: e.clientY }
     pressTimer.current = setTimeout(() => {
       firedRef.current = true
+      pressHaptic()
       onOpenActions(e.clientX, e.clientY)
     }, LONG_PRESS_MS)
   }

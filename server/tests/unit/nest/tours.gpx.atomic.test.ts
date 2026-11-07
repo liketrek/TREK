@@ -57,7 +57,6 @@ import {
   createTestDayAssignmentsRepo,
   createTestCategoriesRepo,
   createTestTripsRepo,
-  createTestCollectionPlacesRepo,
   sharedTestOrm,
 } from '../../helpers/test-uow';
 import {
@@ -127,6 +126,7 @@ async function makePlacesService(): Promise<PlacesService> {
       await createTestJourneyPhotosRepo(testDb),
       await createTestJourneyEntryPhotosRepo(testDb),
       await createTestPlacesRepo(testDb),
+      { releaseValues: async () => 0 } as never, // StorageReleaseService
     ),
     storage,
     await accommodationsOver(testDb),
@@ -139,7 +139,7 @@ async function makePlacesService(): Promise<PlacesService> {
     await createTestCategoriesRepo(testDb),
     await createTestTripsRepo(testDb),
     await createTestBudgetItemsRepo(testDb),
-    await createTestCollectionPlacesRepo(testDb),
+    { releaseValues: async () => [] } as never, // StorageReleaseService
     buildPlaceImportService(),
   );
 }

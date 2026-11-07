@@ -2,6 +2,8 @@ import L from 'leaflet';
 import { useMemo, useState } from 'react';
 import { Marker, Polyline, Tooltip, useMap, useMapEvents } from 'react-leaflet';
 import { useTranslation } from '../../../i18n';
+import { frameLine, frameLng } from '../../../utils/lngFrame';
+import { useLngFrame } from '../../Map/lngFrameContext';
 import {
   isPaddleItemSelected,
   markerSize,
@@ -74,6 +76,8 @@ function useLabel() {
 export function PaddleLayerLeaflet({ layer }: { layer?: PaddleMapLayer }) {
   const label = useLabel();
   const map = useMap();
+  // Drawn in the map's longitude frame, with the trip (#2975).
+  const frame = useLngFrame();
   const linePane = useLinePane();
   const [zoom, setZoom] = useState(() => map.getZoom());
   useMapEvents({ zoomend: () => setZoom(map.getZoom()) });
@@ -105,7 +109,7 @@ export function PaddleLayerLeaflet({ layer }: { layer?: PaddleMapLayer }) {
         item.line ? (
           <Polyline
             key={`${item.feature.ref}-casing`}
-            positions={item.line}
+            positions={frameLine(frame, item.line)}
             pane={linePane}
             pathOptions={{
               color: item.disc,
@@ -120,7 +124,7 @@ export function PaddleLayerLeaflet({ layer }: { layer?: PaddleMapLayer }) {
         item.line ? (
           <Polyline
             key={`${item.feature.ref}-line`}
-            positions={item.line}
+            positions={frameLine(frame, item.line)}
             pane={linePane}
             bubblingMouseEvents={false}
             pathOptions={{
@@ -137,7 +141,7 @@ export function PaddleLayerLeaflet({ layer }: { layer?: PaddleMapLayer }) {
       {items.map((item) => (
         <Marker
           key={`${item.feature.ref}-pin`}
-          position={item.marker}
+          position={frame ? [item.marker[0], frameLng(frame, item.marker[1])] : item.marker}
           icon={icons.get(item.feature.ref) as L.DivIcon}
           zIndexOffset={
             isPaddleItemSelected(item, selectedRef, selectedKey) ? 900 : item.relation === 'on_route' ? 600 : 300

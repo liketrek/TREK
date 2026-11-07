@@ -1137,6 +1137,8 @@ const admin: TranslationStrings = {
   'admin.contribute.never.providers': 'Detalhes preenchidos pelo Google ou por outro provedor',
   'admin.contribute.prompt.how':
     'Somente o que seus usuários digitaram por conta própria, e somente para locais que o índice conhece. Nenhum usuário, viagem ou conta vai junto. O registro mostra cada envio, e você pode desativar campos ou retirar tudo a qualquer momento.',
+  'admin.contribute.prompt.past':
+    'Os detalhes que seus usuários digitaram desde o TREK 5.1 também são compartilhados, aos poucos.',
   'admin.contribute.prompt.openRegistration':
     'O cadastro está aberto nesta instalação, então qualquer pessoa com uma conta pode digitar detalhes. Cada valor é verificado antes de ser publicado.',
   'admin.contribute.prompt.footnote': 'Você decide isso para a instalação inteira. Seus usuários não são consultados.',

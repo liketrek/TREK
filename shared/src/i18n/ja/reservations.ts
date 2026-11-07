@@ -60,7 +60,7 @@ const reservations: TranslationStrings = {
   'reservations.type.car': 'レンタカー',
   'reservations.type.cruise': 'クルーズ',
   'reservations.type.event': 'イベント',
-  'reservations.type.tour': 'ツアー',
+  'reservations.type.tour': 'ガイドツアー',
   'reservations.type.parking': '駐車場',
   'reservations.type.other': 'その他',
   'reservations.type.bus': 'バス',
@@ -266,5 +266,9 @@ const reservations: TranslationStrings = {
     'ファイルのアップロードには接続が必要です。オフラインで予約を保存するには新しいファイルを外すか、オンラインに戻ってから保存してください。',
   'reservations.needsConnection': 'この操作には接続が必要です。TREK がオンラインに戻ってから、もう一度お試しください。',
   'reservations.exportCsvFiltered': '表示中の {shown}/{total} 行をエクスポート (CSV)',
+  'reservations.wallet.add': 'Apple Walletに追加',
+  'reservations.wallet.addGoogle': 'Google Walletに追加',
+  'reservations.wallet.failed': 'Walletパスを作成できませんでした。もう一度お試しください。',
+  'reservations.wallet.undated': '先に予約に日付を入れてください。Walletはその時刻の前後にパスを表示します。',
 };
 export default reservations;

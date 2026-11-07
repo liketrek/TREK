@@ -8,7 +8,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addTransportShort': 'Transport', // same-as-en
   'mobileTrip.allDays': 'Alle Tage',
   'mobileTrip.today': 'Heute',
-  'mobileTrip.jumpToToday': 'Zu heute springen',
   'mobileTrip.assignedDays': 'Zugewiesene Tage',
   'mobileTrip.assignmentNotes': 'Tagesspezifische Notizen',
   'mobileTrip.bookingsEmpty': 'Noch keine Buchungen',
@@ -20,8 +19,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.filesEmpty': 'Keine Dateien vorhanden',
   'mobileTrip.filesNext': 'Nächste Datei',
   'mobileTrip.filesPrev': 'Vorherige Datei',
-  'mobileTrip.googleMaps': 'Google Maps',
-  'mobileTrip.coMaps': 'CoMaps',
   'mobileTrip.icsDownload': '.ics herunterladen',
   'mobileTrip.icsSubscribe': 'Kalender abonnieren',
   'mobileTrip.icsSubscribeSub': 'Aktualisiert sich automatisch in deiner Kalender-App',
@@ -84,5 +81,8 @@ const mobileTrip: TranslationStrings = {
     'Auf {count} Abschnitt gab es mehr, als in eine Antwort passt. Wähl weniger Arten, um den Rest zu sehen.',
   'mobileTrip.rtNoDay': 'Kein Tag gewählt',
   'mobileTrip.rtNoDayHint': 'Die Karte zeigt die ganze Reise. Tippe oben auf einen Tag, um seine Fahrt zu sehen.',
+  'mobileTrip.maps': 'Karten',
+  'mobileTrip.openRouteIn': 'Tag öffnen in',
+  'mobileTrip.firstStopOnly': 'Nur der erste Halt',
 };
 export default mobileTrip;

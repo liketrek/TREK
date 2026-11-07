@@ -8,7 +8,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addTransportShort': 'Транспорт',
   'mobileTrip.allDays': 'Усі дні',
   'mobileTrip.today': 'Сьогодні',
-  'mobileTrip.jumpToToday': 'Перейти до сьогодні',
   'mobileTrip.assignedDays': 'Призначені дні',
   'mobileTrip.assignmentNotes': 'Нотатки на день',
   'mobileTrip.bookingsEmpty': 'Поки немає бронювань',
@@ -20,8 +19,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.filesEmpty': 'Файлів поки немає',
   'mobileTrip.filesNext': 'Наступний файл',
   'mobileTrip.filesPrev': 'Попередній файл',
-  'mobileTrip.googleMaps': 'Google Maps',
-  'mobileTrip.coMaps': 'CoMaps',
   'mobileTrip.icsDownload': 'Завантажити .ics',
   'mobileTrip.icsSubscribe': 'Підписатися на календар',
   'mobileTrip.icsSubscribeSub': 'Автоматично оновлюється у вашому календарі',
@@ -100,5 +97,8 @@ const mobileTrip: TranslationStrings = {
     'На {count} ділянках знайшлося більше, ніж уміщується в одну відповідь. Виберіть менше видів, щоб побачити решту.',
   'mobileTrip.rtNoDay': 'День не вибрано',
   'mobileTrip.rtNoDayHint': 'На мапі вся подорож. Торкніться дня вгорі, щоб побачити його маршрут.',
+  'mobileTrip.maps': 'Карти',
+  'mobileTrip.openRouteIn': 'Відкрити день у',
+  'mobileTrip.firstStopOnly': 'Лише перша зупинка',
 };
 export default mobileTrip;

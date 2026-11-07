@@ -14,8 +14,12 @@ import type { ChannelTestResult, PushPayload } from '@trek/shared';
  * Ceiling for the JSON the service worker receives. A single aes128gcm record
  * can carry just under 4 KB and some push services refuse anything larger, so
  * the payload stays well clear of that and the body gives way first.
+ *
+ * The apps' relay (push.liketrek.com) is the tightest: it carries the encrypted
+ * record base64-encoded inside an APNs payload, which Apple caps at 4096 bytes.
+ * 2800 bytes of JSON become about 3870 there, with room for the APNs envelope.
  */
-export const MAX_PUSH_PAYLOAD_BYTES = 3000;
+export const MAX_PUSH_PAYLOAD_BYTES = 2800;
 
 const TITLE_MAX_CHARS = 120;
 /** A navigate target is an app path like /trips/12; anything longer is not one. */
@@ -81,6 +85,7 @@ function payloadBytes(payload: PushPayload): number {
  * chat messages carry a tag, `collab_message:<trip path>`, so a burst of them in
  * one trip shows as one notification that keeps updating instead of a pile of
  * them. Everything else has no tag and never replaces an earlier notification.
+ * The event goes along so the Android app can sort it into a channel.
  *
  * The body is cut, at a character boundary and with an ellipsis, until the
  * JSON fits MAX_PUSH_PAYLOAD_BYTES. The title and the path are capped first, so
@@ -95,6 +100,8 @@ export function buildPushPayload(
     body: '',
     ...(url ? { url } : {}),
     ...(url && msg.event === COLLAPSING_EVENT ? { tag: `${COLLAPSING_EVENT}:${url}` } : {}),
+    // The Android app files it under a channel by event; a browser ignores it.
+    ...(msg.event ? { event: msg.event } : {}),
   };
   const full = { ...base, body: msg.body };
   if (payloadBytes(full) <= MAX_PUSH_PAYLOAD_BYTES) return full;

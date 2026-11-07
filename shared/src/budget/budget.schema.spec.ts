@@ -12,8 +12,8 @@ import {
   budgetItemsPageSchema,
   BUDGET_ITEMS_PAGE_DEFAULT,
   COST_CATEGORIES,
-  typeToCostCategory,
 } from './budget.schema';
+import { typeToCostCategory } from './cost-category';
 
 import { describe, it, expect } from 'vitest';
 

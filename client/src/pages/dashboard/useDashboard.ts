@@ -9,6 +9,7 @@ import { useTranslation } from '../../i18n'
 import { useToast } from '../../components/shared/Toast'
 import { getApiErrorMessage } from '../../types'
 import { localIsoToday } from './dashboardModel'
+import { heroTrip } from '../../utils/heroTrip'
 import { useTripSearch } from './useTripSearch'
 import type { TripCreateRequest } from '@trek/shared'
 import {
@@ -97,7 +98,7 @@ export function useDashboard() {
   // client) is read back quietly, one read per burst: no loading state and no
   // toast, since nobody here asked for it. trips:changed goes to the acting user
   // only; trip:deleted goes to the trip's room, which this page is never in.
-  useServerPing('trips:changed', true, async () => {
+  const refreshQuietly = async () => {
     try {
       const { trips, archivedTrips } = await tripRepo.list()
       setTrips(sortTrips(trips))
@@ -106,7 +107,8 @@ export function useDashboard() {
     } catch {
       // The list on screen stays; the next visit reads it again.
     }
-  })
+  }
+  useServerPing('trips:changed', true, refreshQuietly)
 
   // Re-run both the trip fetch and the auth check so a recovered backend clears
   // the error banner (loadUser resets authCheckFailed on success). #1283
@@ -119,9 +121,7 @@ export function useDashboard() {
   // A trip the hero features on its own merit: one that is running, else the next
   // one coming up. Only that one is taken out of the grid below, so the same trip
   // isn't shown twice.
-  const featured = trips.find(t => t.start_date && t.end_date && t.start_date <= today && t.end_date >= today)
-    || trips.find(t => t.start_date && t.start_date >= today)
-    || null
+  const featured = heroTrip(trips, today)
   // With neither, the hero still shows something rather than sitting empty — but
   // that trip is only borrowed for the header and must stay in the grid, or a user
   // whose trips are all finished (or undated) sees "No trips yet". #1706
@@ -240,6 +240,8 @@ export function useDashboard() {
     // data + derived
     spotlight, heroBundle, stats, upcoming, gridTrips, isLoading,
     loadError: loadError || authCheckFailed, retryLoad,
+    // Pull-to-refresh on mobile: the same quiet read, no loading state.
+    refreshQuietly,
     // ui state
     tripFilter, setTripFilter, viewMode, toggleViewMode,
     showForm, setShowForm, editingTrip, setEditingTrip,

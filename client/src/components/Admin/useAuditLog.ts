@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { adminApi } from '../../api/client';
-import { useTranslation } from '../../i18n';
+import { useFormatDate } from '../../hooks/useDateFormat';
 
 export interface AuditEntry {
   id: number;
@@ -41,7 +41,7 @@ export function auditUserLabel(e: AuditEntry): string {
  * cards render their own markup over it.
  */
 export function useAuditLog(serverTimezone?: string) {
-  const { locale } = useTranslation();
+  const { formatDateTime } = useFormatDate();
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -92,7 +92,7 @@ export function useAuditLog(serverTimezone?: string) {
 
   const fmtTime = (iso: string) => {
     try {
-      return new Date(iso.endsWith('Z') ? iso : iso + 'Z').toLocaleString(locale, {
+      return formatDateTime(new Date(iso.endsWith('Z') ? iso : iso + 'Z'), {
         dateStyle: 'short',
         timeStyle: 'medium',
         timeZone: serverTimezone || undefined,

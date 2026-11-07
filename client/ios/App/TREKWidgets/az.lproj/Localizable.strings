@@ -1,0 +1,20 @@
+/* The widget gallery: names and descriptions (TREKWidgets/NextTripWidget.swift). */
+"widget.trip.name" = "Səyahət";
+"widget.trip.description" = "Növbəti səyahətə qədər günləri sayır, yolda isə günü və sonrakını göstərir.";
+"widget.today.name" = "Bu gün";
+"widget.today.description" = "Günün planı zaman xətti kimi, hava və növbəti dayanacaqla.";
+"widget.bookings.name" = "Bronlar";
+"widget.bookings.description" = "Növbəti uçuşlar, qatarlar, otellər və restoranlar, nə vaxt olduqları ilə.";
+"widget.todos.name" = "Tapşırıqlar";
+"widget.todos.description" = "Səyahət üçün hələ nəyin qaldığı və yığışmağın nə yerdə olduğu.";
+"widget.packing.name" = "Yük siyahısı";
+"widget.packing.description" = "Çantaların doluluğu, çəkisi və hələ nəyin çatışmadığı.";
+"widget.atlas.name" = "Dünya xəritəsi";
+"widget.atlas.description" = "Olduğun ölkələr xəritədə parlayır.";
+"widget.collab.name" = "Səyahət qrupu";
+"widget.collab.description" = "Kim gəlir, son mesajlar və açıq səsvermə.";
+"widget.intent.title" = "Səyahəti seç";
+"widget.intent.description" = "Bu vidcetin göstərdiyi səyahət.";
+"widget.intent.trip" = "Səyahət";
+"widget.intent.auto" = "Avtomatik";
+"widget.intent.autoHint" = "İdarə panelindəki səyahət";

@@ -43,5 +43,7 @@ const map: TranslationStrings = {
   'map.baseLayer.topo': 'Topograafiline',
   'map.webgl2.fallback': 'See brauser ei paku WebGL2-te, mida GL-kaardid vajavad, seega kuvatakse kaardid Leafletiga.',
   'map.webgl2.terrain': '3D vajab WebGL2-te, mida see brauser ei paku. Kaart jääb 2D-vaatesse.',
+  'map.offlineBasemap': 'Võrguühenduseta kaart',
+  'map.offlineShowStored': 'Näita võrguühenduseta kaarti',
 };
 export default map;

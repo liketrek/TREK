@@ -102,7 +102,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
   )
 
   const {
-    mapRef, carouselRef, cardRefs, activeIndex, setActiveIndex, scrubberDays,
+    mapRef, carouselRef, cardRefs, activeIndex, focusIndex, setActiveIndex, scrubberDays,
     syncMapToCard, handleMarkerClick, handleCardTap, openEntryById, jumpToDay,
   } = useJourneyCarouselSync<JourneyEntry>({ entries, mapEntries: sidebarMapItems, onOpenEntry: setEditingEntry, syncMapOnTap: true })
 
@@ -498,7 +498,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
         />
         <div
           ref={carouselRef}
-          className="flex items-end gap-[10px] overflow-x-auto px-4 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none]"
+          className="flex items-end gap-[22px] overflow-x-auto px-6 pb-1 pt-[30px] [-webkit-overflow-scrolling:touch] [scrollbar-width:none]"
           style={{ scrollSnapType: 'x mandatory' }}
         >
           {entries.map((entry, i) => (
@@ -510,7 +510,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
               <JourneyEntryCover
                 entry={entry}
                 dayColor={dayColorOf(scrubberDays, entry.entry_date)}
-                isActive={i === activeIndex}
+                isActive={i === focusIndex}
                 onClick={() => handleCardTap(entry, i)}
                 showMood={current.show_mood !== 0}
                 showWeather={current.show_weather !== 0}
@@ -528,7 +528,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
       {/* Opaque, not the glass default: these two sit over a full-screen map whose
           card carousel is bright and busy, and the frosted material let the titles
           behind read straight through the menu. */}
-      <MSheet open={showUploadMenu} onClose={() => setShowUploadMenu(false)} variant="bottom" material="opaque" ariaLabel={t('common.upload')}>
+      <MSheet open={showUploadMenu} onClose={() => setShowUploadMenu(false)} variant="bottom" material="glass" ariaLabel={t('common.upload')}>
         <div className="flex flex-col gap-2 p-[10px]">
           <MListRow
             icon={Camera}
@@ -547,7 +547,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
       </MSheet>
 
       {/* Journey actions: book export, suggestions switch, settings */}
-      <MSheet open={showActionMenu} onClose={() => setShowActionMenu(false)} variant="bottom" material="opaque" ariaLabel={t('files.menu')}>
+      <MSheet open={showActionMenu} onClose={() => setShowActionMenu(false)} variant="bottom" material="glass" ariaLabel={t('files.menu')}>
         <div className="flex flex-col gap-1 p-[10px]">
           <div className="flex items-center gap-[11px] px-[10px] py-[11px]">
             <EyeOff size={16} strokeWidth={2} className="flex-none text-m-muted" />

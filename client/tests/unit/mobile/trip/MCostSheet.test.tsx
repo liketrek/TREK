@@ -8,7 +8,7 @@ import type { BudgetItem, BudgetItemMember } from '../../../../src/types'
 import { buildBudgetItem, buildTrip } from '../../../helpers/factories'
 import { localToday } from '../../../../src/components/Planner/today'
 import { resetAllStores } from '../../../helpers/store'
-import { act, fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
+import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
 // FE-MOB-COSTSH-001 to FE-MOB-COSTSH-038
 // The sheet reads its copy from useTranslation(), so assertions are English.
@@ -681,7 +681,7 @@ describe('MCostSheet', () => {
     })))
   })
 
-  it('FE-MOB-COSTSH-036: editing a booked bill previews the rate the save keeps (#2525)', () => {
+  it('FE-MOB-COSTSH-036: editing a bill in the display currency has nothing to preview (#2965)', () => {
     // A euro trip read in dollars, the bill entered in dollars at 1.17 to the euro.
     // Same currency as the list, so the sheet said nothing, while the list showed the
     // booked euros at today's rate beside the 801.76 typed here.
@@ -695,12 +695,9 @@ describe('MCostSheet', () => {
     })
     renderSheet({ base: 'USD', editing })
 
-    const hint = screen.getByText(/live rate/).parentElement as HTMLElement
-    expect(within(hint).getByText('$801.76')).toBeInTheDocument()
-    expect(within(hint).getByText(/^685,26\s€$/)).toBeInTheDocument()
-    expect(within(hint).getByText('$791.55')).toBeInTheDocument()
-    // Each share next to what it counts as, the figure the row's "you lent" is made of.
-    expect(screen.getByText(/Split 2 ways · \$400\.88 → \$395\.77 each/)).toBeInTheDocument()
+    // The list reads the dollars typed, so the sheet has no conversion to show.
+    expect(screen.queryByText(/live rate/)).toBeNull()
+    expect(screen.getByText(/Split 2 ways · \$400\.88 each/)).toBeInTheDocument()
   })
 
   it('FE-MOB-COSTSH-037: a bill booked at today\'s rate has nothing to preview (#2525)', () => {

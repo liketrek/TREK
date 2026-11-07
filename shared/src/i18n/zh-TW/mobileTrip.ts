@@ -8,7 +8,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addTransportShort': '交通',
   'mobileTrip.allDays': '所有天',
   'mobileTrip.today': '今天',
-  'mobileTrip.jumpToToday': '跳到今天',
   'mobileTrip.assignedDays': '已分配的天數',
   'mobileTrip.assignmentNotes': '按天備註',
   'mobileTrip.bookingsEmpty': '暫無預訂',
@@ -20,8 +19,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.filesEmpty': '暫無檔案',
   'mobileTrip.filesNext': '下一個檔案',
   'mobileTrip.filesPrev': '上一個檔案',
-  'mobileTrip.googleMaps': 'Google Maps',
-  'mobileTrip.coMaps': 'CoMaps',
   'mobileTrip.icsDownload': '下載 .ics',
   'mobileTrip.icsSubscribe': '訂閱行事曆',
   'mobileTrip.icsSubscribeSub': '在你的行事曆應用程式中自動更新',
@@ -72,5 +69,8 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtTruncated.other': '{count} 段路的結果超出一次回答能容納的量。少選幾類就能看到其餘的。',
   'mobileTrip.rtNoDay': '未選擇日期',
   'mobileTrip.rtNoDayHint': '地圖顯示的是整個行程。點按上方的日期查看當天路線。',
+  'mobileTrip.maps': '地圖',
+  'mobileTrip.openRouteIn': '在以下應用程式開啟當天',
+  'mobileTrip.firstStopOnly': '僅第一站',
 };
 export default mobileTrip;

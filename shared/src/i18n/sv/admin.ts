@@ -1134,6 +1134,8 @@ const admin: TranslationStrings = {
   'admin.contribute.never.providers': 'Uppgifter som fyllts i av Google eller en annan leverantör',
   'admin.contribute.prompt.how':
     'Bara det dina användare skrivit själva, och bara för platser som indexet känner till. Ingen användare, resa eller konto följer med. Loggen visar varje överföring, och du kan stänga av fält eller återkalla allt när som helst.',
+  'admin.contribute.prompt.past':
+    'Uppgifter som dina användare har skrivit in sedan TREK 5.1 delas också, lite i taget.',
   'admin.contribute.prompt.openRegistration':
     'Registreringen är öppen på den här installationen, så alla med ett konto kan skriva in uppgifter. Varje värde kontrolleras innan det publiceras.',
   'admin.contribute.prompt.footnote': 'Det här bestämmer du för hela installationen. Dina användare tillfrågas inte.',

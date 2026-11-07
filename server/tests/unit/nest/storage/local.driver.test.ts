@@ -136,4 +136,17 @@ describe('LocalDriver specifics', () => {
     for await (const stat of driver.list('nope/')) seen.push(stat);
     expect(seen).toEqual([]);
   });
+
+  it('a shallow list yields the objects at the prefix only, none of a folder below it', async () => {
+    const driver = new LocalDriver({ id: 'shallow', root: tmp() });
+    driver.init();
+    await driver.put('journey/top.jpg', Readable.from('a'));
+    await driver.put('journey/thumbs/deep.jpg', Readable.from('b'));
+    const shallow: string[] = [];
+    for await (const stat of driver.list('journey/', { shallow: true })) shallow.push(stat.key);
+    expect(shallow).toEqual(['journey/top.jpg']);
+    const deep: string[] = [];
+    for await (const stat of driver.list('journey/')) deep.push(stat.key);
+    expect(deep.sort()).toEqual(['journey/thumbs/deep.jpg', 'journey/top.jpg']);
+  });
 });

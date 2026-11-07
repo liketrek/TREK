@@ -1,0 +1,26 @@
+/* The share sheet ("TREK" in the share menu): ShareExtension/ShareView.swift. */
+"share.title" = "إضافة إلى TREK";
+"share.cancel" = "إلغاء";
+"share.close" = "إغلاق";
+"share.trip" = "الرحلة";
+"share.noTrips" = "افتح TREK مرة واحدة وستظهر رحلاتك هنا.";
+"share.hint" = "يقرأ TREK الحجز ويضيفه إلى الرحلة.";
+"share.later" = "الاختيار لاحقًا";
+"share.add" = "إضافة";
+"share.addTo" = "إضافة إلى %@";
+"share.added" = "تمت الإضافة";
+"share.reading" = "جارٍ القراءة…";
+"share.tooLarge" = "هذا الملف أكبر من أن يُستورد.";
+"share.unsupported" = "لا يستطيع TREK استيراد هذا.";
+"share.failed" = "تعذّر تمرير هذا إلى TREK. حاول مرة أخرى.";
+"share.now" = "الآن";
+"share.past" = "انتهت";
+"share.tomorrow" = "غدًا";
+"share.inDays" = "بعد %d يومًا";
+"share.kind.pass" = "بطاقة Wallet";
+"share.kind.pdf" = "PDF";
+"share.kind.mail" = "بريد";
+"share.kind.page" = "صفحة ويب";
+"share.kind.text" = "نص";
+"share.kind.image" = "صورة";
+"share.kind.file" = "ملف";

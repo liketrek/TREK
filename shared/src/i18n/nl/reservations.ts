@@ -275,5 +275,9 @@ const reservations: TranslationStrings = {
     'Bestanden hebben een verbinding nodig om te uploaden. Verwijder de nieuwe om de boeking offline op te slaan, of sla op zodra je weer online bent.',
   'reservations.needsConnection': 'Hiervoor is een verbinding nodig. Probeer het opnieuw zodra TREK weer online is.',
   'reservations.exportCsvFiltered': 'De {shown} van {total} getoonde rijen exporteren (CSV)',
+  'reservations.wallet.add': 'Voeg toe aan Apple Wallet',
+  'reservations.wallet.addGoogle': 'Voeg toe aan Google Wallet',
+  'reservations.wallet.failed': 'De Wallet-pas kon niet worden gemaakt. Probeer het opnieuw.',
+  'reservations.wallet.undated': 'Geef de boeking eerst een datum: Wallet toont de pas rond dat moment.',
 };
 export default reservations;

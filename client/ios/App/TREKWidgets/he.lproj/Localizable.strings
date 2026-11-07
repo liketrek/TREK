@@ -1,0 +1,20 @@
+/* The widget gallery: names and descriptions (TREKWidgets/NextTripWidget.swift). */
+"widget.trip.name" = "טיול";
+"widget.trip.description" = "סופר את הימים עד הטיול הבא, ובמהלכו מציג את היום ואת מה שבא אחריו.";
+"widget.today.name" = "היום";
+"widget.today.description" = "תוכנית היום כציר זמן, עם מזג האוויר והעצירה הבאה.";
+"widget.bookings.name" = "הזמנות";
+"widget.bookings.description" = "הטיסות, הרכבות, המלונות והשולחנות הבאים שלך, ומתי הם.";
+"widget.todos.name" = "משימות";
+"widget.todos.description" = "מה עוד פתוח לטיול וכמה התקדמה האריזה.";
+"widget.packing.name" = "אריזה";
+"widget.packing.description" = "כמה מלאים התיקים, המשקל שלהם ומה עוד חסר.";
+"widget.atlas.name" = "מפת העולם";
+"widget.atlas.description" = "המדינות שביקרת בהן, זוהרות על המפה.";
+"widget.collab.name" = "קבוצת הטיול";
+"widget.collab.description" = "מי מצטרף, ההודעות האחרונות והסקר הפתוח.";
+"widget.intent.title" = "בחירת טיול";
+"widget.intent.description" = "הטיול שהווידג׳ט הזה מציג.";
+"widget.intent.trip" = "טיול";
+"widget.intent.auto" = "אוטומטי";
+"widget.intent.autoHint" = "אותו טיול כמו בלוח הבקרה";

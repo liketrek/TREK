@@ -8,7 +8,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addTransportShort': 'Transportasi',
   'mobileTrip.allDays': 'Semua Hari',
   'mobileTrip.today': 'Hari ini',
-  'mobileTrip.jumpToToday': 'Lompat ke hari ini',
   'mobileTrip.assignedDays': 'Hari yang ditetapkan',
   'mobileTrip.assignmentNotes': 'Catatan khusus hari',
   'mobileTrip.bookingsEmpty': 'Belum ada reservasi',
@@ -20,8 +19,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.filesEmpty': 'Belum ada file',
   'mobileTrip.filesNext': 'File berikutnya',
   'mobileTrip.filesPrev': 'File sebelumnya',
-  'mobileTrip.googleMaps': 'Google Maps',
-  'mobileTrip.coMaps': 'CoMaps',
   'mobileTrip.icsDownload': 'Unduh .ics',
   'mobileTrip.icsSubscribe': 'Berlangganan kalender',
   'mobileTrip.icsSubscribeSub': 'Otomatis diperbarui di aplikasi kalender kamu',
@@ -76,5 +73,8 @@ const mobileTrip: TranslationStrings = {
     '{count} ruas punya lebih banyak hasil daripada yang muat dalam satu jawaban. Pilih lebih sedikit jenis untuk melihat sisanya.',
   'mobileTrip.rtNoDay': 'Belum ada hari yang dipilih',
   'mobileTrip.rtNoDayHint': 'Peta menampilkan seluruh perjalanan. Ketuk hari di atas untuk melihat rutenya.',
+  'mobileTrip.maps': 'Peta',
+  'mobileTrip.openRouteIn': 'Buka hari ini di',
+  'mobileTrip.firstStopOnly': 'Hanya perhentian pertama',
 };
 export default mobileTrip;

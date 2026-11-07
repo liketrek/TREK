@@ -11,6 +11,7 @@ import { type RangeWarning } from './useRangeBypass'
 import { deriveCaps } from './pluginCaps'
 import PluginPoiCategoryList from './PluginPoiCategoryList'
 import { useTranslation } from '../../i18n'
+import { useFormatDate } from '../../hooks/useDateFormat'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import ToggleSwitch from '../Settings/ToggleSwitch'
 import CustomSelect from '../shared/CustomSelect'
@@ -33,6 +34,7 @@ import { usePluginsAdmin } from './plugins/usePluginsAdmin'
 import PluginFilterMenu from './plugins/PluginFilterMenu'
 import PluginInstalledRow from './plugins/PluginInstalledRow'
 import PluginSecurityDialog from './plugins/PluginSecurityDialog'
+import VersionLine from './plugins/VersionLine'
 
 /**
  * Admin → Plugins (#plugins). A full plugin-management surface: a segmented
@@ -303,7 +305,7 @@ export default function AdminPluginsPanel() {
 
       {versionPicker && (
         <VersionPickerDialog plugin={versionPicker.plugin} versions={versionPicker.versions} failed={versionPicker.failed}
-          busy={busy} t={t} locale={locale} onPick={pickVersion} onClose={() => setVersionPicker(null)} />
+          busy={busy} t={t} onPick={pickVersion} onClose={() => setVersionPicker(null)} />
       )}
 
       <ConfirmDialog
@@ -745,6 +747,7 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
   onInstall: (id: string, version?: string, warn?: RangeWarning) => void; onClose: () => void; t: T; locale: string
 }) {
   const { detail, failed } = usePluginDetail(item.id)
+  const { formatDate } = useFormatDate()
 
   const manifest = detail?.manifest ?? null
   const permissions = manifest?.permissions ?? []
@@ -910,7 +913,7 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
           {(item.trek || item.minTrekVersion) && (
             <Meta k={t('admin.plugins.metaRequires')} v={item.trek ? `TREK ${item.trek}` : `TREK ${item.minTrekVersion}+`} />
           )}
-          {item.reviewedAt && <Meta k={t('admin.plugins.metaReviewed')} v={new Date(item.reviewedAt).toLocaleDateString(locale)} />}
+          {item.reviewedAt && <Meta k={t('admin.plugins.metaReviewed')} v={formatDate(new Date(item.reviewedAt))} />}
           {typeof item.downloadCount === 'number' && item.downloadCount > 0 && (
             <Meta k={t('admin.plugins.downloads')} v={item.downloadCount.toLocaleString(locale)} />
           )}
@@ -934,24 +937,13 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
                 ) : (
                   <span className="text-content-faint" style={fs(11.5)}>{t('admin.plugins.versionNeedsTrek', { range: v.trek ?? '' })}</span>
                 )}>
-                <VersionLine v={v} locale={locale} />
+                <VersionLine v={v} />
               </DialogListItem>
             ))}
           </DialogList>
         </DialogSection>
       )}
     </DialogShell>
-  )
-}
-
-/** A version number with its date and, when the author signed it, a quiet tick. */
-function VersionLine({ v, locale }: { v: VersionInfo; locale: string }) {
-  return (
-    <span className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5">
-      <span className={`font-geist font-semibold tabular-nums ${v.compatible ? 'text-content' : 'text-content-faint'}`} style={fs(12.5)}>v{v.version}</span>
-      {v.publishedAt && <span className="text-content-faint" style={fs(11.5)}>{new Date(v.publishedAt).toLocaleDateString(locale)}</span>}
-      {v.signed && <ShieldCheck size={13} className="flex-none text-success" />}
-    </span>
   )
 }
 
@@ -970,9 +962,9 @@ function Meta({ k, v }: { k: string; v: string }) {
  * caller routes a DOWNGRADE through the data-risk confirm), an incompatible one is
  * explained and never offered.
  */
-function VersionPickerDialog({ plugin, versions, failed, busy, t, locale, onPick, onClose }: {
+function VersionPickerDialog({ plugin, versions, failed, busy, t, onPick, onClose }: {
   plugin: PluginRow; versions: VersionInfo[] | null; failed: boolean; busy: string | null
-  t: T; locale: string; onPick: (version: string) => void; onClose: () => void
+  t: T; onPick: (version: string) => void; onClose: () => void
 }) {
   return (
     <DialogShell
@@ -994,7 +986,7 @@ function VersionPickerDialog({ plugin, versions, failed, busy, t, locale, onPick
             const current = v.version === plugin.version
             return (
               <div key={v.version} data-testid={`version-row-${v.version}`} className="flex items-center gap-3 px-3.5 py-2.5">
-                <div className="min-w-0 flex-1"><VersionLine v={v} locale={locale} /></div>
+                <div className="min-w-0 flex-1"><VersionLine v={v} /></div>
                 {current ? (
                   <StatusPill tone="success" icon={<Check size={11} />}>{t('admin.plugins.installed')}</StatusPill>
                 ) : v.compatible ? (

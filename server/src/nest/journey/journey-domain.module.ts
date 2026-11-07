@@ -14,6 +14,7 @@ import { PluginGuardsModule } from '../../nest-rpc/plugin-guards.module';
 import { TrekPhotosModule } from '../photos/trek-photos.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { SettingsModule } from '../settings/settings.module';
+import { StorageModule } from '../storage/storage.module';
 import { JourneyDomainService } from './journey-domain.service';
 import { JourneyEntryStaysService } from './journey-entry-stays.service';
 import { JourneyMapService } from './journey-map.service';
@@ -88,6 +89,8 @@ import { Module } from '@nestjs/common';
     TrekPhotosModule,
     PluginGuardsModule,
     SettingsModule,
+    // JourneySettingsService releases a replaced cover's object after the write.
+    StorageModule,
     MikroOrmModule.forFeature([
       Journeys,
       JourneyContributors,

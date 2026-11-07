@@ -4,7 +4,11 @@ import type { GlMapProvider } from './glProviders'
 import type { MapViewProps } from './mapViewContract'
 
 /** What a caller hands the GL trip map: the shared map contract and which provider's style to load. */
-export type MapViewGLProps = MapViewProps & { glProvider?: GlMapProvider }
+export type MapViewGLProps = MapViewProps & {
+  glProvider?: GlMapProvider
+  /** A style URL that replaces the provider's, as the offline fallback map (MapViewAuto). */
+  styleOverride?: string
+}
 
 /**
  * The six ways into a GL map, one chunk per engine.

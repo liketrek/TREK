@@ -114,8 +114,19 @@ export class AddonsService {
     return this.writeFlag('ski_routing_enabled', enabled);
   }
 
-  /** wanderer may be used: Tours is on and the admin allowed it under Tours. */
+  /** The photo providers users can connect: none while the journey addon is off. */
+  async enabledPhotoProviderIds(): Promise<string[]> {
+    if (!(await this.isAddonEnabled(ADDON_IDS.JOURNEY))) return [];
+    return this.photoProviders.listEnabledIds();
+  }
+
+  /**
+   * wanderer may be used: Tours is on and the admin allowed it under Tours. Never on a managed
+   * install, where it would send searches to a server the user picks; the admin switch is locked
+   * there, so a value stored before the install became managed must not keep it on.
+   */
   async isWandererAvailable(): Promise<boolean> {
+    if (readEnv().managed.enabled) return false;
     return (await this.isAddonEnabled(ADDON_IDS.TOURS)) && (await this.getToursWanderer()).enabled;
   }
 

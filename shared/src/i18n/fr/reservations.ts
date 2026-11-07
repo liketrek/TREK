@@ -62,7 +62,7 @@ const reservations: TranslationStrings = {
   'reservations.type.car': 'Voiture',
   'reservations.type.cruise': 'Croisière',
   'reservations.type.event': 'Événement',
-  'reservations.type.tour': 'Visite',
+  'reservations.type.tour': 'Visite guidée',
   'reservations.type.parking': 'Parking', // same-as-en
   'reservations.type.other': 'Autre',
   'reservations.type.bus': 'Bus', // same-as-en
@@ -279,5 +279,10 @@ const reservations: TranslationStrings = {
     "Les fichiers ont besoin d'une connexion pour être envoyés. Retire les nouveaux pour enregistrer la réservation hors ligne, ou enregistre une fois de retour en ligne.",
   'reservations.needsConnection': 'Cela nécessite une connexion. Réessaie dès que TREK sera de nouveau en ligne.',
   'reservations.exportCsvFiltered': 'Exporter les {shown} lignes affichées sur {total} (CSV)',
+  'reservations.wallet.add': 'Ajouter à Apple Wallet',
+  'reservations.wallet.addGoogle': 'Ajouter à Google Wallet',
+  'reservations.wallet.failed': 'Impossible de créer la carte Wallet. Réessayez.',
+  'reservations.wallet.undated':
+    'Donnez d’abord une date à la réservation : Wallet affiche la carte autour de ce moment.',
 };
 export default reservations;

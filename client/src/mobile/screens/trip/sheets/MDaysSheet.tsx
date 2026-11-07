@@ -60,7 +60,7 @@ export default function MDaysSheet({ planner, shell }: MTripSheetsProps) {
         />
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[14px] pt-[14px]">
+      <div className="m-scroll-fade mt-2 min-h-0 flex-1 overflow-y-auto px-[18px] pb-[14px] pt-[14px]">
         <div className="flex flex-col gap-[6px]">
           {ordered.map((day, i) => (
             <div key={day.id} className={`flex items-center gap-[10px] rounded-[13px] px-[11px] py-[7px] ${INNER_CLS}`}>

@@ -191,4 +191,29 @@ describe('PlaceContribOutboxRepository', () => {
     await queue(placeId, { value: 'https://luna.example', cid: 'cid-website-0002' });
     expect(await outbox.queuedBefore('2026-06-01 00:00:00', 10)).toEqual([]);
   });
+
+  it('PCOUTREPO-009: pages through the places with typed values of the fields asked for, by id, with their origins', async () => {
+    const one = await aPlace({ website: 'https://one.example', osm_id: 'node/1' });
+    const provider = await aPlace({ website: 'https://two.example' });
+    const three = await aPlace({ phone: '+49 381 3' });
+    const four = await aPlace({ website: 'https://four.example' });
+    const origin = (place: number, field: string, kind: string, hash: string) =>
+      insertRow(t, PlaceFieldOrigin, { place, field, origin: kind, value_hash: hash });
+    await origin(one, 'website', 'user', 'h1');
+    await origin(one, 'phone', 'trek', 'h2');
+    await origin(provider, 'website', 'trek', 'h3');
+    await origin(three, 'phone', 'user', 'h4');
+    await origin(four, 'website', 'user', 'h5');
+
+    expect(await outbox.typedAfter(0, [], 10)).toEqual([]);
+    const page = await outbox.typedAfter(0, ['website', 'phone'], 2);
+    expect(page.map((row) => row.place.id)).toEqual([one, three]);
+    expect(page[0]).toEqual({
+      place: expect.objectContaining({ id: one, website: 'https://one.example', osm_id: 'node/1' }),
+      typed: [{ field: 'website', value_hash: 'h1' }],
+    });
+    expect((await outbox.typedAfter(three, ['website', 'phone'], 2)).map((row) => row.place.id)).toEqual([four]);
+    expect(await outbox.typedAfter(four, ['website', 'phone'], 2)).toEqual([]);
+    expect((await outbox.typedAfter(0, ['phone'], 10)).map((row) => row.place.id)).toEqual([three]);
+  });
 });

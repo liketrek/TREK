@@ -280,7 +280,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
               dawarichEnabled={dawarichEnabled} dawarichTrail={dawarichTrail} dawarichHiddenDates={dawarichHiddenDates} dawarichTrailShown={dawarichTrailShown} toggleDawarichTrail={toggleDawarichTrail}
               mobileSidebarOpen={mobileSidebarOpen} showPlaceForm={showPlaceForm} showMembersModal={showMembersModal} showReservationModal={showReservationModal}
               poi={poi} tourMap={tourMap} leftPanelPx={leftPanelPx} rightPanelPx={rightPanelPx} mapInsetLeft={mapInsetLeft} mapInsetRight={mapInsetRight}
-              glMap={glMap} setGlMap={setGlMap} poiPillEnabled={poiPillEnabled} mapPois={mapPois} distanceUnit={distanceUnit}
+              glMap={glMap} setGlMap={setGlMap} poiPillEnabled={poiPillEnabled} mapPois={mapPois} distanceUnit={distanceUnit} inspectorHeight={pageState.inspectorCard.height}
             />
 
             <div className="hidden md:block" style={{ position: 'absolute', left: 10, top: 10, bottom: 10, zIndex: 20 }}>
@@ -547,7 +547,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                 onDelete={() => handleDeletePlace(selectedPlace.id)}
                 leftWidth={isMobile ? 0 : leftPanelPx}
                 rightWidth={isMobile ? 0 : rightPanelPx}
-                clearMapPill
+                clearMapPill cardRef={pageState.inspectorCard.measure}
               />
             )}
 

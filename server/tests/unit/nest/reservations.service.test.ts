@@ -725,6 +725,34 @@ describe('ReservationsService (DI-native, real SQL)', () => {
       expect(broadcast).not.toHaveBeenCalled();
     });
 
+    it('RESV-SVC-044: a type change also re-files a legacy label and a cable car cost the MCP filed under transport', async () => {
+      const { trip, res, item: legacy } = await linkedItem({ name: 'Fare', category: 'Flight' });
+      budget.updateBudgetItem.mockImplementation((id: number) => ({ id, category: 'transport' }));
+      // "Flight" was stored before the fixed keys; it still stands for flights.
+      await svc.syncBudgetOnUpdate(String(trip.id), String(res.id), 'X', 'train', 'X', 'flight', undefined, 'sock');
+      expect(budget.updateBudgetItem).toHaveBeenCalledWith(legacy.id, String(trip.id), { category: 'transport' });
+
+      budget.updateBudgetItem.mockClear();
+      const { trip: t2, res: r2, item: gondola } = await linkedItem({ name: 'Gondola', category: 'transport' });
+      budget.updateBudgetItem.mockImplementation((id: number) => ({ id, category: 'flights' }));
+      // A cable car files under transport on every path now, so the move reaches it.
+      await svc.syncBudgetOnUpdate(String(t2.id), String(r2.id), 'X', 'flight', 'X', 'cable_car', undefined, 'sock');
+      expect(budget.updateBudgetItem).toHaveBeenCalledWith(gondola.id, String(t2.id), { category: 'flights' });
+    });
+
+    it('RESV-SVC-045: an "other" cost filed by the old type map still moves with the type', async () => {
+      const { trip, res, item } = await linkedItem({ name: 'Ticket', category: 'other' });
+      budget.updateBudgetItem.mockImplementation((id: number) => ({ id, category: 'flights' }));
+      await svc.syncBudgetOnUpdate(String(trip.id), String(res.id), 'X', 'flight', 'X', 'event', undefined, 'sock');
+      expect(budget.updateBudgetItem).toHaveBeenCalledWith(item.id, String(trip.id), { category: 'flights' });
+
+      budget.updateBudgetItem.mockClear();
+      const { trip: t2, res: r2 } = await linkedItem({ name: 'Snacks', category: 'other' });
+      // A flight never filed under 'other': there it was picked by hand and stays.
+      await svc.syncBudgetOnUpdate(String(t2.id), String(r2.id), 'X', 'train', 'X', 'flight', undefined, 'sock');
+      expect(budget.updateBudgetItem).not.toHaveBeenCalled();
+    });
+
     it('updates an existing linked item when a price is provided', async () => {
       const { trip, res, item } = await linkedItem();
       budget.updateBudgetItem.mockReturnValue({ id: item.id });

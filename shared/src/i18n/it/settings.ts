@@ -88,6 +88,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': 'Formato Ora',
   'settings.weekStart': 'La settimana inizia il',
   'settings.weekStartHint': 'Primo giorno della settimana in ogni selettore di date. Vacay ha una sua impostazione.',
+  'settings.dateFormat': 'Formato Data',
+  'settings.dateFormatHint':
+    'Come vengono scritte le date in ogni campo data e in ogni elenco. Le date con il nome del mese mantengono la forma della tua lingua.',
+  'settings.dateFormatAuto': 'Automatico',
   'settings.preferredNavApp': 'Apri i luoghi in',
   'settings.preferredNavAppAsk': 'Chiedi ogni volta',
   'settings.preferredNavAppHint':
@@ -671,6 +675,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': 'Fatto',
   'settings.mcp.deprecated': 'Obsoleto',
   'settings.offline.cache.dateRange': 'dal {start} al {end}',
+  'settings.offline.tileStore.title': 'Tessere di mappa visualizzate',
+  'settings.offline.tileStore.usage': '{used} di {limit} su questo dispositivo, conservate fino a 30 giorni',
+  'settings.offline.tileStore.clear': 'Svuota',
 };
 
 export default settings;

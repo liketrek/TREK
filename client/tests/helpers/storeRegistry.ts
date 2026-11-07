@@ -1,4 +1,6 @@
 import type { StoreApi } from 'zustand';
+import { useDayPreviewStore } from '../../src/mobile/dayPreviewStore';
+import { useSharedImportStore } from '../../src/native/sharedFiles';
 import { useAddonStore } from '../../src/store/addonStore';
 import { useAssistantHintsStore } from '../../src/store/assistantHintsStore';
 import { useAuthStore } from '../../src/store/authStore';
@@ -33,6 +35,8 @@ type ResettableStore = Pick<StoreApi<object>, 'getState' | 'setState'>;
 
 export const RESET_STORES: Record<string, ResettableStore> = {
   useAuthStore,
+  useDayPreviewStore,
+  useSharedImportStore,
   useTripStore,
   useSettingsStore,
   useVacayStore,

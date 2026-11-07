@@ -8,7 +8,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addTransportShort': 'Transport', // same-as-en
   'mobileTrip.allDays': 'Tots els dies',
   'mobileTrip.today': 'Avui',
-  'mobileTrip.jumpToToday': 'Ves a avui',
   'mobileTrip.assignedDays': 'Dies assignats',
   'mobileTrip.assignmentNotes': 'Notes específiques del dia',
   'mobileTrip.bookingsEmpty': 'Encara no hi ha reserves',
@@ -20,8 +19,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.filesEmpty': 'Encara no hi ha fitxers',
   'mobileTrip.filesNext': 'Fitxer següent',
   'mobileTrip.filesPrev': 'Fitxer anterior',
-  'mobileTrip.googleMaps': 'Google Maps',
-  'mobileTrip.coMaps': 'CoMaps',
   'mobileTrip.icsDownload': 'Baixa .ics',
   'mobileTrip.icsSubscribe': 'Subscriu-te al calendari',
   'mobileTrip.icsSubscribeSub': "S'actualitza automàticament a la teva app de calendari",
@@ -84,6 +81,9 @@ const mobileTrip: TranslationStrings = {
     '{count} tram tenia més del que cap en una resposta. Tria menys tipus per veure la resta.',
   'mobileTrip.rtNoDay': 'Cap dia seleccionat',
   'mobileTrip.rtNoDayHint': 'El mapa mostra tot el viatge. Toca un dia a dalt per veure’n el trajecte.',
+  'mobileTrip.maps': 'Mapes',
+  'mobileTrip.openRouteIn': 'Obre el dia a',
+  'mobileTrip.firstStopOnly': 'Només la primera parada',
 };
 
 export default mobileTrip;

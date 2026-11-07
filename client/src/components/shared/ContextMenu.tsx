@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, type ComponentType, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { LucideIcon } from 'lucide-react'
+import { useLastOpen, usePresence } from './usePresence'
 
 interface MenuItem {
   label?: string
@@ -50,6 +51,13 @@ interface ContextMenuProps {
 }
 
 export function ContextMenu({ menu, onClose }: ContextMenuProps) {
+  const { mounted, closing } = usePresence(menu != null, 130)
+  // The items stay on screen while the menu fades, after its owner set it to null.
+  const shown = useLastOpen(menu, menu != null)
+  return mounted && shown ? <ContextMenuFrame menu={shown} onClose={onClose} closing={closing} /> : null
+}
+
+function ContextMenuFrame({ menu, onClose, closing }: { menu: MenuState; onClose: () => void; closing: boolean }) {
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -97,21 +105,31 @@ export function ContextMenu({ menu, onClose }: ContextMenuProps) {
   useLayoutEffect(() => {
     if (!menu || !ref.current) return
     const el = ref.current
-    const rect = el.getBoundingClientRect()
+    // The layout size, not getBoundingClientRect: the menu is still mid enter
+    // animation (scaled down) here, and the smaller box let a menu opened near an
+    // edge end up partly off screen.
+    const width = el.offsetWidth
+    const viewW = window.innerWidth
+    const viewH = window.innerHeight
+    // Taller than the screen (a long list on a phone): cap it and let it scroll.
+    if (el.offsetHeight > viewH - 16) {
+      el.style.maxHeight = `${viewH - 16}px`
+      el.style.overflowY = 'auto'
+    }
+    const height = Math.min(el.offsetHeight, viewH - 16)
     let { x, y } = menu
-    if (menu.alignEnd) x = Math.max(8, x - rect.width)
-    if (x + rect.width > window.innerWidth - 8) x = window.innerWidth - rect.width - 8
-    if (y + rect.height > window.innerHeight - 8) y = window.innerHeight - rect.height - 8
+    if (menu.alignEnd) x = x - width
+    // Kept inside all four edges with 8px to spare.
+    x = Math.min(Math.max(8, x), viewW - width - 8)
+    y = Math.min(Math.max(8, y), viewH - height - 8)
     if (x !== menu.x || y !== menu.y) {
-      el.style.left = `${x}px`
-      el.style.top = `${y}px`
+      el.style.left = `${Math.max(8, x)}px`
+      el.style.top = `${Math.max(8, y)}px`
     }
   }, [menu])
 
-  if (!menu) return null
-
   return createPortal(
-    <div ref={ref} role="menu" tabIndex={-1} onKeyDown={moveFocus} className="trek-popover-enter" style={{
+    <div ref={ref} role="menu" tabIndex={-1} onKeyDown={moveFocus} className={`trek-popover-enter ${closing ? 'trek-popover-exit pointer-events-none' : ''}`} style={{
       position: 'fixed', left: menu.x, top: menu.y, zIndex: 999999,
       background: 'var(--bg-card)', borderRadius: 10, padding: '4px',
       border: '1px solid var(--border-primary)',

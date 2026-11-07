@@ -4,10 +4,9 @@ import { render, screen, waitFor, cleanup, within } from '../../tests/helpers/re
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../tests/helpers/msw/server';
-import { resetAllStores, seedStore } from '../../tests/helpers/store';
+import { resetAllStores } from '../../tests/helpers/store';
+import { seedJourneyOwner } from '../../tests/helpers/journeyDetail';
 import { buildUser } from '../../tests/helpers/factories';
-import { useAuthStore } from '../store/authStore';
-import { usePermissionsStore } from '../store/permissionsStore';
 import { useJourneyStore } from '../store/journeyStore';
 import JourneyDetailPage from './JourneyDetailPage';
 
@@ -238,8 +237,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   resetAllStores();
   useJourneyStore.setState(useJourneyStore.getState(), true);
-  seedStore(useAuthStore, { isAuthenticated: true, user: ownerUser });
-  seedStore(usePermissionsStore, { level: 'owner' } as any);
+  seedJourneyOwner(ownerUser);
   setupDefaultHandlers();
 });
 

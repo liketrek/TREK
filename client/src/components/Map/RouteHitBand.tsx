@@ -1,4 +1,5 @@
 import { Polyline } from 'react-leaflet';
+import { onRealWorld } from '../../utils/worldCopy';
 
 /**
  * P2A-03: an invisible band along a route segment on the Leaflet map, wider
@@ -31,7 +32,9 @@ export function RouteHitBand({
         click: (e: { latlng: { lat: number; lng: number }; originalEvent: MouseEvent }) => {
           // Stops the map's own click, which would otherwise open the add-place menu underneath the new via.
           e.originalEvent.stopPropagation();
-          onRouteClick(e.latlng.lat, e.latlng.lng);
+          // The via is saved on the real world, whichever copy of it the route was clicked on (#2976).
+          const at = onRealWorld(e.latlng);
+          onRouteClick(at.lat, at.lng);
         },
       }}
     />

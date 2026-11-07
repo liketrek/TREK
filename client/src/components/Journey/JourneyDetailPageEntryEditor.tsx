@@ -17,6 +17,7 @@ import { DialogButton, DialogFooter, DialogHeader, DialogSection, DialogShell, D
 import { AddRowButton, EditorField, INPUT } from '../shared/dialogParts'
 import { Tooltip } from '../shared/Tooltip'
 import { useJourneyEntryForm, type PendingProviderGroup } from './useJourneyEntryForm'
+import { useAddonStore } from '../../store/addonStore'
 
 /** A chip of the mood and weather rows, as in the collection dialogs' category row. */
 const CHIP = 'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 font-semibold transition-colors'
@@ -139,6 +140,7 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
   onDone: () => void
 }) {
   const { t } = useTranslation()
+  const photoProvidersOn = useAddonStore(s => s.isEnabled('memories'))
   const {
     title, setTitle, story, setStory, entryDate, setEntryDate, entryTime, setEntryTime,
     locationName,
@@ -273,14 +275,19 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
                     <Camera size={14} />
                   </button>
                 </Tooltip>
-                <button type="button"
-                  onClick={() => { setPhotoTab('external'); setShowGalleryPick(false) }}
-                  disabled={saving}
-                  aria-pressed={photoTab === 'external'}
-                  className={`${SOURCE} flex-1 ${photoTab === 'external' ? SOURCE_ON : SOURCE_OFF}`}
-                >
-                  <Image size={13} /> {t('journey.editor.externalPhotos') || 'External photos'}
-                </button>
+                {/* Only where the install has a photo provider (Immich, Synology) switched
+                    on, as on the phone: a source that can only say "nothing connected"
+                    is not worth its width, and the other two share the row instead. */}
+                {photoProvidersOn && (
+                  <button type="button"
+                    onClick={() => { setPhotoTab('external'); setShowGalleryPick(false) }}
+                    disabled={saving}
+                    aria-pressed={photoTab === 'external'}
+                    className={`${SOURCE} flex-1 ${photoTab === 'external' ? SOURCE_ON : SOURCE_OFF}`}
+                  >
+                    <Image size={13} /> {t('journey.editor.externalPhotos') || 'External photos'}
+                  </button>
+                )}
               </div>
 
               {/* The gallery picker, directly below the buttons. Safari collapses
@@ -312,7 +319,7 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
                   </div>
                 </div>
               )}
-              {photoTab === 'external' && (
+              {photoTab === 'external' && photoProvidersOn && (
                 <div className={`${PHOTO_PANEL} flex flex-col overflow-hidden`} style={{ height: 'min(56vh, 520px)' }}>
                   <div className="flex items-center justify-between gap-2 border-b border-edge-faint px-3 py-2">
                     <div className="min-w-0">

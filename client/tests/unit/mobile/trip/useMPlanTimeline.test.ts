@@ -12,7 +12,7 @@ import { buildPlanner, buildTripActions } from '../../../helpers/mobileTrip'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { act, renderHook, waitFor } from '../../../helpers/render'
 
-// FE-MOB-PLTL-001 to FE-MOB-PLTL-052
+// FE-MOB-PLTL-001 to FE-MOB-PLTL-054
 
 // The connector calculation is its own hook with real OSRM calls — stubbed here so
 // the timeline sees exactly the legs a test wants to match against.
@@ -146,6 +146,13 @@ describe('useMPlanTimeline', () => {
     expect(result.current.hotelLegs).toEqual({ top: null, bottom: null })
     expect(result.current.upNext).toBeNull()
     expect(weatherApi.get).not.toHaveBeenCalled()
+  })
+
+  it('FE-MOB-PLTL-005b: offers the map apps for the selected day, and none without one', async () => {
+    const { result } = await renderTimeline(makePlanner())
+    expect(result.current.routeTargets.map(t => t.id)).toEqual(expect.arrayContaining(['google', 'comaps', 'waze']))
+    const none = await renderTimeline(makePlanner({ selectedDayId: null }))
+    expect(none.result.current.routeTargets).toEqual([])
   })
 
   it('FE-MOB-PLTL-006: keeps every day-scoped action inert without a selected day', async () => {
@@ -335,6 +342,41 @@ describe('useMPlanTimeline', () => {
     await act(async () => { result.current.moveRow(result.current.merged[1], 'up') })
     await waitFor(() => expect(planner.tripActions.reorderAssignments).toHaveBeenCalledWith(1, 2, [22, 21, 23]))
     expect(planner.toast.info).not.toHaveBeenCalled()
+  })
+
+  // #2983: a 06:30 flight listed below the day's untimed stops blocked every slot of a
+  // 13:00 transit among them. The flight makes room ahead of the transit instead.
+  const FLIGHT_EARLY = buildReservation({
+    id: 61, type: 'flight', title: 'Flight', day_id: 2, reservation_time: '2026-05-02T06:30', day_positions: { 2: 1.5 },
+  })
+  const TRANSIT_NOON = buildReservation({
+    id: 62, type: 'transit', title: 'Transit', day_id: 2, reservation_time: '2026-05-02T13:00', day_positions: { 2: 1.6 },
+  })
+
+  it('FE-MOB-PLTL-053: keeps a timed booking where it was moved and lets an earlier booking make room', async () => {
+    seedStore(useTripStore, { reservations: [FLIGHT_EARLY, TRANSIT_NOON] })
+    const planner = makePlanner({ assignments: { '2': [A_MUSEUM, A_PARK] }, reservations: [FLIGHT_EARLY, TRANSIT_NOON] })
+    const { result } = await renderTimeline(planner)
+    expect(result.current.merged.map(m => m.data.id)).toEqual([11, 12, 61, 62])
+
+    await act(async () => { result.current.moveRowTo(result.current.merged[3], 1) })
+
+    await waitFor(() => expect(planner.tripActions.updateReservationPositions).toHaveBeenCalledWith(
+      1, [{ id: 61, day_plan_position: 1 / 3 }, { id: 62, day_plan_position: 2 / 3 }], 2,
+    ))
+    expect(planner.tripActions.reorderAssignments).toHaveBeenCalledWith(1, 2, [11, 12])
+    expect(planner.toast.info).not.toHaveBeenCalled()
+  })
+
+  it('FE-MOB-PLTL-054: still refuses a move the earlier booking would only undo', async () => {
+    seedStore(useTripStore, { reservations: [FLIGHT_EARLY, TRANSIT_NOON] })
+    const planner = makePlanner({ assignments: { '2': [A_MUSEUM, A_PARK] }, reservations: [FLIGHT_EARLY, TRANSIT_NOON] })
+    const { result } = await renderTimeline(planner)
+
+    await act(async () => { result.current.moveRow(result.current.merged[3], 'up') })
+
+    expect(planner.toast.info).toHaveBeenCalledWith('dayplan.cannotBreakChronology')
+    expect(planner.tripActions.updateReservationPositions).not.toHaveBeenCalled()
   })
 
   it('FE-MOB-PLTL-021: persists note and transport positions alongside the reorder', async () => {

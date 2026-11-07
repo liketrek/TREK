@@ -38,6 +38,7 @@ import {
   StatusPill,
 } from '../../Settings/settingsKit'
 import BackendForm from './BackendForm'
+import StorageReclaimSection from './StorageReclaimSection'
 import { CACHE_CATEGORIES, primaryNameOf } from './storageModel'
 import { categoryNames, migrationPromptLine, useStoragePanel } from './useStoragePanel'
 
@@ -96,6 +97,7 @@ export default function AdminStoragePanel(): React.ReactElement {
   const {
     admin, editing, setEditing, confirmRemove, setConfirmRemove, syncPrompt, setSyncPrompt, migratePrompt,
     closeMigratePrompt, migrationQueue, handleCancelMigration, handleRefreshStats, handleStartBackfill, handleCancelBackfill, loaded,
+    reclaim, reclaimChecking, reclaimSaving, reclaimConfirming, handleReclaimCheck, handleReclaimDelete, handleReclaimConfirm,
   } = useStoragePanel()
   // Open/closed only: the render below and moveAndSave both recompute
   // computeMigrationCandidates(draft, state) fresh rather than reading the
@@ -626,6 +628,18 @@ export default function AdminStoragePanel(): React.ReactElement {
           )}
         </div>
       )}
+
+      <div className="mt-5">
+        <StorageReclaimSection
+          reclaim={reclaim}
+          checking={reclaimChecking}
+          saving={reclaimSaving}
+          confirming={reclaimConfirming}
+          onConfirm={(request) => void handleReclaimConfirm(request)}
+          onCheck={() => void handleReclaimCheck()}
+          onDelete={(enabled) => void handleReclaimDelete(enabled)}
+        />
+      </div>
 
       {editing && (
         <BackendForm

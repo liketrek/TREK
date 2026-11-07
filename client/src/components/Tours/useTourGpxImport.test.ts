@@ -5,7 +5,9 @@ import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { resetAllStores } from '../../../tests/helpers/store';
+import { placesApi } from '../../api/client';
 import { tourRepo } from '../../repo/tourRepo';
+import { useTripStore } from '../../store/tripStore';
 import { useTourGpxImport } from './useTourGpxImport';
 
 // The toasts are caught at useToast, so no window global has to be set for them.
@@ -65,5 +67,95 @@ describe('useTourGpxImport without a line in the file', () => {
     expect(onNoTrack).toHaveBeenCalledWith([file]);
     expect(addToast).toHaveBeenCalledTimes(1);
     expect(addToast).toHaveBeenCalledWith('tours.import.unreadableIn', 'error', undefined);
+  });
+});
+
+describe('useTourGpxImport with points beside the lines (#2969)', () => {
+  const route = new File(['<gpx/>'], 'sygic.gpx');
+  const pins = new File(['<kml/>'], 'pins.kml');
+  const line = {
+    name: 'Route',
+    geometry: [[47, 11] as [number, number], [47.01, 11] as [number, number]],
+    point_count: 2,
+    distance_km: 1,
+    elevation_gain_m: null,
+    elevation_loss_m: null,
+    duplicate: false,
+  };
+
+  beforeEach(() => {
+    useTripStore.setState({ refreshPlaces: vi.fn(async () => {}) } as never);
+    vi.spyOn(tourRepo, 'importGpx').mockResolvedValue({ tours: [], skipped: 0, caution: false } as never);
+  });
+
+  const previewed = async (preview: (picked: File) => object) => {
+    vi.spyOn(tourRepo, 'previewGpx').mockImplementation(async (_tripId, picked) => preview(picked as File) as never);
+    const hook = renderHook(() => useTourGpxImport({ tripId: 2, canEdit: true }));
+    await act(() => hook.result.current.importFiles([route, pins]));
+    return hook;
+  };
+
+  it('adds the points of each file as places through the places import, waypoints only', async () => {
+    const importGpx = vi.spyOn(placesApi, 'importGpx').mockResolvedValue({ count: 3 });
+    const importMap = vi.spyOn(placesApi, 'importMapFile').mockResolvedValue({ count: 2 });
+    const { result } = await previewed((picked) => ({
+      tracks: [line],
+      left_out: { points: picked === route ? 3 : 2, areas: 0, other: 0 },
+    }));
+    await act(() => result.current.confirm({ tour_type: 'hike' }, { points: true }));
+    expect(importGpx).toHaveBeenCalledWith(2, route, { waypoints: true, routes: false, tracks: false });
+    expect(importMap).toHaveBeenCalledWith(2, pins, { points: true, paths: false });
+    expect(tourRepo.importGpx).toHaveBeenCalledTimes(2);
+    expect(addToast).toHaveBeenCalledWith('tours.import.pointsImported', 'success', undefined);
+  });
+
+  it('leaves the points out when they are not asked for, and skips the Tours import for a file of known lines', async () => {
+    const importGpx = vi.spyOn(placesApi, 'importGpx').mockResolvedValue({ count: 3 });
+    const { result } = await previewed(() => ({
+      tracks: [{ ...line, duplicate: true }],
+      left_out: { points: 3, areas: 0, other: 0 },
+    }));
+    await act(() => result.current.confirm({ tour_type: 'hike' }));
+    expect(importGpx).not.toHaveBeenCalled();
+    expect(tourRepo.importGpx).not.toHaveBeenCalled();
+  });
+
+  it('names a file whose points could not be added, and still takes in its tour', async () => {
+    vi.spyOn(placesApi, 'importGpx').mockRejectedValue(new Error('offline'));
+    vi.spyOn(placesApi, 'importMapFile').mockResolvedValue({ count: 0 });
+    const { result } = await previewed((picked) => ({
+      tracks: [line],
+      ...(picked === route ? { left_out: { points: 1, areas: 0, other: 0 } } : {}),
+    }));
+    await act(() => result.current.confirm({ tour_type: 'hike' }, { points: true }));
+    expect(addToast).toHaveBeenCalledWith('tours.import.pointsFailedIn', 'error', undefined);
+    expect(tourRepo.importGpx).toHaveBeenCalledTimes(2);
+  });
+
+  it('says so when every line and every point is already in the trip, instead of closing without a word', async () => {
+    vi.spyOn(placesApi, 'importGpx').mockResolvedValue({ count: 0, skipped: 3 });
+    vi.spyOn(placesApi, 'importMapFile').mockResolvedValue({ count: 0 });
+    const { result } = await previewed(() => ({
+      tracks: [{ ...line, duplicate: true }],
+      left_out: { points: 3, areas: 0, other: 0 },
+    }));
+    await act(() => result.current.confirm({ tour_type: 'hike' }, { points: true }));
+    expect(tourRepo.importGpx).not.toHaveBeenCalled();
+    expect(addToast).toHaveBeenCalledTimes(1);
+    expect(addToast).toHaveBeenCalledWith('tours.import.allSkipped', 'warning', undefined);
+    expect(result.current.preview).toBeNull();
+  });
+
+  it('names the points left out as known beside the places that did come in', async () => {
+    vi.spyOn(placesApi, 'importGpx').mockResolvedValue({ count: 1, skipped: 2 });
+    vi.spyOn(placesApi, 'importMapFile').mockResolvedValue({ count: 2 });
+    const { result } = await previewed((picked) => ({
+      tracks: [{ ...line, duplicate: true }],
+      left_out: { points: picked === route ? 3 : 2, areas: 0, other: 0 },
+    }));
+    await act(() => result.current.confirm({ tour_type: 'hike' }, { points: true }));
+    expect(addToast).toHaveBeenCalledWith('tours.import.pointsImported', 'success', undefined);
+    expect(addToast).toHaveBeenCalledWith('tours.import.pointsSkipped', 'warning', undefined);
+    expect(addToast).not.toHaveBeenCalledWith('tours.import.allSkipped', 'warning', undefined);
   });
 });

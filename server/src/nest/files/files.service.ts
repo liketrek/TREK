@@ -23,6 +23,7 @@ import { restTripWriter, type TripWriter } from '../common/trip-writer';
 import { UnitOfWork } from '../database/unit-of-work';
 import { PermissionsService } from '../permissions/permissions.service';
 import { RealtimeService } from '../realtime/realtime.service';
+import { StorageReleaseService } from '../storage/storage-release.service';
 import { StorageService } from '../storage/storage.service';
 import { StorageNotFoundError, StorageInvalidKeyError, type ObjectStat } from '../storage/storage.types';
 import { TripAccessService } from '../trip-membership/trip-access.service';
@@ -72,6 +73,9 @@ export interface FileLink {
  * The browser download streams instead and is not bound by this.
  */
 export const FILE_CONTENT_MAX = 10 * 1024 * 1024;
+
+/** How `trip_files.filename` names its object: the bare name, after any legacy path (every reader basename()s it). */
+const TRIP_FILE_KEYS = { bare: 'files', basename: true } as const;
 
 /** Why a content read was refused. Each caller maps it onto its own error shape. */
 export type FileContentRefusal = 'not-found' | 'too-large' | 'not-accessible';
@@ -155,6 +159,7 @@ export class FilesService {
     @InjectRepository(Places) private readonly placesRepo: PlacesRepository,
     @InjectRepository(DayAssignments) private readonly dayAssignmentsRepo: DayAssignmentsRepository,
     @InjectRepository(BudgetItems) private readonly budgetItemsRepo: BudgetItemsRepository,
+    private readonly release: StorageReleaseService,
   ) {}
 
   async verifyTripAccess(tripId: string | number, userId: number) {
@@ -490,46 +495,31 @@ export class FilesService {
     return formatFile(restored!);
   }
 
+  /**
+   * Drops the row, then releases its object: the bytes go unless another row
+   * (a trip copy's file, a doc-sync copy) still names them (#2924). A release
+   * never fails the delete; what it leaves is the nightly reclaim pass's.
+   */
   async permanentDeleteFile(file: TripFileRow): Promise<void> {
-    // storage.delete is idempotent on a missing object (the old rm force:true
-    // contract). Only drop the DB row when the delete either succeeded or the
-    // object was already gone — otherwise a permission / ENOSPC failure
-    // would orphan the bytes with no DB pointer left to clean them.
-    try {
-      await this.storage.delete('files', path.basename(file.filename));
-    } catch (e) {
-      console.error(`[files] unlink failed for ${file.filename}, keeping DB row:`, e);
-      throw e;
-    }
     await this.tripFilesRepo.deleteById(file.id);
+    await this.release.releaseValues([file.filename], TRIP_FILE_KEYS);
   }
 
-  /** R2: the storage-delete loop stays outside any transaction (rule 24); only the final bulk `trip_files` delete (FL23) runs inside one. */
+  /**
+   * Every trashed file of the trip, rows first, then the release of what they
+   * named, as for permanentDeleteFile. The bulk `trip_files` delete (FL23) is
+   * one statement, so it needs no transaction (task-8-review.md L1/U1).
+   */
   async emptyTrash(tripId: string | number): Promise<number> {
     const tripIdNum = toRowId(tripId) ?? -1;
     const trashed = await this.tripFilesRepo.listTrashed(tripIdNum);
-    // Collect successful IDs separately so we only DELETE rows whose disk
-    // content was actually removed — failing unlinks keep their DB row
-    // and a retry via the single-file delete path can try again.
-    const successfullyUnlinked: number[] = [];
-    await Promise.all(
-      trashed.map(async (file) => {
-        try {
-          await this.storage.delete('files', path.basename(file.filename));
-          successfullyUnlinked.push(file.id);
-        } catch (e) {
-          console.error(`[files] unlink failed for ${file.filename}, keeping DB row:`, e);
-        }
-      }),
+    if (trashed.length === 0) return 0;
+    await this.tripFilesRepo.deleteMany(trashed.map((file) => file.id));
+    await this.release.releaseValues(
+      trashed.map((file) => file.filename),
+      TRIP_FILE_KEYS,
     );
-    // A single statement is already atomic — no `uow.transactional` wrapper
-    // needed here (task-8-review.md L1/U1: the wrapper this method used to
-    // carry was vacuous, and FILE-SVC-062's "rollback" claim never actually
-    // exercised it — removing it keeps every test green).
-    if (successfullyUnlinked.length > 0) {
-      await this.tripFilesRepo.deleteMany(successfullyUnlinked);
-    }
-    return successfullyUnlinked.length;
+    return trashed.length;
   }
 
   // ---------------------------------------------------------------------------

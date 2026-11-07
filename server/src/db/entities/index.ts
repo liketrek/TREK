@@ -118,6 +118,8 @@ import { SchoolHolidayPeriodsSchema } from './SchoolHolidayPeriods.entity';
 import { SchoolHolidayRegionsSchema } from './SchoolHolidayRegions.entity';
 import { SettingsSchema } from './Settings.entity';
 import { ShareTokensSchema } from './ShareTokens.entity';
+import { StorageReclaimMarksSchema } from './StorageReclaimMarks.entity';
+import { StorageReleaseQueueSchema } from './StorageReleaseQueue.entity';
 import { TagsSchema } from './Tags.entity';
 import { TodoCategoryAssigneesSchema } from './TodoCategoryAssignees.entity';
 import { TodoItemsSchema } from './TodoItems.entity';
@@ -285,6 +287,8 @@ export const ALL_ENTITIES: readonly EntitySchema[] = [
   SchoolHolidayRegionsSchema,
   SettingsSchema,
   ShareTokensSchema,
+  StorageReclaimMarksSchema,
+  StorageReleaseQueueSchema,
   TagsSchema,
   TodoCategoryAssigneesSchema,
   TodoItemsSchema,

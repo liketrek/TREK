@@ -1150,6 +1150,7 @@ const admin: TranslationStrings = {
   'admin.contribute.never.providers': 'Údaje doplnené službou Google alebo iným poskytovateľom',
   'admin.contribute.prompt.how':
     'Len to, čo vaši používatelia napísali sami, a len pre miesta, ktoré index pozná. Nikto z používateľov, žiadna cesta ani účet sa neodovzdáva. Záznam ukazuje každé odoslanie a polia môžete kedykoľvek vypnúť alebo môžete všetko stiahnuť.',
+  'admin.contribute.prompt.past': 'Údaje, ktoré vaši používatelia zadali od TREK 5.1, sa zdieľajú tiež, postupne.',
   'admin.contribute.prompt.openRegistration':
     'Registrácia je v tejto inštalácii otvorená, takže údaje môže zadať ktokoľvek s účtom. Každá hodnota sa pred zverejnením kontroluje.',
   'admin.contribute.prompt.footnote': 'O tom rozhodujete za celú inštaláciu. Vaši používatelia sa nepýtajú.',

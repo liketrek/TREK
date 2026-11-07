@@ -8,7 +8,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addTransportShort': 'תחבורה',
   'mobileTrip.allDays': 'כל הימים',
   'mobileTrip.today': 'היום',
-  'mobileTrip.jumpToToday': 'קפיצה להיום',
   'mobileTrip.assignedDays': 'ימים משויכים',
   'mobileTrip.assignmentNotes': 'הערות ליום ספציפי',
   'mobileTrip.bookingsEmpty': 'עדיין אין הזמנות',
@@ -20,8 +19,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.filesEmpty': 'עדיין אין קבצים',
   'mobileTrip.filesNext': 'הקובץ הבא',
   'mobileTrip.filesPrev': 'הקובץ הקודם',
-  'mobileTrip.googleMaps': 'Google Maps',
-  'mobileTrip.coMaps': 'CoMaps',
   'mobileTrip.icsDownload': 'הורדת ‎.ics',
   'mobileTrip.icsSubscribe': 'הרשמה ליומן',
   'mobileTrip.icsSubscribeSub': 'מתעדכן אוטומטית באפליקציית היומן',
@@ -88,6 +85,9 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtTruncated.two': 'בשני קטעים היו יותר תוצאות ממה שנכנס בתשובה אחת. בחרו פחות סוגים כדי לראות את השאר.',
   'mobileTrip.rtNoDay': 'לא נבחר יום',
   'mobileTrip.rtNoDayHint': 'המפה מציגה את כל הטיול. הקישו על יום למעלה כדי לראות את הנסיעה שלו.',
+  'mobileTrip.maps': 'מפות',
+  'mobileTrip.openRouteIn': 'פתיחת היום ב־',
+  'mobileTrip.firstStopOnly': 'רק העצירה הראשונה',
 };
 
 export default mobileTrip;

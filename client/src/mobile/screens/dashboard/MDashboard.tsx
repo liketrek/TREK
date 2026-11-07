@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
   Archive, ArchiveRestore, ArrowRight, Bell, CalendarDays, CalendarPlus, Copy,
   LayoutGrid, List, MapPin, Pencil, Plus, RefreshCw, Sparkles, Trash2, Users,
@@ -14,18 +14,20 @@ import { useInAppNotificationStore } from '../../../store/inAppNotificationStore
 import { useDashboardPlugins } from '../../../components/Dashboard/useDashboardPlugins'
 import { useAssistantHomeLauncher } from '../../../components/Assistant/useAssistantHome'
 import type { TripCardBadge } from '../../../api/client'
-import DemoWelcome from '../../../components/Demo/DemoWelcome'
+import MDemoWelcome from './MDemoWelcome'
 import { IcsSubscribeModal } from '../../../components/Planner/IcsSubscribeModal'
 import PluginWidgets from '../../../components/Plugins/PluginWidgets'
 import { entityGradient } from '../../../utils/gradients'
 import MGlassBar from '../../components/MGlassBar'
 import MIconBtn from '../../components/MIconBtn'
 import MSegmented from '../../components/MSegmented'
-import MSheet from '../../components/MSheet'
 import MUserMenu from './MUserMenu'
 import { useMobileDashOrder, useMobileDashVisibility, MobileDashWidget } from './MDashWidgets'
 import MNewTripSheet from './MNewTripSheet'
 import type { MobileDashToken } from '@trek/shared'
+import { usePullToRefresh } from '../../usePullToRefresh'
+import MPullIndicator from '../../components/MPullIndicator'
+import SharedConfirmSheet from '../settings/MConfirmSheet'
 
 type TripFilter = 'planned' | 'archive' | 'completed'
 
@@ -44,7 +46,7 @@ interface CardAction {
 export default function MDashboard(): React.ReactElement {
   const {
     demoMode, locale, t, navigate,
-    spotlight, upcoming, gridTrips, isLoading, loadError, retryLoad,
+    spotlight, upcoming, gridTrips, isLoading, loadError, retryLoad, refreshQuietly,
     tripFilter, setTripFilter, viewMode, toggleViewMode,
     showForm, setShowForm, editingTrip, setEditingTrip,
     deleteTrip, setDeleteTrip, copyTrip, setCopyTrip, applyCoverUpdate,
@@ -70,6 +72,10 @@ export default function MDashboard(): React.ReactElement {
   const dashVisible = useMobileDashVisibility()
 
   useEffect(() => { if (isAuthenticated) fetchUnreadCount() }, [isAuthenticated, fetchUnreadCount])
+  const contentRef = useRef<HTMLDivElement>(null)
+  const pull = usePullToRefresh(contentRef, async () => {
+    await Promise.all([refreshQuietly(), fetchUnreadCount()])
+  })
 
   const openCreate = () => { setEditingTrip(null); setShowForm(true) }
   const openEdit = (trip: DashboardTrip) => { setEditingTrip(trip); setShowForm(true) }
@@ -247,9 +253,10 @@ export default function MDashboard(): React.ReactElement {
 
       <MUserMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
 
-      {demoMode && <DemoWelcome />}
+      {demoMode && <MDemoWelcome />}
 
-      <div className="px-4 pb-[calc(var(--bottom-nav-h,84px)+32px)] pt-[calc(var(--m-safe-top,12px)+82px)]">
+      <MPullIndicator state={pull} label={t('common.loading')} />
+      <div ref={contentRef} className="px-4 pb-[calc(var(--bottom-nav-h,84px)+32px)] pt-[calc(var(--m-safe-top,12px)+82px)]">
         {loadError && (
           <div role="alert" className="mb-3 flex items-center gap-3 rounded-[20px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-[14px]">
             <span className="min-w-0 flex-1 text-[0.8125rem] font-medium text-m-ink">{t('dashboard.loadErrorBanner')}</span>
@@ -574,36 +581,11 @@ function ListStat({ value, label }: { value: number; label: string }): React.Rea
   )
 }
 
-// ── Confirm sheet (delete / copy) ────────────────────────────────────────────
-function MConfirmSheet({ open, title, message, confirmLabel, danger = false, onConfirm, onClose }: {
+// ── Confirm sheet (delete / copy): the shared one, with the common cancel ─────
+function MConfirmSheet(props: {
   open: boolean; title: string; message: string; confirmLabel: string
   danger?: boolean; onConfirm: () => void; onClose: () => void
 }): React.ReactElement {
   const { t } = useTranslation()
-  return (
-    <MSheet open={open} onClose={onClose} variant="card" ariaLabel={title}>
-      <div className="p-5">
-        <div className="text-[1.0625rem] font-bold">{title}</div>
-        <div className="mt-2 text-[0.8125rem] leading-relaxed text-m-muted">{message}</div>
-        <div className="mt-5 flex gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 rounded-full bg-[color:var(--m-ic)] py-[10px] text-[0.8125rem] font-semibold text-m-ink"
-          >
-            {t('common.cancel')}
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            className={`flex-1 rounded-full py-[10px] text-[0.8125rem] font-semibold ${
-              danger ? 'bg-[color:var(--m-st-danger)] text-white' : 'bg-m-act text-m-actfg'
-            }`}
-          >
-            {confirmLabel}
-          </button>
-        </div>
-      </div>
-    </MSheet>
-  )
+  return <SharedConfirmSheet {...props} cancelLabel={t('common.cancel')} />
 }

@@ -174,6 +174,20 @@ describe('MirrorDriver specifics', () => {
     expect(keys).toEqual(['backup-5.zip']);
   });
 
+  it('hands a shallow list on to the primary, and to the replica it falls back to', async () => {
+    const fx = track(makeMirror());
+    await fx.mirror.put('top.zip', Readable.from('1'));
+    const primaryList = vi.spyOn(fx.primary, 'list');
+    for await (const stat of fx.mirror.list('', { shallow: true })) void stat;
+    expect(primaryList).toHaveBeenCalledWith('', { shallow: true });
+    primaryList.mockImplementationOnce(() => {
+      throw new StorageBackendError('io');
+    });
+    const replicaList = vi.spyOn(fx.replica, 'list');
+    for await (const stat of fx.mirror.list('', { shallow: true })) void stat;
+    expect(replicaList).toHaveBeenCalledWith('', { shallow: true });
+  });
+
   it('fans delete out to all targets, tolerating a miss on either side', async () => {
     const fx = track(makeMirror());
     await fx.mirror.put('backup-6.zip', Readable.from('bye'));

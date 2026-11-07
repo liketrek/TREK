@@ -8,7 +8,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addTransportShort': '交通',
   'mobileTrip.allDays': '所有天',
   'mobileTrip.today': '今天',
-  'mobileTrip.jumpToToday': '跳到今天',
   'mobileTrip.assignedDays': '已分配的天数',
   'mobileTrip.assignmentNotes': '按天备注',
   'mobileTrip.bookingsEmpty': '暂无预订',
@@ -20,8 +19,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.filesEmpty': '暂无文件',
   'mobileTrip.filesNext': '下一个文件',
   'mobileTrip.filesPrev': '上一个文件',
-  'mobileTrip.googleMaps': 'Google Maps',
-  'mobileTrip.coMaps': 'CoMaps',
   'mobileTrip.icsDownload': '下载 .ics',
   'mobileTrip.icsSubscribe': '订阅日历',
   'mobileTrip.icsSubscribeSub': '在你的日历应用中自动更新',
@@ -72,5 +69,8 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtTruncated.other': '有 {count} 段路的结果超出单次查询上限。少选几类就能看到其余的。',
   'mobileTrip.rtNoDay': '未选择日期',
   'mobileTrip.rtNoDayHint': '地图显示的是整个行程。点按上方的日期查看当天路线。',
+  'mobileTrip.maps': '地图',
+  'mobileTrip.openRouteIn': '在以下应用中打开当天',
+  'mobileTrip.firstStopOnly': '仅第一站',
 };
 export default mobileTrip;

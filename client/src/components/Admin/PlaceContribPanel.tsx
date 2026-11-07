@@ -61,7 +61,15 @@ function Figures({ state, t }: { state: PlaceContribState; t: TranslationFn }) {
  * way to take everything back. Turning it on for the first time opens the same
  * prompt an admin gets on the first visit, so an agreement always comes from it.
  */
-export default function PlaceContribPanel() {
+/**
+ * Standing alone (managed settings), a card that can only say "not available"
+ * because the operator switched sharing off is a dead end.
+ */
+function hiddenAlone(state: PlaceContribState, alone: boolean): boolean {
+  return alone && state.ineligibleReason === 'env_off';
+}
+
+export default function PlaceContribPanel({ hideWhenSwitchedOff = false }: { hideWhenSwitchedOff?: boolean } = {}) {
   const { t } = useTranslation();
   const toast = useToast();
   const contrib = usePlaceContrib();
@@ -70,6 +78,7 @@ export default function PlaceContribPanel() {
   const [confirm, setConfirm] = useState<'off' | 'withdraw' | null>(null);
 
   if (!state) return null;
+  if (hiddenAlone(state, hideWhenSwitchedOff)) return null;
   const status = contribStatus(state);
   const agreed = state.consent.decision === 'agreed' && state.consent.termsVersion === state.termsVersion;
   // The prompt opens by itself once per visit while the server asks for it.

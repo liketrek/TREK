@@ -403,6 +403,101 @@ describe('an assistant tool session', () => {
     }
   });
 
+  it('ASTTOOL-024: a tool called before its group was loaded loads the group, and a refusal of its arguments says why (#2967)', async () => {
+    const { userId, tripId } = await ownerWithTrips();
+    const session = await tools.open(userId, tripId);
+    try {
+      expect(session.specs().map((spec) => spec.name)).not.toContain('list_tours');
+      // Called blind, as from an earlier turn: it still runs, and its group comes with it.
+      const pinned = session.pinArgs('get_tour_plan', { placeId: '530' });
+      expect(pinned).toEqual({ args: { placeId: '530' } });
+      expect(session.specs().map((spec) => spec.name)).toContain('list_tours');
+      // The MCP check refuses the string id; the answer tells the model to send it again.
+      const run = await session.call('get_tour_plan', { placeId: '530' });
+      expect(run.ok).toBe(false);
+      expect(String(run.value)).toContain('"tours" tools were loaded in this turn');
+      // A core tool's refusal carries no such hint.
+      const core = await session.call('create_place', {});
+      expect(core.ok).toBe(false);
+      expect(String(core.value)).not.toContain('were loaded in this turn');
+    } finally {
+      await session.close();
+    }
+  });
+
+  it('ASTTOOL-025: a change called before its group was loaded is sent back until a step was offered its schema (#2967)', async () => {
+    const { userId, tripId } = await ownerWithTrips();
+    const session = await tools.open(userId, tripId);
+    try {
+      expect(session.specs().map((spec) => spec.name)).not.toContain('insert_tour_stop');
+      // Held as a card, the blind arguments would only fail once the user applies it.
+      expect(session.pinArgs('insert_tour_stop', { placeId: '530' })).toEqual({
+        error: expect.stringContaining('"tours" tools, which were not loaded in this turn, so it did not run'),
+      });
+      // A second change of the same step was written without the schema too.
+      expect(session.pinArgs('create_city_walk', { stations: '[1, 2]' })).toEqual({
+        error: expect.stringContaining('did not run'),
+      });
+      // The next step is offered the schema, and the call goes through.
+      expect(session.specs().map((spec) => spec.name)).toContain('insert_tour_stop');
+      expect(session.pinArgs('insert_tour_stop', { placeId: 530 })).toHaveProperty('args');
+    } finally {
+      await session.close();
+    }
+  });
+
+  it('ASTTOOL-028: a change called before its group was loaded is held as always when its arguments already fit', async () => {
+    const { userId, tripId } = await ownerWithTrips();
+    const session = await tools.open(userId, tripId);
+    try {
+      session.specs();
+      const fits = { placeId: 530, expected_revision: 3, stop: { name: 'Hut', lat: 47.1, lng: 11.2 } };
+      expect(session.pinArgs('insert_tour_stop', fits)).toEqual({ args: fits });
+      // Written as text, the same call is still sent back with the schema loaded.
+      expect(session.pinArgs('create_city_walk', { stations: '[1, 2]' })).toEqual({
+        error: expect.stringContaining('did not run'),
+      });
+    } finally {
+      await session.close();
+    }
+  });
+
+  it('ASTTOOL-026: only the blind call itself is told about the schema; a later failure of the same tool is not', async () => {
+    const { userId, tripId } = await ownerWithTrips();
+    const session = await tools.open(userId, tripId);
+    try {
+      session.specs();
+      expect(session.pinArgs('get_tour_plan', { placeId: '530' })).toEqual({ args: { placeId: '530' } });
+      const blind = await session.call('get_tour_plan', { placeId: '530' });
+      expect(String(blind.value)).toContain('"tours" tools were loaded in this turn');
+      // Sent again after the next step's specs: it fails on its own, without the hint.
+      session.specs();
+      expect(session.pinArgs('get_tour_plan', { placeId: 999_999 })).toEqual({ args: { placeId: 999_999 } });
+      const again = await session.call('get_tour_plan', { placeId: 999_999 });
+      expect(again.ok).toBe(false);
+      expect(String(again.value)).not.toContain('were loaded in this turn');
+    } finally {
+      await session.close();
+    }
+  });
+
+  it('ASTTOOL-027: a blind read refused before it ran leaves no hint for a later call of the same tool', async () => {
+    const { userId, tripId } = await ownerWithTrips();
+    const session = await tools.open(userId, tripId);
+    try {
+      session.specs();
+      // Called blind, then refused by the loop before it ran: call() never sees it.
+      expect(session.pinArgs('get_tour_plan', { placeId: '530' })).toHaveProperty('args');
+      session.specs();
+      expect(session.pinArgs('get_tour_plan', { placeId: 999_999 })).toEqual({ args: { placeId: 999_999 } });
+      const run = await session.call('get_tour_plan', { placeId: 999_999 });
+      expect(run.ok).toBe(false);
+      expect(String(run.value)).not.toContain('were loaded in this turn');
+    } finally {
+      await session.close();
+    }
+  });
+
   it('ASTTOOL-014: an undo session holds its target and nothing else', async () => {
     const { userId, tripId } = await ownerWithTrips();
     const session = await tools.open(userId, tripId, new Set(['delete_place']));

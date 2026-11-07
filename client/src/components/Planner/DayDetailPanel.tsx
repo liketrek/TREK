@@ -142,6 +142,28 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
     { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }
   ) : null
   const heading = dayHeadingParts(day.title || t('planner.dayN', { n: (days.indexOf(day) + 1) || '?' }), formattedDate, dateFirst)
+  // The title input takes the place and size of the line it edits: the heading, or the line under it.
+  const titleInput = (lead: boolean) => (
+    <input
+      ref={titleInputRef}
+      value={titleDraft}
+      onChange={e => setTitleDraft(e.target.value)}
+      onClick={e => e.stopPropagation()}
+      onBlur={commitRename}
+      onKeyDown={e => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setEditingTitle(false) }}
+      placeholder={t('planner.dayN', { n: (days.indexOf(day) + 1) || '?' })}
+      className={`w-full border-0 border-b-[1.5px] border-content bg-transparent p-0 text-content outline-none placeholder:text-content-faint ${lead ? 'font-bold' : 'font-geist'}`}
+      style={lead ? fs(17, 'subtitle') : fs(12.5)}
+    />
+  )
+  const renamePencil = canEditDays && onUpdateDayTitle && (
+    <Tooltip label={t('common.edit')}>
+      <button type="button" onClick={startRename} aria-label={t('common.edit')}
+        className="grid h-6 w-6 flex-none place-items-center rounded-full text-content-faint hover:bg-surface-card hover:text-content">
+        <Pencil size={12} strokeWidth={2} />
+      </button>
+    </Tooltip>
+  )
   const showError = (err: unknown) => toast.error(apiErrorMessage(err) || t('common.unknownError'))
 
   // Saving the picker: a new stay or the one being edited. Both say what went
@@ -180,18 +202,8 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
             <Calendar size={collapsed ? 16 : 20} strokeWidth={1.9} />
           </span>
           <div className="min-w-0 flex-1">
-            {editingTitle ? (
-              <input
-                ref={titleInputRef}
-                value={titleDraft}
-                onChange={e => setTitleDraft(e.target.value)}
-                onClick={e => e.stopPropagation()}
-                onBlur={commitRename}
-                onKeyDown={e => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setEditingTitle(false) }}
-                placeholder={t('planner.dayN', { n: (days.indexOf(day) + 1) || '?' })}
-                className="w-full border-0 border-b-[1.5px] border-content bg-transparent p-0 font-bold text-content outline-none placeholder:text-content-faint"
-                style={fs(17, 'subtitle')}
-              />
+            {editingTitle && (collapsed || heading.nameFirst) ? (
+              titleInput(true)
             ) : collapsed ? (
               <div className="truncate font-bold text-content" style={fs(13.5, 'body')}>
                 {heading.primary}
@@ -200,17 +212,20 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
             ) : (
               <div className="flex min-w-0 items-center gap-1">
                 <span className="truncate font-bold tracking-[-0.01em] text-content" style={fs(17, 'subtitle')}>{heading.primary}</span>
-                {canEditDays && onUpdateDayTitle && (
-                  <Tooltip label={t('common.edit')}>
-                    <button type="button" onClick={startRename} aria-label={t('common.edit')}
-                      className="grid h-6 w-6 flex-none place-items-center rounded-full text-content-faint hover:bg-surface-card hover:text-content">
-                      <Pencil size={12} strokeWidth={2} />
-                    </button>
-                  </Tooltip>
-                )}
+                {heading.nameFirst && renamePencil}
               </div>
             )}
-            {!collapsed && heading.secondary && <div className="mt-0.5 truncate font-geist text-content-muted" style={fs(12.5)}>{heading.secondary}</div>}
+            {/* With the date first the name is this line, so its pencil and its input are here too (#2921). */}
+            {!collapsed && heading.secondary && (
+              editingTitle && !heading.nameFirst ? (
+                <div className="mt-0.5">{titleInput(false)}</div>
+              ) : (
+                <div className="mt-0.5 flex min-w-0 items-center gap-1">
+                  <span className="truncate font-geist text-content-muted" style={fs(12.5)}>{heading.secondary}</span>
+                  {!heading.nameFirst && renamePencil}
+                </div>
+              )
+            )}
           </div>
           <HeadButton label={collapsed ? t('common.expand') : t('common.collapse')} expanded={!collapsed}
             onClick={() => toggleCollapse()}>

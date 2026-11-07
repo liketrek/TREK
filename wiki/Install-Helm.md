@@ -190,6 +190,36 @@ persistence:
     size: 1Gi     # uploaded files — increase if you expect large media uploads
 ```
 
+### Security Context
+
+```yaml
+podSecurityContext:
+  fsGroup: 1000
+  fsGroupChangePolicy: OnRootMismatch
+securityContext: {}
+```
+
+With these defaults the container starts as root, hands `/app/data` and `/app/uploads` to the `node` user (uid 1000) if they are not `node`'s yet, and then drops to `node`. Only the two directories and what sits directly in them are checked, so a large uploads volume that already belongs to `node` does not slow down the start. Only the owning user is changed, plus a `root` group, so an `fsGroup` other than 1000 stays in place and the kubelet does not walk the volume again on the next start. If ownership has to be corrected, the log says `Correcting ownership of /app/uploads for the node user...` before TREK's own start-up lines. A volume that refuses `chown` (NFS with `root_squash`, for example) logs a warning instead; run TREK as uid 1000 then, as shown below.
+
+To run TREK as `node` from the first process on, for example in a namespace that enforces the `restricted` Pod Security Standard, set the user in the pod security context. The image notices it is not root and starts Node directly, with no ownership step and no privilege drop:
+
+```yaml
+podSecurityContext:
+  fsGroup: 1000
+  fsGroupChangePolicy: OnRootMismatch
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: [ALL]
+```
+
+The volumes then have to be writable by uid 1000 or gid 1000. `fsGroup` takes care of that on storage that supports it; on NFS and other volumes the kubelet does not relabel, give the export to uid 1000 yourself. You no longer need to override the container command for this.
+
 ### Resource Limits
 
 ```yaml

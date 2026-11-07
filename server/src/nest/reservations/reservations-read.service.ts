@@ -6,6 +6,7 @@ import type { ReservationDayPositionsRepository } from '../../db/repositories/Re
 import type { ReservationEndpointsRepository } from '../../db/repositories/ReservationEndpoints.repository';
 import type { ReservationTravelersRepository } from '../../db/repositories/ReservationTravelers.repository';
 import type { ReservationsRepository } from '../../db/repositories/Reservations.repository';
+import type { ReservationPassContext } from '../../db/repositories/_shared/reservation-pass-context';
 import { avatarUrl } from '../common/avatarUrl';
 import type { ReservationRow, ReservationEndpoint, ReservationTraveler } from './reservations.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
@@ -70,6 +71,11 @@ export class ReservationsReadService {
     // string (e.g. "14.0"). Normalize to an int so clients can parse it.
     result.accommodation_id = row.accommodation_id == null ? null : Math.trunc(Number(row.accommodation_id));
     return result;
+  }
+
+  /** The trip title and place coordinates a booking's Wallet pass shows (wallet-pass). */
+  passContext(id: number, tripId: number): Promise<ReservationPassContext | undefined> {
+    return this.reservationsRepo.findPassContext(id, tripId);
   }
 
   async loadEndpoints(reservationId: number): Promise<ReservationEndpoint[]> {

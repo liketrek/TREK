@@ -84,6 +84,9 @@ const settings: TranslationStrings = {
   'settings.timeFormat': '時間格式',
   'settings.weekStart': '每週開始於',
   'settings.weekStartHint': '所有日期選擇器中每週的第一天。Vacay 有獨立的設定。',
+  'settings.dateFormat': '日期格式',
+  'settings.dateFormatHint': '所有日期欄位和清單中日期的寫法。含月份名稱的日期會保留你所用語言的寫法。',
+  'settings.dateFormatAuto': '自動',
   'settings.preferredNavApp': '開啟地點方式',
   'settings.preferredNavAppAsk': '每次詢問',
   'settings.preferredNavAppHint': '選定應用程式後，導航按鈕會直接開啟它，不再列出所有地圖應用程式。',
@@ -613,6 +616,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': '完成',
   'settings.mcp.deprecated': '已棄用',
   'settings.offline.cache.dateRange': '{start} 至 {end}',
+  'settings.offline.tileStore.title': '已檢視的地圖圖磚',
+  'settings.offline.tileStore.usage': '本裝置已使用 {used}，上限 {limit}，最多保存 30 天',
+  'settings.offline.tileStore.clear': '清除',
 };
 
 export default settings;

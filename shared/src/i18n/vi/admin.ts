@@ -1119,6 +1119,7 @@ const admin: TranslationStrings = {
   'admin.contribute.never.providers': 'Chi tiết do Google hoặc nhà cung cấp khác điền',
   'admin.contribute.prompt.how':
     'Chỉ những gì người dùng của bạn tự nhập, và chỉ cho các địa điểm mà chỉ mục biết. Không có người dùng, chuyến đi hay tài khoản nào đi kèm. Nhật ký cho thấy mọi lần truyền, và bạn có thể tắt từng trường hoặc rút lại tất cả bất cứ lúc nào.',
+  'admin.contribute.prompt.past': 'Các thông tin người dùng của bạn đã nhập từ TREK 5.1 cũng được chia sẻ, dần dần.',
   'admin.contribute.prompt.openRegistration':
     'Bản cài đặt này đang mở đăng ký, nên bất kỳ ai có tài khoản đều có thể nhập chi tiết. Mọi giá trị đều được kiểm tra trước khi xuất bản.',
   'admin.contribute.prompt.footnote':

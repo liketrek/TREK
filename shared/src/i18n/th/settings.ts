@@ -82,6 +82,9 @@ const settings: TranslationStrings = {
   'settings.timeFormat': 'รูปแบบเวลา',
   'settings.weekStart': 'สัปดาห์เริ่มต้นในวัน',
   'settings.weekStartHint': 'วันแรกของสัปดาห์ในตัวเลือกวันที่ทั้งหมด Vacay มีการตั้งค่าของตัวเอง',
+  'settings.dateFormat': 'รูปแบบวันที่',
+  'settings.dateFormatHint': 'วิธีเขียนวันที่ในทุกช่องวันที่และทุกรายการ วันที่ที่มีชื่อเดือนจะใช้ถ้อยคำตามภาษาของคุณ',
+  'settings.dateFormatAuto': 'อัตโนมัติ',
   'settings.preferredNavApp': 'เปิดสถานที่ด้วย',
   'settings.preferredNavAppAsk': 'ถามทุกครั้ง',
   'settings.preferredNavAppHint': 'เมื่อเลือกแอปไว้ ปุ่มนำทางจะเปิดแอปนั้นทันที แทนการแสดงแอปแผนที่ทั้งหมด',
@@ -645,6 +648,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.copyFailed': 'ไม่สามารถคัดลอกได้ เลือกข้อความและคัดลอกด้วยตนเอง',
   'settings.mcp.deprecated': 'เลิกใช้แล้ว',
   'settings.offline.cache.dateRange': '{start} ถึง {end}',
+  'settings.offline.tileStore.title': 'ไทล์แผนที่ที่ดูแล้ว',
+  'settings.offline.tileStore.usage': '{used} จาก {limit} บนอุปกรณ์นี้ เก็บไว้สูงสุด 30 วัน',
+  'settings.offline.tileStore.clear': 'ล้าง',
 };
 
 export default settings;

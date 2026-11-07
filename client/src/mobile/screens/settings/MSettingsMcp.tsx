@@ -1,5 +1,7 @@
-import { Check, ChevronDown, ChevronRight, Copy, KeyRound, Plus, RefreshCw, Terminal, Trash2 } from 'lucide-react'
+import type { ReactNode } from 'react'
+import { Check, ChevronDown, ChevronRight, Copy, KeyRound, Plus, RefreshCw, Terminal, Trash2, Key, CircleCheck, RotateCcw } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
+import { useFormatDate } from '../../../hooks/useDateFormat'
 import { OAUTH_PRESETS, useMcpIntegration } from '../../../components/Settings/useMcpIntegration'
 import MScopeGroupPicker from './MScopeGroupPicker'
 import MSheet from '../../components/MSheet'
@@ -38,7 +40,8 @@ function CodeBlock({ children }: { children: string }) {
  * tokens, with the desktop modals as floating sheets.
  */
 export default function MSettingsMcp() {
-  const { t, locale } = useTranslation()
+  const { t } = useTranslation()
+  const { formatDate } = useFormatDate()
   const demoLocked = useDemoAccountLock()
   const {
     activeMcpTab: activeTab,
@@ -190,7 +193,7 @@ export default function MSettingsMcp() {
                       {t('settings.oauth.clientId')}: {client.client_id}
                     </p>
                     <p className="mt-[2px] font-geist text-[0.625rem] text-m-faint">
-                      {t('settings.mcp.tokenCreatedAt')} {new Date(client.created_at).toLocaleDateString(locale)}
+                      {t('settings.mcp.tokenCreatedAt')} {formatDate(new Date(client.created_at))}
                     </p>
                     <div className="mt-[6px] flex flex-wrap gap-1">
                       {(scopesExpanded[client.id] ? client.allowed_scopes : client.allowed_scopes.slice(0, 5)).map((s) => (
@@ -226,7 +229,7 @@ export default function MSettingsMcp() {
                         {t('settings.oauth.sessionScopes')}: {session.scopes.join(', ')}
                       </p>
                       <p className="font-geist text-[0.625rem] text-m-faint">
-                        {t('settings.oauth.sessionExpires')} {new Date(session.access_token_expires_at).toLocaleDateString(locale)}
+                        {t('settings.oauth.sessionExpires')} {formatDate(new Date(session.access_token_expires_at))}
                       </p>
                     </div>
                     <MSetButton variant="danger" onClick={() => setRevokeId(session.id)}>
@@ -272,11 +275,11 @@ export default function MSettingsMcp() {
                     <p className="mt-[2px] font-mono text-[0.625rem] text-m-faint">
                       {token.token_prefix}...
                       <span className="ms-2 font-geist">
-                        {t('settings.mcp.tokenCreatedAt')} {new Date(token.created_at).toLocaleDateString(locale)}
+                        {t('settings.mcp.tokenCreatedAt')} {formatDate(new Date(token.created_at))}
                       </span>
                       {token.last_used_at && (
                         <span className="font-geist">
-                          , {t('settings.mcp.tokenUsedAt')} {new Date(token.last_used_at).toLocaleDateString(locale)}
+                          , {t('settings.mcp.tokenUsedAt')} {formatDate(new Date(token.last_used_at))}
                         </span>
                       )}
                     </p>
@@ -298,13 +301,13 @@ export default function MSettingsMcp() {
           if (!createdClient) setCreateOpen(false)
         }}
         variant="card"
-        material="opaque"
+        material="glass"
         ariaLabel={t('settings.oauth.modal.createTitle')}
       >
         <div className="min-h-0 overflow-y-auto p-[18px]">
           {!createdClient ? (
             <>
-              <div className="text-[0.9375rem] font-extrabold text-m-ink">{t('settings.oauth.modal.createTitle')}</div>
+              <SheetTitle icon={<KeyRound size={19} strokeWidth={1.8} />}>{t('settings.oauth.modal.createTitle')}</SheetTitle>
 
               <MSetEyebrow className="mb-[6px] mt-3">{t('settings.oauth.modal.presets')}</MSetEyebrow>
               <div className="flex flex-wrap gap-[6px]">
@@ -359,7 +362,7 @@ export default function MSettingsMcp() {
             </>
           ) : (
             <>
-              <div className="text-[0.9375rem] font-extrabold text-m-ink">{t('settings.oauth.modal.createdTitle')}</div>
+              <SheetTitle icon={<CircleCheck size={19} strokeWidth={1.8} />}>{t('settings.oauth.modal.createdTitle')}</SheetTitle>
               <p className="mt-2 rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-3 font-geist text-[0.625rem] leading-relaxed text-[color:var(--m-st-pending)]">
                 {t('settings.oauth.modal.createdWarning')}
               </p>
@@ -407,13 +410,13 @@ export default function MSettingsMcp() {
           if (!createdToken) setTokenModalOpen(false)
         }}
         variant="card"
-        material="opaque"
+        material="glass"
         ariaLabel={t('settings.mcp.modal.createTitle')}
       >
         <div className="p-[18px]">
           {!createdToken ? (
             <>
-              <div className="text-[0.9375rem] font-extrabold text-m-ink">{t('settings.mcp.modal.createTitle')}</div>
+              <SheetTitle icon={<Key size={19} strokeWidth={1.8} />}>{t('settings.mcp.modal.createTitle')}</SheetTitle>
               <MSetEyebrow className="mb-[5px] mt-3">{t('settings.mcp.modal.tokenName')}</MSetEyebrow>
               <MSetInput
                 autoFocus
@@ -433,7 +436,7 @@ export default function MSettingsMcp() {
             </>
           ) : (
             <>
-              <div className="text-[0.9375rem] font-extrabold text-m-ink">{t('settings.mcp.modal.createdTitle')}</div>
+              <SheetTitle icon={<CircleCheck size={19} strokeWidth={1.8} />}>{t('settings.mcp.modal.createdTitle')}</SheetTitle>
               <p className="mt-2 rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-3 font-geist text-[0.625rem] leading-relaxed text-[color:var(--m-st-pending)]">
                 {t('settings.mcp.modal.createdWarning')}
               </p>
@@ -459,9 +462,9 @@ export default function MSettingsMcp() {
       </MSheet>
 
       {/* Rotated secret display */}
-      <MSheet open={rotatedSecret !== null} onClose={() => setRotatedSecret(null)} variant="card" material="opaque" ariaLabel={t('settings.oauth.rotateSecretDoneTitle')}>
+      <MSheet open={rotatedSecret !== null} onClose={() => setRotatedSecret(null)} variant="card" material="glass" ariaLabel={t('settings.oauth.rotateSecretDoneTitle')}>
         <div className="p-[18px]">
-          <div className="text-[0.9375rem] font-extrabold text-m-ink">{t('settings.oauth.rotateSecretDoneTitle')}</div>
+          <SheetTitle icon={<RotateCcw size={19} strokeWidth={1.8} />}>{t('settings.oauth.rotateSecretDoneTitle')}</SheetTitle>
           <p className="mt-2 rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-3 font-geist text-[0.625rem] leading-relaxed text-[color:var(--m-st-pending)]">
             {t('settings.oauth.rotateSecretDoneWarning')}
           </p>
@@ -523,5 +526,15 @@ export default function MSettingsMcp() {
       />
     </MSetCard>
     </DemoLock>
+  )
+}
+
+/** The sheets' title row: the icon tile and the title, as TileHeader without the close (these close by their buttons). */
+function SheetTitle({ icon, children }: { icon: ReactNode; children: ReactNode }) {
+  return (
+    <div className="mb-1 flex items-center gap-3">
+      <span className="flex h-10 w-10 flex-none items-center justify-center rounded-[13px] bg-[color:var(--m-ic)] text-m-ink">{icon}</span>
+      <div className="min-w-0 flex-1 text-[1.0625rem] font-bold leading-tight text-m-ink">{children}</div>
+    </div>
   )
 }

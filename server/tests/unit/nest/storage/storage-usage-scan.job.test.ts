@@ -5,6 +5,7 @@
  * the tick error-containment mirrors VersionCheckJob/DemoResetJob there.
  */
 import type { CronRegistrarService } from '../../../../src/nest/scheduling/cron-registrar.service';
+import type { StorageJobsService } from '../../../../src/nest/storage/storage-jobs.service';
 import type { StorageStatsService } from '../../../../src/nest/storage/storage-stats.service';
 import { StorageUsageScanJob } from '../../../../src/nest/storage/storage-usage-scan.job';
 import { Logger } from '@nestjs/common';
@@ -30,19 +31,24 @@ function statsStub(): StorageStatsService {
   return { scan: vi.fn().mockResolvedValue(undefined) } as unknown as StorageStatsService;
 }
 
+/** No exclusive pass holds the slot: the scan goes at once. */
+function jobsStub(idle: Promise<void> = Promise.resolve()): StorageJobsService {
+  return { exclusiveIdle: vi.fn(() => idle) } as unknown as StorageJobsService;
+}
+
 beforeEach(() => vi.restoreAllMocks());
 
 describe('StorageUsageScanJob', () => {
   it('SCAN-001 registers the nightly 04:15 cron when the registrar gate is open', async () => {
     const registrar = registrarStub();
-    const job = new StorageUsageScanJob(registrar as unknown as CronRegistrarService, statsStub());
+    const job = new StorageUsageScanJob(registrar as unknown as CronRegistrarService, statsStub(), jobsStub());
     await job.onApplicationBootstrap();
     expect(registrar.register).toHaveBeenCalledWith('storage-usage-scan', '15 4 * * *', expect.any(Function));
   });
 
   it('SCAN-002 does not register under the test gate (registrar.isEnabled() false)', async () => {
     const registrar = registrarStub(false);
-    const job = new StorageUsageScanJob(registrar as unknown as CronRegistrarService, statsStub());
+    const job = new StorageUsageScanJob(registrar as unknown as CronRegistrarService, statsStub(), jobsStub());
     await job.onApplicationBootstrap();
     expect(registrar.register).not.toHaveBeenCalled();
   });
@@ -50,7 +56,7 @@ describe('StorageUsageScanJob', () => {
   it('SCAN-003 the registered callback drives tick(), which calls stats.scan()', async () => {
     const registrar = registrarStub();
     const stats = statsStub();
-    const job = new StorageUsageScanJob(registrar as unknown as CronRegistrarService, stats);
+    const job = new StorageUsageScanJob(registrar as unknown as CronRegistrarService, stats, jobsStub());
     await job.onApplicationBootstrap();
     const onTick = registrar.register.mock.calls[0]![2] as () => void;
     onTick();
@@ -60,7 +66,7 @@ describe('StorageUsageScanJob', () => {
   it('SCAN-004 tick() resolves and contains an Error rejection to the usage scan log line', async () => {
     const errorSpy = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
     const stats = { scan: vi.fn().mockRejectedValue(new Error('disk full')) } as unknown as StorageStatsService;
-    const job = new StorageUsageScanJob(registrarStub() as unknown as CronRegistrarService, stats);
+    const job = new StorageUsageScanJob(registrarStub() as unknown as CronRegistrarService, stats, jobsStub());
     await expect(job.tick()).resolves.toBeUndefined();
     expect(errorSpy).toHaveBeenCalledWith('usage scan failed: disk full');
   });
@@ -68,8 +74,23 @@ describe('StorageUsageScanJob', () => {
   it('SCAN-005 tick() stringifies a non-Error rejection rather than crashing', async () => {
     const errorSpy = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
     const stats = { scan: vi.fn().mockRejectedValue('backend unreachable') } as unknown as StorageStatsService;
-    const job = new StorageUsageScanJob(registrarStub() as unknown as CronRegistrarService, stats);
+    const job = new StorageUsageScanJob(registrarStub() as unknown as CronRegistrarService, stats, jobsStub());
     await expect(job.tick()).resolves.toBeUndefined();
     expect(errorSpy).toHaveBeenCalledWith('usage scan failed: backend unreachable');
+  });
+
+  it('SCAN-006 tick() waits for a reclaim pass that still holds the slot before it scans', async () => {
+    let release: () => void = () => undefined;
+    const idle = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const stats = statsStub();
+    const job = new StorageUsageScanJob(registrarStub() as unknown as CronRegistrarService, stats, jobsStub(idle));
+    const ticked = job.tick();
+    await Promise.resolve();
+    expect(stats.scan).not.toHaveBeenCalled();
+    release();
+    await ticked;
+    expect(stats.scan).toHaveBeenCalledTimes(1);
   });
 });

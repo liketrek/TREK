@@ -94,6 +94,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': 'Time Format',
   'settings.weekStart': 'Week starts on',
   'settings.weekStartHint': 'First day of the week in every date picker. Vacay has its own setting.',
+  'settings.dateFormat': 'Date format',
+  'settings.dateFormatHint':
+    'How dates are written in every date field and list. Dates with a month name keep the wording of your language.',
+  'settings.dateFormatAuto': 'Automatic',
   'settings.preferredNavApp': 'Open places in',
   'settings.preferredNavAppAsk': 'Ask every time',
   'settings.preferredNavAppHint':
@@ -658,6 +662,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': 'Done',
   'settings.mcp.deprecated': 'Deprecated',
   'settings.offline.cache.dateRange': '{start} to {end}',
+  'settings.offline.tileStore.title': 'Viewed map tiles',
+  'settings.offline.tileStore.usage': '{used} of {limit} on this device, kept for up to 30 days',
+  'settings.offline.tileStore.clear': 'Clear',
 };
 
 export default settings;

@@ -68,7 +68,7 @@ export default function MCollPlaceSheet({
     'flex flex-1 items-center justify-center gap-[6px] rounded-[13px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] px-2 py-[11px] text-[0.78125rem] font-semibold text-m-ink'
 
   return (
-    <MSheet open={place != null} onClose={onClose} material="opaque" className="!rounded-[24px]" ariaLabel={held?.name}>
+    <MSheet open={place != null} onClose={onClose} material="glass" className="!rounded-[24px]" ariaLabel={held?.name}>
       {held && (
         <>
           {/* Hero: auto cover (photo when available, the design gradient otherwise) */}

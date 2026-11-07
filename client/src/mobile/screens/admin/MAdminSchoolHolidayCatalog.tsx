@@ -41,8 +41,9 @@ function AddCountrySheet({
     onClose();
   };
   return (
-    <MSheet open={open} onClose={close} variant="card" material="opaque" ariaLabel={t('schoolCatalog.addCountry')}>
+    <MSheet open={open} onClose={close} variant="card" material="glass" ariaLabel={t('schoolCatalog.addCountry')}>
       <MAdminSheetFrame
+        icon={<GraduationCap size={19} strokeWidth={1.8} />}
         title={t('schoolCatalog.addCountry')}
         onClose={close}
         footer={
@@ -113,11 +114,12 @@ function RegionSheet({ region, busy, offline, error, onClose, onSave }: EditorPr
         if (!busy) onClose();
       }}
       variant="card"
-      material="opaque"
+      material="glass"
       ariaLabel={name.trim() || t('schoolCatalog.region')}
       discardGuard={body}
     >
       <MAdminSheetFrame
+        icon={<GraduationCap size={19} strokeWidth={1.8} />}
         title={name.trim() || t('schoolCatalog.region')}
         onClose={() => {
           if (!busy) onClose();

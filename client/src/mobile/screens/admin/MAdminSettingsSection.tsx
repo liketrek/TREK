@@ -6,6 +6,7 @@ import type { TranslationFn } from '../../../types'
 import type { useAdmin } from '../../../pages/admin/useAdmin'
 import MToggle from '../../components/MToggle'
 import { MBlockDisclosure, MProviderBlock, MTrekApiBlock } from './MApiProviderBlocks'
+import MAdminOidcCard from './MAdminOidcCard'
 import MSetPickerSheet from '../settings/MSetPickerSheet'
 import {
   MAdminButton,
@@ -31,7 +32,6 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
     placesPhotosEnabled, placesAutocompleteEnabled, placesDetailsEnabled, placesEnrichEnabled,
     placesGoogleOnly, handleTogglePlacesGoogleOnly,
     placeShadowEnabled,
-    oidcConfig, setOidcConfig, savingOidc,
     passwordLogin, setPasswordLogin, passwordRegistration, setPasswordRegistration,
     oidcLogin, setOidcLogin, oidcRegistration, setOidcRegistration,
     envOverrideOidcOnly, oidcConfigured, requireMfa,
@@ -134,6 +134,9 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
             {t('admin.passkey.notConfigured')}
           </p>
         )}
+        {/* The relying party is the instance's address, which the operator owns on a
+            managed install (server managed.ts), same as the desktop tab. */}
+        {!managed && (
         <div className="space-y-3">
           <MAdminField label={t('admin.passkey.rpId')} hint={t('admin.passkey.rpIdHint')}>
             <MAdminInput
@@ -155,6 +158,7 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
             {t('common.save')}
           </MAdminButton>
         </div>
+        )}
       </MAdminCard>
 
       {/* Require 2FA */}
@@ -187,7 +191,10 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
         </div>
       </MAdminCard>
 
-      {/* API keys */}
+      {/* API keys, place search and routing: the operator's on a managed install,
+          same as the desktop tab, so the whole card is left out. Unlike the desktop
+          tab, the phone has no share place details section for a managed install. */}
+      {!managed && (
       <MAdminCard>
         <MAdminCardHead title={t('admin.apiKeys')} hint={t('admin.apiKeysHint')} />
         <div className="space-y-3">
@@ -198,9 +205,6 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
               laptop. */}
           <MTrekApiBlock />
 
-          {/* The keys belong to the operator on a managed install, same as on the
-              desktop tab; the provider choice below stays the admin's. */}
-          {!managed && (<>
           <MProviderBlock title={t('admin.mapsKey')} badge={t('admin.googleCaveat.badge')} tone="caution">
             {/* Said before the field, not after it: somebody about to paste a key
                 should read this while deciding, not once they already have. */}
@@ -319,7 +323,6 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
               {...keyInputProps('unsplash')}
             />
           </MProviderBlock>
-          </>)}
 
           <MAdminField label={t('admin.placesProvider.title')} hint={t('admin.placesProvider.subtitle')}>
             {/* The app's own picker rather than a bare <select>: a native one is
@@ -372,62 +375,15 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
             />
           </div>
 
-          {!managed && (
-            <MAdminButton busy={savingKeys} onClick={handleSaveApiKeys}>
-              {t('common.save')}
-            </MAdminButton>
-          )}
-        </div>
-      </MAdminCard>
-
-      {/* OIDC / SSO */}
-      <MAdminCard>
-        <MAdminCardHead title={t('admin.oidcTitle')} hint={t('admin.oidcSubtitle')} />
-        <div className="space-y-3">
-          <MAdminField label={t('admin.oidcDisplayName')}>
-            <MAdminInput
-              type="text"
-              value={oidcConfig.display_name}
-              onChange={(e) => setOidcConfig((c) => ({ ...c, display_name: e.target.value }))}
-              placeholder={t('admin.oidcDisplayNamePlaceholder')}
-            />
-          </MAdminField>
-          <MAdminField label={t('admin.oidcIssuer')} hint={t('admin.oidcIssuerHint')}>
-            <MAdminInput
-              type="url"
-              value={oidcConfig.issuer}
-              onChange={(e) => setOidcConfig((c) => ({ ...c, issuer: e.target.value }))}
-              placeholder="https://accounts.google.com"
-            />
-          </MAdminField>
-          <MAdminField label={t('admin.oidcDiscoveryUrl')} hint={t('admin.oidcDiscoveryUrlHint', { path: '<issuer>/.well-known/openid-configuration' })}>
-            <MAdminInput
-              type="url"
-              value={oidcConfig.discovery_url}
-              onChange={(e) => setOidcConfig((c) => ({ ...c, discovery_url: e.target.value }))}
-              placeholder="https://auth.example.com/application/o/trek/.well-known/openid-configuration"
-            />
-          </MAdminField>
-          <MAdminField label={t('settings.oauth.clientId')}>
-            <MAdminInput
-              type="text"
-              value={oidcConfig.client_id}
-              onChange={(e) => setOidcConfig((c) => ({ ...c, client_id: e.target.value }))}
-            />
-          </MAdminField>
-          <MAdminField label={t('settings.oauth.clientSecret')}>
-            <MAdminInput
-              type="password"
-              value={oidcConfig.client_secret}
-              onChange={(e) => setOidcConfig((c) => ({ ...c, client_secret: e.target.value }))}
-              placeholder={oidcConfig.client_secret_set ? '••••••••' : ''}
-            />
-          </MAdminField>
-          <MAdminButton busy={savingOidc} onClick={saveOidc}>
+          <MAdminButton busy={savingKeys} onClick={handleSaveApiKeys}>
             {t('common.save')}
           </MAdminButton>
         </div>
       </MAdminCard>
+      )}
+
+      {/* OIDC / SSO: the operator's on a managed install, as on the desktop tab. */}
+      {!managed && <MAdminOidcCard admin={admin} t={t} onSave={saveOidc} />}
 
       {/* Danger zone */}
       <MAdminCard className="border-[color:color-mix(in_srgb,var(--m-st-danger)_28%,transparent)]">

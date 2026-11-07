@@ -15,7 +15,7 @@ import ToggleSwitch from './ToggleSwitch'
 import { SETTINGS_BUTTON_PRIMARY, SettingRow, SettingRows, SettingsHint, StatusPill } from './settingsKit'
 import { withTileApiKey } from '../../utils/tileUrl'
 import { defaultStyleForProvider, getStylePresets, type GlMapProvider } from '../Map/glProviders'
-import { MAP_PRESETS, PREVIEW_CENTER, PREVIEW_ZOOM } from './mapSettingsModel'
+import { PREVIEW_CENTER, PREVIEW_ZOOM } from './mapSettingsModel'
 import { useMapSettingsForm } from './useMapSettingsForm'
 
 /** A field holding a URL, token or key: the box look in Geist, so the characters read apart. */
@@ -130,7 +130,7 @@ function ProviderTile({ active, onClick, icon: Icon, name, subtitle, badge }: {
 export default function MapSettingsTab(): React.ReactElement {
   const { t } = useTranslation()
   const {
-    managed, saving, provider, changeProvider, mapTileUrl, setMapTileUrl, mapboxToken, setMapboxToken,
+    managed, presets, canMapbox, saving, provider, changeProvider, mapTileUrl, setMapTileUrl, mapboxToken, setMapboxToken,
     cartoKey, setCartoKey, cartoNeedsKey, mapboxStyle, setMapboxStyle, mapbox3d, setMapbox3d,
     mapboxQuality, setMapboxQuality, previewPlaces, glPreview, webgl2Missing, save: saveMapSettings,
   } = useMapSettingsForm()
@@ -149,7 +149,7 @@ export default function MapSettingsTab(): React.ReactElement {
       {/* Provider picker — big tiles so the choice is obvious */}
       <SettingRows>
         <SettingRow label={t('settings.mapProvider')} hint={t('settings.mapProviderHint')} stacked>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <div className={`grid grid-cols-1 gap-2 ${canMapbox ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
             <ProviderTile
               active={provider === 'leaflet'}
               onClick={() => changeProvider('leaflet')}
@@ -157,15 +157,17 @@ export default function MapSettingsTab(): React.ReactElement {
               name="Leaflet"
               subtitle={t('settings.mapLeafletSubtitle')}
             />
-            <ProviderTile
-              active={provider === 'mapbox-gl'}
-              onClick={() => changeProvider('mapbox-gl')}
-              icon={Box}
-              name={<><span className="sm:hidden">Mapbox</span><span className="hidden sm:inline">Mapbox GL</span></>}
-              subtitle={t('settings.mapMapboxSubtitle')}
-              // Only on ≥sm; on a narrow window there's no room next to the title.
-              badge={<span className="hidden sm:inline-flex"><StatusPill tone="warning">{t('settings.mapExperimental')}</StatusPill></span>}
-            />
+            {canMapbox && (
+              <ProviderTile
+                active={provider === 'mapbox-gl'}
+                onClick={() => changeProvider('mapbox-gl')}
+                icon={Box}
+                name={<><span className="sm:hidden">Mapbox</span><span className="hidden sm:inline">Mapbox GL</span></>}
+                subtitle={t('settings.mapMapboxSubtitle')}
+                // Only on ≥sm; on a narrow window there's no room next to the title.
+                badge={<span className="hidden sm:inline-flex"><StatusPill tone="warning">{t('settings.mapExperimental')}</StatusPill></span>}
+              />
+            )}
             <ProviderTile
               active={provider === 'maplibre-gl'}
               onClick={() => changeProvider('maplibre-gl')}
@@ -185,7 +187,7 @@ export default function MapSettingsTab(): React.ReactElement {
               value={mapTileUrl}
               onChange={(value: string) => { if (value) setMapTileUrl(value) }}
               placeholder={t('settings.mapTemplatePlaceholder.select')}
-              options={MAP_PRESETS.map(p => ({ value: p.url, label: p.name }))}
+              options={presets.map(p => ({ value: p.url, label: p.name }))}
             />
             <input
               id={`${fieldId}-tile`}

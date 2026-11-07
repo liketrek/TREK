@@ -954,39 +954,9 @@ describe('MMapArea and a booked night at the edge of the stage', () => {
 })
 
 describe('MMapArea — places filter', () => {
-  it('FE-MOB-MAPAREA-046: the plan map offers the places filter, and a tap opens its sheet', () => {
-    const { shell } = renderArea({ trTab: 'plan' })
-    const pill = screen.getByTestId('places-filter-pill')
-    expect(pill).toHaveAccessibleName('Filters')
-    // It opens a sheet: a dialog to announce, not an on/off state.
-    expect(pill).toHaveAttribute('aria-haspopup', 'dialog')
-    expect(pill).not.toHaveAttribute('aria-pressed')
-    act(() => { pill.click() })
-    expect(shell.openSheet).toHaveBeenCalledWith('placesFilter')
-  })
-
-  it('FE-MOB-MAPAREA-047: the pill lights up and counts the filters narrowing the pins', () => {
+  it('FE-MOB-MAPAREA-046: the map has no filter button of its own; the places tab sets the filter its pins follow', () => {
     seedStore(useTripStore, { placesFilter: 'unplanned', placesRatingFilter: 4 })
     renderArea({ trTab: 'plan' })
-    const pill = screen.getByTestId('places-filter-pill')
-    expect(pill).toHaveClass('text-accent')
-    expect(pill).not.toHaveAttribute('aria-pressed')
-    expect(pill).toHaveAttribute('aria-haspopup', 'dialog')
-    expect(pill).toHaveAccessibleName('Filters (2)')
-    expect(screen.getByText('2')).toHaveAttribute('aria-hidden', 'true')
-  })
-
-  it('FE-MOB-MAPAREA-049: a road trip keeps the places filter on its plan map, Dawarich or not', () => {
-    // The stack used to stand down in road-trip mode unless Dawarich had a pill in
-    // it; the plan map still shows the trip's places there, so its filter stays.
-    renderArea({ trTab: 'plan' }, { roadtripActive: true, dawarichEnabled: false })
-    expect(screen.getByTestId('places-filter-pill')).toBeInTheDocument()
-  })
-
-  it('FE-MOB-MAPAREA-048: the stage draws its own pins, so it has no places filter, and neither has a covered map', () => {
-    renderArea({ trTab: 'roadtrip', mapFront: true })
-    expect(screen.queryByTestId('places-filter-pill')).not.toBeInTheDocument()
-    renderArea({ view: 'plan', mapFront: false })
     expect(screen.queryByTestId('places-filter-pill')).not.toBeInTheDocument()
   })
 })

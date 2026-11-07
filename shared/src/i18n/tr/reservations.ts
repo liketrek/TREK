@@ -61,7 +61,7 @@ const reservations: TranslationStrings = {
   'reservations.type.car': 'Araba',
   'reservations.type.cruise': 'Dolaşmak',
   'reservations.type.event': 'Etkinlik',
-  'reservations.type.tour': 'Tur',
+  'reservations.type.tour': 'Rehberli tur',
   'reservations.type.parking': 'Otopark',
   'reservations.type.other': 'Diğer',
   'reservations.type.bus': 'Otobüs',
@@ -275,5 +275,9 @@ const reservations: TranslationStrings = {
     'Dosyaların yüklenmesi için bağlantı gerekir. Rezervasyonu çevrimdışı kaydetmek için yenilerini kaldır ya da tekrar çevrimiçi olduğunda kaydet.',
   'reservations.needsConnection': 'Bunun için bağlantı gerekiyor. TREK yeniden çevrimiçi olduğunda tekrar dene.',
   'reservations.exportCsvFiltered': 'Gösterilen {total} satırdan {shown} tanesini dışa aktar (CSV)',
+  'reservations.wallet.add': 'Apple Cüzdan’a Ekle',
+  'reservations.wallet.addGoogle': 'Google Cüzdan’a Ekle',
+  'reservations.wallet.failed': 'Cüzdan kartı oluşturulamadı. Lütfen tekrar deneyin.',
+  'reservations.wallet.undated': 'Önce rezervasyona bir tarih verin: Cüzdan kartı o zamana yakın gösterir.',
 };
 export default reservations;

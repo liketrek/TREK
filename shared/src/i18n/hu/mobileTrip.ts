@@ -8,7 +8,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addTransportShort': 'Közlekedés',
   'mobileTrip.allDays': 'Minden nap',
   'mobileTrip.today': 'Ma',
-  'mobileTrip.jumpToToday': 'Ugrás a mai napra',
   'mobileTrip.assignedDays': 'Hozzárendelt napok',
   'mobileTrip.assignmentNotes': 'Napra szóló jegyzetek',
   'mobileTrip.bookingsEmpty': 'Még nincsenek foglalások',
@@ -20,8 +19,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.filesEmpty': 'Még nincsenek fájlok',
   'mobileTrip.filesNext': 'Következő fájl',
   'mobileTrip.filesPrev': 'Előző fájl',
-  'mobileTrip.googleMaps': 'Google Maps',
-  'mobileTrip.coMaps': 'CoMaps',
   'mobileTrip.icsDownload': '.ics letöltése',
   'mobileTrip.icsSubscribe': 'Feliratkozás a naptárra',
   'mobileTrip.icsSubscribeSub': 'Automatikusan frissül a naptáralkalmazásodban',
@@ -84,5 +81,8 @@ const mobileTrip: TranslationStrings = {
     '{count} szakaszon több találat volt, mint amennyi egy válaszba belefér. Válassz kevesebb fajtát, hogy lásd a többit.',
   'mobileTrip.rtNoDay': 'Nincs kiválasztott nap',
   'mobileTrip.rtNoDayHint': 'A térkép a teljes utat mutatja. Koppints fent egy napra a napi útvonalhoz.',
+  'mobileTrip.maps': 'Térképek',
+  'mobileTrip.openRouteIn': 'Nap megnyitása ebben',
+  'mobileTrip.firstStopOnly': 'Csak az első megálló',
 };
 export default mobileTrip;

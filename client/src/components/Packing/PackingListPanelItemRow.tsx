@@ -18,6 +18,9 @@ import { PopoverItem } from './PackingPopover'
 import { POPOVER, POPOVER_CAPTION, POPOVER_DIVIDER } from './packingPopoverStyles'
 import type { TripMember } from './usePackingListPanel'
 import { NumericInput } from '../shared/NumericInput'
+import { bringersOf, packingBringerNames } from './packingBringers'
+import { Tooltip } from '../shared/Tooltip'
+import { BringerAvatar, BringersCard, MoreBringers } from './PackingBringersCard'
 
 interface ArtikelZeileProps {
   item: PackingItem
@@ -77,7 +80,6 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCa
   const recipients = item.recipients || []
   const sharedByMe = !!item.is_private && item.owner_id === currentUserId && recipients.length > 0
   const broughtBy = !item.is_private && item.owner_username ? item.owner_username : null
-  const contributors = item.contributors || []
   const canShare = canEdit && !isPlaceholder && !!onSetSharing
 
   const handleToggle = () => togglePackingItem(tripId, item.id, !item.checked)
@@ -113,8 +115,7 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCa
   // A multi-piece item counts its pieces into the bag (#2296).
   const packed = packedOf(item)
   const partlyPacked = !item.checked && packed > 0
-  const owner = tripMembers.find(m => m.id === item.owner_id)
-  const ownerAvatar = owner?.avatar_url ?? owner?.avatar ?? null
+  const bringers = bringersOf(item, tripMembers)
 
   // At rest a row reads as what it holds (owner, a quantity above one, a
   // weight, the bag) and everything else stays in place but dimmed: nothing
@@ -214,31 +215,29 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCa
       {/* Sharing badges (#858 three-tier), as compact chips like the phone's
           (#1525): the full sentence is the tooltip and the accessible name. */}
       {!isPlaceholder && sharedToMe && (
-        <span className="packing-row-badge" title={t('packing.takenCareOf', { name: item.owner_username || '' })} aria-label={t('packing.takenCareOf', { name: item.owner_username || '' })}
-          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, width: 22, height: 22, borderRadius: 99, color: 'var(--accent)', background: 'color-mix(in srgb, var(--accent) 12%, transparent)' }}>
-          <HandHelping size={12} />
-        </span>
+        <Tooltip label={t('packing.takenCareOf', { name: item.owner_username || '' })}>
+          <span className="packing-row-badge" aria-label={t('packing.takenCareOf', { name: item.owner_username || '' })}
+            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, width: 22, height: 22, borderRadius: 99, color: 'var(--accent)', background: 'color-mix(in srgb, var(--accent) 12%, transparent)' }}>
+            <HandHelping size={12} />
+          </span>
+        </Tooltip>
       )}
       {!isPlaceholder && sharedByMe && (
-        <span className="packing-row-badge" title={`${t('packing.sharedWithCount', { count: recipients.length })}: ${recipients.map(r => r.username).join(', ')}`} aria-label={t('packing.sharedWithCount', { count: recipients.length })}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, height: 22, padding: '0 7px', borderRadius: 99, fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 700, color: 'var(--text-muted)', background: 'var(--bg-tertiary)' }}>
-          <UserRound size={11} /> {recipients.length}
-        </span>
+        <Tooltip label={`${t('packing.sharedWithCount', { count: recipients.length })}: ${recipients.map(r => r.username).join(', ')}`}>
+          <span className="packing-row-badge" aria-label={t('packing.sharedWithCount', { count: recipients.length })}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, height: 22, padding: '0 7px', borderRadius: 99, fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 700, color: 'var(--text-muted)', background: 'var(--bg-tertiary)' }}>
+            <UserRound size={11} /> {recipients.length}
+          </span>
+        </Tooltip>
       )}
       {!isPlaceholder && broughtBy && (
-        <span className="packing-row-badge" title={t('packing.broughtBy', { name: broughtBy })} aria-label={t('packing.broughtBy', { name: broughtBy })}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
-          {ownerAvatar
-            ? <img src={ownerAvatar} alt="" style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
-            : (
-              <span aria-hidden style={{
-                width: 20, height: 20, borderRadius: '50%', display: 'grid', placeItems: 'center',
-                background: `hsl(${(broughtBy.codePointAt(0) ?? 0) * 37 % 360}, 55%, 55%)`, // theme-lint-disable: the colour comes from the bringer's name
-                color: 'white', fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 700, textTransform: 'uppercase',
-              }}>{broughtBy[0]}</span>
-            )}
-          {contributors.length > 0 && <span style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 700, color: 'var(--text-faint)' }}>+{contributors.length}</span>}
-        </span>
+        <Tooltip label={t('packing.broughtBy', { name: packingBringerNames(item) })} content={<BringersCard bringers={bringers} />}>
+          <span className="packing-row-badge" aria-label={t('packing.broughtBy', { name: packingBringerNames(item) })}
+            style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
+            <BringerAvatar bringer={bringers[0]} />
+            {bringers.length > 1 && <MoreBringers count={bringers.length - 1} />}
+          </span>
+        </Tooltip>
       )}
 
       <div className="packing-row-inline-actions" style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>

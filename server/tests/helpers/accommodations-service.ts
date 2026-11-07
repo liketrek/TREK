@@ -93,6 +93,7 @@ export async function accommodationsOver(
       await createTestJourneyPhotosRepo(conn),
       await createTestJourneyEntryPhotosRepo(conn),
       await createTestPlacesRepo(conn),
+      { releaseValues: async () => 0 } as never, // StorageReleaseService
     ),
     await createTestUnitOfWork(conn),
     await createTestDayAssignmentsRepo(conn),

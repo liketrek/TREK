@@ -88,6 +88,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': 'Формат часу',
   'settings.weekStart': 'Тиждень починається з',
   'settings.weekStartHint': 'Перший день тижня в усіх виборах дати. Vacay має власне налаштування.',
+  'settings.dateFormat': 'Формат дати',
+  'settings.dateFormatHint':
+    'Як записуються дати в усіх полях дати та списках. Дати з назвою місяця зберігають написання вашої мови.',
+  'settings.dateFormatAuto': 'Автоматично',
   'settings.preferredNavApp': 'Відкривати місця в',
   'settings.preferredNavAppAsk': 'Питати щоразу',
   'settings.preferredNavAppHint':
@@ -688,6 +692,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': 'Готово',
   'settings.mcp.deprecated': 'Застаріло',
   'settings.offline.cache.dateRange': 'з {start} по {end}',
+  'settings.offline.tileStore.title': 'Переглянуті плитки карти',
+  'settings.offline.tileStore.usage': '{used} з {limit} на цьому пристрої, зберігаються до 30 днів',
+  'settings.offline.tileStore.clear': 'Очистити',
 };
 
 export default settings;

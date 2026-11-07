@@ -73,6 +73,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': "Format d'hora",
   'settings.weekStart': 'La setmana comença el',
   'settings.weekStartHint': 'Primer dia de la setmana a tots els selectors de data. Vacay té la seva pròpia opció.',
+  'settings.dateFormat': 'Format de data',
+  'settings.dateFormatHint':
+    "Com s'escriuen les dates a tots els camps de data i a les llistes. Les dates amb el nom del mes mantenen la redacció del teu idioma.",
+  'settings.dateFormatAuto': 'Automàtic',
   'settings.preferredNavApp': 'Obre els llocs a',
   'settings.preferredNavAppAsk': 'Pregunta cada vegada',
   'settings.preferredNavAppHint':
@@ -673,6 +677,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': 'Fet',
   'settings.mcp.deprecated': 'Obsolet',
   'settings.offline.cache.dateRange': 'del {start} al {end}',
+  'settings.offline.tileStore.title': 'Tessel·les de mapa vistes',
+  'settings.offline.tileStore.usage': '{used} de {limit} en aquest dispositiu, es guarden fins a 30 dies',
+  'settings.offline.tileStore.clear': 'Buida',
 };
 
 export default settings;

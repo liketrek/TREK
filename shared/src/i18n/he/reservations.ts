@@ -62,7 +62,7 @@ const reservations: TranslationStrings = {
   'reservations.type.car': 'רכב',
   'reservations.type.cruise': 'שייט',
   'reservations.type.event': 'אירוע',
-  'reservations.type.tour': 'סיור',
+  'reservations.type.tour': 'סיור מודרך',
   'reservations.type.parking': 'חניה',
   'reservations.type.other': 'אחר',
   'reservations.type.bus': 'אוטובוס',
@@ -277,6 +277,10 @@ const reservations: TranslationStrings = {
     'העלאת קבצים דורשת חיבור. הסירו את הקבצים החדשים כדי לשמור את ההזמנה במצב לא מקוון, או שמרו כשתחזרו לרשת.',
   'reservations.needsConnection': 'הפעולה הזו דורשת חיבור. נסו שוב כש-TREK יחזור לרשת.',
   'reservations.exportCsvFiltered': 'ייצוא {shown} מתוך {total} השורות המוצגות (CSV)',
+  'reservations.wallet.add': 'הוספה ל-Apple Wallet',
+  'reservations.wallet.addGoogle': 'הוספה ל-Google Wallet',
+  'reservations.wallet.failed': 'לא ניתן היה ליצור את כרטיס ה-Wallet. אנא נסו שוב.',
+  'reservations.wallet.undated': 'קודם תנו להזמנה תאריך: Wallet מציג את הכרטיס סביב המועד שלה.',
 };
 
 export default reservations;

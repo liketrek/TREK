@@ -89,7 +89,8 @@ describe('costsModel: recorded payments', () => {
 
   it('FE-BUDGET-COSTSMODEL-005: a legacy payment without a currency was entered in the display currency', () => {
     const inUsd: CostsCtx = { ...ctx, displayCurrency: 'USD' };
-    expect(paymentAmount(payment({ amount: 10, currency: null }), inUsd)).toBe(5);
+    // Entered in the display currency, it reads as entered (#2965).
+    expect(paymentAmount(payment({ amount: 10, currency: null }), inUsd)).toBe(10);
     expect(paymentAmount(payment({ amount: 10, currency: null }), ctx)).toBe(10);
   });
 

@@ -86,6 +86,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': 'Format Waktu',
   'settings.weekStart': 'Awal minggu',
   'settings.weekStartHint': 'Hari pertama dalam seminggu di setiap pemilih tanggal. Vacay punya pengaturannya sendiri.',
+  'settings.dateFormat': 'Format Tanggal',
+  'settings.dateFormatHint':
+    'Cara tanggal ditulis di setiap kolom tanggal dan daftar. Tanggal dengan nama bulan tetap mengikuti penulisan bahasamu.',
+  'settings.dateFormatAuto': 'Otomatis',
   'settings.preferredNavApp': 'Buka tempat di',
   'settings.preferredNavAppAsk': 'Tanya setiap kali',
   'settings.preferredNavAppHint':
@@ -661,6 +665,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': 'Selesai',
   'settings.mcp.deprecated': 'Usang',
   'settings.offline.cache.dateRange': '{start} sampai {end}',
+  'settings.offline.tileStore.title': 'Ubin peta yang dilihat',
+  'settings.offline.tileStore.usage': '{used} dari {limit} di perangkat ini, disimpan hingga 30 hari',
+  'settings.offline.tileStore.clear': 'Kosongkan',
 };
 
 export default settings;

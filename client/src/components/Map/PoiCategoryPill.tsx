@@ -18,10 +18,23 @@ interface Props {
    *  The phone map gives it the full width between the screen margins; on
    *  desktop it floats, so it stays content-width there. */
   fullWidth?: boolean
+  /** The phone shell's chrome: the glass, hairline and 36px height of the day rail
+   *  and the tab switch above it, so the three bars read as one set. */
+  phoneChrome?: boolean
 }
 
 // The touch target every segment keeps, however many categories there are.
 const SEGMENT = 34
+// On the phone the segment is as tall as a day chip; it keeps its width.
+const PHONE_SEGMENT_HEIGHT = 28
+
+/** The phone shell's glass, as the day rail draws it (bg/border --m-glass/--m-gbr). */
+const PHONE_GLASS: React.CSSProperties = {
+  background: 'var(--m-glass)',
+  border: '1px solid var(--m-gbr)',
+  backdropFilter: 'blur(24px) saturate(170%)',
+  WebkitBackdropFilter: 'blur(24px) saturate(170%)',
+}
 
 // How far one wheel step moves the bar. Firefox counts a mouse wheel in lines and
 // some drivers in pages; a line moves about one segment, a page one bar width.
@@ -50,10 +63,11 @@ interface SegmentProps {
   loading: boolean
   failed: boolean
   fullWidth?: boolean
+  phoneChrome?: boolean
   onToggle: (key: string) => void
 }
 
-function Segment({ cat, on, loading, failed, fullWidth, onToggle }: Readonly<SegmentProps>) {
+function Segment({ cat, on, loading, failed, fullWidth, phoneChrome, onToggle }: Readonly<SegmentProps>) {
   return (
     <Tooltip label={cat.label} placement="bottom">
       <button
@@ -71,7 +85,7 @@ function Segment({ cat, on, loading, failed, fullWidth, onToggle }: Readonly<Seg
           flexShrink: fullWidth ? 1 : 0,
           flexBasis: fullWidth ? 0 : undefined,
           minWidth: SEGMENT,
-          width: fullWidth ? 'auto' : SEGMENT, height: SEGMENT, borderRadius: 999, border: 'none', cursor: 'pointer',
+          width: fullWidth ? 'auto' : SEGMENT, height: phoneChrome ? PHONE_SEGMENT_HEIGHT : SEGMENT, borderRadius: 999, border: 'none', cursor: 'pointer',
           background: on ? cat.color : 'transparent',
           color: on ? '#fff' : undefined,
           transition: 'background 0.14s, color 0.14s',
@@ -108,11 +122,11 @@ function Segment({ cat, on, loading, failed, fullWidth, onToggle }: Readonly<Seg
 // and whatever plugins add follows a thin divider (#1781); once that is more than the
 // width holds, the bar scrolls sideways (by swipe, trackpad or mouse wheel) rather than
 // shrinking a segment below the touch target.
-export default function PoiCategoryPill({ categories, active, onToggle, loadingKeys, errorKeys, moved, onSearchArea, fullWidth }: Readonly<Props>) {
+export default function PoiCategoryPill({ categories, active, onToggle, loadingKeys, errorKeys, moved, onSearchArea, fullWidth, phoneChrome }: Readonly<Props>) {
   const { t } = useTranslation()
   const anyError = !!errorKeys && Array.from(active).some(k => errorKeys.has(k))
 
-  const frosted: React.CSSProperties = {
+  const frosted: React.CSSProperties = phoneChrome ? PHONE_GLASS : {
     background: 'var(--sidebar-bg)',
     backdropFilter: 'blur(20px) saturate(180%)',
     WebkitBackdropFilter: 'blur(20px) saturate(180%)',
@@ -132,6 +146,7 @@ export default function PoiCategoryPill({ categories, active, onToggle, loadingK
         loading={loading}
         failed={!!errorKeys?.has(cat.key)}
         fullWidth={fullWidth}
+        phoneChrome={phoneChrome}
         onToggle={onToggle}
       />
     )
@@ -142,7 +157,7 @@ export default function PoiCategoryPill({ categories, active, onToggle, loadingK
       <div onWheel={wheelSideways} style={{
         display: fullWidth ? 'flex' : 'inline-flex',
         alignSelf: fullWidth ? 'stretch' : undefined,
-        alignItems: 'center', gap: 2, padding: 4, borderRadius: 999, pointerEvents: 'auto', ...frosted,
+        alignItems: 'center', gap: 2, padding: phoneChrome ? 3 : 4, borderRadius: 999, pointerEvents: 'auto', ...frosted,
         maxWidth: '100%', overflowX: 'auto', scrollbarWidth: 'none',
       }}>
         {categories.core.map(segment)}

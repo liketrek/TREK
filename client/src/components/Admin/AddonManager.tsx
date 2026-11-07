@@ -73,6 +73,7 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
   const {
     addons, loading, handleToggle, tripAddons, globalAddons, integrationAddons, aiAddons, providerOptions, documentProviderOptions,
     toursWanderer,
+    wandererOffered,
     toggleToursWanderer,
     mapSwitches,
   } = useAddonManager()
@@ -157,14 +158,18 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
     // "N options" bar the way Collab's and Documents' are.
     if (addon.id === 'tours' && addon.enabled) {
       return [
-        <AddonSubRow
-          key="wanderer"
-          icon={<WandererMark size={14} />}
-          title={t('admin.toursWanderer.title')}
-          description={t('admin.toursWanderer.subtitle')}
-          enabled={toursWanderer}
-          onToggle={() => void toggleToursWanderer()}
-        />,
+        ...(wandererOffered
+          ? [
+              <AddonSubRow
+                key="wanderer"
+                icon={<WandererMark size={14} />}
+                title={t('admin.toursWanderer.title')}
+                description={t('admin.toursWanderer.subtitle')}
+                enabled={toursWanderer}
+                onToggle={() => void toggleToursWanderer()}
+              />,
+            ]
+          : []),
         ...mapSwitches.map(({ key, Icon, titleKey, subtitleKey, enabled, toggle }) => (
           <AddonSubRow
             key={key}

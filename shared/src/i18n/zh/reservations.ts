@@ -60,7 +60,7 @@ const reservations: TranslationStrings = {
   'reservations.type.car': '汽车',
   'reservations.type.cruise': '邮轮',
   'reservations.type.event': '活动',
-  'reservations.type.tour': '旅游团',
+  'reservations.type.tour': '导览游',
   'reservations.type.parking': '停车',
   'reservations.type.other': '其他',
   'reservations.type.bus': '公交车',
@@ -261,5 +261,9 @@ const reservations: TranslationStrings = {
   'reservations.filesNeedConnection': '上传文件需要网络连接。移除新文件即可离线保存这条预订，或在恢复联网后再保存。',
   'reservations.needsConnection': '此操作需要网络连接。请在 TREK 恢复联网后重试。',
   'reservations.exportCsvFiltered': '导出显示的 {shown}/{total} 行 (CSV)',
+  'reservations.wallet.add': '添加到 Apple 钱包',
+  'reservations.wallet.addGoogle': '添加到 Google 钱包',
+  'reservations.wallet.failed': '无法生成钱包卡券。请重试。',
+  'reservations.wallet.undated': '请先为预订设置日期：钱包会在那个时间前后显示卡券。',
 };
 export default reservations;

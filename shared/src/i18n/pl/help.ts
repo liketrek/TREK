@@ -1145,7 +1145,7 @@ const help: TranslationStrings = {
   'help.ctx.settings.bullet.1':
     'Pasek boczny po lewej: Preferencje, Wygląd, Mapa, Powiadomienia, Integracje, Offline i Konto. Wtyczki pojawiają się, gdy aktywna jest jakaś wtyczka. O aplikacji widać, chyba że operator to ukrył. Na dole jest numer wersji.',
   'help.ctx.settings.bullet.2':
-    'Najpierw otwierają się Preferencje. Znajdziesz tam język, język nazw miejsc, jednostki, format czasu, początek tygodnia i walutę wyświetlania, a także zachowanie mapy podróży. Wygląd obejmuje motyw, kolory, czytelność, wielkość tekstu i widżety panelu.',
+    'Najpierw otwierają się Preferencje. Znajdziesz tam język, język nazw miejsc, jednostki, format czasu, format daty, początek tygodnia i walutę wyświetlania, a także zachowanie mapy podróży. Wygląd obejmuje motyw, kolory, czytelność, wielkość tekstu i widżety panelu.',
   'help.ctx.settings.bullet.3':
     '„Mapa” ustawia silnik mapy i jej styl; „Powiadomienia” określają, które zdarzenia trafiają na który kanał; „Integracje” łączą biblioteki zdjęć, AirTrail, Dawarich i wanderer, a także zawierają klucze API i MCP; „Offline” określa, co przechowuje to urządzenie.',
   'help.ctx.settings.bullet.4':
@@ -1156,7 +1156,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-display.bullet.1':
     '„Uruchamianie”: „Strona startowa” otwiera „Panel” albo „Aktywną podróż”; przy „Aktywnej podróży” opcja „Karta startowa” wybiera kartę, na której otwiera się ta podróż.',
   'help.ctx.settings-display.bullet.2':
-    'Język i region: „Waluta wyświetlania” (lub „Waluta wyjazdu”, jeśli nie chcesz przeliczać), „Język”, „Nazwy miejsc”, „Jednostka temperatury”, „Jednostka odległości”, „Format czasu” i „Tydzień zaczyna się w”.',
+    'Język i region: „Waluta wyświetlania” (lub „Waluta wyjazdu”, jeśli nie chcesz przeliczać), „Język”, „Nazwy miejsc”, „Jednostka temperatury”, „Jednostka odległości”, „Format czasu”, „Tydzień zaczyna się w” i „Format daty”.',
   'help.ctx.settings-display.bullet.3':
     'Podróże i mapa: „Otwieraj miejsca w”, „Data na początku nagłówków dni”, „Etykiety tras rezerwacji”, „Zawsze pokazuj trasy rezerwacji”, „Kompaktowe znaczniki dla niezaplanowanych miejsc”, „Odkrywaj miejsca na mapie”, „Rozmyj kody rezerwacji” i „Optymalizuj trasę od zakwaterowania”.',
   'help.ctx.settings-appearance.title': 'Wygląd',
@@ -1475,9 +1475,9 @@ const help: TranslationStrings = {
     'Na dole „Ustawienia uprawnień”: dla każdej akcji określasz, kto może ją wykonywać („Wszyscy”, „Członkowie podróży”, „Właściciel podróży” lub „Tylko admin”). Zmiany zapisujesz przyciskiem „Zapisz” u góry karty.',
   'help.ctx.admin-defaults.title': 'Domyślne ustawienia',
   'help.ctx.admin-defaults.summary':
-    'Ustawienia, z którymi startuje nowe konto, żeby nikt nie musiał ich najpierw konfigurować: motyw, jednostki, format czasu, pierwszy dzień tygodnia, waluta wyświetlania i rozmywanie kodów rezerwacji, a także mapa, jej klucze i serwery wyznaczania tras.',
+    'Ustawienia, z którymi startuje nowe konto, żeby nikt nie musiał ich najpierw konfigurować: motyw, jednostki, format czasu, format daty, pierwszy dzień tygodnia, waluta wyświetlania i rozmywanie kodów rezerwacji, a także mapa, jej klucze i serwery wyznaczania tras.',
   'help.ctx.admin-defaults.bullet.1':
-    '„Domyślne ustawienia użytkownika” po lewej: „Motyw”, „Jednostka temperatury”, „Jednostka odległości”, „Format czasu”, „Tydzień zaczyna się w”, „Waluta wyświetlania” i „Rozmyj kody rezerwacji”.',
+    '„Domyślne ustawienia użytkownika” po lewej: „Motyw”, „Jednostka temperatury”, „Jednostka odległości”, „Format czasu”, „Tydzień zaczyna się w”, „Format daty”, „Waluta wyświetlania” i „Rozmyj kody rezerwacji”.',
   'help.ctx.admin-defaults.bullet.2':
     'Mapa po prawej: „Szablon mapy”, „Współdzielony klucz CARTO”, „Własny silnik tras” i „Własna instancja Valhalli”, podgląd, a dalej „Silnik map” ze „Styl mapy”, „Współdzielony token Mapbox”, „Budynki i teren 3D” oraz „Tryb wysokiej jakości”.',
   'help.ctx.admin-config.title': 'Personalizacja',
@@ -3406,7 +3406,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.summary':
     'Na tej karcie jest wszystko, co zarezerwowano na podróż, oprócz transportu: noclegi, stoliki, bilety, wycieczki i parkingi. Każda rezerwacja to karta, wiersz listy lub pasek na osi czasu, z kodem, dokumentami, podróżnymi i kosztem. Kliknij rezerwację, aby otworzyć szczegóły.',
   'help.ctx.trip-bookings.bullet.1':
-    '„Rezerwacja ręczna” na prawym końcu paska otwiera „Nowa rezerwacja”. Można w ten sposób utworzyć sześć rodzajów rezerwacji: „Nocleg”, „Restauracja”, „Wydarzenie”, „Wycieczka”, parking i „Inne”. Loty, pociągi i inny transport są w zakładce „Transport” i nigdy się tu nie pojawiają.',
+    '„Rezerwacja ręczna” na prawym końcu paska otwiera „Nowa rezerwacja”. Można w ten sposób utworzyć sześć rodzajów rezerwacji: „Nocleg”, „Restauracja”, „Wydarzenie”, „Wycieczka z przewodnikiem”, parking i „Inne”. Loty, pociągi i inny transport są w zakładce „Transport” i nigdy się tu nie pojawiają.',
   'help.ctx.trip-bookings.bullet.2':
     'Ikona pobierania przed „Rezerwacja ręczna”, czyli „Importuj potwierdzenia rezerwacji”, przesyła potwierdzenia, żeby TREK mógł je automatycznie odczytać: EML, PDF, PKPass, HTML lub TXT, maksymalnie pięć plików po 10 MB, a także zdjęcia, jeśli model AI odczytuje obrazy. Ikona jest widoczna tylko wtedy, gdy serwer potrafi je odczytać.',
   'help.ctx.trip-bookings.bullet.3':
@@ -3448,7 +3448,7 @@ const help: TranslationStrings = {
   'help.guide.create-booking.step.1':
     'Kliknij „Rezerwacja ręczna” na prawym końcu paska. Otworzy się „Nowa rezerwacja” z tytułem i dwiema plakietkami w nagłówku u góry.',
   'help.guide.create-booking.step.2':
-    'Kliknij etykietę typu w górnym pasku, która przy nowej rezerwacji ma napis „Inne”, i wybierz „Rodzaj rezerwacji”. W tej zakładce utworzysz sześć typów: Nocleg, Restauracja, Wydarzenie, Wycieczka, Parking i Inne. Formularz zmienia się zależnie od wyboru: tylko „Nocleg” zamiast dat używa zakresu dni.',
+    'Kliknij etykietę typu w górnym pasku, która przy nowej rezerwacji ma napis „Inne”, i wybierz „Rodzaj rezerwacji”. W tej zakładce utworzysz sześć typów: Nocleg, Restauracja, Wydarzenie, Wycieczka z przewodnikiem, Parking i Inne. Formularz zmienia się zależnie od wyboru: tylko „Nocleg” zamiast dat używa zakresu dni.',
   'help.guide.create-booking.step.3':
     'Wpisz tytuł w górnym pasku, w polu nad plakietkami. To jedyne wymagane pole, a przycisk „Dodaj” pozostaje wyszarzony, dopóki czegoś nie wpiszesz.',
   'help.guide.create-booking.step.4':
@@ -4288,7 +4288,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-about.bullet.3':
     'Przez Ko-fi, Buy Me a Coffee i Discord możesz wesprzeć TREK albo porozmawiać z jego twórcami.',
   'help.guide.language-region.step.3':
-    'Ustaw „Waluta wyświetlania” albo zostaw „Waluta wyjazdu”, żeby każda podróż była pokazywana we własnej walucie. Potem wybierz „Jednostka temperatury”, „Jednostka odległości”, „Format czasu” i dzień, od którego zaczyna się tydzień („Tydzień zaczyna się w”).',
+    'Ustaw „Waluta wyświetlania” albo zostaw „Waluta wyjazdu”, żeby każda podróż była pokazywana we własnej walucie. Potem wybierz „Jednostka temperatury”, „Jednostka odległości”, „Format czasu”, dzień, od którego zaczyna się tydzień („Tydzień zaczyna się w”), oraz „Format daty”.',
   'help.guide.travel-map-prefs.step.3':
     '„Odkrywaj miejsca na mapie” pokazuje pigułkę kategorii do wyszukiwania miejsc w pobliżu. „Rozmyj kody rezerwacji” ukrywa numery potwierdzeń, dopóki ich nie najedziesz lub nie dotkniesz. „Optymalizuj trasę od zakwaterowania” zaczyna i kończy dzień w twoim hotelu.',
   'help.guide.web-push-device.step.2':
@@ -6361,7 +6361,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-settings.bullet.5':
     'Strefa zagrożenia: Zmień sekret JWT wylogowuje wszystkich użytkowników, Ciebie też.',
   'help.guide.default-user-settings.step.1':
-    'W sekcji Domyślne ustawienia użytkownika wybierz Motyw (Jasny, Ciemna lub Automatyczny), Jednostka temperatury, Jednostka odległości, Format czasu, Tydzień zaczyna się w, Waluta wyświetlania oraz to, czy Rozmyj kody rezerwacji jest włączone, czy wyłączone. Każdy wybór zapisuje się od razu.',
+    'W sekcji Domyślne ustawienia użytkownika wybierz Motyw (Jasny, Ciemna lub Automatyczny), Jednostka temperatury, Jednostka odległości, Format czasu, Tydzień zaczyna się w, Format daty, Waluta wyświetlania oraz to, czy Rozmyj kody rezerwacji jest włączone, czy wyłączone. Każdy wybór zapisuje się od razu.',
   'help.guide.admin-passkeys.step.2':
     'Wpisz Relying Party ID (domena), na przykład trek.example.org, oraz Dozwolone origins, pod którymi TREK jest dostępny, a potem kliknij Zapisz. Zostaw oba pola puste, aby użyć APP_URL.',
   'help.guide.rotate-jwt-secret.title': 'Wyloguj wszystkich naraz',

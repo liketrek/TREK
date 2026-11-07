@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:enableOnBackInvokedCallback="true"
+        android:resizeableActivity="true"
+        android:theme="@style/AppTheme">
+
+        <!-- Every window shape a tablet, a foldable, ChromeOS or desktop windowing
+             offers. The UI lays itself out by the window's size (hooks/sizeClass.ts),
+             so the activity takes size, fold and orientation changes itself
+             (configChanges) instead of restarting and losing the page. -->
+        <meta-data android:name="android.supports_size_changes" android:value="true" />
+
+        <activity
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|layoutDirection|smallestScreenSize|screenLayout|uiMode|navigation|density|fontScale|touchscreen|colorMode|fontWeightAdjustment"
+            android:name=".MainActivity"
+            android:label="@string/title_activity_main"
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:launchMode="singleTask"
+            android:screenOrientation="fullUser"
+            android:windowSoftInputMode="adjustResize"
+            android:exported="true">
+
+            <!-- The trips as launcher and direct-share shortcuts (TrekShortcuts). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Deep links.
+
+                 The scheme is @string/custom_url_scheme (com.liketrek.trek).
+                 launchMode is singleTask above, so a link delivers into the
+                 running task via onNewIntent rather than starting a second copy
+                 of the app on top of the first.
+
+                 This is the return path for SSO and passkey sign-in: TrekShell
+                 opens the server's login page in a Custom Tab, and after the
+                 hand-off it redirects to com.liketrek.trek://auth?code=…, which
+                 lands here and in TrekShellPlugin.handleOnNewIntent.
+
+                 Not an App Link (autoVerify + https). App Links are verified
+                 against a specific domain via assetlinks.json, and TREK is
+                 self-hosted — there is no single domain to verify against. A
+                 custom scheme is the only form that works for every user's
+                 server. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="@string/custom_url_scheme" />
+            </intent-filter>
+
+        </activity>
+
+        <!-- "TREK" in the share sheet and "Open with TREK": a booking document, a
+             mail, a page or a link, into a trip (share/ShareActivity.kt). -->
+        <activity
+            android:name=".share.ShareActivity"
+            android:theme="@style/AppTheme.Sheet"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation"
+            android:excludeFromRecents="true"
+            android:taskAffinity="com.liketrek.trek.share"
+            android:launchMode="standard"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/pdf" />
+                <data android:mimeType="application/vnd.apple.pkpass" />
+                <data android:mimeType="message/rfc822" />
+                <data android:mimeType="text/calendar" />
+                <data android:mimeType="text/html" />
+                <data android:mimeType="text/plain" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/pdf" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <!-- content:// only: a file:// path would be read with TREK's own rights. -->
+                <data android:scheme="content" />
+                <data android:mimeType="application/pdf" />
+                <data android:mimeType="text/calendar" />
+                <data android:mimeType="application/vnd.apple.pkpass" />
+                <data android:mimeType="message/rfc822" />
+            </intent-filter>
+            <!-- Lets the share sheet rank the trip shortcuts for this target. -->
+            <meta-data android:name="android.service.chooser.chooser_target_service" android:value="androidx.sharetarget.ChooserTargetServiceCompat" />
+        </activity>
+
+        <!-- "Choose trip" for a placed widget. -->
+        <activity
+            android:name=".widget.WidgetConfigActivity"
+            android:theme="@style/AppTheme.Native"
+            android:excludeFromRecents="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+        <!-- The home-screen widgets (widget/TrekWidgets.kt). -->
+        <receiver
+            android:name=".widget.TripWidgetReceiver"
+            android:label="@string/widget_trip_name"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_trip" />
+        </receiver>
+        <receiver
+            android:name=".widget.TodayWidgetReceiver"
+            android:label="@string/widget_today_name"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_today" />
+        </receiver>
+        <receiver
+            android:name=".widget.BookingsWidgetReceiver"
+            android:label="@string/widget_bookings_name"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_bookings" />
+        </receiver>
+        <receiver
+            android:name=".widget.TodosWidgetReceiver"
+            android:label="@string/widget_todos_name"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_todos" />
+        </receiver>
+        <receiver
+            android:name=".widget.PackingWidgetReceiver"
+            android:label="@string/widget_packing_name"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_packing" />
+        </receiver>
+        <receiver
+            android:name=".widget.AtlasWidgetReceiver"
+            android:label="@string/widget_atlas_name"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_atlas" />
+        </receiver>
+        <receiver
+            android:name=".widget.CollabWidgetReceiver"
+            android:label="@string/widget_collab_name"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_collab" />
+        </receiver>
+        <!-- Push: the relay's data messages, decrypted and shown here. -->
+        <service
+            android:name=".TrekPushService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths"></meta-data>
+        </provider>
+
+    </application>
+
+    <!-- Permissions. Only what the WebView itself needs: the file picker's
+         camera option and navigator.geolocation for "locate me" on the map,
+         both granted at runtime through Capacitor's WebChromeClient. -->
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- COARSE is listed first because it is the weaker grant and is enough
+         for "what city am I in". -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- required="false" on purpose: TREK is a planner, and everything except
+         "locate me" works without GPS hardware. Marking it required would have
+         Play hide the app from tablets and other GPS-less devices. -->
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Android 13 and later ask before an app may show notifications. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Android 16: the travel day's Live Update may be promoted to the top of the shade. -->
+    <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <!-- Tablets, Chromebooks and TVs without these still get the app on Play. -->
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+    <uses-feature android:name="android.hardware.screen.portrait" android:required="false" />
+</manifest>

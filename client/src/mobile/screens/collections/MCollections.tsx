@@ -12,7 +12,6 @@ import { STATUS_ORDER } from '../../../pages/collections/collectionsModel'
 import type { StatusFilter } from '../../../store/collectionStore'
 import { ALL_SAVED } from '../../../store/collectionStore'
 import CollectionMap from '../../../components/Collections/CollectionMap'
-import MSheet from '../../components/MSheet'
 import MCollPlaceRow from './MCollPlaceRow'
 import MCollPlaceSheet from './MCollPlaceSheet'
 import MCollAddSheet from './MCollAddSheet'
@@ -24,7 +23,7 @@ import MCollListPickerSheet from './MCollListPickerSheet'
 import MCollTours from './MCollTours'
 import MCollInvites from './MCollInvites'
 import { STATUS_SPEC } from './collectionsMobileModel'
-import { CancelPill, PrimaryPill } from './MCollSheetKit'
+import MConfirmSheet from '../settings/MConfirmSheet'
 
 const HEADER_CIRCLE =
   'flex h-[38px] w-[38px] flex-none items-center justify-center rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-sheet)] text-m-ink shadow-[0_5px_12px_-8px_rgba(0,0,0,.18)]'
@@ -73,16 +72,25 @@ export default function MCollections() {
   // The bottom-nav "+" hands off via the ?create= contract.
   const [searchParams, setSearchParams] = useSearchParams()
   const createParam = searchParams.get('create')
-  const { activeId, canEdit, setShowAddPlace, ownedLists } = c
+  const { activeId, canEdit, setShowAddPlace, ownedLists, setEditorTarget } = c
+  const listCount = c.collections.length
+  const listsLoading = c.loading
   useEffect(() => {
     if (createParam !== 'place' && createParam !== '1') return
+    // Wait for the lists: whether there is one decides what "+" means.
+    if (listsLoading) return
     const next = new URLSearchParams(searchParams)
     next.delete('create')
     setSearchParams(next, { replace: true })
+    // Without a list yet, "+" starts the first one; places come after.
+    if (listCount === 0) {
+      setEditorTarget('new')
+      return
+    }
     // Open whenever the user can add somewhere: an editable active list, or at
     // least one owned list to pick as the target in the sheet.
     if ((typeof activeId === 'number' && canEdit) || ownedLists.length > 0) setShowAddPlace(true)
-  }, [createParam, searchParams, setSearchParams, activeId, canEdit, ownedLists.length, setShowAddPlace])
+  }, [createParam, searchParams, setSearchParams, activeId, canEdit, ownedLists.length, setShowAddPlace, listsLoading, listCount, setEditorTarget])
 
   // Close transient popovers when the active list changes under them.
   useEffect(() => {
@@ -219,12 +227,8 @@ export default function MCollections() {
         </div>
       ) : noLists ? (
         <div className="mt-6">
+          {/* The dock's "+" starts the first list (see the ?create= handoff above). */}
           <EmptyNote scene="collections" title={t('collections.empty.firstTitle')} />
-          <div className="mt-4 flex justify-center">
-            <PrimaryPill onClick={openNewList}>
-              <Bookmark size={14} strokeWidth={2.2} /> {t('collections.newList')}
-            </PrimaryPill>
-          </div>
         </div>
       ) : (
         <>
@@ -541,23 +545,16 @@ export default function MCollections() {
       />
 
       {/* Delete-list confirm */}
-      <MSheet
+      <MConfirmSheet
         open={c.confirmDeleteList != null}
         onClose={() => c.setConfirmDeleteList(null)}
-        material="opaque"
-        ariaLabel={t('collections.deleteList')}
-      >
-        <div className="px-[18px] pb-[18px] pt-4">
-          <div className="text-[1.0625rem] font-bold text-m-ink">{t('collections.deleteList')}</div>
-          <div className="mt-2 font-geist text-[0.78125rem] leading-[1.5] text-m-muted">{t('collections.deleteListConfirm')}</div>
-          <div className="mt-4 flex items-center gap-2">
-            <CancelPill className="ms-auto" onClick={() => c.setConfirmDeleteList(null)}>{t('common.cancel')}</CancelPill>
-            <PrimaryPill onClick={c.handleDeleteList} className="!bg-[color:var(--m-st-danger)] !text-white">
-              <Trash2 size={14} strokeWidth={2.2} /> {t('common.delete')}
-            </PrimaryPill>
-          </div>
-        </div>
-      </MSheet>
+        title={t('collections.deleteList')}
+        message={t('collections.deleteListConfirm')}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
+        danger
+        onConfirm={c.handleDeleteList}
+      />
     </div>
   )
 }

@@ -43,5 +43,7 @@ const map: TranslationStrings = {
   'map.webgl2.fallback':
     'Browser ini tidak menyediakan WebGL2 yang dibutuhkan peta GL, jadi peta ditampilkan dengan Leaflet.',
   'map.webgl2.terrain': '3D membutuhkan WebGL2, yang tidak disediakan browser ini. Peta tetap dalam 2D.',
+  'map.offlineBasemap': 'Peta offline',
+  'map.offlineShowStored': 'Tampilkan peta offline',
 };
 export default map;

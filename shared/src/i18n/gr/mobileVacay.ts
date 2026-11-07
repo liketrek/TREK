@@ -16,6 +16,8 @@ const mobileVacay: TranslationStrings = {
   'mobileVacay.companyLegend': 'Άδεια εταιρείας',
   'mobileVacay.editCalendar': 'Επεξεργασία ημερολογίου',
   'mobileVacay.viewYear': 'Προβολή έτους',
+  'mobileVacay.people': 'Άτομα',
+  'mobileVacay.legend': 'Υπόμνημα',
 };
 
 export default mobileVacay;

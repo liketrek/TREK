@@ -222,6 +222,7 @@ beforeAll(async () => {
       await createTestJourneyPhotosRepo(testDb),
       await createTestJourneyEntryPhotosRepo(testDb),
       await createTestPlacesRepo(testDb),
+      { releaseValues: async () => 0 } as never, // StorageReleaseService
     ),
     makeStorageFixture('').storage,
     await accommodationsOver(testDb, realtime),
@@ -234,7 +235,7 @@ beforeAll(async () => {
     await createTestCategoriesRepo(testDb),
     await createTestTripsRepo(testDb),
     await createTestBudgetItemsRepo(testDb),
-    await createTestCollectionPlacesRepo(testDb),
+    { releaseValues: async () => [] } as never, // StorageReleaseService
     buildPlaceImportService(),
   );
   membersSvc = new TripMembersService(
@@ -254,6 +255,7 @@ beforeAll(async () => {
       await createTestShareTokensRepo(testDb),
       await createTestPluginsRepo(testDb),
       await createTestPluginUserErasureQueueRepo(testDb),
+      { releaseValues: async () => [] } as never,
     ),
     new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
     realtime,
@@ -319,7 +321,7 @@ const buildReadModel = async (tripsRepo: TripsRepository, roster: TripMembersSer
       new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
       realtime,
       notificationsStub(),
-      makeStorageFixture('').storage,
+      { releaseValues: async () => [] } as never, // StorageReleaseService
       new RateLimitService(),
       await createTestUnitOfWork(testDb),
       await createTestCollabMessageReactionsRepo(testDb),
@@ -360,6 +362,7 @@ const buildReadModel = async (tripsRepo: TripsRepository, roster: TripMembersSer
       await createTestPlacesRepo(testDb),
       await createTestDayAssignmentsRepo(testDb),
       await createTestBudgetItemsRepo(testDb),
+      { releaseValues: async () => [] } as never, // StorageReleaseService
     ),
   );
 

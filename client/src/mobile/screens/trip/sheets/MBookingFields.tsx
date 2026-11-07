@@ -32,11 +32,15 @@ interface MBookingCodeStatusProps {
   onStatusChange: (status: BookingStatus) => void;
 }
 
-/** Booking code and the pending / confirmed toggle, side by side. */
+/**
+ * Booking code and the pending / confirmed toggle, one under the other: side
+ * by side the two words did not fit half a phone's width once each carried its
+ * status dot.
+ */
 export function MBookingCodeStatus({ t, code, onCodeChange, status, onStatusChange }: MBookingCodeStatusProps) {
   return (
-    <div className="mt-3 flex gap-2">
-      <div className="min-w-0 flex-1">
+    <div className="mt-3 flex flex-col gap-3">
+      <div className="min-w-0">
         <Eyebrow className="mb-[5px] uppercase">{t('reservations.confirmationCode')}</Eyebrow>
         <BookingCodeInput
           value={code}
@@ -45,19 +49,31 @@ export function MBookingCodeStatus({ t, code, onCodeChange, status, onStatusChan
           className={FIELD_CLS}
         />
       </div>
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0">
         <Eyebrow className="mb-[5px] uppercase">{t('reservations.status')}</Eyebrow>
-        <div className="flex rounded-full bg-[color:var(--m-ic)] p-[3px]">
+        {/* As tall as the code field beside it, the status colour in each option's dot. */}
+        <div
+          role="radiogroup"
+          aria-label={t('reservations.status')}
+          className="flex h-[42px] rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-[3px]"
+        >
           {(['pending', 'confirmed'] as const).map((s) => (
             <button
               key={s}
               type="button"
+              role="radio"
+              aria-checked={status === s}
               onClick={() => onStatusChange(s)}
-              className={`flex-1 rounded-full py-[7px] text-[0.71875rem] font-semibold ${
+              className={`flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full px-2 text-[length:calc(12px*var(--fs-scale-body,1))] font-semibold transition-colors ${
                 status === s ? 'bg-m-act text-m-actfg' : 'text-m-muted'
               }`}
             >
-              {t(`reservations.${s}`)}
+              <span
+                aria-hidden="true"
+                className="h-[7px] w-[7px] flex-none rounded-full"
+                style={{ background: s === 'confirmed' ? 'var(--m-st-confirmed)' : 'var(--m-st-pending)' }}
+              />
+              <span className="truncate">{t(`reservations.${s}`)}</span>
             </button>
           ))}
         </div>

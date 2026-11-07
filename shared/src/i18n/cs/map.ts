@@ -46,5 +46,7 @@ const map: TranslationStrings = {
   'map.webgl2.fallback':
     'Tento prohlížeč nenabízí WebGL2, které mapy GL potřebují, proto se mapy zobrazují pomocí Leafletu.',
   'map.webgl2.terrain': '3D potřebuje WebGL2, které tento prohlížeč nenabízí. Mapa zůstává ve 2D.',
+  'map.offlineBasemap': 'Offline mapa',
+  'map.offlineShowStored': 'Zobrazit offline mapu',
 };
 export default map;

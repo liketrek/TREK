@@ -8,7 +8,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addTransportShort': 'Nəqliyyat',
   'mobileTrip.allDays': 'Bütün günlər',
   'mobileTrip.today': 'Bu gün',
-  'mobileTrip.jumpToToday': 'Bu günə keç',
   'mobileTrip.assignedDays': 'Təyin edilmiş günlər',
   'mobileTrip.assignmentNotes': 'Günə aid qeydlər',
   'mobileTrip.bookingsEmpty': 'Hələ rezervasiya yoxdur',
@@ -20,8 +19,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.filesEmpty': 'Hələ fayl yoxdur',
   'mobileTrip.filesNext': 'Növbəti fayl',
   'mobileTrip.filesPrev': 'Əvvəlki fayl',
-  'mobileTrip.googleMaps': 'Google Maps',
-  'mobileTrip.coMaps': 'CoMaps',
   'mobileTrip.icsDownload': '.ics faylını endir',
   'mobileTrip.icsSubscribe': 'Təqvimə abunə ol',
   'mobileTrip.icsSubscribeSub': 'Təqvim tətbiqinizdə avtomatik yenilənir',
@@ -84,6 +81,9 @@ const mobileTrip: TranslationStrings = {
     '{count} marşrut hissəsində bir cavaba sığmayacaq qədər nəticə var. Qalanlarını görmək üçün daha az növ seçin.',
   'mobileTrip.rtNoDay': 'Gün seçilməyib',
   'mobileTrip.rtNoDayHint': 'Xəritə bütün səyahəti göstərir. Avtomobil marşrutunu görmək üçün yuxarıdan bir gün seçin.',
+  'mobileTrip.maps': 'Xəritələr',
+  'mobileTrip.openRouteIn': 'Günü burada aç',
+  'mobileTrip.firstStopOnly': 'Yalnız ilk dayanacaq',
 };
 
 export default mobileTrip;

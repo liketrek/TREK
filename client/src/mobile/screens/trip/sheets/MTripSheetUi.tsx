@@ -17,8 +17,67 @@ export function Eyebrow({ children, className = '' }: { children: ReactNode; cla
   )
 }
 
+/** A text field of the sheets: 42 px, round, on the icon surface. */
+export const SHEET_FIELD =
+  'h-[42px] min-w-0 flex-1 rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[14px] text-[length:calc(13px*var(--fs-scale-body,1))] font-medium text-m-ink outline-none placeholder:text-m-faint'
+/** The filled action with a label. Never icon-only: its padding leaves an icon no room in a circle, use SHEET_ROUND_PRIMARY. */
+export const SHEET_PRIMARY =
+  'flex h-[42px] flex-none items-center gap-1.5 rounded-full bg-m-act px-4 text-[length:calc(13px*var(--fs-scale-body,1))] font-semibold text-m-actfg disabled:opacity-40'
+/** The round, filled icon button next to a picker or field: invite, add. */
+export const SHEET_ROUND_PRIMARY =
+  'flex h-[42px] w-[42px] flex-none items-center justify-center rounded-full bg-m-act text-m-actfg disabled:opacity-40'
+/** The quiet action with a label: add, invite, end. Full width in a section. */
+export const SHEET_SECONDARY =
+  'flex h-[42px] items-center justify-center gap-1.5 rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-4 text-[length:calc(13px*var(--fs-scale-body,1))] font-semibold text-m-ink disabled:opacity-40'
+/** A destructive action with a label: the quiet button's shape, the danger colour on its text. */
+export const SHEET_DANGER =
+  'flex h-[42px] items-center justify-center gap-1.5 rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-4 text-[length:calc(13px*var(--fs-scale-body,1))] font-semibold text-[color:var(--m-st-danger)] disabled:opacity-40'
+/** The quiet round icon action of a row: remove, rename, make owner. */
+export const SHEET_ROUND =
+  'flex h-[42px] w-[42px] flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-muted disabled:opacity-40'
+/** A small badge inside a row (owner, you). */
+export const SHEET_PILL =
+  'flex h-[22px] flex-none items-center gap-[3px] rounded-full px-[8px] font-geist text-[length:calc(9.5px*var(--fs-scale-caption,1))] font-bold uppercase tracking-[.06em]'
+
+/** A titled block of the sheet: the eyebrow, an optional line under it and the content on the inner surface. */
+export function SheetSection({
+  title,
+  count,
+  hint,
+  children,
+}: {
+  /** Left out where each field below carries its own label. */
+  title?: string
+  /** How many there are, as a small badge next to the title rather than glued onto it. */
+  count?: number
+  hint?: string
+  children: ReactNode
+}) {
+  return (
+    <section className={`rounded-[18px] p-3 ${INNER_CLS}`}>
+      {title && (
+      <div className="flex items-center gap-1.5">
+        <Eyebrow className="uppercase">{title}</Eyebrow>
+        {count != null && (
+          <span className="flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-[color:var(--m-ic)] px-[5px] font-geist text-[length:calc(9.5px*var(--fs-scale-caption,1))] font-bold text-m-muted">
+            {count}
+          </span>
+        )}
+      </div>
+      )}
+      {hint && (
+        <p className="mt-1 font-geist text-[length:calc(11px*var(--fs-scale-caption,1))] leading-snug text-m-muted">
+          {hint}
+        </p>
+      )}
+      <div className={`${title || hint ? 'mt-2.5 ' : ''}flex flex-col gap-2`}>{children}</div>
+    </section>
+  )
+}
+
 interface TileHeaderProps {
-  icon: ReactNode
+  /** Left out for a plain picker; every other sheet shows its icon tile. */
+  icon?: ReactNode
   title: ReactNode
   sub?: ReactNode
   /** Let a sentence-length subtitle wrap instead of truncating it to one line. */
@@ -39,9 +98,11 @@ interface TileHeaderProps {
 export function TileHeader({ icon, title, sub, subWrap = false, onClose, closeLabel }: TileHeaderProps) {
   return (
     <div className="flex items-center gap-3">
-      <div className="flex h-10 w-10 flex-none items-center justify-center rounded-[13px] bg-[color:var(--m-ic)]">
-        {icon}
-      </div>
+      {icon && (
+        <div className="flex h-10 w-10 flex-none items-center justify-center rounded-[13px] bg-[color:var(--m-ic)]">
+          {icon}
+        </div>
+      )}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-[6px] text-[1.0625rem] font-bold leading-tight">{title}</div>
         {sub && (

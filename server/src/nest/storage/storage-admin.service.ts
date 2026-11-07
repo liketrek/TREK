@@ -4,6 +4,7 @@ import { UnitOfWork } from '../database/unit-of-work';
 import { StorageJobsService } from './storage-jobs.service';
 import { getSeedConfigPath } from './storage-paths';
 import { ephemeralDriverFor, probeDriver, type ProbeTargetResult } from './storage-probe';
+import { StorageReclaimService } from './storage-reclaim.service';
 import { BACKENDS_KEY, CATEGORIES_KEY, VERSION_KEY, StorageRegistryService } from './storage-registry.service';
 import {
   assertNoMaskSentinels,
@@ -43,6 +44,7 @@ export class StorageAdminService {
     private readonly jobs: StorageJobsService,
     private readonly stats: StorageStatsService,
     private readonly uow: UnitOfWork,
+    private readonly reclaim: StorageReclaimService,
   ) {}
 
   /** The effective world — secrets masked, categories cross-referenced per backend. */
@@ -63,6 +65,7 @@ export class StorageAdminService {
       health: { replicaFailures: this.storage.health().replicaFailures.map((f) => ({ ...f })) },
       seedFilePresent: fs.existsSync(getSeedConfigPath()),
       usage: await this.stats.readUsage(),
+      reclaim: await this.reclaim.state(),
       backfills: this.jobs.statuses(),
       migrations: this.jobs.migrationStatuses(),
       version: await this.registry.currentConfigVersion(),

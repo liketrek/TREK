@@ -89,7 +89,7 @@ export const APP_SETTINGS = {
   webauthn_origins: { schema: text, default: null, adminForm: true, managedLocked: true },
   // 'auto' (what every install had before Amap existed), 'google', 'amap' or
   // 'openstreetmap'; the maps domain validates it (isPlacesProviderChoice).
-  places_provider: { schema: text, default: 'auto', adminForm: true, publicConfig: true },
+  places_provider: { schema: text, default: 'auto', adminForm: true, publicConfig: true, managedLocked: true },
 
   // Read by name elsewhere.
   oidc_issuer: { schema: text, default: null, env: (e) => e.oidc.issuer, publicConfig: true },
@@ -141,11 +141,13 @@ export const APP_SETTINGS = {
   ai_siwc_host_id: { schema: text, default: null },
   // Community enrichment of place details (place-contrib). The installation's decision as the
   // JSON of placeContribConsentSchema, off until an admin agrees; per admin, when their
-  // "not now" ends; and why sending waits although an admin agreed (a refused key, a pause
-  // the service asked for). None is the operator's to set on a managed install.
+  // "not now" ends; why sending waits although an admin agreed (a refused key, a pause
+  // the service asked for); and how far the catch-up of values typed before the agreement
+  // got. None is the operator's to set on a managed install.
   places_contribute: { schema: text, default: null },
   places_contribute_snooze: { schema: text, default: null },
   places_contribute_pause: { schema: text, default: null },
+  places_contribute_backfill: { schema: text, default: null },
   /** This installation's key towards the liketrek services, issued on first use (service-identity). */
   service_key: { schema: text, default: null, encrypted: 'always', managedLocked: true },
   /** The key's bookkeeping as JSON: when to renew, when to ask again after a refusal, a revocation. */

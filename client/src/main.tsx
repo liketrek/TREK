@@ -39,6 +39,7 @@ import './styles/hike.css'
 // double-tap zooms (#1440). See utils/touchDragPolyfill.ts.
 import { maybeInstallTouchDragPolyfill } from './utils/touchDragPolyfill'
 import { startConnectivityProbe } from './sync/connectivity'
+import { startNativeApp } from './native/nativeApp'
 import { requestPersistentStorage } from './sync/persistentStorage'
 import ErrorBoundary, { RootErrorFallback } from './components/shared/ErrorBoundary'
 import { installGlobalErrorHandlers } from './utils/globalErrorHandlers'
@@ -46,6 +47,8 @@ import { schedulePrecacheRepair } from './utils/serviceWorkerShell'
 
 void maybeInstallTouchDragPolyfill()
 startConnectivityProbe()
+// Inside the iOS/Android app: splash, back button, status bar, offline start (iOS).
+startNativeApp()
 // Keep offline data (map tiles, file blobs, IndexedDB) exempt from eviction.
 void requestPersistentStorage()
 // Event handlers and async code never reach a boundary; this is where they land.

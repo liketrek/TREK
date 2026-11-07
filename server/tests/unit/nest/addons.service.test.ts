@@ -375,6 +375,15 @@ describe('AddonsService.list', () => {
     expect(listSpy).not.toHaveBeenCalled();
     listSpy.mockRestore();
   });
+
+  it('names the photo providers users can connect: the enabled ones, none while the journey addon is off', async () => {
+    await insertProvider({ id: 'immich', name: 'Immich', icon: 'image', enabled: 1 });
+    await insertProvider({ id: 'off-provider', name: 'Off', icon: 'image', enabled: 0 });
+    expect(await svc.enabledPhotoProviderIds()).toEqual([]);
+
+    stubJourneyEnabled();
+    expect(await svc.enabledPhotoProviderIds()).toEqual(['immich']);
+  });
 });
 
 // Direct coverage of the enablement reads/writers relocated from
@@ -423,6 +432,22 @@ describe('AddonsService addon/feature flags', () => {
     await svc.updateToursWanderer(false);
     expect(await svc.isWandererAvailable()).toBe(false);
     expect((await svc.list()).toursWanderer).toBe(false);
+  });
+
+  it('wanderer is never available on a managed install, whatever the stored switch says', async () => {
+    const saved = process.env.TREK_MANAGED;
+    try {
+      await insertAddon({ id: 'tours', name: 'Tours', enabled: 1 });
+      await svc.updateToursWanderer(true);
+      expect(await svc.isWandererAvailable()).toBe(true);
+
+      process.env.TREK_MANAGED = '1';
+      expect(await svc.isWandererAvailable()).toBe(false);
+      expect((await svc.list()).toursWanderer).toBe(false);
+    } finally {
+      if (saved === undefined) delete process.env.TREK_MANAGED;
+      else process.env.TREK_MANAGED = saved;
+    }
   });
 
   it('OpenHikingMap under Tours is on until an admin switches it off, and offered only with Tours (MAP-01)', async () => {

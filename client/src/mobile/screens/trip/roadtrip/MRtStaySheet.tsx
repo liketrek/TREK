@@ -150,7 +150,7 @@ export default function MRtStaySheet({ planner, shell }: MTripSheetsProps) {
       open={open && !!stop}
       onClose={shell.closeSheet}
       variant="bottom"
-      material="opaque"
+      material="glass"
       // Named for what it holds: a stop left at a set time has no stay to add.
       ariaLabel={leave.until ? t('roadtrip.stop.stay') : t('roadtrip.stay.add')}
     >

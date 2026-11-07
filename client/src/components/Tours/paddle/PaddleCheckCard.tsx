@@ -8,6 +8,7 @@ import type {
 } from '@trek/shared';
 import { AlertTriangle, CloudOff, LifeBuoy, ListChecks, Loader2, PencilLine, Save, WifiOff } from 'lucide-react';
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useDateFormat } from '../../../hooks/useDateFormat';
 import { useTranslation } from '../../../i18n';
 import { useSettingsStore } from '../../../store/settingsStore';
 import { formatDistance } from '../../../utils/units';
@@ -81,8 +82,9 @@ function rowKey(row: ChecklistRow, index: number): string {
 /** The sentence the checklist's state calls for. */
 function CheckNoticeLine({ notice, evaluatedAt }: { notice: CheckNotice; evaluatedAt: string | null }) {
   const { t, locale } = useTranslation();
+  const dateFormat = useDateFormat();
   const { textKey, icon, role } = NOTICES[notice];
-  const time = evaluatedAt ? formatCheckDate(evaluatedAt, locale) : '';
+  const time = evaluatedAt ? formatCheckDate(evaluatedAt, locale, dateFormat) : '';
   return (
     <TourNotice role={role} icon={icon}>
       {t(textKey, { time })}
@@ -311,11 +313,12 @@ function EarlierDecisions({
 /** A route without rows: nothing known where the data covers it, no data where there is none; else the data line speaks. */
 function EmptyLine({ summary }: { summary: PaddleCheck | null }) {
   const { t, locale } = useTranslation();
+  const dateFormat = useDateFormat();
   let text: string | null = null;
   if (summary?.data === 'none') text = t('tours.paddle.obstacles.none');
   else if (summary?.data === 'covered') {
     const date = summary.data_as_of
-      ? formatCheckDate(summary.data_as_of, locale)
+      ? formatCheckDate(summary.data_as_of, locale, dateFormat)
       : t('tours.paddle.obstacles.dateUnknown');
     text = t('tours.paddle.obstacles.coveredEmpty', { date });
   }

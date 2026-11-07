@@ -1,4 +1,4 @@
-import { splitEqualShares, sumMinor, toMinor } from '@trek/shared';
+import { currencyDecimals, splitEqualShares, sumMinor, toMinor } from '@trek/shared';
 
 /**
  * Re-denominate whole trip-currency cents into whole display-currency cents
@@ -41,7 +41,7 @@ export function sumMoney(amounts: number[]): number {
  * a won and rounded one by one on screen stops adding up (#2604). In the trip's own
  * currency the remainders are integers, so booking what is offered clears it.
  */
-export function allocateDisplayCents(cents: number[], factor: number, total?: number, unit = 1): number[] {
+function allocateDisplayCents(cents: number[], factor: number, total?: number, unit = 1): number[] {
   if (factor === 1 && unit === 1) return [...cents];
   const exact = cents.map((c) => (c * factor) / unit);
   const out = exact.map((v) => Math.floor(v));
@@ -159,8 +159,158 @@ export function tripConverter(
  * Units of `to` per 1 `from`, from a set of rates quoted against any base (each rate is
  * units of that currency per 1 base). Null when either quote is missing.
  */
-export function quoteRatio(rates: Record<string, number> | null, to: string, from: string): number | null {
+function quoteRatio(rates: Record<string, number> | null, to: string, from: string): number | null {
   const rTo = rates?.[to];
   const rFrom = rates?.[from];
   return rTo && rTo > 0 && rFrom && rFrom > 0 ? rTo / rFrom : null;
+}
+
+/**
+ * How a settlement reads its currencies: the display currency it answers in, the factor
+ * from trip cents into it, and the converters for expenses and recorded transfers.
+ * `calculateSettlement` nets with these; they are pure, so they live here.
+ */
+export function settlementFx(opts: {
+  base?: string;
+  rates?: Record<string, number> | null;
+  tripCurrency?: string;
+  baseRate?: number;
+}) {
+  const requested = (opts.base || opts.tripCurrency || 'EUR').toUpperCase();
+  const tripCurrency = (opts.tripCurrency || requested).toUpperCase();
+  const rates = opts.rates ?? null;
+  // Net the whole settlement in the trip's canonical currency and convert the final
+  // totals to the display currency once, instead of netting in the (moving) display
+  // currency. Otherwise per-expense rounding shifts as live FX drifts and the greedy
+  // debt-simplifier reshuffles it into phantom third-party micro-flows (#1382). When
+  // the display currency IS the trip currency (the common case) every conversion below
+  // is the identity, so behaviour is unchanged.
+  // rates[X] = units of X per 1 base; the frozen exchange_rate is units of item-currency
+  // per 1 trip-currency. Pre-rework rows store currency = NULL = "the trip's own currency".
+  // Prefer the FX rate frozen at entry time (#1335): a settled expense keeps the rate
+  // it was booked at, so a later live-rate drift doesn't re-open it with a residual.
+  // Legacy rows without a frozen rate convert via base with live rates.
+  const converterFor = (itemCurrency: string | null | undefined, itemRate?: number | null) =>
+    tripConverter(itemCurrency, itemRate, tripCurrency, rates);
+  // trip-currency → display currency, applied once to the final netted totals.
+  // Held as a plain factor so it is exactly linear: the balances are converted as
+  // one set (allocateDisplayCents) rather than one at a time, which is what keeps
+  // them adding up to zero in whatever currency the viewer picked (#1382).
+  //
+  // `rates` may be quoted against any base; the ratio of the two quotes is the
+  // factor either way. Callers pass the trip currency's own quote (see settlement()),
+  // the one freezeForeignRate froze every entry rate from, so a bill entered today in
+  // the display currency converts back to exactly what was typed (#2525). Taken the
+  // other way round, from the display currency's quote, the two quotes are not exact
+  // inverses and 12,345.67 USD came back as 12,346.06.
+  //
+  // Without a quote, the caller's own figure for the pair (`baseRate`) stands in for
+  // the missing display quote, and for nothing else: a row with a currency of its own
+  // is never converted with it. Like a live quote, it also reads a legacy transfer
+  // without a currency, which is taken to be in the display currency. With neither,
+  // the answer stays in the trip currency and says so, rather than printing trip cents
+  // as the display currency.
+  const baseRate = opts.baseRate != null && Number.isFinite(opts.baseRate) && opts.baseRate > 0 ? opts.baseRate : null;
+  const quoted = requested === tripCurrency ? 1 : (quoteRatio(rates, requested, tripCurrency) ?? baseRate);
+  const currency = quoted === null ? tripCurrency : requested;
+  const displayFactor = quoted ?? 1;
+  // Every figure goes out in whole steps of that currency: whole won or yen (#2604).
+  const displayUnit = 10 ** Math.max(0, 2 - currencyDecimals(currency));
+  const toDisplay = (cents: number[], total?: number) => allocateDisplayCents(cents, displayFactor, total, displayUnit);
+  // An expense entered in the display currency itself is owed in that currency
+  // (#2965). Booked through the trip currency at its frozen rate and back at
+  // today's, 1,081.09 EUR on a yen trip came back a day later as 1,078.86 EUR,
+  // and a repayment of exactly what was typed left 2.23 EUR owed. Such rows are
+  // netted apart, in whole display cents as entered; every other row still nets
+  // in trip cents and converts once, so Σ balances stays 0 in both halves.
+  const direct = currency !== tripCurrency ? currency : null;
+  const isDirect = (rowCurrency: string | null | undefined) =>
+    direct !== null && (rowCurrency || tripCurrency).toUpperCase() === direct;
+  // A recorded settle-up amount is entered in whatever display currency the payer
+  // was viewing. New rows capture that currency and the rate frozen at settle time
+  // (#1445), so a settled position stays balanced when live rates drift — mirroring
+  // the expenses; a frozen currency without a usable rate falls back to live rates,
+  // and without those the transfer is left out like an expense. Legacy rows
+  // (currency = NULL) have no frozen rate, so fall back to the old behaviour: assume
+  // they were entered in the current display base and convert with live rates, by the
+  // inverse of the display factor, so such a transfer reads back as entered.
+  const settleConverterFor = (sCurrency?: string | null, sRate?: number | null) =>
+    sCurrency ? tripConverter(sCurrency, sRate, tripCurrency, rates) : (amount: number) => amount / displayFactor;
+  return { currency, displayFactor, displayUnit, toDisplay, converterFor, settleConverterFor, isDirect };
+}
+
+/** One member's settlement ledger: trip-currency cents and display-currency hundredths. */
+interface LedgerHalves {
+  cents: number;
+  direct: number;
+}
+
+/** What `netOppositeHalves` hands back when nothing moves. */
+const NOTHING_BACK = { back: 0, backExact: 0 } as const;
+
+/**
+ * When the two halves point opposite ways between a pair (the payer is owed in
+ * display-currency expenses but owes more in the trip currency: one paid a euro train,
+ * the other a yen hotel), a transfer in the display currency settles the net of both.
+ * The display-currency credit then moves into the trip half at this transfer's frozen
+ * rate, against the trip debt it was netted with. Left where it was, it stayed fixed
+ * while the yen it offset floated with the live rate, and a settled trip reopened as
+ * soon as the rate moved (#1445). Only as much moves as both halves hold, in whole
+ * steps of the display currency, so neither side ends up owing the other way.
+ *
+ * Only for a transfer in the display currency that moves money (`applies`). Moves it
+ * on `from` and `to` and returns the hundredths moved (`back`) and their exact
+ * trip-currency value in cents (`backExact`).
+ */
+function netOppositeHalves(
+  applies: boolean,
+  from: LedgerHalves,
+  to: LedgerHalves,
+  convert: (amount: number) => number,
+  displayUnit: number,
+): { back: number; backExact: number } {
+  if (!applies) return NOTHING_BACK;
+  const directRoom = Math.min(from.direct, -to.direct);
+  const tripRoom = Math.min(-from.cents, to.cents);
+  if (directRoom <= 0 || tripRoom <= 0) return NOTHING_BACK;
+  const fits = Math.round(tripRoom / convert(1) / displayUnit) * displayUnit;
+  const back = Math.max(0, Math.min(directRoom, fits));
+  const backExact = convert(back / 100) * 100;
+  const backTrip = Math.round(backExact);
+  from.direct -= back;
+  to.direct += back;
+  from.cents += backTrip;
+  to.cents -= backTrip;
+  return { back, backExact };
+}
+
+/**
+ * Books one settle-up transfer on the payer's (`from`) and the receiver's (`to`) ledger.
+ * A transfer in the display currency first pays what the payer owes the receiver in
+ * display-currency expenses, as typed (#2965), in whole steps of the display currency
+ * like the direct half it pays (#2604). Only the rest goes through the trip currency at
+ * its frozen rate, which keeps a debt in the trip currency settled when rates move
+ * (#1445), rounded to a trip cent per transfer so no sliver of a cent builds up over a
+ * trip. Halves pointing opposite ways then settle as their net (`netOppositeHalves`).
+ */
+export function applyTransfer(
+  from: LedgerHalves,
+  to: LedgerHalves,
+  amount: number,
+  inDisplay: boolean,
+  convert: (amount: number) => number,
+  displayUnit: number,
+): { paidDirect: number; exact: number; back: number; backExact: number } {
+  const total = Math.round(amount * 100);
+  const room = inDisplay ? Math.max(0, Math.min(-from.direct, to.direct)) : 0;
+  const paidDirect = total > 0 ? Math.floor(Math.min(total, room) / displayUnit) * displayUnit : 0;
+  from.direct += paidDirect;
+  to.direct -= paidDirect;
+  const rest = total === 0 ? 0 : (total - paidDirect) / total;
+  const exact = convert(amount) * 100 * rest;
+  const inTrip = Math.round(exact);
+  from.cents += inTrip;
+  to.cents -= inTrip;
+  const { back, backExact } = netOppositeHalves(inDisplay && total > 0, from, to, convert, displayUnit);
+  return { paidDirect, exact, back, backExact };
 }

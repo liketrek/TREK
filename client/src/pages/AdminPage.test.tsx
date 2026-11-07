@@ -1837,4 +1837,12 @@ describe('AdminPage', () => {
     await screen.findByRole('button', { name: /^users$/i });
     expect(screen.queryByRole('button', { name: /^storage$/i })).not.toBeInTheDocument();
   });
+
+  it('FE-PAGE-ADMIN-STOR-003: managed mode hides the Plugins tab, and ?tab=plugins falls back to Users', async () => {
+    seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin(), managed: true });
+    render(<AdminPage />, { initialEntries: ['/admin?tab=plugins'] });
+    await screen.findByRole('button', { name: /^users$/i });
+    expect(screen.queryByRole('button', { name: /^plugins$/i })).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('heading', { name: /plugins/i })).not.toBeInTheDocument());
+  });
 });

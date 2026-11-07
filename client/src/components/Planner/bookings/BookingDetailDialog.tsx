@@ -20,7 +20,7 @@ import { formatMoney, formatTime } from '../../../utils/formatters'
 import { copyText } from '../../../utils/clipboard'
 import { fmtTransitDuration } from '../transitDisplay'
 import { parseMeta, displayTitle } from './bookingsModel'
-import { formatDay, type BookingFacts } from './bookingFacts'
+import { stayStats, type BookingFacts } from './bookingFacts'
 import { AirTrailPill, BOX, Eyebrow, Field, FileRows, ReviewPill, TravelerChips, fs, toneOf } from './bookingParts'
 import { TransitLegs, transitSummary } from './transitParts'
 import { BookingDialogHeader, StatusPill, TypePill } from './BookingDialogShell'
@@ -79,10 +79,7 @@ export default function BookingDetailDialog(p: BookingDetailDialogProps) {
 
   const stats: { value: string; label: string }[] = []
   if (facts.isHotel) {
-    if (facts.startDate) stats.push({ value: formatDay(facts.startDate, locale, false), label: t('reservations.meta.checkIn') + (meta.check_in_time ? ` ${meta.check_in_time}` : '') })
-    if (facts.endDate) stats.push({ value: formatDay(facts.endDate, locale, false), label: t('reservations.meta.checkOut') + (meta.check_out_time ? ` ${meta.check_out_time}` : '') })
-    const nights = nightsBetween(facts.startDate, facts.endDate)
-    if (nights) stats.push({ value: String(nights), label: t('reservations.nights', { count: nights }) })
+    stats.push(...stayStats(facts, meta, t, locale))
   } else {
     const from = facts.endpoints[0]
     const to = facts.endpoints[facts.endpoints.length - 1]
@@ -318,8 +315,3 @@ function DetailField({ label, children }: { label: string; children: ReactNode }
   )
 }
 
-function nightsBetween(a: string | null, b: string | null): number {
-  if (!a || !b) return 0
-  const n = Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 864e5)
-  return n > 0 ? n : 0
-}

@@ -156,5 +156,41 @@ const storage: TranslationStrings = {
   'storage.migrate.queued': 'Järjekorras: {categories}',
   'storage.migrate.queueDropped':
     'Järgmist teisaldamist ei saanud alustada — ülejäänud järjekord tühjendati: {categories}',
+  'storage.reclaim.title': 'Viiteta failid',
+  'storage.reclaim.hint':
+    'TREK otsib igal ööl üleslaaditud faile, mida ükski reis, koht, päevik, kogu ega kasutaja enam ei kasuta, näiteks pärast reisi kustutamist.',
+  'storage.reclaim.check': 'Kontrolli kohe',
+  'storage.reclaim.checked': 'Viimane kontroll: {age}',
+  'storage.reclaim.never': 'Pole veel kontrollitud',
+  'storage.reclaim.delete': 'Kustuta viiteta failid',
+  'storage.reclaim.deleteHint':
+    'Väljas teavitab öine kontroll ainult. Sees kustutatakse fail, mida pole nädala jooksul keegi kasutanud. TREKis kustutatud failid eemaldatakse mõlemal juhul päev hiljem, kui ükski tagasivõtmine neid enam tagasi tuua ei saa.',
+  'storage.reclaim.freeable': 'Vabastatav',
+  'storage.reclaim.waiting': 'Kasutamata alla nädala',
+  'storage.reclaim.deleted': 'Vabastatud viimase öise puhastusega',
+  'storage.reclaim.nothing': 'Viiteta faile ei leitud.',
+  'storage.reclaim.stopped': 'Viimane kontroll katkes ennatlikult, sest andmebaas taastati selle töö ajal.',
+  'storage.reclaim.skip.sources_missing': 'Vahele jäetud: kõigilt TREK-i osadelt ei saanud päringut teha',
+  'storage.reclaim.skip.shared_location': 'Vahele jäetud: jagab asukohta teise kategooriaga',
+  'storage.reclaim.skip.list_failed': 'Vahele jäetud: faile ei saanud loetleda',
+  'storage.reclaim.skip.source_failed': 'Vahele jäetud: päring ebaõnnestus',
+  'storage.reclaim.running': 'Kontrollin…',
+  'storage.reclaim.stoppedFailed': 'Viimane kontroll katkes vea tõttu. See käivitub uuesti täna öösel.',
+  'storage.reclaim.skip.foreign_install': 'Vahele jäetud: seda salvestusruumi kasutab teine TREK-i paigaldus',
+  'storage.reclaim.skip.owner_unknown': 'Vahele jäetud: TREK ei saanud seda salvestusruumi enda omaks märkida',
+  'storage.reclaim.skip.delete_failed': 'Peatatud: salvestusruum keeldus kustutamisest',
+  'storage.reclaim.skip.interrupted': 'Peatatud enne lõppu, arvud on osalised',
+  'storage.reclaim.confirmNeeded':
+    'Rohkem kui viiendik neist failidest paistab kasutamata. Siin ei kustutata midagi enne, kui kinnitad, et see on ootuspärane.',
+  'storage.reclaim.confirm': 'Kinnita',
+  'storage.reclaim.confirmed': 'Kinnitatud järgmiseks 14 päevaks.',
+  'storage.reclaim.error.reclaim_busy': 'Käib teine salvestusruumi töö. Proovi hetke pärast uuesti.',
+  'storage.reclaim.error.reclaim_demo': 'Demopaigaldusel pole saadaval.',
+  'storage.reclaim.error.reclaim_nothing_to_confirm': 'Kinnitada pole enam midagi. Käivita esmalt kontroll.',
+  'storage.reclaim.skip.backup_running': 'Vahele jäetud: varundus oli käimas',
+  'storage.reclaim.error.reclaim_confirm_stale':
+    'Arv on pärast kuvamist muutunud. Kontrolli uut näitu ja kinnita uuesti.',
+  'storage.reclaim.error.reclaim_install_unknown':
+    'TREK ei saanud oma paigalduse ID-d lugeda, seega ta ei kustuta midagi. Kontrolli andmekausta.',
 };
 export default storage;

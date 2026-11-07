@@ -5,6 +5,7 @@ import { lockBodyScroll } from '../../utils/bodyScrollLock'
 import { useTranslation } from '../../i18n'
 import { Tooltip } from './Tooltip'
 import { focusDialog, trapTab } from './dialogFocus'
+import { useLastOpen, usePresence } from './usePresence'
 
 const sizeClasses: Record<string, string> = {
   sm: 'max-w-sm',
@@ -36,7 +37,11 @@ interface ModalProps {
 }
 
 export default function Modal({ isOpen, ...frame }: ModalProps) {
-  return isOpen ? <ModalFrame {...frame} /> : null
+  const { mounted, closing } = usePresence(isOpen)
+  // While it leaves, the dialog shows what it showed last: its owner often
+  // clears the item in the same step that closes it.
+  const shown = useLastOpen(frame, isOpen)
+  return mounted ? <ModalFrame {...shown} closing={closing} /> : null
 }
 
 function ModalFrame({
@@ -47,7 +52,8 @@ function ModalFrame({
   footer,
   hideCloseButton = false,
   align = 'center',
-}: Omit<ModalProps, 'isOpen'>) {
+  closing = false,
+}: Omit<ModalProps, 'isOpen'> & { closing?: boolean }) {
   const { t } = useTranslation()
   const panelRef = useRef<HTMLDivElement>(null)
   const mouseDownTarget = useRef<EventTarget | null>(null)
@@ -55,8 +61,8 @@ function ModalFrame({
   const [focusedBefore] = useState(() => document.activeElement)
 
   const handleEsc = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'Escape') onClose()
-  }, [onClose])
+    if (e.key === 'Escape' && !closing) onClose()
+  }, [onClose, closing])
 
   useEffect(() => {
     document.addEventListener('keydown', handleEsc)
@@ -85,7 +91,7 @@ function ModalFrame({
       // click-away, the panel only keeps that click from reaching it. Escape
       // and the header's close button are the keyboard route out.
       role="presentation"
-      className={`fixed inset-0 z-[10000] flex items-start ${align === 'top' ? '' : 'sm:items-center'} justify-center px-4 trek-modal-backdrop trek-backdrop-enter bg-[rgba(15,23,42,0.5)]`}
+      className={`fixed inset-0 z-[10000] flex items-start ${align === 'top' ? '' : 'sm:items-center'} justify-center px-4 trek-modal-backdrop trek-backdrop-enter bg-[rgba(15,23,42,0.5)] ${closing ? 'trek-backdrop-exit pointer-events-none' : ''}`}
       style={{ paddingTop: 70, paddingBottom: 'calc(20px + var(--bottom-nav-h))', overflow: 'hidden' }}
       onMouseDown={e => { mouseDownTarget.current = e.target }}
       onClick={e => {
@@ -99,7 +105,7 @@ function ModalFrame({
         tabIndex={-1}
         onKeyDown={e => { if (panelRef.current) trapTab(e, panelRef.current) }}
         className={`
-          trek-modal-enter outline-none
+          trek-modal-enter ${closing ? 'trek-modal-exit' : ''} outline-none
           rounded-2xl overflow-hidden shadow-2xl w-full ${sizeClasses[size] || sizeClasses.md}
           flex flex-col
           max-h-[calc(100dvh-var(--bottom-nav-h)-90px)] sm:max-h-[calc(100dvh-90px)]

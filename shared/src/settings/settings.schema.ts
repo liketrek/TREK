@@ -35,6 +35,27 @@ export const DEFAULT_WEEK_START: WeekStart = 'monday';
 /** Date#getDay() of each value, the number a calendar grid computes with. */
 export const WEEK_START_DAY: Record<WeekStart, number> = { monday: 1, sunday: 0, saturday: 6 };
 
+/**
+ * How a date is written wherever TREK writes one in numbers: every date field,
+ * shown and typed, and every numeric date in lists, cards and exports (#2971).
+ * 'auto' follows the interface language, which is what every date did before
+ * the setting existed (English is en-US, so mm/dd/yyyy). The others name their
+ * own order and separator. Dates written with a month name ("3 Nov") keep the
+ * language's wording either way.
+ */
+export const DATE_FORMAT_VALUES = [
+  'auto',
+  'YYYY-MM-DD',
+  'YYYY/MM/DD',
+  'DD.MM.YYYY',
+  'DD/MM/YYYY',
+  'MM/DD/YYYY',
+] as const;
+export type DateFormat = (typeof DATE_FORMAT_VALUES)[number];
+export const dateFormatSchema = z.enum(DATE_FORMAT_VALUES);
+/** What a user who never picked one gets. */
+export const DEFAULT_DATE_FORMAT: DateFormat = 'auto';
+
 // ── Responses ───────────────────────────────────────────────────────────────
 
 /** GET /api/settings: the user's preferences by key, each value as getUserSettings parsed it (secrets masked). */

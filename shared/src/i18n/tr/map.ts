@@ -44,5 +44,7 @@ const map: TranslationStrings = {
   'map.webgl2.fallback':
     "Bu tarayıcı GL haritalarının ihtiyaç duyduğu WebGL2'yi sunmuyor, bu yüzden haritalar Leaflet ile gösteriliyor.",
   'map.webgl2.terrain': '3D için WebGL2 gerekir, bu tarayıcı ise onu sunmuyor. Harita 2D olarak kalır.',
+  'map.offlineBasemap': 'Çevrimdışı harita',
+  'map.offlineShowStored': 'Çevrimdışı haritayı göster',
 };
 export default map;

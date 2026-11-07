@@ -84,6 +84,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': 'تنسيق الوقت',
   'settings.weekStart': 'يبدأ الأسبوع في',
   'settings.weekStartHint': 'أول أيام الأسبوع في جميع منتقيات التاريخ. لدى Vacay إعداد خاص به.',
+  'settings.dateFormat': 'تنسيق التاريخ',
+  'settings.dateFormatHint':
+    'طريقة كتابة التواريخ في جميع حقول التاريخ والقوائم. التواريخ التي تتضمن اسم الشهر تحتفظ بصياغة لغتك.',
+  'settings.dateFormatAuto': 'تلقائي',
   'settings.preferredNavApp': 'فتح الأماكن في',
   'settings.preferredNavAppAsk': 'اسأل في كل مرة',
   'settings.preferredNavAppHint': 'عند اختيار تطبيق، يفتحه زر التنقل مباشرةً بدلاً من عرض جميع تطبيقات الخرائط.',
@@ -682,6 +686,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': 'تم',
   'settings.mcp.deprecated': 'مهجور',
   'settings.offline.cache.dateRange': 'من {start} إلى {end}',
+  'settings.offline.tileStore.title': 'مربعات الخريطة المعروضة',
+  'settings.offline.tileStore.usage': '{used} من {limit} على هذا الجهاز، تُحفظ حتى 30 يومًا',
+  'settings.offline.tileStore.clear': 'مسح',
 };
 
 export default settings;

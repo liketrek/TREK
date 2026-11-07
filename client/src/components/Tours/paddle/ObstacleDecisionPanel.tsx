@@ -19,6 +19,7 @@ import {
   X,
 } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useDateFormat } from '../../../hooks/useDateFormat';
 import { useTranslation } from '../../../i18n';
 import { fs } from '../../shared/DialogShell';
 import { Tooltip } from '../../shared/Tooltip';
@@ -306,9 +307,10 @@ function decidedLine(
   decision: ObstacleDecisionRecord,
   memberName: (id: number | null) => string | null,
   t: Translate,
-  locale: string
+  locale: string,
+  dateFormat: string
 ): string {
-  const date = formatCheckDate(decision.decided_at, locale);
+  const date = formatCheckDate(decision.decided_at, locale, dateFormat);
   const name = memberName(decision.decided_by);
   return name ? t('tours.paddle.check.decidedBy', { date, name }) : t('tours.paddle.check.decidedAt', { date });
 }
@@ -330,10 +332,11 @@ function MetaLine({
   onNext: (() => void) | null;
 }) {
   const { t, locale } = useTranslation();
+  const dateFormat = useDateFormat();
   if (!decision && !onNext) return null;
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-content-faint" style={fs(10.5, 'body')}>
-      {decision && <span className="min-w-0">{decidedLine(decision, memberName, t, locale)}</span>}
+      {decision && <span className="min-w-0">{decidedLine(decision, memberName, t, locale, dateFormat)}</span>}
       {decision && clearable && (
         <button type="button" onClick={onClear} disabled={disabled} className={QUIET}>
           {t('tours.paddle.check.clear')}
@@ -386,6 +389,7 @@ export function ObstacleDecisionPanel({
   onPlanPortage: (() => void) | null;
 }) {
   const { t, locale } = useTranslation();
+  const dateFormat = useDateFormat();
   const locked = !canDecide || saving;
   const gone = entry.status === 'gone';
   const label = entry.name ?? t(`tours.paddle.obstacle.kind.${entry.kind}`);
@@ -421,7 +425,9 @@ export function ObstacleDecisionPanel({
         <FigureBadge
           testId="obstacle-on-site"
           label={t('tours.paddle.check.onSite')}
-          value={entry.local_check ? formatCheckDate(entry.local_check, locale) : t('tours.paddle.check.unknown')}
+          value={
+            entry.local_check ? formatCheckDate(entry.local_check, locale, dateFormat) : t('tours.paddle.check.unknown')
+          }
         />
       </div>
       {entry.decision && <NoteBlock key={entry.key} note={entry.decision.note} disabled={locked} onNote={onNote} />}

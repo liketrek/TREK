@@ -61,7 +61,7 @@ const reservations: TranslationStrings = {
   'reservations.type.car': 'Bil',
   'reservations.type.cruise': 'Kryssning',
   'reservations.type.event': 'Evenemang',
-  'reservations.type.tour': 'Rundtur',
+  'reservations.type.tour': 'Guidad tur',
   'reservations.type.parking': 'Parkering',
   'reservations.type.other': 'Övrigt',
   'reservations.type.bus': 'Buss',
@@ -274,5 +274,9 @@ const reservations: TranslationStrings = {
     'Filer behöver en anslutning för att laddas upp. Ta bort de nya för att spara bokningen offline, eller spara när du är online igen.',
   'reservations.needsConnection': 'Det här kräver en anslutning. Försök igen när TREK är online igen.',
   'reservations.exportCsvFiltered': 'Exportera de {shown} av {total} visade raderna (CSV)',
+  'reservations.wallet.add': 'Lägg till i Apple Wallet',
+  'reservations.wallet.addGoogle': 'Lägg till i Google Wallet',
+  'reservations.wallet.failed': 'Wallet-kortet kunde inte skapas. Försök igen.',
+  'reservations.wallet.undated': 'Ge bokningen ett datum först: Wallet visar kortet runt den tiden.',
 };
 export default reservations;

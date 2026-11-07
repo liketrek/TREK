@@ -81,5 +81,7 @@ const common: TranslationStrings = {
     'Το TREK ενημερώθηκε ενώ αυτή η καρτέλα ήταν ανοιχτή. Κάντε επαναφόρτωση για τη νέα έκδοση.',
   'common.errorPluginTitle': 'Δεν ήταν δυνατή η εμφάνιση αυτού του πρόσθετου',
   'common.needsConnection': 'Αυτό χρειάζεται σύνδεση. Δοκίμασε ξανά μόλις το TREK συνδεθεί ξανά.',
+  'common.errorDetails': 'Λεπτομέρειες',
+  'common.share': 'Κοινοποίηση',
 };
 export default common;

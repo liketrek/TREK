@@ -8,7 +8,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addTransportShort': 'Ulaşım',
   'mobileTrip.allDays': 'Tüm Günler',
   'mobileTrip.today': 'Bugün',
-  'mobileTrip.jumpToToday': 'Bugüne git',
   'mobileTrip.assignedDays': 'Atanan Günler',
   'mobileTrip.assignmentNotes': 'Güne özel notlar',
   'mobileTrip.bookingsEmpty': 'Henüz rezervasyon yok',
@@ -20,8 +19,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.filesEmpty': 'Henüz dosya yok',
   'mobileTrip.filesNext': 'Sonraki dosya',
   'mobileTrip.filesPrev': 'Önceki dosya',
-  'mobileTrip.googleMaps': 'Google Maps',
-  'mobileTrip.coMaps': 'CoMaps',
   'mobileTrip.icsDownload': '.ics indir',
   'mobileTrip.icsSubscribe': 'Takvime abone ol',
   'mobileTrip.icsSubscribeSub': 'Takvim uygulamanızda otomatik güncellenir',
@@ -83,5 +80,8 @@ const mobileTrip: TranslationStrings = {
     '{count} kesimde tek bir yanıta sığandan fazlası vardı. Geri kalanı görmek için daha az tür seçin.',
   'mobileTrip.rtNoDay': 'Gün seçilmedi',
   'mobileTrip.rtNoDayHint': 'Harita tüm yolculuğu gösteriyor. Günün sürüşünü görmek için yukarıdan bir güne dokunun.',
+  'mobileTrip.maps': 'Haritalar',
+  'mobileTrip.openRouteIn': 'Günü şurada aç',
+  'mobileTrip.firstStopOnly': 'Yalnızca ilk durak',
 };
 export default mobileTrip;

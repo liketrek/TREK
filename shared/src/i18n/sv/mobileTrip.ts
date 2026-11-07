@@ -8,7 +8,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addTransportShort': 'Transport', // same-as-en
   'mobileTrip.allDays': 'Alla dagar',
   'mobileTrip.today': 'Idag',
-  'mobileTrip.jumpToToday': 'Gå till idag',
   'mobileTrip.assignedDays': 'Tilldelade dagar',
   'mobileTrip.assignmentNotes': 'Dagsspecifika anteckningar',
   'mobileTrip.bookingsEmpty': 'Inga bokningar än',
@@ -20,8 +19,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.filesEmpty': 'Inga filer ännu',
   'mobileTrip.filesNext': 'Nästa fil',
   'mobileTrip.filesPrev': 'Föregående fil',
-  'mobileTrip.googleMaps': 'Google Maps',
-  'mobileTrip.coMaps': 'CoMaps',
   'mobileTrip.icsDownload': 'Ladda ner .ics',
   'mobileTrip.icsSubscribe': 'Prenumerera på kalender',
   'mobileTrip.icsSubscribeSub': 'Uppdateras automatiskt i din kalenderapp',
@@ -83,5 +80,8 @@ const mobileTrip: TranslationStrings = {
     '{count} sträcka hade mer än vad som får plats i ett svar. Välj färre sorter för att se resten.',
   'mobileTrip.rtNoDay': 'Ingen dag vald',
   'mobileTrip.rtNoDayHint': 'Kartan visar hela resan. Tryck på en dag ovanför för att se dess körning.',
+  'mobileTrip.maps': 'Kartor',
+  'mobileTrip.openRouteIn': 'Öppna dagen i',
+  'mobileTrip.firstStopOnly': 'Bara första stoppet',
 };
 export default mobileTrip;

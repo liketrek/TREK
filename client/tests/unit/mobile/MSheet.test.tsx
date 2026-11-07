@@ -2,6 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import MSheet from '../../../src/mobile/components/MSheet';
+import { closeTopOverlay } from '../../../src/mobile/overlayStack';
 
 // FE-MOB-SHEET-001 onwards
 
@@ -291,6 +292,149 @@ describe('MSheet', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(onCloseTop).toHaveBeenCalledTimes(1);
     expect(baseCalls).toEqual([]);
+  });
+
+  it('FE-MOB-SHEET-030: a way back (edge swipe, Android back) closes the open sheet first', () => {
+    const onClose = vi.fn();
+    const { rerender } = render(
+      <MSheet open onClose={onClose} ariaLabel="Back">
+        <span>Sheet content</span>
+      </MSheet>,
+    );
+    expect(closeTopOverlay()).toBe(true);
+    expect(onClose).toHaveBeenCalledTimes(1);
+    rerender(
+      <MSheet open={false} onClose={onClose} ariaLabel="Back">
+        <span>Sheet content</span>
+      </MSheet>,
+    );
+    expect(closeTopOverlay()).toBe(false);
+  });
+
+  describe('dragging the docked sheet', () => {
+    const touch = (y: number, x = 100) => ({ touches: [{ clientX: x, clientY: y }], changedTouches: [{ clientX: x, clientY: y }] });
+
+    function renderBottom(onClose = vi.fn(), content: React.ReactNode = <div>Sheet content</div>) {
+      HTMLElement.prototype.setPointerCapture = vi.fn();
+      render(
+        <MSheet open onClose={onClose} variant="bottom" ariaLabel="Bottom">
+          {content}
+        </MSheet>,
+      );
+      const dialog = screen.getByRole('dialog');
+      Object.defineProperty(dialog, 'offsetHeight', { configurable: true, value: 400 });
+      return { dialog, onClose };
+    }
+
+    it('FE-MOB-SHEET-022: a pull down on the content carries the sheet and throws it off past a third', () => {
+      const { dialog, onClose } = renderBottom();
+      const content = screen.getByText('Sheet content');
+
+      fireEvent.touchStart(content, touch(100));
+      fireEvent.touchMove(content, touch(140));
+      fireEvent.touchMove(content, touch(300));
+      expect(dialog.style.transform).toBe('translateY(160px)');
+
+      fireEvent.touchEnd(content, touch(300));
+      expect(onClose).toHaveBeenCalledTimes(1);
+      // Thrown from where the finger let go, not replayed from the rest position.
+      expect(dialog.style.transform).toMatch(/translateY\(\d+px\)/);
+      expect(dialog.className).not.toContain('m-sheet-down');
+    });
+
+    it('FE-MOB-SHEET-023: content scrolled down keeps its own scroll, and a sideways pan is let go', () => {
+      const { dialog, onClose } = renderBottom(vi.fn(), (
+        <div data-testid="list" style={{ overflowY: 'auto' }}>
+          <span>row</span>
+        </div>
+      ));
+      const list = screen.getByTestId('list');
+      Object.defineProperty(list, 'scrollHeight', { configurable: true, value: 900 });
+      Object.defineProperty(list, 'clientHeight', { configurable: true, value: 300 });
+      Object.defineProperty(list, 'scrollTop', { configurable: true, writable: true, value: 120 });
+
+      fireEvent.touchStart(screen.getByText('row'), touch(100));
+      fireEvent.touchMove(screen.getByText('row'), touch(200));
+      fireEvent.touchEnd(screen.getByText('row'), touch(200));
+
+      list.scrollTop = 0;
+      fireEvent.touchStart(list, touch(100, 100));
+      fireEvent.touchMove(list, touch(110, 160));
+      fireEvent.touchEnd(list, touch(110, 160));
+
+      expect(dialog.style.transform).toBe('');
+      expect(onClose).not.toHaveBeenCalled();
+    });
+
+    it('FE-MOB-SHEET-024: pulling up past the rest position only stretches a little', () => {
+      const { dialog } = renderBottom();
+      const strip = dialog.querySelector('.cursor-grab') as HTMLElement;
+
+      fireEvent.pointerDown(strip, { pointerId: 1, clientY: 300 });
+      fireEvent.pointerMove(strip, { pointerId: 1, clientY: 0 });
+
+      expect(dialog.style.transform).toBe('translateY(-20px)');
+    });
+
+    it('FE-MOB-SHEET-025: with unsaved changes a flick springs back and asks', () => {
+      HTMLElement.prototype.setPointerCapture = vi.fn();
+      const onClose = vi.fn();
+      function Form() {
+        const [name, setName] = React.useState('');
+        return (
+          <MSheet open onClose={onClose} variant="bottom" ariaLabel="Form" discardGuard={{ name }}>
+            <input aria-label="Name" value={name} onChange={e => setName(e.target.value)} />
+          </MSheet>
+        );
+      }
+      render(<Form />);
+      const input = screen.getByRole('textbox', { name: 'Name' });
+      fireEvent.pointerDown(input);
+      fireEvent.change(input, { target: { value: 'Porto' } });
+      const dialog = screen.getByRole('dialog', { name: 'Form' });
+      const strip = dialog.querySelector('.cursor-grab') as HTMLElement;
+
+      fireEvent.pointerDown(strip, { pointerId: 1, clientY: 100 });
+      fireEvent.pointerMove(strip, { pointerId: 1, clientY: 160 });
+      fireEvent.pointerUp(strip, { pointerId: 1, clientY: 160 });
+
+      expect(onClose).not.toHaveBeenCalled();
+      expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+      expect(dialog.style.transform).toBe('translateY(0px)');
+    });
+
+    it('FE-MOB-SHEET-027: a mouse pull that starts on a button carries the sheet and does not press it', () => {
+      const pressed = vi.fn();
+      const { dialog, onClose } = renderBottom(vi.fn(), <button type="button" onClick={pressed}>Go</button>);
+      const button = screen.getByRole('button', { name: 'Go' });
+
+      fireEvent.pointerDown(button, { pointerType: 'mouse', button: 0, clientX: 100, clientY: 100 });
+      fireEvent.pointerMove(window, { pointerType: 'mouse', clientX: 100, clientY: 140 });
+      fireEvent.pointerMove(window, { pointerType: 'mouse', clientX: 100, clientY: 300 });
+      expect(dialog.style.transform).toBe('translateY(160px)');
+      fireEvent.pointerUp(window, { pointerType: 'mouse', clientX: 100, clientY: 300 });
+      fireEvent.click(button);
+
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(pressed).not.toHaveBeenCalled();
+    });
+
+    it('FE-MOB-SHEET-028: a plain click on a button in the sheet still presses it', () => {
+      const pressed = vi.fn();
+      renderBottom(vi.fn(), <button type="button" onClick={pressed}>Go</button>);
+      const button = screen.getByRole('button', { name: 'Go' });
+
+      fireEvent.pointerDown(button, { pointerType: 'mouse', button: 0, clientX: 100, clientY: 100 });
+      fireEvent.pointerUp(window, { pointerType: 'mouse', clientX: 100, clientY: 101 });
+      fireEvent.click(button);
+
+      expect(pressed).toHaveBeenCalledTimes(1);
+    });
+
+    it('FE-MOB-SHEET-026: the docked sheet rises from below, the card pops in place', () => {
+      const { dialog } = renderBottom();
+      expect(dialog.className).toContain('m-sheet-up');
+    });
   });
 
   describe('the unsaved-changes question', () => {

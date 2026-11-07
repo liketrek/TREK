@@ -1,0 +1,20 @@
+/* The widget gallery: names and descriptions (TREKWidgets/NextTripWidget.swift). */
+"widget.trip.name" = "旅行";
+"widget.trip.description" = "次の旅行までをカウントダウンし、旅行中はその日の予定と次の行き先を表示します。";
+"widget.today.name" = "今日";
+"widget.today.description" = "今日の予定をタイムラインで、天気と次の予定とともに表示します。";
+"widget.bookings.name" = "予約";
+"widget.bookings.description" = "次のフライト、列車、ホテル、レストランとその日時。";
+"widget.todos.name" = "やること";
+"widget.todos.description" = "旅行のために残っていることと、荷造りの進み具合。";
+"widget.packing.name" = "持ち物";
+"widget.packing.description" = "バッグの詰め具合と重さ、まだ足りないもの。";
+"widget.atlas.name" = "世界地図";
+"widget.atlas.description" = "訪れた国が地図上で光ります。";
+"widget.collab.name" = "旅行グループ";
+"widget.collab.description" = "一緒に行くメンバー、最新のメッセージ、受付中の投票。";
+"widget.intent.title" = "旅行を選択";
+"widget.intent.description" = "このウィジェットに表示する旅行。";
+"widget.intent.trip" = "旅行";
+"widget.intent.auto" = "自動";
+"widget.intent.autoHint" = "ダッシュボードと同じ旅行";

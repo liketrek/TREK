@@ -1,6 +1,6 @@
 import { bookedInTrip, useExchangeRates } from '../../hooks/useExchangeRates'
 import { useTripStore } from '../../store/tripStore'
-import { currencyDecimals, formatMoney } from '../../utils/formatters'
+import { formatMoney } from '../../utils/formatters'
 
 /**
  * The conversion preview of the expense editors, shared by the desktop ExpenseModal and the
@@ -33,8 +33,8 @@ export interface ExpenseFx {
  * What the amount being edited will count as. An edit that keeps the currency keeps the rate
  * frozen when the expense was entered (the server re-freezes only when the currency changes),
  * so it is previewed at that rate, the way the list will show it after the save. Anything
- * else is previewed at today's rate. Null when there is nothing to convert, including a bill
- * in the display currency that still reads back as typed.
+ * else is previewed at today's rate. Null when there is nothing to convert, and for a bill in
+ * the display currency, which counts as typed (#2965).
  */
 export function expenseFxPreview(args: {
   total: number
@@ -46,12 +46,9 @@ export function expenseFxPreview(args: {
   convert: (amount: number, from: string | null | undefined) => number
 }): ExpenseFx | null {
   const { total, currency, editing, editingCurrency, tripCurrency, base, convert } = args
-  if (total === 0) return null
+  if (total === 0 || currency === base) return null
   const inTrip = editing && currency === editingCurrency ? bookedInTrip(total, currency, editing.exchange_rate, tripCurrency) : null
-  if (currency === base && inTrip == null) return null
   const shown = inTrip == null ? convert(total, currency) : convert(inTrip, tripCurrency)
-  const unit = 10 ** currencyDecimals(base)
-  if (currency === base && Math.round(shown * unit) === Math.round(total * unit)) return null
   return { inTrip, shown: inTrip != null && tripCurrency === base ? null : shown }
 }
 

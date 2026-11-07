@@ -6,6 +6,7 @@ import { castIntegerKysely, concatKysely, startsWithIsoDateKysely, substringKyse
 import { publicReservationExpr, publicStayExists, type ReservationVisibilityKyselyDB } from './_shared/reservation-visibility';
 import type { DayAssignmentRow } from './day-assignment-rows';
 import { TrekRepository } from './_shared/trek-repository';
+import { passContextQuery, type PassContextDB } from './_shared/reservation-pass-context';
 import type { DB } from '../kysely/db';
 import { ROADTRIP_RESERVATION_TYPES } from '@trek/shared';
 import type {
@@ -371,14 +372,13 @@ export interface SharePublicAccommodationRow {
 
 type SharePublicAccommodationKyselyDB = ReservationVisibilityKyselyDB & Pick<DB, 'day_accommodations' | 'places'>;
 
-/**
- * Plan 3h Task 4 (`AirportsService.backfillFlightEndpoints`, AIR1) —
- * additive. The `reservations`/`reservation_endpoints` tables the
- * `NOT EXISTS` guard reads.
- */
+/** `AirportsService.backfillFlightEndpoints` (AIR1): the tables its `NOT EXISTS` guard reads. */
 type FlightsMissingEndpointsKyselyDB = Pick<DB, 'reservations' | 'reservation_endpoints'>;
 
 export class ReservationsRepository extends TrekRepository<Reservations> {
+  // For its Wallet pass (_shared/reservation-pass-context.ts).
+  findPassContext(id: number, tripId: number) { return passContextQuery(this.kysely<PassContextDB>(), id, tripId); }
+
   private joinedQuery() {
     return this.kysely<ReservationJoinKyselyDB>()
       .selectFrom('reservations as r')

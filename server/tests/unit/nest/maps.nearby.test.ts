@@ -301,3 +301,17 @@ describe('nearby helpers', () => {
     expect(nearbyCacheKey(52.5163, 13.3777, 500, 20, 'de')).not.toBe(nearbyCacheKey(52.5163, 13.3777, 500, 20, 'en'));
   });
 });
+
+describe('MapsService.reverseGeocode on a repeated world copy (#2976)', () => {
+  it('MAPS-NEARBY-COPY-002: a right-click on a world copy is reverse geocoded on the real world, a real point as it came', async () => {
+    const svc = make();
+    const osm = (svc as unknown as { osm: { reverse: (...args: unknown[]) => Promise<unknown> } }).osm;
+    const reverse = vi.spyOn(osm, 'reverse').mockResolvedValue({ name: 'Manzanillo', address: null });
+
+    expect(await svc.reverseGeocode('10.14', '274.921875')).toEqual({ name: 'Manzanillo', address: null });
+    expect(reverse).toHaveBeenLastCalledWith('10.14', '-85.078125', undefined, undefined);
+
+    await svc.reverseGeocode('48.85', '2.3500');
+    expect(reverse).toHaveBeenLastCalledWith('48.85', '2.3500', undefined, undefined);
+  });
+});

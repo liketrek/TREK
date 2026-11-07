@@ -2,9 +2,12 @@ import { escapeHtml } from '@trek/shared';
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { adminApi, authApi } from '../../api/client';
+import { useDateFormat } from '../../hooks/useDateFormat';
 import { useTranslation } from '../../i18n';
 import { useAuthStore } from '../../store/authStore';
 import { getApiErrorMessage, type UserWithOidc } from '../../types';
+import { formatDisplayDateTime } from '../../utils/dateFormat';
+import { downloadBlob } from '../../utils/fileDownload';
 import { passwordErrorKey } from '../../utils/passwordError';
 import { useToast } from '../shared/Toast';
 
@@ -35,6 +38,7 @@ export function useAccountSettings({ avatarRemoveErrorKey, ignoreEmptyBackupCode
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const dateFormat = useDateFormat();
   const toast = useToast();
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
@@ -112,21 +116,14 @@ export function useAccountSettings({ avatarRemoveErrorKey, ignoreEmptyBackupCode
   const downloadBackupCodes = () => {
     if (skipBackupCodes) return;
     const blob = new Blob([backupCodesText + '\n'], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'trek-mfa-backup-codes.txt';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    downloadBlob(blob, 'trek-mfa-backup-codes.txt');
   };
 
   const printBackupCodes = () => {
     if (skipBackupCodes) return;
     const html = `<!doctype html><html><head><meta charset="utf-8"/><title>TREK MFA Backup Codes</title>
       <style>body{font-family:Arial,sans-serif;padding:32px}h1{font-size:20px}pre{font-size:16px;line-height:1.6}</style>
-      </head><body><h1>TREK MFA Backup Codes</h1><p>${escapeHtml(new Date().toLocaleString())}</p><pre>${escapeHtml(backupCodesText)}</pre></body></html>`;
+      </head><body><h1>TREK MFA Backup Codes</h1><p>${escapeHtml(formatDisplayDateTime(new Date(), undefined, {}, dateFormat))}</p><pre>${escapeHtml(backupCodesText)}</pre></body></html>`;
     const w = window.open('', '_blank', 'width=900,height=700');
     if (!w) return;
     w.document.open();

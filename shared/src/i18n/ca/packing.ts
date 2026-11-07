@@ -91,6 +91,7 @@ const packing: TranslationStrings = {
   'packing.sharedWithCount': 'compartit amb {count}',
   'packing.sharedWithCount.one': 'compartit amb {count}',
   'packing.broughtBy': 'portat per {name}',
+  'packing.bringersTitle': 'Ho porta',
   'packing.alsoBring': 'Jo també puc portar això',
   'packing.alsoBringingStop': 'Ja no ho porto',
   'packing.cloneToMine': 'Copiar a la meva llista',

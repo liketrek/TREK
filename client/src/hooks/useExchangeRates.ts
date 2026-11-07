@@ -142,6 +142,19 @@ export function convertBooked(
 }
 
 /**
+ * Whether a row was entered in the display currency (#2965). Such a row counts as typed:
+ * through the trip currency at its frozen rate and back at today's it drifted off the
+ * amount entered, and the balances, which net such rows as typed, would disagree.
+ */
+export function inDisplayCurrency(
+  rowCurrency: string | null | undefined,
+  tripCurrency: string,
+  displayCurrency: string,
+): boolean {
+  return ((rowCurrency || tripCurrency) || '').toUpperCase() === (displayCurrency || '').toUpperCase()
+}
+
+/**
  * The amount a row was booked at in the trip currency, when it was booked through one: a
  * foreign currency with a frozen rate. Null for a row in the trip currency, and for one
  * written before the freeze existed. A rate of exactly 1 is the column default, not a booked

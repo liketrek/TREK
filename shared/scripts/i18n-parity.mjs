@@ -34,13 +34,13 @@
 // first column of the file, matching the regex below). Nested objects, function
 // bodies, and inline comments are ignored. This matches how `t(key)` calls
 // resolve at runtime in TranslationContext.
-
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { getIntlLanguage } from '../src/i18n/languages.ts';
 import { allPluralCategories, integerPluralCategories, pluralFormOf, pluralGroups } from '../src/i18n/plural.ts';
 import { I18N_ROOT, listDomainFiles, listLocales, readCatalog } from './i18n-catalog.mjs';
 import { compare, countUntranslated, formatGrown, readBaseline } from './i18n-untranslated.mjs';
+
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 // Match a top-level translation key declaration: leading whitespace, then a
 // quoted key (must start with a lowercase letter), then a colon. This is the
@@ -95,6 +95,8 @@ export const NOT_PLURAL = [
   { key: 'help.center.step', because: 'the position of a step in a guide' },
   { key: 'help.center.stepOf', because: 'the position of a step in a guide' },
   { key: 'help.center.imageAlt', because: 'the position of a step in a guide' },
+  { key: 'native.widget.dayOf', because: 'the position of a day in the trip ("Day 2 of 5")' },
+  { key: 'native.widget.inDays', because: 'filled in by the native widget, which says "Tomorrow" for one day, so the number is always two or more' },
   { key: 'system_notice.pager.goto', because: 'the position of a notice in the pager' },
   { key: 'tours.addedToDay', because: 'the number of the day a tour was added to' },
   { key: 'tours.planner.waypointLabel', because: 'the position of a waypoint on the tour' },
@@ -102,6 +104,11 @@ export const NOT_PLURAL = [
   { key: 'dawarich.duration.hours', because: 'a duration in a unit symbol (h), the same for any number' },
   { key: 'dawarich.duration.hoursMinutes', because: 'a duration in unit symbols (h, min), the same for any number' },
   { key: 'files.uploadErrorSize', because: 'a size limit in a unit symbol (MB), the same for any number' },
+  { key: 'native.plans.storage', because: 'a storage size in a unit symbol (GB), the same for any number' },
+  {
+    key: 'native.plans.aiDocs',
+    because: 'a monthly document allowance, always in the tens, so no singular ever shows',
+  },
 ];
 
 /**
@@ -187,10 +194,7 @@ function checkParity() {
     if (locale === 'en') continue;
 
     const localeFiles = listDomainFiles(locale);
-    const { missing: missingFiles, extra: extraFiles } = diffSets(
-      new Set(enFiles),
-      new Set(localeFiles),
-    );
+    const { missing: missingFiles, extra: extraFiles } = diffSets(new Set(enFiles), new Set(localeFiles));
 
     if (missingFiles.length || extraFiles.length) {
       report.fileDrift.push({ locale, missing: missingFiles, extra: extraFiles });
@@ -278,7 +282,9 @@ function formatReport(report) {
     } else if (grown.length === 0) {
       lines.push(
         'Untranslated strings: OK' +
-          (lowerable ? ` (${lowerable} baseline entries can come down: node scripts/i18n-untranslated.mjs --update)` : ''),
+          (lowerable
+            ? ` (${lowerable} baseline entries can come down: node scripts/i18n-untranslated.mjs --update)`
+            : ''),
       );
     } else {
       lines.push('Untranslated strings: grew past scripts/i18n-untranslated-baseline.json');

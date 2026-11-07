@@ -1,4 +1,4 @@
-// FE-COMP-MAPCOMPASS-001 to FE-COMP-MAPCOMPASS-006
+// FE-COMP-MAPCOMPASS-001 to FE-COMP-MAPCOMPASS-007
 import React from 'react'
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, act } from '../../../tests/helpers/render'
@@ -84,5 +84,19 @@ describe('MapCompassPill', () => {
     expect(button.style.background).toBe('var(--bg-hover)')
     fireEvent.mouseLeave(button)
     expect(button.style.background).toBe('transparent')
+  })
+})
+
+describe('MapCompassPill on the phone map', () => {
+  it('FE-COMP-MAPCOMPASS-007: appears only while the map is turned off north', () => {
+    const { map, rotateTo } = fakeCompassMap(0)
+    render(<MapCompassPill map={map} onlyWhenRotated />)
+    expect(screen.queryByRole('button', { name: 'Reset north' })).not.toBeInTheDocument()
+
+    rotateTo(30)
+    expect(screen.getByRole('button', { name: 'Reset north' })).toBeInTheDocument()
+
+    rotateTo(0)
+    expect(screen.queryByRole('button', { name: 'Reset north' })).not.toBeInTheDocument()
   })
 })

@@ -85,5 +85,7 @@ const common: TranslationStrings = {
     'TREK обновился, пока эта вкладка была открыта. Обновите страницу, чтобы получить новую версию.',
   'common.errorPluginTitle': 'Не удалось показать этот плагин',
   'common.needsConnection': 'Для этого нужно подключение. Попробуйте ещё раз, когда TREK снова будет онлайн.',
+  'common.errorDetails': 'Подробности',
+  'common.share': 'Поделиться',
 };
 export default common;

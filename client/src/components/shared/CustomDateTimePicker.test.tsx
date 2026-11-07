@@ -819,3 +819,82 @@ describe('CustomDatePicker week start (#2029)', () => {
     expect(await openMarch2026('saturday')).toEqual({ header: 'SSMTWTF', blanks: 1 });
   });
 });
+
+// ─── Date format (#2971) ──────────────────────────────────────────────────────
+
+describe('CustomDatePicker date format (#2971)', () => {
+  const onChange = vi.fn();
+  const original = useSettingsStore.getState().settings;
+
+  beforeEach(() => vi.clearAllMocks());
+  afterEach(() => useSettingsStore.setState({ settings: original }));
+
+  const seed = (dateFormat: 'auto' | 'YYYY-MM-DD' | 'DD.MM.YYYY') =>
+    useSettingsStore.setState({ settings: { ...original, date_format: dateFormat } });
+
+  function typeDate(value: string) {
+    fireEvent.click(screen.getByRole('button', { name: /enter date manually/i }));
+    const input = screen.getByRole('textbox', { name: 'Enter date manually' });
+    fireEvent.change(input, { target: { value } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+  }
+
+  it('FE-COMP-DATEPICKER-036: the trigger writes the date in the chosen format', () => {
+    seed('YYYY-MM-DD');
+    render(<CustomDatePicker value="2026-11-03" onChange={onChange} />);
+    expect(screen.getAllByRole('button')[0].textContent).toContain('2026-11-03');
+  });
+
+  it('FE-COMP-DATEPICKER-037: compact mode writes the chosen format with the whole year', () => {
+    seed('DD.MM.YYYY');
+    render(<CustomDatePicker value="2026-11-03" onChange={onChange} compact />);
+    expect(screen.getByText('03.11.2026')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-DATEPICKER-038: the manual entry is hinted and pre-filled in the chosen format', () => {
+    seed('YYYY-MM-DD');
+    render(<CustomDatePicker value="2026-11-03" onChange={onChange} />);
+    fireEvent.click(screen.getByRole('button', { name: /enter date manually/i }));
+    const input = screen.getByRole('textbox', { name: 'Enter date manually' });
+    expect(input).toHaveProperty('placeholder', 'YYYY-MM-DD');
+    expect(input).toHaveProperty('value', '2026-11-03');
+  });
+
+  it('FE-COMP-DATEPICKER-039: a typed date is read in the order of the chosen format', () => {
+    seed('YYYY-MM-DD');
+    render(<CustomDatePicker value="" onChange={onChange} />);
+    typeDate('2026/11/04');
+    expect(onChange).toHaveBeenCalledWith('2026-11-04');
+  });
+
+  it('FE-COMP-DATEPICKER-040: day first under DD.MM.YYYY, even with an English interface', () => {
+    seed('DD.MM.YYYY');
+    render(<CustomDatePicker value="" onChange={onChange} />);
+    typeDate('04.11.2026');
+    expect(onChange).toHaveBeenCalledWith('2026-11-04');
+  });
+
+  it('FE-COMP-DATEPICKER-043: a four-digit year written first is read as year, month, day in any format', () => {
+    seed('DD.MM.YYYY');
+    render(<CustomDatePicker value="" onChange={onChange} />);
+    typeDate('2026/11/04');
+    expect(onChange).toHaveBeenCalledWith('2026-11-04');
+  });
+
+  it('FE-COMP-DATEPICKER-041: auto keeps the short month of the language on the trigger', () => {
+    seed('auto');
+    render(<CustomDatePicker value="2026-11-03" onChange={onChange} />);
+    expect(screen.getAllByRole('button')[0].textContent).toMatch(/Nov/);
+  });
+
+  it('FE-COMP-DATEPICKER-042: auto keeps the language for typing: month first in English', () => {
+    seed('auto');
+    render(<CustomDatePicker value="" onChange={onChange} />);
+    fireEvent.click(screen.getByRole('button', { name: /enter date manually/i }));
+    const input = screen.getByRole('textbox', { name: 'Enter date manually' });
+    expect(input).toHaveProperty('placeholder', 'MM/DD/YYYY');
+    fireEvent.change(input, { target: { value: '04.11.2026' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onChange).toHaveBeenCalledWith('2026-04-11');
+  });
+});

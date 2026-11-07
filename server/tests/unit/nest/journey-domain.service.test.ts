@@ -52,6 +52,7 @@ import {
 // ported from the reviewer's probe (scratchpad r3g/probe/zz-r3g-parity-probe.test.ts).
 import { todayUtc } from '@trek/shared';
 import { GALLERY_CHRONOLOGICAL_ORDER } from '../../helpers/legacy-gallery-order';
+import { releaseNothing } from '../../helpers/storage-release';
 import type { EntityClass, EntityDTO, FilterQuery, FindOptions, RequiredEntityData } from '@mikro-orm/core';
 import { countRows, deleteRows, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
 import { DayAssignments } from '../../../src/db/entities/DayAssignments.entity';
@@ -98,6 +99,7 @@ async function pickAll<T extends object, K extends keyof EntityDTO<T>>(
 }
 
 let svc: JourneyDomainService;
+const release = releaseNothing();
 // Plan 3g Task 1's own additions (below, "repositories (R9's parity + mutation
 // proofs)" describe block) reach the repositories directly — held here so
 // that block doesn't need its own second construction.
@@ -140,11 +142,9 @@ beforeAll(async () => {
   svc = new JourneyDomainService(
     new RealtimeService(), new TrekPhotoRegistrationService(t.repo(TrekPhotos), t.repo(TripPhotos), photosRepoDirect), await createTestUnitOfWork(testDb),
     journeysRepoDirect, contributorsRepoDirect, journeyTripsRepoDirect, entriesRepoDirect, tripsRepoDirect,
-    // Plan 3g Task 2's own append to this SAME construction call — the two
-    // repositories this task builds, plus `PlacesRepository` (JG44) — per
-    // R9, Task 2 only appends to what Task 1's construction already
-    // established, never re-touches the wrapping mechanism itself.
+    // The photos surface (JG87-116), `PlacesRepository` (JG44) and the storage release.
     photosRepoDirect, entryPhotosRepoDirect, placesRepoDirect,
+    release,
   );
 });
 

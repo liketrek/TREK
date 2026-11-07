@@ -74,7 +74,7 @@ export default function MRtCorridorSheet({ planner, shell }: MTripSheetsProps) {
       open={open}
       onClose={shell.closeSheet}
       variant="bottom"
-      material="opaque"
+      material="glass"
       ariaLabel={t('roadtrip.poi.title')}
     >
       <div className="flex-none px-[18px] pt-4">

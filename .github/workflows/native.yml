@@ -1,0 +1,161 @@
+name: Native apps
+
+permissions:
+  contents: read
+
+# Builds the iOS and Android shells whenever they, their address screen or the
+# Capacitor plugins change. Nobody on the team has to own a Mac for the Swift
+# side to be compiled on every change, and every run leaves a debug APK to
+# install on a phone.
+#
+# Unsigned on purpose: signing and store uploads need secrets that fork PRs do
+# not get, and belong in a release workflow of their own.
+on:
+  pull_request:
+    paths:
+      - 'client/android/**'
+      - 'client/ios/**'
+      - 'client/native-shell/**'
+      - 'client/src/native/trekShell.ts'
+      - 'client/src/native/serverAddress.ts'
+      - 'client/capacitor.config.ts'
+      - 'client/vite.native.config.js'
+      - 'client/scripts/check-store-metadata.mjs'
+      - 'client/fastlane/**'
+      - 'client/package.json'
+      - 'package-lock.json'
+      - 'shared/src/i18n/*/native.ts'
+      - '.github/workflows/native.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: native-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The store texts fit their limits and every listing image has its size and
+  # no alpha channel (client/fastlane/README.md). Plain Node, no install.
+  metadata:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Check the store listings
+        run: node client/scripts/check-store-metadata.mjs
+
+  android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Install
+        run: npm ci --workspace=shared --workspace=client
+
+      - name: Build shared
+        run: npm run build --workspace=shared
+
+      - name: Build the address screen and sync it into the shells
+        working-directory: client
+        run: npm run cap:sync -- android
+
+      # The release build runs R8 with the keep rules in proguard-rules.pro, so a
+      # rule that goes missing fails here rather than in the store build. It is
+      # unsigned: the upload key only exists in native-release.yml.
+      - name: Assemble debug and release APKs
+        working-directory: client/android
+        run: ./gradlew assembleDebug assembleRelease lintDebug testDebugUnitTest --no-daemon
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: trek-android-debug
+          path: client/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
+
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+
+      # App Store uploads must be built with Xcode 26; the image's default is older.
+      - name: Select Xcode 26
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
+          test -n "$XCODE"
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+
+      - name: Check the property lists
+        run: plutil -lint client/ios/App/App/Info.plist client/ios/ExportOptions.plist client/ios/App/NotificationService/Info.plist client/ios/App/NotificationService/NotificationService.entitlements client/ios/App/App/App.entitlements client/ios/App/TREKWidgets/Info.plist client/ios/App/TREKWidgets/TREKWidgets.entitlements client/ios/App/TREKWidgets/*.lproj/Localizable.strings client/ios/App/ShareExtension/Info.plist client/ios/App/ShareExtension/ShareExtension.entitlements client/ios/App/ShareExtension/*.lproj/Localizable.strings
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci --workspace=shared --workspace=client
+
+      - name: Build shared
+        run: npm run build --workspace=shared
+
+      - name: Build the address screen and sync it into the shells
+        working-directory: client
+        run: npm run cap:sync -- ios
+
+      - name: Build for the simulator
+        working-directory: client/ios/App
+        run: |
+          xcodebuild build \
+            -project App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO
+
+  # The widgets drawn to PNGs (client/ios/WidgetPreviews): every size, light and
+  # dark, for a trip ahead, a trip under way and none, plus a home screen and
+  # a lock screen of them. Nobody has to install a build to see a widget change.
+  widget-previews:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Select Xcode 26
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
+          test -n "$XCODE"
+          sudo xcode-select -s "$XCODE"
+
+      - name: Render the widgets
+        working-directory: client/ios/WidgetPreviews
+        run: |
+          mkdir -p Sources/WidgetPreviews/Widgets
+          cp ../App/TREKWidgets/WidgetSnapshot.swift ../App/TREKWidgets/TrekStyle.swift ../App/TREKWidgets/TrekFamily.swift ../App/TREKWidgets/WorldGrid.swift \
+            ../App/TREKWidgets/*Content.swift Sources/WidgetPreviews/Widgets/
+          swift run -c release WidgetPreviews out "$PWD/../App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png"
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: widget-previews
+          path: client/ios/WidgetPreviews/out
+          retention-days: 14

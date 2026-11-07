@@ -78,6 +78,21 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
     </EditorField>
   )
 
+  const tripRemindersCard = (
+    <SettingsCard
+      icon={CalendarClock}
+      title={t('admin.notifications.tripReminders.title')}
+      hint={t('admin.notifications.tripReminders.hint')}
+      action={
+        <ToggleSwitch
+          on={tripRemindersActive}
+          label={t('admin.notifications.tripReminders.title')}
+          onToggle={toggleTripReminders}
+        />
+      }
+    />
+  )
+
   return (<>
     {/* Two columns from xl up, the same shape as the Settings tab. Most of these
         cards are a title with a switch on the far right, so on a wide screen the
@@ -168,19 +183,7 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
           action={<LockedSwitch />}
         />
 
-        {/* Trip Reminders Toggle */}
-        <SettingsCard
-          icon={CalendarClock}
-          title={t('admin.notifications.tripReminders.title')}
-          hint={t('admin.notifications.tripReminders.hint')}
-          action={
-            <ToggleSwitch
-              on={tripRemindersActive}
-              label={t('admin.notifications.tripReminders.title')}
-              onToggle={toggleTripReminders}
-            />
-          }
-        />
+        {!managed && tripRemindersCard}
       </div>
 
       <div className="min-w-0">
@@ -284,6 +287,9 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
             over, so it belongs under the targets it routes to rather than across the
             full width below both columns. */}
         <AdminNotificationsPanel t={t} toast={toast} />
+        {/* Without the admin alert cards the right column is short, so the
+            reminder switch moves over on a managed install. */}
+        {managed && tripRemindersCard}
       </div>
     </div>
 

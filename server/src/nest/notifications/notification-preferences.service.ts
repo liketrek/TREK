@@ -1,7 +1,10 @@
+import { ADDON_IDS } from '../../addons';
+import { readEnv } from '../../app-config';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
 import { NotificationChannelPreferences } from '../../db/entities/NotificationChannelPreferences.entity';
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
 import type { NotificationChannelPreferencesRepository } from '../../db/repositories/NotificationChannelPreferences.repository';
+import { AddonsService } from '../addons/addons.service';
 import { readAppSetting } from '../common/app-settings.registry';
 import { UnitOfWork } from '../database/unit-of-work';
 import { listChannels } from './channel-registry';
@@ -60,6 +63,21 @@ const DEFAULT_KEY = (event: string, channel: string) => `notif_default_${event}_
  * 3-column composite primary key (`user`, `event_type`, `channel`) via
  * `em.upsert({ onConflictFields: [...] })`, per Task 0's R5 pin.
  */
+
+/**
+ * The events this install can actually raise, for the preference matrices.
+ * Plugin notifications need the plugin runtime; on a managed install the
+ * release check and the storage replicas are the operator's, so their alerts
+ * would be rows nobody there can act on.
+ */
+export function offeredEventTypes(): NotifEventType[] {
+  const env = readEnv();
+  return ALL_EVENT_TYPES.filter((e) => {
+    if (e === 'plugin_notification') return env.plugins.enabled;
+    if (e === 'version_available' || e === 'replica_failure') return !env.managed.enabled;
+    return true;
+  });
+}
 @Injectable()
 export class NotificationPreferencesService {
   constructor(
@@ -68,7 +86,55 @@ export class NotificationPreferencesService {
     @InjectRepository(AppSettings) private readonly appSettings: AppSettingsRepository,
     @InjectRepository(NotificationChannelPreferences)
     private readonly channelPrefs: NotificationChannelPreferencesRepository,
+    private readonly addons: AddonsService,
   ) {}
+
+  /**
+   * The events the matrices list: what the install can raise at all
+   * (offeredEventTypes), narrowed to the features that are switched on. A row
+   * for vacation sharing on an install without Vacay, or for Synology without
+   * the provider, is a switch that never does anything.
+   */
+  private async listedEventTypes(): Promise<NotifEventType[]> {
+    const photoProviders = await this.addons.enabledPhotoProviderIds();
+    // One read per addon, shared by the events that hang off it.
+    const addonOn = new Map<string, Promise<boolean>>();
+    const on = (id: string): Promise<boolean> => {
+      if (!addonOn.has(id)) addonOn.set(id, this.addons.isAddonEnabled(id));
+      return addonOn.get(id) as Promise<boolean>;
+    };
+    const events = offeredEventTypes();
+    const shown = await Promise.all(events.map((event) => this.featureOn(event, on, photoProviders)));
+    return events.filter((_, i) => shown[i]);
+  }
+
+  private async featureOn(
+    event: NotifEventType,
+    on: (addonId: string) => Promise<boolean>,
+    photoProviders: string[],
+  ): Promise<boolean> {
+    switch (event) {
+      case 'vacay_invite':
+      case 'vacay_share':
+        return on(ADDON_IDS.VACAY);
+      case 'collection_invite':
+        return on(ADDON_IDS.COLLECTIONS);
+      case 'collab_message':
+        return on(ADDON_IDS.COLLAB);
+      case 'packing_tagged':
+        return on(ADDON_IDS.PACKING);
+      case 'paddle_region_requested':
+        return on(ADDON_IDS.TOURS);
+      case 'photos_shared':
+        return photoProviders.length > 0;
+      case 'synology_session_cleared':
+        return photoProviders.includes('synologyphotos');
+      case 'wanderer_source_hint':
+        return this.addons.isWandererAvailable();
+      default:
+        return true;
+    }
+  }
 
   /**
    * Channels implemented for an event. In-app takes everything; external channels
@@ -151,12 +217,12 @@ export class NotificationPreferencesService {
     return (NOTIFICATION_DEFAULTS as readonly string[]).includes(raw ?? '') ? (raw as NotificationDefault) : 'on';
   }
 
-  private userEventTypes(): NotifEventType[] {
-    return ALL_EVENT_TYPES.filter((e) => !ADMIN_SCOPED_EVENTS.has(e));
+  private async userEventTypes(): Promise<NotifEventType[]> {
+    return (await this.listedEventTypes()).filter((e) => !ADMIN_SCOPED_EVENTS.has(e));
   }
 
   async getInstanceDefaults(adminId: number): Promise<InstanceDefaultsMatrix> {
-    const event_types = this.userEventTypes();
+    const event_types = await this.userEventTypes();
     const implemented_combos = await this.allCombos();
     const defaults: InstanceDefaultsMatrix['defaults'] = {};
     for (const event of event_types) {
@@ -171,7 +237,9 @@ export class NotificationPreferencesService {
   async setInstanceDefaults(
     defaults: Partial<Record<string, Partial<Record<string, NotificationDefault>>>>,
   ): Promise<void> {
-    const userEvents = new Set<string>(this.userEventTypes());
+    // Every user event, not only the listed ones: a default set while an addon is
+    // off is still the right default once it is switched on.
+    const userEvents = new Set<string>(ALL_EVENT_TYPES.filter((e) => !ADMIN_SCOPED_EVENTS.has(e)));
     // The channel set is read before the transaction opens: listChannels() may
     // ask the plugin runtime, which is no work to hold the connection for.
     const combos = await this.allCombos();
@@ -298,8 +366,8 @@ export class NotificationPreferencesService {
     // Filter event types by scope
     const event_types =
       scope === 'admin'
-        ? ALL_EVENT_TYPES.filter((e) => ADMIN_SCOPED_EVENTS.has(e))
-        : ALL_EVENT_TYPES.filter((e) => !ADMIN_SCOPED_EVENTS.has(e));
+        ? (await this.listedEventTypes()).filter((e) => ADMIN_SCOPED_EVENTS.has(e))
+        : (await this.listedEventTypes()).filter((e) => !ADMIN_SCOPED_EVENTS.has(e));
 
     return {
       preferences,

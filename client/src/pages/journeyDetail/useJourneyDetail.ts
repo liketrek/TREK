@@ -10,6 +10,8 @@ import type { JourneyMapAutoHandle as JourneyMapHandle } from '../../components/
 import { useToast } from '../../components/shared/Toast'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import { lockBodyScroll } from '../../utils/bodyScrollLock'
+import { localIsoDate } from '../../utils/localDate'
+import { journeyOpenAtEntryId } from '../../components/Journey/journeyOpenAt'
 import type { JourneyEntry } from '../../store/journeyStore'
 import { createDraftJourneyEntry, photoUrl } from './JourneyDetailPage.helpers'
 import { useDawarichSuggestions } from '../../hooks/useDawarichSuggestions'
@@ -475,34 +477,11 @@ export function useJourneyDetail({ journeyId, embedded = false }: JourneyDetailO
     })
   }, [current?.gallery])
 
-  /**
-   * Where a journey should open: on today, when today is part of it.
-   *
-   * Every load used to start at the first entry, so keeping a journal on a trip
-   * meant scrolling past everything already written before you could add to it
-   * (discussion #2299). "Today" means the last day at or before now — a rest day
-   * with nothing written still lands you at yesterday rather than at the start.
-   *
-   * Only while the journey is running, though. A journey that ended last spring
-   * is something you read, and reading starts at the beginning; opening it at the
-   * last page would be the worse of the two mistakes.
-   */
+  /** Where a journey should open: a linked entry, else today while it runs (see journeyOpenAtEntryId). */
   const openAtEntryId = useMemo(() => {
     const entries = current?.entries ?? []
-    if (entries.length === 0) return null
     if (linkedEntryId !== null && entries.some(e => String(e.id) === linkedEntryId)) return linkedEntryId
-    const dated = [...entries].sort((a, b) => a.entry_date.localeCompare(b.entry_date))
-    const today = new Date()
-    const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
-    const first = dated[0]!.entry_date
-    const last = dated[dated.length - 1]!.entry_date
-    if (todayKey < first || todayKey > last) return null
-    const reached = dated.filter(e => e.entry_date <= todayKey)
-    const target = reached[reached.length - 1] ?? dated[0]!
-    // The first entry OF that day, not the last one before now: a day is read
-    // from its beginning.
-    const dayStart = dated.find(e => e.entry_date === target.entry_date) ?? target
-    return String(dayStart.id)
+    return journeyOpenAtEntryId(entries, { today: localIsoDate() })
   }, [current?.entries, linkedEntryId])
 
   // Desktop only: scroll it into the feed once per journey and once per link, after

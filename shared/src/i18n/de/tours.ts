@@ -7,7 +7,8 @@ const tours: TranslationStrings = {
   'tours.mode.label': 'Ansicht zum Hinzufügen',
   'tours.title': 'Touren',
   'tours.empty.title': 'Noch keine Touren',
-  'tours.empty.body': 'Plane eine Tour oder importiere eine GPX- oder KML-Datei.',
+  'tours.empty.body':
+    'Plane eine Tour oder importiere eine GPX- oder KML-Datei. Eine geführte Tour gebucht? Die gehört unter Buchungen.',
   'tours.addToDay': 'Zum Tag hinzufügen',
   'tours.badge.wanderer': 'wanderer',
   'tours.badge.gpx': 'GPX-Import',
@@ -972,6 +973,14 @@ const tours: TranslationStrings = {
   'tours.import.leftOutAreas.one': '{count} Fläche',
   'tours.import.leftOutOther': '{count} weitere Elemente',
   'tours.import.leftOutOther.one': '{count} weiteres Element',
+  'tours.import.pointsAsPlaces': 'Punkte als Orte hinzufügen',
+  'tours.import.pointsAsPlacesHint':
+    'Einzelne Punkte gehören zu keiner Tour. Sie kommen stattdessen zu den Orten der Reise.',
+  'tours.import.pointsConfirm': 'Orte hinzufügen',
+  'tours.import.pointsFailedIn': 'Die Punkte aus {name} konnten nicht als Orte hinzugefügt werden.',
+  'tours.import.pointsSkipped': 'Einige Punkte waren schon in dieser Reise und wurden übersprungen.',
+  'tours.import.pointsImported': '{count} Orte hinzugefügt',
+  'tours.import.pointsImported.one': '{count} Ort hinzugefügt',
   'tours.import.unreadableIn':
     '{name} konnte nicht gelesen werden: Die Datei ist beschädigt oder kein GPX, KML oder KMZ',
   'tours.import.archiveNoKmlIn': 'Keine KML-Datei in {name} gefunden',

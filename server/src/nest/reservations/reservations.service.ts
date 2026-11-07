@@ -10,7 +10,7 @@ import { keepMirroredPrice } from './reservation-metadata';
 import { endpointRows, groupDayPositions, groupEndpointsByReservation } from './reservations.helpers';
 import type { Reservation, User } from '../../types';
 import { BudgetService } from '../budget/budget.service';
-import { typeToCostCategory } from '@trek/shared';
+import { isDerivedCostCategory, typeToCostCategory } from '@trek/shared';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AccommodationsService, noStayMirror, type AccommodationMirror } from '../accommodations/accommodations.service';
 import { toRowId, legacyBoundIntegerText } from '../common/row-id';
@@ -1149,7 +1149,7 @@ export class ReservationsService {
       const newCat = typeToCostCategory(type);
       // RS51. Every linked expense (#2084), each only while it still has the derived category.
       const linked = oldCat === newCat ? [] : await this.budgetItemsRepo.listIdAndCategoryByReservation(tripId, id);
-      for (const item of linked.filter(i => i.category === oldCat)) {
+      for (const item of linked.filter(i => isDerivedCostCategory(i.category, currentType))) {
         const updated = await this.budget.updateBudgetItem(item.id, tripId, { category: newCat });
         this.sendCost(tripId, { event: 'budget:updated', payload: { item: updated } }, socketId, collect);
       }

@@ -100,6 +100,10 @@ const UNNUMBERED = [
   'Migration20200101046300_an_attached_file_stays_with_its_conversation',
   'Migration20200101046310_an_admin_can_run_a_plugin_outside_its_trek_range',
   'Migration20200101046320_a_place_knows_where_its_details_came_from',
+  'Migration20200101046330_an_object_no_row_names_is_marked_before_it_goes',
+  'Migration20200101046340_a_released_object_outlasts_every_undo_before_it_goes',
+  'Migration20200101046350_a_place_lies_on_the_real_world',
+  'Migration20200101046360_a_new_install_starts_with_more_addons_on',
 ];
 // The last step the positional runner ever had; planLegacyBaseline refuses a
 // schema_version past it.

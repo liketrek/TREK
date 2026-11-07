@@ -24,6 +24,8 @@ const mobileVacay: TranslationStrings = {
   'mobileVacay.companyLegend': 'أيام الشركة',
   'mobileVacay.editCalendar': 'تحرير التقويم',
   'mobileVacay.viewYear': 'عرض السنة',
+  'mobileVacay.people': 'الأشخاص',
+  'mobileVacay.legend': 'المفتاح',
 };
 
 export default mobileVacay;

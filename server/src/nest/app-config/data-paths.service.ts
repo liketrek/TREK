@@ -3,7 +3,8 @@ import { Injectable } from '@nestjs/common';
 
 /**
  * The data layout for Nest classes: the data directory, uploads, backups,
- * scratch space, logs, the key files and the database file.
+ * scratch space, logs, the key files, the install id, the reclaim reset
+ * marker and the database file.
  *
  * Providers that read a data path take this one (AdminService,
  * StorageRegistryService). Code that runs before the container exists or is
@@ -23,6 +24,8 @@ export class DataPathsService implements DataPaths {
   readonly logsDir: string;
   readonly jwtSecretFile: string;
   readonly encryptionKeyFile: string;
+  readonly installIdFile: string;
+  readonly reclaimResetFile: string;
   readonly dbFile: string;
 
   constructor() {
@@ -34,6 +37,8 @@ export class DataPathsService implements DataPaths {
     this.logsDir = paths.logsDir;
     this.jwtSecretFile = paths.jwtSecretFile;
     this.encryptionKeyFile = paths.encryptionKeyFile;
+    this.installIdFile = paths.installIdFile;
+    this.reclaimResetFile = paths.reclaimResetFile;
     this.dbFile = paths.dbFile;
   }
 }

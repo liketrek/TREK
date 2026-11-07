@@ -6,6 +6,9 @@ const pdf: TranslationStrings = {
   'pdf.costLabel': 'Cost',
   'pdf.preview': 'PDF Preview',
   'pdf.saveAsPdf': 'Save as PDF',
+  'pdf.openInSafari': 'Open in Safari',
+  'pdf.safariHint':
+    'iOS cannot print from the app on your Home Screen. Safari opens this trip with the export ready, and there you can save the PDF.',
   'pdf.pageBreakPerDay': 'Page break per day',
   'pdf.transportNotes': 'Transport notes',
   'pdf.mapTitle': 'Route overview',

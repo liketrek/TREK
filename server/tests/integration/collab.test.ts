@@ -7,10 +7,13 @@
  */
 import { buildApp } from '../../src/bootstrap';
 import { db as testDb } from '../../src/db/database';
+import { StorageReleaseQueue } from '../../src/db/entities/StorageReleaseQueue.entity';
 import { CollabService } from '../../src/nest/collab/collab.service';
 import { authCookie, generateToken } from '../helpers/auth';
 import { createUser, createTrip, addTripMember } from '../helpers/factories';
+import { findRow } from '../helpers/factories/rows';
 import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
 import type { Application } from 'express';
@@ -254,7 +257,7 @@ describe('Collab notes', () => {
     expect(fs.existsSync(path.join(uploadsDir, note.attachments[0].filename))).toBe(true);
   });
 
-  it('COLLAB-P02 — deleting a note file removes its bytes from uploads/files', async () => {
+  it('COLLAB-P02 — deleting a note file hands its bytes to the release queue', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
 
@@ -276,10 +279,14 @@ describe('Collab notes', () => {
       .delete(`/api/trips/${trip.id}/collab/notes/${noteId}/files/${fileId}`)
       .set('Cookie', authCookie(user.id));
     expect(del.status).toBe(200);
-    expect(fs.existsSync(path.join(uploadsDir, diskName))).toBe(false);
+    // The bytes stay until the release job, a day later, finds nothing naming them.
+    expect(fs.existsSync(path.join(uploadsDir, diskName))).toBe(true);
+    expect(
+      await findRow(nestApp.get(MikroORM), StorageReleaseQueue, { category: 'files', key: diskName }),
+    ).not.toBeNull();
   });
 
-  it('COLLAB-P03 — deleting a note removes its attachments’ bytes from uploads/files', async () => {
+  it('COLLAB-P03 — deleting a note hands its attachments’ bytes to the release queue', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
 
@@ -300,7 +307,10 @@ describe('Collab notes', () => {
       .delete(`/api/trips/${trip.id}/collab/notes/${noteId}`)
       .set('Cookie', authCookie(user.id));
     expect(del.status).toBe(200);
-    expect(fs.existsSync(path.join(uploadsDir, diskName))).toBe(false);
+    expect(fs.existsSync(path.join(uploadsDir, diskName))).toBe(true);
+    expect(
+      await findRow(nestApp.get(MikroORM), StorageReleaseQueue, { category: 'files', key: diskName }),
+    ).not.toBeNull();
   });
 
   it('COLLAB-028 — uploaded note file URL uses authenticated download path, not /uploads/', async () => {

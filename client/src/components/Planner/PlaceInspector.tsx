@@ -39,7 +39,7 @@ import { formatDistance, formatElevation } from '../../utils/units'
 import { navigationTargetLabel, getNavigationTargets, openNavigationTarget } from './placeNavigation'
 import { TRANSPORT_TYPES, getPlaceBookings } from '../../utils/dayMerge'
 import { NavigationMenu } from '../shared/NavigationMenu'
-import { centredMapCard } from '../Map/centredMapCard'
+import { centredMapCard, type MapCardPlacement } from '../Map/centredMapCard'
 import { resolveOpenNow, resolvePlaceTimeZone, getWeekdayIndex, type OpeningPeriod } from './placeOpenState'
 import { convertHoursLine } from './placeHoursFormat'
 import type { EndDayControlProps } from '../Roadtrip/EndDayControl'
@@ -152,7 +152,7 @@ interface TripMember {
   is_guest?: boolean
 }
 
-interface PlaceInspectorProps {
+interface PlaceInspectorProps extends MapCardPlacement {
   roadtripActive?: boolean
   roadtripEndDay?: EndDayControlProps
   roadtripStay?: RoadtripStayControl
@@ -188,9 +188,6 @@ interface PlaceInspectorProps {
   onUpdatePlace?: (placeId: number, data: Partial<Place>) => void
   /** Cast/clear the current user's star vote (#1435); enables the rating row. */
   onRate?: (placeId: number, rating: number | null) => Promise<void> | void
-  leftWidth?: number
-  rightWidth?: number
-  clearMapPill?: boolean // over the desktop map, beside the base-layer pill
   // ── Collection-mode props ──
   collectionStatus?: CollectionStatus
   onCopyToTrip?: () => void
@@ -212,7 +209,7 @@ export default function PlaceInspector({
   assignments = {}, reservations = [], onEditTransport, onEditReservation, onOpenBooking,
   onClose, onEdit: editPlace, onDelete: deletePlace, onAssignToDay, onRemoveAssignment,
   files = [], onFileUpload, tripMembers = [], onSetParticipants, onUpdatePlace: updatePlace, onRate,
-  leftWidth = 0, rightWidth = 0, clearMapPill = false,
+  leftWidth = 0, rightWidth = 0, clearMapPill = false, cardRef,
   collectionStatus, onCopyToTrip, onSetStatus, onRemoveFromList, roadtripEndDay, roadtripStay, roadtripActive,
 }: PlaceInspectorProps) {
   // Editing the place is a place right. The planner hands the handlers over regardless, and a member
@@ -369,7 +366,7 @@ export default function PlaceInspector({
   const mapCard = centredMapCard(leftWidth, rightWidth, { clearPill: clearMapPill })
 
   return (
-    <div
+    <div ref={cardRef}
       style={{
         position: 'absolute',
         bottom: 20,

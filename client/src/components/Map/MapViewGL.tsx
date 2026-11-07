@@ -1,5 +1,5 @@
 import { useEffect, useRef, useMemo, useState, useCallback } from 'react'
-import { makeMarkerDraggable, makePoiDraggable, draggedPoiId } from './markerDrag'
+import { makeMarkerDraggable, makePoiDraggable } from './markerDrag'
 import { useStableVias } from './viaMarkerState'
 import { usePlannerWaypointMarkersGL } from './usePlannerWaypointMarkersGL'
 import { carryAssistantMarks, useAssistantMapGL } from './useAssistantMapGL'
@@ -15,7 +15,9 @@ import { isTourLayerHit, useTourMapLayersGL } from './mapRasterOverlay'
 import { MapLayerSwitcher, TourMapLayerSwitcher, MAP_LAYER_SWITCHER_INSET, type BaseLayer, type TourBaseLayer } from './MapLayerSwitcher'
 import { MapLockPill } from './MapLockPill'
 import { useMarkerThumbs } from './useMarkerThumbs'
-import { placeMarkerLook, type PlaceMarkerFlags } from './markerLook'
+import { placeMarkerFrame, placeMarkerLook, type PlaceMarkerFlags } from './markerLook'
+import { bottomChromePadding } from './mapChromePadding'
+import { useSelectionCameraGL } from './useSelectionCameraGL'
 import { markerPhotoHtml, placePhotoFull, placePhotoUrl } from './placePhoto'
 import { isStandardFamily, supportsCustom3d, wantsTerrain, addCustom3dBuildings, addTerrainAndSky } from './mapboxSetup'
 import { attachLocationMarker, type LocationMarkerHandle } from './locationMarkerMapbox'
@@ -24,7 +26,8 @@ import { useTransportRoutes } from '../../hooks/useTransportRoutes'
 import { visibleRouteReservations } from '../../utils/reservationRoutes'
 import { safeHexColor } from '../../utils/safeColor'
 import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, basemapLanguage, type GlMapProvider } from './glProviders'
-import { buildGlMap } from './glSupport'
+import { buildGlMap, initialMapStyle } from './glSupport'
+import { mapboxTileCacheRequest, tileCacheActive } from '../../native/tileCache'
 import LocationButton from './LocationButton'
 import { useIsPhone } from '../../mobile/useIsPhone'
 import { useGeolocation } from '../../hooks/useGeolocation'
@@ -47,9 +50,11 @@ import { poiPinParts } from './poiMarker'
 import { addGpxTrackLayers, GPX_HIT_LAYER_ID, hasGpxTrackLayers, selectGpxTrack, setGpxTracks } from './gpxTrackLayers'
 import { buildPoiPopupHtml } from './placePopup'
 import { pluginsApi, type PluginMapMarker, type PluginMapLayer } from '../../api/client'
+import { PLUGIN_TONE_COLORS, buildPluginLayerData } from './pluginLayerGeo'
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
 import { alongShortestArc, computeMapViewport, TILE_SIZE_GL } from '../../utils/mapViewport'
-import { selectedPlaceTarget } from './selectedPlaceTarget'
+import { onRealWorld } from '../../utils/worldCopy'
+import { bindPoiDropTarget } from './poiDropTarget'
 import {
   PLACE_CLUSTER_CIRCLE_LAYER_ID, PLACE_CLUSTER_COUNT_LAYER_ID, PLACE_CLUSTER_SOURCE_ID,
   addPlaceClusterLayers, drawClusterBubbles, expandCluster,
@@ -97,6 +102,8 @@ const NO_DAYS: Day[] = []
 /** The GL renderer: the shared map contract plus the engine it is bound to. */
 interface Props extends MapViewProps {
   glProvider?: GlMapProvider
+  /** Draws this style instead of the user's: the offline basemap (offlineBasemap.ts). */
+  styleOverride?: string
   /**
    * The GL engine, injected instead of imported. Both SDKs used to be pulled in
    * statically here, so a single 2.8 MB chunk carried mapbox-gl and maplibre-gl
@@ -122,10 +129,7 @@ function createMarkerElement(place: Place & PlaceMarkerFlags & { category_color?
   const look = placeMarkerLook(place, selected)
   const { size, borderWidth } = look
   // See MapView: allow-listed rather than escaped, because this is a CSS context.
-  const borderColor = selected ? '#111827' : safeHexColor(place.category_color, 'white')
-  const shadow = selected
-    ? '0 0 0 3px rgba(17,24,39,0.25), 0 4px 14px rgba(0,0,0,0.3)'
-    : '0 2px 8px rgba(0,0,0,0.22)'
+  const { borderColor, shadow, className: frameClass } = placeMarkerFrame(selected, place.category_color)
   const bgColor = safeHexColor(place.category_color, '#6b7280')
 
   // The visual circle is `size` + 2*border on each side. To make the
@@ -167,7 +171,7 @@ function createMarkerElement(place: Place & PlaceMarkerFlags & { category_color?
   const hasPhoto = look.showPhoto && photoUrl && (photoUrl.startsWith('data:') || photoUrl.startsWith('/api/maps/place-photo/') || photoUrl.startsWith('/uploads/'))
   if (hasPhoto) {
     wrap.innerHTML = `
-      <div style="
+      <div class="${frameClass}" style="
         position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
         width:${size}px;height:${size}px;border-radius:50%;
         border:${borderWidth}px solid ${borderColor};
@@ -181,7 +185,7 @@ function createMarkerElement(place: Place & PlaceMarkerFlags & { category_color?
     `
   } else {
     wrap.innerHTML = `
-      <div style="
+      <div class="${frameClass}" style="
         position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
         width:${size}px;height:${size}px;border-radius:50%;
         border:${borderWidth}px solid ${borderColor};
@@ -210,66 +214,6 @@ const PLUGIN_LINE_LAYER_IDS: Record<'solid' | 'dash' | 'dot', string> = {
   dot: 'trek-plugin-layers-line-dot',
 }
 const PLUGIN_FILL_LAYER_ID = 'trek-plugin-layers-fill'
-const PLUGIN_TONE_COLORS: Record<string, string> = {
-  default: '#4F46E5',
-  success: '#10b981',
-  warn: '#f59e0b',
-  danger: '#ef4444',
-}
-
-// GL circle layers size in screen pixels, so a metric circle has to become a
-// polygon. Equirectangular approximation — plenty for a display-only overlay.
-function circleToRing(center: [number, number], radiusM: number): [number, number][] {
-  const [lat, lng] = center
-  const dLat = radiusM / 111_320
-  const cos = Math.cos((lat * Math.PI) / 180)
-  const dLng = radiusM / (111_320 * Math.max(0.01, Math.abs(cos)))
-  const ring: [number, number][] = []
-  for (let i = 0; i <= 64; i++) {
-    const a = (i / 64) * 2 * Math.PI
-    ring.push([lng + Math.cos(a) * dLng, lat + Math.sin(a) * dLat])
-  }
-  return ring
-}
-
-interface PluginLayerGeoFeature {
-  type: 'Feature'
-  properties: { id: string; color: string; width: number; opacity: number; dash: string; fillOpacity: number; label: string }
-  geometry: { type: 'LineString'; coordinates: number[][] } | { type: 'Polygon'; coordinates: number[][][] }
-}
-
-function buildPluginLayerData(layers: PluginMapLayer[]) {
-  const features = layers.flatMap(layer => layer.features.flatMap((f, i): PluginLayerGeoFeature[] => {
-    const color = PLUGIN_TONE_COLORS[f.tone] ?? PLUGIN_TONE_COLORS.default
-    const properties = {
-      id: `${layer.pluginId}:${layer.id}:${i}`,
-      color,
-      width: f.width,
-      opacity: f.opacity,
-      dash: f.dash,
-      fillOpacity: f.fill ? Math.min(0.25, f.opacity) : 0,
-      label: f.label || '',
-    }
-    if (f.type === 'polyline' && f.points) {
-      return [{
-        type: 'Feature' as const,
-        properties,
-        geometry: { type: 'LineString' as const, coordinates: f.points.map(([lat, lng]) => [lng, lat]) },
-      }]
-    }
-    if (f.type === 'polygon' && f.points) {
-      const ring = f.points.map(([lat, lng]) => [lng, lat])
-      if (ring.length && (ring[0][0] !== ring[ring.length - 1][0] || ring[0][1] !== ring[ring.length - 1][1])) ring.push(ring[0])
-      return [{ type: 'Feature' as const, properties, geometry: { type: 'Polygon' as const, coordinates: [ring] } }]
-    }
-    if (f.type === 'circle' && f.center && f.radiusM) {
-      return [{ type: 'Feature' as const, properties, geometry: { type: 'Polygon' as const, coordinates: [circleToRing(f.center, f.radiusM)] } }]
-    }
-    return []
-  }))
-  return { type: 'FeatureCollection' as const, features }
-}
-
 /**
  * A place pin on the map, whatever is carrying it.
  *
@@ -453,6 +397,7 @@ export function MapViewGL({
   leftWidth = 0,
   rightWidth = 0,
   hasInspector = false,
+  inspectorHeight = 0,
   hasDayDetail = false,
   reservations = NO_RESERVATIONS,
   visibleConnectionIds = NO_CONNECTION_IDS,
@@ -481,6 +426,7 @@ export function MapViewGL({
   onRemoveVia,
   onViewportChange,
   glProvider = 'mapbox-gl',
+  styleOverride,
   gl,
   onMapReady,
   ...assistant
@@ -505,7 +451,7 @@ export function MapViewGL({
   const showEndpointLabels = useSettingsStore(s => s.settings.map_booking_labels) === true
   const mapLang = useSettingsStore(s => s.settings.language)
   const isMapLibre = glProvider === 'maplibre-gl'
-  const glStyle = styleForActiveProvider(glProvider, rawMapboxStyle, rawMaplibreStyle)
+  const glStyle = styleOverride ?? styleForActiveProvider(glProvider, rawMapboxStyle, rawMaplibreStyle)
   const enableMapbox3d = !isMapLibre && mapbox3d
   const [mapReady, setMapReady] = useState(false)
   const [readyMap, setReadyMap] = useState<FerrataGlMap | null>(null) // the ready map, read without touching mapRef
@@ -725,7 +671,7 @@ export function MapViewGL({
           return
         }
         const rect = map.getContainer().getBoundingClientRect()
-        const at = map.unproject([e.clientX - rect.left, e.clientY - rect.top])
+        const at = onRealWorld(map.unproject([e.clientX - rect.left, e.clientY - rect.top]))
         viaHandlersRef.current.onMoveVia?.(via.day_id, via.id, at.lat, at.lng)
       }
       // The browser fires this when the captured element is torn out of the DOM,
@@ -925,7 +871,8 @@ export function MapViewGL({
       // trip reloads for a gesture the user made once. The picker is a modal
       // choice about that leg; dropping a via mid-choice is not offered anywhere.
       if (e.point && map.queryRenderedFeatures?.(e.point, { layers: ['route-alt-hit'] })?.length) return
-      onRouteClick(e.lngLat.lat, e.lngLat.lng)
+      const at = onRealWorld(e.lngLat)
+      onRouteClick(at.lat, at.lng)
     }
     const enter = () => { map.getCanvas().style.cursor = 'copy' }
     const leave = () => { map.getCanvas().style.cursor = '' }
@@ -944,35 +891,12 @@ export function MapViewGL({
     }
   }, [mapReady, onRouteClick])
 
-  /**
-   * The map takes the drop, not the drawn route: in a GL renderer the line lives in the
-   * canvas and has no element to aim at. The coordinate under the pointer says just as
-   * much once it is projected onto the routed geometry, and it works the same in all
-   * three renderers.
-   */
+  // A POI dropped on the map lands on the drive (see poiDropTarget.ts).
   useEffect(() => {
     const map = mapRef.current
     const container = map?.getContainer?.()
     if (!container || !mapReady || !onPoiDropOnRoute) return
-    const onDragOver = (e: DragEvent) => {
-      if (!draggedPoiId(e)) return
-      e.preventDefault()
-      if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'
-    }
-    const onDrop = (e: DragEvent) => {
-      const osmId = draggedPoiId(e)
-      if (!osmId) return
-      e.preventDefault()
-      const rect = container.getBoundingClientRect()
-      const at = map.unproject([e.clientX - rect.left, e.clientY - rect.top])
-      onPoiDropOnRoute(osmId, at.lat, at.lng)
-    }
-    container.addEventListener('dragover', onDragOver)
-    container.addEventListener('drop', onDrop)
-    return () => {
-      container.removeEventListener('dragover', onDragOver)
-      container.removeEventListener('drop', onDrop)
-    }
+    return bindPoiDropTarget(container, (x, y) => map.unproject([x, y]), onPoiDropOnRoute)
   }, [mapReady, onPoiDropOnRoute])
   const onViewportChangeRef = useRef(onViewportChange)
   onViewportChangeRef.current = onViewportChange
@@ -1028,7 +952,7 @@ export function MapViewGL({
 
     const mapOptions: Record<string, unknown> = {
       container: containerRef.current,
-      style: glStyle,
+      style: initialMapStyle(glProvider, glStyle),
       center: [initial.center[1], initial.center[0]],
       zoom: initial.zoom,
       pitch: enableMapbox3d ? 45 : 0,
@@ -1036,6 +960,9 @@ export function MapViewGL({
       antialias: mapboxQuality,
     }
     if (!isMapLibre) mapOptions.projection = mapboxQuality ? 'globe' : 'mercator'
+    // In the iOS app, Mapbox's own resources go through the app's tile store, so
+    // what was viewed stays on the device for up to 30 days (native/tileCache.ts).
+    if (!isMapLibre && tileCacheActive()) mapOptions.transformRequest = mapboxTileCacheRequest
     // MapLibre's around-center rotate ping-pongs near mid-screen (#1545); false is mapbox-gl's dx rotate.
     if (isMapLibre) mapOptions.aroundCenter = false
 
@@ -1343,7 +1270,7 @@ export function MapViewGL({
         && map.queryRenderedFeatures(e.point, { layers: ['trip-route-hit'] }).length > 0
       ) return
       if (isTourLayerHit(map, e.point)) return // a picked via ferrata or paddle obstacle opens its card instead
-      onClickRefs.current.map?.({ latlng: { lat: e.lngLat.lat, lng: e.lngLat.lng } })
+      onClickRefs.current.map?.({ latlng: onRealWorld({ lat: e.lngLat.lat, lng: e.lngLat.lng }) })
     })
     // Emit the viewport (pan/zoom + once on first idle) for the POI-explore pill.
     const emitViewport = () => reportGlViewport(map, onViewportChangeRef.current)
@@ -1376,7 +1303,7 @@ export function MapViewGL({
       // timer — dedupe so the form doesn't open twice.
       if (Date.now() - lastContextFire < 700) return false
       lastContextFire = Date.now()
-      onClickRefs.current.context?.({ latlng: { lat: lngLat.lat, lng: lngLat.lng }, originalEvent })
+      onClickRefs.current.context?.({ latlng: onRealWorld({ lat: lngLat.lat, lng: lngLat.lng }), originalEvent })
       return true
     }
     // MapLibre swallows the map contextmenu at the end of a right-button
@@ -1937,9 +1864,9 @@ export function MapViewGL({
   const paddingOpts = useMemo(() => {
     if (isMobile) return { top: 40, right: 20, bottom: 40, left: 20 }
     const top = 60
-    const bottom = hasInspector ? 320 : hasDayDetail ? 280 : 60
+    const bottom = bottomChromePadding({ hasInspector, inspectorHeight, hasDayDetail })
     return { top, right: rightWidth + 40, bottom, left: leftWidth + 40 }
-  }, [isMobile, leftWidth, rightWidth, hasInspector, hasDayDetail])
+  }, [isMobile, leftWidth, rightWidth, hasInspector, inspectorHeight, hasDayDetail])
   useAssistantMapGL({ mapRef, mapReady, gl, pinsRef: assistantGhostPinsRef, attachPin: attachPlannerWaypointPin, markersRef, padding: paddingOpts, assistant })
 
   const prevFitKey = useRef<number | null>(-1)
@@ -1982,7 +1909,7 @@ export function MapViewGL({
     const fitPoints = routeCoords.length > 0 ? [...routeCoords, ...markerPoints] : markerPoints
     if (fitPoints.length === 0) return
     const bounds = new gl.LngLatBounds()
-    fitPoints.forEach(([lat, lng]) => bounds.extend([lng, lat]))
+    alongShortestArc(fitPoints).forEach(([lat, lng]) => bounds.extend([lng, lat]))
     let fitted = false
     const run = () => {
       try {
@@ -2031,25 +1958,10 @@ export function MapViewGL({
     } catch { /* noop */ }
   }, [focusPoints, focusKey, fitPaddingKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // flyTo selected place
-  useEffect(() => {
-    const map = mapRef.current
-    if (!map || !selectedPlaceId || !followSelection) return
-    const target = selectedPlaceTarget(selectedPlaceId, places, dayPlaces, selectedPlace)
-    if (!target?.lat || !target?.lng) return
-    try {
-      map.flyTo({
-        center: [target.lng, target.lat],
-        zoom: Math.max(map.getZoom(), 14),
-        pitch: enableMapbox3d ? 45 : 0,
-        duration: 400,
-        // Account for the side panels and the bottom inspector / day-detail panel
-        // so the selected pin lands in the centre of the *visible* map area rather
-        // than the geometric centre (where the bottom panel would cover it).
-        padding: paddingOpts,
-      })
-    } catch { /* noop */ }
-  }, [selectedPlaceId, enableMapbox3d]) // eslint-disable-line react-hooks/exhaustive-deps
+  useSelectionCameraGL({
+    mapRef, selectedPlaceId, places, dayPlaces, selectedPlace,
+    follow: followSelection, padding: paddingOpts, enableMapbox3d,
+  })
 
   // External center/zoom prop changes — jump without animation
   const jumpedToRef = useRef<[number, number] | null>(null)

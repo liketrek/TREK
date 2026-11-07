@@ -1,3 +1,4 @@
+import type { Ref } from 'react';
 import { MAP_LAYER_SWITCHER_INSET, MAP_ROUND_CONTROL_SIZE } from './MapLayerSwitcher';
 
 /** The card's gap to the side panels where nothing else sits at the map's edge. */
@@ -35,4 +36,14 @@ export function centredMapCard(
   if (!clearPill) return { centre, width: `min(800px, calc(${free} - ${2 * EDGE_GAP}px))` };
   const width = `min(800px, calc(${free} - ${PILL_CLEARANCE + EDGE_GAP}px))`;
   return { width, centre: `max(${centre}, calc(${leftWidth}px + ${PILL_CLEARANCE}px + ${width} / 2))` };
+}
+
+/** How a card that floats over the map is placed there, read by `centredMapCard`. */
+export interface MapCardPlacement {
+  leftWidth?: number;
+  rightWidth?: number;
+  /** Over the desktop map, beside the base-layer pill. */
+  clearMapPill?: boolean;
+  /** The card's outer element, measured so the map keeps the selected pin above it (#2991). */
+  cardRef?: Ref<HTMLDivElement>;
 }

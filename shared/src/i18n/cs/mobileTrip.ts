@@ -8,7 +8,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addTransportShort': 'Doprava',
   'mobileTrip.allDays': 'Všechny dny',
   'mobileTrip.today': 'Dnes',
-  'mobileTrip.jumpToToday': 'Přejít na dnešek',
   'mobileTrip.assignedDays': 'Přiřazené dny',
   'mobileTrip.assignmentNotes': 'Poznámky ke dni',
   'mobileTrip.bookingsEmpty': 'Zatím žádné rezervace',
@@ -20,8 +19,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.filesEmpty': 'Zatím žádné soubory',
   'mobileTrip.filesNext': 'Další soubor',
   'mobileTrip.filesPrev': 'Předchozí soubor',
-  'mobileTrip.googleMaps': 'Google Maps',
-  'mobileTrip.coMaps': 'CoMaps',
   'mobileTrip.icsDownload': 'Stáhnout .ics',
   'mobileTrip.icsSubscribe': 'Přihlásit se k odběru kalendáře',
   'mobileTrip.icsSubscribeSub': 'Automaticky se aktualizuje ve vaší kalendářové aplikaci',
@@ -92,5 +89,8 @@ const mobileTrip: TranslationStrings = {
     'Na {count} úsecích bylo více výsledků, než se vejde do jedné odpovědi. Vyberte méně druhů, abyste viděli zbytek.',
   'mobileTrip.rtNoDay': 'Není vybrán žádný den',
   'mobileTrip.rtNoDayHint': 'Mapa zobrazuje celou cestu. Klepněte nahoře na den a zobrazí se jeho trasa.',
+  'mobileTrip.maps': 'Mapy',
+  'mobileTrip.openRouteIn': 'Otevřít den v',
+  'mobileTrip.firstStopOnly': 'Jen první zastávka',
 };
 export default mobileTrip;

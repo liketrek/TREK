@@ -105,6 +105,7 @@ const packing: TranslationStrings = {
   'packing.sharedWithCount': 'megosztva {count} fővel',
   'packing.sharedWithCount.one': 'megosztva {count} fővel',
   'packing.broughtBy': 'hozza: {name}',
+  'packing.bringersTitle': 'Hozza',
   'packing.alsoBring': 'Én is tudom hozni',
   'packing.alsoBringingStop': 'Mégsem hozom',
   'packing.cloneToMine': 'Másolás a listámra',

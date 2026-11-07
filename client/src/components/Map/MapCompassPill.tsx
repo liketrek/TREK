@@ -15,7 +15,12 @@ export interface CompassMap {
  * (GL only) and built as the SAME frosted shell (padding 4 around a 34px button)
  * so its height and transparency match the POI pill exactly.
  */
-export function MapCompassPill({ map }: { map: CompassMap }) {
+export function MapCompassPill({ map, onlyWhenRotated = false }: {
+  map: CompassMap
+  /** Shown only while the map is turned off north, the way a native map's compass
+   *  appears when it has something to undo (the phone map, where room is short). */
+  onlyWhenRotated?: boolean
+}) {
   const [bearing, setBearing] = useState(() => map.getBearing())
 
   useEffect(() => {
@@ -24,6 +29,8 @@ export function MapCompassPill({ map }: { map: CompassMap }) {
     map.on('rotate', update)
     return () => { map.off('rotate', update) }
   }, [map])
+
+  if (onlyWhenRotated && Math.abs(bearing) < 0.5) return null
 
   return (
     <div style={{

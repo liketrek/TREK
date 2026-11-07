@@ -1,5 +1,5 @@
 /**
- * BOOT-RESTORE-001..008 — restoring a backup on a first start (#1089).
+ * BOOT-RESTORE-001..009 — restoring a backup on a first start (#1089).
  *
  * Real files, a real archive and a real SQLite file: what is being protected is
  * the order of things on disk, and a mocked filesystem would only confirm the
@@ -21,12 +21,14 @@ vi.mock('../../../src/nest/plugins/plugin-backup', () => ({ stageExtractedPlugin
 let root: string;
 let dataDir: string;
 let dbFile: string;
+let reclaimResetFile: string;
 
 beforeEach(() => {
   root = fs.mkdtempSync(path.join(os.tmpdir(), 'trek-boot-restore-'));
   dataDir = path.join(root, 'data');
   fs.mkdirSync(dataDir);
   dbFile = path.join(dataDir, 'travel.db');
+  reclaimResetFile = path.join(dataDir, '.trek-reclaim-reset');
   stageMock.mockClear();
   vi.spyOn(console, 'log').mockImplementation(() => {});
 });
@@ -75,14 +77,17 @@ async function goodArchive(extra: Record<string, string> = {}) {
 
 describe('restoreOnFirstBoot', () => {
   it('BOOT-RESTORE-001: without the variable nothing happens', async () => {
-    expect(await restoreOnFirstBoot({ archive: null, dbFile, dataDir })).toEqual({ restored: false, reason: 'unset' });
+    expect(await restoreOnFirstBoot({ archive: null, dbFile, dataDir, reclaimResetFile })).toEqual({
+      restored: false,
+      reason: 'unset',
+    });
     expect(fs.existsSync(dbFile)).toBe(false);
   });
 
   it("BOOT-RESTORE-002: on a first start the backup's database, key and uploads are put in place", async () => {
     const zipPath = await goodArchive();
 
-    const out = await restoreOnFirstBoot({ archive: zipPath, dbFile, dataDir });
+    const out = await restoreOnFirstBoot({ archive: zipPath, dbFile, dataDir, reclaimResetFile });
 
     expect(out.restored).toBe(true);
     const db = new Database(dbFile, { readonly: true });
@@ -94,6 +99,8 @@ describe('restoreOnFirstBoot', () => {
     expect(fs.readFileSync(path.join(out.uploads!, 'covers', 'c.jpg'), 'utf8')).toBe('jpeg');
     expect(stageMock).toHaveBeenCalledWith(out.staging);
     expect(fs.existsSync(`${dbFile}.restore-tmp`)).toBe(false);
+    // Storage reclaim drops the restored database's reclaim state on this start, whichever install it is from.
+    expect(fs.existsSync(reclaimResetFile)).toBe(true);
   });
 
   it('BOOT-RESTORE-003: with a database already there the backup is left alone, so a restart never rolls back', async () => {
@@ -102,35 +109,37 @@ describe('restoreOnFirstBoot', () => {
     const before = fs.readFileSync(dbFile);
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    expect(await restoreOnFirstBoot({ archive: zipPath, dbFile, dataDir })).toEqual({
+    expect(await restoreOnFirstBoot({ archive: zipPath, dbFile, dataDir, reclaimResetFile })).toEqual({
       restored: false,
       reason: 'database-exists',
     });
     expect(fs.readFileSync(dbFile).equals(before)).toBe(true);
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('only restored on a first start'));
+    expect(fs.existsSync(reclaimResetFile)).toBe(false);
   });
 
   it('BOOT-RESTORE-004: a missing archive stops the start instead of coming up empty', async () => {
-    await expect(restoreOnFirstBoot({ archive: path.join(root, 'nope.zip'), dbFile, dataDir })).rejects.toBeInstanceOf(
-      BootRestoreError,
-    );
+    await expect(
+      restoreOnFirstBoot({ archive: path.join(root, 'nope.zip'), dbFile, dataDir, reclaimResetFile }),
+    ).rejects.toBeInstanceOf(BootRestoreError);
     expect(fs.existsSync(dbFile)).toBe(false);
   });
 
   it('BOOT-RESTORE-005: an archive without a database is refused and leaves no scratch behind', async () => {
     const zipPath = await archive({ 'notes.txt': 'hello' });
-    await expect(restoreOnFirstBoot({ archive: zipPath, dbFile, dataDir })).rejects.toThrow(
+    await expect(restoreOnFirstBoot({ archive: zipPath, dbFile, dataDir, reclaimResetFile })).rejects.toThrow(
       'RESTORE_FROM_BACKUP: Invalid backup: travel.db not found',
     );
     expect(fs.existsSync(dbFile)).toBe(false);
     expect(fs.readdirSync(dataDir).filter((n) => n.startsWith('restore-boot-'))).toEqual([]);
+    expect(fs.existsSync(reclaimResetFile)).toBe(false);
   });
 
   it('BOOT-RESTORE-006: a database that is not a TREK one is refused', async () => {
     const src = path.join(root, 'other.db');
     trekDb(src, ['users']);
     const zipPath = await archive({ 'travel.db': { file: src } });
-    await expect(restoreOnFirstBoot({ archive: zipPath, dbFile, dataDir })).rejects.toThrow(
+    await expect(restoreOnFirstBoot({ archive: zipPath, dbFile, dataDir, reclaimResetFile })).rejects.toThrow(
       'missing required table: trips',
     );
     expect(fs.existsSync(dbFile)).toBe(false);
@@ -138,7 +147,7 @@ describe('restoreOnFirstBoot', () => {
 
   it('BOOT-RESTORE-007: an entry escaping the archive is refused', async () => {
     const zipPath = await archive({ '../escape.txt': 'x', 'travel.db': 'not a db' });
-    await expect(restoreOnFirstBoot({ archive: zipPath, dbFile, dataDir })).rejects.toThrow(
+    await expect(restoreOnFirstBoot({ archive: zipPath, dbFile, dataDir, reclaimResetFile })).rejects.toThrow(
       /escapes the archive root|not a valid SQLite database/,
     );
     expect(fs.existsSync(dbFile)).toBe(false);
@@ -149,10 +158,18 @@ describe('restoreOnFirstBoot', () => {
     trekDb(src);
     const zipPath = await archive({ 'travel.db': { file: src } });
 
-    const out = await restoreOnFirstBoot({ archive: zipPath, dbFile, dataDir });
+    const out = await restoreOnFirstBoot({ archive: zipPath, dbFile, dataDir, reclaimResetFile });
 
     expect(out).toEqual({ restored: true, uploads: null, staging: expect.stringContaining('restore-boot-') });
     expect(fs.existsSync(dbFile)).toBe(true);
     expect(fs.existsSync(path.join(dataDir, '.encryption_key'))).toBe(false);
+  });
+
+  it('BOOT-RESTORE-009: a reclaim reset file that cannot be written stops the start before the database is put in place', async () => {
+    const zipPath = await goodArchive();
+    // A directory where the file goes: writing it fails, as on a read-only data folder.
+    fs.mkdirSync(reclaimResetFile);
+    await expect(restoreOnFirstBoot({ archive: zipPath, dbFile, dataDir, reclaimResetFile })).rejects.toThrow();
+    expect(fs.existsSync(dbFile)).toBe(false);
   });
 });

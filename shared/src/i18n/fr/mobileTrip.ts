@@ -8,7 +8,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addTransportShort': 'Transport', // same-as-en
   'mobileTrip.allDays': 'Tous les jours',
   'mobileTrip.today': "Aujourd'hui",
-  'mobileTrip.jumpToToday': "Aller à aujourd'hui",
   'mobileTrip.assignedDays': 'Jours assignés',
   'mobileTrip.assignmentNotes': 'Notes propres au jour',
   'mobileTrip.bookingsEmpty': 'Aucune réservation',
@@ -20,8 +19,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.filesEmpty': 'Aucun fichier',
   'mobileTrip.filesNext': 'Fichier suivant',
   'mobileTrip.filesPrev': 'Fichier précédent',
-  'mobileTrip.googleMaps': 'Google Maps',
-  'mobileTrip.coMaps': 'CoMaps',
   'mobileTrip.icsDownload': 'Télécharger le .ics',
   'mobileTrip.icsSubscribe': "S'abonner au calendrier",
   'mobileTrip.icsSubscribeSub': 'Se met à jour automatiquement dans votre application calendrier',
@@ -84,5 +81,8 @@ const mobileTrip: TranslationStrings = {
     'Sur {count} tronçon, il y en avait plus que ce qu’une réponse peut contenir. Choisissez moins de types pour voir le reste.',
   'mobileTrip.rtNoDay': 'Aucun jour sélectionné',
   'mobileTrip.rtNoDayHint': 'La carte affiche tout le voyage. Touchez un jour ci-dessus pour voir son trajet.',
+  'mobileTrip.maps': 'Cartes',
+  'mobileTrip.openRouteIn': 'Ouvrir la journée dans',
+  'mobileTrip.firstStopOnly': 'Premier arrêt seulement',
 };
 export default mobileTrip;

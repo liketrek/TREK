@@ -6,6 +6,9 @@ const pdf: TranslationStrings = {
   'pdf.costLabel': 'Maliyet',
   'pdf.preview': 'PDF Önizleme',
   'pdf.saveAsPdf': 'PDF olarak Kaydet',
+  'pdf.openInSafari': "Safari'de aç",
+  'pdf.safariHint':
+    "iOS, ana ekrandaki uygulamadan yazdıramaz. Safari bu geziyi dışa aktarma hazır şekilde açar, PDF'i orada kaydedebilirsin.",
   'pdf.pageBreakPerDay': 'Her gün için sayfa sonu',
   'pdf.transportNotes': 'Ulaşım notları',
   'pdf.mapTitle': 'Rota genel görünümü',

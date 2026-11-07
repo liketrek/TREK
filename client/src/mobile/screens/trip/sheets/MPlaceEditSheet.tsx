@@ -233,7 +233,7 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
     <MSheet
       open={showPlaceForm}
       onClose={handleClose}
-      material="opaque"
+      material="glass"
       ariaLabel={sheetPlace ? t('places.editPlace') : t('places.addPlace')}
       discardGuard={showPlaceForm ? { form, files: pendingFiles.length } : undefined}
     >

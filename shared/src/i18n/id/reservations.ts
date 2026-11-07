@@ -61,7 +61,7 @@ const reservations: TranslationStrings = {
   'reservations.type.car': 'Mobil',
   'reservations.type.cruise': 'Kapal Pesiar',
   'reservations.type.event': 'Acara',
-  'reservations.type.tour': 'Tur',
+  'reservations.type.tour': 'Tur berpemandu',
   'reservations.type.parking': 'Parkir',
   'reservations.type.other': 'Lainnya',
   'reservations.type.bus': 'Bus', // same-as-en
@@ -266,5 +266,9 @@ const reservations: TranslationStrings = {
     'File perlu koneksi untuk diunggah. Hapus file baru untuk menyimpan pemesanan secara offline, atau simpan saat kamu kembali online.',
   'reservations.needsConnection': 'Ini memerlukan koneksi. Coba lagi begitu TREK kembali online.',
   'reservations.exportCsvFiltered': 'Ekspor {shown} dari {total} baris yang ditampilkan (CSV)',
+  'reservations.wallet.add': 'Tambahkan ke Apple Wallet',
+  'reservations.wallet.addGoogle': 'Tambahkan ke Google Wallet',
+  'reservations.wallet.failed': 'Pass Wallet tidak dapat dibuat. Silakan coba lagi.',
+  'reservations.wallet.undated': 'Beri tanggal pada pemesanan dulu: Wallet menampilkan pass di sekitar waktunya.',
 };
 export default reservations;

@@ -33,6 +33,7 @@ import { PermissionsService } from '../../../src/nest/permissions/permissions.se
 import { CollectionsService } from '../../../src/nest/collections/collections.service';
 import { buildPlaceImportService } from '../../helpers/place-import';
 import { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+import { releaseDirect } from '../../helpers/storage-release';
 import { makeStorageFixture } from '../../helpers/storage-fixture';
 import { notificationsStub } from '../../helpers/notifications';
 import {
@@ -125,7 +126,7 @@ beforeAll(async () => {
   permissionsForSpy = new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb));
   svc = new CollectionsService(
     permissionsForSpy,
-    realtime, notificationsStub(notifSend), storageFx.storage, await createTestUnitOfWork(testDb),
+    realtime, notificationsStub(notifSend), releaseDirect(storageFx.storage), await createTestUnitOfWork(testDb),
     await createTestCollectionsRepo(testDb), await createTestCollectionMembersRepo(testDb),
     await createTestCollectionLabelsRepo(testDb), await createTestCategoriesRepo(testDb),
     await createTestCollectionPlacesRepo(testDb), await createTestCollectionPlaceRatingsRepo(testDb),
@@ -698,6 +699,24 @@ describe('deleteCollection', () => {
     expect(await countRows(await orm(), Collections, { id: col.id })).toBe(0);
     expect(await placesIn(col.id)).toEqual({ n: 0 });
     expect(await membersOf(col.id)).toEqual({ n: 0 });
+  });
+
+  it('COLLECTIONS-SVC-040b: deleting a list releases its cover and the images of its saved places (#2924)', async () => {
+    const owner = createUser(testDb).user;
+    const col = await svc.createCollection(owner.id, { name: 'Doomed' });
+    const files = ['list-cover.jpg', 'list-place-a.jpg', 'list-place-b.jpg'].map((name) => {
+      const filePath = path.join(storageFx.root, name);
+      fs.writeFileSync(filePath, 'jpeg-bytes');
+      return filePath;
+    });
+    await svc.setCollectionCover(owner.id, col.id, '/uploads/covers/list-cover.jpg');
+    await svc.savePlace(owner.id, { collection_id: col.id, name: 'A', image_url: '/uploads/places/list-place-a.jpg' });
+    await svc.savePlace(owner.id, { collection_id: col.id, name: 'B', image_url: '/uploads/places/list-place-b.jpg' });
+    await svc.savePlace(owner.id, { collection_id: col.id, name: 'No image' });
+
+    await svc.deleteCollection(owner.id, col.id);
+
+    expect(files.map((file) => fs.existsSync(file))).toEqual([false, false, false]);
   });
 });
 

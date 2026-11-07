@@ -152,5 +152,41 @@ const storage: TranslationStrings = {
   'storage.migrate.promptCancel': 'Cancel',
   'storage.migrate.queued': 'Queued: {categories}',
   'storage.migrate.queueDropped': 'Could not start the next migration — the remaining queue was cleared: {categories}',
+  'storage.reclaim.title': 'Unreferenced files',
+  'storage.reclaim.hint':
+    'Every night TREK looks for uploaded files that no trip, place, journal, collection or user uses any more, for example after a trip was deleted.',
+  'storage.reclaim.check': 'Check now',
+  'storage.reclaim.checked': 'Last check: {age}',
+  'storage.reclaim.never': 'Not checked yet',
+  'storage.reclaim.delete': 'Delete unreferenced files',
+  'storage.reclaim.deleteHint':
+    'Off, the nightly check only reports. On, a file nothing has used for a week is deleted. Files you delete in TREK are removed a day later either way, once no undo can bring them back.',
+  'storage.reclaim.freeable': 'Can be freed',
+  'storage.reclaim.waiting': 'Unused for less than a week',
+  'storage.reclaim.deleted': 'Freed by the last nightly cleanup',
+  'storage.reclaim.nothing': 'No unreferenced files found.',
+  'storage.reclaim.stopped': 'The last check stopped early because the database was restored while it ran.',
+  'storage.reclaim.skip.sources_missing': 'Skipped: not every part of TREK could be asked',
+  'storage.reclaim.skip.shared_location': 'Skipped: shares its location with another category',
+  'storage.reclaim.skip.list_failed': 'Skipped: the files could not be listed',
+  'storage.reclaim.skip.source_failed': 'Skipped: a lookup failed',
+  'storage.reclaim.running': 'Checking…',
+  'storage.reclaim.stoppedFailed': 'The last check stopped after an error. It runs again tonight.',
+  'storage.reclaim.skip.foreign_install': 'Skipped: another TREK installation uses this storage',
+  'storage.reclaim.skip.owner_unknown': 'Skipped: TREK could not mark this storage as its own',
+  'storage.reclaim.skip.delete_failed': 'Stopped: the storage refused a delete',
+  'storage.reclaim.skip.interrupted': 'Stopped before it finished, the figures are partial',
+  'storage.reclaim.confirmNeeded':
+    'More than a fifth of these files look unused. Nothing here is deleted until you confirm that this is expected.',
+  'storage.reclaim.confirm': 'Confirm',
+  'storage.reclaim.confirmed': 'Confirmed for the next 14 days.',
+  'storage.reclaim.error.reclaim_busy': 'Another storage task is running. Try again in a moment.',
+  'storage.reclaim.error.reclaim_demo': 'Not available on a demo instance.',
+  'storage.reclaim.error.reclaim_nothing_to_confirm': 'There is nothing to confirm any more. Run a check first.',
+  'storage.reclaim.skip.backup_running': 'Skipped: a backup was running',
+  'storage.reclaim.error.reclaim_confirm_stale':
+    'The count has changed since it was shown. Check the new figure and confirm again.',
+  'storage.reclaim.error.reclaim_install_unknown':
+    'TREK could not read its installation id, so it deletes nothing. Check the data folder.',
 };
 export default storage;

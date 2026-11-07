@@ -3,6 +3,7 @@ import { Gauge, Hourglass, CircleDashed, Star } from 'lucide-react'
 import type { DawarichAccept, DawarichSuggestion, DawarichSuggestionTarget } from '@trek/shared'
 import { DAWARICH_BUCKET_MATCH_MIN_MINUTES, DAWARICH_BUCKET_MATCH_RADIUS_M } from '@trek/shared'
 import { useTranslation } from '../../i18n'
+import { useFormatDate } from '../../hooks/useDateFormat'
 import { DialogButton, DialogFooter, DialogHeader, DialogShell, FooterSpacer, NEUTRAL_TINT } from '../shared/DialogShell'
 import MSheet from '../../mobile/components/MSheet'
 import { FormSheetFooter, FormSheetHeader } from '../../mobile/screens/trip/sheets/PlSheetChrome'
@@ -64,6 +65,7 @@ export default function DawarichAcceptDialog({
   onConfirm,
 }: DawarichAcceptDialogProps): React.ReactElement | null {
   const { t, locale } = useTranslation()
+  const { formatDateTime } = useFormatDate()
   const phone = useIsPhone()
   const labelId = useId()
 
@@ -140,7 +142,7 @@ export default function DawarichAcceptDialog({
             </span>
             <p className="min-w-0 flex-1 text-caption text-content">
               {t('dawarich.accept.recorded', {
-                from: new Date(suggestion.startedAt).toLocaleString(locale),
+                from: formatDateTime(new Date(suggestion.startedAt)),
                 to: new Date(suggestion.endedAt).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }),
               })}
             </p>

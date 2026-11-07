@@ -78,6 +78,19 @@ afterEach(() => {
   delete window.__addToast
 })
 
+// The hire date is the shared date picker (#2971): typed through its manual
+// field, cleared from its calendar.
+function typeDate(trigger: HTMLElement, value: string) {
+  fireEvent.click(within(trigger.parentElement as HTMLElement).getByRole('button', { name: /enterManually|Enter date manually/ }))
+  const input = screen.getByRole('textbox', { name: /enterManually|Enter date manually/ })
+  fireEvent.change(input, { target: { value } })
+  fireEvent.keyDown(input, { key: 'Enter' })
+}
+function clearDate(trigger: HTMLElement) {
+  fireEvent.click(trigger)
+  fireEvent.click(screen.getByRole('button', { name: /clearDate|Clear date/ }))
+}
+
 describe('VacaySettings calendars', () => {
   it('FE-COMP-VCYSET-001: the week-start buttons save the other day', () => {
     const updatePlan = vi.fn(async (_u: Partial<VacayPlan>) => {})
@@ -312,14 +325,15 @@ describe('VacaySettings calendars', () => {
     })
     render(<VacaySettings onClose={vi.fn()} />)
 
-    expect(screen.getByLabelText('Hire date')).toHaveValue('2020-09-14')
+    const hire = () => screen.getByRole('button', { name: /^Hire date: / })
+    expect(hire()).toHaveAccessibleName(/2020/)
 
-    fireEvent.change(screen.getByLabelText('Hire date'), { target: { value: '2021-03-02' } })
+    typeDate(hire(), '2021-03-02')
     expect(updateYearSettings).toHaveBeenLastCalledWith({
       year_type: 'anniversary', year_start_month: 1, year_start_day: 1, hire_date: '2021-03-02',
     })
 
-    fireEvent.change(screen.getByLabelText('Hire date'), { target: { value: '' } })
+    clearDate(hire())
     expect(updateYearSettings).toHaveBeenLastCalledWith({
       year_type: 'anniversary', year_start_month: 1, year_start_day: 1, hire_date: null,
     })

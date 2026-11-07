@@ -8,6 +8,7 @@ import type { HelpGuide } from '../../help/types'
 import { helpIcon } from './helpIcons'
 import HelpBadge from './HelpBadge'
 import HelpDocLink from './HelpDocLink'
+import { useAuthStore } from '../../store/authStore'
 import HelpSizeChip from './HelpSizeChip'
 import { useScreenRoute } from './useScreenRoute'
 
@@ -27,6 +28,8 @@ export default function HelpGuideView({ guide }: { guide: HelpGuide }): React.Re
   const openLightbox = useHelpStore(s => s.openLightbox)
   const closeHelp = useHelpStore(s => s.closeHelp)
   const docIndex = useHelpStore(s => s.docIndex)
+  // No Help & Docs page on a managed install (App.tsx), so no link into it.
+  const docs = useAuthStore(s => s.managed) ? undefined : guide.docs
   const openGuide = useHelpStore(s => s.openGuide)
   const title = t(guideKey(guide.id, 'title'))
   const screen = getHelpContext(guide.context)
@@ -180,9 +183,9 @@ export default function HelpGuideView({ guide }: { guide: HelpGuide }): React.Re
       )}
 
       {/* Go there / docs / related */}
-      {(guide.link || guide.docs || related.length > 0) && (
+      {(guide.link || docs || related.length > 0) && (
         <section className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {(guide.link || guide.docs) && (
+          {(guide.link || docs) && (
             <div className="rounded-2xl border border-edge bg-surface-card p-4 flex flex-col gap-3">
               <HelpBadge tone="neutral" icon={Link2} uppercase className="self-start">{t('help.center.docsSection')}</HelpBadge>
               {guide.link && (
@@ -195,8 +198,8 @@ export default function HelpGuideView({ guide }: { guide: HelpGuide }): React.Re
                   <ArrowUpRight className="w-4 h-4" />
                 </Link>
               )}
-              {guide.docs && (
-                <HelpDocLink to={docsRoute(guide.docs)} title={t('help.center.openDocs')} subtitle={docTitle(docIndex, guide.docs.slug)} />
+              {docs && (
+                <HelpDocLink to={docsRoute(docs)} title={t('help.center.openDocs')} subtitle={docTitle(docIndex, docs.slug)} />
               )}
             </div>
           )}

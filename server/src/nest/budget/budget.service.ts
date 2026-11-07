@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import type { BudgetFallbackFx, BudgetParticipantFinal, BudgetUnconverted, TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
-import { currencyDecimals, splitEqualShares, sumMinor, toMinor } from '@trek/shared';
+import { costCategoryOf, splitEqualShares, storedCostCategory, sumMinor, toMinor } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { avatarUrl } from '../common/avatarUrl';
@@ -31,7 +31,7 @@ import { BUDGET_ITEM_TICKET, RESERVATION_METADATA } from '../../db/json-columns'
 import { decodeJson, decodeJsonResult, encodeJson } from '../../utils/json-column';
 import { DomainError } from '../common/domain-error';
 import { GUEST_HAS_PAYMENTS, shareAfterLeaving } from './budget-departure.helpers';
-import { allocateDisplayCents, customSplitCents, isFrozenRate, NOT_FROZEN_RATE, quoteRatio, summaryShareCents, sumMoney, tripConverter } from './budget-money.helpers';
+import { applyTransfer, customSplitCents, isFrozenRate, NOT_FROZEN_RATE, settlementFx, summaryShareCents, sumMoney, tripConverter } from './budget-money.helpers';
 
 type Trip = TripAccess;
 
@@ -520,7 +520,7 @@ export class BudgetService {
       const maxOrder = await this.budgetItemsRepo.maxSortOrder(tripId);
       const sortOrder = (maxOrder !== null ? maxOrder : -1) + 1;
 
-      const cat = data.category || 'other';
+      const cat = storedCostCategory(data.category);
 
       // Ensure category has a sort_order entry
       const catExists = await this.budgetCategoryOrderRepo.exists(tripId, cat);
@@ -660,7 +660,7 @@ export class BudgetService {
       // (the legacy `COALESCE(?, col)` truthy-wins shape), everything else
       // passes `present = <field> !== undefined` (a true presence sentinel).
       await this.budgetItemsRepo.update(id, {
-        category: [!!data.category, data.category || ''],
+        category: [!!data.category, data.category ? storedCostCategory(data.category) : ''],
         name: [!!data.name, data.name || ''],
         total_price: [data.total_price !== undefined, data.total_price !== undefined ? data.total_price : 0],
         currency: [data.currency !== undefined, data.currency !== undefined ? (data.currency || null) : null],
@@ -705,11 +705,11 @@ export class BudgetService {
 
       // If category changed, update category order table
       if (data.category) {
-        const catExists = await this.budgetCategoryOrderRepo.exists(tripId, data.category);
+        const catExists = await this.budgetCategoryOrderRepo.exists(tripId, storedCostCategory(data.category));
         if (!catExists) {
           const maxCatOrder = await this.budgetCategoryOrderRepo.maxSortOrder(tripId);
           const catOrder = (maxCatOrder !== null && maxCatOrder !== undefined ? maxCatOrder : -1) + 1;
-          await this.budgetCategoryOrderRepo.insertIgnore(tripId, data.category, catOrder);
+          await this.budgetCategoryOrderRepo.insertIgnore(tripId, storedCostCategory(data.category), catOrder);
         }
       }
 
@@ -1037,7 +1037,7 @@ export class BudgetService {
       }
       const cents = toMinor(convert(r.total_price || 0));
       total += cents;
-      const cat = r.category || '';
+      const cat = costCategoryOf(r.category) ?? (r.category || '');
       byCategory[cat] = (byCategory[cat] || 0) + cents;
     }
     return {
@@ -1083,59 +1083,7 @@ export class BudgetService {
     tripId: string | number,
     opts: { base?: string; rates?: Record<string, number> | null; tripCurrency?: string; baseRate?: number } = {},
   ) {
-    const requested = (opts.base || opts.tripCurrency || 'EUR').toUpperCase();
-    const tripCurrency = (opts.tripCurrency || requested).toUpperCase();
-    const rates = opts.rates ?? null;
-    // Net the whole settlement in the trip's canonical currency and convert the final
-    // totals to the display currency once, instead of netting in the (moving) display
-    // currency. Otherwise per-expense rounding shifts as live FX drifts and the greedy
-    // debt-simplifier reshuffles it into phantom third-party micro-flows (#1382). When
-    // the display currency IS the trip currency (the common case) every conversion below
-    // is the identity, so behaviour is unchanged.
-    // rates[X] = units of X per 1 base; the frozen exchange_rate is units of item-currency
-    // per 1 trip-currency. Pre-rework rows store currency = NULL = "the trip's own currency".
-    // Prefer the FX rate frozen at entry time (#1335): a settled expense keeps the rate
-    // it was booked at, so a later live-rate drift doesn't re-open it with a residual.
-    // Legacy rows without a frozen rate convert via base with live rates.
-    const converterFor = (itemCurrency: string | null | undefined, itemRate?: number | null) =>
-      tripConverter(itemCurrency, itemRate, tripCurrency, rates);
-    // trip-currency → display currency, applied once to the final netted totals.
-    // Held as a plain factor so it is exactly linear: the balances are converted as
-    // one set (allocateDisplayCents) rather than one at a time, which is what keeps
-    // them adding up to zero in whatever currency the viewer picked (#1382).
-    //
-    // `rates` may be quoted against any base; the ratio of the two quotes is the
-    // factor either way. Callers pass the trip currency's own quote (see settlement()),
-    // the one freezeForeignRate froze every entry rate from, so a bill entered today in
-    // the display currency converts back to exactly what was typed (#2525). Taken the
-    // other way round, from the display currency's quote, the two quotes are not exact
-    // inverses and 12,345.67 USD came back as 12,346.06.
-    //
-    // Without a quote, the caller's own figure for the pair (`baseRate`) stands in for
-    // the missing display quote, and for nothing else: a row with a currency of its own
-    // is never converted with it. Like a live quote, it also reads a legacy transfer
-    // without a currency, which is taken to be in the display currency. With neither,
-    // the answer stays in the trip currency and says so, rather than printing trip cents
-    // as the display currency.
-    const baseRate = opts.baseRate != null && Number.isFinite(opts.baseRate) && opts.baseRate > 0 ? opts.baseRate : null;
-    const quoted = requested === tripCurrency ? 1 : (quoteRatio(rates, requested, tripCurrency) ?? baseRate);
-    const currency = quoted === null ? tripCurrency : requested;
-    const displayFactor = quoted ?? 1;
-    // Every figure goes out in whole steps of that currency: whole won or yen (#2604).
-    const displayUnit = 10 ** Math.max(0, 2 - currencyDecimals(currency));
-    const toDisplay = (cents: number[], total?: number) => allocateDisplayCents(cents, displayFactor, total, displayUnit);
-    // A recorded settle-up amount is entered in whatever display currency the payer
-    // was viewing. New rows capture that currency and the rate frozen at settle time
-    // (#1445), so a settled position stays balanced when live rates drift — mirroring
-    // the expenses; a frozen currency without a usable rate falls back to live rates,
-    // and without those the transfer is left out like an expense. Legacy rows
-    // (currency = NULL) have no frozen rate, so fall back to the old behaviour: assume
-    // they were entered in the current display base and convert with live rates.
-    const settleConverterFor = (sCurrency?: string | null, sRate?: number | null) =>
-      sCurrency
-        ? tripConverter(sCurrency, sRate, tripCurrency, rates)
-        // The inverse of the display factor, so such a transfer reads back as entered.
-        : (amount: number) => amount / displayFactor;
+    const { currency, displayFactor, displayUnit, toDisplay, converterFor, settleConverterFor, isDirect } = settlementFx(opts);
     const unconvertedItems: number[] = [];
     const unconvertedSettlements: number[] = [];
     const unconvertedCurrencies = new Set<string>();
@@ -1149,9 +1097,15 @@ export class BudgetService {
     // and rounded to a cent once, at the boundary — from there on the ledger is
     // integer arithmetic, so Σ(balances) is exactly 0 and no sub-cent residual can
     // build up behind the two-decimal figures the user sees (#1382).
-    const balances: Record<number, { user_id: number; username: string; avatar_url: string | null; cents: number }> = {};
+    // `direct` is the half in display cents (#2965), see isDirect in settlementFx.
+    const balances: Record<
+      number,
+      { user_id: number; username: string; avatar_url: string | null; cents: number; direct: number }
+    > = {};
     const ensure = (id: number, src: { username?: string; avatar?: string | null }) => {
-      if (!balances[id]) balances[id] = { user_id: id, username: src.username || '', avatar_url: avatarUrl(src), cents: 0 };
+      if (!balances[id]) {
+        balances[id] = { user_id: id, username: src.username || '', avatar_url: avatarUrl(src), cents: 0, direct: 0 };
+      }
       return balances[id];
     };
     // The two halves of the balance, kept apart so the per-person final budget can
@@ -1161,10 +1115,16 @@ export class BudgetService {
     // are derived from.
     const frontedCents: Record<number, number> = {};
     const reimbursedCents: Record<number, number> = {};
+    const frontedDirect: Record<number, number> = {};
+    const reimbursedDirect: Record<number, number> = {};
     // ...and the rows they are made of, so the breakdown lists them in these same
     // cents rather than converting the expense list a second time on the client.
-    const frontedRows: Record<number, { item_id: number; cents: number }[]> = {};
-    const movedRows: Record<number, { settlement_id: number; from_user_id: number; to_user_id: number; cents: number }[]> = {};
+    // `cents` is the trip-cent part each row is converted from, `direct` the part already in display cents.
+    const frontedRows: Record<number, { item_id: number; cents: number; direct: number }[]> = {};
+    const movedRows: Record<
+      number,
+      { settlement_id: number; from_user_id: number; to_user_id: number; cents: number; direct: number }[]
+    > = {};
     // Read in the trip currency, those figures are the ledger's own trip cents. Read in
     // another one, they are built from each row's unrounded trip amount instead: a trip
     // cent is worth more than a dollar cent on a euro trip, so a bill of 12,345.67 USD
@@ -1175,7 +1135,11 @@ export class BudgetService {
     for (const item of items) {
       // Before anything else, planning-only and unpaid rows included: a row no rate can
       // convert is reported whole and moves nothing, credits and shares alike.
-      const convert = converterFor(item.currency, item.exchange_rate);
+      const inDisplay = isDirect(item.currency);
+      const convert = inDisplay ? (amount: number) => amount : converterFor(item.currency, item.exchange_rate);
+      // The direct half skips toDisplay, so it is kept in whole steps of the display
+      // currency here instead: whole won or yen, as the rest of the answer (#2604).
+      const unit = inDisplay ? displayUnit : 1;
       if (!convert) {
         unconvertedItems.push(item.id);
         unconvertedCurrencies.add((item.currency || '').toUpperCase());
@@ -1209,10 +1173,17 @@ export class BudgetService {
       let creditCents = 0;
       for (const p of payers) {
         const exact = convert(p.amount) * 100;
-        const paid = Math.round(exact);
-        ensure(p.user_id, p).cents += paid;
-        frontedCents[p.user_id] = (frontedCents[p.user_id] || 0) + finalUnit(exact);
-        if (paid !== 0) (frontedRows[p.user_id] ??= []).push({ item_id: item.id, cents: finalUnit(exact) });
+        const paid = Math.round(exact / unit) * unit;
+        const payer = ensure(p.user_id, p);
+        if (inDisplay) {
+          payer.direct += paid;
+          frontedDirect[p.user_id] = (frontedDirect[p.user_id] || 0) + paid;
+          if (paid !== 0) (frontedRows[p.user_id] ??= []).push({ item_id: item.id, cents: 0, direct: paid });
+        } else {
+          payer.cents += paid;
+          frontedCents[p.user_id] = (frontedCents[p.user_id] || 0) + finalUnit(exact);
+          if (paid !== 0) (frontedRows[p.user_id] ??= []).push({ item_id: item.id, cents: finalUnit(exact), direct: 0 });
+        }
         creditCents += paid;
       }
       // …and each split participant owes their share — a custom per-member amount
@@ -1227,11 +1198,14 @@ export class BudgetService {
       // here since #2225. An item whose payers net to exactly zero still does, and
       // divides zero, which is what it is worth.
       const hasCustomSplit = members.some(m => m.amount !== null && m.amount !== undefined);
+      // Split in those steps too (creditCents is a whole number of them), then back to hundredths.
       const shares = hasCustomSplit
-        ? customSplitCents(members, convert, creditCents, sumMinor(payers.map(p => p.amount)))
-        : splitEqualShares(creditCents, members, item.id);
+        ? customSplitCents(members, amount => convert(amount) / unit, creditCents / unit, sumMinor(payers.map(p => p.amount)))
+        : splitEqualShares(creditCents / unit, members, item.id);
       for (const m of members) {
-        ensure(m.user_id, m).cents -= shares[m.user_id] || 0;
+        const member = ensure(m.user_id, m);
+        if (inDisplay) member.direct -= (shares[m.user_id] || 0) * unit;
+        else member.cents -= shares[m.user_id] || 0;
       }
     }
 
@@ -1242,7 +1216,9 @@ export class BudgetService {
     // surfaces as an amount still to square up instead of silently vanishing.
     const settlements = await this.listSettlements(tripId);
     const ensureSettled = (id: number, username: string | undefined, avatar_url: string | null | undefined) => {
-      if (!balances[id]) balances[id] = { user_id: id, username: username || '', avatar_url: avatar_url ?? null, cents: 0 };
+      if (!balances[id]) {
+        balances[id] = { user_id: id, username: username || '', avatar_url: avatar_url ?? null, cents: 0, direct: 0 };
+      }
       return balances[id];
     };
     for (const s of settlements) {
@@ -1252,36 +1228,46 @@ export class BudgetService {
         unconvertedCurrencies.add((s.currency || '').toUpperCase());
         continue;
       }
-      // Rounded to a trip cent per transfer, so recording one in a display currency
-      // can't leave a sliver of a cent behind to accumulate over a trip's lifetime.
-      const exact = convert(s.amount) * 100;
-      const inTrip = Math.round(exact);
-      ensureSettled(s.from_user_id, s.from_username, s.from_avatar_url).cents += inTrip;
-      ensureSettled(s.to_user_id, s.to_username, s.to_avatar_url).cents -= inTrip;
+      const from = ensureSettled(s.from_user_id, s.from_username, s.from_avatar_url);
+      const to = ensureSettled(s.to_user_id, s.to_username, s.to_avatar_url);
+      // Both halves of the ledger take the transfer, the display currency's first (applyTransfer).
+      const { paidDirect, exact, back, backExact } = applyTransfer(from, to, s.amount, isDirect(s.currency), convert, displayUnit);
+      const movedDirect = paidDirect - back;
+      reimbursedDirect[s.to_user_id] = (reimbursedDirect[s.to_user_id] || 0) + movedDirect;
+      reimbursedDirect[s.from_user_id] = (reimbursedDirect[s.from_user_id] || 0) - movedDirect;
       // Net of the transfers in both directions: sending one back is a reimbursement
       // received in reverse, and netting them is what keeps the final budget's
       // subtraction equal to the balance it is taken from.
-      const shown = finalUnit(exact);
+      const shown = finalUnit(exact) + finalUnit(backExact);
       reimbursedCents[s.to_user_id] = (reimbursedCents[s.to_user_id] || 0) + shown;
       reimbursedCents[s.from_user_id] = (reimbursedCents[s.from_user_id] || 0) - shown;
       const moved = { settlement_id: s.id, from_user_id: s.from_user_id, to_user_id: s.to_user_id };
-      (movedRows[s.to_user_id] ??= []).push({ ...moved, cents: shown });
-      (movedRows[s.from_user_id] ??= []).push({ ...moved, cents: -shown });
+      (movedRows[s.to_user_id] ??= []).push({ ...moved, cents: shown, direct: movedDirect });
+      (movedRows[s.from_user_id] ??= []).push({ ...moved, cents: -shown, direct: -movedDirect });
     }
 
     // Into the display currency as one set, then simplify — balances and flows are
     // derived from the same integers, so what the balances say is owed is exactly
     // what "Settle up" offers to move, down to the last cent (#1382).
     const ledger = Object.values(balances);
-    const displayCents = toDisplay(ledger.map(b => b.cents));
+    // The trip-cent half converts as one set; the direct half is display cents already.
+    const displayCents = toDisplay(ledger.map(b => b.cents)).map((cents, i) => cents + ledger[i].direct);
     // Each component of the final budget is re-denominated as its own set, for the
     // same reason the balances are: rounding one person at a time lets the column
     // drift away from the figure it converted from. The final itself is then
     // subtracted in display cents rather than converted separately, so the three
     // lines the breakdown shows always add up to the total beside them, whatever
     // currency the viewer picked.
-    const frontedDisplayCents = toDisplay(ledger.map(b => frontedCents[b.user_id] || 0));
-    const reimbursedDisplayCents = toDisplay(ledger.map(b => reimbursedCents[b.user_id] || 0));
+    const frontedViaTrip = toDisplay(ledger.map(b => frontedCents[b.user_id] || 0));
+    const reimbursedViaTrip = toDisplay(ledger.map(b => reimbursedCents[b.user_id] || 0));
+    const frontedDisplayCents = frontedViaTrip.map((cents, i) => cents + (frontedDirect[ledger[i].user_id] || 0));
+    const reimbursedDisplayCents = reimbursedViaTrip.map((cents, i) => cents + (reimbursedDirect[ledger[i].user_id] || 0));
+    // A row list against its figure: the trip-cent parts split the converted half
+    // the same largest-remainder way, the direct parts are added as they are.
+    const rowsToDisplay = <R extends { cents: number; direct: number }>(rows: R[], viaTrip: number) => {
+      const converted = toDisplay(rows.map(r => r.cents), viaTrip);
+      return rows.map((r, k) => converted[k] + r.direct);
+    };
 
     // Calculate optimized payment flows (greedy algorithm)
     const people = ledger
@@ -1323,8 +1309,8 @@ export class BudgetService {
         // figure as the target, so each list adds up to the line it sits under.
         const fronted = frontedRows[b.user_id] || [];
         const moved = movedRows[b.user_id] || [];
-        const frontedDisplay = toDisplay(fronted.map(r => r.cents), frontedDisplayCents[i]);
-        const movedDisplay = toDisplay(moved.map(r => r.cents), reimbursedDisplayCents[i]);
+        const frontedDisplay = rowsToDisplay(fronted, frontedViaTrip[i]);
+        const movedDisplay = rowsToDisplay(moved, reimbursedViaTrip[i]);
         return {
           user_id: b.user_id, username: b.username, avatar_url: b.avatar_url,
           expenses: frontedDisplayCents[i] / 100,
@@ -1333,7 +1319,12 @@ export class BudgetService {
           final: (frontedDisplayCents[i] - reimbursedDisplayCents[i] - displayCents[i]) / 100,
           sources: {
             fronted: fronted.map((r, k) => ({ item_id: r.item_id, cents: frontedDisplay[k] })),
-            moved: moved.map((r, k) => ({ ...r, cents: movedDisplay[k] })),
+            moved: moved.map((r, k) => ({
+              settlement_id: r.settlement_id,
+              from_user_id: r.from_user_id,
+              to_user_id: r.to_user_id,
+              cents: movedDisplay[k],
+            })),
             // The flows are display cents already, and the greedy pass drains every
             // balance completely, so the flows on a person's side sum to their balance.
             outstanding: flows

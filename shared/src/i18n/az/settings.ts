@@ -108,6 +108,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': 'Vaxt formatı',
   'settings.weekStart': 'Həftənin başlanğıcı',
   'settings.weekStartHint': 'Bütün tarix seçicilərində həftənin ilk günü. Vacay-ın öz ayarı var.',
+  'settings.dateFormat': 'Tarix formatı',
+  'settings.dateFormatHint':
+    'Tarixlərin bütün tarix sahələrində və siyahılarda necə yazıldığı. Ay adı olan tarixlər dilinizin ifadə tərzini saxlayır.',
+  'settings.dateFormatAuto': 'Avtomatik',
   'settings.preferredNavApp': 'Yerləri açmaq üçün',
   'settings.preferredNavAppAsk': 'Hər dəfə soruş',
   'settings.preferredNavAppHint':
@@ -724,6 +728,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': 'Hazır',
   'settings.mcp.deprecated': 'Köhnəlmiş',
   'settings.offline.cache.dateRange': '{start} tarixindən {end} tarixinədək',
+  'settings.offline.tileStore.title': 'Baxılmış xəritə kafelləri',
+  'settings.offline.tileStore.usage': 'Bu cihazda {limit}-dən {used}, 30 günə qədər saxlanılır',
+  'settings.offline.tileStore.clear': 'Təmizlə',
 };
 
 export default settings;

@@ -53,6 +53,7 @@ const STATE: StorageAdminState = {
   },
   health: { replicaFailures: [] },
   seedFilePresent: false,
+  reclaim: null,
   usage: null,
   backfills: [],
   migrations: [],

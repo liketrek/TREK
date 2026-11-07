@@ -40,8 +40,71 @@ function fileErrorMessage(error: unknown, name: string, t: Translate): string {
 export interface GpxPreviewFile {
   file: File;
   tracks: TourGpxPreviewTrack[];
-  /** What a KML or KMZ file held besides its lines, which no tour is made of; absent for GPX. */
+  /** What the file held besides its lines, which no tour is made of: GPX waypoints, KML pins, areas and the rest. */
   leftOut?: TourFileLeftOut;
+}
+
+/** What to do with the previewed files besides their lines. */
+export interface TourImportExtras {
+  /** Add each file's points (GPX waypoints, KML pins) as places of the trip (#2969). */
+  points?: boolean;
+}
+
+interface ToursImported {
+  tours: TourListItem[];
+  skipped: number;
+  caution: boolean;
+}
+
+/** Each file with a line the trip does not hold yet, imported as tours; a file that fails is handed to `onError`. */
+async function importTours(
+  tripId: number,
+  files: readonly GpxPreviewFile[],
+  fields: TourGpxImportFields,
+  onError: (error: unknown, file: File) => void
+): Promise<ToursImported> {
+  const sum: ToursImported = { tours: [], skipped: 0, caution: false };
+  for (const { file, tracks } of files) {
+    if (tracks.every((track) => track.duplicate)) continue;
+    try {
+      const result = await tourRepo.importGpx(tripId, file, fields);
+      sum.tours.push(...result.tours);
+      sum.skipped += result.skipped;
+      sum.caution ||= result.caution;
+    } catch (error: unknown) {
+      onError(error, file);
+    }
+  }
+  return sum;
+}
+
+interface PointsImported {
+  places: number;
+  /** Points the preview counted that did not come in, almost always because the trip already holds them. */
+  skipped: number;
+}
+
+/** The points of each file that holds any, added as places (#2969); a file that fails is handed to `onError`. */
+async function importPoints(
+  tripId: number,
+  files: readonly GpxPreviewFile[],
+  onError: (file: File) => void
+): Promise<PointsImported> {
+  const sum: PointsImported = { places: 0, skipped: 0 };
+  for (const { file, leftOut } of files) {
+    if (!leftOut?.points) continue;
+    try {
+      const added = await tourRepo.importFilePoints(tripId, file);
+      sum.places += added;
+      // Measured against the preview's count rather than the import's own
+      // skipped figure: the map import counts paths it was told to leave out
+      // as skipped too, the GPX import does not.
+      sum.skipped += Math.max(0, leftOut.points - added);
+    } catch {
+      onError(file);
+    }
+  }
+  return sum;
 }
 
 interface TourGpxImportOptions {
@@ -115,26 +178,30 @@ export function useTourGpxImport({ tripId, canEdit, onToursChanged, onImported, 
     [canEdit, fileError, importing, onNoTrack, preview, t, toast, tripId]
   );
 
-  /** The previewed files imported as the chosen type, summed up in one set of toasts. */
+  /**
+   * The previewed files imported as the chosen type, summed up in one set of
+   * toasts. With `points`, what each file holds as single points comes in as
+   * places as well, so a file with a route and its stops loses neither (#2969).
+   * A file whose every line the trip already holds is not sent to the Tours
+   * import at all, only for its points.
+   */
   const confirm = useCallback(
-    async (fields: TourGpxImportFields) => {
+    async (fields: TourGpxImportFields, extras: TourImportExtras = {}) => {
       if (!canEdit || !preview || importing) return;
       setImporting(true);
-      const imported: TourListItem[] = [];
-      let skipped = 0;
-      let caution = false;
       try {
-        for (const { file } of preview) {
-          try {
-            const result = await tourRepo.importGpx(tripId, file, fields);
-            imported.push(...result.tours);
-            skipped += result.skipped;
-            caution ||= result.caution;
-          } catch (error: unknown) {
-            fileError(error, file);
-          }
-        }
+        const { tours: imported, skipped, caution } = await importTours(tripId, preview, fields, fileError);
+        const points = extras.points
+          ? await importPoints(tripId, preview, (file) =>
+              toast.error(t('tours.import.pointsFailedIn', { name: file.name }))
+            )
+          : { places: 0, skipped: 0 };
+        const places = points.places;
         setPreview(null);
+        if (places > 0) {
+          if (imported.length === 0) await refreshPlaces(tripId);
+          toast.success(t('tours.import.pointsImported', { count: places }));
+        }
         if (imported.length > 0) {
           // The server's place:created skips this socket, so the places are read
           // again here for the new ones and their lines. Only the places: a whole
@@ -145,10 +212,14 @@ export function useTourGpxImport({ tripId, canEdit, onToursChanged, onImported, 
           if (caution) toast.info(t('tours.import.caution'));
           onImported?.(imported);
         }
-        if (skipped > 0) {
-          toast.warning(
-            imported.length > 0 ? t('tours.import.skipped', { count: skipped }) : t('tours.import.allSkipped')
-          );
+        // Nothing came in although something was sent: one warning, so the
+        // dialog never closes on a file the trip already holds without a word.
+        const addedAny = imported.length > 0 || places > 0;
+        if (!addedAny && (skipped > 0 || points.skipped > 0)) {
+          toast.warning(t('tours.import.allSkipped'));
+        } else {
+          if (skipped > 0) toast.warning(t('tours.import.skipped', { count: skipped }));
+          if (points.skipped > 0) toast.warning(t('tours.import.pointsSkipped'));
         }
       } finally {
         setImporting(false);

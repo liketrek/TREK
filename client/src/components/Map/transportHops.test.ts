@@ -88,6 +88,20 @@ describe('transportHop', () => {
     expect(transportHop(r, false)!.arcs[0].length).toBeGreaterThan(2);
   });
 
+  it("draws the waypoints and arcs in the map's longitude frame, so the pins sit on the line (#2975)", () => {
+    const r = booking('flight', [
+      endpoint({ role: 'from', lat: 33.94, lng: -118.41 }),
+      endpoint({ role: 'to', sequence: 1, lat: -37.01, lng: 174.79 }),
+    ]);
+    const hop = transportHop(r, true, { seam: 28 });
+    if (!hop) throw new Error('a flight with two located ends draws a hop');
+    expect(hop.from.lng).toBeCloseTo(241.59, 5);
+    expect(hop.to.lng).toBeCloseTo(174.79, 5);
+    expect(hop.arcs).toHaveLength(1);
+    expect(hop.arcs[0][0][1]).toBeCloseTo(241.59, 5);
+    expect(hop.arcs[0][hop.arcs[0].length - 1][1]).toBeCloseTo(174.79, 5);
+  });
+
   it('draws ferries and cruises as arcs but a cable car as a straight line', () => {
     expect(TRANSPORT_META.ferry.geodesic).toBe(true);
     expect(TRANSPORT_META.cruise.geodesic).toBe(true);

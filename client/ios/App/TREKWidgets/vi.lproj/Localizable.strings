@@ -1,0 +1,20 @@
+/* The widget gallery: names and descriptions (TREKWidgets/NextTripWidget.swift). */
+"widget.trip.name" = "Chuyến đi";
+"widget.trip.description" = "Đếm ngược đến chuyến đi tiếp theo, trong chuyến đi thì hiện ngày và điểm tiếp theo.";
+"widget.today.name" = "Hôm nay";
+"widget.today.description" = "Kế hoạch hôm nay dạng dòng thời gian, kèm thời tiết và điểm dừng tiếp theo.";
+"widget.bookings.name" = "Đặt chỗ";
+"widget.bookings.description" = "Các chuyến bay, tàu, khách sạn và bàn sắp tới của bạn, cùng thời gian.";
+"widget.todos.name" = "Việc cần làm";
+"widget.todos.description" = "Những gì còn lại cho chuyến đi và việc soạn hành lý đã tới đâu.";
+"widget.packing.name" = "Hành lý";
+"widget.packing.description" = "Túi đã đầy đến đâu, cân nặng và những gì còn thiếu.";
+"widget.atlas.name" = "Bản đồ thế giới";
+"widget.atlas.description" = "Những quốc gia bạn đã đến, sáng lên trên bản đồ.";
+"widget.collab.name" = "Nhóm du lịch";
+"widget.collab.description" = "Ai đi cùng, tin nhắn mới nhất và cuộc bình chọn đang mở.";
+"widget.intent.title" = "Chọn chuyến đi";
+"widget.intent.description" = "Chuyến đi mà tiện ích này hiển thị.";
+"widget.intent.trip" = "Chuyến đi";
+"widget.intent.auto" = "Tự động";
+"widget.intent.autoHint" = "Cùng chuyến đi với bảng điều khiển";

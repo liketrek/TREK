@@ -214,13 +214,14 @@ describe('MCollections', () => {
     expect(document.querySelector('.animate-spin')).not.toBeNull()
   })
 
-  it('FE-MOB-COLSCR-002: with no lists at all it offers the first-list CTA', () => {
+  it('FE-MOB-COLSCR-002: with no lists at all the dock + button starts the first one; the screen has no button of its own', async () => {
     mocks.coll = makeHook({ collections: [], ownedLists: [], activeCollection: null, activeId: null, canShare: false })
-    render(<MCollections />)
+    render(<MCollections />, { initialEntries: ['/collections?create=place'] })
 
     expect(screen.getByText('collections.empty.firstTitle')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /collections.newList/ }))
-    expect(fn('setEditorTarget')).toHaveBeenCalledWith('new')
+    expect(screen.queryByRole('button', { name: /^collections.newList$/ })).not.toBeInTheDocument()
+    await waitFor(() => expect(fn('setEditorTarget')).toHaveBeenCalledWith('new'))
+    expect(fn('setShowAddPlace')).not.toHaveBeenCalled()
     expect(screen.queryByPlaceholderText('collections.search')).not.toBeInTheDocument()
   })
 

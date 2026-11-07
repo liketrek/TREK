@@ -1080,6 +1080,7 @@ const admin: TranslationStrings = {
   'admin.contribute.never.providers': 'Google などのプロバイダが入力した詳細',
   'admin.contribute.prompt.how':
     'ユーザー自身が入力した内容だけ、しかもインデックスが把握している場所に限って送ります。ユーザー、旅行、アカウントの情報は一切付きません。ログにはすべての送信が表示され、項目のオフや全件の撤回もいつでも可能です。',
+  'admin.contribute.prompt.past': 'TREK 5.1 以降にユーザーが入力した情報も、少しずつ共有されます。',
   'admin.contribute.prompt.openRegistration':
     'このインストールは登録が開放されているため、アカウントがあれば誰でも詳細を入力できます。すべての値は公開前に確認されます。',
   'admin.contribute.prompt.footnote': 'この設定はインストール全体で管理者が決めます。ユーザーには尋ねません。',

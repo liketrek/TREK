@@ -620,8 +620,7 @@
       "desktop": ["src/components/Planner/PlacesSidebarHeader.tsx", "src/components/Planner/usePlacesSidebar.ts"],
       "mobile": [
         "src/mobile/screens/trip/places/MPlacesBrowser.tsx",
-        "src/mobile/screens/trip/places/MPlacesFilterControls.tsx",
-        "src/mobile/screens/trip/places/MPlacesFilterSheet.tsx"
+        "src/mobile/screens/trip/places/MPlacesFilterControls.tsx"
       ]
     },
     {
@@ -671,6 +670,12 @@
       "mobile": ["src/mobile/screens/trip/roadtrip/MRtStaySheet.tsx"]
     },
     {
+      "feature": "Demo welcome",
+      "hooks": ["src/components/Demo/useDemoWelcome.ts"],
+      "desktop": ["src/components/Demo/DemoWelcome.tsx"],
+      "mobile": ["src/mobile/screens/dashboard/MDemoWelcome.tsx"]
+    },
+    {
       "feature": "Settings / Demo account locks",
       "hooks": ["src/components/Demo/useDemoLock.ts"],
       "desktop": [
@@ -690,6 +695,12 @@
       "hooks": ["src/components/Settings/AccountDemoLock.tsx", "src/components/Settings/useAccountSettings.ts"],
       "desktop": ["src/components/Settings/AccountTab.tsx"],
       "mobile": ["src/mobile/screens/settings/MSettingsAccount.tsx"]
+    },
+    {
+      "feature": "Settings / Account / Native app server",
+      "hooks": ["src/components/Settings/useNativeServer.ts"],
+      "desktop": ["src/components/Settings/NativeServerSection.tsx"],
+      "mobile": ["src/mobile/screens/settings/MSettingsServer.tsx"]
     },
     {
       "feature": "Settings / Account / Passkeys",
@@ -742,11 +753,8 @@
     {
       "feature": "Settings / Map: mapSettingsModel",
       "hooks": ["src/components/Settings/mapSettingsModel.ts"],
-      "desktop": ["src/components/Admin/DefaultUserSettingsTab.tsx", "src/components/Settings/MapSettingsTab.tsx"],
-      "mobile": [
-        "src/mobile/screens/admin/MAdminDefaultUserSettings.tsx",
-        "src/mobile/screens/settings/MSettingsMap.tsx"
-      ]
+      "desktop": ["src/components/Settings/MapSettingsTab.tsx"],
+      "mobile": ["src/mobile/screens/settings/MSettingsMap.tsx"]
     },
     {
       "feature": "Settings / Map: useMapSettingsForm",
@@ -983,8 +991,11 @@
     }
   ],
   "mobileOnly": {
+    "src/mobile/screens/admin/MAdminOidcCard.tsx": "Markup only; the OIDC card of MAdminSettingsSection, with the form state from useAdmin and the save from its useAdminSettingsActions handed in through props.",
     "src/mobile/screens/admin/MAdminResetMfaSheet.tsx": "Markup only; the 2FA reset confirm that MAdminSheets opens, with the reset handed in through props from its useAdminUserActions.",
     "src/mobile/screens/admin/MAdminUi.tsx": "Phone only admin UI primitives (button, card, field, input, secret input, sheet frame).",
+    "src/mobile/screens/admin/MPluginVersionDate.tsx": "Markup only; the published date of a plugin version in MAdminPluginsPanel, formatted with the user's date format through useFormatDate.",
+    "src/mobile/screens/admin/MStorageReclaimCard.tsx": "Markup only; renders the reclaim view and handlers that MAdminStoragePanel takes from useStoragePanel, the twin of StorageReclaimSection.",
     "src/mobile/screens/atlas/MAtlasSearch.tsx": "Phone full screen country search overlay; options, suggestions and selection come through props from MAtlas.",
     "src/mobile/screens/atlas/MAtlasStatsCard.tsx": "Markup only; renders the AtlasStats that MAtlas passes in.",
     "src/mobile/screens/collections/MCollCategoryPicker.tsx": "Phone only category dropdown; value and categories come through props from the collection sheets.",
@@ -996,6 +1007,7 @@
     "src/mobile/screens/collections/collectionsMobileModel.ts": "Visual constants only the phone collections screens use (category and status specs, swatches, cover gradient).",
     "src/mobile/screens/dashboard/MUserMenu.tsx": "Phone avatar menu with a three state theme cycle the desktop navbar does not have.",
     "src/mobile/screens/journey/MDawarichDaySheet.tsx": "Markup only; the phone frame the Dawarich day sheets (route and stays) render their shared review in.",
+    "src/mobile/screens/settings/MAppLockCard.tsx": "Phone only: the app lock exists only in the native app, so there is no desktop setting to share with.",
     "src/mobile/screens/settings/MConfirmSheet.tsx": "Phone only bottom sheet confirm dialog used across the mobile screens.",
     "src/mobile/screens/settings/MDawarichConnectionSection.tsx": "Already shares hooks/useDawarichConnection with components/Settings/DawarichConnectionSection.tsx.",
     "src/mobile/screens/settings/MMobileDashOrder.tsx": "Phone only setting that orders the mobile dashboard blocks; the desktop has no such setting.",
@@ -1004,17 +1016,18 @@
     "src/mobile/screens/settings/MSettingsAbout.tsx": "Markup only about card with static links and no state.",
     "src/mobile/screens/settings/MSettingsOffline.tsx": "Already shares components/Settings/useOfflineSettings with components/Settings/OfflineTab.tsx.",
     "src/mobile/screens/settings/MSettingsUi.tsx": "Phone only settings UI primitives (card, row, input, button, segments, hint).",
+    "src/mobile/screens/settings/MTileCacheUsage.tsx": "Phone only: the native tile cache size and clear action, which the browser build has no counterpart for.",
     "src/mobile/screens/settings/MWebPushCard.tsx": "Already shares hooks/useWebPush with components/Settings/WebPushCard.tsx.",
     "src/mobile/screens/trip/dockTabs.ts": "Phone only helper that picks which trip tabs get a seat in the mobile dock.",
     "src/mobile/screens/trip/lib/dayNotes.ts": "Phone only helper that splits a leading time off a day note for the plan timeline.",
     "src/mobile/screens/trip/map/MMapArea.tsx": "Phone map stage framing; already shares usePoiExplore and useMergedMapPois with the desktop trip planner.",
-    "src/mobile/screens/trip/map/MPlacesFilterPill.tsx": "Phone only map control for the active places filter count, built on the shared MapTogglePill.",
     "src/mobile/screens/trip/places/MPlacesBulkCategorySheet.tsx": "Markup only; categories and the pick handler come through props from MPlacesBrowser.",
     "src/mobile/screens/trip/places/MPlacesToursModeSwitch.tsx": "Markup only places or tours toggle; value and onChange come through props from MPlacesBrowser.",
     "src/mobile/screens/trip/places/placesBrowserModel.ts": "Phone pool helpers over the shared utils/placesFilter, placeSearch and plannedPlaces.",
     "src/mobile/screens/trip/plan/MPlanTimelineRows.tsx": "Markup only timeline rows; row data comes from MPlanTimeline and planTimelineModel.",
+    "src/mobile/screens/trip/plan/MRouteAppsSheet.tsx": "Markup only; the route apps come from the shared components/Planner/dayRouteApps the desktop menu uses too.",
+    "src/mobile/screens/trip/plan/openRouteTarget.ts": "Phone only helper that opens a route target: a web link in a new tab, geo: in place.",
     "src/mobile/screens/trip/plan/planTimelineModel.ts": "Phone plan timeline row builder over the shared utils/dayMerge, dayOrder and dayTourProjection.",
-    "src/mobile/screens/trip/plan/useMPlanDaySwipe.ts": "Phone only touch swipe gesture for switching days.",
     "src/mobile/screens/trip/plan/useMPlanDragReorder.ts": "Phone only long press drag gesture; the reorder itself runs through the handler it is given.",
     "src/mobile/screens/trip/roadtrip/MRoadtripRows.tsx": "Markup only road trip rows over the shared Roadtrip models the desktop sidebar rows also use.",
     "src/mobile/screens/trip/roadtrip/MRoadtripTab.tsx": "Phone road trip tab over the shared roadtripRowModel, stopBookings and nightBookend RoadtripSidebar uses.",
@@ -1033,10 +1046,12 @@
     "src/mobile/screens/trip/sheets/MBrowseActionsSheet.tsx": "Phone action sheet for a pool place that calls planner handlers and the shared placeToSaveTarget.",
     "src/mobile/screens/trip/sheets/MDaysSheet.tsx": "Button based day reorder sheet over planner.handleReorderDays; the desktop reorders by drag.",
     "src/mobile/screens/trip/sheets/MLinkedCosts.tsx": "Already shares useExpenseLinks with the desktop BookingCostsSection; only markup and a search filter are local.",
+    "src/mobile/screens/trip/sheets/MTourDetailShell.tsx": "Markup only phone frame for the shared TourDetailDialog, which renders its own content into it.",
     "src/mobile/screens/trip/sheets/MTripSheetUi.tsx": "Phone sheet UI primitives (eyebrow, headers, stat boxes, action circles) and a time display helper.",
     "src/mobile/screens/trip/sheets/PlFileAttach.tsx": "Markup only; pending files and link actions come through props from the phone form sheets.",
     "src/mobile/screens/trip/sheets/PlSheetChrome.tsx": "Phone form sheet chrome primitives (header, footer, field classes).",
     "src/mobile/screens/trip/sheets/PlTimeFields.tsx": "Phone time fields that already share timeCollisions with the desktop PlaceFormModal.",
+    "src/mobile/screens/trip/sheets/tourSheetOpen.ts": "Phone only context for MTourDetailShell: whether the tour sheet is open and the name it carries.",
     "src/mobile/screens/trip/tabs/MCollabTab.tsx": "Phone collab sub tab router that reuses the desktop CollabLinks component.",
     "src/mobile/screens/trip/tabs/MListsTab.tsx": "Phone router between the packing and to-do bodies, with no logic of its own.",
     "src/mobile/screens/trip/tabs/MReceiptScanButton.tsx": "Already shares useReceiptScan and ReceiptScanModal with the desktop CostsPanel.",

@@ -250,6 +250,19 @@ describe('useMVacay', () => {
     expect(result.current.monthSlot).toBe(11);
   });
 
+  it('FE-MOB-MVAC-012b: a swipe selects only years the plan has, and names any slot and any year', async () => {
+    const setSelectedYear = vi.fn((_year: number) => undefined);
+    mocks.vacay = buildVacay({ years: [2025, 2026], setSelectedYear });
+    const { result } = await mount();
+
+    act(() => { result.current.selectYear(2025); });
+    act(() => { result.current.selectYear(2031); });
+    expect(setSelectedYear.mock.calls).toEqual([[2025]]);
+
+    expect(result.current.monthsFor(2025)[0]).toEqual({ year: 2025, month: 0 });
+    expect(result.current.monthNameLongFor(0)).toMatch(/jan/i);
+  });
+
   it('FE-MOB-MVAC-013: only a fused plan allows selecting another member', async () => {
     const { result } = await mount();
 

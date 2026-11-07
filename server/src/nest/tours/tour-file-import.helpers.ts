@@ -3,8 +3,9 @@
  * A GPX file gives its tracks and routes, a KML or KMZ file its lines; both
  * come back as the same rows, so the preview, the duplicate rule and the one
  * transaction that stores them are the GPX import's own. Loose points are
- * never a tour: a GPX file's waypoints are skipped as they always were, and a
- * KML file's pins, areas and the rest are counted for the preview to name.
+ * never a tour: a GPX file's waypoints and a KML file's pins, areas and the
+ * rest are counted for the preview, which offers to add the points as places
+ * of the trip through the places import (#2969).
  */
 import { DomainError } from '../common/domain-error';
 import type { PlaceImportService } from '../place-import/place-import.service';
@@ -13,7 +14,7 @@ import type { TourFileLeftOut } from '@trek/shared';
 
 type TourFileFormat = 'gpx' | 'kml' | 'kmz';
 
-/** A file read for a Tours import: the rows it would store, and for a KML or KMZ file what it holds besides. */
+/** A file read for a Tours import: the rows it would store, and what the file holds besides. */
 export interface TourFileRead {
   rows: PreparedGpxPlace[];
   leftOut?: TourFileLeftOut;
@@ -56,7 +57,14 @@ export async function readTourFile(
       importTracks: true,
       defaultName: fileName,
     });
-    return { rows };
+    if (rows.length === 0) return { rows };
+    const points = placeImport.readGpx(fileBuffer, {
+      importWaypoints: true,
+      importRoutes: false,
+      importTracks: false,
+      defaultName: fileName,
+    }).length;
+    return points > 0 ? { rows, leftOut: { points, areas: 0, other: 0 } } : { rows };
   }
   try {
     const { tracks, leftOut } = await placeImport.readMapFileTracks(fileBuffer, fileName ?? '');

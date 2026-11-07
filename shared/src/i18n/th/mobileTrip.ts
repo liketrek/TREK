@@ -8,7 +8,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addTransportShort': 'ขนส่ง',
   'mobileTrip.allDays': 'ทุกวัน',
   'mobileTrip.today': 'วันนี้',
-  'mobileTrip.jumpToToday': 'ไปที่วันนี้',
   'mobileTrip.assignedDays': 'วันที่ได้รับมอบหมาย',
   'mobileTrip.assignmentNotes': 'บันทึกเฉพาะวัน',
   'mobileTrip.bookingsEmpty': 'ยังไม่มีการจอง',
@@ -20,8 +19,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.filesEmpty': 'ยังไม่มีไฟล์',
   'mobileTrip.filesNext': 'ไฟล์ถัดไป',
   'mobileTrip.filesPrev': 'ไฟล์ก่อนหน้า',
-  'mobileTrip.googleMaps': 'Google แผนที่',
-  'mobileTrip.coMaps': 'โคแมปส์',
   'mobileTrip.icsDownload': 'ดาวน์โหลด .ics',
   'mobileTrip.icsSubscribe': 'สมัครสมาชิกปฏิทิน',
   'mobileTrip.icsSubscribeSub': 'อัปเดตอัตโนมัติในแอปปฏิทินของคุณ',
@@ -74,5 +71,8 @@ const mobileTrip: TranslationStrings = {
     'มี {count} ช่วงที่มีผลลัพธ์มากเกินกว่าจะแสดงในคำตอบเดียว เลือกประเภทให้น้อยลงเพื่อดูที่เหลือ',
   'mobileTrip.rtNoDay': 'ยังไม่ได้เลือกวัน',
   'mobileTrip.rtNoDayHint': 'แผนที่แสดงทั้งการเดินทาง แตะวันด้านบนเพื่อดูเส้นทางขับรถของวันนั้น',
+  'mobileTrip.maps': 'แผนที่',
+  'mobileTrip.openRouteIn': 'เปิดวันนี้ใน',
+  'mobileTrip.firstStopOnly': 'เฉพาะจุดแรก',
 };
 export default mobileTrip;

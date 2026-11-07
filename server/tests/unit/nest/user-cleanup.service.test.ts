@@ -23,6 +23,7 @@ import { Plugins } from '../../../src/db/entities/Plugins.entity';
 import { ShareTokens } from '../../../src/db/entities/ShareTokens.entity';
 import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
 import { TripMembers } from '../../../src/db/entities/TripMembers.entity';
+import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
 import { Users } from '../../../src/db/entities/Users.entity';
 import type { BudgetItemsRepository } from '../../../src/db/repositories/BudgetItems.repository';
 import type { BudgetSettlementsRepository } from '../../../src/db/repositories/BudgetSettlements.repository';
@@ -54,6 +55,7 @@ import {
   createTestPluginsRepo,
   createTestPluginUserErasureQueueRepo,
 } from '../../helpers/share-repos';
+import { releaseNothing } from '../../helpers/storage-release';
 import { resetTestDb } from '../../helpers/test-db';
 import type { TestOrm } from '../../helpers/test-orm';
 import {
@@ -93,6 +95,8 @@ vi.mock('../../../src/nest/plugins/paths', () => ({ pluginsDataRoot: () => dataR
 let em: EntityManager;
 let budget: BudgetService;
 let svc: UserCleanupService;
+/** What a deletion hands on: the avatar, released by its own suites. */
+const cleanupRelease = releaseNothing();
 beforeAll(async () => {
   // Plan 4 Task 4: UserCleanupService's own DatabaseService param is gone.
   // UC1 goes through MaintenanceRepository, which Nest injects (built here
@@ -125,6 +129,7 @@ beforeAll(async () => {
     // Plan 4 Task 8a constructor-ripple: UC2/UC3's repositories.
     await createTestPluginsRepo(testDb),
     await createTestPluginUserErasureQueueRepo(testDb),
+    cleanupRelease,
   );
 });
 
@@ -159,6 +164,7 @@ const addEntry = (journeyId: number, authorId: number, type: string, title: stri
 
 beforeEach(async () => {
   resetTestDb(testDb);
+  cleanupRelease.releaseValues.mockClear();
   // The plugin tables are not user data, so resetTestDb leaves them alone —
   // these tests own them and must not leak rows into each other.
   await deleteRows(orm, PluginUserErasureQueue);
@@ -261,6 +267,7 @@ describe('erasePluginUserData', () => {
       // constructor-time failure.
       await createTestPluginsRepo(slim),
       await createTestPluginUserErasureQueueRepo(slim),
+      { releaseValues: async () => [] } as never,
     );
 
     await expect(slimSvc.erasePluginUserData(1)).resolves.toBeUndefined();
@@ -431,13 +438,61 @@ describe('deleteUserCompletely', () => {
           await createTestShareTokensRepo(testDb),
           await createTestPluginsRepo(testDb),
           await createTestPluginUserErasureQueueRepo(testDb),
+          cleanupRelease,
         ).deleteUserCompletely(victim.id),
       ).rejects.toThrow('boom');
 
       expect(await findRow(orm, Users, { id: victim.id })).not.toBeNull();
       expect((await findRow(orm, TripMembers, { user: owner.id }))?.invited_by).toBe(victim.id);
+      expect(cleanupRelease.releaseValues).not.toHaveBeenCalled();
     } finally {
       deleteByIdSpy.mockRestore();
     }
+  });
+
+  it('USER-CLEANUP-010: hands the uploaded avatar to the release once the user row is gone', async () => {
+    const { user } = createUser(testDb, { username: 'with-avatar' });
+    await updateRows(orm, Users, { id: user.id }, { avatar: 'face.png' });
+    cleanupRelease.releaseValues.mockImplementationOnce(async () => {
+      expect(await findRow(orm, Users, { id: user.id })).toBeNull();
+      return 0;
+    });
+    await svc.deleteUserCompletely(user.id);
+    expect(cleanupRelease.releaseValues).toHaveBeenCalledWith(['face.png'], { bare: 'avatars' });
+  });
+
+  it('USER-CLEANUP-012: drops the photo rows only their own journeys held and releases those files', async () => {
+    const { user: victim } = createUser(testDb, { username: 'photo-victim' });
+    const { user: other } = createUser(testDb, { username: 'photo-other' });
+    const ownJourney = await createJourney(victim.id, 'Mine');
+    const otherJourney = await createJourney(other.id, 'Theirs');
+    const trip = createTrip(testDb, other.id);
+    const photo = async (file: string, thumb: string | null = null) => {
+      const row = { provider: 'local', owner: victim.id, file_path: file, thumbnail_path: thumb };
+      const id = await insertRow(orm, TrekPhotos, row);
+      await insertRow(orm, JourneyPhotos, { journey: ownJourney, photo: id, created_at: 0 });
+      return id;
+    };
+    const alone = await photo('journey/alone.jpg', 'journey/alone-poster.jpg');
+    const inOtherJourney = await photo('journey/shared.jpg');
+    const inTrip = await photo('journey/trip.jpg');
+    await insertRow(orm, JourneyPhotos, { journey: otherJourney, photo: inOtherJourney, created_at: 0 });
+    await insertRow(orm, TripPhotos, { trip: trip.id, user: other.id, photo: inTrip });
+
+    await svc.deleteUserCompletely(victim.id);
+
+    expect(await findRow(orm, TrekPhotos, { id: alone })).toBeNull();
+    expect(await findRow(orm, TrekPhotos, { id: inOtherJourney })).not.toBeNull();
+    expect(await findRow(orm, TrekPhotos, { id: inTrip })).not.toBeNull();
+    // Every file the gallery named is handed on: the release keeps what another row still names.
+    type Released = [Array<string | null>, { bare?: string }];
+    const calls = cleanupRelease.releaseValues.mock.calls as unknown as Released[];
+    const handed = calls.find(([, options]) => options.bare === 'journey')?.[0] ?? [];
+    expect(handed.filter(Boolean).sort()).toEqual([
+      'journey/alone-poster.jpg',
+      'journey/alone.jpg',
+      'journey/shared.jpg',
+      'journey/trip.jpg',
+    ]);
   });
 });

@@ -1,8 +1,11 @@
 import type { FeatureGroup as LeafletFeatureGroup, LeafletMouseEvent } from 'leaflet';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { CircleMarker, FeatureGroup, Polyline, Tooltip } from 'react-leaflet';
 
 import type { AssistantRouteLine } from '../../types/assistantMap';
+import { frameLine, frameLng, type LngFrame } from '../../utils/lngFrame';
+import { onRealWorld } from '../../utils/worldCopy';
+import { useLngFrame } from './lngFrameContext';
 
 /** A rim under the line, the line, and the invisible fat line that takes the pointer. */
 const CASING_WEIGHT = 7;
@@ -38,7 +41,10 @@ function GhostLine({ line, onHover, onPoint }: { line: AssistantRouteLine } & Li
     if (line.hot) group.current?.bringToFront();
   }, [line.hot]);
   const opacity = line.dim ? DIM_OPACITY : 1;
-  const point = (event: LeafletMouseEvent) => onPoint?.(line.ref, event.latlng.lat, event.latlng.lng);
+  const point = (event: LeafletMouseEvent) => {
+    const at = onRealWorld(event.latlng);
+    onPoint?.(line.ref, at.lat, at.lng);
+  };
   return (
     <FeatureGroup ref={group}>
       <Polyline
@@ -122,11 +128,25 @@ interface AssistantGhostLineLayerProps extends LineHandlers {
  * under its pins. The twin of
  * useAssistantGhostLinesGL.
  */
+/** A line drawn in the map's longitude frame, with the trip it proposes changes to (#2975). */
+function inFrame(frame: LngFrame, line: AssistantRouteLine): AssistantRouteLine {
+  const at = ([lat, lng]: [number, number]): [number, number] => [lat, frameLng(frame, lng)];
+  return {
+    ...line,
+    lines: line.lines.map((part) => frameLine(frame, part)),
+    ends: line.ends && { start: at(line.ends.start), end: line.ends.end && at(line.ends.end) },
+    stops: line.stops?.map((stop) => ({ ...stop, lng: frameLng(frame, stop.lng) })),
+    tints: line.tints?.map((tint) => ({ ...tint, line: frameLine(frame, tint.line) })),
+  };
+}
+
 export function AssistantGhostLineLayer({ lines, onHover, onPoint }: AssistantGhostLineLayerProps) {
-  if (!lines?.length) return null;
+  const frame = useLngFrame();
+  const drawn = useMemo(() => (frame && lines ? lines.map((line) => inFrame(frame, line)) : lines), [frame, lines]);
+  if (!drawn?.length) return null;
   return (
     <>
-      {lines.map((line) => (
+      {drawn.map((line) => (
         <GhostLine key={line.id} line={line} onHover={onHover} onPoint={onPoint} />
       ))}
     </>

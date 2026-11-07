@@ -8,7 +8,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addTransportShort': 'Di chuyển',
   'mobileTrip.allDays': 'Tất cả các ngày',
   'mobileTrip.today': 'Hôm nay',
-  'mobileTrip.jumpToToday': 'Đến hôm nay',
   'mobileTrip.assignedDays': 'Ngày được gán',
   'mobileTrip.assignmentNotes': 'Ghi chú theo ngày',
   'mobileTrip.bookingsEmpty': 'Chưa có đặt chỗ nào',
@@ -20,8 +19,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.filesEmpty': 'Chưa có tập tin nào',
   'mobileTrip.filesNext': 'Tập tin tiếp theo',
   'mobileTrip.filesPrev': 'Tập tin trước',
-  'mobileTrip.googleMaps': 'Google Maps',
-  'mobileTrip.coMaps': 'CoMaps',
   'mobileTrip.icsDownload': 'Tải xuống .ics',
   'mobileTrip.icsSubscribe': 'Đăng ký lịch',
   'mobileTrip.icsSubscribeSub': 'Tự động cập nhật trong ứng dụng lịch của bạn',
@@ -76,5 +73,8 @@ const mobileTrip: TranslationStrings = {
     '{count} đoạn có nhiều kết quả hơn mức một phản hồi chứa được. Chọn ít loại hơn để xem phần còn lại.',
   'mobileTrip.rtNoDay': 'Chưa chọn ngày',
   'mobileTrip.rtNoDayHint': 'Bản đồ đang hiển thị cả chuyến đi. Chạm vào một ngày ở trên để xem chặng lái.',
+  'mobileTrip.maps': 'Bản đồ',
+  'mobileTrip.openRouteIn': 'Mở ngày này trong',
+  'mobileTrip.firstStopOnly': 'Chỉ điểm dừng đầu tiên',
 };
 export default mobileTrip;

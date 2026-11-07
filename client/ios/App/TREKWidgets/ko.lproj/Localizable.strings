@@ -1,0 +1,20 @@
+/* The widget gallery: names and descriptions (TREKWidgets/NextTripWidget.swift). */
+"widget.trip.name" = "여행";
+"widget.trip.description" = "다음 여행까지 남은 날을 세고, 여행 중에는 오늘과 다음 일정을 보여 줍니다.";
+"widget.today.name" = "오늘";
+"widget.today.description" = "오늘 일정을 타임라인으로, 날씨와 다음 장소와 함께 보여 줍니다.";
+"widget.bookings.name" = "예약";
+"widget.bookings.description" = "다가오는 항공편, 기차, 호텔, 식당과 그 시간.";
+"widget.todos.name" = "할 일";
+"widget.todos.description" = "여행을 위해 남은 일과 짐 싸기 진행 상황.";
+"widget.packing.name" = "짐 싸기";
+"widget.packing.description" = "가방이 얼마나 찼는지, 무게, 아직 빠진 것.";
+"widget.atlas.name" = "세계 지도";
+"widget.atlas.description" = "다녀온 나라가 지도 위에서 빛납니다.";
+"widget.collab.name" = "여행 그룹";
+"widget.collab.description" = "함께 가는 사람, 최근 메시지, 진행 중인 투표.";
+"widget.intent.title" = "여행 선택";
+"widget.intent.description" = "이 위젯에 표시할 여행.";
+"widget.intent.trip" = "여행";
+"widget.intent.auto" = "자동";
+"widget.intent.autoHint" = "대시보드와 같은 여행";

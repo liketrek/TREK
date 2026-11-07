@@ -1,9 +1,12 @@
-import { ReactNode } from 'react'
+import { ReactNode, useRef } from 'react'
 import { useMatch } from 'react-router'
 import BottomNav from '../components/Layout/BottomNav'
 import ErrorBoundary from '../components/shared/ErrorBoundary'
 import MBottomNav from './components/MBottomNav'
 import MToastHost from './components/MToastHost'
+import MEdgeBack from './components/MEdgeBack'
+import { useNativeCapabilities } from '../native/capabilities'
+import { isNativeIos } from '../native/platform'
 import './mobile.css'
 
 interface MobileShellProps {
@@ -32,6 +35,10 @@ export default function MobileShell({ isPhone, children }: MobileShellProps) {
   // on iOS Safari a position:fixed nav paints THROUGH the trip overlay's higher
   // stacking context, so the wrong (global) bar shows on top of the trip screen.
   const inTripPlanner = useMatch('/trips/:id')
+  // The app's own edge swipe back, where the binary has turned WebKit's off.
+  const { caps } = useNativeCapabilities()
+  const pageRef = useRef<HTMLDivElement>(null)
+  const edgeBack = isNativeIos() && caps.features.includes('edgeBack')
 
   if (!isPhone) {
     return (
@@ -59,7 +66,8 @@ export default function MobileShell({ isPhone, children }: MobileShellProps) {
           layer to be visible, body must not paint over it, which index.css handles
           for this breakpoint. */}
       <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 bg-[color:var(--m-bg)] bg-[image:var(--m-scr)]" />
-      <div className="flex-1">{children}</div>
+      <div ref={pageRef} className="flex-1">{children}</div>
+      <MEdgeBack target={pageRef} enabled={edgeBack} />
       {!inTripPlanner && <ErrorBoundary boundaryId="chrome:m-bottom-nav" fallback={null}><MBottomNav /></ErrorBoundary>}
       <ErrorBoundary boundaryId="chrome:m-toast" fallback={null}><MToastHost /></ErrorBoundary>
       <div id="m-sheet-root" />

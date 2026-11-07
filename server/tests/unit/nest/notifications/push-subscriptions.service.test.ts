@@ -74,11 +74,14 @@ describe('checkPushEndpoint / checkPushSubscription', () => {
     for (const endpoint of [
       FCM,
       'https://android.googleapis.com/gcm/send/x',
+      'https://jmt17.google.com/fcm/send/x',
       'https://updates.push.services.mozilla.com/wpush/v2/gAAAA',
       'https://push.services.mozilla.com/wpush/v1/x',
       'https://web.push.apple.com/QGx9',
       'https://api.push.apple.com/3/device/x',
       'https://wns2-par02p.notify.windows.com/w/?token=BQYAAA',
+      // The TREK apps' relay, which hands the ciphertext on to Apple or Google.
+      'https://push.liketrek.com/v1/apns/production/abc123',
     ]) {
       expect(checkPushEndpoint(endpoint), endpoint).toBe('ok');
       expect(isPushServiceEndpoint(endpoint)).toBe(true);
@@ -111,9 +114,13 @@ describe('checkPushEndpoint / checkPushSubscription', () => {
       'https://example.com/push',
       'https://127.0.0.1/push',
       'https://fcm.googleapis.com.evil.test/x',
+      'https://jmt17.google.com.evil.test/x',
+      'https://google.com/fcm/send/x',
       'https://evilnotify.windows.com/x',
       'https://.notify.windows.com/x',
       'https://push.apple.com/x',
+      'https://push.liketrek.com.evil.test/v1/apns/x',
+      'https://evilpush.liketrek.com/v1/apns/x',
     ]) {
       expect(checkPushEndpoint(endpoint), endpoint).not.toBe('ok');
     }

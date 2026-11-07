@@ -1,6 +1,8 @@
 // Great-circle geometry for transport routes (flights, cruises, ferries),
 // shared by the Leaflet and Mapbox/MapLibre renderers (#1411).
 
+import { frameLine, type LngFrame } from '../../utils/lngFrame'
+
 const toRad = (d: number) => d * Math.PI / 180
 const toDeg = (r: number) => r * 180 / Math.PI
 
@@ -51,11 +53,17 @@ export function unwrapLngs(points: [number, number][]): [number, number][] {
  * copies), a ±360-shifted duplicate keeps both halves visible in the
  * standard [-180, 180] view; GL maps repeat features themselves
  * (renderWorldCopies), so the duplicate would just double the line opacity.
+ *
+ * Given a longitude frame (Leaflet, a trip across the antimeridian, #2975), the
+ * arc starts at `a` as the frame draws it, and the duplicate is only needed
+ * when the arc leaves the frame rather than the plain world.
  */
-export function geodesicArcs(a: [number, number], b: [number, number], wrapCopies: boolean): [number, number][][] {
-  const arc = unwrapLngs(greatCircle(a, b))
-  const crosses = arc.some(([, lng]) => lng < -180 || lng > 180)
+export function geodesicArcs(a: [number, number], b: [number, number], wrapCopies: boolean, frame: LngFrame | null = null): [number, number][][] {
+  const arc = frame ? frameLine(frame, greatCircle(a, b)) : unwrapLngs(greatCircle(a, b))
+  const west = frame ? frame.seam : -180
+  const east = west + 360
+  const crosses = arc.some(([, lng]) => lng < west || lng > east)
   if (!crosses || !wrapCopies) return [arc]
-  const shift = arc.some(([, lng]) => lng < -180) ? 360 : -360
+  const shift = arc.some(([, lng]) => lng < west) ? 360 : -360
   return [arc, arc.map(([lat, lng]) => [lat, lng + shift] as [number, number])]
 }

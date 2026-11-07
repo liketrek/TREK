@@ -10,13 +10,14 @@ import MIconBtn from '../../../components/MIconBtn'
  */
 
 export const FIELD_CLS =
-  'w-full min-w-0 box-border rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[10px] font-[inherit] text-[0.84375rem] font-medium text-m-ink outline-none placeholder:text-m-faint'
+  'w-full min-w-0 box-border rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[14px] py-[10px] font-[inherit] text-[0.84375rem] font-medium text-m-ink outline-none placeholder:text-m-faint'
 
 export const FIELD_AREA_CLS =
-  'w-full box-border resize-none rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[10px] font-geist text-[0.78125rem] leading-[1.5] text-m-ink outline-none placeholder:text-m-faint'
+  'w-full box-border resize-none rounded-[18px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[14px] py-[10px] font-geist text-[0.78125rem] leading-[1.5] text-m-ink outline-none placeholder:text-m-faint'
 
 // One Eyebrow for all trip sheets — defined with the inspection-sheet chrome.
 export { Eyebrow } from './MTripSheetUi'
+import { SHEET_PRIMARY, SHEET_SECONDARY } from './MTripSheetUi'
 
 interface FormSheetHeaderProps {
   /** 40px rounded icon tile left of the title (place edit / import sheets). */
@@ -52,7 +53,7 @@ export function FormSheetHeader({ icon: Icon, title, subtitle, leading, onClose,
 }
 
 interface FormSheetFooterProps {
-  /** Renders the 38px delete circle; two-tap confirm is the caller's business. */
+  /** Renders the 42px delete circle; two-tap confirm is the caller's business. */
   onDelete?: () => void
   deleteLabel?: string
   /** Delete circle switches to the danger surface while armed. */
@@ -76,7 +77,7 @@ export function FormSheetFooter({
           type="button"
           onClick={onDelete}
           aria-label={deleteLabel}
-          className={`flex h-[38px] w-[38px] flex-none items-center justify-center rounded-full border ${
+          className={`flex h-[42px] w-[42px] flex-none items-center justify-center rounded-full border ${
             deleteArmed
               ? 'border-transparent bg-[color:var(--m-st-danger)] text-white'
               : 'border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-muted'
@@ -88,7 +89,7 @@ export function FormSheetFooter({
       <button
         type="button"
         onClick={onCancel}
-        className="ms-auto rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-4 py-[9px] text-[0.78125rem] font-semibold text-m-ink"
+        className={`${SHEET_SECONDARY} ms-auto`}
       >
         {cancelLabel}
       </button>
@@ -96,7 +97,7 @@ export function FormSheetFooter({
         type="button"
         onClick={onSubmit}
         disabled={submitDisabled}
-        className="rounded-full bg-m-act px-[18px] py-[9px] text-[0.78125rem] font-semibold text-m-actfg disabled:opacity-40"
+        className={SHEET_PRIMARY}
       >
         {submitLabel}
       </button>

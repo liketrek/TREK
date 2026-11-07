@@ -383,7 +383,7 @@ export class JourneyMcp {
       tags: z.array(z.string()).optional(),
       pros_cons: PROS_CONS.optional().describe('The verdict on the place: what was worth it and what was not'),
       visibility: ENTRY_VISIBILITY.optional().describe(
-        'Defaults to private; "shared" and "public" expose the entry through the journey share link',
+        'Stored with the entry, defaults to private. It does not decide the share link: every entry that is not a draft shows on the journey share link. Use is_draft to keep an entry to the contributors',
       ),
       type: ENTRY_TYPE.optional().describe(
         'Defaults to "entry"; "skeleton" is the stub TREK derives from a trip place and hides behind the hide-skeletons preference',

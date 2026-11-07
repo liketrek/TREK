@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Loader2 } from 'lucide-react'
+import { Loader2, ListPlus } from 'lucide-react'
 import type { Collection } from '@trek/shared'
 import type { TranslationFn } from '../../../types'
 import MSheet from '../../components/MSheet'
@@ -40,8 +40,9 @@ export default function MCollListPickerSheet({ mode, lists, count, onPick, onClo
   }
 
   return (
-    <MSheet open={mode != null} onClose={onClose} material="opaque" ariaLabel={title}>
-      <SheetHeader title={title} onClose={onClose} closeLabel={t('common.close')} />
+    <MSheet open={mode != null} onClose={onClose} material="glass" ariaLabel={title}>
+      <SheetHeader
+        icon={<ListPlus size={19} strokeWidth={1.8} />} title={title} onClose={onClose} closeLabel={t('common.close')} />
       <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px] pt-[14px]">
         {lists.length === 0 ? (
           <div className="py-8 text-center font-geist text-[0.78125rem] text-m-faint">{t('collections.noOtherLists')}</div>

@@ -10,6 +10,34 @@ image:
 # processes on one host, which network filesystems do not provide.
 updateStrategy: Recreate
 
+# Pod-level security context. fsGroup gives the node user (uid/gid 1000) group access
+# to the data and uploads volumes; OnRootMismatch lets the kubelet skip its recursive
+# permission walk once the volume root already matches, so a big PVC does not hold up
+# every start.
+#
+# By default the container starts as root, hands any files that are not node's yet to
+# node, and then drops to node itself. To start it as node straight away (needed under
+# the "restricted" Pod Security Standard), add the user here and lock the container
+# down below; the image then skips the ownership step and the privilege drop:
+#   podSecurityContext:
+#     fsGroup: 1000
+#     fsGroupChangePolicy: OnRootMismatch
+#     runAsUser: 1000
+#     runAsGroup: 1000
+#     runAsNonRoot: true
+#     seccompProfile:
+#       type: RuntimeDefault
+#   securityContext:
+#     allowPrivilegeEscalation: false
+#     capabilities:
+#       drop: [ALL]
+podSecurityContext:
+  fsGroup: 1000
+  fsGroupChangePolicy: OnRootMismatch
+
+# Security context of the trek container itself. Empty by default.
+securityContext: {}
+
 # Optional image pull secrets for private registries
 imagePullSecrets: []
   # - name: my-registry-secret
@@ -131,6 +159,10 @@ env:
   # TREK_VALHALLA_URL: ""
   # The Valhalla of the TREK services, which this server relays routing to unless the admin picks another
   # routing service. The browser never talks to it. Defaults to https://valhalla.liketrek.com.
+  # TREK_WALLET_SIGNER_URL: ""
+  # Signs the Apple Wallet pass of a booking when someone taps "Add to Apple Wallet" in the iOS app.
+  # Only the pass's texts go there, once per tap. Never asked with TREK_SERVICES=off.
+  # Defaults to https://push.liketrek.com/v1/wallet/pass.
   # AMAP_API_BASE: ""
   # Send the Amap (高德地图) calls through an egress proxy, a cache or a gateway that speaks the same API instead of
   # restapi.amap.com directly. The key itself is a credential and goes under secretEnv.AMAP_API_KEY, or into

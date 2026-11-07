@@ -14,6 +14,7 @@ import {
   paddleRegionBoundarySchema,
   paddleRegionGraphStatsSchema,
   placeContribConsentSchema,
+  placeContribFieldSchema,
   placeContribPauseReasonSchema,
   skiPlannedLegsSchema,
   skiRouteOptionsSchema,
@@ -482,6 +483,24 @@ export const PLACES_CONTRIBUTE_SNOOZE: JsonColumn<Record<string, string>> = {
   column: 'app_settings.places_contribute_snooze',
   schema: z.record(z.string().regex(/^\d+$/), z.string()),
   fallback: () => ({}),
+};
+
+/**
+ * The catch-up after an agreement, in `places_contribute_backfill`: the
+ * fields whose earlier values still go out, and the last place id it queued,
+ * so it goes on where it stopped after a restart. Absent once everything
+ * typed before the agreement is queued.
+ */
+const placesContributeBackfillSchema = z.object({
+  fields: z.array(placeContribFieldSchema).min(1),
+  afterId: z.number().int().nonnegative(),
+});
+export type PlacesContributeBackfill = z.infer<typeof placesContributeBackfillSchema>;
+
+export const PLACES_CONTRIBUTE_BACKFILL: JsonColumn<PlacesContributeBackfill | null> = {
+  column: 'app_settings.places_contribute_backfill',
+  schema: placesContributeBackfillSchema.nullable(),
+  fallback: () => null,
 };
 
 /**

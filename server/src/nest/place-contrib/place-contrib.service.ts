@@ -2,18 +2,17 @@ import { PlaceContribLog } from '../../db/entities/PlaceContribLog.entity';
 import { PlaceContribOutbox } from '../../db/entities/PlaceContribOutbox.entity';
 import type { PlaceContribLogRepository, PlaceContribLogWrite } from '../../db/repositories/PlaceContribLog.repository';
 import type { PlaceContribOutboxRepository } from '../../db/repositories/PlaceContribOutbox.repository';
-import { dbNow } from '../../db/types';
 import { logWarn } from '../audit/audit-log.logger';
 import { DomainError, badRequest, conflict } from '../common/domain-error';
-import { inOrder } from '../common/in-order';
 import { UnitOfWork } from '../database/unit-of-work';
 import { SettingsService } from '../settings/settings.service';
+import { PlaceContribQueue } from './place-contrib-queue';
 import { agreedToCurrentTerms, PlaceContribSettings } from './place-contrib-settings';
 import { PlaceContribClient } from './place-contrib.client';
 import { COUNT_WINDOW_DAYS, OUTBOX_CAP, SNOOZE_DAYS } from './place-contrib.constants';
-import { contribKeyOf, dayOf, newEntryCid, payloadOf, summaryOf } from './place-contrib.helpers';
+import { dayOf } from './place-contrib.helpers';
 import { PlaceContribJob } from './place-contrib.job';
-import type { ContribValue, ContribWrite } from './place-contrib.types';
+import type { ContribWrite } from './place-contrib.types';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
 import {
@@ -53,6 +52,7 @@ export class PlaceContribService {
     private readonly client: PlaceContribClient,
     private readonly uow: UnitOfWork,
     private readonly job: PlaceContribJob,
+    private readonly queue: PlaceContribQueue,
   ) {}
 
   async state(adminId: number, now: Date = new Date()): Promise<PlaceContribState> {
@@ -98,7 +98,9 @@ export class PlaceContribService {
         assertCurrentTerms(request.termsVersion);
         if (!anyField(request.fields)) throw badRequest('Pick at least one field to share', { reason: 'no_field' });
         // A new agreement is a fresh start: a pause over a key or a wait the
-        // service asked for is tried again on the next run.
+        // service asked for is tried again on the next run, and what users
+        // typed before the agreement goes out too, caught up page by page,
+        // withdrawn fields included, since the admin agreed to that anew.
         await this.uow.transactional(async () => {
           await this.store.writeConsent({
             enabled: true,
@@ -106,9 +108,12 @@ export class PlaceContribService {
             termsVersion: request.termsVersion,
             decision: 'agreed',
             ...decided,
+            includesEarlier: true,
           });
           await this.store.clearPause();
+          await this.store.writeBackfill({ fields: switchedOn(request.fields), afterId: 0 });
         });
+        this.job.sendSoon();
         break;
       case 'snooze':
         await this.store.snooze(adminId, new Date(now.getTime() + SNOOZE_DAYS * DAY_MS));
@@ -173,8 +178,14 @@ export class PlaceContribService {
         reason: 'withdraw_all',
       }),
     );
+    // Everything taken back stays back: the catch-up running now ends, and a
+    // field switched on later under this agreement does not catch up either.
+    // Only a new agreement shares the earlier values again.
     const cleared = await this.uow.transactional(async () => {
       await this.log.insertLines(lines);
+      const consent = await this.store.consent();
+      await this.store.writeConsent({ ...consent, withdrawnFields: [...PLACE_CONTRIB_FIELDS] });
+      await this.store.writeBackfill(null);
       return this.outbox.deleteAll();
     });
     return { withdrawn, cleared };
@@ -192,61 +203,8 @@ export class PlaceContribService {
    */
   async enqueue(write: ContribWrite, now: Date = new Date()): Promise<void> {
     const active = await this.store.activeFields();
-    await this.uow.transactional(async () => {
-      await this.outbox.deleteForPlace(write.placeId, write.dropped);
-      const shared = write.values.filter((value) => active.includes(value.field));
-      if (shared.length === 0) return;
-      const key = contribKeyOf(write.osmId);
-      if (!key) {
-        await this.log.insertLines(shared.map((value) => this.withheldLine(write, value, now, 'no_contrib_key')));
-        return;
-      }
-      const due = dbNow(now);
-      await inOrder(shared, (value) => this.queueOne(write, { key, value, due, now }));
-    });
+    await this.uow.transactional(() => this.queue.put(write, active, now));
     this.job.sendSoon();
-  }
-
-  private async queueOne(
-    write: ContribWrite,
-    entry: { key: string; value: ContribValue; due: string; now: Date },
-  ): Promise<void> {
-    const payload = payloadOf(entry.value.field, entry.value.value);
-    if ('withheld' in payload) {
-      await this.outbox.deleteForPlace(write.placeId, [entry.value.field]);
-      await this.log.insertLines([this.withheldLine(write, entry.value, entry.now, payload.withheld)]);
-      return;
-    }
-    // At the cap nothing new is queued; a value that replaces a queued one still does.
-    if ((await this.outbox.size()) >= OUTBOX_CAP && !(await this.outbox.hasEntry(entry.key, entry.value.field))) {
-      await this.log.insertLines([this.withheldLine(write, entry.value, entry.now, 'queue_full')]);
-      return;
-    }
-    await this.outbox.upsertEntry({
-      contrib_key: entry.key,
-      field: entry.value.field,
-      value: payload.value,
-      place_id: write.placeId,
-      place_name: write.name,
-      lat: write.lat,
-      lng: write.lng,
-      country: write.country,
-      cid: newEntryCid(),
-      eligible_at: entry.due,
-      next_attempt_at: entry.due,
-    });
-  }
-
-  private withheldLine(write: ContribWrite, value: ContribValue, now: Date, reason: string): PlaceContribLogWrite {
-    return {
-      day: dayOf(now),
-      contrib_key: contribKeyOf(write.osmId) ?? '-',
-      place_name: write.name,
-      field: value.field,
-      value_summary: summaryOf(value.field, value.value),
-      result: 'withheld',
-      reason,
-    };
   }
 
   private async counts(now: Date): Promise<PlaceContribState['counts']> {
@@ -266,9 +224,11 @@ export class PlaceContribService {
     await this.uow.transactional(async () => {
       await this.store.writeConsent({ ...consent, ...change, enabled: false });
       await this.outbox.deleteAll();
+      await this.store.writeBackfill(null);
     });
   }
 
+  /** @txIndependent the switches and the catch-up commit together before any withdrawal asks the service, which is network I/O. */
   private async changeFields(
     consent: PlaceContribConsent,
     fields: PlaceContribFieldSwitches,
@@ -279,10 +239,37 @@ export class PlaceContribService {
     }
     if (!anyField(fields)) throw badRequest('Pick at least one field to share', { reason: 'no_field' });
     const removed = PLACE_CONTRIB_FIELDS.filter((field) => consent.fields[field] && !fields[field]);
+    const added = PLACE_CONTRIB_FIELDS.filter((field) => !consent.fields[field] && fields[field]);
+    const withdrawn = PLACE_CONTRIB_FIELDS.filter(
+      (field) => consent.withdrawnFields?.includes(field) || (opts.withdraw && removed.includes(field)),
+    );
+    // A field switched on catches up too, under an agreement that said so,
+    // unless its earlier values were withdrawn: those stay taken back.
+    const earlier = consent.includesEarlier === true ? added.filter((field) => !withdrawn.includes(field)) : [];
+    const catchUp = earlier.length > 0;
     await this.uow.transactional(async () => {
-      await this.store.writeConsent({ ...consent, fields, ...opts.decided });
+      await this.store.writeConsent({
+        ...consent,
+        fields,
+        ...opts.decided,
+        ...(withdrawn.length > 0 ? { withdrawnFields: withdrawn } : {}),
+      });
       await this.outbox.deleteFields(removed);
+      const pending = await this.store.backfill();
+      const pendingFields = (pending?.fields ?? []).filter((field) => !withdrawn.includes(field));
+      // The catch-up keeps one position, so it starts over for every field it
+      // still had to do; what went out already is answered as a duplicate.
+      if (catchUp) {
+        const catchUpFields = PLACE_CONTRIB_FIELDS.filter(
+          (field) => earlier.includes(field) || pendingFields.includes(field),
+        );
+        await this.store.writeBackfill({ fields: catchUpFields, afterId: 0 });
+      } else if (pending && pendingFields.length < pending.fields.length) {
+        // A field withdrawn while its catch-up was still under way leaves it.
+        await this.store.writeBackfill(pendingFields.length > 0 ? { ...pending, fields: pendingFields } : null);
+      }
     });
+    if (catchUp) this.job.sendSoon();
     if (!opts.withdraw) return;
     await Promise.all(
       removed.map(async (field) => {
@@ -295,6 +282,10 @@ export class PlaceContribService {
 
 function anyField(fields: PlaceContribFieldSwitches): boolean {
   return PLACE_CONTRIB_FIELDS.some((field) => fields[field]);
+}
+
+function switchedOn(fields: PlaceContribFieldSwitches): PlaceContribField[] {
+  return PLACE_CONTRIB_FIELDS.filter((field) => fields[field]);
 }
 
 function assertCurrentTerms(termsVersion: number): void {

@@ -116,7 +116,7 @@ export default function MAccommodationSheet({ planner, shell }: MTripSheetsProps
       {/* Header — mirrors the place detail sheet's chrome */}
       <div className="flex-none px-[18px] pt-4">
         <div className="flex items-center gap-3">
-          <span className="flex h-[42px] w-[42px] flex-none items-center justify-center rounded-[14px] bg-[color:var(--m-ic)] text-m-muted">
+          <span className="flex h-10 w-10 flex-none items-center justify-center rounded-[13px] bg-[color:var(--m-ic)] text-m-ink">
             <Hotel size={18} strokeWidth={1.9} />
           </span>
           <div className="min-w-0 flex-1 text-[1rem] font-bold">
@@ -182,7 +182,7 @@ export default function MAccommodationSheet({ planner, shell }: MTripSheetsProps
           value={form.confirmation}
           onChange={e => setForm(f => ({ ...f, confirmation: e.target.value }))}
           placeholder="ABC-12345"
-          className="box-border w-full rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[10px] text-[0.8125rem] font-medium text-m-ink outline-none placeholder:text-m-faint"
+          className="box-border w-full rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[14px] py-[10px] text-[0.8125rem] font-medium text-m-ink outline-none placeholder:text-m-faint"
         />
 
         {/* Category filter */}

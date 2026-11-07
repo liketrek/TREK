@@ -28,6 +28,7 @@ import { StorageService } from '../storage/storage.service';
 import { TripMembershipModule } from '../trip-membership/trip-membership.module';
 import { UnsplashModule } from '../unsplash/unsplash.module';
 import { PlaceOriginsService } from './place-origins.service';
+import { PlacesStorageRefsService } from './places-storage-refs.service';
 import { PlacesController } from './places.controller';
 import { PlacesMcp } from './places.mcp';
 import { PlacesRpc } from './places.rpc';
@@ -105,7 +106,7 @@ import { MulterModule } from '@nestjs/platform-express';
     ]),
   ],
   controllers: [PlacesController],
-  providers: [PlacesService, PlacesMcp, PlacesRpc, PlaceOriginsService],
+  providers: [PlacesService, PlacesMcp, PlacesRpc, PlaceOriginsService, PlacesStorageRefsService],
   // The origin bookkeeping too: the booking import writes places as well.
   exports: [PlacesService, PlaceOriginsService],
 })

@@ -136,7 +136,7 @@ export default function MDocSyncSheet({
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px]">
+        <div className="m-scroll-fade mt-2 min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px] pt-[14px]">
           {sync.loading ? (
             <div className="flex justify-center py-12">
               <Loader2 size={20} className="animate-spin text-m-faint" />

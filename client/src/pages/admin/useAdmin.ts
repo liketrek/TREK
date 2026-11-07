@@ -33,7 +33,7 @@ const ADMIN_TAB_IDS = [
  * hosted instance. Checked in an effect rather than in the initial state
  * because `managed` arrives with /app-config, after the first render.
  */
-const MANAGED_HIDDEN = ['storage', 'github', 'backup']
+const MANAGED_HIDDEN = ['storage', 'github', 'backup', 'plugins']
 
 /** How often the open users list asks again who is online and active. */
 const USERS_REFRESH_MS = 30_000

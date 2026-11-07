@@ -18,6 +18,8 @@ const mobileVacay: TranslationStrings = {
   'mobileVacay.companyLegend': 'ימי חברה',
   'mobileVacay.editCalendar': 'עריכת לוח שנה',
   'mobileVacay.viewYear': 'תצוגת שנה',
+  'mobileVacay.people': 'אנשים',
+  'mobileVacay.legend': 'מקרא',
 };
 
 export default mobileVacay;

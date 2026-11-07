@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseTimeToMinutes, getSpanPhase, hidesOnMiddleDay, getTransportRouteEndpoints, getDisplayTimeForDay, getTransportForDay, getAssignmentReservations, pinnedAway, stopDayIds, getPlaceBookings, getMergedItems, nightRowsOf, rideSeatKey, seatTimedDrop, stayStartingOn, storedRideSlot, timedSlot, type MergedItem } from './dayMerge'
+import { parseTimeToMinutes, getSpanPhase, hidesOnMiddleDay, getTransportRouteEndpoints, getDisplayTimeForDay, getTransportForDay, getAssignmentReservations, pinnedAway, stopDayIds, getPlaceBookings, getMergedItems, chronoKeyOf, nightRowsOf, rideSeatKey, seatTimedDrop, yieldTimedBookings, stayStartingOn, storedRideSlot, timedSlot, type MergedItem } from './dayMerge'
 import { planMergedOrder, withTransportPositions } from './mergedOrder'
 
 describe('parseTimeToMinutes', () => {
@@ -646,5 +646,199 @@ describe('seatTimedDrop', () => {
     const order = draw(setup())
     expect(seatTimedDrop(order, 1, DAY)).toEqual(order)
   })
+
+  // #2983: a flight listed below the day's untimed stops held every slot among them.
+  const untimedDay = (rides: ReturnType<typeof ride>[]): Day => ({
+    stops: [stop(1, 'Hotel'), stop(2, 'Shrine'), stop(3, 'Crossing'), stop(4, 'Tower')].map((a, i) => ({ ...a, order_index: i })),
+    rides,
+    notes: [],
+  })
+
+  it('a ride dropped among untimed stops stays there, and an earlier booking below them makes room ahead of it', () => {
+    const day = untimedDay([ride(101, '06:30', 3.5), ride(102, '13:00', 3.6)])
+    expect(draw(day).map(label)).toEqual(['Hotel', 'Shrine', 'Crossing', 'Tower', 'ride 06:30', 'ride 13:00'])
+    const { seated, drawn } = drop(day, isRide(102), isStop('Shrine'))
+    expect(drawn).toEqual(seated)
+    expect(drawn).toEqual(['Hotel', 'Shrine', 'ride 06:30', 'ride 13:00', 'Crossing', 'Tower'])
+  })
+
+  it('a later booking ahead of the drop moves behind it, and the stops keep their order', () => {
+    const day = untimedDay([ride(101, '09:00', -0.5), ride(102, '18:00', 1.5)])
+    expect(draw(day).map(label)).toEqual(['ride 09:00', 'Hotel', 'Shrine', 'ride 18:00', 'Crossing', 'Tower'])
+    const { seated, drawn } = drop(day, isRide(101), isStop('Tower'))
+    expect(drawn).toEqual(seated)
+    expect(drawn).toEqual(['Hotel', 'Shrine', 'Crossing', 'Tower', 'ride 09:00', 'ride 18:00'])
+  })
+
+  it('a timed stop in the way still sends the ride back to its time, the bookings stay put', () => {
+    const day = untimedDay([ride(101, '06:30', 3.5), ride(102, '13:00', 3.6)])
+    day.stops[2] = { ...day.stops[2], place: { name: 'Crossing', place_time: '12:00' } }
+    expect(draw(day).map(label)).toEqual(['Hotel', 'Shrine', 'ride 06:30', 'Crossing', 'Tower', 'ride 13:00'])
+    const { seated, drawn } = drop(day, isRide(102), isStop('Shrine'))
+    expect(drawn).toEqual(seated)
+    expect(drawn).toEqual(['Hotel', 'Shrine', 'ride 06:30', 'Crossing', 'ride 13:00', 'Tower'])
+  })
 })
 
+describe('yieldTimedBookings', () => {
+  const DAY = 1
+  const row = (type: MergedItem['type'], data: Record<string, unknown>): MergedItem => ({ type, sortKey: 0, data })
+  const place = (id: number) => row('place', { id, place: { place_time: null } })
+  const booking = (id: number, time: string | null) => row('transport', { id, day_id: DAY, reservation_time: time })
+
+  it('leaves an untimed row, a stop and an order without a booking out of place to the caller', () => {
+    const order = [place(1), booking(2, null), booking(3, '2026-11-20T08:00')]
+    expect(yieldTimedBookings(order, 1, DAY)).toBeNull()
+    expect(yieldTimedBookings(order, 0, DAY)).toBeNull()
+    expect(yieldTimedBookings(order, 2, DAY)).toBeNull()
+  })
+})
+
+
+// The report behind #2929: Auckland to Los Angeles leaves at 20:20 and lands at 12:25 the
+// same date, local time at each end; the flight on to Seattle leaves Los Angeles at 17:00.
+// By the clock alone 17:00 comes first, so the second flight was drawn above the first.
+describe('getMergedItems: bookings in different time zones (#2929)', () => {
+  const DAY = 5
+  const days = [{ id: DAY, day_number: 1, date: '2026-11-20' }]
+  const flight = (id: number, time: string, end: string, from: string | null, to: string | null) => ({
+    id, type: 'flight', day_id: DAY, end_day_id: DAY,
+    reservation_time: `2026-11-20T${time}`, reservation_end_time: `2026-11-20T${end}`,
+    metadata: JSON.stringify({ ...(from ? { departure_timezone: from } : {}), ...(to ? { arrival_timezone: to } : {}) }),
+  })
+  const toLA = flight(1, '20:20', '12:25', 'Pacific/Auckland', 'America/Los_Angeles')
+  const toSeattle = flight(2, '17:00', '19:45', 'America/Los_Angeles', 'America/Los_Angeles')
+  const ids = (items: MergedItem[]) => items.map(i => i.data.id)
+
+  it('puts the Auckland flight ahead of the Los Angeles one it connects to', () => {
+    for (const dayTransports of [[toLA, toSeattle], [toSeattle, toLA]]) {
+      expect(ids(getMergedItems({ dayAssignments: [], dayNotes: [], dayTransports, dayId: DAY }))).toEqual([1, 2])
+    }
+  })
+
+  it('keeps a stop with no location, and a note, where their clock puts them', () => {
+    const dayAssignments = [
+      { id: 10, order_index: 0, place: { place_time: '09:00' } },
+      { id: 11, order_index: 1, place: { place_time: '18:00' } },
+    ]
+    const dayNotes = [{ id: 30, sort_order: 2, time: '18:30' }]
+    const result = getMergedItems({ dayAssignments, dayNotes, dayTransports: [toSeattle, toLA], dayId: DAY })
+    // The flights swap the slots they hold between them (17:00 and 20:20). Without
+    // coordinates there is no zone to read 18:00 or 18:30 in, so those keep their clock.
+    expect(result.map(i => `${i.type}:${i.data.id}`)).toEqual(['place:10', 'transport:1', 'place:11', 'note:30', 'transport:2'])
+  })
+
+  describe('a stop near an endpoint reads the zone of that endpoint', () => {
+    const AKL = { lat: -37.0, lng: 174.8, timezone: 'Pacific/Auckland' }
+    const LAX = { lat: 33.9, lng: -118.4, timezone: 'America/Los_Angeles' }
+    const SEA = { lat: 47.4, lng: -122.3, timezone: 'America/Los_Angeles' }
+    const ends = (from: typeof AKL, to: typeof AKL) => [
+      { role: 'from', sequence: 0, name: 'A', code: null, local_time: null, local_date: null, ...from },
+      { role: 'to', sequence: 1, name: 'B', code: null, local_time: null, local_date: null, ...to },
+    ]
+    const aklLax = { ...toLA, endpoints: ends(AKL, LAX) }
+    const laxSea = { ...toSeattle, endpoints: ends(LAX, SEA) }
+    const stopAt = (id: number, time: string, lat: number, lng: number) =>
+      ({ id, order_index: id, place: { place_time: time, lat, lng } })
+    const drawn = (dayAssignments: Parameters<typeof getMergedItems>[0]['dayAssignments'], dayTransports: Parameters<typeof getMergedItems>[0]['dayTransports']) =>
+      getMergedItems({ dayAssignments, dayNotes: [], dayTransports, dayId: DAY })
+    const labels = (items: MergedItem[]) => items.map(i => `${i.type}:${i.data.id}`)
+
+    it('draws a Seattle dinner after the flight to Seattle, and an Auckland breakfast first', () => {
+      const stops = [stopAt(10, '09:00', -36.85, 174.76), stopAt(12, '19:45', 47.61, -122.33)]
+      const items = drawn(stops, [laxSea, aklLax])
+      expect(labels(items)).toEqual(['place:10', 'transport:1', 'transport:2', 'place:12'])
+      // The move checks read the same keys, so the drawn order reads as in order.
+      const keys = items.map(chronoKeyOf(items, DAY, getDisplayTimeForDay))
+      expect(keys).toEqual([9 * 60, 17 * 60, 19 * 60 + 45, 20 * 60 + 20])
+    })
+
+    it('draws a dinner in Auckland at the same clock ahead of the flight out', () => {
+      expect(labels(drawn([stopAt(11, '19:45', -36.85, 174.76)], [laxSea, aklLax])))
+        .toEqual(['place:11', 'transport:1', 'transport:2'])
+    })
+
+    it('draws a lunch in Los Angeles after the Auckland flight that lands there', () => {
+      expect(labels(drawn([stopAt(13, '13:00', 34.05, -118.24)], [aklLax]))).toEqual(['transport:1', 'place:13'])
+    })
+
+    it('leaves a stop far from every endpoint on its clock', () => {
+      // Hawaii is no day out from Auckland, Los Angeles or Seattle, so its 19:45 reads no zone.
+      expect(labels(drawn([stopAt(14, '19:45', 21.3, -157.85)], [laxSea, aklLax])))
+        .toEqual(['transport:1', 'place:14', 'transport:2'])
+    })
+
+    it('changes nothing on a day whose stops and bookings share one zone', () => {
+      const hop = { ...laxSea, id: 4, reservation_time: '2026-11-20T08:00', endpoints: ends(LAX, SEA) }
+      const stops = [stopAt(15, '07:00', 34.05, -118.24), stopAt(16, '12:00', 47.61, -122.33), stopAt(17, '18:00', 47.61, -122.33)]
+      expect(labels(drawn(stops, [laxSea, hop]))).toEqual(['place:15', 'transport:4', 'place:16', 'transport:2', 'place:17'])
+    })
+  })
+
+  it('reads the zone from the endpoints when the metadata names none', () => {
+    const endpointsOf = (fromTz: string, toTz: string) => [
+      { role: 'from', sequence: 0, name: 'A', code: null, lat: 0, lng: 0, timezone: fromTz, local_time: null, local_date: null },
+      { role: 'to', sequence: 1, name: 'B', code: null, lat: 0, lng: 0, timezone: toTz, local_time: null, local_date: null },
+    ]
+    const a = { ...flight(1, '20:20', '12:25', null, null), endpoints: endpointsOf('Pacific/Auckland', 'America/Los_Angeles') }
+    const b = { ...flight(2, '17:00', '19:45', null, null), endpoints: endpointsOf('America/Los_Angeles', 'America/Los_Angeles') }
+    expect(ids(getMergedItems({ dayAssignments: [], dayNotes: [], dayTransports: [b, a], dayId: DAY }))).toEqual([1, 2])
+  })
+
+  it('orders the legs of one multi-leg booking by when they leave', () => {
+    const booking = {
+      id: 3, type: 'flight', day_id: DAY, end_day_id: DAY,
+      reservation_time: '2026-11-20T20:20', reservation_end_time: '2026-11-20T19:45',
+      endpoints: [
+        { role: 'from', sequence: 0, name: 'Auckland', code: 'AKL', lat: -37.0, lng: 174.8, timezone: 'Pacific/Auckland', local_time: null, local_date: null },
+        { role: 'stop', sequence: 1, name: 'Los Angeles', code: 'LAX', lat: 33.9, lng: -118.4, timezone: 'America/Los_Angeles', local_time: null, local_date: null },
+        { role: 'to', sequence: 2, name: 'Seattle', code: 'SEA', lat: 47.4, lng: -122.3, timezone: 'America/Los_Angeles', local_time: null, local_date: null },
+      ],
+      metadata: JSON.stringify({ legs: [
+        { from: 'AKL', to: 'LAX', dep_day_id: DAY, dep_time: '20:20', arr_day_id: DAY, arr_time: '12:25' },
+        { from: 'LAX', to: 'SEA', dep_day_id: DAY, dep_time: '17:00', arr_day_id: DAY, arr_time: '19:45' },
+      ] }),
+    }
+    const dayTransports = getTransportForDay({ reservations: [booking], dayId: DAY, dayAssignmentIds: [], days })
+    const legs = getMergedItems({ dayAssignments: [], dayNotes: [], dayTransports, dayId: DAY }).map(i => i.data.__leg.from)
+    expect(legs).toEqual(['AKL', 'LAX'])
+  })
+
+  it('orders by the clock when a booking names no zone', () => {
+    const noZone = flight(1, '20:20', '12:25', null, null)
+    expect(ids(getMergedItems({ dayAssignments: [], dayNotes: [], dayTransports: [noZone, toSeattle], dayId: DAY }))).toEqual([2, 1])
+  })
+
+  it('orders by the clock when the time carries no date', () => {
+    const a = { ...toLA, reservation_time: '20:20' }
+    const b = { ...toSeattle, reservation_time: '17:00' }
+    expect(ids(getMergedItems({ dayAssignments: [], dayNotes: [], dayTransports: [a, b], dayId: DAY }))).toEqual([2, 1])
+  })
+
+  it('reads the arrival zone on the day an overnight flight lands', () => {
+    const NEXT = 6
+    // Leaves Auckland the evening before and lands in Los Angeles at 12:25 local (20:25 UTC).
+    // A flight out of New York at 14:00 local (19:00 UTC) left before it, though its clock
+    // reads later, and 12:25 read in Auckland's zone would put the landing a day early.
+    const overnight = {
+      id: 1, type: 'flight', day_id: DAY, end_day_id: NEXT,
+      reservation_time: '2026-11-19T20:20', reservation_end_time: '2026-11-21T12:25',
+      metadata: JSON.stringify({ departure_timezone: 'Pacific/Auckland', arrival_timezone: 'America/Los_Angeles' }),
+    }
+    const hop = { id: 2, type: 'flight', day_id: NEXT, end_day_id: NEXT, reservation_time: '2026-11-21T14:00',
+      metadata: JSON.stringify({ departure_timezone: 'America/New_York' }) }
+    expect(ids(getMergedItems({ dayAssignments: [], dayNotes: [], dayTransports: [overnight, hop], dayId: NEXT }))).toEqual([2, 1])
+  })
+
+  it('seats a dragged flight where its zone puts it', () => {
+    const order = getMergedItems({ dayAssignments: [], dayNotes: [], dayTransports: [toLA, toSeattle], dayId: DAY })
+    expect(ids(seatTimedDrop([order[1], order[0]], 0, DAY))).toEqual([1, 2])
+  })
+
+  it('gives the zoned flights the key they are drawn by, so the drawn order reads as in order', () => {
+    const items = getMergedItems({ dayAssignments: [], dayNotes: [], dayTransports: [toSeattle, toLA], dayId: DAY })
+    const keyOf = chronoKeyOf(items, DAY, getDisplayTimeForDay)
+    // Drawn Auckland first: it takes the 17:00 slot, the Seattle flight the 20:20 one.
+    expect(items.map(keyOf)).toEqual([17 * 60, 20 * 60 + 20])
+  })
+})

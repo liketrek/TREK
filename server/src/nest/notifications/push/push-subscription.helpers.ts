@@ -13,11 +13,18 @@ export const PUSH_SERVICE_HOSTS: readonly string[] = [
   // Chrome, Edge on Android, and every Chromium browser that uses Google's push.
   'fcm.googleapis.com',
   'android.googleapis.com',
+  // Google's newer push host, which Chrome on Android hands out more and more (#2939).
+  'jmt17.google.com',
   // Firefox (autopush).
   'updates.push.services.mozilla.com',
   'push.services.mozilla.com',
   // Safari on macOS, and Home Screen apps on iOS and iPadOS 16.4+.
   'web.push.apple.com',
+  // The TREK apps' push relay. The app subscribes with its own key pair, the
+  // server encrypts exactly as for a browser, and the relay hands the ciphertext
+  // to Apple or Google, so it never reads a notification. Only liketrek holds
+  // the apps' APNs and FCM keys, which is why every server goes through it.
+  'push.liketrek.com',
 ];
 
 /** Services that hand out per-region or per-cluster hosts under one domain. */

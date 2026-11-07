@@ -163,7 +163,7 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
     <MSheet
       open={showTransportModal}
       onClose={handleClose}
-      material="opaque"
+      material="glass"
       ariaLabel={headerTitle}
       discardGuard={showTransportModal ? { form, waypoints, trainWaypoints, carStops, files: pendingFiles.length, travelers: [...travelerIds] } : undefined}
     >

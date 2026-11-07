@@ -7,7 +7,8 @@ const tours: TranslationStrings = {
   'tours.mode.label': 'Chế độ thêm',
   'tours.title': 'Chuyến tham quan',
   'tours.empty.title': 'Chưa có chuyến tham quan',
-  'tours.empty.body': 'Lên kế hoạch cho một chuyến tham quan hoặc nhập tệp GPX hay KML để bắt đầu.',
+  'tours.empty.body':
+    'Lên kế hoạch cho một chuyến tham quan hoặc nhập tệp GPX hay KML để bắt đầu. Đã đặt tour có hướng dẫn viên? Hãy đưa vào mục Đặt chỗ.',
   'tours.addToDay': 'Thêm vào ngày',
   'tours.badge.wanderer': 'wanderer',
   'tours.badge.gpx': 'Nhập từ GPX',
@@ -939,6 +940,13 @@ const tours: TranslationStrings = {
   'tours.import.leftOutPoints': '{count} ghim',
   'tours.import.leftOutAreas': '{count} vùng',
   'tours.import.leftOutOther': '{count} mục khác',
+  'tours.import.pointsAsPlaces': 'Thêm các điểm làm địa điểm',
+  'tours.import.pointsAsPlacesHint':
+    'Các điểm đơn lẻ không thuộc về chuyến đi bộ. Chúng được thêm vào các địa điểm của chuyến đi.',
+  'tours.import.pointsConfirm': 'Thêm địa điểm',
+  'tours.import.pointsFailedIn': 'Không thể thêm các điểm trong {name} làm địa điểm.',
+  'tours.import.pointsSkipped': 'Một số điểm đã có trong chuyến đi này nên đã được bỏ qua.',
+  'tours.import.pointsImported': 'Đã thêm {count} địa điểm',
   'tours.import.unreadableIn': 'Không thể đọc {name}: tệp bị hỏng hoặc không phải GPX, KML hay KMZ',
   'tours.import.archiveNoKmlIn': 'Không tìm thấy tệp KML trong {name}',
   'tours.import.archiveTooLargeIn': '{name} quá lớn sau khi giải nén',

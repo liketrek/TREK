@@ -9,7 +9,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { hasWebGL, resetWebGLProbe } from '../../utils/webgl';
-import { buildGlMap, isGpuInitFailure, pickGlRenderer, useGlRenderer, useWebGL2 } from './glSupport';
+import { buildGlMap, initialMapStyle, isGpuInitFailure, pickGlRenderer, useGlRenderer, useWebGL2 } from './glSupport';
 
 const realGetContext = HTMLCanvasElement.prototype.getContext;
 
@@ -130,5 +130,14 @@ describe('useGlRenderer', () => {
 
     expect(trip.result.current).toBeNull();
     expect(terrain.result.current).toBe(false);
+  });
+});
+
+describe('initialMapStyle', () => {
+  it('FE-MAP-GLSUP-INIT-001: leaves the style as it is outside the iOS app, and always for Mapbox', () => {
+    expect(initialMapStyle('maplibre-gl', 'https://tiles.openfreemap.org/styles/liberty')).toBe(
+      'https://tiles.openfreemap.org/styles/liberty'
+    );
+    expect(initialMapStyle('mapbox-gl', 'mapbox://styles/mapbox/standard')).toBe('mapbox://styles/mapbox/standard');
   });
 });

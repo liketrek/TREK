@@ -72,3 +72,26 @@ export function serverDateMs(headers: Headers): number | null {
 export function keyFingerprint(token: string): string {
   return createHash('sha256').update(token).digest('hex').slice(0, 16);
 }
+
+/**
+ * A failure as one log line. undici only says "fetch failed" and keeps the
+ * reason in `cause`, an AggregateError when every address was tried, so each
+ * attempt's code and address are spelled out (ETIMEDOUT 203.0.113.7:443).
+ */
+export function describeFailure(err: unknown): string {
+  if (!(err instanceof Error)) return String(err);
+  const cause = (err as { cause?: unknown }).cause;
+  if (!(cause instanceof Error)) return err.message;
+  const attempts = cause instanceof AggregateError ? cause.errors : [cause];
+  const reasons = attempts.map(describeAttempt).filter(Boolean);
+  return reasons.length > 0 ? `${err.message} (${reasons.join(', ')})` : err.message;
+}
+
+function describeAttempt(attempt: unknown): string {
+  if (!(attempt instanceof Error)) return String(attempt);
+  const { code, address, port } = attempt as { code?: unknown; address?: unknown; port?: unknown };
+  if (typeof code !== 'string') return attempt.message;
+  if (typeof address !== 'string') return code;
+  const host = address.includes(':') ? `[${address}]` : address;
+  return typeof port === 'number' ? `${code} ${host}:${port}` : `${code} ${host}`;
+}

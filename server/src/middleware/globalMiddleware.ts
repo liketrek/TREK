@@ -278,7 +278,8 @@ export function applyGlobalMiddleware(
           // verifying a real .heic upload in a browser, not just deleting the
           // string here.
           scriptSrc: ["'self'", "'wasm-unsafe-eval'", "'unsafe-eval'"],
-          styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://unpkg.com'],
+          // No Google Fonts: every font ships with TREK (client/public/fonts), so no reader's IP goes to Google.
+          styleSrc: ["'self'", "'unsafe-inline'", 'https://unpkg.com'],
           imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
           connectSrc: [
             "'self'",
@@ -372,7 +373,7 @@ export function applyGlobalMiddleware(
           // thumbnail answered 404 (#2341). Invisible in dev, where Vite serves the
           // document without this header.
           mediaSrc: ["'self'", 'blob:'],
-          fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+          fontSrc: ["'self'", 'data:'],
           // 'self' so same-origin file previews can embed PDFs via <object>/<embed>
           // (Firefox/Chrome enforce object-src; 'none' broke inline PDF previews there).
           objectSrc: ["'self'"],

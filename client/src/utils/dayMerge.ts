@@ -3,7 +3,9 @@ import { nightVisits, rideSeatAfter, sameDayRide, type CarrierBooking, type Seat
 // `orderedEndpoints` is the geometry order's single source of truth, in the module
 // that documents the multi-leg model. Sorting endpoints a second time here is how
 // the two drift.
-import { orderedEndpoints } from './flightLegs'
+import { orderedEndpoints, parseReservationMetadata } from './flightLegs'
+import { haversineKm, MAX_DAY_TRIP_KM } from './geo'
+import { zonedInstant } from './zonedTime'
 
 export const TRANSPORT_TYPES = new Set(['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'cable_car', 'transit', 'transport_other'])
 
@@ -12,6 +14,9 @@ export interface MergedItem {
   sortKey: number
   data: any
 }
+
+/** Reads a booking's time on one day, as getDisplayTimeForDay does. */
+type DisplayTimeOf = (r: MergedItem['data'], dayId: number) => string | null
 
 export function parseTimeToMinutes(time?: string | null): number | null {
   if (!time) return null
@@ -352,10 +357,166 @@ function applyChronoOrder(
   dayId: number,
   getDisplayTime: (r: any, dayId: number) => string | null
 ): MergedItem[] {
-  return chronoOrder(items, it => {
+  return chronoOrder(items, chronoKeyOf(items, dayId, getDisplayTime))
+}
+
+/**
+ * The minutes the day orders an item by: its own clock, or for a booking in a known
+ * zone and a stop near one of its endpoints the clock slot it takes among the day's
+ * zoned items (#2929, see zonedClockSlots). The checks that ask whether a move keeps the
+ * day in order read the same key, or a day whose flights and stops were put in the order
+ * they happen would read as out of order on every move.
+ */
+export function chronoKeyOf(
+  items: readonly MergedItem[],
+  dayId: number,
+  getDisplayTime: DisplayTimeOf
+): (it: MergedItem) => number | null {
+  const clockOf = (it: MergedItem): number | null => {
     if (it.type === 'place') return parseTimeToMinutes(it.data?.place?.place_time)
     if (it.type === 'note') return parseTimeToMinutes(it.data?.time)
     return parseTimeToMinutes(getDisplayTime(it.data, dayId))
+  }
+  const zoned = zonedClockSlots([...items], dayId, getDisplayTime, clockOf)
+  return it => (zoned.has(it) ? (zoned.get(it) as number) : clockOf(it))
+}
+
+/**
+ * The zone a booking's time on this day is read in: the departure's on the day it
+ * leaves, the arrival's on the day it lands. A leg of a multi-leg booking reads its
+ * own pair of endpoints, and only when they line up one per stop with the legs (see
+ * getTransportRouteEndpoints); the booking-wide zones belong to its outermost two.
+ */
+function transportTimeZone(r: MergedItem['data'], dayId: number): string | null {
+  const side = getSpanPhase(r, dayId) === 'end' ? 'to' : 'from'
+  if (r?.__leg) {
+    const ordered = orderedEndpoints(r)
+    if (ordered.length !== r.__leg.total + 1) return null
+    return ordered[r.__leg.index + (side === 'to' ? 1 : 0)]?.timezone || null
+  }
+  const meta = parseReservationMetadata(r)
+  const fromMeta = side === 'from' ? meta.departure_timezone : meta.arrival_timezone
+  if (typeof fromMeta === 'string' && fromMeta) return fromMeta
+  return (r?.endpoints || []).find((e: { role?: string; timezone?: string | null }) => e.role === side)?.timezone || null
+}
+
+/**
+ * The clock slots of the day's items whose time names an instant: a booking's dated time
+ * in a known zone, and a stop near one of those bookings' endpoints. Each local time reads
+ * in its own zone, so across zones the clock can run backwards: a flight leaving Auckland
+ * at 20:20 lands in Los Angeles at 12:25 the same date, and the 17:00 flight on from there
+ * sorted ahead of it (#2929). Such items keep the clock slots they hold between them and
+ * take them in the order they happen.
+ *
+ * A stop has to join them, or swapping the flights' slots moves every stop timed between
+ * the two clocks to the wrong side of the flight it belongs after: a 19:45 dinner in
+ * Seattle was drawn above the flight to Seattle. A stop carries no zone of its own, so it
+ * reads the zone of the nearest endpoint within a day's reach, which tells the 19:45
+ * dinner in Seattle from a 19:45 dinner in Auckland before the flight out. Notes, stops
+ * without coordinates or far from every endpoint, and bookings without a zone stay where
+ * their clock puts them. With fewer than two such items the map is empty and the day
+ * orders by the clock as before. Where every zone is the same, the order by instant is
+ * the order by clock and nothing moves.
+ */
+function zonedClockSlots(
+  items: MergedItem[],
+  dayId: number,
+  getDisplayTime: DisplayTimeOf,
+  clockOf: (it: MergedItem) => number | null
+): Map<MergedItem, number> {
+  const bookings = items.flatMap((it, index) => {
+    if (it.type !== 'transport') return []
+    const clock = clockOf(it)
+    const time = getDisplayTime(it.data, dayId)
+    const instant = zonedInstant(time, transportTimeZone(it.data, dayId))
+    return clock === null || instant === null ? [] : [{ it, index, clock, instant, date: (time as string).slice(0, 10) }]
+  })
+  const zoned = [...bookings, ...stopsInZone(items, bookings, clockOf)]
+  const slots = new Map<MergedItem, number>()
+  if (zoned.length < 2) return slots
+  const clocks = zoned.map(z => z.clock).sort((a, b) => a - b)
+  zoned
+    .sort((a, b) => a.instant - b.instant || a.clock - b.clock || a.index - b.index)
+    .forEach((z, i) => slots.set(z.it, clocks[i]))
+  return slots
+}
+
+/** Whether the list draws `order` as it stands. */
+function drawnAsIs(order: readonly MergedItem[], dayId: number, getDisplayTime: DisplayTimeOf): boolean {
+  return applyChronoOrder([...order], dayId, getDisplayTime).every((it, i) => it === order[i])
+}
+
+/**
+ * A day order with the row at `index` kept where it is, and the other timed bookings it
+ * puts out of time order moved next to it: the ones due earlier right ahead of it, the
+ * later ones right behind it, each group in the order it had. Stops and notes never move.
+ * Null when the row has no time, when no booking is out of order, or when the result is
+ * still not the order the list draws, which is when a timed stop or note stands against it.
+ *
+ * A booking nobody can drag otherwise blocks every slot on its far side: with a 06:30
+ * flight listed below the day's untimed stops, a 13:00 transit dropped between two of
+ * them went back behind the flight on every drop (#2983).
+ */
+export function yieldTimedBookings(
+  order: readonly MergedItem[],
+  index: number,
+  dayId: number,
+  getDisplayTime: DisplayTimeOf = getDisplayTimeForDay
+): MergedItem[] | null {
+  const moved = order[index]
+  if (!moved || moved.type === 'place') return null
+  const keyOf = chronoKeyOf(order, dayId, getDisplayTime)
+  const own = keyOf(moved)
+  if (own === null) return null
+  const ahead: MergedItem[] = []
+  const behind: MergedItem[] = []
+  order.forEach((it, i) => {
+    if (it === moved || it.type !== 'transport') return
+    const key = keyOf(it)
+    if (key === null) return
+    if (i > index && key < own) ahead.push(it)
+    else if (i < index && key > own) behind.push(it)
+  })
+  if (!ahead.length && !behind.length) return null
+  const yielding = new Set([...ahead, ...behind])
+  const kept = order.filter(it => !yielding.has(it))
+  const at = kept.indexOf(moved)
+  const result = [...kept.slice(0, at), ...ahead, moved, ...behind, ...kept.slice(at + 1)]
+  return drawnAsIs(result, dayId, getDisplayTime) ? result : null
+}
+
+/**
+ * The timed stops of the day that sit within a day's reach of an endpoint of the zoned
+ * bookings, with the instant their clock names in that endpoint's zone. The date is the
+ * one the bookings' times carry on this day; bookings that disagree on it leave every
+ * stop on its clock.
+ */
+function stopsInZone(
+  items: MergedItem[],
+  bookings: readonly { it: MergedItem; date: string }[],
+  clockOf: (it: MergedItem) => number | null
+): { it: MergedItem; index: number; clock: number; instant: number }[] {
+  const dates = new Set(bookings.map(b => b.date))
+  if (dates.size !== 1) return []
+  const [date] = dates
+  const anchors = bookings.flatMap(b => orderedEndpoints(b.it.data))
+    .filter(e => Number.isFinite(e.lat) && Number.isFinite(e.lng) && !!e.timezone)
+  if (anchors.length === 0) return []
+  return items.flatMap((it, index) => {
+    if (it.type !== 'place') return []
+    const clock = clockOf(it)
+    const place = it.data?.place
+    if (clock === null || !Number.isFinite(place?.lat) || !Number.isFinite(place?.lng)) return []
+    let zone: string | null = null
+    let nearest = MAX_DAY_TRIP_KM
+    for (const e of anchors) {
+      const km = haversineKm({ lat: place.lat, lng: place.lng }, { lat: e.lat, lng: e.lng })
+      if (km <= nearest) { nearest = km; zone = e.timezone as string }
+    }
+    const hh = String(Math.floor(clock / 60)).padStart(2, '0')
+    const mm = String(clock % 60).padStart(2, '0')
+    const instant = zone ? zonedInstant(`${date}T${hh}:${mm}`, zone) : null
+    return instant === null ? [] : [{ it, index, clock, instant }]
   })
 }
 
@@ -364,15 +525,16 @@ function applyChronoOrder(
  * list draws it in. A row with a time is drawn by it, and the untimed rows behind it
  * take that time too. Dropped against its time, a train went back to its time on the
  * next render and took every untimed stop behind the drop with it, and the next drag
- * stored that order (#2631). So it lands as close to the drop as its time allows and
- * nothing else moves. A row without a time, or one the list draws where it was
- * dropped, is returned as it came.
+ * stored that order (#2631). So it stays where it was dropped when only other bookings
+ * stand against its time, and they make room (`yieldTimedBookings`); against a timed
+ * stop or note it lands as close to the drop as its time allows and nothing else moves.
+ * A row without a time, or one the list draws where it was dropped, is returned as it came.
  */
 export function seatTimedDrop(
   order: readonly MergedItem[],
   index: number,
   dayId: number,
-  getDisplayTime: (r: MergedItem['data'], dayId: number) => string | null = getDisplayTimeForDay
+  getDisplayTime: DisplayTimeOf = getDisplayTimeForDay
 ): MergedItem[] {
   const moved = order[index]
   if (!moved || moved.type === 'place') return [...order]
@@ -380,16 +542,18 @@ export function seatTimedDrop(
     ? parseTimeToMinutes(moved.data?.time)
     : parseTimeToMinutes(getDisplayTime(moved.data, dayId))
   if (minutes === null) return [...order]
+  if (drawnAsIs(order, dayId, getDisplayTime)) return [...order]
+  const yielded = yieldTimedBookings(order, index, dayId, getDisplayTime)
+  if (yielded) return yielded
   const rest = order.filter((_, i) => i !== index)
-  const drawnAsIs = (at: number): MergedItem[] | null => {
+  const seatAt = (at: number): MergedItem[] | null => {
     const candidate = [...rest.slice(0, at), moved, ...rest.slice(at)]
-    const drawn = applyChronoOrder(candidate, dayId, getDisplayTime)
-    return drawn.every((it, i) => it === candidate[i]) ? candidate : null
+    return drawnAsIs(candidate, dayId, getDisplayTime) ? candidate : null
   }
-  for (let dist = 0; dist <= rest.length; dist++) {
-    for (const at of dist === 0 ? [index] : [index - dist, index + dist]) {
+  for (let dist = 1; dist <= rest.length; dist++) {
+    for (const at of [index - dist, index + dist]) {
       if (at < 0 || at > rest.length) continue
-      const seated = drawnAsIs(at)
+      const seated = seatAt(at)
       if (seated) return seated
     }
   }

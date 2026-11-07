@@ -87,6 +87,10 @@ const settings: TranslationStrings = {
   'settings.timeFormat': 'Tidsformat',
   'settings.weekStart': 'Vecka börjar på',
   'settings.weekStartHint': 'Veckans första dag i alla datumväljare. Vacay har en egen inställning.',
+  'settings.dateFormat': 'Datumformat',
+  'settings.dateFormatHint':
+    'Hur datum skrivs i alla datumfält och listor. Datum med månadsnamn behåller ditt språks formulering.',
+  'settings.dateFormatAuto': 'Automatiskt',
   'settings.preferredNavApp': 'Öppna platser i',
   'settings.preferredNavAppAsk': 'Fråga varje gång',
   'settings.preferredNavAppHint':
@@ -664,6 +668,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': 'Klar',
   'settings.mcp.deprecated': 'Utfasad',
   'settings.offline.cache.dateRange': '{start} till {end}',
+  'settings.offline.tileStore.title': 'Visade kartrutor',
+  'settings.offline.tileStore.usage': '{used} av {limit} på den här enheten, sparas i upp till 30 dagar',
+  'settings.offline.tileStore.clear': 'Rensa',
 };
 
 export default settings;

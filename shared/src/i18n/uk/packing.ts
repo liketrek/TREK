@@ -119,6 +119,7 @@ const packing: TranslationStrings = {
   'packing.sharedWithCount.few': 'надано {count} учасникам',
   'packing.sharedWithCount.many': 'надано {count} учасникам',
   'packing.broughtBy': 'приносить {name}',
+  'packing.bringersTitle': 'Візьме',
   'packing.alsoBring': 'Я теж можу принести',
   'packing.alsoBringingStop': 'Я не принесу',
   'packing.cloneToMine': 'Копіювати до мого списку',

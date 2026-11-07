@@ -40,7 +40,7 @@ Log in with what it shows; you will be asked to set a new password.
 **Reset the admin without losing data** (locked-out, existing install):
 
 ```bash
-docker exec -it trek node server/reset-admin.js
+docker exec -it -u node trek node server/reset-admin.js
 ```
 
 This resets (or creates) `admin@trek.local` and prints a generated password. Override with `-e RESET_ADMIN_EMAIL=you@example.com -e RESET_ADMIN_PASSWORD=yourpass`. You will be asked to change it on first login. Resetting an existing account also signs it out of every session it still had.
@@ -178,6 +178,12 @@ Keep only `./data:/app/data` and `./uploads:/app/uploads`, then recreate the con
 >
 > ```bash
 > sudo chown -R 1000:1000 ./data ./uploads
+> ```
+>
+> The start-up step only looks at `data`, `uploads` and what sits directly in them. Files copied in as root further down, into a subdirectory that already belongs to `node` (for example a restore with `docker cp ./photos/. trek:/app/uploads/photos/` or with `sudo cp` on the bind mount), stay root-owned across restarts. Hand them over once:
+>
+> ```bash
+> docker exec trek chown -R node:node /app/uploads /app/data
 > ```
 
 ---
@@ -344,6 +350,26 @@ docker logs <container> 2>&1 | grep -E "SMTP test email (sent|failed)|SMTP test 
    ```
 
 > **Note:** If no SMTP is configured at all, TREK prints the reset link directly to the server logs (`===== PASSWORD RESET LINK =====`). This is useful for initial setup or self-hosted installs without email.
+
+---
+
+## My location does not work: "Location requires a secure (HTTPS) connection"
+
+**Cause:** Browsers only hand out the device location in a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts). Over plain HTTP at an address other than `localhost`, the location button on the map shows *Location requires a secure (HTTPS) connection*, and the journal's current location stays empty. The same goes for a phone opening TREK by its LAN address.
+
+**Fix:** Open TREK over HTTPS. Two common ways when TREK runs at home:
+
+- **A reverse proxy with a certificate**, see [Reverse-Proxy](Reverse-Proxy).
+- **An HTTPS tunnel** (Cloudflare Tunnel, Tailscale Serve, ngrok and the like) that ends at TREK's HTTP port.
+
+With a tunnel or proxy in front and plain HTTP still used on the LAN, set:
+
+- `APP_URL` to the HTTPS address, so links in emails and calendar feeds use it.
+- `TRUST_PROXY=1`, so TREK sees that the request came in over HTTPS.
+- `COOKIE_SECURE=false` only if you also sign in over plain HTTP on the LAN; without it, that sign-in keeps no session. HTTPS sign-ins work either way.
+- `ALLOWED_ORIGINS` needs no entry for either address: the address in the browser's address bar is always allowed. Add origins only for other sites that call TREK.
+
+See [Environment Variables](Environment-Variables) for each of them.
 
 ---
 

@@ -1,7 +1,9 @@
 import {
+  PLACES_CONTRIBUTE_BACKFILL,
   PLACES_CONTRIBUTE_CONSENT,
   PLACES_CONTRIBUTE_PAUSE,
   PLACES_CONTRIBUTE_SNOOZE,
+  type PlacesContributeBackfill,
   type PlacesContributePause,
 } from '../../db/json-columns';
 import { decodeJson, encodeJson } from '../../utils/json-column';
@@ -108,6 +110,26 @@ export class PlaceContribSettings {
 
   async clearPause(): Promise<void> {
     await this.settings.deleteAppSettings(['places_contribute_pause']);
+  }
+
+  /** How far the catch-up of values typed before the agreement got; null when there is nothing to catch up. */
+  async backfill(): Promise<PlacesContributeBackfill | null> {
+    return decodeJson(
+      PLACES_CONTRIBUTE_BACKFILL,
+      await this.settings.getAppSetting('places_contribute_backfill'),
+      'backfill',
+    );
+  }
+
+  /** Stores where the catch-up stands, or ends it with null. */
+  async writeBackfill(backfill: PlacesContributeBackfill | null): Promise<void> {
+    if (backfill === null) {
+      await this.settings.deleteAppSettings(['places_contribute_backfill']);
+      return;
+    }
+    await this.settings.setAppSettings({
+      places_contribute_backfill: encodeJson(PLACES_CONTRIBUTE_BACKFILL, backfill),
+    });
   }
 
   private async snoozes(): Promise<Record<string, string>> {

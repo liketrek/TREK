@@ -26,10 +26,27 @@ import { offlineDb, clearAll, upsertSyncMeta } from '../../../src/db/offlineDb';
 import { requestPersistentStorage, _resetPersistentStorage } from '../../../src/sync/persistentStorage';
 import { setAuthed } from '../../../src/sync/authGate';
 import { buildPlace } from '../../helpers/factories';
+import { prefetchStyleAssets, prefetchVectorForPlaces } from '../../../src/sync/glPrefetcher';
+import { isNativeIos } from '../../../src/native/platform';
+import { OFM_DARK, OFM_POSITRON } from '../../../src/constants/mapDefaults';
+
+// The vector basemap has its own tests (glPrefetcher.test.ts). Here it is a seam,
+// so the raster runs below count only their own tile requests.
+vi.mock('../../../src/sync/glPrefetcher', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../../src/sync/glPrefetcher')>()),
+  prefetchVectorForPlaces: vi.fn(async () => ({ tiles: 0, template: null })),
+  prefetchStyleAssets: vi.fn(async () => null),
+}));
+vi.mock('../../../src/native/platform', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../../src/native/platform')>()),
+  isNativeIos: vi.fn(() => false),
+}));
 
 beforeEach(async () => {
   await clearAll();
   setAuthed(true);
+  // restoreAllMocks leaves a vi.fn's return value as a test set it; the iOS case below sets true.
+  vi.mocked(isNativeIos).mockReturnValue(false);
   Object.defineProperty(navigator, 'onLine', { value: true, writable: true, configurable: true });
   // Stub fetch + serviceWorker so prefetch path is exercised
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
@@ -403,6 +420,48 @@ describe('prefetchTilesForTrip', () => {
     const calls = vi.mocked(fetch).mock.calls.length;
     expect(calls).toBeGreaterThan(0);
     expect(calls).toBeLessThanOrEqual(MAX_TILES);
+  });
+});
+
+// ── the offline basemap ───────────────────────────────────────────────────────
+
+describe('prefetchTilesForTrip — the offline basemap', () => {
+  const places = [buildPlace({ trip_id: 1, lat: 35.68, lng: 139.76 })];
+
+  beforeEach(async () => {
+    await upsertSyncMeta({ tripId: 1, lastSyncedAt: Date.now(), status: 'idle', tilesBbox: null, filesCachedCount: 0 });
+    vi.mocked(prefetchVectorForPlaces).mockClear();
+    vi.mocked(prefetchStyleAssets).mockClear();
+    vi.mocked(isNativeIos).mockReturnValue(false);
+  });
+
+  it('stores the light and dark OpenFreeMap styles for a trip on any provider', async () => {
+    await prefetchTilesForTrip(1, places, 'https://{s}.example.com/{z}/{x}/{y}.png');
+
+    expect(vi.mocked(prefetchVectorForPlaces).mock.calls.map(c => c[1])).toEqual([OFM_POSITRON]);
+    expect(vi.mocked(prefetchStyleAssets).mock.calls.map(c => c[0])).toEqual([OFM_DARK]);
+  });
+
+  it('does not walk the stored style twice when it is the configured one', async () => {
+    await prefetchTilesForTrip(1, places, OFM_POSITRON);
+
+    expect(vi.mocked(prefetchVectorForPlaces)).toHaveBeenCalledTimes(1);
+  });
+
+  it('never prefetches OpenStreetMap standard tiles, which their policy forbids', async () => {
+    await prefetchTilesForTrip(1, places, 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+
+    expect(vi.mocked(fetch).mock.calls.some(c => String(c[0]).includes('tile.openstreetmap.org'))).toBe(false);
+    expect(vi.mocked(prefetchVectorForPlaces)).toHaveBeenCalled();
+  });
+
+  it('skips raster tiles inside the iOS app, which has no service worker to serve them', async () => {
+    vi.mocked(isNativeIos).mockReturnValue(true);
+
+    await prefetchTilesForTrip(1, places, 'https://{s}.example.com/{z}/{x}/{y}.png');
+
+    expect(vi.mocked(fetch)).not.toHaveBeenCalled();
+    expect(vi.mocked(prefetchVectorForPlaces)).toHaveBeenCalled();
   });
 });
 

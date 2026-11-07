@@ -82,5 +82,7 @@ const common: TranslationStrings = {
     "TREK s'ha actualitzat mentre aquesta pestanya era oberta. Torna a carregar per obtenir la versió nova.",
   'common.errorPluginTitle': "No s'ha pogut mostrar aquest connector",
   'common.needsConnection': 'Això necessita connexió. Torna-ho a provar quan TREK torni a estar en línia.',
+  'common.errorDetails': 'Detalls',
+  'common.share': 'Comparteix',
 };
 export default common;

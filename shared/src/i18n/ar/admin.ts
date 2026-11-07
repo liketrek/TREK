@@ -1174,6 +1174,7 @@ const admin: TranslationStrings = {
   'admin.contribute.never.providers': 'التفاصيل التي يملؤها Google أو مزوّد آخر',
   'admin.contribute.prompt.how':
     'فقط ما كتبه مستخدموك بأنفسهم، وفقط للأماكن التي يعرفها الفهرس. لا يُرسل معه أي مستخدم أو رحلة أو حساب. يعرض السجل كل عملية إرسال، ويمكنك إيقاف حقول أو سحب كل شيء في أي وقت.',
+  'admin.contribute.prompt.past': 'تتم مشاركة التفاصيل التي كتبها مستخدموك منذ TREK 5.1 أيضًا، تدريجيًا.',
   'admin.contribute.prompt.openRegistration':
     'التسجيل مفتوح في هذا التثبيت، لذا يمكن لأي شخص لديه حساب كتابة التفاصيل. تُفحص كل قيمة قبل نشرها.',
   'admin.contribute.prompt.footnote': 'أنت تقرر ذلك للتثبيت بأكمله. لا يُسأل مستخدموك.',

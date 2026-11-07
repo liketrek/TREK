@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { X } from 'lucide-react'
+import { CalendarClock, X } from 'lucide-react'
 import { useAtlas } from '../../../pages/atlas/useAtlas'
 import MIconBtn from '../../components/MIconBtn'
 import MSheet from '../../components/MSheet'
@@ -9,12 +9,15 @@ import MAtlasStatsCard from './MAtlasStatsCard'
 import MAtlasSearch from './MAtlasSearch'
 import MAtlasCountryPopup from './MAtlasCountryPopup'
 import MAtlasBucketSheet from './MAtlasBucketSheet'
-import MToggle from '../../components/MToggle'
 import DawarichIcon from '../../../components/shared/DawarichIcon'
 import DawarichAtlasDialog from '../../../components/Dawarich/DawarichAtlasDialog'
 import { useAddonStore } from '../../../store/addonStore'
 import { countryStatus } from '../../../pages/atlas/atlasModel'
 import AtlasCountryPlaces from '../../../components/Atlas/AtlasCountryPlaces'
+
+/** The atlas header's buttons: one shape, equal widths, the phone shell's glass. */
+const HEADER_BUTTON = 'flex h-[38px] min-w-0 flex-1 items-center justify-center gap-2 rounded-full border px-3 text-[0.78125rem] font-bold transition-transform active:scale-[.97]'
+const HEADER_IDLE = 'border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] text-m-ink shadow-[0_5px_12px_-8px_rgba(0,0,0,.18)] backdrop-blur-[24px] backdrop-saturate-[1.7]'
 
 const removeBtnCls = 'mt-4 w-full rounded-full bg-[rgba(214,39,59,.12)] py-[11px] text-center text-[0.8125rem] font-bold text-[color:var(--m-st-danger)]' // theme-lint-disable — fixed status-danger tint
 
@@ -121,7 +124,7 @@ export default function MAtlas() {
         <button
           type="button"
           onClick={() => setBucketOpen(true)}
-          className="flex h-[38px] min-w-0 flex-1 items-center justify-center rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-sheet)] px-4 text-[0.78125rem] font-bold text-m-ink shadow-[0_5px_12px_-8px_rgba(0,0,0,.18)]"
+          className={`${HEADER_BUTTON} ${HEADER_IDLE}`}
         >
           {t('atlas.bucketTab')}
         </button>
@@ -134,20 +137,28 @@ export default function MAtlas() {
             type="button"
             onClick={() => setDawarichOpen(true)}
             aria-label={t('dawarich.title')}
-            className="flex h-[38px] min-w-0 flex-1 items-center justify-center gap-2 rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-sheet)] px-3 shadow-[0_5px_12px_-8px_rgba(0,0,0,.18)]"
+            className={`${HEADER_BUTTON} ${HEADER_IDLE}`}
           >
-            <span className="flex h-[26px] w-[26px] flex-none overflow-hidden rounded-full">
-              <DawarichIcon size={26} />
+            <span className="flex h-[22px] w-[22px] flex-none overflow-hidden rounded-full">
+              <DawarichIcon size={22} />
             </span>
-            <span className="truncate text-[0.78125rem] font-bold text-m-ink">{t('dawarich.title')}</span>
+            <span className="truncate">{t('dawarich.title')}</span>
           </button>
         )}
-        {/* Only worth the space once there is something planned to reveal. */}
+        {/* Only worth the space once there is something planned to reveal. A
+            button of the same shape as its neighbours, filled while the planned
+            countries show, rather than a label with a switch in a pill of its own. */}
         {plannedCount > 0 && (
-          <div className="flex h-[38px] shrink-0 items-center gap-2 rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-sheet)] px-3 shadow-[0_5px_12px_-8px_rgba(0,0,0,.18)]">
-            <span className="text-[0.6875rem] font-bold text-m-ink">{t('atlas.planned')}</span>
-            <MToggle checked={showPlanned} onChange={() => togglePlanned()} ariaLabel={t('atlas.showPlanned')} />
-          </div>
+          <button
+            type="button"
+            onClick={() => togglePlanned()}
+            aria-pressed={showPlanned}
+            aria-label={t('atlas.showPlanned')}
+            className={`${HEADER_BUTTON} ${showPlanned ? 'border-transparent bg-m-act text-m-actfg' : HEADER_IDLE}`}
+          >
+            <CalendarClock size={15} strokeWidth={2.2} className="flex-none" aria-hidden="true" />
+            <span className="truncate">{t('atlas.planned')}</span>
+          </button>
         )}
       </div>
 

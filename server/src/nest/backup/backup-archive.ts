@@ -135,3 +135,17 @@ export function checkBackupDatabase(extractDir: string): ArchiveRefusal | null {
     uploadedDb?.close();
   }
 }
+
+/**
+ * Leaves `data/.trek-reclaim-reset` (data-paths.ts) before a restore swaps the
+ * database in. Storage reclaim removes it once it has dropped the state the
+ * swapped database brought (the deletion switch, the confirmations, the marks,
+ * the release queue); until then every start does that first. So a restart
+ * after a reopen that failed, and a restore at boot, never keep that state,
+ * whichever installation the backup came from. Throws when the file cannot be
+ * written: the restore then stops before it swaps anything.
+ */
+export function markReclaimResetPending(file: string): void {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, `${new Date().toISOString()}\n`, { mode: 0o600 });
+}

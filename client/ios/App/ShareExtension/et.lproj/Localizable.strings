@@ -1,0 +1,26 @@
+/* The share sheet ("TREK" in the share menu): ShareExtension/ShareView.swift. */
+"share.title" = "Lisa TREK-i";
+"share.cancel" = "Tühista";
+"share.close" = "Sulge";
+"share.trip" = "Reis";
+"share.noTrips" = "Ava TREK korra ja sinu reisid ilmuvad siia.";
+"share.hint" = "TREK loeb broneeringu ja lisab selle reisile.";
+"share.later" = "Vali hiljem";
+"share.add" = "Lisa";
+"share.addTo" = "Lisa reisile %@";
+"share.added" = "Lisatud";
+"share.reading" = "Loen…";
+"share.tooLarge" = "See fail on importimiseks liiga suur.";
+"share.unsupported" = "TREK ei saa seda importida.";
+"share.failed" = "Seda ei õnnestunud TREK-ile üle anda. Proovi uuesti.";
+"share.now" = "Praegu";
+"share.past" = "Möödas";
+"share.tomorrow" = "Homme";
+"share.inDays" = "%d päeva pärast";
+"share.kind.pass" = "Wallet’i pass";
+"share.kind.pdf" = "PDF";
+"share.kind.mail" = "E-kiri";
+"share.kind.page" = "Veebileht";
+"share.kind.text" = "Tekst";
+"share.kind.image" = "Foto";
+"share.kind.file" = "Fail";

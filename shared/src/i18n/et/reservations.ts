@@ -62,7 +62,7 @@ const reservations: TranslationStrings = {
   'reservations.type.car': 'Auto',
   'reservations.type.cruise': 'Kruiis',
   'reservations.type.event': 'Üritus',
-  'reservations.type.tour': 'Ekskursioon',
+  'reservations.type.tour': 'Giidiga ekskursioon',
   'reservations.type.parking': 'Parkimine',
   'reservations.type.other': 'Muu',
   'reservations.type.bus': 'Buss',
@@ -275,5 +275,9 @@ const reservations: TranslationStrings = {
     'Failide üleslaadimiseks on vaja ühendust. Eemalda uued, et broneering võrguühenduseta salvestada, või salvesta, kui oled taas võrgus.',
   'reservations.needsConnection': 'Selleks on vaja ühendust. Proovi uuesti, kui TREK on taas võrgus.',
   'reservations.exportCsvFiltered': 'Ekspordi näidatud read, {shown} / {total} (CSV)',
+  'reservations.wallet.add': 'Lisa Apple Walletisse',
+  'reservations.wallet.addGoogle': 'Lisa Google Walletisse',
+  'reservations.wallet.failed': 'Walleti passi ei õnnestunud luua. Proovi uuesti.',
+  'reservations.wallet.undated': 'Anna broneeringule kõigepealt kuupäev: Wallet näitab passi selle aja paiku.',
 };
 export default reservations;

@@ -1,6 +1,6 @@
-import { Fragment, useCallback, useMemo, useRef } from 'react'
+import { Fragment, useCallback, useMemo } from 'react'
 import { AlertTriangle, MapPin, Navigation } from 'lucide-react'
-import { useMPlanDaySwipe } from '../plan/useMPlanDaySwipe'
+import MDayPager from '../../../components/MDayPager'
 import { showStopOnMap, useMRoadtrip } from './useMRoadtrip'
 import { useMRtCorridor } from './useMRtCorridor'
 import { useMRtAlternatives } from './useMRtAlternatives'
@@ -15,7 +15,6 @@ import { navigationTargetLabel, getNavigationTargets } from '../../../../compone
 import { useSettingsStore } from '../../../../store/settingsStore'
 import { formatDistance } from '../../../../utils/units'
 import { formatClockTime } from '../../../../utils/formatters'
-import { isRtlLanguage } from '../../../../i18n'
 import type { MTripTabPanelProps } from '../MTripShell'
 import { arrivingReroutable, legReroutable, type StopRow } from '../../../../components/Roadtrip/roadtripRowModel'
 import { ARRIVING_DRIVE, type RailDrive } from '../../../../components/Roadtrip/useRouteAlternatives'
@@ -25,6 +24,7 @@ import { bookendBooking } from '../../../../components/Roadtrip/nightBookend'
 import { getDayOrder } from '../../../../utils/dayOrder'
 import { undatedRides } from '@trek/shared/roadtrip'
 import type { Reservation, TranslationFn } from '../../../../types'
+import { useDayPreviewStore } from '../../../dayPreviewStore'
 
 /**
  * The road trip tab: one day of the drive, as a chain or on the map.
@@ -40,9 +40,8 @@ import type { Reservation, TranslationFn } from '../../../../types'
  * scroll, the day tints, the label format and the second tap that opens the day sheet.
  */
 export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
+  const setDayPreview = useDayPreviewStore(s => s.setDayId)
   const { t, days } = planner
-  const panelRef = useRef<HTMLDivElement>(null)
-  const cardRef = useRef<HTMLDivElement>(null)
   const rt = useMRoadtrip(planner)
   const corridor = useMRtCorridor(planner, shell)
   // Called once here and handed down, like `rt`: the chain's leg buttons and the bar over
@@ -52,25 +51,90 @@ export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
   const is12h = useSettingsStore(s => s.settings.time_format) === '12h'
   const chrome: RowChrome = { t, unit, is12h }
 
-  // The same gesture the day timeline uses, called rather than rebuilt: 370 lines of
-  // worked-out conflict avoidance, down to the dead 24px gutter that stops iOS from
-  // reading a swipe as its own back gesture.
-  const daySwipe = useMPlanDaySwipe({
-    days,
-    selectedDayId: planner.selectedDayId,
-    // skipFit: the map underneath stays mounted, and the stage's own focus points
-    // frame it as soon as the selection moves.
-    onSelectDay: dayId => planner.handleSelectDay(dayId, true),
-    panelRef,
-    cardRef,
-    editing: false,
-    dragging: false,
-    menuOpen: !!shell.sheet,
-    rtl: isRtlLanguage(planner.language),
-    describeDay: (i, n) => t('mobileTrip.dayAnnounce', { current: i + 1, total: n }),
-  })
-
   const stage = rt.stage
+
+  // The search bar sits in the same band on both halves, at the same offset, so the
+  // list/map switch never moves it: it is one stage seen two ways, and a control that
+  // jumps between them is a control you have to find twice. The band and the margins
+  // are the plan tab's POI bar, for the same reason.
+  //
+  // Only over a stage. Without one there is no drive to search along: the corridor would
+  // fall back to the trip's first routed day, which is not the one on screen, and every
+  // distance it answered with would be measured against a road nobody is looking at.
+  const searchBar = stage && (
+    <div className="pointer-events-auto absolute inset-x-4 top-[calc(var(--m-safe-top,12px)+96px)] z-[26]">
+      <MRtCorridorBar planner={planner} corridor={corridor} onOpen={() => shell.openSheet('rtsearch')} />
+    </div>
+  )
+
+  // ── Map half: the search bar, and the picker's bar while it is open. Everything
+  // between them belongs to the map instance the shell keeps mounted, so this layer must
+  // not swallow taps.
+  //
+  // A stage bar used to stand over the dock whenever the map was up: the day's
+  // destination with its picture, its stop count, its arrival and its distance. It went
+  // because the day and the distance are already in the shell's stage header, and on a
+  // map that fills the screen a permanent card over the bottom edge costs more than the
+  // three facts it added.
+  //
+  // While other ways of driving a leg are on offer, their bar stands in that now empty
+  // slot and the search bar steps away. The picker is modal on the map: its lines are the
+  // question on screen, a corridor search started under it would draw its pins over
+  // them, and the band it frees at the top is room the leg is framed into.
+  if (shell.rtView === 'map') {
+    return (
+      <div className="pointer-events-none absolute inset-0 z-20">
+        {!alts.open && searchBar}
+        {/* Just above the dock, the same gap everything else on this shell keeps from it.
+            Mounted only while the picker is open, so nothing invisible lies over the map's
+            own buttons the rest of the time. */}
+        {alts.open && (
+          <div className="pointer-events-auto absolute inset-x-4 bottom-[calc(var(--bottom-nav-h,84px)+4px)]">
+            <MRtAlternativesBar planner={planner} alts={alts} />
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // ── List half ────────────────────────────────────────────────────────────────
+  // The stages page like the plan tab's days (#2051): the day pager draws the stage on
+  // either side as well, so a swipe drags the next one in. The search bar stays put over
+  // the strip, because the corridor it searches is the selected stage's.
+  return (
+    <div className="absolute inset-0">
+      <MDayPager
+        days={days}
+        selectedDayId={planner.selectedDayId}
+        // skipFit: the map underneath stays mounted, and the stage's own focus points
+        // frame it as soon as the selection moves.
+        onSelectDay={dayId => planner.handleSelectDay(dayId, true)}
+        onPreview={setDayPreview}
+        locked={!!shell.sheet}
+        describeDay={(i, n) => t('mobileTrip.dayAnnounce', { current: i + 1, total: n })}
+        renderDay={dayId => (
+          <RoadtripStagePage planner={planner} shell={shell} dayId={dayId} alts={alts} chrome={chrome} />
+        )}
+      />
+      {searchBar}
+    </div>
+  )
+}
+
+/**
+ * One stage of the list half, as the day pager draws it: the selected stage and the
+ * ones either side. Each page reads its own stage, so the one that slides in is
+ * exactly the one that lands.
+ */
+function RoadtripStagePage({ planner, shell, dayId: pageDayId, alts, chrome }: Omit<MTripTabPanelProps, 'tab'> & {
+  dayId: number | null
+  alts: ReturnType<typeof useMRtAlternatives>
+  chrome: RowChrome
+}) {
+  const { t } = planner
+  const rt = useMRoadtrip(planner, pageDayId)
+  const stage = rt.stage
+  const { unit, is12h } = chrome
 
   // The map's whole-trip view leaves no day selected, and it stays that way when the
   // list comes up: the switch here restores nothing on purpose, and the plan tab's
@@ -78,7 +142,7 @@ export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
   // with routed days and no day picked it asks for one, rather than claiming there is
   // no route while the header above prints the whole drive's distance. A day that is
   // picked and has no drive of its own still gets the empty stage further down.
-  const noDayPicked = !stage && !rt.empty && !rt.loading && planner.selectedDayId == null
+  const noDayPicked = !stage && !rt.empty && !rt.loading && pageDayId == null
 
   // The disc is only a control for somebody who may change a place. Read here rather than
   // inside the row so the whole chain asks once, the way `rt` and `chrome` are handled.
@@ -133,61 +197,13 @@ export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
     else planner.handlePlaceClick(reading.placeId)
   }
 
-  // The search bar sits in the same band on both halves, at the same offset, so the
-  // list/map switch never moves it: it is one stage seen two ways, and a control that
-  // jumps between them is a control you have to find twice. The band and the margins
-  // are the plan tab's POI bar, for the same reason.
-  //
-  // Only over a stage. Without one there is no drive to search along: the corridor would
-  // fall back to the trip's first routed day, which is not the one on screen, and every
-  // distance it answered with would be measured against a road nobody is looking at.
-  const searchBar = stage && (
-    <div className="pointer-events-auto absolute inset-x-4 top-[calc(var(--m-safe-top,12px)+96px)] z-[26]">
-      <MRtCorridorBar planner={planner} corridor={corridor} onOpen={() => shell.openSheet('rtsearch')} />
-    </div>
-  )
-
-  // ── Map half: the search bar, and the picker's bar while it is open. Everything
-  // between them belongs to the map instance the shell keeps mounted, so this layer must
-  // not swallow taps.
-  //
-  // A stage bar used to stand over the dock whenever the map was up: the day's
-  // destination with its picture, its stop count, its arrival and its distance. It went
-  // because the day and the distance are already in the shell's stage header, and on a
-  // map that fills the screen a permanent card over the bottom edge costs more than the
-  // three facts it added.
-  //
-  // While other ways of driving a leg are on offer, their bar stands in that now empty
-  // slot and the search bar steps away. The picker is modal on the map: its lines are the
-  // question on screen, a corridor search started under it would draw its pins over
-  // them, and the band it frees at the top is room the leg is framed into.
-  if (shell.rtView === 'map') {
-    return (
-      <div className="pointer-events-none absolute inset-0 z-20">
-        {!alts.open && searchBar}
-        {/* Just above the dock, the same gap everything else on this shell keeps from it.
-            Mounted only while the picker is open, so nothing invisible lies over the map's
-            own buttons the rest of the time. */}
-        {alts.open && (
-          <div className="pointer-events-auto absolute inset-x-4 bottom-[calc(var(--bottom-nav-h,84px)+4px)]">
-            <MRtAlternativesBar planner={planner} alts={alts} />
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  // ── List half ────────────────────────────────────────────────────────────────
+  // Room for the search bar, which only stands over a stage.
   return (
-    <div ref={panelRef} className="absolute inset-0" {...daySwipe.handlers}>
-      <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">{daySwipe.announcement}</span>
-      {searchBar}
-      <div
-        ref={cardRef}
-        className={`absolute inset-0 overflow-x-hidden overflow-y-auto overscroll-contain px-4 pb-[calc(var(--bottom-nav-h,84px)+22px)] ${
-          searchBar ? 'pt-[calc(var(--m-safe-top,12px)+150px)]' : 'pt-[calc(var(--m-safe-top,12px)+102px)]'
-        }`}
-      >
+    <div
+      className={`absolute inset-0 overflow-x-hidden overflow-y-auto overscroll-y-contain px-4 pb-[calc(var(--bottom-nav-h,84px)+22px)] ${
+        stage ? 'pt-[calc(var(--m-safe-top,12px)+150px)]' : 'pt-[calc(var(--m-safe-top,12px)+102px)]'
+      }`}
+    >
         <UndatedRides rides={undated} t={t} onOpen={openBooking} />
         {noDayPicked ? (
           <PickDay planner={planner} />
@@ -360,7 +376,6 @@ export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
             </section>
           </>
         )}
-      </div>
     </div>
   )
 }
@@ -389,7 +404,7 @@ function UpNext({ planner, shell, rt, stageDayId, onOpen }: {
   const targets = place ? getNavigationTargets(place) : []
 
   return (
-    <section className="mt-2.5 rounded-[22px] border border-[color:var(--m-inbr)] bg-[color:var(--m-inner)] px-4 py-3.5 shadow-[0_18px_44px_-18px_rgba(0,0,0,.3)]">
+    <section className="mt-2.5 rounded-[22px] border border-[color:var(--m-cbr)] bg-[color:var(--m-card)] px-4 py-3.5">
       <button type="button" onClick={() => onOpen(next.row)} className="w-full text-start">
         <span className="flex items-center justify-between gap-2">
           <span className="font-geist text-[0.65625rem] font-bold uppercase tracking-[.08em] text-m-muted">

@@ -59,6 +59,7 @@ import {
   TRANSIT_CREATE_TOOL,
   TRANSIT_SEARCH_TOOL,
 } from './cards/roadtrip/transit-restore';
+import { argsFitSchema } from './tool-args-fit';
 import { MikroORM } from '@mikro-orm/core';
 import { Client } from '@modelcontextprotocol/sdk/client/index';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory';
@@ -266,6 +267,12 @@ export class AssistantToolSession {
   /** The groups this turn loaded; the core is always there. */
   private readonly loaded = new Set<string>();
 
+  /** Reads the model called before their group was loaded in this turn, by name, with that group; told once. */
+  private readonly calledBlind = new Map<string, string>();
+
+  /** Groups a blind call loaded whose schemas no step has been offered yet. */
+  private readonly unoffered = new Set<string>();
+
   /** Whether the session offers its tools by group: a trip's turn and a home turn do. */
   private get grouped(): boolean {
     return this.mode === 'turn' || this.mode === 'home';
@@ -277,6 +284,8 @@ export class AssistantToolSession {
    * journey's session offers all it holds and no more.
    */
   specs(): AiToolSpec[] {
+    // The step these specs go to sees every loaded group's schema.
+    this.unoffered.clear();
     const listed = [...this.tools.values()]
       .filter((tool) => tool.offered)
       .filter((tool) => !this.grouped || tool.hint.group === null || this.loaded.has(tool.hint.group))
@@ -307,6 +316,13 @@ export class AssistantToolSession {
     return tool?.offered ? tool.kind : null;
   }
 
+  /** The group of a tool this grouped session holds but has not loaded in this turn; null otherwise. */
+  private unloadedGroupOf(name: string): string | null {
+    const group = this.tools.get(name)?.hint.group;
+    if (!this.grouped || !group || this.loaded.has(group)) return null;
+    return group;
+  }
+
   /** The home chat offers a journal's page while the user's journals can be listed (the journal addon is on). */
   private get offersJournalChat(): boolean {
     return this.mode === 'home' && this.tools.has(OPEN_JOURNEY_CHAT_READ);
@@ -323,6 +339,33 @@ export class AssistantToolSession {
    * conversation's is refused.
    */
   pinArgs(name: string, args: ToolArgs): { args: ToolArgs } | { error: string } {
+    const unloaded = this.unloadedGroupOf(name);
+    if (unloaded) {
+      // The model called a tool it was not offered in this turn (it knows the
+      // name from an earlier turn), so it wrote the arguments without the
+      // schema (#2967). Its group is loaded here, so the next step offers the
+      // schema.
+      this.loaded.add(unloaded);
+      this.unoffered.add(unloaded);
+    }
+    const group = this.tools.get(name)?.hint.group;
+    if (group && this.unoffered.has(group)) {
+      // A change is never run in the turn but held as a card, and the turn
+      // ends there: arguments written without the schema would only fail once
+      // the user applies it, with the model long gone. Such a call is sent back
+      // for the next step; one whose arguments already fit is held as always.
+      const tool = this.tools.get(name);
+      if (tool?.kind === 'write' && !argsFitSchema(args, modelSchema(name, tool.inputSchema, this.pinArg))) {
+        return {
+          error: `${name} belongs to the "${group}" tools, which were not loaded in this turn, so it did not run. They are loaded now: send the call again with the arguments exactly as its schema describes them.`,
+        };
+      }
+      // A read runs at once; a refusal of its arguments says why (see call()).
+      this.calledBlind.set(name, group);
+    } else {
+      // A blind read refused before it ran (another trip, an unknown place) must not hint a later call.
+      this.calledBlind.delete(name);
+    }
     const given = pinNamesOf(this.pinArg).filter((key) => args[key] !== undefined);
     if (given.some((key) => Number(args[key]) !== this.pinnedId)) {
       const about = this.pinArg === PINNED_ARG ? 'trip' : 'journey';
@@ -342,6 +385,18 @@ export class AssistantToolSession {
     const final = name === TRANSIT_CREATE_TOOL ? await this.withFoundItinerary(args) : args;
     const run = await this.invoke(name, final);
     this.audit(name);
+    // Only the blind call itself is told about the schema: a later failure of the
+    // same tool, written with the schema in hand, has another reason.
+    const blind = this.calledBlind.get(name);
+    this.calledBlind.delete(name);
+    if (!run.ok && blind) {
+      const hint = `${name} was called before the "${blind}" tools were loaded in this turn, so its arguments were written without its schema. They are loaded now and the schema is in your tools: send the call again with the arguments exactly as it describes them.`;
+      return {
+        ok: false,
+        value: `${typeof run.value === 'string' ? run.value : JSON.stringify(run.value)}
+${hint}`,
+      };
+    }
     if (name === TRANSIT_SEARCH_TOOL && run.ok) this.itineraries.keep(run.value);
     return run;
   }

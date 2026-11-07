@@ -387,6 +387,22 @@ describe('legacy quirk fixes', () => {
     expect((await svc.getUserSettings(own.id)).week_start).toBe('saturday');
   });
 
+  it('SET-SVC-037 — a date_format default reaches users without their own, and theirs wins (#2971)', async () => {
+    const { user: plain } = createUser(testDb);
+    const { user: own } = createUser(testDb);
+    await svc.setAdminUserDefaults({ date_format: 'YYYY-MM-DD' });
+    await svc.upsertSetting(own.id, 'date_format', 'DD/MM/YYYY');
+    expect((await svc.getUserSettings(plain.id)).date_format).toBe('YYYY-MM-DD');
+    expect((await svc.getUserSettings(own.id)).date_format).toBe('DD/MM/YYYY');
+  });
+
+  it('SET-SVC-038 — a date_format default the app does not offer is refused and not stored', async () => {
+    await expect(svc.setAdminUserDefaults({ date_format: 'YY-MM-DD' })).rejects.toThrow(
+      /Invalid value for date_format/,
+    );
+    expect((await svc.getAdminUserDefaults()).date_format).toBeUndefined();
+  });
+
   it('SET-SVC-036 — a week_start default outside monday/sunday/saturday is refused and not stored', async () => {
     await expect(svc.setAdminUserDefaults({ week_start: 'friday' })).rejects.toThrow(/Invalid value for week_start/);
     // Vacay's 0/1 numbers are not this setting's values either.

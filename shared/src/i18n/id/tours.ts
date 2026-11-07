@@ -7,7 +7,8 @@ const tours: TranslationStrings = {
   'tours.mode.label': 'Tampilan penambahan',
   'tours.title': 'Tur',
   'tours.empty.title': 'Belum ada tur',
-  'tours.empty.body': 'Rencanakan tur atau impor berkas GPX atau KML untuk memulai.',
+  'tours.empty.body':
+    'Rencanakan tur atau impor berkas GPX atau KML untuk memulai. Sudah memesan tur berpemandu? Itu masuk ke Pemesanan.',
   'tours.addToDay': 'Tambahkan ke hari',
   'tours.badge.wanderer': 'wanderer',
   'tours.badge.gpx': 'Impor GPX',
@@ -952,6 +953,13 @@ const tours: TranslationStrings = {
   'tours.import.leftOutPoints': '{count} penanda',
   'tours.import.leftOutAreas': '{count} wilayah',
   'tours.import.leftOutOther': '{count} item lain',
+  'tours.import.pointsAsPlaces': 'Tambahkan titik sebagai tempat',
+  'tours.import.pointsAsPlacesHint':
+    'Titik tunggal bukan bagian dari tur. Titik itu masuk ke tempat-tempat perjalanan.',
+  'tours.import.pointsConfirm': 'Tambahkan tempat',
+  'tours.import.pointsFailedIn': 'Titik di {name} tidak dapat ditambahkan sebagai tempat.',
+  'tours.import.pointsSkipped': 'Beberapa titik sudah ada di perjalanan ini dan dilewati.',
+  'tours.import.pointsImported': '{count} tempat ditambahkan',
   'tours.import.unreadableIn': '{name} tidak dapat dibaca: berkas rusak atau bukan GPX, KML, atau KMZ',
   'tours.import.archiveNoKmlIn': 'Tidak ada berkas KML di {name}',
   'tours.import.archiveTooLargeIn': '{name} terlalu besar setelah diekstrak',

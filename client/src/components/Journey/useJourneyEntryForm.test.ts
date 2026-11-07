@@ -281,6 +281,8 @@ describe('useJourneyEntryForm', () => {
     vi.useFakeTimers();
     const places = Array.from({ length: 8 }, (_, i) => ({ name: `P${i}`, lat: String(i), lng: '1' }));
     const search = vi.spyOn(mapsApi, 'search').mockResolvedValue({ places } as never);
+    // No suggestions: the full search answers.
+    vi.spyOn(mapsApi, 'autocomplete').mockResolvedValue({ suggestions: [], source: 'none' } as never);
     const { result } = setup();
     act(() => result.current.searchLocation('R'));
     expect(result.current.showLocationResults).toBe(true);
@@ -304,6 +306,35 @@ describe('useJourneyEntryForm', () => {
     expect(result.current.locationName).toBe('P1');
     expect(result.current.locationResults).toEqual([]);
     expect(result.current.showLocationResults).toBe(false);
+  });
+
+  it('FE-JRN-ENTRYFORM-013b: suggestions come first, as in the planner, and a pick fetches its point (#3003)', async () => {
+    vi.useFakeTimers();
+    const suggest = vi.spyOn(mapsApi, 'autocomplete').mockResolvedValue({
+      suggestions: [{ placeId: 'g1', mainText: 'Hotel Keihan Temmabashi', secondaryText: 'Osaka, Japan' }],
+      source: 'google',
+    } as never);
+    const search = vi.spyOn(mapsApi, 'search');
+    const details = vi.spyOn(mapsApi, 'details').mockResolvedValue({ place: { lat: 34.69, lng: 135.51 } } as never);
+    const { result } = setup();
+    act(() => result.current.searchLocation('Hotel Keihan'));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(400);
+    });
+    expect(suggest).toHaveBeenCalledWith('Hotel Keihan', 'en', undefined, expect.any(AbortSignal), expect.any(String));
+    expect(search).not.toHaveBeenCalled();
+    expect(result.current.locationResults).toEqual([
+      { name: 'Hotel Keihan Temmabashi', address: 'Osaka, Japan', lat: null, lng: null, placeId: 'g1' },
+    ]);
+
+    await act(async () => {
+      result.current.pickLocation(result.current.locationResults[0]);
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(details).toHaveBeenCalledWith('g1', 'en', expect.any(String));
+    expect(result.current.locationName).toBe('Hotel Keihan Temmabashi');
+    expect(result.current.locationLat).toBe(34.69);
+    expect(result.current.locationLng).toBe(135.51);
   });
 
   it('FE-JRN-ENTRYFORM-014: "use my location" fills the point, then the place name', async () => {

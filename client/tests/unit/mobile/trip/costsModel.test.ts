@@ -325,17 +325,14 @@ describe('costsModel: a bill entered in the display currency (#2525)', () => {
     payers: [payer(1, 801.76)], members: [member(1), member(2)],
   });
 
-  it('FE-MOB-CMOD-038: a bill booked at a rate that has moved since counts as its euros at today\'s rate', () => {
-    // 685.26 EUR, which the balances net and settle-up offers; the row, the payer's
-    // figure and the share read the same, or a payback of the row's half reopens the trip.
-    expect(baseTotal(hotel(), usdCtx)).toBeCloseTo(791.55, 2);
-    expect(myPaidOf(hotel(), usdCtx)).toBeCloseTo(791.55, 2);
-    expect(myShareOf(hotel(), usdCtx)).toBeCloseTo(395.77, 2);
-    // Under it, what was entered and the euros it was booked at, no third step.
-    const line = lineOf(801.76, hotel(), usdCtx, baseTotal(hotel(), usdCtx))!;
-    expect(line.entered).toEqual({ amount: 801.76, currency: 'USD' });
-    expect(line.into.currency).toBe('EUR');
-    expect(line.into.amount).toBeCloseTo(685.26, 2);
+  it('FE-MOB-CMOD-038: a bill booked at a rate that has moved since still counts as the dollars typed (#2965)', () => {
+    // The balances net it as typed too, so the row, the payer's figure and the share
+    // read the dollars entered, and paying back half of them squares the trip.
+    expect(baseTotal(hotel(), usdCtx)).toBe(801.76);
+    expect(myPaidOf(hotel(), usdCtx)).toBe(801.76);
+    expect(myShareOf(hotel(), usdCtx)).toBe(400.88);
+    // Nothing to explain under it.
+    expect(lineOf(801.76, hotel(), usdCtx, baseTotal(hotel(), usdCtx))).toBeNull();
   });
 
   it('FE-MOB-CMOD-039: booked at today\'s rate, the bill reads exactly as typed and needs no line', () => {
@@ -380,7 +377,7 @@ describe('costsModel: a bill entered in the display currency (#2525)', () => {
     ].map((e, i) => ({ ...e, name: e.name || 'Hotel', expense_date: e.expense_date || '2026-07-19', id: i + 1 }));
     const inUsd = buildCostsCsv(items, { base: 'USD', ctx: usdCtx, locale: 'en-US', tripTitle: 'Trip', t }).content.split('\r\n');
     expect(inUsd[0]).toBe('Date;Name;Category;Amount;Currency;Amount (EUR);Amount (USD);Note');
-    expect(inUsd[1]).toMatch(/;801\.76;USD;685\.26;791\.55;$/);
+    expect(inUsd[1]).toMatch(/;801\.76;USD;685\.26;801\.76;$/);
     // Never booked, so counted at today's rate, as the server counts it.
     expect(inUsd[2]).toMatch(/;115\.51;USD;100\.00;115\.51;$/);
     const inEur = buildCostsCsv(items, { base: 'EUR', ctx: { ...usdCtx, displayCurrency: 'EUR' }, locale: 'en-US', tripTitle: 'Trip', t }).content.split('\r\n');

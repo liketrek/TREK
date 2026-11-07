@@ -27,9 +27,10 @@ import type { Place } from '../types'
 import { offlineDb, upsertSyncMeta } from '../db/offlineDb'
 import { isAuthed } from './authGate'
 import { isStoragePersisted } from './persistentStorage'
-import { isVectorStyle, normalizeTileUrl, resolveTileUrl, withTileApiKey } from '../utils/tileUrl'
-import { OFM_POSITRON } from '../constants/mapDefaults'
-import { clearVectorCache, prefetchVectorForPlaces } from './glPrefetcher'
+import { isOfflineForbiddenTemplate, isVectorStyle, normalizeTileUrl, resolveTileUrl, withTileApiKey } from '../utils/tileUrl'
+import { OFM_DARK, OFM_POSITRON } from '../constants/mapDefaults'
+import { clearVectorCache, prefetchStyleAssets, prefetchVectorForPlaces } from './glPrefetcher'
+import { isNativeIos } from '../native/platform'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -385,6 +386,28 @@ function sameBbox(a: [number, number, number, number], b: TileBbox): boolean {
   )
 }
 
+/** The OpenFreeMap styles the offline fallback draws; they share one tile set. */
+const OFFLINE_BASEMAPS: readonly string[] = [OFM_POSITRON, OFM_DARK]
+
+/**
+ * The offline basemap is a best-effort extra: a failed request leaves its tile
+ * uncached and the next sync tries again, so it stops neither the raster run
+ * nor the sync.
+ */
+function basemapFailed(): void {}
+
+/**
+ * The trip's region of the offline basemap: the light style's tiles, style,
+ * sprite and glyphs, and the dark style's own style, sprite and glyphs on top,
+ * whose tiles are the same ones.
+ */
+async function prefetchOfflineBasemap(places: Place[], template: string, cancelled: () => boolean): Promise<void> {
+  const light = template === OFM_DARK ? OFM_DARK : OFM_POSITRON
+  const other = light === OFM_DARK ? OFM_POSITRON : OFM_DARK
+  await prefetchVectorForPlaces(places, light, cancelled).catch(basemapFailed)
+  if (!cancelled()) await prefetchStyleAssets(other, computeBbox(places)).catch(basemapFailed)
+}
+
 /**
  * Full pipeline: compute bbox → guard → prefetch → update syncMeta.
  * Designed to be called fire-and-forget from tripSyncManager.
@@ -415,8 +438,16 @@ export async function prefetchTilesForTrip(
   // The default basemap is a vector style, and walking a {z}/{x}/{y} template
   // over one would fetch nothing the map ever asks for. A user who configured
   // their own raster template keeps the path below unchanged.
+  const cancelled = () => !navigator.onLine || !isAuthed()
+  // Whatever the map is set to, the trip's region of the offline basemap goes
+  // along: offline, a Mapbox map or one the device cannot serve switches to it
+  // (components/Map/offlineBasemap.ts).
+  await prefetchOfflineBasemap(places, template, cancelled)
+
   if (isVectorStyle(template)) {
-    const { tiles } = await prefetchVectorForPlaces(places, template, () => !navigator.onLine || !isAuthed())
+    const { tiles } = OFFLINE_BASEMAPS.includes(template)
+      ? { tiles: 0 }
+      : await prefetchVectorForPlaces(places, template, cancelled)
     const meta = await offlineDb.syncMeta.get(tripId)
     if (meta) {
       await upsertSyncMeta({
@@ -447,7 +478,12 @@ export async function prefetchTilesForTrip(
   // dozen tiles (#2180); the deep ones are the volume, and they are what the
   // user loses rather than the ability to start the app at all (#2228).
   const maxZoom = isStoragePersisted() ? 16 : UNPERSISTED_MAX_ZOOM
-  const fetched = await prefetchTiles(bbox, template, 0, maxZoom, cartoKey)
+  // Not for a host whose tiles may not be stored (OSM's tile usage policy), and
+  // not inside the iOS app, whose WebView runs no service worker to serve them:
+  // the offline basemap above stands in there.
+  const fetched = isOfflineForbiddenTemplate(template) || isNativeIos()
+    ? 0
+    : await prefetchTiles(bbox, template, 0, maxZoom, cartoKey)
 
   // Update syncMeta with bbox and tile count
   const meta = await offlineDb.syncMeta.get(tripId)

@@ -143,5 +143,41 @@ const storage: TranslationStrings = {
   'storage.migrate.queued': 'Várólistán: {categories}',
   'storage.migrate.queueDropped':
     'A következő áthelyezés nem indítható el — a hátralévő várólista törlésre került: {categories}',
+  'storage.reclaim.title': 'Hivatkozás nélküli fájlok',
+  'storage.reclaim.hint':
+    'A TREK minden éjjel megkeresi azokat a feltöltött fájlokat, amelyeket már egyetlen utazás, hely, napló, gyűjtemény vagy felhasználó sem használ, például egy utazás törlése után.',
+  'storage.reclaim.check': 'Ellenőrzés most',
+  'storage.reclaim.checked': 'Utolsó ellenőrzés: {age}',
+  'storage.reclaim.never': 'Még nem lett ellenőrizve',
+  'storage.reclaim.delete': 'Hivatkozás nélküli fájlok törlése',
+  'storage.reclaim.deleteHint':
+    'Kikapcsolva az éjszakai ellenőrzés csak jelent. Bekapcsolva törlődik minden fájl, amelyet egy hete senki nem használt. A TREK-ben általad törölt fájlok mindkét esetben egy nappal később törlődnek, amikor már semmilyen visszavonás nem hozhatja vissza őket.',
+  'storage.reclaim.freeable': 'Felszabadítható',
+  'storage.reclaim.waiting': 'Kevesebb mint egy hete nem használt',
+  'storage.reclaim.deleted': 'Felszabadítva az utolsó éjszakai tisztításkor',
+  'storage.reclaim.nothing': 'Nem található hivatkozás nélküli fájl.',
+  'storage.reclaim.stopped': 'Az utolsó ellenőrzés idő előtt leállt, mert futás közben visszaállították az adatbázist.',
+  'storage.reclaim.skip.sources_missing': 'Kihagyva: a TREK nem minden része volt lekérdezhető',
+  'storage.reclaim.skip.shared_location': 'Kihagyva: a helyét egy másik kategóriával osztja meg',
+  'storage.reclaim.skip.list_failed': 'Kihagyva: a fájlokat nem sikerült listázni',
+  'storage.reclaim.skip.source_failed': 'Kihagyva: egy lekérdezés sikertelen volt',
+  'storage.reclaim.running': 'Ellenőrzés…',
+  'storage.reclaim.stoppedFailed': 'Az utolsó ellenőrzés hiba miatt leállt. Ma éjjel újra lefut.',
+  'storage.reclaim.skip.foreign_install': 'Kihagyva: egy másik TREK-telepítés használja ezt a tárhelyet',
+  'storage.reclaim.skip.owner_unknown': 'Kihagyva: a TREK nem tudta a sajátjaként megjelölni ezt a tárhelyet',
+  'storage.reclaim.skip.delete_failed': 'Leállítva: a tárhely megtagadott egy törlést',
+  'storage.reclaim.skip.interrupted': 'Leállt, mielőtt befejeződött volna, az adatok hiányosak',
+  'storage.reclaim.confirmNeeded':
+    'Ezeknek a fájloknak több mint ötöde használatlannak tűnik. Itt semmi sem törlődik, amíg meg nem erősíted, hogy ez várható.',
+  'storage.reclaim.confirm': 'Megerősítés',
+  'storage.reclaim.confirmed': 'Megerősítve a következő 14 napra.',
+  'storage.reclaim.error.reclaim_busy': 'Egy másik tárhelyfeladat fut. Próbáld újra egy pillanat múlva.',
+  'storage.reclaim.error.reclaim_demo': 'Demópéldányon nem érhető el.',
+  'storage.reclaim.error.reclaim_nothing_to_confirm': 'Már nincs mit megerősíteni. Előbb futtass egy ellenőrzést.',
+  'storage.reclaim.skip.backup_running': 'Kihagyva: mentés futott',
+  'storage.reclaim.error.reclaim_confirm_stale':
+    'A szám megváltozott a megjelenítése óta. Ellenőrizd az új értéket, és erősítsd meg újra.',
+  'storage.reclaim.error.reclaim_install_unknown':
+    'A TREK nem tudta beolvasni a telepítése azonosítóját, ezért nem töröl semmit. Ellenőrizd az adatmappát.',
 };
 export default storage;

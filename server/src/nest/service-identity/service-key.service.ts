@@ -9,7 +9,7 @@ import { RefusalStreak } from './refusal-streak';
 import type { RegistrationDialect } from './registration-dialect.types';
 import { ServiceClock } from './service-clock';
 import { REGISTRATION_DIALECT, SERVICE_ISSUER_ORIGIN } from './service-identity.constants';
-import { isAllowlisted, keyFingerprint, sameServiceUrl } from './service-identity.helpers';
+import { describeFailure, isAllowlisted, keyFingerprint, sameServiceUrl } from './service-identity.helpers';
 import { parseServiceKey, type ServiceKey } from './service-key.format';
 import { solvePow } from './service-key.pow';
 import { EMPTY_KEY_STATE, ServiceKeyStore, type KeyState, type StoredIdentity } from './service-key.store';
@@ -46,10 +46,10 @@ export interface KeySnapshot {
 }
 
 /**
- * The installation key: loaded lazily, registered in the background on the
- * first call to a liketrek service, renewed from day 60 on the next call or
- * the daily check, given up after repeated refusals and frozen when the
- * services revoke it.
+ * The installation key: loaded lazily, registered in the background a few
+ * minutes after startup or on the first call to a liketrek service, whichever
+ * comes first, renewed from day 60 on the next call or the daily check, given
+ * up after repeated refusals and frozen when the services revoke it.
  *
  * Nothing here ever makes a request wait. Until a key is there, requests go
  * out as they always did, and the shared legacy pool answers them.
@@ -138,11 +138,20 @@ export class ServiceKeyService {
     void this.inBackground(() => this.markRevoked(token));
   }
 
-  /** The daily check: renews the key once it is due. A key past its grace period is already gone on load. */
-  async renewIfDue(): Promise<void> {
+  /**
+   * The check after startup and every day: registers when there is no key yet
+   * and the backoff of a failed attempt is over, and renews the key once it is
+   * due. So an installation gets its key without anyone searching for a place
+   * first. A key past its grace period is already gone on load.
+   */
+  async settle(): Promise<void> {
     if (!this.inUse()) return;
     await this.inBackground(async () => {
       await this.load();
+      if (this.wantsRegistration()) {
+        await this.register();
+        return;
+      }
       const key = this.dueForRenewal();
       if (key) await this.renew(key);
     });
@@ -235,7 +244,7 @@ export class ServiceKeyService {
     const previous = this.work ?? Promise.resolve();
     const run = previous.then(() => withRequestContext(this.orm, task));
     const next = run
-      .catch((err: unknown) => logWarn(`TREK services: ${err instanceof Error ? err.message : String(err)}`))
+      .catch((err: unknown) => logWarn(`TREK services: ${describeFailure(err)}`))
       .finally(() => {
         if (this.work === next) this.work = null;
       });

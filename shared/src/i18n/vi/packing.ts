@@ -95,6 +95,7 @@ const packing: TranslationStrings = {
   'packing.takenCareOf': 'bởi {name}',
   'packing.sharedWithCount': 'chia sẻ với {count}',
   'packing.broughtBy': '{name} mang',
+  'packing.bringersTitle': 'Người mang',
   'packing.alsoBring': 'Tôi cũng có thể mang',
   'packing.alsoBringingStop': 'Tôi không mang',
   'packing.cloneToMine': 'Sao chép vào danh sách của tôi',

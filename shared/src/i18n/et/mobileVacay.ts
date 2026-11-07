@@ -16,6 +16,8 @@ const mobileVacay: TranslationStrings = {
   'mobileVacay.companyLegend': 'Ettevõtte puhkepäevad',
   'mobileVacay.editCalendar': 'Muuda kalendrit',
   'mobileVacay.viewYear': 'Vaata aastat',
+  'mobileVacay.people': 'Inimesed',
+  'mobileVacay.legend': 'Legend', // same-as-en
 };
 
 export default mobileVacay;

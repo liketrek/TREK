@@ -1147,7 +1147,7 @@ const help: TranslationStrings = {
   'help.ctx.settings.bullet.1':
     'Soldaki kenar çubuğu: Genel, Görünüm, Harita, Bildirimler, Entegrasyonlar, Çevrimdışı ve Hesap. Eklentiler, bir eklenti etkin olduğunda görünür. Hakkında, operatör gizlemediyse görünür. Sürüm en altta yer alır.',
   'help.ctx.settings.bullet.2':
-    "İlk olarak “Genel” açılır. Burada dil, yer adlarının dili, birimler, saat biçimi, hafta başlangıcı ve görüntüleme para birimi ile seyahat haritasının nasıl davranacağı bulunur. “Görünüm” tema, renkler, okunabilirlik, yazı boyutu ve pano widget'larını içerir.",
+    "İlk olarak “Genel” açılır. Burada dil, yer adlarının dili, birimler, saat biçimi, tarih biçimi, hafta başlangıcı ve görüntüleme para birimi ile seyahat haritasının nasıl davranacağı bulunur. “Görünüm” tema, renkler, okunabilirlik, yazı boyutu ve pano widget'larını içerir.",
   'help.ctx.settings.bullet.3':
     "Harita, harita motorunu ve stilini belirler. Bildirimler, hangi olayın hangi kanaldan geleceğini seçtirir. Entegrasyonlar fotoğraf kütüphanelerini, AirTrail'i, Dawarich'i ve wanderer'ı bağlar; API anahtarları ile MCP de buradadır. Çevrimdışı, bu cihazın neleri saklayacağını belirler.",
   'help.ctx.settings.bullet.4':
@@ -1158,7 +1158,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-display.bullet.1':
     "Başlangıç: Başlangıç sayfası, TREK'i Pano'da ya da Aktif seyahat'te açar. Aktif seyahat seçiliyse Başlangıç sekmesi, o seyahatin hangi sekmeyle açılacağını belirler.",
   'help.ctx.settings-display.bullet.2':
-    'Dil ve bölge: Görüntüleme para birimi (para birimi dönüşümü istemiyorsanız Gezi para birimi), Dil, Yer adları, Sıcaklık Birimi, Mesafe Birimi, Saat Biçimi ve Hafta başlangıcı.',
+    'Dil ve bölge: Görüntüleme para birimi (para birimi dönüşümü istemiyorsanız Gezi para birimi), Dil, Yer adları, Sıcaklık Birimi, Mesafe Birimi, Saat Biçimi, Hafta başlangıcı ve Tarih Biçimi.',
   'help.ctx.settings-display.bullet.3':
     'Seyahat ve harita: “Yerleri şurada aç”, “Gün başlıklarında önce tarih”, “Rezervasyon rota etiketleri”, “Rezervasyon rotalarını her zaman göster”, “Planlanmamış yerler için küçük işaretler”, “Haritada yerleri keşfet”, “Rezervasyon Kodlarını Bulanıklaştır” ve “Rotayı konaklamadan optimize et”.',
   'help.ctx.settings-appearance.title': 'Görünüm',
@@ -1475,9 +1475,9 @@ const help: TranslationStrings = {
     "En alttaki İzin Ayarları: her işlem için kimin yapabileceği (Herkes, Seyahat üyeleri, Seyahat sahibi ya da Yalnızca yönetici). Kaydetmek için kartın üstündeki Kaydet'e tıklayın.",
   'help.ctx.admin-defaults.title': 'Kullanıcı Varsayılanları',
   'help.ctx.admin-defaults.summary':
-    'Yeni bir hesabın hangi ayarlarla başlayacağı, böylece kimsenin önce bunları kurması gerekmez: renk modu, birimler, saat biçimi, haftanın ilk günü, görüntüleme para birimi ve bulanıklaştırılmış rezervasyon kodları; ayrıca harita, anahtarları ve yönlendirme sunucuları.',
+    'Yeni bir hesabın hangi ayarlarla başlayacağı, böylece kimsenin önce bunları kurması gerekmez: renk modu, birimler, saat biçimi, tarih biçimi, haftanın ilk günü, görüntüleme para birimi ve bulanıklaştırılmış rezervasyon kodları; ayrıca harita, anahtarları ve yönlendirme sunucuları.',
   'help.ctx.admin-defaults.bullet.1':
-    'Solda “Varsayılan Kullanıcı Ayarları”: “Renk Modu”, “Sıcaklık Birimi”, “Mesafe Birimi”, “Saat Biçimi”, “Hafta başlangıcı”, “Görüntüleme para birimi” ve “Rezervasyon Kodlarını Bulanıklaştır”.',
+    'Solda “Varsayılan Kullanıcı Ayarları”: “Renk Modu”, “Sıcaklık Birimi”, “Mesafe Birimi”, “Saat Biçimi”, “Hafta başlangıcı”, “Tarih Biçimi”, “Görüntüleme para birimi” ve “Rezervasyon Kodlarını Bulanıklaştır”.',
   'help.ctx.admin-defaults.bullet.2':
     'Sağda Harita: “Harita Şablonu”, “Paylaşılan CARTO anahtarı”, “Kendi rota motoru” ve “Kendi Valhalla sunucunuz”, bir önizleme, ardından “Harita motoru” ile “Harita stili”, “Paylaşılan Mapbox jetonu”, “3D binalar & arazi” ve “Yüksek kalite modu”.',
   'help.ctx.admin-config.title': 'Kişiselleştirme',
@@ -3393,7 +3393,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.summary':
     'Bu sekmede seyahat için ayrılan her şey var; ulaşım hariç: konaklamalar, masalar, biletler, turlar ve otopark. Her rezervasyon bir kart, bir liste satırı ya da zaman çizelgesinde bir çubuktur; kodu, belgeleri, yolcuları ve maliyeti de içerir. Ayrıntıları açmak için bir rezervasyona tıklayın.',
   'help.ctx.trip-bookings.bullet.1':
-    'Çubuğun sağ ucundaki “Manuel Rezervasyon”, “Yeni Rezervasyon” formunu açar. Altı tür rezervasyon oluşturur: Konaklama, Restoran, Etkinlik, Tur, Otopark ve Diğer. Uçuşlar, trenler ve diğer ulaşım “Ulaşım” sekmesindedir ve burada hiç görünmez.',
+    'Çubuğun sağ ucundaki “Manuel Rezervasyon”, “Yeni Rezervasyon” formunu açar. Altı tür rezervasyon oluşturur: Konaklama, Restoran, Etkinlik, Rehberli tur, Otopark ve Diğer. Uçuşlar, trenler ve diğer ulaşım “Ulaşım” sekmesindedir ve burada hiç görünmez.',
   'help.ctx.trip-bookings.bullet.2':
     "Manuel Rezervasyon'un önündeki indirme simgesi (Rezervasyon onaylarını içe aktar), TREK'in otomatik okuyabilmesi için onayları yükler: EML, PDF, PKPass, HTML ya da TXT; en fazla 10 MB'lık beş dosya, yapay zeka modeli resim okuyabiliyorsa fotoğraflar da. Simge yalnızca sunucu bunları okuyabiliyorsa görünür.",
   'help.ctx.trip-bookings.bullet.3':
@@ -3435,7 +3435,7 @@ const help: TranslationStrings = {
   'help.guide.create-booking.step.1':
     'Çubuğun sağ ucundaki “Manuel Rezervasyon” düğmesine tıklayın. “Yeni Rezervasyon” açılır, üstteki başlıkta başlık alanı ve iki rozet bulunur.',
   'help.guide.create-booking.step.2':
-    'Üstteki bandda, yeni rezervasyonda “Diğer” yazan tür etiketine tıklayın ve “Rezervasyon Türü”nü seçin. Bu sekme altı tür oluşturur: Konaklama, Restoran, Etkinlik, Tur, Otopark ve Diğer. Form seçiminize göre değişir: yalnızca Konaklama, tarihler yerine bir gün aralığı kullanır.',
+    'Üstteki bandda, yeni rezervasyonda “Diğer” yazan tür etiketine tıklayın ve “Rezervasyon Türü”nü seçin. Bu sekme altı tür oluşturur: Konaklama, Restoran, Etkinlik, Rehberli tur, Otopark ve Diğer. Form seçiminize göre değişir: yalnızca Konaklama, tarihler yerine bir gün aralığı kullanır.',
   'help.guide.create-booking.step.3':
     'Başlığı üstteki banda, rozetlerin üzerindeki alana yazın. Zorunlu tek alan budur ve bir şey yazana kadar “Ekle” gri kalır.',
   'help.guide.create-booking.step.4':
@@ -4276,7 +4276,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-about.bullet.3':
     "Ko-fi, Buy Me a Coffee ve Discord, TREK'i desteklemek ya da onu geliştiren insanlarla konuşmak için başvurabileceğiniz yerlerdir.",
   'help.guide.language-region.step.3':
-    "Görüntüleme para birimi'ni ayarlayın ya da her seyahati kendi para biriminde görmek için Gezi para birimi'ni olduğu gibi bırakın. Sonra Sıcaklık Birimi, Mesafe Birimi, Saat Biçimi ve Hafta başlangıcı gününü seçin.",
+    "Görüntüleme para birimi'ni ayarlayın ya da her seyahati kendi para biriminde görmek için Gezi para birimi'ni olduğu gibi bırakın. Sonra Sıcaklık Birimi, Mesafe Birimi, Saat Biçimi, Hafta başlangıcı gününü ve Tarih Biçimi'ni seçin.",
   'help.guide.travel-map-prefs.step.3':
     'Haritada yerleri keşfet, yakındaki yerleri bulmak için kategori etiketini gösterir. Rezervasyon Kodlarını Bulanıklaştır, onay numaralarını üzerine gelene ya da dokunana kadar gizler. Rotayı konaklamadan optimize et, günü otelinizde başlatıp orada bitirir.',
   'help.guide.web-push-device.step.2':
@@ -6322,7 +6322,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-settings.bullet.5':
     'Tehlikeli Bölge: “JWT sırrını yenile” senin de aralarında olduğun tüm kullanıcıların oturumunu kapatır.',
   'help.guide.default-user-settings.step.1':
-    '“Varsayılan Kullanıcı Ayarları” altında şunları seç: “Renk Modu” (Açık, Koyu veya Otomatik), “Sıcaklık Birimi”, “Mesafe Birimi”, “Saat Biçimi”, “Hafta başlangıcı”, “Görüntüleme para birimi” ve “Rezervasyon Kodlarını Bulanıklaştır”ın açık mı kapalı mı olacağı. Her seçim anında kaydedilir.',
+    '“Varsayılan Kullanıcı Ayarları” altında şunları seç: “Renk Modu” (Açık, Koyu veya Otomatik), “Sıcaklık Birimi”, “Mesafe Birimi”, “Saat Biçimi”, “Hafta başlangıcı”, “Tarih Biçimi”, “Görüntüleme para birimi” ve “Rezervasyon Kodlarını Bulanıklaştır”ın açık mı kapalı mı olacağı. Her seçim anında kaydedilir.',
   'help.guide.admin-passkeys.step.2':
     "“Relying Party ID (alan adı)” alanına trek.example.org gibi bir değer, “İzin verilen kaynaklar” alanına da TREK'ine hangi adresten ulaşıldığını gir, sonra “Kaydet”e tıkla. APP_URL değerini kullanmak için ikisini de boş bırak.",
   'help.guide.rotate-jwt-secret.title': 'Herkesin oturumunu bir seferde kapat',

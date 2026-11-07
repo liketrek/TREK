@@ -103,7 +103,7 @@ export default function MImportSheet({ planner, open, onClose }: MImportSheetPro
         )}
         {step === 'list' && !fileStep && <ImpListStep planner={planner} onBack={() => setStep('menu')} onDone={onClose} />}
       </MSheet>
-      <TourGpxPreviewDialog gpxImport={fileImport.tourImport} />
+      <TourGpxPreviewDialog gpxImport={fileImport.tourImport} offerPoints />
     </>
   )
 }

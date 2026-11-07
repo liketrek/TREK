@@ -16,6 +16,7 @@ import { JourneyMapMcp } from './journey-map.mcp';
 import { JourneyPhotoCaptureModule } from './journey-photo-capture.module';
 import { JourneyPhotoLinksMcp } from './journey-photos.mcp';
 import { JourneyPublicController } from './journey-public.controller';
+import { JourneyStorageRefsService } from './journey-storage-refs.service';
 import { JourneyTracksMcp } from './journey-tracks.mcp';
 import { JourneyController } from './journey.controller';
 import { journeyImageFileFilter, journeyUploadFilename } from './journey.controller';
@@ -62,6 +63,13 @@ import { MulterModule } from '@nestjs/platform-express';
     MikroOrmModule.forFeature([Users]),
   ],
   controllers: [JourneyController, JourneyMapController, JourneyPublicController],
-  providers: [JourneyService, JourneyMcp, JourneyMapMcp, JourneyTracksMcp, JourneyPhotoLinksMcp],
+  providers: [
+    JourneyService,
+    JourneyMcp,
+    JourneyMapMcp,
+    JourneyTracksMcp,
+    JourneyPhotoLinksMcp,
+    JourneyStorageRefsService,
+  ],
 })
 export class JourneyModule {}

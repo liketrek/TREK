@@ -8,7 +8,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addTransportShort': '移動',
   'mobileTrip.allDays': 'すべての日',
   'mobileTrip.today': '今日',
-  'mobileTrip.jumpToToday': '今日へ移動',
   'mobileTrip.assignedDays': '割り当てられた日',
   'mobileTrip.assignmentNotes': '日別メモ',
   'mobileTrip.bookingsEmpty': '予約はまだありません',
@@ -20,8 +19,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.filesEmpty': 'ファイルはまだありません',
   'mobileTrip.filesNext': '次のファイル',
   'mobileTrip.filesPrev': '前のファイル',
-  'mobileTrip.googleMaps': 'Google Maps',
-  'mobileTrip.coMaps': 'CoMaps',
   'mobileTrip.icsDownload': '.ics をダウンロード',
   'mobileTrip.icsSubscribe': 'カレンダーを購読',
   'mobileTrip.icsSubscribeSub': 'カレンダーアプリで自動的に更新されます',
@@ -74,5 +71,8 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtTruncated.other': '{count} 区間で一度に返せる件数を超えました。種類を減らすと残りを確認できます。',
   'mobileTrip.rtNoDay': '日が選択されていません',
   'mobileTrip.rtNoDayHint': '地図には旅程全体が表示されています。上の日をタップするとその日の行程が見られます。',
+  'mobileTrip.maps': 'マップ',
+  'mobileTrip.openRouteIn': 'この日を開くアプリ',
+  'mobileTrip.firstStopOnly': '最初の立ち寄り先のみ',
 };
 export default mobileTrip;

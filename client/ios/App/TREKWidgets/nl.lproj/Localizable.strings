@@ -1,0 +1,20 @@
+/* The widget gallery: names and descriptions (TREKWidgets/NextTripWidget.swift). */
+"widget.trip.name" = "Reis";
+"widget.trip.description" = "Telt af naar je volgende reis en toont onderweg de dag en wat er hierna komt.";
+"widget.today.name" = "Vandaag";
+"widget.today.description" = "Het dagplan als tijdlijn, met het weer en de volgende stop.";
+"widget.bookings.name" = "Boekingen";
+"widget.bookings.description" = "Je volgende vluchten, treinen, hotels en tafels, en wanneer ze zijn.";
+"widget.todos.name" = "Taken";
+"widget.todos.description" = "Wat er nog openstaat voor de reis en hoe ver het inpakken is.";
+"widget.packing.name" = "Bagage";
+"widget.packing.description" = "Hoe vol de tassen zijn, hun gewicht en wat er nog mist.";
+"widget.atlas.name" = "Wereldkaart";
+"widget.atlas.description" = "De landen waar je bent geweest, oplichtend op de kaart.";
+"widget.collab.name" = "Reisgezelschap";
+"widget.collab.description" = "Wie er meegaat, de nieuwste berichten en de open peiling.";
+"widget.intent.title" = "Reis kiezen";
+"widget.intent.description" = "De reis die deze widget toont.";
+"widget.intent.trip" = "Reis";
+"widget.intent.auto" = "Automatisch";
+"widget.intent.autoHint" = "Dezelfde reis als het dashboard";

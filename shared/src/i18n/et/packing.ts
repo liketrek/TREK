@@ -93,6 +93,7 @@ const packing: TranslationStrings = {
   'packing.sharedWithCount': 'jagatud {count} inimesega',
   'packing.sharedWithCount.one': 'jagatud {count} inimesega',
   'packing.broughtBy': 'toob {name}',
+  'packing.bringersTitle': 'Toob kaasa',
   'packing.alsoBring': 'Võin selle ka kaasa võtta',
   'packing.alsoBringingStop': 'Ma ei võta seda kaasa',
   'packing.cloneToMine': 'Kopeeri minu nimekirja',

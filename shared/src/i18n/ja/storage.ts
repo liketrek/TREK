@@ -135,5 +135,41 @@ const storage: TranslationStrings = {
   'storage.migrate.promptCancel': 'キャンセル',
   'storage.migrate.queued': 'キュー待ち: {categories}',
   'storage.migrate.queueDropped': '次の移動を開始できませんでした — 残りのキューはクリアされました: {categories}',
+  'storage.reclaim.title': '参照されていないファイル',
+  'storage.reclaim.hint':
+    'TREKは毎晩、旅行、場所、ジャーナル、コレクション、ユーザーのいずれからも使われなくなったアップロード済みファイルを探します。たとえば旅行を削除した後などです。',
+  'storage.reclaim.check': '今すぐチェック',
+  'storage.reclaim.checked': '前回のチェック: {age}',
+  'storage.reclaim.never': '未チェック',
+  'storage.reclaim.delete': '参照されていないファイルを削除',
+  'storage.reclaim.deleteHint':
+    'オフの場合、夜間チェックは報告のみ行います。オンの場合、1週間使われていないファイルが削除されます。TREKで削除したファイルは、どちらの場合も1日後に削除されます。その時点では、元に戻す操作でも復元できません。',
+  'storage.reclaim.freeable': '解放可能',
+  'storage.reclaim.waiting': '未使用期間が1週間未満',
+  'storage.reclaim.deleted': '前回の夜間クリーンアップで解放',
+  'storage.reclaim.nothing': '参照されていないファイルは見つかりませんでした。',
+  'storage.reclaim.stopped': '前回のチェックは、実行中にデータベースが復元されたため途中で停止しました。',
+  'storage.reclaim.skip.sources_missing': 'スキップ: TREKの一部に問い合わせできませんでした',
+  'storage.reclaim.skip.shared_location': 'スキップ: 場所が別のカテゴリと共有されています',
+  'storage.reclaim.skip.list_failed': 'スキップ: ファイルを一覧取得できませんでした',
+  'storage.reclaim.skip.source_failed': 'スキップ: 検索に失敗しました',
+  'storage.reclaim.running': 'チェック中…',
+  'storage.reclaim.stoppedFailed': '前回のチェックはエラーのため停止しました。今夜、再度実行されます。',
+  'storage.reclaim.skip.foreign_install': 'スキップ: 別のTREKインストールがこのストレージを使用しています',
+  'storage.reclaim.skip.owner_unknown': 'スキップ: TREKがこのストレージを自分のものとして記録できませんでした',
+  'storage.reclaim.skip.delete_failed': '停止: ストレージが削除を拒否しました',
+  'storage.reclaim.skip.interrupted': '完了前に停止したため、数値は一部のみです',
+  'storage.reclaim.confirmNeeded':
+    'これらのファイルの5分の1以上が未使用に見えます。これが想定どおりであることを確認するまで、ここでは何も削除されません。',
+  'storage.reclaim.confirm': '確認',
+  'storage.reclaim.confirmed': '今後14日間、確認済みです。',
+  'storage.reclaim.error.reclaim_busy': '別のストレージ処理を実行中です。しばらくしてからもう一度お試しください。',
+  'storage.reclaim.error.reclaim_demo': 'デモインスタンスでは利用できません。',
+  'storage.reclaim.error.reclaim_nothing_to_confirm': '確認するものはもうありません。先にチェックを実行してください。',
+  'storage.reclaim.skip.backup_running': 'スキップ: バックアップを実行中でした',
+  'storage.reclaim.error.reclaim_confirm_stale':
+    '表示されてから件数が変わりました。新しい数値を確認して、もう一度確認してください。',
+  'storage.reclaim.error.reclaim_install_unknown':
+    'TREKがインストールIDを読み取れなかったため、何も削除しません。データフォルダを確認してください。',
 };
 export default storage;

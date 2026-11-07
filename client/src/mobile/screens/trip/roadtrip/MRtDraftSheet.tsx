@@ -75,7 +75,7 @@ export default function MRtDraftSheet({ planner }: MRtDraftSheetProps) {
   }
 
   return (
-    <MSheet open={stopDraft != null} onClose={discard} variant="bottom" material="opaque" ariaLabel={draft.poi.name}>
+    <MSheet open={stopDraft != null} onClose={discard} variant="bottom" material="glass" ariaLabel={draft.poi.name}>
       <FormSheetHeader
         icon={kind?.Icon ?? ParkingSquare}
         title={draft.poi.name}

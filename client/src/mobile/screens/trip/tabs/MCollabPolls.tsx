@@ -8,8 +8,10 @@ import MDancingTrek from '../../../components/MDancingTrek'
 import { useCollabPolls } from '../../../../components/Collab/useCollabPolls'
 import { useAuthStore } from '../../../../store/authStore'
 import ToggleSwitch from '../../../../components/Settings/ToggleSwitch'
+import { CustomDateTimePicker } from '../../../../components/shared/CustomDateTimePicker'
+import { localIsoDate } from '../../../../utils/localDate'
 import MSheet from '../../../components/MSheet'
-import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
+import { Eyebrow, FIELD_AREA_CLS, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
 import MConfirmSheet from '../../settings/MConfirmSheet'
 import type { TripPlanner } from '../MTripShell'
 import { SectionHeader, TabScroller } from './tabChrome'
@@ -297,6 +299,19 @@ function PollCardRow({ poll, canEdit, currentUserId, t, onVote, onClosePoll, onD
   )
 }
 
+const BARE_DAY = /^(\d{4})-(\d{2})-(\d{2})$/
+
+/**
+ * The instant a deadline from the picker stands for. With its time cleared the picker
+ * hands back the day alone, and `new Date('2030-08-01')` reads that as UTC midnight,
+ * hours off the reader's own day; a day without a time runs to its end on their clock.
+ */
+function deadlineInstant(value: string): string {
+  const day = BARE_DAY.exec(value)
+  const date = day ? new Date(Number(day[1]), Number(day[2]) - 1, Number(day[3]), 23, 59) : new Date(value)
+  return date.toISOString()
+}
+
 function PollFormSheet({ open, onClose, onSubmit, t }: {
   open: boolean
   onClose: () => void
@@ -328,7 +343,7 @@ function PollFormSheet({ open, onClose, onSubmit, t }: {
         question: question.trim(),
         options: trimmedOptions,
         multipleChoice,
-        deadline: deadline ? new Date(deadline).toISOString() : null,
+        deadline: deadline ? deadlineInstant(deadline) : null,
       })
       onClose()
     } catch {
@@ -337,8 +352,6 @@ function PollFormSheet({ open, onClose, onSubmit, t }: {
       setSubmitting(false)
     }
   }
-
-  const minDeadline = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)
 
   return (
     <MSheet open={open} onClose={onClose} ariaLabel={t('collab.polls.new')}>
@@ -396,12 +409,11 @@ function PollFormSheet({ open, onClose, onSubmit, t }: {
 
         <Eyebrow className="mb-[5px] mt-3 uppercase">{t('collab.polls.deadline')}</Eyebrow>
         <div className="flex items-center gap-[6px]">
-          <input
-            type="datetime-local"
+          <CustomDateTimePicker
             value={deadline}
-            min={minDeadline}
-            onChange={e => setDeadline(e.target.value)}
-            className={`${FIELD_CLS} flex-1`}
+            onChange={setDeadline}
+            min={localIsoDate()}
+            style={{ flex: 1, minWidth: 0 }}
           />
           {deadline && (
             <button

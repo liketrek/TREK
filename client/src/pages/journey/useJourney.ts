@@ -192,6 +192,8 @@ export function useJourney() {
 
   return {
     navigate, journeys, loading,
+    // Pull-to-refresh on mobile; the list stays on screen while it reloads.
+    loadJourneys,
     showCreate, setShowCreate, newTitle, setNewTitle, newSubtitle, setNewSubtitle,
     availableTrips, selectedTripIds, setSelectedTripIds,
     searchOpen, setSearchOpen, searchQuery, setSearchQuery, searchInputRef,

@@ -8,7 +8,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addTransportShort': 'Транспорт',
   'mobileTrip.allDays': 'Все дни',
   'mobileTrip.today': 'Сегодня',
-  'mobileTrip.jumpToToday': 'Перейти к сегодня',
   'mobileTrip.assignedDays': 'Назначенные дни',
   'mobileTrip.assignmentNotes': 'Заметки на день',
   'mobileTrip.bookingsEmpty': 'Пока нет бронирований',
@@ -20,8 +19,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.filesEmpty': 'Файлов пока нет',
   'mobileTrip.filesNext': 'Следующий файл',
   'mobileTrip.filesPrev': 'Предыдущий файл',
-  'mobileTrip.googleMaps': 'Google Maps',
-  'mobileTrip.coMaps': 'CoMaps',
   'mobileTrip.icsDownload': 'Скачать .ics',
   'mobileTrip.icsSubscribe': 'Подписаться на календарь',
   'mobileTrip.icsSubscribeSub': 'Автоматически обновляется в вашем календаре',
@@ -100,5 +97,8 @@ const mobileTrip: TranslationStrings = {
     'На {count} участках нашлось больше, чем помещается в один ответ. Выберите меньше видов, чтобы увидеть остальное.',
   'mobileTrip.rtNoDay': 'День не выбран',
   'mobileTrip.rtNoDayHint': 'На карте вся поездка. Нажмите на день выше, чтобы увидеть его маршрут.',
+  'mobileTrip.maps': 'Карты',
+  'mobileTrip.openRouteIn': 'Открыть день в',
+  'mobileTrip.firstStopOnly': 'Только первая остановка',
 };
 export default mobileTrip;

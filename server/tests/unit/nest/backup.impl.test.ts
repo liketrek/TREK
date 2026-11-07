@@ -39,6 +39,7 @@ const fsMock = vi.hoisted(() => ({
   createReadStream: vi.fn(),
   rmSync: vi.fn(),
   copyFileSync: vi.fn(),
+  writeFileSync: vi.fn(),
   renameSync: vi.fn(),
   cpSync: vi.fn(),
   // Identity by default: when uploadsDir is a plain directory, realpathSync
@@ -712,6 +713,35 @@ describe('BACKUP-036 createBackup', () => {
     expect(names.some((n) => n?.includes('trek/'))).toBe(false);
     // Only the archived categories are ever listed — the excludes are structural.
     expect(storage.getLocalPathOrNull).toHaveBeenCalledTimes(1);
+  });
+
+  it('BACKUP-036i — leaves the storage reclaim owner marker out, so a restore elsewhere does not read as shared', async () => {
+    fsMock.existsSync.mockReturnValue(false);
+    setupArchiveSuccess();
+    const storage = stubStorage({
+      stat: statOf(1024),
+      list: listByCategory({
+        covers: [{ key: 'trek-owner-0f8e2b7c-1d2a-4c3b-9e8f-7a6b5c4d3e2f' }, { key: 'cover.jpg' }],
+      }),
+    });
+
+    await createBackup(deps(storage));
+
+    const names = archiverInstanceMock.file.mock.calls.map((c) => c[1]?.name as string);
+    expect(names).toContain('uploads/covers/cover.jpg');
+    expect(names.some((n) => n?.includes('trek-owner-'))).toBe(false);
+  });
+
+  it('BACKUP-036k — never bundles the install id file, so a restore cannot make another install look like this one', async () => {
+    // The key files both exist here: the archive still takes only the ones it names.
+    fsMock.existsSync.mockImplementation((p: string) => /\.(encryption_key|trek-install-id)$/.test(String(p)));
+    setupArchiveSuccess();
+    await createBackup(deps(stubStorage({ stat: statOf(1024) })));
+    const files = archiverInstanceMock.file.mock.calls.map((c) => [String(c[0]), c[1]?.name as string]);
+    expect(files.some(([from, name]) => from.includes('.trek-install-id') || name?.includes('.trek-install-id'))).toBe(
+      false,
+    );
+    expect(archiverInstanceMock.glob).not.toHaveBeenCalled();
   });
 
   it('BACKUP-036h — only category prefixes are ever archived; backups/ and restore-* are structurally out (issue #1358)', async () => {
@@ -1397,6 +1427,35 @@ describe('BACKUP-045 restoreFromZip — full success path (no uploads)', () => {
     expect(callOrder[0]).toMatch(/^vacuum:.*pre-restore-\d+\.db$/);
     expect(callOrder.indexOf('closeDb')).toBeGreaterThan(0);
     expect(logMock.logInfo).toHaveBeenCalledWith(expect.stringContaining('the replaced database was kept as'));
+  });
+
+  it('BACKUP-045j: leaves the reclaim reset file before it closes the database, and swaps nothing when it cannot', async () => {
+    setupSuccessfulExtraction();
+    setupAllTablesPresent();
+    const callOrder: string[] = [];
+    fsMock.writeFileSync.mockImplementation((target: string) => {
+      callOrder.push(`write:${path.basename(String(target))}`);
+    });
+    dbMock.closeDb.mockImplementation(() => {
+      callOrder.push('closeDb');
+    });
+    fsMock.unlinkSync.mockReturnValue(undefined);
+    fsMock.rmSync.mockReturnValue(undefined);
+    fsMock.existsSync.mockImplementation((p: string) => !String(p).includes('uploads'));
+
+    await restoreFromZip(deps(stubStorage()), '/data/tmp/upload.zip');
+
+    expect(callOrder.slice(0, 2)).toEqual(['write:.trek-reclaim-reset', 'closeDb']);
+
+    setupSuccessfulExtraction();
+    setupAllTablesPresent();
+    dbMock.closeDb.mockClear();
+    fsMock.writeFileSync.mockImplementation(() => {
+      throw new Error('read-only file system');
+    });
+    await expect(restoreFromZip(deps(stubStorage()), '/data/tmp/upload.zip')).rejects.toThrow('read-only file system');
+    expect(dbMock.closeDb).not.toHaveBeenCalled();
+    fsMock.writeFileSync.mockReset();
   });
 
   it('BACKUP-045i: swaps the archive into the database the connection runs on when TREK_DB_FILE moves it', async () => {

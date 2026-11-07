@@ -1,0 +1,57 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen } from '../../../tests/helpers/render';
+import { useSharedImportStore } from '../../native/sharedFiles';
+import { tripRepo } from '../../repo/tripRepo';
+import NativeImportSheet from './NativeImportSheet';
+
+const navigate = vi.hoisted(() => vi.fn());
+vi.mock('react-router', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('react-router')>()),
+  useNavigate: () => navigate,
+}));
+
+beforeEach(() => {
+  // A second spyOn returns the first spy with its calls; start every test clean.
+  vi.restoreAllMocks();
+  navigate.mockReset();
+  useSharedImportStore.setState({ file: null, tripId: null });
+  vi.spyOn(tripRepo, 'list').mockResolvedValue({
+    trips: [
+      { id: 1, title: 'Past trip', start_date: '2020-01-01', end_date: '2020-01-05' },
+      { id: 2, title: 'Japan', start_date: '2099-03-01', end_date: '2099-03-10' },
+    ],
+    archivedTrips: [],
+  } as unknown as Awaited<ReturnType<typeof tripRepo.list>>);
+});
+
+describe('NativeImportSheet', () => {
+  it('asks which trip a shared document goes to, upcoming trips first, and opens it there', async () => {
+    render(<NativeImportSheet />);
+    act(() => useSharedImportStore.getState().setFile(new File(['x'], 'booking.pdf', { type: 'application/pdf' })));
+
+    const rows = await screen.findAllByRole('button', { name: /Japan|Past trip/ });
+    expect(rows.map((r) => r.textContent)).toEqual(['Japan', 'Past trip']);
+    expect(screen.getByText('booking.pdf')).toBeInTheDocument();
+
+    fireEvent.click(rows[0]);
+    expect(useSharedImportStore.getState().tripId).toBe(2);
+    expect(navigate).toHaveBeenCalledWith('/trips/2');
+  });
+
+  it('goes straight to the trip the share sheet picked, without asking', () => {
+    render(<NativeImportSheet />);
+    act(() => {
+      useSharedImportStore.getState().setFile(new File(['x'], 'booking.pdf', { type: 'application/pdf' }));
+      useSharedImportStore.getState().chooseTrip(2);
+    });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(navigate).toHaveBeenCalledWith('/trips/2');
+    expect(navigate).toHaveBeenCalledTimes(1);
+  });
+
+  it('stays closed with nothing shared', () => {
+    render(<NativeImportSheet />);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(tripRepo.list).not.toHaveBeenCalled();
+  });
+});

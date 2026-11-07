@@ -565,10 +565,10 @@ describe('Prompt: budget-overview', () => {
     const client = await buildServer(user.id);
     const text = await invokePromptText(client, 'budget-overview', { tripId: trip.id });
     expect(text).toContain('Budget Trip');
-    expect(text).toContain('Transport');
-    expect(text).toContain('Accommodation');
-    expect(text).toContain('550'); // Transport total
-    expect(text).toContain('300'); // Accommodation total
+    // Totals group by the fixed Costs key, whatever case the expense was stored in (#2835).
+    expect(text).toContain('- transport: 250');
+    expect(text).toContain('- accommodation: 300');
+    expect(text).toContain('550');
   });
 
   it('prints a foreign-currency bill at the rate it was booked at, not as that many euros (#2525)', async () => {
@@ -588,8 +588,8 @@ describe('Prompt: budget-overview', () => {
     const text = await invokePromptText(client, 'budget-overview', { tripId: trip.id });
     // 801.76 USD at 1.17 is 685.26 EUR. Summed as stored it read "Total: 901.76 EUR".
     expect(text).toContain('Total: 785.26 EUR');
-    expect(text).toContain('- Accommodation: 685.26 EUR');
-    expect(text).toContain('- Food: 100 EUR');
+    expect(text).toContain('- accommodation: 685.26 EUR');
+    expect(text).toContain('- food: 100 EUR');
     expect(text).not.toContain('801.76');
   });
 

@@ -2,6 +2,7 @@ import { PLACE_DETAILS_CACHE_PAYLOAD } from '../../db/json-columns';
 import type { CachedProviderPayload, PlaceShareableRow } from '../../db/repositories/PlaceFieldOrigin.repository';
 import { decodeJson } from '../../utils/json-column';
 import {
+  PLACE_CONTRIB_COLUMN,
   PLACE_CONTRIB_FIELDS,
   normalizePlaceWebsite,
   type PlaceContribField,
@@ -28,20 +29,11 @@ export interface ProviderValue {
   origin: PlaceFieldOrigin;
 }
 
-const COLUMN: Record<PlaceContribField, keyof PlaceShareableRow> = {
-  website: 'website',
-  phone: 'phone',
-  email: 'email',
-  opening_hours: 'opening_hours',
-  description: 'description',
-  image: 'image_url',
-};
-
 /** The place's shareable values as stored, an empty text read as none. */
 export function snapshotOf(row: PlaceShareableRow): OriginSnapshot {
   const snapshot = {} as OriginSnapshot;
   for (const field of PLACE_CONTRIB_FIELDS) {
-    const value = row[COLUMN[field]];
+    const value = row[PLACE_CONTRIB_COLUMN[field]];
     snapshot[field] = typeof value === 'string' && value.trim() !== '' ? value : null;
   }
   return snapshot;

@@ -1,7 +1,9 @@
 import type { PaddleRegion, PaddleRegionCatalogEntry } from '@trek/shared';
 import { Check, ChevronRight, Loader2, Plus, RefreshCw, Search, Trash2, Waves, WifiOff } from 'lucide-react';
 import { useId } from 'react';
+import { useDateFormat } from '../../../hooks/useDateFormat';
 import { useTranslation } from '../../../i18n';
+import { formatDisplayDate } from '../../../utils/dateFormat';
 import {
   SettingRows,
   SETTINGS_BUTTON,
@@ -258,9 +260,10 @@ function RegionNetwork({ region }: { region: PaddleRegion }) {
 
 function RegionRow({ region, admin }: { region: PaddleRegion; admin: Admin }) {
   const { t, language } = useTranslation();
+  const dateFormat = useDateFormat();
   const busy = admin.busyId === region.id;
   const date = region.source_timestamp
-    ? new Date(region.source_timestamp).toLocaleDateString(language, { dateStyle: 'medium' })
+    ? formatDisplayDate(new Date(region.source_timestamp), language, { dateStyle: 'medium' }, dateFormat)
     : null;
   return (
     <div

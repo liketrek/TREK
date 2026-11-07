@@ -1161,6 +1161,8 @@ const admin: TranslationStrings = {
   'admin.contribute.never.providers': 'Google və ya başqa provayderin doldurduğu məlumatlar',
   'admin.contribute.prompt.how':
     'Yalnız istifadəçilərinizin özlərinin yazdıqları və yalnız indeksin tanıdığı məkanlar üçün. Heç bir istifadəçi, səyahət və ya hesab bunlarla göndərilmir. Jurnal hər göndərməni göstərir, siz isə istənilən vaxt sahələri söndürə və ya hər şeyi geri götürə bilərsiniz.',
+  'admin.contribute.prompt.past':
+    'İstifadəçilərinizin TREK 5.1-dən bəri daxil etdiyi məlumatlar da tədricən paylaşılır.',
   'admin.contribute.prompt.openRegistration':
     'Bu quraşdırmada qeydiyyat açıqdır, ona görə hesabı olan hər kəs məlumat yaza bilər. Hər dəyər dərc edilməzdən əvvəl yoxlanılır.',
   'admin.contribute.prompt.footnote':

@@ -1,4 +1,4 @@
-// FE-JRN-CAROUSEL-001 to FE-JRN-CAROUSEL-008: the card carousel over the journey map,
+// FE-JRN-CAROUSEL-001 to FE-JRN-CAROUSEL-009: the card carousel over the journey map,
 // behind both the phone journey screen and the narrow desktop and public timeline.
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -127,9 +127,9 @@ describe('useJourneyCarouselSync', () => {
     });
 
     carousel.dispatchEvent(new Event('scroll'));
-    act(() => vi.advanceTimersByTime(100));
+    act(() => vi.advanceTimersByTime(60));
     carousel.dispatchEvent(new Event('scroll'));
-    act(() => vi.advanceTimersByTime(149));
+    act(() => vi.advanceTimersByTime(89));
     expect(hook.result.current.activeIndex).toBe(0);
     act(() => vi.advanceTimersByTime(1));
     // Centre 250: card 1 spans 200 to 300.
@@ -144,5 +144,44 @@ describe('useJourneyCarouselSync', () => {
     expect(result.current.activeIndex).toBe(0);
     act(() => result.current.openEntryById('99'));
     expect(props.onOpenEntry).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-JRN-CAROUSEL-009: a carousel scrolled to either end settles on the card at that end (#2851)', () => {
+    const carousel = document.createElement('div');
+    carousel.getBoundingClientRect = () => ({ left: 0 }) as DOMRect;
+    Object.defineProperty(carousel, 'clientWidth', { value: 300 });
+    Object.defineProperty(carousel, 'scrollWidth', { value: 600 });
+    const hook = renderHook(
+      (p: Options) => {
+        const sync = useJourneyCarouselSync(p);
+        (sync.carouselRef as { current: HTMLDivElement | null }).current = carousel;
+        return sync;
+      },
+      { initialProps: { entries: [], mapEntries: [], onOpenEntry: vi.fn() } }
+    );
+    hook.rerender({ entries: ENTRIES, mapEntries: [], onOpenEntry: vi.fn() });
+    // Card 1 sits at the centre (150) in both positions: only the ends decide.
+    [0, 100, 200].forEach((left, i) => {
+      const node = document.createElement('div');
+      node.getBoundingClientRect = () => ({ left, width: 100 }) as DOMRect;
+      hook.result.current.cardRefs.current.set(i, node);
+    });
+    const settleAt = (scrollLeft: number) => {
+      Object.defineProperty(carousel, 'scrollLeft', { value: scrollLeft, configurable: true });
+      carousel.dispatchEvent(new Event('scroll'));
+      act(() => {
+        vi.advanceTimersByTime(90);
+      });
+    };
+
+    settleAt(300);
+    expect(hook.result.current.activeIndex).toBe(2);
+    settleAt(150);
+    expect(hook.result.current.activeIndex).toBe(1);
+    // Right to left: the scroll position runs negative from the start.
+    settleAt(-300);
+    expect(hook.result.current.activeIndex).toBe(2);
+    settleAt(0);
+    expect(hook.result.current.activeIndex).toBe(0);
   });
 });

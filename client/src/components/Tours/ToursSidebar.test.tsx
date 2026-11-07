@@ -6,6 +6,7 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { useAuthStore } from '../../store/authStore'
 import { useTourMapVisibilityStore } from '../../store/tourMapVisibilityStore'
 import { useTripStore } from '../../store/tripStore'
+import { placesApi } from '../../api/client'
 import { tourGpxApi } from '../../api/tourGpx'
 import ToursSidebar from './ToursSidebar'
 import { pickFiles } from '../../../tests/helpers/filePicker'
@@ -457,6 +458,7 @@ describe('ToursSidebar', () => {
       left_out: { points: 3, areas: 1, other: 0 },
     })
     const importCall = vi.spyOn(tourGpxApi, 'import').mockResolvedValue({ tours: [tour], caution: false, skipped: 0 })
+    const pinsCall = vi.spyOn(placesApi, 'importMapFile')
     seedStore(useTripStore, { refreshPlaces: vi.fn().mockResolvedValue(undefined) })
     render(
       <ToursSidebar tripId={1} days={[]} tours={[]} canEdit={true} onAssignToDay={vi.fn()} onSelectTour={vi.fn()} />
@@ -469,6 +471,8 @@ describe('ToursSidebar', () => {
     const rows = screen.getAllByTestId('gpx-preview-track')
     expect(rows.map((row) => row.textContent?.slice(0, 1))).toEqual(['1', '2'])
     expect(rows[1]).toHaveTextContent('No heights in the file')
+    // Only the places column offers the pins as places (#2969); here they stay out.
+    expect(screen.queryByTestId('gpx-preview-points')).toBeNull()
     const leftOut = screen.getByTestId('gpx-preview-left-out')
     expect(leftOut).toHaveTextContent('Not imported')
     expect(leftOut).toHaveTextContent('3 pins')
@@ -479,6 +483,7 @@ describe('ToursSidebar', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Import 2 tours' }))
     await waitFor(() => expect(importCall).toHaveBeenCalledWith(1, file, { tour_type: 'hike' }))
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith('1 tour imported'))
+    expect(pinsCall).not.toHaveBeenCalled()
     vi.restoreAllMocks()
   })
 

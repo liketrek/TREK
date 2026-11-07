@@ -134,7 +134,7 @@ describe('AboutTab', () => {
 
   it('FE-COMP-ABOUT-018: the sponsor panel links dataforest cloud wherever it is named, with both logos bundled', () => {
     render(<AboutTab appVersion="1.0.0" />);
-    const links = document.querySelectorAll('a[href="https://cloud.dataforest.net/?mtm_campaign=trek"]');
+    const links = document.querySelectorAll('a[href="https://cloud.dataforest.net/en?mtm_campaign=trek"]');
     // The logo tile, the call to action, and the brand name in the title and in the body.
     expect(links).toHaveLength(4);
     for (const link of links) {
