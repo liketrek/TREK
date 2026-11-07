@@ -1,6 +1,7 @@
 [
   "src/db/repositories/DayAssignments.repository.ts",
   "src/db/repositories/Places.repository.ts",
+  "src/db/repositories/Reservations.repository.ts",
   "src/db/repositories/Trips.repository.ts",
   "src/db/repositories/Users.repository.ts",
   "src/nest/atlas/atlas-geo.ts",
