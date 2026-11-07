@@ -26,6 +26,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     func sceneDidBecomeActive(_ scene: UIScene) {
         TrekPrivacyCover.hide()
+        // Whatever the share sheet left, even if it could not bring the app forward itself.
+        TrekSharedFiles.receiveFromShareExtension()
     }
 
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
@@ -33,7 +35,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // else (the sign-in callback) stays with Capacitor.
         let files = URLContexts.filter { $0.url.isFileURL }
         for context in files { TrekSharedFiles.receive(context.url) }
-        let others = URLContexts.subtracting(files)
+        // com.liketrek.trek://share: the share sheet left an item for the import.
+        let handoffs = URLContexts.filter { $0.url.scheme == "com.liketrek.trek" && $0.url.host == "share" }
+        if !handoffs.isEmpty { TrekSharedFiles.receiveFromShareExtension() }
+        let others = URLContexts.subtracting(files).subtracting(handoffs)
         if !others.isEmpty { SceneDelegateProxy.shared.scene(scene, openURLContexts: others) }
     }
 
@@ -86,6 +91,25 @@ enum TrekSharedFiles {
             "mimeType": mimeType(for: url.pathExtension.lowercased()),
             "data": data.base64EncodedString(),
         ]
+        pending = file
+        onReceive?(file)
+    }
+
+    /// The item the share extension stored (ShareExtension/ShareHandoff.swift), with
+    /// the trip picked for it there. Taken once: the keychain is cleared right away.
+    static func receiveFromShareExtension() {
+        guard let meta = TrekSharedKeychain.read("share.pending.meta"),
+              let data = TrekSharedKeychain.read("share.pending.data") else { return }
+        TrekSharedKeychain.delete("share.pending.meta")
+        TrekSharedKeychain.delete("share.pending.data")
+        guard let info = try? JSONSerialization.jsonObject(with: meta) as? [String: Any],
+              let name = info["name"] as? String, data.count <= maxBytes else { return }
+        var file: [String: Any] = [
+            "name": name,
+            "mimeType": info["mimeType"] as? String ?? mimeType(for: (name as NSString).pathExtension.lowercased()),
+            "data": data.base64EncodedString(),
+        ]
+        if let tripId = info["tripId"] as? Int { file["tripId"] = tripId }
         pending = file
         onReceive?(file)
     }

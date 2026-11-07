@@ -95,6 +95,8 @@ export interface SharedFilePayload {
   mimeType: string;
   /** base64 */
   data: string;
+  /** Set when the share sheet already asked which trip it belongs to (feature shareSheet). */
+  tripId?: number;
 }
 
 /** A position, or an error shaped like GeolocationPositionError (1 denied, 2 unavailable). */

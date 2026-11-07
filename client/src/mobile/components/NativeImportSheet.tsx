@@ -5,7 +5,7 @@
  */
 import { ChevronRight, FileText } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { useTranslation } from '../../i18n';
 import { useSharedImportStore } from '../../native/sharedFiles';
 import { tripRepo } from '../../repo/tripRepo';
@@ -22,6 +22,7 @@ interface TripRow {
 export default function NativeImportSheet(): React.ReactElement | null {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const file = useSharedImportStore((s) => s.file);
   const tripId = useSharedImportStore((s) => s.tripId);
   const chooseTrip = useSharedImportStore((s) => s.chooseTrip);
@@ -46,10 +47,14 @@ export default function NativeImportSheet(): React.ReactElement | null {
     );
   }, [open]);
 
-  const pick = (id: number) => {
-    chooseTrip(id);
-    void navigate(`/trips/${id}`);
-  };
+  // Once a trip is picked (here, or in the share sheet before the app opened), go to
+  // it; its planner opens the booking import with the file (MTripShell).
+  useEffect(() => {
+    if (!file || tripId == null || pathname.startsWith(`/trips/${tripId}`)) return;
+    void navigate(`/trips/${tripId}`);
+  }, [file, tripId, pathname, navigate]);
+
+  const pick = (id: number) => chooseTrip(id);
 
   return (
     <MSheet open={open} onClose={() => setFile(null)} variant="bottom" ariaLabel={t('native.share.title')}>

@@ -51,7 +51,7 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
     /// and a server can require a minimum (minNativeShellApi in /api/health/features).
     static let shellApi = 2
     /// The native features by name, so the UI can turn each on by itself.
-    static let features: [String] = ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation", "sharedFiles", "nativePush", "widgets", "liveActivity", "widgetTrips", "storeKit"]
+    static let features: [String] = ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation", "sharedFiles", "nativePush", "widgets", "liveActivity", "widgetTrips", "storeKit", "shareSheet"]
 
     // MARK: - Shared booking documents
 
@@ -714,6 +714,10 @@ enum TrekSharedKeychain {
         q[kSecReturnData as String] = true
         var result: CFTypeRef?
         return SecItemCopyMatching(q as CFDictionary, &result) == errSecSuccess ? result as? Data : nil
+    }
+
+    static func delete(_ account: String) {
+        SecItemDelete(query(account) as CFDictionary)
     }
 
     @discardableResult

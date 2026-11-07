@@ -38,6 +38,17 @@ describe('NativeImportSheet', () => {
     expect(navigate).toHaveBeenCalledWith('/trips/2');
   });
 
+  it('goes straight to the trip the share sheet picked, without asking', () => {
+    render(<NativeImportSheet />);
+    act(() => {
+      useSharedImportStore.getState().setFile(new File(['x'], 'booking.pdf', { type: 'application/pdf' }));
+      useSharedImportStore.getState().chooseTrip(2);
+    });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(navigate).toHaveBeenCalledWith('/trips/2');
+    expect(navigate).toHaveBeenCalledTimes(1);
+  });
+
   it('stays closed with nothing shared', () => {
     render(<NativeImportSheet />);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();

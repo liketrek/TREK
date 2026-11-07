@@ -1,0 +1,26 @@
+/* The share sheet ("TREK" in the share menu): ShareExtension/ShareView.swift. */
+"share.title" = "Pridať do TREK";
+"share.cancel" = "Zrušiť";
+"share.close" = "Zavrieť";
+"share.trip" = "Cesta";
+"share.noTrips" = "Raz otvorte TREK a vaše cesty sa zobrazia tu.";
+"share.hint" = "TREK prečíta rezerváciu a pridá ju k ceste.";
+"share.later" = "Vybrať neskôr";
+"share.add" = "Pridať";
+"share.addTo" = "Pridať do %@";
+"share.added" = "Pridané";
+"share.reading" = "Načítava sa…";
+"share.tooLarge" = "Tento súbor je na import príliš veľký.";
+"share.unsupported" = "Toto TREK nevie importovať.";
+"share.failed" = "Nepodarilo sa to odovzdať do TREK. Skúste to znova.";
+"share.now" = "Teraz";
+"share.past" = "Prebehla";
+"share.tomorrow" = "Zajtra";
+"share.inDays" = "O %d dní";
+"share.kind.pass" = "Karta Wallet";
+"share.kind.pdf" = "PDF";
+"share.kind.mail" = "E-mail";
+"share.kind.page" = "Webová stránka";
+"share.kind.text" = "Text";
+"share.kind.image" = "Fotka";
+"share.kind.file" = "Súbor";

@@ -44,7 +44,11 @@ export async function startSharedFiles(): Promise<void> {
   await loadNativeCapabilities();
   if (!hasNativeFeature('sharedFiles')) return;
   const accept = (payload: SharedFilePayload | null) => {
-    if (payload?.data) useSharedImportStore.getState().setFile(toFile(payload));
+    if (!payload?.data) return;
+    const store = useSharedImportStore.getState();
+    store.setFile(toFile(payload));
+    // The share sheet asked for the trip already; NativeImportSheet opens it.
+    if (typeof payload.tripId === 'number') store.chooseTrip(payload.tripId);
   };
   void TrekShell.addListener('sharedFile', accept);
   try {

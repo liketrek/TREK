@@ -2,15 +2,15 @@
 #
 #   ruby ios/scripts/add-extension.rb <name> <bundle-id> <type> [extra frameworks...]
 #
-# type is "notification" (Notification Service Extension) or "widget" (WidgetKit,
-# which also carries the Live Activities). The extension's sources live in
+# type is "notification" (Notification Service Extension), "widget" (WidgetKit,
+# which also carries the Live Activities) or "share" (the share sheet entry). The extension's sources live in
 # ios/App/<name>/ with an Info.plist and <name>.entitlements next to them. The
 # project file stays checked in, so the targets show in Xcode like any other;
 # this script is how they got there, and running it again changes nothing.
 require 'xcodeproj'
 
 name, bundle_id, type, *frameworks = ARGV
-abort 'usage: add-extension.rb <name> <bundle-id> <notification|widget> [frameworks...]' unless name && bundle_id && type
+abort 'usage: add-extension.rb <name> <bundle-id> <notification|widget|share> [frameworks...]' unless name && bundle_id && type
 
 project_path = File.expand_path('../App/App.xcodeproj', __dir__)
 project = Xcodeproj::Project.open(project_path)
@@ -34,9 +34,25 @@ group = project.main_group.find_subpath(name, true)
 group.set_source_tree('<group>')
 group.set_path(name)
 sources = Dir.children(File.expand_path("../App/#{name}", __dir__)).sort
-sources.each do |file|
+# Localizations go in as one variant group, so Xcode copies each language's
+# strings into the extension bundle; JavaScript (Safari's page preprocessing) is
+# a resource as well.
+lprojs, files = sources.partition { |file| file.end_with?('.lproj') }
+files.each do |file|
   ref = group.new_reference(file)
   target.add_file_references([ref]) if file.end_with?('.swift')
+  target.add_resources([ref]) if file.end_with?('.js')
+end
+unless lprojs.empty?
+  variant = group.new_variant_group('Localizable.strings')
+  lprojs.each do |dir|
+    lang = dir.delete_suffix('.lproj')
+    ref = variant.new_reference("#{dir}/Localizable.strings")
+    ref.name = lang
+    ref.last_known_file_type = 'text.plist.strings'
+    project.root_object.known_regions |= [lang]
+  end
+  target.add_resources([variant])
 end
 
 frameworks.each do |framework|

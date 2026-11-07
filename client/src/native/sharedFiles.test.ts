@@ -43,6 +43,13 @@ describe('shared booking documents', () => {
     expect(useSharedImportStore.getState()).toMatchObject({ file: null, tripId: null });
   });
 
+  it('takes the trip the share sheet already picked', async () => {
+    vi.mocked(TrekShell.takeSharedFile).mockResolvedValue({ file: { ...PDF, tripId: 12 } });
+    await startSharedFiles();
+    expect(useSharedImportStore.getState()).toMatchObject({ tripId: 12 });
+    expect(useSharedImportStore.getState().file?.name).toBe('booking.pdf');
+  });
+
   it('does nothing in a binary without the feature', async () => {
     vi.mocked(hasNativeFeature).mockReturnValue(false);
     vi.mocked(TrekShell.addListener).mockClear();
