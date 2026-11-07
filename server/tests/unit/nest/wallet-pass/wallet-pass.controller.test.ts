@@ -62,4 +62,10 @@ describe('WalletPassController', () => {
     });
     expect(googleSaveUrlFor).toHaveBeenCalledWith(5, 42, 7, 'fr');
   });
+
+  it('WALLET-C-004: says whether Google Wallet works on this server', async () => {
+    const googleAvailable = vi.fn(async () => false);
+    const controller = new WalletPassController({ googleAvailable } as never);
+    await expect(controller.googleAvailability()).resolves.toEqual({ available: false });
+  });
 });

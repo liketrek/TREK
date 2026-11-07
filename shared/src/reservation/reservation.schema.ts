@@ -412,3 +412,10 @@ export const googleWalletSaveResponseSchema = z.object({
   saveUrl: z.string().url().startsWith('https://pay.google.com/gp/v/save/'),
 });
 export type GoogleWalletSaveResponse = z.infer<typeof googleWalletSaveResponseSchema>;
+
+/**
+ * GET /api/trips/:tripId/reservations/google-wallet: whether this server can make
+ * Google Wallet passes right now (passes on, and liketrek's Wallet issuer live).
+ */
+export const googleWalletAvailabilityResponseSchema = z.object({ available: z.boolean() });
+export type GoogleWalletAvailabilityResponse = z.infer<typeof googleWalletAvailabilityResponseSchema>;

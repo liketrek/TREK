@@ -166,3 +166,49 @@ describe('GET /api/trips/:tripId/reservations/:id/wallet-pass', () => {
     expect((await request(app.getHttpServer()).get(path(tripId, flightId)).set(as(OWNER))).status).toBe(502);
   });
 });
+
+describe('Google Wallet', () => {
+  const google = (trip: number, id: number) => `/api/trips/${trip}/reservations/${id}/wallet-pass/google?lang=de`;
+  const SAVE_URL = 'https://pay.google.com/gp/v/save/eyJhbGciOiJSUzI1NiJ9.payload.signature';
+  const answer = (status: number, body: string, type = 'application/json') =>
+    safeFetchAdminConfigured.mockResolvedValueOnce(new Response(body, { status, headers: { 'content-type': type } }));
+
+  it('WALLET-E2E-006: the owner gets the save link, signed at the Google route beside the Apple one', async () => {
+    answer(200, JSON.stringify({ saveUrl: SAVE_URL }));
+    const res = await request(app.getHttpServer()).get(google(tripId, flightId)).set(as(OWNER));
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ saveUrl: SAVE_URL });
+    const [url, init] = safeFetchAdminConfigured.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://push.liketrek.com/v1/wallet/google');
+    expect(JSON.parse(String(init.body))).toMatchObject({ kind: 'flight', title: 'LH 716', locale: 'de-DE' });
+  });
+
+  it('WALLET-E2E-007: a stranger, another trip and a missing booking get a 404 and ask nobody', async () => {
+    expect((await request(app.getHttpServer()).get(google(tripId, flightId))).status).toBe(401);
+    expect((await request(app.getHttpServer()).get(google(tripId, flightId)).set(as(STRANGER))).status).toBe(404);
+    const other = await makeTrip(orm, OWNER, { title: 'Elsewhere too' });
+    expect((await request(app.getHttpServer()).get(google(other.id, flightId)).set(as(OWNER))).status).toBe(404);
+    expect((await request(app.getHttpServer()).get(google(tripId, 999_999)).set(as(OWNER))).status).toBe(404);
+    expect(safeFetchAdminConfigured).not.toHaveBeenCalled();
+  });
+
+  it('WALLET-E2E-008: no issuer yet is a 404, a link that is not Google Wallet a 502', async () => {
+    answer(404, 'not found', 'text/plain');
+    expect((await request(app.getHttpServer()).get(google(tripId, flightId)).set(as(OWNER))).status).toBe(404);
+    answer(200, JSON.stringify({ saveUrl: 'https://evil.example/save' }));
+    expect((await request(app.getHttpServer()).get(google(tripId, flightId)).set(as(OWNER))).status).toBe(502);
+  });
+
+  it('WALLET-E2E-009: the trip members can ask whether Google Wallet works here', async () => {
+    safeFetchAdminConfigured.mockResolvedValueOnce(new Response('', { status: 405 }));
+    const res = await request(app.getHttpServer())
+      .get(`/api/trips/${tripId}/reservations/google-wallet`)
+      .set(as(OWNER));
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ available: true });
+    expect(
+      (await request(app.getHttpServer()).get(`/api/trips/${tripId}/reservations/google-wallet`).set(as(STRANGER)))
+        .status,
+    ).toBe(404);
+  });
+});

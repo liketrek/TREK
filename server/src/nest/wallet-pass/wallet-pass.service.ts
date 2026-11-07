@@ -17,6 +17,10 @@ const TIMEOUT_MS = 10_000;
 /** The signer's answer for Google Wallet: a JSON object with one signed link. */
 const MAX_GOOGLE_ANSWER_BYTES = 16 * 1024;
 const GOOGLE_SAVE_PREFIX = 'https://pay.google.com/gp/v/save/';
+/** How long a probe of the signer's Google route counts: an issuer is set up once. */
+const GOOGLE_PROBE_TTL_MS = 10 * 60_000;
+/** A failed probe (the signer unreachable) is tried again sooner. */
+const GOOGLE_PROBE_RETRY_MS = 60_000;
 /** A pass is its texts plus TREK's icon and wordmark: some 25 KB. */
 const MAX_PASS_BYTES = 512 * 1024;
 const PKPASS = 'application/vnd.apple.pkpass';
@@ -45,6 +49,40 @@ export class WalletPassService {
   /** Whether this server makes Wallet passes at all. */
   enabled(): boolean {
     return this.config.mode === 'auto';
+  }
+
+  private googleProbe: { available: boolean; until: number } | null = null;
+
+  /**
+   * Whether a booking can go to Google Wallet: passes on here, and the TREK
+   * services' signer has its Google route mounted (it is only once liketrek has
+   * a Wallet issuer; before that it answers 404). The answer is kept for ten
+   * minutes, so the Android app's button costs the signer one request now and then.
+   */
+  async googleAvailable(): Promise<boolean> {
+    if (!this.enabled()) return false;
+    const url = googleSignerUrl(this.config.walletPassUrl);
+    if (!url) return false;
+    const now = Date.now();
+    if (this.googleProbe && this.googleProbe.until > now) return this.googleProbe.available;
+    let available = false;
+    let ttl = GOOGLE_PROBE_TTL_MS;
+    try {
+      // A GET of the POST-only route: 405 when it is there, 404 when it is not.
+      const response = await safeFetchAdminConfigured(
+        url,
+        { method: 'GET', signal: AbortSignal.timeout(TIMEOUT_MS) },
+        0,
+        undefined,
+        2048,
+      );
+      available = response.status !== 404 && response.status < 500;
+      if (response.status >= 500) ttl = GOOGLE_PROBE_RETRY_MS;
+    } catch {
+      ttl = GOOGLE_PROBE_RETRY_MS;
+    }
+    this.googleProbe = { available, until: now + ttl };
+    return available;
   }
 
   async passFor(userId: number, tripId: number, reservationId: number, language: string): Promise<WalletPass> {
@@ -113,10 +151,15 @@ export class WalletPassService {
   }
 
   private async signGoogle(request: object): Promise<string> {
+    const url = googleSignerUrl(this.config.walletPassUrl);
+    if (!url) {
+      logWarn('[Wallet pass] TREK_WALLET_SIGNER_URL does not end in /pass, so there is no Google route beside it');
+      throw new DomainError(404, 'Google Wallet passes are not available on this server');
+    }
     let response: Response;
     try {
       response = await safeFetchAdminConfigured(
-        googleSignerUrl(this.config.walletPassUrl),
+        url,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -193,9 +236,22 @@ export class WalletPassService {
   }
 }
 
-/** The signer's Google route beside its Apple one: �/v1/wallet/pass becomes �/v1/wallet/google. */
-function googleSignerUrl(passUrl: string): string {
-  return passUrl.replace(/\/pass\/?$/, '/google');
+/**
+ * The signer's Google route beside its Apple one: …/v1/wallet/pass becomes
+ * …/v1/wallet/google, the query kept. Null for a signer URL that does not end in
+ * /pass: there is no telling where its Google route is, and posting the booking
+ * to the Apple route instead would only sign a pass nobody asked for.
+ */
+export function googleSignerUrl(passUrl: string): string | null {
+  let url: URL;
+  try {
+    url = new URL(passUrl);
+  } catch {
+    return null;
+  }
+  if (!/\/pass\/?$/.test(url.pathname)) return null;
+  url.pathname = url.pathname.replace(/\/pass\/?$/, '/google');
+  return url.toString();
 }
 
 function stringOrNull(value: unknown): string | null {

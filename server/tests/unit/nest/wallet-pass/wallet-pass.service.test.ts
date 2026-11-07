@@ -3,7 +3,12 @@ import { DomainError } from '../../../../src/nest/common/domain-error';
 import { RateLimitService } from '../../../../src/nest/common/rate-limit.service';
 import { ReservationsReadService } from '../../../../src/nest/reservations/reservations-read.service';
 import { WalletPassModule } from '../../../../src/nest/wallet-pass/wallet-pass.module';
-import { filenameOf, parseMetadata, WalletPassService } from '../../../../src/nest/wallet-pass/wallet-pass.service';
+import {
+  filenameOf,
+  googleSignerUrl,
+  parseMetadata,
+  WalletPassService,
+} from '../../../../src/nest/wallet-pass/wallet-pass.service';
 import { loadWalletWords, walletLanguage } from '../../../../src/nest/wallet-pass/wallet-pass.words';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
 import { createTestModule, type TestModule } from '../../../helpers/test-module';
@@ -218,5 +223,49 @@ describe('WalletPassService', () => {
     expect(await refusal(service.googleSaveUrlFor(1, 42, 7, 'en'))).toBe(502);
     reservations.getReservationWithJoins.mockResolvedValueOnce({ ...ROW, trip_id: 99 });
     expect(await refusal(service.googleSaveUrlFor(1, 42, 7, 'en'))).toBe(404);
+  });
+
+  it('WALLET-S-010: the Google route sits beside /pass, query kept; any other signer URL has none', async () => {
+    expect(googleSignerUrl('https://push.liketrek.com/v1/wallet/pass')).toBe(
+      'https://push.liketrek.com/v1/wallet/google',
+    );
+    expect(googleSignerUrl('https://signer.example/v1/wallet/pass/?key=x')).toBe(
+      'https://signer.example/v1/wallet/google?key=x',
+    );
+    expect(googleSignerUrl('https://signer.example/v1/sign')).toBeNull();
+    expect(googleSignerUrl('not a url')).toBeNull();
+    make();
+    config.walletPassUrl = 'https://signer.example/v1/sign';
+    try {
+      expect(await refusal(service.googleSaveUrlFor(1, 42, 7, 'en'))).toBe(404);
+      expect(safeFetchAdminConfigured).not.toHaveBeenCalled();
+    } finally {
+      config.walletPassUrl = 'https://push.liketrek.com/v1/wallet/pass';
+    }
+  });
+
+  it('WALLET-S-011: Google Wallet counts as available once the signer has the route, asked once in ten minutes', async () => {
+    const probe = (s: number) => safeFetchAdminConfigured.mockResolvedValueOnce(new Response('', { status: s }));
+    const fresh = () => ((service as unknown as { googleProbe: unknown }).googleProbe = null);
+    make('off');
+    fresh();
+    expect(await service.googleAvailable()).toBe(false);
+    expect(safeFetchAdminConfigured).not.toHaveBeenCalled();
+    make();
+    fresh();
+    probe(404);
+    expect(await service.googleAvailable()).toBe(false);
+    expect(await service.googleAvailable()).toBe(false);
+    expect(safeFetchAdminConfigured).toHaveBeenCalledTimes(1);
+    expect((safeFetchAdminConfigured.mock.calls[0] as [string, RequestInit])[0]).toBe(
+      'https://push.liketrek.com/v1/wallet/google',
+    );
+    fresh();
+    probe(405);
+    expect(await service.googleAvailable()).toBe(true);
+    fresh();
+    safeFetchAdminConfigured.mockRejectedValueOnce(new Error('ECONNREFUSED'));
+    expect(await service.googleAvailable()).toBe(false);
+    fresh();
   });
 });

@@ -278,7 +278,7 @@ const reservations: TranslationStrings = {
   'reservations.needsConnection': 'Ehhez kapcsolat kell. Próbáld újra, amint a TREK újra online lesz.',
   'reservations.exportCsvFiltered': 'A megjelenített {shown} sor exportálása a(z) {total} közül (CSV)',
   'reservations.wallet.add': 'Hozzáadás az Apple Wallethez',
-  'reservations.wallet.addGoogle': 'Hozzáadás az Google Wallethez',
+  'reservations.wallet.addGoogle': 'Hozzáadás a Google Wallethez',
   'reservations.wallet.failed': 'Nem sikerült létrehozni a Wallet-kártyát. Próbáld újra.',
   'reservations.wallet.undated': 'Előbb adj dátumot a foglalásnak: a Wallet az időpont körül jeleníti meg a kártyát.',
 };
