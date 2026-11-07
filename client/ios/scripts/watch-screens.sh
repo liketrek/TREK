@@ -13,23 +13,20 @@ OUT="$2"
 BUNDLE=com.liketrek.trek.watchkitapp
 mkdir -p "$OUT"
 
-RUNTIME=$(xcrun simctl list runtimes -j | python3 -c '
-import json, sys
-runtimes = [r for r in json.load(sys.stdin)["runtimes"] if r["platform"] == "watchOS" and r["isAvailable"]]
-print(sorted(runtimes, key=lambda r: [int(x) for x in r["version"].split(".")])[-1]["identifier"])')
-echo "runtime $RUNTIME"
-
-# The newest Ultra, and the smallest watch the runtime still supports.
-read -r LARGE SMALL < <(xcrun simctl list devicetypes -j | python3 -c '
+# The newest watchOS runtime, its newest Ultra, and the smallest watch it still runs on.
+read -r RUNTIME LARGE SMALL < <(xcrun simctl list runtimes -j | python3 -c '
 import json, re, sys
-names = [t["name"] for t in json.load(sys.stdin)["devicetypes"] if t["name"].startswith("Apple Watch")]
+runtimes = [r for r in json.load(sys.stdin)["runtimes"] if r["platform"] == "watchOS" and r["isAvailable"]]
+runtime = sorted(runtimes, key=lambda r: [int(x) for x in r["version"].split(".")])[-1]
+names = [t["name"] for t in runtime["supportedDeviceTypes"]]
 def mm(n):
     m = re.search(r"(\d+)mm", n); return int(m.group(1)) if m else 0
 def gen(n):
     m = re.search(r"(?:Series|Ultra|SE) ?(\d+)?", n); return int(m.group(1) or 1) if m else 0
 ultra = sorted([n for n in names if "Ultra" in n], key=gen)[-1]
-small = sorted([n for n in names if "Ultra" not in n], key=lambda n: (mm(n), -gen(n)))
-print(ultra.replace(" ", "_"), small[0].replace(" ", "_"))')
+small = sorted([n for n in names if "Ultra" not in n], key=lambda n: (mm(n), -gen(n)))[0]
+print(runtime["identifier"], ultra.replace(" ", "_"), small.replace(" ", "_"))')
+echo "runtime $RUNTIME"
 LARGE=${LARGE//_/ }
 SMALL=${SMALL//_/ }
 echo "large: $LARGE, small: $SMALL"
@@ -50,9 +47,9 @@ shot() {
   shift 4
   local locale=${lang//-/_}
   xcrun simctl launch --terminate-running-process "$udid" "$BUNDLE" \
-    -AppleLanguages "($lang)" -AppleLocale "$locale" -TrekDemo "$screen" "$@" >/dev/null
+    -AppleLanguages "($lang)" -AppleLocale "$locale" -TrekDemo "$screen" "$@" >/dev/null || { echo "could not launch $file"; return 0; }
   case "$screen" in place) sleep 9 ;; *) sleep 4 ;; esac
-  xcrun simctl io "$udid" screenshot --type=png "$file" >/dev/null 2>&1
+  xcrun simctl io "$udid" screenshot --type=png "$file" >/dev/null 2>&1 || echo "could not capture $file"
 }
 
 ALL="today day place booking bookings trip days packing todos lists countdown empty nosync faces"
@@ -75,8 +72,11 @@ run() {
 }
 
 run large "$LARGE" &
+large=$!
 run small "$SMALL" &
-wait
+small=$!
+wait "$large"
+wait "$small"
 echo "$LARGE" > "$OUT/devices.txt"
 echo "$SMALL" >> "$OUT/devices.txt"
 ls "$OUT" | wc -l
