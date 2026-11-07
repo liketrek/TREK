@@ -79,7 +79,7 @@ shot() {
     [ "$clock" = - ] || extra=(-TrekNow "$clock")
     xcrun simctl launch "$udid" "$BUNDLE" \
       -AppleLanguages "($lang)" -AppleLocale "$locale" -TrekDemo "$screen" -TrekScenario "$scenario" \
-      -TrekReady "$TOKEN" "${extra[@]}" >/dev/null 2>&1 || continue
+      -TrekReady "$TOKEN" ${extra[@]+"${extra[@]}"} >/dev/null 2>&1 || continue
     wait_ready "$udid" "$TOKEN" || continue
     # The map's tiles come over the network after the screen is up.
     [ "$screen" = place ] && sleep 6
