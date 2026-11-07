@@ -224,6 +224,9 @@ export default defineConfig({
         'src/nest/trips/**/*.ts': { statements: 95, branches: 86, functions: 95, lines: 96 },
         'src/nest/unsplash/**/*.ts': { statements: 99, branches: 88, functions: 99, lines: 99 },
         'src/nest/vacay/**/*.ts': { statements: 82, branches: 66, functions: 90, lines: 86 },
+        // New domain in this change (Apple Wallet passes), unmeasured: pinned at the 80 floor
+        // until the first full run regenerates it.
+        'src/nest/wallet-pass/**/*.ts': { statements: 80, branches: 80, functions: 80, lines: 80 },
         'src/nest/wanderer/**/*.ts': { statements: 80, branches: 80, functions: 80, lines: 80 },
         'src/nest/weather/**/*.ts': { statements: 93, branches: 78, functions: 91, lines: 97 },
         'src/nest/**/*.ts': { statements: 80, branches: 80, functions: 80, lines: 80 },

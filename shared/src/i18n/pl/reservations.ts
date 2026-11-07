@@ -289,5 +289,8 @@ const reservations: TranslationStrings = {
     'Pliki wymagają połączenia do przesłania. Usuń nowe, aby zapisać rezerwację offline, albo zapisz po powrocie online.',
   'reservations.needsConnection': 'To wymaga połączenia. Spróbuj ponownie, gdy TREK znów będzie online.',
   'reservations.exportCsvFiltered': 'Eksportuj wyświetlone wiersze: {shown} z {total} (CSV)',
+  'reservations.wallet.add': 'Dodaj do Apple Wallet',
+  'reservations.wallet.failed': 'Nie udało się utworzyć karty Wallet. Spróbuj ponownie.',
+  'reservations.wallet.undated': 'Najpierw nadaj rezerwacji datę: Wallet pokazuje kartę w okolicach tego terminu.',
 };
 export default reservations;

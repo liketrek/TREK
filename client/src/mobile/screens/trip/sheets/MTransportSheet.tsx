@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowRight, Footprints, Paperclip, Pencil, Route as RouteIcon, Trash2 } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
+import MWalletButton from '../../../components/MWalletButton'
 import type { MTripSheetsProps } from '../MTripShell'
 import { useTranslation } from '../../../../i18n'
 import { useSettingsStore } from '../../../../store/settingsStore'
@@ -348,6 +349,7 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
             <RouteIcon size={13} strokeWidth={2} />
             {t('mobileTrip.onMap')}
           </button>
+          <MWalletButton tripId={planner.tripId} reservationId={payload.reservationId} onError={planner.toast.error} />
           {resFiles.map(f => (
             <button
               key={f.id}

@@ -307,6 +307,9 @@ const reservations: TranslationStrings = {
     'Faylların yüklənməsi üçün bağlantı lazımdır. Rezervasiyanı oflayn saxlamaq üçün yeni faylları silin və ya yenidən onlayn olduqda saxlayın.',
   'reservations.needsConnection': 'Bunun üçün bağlantı lazımdır. TREK yenidən onlayn olduqda bir daha cəhd edin.',
   'reservations.exportCsvFiltered': 'Göstərilən {shown}/{total} sətri ixrac et (CSV)',
+  'reservations.wallet.add': 'Apple Wallet-ə əlavə et',
+  'reservations.wallet.failed': 'Wallet kartını yaratmaq alınmadı. Yenidən cəhd edin.',
+  'reservations.wallet.undated': 'Əvvəlcə rezervasiyaya tarix verin: Wallet kartı həmin vaxta yaxın göstərir.',
 };
 
 export default reservations;

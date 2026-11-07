@@ -275,5 +275,8 @@ const reservations: TranslationStrings = {
     'Failide üleslaadimiseks on vaja ühendust. Eemalda uued, et broneering võrguühenduseta salvestada, või salvesta, kui oled taas võrgus.',
   'reservations.needsConnection': 'Selleks on vaja ühendust. Proovi uuesti, kui TREK on taas võrgus.',
   'reservations.exportCsvFiltered': 'Ekspordi näidatud read, {shown} / {total} (CSV)',
+  'reservations.wallet.add': 'Lisa Apple Walletisse',
+  'reservations.wallet.failed': 'Walleti passi ei õnnestunud luua. Proovi uuesti.',
+  'reservations.wallet.undated': 'Anna broneeringule kõigepealt kuupäev: Wallet näitab passi selle aja paiku.',
 };
 export default reservations;

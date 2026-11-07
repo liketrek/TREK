@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link2, Ticket } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
+import MWalletButton from '../../../components/MWalletButton'
 import { MBookingCodeStatus, MBookingNotes, MBookingTravelers } from './MBookingFields'
 import { useAddonStore } from '../../../../store/addonStore'
 import { useTranslation } from '../../../../i18n'
@@ -35,6 +36,9 @@ const EMPTY = {
   hotel_place_id: '' as string | number, hotel_start_day: '' as string | number, hotel_end_day: '' as string | number,
   hotel_address: '',
 }
+
+/** A booking that is saved already has an id; one being created has none. */
+const savedId = (res: { id: number } | null | undefined): number | undefined => res?.id
 
 /**
  * Add/edit booking sheet — the mobile counterpart of the desktop ReservationModal,
@@ -187,6 +191,9 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
       />
 
       <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[6px] pt-[2px]">
+        {/* A saved booking goes into Apple Wallet (iOS app only). */}
+        <MWalletButton tripId={tripId} reservationId={savedId(res)} onError={toast.error} className="mb-1 mt-2 flex" />
+
         {/* BOOKING TYPE */}
         <Eyebrow className="mb-[6px] mt-2 uppercase">{t('reservations.bookingType')}</Eyebrow>
         <div className="flex flex-wrap gap-[6px]">
@@ -398,7 +405,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
         {/* FILES + COSTS */}
         <MBookingFilesCosts
           planner={planner}
-          reservationId={res?.id}
+          reservationId={savedId(res)}
           pendingFiles={pendingFiles}
           setPendingFiles={setPendingFiles}
           canUploadFiles={canUploadFiles}

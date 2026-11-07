@@ -103,6 +103,7 @@ import { TransitModule } from './transit/transit.module';
 import { TripInviteModule } from './trip-invite/trip-invite.module';
 import { TripsModule } from './trips/trips.module';
 import { VacayModule } from './vacay/vacay.module';
+import { WalletPassModule } from './wallet-pass/wallet-pass.module';
 import { WandererModule } from './wanderer/wanderer.module';
 import { WeatherModule } from './weather/weather.module';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
@@ -189,6 +190,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
     SettingsModule,
     ServiceIdentityModule,
     RoutingRelayModule,
+    WalletPassModule,
     StorageModule,
     BackupModule,
     AuthModule,

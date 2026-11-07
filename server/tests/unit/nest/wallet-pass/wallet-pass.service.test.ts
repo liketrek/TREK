@@ -1,0 +1,155 @@
+import { DomainError } from '../../../../src/nest/common/domain-error';
+import { filenameOf, parseMetadata, WalletPassService } from '../../../../src/nest/wallet-pass/wallet-pass.service';
+import { loadWalletWords, walletLanguage } from '../../../../src/nest/wallet-pass/wallet-pass.words';
+
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const { safeFetchAdminConfigured } = vi.hoisted(() => ({ safeFetchAdminConfigured: vi.fn() }));
+vi.mock('../../../../src/utils/ssrfGuard', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../../src/utils/ssrfGuard')>()),
+  safeFetchAdminConfigured,
+}));
+
+const PASS = Buffer.concat([Buffer.from([0x50, 0x4b, 0x03, 0x04]), Buffer.from('rest of the zip')]);
+const ROW = {
+  id: 7,
+  trip_id: 42,
+  title: 'Hotel Granvia Kyoto',
+  type: 'hotel',
+  status: 'confirmed',
+  reservation_time: '2027-04-02T15:00',
+  reservation_end_time: '2027-04-06T11:00',
+  confirmation_number: 'HG-48213',
+  location: null,
+  created_at: '2026-11-01 10:00:00',
+  metadata: '{"check_in_time":"15:00"}',
+  place_id: 3,
+  endpoints: [],
+};
+
+function make(mode: 'auto' | 'off' = 'auto') {
+  const reservations = {
+    getReservationWithJoins: vi.fn(async (): Promise<Record<string, unknown> | undefined> => ({ ...ROW })),
+    passContext: vi.fn(async (): Promise<Record<string, unknown> | undefined> => ({
+      trip_title: 'Japan 2027',
+      place_lat: 34.985,
+      place_lng: 135.758,
+      place_name: 'Hotel Granvia Kyoto',
+    })),
+  };
+  const rateLimit = { check: vi.fn(async () => true) };
+  const service = new WalletPassService(
+    { mode, walletPassUrl: 'https://push.liketrek.com/v1/wallet/pass' } as never,
+    reservations as never,
+    rateLimit as never,
+  );
+  return { service, reservations, rateLimit };
+}
+
+const signerAnswers = (status: number, body: BodyInit, type = 'application/vnd.apple.pkpass') =>
+  safeFetchAdminConfigured.mockResolvedValue(new Response(body, { status, headers: { 'content-type': type } }));
+
+async function refusal(promise: Promise<unknown>): Promise<number> {
+  try {
+    await promise;
+  } catch (err) {
+    expect(err).toBeInstanceOf(DomainError);
+    return (err as DomainError).getStatus();
+  }
+  throw new Error('expected a refusal');
+}
+
+beforeEach(() => safeFetchAdminConfigured.mockReset());
+
+describe('WalletPassService', () => {
+  it('WALLET-S-001: sends the booking to the signer and hands back the signed pass', async () => {
+    const { service, reservations } = make();
+    signerAnswers(200, PASS);
+    const pass = await service.passFor(1, 42, 7, 'de');
+    expect(pass.bytes.equals(PASS)).toBe(true);
+    expect(pass.filename).toBe('Hotel-Granvia-Kyoto.pkpass');
+    expect(reservations.passContext).toHaveBeenCalledWith(7, 42);
+
+    const [url, init] = safeFetchAdminConfigured.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://push.liketrek.com/v1/wallet/pass');
+    const body = JSON.parse(String(init.body));
+    expect(body).toMatchObject({
+      kind: 'hotel',
+      trip: 'Japan 2027',
+      locale: 'de-DE',
+      start: '2027-04-02T15:00:00+09:00',
+    });
+    expect(body.details[0].label).toBe('Check-in');
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('WALLET-S-002: is off with the TREK services, and asks nobody', async () => {
+    const { service } = make('off');
+    expect(service.enabled()).toBe(false);
+    expect(await refusal(service.passFor(1, 42, 7, 'en'))).toBe(404);
+    expect(safeFetchAdminConfigured).not.toHaveBeenCalled();
+  });
+
+  it('WALLET-S-003: a booking of another trip, a missing one or one without a date is refused', async () => {
+    const { service, reservations } = make();
+    expect(await refusal(service.passFor(1, 99, 7, 'en'))).toBe(404);
+    reservations.getReservationWithJoins.mockResolvedValueOnce(undefined);
+    expect(await refusal(service.passFor(1, 42, 7, 'en'))).toBe(404);
+    reservations.getReservationWithJoins.mockResolvedValueOnce({ ...ROW, reservation_time: null, place_id: null });
+    expect(await refusal(service.passFor(1, 42, 7, 'en'))).toBe(422);
+    expect(safeFetchAdminConfigured).not.toHaveBeenCalled();
+  });
+
+  it('WALLET-S-004: a user asking too often is slowed down before anything is read', async () => {
+    const { service, rateLimit, reservations } = make();
+    rateLimit.check.mockResolvedValueOnce(false);
+    expect(await refusal(service.passFor(1, 42, 7, 'en'))).toBe(429);
+    expect(reservations.getReservationWithJoins).not.toHaveBeenCalled();
+  });
+
+  it('WALLET-S-005: the signer down, refusing, busy or answering something else is a clear error', async () => {
+    const { service } = make();
+    safeFetchAdminConfigured.mockRejectedValueOnce(new Error('ECONNREFUSED'));
+    expect(await refusal(service.passFor(1, 42, 7, 'en'))).toBe(502);
+    signerAnswers(400, '{"error":"title: required"}', 'application/json');
+    expect(await refusal(service.passFor(1, 42, 7, 'en'))).toBe(502);
+    signerAnswers(429, '');
+    expect(await refusal(service.passFor(1, 42, 7, 'en'))).toBe(429);
+    signerAnswers(200, '<html>captive portal</html>', 'application/vnd.apple.pkpass');
+    expect(await refusal(service.passFor(1, 42, 7, 'en'))).toBe(502);
+    signerAnswers(200, PASS, 'text/html');
+    expect(await refusal(service.passFor(1, 42, 7, 'en'))).toBe(502);
+  });
+
+  it('WALLET-S-006: a place without coordinates is no location; metadata reads in any shape', async () => {
+    const { service, reservations } = make();
+    reservations.passContext.mockResolvedValueOnce({
+      trip_title: null,
+      place_lat: null,
+      place_lng: null,
+      place_name: null,
+    });
+    signerAnswers(200, PASS);
+    await service.passFor(1, 42, 7, 'en');
+    const body = JSON.parse(String((safeFetchAdminConfigured.mock.calls[0] as [string, RequestInit])[1].body));
+    expect(body.location).toBeUndefined();
+
+    expect(parseMetadata('{"seat":"1A"}')).toEqual({ seat: '1A' });
+    expect(parseMetadata({ seat: '1A' })).toEqual({ seat: '1A' });
+    expect(parseMetadata('[1]')).toEqual({});
+    expect(parseMetadata('not json')).toEqual({});
+    expect(parseMetadata(null)).toEqual({});
+  });
+
+  it('WALLET-S-007: file names and languages stay safe', async () => {
+    expect(filenameOf('Hôtel "Le Nid" / Paris')).toBe('Hotel-Le-Nid-Paris');
+    expect(filenameOf('***')).toBe('booking');
+    expect(walletLanguage('de')).toBe('de');
+    expect(walletLanguage('../../etc')).toBe('en');
+    expect(walletLanguage(undefined)).toBe('en');
+    const words = await loadWalletWords('de');
+    expect(words.locale).toBe('de-DE');
+    expect(words.seat).toBe('Sitzplatz');
+    expect((await loadWalletWords('xx')).seat).toBe('Seat');
+  });
+});

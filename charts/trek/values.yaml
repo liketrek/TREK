@@ -159,6 +159,10 @@ env:
   # TREK_VALHALLA_URL: ""
   # The Valhalla of the TREK services, which this server relays routing to unless the admin picks another
   # routing service. The browser never talks to it. Defaults to https://valhalla.liketrek.com.
+  # TREK_WALLET_PASS_URL: ""
+  # Signs the Apple Wallet pass of a booking when someone taps "Add to Apple Wallet" in the iOS app.
+  # Only the pass's texts go there, once per tap. Never asked with TREK_SERVICES=off.
+  # Defaults to https://push.liketrek.com/v1/wallet/pass.
   # AMAP_API_BASE: ""
   # Send the Amap (高德地图) calls through an egress proxy, a cache or a gateway that speaks the same API instead of
   # restapi.amap.com directly. The key itself is a credential and goes under secretEnv.AMAP_API_KEY, or into

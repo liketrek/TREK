@@ -191,6 +191,7 @@ export const envSchema = z.object({
   TREK_SERVICES_HOSTS: anyString,
   TREK_PHOTON_URL: url,
   TREK_VALHALLA_URL: url,
+  TREK_WALLET_PASS_URL: url,
   PLACES_API_KEY: anyString,
   AMAP_API_BASE: url,
   AMAP_API_KEY: anyString,

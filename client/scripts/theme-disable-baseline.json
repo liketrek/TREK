@@ -54,6 +54,7 @@
   "components/shared/DialogShell.tsx": 2,
   "components/shared/PasswordChecklist.tsx": 2,
   "mobile/components/MSheet.tsx": 1,
+  "mobile/components/MWalletButton.tsx": 1,
   "mobile/screens/atlas/MAtlas.tsx": 1,
   "mobile/screens/atlas/MAtlasCountryPopup.tsx": 2,
   "mobile/screens/atlas/MAtlasSearch.tsx": 1,

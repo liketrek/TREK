@@ -69,6 +69,8 @@ const DEFAULT_SERVICE_HOSTS = ['places.liketrek.com', 'photon.liketrek.com', 'va
 const DEFAULT_PHOTON_URL = 'https://photon.liketrek.com';
 /** The TREK services' Valhalla, asked through this server's routing relay. */
 const DEFAULT_VALHALLA_URL = 'https://valhalla.liketrek.com';
+/** Signs the Apple Wallet passes of bookings; only liketrek holds the pass certificate. */
+const DEFAULT_WALLET_PASS_URL = 'https://push.liketrek.com/v1/wallet/pass';
 
 /**
  * How this installation identifies itself to the liketrek services. Unset is
@@ -84,6 +86,7 @@ export function deriveServices(raw: RawEnv) {
     hosts: hosts?.length ? hosts : DEFAULT_SERVICE_HOSTS,
     photonUrl: stripTrailingSlashes(raw.TREK_PHOTON_URL?.trim() || DEFAULT_PHOTON_URL),
     valhallaUrl: stripTrailingSlashes(raw.TREK_VALHALLA_URL?.trim() || DEFAULT_VALHALLA_URL),
+    walletPassUrl: raw.TREK_WALLET_PASS_URL?.trim() || DEFAULT_WALLET_PASS_URL,
   };
 }
 

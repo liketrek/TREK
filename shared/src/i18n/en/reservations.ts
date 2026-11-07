@@ -275,5 +275,8 @@ const reservations: TranslationStrings = {
     'Files need a connection to upload. Remove the new ones to save the booking offline, or save once you are back online.',
   'reservations.needsConnection': 'This needs a connection. Try again once TREK is back online.',
   'reservations.exportCsvFiltered': 'Export the {shown} of {total} shown rows (CSV)',
+  'reservations.wallet.add': 'Add to Apple Wallet',
+  'reservations.wallet.failed': 'The Wallet pass could not be made. Please try again.',
+  'reservations.wallet.undated': 'Give the booking a date first: Wallet brings the pass up around its time.',
 };
 export default reservations;

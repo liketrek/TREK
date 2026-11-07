@@ -283,5 +283,8 @@ const reservations: TranslationStrings = {
     'Súbory potrebujú na nahratie pripojenie. Odstráň nové, aby si rezerváciu uložil offline, alebo ulož, keď budeš znova online.',
   'reservations.needsConnection': 'Na toto je potrebné pripojenie. Skús to znova, keď bude TREK opäť online.',
   'reservations.exportCsvFiltered': 'Exportovať zobrazené riadky, {shown} z {total} (CSV)',
+  'reservations.wallet.add': 'Pridať do Apple Wallet',
+  'reservations.wallet.failed': 'Kartu do Wallet sa nepodarilo vytvoriť. Skúste to znova.',
+  'reservations.wallet.undated': 'Najprv rezervácii zadajte dátum: Wallet kartu zobrazí okolo toho času.',
 };
 export default reservations;

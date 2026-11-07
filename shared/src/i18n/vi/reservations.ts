@@ -269,5 +269,8 @@ const reservations: TranslationStrings = {
     'Cần có kết nối để tải tệp lên. Gỡ các tệp mới để lưu đặt chỗ khi ngoại tuyến, hoặc lưu khi bạn trực tuyến trở lại.',
   'reservations.needsConnection': 'Thao tác này cần kết nối. Hãy thử lại khi TREK trực tuyến trở lại.',
   'reservations.exportCsvFiltered': 'Xuất {shown} trong {total} dòng đang hiển thị (CSV)',
+  'reservations.wallet.add': 'Thêm vào Apple Wallet',
+  'reservations.wallet.failed': 'Không thể tạo thẻ Wallet. Vui lòng thử lại.',
+  'reservations.wallet.undated': 'Hãy đặt ngày cho đặt chỗ trước: Wallet sẽ hiện thẻ vào khoảng thời gian đó.',
 };
 export default reservations;

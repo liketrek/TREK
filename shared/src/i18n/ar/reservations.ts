@@ -299,5 +299,8 @@ const reservations: TranslationStrings = {
     'يحتاج رفع الملفات إلى اتصال. أزل الملفات الجديدة لحفظ الحجز دون اتصال، أو احفظ عندما تعود متصلاً.',
   'reservations.needsConnection': 'يتطلب هذا اتصالاً. حاول مرة أخرى عندما يعود TREK للاتصال.',
   'reservations.exportCsvFiltered': 'تصدير الصفوف المعروضة ({shown} من {total}) (CSV)',
+  'reservations.wallet.add': 'إضافة إلى Apple Wallet',
+  'reservations.wallet.failed': 'تعذّر إنشاء بطاقة Wallet. حاول مرة أخرى.',
+  'reservations.wallet.undated': 'حدّد تاريخًا للحجز أولًا: يعرض Wallet البطاقة قرب موعده.',
 };
 export default reservations;

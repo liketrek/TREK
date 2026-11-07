@@ -287,5 +287,8 @@ const reservations: TranslationStrings = {
     'Для загрузки файлов нужно подключение. Удалите новые, чтобы сохранить бронирование офлайн, или сохраните, когда снова будете онлайн.',
   'reservations.needsConnection': 'Для этого нужно подключение. Попробуйте ещё раз, когда TREK снова будет онлайн.',
   'reservations.exportCsvFiltered': 'Экспортировать показанные строки: {shown} из {total} (CSV)',
+  'reservations.wallet.add': 'Добавить в Apple Wallet',
+  'reservations.wallet.failed': 'Не удалось создать карту Wallet. Повторите попытку.',
+  'reservations.wallet.undated': 'Сначала укажите дату брони: Wallet показывает карту ближе к этому времени.',
 };
 export default reservations;

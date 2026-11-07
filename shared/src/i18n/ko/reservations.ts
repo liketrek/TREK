@@ -266,5 +266,8 @@ const reservations: TranslationStrings = {
     '파일을 업로드하려면 연결이 필요합니다. 오프라인으로 예약을 저장하려면 새 파일을 제거하거나, 다시 온라인이 되면 저장하세요.',
   'reservations.needsConnection': '연결이 필요한 작업입니다. TREK가 다시 온라인이 되면 다시 시도하세요.',
   'reservations.exportCsvFiltered': '표시된 {total}행 중 {shown}행 내보내기 (CSV)',
+  'reservations.wallet.add': 'Apple Wallet에 추가',
+  'reservations.wallet.failed': 'Wallet 패스를 만들지 못했습니다. 다시 시도하세요.',
+  'reservations.wallet.undated': '먼저 예약에 날짜를 지정하세요. Wallet은 그 시간 즈음에 패스를 보여 줍니다.',
 };
 export default reservations;

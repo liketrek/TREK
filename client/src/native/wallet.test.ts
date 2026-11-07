@@ -9,7 +9,7 @@ vi.mock('./capabilities', () => ({ hasNativeFeature: (name: string) => name === 
 vi.mock('./trekShell', () => ({ TrekShell: shell }));
 vi.mock('./reportFailure', () => ({ reportNativeFailure: report }));
 
-import { addToWallet, canAddToWallet, isWalletPassName } from './wallet';
+import { addReservationToWallet, addToWallet, canAddToWallet, isWalletPassName } from './wallet';
 
 const pass = new Blob(['PK\u0003\u0004pass'], { type: 'application/vnd.apple.pkpass' });
 
@@ -60,5 +60,39 @@ describe('Apple Wallet', () => {
     env.ios = false;
     expect(await addToWallet(pass)).toBe(false);
     expect(shell.addToWallet).not.toHaveBeenCalled();
+  });
+});
+
+describe('a booking into Wallet', () => {
+  const answer = (status: number) =>
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(status === 200 ? pass : '{}', { status }));
+
+  it('fetches the booking pass in the user language and hands it to Wallet', async () => {
+    const fetchSpy = answer(200);
+    shell.addToWallet.mockResolvedValue({ result: 'added' });
+    expect(await addReservationToWallet(42, 7, 'de')).toBe('added');
+    expect(fetchSpy).toHaveBeenCalledWith('/api/trips/42/reservations/7/wallet-pass?lang=de', {
+      credentials: 'include',
+    });
+    fetchSpy.mockRestore();
+  });
+
+  it('tells an undated booking from a failure', async () => {
+    let fetchSpy = answer(422);
+    expect(await addReservationToWallet(42, 7, 'en')).toBe('undated');
+    fetchSpy.mockRestore();
+    fetchSpy = answer(502);
+    expect(await addReservationToWallet(42, 7, 'en')).toBe('failed');
+    fetchSpy.mockRestore();
+    fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('offline'));
+    expect(await addReservationToWallet(42, 7, 'en')).toBe('failed');
+    fetchSpy.mockRestore();
+  });
+
+  it('fails when Wallet does not take the pass', async () => {
+    const fetchSpy = answer(200);
+    shell.addToWallet.mockRejectedValue({ code: 'INVALID' });
+    expect(await addReservationToWallet(42, 7, 'en')).toBe('failed');
+    fetchSpy.mockRestore();
   });
 });

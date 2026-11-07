@@ -32,3 +32,30 @@ export async function addToWallet(blob: Blob): Promise<boolean> {
     return false;
   }
 }
+
+/** What a tap on "Add to Apple Wallet" came to. */
+export type ReservationWalletOutcome = 'added' | 'undated' | 'failed';
+
+/**
+ * A booking's pass, made by this server (GET .../reservations/:id/wallet-pass,
+ * signed by the TREK services) and handed to Apple Wallet's sheet. `undated`:
+ * the booking has no date yet, which Wallet needs to bring the pass up.
+ */
+export async function addReservationToWallet(
+  tripId: number,
+  reservationId: number,
+  language: string
+): Promise<ReservationWalletOutcome> {
+  let response: Response;
+  try {
+    response = await fetch(
+      `/api/trips/${tripId}/reservations/${reservationId}/wallet-pass?lang=${encodeURIComponent(language)}`,
+      { credentials: 'include' }
+    );
+  } catch {
+    return 'failed';
+  }
+  if (response.status === 422) return 'undated';
+  if (!response.ok) return 'failed';
+  return (await addToWallet(await response.blob())) ? 'added' : 'failed';
+}
