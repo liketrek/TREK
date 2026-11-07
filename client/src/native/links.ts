@@ -14,3 +14,10 @@ export const DEMO_SERVER_URL = 'https://demo.liketrek.com';
 
 /** TREK Cloud, for someone who wants a hosted TREK rather than running their own. */
 export const CLOUD_URL = 'https://liketrek.com';
+
+/**
+ * The terms an in-app subscription is sold under: Apple's standard licence
+ * agreement, which the App Store applies when an app names no own EULA. The
+ * store rules ask for it next to the purchase, together with the privacy policy.
+ */
+export const STORE_TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';

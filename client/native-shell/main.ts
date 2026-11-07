@@ -5,8 +5,8 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import logoUrl from '../public/icons/icon-white.svg';
 import logoBlack from '../public/logo-dark.svg'; // #000 wordmark, for light backgrounds
 import logoWhite from '../public/logo-light.svg'; // #fff wordmark, for dark backgrounds
-import { getIapClient, productIdFor, type Purchase } from '../src/native/iap';
-import { CLOUD_URL, PRIVACY_URL, SERVER_DOCS_URL } from '../src/native/links';
+import { fakeIapClient, getIapClient, productIdFor, type Purchase } from '../src/native/iap';
+import { CLOUD_URL, PRIVACY_URL, SERVER_DOCS_URL, STORE_TERMS_URL } from '../src/native/links';
 import { probeDemo, probeServer, type ProbeFailure, type ProbeGet } from '../src/native/serverAddress';
 import { TrekShell } from '../src/native/trekShell';
 import { pickLocale, translator } from './i18n';
@@ -28,8 +28,12 @@ const root = document.getElementById('shell')!;
 const PROBE_TIMEOUT_MS = 8000;
 
 const iap = getIapClient();
-/** Whether this build can take a payment in-app; decided once at start. Until then, and in a store build without the purchase plugin, the plan picker finishes on the web. */
-let iapAvailable = false;
+/**
+ * Whether this build can take a payment in-app, asked once at start. Without it
+ * the plan picker shows the plans but offers no way to buy: the store rules
+ * allow no link or button that sends a buyer to the website instead.
+ */
+const iapReady: Promise<boolean> = iap.isAvailable().catch(() => false);
 
 /** The subdomain suffix a cloud instance sits on, from the cloud address: `liketrek.com` → `.liketrek.com`. */
 function cloudSuffix(): string {
@@ -359,34 +363,54 @@ async function fetchPlans(): Promise<CloudPlan[] | null> {
   return null;
 }
 
-function subscribe(plan: CloudPlan, interval: 'month' | 'year'): void {
-  void tap(ImpactStyle.Medium);
-  // In-app purchase when this build can take one; otherwise finish on the web, so
-  // nothing half-wired faces a customer until the store products exist.
-  if (iapAvailable) {
-    showClaim(plan, interval);
-  } else {
-    window.open(`${CLOUD_URL}/order?plan=${encodeURIComponent(plan.id)}`, '_blank', 'noopener');
-  }
+/**
+ * What the plan picker can sell. With the store, a plan is offered at the price
+ * string the App Store gives for its product, in the buyer's currency, and only
+ * when the store knows that product. The fake (development, preview) sells
+ * every plan at the plan list's price. Without either, nothing is for sale.
+ */
+interface Offer {
+  canBuy: boolean;
+  storePrices: Map<string, string> | null;
 }
 
-function planCard(plan: CloudPlan, interval: 'month' | 'year', featured: boolean): HTMLElement {
-  const price = interval === 'year' ? plan.yearlyCents : plan.monthlyCents;
+function offerFor(offer: Offer, plan: CloudPlan, interval: 'month' | 'year'): { label: string; buyable: boolean } {
+  const cents = interval === 'year' ? plan.yearlyCents : plan.monthlyCents;
+  const storePrice = offer.storePrices?.get(productIdFor(plan.id, interval));
+  if (offer.storePrices) return { label: storePrice ?? money(cents), buyable: offer.canBuy && !!storePrice };
+  return { label: money(cents), buyable: offer.canBuy };
+}
+
+async function loadOffer(plans: CloudPlan[]): Promise<Offer> {
+  const canBuy = await iapReady;
+  if (!canBuy || iap === fakeIapClient) return { canBuy, storePrices: null };
+  const ids = plans.flatMap((p) => [productIdFor(p.id, 'month'), productIdFor(p.id, 'year')]);
+  return { canBuy, storePrices: await iap.prices(ids) };
+}
+
+function planCard(plan: CloudPlan, interval: 'month' | 'year', offer: Offer): HTMLElement {
+  const { label, buyable } = offerFor(offer, plan, interval);
   const per = interval === 'year' ? t('native.plans.perYear') : t('native.plans.perMonth');
   const feat = (text: string) => el('span', {}, icon(I.check, 16), text);
   // An absent feature (e.g. a plan with no AI documents): a muted dash, not a
   // green tick, so "none" never reads as a perk.
   const featOff = (text: string) => el('span', { className: 'off' }, icon('M5 12h14', 16), text);
-  const sub = el('button', { type: 'button', className: 'btn' }, t('native.plans.subscribe'));
-  sub.addEventListener('click', () => subscribe(plan, interval));
+  let sub: HTMLElement | null = null;
+  if (buyable) {
+    sub = el('button', { type: 'button', className: 'btn' }, t('native.plans.subscribe'));
+    sub.addEventListener('click', () => {
+      void tap(ImpactStyle.Medium);
+      showClaim(plan, interval, label);
+    });
+  }
   return el(
     'div',
-    { className: featured ? 'plan featured' : 'plan' },
+    { className: 'plan' },
     el(
       'div',
       { className: 'plan-top' },
       el('span', { className: 'plan-name' }, plan.name),
-      el('span', { className: 'plan-price' }, money(price), el('small', {}, per))
+      el('span', { className: 'plan-price' }, label, el('small', {}, per))
     ),
     el(
       'div',
@@ -397,15 +421,65 @@ function planCard(plan: CloudPlan, interval: 'month' | 'year', featured: boolean
         ? feat(t('native.plans.aiDocs', { n: String(plan.aiDocuments) }))
         : featOff(t('native.plans.noAi'))
     ),
-    sub
+    ...(sub ? [sub] : [])
   );
+}
+
+/**
+ * Below the plans. With a store: how the subscription renews, the terms and the
+ * privacy policy, and a way to restore a subscription this Apple ID already
+ * holds (a reinstall, a new phone). Without one: only that buying in the app is
+ * not available, and no pointer elsewhere.
+ */
+function planFooter(offer: Offer): Node[] {
+  if (!offer.canBuy) return [el('p', { className: 'note' }, t('native.plans.soon'))];
+
+  const status = el('p', { className: 'hint', role: 'status' });
+  const restore = el('button', { type: 'button', className: 'btn btn-ghost' }, t('native.plans.restore'));
+  restore.addEventListener('click', async () => {
+    void tap();
+    restore.disabled = true;
+    status.className = 'hint';
+    status.textContent = t('native.plans.restoring');
+    const purchase = await iap.restore();
+    if (!purchase) {
+      restore.disabled = false;
+      status.textContent = t('native.plans.restoreNone');
+      return;
+    }
+    // A restore finds the instance the purchase was first redeemed for; address and email are not asked again.
+    const redeemed = await redeemPurchase('', '', purchase);
+    if (redeemed.ok && redeemed.instanceUrl) {
+      await iap.finish(purchase);
+      showProvisioning(redeemed.instanceUrl);
+      return;
+    }
+    void notify(NotificationType.Error);
+    restore.disabled = false;
+    status.className = 'hint bad';
+    status.textContent = t('native.plans.restoreFailed');
+  });
+
+  return [
+    restore,
+    status,
+    el('p', { className: 'note' }, t('native.plans.legal')),
+    el(
+      'div',
+      { className: 'foot-links' },
+      externalLink(t('native.plans.terms'), STORE_TERMS_URL),
+      externalLink(t('native.privacy'), PRIVACY_URL)
+    ),
+  ];
 }
 
 function showPlans(opts: { back?: boolean } = {}): void {
   let interval: 'month' | 'year' = 'month';
   let plans: CloudPlan[] | null = null;
+  let offer: Offer = { canBuy: false, storePrices: null };
 
   const content = el('div', { className: 'loading' }, el('span', { className: 'spinner' }));
+  const footer = el('div', { className: 'plans-foot' });
 
   const monthBtn = el('button', { type: 'button' }, t('native.plans.monthly'));
   const yearBtn = el('button', { type: 'button' }, t('native.plans.yearly'));
@@ -419,7 +493,7 @@ function showPlans(opts: { back?: boolean } = {}): void {
     const list = plans;
     if (!list) return;
     content.className = 'plans';
-    content.replaceChildren(...list.map((p) => planCard(p, interval, false)));
+    content.replaceChildren(...list.map((p) => planCard(p, interval, offer)));
   };
   const choose = (next: 'month' | 'year') => {
     if (interval === next) return;
@@ -433,9 +507,12 @@ function showPlans(opts: { back?: boolean } = {}): void {
   paintSeg();
 
   const load = async () => {
-    plans = await fetchPlans();
-    if (plans) {
+    const list = await fetchPlans();
+    if (list) {
+      offer = await loadOffer(list);
+      plans = list;
       renderList();
+      footer.replaceChildren(...planFooter(offer));
       return;
     }
     content.className = '';
@@ -458,7 +535,7 @@ function showPlans(opts: { back?: boolean } = {}): void {
       el('p', { className: 'sub' }, t('native.plans.sub')),
       seg,
       content,
-      el('p', { className: 'note' }, t('native.plans.soon'))
+      footer
     ),
     opts
   );
@@ -507,8 +584,9 @@ async function redeemPurchase(slug: string, email: string, purchase: Purchase): 
   }
 }
 
-function showClaim(plan: CloudPlan, interval: 'month' | 'year', opts: { back?: boolean } = {}): void {
-  const price = interval === 'year' ? plan.yearlyCents : plan.monthlyCents;
+function showClaim(plan: CloudPlan, interval: 'month' | 'year', price: string, opts: { back?: boolean } = {}): void {
+  /** A purchase that went through but whose redeem did not: a retry redeems it again instead of buying twice. */
+  let bought: Purchase | null = null;
 
   const slugInput = el('input', {
     type: 'text',
@@ -546,7 +624,7 @@ function showClaim(plan: CloudPlan, interval: 'month' | 'year', opts: { back?: b
   const submit = el(
     'button',
     { type: 'submit', className: 'btn' },
-    t('native.claim.subscribe', { price: money(price) })
+    t('native.claim.subscribe', { price })
   );
   const error = el('p', { className: 'error', role: 'alert' });
   const form = el(
@@ -617,24 +695,33 @@ function showClaim(plan: CloudPlan, interval: 'month' | 'year', opts: { back?: b
     submit.replaceChildren(el('span', { className: 'spinner' }), t('native.connect.checking'));
     const restore = () => {
       lock(false);
-      submit.replaceChildren(t('native.claim.subscribe', { price: money(price) }));
+      submit.replaceChildren(t('native.claim.subscribe', { price }));
     };
 
-    const outcome = await iap.purchase(productIdFor(plan.id, interval));
-    if (outcome.kind === 'cancelled') {
-      restore();
-      error.textContent = t('native.claim.cancelled');
-      return;
-    }
-    if (outcome.kind === 'failed') {
-      void notify(NotificationType.Error);
-      restore();
-      error.textContent = t('native.claim.failed');
-      return;
+    if (!bought) {
+      const outcome = await iap.purchase(productIdFor(plan.id, interval));
+      if (outcome.kind === 'cancelled') {
+        restore();
+        error.textContent = t('native.claim.cancelled');
+        return;
+      }
+      if (outcome.kind === 'pending') {
+        restore();
+        error.textContent = t('native.claim.pending');
+        return;
+      }
+      if (outcome.kind === 'failed') {
+        void notify(NotificationType.Error);
+        restore();
+        error.textContent = t('native.claim.failed');
+        return;
+      }
+      bought = outcome.purchase;
     }
 
-    const redeemed = await redeemPurchase(slug, email, outcome.purchase);
+    const redeemed = await redeemPurchase(slug, email, bought);
     if (redeemed.ok && redeemed.instanceUrl) {
+      await iap.finish(bought);
       showProvisioning(redeemed.instanceUrl);
       return;
     }
@@ -808,9 +895,6 @@ async function paintStatusBar(): Promise<void> {
 
 async function start(): Promise<void> {
   void paintStatusBar();
-  iap.isAvailable().then((ok) => {
-    iapAvailable = ok;
-  });
   let url: string | null;
   try {
     ({ url } = await TrekShell.getServer());

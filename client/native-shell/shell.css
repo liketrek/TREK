@@ -881,6 +881,20 @@ a.linkbtn {
   margin: 2px 0 0;
   line-height: 1.45;
 }
+/* Under the plans: restore, the renewal terms, the legal links. */
+.plans-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+.plans-foot .hint {
+  text-align: center;
+  margin: 0;
+}
+.plans-foot .hint:empty {
+  display: none;
+}
 
 /* ── Claim: address + email, and the provisioning wait ───────────────────── */
 /* One rounded field holding the address input and its fixed ".liketrek.com"

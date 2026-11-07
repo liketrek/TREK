@@ -73,6 +73,16 @@ export interface TrekShellPlugin {
     total: number;
   }): Promise<{ running: boolean }>;
   endTripDay(): Promise<void>;
+  /** iOS, feature storeKit: the App Store's price strings for the products it knows. */
+  storeProducts(options: { ids: string[] }): Promise<{ products: { id: string; displayPrice: string }[] }>;
+  /** iOS, feature storeKit: the purchase sheet; `jws` is the signed transaction, set when bought. */
+  storePurchase(options: {
+    productId: string;
+  }): Promise<{ kind: 'bought' | 'cancelled' | 'pending' | 'failed'; jws?: string; transactionId?: string }>;
+  /** iOS, feature storeKit: marks a purchase delivered once its instance exists. */
+  storeFinish(options: { transactionId: string }): Promise<void>;
+  /** iOS, feature storeKit: the newest active subscription under `prefix` on this Apple ID, if any. */
+  storeRestore(options: { prefix: string }): Promise<{ jws?: string; transactionId?: string }>;
   addListener(
     event: 'pushOpened',
     listener: (payload: { url: string }) => void

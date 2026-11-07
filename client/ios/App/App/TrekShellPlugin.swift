@@ -3,6 +3,7 @@ import Capacitor
 import CoreLocation
 import CryptoKit
 import Security
+import StoreKit
 import UserNotifications
 import WidgetKit
 #if canImport(ActivityKit)
@@ -39,6 +40,10 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
         CAPPluginMethod(name: "setWidgetSnapshot", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "syncTripDay", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "endTripDay", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "storeProducts", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "storePurchase", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "storeFinish", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "storeRestore", returnType: CAPPluginReturnPromise),
     ]
 
     /// What this binary offers the server's UI, raised with every native feature
@@ -46,7 +51,7 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
     /// and a server can require a minimum (minNativeShellApi in /api/health/features).
     static let shellApi = 2
     /// The native features by name, so the UI can turn each on by itself.
-    static let features: [String] = ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation", "sharedFiles", "nativePush", "widgets", "liveActivity", "widgetTrips"]
+    static let features: [String] = ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation", "sharedFiles", "nativePush", "widgets", "liveActivity", "widgetTrips", "storeKit"]
 
     // MARK: - Shared booking documents
 
@@ -57,6 +62,7 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
         TrekPush.shared.onOpen = { [weak self] url in
             DispatchQueue.main.async { self?.notifyListeners("pushOpened", data: ["url": url]) }
         }
+        TrekStore.watchUpdates()
     }
 
     // MARK: - Widgets and the travel-day Live Activity
@@ -375,6 +381,134 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
 
 /// Positions and errors for the UI, shaped like the Geolocation API's, with the
 /// When-In-Use permission asked the first time.
+// MARK: - In-app purchase
+
+extension TrekShellPlugin {
+    /// Feature storeKit: the App Store's own price strings for the given products,
+    /// already in the buyer's currency and format. Products the store does not
+    /// know are left out, so the shell offers only what can really be bought.
+    @objc func storeProducts(_ call: CAPPluginCall) {
+        let ids = call.getArray("ids", String.self) ?? []
+        Task {
+            guard AppStore.canMakePayments, let products = try? await Product.products(for: ids) else {
+                call.resolve(["products": []])
+                return
+            }
+            call.resolve(["products": products.map { ["id": $0.id, "displayPrice": $0.displayPrice] }])
+        }
+    }
+
+    /// Feature storeKit: runs the App Store purchase sheet. Resolves with `kind`
+    /// bought (with the signed transaction the control plane verifies), cancelled,
+    /// pending (Ask to Buy, a payment the bank still has to approve) or failed.
+    /// The transaction stays unfinished until storeFinish, so a purchase whose
+    /// instance was never set up is delivered again rather than lost.
+    @objc func storePurchase(_ call: CAPPluginCall) {
+        guard let id = call.getString("productId") else {
+            call.reject("productId is required")
+            return
+        }
+        Task {
+            do {
+                guard let product = try await Product.products(for: [id]).first else {
+                    call.resolve(["kind": "failed"])
+                    return
+                }
+                switch try await product.purchase() {
+                case .success(let verification):
+                    guard case .verified(let transaction) = verification else {
+                        call.resolve(["kind": "failed"])
+                        return
+                    }
+                    call.resolve([
+                        "kind": "bought",
+                        "jws": verification.jwsRepresentation,
+                        "transactionId": String(transaction.id),
+                    ])
+                case .userCancelled:
+                    call.resolve(["kind": "cancelled"])
+                case .pending:
+                    call.resolve(["kind": "pending"])
+                @unknown default:
+                    call.resolve(["kind": "failed"])
+                }
+            } catch {
+                call.resolve(["kind": "failed"])
+            }
+        }
+    }
+
+    /// Feature storeKit: marks a purchase as delivered, once its instance exists.
+    @objc func storeFinish(_ call: CAPPluginCall) {
+        guard let raw = call.getString("transactionId"), let id = UInt64(raw) else {
+            call.reject("transactionId is required")
+            return
+        }
+        Task {
+            await TrekStore.finish(id)
+            call.resolve()
+        }
+    }
+
+    /// Feature storeKit: the newest active subscription on this Apple ID among
+    /// products starting with `prefix`, after syncing with the App Store. Resolves
+    /// without `jws` when there is none.
+    @objc func storeRestore(_ call: CAPPluginCall) {
+        let prefix = call.getString("prefix") ?? "cloud."
+        Task {
+            // Asks for the Apple ID password when needed; a cancel still leaves the local entitlements to check.
+            try? await AppStore.sync()
+            guard let found = await TrekStore.currentEntitlement(prefix: prefix) else {
+                call.resolve([:])
+                return
+            }
+            call.resolve(["jws": found.jws, "transactionId": String(found.id)])
+        }
+    }
+}
+
+enum TrekStore {
+    private static var updates: Task<Void, Never>?
+
+    /// Listens for transactions that arrive outside a purchase sheet. Renewals are
+    /// finished at once: the control plane learns of them from Apple's server
+    /// notifications. A first purchase that lands here (Ask to Buy approved later,
+    /// a purchase interrupted by the app closing) stays unfinished for the shell
+    /// to redeem through a restore.
+    static func watchUpdates() {
+        guard updates == nil else { return }
+        updates = Task.detached {
+            for await result in Transaction.updates {
+                guard case .verified(let transaction) = result else { continue }
+                if transaction.originalID != transaction.id {
+                    await transaction.finish()
+                }
+            }
+        }
+    }
+
+    static func finish(_ id: UInt64) async {
+        for await result in Transaction.unfinished {
+            if case .verified(let transaction) = result, transaction.id == id {
+                await transaction.finish()
+            }
+        }
+    }
+
+    static func currentEntitlement(prefix: String) async -> (jws: String, id: UInt64)? {
+        var newest: (date: Date, jws: String, id: UInt64)?
+        for await result in Transaction.currentEntitlements {
+            guard case .verified(let transaction) = result,
+                  transaction.productID.hasPrefix(prefix),
+                  transaction.revocationDate == nil else { continue }
+            if newest == nil || transaction.purchaseDate > newest!.date {
+                newest = (transaction.purchaseDate, result.jwsRepresentation, transaction.id)
+            }
+        }
+        return newest.map { ($0.jws, $0.id) }
+    }
+}
+
 final class TrekLocation: NSObject, CLLocationManagerDelegate {
     private let manager = CLLocationManager()
     private let emit: ([String: Any]) -> Void
