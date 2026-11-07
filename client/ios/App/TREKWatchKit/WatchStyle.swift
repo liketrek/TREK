@@ -139,6 +139,7 @@ struct WatchEyebrow: ViewModifier {
             .tracking(0.4)
             .foregroundStyle(color)
             .lineLimit(1)
+            .minimumScaleFactor(0.65)
     }
 }
 

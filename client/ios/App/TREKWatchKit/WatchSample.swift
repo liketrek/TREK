@@ -121,7 +121,8 @@ enum WatchSample {
         let todos = WatchSnapshot.Todos(items: todoList, open: todoItems.filter { !$0.3 }.count, total: todoItems.count)
         return WatchSnapshot(
             generatedAt: ISO8601DateFormatter().string(from: now.addingTimeInterval(-4 * 60)),
-            hour12: false,
+            // The clock of the watch's region, as a user's TREK setting would usually match it.
+            hour12: DateFormatter.dateFormat(fromTemplate: "j", options: 0, locale: .current)?.contains("a") ?? false,
             trip: .init(id: 1, title: t("Autumn in Kyoto"), start: iso(0), end: iso(8), place: t("Kyoto, Japan"), cover: nil),
             days: days,
             bookings: bookings,

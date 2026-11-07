@@ -1,4 +1,10 @@
 import SwiftUI
+import WatchKit
+
+/// The 40 and 41 mm cases, where a line less decides whether a screen ends clean.
+enum WatchScreen {
+    static let compact = WKInterfaceDevice.current().screenBounds.width < 180
+}
 
 // MARK: - Today
 
@@ -59,7 +65,7 @@ struct TodayPage: View {
                 VStack(alignment: .leading, spacing: 1) {
                     HStack(spacing: 3) {
                         Text(WatchFormat.dayOf(index, total)).watchEyebrow(.white.opacity(0.85))
-                        Image(systemName: "chevron.right")
+                        Image(systemName: "chevron.forward")
                             .font(.system(size: 9, weight: .heavy))
                             .foregroundStyle(WatchLook.muted)
                     }
@@ -96,7 +102,7 @@ struct FocusCard: View {
                 Spacer(minLength: 0)
             }
             Text(stop.name)
-                .font(.system(.title3, design: .rounded).weight(.bold))
+                .font(.system(WatchScreen.compact ? .headline : .title3, design: .rounded).weight(.bold))
                 .foregroundStyle(WatchLook.ink)
                 .lineLimit(2)
                 .minimumScaleFactor(0.75)
@@ -328,20 +334,20 @@ struct BookingSummary: View {
     @Environment(\.trekNow) private var now
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-                KindBadge(kind: booking.kind, size: 22)
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(WatchLook.kindName(booking.kind)).watchEyebrow(.white.opacity(0.85))
-                    HStack(spacing: 3) {
-                        Circle().fill(booking.confirmed ? Trek.confirmed : Trek.pending).frame(width: 5, height: 5)
-                        Text(L(booking.confirmed ? "booking.confirmed" : "booking.pending"))
-                    }
+        VStack(alignment: .leading, spacing: WatchScreen.compact ? 4 : 6) {
+            // The kind and the status in one line: "FLIGHT · Confirmed".
+            HStack(spacing: 5) {
+                KindBadge(kind: booking.kind, size: 20)
+                Text(WatchLook.kindName(booking.kind)).watchEyebrow(.white.opacity(0.85))
+                Circle().fill(booking.confirmed ? Trek.confirmed : Trek.pending).frame(width: 5, height: 5)
+                Text(L(booking.confirmed ? "booking.confirmed" : "booking.pending"))
                     .font(.system(.caption2, design: .rounded).weight(.medium))
                     .foregroundStyle(WatchLook.muted)
-                }
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                 Spacer(minLength: 0)
             }
+            .accessibilityElement(children: .combine)
             if let route = booking.route {
                 Text(route)
                     .font(.system(.title2, design: .rounded).weight(.heavy))
@@ -371,27 +377,37 @@ struct BookingSummary: View {
         let moment = running ? booking.end : booking.start
         let clock = running ? booking.checkOut ?? booking.endTime : booking.time
         if let moment {
-            HStack(alignment: .firstTextBaseline, spacing: 5) {
-                if let clock, let minutes = TrekDate.minutes(clock) {
-                    Text(WatchFormat.time(minutes: minutes, hour12: hour12))
-                        .font(.system(.title3, design: .rounded).weight(.bold).monospacedDigit())
-                        .layoutPriority(2)
-                }
-                Text(running ? L("booking.checkOut") : dayLabel(moment))
+            // The day goes first when the line is too short for all three.
+            ViewThatFits(in: .horizontal) {
+                timeLine(clock: clock, label: running ? L("booking.checkOut") : dayLabel(moment), moment: moment)
+                timeLine(clock: clock, label: nil, moment: moment)
+            }
+        }
+    }
+
+    private func timeLine(clock: String?, label: String?, moment: Date) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 5) {
+            if let clock, let minutes = TrekDate.minutes(clock) {
+                Text(WatchFormat.time(minutes: minutes, hour12: hour12))
+                    .font(.system(.title3, design: .rounded).weight(.bold).monospacedDigit())
+                    .fixedSize()
+            }
+            if let label {
+                Text(label)
                     .font(.system(.caption2, design: .rounded).weight(.semibold))
                     .foregroundStyle(WatchLook.muted)
+                    .fixedSize()
+            }
+            Spacer(minLength: 2)
+            if moment > now {
+                Text(WatchFormat.relative(moment, now: now))
+                    .font(.system(.caption2, design: .rounded).weight(.bold))
+                    .foregroundStyle(.white)
                     .lineLimit(1)
-                Spacer(minLength: 2)
-                if moment > now {
-                    Text(WatchFormat.relative(moment, now: now))
-                        .font(.system(.caption2, design: .rounded).weight(.bold))
-                        .foregroundStyle(.white)
-                        .lineLimit(1)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 3)
-                        .background(Capsule().fill(Trek.booking(booking.kind).color.opacity(0.85)))
-                        .layoutPriority(1)
-                }
+                    .minimumScaleFactor(0.8)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(Capsule().fill(Trek.booking(booking.kind).color.opacity(0.85)))
             }
         }
     }

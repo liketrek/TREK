@@ -129,12 +129,12 @@ struct TimelineRow: View {
             Text(stop.minutes.map { WatchFormat.time(minutes: $0, hour12: hour12) } ?? "")
                 .font(.system(.caption2, design: .rounded).weight(.semibold).monospacedDigit())
                 .foregroundStyle(state == .now ? Trek.confirmed : WatchLook.muted)
-                .frame(width: hour12 ? 50 : 36, alignment: .trailing)
+                .frame(width: (hour12 ? 50 : 36) - (WatchScreen.compact ? 4 : 0), alignment: .trailing)
                 .padding(.top, 5)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             VStack(spacing: 0) {
-                StopGlyph(stop: stop, size: 22, dimmed: state == .past)
+                StopGlyph(stop: stop, size: WatchScreen.compact ? 18 : 22, dimmed: state == .past)
                     .overlay(Circle().stroke(Trek.confirmed, lineWidth: state == .now ? 2 : 0).padding(-3))
                 if !isLast {
                     Rectangle()
