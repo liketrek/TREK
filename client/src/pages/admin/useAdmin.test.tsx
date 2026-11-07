@@ -878,6 +878,11 @@ describe('useAdmin', () => {
     expect(result.current.activeTab).toBe('audit');
   });
 
+  it('opens the notifications tab from the admin email manage link', async () => {
+    const { result } = await mountAdmin('/admin?tab=notifications');
+    expect(result.current.activeTab).toBe('notifications');
+  });
+
   /*
    * A tab id with no panel behind it — a typo, or a link from an install that
    * has tabs this one does not — used to open the page on an empty content
