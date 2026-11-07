@@ -40,7 +40,7 @@ struct DaysListView: View {
 
     private func summary(_ day: WatchSnapshot.Day) -> String {
         guard let first = day.stops.first else { return L("day.empty") }
-        return day.stops.count > 1 ? "\(first.name) +\(day.stops.count - 1)" : first.name
+        return first.booking.map { "\(WatchLook.kindName($0)) \(first.name)" } ?? first.name
     }
 
     private func isPast(_ day: WatchSnapshot.Day) -> Bool {
@@ -60,6 +60,10 @@ struct DayView: View {
         let day = snapshot.days.indices.contains(index) ? snapshot.days[index] : nil
         let isToday = day?.date == TrekDate.iso(now)
         let nowMinutes = isToday ? TrekDate.minutesOfDay(now) : (isPastDay(day) ? 24 * 60 : -1)
+        let stopsOfDay = day?.stops ?? []
+        // Today opens at the stop that is on or next, with the one before it for context.
+        let focus = isToday ? stopsOfDay.firstIndex { ($0.endMinutes ?? $0.minutes ?? -1) > nowMinutes } : nil
+        ScrollViewReader { proxy in
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 VStack(alignment: .leading, spacing: 1) {
@@ -87,8 +91,13 @@ struct DayView: View {
                         )
                     }
                     .buttonStyle(.plain)
+                    .id(offset)
                 }
             }
+        }
+        .onAppear {
+            if let focus, focus > 1 { proxy.scrollTo(focus - 1, anchor: .top) }
+        }
         }
         .navigationTitle(day?.dateValue.map { WatchFormat.weekday($0) } ?? L("trip.days"))
         .containerBackground(WatchLook.tripGradient(snapshot.trip?.title ?? "TREK"), for: .navigation)
@@ -219,8 +228,8 @@ struct MiniMap: View {
 
     var body: some View {
         let coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lng)
-        // Flat and muted, without points of interest, so the stop's own pin is
-        // what stands out; Apple's attribution stays in its corner, untouched.
+        // From above, without street names or points of interest, so the stop's
+        // own pin is what stands out; Apple's attribution stays in its corner.
         Map(initialPosition: .region(MKCoordinateRegion(center: coordinate, latitudinalMeters: 700, longitudinalMeters: 700)), interactionModes: []) {
             Annotation(name, coordinate: coordinate, anchor: .center) {
                 Circle()
@@ -231,7 +240,7 @@ struct MiniMap: View {
             }
             .annotationTitles(.hidden)
         }
-        .mapStyle(.standard(elevation: .flat, emphasis: .muted, pointsOfInterest: .excludingAll, showsTraffic: false))
+        .mapStyle(.imagery(elevation: .flat))
         .frame(height: 104)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .accessibilityHidden(true)
@@ -358,6 +367,7 @@ struct BookingsListView: View {
             }
         }
         .navigationTitle(L("booking.all"))
+        .containerBackground(WatchLook.tripGradient(snapshot.trip?.title ?? "TREK"), for: .navigation)
     }
 
     private func when(_ booking: WatchSnapshot.Booking) -> String {

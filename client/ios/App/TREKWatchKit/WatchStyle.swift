@@ -51,7 +51,7 @@ enum WatchFormat {
         if abs(date.timeIntervalSince(now)) < 60 { return L("time.now") }
         // Against `now`, not the system clock, so the screenshot mode's clock counts too.
         let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .abbreviated
+        formatter.unitsStyle = .short
         formatter.dateTimeStyle = .numeric
         return formatter.localizedString(for: date, relativeTo: now)
     }
@@ -59,8 +59,8 @@ enum WatchFormat {
     /// The time to a moment as a short count: "25 min", "2 h 15 min", "3 d".
     static func countdown(_ date: Date, now: Date) -> String {
         let seconds = max(date.timeIntervalSince(now), 0)
-        let formatter = DateComponentsFormatter()
-        formatter.unitsStyle = .abbreviated
+        let formatter = WatchFormat.components()
+        formatter.unitsStyle = .short
         formatter.maximumUnitCount = 2
         formatter.allowedUnits = seconds >= 86_400 ? [.day, .hour] : seconds >= 3_600 ? [.hour, .minute] : [.minute]
         return formatter.string(from: max(seconds, 60)) ?? ""
@@ -70,12 +70,22 @@ enum WatchFormat {
     /// "дней", "日"), taken from the system's own phrase so no plural rules
     /// have to be kept here: the number is formatted and then cut out.
     static func daysUnit(_ count: Int) -> String {
-        let formatter = DateComponentsFormatter()
+        let formatter = WatchFormat.components()
         formatter.unitsStyle = .full
         formatter.allowedUnits = [.day]
         let phrase = formatter.string(from: DateComponents(day: count)) ?? ""
         let word = phrase.unicodeScalars.filter { !CharacterSet.decimalDigits.contains($0) }
         return String(String.UnicodeScalarView(word)).trimmingCharacters(in: .whitespacesAndNewlines.union(.punctuationCharacters))
+    }
+
+    /// A duration formatter in the watch's language: it takes its words from
+    /// its calendar's locale, which is not the app's own unless set.
+    static func components() -> DateComponentsFormatter {
+        let formatter = DateComponentsFormatter()
+        var calendar = Calendar.current
+        calendar.locale = Locale.current
+        formatter.calendar = calendar
+        return formatter
     }
 
     static func dayOf(_ index: Int, _ total: Int) -> String {

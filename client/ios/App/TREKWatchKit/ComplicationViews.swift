@@ -199,7 +199,7 @@ struct CountdownComplication: View {
 
     /// The single biggest unit: "2h", "35m", "12d".
     private func short(_ target: Date) -> String {
-        let formatter = DateComponentsFormatter()
+        let formatter = WatchFormat.components()
         formatter.unitsStyle = .abbreviated
         formatter.maximumUnitCount = 1
         let seconds = max(target.timeIntervalSince(now), 60)

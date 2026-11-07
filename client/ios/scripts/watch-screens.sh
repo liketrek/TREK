@@ -42,11 +42,15 @@ boot() {
   echo "$udid"
 }
 
-# A fixed-offset zone in which it is now <hour> o'clock, so the clock the
-# watch draws in the corner agrees with the time the screen is about.
-zone_for() {
-  local offset=$(( ($1 - 10#$(date -u +%H) + 36) % 24 - 12 ))
-  if [ "$offset" -ge 0 ]; then echo "Etc/GMT-$offset"; else echo "Etc/GMT+$(( -offset ))"; fi
+# The watch draws the Mac's clock in its corner, so the Mac goes to a zone in
+# which it is about one o'clock: the hour the sample trip's screens are made for
+# (WatchSample.swift), and the clock and the countdowns agree.
+set_clock() {
+  local offset=$(( (13 - 10#$(date -u +%H) + 36) % 24 - 12 ))
+  local zone
+  if [ "$offset" -ge 0 ]; then zone="Etc/GMT-$offset"; else zone="Etc/GMT+$(( -offset ))"; fi
+  sudo ln -sf "/usr/share/zoneinfo/$zone" /etc/localtime
+  echo "clock: $zone, $(date +%H:%M)"
 }
 
 # Waits for the ready file the app writes once the screen has drawn (DemoMode.signalReady).
@@ -61,19 +65,21 @@ wait_ready() {
 }
 
 TOKEN=0
-# shot <udid> <file> <screen> <scenario> <hour> <language>: one launch, retried
+# shot <udid> <file> <screen> <scenario> <time or -> <language>: one launch, retried
 # after 2, 5 and 10 seconds when the simulator refuses it.
 shot() {
-  local udid=$1 file=$2 screen=$3 scenario=$4 hour=$5 lang=$6
+  local udid=$1 file=$2 screen=$3 scenario=$4 clock=$5 lang=$6
   local locale=${lang//-/_} attempt
   for attempt in 0 2 5 10; do
     [ "$attempt" -gt 0 ] && { echo "retrying $(basename "$file") in ${attempt}s"; sleep "$attempt"; }
     TOKEN=$((TOKEN + 1))
     xcrun simctl terminate "$udid" "$BUNDLE" >/dev/null 2>&1 || true
     sleep 0.5
-    SIMCTL_CHILD_TZ=$(zone_for "$hour") xcrun simctl launch "$udid" "$BUNDLE" \
+    local extra=()
+    [ "$clock" = - ] || extra=(-TrekNow "$clock")
+    xcrun simctl launch "$udid" "$BUNDLE" \
       -AppleLanguages "($lang)" -AppleLocale "$locale" -TrekDemo "$screen" -TrekScenario "$scenario" \
-      -TrekReady "$TOKEN" >/dev/null 2>&1 || continue
+      -TrekReady "$TOKEN" "${extra[@]}" >/dev/null 2>&1 || continue
     wait_ready "$udid" "$TOKEN" || continue
     # The map's tiles come over the network after the screen is up.
     [ "$screen" = place ] && sleep 6
@@ -82,50 +88,51 @@ shot() {
   echo "gave up on $(basename "$file")"
 }
 
-# name screen scenario hour: every screen, and the states a screen has.
+# name screen scenario clock: every screen, and the states a screen has; a
+# clock only where the state needs another hour than the real one.
 SHOTS="
-today today running 13
-today-travelday today travelday 10
-today-done today running 22
-day day running 13
-place place running 13
-booking booking travelday 10
-booking-dinner booking running 17
-bookings bookings travelday 10
-booking-detail booking-detail travelday 10
-trip trip running 13
-trip-upcoming trip upcoming 9
-days days running 13
-countdown countdown upcoming 9
-lists lists upcoming 19
-packing packing upcoming 19
-todos todos upcoming 19
-empty empty running 12
-nosync nosync running 12
-faces faces running 13
+today today running -
+today-travelday today travelday -
+today-done today running 22:30
+day day running -
+place place running -
+booking booking travelday -
+booking-dinner booking running -
+bookings bookings travelday -
+booking-detail booking-detail travelday -
+trip trip running -
+trip-upcoming trip upcoming -
+days days running -
+countdown countdown upcoming -
+lists lists upcoming -
+packing packing upcoming -
+todos todos upcoming -
+empty empty running -
+nosync nosync running -
+faces faces running -
 "
 MAIN="today booking countdown trip lists packing day"
 LANGS="ar az ca cs de el en es et fr he hu id it ja ko nl pl pt-BR ru sk sv th tr uk vi zh-Hans zh-Hant"
 
 EXPECTED=()
 run() {
-  local size=$1 udid=$2 lang shotname screen scenario hour
+  local size=$1 udid=$2 lang shotname screen scenario clock
   for lang in en de ru; do
-    while read -r shotname screen scenario hour; do
+    while read -r shotname screen scenario clock; do
       [ -n "$shotname" ] || continue
       EXPECTED+=("$size-$lang-$shotname.png")
-      shot "$udid" "$OUT/$size-$lang-$shotname.png" "$screen" "$scenario" "$hour" "$lang"
+      shot "$udid" "$OUT/$size-$lang-$shotname.png" "$screen" "$scenario" "$clock" "$lang"
     done <<< "$SHOTS"
   done
   if [ "$size" = small ]; then
     for lang in $LANGS; do
       case "$lang" in en|de|ru) continue ;; esac
-      while read -r shotname screen scenario hour; do
+      while read -r shotname screen scenario clock; do
         [ -n "$shotname" ] || continue
         case " $MAIN " in
           *" $shotname "*)
             EXPECTED+=("$size-$lang-$shotname.png")
-            shot "$udid" "$OUT/$size-$lang-$shotname.png" "$screen" "$scenario" "$hour" "$lang"
+            shot "$udid" "$OUT/$size-$lang-$shotname.png" "$screen" "$scenario" "$clock" "$lang"
             ;;
         esac
       done <<< "$SHOTS"
@@ -136,6 +143,7 @@ run() {
 
 # One watch at a time: launches on several booted simulators at once is what
 # makes SpringBoard refuse them ("Scene update failed").
+set_clock
 run large "$(boot "$LARGE" | tail -1)"
 run medium "$(boot "$MEDIUM" | tail -1)"
 run small "$(boot "$SMALL" | tail -1)"

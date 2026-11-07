@@ -39,21 +39,11 @@ struct TodayPage: View {
                     DoneCard(title: L("today.free"), detail: L("today.freeBody"), symbol: "sun.max.fill")
                 } else {
                     DoneCard(title: L("today.done"), detail: L("today.doneBody"), symbol: "checkmark.circle.fill")
-                    if let todayIndex {
-                        NavigationLink(value: Route.day(todayIndex)) {
-                            Label(L("today.plan"), systemImage: "list.bullet")
-                                .font(.system(.footnote, design: .rounded).weight(.semibold))
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 8)
-                                .watchCard(cornerRadius: 14)
-                        }
-                        .buttonStyle(.plain)
-                    }
                 }
             }
         }
+        .contentMargins(.horizontal, 5, for: .scrollContent)
         .containerBackground(WatchLook.tripGradient(snapshot.trip?.title ?? "TREK"), for: .tabView)
-        .navigationTitle(L("today.title"))
         .toolbar {
             if let weather = snapshot.weather {
                 ToolbarItem(placement: .topBarTrailing) { WeatherBadge(weather: weather) }
@@ -66,19 +56,19 @@ struct TodayPage: View {
     private var header: some View {
         if case .running(let index, let total) = snapshot.phase(at: now), let todayIndex = snapshot.todayIndex(at: now) {
             NavigationLink(value: Route.day(todayIndex)) {
-                HStack(alignment: .center, spacing: 4) {
-                    VStack(alignment: .leading, spacing: 1) {
+                VStack(alignment: .leading, spacing: 1) {
+                    HStack(spacing: 3) {
                         Text(WatchFormat.dayOf(index, total)).watchEyebrow(.white.opacity(0.85))
-                        Text(snapshot.trip?.title ?? "")
-                            .font(.system(.footnote, design: .rounded).weight(.semibold))
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 9, weight: .heavy))
                             .foregroundStyle(WatchLook.muted)
-                            .lineLimit(1)
                     }
-                    Spacer(minLength: 0)
-                    Image(systemName: "list.bullet")
+                    Text(snapshot.trip?.title ?? "")
                         .font(.system(.footnote, design: .rounded).weight(.semibold))
                         .foregroundStyle(WatchLook.muted)
+                        .lineLimit(1)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -104,23 +94,28 @@ struct FocusCard: View {
                 Text(L(isNow ? "today.now" : "today.next"))
                     .watchEyebrow(isNow ? Trek.confirmed : WatchLook.muted)
                 Spacer(minLength: 0)
-                if let target = countdownTarget {
-                    Text(WatchFormat.relative(target, now: now))
-                        .font(.system(.caption, design: .rounded).weight(.bold))
-                        .foregroundStyle(isNow ? WatchLook.muted : Trek.confirmed)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                }
             }
             Text(stop.name)
                 .font(.system(.title3, design: .rounded).weight(.bold))
                 .foregroundStyle(WatchLook.ink)
                 .lineLimit(2)
                 .minimumScaleFactor(0.75)
-            if let times = timeRange {
-                Text(times)
-                    .font(.system(.footnote, design: .rounded).weight(.medium).monospacedDigit())
-                    .foregroundStyle(WatchLook.muted)
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                if let times = timeRange {
+                    Text(times)
+                        .font(.system(.footnote, design: .rounded).weight(.medium).monospacedDigit())
+                        .foregroundStyle(WatchLook.muted)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+                Spacer(minLength: 2)
+                if let target = countdownTarget, target > now {
+                    Text(WatchFormat.relative(target, now: now))
+                        .font(.system(.footnote, design: .rounded).weight(.bold))
+                        .foregroundStyle(isNow ? WatchLook.muted : Trek.confirmed)
+                        .lineLimit(1)
+                        .layoutPriority(1)
+                }
             }
             if let then {
                 Divider().overlay(Color.white.opacity(0.12)).padding(.vertical, 2)
@@ -148,8 +143,9 @@ struct FocusCard: View {
 
     /// Next: until it starts. Now: until it ends.
     private var countdownTarget: Date? {
-        let minutes = isNow ? stop.endMinutes : stop.minutes
-        return minutes.map { TrekDate.at($0, on: now) }
+        guard !isNow, let minutes = stop.minutes else { return nil }
+        let start = TrekDate.at(minutes, on: now)
+        return start.timeIntervalSince(now) >= 60 ? start : nil
     }
 
     private var timeRange: String? {
@@ -285,6 +281,7 @@ struct CountdownPage: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
+        .padding(.horizontal, 5)
         .containerBackground(for: .tabView) {
             TripBackdrop(trip: widgetTrip(trip), shade: 0.7)
         }
@@ -311,12 +308,13 @@ struct BookingPage: View {
     var body: some View {
         ScrollView {
             NavigationLink(value: Route.booking(booking.id)) {
-                BookingSummary(booking: booking, hour12: hour12)
+                BookingSummary(booking: booking, hour12: hour12, compactFacts: true)
             }
             .buttonStyle(.plain)
         }
+        .contentMargins(.horizontal, 5, for: .scrollContent)
         .containerBackground(WatchLook.tint(Trek.booking(booking.kind).color), for: .tabView)
-        .navigationTitle(L("booking.next"))
+
     }
 }
 
@@ -325,6 +323,8 @@ struct BookingSummary: View {
     let booking: WatchSnapshot.Booking
     let hour12: Bool
     var showFacts = true
+    /// The page's single row of facts rather than all of them.
+    var compactFacts = false
     @Environment(\.trekNow) private var now
 
     var body: some View {
@@ -364,31 +364,34 @@ struct BookingSummary: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// The time it starts (or, for a stay under way, ends) and how long until then.
+    /// The time it starts (or, for a stay under way, ends), its day, and how long until then, in one line.
     @ViewBuilder
     private var timing: some View {
         let running = booking.kind == "hotel" && (booking.start ?? .distantFuture) < now
         let moment = running ? booking.end : booking.start
         let clock = running ? booking.checkOut ?? booking.endTime : booking.time
         if let moment {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 5) {
                 if let clock, let minutes = TrekDate.minutes(clock) {
                     Text(WatchFormat.time(minutes: minutes, hour12: hour12))
                         .font(.system(.title3, design: .rounded).weight(.bold).monospacedDigit())
+                        .layoutPriority(2)
                 }
-                Text(dayLabel(moment))
+                Text(running ? L("booking.checkOut") : dayLabel(moment))
                     .font(.system(.caption2, design: .rounded).weight(.semibold))
                     .foregroundStyle(WatchLook.muted)
-                Spacer(minLength: 0)
-            }
-            if running {
-                Text(L("booking.checkOut") + " · " + WatchFormat.relative(moment, now: now))
-                    .font(.system(.caption, design: .rounded).weight(.bold))
-                    .foregroundStyle(Trek.booking(booking.kind).color)
-            } else if moment > now {
-                Text(WatchFormat.relative(moment, now: now))
-                    .font(.system(.caption, design: .rounded).weight(.bold))
-                    .foregroundStyle(Trek.booking(booking.kind).color.mix(with: .white, by: 0.35))
+                    .lineLimit(1)
+                Spacer(minLength: 2)
+                if moment > now {
+                    Text(WatchFormat.relative(moment, now: now))
+                        .font(.system(.caption2, design: .rounded).weight(.bold))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(Capsule().fill(Trek.booking(booking.kind).color.opacity(0.85)))
+                        .layoutPriority(1)
+                }
             }
         }
     }
@@ -410,9 +413,25 @@ struct BookingSummary: View {
         return WatchFormat.day(date)
     }
 
+    /// On the page one row, the reference and the seat; in the detail all of them.
     @ViewBuilder
     private var facts: some View {
         let tiles = factTiles
+        if compactFacts {
+            HStack(spacing: 6) {
+                if let code = booking.code { FactTile(label: L("booking.ref"), value: code, mono: true) }
+                if let first = tiles.first {
+                    FactTile(label: first.label, value: first.value)
+                        .frame(maxWidth: booking.code == nil ? .infinity : 64)
+                }
+            }
+        } else {
+            factsInFull(tiles)
+        }
+    }
+
+    @ViewBuilder
+    private func factsInFull(_ tiles: [(label: String, value: String)]) -> some View {
         if !tiles.isEmpty {
             HStack(spacing: 6) {
                 ForEach(tiles.prefix(2), id: \.label) { tile in
@@ -492,8 +511,9 @@ struct TripPage: View {
             .buttonStyle(.plain)
             .foregroundStyle(WatchLook.ink)
         }
+        .contentMargins(.horizontal, 5, for: .scrollContent)
         .containerBackground(WatchLook.tripGradient(trip?.title ?? "TREK"), for: .tabView)
-        .navigationTitle(L("trip.title"))
+
     }
 }
 
@@ -567,8 +587,9 @@ struct ListsPage: View {
             }
         }
         .frame(maxHeight: .infinity)
+        .padding(.horizontal, 5)
         .containerBackground(WatchLook.tint(WatchLook.packing), for: .tabView)
-        .navigationTitle(L("lists.title"))
+
     }
 }
 
