@@ -25,7 +25,8 @@ const native: TranslationStrings = {
   'native.settings.server': 'Server', // same-as-en
   'native.settings.serverHint': 'Bu tətbiq {server} serverinə qoşulub.',
   'native.welcome.headline': 'Səyahətlərin.\nPlanın.',
-  'native.welcome.sub': 'Real vaxtda birlikdə planlayın: turlar, büdcələr, jurnallar, foto kitab — süni intellektlə.',
+  'native.welcome.sub':
+    'Real vaxtda birlikdə planlayın: turlar, büdcələr, jurnallar və foto kitab, süni intellektin köməyi ilə.',
   'native.welcome.connect': 'TREK-inizi qoşun',
   'native.welcome.connectSub': 'Artıq istifadə etdiyiniz ünvanı açın',
   'native.welcome.getCloud': 'TREK Cloud əldə edin',

@@ -26,7 +26,7 @@ const native: TranslationStrings = {
   'native.settings.server': 'Szerver',
   'native.settings.serverHint': 'Ez az alkalmazás ehhez csatlakozik: {server}.',
   'native.welcome.headline': 'Az utazásaid.\nA terved.',
-  'native.welcome.sub': 'Tervezzetek együtt valós időben: túrák, költségvetések, napló, fotókönyv — MI-vel.',
+  'native.welcome.sub': 'Tervezzetek együtt valós időben: túrák, költségvetések, napló és fotókönyv, MI segítségével.',
   'native.welcome.connect': 'Csatlakoztasd a TREK-edet',
   'native.welcome.connectSub': 'Nyisd meg a címet, amit már használsz',
   'native.welcome.getCloud': 'TREK Cloud beszerzése',

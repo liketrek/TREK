@@ -25,7 +25,7 @@ const native: TranslationStrings = {
   'native.settings.server': 'Server', // same-as-en
   'native.settings.serverHint': 'Deze app is verbonden met {server}.',
   'native.welcome.headline': 'Jouw reizen.\nJouw plan.',
-  'native.welcome.sub': 'Plan samen in realtime: tours, budgetten, dagboek, fotoboek — met AI.',
+  'native.welcome.sub': 'Plan samen in realtime: tours, budgetten, dagboek en fotoboek, met hulp van AI.',
   'native.welcome.connect': 'Verbind je TREK',
   'native.welcome.connectSub': 'Open het adres dat je al gebruikt',
   'native.welcome.getCloud': 'Neem TREK Cloud',

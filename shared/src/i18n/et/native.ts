@@ -25,7 +25,7 @@ const native: TranslationStrings = {
   'native.settings.server': 'Server', // same-as-en
   'native.settings.serverHint': 'See rakendus on ühendatud serveriga {server}.',
   'native.welcome.headline': 'Sinu reisid.\nSinu plaan.',
-  'native.welcome.sub': 'Planeeri koos reaalajas: teekonnad, eelarved, päevik, fotoraamat — tehisintellektiga.',
+  'native.welcome.sub': 'Planeeri koos reaalajas: teekonnad, eelarved, päevik ja fotoraamat, tehisintellekti abiga.',
   'native.welcome.connect': 'Ühenda oma TREK',
   'native.welcome.connectSub': 'Ava aadress, mida juba kasutad',
   'native.welcome.getCloud': 'Hangi TREK Cloud',

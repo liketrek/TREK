@@ -25,7 +25,7 @@ const native: TranslationStrings = {
   'native.settings.server': 'เซิร์ฟเวอร์',
   'native.settings.serverHint': 'แอปนี้เชื่อมต่อกับ {server} อยู่',
   'native.welcome.headline': 'การเดินทางของคุณ\nแผนของคุณ',
-  'native.welcome.sub': 'วางแผนร่วมกันแบบเรียลไทม์: ทัวร์ งบประมาณ บันทึกการเดินทาง โฟโต้บุ๊ก — ด้วย AI',
+  'native.welcome.sub': 'วางแผนร่วมกันแบบเรียลไทม์: ทัวร์ งบประมาณ บันทึกการเดินทาง และโฟโต้บุ๊ก โดยมี AI ช่วย',
   'native.welcome.connect': 'เชื่อมต่อ TREK ของคุณ',
   'native.welcome.connectSub': 'เปิดที่อยู่ที่คุณใช้อยู่แล้ว',
   'native.welcome.getCloud': 'รับ TREK Cloud',

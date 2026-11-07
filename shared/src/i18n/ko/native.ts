@@ -25,7 +25,7 @@ const native: TranslationStrings = {
   'native.settings.server': '서버',
   'native.settings.serverHint': '이 앱은 {server}에 연결되어 있습니다.',
   'native.welcome.headline': '당신의 여행.\n당신의 계획.',
-  'native.welcome.sub': '실시간으로 함께 계획하세요: 투어, 예산, 저널, 포토북 — AI와 함께.',
+  'native.welcome.sub': '실시간으로 함께 계획하세요: 투어, 예산, 저널, 포토북까지 AI와 함께.',
   'native.welcome.connect': '내 TREK 연결',
   'native.welcome.connectSub': '이미 사용하는 주소 열기',
   'native.welcome.getCloud': 'TREK Cloud 시작하기',

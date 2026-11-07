@@ -25,7 +25,7 @@ const native: TranslationStrings = {
   'native.settings.server': 'Сервер',
   'native.settings.serverHint': 'Приложение подключено к {server}.',
   'native.welcome.headline': 'Ваши поездки.\nВаш план.',
-  'native.welcome.sub': 'Планируйте вместе в реальном времени: туры, бюджеты, дневник, фотокнига — с ИИ.',
+  'native.welcome.sub': 'Планируйте вместе в реальном времени: туры, бюджеты, дневник и фотокнига, с помощью ИИ.',
   'native.welcome.connect': 'Подключите свой TREK',
   'native.welcome.connectSub': 'Откройте адрес, которым уже пользуетесь',
   'native.welcome.getCloud': 'Получить TREK Cloud',

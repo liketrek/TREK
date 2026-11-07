@@ -25,7 +25,7 @@ const native: TranslationStrings = {
   'native.settings.server': '服务器',
   'native.settings.serverHint': '此应用已连接到 {server}。',
   'native.welcome.headline': '你的旅行。\n你的计划。',
-  'native.welcome.sub': '实时协同规划：路线、预算、游记、相册书——搭配 AI。',
+  'native.welcome.sub': '实时协同规划：路线、预算、游记、相册书，还有 AI 协助。',
   'native.welcome.connect': '连接你的 TREK',
   'native.welcome.connectSub': '打开你已在使用的地址',
   'native.welcome.getCloud': '获取 TREK Cloud',

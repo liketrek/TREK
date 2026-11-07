@@ -25,7 +25,7 @@ const native: TranslationStrings = {
   'native.settings.server': 'Server', // same-as-en
   'native.settings.serverHint': 'Táto aplikácia je pripojená k serveru {server}.',
   'native.welcome.headline': 'Vaše cesty.\nVáš plán.',
-  'native.welcome.sub': 'Plánujte spoločne v reálnom čase: trasy, rozpočty, denníky, fotokniha — s AI.',
+  'native.welcome.sub': 'Plánujte spoločne v reálnom čase: trasy, rozpočty, denníky a fotokniha, s pomocou AI.',
   'native.welcome.connect': 'Pripojte svoj TREK',
   'native.welcome.connectSub': 'Otvorte adresu, ktorú už používate',
   'native.welcome.getCloud': 'Získať TREK Cloud',

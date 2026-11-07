@@ -25,7 +25,7 @@ const native: TranslationStrings = {
   'native.settings.server': 'الخادم',
   'native.settings.serverHint': 'هذا التطبيق متصل بـ {server}.',
   'native.welcome.headline': 'رحلاتك.\nخطتك.',
-  'native.welcome.sub': 'خطّطوا معًا في الوقت الفعلي: جولات وميزانيات ويوميات وألبوم صور — بالذكاء الاصطناعي.',
+  'native.welcome.sub': 'خطّطوا معًا في الوقت الفعلي: جولات وميزانيات ويوميات وألبوم صور، بمساعدة الذكاء الاصطناعي.',
   'native.welcome.connect': 'اربط TREK الخاص بك',
   'native.welcome.connectSub': 'افتح العنوان الذي تستخدمه بالفعل',
   'native.welcome.getCloud': 'احصل على TREK Cloud',

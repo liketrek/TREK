@@ -26,7 +26,8 @@ const native: TranslationStrings = {
   'native.settings.server': 'Máy chủ',
   'native.settings.serverHint': 'Ứng dụng này đang kết nối với {server}.',
   'native.welcome.headline': 'Chuyến đi của bạn.\nKế hoạch của bạn.',
-  'native.welcome.sub': 'Lập kế hoạch cùng nhau theo thời gian thực: tour, ngân sách, nhật ký, photobook — với AI.',
+  'native.welcome.sub':
+    'Lập kế hoạch cùng nhau theo thời gian thực: tour, ngân sách, nhật ký và photobook, với sự hỗ trợ của AI.',
   'native.welcome.connect': 'Kết nối TREK của bạn',
   'native.welcome.connectSub': 'Mở địa chỉ bạn vẫn dùng',
   'native.welcome.getCloud': 'Nhận TREK Cloud',

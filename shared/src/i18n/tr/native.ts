@@ -26,7 +26,7 @@ const native: TranslationStrings = {
   'native.settings.serverHint': 'Bu uygulama {server} adresine bağlı.',
   'native.welcome.headline': 'Gezileriniz.\nPlanınız.',
   'native.welcome.sub':
-    'Gerçek zamanlı birlikte planlayın: turlar, bütçeler, günlükler, fotoğraf kitabı — yapay zekâyla.',
+    'Gerçek zamanlı birlikte planlayın: turlar, bütçeler, günlükler ve fotoğraf kitabı, yapay zekâ desteğiyle.',
   'native.welcome.connect': 'TREK’inizi bağlayın',
   'native.welcome.connectSub': 'Zaten kullandığınız adresi açın',
   'native.welcome.getCloud': 'TREK Cloud’u edinin',

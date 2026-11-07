@@ -25,7 +25,7 @@ const native: TranslationStrings = {
   'native.settings.server': 'Server', // same-as-en
   'native.settings.serverHint': 'Aplikasi ini terhubung ke {server}.',
   'native.welcome.headline': 'Perjalanan Anda.\nRencana Anda.',
-  'native.welcome.sub': 'Rencanakan bersama secara real time: tur, anggaran, jurnal, buku foto — dengan AI.',
+  'native.welcome.sub': 'Rencanakan bersama secara real time: tur, anggaran, jurnal, dan buku foto, dibantu AI.',
   'native.welcome.connect': 'Hubungkan TREK Anda',
   'native.welcome.connectSub': 'Buka alamat yang sudah Anda pakai',
   'native.welcome.getCloud': 'Dapatkan TREK Cloud',
