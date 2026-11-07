@@ -71,6 +71,19 @@ describe('MNavRail', () => {
     expect(within(rail()).getByRole('button', { name: 'Admin' })).toBeInTheDocument();
   });
 
+  it('FE-MOB-RAIL-012: settings and administration, and their sub pages, mark their own entry in the rail', () => {
+    useAuthStore.setState({ user: buildUser({ role: 'admin' }) });
+    const { unmount } = render(<MNavRail />, { initialEntries: ['/settings'] });
+    expect(within(rail()).getByRole('button', { name: 'Settings' })).toHaveAttribute('aria-current', 'page');
+    expect(within(rail()).getByRole('button', { name: 'Admin' })).not.toHaveAttribute('aria-current');
+    unmount();
+
+    render(<MNavRail />, { initialEntries: ['/admin/users'] });
+    expect(within(rail()).getByRole('button', { name: 'Admin' })).toHaveAttribute('aria-current', 'page');
+    expect(within(rail()).getByRole('button', { name: 'Settings' })).not.toHaveAttribute('aria-current');
+    expect(within(rail()).getByRole('button', { name: 'My Trips' })).not.toHaveAttribute('aria-current');
+  });
+
   it("FE-MOB-RAIL-004: the create button keeps the dock's meaning and its exceptions", () => {
     const { unmount } = render(
       <>

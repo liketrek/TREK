@@ -1,5 +1,5 @@
 // FE-MOB-JDET-001 to FE-MOB-JDET-048
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, onTestFinished, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '../../../helpers/render';
 import { setSizeClass } from '../../../helpers/sizeClass';
 import MJourneyDetail from '../../../../src/mobile/screens/journey/MJourneyDetail';
@@ -246,6 +246,21 @@ afterEach(() => {
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 describe('MJourneyDetail', () => {
+  it('FE-MOB-JDET-049: a folded Duo on its side (540px high) gets the compact cards, so the map keeps its room', () => {
+    const real = window.matchMedia;
+    // Height queries answered for a window 540px high; the rest as the setup answers them.
+    const tall = (query: string): MediaQueryList => {
+      const max = /\(\s*max-height:\s*(\d+)px\s*\)/.exec(query);
+      const list = real(query);
+      return max ? ({ ...list, matches: 540 <= Number(max[1]), media: query } as MediaQueryList) : list;
+    };
+    window.matchMedia = tall;
+    onTestFinished(() => { window.matchMedia = real; });
+    setup();
+    expect(document.querySelector('.h-\\[112px\\]')).toBeInTheDocument();
+    expect(document.querySelector('.h-\\[152px\\]')).not.toBeInTheDocument();
+  });
+
   it('FE-MOB-JDET-001: shows a spinner while the journey is loading', () => {
     setup({ loading: true, current: null });
     expect(document.querySelector('.animate-spin')).toBeInTheDocument();

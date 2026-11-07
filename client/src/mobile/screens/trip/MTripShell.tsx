@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ComponentType } from
 import { findFocusDayId, findTodayDayId } from '../../../components/Planner/today'
 import { takeResumeDay } from '../../../utils/resumeRoute'
 import {
-  CalendarDays, ChevronDown, ChevronLeft, Download, FileDown, List, Map as MapIcon, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Plane, Route, SlidersHorizontal, Trash2, Upload,
+  CalendarDays, ChevronDown, ChevronLeft, Download, FileDown, List, Map as MapIcon, PanelLeftClose, PanelLeftOpen, Plane, Route, SlidersHorizontal, Trash2, Upload,
 } from 'lucide-react'
 import { useTripPlanner } from '../../../pages/tripPlanner/useTripPlanner'
 import { pickDockTabs } from './dockTabs'
@@ -29,7 +29,7 @@ import { useDayPreviewStore } from '../../dayPreviewStore'
 import { useIsSplit, useIsWide } from '../../../hooks/sizeClass'
 import MTripRail from './MTripRail'
 import {
-  CollabSegment, CompactToggle, DayRailSteps, DocSyncButton, GlassSegment, HeaderActions, PrimaryPill, ROW_AFTER_BACK, ROW_CENTRED,
+  CollabSegment, CompactToggle, DayRailSteps, DockMoreButton, DocSyncButton, GlassSegment, HeaderActions, PrimaryPill, ROW_AFTER_BACK, ROW_CENTRED,
 } from './MTripShellParts'
 import { edgeFadeClass, useEdgeFade } from '../../components/useEdgeFade'
 import { useShortcuts } from '../../keyboard/useShortcuts'
@@ -927,17 +927,12 @@ export default function MTripShell({
             </button>
           )
         })}
-        <button
-          type="button"
-          onClick={() => openSheet('mehr')}
-          aria-label={t('mobileTrip.more')}
-          aria-expanded={sheet?.id === 'mehr'}
-          className={`flex h-[42px] w-[42px] flex-none items-center justify-center rounded-full ${
-            sheet?.id === 'mehr' ? 'bg-m-act text-m-actfg' : 'text-m-muted'
-          }`}
-        >
-          <MoreHorizontal size={19} strokeWidth={2.2} />
-        </button>
+        <DockMoreButton
+          open={sheet?.id === 'mehr'}
+          standsFor={!dockTabs.some(tab => tab.id === trTab)}
+          onOpen={() => openSheet('mehr')}
+          label={t('mobileTrip.more')}
+        />
       </nav>}
 
       <Sheets planner={planner} shell={shell} />

@@ -42,8 +42,12 @@ import MJourneyRecordingSheet from './MJourneyRecordingSheet'
  * (`embedded`): the trip's back button and controls sit on top, so the screen
  * drops its own back button and leaves the trip's URL alone.
  */
-/** A phone on its side: too short for the regular strip of cards and the map above it. */
-const SHORT_WINDOW = '(max-height: 500px)'
+/**
+ * A phone on its side, or a folded Duo on its side (about 540px high): too short
+ * for the regular strip of cards and the map above it. Higher than the shell's
+ * 500px for that Duo, whose regular cards left the map a band under the header.
+ */
+const SHORT_WINDOW = '(max-height: 600px)'
 function subscribeShort(onChange: () => void) {
   const mq = window.matchMedia(SHORT_WINDOW)
   mq.addEventListener('change', onChange)

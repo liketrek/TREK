@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, FolderSync, List, Plus, Rows3 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FolderSync, List, MoreHorizontal, Plus, Rows3 } from 'lucide-react';
 import { useCallback, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { canManageDocSync } from '../../../components/Files/docsync/useDocSync';
 import { useDocSyncOffered } from '../../../components/Files/docsync/useDocSyncOffered';
@@ -281,6 +281,40 @@ export function CompactToggle({ active, onToggle, label }: { active: boolean; on
       }`}
     >
       {active ? <Rows3 size={15} strokeWidth={2} /> : <List size={15} strokeWidth={2} />}
+    </button>
+  );
+}
+
+/**
+ * The phone dock's More. It stands for its sections (chat, notes, files and the
+ * rest) while one is on show, and for itself while open: marked as a ring, as
+ * the main dock's More is, not filled like a tab it would then read as.
+ */
+export function DockMoreButton({
+  open,
+  standsFor,
+  onOpen,
+  label,
+}: {
+  open: boolean;
+  standsFor: boolean;
+  onOpen: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label={label}
+      aria-expanded={open}
+      aria-current={!open && standsFor ? 'page' : undefined}
+      className={`flex h-[42px] w-[42px] flex-none items-center justify-center rounded-full ${
+        open || standsFor
+          ? 'bg-[color:var(--m-ic)] text-m-ink ring-[1.5px] ring-inset ring-[color:var(--m-act)]'
+          : 'text-m-muted'
+      }`}
+    >
+      <MoreHorizontal size={19} strokeWidth={2.2} />
     </button>
   );
 }

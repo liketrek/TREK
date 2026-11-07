@@ -421,10 +421,20 @@ describe('MTripShell', () => {
     expect(more).toHaveAttribute('aria-expanded', 'false')
     fireEvent.click(more)
     expect(more).toHaveAttribute('aria-expanded', 'true')
-    expect(more).toHaveClass('bg-m-act')
+    // A ring, as the main dock marks its More, not the fill of a tab.
+    expect(more).toHaveClass('ring-[1.5px]')
+    expect(more).not.toHaveClass('bg-m-act')
     expect(plan).not.toHaveAttribute('aria-current')
     act(() => { shellApi.closeSheet() })
     expect(plan).toHaveAttribute('aria-current', 'page')
+    expect(more).not.toHaveClass('ring-[1.5px]')
+  })
+
+  it('FE-MOB-SHELL-098: a section reached through More marks More with the ring while it is on show', () => {
+    renderShell({ activeTab: 'dateien' } as Partial<TripPlanner>)
+    const more = screen.getByRole('button', { name: 'mobileTrip.more' })
+    expect(more).toHaveAttribute('aria-current', 'page')
+    expect(more).toHaveClass('ring-[1.5px]')
     expect(more).not.toHaveClass('bg-m-act')
   })
 

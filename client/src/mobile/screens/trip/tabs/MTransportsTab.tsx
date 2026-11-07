@@ -144,7 +144,7 @@ function TransportCard({ res, planner, shell, canEdit, compact }: {
             type="button"
             onClick={toggleStatus}
             aria-label={confirmed ? t('reservations.pending') : t('reservations.confirmed')}
-            className="-m-1 flex-none p-1"
+            className="-m-1 flex flex-none p-1"
           >
             <StatusDot color={dotColor} />
           </button>

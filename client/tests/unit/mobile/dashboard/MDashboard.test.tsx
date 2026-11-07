@@ -8,6 +8,7 @@ import { useInAppNotificationStore } from '../../../../src/store/inAppNotificati
 import { usePluginStore } from '../../../../src/store/pluginStore';
 import type { TripCardBadge } from '../../../../src/api/client';
 import type { DashboardTrip } from '../../../../src/pages/dashboard/dashboardModel';
+import { setSizeClass } from '../../../helpers/sizeClass';
 
 // FE-MOB-DASH-001 onwards
 
@@ -414,6 +415,21 @@ describe('MDashboard', () => {
     expect(screen.getByText('Currency')).toBeInTheDocument();
     expect(screen.getByText('Timezones')).toBeInTheDocument();
     expect(screen.getByText('Upcoming reservations')).toBeInTheDocument();
+  });
+
+  it('FE-MOB-DASH-041: crossing the split size keeps the widgets mounted, so the converter keeps its amount', () => {
+    mocks.dash = buildDash();
+    render(<MDashboard />);
+    const amount = screen.getAllByRole('textbox', { name: 'From' })[0] as HTMLInputElement;
+    fireEvent.change(amount, { target: { value: '250' } });
+
+    setSizeClass('split');
+    expect(screen.getAllByRole('textbox', { name: 'From' })[0]).toBe(amount);
+    expect(amount.value).toBe('250');
+
+    setSizeClass('compact');
+    expect(screen.getAllByRole('textbox', { name: 'From' })[0]).toBe(amount);
+    expect(amount.value).toBe('250');
   });
 
   it('FE-MOB-DASH-027: a malformed date renders a dash instead of crashing', () => {

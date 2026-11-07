@@ -544,7 +544,8 @@ function TimelineHeader({ tl, dayLabel, openLabel, weatherLabel, onOpenDay, onOp
             className={`${GLASS_CHIP} min-w-[4.5rem] shrink gap-[5px] px-2.5`}
           >
             <HotelChipIcon variant={chip.variant} />
-            <span className="min-w-0 truncate">{chip.name}</span>
+            {/* Its own direction, so a Latin name in an Arabic header is cut at its end, not its start. */}
+            <span dir="auto" className="min-w-0 truncate">{chip.name}</span>
             {chip.time && <span className="flex-none tabular-nums text-m-muted">{chip.time.slice(0, 5)}</span>}
           </button>
         ))}

@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { useIsSplit } from '../../../hooks/sizeClass'
 import {
   Archive, ArchiveRestore, ArrowRight, Bell, CalendarDays, CalendarPlus, Copy,
   LayoutGrid, List, MapPin, Pencil, Plus, RefreshCw, Sparkles, Trash2, Users,
@@ -60,7 +59,6 @@ export default function MDashboard(): React.ReactElement {
   const unread = useInAppNotificationStore(s => s.unreadCount)
   const fetchUnreadCount = useInAppNotificationStore(s => s.fetchUnreadCount)
   const [menuOpen, setMenuOpen] = useState(false)
-  const split = useIsSplit()
   const { available: assistantAvailable, open: openAssistant } = useAssistantHomeLauncher()
   const [subOpen, setSubOpen] = useState(false)
   // The filter chips scroll when a language's words do not fit beside the two
@@ -281,9 +279,12 @@ export default function MDashboard(): React.ReactElement {
 
         {/* Beside each other from the split size class on, the way the desktop
             dashboard holds them: the trips in the main column, the widgets in a
-            column of their own, each in the order the user set. */}
-        <div className="split:grid split:grid-cols-[minmax(0,1fr)_minmax(300px,360px)] split:items-start split:gap-6">
-          <div className="min-w-0">
+            column of their own, each in the order the user set. Narrower, both
+            columns dissolve (display: contents) into one stack ordered the same
+            way, so crossing the split size never moves a widget to another
+            parent and its state (the converter's amount, its rates) stays. */}
+        <div className="flex flex-col split:grid split:grid-cols-[minmax(0,1fr)_minmax(300px,360px)] split:items-start split:gap-6">
+          <div className="contents min-w-0 split:block">
             {spotlight && (
               <MSpotlightCard
                 trip={spotlight}
@@ -292,22 +293,18 @@ export default function MDashboard(): React.ReactElement {
                 actions={actionsFor(spotlight, 'list')}
               />
             )}
-            {(split ? dashOrder.filter(id => id === 'trips') : dashOrder).map(id => (
-              <React.Fragment key={id}>{renderBlock(id)}</React.Fragment>
-            ))}
+            <div style={{ order: dashOrder.indexOf('trips') }}>{renderBlock('trips')}</div>
           </div>
-          {(split || widgetPlugins.length > 0) && (
-            <div className="min-w-0 split:sticky split:top-[calc(var(--m-safe-top,12px)+82px)] split:-mt-[14px]">
-              {split && dashOrder.filter(id => id !== 'trips').map(id => (
-                <React.Fragment key={id}>{renderBlock(id)}</React.Fragment>
-              ))}
-              {widgetPlugins.length > 0 && (
-                <div className="mt-3 flex flex-col gap-3">
-                  <PluginWidgets plugins={widgetPlugins} tripId={spotlight ? String(spotlight.id) : null} />
-                </div>
-              )}
-            </div>
-          )}
+          <div className="contents min-w-0 split:sticky split:top-[calc(var(--m-safe-top,12px)+82px)] split:-mt-[14px] split:block">
+            {dashOrder.filter(id => id !== 'trips').map(id => (
+              <div key={id} style={{ order: dashOrder.indexOf(id) }}>{renderBlock(id)}</div>
+            ))}
+            {widgetPlugins.length > 0 && (
+              <div className="mt-3 flex flex-col gap-3" style={{ order: dashOrder.length }}>
+                <PluginWidgets plugins={widgetPlugins} tripId={spotlight ? String(spotlight.id) : null} />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
