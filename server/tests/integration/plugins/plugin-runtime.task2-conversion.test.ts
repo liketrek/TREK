@@ -13,6 +13,7 @@
  * so every one of the 14 repositories this task injects reads/writes real columns,
  * not a hand-slimmed fixture table.
  */
+import { SqliteEngine } from '../../../src/db/engine/sqlite/sqlite-engine';
 import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
 import { NotificationChannelPreferences } from '../../../src/db/entities/NotificationChannelPreferences.entity';
 import { PluginActions } from '../../../src/db/entities/PluginActions.entity';
@@ -76,7 +77,7 @@ async function buildRuntime(registrar?: CronRegistrarService): Promise<PluginRun
   const audit = new AuditService(t.repo(AuditLog), t.repo(Users));
   const addons = await createTestAddonsService(testDb);
   const userSettings = new PluginUserSettingsService(t.repo(PluginSettingsFields), t.repo(PluginUserConfig));
-  const uow = new UnitOfWork(t.em);
+  const uow = new UnitOfWork(t.em, new SqliteEngine());
   return new PluginRuntimeService(
     audit,
     addons,
@@ -218,7 +219,7 @@ describe('Plan 3j Task 2 — R-install-gates named accept+refuse pairs (PR17/PR2
         t.repo(PluginCapabilityAudit),
         t.repo(Settings),
         t.repo(NotificationChannelPreferences),
-        new UnitOfWork(t.em),
+        new UnitOfWork(t.em, new SqliteEngine()),
         fakeRegistry(['db:own']),
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -254,7 +255,7 @@ describe('Plan 3j Task 2 — R-install-gates named accept+refuse pairs (PR17/PR2
         t.repo(PluginCapabilityAudit),
         t.repo(Settings),
         t.repo(NotificationChannelPreferences),
-        new UnitOfWork(t.em),
+        new UnitOfWork(t.em, new SqliteEngine()),
         fakeRegistry(['db:own', 'db:read:trips']),
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -303,7 +304,7 @@ describe('Plan 3j Task 2 — R-install-gates named accept+refuse pairs (PR17/PR2
         t.repo(PluginCapabilityAudit),
         t.repo(Settings),
         t.repo(NotificationChannelPreferences),
-        new UnitOfWork(t.em),
+        new UnitOfWork(t.em, new SqliteEngine()),
         registry,
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -342,7 +343,7 @@ describe('Plan 3j Task 2 — R-install-gates named accept+refuse pairs (PR17/PR2
         t.repo(PluginCapabilityAudit),
         t.repo(Settings),
         t.repo(NotificationChannelPreferences),
-        new UnitOfWork(t.em),
+        new UnitOfWork(t.em, new SqliteEngine()),
         registry,
       );
       await expect(rtR.retrust('pr28-refuse', '2.0.0', 'NEWKEY', { userId: 1 })).rejects.toThrow(/nothing to re-trust/);

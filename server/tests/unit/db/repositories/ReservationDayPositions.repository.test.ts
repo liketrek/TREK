@@ -2,14 +2,15 @@
  * ReservationDayPositionsRepository — parity test (Plan 3d Task 7 whole-plan
  * review, item 9/"missing parity tests": this repository had no standalone
  * test file). ONE seeded world, one `toEqual(<legacy raw>)` test for the
- * read method (RS19); RS31 (`upsertScoped`, a write) already has coverage
- * through `reservations.service.test.ts`'s `updatePositions` cases.
+ * read method (RS19); RS31 (`upsertScoped`, a write) has coverage through
+ * `reservations.service.test.ts`'s `updatePositions` cases and, for the
+ * overwrite and the trip scoping its ON CONFLICT clause holds, below.
  */
 import { ReservationDayPositions } from '../../../../src/db/entities/ReservationDayPositions.entity';
 import type { ReservationDayPositionsRepository } from '../../../../src/db/repositories/ReservationDayPositions.repository';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
 import { createDay, createReservation, createTrip, createUser } from '../../../helpers/factories';
-import { insertRow } from '../../../helpers/factories/rows';
+import { findRows, insertRow } from '../../../helpers/factories/rows';
 import { resetTestDb } from '../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
 
@@ -84,5 +85,32 @@ describe('ReservationDayPositionsRepository — fully seeded world', () => {
       [day2.id, 1],
     ]);
     expect(await repo.listForReservation(999999)).toEqual([]);
+  });
+});
+
+describe('ReservationDayPositionsRepository.upsertScoped', () => {
+  it('RDP-UPSERT-001: a second write to the same reservation and day overwrites its position', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    const reservation = createReservation(testDb, trip.id, { day_id: day.id });
+
+    await repo.upsertScoped(trip.id, reservation.id, day.id, 1.5);
+    await repo.upsertScoped(trip.id, reservation.id, day.id, 4);
+
+    const rows = await findRows(t.orm, ReservationDayPositions, { reservation_id: reservation.id });
+    expect(rows.map((r) => [r.day_id, r.position])).toEqual([[day.id, 4]]);
+  });
+
+  it('RDP-UPSERT-002: a reservation of another trip writes no row', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const otherTrip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    const foreign = createReservation(testDb, otherTrip.id);
+
+    await repo.upsertScoped(trip.id, foreign.id, day.id, 2);
+
+    expect(await findRows(t.orm, ReservationDayPositions, { reservation_id: foreign.id })).toEqual([]);
   });
 });

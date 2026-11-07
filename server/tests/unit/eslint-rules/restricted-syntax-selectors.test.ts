@@ -140,7 +140,7 @@ declare const repo: { run(sql: string, params?: unknown[]): Promise<unknown>; ge
   // text slipping in under the exemption, a lower one means the pin (and at 0
   // the ignores entry) has to follow.
   const EXEMPT_SQL_STRINGS: Record<string, number> = {
-    'src/db/repositories/MaintenanceRepository.ts': 4,
+    'src/db/repositories/MaintenanceRepository.ts': 2,
     'src/db/seeders/AdminSeeder.ts': 2,
     'src/db/seeders/CategorySeeder.ts': 2,
   };

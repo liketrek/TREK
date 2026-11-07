@@ -4,7 +4,8 @@
  * The probe has no fixtures: it reads every repository class with the
  * TypeScript checker and builds one sample argument list per public method
  * from the declared parameter types (a number is 1, a string is "probe" or a
- * date-shaped string when the name says so, an object gets every property
+ * date-shaped string when the name says so, a boolean false unless it is the
+ * `present` flag of a partial update's pair, an object gets every property
  * it can sample, an array one element). The values only have to get the
  * method to send its SQL; what the probe measures is whether Postgres
  * accepts that SQL against an empty schema. A sample the column cannot take
@@ -24,6 +25,13 @@ export type MethodPlan =
   | { className: string; file: string; method: string; unprobeable: string };
 
 const MAX_DEPTH = 4;
+/**
+ * The label of the flag in the repositories' `[present: boolean, value]`
+ * pairs (`presenceSet`): a patch whose pairs are all absent sends no SQL, so
+ * this one boolean is sampled true. Every other boolean stays false. The
+ * label is spelled in `presenceSet`'s signature, which a test pins.
+ */
+export const PRESENCE_LABEL = 'present';
 const SAMPLE_DATE = '2026-01-01';
 const SAMPLE_TIMESTAMP = '2026-01-01 00:00:00';
 
@@ -68,14 +76,14 @@ export function sampleFor(checker: ts.TypeChecker, type: ts.Type, name: string, 
   if (type.isUnion()) {
     const members = type.types.filter((member) => !isNullish(member));
     if (members.length === 0) return OK(null);
-    if (members.every((member) => member.flags & ts.TypeFlags.BooleanLiteral)) return OK(false);
+    if (members.every((member) => member.flags & ts.TypeFlags.BooleanLiteral)) return OK(name === PRESENCE_LABEL);
     const numeric = members.find((member) => member.flags & ts.TypeFlags.NumberLike);
     return sampleFor(checker, numeric ?? members[0]!, name, depth + 1);
   }
   if (type.isStringLiteral()) return OK(type.value);
   if (type.isNumberLiteral()) return OK(type.value);
   if (flags & ts.TypeFlags.BooleanLiteral) return OK(checker.typeToString(type) === 'true');
-  if (flags & ts.TypeFlags.BooleanLike) return OK(false);
+  if (flags & ts.TypeFlags.BooleanLike) return OK(name === PRESENCE_LABEL);
   if (flags & ts.TypeFlags.BigIntLike) return OK(BigInt(1));
   if (flags & ts.TypeFlags.NumberLike) return OK(1);
   if (flags & (ts.TypeFlags.StringLike | ts.TypeFlags.TemplateLiteral)) return OK(sampleString(name));
@@ -88,8 +96,15 @@ export function sampleFor(checker: ts.TypeChecker, type: ts.Type, name: string, 
 function sampleObjectType(checker: ts.TypeChecker, type: ts.ObjectType, name: string, depth: number): Sample {
   if (checker.isTupleType(type)) {
     const values: unknown[] = [];
+    const labels = ((type as ts.TypeReference).target as ts.TupleType).labeledElementDeclarations;
     for (const [i, element] of checker.getTypeArguments(type as ts.TypeReference).entries()) {
-      const sample = sampleFor(checker, element, `${name}[${i}]`, depth + 1);
+      const label = labels?.[i]?.name;
+      const sample = sampleFor(
+        checker,
+        element,
+        label && ts.isIdentifier(label) ? label.text : `${name}[${i}]`,
+        depth + 1,
+      );
       if (!sample.ok) return sample;
       values.push(sample.value);
     }

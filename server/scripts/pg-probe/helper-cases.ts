@@ -44,6 +44,7 @@ import {
   dateOf,
   dayDistance,
   foundAgainState,
+  ilike,
   lower,
   lowerParam,
   lowerTrim,
@@ -268,6 +269,18 @@ export const HELPER_CASES: readonly HelperCase[] = [
     row: { a: '2026-09-21' },
     raw: (p) => rawOf(dayDistance(p, 'a', '2026-09-24')),
     expect: { equals: 3 },
+  },
+  {
+    name: 'ilike matches in other case',
+    row: { a: 'Probe Place' },
+    raw: (p) => ({ sql: ilike(p, ['a']), params: ['%PLACE%'] }),
+    expect: { equals: true },
+  },
+  {
+    name: 'ilike keeps the escaped wildcard literal',
+    row: { a: 'Probe Place' },
+    raw: (p) => ({ sql: ilike(p, ['a']), params: ['probe\\_place'] }),
+    expect: { equals: false },
   },
   {
     name: 'collateNoCase',

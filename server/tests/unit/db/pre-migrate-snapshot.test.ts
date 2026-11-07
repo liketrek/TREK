@@ -44,7 +44,7 @@ const migrator = () => orm.config.getExtension('@mikro-orm/migrator') as Migrato
 function envWith(db: Partial<AppEnv['db']>, isTest = false): () => AppEnv {
   return () => {
     const env = readEnv();
-    return { ...env, app: { ...env.app, isTest }, db: { ...env.db, ...db } };
+    return { ...env, app: { ...env.app, isTest }, db: { ...env.db, ...db } as AppEnv['db'] };
   };
 }
 

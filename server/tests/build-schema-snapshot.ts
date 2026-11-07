@@ -18,14 +18,15 @@ async function main(): Promise<void> {
   fs.rmSync(schemaSnapshotPath(), { force: true });
 
   const { getRawConnection } = await import('../src/db/database');
-  const { createStandaloneOrm, runSchemaBootstrap } = await import('../src/db/orm');
+  const { runSchemaBootstrap } = await import('../src/db/orm');
+  const { createStandaloneOrm } = await import('../src/db/standalone-orm');
 
   // The shared driver binds to the connection database.ts opens on the ORM's
   // first connect, so this migrates that in-memory database and it can be
   // serialised straight after.
   const orm = await createStandaloneOrm();
   try {
-    await runSchemaBootstrap(orm);
+    await runSchemaBootstrap(orm, { snapshot: true });
     writeSchemaSnapshot(getRawConnection().serialize());
     console.log(`[test-db] schema snapshot written to ${schemaSnapshotPath()}`);
   } finally {

@@ -1,3 +1,4 @@
+import { SqliteEngine } from '../../../../src/db/engine/sqlite/sqlite-engine';
 import { Days } from '../../../../src/db/entities/Days.entity';
 import type { DaysRepository } from '../../../../src/db/repositories/Days.repository';
 import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
@@ -25,7 +26,7 @@ let days: DaysRepository;
  */
 beforeAll(async () => {
   t = await createTestOrm(testDb);
-  uow = new UnitOfWork(t.em);
+  uow = new UnitOfWork(t.em, new SqliteEngine());
   days = t.repo(Days);
 });
 beforeEach(() => {

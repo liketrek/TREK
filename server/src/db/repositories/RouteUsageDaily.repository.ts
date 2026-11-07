@@ -80,12 +80,14 @@ export class RouteUsageDailyRepository extends TrekRepository<RouteUsageDaily> {
     await this.kysely<RouteUsageDailyKyselyDB>()
       .insertInto('route_usage_daily')
       .values(entry)
+      // The target row's columns are qualified: Postgres reads a bare name as
+      // ambiguous between it and `excluded` (42702).
       .onConflict((oc) =>
         oc.columns(['day', 'profile', 'surface', 'self_hosted']).doUpdateSet({
-          requests: (eb) => eb('requests', '+', eb.ref('excluded.requests')),
-          waypoints: (eb) => eb('waypoints', '+', eb.ref('excluded.waypoints')),
-          km: (eb) => eb('km', '+', eb.ref('excluded.km')),
-          failed: (eb) => eb('failed', '+', eb.ref('excluded.failed')),
+          requests: (eb) => eb(eb.ref('route_usage_daily.requests'), '+', eb.ref('excluded.requests')),
+          waypoints: (eb) => eb(eb.ref('route_usage_daily.waypoints'), '+', eb.ref('excluded.waypoints')),
+          km: (eb) => eb(eb.ref('route_usage_daily.km'), '+', eb.ref('excluded.km')),
+          failed: (eb) => eb(eb.ref('route_usage_daily.failed'), '+', eb.ref('excluded.failed')),
         }),
       )
       .execute();

@@ -36,6 +36,7 @@
  * backwards until this task; `OAUTHTOKREPO-029` (`OauthTokens.repository
  * .test.ts`) already had it right and is the shape to copy.
  */
+import { SqliteEngine } from '../../../../src/db/engine/sqlite/sqlite-engine';
 import { Users } from '../../../../src/db/entities/Users.entity';
 import { WebauthnChallenges } from '../../../../src/db/entities/WebauthnChallenges.entity';
 import type { UsersRepository } from '../../../../src/db/repositories/Users.repository';
@@ -66,7 +67,7 @@ beforeAll(async () => {
   t = await createTestOrm(testDb, { allowGlobalContext: false });
   users = t.repo(Users);
   challenges = t.repo(WebauthnChallenges);
-  uow = new UnitOfWork(t.em);
+  uow = new UnitOfWork(t.em, new SqliteEngine());
 });
 // `t.clear()` is deliberately NOT called here (unlike most repository test
 // files): `EntityManager.clear()` itself calls the VALIDATING `getContext()`

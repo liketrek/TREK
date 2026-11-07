@@ -70,9 +70,14 @@ COPY server/package.json ./server/
 # gypfile:false (npm/cli#9837). The only other install scripts among the runtime
 # deps are esbuild's binary check, redundant next to its optional platform
 # package, and a telemetry ping.
+#
+# postgresql-client-17 (Debian 13's own) brings pg_dump and pg_restore to
+# /usr/lib/postgresql/17/bin, which back up an install on Postgres
+# (TREK_DB_URL). pg_dump refuses a server newer than itself, so it stays at the
+# newest major TREK supports.
 RUN apt-get update && \
     apt-get install -y --no-install-recommends tzdata dumb-init wget ca-certificates \
-    libkitinerary-bin libsqlite3-0 && \
+    libkitinerary-bin libsqlite3-0 postgresql-client-17 && \
     npm ci --workspace=server --omit=dev --ignore-scripts && \
     { ln -sf "$(find /usr/lib -name kitinerary-extractor -type f | head -1)" /usr/local/bin/kitinerary-extractor || true; } && \
     rm -rf /var/lib/apt/lists/* /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx && \
@@ -91,8 +96,9 @@ ENV KITINERARY_EXTRACTOR_PATH=/usr/local/bin/kitinerary-extractor
 
 COPY --chown=node:node --from=server-builder /app/server/dist ./server/dist
 # Runtime data assets read from server/assets at runtime: airports.json (flight
-# transport search) and atlas/*.geojson.gz + atlas/admin1/*.geojson.gz (Atlas
-# country/region map). The build
+# transport search), atlas/*.geojson.gz + atlas/admin1/*.geojson.gz (Atlas
+# country/region map) and postgres/baseline.* (the schema a fresh Postgres
+# database starts from). The build
 # only emits dist, so these must be copied explicitly or the features silently
 # degrade to empty in the image.
 COPY --chown=node:node --from=server-builder /app/server/assets ./server/assets

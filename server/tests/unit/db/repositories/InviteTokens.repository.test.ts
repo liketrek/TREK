@@ -1,3 +1,4 @@
+import { SqliteEngine } from '../../../../src/db/engine/sqlite/sqlite-engine';
 import { InviteTokens } from '../../../../src/db/entities/InviteTokens.entity';
 import type { InviteTokensRepository } from '../../../../src/db/repositories/InviteTokens.repository';
 import { withRequestContext } from '../../../../src/nest/database/request-context';
@@ -227,7 +228,7 @@ describe('InviteTokensRepository', () => {
     it('INVREPO-017: incrementUsedCount inside uow.transactional is not discarded by a stale entity read earlier under a different projection', async () => {
       const { user: admin } = createUser(testDb, { username: 'invrepo-017-admin' });
       const invite = createInviteToken(testDb, { token: 'invrepo-017', max_uses: 5, created_by: admin.id });
-      const uow = new UnitOfWork(t.em);
+      const uow = new UnitOfWork(t.em, new SqliteEngine());
 
       await withRequestContext(t.orm, async () => {
         // Projection A — wide, full row, carries used_count.

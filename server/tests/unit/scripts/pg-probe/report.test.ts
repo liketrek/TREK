@@ -47,7 +47,7 @@ const RESULTS: MethodResult[] = [
   { key: 'F.thrower', statements: [], threw: 'no trip 1' },
   {
     key: 'G.sampled',
-    statements: [refused('select $1::date', '22007', 'invalid input syntax for type date: "probe"'), ok('select 5')],
+    statements: [refused('insert into t values ($1)', '23514', 'violates check constraint "t_check"'), ok('select 5')],
   },
 ];
 
@@ -84,26 +84,30 @@ describe('pg-probe report', () => {
       new Map([
         ['42883', 1],
         ['42601', 1],
-        ['22007', 1],
+        ['23514', 1],
       ]),
     );
     expect(summary.failedStatements.map((f) => `${f.method} ${f.code} ${f.counted}`)).toEqual([
       'B.broken 42883 true',
       'B.broken 42601 true',
-      'G.sampled 22007 false',
+      'G.sampled 23514 false',
     ]);
   });
 
-  it('PGPROBE-068: a data error from a sample value is reported but not held to the baseline', () => {
+  it('PGPROBE-068: a data error is held to the baseline, a constraint over a sample value is only reported', () => {
     const summary = summarize([
       {
         key: 'G.sampled',
-        statements: [refused('select $1::date', '22P02', 'bad'), refused('select x', '0A000', 'nope')],
+        statements: [
+          refused('select $1::date', '22P02', 'bad'),
+          refused('select x', '0A000', 'nope'),
+          refused('insert into t values ($1)', '23514', 'check'),
+        ],
       },
     ]);
-    expect(summary.failingByMethod.get('G.sampled')).toBe(1);
-    expect(splitRefusals(summary).counted.map((f) => f.code)).toEqual(['0A000']);
-    expect(splitRefusals(summary).reported.map((f) => f.code)).toEqual(['22P02']);
+    expect(summary.failingByMethod.get('G.sampled')).toBe(2);
+    expect(splitRefusals(summary).counted.map((f) => f.code)).toEqual(['22P02', '0A000']);
+    expect(splitRefusals(summary).reported.map((f) => f.code)).toEqual(['23514']);
   });
 
   it('PGPROBE-069: names every method whose SQL the probe did not see, and why', () => {
@@ -187,9 +191,9 @@ describe('pg-probe report', () => {
     expect(text).toContain('FAIL  [postgres] dateOf: expected 1, got 2');
     expect(text).toContain('collation "NOCASE" does not exist');
     expect(text).toContain(
-      'Statements: 8 distinct, 3 refused by Postgres (2 as SQL, held to the baseline; 1 over a sample value',
+      "Statements: 8 distinct, 3 refused by Postgres (2 as SQL or over a value's type, held to the baseline; 1 over a constraint",
     );
-    expect(text).toContain('  22007: 1 (not held)');
+    expect(text).toContain('  23514: 1 (not held)');
     expect(text).toContain('  F.thrower: threw before any statement: no trip 1');
     expect(text).toContain(
       'FAIL  F.thrower threw before any statement: no trip 1, and the baseline does not list it as uncovered.',
@@ -217,9 +221,9 @@ describe('pg-probe report', () => {
     expect(md).toContain("| postgres | a\\|b | got 'x' |");
     expect(md).toContain('| 42883 | 1 |');
     expect(md).toContain('| E.skipped | could not be called: fn: a function parameter |');
-    expect(md).toContain('| Refused by Postgres as SQL (held) | 2 |');
-    expect(md).toContain('| Refused over a sample value or the empty tables (reported only) | 1 |');
-    expect(md).toContain('| G.sampled | 22007 | no | invalid input syntax for type date: "probe" |');
+    expect(md).toContain("| Refused by Postgres as SQL or over a value's type (held) | 2 |");
+    expect(md).toContain('| Refused over a constraint, a timeout or the empty tables (reported only) | 1 |');
+    expect(md).toContain('| G.sampled | 23514 | no | violates check constraint "t_check" |');
     const ratchet = formatMarkdown(
       input({ verdict: { ...CLEAN, newlyUncovered: ['C.silent'], nowCovered: ['Z.gone'] } }),
     );

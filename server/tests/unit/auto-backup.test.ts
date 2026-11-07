@@ -8,7 +8,7 @@
  * on another install. The run now goes through backupService.createBackup(),
  * which snapshots the DB with VACUUM INTO and bundles the key.
  */
-import type { MaintenanceRepository } from '../../src/db/repositories/MaintenanceRepository';
+import type { SqliteMaintenance } from '../../src/db/engine/sqlite/sqlite-maintenance';
 import { AutoBackupJob } from '../../src/nest/backup/auto-backup.job';
 import { createBackup } from '../../src/nest/backup/backup.impl';
 import type { BackupService } from '../../src/nest/backup/backup.service';
@@ -78,7 +78,7 @@ const liveDb = path.join(__dirname, '../../data', 'travel.db');
 /** The backup port BackupService injects: the real SQLite one over stubs. */
 const database = new SqliteDatabaseBackup(
   { file: liveDb, close: vi.fn(), reopen: vi.fn() } as unknown as DatabaseLifecycle,
-  maintenanceStub as unknown as MaintenanceRepository,
+  maintenanceStub as unknown as SqliteMaintenance,
 );
 
 // createBackup receives StorageService and the database port as parameters

@@ -4,10 +4,13 @@ image:
   # tag: latest
   pullPolicy: IfNotPresent
 
-# Deployment update strategy. Keep Recreate: TREK is a single-writer SQLite app, and
-# during a RollingUpdate the new pod migrates the database while the old one still
-# writes to it. A ReadWriteMany volume does not make that safe; SQLite's WAL needs both
-# processes on one host, which network filesystems do not provide.
+# Deployment update strategy. Keep Recreate. The new pod migrates the database when it
+# starts, and during a RollingUpdate it would do that while the old pod still writes to
+# it. Recreate stops the old pod first. On SQLite two processes on one travel.db are
+# unsafe, and a ReadWriteOnce volume cannot be attached to both pods at once.
+# With database.url the database is PostgreSQL, but the reason for one replica stays: TREK
+# keeps rate limits, pending codes, the permission cache and WebSocket connections in
+# memory, so a second pod would not share them. Postgres does not make more replicas safe.
 updateStrategy: Recreate
 
 # Pod-level security context. fsGroup gives the node user (uid/gid 1000) group access
@@ -177,6 +180,19 @@ env:
   # APP_URL when it is an https:// address other than localhost, else https://github.com/liketrek/TREK. No email
   # address is sent unless you set one here.
 
+
+# Database. Empty (the default) keeps TREK on its SQLite file in the data volume. Set url to
+# run TREK on a PostgreSQL database instead (see the wiki page Database-Postgres). The URL
+# carries the password, so it is never a plain env value: with url, the chart writes it into
+# its own Secret as TREK_DB_URL; with existingSecret, TREK reads TREK_DB_URL from that Secret
+# under existingSecretKey and the chart writes nothing. existingSecret wins over url. The
+# variable is required when either is set: a missing Secret key stops the pod instead of
+# starting it on SQLite.
+#   url: "postgres://trek:<password>@postgres.example.internal:5432/trek?sslmode=require"
+database:
+  url: ""
+  existingSecret: ""
+  existingSecretKey: TREK_DB_URL
 
 # Secret environment variables stored in a Kubernetes Secret.
 # JWT_SECRET is managed entirely by the server (auto-generated into the data PVC,

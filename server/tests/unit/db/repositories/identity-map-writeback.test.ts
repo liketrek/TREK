@@ -30,6 +30,7 @@
  * no `disableIdentityMap`) makes IMWB-001 fail with the stale write-back this
  * test is built to catch.
  */
+import { SqliteEngine } from '../../../../src/db/engine/sqlite/sqlite-engine';
 import { Users } from '../../../../src/db/entities/Users.entity';
 import type { UsersRepository } from '../../../../src/db/repositories/Users.repository';
 import { withRequestContext } from '../../../../src/nest/database/request-context';
@@ -50,7 +51,7 @@ let uow: UnitOfWork;
 beforeAll(async () => {
   t = await createTestOrm(testDb);
   users = t.repo(Users);
-  uow = new UnitOfWork(t.em);
+  uow = new UnitOfWork(t.em, new SqliteEngine());
 });
 beforeEach(() => {
   resetTestDb(testDb);

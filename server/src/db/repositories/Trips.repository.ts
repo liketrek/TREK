@@ -1,6 +1,6 @@
 import { QueryFlag } from '@mikro-orm/core';
 import type { Trips } from '../entities/Trips.entity';
-import { coalesceParam, currentTimestamp, nowDateOffset } from '../dialect/sql-functions';
+import { coalesceParam, currentTimestamp, ilike, nowDateOffset } from '../dialect/sql-functions';
 import type { AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
 import { tripAccessExpr } from './_shared/trip-access';
@@ -174,7 +174,7 @@ export class TripsRepository extends TrekRepository<Trips> {
     return await this.accessibleTripsQuery(user_id)
       .join('t.places_collection', 'p')
       .select(['p.trip', 'p.name'])
-      .andWhere("(p.name LIKE ? ESCAPE '\\' OR p.address LIKE ? ESCAPE '\\')", [likePattern, likePattern])
+      .andWhere(ilike(this.getEntityManager().getPlatform(), ['p.name', 'p.address']), [likePattern, likePattern])
       .orderBy([{ 'p.trip': 'asc' }, { 'p.name': 'asc' }])
       .limit(500)
       // The limit is on the joined place rows, like the legacy statement's.

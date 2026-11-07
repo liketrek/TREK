@@ -5,6 +5,8 @@
  * SQLite database the helper cases are compared on, and the loop that calls
  * every repository method.
  */
+import { applyPostgresColumnAdjustments, NOCASE_COLLATION_SQL } from '../../src/db/engine/postgres/schema-adjust';
+import { splitStatements } from '../../src/db/engine/postgres/sql-split';
 import { ALL_ENTITIES } from '../../src/db/entities';
 import type { MethodPlan } from './arg-samples';
 import {
@@ -18,8 +20,7 @@ import {
 } from './helper-cases';
 import { ProbePostgresDialect, type StatementRecorder } from './recorder';
 import type { MethodResult } from './report';
-import { adjustColumns, NOCASE_COLLATION_SQL, splitStatements, type ColumnMeta } from './schema';
-import { RequestContext, type Configuration, type EntityManager, type EntityProperty } from '@mikro-orm/core';
+import { RequestContext, type Configuration, type EntityManager } from '@mikro-orm/core';
 import { MikroORM, PostgreSqlConnection, PostgreSqlDriver, type Options } from '@mikro-orm/postgresql';
 import { SqlitePlatform } from '@mikro-orm/sql';
 
@@ -129,7 +130,7 @@ export async function prepareDatabase(
   await run(NOCASE_COLLATION_SQL);
   let adjusted = 0;
   for (const meta of orm.getMetadata().getAll().values()) {
-    adjusted += adjustColumns(meta.props as EntityProperty[] as ColumnMeta[]).length;
+    adjusted += applyPostgresColumnAdjustments(meta.props).length;
   }
   const statements = splitStatements(await orm.schema.getCreateSchemaSQL({ wrap: false }));
   for (const statement of statements) await run(statement);

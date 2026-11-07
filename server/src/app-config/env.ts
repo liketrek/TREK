@@ -33,6 +33,7 @@ export const SECRET_ENV_KEYS: ReadonlySet<string> = new Set([
   'MAPBOX_ACCESS_TOKEN',
   'CARTO_API_KEY',
   'DEMO_ADMIN_PASS',
+  'TREK_DB_URL',
 ]);
 
 /** How a variable's value appears in the boot report. */
@@ -95,13 +96,32 @@ export function validateEnvAtBoot(raw: RawEnv = process.env as RawEnv): void {
         const key = String(issue.path[0]);
         return `  - ${key}=${reportedValue(key, raw[key])}: ${issue.message}`;
       });
-  lines.push(...managedPreconditions(raw));
+  lines.push(...databasePreconditions(raw), ...managedPreconditions(raw));
   if (lines.length === 0) return;
   console.error(`Invalid environment configuration:\n${lines.join('\n')}`);
   throw new Error(
     `Invalid environment configuration (${lines.length} problem${lines.length === 1 ? '' : 's'}). ` +
       'Fix the variables listed above, or unset them to use their defaults.',
   );
+}
+
+/** The SQLite settings that mean nothing next to TREK_DB_URL. */
+const SQLITE_ONLY_DB_KEYS = ['TREK_DB_FILE', 'TREK_DB_JOURNAL_MODE', 'TREK_DB_SYNCHRONOUS'] as const;
+
+/**
+ * Cross-field rules for the database engine. TREK_DB_URL beside a SQLite
+ * setting names two databases, and either guess would leave the operator on
+ * the one they did not mean: it refuses instead (fail closed, see
+ * server/CLAUDE.md). The URL itself never reaches the report.
+ */
+function databasePreconditions(raw: RawEnv): string[] {
+  if (!raw.TREK_DB_URL?.trim()) return [];
+  const sqliteKeys = SQLITE_ONLY_DB_KEYS.filter((key) => raw[key]?.trim());
+  if (sqliteKeys.length === 0) return [];
+  return [
+    `  - ambiguous database configuration: TREK_DB_URL is set together with ${sqliteKeys.join(', ')}, ` +
+      'which only apply to the SQLite file. Unset one side.',
+  ];
 }
 
 /**

@@ -2,13 +2,14 @@
  * SqliteDatabaseBackup: the database backup port for a SQLite file.
  *
  * The snapshot and the swap run for real here, against a database file in a
- * temp directory: a VACUUM INTO through the real MaintenanceRepository, and the
+ * temp directory: a VACUUM INTO through the real SqliteMaintenance, and the
  * copy, sidecar removal and rename of a restore. Only the connection lifecycle
  * is a stand-in, because closing and reopening the process's own connection is
  * DatabaseLifecycle's business (tests/unit/nest/database/).
  */
-import { MaintenanceRepository } from '../../../src/db/repositories/MaintenanceRepository';
+import { SqliteMaintenance } from '../../../src/db/engine/sqlite/sqlite-maintenance';
 import { SqliteDatabaseBackup } from '../../../src/nest/backup/sqlite-database-backup';
+import { DomainError } from '../../../src/nest/common/domain-error';
 import { DatabaseConnectionLostError } from '../../../src/nest/database/database-backup.interface';
 import type { DatabaseLifecycle } from '../../../src/nest/database/database-lifecycle.service';
 import { withRequestContext } from '../../../src/nest/database/request-context';
@@ -40,7 +41,7 @@ function maintenanceStub() {
 function portWith(maintenance: { walCheckpoint: unknown; vacuumInto: unknown }): SqliteDatabaseBackup {
   return new SqliteDatabaseBackup(
     lifecycle as unknown as DatabaseLifecycle,
-    maintenance as unknown as MaintenanceRepository,
+    maintenance as unknown as SqliteMaintenance,
   );
 }
 
@@ -116,7 +117,7 @@ describe('SqliteDatabaseBackup', () => {
       // test-sql-allow: the marker table is a bare fixture no entity maps; the write has to land in the WAL of this file.
       live.prepare('UPDATE marker SET label = ?').run('after');
       const target = path.join(dir, 'copy.db');
-      const port = portWith(new MaintenanceRepository(orm.em));
+      const port = portWith(new SqliteMaintenance(orm.em));
 
       await withRequestContext(orm.orm, () => port.snapshot(target));
 
@@ -125,7 +126,7 @@ describe('SqliteDatabaseBackup', () => {
 
     it('SQLBK-005: a VACUUM INTO that fails rejects and leaves nothing at the target', async () => {
       const target = path.join(dir, 'missing-dir', 'copy.db');
-      const port = portWith(new MaintenanceRepository(orm.em));
+      const port = portWith(new SqliteMaintenance(orm.em));
 
       await expect(withRequestContext(orm.orm, () => port.snapshot(target))).rejects.toThrow();
 
@@ -146,11 +147,16 @@ describe('SqliteDatabaseBackup', () => {
     expect(fs.existsSync(target)).toBe(false);
   });
 
-  it('SQLBK-007: verify refuses an unpacked archive without a database', () => {
-    expect(portWith(maintenanceStub()).verify(dir)).toEqual({
-      error: 'Invalid backup: travel.db not found',
-      status: 400,
-    });
+  it('SQLBK-007: verify refuses an unpacked archive without a database, as a DomainError the restore route answers', async () => {
+    const refusal = await portWith(maintenanceStub())
+      .verify(dir)
+      .then(
+        () => null,
+        (err: unknown) => err,
+      );
+    expect(refusal).toBeInstanceOf(DomainError);
+    expect((refusal as DomainError).publicMessage).toBe('Invalid backup: travel.db not found');
+    expect((refusal as DomainError).getStatus()).toBe(400);
   });
 
   it('SQLBK-008: keeps a copy of the database a restore replaces next to it, and says where', async () => {

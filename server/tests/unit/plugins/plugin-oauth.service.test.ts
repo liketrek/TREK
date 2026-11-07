@@ -4,6 +4,7 @@
  * https/SSRF guard on the endpoints, the code + refresh token exchanges (mocked fetch),
  * tokens encrypted at rest, and a stored refresh token that the plugin never sees.
  */
+import { SqliteEngine } from '../../../src/db/engine/sqlite/sqlite-engine';
 import { PluginOauthState } from '../../../src/db/entities/PluginOauthState.entity';
 import { PluginOauthTokens } from '../../../src/db/entities/PluginOauthTokens.entity';
 import { PluginSettingsFields } from '../../../src/db/entities/PluginSettingsFields.entity';
@@ -90,7 +91,7 @@ async function makeOauthService(): Promise<PluginOAuthService> {
     orm.repo(PluginOauthTokens),
     orm.repo(PluginOauthState),
     orm.repo(PluginSettingsFields),
-    new UnitOfWork(orm.em),
+    new UnitOfWork(orm.em, new SqliteEngine()),
   );
 }
 
