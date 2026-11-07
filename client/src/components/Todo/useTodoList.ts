@@ -18,7 +18,7 @@ import { useIsPhone } from '../../mobile/useIsPhone'
  * category, addressed by name, so a category a user called "all" or "done"
  * can have its own bucket instead of the built-in one.
  */
-type TodoActiveFilter = { kind: 'smart'; id: TodoSmartFilter } | { kind: 'category'; name: string }
+export type TodoActiveFilter = { kind: 'smart'; id: TodoSmartFilter } | { kind: 'category'; name: string }
 
 type TodoSort = 'priority' | 'due' | null
 

@@ -4,7 +4,7 @@ import { formatPriceText } from '../../../../utils/formatters'
 import { useTranslation } from '../../../../i18n'
 import type { Reservation } from '../../../../types'
 import { CardActions, CardDeleteSheet, CardFiles, CardNotes, CardTitleButton, CardWhenAndCode } from './MReservationCardParts'
-import { Field, ReservationPluginSlots, SectionHeader, StatusDot, TabScroller, TravelerAvatars, TravelerFilterRow } from './tabChrome'
+import { CardGrid, Field, ReservationPluginSlots, SectionHeader, StatusDot, TabScroller, TravelerAvatars, TravelerFilterRow } from './tabChrome'
 import { STATUS_COLOR, type MTabScreenProps } from './tabModel'
 import { cardWhen, parseTransportMeta } from './transportsModel'
 import { TRANSPORT_TYPE_COLOR } from '../../../../components/Planner/bookings/bookingsModel'
@@ -36,7 +36,7 @@ export default function MTransportsTab({ planner, shell }: MTabScreenProps) {
   ].filter(s => s.rows.length > 0)
 
   return (
-    <TabScroller>
+    <TabScroller wide="full">
       {showTravelerFilter && (
         <TravelerFilterRow
           members={planner.tripMembers}
@@ -60,8 +60,9 @@ export default function MTransportsTab({ planner, shell }: MTabScreenProps) {
             open={!collapsed[section.id]}
             onToggle={() => toggle(section.id)}
           />
-          {!collapsed[section.id] &&
-            section.rows.map(res => (
+          {!collapsed[section.id] && (
+            <CardGrid>
+              {section.rows.map(res => (
               <TransportCard
                 key={res.id}
                 res={res}
@@ -70,7 +71,9 @@ export default function MTransportsTab({ planner, shell }: MTabScreenProps) {
                 canEdit={canEdit}
                 compact={shell.transportsCompact}
               />
-            ))}
+              ))}
+            </CardGrid>
+          )}
         </div>
       ))}
     </TabScroller>

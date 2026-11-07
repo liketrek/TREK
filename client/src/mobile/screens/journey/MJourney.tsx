@@ -36,8 +36,10 @@ export default function MJourney() {
     // The feed below keeps its own scroller, so this screen does not move the
     // document and Safari's address bar stays put here.
     <div className="relative h-dvh">
-      {/* Floating header: back + create pill */}
-      <div className="m-bar-x fixed top-[var(--m-safe-top,12px)] z-30 flex items-center gap-[10px]">
+      {/* Floating header: back + create pill. On a wide window it keeps to the
+          column of cards and names the page at its start, as an iPad title bar does. */}
+      <div className="m-bar-x fixed top-[var(--m-safe-top,12px)] z-30 flex items-center gap-[10px] wide:mx-auto wide:max-w-[1040px]">
+        <h1 className="hidden min-w-0 flex-1 truncate text-title font-extrabold text-m-ink wide:block">{t('journey.title')}</h1>
         <button
           type="button"
           onClick={() => openCreateModal()}

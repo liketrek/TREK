@@ -16,6 +16,7 @@ import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { server } from '../../../helpers/msw/server'
 import { fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
+import { setSizeClass } from '../../../helpers/sizeClass'
 
 // FE-MOB-COSTT-001 to FE-MOB-COSTT-053
 
@@ -930,5 +931,17 @@ describe('MCostsTab', () => {
     await screen.findByText('+$12.50')
     expect(screen.queryByText('sheet editing 12')).not.toBeInTheDocument()
     expect(reload).not.toHaveBeenCalled()
+  })
+
+  it('FE-MOB-COSTT-054: with room for two panes the summary stands beside the expenses, and the search keeps to their column', async () => {
+    setSizeClass('split')
+    await renderTab()
+    const summary = screen.getByRole('complementary', { name: 'budget.title' })
+    expect(within(summary).getByText('costs.totalSpend')).toBeInTheDocument()
+    expect(within(summary).queryByPlaceholderText('costs.searchPlaceholder')).not.toBeInTheDocument()
+
+    const expenses = screen.getByRole('region', { name: 'costs.expenses' })
+    expect(within(expenses).getByPlaceholderText('costs.searchPlaceholder')).toBeInTheDocument()
+    expect(within(expenses).getByRole('heading', { name: 'costs.expenses' })).toBeInTheDocument()
   })
 })

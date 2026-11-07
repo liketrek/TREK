@@ -77,6 +77,19 @@ export function useCollabChatData({
     isAtBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
   }, []);
 
+  // A list that sat at its newest message stays there when its box changes size (a
+  // rotation, a fold, a pane opening beside it): the messages wrap anew and the list
+  // grows, which left the newest ones below the composer.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => {
+      if (isAtBottom.current) el.scrollTop = el.scrollHeight;
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);

@@ -40,7 +40,8 @@ export default function MNotifications() {
 
   return (
     <>
-      <MGlassBar>
+      {/* On a wide window the bar keeps to the column of the list below it. */}
+      <MGlassBar className="wide:mx-auto wide:max-w-[760px]">
         <MIconBtn ariaLabel={t('common.back')} onClick={() => navigate(-1)}>
           <ArrowLeft size={18} strokeWidth={2} />
         </MIconBtn>

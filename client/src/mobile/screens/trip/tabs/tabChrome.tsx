@@ -5,6 +5,7 @@ import { avatarSrc } from '../../../../utils/avatarSrc'
 import GuestBadge from '../../../../components/shared/GuestBadge'
 import PluginFrame from '../../../../components/Plugins/PluginFrame'
 import { useReservationDetailPlugins } from '../../../../components/Planner/bookings/useReservationDetailPlugins'
+import { useIsSplit } from '../../../../hooks/sizeClass'
 
 /**
  * Scroll body shared by the list-style trip tabs (transports, bookings, costs,
@@ -21,11 +22,57 @@ export function TabScroller({ children, wide = 'readable' }: { children: ReactNo
   return (
     <div className="flex h-full flex-col">
       <div
-        className={`min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pb-[calc(var(--bottom-nav-h,84px)+22px)] pt-[calc(var(--m-safe-top,12px)+58px)] wide:px-6 ${
+        className={`min-h-0 flex-1 overflow-x-hidden overflow-y-auto ${TAB_INSETS} ${
           wide === 'readable' ? 'wide:[&>*]:mx-auto wide:[&>*]:max-w-[760px]' : ''
         }`}
       >
         {children}
+      </div>
+    </div>
+  )
+}
+
+/** The room a tab's scroll body keeps clear: the floating top controls above, the dock (or the home indicator) below. */
+const TAB_INSETS = 'px-4 pb-[calc(var(--bottom-nav-h,84px)+22px)] pt-[calc(var(--m-safe-top,12px)+58px)] wide:px-6'
+const PANE_INSETS = 'pb-[calc(var(--bottom-nav-h,84px)+22px)] pt-[calc(var(--m-safe-top,12px)+58px)]'
+
+/**
+ * The cards of a list tab (transports, bookings, tasks): one column on a phone;
+ * on a wide window as many columns of at least a phone's width as the page
+ * holds, three on a 13" iPad on its side, two upright or on an unfolded
+ * foldable on its side, one in a narrow Split View. A row's cards share its
+ * height, so the grid reads as rows rather than as a ragged wall.
+ */
+export function CardGrid({ children }: { children: ReactNode }) {
+  return <div className="wide:grid wide:grid-cols-[repeat(auto-fill,minmax(min(100%,340px),1fr))] wide:gap-x-3">{children}</div>
+}
+
+/**
+ * A list tab in two panes once the window has room for them (split size
+ * class), the iPad Mail and Settings arrangement: `aside` (a summary, the
+ * filters) in a column of its own on the leading side, `children` (the list)
+ * beside it, each scrolling on its own so the summary stays in view while the
+ * list moves. On a foldable that reports its fold, the aside ends at the fold.
+ * Narrower windows stack the two in one scroll body, the aside first, exactly
+ * as the phone shows them.
+ */
+export function TabPanes({ aside, asideLabel, children }: { aside: ReactNode; asideLabel: string; children: ReactNode }) {
+  const split = useIsSplit()
+  if (!split) {
+    return (
+      <TabScroller>
+        {aside}
+        {children}
+      </TabScroller>
+    )
+  }
+  return (
+    <div className="flex h-full">
+      <aside aria-label={asideLabel} className={`m-pane-aside min-h-0 flex-none overflow-y-auto overflow-x-hidden ps-6 pe-3 ${PANE_INSETS}`}>
+        {aside}
+      </aside>
+      <div className={`min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden pe-6 ps-3 ${PANE_INSETS}`}>
+        <div className="mx-auto max-w-[760px]">{children}</div>
       </div>
     </div>
   )

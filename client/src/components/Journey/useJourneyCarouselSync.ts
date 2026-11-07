@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 
 import type { JourneyMapHandle } from './JourneyMap';
 import { journeyDays } from './journeyCard';
@@ -17,6 +17,11 @@ export interface JourneyCarouselSyncOptions<E extends CarouselEntry> {
   onOpenEntry: (entry: E) => void;
   /** A tap on another card also moves the map to it (the phone screen). */
   syncMapOnTap?: boolean;
+  /**
+   * Changes whenever the strip comes or goes (the phone screen shows a feed in its
+   * place on a wide window), so its scroll tracking attaches to the strip on show.
+   */
+  layoutKey?: unknown;
 }
 
 /**
@@ -55,6 +60,56 @@ function nearestCardIndex(el: HTMLDivElement | null, cards: Map<number, HTMLDivE
  */
 const SETTLE_MS = 90;
 
+interface StripScrollOptions {
+  carouselRef: RefObject<HTMLDivElement | null>;
+  count: number;
+  nearestCard: () => number | null;
+  pickNearestCard: () => void;
+  onLive: (index: number | null) => void;
+  layoutKey: unknown;
+}
+
+/**
+ * Follows the strip's scrolling: the card under the centre while it moves, the
+ * active card once it settles. Every state update waits for the strip to come
+ * to rest, because updating the active card mid swipe resizes the cards and
+ * reflows the layout on every frame. Attaches again whenever `layoutKey`
+ * changes, since the strip may only now be on screen.
+ */
+function useStripScroll({ carouselRef, count, nearestCard, pickNearestCard, onLive, layoutKey }: StripScrollOptions) {
+  useEffect(() => {
+    const el = carouselRef.current;
+    if (!el || count === 0) return;
+    let settleTimer: number | null = null;
+    let frame: number | null = null;
+    const onScroll = () => {
+      if (frame == null) {
+        frame = window.requestAnimationFrame(() => {
+          frame = null;
+          onLive(nearestCard());
+        });
+      }
+      if (settleTimer != null) window.clearTimeout(settleTimer);
+      settleTimer = window.setTimeout(pickNearestCard, SETTLE_MS);
+    };
+    // Where the browser says when the snap has landed, the card grows right then
+    // instead of a beat later; the timer stays for the ones that do not.
+    const onScrollEnd = () => {
+      if (settleTimer != null) window.clearTimeout(settleTimer);
+      settleTimer = null;
+      pickNearestCard();
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    el.addEventListener('scrollend', onScrollEnd, { passive: true });
+    return () => {
+      el.removeEventListener('scroll', onScroll);
+      el.removeEventListener('scrollend', onScrollEnd);
+      if (settleTimer != null) window.clearTimeout(settleTimer);
+      if (frame != null) window.cancelAnimationFrame(frame);
+    };
+  }, [carouselRef, count, pickNearestCard, nearestCard, onLive, layoutKey]);
+}
+
 /**
  * The card carousel over the journey map, behind both the phone journey screen and the
  * narrow desktop and public timeline: the active card is the one nearest the centre
@@ -66,6 +121,7 @@ export function useJourneyCarouselSync<E extends CarouselEntry>({
   mapEntries,
   onOpenEntry,
   syncMapOnTap = false,
+  layoutKey,
 }: JourneyCarouselSyncOptions<E>) {
   const mapRef = useRef<JourneyMapHandle>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -106,39 +162,7 @@ export function useJourneyCarouselSync<E extends CarouselEntry>({
     });
   }, [nearestCard, syncMapToCard]);
 
-  // Defer every state update until scrolling settles: updating the active card
-  // mid swipe resizes the cards and reflows the layout on every frame.
-  useEffect(() => {
-    const el = carouselRef.current;
-    if (!el || entries.length === 0) return;
-    let settleTimer: number | null = null;
-    let frame: number | null = null;
-    const onScroll = () => {
-      if (frame == null) {
-        frame = window.requestAnimationFrame(() => {
-          frame = null;
-          setLiveIndex(nearestCard());
-        });
-      }
-      if (settleTimer != null) window.clearTimeout(settleTimer);
-      settleTimer = window.setTimeout(pickNearestCard, SETTLE_MS);
-    };
-    // Where the browser says when the snap has landed, the card grows right then
-    // instead of a beat later; the timer stays for the ones that do not.
-    const onScrollEnd = () => {
-      if (settleTimer != null) window.clearTimeout(settleTimer);
-      settleTimer = null;
-      pickNearestCard();
-    };
-    el.addEventListener('scroll', onScroll, { passive: true });
-    el.addEventListener('scrollend', onScrollEnd, { passive: true });
-    return () => {
-      el.removeEventListener('scroll', onScroll);
-      el.removeEventListener('scrollend', onScrollEnd);
-      if (settleTimer != null) window.clearTimeout(settleTimer);
-      if (frame != null) window.cancelAnimationFrame(frame);
-    };
-  }, [entries.length, pickNearestCard, nearestCard]);
+  useStripScroll({ carouselRef, count: entries.length, nearestCard, pickNearestCard, onLive: setLiveIndex, layoutKey });
 
   const scrollCardIntoCenter = useCallback((idx: number) => {
     cardRefs.current.get(idx)?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });

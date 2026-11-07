@@ -7,7 +7,9 @@ import { avatarSrc } from '../../../../utils/avatarSrc'
 import { formatDate } from '../../../../utils/formatters'
 import type { TodoItem, TripMember } from '../../../../types'
 import type { TripPlanner } from '../MTripShell'
-import { TabScroller } from './tabChrome'
+import { CardGrid, TabPanes } from './tabChrome'
+import MTodoSidebar from './MTodoSidebar'
+import { useIsSplit } from '../../../../hooks/sizeClass'
 import { PRIORITY_COLOR, PRIORITY_LABEL } from './listsModel'
 import { TODO_SMART_FILTERS, isTodoOverdue, type TodoSmartFilter } from '../../../../components/Todo/todoListModel'
 import { useTodoView } from '../../../../components/Todo/useTodoList'
@@ -33,6 +35,8 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
     useTodoView(items, currentUserId, { rankByStatus: true, pinToday: true })
   const [editingItemId, setEditingItemId] = useState<number | null>(null)
   const [creatingTask, setCreatingTask] = useState(false)
+  // With room for two panes the filters become a pane of their own (MTodoSidebar).
+  const split = useIsSplit()
 
   const pct = items.length > 0 ? Math.round((counts.done / items.length) * 100) : 0
   const defaultCategoryForNew = active.kind === 'category' ? active.name : null
@@ -52,9 +56,31 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
   const filterCount = (f: TodoSmartFilter) =>
     f === 'all' ? counts.open : f === 'my' ? counts.my : f === 'overdue' ? counts.overdue : counts.done
 
-  return (
-    <TabScroller>
-      {/* ── Progress card (spec §4.5) ── */}
+  const sortPills = (
+    <>
+      <button
+        type="button"
+        onClick={() => toggleSort('priority')}
+        aria-pressed={sortBy === 'priority'}
+        className={filterPill(sortBy === 'priority')}
+      >
+        <Flag size={11} strokeWidth={2.2} />
+        {t('todo.priority')}
+      </button>
+      <button
+        type="button"
+        onClick={() => toggleSort('due')}
+        aria-pressed={sortBy === 'due'}
+        className={filterPill(sortBy === 'due')}
+      >
+        <Calendar size={11} strokeWidth={2.2} />
+        {t('todo.detail.dueDate')}
+      </button>
+    </>
+  )
+
+  const progressCard = (
+      /* ── Progress card (spec §4.5) ── */
       <div className="rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[14px] py-[13px]">
         <div className="flex items-baseline gap-[7px]">
           <span className="font-geist text-[1rem] font-extrabold tabular-nums text-m-ink">{counts.done}/{items.length}</span>
@@ -74,9 +100,42 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
           <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'var(--m-st-confirmed)' }} />
         </div>
       </div>
+  )
+
+  return (
+    <>
+    <TabPanes
+      asideLabel={t('todo.sidebar.tasks')}
+      aside={
+        <>
+          {progressCard}
+          {split && items.length > 0 && (
+            <MTodoSidebar
+              active={active}
+              onPick={setActive}
+              counts={counts}
+              categories={categories}
+              catCount={catCount}
+              smartLabel={filterLabel}
+              listsLabel={t('todo.sidebar.categories')}
+            />
+          )}
+        </>
+      }
+    >
+      {/* The list's own head beside the filters pane: what it shows, and its order. */}
+      {split && items.length > 0 && (
+        <div className="flex items-center gap-[6px]">
+          <h2 className="min-w-0 flex-1 truncate text-subtitle font-extrabold text-m-ink">
+            {active.kind === 'smart' ? filterLabel(active.id) : active.name}
+          </h2>
+          <span className="flex-none font-geist text-[length:calc(10px*var(--fs-scale-caption,1))] font-bold uppercase tracking-[.09em] text-m-faint">{t('todo.sidebar.sortBy')}</span>
+          {sortPills}
+        </div>
+      )}
 
       {/* ── Filters (spec §4.6) ── */}
-      {items.length > 0 && (
+      {!split && items.length > 0 && (
         <div className="mt-[10px] flex items-center gap-[6px] overflow-x-auto whitespace-nowrap">
           {TODO_SMART_FILTERS.map(f => (
             <button
@@ -89,24 +148,7 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
               <span className="font-geist text-[0.5625rem] opacity-70">{filterCount(f)}</span>
             </button>
           ))}
-          <button
-            type="button"
-            onClick={() => toggleSort('priority')}
-            aria-pressed={sortBy === 'priority'}
-            className={filterPill(sortBy === 'priority')}
-          >
-            <Flag size={11} strokeWidth={2.2} />
-            {t('todo.priority')}
-          </button>
-          <button
-            type="button"
-            onClick={() => toggleSort('due')}
-            aria-pressed={sortBy === 'due'}
-            className={filterPill(sortBy === 'due')}
-          >
-            <Calendar size={11} strokeWidth={2.2} />
-            {t('todo.detail.dueDate')}
-          </button>
+          {sortPills}
           {categories.length > 0 && <span className="h-4 w-px flex-none bg-[color:var(--m-rowbr)]" />}
           {categories.map(cat => (
             <button
@@ -133,17 +175,20 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
           {t('todo.emptyFiltered')}
         </div>
       ) : (
-        rows.map(item => (
-          <TaskCard
-            key={item.id}
-            item={item}
-            members={tripMembers}
-            today={today}
-            onToggle={toggleItem}
-            onOpen={openEdit}
-          />
-        ))
+        <CardGrid>
+          {rows.map(item => (
+            <TaskCard
+              key={item.id}
+              item={item}
+              members={tripMembers}
+              today={today}
+              onToggle={toggleItem}
+              onOpen={openEdit}
+            />
+          ))}
+        </CardGrid>
       )}
+    </TabPanes>
 
       <MTaskSheet
         planner={planner}
@@ -154,7 +199,7 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
         defaultCategory={defaultCategoryForNew}
         onClose={closeSheet}
       />
-    </TabScroller>
+    </>
   )
 }
 

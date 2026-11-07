@@ -976,3 +976,46 @@ a.linkbtn {
   border-color: var(--edge-strong);
   border-top-color: var(--accent);
 }
+
+/* ── A large screen ──────────────────────────────────────────────────────────
+   On its side (an iPad, a foldable unfolded) the photo becomes a panel of its
+   own on the leading half, full height, and the column of choices stands
+   centred in the other half, the way a split sign-in page uses the width.
+   Upright, the photo band grows with the screen instead of stopping at a
+   phone's 440px. Logical sides, so Arabic mirrors it. */
+@media (min-width: 900px) and (min-height: 600px) and (orientation: landscape) {
+  body::after {
+    inset: 16px auto 16px 16px;
+    inset-block: 16px;
+    inset-inline: 16px auto;
+    width: calc(50% - 24px);
+    height: auto;
+    border-radius: 28px;
+    background:
+      linear-gradient(180deg, transparent 50%, rgba(0, 0, 0, 0.32) 100%),
+      url('./img/kyoto.webp') 30% 45% / cover no-repeat;
+    -webkit-mask-image: none;
+    mask-image: none;
+    box-shadow: 0 30px 70px -30px rgba(0, 0, 0, 0.55);
+  }
+  body::before {
+    inset: 0;
+    inset-inline-start: 50%;
+    height: auto;
+  }
+  .shell {
+    max-width: none;
+    width: 50%;
+    margin-inline: 50% 0;
+    padding-inline: max(32px, calc(25vw - 220px));
+  }
+  .screen-leave {
+    inset-inline: max(32px, calc(25vw - 220px));
+  }
+}
+@media (min-width: 700px) and (min-height: 900px) and (orientation: portrait) {
+  body::before,
+  body::after {
+    height: 52vh;
+  }
+}

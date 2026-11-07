@@ -2,7 +2,8 @@ import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { Route, Routes } from 'react-router';
 import { http, HttpResponse } from 'msw';
-import { fireEvent, render, screen, waitFor } from '../../../helpers/render';
+import { fireEvent, render, screen, waitFor, within } from '../../../helpers/render';
+import { setSizeClass } from '../../../helpers/sizeClass';
 import { server } from '../../../helpers/msw/server';
 import { resetAllStores, seedStore } from '../../../helpers/store';
 import { buildAdmin } from '../../../helpers/factories';
@@ -428,5 +429,23 @@ describe('MAdmin', () => {
     renderAdmin();
     fireEvent.click(await screen.findByRole('button', { name: 'Administration' }));
     expect(screen.queryByRole('button', { name: 'Storage' })).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-ADMIN-019: with room for two panes the sections stand in a list beside the page', async () => {
+    setSizeClass('split');
+    render(<MAdmin />);
+    await waitFor(() => expect(screen.getByText('alice')).toBeInTheDocument());
+
+    const sections = screen.getByRole('navigation', { name: 'Administration' });
+    expect(within(sections).getByRole('button', { name: 'Users' })).toHaveAttribute('aria-current', 'page');
+    // No dropdown pill on top of the page: the list beside it is the switcher.
+    expect(screen.queryByRole('button', { name: 'Administration', expanded: false })).not.toBeInTheDocument();
+
+    fireEvent.click(within(sections).getByRole('button', { name: 'Settings' }));
+    await waitFor(() => expect(screen.getByText('Authentication Methods')).toBeInTheDocument());
+    expect(within(sections).getByRole('button', { name: 'Settings' })).toHaveAttribute('aria-current', 'page');
+
+    fireEvent.click(within(sections).getByRole('button', { name: 'Create User' }));
+    expect(screen.getByRole('dialog', { name: 'Create User' })).toBeInTheDocument();
   });
 });

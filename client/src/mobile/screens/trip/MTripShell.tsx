@@ -28,7 +28,7 @@ import { getIntlLanguage } from '@trek/shared'
 import { useDayPreviewStore } from '../../dayPreviewStore'
 import { useIsSplit, useIsWide } from '../../../hooks/sizeClass'
 import MTripRail from './MTripRail'
-import { CompactToggle, DocSyncButton, GlassSegment } from './MTripShellParts'
+import { CollabSegment, CompactToggle, DocSyncButton, GlassSegment } from './MTripShellParts'
 import { edgeFadeClass, useEdgeFade } from '../../components/useEdgeFade'
 import { useShortcuts } from '../../keyboard/useShortcuts'
 
@@ -338,6 +338,13 @@ export default function MTripShell({
     setMode(next)
     setView('plan')
     if (trTab !== 'plan') planner.handleTabChange('plan')
+    // The timeline shows one day and renders empty without one. Beside the map
+    // the places keep the all-days switch, so leaving them for the plan brings
+    // back the day an "all days" put away.
+    if (next !== 'browse' && planner.selectedDayId == null) {
+      const back = dayToRestore()
+      if (back != null) planner.handleSelectDay(back, true)
+    }
   }
 
   // Map focus on the selected day. Drives the same declutter the desktop sidebar's
@@ -429,6 +436,10 @@ export default function MTripShell({
   // The pane is open while the plan tab shows its timeline or the places, or the
   // road trip tab its chain. The list/map switch closes it for the whole map.
   const paneOpen = split && ((trTab === 'plan' && (view === 'plan' || mode === 'browse')) || (trTab === 'roadtrip' && rtView === 'list'))
+  // The whole trip at once is a question for the map alone: beside the plan or the
+  // road trip chain, both of which show one day, the switch would empty the pane.
+  // The places beside the map list the whole trip, so they keep it.
+  const allDaysOffered = mapFront && !(paneOpen && (trTab === 'roadtrip' || mode !== 'browse'))
 
   // With the plan beside the map, the map shows the day the plan shows: its
   // places framed, its route drawn, the other days' pins put away, exactly as
@@ -670,7 +681,7 @@ export default function MTripShell({
               nothing to widen there. Stays mounted while a day is active rather than
               appearing on selection, which would shove the rail sideways under the
               thumb. On the road trip map it means the whole drive in its day colours. */}
-          {mapFront && (
+          {allDaysOffered && (
             <button
               type="button"
               onClick={toggleAllDays}
@@ -757,7 +768,7 @@ export default function MTripShell({
         )}
 
         {trTab === 'finanzplan' && (
-          <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-[7px]">
+          <div className="absolute inset-x-0 top-1/2 mx-auto flex w-fit -translate-y-1/2 items-center gap-[7px]">
             <PrimaryPill label={t('costs.addExpense')} onClick={() => setAddExpenseSignal(s => s + 1)} />
             <MReceiptScanButton tripId={tripId} canEdit={planner.can('budget_edit', trip)} />
             <MIconBtn ariaLabel={t('budget.exportCsv')} onClick={() => setExportCostsCsvSignal(s => s + 1)} size={40} className="text-m-muted backdrop-blur-[24px] backdrop-saturate-[1.7]">
@@ -789,27 +800,7 @@ export default function MTripShell({
           </GlassSegment>
         )}
 
-        {trTab === 'collab' && (
-          <GlassSegment>
-            {([
-              { value: 'chat' as const, label: t('collab.tabs.chat') },
-              { value: 'notes' as const, label: t('collab.tabs.notes') },
-              { value: 'links' as const, label: t('collab.tabs.links') || 'Links' },
-              { value: 'polls' as const, label: t('collab.tabs.polls') },
-            ]).map(seg => (
-              <button
-                key={seg.value}
-                type="button"
-                onClick={() => setCollabTab(seg.value)}
-                className={`whitespace-nowrap rounded-full px-4 py-2 text-[0.8125rem] ${
-                  collabTab === seg.value ? 'bg-m-act font-semibold text-m-actfg' : 'font-medium text-m-ink'
-                }`}
-              >
-                {seg.label}
-              </button>
-            ))}
-          </GlassSegment>
-        )}
+        {trTab === 'collab' && <CollabSegment active={collabTab} onPick={setCollabTab} features={planner.collabFeatures} split={split} t={t} />}
 
         {/* The stage's own header: the day it shows, and a way into the figures
             behind it. A button rather than the plugin tabs' inert pill, because it
@@ -843,7 +834,7 @@ export default function MTripShell({
         )}
 
         {trTab === 'dateien' && (
-          <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-[7px]">
+          <div className="absolute inset-x-0 top-1/2 mx-auto flex w-fit -translate-y-1/2 items-center gap-[7px]">
             <PrimaryPill icon={<Upload size={13} strokeWidth={2.2} />} label={t('common.upload')} onClick={() => setUploadFilesSignal(s => s + 1)} />
             <DocSyncButton tripId={tripId} trip={trip} label={t('docsync.title')} onOpen={() => setOpenDocSyncSignal(s => s + 1)} />
             <MIconBtn ariaLabel={t('files.trash')} onClick={() => setOpenFilesTrashSignal(s => s + 1)} size={40} className="text-m-muted backdrop-blur-[24px] backdrop-saturate-[1.7]">

@@ -14,7 +14,7 @@ import MSheet from '../../../components/MSheet'
 import { Eyebrow, FIELD_AREA_CLS, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
 import MConfirmSheet from '../../settings/MConfirmSheet'
 import type { TripPlanner } from '../MTripShell'
-import { SectionHeader, TabScroller } from './tabChrome'
+import { CardGrid, SectionHeader, TabScroller } from './tabChrome'
 import {
   formatPollCountdown,
   hasUserVoted,
@@ -86,7 +86,7 @@ export default function MCollabPolls({ planner }: MCollabPollsProps) {
   const { active, closed } = splitPolls(polls)
 
   return (
-    <TabScroller>
+    <TabScroller wide="full">
       <div className="flex items-center justify-end">
         {canEdit && (
           <button
@@ -107,6 +107,7 @@ export default function MCollabPolls({ planner }: MCollabPollsProps) {
         </div>
       ) : (
         <>
+          <CardGrid>
           {active.map(poll => (
             <PollCardRow
               key={poll.id}
@@ -119,6 +120,7 @@ export default function MCollabPolls({ planner }: MCollabPollsProps) {
               onDelete={() => setPendingDeleteId(poll.id)}
             />
           ))}
+          </CardGrid>
 
           {closed.length > 0 && (
             <div>
@@ -130,7 +132,9 @@ export default function MCollabPolls({ planner }: MCollabPollsProps) {
                   onToggle={() => setCollapsedClosed(v => !v)}
                 />
               )}
-              {!collapsedClosed && closed.map(poll => (
+              {!collapsedClosed && (
+                <CardGrid>
+                {closed.map(poll => (
                 <PollCardRow
                   key={poll.id}
                   poll={poll}
@@ -141,7 +145,9 @@ export default function MCollabPolls({ planner }: MCollabPollsProps) {
                   onClosePoll={handleClosePoll}
                   onDelete={() => setPendingDeleteId(poll.id)}
                 />
-              ))}
+                ))}
+                </CardGrid>
+              )}
             </div>
           )}
         </>

@@ -24,6 +24,8 @@ import MCollTours from './MCollTours'
 import MCollInvites from './MCollInvites'
 import { STATUS_SPEC } from './collectionsMobileModel'
 import MConfirmSheet from '../settings/MConfirmSheet'
+import MCollListNav from './MCollListNav'
+import { useIsSplit } from '../../../hooks/sizeClass'
 
 const HEADER_CIRCLE =
   'flex h-[38px] w-[38px] flex-none items-center justify-center rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-sheet)] text-m-ink shadow-[0_5px_12px_-8px_rgba(0,0,0,.18)]'
@@ -66,6 +68,9 @@ export default function MCollections() {
   const { t } = c
 
   const [drop, setDrop] = useState(false)
+  // With room for two panes the lists stand in a column beside the places
+  // (MCollListNav) instead of behind the header's dropdown.
+  const split = useIsSplit()
   const [statusDrop, setStatusDrop] = useState(false)
   const [labelDrop, setLabelDrop] = useState(false)
 
@@ -145,6 +150,20 @@ export default function MCollections() {
     c.setLabelFilter(c.labelFilter.includes(id) ? c.labelFilter.filter(x => x !== id) : [...c.labelFilter, id])
   }
 
+  const navLists = [...c.ownedLists, ...c.sharedLists].map(l => ({
+    id: l.id, name: l.name, place_count: l.place_count, color: l.color || '#6366F1',
+  }))
+  const listNav = (
+    <MCollListNav
+      lists={navLists}
+      allSaved={c.isAllSaved}
+      activeId={c.activeId}
+      onSelect={selectList}
+      onNewList={openNewList}
+      t={t}
+    />
+  )
+
   const selectChip = (disabled: boolean) =>
     `flex flex-none items-center gap-[5px] rounded-full border border-[color:var(--m-rowbr)] bg-m-sheetop px-3 py-2 text-[0.75rem] font-semibold text-m-ink ${disabled ? 'opacity-40' : ''}`
 
@@ -153,10 +172,28 @@ export default function MCollections() {
       // Map view fills the viewport like the trip and journal maps do (#2104);
       // h-dvh because the shell owns no scroll container (#1809). List view
       // keeps the document as the scroller.
-      className={`px-4 pb-[calc(var(--bottom-nav-h,84px)+12px)] pt-[var(--m-safe-top,12px)] wide:px-6 ${c.view === 'map' ? 'flex h-dvh flex-col overflow-hidden' : 'wide:mx-auto wide:max-w-[1040px]'}`}
+      className={`px-4 pb-[calc(var(--bottom-nav-h,84px)+12px)] pt-[var(--m-safe-top,12px)] wide:px-6 split:grid split:grid-cols-[260px_minmax(0,1fr)] split:gap-8 ${c.view === 'map' ? 'flex h-dvh flex-col overflow-hidden' : 'wide:mx-auto wide:max-w-[1040px] split:max-w-[1240px] split:items-start'}`}
     >
-      {/* Header: back · list switcher · edit · share */}
+      {split && (
+        <nav
+          aria-label={t('collections.title')}
+          className="sticky top-[var(--m-safe-top,12px)] flex max-h-[calc(100dvh-var(--m-safe-top,12px)-16px)] flex-col gap-1 self-start overflow-y-auto rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] p-[6px] shadow-[0_16px_40px_-24px_rgba(0,0,0,.3)] [scrollbar-width:none]"
+        >
+          <div className="mb-1 px-[10px] pb-1 pt-[9px] text-subtitle font-bold text-m-ink">{t('collections.title')}</div>
+          {listNav}
+        </nav>
+      )}
+      <div className={`min-w-0 ${c.view === 'map' ? 'flex min-h-0 flex-1 flex-col' : ''}`}>
+      {/* Header: back · list switcher · edit · share. Beside the lists it names the list on show. */}
       <div className="mb-3 flex flex-none items-center gap-2 pt-2">
+        {split ? (
+          <h1 className="flex min-w-0 flex-1 items-center gap-2 text-title font-extrabold text-m-ink">
+            {!c.isAllSaved && c.activeCollection && (
+              <span className="h-[11px] w-[11px] flex-none rounded-full" style={{ background: navLists.find(l => l.id === c.activeId)?.color }} />
+            )}
+            <span className="min-w-0 truncate">{title}</span>
+          </h1>
+        ) : (
         <button
           type="button"
           onClick={() => setDrop(v => !v)}
@@ -167,6 +204,7 @@ export default function MCollections() {
           <span className="min-w-0 flex-1 truncate text-start">{title}</span>
           <ChevronDown size={13} strokeWidth={2} className="flex-none text-m-faint" />
         </button>
+        )}
         {canEditList && (
           <button type="button" onClick={() => c.setEditorTarget(c.activeCollection!)} aria-label={t('collections.editListTitle')} className={HEADER_CIRCLE}>
             <Pencil size={15} strokeWidth={2.2} />
@@ -182,40 +220,9 @@ export default function MCollections() {
       {/* List switcher dropdown (in flow, like the design). In map view it is a
           flex item of a viewport-high column, so it has to cap itself and give
           way rather than push its last entries under the dock (#2104). */}
-      {drop && (
+      {drop && !split && (
         <div className="-mt-[6px] mb-3 max-h-[50dvh] min-h-0 overflow-y-auto rounded-2xl border border-[color:var(--m-rowbr)] bg-m-sheetop p-[6px] shadow-[0_16px_40px_-20px_rgba(0,0,0,.4)]">
-          <button
-            type="button"
-            onClick={() => selectList(ALL_SAVED)}
-            className={`flex w-full items-center gap-[9px] rounded-[11px] p-[10px] text-[0.8125rem] font-semibold text-m-ink ${c.isAllSaved ? 'bg-[color:var(--m-ic)]' : ''}`}
-          >
-            <Layers size={15} strokeWidth={2} /> {t('collections.allSaved')}
-          </button>
-          <div className="my-[2px] h-px bg-[color:var(--m-rowbr)]" />
-          {[...c.ownedLists, ...c.sharedLists].map(l => {
-            const active = c.activeId === l.id
-            return (
-              <button
-                key={l.id}
-                type="button"
-                onClick={() => selectList(l.id)}
-                className={`flex w-full items-center gap-[10px] rounded-[11px] p-[10px] text-start ${active ? 'bg-[color:var(--m-ic)]' : ''}`}
-                style={active ? { boxShadow: `inset 0 0 0 1.5px ${l.color || '#6366F1'}` } : undefined}
-              >
-                <span className="h-[9px] w-[9px] flex-none rounded-full" style={{ background: l.color || '#6366F1' }} />
-                <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-semibold text-m-ink">{l.name}</span>
-                <span className="font-geist text-[0.6875rem] font-bold text-m-faint">{l.place_count ?? 0}</span>
-              </button>
-            )
-          })}
-          <div className="my-[2px] h-px bg-[color:var(--m-rowbr)]" />
-          <button
-            type="button"
-            onClick={openNewList}
-            className="flex w-full items-center gap-[9px] rounded-[11px] px-[10px] py-[11px] text-[0.8125rem] font-bold text-m-muted"
-          >
-            <Plus size={15} strokeWidth={2.2} /> {t('collections.newList')}
-          </button>
+          {listNav}
         </div>
       )}
 
@@ -429,7 +436,8 @@ export default function MCollections() {
             ) : c.visiblePlaces.length === 0 ? (
               <EmptyNote icon={<Search size={19} strokeWidth={1.8} />} title={t('collections.empty.noMatchTitle')} />
             ) : (
-              <div>
+              // Two columns of rows where the page has the room for them.
+              <div className="wide:grid wide:grid-cols-[repeat(auto-fill,minmax(min(100%,380px),1fr))] wide:gap-x-3">
                 {c.visiblePlaces.map(p => (
                   <MCollPlaceRow
                     key={p.id}
@@ -465,6 +473,8 @@ export default function MCollections() {
           )}
         </>
       )}
+
+      </div>
 
       {/* Sheets */}
       <MCollPlaceSheet

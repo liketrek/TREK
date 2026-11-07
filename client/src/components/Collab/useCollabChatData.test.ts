@@ -1,4 +1,4 @@
-// FE-COLLAB-CHATDATA-001 to FE-COLLAB-CHATDATA-016: the trip chat logic behind the desktop
+// FE-COLLAB-CHATDATA-001 to FE-COLLAB-CHATDATA-018: the trip chat logic behind the desktop
 // Collab panel (quiet older-page errors, scroll on remote delete, upload progress) and the
 // phone's chat tab (toasted older-page errors, sending gated on the edit permission).
 import { act, renderHook, waitFor } from '@testing-library/react';
@@ -283,5 +283,62 @@ describe('useCollabChatData', () => {
       await result.current.reactToMessage(1, '🔥');
     });
     expect(toast.error).toHaveBeenCalledWith('common.error');
+  });
+});
+
+describe('useCollabChatData on a box that changes size', () => {
+  // The observer reports when the test says the list's box has changed.
+  let report: () => void = () => {};
+  class Observer {
+    constructor(callback: ResizeObserverCallback) {
+      report = () => callback([], this as unknown as ResizeObserver);
+    }
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+
+  function mountList(scrollHeight: number) {
+    let scrollTop = 0;
+    const list = document.createElement('div');
+    Object.defineProperty(list, 'scrollHeight', { configurable: true, get: () => scrollHeight });
+    Object.defineProperty(list, 'clientHeight', { configurable: true, get: () => 400 });
+    Object.defineProperty(list, 'scrollTop', {
+      configurable: true,
+      get: () => scrollTop,
+      set: (v: number) => {
+        scrollTop = v;
+      },
+    });
+    const hook = renderHook(() => {
+      const chat = useCollabChatData({
+        tripId: 1,
+        t,
+        toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
+      });
+      (chat.scrollRef as { current: HTMLDivElement | null }).current = list;
+      return chat;
+    });
+    return { hook, list, grow: (to: number) => (scrollHeight = to) };
+  }
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('FE-COLLAB-CHATDATA-017: a list at its newest message stays there when a rotation or a fold resizes it', () => {
+    vi.stubGlobal('ResizeObserver', Observer);
+    const { list, grow } = mountList(400);
+    grow(900);
+    report();
+    expect(list.scrollTop).toBe(900);
+  });
+
+  it('FE-COLLAB-CHATDATA-018: a list read further up keeps its place', () => {
+    vi.stubGlobal('ResizeObserver', Observer);
+    const { hook, list, grow } = mountList(2000);
+    list.scrollTop = 200;
+    hook.result.current.checkAtBottom();
+    grow(2600);
+    report();
+    expect(list.scrollTop).toBe(200);
   });
 });

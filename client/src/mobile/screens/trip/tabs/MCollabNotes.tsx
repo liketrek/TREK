@@ -152,7 +152,7 @@ export default function MCollabNotes({ planner }: MCollabNotesProps) {
   }
 
   return (
-    <TabScroller>
+    <TabScroller wide="full">
       <div className="flex items-center justify-between gap-2">
         {categories.length > 0 ? (
           <div className="flex flex-1 gap-[6px] overflow-x-auto">
@@ -202,7 +202,10 @@ export default function MCollabNotes({ planner }: MCollabNotesProps) {
           <p className="font-geist text-[0.8125rem] font-medium text-m-muted">{t('collab.notes.empty')}</p>
         </div>
       ) : (
-        sorted.map(note => (
+        // A board on a wide window: the notes in as many columns as fit, each
+        // card whole in its column.
+        <div className="wide:mt-2 wide:columns-[300px] wide:gap-3">
+        {sorted.map(note => (
           <NoteCardRow
             key={note.id}
             note={note}
@@ -213,7 +216,8 @@ export default function MCollabNotes({ planner }: MCollabNotesProps) {
             onDelete={() => setPendingDeleteId(note.id)}
             t={t}
           />
-        ))
+        ))}
+        </div>
       )}
 
       <NoteFormSheet
@@ -274,7 +278,7 @@ function NoteCardRow({ note, color, canEdit, onTap, onTogglePin, onDelete, t }: 
   const websiteHref = safeExternalHref(note.website)
 
   return (
-    <div className="mt-2 overflow-hidden rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)]">
+    <div className="mt-2 overflow-hidden rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] wide:mb-3 wide:mt-0 wide:break-inside-avoid">
       <div className="flex items-center gap-[7px] px-3 py-[10px]" style={{ background: `${color}0d` }}>
         {!!note.pinned && <Pin size={11} strokeWidth={2.4} style={{ color }} className="flex-none" />}
         <button type="button" onClick={onTap} className="flex min-w-0 flex-1 items-center gap-[7px] text-start">

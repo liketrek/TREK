@@ -196,147 +196,159 @@ export function AssistantScreen({ tripId, tripTitle, hidden, hops, onOpenTripCha
   };
   const threads = thread.threads ?? [];
 
+  // A phone gives the chat the whole screen. A wide window keeps the page in view
+  // and gives the chat a tall panel at the trailing edge, as Slide Over would,
+  // over a dimmed page that closes it on a tap, like the window's form sheets.
   return (
-    <section
-      ref={sectionRef}
-      role="dialog"
-      aria-modal="true"
-      aria-label={t('assistant.window.title')}
-      hidden={hidden}
-      tabIndex={-1}
-      onKeyDown={(e) => keepTabInside(e, sectionRef.current)}
-      className={`fixed inset-0 z-[var(--z-bar)] ${hidden ? 'hidden' : 'flex'} flex-col bg-[var(--m-bg)] bg-[image:var(--m-scr)] text-m-ink outline-none`}
-      style={{ paddingBottom: `max(env(safe-area-inset-bottom, 0px), ${keyboard}px)` }}
-    >
-      <header className="flex flex-none items-center gap-2 px-4 pb-2 pt-[var(--m-safe-top,12px)]">
-        <MIconBtn ariaLabel={t('common.back')} onClick={close}>
-          <ChevronLeft size={19} strokeWidth={2.2} />
-        </MIconBtn>
-        <div className="min-w-0 flex-1">
-          <h2 className="m-0 truncate text-body font-semibold">
-            <bdi>{thread.title ?? tripTitle}</bdi>
-          </h2>
-          {thread.title && (
-            <div className="truncate text-caption text-m-muted">
-              <bdi>{tripTitle}</bdi>
-            </div>
+    <>
+      {!hidden && (
+        <div
+          aria-hidden="true"
+          onClick={close}
+          className="m-fade-in fixed inset-0 z-[var(--z-bar)] hidden bg-[color:var(--m-dim)] wide:block"
+        />
+      )}
+      <section
+        ref={sectionRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('assistant.window.title')}
+        hidden={hidden}
+        tabIndex={-1}
+        onKeyDown={(e) => keepTabInside(e, sectionRef.current)}
+        className={`fixed inset-0 z-[var(--z-bar)] ${hidden ? 'hidden' : 'flex'} m-panel-in flex-col bg-[var(--m-bg)] bg-[image:var(--m-scr)] text-m-ink outline-none wide:inset-auto wide:bottom-3 wide:end-3 wide:top-3 wide:w-[min(500px,calc(100vw-var(--m-rail-w,0px)-24px))] wide:overflow-hidden wide:rounded-[28px] wide:border wide:border-[color:var(--m-shbr)] wide:shadow-modal`}
+        style={{ paddingBottom: `max(env(safe-area-inset-bottom, 0px), ${keyboard}px)` }}
+      >
+        <header className="flex flex-none items-center gap-2 px-4 pb-2 pt-[var(--m-safe-top,12px)] wide:pt-3">
+          <MIconBtn ariaLabel={t('common.back')} onClick={close}>
+            <ChevronLeft size={19} strokeWidth={2.2} />
+          </MIconBtn>
+          <div className="min-w-0 flex-1">
+            <h2 className="m-0 truncate text-body font-semibold">
+              <bdi>{thread.title ?? tripTitle}</bdi>
+            </h2>
+            {thread.title && (
+              <div className="truncate text-caption text-m-muted">
+                <bdi>{tripTitle}</bdi>
+              </div>
+            )}
+          </div>
+          <MIconBtn ariaLabel={t('assistant.history.open')} ariaExpanded={panel === 'history'} onClick={openHistory}>
+            <History size={16} strokeWidth={2} />
+          </MIconBtn>
+          <MIconBtn
+            ariaLabel={t('assistant.history.new')}
+            onClick={thread.newThread}
+            disabled={thread.threadId === null && !thread.isRunning}
+          >
+            <Plus size={17} strokeWidth={2.2} />
+          </MIconBtn>
+          <MIconBtn
+            ariaLabel={t('assistant.window.menu')}
+            ariaExpanded={panel === 'menu'}
+            ariaHaspopup="menu"
+            onClick={() => setPanel('menu')}
+          >
+            <Ellipsis size={17} strokeWidth={2.2} />
+          </MIconBtn>
+        </header>
+
+        <MDropdownPanel
+          open={panel === 'history'}
+          onClose={() => setPanel(null)}
+          className="end-4 top-[calc(var(--m-safe-top,12px)+48px)] max-h-[60vh] overflow-y-auto"
+        >
+          <MListRow icon={Plus} label={t('assistant.history.new')} onClick={() => pick(thread.newThread)} />
+          {threads.length === 0 ? (
+            <p className="m-0 px-[10px] py-2 text-caption text-m-muted">{t('assistant.history.empty')}</p>
+          ) : (
+            threads.map((th) => (
+              <MListRow
+                key={th.id}
+                label={th.title}
+                className={th.id === thread.threadId ? 'bg-[color:var(--m-ic)]' : ''}
+                current={th.id === thread.threadId}
+                onClick={() => pick(() => thread.openThread(th.id))}
+                trailing={
+                  <span className="flex-none text-caption text-m-muted">
+                    {new Date(th.lastMessageAt).toLocaleDateString(locale, { day: 'numeric', month: 'short' })}
+                  </span>
+                }
+              />
+            ))
           )}
-        </div>
-        <MIconBtn ariaLabel={t('assistant.history.open')} ariaExpanded={panel === 'history'} onClick={openHistory}>
-          <History size={16} strokeWidth={2} />
-        </MIconBtn>
-        <MIconBtn
-          ariaLabel={t('assistant.history.new')}
-          onClick={thread.newThread}
-          disabled={thread.threadId === null && !thread.isRunning}
-        >
-          <Plus size={17} strokeWidth={2.2} />
-        </MIconBtn>
-        <MIconBtn
-          ariaLabel={t('assistant.window.menu')}
-          ariaExpanded={panel === 'menu'}
-          ariaHaspopup="menu"
-          onClick={() => setPanel('menu')}
-        >
-          <Ellipsis size={17} strokeWidth={2.2} />
-        </MIconBtn>
-      </header>
+          {thread.retentionNote && (
+            <p className="m-0 px-[10px] pb-1 pt-2 text-caption text-m-muted">{thread.retentionNote}</p>
+          )}
+        </MDropdownPanel>
 
-      <MDropdownPanel
-        open={panel === 'history'}
-        onClose={() => setPanel(null)}
-        className="end-4 top-[calc(var(--m-safe-top,12px)+48px)] max-h-[60vh] overflow-y-auto"
-      >
-        <MListRow icon={Plus} label={t('assistant.history.new')} onClick={() => pick(thread.newThread)} />
-        {threads.length === 0 ? (
-          <p className="m-0 px-[10px] py-2 text-caption text-m-muted">{t('assistant.history.empty')}</p>
-        ) : (
-          threads.map((th) => (
+        <MDropdownPanel
+          open={panel === 'menu'}
+          onClose={() => setPanel(null)}
+          className="end-4 top-[calc(var(--m-safe-top,12px)+48px)]"
+        >
+          {tripChat && (
             <MListRow
-              key={th.id}
-              label={th.title}
-              className={th.id === thread.threadId ? 'bg-[color:var(--m-ic)]' : ''}
-              current={th.id === thread.threadId}
-              onClick={() => pick(() => thread.openThread(th.id))}
-              trailing={
-                <span className="flex-none text-caption text-m-muted">
-                  {new Date(th.lastMessageAt).toLocaleDateString(locale, { day: 'numeric', month: 'short' })}
-                </span>
-              }
+              icon={NotebookPen}
+              label={t(memory.has ? 'assistant.memory.edit' : 'assistant.memory.title')}
+              onClick={() => pick(() => setMemoryOpen(true))}
             />
-          ))
-        )}
-        {thread.retentionNote && (
-          <p className="m-0 px-[10px] pb-1 pt-2 text-caption text-m-muted">{thread.retentionNote}</p>
-        )}
-      </MDropdownPanel>
-
-      <MDropdownPanel
-        open={panel === 'menu'}
-        onClose={() => setPanel(null)}
-        className="end-4 top-[calc(var(--m-safe-top,12px)+48px)]"
-      >
-        {tripChat && (
+          )}
           <MListRow
-            icon={NotebookPen}
-            label={t(memory.has ? 'assistant.memory.edit' : 'assistant.memory.title')}
-            onClick={() => pick(() => setMemoryOpen(true))}
+            icon={hints.on ? LightbulbOff : Lightbulb}
+            label={t(hints.on ? 'assistant.hint.menuOff' : 'assistant.hint.menuOn')}
+            onClick={() => pick(hints.toggle)}
           />
-        )}
-        <MListRow
-          icon={hints.on ? LightbulbOff : Lightbulb}
-          label={t(hints.on ? 'assistant.hint.menuOff' : 'assistant.hint.menuOn')}
-          onClick={() => pick(hints.toggle)}
-        />
-        <MListRow
-          icon={Settings}
-          label={t('assistant.window.settings')}
-          onClick={() =>
-            pick(() => {
-              close();
-              void navigate(AI_SETTINGS_PATH);
-            })
-          }
-        />
-        {thread.threadId !== null && !thread.isRunning && (
           <MListRow
-            icon={Trash2}
-            danger
-            label={t('assistant.window.deleteThread')}
-            onClick={() => pick(() => setConfirming(true))}
+            icon={Settings}
+            label={t('assistant.window.settings')}
+            onClick={() =>
+              pick(() => {
+                close();
+                void navigate(AI_SETTINGS_PATH);
+              })
+            }
           />
-        )}
-      </MDropdownPanel>
+          {thread.threadId !== null && !thread.isRunning && (
+            <MListRow
+              icon={Trash2}
+              danger
+              label={t('assistant.window.deleteThread')}
+              onClick={() => pick(() => setConfirming(true))}
+            />
+          )}
+        </MDropdownPanel>
 
-      {memoryOpen && <AssistantMemoryDialog tripId={tripId} onClose={() => setMemoryOpen(false)} />}
-      <div className="flex min-h-0 flex-1 flex-col">
-        <AssistantSurfaceLazy
-          tripId={tripId}
-          tripTitle={tripTitle}
-          variant="fullscreen"
-          onOpen={hops.open}
-          onFocusDay={hops.focusDay}
-          onRevealMap={hops.revealMap}
-          onOpenTripChat={onOpenTripChat}
-          // The phone's Studio has its own panel: a journey's chat here is the journal's.
-          journal={assistantScopeOf(tripId).kind === 'journey'}
+        {memoryOpen && <AssistantMemoryDialog tripId={tripId} onClose={() => setMemoryOpen(false)} />}
+        <div className="flex min-h-0 flex-1 flex-col">
+          <AssistantSurfaceLazy
+            tripId={tripId}
+            tripTitle={tripTitle}
+            variant="fullscreen"
+            onOpen={hops.open}
+            onFocusDay={hops.focusDay}
+            onRevealMap={hops.revealMap}
+            onOpenTripChat={onOpenTripChat}
+            // The phone's Studio has its own panel: a journey's chat here is the journal's.
+            journal={assistantScopeOf(tripId).kind === 'journey'}
+          />
+        </div>
+
+        <MConfirmSheet
+          open={confirming}
+          onClose={() => setConfirming(false)}
+          title={t('assistant.window.deleteThread')}
+          message={t('assistant.window.deleteConfirm')}
+          confirmLabel={t('common.delete')}
+          cancelLabel={t('common.cancel')}
+          danger
+          onConfirm={() => {
+            setConfirming(false);
+            void thread.removeThread();
+          }}
         />
-      </div>
-
-      <MConfirmSheet
-        open={confirming}
-        onClose={() => setConfirming(false)}
-        title={t('assistant.window.deleteThread')}
-        message={t('assistant.window.deleteConfirm')}
-        confirmLabel={t('common.delete')}
-        cancelLabel={t('common.cancel')}
-        danger
-        onConfirm={() => {
-          setConfirming(false);
-          void thread.removeThread();
-        }}
-      />
-    </section>
+      </section>
+    </>
   );
 }
 
@@ -355,7 +367,7 @@ function BackToChat({ tripId, running }: { tripId: number; running: boolean }) {
   const glass =
     'rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] shadow-elevated backdrop-blur-[30px] backdrop-saturate-[1.8]';
   return (
-    <div className="absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+86px)] z-[42] mx-auto flex w-fit max-w-[calc(100%-2rem)] items-center gap-2">
+    <div className="absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+86px)] z-[42] mx-auto flex w-fit max-w-[calc(100%-2rem)] items-center gap-2 wide:bottom-[calc(env(safe-area-inset-bottom,0px)+24px)]">
       <button
         type="button"
         onClick={() => {

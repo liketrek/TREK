@@ -27,7 +27,8 @@ import { useJourneyCarouselSync } from '../../../components/Journey/useJourneyCa
 import { useGalleryUpload } from '../../../components/Journey/useGalleryUpload'
 import { dayPrepText, dayPrepUnsettled } from '../../../components/Journey/journeyRecordingPrepModel'
 import MJourneyEntrySheet from './MJourneyEntrySheet'
-import { useIsWide } from '../../../hooks/sizeClass'
+import { useIsSplit, useIsWide } from '../../../hooks/sizeClass'
+import MJourneyFeed from './MJourneyFeed'
 import MJourneySettingsSheet from './MJourneySettingsSheet'
 import MJourneyDayImportSheet from './MJourneyDayImportSheet'
 import MJourneyRecordingSheet from './MJourneyRecordingSheet'
@@ -44,6 +45,9 @@ import MJourneyRecordingSheet from './MJourneyRecordingSheet'
 export default function MJourneyDetail({ journeyId, embedded = false }: JourneyDetailOptions = {}) {
   // Larger cards on a wide window, where the strip has the room for the whole name.
   const wide = useIsWide()
+  // With room for two panes the entries stand as a feed beside the map (MJourneyFeed)
+  // instead of the strip of cards over it.
+  const split = useIsSplit()
   const {
     id, navigate, toast, t, locale,
     current, loading,
@@ -107,7 +111,16 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
   const {
     mapRef, carouselRef, cardRefs, activeIndex, focusIndex, setActiveIndex, scrubberDays,
     syncMapToCard, handleMarkerClick, handleCardTap, openEntryById, jumpToDay,
-  } = useJourneyCarouselSync<JourneyEntry>({ entries, mapEntries: sidebarMapItems, onOpenEntry: setEditingEntry, syncMapOnTap: true })
+  } = useJourneyCarouselSync<JourneyEntry>({
+    entries, mapEntries: sidebarMapItems, onOpenEntry: setEditingEntry, syncMapOnTap: true, layoutKey: split,
+  })
+  const feed = split && view === 'timeline' && entries.length > 0
+
+  // The map's box changes when the feed comes or goes (a rotation, Split View).
+  useEffect(() => {
+    const timer = window.setTimeout(() => mapRef.current?.invalidateSize(), 320)
+    return () => window.clearTimeout(timer)
+  }, [feed, mapRef])
 
   // Initial focus — give Leaflet time to initialise and fit bounds first. Opens on
   // today when today is part of the journey (see openAtEntryId), rather than always
@@ -198,7 +211,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
     observer.observe(node)
     setRailHeight(node.offsetHeight)
     return () => observer.disconnect()
-  }, [view, entries.length])
+  }, [view, entries.length, split])
 
   const openUpload = useCallback(() => {
     if (availableProviders.length > 0) setShowUploadMenu(true)
@@ -303,8 +316,13 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
     // h-dvh, not h-full: the shell stopped providing a definite height (#1809)
     // and a map on a percentage of an auto-height parent collapses to zero.
     <div className="m-bleed relative h-dvh overflow-hidden">
-      {/* Integrated map — always mounted, the gallery overlays it */}
-      <div className="absolute inset-0 z-0">
+      {/* Integrated map — always mounted, the gallery overlays it. Beside the feed
+          it begins where the feed ends, so its controls and its framing stay in
+          the part that can be seen. */}
+      <div
+        className="absolute inset-y-0 end-0 start-0 z-0"
+        style={feed ? { insetInlineStart: 'calc(var(--m-rail-w, 0px) + var(--m-pane-aside-w))' } : undefined}
+      >
         <JourneyLayeredMap
           ref={mapRef}
           layers={mapLayers}
@@ -336,7 +354,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
               <p className="font-geist text-[0.8125rem] font-medium text-m-muted">{t('journey.detail.noPhotos')}</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2 wide:grid-cols-[repeat(auto-fill,minmax(180px,1fr))] wide:gap-3">
               {gallery.map((photo, i) => (
                 // A wrapper, not one button: the delete sits beside the tile's own
                 // button instead of inside it (#2593).
@@ -376,8 +394,37 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
         </div>
       )}
 
-      {/* Header: back — segment — upload / overflow menu */}
-      <div className="m-bar-x absolute top-[var(--m-safe-top,12px)] z-10 flex items-center justify-between gap-2">
+      {/* The entries as a feed beside the map, on a window with room for two panes. */}
+      {feed && (
+        <div
+          className="absolute inset-y-0 z-[6] overflow-y-auto overflow-x-hidden border-e border-[color:var(--m-rowbr)] bg-[color:var(--m-bg)] bg-[image:var(--m-scr)] px-4 pb-[calc(var(--bottom-nav-h,84px)+16px)] pt-[calc(var(--m-safe-top,12px)+60px)]"
+          // Entries scrolled up fade out under the header's pills instead of showing through between them.
+          style={{
+            insetInlineStart: 'var(--m-rail-w, 0px)',
+            width: 'var(--m-pane-aside-w)',
+            maskImage: 'linear-gradient(180deg, transparent calc(var(--m-safe-top, 12px) + 22px), #000 calc(var(--m-safe-top, 12px) + 58px))',
+          }}
+        >
+          <MJourneyFeed
+            entries={entries}
+            days={scrubberDays}
+            activeIndex={activeIndex}
+            cardRefs={cardRefs}
+            onCardTap={handleCardTap}
+            showMood={current.show_mood !== 0}
+            showWeather={current.show_weather !== 0}
+            t={t}
+            locale={locale}
+          />
+        </div>
+      )}
+
+      {/* Header: back — segment — upload / overflow menu. Beside the feed it keeps
+          to the feed, as the trip's controls keep to its pane. */}
+      <div
+        className="m-bar-x absolute top-[var(--m-safe-top,12px)] z-10 flex items-center justify-between gap-2"
+        style={feed ? { insetInlineEnd: 'calc(100% - var(--m-rail-w, 0px) - var(--m-pane-aside-w) + 16px)' } : undefined}
+      >
         {embedded ? (
           <span className="w-[38px] flex-none" aria-hidden />
         ) : (
@@ -492,7 +539,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
           inside the 84px the variable reserves, so +16 left a band of map doing
           nothing between the cards and it; two pixels keeps a hair of daylight and
           gives the strip the rest. */}
-      {view === 'timeline' && entries.length > 0 && (
+      {view === 'timeline' && entries.length > 0 && !feed && (
         <div ref={railRef} className="m-span-x absolute z-[8] bottom-[calc(var(--bottom-nav-h,84px)+2px)]">
         <JourneyDayScrubber
           days={scrubberDays}

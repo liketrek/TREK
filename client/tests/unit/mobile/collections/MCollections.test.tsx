@@ -1,7 +1,8 @@
-// FE-MOB-COLSCR-001 to FE-MOB-COLSCR-033
+// FE-MOB-COLSCR-001 to FE-MOB-COLSCR-034
 import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '../../../helpers/render'
+import { render, screen, fireEvent, waitFor, within } from '../../../helpers/render'
+import { setSizeClass } from '../../../helpers/sizeClass'
 import MCollections from '../../../../src/mobile/screens/collections/MCollections'
 import { ALL_SAVED } from '../../../../src/store/collectionStore'
 
@@ -694,5 +695,18 @@ describe('MCollections: invites (#2645)', () => {
     const names = screen.getAllByText(/^(Lisbon|Rome)$/).map(el => el.textContent)
     expect(names).toEqual(['Lisbon', 'Rome'])
     expect(screen.getByPlaceholderText('collections.search')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-COLSCR-034: with room for two panes the lists stand beside the places and the head names the list', () => {
+    setSizeClass('split')
+    render(<MCollections />)
+    const lists = screen.getByRole('navigation', { name: 'collections.title' })
+    expect(within(lists).getByRole('button', { name: /Hamburg/ })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('heading', { name: 'Hamburg' })).toBeInTheDocument()
+
+    fireEvent.click(within(lists).getByRole('button', { name: /collections.allSaved/ }))
+    expect(fn('handleSelectList')).toHaveBeenCalledWith(ALL_SAVED)
+    fireEvent.click(within(lists).getByRole('button', { name: /collections.newList/ }))
+    expect(fn('setEditorTarget')).toHaveBeenCalledWith('new')
   })
 })

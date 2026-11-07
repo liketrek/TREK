@@ -16,6 +16,8 @@ import { canManageDocSync } from '../../../../components/Files/docsync/useDocSyn
 import { filesFromClipboard } from '../../../../components/Files/fileActions'
 import { useAuthStore } from '../../../../store/authStore'
 import MFileLightbox from './MFileLightbox'
+import { FilePreviewPane, FileTile } from './MFilesBoard'
+import { useIsSplit, useIsWide } from '../../../../hooks/sizeClass'
 import {
   FILE_FILTERS, buildFileLinkLabels, formatFileDate, getFileTypeMeta,
   matchesFileFilter, sortFilesStarredFirst, type FileFilterId,
@@ -43,6 +45,11 @@ export default function MFilesTab({ planner, shell }: MTabScreenProps) {
   const [docSyncOpen, setDocSyncOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [uploading, setUploading] = useState(false)
+  // Wide: the files as a grid of tiles. Split: the picked one previewed beside
+  // the grid (MFilesBoard), so a tap picks a file there instead of opening it.
+  const wide = useIsWide()
+  const split = useIsSplit()
+  const [pickedId, setPickedId] = useState<number | null>(null)
 
   const menuFile = menuFileId != null ? files.find(f => f.id === menuFileId) ?? null : null
   const linkFile = linkFileId != null ? files.find(f => f.id === linkFileId) ?? null : null
@@ -143,11 +150,12 @@ export default function MFilesTab({ planner, shell }: MTabScreenProps) {
     }
   }
 
+  const picked = split ? (visible.find(f => f.id === pickedId) ?? visible[0] ?? null) : null
+
   const visibleFilters = FILE_FILTERS.filter(f => f.id !== 'collab' || files.some(x => x.note_id != null))
   const isEmpty = files.length === 0
 
-  return (
-    <TabScroller>
+  const body = (
       <div onPaste={onPaste} tabIndex={-1} className="flex min-h-full flex-col">
         <input ref={inputRef} type="file" multiple className="hidden" onChange={onPickFiles} />
 
@@ -191,6 +199,21 @@ export default function MFilesTab({ planner, shell }: MTabScreenProps) {
 
             {visible.length === 0 ? (
               <div className="pt-14 text-center font-geist text-[0.8125rem] text-m-faint">{t('mobileTrip.filesEmpty')}</div>
+            ) : wide ? (
+              <div className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(156px,1fr))] gap-3">
+                {visible.map(file => (
+                  <FileTile
+                    key={file.id}
+                    file={file}
+                    selected={picked?.id === file.id}
+                    canStar={planner.can('file_edit', planner.trip)}
+                    onPick={() => (split ? setPickedId(file.id) : openRow(file))}
+                    onStar={() => void toggleStar(file)}
+                    onMenu={() => setMenuFileId(file.id)}
+                    t={t}
+                  />
+                ))}
+              </div>
             ) : (
               <div className="flex flex-col">
                 {visible.map(file => (
@@ -208,7 +231,10 @@ export default function MFilesTab({ planner, shell }: MTabScreenProps) {
           </>
         )}
       </div>
+  )
 
+  const sheets = (
+    <>
       <MFileMenuSheet
         planner={planner}
         file={menuFile}
@@ -233,6 +259,36 @@ export default function MFilesTab({ planner, shell }: MTabScreenProps) {
           t={t}
         />
       )}
+    </>
+  )
+
+  if (split && picked) {
+    return (
+      <div className="flex h-full">
+        <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden pb-[calc(var(--bottom-nav-h,84px)+22px)] pe-3 ps-6 pt-[calc(var(--m-safe-top,12px)+58px)]">
+          {body}
+        </div>
+        <aside
+          aria-label={t('common.preview')}
+          className="m-pane-trail min-h-0 flex-none overflow-y-auto overflow-x-hidden border-s border-[color:var(--m-rowbr)] px-5 pb-[calc(var(--bottom-nav-h,84px)+22px)] pt-[calc(var(--m-safe-top,12px)+58px)]"
+        >
+          <FilePreviewPane
+            file={picked}
+            planner={planner}
+            onOpen={() => openRow(picked)}
+            onStar={() => void toggleStar(picked)}
+            onLinks={() => setLinkFileId(picked.id)}
+            onMenu={() => setMenuFileId(picked.id)}
+          />
+        </aside>
+        {sheets}
+      </div>
+    )
+  }
+  return (
+    <TabScroller wide={wide ? 'full' : 'readable'}>
+      {body}
+      {sheets}
     </TabScroller>
   )
 }
