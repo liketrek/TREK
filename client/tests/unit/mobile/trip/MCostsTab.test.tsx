@@ -657,7 +657,7 @@ describe('MCostsTab', () => {
     expect(within(card).getAllByText('+$58.00')).toHaveLength(2)
     expect(within(card).queryByText(/60\.00/)).not.toBeInTheDocument()
     // Named by what Bob entered, as the list names it (#2525), never re-converted.
-    expect(within(card).getByText('Museum · £30.00')).toBeInTheDocument()
+    expect(within(card).getByText('Museum (£30.00)')).toBeInTheDocument()
 
     fireEvent.click(bob)
     expect(bob).toHaveAttribute('aria-expanded', 'false')

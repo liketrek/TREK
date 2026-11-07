@@ -45,6 +45,22 @@ export function parseTransportMeta(res: Reservation): TransportMeta {
 }
 
 /**
+ * A start time, or a range to an end time, as the card's time cell shows it. A
+ * unit both ends carry is said once, after the range ("09:05 – 10:15 Uhr", not
+ * "09:05 Uhr – 10:15 Uhr", "9:05 – 10:15 AM"): the doubled one made a German
+ * range too long for its cell, and it was cut before its end.
+ */
+export function timeRange(start: string, end: string | null, locale: string, timeFormat: string): string {
+  const from = formatTime(start, locale, timeFormat)
+  if (!end) return from
+  const to = formatTime(end, locale, timeFormat)
+  // The word after the last space, where it holds no digit: "Uhr", "AM", "PM".
+  const space = from.lastIndexOf(' ')
+  const unit = space > 0 && !/\d/.test(from.slice(space)) ? from.slice(space) : ''
+  return unit && to.endsWith(unit) ? `${from.slice(0, space)} – ${to}` : `${from} – ${to}`
+}
+
+/**
  * The date and time cells of a phone booking or transport card: the day (or day
  * range) the booking sits on with its calendar date beside it, else its own
  * date, and its time or time range. A dash stands in for whichever is missing.
@@ -62,9 +78,7 @@ export function cardWhen(
   const fmtDate = (date: string) =>
     new Date(`${date}T00:00:00Z`).toLocaleDateString(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' })
   const dayLabel = (day: Day) => day.title || t('dayplan.dayN', { n: day.day_number })
-  const timeValue = startDt.time
-    ? `${formatTime(startDt.time, locale, timeFormat)}${endDt.time ? ` – ${formatTime(endDt.time, locale, timeFormat)}` : ''}`
-    : '—'
+  const timeValue = startDt.time ? timeRange(startDt.time, endDt.time, locale, timeFormat) : '—'
   const rangeEnd = startDay && endDay && endDay.id !== startDay.id ? endDay : undefined
   const dayValue = startDay
     ? `${dayLabel(startDay)}${rangeEnd ? ` – ${dayLabel(rangeEnd)}` : ''}`

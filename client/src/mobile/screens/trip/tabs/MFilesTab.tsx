@@ -205,7 +205,7 @@ export default function MFilesTab({ planner, shell }: MTabScreenProps) {
                   <FileTile
                     key={file.id}
                     file={file}
-                    selected={picked?.id === file.id}
+                    selected={split ? picked?.id === file.id : undefined}
                     canStar={planner.can('file_edit', planner.trip)}
                     onPick={() => (split ? setPickedId(file.id) : openRow(file))}
                     onStar={() => void toggleStar(file)}
@@ -351,9 +351,16 @@ function FileRow({ file, planner, onOpen, onStar, onMenu }: {
           </div>
 
           {linkLabels.length > 0 && (
+            // One badge per link, the kind beside the name, so two links never run
+            // together; the last one that does not fit ends in an ellipsis.
             <div className="mt-1 flex items-center gap-1 overflow-hidden text-m-faint">
               <Link size={9} strokeWidth={2.4} className="flex-none" />
-              <span className="truncate font-geist text-[0.5625rem] font-bold">{linkLabels.join('  ·  ')}</span>
+              {linkLabels.map((label, i) => (
+                <span key={i} className="flex min-w-0 flex-none items-center gap-[3px] rounded-full bg-[color:var(--m-ic)] px-[6px] py-px font-geist text-[0.5625rem] font-bold last:flex-initial">
+                  <span className="flex-none uppercase tracking-[.06em]">{label.kind}</span>
+                  {label.name && <span className="min-w-0 truncate text-m-muted">{label.name}</span>}
+                </span>
+              ))}
             </div>
           )}
         </div>

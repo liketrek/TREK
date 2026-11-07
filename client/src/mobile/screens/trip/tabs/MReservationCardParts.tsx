@@ -17,7 +17,14 @@ import { ConfirmationCode, Field } from './tabChrome';
 type T = ReturnType<typeof useTranslation>['t'];
 type CardState = ReturnType<typeof useReservationCard>;
 
-/** Header button: type pill, title and the needs-review badge. */
+/**
+ * Header button: title, type pill and the needs-review badge. The title takes
+ * the line first and may run to a second one; where it and the pills do not
+ * fit side by side, the pills move under it rather than squeezing the title
+ * down to a few letters ("Hotel The Celestine Kyot…"). On a wide window they
+ * always stand under it, so the cards side by side in a row keep headers of
+ * one height and their date rows on one line.
+ */
 export function CardTitleButton({
   res,
   TypeIcon,
@@ -32,13 +39,17 @@ export function CardTitleButton({
   t: T;
 }) {
   return (
-    <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-[7px] text-start">
+    <button
+      type="button"
+      onClick={onOpen}
+      className="flex min-w-0 flex-1 flex-wrap items-center gap-x-[7px] gap-y-1 text-start"
+    >
+      <span dir="auto" className="line-clamp-2 min-w-0 flex-[1_1_auto] break-words text-[0.78125rem] font-bold text-m-ink wide:basis-full">
+        {res.title}
+      </span>
       <span className="inline-flex flex-none items-center gap-1 rounded-full border border-[color:var(--m-rowbr)] bg-m-card px-2 py-[2px] font-geist text-[0.5625rem] font-bold uppercase tracking-[.06em] text-m-muted">
         <TypeIcon size={10} strokeWidth={2.2} style={{ color: typeColor }} />
         {t(`reservations.type.${res.type}`)}
-      </span>
-      <span dir="auto" className="min-w-0 flex-1 truncate text-[0.78125rem] font-bold text-m-ink wide:line-clamp-2 wide:whitespace-normal">
-        {res.title}
       </span>
       {!!res.needs_review && (
         <span className="flex-none rounded-full bg-[rgba(232,161,58,.16)] px-2 py-[2px] font-geist text-[0.5rem] font-bold uppercase tracking-[.03em] text-[color:var(--m-st-pending)]">
@@ -112,7 +123,8 @@ export function CardWhenAndCode({
               dayValue
             )}
           </Field>
-          <Field label={t('reservations.time')} className="flex-1" tabular>
+          {/* The time is never cut: a range keeps its end (the date gives way first). */}
+          <Field label={t('reservations.time')} className="flex-1" tabular fit>
             {timeValue}
           </Field>
         </div>

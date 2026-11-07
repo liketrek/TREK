@@ -188,15 +188,21 @@ describe('MPlanTimeline', () => {
       const { container, unmount } = renderTimeline()
       // The card flows under the up-next card at a fixed gap, whatever its height,
       // rather than at an offset that assumed an address line (a gap without one).
+      // The card is a frame around the scroller, so a row's fade at the edge leaves the frame whole.
       const upNext = screen.getByText('mobileTrip.upNext').closest('button') as HTMLElement
-      expect(upNext.nextElementSibling).toBe(card(container))
-      expect(card(container).parentElement).toHaveClass('flex-col', 'gap-3')
+      const frame = card(container).parentElement as HTMLElement
+      expect(upNext.nextElementSibling).toBe(frame)
+      expect(frame).toHaveClass('overflow-hidden', 'rounded-[22px]')
+      expect(card(container)).toHaveClass('overflow-y-auto')
+      expect(frame.parentElement).toHaveClass('flex-col', 'gap-3')
+      // On a wide window the column ends where the rail does.
+      expect(frame.parentElement).toHaveClass('wide:bottom-[calc(env(safe-area-inset-bottom,0px)+12px)]')
       expect(card(container).style.top).toBe('')
       unmount()
 
       const empty = renderTimeline({ upNext: null, rows: [], merged: [] })
       expect(screen.queryByText('mobileTrip.upNext')).not.toBeInTheDocument()
-      expect(card(empty.container).previousElementSibling).toBeNull()
+      expect(card(empty.container).parentElement?.previousElementSibling).toBeNull()
     })
   })
 
@@ -212,8 +218,12 @@ describe('MPlanTimeline', () => {
         weatherTemp: 17,
       })
 
-      expect(screen.getByText(/Hotel Sacher/)).toHaveTextContent('Hotel Sacher · 11:00')
-      expect(screen.getByText(/Ryokan Kyoto/)).toHaveTextContent('Ryokan Kyoto · 15:00')
+      // The name gives way with an ellipsis; the time after it stays, with no dot between.
+      const sacher = screen.getByText('Hotel Sacher')
+      expect(sacher).toHaveClass('truncate', 'min-w-0')
+      expect(sacher.closest('button')).toHaveTextContent('Hotel Sacher11:00')
+      expect(sacher.closest('button')).toHaveClass('shrink')
+      expect(screen.getByText('Ryokan Kyoto').closest('button')).toHaveTextContent('Ryokan Kyoto15:00')
       expect(screen.getByText('Capsule Tokyo')).toBeInTheDocument()
       expect(screen.getByText('17°')).toBeInTheDocument()
     })
@@ -557,7 +567,7 @@ describe('MPlanTimeline', () => {
 
       expect(screen.queryByText('mobileTrip.upNext')).not.toBeInTheDocument()
       // The edit header takes the up-next card's place, the timeline right under it.
-      expect(card(container).previousElementSibling).toContainElement(screen.getByLabelText('mobileTrip.renameDay'))
+      expect(card(container).parentElement?.previousElementSibling).toContainElement(screen.getByLabelText('mobileTrip.renameDay'))
     })
 
     it('FE-MOB-PLTL-026: splits the day title into city pills', () => {

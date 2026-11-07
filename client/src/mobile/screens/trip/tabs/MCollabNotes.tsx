@@ -5,6 +5,7 @@ import remarkBreaks from 'remark-breaks'
 import { sanitizedMarkdownPlugins, sanitizedMarkdownComponents } from '../../../../components/shared/markdownSanitize'
 import { Check, ExternalLink, FileText, Paperclip, Pin, PinOff, Plus, StickyNote, Trash2, X } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
+import MChipStrip from '../../../components/MChipStrip'
 import { collabApi } from '../../../../api/client'
 import { announceNoteFilesChanged, useCollabNotesData } from '../../../../components/Collab/useCollabNotesData'
 import { openFile } from '../../../../utils/fileDownload'
@@ -153,9 +154,11 @@ export default function MCollabNotes({ planner }: MCollabNotesProps) {
 
   return (
     <TabScroller wide="full">
+      {/* The categories scroll within their own room and fade at its edges; New
+          Note stays outside that room, so it never lies over a category. */}
       <div className="flex items-center justify-between gap-2">
         {categories.length > 0 ? (
-          <div className="flex flex-1 gap-[6px] overflow-x-auto">
+          <MChipStrip className="flex-1 gap-[6px]">
             <button
               type="button"
               onClick={() => setActiveCategory(null)}
@@ -180,7 +183,7 @@ export default function MCollabNotes({ planner }: MCollabNotesProps) {
                 </button>
               )
             })}
-          </div>
+          </MChipStrip>
         ) : (
           <span />
         )}

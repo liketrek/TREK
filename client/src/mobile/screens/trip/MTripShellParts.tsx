@@ -1,21 +1,175 @@
-import { FolderSync, List, Rows3 } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { ChevronLeft, ChevronRight, FolderSync, List, Plus, Rows3 } from 'lucide-react';
+import { useLayoutEffect, useState, type ReactNode } from 'react';
 import { canManageDocSync } from '../../../components/Files/docsync/useDocSync';
 import { useDocSyncOffered } from '../../../components/Files/docsync/useDocSyncOffered';
+import { useIsWide } from '../../../hooks/sizeClass';
 import { useAuthStore } from '../../../store/authStore';
 import type { Trip } from '../../../types';
 import MIconBtn from '../../components/MIconBtn';
+import { edgeFadeClass, useEdgeFade, type EdgeFade } from '../../components/useEdgeFade';
 import type { MTripCollabTab } from './MTripShell';
 import { collabBoardFor, collabSideBySide } from './tabs/collabPanes';
 
 // The small pieces of the trip screen's top controls (MTripShell).
 
-/** Centre glass pill of the top controls (segments for plan/lists/collab). */
-export function GlassSegment({ children }: { children: ReactNode }) {
+/**
+ * Centre glass pill of the top controls (segments for plan/lists/collab).
+ *
+ * It has the room between the back button and the trailing button, and never
+ * more: centred there while it fits, its segments drawn a little tighter where
+ * that is enough (a long German or Russian label, a narrow Split View), and
+ * scrolling sideways with faded edges where even that is too wide. It used to
+ * be centred over the whole bar at its full width, and in a narrow window it
+ * covered the back button, the only way out of the trip. `activeKey` names the
+ * segment that is on, which a scrolling control keeps in view.
+ */
+export function GlassSegment({ children, activeKey }: { children: ReactNode; activeKey?: string }) {
+  const [region, setRegion] = useState<HTMLDivElement | null>(null);
+  const [track, setTrack] = useState<HTMLDivElement | null>(null);
+  const fade = useEdgeFade(track);
+  useLayoutEffect(() => {
+    if (!region || !track) return;
+    const fit = () => {
+      track.dataset.tight = 'false';
+      track.dataset.tight = track.scrollWidth > track.clientWidth + 0.5 ? 'true' : 'false';
+      const active = track.querySelector<HTMLElement>('[aria-pressed="true"]');
+      if (active && track.scrollWidth > track.clientWidth + 0.5) {
+        // 'nearest' on both axes: the shell root is fixed, anything else scrolls the page behind it.
+        active.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      }
+    };
+    fit();
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(fit);
+    observer?.observe(region);
+    return () => observer?.disconnect();
+  }, [region, track, activeKey]);
   return (
-    <div className="absolute inset-x-0 top-1/2 mx-auto flex w-fit -translate-y-1/2 rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-[3px] backdrop-blur-[24px] backdrop-saturate-[1.7]">
-      {children}
+    <div
+      ref={setRegion}
+      className="pointer-events-none absolute inset-y-0 end-12 start-12 flex items-center justify-center"
+    >
+      <div className="pointer-events-auto flex min-w-0 max-w-full rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-[3px] backdrop-blur-[24px] backdrop-saturate-[1.7]">
+        <div ref={setTrack} className={`m-seg flex min-w-0 overflow-x-auto rounded-full ${edgeFadeClass(fade)}`}>
+          {children}
+        </div>
+      </div>
     </div>
+  );
+}
+
+/** A phone's header group: after the back button (transports, bookings), or centred on the bar (costs, files). */
+export const ROW_AFTER_BACK = 'absolute start-[52px] end-2 justify-center';
+export const ROW_CENTRED = 'absolute inset-x-0 mx-auto w-fit';
+
+/** Primary header action (Add transport / New reservation / Add expense / Upload). */
+export function PrimaryPill({ label, onClick, icon }: { label: string; onClick: () => void; icon?: ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex h-10 items-center gap-1.5 whitespace-nowrap rounded-full bg-m-act px-[18px] text-[length:calc(13px*var(--fs-scale-body,1))] font-semibold text-m-actfg shadow-[0_10px_24px_-10px_rgba(0,0,0,.45)]"
+    >
+      {icon ?? <Plus size={14} strokeWidth={2.2} />}
+      {label}
+    </button>
+  );
+}
+
+/**
+ * The primary action of a list tab's top controls (add a transport, a
+ * booking, an expense, upload a file) and the round buttons that go with it.
+ *
+ * On a wide window every tab lays them out alike: the pill in the middle of
+ * the bar, the round buttons at its trailing end where the plan tab keeps its
+ * map switch, so moving between the tabs moves neither. Where the buttons
+ * need more than their half of the bar, the pill steps aside rather than over
+ * them. On a phone the group stays together as it always has: `phone` is that
+ * row's own placement.
+ */
+export function HeaderActions({
+  primary,
+  phone,
+  children,
+}: {
+  primary: ReactNode;
+  phone: string;
+  children: ReactNode;
+}) {
+  const wide = useIsWide();
+  if (!wide) {
+    return (
+      <div className={`${phone} top-1/2 flex -translate-y-1/2 items-center gap-[7px]`}>
+        {primary}
+        {children}
+      </div>
+    );
+  }
+  return (
+    <div className="pointer-events-none absolute inset-0 grid grid-cols-[minmax(48px,1fr)_auto_minmax(max-content,1fr)] items-center gap-x-[10px]">
+      <div className="pointer-events-auto col-start-2 flex min-w-0">{primary}</div>
+      <div className="pointer-events-auto col-start-3 flex items-center gap-[7px] justify-self-end">{children}</div>
+    </div>
+  );
+}
+
+/**
+ * The day strip's way on past an edge, on a wide window: a round chevron over
+ * the faded end that pages the strip along. The fade alone was too quiet on a
+ * large screen, where a day cut in half at the end ("Wed") read as a mistake
+ * rather than as more to come. The days themselves stay where a screen reader
+ * and the keyboard reach them, so the chevron is for the eye and the finger only.
+ */
+export function DayRailSteps({ rail, fade }: { rail: HTMLElement | null; fade: EdgeFade }) {
+  const wide = useIsWide();
+  if (!wide || !rail) return null;
+  // A page along: the day the edge cuts comes to the other edge, whole, so the
+  // next tap continues from there. Read in reading order, so a right-to-left
+  // strip pages the same way round.
+  const step = (toward: 'start' | 'end') => {
+    const rtl = getComputedStyle(rail).direction === 'rtl';
+    const box = rail.getBoundingClientRect();
+    const chips = Array.from(rail.querySelectorAll<HTMLElement>('button'));
+    const pastEnd = (r: DOMRect) => (rtl ? r.left < box.left - 1 : r.right > box.right + 1);
+    const pastStart = (r: DOMRect) => (rtl ? r.right > box.right + 1 : r.left < box.left - 1);
+    const target =
+      toward === 'end'
+        ? chips.find((chip) => pastEnd(chip.getBoundingClientRect()))
+        : chips.filter((chip) => pastStart(chip.getBoundingClientRect())).pop();
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    // 'nearest' on the block axis: the shell root is fixed, anything else scrolls the page behind it.
+    target?.scrollIntoView({
+      inline: toward === 'end' ? 'start' : 'end',
+      block: 'nearest',
+      behavior: reduced ? 'auto' : 'smooth',
+    });
+  };
+  const btn =
+    'absolute top-1/2 z-[1] flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-sheetop)] text-m-ink shadow-[0_4px_12px_-4px_rgba(0,0,0,.35)]';
+  return (
+    <>
+      {fade.start && (
+        <button
+          type="button"
+          tabIndex={-1}
+          aria-hidden="true"
+          onClick={() => step('start')}
+          className={`${btn} start-[4px]`}
+        >
+          <ChevronLeft size={15} strokeWidth={2.4} className="rtl:-scale-x-100" />
+        </button>
+      )}
+      {fade.end && (
+        <button
+          type="button"
+          tabIndex={-1}
+          aria-hidden="true"
+          onClick={() => step('end')}
+          className={`${btn} end-[4px]`}
+        >
+          <ChevronRight size={15} strokeWidth={2.4} className="rtl:-scale-x-100" />
+        </button>
+      )}
+    </>
   );
 }
 
@@ -42,14 +196,14 @@ export function CollabSegment({ active, onPick, features, split, t }: CollabSegm
     { value: 'polls' as const, label: t('collab.tabs.polls') },
   ].filter((seg) => !sideBySide || seg.value !== 'chat');
   const pill = (
-    <GlassSegment>
+    <GlassSegment activeKey={`${current}:${segments.map((seg) => seg.label).join('|')}`}>
       {segments.map((seg) => (
         <button
           key={seg.value}
           type="button"
           onClick={() => onPick(seg.value)}
           aria-pressed={current === seg.value}
-          className={`whitespace-nowrap rounded-full px-4 py-2 text-[length:calc(13px*var(--fs-scale-body,1))] ${
+          className={`flex-none whitespace-nowrap rounded-full px-4 py-2 text-[length:calc(13px*var(--fs-scale-body,1))] ${
             current === seg.value ? 'bg-m-act font-semibold text-m-actfg' : 'font-medium text-m-ink'
           }`}
         >

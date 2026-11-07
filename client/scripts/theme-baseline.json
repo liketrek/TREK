@@ -214,7 +214,7 @@
   "mobile/screens/settings/MSettingsUi.tsx": 11,
   "mobile/screens/settings/MWebPushCard.tsx": 1,
   "mobile/screens/trip/MTripLoadingSplash.tsx": 2,
-  "mobile/screens/trip/MTripShell.tsx": 8,
+  "mobile/screens/trip/MTripShell.tsx": 7,
   "mobile/screens/trip/places/MPlacesBrowser.tsx": 10,
   "mobile/screens/trip/places/MPlacesBulkCategorySheet.tsx": 2,
   "mobile/screens/trip/places/MPlacesFilterControls.tsx": 1,

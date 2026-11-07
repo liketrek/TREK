@@ -185,8 +185,11 @@ describe('MFilesTab', () => {
     expect(screen.getAllByText('May 1').length).toBeGreaterThan(0)
     expect(screen.getByText('ada')).toBeInTheDocument()
     expect(screen.getByText('A')).toBeInTheDocument()
-    expect(screen.getByText('files.sourcePlan · Fushimi Inari')).toBeInTheDocument()
+    // Each link is a badge of its own, the kind beside the name, with no dot between.
+    const place = screen.getByText('Fushimi Inari')
+    expect(place.parentElement?.textContent).toBe('files.sourcePlanFushimi Inari')
     expect(screen.getByText('files.sourceCollab')).toBeInTheDocument()
+    expect(place.closest('div')?.textContent).not.toContain('·')
   })
 
   it('FE-MOB-FTAB-028: in Arabic a size reads "2.0 KB", and names keep their own direction', () => {

@@ -14,6 +14,8 @@ type Planner = MTabScreenProps['planner'];
 /** The product's name, the same in every language. */
 const APPLE_WALLET = 'Apple Wallet';
 const isPdf = (file: TripFile) => file.mime_type === 'application/pdf';
+/** Whether the engine draws a PDF inside the page (a headless or locked-down one says no). */
+const pdfInPage = () => typeof navigator !== 'undefined' && navigator.pdfViewerEnabled === true;
 
 /**
  * A file's signed address for showing it in place (a tile's picture, the
@@ -79,7 +81,8 @@ const roundBtn =
 
 interface FileTileProps {
   file: TripFile;
-  selected: boolean;
+  /** Whether it is the one previewed beside the grid; left out where a tap opens the file instead. */
+  selected?: boolean;
   canStar: boolean;
   onPick: () => void;
   onStar: () => void;
@@ -90,7 +93,9 @@ interface FileTileProps {
 /**
  * A file as a tile of the grid a wide window shows in place of the phone's
  * rows: its picture (a photo's own, the type's colour and icon otherwise),
- * the name under it, size and date as badges.
+ * the name under it, size and date as badges. Beside a preview pane a tap
+ * picks it, and it says whether it is the picked one; without the pane a tap
+ * opens the file, and a toggle state would announce something it is not.
  */
 export function FileTile({ file, selected, canStar, onPick, onStar, onMenu, t }: FileTileProps) {
   const { locale } = useTranslation();
@@ -180,65 +185,77 @@ interface FilePreviewPaneProps {
  * The file picked in the grid, shown beside it once the window has room for
  * two panes, the way Files on an iPad previews a document: the picture or the
  * document itself, then what it is, what it belongs to, and what to do with it.
+ * A file with nothing to show in place (a PDF where the engine cannot draw one,
+ * a ticket, a pass) gets its type's tile beside its name, rather than a large
+ * coloured box with a small icon that read as a preview that failed to load.
  */
 export function FilePreviewPane({ file, planner, onOpen, onStar, onLinks, onMenu }: FilePreviewPaneProps) {
   const { t } = planner;
   const { locale } = useTranslation();
   const meta = getFileTypeMeta(file);
-  const showsInPlace = isImage(file.mime_type) || isPdf(file);
-  const src = useSignedUrl(file.url, showsInPlace);
+  const image = isImage(file.mime_type);
+  const pdf = isPdf(file) && pdfInPage();
+  const src = useSignedUrl(file.url, image || pdf);
   const linked = linkedFileTargets(file, planner.places, planner.reservations, planner.TRANSPORT_TYPES);
   const canEdit = planner.can('file_edit', planner.trip);
   const starred = !!file.starred;
-  const actionBtn =
-    'flex h-10 flex-1 items-center justify-center gap-[6px] rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-caption font-semibold text-m-ink outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--m-act)]';
+  // One line each, the label clear of the pill's edge; a row too narrow for all of
+  // them moves the last ones to a row of their own rather than folding a label.
+  const roundAction =
+    'flex h-10 items-center justify-center gap-[6px] whitespace-nowrap rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-caption font-semibold text-m-ink outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--m-act)]';
+  const actionBtn = `${roundAction} flex-[1_1_auto] px-[14px]`;
+  const shownInPlace = (image || pdf) && !!src;
 
   return (
     <div className="flex flex-col gap-3">
-      {isImage(file.mime_type) && src ? (
+      {image && src && (
         // A photo takes its own proportions, up to the height the pane can spare.
         <img
           src={src}
           alt={file.original_name}
           className="block max-h-[60dvh] w-full rounded-2xl border border-[color:var(--m-rowbr)] bg-m-sheetop object-contain"
         />
-      ) : (
+      )}
+      {pdf && src && (
         <div className="relative aspect-[4/5] max-h-[56dvh] w-full overflow-hidden rounded-2xl border border-[color:var(--m-rowbr)] bg-m-sheetop">
-          {isPdf(file) && src ? (
-            <object
-              data={`${src}#view=FitH`}
-              type="application/pdf"
-              title={file.original_name}
-              className="absolute inset-0 h-full w-full"
-            >
-              <TypeArt file={file} large />
-            </object>
-          ) : (
+          <object
+            data={`${src}#view=FitH`}
+            type="application/pdf"
+            title={file.original_name}
+            className="absolute inset-0 h-full w-full"
+          >
             <TypeArt file={file} large />
-          )}
+          </object>
         </div>
       )}
 
-      <div>
-        <h3 className="break-words text-[length:calc(16px*var(--fs-scale-subtitle,1))] font-extrabold leading-[1.3] text-m-ink">
-          <bdi>{file.original_name}</bdi>
-        </h3>
-        <div className="mt-[6px] flex flex-wrap items-center gap-1">
-          <span
-            className="rounded-full px-[7px] py-[2px] font-geist text-[length:calc(9px*var(--fs-scale-caption,1))] font-extrabold tracking-[.06em]"
-            style={{ background: `${meta.color}1f`, color: meta.color }}
-          >
-            {meta.label}
+      <div className="flex items-start gap-3">
+        {!shownInPlace && (
+          <span className="relative block h-[92px] w-[74px] flex-none overflow-hidden rounded-xl border border-[color:var(--m-rowbr)] bg-m-sheetop">
+            <TypeArt file={file} />
           </span>
-          {isWalletPass(file.mime_type, file.original_name) && (
-            <span className="flex items-center gap-[3px] rounded-full bg-m-act px-[7px] py-[2px] font-geist text-[length:calc(9px*var(--fs-scale-caption,1))] font-bold text-m-actfg">
-              <Wallet size={9} strokeWidth={2.4} aria-hidden="true" />
-              {APPLE_WALLET}
+        )}
+        <div className={`min-w-0 flex-1 ${shownInPlace ? '' : 'pt-1'}`}>
+          <h3 className="break-words text-[length:calc(16px*var(--fs-scale-subtitle,1))] font-extrabold leading-[1.3] text-m-ink">
+            <bdi>{file.original_name}</bdi>
+          </h3>
+          <div className="mt-[6px] flex flex-wrap items-center gap-1">
+            <span
+              className="rounded-full px-[7px] py-[2px] font-geist text-[length:calc(9px*var(--fs-scale-caption,1))] font-extrabold tracking-[.06em]"
+              style={{ background: `${meta.color}1f`, color: meta.color }}
+            >
+              {meta.label}
             </span>
-          )}
-          {!!file.file_size && <Badge>{formatSize(file.file_size)}</Badge>}
-          <Badge>{formatFileDate(file.created_at, locale)}</Badge>
-          {file.uploaded_by_name && <Badge>{file.uploaded_by_name}</Badge>}
+            {isWalletPass(file.mime_type, file.original_name) && (
+              <span className="flex items-center gap-[3px] rounded-full bg-m-act px-[7px] py-[2px] font-geist text-[length:calc(9px*var(--fs-scale-caption,1))] font-bold text-m-actfg">
+                <Wallet size={9} strokeWidth={2.4} aria-hidden="true" />
+                {APPLE_WALLET}
+              </span>
+            )}
+            {!!file.file_size && <Badge>{formatSize(file.file_size)}</Badge>}
+            <Badge>{formatFileDate(file.created_at, locale)}</Badge>
+            {file.uploaded_by_name && <Badge>{file.uploaded_by_name}</Badge>}
+          </div>
         </div>
       </div>
 
@@ -264,11 +281,11 @@ export function FilePreviewPane({ file, planner, onOpen, onStar, onLinks, onMenu
         </p>
       )}
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={onOpen}
-          className="flex h-10 flex-[1.4] items-center justify-center gap-[6px] rounded-full bg-m-act text-caption font-semibold text-m-actfg outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--m-act)] focus-visible:ring-offset-2"
+          className="flex h-10 flex-[1.4_1_auto] items-center justify-center gap-[6px] whitespace-nowrap rounded-full bg-m-act px-[14px] text-caption font-semibold text-m-actfg outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--m-act)] focus-visible:ring-offset-2"
         >
           <ExternalLink size={14} strokeWidth={2.2} />
           {t('common.open')}
@@ -285,12 +302,7 @@ export function FilePreviewPane({ file, planner, onOpen, onStar, onLinks, onMenu
             {t('files.link')}
           </button>
         )}
-        <button
-          type="button"
-          onClick={onMenu}
-          aria-label={t('files.menu')}
-          className={`${actionBtn} w-10 flex-none px-0`}
-        >
+        <button type="button" onClick={onMenu} aria-label={t('files.menu')} className={`${roundAction} w-10 flex-none`}>
           <MoreHorizontal size={15} strokeWidth={2.2} />
         </button>
       </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Calendar, Check, ChevronRight, Flag, Plus } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
+import MChipStrip from '../../../components/MChipStrip'
 import { useAuthStore } from '../../../../store/authStore'
 import { useTranslation } from '../../../../i18n'
 import { avatarSrc } from '../../../../utils/avatarSrc'
@@ -84,7 +85,7 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
       <div className="rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[14px] py-[13px]">
         <div className="flex items-baseline gap-[7px]">
           <span className="font-geist text-[1rem] font-extrabold tabular-nums text-m-ink">{counts.done}/{items.length}</span>
-          <span className="font-geist text-[0.625rem] font-bold text-m-faint">{pct}% · {t('todo.completed')}</span>
+          <span className="font-geist text-[0.625rem] font-bold text-m-faint">{pct}% {t('todo.completed')}</span>
           {canEdit && (
             <button
               type="button"
@@ -136,7 +137,7 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
 
       {/* ── Filters (spec §4.6) ── */}
       {!split && items.length > 0 && (
-        <div className="mt-[10px] flex items-center gap-[6px] overflow-x-auto whitespace-nowrap">
+        <MChipStrip className="mt-[10px] items-center gap-[6px] whitespace-nowrap">
           {TODO_SMART_FILTERS.map(f => (
             <button
               key={f}
@@ -161,7 +162,7 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
               <span className="font-geist text-[0.5625rem] opacity-70">{catCount(cat)}</span>
             </button>
           ))}
-        </div>
+        </MChipStrip>
       )}
 
       {/* ── Task cards (spec §4.7) ── */}
@@ -230,7 +231,7 @@ function TaskCard({ item, members, today, onToggle, onOpen }: {
         aria-label={item.name}
         aria-pressed={done}
         className={`mt-[1px] flex h-[19px] w-[19px] flex-none items-center justify-center rounded-[6px] border-[1.5px] ${
-          done ? 'border-m-act bg-m-act text-m-actfg' : 'border-[color:var(--m-rowbr)] text-transparent'
+          done ? 'border-m-act bg-m-act text-m-actfg' : 'border-[color:var(--m-checkbr)] text-transparent'
         }`}
       >
         <Check size={12} strokeWidth={3} />

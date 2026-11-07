@@ -86,7 +86,7 @@ describe('MTodoListTab', () => {
 
     expect(screen.getByText('todo.empty')).toBeInTheDocument()
     expect(screen.getByText('0/0')).toBeInTheDocument()
-    expect(screen.getByText('0% · todo.completed')).toBeInTheDocument()
+    expect(screen.getByText('0% todo.completed')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /todo.filter.all/ })).not.toBeInTheDocument()
   })
 
@@ -94,7 +94,7 @@ describe('MTodoListTab', () => {
     setup([todo({ id: 1 }), todo({ id: 2, checked: 1 }), todo({ id: 3, checked: 1 }), todo({ id: 4 })])
 
     expect(screen.getByText('2/4')).toBeInTheDocument()
-    expect(screen.getByText('50% · todo.completed')).toBeInTheDocument()
+    expect(screen.getByText('50% todo.completed')).toBeInTheDocument()
   })
 
   it('FE-MOB-TODO-003: hides "new task" without packing_edit', () => {

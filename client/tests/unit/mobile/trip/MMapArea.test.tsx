@@ -16,8 +16,10 @@ import type { LegAlternatives } from '../../../../src/components/Roadtrip/useRou
 import { openLeg } from '../../../helpers/legAlternatives'
 import { RT_ALT_BAR_LIFT } from '../../../../src/mobile/screens/trip/roadtrip/useMRtAlternatives'
 import { corePoiCategories, pluginPoiCategories } from '../../../../src/components/Map/usePoiCategories'
+import { OFM_DARK } from '../../../../src/constants/mapDefaults'
+import { setSizeClass } from '../../../helpers/sizeClass'
 
-// FE-MOB-MAPAREA-001 to FE-MOB-MAPAREA-051
+// FE-MOB-MAPAREA-001 to FE-MOB-MAPAREA-052
 //
 // The stage's pins come out of the trip store rather than the planner's map list, so the
 // stage fixtures seed the store and leave `mapPlaces` to stand for what the plan tab shows.
@@ -989,5 +991,26 @@ describe("MMapArea: the chat's routes", () => {
     expect(mocks.props.onAssistantRouteHover).toBeUndefined()
     ;(mocks.props.onAssistantRoutePoint as (ref: string, lat: number, lng: number) => void)('c1', 47.75, 12.55)
     expect(onPoint).toHaveBeenCalledWith('c1', 47.75, 12.55)
+  })
+})
+
+describe('MMapArea: the basemap in the dark theme', () => {
+  afterEach(() => document.documentElement.classList.remove('dark'))
+
+  it('FE-MOB-MAPAREA-052: beside the pane on a wide window the dark theme draws the dark basemap; a phone and the light theme keep the plan map', () => {
+    const plan = 'https://tiles.example/plan/{z}/{x}/{y}.png'
+    document.documentElement.classList.add('dark')
+    const { unmount } = renderArea({}, { mapTileUrl: plan } as Partial<TripPlanner>)
+    expect(mocks.props.tileUrl).toBe(plan)
+    unmount()
+
+    setSizeClass('split')
+    const dark = renderArea({}, { mapTileUrl: plan } as Partial<TripPlanner>)
+    expect(mocks.props.tileUrl).toBe(OFM_DARK)
+    dark.unmount()
+
+    document.documentElement.classList.remove('dark')
+    renderArea({}, { mapTileUrl: plan } as Partial<TripPlanner>)
+    expect(mocks.props.tileUrl).toBe(plan)
   })
 })

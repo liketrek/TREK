@@ -332,7 +332,7 @@ describe('MBookingsTab', () => {
     renderTab()
     const header = screen.getByRole('button', { name: 'reservations.confirmed2' })
     const grid = header.nextElementSibling as HTMLElement
-    expect(grid.className).toContain('wide:columns-[340px]')
+    expect(grid.className).toContain('wide:columns-[380px]')
     expect(within(grid).getByText('Hotel Granvia')).toBeInTheDocument()
   })
 })

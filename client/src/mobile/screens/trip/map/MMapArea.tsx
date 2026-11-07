@@ -10,6 +10,10 @@ import { useMergedMapPois } from '../../../../components/Map/useMergedMapPois'
 import { firstStopOfPlace, stageOf } from '../../../../components/Roadtrip/roadtripRowModel'
 import { stageMapData } from '../../../../components/Roadtrip/stageMap'
 import { usePlanMapViewport } from '../../../../hooks/usePlanMapViewport'
+import { useIsDark } from '../../../../hooks/useIsDark'
+import { useTileUrl } from '../../../../hooks/useTileUrl'
+import { useIsWide } from '../../../../hooks/sizeClass'
+import { OFM_DARK } from '../../../../constants/mapDefaults'
 import { useRoadtripSettings } from '../../../../hooks/useRoadtripSettings'
 import { useSettingsStore } from '../../../../store/settingsStore'
 import { useTripStore } from '../../../../store/tripStore'
@@ -174,6 +178,14 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
   }, [poiViewportChange, reportViewport])
   const [glMap, setGlMap] = useState<CompassMap | null>(null)
   const poiPillEnabled = useSettingsStore(s => s.settings.map_poi_pill_enabled) !== false
+  // On a wide window the map stands beside the pane and under the rail, a third
+  // or more of the screen, so in the dark theme it takes the dark basemap the
+  // journey and the atlas use rather than a bright patch beside a black pane.
+  // A basemap of the user's own choosing stays (useTileUrl prefers it).
+  const darkTileUrl = useTileUrl(OFM_DARK)
+  const wide = useIsWide()
+  const dark = useIsDark()
+  const tileUrl = wide && dark ? darkTileUrl : planner.mapTileUrl
   const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
 
   const dayColorsOn = useRoadtripSettings(s => s.roadtrip_day_colors, planner.tripId)
@@ -389,7 +401,7 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
         // nothing, which keeps its pool behaviour (#1998).
         onMapContextMenu={e => planner.handleMapContextMenu(e, planner.selectedDayId)}
         // No center/zoom: the map frames itself on the trip's places at mount.
-        tileUrl={planner.mapTileUrl}
+        tileUrl={tileUrl}
         fitKey={planner.fitKey}
         dayOrderMap={planner.dayOrderMap}
         reservations={planner.reservations}

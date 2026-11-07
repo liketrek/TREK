@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { cardWhen, parseTransportMeta } from '../../../../src/mobile/screens/trip/tabs/transportsModel';
+import { cardWhen, parseTransportMeta, timeRange } from '../../../../src/mobile/screens/trip/tabs/transportsModel';
 import { TRANSPORT_TYPE_COLOR, groupTransports } from '../../../../src/components/Planner/bookings/bookingsModel';
 import { orderedEndpoints } from '../../../../src/utils/flightLegs';
 import { buildDay, buildReservation } from '../../../helpers/factories';
@@ -200,5 +200,14 @@ describe('transportsModel — cardWhen', () => {
       timeValue: '15:35 – 09:55',
     });
     expect(cardWhen(res({ reservation_time: null }), departure, undefined, t, 'en-US', '24h').dayDate).toBeNull();
+  });
+
+  it('FE-MOB-TRPM-019: a unit both ends of a range carry is said once, after the range', () => {
+    const r = res({ reservation_time: '2026-07-01T09:05', reservation_end_time: '2026-07-01T10:15' });
+    expect(cardWhen(r, day1, undefined, t, 'de-DE', '24h').timeValue).toBe('09:05 – 10:15 Uhr');
+    expect(cardWhen(r, day1, undefined, t, 'en-US', '12h').timeValue).toBe('9:05 – 10:15 AM');
+    expect(timeRange('11:30', '13:00', 'en-US', '12h')).toBe('11:30 AM – 1:00 PM');
+    expect(timeRange('09:05', null, 'de-DE', '24h')).toBe('09:05 Uhr');
+    expect(timeRange('09:05', '10:15', 'en-US', '24h')).toBe('09:05 – 10:15');
   });
 });

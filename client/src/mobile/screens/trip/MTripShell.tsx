@@ -1,8 +1,8 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ComponentType, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ComponentType } from 'react'
 import { findFocusDayId, findTodayDayId } from '../../../components/Planner/today'
 import { takeResumeDay } from '../../../utils/resumeRoute'
 import {
-  CalendarDays, ChevronDown, ChevronLeft, Download, FileDown, List, Map as MapIcon, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Plane, Plus, Route, SlidersHorizontal, Trash2, Upload,
+  CalendarDays, ChevronDown, ChevronLeft, Download, FileDown, List, Map as MapIcon, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Plane, Route, SlidersHorizontal, Trash2, Upload,
 } from 'lucide-react'
 import { useTripPlanner } from '../../../pages/tripPlanner/useTripPlanner'
 import { pickDockTabs } from './dockTabs'
@@ -28,7 +28,9 @@ import { getIntlLanguage } from '@trek/shared'
 import { useDayPreviewStore } from '../../dayPreviewStore'
 import { useIsSplit, useIsWide } from '../../../hooks/sizeClass'
 import MTripRail from './MTripRail'
-import { CollabSegment, CompactToggle, DocSyncButton, GlassSegment } from './MTripShellParts'
+import {
+  CollabSegment, CompactToggle, DayRailSteps, DocSyncButton, GlassSegment, HeaderActions, PrimaryPill, ROW_AFTER_BACK, ROW_CENTRED,
+} from './MTripShellParts'
 import { edgeFadeClass, useEdgeFade } from '../../components/useEdgeFade'
 import { useShortcuts } from '../../keyboard/useShortcuts'
 import { tripCreateIntent } from '../../../components/Layout/useCreateAction'
@@ -638,8 +640,9 @@ export default function MTripShell({
         <div className={`absolute end-4 start-[calc(var(--m-rail-w,0px)+16px)] z-[25] flex gap-[6px] top-[calc(var(--m-safe-top,12px)+50px)] ${chromeSpan}`}>
           {/* The glass is the outer box, the scroller sits inside its padding: that way
               the fade at an edge that runs on takes the chips, not the glass's rim. */}
-          <div className="flex min-w-0 flex-1 rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-[3px] backdrop-blur-[24px] backdrop-saturate-[1.7]">
-          <div ref={setDayRail} className={`relative flex min-w-0 flex-1 items-center gap-[2px] overflow-x-auto rounded-full ${edgeFadeClass(dayFade)}`}>
+          <div className="relative flex min-w-0 flex-1 rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-[3px] backdrop-blur-[24px] backdrop-saturate-[1.7]">
+          <DayRailSteps rail={dayRail} fade={dayFade} />
+          <div ref={setDayRail} className={`relative flex min-w-0 flex-1 items-center gap-[2px] overflow-x-auto rounded-full wide:[--m-fade-reach:52px] ${edgeFadeClass(dayFade)}`}>
             {dayPill && (
               <span
                 aria-hidden="true"
@@ -664,7 +667,7 @@ export default function MTripShell({
                   // the active chip's bg-m-act class.
                   style={active ? undefined : { background: dayTintBackground(tint, 'badge', '--day-tint-chip') }}
                   data-today={isToday || undefined}
-                  className={`relative flex flex-1 items-center justify-center gap-[3px] whitespace-nowrap rounded-full px-3 py-[5px] text-center text-[0.75rem] font-semibold transition-colors duration-200 ${
+                  className={`relative flex flex-1 items-center justify-center gap-[3px] whitespace-nowrap rounded-full px-3 py-[5px] text-center text-[0.75rem] font-semibold transition-colors duration-200 wide:scroll-mx-[48px] ${
                     active ? `text-m-actfg ${dayPill ? '' : 'bg-m-act'}` : 'text-m-ink'
                   } ${isToday && !active ? 'ring-[1.5px] ring-inset ring-[color:var(--m-st-info)]' : ''}`}
                 >
@@ -712,7 +715,7 @@ export default function MTripShell({
         </MIconBtn>
 
         {trTab === 'plan' && (
-          <GlassSegment>
+          <GlassSegment activeKey={`${mode}:${view}:${language}`}>
             {([
               { value: 'go' as const, label: t('mobileTrip.travel') },
               { value: 'edit' as const, label: t('trip.mobilePlan') },
@@ -722,7 +725,8 @@ export default function MTripShell({
                 key={seg.value}
                 type="button"
                 onClick={() => setTravelMode(seg.value)}
-                className={`whitespace-nowrap rounded-full px-4 py-2 text-[0.8125rem] ${
+                aria-pressed={mode === seg.value && view !== 'map'}
+                className={`flex-none whitespace-nowrap rounded-full px-4 py-2 text-[0.8125rem] ${
                   mode === seg.value && view !== 'map' ? 'bg-m-act font-semibold text-m-actfg' : 'font-medium text-m-ink'
                 }`}
               >
@@ -733,8 +737,9 @@ export default function MTripShell({
         )}
 
         {trTab === 'transports' && (
-          <div className="absolute start-[52px] end-2 top-1/2 flex -translate-y-1/2 items-center justify-center gap-[7px]">
-            <PrimaryPill
+          <HeaderActions
+            phone={ROW_AFTER_BACK}
+            primary={<PrimaryPill
               label={t('transport.addTransport')}
               onClick={() => {
                 planner.setEditingTransport(null)
@@ -742,7 +747,8 @@ export default function MTripShell({
                 planner.setTransportModalAutomated(false)
                 planner.setShowTransportModal(true)
               }}
-            />
+            />}
+          >
             {planner.bookingImportAvailable && (
               <MIconBtn ariaLabel={t('reservations.import.title')} onClick={() => { planner.setBookingImportKind('transports'); planner.setShowBookingImport(true) }} size={40} className="text-m-muted backdrop-blur-[24px] backdrop-saturate-[1.7]">
                 <Download size={15} strokeWidth={2} />
@@ -754,36 +760,37 @@ export default function MTripShell({
               </MIconBtn>
             )}
             <CompactToggle active={transportsCompact} onToggle={() => setTransportsCompact(v => !v)} label={t('mobileTrip.compactView')} />
-          </div>
+          </HeaderActions>
         )}
 
         {trTab === 'buchungen' && (
-          <div className="absolute start-[52px] end-2 top-1/2 flex -translate-y-1/2 items-center justify-center gap-[7px]">
-            <PrimaryPill
+          <HeaderActions
+            phone={ROW_AFTER_BACK}
+            primary={<PrimaryPill
               label={t('mobileTrip.newReservation')}
               onClick={() => { planner.setEditingReservation(null); planner.setShowReservationModal(true) }}
-            />
+            />}
+          >
             {planner.bookingImportAvailable && (
               <MIconBtn ariaLabel={t('reservations.import.title')} onClick={() => { planner.setBookingImportKind('bookings'); planner.setShowBookingImport(true) }} size={40} className="text-m-muted backdrop-blur-[24px] backdrop-saturate-[1.7]">
                 <Download size={15} strokeWidth={2} />
               </MIconBtn>
             )}
             <CompactToggle active={bookingsCompact} onToggle={() => setBookingsCompact(v => !v)} label={t('mobileTrip.compactView')} />
-          </div>
+          </HeaderActions>
         )}
 
         {trTab === 'finanzplan' && (
-          <div className="absolute inset-x-0 top-1/2 mx-auto flex w-fit -translate-y-1/2 items-center gap-[7px]">
-            <PrimaryPill label={t('costs.addExpense')} onClick={() => setAddExpenseSignal(s => s + 1)} />
+          <HeaderActions phone={ROW_CENTRED} primary={<PrimaryPill label={t('costs.addExpense')} onClick={() => setAddExpenseSignal(s => s + 1)} />}>
             <MReceiptScanButton tripId={tripId} canEdit={planner.can('budget_edit', trip)} />
             <MIconBtn ariaLabel={t('budget.exportCsv')} onClick={() => setExportCostsCsvSignal(s => s + 1)} size={40} className="text-m-muted backdrop-blur-[24px] backdrop-saturate-[1.7]">
               <FileDown size={15} strokeWidth={2} />
             </MIconBtn>
-          </div>
+          </HeaderActions>
         )}
 
         {trTab === 'listen' && (
-          <GlassSegment>
+          <GlassSegment activeKey={`${listsTab}:${language}:${packedCount}:${todoOpenCount}`}>
             {([
               { value: 'packing' as const, label: t('todo.subtab.packing'), count: `${packedCount}/${packingItems.length}` },
               { value: 'todo' as const, label: t('todo.subtab.todo'), count: t('mobileTrip.todoOpenCount', { count: todoOpenCount }) },
@@ -792,7 +799,8 @@ export default function MTripShell({
                 key={seg.value}
                 type="button"
                 onClick={() => setListsTab(seg.value)}
-                className={`flex items-center gap-[5px] whitespace-nowrap rounded-full px-4 py-2 text-[0.8125rem] ${
+                aria-pressed={listsTab === seg.value}
+                className={`flex flex-none items-center gap-[5px] whitespace-nowrap rounded-full px-4 py-2 text-[0.8125rem] ${
                   listsTab === seg.value ? 'bg-m-act font-semibold text-m-actfg' : 'font-medium text-m-ink'
                 }`}
               >
@@ -839,13 +847,15 @@ export default function MTripShell({
         )}
 
         {trTab === 'dateien' && (
-          <div className="absolute inset-x-0 top-1/2 mx-auto flex w-fit -translate-y-1/2 items-center gap-[7px]">
-            <PrimaryPill icon={<Upload size={13} strokeWidth={2.2} />} label={t('common.upload')} onClick={() => setUploadFilesSignal(s => s + 1)} />
+          <HeaderActions
+            phone={ROW_CENTRED}
+            primary={<PrimaryPill icon={<Upload size={13} strokeWidth={2.2} />} label={t('common.upload')} onClick={() => setUploadFilesSignal(s => s + 1)} />}
+          >
             <DocSyncButton tripId={tripId} trip={trip} label={t('docsync.title')} onOpen={() => setOpenDocSyncSignal(s => s + 1)} />
             <MIconBtn ariaLabel={t('files.trash')} onClick={() => setOpenFilesTrashSignal(s => s + 1)} size={40} className="text-m-muted backdrop-blur-[24px] backdrop-saturate-[1.7]">
               <Trash2 size={15} strokeWidth={2} />
             </MIconBtn>
-          </div>
+          </HeaderActions>
         )}
 
         {/* A plugin tab is the only one that used to arrive without a name: it is
@@ -932,19 +942,5 @@ export default function MTripShell({
 
       <Sheets planner={planner} shell={shell} />
     </div>
-  )
-}
-
-/** Primary header action (Add transport / New reservation / Add expense / Upload). */
-function PrimaryPill({ label, onClick, icon }: { label: string; onClick: () => void; icon?: ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex h-10 items-center gap-1.5 whitespace-nowrap rounded-full bg-m-act px-[18px] text-[0.8125rem] font-semibold text-m-actfg shadow-[0_10px_24px_-10px_rgba(0,0,0,.45)]"
-    >
-      {icon ?? <Plus size={14} strokeWidth={2.2} />}
-      {label}
-    </button>
   )
 }

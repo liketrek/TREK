@@ -191,7 +191,7 @@ describe('list tabs on a wide window', () => {
       </CardGrid>
     );
     const grid = container.firstChild as HTMLElement;
-    expect(grid.className).toContain('wide:columns-[340px]');
+    expect(grid.className).toContain('wide:columns-[380px]');
     // No card splits across two columns, and none keeps a top margin that
     // would start its column lower than the next.
     expect(grid.className).toContain('wide:[&>*]:break-inside-avoid');

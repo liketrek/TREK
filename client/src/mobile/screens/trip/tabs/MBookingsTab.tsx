@@ -7,7 +7,7 @@ import type { Reservation } from '../../../../types'
 import { CardActions, CardDeleteSheet, CardFiles, CardNotes, CardTitleButton, CardWhenAndCode } from './MReservationCardParts'
 import { CardGrid, Field, ReservationPluginSlots, SectionHeader, StatusDot, TabScroller, TravelerAvatars, TravelerFilterRow } from './tabChrome'
 import { STATUS_COLOR, type MTabScreenProps } from './tabModel'
-import { cardWhen, parseTransportMeta } from './transportsModel'
+import { cardWhen, parseTransportMeta, timeRange } from './transportsModel'
 import { BOOKING_TYPE_COLOR } from '../../../../components/Planner/bookings/bookingsModel'
 import { useReservationListFilter } from '../../../../components/Planner/bookings/useReservationListFilter'
 import { useReservationCard } from '../../../../components/Planner/bookings/useReservationCard'
@@ -119,7 +119,7 @@ function BookingCard({ res, planner, canEdit, compact }: {
   if (meta.check_in_time) {
     metaCells.push({
       label: t('reservations.meta.checkIn'),
-      value: formatTime(meta.check_in_time, locale, timeFormat) + (meta.check_in_end_time ? ` – ${formatTime(meta.check_in_end_time, locale, timeFormat)}` : ''),
+      value: timeRange(meta.check_in_time, meta.check_in_end_time ?? null, locale, timeFormat),
     })
   }
   if (meta.check_out_time) metaCells.push({ label: t('reservations.meta.checkOut'), value: formatTime(meta.check_out_time, locale, timeFormat) })

@@ -251,11 +251,14 @@ function PollCardRow({ poll, canEdit, currentUserId, t, onVote, onClosePoll, onD
           const pct = total > 0 ? Math.round((count / total) * 100) : 0
           const myVote = currentUserId != null && (opt.voters || []).some(v => String(v.user_id) === String(currentUserId))
           const isWinner = closed && count > 0 && count === maxCount
+          // The share is a fill that differs from both the row's empty rest and the
+          // card around it. At 6% ink it matched the card, so an option at 67% read
+          // as a short white block at its end, the rest of the row.
           const fillTint = myVote
-            ? 'color-mix(in srgb, var(--m-act) 16%, transparent)'
+            ? 'color-mix(in srgb, var(--m-act) 20%, transparent)'
             : isWinner
-              ? 'color-mix(in srgb, var(--m-st-confirmed) 16%, transparent)'
-              : 'color-mix(in srgb, var(--m-ink) 6%, transparent)'
+              ? 'color-mix(in srgb, var(--m-st-confirmed) 22%, transparent)'
+              : 'color-mix(in srgb, var(--m-ink) 13%, transparent)'
 
           return (
             <button
@@ -263,14 +266,14 @@ function PollCardRow({ poll, canEdit, currentUserId, t, onVote, onClosePoll, onD
               type="button"
               disabled={closed || !canEdit}
               onClick={() => onVote(poll.id, idx)}
-              className="relative flex items-start gap-[8px] overflow-hidden rounded-[10px] bg-m-card px-[12px] py-[10px] text-start disabled:cursor-default"
+              className="relative flex items-start gap-[8px] overflow-hidden rounded-[10px] border border-[color:var(--m-trackoff)] bg-m-card px-[12px] py-[10px] text-start disabled:cursor-default"
             >
               <span className="absolute inset-y-0 start-0" style={{ width: `${pct}%`, background: fillTint }} />
               <span
                 className={`relative flex h-5 w-5 flex-none items-center justify-center border-2 ${
                   poll.multiple_choice ? 'rounded-[6px]' : 'rounded-full'
                 }`}
-                style={{ borderColor: myVote ? 'var(--m-act)' : 'var(--m-rowbr)', background: myVote ? 'var(--m-act)' : 'transparent' }}
+                style={{ borderColor: myVote ? 'var(--m-act)' : 'var(--m-checkbr)', background: myVote ? 'var(--m-act)' : 'transparent' }}
               >
                 {myVote && <Check size={11} strokeWidth={3} className="text-m-actfg" />}
               </span>

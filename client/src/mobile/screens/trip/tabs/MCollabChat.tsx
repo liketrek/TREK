@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ArrowUp, ChevronUp, ImagePlus, Loader2, Reply, Trash2 } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
+import { edgeFadeClass, useEdgeFade } from '../../../components/useEdgeFade'
 import CollabAssistantBadge from '../../../../components/Collab/CollabAssistantBadge'
 import { useCollabChatData } from '../../../../components/Collab/useCollabChatData'
 import { useAuthStore } from '../../../../store/authStore'
@@ -58,6 +59,8 @@ export default function MCollabChat({ planner }: MCollabChatProps) {
     deleteMessage, reactToMessage,
   } = useCollabChatData({ tripId, t, toast, toastLoadMoreErrors: true, canSend: canEdit })
   const [popover, setPopover] = useState<{ msg: ChatMessage; x: number; y: number } | null>(null)
+  const [list, setList] = useState<HTMLDivElement | null>(null)
+  const listFade = useEdgeFade(list, 'y')
   const imageInputRef = useRef<HTMLInputElement>(null)
 
   const handleDelete = useCallback(async (msgId: number) => {
@@ -88,7 +91,14 @@ export default function MCollabChat({ planner }: MCollabChatProps) {
           <p className="font-geist text-[0.8125rem] font-medium text-m-muted">{t('collab.chat.empty')}</p>
         </div>
       ) : (
-        <div ref={scrollRef} onScroll={checkAtBottom} className="mt-3 min-h-0 flex-1 overflow-y-auto">
+        // The list ends under the floating controls, and a message scrolled past that
+        // edge fades out there instead of being cut through a line of its text or
+        // left as a sliver of a bubble under the controls.
+        <div
+          ref={el => { scrollRef.current = el; setList(el) }}
+          onScroll={checkAtBottom}
+          className={`mt-3 min-h-0 flex-1 overflow-y-auto [--m-fade-reach-y:32px] ${edgeFadeClass(listFade, 'y')}`}
+        >
           {hasMore && (
             <div className="flex justify-center pb-[10px]">
               <button

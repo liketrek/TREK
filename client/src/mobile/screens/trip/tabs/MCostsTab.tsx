@@ -137,31 +137,40 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
         <div className="mt-1 font-geist text-[1.875rem] font-extrabold tabular-nums tracking-[-0.02em]">
           {formatMoney(totals.totalSpend, base, locale)}
         </div>
-        <div className="mt-[6px] flex flex-wrap gap-[14px] text-[0.6875rem]" style={{ color: 'rgba(245,245,247,.7)' }}>
-          <span>{t('costs.yourShare')} · <b style={{ color: '#F5F5F7' }}>{formatMoney(totals.myShare, base, locale)}</b></span>
-          <span>{t('costs.youPaid')} · <b style={{ color: '#F5F5F7' }}>{formatMoney(totals.myPaid, base, locale)}</b></span>
+        {/* Each figure under its own label, so the two pairs never read as one run. */}
+        <div className="mt-[8px] flex flex-wrap gap-x-[22px] gap-y-[6px] text-[0.6875rem]" style={{ color: 'rgba(245,245,247,.7)' }}>
+          <span className="flex flex-col">
+            {t('costs.yourShare')}
+            <b className="tabular-nums" style={{ color: '#F5F5F7' }}>{formatMoney(totals.myShare, base, locale)}</b>
+          </span>
+          <span className="flex flex-col">
+            {t('costs.youPaid')}
+            <b className="tabular-nums" style={{ color: '#F5F5F7' }}>{formatMoney(totals.myPaid, base, locale)}</b>
+          </span>
         </div>
       </div>
 
-      {/* You owe / You're owed (spec §3.2) */}
+      {/* You owe / You're owed (spec §3.2). The two tiles stand level and each
+          amount sits at the foot of its tile, so a label that wraps in one of
+          them (German "Dir wird geschuldet") leaves both amounts on one line. */}
       <div className="mt-[10px] flex gap-2">
-        <div className="flex-1 rounded-2xl border border-[color:var(--m-rowbr)] bg-m-card p-[13px]">
-          <span className="flex h-[30px] w-[30px] items-center justify-center rounded-[10px]" style={{ background: 'rgba(214,39,59,.12)', color: STATUS_COLOR.danger }}>
+        <div className="flex flex-1 flex-col rounded-2xl border border-[color:var(--m-rowbr)] bg-m-card p-[13px]">
+          <span className="flex h-[30px] w-[30px] items-center justify-center self-start rounded-[10px]" style={{ background: 'rgba(214,39,59,.12)', color: STATUS_COLOR.danger }}>
             <ArrowDown size={15} strokeWidth={2.2} />
           </span>
           <div className="mt-2 text-[0.8125rem] font-bold text-m-ink">{t('costs.youOwe')}</div>
           <div className="font-geist text-[0.59375rem] text-m-faint">{t('costs.youOweSub')}</div>
-          <div className="mt-1 font-geist text-[1.1875rem] font-extrabold tabular-nums" style={{ color: totals.owe > 0.5 ? STATUS_COLOR.danger : 'var(--m-ink)' }}>
+          <div className="mt-auto pt-1 font-geist text-[1.1875rem] font-extrabold tabular-nums" style={{ color: totals.owe > 0.5 ? STATUS_COLOR.danger : 'var(--m-ink)' }}>
             {formatMoney(totals.owe, base, locale)}
           </div>
         </div>
-        <div className="flex-1 rounded-2xl border border-[color:var(--m-rowbr)] bg-m-card p-[13px]">
-          <span className="flex h-[30px] w-[30px] items-center justify-center rounded-[10px]" style={{ background: 'rgba(47,163,122,.12)', color: STATUS_COLOR.confirmed }}>
+        <div className="flex flex-1 flex-col rounded-2xl border border-[color:var(--m-rowbr)] bg-m-card p-[13px]">
+          <span className="flex h-[30px] w-[30px] items-center justify-center self-start rounded-[10px]" style={{ background: 'rgba(47,163,122,.12)', color: STATUS_COLOR.confirmed }}>
             <ArrowUp size={15} strokeWidth={2.2} />
           </span>
           <div className="mt-2 text-[0.8125rem] font-bold text-m-ink">{t('costs.youreOwed')}</div>
           <div className="font-geist text-[0.59375rem] text-m-faint">{t('costs.youreOwedSub')}</div>
-          <div className="mt-1 font-geist text-[1.1875rem] font-extrabold tabular-nums" style={{ color: totals.owed > 0.5 ? STATUS_COLOR.confirmed : 'var(--m-ink)' }}>
+          <div className="mt-auto pt-1 font-geist text-[1.1875rem] font-extrabold tabular-nums" style={{ color: totals.owed > 0.5 ? STATUS_COLOR.confirmed : 'var(--m-ink)' }}>
             {formatMoney(totals.owed, base, locale)}
           </div>
         </div>
@@ -186,15 +195,18 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
       {/* Settle up (spec §3.4) */}
       <div className="mt-2 rounded-2xl border border-[color:var(--m-rowbr)] bg-m-card p-[13px]">
         {/* Toggle and "Add payment" are siblings, not nested: a control inside a
-            control reads as one element to a screen reader. */}
-        <div className="flex w-full items-center gap-[7px]">
+            control reads as one element to a screen reader. Where the title, the
+            count, the chevron and the button do not fit on one line (a long
+            language in a narrow pane), the button moves to a line of its own
+            under them instead of lying over the count and the chevron. */}
+        <div className="flex w-full flex-wrap items-center gap-x-[10px] gap-y-2">
           <button
             type="button"
             aria-expanded={settleOpen}
             onClick={() => setSettleOpen(v => !v)}
-            className="flex min-w-0 flex-1 items-center gap-[7px] text-start"
+            className="flex min-w-0 flex-[1_1_auto] items-center gap-[7px] text-start"
           >
-            <span className="text-[0.875rem] font-extrabold text-m-ink">{t('costs.settleUp')}</span>
+            <span className="min-w-0 text-[0.875rem] font-extrabold text-m-ink">{t('costs.settleUp')}</span>
             <CountPill>{flows.length}</CountPill>
             {settleOpen ? (
               <ChevronUp size={14} strokeWidth={2} className="ms-auto flex-none text-m-faint" />
@@ -206,7 +218,7 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
             <button
               type="button"
               onClick={() => setAddPaymentOpen(true)}
-              className="flex flex-none items-center gap-[5px] rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[11px] py-[6px] font-[inherit] text-[0.71875rem] font-semibold text-m-muted"
+              className="ms-auto flex flex-none items-center gap-[5px] whitespace-nowrap rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[11px] py-[6px] font-[inherit] text-[0.71875rem] font-semibold text-m-muted"
             >
               <Plus size={11} strokeWidth={2.2} />
               {t('costs.addPayment')}
@@ -777,7 +789,7 @@ function FinalBudgetBreakdown({ row, items, ctx, base, locale, t, personName }: 
   const nameOf = (itemId: number, name: string, shown: number) => {
     const e = items.find(i => i.id === itemId)
     const entered = e ? lineOf(paidByUser(e, row.user_id), e, ctx, shown)?.entered : null
-    return entered ? `${name} · ${formatMoney(entered.amount, entered.currency, locale)}` : name
+    return entered ? `${name} (${formatMoney(entered.amount, entered.currency, locale)})` : name
   }
   const line = (key: string, label: string, value: string) => (
     <div key={key} className="flex items-baseline gap-2 py-[2px] font-geist text-[0.6875rem]">

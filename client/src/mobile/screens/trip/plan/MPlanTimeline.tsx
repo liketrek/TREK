@@ -27,6 +27,7 @@ import { useSettingsStore } from '../../../../store/settingsStore'
 import MRouteAppsSheet from './MRouteAppsSheet'
 import { openRouteTarget } from './openRouteTarget'
 import MDayPager from '../../../components/MDayPager'
+import { edgeFadeClass, useEdgeFade } from '../../../components/useEdgeFade'
 import { useDayPreviewStore } from '../../../dayPreviewStore'
 
 /**
@@ -188,6 +189,8 @@ function PlanDayPage({ planner, shell, dayId: pageDayId, active, editing, legMen
   }
 
   const chrome = { editing, t, language: tl.language, timeFormat: tl.timeFormat }
+  const [cardScroll, setCardScroll] = useState<HTMLDivElement | null>(null)
+  const cardFade = useEdgeFade(cardScroll, 'y')
 
   // One Maps button for every app the day can be opened in: the preferred app
   // from settings (#2423) opens straight away, otherwise the sheet asks.
@@ -205,15 +208,22 @@ function PlanDayPage({ planner, shell, dayId: pageDayId, active, editing, legMen
     {/* One column under the day chips: the UP-NEXT card (go mode) or the edit
         header, then the timeline card filling the rest, 12px apart whatever height
         the card above it has. A day without an up-next starts the timeline right
-        under the chips. */}
-    <div className="absolute inset-x-4 flex flex-col gap-3 top-[calc(var(--m-safe-top,12px)+102px)] bottom-[calc(env(safe-area-inset-bottom,0px)+90px)]">
+        under the chips. On a wide window the column ends where the rail does.
+        Beside the map the card is the pane and runs down to that line, as the
+        places list does; across the page it is as tall as its day, so a short
+        day leaves no empty card under it. */}
+    <div className="absolute inset-x-4 flex flex-col gap-3 top-[calc(var(--m-safe-top,12px)+102px)] bottom-[calc(env(safe-area-inset-bottom,0px)+90px)] wide:bottom-[calc(env(safe-area-inset-bottom,0px)+12px)]">
       {!editing && <UpNextCard tl={tl} t={t} onOpen={openPlace} />}
       {editing && <EditHeader tl={tl} planner={planner} shell={shell} />}
 
+      {/* The frame and the scroller are two boxes, so the fade where a row runs on
+          past the card's edge takes the rows and leaves the card's own edge whole. */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[22px] border border-[color:var(--m-cbr)] bg-[color:var(--m-card)] backdrop-blur-[24px] backdrop-saturate-[1.6] wide:flex-initial split:flex-1">
       <div
+        ref={setCardScroll}
         data-touch-drag={editing && active ? '' : undefined}
         data-timeline-card=""
-        className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain rounded-[22px] border border-[color:var(--m-cbr)] bg-[color:var(--m-card)] px-3.5 pb-2 pt-1 backdrop-blur-[24px] backdrop-saturate-[1.6]"
+        className={`min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-3.5 pb-2 pt-1 ${edgeFadeClass(cardFade, 'y')}`}
       >
         {planner.toursEnabled && tl.rows.some(row => row.kind === 'place' && row.invalidTour) && (
           <div role="status" className="border-b border-[color:var(--warning)] p-2 text-sm text-[color:var(--warning)]">
@@ -345,6 +355,7 @@ function PlanDayPage({ planner, shell, dayId: pageDayId, active, editing, legMen
             )}
           </div>
         )}
+      </div>
       </div>
     </div>
     </>
@@ -521,17 +532,20 @@ function TimelineHeader({ tl, dayLabel, openLabel, weatherLabel, onOpenDay, onOp
             </>
           )}
         </button>
+        {/* A stay gives way before anything else in the header does: its name ends
+            in an ellipsis rather than under the edge or the weather (the chip's
+            label says it whole), and the time after it stays. */}
         {tl.hotelChips.map(chip => (
           <button
             key={chip.key}
             type="button"
             onClick={() => onOpenStay(chip)}
             aria-label={stayLabel(chip)}
-            className={`${GLASS_CHIP} gap-[5px] px-2.5`}
+            className={`${GLASS_CHIP} min-w-[4.5rem] shrink gap-[5px] px-2.5`}
           >
             <HotelChipIcon variant={chip.variant} />
-            {chip.name}
-            {chip.time ? ` · ${chip.time.slice(0, 5)}` : ''}
+            <span className="min-w-0 truncate">{chip.name}</span>
+            {chip.time && <span className="flex-none tabular-nums text-m-muted">{chip.time.slice(0, 5)}</span>}
           </button>
         ))}
       </span>

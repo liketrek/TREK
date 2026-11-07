@@ -4,11 +4,13 @@ import { useTranslation } from '../../../../i18n/TranslationContext'
 interface MPlacesToursModeSwitchProps {
   active: boolean
   onChange: (tours: boolean) => void
+  /** Its place in the row it sits in; by default a row of its own above the filters. */
+  className?: string
 }
 
 /** Mobile counterpart of PlacesToursModeSwitch: top-level "Places <-> Tours"
  *  switch of the places browser, with m-token styling to match the browser chrome. */
-export default function MPlacesToursModeSwitch({ active, onChange }: MPlacesToursModeSwitchProps) {
+export default function MPlacesToursModeSwitch({ active, onChange, className = 'mb-3' }: MPlacesToursModeSwitchProps) {
   const { t } = useTranslation()
   const options: [boolean, string, typeof MapPin][] = [
     [false, t('tours.mode.places'), MapPin],
@@ -18,7 +20,7 @@ export default function MPlacesToursModeSwitch({ active, onChange }: MPlacesTour
     <div
       role="tablist"
       aria-label={t('tours.mode.label')}
-      className="mb-3 flex gap-1 rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-1"
+      className={`flex gap-1 rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-1 ${className}`}
     >
       {options.map(([value, label, Icon]) => {
         const selected = active === value

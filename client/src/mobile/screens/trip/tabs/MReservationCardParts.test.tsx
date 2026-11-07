@@ -48,10 +48,30 @@ describe('MReservationCardParts', () => {
     expect(onOpen).toHaveBeenCalledOnce();
   });
 
-  it('FE-COMP-MRESCARD-011: the title keeps one line on a phone and may take two in a wide window column', () => {
+  it('FE-COMP-MRESCARD-011: the title leads and may take two lines; the pills follow it and wrap under it', () => {
     render(<CardTitleButton res={reservation()} TypeIcon={Plane} typeColor="#123456" onOpen={vi.fn()} t={t} />);
     const title = screen.getByText('LH 400');
-    expect(title).toHaveClass('truncate', 'wide:line-clamp-2', 'wide:whitespace-normal');
+    expect(title).toHaveClass('line-clamp-2', 'flex-[1_1_auto]', 'wide:basis-full');
+    expect(title).not.toHaveClass('truncate');
+    const button = screen.getByRole('button');
+    expect(button).toHaveClass('flex-wrap');
+    expect(button.firstElementChild).toBe(title);
+  });
+
+  it('FE-COMP-MRESCARD-012: the time cell is never narrower than its value', () => {
+    render(
+      <CardWhenAndCode
+        dayValue="Day 1"
+        timeValue="09:05 – 10:15 Uhr"
+        code={null}
+        card={cardState()}
+        onOpen={vi.fn()}
+        t={t}
+      />
+    );
+    const cell = screen.getByText('09:05 – 10:15 Uhr').parentElement as HTMLElement;
+    expect(cell).toHaveClass('min-w-max');
+    expect(screen.getByText('Day 1').parentElement).toHaveClass('min-w-0');
   });
 
   it('FE-COMP-MRESCARD-002: the title button flags a booking that needs review (booking variant)', () => {

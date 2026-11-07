@@ -38,9 +38,9 @@ const PANE_INSETS = 'pb-[calc(var(--bottom-nav-h,84px)+22px)] pt-[calc(var(--m-s
 
 /**
  * The cards of a list tab (transports, bookings, tasks, polls): one column on a
- * phone; on a wide window as many columns of at least a phone's width as the
- * page holds, three on a 13" iPad on its side, two upright or on an unfolded
- * foldable on its side, one in a narrow Split View. The cards flow down the
+ * phone; on a wide window as many columns of at least a large phone's width as
+ * the page holds, three on a 13" iPad on its side, two upright or on an unfolded
+ * foldable on its side, one on an 11" iPad upright or in a narrow Split View. The cards flow down the
  * columns, each keeping its own height, so the columns start level and no
  * short card ends above its neighbour in a ragged row or stretches into an
  * empty panel. In date order that reads down the first column, then the next.
@@ -48,8 +48,10 @@ const PANE_INSETS = 'pb-[calc(var(--bottom-nav-h,84px)+22px)] pt-[calc(var(--m-s
  * columns start on one line in every engine.
  */
 export function CardGrid({ children }: { children: ReactNode }) {
+  // 380px a column: one column until the page has room for two cards that keep
+  // their titles and time ranges whole (an 11" iPad upright stays at one).
   return (
-    <div className="wide:columns-[340px] wide:gap-x-3 wide:pt-2 wide:[&>*]:mb-3 wide:[&>*]:mt-0 wide:[&>*]:break-inside-avoid">
+    <div className="wide:columns-[380px] wide:gap-x-3 wide:pt-2 wide:[&>*]:mb-3 wide:[&>*]:mt-0 wide:[&>*]:break-inside-avoid">
       {children}
     </div>
   )
@@ -169,14 +171,16 @@ export function SectionHeader({ label, count, open, onToggle }: {
  * the transport / booking cards (spec 03 §1.1). Width is set by the caller via
  * `className` (e.g. flex weights); `tabular` aligns times and prices.
  */
-export function Field({ label, children, className = '', tabular = false }: {
+export function Field({ label, children, className = '', tabular = false, fit = false }: {
   label: string
   children: ReactNode
   className?: string
   tabular?: boolean
+  /** Never narrower than its value: the cells beside it give way instead. */
+  fit?: boolean
 }) {
   return (
-    <div className={`min-w-0 ${className}`}>
+    <div className={`${fit ? 'min-w-max' : 'min-w-0'} ${className}`}>
       <div className="mb-[3px] font-geist text-[0.5625rem] font-bold uppercase tracking-[.08em] text-m-faint">
         {label}
       </div>

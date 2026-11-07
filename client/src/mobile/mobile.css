@@ -34,6 +34,9 @@
   --m-mkr: #101013;
   --m-mkfg: #fff;
   --m-trackoff: rgba(16,16,19,.14);
+  /* The edge of an empty checkbox: at least 3:1 against a row, so an open item
+   * shows its box rather than reading as plain text. */
+  --m-checkbr: rgba(16,16,19,.55);
 
   /* Strength of a dayTintProvider plugin's colour on an inactive day chip. A notch
    * above the desktop badge: the chip has no neutral base under it, so a softer tint
@@ -103,6 +106,7 @@ html[dir='rtl']:has(.m-shell[data-size='wide'], .m-shell[data-size='split']) .m-
   --m-mkr: #F5F5F7;
   --m-mkfg: #101013;
   --m-trackoff: rgba(255,255,255,.14);
+  --m-checkbr: rgba(255,255,255,.4);
   --day-tint-chip: 28%;
 }
 
@@ -679,7 +683,8 @@ html:has(.m-shell) ::-webkit-scrollbar {
 .m-fade-s,
 .m-fade-e,
 .m-fade-se {
-  --m-fade-w: 28px;
+  /* A strip with a chevron over its faded end fades wider (--m-fade-reach). */
+  --m-fade-w: var(--m-fade-reach, 28px);
   -webkit-mask-image: var(--m-fade-mask);
   mask-image: var(--m-fade-mask);
 }
@@ -704,7 +709,7 @@ html:has(.m-shell) ::-webkit-scrollbar {
 .m-fade-t,
 .m-fade-b,
 .m-fade-tb {
-  --m-fade-h: 24px;
+  --m-fade-h: var(--m-fade-reach-y, 24px);
   -webkit-mask-image: var(--m-fade-vmask);
   mask-image: var(--m-fade-vmask);
 }
@@ -769,5 +774,35 @@ html:has(.m-shell) ::-webkit-scrollbar {
   }
   .m-form-sheet:has(> .m-fs-foot) > .m-fs-head .m-fs-close {
     display: none;
+  }
+}
+
+/* A segmented control in the trip's top bar that does not fit between the back
+   button and the trailing button draws its segments tighter first
+   (MTripShellParts GlassSegment), and scrolls only where that is not enough. */
+.m-seg[data-tight='true'] > * {
+  padding-inline: 10px;
+}
+/* A one-line Markdown caption (MarkdownText clamp: an address, a note in a
+   row) ends in an ellipsis. The clamp sits on the wrapper, but the text is in
+   the paragraph inside it, so the line was cut off mid-letter at the row's
+   edge or under its buttons with nothing to say it went on. */
+.m-root .collab-note-md.truncate > * {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The trip's shared links in the touch shell (CollabLinks in MCollabTab). Their
+   edit, pin and delete buttons are always out on a touch screen, so a link in
+   one of two columns kept a sliver for its title ("JR seat / reservations") and
+   cut its host. One column, until the board has room for two links side by
+   side with their titles on one line. */
+.m-root .collab-link-grid__cells {
+  grid-template-columns: minmax(0, 1fr);
+}
+@container (min-width: 720px) {
+  .m-root .collab-link-grid__cells {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
