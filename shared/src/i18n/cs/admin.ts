@@ -1161,5 +1161,6 @@ const admin: TranslationStrings = {
   'admin.mcpApps.title': 'Interaktivní zobrazení',
   'admin.mcpApps.subtitle':
     'Umožnit hostitelům MCP, kteří to podporují, zobrazovat cesty, seznamy a mapy jako interaktivní zobrazení vedle odpovědi',
+  'admin.mcpApps.loadError': 'Nastavení interaktivních zobrazení se nepodařilo načíst',
 };
 export default admin;

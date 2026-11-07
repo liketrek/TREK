@@ -1188,5 +1188,6 @@ const admin: TranslationStrings = {
   'admin.mcpApps.title': 'Διαδραστικές προβολές',
   'admin.mcpApps.subtitle':
     'Να επιτρέπεται στους συμβατούς κεντρικούς υπολογιστές MCP να εμφανίζουν ταξίδια, λίστες και χάρτες ως διαδραστικές προβολές δίπλα στην απάντηση',
+  'admin.mcpApps.loadError': 'Δεν ήταν δυνατή η ανάγνωση της ρύθμισης των διαδραστικών προβολών',
 };
 export default admin;

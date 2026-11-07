@@ -1168,5 +1168,6 @@ const admin: TranslationStrings = {
   'admin.mcpApps.title': 'Interactieve weergaven',
   'admin.mcpApps.subtitle':
     'Laat MCP-hosts die het ondersteunen reizen, lijsten en kaarten als interactieve weergaven naast het antwoord tonen',
+  'admin.mcpApps.loadError': 'De instelling voor interactieve weergaven kon niet worden gelezen',
 };
 export default admin;

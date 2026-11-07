@@ -1097,5 +1097,6 @@ const admin: TranslationStrings = {
   'admin.servicesCard.hint': 'บริการของ TREK เอง ผู้ให้บริการที่ตอบการค้นหาและการขนส่งสาธารณะ และบันทึกการค้นหา',
   'admin.mcpApps.title': 'มุมมองแบบโต้ตอบ',
   'admin.mcpApps.subtitle': 'ให้โฮสต์ MCP ที่รองรับแสดงทริป รายการ และแผนที่เป็นมุมมองแบบโต้ตอบข้างคำตอบ',
+  'admin.mcpApps.loadError': 'ไม่สามารถอ่านการตั้งค่ามุมมองแบบโต้ตอบได้',
 };
 export default admin;

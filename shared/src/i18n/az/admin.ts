@@ -1186,6 +1186,7 @@ const admin: TranslationStrings = {
   'admin.mcpApps.title': 'İnteraktiv görünüşlər',
   'admin.mcpApps.subtitle':
     'Dəstəkləyən MCP hostlarına səyahətləri, siyahıları və xəritələri cavabın yanında interaktiv görünüş kimi göstərməyə icazə ver',
+  'admin.mcpApps.loadError': 'İnteraktiv görünüşlər ayarını oxumaq mümkün olmadı',
 };
 
 export default admin;

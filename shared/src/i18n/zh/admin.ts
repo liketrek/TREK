@@ -1043,5 +1043,6 @@ const admin: TranslationStrings = {
   'admin.servicesCard.hint': 'TREK 自有服务、负责搜索和公共交通的提供方，以及搜索日志。',
   'admin.mcpApps.title': '交互式视图',
   'admin.mcpApps.subtitle': '允许支持的 MCP 主机在回答旁以交互式视图显示行程、列表和地图',
+  'admin.mcpApps.loadError': '无法读取交互式视图设置',
 };
 export default admin;

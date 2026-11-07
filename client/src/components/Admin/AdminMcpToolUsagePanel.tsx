@@ -1,18 +1,16 @@
 import { Activity, Loader2 } from 'lucide-react';
-import { useFormatDate } from '../../hooks/useDateFormat';
 import { useTranslation } from '../../i18n';
 import { ChoiceChips, SettingsCard, SettingsHint, StatusPill } from '../Settings/settingsKit';
 import { fs } from '../shared/DialogShell';
-import { MCP_TOOL_USAGE_SPANS, lastCallAt, usageShare, useMcpToolUsage } from './useMcpToolUsage';
+import { MCP_TOOL_USAGE_SPANS, useMcpToolUsage } from './useMcpToolUsage';
 
 const SPAN_OPTIONS = MCP_TOOL_USAGE_SPANS.map((d) => ({ value: String(d), label: String(d) }));
 const CELL = 'px-3.5 py-2.5 text-end font-geist tabular-nums text-content-muted';
 
 /** The admin's MCP tool-usage card: which tools the connected clients called, over a span. */
 export default function AdminMcpToolUsagePanel() {
-  const { days, setDays, tools, totalCalls, loading, maxCalls } = useMcpToolUsage();
+  const { days, setDays, tools, totalCalls, loading } = useMcpToolUsage();
   const { t } = useTranslation();
-  const { formatDate } = useFormatDate();
 
   return (
     <SettingsCard
@@ -64,10 +62,7 @@ export default function AdminMcpToolUsagePanel() {
                     {row.tool}
                   </div>
                   <div className="mt-1 h-1 rounded-full bg-surface-tertiary" aria-hidden="true">
-                    <div
-                      className="h-1 rounded-full bg-accent"
-                      style={{ width: `${Math.round(usageShare(row.calls, maxCalls) * 100)}%` }}
-                    />
+                    <div className="h-1 rounded-full bg-accent" style={{ width: row.barWidth }} />
                   </div>
                 </td>
                 <td className={CELL} style={fs(12.5, 'body')}>
@@ -77,7 +72,7 @@ export default function AdminMcpToolUsagePanel() {
                   {row.users}
                 </td>
                 <td className={`whitespace-nowrap ${CELL}`} style={fs(12, 'body')}>
-                  {formatDate(lastCallAt(row))}
+                  {row.lastCall}
                 </td>
               </tr>
             ))}

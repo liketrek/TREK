@@ -1102,5 +1102,6 @@ const admin: TranslationStrings = {
   'admin.mcpApps.title': 'インタラクティブビュー',
   'admin.mcpApps.subtitle':
     '対応する MCP ホストで、旅行・リスト・地図を回答の横にインタラクティブなビューとして表示します',
+  'admin.mcpApps.loadError': 'インタラクティブなビューの設定を読み込めませんでした',
 };
 export default admin;

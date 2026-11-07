@@ -1044,5 +1044,6 @@ const admin: TranslationStrings = {
   'admin.servicesCard.hint': 'TREK 自有服務、負責搜尋與大眾運輸的提供者，以及搜尋紀錄。',
   'admin.mcpApps.title': '互動式檢視',
   'admin.mcpApps.subtitle': '允許支援的 MCP 主機在回答旁以互動式檢視顯示旅程、清單和地圖',
+  'admin.mcpApps.loadError': '無法讀取互動式檢視設定',
 };
 export default admin;

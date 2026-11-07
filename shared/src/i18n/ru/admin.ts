@@ -1201,5 +1201,6 @@ const admin: TranslationStrings = {
   'admin.mcpApps.title': 'Интерактивные представления',
   'admin.mcpApps.subtitle':
     'Разрешить поддерживающим это хостам MCP показывать поездки, списки и карты в виде интерактивных представлений рядом с ответом',
+  'admin.mcpApps.loadError': 'Не удалось прочитать настройку интерактивных представлений',
 };
 export default admin;

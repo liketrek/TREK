@@ -1,21 +1,14 @@
 import { Activity, Loader2 } from 'lucide-react';
-import {
-  lastCallAt,
-  MCP_TOOL_USAGE_SPANS,
-  usageShare,
-  useMcpToolUsage,
-} from '../../../components/Admin/useMcpToolUsage';
+import { MCP_TOOL_USAGE_SPANS, useMcpToolUsage } from '../../../components/Admin/useMcpToolUsage';
 import { fs } from '../../../components/shared/DialogShell';
-import { useFormatDate } from '../../../hooks/useDateFormat';
 import { useTranslation } from '../../../i18n';
 import { MAdminCard, MAdminCardHead } from './MAdminUi';
 
 // Phone twin of AdminMcpToolUsagePanel: the same counts from useMcpToolUsage,
 // as one card with the span picker under its head and a row per tool.
 export default function MAdminMcpToolUsagePanel() {
-  const { days, setDays, tools, loading, maxCalls } = useMcpToolUsage();
+  const { days, setDays, tools, loading } = useMcpToolUsage();
   const { t } = useTranslation();
-  const { formatDate } = useFormatDate();
 
   return (
     <MAdminCard>
@@ -58,17 +51,14 @@ export default function MAdminMcpToolUsagePanel() {
                 </span>
               </div>
               <div className="mt-1 h-1 rounded-full bg-surface-tertiary" aria-hidden="true">
-                <div
-                  className="h-1 rounded-full bg-accent"
-                  style={{ width: `${Math.round(usageShare(row.calls, maxCalls) * 100)}%` }}
-                />
+                <div className="h-1 rounded-full bg-accent" style={{ width: row.barWidth }} />
               </div>
               <div className="mt-1 flex flex-wrap gap-x-3 font-geist text-m-muted" style={fs(10)}>
                 <span>
                   {t('admin.mcpToolUsage.users')}: {row.users}
                 </span>
                 <span>
-                  {t('admin.mcpToolUsage.lastCall')}: {formatDate(lastCallAt(row))}
+                  {t('admin.mcpToolUsage.lastCall')}: {row.lastCall}
                 </span>
               </div>
             </li>

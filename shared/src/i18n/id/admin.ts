@@ -1145,5 +1145,6 @@ const admin: TranslationStrings = {
   'admin.mcpApps.title': 'Tampilan interaktif',
   'admin.mcpApps.subtitle':
     'Izinkan host MCP yang mendukung menampilkan perjalanan, daftar, dan peta sebagai tampilan interaktif di samping jawaban',
+  'admin.mcpApps.loadError': 'Tidak dapat membaca pengaturan tampilan interaktif',
 };
 export default admin;

@@ -1195,5 +1195,6 @@ const admin: TranslationStrings = {
   'admin.servicesCard.hint': 'خدمات TREK الخاصة، والمزوّد الذي يجيب عن البحث والنقل العام، وسجل البحث.',
   'admin.mcpApps.title': 'العروض التفاعلية',
   'admin.mcpApps.subtitle': 'السماح لمضيفي MCP الداعمين بعرض الرحلات والقوائم والخرائط كعروض تفاعلية بجانب الإجابة',
+  'admin.mcpApps.loadError': 'تعذّرت قراءة إعداد العروض التفاعلية',
 };
 export default admin;

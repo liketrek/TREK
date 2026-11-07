@@ -1184,5 +1184,6 @@ const admin: TranslationStrings = {
   'admin.mcpApps.title': 'Vues interactives',
   'admin.mcpApps.subtitle':
     'Permettre aux hôtes MCP compatibles d’afficher voyages, listes et cartes sous forme de vues interactives à côté de la réponse',
+  'admin.mcpApps.loadError': 'Impossible de lire le réglage des vues interactives',
 };
 export default admin;

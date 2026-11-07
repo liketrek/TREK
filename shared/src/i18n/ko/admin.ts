@@ -1090,5 +1090,6 @@ const admin: TranslationStrings = {
   'admin.servicesCard.hint': 'TREK 자체 서비스, 검색과 대중교통에 응답하는 제공자, 그리고 검색 기록.',
   'admin.mcpApps.title': '대화형 보기',
   'admin.mcpApps.subtitle': '지원하는 MCP 호스트가 여행, 목록, 지도를 답변 옆에 대화형 보기로 표시하도록 허용',
+  'admin.mcpApps.loadError': '대화형 보기 설정을 읽을 수 없습니다',
 };
 export default admin;

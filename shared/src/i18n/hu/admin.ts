@@ -1175,5 +1175,6 @@ const admin: TranslationStrings = {
   'admin.mcpApps.title': 'Interaktív nézetek',
   'admin.mcpApps.subtitle':
     'A támogató MCP-gazdák a válasz mellett interaktív nézetként mutathatják az utazásokat, listákat és térképeket',
+  'admin.mcpApps.loadError': 'Nem sikerült beolvasni az interaktív nézetek beállítását',
 };
 export default admin;

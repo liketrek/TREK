@@ -1143,5 +1143,6 @@ const admin: TranslationStrings = {
   'admin.mcpApps.title': 'Chế độ xem tương tác',
   'admin.mcpApps.subtitle':
     'Cho phép các máy chủ MCP hỗ trợ hiển thị chuyến đi, danh sách và bản đồ dưới dạng chế độ xem tương tác bên cạnh câu trả lời',
+  'admin.mcpApps.loadError': 'Không thể đọc cài đặt chế độ xem tương tác',
 };
 export default admin;

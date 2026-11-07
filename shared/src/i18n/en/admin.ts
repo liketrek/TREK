@@ -1131,5 +1131,6 @@ const admin: TranslationStrings = {
   'admin.mcpApps.title': 'Interactive views',
   'admin.mcpApps.subtitle':
     'Let MCP hosts that support it show trips, lists and maps as interactive views next to the answer',
+  'admin.mcpApps.loadError': 'Could not read the interactive views setting',
 };
 export default admin;

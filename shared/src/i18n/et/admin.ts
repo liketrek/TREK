@@ -1155,5 +1155,6 @@ const admin: TranslationStrings = {
   'admin.mcpApps.title': 'Interaktiivsed vaated',
   'admin.mcpApps.subtitle':
     'Luba toetavatel MCP hostidel näidata reise, loendeid ja kaarte vastuse kõrval interaktiivsete vaadetena',
+  'admin.mcpApps.loadError': 'Interaktiivsete vaadete seadet ei õnnestunud lugeda',
 };
 export default admin;

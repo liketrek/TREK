@@ -2,9 +2,9 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { adminMcpApi } from '../../api/adminMcp';
-import { lastCallAt, usageShare, useMcpToolUsage } from './useMcpToolUsage';
+import { lastCallAt, usageBarWidth, usageShare, useMcpToolUsage } from './useMcpToolUsage';
 
-// FE-HOOK-MCPUSAGE-001 to FE-HOOK-MCPUSAGE-005
+// FE-HOOK-MCPUSAGE-001 to FE-HOOK-MCPUSAGE-007
 
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 vi.mock('../shared/Toast', () => ({ useToast: () => toast }));
@@ -69,7 +69,31 @@ describe('useMcpToolUsage', () => {
     expect(usageShare(4, 8)).toBe(0.5);
     expect(usageShare(3, 0)).toBe(0);
     expect(usageShare(9, 8)).toBe(1);
-    const at = lastCallAt({ tool: 't', calls: 1, users: 1, last_called_at: '2026-11-05 10:00:00' });
-    expect(at.toISOString()).toBe('2026-11-05T10:00:00.000Z');
+    expect(usageBarWidth(1, 3)).toBe('33%');
+    const row = (last_called_at: string) => ({ tool: 't', calls: 1, users: 1, last_called_at });
+    expect(lastCallAt(row('2026-11-05 10:00:00'))?.toISOString()).toBe('2026-11-05T10:00:00.000Z');
+    expect(lastCallAt(row('2026-11-05T10:00:00Z'))?.toISOString()).toBe('2026-11-05T10:00:00.000Z');
+    expect(lastCallAt(row('not a time'))).toBeNull();
+  });
+
+  it("FE-HOOK-MCPUSAGE-006: a span that fails to load drops the last span's rows instead of showing them as its own", async () => {
+    const { result } = renderHook(() => useMcpToolUsage());
+    await waitFor(() => expect(result.current.tools).toHaveLength(2));
+    vi.mocked(adminMcpApi.toolUsage).mockRejectedValueOnce(new Error('boom'));
+    act(() => result.current.setDays(90));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.days).toBe(90);
+    expect(result.current.tools).toEqual([]);
+    expect(result.current.totalCalls).toBe(0);
+    expect(toast.error).toHaveBeenCalledWith('admin.mcpToolUsage.loadError');
+  });
+
+  it('FE-HOOK-MCPUSAGE-007: each row carries its bar width and its last call written out', async () => {
+    const { result } = renderHook(() => useMcpToolUsage());
+    await waitFor(() => expect(result.current.tools).toHaveLength(2));
+    const [top, other] = result.current.tools;
+    expect(top.barWidth).toBe('100%');
+    expect(other.barWidth).toBe('13%');
+    expect(top.lastCall).not.toBe('—');
   });
 });

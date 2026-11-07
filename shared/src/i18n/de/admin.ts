@@ -1169,5 +1169,6 @@ const admin: TranslationStrings = {
   'admin.mcpApps.title': 'Interaktive Ansichten',
   'admin.mcpApps.subtitle':
     'MCP-Hosts, die es unterstützen, Reisen, Listen und Karten als interaktive Ansichten neben der Antwort zeigen lassen',
+  'admin.mcpApps.loadError': 'Die Einstellung für interaktive Ansichten konnte nicht gelesen werden',
 };
 export default admin;

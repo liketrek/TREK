@@ -1166,5 +1166,6 @@ const admin: TranslationStrings = {
   'admin.mcpApps.title': 'Etkileşimli görünümler',
   'admin.mcpApps.subtitle':
     'Destekleyen MCP ana bilgisayarlarının seyahatleri, listeleri ve haritaları yanıtın yanında etkileşimli görünüm olarak göstermesine izin ver',
+  'admin.mcpApps.loadError': 'Etkileşimli görünüm ayarı okunamadı',
 };
 export default admin;

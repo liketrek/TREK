@@ -1179,5 +1179,6 @@ const admin: TranslationStrings = {
   'admin.mcpApps.title': 'Vistas interactivas',
   'admin.mcpApps.subtitle':
     'Permite que los hosts MCP compatibles muestren viajes, listas y mapas como vistas interactivas junto a la respuesta',
+  'admin.mcpApps.loadError': 'No se pudo leer el ajuste de las vistas interactivas',
 };
 export default admin;

@@ -1109,6 +1109,7 @@ const admin: TranslationStrings = {
   'admin.servicesCard.hint': 'השירותים של TREK עצמו, איזה ספק עונה לחיפוש ולתחבורה ציבורית, ויומן החיפוש.',
   'admin.mcpApps.title': 'תצוגות אינטראקטיביות',
   'admin.mcpApps.subtitle': 'לאפשר למארחי MCP שתומכים בכך להציג טיולים, רשימות ומפות כתצוגות אינטראקטיביות לצד התשובה',
+  'admin.mcpApps.loadError': 'לא ניתן היה לקרוא את ההגדרה של התצוגות האינטראקטיביות',
 };
 
 export default admin;

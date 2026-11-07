@@ -1158,5 +1158,6 @@ const admin: TranslationStrings = {
   'admin.mcpApps.title': 'Interaktiva vyer',
   'admin.mcpApps.subtitle':
     'Låt MCP-värdar som stöder det visa resor, listor och kartor som interaktiva vyer bredvid svaret',
+  'admin.mcpApps.loadError': 'Det gick inte att läsa inställningen för interaktiva vyer',
 };
 export default admin;
