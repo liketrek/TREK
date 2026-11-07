@@ -433,34 +433,29 @@ struct ChecklistView: View {
 
     var body: some View {
         List {
-            if let progress {
-                HStack(spacing: 8) {
-                    ProgressView(value: Double(progress.done), total: Double(max(progress.total, 1)))
-                        .tint(color)
-                    Text("\(progress.done)/\(progress.total)")
-                        .font(.system(.footnote, design: .rounded).weight(.bold).monospacedDigit())
-                        .foregroundStyle(color)
-                        .fixedSize()
-                }
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets(top: 0, leading: 6, bottom: 0, trailing: 6))
-                .accessibilityElement(children: .combine)
-            }
+            // The progress sits in the first section's header, so the list starts right under it.
             if open.isEmpty {
-                Label(allDone, systemImage: "checkmark.circle.fill")
-                    .foregroundStyle(color)
-                    .font(.system(.body, design: .rounded).weight(.semibold))
-            }
-            if grouped {
-                ForEach(groups, id: \.name) { group in
+                Section {
+                    Label(allDone, systemImage: "checkmark.circle.fill")
+                        .foregroundStyle(color)
+                        .font(.system(.body, design: .rounded).weight(.semibold))
+                } header: {
+                    header(nil)
+                }
+            } else if grouped {
+                ForEach(Array(groups.enumerated()), id: \.element.name) { index, group in
                     Section {
                         ForEach(group.items) { row($0) }
                     } header: {
-                        Text(group.name).watchEyebrow()
+                        if index == 0 { header(group.name) } else { Text(group.name).watchEyebrow() }
                     }
                 }
             } else {
-                ForEach(open) { row($0) }
+                Section {
+                    ForEach(open) { row($0) }
+                } header: {
+                    header(nil)
+                }
             }
             if !done.isEmpty {
                 Section {
@@ -474,6 +469,26 @@ struct ChecklistView: View {
         .navigationTitle(title)
         .sensoryFeedback(.success, trigger: ticks)
         .containerBackground(WatchLook.tint(color), for: .navigation)
+    }
+
+    /// The bar with its count, and under it the first group's name when there is one.
+    @ViewBuilder
+    private func header(_ group: String?) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if let progress {
+                HStack(spacing: 8) {
+                    ProgressView(value: Double(progress.done), total: Double(max(progress.total, 1)))
+                        .tint(color)
+                    Text("\(progress.done)/\(progress.total)")
+                        .font(.system(.footnote, design: .rounded).weight(.bold).monospacedDigit())
+                        .foregroundStyle(color)
+                        .fixedSize()
+                }
+                .accessibilityElement(children: .combine)
+            }
+            if let group { Text(group).watchEyebrow() }
+        }
+        .textCase(nil)
     }
 
     private var groups: [(name: String, items: [WatchSnapshot.Item])] {
