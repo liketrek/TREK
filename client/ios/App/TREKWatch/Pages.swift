@@ -25,7 +25,9 @@ struct TodayPage: View {
             return start <= nowMinutes && nowMinutes < end
         }
         let nextIndex = stops.firstIndex { ($0.minutes ?? -1) >= nowMinutes }
-        let focus = currentIndex ?? nextIndex
+        // A day planned without times still has its places: the first of them,
+        // and "day done" only once every stop has a time and it is behind.
+        let focus = currentIndex ?? nextIndex ?? stops.firstIndex { $0.minutes == nil }
         ScrollView {
             VStack(alignment: .leading, spacing: 8) {
                 header
@@ -395,12 +397,14 @@ struct BookingSummary: View {
         if let moment {
             // The day goes first when the line is too short for all three.
             let label = running ? L("booking.checkOut") : dayLabel(moment)
+            // A booking with no time lasts the day: its day, but no countdown to midnight.
+            let counts = running ? clock != nil : !booking.isAllDay
             ViewThatFits(in: .horizontal) {
-                timeLine(clock: clock, label: label, moment: moment, pill: true)
-                timeLine(clock: clock, label: nil, moment: moment, pill: true)
+                timeLine(clock: clock, label: label, moment: moment, pill: counts)
+                timeLine(clock: clock, label: nil, moment: moment, pill: counts)
                 VStack(alignment: .leading, spacing: 4) {
                     timeLine(clock: clock, label: label, moment: moment, pill: false)
-                    countdownPill(moment)
+                    if counts { countdownPill(moment) }
                 }
             }
         }

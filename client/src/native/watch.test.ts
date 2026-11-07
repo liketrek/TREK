@@ -59,7 +59,7 @@ const flight = reservation({
       code: 'HND',
       lat: 35.5494,
       lng: 139.7798,
-      timezone: null,
+      timezone: 'Asia/Tokyo',
       local_time: null,
       local_date: null,
     },
@@ -159,6 +159,7 @@ describe('watchBooking', () => {
       endDate: '2026-11-18',
       endTime: '08:50',
       zone: 'Europe/Berlin',
+      endZone: 'Asia/Tokyo',
       code: 'K7Q2XD',
       carrier: 'Lufthansa LH 716',
       seat: '42A',
@@ -195,6 +196,26 @@ describe('upcomingReservations', () => {
     ]);
     expect(upcomingReservations([hotel], { dayDates, today: '2026-11-19' })).toEqual([]);
     expect(upcomingReservations([hotel], { dayDates, today: '2026-11-19', running: true })).toHaveLength(1);
+  });
+});
+
+describe('the arrival zone', () => {
+  it('falls back to the arrival timezone in the metadata and is left out without one', () => {
+    const noEndpoints = reservation({
+      id: 9,
+      title: 'LH 717',
+      type: 'flight',
+      reservation_time: '2026-11-25T10:00',
+      metadata: JSON.stringify({ departure_timezone: 'Asia/Tokyo', arrival_timezone: 'Europe/Berlin' }),
+    });
+    const b = watchBooking(
+      noEndpoints,
+      { day: '2026-11-25', time: '10:00' },
+      { dayDates: new Map(), places: new Map() }
+    );
+    expect(b).toMatchObject({ zone: 'Asia/Tokyo', endZone: 'Europe/Berlin' });
+    const plain = watchBooking(hotel, { day: '2026-11-18', time: null }, { dayDates: new Map(), places: new Map() });
+    expect(plain).not.toHaveProperty('endZone');
   });
 });
 

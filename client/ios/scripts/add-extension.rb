@@ -7,7 +7,8 @@
 # "watch" (the Apple Watch app, embedded in the phone app's Watch folder) or
 # "watchwidget" (the watch's complications, embedded in the watch app). The
 # target's sources live in ios/App/<name>/ with an Info.plist and
-# <name>.entitlements next to them; an asset catalog there is a resource. The
+# <name>.entitlements next to them; an asset catalog or a privacy manifest
+# there is a resource. The
 # project file stays checked in, so the targets show in Xcode like any other;
 # this script is how they got there, and running it again changes nothing.
 #
@@ -63,7 +64,7 @@ lprojs, files = sources.partition { |file| file.end_with?('.lproj') }
 files.each do |file|
   ref = group.new_reference(file)
   target.add_file_references([ref]) if file.end_with?('.swift')
-  target.add_resources([ref]) if file.end_with?('.js', '.xcassets')
+  target.add_resources([ref]) if file.end_with?('.js', '.xcassets', '.xcprivacy')
 end
 unless lprojs.empty?
   variant = group.new_variant_group('Localizable.strings')

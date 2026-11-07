@@ -38,20 +38,31 @@ struct WatchProvider: TimelineProvider {
         completion(WatchEntry(date: Date(), snapshot: context.isPreview && stored == nil ? WatchSample.snapshot(.running) : stored, relevance: nil))
     }
 
+    /// Entries at every change in the next two days, every quarter hour for two
+    /// hours and every hour after that (for the circular faces' counts; the
+    /// others count by themselves), rebuilt at midnight or after the last entry,
+    /// whichever comes first. Without a trip nothing changes until the app writes
+    /// a new snapshot, which reloads the timelines itself.
     func getTimeline(in context: Context, completion: @escaping (Timeline<WatchEntry>) -> Void) {
         let now = Date()
         let snapshot = WatchStore.loadSnapshot()?.applying(WatchStore.loadPending())
-        // Every quarter hour as well, so the counts in the text stay current.
+        guard snapshot?.trip != nil else {
+            completion(Timeline(entries: [WatchEntry(date: now, snapshot: snapshot, relevance: nil)], policy: .never))
+            return
+        }
         var moments = ComplicationState.changes(snapshot, from: now)
         for step in 1...8 { moments.append(now.addingTimeInterval(Double(step) * 15 * 60)) }
+        for hour in 3...24 { moments.append(now.addingTimeInterval(Double(hour) * 3_600)) }
         let dates = ([now] + moments).sorted().reduce(into: [Date]()) { out, date in
             if let last = out.last, date.timeIntervalSince(last) < 60 { return }
             out.append(date)
         }
-        let entries = dates.prefix(40).map { date in
+        let entries = dates.prefix(80).map { date in
             WatchEntry(date: date, snapshot: snapshot, relevance: relevance(snapshot, at: date))
         }
-        completion(Timeline(entries: entries, policy: .after(dates.last ?? now.addingTimeInterval(3_600))))
+        let midnight = Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: now)) ?? now.addingTimeInterval(86_400)
+        let reload = min(midnight, entries.last?.date ?? midnight)
+        completion(Timeline(entries: entries, policy: .after(reload > now ? reload : now.addingTimeInterval(3_600))))
     }
 
     private func relevance(_ snapshot: WatchSnapshot?, at date: Date) -> TimelineEntryRelevance? {

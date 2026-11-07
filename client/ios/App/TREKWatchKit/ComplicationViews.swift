@@ -26,6 +26,9 @@ enum ComplicationFamily: String, CaseIterable {
     }
 }
 
+/// Which complication an idle face belongs to: each says something of its own.
+enum ComplicationKind { case nextStop, countdown, tripDay }
+
 /// What the complications read from a snapshot at a moment.
 struct ComplicationState {
     struct NextStop {
@@ -56,11 +59,14 @@ struct ComplicationState {
         if let day = snapshot?.today(at: now) {
             let current = day.stops.first { ($0.minutes ?? .max) <= minutes && minutes < ($0.endMinutes ?? -1) }
             let upcoming = day.stops.first { ($0.minutes ?? -1) >= minutes }
-            if let stop = current ?? upcoming {
+            // A day planned without times still has its places: the first of them, not "day done".
+            let untimed = day.stops.first { $0.minutes == nil }
+            if let stop = current ?? upcoming ?? untimed {
                 next = NextStop(stop: stop, start: stop.minutes.map { TrekDate.at($0, on: now) }, isNow: current != nil)
             }
         }
-        if let booking = snapshot?.bookings.first(where: { ($0.start ?? .distantPast) > now }), let start = booking.start {
+        // Only bookings with a time: one that lasts the whole day has no moment to count down to.
+        if let booking = snapshot?.bookings.first(where: { !$0.isAllDay && ($0.start ?? .distantPast) > now }), let start = booking.start {
             let look = Trek.booking(booking.kind)
             countdown = Countdown(title: booking.route ?? booking.title, detail: booking.route == nil ? nil : booking.carrier,
                                   symbol: look.symbol, color: look.color, target: start)
@@ -69,19 +75,27 @@ struct ComplicationState {
         }
     }
 
-    /// The moments a complication should redraw at: each stop's start and end today, each booking's departure.
-    static func changes(_ snapshot: WatchSnapshot?, from now: Date) -> [Date] {
+    /// The moments within `window` a complication should redraw at: the start
+    /// and end of every stop on every day of the plan in it, every timed
+    /// booking, and each midnight.
+    static func changes(_ snapshot: WatchSnapshot?, from now: Date, window: TimeInterval = 86_400 * 2) -> [Date] {
         guard let snapshot else { return [] }
+        let horizon = now.addingTimeInterval(window)
         var dates: [Date] = []
-        if let day = snapshot.today(at: now) {
+        for day in snapshot.days {
+            guard let date = day.dateValue, date <= horizon, date >= Calendar.current.startOfDay(for: now) else { continue }
             for stop in day.stops {
-                if let start = stop.minutes { dates.append(TrekDate.at(start, on: now)) }
-                if let end = stop.endMinutes { dates.append(TrekDate.at(end, on: now)) }
+                if let start = stop.minutes { dates.append(TrekDate.at(start, on: date)) }
+                if let end = stop.endMinutes { dates.append(TrekDate.at(end, on: date)) }
             }
         }
-        dates += snapshot.bookings.compactMap(\.start)
-        dates.append(Calendar.current.startOfDay(for: now.addingTimeInterval(86_400)))
-        return dates.filter { $0 > now && $0 < now.addingTimeInterval(86_400 * 2) }.sorted()
+        dates += snapshot.bookings.filter { !$0.isAllDay }.compactMap(\.start)
+        var midnight = Calendar.current.startOfDay(for: now)
+        while let next = Calendar.current.date(byAdding: .day, value: 1, to: midnight), next <= horizon {
+            dates.append(next)
+            midnight = next
+        }
+        return dates.filter { $0 > now && $0 <= horizon }.sorted()
     }
 }
 
@@ -104,7 +118,8 @@ struct NextStopComplication: View {
                             .fontWeight(.semibold)
                             .widgetAccentable()
                         if let start = next.start, !next.isNow, start > now {
-                            Text(WatchFormat.relative(start, now: now)).foregroundStyle(.secondary)
+                            // Counts down by itself between timeline entries.
+                            Text(start, style: .relative).foregroundStyle(.secondary).lineLimit(1)
                         }
                     }
                     .font(.system(.footnote, design: .rounded))
@@ -141,7 +156,7 @@ struct NextStopComplication: View {
                 Label([time, next.stop.name].compactMap { $0 }.joined(separator: " "), systemImage: WatchLook.stopSymbol(next.stop))
             }
         } else {
-            ComplicationIdle(state: state, family: family)
+            ComplicationIdle(state: state, family: family, kind: .nextStop)
         }
     }
 }
@@ -155,7 +170,6 @@ struct CountdownComplication: View {
 
     var body: some View {
         if let countdown = state.countdown {
-            let left = WatchFormat.countdown(countdown.target, now: now)
             switch family {
             case .rectangular:
                 VStack(alignment: .leading, spacing: 1) {
@@ -164,9 +178,10 @@ struct CountdownComplication: View {
                         Text(countdown.title).fontWeight(.semibold).lineLimit(1)
                     }
                     .font(.system(.footnote, design: .rounded))
-                    Text(left)
+                    Text(countdown.target, style: .relative)
                         .font(.system(.title3, design: .rounded).weight(.bold).monospacedDigit())
                         .widgetAccentable()
+                        .lineLimit(1)
                         .minimumScaleFactor(0.7)
                     if let detail = countdown.detail {
                         Text(detail).font(.system(.caption2, design: .rounded)).foregroundStyle(.secondary).lineLimit(1)
@@ -188,12 +203,16 @@ struct CountdownComplication: View {
                 Image(systemName: countdown.symbol)
                     .font(.system(size: 20, weight: .semibold))
                     .widgetAccentable()
-                    .widgetLabel { Text(left) }
+                    .widgetLabel { Text(countdown.target, style: .relative) }
             case .inline:
-                Label("\(countdown.title) · \(left)", systemImage: countdown.symbol)
+                Label {
+                    Text("\(countdown.title) · ") + Text(countdown.target, style: .relative)
+                } icon: {
+                    Image(systemName: countdown.symbol)
+                }
             }
         } else {
-            ComplicationIdle(state: state, family: family)
+            ComplicationIdle(state: state, family: family, kind: .countdown)
         }
     }
 
@@ -221,7 +240,7 @@ struct TripDayComplication: View {
         case .upcoming(let days):
             upcoming(days)
         default:
-            ComplicationIdle(state: state, family: family)
+            ComplicationIdle(state: state, family: family, kind: .tripDay)
         }
     }
 
@@ -296,9 +315,23 @@ struct TripDayComplication: View {
 struct ComplicationIdle: View {
     let state: ComplicationState
     let family: ComplicationFamily
+    let kind: ComplicationKind
+
+    /// What an idle face says: before the trip how far off it is, while it runs
+    /// "day done" for the next stop and the day of the trip for the rest, and
+    /// "no trip" outside of one.
+    private var text: String {
+        switch state.phase {
+        case .upcoming(let days):
+            return "\(state.tripTitle ?? "") · \(days) \(WatchFormat.daysUnit(days))"
+        case .running(let day, let total):
+            return kind == .nextStop ? L("today.done") : WatchFormat.dayOf(day, total)
+        case .past, .none:
+            return L("complication.noTrip")
+        }
+    }
 
     var body: some View {
-        let text = state.tripTitle == nil ? L("complication.noTrip") : L("today.done")
         switch family {
         case .circular:
             ZStack {

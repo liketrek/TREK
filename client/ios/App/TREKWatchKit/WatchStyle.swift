@@ -9,12 +9,16 @@ func L(_ key: String) -> String {
 /// days, ranges and countdowns in the watch's language.
 enum WatchFormat {
     private static var formatters: [String: DateFormatter] = [:]
+    private static let utc = TimeZone(identifier: "UTC") ?? .current
 
-    private static func formatter(_ template: String) -> DateFormatter {
-        let key = template + "|" + Locale.current.identifier
+    /// A formatter for the template in the watch's language, in `zone`
+    /// (the current one unless given), so a flight across zones is followed.
+    private static func formatter(_ template: String, zone: TimeZone = .current) -> DateFormatter {
+        let key = template + "|" + Locale.current.identifier + "|" + zone.identifier
         if let cached = formatters[key] { return cached }
         let formatter = DateFormatter()
         formatter.locale = Locale.current
+        formatter.timeZone = zone
         formatter.setLocalizedDateFormatFromTemplate(template)
         formatters[key] = formatter
         return formatter
@@ -24,8 +28,11 @@ enum WatchFormat {
         formatter(hour12 ? "h:mm a" : "HH:mm").string(from: date)
     }
 
-    static func time(minutes: Int, hour12: Bool, on day: Date = Date()) -> String {
-        time(TrekDate.at(minutes, on: day), hour12: hour12)
+    /// A time of day from its minutes, with no date involved, so no change of
+    /// the clocks can shift it: the minutes after the reference date, in UTC.
+    static func time(minutes: Int, hour12: Bool) -> String {
+        let m = min(max(minutes, 0), 24 * 60 - 1)
+        return formatter(hour12 ? "h:mm a" : "HH:mm", zone: utc).string(from: Date(timeIntervalSinceReferenceDate: TimeInterval(m * 60)))
     }
 
     /// "Tue 18 Nov"

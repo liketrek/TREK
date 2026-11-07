@@ -58,6 +58,18 @@ final class WatchModel {
     }
 
     var isWaitingForPhone: Bool { !pending.isEmpty }
+
+    /// WatchConnectivity handed a tick to the phone: it is not sent again.
+    func markSent(_ id: String) {
+        guard let index = pending.firstIndex(where: { $0.id == id }) else { return }
+        pending[index].sent = true
+        WatchStore.savePending(pending)
+    }
+
+    /// Ticks that never reached the phone's queue: not yet handed over, or failed.
+    func unsent(excluding queued: Set<String>) -> [PendingAction] {
+        pending.filter { $0.sent != true && !queued.contains($0.id) }
+    }
 }
 
 /// The watch's end of WatchConnectivity: snapshots arrive as the application
@@ -69,8 +81,23 @@ final class WatchLink: NSObject, WCSessionDelegate {
 
     func activate() {
         guard WCSession.isSupported() else { return }
-        WCSession.default.delegate = self
-        WCSession.default.activate()
+        if WCSession.default.delegate == nil { WCSession.default.delegate = self }
+        if WCSession.default.activationState != .activated { WCSession.default.activate() }
+    }
+
+    /// For the system's WatchConnectivity background task: activates the session
+    /// and returns only once what the phone sent has been delivered (and the
+    /// snapshot stored and the complications told), or after twenty seconds.
+    func finishPendingDeliveries() async {
+        activate()
+        for _ in 0..<100 {
+            let session = WCSession.default
+            if session.activationState == .activated && !session.hasContentPending { break }
+            try? await Task.sleep(nanoseconds: 200_000_000)
+        }
+        // Let the deliveries already queued on the main actor run before the task ends.
+        await MainActor.run {}
+        try? await Task.sleep(nanoseconds: 300_000_000)
     }
 
     func send(_ action: PendingAction) {
@@ -91,15 +118,21 @@ final class WatchLink: NSObject, WCSessionDelegate {
         if let data = session.receivedApplicationContext["snapshot"] as? Data {
             Task { @MainActor in WatchModel.shared.receive(data) }
         }
-        // Ticks queued before an earlier launch ended are still in the system's queue;
-        // anything only in our own store (sent while not activated) goes again.
+        // Only ticks that never reached the phone's queue go again: those still in the
+        // system's queue are on their way, and those handed over are the phone's now.
         let queued = Set(session.outstandingUserInfoTransfers.compactMap { ($0.userInfo["action"] as? [String: Any])?["id"] as? String })
         Task { @MainActor in
-            for action in WatchModel.shared.pending where !queued.contains(action.id) {
+            for action in WatchModel.shared.unsent(excluding: queued) {
                 session.transferUserInfo(["action": action.message])
             }
         }
         requestRefresh()
+    }
+
+    /// A tick reached the phone's queue (or failed, and is sent again on the next activation).
+    func session(_ session: WCSession, didFinish userInfoTransfer: WCSessionUserInfoTransfer, error: Error?) {
+        guard error == nil, let id = (userInfoTransfer.userInfo["action"] as? [String: Any])?["id"] as? String else { return }
+        Task { @MainActor in WatchModel.shared.markSent(id) }
     }
 
     func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {

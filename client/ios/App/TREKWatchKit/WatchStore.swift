@@ -14,6 +14,9 @@ struct PendingAction: Codable, Equatable, Identifiable {
     var itemId: Int
     var done: Bool
     var at: Date
+    /// Set once WatchConnectivity has handed the tick to the phone; such a tick
+    /// is never sent again, it only stays laid over the snapshot until confirmed.
+    var sent: Bool?
 
     /// What the phone receives (parseWatchActions in client/src/native/watch.ts).
     var message: [String: Any] {
@@ -23,23 +26,23 @@ struct PendingAction: Codable, Equatable, Identifiable {
 
 /// Where the watch keeps the last snapshot and its pending ticks: the keychain
 /// group the watch app shares with its complications (no App Group needed,
-/// the same way the phone shares the widget snapshot), with the app's own
-/// defaults as the fallback a build without the entitlement still works with.
+/// the same way the phone shares the widget snapshot). Nothing goes to
+/// UserDefaults, which the complications could not read anyway.
 enum WatchStore {
     private static let service = "com.liketrek.trek.watch"
     private static let snapshotAccount = "watch.snapshot"
     private static let pendingAccount = "watch.pending"
 
     static func loadSnapshot() -> WatchSnapshot? {
-        (read(snapshotAccount) ?? UserDefaults.standard.data(forKey: snapshotAccount)).flatMap(WatchSnapshot.decode)
+        read(snapshotAccount).flatMap(WatchSnapshot.decode)
     }
 
     static func saveSnapshot(_ data: Data) {
-        if !write(snapshotAccount, data) { UserDefaults.standard.set(data, forKey: snapshotAccount) }
+        write(snapshotAccount, data)
     }
 
     static func loadPending() -> [PendingAction] {
-        guard let data = read(pendingAccount) ?? UserDefaults.standard.data(forKey: pendingAccount) else { return [] }
+        guard let data = read(pendingAccount) else { return [] }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .secondsSince1970
         return (try? decoder.decode([PendingAction].self, from: data)) ?? []
@@ -49,7 +52,7 @@ enum WatchStore {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .secondsSince1970
         guard let data = try? encoder.encode(actions) else { return }
-        if !write(pendingAccount, data) { UserDefaults.standard.set(data, forKey: pendingAccount) }
+        write(pendingAccount, data)
     }
 
     private static func query(_ account: String) -> [String: Any] {

@@ -56,38 +56,38 @@ enum WatchSample {
         let bookings: [WatchSnapshot.Booking] = [
             WatchSnapshot.Booking(
                 id: 1, title: "LH 716", kind: "flight", confirmed: true, date: iso(0), time: "15:35", endDate: iso(1), endTime: "11:20",
-                zone: nil, from: .init(name: "Frankfurt", code: "FRA", lat: 50.0379, lng: 8.5622),
+                zone: nil, endZone: nil, from: .init(name: "Frankfurt", code: "FRA", lat: 50.0379, lng: 8.5622),
                 to: .init(name: "Tokyo Haneda", code: "HND", lat: 35.5494, lng: 139.7798), code: "K7Q2XD",
                 carrier: "Lufthansa LH 716", seat: "42A", platform: nil, location: nil, lat: nil, lng: nil, checkIn: nil, checkOut: nil
             ),
             WatchSnapshot.Booking(
                 id: 7, title: "Shinkansen Nozomi 21", kind: "train", confirmed: true, date: iso(1), time: "13:33", endDate: iso(1), endTime: "15:48",
-                zone: nil, from: .init(name: "Tokyo", code: nil, lat: 35.6812, lng: 139.7671), to: .init(name: "Kyoto", code: nil, lat: 34.9858, lng: 135.7588),
+                zone: nil, endZone: nil, from: .init(name: "Tokyo", code: nil, lat: 35.6812, lng: 139.7671), to: .init(name: "Kyoto", code: nil, lat: 34.9858, lng: 135.7588),
                 code: "JR-5521", carrier: "JR Nozomi 21", seat: "7D", platform: "14", location: nil, lat: nil, lng: nil, checkIn: nil, checkOut: nil
             ),
             WatchSnapshot.Booking(
                 id: 2, title: "Hotel Kanra Kyoto", kind: "hotel", confirmed: true, date: iso(1), time: "16:30", endDate: iso(7), endTime: "11:00",
-                zone: nil, from: nil, to: nil, code: "HK-208431", carrier: nil, seat: nil, platform: nil,
+                zone: nil, endZone: nil, from: nil, to: nil, code: "HK-208431", carrier: nil, seat: nil, platform: nil,
                 location: "Hotel Kanra Kyoto", lat: 34.9922, lng: 135.7585, checkIn: "15:00", checkOut: "11:00"
             ),
             WatchSnapshot.Booking(
                 id: 3, title: t("Kaiseki at Kikunoi"), kind: "restaurant", confirmed: false, date: iso(2), time: "19:00", endDate: nil, endTime: nil,
-                zone: nil, from: nil, to: nil, code: "KK-77", carrier: nil, seat: nil, platform: nil,
+                zone: nil, endZone: nil, from: nil, to: nil, code: "KK-77", carrier: nil, seat: nil, platform: nil,
                 location: "459 Shimokawaracho, Higashiyama", lat: 34.9989, lng: 135.7812, checkIn: nil, checkOut: nil
             ),
             WatchSnapshot.Booking(
                 id: 4, title: t("Tea ceremony"), kind: "event", confirmed: true, date: iso(5), time: "10:30", endDate: nil, endTime: nil,
-                zone: nil, from: nil, to: nil, code: nil, carrier: nil, seat: nil, platform: nil,
+                zone: nil, endZone: nil, from: nil, to: nil, code: nil, carrier: nil, seat: nil, platform: nil,
                 location: "Camellia Flower", lat: 35.0036, lng: 135.7788, checkIn: nil, checkOut: nil
             ),
             WatchSnapshot.Booking(
                 id: 5, title: "Shinkansen Hikari 503", kind: "train", confirmed: true, date: iso(8), time: "09:12", endDate: iso(8), endTime: "09:27",
-                zone: nil, from: .init(name: "Kyoto", code: nil, lat: 34.9858, lng: 135.7588), to: .init(name: "Shin-Osaka", code: nil, lat: 34.7334, lng: 135.5001),
+                zone: nil, endZone: nil, from: .init(name: "Kyoto", code: nil, lat: 34.9858, lng: 135.7588), to: .init(name: "Shin-Osaka", code: nil, lat: 34.7334, lng: 135.5001),
                 code: "E4521", carrier: "JR Hikari 503", seat: "7D", platform: "12", location: nil, lat: nil, lng: nil, checkIn: nil, checkOut: nil
             ),
             WatchSnapshot.Booking(
                 id: 6, title: "LH 741", kind: "flight", confirmed: true, date: iso(8), time: "13:25", endDate: iso(8), endTime: "19:05",
-                zone: nil, from: .init(name: "Osaka Kansai", code: "KIX", lat: 34.4320, lng: 135.2304),
+                zone: nil, endZone: nil, from: .init(name: "Osaka Kansai", code: "KIX", lat: 34.4320, lng: 135.2304),
                 to: .init(name: "Frankfurt", code: "FRA", lat: 50.0379, lng: 8.5622), code: "K7Q2XD",
                 carrier: "Lufthansa LH 741", seat: "38C", platform: nil, location: nil, lat: nil, lng: nil, checkIn: nil, checkOut: nil
             ),

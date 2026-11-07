@@ -57,6 +57,8 @@ struct WatchSnapshot: Codable, Equatable {
         var endDate: String?
         var endTime: String?
         var zone: String?
+        /// The zone the end time is local to (the arrival airport's), when the booking names one.
+        var endZone: String?
         var from: Point?
         var to: Point?
         var code: String?
@@ -153,22 +155,22 @@ struct WatchSnapshot: Codable, Equatable {
 
 // MARK: - Dates
 
+/// Days and times as the watch reads them: always in the time zone it is in
+/// now (it may have flown since the last launch), and times of day as wall-clock
+/// hours and minutes, never as minutes added to midnight, which are an hour off
+/// on the days the clocks change.
 enum TrekDate {
-    private static let isoFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter
-    }()
-
+    /// The start of yyyy-MM-dd here.
     static func day(_ iso: String?) -> Date? {
         guard let iso, iso.count >= 10 else { return nil }
-        return isoFormatter.date(from: String(iso.prefix(10)))
+        let ymd = iso.prefix(10).split(separator: "-").compactMap { Int($0) }
+        guard ymd.count == 3 else { return nil }
+        return Calendar.current.date(from: DateComponents(year: ymd[0], month: ymd[1], day: ymd[2]))
     }
 
     static func iso(_ date: Date) -> String {
-        isoFormatter.string(from: date)
+        let parts = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
     }
 
     /// yyyy-MM-dd and HH:mm as a moment, in `zone` when given, else here; midnight without a time.
@@ -205,9 +207,10 @@ enum TrekDate {
         return (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
     }
 
-    /// A moment on `day` at `minutes`.
+    /// The moment the clock shows `minutes` after midnight on `day`.
     static func at(_ minutes: Int, on day: Date) -> Date {
-        Calendar.current.date(byAdding: .minute, value: minutes, to: Calendar.current.startOfDay(for: day)) ?? day
+        let m = min(max(minutes, 0), 24 * 60 - 1)
+        return Calendar.current.date(bySettingHour: m / 60, minute: m % 60, second: 0, of: day) ?? day
     }
 }
 
@@ -275,7 +278,11 @@ extension WatchSnapshot {
 
 extension WatchSnapshot.Booking {
     var start: Date? { TrekDate.moment(date, time, zone: zone) }
-    var end: Date? { TrekDate.moment(endDate ?? date, endTime, zone: zone) }
+    /// The end in the arrival's zone; a ride without one ends in the zone the watch is in, never the departure's.
+    var end: Date? { TrekDate.moment(endDate ?? date, endTime, zone: endZone ?? (isTransport ? nil : zone)) }
+
+    /// A booking with a day but no time lasts the whole day: there is nothing to count down to.
+    var isAllDay: Bool { time == nil }
 
     var isTransport: Bool { ["flight", "train", "bus", "car", "cruise"].contains(kind) }
 

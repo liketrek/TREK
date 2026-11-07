@@ -14,6 +14,11 @@ struct TREKWatchApp: App {
         WindowGroup {
             RootView()
         }
+        // Woken in the background to take a snapshot or complication update from
+        // the phone: the task lasts until it is delivered, stored and drawn.
+        .backgroundTask(.watchConnectivity) {
+            await WatchLink.shared.finishPendingDeliveries()
+        }
     }
 }
 

@@ -66,8 +66,10 @@ interface WatchBooking {
   time?: string;
   endDate?: string;
   endTime?: string;
-  /** The IANA zone the times are local to, when the booking names one (a departure airport). */
+  /** The IANA zone the start is local to, when the booking names one (a departure airport). */
   zone?: string;
+  /** The zone the end is local to (the arrival airport), so a long flight lands at the right hour. */
+  endZone?: string;
   from?: WatchPoint;
   to?: WatchPoint;
   /** The booking reference. */
@@ -267,6 +269,7 @@ export function watchBooking(
     confirmed: r.status === 'confirmed',
     ...timesOf(r, start, meta, dayDates),
     zone: text(from?.timezone || metaText(meta, 'departure_timezone', 40), 40),
+    endZone: text(to?.timezone || metaText(meta, 'arrival_timezone', 40), 40),
     from: point(from),
     to: point(to),
     code: text(r.confirmation_number, 40),
