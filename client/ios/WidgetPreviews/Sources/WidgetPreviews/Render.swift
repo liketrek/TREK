@@ -51,7 +51,23 @@ struct Render {
             }
             let lock = LockScreen(snapshots: states.prefix(3).map(\.1), now: now).environment(\.colorScheme, scheme)
             try write(lock, to: out.appendingPathComponent("lock-\(schemeName).png"))
+
+            // The iPad: every home-screen size of each widget as that iPad gives
+            // them, the extra large included, per kind in one strip.
+            for pad in TrekPad.allCases {
+                for (stateName, snapshot) in states where ["upcoming", "coverrunning", "empty"].contains(stateName) {
+                    for kind in WidgetKind.allCases {
+                        let strip = PadStrip(kind: kind, pad: pad, snapshot: snapshot, now: now)
+                            .environment(\.colorScheme, scheme)
+                            .environment(\.trekStaticPreview, true)
+                        try write(strip, to: out.appendingPathComponent("pad-\(pad.rawValue)-\(kind.rawValue)-\(stateName)-\(schemeName).png"), scale: 2)
+                    }
+                }
+            }
+            let padLock = PadLockScreen(snapshot: states[1].1, now: now).environment(\.colorScheme, scheme)
+            try write(padLock, to: out.appendingPathComponent("pad-lock-\(schemeName).png"), scale: 2)
         }
+        try write(LiveActivityWidths(), to: out.appendingPathComponent("liveactivity-widths.png"))
         let args = Array(CommandLine.arguments.dropFirst())
         try Mockups.render(to: out, iconPath: args.count > 1 ? args[1] : nil, now: now)
         print("wrote \(try FileManager.default.contentsOfDirectory(atPath: out.path).count) images to \(out.path)")
@@ -77,9 +93,9 @@ struct Render {
     }
 
     @MainActor
-    static func write<V: View>(_ view: V, to url: URL) throws {
+    static func write<V: View>(_ view: V, to url: URL, scale: CGFloat = 3) throws {
         let renderer = ImageRenderer(content: view)
-        renderer.scale = 3
+        renderer.scale = scale
         guard let image = renderer.nsImage,
               let tiff = image.tiffRepresentation,
               let bitmap = NSBitmapImageRep(data: tiff),
@@ -95,9 +111,9 @@ enum WidgetKind: String, CaseIterable {
 
     var families: [TrekFamily] {
         switch self {
-        case .trip: return [.small, .medium, .large, .circular, .rectangular, .inline]
-        case .today: return [.medium, .large]
-        case .bookings: return [.small, .medium, .large, .rectangular, .inline]
+        case .trip: return [.small, .medium, .large, .extraLarge, .circular, .rectangular, .inline]
+        case .today: return [.medium, .large, .extraLarge]
+        case .bookings: return [.small, .medium, .large, .extraLarge, .rectangular, .inline]
         case .todos: return [.small, .medium, .large, .circular, .rectangular]
         case .packing: return [.small, .medium, .large, .circular, .rectangular]
         case .atlas: return [.small, .medium, .large, .circular, .rectangular, .inline]
@@ -113,9 +129,11 @@ struct WidgetFrame: View {
     let family: TrekFamily
     let snapshot: WidgetSnapshot
     let now: Date
+    /// The device's size for the family, when it is not the 6.1" iPhone's.
+    var size: CGSize? = nil
 
     var body: some View {
-        let size = family.previewSize
+        let size = self.size ?? family.previewSize
         if family.isAccessory {
             // As the lock screen draws them: white on the wallpaper, no box of their own
             // (the circular one gets the system's soft disc).
@@ -268,5 +286,100 @@ struct NewWidgets: View {
                 startPoint: .top, endPoint: .bottom
             )
         )
+    }
+}
+
+/// One widget kind in every home-screen size an iPad gives it, side by side on
+/// that iPad's wallpaper, the extra large last.
+struct PadStrip: View {
+    let kind: WidgetKind
+    let pad: TrekPad
+    let snapshot: WidgetSnapshot
+    let now: Date
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 24) {
+            ForEach(kind.families.filter { !$0.isAccessory }, id: \.self) { family in
+                WidgetFrame(kind: kind, family: family, snapshot: snapshot, now: now, size: pad.size(family))
+            }
+        }
+        .padding(28)
+        .background(
+            LinearGradient(
+                colors: scheme == .dark ? [Color(hex: 0x1D2440), Color(hex: 0x0B0F1E)] : [Color(hex: 0xC9D8F0), Color(hex: 0xF3E3D3)],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
+        )
+    }
+}
+
+/// An 11" iPad's lock screen on its side: the clock with the accessories under
+/// it on the left, as iPadOS places them, and the travel day's Live Activity.
+struct PadLockScreen: View {
+    let snapshot: WidgetSnapshot
+    let now: Date
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 0) {
+            VStack(alignment: .leading, spacing: 14) {
+                WidgetFrame(kind: .trip, family: .inline, snapshot: snapshot, now: now)
+                Text(now, format: .dateTime.hour().minute())
+                    .font(.system(size: 96, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white)
+                HStack(spacing: 10) {
+                    WidgetFrame(kind: .trip, family: .circular, snapshot: snapshot, now: now)
+                    WidgetFrame(kind: .todos, family: .circular, snapshot: snapshot, now: now)
+                    WidgetFrame(kind: .packing, family: .circular, snapshot: snapshot, now: now)
+                }
+                WidgetFrame(kind: .trip, family: .rectangular, snapshot: snapshot, now: now)
+                WidgetFrame(kind: .bookings, family: .rectangular, snapshot: snapshot, now: now)
+                WidgetFrame(kind: .todos, family: .rectangular, snapshot: snapshot, now: now)
+            }
+            .padding(.leading, 64)
+            .padding(.top, 70)
+            Spacer(minLength: 0)
+        }
+        .frame(width: 1194, height: 834, alignment: .topLeading)
+        .overlay(alignment: .bottom) {
+            LiveActivityCard(width: 500).padding(.bottom, 40)
+        }
+        .background(
+            LinearGradient(colors: [Color(hex: 0x2B3A67), Color(hex: 0x6B4A6E), Color(hex: 0x1C1726)], startPoint: .top, endPoint: .bottom)
+        )
+    }
+}
+
+/// The travel day's Live Activity as the lock screen tints it.
+struct LiveActivityCard: View {
+    let width: CGFloat
+
+    var body: some View {
+        TripDayBanner(
+            tripTitle: "Autumn in Kyoto", dayLabel: "Day 3 of 9",
+            nextName: "Kiyomizu-dera", nextTime: "13:30", done: 2, total: 5
+        )
+        .frame(width: width)
+        .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(Color(hex: 0x0C0C0F).opacity(0.92)))
+    }
+}
+
+/// The Live Activity at the widths an iPhone's and an iPad's lock screen give
+/// it, and with a long German day and stop, to see it hold at each.
+struct LiveActivityWidths: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            ForEach([364, 500, 640] as [CGFloat], id: \.self) { width in
+                LiveActivityCard(width: width)
+            }
+            TripDayBanner(
+                tripTitle: "Herbst in Kyoto und Nara", dayLabel: "Tag 3 von 9",
+                nextName: "Kiyomizu-dera und Sannenzaka-Spaziergang", nextTime: "13:30", done: 2, total: 5
+            )
+            .frame(width: 364)
+            .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(Color(hex: 0x0C0C0F).opacity(0.92)))
+        }
+        .padding(28)
+        .background(Color(hex: 0x1E2A3A))
     }
 }

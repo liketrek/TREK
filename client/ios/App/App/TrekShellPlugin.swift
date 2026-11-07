@@ -54,7 +54,19 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
     /// and a server can require a minimum (minNativeShellApi in /api/health/features).
     static let shellApi = 2
     /// The native features by name, so the UI can turn each on by itself.
-    static let features: [String] = ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation", "sharedFiles", "nativePush", "widgets", "liveActivity", "widgetTrips", "storeKit", "shareSheet", "wallet", "keyCommands"]
+    static var features: [String] {
+        var names = ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation", "sharedFiles", "nativePush", "widgets", "liveActivity", "widgetTrips", "storeKit", "shareSheet", "keyCommands"]
+        // An iPad has no Wallet app and cannot take a pass, so it does not offer
+        // the feature: the UI then shows no "Add to Apple Wallet" button and hands
+        // a .pkpass to the share sheet like any other file.
+        if canAddWalletPasses { names.append("wallet") }
+        return names
+    }
+
+    /// Whether this device can add a pass to Apple Wallet (an iPhone; not an iPad).
+    static var canAddWalletPasses: Bool {
+        PKPassLibrary.isPassLibraryAvailable() && PKAddPassesViewController.canAddPasses()
+    }
 
     // MARK: - Shared booking documents
 
