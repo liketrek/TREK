@@ -25,21 +25,16 @@ struct TodayPage: View {
                 header
                 if let focus, let todayIndex {
                     NavigationLink(value: Route.stop(day: todayIndex, stop: focus)) {
-                        FocusCard(stop: stops[focus], isNow: focus == currentIndex, hour12: snapshot.hour12)
+                        FocusCard(
+                            stop: stops[focus],
+                            isNow: focus == currentIndex,
+                            hour12: snapshot.hour12,
+                            then: reduced ? nil : stops.dropFirst(focus + 1).first
+                        )
                     }
                     .buttonStyle(.plain)
                     DayProgressBar(stops: stops, nowMinutes: nowMinutes)
                         .padding(.horizontal, 2)
-                    let later = Array(stops.enumerated().filter { $0.offset > focus }.prefix(3))
-                    if !later.isEmpty && !reduced {
-                        Text(L("today.later")).watchEyebrow().padding(.top, 2)
-                        ForEach(later, id: \.offset) { entry in
-                            NavigationLink(value: Route.stop(day: todayIndex, stop: entry.offset)) {
-                                CompactStopRow(stop: entry.element, hour12: snapshot.hour12)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
                 } else if stops.isEmpty {
                     DoneCard(title: L("today.free"), detail: L("today.freeBody"), symbol: "sun.max.fill")
                 } else {
@@ -66,17 +61,29 @@ struct TodayPage: View {
         }
     }
 
+    /// The day and the trip; a tap opens the whole day's timeline.
     @ViewBuilder
     private var header: some View {
-        if case .running(let index, let total) = snapshot.phase(at: now) {
-            VStack(alignment: .leading, spacing: 1) {
-                Text(WatchFormat.dayOf(index, total)).watchEyebrow(.white.opacity(0.85))
-                Text(snapshot.trip?.title ?? "")
-                    .font(.system(.footnote, design: .rounded).weight(.semibold))
-                    .foregroundStyle(WatchLook.muted)
-                    .lineLimit(1)
+        if case .running(let index, let total) = snapshot.phase(at: now), let todayIndex = snapshot.todayIndex(at: now) {
+            NavigationLink(value: Route.day(todayIndex)) {
+                HStack(alignment: .center, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(WatchFormat.dayOf(index, total)).watchEyebrow(.white.opacity(0.85))
+                        Text(snapshot.trip?.title ?? "")
+                            .font(.system(.footnote, design: .rounded).weight(.semibold))
+                            .foregroundStyle(WatchLook.muted)
+                            .lineLimit(1)
+                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: "list.bullet")
+                        .font(.system(.footnote, design: .rounded).weight(.semibold))
+                        .foregroundStyle(WatchLook.muted)
+                }
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
             .accessibilityElement(children: .combine)
+            .accessibilityHint(L("today.plan"))
         }
     }
 }
@@ -86,6 +93,8 @@ struct FocusCard: View {
     let stop: WatchSnapshot.Stop
     let isNow: Bool
     let hour12: Bool
+    /// The stop after it, in a line at the foot.
+    var then: WatchSnapshot.Stop?
     @Environment(\.trekNow) private var now
 
     var body: some View {
@@ -112,6 +121,23 @@ struct FocusCard: View {
                 Text(times)
                     .font(.system(.footnote, design: .rounded).weight(.medium).monospacedDigit())
                     .foregroundStyle(WatchLook.muted)
+            }
+            if let then {
+                Divider().overlay(Color.white.opacity(0.12)).padding(.vertical, 2)
+                HStack(spacing: 5) {
+                    Image(systemName: "arrow.turn.down.right")
+                        .foregroundStyle(WatchLook.faint)
+                    if let minutes = then.minutes {
+                        Text(WatchFormat.time(minutes: minutes, hour12: hour12)).monospacedDigit()
+                            .foregroundStyle(WatchLook.muted)
+                    }
+                    Text(then.name)
+                        .foregroundStyle(WatchLook.ink.opacity(0.85))
+                        .lineLimit(1)
+                }
+                .font(.system(.caption, design: .rounded).weight(.semibold))
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("\(L("today.later")): \(then.name)")
             }
         }
         .padding(10)

@@ -139,11 +139,13 @@ struct TimelineRow: View {
                     .font(.system(.footnote, design: .rounded).weight(state == .now ? .bold : .semibold))
                     .foregroundStyle(state == .past ? WatchLook.muted : WatchLook.ink)
                     .lineLimit(2)
+                // The street, whole: the first part of the address, on up to two lines.
                 if let detail = stop.booking.map(WatchLook.kindName) ?? stop.address?.split(separator: ",").first.map(String.init) {
                     Text(detail)
                         .font(.system(.caption2, design: .rounded))
                         .foregroundStyle(WatchLook.faint)
-                        .lineLimit(1)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             .padding(.top, 3)
@@ -217,10 +219,20 @@ struct MiniMap: View {
 
     var body: some View {
         let coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lng)
-        Map(initialPosition: .region(MKCoordinateRegion(center: coordinate, latitudinalMeters: 900, longitudinalMeters: 900)), interactionModes: []) {
-            Marker(name, coordinate: coordinate).tint(color)
+        // Flat and muted, without points of interest, so the stop's own pin is
+        // what stands out; Apple's attribution stays in its corner, untouched.
+        Map(initialPosition: .region(MKCoordinateRegion(center: coordinate, latitudinalMeters: 700, longitudinalMeters: 700)), interactionModes: []) {
+            Annotation(name, coordinate: coordinate, anchor: .center) {
+                Circle()
+                    .fill(color.gradient)
+                    .frame(width: 22, height: 22)
+                    .overlay(Circle().stroke(.white, lineWidth: 2.5))
+                    .shadow(color: .black.opacity(0.4), radius: 3, y: 1)
+            }
+            .annotationTitles(.hidden)
         }
-        .frame(height: 92)
+        .mapStyle(.standard(elevation: .flat, emphasis: .muted, pointsOfInterest: .excludingAll, showsTraffic: false))
+        .frame(height: 104)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .accessibilityHidden(true)
     }

@@ -142,6 +142,8 @@ struct RootView: View {
             let next = stops.firstIndex { ($0.minutes ?? 0) >= TrekDate.minutesOfDay(now) } ?? 0
             path = [.stop(day: today, stop: next)]
         case .bookings: path = [.bookings]
+        case .bookingDetail:
+            if let booking = snapshot.nextBooking(at: now) { path = [.booking(booking.id)] }
         case .packing: path = [.packing]
         case .todos: path = [.todos]
         default: break

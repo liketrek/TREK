@@ -5,13 +5,18 @@ import Foundation
 /// every screen in every size and language from a simulator
 /// (.github/workflows/native.yml, watch-screens). Nothing is sent or stored.
 ///
-///   -TrekDemo <screen>    today, day, place, booking, bookings, trip, days,
-///                         packing, todos, lists, countdown, empty, nosync, faces
+///   -TrekDemo <screen>    today, day, place, booking, booking-detail, bookings,
+///                         trip, days, packing, todos, lists, countdown, empty,
+///                         nosync, faces
 ///   -TrekScenario <name>  running, travelday or upcoming (default by screen)
-///   -TrekNow <HH:mm>      the time the screens think it is
+///   -TrekNow <HH:mm>      the time the screens think it is; without it the
+///                         real time, which the capture script moves to the
+///                         hour it wants with the app's time zone (TZ), so the
+///                         clock in the corner agrees with the screen
 enum DemoMode {
     enum Screen: String {
         case today, day, place, booking, bookings, trip, days, packing, todos, lists, countdown, empty, nosync, faces
+        case bookingDetail = "booking-detail"
     }
 
     static var screen: Screen? {
@@ -35,16 +40,15 @@ enum DemoMode {
 
     private static func defaultScenario(_ screen: Screen) -> WatchSample.Scenario {
         switch screen {
-        case .booking, .bookings: return .travelday
+        case .booking, .bookings, .bookingDetail: return .travelday
         case .countdown, .packing, .lists: return .upcoming
         default: return .running
         }
     }
 
     private static func clock() -> Date {
-        let parts = (value(after: "-TrekNow") ?? "13:05").split(separator: ":").compactMap { Int($0) }
-        let minutes = parts.count == 2 ? parts[0] * 60 + parts[1] : 13 * 60 + 5
-        return TrekDate.at(minutes, on: Date())
+        guard let parts = value(after: "-TrekNow")?.split(separator: ":").compactMap({ Int($0) }), parts.count == 2 else { return Date() }
+        return TrekDate.at(parts[0] * 60 + parts[1], on: Date())
     }
 
     private static func value(after flag: String) -> String? {

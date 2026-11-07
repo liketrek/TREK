@@ -49,8 +49,11 @@ enum WatchFormat {
     /// "in 25 min", "in 2 hr", "5 min ago": named and plural-correct in every language.
     static func relative(_ date: Date, now: Date) -> String {
         if abs(date.timeIntervalSince(now)) < 60 { return L("time.now") }
-        let style = Date.RelativeFormatStyle(presentation: .numeric, unitsStyle: .abbreviated)
-        return date.formatted(style.locale(.current))
+        // Against `now`, not the system clock, so the screenshot mode's clock counts too.
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        formatter.dateTimeStyle = .numeric
+        return formatter.localizedString(for: date, relativeTo: now)
     }
 
     /// The time to a moment as a short count: "25 min", "2 h 15 min", "3 d".
