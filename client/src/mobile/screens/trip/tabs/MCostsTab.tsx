@@ -5,29 +5,24 @@ import {
 } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
 import { useTranslation } from '../../../../i18n'
-import { formatMoney, localizeAmountInput, zeroAmountInput } from '../../../../utils/formatters'
+import { formatMoney } from '../../../../utils/formatters'
 import { openFile } from '../../../../utils/fileDownload'
 import MCostSheet from '../sheets/MCostSheet'
 import { ReceiptPreviewModal } from '../../../../components/Budget/ReceiptPreviewModal'
 import { useCostsLedger } from '../../../../components/Budget/useCostsLedger'
 import { useExpenseLinks } from '../../../../components/Budget/useExpenseLinks'
-import { useSettlementForm } from '../../../../components/Budget/useSettlementForm'
-import { finalBudgetFor, finalBudgetSources, formerParticipantRows, NOTE_MAX, paidByUser, readUserNote } from '../../../../components/Budget/CostsPanel.helpers'
+import { finalBudgetFor, finalBudgetSources, formerParticipantRows, paidByUser, readUserNote } from '../../../../components/Budget/CostsPanel.helpers'
 import { catMeta, COST_CAT_META } from '../../../../components/Budget/costsCategories'
-import CustomSelect from '../../../../components/shared/CustomSelect'
-import { CustomDatePicker } from '../../../../components/shared/CustomDateTimePicker'
 import MConfirmSheet from '../../settings/MConfirmSheet'
-import MSheet from '../../../components/MSheet'
-import MChip from '../../../components/MChip'
-import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
-import { CountPill, TabScroller } from './tabChrome'
+import { CountPill, TabPanes } from './tabChrome'
+import { AddPaymentSheet, MemberAvatar } from './MCostsPayment'
 import { STATUS_COLOR, type MTabScreenProps } from './tabModel'
 import {
-  baseTotal, categoryFilterKeys, currencyOptions, dayFilterKeys, groupLedgerByDay, isUnfinished, lineOf, memberShareOf,
+  baseTotal, categoryFilterKeys, dayFilterKeys, groupLedgerByDay, isUnfinished, lineOf, memberShareOf,
   paymentAmount, paymentLineOf, tint, type CostsCtx, type CostsSettlement,
 } from '../../../../components/Budget/costsModel'
 import type { BudgetParticipantFinal } from '@trek/shared'
-import type { BudgetItem, BudgetItemReceipt, TripMember } from '../../../../types'
+import type { BudgetItem, BudgetItemReceipt } from '../../../../types'
 
 type TFn = (key: string, params?: Record<string, string | number>) => string
 
@@ -129,8 +124,10 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
     }
   }
 
-  return (
-    <TabScroller>
+  // The summary: what the trip costs and who owes whom. Beside the expenses on
+  // a window with room for two panes, above them everywhere else.
+  const summary = (
+    <>
       {/* Hero — "Total Trip Spend" (spec §3.1). Fixed dark card, both themes. */}
       <div className="rounded-[20px] p-4 shadow-[0_18px_44px_-18px_rgba(0,0,0,.5)]" style={{ background: '#15151A', color: '#F5F5F7' }}>
         <div className="font-geist text-[0.625rem] font-bold uppercase tracking-[.09em]" style={{ color: 'rgba(245,245,247,.55)' }}>
@@ -314,8 +311,16 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
         )}
       </div>
 
-      {/* Expenses — header, search, filters (spec §3.6) */}
-      <h2 className="mt-4 text-[1.0625rem] font-extrabold text-m-ink">{t('costs.expenses')}</h2>
+    </>
+  )
+
+  return (
+    <>
+    <TabPanes aside={summary} asideLabel={t('budget.title')}>
+      {/* Expenses — header, search, filters (spec §3.6). One block, so on a wide
+          window the search field keeps to the column like the heading above it. */}
+      <section aria-label={t('costs.expenses')}>
+      <h2 className="mt-4 text-[1.0625rem] font-extrabold text-m-ink split:mt-0">{t('costs.expenses')}</h2>
       <input
         type="text"
         value={search}
@@ -487,6 +492,8 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
           <p className="py-6 text-center font-geist text-[0.6875rem] text-m-faint">{t('costs.noMatch')}</p>
         )
       )}
+      </section>
+    </TabPanes>
 
       {/* Add / edit expense — the shared desktop modal (spec §3.9); not rebuilt here. */}
       {expenseModalOpen && (
@@ -548,7 +555,7 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
           onClose={() => setPreviewReceipts(null)}
         />
       )}
-    </TabScroller>
+    </>
   )
 }
 
@@ -796,119 +803,3 @@ function FinalBudgetBreakdown({ row, items, ctx, base, locale, t, personName }: 
   )
 }
 
-/** Avatar or initials circle; `variant` picks the accent (member chips) or neutral (balances) tone. */
-function MemberAvatar({ name, avatarUrl, isMe, variant, size, t }: {
-  name: string
-  avatarUrl?: string | null
-  isMe: boolean
-  variant: 'accent' | 'neutral'
-  size: number
-  t: TFn
-}) {
-  if (avatarUrl) {
-    return <img src={avatarUrl} alt="" className="flex-none rounded-full object-cover" style={{ width: size, height: size }} />
-  }
-  const initial = isMe ? t('costs.youShort') : (name || '?').charAt(0).toUpperCase()
-  const toneCls = variant === 'accent' ? 'bg-m-act text-m-actfg' : 'bg-[color:var(--m-ic)] text-m-ink'
-  return (
-    <span
-      className={`flex flex-none items-center justify-center rounded-full font-geist font-extrabold ${toneCls}`}
-      style={{ width: size, height: size, fontSize: Math.max(8, size * 0.42) }}
-    >
-      {initial}
-    </span>
-  )
-}
-
-/**
- * "Add/edit payment": records or updates a manual settle-up transfer through
- * the same `useSettlementForm` as the desktop dialog. No pixel spec exists for
- * this form (the demo only toasts "Demo: add payment", 03-trip-tabs.md §3.8)
- * and no mobile/exported-desktop sheet covers it, so this is a small local
- * sheet built from the trip form-sheet chrome, kept to the fields the
- * settle-up card itself needs: from, to, amount plus its currency (a new
- * payment starts in the display currency, a reopened one keeps the currency
- * it was recorded in, like the desktop modal), and the day it happened
- * (editable like an expense's, unlike the legacy created_at-only date, see
- * `settlementDate` in CostsPanel.helpers.ts).
- */
-function AddPaymentSheet({ open, editing, onClose, tripId, base, tripCurrency, people, me, toast, t, onSaved }: {
-  open: boolean
-  editing: CostsSettlement | null
-  onClose: () => void
-  tripId: number
-  base: string
-  tripCurrency: string
-  people: TripMember[]
-  me: number
-  toast: { error: (message: string) => void; info: (message: string) => void }
-  t: TFn
-  onSaved: () => void
-}) {
-  const { fromId, setFromId, toId, setToId, amount, setAmount, currency, setCurrency, day, setDay, note, setNote, saving, valid, save } =
-    useSettlementForm({ tripId, tripCurrency, base, people, me, editing, open, t, toast, onSaved, oneSaveAtATime: true })
-
-  const title = editing ? t('costs.editPayment') : t('costs.addPayment')
-
-  return (
-    <MSheet open={open} onClose={onClose} ariaLabel={title}>
-      <FormSheetHeader title={title} onClose={onClose} closeLabel={t('common.close')} />
-      <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[6px] pt-1">
-        <Eyebrow className="mb-[7px] uppercase">{t('costs.from')}</Eyebrow>
-        <div className="flex flex-wrap gap-[6px]">
-          {people.map(p => (
-            <MChip key={p.id} active={fromId === p.id} onClick={() => setFromId(p.id)}>
-              <MemberAvatar name={p.username} avatarUrl={p.avatar_url} isMe={p.id === me} variant={fromId === p.id ? 'accent' : 'neutral'} size={16} t={t} />
-              {p.id === me ? t('costs.you') : p.username}
-            </MChip>
-          ))}
-        </div>
-
-        <Eyebrow className="mb-[7px] mt-[14px] uppercase">{t('costs.to')}</Eyebrow>
-        <div className="flex flex-wrap gap-[6px]">
-          {people.map(p => (
-            <MChip key={p.id} active={toId === p.id} onClick={() => setToId(p.id)}>
-              <MemberAvatar name={p.username} avatarUrl={p.avatar_url} isMe={p.id === me} variant={toId === p.id ? 'accent' : 'neutral'} size={16} t={t} />
-              {p.id === me ? t('costs.you') : p.username}
-            </MChip>
-          ))}
-        </div>
-
-        <Eyebrow className="mb-[7px] mt-[14px] uppercase">{t('costs.amount')}</Eyebrow>
-        <div className="flex items-center gap-2">
-          <input type="text" inputMode="decimal" value={localizeAmountInput(amount, currency)} onChange={e => setAmount(e.target.value)} placeholder={zeroAmountInput(currency)} className={FIELD_CLS} />
-          <span className="flex-none font-geist text-[0.75rem] font-bold text-m-faint">{currency}</span>
-        </div>
-
-        <div className="mt-[14px] flex gap-2">
-          <div className="min-w-0 flex-1">
-            <Eyebrow className="mb-[7px] uppercase">{t('costs.currency')}</Eyebrow>
-            <CustomSelect
-              value={currency}
-              onChange={v => setCurrency(String(v))}
-              searchable
-              size="sm"
-              options={currencyOptions(currency)}
-              style={{ width: '100%' }}
-            />
-          </div>
-          <div className="min-w-0 flex-1">
-            <Eyebrow className="mb-[7px] uppercase">{t('costs.day')}</Eyebrow>
-            <CustomDatePicker value={day} onChange={setDay} style={{ width: '100%' }} />
-          </div>
-        </div>
-
-        <Eyebrow className="mb-[6px] mt-[14px] uppercase">{t('costs.note')}</Eyebrow>
-        <textarea
-          value={note}
-          onChange={e => setNote(e.target.value)}
-          rows={2}
-          maxLength={NOTE_MAX}
-          placeholder={t('costs.paymentNotePlaceholder')}
-          className={FIELD_AREA_CLS}
-        />
-      </div>
-      <FormSheetFooter onCancel={onClose} cancelLabel={t('common.cancel')} onSubmit={save} submitLabel={editing ? t('common.save') : t('costs.addPayment')} submitDisabled={!valid || saving} />
-    </MSheet>
-  )
-}

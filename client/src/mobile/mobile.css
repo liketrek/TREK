@@ -158,6 +158,16 @@
   from { opacity: 1; transform: translateY(0); }
   to { opacity: 0; transform: translateY(6px); }
 }
+/* A panel at the trailing edge (the assistant on a wide window) slides in from
+   that edge, the way Slide Over does. */
+@keyframes m-panel-in {
+  from { opacity: 0; transform: translateX(28px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes m-panel-in-rtl {
+  from { opacity: 0; transform: translateX(-28px); }
+  to { opacity: 1; transform: translateX(0); }
+}
 
 /* A form sheet on a wide window sits mid-screen, so it rises from the bottom
    edge of the window rather than from just below its own resting place. */
@@ -182,6 +192,13 @@
 .m-pop-in { animation: m-pop-in 220ms var(--ease-out-quint) both; }
 .m-toast-in { animation: m-toast-in 260ms var(--ease-out-quint) both; }
 .m-toast-out { animation: m-toast-out 220ms ease both; }
+@media (min-width: 600px) and (min-height: 501px) {
+  .m-panel-in { animation: m-panel-in 320ms var(--ease-out-quint) both; }
+  [dir='rtl'] .m-panel-in { animation-name: m-panel-in-rtl; }
+  @media (prefers-reduced-motion: reduce) {
+    .m-panel-in, [dir='rtl'] .m-panel-in { animation: m-fade-in 120ms ease-out both; }
+  }
+}
 
 /* Reduced motion: gentler, not zero (same rule the desktop keyframes follow). */
 @media (prefers-reduced-motion: reduce) {
@@ -557,6 +574,28 @@
   .m-trip {
     --trip-pane-open: calc(env(viewport-segment-width 0 0, 50vw) - var(--m-rail-w, 0px));
   }
+}
+
+/* The leading pane of a two-pane screen (a tab's summary, a list beside its
+   detail): about a third of the page, within what its cards need. On a
+   foldable that reports its fold it ends at the fold, like the trip's pane. */
+.m-root {
+  --m-pane-aside-w: clamp(320px, 34vw, 420px);
+  --m-pane-trail-w: clamp(340px, 36vw, 440px);
+}
+@media (horizontal-viewport-segments: 2) {
+  .m-root {
+    --m-pane-aside-w: calc(env(viewport-segment-width 0 0, 50vw) - var(--m-rail-w, 0px));
+    --m-pane-trail-w: env(viewport-segment-width 1 0, 50vw);
+  }
+}
+.m-pane-aside {
+  width: var(--m-pane-aside-w);
+}
+/* The trailing pane: what accompanies the page rather than leads it, like the
+   trip chat beside its notes and polls. */
+.m-pane-trail {
+  width: var(--m-pane-trail-w);
 }
 
 /* The phone rules of index.css, for the app. It shows this shell at every

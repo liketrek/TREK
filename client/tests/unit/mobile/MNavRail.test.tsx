@@ -62,10 +62,12 @@ describe('MNavRail', () => {
     expect(screen.getByTestId('loc').textContent).toBe('/settings');
   });
 
-  it('FE-MOB-RAIL-003: administration sits at the foot for an admin', () => {
+  it('FE-MOB-RAIL-003: administration sits at the foot for an admin, under its short name', () => {
     useAuthStore.setState({ user: buildUser({ role: 'admin' }) });
     render(<MNavRail />, { initialEntries: ['/dashboard'] });
-    expect(within(rail()).getByRole('button', { name: 'Admin Settings' })).toBeInTheDocument();
+    // The rail names it "Admin" (nav.admin): the avatar menu's "Admin Settings"
+    // ran to two lines in English and was cut in German.
+    expect(within(rail()).getByRole('button', { name: 'Admin' })).toBeInTheDocument();
   });
 
   it("FE-MOB-RAIL-004: the create button keeps the dock's meaning and its exceptions", () => {

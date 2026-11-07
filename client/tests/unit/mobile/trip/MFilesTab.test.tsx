@@ -6,9 +6,11 @@ import { openFile } from '../../../../src/utils/fileDownload'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
 import type { Place, TripFile } from '../../../../src/types'
 import { buildPlanner, buildShell, buildTripActions } from '../../../helpers/mobileTrip'
-import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
+import { setSizeClass } from '../../../helpers/sizeClass'
+import { fileRepo } from '../../../../src/repo/fileRepo'
+import { act, fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
 
-// FE-MOB-FTAB-001 to FE-MOB-FTAB-025
+// FE-MOB-FTAB-001 to FE-MOB-FTAB-027
 
 vi.mock('../../../../src/utils/fileDownload', () => ({
   downloadFile: vi.fn(async () => undefined),
@@ -389,6 +391,34 @@ describe('MFilesTab', () => {
     // A paste event without clipboardData at all must not throw either.
     fireEvent.paste(pasteTarget(container))
     expect(planner.tripActions.addFile).not.toHaveBeenCalled()
+  })
+
+  it('FE-MOB-FTAB-026: a wide window shows the files as tiles, and a tile opens its file', () => {
+    setSizeClass('wide')
+    vi.spyOn(fileRepo, 'previewUrl').mockResolvedValue('/signed')
+    renderTab()
+    expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
+    expect(rowNames()).toEqual(['beach.jpg', 'guide.pdf', 'notes.txt', 'board.pkpass', 'idea.png'])
+    fireEvent.click(screen.getByText('guide.pdf').closest('button') as HTMLButtonElement)
+    expect(openFile).toHaveBeenCalledWith('/api/trips/1/files/1/download', 'guide.pdf')
+  })
+
+  it('FE-MOB-FTAB-027: with room for two panes a tap picks the file and the pane beside the tiles previews it', () => {
+    setSizeClass('split')
+    vi.spyOn(fileRepo, 'previewUrl').mockResolvedValue('/signed')
+    renderTab()
+    const pane = screen.getByRole('complementary', { name: 'common.preview' })
+    // The first file in the grid's order is on show until another is picked.
+    expect(within(pane).getByRole('heading', { name: 'beach.jpg' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getAllByText('guide.pdf')[0].closest('button') as HTMLButtonElement)
+    expect(within(pane).getByRole('heading', { name: 'guide.pdf' })).toBeInTheDocument()
+    expect(openFile).not.toHaveBeenCalled()
+
+    fireEvent.click(within(pane).getByRole('button', { name: /common\.open/ }))
+    expect(openFile).toHaveBeenCalledWith('/api/trips/1/files/1/download', 'guide.pdf')
+    fireEvent.click(within(pane).getByRole('button', { name: /files\.link/ }))
+    expect(screen.getByTestId('link-sheet')).toHaveAttribute('data-file', '1')
   })
 
   it('FE-MOB-FTAB-025: the header trash signal opens the trash sheet', () => {

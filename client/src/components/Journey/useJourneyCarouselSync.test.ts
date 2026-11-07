@@ -1,4 +1,4 @@
-// FE-JRN-CAROUSEL-001 to FE-JRN-CAROUSEL-009: the card carousel over the journey map,
+// FE-JRN-CAROUSEL-001 to FE-JRN-CAROUSEL-010: the card carousel over the journey map,
 // behind both the phone journey screen and the narrow desktop and public timeline.
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -183,5 +183,34 @@ describe('useJourneyCarouselSync', () => {
     expect(hook.result.current.activeIndex).toBe(2);
     settleAt(0);
     expect(hook.result.current.activeIndex).toBe(0);
+  });
+
+  it('FE-JRN-CAROUSEL-010: a strip that comes back (the feed on a wide window gave way to it) is tracked again', () => {
+    const carousel = document.createElement('div');
+    carousel.getBoundingClientRect = () => ({ left: 0 }) as DOMRect;
+    Object.defineProperty(carousel, 'clientWidth', { value: 500 });
+    let strip: HTMLDivElement | null = null;
+    const hook = renderHook(
+      (p: Options) => {
+        const sync = useJourneyCarouselSync(p);
+        (sync.carouselRef as { current: HTMLDivElement | null }).current = strip;
+        return sync;
+      },
+      { initialProps: { entries: ENTRIES, mapEntries: [], onOpenEntry: vi.fn(), layoutKey: true } }
+    );
+    ENTRIES.forEach((_, i) => {
+      const node = document.createElement('div');
+      node.getBoundingClientRect = () => ({ left: i * 200, width: 100 }) as DOMRect;
+      hook.result.current.cardRefs.current.set(i, node);
+    });
+
+    // The strip mounts with the layout's turn, with the same entries as before.
+    strip = carousel;
+    hook.rerender({ entries: ENTRIES, mapEntries: [], onOpenEntry: vi.fn(), layoutKey: false });
+    carousel.dispatchEvent(new Event('scroll'));
+    act(() => {
+      vi.advanceTimersByTime(90);
+    });
+    expect(hook.result.current.activeIndex).toBe(1);
   });
 });

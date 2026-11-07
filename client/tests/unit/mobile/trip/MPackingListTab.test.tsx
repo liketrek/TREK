@@ -994,4 +994,11 @@ describe('MPackingListTab', () => {
     expect(within(itemRow('Socks')).getByText('1/3')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'packing.packedMore' })).not.toBeInTheDocument()
   })
+
+  it('FE-MOB-PACKTAB-070: on a wide window the categories stand in columns, each card whole', async () => {
+    await setup()
+    const card = screen.getAllByRole('button', { expanded: true })[0].parentElement as HTMLElement
+    expect(card.className).toContain('wide:break-inside-avoid')
+    expect((card.parentElement as HTMLElement).className).toContain('wide:columns-[300px]')
+  })
 })

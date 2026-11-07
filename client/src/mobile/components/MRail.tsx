@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 
+import { useFitLabel } from './useFitLabel';
+
 /**
  * The glass rail on the leading edge that takes the dock's place on a wide
  * window (hooks/sizeClass.ts): the app's sections (MNavRail) or a trip's
@@ -32,9 +34,9 @@ interface MRailButtonProps {
 
 /**
  * One destination: the icon on the dock's 40px circle, filled while it is the
- * current one, its name underneath. Names wrap to two lines rather than being
- * cut, since a rail entry has no other way to say what it is; the title gives
- * the whole name to a pointer hovering it.
+ * current one, its name underneath. The name is never cut: it wraps to two
+ * lines and, where a word is still too long for the rail, shrinks to fit
+ * (useFitLabel), since a touch screen has no hover to tell the rest.
  */
 export function MRailButton({ label, active, onClick, children }: MRailButtonProps) {
   return (
@@ -53,13 +55,21 @@ export function MRailButton({ label, active, onClick, children }: MRailButtonPro
       >
         {children}
       </span>
-      <span
-        className={`line-clamp-2 w-full hyphens-auto break-words text-center font-geist text-[length:calc(10px*var(--fs-scale-caption,1))] leading-[1.2] ${
-          active ? 'font-bold text-m-ink' : 'font-semibold text-m-muted'
-        }`}
-      >
-        {label}
-      </span>
+      <RailLabel label={label} active={active} />
     </button>
+  );
+}
+
+function RailLabel({ label, active }: { label: string; active: boolean }) {
+  const ref = useFitLabel<HTMLSpanElement>(label);
+  return (
+    <span
+      ref={ref}
+      className={`line-clamp-2 w-full text-center font-geist text-[length:calc(10px*var(--fs-scale-caption,1)*var(--fit,1))] leading-[1.2] ${
+        active ? 'font-bold text-m-ink' : 'font-semibold text-m-muted'
+      }`}
+    >
+      {label}
+    </span>
   );
 }

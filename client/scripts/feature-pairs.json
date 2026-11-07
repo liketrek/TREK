@@ -282,10 +282,16 @@
       "mobile": ["src/mobile/screens/trip/sheets/MCostSheet.tsx", "src/mobile/screens/trip/tabs/MCostsTab.tsx"]
     },
     {
-      "feature": "Costs/budget ledger: useCostsLedger, useSettlementForm, useExpenseLinks",
-      "hooks": ["src/components/Budget/useCostsLedger.ts", "src/components/Budget/useSettlementForm.ts", "src/components/Budget/useExpenseLinks.ts"],
+      "feature": "Costs/budget ledger: useCostsLedger, useExpenseLinks",
+      "hooks": ["src/components/Budget/useCostsLedger.ts", "src/components/Budget/useExpenseLinks.ts"],
       "desktop": ["src/components/Budget/CostsPanel.tsx"],
       "mobile": ["src/mobile/screens/trip/tabs/MCostsTab.tsx"]
+    },
+    {
+      "feature": "Costs/budget settle-up payment: useSettlementForm",
+      "hooks": ["src/components/Budget/useSettlementForm.ts"],
+      "desktop": ["src/components/Budget/CostsPanel.tsx"],
+      "mobile": ["src/mobile/screens/trip/tabs/MCostsPayment.tsx"]
     },
     {
       "feature": "Create/edit trip form",
@@ -1002,11 +1008,13 @@
     "src/mobile/screens/collections/MCollInvites.tsx": "Markup only; the invites and accept and decline come through props from useCollections via MCollections.",
     "src/mobile/screens/collections/MCollLabelsSheet.tsx": "Phone label sheet; create, update, delete and assign come through props from useCollections.",
     "src/mobile/screens/collections/MCollLinksEditor.tsx": "Markup only; link rows and the change handler come through props from the collection sheets.",
+    "src/mobile/screens/collections/MCollListNav.tsx": "Markup only; the collections' lists as the header dropdown or as the column beside the places on a wide window, with the lists and the selection handed in through props from useCollections.",
     "src/mobile/screens/collections/MCollListPickerSheet.tsx": "Phone list picker sheet; the move or copy action comes through onPick from useCollections.",
     "src/mobile/screens/collections/MCollSheetKit.tsx": "Phone only sheet UI primitives for the collections screens (header, footer, pill, eyebrow).",
     "src/mobile/screens/collections/collectionsMobileModel.ts": "Visual constants only the phone collections screens use (category and status specs, swatches, cover gradient).",
     "src/mobile/screens/dashboard/MUserMenu.tsx": "Phone avatar menu with a three state theme cycle the desktop navbar does not have.",
     "src/mobile/screens/journey/MDawarichDaySheet.tsx": "Markup only; the phone frame the Dawarich day sheets (route and stays) render their shared review in.",
+    "src/mobile/screens/journey/MJourneyFeed.tsx": "Markup only; the journey's entries as a feed beside the map on a wide window, with the entries, the active one and the tap handed in through props from useJourneyDetail and useJourneyCarouselSync.",
     "src/mobile/screens/settings/MAppLockCard.tsx": "Phone only: the app lock exists only in the native app, so there is no desktop setting to share with.",
     "src/mobile/screens/settings/MConfirmSheet.tsx": "Phone only bottom sheet confirm dialog used across the mobile screens.",
     "src/mobile/screens/settings/MDawarichConnectionSection.tsx": "Already shares hooks/useDawarichConnection with components/Settings/DawarichConnectionSection.tsx.",
@@ -1055,10 +1063,13 @@
     "src/mobile/screens/trip/sheets/PlTimeFields.tsx": "Phone time fields that already share timeCollisions with the desktop PlaceFormModal.",
     "src/mobile/screens/trip/sheets/tourSheetOpen.ts": "Phone only context for MTourDetailShell: whether the tour sheet is open and the name it carries.",
     "src/mobile/screens/trip/tabs/MCollabTab.tsx": "Phone collab sub tab router that reuses the desktop CollabLinks component.",
+    "src/mobile/screens/trip/tabs/MFilesBoard.tsx": "Markup only; the trip's files as tiles and the picked file's preview on a wide window, with the files and their actions handed in through props from MFilesTab.",
     "src/mobile/screens/trip/tabs/MListsTab.tsx": "Phone router between the packing and to-do bodies, with no logic of its own.",
     "src/mobile/screens/trip/tabs/MReceiptScanButton.tsx": "Already shares useReceiptScan and ReceiptScanModal with the desktop CostsPanel.",
     "src/mobile/screens/trip/tabs/MReservationCardParts.tsx": "Markup only: the title, actions, date, files and delete sheet parts both phone booking tabs draw.",
+    "src/mobile/screens/trip/tabs/MTodoSidebar.tsx": "Markup only; the to-do filters as a pane beside the tasks on a wide window, with the filter state and the counts handed in through props from useTodoView.",
     "src/mobile/screens/trip/tabs/MTripTabPanel.tsx": "Phone tab router that mounts the per tab screens and plugin frames, with no logic of its own.",
+    "src/mobile/screens/trip/tabs/collabPanes.ts": "Phone only; decides whether the collab tab shows the chat beside a board on a wide window, a layout question of the touch shell that the desktop planner does not have.",
     "src/mobile/screens/trip/tabs/listsModel.ts": "Priority colour and label constants only the phone to-do list and task sheet use.",
     "src/mobile/screens/trip/tabs/tabChrome.tsx": "Phone tab chrome primitives (scroller, section headers, fields, traveler chips, plugin slots).",
     "src/mobile/screens/trip/tabs/tabModel.ts": "Phone tab prop type and status colour tokens only the phone tabs use.",

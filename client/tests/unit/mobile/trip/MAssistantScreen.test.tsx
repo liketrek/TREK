@@ -7,8 +7,9 @@ import MAssistantScreen from '../../../../src/mobile/screens/trip/assistant/MAss
 import { chatOf, useAssistantStore } from '../../../../src/store/assistantStore';
 import { buildPlanner, buildShell } from '../../../helpers/mobileTrip';
 import { act, cleanup, fireEvent, render, screen } from '../../../helpers/render';
+import { setSizeClass } from '../../../helpers/sizeClass';
 
-// FE-MOB-ASSIST-001 to FE-MOB-ASSIST-017
+// FE-MOB-ASSIST-001 to FE-MOB-ASSIST-018
 //
 // The phone's full-screen chat around the shared chat surface, which is
 // replaced here: what is tested is the frame, the header and the way to the
@@ -320,6 +321,18 @@ describe('MAssistantScreen', () => {
       window.history.replaceState({ idx: 0 }, '');
       window.dispatchEvent(new PopStateEvent('popstate'));
     });
+    expect(useAssistantStore.getState().window.open).toBe(false);
+  });
+
+  it('FE-MOB-ASSIST-018: on a wide window the chat is a panel at the trailing edge over a dimmed page, which closes it', () => {
+    setSizeClass('wide');
+    renderScreen();
+    const panel = screen.getByRole('dialog', { name: 'Assistant' });
+    expect(panel.className).toContain('wide:end-3');
+    expect(panel.className).toContain('m-panel-in');
+    const scrim = panel.previousElementSibling as HTMLElement;
+    expect(scrim).toHaveAttribute('aria-hidden', 'true');
+    fireEvent.click(scrim);
     expect(useAssistantStore.getState().window.open).toBe(false);
   });
 });

@@ -194,4 +194,24 @@ describe('MTripShell on a wide window', () => {
     expect(shellApi().mapFront).toBe(false);
     expect(screen.getByRole('button', { name: 'mobileTrip.mapView' })).toBeInTheDocument();
   });
+
+  it('FE-MOB-SHELLW-008: beside the plan there is no all-days switch to empty it, on the bare map and beside the places there is', () => {
+    setSizeClass('split');
+    renderShell();
+    expect(screen.queryByRole('button', { name: 'mobileTrip.allDays' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'trip.mobilePlaces' }));
+    expect(screen.getByRole('button', { name: 'mobileTrip.allDays' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'mobileTrip.hidePane' }));
+    expect(screen.getByRole('button', { name: 'mobileTrip.allDays' })).toBeInTheDocument();
+  });
+
+  it('FE-MOB-SHELLW-009: leaving the places for the plan after an all-days deselect brings a day back', () => {
+    setSizeClass('split');
+    renderShell({ selectedDayId: null });
+    fireEvent.click(screen.getByRole('button', { name: 'trip.mobilePlaces' }));
+    fireEvent.click(screen.getByRole('button', { name: 'mobileTrip.travel' }));
+    expect(mocks.planner.handleSelectDay).toHaveBeenCalledWith(expect.any(Number), true);
+  });
 });

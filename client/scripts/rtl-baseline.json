@@ -83,7 +83,6 @@
   "mobile/screens/dashboard/MDashboard.tsx": 1,
   "mobile/screens/journey/MJourneyDetail.tsx": 3,
   "mobile/screens/journey/MJourneyEntrySheet.tsx": 1,
-  "mobile/screens/trip/MTripShell.tsx": 3,
   "mobile/screens/trip/map/MMapArea.tsx": 3,
   "mobile/screens/trip/tabs/MCollabPolls.tsx": 1,
   "mobile/screens/trip/tabs/MFileLightbox.tsx": 2,

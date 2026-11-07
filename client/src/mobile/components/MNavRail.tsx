@@ -62,7 +62,7 @@ export default function MNavRail() {
       ? [
           {
             id: '/admin',
-            label: t('nav.bottomAdmin'),
+            label: t('nav.admin'),
             icon: Shield,
             active: isActive('/admin'),
             go: () => void navigate('/admin'),

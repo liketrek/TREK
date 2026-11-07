@@ -1,6 +1,7 @@
-// FE-MOB-JDET-001 to FE-MOB-JDET-046
+// FE-MOB-JDET-001 to FE-MOB-JDET-048
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '../../../helpers/render';
+import { setSizeClass } from '../../../helpers/sizeClass';
 import MJourneyDetail from '../../../../src/mobile/screens/journey/MJourneyDetail';
 import { addonsApi, journeyApi, memoriesApi } from '../../../../src/api/client';
 import { useJourneyStore } from '../../../../src/store/journeyStore';
@@ -781,5 +782,25 @@ describe('MJourneyDetail', () => {
     expect(screen.getByRole('img', { name: 'journey.prep.dayRunning' })).toBeInTheDocument();
     expect(screen.getByTestId('day-import-sheet')).toBeInTheDocument();
     expect(mocks.captured.dayImport.prep).toBe(recordingPrep);
+  });
+
+  it('FE-MOB-JDET-047: with room for two panes the entries stand as a feed beside the map, in step with it', () => {
+    setSizeClass('split');
+    setup();
+    // Each entry once, in the feed: the strip of cards over the map is gone.
+    expect(screen.getAllByText('Arrival')).toHaveLength(1);
+    // The test's translator returns the key, so both day heads read the same.
+    expect(screen.getAllByText('journey.detail.day')).toHaveLength(2);
+
+    // A tap brings the entry to the map, a second one opens it.
+    fireEvent.click(screen.getByRole('button', { name: /Kyoto/ }));
+    expect(mocks.focusMarker).toHaveBeenCalledWith('2');
+    expect(screen.getByRole('button', { name: /Kyoto/ })).toHaveAttribute('aria-current', 'true');
+  });
+
+  it('FE-MOB-JDET-048: the gallery takes the page, feed or not', () => {
+    setSizeClass('split');
+    setup({ view: 'gallery' });
+    expect(screen.queryByText('journey.detail.day')).not.toBeInTheDocument();
   });
 });

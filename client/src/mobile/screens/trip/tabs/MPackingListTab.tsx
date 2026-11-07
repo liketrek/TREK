@@ -106,7 +106,7 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
   }
 
   const filterPillCls = (active: boolean) =>
-    `flex-1 whitespace-nowrap rounded-full px-2 py-[6px] text-center text-[0.71875rem] font-semibold ${
+    `flex-1 whitespace-nowrap rounded-full px-2 py-[6px] text-center text-[0.71875rem] font-semibold wide:flex-none wide:px-[14px] ${
       active ? 'bg-m-act text-m-actfg' : 'bg-[color:var(--m-ic)] text-m-ink'
     }`
 
@@ -114,7 +114,7 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
   const viewEmpty = viewItems.length === 0
 
   return (
-    <TabScroller>
+    <TabScroller wide="full">
       {/* ── Progress card (spec §4.1) ── */}
       <div className="rounded-2xl border border-[color:var(--m-rowbr)] bg-m-sheetop px-[14px] py-[13px]">
         <div className="flex items-baseline gap-[7px]">
@@ -164,7 +164,9 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
 
       {/* ── Action menu (spec §4.2) ── */}
       {actionsOpen && hasActions && (
-        <div className="mt-[6px] overflow-hidden rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-glass)] backdrop-blur-[24px]">
+        // On a wide window the menu drops from the button that opened it, at the
+        // width of a popover, instead of running across the whole page.
+        <div className="mt-[6px] overflow-hidden rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-glass)] backdrop-blur-[24px] wide:ms-auto wide:max-w-[380px]">
           {actionView === 'menu' && (
             <>
               {canEdit && checkedCount > 0 && (
@@ -303,7 +305,10 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
           {t('packing.emptyFiltered')}
         </div>
       ) : (
-        groups.map(group => (
+        // Categories stand in columns on a wide window, as many as the page
+        // holds, each card whole in its column like a masonry board.
+        <div className="wide:mt-[10px] wide:columns-[300px] wide:gap-3">
+        {groups.map(group => (
           <PackingCategoryCard
             key={group.category}
             group={group}
@@ -328,7 +333,8 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
             bags={bags}
             onCreateBag={createBag}
           />
-        ))
+        ))}
+        </div>
       )}
 
       <MBagsSheet
@@ -467,7 +473,7 @@ function PackingCategoryCard({
   }
 
   return (
-    <div className="mt-[10px] overflow-hidden rounded-2xl border border-[color:var(--m-rowbr)] bg-m-sheetop">
+    <div className="mt-[10px] overflow-hidden rounded-2xl border border-[color:var(--m-rowbr)] bg-m-sheetop wide:mb-[10px] wide:mt-0 wide:break-inside-avoid">
       {/* A <div role="button"> rather than a real <button type="button"> — the rename input and
           the assign/menu triggers below are interactive elements a <button type="button"> may
           not contain (invalid HTML); this stays keyboard-operable via onKeyDown. */}

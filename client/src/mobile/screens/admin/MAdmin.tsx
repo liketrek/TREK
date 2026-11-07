@@ -45,6 +45,8 @@ import MAdminStoragePanel from './MAdminStoragePanel'
 import MAdminUsersSection from './MAdminUsersSection'
 import { MAdminButton } from './MAdminUi'
 import { managedAdminTabs } from '../../../managed'
+import { useIsSplit } from '../../../hooks/sizeClass'
+import MSectionNav, { MSectionRow, type MSection } from '../../components/MSectionNav'
 
 // Stat card of the 2×2 grid (design §6.3): 34px icon tile, 19px/800 number,
 // small tracking label. Count-up animation matches the desktop stat cards.
@@ -80,10 +82,13 @@ export default function MAdmin() {
     saveDemoBaseline, toggleBagTracking, toggleCollabFeature,
   } = admin
   const [sectionsOpen, setSectionsOpen] = useState(false)
+  // With room for two panes the sections stand in a list beside the page, as in
+  // settings, instead of behind the header's dropdown.
+  const split = useIsSplit()
 
   // Same sections and gating as the desktop sidebar, ordered and iconed like
   // the design's dropdown (§6.1).
-  const sections: { id: string; label: string; icon: LucideIcon }[] = [
+  const sections: MSection[] = [
     { id: 'users', label: t('admin.tabs.users'), icon: Users },
     { id: 'defaults', label: t('admin.tabs.defaults'), icon: UserCog },
     { id: 'config', label: t('admin.tabs.config'), icon: SlidersHorizontal },
@@ -107,8 +112,30 @@ export default function MAdmin() {
   return (
     // Flow screen: scrolls with the document (#1809), so no height and no
     // scroll container of its own.
-    <div className="px-4 pb-[calc(var(--bottom-nav-h,84px)+16px)] pt-[var(--m-safe-top,12px)] wide:mx-auto wide:max-w-[1040px] wide:px-6">
+    <div className="px-4 pb-[calc(var(--bottom-nav-h,84px)+16px)] pt-[var(--m-safe-top,12px)] wide:mx-auto wide:max-w-[1040px] wide:px-6 split:grid split:max-w-[1240px] split:grid-cols-[260px_minmax(0,1fr)] split:items-start split:gap-8">
+      {split && (
+        <MSectionNav
+          title={t('admin.title')}
+          backLabel={t('common.back')}
+          onBack={() => void navigate('/dashboard')}
+          sections={sections}
+          activeId={activeSection.id}
+          onPick={setActiveTab}
+          action={
+            <button
+              type="button"
+              aria-label={t('admin.createUser')}
+              onClick={() => setShowCreateUser(true)}
+              className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-full bg-m-act text-m-actfg outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--m-act)] focus-visible:ring-offset-2"
+            >
+              <UserPlus size={15} strokeWidth={2.2} />
+            </button>
+          }
+        />
+      )}
+      <div className="min-w-0">
       {/* Header: back · section switcher · create user */}
+      {!split && (
       <div className="mb-3 flex items-center gap-2">
         <button
           type="button"
@@ -138,25 +165,21 @@ export default function MAdmin() {
           <UserPlus size={16} strokeWidth={2.2} />
         </button>
       </div>
+      )}
 
       {/* Section dropdown */}
-      {sectionsOpen && (
+      {sectionsOpen && !split && (
         <div className="-mt-[6px] mb-3 rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] p-[6px] shadow-[0_16px_40px_-20px_rgba(0,0,0,.4)]">
           {sections.map((section) => (
-            <button
+            <MSectionRow
               key={section.id}
-              type="button"
-              onClick={() => {
+              section={section}
+              active={section.id === activeSection.id}
+              onPick={() => {
                 setActiveTab(section.id)
                 setSectionsOpen(false)
               }}
-              className={`flex w-full items-center gap-[10px] rounded-[11px] p-[10px] text-start text-[0.8125rem] font-semibold text-m-ink ${
-                section.id === activeSection.id ? 'bg-[color:var(--m-ic)]' : ''
-              }`}
-            >
-              <section.icon size={15} strokeWidth={2} />
-              {section.label}
-            </button>
+            />
           ))}
         </div>
       )}
@@ -192,7 +215,7 @@ export default function MAdmin() {
 
       {/* Stats grid (§6.3) */}
       {stats && (
-        <div className="mb-3 grid grid-cols-2 gap-[10px]">
+        <div className="mb-3 grid grid-cols-2 gap-[10px] wide:grid-cols-4">
           <MAdminStat label={t('admin.stats.users', { count: stats.totalUsers })} value={stats.totalUsers} icon={Users} />
           <MAdminStat label={t('admin.stats.trips', { count: stats.totalTrips })} value={stats.totalTrips} icon={Briefcase} />
           <MAdminStat label={t('admin.stats.places', { count: stats.totalPlaces })} value={stats.totalPlaces} icon={Map} />
@@ -233,6 +256,8 @@ export default function MAdmin() {
       {managedAdminTabs.map(tab =>
         activeTab === tab.id ? <div key={tab.id}>{tab.mobileElement ?? tab.element}</div> : null,
       )}
+
+      </div>
 
       <MAdminSheets admin={admin} t={t} />
     </div>
