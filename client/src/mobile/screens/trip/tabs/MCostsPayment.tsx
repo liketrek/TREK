@@ -182,7 +182,7 @@ export function AddPaymentSheet({
             onChange={(e) => setAmount(e.target.value)}
             placeholder={zeroAmountInput(currency)}
             aria-label={t('costs.amount')}
-            className="min-w-0 flex-1 border-0 bg-transparent p-0 text-[0.84375rem] font-semibold text-m-ink outline-none [font-variant-numeric:tabular-nums] placeholder:font-normal placeholder:text-m-faint"
+            className="min-w-0 flex-1 border-0 bg-transparent p-0 text-body font-semibold text-m-ink outline-none [font-variant-numeric:tabular-nums] placeholder:font-normal placeholder:text-m-faint"
           />
           <span className="flex-none font-geist text-caption font-bold text-m-faint">{currency}</span>
         </div>

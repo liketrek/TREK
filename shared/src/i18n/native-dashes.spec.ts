@@ -1,6 +1,9 @@
-/// <reference types="vite/client" />
+/// <reference types="node" />
 import type { TranslationStrings } from './types';
 
+import { existsSync, readdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -11,7 +14,18 @@ import { describe, expect, it } from 'vitest';
  * reads, and the style is held here because a re-translation can bring a dash
  * back without any other check noticing.
  */
-const nativeModules = import.meta.glob<{ default: TranslationStrings }>('./*/native.ts', { eager: true });
+const here = dirname(fileURLToPath(import.meta.url));
+const locales = readdirSync(here, { withFileTypes: true })
+  .filter((entry) => entry.isDirectory() && existsSync(join(here, entry.name, 'native.ts')))
+  .map((entry) => entry.name);
+const nativeModules: Record<string, { default: TranslationStrings }> = Object.fromEntries(
+  await Promise.all(
+    locales.map(async (locale) => [
+      `./${locale}/native.ts`,
+      (await import(`./${locale}/native.ts`)) as { default: TranslationStrings },
+    ]),
+  ),
+);
 
 const DASH = /[‒–—―]| - /;
 

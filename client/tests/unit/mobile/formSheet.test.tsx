@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { useRef, useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
+import { sizeClassOf } from '../../../src/hooks/sizeClass';
 import { useAutoGrow } from '../../../src/hooks/useAutoGrow';
 import MSheet from '../../../src/mobile/components/MSheet';
 import { edgeFadeClass, useEdgeFade } from '../../../src/mobile/components/useEdgeFade';
@@ -115,7 +116,8 @@ describe('useEdgeFade on the vertical axis', () => {
     Object.defineProperty(el, 'scrollHeight', { configurable: true, value: 800 });
     await act(async () => {
       el.appendChild(document.createElement('div'));
-      await Promise.resolve();
+      // Measured on the next frame, so a burst of changes is measured once.
+      await new Promise((resolve) => setTimeout(resolve, 40));
     });
     expect(result.current.end).toBe(true);
   });
@@ -162,7 +164,12 @@ describe('form sheet stylesheet', () => {
 
   it('FE-MOB-FORMSHEET-010: the short-window variant is the other side of the wide size class height bound', () => {
     expect(tailwind).toContain("addVariant('short', '@media (max-height: 500px)')");
-    expect(tailwind).toContain("addVariant('wide', '@media (min-width: 600px) and (min-height: 501px)')");
+    // `wide:` follows the size class the shell writes (data-size), whose height bound starts at 501.
+    expect(tailwind).toContain(
+      `addVariant('wide', ':where(html:has(.m-shell[data-size="wide"], .m-shell[data-size="split"])) &')`
+    );
+    expect(sizeClassOf(1024, 500)).toBe('compact');
+    expect(sizeClassOf(1024, 501)).not.toBe('compact');
   });
 
   it('FE-MOB-FORMSHEET-011: on a short window the actions sit beside the title and the fields take the rest', () => {

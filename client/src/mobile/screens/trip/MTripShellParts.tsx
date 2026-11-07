@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight, FolderSync, List, Plus, Rows3 } from 'lucide-react';
-import { useLayoutEffect, useState, type ReactNode } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { canManageDocSync } from '../../../components/Files/docsync/useDocSync';
 import { useDocSyncOffered } from '../../../components/Files/docsync/useDocSyncOffered';
 import { useIsWide } from '../../../hooks/sizeClass';
@@ -26,14 +26,21 @@ import { collabBoardFor, collabSideBySide } from './tabs/collabPanes';
 export function GlassSegment({ children, activeKey }: { children: ReactNode; activeKey?: string }) {
   const [region, setRegion] = useState<HTMLDivElement | null>(null);
   const [track, setTrack] = useState<HTMLDivElement | null>(null);
+  // The element is also kept in a ref: the fit below writes to it, and state is not to be written.
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const attachTrack = useCallback((el: HTMLDivElement | null) => {
+    trackRef.current = el;
+    setTrack(el);
+  }, []);
   const fade = useEdgeFade(track);
   useLayoutEffect(() => {
-    if (!region || !track) return;
+    const el = trackRef.current;
+    if (!region || !el) return;
     const fit = () => {
-      track.dataset.tight = 'false';
-      track.dataset.tight = track.scrollWidth > track.clientWidth + 0.5 ? 'true' : 'false';
-      const active = track.querySelector<HTMLElement>('[aria-pressed="true"]');
-      if (active && track.scrollWidth > track.clientWidth + 0.5) {
+      el.dataset.tight = 'false';
+      el.dataset.tight = el.scrollWidth > el.clientWidth + 0.5 ? 'true' : 'false';
+      const active = el.querySelector<HTMLElement>('[aria-pressed="true"]');
+      if (active && el.scrollWidth > el.clientWidth + 0.5) {
         // 'nearest' on both axes: the shell root is fixed, anything else scrolls the page behind it.
         active.scrollIntoView({ block: 'nearest', inline: 'nearest' });
       }
@@ -49,7 +56,7 @@ export function GlassSegment({ children, activeKey }: { children: ReactNode; act
       className="pointer-events-none absolute inset-y-0 end-12 start-12 flex items-center justify-center"
     >
       <div className="pointer-events-auto flex min-w-0 max-w-full rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-[3px] backdrop-blur-[24px] backdrop-saturate-[1.7]">
-        <div ref={setTrack} className={`m-seg flex min-w-0 overflow-x-auto rounded-full ${edgeFadeClass(fade)}`}>
+        <div ref={attachTrack} className={`m-seg flex min-w-0 overflow-x-auto rounded-full ${edgeFadeClass(fade)}`}>
           {children}
         </div>
       </div>
