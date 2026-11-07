@@ -1024,9 +1024,30 @@ a.linkbtn {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+/* An iPad upright or an unfolded foldable: the photo spans the width as a band
+   across the top, and the choices stand under it in a wider column than a
+   phone's, so the page reads as one composition rather than a phone screen
+   floating in the middle of the glass. The plans take two columns. */
 @media (min-width: 700px) and (min-height: 900px) and (orientation: portrait) {
   body::before,
   body::after {
     height: 52vh;
+  }
+  body::after {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  .shell {
+    max-width: 560px;
+    justify-content: flex-start;
+    padding-top: calc(env(safe-area-inset-top) + 38vh);
+  }
+  .shell:has(.plans) {
+    max-width: 760px;
+    padding-top: calc(env(safe-area-inset-top) + 16vh);
+  }
+  .plans {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
