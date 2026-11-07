@@ -17,6 +17,13 @@ import { seedStore } from '../../../helpers/store';
 
 const mocks = vi.hoisted(() => ({ planner: {} as TripPlanner }));
 
+// The shortcuts are the app's (MKeyboardHost): an iPad without native key commands.
+vi.mock('../../../../src/native/platform', () => ({
+  isNativeApp: () => true,
+  isNativeIos: () => true,
+  isNativeAndroid: () => false,
+  nativeServerHost: () => null,
+}));
 vi.mock('../../../../src/pages/tripPlanner/useTripPlanner', () => ({
   useTripPlanner: () => mocks.planner,
 }));
@@ -187,7 +194,18 @@ describe('MTripShell on a wide window', () => {
     expect(mocks.planner.navigate).toHaveBeenCalledWith('/dashboard');
   });
 
+  it('FE-MOB-SHELLW-010: ⌘N creates what the tab on show creates, and says so', () => {
+    setSizeClass('split');
+    renderShell({ activeTab: 'finanzplan' } as Partial<TripPlanner>);
+    const trip = useShortcutRegistry.getState().lists.find((l) => l.owner === 'trip');
+    expect(trip?.shortcuts.find((s) => s.id === 'create')?.title).toBe('costs.addExpense');
+    fireEvent.keyDown(document.body, { key: 'n', metaKey: true });
+    expect(mocks.planner.navigate).toHaveBeenCalledWith('/trips/1?create=expense');
+  });
+
   it('FE-MOB-SHELLW-006: the phone keeps its dock and its full-screen plan', () => {
+    // Pinned: in the app jsdom's 1024x768 window would read as a tablet.
+    setSizeClass('compact');
     renderShell();
     expect(screen.queryByRole('navigation', { name: 'Trip sections' })).not.toBeInTheDocument();
     expect(shellApi().paneOpen).toBe(false);

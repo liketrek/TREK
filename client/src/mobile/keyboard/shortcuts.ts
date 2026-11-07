@@ -11,9 +11,13 @@ export interface Shortcut {
   id: string;
   /** Its name, for the overlay a held ⌘ shows and the iPadOS menu bar. */
   title: string;
-  /** KeyboardEvent.key, lower case for letters ('n', '1', ',', 'ArrowLeft'). */
+  /**
+   * KeyboardEvent.key, lower case for letters ('n', '1', ',', 'ArrowLeft'). A
+   * digit is matched by the key's place as well (KeyboardEvent.code), since a
+   * French keyboard types '&' on the 1 key without Shift.
+   */
   key: string;
-  /** ⌘ on Apple keyboards, Ctrl elsewhere. */
+  /** ⌘ on an iPad (and any Apple keyboard), Ctrl on Android. */
   mod?: boolean;
   shift?: boolean;
   alt?: boolean;
@@ -22,17 +26,24 @@ export interface Shortcut {
   run: () => void;
 }
 
-/** Whether an event is this shortcut. ⌘ and Ctrl both count as the command key. */
-export function matchesShortcut(
-  e: Pick<KeyboardEvent, 'key' | 'metaKey' | 'ctrlKey' | 'shiftKey' | 'altKey'>,
-  s: Shortcut
-): boolean {
+type KeyEventLike = Pick<KeyboardEvent, 'key' | 'metaKey' | 'ctrlKey' | 'shiftKey' | 'altKey'> &
+  Partial<Pick<KeyboardEvent, 'code'>>;
+
+/**
+ * Whether an event is this shortcut. The command key is the platform's own: ⌘
+ * on Apple keyboards, Ctrl elsewhere, never either one. Taking both made Ctrl+N
+ * in a Mac text field (the "next line" binding) run ⌘N.
+ */
+export function matchesShortcut(e: KeyEventLike, s: Shortcut, apple = true): boolean {
   const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
-  if (key !== s.key) return false;
+  const digitAt = /^[0-9]$/.test(s.key) && e.code === `Digit${s.key}`;
+  if (key !== s.key && !digitAt) return false;
   if (s.ctrl) {
     if (!e.ctrlKey || !e.metaKey) return false;
-  } else if (!!s.mod !== (e.metaKey || e.ctrlKey)) {
-    return false;
+  } else {
+    const command = apple ? e.metaKey : e.ctrlKey;
+    const other = apple ? e.ctrlKey : e.metaKey;
+    if (!!s.mod !== command || other) return false;
   }
   return !!s.shift === e.shiftKey && !!s.alt === e.altKey;
 }
@@ -47,13 +58,14 @@ export function isTypingTarget(target: EventTarget | null): boolean {
 
 /** The first shortcut of the lists (later ones first) that the event is. */
 export function findShortcut(
-  e: Pick<KeyboardEvent, 'key' | 'metaKey' | 'ctrlKey' | 'shiftKey' | 'altKey' | 'target'>,
-  lists: Shortcut[][]
+  e: KeyEventLike & Pick<KeyboardEvent, 'target'>,
+  lists: Shortcut[][],
+  apple = true
 ): Shortcut | null {
   for (let i = lists.length - 1; i >= 0; i--) {
     for (const s of lists[i]) {
       if (!s.mod && !s.ctrl && isTypingTarget(e.target)) continue;
-      if (matchesShortcut(e, s)) return s;
+      if (matchesShortcut(e, s, apple)) return s;
     }
   }
   return null;

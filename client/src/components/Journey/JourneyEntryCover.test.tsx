@@ -1,4 +1,4 @@
-// FE-JRN-COVER-001 to FE-JRN-COVER-010
+// FE-JRN-COVER-001 to FE-JRN-COVER-011
 
 import { describe, it, expect, vi } from 'vitest'
 import userEvent from '@testing-library/user-event'
@@ -132,5 +132,26 @@ describe('JourneyEntryCover', () => {
 
     expect(container.querySelector('img')).toHaveAttribute('src', '/api/photos/7/thumbnail')
     expect(container.querySelector('svg.lucide-play')).toBeNull()
+  })
+
+  it('FE-JRN-COVER-011: only the phone draws a card without a photo in the deep day colour, opaque even as a suggestion', () => {
+    const entry = buildEntry({ photos: [], type: 'skeleton' })
+    const phone = render(<JourneyEntryCover entry={entry} dayColor="#6366f1" isActive={false} onClick={() => {}} tone="mobile" />)
+    const phoneCard = phone.getByRole('button')
+    // d9, the deep wash (jsdom spells the colour out as rgba)
+    expect(phoneCard.style.backgroundImage).toMatch(/rgba\(99, 102, 241, 0\.85/)
+    expect(phoneCard.className).not.toContain('opacity-90')
+    expect(phone.container.querySelector('svg.lucide-map-pin')?.getAttribute('class')).toContain('-mt-6')
+    phone.unmount()
+
+    // The desktop and shared timelines keep their faint wash and the day-coloured pin.
+    const desk = render(<JourneyEntryCover entry={entry} dayColor="#6366f1" isActive={false} onClick={() => {}} />)
+    const deskCard = desk.getByRole('button')
+    // 2e, the faint one
+    expect(deskCard.style.backgroundImage).toMatch(/rgba\(99, 102, 241, 0\.18/)
+    expect(deskCard.className).toContain('opacity-90')
+    const pin = desk.container.querySelector('svg.lucide-map-pin') as SVGElement
+    expect(pin.getAttribute('class')).not.toContain('-mt-6')
+    expect(pin.style.color).not.toBe('')
   })
 })

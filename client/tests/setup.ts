@@ -2,7 +2,6 @@ import '@testing-library/jest-dom/vitest';
 import 'fake-indexeddb/auto';
 import { cleanup, configure } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, vi } from 'vitest';
-import { resetSizeClass, sizeClassMatches } from './helpers/sizeClass';
 import { server } from './helpers/msw/server';
 
 // waitFor/findBy* default to 1s, which is enough on a dev machine but not on a
@@ -36,7 +35,6 @@ beforeAll(() => server.listen({
 afterEach(() => {
   server.resetHandlers();
   cleanup();
-  resetSizeClass();
   localStorage.clear();
   sessionStorage.clear();
 });
@@ -61,10 +59,6 @@ Date.prototype.toLocaleDateString = function (locales?: Intl.LocalesArgument, op
 const mediaLists = new Set<{ media: string; matches: boolean; listeners: Set<(e: MediaQueryListEvent) => void> }>()
 
 function widthMatches(query: string): boolean {
-  // The touch shell's size classes come from tests/helpers/sizeClass.ts, compact
-  // by default: jsdom's 1024px window would otherwise read as an iPad.
-  const sizeClass = sizeClassMatches(query)
-  if (sizeClass != null) return sizeClass
   const max = /\(\s*max-width:\s*(\d+)px\s*\)/.exec(query)
   if (max) return window.innerWidth <= Number(max[1])
   const min = /\(\s*min-width:\s*(\d+)px\s*\)/.exec(query)

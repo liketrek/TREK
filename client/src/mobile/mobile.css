@@ -10,6 +10,9 @@
   --m-bg: #F3F2EF;
   --m-scr: radial-gradient(120% 80% at 50% -10%, #FBFAF7 0%, #F1EFEA 55%, #E9E7E1 100%);
   --m-glass: rgba(255,255,255,.6);
+  /* The dock's glass: denser than --m-glass, so a photo scrolling under it
+   * neither turns it muddy nor washes out its icons. */
+  --m-dock: rgba(255,255,255,.8);
   --m-gbr: rgba(255,255,255,.75);
   --m-card: rgba(255,255,255,.55);
   --m-cbr: rgba(255,255,255,.75);
@@ -58,17 +61,17 @@
   --m-rail-w: 0px;
 }
 
-/* Wide size class (hooks/sizeClass.ts WIDE_QUERY): the rail on the leading
- * edge takes the dock's place, so nothing docks at the bottom any more and
- * content only clears the home indicator. */
-@media (min-width: 600px) and (min-height: 501px) {
-  .m-root {
-    --bottom-nav-h: env(safe-area-inset-bottom, 0px);
-    --m-rail-w: calc(env(safe-area-inset-left, 0px) + 92px);
-  }
-  :root[dir='rtl'] .m-root {
-    --m-rail-w: calc(env(safe-area-inset-right, 0px) + 92px);
-  }
+/* Wide size class (hooks/sizeClass.ts, written to the shell's root as
+ * data-size): the rail on the leading edge takes the dock's place, so nothing
+ * docks at the bottom any more and content only clears the home indicator.
+ * Asked from <html>, so a sheet's own .m-root (portalled, perhaps to body)
+ * reads the same values as the shell. */
+html:has(.m-shell[data-size='wide'], .m-shell[data-size='split']) .m-root {
+  --bottom-nav-h: env(safe-area-inset-bottom, 0px);
+  --m-rail-w: calc(env(safe-area-inset-left, 0px) + 100px);
+}
+html[dir='rtl']:has(.m-shell[data-size='wide'], .m-shell[data-size='split']) .m-root {
+  --m-rail-w: calc(env(safe-area-inset-right, 0px) + 100px);
 }
 
 .dark .m-root {
@@ -78,6 +81,7 @@
   --m-bg: #0A0A0C;
   --m-scr: radial-gradient(120% 80% at 50% -10%, #17171C 0%, #0C0C0F 55%, #08080A 100%);
   --m-glass: rgba(26,26,31,.6);
+  --m-dock: rgba(26,26,31,.82);
   --m-gbr: rgba(255,255,255,.12);
   --m-card: rgba(24,24,29,.55);
   --m-cbr: rgba(255,255,255,.1);
@@ -171,15 +175,13 @@
 
 /* A form sheet on a wide window sits mid-screen, so it rises from the bottom
    edge of the window rather than from just below its own resting place. */
-@media (min-width: 600px) and (min-height: 501px) {
-  @keyframes m-sheet-up {
-    from { transform: translateY(calc(50dvh + 50%)); }
-    to { transform: translateY(0); }
-  }
-  @keyframes m-sheet-down {
-    from { transform: translateY(0); }
-    to { transform: translateY(calc(50dvh + 50%)); }
-  }
+@keyframes m-sheet-up-wide {
+  from { transform: translateY(calc(50dvh + 50%)); }
+  to { transform: translateY(0); }
+}
+@keyframes m-sheet-down-wide {
+  from { transform: translateY(0); }
+  to { transform: translateY(calc(50dvh + 50%)); }
 }
 .m-sheet-in { animation: m-sheet-in 260ms var(--ease-out-quint) both; }
 .m-sheet-out { animation: m-sheet-out 220ms var(--ease-drawer) both; }
@@ -192,12 +194,14 @@
 .m-pop-in { animation: m-pop-in 220ms var(--ease-out-quint) both; }
 .m-toast-in { animation: m-toast-in 260ms var(--ease-out-quint) both; }
 .m-toast-out { animation: m-toast-out 220ms ease both; }
-@media (min-width: 600px) and (min-height: 501px) {
-  .m-panel-in { animation: m-panel-in 320ms var(--ease-out-quint) both; }
-  [dir='rtl'] .m-panel-in { animation-name: m-panel-in-rtl; }
-  @media (prefers-reduced-motion: reduce) {
-    .m-panel-in, [dir='rtl'] .m-panel-in { animation: m-fade-in 120ms ease-out both; }
-  }
+@media (prefers-reduced-motion: no-preference) {
+  html:has(.m-shell[data-size='wide'], .m-shell[data-size='split']) .m-sheet-up { animation-name: m-sheet-up-wide; }
+  html:has(.m-shell[data-size='wide'], .m-shell[data-size='split']) .m-sheet-down { animation-name: m-sheet-down-wide; }
+}
+html:has(.m-shell[data-size='wide'], .m-shell[data-size='split']) .m-panel-in { animation: m-panel-in 320ms var(--ease-out-quint) both; }
+html[dir='rtl']:has(.m-shell[data-size='wide'], .m-shell[data-size='split']) .m-panel-in { animation-name: m-panel-in-rtl; }
+@media (prefers-reduced-motion: reduce) {
+  html:has(.m-shell[data-size='wide'], .m-shell[data-size='split']) .m-panel-in { animation: m-fade-in 120ms ease-out both; }
 }
 
 /* Reduced motion: gentler, not zero (same rule the desktop keyframes follow). */
@@ -631,6 +635,17 @@ html:has(.m-shell) body {
   overflow-x: clip;
   background-color: transparent;
 }
+/* The few routes without a phone screen of their own (a plugin's page, help,
+   a trip's files) still render through PageShell. Inside the touch shell its
+   desktop navbar, shown from 768px up, would stand over the rail and repeat the
+   navigation, and --nav-h would keep 64px of room for it: the shell has its own
+   navigation, so neither is there. */
+html:has(.m-shell) {
+  --nav-h: 0px;
+}
+html:has(.m-shell) [data-desktop-navbar] {
+  display: none;
+}
 html:has(.m-shell) .leaflet-control-zoom {
   display: none !important;
 }
@@ -650,6 +665,13 @@ html:has(.m-shell) ::-webkit-scrollbar {
 .m-trip .maplibregl-control-container > div,
 .m-trip .mapboxgl-control-container > div {
   margin-inline-start: var(--trip-map-inset, 0px);
+}
+
+/* The strip under a floating dock (components/MDockScrim.tsx): solid across
+   the gap below the dock, clear from about its middle up. */
+.m-dock-scrim {
+  -webkit-mask-image: linear-gradient(to top, #000 calc(env(safe-area-inset-bottom, 0px) + 12px), transparent calc(env(safe-area-inset-bottom, 0px) + 40px));
+  mask-image: linear-gradient(to top, #000 calc(env(safe-area-inset-bottom, 0px) + 12px), transparent calc(env(safe-area-inset-bottom, 0px) + 40px));
 }
 
 /* A horizontal strip with more behind an edge fades out there

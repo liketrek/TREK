@@ -8,8 +8,9 @@ import { useShortcuts } from './useShortcuts';
 /**
  * The app-wide shortcuts of the touch shell: ⌘1 to ⌘9 for the sections in the
  * order the rail shows them, ⌘N for what the "+" creates here, ⌘, for
- * settings. Inside a trip the numbers belong to the trip's own sections
- * (MTripShell), so the shell lets go of them there.
+ * settings. Inside a trip the numbers and ⌘N belong to the trip (MTripShell):
+ * its tabs change without a new URL, and this component renders only on one,
+ * so a ⌘N of its own would still create what the tab the trip opened on does.
  */
 export default function MShellShortcuts() {
   const { t } = useTranslation();
@@ -30,7 +31,7 @@ export default function MShellShortcuts() {
           mod: true,
           run: () => void navigate(item.to),
         }))),
-    ...(noCreate ? [] : [{ id: 'create', title: create.label, key: 'n', mod: true, run: create.run }]),
+    ...(noCreate || inTrip ? [] : [{ id: 'create', title: create.label, key: 'n', mod: true, run: create.run }]),
     { id: 'settings', title: t('nav.bottomSettings'), key: ',', mod: true, run: () => void navigate('/settings') },
   ];
   useShortcuts('shell', shortcuts);

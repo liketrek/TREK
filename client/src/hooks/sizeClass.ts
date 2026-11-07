@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { isNativeApp } from '../native/platform';
 
 /**
  * The touch shell's size classes, the web's answer to UIKit's compact and
@@ -21,43 +22,130 @@ import { useSyncExternalStore } from 'react';
  * The height bound keeps a phone on its side compact: no phone is taller than
  * 500pt in landscape, no tablet or unfolded foldable is shorter.
  *
- * `tailwind.config.js` registers the same two queries as the `wide:` and
- * `split:` variants, and `index.css` reads them for the shell's own variables;
- * keep the three in step (sizeClass.test.ts holds them together).
+ * Only the app lays out for a large screen. In a browser the touch shell is
+ * the phone's, below 768px (mobile/useIsPhone.ts), and stays compact there: an
+ * iPad mini upright in Safari or a narrowed desktop window keeps the dock it
+ * always had.
+ *
+ * The class is one value in JavaScript, and the stylesheet follows it rather
+ * than asking media queries of its own: MobileShell writes it to the shell's
+ * root as data-size, and the `wide:` and `split:` variants (tailwind.config.js)
+ * and the shell's variables (mobile.css) key on that attribute. So the hooks
+ * and the CSS never disagree, and the guard against the soft keyboard below
+ * holds for both.
  */
-export const WIDE_QUERY = '(min-width: 600px) and (min-height: 501px)';
-export const SPLIT_QUERY = '(min-width: 840px) and (min-height: 501px)';
+export type SizeClass = 'compact' | 'wide' | 'split';
 
-function matches(query: string): boolean {
-  return typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia(query).matches;
+const WIDE_MIN_WIDTH = 600;
+const SPLIT_MIN_WIDTH = 840;
+const MIN_HEIGHT = 501;
+
+/** The class of a window of this size, in CSS pixels. */
+export function sizeClassOf(width: number, height: number): SizeClass {
+  if (width < WIDE_MIN_WIDTH || height < MIN_HEIGHT) return 'compact';
+  return width >= SPLIT_MIN_WIDTH ? 'split' : 'wide';
 }
 
-function subscribe(query: string) {
-  return (onChange: () => void) => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return () => {};
-    const mq = window.matchMedia(query);
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
-  };
+/** Input types that bring up no soft keyboard. */
+const NO_KEYBOARD = new Set([
+  'button',
+  'checkbox',
+  'color',
+  'file',
+  'hidden',
+  'image',
+  'radio',
+  'range',
+  'reset',
+  'submit',
+]);
+
+/** Whether the focused element is one the soft keyboard comes up for. */
+function typing(): boolean {
+  const el = document.activeElement;
+  if (!(el instanceof HTMLElement)) return false;
+  if (el.isContentEditable || el.tagName === 'TEXTAREA') return true;
+  return el instanceof HTMLInputElement && !NO_KEYBOARD.has(el.type);
 }
 
-const subscribeWide = subscribe(WIDE_QUERY);
-const subscribeSplit = subscribe(SPLIT_QUERY);
-const readWide = () => matches(WIDE_QUERY);
-const readSplit = () => matches(SPLIT_QUERY);
-const never = () => false;
+let seen: { width: number; height: number } | null = null;
+let pinned: SizeClass | null = null;
+let listening = false;
+const listeners = new Set<() => void>();
+
+/**
+ * Takes in the window's size, except a height lost to the soft keyboard.
+ *
+ * Android resizes the WebView when the keyboard comes up (adjustResize), so a
+ * tablet on its side keeps about 400px of height while a field has focus. Read
+ * as it is, that made the class compact for as long as one typed: the rail
+ * turned into the dock, form sheets into bottom sheets, and a pane that
+ * remounted on the way took the focused field with it, which closed the
+ * keyboard, which brought the class back, in a loop. A window that only grew
+ * shorter, at the same width, while a field has focus is the keyboard, not a
+ * new window: the height seen before stays. The keyboard going down, a turn or
+ * any other resize is taken as it comes.
+ */
+function measure(): boolean {
+  const next = { width: window.innerWidth, height: window.innerHeight };
+  const prev = seen;
+  if (prev && next.width === prev.width && next.height < prev.height && typing()) return false;
+  seen = next;
+  return !prev || prev.width !== next.width || prev.height !== next.height;
+}
+
+function follow(): void {
+  if (listening || typeof window === 'undefined') return;
+  listening = true;
+  window.addEventListener('resize', () => {
+    if (measure()) for (const listener of listeners) listener();
+  });
+}
+
+function read(): SizeClass {
+  if (pinned) return pinned;
+  if (typeof window === 'undefined' || !isNativeApp()) return 'compact';
+  follow();
+  if (!seen) measure();
+  return seen ? sizeClassOf(seen.width, seen.height) : 'compact';
+}
+
+function subscribe(listener: () => void): () => void {
+  follow();
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+const serverClass = (): SizeClass => 'compact';
 
 /** Whether the touch shell is laid out for a wide window right now, outside React. */
 export function isWideViewport(): boolean {
-  return readWide();
+  return read() !== 'compact';
 }
 
-/** True while the window is in the wide size class. Follows rotation, folding and resizing. */
+/** The size class. Follows rotation, folding and resizing, not the soft keyboard. */
+export function useSizeClass(): SizeClass {
+  return useSyncExternalStore(subscribe, read, serverClass);
+}
+
+/** True while the window is in the wide size class (split included). */
 export function useIsWide(): boolean {
-  return useSyncExternalStore(subscribeWide, readWide, never);
+  return useSizeClass() !== 'compact';
 }
 
 /** True while the window has room for two panes side by side. */
 export function useIsSplit(): boolean {
-  return useSyncExternalStore(subscribeSplit, readSplit, never);
+  return useSizeClass() === 'split';
+}
+
+/** Test helper: pins the size class, or with null hands it back to the window. */
+export function _pinSizeClass(next: SizeClass | null): void {
+  pinned = next;
+  for (const listener of listeners) listener();
+}
+
+/** Test helper: forgets the window size seen so far. */
+export function _resetSizeClass(): void {
+  pinned = null;
+  seen = null;
 }

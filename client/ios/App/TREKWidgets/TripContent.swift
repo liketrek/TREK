@@ -232,8 +232,11 @@ struct TripContent: View {
             // 176 pt for the stops on an iPhone and an 11" or 13" iPad; an iPad
             // mini's medium widget is narrower, so the panel gives up some width
             // and the weather keeps to its chip, and the day still reads whole.
+            // The line is drawn by the iPad mini alone: its medium widget is
+            // 305.5 pt wide, 273.5 inside the content margins, while the smallest
+            // iPhone's (a 4.7" SE) is 321 pt, 289 inside, and keeps the full layout.
             GeometryReader { geo in
-                let narrow = geo.size.width < 300
+                let narrow = geo.size.width < 281
                 HStack(spacing: 14) {
                     VStack(alignment: .leading, spacing: 0) {
                         Text(trip.title).trekEyebrowOnPhoto()

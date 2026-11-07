@@ -121,15 +121,17 @@ export default {
   },
   plugins: [
     // The touch shell's size classes (src/hooks/sizeClass.ts) as the `wide:` and
-    // `split:` variants. Variants of their own rather than entries in `screens`:
-    // both need a height bound (a phone on its side stays compact), and a raw
-    // screen among the min-width ones reorders how Tailwind sorts every
-    // responsive class.
+    // `split:` variants. They key on the class MobileShell writes to the shell's
+    // root (data-size), not on media queries of their own, so the CSS follows the
+    // hooks exactly: compact in a browser, and unmoved by Android's soft keyboard.
+    // Asked from <html>, so a sheet portalled outside the shell follows too, and
+    // inside :where() so a variant weighs what a media query did.
     ({ addVariant }) => {
-      addVariant('wide', '@media (min-width: 600px) and (min-height: 501px)')
-      addVariant('split', '@media (min-width: 840px) and (min-height: 501px)')
-      // The other side of that height bound: a window as short as a phone on its
-      // side, where a form sheet takes the full height (MSheet's `form`).
+      addVariant('wide', ':where(html:has(.m-shell[data-size="wide"], .m-shell[data-size="split"])) &')
+      addVariant('split', ':where(html:has(.m-shell[data-size="split"])) &')
+      // A window as short as a phone on its side, where a form sheet takes the full
+      // height (MSheet's `form`). A media query on purpose: a soft keyboard that
+      // shrinks the window below it changes only CSS, so nothing remounts.
       addVariant('short', '@media (max-height: 500px)')
     },
   ],

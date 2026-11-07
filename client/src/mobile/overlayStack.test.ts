@@ -1,6 +1,6 @@
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { _resetOverlayStack, closeTopOverlay, hasOpenOverlay, useOverlay } from './overlayStack';
+import { _resetOverlayStack, closeTopOverlay, hasOpenOverlay, useHasOpenOverlay, useOverlay } from './overlayStack';
 
 beforeEach(() => _resetOverlayStack());
 
@@ -32,5 +32,14 @@ describe('overlayStack', () => {
     h.rerender({ open: false, close: fresh });
     expect(hasOpenOverlay()).toBe(false);
     expect(closeTopOverlay()).toBe(false);
+  });
+
+  it('tells a component when an overlay opens and when the last one closes', () => {
+    const watch = renderHook(() => useHasOpenOverlay());
+    expect(watch.result.current).toBe(false);
+    const sheet = renderHook(({ open }) => useOverlay(open, () => {}), { initialProps: { open: true } });
+    expect(watch.result.current).toBe(true);
+    sheet.rerender({ open: false });
+    expect(watch.result.current).toBe(false);
   });
 });

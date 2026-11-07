@@ -4,7 +4,7 @@ import BottomNav from '../components/Layout/BottomNav'
 import ErrorBoundary from '../components/shared/ErrorBoundary'
 import MBottomNav from './components/MBottomNav'
 import MNavRail from './components/MNavRail'
-import { useIsWide } from '../hooks/sizeClass'
+import { useSizeClass } from '../hooks/sizeClass'
 import MKeyboardHost from './keyboard/MKeyboardHost'
 import MShellShortcuts from './keyboard/MShellShortcuts'
 import MToastHost from './components/MToastHost'
@@ -45,8 +45,10 @@ export default function MobileShell({ isPhone, children }: MobileShellProps) {
   const pageRef = useRef<HTMLDivElement>(null)
   const edgeBack = isNativeIos() && caps.features.includes('edgeBack')
   // On a wide window (an iPad, a foldable unfolded) the rail on the leading edge
-  // replaces the dock, and the page column starts after it.
-  const wide = useIsWide()
+  // replaces the dock, and the page column starts after it. The class goes on the
+  // root as data-size: the wide:/split: variants and mobile.css key on it.
+  const sizeClass = useSizeClass()
+  const wide = sizeClass !== 'compact'
   // A foldable's fold, as the Android app reports it: two-pane screens end their
   // leading pane there (mobile.css, data-fold).
   const fold = useWindowFold()
@@ -66,7 +68,7 @@ export default function MobileShell({ isPhone, children }: MobileShellProps) {
   return (
     // min-h-svh, not min-h-dvh: dvh grows while Safari's toolbar retracts, so a
     // dvh page length would chase the animation it just triggered.
-    <div className="m-root m-shell flex min-h-svh flex-col text-m-ink" data-fold={fold ? 'vertical' : undefined} style={foldStyle}>
+    <div className="m-root m-shell flex min-h-svh flex-col text-m-ink" data-size={sizeClass} data-fold={fold ? 'vertical' : undefined} style={foldStyle}>
       {/* Background and screen gradient live on their own viewport-sized layer.
           The shell root is as tall as the document now, and --m-scr is a radial
           gradient measured against its element box, so on it the light cone would
@@ -80,10 +82,16 @@ export default function MobileShell({ isPhone, children }: MobileShellProps) {
           layer to be visible, body must not paint over it, which index.css handles
           for this breakpoint. */}
       <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 bg-[color:var(--m-bg)] bg-[image:var(--m-scr)]" />
+      {/* The rail comes before the page in the document, as it does on screen,
+          so a keyboard (Full Keyboard Access on an iPad) reaches the navigation
+          first. It is fixed, so where it sits in the DOM moves nothing. */}
+      {!inTripPlanner && wide && (
+        <ErrorBoundary boundaryId="chrome:m-nav-rail" fallback={null}><MNavRail /></ErrorBoundary>
+      )}
       <div ref={pageRef} className="flex-1 wide:ps-[var(--m-rail-w)]">{children}</div>
       <MEdgeBack target={pageRef} enabled={edgeBack} />
-      {!inTripPlanner && (
-        <ErrorBoundary boundaryId="chrome:m-bottom-nav" fallback={null}>{wide ? <MNavRail /> : <MBottomNav />}</ErrorBoundary>
+      {!inTripPlanner && !wide && (
+        <ErrorBoundary boundaryId="chrome:m-bottom-nav" fallback={null}><MBottomNav /></ErrorBoundary>
       )}
       <ErrorBoundary boundaryId="chrome:m-toast" fallback={null}><MToastHost /></ErrorBoundary>
       {/* A hardware keyboard (an iPad's, mostly) gets the shortcuts an iPad app has. */}

@@ -16,6 +16,7 @@ import { act, fireEvent, render, screen, waitFor } from '../../helpers/render';
 // FE-MOB-KEYS-001 onwards
 
 const native = vi.hoisted(() => ({
+  app: false,
   ios: false,
   features: [] as string[],
   setKeyCommands: vi.fn(() => Promise.resolve()),
@@ -23,8 +24,9 @@ const native = vi.hoisted(() => ({
 }));
 
 vi.mock('../../../src/native/platform', () => ({
-  isNativeApp: () => native.ios,
-  isNativeIos: () => native.ios,
+  isNativeApp: () => native.app,
+  isNativeIos: () => native.app && native.ios,
+  isNativeAndroid: () => native.app && !native.ios,
   nativeServerHost: () => null,
 }));
 vi.mock('../../../src/native/capabilities', () => ({
@@ -43,8 +45,17 @@ vi.mock('../../../src/native/trekShell', () => ({
   },
 }));
 
+import MSheet from '../../../src/mobile/components/MSheet';
 import MKeyboardHost from '../../../src/mobile/keyboard/MKeyboardHost';
 import MShellShortcuts from '../../../src/mobile/keyboard/MShellShortcuts';
+import { _resetOverlayStack } from '../../../src/mobile/overlayStack';
+
+/** The iPad app; without the keyCommands feature (an older binary) the page answers every key. */
+function asIpadApp(features: string[] = []) {
+  native.app = true;
+  native.ios = true;
+  native.features = features;
+}
 
 const key = (k: string, mods: Partial<KeyboardEvent> = {}) => ({
   key: k,
@@ -60,14 +71,28 @@ describe('shortcut matching', () => {
   const sidebar: Shortcut = { id: 'p', title: 'Sidebar', key: 's', ctrl: true, run: () => {} };
   const next: Shortcut = { id: 'n', title: 'Next', key: 'ArrowRight', alt: true, run: () => {} };
 
-  it('FE-MOB-KEYS-001: ⌘ and Ctrl both count as the command key, the rest must match exactly', () => {
+  it("FE-MOB-KEYS-001: the command key is the platform's own, the rest must match exactly", () => {
     expect(matchesShortcut(key('s', { metaKey: true }), save)).toBe(true);
-    expect(matchesShortcut(key('S', { ctrlKey: true }), save)).toBe(true);
+    expect(matchesShortcut(key('S', { metaKey: true }), save)).toBe(true);
+    // On an Apple keyboard Ctrl is not ⌘: Ctrl+N in a text field moves the caret.
+    expect(matchesShortcut(key('s', { ctrlKey: true }), save)).toBe(false);
+    expect(matchesShortcut(key('s', { metaKey: true, ctrlKey: true }), save)).toBe(false);
+    // Elsewhere (Android) Ctrl is the command key and the Meta key is not.
+    expect(matchesShortcut(key('s', { ctrlKey: true }), save, false)).toBe(true);
+    expect(matchesShortcut(key('s', { metaKey: true }), save, false)).toBe(false);
     expect(matchesShortcut(key('s'), save)).toBe(false);
     expect(matchesShortcut(key('s', { metaKey: true, shiftKey: true }), save)).toBe(false);
     expect(matchesShortcut(key('s', { metaKey: true, ctrlKey: true }), sidebar)).toBe(true);
     expect(matchesShortcut(key('s', { metaKey: true }), sidebar)).toBe(false);
     expect(matchesShortcut(key('ArrowRight', { altKey: true }), next)).toBe(true);
+  });
+
+  it('FE-MOB-KEYS-011: a digit shortcut finds its key on a French keyboard too', () => {
+    const first: Shortcut = { id: 'one', title: 'One', key: '1', mod: true, run: () => {} };
+    // AZERTY types '&' on the 1 key without Shift; the key's place is still Digit1.
+    expect(matchesShortcut({ ...key('&', { metaKey: true }), code: 'Digit1' }, first)).toBe(true);
+    expect(matchesShortcut({ ...key('é', { metaKey: true }), code: 'Digit2' }, first)).toBe(false);
+    expect(matchesShortcut({ ...key('1', { metaKey: true }), code: 'Numpad1' }, first)).toBe(true);
   });
 
   it('FE-MOB-KEYS-002: a field keeps its own keys, except the ones with ⌘', () => {
@@ -112,15 +137,18 @@ function LocationEcho() {
 
 describe('MKeyboardHost', () => {
   beforeEach(() => {
+    native.app = false;
     native.ios = false;
     native.features = [];
     native.setKeyCommands.mockClear();
     native.listener = null;
     useShortcutRegistry.setState({ lists: [] });
+    _resetOverlayStack();
   });
   afterEach(() => useShortcutRegistry.setState({ lists: [] }));
 
-  it('FE-MOB-KEYS-005: in a browser the page answers the keys and runs the newest handler', () => {
+  it('FE-MOB-KEYS-005: in the app the page answers the keys and runs the newest handler', () => {
+    asIpadApp();
     const first = vi.fn();
     const second = vi.fn();
     const shortcut = (run: () => void): Shortcut[] => [{ id: 'go', title: 'Go', key: '1', mod: true, run }];
@@ -144,6 +172,7 @@ describe('MKeyboardHost', () => {
   });
 
   it('FE-MOB-KEYS-006: a screen that goes away takes its shortcuts with it', () => {
+    asIpadApp();
     const run = vi.fn();
     const { rerender } = render(
       <>
@@ -158,8 +187,7 @@ describe('MKeyboardHost', () => {
   });
 
   it('FE-MOB-KEYS-007: the app takes the ⌘ shortcuts as key commands, names and all, and reports them back', async () => {
-    native.ios = true;
-    native.features = ['keyCommands'];
+    asIpadApp(['keyCommands']);
     const run = vi.fn();
     const step = vi.fn();
     render(
@@ -193,8 +221,126 @@ describe('MKeyboardHost', () => {
   });
 });
 
+describe('MKeyboardHost and the rest of the screen', () => {
+  beforeEach(() => {
+    native.app = false;
+    native.ios = false;
+    native.features = [];
+    native.setKeyCommands.mockClear();
+    native.listener = null;
+    useShortcutRegistry.setState({ lists: [] });
+    _resetOverlayStack();
+  });
+  afterEach(() => useShortcutRegistry.setState({ lists: [] }));
+
+  it('FE-MOB-KEYS-012: a browser keeps its own keys: Ctrl+1 switches tabs, Alt+Left goes back', () => {
+    const go = vi.fn();
+    const back = vi.fn();
+    render(
+      <>
+        <MKeyboardHost />
+        <Probe
+          owner="trip"
+          shortcuts={[
+            { id: 'go', title: 'Go', key: '1', mod: true, run: go },
+            { id: 'day-prev', title: 'Previous day', key: 'ArrowLeft', alt: true, run: back },
+          ]}
+        />
+      </>
+    );
+    const ctrlOne = fireEvent.keyDown(document.body, { key: '1', ctrlKey: true });
+    const metaOne = fireEvent.keyDown(document.body, { key: '1', metaKey: true });
+    const altLeft = fireEvent.keyDown(document.body, { key: 'ArrowLeft', altKey: true });
+    expect(go).not.toHaveBeenCalled();
+    expect(back).not.toHaveBeenCalled();
+    // Not prevented: the browser still does what the keys mean to it.
+    expect([ctrlOne, metaOne, altLeft]).toEqual([true, true, true]);
+  });
+
+  it('FE-MOB-KEYS-013: with a sheet open and its form changed, ⌘[ neither leaves nor drops the form', async () => {
+    asIpadApp();
+    const leave = vi.fn();
+    render(
+      <>
+        <MKeyboardHost />
+        <Probe owner="trip" shortcuts={[{ id: 'back', title: 'Back', key: '[', mod: true, run: leave }]} />
+        <MSheet open onClose={() => {}} discardGuard={{ title: 'changed' }} ariaLabel="Edit reservation">
+          <input aria-label="Title" defaultValue="Dinner" />
+        </MSheet>
+      </>
+    );
+    await screen.findByRole('dialog', { name: 'Edit reservation' });
+    const pressed = fireEvent.keyDown(screen.getByLabelText('Title'), { key: '[', metaKey: true });
+    expect(leave).not.toHaveBeenCalled();
+    expect(pressed).toBe(true);
+    expect(screen.getByRole('dialog', { name: 'Edit reservation' })).toBeInTheDocument();
+  });
+
+  it('FE-MOB-KEYS-014: the app is handed no key commands while a sheet is open, and gets them back after', async () => {
+    asIpadApp(['keyCommands']);
+    const run = vi.fn();
+    const shortcuts: Shortcut[] = [{ id: 'create', title: 'New trip', key: 'n', mod: true, run }];
+    const { rerender } = render(
+      <>
+        <MKeyboardHost />
+        <Probe owner="shell" shortcuts={shortcuts} />
+        <MSheet open onClose={() => {}} ariaLabel="New trip">
+          <span />
+        </MSheet>
+      </>
+    );
+    await waitFor(() => expect(native.setKeyCommands).toHaveBeenLastCalledWith({ commands: [] }));
+    await waitFor(() => expect(native.listener).not.toBeNull());
+    // A command sent before the sheet opened does not run behind it either.
+    act(() => native.listener?.({ id: 'shell:create' }));
+    expect(run).not.toHaveBeenCalled();
+
+    rerender(
+      <>
+        <MKeyboardHost />
+        <Probe owner="shell" shortcuts={shortcuts} />
+      </>
+    );
+    await waitFor(() =>
+      expect(native.setKeyCommands).toHaveBeenLastCalledWith({
+        commands: [{ id: 'shell:create', title: 'New trip', input: 'n', modifiers: ['command'] }],
+      })
+    );
+  });
+
+  it('FE-MOB-KEYS-015: a dialog kept mounted but hidden holds nothing back', () => {
+    asIpadApp();
+    const run = vi.fn();
+    render(
+      <>
+        <MKeyboardHost />
+        <Probe owner="a" shortcuts={[{ id: 'go', title: 'Go', key: '1', mod: true, run }]} />
+        <section role="dialog" aria-modal="true" hidden />
+      </>
+    );
+    fireEvent.keyDown(document.body, { key: '1', metaKey: true });
+    expect(run).toHaveBeenCalledOnce();
+  });
+
+  it('FE-MOB-KEYS-016: Android without key commands of its own answers Ctrl, not the Meta key', () => {
+    native.app = true;
+    const run = vi.fn();
+    render(
+      <>
+        <MKeyboardHost />
+        <Probe owner="a" shortcuts={[{ id: 'go', title: 'Go', key: '1', mod: true, run }]} />
+      </>
+    );
+    fireEvent.keyDown(document.body, { key: '1', metaKey: true });
+    expect(run).not.toHaveBeenCalled();
+    fireEvent.keyDown(document.body, { key: '1', ctrlKey: true });
+    expect(run).toHaveBeenCalledOnce();
+  });
+});
+
 describe('MKeyboardHost in the Android app', () => {
   beforeEach(() => {
+    native.app = true;
     native.ios = false;
     native.features = [];
     native.setKeyCommands.mockClear();
@@ -222,8 +368,7 @@ describe('MKeyboardHost in the Android app', () => {
 
 describe('MShellShortcuts', () => {
   beforeEach(() => {
-    native.ios = false;
-    native.features = [];
+    asIpadApp();
     useShortcutRegistry.setState({ lists: [] });
     usePluginStore.setState({ plugins: [], loaded: true });
     useAddonStore.setState({
@@ -253,7 +398,7 @@ describe('MShellShortcuts', () => {
     expect(at()).toBe('/settings');
   });
 
-  it('FE-MOB-KEYS-009: inside a trip the numbers belong to the trip', () => {
+  it('FE-MOB-KEYS-009: inside a trip the numbers and ⌘N belong to the trip', () => {
     render(
       <>
         <MKeyboardHost />
@@ -264,5 +409,11 @@ describe('MShellShortcuts', () => {
     );
     fireEvent.keyDown(document.body, { key: '2', metaKey: true });
     expect(screen.getByTestId('loc').textContent).toBe('/trips/4');
+    // The trip registers its own ⌘N for the tab on show (MTripShell); the shell's
+    // would only know the tab the trip opened on.
+    fireEvent.keyDown(document.body, { key: 'n', metaKey: true });
+    expect(screen.getByTestId('loc').textContent).toBe('/trips/4');
+    const shell = useShortcutRegistry.getState().lists.find((l) => l.owner === 'shell');
+    expect(shell?.shortcuts.map((s) => s.id)).toEqual(['settings']);
   });
 });

@@ -31,6 +31,8 @@ import MTripRail from './MTripRail'
 import { CollabSegment, CompactToggle, DocSyncButton, GlassSegment } from './MTripShellParts'
 import { edgeFadeClass, useEdgeFade } from '../../components/useEdgeFade'
 import { useShortcuts } from '../../keyboard/useShortcuts'
+import { tripCreateIntent } from '../../../components/Layout/useCreateAction'
+import MDockScrim from '../../components/MDockScrim'
 
 /**
  * Mobile trip screen frame. Owns the chrome the design shares across every
@@ -489,6 +491,8 @@ export default function MTripShell({
     else planner.handleSelectDay(next.id, true)
   }
   const dayKeys = trTab === 'plan' || trTab === 'roadtrip'
+  // ⌘N creates what the tab on show creates, as the "+" does (MShellShortcuts lets go of it here).
+  const createIntent = tripCreateIntent(String(tripId), trTab)
   useShortcuts('trip', [
     ...keyTabs.map((tab, i) => ({ id: `tab-${tab.id}`, title: tab.label, key: String(i + 1), mod: true, run: () => setTrTab(tab.id) })),
     ...(dayKeys && days.length > 1
@@ -500,6 +504,7 @@ export default function MTripShell({
     ...(split && MAP_TABS.has(trTab)
       ? [{ id: 'pane', title: paneOpen ? t('mobileTrip.hidePane') : t('mobileTrip.showPane'), key: 's', ctrl: true, run: trTab === 'roadtrip' ? toggleRtView : toggleView }]
       : []),
+    { id: 'create', title: t(createIntent.labelKey), key: 'n', mod: true, run: () => void navigate(createIntent.to) },
     { id: 'back', title: t('common.back'), key: '[', mod: true, run: () => void navigate('/dashboard') },
   ])
 
@@ -891,7 +896,9 @@ export default function MTripShell({
       )}
 
       {/* ── Bottom dock (replaces the global bottom nav on this screen) ── */}
-      {!wide && <nav className="absolute inset-x-4 z-40 flex h-[62px] items-center justify-around rounded-[31px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-[14px] shadow-[0_16px_44px_-14px_rgba(0,0,0,.35)] backdrop-blur-[30px] backdrop-saturate-[1.8] bottom-[calc(env(safe-area-inset-bottom,0px)+12px)]">
+      {/* A tab's list fades out under the dock rather than showing in the gap below it; a map runs to the edge. */}
+      {!wide && !MAP_TABS.has(trTab) && <MDockScrim />}
+      {!wide && <nav className="absolute inset-x-4 z-40 flex h-[62px] items-center justify-around rounded-[31px] border border-[color:var(--m-gbr)] bg-[color:var(--m-dock)] px-[14px] shadow-[0_16px_44px_-14px_rgba(0,0,0,.35)] backdrop-blur-[30px] backdrop-saturate-[1.4] bottom-[calc(env(safe-area-inset-bottom,0px)+12px)]">
         {dockTabs.map(({ id, icon: Icon }) => {
           // While More is open the dock points at More, not at the tab under it.
           const active = trTab === id && sheet?.id !== 'mehr'
