@@ -60,9 +60,17 @@ class TrekLocation(context: Context, private val emit: (JSObject) -> Unit) {
         }
     }
 
+    // Removing updates needs no permission of its own; one revoked meanwhile only means there is nothing left to stop.
+    @SuppressLint("MissingPermission")
     fun stop() {
         val m = manager ?: return
-        for (listener in listeners) LocationManagerCompat.removeUpdates(m, listener)
+        for (listener in listeners) {
+            try {
+                LocationManagerCompat.removeUpdates(m, listener)
+            } catch (e: SecurityException) {
+                // Nothing to stop.
+            }
+        }
         listeners.clear()
     }
 
