@@ -70,7 +70,8 @@ const native: TranslationStrings = {
   'native.plans.restoring': '正在檢查你的購買項目…',
   'native.plans.restoreNone': '此 Apple ID 沒有找到有效的訂閱。',
   'native.plans.restoreFailed': '無法恢復你的 TREK。請重試。',
-  'native.plans.legal': '確認後將透過你的 Apple ID 付款。除非在目前週期結束前至少 24 小時取消，否則訂閱會自動續訂。可在 App Store 帳號設定中管理或取消。',
+  'native.plans.legal':
+    '確認後將透過你的 Apple ID 付款。除非在目前週期結束前至少 24 小時取消，否則訂閱會自動續訂。可在 App Store 帳號設定中管理或取消。',
   'native.plans.terms': '使用條款',
   'native.claim.pending': '你的購買正在等待核准。完成後，請點一下「恢復購買項目」。',
   'native.provisioning.title': '正在設定你的 TREK',

@@ -72,7 +72,8 @@ const native: TranslationStrings = {
   'native.plans.restoring': 'Satın alımlarınız kontrol ediliyor…',
   'native.plans.restoreNone': 'Bu Apple Kimliği için etkin abonelik bulunamadı.',
   'native.plans.restoreFailed': 'TREK’inizi geri yükleyemedik. Lütfen tekrar deneyin.',
-  'native.plans.legal': 'Ödeme, onayladığınızda Apple Kimliğinizden alınır. Abonelik, dönem bitmeden en az 24 saat önce iptal edilmezse otomatik olarak yenilenir. Aboneliği App Store hesap ayarlarınızdan yönetebilir veya iptal edebilirsiniz.',
+  'native.plans.legal':
+    'Ödeme, onayladığınızda Apple Kimliğinizden alınır. Abonelik, dönem bitmeden en az 24 saat önce iptal edilmezse otomatik olarak yenilenir. Aboneliği App Store hesap ayarlarınızdan yönetebilir veya iptal edebilirsiniz.',
   'native.plans.terms': 'Kullanım koşulları',
   'native.claim.pending': 'Satın alımınız onay bekliyor. Tamamlandığında Satın alımları geri yükle’ye dokunun.',
   'native.provisioning.title': 'TREK’iniz hazırlanıyor',

@@ -72,9 +72,11 @@ const native: TranslationStrings = {
   'native.plans.restoring': 'Deine Käufe werden geprüft…',
   'native.plans.restoreNone': 'Für diese Apple-ID wurde kein aktives Abo gefunden.',
   'native.plans.restoreFailed': 'Wir konnten deine TREK nicht wiederherstellen. Bitte versuch es erneut.',
-  'native.plans.legal': 'Die Zahlung wird bei Bestätigung über deine Apple-ID abgerechnet. Das Abo verlängert sich automatisch, wenn du es nicht mindestens 24 Stunden vor Ablauf des Zeitraums kündigst. Verwalten und kündigen kannst du es in den Einstellungen deines App-Store-Accounts.',
+  'native.plans.legal':
+    'Die Zahlung wird bei Bestätigung über deine Apple-ID abgerechnet. Das Abo verlängert sich automatisch, wenn du es nicht mindestens 24 Stunden vor Ablauf des Zeitraums kündigst. Verwalten und kündigen kannst du es in den Einstellungen deines App-Store-Accounts.',
   'native.plans.terms': 'Nutzungsbedingungen',
-  'native.claim.pending': 'Dein Kauf wartet noch auf eine Freigabe. Sobald er durch ist, tippe auf Käufe wiederherstellen.',
+  'native.claim.pending':
+    'Dein Kauf wartet noch auf eine Freigabe. Sobald er durch ist, tippe auf Käufe wiederherstellen.',
   'native.provisioning.title': 'Deine TREK wird eingerichtet',
   'native.provisioning.sub': '{host} wird vorbereitet. Das dauert nur eine Minute.',
   'native.provisioning.failedTitle': 'Gleich fertig',

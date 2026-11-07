@@ -72,7 +72,8 @@ const native: TranslationStrings = {
   'native.plans.restoring': 'Vérification de vos achats…',
   'native.plans.restoreNone': 'Aucun abonnement actif trouvé pour cet identifiant Apple.',
   'native.plans.restoreFailed': 'Nous n’avons pas pu restaurer votre TREK. Réessayez.',
-  'native.plans.legal': 'Le paiement est débité de votre identifiant Apple lors de la confirmation. L’abonnement se renouvelle automatiquement, sauf résiliation au moins 24 heures avant la fin de la période. Gérez-le ou résiliez-le dans les réglages de votre compte App Store.',
+  'native.plans.legal':
+    'Le paiement est débité de votre identifiant Apple lors de la confirmation. L’abonnement se renouvelle automatiquement, sauf résiliation au moins 24 heures avant la fin de la période. Gérez-le ou résiliez-le dans les réglages de votre compte App Store.',
   'native.plans.terms': 'Conditions d’utilisation',
   'native.claim.pending': 'Votre achat attend une approbation. Une fois validé, touchez Restaurer les achats.',
   'native.provisioning.title': 'Préparation de votre TREK',

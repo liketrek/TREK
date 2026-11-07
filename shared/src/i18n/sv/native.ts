@@ -72,7 +72,8 @@ const native: TranslationStrings = {
   'native.plans.restoring': 'Kontrollerar dina köp…',
   'native.plans.restoreNone': 'Ingen aktiv prenumeration hittades för detta Apple-ID.',
   'native.plans.restoreFailed': 'Vi kunde inte återställa din TREK. Försök igen.',
-  'native.plans.legal': 'Betalningen debiteras ditt Apple-ID när du bekräftar. Prenumerationen förnyas automatiskt om du inte avslutar den minst 24 timmar före periodens slut. Hantera eller avsluta den i inställningarna för ditt App Store-konto.',
+  'native.plans.legal':
+    'Betalningen debiteras ditt Apple-ID när du bekräftar. Prenumerationen förnyas automatiskt om du inte avslutar den minst 24 timmar före periodens slut. Hantera eller avsluta den i inställningarna för ditt App Store-konto.',
   'native.plans.terms': 'Användarvillkor',
   'native.claim.pending': 'Ditt köp väntar på godkännande. När det har gått igenom trycker du på Återställ köp.',
   'native.provisioning.title': 'Gör i ordning din TREK',

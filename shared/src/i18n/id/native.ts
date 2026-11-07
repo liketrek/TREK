@@ -71,7 +71,8 @@ const native: TranslationStrings = {
   'native.plans.restoring': 'Memeriksa pembelian Anda…',
   'native.plans.restoreNone': 'Tidak ada langganan aktif untuk Apple ID ini.',
   'native.plans.restoreFailed': 'Kami tidak dapat memulihkan TREK Anda. Silakan coba lagi.',
-  'native.plans.legal': 'Pembayaran ditagihkan ke Apple ID Anda saat konfirmasi. Langganan diperpanjang otomatis kecuali dibatalkan setidaknya 24 jam sebelum periode berakhir. Kelola atau batalkan di pengaturan akun App Store Anda.',
+  'native.plans.legal':
+    'Pembayaran ditagihkan ke Apple ID Anda saat konfirmasi. Langganan diperpanjang otomatis kecuali dibatalkan setidaknya 24 jam sebelum periode berakhir. Kelola atau batalkan di pengaturan akun App Store Anda.',
   'native.plans.terms': 'Ketentuan penggunaan',
   'native.claim.pending': 'Pembelian Anda menunggu persetujuan. Setelah selesai, ketuk Pulihkan pembelian.',
   'native.provisioning.title': 'Menyiapkan TREK Anda',

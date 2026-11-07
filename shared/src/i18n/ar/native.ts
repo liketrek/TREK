@@ -70,7 +70,8 @@ const native: TranslationStrings = {
   'native.plans.restoring': 'جارٍ التحقق من مشترياتك…',
   'native.plans.restoreNone': 'لم يُعثر على اشتراك نشط لمعرّف Apple هذا.',
   'native.plans.restoreFailed': 'تعذّرت استعادة TREK الخاص بك. حاول مرة أخرى.',
-  'native.plans.legal': 'يُخصم المبلغ من معرّف Apple عند التأكيد. يتجدد الاشتراك تلقائيًا ما لم تلغه قبل 24 ساعة على الأقل من نهاية الفترة. يمكنك إدارته أو إلغاؤه من إعدادات حسابك في App Store.',
+  'native.plans.legal':
+    'يُخصم المبلغ من معرّف Apple عند التأكيد. يتجدد الاشتراك تلقائيًا ما لم تلغه قبل 24 ساعة على الأقل من نهاية الفترة. يمكنك إدارته أو إلغاؤه من إعدادات حسابك في App Store.',
   'native.plans.terms': 'شروط الاستخدام',
   'native.claim.pending': 'عملية الشراء بانتظار الموافقة. عند اكتمالها، اضغط على استعادة المشتريات.',
   'native.provisioning.title': 'جارٍ إعداد TREK الخاص بك',

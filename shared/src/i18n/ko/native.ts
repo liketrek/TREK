@@ -70,7 +70,8 @@ const native: TranslationStrings = {
   'native.plans.restoring': '구입 내역을 확인하는 중…',
   'native.plans.restoreNone': '이 Apple ID에서 활성 구독을 찾을 수 없습니다.',
   'native.plans.restoreFailed': 'TREK을 복원하지 못했습니다. 다시 시도하세요.',
-  'native.plans.legal': '결제는 확인 시 Apple ID로 청구됩니다. 기간 종료 최소 24시간 전에 해지하지 않으면 구독이 자동으로 갱신됩니다. App Store 계정 설정에서 관리하거나 해지할 수 있습니다.',
+  'native.plans.legal':
+    '결제는 확인 시 Apple ID로 청구됩니다. 기간 종료 최소 24시간 전에 해지하지 않으면 구독이 자동으로 갱신됩니다. App Store 계정 설정에서 관리하거나 해지할 수 있습니다.',
   'native.plans.terms': '이용 약관',
   'native.claim.pending': '구입이 승인을 기다리고 있습니다. 완료되면 구입 내역 복원을 탭하세요.',
   'native.provisioning.title': 'TREK 준비 중',

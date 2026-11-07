@@ -72,7 +72,8 @@ const native: TranslationStrings = {
   'native.plans.restoring': 'Comprobando tus compras…',
   'native.plans.restoreNone': 'No se encontró ninguna suscripción activa en este ID de Apple.',
   'native.plans.restoreFailed': 'No pudimos restaurar tu TREK. Inténtalo de nuevo.',
-  'native.plans.legal': 'El pago se cobra a tu ID de Apple al confirmar. La suscripción se renueva automáticamente salvo que la canceles al menos 24 horas antes de que termine el periodo. Gestiónala o cancélala en los ajustes de tu cuenta del App Store.',
+  'native.plans.legal':
+    'El pago se cobra a tu ID de Apple al confirmar. La suscripción se renueva automáticamente salvo que la canceles al menos 24 horas antes de que termine el periodo. Gestiónala o cancélala en los ajustes de tu cuenta del App Store.',
   'native.plans.terms': 'Términos de uso',
   'native.claim.pending': 'Tu compra está pendiente de aprobación. Cuando se complete, toca Restaurar compras.',
   'native.provisioning.title': 'Preparando tu TREK',

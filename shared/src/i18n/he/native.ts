@@ -70,7 +70,8 @@ const native: TranslationStrings = {
   'native.plans.restoring': 'בודקים את הרכישות שלך…',
   'native.plans.restoreNone': 'לא נמצא מינוי פעיל עבור Apple ID זה.',
   'native.plans.restoreFailed': 'לא הצלחנו לשחזר את ה-TREK שלך. אנא נסו שוב.',
-  'native.plans.legal': 'התשלום מחויב ב-Apple ID שלך בעת האישור. המינוי מתחדש אוטומטית אלא אם מבטלים אותו לפחות 24 שעות לפני סוף התקופה. אפשר לנהל או לבטל אותו בהגדרות חשבון ה-App Store.',
+  'native.plans.legal':
+    'התשלום מחויב ב-Apple ID שלך בעת האישור. המינוי מתחדש אוטומטית אלא אם מבטלים אותו לפחות 24 שעות לפני סוף התקופה. אפשר לנהל או לבטל אותו בהגדרות חשבון ה-App Store.',
   'native.plans.terms': 'תנאי שימוש',
   'native.claim.pending': 'הרכישה שלך ממתינה לאישור. כשהיא תושלם, הקישו על שחזור רכישות.',
   'native.provisioning.title': 'מכינים את ה-TREK שלכם',

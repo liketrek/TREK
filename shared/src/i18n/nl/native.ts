@@ -71,7 +71,8 @@ const native: TranslationStrings = {
   'native.plans.restoring': 'Je aankopen worden gecontroleerd…',
   'native.plans.restoreNone': 'Geen actief abonnement gevonden voor deze Apple ID.',
   'native.plans.restoreFailed': 'We konden je TREK niet herstellen. Probeer het opnieuw.',
-  'native.plans.legal': 'De betaling wordt bij bevestiging via je Apple ID afgeschreven. Het abonnement wordt automatisch verlengd, tenzij je het minstens 24 uur voor het einde van de periode opzegt. Beheer of annuleer het in de instellingen van je App Store-account.',
+  'native.plans.legal':
+    'De betaling wordt bij bevestiging via je Apple ID afgeschreven. Het abonnement wordt automatisch verlengd, tenzij je het minstens 24 uur voor het einde van de periode opzegt. Beheer of annuleer het in de instellingen van je App Store-account.',
   'native.plans.terms': 'Gebruiksvoorwaarden',
   'native.claim.pending': 'Je aankoop wacht op goedkeuring. Zodra die rond is, tik je op Aankopen herstellen.',
   'native.provisioning.title': 'Je TREK wordt klaargezet',

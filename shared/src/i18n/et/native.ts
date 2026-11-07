@@ -71,7 +71,8 @@ const native: TranslationStrings = {
   'native.plans.restoring': 'Kontrollime sinu oste…',
   'native.plans.restoreNone': 'Selle Apple ID jaoks ei leitud aktiivset tellimust.',
   'native.plans.restoreFailed': 'Me ei saanud sinu TREK-i taastada. Proovi uuesti.',
-  'native.plans.legal': 'Makse võetakse kinnitamisel sinu Apple ID-lt. Tellimus pikeneb automaatselt, kui sa ei tühista seda vähemalt 24 tundi enne perioodi lõppu. Halda või tühista seda oma App Store’i konto seadetes.',
+  'native.plans.legal':
+    'Makse võetakse kinnitamisel sinu Apple ID-lt. Tellimus pikeneb automaatselt, kui sa ei tühista seda vähemalt 24 tundi enne perioodi lõppu. Halda või tühista seda oma App Store’i konto seadetes.',
   'native.plans.terms': 'Kasutustingimused',
   'native.claim.pending': 'Sinu ost ootab kinnitust. Kui see on läbi, puuduta Taasta ostud.',
   'native.provisioning.title': 'Seadistame sinu TREK-i',

@@ -71,7 +71,8 @@ const native: TranslationStrings = {
   'native.plans.restoring': 'Checking your purchases…',
   'native.plans.restoreNone': 'No active subscription found on this Apple ID.',
   'native.plans.restoreFailed': 'We could not restore your TREK. Please try again.',
-  'native.plans.legal': 'Payment is charged to your Apple ID when you confirm. The subscription renews automatically unless you cancel it at least 24 hours before the period ends. Manage or cancel it in your App Store account settings.',
+  'native.plans.legal':
+    'Payment is charged to your Apple ID when you confirm. The subscription renews automatically unless you cancel it at least 24 hours before the period ends. Manage or cancel it in your App Store account settings.',
   'native.plans.terms': 'Terms of use',
   'native.claim.pending': 'Your purchase is waiting for approval. Once it goes through, tap Restore purchases.',
   'native.provisioning.title': 'Setting up your TREK',

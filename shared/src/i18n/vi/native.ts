@@ -72,7 +72,8 @@ const native: TranslationStrings = {
   'native.plans.restoring': 'Đang kiểm tra giao dịch mua của bạn…',
   'native.plans.restoreNone': 'Không tìm thấy gói đăng ký đang hoạt động cho Apple ID này.',
   'native.plans.restoreFailed': 'Chúng tôi không thể khôi phục TREK của bạn. Vui lòng thử lại.',
-  'native.plans.legal': 'Khoản thanh toán được tính vào Apple ID của bạn khi xác nhận. Gói đăng ký tự động gia hạn trừ khi bạn hủy ít nhất 24 giờ trước khi kỳ hạn kết thúc. Quản lý hoặc hủy trong cài đặt tài khoản App Store của bạn.',
+  'native.plans.legal':
+    'Khoản thanh toán được tính vào Apple ID của bạn khi xác nhận. Gói đăng ký tự động gia hạn trừ khi bạn hủy ít nhất 24 giờ trước khi kỳ hạn kết thúc. Quản lý hoặc hủy trong cài đặt tài khoản App Store của bạn.',
   'native.plans.terms': 'Điều khoản sử dụng',
   'native.claim.pending': 'Giao dịch mua của bạn đang chờ phê duyệt. Khi hoàn tất, hãy chạm Khôi phục giao dịch mua.',
   'native.provisioning.title': 'Đang thiết lập TREK của bạn',

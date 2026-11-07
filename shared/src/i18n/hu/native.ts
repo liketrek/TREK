@@ -72,7 +72,8 @@ const native: TranslationStrings = {
   'native.plans.restoring': 'Vásárlásaid ellenőrzése…',
   'native.plans.restoreNone': 'Ehhez az Apple ID-hoz nem található aktív előfizetés.',
   'native.plans.restoreFailed': 'Nem sikerült visszaállítani a TREK-edet. Próbáld újra.',
-  'native.plans.legal': 'A fizetést megerősítéskor az Apple ID-d terheli. Az előfizetés automatikusan megújul, hacsak nem mondod le legalább 24 órával az időszak vége előtt. Kezelni vagy lemondani az App Store-fiókod beállításaiban tudod.',
+  'native.plans.legal':
+    'A fizetést megerősítéskor az Apple ID-d terheli. Az előfizetés automatikusan megújul, hacsak nem mondod le legalább 24 órával az időszak vége előtt. Kezelni vagy lemondani az App Store-fiókod beállításaiban tudod.',
   'native.plans.terms': 'Felhasználási feltételek',
   'native.claim.pending': 'A vásárlásod jóváhagyásra vár. Ha teljesült, koppints a Vásárlások visszaállítása gombra.',
   'native.provisioning.title': 'A TREK-edet állítjuk be',

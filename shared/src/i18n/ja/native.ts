@@ -71,7 +71,8 @@ const native: TranslationStrings = {
   'native.plans.restoring': '購入を確認しています…',
   'native.plans.restoreNone': 'このApple IDに有効なサブスクリプションは見つかりませんでした。',
   'native.plans.restoreFailed': 'TREKを復元できませんでした。もう一度お試しください。',
-  'native.plans.legal': 'お支払いは確認時にApple IDに請求されます。期間終了の24時間前までに解約しない限り、サブスクリプションは自動更新されます。管理や解約はApp Storeのアカウント設定から行えます。',
+  'native.plans.legal':
+    'お支払いは確認時にApple IDに請求されます。期間終了の24時間前までに解約しない限り、サブスクリプションは自動更新されます。管理や解約はApp Storeのアカウント設定から行えます。',
   'native.plans.terms': '利用規約',
   'native.claim.pending': '購入は承認待ちです。完了したら「購入を復元」をタップしてください。',
   'native.provisioning.title': 'TREKを準備中',

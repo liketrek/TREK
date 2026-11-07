@@ -71,7 +71,8 @@ const native: TranslationStrings = {
   'native.plans.restoring': 'Alışlarınız yoxlanılır…',
   'native.plans.restoreNone': 'Bu Apple ID üçün aktiv abunə tapılmadı.',
   'native.plans.restoreFailed': 'TREK-inizi bərpa edə bilmədik. Zəhmət olmasa yenidən cəhd edin.',
-  'native.plans.legal': 'Ödəniş təsdiq zamanı Apple ID-nizdən tutulur. Dövrün bitməsinə ən azı 24 saat qalmış ləğv etməsəniz, abunə avtomatik yenilənir. Onu App Store hesab ayarlarınızda idarə edə və ya ləğv edə bilərsiniz.',
+  'native.plans.legal':
+    'Ödəniş təsdiq zamanı Apple ID-nizdən tutulur. Dövrün bitməsinə ən azı 24 saat qalmış ləğv etməsəniz, abunə avtomatik yenilənir. Onu App Store hesab ayarlarınızda idarə edə və ya ləğv edə bilərsiniz.',
   'native.plans.terms': 'İstifadə şərtləri',
   'native.claim.pending': 'Alışınız təsdiq gözləyir. Tamamlandıqdan sonra Alışları bərpa et düyməsinə toxunun.',
   'native.provisioning.title': 'TREK-iniz hazırlanır',

@@ -71,7 +71,8 @@ const native: TranslationStrings = {
   'native.plans.restoring': 'Kontrolujeme vaše nákupy…',
   'native.plans.restoreNone': 'Pre toto Apple ID sa nenašlo žiadne aktívne predplatné.',
   'native.plans.restoreFailed': 'Váš TREK sa nepodarilo obnoviť. Skúste to znova.',
-  'native.plans.legal': 'Platba sa strhne z vášho Apple ID pri potvrdení. Predplatné sa automaticky obnovuje, ak ho nezrušíte aspoň 24 hodín pred koncom obdobia. Spravovať alebo zrušiť ho môžete v nastaveniach účtu App Store.',
+  'native.plans.legal':
+    'Platba sa strhne z vášho Apple ID pri potvrdení. Predplatné sa automaticky obnovuje, ak ho nezrušíte aspoň 24 hodín pred koncom obdobia. Spravovať alebo zrušiť ho môžete v nastaveniach účtu App Store.',
   'native.plans.terms': 'Podmienky používania',
   'native.claim.pending': 'Váš nákup čaká na schválenie. Keď prejde, ťuknite na Obnoviť nákupy.',
   'native.provisioning.title': 'Pripravujeme váš TREK',

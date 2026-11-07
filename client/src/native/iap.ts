@@ -30,10 +30,7 @@ export interface Purchase {
  * which a restore picks up once it goes through.
  */
 type PurchaseOutcome =
-  | { kind: 'bought'; purchase: Purchase }
-  | { kind: 'cancelled' }
-  | { kind: 'pending' }
-  | { kind: 'failed' };
+  { kind: 'bought'; purchase: Purchase } | { kind: 'cancelled' } | { kind: 'pending' } | { kind: 'failed' };
 
 export interface IapClient {
   /** Whether this build can take a payment. */
