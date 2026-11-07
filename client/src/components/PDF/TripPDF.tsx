@@ -610,8 +610,13 @@ export async function downloadTripPDF({ trip, days, places, assignments: allStor
 <meta charset="UTF-8">
 <base href="${window.location.origin}/">
 <title>${escHtml(trip?.title || tr('pdf.travelPlan'))}</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <style>
+  /* Poppins from this server (client/public/fonts), never from Google: the print view
+     would otherwise send every reader's IP to Google's font servers. */
+  @font-face { font-family: 'Poppins'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/Poppins-Regular.ttf') format('truetype'); }
+  @font-face { font-family: 'Poppins'; font-style: italic; font-weight: 400; font-display: swap; src: url('/fonts/Poppins-Italic.ttf') format('truetype'); }
+  @font-face { font-family: 'Poppins'; font-style: normal; font-weight: 500; font-display: swap; src: url('/fonts/Poppins-Medium.ttf') format('truetype'); }
+  @font-face { font-family: 'Poppins'; font-style: normal; font-weight: 600 700; font-display: swap; src: url('/fonts/Poppins-Bold.ttf') format('truetype'); }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Poppins', sans-serif; background: #fff; color: #1e293b; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   svg { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
