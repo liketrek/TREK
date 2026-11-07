@@ -70,6 +70,19 @@ describe('DayPlan', () => {
     expect(screen.getByRole('alert').textContent).toBe('Could not change the order. Try again.');
   });
 
+  it('APPS-DAY-008: takes no second move while the first one saves', async () => {
+    let finish: (saved: boolean) => void = () => undefined;
+    const onReorder = vi.fn(() => new Promise<boolean>((resolve) => (finish = resolve)));
+    render(<DayPlan data={plan([stop(1), stop(2), stop(3)])} locale="en" t={t} onReorder={onReorder} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Move down: Stop 1' }));
+    expect(screen.getByRole('button', { name: 'Move down: Stop 2' }).hasAttribute('disabled')).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Move down: Stop 2' }));
+    expect(onReorder).toHaveBeenCalledTimes(1);
+    await act(async () => finish(false));
+    expect(names()).toEqual(['Stop 1', 'Stop 2', 'Stop 3']);
+    expect(screen.getByRole('button', { name: 'Move down: Stop 2' }).hasAttribute('disabled')).toBe(false);
+  });
+
   it('APPS-DAY-005: says so when the result is not a day plan', () => {
     render(<DayPlan data={{ stops: 'no' }} locale="en" t={t} onReorder={vi.fn()} />);
     expect(screen.getByText('Something went wrong. Try again.')).toBeTruthy();

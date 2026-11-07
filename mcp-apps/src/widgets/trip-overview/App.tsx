@@ -1,3 +1,4 @@
+import { hostActions } from '../../lib/host';
 import { useTrekApp } from '../../lib/useTrekApp';
 import { WidgetState } from '../../lib/WidgetState';
 import { TripOverview } from './TripOverview';
@@ -14,12 +15,14 @@ export function App() {
           appUrl={result.appUrl}
           locale={locale}
           t={t}
-          onOpen={(url) => void app?.openLink({ url })}
+          onOpen={hostActions(app).open}
           onShowDay={(_day, reference) =>
-            void app?.sendMessage({
-              role: 'user',
-              content: [{ type: 'text', text: t('mcpApps.overview.askDay').replace('{day}', reference) }],
-            })
+            void app
+              ?.sendMessage({
+                role: 'user',
+                content: [{ type: 'text', text: t('mcpApps.overview.askDay', { day: reference }) }],
+              })
+              .catch(() => undefined)
           }
         />
       )}

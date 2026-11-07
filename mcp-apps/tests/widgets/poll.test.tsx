@@ -79,6 +79,18 @@ describe('Polls', () => {
     expect(screen.getByRole('alert').textContent).toBe('Could not save your vote. Try again.');
   });
 
+  it('APPS-POLL-008: a vote out on one poll leaves the other poll open to a vote', async () => {
+    let finish: (answer: Poll | null) => void = () => undefined;
+    const onVote = vi.fn(() => new Promise<Poll | null>((resolve) => (finish = resolve)));
+    render(<Polls data={{ polls: [poll(2), poll(3, { question: 'Second?' })] }} locale="en" t={t} onVote={onVote} />);
+    const [first, second] = screen.getAllByRole('button', { name: /Porto/ });
+    fireEvent.click(first);
+    expect(first.hasAttribute('disabled')).toBe(true);
+    expect(second.hasAttribute('disabled')).toBe(false);
+    await act(async () => finish(null));
+    expect(first.hasAttribute('disabled')).toBe(false);
+  });
+
   it('APPS-POLL-005: says so when there are no polls, and when the result is not one', () => {
     const { unmount } = render(<Polls data={{ polls: [] }} locale="en" t={t} onVote={vi.fn()} />);
     expect(screen.getByText('No polls yet')).toBeTruthy();

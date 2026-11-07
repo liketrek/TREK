@@ -1,3 +1,4 @@
+import { hostActions, readTrekTool } from '../../lib/host';
 import { useTrekApp } from '../../lib/useTrekApp';
 import { WidgetState } from '../../lib/WidgetState';
 import { TripMap } from './TripMap';
@@ -5,7 +6,8 @@ import { TripMap } from './TripMap';
 /** The map widget: get_trip_map's places, its further pages read through the host's own session. */
 export function App() {
   const state = useTrekApp('trip-map');
-  const { app, input, locale, t } = state;
+  const { app, input, displayMode, locale, t } = state;
+  const host = hostActions(app);
   return (
     <WidgetState state={state}>
       {(result) => (
@@ -13,23 +15,17 @@ export function App() {
           data={result.structuredContent}
           locale={locale}
           t={t}
+          fullscreen={displayMode === undefined ? undefined : displayMode === 'fullscreen'}
           loadPage={async (offset) => {
-            if (!app || typeof input?.tripId !== 'number') throw new Error('no trip to read');
-            const answer = await app.callServerTool({
-              name: 'get_trip_map',
-              arguments: { tripId: input.tripId, offset },
-            });
-            if (answer.isError) throw new Error('refused');
-            return answer.structuredContent;
+            if (typeof input?.tripId !== 'number') throw new Error('no trip to read');
+            return readTrekTool(app, 'get_trip_map', { tripId: input.tripId, offset });
           }}
-          // The place is the reader's own trip data; it goes to the model as context, never as their message.
+          // The place goes to the model by its id alone: any member of the trip may have named
+          // it, and that text must not reach the model as if it were an instruction.
           onSelect={(place) =>
-            void app?.updateModelContext({ structuredContent: { selectedPlace: { id: place.id, name: place.name } } })
+            void app?.updateModelContext({ structuredContent: { selectedPlaceId: place.id } }).catch(() => undefined)
           }
-          onExpand={async () => {
-            const granted = await app?.requestDisplayMode({ mode: 'fullscreen' }).catch(() => null);
-            return granted?.mode === 'fullscreen';
-          }}
+          onExpand={host.expand}
         />
       )}
     </WidgetState>

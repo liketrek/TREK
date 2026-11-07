@@ -1,3 +1,4 @@
+import { hostActions, trekToolSucceeded } from '../../lib/host';
 import { useTrekApp } from '../../lib/useTrekApp';
 import { WidgetState } from '../../lib/WidgetState';
 import { PackingList } from './PackingList';
@@ -10,6 +11,7 @@ import { PackingList } from './PackingList';
 export function App() {
   const state = useTrekApp('packing');
   const { app, locale, t } = state;
+  const host = hostActions(app);
   return (
     <WidgetState state={state}>
       {(result) => (
@@ -18,21 +20,12 @@ export function App() {
           appUrl={result.appUrl}
           locale={locale}
           t={t}
-          onOpen={(url) => void app?.openLink({ url })}
+          onOpen={host.open}
           // A host without a fullscreen mode refuses; the list then unfolds where it is.
-          onExpand={() => void app?.requestDisplayMode({ mode: 'fullscreen' }).catch(() => undefined)}
-          onToggle={async (item, checked) => {
-            if (!app) return false;
-            try {
-              const answer = await app.callServerTool({
-                name: 'toggle_packing_item',
-                arguments: { tripId: item.trip_id, itemId: item.id, checked },
-              });
-              return !answer.isError;
-            } catch {
-              return false;
-            }
-          }}
+          onExpand={() => void host.expand()}
+          onToggle={(item, checked) =>
+            trekToolSucceeded(app, 'toggle_packing_item', { tripId: item.trip_id, itemId: item.id, checked })
+          }
         />
       )}
     </WidgetState>

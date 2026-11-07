@@ -17,7 +17,7 @@ interface PersonRow {
 
 interface BudgetData {
   currency: string;
-  total: number | null;
+  total: number;
   categories: CategoryRow[] | null;
   people: PersonRow[] | null;
 }

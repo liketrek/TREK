@@ -2,6 +2,7 @@ import { listTodosOutputSchema, type ListTodosOutput } from '@trek/shared/mcp-ap
 import { Checklist, useChecklist } from '../../lib/Checklist';
 import { formatDateRange } from '../../lib/format';
 import type { Translate } from '../../lib/i18n';
+import { WidgetHeader } from '../../lib/WidgetState';
 
 type Todo = ListTodosOutput['items'][number];
 
@@ -27,16 +28,11 @@ export function Todos({ data, locale, t, onToggle }: TodosProps) {
   const number = new Intl.NumberFormat(locale);
   return (
     <section className="trek-widget" aria-labelledby="todos-title">
-      <header className="trek-header">
-        <div className="trek-header__text">
-          <h1 id="todos-title" className="trek-header__title">
-            {t('mcpApps.todos.title')}
-          </h1>
-          <p className="trek-muted trek-header__subtitle">
-            {t('mcpApps.todos.done')}: {number.format(done)} / {number.format(items.length)}
-          </p>
-        </div>
-      </header>
+      <WidgetHeader
+        id="todos-title"
+        title={t('mcpApps.todos.title')}
+        subtitle={`${t('mcpApps.todos.done')}: ${number.format(done)} / ${number.format(items.length)}`}
+      />
       {items.length === 0 ? (
         <p className="trek-muted">{t('mcpApps.todos.empty')}</p>
       ) : (

@@ -35,13 +35,25 @@ export function trekLanguage(hostLocale: string | undefined): string {
   return candidates.find((code): code is string => !!code && code in STRINGS) ?? 'en';
 }
 
-export type Translate = (key: string) => string;
+/** A string's `{name}` placeholders and what each stands for. */
+export type TranslateVars = Record<string, string | number>;
+
+export type Translate = (key: string, vars?: TranslateVars) => string;
+
+/**
+ * Fills `{name}` placeholders. A replacer function, not a replacement string,
+ * so a value holding `$&` or `$1` is written as it is.
+ */
+export function interpolate(text: string, vars: TranslateVars | undefined): string {
+  if (!vars) return text;
+  return text.replace(/\{(\w+)\}/g, (match, name: string) => (name in vars ? String(vars[name]) : match));
+}
 
 /** A lookup for one language that falls back to English, then to the key itself. */
 export function translator(language: string): Translate {
   const strings = STRINGS[language] ?? {};
   const english = STRINGS.en ?? {};
-  return (key) => strings[key] ?? english[key] ?? key;
+  return (key, vars) => interpolate(strings[key] ?? english[key] ?? key, vars);
 }
 
 /** Whether the language reads right to left. */

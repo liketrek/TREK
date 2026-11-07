@@ -148,6 +148,26 @@ describe('TripMap', () => {
     expect(screen.getByText('Places on the map: 3')).toBeTruthy();
   });
 
+  it('APPS-MAP-011: follows the host out of fullscreen, and draws only the markers in view', () => {
+    const props = {
+      data: page([place(1, 38.7, -9.15), place(2, -33.9, 151.2)]),
+      locale: 'en',
+      t,
+      loadPage: vi.fn(),
+      onSelect: vi.fn(),
+      onExpand: vi.fn(async () => true),
+    };
+    const { rerender } = render(<TripMap {...props} fullscreen />);
+    expect(document.querySelector('.map__box--full')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Full screen' })).toBeNull();
+    rerender(<TripMap {...props} fullscreen={false} />);
+    expect(document.querySelector('.map__box--full')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Full screen' })).toBeTruthy();
+    // Lisbon and Sydney do not fit one box: zoomed in on Lisbon, Sydney's marker is not drawn.
+    for (let step = 0; step < 12; step += 1) fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
+    expect(screen.queryAllByRole('button', { name: /^Place / }).length).toBeLessThan(2);
+  });
+
   it('APPS-MAP-008: goes full screen when the host allows it, and says when there is nothing to show', async () => {
     const onExpand = vi.fn(async () => true);
     const { unmount } = render(
@@ -204,9 +224,7 @@ describe('trip-map App', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Place 2' })).toBeTruthy());
     expect(callServerTool).toHaveBeenCalledWith({ name: 'get_trip_map', arguments: { tripId: 4, offset: 1 } });
     fireEvent.click(screen.getByRole('button', { name: 'Place 1' }));
-    expect(updateModelContext).toHaveBeenCalledWith({
-      structuredContent: { selectedPlace: { id: 1, name: 'Place 1' } },
-    });
+    expect(updateModelContext).toHaveBeenCalledWith({ structuredContent: { selectedPlaceId: 1 } });
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Full screen' })));
     expect(document.querySelector('.map__box--full')).toBeTruthy();
   });

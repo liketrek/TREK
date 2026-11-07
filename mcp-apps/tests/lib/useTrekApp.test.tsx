@@ -53,7 +53,7 @@ describe('useTrekApp', () => {
     act(() => fakeApp.ontoolinput?.({ arguments: { tripId: 4 } }));
     expect(result.current.input).toEqual({ tripId: 4 });
     act(() => fakeApp.ontoolresult?.({ content: [], structuredContent: { trips: [] } }));
-    expect(result.current.result).toEqual({ structuredContent: { trips: [] }, appUrl: null });
+    expect(result.current.result).toEqual({ structuredContent: { trips: [] }, appUrl: null, version: 1 });
   });
 
   it('APPS-HOOK-004: follows a locale change and sets the reading direction', () => {
@@ -62,6 +62,20 @@ describe('useTrekApp', () => {
     expect(result.current.locale).toBe('ar');
     expect(document.documentElement.dir).toBe('rtl');
     expect(document.documentElement.lang).toBe('ar');
+  });
+});
+
+describe('a fresh result and the host display mode', () => {
+  it('APPS-HOOK-005: counts each result handed over, and follows the display mode the host reports', () => {
+    const { result } = renderHook(() => useTrekApp('test'));
+    expect(result.current.displayMode).toBeUndefined();
+    act(() => fakeApp.ontoolresult?.({ content: [], structuredContent: { a: 1 } }));
+    act(() => fakeApp.ontoolresult?.({ content: [], structuredContent: { a: 2 } }));
+    expect(result.current.result).toMatchObject({ structuredContent: { a: 2 }, version: 2 });
+    act(() => fakeApp.onhostcontextchanged?.({ displayMode: 'fullscreen' }));
+    expect(result.current.displayMode).toBe('fullscreen');
+    act(() => fakeApp.onhostcontextchanged?.({ displayMode: 'inline' }));
+    expect(result.current.displayMode).toBe('inline');
   });
 });
 

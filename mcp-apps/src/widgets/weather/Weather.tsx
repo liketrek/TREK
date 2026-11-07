@@ -35,7 +35,16 @@ export function Weather({ data, input, locale, t }: WeatherProps) {
         ? null
         : new Intl.NumberFormat(locale, { style: 'percent' }).format(weather.precipitation_probability_max / 100),
     ],
-    [t('mcpApps.weather.wind'), weather.wind_max == null ? null : `${Math.round(weather.wind_max)} km/h`],
+    [
+      t('mcpApps.weather.wind'),
+      weather.wind_max == null
+        ? null
+        : new Intl.NumberFormat(locale, {
+            style: 'unit',
+            unit: 'kilometer-per-hour',
+            maximumFractionDigits: 0,
+          }).format(weather.wind_max),
+    ],
     [t('mcpApps.weather.sunrise'), formatClock(weather.sunrise, locale)],
     [t('mcpApps.weather.sunset'), formatClock(weather.sunset, locale)],
   ];

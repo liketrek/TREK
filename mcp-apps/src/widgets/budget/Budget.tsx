@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Translate } from '../../lib/i18n';
+import { SegmentedButtons, WidgetHeader } from '../../lib/WidgetState';
 import { categoriesOf, formatMoney, peopleOf, type BudgetView } from './budgetModel';
 import './budget.css';
 
@@ -41,31 +42,21 @@ export function Budget({ data, locale, t, loadOther }: BudgetProps) {
 
   return (
     <section className="trek-widget" aria-labelledby="budget-title">
-      <header className="trek-header">
-        <div className="trek-header__text">
-          <h1 id="budget-title" className="trek-header__title">
-            {t('mcpApps.budget.title')}
-          </h1>
-          {categories ? (
-            <p className="trek-muted trek-header__subtitle">
-              {t('mcpApps.budget.total')}: {money(categories.total ?? 0)}
-            </p>
-          ) : null}
-        </div>
-      </header>
-      <div role="group" aria-label={t('mcpApps.budget.title')} className="budget__tabs">
-        {(['category', 'person'] as const).map((option) => (
-          <button
-            key={option}
-            type="button"
-            aria-pressed={view === option}
-            className="trek-button trek-hit"
-            onClick={() => void show(option)}
-          >
-            {option === 'category' ? t('mcpApps.budget.byCategory') : t('mcpApps.budget.byPerson')}
-          </button>
-        ))}
-      </div>
+      <WidgetHeader
+        id="budget-title"
+        title={t('mcpApps.budget.title')}
+        subtitle={categories ? `${t('mcpApps.budget.total')}: ${money(categories.total)}` : null}
+      />
+      <SegmentedButtons
+        label={t('mcpApps.budget.title')}
+        options={[
+          ['category', t('mcpApps.budget.byCategory')],
+          ['person', t('mcpApps.budget.byPerson')],
+        ]}
+        value={view}
+        onChange={(option) => void show(option)}
+        className="budget__tabs"
+      />
       {failed ? <p className="trek-muted">{t('mcpApps.error')}</p> : null}
       {view === 'category' && categories?.categories ? (
         categories.categories.length === 0 ? (

@@ -16,13 +16,18 @@ export interface PollsProps {
 function usePolls(initial: Poll[], onVote: PollsProps['onVote']) {
   const [updated, setUpdated] = useState<ReadonlyMap<number, Poll>>(new Map());
   const [failed, setFailed] = useState(false);
-  const [busy, setBusy] = useState<number | null>(null);
+  // The polls with a vote out, by id: a vote on one poll leaves another's buttons as they are.
+  const [busy, setBusy] = useState<ReadonlySet<number>>(new Set());
   const polls = orderPolls(initial.map((poll) => updated.get(poll.id) ?? poll));
   const vote = async (poll: Poll, optionIndex: number) => {
     setFailed(false);
-    setBusy(poll.id);
+    setBusy((previous) => new Set(previous).add(poll.id));
     const next = await onVote(poll, optionIndex);
-    setBusy(null);
+    setBusy((previous) => {
+      const rest = new Set(previous);
+      rest.delete(poll.id);
+      return rest;
+    });
     if (next) setUpdated((previous) => new Map(previous).set(next.id, next));
     else setFailed(true);
   };
@@ -61,7 +66,7 @@ export function Polls({ data, locale, t, onVote }: PollsProps) {
                       <button
                         type="button"
                         className="poll__option trek-hit"
-                        disabled={poll.is_closed || busy === poll.id}
+                        disabled={poll.is_closed || busy.has(poll.id)}
                         onClick={() => void vote(poll, index)}
                       >
                         <span

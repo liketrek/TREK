@@ -1,3 +1,4 @@
+import { hostActions } from '../../lib/host';
 import { useTrekApp } from '../../lib/useTrekApp';
 import { WidgetState } from '../../lib/WidgetState';
 import { TripList } from './TripList';
@@ -14,12 +15,16 @@ export function App() {
           appUrl={result.appUrl}
           locale={locale}
           t={t}
-          onOpen={(url) => void app?.openLink({ url })}
+          onOpen={hostActions(app).open}
+          // The trip goes to the model by its id alone: its title is a traveller's text, and it
+          // must not reach the model as if it were an instruction.
           onSelect={(trip) =>
-            void app?.updateModelContext({
-              content: [{ type: 'text', text: `The user picked the trip "${trip.title}" (tripId ${trip.id}).` }],
-              structuredContent: { tripId: trip.id, title: trip.title },
-            })
+            void app
+              ?.updateModelContext({
+                content: [{ type: 'text', text: `The user picked the trip with tripId ${trip.id}.` }],
+                structuredContent: { tripId: trip.id },
+              })
+              .catch(() => undefined)
           }
         />
       )}

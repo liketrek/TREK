@@ -42,8 +42,10 @@ describe('trip-list App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open in TREK' }));
     expect(openLink).toHaveBeenCalledWith({ url: 'https://trek.example/trips/3' });
     fireEvent.click(screen.getByRole('button', { name: 'Ask about this trip' }));
-    expect(updateModelContext).toHaveBeenCalledWith(
-      expect.objectContaining({ structuredContent: { tripId: 3, title: 'Lisbon' } })
-    );
+    // The trip by its id alone: its title is a traveller's text, not an instruction.
+    expect(updateModelContext).toHaveBeenCalledWith({
+      content: [{ type: 'text', text: 'The user picked the trip with tripId 3.' }],
+      structuredContent: { tripId: 3 },
+    });
   });
 });

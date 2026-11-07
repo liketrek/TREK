@@ -44,11 +44,10 @@ export function TripOverview({ data, appUrl, locale, t, onOpen, onShowDay }: Tri
   return (
     <section className="trek-widget" aria-labelledby="overview-title">
       <WidgetHeader
+        id="overview-title"
         title={trip.title}
         subtitle={formatDateRange(trip.start_date, trip.end_date, locale) ?? t('mcpApps.noDates')}
-        href={appUrl ? `${appUrl}/trips/${trip.id}` : null}
-        openLabel={t('mcpApps.openInTrek')}
-        onOpen={onOpen}
+        link={{ href: appUrl ? `${appUrl}/trips/${trip.id}` : null, label: t('mcpApps.openInTrek'), onOpen }}
       />
       <dl className="overview__stats">
         {stats.map(([label, count]) => (

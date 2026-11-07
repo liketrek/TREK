@@ -1,3 +1,4 @@
+import { trekToolSucceeded } from '../../lib/host';
 import { useTrekApp } from '../../lib/useTrekApp';
 import { WidgetState } from '../../lib/WidgetState';
 import { Todos } from './Todos';
@@ -13,18 +14,9 @@ export function App() {
           data={result.structuredContent}
           locale={locale}
           t={t}
-          onToggle={async (todo, checked) => {
-            if (!app) return false;
-            try {
-              const answer = await app.callServerTool({
-                name: 'toggle_todo',
-                arguments: { tripId: todo.trip_id, itemId: todo.id, checked },
-              });
-              return !answer.isError;
-            } catch {
-              return false;
-            }
-          }}
+          onToggle={(todo, checked) =>
+            trekToolSucceeded(app, 'toggle_todo', { tripId: todo.trip_id, itemId: todo.id, checked })
+          }
         />
       )}
     </WidgetState>

@@ -2,6 +2,7 @@ import { dayPlanOutputSchema, type DayPlanStop } from '@trek/shared/mcp-apps';
 import { useState } from 'react';
 import { formatDateRange } from '../../lib/format';
 import type { Translate } from '../../lib/i18n';
+import { WidgetHeader } from '../../lib/WidgetState';
 import { moveEntry, timeSpan } from './dayPlanModel';
 import './day-plan.css';
 
@@ -17,37 +18,37 @@ export interface DayPlanProps {
 function useStopOrder(stops: DayPlanStop[], onReorder: (assignmentIds: number[]) => Promise<boolean>) {
   const [order, setOrder] = useState<number[] | null>(null);
   const [failed, setFailed] = useState(false);
+  // One move saves at a time: a refusal puts back the order before it, which a second
+  // move made meanwhile would otherwise lose.
+  const [saving, setSaving] = useState(false);
   const current = order ?? stops.map((stop) => stop.assignment_id);
   const move = async (index: number, step: -1 | 1) => {
+    if (saving) return;
     const next = moveEntry(current, index, step);
     setFailed(false);
+    setSaving(true);
     setOrder(next);
-    if (await onReorder(next)) return;
+    const saved = await onReorder(next);
+    setSaving(false);
+    if (saved) return;
     setOrder(current);
     setFailed(true);
   };
   const ordered = current.flatMap((id) => stops.filter((stop) => stop.assignment_id === id));
-  return { ordered, move, failed };
+  return { ordered, move, failed, saving };
 }
 
 /** get_day_plan's day as a numbered timeline; the arrows move a stop and save the order through the host. */
 export function DayPlan({ data, locale, t, onReorder }: DayPlanProps) {
   const parsed = dayPlanOutputSchema.safeParse(data);
-  const { ordered, move, failed } = useStopOrder(parsed.success ? parsed.data.stops : [], onReorder);
+  const { ordered, move, failed, saving } = useStopOrder(parsed.success ? parsed.data.stops : [], onReorder);
   if (!parsed.success) return <p className="trek-muted trek-state">{t('mcpApps.error')}</p>;
   const { day } = parsed.data;
-  const title = day.title || t('mcpApps.dayPlan.day').replace('{day}', String(day.day_number ?? ''));
+  const title = day.title || t('mcpApps.dayPlan.day', { day: day.day_number ?? '' });
   const date = formatDateRange(day.date, null, locale);
   return (
     <section className="trek-widget" aria-labelledby="day-title">
-      <header className="trek-header">
-        <div className="trek-header__text">
-          <h1 id="day-title" className="trek-header__title">
-            {title}
-          </h1>
-          {date ? <p className="trek-muted trek-header__subtitle">{date}</p> : null}
-        </div>
-      </header>
+      <WidgetHeader id="day-title" title={title} subtitle={date} />
       {failed ? (
         <p role="alert" className="trek-error">
           {t('mcpApps.dayPlan.reorderError')}
@@ -75,7 +76,7 @@ export function DayPlan({ data, locale, t, onReorder }: DayPlanProps) {
                     type="button"
                     className="trek-button trek-hit"
                     aria-label={`${t('mcpApps.dayPlan.moveUp')}: ${stop.name}`}
-                    disabled={index === 0}
+                    disabled={saving || index === 0}
                     onClick={() => void move(index, -1)}
                   >
                     ↑
@@ -84,7 +85,7 @@ export function DayPlan({ data, locale, t, onReorder }: DayPlanProps) {
                     type="button"
                     className="trek-button trek-hit"
                     aria-label={`${t('mcpApps.dayPlan.moveDown')}: ${stop.name}`}
-                    disabled={index === ordered.length - 1}
+                    disabled={saving || index === ordered.length - 1}
                     onClick={() => void move(index, 1)}
                   >
                     ↓

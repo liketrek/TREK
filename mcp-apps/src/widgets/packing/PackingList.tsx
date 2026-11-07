@@ -2,7 +2,7 @@ import { listPackingItemsOutputSchema } from '@trek/shared/mcp-apps';
 import { useState } from 'react';
 import { Checklist, useChecklist } from '../../lib/Checklist';
 import type { Translate } from '../../lib/i18n';
-import { WidgetHeader } from '../../lib/WidgetState';
+import { SegmentedButtons, WidgetHeader } from '../../lib/WidgetState';
 import { INLINE_ITEM_LIMIT, itemsInBag, type BagFilter, type PackingBag, type PackingItem } from './packingModel';
 import './packing.css';
 
@@ -39,11 +39,10 @@ export function PackingList({ data, appUrl, locale, t, onOpen, onToggle, onExpan
   return (
     <section className="trek-widget" aria-labelledby="packing-title">
       <WidgetHeader
+        id="packing-title"
         title={t('mcpApps.packing.title')}
         subtitle={`${t('mcpApps.packing.packed')}: ${number.format(packed)} / ${number.format(shown.length)}`}
-        href={appUrl && tripId ? `${appUrl}/trips/${tripId}` : null}
-        openLabel={t('mcpApps.openInTrek')}
-        onOpen={onOpen}
+        link={{ href: appUrl && tripId ? `${appUrl}/trips/${tripId}` : null, label: t('mcpApps.openInTrek'), onOpen }}
       />
       {bags.length > 0 ? <BagChips bags={bags} filter={filter} onChange={setFilter} t={t} /> : null}
       {shown.length === 0 ? (
@@ -88,24 +87,18 @@ function BagChips({
   onChange: (filter: BagFilter) => void;
   t: Translate;
 }) {
-  const options: Array<[BagFilter, string]> = [
+  const options: Array<readonly [BagFilter, string]> = [
     ['all', t('mcpApps.packing.all')],
-    ...bags.map((bag): [BagFilter, string] => [bag.id, bag.name]),
+    ...bags.map((bag) => [bag.id, bag.name] as const),
     ['none', t('mcpApps.packing.noBag')],
   ];
   return (
-    <div role="group" aria-label={t('mcpApps.packing.bags')} className="packing__chips">
-      {options.map(([value, label]) => (
-        <button
-          key={String(value)}
-          type="button"
-          aria-pressed={filter === value}
-          className="trek-button trek-hit"
-          onClick={() => onChange(value)}
-        >
-          {label}
-        </button>
-      ))}
-    </div>
+    <SegmentedButtons
+      label={t('mcpApps.packing.bags')}
+      options={options}
+      value={filter}
+      onChange={onChange}
+      className="packing__chips"
+    />
   );
 }

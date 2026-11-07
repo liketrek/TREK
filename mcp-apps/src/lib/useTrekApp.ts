@@ -9,6 +9,11 @@ export interface ToolResultState {
   structuredContent: unknown;
   /** The TREK address the tool result carried for links back into the app, or null. */
   appUrl: string | null;
+  /**
+   * Counts the results this widget was handed. A new one remounts the widget,
+   * so ticks, an order or pages read for the last result do not outlive it.
+   */
+  version?: number;
 }
 
 export interface TrekAppState {
@@ -17,6 +22,8 @@ export interface TrekAppState {
   /** The arguments the tool was called with, once the host sent them. */
   input: Record<string, unknown> | null;
   error: Error | null;
+  /** How the host draws the widget now; it changes when the host leaves fullscreen on its own. */
+  displayMode?: McpUiHostContext['displayMode'];
   locale: string;
   t: Translate;
 }
@@ -58,7 +65,8 @@ export function useTrekApp(name: string): TrekAppState {
     capabilities: { availableDisplayModes: [...DISPLAY_MODES] },
     onAppCreated: (created) => {
       created.ontoolinput = (params) => setInput(params.arguments ?? null);
-      created.ontoolresult = (params) => setResult(readToolResult(params));
+      created.ontoolresult = (params) =>
+        setResult((previous) => ({ ...readToolResult(params), version: (previous?.version ?? 0) + 1 }));
       created.onhostcontextchanged = (params) => setHostContext((previous) => ({ ...previous, ...params }));
     },
   });
@@ -73,5 +81,5 @@ export function useTrekApp(name: string): TrekAppState {
     document.documentElement.lang = locale;
     document.documentElement.dir = isRtl(language) ? 'rtl' : 'ltr';
   }, [locale, language]);
-  return { app, result, input, error, locale, t };
+  return { app, result, input, error, displayMode: context.displayMode, locale, t };
 }

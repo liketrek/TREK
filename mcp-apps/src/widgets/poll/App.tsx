@@ -1,3 +1,4 @@
+import { callTrekTool } from '../../lib/host';
 import { useTrekApp } from '../../lib/useTrekApp';
 import { WidgetState } from '../../lib/WidgetState';
 import { votedPoll } from './pollModel';
@@ -19,18 +20,13 @@ export function App() {
           locale={locale}
           t={t}
           onVote={async (poll, optionIndex) => {
-            if (!app) return null;
-            try {
-              const answer = await app.callServerTool({
-                name: 'vote_collab_poll',
-                arguments: { tripId: poll.trip_id, pollId: poll.id, optionIndex },
-              });
-              if (answer.isError) return null;
-              const text = answer.content.find((block) => block.type === 'text');
-              return votedPoll(text?.type === 'text' ? text.text : undefined);
-            } catch {
-              return null;
-            }
+            const answer = await callTrekTool(app, 'vote_collab_poll', {
+              tripId: poll.trip_id,
+              pollId: poll.id,
+              optionIndex,
+            });
+            const text = answer?.content.find((block) => block.type === 'text');
+            return answer ? votedPoll(text?.type === 'text' ? text.text : undefined) : null;
           }}
         />
       )}

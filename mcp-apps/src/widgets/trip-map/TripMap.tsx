@@ -1,6 +1,7 @@
 import { tripMapOutputSchema, type TripMapPlace } from '@trek/shared/mcp-apps';
 import { useEffect, useEffectEvent, useRef, useState, type PointerEvent } from 'react';
 import type { Translate } from '../../lib/i18n';
+import { WidgetHeader } from '../../lib/WidgetState';
 import { fitView, screenPoint, visibleTiles, zoomBy, type MapView } from './mapModel';
 import './trip-map.css';
 
@@ -8,6 +9,8 @@ import './trip-map.css';
 const MAX_EXTRA_PAGES = 9;
 /** The box the map assumes before the frame has a size, as an inline view does on its first paint. */
 const FALLBACK_SIZE = { width: 600, height: 320 };
+/** How far past the box edge a marker is still drawn, in pixels, so one does not pop in mid-drag. */
+const MARKER_MARGIN = 32;
 
 export interface TripMapProps {
   data: unknown;
@@ -19,6 +22,11 @@ export interface TripMapProps {
   onSelect: (place: TripMapPlace) => void;
   /** Asks the host for the whole screen; resolves whether it gave it. */
   onExpand: () => Promise<boolean>;
+  /**
+   * Whether the host draws the widget full screen, as its context last said;
+   * undefined when it never said, and the answer to onExpand stands instead.
+   */
+  fullscreen?: boolean;
 }
 
 /** The size of the map box, measured again when it goes full screen and on every window resize (a host resizes the frame). */
@@ -68,9 +76,11 @@ function useRemainingPages(first: number | null, loadPage: (offset: number) => P
  * extra origin. Drag to pan, buttons to zoom, a marker to tell the assistant
  * which place is meant.
  */
-export function TripMap({ data, locale, t, loadPage, onSelect, onExpand }: TripMapProps) {
+export function TripMap({ data, locale, t, loadPage, onSelect, onExpand, fullscreen }: TripMapProps) {
   const parsed = tripMapOutputSchema.safeParse(data);
-  const [full, setFull] = useState(false);
+  const [granted, setGranted] = useState(false);
+  // The host's own word wins, so leaving fullscreen from the host's side (Esc, its close button) is followed.
+  const full = fullscreen ?? granted;
   const box = useBoxSize(full);
   const more = useRemainingPages(parsed.success ? parsed.data.next_offset : null, loadPage);
   const [view, setView] = useState<MapView | null>(null);
@@ -99,21 +109,18 @@ export function TripMap({ data, locale, t, loadPage, onSelect, onExpand }: TripM
 
   return (
     <section className="trek-widget" aria-labelledby="map-title">
-      <header className="trek-header">
-        <div className="trek-header__text">
-          <h1 id="map-title" className="trek-header__title">
-            {t('mcpApps.map.title')}
-          </h1>
-          <p className="trek-muted trek-header__subtitle">
-            {t('mcpApps.map.count')}: {number.format(place_count)}
-          </p>
-        </div>
-        {full ? null : (
-          <button type="button" className="trek-button trek-hit" onClick={() => void onExpand().then(setFull)}>
-            {t('mcpApps.map.fullscreen')}
-          </button>
-        )}
-      </header>
+      <WidgetHeader
+        id="map-title"
+        title={t('mcpApps.map.title')}
+        subtitle={`${t('mcpApps.map.count')}: ${number.format(place_count)}`}
+        action={
+          full ? null : (
+            <button type="button" className="trek-button trek-hit" onClick={() => void onExpand().then(setGranted)}>
+              {t('mcpApps.map.fullscreen')}
+            </button>
+          )
+        }
+      />
       {places.length === 0 ? (
         <p className="trek-muted">{t('mcpApps.map.empty')}</p>
       ) : (
@@ -137,6 +144,14 @@ export function TripMap({ data, locale, t, loadPage, onSelect, onExpand }: TripM
           ))}
           {places.map((place) => {
             const at = screenPoint(place, current, box.width, box.height);
+            // Only the markers in (or just past) the box: a trip of 2,000 places would
+            // otherwise put 2,000 tab stops and as many repaints behind every drag.
+            const inView =
+              at.left >= -MARKER_MARGIN &&
+              at.top >= -MARKER_MARGIN &&
+              at.left <= box.width + MARKER_MARGIN &&
+              at.top <= box.height + MARKER_MARGIN;
+            if (!inView) return null;
             return (
               <button
                 key={place.id}
@@ -173,11 +188,10 @@ export function TripMap({ data, locale, t, loadPage, onSelect, onExpand }: TripM
           <p className="map__credit">{tiles.attribution}</p>
         </div>
       )}
-      {selected !== null ? (
-        <p className="trek-muted" aria-live="polite">
-          {places.find((place) => place.id === selected)?.name}
-        </p>
-      ) : null}
+      {/* Mounted from the start, so a screen reader announces the first pick as well. */}
+      <p className="trek-muted" aria-live="polite">
+        {selected === null ? null : places.find((place) => place.id === selected)?.name}
+      </p>
     </section>
   );
 }

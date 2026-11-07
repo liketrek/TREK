@@ -4,8 +4,9 @@ import { PlaceResults } from './PlaceResults';
 
 /**
  * The place-results widget. "Add to trip" asks the assistant in the user's
- * voice, naming the place by its id alone: the name and address come from a
- * search index, and third-party text must not ride along as an instruction.
+ * voice, and a picked place goes to the model as context; both name the place
+ * by its id alone: the name and address come from a search index, and
+ * third-party text must not ride along as an instruction.
  */
 export function App() {
   const state = useTrekApp('place-results');
@@ -18,13 +19,15 @@ export function App() {
           locale={locale}
           t={t}
           onAdd={(placeId) =>
-            void app?.sendMessage({
-              role: 'user',
-              content: [{ type: 'text', text: t('mcpApps.places.addAsk').replace('{id}', placeId) }],
-            })
+            void app
+              ?.sendMessage({
+                role: 'user',
+                content: [{ type: 'text', text: t('mcpApps.places.addAsk', { id: placeId }) }],
+              })
+              .catch(() => undefined)
           }
-          onSelect={(place, placeId) =>
-            void app?.updateModelContext({ structuredContent: { selectedPlace: { id: placeId, name: place.name } } })
+          onSelect={(_place, placeId) =>
+            void app?.updateModelContext({ structuredContent: { selectedPlaceId: placeId } }).catch(() => undefined)
           }
         />
       )}
