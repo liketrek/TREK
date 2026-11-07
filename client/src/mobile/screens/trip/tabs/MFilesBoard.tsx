@@ -123,7 +123,10 @@ export function FileTile({ file, selected, canStar, onPick, onStar, onMenu, t }:
           )}
         </span>
         <span className="flex flex-1 flex-col gap-[6px] px-3 pb-[10px] pt-2">
-          <span dir="auto" className="line-clamp-2 break-words text-[length:calc(12.5px*var(--fs-scale-body,1))] font-bold leading-[1.3] text-m-ink">
+          <span
+            dir="auto"
+            className="line-clamp-2 break-words text-[length:calc(12.5px*var(--fs-scale-body,1))] font-bold leading-[1.3] text-m-ink"
+          >
             {file.original_name}
           </span>
           <span className="mt-auto flex flex-wrap items-center gap-1">
@@ -166,7 +169,10 @@ export function FileTile({ file, selected, canStar, onPick, onStar, onMenu, t }:
 function Badge({ children }: { children: ReactNode }) {
   return (
     // A size, a date or a name, each in its own direction ("46.1 KB" stays so in Arabic).
-    <span dir="auto" className="whitespace-nowrap rounded-full bg-[color:var(--m-ic)] px-[7px] py-[2px] font-geist text-[length:calc(9px*var(--fs-scale-caption,1))] font-bold text-m-muted">
+    <span
+      dir="auto"
+      className="whitespace-nowrap rounded-full bg-[color:var(--m-ic)] px-[7px] py-[2px] font-geist text-[length:calc(9px*var(--fs-scale-caption,1))] font-bold text-m-muted"
+    >
       {children}
     </span>
   );
@@ -181,6 +187,43 @@ interface FilePreviewPaneProps {
   onMenu: () => void;
 }
 
+/** The pane's heading: the type's tile when nothing is shown in place, the name, and what the file is. */
+function FileHeading({ file, shownInPlace }: { file: TripFile; shownInPlace: boolean }) {
+  const { locale } = useTranslation();
+  const meta = getFileTypeMeta(file);
+  return (
+    <div className="flex items-start gap-3">
+      {!shownInPlace && (
+        <span className="relative block h-[92px] w-[74px] flex-none overflow-hidden rounded-xl border border-[color:var(--m-rowbr)] bg-m-sheetop">
+          <TypeArt file={file} />
+        </span>
+      )}
+      <div className={`min-w-0 flex-1 ${shownInPlace ? '' : 'pt-1'}`}>
+        <h3 className="break-words text-[length:calc(16px*var(--fs-scale-subtitle,1))] font-extrabold leading-[1.3] text-m-ink">
+          <bdi>{file.original_name}</bdi>
+        </h3>
+        <div className="mt-[6px] flex flex-wrap items-center gap-1">
+          <span
+            className="rounded-full px-[7px] py-[2px] font-geist text-[length:calc(9px*var(--fs-scale-caption,1))] font-extrabold tracking-[.06em]"
+            style={{ background: `${meta.color}1f`, color: meta.color }}
+          >
+            {meta.label}
+          </span>
+          {isWalletPass(file.mime_type, file.original_name) && (
+            <span className="flex items-center gap-[3px] rounded-full bg-m-act px-[7px] py-[2px] font-geist text-[length:calc(9px*var(--fs-scale-caption,1))] font-bold text-m-actfg">
+              <Wallet size={9} strokeWidth={2.4} aria-hidden="true" />
+              {APPLE_WALLET}
+            </span>
+          )}
+          {!!file.file_size && <Badge>{formatSize(file.file_size)}</Badge>}
+          <Badge>{formatFileDate(file.created_at, locale)}</Badge>
+          {file.uploaded_by_name && <Badge>{file.uploaded_by_name}</Badge>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /**
  * The file picked in the grid, shown beside it once the window has room for
  * two panes, the way Files on an iPad previews a document: the picture or the
@@ -191,8 +234,6 @@ interface FilePreviewPaneProps {
  */
 export function FilePreviewPane({ file, planner, onOpen, onStar, onLinks, onMenu }: FilePreviewPaneProps) {
   const { t } = planner;
-  const { locale } = useTranslation();
-  const meta = getFileTypeMeta(file);
   const image = isImage(file.mime_type);
   const pdf = isPdf(file) && pdfInPage();
   const src = useSignedUrl(file.url, image || pdf);
@@ -229,35 +270,7 @@ export function FilePreviewPane({ file, planner, onOpen, onStar, onLinks, onMenu
         </div>
       )}
 
-      <div className="flex items-start gap-3">
-        {!shownInPlace && (
-          <span className="relative block h-[92px] w-[74px] flex-none overflow-hidden rounded-xl border border-[color:var(--m-rowbr)] bg-m-sheetop">
-            <TypeArt file={file} />
-          </span>
-        )}
-        <div className={`min-w-0 flex-1 ${shownInPlace ? '' : 'pt-1'}`}>
-          <h3 className="break-words text-[length:calc(16px*var(--fs-scale-subtitle,1))] font-extrabold leading-[1.3] text-m-ink">
-            <bdi>{file.original_name}</bdi>
-          </h3>
-          <div className="mt-[6px] flex flex-wrap items-center gap-1">
-            <span
-              className="rounded-full px-[7px] py-[2px] font-geist text-[length:calc(9px*var(--fs-scale-caption,1))] font-extrabold tracking-[.06em]"
-              style={{ background: `${meta.color}1f`, color: meta.color }}
-            >
-              {meta.label}
-            </span>
-            {isWalletPass(file.mime_type, file.original_name) && (
-              <span className="flex items-center gap-[3px] rounded-full bg-m-act px-[7px] py-[2px] font-geist text-[length:calc(9px*var(--fs-scale-caption,1))] font-bold text-m-actfg">
-                <Wallet size={9} strokeWidth={2.4} aria-hidden="true" />
-                {APPLE_WALLET}
-              </span>
-            )}
-            {!!file.file_size && <Badge>{formatSize(file.file_size)}</Badge>}
-            <Badge>{formatFileDate(file.created_at, locale)}</Badge>
-            {file.uploaded_by_name && <Badge>{file.uploaded_by_name}</Badge>}
-          </div>
-        </div>
-      </div>
+      <FileHeading file={file} shownInPlace={shownInPlace} />
 
       {(linked.places.length > 0 || linked.reservations.length > 0 || file.note_id != null) && (
         <div className="flex flex-wrap gap-[6px]">
