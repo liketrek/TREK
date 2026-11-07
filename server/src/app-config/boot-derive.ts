@@ -86,7 +86,7 @@ export function deriveServices(raw: RawEnv) {
     hosts: hosts?.length ? hosts : DEFAULT_SERVICE_HOSTS,
     photonUrl: stripTrailingSlashes(raw.TREK_PHOTON_URL?.trim() || DEFAULT_PHOTON_URL),
     valhallaUrl: stripTrailingSlashes(raw.TREK_VALHALLA_URL?.trim() || DEFAULT_VALHALLA_URL),
-    walletPassUrl: raw.TREK_WALLET_PASS_URL?.trim() || DEFAULT_WALLET_PASS_URL,
+    walletPassUrl: raw.TREK_WALLET_SIGNER_URL?.trim() || DEFAULT_WALLET_PASS_URL,
   };
 }
 

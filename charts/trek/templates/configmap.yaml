@@ -127,8 +127,8 @@ data:
   {{- if .Values.env.TREK_VALHALLA_URL }}
   TREK_VALHALLA_URL: {{ .Values.env.TREK_VALHALLA_URL | quote }}
   {{- end }}
-  {{- if .Values.env.TREK_WALLET_PASS_URL }}
-  TREK_WALLET_PASS_URL: {{ .Values.env.TREK_WALLET_PASS_URL | quote }}
+  {{- if .Values.env.TREK_WALLET_SIGNER_URL }}
+  TREK_WALLET_SIGNER_URL: {{ .Values.env.TREK_WALLET_SIGNER_URL | quote }}
   {{- end }}
   {{- if .Values.env.GOOGLE_LIST_DATA_BASE }}
   GOOGLE_LIST_DATA_BASE: {{ .Values.env.GOOGLE_LIST_DATA_BASE | quote }}

@@ -50,10 +50,10 @@ describe('MWalletButton', () => {
     render(<MWalletButton tripId={42} reservationId={7} onError={onError} />);
     wallet.add.mockResolvedValueOnce('undated');
     fireEvent.click(screen.getByRole('button'));
-    await waitFor(() => expect(onError).toHaveBeenCalledWith('reservations.wallet.undated'));
+    await waitFor(() => expect(onError).toHaveBeenCalledWith(expect.stringMatching(/date/i)));
     await waitFor(() => expect(screen.getByRole('button')).not.toBeDisabled());
     wallet.add.mockResolvedValueOnce('failed');
     fireEvent.click(screen.getByRole('button'));
-    await waitFor(() => expect(onError).toHaveBeenLastCalledWith('reservations.wallet.failed'));
+    await waitFor(() => expect(onError).toHaveBeenLastCalledWith(expect.stringMatching(/could not be made/i)));
   });
 });

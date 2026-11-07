@@ -28,7 +28,7 @@ export interface WalletPass {
 /**
  * A booking's Apple Wallet pass. Only liketrek holds the Pass Type ID
  * certificate, so the pass's texts go to the TREK services' signer
- * (TREK_WALLET_PASS_URL) once per tap and come back as a signed .pkpass; the
+ * (TREK_WALLET_SIGNER_URL) once per tap and come back as a signed .pkpass; the
  * signer stores nothing. Off with the other TREK services (TREK_SERVICES=off).
  */
 @Injectable()

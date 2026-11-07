@@ -1,8 +1,14 @@
+import { servicesConfig } from '../../../../src/nest/app-config/tokens';
 import { DomainError } from '../../../../src/nest/common/domain-error';
+import { RateLimitService } from '../../../../src/nest/common/rate-limit.service';
+import { ReservationsReadService } from '../../../../src/nest/reservations/reservations-read.service';
+import { WalletPassModule } from '../../../../src/nest/wallet-pass/wallet-pass.module';
 import { filenameOf, parseMetadata, WalletPassService } from '../../../../src/nest/wallet-pass/wallet-pass.service';
 import { loadWalletWords, walletLanguage } from '../../../../src/nest/wallet-pass/wallet-pass.words';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createTestModule, type TestModule } from '../../../helpers/test-module';
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { safeFetchAdminConfigured } = vi.hoisted(() => ({ safeFetchAdminConfigured: vi.fn() }));
 vi.mock('../../../../src/utils/ssrfGuard', async (importOriginal) => ({
@@ -27,27 +33,58 @@ const ROW = {
   endpoints: [],
 };
 
+const db = createSnapshotTestDb();
+const config = {
+  mode: 'auto' as 'auto' | 'off',
+  key: null,
+  hosts: [],
+  walletPassUrl: 'https://push.liketrek.com/v1/wallet/pass',
+};
+const reservations = {
+  getReservationWithJoins: vi.fn(),
+  passContext: vi.fn(),
+};
+const rateLimit = { check: vi.fn() };
+let t: TestModule;
+let service: WalletPassService;
+
+beforeAll(async () => {
+  t = await createTestModule({
+    db,
+    imports: [WalletPassModule],
+    overrides: [
+      { provide: servicesConfig.KEY, useValue: config },
+      { provide: ReservationsReadService, useValue: reservations },
+      { provide: RateLimitService, useValue: rateLimit },
+    ],
+  });
+  service = t.moduleRef.get(WalletPassService);
+});
+
+afterAll(async () => {
+  await t.close();
+  db.close();
+});
+
+/** The service from the module, with its collaborators set to a hotel booking that may have a pass. */
 function make(mode: 'auto' | 'off' = 'auto') {
-  const reservations = {
-    getReservationWithJoins: vi.fn(async (): Promise<Record<string, unknown> | undefined> => ({ ...ROW })),
-    passContext: vi.fn(async (): Promise<Record<string, unknown> | undefined> => ({
-      trip_title: 'Japan 2027',
-      place_lat: 34.985,
-      place_lng: 135.758,
-      place_name: 'Hotel Granvia Kyoto',
-    })),
-  };
-  const rateLimit = { check: vi.fn(async () => true) };
-  const service = new WalletPassService(
-    { mode, walletPassUrl: 'https://push.liketrek.com/v1/wallet/pass' } as never,
-    reservations as never,
-    rateLimit as never,
-  );
+  config.mode = mode;
+  reservations.getReservationWithJoins.mockReset().mockImplementation(async () => ({ ...ROW }));
+  reservations.passContext.mockReset().mockImplementation(async () => ({
+    trip_title: 'Japan 2027',
+    place_lat: 34.985,
+    place_lng: 135.758,
+    place_name: 'Hotel Granvia Kyoto',
+  }));
+  rateLimit.check.mockReset().mockImplementation(async () => true);
   return { service, reservations, rateLimit };
 }
 
-const signerAnswers = (status: number, body: BodyInit, type = 'application/vnd.apple.pkpass') =>
-  safeFetchAdminConfigured.mockResolvedValue(new Response(body, { status, headers: { 'content-type': type } }));
+const signerAnswers = (
+  status: number,
+  body: ConstructorParameters<typeof Response>[0],
+  type = 'application/vnd.apple.pkpass',
+) => safeFetchAdminConfigured.mockResolvedValue(new Response(body, { status, headers: { 'content-type': type } }));
 
 async function refusal(promise: Promise<unknown>): Promise<number> {
   try {
