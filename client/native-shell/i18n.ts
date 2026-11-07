@@ -1,4 +1,4 @@
-import { SUPPORTED_LANGUAGE_CODES } from '@trek/shared/i18n'
+import { SUPPORTED_LANGUAGE_CODES, isRtlLanguage } from '@trek/shared/i18n'
 import type { TranslationStrings } from '@trek/shared/i18n'
 
 // Only the native strings of every locale, not the whole UI: this page ships
@@ -31,4 +31,9 @@ export function translator(code: string) {
       ? template.replace(/\{(\w+)\}/g, (whole, name: string) => params[name] ?? whole)
       : key
   }
+}
+
+/** Arabic and Hebrew run right to left. */
+export function directionOf(code: string): 'rtl' | 'ltr' {
+  return isRtlLanguage(code) ? 'rtl' : 'ltr'
 }

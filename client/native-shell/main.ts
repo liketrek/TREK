@@ -9,7 +9,7 @@ import { fakeIapClient, getIapClient, productIdFor, type Purchase } from '../src
 import { CLOUD_TERMS_URL, CLOUD_URL, PRIVACY_URL, SERVER_DOCS_URL, STORE_TERMS_URL } from '../src/native/links';
 import { probeDemo, probeServer, type ProbeFailure, type ProbeGet } from '../src/native/serverAddress';
 import { TrekShell } from '../src/native/trekShell';
-import { pickLocale, translator } from './i18n';
+import { directionOf, pickLocale, translator } from './i18n';
 import './shell.css';
 
 /**
@@ -24,7 +24,7 @@ const locale = pickLocale(navigator.languages?.length ? navigator.languages : [n
 const onPlay = Capacitor.getPlatform() === 'android';
 const t = translator(locale);
 document.documentElement.lang = locale;
-document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr';
+document.documentElement.dir = directionOf(locale);
 
 const root = document.getElementById('shell')!;
 const PROBE_TIMEOUT_MS = 8000;
@@ -128,6 +128,11 @@ function show(screen: HTMLElement, opts: { back?: boolean } = {}): void {
   if (opts.back) screen.classList.add('screen-back');
   const previous = current;
   if (previous) {
+    // The leaving screen is lifted out of the flow where it stands, so it fades
+    // from its own place rather than jumping to the top of a centred layout.
+    previous.style.top = `${previous.offsetTop}px`;
+    previous.style.left = `${previous.offsetLeft}px`;
+    previous.style.width = `${previous.offsetWidth}px`;
     previous.classList.remove('screen-enter');
     previous.classList.add('screen-leave');
     if (opts.back) previous.classList.add('screen-back');
@@ -143,6 +148,15 @@ function externalLink(text: string, href: string): HTMLAnchorElement {
 }
 function footLinks(...extra: Node[]): HTMLElement {
   return el('div', { className: 'foot-links' }, ...extra, externalLink(t('native.privacy'), PRIVACY_URL));
+}
+/**
+ * A screen's two halves: what it is (brand, title, explanation) and what to do
+ * on it (the choices, the form). Stacked in one column they read as before; on
+ * a phone or a foldable on its side the screen is too short for one column, so
+ * the halves stand side by side there (shell.css, `.col`).
+ */
+function columns(about: Node[], act: Node[]): HTMLElement[] {
+  return [el('div', { className: 'col col-about' }, ...about), el('div', { className: 'col col-act' }, ...act)];
 }
 function topbar(onBack: () => void): HTMLElement {
   const back = el('button', { type: 'button', className: 'back' }, icon('M15 18l-6-6 6-6', 18), t('native.back'));
@@ -202,13 +216,14 @@ function showWelcome(opts: { back?: boolean } = {}): void {
     el(
       'div',
       {},
-      hero,
-      el('h1', { className: 'title brand-title' }, t('native.welcome.headline')),
-      el('p', { className: 'sub' }, t('native.welcome.sub')),
-      cloud,
-      connect,
-      demo,
-      footLinks(externalLink(t('native.connect.whatIsServer'), SERVER_DOCS_URL))
+      ...columns(
+        [
+          hero,
+          el('h1', { className: 'title brand-title' }, t('native.welcome.headline')),
+          el('p', { className: 'sub' }, t('native.welcome.sub')),
+        ],
+        [cloud, connect, demo, footLinks(externalLink(t('native.connect.whatIsServer'), SERVER_DOCS_URL))]
+      )
     ),
     opts
   );
@@ -225,6 +240,8 @@ function showConnect(prefill = '', opts: { back?: boolean } = {}): void {
   });
   input.setAttribute('inputmode', 'url');
   input.setAttribute('autocomplete', 'url');
+  // An address reads left to right in every language, Arabic too.
+  input.dir = 'ltr';
   // The on-screen keyboard's return key submits the address; it reads "Go", not a newline.
   input.setAttribute('enterkeyhint', 'go');
   input.setAttribute('aria-label', t('native.connect.title'));
@@ -266,11 +283,14 @@ function showConnect(prefill = '', opts: { back?: boolean } = {}): void {
     el(
       'div',
       {},
-      topbar(() => showWelcome({ back: true })),
-      el('h1', { className: 'title-sm' }, t('native.connect.title')),
-      el('p', { className: 'sub' }, t('native.connect.hint')),
-      form,
-      footLinks(externalLink(t('native.connect.whatIsServer'), SERVER_DOCS_URL))
+      ...columns(
+        [
+          topbar(() => showWelcome({ back: true })),
+          el('h1', { className: 'title-sm' }, t('native.connect.title')),
+          el('p', { className: 'sub' }, t('native.connect.hint')),
+        ],
+        [form, footLinks(externalLink(t('native.connect.whatIsServer'), SERVER_DOCS_URL))]
+      )
     ),
     opts
   );
@@ -288,7 +308,13 @@ function feature(path: string, text: string): HTMLElement {
 }
 
 function showCloud(opts: { back?: boolean } = {}): void {
-  const cta = el('button', { type: 'button', className: 'btn' }, t('native.cloud.cta'), icon(I.chevron, 20, 'chev'));
+  // The label centred, the chevron at the far edge: it points on, not at the word.
+  const cta = el(
+    'button',
+    { type: 'button', className: 'btn btn-go' },
+    el('span', { className: 'btn-label' }, t('native.cloud.cta')),
+    icon(I.chevron, 20, 'chev')
+  );
   cta.addEventListener('click', () => {
     void tap();
     showPlans();
@@ -304,25 +330,32 @@ function showCloud(opts: { back?: boolean } = {}): void {
     el(
       'div',
       {},
-      topbar(() => showWelcome({ back: true })),
-      el(
-        'div',
-        { className: 'cloud-wordmark', role: 'img', ariaLabel: t('native.cloud.title') },
-        el('img', { src: logoWhite, alt: '', className: 'on-dark' }),
-        el('img', { src: logoBlack, alt: '', className: 'on-light' }),
-        el('span', { className: 'cloud-tag' }, 'cloud')
-      ),
-      el('p', { className: 'sub' }, t('native.cloud.sub')),
-      el(
-        'div',
-        { className: 'features' },
-        feature(I.globe, t('native.cloud.f1')),
-        feature(I.bolt, t('native.cloud.f2')),
-        feature(I.shield, t('native.cloud.f3'))
-      ),
-      cta,
-      have,
-      footLinks()
+      ...columns(
+        [
+          topbar(() => showWelcome({ back: true })),
+          // The lockup is a logo: "trek" then "cloud" in every language, never mirrored.
+          el(
+            'div',
+            { className: 'cloud-wordmark', role: 'img', ariaLabel: t('native.cloud.title'), dir: 'ltr' },
+            el('img', { src: logoWhite, alt: '', className: 'on-dark' }),
+            el('img', { src: logoBlack, alt: '', className: 'on-light' }),
+            el('span', { className: 'cloud-tag' }, 'cloud')
+          ),
+          el('p', { className: 'sub' }, t('native.cloud.sub')),
+        ],
+        [
+          el(
+            'div',
+            { className: 'features' },
+            feature(I.globe, t('native.cloud.f1')),
+            feature(I.bolt, t('native.cloud.f2')),
+            feature(I.shield, t('native.cloud.f3'))
+          ),
+          cta,
+          have,
+          footLinks(),
+        ]
+      )
     ),
     opts
   );
@@ -427,7 +460,9 @@ function planCard(plan: CloudPlan, interval: 'month' | 'year', offer: Offer): HT
       { className: 'plan-top' },
       el('span', { className: 'plan-name' }, plan.name),
       // No price yet (orders not open): the plan shows without one rather than with an empty one.
-      ...(label ? [el('span', { className: 'plan-price' }, label, el('small', {}, per))] : [])
+      // The price is figures and a currency sign: one left-to-right run, so Arabic
+      // keeps "5,99 €" whole, with the period standing apart beside it.
+      ...(label ? [el('span', { className: 'plan-price' }, el('bdi', { dir: 'ltr' }, label), el('small', {}, per))] : [])
     ),
     el(
       'div',
@@ -578,12 +613,15 @@ function showPlans(opts: { back?: boolean } = {}): void {
     el(
       'div',
       {},
-      topbar(() => showCloud({ back: true })),
-      el('h1', { className: 'title-sm' }, t('native.plans.title')),
-      el('p', { className: 'sub' }, t('native.plans.sub')),
-      seg,
-      content,
-      footer
+      ...columns(
+        [
+          topbar(() => showCloud({ back: true })),
+          el('h1', { className: 'title-sm' }, t('native.plans.title')),
+          el('p', { className: 'sub' }, t('native.plans.sub')),
+          seg,
+        ],
+        [content, footer]
+      )
     ),
     opts
   );
@@ -661,9 +699,10 @@ function showClaim(
   slugInput.setAttribute('autocomplete', 'off');
   slugInput.setAttribute('maxlength', '40');
   slugInput.setAttribute('aria-label', t('native.claim.addressLabel'));
+  // "name.liketrek.com" is one address, left to right in every language.
   const slugField = el(
     'div',
-    { className: 'field slug-field' },
+    { className: 'field slug-field', dir: 'ltr' },
     slugInput,
     el('span', { className: 'slug-suffix' }, cloudSuffix())
   );
@@ -680,6 +719,8 @@ function showClaim(
   emailInput.setAttribute('autocomplete', 'email');
   emailInput.setAttribute('enterkeyhint', 'go');
   emailInput.setAttribute('aria-label', t('native.claim.emailLabel'));
+  emailInput.dir = 'ltr';
+  emailInput.classList.add('ltr-value');
   const emailField = el('div', { className: 'field' }, emailInput);
 
   const submit = el('button', { type: 'submit', className: 'btn' }, t('native.claim.subscribe', { price }));
@@ -805,10 +846,14 @@ function showClaim(
     el(
       'div',
       {},
-      topbar(() => showPlans({ back: true })),
-      el('h1', { className: 'title-sm' }, t('native.claim.title')),
-      el('p', { className: 'sub' }, t('native.claim.sub')),
-      form
+      ...columns(
+        [
+          topbar(() => showPlans({ back: true })),
+          el('h1', { className: 'title-sm' }, t('native.claim.title')),
+          el('p', { className: 'sub' }, t('native.claim.sub')),
+        ],
+        [form]
+      )
     ),
     opts
   );
@@ -933,12 +978,14 @@ function showUnreachable(server: string): void {
     el(
       'div',
       {},
-      el('img', { src: logoUrl, alt: '', className: 'shell-logo' }),
-      el('h1', { className: 'title-sm' }, t('native.offline.title')),
-      el('p', { className: 'sub' }, t('native.offline.hint', { server: new URL(server).host })),
-      retry,
-      change,
-      footLinks()
+      ...columns(
+        [
+          el('img', { src: logoUrl, alt: '', className: 'shell-logo' }),
+          el('h1', { className: 'title-sm' }, t('native.offline.title')),
+          el('p', { className: 'sub' }, t('native.offline.hint', { server: new URL(server).host })),
+        ],
+        [retry, change, footLinks()]
+      )
     )
   );
 }

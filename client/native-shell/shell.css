@@ -38,6 +38,45 @@
   font-display: swap;
   src: url('./fonts/museomoderno-latin-600.woff2') format('woff2');
 }
+/*
+ * Poppins and MuseoModerno have no Cyrillic, so Russian and Ukrainian fell back
+ * to the system's plain sans. Each family gets a Cyrillic-only stand-in under its
+ * own name, picked for the same build: Montserrat for the geometric text face,
+ * Comfortaa for the rounded headline. The unicode-range keeps Latin on TREK's
+ * own faces and loads these only when a Cyrillic letter is on screen.
+ */
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/montserrat-cyrillic-500.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/montserrat-cyrillic-600.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/montserrat-cyrillic-700.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'MuseoModerno';
+  font-style: normal;
+  font-weight: 600 700;
+  font-display: swap;
+  src: url('./fonts/comfortaa-cyrillic-700.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
 /* Italic, subset to the letters of "cloud" — the wordmark's badge, nothing else. */
 @font-face {
   font-family: 'MuseoModerno';
@@ -71,7 +110,12 @@
   --radius: 16px;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  /* 1 left to right, -1 in Arabic: a screen that comes next slides in from the trailing side. */
+  --flow: 1;
   color-scheme: dark;
+}
+:root[dir='rtl'] {
+  --flow: -1;
 }
 
 @media (prefers-color-scheme: light) {
@@ -167,6 +211,18 @@ body::after {
   pointer-events: none;
   z-index: 0;
 }
+/* In Arabic the photo holds the leading (right) side and the grid the other. */
+:root[dir='rtl'] body::after {
+  background-position:
+    0 0,
+    right 28%;
+  -webkit-mask-image: linear-gradient(270deg, #000 0%, #000 40%, transparent 80%);
+  mask-image: linear-gradient(270deg, #000 0%, #000 40%, transparent 80%);
+}
+:root[dir='rtl'] body::before {
+  -webkit-mask-image: radial-gradient(135% 95% at 0% 0%, #000 34%, transparent 80%);
+  mask-image: radial-gradient(135% 95% at 0% 0%, #000 34%, transparent 80%);
+}
 
 .shell {
   position: relative;
@@ -175,11 +231,12 @@ body::after {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   max-width: 440px;
   margin: 0 auto;
   padding: calc(env(safe-area-inset-top) + 28px) 24px calc(env(safe-area-inset-bottom) + 24px);
-  overflow: hidden;
+  /* Clip only the sideways slide: a screen taller than the window scrolls the
+     page instead (and a sticky column needs an ancestor that does not scroll). */
+  overflow-x: clip;
 }
 
 /* ── Screen transitions ──────────────────────────────────────────────────── */
@@ -187,14 +244,22 @@ body::after {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  /* Centred while it fits; taller than the window it starts at the top and the
+     page scrolls, rather than overflowing both edges as justify-content would. */
+  margin-block: auto;
+}
+/* A screen's two halves (main.ts, columns()): one column unless the layout asks. */
+.col {
+  display: contents;
 }
 .screen-enter {
   animation: screenIn 0.5s var(--ease) both;
 }
+/* Lifted out where it stood: main.ts sets its top, left and width. */
 .screen-leave {
   animation: screenOut 0.28s var(--ease-in) both;
   position: absolute;
-  inset: calc(env(safe-area-inset-top) + 28px) 24px calc(env(safe-area-inset-bottom) + 24px);
+  margin: 0;
 }
 .screen-back.screen-enter {
   animation-name: screenInBack;
@@ -205,7 +270,7 @@ body::after {
 @keyframes screenIn {
   from {
     opacity: 0;
-    transform: translateX(26px);
+    transform: translateX(calc(26px * var(--flow)));
   }
   to {
     opacity: 1;
@@ -215,13 +280,13 @@ body::after {
 @keyframes screenOut {
   to {
     opacity: 0;
-    transform: translateX(-22px);
+    transform: translateX(calc(-22px * var(--flow)));
   }
 }
 @keyframes screenInBack {
   from {
     opacity: 0;
-    transform: translateX(-26px);
+    transform: translateX(calc(-26px * var(--flow)));
   }
   to {
     opacity: 1;
@@ -231,13 +296,39 @@ body::after {
 @keyframes screenOutBack {
   to {
     opacity: 0;
-    transform: translateX(22px);
+    transform: translateX(calc(22px * var(--flow)));
   }
 }
 
-/* Children stagger in, so a screen assembles rather than snaps. */
-.screen-enter > * {
+/* Children stagger in, so a screen assembles rather than snaps. Inside the two
+   halves the explanation comes first and the choices follow. */
+.screen-enter > :not(.col),
+.screen-enter > .col > * {
   animation: riseIn 0.55s var(--ease) both;
+}
+.screen-enter > .col > :nth-child(1) {
+  animation-delay: 0.02s;
+}
+.screen-enter > .col > :nth-child(2) {
+  animation-delay: 0.07s;
+}
+.screen-enter > .col > :nth-child(3) {
+  animation-delay: 0.12s;
+}
+.screen-enter > .col > :nth-child(4) {
+  animation-delay: 0.17s;
+}
+.screen-enter > .col-act > :nth-child(1) {
+  animation-delay: 0.15s;
+}
+.screen-enter > .col-act > :nth-child(2) {
+  animation-delay: 0.2s;
+}
+.screen-enter > .col-act > :nth-child(3) {
+  animation-delay: 0.25s;
+}
+.screen-enter > .col-act > :nth-child(4) {
+  animation-delay: 0.3s;
 }
 .screen-enter > *:nth-child(1) {
   animation-delay: 0.02s;
@@ -364,6 +455,7 @@ body::after {
   margin: 0;
   /* Honour the newline in the headline string (e.g. "Deine Reisen.\nDein Plan."). */
   white-space: pre-line;
+  text-wrap: balance;
 }
 /* The welcome headline as the brand says it: MuseoModerno, lower case. */
 .brand-title {
@@ -380,6 +472,8 @@ body::after {
   display: inline-flex;
   align-items: center;
   gap: 9px;
+  /* Left to right inside (dir="ltr"), yet on the screen's start edge in Arabic. */
+  align-self: flex-start;
 }
 .cloud-wordmark img {
   display: block;
@@ -414,6 +508,7 @@ body::after {
   font-weight: 700;
   letter-spacing: -0.025em;
   margin: 0;
+  text-wrap: balance;
 }
 .sub {
   color: var(--muted);
@@ -421,6 +516,8 @@ body::after {
   line-height: 1.55;
   font-size: 0.9rem;
   overflow-wrap: anywhere;
+  /* No lone last word ("AI.") on a line of its own. */
+  text-wrap: balance;
 }
 
 /* ── Buttons ─────────────────────────────────────────────────────────────── */
@@ -428,9 +525,10 @@ body::after {
   font: inherit;
   font-weight: 600;
   font-size: 1.02rem;
-  padding: 16px 18px;
+  padding: 16px 22px;
   border: 1px solid transparent;
-  border-radius: var(--radius);
+  /* A pill, as the app's buttons are. */
+  border-radius: 999px;
   background: var(--accent);
   color: var(--accent-ink);
   cursor: pointer;
@@ -455,6 +553,11 @@ body::after {
 .btn:disabled {
   opacity: 0.55;
 }
+/* A two-line choice (welcome) is a card rather than a button: the app's card radius. */
+.btn:has(.btn-row) {
+  border-radius: 22px;
+  padding-inline: 18px;
+}
 .btn-ghost {
   background: var(--surface);
   color: var(--ink);
@@ -471,6 +574,8 @@ body::after {
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
+  /* A subtitle that wraps keeps to the start edge under its title. */
+  text-align: start;
 }
 .btn-row b {
   font-weight: 650;
@@ -481,8 +586,19 @@ body::after {
   opacity: 0.7;
 }
 .btn .chev {
-  margin-left: auto;
+  flex: none;
+  margin-inline-start: auto;
   opacity: 0.5;
+}
+/* A centred label with the chevron at the far edge, the label optically centred. */
+.btn-go .btn-label {
+  flex: 1;
+  padding-inline-start: 20px;
+}
+/* Chevrons point along the reading direction. */
+:root[dir='rtl'] .chev,
+:root[dir='rtl'] .back svg {
+  transform: scaleX(-1);
 }
 
 .linkbtn {
@@ -507,7 +623,7 @@ body::after {
   margin-top: 2px;
   padding: 9px 18px;
   min-height: 40px;
-  border-radius: var(--radius);
+  border-radius: 999px;
   border: 1px solid var(--edge);
   background: transparent;
   color: var(--muted);
@@ -565,8 +681,8 @@ a.linkbtn {
   width: 100%;
   font: inherit;
   font-size: 1rem;
-  padding: 13px 16px;
-  border-radius: var(--radius);
+  padding: 13px 18px;
+  border-radius: 999px;
   border: 1px solid var(--edge);
   background: var(--surface);
   color: var(--ink);
@@ -707,7 +823,8 @@ a.linkbtn {
 .topbar {
   display: flex;
   align-items: center;
-  margin: 0 0 2px -8px;
+  margin-block: 0 2px;
+  margin-inline-start: -8px;
 }
 .back {
   font: inherit;
@@ -741,7 +858,7 @@ a.linkbtn {
   padding: 4px;
   background: var(--surface);
   border: 1px solid var(--edge);
-  border-radius: 13px;
+  border-radius: 999px;
   align-self: stretch;
 }
 .segmented button {
@@ -751,7 +868,7 @@ a.linkbtn {
   font-size: 0.95rem;
   padding: 9px;
   border: 0;
-  border-radius: 9px;
+  border-radius: 999px;
   background: none;
   color: var(--muted);
   cursor: pointer;
@@ -829,7 +946,7 @@ a.linkbtn {
   font-weight: 500;
   font-size: 0.8rem;
   color: var(--muted);
-  margin-left: 7px;
+  margin-inline-start: 7px;
 }
 .plan-feats {
   margin: 10px 0 14px;
@@ -902,8 +1019,8 @@ a.linkbtn {
 .slug-field {
   display: flex;
   align-items: center;
-  padding-right: 16px;
-  border-radius: var(--radius);
+  padding-inline-end: 18px;
+  border-radius: 999px;
   border: 1px solid var(--edge);
   background: var(--surface);
   box-shadow:
@@ -913,13 +1030,19 @@ a.linkbtn {
     border-color 0.2s,
     box-shadow 0.25s;
 }
-.slug-field .slug-input {
+.slug-field .slug-input,
+.slug-field .slug-input:focus {
   flex: 1;
   min-width: 0;
-  text-align: left;
+  text-align: start;
   border: 0;
   background: transparent;
+  /* The ring is the whole field's (focus-within below), not a second one inside it. */
   box-shadow: none;
+}
+/* An email is typed left to right, but its Arabic placeholder reads from the right. */
+:root[dir='rtl'] .field input.ltr-value:placeholder-shown {
+  direction: rtl;
 }
 .slug-field:focus-within {
   border-color: var(--edge-strong);
@@ -934,7 +1057,7 @@ a.linkbtn {
   flex: none;
   color: var(--muted);
   font-size: 0.95rem;
-  padding-left: 4px;
+  padding-inline-start: 4px;
   user-select: none;
 }
 .hint {
@@ -984,7 +1107,8 @@ a.linkbtn {
    Upright, the photo band grows with the screen instead of stopping at a
    phone's 440px. Logical sides, so Arabic mirrors it. */
 @media (min-width: 840px) and (min-height: 600px) and (orientation: landscape) {
-  body::after {
+  body::after,
+  :root[dir='rtl'] body::after {
     inset: 16px auto 16px 16px;
     inset-block: 16px;
     inset-inline: 16px auto;
@@ -1009,9 +1133,6 @@ a.linkbtn {
     margin-inline: 50% 0;
     padding-inline: max(32px, calc(25vw - 220px));
   }
-  .screen-leave {
-    inset-inline: max(32px, calc(25vw - 220px));
-  }
 }
 /* With the whole half of a 13" iPad on its side, the plans stand two by two
    rather than in a column to scroll through. */
@@ -1024,23 +1145,28 @@ a.linkbtn {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
-/* An iPad upright or an unfolded foldable: the photo spans the width as a band
-   across the top, and the choices stand under it in a wider column than a
-   phone's, so the page reads as one composition rather than a phone screen
-   floating in the middle of the glass. The plans take two columns. */
-@media (min-width: 700px) and (min-height: 900px) and (orientation: portrait) {
+/* An iPad upright, a foldable unfolded, half of an iPad in Split View: the photo
+   spans the whole width as a band across the top and fades out only downwards,
+   and the choices stand under it in a wider column than a phone's, centred in
+   the room the band leaves, so the page reads as one composition rather than a
+   phone screen at the top of the glass. The plans take two columns. */
+@media (min-width: 600px) and (min-height: 800px) and (orientation: portrait) {
   body::before,
   body::after {
-    height: 52vh;
+    height: 56vh;
   }
-  body::after {
+  body::after,
+  :root[dir='rtl'] body::after {
+    background-position:
+      0 0,
+      center 30%;
     -webkit-mask-image: none;
     mask-image: none;
   }
   .shell {
     max-width: 560px;
-    justify-content: flex-start;
-    padding-top: calc(env(safe-area-inset-top) + 38vh);
+    padding-top: calc(env(safe-area-inset-top) + 28vh);
+    padding-bottom: calc(env(safe-area-inset-bottom) + 6vh);
   }
   .shell:has(.plans) {
     max-width: 760px;
@@ -1049,5 +1175,63 @@ a.linkbtn {
   .plans {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ── A short screen on its side ──────────────────────────────────────────────
+   A phone, or a foldable folded, turned landscape: one column of choices is
+   taller than the glass, and the second choice or the main button ended up
+   below the edge. The two halves of a screen stand side by side instead, what
+   it is on the leading side and what to do on the other, top-aligned under the
+   status bar. The leading half stays put while a long list beside it (the
+   plans) scrolls, so Back is always in reach. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .shell {
+    max-width: 880px;
+    padding-top: calc(env(safe-area-inset-top) + 16px);
+    padding-bottom: calc(env(safe-area-inset-bottom) + 16px);
+    padding-inline: max(28px, env(safe-area-inset-left)) max(28px, env(safe-area-inset-right));
+  }
+  .screen:has(> .col) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 40px;
+    align-items: center;
+  }
+  /* The plans run longer than the window: both halves start at the top. */
+  .screen:has(.plans) {
+    align-items: start;
+  }
+  .col {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .col-about {
+    position: sticky;
+    top: calc(env(safe-area-inset-top) + 16px);
+  }
+  .hero-logo {
+    margin-bottom: 4px;
+  }
+  .hero-logo img {
+    height: 46px;
+  }
+  .title {
+    font-size: 1.75rem;
+  }
+  .btn {
+    min-height: 50px;
+    padding-block: 12px;
+  }
+  .features {
+    margin: 0;
+  }
+  .feature {
+    padding: 7px 0;
+  }
+  .foot-links {
+    margin-top: 0;
+    padding-top: 10px;
   }
 }
