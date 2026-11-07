@@ -279,6 +279,7 @@ const reservations: TranslationStrings = {
   'reservations.needsConnection': 'Αυτό χρειάζεται σύνδεση. Δοκίμασε ξανά μόλις το TREK συνδεθεί ξανά.',
   'reservations.exportCsvFiltered': 'Εξαγωγή των {shown} από {total} εμφανιζόμενων γραμμών (CSV)',
   'reservations.wallet.add': 'Προσθήκη στο Apple Wallet',
+  'reservations.wallet.addGoogle': 'Προσθήκη στο Google Wallet',
   'reservations.wallet.failed': 'Δεν ήταν δυνατή η δημιουργία της κάρτας Wallet. Δοκιμάστε ξανά.',
   'reservations.wallet.undated':
     'Δώστε πρώτα ημερομηνία στην κράτηση: το Wallet εμφανίζει την κάρτα γύρω από εκείνη την ώρα.',

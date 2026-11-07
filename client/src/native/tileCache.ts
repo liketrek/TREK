@@ -1,5 +1,5 @@
 import { hasNativeFeature } from './capabilities';
-import { isNativeIos } from './platform';
+import { isNativeApp, isNativeIos } from './platform';
 
 /**
  * The iOS app's own tile store (TrekTileSchemeHandler.swift), reached through
@@ -18,7 +18,17 @@ import { isNativeIos } from './platform';
  */
 const TILE_CACHE_SCHEME = 'trek-tile';
 
+/**
+ * Whether the app keeps the Mapbox map's resources itself, so a Mapbox map works
+ * offline where it was viewed. On Android the app's WebView client takes those
+ * requests as they are (tiles/TrekTileStore.kt), so only iOS rewrites URLs.
+ */
 export function tileCacheActive(): boolean {
+  return isNativeApp() && hasNativeFeature('tileCache');
+}
+
+/** Whether URLs go through the trek-tile:// scheme: the iOS store only. */
+function tileSchemeActive(): boolean {
   return isNativeIos() && hasNativeFeature('tileCache');
 }
 
@@ -29,7 +39,7 @@ export function toTileCacheUrl(url: string): string {
 
 /** A raster tile template for Leaflet, through the store where the app has one. */
 export function nativeRasterTemplate(template: string): string {
-  return tileCacheActive() ? toTileCacheUrl(template) : template;
+  return tileSchemeActive() ? toTileCacheUrl(template) : template;
 }
 
 const MAPBOX_HOST = /^https:\/\/(?:api\.mapbox\.com|[a-z0-9-]+\.tiles\.mapbox\.com)\//i;
@@ -51,7 +61,7 @@ const CACHED_RESOURCES = new Set([
  * Mapbox's servers go through the store, events and sessions never do.
  */
 export function mapboxTileCacheRequest(url: string, resourceType?: string): { url: string } {
-  if (!MAPBOX_HOST.test(url)) return { url };
+  if (!tileSchemeActive() || !MAPBOX_HOST.test(url)) return { url };
   if (resourceType && !CACHED_RESOURCES.has(resourceType)) return { url };
   return { url: toTileCacheUrl(url) };
 }

@@ -1,11 +1,12 @@
 import { hasNativeFeature } from './capabilities';
-import { isNativeIos } from './platform';
+import { isNativeApp } from './platform';
 import { reportNativeFailure } from './reportFailure';
 import { TrekShell, type NativeLocationPayload } from './trekShell';
 
 /**
- * navigator.geolocation, answered by the iOS app's CoreLocation where the binary
- * has the geolocation feature.
+ * navigator.geolocation, answered by the app's own location stream where the
+ * binary has the geolocation feature: CoreLocation on iOS, the system's fused
+ * provider on Android.
  *
  * WKWebView asks for the location per server origin, under the server's name,
  * and asks again across launches. The app asks once, as the app. Installing the
@@ -85,7 +86,7 @@ function add(success: Success, failure: Failure, options: PositionOptions | unde
 
 /** Puts the app's location under navigator.geolocation. Once, inside a binary that has it. */
 export function installNativeGeolocation(): boolean {
-  if (!isNativeIos() || !hasNativeFeature('geolocation') || typeof navigator === 'undefined') return false;
+  if (!isNativeApp() || !hasNativeFeature('geolocation') || typeof navigator === 'undefined') return false;
   const shim: Geolocation = {
     getCurrentPosition: (success, failure, options) => {
       add(success, failure, options, true);

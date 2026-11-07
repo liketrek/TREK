@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Day, Trip } from '../types';
 
-vi.mock('./platform', () => ({ isNativeIos: vi.fn(() => true) }));
+vi.mock('./platform', () => ({ isNativeIos: vi.fn(() => true), isNativeApp: vi.fn(() => true) }));
 vi.mock('./capabilities', () => ({ hasNativeFeature: vi.fn(() => true) }));
 vi.mock('./reportFailure', () => ({ reportNativeFailure: vi.fn() }));
 vi.mock('./trekShell', () => ({
@@ -121,6 +121,33 @@ describe('todayOf and tripDayState', () => {
     expect(tripDayState(today, 8 * 60, 'done')).toMatchObject({ nextName: 'Museum', done: 0, total: 2 });
     expect(tripDayState(today, 12 * 60, 'done')).toMatchObject({ nextName: 'Dinner', nextTime: '19:30', done: 1 });
     expect(tripDayState(today, 22 * 60, 'done')).toMatchObject({ nextName: 'done', done: 2, nextTime: undefined });
+  });
+
+  it('gives the Android Live Update the next stop in minutes and one colour per timed stop', () => {
+    const state = tripDayState(
+      {
+        tripTitle: 'T',
+        path: '/trips/1',
+        dayLabel: 'D',
+        stops: [
+          { name: 'Museum', time: '10:00', minutes: 600, color: '#D6273B' },
+          { name: 'Walk', time: null, minutes: null },
+          { name: 'Dinner', time: '19:30', minutes: 1170, color: null },
+        ],
+      },
+      12 * 60,
+      'done'
+    );
+    expect(state).toMatchObject({
+      nextName: 'Dinner',
+      nextMinutes: 1170,
+      colors: ['#D6273B', null],
+      done: 1,
+      total: 2,
+    });
+    expect(
+      tripDayState({ tripTitle: 'T', path: '/', dayLabel: 'D', stops: [] }, 0, 'done').nextMinutes
+    ).toBeUndefined();
   });
 });
 

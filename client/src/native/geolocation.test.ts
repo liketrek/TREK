@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { hasNativeFeature } from './capabilities';
 import { _resetNativeGeolocation, installNativeGeolocation } from './geolocation';
-import { isNativeIos } from './platform';
+import { isNativeApp } from './platform';
 import { TrekShell, type NativeLocationPayload } from './trekShell';
 
-vi.mock('./platform', () => ({ isNativeIos: vi.fn() }));
+vi.mock('./platform', () => ({ isNativeApp: vi.fn() }));
 vi.mock('./capabilities', () => ({ hasNativeFeature: vi.fn() }));
 vi.mock('./trekShell', () => ({
   TrekShell: { startLocation: vi.fn(), stopLocation: vi.fn(), addListener: vi.fn() },
@@ -16,7 +16,7 @@ const original = navigator.geolocation;
 beforeEach(() => {
   _resetNativeGeolocation();
   Object.defineProperty(navigator, 'geolocation', { configurable: true, value: original });
-  vi.mocked(isNativeIos).mockReturnValue(true);
+  vi.mocked(isNativeApp).mockReturnValue(true);
   vi.mocked(hasNativeFeature).mockReturnValue(true);
   vi.mocked(TrekShell.startLocation).mockReset().mockResolvedValue();
   vi.mocked(TrekShell.stopLocation).mockReset().mockResolvedValue();
@@ -71,8 +71,12 @@ describe('native geolocation', () => {
     expect(failed.mock.calls[0][0]).toMatchObject({ code: 1, PERMISSION_DENIED: 1 });
   });
 
-  it('leaves the browser API alone outside an iOS binary with the feature', () => {
+  it('leaves the browser API alone outside an app binary with the feature', () => {
     vi.mocked(hasNativeFeature).mockReturnValue(false);
+    expect(installNativeGeolocation()).toBe(false);
+    expect(navigator.geolocation).toBe(original);
+    vi.mocked(hasNativeFeature).mockReturnValue(true);
+    vi.mocked(isNativeApp).mockReturnValue(false);
     expect(installNativeGeolocation()).toBe(false);
     expect(navigator.geolocation).toBe(original);
   });

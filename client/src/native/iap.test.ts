@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const platform = vi.hoisted(() => ({ ios: true }));
+const platform = vi.hoisted(() => ({ ios: true, android: false }));
 const shell = vi.hoisted(() => ({
   getCapabilities: vi.fn(),
   storeProducts: vi.fn(),
@@ -9,7 +9,7 @@ const shell = vi.hoisted(() => ({
   storeRestore: vi.fn(),
 }));
 
-vi.mock('./platform', () => ({ isNativeIos: () => platform.ios }));
+vi.mock('./platform', () => ({ isNativeIos: () => platform.ios, isNativeAndroid: () => platform.android }));
 vi.mock('./trekShell', () => ({ TrekShell: shell }));
 
 import { fakeIapClient, nativeIapClient, productIdFor } from './iap';
@@ -22,6 +22,7 @@ function jwsFor(productId: string): string {
 
 beforeEach(() => {
   platform.ios = true;
+  platform.android = false;
   for (const fn of Object.values(shell)) fn.mockReset();
 });
 
@@ -121,5 +122,57 @@ describe('native client', () => {
 
     shell.storeRestore.mockResolvedValue({});
     expect(await nativeIapClient.restore()).toBeNull();
+  });
+});
+
+describe('native client on Android (Google Play Billing)', () => {
+  beforeEach(() => {
+    platform.ios = false;
+    platform.android = true;
+  });
+
+  it('is available with the playBilling feature, not with storeKit', async () => {
+    shell.getCapabilities.mockResolvedValue({ features: ['playBilling'] });
+    expect(await nativeIapClient.isAvailable()).toBe(true);
+    shell.getCapabilities.mockResolvedValue({ features: ['storeKit'] });
+    expect(await nativeIapClient.isAvailable()).toBe(false);
+  });
+
+  it('a bought subscription yields the purchase token as a Google receipt', async () => {
+    shell.storePurchase.mockResolvedValue({
+      kind: 'bought',
+      purchaseToken: 'token-1',
+      transactionId: 'token-1',
+      productId: 'cloud.plus.yearly',
+    });
+    const outcome = await nativeIapClient.purchase('cloud.plus.yearly');
+    expect(outcome).toEqual({
+      kind: 'bought',
+      purchase: { platform: 'google', productId: 'cloud.plus.yearly', receipt: 'token-1', transactionId: 'token-1' },
+    });
+    shell.storePurchase.mockResolvedValue({ kind: 'pending' });
+    expect(await nativeIapClient.purchase('cloud.plus.yearly')).toEqual({ kind: 'pending' });
+    shell.storePurchase.mockResolvedValue({ kind: 'bought' });
+    expect(await nativeIapClient.purchase('cloud.plus.yearly')).toEqual({ kind: 'failed' });
+  });
+
+  it('a restore finds the subscription on the Google account, and acknowledges through finish', async () => {
+    shell.storeRestore.mockResolvedValue({
+      purchaseToken: 'token-2',
+      transactionId: 'token-2',
+      productId: 'cloud.start.monthly',
+    });
+    const purchase = await nativeIapClient.restore();
+    expect(purchase).toEqual({
+      platform: 'google',
+      productId: 'cloud.start.monthly',
+      receipt: 'token-2',
+      transactionId: 'token-2',
+    });
+    shell.storeRestore.mockResolvedValue({});
+    expect(await nativeIapClient.restore()).toBeNull();
+    shell.storeFinish.mockResolvedValue(undefined);
+    await nativeIapClient.finish(purchase!);
+    expect(shell.storeFinish).toHaveBeenCalledWith({ transactionId: 'token-2' });
   });
 });

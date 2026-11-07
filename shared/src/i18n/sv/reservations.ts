@@ -275,6 +275,7 @@ const reservations: TranslationStrings = {
   'reservations.needsConnection': 'Det här kräver en anslutning. Försök igen när TREK är online igen.',
   'reservations.exportCsvFiltered': 'Exportera de {shown} av {total} visade raderna (CSV)',
   'reservations.wallet.add': 'Lägg till i Apple Wallet',
+  'reservations.wallet.addGoogle': 'Lägg till i Google Wallet',
   'reservations.wallet.failed': 'Wallet-kortet kunde inte skapas. Försök igen.',
   'reservations.wallet.undated': 'Ge bokningen ett datum först: Wallet visar kortet runt den tiden.',
 };

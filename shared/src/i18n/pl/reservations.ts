@@ -290,6 +290,7 @@ const reservations: TranslationStrings = {
   'reservations.needsConnection': 'To wymaga połączenia. Spróbuj ponownie, gdy TREK znów będzie online.',
   'reservations.exportCsvFiltered': 'Eksportuj wyświetlone wiersze: {shown} z {total} (CSV)',
   'reservations.wallet.add': 'Dodaj do Apple Wallet',
+  'reservations.wallet.addGoogle': 'Dodaj do Google Wallet',
   'reservations.wallet.failed': 'Nie udało się utworzyć karty Wallet. Spróbuj ponownie.',
   'reservations.wallet.undated': 'Najpierw nadaj rezerwacji datę: Wallet pokazuje kartę w okolicach tego terminu.',
 };

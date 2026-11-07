@@ -1,4 +1,4 @@
-import { isNativeIos } from './platform';
+import { isNativeAndroid, isNativeIos } from './platform';
 import { TrekShell } from './trekShell';
 
 /**
@@ -6,10 +6,11 @@ import { TrekShell } from './trekShell';
  * screens drive a plan to a receipt through this, and never touch StoreKit
  * directly. Two implementations stand behind it: a fake one for development and
  * preview, so the whole subscription flow can be walked without a store, and the
- * native one that runs StoreKit 2 through TrekShell (feature storeKit). Where
- * neither can take a payment (Android until Play Billing is wired, a binary from
- * before storeKit) the client reports itself unavailable and the shell offers no
- * purchase at all: the store rules leave no room for sending buyers to the web.
+ * native one that runs StoreKit 2 on iOS (feature storeKit) and Google Play
+ * Billing on Android (feature playBilling) through TrekShell. Where neither can
+ * take a payment (a binary from before them, the web) the client reports itself
+ * unavailable and the shell offers no purchase at all: the store rules leave no
+ * room for sending buyers to the web.
  */
 
 type IapPlatform = 'apple' | 'google';
@@ -18,7 +19,7 @@ type IapPlatform = 'apple' | 'google';
 export interface Purchase {
   platform: IapPlatform;
   productId: string;
-  /** Apple: the signed transaction (JWS) the control plane verifies. */
+  /** Apple: the signed transaction (JWS); Google: the purchase token. The control plane verifies either with its store. */
   receipt: string;
   /** The store's id for this transaction, handed back to {@link IapClient.finish}. */
   transactionId: string;
@@ -92,17 +93,26 @@ export const fakeIapClient: IapClient = {
   },
 };
 
+/** The store this app buys through: the App Store on iOS, Google Play on Android. */
+function nativeStore(): { platform: IapPlatform; feature: string } | null {
+  if (isNativeIos()) return { platform: 'apple', feature: 'storeKit' };
+  if (isNativeAndroid()) return { platform: 'google', feature: 'playBilling' };
+  return null;
+}
+
 /**
- * StoreKit 2 through TrekShell. Available on iOS when the binary has the
- * storeKit feature; everywhere else (Android, the web, an older binary) it
- * reports itself unavailable and every call comes to nothing.
+ * StoreKit 2 (iOS) or Google Play Billing (Android) through TrekShell, the same
+ * methods on both. Available when the binary has the platform's feature;
+ * everywhere else (the web, an older binary) it reports itself unavailable and
+ * every call comes to nothing.
  */
 export const nativeIapClient: IapClient = {
   async isAvailable() {
-    if (!isNativeIos()) return false;
+    const store = nativeStore();
+    if (!store) return false;
     try {
       const caps = await TrekShell.getCapabilities();
-      return caps.features.includes('storeKit');
+      return caps.features.includes(store.feature);
     } catch {
       return false;
     }
@@ -125,10 +135,16 @@ export const nativeIapClient: IapClient = {
   async purchase(productId) {
     try {
       const result = await TrekShell.storePurchase({ productId });
-      if (result.kind === 'bought' && result.jws && result.transactionId) {
+      const receipt = result.jws ?? result.purchaseToken;
+      if (result.kind === 'bought' && receipt && result.transactionId) {
         return {
           kind: 'bought',
-          purchase: { platform: 'apple', productId, receipt: result.jws, transactionId: result.transactionId },
+          purchase: {
+            platform: nativeStore()?.platform ?? 'apple',
+            productId: result.productId ?? productId,
+            receipt,
+            transactionId: result.transactionId,
+          },
         };
       }
       if (result.kind === 'cancelled' || result.kind === 'pending') return { kind: result.kind };
@@ -146,7 +162,10 @@ export const nativeIapClient: IapClient = {
   },
   async restore() {
     try {
-      const { jws, transactionId } = await TrekShell.storeRestore({ prefix: PRODUCT_PREFIX });
+      const { jws, purchaseToken, productId, transactionId } = await TrekShell.storeRestore({ prefix: PRODUCT_PREFIX });
+      if (purchaseToken && transactionId) {
+        return { platform: 'google', productId: productId ?? '', receipt: purchaseToken, transactionId };
+      }
       if (!jws || !transactionId) return null;
       return { platform: 'apple', productId: productIdOf(jws), receipt: jws, transactionId };
     } catch {

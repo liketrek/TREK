@@ -1,6 +1,6 @@
 import { toBase64 } from './blobBase64';
 import { hasNativeFeature } from './capabilities';
-import { isNativeIos } from './platform';
+import { isNativeAndroid, isNativeIos } from './platform';
 import { reportNativeFailure } from './reportFailure';
 import { TrekShell } from './trekShell';
 
@@ -58,4 +58,51 @@ export async function addReservationToWallet(
   if (response.status === 422) return 'undated';
   if (!response.ok) return 'failed';
   return (await addToWallet(await response.blob())) ? 'added' : 'failed';
+}
+
+/** Whether this app can hand a booking to Google Wallet (Android, feature googleWallet). */
+export function canAddToGoogleWallet(): boolean {
+  return isNativeAndroid() && hasNativeFeature('googleWallet');
+}
+
+/** The wallet a booking's button adds to here, if any: Apple Wallet on iOS, Google Wallet on Android. */
+export function bookingWallet(): 'apple' | 'google' | null {
+  if (canAddToWallet()) return 'apple';
+  if (canAddToGoogleWallet()) return 'google';
+  return null;
+}
+
+/**
+ * A booking as a Google Wallet pass: this server asks the TREK services for a
+ * save link (GET .../reservations/:id/wallet-pass/google), and the app opens it,
+ * where Google Wallet shows the pass with its own Save button. `undated`: the
+ * booking has no date yet.
+ */
+export async function addReservationToGoogleWallet(
+  tripId: number,
+  reservationId: number,
+  language: string
+): Promise<ReservationWalletOutcome> {
+  if (!canAddToGoogleWallet()) return 'failed';
+  let response: Response;
+  try {
+    response = await fetch(
+      `/api/trips/${tripId}/reservations/${reservationId}/wallet-pass/google?lang=${encodeURIComponent(language)}`,
+      { credentials: 'include' }
+    );
+  } catch {
+    return 'failed';
+  }
+  if (response.status === 422) return 'undated';
+  if (!response.ok) return 'failed';
+  try {
+    const { saveUrl } = (await response.json()) as { saveUrl?: unknown };
+    if (typeof saveUrl !== 'string') return 'failed';
+    await TrekShell.addToGoogleWallet({ url: saveUrl });
+    return 'added';
+  } catch (err) {
+    const code = (err as { code?: unknown })?.code;
+    if (code !== 'INVALID' && code !== 'UNAVAILABLE') reportNativeFailure(err);
+    return 'failed';
+  }
 }

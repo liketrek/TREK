@@ -32,9 +32,9 @@ export interface TrekShellPlugin {
   openOfflineCopy(): Promise<{ opened: boolean }>;
   /** What this binary offers the UI (native/capabilities.ts). Missing before shell API 2. */
   getCapabilities(): Promise<NativeCapabilities>;
-  /** iOS, feature tileCache: what the map tile store takes on disk, and its limit. */
+  /** Feature tileCache: what the map tile store takes on disk, and its limit (iOS: every map; Android: Mapbox's). */
   getTileCacheUsage(): Promise<{ bytes: number; limit: number }>;
-  /** iOS, feature tileCache: empties the map tile store. */
+  /** Feature tileCache: empties the map tile store. */
   clearTileCache(): Promise<void>;
   /** Feature biometricLock: which biometry the device offers for the app lock. */
   biometryInfo(): Promise<{ available: boolean; type: string }>;
@@ -42,7 +42,7 @@ export interface TrekShellPlugin {
   authenticateBiometric(options: { reason: string }): Promise<{ ok: true }>;
   /** Feature biometricLock: a blurred cover in the app switcher while the lock is on. */
   setPrivacyCover(options: { enabled: boolean }): Promise<void>;
-  /** iOS, feature geolocation: starts the native location stream (the "location" event). */
+  /** Feature geolocation: starts the native location stream (the "location" event). */
   startLocation(options: { highAccuracy: boolean }): Promise<void>;
   stopLocation(): Promise<void>;
   addListener(
@@ -71,22 +71,43 @@ export interface TrekShellPlugin {
     nextTime?: string;
     done: number;
     total: number;
+    /** Android: minutes after midnight of the next stop, for the countdown in the Live Update. */
+    nextMinutes?: number;
+    /** Android: each stop's colour (#rrggbb) for the Live Update's segments. */
+    colors?: (string | null)[];
   }): Promise<{ running: boolean }>;
   endTripDay(): Promise<void>;
-  /** iOS, feature storeKit: the App Store's price strings for the products it knows. */
+  /** Feature storeKit (iOS) or playBilling (Android): the store's price strings for the products it knows. */
   storeProducts(options: {
     ids: string[];
   }): Promise<{ products: { id: string; displayPrice: string }[]; sandbox?: boolean }>;
-  /** iOS, feature storeKit: the purchase sheet; `jws` is the signed transaction, set when bought. */
-  storePurchase(options: {
-    productId: string;
-  }): Promise<{ kind: 'bought' | 'cancelled' | 'pending' | 'failed'; jws?: string; transactionId?: string }>;
-  /** iOS, feature storeKit: marks a purchase delivered once its instance exists. */
+  /**
+   * The purchase sheet. Set when bought: on iOS `jws`, the signed transaction; on
+   * Android `purchaseToken`, which the control plane verifies with Google Play.
+   */
+  storePurchase(options: { productId: string }): Promise<{
+    kind: 'bought' | 'cancelled' | 'pending' | 'failed';
+    jws?: string;
+    purchaseToken?: string;
+    productId?: string;
+    transactionId?: string;
+  }>;
+  /** Marks a purchase delivered once its instance exists (Android: acknowledges it with Google Play). */
   storeFinish(options: { transactionId: string }): Promise<void>;
   /** iOS, feature wallet: adds a .pkpass (base64) to Apple Wallet, or opens it there when it is already in. */
   addToWallet(options: { data: string }): Promise<{ result: 'added' | 'opened' | 'cancelled' }>;
-  /** iOS, feature storeKit: the newest active subscription under `prefix` on this Apple ID, if any. */
-  storeRestore(options: { prefix: string }): Promise<{ jws?: string; transactionId?: string }>;
+  /** The newest active subscription under `prefix` on this Apple ID or Google account, if any. */
+  storeRestore(options: {
+    prefix: string;
+  }): Promise<{ jws?: string; purchaseToken?: string; productId?: string; transactionId?: string }>;
+  /** Android, feature googleWallet: opens a Google Wallet save link (https://pay.google.com/gp/v/save/...). */
+  addToGoogleWallet(options: { url: string }): Promise<{ result: 'opened' }>;
+  /** Android, feature windowLayout: the window's size classes and a foldable's posture and hinge. */
+  getWindowLayout(): Promise<NativeWindowLayout>;
+  addListener(
+    event: 'windowLayout',
+    listener: (payload: NativeWindowLayout) => void
+  ): Promise<{ remove: () => Promise<void> }>;
   addListener(
     event: 'pushOpened',
     listener: (payload: { url: string }) => void
@@ -101,6 +122,23 @@ export interface SharedFilePayload {
   data: string;
   /** Set when the share sheet already asked which trip it belongs to (feature shareSheet). */
   tripId?: number;
+}
+
+/**
+ * The window as the Android app sees it (feature windowLayout): its size in CSS
+ * pixels, Android's size classes, and a foldable's posture with the hinge's
+ * place in the window. `posture` is none on a device without a fold.
+ */
+interface NativeWindowLayout {
+  width: number;
+  height: number;
+  widthClass: 'compact' | 'medium' | 'expanded';
+  heightClass: 'compact' | 'medium' | 'expanded';
+  posture: 'none' | 'flat' | 'halfOpened';
+  orientation?: 'vertical' | 'horizontal';
+  separating?: boolean;
+  occluding?: boolean;
+  hinge?: { left: number; top: number; right: number; bottom: number };
 }
 
 /** A position, or an error shaped like GeolocationPositionError (1 denied, 2 unavailable). */

@@ -276,6 +276,7 @@ const reservations: TranslationStrings = {
   'reservations.needsConnection': 'Selleks on vaja ühendust. Proovi uuesti, kui TREK on taas võrgus.',
   'reservations.exportCsvFiltered': 'Ekspordi näidatud read, {shown} / {total} (CSV)',
   'reservations.wallet.add': 'Lisa Apple Walletisse',
+  'reservations.wallet.addGoogle': 'Lisa Google Walletisse',
   'reservations.wallet.failed': 'Walleti passi ei õnnestunud luua. Proovi uuesti.',
   'reservations.wallet.undated': 'Anna broneeringule kõigepealt kuupäev: Wallet näitab passi selle aja paiku.',
 };

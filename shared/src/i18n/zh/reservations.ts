@@ -262,6 +262,7 @@ const reservations: TranslationStrings = {
   'reservations.needsConnection': '此操作需要网络连接。请在 TREK 恢复联网后重试。',
   'reservations.exportCsvFiltered': '导出显示的 {shown}/{total} 行 (CSV)',
   'reservations.wallet.add': '添加到 Apple 钱包',
+  'reservations.wallet.addGoogle': '添加到 Google 钱包',
   'reservations.wallet.failed': '无法生成钱包卡券。请重试。',
   'reservations.wallet.undated': '请先为预订设置日期：钱包会在那个时间前后显示卡券。',
 };

@@ -9,6 +9,10 @@ export function isNativeIos(): boolean {
   return isNativeApp() && Capacitor.getPlatform() === 'ios';
 }
 
+export function isNativeAndroid(): boolean {
+  return isNativeApp() && Capacitor.getPlatform() === 'android';
+}
+
 /** The server the app is connected to: the WebView sits on its origin. */
 export function nativeServerHost(): string | null {
   return isNativeApp() ? window.location.host : null;

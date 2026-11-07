@@ -278,6 +278,7 @@ const reservations: TranslationStrings = {
   'reservations.needsConnection': 'הפעולה הזו דורשת חיבור. נסו שוב כש-TREK יחזור לרשת.',
   'reservations.exportCsvFiltered': 'ייצוא {shown} מתוך {total} השורות המוצגות (CSV)',
   'reservations.wallet.add': 'הוספה ל-Apple Wallet',
+  'reservations.wallet.addGoogle': 'הוספה ל-Google Wallet',
   'reservations.wallet.failed': 'לא ניתן היה ליצור את כרטיס ה-Wallet. אנא נסו שוב.',
   'reservations.wallet.undated': 'קודם תנו להזמנה תאריך: Wallet מציג את הכרטיס סביב המועד שלה.',
 };

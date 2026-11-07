@@ -2,7 +2,7 @@ import { Loader2, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from '../../i18n';
 import { useNativeCapabilities } from '../../native/capabilities';
-import { addReservationToWallet, canAddToWallet } from '../../native/wallet';
+import { addReservationToGoogleWallet, addReservationToWallet, bookingWallet } from '../../native/wallet';
 
 interface MWalletButtonProps {
   tripId: number;
@@ -15,23 +15,28 @@ interface MWalletButtonProps {
 }
 
 /**
- * "Add to Apple Wallet" on a booking, in the iOS app only (feature wallet): the
- * booking becomes a TREK pass that shows up on the lock screen around its time
- * and place. Black like Apple's own badge, so it reads as Wallet at a glance.
+ * "Add to Apple Wallet" on a booking in the iOS app (feature wallet), "Add to
+ * Google Wallet" in the Android app (feature googleWallet): the booking becomes a
+ * TREK pass that shows up around its time and place. Black like both stores' own
+ * badges, so it reads as the wallet at a glance.
  */
 export default function MWalletButton({ tripId, reservationId, onError, className }: MWalletButtonProps) {
   const { t, language } = useTranslation();
   // Re-renders once the app binary has said what it can do.
   useNativeCapabilities();
   const [busy, setBusy] = useState(false);
-  if (reservationId === undefined || !canAddToWallet()) return null;
+  const wallet = bookingWallet();
+  if (reservationId === undefined || !wallet) return null;
   const id = reservationId;
 
   const add = async () => {
     if (busy) return;
     setBusy(true);
     try {
-      const outcome = await addReservationToWallet(tripId, id, language);
+      const outcome =
+        wallet === 'google'
+          ? await addReservationToGoogleWallet(tripId, id, language)
+          : await addReservationToWallet(tripId, id, language);
       if (outcome === 'undated') onError(t('reservations.wallet.undated'));
       else if (outcome === 'failed') onError(t('reservations.wallet.failed'));
     } finally {
@@ -45,10 +50,10 @@ export default function MWalletButton({ tripId, reservationId, onError, classNam
       onClick={() => void add()}
       disabled={busy}
       aria-busy={busy}
-      className="flex items-center gap-[6px] rounded-full bg-black px-3 py-[7px] text-[length:calc(12px*var(--fs-scale-body,1))] font-semibold text-white transition-transform active:scale-[.97] disabled:opacity-70" // theme-lint-disable: Apple Wallet's badge is black in either theme
+      className="flex items-center gap-[6px] rounded-full bg-black px-3 py-[7px] text-[length:calc(12px*var(--fs-scale-body,1))] font-semibold text-white transition-transform active:scale-[.97] disabled:opacity-70" // theme-lint-disable: the wallets' badges are black in either theme
     >
       {busy ? <Loader2 size={13} className="animate-spin" /> : <Wallet size={13} strokeWidth={2} />}
-      {t('reservations.wallet.add')}
+      {t(wallet === 'google' ? 'reservations.wallet.addGoogle' : 'reservations.wallet.add')}
     </button>
   );
   return className ? <div className={className}>{button}</div> : button;

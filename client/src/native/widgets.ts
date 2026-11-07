@@ -2,7 +2,7 @@ import type { Day, Reservation, Trip } from '../types';
 import { splitReservationDateTime } from '../utils/formatters';
 import { heroTrip, sortTripsByRelevance } from '../utils/heroTrip';
 import { hasNativeFeature } from './capabilities';
-import { isNativeIos } from './platform';
+import { isNativeApp } from './platform';
 import { reportNativeFailure } from './reportFailure';
 import { TrekShell } from './trekShell';
 import { stopLook, type WidgetBooking, type WidgetPacking, type WidgetTodos } from './widgetExtras';
@@ -125,8 +125,9 @@ export interface TripDay {
   total?: number;
 }
 
+/** iOS (WidgetKit) and Android (Glance) read the same snapshot. */
 export function widgetsActive(): boolean {
-  return isNativeIos() && hasNativeFeature('widgets');
+  return isNativeApp() && hasNativeFeature('widgets');
 }
 
 function minutesOf(time: string | null | undefined): number | null {
@@ -287,8 +288,23 @@ export function buildSnapshot(
   return snapshot;
 }
 
+/** What the Live Activity (iOS) and the Live Update (Android) show of the travel day. */
+interface TripDayState {
+  tripTitle: string;
+  path: string;
+  dayLabel: string;
+  nextName: string;
+  nextTime?: string;
+  /** Android: minutes after midnight of the next stop, for the countdown. */
+  nextMinutes?: number;
+  /** Android: the colour of each timed stop, for the progress segments. */
+  colors?: (string | null)[];
+  done: number;
+  total: number;
+}
+
 /** The Live Activity's state: the first stop whose time is still ahead, else the last. */
-export function tripDayState(day: TripDay, nowMinutes: number, allDone: string) {
+export function tripDayState(day: TripDay, nowMinutes: number, allDone: string): TripDayState {
   const timed = day.stops.filter((s) => s.minutes != null);
   const nextIndex = day.stops.findIndex((s) => s.minutes != null && s.minutes >= nowMinutes);
   const done = nextIndex < 0 ? timed.length : day.stops.slice(0, nextIndex).filter((s) => s.minutes != null).length;
@@ -299,6 +315,9 @@ export function tripDayState(day: TripDay, nowMinutes: number, allDone: string) 
     dayLabel: day.dayLabel,
     nextName: next?.name ?? allDone,
     nextTime: next?.time ?? undefined,
+    // Android's Live Update counts down to the next stop and colours a segment per stop.
+    nextMinutes: next?.minutes ?? undefined,
+    colors: day.stops.filter((s) => s.minutes != null).map((s) => s.color ?? null),
     done,
     total: timed.length,
   };
@@ -315,7 +334,7 @@ export interface TripWidgetSnapshot {
 
 export async function publishWidgets(
   snapshot: WidgetSnapshot,
-  liveDay: ReturnType<typeof tripDayState> | null,
+  liveDay: TripDayState | null,
   trips: TripWidgetSnapshot[] = []
 ): Promise<void> {
   if (!widgetsActive()) return;

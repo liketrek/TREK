@@ -277,6 +277,7 @@ const reservations: TranslationStrings = {
   'reservations.needsConnection': 'Esto necesita conexión. Vuelve a intentarlo cuando TREK esté de nuevo en línea.',
   'reservations.exportCsvFiltered': 'Exportar las {shown} de {total} filas mostradas (CSV)',
   'reservations.wallet.add': 'Añadir a Apple Wallet',
+  'reservations.wallet.addGoogle': 'Añadir a Google Wallet',
   'reservations.wallet.failed': 'No se pudo crear el pase de Wallet. Inténtalo de nuevo.',
   'reservations.wallet.undated': 'Primero ponle una fecha a la reserva: Wallet muestra el pase en torno a ese momento.',
 };

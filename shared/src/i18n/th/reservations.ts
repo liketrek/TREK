@@ -269,6 +269,7 @@ const reservations: TranslationStrings = {
   'reservations.needsConnection': 'การทำงานนี้ต้องใช้การเชื่อมต่อ ลองอีกครั้งเมื่อ TREK กลับมาออนไลน์',
   'reservations.exportCsvFiltered': 'ส่งออก {shown} จาก {total} แถวที่แสดง (CSV)',
   'reservations.wallet.add': 'เพิ่มลงใน Apple Wallet',
+  'reservations.wallet.addGoogle': 'เพิ่มลงใน Google Wallet',
   'reservations.wallet.failed': 'สร้างบัตร Wallet ไม่สำเร็จ โปรดลองอีกครั้ง',
   'reservations.wallet.undated': 'กำหนดวันที่ให้การจองก่อน Wallet จะแสดงบัตรในช่วงเวลานั้น',
 };
