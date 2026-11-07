@@ -22,7 +22,10 @@ import org.json.JSONObject;
 /** The native half of client/src/native/trekShell.ts. */
 @CapacitorPlugin(
     name = "TrekShell",
-    permissions = { @Permission(strings = { Manifest.permission.POST_NOTIFICATIONS }, alias = "notifications") }
+    permissions = {
+        @Permission(strings = { Manifest.permission.POST_NOTIFICATIONS }, alias = "notifications"),
+        @Permission(strings = { Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION }, alias = "location"),
+    }
 )
 public class TrekShellPlugin extends Plugin {
 
@@ -41,7 +44,22 @@ public class TrekShellPlugin extends Plugin {
      */
     static final int SHELL_API = 2;
     /** The native features by name, so the UI can turn each on by itself. */
-    static final String[] FEATURES = { "capabilities", "biometricLock", "sharedFiles", "nativePush" };
+    static final String[] FEATURES = {
+        "capabilities",
+        "biometricLock",
+        "sharedFiles",
+        "nativePush",
+        "geolocation",
+        "tileCache",
+        "widgets",
+        "widgetTrips",
+        "liveActivity",
+        "shareSheet",
+        "playBilling",
+        "googleWallet",
+        "keyCommands",
+        "windowLayout",
+    };
 
     /** liketrek's push relay: the endpoint for this device's FCM token (trek-hosted push-relay.ts). */
     static final String PUSH_RELAY = "https://push.liketrek.com/v1/fcm/";
@@ -76,6 +94,18 @@ public class TrekShellPlugin extends Plugin {
     @Override
     public void load() {
         TrekSharedFiles.setListener(file -> notifyListeners("sharedFile", file));
+        com.liketrek.trek.screen.TrekKeyCommands.INSTANCE.setOnPress(id -> {
+            JSObject pressed = new JSObject();
+            pressed.put("id", id);
+            notifyListeners("keyCommand", pressed);
+            return kotlin.Unit.INSTANCE;
+        });
+        if (getActivity() != null) {
+            com.liketrek.trek.screen.TrekWindowLayout.INSTANCE.observe(getActivity(), layout -> {
+                notifyListeners("windowLayout", layout);
+                return kotlin.Unit.INSTANCE;
+            });
+        }
         if (getActivity() != null && getActivity().getIntent() != null) {
             openedPushUrl = getActivity().getIntent().getStringExtra(TrekPushService.EXTRA_URL);
             getActivity().getIntent().removeExtra(TrekPushService.EXTRA_URL);
@@ -347,5 +377,206 @@ public class TrekShellPlugin extends Plugin {
         JSObject result = new JSObject();
         result.put("opened", false);
         call.resolve(result);
+    }
+
+    // ---- Widgets, shortcuts and the travel day ----
+
+    /**
+     * What the home-screen widgets show (native/widgets.ts), as JSON: "snapshot"
+     * (the dashboard's), "trip.<id>" or "trips" (the list a widget and the share
+     * sheet pick from). The widgets redraw, and a new trip list rebuilds the
+     * trip shortcuts.
+     */
+    @PluginMethod
+    public void setWidgetSnapshot(PluginCall call) {
+        String json = call.getString("json");
+        String key = call.getString("key", "snapshot");
+        if (json == null) {
+            call.reject("json is required");
+            return;
+        }
+        if (!com.liketrek.trek.widget.WidgetStore.INSTANCE.isValidKey(key)) {
+            call.reject("key must be snapshot, trips or trip.<id>");
+            return;
+        }
+        android.content.Context context = getContext().getApplicationContext();
+        try {
+            com.liketrek.trek.widget.WidgetStore.INSTANCE.write(context, key, json);
+        } catch (Exception e) {
+            call.reject("Could not store the widget snapshot", e);
+            return;
+        }
+        if ("trips".equals(key)) {
+            new Thread(() -> com.liketrek.trek.share.TrekShortcuts.INSTANCE.publish(context)).start();
+        } else {
+            com.liketrek.trek.widget.TrekWidgetUpdater.refreshAll(context);
+        }
+        call.resolve();
+    }
+
+    /** Starts the travel day's Live Update, or updates the one showing. */
+    @PluginMethod
+    public void syncTripDay(PluginCall call) {
+        String title = call.getString("tripTitle");
+        String path = call.getString("path");
+        String dayLabel = call.getString("dayLabel");
+        String nextName = call.getString("nextName");
+        if (title == null || path == null || dayLabel == null || nextName == null) {
+            call.reject("tripTitle, path, dayLabel and nextName are required");
+            return;
+        }
+        java.util.List<String> colors = new java.util.ArrayList<>();
+        com.getcapacitor.JSArray raw = call.getArray("colors");
+        if (raw != null) {
+            for (int i = 0; i < raw.length(); i++) colors.add(raw.isNull(i) ? null : raw.optString(i, null));
+        }
+        com.liketrek.trek.tripday.TripDayNotification.State state = new com.liketrek.trek.tripday.TripDayNotification.State(
+            title,
+            path,
+            dayLabel,
+            nextName,
+            call.getString("nextTime"),
+            call.getInt("nextMinutes"),
+            call.getInt("done", 0),
+            call.getInt("total", 0),
+            colors
+        );
+        boolean running = com.liketrek.trek.tripday.TripDayNotification.INSTANCE.show(getContext(), state);
+        JSObject result = new JSObject();
+        result.put("running", running);
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void endTripDay(PluginCall call) {
+        com.liketrek.trek.tripday.TripDayNotification.INSTANCE.end(getContext());
+        call.resolve();
+    }
+
+    // ---- Location ----
+
+    private com.liketrek.trek.location.TrekLocation location;
+    private boolean locationHighAccuracy;
+
+    private com.liketrek.trek.location.TrekLocation location() {
+        if (location == null) {
+            location = new com.liketrek.trek.location.TrekLocation(getContext(), payload -> {
+                notifyListeners("location", payload);
+                return kotlin.Unit.INSTANCE;
+            });
+        }
+        return location;
+    }
+
+    /** One location stream for the UI's navigator.geolocation, asking for the permission the first time. */
+    @PluginMethod
+    public void startLocation(PluginCall call) {
+        locationHighAccuracy = Boolean.TRUE.equals(call.getBoolean("highAccuracy", false));
+        if (getPermissionState("location") != PermissionState.GRANTED) {
+            requestPermissionForAlias("location", call, "locationPermissionAnswered");
+            return;
+        }
+        location().start(locationHighAccuracy);
+        call.resolve();
+    }
+
+    @PermissionCallback
+    private void locationPermissionAnswered(PluginCall call) {
+        if (getPermissionState("location") != PermissionState.GRANTED) {
+            location().emitError(1, "Location permission denied");
+        } else {
+            location().start(locationHighAccuracy);
+        }
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void stopLocation(PluginCall call) {
+        if (location != null) location.stop();
+        call.resolve();
+    }
+
+    // ---- Map tile store ----
+
+    @PluginMethod
+    public void getTileCacheUsage(PluginCall call) {
+        new Thread(() -> {
+            JSObject result = new JSObject();
+            result.put("bytes", com.liketrek.trek.tiles.TrekTileStore.INSTANCE.usage());
+            result.put("limit", com.liketrek.trek.tiles.TrekTileStore.MAX_BYTES);
+            call.resolve(result);
+        }).start();
+    }
+
+    @PluginMethod
+    public void clearTileCache(PluginCall call) {
+        new Thread(() -> {
+            com.liketrek.trek.tiles.TrekTileStore.INSTANCE.clear();
+            call.resolve();
+        }).start();
+    }
+
+    // ---- Google Play Billing (the StoreKit methods' Android side) ----
+
+    @PluginMethod
+    public void storeProducts(PluginCall call) {
+        com.liketrek.trek.billing.TrekBilling.INSTANCE.products(getContext(), call);
+    }
+
+    @PluginMethod
+    public void storePurchase(PluginCall call) {
+        com.liketrek.trek.billing.TrekBilling.INSTANCE.purchase(getActivity(), call);
+    }
+
+    @PluginMethod
+    public void storeFinish(PluginCall call) {
+        com.liketrek.trek.billing.TrekBilling.INSTANCE.finish(getContext(), call);
+    }
+
+    @PluginMethod
+    public void storeRestore(PluginCall call) {
+        com.liketrek.trek.billing.TrekBilling.INSTANCE.restore(getContext(), call);
+    }
+
+    // ---- Google Wallet ----
+
+    /** The only links this hands on: Google Wallet's save-to-wallet page. */
+    static final String GOOGLE_WALLET_SAVE = "https://pay.google.com/gp/v/save/";
+
+    /**
+     * Feature googleWallet: a booking's pass, by the save link the TREK services
+     * signed, into Google Wallet. The Wallet app takes the link where it is
+     * installed, the browser otherwise.
+     */
+    @PluginMethod
+    public void addToGoogleWallet(PluginCall call) {
+        String url = call.getString("url");
+        if (url == null || !url.startsWith(GOOGLE_WALLET_SAVE)) {
+            call.reject("not a Google Wallet save link", "INVALID");
+            return;
+        }
+        try {
+            getActivity().startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)).addCategory(Intent.CATEGORY_BROWSABLE));
+            JSObject result = new JSObject();
+            result.put("result", "opened");
+            call.resolve(result);
+        } catch (android.content.ActivityNotFoundException e) {
+            call.reject("Nothing can open Google Wallet", "UNAVAILABLE");
+        }
+    }
+
+    // ---- Large screens and keyboards ----
+
+    /** Feature keyCommands: the UI's keyboard shortcuts for the screen it shows. */
+    @PluginMethod
+    public void setKeyCommands(PluginCall call) {
+        com.liketrek.trek.screen.TrekKeyCommands.INSTANCE.set(call.getArray("commands"));
+        call.resolve();
+    }
+
+    /** Feature windowLayout: the window's size classes and a foldable's posture and hinge. */
+    @PluginMethod
+    public void getWindowLayout(PluginCall call) {
+        getActivity().runOnUiThread(() -> call.resolve(com.liketrek.trek.screen.TrekWindowLayout.INSTANCE.describe(getActivity(), null)));
     }
 }

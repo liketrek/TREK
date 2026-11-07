@@ -4,7 +4,5 @@
     <string name="title_activity_main">TREK</string>
     <string name="package_name">com.liketrek.trek</string>
     <string name="custom_url_scheme">com.liketrek.trek</string>
-    <string name="push_channel_name">Notifications</string>
     <string name="push_fallback_title">TREK</string>
-    <string name="push_fallback_body">New notification</string>
 </resources>

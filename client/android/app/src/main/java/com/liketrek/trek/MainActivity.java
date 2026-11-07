@@ -2,14 +2,25 @@ package com.liketrek.trek;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.KeyEvent;
+import android.view.KeyboardShortcutGroup;
+import android.view.Menu;
 import android.view.View;
 import com.getcapacitor.BridgeActivity;
+import com.liketrek.trek.screen.TrekKeyCommands;
+import com.liketrek.trek.tiles.TrekTileStore;
+import com.liketrek.trek.widget.TrekWidgetUpdater;
+import java.util.List;
 
 public class MainActivity extends BridgeActivity {
+
+    /** The share sheet (share/ShareActivity.kt) left an item for the import. */
+    public static final String ACTION_SHARE_HANDOFF = "com.liketrek.trek.SHARE_HANDOFF";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         registerPlugin(TrekShellPlugin.class);
+        TrekTileStore.INSTANCE.init(this);
         // With a server picked, the WebView loads that server instead of the
         // bundled address screen, so the UI arrives in the version the server
         // runs and on its own origin. BridgeActivity reads `config` while it
@@ -27,6 +38,26 @@ public class MainActivity extends BridgeActivity {
         // Set before any WebView callback can run: they are posted to this thread.
         if (onServer) bridge.setWebViewClient(new TrekWebViewClient(bridge, this::showAddressScreen));
         TrekSharedFiles.receive(this, getIntent());
+        // Android 15's widget picker draws the widgets live from a sample trip.
+        TrekWidgetUpdater.publishPreviews(this);
+    }
+
+    /**
+     * A hardware keyboard's shortcut runs the UI's command (TrekKeyCommands),
+     * wherever the focus is; everything else goes on to the WebView as usual.
+     */
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (TrekKeyCommands.INSTANCE.dispatch(event)) return true;
+        return super.dispatchKeyEvent(event);
+    }
+
+    /** The UI's shortcuts in the system's list (Meta + /), under their names. */
+    @Override
+    public void onProvideKeyboardShortcuts(List<KeyboardShortcutGroup> data, Menu menu, int deviceId) {
+        super.onProvideKeyboardShortcuts(data, menu, deviceId);
+        KeyboardShortcutGroup group = TrekKeyCommands.INSTANCE.shortcutGroup(getString(R.string.app_name));
+        if (group != null) data.add(group);
     }
 
     @Override

@@ -24,6 +24,16 @@ class TrekWebViewClient extends BridgeWebViewClient {
         this.onUnreachable = onUnreachable;
     }
 
+    /** Mapbox's map resources go through the app's own store (tiles/TrekTileStore.kt). */
+    @Override
+    public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+        if (com.liketrek.trek.tiles.TrekTileStore.INSTANCE.handles(request)) {
+            WebResourceResponse stored = com.liketrek.trek.tiles.TrekTileStore.INSTANCE.serve(request);
+            if (stored != null) return stored;
+        }
+        return super.shouldInterceptRequest(view, request);
+    }
+
     @Override
     public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
         if (request.isForMainFrame()) {

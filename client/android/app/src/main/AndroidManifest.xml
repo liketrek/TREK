@@ -9,31 +9,33 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
+        android:enableOnBackInvokedCallback="true"
+        android:resizeableActivity="true"
         android:theme="@style/AppTheme">
 
+        <!-- Every window shape a tablet, a foldable, ChromeOS or desktop windowing
+             offers. The UI lays itself out by the window's size (hooks/sizeClass.ts),
+             so the activity takes size, fold and orientation changes itself
+             (configChanges) instead of restarting and losing the page. -->
+        <meta-data android:name="android.supports_size_changes" android:value="true" />
+
         <activity
-            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|layoutDirection|smallestScreenSize|screenLayout|uiMode|navigation|density|fontScale|touchscreen|colorMode|fontWeightAdjustment"
             android:name=".MainActivity"
             android:label="@string/title_activity_main"
             android:theme="@style/AppTheme.NoActionBarLaunch"
             android:launchMode="singleTask"
+            android:screenOrientation="fullUser"
+            android:windowSoftInputMode="adjustResize"
             android:exported="true">
+
+            <!-- The trips as launcher and direct-share shortcuts (TrekShortcuts). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- "Open in TREK" / share a booking document into the import. -->
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <action android:name="android.intent.action.SEND" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="application/pdf" />
-                <data android:mimeType="text/calendar" />
-                <data android:mimeType="application/vnd.apple.pkpass" />
-                <data android:mimeType="message/rfc822" />
-            </intent-filter>
-
             <!-- Deep links.
 
                  The scheme is @string/custom_url_scheme (com.liketrek.trek).
@@ -60,6 +62,121 @@
 
         </activity>
 
+        <!-- "TREK" in the share sheet and "Open with TREK": a booking document, a
+             mail, a page or a link, into a trip (share/ShareActivity.kt). -->
+        <activity
+            android:name=".share.ShareActivity"
+            android:theme="@style/AppTheme.Sheet"
+            android:excludeFromRecents="true"
+            android:taskAffinity="com.liketrek.trek.share"
+            android:launchMode="standard"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/pdf" />
+                <data android:mimeType="application/vnd.apple.pkpass" />
+                <data android:mimeType="message/rfc822" />
+                <data android:mimeType="text/calendar" />
+                <data android:mimeType="text/html" />
+                <data android:mimeType="text/plain" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/pdf" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="application/pdf" />
+                <data android:mimeType="text/calendar" />
+                <data android:mimeType="application/vnd.apple.pkpass" />
+                <data android:mimeType="message/rfc822" />
+            </intent-filter>
+            <!-- Lets the share sheet rank the trip shortcuts for this target. -->
+            <meta-data android:name="android.service.chooser.chooser_target_service" android:value="androidx.sharetarget.ChooserTargetServiceCompat" />
+        </activity>
+
+        <!-- "Choose trip" for a placed widget. -->
+        <activity
+            android:name=".widget.WidgetConfigActivity"
+            android:theme="@style/AppTheme.Native"
+            android:excludeFromRecents="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+        <!-- The home-screen widgets (widget/TrekWidgets.kt). -->
+        <receiver
+            android:name=".widget.TripWidgetReceiver"
+            android:label="@string/widget_trip_name"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_trip" />
+        </receiver>
+        <receiver
+            android:name=".widget.TodayWidgetReceiver"
+            android:label="@string/widget_today_name"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_today" />
+        </receiver>
+        <receiver
+            android:name=".widget.BookingsWidgetReceiver"
+            android:label="@string/widget_bookings_name"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_bookings" />
+        </receiver>
+        <receiver
+            android:name=".widget.TodosWidgetReceiver"
+            android:label="@string/widget_todos_name"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_todos" />
+        </receiver>
+        <receiver
+            android:name=".widget.PackingWidgetReceiver"
+            android:label="@string/widget_packing_name"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_packing" />
+        </receiver>
+        <receiver
+            android:name=".widget.AtlasWidgetReceiver"
+            android:label="@string/widget_atlas_name"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_atlas" />
+        </receiver>
+        <receiver
+            android:name=".widget.CollabWidgetReceiver"
+            android:label="@string/widget_collab_name"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_collab" />
+        </receiver>
         <!-- Push: the relay's data messages, decrypted and shown here. -->
         <service
             android:name=".TrekPushService"
@@ -97,5 +214,10 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- Android 13 and later ask before an app may show notifications. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Android 16: the travel day's Live Update may be promoted to the top of the shade. -->
+    <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <!-- Tablets, Chromebooks and TVs without these still get the app on Play. -->
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+    <uses-feature android:name="android.hardware.screen.portrait" android:required="false" />
 </manifest>

@@ -1,4 +1,6 @@
 apply plugin: 'com.android.application'
+apply plugin: 'org.jetbrains.kotlin.android'
+apply plugin: 'org.jetbrains.kotlin.plugin.compose'
 
 android {
     namespace = "com.liketrek.trek"
@@ -32,6 +34,25 @@ android {
             }
         }
     }
+    // java.time in the widgets and the travel-day notification, back to Android 7.
+    compileOptions {
+        coreLibraryDesugaringEnabled true
+    }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
+    // The app's languages, for the system's per-app language setting (Android 13+):
+    // generated from the values-* folders, so a language added there is offered too.
+    androidResources {
+        generateLocaleConfig = true
+    }
+    testOptions {
+        unitTests {
+            includeAndroidResources = true
+            returnDefaultValues = true
+        }
+    }
     buildTypes {
         release {
             if (project.hasProperty('trekKeystore')) {
@@ -57,14 +78,39 @@ dependencies {
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation "androidx.browser:browser:$androidxBrowserVersion"
     implementation "androidx.biometric:biometric:1.1.0"
+    implementation "androidx.core:core-ktx:$androidxCoreVersion"
+    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.5"
+    // Home-screen widgets.
+    implementation "androidx.glance:glance-appwidget:$glanceVersion"
+    implementation "androidx.glance:glance-material3:$glanceVersion"
+    // The share sheet and the widget's trip picker.
+    implementation platform("androidx.compose:compose-bom:$composeBomVersion")
+    implementation "androidx.compose.material3:material3"
+    implementation "androidx.compose.material:material-icons-extended"
+    implementation "androidx.compose.ui:ui-tooling-preview"
+    debugImplementation "androidx.compose.ui:ui-tooling"
+    implementation "androidx.activity:activity-compose:$androidxActivityVersion"
+    // A foldable's posture and hinge, and the window's size, for the UI.
+    implementation "androidx.window:window:1.4.0"
+    // Ranks the trip shortcuts in the share sheet on Android 10 and earlier.
+    implementation "androidx.sharetarget:sharetarget:1.2.0"
+    // TREK Cloud subscriptions through Google Play, the counterpart of StoreKit.
+    implementation "com.android.billingclient:billing:$playBillingVersion"
     // Push through liketrek's relay. No google-services plugin: Firebase reads
     // its project from res/values/firebase.xml, the strings the plugin would generate.
     implementation "com.google.firebase:firebase-messaging:24.1.2"
     implementation project(':capacitor-android')
     testImplementation "junit:junit:$junitVersion"
+    testImplementation "org.json:json:20250517"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
 }
 
 apply from: 'capacitor.build.gradle'
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21
+    }
+}

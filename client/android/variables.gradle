@@ -15,4 +15,9 @@ ext {
     cordovaAndroidVersion = '14.0.1'
     // Custom Tabs for SSO and passkey sign-in (TrekShellPlugin.authenticate).
     androidxBrowserVersion = '1.8.0'
+    // The native surfaces: home-screen widgets (Glance), the share sheet and the
+    // widget's trip picker (Compose, Material 3), and Google Play Billing.
+    composeBomVersion = '2025.10.01'
+    glanceVersion = '1.2.0'
+    playBillingVersion = '8.3.0'
 }

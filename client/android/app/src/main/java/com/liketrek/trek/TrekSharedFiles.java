@@ -39,8 +39,16 @@ final class TrekSharedFiles {
 
     static void receive(Context context, Intent intent) {
         if (intent == null) return;
+        if (MainActivity.ACTION_SHARE_HANDOFF.equals(intent.getAction())) {
+            receiveHandoff(context);
+            return;
+        }
         Uri uri = null;
-        if (Intent.ACTION_VIEW.equals(intent.getAction())) uri = intent.getData();
+        // A view intent also brings sign-in callbacks and widget links; only a file is a document.
+        if (Intent.ACTION_VIEW.equals(intent.getAction()) && intent.getData() != null
+            && ("content".equals(intent.getData().getScheme()) || "file".equals(intent.getData().getScheme()))) {
+            uri = intent.getData();
+        }
         else if (Intent.ACTION_SEND.equals(intent.getAction())) uri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
         if (uri == null) return;
         try (InputStream in = context.getContentResolver().openInputStream(uri)) {
@@ -62,6 +70,20 @@ final class TrekSharedFiles {
         } catch (Exception ignored) {
             // Unreadable or gone: nothing to import.
         }
+    }
+
+    /** The item the share sheet left (share/ShareHandoff.kt), with the trip picked for it there. */
+    static void receiveHandoff(Context context) {
+        kotlin.Pair<org.json.JSONObject, byte[]> item = com.liketrek.trek.share.ShareHandoff.INSTANCE.take(context);
+        if (item == null || item.getSecond().length > MAX_BYTES) return;
+        org.json.JSONObject meta = item.getFirst();
+        JSObject file = new JSObject();
+        file.put("name", meta.optString("name", "booking"));
+        file.put("mimeType", meta.optString("mimeType", "application/octet-stream"));
+        file.put("data", Base64.encodeToString(item.getSecond(), Base64.NO_WRAP));
+        if (meta.has("tripId")) file.put("tripId", meta.optLong("tripId"));
+        pending = file;
+        if (listener != null) listener.onFile(file);
     }
 
     private static String displayName(Context context, Uri uri) {
