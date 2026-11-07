@@ -1,4 +1,3 @@
-import { CreditCard, LifeBuoy } from 'lucide-react';
 import { http, HttpResponse } from 'msw';
 import { Route, Routes } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -11,28 +10,33 @@ import { resetAllStores, seedStore } from '../../../helpers/store';
 
 // An install that fills the admin-tab attachment point (managed/index.tsx): one tab
 // with a phone layout of its own, one without.
-vi.mock('../../../../src/managed', () => ({
-  managedRoutes: [],
-  managedNavItems: [],
-  visibleManagedNavItems: () => [],
-  managedAdminTabs: [
-    {
-      id: 'subscription',
-      label: 'Subscription',
-      Icon: CreditCard,
-      group: 'maintenance',
-      element: <div data-testid="desktop-subscription" />,
-      mobileElement: <div data-testid="phone-subscription" />,
-    },
-    {
-      id: 'support',
-      label: 'Help and support',
-      Icon: LifeBuoy,
-      group: 'maintenance',
-      element: <div data-testid="desktop-support" />,
-    },
-  ],
-}));
+vi.mock('../../../../src/managed', async () => {
+  // vi.mock is hoisted above the imports, so the factory brings its own.
+  const { createElement } = await import('react');
+  const { CreditCard, LifeBuoy } = await import('lucide-react');
+  return {
+    managedRoutes: [],
+    managedNavItems: [],
+    visibleManagedNavItems: () => [],
+    managedAdminTabs: [
+      {
+        id: 'subscription',
+        label: 'Subscription',
+        Icon: CreditCard,
+        group: 'maintenance',
+        element: createElement('div', { 'data-testid': 'desktop-subscription' }),
+        mobileElement: createElement('div', { 'data-testid': 'phone-subscription' }),
+      },
+      {
+        id: 'support',
+        label: 'Help and support',
+        Icon: LifeBuoy,
+        group: 'maintenance',
+        element: createElement('div', { 'data-testid': 'desktop-support' }),
+      },
+    ],
+  };
+});
 
 function renderAdmin() {
   return render(
