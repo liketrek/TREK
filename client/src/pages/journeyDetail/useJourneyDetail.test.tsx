@@ -162,7 +162,8 @@ describe('useJourneyDetail', () => {
     setup({ search: '?create=entry' });
     await waitFor(() => expect(latest.editingEntry).not.toBeNull());
     expect(latest.editingEntry).toMatchObject({ id: 0, journey_id: 7, type: 'entry', visibility: 'private' });
-    expect(screen.getByTestId('search')).toHaveTextContent('');
+    // The parameter goes in the same effect but reaches the URL a render later.
+    await waitFor(() => expect(screen.getByTestId('search')).toBeEmptyDOMElement());
   });
 
   it('FE-JRN-DETHOOK-004: a viewer never gets the draft editor', async () => {
