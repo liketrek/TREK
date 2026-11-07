@@ -4,6 +4,7 @@ import { render, screen } from '../../../tests/helpers/render'
 import { act, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { resetAllStores } from '../../../tests/helpers/store'
+import { setSizeClass } from '../../../tests/helpers/sizeClass'
 import { buildPlace, buildReservation } from '../../../tests/helpers/factories'
 import { AMAP_ROAD, AMAP_SATELLITE, MAP_MAX_ZOOM, OPENTOPOMAP_TILE_URL } from '../../constants/mapDefaults'
 import { useAuthStore } from '../../store/authStore'
@@ -16,6 +17,8 @@ import { renderIconMarkup } from '../../utils/iconMarkup'
 const mapMock = vi.hoisted(() => ({
   getContainer: vi.fn(() => document.createElement('div')),
   getCenter: vi.fn(() => ({ lat: 0, lng: 0 })),
+  // The map fills the window here, so the opening frame stands (OpeningFrameFit).
+  getSize: vi.fn(() => ({ x: window.innerWidth, y: window.innerHeight })),
   panTo: vi.fn(),
   setView: vi.fn(),
   fitBounds: vi.fn(),
@@ -204,6 +207,13 @@ vi.mock('../../services/photoService', () => ({
   getAllThumbs: vi.fn(() => ({})),
 }))
 
+// The app shows the touch shell at every size; a test can say it does (undefined: as in a browser).
+const shell = vi.hoisted(() => ({ phone: undefined as boolean | undefined }))
+vi.mock('../../mobile/useIsPhone', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../mobile/useIsPhone')>()
+  return { ...actual, useIsPhone: () => shell.phone ?? actual.useIsPhone() }
+})
+
 vi.mock('./gcj02Crs', () => ({
   crsForBasemap: (gcj02: boolean) => gcj02 ? { code: 'TREK:GCJ02' } : undefined,
 }))
@@ -227,6 +237,7 @@ const ORIGINAL_WIDTH = window.innerWidth
 
 afterEach(() => {
   vi.clearAllMocks()
+  shell.phone = undefined
   resetAllStores()
   clusterMock.markers.clear()
   clusterMock.asked.length = 0
@@ -1296,7 +1307,8 @@ describe('MapView selection panning (#921)', () => {
     afterEach(() => {
       delete projectable.project
       delete projectable.unproject
-      delete projectable.getSize
+      // Back to the map that fills the window (the mock's own size).
+      projectable.getSize = vi.fn(() => ({ x: window.innerWidth, y: window.innerHeight }))
     })
 
     it('FE-COMP-MAPVIEW-090: pans the pin back out once the card measured taller than the allowance', () => {
@@ -1572,6 +1584,24 @@ describe('MapView bounds fitting', () => {
     rerender(<MapView places={places} fitKey={2} focusPoints={stage} />)
     expect(mapMock.fitBounds).toHaveBeenCalledTimes(3)
     expect(mapMock.fitBounds.mock.calls[2][1]).toMatchObject({ paddingTopLeft: [40, 20], paddingBottomRight: [40, 20] })
+  })
+
+  it('FE-COMP-MAPVIEW-094: opens framed at the whole zoom level that fits, not the nearest one', () => {
+    // A day spread so that its exact fit lies between two levels.
+    const places = [buildMapPlace({ id: 1, lat: 34.9671, lng: 135.7727 }), buildMapPlace({ id: 2, lat: 35.005, lng: 135.7649 })]
+    render(<MapView places={places} />)
+    const zoom = Number(screen.getByTestId('map-container').getAttribute('data-zoom'))
+    expect(Number.isInteger(zoom)).toBe(true)
+  })
+
+  it('FE-COMP-MAPVIEW-093: on an iPad the touch shell frames a day clear of its floating toolbar and corner buttons', () => {
+    shell.phone = true
+    setSizeClass('wide')
+    const places = [buildMapPlace({ id: 1, lat: 35, lng: 135.7 }), buildMapPlace({ id: 2, lat: 35.04, lng: 135.78 })]
+    const { rerender } = render(<MapView places={places} fitKey={1} />)
+    rerender(<MapView places={places} fitKey={2} />)
+    const opts = mapMock.fitBounds.mock.calls[mapMock.fitBounds.mock.calls.length - 1]?.[1]
+    expect(opts).toMatchObject({ paddingTopLeft: [40, 84], paddingBottomRight: [40, 56] })
   })
 
   it('FE-COMP-MAPVIEW-079: the caller padding is read by value, so only new numbers refit the points on screen', () => {

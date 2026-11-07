@@ -173,6 +173,12 @@ describe('MPlaceSheet', () => {
     expect(screen.queryByRole('button', { name: 'Change image' })).not.toBeInTheDocument()
   })
 
+  it('FE-MOB-PLSH-033: the category pill keeps to the photo on a phone and takes the room a wide sheet has', () => {
+    renderSheet()
+    const pill = screen.getByText('Museum').parentElement as HTMLElement
+    expect(pill).toHaveClass('max-w-[76px]', 'wide:max-w-[140px]')
+  })
+
   it('FE-MOB-PLSH-003: clears the place selection when closed', () => {
     const { planner } = renderSheet()
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))

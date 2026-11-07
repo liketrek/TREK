@@ -328,11 +328,11 @@ describe('MBookingsTab', () => {
     expect(screen.queryByTestId('plugin-frame')).not.toBeInTheDocument()
   })
 
-  it('FE-MOB-BKTAB-024: a section lays its cards in a grid that takes as many columns as the page holds', () => {
+  it('FE-MOB-BKTAB-024: a section lays its cards in as many columns as the page holds', () => {
     renderTab()
     const header = screen.getByRole('button', { name: 'reservations.confirmed2' })
     const grid = header.nextElementSibling as HTMLElement
-    expect(grid.className).toContain('wide:grid-cols-[repeat(auto-fill,minmax(min(100%,340px),1fr))]')
+    expect(grid.className).toContain('wide:columns-[340px]')
     expect(within(grid).getByText('Hotel Granvia')).toBeInTheDocument()
   })
 })

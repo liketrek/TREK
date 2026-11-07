@@ -1,3 +1,4 @@
+import userEvent from '@testing-library/user-event';
 import { Settings2, Users } from 'lucide-react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -189,15 +190,19 @@ describe('section lists beside the page', () => {
 });
 
 describe('list tabs on a wide window', () => {
-  it('FE-MOB-PANES-009: cards take as many columns of a phone width as the page holds', () => {
+  it('FE-MOB-PANES-009: cards flow down as many columns of a phone width as the page holds, starting level', () => {
     const { container } = render(
       <CardGrid>
         <div>a</div>
       </CardGrid>
     );
-    expect((container.firstChild as HTMLElement).className).toContain(
-      'wide:grid-cols-[repeat(auto-fill,minmax(min(100%,340px),1fr))]'
-    );
+    const grid = container.firstChild as HTMLElement;
+    expect(grid.className).toContain('wide:columns-[340px]');
+    // No card splits across two columns, and none keeps a top margin that
+    // would start its column lower than the next.
+    expect(grid.className).toContain('wide:[&>*]:break-inside-avoid');
+    expect(grid.className).toContain('wide:[&>*]:mt-0');
+    expect(grid.className).not.toContain('wide:grid');
   });
 
   it('FE-MOB-PANES-010: the summary stacks above the list, and stands beside it with room for two panes', () => {
@@ -207,7 +212,10 @@ describe('list tabs on a wide window', () => {
       </TabPanes>
     );
     expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
-    expect(screen.getByText('summary').parentElement).toBe(screen.getByText('list').parentElement);
+    // Stacked: one scroll body holds both, the summary first.
+    const scroller = screen.getByText('summary').closest('.overflow-y-auto');
+    expect(scroller).not.toBeNull();
+    expect(scroller).toBe(screen.getByText('list').closest('.overflow-y-auto'));
 
     setSizeClass('split');
     rerender(
@@ -219,6 +227,28 @@ describe('list tabs on a wide window', () => {
     expect(aside).toHaveClass('m-pane-aside');
     expect(within(aside).getByText('summary')).toBeInTheDocument();
     expect(within(aside).queryByText('list')).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-PANES-016: turning between stacked and two panes keeps what is typed in either pane', async () => {
+    const user = userEvent.setup();
+    const panes = () => (
+      <TabPanes aside={<input aria-label="budget note" />} asideLabel="Budget">
+        <input aria-label="search" />
+      </TabPanes>
+    );
+    const { rerender } = render(panes());
+    await user.type(screen.getByLabelText('search'), 'ramen');
+    await user.type(screen.getByLabelText('budget note'), 'cap');
+
+    setSizeClass('split');
+    rerender(panes());
+    expect(screen.getByLabelText('search')).toHaveValue('ramen');
+    expect(screen.getByLabelText('budget note')).toHaveValue('cap');
+
+    setSizeClass('wide');
+    rerender(panes());
+    expect(screen.getByLabelText('search')).toHaveValue('ramen');
+    expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
   });
 
   it('FE-MOB-PANES-011: the to-do filters as tiles and lists, each one a filter to pick', () => {

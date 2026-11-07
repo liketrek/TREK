@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useLayoutEffect, useRef, type ReactNode } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import type { ReservationTraveler } from '@trek/shared'
 import { avatarSrc } from '../../../../utils/avatarSrc'
@@ -37,16 +37,19 @@ const TAB_INSETS = 'px-4 pb-[calc(var(--bottom-nav-h,84px)+22px)] pt-[calc(var(-
 const PANE_INSETS = 'pb-[calc(var(--bottom-nav-h,84px)+22px)] pt-[calc(var(--m-safe-top,12px)+58px)]'
 
 /**
- * The cards of a list tab (transports, bookings, tasks): one column on a phone;
- * on a wide window as many columns of at least a phone's width as the page
- * holds, three on a 13" iPad on its side, two upright or on an unfolded
- * foldable on its side, one in a narrow Split View. Cards stay in reading
- * order along the rows and keep their own height: stretched to a taller
- * neighbour, a short booking read as an empty panel.
+ * The cards of a list tab (transports, bookings, tasks, polls): one column on a
+ * phone; on a wide window as many columns of at least a phone's width as the
+ * page holds, three on a 13" iPad on its side, two upright or on an unfolded
+ * foldable on its side, one in a narrow Split View. The cards flow down the
+ * columns, each keeping its own height, so the columns start level and no
+ * short card ends above its neighbour in a ragged row or stretches into an
+ * empty panel. In date order that reads down the first column, then the next.
+ * The cards' own top margin gives way to an even gap under each card, so the
+ * columns start on one line in every engine.
  */
 export function CardGrid({ children }: { children: ReactNode }) {
   return (
-    <div className="wide:grid wide:grid-cols-[repeat(auto-fill,minmax(min(100%,340px),1fr))] wide:items-start wide:gap-x-3">
+    <div className="wide:columns-[340px] wide:gap-x-3 wide:pt-2 wide:[&>*]:mb-3 wide:[&>*]:mt-0 wide:[&>*]:break-inside-avoid">
       {children}
     </div>
   )
@@ -60,27 +63,66 @@ export function CardGrid({ children }: { children: ReactNode }) {
  * list moves. On a foldable that reports its fold, the aside ends at the fold.
  * Narrower windows stack the two in one scroll body, the aside first, exactly
  * as the phone shows them.
+ *
+ * Both arrangements are one element tree with other classes, so a rotation
+ * or a fold between them keeps what is typed or open in either pane, and the
+ * reader keeps their place: the row at the top of the list stays at the top.
  */
 export function TabPanes({ aside, asideLabel, children }: { aside: ReactNode; asideLabel: string; children: ReactNode }) {
   const split = useIsSplit()
-  if (!split) {
-    return (
-      <TabScroller>
-        {aside}
-        {children}
-      </TabScroller>
-    )
+  const body = useRef<HTMLDivElement>(null)
+  const list = useRef<HTMLDivElement>(null)
+  // How far the list has moved under the top edge of its scroll body, read on
+  // every scroll; 0 while its start is in view (or the summary above it,
+  // stacked). Stacked, the list starts under the summary in the one scroll
+  // body; split, it scrolls on its own. A change of arrangement puts it back.
+  const into = useRef(0)
+  useLayoutEffect(() => {
+    const el = split ? list.current : body.current
+    const top = list.current
+    if (!el || !top || into.current <= 0) return
+    el.scrollTop = split ? into.current : listStartIn(el, top) + into.current
+  }, [split])
+  const place = () => {
+    const el = split ? list.current : body.current
+    const top = list.current
+    if (!el || !top) return
+    into.current = split ? el.scrollTop : Math.max(0, el.scrollTop - listStartIn(el, top))
   }
   return (
-    <div className="flex h-full">
-      <aside aria-label={asideLabel} className={`m-pane-aside min-h-0 flex-none overflow-y-auto overflow-x-hidden ps-6 pe-3 ${PANE_INSETS}`}>
-        {aside}
-      </aside>
-      <div className={`min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden pe-6 ps-3 ${PANE_INSETS}`}>
-        <div className="mx-auto max-w-[760px]">{children}</div>
+    <div className={split ? 'flex h-full' : 'flex h-full flex-col'}>
+      <div
+        ref={body}
+        onScroll={split ? undefined : place}
+        className={
+          split
+            ? 'contents'
+            : `min-h-0 flex-1 overflow-x-hidden overflow-y-auto ${TAB_INSETS} wide:[&>*]:mx-auto wide:[&>*]:max-w-[760px]`
+        }
+      >
+        <div
+          role={split ? 'complementary' : undefined}
+          aria-label={split ? asideLabel : undefined}
+          className={split ? `m-pane-aside min-h-0 flex-none overflow-y-auto overflow-x-hidden ps-6 pe-3 ${PANE_INSETS}` : undefined}
+        >
+          {aside}
+        </div>
+        <div
+          ref={list}
+          onScroll={split ? place : undefined}
+          className={split ? `min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden pe-6 ps-3 ${PANE_INSETS}` : undefined}
+        >
+          <div className={split ? 'mx-auto max-w-[760px]' : undefined}>{children}</div>
+        </div>
       </div>
     </div>
   )
+}
+
+/** Where the list starts in its scroll body's content, under the body's top padding. */
+function listStartIn(el: HTMLElement, top: HTMLElement): number {
+  const pad = parseFloat(getComputedStyle(el).paddingTop) || 0
+  return top.getBoundingClientRect().top - el.getBoundingClientRect().top - pad + el.scrollTop
 }
 
 /** Small count badge next to a section label / settle row (spec 03 §1.1). */

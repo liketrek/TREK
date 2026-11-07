@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, useMemo, useCallback, memo, type Component
 import DOM from 'react-dom'
 import { categoryIconSvg } from './categoryIconSvg'
 import { MapContainer, TileLayer, Marker, Polyline, CircleMarker, Circle, useMap, Tooltip } from 'react-leaflet'
-import ContainerResizeWatcher, { MapCameraSnapshot } from './ContainerResizeWatcher'
+import ContainerResizeWatcher, { MapCameraSnapshot, OpeningFrameFit } from './ContainerResizeWatcher'
+import { openingView } from './openingView'
 import MarkerClusterGroup from 'react-leaflet-cluster'
 import { makeMarkerDraggable } from './markerDrag'
 import { CLUSTER_OPTIONS, createClusterIcon, revealInCluster, type ClusterGroupLike } from './markerCluster'
@@ -74,7 +75,7 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { TourMapLayersLeaflet } from './RasterOverlayLeaflet'
 import { MapLayerSwitcher, TourMapLayerSwitcher, MAP_LAYER_SWITCHER_INSET, type TourBaseLayer } from './MapLayerSwitcher'
 import { MapLockPill } from './MapLockPill'
-import { computeMapViewport, TILE_SIZE_RASTER, type ViewportPadding } from '../../utils/mapViewport'
+import type { ViewportPadding } from '../../utils/mapViewport'
 import { parseRenderableRouteGeometry } from '../../utils/routeGeometry'
 
 import type { MapViewProps } from './mapViewContract'
@@ -408,6 +409,7 @@ import { markerPhotoHtml, placePhotoFull, placePhotoUrl } from './placePhoto'
 import { useGeolocation } from '../../hooks/useGeolocation'
 import LocationButton from './LocationButton'
 import { useIsPhone } from '../../mobile/useIsPhone'
+import { useIsWide } from '../../hooks/sizeClass'
 
 // Live-location rendering inside the Leaflet map. Subscribes via the
 // shared useGeolocation hook so the Leaflet and Mapbox variants behave
@@ -677,15 +679,22 @@ export const MapView = memo(function MapView({
   // the breakpoint twice, and the padding here and the locate button further
   // down used to stay with whatever the map saw when it mounted.
   const isMobile = useIsPhone()
+  // The touch shell on an iPad or an unfolded foldable floats its toolbar over the
+  // top of the map and its buttons in the corners, and its pins stand above their
+  // spot: a day framed to the phone's thin margin ran under the toolbar.
+  const isWide = useIsWide()
   const paddingBox = useMemo((): ViewportPadding => {
-    if (isMobile) return { top: 20, right: 40, bottom: 20, left: 40 }
+    if (isMobile) {
+      const margin = { top: 20, right: 40, bottom: 20, left: 40 }
+      return isWide ? { ...margin, top: 84, bottom: 56 } : margin
+    }
     return {
       top: 60,
       right: rightWidth + 40,
       bottom: bottomChromePadding({ hasInspector, inspectorHeight, hasDayDetail }),
       left: leftWidth + 40,
     }
-  }, [isMobile, leftWidth, rightWidth, hasInspector, inspectorHeight, hasDayDetail])
+  }, [isMobile, isWide, leftWidth, rightWidth, hasInspector, inspectorHeight, hasDayDetail])
 
   const paddingOpts = useMemo(() => leafletPadding(paddingBox), [paddingBox])
 
@@ -694,16 +703,9 @@ export const MapView = memo(function MapView({
   // The initializer runs once, at mount — exactly when this should be decided; afterwards the
   // camera belongs to the user. `framed` is false when no place has coordinates (a new trip),
   // and then the caller's center/zoom stands.
-  const [initialView] = useState(() => {
-    const framed = computeMapViewport(dayPlaces.length > 0 ? dayPlaces : places, {
-      tileSize: TILE_SIZE_RASTER,
-      padding: paddingBox,
-      // With a longitude frame the trip lies on one copy, so it can be framed the short way.
-      wrapsWorld: lngFrame !== null,
-    })
-    const opening: [number, number] | undefined = framed ? [framed.center[0], frameLng(lngFrame, framed.center[1])] : undefined
-    return { center: opening ?? center, zoom: framed?.zoom ?? zoom, framed: framed !== null }
-  })
+  const [initialView] = useState(() =>
+    openingView(dayPlaces.length > 0 ? dayPlaces : places, { padding: paddingBox, lngFrame, center, zoom }),
+  )
   const cameraSnapshotRef = useRef<{ center: [number, number]; zoom: number } | null>(null)
   const saveCameraSnapshot = useCallback((cameraCenter: [number, number], cameraZoom: number) => {
     cameraSnapshotRef.current = { center: cameraCenter, zoom: cameraZoom }
@@ -940,6 +942,7 @@ export const MapView = memo(function MapView({
       <LngFrameFollower />
       <MapController center={center} zoom={zoom} />
       <ContainerResizeWatcher />
+      {initialView.refit && <OpeningFrameFit frame={initialView.refit} />}
       {hasViewBaseLayer && <MapCameraSnapshot onChange={saveCameraSnapshot} />}
       <BoundsController places={dayPlaces.length > 0 ? dayPlaces : places} routeCoords={dayPlaces.length > 0 ? routeCoords : []} fitKey={fitKey} paddingOpts={paddingOpts} framedOnMount={initialView.framed} focusPoints={focusPoints} focusKey={focusKey} fitPadding={fitPadding} follow={followSelection} />
       <SelectionController follow={followSelection} places={places} selectedPlaceId={selectedPlaceId} dayPlaces={dayPlaces} selectedPlace={selectedPlace} paddingBox={paddingBox} />

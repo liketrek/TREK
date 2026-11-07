@@ -48,6 +48,12 @@ describe('MReservationCardParts', () => {
     expect(onOpen).toHaveBeenCalledOnce();
   });
 
+  it('FE-COMP-MRESCARD-011: the title keeps one line on a phone and may take two in a wide window column', () => {
+    render(<CardTitleButton res={reservation()} TypeIcon={Plane} typeColor="#123456" onOpen={vi.fn()} t={t} />);
+    const title = screen.getByText('LH 400');
+    expect(title).toHaveClass('truncate', 'wide:line-clamp-2', 'wide:whitespace-normal');
+  });
+
   it('FE-COMP-MRESCARD-002: the title button flags a booking that needs review (booking variant)', () => {
     render(
       <CardTitleButton

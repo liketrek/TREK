@@ -210,7 +210,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                   )}
                 </PlacePhotoGallery>
                 {category && (
-                  <span className="flex max-w-[76px] items-center gap-1 rounded-full border border-[color:var(--m-faint)] px-2 py-[2px] font-geist text-[0.625rem] font-semibold text-m-muted">
+                  <span className="flex max-w-[76px] items-center gap-1 rounded-full border border-[color:var(--m-faint)] px-2 py-[2px] font-geist text-[0.625rem] font-semibold text-m-muted wide:max-w-[140px]">
                     <CatIcon size={10} strokeWidth={2} className="flex-none" />
                     <span className="truncate">{category.name}</span>
                   </span>
