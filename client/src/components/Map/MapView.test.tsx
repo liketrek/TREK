@@ -1586,12 +1586,25 @@ describe('MapView bounds fitting', () => {
     expect(mapMock.fitBounds.mock.calls[2][1]).toMatchObject({ paddingTopLeft: [40, 20], paddingBottomRight: [40, 20] })
   })
 
-  it('FE-COMP-MAPVIEW-094: opens framed at the whole zoom level that fits, not the nearest one', () => {
+  it('FE-COMP-MAPVIEW-094: beside the pane the touch shell opens at the whole zoom level that fits; the desktop keeps its own opening', () => {
     // A day spread so that its exact fit lies between two levels.
     const places = [buildMapPlace({ id: 1, lat: 34.9671, lng: 135.7727 }), buildMapPlace({ id: 2, lat: 35.005, lng: 135.7649 })]
+    shell.phone = true
+    setSizeClass('wide')
+    const { unmount } = render(<MapView places={places} />)
+    const paned = Number(screen.getByTestId('map-container').getAttribute('data-zoom'))
+    expect(Number.isInteger(paned)).toBe(true)
+    unmount()
+
+    // The desktop planner hands Leaflet the fitted level, which it rounds to the nearest
+    // as it always has, and fits no second time.
+    shell.phone = false
+    setSizeClass('compact')
+    mapMock.setView.mockClear()
     render(<MapView places={places} />)
-    const zoom = Number(screen.getByTestId('map-container').getAttribute('data-zoom'))
-    expect(Number.isInteger(zoom)).toBe(true)
+    const desk = Number(screen.getByTestId('map-container').getAttribute('data-zoom'))
+    expect(Number.isInteger(desk)).toBe(false)
+    expect(mapMock.setView).not.toHaveBeenCalled()
   })
 
   it('FE-COMP-MAPVIEW-093: on an iPad the touch shell frames a day clear of its floating toolbar and corner buttons', () => {

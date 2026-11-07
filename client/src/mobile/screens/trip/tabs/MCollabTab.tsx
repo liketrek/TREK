@@ -38,12 +38,19 @@ export default function MCollabTab({ planner, shell }: MTabScreenProps) {
   // The chat keeps its place in the tree either way (a slot that stays empty
   // still holds its index), so a rotation or a fold that crosses into or out of
   // two panes keeps the draft and the scroll position instead of remounting it.
+  // That holds for a board picked beside it too: turning an iPad upright then
+  // leaves the board on its own and only hides the chat, with its half typed
+  // message, until the switch brings it back.
   const sideBySide = collabSideBySide(split, planner.collabFeatures)
   const board = sideBySide
     ? collabBoardFor(shell.collabTab, planner.collabFeatures)
     : isCollabBoard(shell.collabTab) ? shell.collabTab : null
   const chat = sideBySide || shell.collabTab === 'chat'
+  const keepChat = chat || planner.collabFeatures.chat
   if (!board && !chat) return null
+  let chatPane = 'hidden'
+  if (sideBySide) chatPane = 'm-pane-trail relative h-full flex-none border-s border-[color:var(--m-rowbr)]'
+  else if (chat) chatPane = 'relative h-full min-w-0 flex-1'
   return (
     <div className="flex h-full">
       {board && (
@@ -51,12 +58,8 @@ export default function MCollabTab({ planner, shell }: MTabScreenProps) {
           <CollabPanel planner={planner} tab={board} />
         </div>
       )}
-      {chat && (
-        <div
-          className={sideBySide
-            ? 'm-pane-trail relative h-full flex-none border-s border-[color:var(--m-rowbr)]'
-            : 'relative h-full min-w-0 flex-1'}
-        >
+      {keepChat && (
+        <div className={chatPane}>
           <CollabPanel planner={planner} tab="chat" />
         </div>
       )}
@@ -98,9 +101,11 @@ function CollabPanel({ planner, tab }: { planner: MTabScreenProps['planner']; ta
         </TabScroller>
       )
     }
+    // On a wide window the card is as tall as its links: a page-high card with
+    // four rows at its top read as a list that failed to fill.
     return (
       <TabScroller>
-        <div className="min-h-[70vh] overflow-hidden rounded-[18px] bg-[color:var(--m-card)]">
+        <div className="min-h-[70vh] overflow-hidden rounded-[18px] bg-[color:var(--m-card)] wide:min-h-0">
           <CollabLinks tripId={planner.tripId} />
         </div>
       </TabScroller>

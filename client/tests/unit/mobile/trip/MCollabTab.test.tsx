@@ -5,7 +5,7 @@ import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import { render, screen } from '../../../helpers/render'
 import { setSizeClass } from '../../../helpers/sizeClass'
 
-// FE-MOB-CTAB-001 to FE-MOB-CTAB-012
+// FE-MOB-CTAB-001 to FE-MOB-CTAB-013
 
 // The three sub-panels are self-contained (own API calls + WebSocket listener)
 // and covered by their own suites — here only the routing is under test.
@@ -35,18 +35,18 @@ describe('MCollabTab', () => {
     expect(screen.queryByTestId('polls')).not.toBeInTheDocument()
   })
 
-  it('FE-MOB-CTAB-002: routes the notes sub-tab to MCollabNotes', () => {
+  it('FE-MOB-CTAB-002: routes the notes sub-tab to MCollabNotes, the chat kept hidden behind it', () => {
     renderTab('notes')
 
     expect(screen.getByTestId('notes')).toBeInTheDocument()
-    expect(screen.queryByTestId('chat')).not.toBeInTheDocument()
+    expect(screen.getByTestId('chat').parentElement).toHaveClass('hidden')
   })
 
-  it('FE-MOB-CTAB-003: routes the polls sub-tab to MCollabPolls', () => {
+  it('FE-MOB-CTAB-003: routes the polls sub-tab to MCollabPolls, the chat kept hidden behind it', () => {
     renderTab('polls')
 
     expect(screen.getByTestId('polls')).toBeInTheDocument()
-    expect(screen.queryByTestId('chat')).not.toBeInTheDocument()
+    expect(screen.getByTestId('chat').parentElement).toHaveClass('hidden')
   })
 
   it('FE-MOB-CTAB-004: shows the disabled notice instead of the chat panel', () => {
@@ -117,5 +117,21 @@ describe('MCollabTab', () => {
     setSizeClass('compact')
     expect(screen.queryByTestId('notes')).not.toBeInTheDocument()
     expect(screen.getByTestId('chat')).toBe(before)
+  })
+
+  it('FE-MOB-CTAB-013: leaving two panes with a board picked keeps the chat beside it, hidden, draft and all', () => {
+    setSizeClass('split')
+    renderTab('notes')
+    const before = screen.getByTestId('chat')
+    expect(before.parentElement).not.toHaveClass('hidden')
+
+    setSizeClass('wide')
+    expect(screen.getByTestId('notes')).toBeInTheDocument()
+    expect(screen.getByTestId('chat')).toBe(before)
+    expect(before.parentElement).toHaveClass('hidden')
+
+    setSizeClass('split')
+    expect(screen.getByTestId('chat')).toBe(before)
+    expect(before.parentElement).not.toHaveClass('hidden')
   })
 })

@@ -672,7 +672,6 @@ export const MapView = memo(function MapView({
   ), [reservations, visibleConnectionIds, showTransitRoutes, selectedDayId, days, scopeConnectionsToDay])
   // Real road geometry for car/bus/taxi/bicycle bookings (straight line until it loads/if it fails).
   const transportRoutes = useTransportRoutes(visibleReservations)
-  // Dynamic padding: account for sidebars + bottom inspector + day detail panel
   // The chrome overlaying the map (side panels, day detail). Kept as a plain box so both the
   // Leaflet fit options and the opening-camera maths can read the same numbers.
   // Followed rather than read once: a phone turned sideways and back crosses
@@ -698,14 +697,12 @@ export const MapView = memo(function MapView({
 
   const paddingOpts = useMemo(() => leafletPadding(paddingBox), [paddingBox])
 
-  // Open framed on the places rather than on the caller's default, so a trip in Japan shows
-  // Japan straight away instead of the world view followed by a flight across the planet.
-  // The initializer runs once, at mount — exactly when this should be decided; afterwards the
-  // camera belongs to the user. `framed` is false when no place has coordinates (a new trip),
-  // and then the caller's center/zoom stands.
-  const [initialView] = useState(() =>
-    openingView(dayPlaces.length > 0 ? dayPlaces : places, { padding: paddingBox, lngFrame, center, zoom }),
-  )
+  // Open framed on the places, not on the caller's default: a trip in Japan shows Japan at once instead
+  // of the world and a flight across it. Decided once, at mount; afterwards the camera is the user's.
+  // `framed` is false when no place has coordinates (a new trip), and then the caller's center/zoom stands.
+  const [initialView] = useState(() => openingView(dayPlaces.length > 0 ? dayPlaces : places, {
+    padding: paddingBox, lngFrame, center, zoom, paned: isMobile && isWide,
+  }))
   const cameraSnapshotRef = useRef<{ center: [number, number]; zoom: number } | null>(null)
   const saveCameraSnapshot = useCallback((cameraCenter: [number, number], cameraZoom: number) => {
     cameraSnapshotRef.current = { center: cameraCenter, zoom: cameraZoom }
