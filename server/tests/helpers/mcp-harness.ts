@@ -54,10 +54,16 @@ export interface McpHarnessOptions {
    * left out, the tools get a real one, whose transport has no sockets here.
    */
   realtime?: RealtimeService;
+  /**
+   * Whether the session's tools may point a host at their views (MCP Apps), as
+   * the transport decides it from McpAppsService.offeredToSessions(). Left out,
+   * the views stay on, so a suite asserting on a view's `_meta` needs no build.
+   */
+  apps?: McpAttachOptions['apps'];
 }
 
 export async function createMcpHarness(options: McpHarnessOptions): Promise<McpHarness> {
-  const { userId, withTools = true, scopes = null, isStaticToken = false, dynamicTools, realtime } = options;
+  const { userId, withTools = true, scopes = null, isStaticToken = false, dynamicTools, realtime, apps } = options;
 
   const server = new McpServer({ name: 'trek-test', version: '1.0.0' });
 
@@ -72,7 +78,7 @@ export async function createMcpHarness(options: McpHarnessOptions): Promise<McpH
     const around = (_info: { kind: string; name: string }, call: () => unknown): unknown =>
       withRequestContext(orm, call);
     await withRequestContext(orm, () =>
-      registerTools(registry, server, userId, scopes ?? null, isStaticToken, undefined, dynamicTools, around),
+      registerTools(registry, server, userId, scopes ?? null, isStaticToken, undefined, dynamicTools, around, apps),
     );
   }
 

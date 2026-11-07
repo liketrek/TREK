@@ -8,7 +8,6 @@ import {
   TOOL_ANNOTATIONS_WRITE,
   TOOL_ANNOTATIONS_DELETE,
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  TOOL_ANNOTATIONS_DELETE_NON_IDEMPOTENT,
   errorResult,
   ok,
 } from '../../nest-mcp';
@@ -360,7 +359,8 @@ export class AtlasMcp {
       region_name: z.string().optional().describe('The region name, needed when marking a region visited'),
       visited: z.boolean().describe('true marks it visited, false takes the mark away'),
     },
-    annotations: TOOL_ANNOTATIONS_DELETE_NON_IDEMPOTENT,
+    // It sets a state, so a repeat lands on the same one; false takes a mark away, hence destructive.
+    annotations: TOOL_ANNOTATIONS_DELETE,
     when: atlasAddonOn,
     access: { group: 'atlas', mode: 'write' },
   })

@@ -245,14 +245,9 @@ export class AssignmentsMcp {
       return errorResult('Nothing to update.');
     if (!(await this.assignments.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
-    const existing = await this.assignments.getAssignmentForTrip(assignmentId, tripId);
-    if (!existing) return errorResult('Assignment not found.');
-    const { assignment, time, participants } = await this.assignments.updateFields(
-      assignmentId,
-      tripId,
-      update,
-      existing,
-    );
+    if (!(await this.assignments.getAssignmentForTrip(assignmentId, tripId)))
+      return errorResult('Assignment not found.');
+    const { assignment, time, participants } = await this.assignments.updateFields(assignmentId, tripId, update);
     // The events each single-field write sends: the times' three, as PUT /assignments/:id/time does.
     if (assignment !== undefined) this.guards.safeBroadcast(tripId, 'assignment:updated', { assignment });
     if (time?.reordered) this.guards.safeBroadcast(tripId, 'assignment:reordered', time.reordered);

@@ -643,26 +643,26 @@ export class AssignmentsService {
    * updateTime with the other time kept as stored. The caller broadcasts and
    * reconciles, as it does after each of the single-field writes.
    */
-  async updateFields(
-    assignmentId: number,
-    tripId: number,
-    fields: AssignmentFieldsUpdate,
-    stored: { assignment_time: string | null; assignment_end_time: string | null },
-  ) {
+  async updateFields(assignmentId: number, tripId: number, fields: AssignmentFieldsUpdate) {
     return this.uow.transactional(async () => {
       let assignment: Awaited<ReturnType<AssignmentsService['getAssignmentWithPlace']>> | undefined;
       if (fields.notes !== undefined) assignment = await this.updateNotes(assignmentId, fields.notes);
       if (fields.end_day !== undefined) assignment = await this.setEndDay(assignmentId, fields.end_day);
       if (fields.route_excluded !== undefined)
         assignment = await this.setRouteExcluded(assignmentId, fields.route_excluded);
-      const time =
+      // The time the caller did not name is kept as stored, read inside the transaction so a
+      // concurrent edit of it is not written back over with an older value.
+      const stored =
         'place_time' in fields || 'end_time' in fields
-          ? await this.updateTime(
-              assignmentId,
-              fields.place_time !== undefined ? fields.place_time : stored.assignment_time,
-              fields.end_time !== undefined ? fields.end_time : stored.assignment_end_time,
-            )
+          ? await this.getAssignmentForTrip(assignmentId, tripId)
           : undefined;
+      const time = stored
+        ? await this.updateTime(
+            assignmentId,
+            fields.place_time !== undefined ? fields.place_time : stored.assignment_time,
+            fields.end_time !== undefined ? fields.end_time : stored.assignment_end_time,
+          )
+        : undefined;
       const participants =
         fields.participant_ids !== undefined
           ? await this.setParticipants(assignmentId, fields.participant_ids, tripId)

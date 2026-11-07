@@ -20,36 +20,28 @@ const SESSIONS: Record<string, readonly string[] | null> = {
 
 describe('buildInstructions', () => {
   it.each(Object.entries(SESSIONS))('INSTR-001 %s session', async (name, scopes) => {
-    const text = buildInstructions({ addons: ALL_ADDONS, scopes, hostSupportsApps: false });
+    const text = buildInstructions({ addons: ALL_ADDONS, scopes });
     await expect(text).toMatchFileSnapshot(`__instructions__/${name}.md`);
   });
 
-  it('INSTR-002: a host that renders MCP Apps is told the views are companions', async () => {
-    const text = buildInstructions({ addons: ALL_ADDONS, scopes: CORE_CLIENT_SCOPES, hostSupportsApps: true });
-    expect(text).toContain('## Interactive views');
-    expect(buildInstructions({ addons: ALL_ADDONS, scopes: null, hostSupportsApps: false })).not.toContain(
-      'Interactive views',
-    );
-  });
-
   it('INSTR-003: names only what the session reaches: an add-on switched on and a scope granted', () => {
-    const core = buildInstructions({ addons: ALL_ADDONS, scopes: CORE_CLIENT_SCOPES, hostSupportsApps: false });
+    const core = buildInstructions({ addons: ALL_ADDONS, scopes: CORE_CLIENT_SCOPES });
     expect(core).toContain('**Budget**');
     expect(core).not.toContain('**Tour**');
     expect(core).not.toContain('**Journey**');
-    const offline = buildInstructions({ addons: new Set(), scopes: null, hostSupportsApps: false });
+    const offline = buildInstructions({ addons: new Set(), scopes: null });
     expect(offline).not.toContain('## Add-on features');
     expect(offline).not.toContain('**Packing item**');
     expect(offline).toContain('**File**');
-    const full = buildInstructions({ addons: ALL_ADDONS, scopes: null, hostSupportsApps: false });
+    const full = buildInstructions({ addons: ALL_ADDONS, scopes: null });
     for (const word of ['**Tour**', '**Road trip**', '**Book**', '**Collection**', 'get_help_page']) {
       expect(full).toContain(word);
     }
   });
 
   it('INSTR-004: is shorter for a core client than for full access', () => {
-    const full = buildInstructions({ addons: ALL_ADDONS, scopes: null, hostSupportsApps: false });
-    const trips = buildInstructions({ addons: ALL_ADDONS, scopes: SESSIONS.trips, hostSupportsApps: false });
+    const full = buildInstructions({ addons: ALL_ADDONS, scopes: null });
+    const trips = buildInstructions({ addons: ALL_ADDONS, scopes: SESSIONS.trips });
     expect(trips.length).toBeLessThan(full.length);
   });
 });

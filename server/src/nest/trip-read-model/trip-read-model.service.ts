@@ -114,10 +114,9 @@ export class TripReadModelService {
    */
   async getTripOverview(tripId: number): Promise<TripOverviewOutput | null> {
     const trip = await this.tripsRepo.findRaw(tripId);
-    const ownerId = await this.tripsRepo.getOwnerId(tripId);
-    if (!trip || ownerId === null) return null;
-    const [{ members }, { days }, places, reservations] = await Promise.all([
-      this.members.listMembers(tripId, ownerId),
+    if (!trip) return null;
+    const [roster, { days }, places, reservations] = await Promise.all([
+      this.members.listMembers(tripId, trip.user_id),
       this.days.list(tripId),
       this.places.list(String(tripId), {}),
       this.reservations.list(tripId),
@@ -136,8 +135,10 @@ export class TripReadModelService {
         days: days.length,
         places: places.length,
         reservations: reservations.length,
-        members: members.length + 1,
+        members: [roster.owner, ...roster.members].length,
       },
+      // An MCP session carries no time zone, so "today" is the UTC date: a day early or late
+      // for a reader far from UTC around midnight, which only shifts where the week starts.
       days: nextDays(days, new Date().toISOString().slice(0, 10)).map((day) => ({
         id: day.id,
         day_number: day.day_number,

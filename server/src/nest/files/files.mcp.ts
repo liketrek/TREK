@@ -346,7 +346,7 @@ export class FilesMcp {
     if (!current) return errorResult('File not found.');
     // The route toggles; a tool sets, so a retried call cannot flip the star back.
     if (Boolean(current.starred) === starred) return ok({ file: current });
-    const file = await this.files.toggleStarred(fileId, current.starred ?? undefined);
+    const file = await this.files.setStarred(fileId, starred);
     this.guards.safeBroadcast(tripId, 'file:updated', { file });
     return ok({ file });
   }

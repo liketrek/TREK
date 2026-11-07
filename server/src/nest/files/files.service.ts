@@ -475,10 +475,15 @@ export class FilesService {
     return formatFile(updated!);
   }
 
+  /** The route's toggle: the opposite of the star the caller read. */
   async toggleStarred(id: string | number, currentStarred: number | undefined) {
+    return this.setStarred(id, !currentStarred);
+  }
+
+  /** Sets the star to the given value, so a retried call lands on the same state. */
+  async setStarred(id: string | number, starred: boolean) {
     const idNum = toRowId(id) ?? -1;
-    const newStarred = currentStarred ? 0 : 1;
-    await this.tripFilesRepo.setStarred(idNum, newStarred);
+    await this.tripFilesRepo.setStarred(idNum, starred ? 1 : 0);
 
     const updated = await this.tripFilesRepo.findByIdWithJoins(idNum);
     return formatFile(updated!);

@@ -26,6 +26,9 @@ export const NEW_TOOL_MAX_BYTES = 4096;
 /** The most a tool's outputSchema may weigh in tools/list, in bytes. */
 export const OUTPUT_SCHEMA_MAX_BYTES = 4096;
 
+/** The rough bytes of JSON per model token the token estimates divide by. */
+const BYTES_PER_TOKEN = 4;
+
 /** @returns {{ problems: string[], stale: string[] }} */
 export function compareSurface(measured, baseline) {
   const problems = [];
@@ -90,7 +93,7 @@ export function updatedBaseline(measured, baseline) {
       .filter((tool) => baseline.tools?.[tool] === undefined)
       .reduce((sum, tool) => sum + (measured.tools[tool] ?? 0), 0);
     const bytes = entry === undefined ? session.bytes : Math.min(entry.bytes + newBytes, session.bytes);
-    sessions[name] = { tools: session.tools, bytes, tokens: Math.round(bytes / 4) };
+    sessions[name] = { tools: session.tools, bytes, tokens: Math.round(bytes / BYTES_PER_TOKEN) };
   }
   return { sessions, tools };
 }
@@ -100,6 +103,6 @@ export function describeSessions(measured) {
   return Object.entries(measured.sessions).map(
     ([name, s]) =>
       `${name.padEnd(9)} ${String(s.tools).padStart(4)} tools ${String(s.bytes).padStart(8)} bytes ` +
-      `≈${Math.round(s.bytes / 4)} tokens`,
+      `≈${Math.round(s.bytes / BYTES_PER_TOKEN)} tokens`,
   );
 }

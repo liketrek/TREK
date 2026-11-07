@@ -13,8 +13,6 @@ export interface InstructionsContext {
   addons: ReadonlySet<string>;
   /** The token's scopes; null is full access (a web session or a static token). */
   scopes: readonly string[] | null;
-  /** The client announced the MCP Apps extension, so some read tools come with an interactive view. */
-  hostSupportsApps: boolean;
 }
 
 /** One optional part of TREK: what the data model says about it, and its line in the add-on list. */
@@ -148,12 +146,8 @@ const BEHAVIOUR = `## Behavioral rules
 - For group trips, always check member IDs via \`list_trip_members\` before calling tools that require a \`userId\` (e.g. budget splits, assignment participants).
 - A tool whose description starts with "Deprecated: use" still works; call the tool it names instead.`;
 
-const APPS = `## Interactive views
-
-This host renders MCP Apps: some read tools (trips, packing, budget, weather and more) come with an interactive view beside their result. The view is a companion, not the answer: still answer in words, and do not repeat every row the view already shows.`;
-
 /** The instructions for one session; deterministic for the same context. */
-export function buildInstructions({ addons, scopes, hostSupportsApps }: InstructionsContext): string {
+export function buildInstructions({ addons, scopes }: InstructionsContext): string {
   const granted = scopes === null ? null : [...scopes];
   const reachable = FEATURES.filter(
     (feature) => (feature.addon === undefined || addons.has(feature.addon)) && canRead(granted, feature.group),
@@ -169,7 +163,6 @@ export function buildInstructions({ addons, scopes, hostSupportsApps }: Instruct
       ? `## Add-on features\n\nThis session can use these optional parts of TREK; anything not listed is switched off on this instance or outside the access granted to this client:\n${features.join('\n')}`
       : '',
     BEHAVIOUR,
-    hostSupportsApps ? APPS : '',
   ];
   return parts.filter(Boolean).join('\n\n');
 }

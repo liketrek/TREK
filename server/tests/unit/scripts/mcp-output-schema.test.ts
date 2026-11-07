@@ -63,6 +63,14 @@ describe('countReadToolsWithoutOutput', () => {
     const text = `${tool(READ)}  async t() { return { outputSchema: 1 }; }\n${tool('TOOL_ANNOTATIONS_WRITE')}  w() { TOOL_ANNOTATIONS_READONLY; }\n`;
     expect(countReadToolsWithoutOutput(text)).toBe(1);
   });
+
+  it('OUTSCHEMA-005: a parenthesis or the word outputSchema in a description cannot move or fake the match', () => {
+    const text = [
+      tool(READ, " description: 'Lists them (sorted) :) – no outputSchema: here',"),
+      tool(READ, " description: 'one)', outputSchema: s.shape,"),
+    ].join('\n');
+    expect(countReadToolsWithoutOutput(text)).toBe(1);
+  });
 });
 
 describe('mcp-output-schema.mjs', () => {

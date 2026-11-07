@@ -150,6 +150,10 @@ export class TripPromptsMcp {
   }
 
   // ── Workflow prompts: the steps of a common task, for clients that offer prompts as commands ──
+  //
+  // The message goes out in the user's own voice and tells the model to write, so it names the
+  // trip by its id alone: the title is any member's text and must not ride along as an
+  // instruction. The title stays in the description, which only labels the prompt.
 
   @Prompt({
     name: 'plan-day',
@@ -165,7 +169,7 @@ export class TripPromptsMcp {
     if (!summary || !day) return userMessage(`Trip ${tripId} has no day on ${date}.`);
     const title = summary.trip?.title || 'the trip';
     return userMessage(
-      `Help me plan ${date} (day id ${day.id}) of "${title}". First read the day with get_trip_summary: ` +
+      `Help me plan ${date} (day id ${day.id}) of trip ${tripId}. First read the day with get_trip_summary: ` +
         'what is assigned already, its times, the accommodation and any bookings. Then suggest what fits around ' +
         'them, find each place with search_place, and once I agree add it with create_place and ' +
         `assign_place_to_day (dayId ${day.id}), in visiting order and with times where they matter. ` +
@@ -187,7 +191,7 @@ export class TripPromptsMcp {
     const trip = await this.trips.getRaw(tripId);
     const title = trip?.title || 'the trip';
     return userMessage(
-      `Help me pack for "${title}" (trip ${tripId}). Read what is packed already with list_packing_items, the ` +
+      `Help me pack for trip ${tripId}. Read what is packed already with list_packing_items, the ` +
         'days and places with get_trip_summary and the forecast with get_weather. Then suggest what is missing, ' +
         'grouped by category, and add only what I accept with create_packing_item. Never remove an item ' +
         'without asking.',
@@ -208,7 +212,7 @@ export class TripPromptsMcp {
     const trip = await this.trips.getRaw(tripId);
     const title = trip?.title || 'the trip';
     return userMessage(
-      `Review the budget of "${title}" (trip ${tripId}). Read the expenses with list_budget_items, the share ` +
+      `Review the budget of trip ${tripId}. Read the expenses with list_budget_items, the share ` +
         'of each traveller with get_budget_per_person and who owes whom with get_settlement_summary. Tell me ' +
         "the total in the trip's currency, the largest categories, anything that looks wrong or duplicated, and " +
         'any expense not counted because it has no exchange rate. Change nothing unless I ask.',

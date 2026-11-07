@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { cliMain } from './lib/count-ratchet.mjs';
 
+import { createRequire } from 'node:module';
+
 /**
  * Read tools that answer without an `outputSchema`, per `*.mcp.ts` file.
  *
@@ -10,30 +12,50 @@ import { cliMain } from './lib/count-ratchet.mjs';
  * confirmation and are not counted. A tool reads when its annotations are one of
  * the read-only presets or say `readOnlyHint: true`.
  */
-const TOOL_OPEN = '@Tool(';
-const READ_ONLY = /TOOL_ANNOTATIONS_(?:OPEN_WORLD_)?READONLY\b|readOnlyHint:\s*true/;
-const OUTPUT_SCHEMA = /\boutputSchema\s*:/;
+const require = createRequire(import.meta.url);
+const ts = require('typescript');
 
-/** The text of one decorator's argument, from its opening parenthesis to the one that closes it. */
-function decoratorArgument(text, start) {
-  let depth = 0;
-  for (let i = start; i < text.length; i += 1) {
-    if (text[i] === '(') depth += 1;
-    else if (text[i] === ')') {
-      depth -= 1;
-      if (depth === 0) return text.slice(start, i + 1);
-    }
-  }
-  return text.slice(start);
+/** The read-only annotation presets of src/nest-mcp/helpers.ts. */
+const READ_ONLY_PRESETS = new Set(['TOOL_ANNOTATIONS_READONLY', 'TOOL_ANNOTATIONS_OPEN_WORLD_READONLY']);
+
+/** A property of an object literal by its name, or undefined. */
+function property(object, name) {
+  return object.properties.find(
+    (prop) => ts.isPropertyAssignment(prop) && prop.name && ts.isIdentifier(prop.name) && prop.name.text === name,
+  );
 }
 
-/** The `@Tool` decorators in one file's text that read and declare no output schema. */
-export function countReadToolsWithoutOutput(text) {
-  let count = 0;
-  for (let at = text.indexOf(TOOL_OPEN); at !== -1; at = text.indexOf(TOOL_OPEN, at + TOOL_OPEN.length)) {
-    const options = decoratorArgument(text, at + TOOL_OPEN.length - 1);
-    if (READ_ONLY.test(options) && !OUTPUT_SCHEMA.test(options)) count += 1;
+/** Whether a tool's `annotations` value says it only reads: a read-only preset, or `readOnlyHint: true`. */
+function readsOnly(annotations) {
+  if (!annotations) return false;
+  const value = annotations.initializer;
+  if (ts.isIdentifier(value)) return READ_ONLY_PRESETS.has(value.text);
+  if (ts.isObjectLiteralExpression(value)) {
+    const hint = property(value, 'readOnlyHint');
+    return hint?.initializer.kind === ts.SyntaxKind.TrueKeyword;
   }
+  return false;
+}
+
+/**
+ * The `@Tool({...})` decorators in one file's text that read and declare no
+ * output schema. Parsed as TypeScript, so a parenthesis or the word
+ * outputSchema inside a description cannot move or fake the match.
+ */
+export function countReadToolsWithoutOutput(text) {
+  const source = ts.createSourceFile('tool.mcp.ts', text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  let count = 0;
+  const visit = (node) => {
+    if (ts.isDecorator(node) && ts.isCallExpression(node.expression)) {
+      const { expression: callee, arguments: args } = node.expression;
+      const options = args[0];
+      if (ts.isIdentifier(callee) && callee.text === 'Tool' && options && ts.isObjectLiteralExpression(options)) {
+        if (readsOnly(property(options, 'annotations')) && !property(options, 'outputSchema')) count += 1;
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
   return count;
 }
 

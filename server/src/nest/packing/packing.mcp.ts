@@ -1,6 +1,5 @@
 import { ADDON_IDS } from '../../addons';
-import { getAppUrl } from '../../app-config';
-import { noAccess, permissionDenied, adminRequired } from '../../mcp/tools/_shared';
+import { noAccess, okWithAppLink, permissionDenied, adminRequired } from '../../mcp/tools/_shared';
 import {
   McpController,
   Tool,
@@ -12,9 +11,7 @@ import {
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   errorResult,
   ok,
-  okStructured,
   uiTool,
-  withResultMeta,
   appCallable,
 } from '../../nest-mcp';
 import { addonGate } from '../addons/addon-gate';
@@ -23,7 +20,6 @@ import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { PackingWritesService } from './packing-writes.service';
 import { PackingService } from './packing.service';
 import {
-  MCP_APP_URL_META_KEY,
   mcpAppUri,
   packingApplyTemplateRequestSchema,
   packingCreateBagRequestSchema,
@@ -370,7 +366,7 @@ export class PackingMcp {
     );
     const bags = await this.packing.listBags(tripId);
     const category_assignees = await this.packing.getCategoryAssignees(tripId);
-    return withResultMeta(okStructured({ items, bags, category_assignees }), { [MCP_APP_URL_META_KEY]: getAppUrl() });
+    return okWithAppLink({ items, bags, category_assignees });
   }
 
   @Tool({

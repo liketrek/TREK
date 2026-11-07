@@ -40,6 +40,9 @@ describe('workflow prompts', () => {
     const text = await promptText(user.id, 'plan-day', { tripId: String(trip.id), date: '2026-12-02' });
     expect(text).toContain(`day id ${day.id}`);
     expect(text).toContain('assign_place_to_day');
+    // The title is a member's text: the message in the user's voice names the trip by id alone.
+    expect(text).toContain(`trip ${trip.id}`);
+    expect(text).not.toContain('Lisbon');
     expect(await promptText(user.id, 'plan-day', { tripId: String(trip.id), date: '2030-01-01' })).toContain(
       'has no day on 2030-01-01',
     );

@@ -1,7 +1,6 @@
 import { ADDON_IDS } from '../../addons';
-import { getAppUrl } from '../../app-config';
 import { canRead, canReadTrips, canDeleteTrips } from '../../mcp/scopes';
-import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
+import { noAccess, okWithAppLink, permissionDenied } from '../../mcp/tools/_shared';
 import {
   McpController,
   Tool,
@@ -16,9 +15,7 @@ import {
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   errorResult,
   ok,
-  okStructured,
   uiTool,
-  withResultMeta,
 } from '../../nest-mcp';
 import { AddonsService } from '../addons/addons.service';
 import { CalendarService } from '../calendar/calendar.service';
@@ -33,14 +30,7 @@ import { TripReadModelService } from '../trip-read-model/trip-read-model.service
 import { TripWritesService, type TripListWriter } from './trip-writes.service';
 import { tripUpdatePermissions } from './trips.helpers';
 import { TripsService, NotFoundError, ValidationError } from './trips.service';
-import {
-  idSchema,
-  MAX_TRIP_DAYS,
-  listTripsOutputSchema,
-  MCP_APP_URL_META_KEY,
-  mcpAppUri,
-  tripOverviewOutputSchema,
-} from '@trek/shared';
+import { idSchema, MAX_TRIP_DAYS, listTripsOutputSchema, mcpAppUri, tripOverviewOutputSchema } from '@trek/shared';
 
 import { z } from 'zod';
 
@@ -404,7 +394,7 @@ export class TripsMcp {
   })
   async listTrips({ include_archived }: { include_archived?: boolean }, ctx: McpContext) {
     const trips = await this.trips.list(ctx.userId, include_archived ? null : 0);
-    return withResultMeta(okStructured({ trips }), { [MCP_APP_URL_META_KEY]: getAppUrl() });
+    return okWithAppLink({ trips });
   }
 
   // --- TRIP OVERVIEW ---
@@ -424,7 +414,7 @@ export class TripsMcp {
     if (!(await this.trips.canAccessTrip(tripId, ctx.userId))) return noAccess();
     const overview = await this.readModel.getTripOverview(tripId);
     if (!overview) return noAccess();
-    return withResultMeta(okStructured({ ...overview }), { [MCP_APP_URL_META_KEY]: getAppUrl() });
+    return okWithAppLink({ ...overview });
   }
 
   // --- TRIP SUMMARY ---

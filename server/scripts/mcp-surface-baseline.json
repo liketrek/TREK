@@ -2,7 +2,7 @@
   "sessions": {
     "full": {
       "tools": 429,
-      "bytes": 482407,
+      "bytes": 482406,
       "tokens": 120602
     },
     "core": {
@@ -363,7 +363,7 @@
     "set_assignment_end_day": 624,
     "set_assignment_participants": 774,
     "set_assignment_route_excluded": 711,
-    "set_atlas_visited": 1145,
+    "set_atlas_visited": 1144,
     "set_bag_members": 715,
     "set_book_cover": 831,
     "set_book_setup": 2620,

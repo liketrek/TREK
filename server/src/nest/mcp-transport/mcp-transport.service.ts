@@ -275,10 +275,9 @@ export class McpTransportService {
     // The instructions name only the add-ons switched on here and the groups this token reaches.
     const instructions = buildInstructions({
       addons: await this.enabledAddons(),
+      // The instructions are fixed when the server is built, before initialize tells which host
+      // connects, so they say nothing about MCP Apps; a view's tool says what its view is.
       scopes,
-      // MCP Apps is announced by the client in initialize, after the server is built; the
-      // apps-aware wording joins once the host is known to render views.
-      hostSupportsApps: false,
     });
 
     // Create a new per-user MCP server and session
