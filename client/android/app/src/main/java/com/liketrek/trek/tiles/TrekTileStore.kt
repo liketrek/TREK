@@ -100,13 +100,13 @@ object TrekTileStore {
         return null
     }
 
-    /** HttpURLConnection has already undone any gzip, so no Content-Encoding goes along. */
     /** Headers that are the request's own; the connection sets the hop-by-hop ones itself. */
     private val HOP_BY_HOP = setOf("connection", "keep-alive", "transfer-encoding", "te", "upgrade", "host", "content-length", "accept-encoding")
 
     internal fun forwardedHeaders(headers: Map<String, String>?): Map<String, String> =
         headers.orEmpty().filterKeys { it.lowercase() !in HOP_BY_HOP }
 
+    /** HttpURLConnection has already undone any gzip, so no Content-Encoding goes along. */
     private fun response(bytes: ByteArray, type: String): WebResourceResponse {
         val mime = type.substringBefore(';').trim()
         val charset = Regex("charset=([^;]+)").find(type)?.groupValues?.get(1)
