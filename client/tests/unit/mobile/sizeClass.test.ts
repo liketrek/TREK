@@ -36,6 +36,9 @@ describe('size classes', () => {
       ipad13SplitHalf: [683, 1032, true, false],
       duoUnfoldedLandscape: [1017, 699, true, true],
       duoUnfoldedPortrait: [699, 1017, true, false],
+      ipad11Portrait: [834, 1194, true, false],
+      androidFoldUnfoldedLandscape: [841, 701, true, true],
+      androidFoldUnfoldedPortrait: [701, 841, true, false],
     };
     for (const [name, [w, h, wide, split]] of Object.entries(sizes)) {
       expect([name, evaluate(WIDE_QUERY, w, h)]).toEqual([name, wide]);

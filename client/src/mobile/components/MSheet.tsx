@@ -47,7 +47,7 @@ const DISCARD_BUTTON = 'rounded-full bg-danger px-4 py-2 text-body font-semibold
  * rather than a panel across the screen: compact for a short list of actions,
  * regular for a form, large for a sheet that holds a page of its own.
  */
-export type MSheetWidth = 'compact' | 'regular' | 'large'
+type MSheetWidth = 'compact' | 'regular' | 'large'
 
 // On a wide window (hooks/sizeClass.ts) a docked or floating sheet becomes
 // what iPadOS shows there: a form sheet centred over the dimmed page, as wide
@@ -72,7 +72,7 @@ const POSITION: Record<MSheetVariant, string> = {
  * (the trip's More), the way iPadOS shows a menu next to the button that
  * opened it rather than in the middle of the screen.
  */
-export type MSheetWideAnchor = 'center' | 'rail-foot'
+type MSheetWideAnchor = 'center' | 'rail-foot'
 const WIDE_ANCHOR: Record<MSheetWideAnchor, string> = {
   center: WIDE_POSITION,
   'rail-foot': 'wide:top-auto wide:translate-y-0 wide:end-auto wide:bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] wide:start-[calc(var(--m-rail-w)+6px)]',

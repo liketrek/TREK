@@ -193,9 +193,37 @@ describe('MKeyboardHost', () => {
   });
 });
 
+describe('MKeyboardHost in the Android app', () => {
+  beforeEach(() => {
+    native.ios = false;
+    native.features = [];
+    native.setKeyCommands.mockClear();
+    useShortcutRegistry.setState({ lists: [] });
+  });
+
+  it('FE-MOB-KEYS-010: an Android shell with key commands takes the shortcuts too, the feature decides', async () => {
+    native.features = ['keyCommands'];
+    const run = vi.fn();
+    render(
+      <>
+        <MKeyboardHost />
+        <Probe owner="trip" shortcuts={[{ id: 'tab-plan', title: 'Plan', key: '1', mod: true, run }]} />
+      </>
+    );
+    await waitFor(() =>
+      expect(native.setKeyCommands).toHaveBeenLastCalledWith({
+        commands: [{ id: 'trip:tab-plan', title: 'Plan', input: '1', modifiers: ['command'] }],
+      })
+    );
+    fireEvent.keyDown(document.body, { key: '1', metaKey: true });
+    expect(run).not.toHaveBeenCalled();
+  });
+});
+
 describe('MShellShortcuts', () => {
   beforeEach(() => {
     native.ios = false;
+    native.features = [];
     useShortcutRegistry.setState({ lists: [] });
     usePluginStore.setState({ plugins: [], loaded: true });
     useAddonStore.setState({

@@ -170,7 +170,7 @@ export interface SharedFilePayload {
  * pixels, Android's size classes, and a foldable's posture with the hinge's
  * place in the window. `posture` is none on a device without a fold.
  */
-interface NativeWindowLayout {
+export interface NativeWindowLayout {
   width: number;
   height: number;
   widthClass: 'compact' | 'medium' | 'expanded';

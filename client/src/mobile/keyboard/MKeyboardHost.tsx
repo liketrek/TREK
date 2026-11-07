@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { useNativeCapabilities } from '../../native/capabilities';
-import { isNativeIos } from '../../native/platform';
 import { reportNativeFailure } from '../../native/reportFailure';
 import { TrekShell } from '../../native/trekShell';
 import { findShortcut, toNativeCommand, useShortcutRegistry } from './shortcuts';
@@ -8,14 +7,16 @@ import { findShortcut, toNativeCommand, useShortcutRegistry } from './shortcuts'
 /**
  * Answers the touch shell's keyboard shortcuts (useShortcuts), once for every
  * screen. In a browser it listens for the keys itself. In the app the binary
- * takes them over as native key commands when it can (feature keyCommands),
- * which puts them in the overlay a held ⌘ shows and in the iPadOS menu bar;
- * the page then leaves those keys alone, so nothing runs twice.
+ * takes them over as native key commands when it can (feature keyCommands):
+ * on iOS they show in the overlay a held ⌘ shows and in the iPadOS menu bar,
+ * on Android in the system's keyboard shortcuts list. The page then leaves
+ * those keys alone, so nothing runs twice. Only a shell that has the feature
+ * reports it, so the feature alone decides, whatever the platform.
  */
 export default function MKeyboardHost() {
   const lists = useShortcutRegistry((s) => s.lists);
   const { caps } = useNativeCapabilities();
-  const native = isNativeIos() && caps.features.includes('keyCommands');
+  const native = caps.features.includes('keyCommands');
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

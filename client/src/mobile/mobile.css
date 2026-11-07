@@ -589,6 +589,24 @@
     --m-pane-trail-w: env(viewport-segment-width 1 0, 50vw);
   }
 }
+/* The Android app reports a foldable's fold itself (native/windowFold.ts):
+   MobileShell marks a vertical fold that separates the window with data-fold
+   and its place in --m-fold-start/--m-fold-end, and the panes meet there. The
+   leading side follows the reading direction, the fold's place does not. */
+.m-root[data-fold='vertical'] {
+  --m-pane-aside-w: calc(var(--m-fold-start) - var(--m-rail-w, 0px));
+  --m-pane-trail-w: calc(100vw - var(--m-fold-end));
+}
+.m-root[data-fold='vertical'] .m-trip {
+  --trip-pane-open: calc(var(--m-fold-start) - var(--m-rail-w, 0px));
+}
+:root[dir='rtl'] .m-root[data-fold='vertical'] {
+  --m-pane-aside-w: calc(100vw - var(--m-fold-end) - var(--m-rail-w, 0px));
+  --m-pane-trail-w: var(--m-fold-start);
+}
+:root[dir='rtl'] .m-root[data-fold='vertical'] .m-trip {
+  --trip-pane-open: calc(100vw - var(--m-fold-end) - var(--m-rail-w, 0px));
+}
 .m-pane-aside {
   width: var(--m-pane-aside-w);
 }

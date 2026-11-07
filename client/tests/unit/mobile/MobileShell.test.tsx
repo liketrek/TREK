@@ -7,7 +7,11 @@ import { usePluginStore } from '../../../src/store/pluginStore';
 
 // FE-MOB-MSHELL-001 onwards
 
+const fold = vi.hoisted(() => ({ current: null as null | { start: number; end: number } }));
+vi.mock('../../../src/native/windowFold', () => ({ useWindowFold: () => fold.current }));
+
 beforeEach(() => {
+  fold.current = null;
   useAddonStore.setState({ addons: [], loaded: true });
   usePluginStore.setState({ plugins: [], loaded: true });
 });
@@ -116,5 +120,21 @@ describe('MobileShell', () => {
     const content = screen.getByText('page body').parentElement as HTMLElement;
     expect(content.className).toContain('overflow-y-auto');
     expect(content.className).toContain('md:overflow-visible');
+  });
+
+  it('FE-MOB-MSHELL-008: a fold the Android app reports is where the panes meet', () => {
+    const { container, rerender } = render(
+      <MobileShell isPhone><p>page body</p></MobileShell>,
+      { initialEntries: ['/dashboard'] },
+    );
+    const root = () => container.querySelector('.m-root') as HTMLElement;
+    expect(root().dataset.fold).toBeUndefined();
+    expect(root().style.getPropertyValue('--m-fold-start')).toBe('');
+
+    fold.current = { start: 420, end: 421 };
+    rerender(<MobileShell isPhone><p>page body</p></MobileShell>);
+    expect(root().dataset.fold).toBe('vertical');
+    expect(root().style.getPropertyValue('--m-fold-start')).toBe('420px');
+    expect(root().style.getPropertyValue('--m-fold-end')).toBe('421px');
   });
 });

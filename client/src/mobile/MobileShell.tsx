@@ -1,4 +1,4 @@
-import { ReactNode, useRef } from 'react'
+import { CSSProperties, ReactNode, useRef } from 'react'
 import { useMatch } from 'react-router'
 import BottomNav from '../components/Layout/BottomNav'
 import ErrorBoundary from '../components/shared/ErrorBoundary'
@@ -11,6 +11,7 @@ import MToastHost from './components/MToastHost'
 import MEdgeBack from './components/MEdgeBack'
 import { useNativeCapabilities } from '../native/capabilities'
 import { isNativeIos } from '../native/platform'
+import { useWindowFold } from '../native/windowFold'
 import './mobile.css'
 
 interface MobileShellProps {
@@ -46,6 +47,12 @@ export default function MobileShell({ isPhone, children }: MobileShellProps) {
   // On a wide window (an iPad, a foldable unfolded) the rail on the leading edge
   // replaces the dock, and the page column starts after it.
   const wide = useIsWide()
+  // A foldable's fold, as the Android app reports it: two-pane screens end their
+  // leading pane there (mobile.css, data-fold).
+  const fold = useWindowFold()
+  const foldStyle = fold
+    ? ({ '--m-fold-start': `${fold.start}px`, '--m-fold-end': `${fold.end}px` } as CSSProperties)
+    : undefined
 
   if (!isPhone) {
     return (
@@ -59,7 +66,7 @@ export default function MobileShell({ isPhone, children }: MobileShellProps) {
   return (
     // min-h-svh, not min-h-dvh: dvh grows while Safari's toolbar retracts, so a
     // dvh page length would chase the animation it just triggered.
-    <div className="m-root m-shell flex min-h-svh flex-col text-m-ink">
+    <div className="m-root m-shell flex min-h-svh flex-col text-m-ink" data-fold={fold ? 'vertical' : undefined} style={foldStyle}>
       {/* Background and screen gradient live on their own viewport-sized layer.
           The shell root is as tall as the document now, and --m-scr is a radial
           gradient measured against its element box, so on it the light cone would
