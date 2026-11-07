@@ -9,6 +9,8 @@ import Foundation
 ///                         trip, days, packing, todos, lists, countdown, empty,
 ///                         nosync, faces
 ///   -TrekScenario <name>  running, travelday or upcoming (default by screen)
+///   -TrekReady <token>    once the screen has drawn, writes Documents/ready-<token>
+///                         in the app's container, which the script waits for
 ///   -TrekNow <HH:mm>      the time the screens think it is; without it the
 ///                         real time, which the capture script moves to the
 ///                         hour it wants with the app's time zone (TZ), so the
@@ -21,6 +23,17 @@ enum DemoMode {
 
     static var screen: Screen? {
         value(after: "-TrekDemo").flatMap(Screen.init(rawValue:))
+    }
+
+    /// Tells the capture script the screen is up: a moment after it appeared,
+    /// so the navigation to it and the first layout have settled.
+    static func signalReady() {
+        guard let token = value(after: "-TrekReady"),
+              let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+            try? FileManager.default.createDirectory(at: documents, withIntermediateDirectories: true)
+            try? Data().write(to: documents.appendingPathComponent("ready-\(token)"))
+        }
     }
 
     @MainActor

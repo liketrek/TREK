@@ -195,7 +195,7 @@ jobs:
   # language, and the complications, as PNGs to look at without a watch.
   watch-screens:
     runs-on: macos-15
-    timeout-minutes: 60
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v6
 

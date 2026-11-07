@@ -49,15 +49,37 @@ zone_for() {
   if [ "$offset" -ge 0 ]; then echo "Etc/GMT-$offset"; else echo "Etc/GMT+$(( -offset ))"; fi
 }
 
-# shot <udid> <file> <screen> <scenario> <hour> <language>
+# Waits for the ready file the app writes once the screen has drawn (DemoMode.signalReady).
+wait_ready() {
+  local udid=$1 token=$2 container
+  for _ in $(seq 1 40); do
+    container=$(xcrun simctl get_app_container "$udid" "$BUNDLE" data 2>/dev/null || true)
+    [ -n "$container" ] && [ -f "$container/Documents/ready-$token" ] && return 0
+    sleep 0.25
+  done
+  return 1
+}
+
+TOKEN=0
+# shot <udid> <file> <screen> <scenario> <hour> <language>: one launch, retried
+# after 2, 5 and 10 seconds when the simulator refuses it.
 shot() {
   local udid=$1 file=$2 screen=$3 scenario=$4 hour=$5 lang=$6
-  local locale=${lang//-/_}
-  SIMCTL_CHILD_TZ=$(zone_for "$hour") xcrun simctl launch --terminate-running-process "$udid" "$BUNDLE" \
-    -AppleLanguages "($lang)" -AppleLocale "$locale" -TrekDemo "$screen" -TrekScenario "$scenario" >/dev/null \
-    || { echo "could not launch $file"; return 0; }
-  case "$screen" in place) sleep 10 ;; *) sleep 4 ;; esac
-  xcrun simctl io "$udid" screenshot --type=png "$file" >/dev/null 2>&1 || echo "could not capture $file"
+  local locale=${lang//-/_} attempt
+  for attempt in 0 2 5 10; do
+    [ "$attempt" -gt 0 ] && { echo "retrying $(basename "$file") in ${attempt}s"; sleep "$attempt"; }
+    TOKEN=$((TOKEN + 1))
+    xcrun simctl terminate "$udid" "$BUNDLE" >/dev/null 2>&1 || true
+    sleep 0.5
+    SIMCTL_CHILD_TZ=$(zone_for "$hour") xcrun simctl launch "$udid" "$BUNDLE" \
+      -AppleLanguages "($lang)" -AppleLocale "$locale" -TrekDemo "$screen" -TrekScenario "$scenario" \
+      -TrekReady "$TOKEN" >/dev/null 2>&1 || continue
+    wait_ready "$udid" "$TOKEN" || continue
+    # The map's tiles come over the network after the screen is up.
+    [ "$screen" = place ] && sleep 6
+    xcrun simctl io "$udid" screenshot --type=png "$file" >/dev/null 2>&1 && return 0
+  done
+  echo "gave up on $(basename "$file")"
 }
 
 # name screen scenario hour: every screen, and the states a screen has.
@@ -85,12 +107,13 @@ faces faces running 13
 MAIN="today booking countdown trip lists packing day"
 LANGS="ar az ca cs de el en es et fr he hu id it ja ko nl pl pt-BR ru sk sv th tr uk vi zh-Hans zh-Hant"
 
+EXPECTED=()
 run() {
-  local size=$1 name=$2 udid
-  udid=$(boot "$name" | tail -1)
+  local size=$1 udid=$2 lang shotname screen scenario hour
   for lang in en de ru; do
     while read -r shotname screen scenario hour; do
       [ -n "$shotname" ] || continue
+      EXPECTED+=("$size-$lang-$shotname.png")
       shot "$udid" "$OUT/$size-$lang-$shotname.png" "$screen" "$scenario" "$hour" "$lang"
     done <<< "$SHOTS"
   done
@@ -99,21 +122,28 @@ run() {
       case "$lang" in en|de|ru) continue ;; esac
       while read -r shotname screen scenario hour; do
         [ -n "$shotname" ] || continue
-        case " $MAIN " in *" $shotname "*) shot "$udid" "$OUT/$size-$lang-$shotname.png" "$screen" "$scenario" "$hour" "$lang" ;; esac
+        case " $MAIN " in
+          *" $shotname "*)
+            EXPECTED+=("$size-$lang-$shotname.png")
+            shot "$udid" "$OUT/$size-$lang-$shotname.png" "$screen" "$scenario" "$hour" "$lang"
+            ;;
+        esac
       done <<< "$SHOTS"
     done
   fi
   xcrun simctl shutdown "$udid" || true
 }
 
-run large "$LARGE" &
-large=$!
-run medium "$MEDIUM" &
-medium=$!
-run small "$SMALL" &
-small=$!
-wait "$large"
-wait "$medium"
-wait "$small"
+# One watch at a time: launches on several booted simulators at once is what
+# makes SpringBoard refuse them ("Scene update failed").
+run large "$(boot "$LARGE" | tail -1)"
+run medium "$(boot "$MEDIUM" | tail -1)"
+run small "$(boot "$SMALL" | tail -1)"
 printf '%s\n' "large: $LARGE" "medium: $MEDIUM" "small: $SMALL" > "$OUT/devices.txt"
-ls "$OUT" | wc -l
+
+missing=0
+for file in "${EXPECTED[@]}"; do
+  [ -s "$OUT/$file" ] || { echo "missing: $file"; missing=$((missing + 1)); }
+done
+echo "${#EXPECTED[@]} expected, $missing missing"
+[ "$missing" -eq 0 ]

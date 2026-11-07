@@ -64,7 +64,10 @@ struct RootView: View {
             }
             .environment(\.trekNow, now)
         }
-        .onAppear(perform: openDemoScreen)
+        .onAppear {
+            openDemoScreen()
+            DemoMode.signalReady()
+        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active && !model.isDemo { WatchLink.shared.requestRefresh() }
         }
