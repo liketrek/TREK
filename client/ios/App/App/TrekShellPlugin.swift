@@ -55,7 +55,11 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
     /// and a server can require a minimum (minNativeShellApi in /api/health/features).
     static let shellApi = 2
     /// The native features by name, so the UI can turn each on by itself.
-    static let features: [String] = ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation", "sharedFiles", "nativePush", "widgets", "liveActivity", "widgetTrips", "storeKit", "shareSheet", "wallet", "watch"]
+    /// "watch" only where WatchConnectivity is (an iPhone, not an iPad), so the UI never builds a snapshot for nothing.
+    static var features: [String] {
+        ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation", "sharedFiles", "nativePush", "widgets", "liveActivity", "widgetTrips", "storeKit", "shareSheet", "wallet"]
+            + (TrekWatchLink.isAvailable ? ["watch"] : [])
+    }
 
     // MARK: - Shared booking documents
 
@@ -144,6 +148,10 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
 
     /// Passes what the watch app shows (native/watch.ts builds it) on to the watch.
     @objc func setWatchSnapshot(_ call: CAPPluginCall) {
+        guard TrekWatchLink.isAvailable else {
+            call.resolve()
+            return
+        }
         guard let json = call.getString("json"), let data = json.data(using: .utf8) else {
             call.reject("json is required")
             return

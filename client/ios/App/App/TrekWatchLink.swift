@@ -23,8 +23,12 @@ final class TrekWatchLink: NSObject, WCSessionDelegate {
     /// The most WatchConnectivity carries in one application context, with room to spare.
     private let maxBytes = 60_000
 
+    /// False on an iPad (and anything else without a paired watch): then this is
+    /// a no-op throughout, and the UI is not offered the feature at all.
+    static var isAvailable: Bool { WCSession.isSupported() }
+
     func activate() {
-        guard WCSession.isSupported() else { return }
+        guard Self.isAvailable else { return }
         WCSession.default.delegate = self
         WCSession.default.activate()
     }
@@ -32,6 +36,7 @@ final class TrekWatchLink: NSObject, WCSessionDelegate {
     // MARK: Snapshots to the watch
 
     func publish(_ json: Data) {
+        guard Self.isAvailable else { return }
         let data = withSmallCover(json)
         queue.async {
             UserDefaults.standard.set(data, forKey: self.snapshotKey)
@@ -40,8 +45,9 @@ final class TrekWatchLink: NSObject, WCSessionDelegate {
     }
 
     private func send(_ data: Data) {
+        guard Self.isAvailable else { return }
         let session = WCSession.default
-        guard WCSession.isSupported(), session.activationState == .activated, session.isPaired, session.isWatchAppInstalled else { return }
+        guard session.activationState == .activated, session.isPaired, session.isWatchAppInstalled else { return }
         try? session.updateApplicationContext(["snapshot": data])
         let digest = complicationDigest(data)
         if session.isComplicationEnabled, session.remainingComplicationUserInfoTransfers > 0,
