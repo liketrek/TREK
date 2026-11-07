@@ -440,7 +440,13 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
           takes the full width between the screen margins, so its segments are
           the same size as everything else the thumb aims at on this screen. */}
       {mapActive && !onStage && poiPillEnabled && (
-        <div className="pointer-events-none absolute inset-x-4 z-[25] flex flex-col items-center gap-2 top-[calc(var(--m-safe-top,12px)+96px)]">
+        <div
+          // Beside the trip's pane nothing lies over the map, so the bar takes the
+          // top edge, level with the pane's own top row.
+          className={`pointer-events-none absolute end-4 start-[calc(var(--trip-map-inset,0px)+16px)] z-[25] flex flex-col items-center gap-2 ${
+            shell.paneOpen ? 'top-[var(--m-safe-top,12px)]' : 'top-[calc(var(--m-safe-top,12px)+96px)]'
+          }`}
+        >
           <PoiCategoryPill
             fullWidth
             phoneChrome
@@ -463,7 +469,7 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
       {mapActive && (glMap || planner.dawarichEnabled) && (
         <div
           className="pointer-events-none absolute z-[25] flex flex-col-reverse items-start gap-2"
-          style={{ left: COMPASS_LEFT, bottom: `calc(var(--bottom-nav-h, 84px) + ${12 + COMPASS_RAISE}px)` }}
+          style={{ left: COMPASS_LEFT, marginInlineStart: 'var(--trip-map-inset, 0px)', bottom: `calc(var(--bottom-nav-h, 84px) + ${12 + COMPASS_RAISE}px)` }}
         >
           {/* Kept in road-trip mode: the recorded route beside the planned one is
               exactly the comparison a drive invites. */}

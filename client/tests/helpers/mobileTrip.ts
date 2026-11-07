@@ -327,6 +327,7 @@ export function buildShell(overrides: Partial<MTripShellApi> = {}): MTripShellAp
     view: 'plan',
     rtView: 'list',
     mapFront: false,
+    paneOpen: false,
     toggleRtView: vi.fn(),
     rtReach: 'ahead',
     setRtReach: vi.fn(),

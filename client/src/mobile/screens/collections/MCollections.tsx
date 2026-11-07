@@ -153,7 +153,7 @@ export default function MCollections() {
       // Map view fills the viewport like the trip and journal maps do (#2104);
       // h-dvh because the shell owns no scroll container (#1809). List view
       // keeps the document as the scroller.
-      className={`px-4 pb-[calc(var(--bottom-nav-h,84px)+12px)] pt-[var(--m-safe-top,12px)] ${c.view === 'map' ? 'flex h-dvh flex-col overflow-hidden' : ''}`}
+      className={`px-4 pb-[calc(var(--bottom-nav-h,84px)+12px)] pt-[var(--m-safe-top,12px)] wide:px-6 ${c.view === 'map' ? 'flex h-dvh flex-col overflow-hidden' : 'wide:mx-auto wide:max-w-[1040px]'}`}
     >
       {/* Header: back · list switcher · edit · share */}
       <div className="mb-3 flex flex-none items-center gap-2 pt-2">

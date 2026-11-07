@@ -92,5 +92,10 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.maps': 'Mapy',
   'mobileTrip.openRouteIn': 'Otvoriť deň v',
   'mobileTrip.firstStopOnly': 'Len prvá zastávka',
+  'mobileTrip.sections': 'Časti cesty',
+  'mobileTrip.hidePane': 'Skryť bočný panel',
+  'mobileTrip.showPane': 'Zobraziť bočný panel',
+  'mobileTrip.previousDay': 'Predchádzajúci deň',
+  'mobileTrip.nextDay': 'Nasledujúci deň',
 };
 export default mobileTrip;

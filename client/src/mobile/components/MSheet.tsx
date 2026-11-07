@@ -32,11 +32,33 @@ interface MSheetProps {
    * throwing away a state that differs from the one at the first touch.
    */
   discardGuard?: unknown
+  /** Width as a centred form sheet on a wide window (default regular). */
+  wideWidth?: MSheetWidth
+  /** Where it stands on a wide window (default centre). */
+  wideAnchor?: MSheetWideAnchor
 }
 
 const EXIT_MS = 300
 
 const DISCARD_BUTTON = 'rounded-full bg-danger px-4 py-2 text-body font-semibold text-white' // theme-lint-disable: white on the danger fill, as ConfirmDialog draws it
+
+/**
+ * How wide the sheet gets on a wide window, where it is a centred form sheet
+ * rather than a panel across the screen: compact for a short list of actions,
+ * regular for a form, large for a sheet that holds a page of its own.
+ */
+export type MSheetWidth = 'compact' | 'regular' | 'large'
+
+// On a wide window (hooks/sizeClass.ts) a docked or floating sheet becomes
+// what iPadOS shows there: a form sheet centred over the dimmed page, as wide
+// as its content needs and no wider, instead of a band across a 13" screen.
+// Centred with auto margins between zero insets, so it needs no physical side.
+const WIDE_POSITION = 'wide:inset-x-0 wide:mx-auto wide:bottom-auto wide:top-1/2 wide:-translate-y-1/2'
+const WIDE_WIDTH: Record<MSheetWidth, string> = {
+  compact: 'wide:w-[min(320px,calc(100%-48px))]',
+  regular: 'wide:w-[min(540px,calc(100%-48px))]',
+  large: 'wide:w-[min(720px,calc(100%-48px))]',
+}
 
 const POSITION: Record<MSheetVariant, string> = {
   card: 'absolute inset-x-[14px] top-1/2 -translate-y-1/2',
@@ -44,9 +66,40 @@ const POSITION: Record<MSheetVariant, string> = {
   drawer: 'absolute left-0 top-0 bottom-0 w-[78%] max-w-[320px]',
 }
 
+/**
+ * Where a sheet stands on a wide window. centre: a form sheet. rail-foot: a
+ * popover beside the foot of the navigation rail, for a menu opened from there
+ * (the trip's More), the way iPadOS shows a menu next to the button that
+ * opened it rather than in the middle of the screen.
+ */
+export type MSheetWideAnchor = 'center' | 'rail-foot'
+const WIDE_ANCHOR: Record<MSheetWideAnchor, string> = {
+  center: WIDE_POSITION,
+  'rail-foot': 'wide:top-auto wide:translate-y-0 wide:end-auto wide:bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] wide:start-[calc(var(--m-rail-w)+6px)]',
+}
+
+/** The box the panel sits in: its place on a phone, and on a wide window. */
+function frameClass(variant: MSheetVariant, width: MSheetWidth = 'regular', anchor: MSheetWideAnchor = 'center'): string {
+  if (variant === 'drawer') return POSITION.drawer
+  return `${POSITION[variant]} ${WIDE_WIDTH[width]} ${WIDE_ANCHOR[anchor]}`
+}
+
+/** The popover's arrow, pointing at the More button at the foot of the rail (wide windows only). */
+function PopoverArrow({ variant, anchor }: { variant: MSheetVariant; anchor?: MSheetWideAnchor }) {
+  if (anchor !== 'rail-foot' || variant === 'drawer') return null
+  return (
+    <span
+      aria-hidden="true"
+      className="absolute -start-[10px] bottom-[33px] hidden h-[18px] w-[10px] bg-[color:var(--m-sheet)] backdrop-blur-[40px] [clip-path:polygon(100%_0,0_50%,100%_100%)] rtl:-scale-x-100 wide:block"
+    />
+  )
+}
+
+const WIDE_HEIGHT = 'wide:max-h-[min(calc(100dvh-var(--m-safe-top,12px)-64px),880px)]'
+
 const SHAPE: Record<MSheetVariant, string> = {
-  card: 'rounded-[28px] shadow-[0_30px_80px_-24px_rgba(0,0,0,.6)] max-h-[calc(100dvh-var(--m-safe-top,12px)-96px)]',
-  bottom: 'rounded-[26px] shadow-[0_-8px_40px_-14px_rgba(0,0,0,.45)] max-h-[calc(100dvh-var(--bottom-nav-h,84px)-var(--m-safe-top,12px)-72px)]',
+  card: `rounded-[28px] shadow-[0_30px_80px_-24px_rgba(0,0,0,.6)] max-h-[calc(100dvh-var(--m-safe-top,12px)-96px)] ${WIDE_HEIGHT}`,
+  bottom: `rounded-[26px] shadow-[0_-8px_40px_-14px_rgba(0,0,0,.45)] max-h-[calc(100dvh-var(--bottom-nav-h,84px)-var(--m-safe-top,12px)-72px)] ${WIDE_HEIGHT} wide:shadow-[0_30px_80px_-24px_rgba(0,0,0,.6)]`,
   drawer: 'h-full shadow-[0_0_60px_-10px_rgba(0,0,0,.5)]',
 }
 
@@ -87,6 +140,8 @@ export default function MSheet({
   className = '',
   children,
   discardGuard,
+  wideWidth,
+  wideAnchor,
 }: MSheetProps) {
   const { t } = useTranslation()
   const { asking, markStart, requestClose, wouldAsk, keepEditing, discard, reset } = useDiscardGuard(discardGuard, onClose)
@@ -187,7 +242,8 @@ export default function MSheet({
         if (e.target === e.currentTarget) requestClose()
       }}
     >
-      <div className={POSITION[variant]}>
+      <div className={frameClass(variant, wideWidth, wideAnchor)}>
+        <PopoverArrow variant={variant} anchor={wideAnchor} />
         <div
           ref={panelRef}
           role="dialog"

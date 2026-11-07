@@ -83,5 +83,10 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.maps': 'Haritalar',
   'mobileTrip.openRouteIn': 'Günü şurada aç',
   'mobileTrip.firstStopOnly': 'Yalnızca ilk durak',
+  'mobileTrip.sections': 'Seyahat bölümleri',
+  'mobileTrip.hidePane': 'Kenar çubuğunu gizle',
+  'mobileTrip.showPane': 'Kenar çubuğunu göster',
+  'mobileTrip.previousDay': 'Önceki gün',
+  'mobileTrip.nextDay': 'Sonraki gün',
 };
 export default mobileTrip;

@@ -14,10 +14,17 @@ import { useReservationDetailPlugins } from '../../../../components/Planner/book
  * the floating controls, the bottom clears the dock via --bottom-nav-h. (Collab
  * lays out its own column so its composer can sit just above the dock.)
  */
-export function TabScroller({ children }: { children: ReactNode }) {
+export function TabScroller({ children, wide = 'readable' }: { children: ReactNode; wide?: 'readable' | 'full' }) {
+  // On a wide window the list keeps a readable measure in the middle of the
+  // page, as iPadOS lists do, while the scroller itself still spans the page so
+  // a scroll anywhere on it moves the list. A grid (files) takes the page.
   return (
     <div className="flex h-full flex-col">
-      <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pb-[calc(var(--bottom-nav-h,84px)+22px)] pt-[calc(var(--m-safe-top,12px)+58px)]">
+      <div
+        className={`min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pb-[calc(var(--bottom-nav-h,84px)+22px)] pt-[calc(var(--m-safe-top,12px)+58px)] wide:px-6 ${
+          wide === 'readable' ? 'wide:[&>*]:mx-auto wide:[&>*]:max-w-[760px]' : ''
+        }`}
+      >
         {children}
       </div>
     </div>

@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ComponentType, type 
 import { findFocusDayId, findTodayDayId } from '../../../components/Planner/today'
 import { takeResumeDay } from '../../../utils/resumeRoute'
 import {
-  CalendarDays, ChevronDown, ChevronLeft, Download, FileDown, FolderSync, List, Map as MapIcon, MoreHorizontal, Plane, Plus, Route, Rows3, SlidersHorizontal, Trash2, Upload,
+  CalendarDays, ChevronDown, ChevronLeft, Download, FileDown, List, Map as MapIcon, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Plane, Plus, Route, SlidersHorizontal, Trash2, Upload,
 } from 'lucide-react'
 import { useTripPlanner } from '../../../pages/tripPlanner/useTripPlanner'
 import { pickDockTabs } from './dockTabs'
@@ -22,13 +22,15 @@ import { stageOf } from '../../../components/Roadtrip/roadtripRowModel'
 import { badgeLabel, distanceBadge } from './roadtrip/stageBadges'
 import type { CorridorReach } from '../../../components/Roadtrip/corridorSearchModel'
 import { useSettingsStore } from '../../../store/settingsStore'
-import { useAuthStore } from '../../../store/authStore'
 import { useListsSubTab, type ListsSubTab } from '../../../hooks/useListsSubTab'
-import { canManageDocSync } from '../../../components/Files/docsync/useDocSync'
-import { useDocSyncOffered } from '../../../components/Files/docsync/useDocSyncOffered'
-import type { Day, Trip } from '../../../types'
+import type { Day } from '../../../types'
 import { getIntlLanguage } from '@trek/shared'
 import { useDayPreviewStore } from '../../dayPreviewStore'
+import { useIsSplit, useIsWide } from '../../../hooks/sizeClass'
+import MTripRail from './MTripRail'
+import { CompactToggle, DocSyncButton, GlassSegment } from './MTripShellParts'
+import { edgeFadeClass, useEdgeFade } from '../../components/useEdgeFade'
+import { useShortcuts } from '../../keyboard/useShortcuts'
 
 /**
  * Mobile trip screen frame. Owns the chrome the design shares across every
@@ -97,6 +99,11 @@ export interface MTripShellApi {
    */
   rtReach: CorridorReach
   setRtReach: (value: CorridorReach) => void
+  /**
+   * True while the trip's pane stands beside the map (split size class): the map
+   * then has no chrome over it, so its own controls move up to the top edge.
+   */
+  paneOpen: boolean
   /** Travel/Plan/Places segment: go | edit | browse. */
   mode: MTripMode
   /** Legacy tab ids: plan · transports · buchungen · listen · finanzplan · dateien · collab · plugin:* */
@@ -234,6 +241,11 @@ export default function MTripShell({
   const [uploadFilesSignal, setUploadFilesSignal] = useState(0)
   const [openFilesTrashSignal, setOpenFilesTrashSignal] = useState(0)
   const [openDocSyncSignal, setOpenDocSyncSignal] = useState(0)
+  // Size class (hooks/sizeClass.ts). Wide: a rail on the leading edge holds the
+  // trip's sections instead of the dock. Split: the plan, the places or the
+  // road trip's chain sit in a pane beside the map rather than over it.
+  const wide = useIsWide()
+  const split = useIsSplit()
 
   // The mobile plan is single-day: make sure a day is active once days arrive.
   // Only seed once so an intentional deselect elsewhere is not fought. Open on
@@ -306,6 +318,8 @@ export default function MTripShell({
     setBookingImportKind('bookings')
     setShowBookingImport(true)
   }, [sharedTripId, tripId, setBookingImportKind, setShowBookingImport])
+  // The day strip says when it runs on past an edge (a long trip, a narrow pane).
+  const dayFade = useEdgeFade(dayRail)
   const dayPill = useActivePill(dayRail, '[aria-current="true"]', `${railDayId}:${days.map(d => d.id).join(',')}:${language}`)
 
   const trTab = planner.activeTab
@@ -379,8 +393,9 @@ export default function MTripShell({
       focusMapOnDay(planner.selectedDayId)
     } else {
       // Leaving the map: nothing is filtered while the timeline is up, so the next
-      // visit starts from the whole trip unless a day is picked again.
-      focusMapOnDay(null)
+      // visit starts from the whole trip unless a day is picked again. Beside the
+      // pane the map stays in view, so there it keeps showing the day.
+      if (!split) focusMapOnDay(null)
       // The timeline is single-day and renders empty without one, so an "all days"
       // deselect on the map must not follow the user back into the plan. Same day
       // the toggle would restore, so the two ways back agree.
@@ -407,13 +422,56 @@ export default function MTripShell({
     })
   }
 
-  const mapFront = (trTab === 'plan' && view === 'map') || (trTab === 'roadtrip' && rtView === 'map')
+  // Beside a pane the map is on screen in both halves, so whatever floats over
+  // it (POI pill, compass, the all-days switch) stays, and "show on map" has
+  // nowhere to switch to.
+  const mapFront = (trTab === 'plan' && (view === 'map' || split)) || (trTab === 'roadtrip' && (rtView === 'map' || split))
+  // The pane is open while the plan tab shows its timeline or the places, or the
+  // road trip tab its chain. The list/map switch closes it for the whole map.
+  const paneOpen = split && ((trTab === 'plan' && (view === 'plan' || mode === 'browse')) || (trTab === 'roadtrip' && rtView === 'list'))
+
+  // With the plan beside the map, the map shows the day the plan shows: its
+  // places framed, its route drawn, the other days' pins put away, exactly as
+  // a phone does when it switches over to the map.
+  const followDayId = split && trTab === 'plan' && view === 'plan' && mode !== 'browse' ? planner.selectedDayId : null
+  const { autoShowRoute, setExpandedDayIds } = planner
+  useEffect(() => {
+    if (followDayId == null) return
+    autoShowRoute()
+    setExpandedDayIds(new Set([followDayId]))
+  }, [followDayId, autoShowRoute, setExpandedDayIds])
 
   const openSheet = (id: string, payload?: unknown) => setSheet({ id, payload })
   const closeSheet = () => setSheet(null)
 
+  // A hardware keyboard: ⌘1 to ⌘9 for the trip's sections in rail order, ⌥← and
+  // ⌥→ through the days, ⌃⌘S for the pane beside the map (as Show Sidebar does
+  // in every iPad app), ⌘[ back to the trips.
+  const keyTabs = planner.TRIP_TABS.filter(tab => !tab.desktopOnly).slice(0, 9)
+  const stepDay = (delta: number) => {
+    const at = days.findIndex(d => d.id === planner.selectedDayId)
+    const next = days[at + delta]
+    if (at === -1 || !next) return
+    if (mapFront && !split) selectDayOnMap(next.id)
+    else planner.handleSelectDay(next.id, true)
+  }
+  const dayKeys = trTab === 'plan' || trTab === 'roadtrip'
+  useShortcuts('trip', [
+    ...keyTabs.map((tab, i) => ({ id: `tab-${tab.id}`, title: tab.label, key: String(i + 1), mod: true, run: () => setTrTab(tab.id) })),
+    ...(dayKeys && days.length > 1
+      ? [
+          { id: 'day-prev', title: t('mobileTrip.previousDay'), key: 'ArrowLeft', alt: true, run: () => stepDay(-1) },
+          { id: 'day-next', title: t('mobileTrip.nextDay'), key: 'ArrowRight', alt: true, run: () => stepDay(1) },
+        ]
+      : []),
+    ...(split && MAP_TABS.has(trTab)
+      ? [{ id: 'pane', title: paneOpen ? t('mobileTrip.hidePane') : t('mobileTrip.showPane'), key: 's', ctrl: true, run: trTab === 'roadtrip' ? toggleRtView : toggleView }]
+      : []),
+    { id: 'back', title: t('common.back'), key: '[', mod: true, run: () => void navigate('/dashboard') },
+  ])
+
   const shell: MTripShellApi = {
-    view, rtView, mapFront, toggleRtView, rtReach, setRtReach, mode, trTab, setTrTab, setTravelMode, toggleView, browseFromEdit,
+    view, rtView, mapFront, paneOpen, toggleRtView, rtReach, setRtReach, mode, trTab, setTrTab, setTravelMode, toggleView, browseFromEdit,
     sheet, openSheet, closeSheet,
     listsTab, setListsTab, collabTab, setCollabTab,
     transportsCompact, bookingsCompact,
@@ -436,6 +494,9 @@ export default function MTripShell({
   // is the whole of it: a second button beside the rail only crowded the chrome.
   // Null outside the trip's dates.
   const todayDayId = findTodayDayId(days)
+
+  // Beside a pane the switch shows or hides the pane, the way a sidebar button does.
+  const splitToggleLabel = split ? (paneOpen ? t('mobileTrip.hidePane') : t('mobileTrip.showPane')) : null
 
   const onDayChipTap = (dayId: number) => {
     if (dayId === planner.selectedDayId) openSheet('day', { dayId })
@@ -465,8 +526,26 @@ export default function MTripShell({
   )
   const rtHeaderLabel = badgeLabel([rtHeaderDay, rtHeaderDistance])
 
+  // The chrome over the content (top controls, day chips) spans the pane while
+  // one is open, otherwise the page column after the rail.
+  const chromeSpan = paneOpen ? 'split:end-auto split:w-[calc(var(--trip-pane)-32px)]' : ''
+  const paneBox = 'absolute inset-y-0 start-0 end-0 wide:start-[var(--m-rail-w)] split:end-auto split:w-[var(--trip-pane)]'
+  // Where the map begins. Beside an open pane, after it; while the map is the
+  // whole screen it runs under the floating rail to the window's edge, with its
+  // controls kept clear of the rail (--trip-map-inset); behind a full-width
+  // list it waits after the rail, out of sight.
+  const mapUnderRail = wide && mapFront && !paneOpen
+  const mapStart = paneOpen ? 'calc(var(--m-rail-w) + var(--trip-pane-open))' : mapUnderRail ? '0px' : 'var(--m-rail-w)'
+
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-[color:var(--m-bg)] bg-[image:var(--m-scr)] text-m-ink">
+    <div
+      className="m-trip fixed inset-0 z-50 overflow-hidden bg-[color:var(--m-bg)] bg-[image:var(--m-scr)] text-m-ink"
+      style={{
+        ['--trip-pane' as string]: paneOpen ? 'var(--trip-pane-open)' : '0px',
+        ['--trip-map-start' as string]: mapStart,
+        ['--trip-map-inset' as string]: mapUnderRail ? 'var(--m-rail-w)' : '0px',
+      }}
+    >
       {/* ── Content layers ─────────────────────────────────────────────── */}
       {/*
         One expression for both map tabs, and it has to stay one: written as two
@@ -477,14 +556,18 @@ export default function MTripShell({
       */}
       {MAP_TABS.has(trTab) && (
         <div className="absolute inset-0">
-          <MapArea planner={planner} shell={shell} />
+          {/* The map's own box ends where the pane begins, so its controls and the
+              framing of a day stay in the part of it that can be seen. */}
+          <div className="absolute inset-y-0 end-0 start-[var(--trip-map-start)] transition-[inset-inline-start] duration-300 ease-out motion-reduce:transition-none">
+            <MapArea planner={planner} shell={shell} />
+          </div>
           {trTab === 'plan' && view === 'plan' && mode !== 'browse' && (
-            <div className="absolute inset-0 z-10 bg-[color:var(--m-bg)] bg-[image:var(--m-scr)]">
+            <div className={`${paneBox} z-10 bg-[color:var(--m-bg)] bg-[image:var(--m-scr)] split:border-e split:border-[color:var(--m-rowbr)]`}>
               <PlanTimeline planner={planner} shell={shell} />
             </div>
           )}
           {trTab === 'plan' && mode === 'browse' && (
-            <div className="absolute inset-0 z-30 bg-[color:var(--m-bg)] bg-[image:var(--m-scr)]">
+            <div className={`${paneBox} z-30 bg-[color:var(--m-bg)] bg-[image:var(--m-scr)] split:border-e split:border-[color:var(--m-rowbr)]`}>
               <PlacesBrowser planner={planner} shell={shell} />
             </div>
           )}
@@ -494,29 +577,35 @@ export default function MTripShell({
             hidden because non-plan panels cover them at z-30.
           */}
           {trTab === 'roadtrip' && rtView === 'list' && (
-            <div className="absolute inset-0 z-20 bg-[color:var(--m-bg)] bg-[image:var(--m-scr)]">
+            <div className={`${paneBox} z-20 bg-[color:var(--m-bg)] bg-[image:var(--m-scr)] split:border-e split:border-[color:var(--m-rowbr)]`}>
               <TabPanel planner={planner} shell={shell} tab={trTab} />
             </div>
           )}
           {trTab === 'roadtrip' && rtView === 'map' && (
-            <TabPanel planner={planner} shell={shell} tab={trTab} />
+            // The stage's bars keep to the page column while the map runs under the rail.
+            <div className="pointer-events-none absolute inset-0 wide:start-[var(--m-rail-w)]">
+              <TabPanel planner={planner} shell={shell} tab={trTab} />
+            </div>
           )}
         </div>
       )}
       {!MAP_TABS.has(trTab) && (
-        <div className="absolute inset-0 z-30 bg-[color:var(--m-bg)] bg-[image:var(--m-scr)]">
+        <div className="absolute inset-0 z-30 bg-[color:var(--m-bg)] bg-[image:var(--m-scr)] wide:start-[var(--m-rail-w)]">
           <TabPanel planner={planner} shell={shell} tab={trTab} />
         </div>
       )}
 
       {/* ── Day chips (z-25 — covered by non-plan tab overlays, stays mounted) ── */}
       {days.length > 0 && (
-        <div className="absolute inset-x-4 z-[25] flex gap-[6px] top-[calc(var(--m-safe-top,12px)+50px)]">
-          <div ref={setDayRail} className="relative flex flex-1 items-center gap-[2px] overflow-x-auto rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-[3px] backdrop-blur-[24px] backdrop-saturate-[1.7]">
+        <div className={`absolute end-4 start-[calc(var(--m-rail-w,0px)+16px)] z-[25] flex gap-[6px] top-[calc(var(--m-safe-top,12px)+50px)] ${chromeSpan}`}>
+          {/* The glass is the outer box, the scroller sits inside its padding: that way
+              the fade at an edge that runs on takes the chips, not the glass's rim. */}
+          <div className="flex min-w-0 flex-1 rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-[3px] backdrop-blur-[24px] backdrop-saturate-[1.7]">
+          <div ref={setDayRail} className={`relative flex min-w-0 flex-1 items-center gap-[2px] overflow-x-auto rounded-full ${edgeFadeClass(dayFade)}`}>
             {dayPill && (
               <span
                 aria-hidden="true"
-                className="pointer-events-none absolute bottom-[3px] left-0 top-[3px] rounded-full bg-m-act shadow-[0_6px_16px_-6px_rgba(0,0,0,.4)]" // rtl-lint-disable: moved by the measured offsetLeft (useActivePill)
+                className="pointer-events-none absolute bottom-0 left-0 top-0 rounded-full bg-m-act shadow-[0_6px_16px_-6px_rgba(0,0,0,.4)]" // rtl-lint-disable: moved by the measured offsetLeft (useActivePill)
                 style={dayPill}
               />
             )}
@@ -553,6 +642,7 @@ export default function MTripShell({
               )
             })}
           </div>
+          </div>
           {/* Drop the day filter and show the whole trip (#2257). Map only: the
               plan timeline and the road trip chain are both single-day, so there is
               nothing to widen there. Stays mounted while a day is active rather than
@@ -578,7 +668,7 @@ export default function MTripShell({
       )}
 
       {/* ── Top controls (z-42 — above every layer incl. tab overlays) ── */}
-      <div className="absolute inset-x-4 z-[42] flex h-10 items-center justify-between top-[var(--m-safe-top,12px)]">
+      <div className={`absolute end-4 start-[calc(var(--m-rail-w,0px)+16px)] z-[42] flex h-10 items-center justify-between top-[var(--m-safe-top,12px)] ${chromeSpan}`}>
         <MIconBtn ariaLabel={t('common.back')} onClick={() => navigate('/dashboard')} className="backdrop-blur-[24px] backdrop-saturate-[1.7]">
           <ChevronLeft size={19} strokeWidth={2.2} />
         </MIconBtn>
@@ -763,19 +853,32 @@ export default function MTripShell({
             states: coupling them would drag one tab into the other's half. */}
         {MAP_TABS.has(trTab) ? (
           <MIconBtn
-            ariaLabel={mapFront ? t('mobileTrip.listView') : t('mobileTrip.mapView')}
+            ariaLabel={splitToggleLabel ?? (mapFront ? t('mobileTrip.listView') : t('mobileTrip.mapView'))}
             onClick={trTab === 'roadtrip' ? toggleRtView : toggleView}
             className="backdrop-blur-[24px] backdrop-saturate-[1.7]"
           >
-            {mapFront ? <List size={18} strokeWidth={2} /> : <MapIcon size={18} strokeWidth={2} />}
+            {split
+              ? (paneOpen ? <PanelLeftClose size={18} strokeWidth={2} className="rtl:-scale-x-100" /> : <PanelLeftOpen size={18} strokeWidth={2} className="rtl:-scale-x-100" />)
+              : mapFront ? <List size={18} strokeWidth={2} /> : <MapIcon size={18} strokeWidth={2} />}
           </MIconBtn>
         ) : (
           <span className="w-[38px] flex-none" />
         )}
       </div>
 
+      {/* ── Section rail on a wide window, where an iPad keeps its sidebar ── */}
+      {wide && (
+        <MTripRail
+          tabs={mobileTabs}
+          active={trTab}
+          onSelect={setTrTab}
+          onMore={() => openSheet('mehr')}
+          labelOf={tabLabel}
+        />
+      )}
+
       {/* ── Bottom dock (replaces the global bottom nav on this screen) ── */}
-      <nav className="absolute inset-x-4 z-40 flex h-[62px] items-center justify-around rounded-[31px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-[14px] shadow-[0_16px_44px_-14px_rgba(0,0,0,.35)] backdrop-blur-[30px] backdrop-saturate-[1.8] bottom-[calc(env(safe-area-inset-bottom,0px)+12px)]">
+      {!wide && <nav className="absolute inset-x-4 z-40 flex h-[62px] items-center justify-around rounded-[31px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-[14px] shadow-[0_16px_44px_-14px_rgba(0,0,0,.35)] backdrop-blur-[30px] backdrop-saturate-[1.8] bottom-[calc(env(safe-area-inset-bottom,0px)+12px)]">
         {dockTabs.map(({ id, icon: Icon }) => {
           const active = trTab === id
           return (
@@ -801,18 +904,9 @@ export default function MTripShell({
         >
           <MoreHorizontal size={19} strokeWidth={2.2} />
         </button>
-      </nav>
+      </nav>}
 
       <Sheets planner={planner} shell={shell} />
-    </div>
-  )
-}
-
-/** Centre glass pill of the top controls (segments for plan/lists/collab). */
-function GlassSegment({ children }: { children: ReactNode }) {
-  return (
-    <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-[3px] backdrop-blur-[24px] backdrop-saturate-[1.7]">
-      {children}
     </div>
   )
 }
@@ -827,42 +921,6 @@ function PrimaryPill({ label, onClick, icon }: { label: string; onClick: () => v
     >
       {icon ?? <Plus size={14} strokeWidth={2.2} />}
       {label}
-    </button>
-  )
-}
-
-/**
- * The Files header's sync button, only where there is something behind it.
- *
- * A component of its own so the question is asked while the Files header is
- * up, not on every tab the shell renders.
- */
-function DocSyncButton({ tripId, trip, label, onOpen }: { tripId: number; trip: Trip; label: string; onOpen: () => void }) {
-  const user = useAuthStore(s => s.user)
-  const offered = useDocSyncOffered(tripId, canManageDocSync(user, trip))
-  if (!offered) return null
-  return (
-    <MIconBtn ariaLabel={label} onClick={onOpen} size={40} className="text-m-muted backdrop-blur-[24px] backdrop-saturate-[1.7]">
-      <FolderSync size={15} strokeWidth={2} />
-    </MIconBtn>
-  )
-}
-
-/** 40px list-density toggle on the transports/bookings headers. */
-function CompactToggle({ active, onToggle, label }: { active: boolean; onToggle: () => void; label: string }) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      aria-label={label}
-      aria-pressed={active}
-      className={`flex h-10 w-10 flex-none items-center justify-center rounded-full border ${
-        active
-          ? 'border-[color:var(--m-act)] bg-m-act text-m-actfg'
-          : 'border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] text-m-muted backdrop-blur-[24px] backdrop-saturate-[1.7]'
-      }`}
-    >
-      {active ? <Rows3 size={15} strokeWidth={2} /> : <List size={15} strokeWidth={2} />}
     </button>
   )
 }

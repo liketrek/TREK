@@ -75,5 +75,10 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.maps': '지도',
   'mobileTrip.openRouteIn': '이 날을 열 앱',
   'mobileTrip.firstStopOnly': '첫 번째 장소만',
+  'mobileTrip.sections': '여행 섹션',
+  'mobileTrip.hidePane': '사이드바 숨기기',
+  'mobileTrip.showPane': '사이드바 보기',
+  'mobileTrip.previousDay': '이전 날',
+  'mobileTrip.nextDay': '다음 날',
 };
 export default mobileTrip;

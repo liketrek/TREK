@@ -88,6 +88,11 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.maps': 'מפות',
   'mobileTrip.openRouteIn': 'פתיחת היום ב־',
   'mobileTrip.firstStopOnly': 'רק העצירה הראשונה',
+  'mobileTrip.sections': 'חלקי הטיול',
+  'mobileTrip.hidePane': 'הסתרת סרגל הצד',
+  'mobileTrip.showPane': 'הצגת סרגל הצד',
+  'mobileTrip.previousDay': 'היום הקודם',
+  'mobileTrip.nextDay': 'היום הבא',
 };
 
 export default mobileTrip;

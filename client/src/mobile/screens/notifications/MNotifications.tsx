@@ -65,7 +65,7 @@ export default function MNotifications() {
       </MGlassBar>
 
       <MPullIndicator state={pull} label={t('common.loading')} />
-      <div ref={contentRef} className="px-4 pb-[calc(var(--bottom-nav-h)+24px)] pt-[calc(var(--m-safe-top,12px)+66px)]">
+      <div ref={contentRef} className="px-4 pb-[calc(var(--bottom-nav-h)+24px)] pt-[calc(var(--m-safe-top,12px)+66px)] wide:mx-auto wide:max-w-[808px] wide:px-6">
         <MSegmented
           options={[
             { value: 'all', label: t('notifications.all') },

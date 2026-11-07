@@ -27,6 +27,7 @@ import { useJourneyCarouselSync } from '../../../components/Journey/useJourneyCa
 import { useGalleryUpload } from '../../../components/Journey/useGalleryUpload'
 import { dayPrepText, dayPrepUnsettled } from '../../../components/Journey/journeyRecordingPrepModel'
 import MJourneyEntrySheet from './MJourneyEntrySheet'
+import { useIsWide } from '../../../hooks/sizeClass'
 import MJourneySettingsSheet from './MJourneySettingsSheet'
 import MJourneyDayImportSheet from './MJourneyDayImportSheet'
 import MJourneyRecordingSheet from './MJourneyRecordingSheet'
@@ -41,6 +42,8 @@ import MJourneyRecordingSheet from './MJourneyRecordingSheet'
  * drops its own back button and leaves the trip's URL alone.
  */
 export default function MJourneyDetail({ journeyId, embedded = false }: JourneyDetailOptions = {}) {
+  // Larger cards on a wide window, where the strip has the room for the whole name.
+  const wide = useIsWide()
   const {
     id, navigate, toast, t, locale,
     current, loading,
@@ -299,7 +302,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
   return (
     // h-dvh, not h-full: the shell stopped providing a definite height (#1809)
     // and a map on a percentage of an auto-height parent collapses to zero.
-    <div className="relative h-dvh overflow-hidden">
+    <div className="m-bleed relative h-dvh overflow-hidden">
       {/* Integrated map — always mounted, the gallery overlays it */}
       <div className="absolute inset-0 z-0">
         <JourneyLayeredMap
@@ -326,7 +329,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
 
       {/* Gallery tab overlay */}
       {view === 'gallery' && (
-        <div className="absolute inset-0 z-[5] overflow-y-auto bg-[color:var(--m-bg)] bg-[image:var(--m-scr)] px-4 pt-[calc(var(--m-safe-top,12px)+56px)] pb-[calc(var(--bottom-nav-h,84px)+16px)]">
+        <div className="m-span-x absolute inset-y-0 z-[5] overflow-y-auto bg-[color:var(--m-bg)] bg-[image:var(--m-scr)] px-4 pt-[calc(var(--m-safe-top,12px)+56px)] pb-[calc(var(--bottom-nav-h,84px)+16px)] wide:px-6">
           {gallery.length === 0 ? (
             <div className="flex min-h-full flex-col items-center justify-center px-8 py-10 text-center">
               <MDancingTrek scene="journey" className="mb-2" />
@@ -374,7 +377,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
       )}
 
       {/* Header: back — segment — upload / overflow menu */}
-      <div className="absolute inset-x-4 top-[var(--m-safe-top,12px)] z-10 flex items-center justify-between gap-2">
+      <div className="m-bar-x absolute top-[var(--m-safe-top,12px)] z-10 flex items-center justify-between gap-2">
         {embedded ? (
           <span className="w-[38px] flex-none" aria-hidden />
         ) : (
@@ -490,7 +493,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
           nothing between the cards and it; two pixels keeps a hair of daylight and
           gives the strip the rest. */}
       {view === 'timeline' && entries.length > 0 && (
-        <div ref={railRef} className="absolute inset-x-0 z-[8] bottom-[calc(var(--bottom-nav-h,84px)+2px)]">
+        <div ref={railRef} className="m-span-x absolute z-[8] bottom-[calc(var(--bottom-nav-h,84px)+2px)]">
         <JourneyDayScrubber
           days={scrubberDays}
           activeDate={entries[activeIndex]?.entry_date ?? null}
@@ -515,6 +518,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
                 showMood={current.show_mood !== 0}
                 showWeather={current.show_weather !== 0}
                 tone="mobile"
+                size={wide ? 'large' : 'regular'}
               />
             </div>
           ))}

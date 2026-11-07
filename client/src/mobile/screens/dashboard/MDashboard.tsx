@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { useIsSplit } from '../../../hooks/sizeClass'
 import {
   Archive, ArchiveRestore, ArrowRight, Bell, CalendarDays, CalendarPlus, Copy,
   LayoutGrid, List, MapPin, Pencil, Plus, RefreshCw, Sparkles, Trash2, Users,
@@ -58,6 +59,7 @@ export default function MDashboard(): React.ReactElement {
   const unread = useInAppNotificationStore(s => s.unreadCount)
   const fetchUnreadCount = useInAppNotificationStore(s => s.fetchUnreadCount)
   const [menuOpen, setMenuOpen] = useState(false)
+  const split = useIsSplit()
   const { available: assistantAvailable, open: openAssistant } = useAssistantHomeLauncher()
   const [subOpen, setSubOpen] = useState(false)
 
@@ -179,7 +181,7 @@ export default function MDashboard(): React.ReactElement {
         )}
 
         {viewMode === 'grid' ? (
-          <div className="mt-[10px] flex flex-col gap-3">
+          <div className="mt-[10px] flex flex-col gap-3 wide:grid wide:grid-cols-[repeat(auto-fill,minmax(300px,1fr))] wide:gap-4">
             {gridTrips.map(trip => (
               <MTripGridCard
                 key={trip.id}
@@ -193,7 +195,7 @@ export default function MDashboard(): React.ReactElement {
             ))}
           </div>
         ) : (
-          <div className="mt-[10px] flex flex-col gap-3">
+          <div className="mt-[10px] flex flex-col gap-3 wide:grid wide:grid-cols-[repeat(auto-fill,minmax(300px,1fr))] wide:gap-x-4">
             {gridTrips.map(trip => (
               <MTripListCard
                 key={trip.id}
@@ -256,7 +258,7 @@ export default function MDashboard(): React.ReactElement {
       {demoMode && <MDemoWelcome />}
 
       <MPullIndicator state={pull} label={t('common.loading')} />
-      <div ref={contentRef} className="px-4 pb-[calc(var(--bottom-nav-h,84px)+32px)] pt-[calc(var(--m-safe-top,12px)+82px)]">
+      <div ref={contentRef} className="px-4 pb-[calc(var(--bottom-nav-h,84px)+32px)] pt-[calc(var(--m-safe-top,12px)+82px)] wide:mx-auto wide:max-w-[1280px] wide:px-6">
         {loadError && (
           <div role="alert" className="mb-3 flex items-center gap-3 rounded-[20px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-[14px]">
             <span className="min-w-0 flex-1 text-[0.8125rem] font-medium text-m-ink">{t('dashboard.loadErrorBanner')}</span>
@@ -271,24 +273,36 @@ export default function MDashboard(): React.ReactElement {
           </div>
         )}
 
-        {spotlight && (
-          <MSpotlightCard
-            trip={spotlight}
-            t={t}
-            onOpen={() => navigate(`/trips/${spotlight.id}`)}
-            actions={actionsFor(spotlight, 'list')}
-          />
-        )}
-
-        {dashOrder.map(id => (
-          <React.Fragment key={id}>{renderBlock(id)}</React.Fragment>
-        ))}
-
-        {widgetPlugins.length > 0 && (
-          <div className="mt-3 flex flex-col gap-3">
-            <PluginWidgets plugins={widgetPlugins} tripId={spotlight ? String(spotlight.id) : null} />
+        {/* Beside each other from the split size class on, the way the desktop
+            dashboard holds them: the trips in the main column, the widgets in a
+            column of their own, each in the order the user set. */}
+        <div className="split:grid split:grid-cols-[minmax(0,1fr)_minmax(300px,360px)] split:items-start split:gap-6">
+          <div className="min-w-0">
+            {spotlight && (
+              <MSpotlightCard
+                trip={spotlight}
+                t={t}
+                onOpen={() => navigate(`/trips/${spotlight.id}`)}
+                actions={actionsFor(spotlight, 'list')}
+              />
+            )}
+            {(split ? dashOrder.filter(id => id === 'trips') : dashOrder).map(id => (
+              <React.Fragment key={id}>{renderBlock(id)}</React.Fragment>
+            ))}
           </div>
-        )}
+          {(split || widgetPlugins.length > 0) && (
+            <div className="min-w-0 split:sticky split:top-[calc(var(--m-safe-top,12px)+82px)] split:-mt-[14px]">
+              {split && dashOrder.filter(id => id !== 'trips').map(id => (
+                <React.Fragment key={id}>{renderBlock(id)}</React.Fragment>
+              ))}
+              {widgetPlugins.length > 0 && (
+                <div className="mt-3 flex flex-col gap-3">
+                  <PluginWidgets plugins={widgetPlugins} tripId={spotlight ? String(spotlight.id) : null} />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       <MNewTripSheet
@@ -377,7 +391,7 @@ function MSpotlightCard({ trip, t, onOpen, actions }: {
       tabIndex={0}
       onClick={onOpen}
       onKeyDown={e => { if (e.key === 'Enter') onOpen() }}
-      className="relative h-[300px] cursor-pointer overflow-hidden rounded-[26px] shadow-[0_24px_56px_-22px_rgba(0,0,0,.5)]"
+      className="relative h-[300px] cursor-pointer overflow-hidden rounded-[26px] shadow-[0_24px_56px_-22px_rgba(0,0,0,.5)] outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--m-act)] wide:h-[clamp(300px,42vh,440px)]"
     >
       {trip.cover_image
         ? <img src={trip.cover_image} alt={trip.title} className="absolute inset-0 h-full w-full object-cover" />
@@ -385,7 +399,7 @@ function MSpotlightCard({ trip, t, onOpen, actions }: {
       <div className="absolute end-[10px] top-[10px] flex gap-[6px]">
         {actions.map(a => <CoverActionBtn key={a.key} action={a} />)}
       </div>
-      <div className="absolute bottom-[10px] inset-x-[10px] rounded-[18px] border border-white/[.16] bg-[rgba(14,14,17,.52)] p-[12px_14px] text-white backdrop-blur-[22px] backdrop-saturate-[1.6]">{/* theme-lint-disable — fixed dark glass on the cover photo */}
+      <div className="absolute bottom-[10px] inset-x-[10px] rounded-[18px] border border-white/[.16] bg-[rgba(14,14,17,.52)] p-[12px_14px] text-white backdrop-blur-[22px] backdrop-saturate-[1.6] wide:bottom-4 wide:end-auto wide:start-4 wide:w-[min(560px,calc(100%-32px))] wide:p-[16px_18px]">{/* theme-lint-disable — fixed dark glass on the cover photo */}
         <span className="flex gap-[6px]">
           <span className="rounded-full bg-white/[.92] px-2 py-[3px] text-[0.625rem] font-bold uppercase tracking-[.07em] text-[#101013]">{/* theme-lint-disable — fixed on-photo badge */}
             {primaryBadge}

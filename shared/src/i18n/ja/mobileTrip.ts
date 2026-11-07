@@ -74,5 +74,10 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.maps': 'マップ',
   'mobileTrip.openRouteIn': 'この日を開くアプリ',
   'mobileTrip.firstStopOnly': '最初の立ち寄り先のみ',
+  'mobileTrip.sections': '旅行のセクション',
+  'mobileTrip.hidePane': 'サイドバーを非表示',
+  'mobileTrip.showPane': 'サイドバーを表示',
+  'mobileTrip.previousDay': '前の日',
+  'mobileTrip.nextDay': '次の日',
 };
 export default mobileTrip;

@@ -77,7 +77,7 @@ export default function MCollabChat({ planner }: MCollabChatProps) {
   }
 
   return (
-    <div className="flex h-full flex-col px-4 pb-[var(--bottom-nav-h,84px)] pt-[calc(var(--m-safe-top,12px)+58px)]">
+    <div className="flex h-full flex-col px-4 pb-[var(--bottom-nav-h,84px)] pt-[calc(var(--m-safe-top,12px)+58px)] wide:mx-auto wide:w-full wide:max-w-[808px] wide:px-6 wide:pb-[calc(var(--bottom-nav-h,0px)+12px)]">
       {loading ? (
         <div className="flex flex-1 items-center justify-center">
           <Loader2 size={22} strokeWidth={2} className="animate-spin text-m-faint" />

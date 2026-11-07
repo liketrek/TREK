@@ -74,5 +74,10 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.maps': 'แผนที่',
   'mobileTrip.openRouteIn': 'เปิดวันนี้ใน',
   'mobileTrip.firstStopOnly': 'เฉพาะจุดแรก',
+  'mobileTrip.sections': 'ส่วนต่างๆ ของทริป',
+  'mobileTrip.hidePane': 'ซ่อนแถบด้านข้าง',
+  'mobileTrip.showPane': 'แสดงแถบด้านข้าง',
+  'mobileTrip.previousDay': 'วันก่อนหน้า',
+  'mobileTrip.nextDay': 'วันถัดไป',
 };
 export default mobileTrip;

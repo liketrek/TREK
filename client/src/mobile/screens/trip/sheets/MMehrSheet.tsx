@@ -3,6 +3,7 @@ import type { LucideIcon } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import type { MTripSheetsProps } from '../MTripShell'
 import { dockTabIds } from '../dockTabs'
+import { useIsWide } from '../../../../hooks/sizeClass'
 import { useTranslation } from '../../../../i18n'
 import { useAssistantAsk } from '../../../../components/Assistant/useAssistantAsk'
 import { useAssistantHints } from '../../../../components/Assistant/useAssistantHints'
@@ -35,7 +36,10 @@ export default function MMehrSheet({ planner, shell }: MTripSheetsProps) {
   // Derived from the same priority list the dock seats itself from, so a section
   // can never show up in both places at once.
   const mobileTabs = planner.TRIP_TABS.filter(tab => !tab.desktopOnly)
-  const seated = dockTabIds(new Set(mobileTabs.map(tab => tab.id)))
+  // On a wide window every section has its place in the rail (MTripRail), so
+  // the sheet keeps only the trip's actions.
+  const wide = useIsWide()
+  const seated = wide ? new Set(mobileTabs.map(tab => tab.id)) : dockTabIds(new Set(mobileTabs.map(tab => tab.id)))
   const gridTabs = mobileTabs.filter(tab => !seated.has(tab.id))
 
   const tileStat = (id: string): string | null => {
@@ -62,7 +66,7 @@ export default function MMehrSheet({ planner, shell }: MTripSheetsProps) {
   ]
 
   return (
-    <MSheet open={open} onClose={shell.closeSheet} variant="bottom" dimTransparent ariaLabel={t('mobileTrip.more')}>
+    <MSheet open={open} onClose={shell.closeSheet} variant="bottom" dimTransparent wideWidth="compact" wideAnchor="rail-foot" ariaLabel={t('mobileTrip.more')}>
       <div className="overflow-y-auto p-[10px]">
         {/* The assistant leads the sheet: the one way into it on the phone besides "Ask" on a place. */}
         {assistant.available && (

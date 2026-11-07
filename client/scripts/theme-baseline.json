@@ -40,7 +40,7 @@
   "components/Journey/JourneyDetailPageProviderPicker.tsx": 163,
   "components/Journey/JourneyDetailPageScrollTrigger.tsx": 4,
   "components/Journey/JourneyDetailPageVerdictSection.tsx": 51,
-  "components/Journey/JourneyEntryCover.tsx": 15,
+  "components/Journey/JourneyEntryCover.tsx": 13,
   "components/Journey/JourneyMap.tsx": 3,
   "components/Journey/JourneyMapGL.tsx": 5,
   "components/Journey/MobileEntryView.tsx": 94,

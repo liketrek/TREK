@@ -100,5 +100,10 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.maps': 'Карты',
   'mobileTrip.openRouteIn': 'Открыть день в',
   'mobileTrip.firstStopOnly': 'Только первая остановка',
+  'mobileTrip.sections': 'Разделы поездки',
+  'mobileTrip.hidePane': 'Скрыть боковую панель',
+  'mobileTrip.showPane': 'Показать боковую панель',
+  'mobileTrip.previousDay': 'Предыдущий день',
+  'mobileTrip.nextDay': 'Следующий день',
 };
 export default mobileTrip;

@@ -3,6 +3,10 @@ import { useMatch } from 'react-router'
 import BottomNav from '../components/Layout/BottomNav'
 import ErrorBoundary from '../components/shared/ErrorBoundary'
 import MBottomNav from './components/MBottomNav'
+import MNavRail from './components/MNavRail'
+import { useIsWide } from '../hooks/sizeClass'
+import MKeyboardHost from './keyboard/MKeyboardHost'
+import MShellShortcuts from './keyboard/MShellShortcuts'
 import MToastHost from './components/MToastHost'
 import MEdgeBack from './components/MEdgeBack'
 import { useNativeCapabilities } from '../native/capabilities'
@@ -39,6 +43,9 @@ export default function MobileShell({ isPhone, children }: MobileShellProps) {
   const { caps } = useNativeCapabilities()
   const pageRef = useRef<HTMLDivElement>(null)
   const edgeBack = isNativeIos() && caps.features.includes('edgeBack')
+  // On a wide window (an iPad, a foldable unfolded) the rail on the leading edge
+  // replaces the dock, and the page column starts after it.
+  const wide = useIsWide()
 
   if (!isPhone) {
     return (
@@ -52,7 +59,7 @@ export default function MobileShell({ isPhone, children }: MobileShellProps) {
   return (
     // min-h-svh, not min-h-dvh: dvh grows while Safari's toolbar retracts, so a
     // dvh page length would chase the animation it just triggered.
-    <div className="m-root flex min-h-svh flex-col text-m-ink">
+    <div className="m-root m-shell flex min-h-svh flex-col text-m-ink">
       {/* Background and screen gradient live on their own viewport-sized layer.
           The shell root is as tall as the document now, and --m-scr is a radial
           gradient measured against its element box, so on it the light cone would
@@ -66,10 +73,17 @@ export default function MobileShell({ isPhone, children }: MobileShellProps) {
           layer to be visible, body must not paint over it, which index.css handles
           for this breakpoint. */}
       <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 bg-[color:var(--m-bg)] bg-[image:var(--m-scr)]" />
-      <div ref={pageRef} className="flex-1">{children}</div>
+      <div ref={pageRef} className="flex-1 wide:ps-[var(--m-rail-w)]">{children}</div>
       <MEdgeBack target={pageRef} enabled={edgeBack} />
-      {!inTripPlanner && <ErrorBoundary boundaryId="chrome:m-bottom-nav" fallback={null}><MBottomNav /></ErrorBoundary>}
+      {!inTripPlanner && (
+        <ErrorBoundary boundaryId="chrome:m-bottom-nav" fallback={null}>{wide ? <MNavRail /> : <MBottomNav />}</ErrorBoundary>
+      )}
       <ErrorBoundary boundaryId="chrome:m-toast" fallback={null}><MToastHost /></ErrorBoundary>
+      {/* A hardware keyboard (an iPad's, mostly) gets the shortcuts an iPad app has. */}
+      <ErrorBoundary boundaryId="chrome:m-keyboard" fallback={null}>
+        <MKeyboardHost />
+        <MShellShortcuts />
+      </ErrorBoundary>
       <div id="m-sheet-root" />
     </div>
   )

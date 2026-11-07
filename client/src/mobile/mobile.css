@@ -53,6 +53,22 @@
    * real devices derive them from the safe-area insets. */
   --bottom-nav-h: calc(84px + env(safe-area-inset-bottom, 0px));
   --m-safe-top: calc(env(safe-area-inset-top, 0px) + 12px);
+  /* The navigation rail's share of the leading edge (wide windows only), what
+   * every full-width fixed bar and the page column start after. */
+  --m-rail-w: 0px;
+}
+
+/* Wide size class (hooks/sizeClass.ts WIDE_QUERY): the rail on the leading
+ * edge takes the dock's place, so nothing docks at the bottom any more and
+ * content only clears the home indicator. */
+@media (min-width: 600px) and (min-height: 501px) {
+  .m-root {
+    --bottom-nav-h: env(safe-area-inset-bottom, 0px);
+    --m-rail-w: calc(env(safe-area-inset-left, 0px) + 92px);
+  }
+  :root[dir='rtl'] .m-root {
+    --m-rail-w: calc(env(safe-area-inset-right, 0px) + 92px);
+  }
 }
 
 .dark .m-root {
@@ -143,6 +159,18 @@
   to { opacity: 0; transform: translateY(6px); }
 }
 
+/* A form sheet on a wide window sits mid-screen, so it rises from the bottom
+   edge of the window rather than from just below its own resting place. */
+@media (min-width: 600px) and (min-height: 501px) {
+  @keyframes m-sheet-up {
+    from { transform: translateY(calc(50dvh + 50%)); }
+    to { transform: translateY(0); }
+  }
+  @keyframes m-sheet-down {
+    from { transform: translateY(0); }
+    to { transform: translateY(calc(50dvh + 50%)); }
+  }
+}
 .m-sheet-in { animation: m-sheet-in 260ms var(--ease-out-quint) both; }
 .m-sheet-out { animation: m-sheet-out 220ms var(--ease-drawer) both; }
 .m-sheet-up { animation: m-sheet-up 420ms var(--ease-drawer) both; }
@@ -498,4 +526,95 @@
 .m-root button[data-field-trigger],
 .m-root [data-field-trigger='pad'] {
   padding-inline: 14px !important;
+}
+
+/* ── The page column on a wide window ───────────────────────────────────────
+   Fixed bars span the page, not the window: they start after the navigation
+   rail (--m-rail-w, 0 on a phone, so these are the phone's insets there). */
+.m-bar-x {
+  inset-inline-start: calc(var(--m-rail-w, 0px) + 16px);
+  inset-inline-end: 16px;
+}
+.m-span-x {
+  inset-inline-start: var(--m-rail-w, 0px);
+  inset-inline-end: 0;
+}
+/* A screen whose background is a map reaches under the rail: the map runs to
+   the window's edge and the rail floats over it like the top controls do. Its
+   own bars then keep to the page column with m-bar-x / m-span-x. */
+.m-bleed {
+  margin-inline-start: calc(var(--m-rail-w, 0px) * -1);
+}
+/* The trip's pane beside the map (split size class, MTripShell): a third of
+   the window, within what a list and its rows need. On a foldable that reports
+   its fold (two horizontal viewport segments), the pane takes the first half
+   to the fold exactly, so no row runs across the crease and the map has the
+   other half to itself. */
+.m-trip {
+  --trip-pane-open: clamp(360px, 38vw, 460px);
+}
+@media (horizontal-viewport-segments: 2) {
+  .m-trip {
+    --trip-pane-open: calc(env(viewport-segment-width 0 0, 50vw) - var(--m-rail-w, 0px));
+  }
+}
+
+/* The phone rules of index.css, for the app. It shows this shell at every
+   size, an iPad's included (mobile/useIsPhone.ts), where their media query does
+   not match; the shell's root carries .m-shell, so they follow it there: the
+   document is the scroller, the shell paints the background, no zoom buttons
+   on a touch map, no scrollbars. */
+html:has(.m-shell) {
+  overflow: visible;
+  overscroll-behavior: none;
+}
+html:has(.m-shell) body {
+  height: auto;
+  overflow: visible;
+  overflow-x: clip;
+  background-color: transparent;
+}
+html:has(.m-shell) .leaflet-control-zoom {
+  display: none !important;
+}
+html:has(.m-shell) * {
+  scrollbar-width: none;
+}
+html:has(.m-shell) ::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+/* While the trip's map runs under the rail (MTripShell, --trip-map-inset), the
+   controls both engines draw in its corners step clear of the rail. A margin on
+   the leading side moves only the corner next to the rail, in either reading
+   direction: the corner on the far side is anchored there and does not move. */
+.m-trip .leaflet-control-container > div,
+.m-trip .maplibregl-control-container > div,
+.m-trip .mapboxgl-control-container > div {
+  margin-inline-start: var(--trip-map-inset, 0px);
+}
+
+/* A horizontal strip with more behind an edge fades out there
+   (components/useEdgeFade.ts), so a cut chip reads as "the row goes on". */
+.m-fade-s,
+.m-fade-e,
+.m-fade-se {
+  --m-fade-w: 28px;
+  -webkit-mask-image: var(--m-fade-mask);
+  mask-image: var(--m-fade-mask);
+}
+.m-fade-s {
+  --m-fade-mask: linear-gradient(var(--m-fade-dir, 90deg), transparent 0, #000 var(--m-fade-w));
+}
+.m-fade-e {
+  --m-fade-mask: linear-gradient(var(--m-fade-dir, 90deg), #000 calc(100% - var(--m-fade-w)), transparent 100%);
+}
+.m-fade-se {
+  --m-fade-mask: linear-gradient(var(--m-fade-dir, 90deg), transparent 0, #000 var(--m-fade-w), #000 calc(100% - var(--m-fade-w)), transparent 100%);
+}
+:root[dir='rtl'] .m-fade-s,
+:root[dir='rtl'] .m-fade-e,
+:root[dir='rtl'] .m-fade-se {
+  --m-fade-dir: 270deg;
 }

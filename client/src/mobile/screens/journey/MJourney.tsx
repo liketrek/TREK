@@ -37,11 +37,11 @@ export default function MJourney() {
     // document and Safari's address bar stays put here.
     <div className="relative h-dvh">
       {/* Floating header: back + create pill */}
-      <div className="fixed inset-x-4 top-[var(--m-safe-top,12px)] z-30 flex items-center gap-[10px]">
+      <div className="m-bar-x fixed top-[var(--m-safe-top,12px)] z-30 flex items-center gap-[10px]">
         <button
           type="button"
           onClick={() => openCreateModal()}
-          className="flex h-[38px] flex-1 items-center justify-center gap-[6px] whitespace-nowrap rounded-full bg-m-act px-[15px] text-[0.78125rem] font-bold text-m-actfg"
+          className="flex h-[38px] flex-1 items-center justify-center gap-[6px] whitespace-nowrap rounded-full bg-m-act px-[15px] text-[0.78125rem] font-bold text-m-actfg wide:ms-auto wide:flex-none wide:px-5"
         >
           <Plus size={14} strokeWidth={2.4} />
           {t('journey.frontpage.createJourney')}
@@ -49,7 +49,7 @@ export default function MJourney() {
       </div>
 
       <MPullIndicator state={pull} label={t('common.loading')} />
-      <div ref={scrollRef} className="h-full overflow-y-auto px-4 pt-[calc(var(--m-safe-top,12px)+52px)] pb-[calc(var(--bottom-nav-h,84px)+16px)]">
+      <div ref={scrollRef} className="h-full overflow-y-auto px-4 pt-[calc(var(--m-safe-top,12px)+52px)] pb-[calc(var(--bottom-nav-h,84px)+16px)] wide:px-6 wide:[&>*]:mx-auto wide:[&>*]:max-w-[1040px]">
         {loading && list.length === 0 ? (
           <div className="flex justify-center py-16">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-[color:var(--m-rowbr)] border-t-m-ink" />
@@ -72,7 +72,7 @@ export default function MJourney() {
                   </span>
                   <span className="h-px flex-1 bg-[color:var(--m-rowbr)]" />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3 split:grid-cols-3 split:gap-4">
                   {rest.map(j => (
                     <GridCard key={j.id} journey={j} onOpen={() => navigate(`/journey/${j.id}`)} />
                   ))}
@@ -116,7 +116,7 @@ function HeroCard({ journey, onOpen }: { journey: JourneyListItem; onOpen: () =>
     <button
       type="button"
       onClick={onOpen}
-      className="relative mb-3 block h-[220px] w-full overflow-hidden rounded-[26px] text-start shadow-[0_24px_56px_-22px_rgba(0,0,0,.5)]"
+      className="relative mb-3 block h-[220px] w-full overflow-hidden rounded-[26px] wide:h-[clamp(260px,38vh,420px)] text-start shadow-[0_24px_56px_-22px_rgba(0,0,0,.5)]"
     >
       {src ? (
         <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover" />

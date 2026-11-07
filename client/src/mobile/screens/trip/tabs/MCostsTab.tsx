@@ -322,7 +322,7 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
         onChange={e => setSearch(e.target.value)}
         placeholder={t('costs.searchPlaceholder')}
         aria-label={t('costs.searchPlaceholder')}
-        className="mt-2 w-full rounded-full border border-[color:var(--m-rowbr)] bg-m-card px-[13px] py-[10px] font-[inherit] text-[0.8125rem] font-medium text-m-ink outline-none placeholder:text-m-faint"
+        className="mt-2 block w-full rounded-full border border-[color:var(--m-rowbr)] bg-m-card px-[13px] py-[10px] font-[inherit] text-[0.8125rem] font-medium text-m-ink outline-none placeholder:text-m-faint"
       />
       <div className="mt-2 flex rounded-full bg-m-card p-[3px]">
         {(['all', 'mine', 'owed'] as const).map(seg => (

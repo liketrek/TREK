@@ -4,6 +4,7 @@ const mobileNav: TranslationStrings = {
   'mobileNav.journeySub': 'Nhật ký du lịch',
   'mobileNav.collectionsSub': 'Địa điểm đã lưu',
   'mobileNav.more': 'Thêm',
+  'mobileNav.navigation': 'Điều hướng',
 };
 
 export default mobileNav;

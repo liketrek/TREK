@@ -72,5 +72,10 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.maps': '地图',
   'mobileTrip.openRouteIn': '在以下应用中打开当天',
   'mobileTrip.firstStopOnly': '仅第一站',
+  'mobileTrip.sections': '行程板块',
+  'mobileTrip.hidePane': '隐藏边栏',
+  'mobileTrip.showPane': '显示边栏',
+  'mobileTrip.previousDay': '前一天',
+  'mobileTrip.nextDay': '后一天',
 };
 export default mobileTrip;

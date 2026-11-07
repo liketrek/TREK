@@ -109,7 +109,7 @@ export default function MAtlas() {
   return (
     // h-dvh, not h-full: the shell stopped providing a definite height (#1809)
     // and a map on a percentage of an auto-height parent collapses to zero.
-    <div className="relative h-dvh overflow-hidden">
+    <div className="m-bleed relative h-dvh overflow-hidden">
       <div ref={mapRef} className="absolute inset-0 z-[1] bg-[color:var(--m-mapb)] [&_.leaflet-control-zoom]:hidden" />
       {/* Region hover tooltip — positioned imperatively by useAtlas. */}
       <div
@@ -120,7 +120,7 @@ export default function MAtlas() {
 
       {/* Full-width bucket-list button. The bottom nav makes a back button
           redundant on this main-nav screen, so the header spans the width. */}
-      <div className="absolute inset-x-4 top-[var(--m-safe-top,12px)] z-[5] flex items-center gap-2">
+      <div className="m-bar-x absolute top-[var(--m-safe-top,12px)] z-[5] flex items-center gap-2 wide:mx-auto wide:max-w-[720px]">
         <button
           type="button"
           onClick={() => setBucketOpen(true)}

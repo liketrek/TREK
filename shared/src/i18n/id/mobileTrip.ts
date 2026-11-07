@@ -76,5 +76,10 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.maps': 'Peta',
   'mobileTrip.openRouteIn': 'Buka hari ini di',
   'mobileTrip.firstStopOnly': 'Hanya perhentian pertama',
+  'mobileTrip.sections': 'Bagian perjalanan',
+  'mobileTrip.hidePane': 'Sembunyikan bilah samping',
+  'mobileTrip.showPane': 'Tampilkan bilah samping',
+  'mobileTrip.previousDay': 'Hari sebelumnya',
+  'mobileTrip.nextDay': 'Hari berikutnya',
 };
 export default mobileTrip;

@@ -119,5 +119,15 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    // The touch shell's size classes (src/hooks/sizeClass.ts) as the `wide:` and
+    // `split:` variants. Variants of their own rather than entries in `screens`:
+    // both need a height bound (a phone on its side stays compact), and a raw
+    // screen among the min-width ones reorders how Tailwind sorts every
+    // responsive class.
+    ({ addVariant }) => {
+      addVariant('wide', '@media (min-width: 600px) and (min-height: 501px)')
+      addVariant('split', '@media (min-width: 900px) and (min-height: 501px)')
+    },
+  ],
 }

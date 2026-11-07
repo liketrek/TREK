@@ -84,5 +84,10 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.maps': 'Cartes',
   'mobileTrip.openRouteIn': 'Ouvrir la journée dans',
   'mobileTrip.firstStopOnly': 'Premier arrêt seulement',
+  'mobileTrip.sections': 'Sections du voyage',
+  'mobileTrip.hidePane': 'Masquer la barre latérale',
+  'mobileTrip.showPane': 'Afficher la barre latérale',
+  'mobileTrip.previousDay': 'Jour précédent',
+  'mobileTrip.nextDay': 'Jour suivant',
 };
 export default mobileTrip;

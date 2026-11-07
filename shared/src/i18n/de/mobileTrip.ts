@@ -84,5 +84,10 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.maps': 'Karten',
   'mobileTrip.openRouteIn': 'Tag öffnen in',
   'mobileTrip.firstStopOnly': 'Nur der erste Halt',
+  'mobileTrip.sections': 'Bereiche der Reise',
+  'mobileTrip.hidePane': 'Seitenleiste ausblenden',
+  'mobileTrip.showPane': 'Seitenleiste einblenden',
+  'mobileTrip.previousDay': 'Vorheriger Tag',
+  'mobileTrip.nextDay': 'Nächster Tag',
 };
 export default mobileTrip;
