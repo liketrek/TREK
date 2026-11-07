@@ -12,8 +12,11 @@ import { z } from 'zod';
  * key of another type still fails, an extra one passes, as on the REST side.
  *
  * Covers the kinds the output schemas are built from (objects, arrays,
- * optionals, nullables, defaults, records, unions); anything else is returned
- * as it is. `mcp-tool-output.schema.spec.ts` holds every output schema to
+ * optionals, nullables, defaults, records, unions) and carries each one's
+ * checks (`.min`, `.max`, `.length`) over to the rebuilt schema; anything else
+ * is returned as it is. It reads Zod's definition object (`_zod.def`), so
+ * `loose-output.spec.ts` pins the kinds and the checks against the installed
+ * Zod, and `mcp-tool-output.schema.spec.ts` holds every output schema to
  * rendering without a closed object.
  */
 interface DefView {
@@ -24,6 +27,8 @@ interface DefView {
   keyType?: z.ZodType;
   valueType?: z.ZodType;
   options?: readonly z.ZodType[];
+  defaultValue?: unknown;
+  checks?: z.core.$ZodCheck<unknown>[];
 }
 
 export function looseOutput<T extends z.ZodType>(schema: T): T {
@@ -32,8 +37,10 @@ export function looseOutput<T extends z.ZodType>(schema: T): T {
 
 function open(schema: z.ZodType): z.ZodType {
   const def = (schema as unknown as { _zod: { def: DefView } })._zod.def;
-  const rebuilt = rebuild(def) ?? schema;
-  return schema.description && rebuilt !== schema ? rebuilt.describe(schema.description) : rebuilt;
+  const fresh = rebuild(def);
+  if (!fresh) return schema;
+  const checked = def.checks?.length ? fresh.check(...def.checks) : fresh;
+  return schema.description ? checked.describe(schema.description) : checked;
 }
 
 function rebuild(def: DefView): z.ZodType | null {
@@ -46,6 +53,8 @@ function rebuild(def: DefView): z.ZodType | null {
       return def.innerType ? open(def.innerType).optional() : null;
     case 'nullable':
       return def.innerType ? open(def.innerType).nullable() : null;
+    case 'default':
+      return def.innerType ? open(def.innerType).default(def.defaultValue as never) : null;
     case 'record':
       return def.keyType && def.valueType ? z.record(def.keyType as z.ZodType<string>, open(def.valueType)) : null;
     case 'union':

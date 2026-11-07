@@ -1,3 +1,7 @@
+import { budgetItemSchema } from '../budget/budget.schema';
+import { daySchema } from '../day/day.schema';
+import { placeSchema } from '../place/place.schema';
+import { tripSchema } from '../trip/trip.schema';
 import { looseOutput } from './loose-output';
 import * as outputs from './mcp-tool-output.schema';
 
@@ -47,5 +51,30 @@ describe('looseOutput', () => {
     const described = looseOutput(z.object({ a: z.string() }).describe('A thing.'));
     expect(described.description).toBe('A thing.');
     expect(schema.safeParse({ rows: [{ id: 1, tag: null }], byKey: {}, either: { b: 2 } }).success).toBe(true);
+  });
+});
+
+describe('rows declared for a view', () => {
+  // The views' rows list the fields they draw rather than reuse a route's row, which would
+  // make every one of them optional. Each field still has to be one the route's row names,
+  // so a column renamed on the route cannot be read here under its old name.
+  const keysOf = (schema: z.ZodType) => Object.keys((schema as unknown as z.ZodObject).shape);
+  // The last entry of each case is what the tool works out itself, so the route has no such field.
+  const cases: Array<[string, z.ZodType, z.ZodObject, string[]]> = [
+    ['get_trip_overview trip', outputs.tripOverviewOutputSchema.shape.trip, tripSchema, []],
+    ['get_trip_overview day', outputs.tripOverviewOutputSchema.shape.days.element, daySchema, ['stops']],
+    ['get_day_plan day', outputs.dayPlanOutputSchema.shape.day, daySchema, []],
+    ['get_trip_map place', outputs.tripMapPlaceSchema, placeSchema, []],
+    [
+      'list_budget_items item',
+      outputs.listBudgetItemsOutputSchema.shape.items.element,
+      budgetItemSchema,
+      ['trip_amount'],
+    ],
+  ];
+
+  it.each(cases)('%s names only fields of the route row', (_name, row, source, computed) => {
+    const extra = keysOf(row).filter((key) => !computed.includes(key) && !(key in source.shape));
+    expect(extra).toEqual([]);
   });
 });
