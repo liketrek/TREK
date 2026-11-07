@@ -25,7 +25,10 @@ function Lines({ lines, accent, t }: { lines: readonly DemoLine[]; accent?: bool
   return (
     <ul className={`${CARD} m-0 flex list-none flex-col gap-2 p-3`}>
       {lines.map(({ icon: Icon, labelKey }) => (
-        <li key={labelKey} className="flex items-center gap-2.5 text-[length:calc(12.5px*var(--fs-scale-body,1))] text-m-ink">
+        <li
+          key={labelKey}
+          className="flex items-center gap-2.5 text-[length:calc(12.5px*var(--fs-scale-body,1))] text-m-ink"
+        >
           <Icon
             size={15}
             strokeWidth={2}
@@ -42,13 +45,19 @@ function Lines({ lines, accent, t }: { lines: readonly DemoLine[]; accent?: bool
 function Welcome({ t }: { t: Translate }) {
   return (
     <div className="flex flex-col gap-4">
-      <p className="m-0 text-[length:calc(13px*var(--fs-scale-body,1))] leading-snug text-m-muted">{t('demo.welcome.tagline')}</p>
+      <p className="m-0 text-[length:calc(13px*var(--fs-scale-body,1))] leading-snug text-m-muted">
+        {t('demo.welcome.tagline')}
+      </p>
 
       <div className="flex items-start gap-2.5 rounded-[18px] bg-warning-soft px-3.5 py-3">
         <RotateCcw size={16} strokeWidth={2.2} className="mt-0.5 flex-none text-warning" aria-hidden />
         <div className="min-w-0">
-          <div className="text-[length:calc(13px*var(--fs-scale-body,1))] font-semibold text-m-ink">{t('demo.welcome.resetTitle')}</div>
-          <p className="m-0 mt-0.5 text-[length:calc(12px*var(--fs-scale-caption,1))] leading-snug text-m-muted">{t('demo.welcome.resetBody')}</p>
+          <div className="text-[length:calc(13px*var(--fs-scale-body,1))] font-semibold text-m-ink">
+            {t('demo.welcome.resetTitle')}
+          </div>
+          <p className="m-0 mt-0.5 text-[length:calc(12px*var(--fs-scale-caption,1))] leading-snug text-m-muted">
+            {t('demo.welcome.resetBody')}
+          </p>
         </div>
       </div>
 
@@ -61,8 +70,12 @@ function Welcome({ t }: { t: Translate }) {
                 <Icon size={15} strokeWidth={2} aria-hidden />
               </span>
               <div className="min-w-0">
-                <div className="text-[length:calc(13px*var(--fs-scale-body,1))] font-semibold text-m-ink">{t(titleKey)}</div>
-                <p className="m-0 text-[length:calc(11.5px*var(--fs-scale-caption,1))] leading-snug text-m-muted">{t(bodyKey)}</p>
+                <div className="text-[length:calc(13px*var(--fs-scale-body,1))] font-semibold text-m-ink">
+                  {t(titleKey)}
+                </div>
+                <p className="m-0 text-[length:calc(11.5px*var(--fs-scale-caption,1))] leading-snug text-m-muted">
+                  {t(bodyKey)}
+                </p>
               </div>
             </li>
           ))}
