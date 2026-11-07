@@ -2,7 +2,9 @@ import { useSyncExternalStore } from 'react';
 
 /**
  * The touch shell's size classes, the web's answer to UIKit's compact and
- * regular widths.
+ * regular widths and to Android's window size classes. They are read off the
+ * window's CSS size, which is the same in the iOS and the Android app (a CSS
+ * pixel is a point there and a dp here), so both apps lay out alike.
  *
  * compact  every phone, upright or on its side, and the narrow Split View and
  *          Stage Manager windows. The shell as it has always been: the dock at
@@ -11,8 +13,10 @@ import { useSyncExternalStore } from 'react';
  *          any orientation or window above a third of the screen, a foldable
  *          unfolded. A navigation rail on the leading edge takes the dock's
  *          place, sheets become centred form sheets, lists get columns.
- * split    from 900pt across: room for two panes, so the trip's plan sits next
- *          to its map and settings show their sections beside the page.
+ * split    from 840pt across, Android's expanded width: room for two panes, so
+ *          the trip's plan sits next to its map and settings show their
+ *          sections beside the page. An Android foldable unfolded on its side
+ *          (about 841dp) has it, an 11" iPad upright (834pt) does not.
  *
  * The height bound keeps a phone on its side compact: no phone is taller than
  * 500pt in landscape, no tablet or unfolded foldable is shorter.
@@ -22,7 +26,7 @@ import { useSyncExternalStore } from 'react';
  * keep the three in step (sizeClass.test.ts holds them together).
  */
 export const WIDE_QUERY = '(min-width: 600px) and (min-height: 501px)';
-export const SPLIT_QUERY = '(min-width: 900px) and (min-height: 501px)';
+export const SPLIT_QUERY = '(min-width: 840px) and (min-height: 501px)';
 
 function matches(query: string): boolean {
   return typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia(query).matches;

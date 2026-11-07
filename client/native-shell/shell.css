@@ -983,7 +983,7 @@ a.linkbtn {
    centred in the other half, the way a split sign-in page uses the width.
    Upright, the photo band grows with the screen instead of stopping at a
    phone's 440px. Logical sides, so Arabic mirrors it. */
-@media (min-width: 900px) and (min-height: 600px) and (orientation: landscape) {
+@media (min-width: 840px) and (min-height: 600px) and (orientation: landscape) {
   body::after {
     inset: 16px auto 16px 16px;
     inset-block: 16px;

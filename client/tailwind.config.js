@@ -127,7 +127,7 @@ export default {
     // responsive class.
     ({ addVariant }) => {
       addVariant('wide', '@media (min-width: 600px) and (min-height: 501px)')
-      addVariant('split', '@media (min-width: 900px) and (min-height: 501px)')
+      addVariant('split', '@media (min-width: 840px) and (min-height: 501px)')
     },
   ],
 }

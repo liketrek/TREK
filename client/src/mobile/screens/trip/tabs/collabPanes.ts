@@ -2,7 +2,7 @@ import type { MTripCollabTab } from '../MTripShell';
 
 /** The collab boards that can stand beside the chat: everything but the chat itself. */
 const BOARD_TABS = ['notes', 'links', 'polls'] as const;
-export type CollabBoardTab = (typeof BOARD_TABS)[number];
+type CollabBoardTab = (typeof BOARD_TABS)[number];
 
 /** Whether a collab tab is one of the boards (not the chat, nor a tab this screen does not know). */
 export function isCollabBoard(tab: string): tab is CollabBoardTab {
