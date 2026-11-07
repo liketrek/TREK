@@ -7,8 +7,11 @@ import {
   TOOL_ANNOTATIONS_WRITE,
   TOOL_ANNOTATIONS_DELETE,
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  TOOL_ANNOTATIONS_READONLY,
   errorResult,
   ok,
+  okStructured,
+  uiTool,
 } from '../../nest-mcp';
 import type { MirrorSender } from '../accommodations/accommodations.service';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
@@ -19,7 +22,10 @@ import {
   dayCreateRequestSchema,
   dayReorderRequestSchema,
   dayUpdateRequestSchema,
+  dayPlanOutputSchema,
   idSchema,
+  listDaysOutputSchema,
+  mcpAppUri,
 } from '@trek/shared';
 import type { DayCreateRequest, DayReorderRequest, DayUpdateRequest } from '@trek/shared';
 
@@ -32,7 +38,7 @@ function parseId(value: string | string[]): number | null {
 
 /**
  * Day MCP surface — ported 1:1 from the legacy registrars: the seven tools of
- * src/mcp/tools/days.ts and the trek://trips/{tripId}/days resource from src/mcp/resources.ts
+ * the days registrar and the trek://trips/{tripId}/days resource from the retired resources registrar
  * (identical names, descriptions, schemas, annotations, error/payload shapes
  * and broadcasts). The legacy registration-time gates map to the declarative
  * trips write/read access markers (registerDayTools' whole-registrar
@@ -57,6 +63,7 @@ export class DaysMcp {
 
   @Tool({
     name: 'update_day',
+    title: 'Update day',
     description:
       'Set the title and/or the notes of a day in a trip (e.g. "Arrival in Paris", "Free day"). An omitted field keeps its current value, so the title and the notes can be changed independently.',
     inputSchema: {
@@ -86,6 +93,7 @@ export class DaysMcp {
 
   @Tool({
     name: 'create_day',
+    title: 'Add day to trip',
     description:
       'Add a day to a trip. Without `position` the day is appended at the end, optionally with a date and notes. With `position` an empty day is slotted in at that place instead, which is the way to add a day in the middle of an itinerary that already has days. With `dated` the trip grows by the calendar day after its last date: the new day gets that date and goes right behind the last dated day, and the end date of the trip moves to it, while `position` re-dates the days after the slot it fills.',
     inputSchema: {
@@ -156,6 +164,7 @@ export class DaysMcp {
 
   @Tool({
     name: 'reorder_days',
+    title: 'Reorder trip days',
     description:
       'Reorder the days of a trip by listing every one of its day IDs in the desired order. This moves whole days of the itinerary; to move places around inside a single day use reorder_day_assignments instead. Each day keeps its places, notes, stays and bookings, and on a dated trip the calendar dates stay pinned to their slots, so the content moves across the dates; a day without a date keeps none wherever it is moved.',
     inputSchema: {
@@ -185,6 +194,7 @@ export class DaysMcp {
 
   @Tool({
     name: 'delete_day',
+    title: 'Delete day',
     description:
       'Delete a day from a trip. The places planned on it stay in the place list of the trip; its notes, title and description are deleted; bookings on it stay on the trip without a day. A stay that checks in or out on the day is cancelled together with its booking and the expense of that booking, while a stay that only runs across the day is kept. The later days move up one place. On a dated trip the dates stay on their positions, so every later day and the bookings on it move one date earlier; a day without a date then takes the last date, and when there is none the trip ends one day earlier. The last day of a trip cannot be deleted.',
     inputSchema: {
@@ -216,6 +226,7 @@ export class DaysMcp {
 
   @Tool({
     name: 'set_day_default_transport_mode',
+    title: 'Set day default transport mode',
     description:
       'Set the whole-day default travel mode for a day. transport_mode is a route profile key: "driving", "walking", "cycling", or a plugin profile written as "plugin:<pluginId>/<profileId>". Any other value is stored but drawn as a driving route. null clears the default. Per-segment leg modes still override this.',
     inputSchema: {
@@ -272,5 +283,50 @@ export class DaysMcp {
         },
       ],
     };
+  }
+
+  @Tool({
+    name: 'list_days',
+    title: 'List trip days',
+    description:
+      "The trip's days in order, each with its date, title, the places scheduled on it (assignments, with their times) and its notes. get_trip_summary holds the same days next to everything else; use this one when the days are all you need.",
+    inputSchema: { tripId: idSchema },
+    outputSchema: listDaysOutputSchema,
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    access: { group: 'trips', mode: 'read' },
+  })
+  async listDays({ tripId }: { tripId: number }, ctx: McpContext) {
+    if (!(await this.days.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    return okStructured(await this.days.list(tripId));
+  }
+
+  @Tool({
+    name: 'get_day_plan',
+    title: 'Day plan',
+    description:
+      "One day of a trip with its stops in their order: each stop's assignment_id, place_id, name, time, end_time and address. Pass the assignment ids to reorder_day_assignments to change the order. list_days has every day at once.",
+    inputSchema: { tripId: idSchema, dayId: idSchema },
+    outputSchema: dayPlanOutputSchema,
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    _meta: uiTool(mcpAppUri('day-plan'), { invoking: 'Reading the day…', invoked: 'Day loaded' }),
+    access: { group: 'trips', mode: 'read' },
+  })
+  async getDayPlan({ tripId, dayId }: { tripId: number; dayId: number }, ctx: McpContext) {
+    if (!(await this.days.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    const day = await this.days.getDay(dayId, tripId);
+    if (!day) return errorResult('Day not found.');
+    const assignments = await this.days.getAssignmentsForDay(dayId);
+    return okStructured({
+      trip_id: tripId,
+      day: { id: day.id, day_number: day.day_number ?? null, date: day.date ?? null, title: day.title ?? null },
+      stops: assignments.map((a) => ({
+        assignment_id: a.id,
+        place_id: a.place.id,
+        name: a.place.name,
+        time: a.place.place_time ?? null,
+        end_time: a.place.end_time ?? null,
+        address: a.place.address ?? null,
+      })),
+    });
   }
 }

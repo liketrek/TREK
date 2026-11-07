@@ -792,6 +792,15 @@ const admin: TranslationStrings = {
   'admin.mcpTokens.deleteSuccess': 'Токен видалено',
   'admin.mcpTokens.deleteError': 'Не вдалося видалити токен',
   'admin.mcpTokens.loadError': 'Не вдалося завантажити токени',
+  'admin.mcpToolUsage.title': 'Використання інструментів',
+  'admin.mcpToolUsage.subtitle': 'Які інструменти MCP викликалися, скількома людьми і коли востаннє',
+  'admin.mcpToolUsage.empty': 'За цей період не викликався жоден інструмент MCP',
+  'admin.mcpToolUsage.loadError': 'Не вдалося завантажити використання інструментів',
+  'admin.mcpToolUsage.tool': 'Інструмент',
+  'admin.mcpToolUsage.calls': 'Виклики',
+  'admin.mcpToolUsage.users': 'Користувачі',
+  'admin.mcpToolUsage.lastCall': 'Останній виклик',
+  'admin.mcpToolUsage.period': 'Період (дні)',
   'admin.oauthSessions.sectionTitle': 'OAuth-сеанси',
   'admin.oauthSessions.clientName': 'Клієнт',
   'admin.oauthSessions.owner': 'Власник',
@@ -1186,5 +1195,8 @@ const admin: TranslationStrings = {
   'admin.servicesCard.title': 'Пошук місць і маршрути',
   'admin.servicesCard.hint':
     'Власні сервіси TREK, який постачальник відповідає на пошук і громадський транспорт, та журнал пошуку.',
+  'admin.mcpApps.title': 'Інтерактивні подання',
+  'admin.mcpApps.subtitle':
+    'Дозволити хостам MCP, які це підтримують, показувати подорожі, списки й мапи як інтерактивні подання поруч із відповіддю',
 };
 export default admin;

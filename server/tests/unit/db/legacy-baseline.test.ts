@@ -104,6 +104,7 @@ const UNNUMBERED = [
   'Migration20200101046340_a_released_object_outlasts_every_undo_before_it_goes',
   'Migration20200101046350_a_place_lies_on_the_real_world',
   'Migration20200101046360_a_new_install_starts_with_more_addons_on',
+  'Migration20200101046370_tours_road_trip_and_studio_have_scopes_of_their_own',
 ];
 // The last step the positional runner ever had; planLegacyBaseline refuses a
 // schema_version past it.

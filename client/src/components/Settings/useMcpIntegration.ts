@@ -28,6 +28,15 @@ export const OAUTH_PRESETS: OAuthPreset[] = [
     uris: 'http://localhost',
     scopes: PRESET_SCOPES_DEFAULT,
   },
+  {
+    // ChatGPT's connectors (developer mode) send the browser back to this one
+    // callback, whatever the workspace.
+    id: 'chatgpt',
+    label: 'ChatGPT',
+    name: 'ChatGPT',
+    uris: 'https://chatgpt.com/connector_platform_oauth_redirect',
+    scopes: PRESET_SCOPES_DEFAULT,
+  },
   { id: 'cursor', label: 'Cursor', name: 'Cursor', uris: 'http://localhost', scopes: PRESET_SCOPES_DEFAULT },
   {
     id: 'vscode',

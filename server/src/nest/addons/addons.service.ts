@@ -114,6 +114,21 @@ export class AddonsService {
     return this.writeFlag('ski_routing_enabled', enabled);
   }
 
+  /** The admin's switch for the interactive MCP views, as stored; fail-open like the base maps'. */
+  async getMcpApps() {
+    const value = await readAppSetting(this.appSettings, 'mcp_apps_enabled');
+    return { enabled: value !== 'false' };
+  }
+
+  async updateMcpApps(enabled: boolean) {
+    return this.writeFlag('mcp_apps_enabled', enabled);
+  }
+
+  /** Whether an MCP session may advertise its interactive views: the MCP addon on and the switch on. */
+  async mcpAppsEnabled(): Promise<boolean> {
+    return (await this.isAddonEnabled(ADDON_IDS.MCP)) && (await this.getMcpApps()).enabled;
+  }
+
   /** The photo providers users can connect: none while the journey addon is off. */
   async enabledPhotoProviderIds(): Promise<string[]> {
     if (!(await this.isAddonEnabled(ADDON_IDS.JOURNEY))) return [];

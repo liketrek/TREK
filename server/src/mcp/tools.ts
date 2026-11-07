@@ -24,15 +24,13 @@ export async function registerTools(
   userId: number,
   scopes: string[] | null,
   isStaticToken = false,
-  getDeprecationNotice: () => string | null = () => null,
   onInvoke?: McpAttachOptions['onInvoke'],
   dynamicTools: McpAttachOptions['dynamicTools'] = getPluginMcpToolSource() ?? undefined,
   around?: McpAttachOptions['around'],
+  apps?: McpAttachOptions['apps'],
 ): Promise<void> {
-  if (registry)
-    await registry.attach(
-      server,
-      { userId, scopes, isStaticToken, getDeprecationNotice },
-      { onInvoke, dynamicTools, around },
-    );
+  if (registry) {
+    const client = () => server.server.getClientVersion()?.name ?? null;
+    await registry.attach(server, { userId, scopes, isStaticToken, client }, { onInvoke, dynamicTools, around, apps });
+  }
 }

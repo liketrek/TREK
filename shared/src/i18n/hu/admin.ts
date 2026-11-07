@@ -792,6 +792,15 @@ const admin: TranslationStrings = {
   'admin.mcpTokens.deleteSuccess': 'Token törölve',
   'admin.mcpTokens.deleteError': 'Nem sikerült törölni a tokent',
   'admin.mcpTokens.loadError': 'Nem sikerült betölteni a tokeneket',
+  'admin.mcpToolUsage.title': 'Eszközhasználat',
+  'admin.mcpToolUsage.subtitle': 'Mely MCP-eszközöket hívták meg, hányan és mikor utoljára',
+  'admin.mcpToolUsage.empty': 'Ebben az időszakban egyetlen MCP-eszközt sem hívtak meg',
+  'admin.mcpToolUsage.loadError': 'Nem sikerült betölteni az eszközhasználatot',
+  'admin.mcpToolUsage.tool': 'Eszköz',
+  'admin.mcpToolUsage.calls': 'Hívások',
+  'admin.mcpToolUsage.users': 'Felhasználók',
+  'admin.mcpToolUsage.lastCall': 'Utolsó hívás',
+  'admin.mcpToolUsage.period': 'Időszak (nap)',
   'admin.oauthSessions.sectionTitle': 'OAuth munkamenetek',
   'admin.oauthSessions.clientName': 'Kliens',
   'admin.oauthSessions.owner': 'Tulajdonos',
@@ -1163,5 +1172,8 @@ const admin: TranslationStrings = {
   'admin.servicesCard.title': 'Helykeresés és útvonaltervezés',
   'admin.servicesCard.hint':
     'A TREK saját szolgáltatásai, melyik szolgáltató válaszol a keresésre és a tömegközlekedésre, valamint a keresési napló.',
+  'admin.mcpApps.title': 'Interaktív nézetek',
+  'admin.mcpApps.subtitle':
+    'A támogató MCP-gazdák a válasz mellett interaktív nézetként mutathatják az utazásokat, listákat és térképeket',
 };
 export default admin;

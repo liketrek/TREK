@@ -67,6 +67,7 @@ export class JourneyTracksMcp {
 
   @Tool({
     name: 'get_journey_tracks',
+    title: 'Get journey GPX tracks',
     description: `The GPX tracks a journey's map draws, from the trips added to it: per track the place and trip it belongs to, its name, its kind (trip_gpx for a trip's GPX), how many points it has and its length in km as the line runs. display_geometry holds the line thinned for drawing as [lat, lng] points: at most ${TRACK_DISPLAY_POINTS} per track and about ${TRACKS_DISPLAY_POINTS} for all tracks together, always with both ends. A journey whose trips have no tracks answers an empty list.`,
     inputSchema: { journeyId: idSchema },
     annotations: TOOL_ANNOTATIONS_READONLY,

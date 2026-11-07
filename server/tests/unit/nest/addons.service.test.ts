@@ -489,6 +489,16 @@ describe('AddonsService addon/feature flags', () => {
     expect(await svc.getToursSkiRouting()).toEqual({ enabled: true });
   });
 
+  it('the MCP interactive views are on until an admin switches them off, and only with the MCP addon', async () => {
+    expect(await svc.getMcpApps()).toEqual({ enabled: true }); // absent row → ON
+    expect(await svc.mcpAppsEnabled()).toBe(false); // MCP is off
+    await insertAddon({ id: 'mcp', name: 'MCP', enabled: 1 });
+    expect(await svc.mcpAppsEnabled()).toBe(true);
+    expect(await svc.updateMcpApps(false)).toEqual({ enabled: false });
+    expect(await storedAppSetting('mcp_apps_enabled')).toEqual({ key: 'mcp_apps_enabled', value: 'false' });
+    expect(await svc.mcpAppsEnabled()).toBe(false);
+  });
+
   it('getCollabFeatures is opt-out: absent rows default ON, only false disables', async () => {
     await setAppSetting('collab_chat_enabled', 'false');
     await setAppSetting('collab_polls_enabled', 'true');

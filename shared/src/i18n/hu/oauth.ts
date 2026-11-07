@@ -78,6 +78,25 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:share.label': 'Útinapló-linkek kezelése',
   'oauth.scope.journey:share.description':
     'Nyilvános megosztási linkek létrehozása, frissítése és visszavonása útinaplókhoz',
+  'oauth.scope.group.tours': 'Túrák',
+  'oauth.scope.group.roadtrip': 'Autós út',
+  'oauth.scope.group.studio': 'Studio', // same-as-en
+  'oauth.scope.tours:read.label': 'Túrák megtekintése',
+  'oauth.scope.tours:read.description':
+    'Gyalogtúrák, séták, kerékpáros, evezős és sítúrák olvasása megállóikkal és csomaglistájukkal',
+  'oauth.scope.tours:write.label': 'Túrák tervezése',
+  'oauth.scope.tours:write.description':
+    'Túrák javaslása, létrehozása, szerkesztése és törlése, megállóikkal, tevékenységeikkel és csomaglista-kapcsolataikkal',
+  'oauth.scope.roadtrip:read.label': 'Autós utak megtekintése',
+  'oauth.scope.roadtrip:read.description': 'Útvonalak, vezetési napok, töltőmegállók és útveszélyek olvasása',
+  'oauth.scope.roadtrip:write.label': 'Autós utak tervezése',
+  'oauth.scope.roadtrip:write.description':
+    'Útvonalak számítása, vezetési napok és beállítások megadása, útvonalak importálása',
+  'oauth.scope.studio:read.label': 'Útikönyvek megtekintése',
+  'oauth.scope.studio:read.description': 'Egy útikönyv oldalainak, kinézetének és fotóinak olvasása',
+  'oauth.scope.studio:write.label': 'Útikönyvek tervezése',
+  'oauth.scope.studio:write.description':
+    'Egy útikönyv oldalainak létrehozása, szerkesztése, átformázása és visszaállítása',
   'oauth.authorize.authorizing': 'Engedélyezés…',
   'oauth.authorize.loading': 'Betöltés…',
   'oauth.authorize.errorTitle': 'Engedélyezési hiba',

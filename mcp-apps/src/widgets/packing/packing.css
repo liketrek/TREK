@@ -1,0 +1,15 @@
+.packing__chips {
+  display: flex;
+  gap: 6px;
+  margin-bottom: var(--trek-space);
+  overflow-x: auto;
+}
+
+.packing__chips [aria-pressed='true'] {
+  background: var(--trek-surface);
+  border-color: var(--trek-text);
+}
+
+.packing__more {
+  margin-top: var(--trek-space);
+}

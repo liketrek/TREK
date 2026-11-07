@@ -75,6 +75,25 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:write.description': 'Crear, actualizar y eliminar travesías y sus entradas',
   'oauth.scope.journey:share.label': 'Gestionar enlaces de travesías',
   'oauth.scope.journey:share.description': 'Crear, actualizar y revocar enlaces públicos de compartir para travesías',
+  'oauth.scope.group.tours': 'Excursiones',
+  'oauth.scope.group.roadtrip': 'Viaje por carretera',
+  'oauth.scope.group.studio': 'Studio', // same-as-en
+  'oauth.scope.tours:read.label': 'Ver excursiones',
+  'oauth.scope.tours:read.description':
+    'Consultar rutas a pie, paseos, salidas en bici, en kayak y de esquí con sus paradas y equipaje',
+  'oauth.scope.tours:write.label': 'Planificar excursiones',
+  'oauth.scope.tours:write.description':
+    'Proponer, crear, editar y eliminar excursiones, sus paradas, actividades y vínculos de equipaje',
+  'oauth.scope.roadtrip:read.label': 'Ver viajes por carretera',
+  'oauth.scope.roadtrip:read.description':
+    'Consultar rutas, días de conducción, paradas de carga y peligros en la carretera',
+  'oauth.scope.roadtrip:write.label': 'Planificar viajes por carretera',
+  'oauth.scope.roadtrip:write.description': 'Calcular rutas, fijar días de conducción y preferencias, e importar rutas',
+  'oauth.scope.studio:read.label': 'Ver libros de viaje',
+  'oauth.scope.studio:read.description': 'Consultar las páginas, el diseño y las fotos de un libro de viaje',
+  'oauth.scope.studio:write.label': 'Diseñar libros de viaje',
+  'oauth.scope.studio:write.description':
+    'Crear, editar, cambiar el estilo y restaurar las páginas de un libro de viaje',
   'oauth.authorize.authorizing': 'Autorizando…',
   'oauth.authorize.loading': 'Cargando…',
   'oauth.authorize.errorTitle': 'Error de autorización',

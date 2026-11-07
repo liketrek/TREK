@@ -11,12 +11,15 @@ import {
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   errorResult,
   ok,
+  okStructured,
+  uiTool,
+  appCallable,
 } from '../../nest-mcp';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { TodoService } from './todo.service';
-import { idSchema } from '@trek/shared';
+import { idSchema, listTodosOutputSchema, mcpAppUri } from '@trek/shared';
 
 import { z } from 'zod';
 
@@ -30,8 +33,8 @@ function parseId(value: string | string[]): number | null {
 
 /**
  * Todo MCP surface — ported 1:1 from the legacy registrars: the eight tools
- * from src/mcp/tools/todos.ts and the trek://trips/{tripId}/todos resource
- * from src/mcp/resources.ts (identical names, descriptions, schemas,
+ * from the todos registrar and the trek://trips/{tripId}/todos resource
+ * from the retired resources registrar (identical names, descriptions, schemas,
  * annotations, error/payload shapes and broadcasts). The registration-time
  * gates map to `when` (the whole-registrar packing-addon early return) plus
  * the declarative todos read/write access markers (the legacy `if (R)` /
@@ -47,10 +50,13 @@ export class TodoMcp {
 
   @Tool({
     name: 'list_todos',
+    title: 'List trip to-dos',
     description: 'List all to-do items for a trip, ordered by position.',
     inputSchema: {
       tripId: idSchema,
     },
+    outputSchema: listTodosOutputSchema,
+    _meta: uiTool(mcpAppUri('todos'), { invoking: 'Reading the to-dos…', invoked: 'To-dos loaded' }),
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: packingAddonOn,
     access: { group: 'todos', mode: 'read' },
@@ -58,11 +64,12 @@ export class TodoMcp {
   async listTodos({ tripId }: { tripId: number }, ctx: McpContext) {
     if (!(await this.todos.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     const items = await this.todos.listItems(tripId);
-    return ok({ items });
+    return okStructured({ items });
   }
 
   @Tool({
     name: 'create_todo',
+    title: 'Add a to-do',
     description: 'Create a new to-do item for a trip.',
     inputSchema: {
       tripId: idSchema,
@@ -123,6 +130,7 @@ export class TodoMcp {
 
   @Tool({
     name: 'update_todo',
+    title: 'Update a to-do',
     description:
       'Update an existing to-do item. Only provided fields are changed; omitted fields stay as-is. Pass null to clear a nullable field.',
     inputSchema: {
@@ -194,12 +202,14 @@ export class TodoMcp {
 
   @Tool({
     name: 'toggle_todo',
+    title: 'Toggle a to-do',
     description: 'Mark a to-do item as checked (done) or unchecked.',
     inputSchema: {
       tripId: idSchema,
       itemId: idSchema,
       checked: z.boolean().describe('True to mark done, false to uncheck'),
     },
+    _meta: appCallable(),
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: packingAddonOn,
     access: { group: 'todos', mode: 'write' },
@@ -215,6 +225,7 @@ export class TodoMcp {
 
   @Tool({
     name: 'delete_todo',
+    title: 'Delete a to-do',
     description: 'Delete a to-do item.',
     inputSchema: {
       tripId: idSchema,
@@ -235,6 +246,7 @@ export class TodoMcp {
 
   @Tool({
     name: 'reorder_todos',
+    title: 'Reorder to-dos',
     description: 'Reorder to-do items within a trip by providing a new ordered list of item IDs.',
     inputSchema: {
       tripId: idSchema,
@@ -251,6 +263,7 @@ export class TodoMcp {
 
   @Tool({
     name: 'get_todo_category_assignees',
+    title: 'Read to-do category assignees',
     description: 'Get the default assignees configured per to-do category for a trip.',
     inputSchema: {
       tripId: idSchema,
@@ -267,6 +280,7 @@ export class TodoMcp {
 
   @Tool({
     name: 'set_todo_category_assignees',
+    title: 'Set to-do category assignees',
     description: 'Set the default assignees for a to-do category on a trip. Pass an empty array to clear.',
     inputSchema: {
       tripId: idSchema,

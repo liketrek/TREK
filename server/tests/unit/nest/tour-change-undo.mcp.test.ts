@@ -496,7 +496,7 @@ describe('TourChangeUndoMcp (MCP-T04)', () => {
       expect([options.name, options.annotations?.readOnlyHint, options.access]).toEqual([
         name,
         readOnly,
-        { group: 'trips', mode },
+        { group: 'tours', mode },
       ]);
       expect(Object.keys(options.inputSchema as object)).toEqual([...fields]);
       expect(options.description).toContain('planner');

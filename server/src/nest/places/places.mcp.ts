@@ -3,6 +3,8 @@ import {
   TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
   TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   errorResult, ok,
+  okStructured,
+  uiTool,
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import {
@@ -18,6 +20,13 @@ import {
   type RoadtripGpxImport,
   type RoadtripStopType,
   idSchema,
+  mcpAppUri,
+  autocompletePlaceOutputSchema,
+  getPlaceOutputSchema,
+  listPlacesOutputSchema,
+  mapsAutocompleteRequestSchema,
+  searchPlaceOutputSchema,
+  type MapsAutocompleteRequest,
 } from '@trek/shared';
 import { z } from 'zod';
 import { AssignmentsService } from '../assignments/assignments.service';
@@ -45,9 +54,9 @@ const hoursText = (hours: PlaceOpeningHours | null | undefined): string | null =
 const AGENT: OriginWriter = { kind: 'fixed', origin: 'agent' };
 
 /**
- * Places MCP surface — ported 1:1 from the legacy registrar
- * src/mcp/tools/places.ts (ten tools) plus the trek://trips/{tripId}/places
- * resource from src/mcp/resources.ts: identical names, descriptions, input
+ * Places MCP surface — ported 1:1 from the retired
+ * the places registrar (ten tools) plus the trek://trips/{tripId}/places
+ * resource from the retired resources registrar: identical names, descriptions, input
  * schemas, annotations, error/payload shapes and safeBroadcast events. The
  * registration-time `canWrite/canRead(scopes, 'places')` gates became the
  * declarative access markers, resolved by trekMcpAccessPolicy.
@@ -76,6 +85,7 @@ export class PlacesMcp {
 
   @Tool({
     name: 'create_place',
+    title: 'Add place to trip',
     description: 'Add a new place/POI to a trip. Set google_place_id, google_ftid, osm_id or amap_poi_id (from search_place) so the app can show opening hours, ratings, and direct Google Maps links. Set price + currency to record the cost so it shows on the item.',
     inputSchema: {
       tripId: idSchema,
@@ -124,6 +134,7 @@ export class PlacesMcp {
 
   @Tool({
     name: 'create_and_assign_place',
+    title: 'Create and assign place',
     description: 'Create a new place and immediately assign it to a day in one atomic operation. Use place details from search_place results. Only use when the place does not yet exist — if it already exists, use assign_place_to_day directly. Set price + currency to record the cost so it shows on the item.',
     inputSchema: {
       tripId: idSchema,
@@ -183,6 +194,7 @@ export class PlacesMcp {
 
   @Tool({
     name: 'update_place',
+    title: 'Update trip place',
     description: 'Update an existing place in a trip.',
     inputSchema: {
       tripId: idSchema,
@@ -243,6 +255,7 @@ export class PlacesMcp {
 
   @Tool({
     name: 'set_place_image_from_file',
+    title: 'Set place image from file',
     description: 'Use a picture already attached in the trip (a jpg, png, gif or webp from list_files) as the image of the place. The file is copied, so deleting the attachment later keeps the image.',
     inputSchema: {
       tripId: idSchema,
@@ -272,6 +285,7 @@ export class PlacesMcp {
 
   @Tool({
     name: 'rate_place',
+    title: 'Rate trip place',
     description: "Set or clear the current user's 1-5 star rating on a trip place (#1435). Every trip member rates independently; the place shows the average. Omit rating (or pass null) to remove the user's vote. Use the ratings to capture the user's preferences and shape the itinerary around highly-rated places.",
     inputSchema: {
       tripId: idSchema,
@@ -295,6 +309,7 @@ export class PlacesMcp {
 
   @Tool({
     name: 'delete_place',
+    title: 'Delete trip place',
     description: 'Permanently delete a place from a trip. Removes its day assignments, its linked expenses and any nights booked at it, including each night\'s reservation and that reservation\'s expense. If the place is a Tour, its route and editable waypoints are also permanently deleted. A city walk takes all its stations with it, protected ones included: name those to the traveller and ask first. Warn the user before calling: this cannot be undone.',
     inputSchema: {
       tripId: idSchema,
@@ -328,6 +343,7 @@ export class PlacesMcp {
 
   @Tool({
     name: 'list_places',
+    title: 'List trip places',
     description: 'List all places/POIs in a trip, optionally filtered by assignment status. Use assignment=unassigned to find orphan activities not yet scheduled on any day.',
     inputSchema: {
       tripId: idSchema,
@@ -336,6 +352,7 @@ export class PlacesMcp {
       tag: z.string().optional(),
       assignment: z.enum(['all', 'unassigned', 'assigned']).optional().default('all').describe('Filter by assignment status: "all" (default), "unassigned" (not on any day), or "assigned" (scheduled on a day)'),
     },
+    outputSchema: listPlacesOutputSchema,
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'places', mode: 'read' },
   })
@@ -348,7 +365,7 @@ export class PlacesMcp {
   ) {
     if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
     const places = await this.places.list(String(tripId), { search, category, tag, assignment });
-    return ok({ places });
+    return okStructured({ places });
   }
 
   // The list_categories tool moved to the DI-discovered
@@ -358,6 +375,7 @@ export class PlacesMcp {
 
   @Tool({
     name: 'search_place',
+    title: 'Search for a place',
     description: 'Search for a real-world place by name or address. Returns results with osm_id (and google_place_id/google_ftid if configured). Use these IDs when calling create_place so the app can display opening hours, ratings, and map links. Pass locationBias whenever the trip has a destination: a bare name like "Central Station" or "Museum of Modern Art" otherwise resolves wherever the provider guesses, which is regularly the wrong continent. Searches the TREK index and OpenStreetMap, or Google Places alone with provider "google" and whenever the admin switch "Search with Google only" is on: if the instance has a plugin providing its own search index, call search_places_via_plugins as well, and note that ratings can only come from there.',
     inputSchema: {
       query: z.string().min(1).max(500).describe('One place name or address. Several places in one query match none of them well; search each on its own, the calls can run side by side'),
@@ -365,6 +383,8 @@ export class PlacesMcp {
       lang: z.string().max(35).optional().describe('BCP 47 language for the result names, e.g. "de" or "ja". Defaults to English'),
       provider: mapsSearchRequestSchema.shape.provider.describe('"google" sends this one search to Google Places alone instead of the TREK index and OpenStreetMap, the same as the "search Google instead" link under the results in the app. Ignored unless Google holds the keyed slot: an instance without a Google key, or one whose admin picked Amap or OpenStreetMap as the places provider, answers from the TREK index and OpenStreetMap as usual'),
     },
+    outputSchema: searchPlaceOutputSchema,
+    _meta: uiTool(mcpAppUri('place-results'), { invoking: 'Searching for places…', invoked: 'Places found' }),
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'places', mode: 'read' },
   })
@@ -376,7 +396,7 @@ export class PlacesMcp {
   ) {
     try {
       const result = await this.maps.searchPlaces(ctx.userId, query, lang, locationBias, { googleOnly: provider === 'google' });
-      return ok(result);
+      return okStructured(result);
     } catch {
       return errorResult('Place search failed.');
     }
@@ -384,6 +404,7 @@ export class PlacesMcp {
 
   @Tool({
     name: 'import_places_from_url',
+    title: 'Import places from list URL',
     description: 'Import places from a shared Google Maps or Naver Maps list URL. Returns the imported places and count. The list must be shared publicly.',
     inputSchema: {
       tripId: idSchema,
@@ -419,6 +440,7 @@ export class PlacesMcp {
 
   @Tool({
     name: 'import_trip_gpx',
+    title: 'Import trip GPX file',
     description: 'Import GPX waypoints, routes and tracks as places in a trip. Uses the same importer as the file upload. Imported tracks retain their geometry and can be followed with add_route_vias. Does not assign places to days. Use list_places for their ids and geometry, then assign_place_to_day and the Roadtrip tools to plan visits. Existing importer deduplication also applies.',
     inputSchema: roadtripGpxImportSchema.shape,
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
@@ -442,6 +464,7 @@ export class PlacesMcp {
 
   @Tool({
     name: 'export_trip_gpx',
+    title: 'Export trip as GPX',
     description: 'Export a trip as GPX text: its places as waypoints, any imported routes as tracks, and each planned day as a route in visiting order. This is the format handhelds and offline map apps (Organic Maps, OsmAnd, Garmin) read. Prefer export_trip_ics when the user wants the itinerary in a calendar instead.',
     inputSchema: {
       tripId: idSchema,
@@ -468,6 +491,7 @@ export class PlacesMcp {
 
   @Tool({
     name: 'bulk_delete_places',
+    title: 'Bulk delete places',
     description: 'Permanently delete multiple places from a trip at once. Removes all day assignments for each place as well, plus each place\'s linked expenses and any nights booked at it, with their reservations and expenses. Any Tours in the selection also lose their routes and editable waypoints. A city walk in the selection takes all its stations with it, protected ones included: name those to the traveller and ask first. Warn the user before calling: this cannot be undone.',
     inputSchema: {
       tripId: idSchema,
@@ -501,6 +525,7 @@ export class PlacesMcp {
 
   @Tool({
     name: 'bulk_update_places',
+    title: 'Bulk update places',
     description: 'Update many places in a trip at once, applying the SAME field values to every listed place. Use this for sweeping edits — e.g. re-categorising a batch of POIs (set category_id for 80 places) — in a single call instead of one update_place per place. Only the fields you set are changed; everything else on each place is preserved. Use list_categories for category_id.',
     inputSchema: {
       tripId: idSchema,
@@ -581,5 +606,46 @@ export class PlacesMcp {
         text: JSON.stringify(places, null, 2),
       }],
     };
+  }
+
+  @Tool({
+    name: 'get_place',
+    title: 'Get place',
+    description: "One place of the trip's pool with all its fields: address, coordinates, category, tags, opening hours, notes and links.",
+    inputSchema: { tripId: idSchema, placeId: idSchema },
+    outputSchema: getPlaceOutputSchema,
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    access: { group: 'places', mode: 'read' },
+  })
+  async getPlace({ tripId, placeId }: { tripId: number; placeId: number }, ctx: McpContext) {
+    if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
+    const place = await this.places.get(String(tripId), String(placeId));
+    if (!place) return errorResult('Place not found.');
+    return okStructured({ place });
+  }
+
+  @Tool({
+    name: 'autocomplete_place',
+    title: 'Autocomplete a place',
+    description:
+      'Suggestions for a partial place name, as the search box offers them while typing: placeId, the main and secondary text, and coordinates where the index gives them. Cheaper than search_place for narrowing down a name; follow up with search_place for the full result to create a place from.',
+    inputSchema: {
+      input: mapsAutocompleteRequestSchema.shape.input.describe('The partial name or address'),
+      lang: mapsAutocompleteRequestSchema.shape.lang.describe('BCP 47 language for the suggestions, e.g. "de"'),
+      locationBias: mapsAutocompleteRequestSchema.shape.locationBias.describe(
+        'Prefer suggestions inside this box: { low: { lat, lng }, high: { lat, lng } }',
+      ),
+    },
+    outputSchema: autocompletePlaceOutputSchema,
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    access: { group: 'places', mode: 'read' },
+  })
+  async autocompletePlace({ input, lang, locationBias }: Omit<MapsAutocompleteRequest, 'sessionToken'>, ctx: McpContext) {
+    if (await this.maps.autocompleteDisabled()) return okStructured({ suggestions: [], source: 'disabled' });
+    try {
+      return okStructured(await this.maps.autocomplete(ctx.userId, input, lang, locationBias, undefined));
+    } catch {
+      return errorResult('Place autocomplete failed.');
+    }
   }
 }

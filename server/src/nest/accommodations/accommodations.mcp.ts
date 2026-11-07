@@ -57,6 +57,7 @@ export class AccommodationsMcp {
 
   @Tool({
     name: 'create_accommodation',
+    title: 'Add accommodation to trip',
     description:
       'Add an accommodation (hotel, Airbnb, etc.) to a trip, linked to a place and a date range. This also puts the place on its check-in day, so the stay shows up as a stop on the route.',
     inputSchema: {
@@ -108,6 +109,7 @@ export class AccommodationsMcp {
 
   @Tool({
     name: 'create_place_accommodation',
+    title: 'Create place as accommodation',
     description:
       'Create a new place, set it as an accommodation for a date range and put it on its check-in day, in one atomic operation. Use place details from search_place results. Only use when the place does not yet exist — if it already exists, use create_accommodation directly. Set price + currency to record the accommodation cost so it shows on the item.',
     inputSchema: {
@@ -251,6 +253,7 @@ export class AccommodationsMcp {
 
   @Tool({
     name: 'update_accommodation',
+    title: 'Update accommodation',
     description:
       'Update fields on an existing accommodation. Moving it to another check-in day or place moves the stop it put on the route with it.',
     inputSchema: {
@@ -313,6 +316,7 @@ export class AccommodationsMcp {
 
   @Tool({
     name: 'delete_accommodation',
+    title: 'Delete accommodation',
     description:
       'Delete an accommodation from a trip. The stop this booking put on its check-in day goes with it; a stop that was already there stays.',
     inputSchema: {
@@ -336,6 +340,7 @@ export class AccommodationsMcp {
 
   @Tool({
     name: 'list_accommodations',
+    title: 'List trip accommodations',
     description:
       'List where a trip sleeps, stay by stay: the place, its address and position, the check-in and check-out days with their times, and the booking linked to it, its reference included, as the trip-accommodations resource reads them.',
     inputSchema: listAccommodationsRequestSchema.shape,

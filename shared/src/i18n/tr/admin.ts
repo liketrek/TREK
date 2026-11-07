@@ -828,6 +828,15 @@ const admin: TranslationStrings = {
   'admin.mcpTokens.deleteSuccess': 'Jeton silindi',
   'admin.mcpTokens.deleteError': 'Jeton silinemedi',
   'admin.mcpTokens.loadError': 'Jetonlar yüklenemedi',
+  'admin.mcpToolUsage.title': 'Araç kullanımı',
+  'admin.mcpToolUsage.subtitle': 'Hangi MCP araçlarının, kaç kişi tarafından ve en son ne zaman çağrıldığı',
+  'admin.mcpToolUsage.empty': 'Bu dönemde hiçbir MCP aracı çağrılmadı',
+  'admin.mcpToolUsage.loadError': 'Araç kullanımı yüklenemedi',
+  'admin.mcpToolUsage.tool': 'Araç',
+  'admin.mcpToolUsage.calls': 'Çağrılar',
+  'admin.mcpToolUsage.users': 'Kullanıcılar',
+  'admin.mcpToolUsage.lastCall': 'Son çağrı',
+  'admin.mcpToolUsage.period': 'Dönem (gün)',
   'admin.oauthSessions.sectionTitle': 'OAuth Oturumları',
   'admin.oauthSessions.clientName': 'Müşteri',
   'admin.oauthSessions.owner': 'Mal sahibi',
@@ -1154,5 +1163,8 @@ const admin: TranslationStrings = {
   'admin.servicesCard.title': 'Yer arama ve rota',
   'admin.servicesCard.hint':
     "TREK'in kendi hizmetleri, aramaya ve toplu taşımaya hangi sağlayıcının yanıt verdiği ve arama kaydı.",
+  'admin.mcpApps.title': 'Etkileşimli görünümler',
+  'admin.mcpApps.subtitle':
+    'Destekleyen MCP ana bilgisayarlarının seyahatleri, listeleri ve haritaları yanıtın yanında etkileşimli görünüm olarak göstermesine izin ver',
 };
 export default admin;

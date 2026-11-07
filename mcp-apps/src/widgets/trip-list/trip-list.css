@@ -1,0 +1,71 @@
+.trip-list {
+  padding: var(--trek-space);
+}
+
+.trip-list__title {
+  margin: 0 0 var(--trek-space);
+  font-size: var(--font-heading-sm-size, 1rem);
+  font-weight: var(--font-weight-semibold, 600);
+}
+
+/* A horizontal row that snaps card by card; the cards keep a readable width on a phone. */
+.trip-list__track {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(220px, 260px);
+  gap: var(--trek-space);
+  margin: 0;
+  padding: 0 0 4px;
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: inline mandatory;
+  overscroll-behavior-inline: contain;
+}
+
+.trip-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--trek-space);
+  background: var(--trek-surface);
+  border: 1px solid var(--trek-border);
+  border-radius: var(--trek-radius);
+  scroll-snap-align: start;
+}
+
+.trip-card p {
+  margin: 0;
+}
+
+.trip-card__head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.trip-card__name {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--trek-text-md);
+  font-weight: var(--font-weight-semibold, 600);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trip-card__badge {
+  font-size: var(--trek-text-sm);
+  color: var(--trek-muted);
+  border: 1px solid var(--trek-border);
+  border-radius: var(--border-radius-full, 999px);
+  padding: 0 8px;
+}
+
+.trip-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 6px;
+}

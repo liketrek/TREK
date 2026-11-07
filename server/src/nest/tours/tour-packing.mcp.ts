@@ -1,10 +1,11 @@
 import { ADDON_IDS } from '../../addons';
-import { canRead, canReadTrips, canWrite } from '../../mcp/scopes';
+import { canRead, canWrite } from '../../mcp/scopes';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import {
   McpController,
   Tool,
   TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_DELETE,
   TOOL_ANNOTATIONS_WRITE,
   ok,
   type McpContext,
@@ -54,12 +55,13 @@ export class TourPackingMcp {
 
   @Tool({
     name: 'get_tour_packing',
+    title: 'Read tour packing list',
     description:
       'Read the packing list a saved tour points at: packing_link names it (category null for the whole packing list of the trip, otherwise one category of it; null while the tour points at nothing), state says how it reads (ready, empty while it holds no item yet, or missing when its category has no item the user can see any more, renamed, cleared or kept to other travellers), and items lists what the user may see of it with quantity and whether each is packed. tour carries the tour’s own facts (type, distance in km, ascent and descent in metres, walking and planned minutes, difficulty, the SAC limit of a hike), unknown ones null, as context for suggesting what to pack. Suggestions stay suggestions: add an item only through the packing tools and only when the user asks for it.',
     inputSchema: tourIds,
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: tourPackingOn,
-    access: (ctx) => canReadTrips(ctx.scopes) && canRead(ctx.scopes, 'packing'),
+    access: (ctx) => canRead(ctx.scopes, 'tours') && canRead(ctx.scopes, 'packing'),
   })
   async getTourPacking({ tripId, placeId }: { tripId: number; placeId: number }, ctx: McpContext) {
     const refused = await this.refusal(tripId, ctx.userId, false);
@@ -69,12 +71,13 @@ export class TourPackingMcp {
 
   @Tool({
     name: 'link_tour_packing',
+    title: 'Link tour to packing list',
     description:
       'Point a saved tour at the packing list of its trip: category null for the whole list, or the name of one of its categories exactly as its items carry it (one the user can see an item of). It replaces what the tour pointed at before. Nothing is copied or changed in the packing list. Needs place_edit on the trip and the Packing addon.',
     inputSchema: { ...tourIds, category: tourPackingLinkRequestSchema.shape.category },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: tourPackingOn,
-    access: (ctx) => canWrite(ctx.scopes, 'trips') && canRead(ctx.scopes, 'packing'),
+    access: (ctx) => canWrite(ctx.scopes, 'tours') && canRead(ctx.scopes, 'packing'),
   })
   async linkTourPacking(
     { tripId, placeId, category }: { tripId: number; placeId: number } & TourPackingLinkRequest,
@@ -89,12 +92,13 @@ export class TourPackingMcp {
 
   @Tool({
     name: 'unlink_tour_packing',
+    title: 'Unlink tour from packing list',
     description:
       'Let a saved tour stop pointing at its packing list. The packing list, its categories and its items stay exactly as they are. Needs place_edit on the trip.',
     inputSchema: tourIds,
-    annotations: TOOL_ANNOTATIONS_WRITE,
+    annotations: TOOL_ANNOTATIONS_DELETE,
     when: tourPackingOn,
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'tours', mode: 'write' },
   })
   async unlinkTourPacking({ tripId, placeId }: { tripId: number; placeId: number }, ctx: McpContext) {
     const refused = await this.refusal(tripId, ctx.userId, true);

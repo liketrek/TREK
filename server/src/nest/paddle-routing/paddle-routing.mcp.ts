@@ -1,6 +1,6 @@
 import { ADDON_IDS } from '../../addons';
 import { noAccess } from '../../mcp/tools/_shared';
-import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, ok, type McpContext } from '../../nest-mcp';
+import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, ok, okStructured, type McpContext } from '../../nest-mcp';
 import { thinLine } from '../../utils/polyline';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
@@ -10,6 +10,7 @@ import {
   cumulativeMetres,
   idSchema,
   includeGeometryFlagSchema,
+  paddleRouteProposalOutputSchema,
   paddleRouteRequestSchema,
   pointsPerLeg,
   TOUR_DISPLAY_LINE_POINTS,
@@ -69,23 +70,47 @@ export class PaddleRoutingMcp {
 
   @Tool({
     name: 'plan_paddle_route',
-    description:
-      'Plan the legs of a paddle tour on the water, on the water network TREK builds from the OpenStreetMap data of the paddle regions an admin added. Each leg (from, to) is planned along rivers and canals and across lakes, with short portages where a weir, dam or waterfall bars the way and through or around locks (lock_policy). lake_style direct crosses lakes straight, shore keeps near the shore (for wind). Answers per leg its length, how far its ends were moved onto the water, and its stretches (water, lake, portage with its source, lock, gap) with where each starts and ends in metres along the leg (from_m, to_m); a leg that cannot be planned says why (not_on_water, no_region, no_water_path, cross_region). A planning aid, never a safety or legal clearance; nothing is saved.',
+    title: 'Plan paddle route',
+    description: 'Deprecated: use propose_paddle_route.',
     inputSchema: { tripId: idSchema, ...paddleRouteRequestSchema.shape, include_geometry: includeGeometryFlagSchema },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'tours', mode: 'read' },
   })
   async planPaddleRoute(
-    { tripId, include_geometry, ...request }: PaddleRouteInput & { tripId: number; include_geometry?: boolean },
+    { tripId, ...request }: PaddleRouteInput & { tripId: number; include_geometry?: boolean },
     ctx: McpContext,
   ) {
     if (!(await this.access.findAccessible(tripId, ctx.userId))) return noAccess();
+    return ok(await this.planned(request));
+  }
+
+  @Tool({
+    name: 'propose_paddle_route',
+    title: 'Propose paddle route',
+    description:
+      'Plan the legs of a paddle tour on the water, on the water network TREK builds from the OpenStreetMap data of the paddle regions an admin added. Each leg (from, to) is planned along rivers and canals and across lakes, with short portages where a weir, dam or waterfall bars the way and through or around locks (lock_policy). lake_style direct crosses lakes straight, shore keeps near the shore (for wind). Answers per leg its length, how far its ends were moved onto the water, and its stretches (water, lake, portage with its source, lock, gap) with where each starts and ends in metres along the leg (from_m, to_m); a leg that cannot be planned says why (not_on_water, no_region, no_water_path, cross_region). A planning aid, never a safety or legal clearance; nothing is saved.',
+    inputSchema: { tripId: idSchema, ...paddleRouteRequestSchema.shape, include_geometry: includeGeometryFlagSchema },
+    outputSchema: paddleRouteProposalOutputSchema,
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    when: addonGate(ADDON_IDS.TOURS),
+    access: { group: 'tours', mode: 'read' },
+  })
+  async proposePaddleRoute(
+    { tripId, ...request }: PaddleRouteInput & { tripId: number; include_geometry?: boolean },
+    ctx: McpContext,
+  ) {
+    if (!(await this.access.findAccessible(tripId, ctx.userId))) return noAccess();
+    return okStructured(await this.planned(request));
+  }
+
+  /** The legs as both tools answer them, each summarised, with the water data they were planned on. */
+  private async planned({ include_geometry, ...request }: PaddleRouteInput & { include_geometry?: boolean }) {
     const planned = await this.routing.route(paddleRouteRequestSchema.parse(request));
     const points = include_geometry === true ? linePoints(planned.legs) : planned.legs.map(() => null);
-    return ok({
+    return {
       legs: planned.legs.map((leg, index) => summary(leg, points[index] ?? null)),
       graph_rev: planned.graph_rev,
-    });
+    };
   }
 }

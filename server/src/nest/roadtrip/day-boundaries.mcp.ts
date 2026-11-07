@@ -33,10 +33,11 @@ export class DayBoundariesMcp {
 
   @Tool({
     name: 'list_day_boundaries',
+    title: 'List day endings',
     description: 'List manual road trip day endings. They apply only with daily travel times enabled.',
     inputSchema: { tripId: idSchema },
     annotations: TOOL_ANNOTATIONS_READONLY,
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'roadtrip', mode: 'read' },
     when,
   })
   async list({ tripId }: { tripId: number }, ctx: McpContext) {
@@ -46,6 +47,7 @@ export class DayBoundariesMcp {
 
   @Tool({
     name: 'set_day_boundary',
+    title: 'Set a day ending',
     description:
       'Override a road trip day ending at a visit or a fraction along the driving leg between consecutive visits. Daily travel times must be enabled in the planner. Fixed visit times stay protected and conflicts are shown. With roadtrip_hotel_bookends on, a boundary between two stops a booked night separates is ignored: the night ends the day. Pass null to restore the automatic day ending.',
     inputSchema: {
@@ -54,7 +56,7 @@ export class DayBoundariesMcp {
       boundary: roadtripDayBoundarySchema.nullable(),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'roadtrip', mode: 'write' },
     when,
   })
   async save(

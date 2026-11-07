@@ -993,37 +993,25 @@ describe('Resource: trek://trips/{tripId}/members', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Deprecation notice (fire-once closure riding the registry attach ctx)
+// Static-token deprecation: the notice lives in the session instructions and
+// the token_auth_notice prompt, never inside a tool result
 // ---------------------------------------------------------------------------
 
 describe('static-token deprecation notice', () => {
-  it('list_trips surfaces the notice exactly once and still carries the payload', async () => {
+  it('list_trips and get_trip_summary answer a static-token session with a plain success', async () => {
     const { user } = createUser(testDb);
-    createTrip(testDb, user.id, { title: 'Noticed' });
-    // Mirror the fire-once closure built per session in src/mcp/index.ts.
-    let emitted = false;
-    const getDeprecationNotice = () => {
-      if (emitted) return null;
-      emitted = true;
-      return 'static tokens are deprecated';
-    };
-    const h = await createMcpHarness({
-      realtime,
-      userId: user.id,
-      withResources: false,
-      isStaticToken: true,
-      getDeprecationNotice,
-    });
+    const trip = createTrip(testDb, user.id, { title: 'Noticed' });
+    const h = await createMcpHarness({ realtime, userId: user.id, withResources: false, isStaticToken: true });
     try {
-      const first = await h.client.callTool({ name: 'list_trips', arguments: {} });
-      expect(first.isError).toBe(true);
-      const texts = (first.content as { type: string; text: string }[]).map((c) => c.text);
-      expect(texts[0]).toContain('deprecated');
-      expect(JSON.parse(texts[1]).trips[0].title).toBe('Noticed');
-      // Second call: the closure already fired — plain payload, no error.
-      const second = await h.client.callTool({ name: 'list_trips', arguments: {} });
-      expect(second.isError).toBeFalsy();
-      expect((parseToolResult(second) as any).trips).toHaveLength(1);
+      const list = await h.client.callTool({ name: 'list_trips', arguments: {} });
+      expect(list.isError).toBeFalsy();
+      expect(list.content).toHaveLength(1);
+      expect((parseToolResult(list) as any).trips[0].title).toBe('Noticed');
+      const summary = await h.client.callTool({ name: 'get_trip_summary', arguments: { tripId: trip.id } });
+      expect(summary.isError).toBeFalsy();
+      expect(summary.content).toHaveLength(1);
+      const { prompts } = await h.client.listPrompts();
+      expect(prompts.map((p) => p.name)).toContain('token_auth_notice');
     } finally {
       await h.cleanup();
     }

@@ -80,6 +80,27 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:share.label': 'Διαχείριση συνδέσμων ταξιδιών',
   'oauth.scope.journey:share.description':
     'Δημιουργία, ενημέρωση και ανάκληση δημόσιων συνδέσμων κοινής χρήσης για ταξίδια',
+  'oauth.scope.group.tours': 'Εκδρομές',
+  'oauth.scope.group.roadtrip': 'Οδικό ταξίδι',
+  'oauth.scope.group.studio': 'Studio', // same-as-en
+  'oauth.scope.tours:read.label': 'Προβολή εκδρομών',
+  'oauth.scope.tours:read.description':
+    'Ανάγνωση πεζοποριών, περιπάτων, ποδηλατάδων, εκδρομών με κανό και σκι με τις στάσεις και τις αποσκευές τους',
+  'oauth.scope.tours:write.label': 'Σχεδιασμός εκδρομών',
+  'oauth.scope.tours:write.description':
+    'Πρόταση, δημιουργία, επεξεργασία και διαγραφή εκδρομών, των στάσεων, των δραστηριοτήτων και των συνδέσεων αποσκευών τους',
+  'oauth.scope.roadtrip:read.label': 'Προβολή οδικών ταξιδιών',
+  'oauth.scope.roadtrip:read.description':
+    'Ανάγνωση διαδρομών, ημερών οδήγησης, στάσεων φόρτισης και κινδύνων στον δρόμο',
+  'oauth.scope.roadtrip:write.label': 'Σχεδιασμός οδικών ταξιδιών',
+  'oauth.scope.roadtrip:write.description':
+    'Υπολογισμός διαδρομών, ορισμός ημερών οδήγησης και προτιμήσεων, εισαγωγή διαδρομών',
+  'oauth.scope.studio:read.label': 'Προβολή βιβλίων ταξιδιού',
+  'oauth.scope.studio:read.description':
+    'Ανάγνωση των σελίδων, της εμφάνισης και των φωτογραφιών ενός βιβλίου ταξιδιού',
+  'oauth.scope.studio:write.label': 'Σχεδιασμός βιβλίων ταξιδιού',
+  'oauth.scope.studio:write.description':
+    'Δημιουργία, επεξεργασία, αλλαγή στυλ και επαναφορά των σελίδων ενός βιβλίου ταξιδιού',
   'oauth.authorize.authorizing': 'Εξουσιοδότηση…',
   'oauth.authorize.loading': 'Φόρτωση…',
   'oauth.authorize.errorTitle': 'Σφάλμα εξουσιοδότησης',

@@ -623,6 +623,36 @@ describe('AddonManager', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
+  it('FE-ADMIN-ADDON-022: under an enabled MCP the tile offers the interactive views switch, put back when the save fails', async () => {
+    const user = userEvent.setup();
+    const puts: unknown[] = [];
+    server.use(
+      addonsRoute([aiAddon('mcp', 'MCP', true)]),
+      http.get('/api/admin/mcp-apps', () => HttpResponse.json({ enabled: true })),
+      http.put('/api/admin/mcp-apps', async ({ request }) => {
+        puts.push(await request.json());
+        return puts.length === 1 ? HttpResponse.json({ enabled: false }) : new HttpResponse(null, { status: 500 });
+      }),
+    );
+    render(<><ToastContainer /><AddonManager /></>);
+
+    const toggle = await screen.findByRole('button', { name: 'Interactive views' });
+    await waitFor(() => expect(toggle).toHaveAttribute('aria-pressed', 'true'));
+    await user.click(toggle);
+    await waitFor(() => expect(puts).toEqual([{ enabled: false }]));
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    await user.click(toggle);
+    await screen.findByText('Failed to update addon');
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('FE-ADMIN-ADDON-023: the interactive views switch hides while MCP is off', async () => {
+    server.use(addonsRoute([aiAddon('mcp', 'MCP', false)]));
+    render(<AddonManager />);
+    await screen.findByText('AI');
+    expect(screen.queryByRole('button', { name: 'Interactive views' })).toBeNull();
+  });
+
   it('FE-ADMIN-ADDON-040: a shelf of several options starts folded and says how many there are and how many are on', async () => {
     server.use(addonsRoute([buildAddon({ id: 'collab', name: 'Collab', enabled: true })]));
     render(

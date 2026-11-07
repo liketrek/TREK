@@ -1,6 +1,6 @@
 import { ADDON_IDS } from '../../addons';
 import { noAccess } from '../../mcp/tools/_shared';
-import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, ok, type McpContext } from '../../nest-mcp';
+import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, type McpContext, okStructured, uiTool } from '../../nest-mcp';
 import type { BudgetItem } from '../../types';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
@@ -10,8 +10,11 @@ import {
   BUDGET_ITEMS_PAGE_DEFAULT,
   budgetItemsPageSchema,
   idSchema,
+  mcpAppUri,
   toMinor,
   type BudgetItemsPage,
+  listBudgetItemsOutputSchema,
+  budgetPerPersonOutputSchema,
 } from '@trek/shared';
 
 /** The whole budget surface rides the budget addon, as in BudgetMcp. */
@@ -124,8 +127,15 @@ export class BudgetItemsMcp {
 
   @Tool({
     name: 'list_budget_items',
+    title: 'List budget items',
     description: `List the trip's expenses with their ids, up to ${BUDGET_ITEMS_PAGE_DEFAULT} at a time from offset. A page of long expenses ends earlier, so always go on at next_offset (null on the last page). Each expense: name, category, total_price in its currency, expense_date, the start of its note, the place or booking it belongs to (place_id, reservation_id), who paid how much (payers), who shares it (members: amount is the member's share on an uneven split, null on an equal one; paid says whether they paid their share), trip_amount (a foreign expense in the trip currency, null otherwise or without a rate) and receipt_count. people names the user ids. Next to the page, over all expenses: the trip currency, the total and the totals per category in it, and unconverted_item_ids, foreign expenses no exchange rate converts, which count in no total. Use the ids with update_budget_item and delete_budget_item.`,
     inputSchema: { tripId: idSchema, ...budgetItemsPageSchema.shape },
+    outputSchema: listBudgetItemsOutputSchema,
+    _meta: uiTool(mcpAppUri('budget'), {
+      invoking: 'Reading the budget…',
+      invoked: 'Budget loaded',
+      visibility: ['model', 'app'],
+    }),
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: budgetAddonOn,
     access: { group: 'budget', mode: 'read' },
@@ -141,7 +151,7 @@ export class BudgetItemsMcp {
     const start = offset ?? 0;
     const page = fillPage(items.slice(start, start + (limit ?? BUDGET_ITEMS_PAGE_DEFAULT)), currency, rates);
     const end = start + page.length;
-    return ok({
+    return okStructured({
       currency,
       total: totals.total,
       by_category: totals.byCategory,
@@ -156,15 +166,22 @@ export class BudgetItemsMcp {
 
   @Tool({
     name: 'get_budget_per_person',
+    title: 'Trip budget per person',
     description:
       "What each person on the trip's expenses owes in all and how much of that they paid, in the trip currency: per user total_assigned (their shares of the expenses they are part of), total_paid (the shares marked paid) and items_count. Each share is converted at the rate its expense was booked at; a foreign expense no exchange rate converts counts for nobody. For who has to pay whom to settle up, use get_settlement_summary.",
     inputSchema: { tripId: idSchema },
+    outputSchema: budgetPerPersonOutputSchema,
+    _meta: uiTool(mcpAppUri('budget'), {
+      invoking: 'Reading the budget…',
+      invoked: 'Budget loaded',
+      visibility: ['model', 'app'],
+    }),
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: budgetAddonOn,
     access: { group: 'budget', mode: 'read' },
   })
   async getBudgetPerPerson({ tripId }: { tripId: number }, ctx: McpContext) {
     if (!(await this.budget.verifyTripAccess(tripId, ctx.userId))) return noAccess();
-    return ok({ summary: await this.budget.perPersonSummary(tripId) });
+    return okStructured({ summary: await this.budget.perPersonSummary(tripId) });
   }
 }

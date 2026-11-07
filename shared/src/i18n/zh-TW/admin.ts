@@ -746,6 +746,15 @@ const admin: TranslationStrings = {
   'admin.mcpTokens.deleteSuccess': '令牌已刪除',
   'admin.mcpTokens.deleteError': '刪除令牌失敗',
   'admin.mcpTokens.loadError': '載入令牌失敗',
+  'admin.mcpToolUsage.title': '工具使用情況',
+  'admin.mcpToolUsage.subtitle': '哪些 MCP 工具被呼叫、被多少人呼叫以及最近一次呼叫時間',
+  'admin.mcpToolUsage.empty': '此期間沒有呼叫任何 MCP 工具',
+  'admin.mcpToolUsage.loadError': '無法載入工具使用情況',
+  'admin.mcpToolUsage.tool': '工具',
+  'admin.mcpToolUsage.calls': '呼叫次數',
+  'admin.mcpToolUsage.users': '使用者',
+  'admin.mcpToolUsage.lastCall': '最近呼叫',
+  'admin.mcpToolUsage.period': '期間（天）',
   'admin.oauthSessions.sectionTitle': 'OAuth 工作階段',
   'admin.oauthSessions.clientName': '客戶端',
   'admin.oauthSessions.owner': '所有者',
@@ -1033,5 +1042,7 @@ const admin: TranslationStrings = {
   'admin.contribute.prompt.thanks': '謝謝。地點詳情現在已開始分享。',
   'admin.servicesCard.title': '地點搜尋與路線',
   'admin.servicesCard.hint': 'TREK 自有服務、負責搜尋與大眾運輸的提供者，以及搜尋紀錄。',
+  'admin.mcpApps.title': '互動式檢視',
+  'admin.mcpApps.subtitle': '允許支援的 MCP 主機在回答旁以互動式檢視顯示旅程、清單和地圖',
 };
 export default admin;

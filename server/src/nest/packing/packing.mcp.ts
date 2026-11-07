@@ -1,4 +1,5 @@
 import { ADDON_IDS } from '../../addons';
+import { getAppUrl } from '../../app-config';
 import { noAccess, permissionDenied, adminRequired } from '../../mcp/tools/_shared';
 import {
   McpController,
@@ -11,6 +12,10 @@ import {
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   errorResult,
   ok,
+  okStructured,
+  uiTool,
+  withResultMeta,
+  appCallable,
 } from '../../nest-mcp';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
@@ -18,6 +23,8 @@ import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { PackingWritesService } from './packing-writes.service';
 import { PackingService } from './packing.service';
 import {
+  MCP_APP_URL_META_KEY,
+  mcpAppUri,
   packingApplyTemplateRequestSchema,
   packingCreateBagRequestSchema,
   packingCreateItemRequestSchema,
@@ -28,6 +35,7 @@ import {
   type PackingListItemsRequest,
   type PackingVisibility,
   idSchema,
+  listPackingItemsOutputSchema,
 } from '@trek/shared';
 
 import { z } from 'zod';
@@ -45,8 +53,8 @@ function parseId(value: string | string[]): number | null {
 
 /**
  * Packing MCP surface — ported from the legacy registrars: the seventeen
- * tools from src/mcp/tools/packing.ts and the trek://trips/{tripId}/packing +
- * trek://trips/{tripId}/packing/bags resources from src/mcp/resources.ts
+ * tools from the packing registrar and the trek://trips/{tripId}/packing +
+ * trek://trips/{tripId}/packing/bags resources from the retired resources registrar
  * (identical names, descriptions, schemas, annotations and error/payload
  * shapes; the one deviation is the packing:bag-deleted payload, aligned with
  * the REST route). The registration-time gates map to `when` (the
@@ -73,6 +81,7 @@ export class PackingMcp {
 
   @Tool({
     name: 'create_packing_item',
+    title: 'Add packing item',
     description:
       'Add an item to the packing checklist for a trip. It lands on the common list everyone shares unless visibility says otherwise; use set_packing_item_sharing to move an existing item between those tiers.',
     inputSchema: {
@@ -148,12 +157,14 @@ export class PackingMcp {
 
   @Tool({
     name: 'toggle_packing_item',
+    title: 'Toggle packing item',
     description: 'Check or uncheck a packing item.',
     inputSchema: {
       tripId: idSchema,
       itemId: idSchema,
       checked: z.boolean(),
     },
+    _meta: appCallable(),
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: packingAddonOn,
     access: { group: 'packing', mode: 'write' },
@@ -176,6 +187,7 @@ export class PackingMcp {
 
   @Tool({
     name: 'delete_packing_item',
+    title: 'Delete packing item',
     description: 'Remove an item from the packing checklist.',
     inputSchema: {
       tripId: idSchema,
@@ -194,6 +206,7 @@ export class PackingMcp {
 
   @Tool({
     name: 'update_packing_item',
+    title: 'Update packing item',
     description:
       'Change a packing item: rename it, recategorise it, move it into a bag, set how many are needed, count how many are already packed, record its weight, or flip it between the common list and your own. Ticking it off is toggle_packing_item; choosing who a private item is shared with is set_packing_item_sharing.',
     inputSchema: {
@@ -259,6 +272,7 @@ export class PackingMcp {
 
   @Tool({
     name: 'set_packing_item_sharing',
+    title: 'Set packing item sharing',
     description:
       "Move an existing packing item between the three sharing tiers: the common list the whole trip pools into, the owner's own list, or shared with named trip members. Only the item's owner may change this. Everything else about an item is update_packing_item.",
     inputSchema: {
@@ -300,6 +314,7 @@ export class PackingMcp {
 
   @Tool({
     name: 'reorder_packing_items',
+    title: 'Reorder packing items',
     description: 'Set the display order of packing items within a trip.',
     inputSchema: {
       tripId: idSchema,
@@ -316,6 +331,7 @@ export class PackingMcp {
 
   @Tool({
     name: 'list_packing_items',
+    title: 'List packing items',
     description:
       "List the packing items of a trip the user may see (another member's personal items stay hidden), with the trip's bags and who looks after each category. Narrow it to one category, one bag or what is still open; group_by says how the list is meant to be shown, by category or by bag, as the packing list groups it.",
     inputSchema: {
@@ -333,9 +349,11 @@ export class PackingMcp {
         "How the list is shown: by 'category' (the default) or by 'bag'. It filters nothing",
       ),
     },
+    outputSchema: listPackingItemsOutputSchema,
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: packingAddonOn,
     access: { group: 'packing', mode: 'read' },
+    _meta: uiTool(mcpAppUri('packing'), { invoking: 'Reading the packing list…', invoked: 'Packing list loaded' }),
   })
   async listPackingItems(
     { tripId, category, bag_id, status }: { tripId: number } & PackingListItemsRequest,
@@ -352,11 +370,12 @@ export class PackingMcp {
     );
     const bags = await this.packing.listBags(tripId);
     const category_assignees = await this.packing.getCategoryAssignees(tripId);
-    return ok({ items, bags, category_assignees });
+    return withResultMeta(okStructured({ items, bags, category_assignees }), { [MCP_APP_URL_META_KEY]: getAppUrl() });
   }
 
   @Tool({
     name: 'list_packing_bags',
+    title: 'List packing bags',
     description: 'List all packing bags for a trip.',
     inputSchema: {
       tripId: idSchema,
@@ -373,6 +392,7 @@ export class PackingMcp {
 
   @Tool({
     name: 'create_packing_bag',
+    title: 'Create packing bag',
     description: 'Create a new packing bag (e.g. "Carry-on", "Checked bag").',
     inputSchema: {
       tripId: idSchema,
@@ -409,6 +429,7 @@ export class PackingMcp {
 
   @Tool({
     name: 'update_packing_bag',
+    title: 'Update packing bag',
     description:
       'Rename or recolor a packing bag, give it a weight limit, or hand it to one traveller. Who else packs into it is set_bag_members.',
     inputSchema: {
@@ -480,6 +501,7 @@ export class PackingMcp {
 
   @Tool({
     name: 'delete_packing_bag',
+    title: 'Delete packing bag',
     description: 'Delete a packing bag (items in the bag are unassigned, not deleted).',
     inputSchema: {
       tripId: idSchema,
@@ -498,6 +520,7 @@ export class PackingMcp {
 
   @Tool({
     name: 'set_bag_members',
+    title: 'Assign packing bag members',
     description: 'Assign trip members to a packing bag (determines who packs what bag).',
     inputSchema: {
       tripId: idSchema,
@@ -522,6 +545,7 @@ export class PackingMcp {
 
   @Tool({
     name: 'get_packing_category_assignees',
+    title: 'Get packing category assignees',
     description: 'Get which trip members are assigned to each packing category.',
     inputSchema: {
       tripId: idSchema,
@@ -538,6 +562,7 @@ export class PackingMcp {
 
   @Tool({
     name: 'set_packing_category_assignees',
+    title: 'Assign packing category members',
     description: 'Assign trip members to a packing category.',
     inputSchema: {
       tripId: idSchema,
@@ -564,6 +589,7 @@ export class PackingMcp {
 
   @Tool({
     name: 'apply_packing_template',
+    title: 'Apply packing template',
     description:
       "Apply a packing template to a trip (adds items from the template), to the common list or as the caller's own items.",
     inputSchema: {
@@ -594,6 +620,7 @@ export class PackingMcp {
 
   @Tool({
     name: 'list_packing_templates',
+    title: 'List packing templates',
     description:
       'List the reusable packing templates (id, name, item count) so one can be applied with apply_packing_template.',
     inputSchema: {
@@ -610,6 +637,7 @@ export class PackingMcp {
 
   @Tool({
     name: 'save_packing_template',
+    title: 'Save packing template',
     description:
       'Save the current packing list as a reusable template. Returns the new template (id, name, category/item counts). Admin only.',
     inputSchema: {
@@ -632,6 +660,7 @@ export class PackingMcp {
 
   @Tool({
     name: 'delete_packing_template',
+    title: 'Delete packing template',
     description: 'Delete a reusable packing template. Templates are global, so deletion is admin only.',
     inputSchema: {
       templateId: idSchema,
@@ -649,6 +678,7 @@ export class PackingMcp {
 
   @Tool({
     name: 'bulk_import_packing',
+    title: 'Bulk import packing items',
     description:
       'Import multiple packing items at once from a list. Optionally assign each to a bag (by name — created if missing), set its weight, or pre-check it.',
     inputSchema: {
@@ -773,4 +803,25 @@ export class PackingMcp {
   // The packing-list prompt moved to trips/trip-prompts.mcp.ts: it reads the
   // whole-trip summary for the title, and the read model lives above this
   // module (the fold that deleted trips.bridge).
+
+  @Tool({
+    name: 'clone_packing_item',
+    title: 'Clone packing item',
+    description:
+      'Copy one packing item into a new item of your own on the same trip, unchecked, the way "copy to my list" does in the app. Returns the copy.',
+    inputSchema: { tripId: idSchema, itemId: idSchema },
+    annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+    when: packingAddonOn,
+    access: { group: 'packing', mode: 'write' },
+  })
+  async clonePackingItem({ tripId, itemId }: { tripId: number; itemId: number }, ctx: McpContext) {
+    if (!(await this.packing.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('packing_edit', tripId, ctx.userId))) return permissionDenied();
+    const item = await this.packing.cloneItem(tripId, itemId, ctx.userId);
+    if (!item) return errorResult('Item not found.');
+    // The copy is the caller's own: only the sockets that may see it hear of it.
+    this.packing.emitToViewers(String(tripId), 'packing:created', { item }, item, undefined);
+    this.packing.broadcastBagTotals(String(tripId));
+    return ok({ item });
+  }
 }

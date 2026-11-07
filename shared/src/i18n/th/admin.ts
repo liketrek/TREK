@@ -689,6 +689,15 @@ const admin: TranslationStrings = {
   'admin.mcpTokens.deleteSuccess': 'ลบโทเค็นแล้ว',
   'admin.mcpTokens.deleteError': 'ลบโทเค็นไม่สำเร็จ',
   'admin.mcpTokens.loadError': 'โหลดโทเค็นไม่สำเร็จ',
+  'admin.mcpToolUsage.title': 'การใช้งานเครื่องมือ',
+  'admin.mcpToolUsage.subtitle': 'เครื่องมือ MCP ใดถูกเรียก โดยกี่คน และครั้งล่าสุดเมื่อใด',
+  'admin.mcpToolUsage.empty': 'ไม่มีการเรียกเครื่องมือ MCP ในช่วงนี้',
+  'admin.mcpToolUsage.loadError': 'โหลดการใช้งานเครื่องมือไม่สำเร็จ',
+  'admin.mcpToolUsage.tool': 'เครื่องมือ',
+  'admin.mcpToolUsage.calls': 'การเรียก',
+  'admin.mcpToolUsage.users': 'ผู้ใช้',
+  'admin.mcpToolUsage.lastCall': 'การเรียกล่าสุด',
+  'admin.mcpToolUsage.period': 'ช่วงเวลา (วัน)',
   'admin.oauthSessions.sectionTitle': 'เซสชัน OAuth',
   'admin.oauthSessions.clientName': 'ลูกค้า',
   'admin.oauthSessions.owner': 'เจ้าของ',
@@ -1086,5 +1095,7 @@ const admin: TranslationStrings = {
   'admin.contribute.prompt.thanks': 'ขอบคุณ ตอนนี้รายละเอียดสถานที่ถูกแชร์แล้ว',
   'admin.servicesCard.title': 'การค้นหาสถานที่และเส้นทาง',
   'admin.servicesCard.hint': 'บริการของ TREK เอง ผู้ให้บริการที่ตอบการค้นหาและการขนส่งสาธารณะ และบันทึกการค้นหา',
+  'admin.mcpApps.title': 'มุมมองแบบโต้ตอบ',
+  'admin.mcpApps.subtitle': 'ให้โฮสต์ MCP ที่รองรับแสดงทริป รายการ และแผนที่เป็นมุมมองแบบโต้ตอบข้างคำตอบ',
 };
 export default admin;

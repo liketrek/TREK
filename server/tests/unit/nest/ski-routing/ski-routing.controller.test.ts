@@ -160,11 +160,11 @@ function makeMcp(accessible: boolean) {
 }
 
 describe('SkiRoutingMcp', () => {
-  it('SKIMCP-001: plan_ski_route is read only, gated on Tours and scoped to reading trips', () => {
+  it('SKIMCP-001: plan_ski_route is read only, gated on Tours and scoped to reading tours', () => {
     const options = toolOptions();
     expect(options.name).toBe('plan_ski_route');
     expect(options.annotations?.readOnlyHint).toBe(true);
-    expect(options.access).toEqual({ group: 'trips', mode: 'read' });
+    expect(options.access).toEqual({ group: 'tours', mode: 'read' });
     const isAddonEnabled = vi.fn((id: string) => id === ADDON_IDS.TOURS);
     const self = { addons: { isAddonEnabled } } as unknown as SkiRoutingMcp;
     expect(options.when?.(ctx, self)).toBe(true);

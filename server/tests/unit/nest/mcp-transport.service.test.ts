@@ -5,6 +5,7 @@ import type { AddonsService } from '../../../src/nest/addons/addons.service';
 import type { AuditService } from '../../../src/nest/audit/audit.service';
 import { IS_PUBLIC } from '../../../src/nest/auth-core/public.decorator';
 import type { AuthService } from '../../../src/nest/auth/auth.service';
+import type { McpAppsService } from '../../../src/nest/mcp-apps/mcp-apps.service';
 import { McpTransportController } from '../../../src/nest/mcp-transport/mcp-transport.controller';
 import {
   McpTransportService,
@@ -45,8 +46,9 @@ function makeService(
   const addons = { isAddonEnabled: vi.fn(() => true), ...overrides.addons } as unknown as AddonsService;
   const audit = { writeAudit: vi.fn() } as unknown as AuditService;
   const registry = { attach: vi.fn() } as unknown as McpRegistryService;
+  const mcpApps = { offeredToSessions: vi.fn(async () => false) } as unknown as McpAppsService;
   return {
-    svc: new McpTransportService(auth, tokens, oauth, addons, audit, registry),
+    svc: new McpTransportService(auth, tokens, oauth, addons, audit, mcpApps, registry),
     auth,
     tokens,
     oauth,

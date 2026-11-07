@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 /**
  * Airport lookup MCP tools, moved 1:1 from the legacy registrar in
- * src/mcp/tools/mapsWeather.ts. Same names, descriptions, input schemas and
+ * the mapsWeather registrar. Same names, descriptions, input schemas and
  * result shapes; the registration-time `canRead(scopes, 'geo')` gate became the
  * declarative `access` marker, matching maps.mcp.ts.
  *
@@ -17,6 +17,7 @@ import { z } from 'zod';
 export class AirportsMcp {
   @Tool({
     name: 'search_airports',
+    title: 'Search airports',
     description:
       'Search for airports by name, city, or IATA code. Returns matching airports with IATA code, name, city, country, coordinates, and timezone. Use before create_transport (flight) to get the correct IATA code and timezone for endpoints.',
     inputSchema: {
@@ -37,6 +38,7 @@ export class AirportsMcp {
 
   @Tool({
     name: 'get_airport',
+    title: 'Get airport by IATA code',
     description: 'Get a single airport by its IATA code. Returns name, city, country, coordinates, and timezone.',
     inputSchema: {
       iata: z.string().length(3).toUpperCase().describe('IATA airport code (e.g. "ZRH", "AMS", "CDG")'),

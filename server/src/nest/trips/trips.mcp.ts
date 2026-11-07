@@ -1,4 +1,5 @@
 import { ADDON_IDS } from '../../addons';
+import { getAppUrl } from '../../app-config';
 import { canRead, canReadTrips, canDeleteTrips } from '../../mcp/scopes';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import {
@@ -15,6 +16,9 @@ import {
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   errorResult,
   ok,
+  okStructured,
+  uiTool,
+  withResultMeta,
 } from '../../nest-mcp';
 import { AddonsService } from '../addons/addons.service';
 import { CalendarService } from '../calendar/calendar.service';
@@ -29,7 +33,14 @@ import { TripReadModelService } from '../trip-read-model/trip-read-model.service
 import { TripWritesService, type TripListWriter } from './trip-writes.service';
 import { tripUpdatePermissions } from './trips.helpers';
 import { TripsService, NotFoundError, ValidationError } from './trips.service';
-import { idSchema, MAX_TRIP_DAYS } from '@trek/shared';
+import {
+  idSchema,
+  MAX_TRIP_DAYS,
+  listTripsOutputSchema,
+  MCP_APP_URL_META_KEY,
+  mcpAppUri,
+  tripOverviewOutputSchema,
+} from '@trek/shared';
 
 import { z } from 'zod';
 
@@ -64,10 +75,10 @@ function jsonContent(uri: string, data: unknown) {
 
 /**
  * Trip MCP surface — ported 1:1 from the legacy registrars: ten tools from
- * src/mcp/tools/trips.ts (the three share-link tools moved to
+ * the trips registrar (the three share-link tools moved to
  * src/nest/share/share.mcp.ts), the trek://trips, trek://trips/{tripId} and
- * trek://trips/{tripId}/members resources from src/mcp/resources.ts, and the
- * trip-summary prompt from src/mcp/tools/prompts.ts (identical names,
+ * trek://trips/{tripId}/members resources from the retired resources registrar, and the
+ * trip-summary prompt from the prompts registrar (identical names,
  * descriptions, schemas, annotations, error/payload shapes and broadcasts).
  *
  * Access markers deviate from the declarative default in two places, on
@@ -109,6 +120,7 @@ export class TripsMcp {
 
   @Tool({
     name: 'create_trip',
+    title: 'Create a trip',
     description:
       'Create a new trip. Returns the created trip; its day_count is the number of days generated, one per day of the date range.',
     inputSchema: {
@@ -201,6 +213,7 @@ export class TripsMcp {
 
   @Tool({
     name: 'update_trip',
+    title: 'Update a trip',
     description:
       "Update an existing trip's details. Shortening a dated trip deletes its last days by position, with their planned places, notes and any stay that checks in or out on them; day plans move with the dates, so a later start with the same end also takes the last days. When a change removed days, the result lists them in removed_days (id, day_number and date as they stood before; reason overflow for a day past the new range, spare for an empty one).",
     inputSchema: {
@@ -336,6 +349,7 @@ export class TripsMcp {
 
   @Tool({
     name: 'search_cover_images',
+    title: 'Search trip cover images',
     description:
       "Search Unsplash for candidate cover photos and return their URLs, thumbnails and photographer credits. Use this when the user wants a cover image but has no URL of their own, then pass the chosen photo's url back as update_trip's cover_image. Nothing is saved to a trip here.",
     inputSchema: {
@@ -359,6 +373,7 @@ export class TripsMcp {
 
   @Tool({
     name: 'delete_trip',
+    title: 'Delete a trip',
     description: 'Delete a trip. Only the trip owner can delete it.',
     inputSchema: {
       tripId: idSchema,
@@ -377,31 +392,46 @@ export class TripsMcp {
   // they are navigation tools that any MCP client needs to discover trip IDs.
   @Tool({
     name: 'list_trips',
+    title: 'List my trips',
     description:
       'List all trips the current user owns or is a member of. Use this for trip discovery before calling get_trip_summary.',
     inputSchema: {
       include_archived: z.boolean().optional().describe('Include archived trips (default false)'),
     },
+    outputSchema: listTripsOutputSchema,
     annotations: TOOL_ANNOTATIONS_READONLY,
+    _meta: uiTool(mcpAppUri('trip-list'), { invoking: 'Reading your trips…', invoked: 'Trips loaded' }),
   })
   async listTrips({ include_archived }: { include_archived?: boolean }, ctx: McpContext) {
-    const notice = ctx.getDeprecationNotice ? ctx.getDeprecationNotice() : null;
     const trips = await this.trips.list(ctx.userId, include_archived ? null : 0);
-    if (notice)
-      return {
-        isError: true as const,
-        content: [
-          { type: 'text' as const, text: notice },
-          { type: 'text' as const, text: JSON.stringify({ trips }, null, 2) },
-        ],
-      };
-    return ok({ trips });
+    return withResultMeta(okStructured({ trips }), { [MCP_APP_URL_META_KEY]: getAppUrl() });
+  }
+
+  // --- TRIP OVERVIEW ---
+
+  @Tool({
+    name: 'get_trip_overview',
+    title: 'Get trip overview',
+    description:
+      'A trip in a few lines: dates, how many days, places, bookings and travelers it has, and its next days with their stop counts. Use get_trip_summary for the whole trip.',
+    inputSchema: { tripId: idSchema },
+    outputSchema: tripOverviewOutputSchema,
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    access: { group: 'trips', mode: 'read' },
+    _meta: uiTool(mcpAppUri('trip-overview'), { invoking: 'Reading the trip…', invoked: 'Trip loaded' }),
+  })
+  async getTripOverview({ tripId }: { tripId: number }, ctx: McpContext) {
+    if (!(await this.trips.canAccessTrip(tripId, ctx.userId))) return noAccess();
+    const overview = await this.readModel.getTripOverview(tripId);
+    if (!overview) return noAccess();
+    return withResultMeta(okStructured({ ...overview }), { [MCP_APP_URL_META_KEY]: getAppUrl() });
   }
 
   // --- TRIP SUMMARY ---
 
   @Tool({
     name: 'get_trip_summary',
+    title: 'Get trip summary',
     description:
       'Get a full denormalized summary of a trip in a single call: metadata, members, days with assignments and notes, accommodations, budget line items (when enabled), packing list (when enabled), reservations, collab notes and poll/message counts (when enabled), and to-do items (when enabled). Use this as a context loader before planning or modifying a trip.',
     inputSchema: {
@@ -434,7 +464,6 @@ export class TripsMcp {
       if (collabFeatures?.polls) pollCount = (await this.collab.listPolls(tripId)).length;
       if (collabFeatures?.chat) messageCount = await this.collab.countMessages(tripId);
     }
-    const notice = ctx.getDeprecationNotice ? ctx.getDeprecationNotice() : null;
     // The core bucket (trip metadata, members WITH email, days with place
     // coordinates, accommodations) carries confidential PII and itinerary data,
     // so it is gated on trips:read just like the sub-sections below. Without a
@@ -457,14 +486,6 @@ export class TripsMcp {
       pollCount,
       messageCount,
     };
-    if (notice)
-      return {
-        isError: true as const,
-        content: [
-          { type: 'text' as const, text: notice },
-          { type: 'text' as const, text: JSON.stringify(summaryData, null, 2) },
-        ],
-      };
     return ok(summaryData);
   }
 
@@ -472,6 +493,7 @@ export class TripsMcp {
 
   @Tool({
     name: 'list_trip_members',
+    title: 'List trip members',
     description: 'List all members of a trip (owner + collaborators).',
     inputSchema: {
       tripId: idSchema,
@@ -489,6 +511,7 @@ export class TripsMcp {
 
   @Tool({
     name: 'add_trip_member',
+    title: 'Add a trip member',
     description:
       'Add a user to a trip by their username or email address. Needs the member_manage permission, which by default only the trip owner holds. Use create_trip_guest instead for a companion who has no TREK account.',
     inputSchema: {
@@ -520,6 +543,7 @@ export class TripsMcp {
 
   @Tool({
     name: 'remove_trip_member',
+    title: 'Remove a trip member',
     description:
       'Remove somebody else from a trip. Needs the member_manage permission, which by default only the trip owner holds. When the user means themselves, prefer leave_trip: it says so plainly and needs no permission.',
     inputSchema: {
@@ -541,6 +565,7 @@ export class TripsMcp {
 
   @Tool({
     name: 'leave_trip',
+    title: 'Leave a trip',
     description:
       'Leave a trip you were invited to, giving up your own access to it. Prefer this over remove_trip_member whenever the user means themselves. The owner cannot leave their own trip.',
     inputSchema: {
@@ -573,6 +598,7 @@ export class TripsMcp {
 
   @Tool({
     name: 'create_trip_guest',
+    title: 'Add a trip guest',
     description:
       'Add a travelling companion who has no TREK account to a trip. Use this when the person cannot be found by username or email. A guest can be assigned to budget splits, packing items, to-dos and day participants like any member, but never signs in and is never emailed. Only the trip owner can do this.',
     inputSchema: {
@@ -599,6 +625,7 @@ export class TripsMcp {
 
   @Tool({
     name: 'rename_trip_guest',
+    title: 'Rename a trip guest',
     description: 'Rename a guest on a trip. Only the trip owner can do this.',
     inputSchema: {
       tripId: idSchema,
@@ -626,6 +653,7 @@ export class TripsMcp {
 
   @Tool({
     name: 'delete_trip_guest',
+    title: 'Remove a trip guest',
     description:
       'Remove a guest from a trip. This deletes the guest outright (they exist only for this trip) and hands their share of any expense to the others in its split. Refused while the guest paid for an expense or is part of a recorded payment: change the payer or delete the payment first. Only the trip owner can do this.',
     inputSchema: {
@@ -648,6 +676,7 @@ export class TripsMcp {
 
   @Tool({
     name: 'copy_trip',
+    title: 'Copy a trip',
     description:
       'Duplicate a trip (all days, places, itinerary, packing, budget, reservations, day notes). Packing items and to-dos are reset to unchecked. Returns the new trip.',
     inputSchema: {
@@ -672,6 +701,7 @@ export class TripsMcp {
 
   @Tool({
     name: 'export_trip_ics',
+    title: 'Export trip calendar',
     description:
       "Export a trip's itinerary and reservations as iCalendar (.ics) format text. Useful for importing into calendar apps.",
     inputSchema: {

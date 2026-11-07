@@ -99,8 +99,8 @@ const PHOTO_PROVIDER = z.enum(['immich', 'synologyphotos']);
 const MAX_PROVIDER_PHOTOS_PER_CALL = 100;
 
 /**
- * Journey MCP surface — ported 1:1 from the legacy registrar
- * src/mcp/tools/journey.ts (23 tools): identical names, descriptions, zod input
+ * Journey MCP surface — ported 1:1 from the retired
+ * the journey registrar (23 tools): identical names, descriptions, zod input
  * schemas, annotations, and error/payload shapes. The legacy `if (R)` / `if (W)`
  * checks become declarative read/write markers; the three `if (S)` share tools
  * become `{ group: 'journey', mode: 'share' }`, which is why McpAccessMode is
@@ -133,6 +133,7 @@ export class JourneyMcp {
 
   @Tool({
     name: 'list_journeys',
+    title: 'List journeys',
     description: 'List all journeys owned or contributed to by the current user.',
     inputSchema: {},
     annotations: TOOL_ANNOTATIONS_READONLY,
@@ -145,6 +146,7 @@ export class JourneyMcp {
 
   @Tool({
     name: 'get_journey',
+    title: 'Get journey',
     description: 'Get a full journey including entries, contributors, and linked trips.',
     inputSchema: { journeyId: idSchema },
     annotations: TOOL_ANNOTATIONS_READONLY,
@@ -159,6 +161,7 @@ export class JourneyMcp {
 
   @Tool({
     name: 'get_journey_stats',
+    title: 'Get journey stats',
     description:
       'What a journey adds up to: distance travelled in metres, calendar days spanned, countries in visit order, the furthest point reached, and entry, photo and place counts. Stops the traveller switched off with update_journey_entry count towards none of those and are listed under excluded instead. Prefer this over get_journey whenever the question is about totals, since the stats get_journey carries are three counts and nothing else.',
     inputSchema: {
@@ -187,6 +190,7 @@ export class JourneyMcp {
 
   @Tool({
     name: 'list_journey_entries',
+    title: 'List journey entries',
     description:
       'List the entries of a journey in reading order, with the id and title of the journey. from/to keep only the entries of those days (YYYY-MM-DD, both included), so asking for one day reads that day and no more.',
     inputSchema: { journeyId: idSchema, ...journeyEntriesRangeSchema.shape },
@@ -207,6 +211,7 @@ export class JourneyMcp {
 
   @Tool({
     name: 'get_journey_entry',
+    title: 'Get journey entry',
     description:
       'One journal entry by its id, as list_journey_entries answers it (photos included), with the id and title of its journey.',
     inputSchema: { entryId: idSchema },
@@ -225,6 +230,7 @@ export class JourneyMcp {
 
   @Tool({
     name: 'list_journey_contributors',
+    title: 'List journey contributors',
     description: 'List all contributors (owner and collaborators) of a journey.',
     inputSchema: { journeyId: idSchema },
     annotations: TOOL_ANNOTATIONS_READONLY,
@@ -239,6 +245,7 @@ export class JourneyMcp {
 
   @Tool({
     name: 'get_journey_suggestions',
+    title: 'Get journey suggestions',
     description: 'Get trip suggestions for creating a new journey (recently completed trips not yet in any journey).',
     inputSchema: {},
     annotations: TOOL_ANNOTATIONS_READONLY,
@@ -251,6 +258,7 @@ export class JourneyMcp {
 
   @Tool({
     name: 'list_journey_available_trips',
+    title: 'List linkable journey trips',
     description: 'List all trips available to link to a journey.',
     inputSchema: {},
     annotations: TOOL_ANNOTATIONS_READONLY,
@@ -265,6 +273,7 @@ export class JourneyMcp {
 
   @Tool({
     name: 'create_journey',
+    title: 'Create journey',
     description: 'Create a new journey, optionally linking existing trips.',
     inputSchema: journeyCreateToolSchema.shape,
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
@@ -280,6 +289,7 @@ export class JourneyMcp {
 
   @Tool({
     name: 'update_journey',
+    title: 'Update journey',
     description:
       "Update an existing journey's title, subtitle, cover, or status. Owner only. status_override sets the state shown for the journey (draft, live, completed) instead of deriving it from the linked trips' dates; null goes back to the dates. auto_prepare_recordings switches the background preparation of its recorded days from Dawarich on or off (see get_journey_recording_prep). Answers with the journey and, under previous, what the changed settings held before.",
     inputSchema: { journeyId: idSchema, ...journeyUpdateToolSchema.shape },
@@ -296,6 +306,7 @@ export class JourneyMcp {
 
   @Tool({
     name: 'restore_journey_suggestions',
+    title: 'Restore journey suggestions',
     description:
       'Bring back every trip-derived suggestion that was dismissed from this journey. Answers with how many came back.',
     inputSchema: {
@@ -313,6 +324,7 @@ export class JourneyMcp {
 
   @Tool({
     name: 'delete_journey',
+    title: 'Delete journey',
     description: 'Delete a journey. Owner only — this cannot be undone.',
     inputSchema: { journeyId: idSchema },
     annotations: TOOL_ANNOTATIONS_DELETE,
@@ -327,6 +339,7 @@ export class JourneyMcp {
 
   @Tool({
     name: 'add_journey_trip',
+    title: 'Link trip to journey',
     description: 'Link a trip to a journey. Syncs skeleton entries for all places in the trip.',
     inputSchema: { journeyId: idSchema, tripId: idSchema },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
@@ -341,6 +354,7 @@ export class JourneyMcp {
 
   @Tool({
     name: 'remove_journey_trip',
+    title: 'Unlink trip from journey',
     description: 'Unlink a trip from a journey. Owner only.',
     inputSchema: { journeyId: idSchema, tripId: idSchema },
     annotations: TOOL_ANNOTATIONS_DELETE,
@@ -355,6 +369,7 @@ export class JourneyMcp {
 
   @Tool({
     name: 'create_journey_entry',
+    title: 'Add journey entry',
     description:
       'Create a new entry in a journey. Give location_lat/location_lng whenever the place is known, otherwise the entry is text-only and never appears on the journey map or in its distance.',
     inputSchema: {
@@ -431,6 +446,7 @@ export class JourneyMcp {
 
   @Tool({
     name: 'update_journey_entry',
+    title: 'Update journey entry',
     description:
       'Update an existing journey entry: its text, date, place, coordinates, weather, tags, verdict, visibility, whether it is a draft, or whether it counts as a stop. Fields left out keep their value; pass null to clear one. To move an entry within its day use reorder_journey_entries rather than setting sort_order here. Answers with the entry and, under previous, what the changed fields held before.',
     inputSchema: { entryId: idSchema, ...journeyEntryUpdateToolSchema.shape },
@@ -451,6 +467,7 @@ export class JourneyMcp {
 
   @Tool({
     name: 'delete_journey_entry',
+    title: 'Delete journey entry',
     description: 'Delete a journey entry.',
     inputSchema: { entryId: idSchema },
     annotations: TOOL_ANNOTATIONS_DELETE,
@@ -465,6 +482,7 @@ export class JourneyMcp {
 
   @Tool({
     name: 'reorder_journey_entries',
+    title: 'Reorder journey entries',
     description:
       'Reorder entries within a journey by providing the desired order of entry IDs. Answers with previous_order, the same ids in the order they stood in before.',
     inputSchema: { journeyId: idSchema, ...journeyReorderEntriesToolSchema.shape },
@@ -483,6 +501,7 @@ export class JourneyMcp {
 
   @Tool({
     name: 'reorder_journey_entry_photos',
+    title: 'Reorder entry photos',
     description:
       'Put the photos of one journey entry in a new order. Pass every photo id the entry holds (the journey photo ids list_journey_entries returns), each once, first photo first. The first one is the entry cover.',
     inputSchema: {
@@ -502,6 +521,7 @@ export class JourneyMcp {
 
   @Tool({
     name: 'add_journey_contributor',
+    title: 'Add journey contributor',
     description: 'Add a contributor to a journey. Owner only.',
     inputSchema: {
       journeyId: idSchema,
@@ -523,6 +543,7 @@ export class JourneyMcp {
 
   @Tool({
     name: 'update_journey_contributor_role',
+    title: 'Change contributor role',
     description: 'Update the role of a journey contributor. Owner only.',
     inputSchema: {
       journeyId: idSchema,
@@ -544,6 +565,7 @@ export class JourneyMcp {
 
   @Tool({
     name: 'remove_journey_contributor',
+    title: 'Remove journey contributor',
     description: 'Remove a contributor from a journey. Owner only.',
     inputSchema: {
       journeyId: idSchema,
@@ -564,6 +586,7 @@ export class JourneyMcp {
 
   @Tool({
     name: 'update_journey_preferences',
+    title: 'Update journey preferences',
     description: 'Update per-user preferences for a journey (e.g. hide skeleton entries).',
     inputSchema: {
       journeyId: idSchema,
@@ -585,6 +608,7 @@ export class JourneyMcp {
 
   @Tool({
     name: 'add_journey_provider_photos',
+    title: 'Add provider photos to journey',
     description:
       'Attach photos from a connected library (Immich or Synology Photos) to a journey: to one entry when entryId is given, otherwise to the journey gallery only. Find the asset ids first with search_provider_photos or list_provider_album_photos. No image data passes through here, the journey stores a reference and the app fetches the picture, so this also works for photos far too large to hand to a model. An asset already attached is skipped rather than duplicated, which makes re-running the same call safe.',
     inputSchema: {
@@ -677,6 +701,7 @@ export class JourneyMcp {
 
   @Tool({
     name: 'get_journey_share_link',
+    title: 'Get journey share link',
     description: 'Get the current public share link for a journey. Owner only. Returns null if none exists.',
     inputSchema: { journeyId: idSchema },
     annotations: TOOL_ANNOTATIONS_READONLY,
@@ -693,6 +718,7 @@ export class JourneyMcp {
 
   @Tool({
     name: 'create_journey_share_link',
+    title: 'Create journey share link',
     description:
       'Create or update the public share link for a journey. Owner only. Flags left out keep their current value on an existing link; a new link defaults to timeline/gallery/map on and plan/recordings off. share_plan puts the planned places and GPX tracks on the shared map, share_recordings the recorded days that have a published entry and the stays of published entries; neither shows anything while share_map is off.',
     inputSchema: {
@@ -730,6 +756,7 @@ export class JourneyMcp {
 
   @Tool({
     name: 'delete_journey_share_link',
+    title: 'Revoke journey share link',
     description: 'Revoke the public share link for a journey. Owner only.',
     inputSchema: { journeyId: idSchema },
     annotations: TOOL_ANNOTATIONS_DELETE,
@@ -743,7 +770,7 @@ export class JourneyMcp {
   }
 
   // --- RESOURCES ---
-  // Ported 1:1 from src/mcp/resources.ts (the last legacy registrar): identical
+  // Ported 1:1 from the retired resources registrar (the last legacy registrar): identical
   // names, URIs, descriptions and payload shapes. The legacy registration-time
   // gate `isAddonEnabled(JOURNEY) && canRead(scopes, 'journey')` becomes
   // `when: journeyAddonOn` + the declarative read marker.

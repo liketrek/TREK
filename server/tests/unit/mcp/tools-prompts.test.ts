@@ -162,7 +162,6 @@ beforeAll(async () => {
   );
   budgetMcp = new BudgetMcp(
     promptBudget,
-    new ExchangeRatesService(),
     new RuntimeEnvService(),
     new TripMembershipService(await createTestTripsRepo(testDb), await createTestTripMembersRepo(testDb)),
     addonsStub,

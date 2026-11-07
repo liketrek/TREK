@@ -31,6 +31,8 @@ describe('classify', () => {
     // The image ships wiki/ as the in-app help, help.test.ts serves its pages
     // and images, and the client's help registry test reads its headings.
     assert.deepEqual(classify(['wiki/Updating.md']), { code: true, image: true, deploy: false });
+    // The MCP views are built into the image and tested in their own job.
+    assert.deepEqual(classify(['mcp-apps/src/lib/i18n.ts']), { code: true, image: true, deploy: false });
     assert.deepEqual(classify(['wiki/assets/TripPlanner.png']), { code: true, image: true, deploy: false });
   });
 

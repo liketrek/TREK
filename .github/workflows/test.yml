@@ -24,7 +24,8 @@ permissions:
 #                            the shared ratchet code, the source ratchets
 #                            (size, boundaries, dialect, tx, test SQL, test
 #                            mocks, hand-built services, query API, MCP zod,
-#                            error envelopes, response contracts), open
+#                            MCP output schemas, error envelopes, response
+#                            contracts), the MCP tool-list budget, open
 #                            request schemas, knip
 #   Server: Tests n/7        one slice of the server suite, with coverage
 #   Server: Coverage         merges the slices, checks the per-domain
@@ -44,6 +45,9 @@ permissions:
 #   Client: Bundle           the production build, one chunk per map engine
 #   Client: End-to-End       the app in Chromium and WebKit
 #   Plugin SDK: Types & Coverage
+#   MCP Apps: Types & Coverage
+#                            the MCP views: typecheck, Prettier, the widget
+#                            build, the tests with coverage
 #   Repo: Docker Image       builds the image and boots it until ready
 #   Repo: Helm Chart & Compose
 #   Repo: Sonar Scan         SonarCloud analysis, not required
@@ -65,8 +69,8 @@ permissions:
 #     test jobs feeds the scan.
 #   - Job count: GitHub runs at most 20 jobs of the organisation at once and
 #     does not say in which order it starts queued ones. A code change starts
-#     the 14 shards and about a dozen other jobs; seven of those (parity, the
-#     SDK, the bundle, S3, Postgres, shared coverage, the chart) are done in
+#     the 14 shards and about a dozen other jobs; eight of those (parity, the
+#     SDK, the MCP views, the bundle, S3, Postgres, shared coverage, the chart) are done in
 #     a minute or two, so what queues at the start waits about that long. The
 #     jobs that run for minutes (shards, gates, e2e, the image) must not
 #     outnumber the 20 slots, or one of them waits for another to finish and
@@ -402,6 +406,20 @@ jobs:
         # scripts/mcp-inline-zod-baseline.json. A tool field derives from the
         # request schema in @trek/shared or a shared primitive (idSchema).
         run: cd server && npm run lint:mcp-zod
+
+      - name: MCP tool list may only shrink
+        # Boots the container with every addon on and measures tools/list for
+        # four reference sessions (full, core preset, read-only, trips) against
+        # scripts/mcp-surface-baseline.json: an existing tool may not grow, a
+        # new one may not pass 4 KB. Needs shared built, like the suite.
+        run: cd server && npm run lint:mcp-surface
+
+      - name: MCP read tools without an output schema may only shrink
+        # Counts the read-only @Tool decorators per *.mcp.ts that declare no
+        # outputSchema against scripts/mcp-output-schema-baseline.json. A read
+        # tool declares its result in @trek/shared (mcp-apps/) and answers with
+        # okStructured.
+        run: cd server && npm run lint:mcp-output-schema
 
       - name: Error envelopes may only shrink
         # Counts status: 4xx/5xx literals and new HttpException in services, and
@@ -1005,6 +1023,49 @@ jobs:
           path: shared/coverage/
           retention-days: 1
 
+  # The MCP views (mcp-apps workspace): typecheck, formatting, the widget build
+  # and the tests in one job, each a matter of seconds.
+  mcp-apps:
+    name: 'MCP Apps: Types & Coverage'
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --workspace shared --workspace mcp-apps
+
+      # The widgets import shared's built mcp-apps entry, as the server does.
+      - name: Build shared
+        run: npm run build --workspace=shared
+
+      - name: Typecheck
+        run: npm run typecheck --workspace=mcp-apps
+
+      - name: Prettier
+        run: npm run format:check --workspace=mcp-apps
+
+      - name: Build the widgets
+        run: npm run build --workspace=mcp-apps
+
+      - name: Run tests with coverage
+        run: npm run test:coverage --workspace=mcp-apps
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v6
+        with:
+          name: sonar-mcp-apps-coverage
+          path: mcp-apps/coverage/
+          retention-days: 1
+
   # Typecheck and tests in one job: each takes seconds, and a runner of its
   # own would cost more in setup than it saves.
   plugin-sdk:
@@ -1066,6 +1127,7 @@ jobs:
       - server-coverage
       - client-coverage
       - shared-coverage
+      - mcp-apps
       - plugin-sdk
 
     steps:
@@ -1092,6 +1154,12 @@ jobs:
         with:
           name: sonar-shared-coverage
           path: shared/coverage/
+
+      - name: Download mcp-apps coverage
+        uses: actions/download-artifact@v7
+        with:
+          name: sonar-mcp-apps-coverage
+          path: mcp-apps/coverage/
 
       - name: Download plugin-sdk coverage
         uses: actions/download-artifact@v7
@@ -1328,6 +1396,7 @@ jobs:
       - client-tests
       - client-coverage
       - shared-coverage
+      - mcp-apps
       - plugin-sdk
       - docker-image
       - deploy-manifests

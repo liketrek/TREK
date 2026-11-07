@@ -79,7 +79,7 @@ describe('JourneyBookMcp', () => {
       const entry = getEntry(JourneyBookMcp as unknown as ClassRef, method);
       if (entry?.kind !== 'tool') throw new Error(`${method} is no tool`);
       const reads = READS.includes(method);
-      expect(entry.options.access, method).toEqual({ group: 'journey', mode: reads ? 'read' : 'write' });
+      expect(entry.options.access, method).toEqual({ group: 'studio', mode: reads ? 'read' : 'write' });
       expect(entry.options.annotations?.readOnlyHint, method).toBe(reads);
       return entry;
     });

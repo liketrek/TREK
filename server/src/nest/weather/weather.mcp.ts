@@ -1,13 +1,21 @@
-import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, ok, type McpContext } from '../../nest-mcp';
+import {
+  McpController,
+  Tool,
+  TOOL_ANNOTATIONS_READONLY,
+  ok,
+  type McpContext,
+  okStructured,
+  uiTool,
+} from '../../nest-mcp';
 import { WeatherService } from './weather.service';
 import { WindService } from './wind.service';
-import { WIND_FORECAST_DAYS, windQuerySchema, type WindQuery } from '@trek/shared';
+import { mcpAppUri, WIND_FORECAST_DAYS, windQuerySchema, type WindQuery, weatherOutputSchema } from '@trek/shared';
 
 import { z } from 'zod';
 
 /**
  * Weather MCP tools, moved 1:1 from the legacy registrar in
- * src/mcp/tools/mapsWeather.ts. Same names, descriptions, input schemas and
+ * the mapsWeather registrar. Same names, descriptions, input schemas and
  * result shapes; the registration-time `canRead(scopes, 'weather')` gate became
  * the declarative `access` marker ('weather' is read-only — there is no
  * weather:write).
@@ -27,6 +35,7 @@ export class WeatherMcp {
 
   @Tool({
     name: 'get_weather',
+    title: 'Get a weather forecast',
     description: 'Get weather forecast for a location and date.',
     inputSchema: {
       lat: z.number(),
@@ -34,8 +43,10 @@ export class WeatherMcp {
       date: z.string().describe('ISO date YYYY-MM-DD'),
       lang: z.string().optional().default('en'),
     },
+    outputSchema: weatherOutputSchema,
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'weather', mode: 'read' },
+    _meta: uiTool(mcpAppUri('weather'), { invoking: 'Checking the weather…', invoked: 'Forecast ready' }),
   })
   async getWeather(
     { lat, lng, date, lang }: { lat: number; lng: number; date: string; lang?: string },
@@ -43,7 +54,7 @@ export class WeatherMcp {
   ) {
     try {
       const weather = await this.weather.get(String(lat), String(lng), date, lang ?? 'en');
-      return ok({ weather });
+      return okStructured({ weather });
     } catch (err) {
       return unavailable(err);
     }
@@ -51,6 +62,7 @@ export class WeatherMcp {
 
   @Tool({
     name: 'get_detailed_weather',
+    title: 'Get hourly weather forecast',
     description: 'Get hourly/detailed weather forecast for a location and date.',
     inputSchema: {
       lat: z.number(),
@@ -75,6 +87,7 @@ export class WeatherMcp {
 
   @Tool({
     name: 'get_wind_forecast',
+    title: 'Get a wind forecast',
     description: `Get the wind forecast for a location (lat, lng) on one day (date, YYYY-MM-DD): per local hour the mean speed and the gusts in km/h and the direction the wind comes from in degrees, and for the day the strongest mean, the strongest gust and the dominant direction. Only a forecast is answered: a day in the past or more than ${WIND_FORECAST_DAYS} days ahead comes back with its status (past, beyond_horizon) and no figures. A value the source did not give is null, never calm.`,
     inputSchema: windQuerySchema.shape,
     annotations: TOOL_ANNOTATIONS_READONLY,

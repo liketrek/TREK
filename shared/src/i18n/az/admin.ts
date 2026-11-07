@@ -857,6 +857,15 @@ const admin: TranslationStrings = {
   'admin.mcpTokens.deleteSuccess': 'Token silindi',
   'admin.mcpTokens.deleteError': 'Tokeni silmək mümkün olmadı',
   'admin.mcpTokens.loadError': 'Tokenləri yükləmək mümkün olmadı',
+  'admin.mcpToolUsage.title': 'Alət istifadəsi',
+  'admin.mcpToolUsage.subtitle': 'Hansı MCP alətlərinin çağırıldığı, neçə nəfərin çağırdığı və sonuncu dəfə nə vaxt',
+  'admin.mcpToolUsage.empty': 'Bu dövrdə heç bir MCP aləti çağırılmayıb',
+  'admin.mcpToolUsage.loadError': 'Alət istifadəsi yüklənmədi',
+  'admin.mcpToolUsage.tool': 'Alət',
+  'admin.mcpToolUsage.calls': 'Çağırışlar',
+  'admin.mcpToolUsage.users': 'İstifadəçilər',
+  'admin.mcpToolUsage.lastCall': 'Son çağırış',
+  'admin.mcpToolUsage.period': 'Dövr (gün)',
   'admin.oauthSessions.sectionTitle': 'OAuth sessiyaları',
   'admin.oauthSessions.clientName': 'Müştəri',
   'admin.oauthSessions.owner': 'Sahib',
@@ -1174,6 +1183,9 @@ const admin: TranslationStrings = {
   'admin.servicesCard.title': 'Məkan axtarışı və marşrutlaşdırma',
   'admin.servicesCard.hint':
     'TREK-in öz xidmətləri, axtarışa və ictimai nəqliyyata hansı provayderin cavab verdiyi və axtarış jurnalı.',
+  'admin.mcpApps.title': 'İnteraktiv görünüşlər',
+  'admin.mcpApps.subtitle':
+    'Dəstəkləyən MCP hostlarına səyahətləri, siyahıları və xəritələri cavabın yanında interaktiv görünüş kimi göstərməyə icazə ver',
 };
 
 export default admin;

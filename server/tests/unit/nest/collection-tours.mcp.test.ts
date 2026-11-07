@@ -227,12 +227,12 @@ describe('CollectionToursMcp', () => {
       const access = options(name).access;
       return typeof access === 'function' ? access({ userId: 1, scopes } as McpContext) : access;
     };
-    expect(allowed('getCollectionTour', ['collections:read', 'trips:read'])).toBe(true);
+    expect(allowed('getCollectionTour', ['collections:read', 'tours:read'])).toBe(true);
     expect(allowed('getCollectionTour', ['collections:read'])).toBe(false);
-    expect(allowed('saveTourToCollection', ['collections:write', 'trips:read'])).toBe(true);
-    expect(allowed('saveTourToCollection', ['collections:read', 'trips:read'])).toBe(false);
-    expect(allowed('takeOverCollectionTour', ['trips:write', 'collections:read'])).toBe(true);
-    expect(allowed('takeOverCollectionTour', ['trips:write'])).toBe(false);
+    expect(allowed('saveTourToCollection', ['collections:write', 'tours:read'])).toBe(true);
+    expect(allowed('saveTourToCollection', ['collections:read', 'tours:read'])).toBe(false);
+    expect(allowed('takeOverCollectionTour', ['tours:write', 'collections:read'])).toBe(true);
+    expect(allowed('takeOverCollectionTour', ['tours:write'])).toBe(false);
     expect(allowed('deleteCollectionTour', [])).toEqual({ group: 'collections', mode: 'write' });
   });
 });

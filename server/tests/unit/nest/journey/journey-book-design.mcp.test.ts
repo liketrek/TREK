@@ -126,7 +126,7 @@ describe('the design tools', () => {
     const enabled = vi.spyOn(t.get(AddonsService), 'isAddonEnabled');
     const tools = TOOLS.map(([cls, method]) => toolOf(cls, method));
     expect(tools.map((tool) => [tool.name, tool.access])).toEqual(
-      TOOLS.map(([, , name, mode]) => [name, { group: 'journey', mode }]),
+      TOOLS.map(([, , name, mode]) => [name, { group: 'studio', mode }]),
     );
     const reads = TOOLS.map(([, , , mode]) => mode === 'read');
     expect(tools.map((tool) => tool.annotations?.readOnlyHint === true)).toEqual(reads);

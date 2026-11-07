@@ -36,6 +36,7 @@ import inspector from './inspector';
 import journey from './journey';
 import login from './login';
 import map from './map';
+import mcpApps from './mcpApps';
 import members from './members';
 import memories from './memories';
 import mobileAdmin from './mobileAdmin';
@@ -172,5 +173,6 @@ const locale = {
   ...studioLayers,
   ...studioTemplates,
   ...studioPanels,
+  ...mcpApps,
 };
 export default locale;

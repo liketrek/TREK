@@ -1,3 +1,11 @@
+import { errorResult } from './helpers';
+import {
+  advertisedDescription,
+  advertisedShape,
+  describeIssues,
+  toolHelpTopic,
+  type ToolHelpTopic,
+} from './input-detail';
 import { getEntry, isMcpController, type ClassRef } from './metadata';
 import type {
   McpAccessPolicy,
@@ -16,6 +24,7 @@ import type {
   ResourceTemplateOptions,
   ToolOptions,
 } from './types';
+import { withoutUiMeta } from './ui-meta';
 import { ResourceTemplate as SdkResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 
@@ -37,6 +46,13 @@ function strictInputSchema(schema: ToolOptions['inputSchema']): unknown {
   return z.strictObject(schema);
 }
 
+/** The input schema tools/list shows: the declared one, or for a detailed tool its stand-in. */
+function advertisedInputSchema(options: ToolOptions): unknown {
+  const schema = options.inputSchema;
+  if (!options.detail?.fields?.length || schema === undefined || '_zod' in schema) return strictInputSchema(schema);
+  return z.strictObject(advertisedShape(schema, options.detail, options.name));
+}
+
 export interface McpRegistryOptions {
   accessPolicy?: McpAccessPolicy;
   validateAccess?: McpAccessValidator;
@@ -44,7 +60,12 @@ export interface McpRegistryOptions {
   toolGate?: McpToolGate;
   /** Turns an error a registered tool handler threw into its result; see `McpErrorMapper`. */
   errorMapper?: McpErrorMapper;
+  /** Refuse a registered tool without a `title`, or with a name past 64 characters; see `validate()`. */
+  requireToolTitles?: boolean;
 }
+
+/** The longest tool name the MCP directories accept. */
+const MAX_TOOL_NAME_LENGTH = 64;
 
 type AnyHandler = (this: unknown, ...handlerArgs: unknown[]) => unknown;
 
@@ -72,6 +93,16 @@ interface LooseRegistrar {
     cb: (...cbArgs: unknown[]) => unknown,
   ): unknown;
   registerPrompt(name: string, config: Record<string, unknown>, cb: (...cbArgs: unknown[]) => unknown): unknown;
+}
+
+/** What is wrong with a tool's `detail`, or null: its fields must be fields of a shape input. */
+function detailProblem(options: ToolOptions): string | null {
+  const fields = options.detail?.fields ?? [];
+  if (fields.length === 0) return null;
+  const schema = options.inputSchema;
+  if (schema === undefined || '_zod' in schema) return 'detail.fields needs an inputSchema given as a shape';
+  const unknown = fields.filter((f) => !(f in schema));
+  return unknown.length ? `detail.fields names no input field ${unknown.join(', ')}` : null;
 }
 
 /** `this` for a dynamic tool that declares no owner. */
@@ -115,6 +146,7 @@ export class McpRegistry {
   private readonly validateAccess?: McpAccessValidator;
   private readonly toolGate?: McpToolGate;
   private readonly errorMapper?: McpErrorMapper;
+  private readonly requireToolTitles: boolean;
   /** Memoised `reservedNames()`; dropped by register() so it can never go stale. */
   private reserved?: ReadonlySet<string>;
 
@@ -123,6 +155,7 @@ export class McpRegistry {
     this.validateAccess = options.validateAccess;
     this.toolGate = options.toolGate;
     this.errorMapper = options.errorMapper;
+    this.requireToolTitles = options.requireToolTitles ?? false;
   }
 
   /**
@@ -160,7 +193,7 @@ export class McpRegistry {
             registrar,
             entry.options,
             instance,
-            this.mapped(this.gated(entry.options, handler, ctx)),
+            this.mapped(this.gated(entry.options, this.detailed(entry.options, handler), ctx)),
             ctx,
             opts,
           );
@@ -256,7 +289,9 @@ export class McpRegistry {
    *   SDK would otherwise reject per-session at attach();
    * - declarative access without a configured accessPolicy;
    * - declarative access the host-supplied `validateAccess` hook rejects
-   *   (predicates are opaque to the host and never passed to it).
+   *   (predicates are opaque to the host and never passed to it);
+   * - with `requireToolTitles`, a tool without a `title` or with a name past
+   *   MAX_TOOL_NAME_LENGTH (the directories of Claude and ChatGPT require both).
    * All problems are aggregated into one error so a single boot failure
    * reports every misconfiguration.
    */
@@ -265,8 +300,18 @@ export class McpRegistry {
     const duplicates: string[] = [];
     const unresolvable: string[] = [];
     const invalidAccess: string[] = [];
+    const untitled: string[] = [];
+    const badDetail: string[] = [];
     for (const bound of this.bound) {
       const { entry } = bound;
+      if (entry.kind === 'tool' && entry.options.detail) {
+        const problem = detailProblem(entry.options);
+        if (problem) badDetail.push(`${entry.options.name} (${describeBound(bound)}): ${problem}`);
+      }
+      if (this.requireToolTitles && entry.kind === 'tool') {
+        const { name, title } = entry.options;
+        if (!title?.trim() || name.length > MAX_TOOL_NAME_LENGTH) untitled.push(`${name} (${describeBound(bound)})`);
+      }
       const key =
         entry.kind === 'resource' ? `resource uri "${entry.options.uri}"` : `${entry.kind} "${entry.options.name}"`;
       const prior = seen.get(key);
@@ -287,6 +332,12 @@ export class McpRegistry {
       );
     }
     if (invalidAccess.length) problems.push(`invalid access declarations: ${invalidAccess.join(', ')}`);
+    if (badDetail.length) problems.push(`invalid tool details: ${badDetail.join(', ')}`);
+    if (untitled.length) {
+      problems.push(
+        `tools without a title or with a name past ${MAX_TOOL_NAME_LENGTH} characters: ${untitled.join(', ')}`,
+      );
+    }
     if (problems.length) throw new Error(`Invalid MCP registry: ${problems.join('; ')}`);
   }
 
@@ -340,6 +391,37 @@ export class McpRegistry {
   }
 
   /**
+   * For a tool that advertises a stand-in for some fields (`detail.fields`),
+   * the handler behind a parse against its full shape: a call that does not fit
+   * is answered with the issues and the pointer to the tool's reference, one
+   * that fits reaches the handler as the parsed value, as it did before the
+   * fields were slimmed.
+   */
+  private detailed(options: ToolOptions, handler: AnyHandler): AnyHandler {
+    const schema = options.inputSchema;
+    if (!options.detail?.fields?.length || schema === undefined || '_zod' in schema) return handler;
+    const full = z.strictObject(schema);
+    return function (this: unknown, args: unknown, ...rest: unknown[]) {
+      const parsed = full.safeParse(args);
+      if (!parsed.success) return errorResult(describeIssues(parsed.error, options.name));
+      return handler.call(this, parsed.data, ...rest);
+    };
+  }
+
+  /** The reference of every tool that moved part of itself into its help topic, by name. */
+  toolHelpTopics(): ToolHelpTopic[] {
+    return this.bound
+      .filter((b) => b.entry.kind === 'tool' && b.entry.options.detail)
+      .map((b) => toolHelpTopic(b.entry.options as ToolOptions));
+  }
+
+  /** One detailed tool's reference, or undefined when no registered tool by that name has one. */
+  toolHelpTopic(name: string): ToolHelpTopic | undefined {
+    const bound = this.bound.find((b) => b.entry.kind === 'tool' && b.entry.options.name === name);
+    return bound?.entry.kind === 'tool' && bound.entry.options.detail ? toolHelpTopic(bound.entry.options) : undefined;
+  }
+
+  /**
    * The handler with the host's error mapper around it, when one is configured:
    * an error the mapper recognises becomes the call's result, anything else
    * propagates as before. Registered tools only, like the gate.
@@ -377,11 +459,11 @@ export class McpRegistry {
   ): void {
     const config: Record<string, unknown> = {
       title: options.title,
-      description: options.description,
-      inputSchema: strictInputSchema(options.inputSchema),
+      description: advertisedDescription(options),
+      inputSchema: advertisedInputSchema(options),
       outputSchema: options.outputSchema,
       annotations: options.annotations,
-      _meta: options._meta,
+      _meta: opts?.apps === false ? withoutUiMeta(options._meta) : options._meta,
     };
     // The SDK invokes the callback as (args, extra) when inputSchema is
     // present (even an empty shape) and as (extra) otherwise — normalize so

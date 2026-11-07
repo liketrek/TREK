@@ -8,6 +8,7 @@ import {
   TOOL_ANNOTATIONS_WRITE,
   TOOL_ANNOTATIONS_DELETE,
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  TOOL_ANNOTATIONS_DELETE_NON_IDEMPOTENT,
   errorResult,
   ok,
 } from '../../nest-mcp';
@@ -19,6 +20,12 @@ import { AtlasService, BucketItemExistsError } from './atlas.service';
 import { idSchema } from '@trek/shared';
 
 import { z } from 'zod';
+
+/** The codes set_atlas_visited and the four mark/unmark tools it replaced share. */
+const countryCodeField = z.string().length(2).toUpperCase().describe('ISO 3166-1 alpha-2 country code');
+const regionCodeField = z.string().describe('ISO region code e.g. US-CA');
+
+const DEPRECATED_FOR_SET_VISITED = 'Deprecated: use set_atlas_visited.';
 
 /** Legacy registrar gate: the whole atlas surface (tools AND resources) rides
  *  the atlas addon — unlike the REST controller, which is deliberately ungated
@@ -43,9 +50,9 @@ function jsonContent(uri: string, data: unknown) {
 }
 
 /**
- * Atlas MCP surface — ported 1:1 from the legacy registrar
- * src/mcp/tools/atlas.ts (10 tools) and the four atlas resources in
- * src/mcp/resources.ts: identical names, descriptions, zod input schemas,
+ * Atlas MCP surface — ported 1:1 from the retired
+ * the atlas registrar (10 tools) and the four atlas resources in
+ * the retired resources registrar: identical names, descriptions, zod input schemas,
  * annotations, and error/payload shapes. The legacy `if (R)` / `if (W)` scope
  * checks map to the declarative atlas read/write access markers (resolved by
  * trekMcpAccessPolicy) and the registration-time addon early-return becomes
@@ -84,6 +91,7 @@ export class AtlasMcp {
 
   @Tool({
     name: 'list_bucket_list',
+    title: 'List bucket list',
     description:
       'List your travel bucket list: each wish with its id, name, country and region, target date, notes and when it was reached. The ids are what update_bucket_list_item and delete_bucket_list_item take.',
     inputSchema: {},
@@ -99,6 +107,7 @@ export class AtlasMcp {
 
   @Tool({
     name: 'create_bucket_list_item',
+    title: 'Add bucket list item',
     description: 'Add a destination to your personal travel bucket list.',
     inputSchema: {
       name: z.string().min(1).max(200).describe('Destination or experience name'),
@@ -166,6 +175,7 @@ export class AtlasMcp {
 
   @Tool({
     name: 'delete_bucket_list_item',
+    title: 'Delete bucket list item',
     description: 'Remove an item from your travel bucket list.',
     inputSchema: {
       itemId: idSchema,
@@ -184,9 +194,10 @@ export class AtlasMcp {
 
   @Tool({
     name: 'mark_country_visited',
-    description: 'Mark a country as visited in your Atlas.',
+    title: 'Mark country visited',
+    description: DEPRECATED_FOR_SET_VISITED,
     inputSchema: {
-      country_code: z.string().length(2).toUpperCase().describe('ISO 3166-1 alpha-2 country code (e.g. "FR", "JP")'),
+      country_code: countryCodeField,
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: atlasAddonOn,
@@ -201,9 +212,10 @@ export class AtlasMcp {
 
   @Tool({
     name: 'unmark_country_visited',
-    description: 'Remove a country from your visited countries in Atlas.',
+    title: 'Unmark country visited',
+    description: DEPRECATED_FOR_SET_VISITED,
     inputSchema: {
-      country_code: z.string().length(2).toUpperCase().describe('ISO 3166-1 alpha-2 country code'),
+      country_code: countryCodeField,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: atlasAddonOn,
@@ -220,6 +232,7 @@ export class AtlasMcp {
 
   @Tool({
     name: 'get_atlas_stats',
+    title: 'Get atlas statistics',
     description:
       'Get the full travel picture in one call: visited/planned countries with per-country place and trip counts, continent breakdown, trip and day totals, plus the passport figures the dashboard shows (the cities visited by name and the total distance flown). Prefer this over get_country_atlas_places, which answers for one country only.',
     inputSchema: {
@@ -246,6 +259,7 @@ export class AtlasMcp {
 
   @Tool({
     name: 'list_visited_regions',
+    title: 'List visited regions',
     description:
       'List visited sub-country regions grouped by country, the way the Atlas map paints them: regions derived from the places on your trips, each with a place count and a visited/planned/idea status, merged with the ones marked by hand and minus the ones dismissed.',
     inputSchema: {},
@@ -263,8 +277,9 @@ export class AtlasMcp {
 
   @Tool({
     name: 'locate_atlas_region',
+    title: 'Locate atlas region',
     description:
-      'Resolve a coordinate to the country and admin1 region the Atlas map can highlight. This is where the regionCode/countryCode pair mark_region_visited expects comes from. Prefer reverse_geocode when you want a postal address instead of atlas codes.',
+      'Resolve a coordinate to the country and admin1 region the Atlas map can highlight. It gives the region_code and country_code set_atlas_visited takes for a region. Prefer reverse_geocode when you want a postal address instead of atlas codes.',
     inputSchema: {
       lat: z.number().min(-90).max(90).describe('Latitude in decimal degrees'),
       lng: z.number().min(-180).max(180).describe('Longitude in decimal degrees'),
@@ -283,10 +298,10 @@ export class AtlasMcp {
 
   @Tool({
     name: 'mark_region_visited',
-    description:
-      'Mark a sub-country region as visited. When you only know a place or a coordinate, get the codes from locate_atlas_region first.',
+    title: 'Mark region visited',
+    description: DEPRECATED_FOR_SET_VISITED,
     inputSchema: {
-      regionCode: z.string().describe('ISO region code e.g. US-CA'),
+      regionCode: regionCodeField,
       regionName: z.string(),
       countryCode: z.string().describe('ISO 3166-1 alpha-2 country code'),
     },
@@ -314,10 +329,10 @@ export class AtlasMcp {
 
   @Tool({
     name: 'unmark_region_visited',
-    description:
-      'Remove a region from the visited list. Removing the last region of a country also removes the country, unless it was marked visited itself.',
+    title: 'Unmark region visited',
+    description: DEPRECATED_FOR_SET_VISITED,
     inputSchema: {
-      regionCode: z.string(),
+      regionCode: regionCodeField,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: atlasAddonOn,
@@ -334,6 +349,42 @@ export class AtlasMcp {
     return ok({ success: true, after: await readAfterWrite(() => this.regionStanding(ctx.userId, countryCode)) });
   }
 
+  @Tool({
+    name: 'set_atlas_visited',
+    title: 'Set visited in Atlas',
+    description:
+      'Mark a country or a sub-country region visited in your Atlas, or take the mark away. For a country pass country_code; for a region pass region_code too, and region_name when marking it (get the codes from locate_atlas_region when you only know a place or a coordinate). visited false removes the mark; removing the last region of a country also removes the country unless it was marked itself.',
+    inputSchema: {
+      country_code: countryCodeField.optional(),
+      region_code: regionCodeField.optional(),
+      region_name: z.string().optional().describe('The region name, needed when marking a region visited'),
+      visited: z.boolean().describe('true marks it visited, false takes the mark away'),
+    },
+    annotations: TOOL_ANNOTATIONS_DELETE_NON_IDEMPOTENT,
+    when: atlasAddonOn,
+    access: { group: 'atlas', mode: 'write' },
+  })
+  async setAtlasVisited(
+    {
+      country_code,
+      region_code,
+      region_name,
+      visited,
+    }: { country_code?: string; region_code?: string; region_name?: string; visited: boolean },
+    ctx: McpContext,
+  ) {
+    if (region_code === undefined) {
+      if (country_code === undefined) return errorResult('Pass country_code, or region_code for a region.');
+      return visited
+        ? this.markCountryVisited({ country_code }, ctx)
+        : this.unmarkCountryVisited({ country_code }, ctx);
+    }
+    if (!visited) return this.unmarkRegionVisited({ regionCode: region_code }, ctx);
+    if (country_code === undefined || !region_name)
+      return errorResult('Marking a region visited needs its country_code and region_name.');
+    return this.markRegionVisited({ regionCode: region_code, regionName: region_name, countryCode: country_code }, ctx);
+  }
+
   /** Where a region's country stands after a region write, with that country's visited regions. */
   private async regionStanding(userId: number, countryCode: string) {
     const standing = await standingOf(this.atlas, userId, countryCode);
@@ -342,6 +393,7 @@ export class AtlasMcp {
 
   @Tool({
     name: 'get_country_atlas_places',
+    title: 'Get places in a country',
     description: "Get places saved in the user's atlas for a specific country.",
     inputSchema: {
       countryCode: z.string().describe('ISO 3166-1 alpha-2 country code'),
@@ -359,6 +411,7 @@ export class AtlasMcp {
 
   @Tool({
     name: 'update_bucket_list_item',
+    title: 'Update bucket list item',
     description: 'Update a bucket list item (notes, name, target date, location).',
     inputSchema: {
       itemId: idSchema,
@@ -412,7 +465,7 @@ export class AtlasMcp {
   }
 
   // -------------------------------------------------------------------------
-  // Resources (from src/mcp/resources.ts — payloads reproduce jsonContent verbatim)
+  // Resources (from the retired resources registrar — payloads reproduce jsonContent verbatim)
   // -------------------------------------------------------------------------
 
   @Resource({

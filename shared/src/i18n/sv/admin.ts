@@ -839,6 +839,15 @@ const admin: TranslationStrings = {
   'admin.mcpTokens.deleteSuccess': 'Token har tagits bort',
   'admin.mcpTokens.deleteError': 'Det gick inte att ta bort token',
   'admin.mcpTokens.loadError': 'Det gick inte att ladda tokens',
+  'admin.mcpToolUsage.title': 'Verktygsanvändning',
+  'admin.mcpToolUsage.subtitle': 'Vilka MCP-verktyg som anropats, av hur många och när senast',
+  'admin.mcpToolUsage.empty': 'Inget MCP-verktyg har anropats under den här perioden',
+  'admin.mcpToolUsage.loadError': 'Det gick inte att läsa in verktygsanvändningen',
+  'admin.mcpToolUsage.tool': 'Verktyg',
+  'admin.mcpToolUsage.calls': 'Anrop',
+  'admin.mcpToolUsage.users': 'Användare',
+  'admin.mcpToolUsage.lastCall': 'Senaste anrop',
+  'admin.mcpToolUsage.period': 'Period (dagar)',
   'admin.oauthSessions.sectionTitle': 'OAuth Sessioner',
   'admin.oauthSessions.clientName': 'Klient',
   'admin.oauthSessions.owner': 'Ägare',
@@ -1146,5 +1155,8 @@ const admin: TranslationStrings = {
   'admin.servicesCard.title': 'Platssökning och vägvisning',
   'admin.servicesCard.hint':
     'TREKs egna tjänster, vilken leverantör som svarar på sökning och kollektivtrafik, och sökloggen.',
+  'admin.mcpApps.title': 'Interaktiva vyer',
+  'admin.mcpApps.subtitle':
+    'Låt MCP-värdar som stöder det visa resor, listor och kartor som interaktiva vyer bredvid svaret',
 };
 export default admin;

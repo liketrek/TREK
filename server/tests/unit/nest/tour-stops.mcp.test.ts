@@ -129,8 +129,8 @@ describe('TourStopsMcp', () => {
     };
     const tools = ['insertTourStop', 'removeTourStop'].map(options);
     expect(tools.map((tool) => [tool.name, tool.annotations?.readOnlyHint, tool.access])).toEqual([
-      ['insert_tour_stop', false, { group: 'trips', mode: 'write' }],
-      ['remove_tour_stop', false, { group: 'trips', mode: 'write' }],
+      ['insert_tour_stop', false, { group: 'tours', mode: 'write' }],
+      ['remove_tour_stop', false, { group: 'tours', mode: 'write' }],
     ]);
     expect(tools[0].description).toContain('after_key');
     const isAddonEnabled = vi.fn(async (id: string) => id === 'tours');

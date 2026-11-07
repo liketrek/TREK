@@ -35,6 +35,7 @@ export class TripJournalLinkMcp {
 
   @Tool({
     name: 'get_trip_journal',
+    title: 'Get trip journal',
     description:
       'The journal from the Journey addon a trip shows as its own, if any: its id and title, your access to it, and whether you may link, unlink or change who it is open to. Open the journal itself with get_journey.',
     inputSchema: { tripId: idSchema },
@@ -48,6 +49,7 @@ export class TripJournalLinkMcp {
 
   @Tool({
     name: 'link_trip_journal',
+    title: 'Link trip journal',
     description:
       'Show one of your own journals in a trip, replacing the journal it showed. The trip members listed get into the journal as viewers or editors and see it in their own journal list; members left out do not. Needs the journal to be yours and the trip permission to link journals.',
     inputSchema: { tripId: idSchema, journey_id: idSchema, members: tripJournalLinkRequestSchema.shape.members },
@@ -68,6 +70,7 @@ export class TripJournalLinkMcp {
 
   @Tool({
     name: 'set_trip_journal_members',
+    title: 'Set trip journal members',
     description:
       "Change which trip members the trip's linked journal is open to, and as viewer or editor. The list replaces the one before; anyone left out loses the access the link gave them. Only the journal's owner can do this.",
     inputSchema: { tripId: idSchema, members: tripJournalLinkRequestSchema.shape.members },
@@ -84,6 +87,7 @@ export class TripJournalLinkMcp {
 
   @Tool({
     name: 'unlink_trip_journal',
+    title: 'Unlink trip journal',
     description:
       'Take the linked journal off a trip. The journal itself stays; the members the link let in lose that access, while its owner and direct contributors keep theirs.',
     inputSchema: { tripId: idSchema },

@@ -775,6 +775,15 @@ const admin: TranslationStrings = {
   'admin.mcpTokens.deleteSuccess': 'Token gelöscht',
   'admin.mcpTokens.deleteError': 'Token konnte nicht gelöscht werden',
   'admin.mcpTokens.loadError': 'Tokens konnten nicht geladen werden',
+  'admin.mcpToolUsage.title': 'Werkzeugnutzung',
+  'admin.mcpToolUsage.subtitle': 'Welche MCP-Werkzeuge aufgerufen wurden, von wie vielen Personen und wann zuletzt',
+  'admin.mcpToolUsage.empty': 'In diesem Zeitraum wurde kein MCP-Werkzeug aufgerufen',
+  'admin.mcpToolUsage.loadError': 'Werkzeugnutzung konnte nicht geladen werden',
+  'admin.mcpToolUsage.tool': 'Werkzeug',
+  'admin.mcpToolUsage.calls': 'Aufrufe',
+  'admin.mcpToolUsage.users': 'Benutzer',
+  'admin.mcpToolUsage.lastCall': 'Letzter Aufruf',
+  'admin.mcpToolUsage.period': 'Zeitraum (Tage)',
   'admin.oauthSessions.sectionTitle': 'OAuth-Sitzungen',
   'admin.oauthSessions.clientName': 'Client', // same-as-en
   'admin.oauthSessions.owner': 'Besitzer',
@@ -1157,5 +1166,8 @@ const admin: TranslationStrings = {
   'admin.servicesCard.title': 'Ortssuche und Routing',
   'admin.servicesCard.hint':
     'TREKs eigene Dienste, welcher Anbieter Suche und ÖPNV beantwortet, und das Suchprotokoll.',
+  'admin.mcpApps.title': 'Interaktive Ansichten',
+  'admin.mcpApps.subtitle':
+    'MCP-Hosts, die es unterstützen, Reisen, Listen und Karten als interaktive Ansichten neben der Antwort zeigen lassen',
 };
 export default admin;

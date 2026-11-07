@@ -78,6 +78,24 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:share.label': 'Journey-Links verwalten',
   'oauth.scope.journey:share.description':
     'Öffentliche Freigabelinks für Journeys erstellen, aktualisieren und widerrufen',
+  'oauth.scope.group.tours': 'Touren',
+  'oauth.scope.group.roadtrip': 'Roadtrip',
+  'oauth.scope.group.studio': 'Studio', // same-as-en
+  'oauth.scope.tours:read.label': 'Touren ansehen',
+  'oauth.scope.tours:read.description':
+    'Wanderungen, Spaziergänge, Radtouren, Paddel- und Skitouren mit Stopps und Packliste lesen',
+  'oauth.scope.tours:write.label': 'Touren planen',
+  'oauth.scope.tours:write.description':
+    'Touren vorschlagen, anlegen, bearbeiten und löschen, samt Stopps, Aktivitäten und Packlisten-Verknüpfungen',
+  'oauth.scope.roadtrip:read.label': 'Roadtrips ansehen',
+  'oauth.scope.roadtrip:read.description': 'Routen, Fahrtage, Ladestopps und Straßenwarnungen lesen',
+  'oauth.scope.roadtrip:write.label': 'Roadtrips planen',
+  'oauth.scope.roadtrip:write.description': 'Routen berechnen, Fahrtage und Vorlieben festlegen und Routen importieren',
+  'oauth.scope.studio:read.label': 'Journey-Bücher ansehen',
+  'oauth.scope.studio:read.description': 'Seiten, Gestaltung und Fotos eines Journey-Buchs lesen',
+  'oauth.scope.studio:write.label': 'Journey-Bücher gestalten',
+  'oauth.scope.studio:write.description':
+    'Seiten eines Journey-Buchs anlegen, bearbeiten, umgestalten und wiederherstellen',
   'oauth.authorize.authorizing': 'Autorisiere…',
   'oauth.authorize.loading': 'Lädt…',
   'oauth.authorize.errorTitle': 'Autorisierungsfehler',

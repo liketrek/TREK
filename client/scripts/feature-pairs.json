@@ -512,6 +512,12 @@
       "mobile": ["src/mobile/screens/admin/MAdminMcpTokensPanel.tsx"]
     },
     {
+      "feature": "MCP tool usage admin",
+      "hooks": ["src/components/Admin/useMcpToolUsage.ts"],
+      "desktop": ["src/components/Admin/AdminMcpToolUsagePanel.tsx"],
+      "mobile": ["src/mobile/screens/admin/MAdminMcpToolUsagePanel.tsx"]
+    },
+    {
       "feature": "Media lightbox",
       "hooks": ["src/components/Files/useMediaLightbox.ts"],
       "desktop": ["src/components/Files/FileManagerImageLightbox.tsx"],

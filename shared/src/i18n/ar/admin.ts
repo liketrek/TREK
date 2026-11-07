@@ -821,6 +821,15 @@ const admin: TranslationStrings = {
   'admin.mcpTokens.deleteSuccess': 'تم حذف الرمز',
   'admin.mcpTokens.deleteError': 'فشل حذف الرمز',
   'admin.mcpTokens.loadError': 'فشل تحميل الرموز',
+  'admin.mcpToolUsage.title': 'استخدام الأدوات',
+  'admin.mcpToolUsage.subtitle': 'أدوات MCP التي استُدعيت، وعدد من استدعاها، ومتى كان آخر استدعاء',
+  'admin.mcpToolUsage.empty': 'لم تُستدعَ أي أداة MCP في هذه الفترة',
+  'admin.mcpToolUsage.loadError': 'فشل تحميل استخدام الأدوات',
+  'admin.mcpToolUsage.tool': 'الأداة',
+  'admin.mcpToolUsage.calls': 'الاستدعاءات',
+  'admin.mcpToolUsage.users': 'المستخدمون',
+  'admin.mcpToolUsage.lastCall': 'آخر استدعاء',
+  'admin.mcpToolUsage.period': 'الفترة (بالأيام)',
   'admin.oauthSessions.sectionTitle': 'جلسات OAuth',
   'admin.oauthSessions.clientName': 'العميل',
   'admin.oauthSessions.owner': 'المالك',
@@ -1184,5 +1193,7 @@ const admin: TranslationStrings = {
   'admin.contribute.prompt.thanks': 'شكرًا لك. تُشارك تفاصيل الأماكن الآن.',
   'admin.servicesCard.title': 'البحث عن الأماكن والتوجيه',
   'admin.servicesCard.hint': 'خدمات TREK الخاصة، والمزوّد الذي يجيب عن البحث والنقل العام، وسجل البحث.',
+  'admin.mcpApps.title': 'العروض التفاعلية',
+  'admin.mcpApps.subtitle': 'السماح لمضيفي MCP الداعمين بعرض الرحلات والقوائم والخرائط كعروض تفاعلية بجانب الإجابة',
 };
 export default admin;

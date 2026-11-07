@@ -53,6 +53,7 @@ export class ReservationImportMcp {
 
   @Tool({
     name: 'import_airtrail_flights',
+    title: 'Import AirTrail flights',
     description:
       "Import flights from the caller's connected AirTrail account into a trip as flight bookings, keeping them linked to AirTrail for two-way sync. Get the ids from list_airtrail_flights first; this tool only accepts ids that account already holds, so it cannot invent a flight. Prefer it over create_transport whenever the flight is already recorded in AirTrail: the route, times, airline and aircraft come across without retyping. Flights already on the trip are reported as skipped rather than duplicated.",
     inputSchema: {

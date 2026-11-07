@@ -6,6 +6,9 @@ client/dist/
 server/dist/
 server/VERSION
 shared/dist/
+mcp-apps/dist/
+# The MCP widget documents, built from mcp-apps/ (npm run build --workspace=mcp-apps)
+server/mcp-apps/
 server/public/*
 !server/public/.gitkeep
 
