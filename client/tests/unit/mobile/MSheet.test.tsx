@@ -43,7 +43,7 @@ describe('MSheet', () => {
     expect(onClose).not.toHaveBeenCalled();
 
     const dialog = screen.getByRole('dialog');
-    const backdrop = dialog.parentElement!.parentElement!;
+    const backdrop = dialog.closest('[role="presentation"]') as HTMLElement;
     fireEvent.click(backdrop);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
@@ -446,7 +446,7 @@ describe('MSheet', () => {
         </MSheet>
       );
     }
-    const backdrop = () => screen.getByRole('dialog', { name: 'Form' }).parentElement!.parentElement!;
+    const backdrop = () => screen.getByRole('dialog', { name: 'Form' }).closest('[role="presentation"]') as HTMLElement;
 
     it('FE-MOB-SHEET-020: a tap on the scrim asks before throwing a change away, and keep editing stays', () => {
       const onClose = vi.fn();
@@ -482,5 +482,75 @@ describe('MSheet', () => {
       expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
     });
   });
-});
+  describe('presentation', () => {
+    const panel = (name = 'Sheet') => screen.getByRole('dialog', { name });
+    const region = (name = 'Sheet') => panel(name).parentElement!.parentElement as HTMLElement;
 
+    it('FE-MOB-SHEET-031: every sheet stands on the one opaque surface, whatever material it names', () => {
+      for (const material of ['glass', 'bar-glass', 'opaque'] as const) {
+        const { unmount } = render(
+          <MSheet open onClose={() => {}} material={material} ariaLabel="Sheet">
+            <span>body</span>
+          </MSheet>,
+        );
+        expect(panel().className).toContain('bg-[color:var(--m-sheetop)]');
+        expect(panel().className).not.toContain('backdrop-blur');
+        expect(panel().className).not.toContain('var(--m-sheet)');
+        expect(panel().className).not.toContain('var(--m-glass)');
+        unmount();
+      }
+    });
+
+    it('FE-MOB-SHEET-032: on a phone the card stands between the status bar and the dock, never across the dock', () => {
+      render(
+        <MSheet open onClose={() => {}} ariaLabel="Sheet">
+          <span>body</span>
+        </MSheet>,
+      );
+      expect(region().className).toContain('top-[var(--m-safe-top,12px)]');
+      expect(region().className).toContain('bottom-[calc(var(--bottom-nav-h,84px)+12px)]');
+      expect(panel().className).toContain('max-h-full');
+    });
+
+    it('FE-MOB-SHEET-033: a form fills the height of a short window and lays its actions beside the title', () => {
+      const { unmount } = render(
+        <MSheet open onClose={() => {}} form ariaLabel="Sheet">
+          <span>body</span>
+        </MSheet>,
+      );
+      expect(panel().className).toContain('m-form-sheet');
+      expect(panel().className).toContain('short:flex-1');
+      expect(region().className).toContain('short:bottom-0');
+      unmount();
+
+      render(
+        <MSheet open onClose={() => {}} ariaLabel="Sheet">
+          <span>body</span>
+        </MSheet>,
+      );
+      expect(panel().className).not.toContain('m-form-sheet');
+      expect(region().className).not.toContain('short:bottom-0');
+    });
+
+    it('FE-MOB-SHEET-034: a transparent scrim still dims a short window, where the sheet takes most of the height', () => {
+      render(
+        <MSheet open onClose={() => {}} variant="bottom" dimTransparent ariaLabel="Sheet">
+          <span>body</span>
+        </MSheet>,
+      );
+      const scrim = panel().closest('[role="presentation"]') as HTMLElement;
+      expect(scrim.className).toContain('bg-transparent');
+      expect(scrim.className).toContain('short:bg-[color:var(--m-dim)]');
+    });
+
+    it('FE-MOB-SHEET-035: the region lets taps through to the scrim, the sheet itself takes them', () => {
+      render(
+        <MSheet open onClose={() => {}} ariaLabel="Sheet">
+          <span>body</span>
+        </MSheet>,
+      );
+      expect(region().className).toContain('pointer-events-none');
+      expect(panel().parentElement!.className).toContain('pointer-events-auto');
+    });
+  });
+});

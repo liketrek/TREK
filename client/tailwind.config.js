@@ -128,6 +128,9 @@ export default {
     ({ addVariant }) => {
       addVariant('wide', '@media (min-width: 600px) and (min-height: 501px)')
       addVariant('split', '@media (min-width: 840px) and (min-height: 501px)')
+      // The other side of that height bound: a window as short as a phone on its
+      // side, where a form sheet takes the full height (MSheet's `form`).
+      addVariant('short', '@media (max-height: 500px)')
     },
   ],
 }

@@ -675,3 +675,77 @@ html:has(.m-shell) ::-webkit-scrollbar {
 :root[dir='rtl'] .m-fade-se {
   --m-fade-dir: 270deg;
 }
+
+/* The same for a vertical scroller, a form sheet's body above all: it fades
+   out at the top once scrolled and at the foot while more waits below, so a
+   field cut by the footer reads as "the form goes on". Never mirrored. */
+.m-fade-t,
+.m-fade-b,
+.m-fade-tb {
+  --m-fade-h: 24px;
+  -webkit-mask-image: var(--m-fade-vmask);
+  mask-image: var(--m-fade-vmask);
+}
+.m-fade-t {
+  --m-fade-vmask: linear-gradient(to bottom, transparent 0, #000 var(--m-fade-h));
+}
+.m-fade-b {
+  --m-fade-vmask: linear-gradient(to bottom, #000 calc(100% - var(--m-fade-h)), transparent 100%);
+}
+.m-fade-tb {
+  --m-fade-vmask: linear-gradient(to bottom, transparent 0, #000 var(--m-fade-h), #000 calc(100% - var(--m-fade-h)), transparent 100%);
+}
+
+/* A hint longer than its field ends in an ellipsis instead of being cut off
+   mid-word at the field's edge ("Код аэропорта или город (нап"). */
+.m-root input:placeholder-shown {
+  text-overflow: ellipsis;
+}
+
+/* ── Sheets ─────────────────────────────────────────────────────────────────
+   A sheet takes the focus itself when it opens (modalFocus.ts), so a screen
+   reader starts inside it. The app-wide focus ring (index.css) is meant for
+   controls: on the sheet it drew a 2px frame round the whole dialog and
+   squared its corners off to 4px. */
+.m-root [data-m-sheet]:focus-visible {
+  outline: none;
+  border-radius: var(--m-sheet-r);
+}
+
+/* A form sheet (MSheet `form`) on a window as short as a phone on its side
+   fills the height, and its actions move up beside the title the way an
+   iPhone form carries Cancel and Save in its bar, so the fields get every
+   line in between instead of a slot 140px tall. Cancel then does what the
+   header's close button did, so that one goes. */
+@media (max-height: 500px) {
+  /* Row 1: the title and the actions. Row 2: whatever a form keeps fixed
+     under its title (the transport's manual/automated switch). Row 3: the
+     fields, which take the rest. Doubled class: the panel's own `flex`
+     utility must not win the display back. */
+  .m-form-sheet.m-form-sheet {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto minmax(0, 1fr);
+    align-items: center;
+  }
+  .m-form-sheet > * {
+    grid-column: 1 / -1;
+  }
+  .m-form-sheet > .m-fs-head {
+    grid-area: 1 / 1;
+  }
+  .m-form-sheet > .m-fs-foot {
+    grid-area: 1 / 2;
+    border-top: 0;
+    padding-block: 16px 8px;
+    padding-inline: 0 18px;
+  }
+  .m-form-sheet > .m-fs-body {
+    grid-row: 3;
+    align-self: stretch;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+  }
+  .m-form-sheet:has(> .m-fs-foot) > .m-fs-head .m-fs-close {
+    display: none;
+  }
+}

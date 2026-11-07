@@ -1307,12 +1307,16 @@ img[alt="TREK"] {
 .dark .bg-slate-100 { background-color: #27272a !important; }
 .dark .bg-slate-900 { background-color: #e4e4e7 !important; color: #09090b !important; }
 .dark .hover\:bg-slate-700:hover { background-color: #d4d4d8 !important; color: #09090b !important; }
-.dark input, .dark textarea, .dark select {
+/* Not inside the touch shell (.m-root): its fields state their own fill, a
+   transparent input inside a rounded wrapper above all, and this rule outweighs
+   every utility class, so it painted a dark box inside each of them. The
+   :where() keeps the desktop's weight exactly as it was. */
+.dark input:not(:where(.m-root *)), .dark textarea:not(:where(.m-root *)), .dark select:not(:where(.m-root *)) {
   background-color: #1c1c21;
   color: #f4f4f5;
   border-color: #27272a;
 }
-.dark input::placeholder, .dark textarea::placeholder { color: #71717a; }
+.dark input:not(:where(.m-root *))::placeholder, .dark textarea:not(:where(.m-root *))::placeholder { color: #71717a; }
 .dark .bg-emerald-50 { background-color: rgba(16,185,129,0.15) !important; }
 .dark .bg-red-50 { background-color: rgba(239,68,68,0.15) !important; }
 

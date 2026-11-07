@@ -15,17 +15,24 @@ import { resetAllStores, seedStore } from '../../helpers/store';
 // FE-MOB-LARGE-001 onwards: the touch shell's pieces laid out for a wide window.
 
 describe('MSheet on a wide window', () => {
-  it('FE-MOB-LARGE-001: a sheet becomes a centred form sheet of the width it asks for', () => {
+  // dialog > its box (width, arrow) > the region it stands in (place on the screen).
+  const boxOf = (name: string) => screen.getByRole('dialog', { name }).parentElement as HTMLElement;
+  const regionOf = (name: string) => boxOf(name).parentElement as HTMLElement;
+
+  it('FE-MOB-LARGE-001: a sheet becomes a form sheet centred in the content beside the rail, of the width it asks for', () => {
     render(
       <MSheet open onClose={() => {}} variant="bottom" wideWidth="large" ariaLabel="Form">
         <span>body</span>
       </MSheet>
     );
-    const frame = screen.getByRole('dialog', { name: 'Form' }).parentElement as HTMLElement;
-    expect(frame.className).toContain('wide:mx-auto');
-    expect(frame.className).toContain('wide:top-1/2');
-    expect(frame.className).toContain('wide:w-[min(720px,calc(100%-48px))]');
-    expect(frame.querySelector('[aria-hidden="true"].wide\\:block')).toBeNull();
+    const region = regionOf('Form');
+    // The region starts after the rail, so the sheet is centred in what is left of the window.
+    expect(region.className).toContain('wide:ps-[calc(var(--m-rail-w)+24px)]');
+    expect(region.className).toContain('wide:pe-6');
+    expect(region.className).toContain('wide:justify-center');
+    expect(region.className).toContain('wide:items-center');
+    expect(boxOf('Form').className).toContain('wide:w-[min(720px,100%)]');
+    expect(boxOf('Form').querySelector(':scope > span[aria-hidden="true"]')).toBeNull();
   });
 
   it("FE-MOB-LARGE-002: a menu from the rail's foot is a popover beside it, with an arrow", () => {
@@ -42,11 +49,12 @@ describe('MSheet on a wide window', () => {
         <span>body</span>
       </MSheet>
     );
-    const frame = screen.getByRole('dialog', { name: 'More' }).parentElement as HTMLElement;
-    expect(frame.className).toContain('wide:start-[calc(var(--m-rail-w)+6px)]');
-    expect(frame.className).not.toContain('wide:mx-auto');
-    expect(frame.className).toContain('wide:w-[min(320px,calc(100%-48px))]');
-    expect(frame.querySelector(':scope > span[aria-hidden="true"]')).not.toBeNull();
+    const region = regionOf('More');
+    expect(region.className).toContain('wide:ps-[calc(var(--m-rail-w)+6px)]');
+    expect(region.className).toContain('wide:justify-end');
+    expect(region.className).not.toContain('wide:justify-center');
+    expect(boxOf('More').className).toContain('wide:w-[min(320px,100%)]');
+    expect(boxOf('More').querySelector(':scope > span[aria-hidden="true"]')).not.toBeNull();
   });
 
   it('FE-MOB-LARGE-003: the drawer keeps its own place', () => {
@@ -55,8 +63,8 @@ describe('MSheet on a wide window', () => {
         <span>body</span>
       </MSheet>
     );
-    const frame = screen.getByRole('dialog', { name: 'Drawer' }).parentElement as HTMLElement;
-    expect(frame.className).not.toContain('wide:');
+    expect(regionOf('Drawer').className).not.toContain('wide:');
+    expect(boxOf('Drawer').className).not.toContain('wide:');
   });
 });
 
