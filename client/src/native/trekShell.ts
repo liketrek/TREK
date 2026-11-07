@@ -81,6 +81,8 @@ export interface TrekShellPlugin {
   }): Promise<{ kind: 'bought' | 'cancelled' | 'pending' | 'failed'; jws?: string; transactionId?: string }>;
   /** iOS, feature storeKit: marks a purchase delivered once its instance exists. */
   storeFinish(options: { transactionId: string }): Promise<void>;
+  /** iOS, feature wallet: adds a .pkpass (base64) to Apple Wallet, or opens it there when it is already in. */
+  addToWallet(options: { data: string }): Promise<{ result: 'added' | 'opened' | 'cancelled' }>;
   /** iOS, feature storeKit: the newest active subscription under `prefix` on this Apple ID, if any. */
   storeRestore(options: { prefix: string }): Promise<{ jws?: string; transactionId?: string }>;
   addListener(

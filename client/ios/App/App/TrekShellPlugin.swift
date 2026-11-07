@@ -10,6 +10,7 @@ import WidgetKit
 import ActivityKit
 #endif
 import LocalAuthentication
+import PassKit
 import UIKit
 import WebKit
 
@@ -44,6 +45,7 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
         CAPPluginMethod(name: "storePurchase", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "storeFinish", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "storeRestore", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "addToWallet", returnType: CAPPluginReturnPromise),
     ]
 
     /// What this binary offers the server's UI, raised with every native feature
@@ -51,7 +53,7 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
     /// and a server can require a minimum (minNativeShellApi in /api/health/features).
     static let shellApi = 2
     /// The native features by name, so the UI can turn each on by itself.
-    static let features: [String] = ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation", "sharedFiles", "nativePush", "widgets", "liveActivity", "widgetTrips", "storeKit", "shareSheet"]
+    static let features: [String] = ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation", "sharedFiles", "nativePush", "widgets", "liveActivity", "widgetTrips", "storeKit", "shareSheet", "wallet"]
 
     // MARK: - Shared booking documents
 
@@ -381,6 +383,58 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
 
 /// Positions and errors for the UI, shaped like the Geolocation API's, with the
 /// When-In-Use permission asked the first time.
+// MARK: - Apple Wallet
+
+extension TrekShellPlugin {
+    /// Feature wallet: a booking's Wallet pass, straight into Apple Wallet. A pass
+    /// already there opens in Wallet instead of being offered twice. Resolves with
+    /// `result` added, opened or cancelled; rejects INVALID for bytes that are no
+    /// pass and UNAVAILABLE where Wallet cannot take one.
+    @objc func addToWallet(_ call: CAPPluginCall) {
+        guard let base64 = call.getString("data"), let data = Data(base64Encoded: base64),
+              let pass = try? PKPass(data: data) else {
+            call.reject("not a Wallet pass", "INVALID")
+            return
+        }
+        DispatchQueue.main.async { [weak self] in
+            let library = PKPassLibrary()
+            if library.containsPass(pass), let url = pass.passURL {
+                UIApplication.shared.open(url)
+                call.resolve(["result": "opened"])
+                return
+            }
+            guard PKAddPassesViewController.canAddPasses(),
+                  let sheet = PKAddPassesViewController(pass: pass),
+                  let presenter = self?.bridge?.viewController else {
+                call.reject("Wallet is not available", "UNAVAILABLE")
+                return
+            }
+            let delegate = TrekWalletSheet { [weak sheet] in
+                sheet?.dismiss(animated: true)
+                call.resolve(["result": library.containsPass(pass) ? "added" : "cancelled"])
+            }
+            sheet.delegate = delegate
+            TrekWalletSheet.current = delegate
+            presenter.present(sheet, animated: true)
+        }
+    }
+}
+
+/// Answers the Wallet sheet closing; held while it is up, since the sheet only keeps a weak delegate.
+final class TrekWalletSheet: NSObject, PKAddPassesViewControllerDelegate {
+    static var current: TrekWalletSheet?
+    private let done: () -> Void
+
+    init(done: @escaping () -> Void) {
+        self.done = done
+    }
+
+    func addPassesViewControllerDidFinish(_ controller: PKAddPassesViewController) {
+        done()
+        TrekWalletSheet.current = nil
+    }
+}
+
 // MARK: - In-app purchase
 
 extension TrekShellPlugin {

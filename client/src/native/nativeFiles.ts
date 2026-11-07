@@ -1,14 +1,7 @@
 import { Directory, Filesystem } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
-
-function toBase64(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result).slice(String(reader.result).indexOf(',') + 1));
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(blob);
-  });
-}
+import { toBase64 } from './blobBase64';
+import { addToWallet, isWalletPassName } from './wallet';
 
 /** Readable, but safe as a single path segment inside the cache directory. */
 export function cacheFileName(filename: string): string {
@@ -34,6 +27,8 @@ export function fileNameFromUrl(url: string): string {
  * saving it to Files, opening it in another app or sending it on.
  */
 export async function shareFile(blob: Blob, filename: string): Promise<void> {
+  // A Wallet pass goes to Apple Wallet's own sheet, not to the generic share sheet.
+  if (isWalletPassName(filename) && (await addToWallet(blob))) return;
   const { uri } = await Filesystem.writeFile({
     path: cacheFileName(filename),
     data: await toBase64(blob),

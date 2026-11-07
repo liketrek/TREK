@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, type ChangeEvent, type ClipboardEvent } from 'react'
-import { Link, Loader2, MoreVertical, Star } from 'lucide-react'
+import { Link, Loader2, MoreVertical, Star, Wallet } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
 import { useTranslation, translateApiError } from '../../../../i18n'
 import { fileRepo } from '../../../../repo/fileRepo'
 import { openFile } from '../../../../utils/fileDownload'
-import { isMedia, formatSize } from '../../../../components/Files/FileManager.helpers'
+import { isMedia, isWalletPass, formatSize } from '../../../../components/Files/FileManager.helpers'
 import type { TripFile } from '../../../../types'
 import { TabScroller } from './tabChrome'
 import type { MTabScreenProps } from './tabModel'
@@ -237,6 +237,9 @@ export default function MFilesTab({ planner, shell }: MTabScreenProps) {
   )
 }
 
+/** The product's name, the same in every language. */
+const APPLE_WALLET = 'Apple Wallet'
+
 function FileRow({ file, planner, onOpen, onStar, onMenu }: {
   file: TripFile
   planner: MTabScreenProps['planner']
@@ -266,6 +269,13 @@ function FileRow({ file, planner, onOpen, onStar, onMenu }: {
           <div className="truncate text-[0.8125rem] font-bold text-m-ink">{file.original_name}</div>
 
           <div className="mt-1 flex flex-wrap items-center gap-1">
+            {isWalletPass(file.mime_type, file.original_name) && (
+              // A tap hands the pass to Apple Wallet (native/wallet.ts), or downloads it into Wallet on the web.
+              <span className="flex items-center gap-[3px] whitespace-nowrap rounded-full bg-m-act px-[7px] py-[2px] font-geist text-[length:calc(8.5px*var(--fs-scale-caption,1))] font-bold text-m-actfg">
+                <Wallet size={9} strokeWidth={2.4} aria-hidden="true" />
+                {APPLE_WALLET}
+              </span>
+            )}
             {!!file.file_size && (
               <span className="whitespace-nowrap rounded-full bg-[color:var(--m-ic)] px-[7px] py-[2px] font-geist text-[0.53125rem] font-bold text-m-muted">
                 {formatSize(file.file_size)}
