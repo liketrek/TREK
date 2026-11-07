@@ -40,11 +40,16 @@ const PANE_INSETS = 'pb-[calc(var(--bottom-nav-h,84px)+22px)] pt-[calc(var(--m-s
  * The cards of a list tab (transports, bookings, tasks): one column on a phone;
  * on a wide window as many columns of at least a phone's width as the page
  * holds, three on a 13" iPad on its side, two upright or on an unfolded
- * foldable on its side, one in a narrow Split View. A row's cards share its
- * height, so the grid reads as rows rather than as a ragged wall.
+ * foldable on its side, one in a narrow Split View. Cards stay in reading
+ * order along the rows and keep their own height: stretched to a taller
+ * neighbour, a short booking read as an empty panel.
  */
 export function CardGrid({ children }: { children: ReactNode }) {
-  return <div className="wide:grid wide:grid-cols-[repeat(auto-fill,minmax(min(100%,340px),1fr))] wide:gap-x-3">{children}</div>
+  return (
+    <div className="wide:grid wide:grid-cols-[repeat(auto-fill,minmax(min(100%,340px),1fr))] wide:items-start wide:gap-x-3">
+      {children}
+    </div>
+  )
 }
 
 /**
