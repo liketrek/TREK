@@ -130,7 +130,7 @@ export function widgetsActive(): boolean {
   return isNativeApp() && hasNativeFeature('widgets');
 }
 
-function minutesOf(time: string | null | undefined): number | null {
+export function minutesOf(time: string | null | undefined): number | null {
   const m = /^(\d{1,2}):(\d{2})/.exec(time ?? '');
   return m ? Number(m[1]) * 60 + Number(m[2]) : null;
 }
@@ -156,7 +156,7 @@ export function widgetTripChoices(trips: Trip[], today: string, limit = 6): Trip
 }
 
 /** The symbols of the booking kinds a day's timeline shows next to its stops. */
-const RESERVATION_SYMBOLS: Record<string, string> = {
+export const RESERVATION_SYMBOLS: Record<string, string> = {
   flight: 'airplane',
   train: 'tram.fill',
   bus: 'bus.fill',
@@ -170,7 +170,7 @@ const RESERVATION_SYMBOLS: Record<string, string> = {
 };
 
 /** Puts each timed booking before the first stop that comes later; untimed stops keep their place. */
-function mergeByTime(stops: WidgetStop[], booked: WidgetStop[]): WidgetStop[] {
+export function mergeByTime<T extends { minutes?: number | null }>(stops: T[], booked: T[]): T[] {
   const out = [...stops];
   for (const b of [...booked].sort((x, y) => (x.minutes ?? 0) - (y.minutes ?? 0))) {
     const at = out.findIndex((s) => s.minutes != null && s.minutes > (b.minutes ?? 0));

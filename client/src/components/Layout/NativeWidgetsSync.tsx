@@ -2,14 +2,18 @@
  * NativeWidgetsSync: keeps the iOS widgets and the travel-day Live Activity in
  * step with the trips stored on this device (native/widgets.ts). Runs at start,
  * whenever the app comes back to the foreground and every quarter hour while it
- * is open, so the next stop moves on through the day. Renders nothing; outside
- * an iOS binary with the widgets it does nothing.
+ * is open, so the next stop moves on through the day. The paired Apple Watch
+ * gets the hero trip in full alongside (native/watch.ts), and what is ticked
+ * off on the watch comes back here and goes through the trip store's toggles.
+ * Renders nothing; outside an iOS binary with the widgets it does nothing.
  */
 import { App } from '@capacitor/app';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { offlineDb } from '../../db/offlineDb';
 import { useTranslation } from '../../i18n';
 import { useNativeCapabilities } from '../../native/capabilities';
+import { TrekShell } from '../../native/trekShell';
+import { applyWatchActions, buildWatchSnapshot, publishWatch, takeWatchActions, watchActive } from '../../native/watch';
 import { bookingsAhead, packingSummary, todosSummary, tripPlace } from '../../native/widgetExtras';
 import { widgetCover, widgetWeather } from '../../native/widgetMedia';
 import { atlasSummary, collabSummary, packingDetail, type WidgetAtlas } from '../../native/widgetOnline';
@@ -27,6 +31,7 @@ import {
 } from '../../native/widgets';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
+import { useTripStore } from '../../store/tripStore';
 import type { Day, Place, TranslationFn, Trip } from '../../types';
 import { formatTime } from '../../utils/formatters';
 import { localDateStr } from '../../vacay/monthGrid';
@@ -118,6 +123,7 @@ async function tripExtras(trip: Trip, days: Day[], { today, language, unit, time
   const dayDates = new Map(days.map((d) => [d.id, (d.date ?? '').slice(0, 10)]));
   return {
     reservations,
+    lists: { places, packing, todos },
     extras: {
       place,
       cover,
@@ -138,6 +144,8 @@ export default function NativeWidgetsSync(): null {
   const { caps } = useNativeCapabilities();
   const timeFormat = useSettingsStore((s) => s.settings.time_format);
   const unit = useSettingsStore((s) => s.settings.temperature_unit);
+  /** The ids of the watch's ticks applied in this session, which the watch drops from its pending ones. */
+  const applied = useRef<string[]>([]);
 
   useEffect(() => {
     if (!widgetsActive()) return;
@@ -151,7 +159,29 @@ export default function NativeWidgetsSync(): null {
         ? todayOf(trip, days, context.today, (n, m) => t('native.widget.dayOf', { n, m }), context.time)
         : null;
       const day = plain ? withBookings(plain, extra?.reservations ?? [], context.today, context.time) : null;
-      return { day, snapshot: buildSnapshot(trip, day, labels(t), { ...extra?.extras, atlas }) };
+      return { day, days, extra, snapshot: buildSnapshot(trip, day, labels(t), { ...extra?.extras, atlas }) };
+    };
+
+    /** The hero trip in full for the watch, with the ticks from it applied so far. */
+    const publishToWatch = async (trip: Trip | null, main: Awaited<ReturnType<typeof tripSnapshot>>, today: string) => {
+      if (!watchActive()) return;
+      const lists = main.extra?.lists;
+      await publishWatch(
+        buildWatchSnapshot({
+          trip,
+          days: main.days,
+          places: lists?.places ?? [],
+          reservations: main.extra?.reservations ?? [],
+          packing: lists?.packing ?? [],
+          todos: lists?.todos ?? [],
+          today,
+          hour12: timeFormat === '12h',
+          place: main.extra?.extras.place,
+          cover: main.extra?.extras.cover,
+          weather: main.extra?.extras.weather,
+          applied: applied.current,
+        })
+      );
     };
 
     const sync = async () => {
@@ -180,17 +210,30 @@ export default function NativeWidgetsSync(): null {
         ? tripDayState(main.day, now.getHours() * 60 + now.getMinutes(), t('native.widget.dayDone'))
         : null;
       await publishWidgets(main.snapshot, live, choices);
+      await publishToWatch(hero, main, today);
     };
 
-    void sync();
+    /** The ticks made on the watch, written like a tap in the app, then the watch told. */
+    const drainWatch = async () => {
+      const actions = await takeWatchActions();
+      if (cancelled || actions.length === 0) return;
+      const { togglePackingItem, toggleTodoItem } = useTripStore.getState();
+      const ids = await applyWatchActions(actions, { packing: togglePackingItem, todo: toggleTodoItem });
+      applied.current = [...applied.current, ...ids].slice(-50);
+      await sync();
+    };
+
+    void sync().then(drainWatch);
     const timer = window.setInterval(() => void sync(), REFRESH_MS);
     const listener = App.addListener('appStateChange', ({ isActive }) => {
-      if (isActive) void sync();
+      if (isActive) void sync().then(drainWatch);
     });
+    const watchListener = watchActive() ? TrekShell.addListener('watchAction', () => void drainWatch()) : null;
     return () => {
       cancelled = true;
       window.clearInterval(timer);
       void listener.then((handle) => handle.remove());
+      void watchListener?.then((handle) => handle.remove());
     };
   }, [caps, t, language, timeFormat, unit]);
 

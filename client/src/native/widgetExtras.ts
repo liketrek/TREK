@@ -137,10 +137,49 @@ function bookingDetail(r: Reservation): string | null {
 /** Transport bookings open on the trip's transports tab, the rest on its bookings tab. */
 const TRANSPORT_KINDS = new Set(['flight', 'train', 'bus', 'car', 'cruise']);
 
+/** A booking with the day it falls on and its start time, as the widgets order them. */
+interface DatedReservation {
+  r: Reservation;
+  /** yyyy-MM-dd: its own date, else the date of the day it is placed on. */
+  day: string | null;
+  /** HH:mm, 24 hours. */
+  time: string | null;
+}
+
 /**
  * The trip's bookings from today on, soonest first: those without a date at
- * the end, cancelled ones and drafts an import still waits on left out.
+ * the end, cancelled ones and drafts an import still waits on left out. With
+ * `running`, a booking that started before today but ends today or later (the
+ * hotel the trip sleeps in) stays in.
  */
+export function upcomingReservations(
+  reservations: Reservation[],
+  { dayDates, today, running = false }: { dayDates: Map<number, string>; today: string; running?: boolean }
+): DatedReservation[] {
+  const dayOf = (date: string | null, dayId: number | null | undefined) =>
+    date ?? (dayId != null ? (dayDates.get(dayId) ?? null) : null);
+  return reservations
+    .filter((r) => r.status !== 'cancelled' && (r.ingest_state ?? 'live') === 'live')
+    .map((r) => {
+      const { date, time } = splitReservationDateTime(r.reservation_time);
+      const day = dayOf(date, r.day_id);
+      const end = running ? dayOf(splitReservationDateTime(r.reservation_end_time).date, r.end_day_id) : null;
+      return { r, day, time, end };
+    })
+    .filter(({ day, end }) => day == null || day >= today || (end != null && end >= today))
+    .sort((a, b) => {
+      if (a.day !== b.day) return a.day == null ? 1 : b.day == null ? -1 : a.day.localeCompare(b.day);
+      return (a.time ?? '99:99').localeCompare(b.time ?? '99:99');
+    })
+    .map(({ r, day, time }) => ({ r, day, time }));
+}
+
+/** The kind a booking type is drawn as. */
+export function bookingKind(type: string): string {
+  return KINDS[type] ?? 'other';
+}
+
+/** The trip's bookings from today on, soonest first, as the widgets show them. */
 export function bookingsAhead(
   reservations: Reservation[],
   {
@@ -158,21 +197,10 @@ export function bookingsAhead(
     limit?: number;
   }
 ): WidgetBooking[] {
-  return reservations
-    .filter((r) => r.status !== 'cancelled' && (r.ingest_state ?? 'live') === 'live')
-    .map((r) => {
-      const { date, time } = splitReservationDateTime(r.reservation_time);
-      const day = date ?? (r.day_id != null ? (dayDates.get(r.day_id) ?? null) : null);
-      return { r, day, time };
-    })
-    .filter(({ day }) => day == null || day >= today)
-    .sort((a, b) => {
-      if (a.day !== b.day) return a.day == null ? 1 : b.day == null ? -1 : a.day.localeCompare(b.day);
-      return (a.time ?? '99:99').localeCompare(b.time ?? '99:99');
-    })
+  return upcomingReservations(reservations, { dayDates, today })
     .slice(0, limit)
     .map(({ r, day, time }) => {
-      const kind = KINDS[r.type] ?? 'other';
+      const kind = bookingKind(r.type);
       return {
         title: r.title,
         kind,

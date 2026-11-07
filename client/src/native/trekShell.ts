@@ -98,6 +98,12 @@ export interface TrekShellPlugin {
   addToWallet(options: { data: string }): Promise<{ result: 'added' | 'opened' | 'cancelled' }>;
   /** iOS, feature storeKit: the newest active subscription under `prefix` on this Apple ID, if any. */
   storeRestore(options: { prefix: string }): Promise<{ jws?: string; transactionId?: string }>;
+  /** Feature watch: what the Apple Watch app shows (native/watch.ts), as JSON, sent on through WatchConnectivity. */
+  setWatchSnapshot(options: { json: string }): Promise<void>;
+  /** Feature watch: the ticks the watch sent since the last call, oldest first (parsed by parseWatchActions). */
+  takeWatchActions(): Promise<{ actions: unknown[] }>;
+  /** Feature watch: the watch sent a tick; takeWatchActions has it. */
+  addListener(event: 'watchAction', listener: () => void): Promise<{ remove: () => Promise<void> }>;
   addListener(
     event: 'pushOpened',
     listener: (payload: { url: string }) => void
