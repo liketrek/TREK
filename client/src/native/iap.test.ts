@@ -7,6 +7,8 @@ const shell = vi.hoisted(() => ({
   storePurchase: vi.fn(),
   storeFinish: vi.fn(),
   storeRestore: vi.fn(),
+  storeUnfinished: vi.fn(),
+  addListener: vi.fn(),
 }));
 
 vi.mock('./platform', () => ({ isNativeIos: () => platform.ios, isNativeAndroid: () => platform.android }));
@@ -174,5 +176,41 @@ describe('native client on Android (Google Play Billing)', () => {
     shell.storeFinish.mockResolvedValue(undefined);
     await nativeIapClient.finish(purchase!);
     expect(shell.storeFinish).toHaveBeenCalledWith({ transactionId: 'token-2' });
+  });
+
+  it('hands a payment that cleared later over to the shell, and tells it when one clears', async () => {
+    shell.storeUnfinished.mockResolvedValue({
+      purchaseToken: 'late',
+      transactionId: 'late',
+      productId: 'cloud.plus.monthly',
+    });
+    expect(await nativeIapClient.unfinished()).toEqual({
+      platform: 'google',
+      productId: 'cloud.plus.monthly',
+      receipt: 'late',
+      transactionId: 'late',
+    });
+    expect(shell.storeUnfinished).toHaveBeenCalledWith({ prefix: 'cloud.' });
+    shell.storeUnfinished.mockResolvedValue({});
+    expect(await nativeIapClient.unfinished()).toBeNull();
+    shell.storeUnfinished.mockRejectedValue({ code: 'UNIMPLEMENTED' });
+    expect(await nativeIapClient.unfinished()).toBeNull();
+
+    shell.addListener.mockResolvedValue({ remove: vi.fn() });
+    const listener = vi.fn();
+    nativeIapClient.onTransaction(listener);
+    const [event, handler] = shell.addListener.mock.calls[0] as [string, () => void];
+    expect(event).toBe('storeTransaction');
+    handler();
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it('on iOS leaves an interrupted purchase to the restore, as StoreKit does', async () => {
+    platform.ios = true;
+    platform.android = false;
+    expect(await nativeIapClient.unfinished()).toBeNull();
+    nativeIapClient.onTransaction(vi.fn());
+    expect(shell.storeUnfinished).not.toHaveBeenCalled();
+    expect(shell.addListener).not.toHaveBeenCalled();
   });
 });

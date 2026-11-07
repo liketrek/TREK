@@ -55,6 +55,22 @@ describe('native geolocation', () => {
     expect(TrekShell.stopLocation).toHaveBeenCalledTimes(1);
   });
 
+  it('runs at high accuracy only while a watcher asks for it, and drops back after', () => {
+    installNativeGeolocation();
+    const passive = navigator.geolocation.watchPosition(vi.fn());
+    expect(TrekShell.startLocation).toHaveBeenLastCalledWith({ highAccuracy: false });
+    const tracking = navigator.geolocation.watchPosition(vi.fn(), undefined, { enableHighAccuracy: true });
+    expect(TrekShell.startLocation).toHaveBeenLastCalledWith({ highAccuracy: true });
+    navigator.geolocation.clearWatch(tracking);
+    expect(TrekShell.startLocation).toHaveBeenLastCalledWith({ highAccuracy: false });
+    expect(TrekShell.startLocation).toHaveBeenCalledTimes(3);
+    // A later passive watch does not inherit the high accuracy.
+    navigator.geolocation.watchPosition(vi.fn());
+    expect(TrekShell.startLocation).toHaveBeenCalledTimes(3);
+    navigator.geolocation.clearWatch(passive);
+    expect(TrekShell.stopLocation).not.toHaveBeenCalled();
+  });
+
   it('settles a one-off request with the first fix, and passes a denial on as the Geolocation error', async () => {
     installNativeGeolocation();
     const once = vi.fn();

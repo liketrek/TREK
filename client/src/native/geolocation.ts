@@ -21,12 +21,14 @@ interface Watcher {
   success: Success;
   failure: Failure;
   once: boolean;
+  high: boolean;
 }
 
 const watchers = new Map<number, Watcher>();
 let nextId = 1;
 let running = false;
-let highAccuracy = false;
+/** The accuracy the running stream was started with. */
+let runningHigh = false;
 let subscribed: Promise<unknown> | null = null;
 
 function toPosition(p: Extract<NativeLocationPayload, { latitude: number }>): GeolocationPosition {
@@ -64,22 +66,28 @@ function dispatch(payload: NativeLocationPayload): void {
   syncStream();
 }
 
-/** Runs the native stream while anyone listens, at the accuracy the most demanding asked for. */
+/**
+ * Runs the native stream while anyone listens, at the accuracy the most
+ * demanding of them asked for: high while a watcher wants it (tour tracking),
+ * back to the battery-friendly one once that watcher is gone.
+ */
 function syncStream(): void {
-  if (watchers.size > 0 && !running) {
+  const high = [...watchers.values()].some((w) => w.high);
+  if (watchers.size > 0 && (!running || high !== runningHigh)) {
     running = true;
+    runningHigh = high;
     subscribed ??= TrekShell.addListener('location', dispatch);
-    TrekShell.startLocation({ highAccuracy }).catch(reportNativeFailure);
+    TrekShell.startLocation({ highAccuracy: high }).catch(reportNativeFailure);
   } else if (watchers.size === 0 && running) {
     running = false;
+    runningHigh = false;
     TrekShell.stopLocation().catch(reportNativeFailure);
   }
 }
 
 function add(success: Success, failure: Failure, options: PositionOptions | undefined, once: boolean): number {
-  if (options?.enableHighAccuracy) highAccuracy = true;
   const id = nextId++;
-  watchers.set(id, { success, failure, once });
+  watchers.set(id, { success, failure, once, high: options?.enableHighAccuracy === true });
   syncStream();
   return id;
 }
@@ -105,7 +113,7 @@ export function installNativeGeolocation(): boolean {
 export function _resetNativeGeolocation(): void {
   watchers.clear();
   running = false;
-  highAccuracy = false;
+  runningHigh = false;
   subscribed = null;
   nextId = 1;
 }

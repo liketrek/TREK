@@ -50,6 +50,14 @@ export interface IapClient {
   finish(purchase: Purchase): Promise<void>;
   /** The subscription this store account already holds, for a reinstall or a new device. */
   restore(): Promise<Purchase | null>;
+  /**
+   * A paid subscription that was never delivered: a payment that was pending and
+   * cleared later (Google Play refunds it unless it is delivered within three
+   * days). The shell redeems it at its start, the way a restore does.
+   */
+  unfinished(): Promise<Purchase | null>;
+  /** Calls `listener` when such a payment clears while the app runs. */
+  onTransaction(listener: () => void): void;
 }
 
 /** Every store product of the cloud starts with this. */
@@ -91,6 +99,10 @@ export const fakeIapClient: IapClient = {
   async restore() {
     return null;
   },
+  async unfinished() {
+    return null;
+  },
+  onTransaction() {},
 };
 
 /** The store this app buys through: the App Store on iOS, Google Play on Android. */
@@ -159,6 +171,21 @@ export const nativeIapClient: IapClient = {
     } catch {
       // Left unfinished, the store hands the transaction over again; a restore redeems it idempotently.
     }
+  },
+  async unfinished() {
+    // StoreKit hands an interrupted first purchase over through a restore on its own; only Play needs this.
+    if (nativeStore()?.platform !== 'google') return null;
+    try {
+      const { purchaseToken, productId, transactionId } = await TrekShell.storeUnfinished({ prefix: PRODUCT_PREFIX });
+      if (!purchaseToken || !transactionId) return null;
+      return { platform: 'google', productId: productId ?? '', receipt: purchaseToken, transactionId };
+    } catch {
+      return null;
+    }
+  },
+  onTransaction(listener) {
+    if (nativeStore()?.platform !== 'google') return;
+    void TrekShell.addListener('storeTransaction', () => listener()).catch(() => {});
   },
   async restore() {
     try {

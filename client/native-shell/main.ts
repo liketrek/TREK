@@ -448,6 +448,10 @@ function planCard(plan: CloudPlan, interval: 'month' | 'year', offer: Offer): HT
  * holds (a reinstall, a new phone). Without one: only that buying in the app is
  * not available, and no pointer elsewhere.
  */
+/** The restore button of the plans on screen, which redeems a payment that cleared later. */
+let resumeRestore: (() => void) | null = null;
+let watchingTransactions = false;
+
 function planFooter(offer: Offer, plans: CloudPlan[]): Node[] {
   if (offer.opensSoon) return [el('p', { className: 'note' }, t('native.plans.closed'))];
   if (!offer.canBuy) return [el('p', { className: 'note' }, t('native.plans.soon'))];
@@ -488,6 +492,19 @@ function planFooter(offer: Offer, plans: CloudPlan[]): Node[] {
     restore.disabled = false;
     status.className = 'hint bad';
     status.textContent = t('native.plans.restoreFailed');
+  });
+
+  // A payment that was pending (cash, some carrier billing) and has cleared since:
+  // redeemed right away, as the restore would, before Google Play refunds it.
+  resumeRestore = () => {
+    if (!restore.disabled && restore.isConnected) restore.click();
+  };
+  if (!watchingTransactions) {
+    watchingTransactions = true;
+    iap.onTransaction(() => resumeRestore?.());
+  }
+  void iap.unfinished().then((purchase) => {
+    if (purchase) resumeRestore?.();
   });
 
   return [

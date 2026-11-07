@@ -110,6 +110,13 @@ export interface TrekShellPlugin {
     event: 'windowLayout',
     listener: (payload: NativeWindowLayout) => void
   ): Promise<{ remove: () => Promise<void> }>;
+  /** Android, feature playBilling: a paid subscription never delivered (cleared while the app was closed). */
+  storeUnfinished(options: { prefix: string }): Promise<StoreRestoreResult>;
+  /** Android, feature playBilling: a pending payment cleared while the app runs. */
+  addListener(
+    event: 'storeTransaction',
+    listener: (payload: StoreRestoreResult) => void
+  ): Promise<{ remove: () => Promise<void> }>;
 }
 
 /** What Google Play Billing answers a restore with (Android, feature playBilling), beside iOS's `jws`. */
