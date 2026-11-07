@@ -670,6 +670,12 @@
       "mobile": ["src/mobile/screens/trip/roadtrip/MRtStaySheet.tsx"]
     },
     {
+      "feature": "Demo welcome",
+      "hooks": ["src/components/Demo/useDemoWelcome.ts"],
+      "desktop": ["src/components/Demo/DemoWelcome.tsx"],
+      "mobile": ["src/mobile/screens/dashboard/MDemoWelcome.tsx"]
+    },
+    {
       "feature": "Settings / Demo account locks",
       "hooks": ["src/components/Demo/useDemoLock.ts"],
       "desktop": [
