@@ -330,8 +330,9 @@ function showCloud(opts: { back?: boolean } = {}): void {
 interface CloudPlan {
   id: string;
   name: string;
-  monthlyCents: number;
-  yearlyCents: number;
+  /** Absent while orders are closed: the cloud names its plans but no price leaves it then. */
+  monthlyCents?: number;
+  yearlyCents?: number;
   aiDocuments: number;
   storageGb: number;
 }
@@ -350,16 +351,22 @@ const SAMPLE_PLANS: CloudPlan[] = [
   { id: 'studio', name: 'Studio', monthlyCents: 2399, yearlyCents: 23990, aiDocuments: 2000, storageGb: 1000 },
 ];
 
-async function fetchPlans(): Promise<CloudPlan[] | null> {
+interface CloudPlans {
+  plans: CloudPlan[];
+  /** Orders are closed: only a test build may buy, and the store charges it nothing. */
+  closed: boolean;
+}
+
+async function fetchPlans(): Promise<CloudPlans | null> {
   try {
     const res = await get(`${CLOUD_URL}/api/plans`);
     const data = typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
-    const plans = (data as { plans?: CloudPlan[] })?.plans;
-    if (Array.isArray(plans) && plans.length) return plans;
+    const body = (data ?? {}) as { plans?: CloudPlan[]; ordering?: string };
+    if (Array.isArray(body.plans) && body.plans.length) return { plans: body.plans, closed: body.ordering === 'closed' };
   } catch {
     // Fall through to the preview fallback.
   }
-  if (import.meta.env?.DEV) return SAMPLE_PLANS;
+  if (import.meta.env?.DEV) return { plans: SAMPLE_PLANS, closed: false };
   return null;
 }
 
@@ -372,20 +379,26 @@ async function fetchPlans(): Promise<CloudPlan[] | null> {
 interface Offer {
   canBuy: boolean;
   storePrices: Map<string, string> | null;
+  /** Orders are closed and this is no test build: the plans show, nothing is for sale yet. */
+  opensSoon: boolean;
 }
 
 function offerFor(offer: Offer, plan: CloudPlan, interval: 'month' | 'year'): { label: string; buyable: boolean } {
   const cents = interval === 'year' ? plan.yearlyCents : plan.monthlyCents;
+  const ours = typeof cents === 'number' ? money(cents) : '';
   const storePrice = offer.storePrices?.get(productIdFor(plan.id, interval));
-  if (offer.storePrices) return { label: storePrice ?? money(cents), buyable: offer.canBuy && !!storePrice };
-  return { label: money(cents), buyable: offer.canBuy };
+  if (offer.storePrices) return { label: storePrice ?? ours, buyable: offer.canBuy && !!storePrice };
+  return { label: ours, buyable: offer.canBuy && ours !== '' };
 }
 
-async function loadOffer(plans: CloudPlan[]): Promise<Offer> {
-  const canBuy = await iapReady;
-  if (!canBuy || iap === fakeIapClient) return { canBuy, storePrices: null };
-  const ids = plans.flatMap((p) => [productIdFor(p.id, 'month'), productIdFor(p.id, 'year')]);
-  return { canBuy, storePrices: await iap.prices(ids) };
+async function loadOffer(list: CloudPlans): Promise<Offer> {
+  const available = await iapReady;
+  // Closed: a store purchase would be refused at the cloud, so only a test build may buy.
+  const opensSoon = available && list.closed && !(await iap.isSandbox().catch(() => false));
+  const canBuy = available && !opensSoon;
+  if (!canBuy || iap === fakeIapClient) return { canBuy, storePrices: null, opensSoon };
+  const ids = list.plans.flatMap((p) => [productIdFor(p.id, 'month'), productIdFor(p.id, 'year')]);
+  return { canBuy, storePrices: await iap.prices(ids), opensSoon };
 }
 
 function planCard(plan: CloudPlan, interval: 'month' | 'year', offer: Offer): HTMLElement {
@@ -400,7 +413,7 @@ function planCard(plan: CloudPlan, interval: 'month' | 'year', offer: Offer): HT
     sub = el('button', { type: 'button', className: 'btn' }, t('native.plans.subscribe'));
     sub.addEventListener('click', () => {
       void tap(ImpactStyle.Medium);
-      showClaim(plan, interval, label);
+      showClaim(plan, interval, `${label} ${per}`);
     });
   }
   return el(
@@ -410,7 +423,8 @@ function planCard(plan: CloudPlan, interval: 'month' | 'year', offer: Offer): HT
       'div',
       { className: 'plan-top' },
       el('span', { className: 'plan-name' }, plan.name),
-      el('span', { className: 'plan-price' }, label, el('small', {}, per))
+      // No price yet (orders not open): the plan shows without one rather than with an empty one.
+      ...(label ? [el('span', { className: 'plan-price' }, label, el('small', {}, per))] : [])
     ),
     el(
       'div',
@@ -431,7 +445,8 @@ function planCard(plan: CloudPlan, interval: 'month' | 'year', offer: Offer): HT
  * holds (a reinstall, a new phone). Without one: only that buying in the app is
  * not available, and no pointer elsewhere.
  */
-function planFooter(offer: Offer): Node[] {
+function planFooter(offer: Offer, plans: CloudPlan[]): Node[] {
+  if (offer.opensSoon) return [el('p', { className: 'note' }, t('native.plans.closed'))];
   if (!offer.canBuy) return [el('p', { className: 'note' }, t('native.plans.soon'))];
 
   const status = el('p', { className: 'hint', role: 'status' });
@@ -452,6 +467,18 @@ function planFooter(offer: Offer): Node[] {
     if (redeemed.ok && redeemed.instanceUrl) {
       await iap.finish(purchase);
       showProvisioning(redeemed.instanceUrl);
+      return;
+    }
+    // Paid but never set up (Ask to Buy approved later, the app closed mid-purchase):
+    // the claim screen takes the purchase as it is, so nothing is bought twice.
+    const unclaimed = redeemed.code === 'email-invalid' || (redeemed.code ?? '').startsWith('slug-');
+    const match = /^cloud\.([a-z0-9-]+)\.(monthly|yearly)$/.exec(purchase.productId);
+    const plan = match ? plans.find((p) => p.id === match[1]) : undefined;
+    if (unclaimed && match && plan) {
+      const interval = match[2] === 'yearly' ? 'year' : 'month';
+      const { label } = offerFor(offer, plan, interval);
+      const per = interval === 'year' ? t('native.plans.perYear') : t('native.plans.perMonth');
+      showClaim(plan, interval, `${label} ${per}`, { bought: purchase });
       return;
     }
     void notify(NotificationType.Error);
@@ -476,7 +503,7 @@ function planFooter(offer: Offer): Node[] {
 function showPlans(opts: { back?: boolean } = {}): void {
   let interval: 'month' | 'year' = 'month';
   let plans: CloudPlan[] | null = null;
-  let offer: Offer = { canBuy: false, storePrices: null };
+  let offer: Offer = { canBuy: false, storePrices: null, opensSoon: false };
 
   const content = el('div', { className: 'loading' }, el('span', { className: 'spinner' }));
   const footer = el('div', { className: 'plans-foot' });
@@ -510,9 +537,9 @@ function showPlans(opts: { back?: boolean } = {}): void {
     const list = await fetchPlans();
     if (list) {
       offer = await loadOffer(list);
-      plans = list;
+      plans = list.plans;
       renderList();
-      footer.replaceChildren(...planFooter(offer));
+      footer.replaceChildren(...planFooter(offer, list.plans));
       return;
     }
     content.className = '';
@@ -584,9 +611,14 @@ async function redeemPurchase(slug: string, email: string, purchase: Purchase): 
   }
 }
 
-function showClaim(plan: CloudPlan, interval: 'month' | 'year', price: string, opts: { back?: boolean } = {}): void {
+function showClaim(
+  plan: CloudPlan,
+  interval: 'month' | 'year',
+  price: string,
+  opts: { back?: boolean; bought?: Purchase } = {},
+): void {
   /** A purchase that went through but whose redeem did not: a retry redeems it again instead of buying twice. */
-  let bought: Purchase | null = null;
+  let bought: Purchase | null = opts.bought ?? null;
 
   const slugInput = el('input', {
     type: 'text',

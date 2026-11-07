@@ -58,6 +58,17 @@ describe('native client', () => {
     expect(await nativeIapClient.isAvailable()).toBe(false);
   });
 
+  it('knows a test build from a store one, and takes an error for a store build', async () => {
+    shell.storeProducts.mockResolvedValue({ products: [], sandbox: true });
+    expect(await nativeIapClient.isSandbox()).toBe(true);
+    expect(shell.storeProducts).toHaveBeenCalledWith({ ids: [] });
+    shell.storeProducts.mockResolvedValue({ products: [] });
+    expect(await nativeIapClient.isSandbox()).toBe(false);
+    shell.storeProducts.mockRejectedValue(new Error('no store'));
+    expect(await nativeIapClient.isSandbox()).toBe(false);
+    expect(await fakeIapClient.isSandbox()).toBe(true);
+  });
+
   it('maps the store price strings by product', async () => {
     shell.storeProducts.mockResolvedValue({ products: [{ id: 'cloud.plus.monthly', displayPrice: '9,99 €' }] });
     const prices = await nativeIapClient.prices(['cloud.plus.monthly', 'cloud.pro.monthly']);

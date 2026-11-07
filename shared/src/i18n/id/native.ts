@@ -54,6 +54,7 @@ const native: TranslationStrings = {
   'native.plans.loadError': 'Tidak dapat memuat paket. Periksa koneksi Anda dan coba lagi.',
   'native.plans.retry': 'Coba lagi',
   'native.plans.soon': 'Berlangganan di aplikasi belum tersedia.',
+  'native.plans.closed': 'TREK Cloud segera dibuka. Mulai hari pembukaan, Anda bisa berlangganan di sini.',
   'native.claim.title': 'Hampir selesai',
   'native.claim.sub': 'Pilih alamat Anda. Kami langsung menyiapkannya.',
   'native.claim.addressLabel': 'Alamat Anda',
@@ -62,7 +63,7 @@ const native: TranslationStrings = {
   'native.claim.reserved': 'Alamat itu dicadangkan.',
   'native.claim.free': 'Tersedia',
   'native.claim.emailLabel': 'Email', // same-as-en
-  'native.claim.emailHint': 'Untuk akun dan tanda terima Anda.',
+  'native.claim.emailHint': 'Untuk akun Anda dan pemberitahuan tentang kontrak Anda.',
   'native.claim.subscribe': 'Berlangganan seharga {price}',
   'native.claim.cancelled': 'Pembelian dibatalkan.',
   'native.claim.failed': 'Pembelian tidak berhasil. Silakan coba lagi.',

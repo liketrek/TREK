@@ -55,6 +55,7 @@ const native: TranslationStrings = {
   'native.plans.loadError': 'Không thể tải các gói. Hãy kiểm tra kết nối và thử lại.',
   'native.plans.retry': 'Thử lại',
   'native.plans.soon': 'Chưa thể đăng ký trong ứng dụng.',
+  'native.plans.closed': 'TREK Cloud sắp ra mắt. Từ ngày ra mắt, bạn có thể đăng ký tại đây.',
   'native.claim.title': 'Sắp xong rồi',
   'native.claim.sub': 'Chọn địa chỉ của bạn. Chúng tôi thiết lập ngay.',
   'native.claim.addressLabel': 'Địa chỉ của bạn',
@@ -63,7 +64,7 @@ const native: TranslationStrings = {
   'native.claim.reserved': 'Địa chỉ đó đã được giữ chỗ.',
   'native.claim.free': 'Có sẵn',
   'native.claim.emailLabel': 'Email', // same-as-en
-  'native.claim.emailHint': 'Cho tài khoản và biên nhận của bạn.',
+  'native.claim.emailHint': 'Dùng cho tài khoản và thông báo về hợp đồng của bạn.',
   'native.claim.subscribe': 'Đăng ký với giá {price}',
   'native.claim.cancelled': 'Đã hủy mua.',
   'native.claim.failed': 'Giao dịch mua không thành công. Vui lòng thử lại.',

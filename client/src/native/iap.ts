@@ -41,6 +41,8 @@ export interface IapClient {
    * prices come from the plan list.
    */
   prices(productIds: string[]): Promise<Map<string, string>>;
+  /** A test build (TestFlight, App Review), whose purchases cost nothing and may go ahead before the opening. */
+  isSandbox(): Promise<boolean>;
   /** Runs the platform's purchase sheet for a product and resolves with what became of it. */
   purchase(productId: string): Promise<PurchaseOutcome>;
   /** Tells the store a purchase was delivered, once its instance exists. */
@@ -72,6 +74,9 @@ export const fakeIapClient: IapClient = {
   },
   async prices() {
     return new Map();
+  },
+  async isSandbox() {
+    return true;
   },
   async purchase(productId) {
     await new Promise((resolve) => setTimeout(resolve, 900));
@@ -108,6 +113,13 @@ export const nativeIapClient: IapClient = {
       return new Map(products.map((p) => [p.id, p.displayPrice]));
     } catch {
       return new Map();
+    }
+  },
+  async isSandbox() {
+    try {
+      return (await TrekShell.storeProducts({ ids: [] })).sandbox === true;
+    } catch {
+      return false;
     }
   },
   async purchase(productId) {

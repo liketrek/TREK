@@ -4,7 +4,7 @@
  */
 
 /** The privacy policy the store listings name too. */
-export const PRIVACY_URL = 'https://liketrek.com/privacy';
+export const PRIVACY_URL = 'https://liketrek.com/privacy?app=1';
 
 /** What a TREK server is and how to run one, for someone who has none yet. */
 export const SERVER_DOCS_URL = 'https://github.com/liketrek/TREK#readme';

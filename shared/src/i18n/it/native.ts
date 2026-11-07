@@ -55,6 +55,7 @@ const native: TranslationStrings = {
   'native.plans.loadError': 'Impossibile caricare i piani. Controlla la connessione e riprova.',
   'native.plans.retry': 'Riprova',
   'native.plans.soon': 'L’abbonamento nell’app non è ancora disponibile.',
+  'native.plans.closed': 'TREK Cloud apre presto. Potrai abbonarti qui dal giorno dell’apertura.',
   'native.claim.title': 'Quasi fatto',
   'native.claim.sub': 'Scegli il tuo indirizzo. Lo prepariamo subito.',
   'native.claim.addressLabel': 'Il tuo indirizzo',
@@ -63,7 +64,7 @@ const native: TranslationStrings = {
   'native.claim.reserved': 'Questo indirizzo è riservato.',
   'native.claim.free': 'Disponibile',
   'native.claim.emailLabel': 'Email', // same-as-en
-  'native.claim.emailHint': 'Per il tuo account e le ricevute.',
+  'native.claim.emailHint': 'Per il tuo account e le comunicazioni sul contratto.',
   'native.claim.subscribe': 'Abbonati per {price}',
   'native.claim.cancelled': 'Acquisto annullato.',
   'native.claim.failed': 'L’acquisto non è andato a buon fine. Riprova.',

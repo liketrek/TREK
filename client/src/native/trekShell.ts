@@ -74,7 +74,9 @@ export interface TrekShellPlugin {
   }): Promise<{ running: boolean }>;
   endTripDay(): Promise<void>;
   /** iOS, feature storeKit: the App Store's price strings for the products it knows. */
-  storeProducts(options: { ids: string[] }): Promise<{ products: { id: string; displayPrice: string }[] }>;
+  storeProducts(options: {
+    ids: string[];
+  }): Promise<{ products: { id: string; displayPrice: string }[]; sandbox?: boolean }>;
   /** iOS, feature storeKit: the purchase sheet; `jws` is the signed transaction, set when bought. */
   storePurchase(options: {
     productId: string;

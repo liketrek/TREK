@@ -443,12 +443,14 @@ extension TrekShellPlugin {
     /// know are left out, so the shell offers only what can really be bought.
     @objc func storeProducts(_ call: CAPPluginCall) {
         let ids = call.getArray("ids", String.self) ?? []
+        // TestFlight, App Review and Xcode builds buy in the sandbox; their receipt says so.
+        let sandbox = Bundle.main.appStoreReceiptURL?.lastPathComponent == "sandboxReceipt"
         Task {
             guard AppStore.canMakePayments, let products = try? await Product.products(for: ids) else {
-                call.resolve(["products": []])
+                call.resolve(["products": [], "sandbox": sandbox])
                 return
             }
-            call.resolve(["products": products.map { ["id": $0.id, "displayPrice": $0.displayPrice] }])
+            call.resolve(["products": products.map { ["id": $0.id, "displayPrice": $0.displayPrice] }, "sandbox": sandbox])
         }
     }
 
