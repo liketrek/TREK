@@ -433,13 +433,35 @@ export default function MTripShell({
   // With the plan beside the map, the map shows the day the plan shows: its
   // places framed, its route drawn, the other days' pins put away, exactly as
   // a phone does when it switches over to the map.
-  const followDayId = split && trTab === 'plan' && view === 'plan' && mode !== 'browse' ? planner.selectedDayId : null
+  // Not before the splash has gone: the map is not there to frame until then.
+  const mapReady = !planner.isLoading && planner.splashDone
+  const followDayId = mapReady && split && trTab === 'plan' && view === 'plan' && mode !== 'browse' ? planner.selectedDayId : null
   const { autoShowRoute, setExpandedDayIds } = planner
+  const selectDayRef = useRef(planner.handleSelectDay)
+  useEffect(() => {
+    selectDayRef.current = planner.handleSelectDay
+  })
   useEffect(() => {
     if (followDayId == null) return
     autoShowRoute()
     setExpandedDayIds(new Set([followDayId]))
+    // Framed as the map toggle frames it, without touching the plan's scroll.
+    selectDayRef.current(followDayId, false)
   }, [followDayId, autoShowRoute, setExpandedDayIds])
+
+  // The map's box changes with the pane (opening, hiding, a rotation or a fold
+  // crossing the split size), and a frame fitted to the old box leaves the day
+  // half outside the new one. Once the box has settled, frame the day again.
+  const frameDayId = MAP_TABS.has(trTab) ? planner.selectedDayId : null
+  const boxKey = `${split}:${paneOpen}`
+  const lastBoxRef = useRef(boxKey)
+  useEffect(() => {
+    if (lastBoxRef.current === boxKey) return
+    lastBoxRef.current = boxKey
+    if (frameDayId == null) return
+    const timer = setTimeout(() => selectDayRef.current(frameDayId, false), 340)
+    return () => clearTimeout(timer)
+  }, [boxKey, frameDayId])
 
   const openSheet = (id: string, payload?: unknown) => setSheet({ id, payload })
   const closeSheet = () => setSheet(null)

@@ -9,7 +9,7 @@ import { useDocSyncOfferStore } from '../../../../src/store/docSyncOfferStore';
 import type { Day } from '../../../../src/types';
 import { buildPlanner } from '../../../helpers/mobileTrip';
 import { server } from '../../../helpers/msw/server';
-import { fireEvent, render, screen, within } from '../../../helpers/render';
+import { fireEvent, render, screen, waitFor, within } from '../../../helpers/render';
 import { setSizeClass } from '../../../helpers/sizeClass';
 import { seedStore } from '../../../helpers/store';
 
@@ -140,6 +140,18 @@ describe('MTripShell on a wide window', () => {
     fireEvent.click(screen.getByRole('button', { name: 'mobileTrip.showPane' }));
     expect(shellApi().paneOpen).toBe(true);
     expect(screen.getByTestId('plan-timeline')).toBeInTheDocument();
+  });
+
+  it('FE-MOB-SHELLW-007: the map frames the day beside the pane, and again once its box has changed', async () => {
+    setSizeClass('split');
+    renderShell();
+    // On arrival, as the map toggle frames it: the day, without the list flag.
+    expect(mocks.planner.handleSelectDay).toHaveBeenCalledWith(12, false);
+    vi.mocked(mocks.planner.handleSelectDay).mockClear();
+
+    fireEvent.click(screen.getByRole('button', { name: 'mobileTrip.hidePane' }));
+    vi.mocked(mocks.planner.handleSelectDay).mockClear();
+    await waitFor(() => expect(mocks.planner.handleSelectDay).toHaveBeenCalledWith(12, false), { timeout: 1500 });
   });
 
   it('FE-MOB-SHELLW-004: folding to compact mid-plan keeps the map and the day, and brings the dock back', () => {
