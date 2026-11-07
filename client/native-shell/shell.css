@@ -1013,6 +1013,17 @@ a.linkbtn {
     inset-inline: max(32px, calc(25vw - 220px));
   }
 }
+/* With the whole half of a 13" iPad on its side, the plans stand two by two
+   rather than in a column to scroll through. */
+@media (min-width: 1200px) and (min-height: 600px) and (orientation: landscape) {
+  .shell:has(.plans) {
+    padding-inline: max(32px, calc(25vw - 320px));
+  }
+  .plans {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 @media (min-width: 700px) and (min-height: 900px) and (orientation: portrait) {
   body::before,
   body::after {

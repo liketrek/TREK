@@ -194,22 +194,29 @@ export function FilePreviewPane({ file, planner, onOpen, onStar, onLinks, onMenu
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="relative aspect-[4/5] max-h-[56dvh] w-full overflow-hidden rounded-2xl border border-[color:var(--m-rowbr)] bg-m-sheetop">
-        {isImage(file.mime_type) && src ? (
-          <img src={src} alt={file.original_name} className="absolute inset-0 h-full w-full object-contain" />
-        ) : isPdf(file) && src ? (
-          <object
-            data={`${src}#view=FitH`}
-            type="application/pdf"
-            title={file.original_name}
-            className="absolute inset-0 h-full w-full"
-          >
+      {isImage(file.mime_type) && src ? (
+        // A photo takes its own proportions, up to the height the pane can spare.
+        <img
+          src={src}
+          alt={file.original_name}
+          className="block max-h-[60dvh] w-full rounded-2xl border border-[color:var(--m-rowbr)] bg-m-sheetop object-contain"
+        />
+      ) : (
+        <div className="relative aspect-[4/5] max-h-[56dvh] w-full overflow-hidden rounded-2xl border border-[color:var(--m-rowbr)] bg-m-sheetop">
+          {isPdf(file) && src ? (
+            <object
+              data={`${src}#view=FitH`}
+              type="application/pdf"
+              title={file.original_name}
+              className="absolute inset-0 h-full w-full"
+            >
+              <TypeArt file={file} large />
+            </object>
+          ) : (
             <TypeArt file={file} large />
-          </object>
-        ) : (
-          <TypeArt file={file} large />
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       <div>
         <h3 className="break-words text-[length:calc(16px*var(--fs-scale-subtitle,1))] font-extrabold leading-[1.3] text-m-ink">
