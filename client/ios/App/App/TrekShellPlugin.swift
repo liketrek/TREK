@@ -48,6 +48,7 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
         CAPPluginMethod(name: "addToWallet", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setWatchSnapshot", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "takeWatchActions", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setKeyCommands", returnType: CAPPluginReturnPromise),
     ]
 
     /// What this binary offers the server's UI, raised with every native feature
@@ -57,7 +58,7 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
     /// The native features by name, so the UI can turn each on by itself.
     /// "watch" only where WatchConnectivity is (an iPhone, not an iPad), so the UI never builds a snapshot for nothing.
     static var features: [String] {
-        ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation", "sharedFiles", "nativePush", "widgets", "liveActivity", "widgetTrips", "storeKit", "shareSheet", "wallet"]
+        ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation", "sharedFiles", "nativePush", "widgets", "liveActivity", "widgetTrips", "storeKit", "shareSheet", "wallet", "keyCommands"]
             + (TrekWatchLink.isAvailable ? ["watch"] : [])
     }
 
@@ -72,6 +73,22 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
         }
         TrekStore.watchUpdates()
         TrekWatchLink.shared.onAction = { [weak self] in self?.notifyListeners("watchAction", data: [:]) }
+        TrekKeyCommands.onPress = { [weak self] id in
+            self?.notifyListeners("keyCommand", data: ["id": id])
+        }
+    }
+
+    // MARK: - Hardware keyboard
+
+    /// The UI's keyboard shortcuts for the screen it shows (mobile/keyboard),
+    /// named in its language, as key commands in the app's menu.
+    @objc func setKeyCommands(_ call: CAPPluginCall) {
+        let raw = call.getArray("commands", JSObject.self) ?? []
+        let commands = raw.compactMap { TrekKeyCommands.Command(raw: $0) }
+        DispatchQueue.main.async {
+            TrekKeyCommands.set(commands)
+            call.resolve()
+        }
     }
 
     // MARK: - Widgets and the travel-day Live Activity

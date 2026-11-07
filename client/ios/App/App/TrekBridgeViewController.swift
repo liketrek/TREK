@@ -50,6 +50,87 @@ class TrekBridgeViewController: CAPBridgeViewController {
         // the page follows the finger and an open sheet closes first.
         webView?.allowsBackForwardNavigationGestures = false
     }
+
+    /// A key command of the UI's (TrekKeyCommands) was pressed. The commands sit
+    /// in the main menu, which sends their action up the responder chain from
+    /// the web view, and this controller is the first stop that answers it.
+    @objc func trekKeyCommand(_ sender: UIKeyCommand) {
+        guard let id = sender.propertyList as? String else { return }
+        TrekKeyCommands.onPress?(id)
+    }
+}
+
+// MARK: - Hardware keyboard (TrekShell.setKeyCommands)
+
+/// The UI's keyboard shortcuts as key commands in the app's main menu. There
+/// they show in the overlay a held Command key brings up and, on iPadOS 26, in
+/// the menu bar, under the names the UI gives them in its language. Each screen
+/// replaces the list (mobile/keyboard/MKeyboardHost.tsx), and the menu is
+/// rebuilt with it, so only what works here and now is ever offered.
+enum TrekKeyCommands {
+    struct Command {
+        let id: String
+        let title: String
+        let input: String
+        let modifiers: UIKeyModifierFlags
+
+        init?(raw: JSObject) {
+            guard let id = raw["id"] as? String, let title = raw["title"] as? String,
+                  let input = raw["input"] as? String, !input.isEmpty else { return nil }
+            var flags: UIKeyModifierFlags = []
+            for name in raw["modifiers"] as? [String] ?? [] {
+                switch name {
+                case "command": flags.insert(.command)
+                case "shift": flags.insert(.shift)
+                case "option": flags.insert(.alternate)
+                case "control": flags.insert(.control)
+                default: break
+                }
+            }
+            self.id = id
+            self.title = title
+            self.input = Command.key(input)
+            self.modifiers = flags
+        }
+
+        private static func key(_ name: String) -> String {
+            switch name {
+            case "left": return UIKeyCommand.inputLeftArrow
+            case "right": return UIKeyCommand.inputRightArrow
+            case "up": return UIKeyCommand.inputUpArrow
+            case "down": return UIKeyCommand.inputDownArrow
+            case "escape": return UIKeyCommand.inputEscape
+            default: return name
+            }
+        }
+    }
+
+    static let menuIdentifier = UIMenu.Identifier("com.liketrek.trek.shortcuts")
+    private(set) static var current: [Command] = []
+    static var onPress: ((String) -> Void)?
+
+    static func set(_ commands: [Command]) {
+        current = commands
+        UIMenuSystem.main.setNeedsRebuild()
+    }
+
+    /// The commands as one menu, without a title of its own: it joins the app's
+    /// menu, where iPadOS lists the shortcuts under the app's name.
+    static func menu() -> UIMenu {
+        let children = current.map { command -> UIKeyCommand in
+            let key = UIKeyCommand(
+                title: command.title,
+                action: #selector(TrekBridgeViewController.trekKeyCommand(_:)),
+                input: command.input,
+                modifierFlags: command.modifiers,
+                propertyList: command.id
+            )
+            // ⌘[ and ⌘, belong to the app here, not to the web view's editing.
+            key.wantsPriorityOverSystemBehavior = true
+            return key
+        }
+        return UIMenu(title: "", identifier: menuIdentifier, options: .displayInline, children: children)
+    }
 }
 
 /// The remembered server and the offline copy of its start page.

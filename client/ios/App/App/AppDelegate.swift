@@ -60,6 +60,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
     }
 
+    // MARK: - Hardware keyboard
+
+    /// The UI's shortcuts for the screen on show (TrekKeyCommands), in the app's
+    /// menu: the overlay a held Command key brings up lists them there.
+    override func buildMenu(with builder: UIMenuBuilder) {
+        super.buildMenu(with: builder)
+        guard builder.system == .main, !TrekKeyCommands.current.isEmpty else { return }
+        let parent: UIMenu.Identifier = builder.menu(for: .application) != nil ? .application : .root
+        builder.insertChild(TrekKeyCommands.menu(), atStartOfMenu: parent)
+    }
+
     func application(_ application: UIApplication,
                      configurationForConnecting connectingSceneSession: UISceneSession,
                      options: UIScene.ConnectionOptions) -> UISceneConfiguration {
