@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { chromeFitPadding, chromePan } from './atlasChrome';
 
 // FE-ATLAS-CHROME-001 onwards: the atlas camera beside the touch shell's rail and header.
@@ -9,6 +9,14 @@ describe('atlas chrome insets', () => {
     expect(chromePan({ top: 0, start: 0 }, 40, false)).toBeNull();
     // A tall window: the far north is already below the header.
     expect(chromePan({ top: 62, start: 0 }, 83, false)).toBeNull();
+  });
+
+  it('FE-ATLAS-CHROME-005: the north edge is measured only where there is chrome to clear', () => {
+    const measure = vi.fn(() => -77);
+    expect(chromePan(undefined, measure, false)).toBeNull();
+    expect(measure).not.toHaveBeenCalled();
+    expect(chromePan({ top: 62, start: 0 }, measure, false)).toEqual([0, -139]);
+    expect(measure).toHaveBeenCalledTimes(1);
   });
 
   it('FE-ATLAS-CHROME-002: the world moves away from the rail, in either reading direction', () => {

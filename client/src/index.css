@@ -1290,7 +1290,6 @@ img[alt="TREK"] {
 
 /* ── Dark-Mode: Tailwind-Klassen ─────────────── */
 .dark .bg-slate-50 { background-color: #131316 !important; }
-.dark .bg-slate-100 { background-color: #1c1c21 !important; }
 .dark .bg-white { background-color: #09090b !important; }
 .dark .bg-gray-50 { background-color: #131316 !important; }
 .dark .bg-gray-100 { background-color: #1c1c21 !important; }
@@ -1307,10 +1306,7 @@ img[alt="TREK"] {
 .dark .bg-slate-100 { background-color: #27272a !important; }
 .dark .bg-slate-900 { background-color: #e4e4e7 !important; color: #09090b !important; }
 .dark .hover\:bg-slate-700:hover { background-color: #d4d4d8 !important; color: #09090b !important; }
-/* Not inside the touch shell (.m-root): its fields state their own fill, a
-   transparent input inside a rounded wrapper above all, and this rule outweighs
-   every utility class, so it painted a dark box inside each of them. The
-   :where() keeps the desktop's weight exactly as it was. */
+/* Not in the touch shell (.m-root), whose fields set their own fill; :where() keeps the desktop's weight. */
 .dark input:not(:where(.m-root *)), .dark textarea:not(:where(.m-root *)), .dark select:not(:where(.m-root *)) {
   background-color: #1c1c21;
   color: #f4f4f5;

@@ -23,16 +23,17 @@ export const NORTH_EDGE_LAT = 75;
  * inhabited top (NORTH_EDGE_LAT, at `northEdgeY` in the map's own pixels) needs
  * to clear the header: a tall window shows it below the header anyway, a phone
  * had the stars of the far north under it. Leaflet pans the camera, so the
- * numbers point the other way from the world's move.
+ * numbers point the other way from the world's move. `northEdgeY` may be a
+ * measurement, taken only where there is chrome: the desktop atlas has none.
  */
 export function chromePan(
   insets: AtlasChromeInsets | undefined,
-  northEdgeY: number,
+  northEdgeY: number | (() => number),
   rtl = documentRtl()
 ): [number, number] | null {
   if (!insets) return null;
   const x = insets.start ? (rtl ? 1 : -1) * (insets.start / 2) : 0;
-  const y = Math.min(0, northEdgeY - insets.top);
+  const y = Math.min(0, (typeof northEdgeY === 'function' ? northEdgeY() : northEdgeY) - insets.top);
   return x || y ? [x, y] : null;
 }
 

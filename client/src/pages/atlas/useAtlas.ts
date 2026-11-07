@@ -373,10 +373,8 @@ export function useAtlas(options: { chromeInsets?: () => AtlasChromeInsets } = {
     map.getPane('regionPane')!.style.zIndex = '401'
 
     mapInstance.current = map
-    // The opening view centres the world beside the screen's chrome, not behind the rail and under the header.
-    // Measured only where there is chrome to clear: the desktop atlas opens exactly as before.
-    const insets = chromeInsetsRef.current?.()
-    const pan = insets ? chromePan(insets, map.latLngToContainerPoint([NORTH_EDGE_LAT, 0]).y) : null
+    // The opening view clears the touch shell's rail and header; the desktop atlas has none and opens as before.
+    const pan = chromePan(chromeInsetsRef.current?.(), () => map.latLngToContainerPoint([NORTH_EDGE_LAT, 0]).y)
     if (pan) map.panBy(pan, { animate: false })
     // Both renderers live as long as the map does (see the note on the refs); map.remove()
     // disposes them along with every other layer it holds.
