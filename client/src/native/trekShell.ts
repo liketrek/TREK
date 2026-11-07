@@ -151,7 +151,8 @@ interface NativeWindowLayout {
   orientation?: 'vertical' | 'horizontal';
   separating?: boolean;
   occluding?: boolean;
-  hinge?: { left: number; top: number; right: number; bottom: number };
+  /** The fold's rectangle on the screen, in CSS pixels: geometry, not text sides. */
+  hinge?: Pick<DOMRectReadOnly, 'left' | 'top' | 'right' | 'bottom'>;
 }
 
 /** A position, or an error shaped like GeolocationPositionError (1 denied, 2 unavailable). */

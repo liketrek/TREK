@@ -1,4 +1,5 @@
 import { isNativeAndroid, isNativeIos } from './platform';
+import { reportNativeFailure } from './reportFailure';
 import { TrekShell, type StoreRestoreResult } from './trekShell';
 
 /**
@@ -185,7 +186,10 @@ export const nativeIapClient: IapClient = {
   },
   onTransaction(listener) {
     if (nativeStore()?.platform !== 'google') return;
-    void TrekShell.addListener('storeTransaction', () => listener()).catch(() => {});
+    void TrekShell.addListener('storeTransaction', () => listener()).catch((err: unknown) => {
+      // Without the listener a renewal that clears later is still picked up by the next restore; nothing to undo.
+      reportNativeFailure(err);
+    });
   },
   async restore() {
     try {

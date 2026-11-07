@@ -174,7 +174,8 @@ describe('native client on Android (Google Play Billing)', () => {
     shell.storeRestore.mockResolvedValue({});
     expect(await nativeIapClient.restore()).toBeNull();
     shell.storeFinish.mockResolvedValue(undefined);
-    await nativeIapClient.finish(purchase!);
+    if (!purchase) throw new Error('expected the restored purchase');
+    await nativeIapClient.finish(purchase);
     expect(shell.storeFinish).toHaveBeenCalledWith({ transactionId: 'token-2' });
   });
 

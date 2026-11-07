@@ -81,6 +81,11 @@ function setGoogleState(next: typeof googleState): void {
   for (const listener of googleListeners) listener();
 }
 
+/** Read through a call, so a check after setGoogleState() sees the new state rather than a narrowed one. */
+function googleSaidYes(): boolean {
+  return googleState === 'yes';
+}
+
 export async function loadGoogleWalletAvailability(tripId: number): Promise<boolean> {
   if (!canAddToGoogleWallet()) return false;
   if (googleState === 'yes' || googleState === 'no') return googleState === 'yes';
@@ -94,18 +99,15 @@ export async function loadGoogleWalletAvailability(tripId: number): Promise<bool
     // Offline: ask again next time.
     setGoogleState('unknown');
   }
-  return googleState === 'yes';
+  return googleSaidYes();
 }
 
 /** True once this server has said Google Wallet works; asks it the first time a booking shows. */
 export function useGoogleWalletAvailable(tripId: number): boolean {
-  const available = useSyncExternalStore(
-    (listener) => {
-      googleListeners.add(listener);
-      return () => googleListeners.delete(listener);
-    },
-    () => googleState === 'yes'
-  );
+  const available = useSyncExternalStore((listener) => {
+    googleListeners.add(listener);
+    return () => googleListeners.delete(listener);
+  }, googleSaidYes);
   useEffect(() => {
     void loadGoogleWalletAvailability(tripId);
   }, [tripId]);
