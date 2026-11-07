@@ -70,7 +70,7 @@ export default function MLinkedCosts({ reservationId = null, placeId = null, hin
                     <Icon size={15} strokeWidth={2} />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[0.8125rem] font-semibold text-m-ink">{item.name}</span>
+                    <span dir="auto" className="block truncate text-[0.8125rem] font-semibold text-m-ink">{item.name}</span>
                     <span className="block truncate font-geist text-[0.65625rem] text-m-faint">{t(meta.labelKey)}</span>
                   </span>
                   <span className="flex-none font-geist text-[0.8125rem] font-semibold tabular-nums text-m-ink">{money(item)}</span>
@@ -122,7 +122,7 @@ export default function MLinkedCosts({ reservationId = null, placeId = null, hin
                     onClick={async () => { await link(item); setPicking(false); setQuery('') }}
                     className="flex w-full items-center gap-[10px] rounded-[10px] px-[10px] py-[8px] text-start active:bg-[color:var(--m-ic)]">
                     <Icon size={14} strokeWidth={2} className="flex-none" style={{ color: meta.color }} />
-                    <span className="min-w-0 flex-1 truncate text-[0.78125rem] font-medium text-m-ink">{item.name}</span>
+                    <span dir="auto" className="min-w-0 flex-1 truncate text-[0.78125rem] font-medium text-m-ink">{item.name}</span>
                     <span className="flex-none font-geist text-[0.71875rem] tabular-nums text-m-muted">{money(item)}</span>
                     <ChevronRight size={13} strokeWidth={2} className="flex-none text-m-faint" />
                   </button>

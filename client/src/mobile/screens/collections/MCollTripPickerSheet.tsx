@@ -59,7 +59,7 @@ export default function MCollTripPickerSheet({ open, count, onCopy, onClose, t }
                     : <MapPin size={15} strokeWidth={2} />}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[0.8125rem] font-semibold text-m-ink">{trip.title}</span>
+                  <span dir="auto" className="block truncate text-[0.8125rem] font-semibold text-m-ink">{trip.title}</span>
                   {dateRange(trip) && (
                     <span className="mt-[1px] flex items-center gap-1 truncate font-geist text-[0.6875rem] text-m-muted">
                       <CalendarDays size={11} strokeWidth={2} className="flex-none" /> {dateRange(trip)}

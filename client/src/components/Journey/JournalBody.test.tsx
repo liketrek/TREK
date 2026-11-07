@@ -77,8 +77,9 @@ describe('JournalBody', () => {
     const { container } = render(<JournalBody text={'# Big\n\n### Small'} />);
     expect(container.querySelector('h1')).not.toBeInTheDocument();
     expect(container.querySelector('h3')).not.toBeInTheDocument();
-    expect(screen.getByText('Big').tagName).toBe('P');
-    expect(screen.getByText('Small').tagName).toBe('P');
+    // Each paragraph's text sits in an isolate (<bdi>) so it keeps its own direction.
+    expect(screen.getByText('Big').parentElement?.tagName).toBe('P');
+    expect(screen.getByText('Small').parentElement?.tagName).toBe('P');
   });
 
   it('FE-COMP-JOURNALBODY-012: keeps a setext underline as text instead of a heading', () => {

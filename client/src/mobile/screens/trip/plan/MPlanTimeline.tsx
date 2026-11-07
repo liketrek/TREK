@@ -389,7 +389,7 @@ function UpNextCard({ tl, t, onOpen }: {
                 {time}
               </span>
             )}
-            <span className="min-w-0 truncate text-[1.125rem] font-bold">{place?.name}</span>
+            <span dir="auto" className="min-w-0 truncate text-[1.125rem] font-bold">{place?.name}</span>
           </div>
           {sub && <MarkdownText clamp className="mt-[2px] font-geist text-[0.75rem] text-m-muted">{sub}</MarkdownText>}
         </div>

@@ -415,7 +415,7 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
                         className={`flex w-full items-center gap-[10px] rounded-[13px] px-[11px] py-[9px] text-start ${INNER_CLS}`}
                       >
                         <ResIcon size={15} strokeWidth={2} className="flex-none text-m-muted" />
-                        <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-semibold">{r.title}</span>
+                        <span dir="auto" className="min-w-0 flex-1 truncate text-[0.8125rem] font-semibold">{r.title}</span>
                         {(startTime || endTime) && (
                           <span className="flex-none font-geist text-[0.6875rem] tabular-nums text-m-muted">
                             {startTime ? displayTime(startTime, locale, timeFormat) : ''}
@@ -512,9 +512,9 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
                           </div>
                         )}
                         <div className="min-w-0 flex-1">
-                          <div className="truncate text-[0.875rem] font-semibold">{acc.place_name}</div>
+                          <div dir="auto" className="truncate text-[0.875rem] font-semibold">{acc.place_name}</div>
                           {acc.place_address && (
-                            <div className="truncate font-geist text-[0.65625rem] text-m-muted">{acc.place_address}</div>
+                            <div dir="auto" className="truncate font-geist text-[0.65625rem] text-m-muted">{acc.place_address}</div>
                           )}
                         </div>
                         </button>

@@ -10,7 +10,7 @@ import { setSizeClass } from '../../../helpers/sizeClass'
 import { fileRepo } from '../../../../src/repo/fileRepo'
 import { act, fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
 
-// FE-MOB-FTAB-001 to FE-MOB-FTAB-027
+// FE-MOB-FTAB-001 to FE-MOB-FTAB-028
 
 vi.mock('../../../../src/utils/fileDownload', () => ({
   downloadFile: vi.fn(async () => undefined),
@@ -187,6 +187,13 @@ describe('MFilesTab', () => {
     expect(screen.getByText('A')).toBeInTheDocument()
     expect(screen.getByText('files.sourcePlan · Fushimi Inari')).toBeInTheDocument()
     expect(screen.getByText('files.sourceCollab')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-FTAB-028: in Arabic a size reads "2.0 KB", and names keep their own direction', () => {
+    renderTab()
+    expect(screen.getByText('2.0 KB')).toHaveAttribute('dir', 'ltr')
+    expect(screen.getByText('ada')).toHaveAttribute('dir', 'auto')
+    for (const node of screen.queryAllByText(NAME_RE)) expect(node).toHaveAttribute('dir', 'auto')
   })
 
   it('FE-MOB-FTAB-008: starring calls the api and refreshes the store', async () => {

@@ -214,7 +214,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
-                  <span className="min-w-0 truncate text-[1rem] font-bold leading-snug">{place.name}</span>
+                  <span dir="auto" className="min-w-0 truncate text-[1rem] font-bold leading-snug">{place.name}</span>
                   {/* Accepted out of the traveller's own recordings — the same
                       mark the desktop inspector carries. */}
                   {place.source === 'dawarich' && (
@@ -224,14 +224,14 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                   )}
                 </div>
                 {place.address && (
-                  <div className="mt-[2px] font-geist text-[0.6875rem] leading-[1.4] text-m-muted">{place.address}</div>
+                  <div className="mt-[2px] font-geist text-[0.6875rem] leading-[1.4] text-m-muted"><bdi>{place.address}</bdi></div>
                 )}
                 {/* The category under the name and address, as wide as its name:
                     squeezed under the photo it was cut to "Shoppi…". */}
                 {category && (
                   <span className="mt-[6px] inline-flex max-w-full items-center gap-1 rounded-full border border-[color:var(--m-faint)] px-2 py-[2px] font-geist text-[0.625rem] font-semibold text-m-muted">
                     <CatIcon size={10} strokeWidth={2} className="flex-none" />
-                    <span className="truncate">{category.name}</span>
+                    <span dir="auto" className="truncate">{category.name}</span>
                   </span>
                 )}
               </div>
@@ -420,7 +420,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                         className="h-2 w-2 flex-none rounded-full"
                         style={{ background: res.status === 'confirmed' ? 'var(--m-st-confirmed)' : 'var(--m-st-pending)' }}
                       />
-                      <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-semibold">{res.title}</span>
+                      <span dir="auto" className="min-w-0 flex-1 truncate text-[0.8125rem] font-semibold">{res.title}</span>
                       <span className="flex-none font-geist text-[0.65625rem] text-m-muted">
                         {res.status === 'confirmed' ? t('reservations.confirmed') : t('reservations.pending')}
                       </span>
@@ -477,7 +477,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                             ? <img src={m.avatar_url || avatarSrc(m.avatar)!} alt="" className="h-full w-full object-cover" />
                             : m.username?.[0]?.toUpperCase()}
                         </span>
-                        <span className="min-w-0 flex-1 truncate">{m.username}</span>
+                        <span dir="auto" className="min-w-0 flex-1 truncate">{m.username}</span>
                       </button>
                     ))}
                   </div>
@@ -522,7 +522,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                       onClick={() => openFile(f.url, f.original_name)}
                       className="flex w-full items-center gap-2 rounded-[10px] bg-[color:var(--m-ic)] px-[10px] py-[7px] text-start"
                     >
-                      <span className="min-w-0 flex-1 truncate text-[0.75rem] font-medium">{f.original_name}</span>
+                      <span dir="auto" className="min-w-0 flex-1 truncate text-[0.75rem] font-medium">{f.original_name}</span>
                       <ExternalLink size={11} strokeWidth={2} className="flex-none text-m-faint" />
                     </button>
                   ))}

@@ -182,6 +182,7 @@ export default function MCollabChat({ planner }: MCollabChatProps) {
             </button>
             <textarea
               ref={textareaRef}
+              dir="auto"
               rows={1}
               value={text}
               onChange={handleTextChange}
@@ -333,10 +334,10 @@ function ChatBubbleRow({ msg, own, showHeader, isLastInGroup, marginTop, is12h, 
               {hasReply && (
                 <div className="mb-1 rounded-[10px] bg-[color:var(--m-card)] px-[10px] py-[5px]">
                   <div className="font-geist text-[0.625rem] font-bold opacity-70">{msg.reply_username}</div>
-                  <div className="line-clamp-2 text-[0.71875rem] opacity-80">{msg.reply_text?.slice(0, 80)}</div>
+                  <div dir="auto" className="line-clamp-2 text-[0.71875rem] opacity-80">{msg.reply_text?.slice(0, 80)}</div>
                 </div>
               )}
-              <span className="whitespace-pre-wrap break-words">{msg.text}</span>
+              <span dir="auto" className="whitespace-pre-wrap break-words">{msg.text}</span>
               {msg.attachments?.map(att => (
                 <img key={att.id} src={att.url} alt={att.original_name || ''} className="mt-2 max-h-52 w-full rounded-[10px] object-cover" />
               ))}

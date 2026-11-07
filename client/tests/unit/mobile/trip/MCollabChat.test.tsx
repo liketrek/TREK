@@ -11,7 +11,7 @@ import { resetAllStores, seedStore } from '../../../helpers/store'
 import { server } from '../../../helpers/msw/server'
 import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-CCHAT-001 to FE-MOB-CCHAT-033
+// FE-MOB-CCHAT-001 to FE-MOB-CCHAT-035
 
 const ME = 7
 
@@ -174,6 +174,18 @@ describe('MCollabChat', () => {
     expect(screen.getAllByText('from the assistant')).toHaveLength(1)
     expect(screen.getByText('shared').closest('.flex-col')).toHaveTextContent('from the assistant')
     expect(screen.getByText('typed').closest('.flex-col')).not.toHaveTextContent('from the assistant')
+  })
+
+  it('FE-MOB-CCHAT-035: a message, its quote and the composer each take their direction from their own text', async () => {
+    serveMessages([
+      chatMsg(1, { text: 'Who has the JR Pass vouchers?' }),
+      chatMsg(2, { text: 'Me!', reply_to: 1, reply_text: 'Who has the JR Pass vouchers?', reply_username: 'Alice' }),
+    ])
+    await renderChat()
+    // In Arabic a Latin message keeps its question mark at its end.
+    for (const node of screen.getAllByText('Who has the JR Pass vouchers?')) expect(node).toHaveAttribute('dir', 'auto')
+    expect(screen.getByText('Me!')).toHaveAttribute('dir', 'auto')
+    expect(screen.getByPlaceholderText('collab.chat.placeholder')).toHaveAttribute('dir', 'auto')
   })
 
   it('FE-MOB-CCHAT-008: shows the quoted message above a reply bubble', async () => {

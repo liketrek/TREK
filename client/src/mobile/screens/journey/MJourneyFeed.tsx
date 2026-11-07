@@ -126,7 +126,7 @@ function FeedCard({ entry, color, active, onTap, showMood, showWeather, t }: Fee
           <span
             className={`min-w-0 flex-1 text-body font-extrabold leading-[1.3] text-m-ink ${suggestion ? 'italic text-m-muted' : ''}`}
           >
-            {cardTitle(entry, t)}
+            <bdi>{cardTitle(entry, t)}</bdi>
           </span>
           <FeedMarks entry={entry} showMood={showMood} showWeather={showWeather} />
         </span>
@@ -137,12 +137,12 @@ function FeedCard({ entry, color, active, onTap, showMood, showWeather, t }: Fee
             ) : (
               <MapPin size={11} strokeWidth={2.2} className="flex-none" />
             )}
-            <span className="truncate font-geist text-[length:calc(11px*var(--fs-scale-caption,1))] font-semibold">
+            <span dir="auto" className="truncate font-geist text-[length:calc(11px*var(--fs-scale-caption,1))] font-semibold">
               {place}
             </span>
           </span>
         )}
-        {story && <span className="line-clamp-3 text-caption leading-[1.45] text-m-ink opacity-80">{story}</span>}
+        {story && <span dir="auto" className="line-clamp-3 text-caption leading-[1.45] text-m-ink opacity-80">{story}</span>}
       </span>
     </button>
   );

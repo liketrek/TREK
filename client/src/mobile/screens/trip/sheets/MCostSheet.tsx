@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Check, ChevronDown, Plus, Trash2, Wallet, Receipt, Paperclip } from 'lucide-react'
+import { ArrowRight, Check, ChevronDown, Plus, Trash2, Wallet, Receipt, Paperclip } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import CustomSelect from '../../../../components/shared/CustomSelect'
 import { NumericInput } from '../../../../components/shared/NumericInput'
@@ -184,7 +184,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
           <div className="mt-2 flex flex-wrap items-center gap-2 rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[9px] text-[0.71875rem] text-m-muted">
             <span>{formatMoney(totalNum, currency, locale)}</span>
             {fx.inTrip != null && <>
-              <span className="text-m-faint">→</span>
+              <ArrowRight size={12} strokeWidth={2.2} aria-hidden="true" className="text-m-faint" />
               <span className={fx.shown == null ? 'font-semibold text-m-ink' : undefined}>{formatMoney(fx.inTrip, tripCur, locale)}</span>
             </>}
             {fx.shown != null && <>
@@ -493,7 +493,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
                   className="flex min-w-0 flex-1 items-center gap-2 text-start"
                 >
                   <Receipt size={14} className="flex-none text-m-faint" />
-                  <span className="truncate text-[0.8125rem] font-medium text-m-ink">{r.original_name}</span>
+                  <span dir="auto" className="truncate text-[0.8125rem] font-medium text-m-ink">{r.original_name}</span>
                 </button>
                 <button
                   type="button"
@@ -509,7 +509,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
               <div key={idx} className={ROW_CLS}>
                 <div className="flex min-w-0 flex-1 items-center gap-2">
                   <Paperclip size={14} className="flex-none text-m-faint" />
-                  <span className="truncate text-[0.8125rem] font-medium text-m-ink">{file.name}</span>
+                  <span dir="auto" className="truncate text-[0.8125rem] font-medium text-m-ink">{file.name}</span>
                 </div>
                 <button
                   type="button"

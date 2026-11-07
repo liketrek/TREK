@@ -322,7 +322,7 @@ function FileRow({ file, planner, onOpen, onStar, onMenu }: {
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="truncate text-[0.8125rem] font-bold text-m-ink">{file.original_name}</div>
+          <div dir="auto" className="truncate text-[0.8125rem] font-bold text-m-ink">{file.original_name}</div>
 
           <div className="mt-1 flex flex-wrap items-center gap-1">
             {isWalletPass(file.mime_type, file.original_name) && (
@@ -333,7 +333,7 @@ function FileRow({ file, planner, onOpen, onStar, onMenu }: {
               </span>
             )}
             {!!file.file_size && (
-              <span className="whitespace-nowrap rounded-full bg-[color:var(--m-ic)] px-[7px] py-[2px] font-geist text-[0.53125rem] font-bold text-m-muted">
+              <span dir="ltr" className="whitespace-nowrap rounded-full bg-[color:var(--m-ic)] px-[7px] py-[2px] font-geist text-[0.53125rem] font-bold text-m-muted">
                 {formatSize(file.file_size)}
               </span>
             )}
@@ -345,7 +345,7 @@ function FileRow({ file, planner, onOpen, onStar, onMenu }: {
                 <span className="flex h-3 w-3 flex-none items-center justify-center rounded-full bg-m-act font-geist text-[0.40625rem] font-extrabold text-m-actfg">
                   {file.uploaded_by_name[0]?.toUpperCase()}
                 </span>
-                <span className="max-w-[92px] truncate font-geist text-[0.53125rem] font-bold text-m-muted">{file.uploaded_by_name}</span>
+                <span dir="auto" className="max-w-[92px] truncate font-geist text-[0.53125rem] font-bold text-m-muted">{file.uploaded_by_name}</span>
               </span>
             )}
           </div>

@@ -25,6 +25,7 @@ import '@fontsource/geist-sans/600.css'
 // several .leaflet-* styles.
 import 'leaflet/dist/leaflet.css'
 import './index.css'
+import './styles/rtl.css'
 import './styles/ferratas.css'
 import './styles/paddle.css'
 import './styles/walkRoute.css'

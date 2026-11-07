@@ -367,7 +367,7 @@ export default function MCollections() {
                           className={`flex w-full items-center gap-[10px] rounded-[11px] p-[10px] text-start ${on ? 'bg-[color:var(--m-ic)]' : ''}`}
                         >
                           <span className="h-[9px] w-[9px] flex-none rounded-full" style={{ background: l.color || '#6366F1' }} />
-                          <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-semibold text-m-ink">{l.name}</span>
+                          <span dir="auto" className="min-w-0 flex-1 truncate text-[0.8125rem] font-semibold text-m-ink">{l.name}</span>
                           <span className="font-geist text-[0.6875rem] font-bold text-m-faint">{l.count}</span>
                           {on && <Check size={14} strokeWidth={2.6} className="flex-none text-m-ink" />}
                         </button>

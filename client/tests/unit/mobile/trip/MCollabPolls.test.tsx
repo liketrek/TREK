@@ -483,4 +483,25 @@ describe('MCollabPolls', () => {
       options: ['A', 'B'],
     })))
   })
+
+  it('FE-MOB-POLLS-030: in Arabic the result fill grows from the start edge, and question and options keep their own direction', async () => {
+    setup([poll({
+      is_closed: true,
+      question: 'Day trip on Saturday?',
+      options: [
+        { text: 'Nara and the deer', label: 'Nara and the deer', voters: [voter(9, 'lea'), voter(10, 'tom')] },
+        { text: 'Kurama hike', label: 'Kurama hike', voters: [voter(11, 'ada')] },
+      ],
+    })])
+    const question = await screen.findByText('Day trip on Saturday?')
+    // The paragraph is isolated, so its question mark stays at its end in a right-to-left page.
+    expect(question.tagName).toBe('BDI')
+    expect(screen.getByText('Nara and the deer').tagName).toBe('BDI')
+    const option = screen.getByRole('button', { name: /Nara and the deer/ })
+    const fill = option.querySelector('span[style*="width"]') as HTMLElement
+    expect(fill.style.width).toBe('67%')
+    // Logical, not left-0: in Arabic the bar fills from the right, under the option's radio.
+    expect(fill).toHaveClass('start-0')
+    expect(fill.className).not.toMatch(/\bleft-0\b/)
+  })
 })

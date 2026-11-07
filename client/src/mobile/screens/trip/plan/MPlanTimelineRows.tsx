@@ -23,6 +23,7 @@ import { WalkLateLine } from '../../../../components/Tours/walk/WalkTransitNote'
 import { TourDayTimeText, TourOverrunLine } from '../../../../components/Tours/TourDayTimeParts'
 import { tourDayEntryOf, type TourOverrun } from '../../../../components/Tours/tourDayTime'
 import type { WalkLate } from '../../../../components/Tours/walk/walkTransit'
+import { flowText } from '../../../../utils/flowText'
 
 /**
  * The five row types of the mobile day timeline (place / manual transport /
@@ -198,7 +199,7 @@ export function PlaceRow({ assignment, fullPlace, tour, linkedReservations, chro
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           {tour ? (chrome.editing && <TourDayRowIcon type={tour.tour_type} size={20} />) : <CatIcon size={12} strokeWidth={2.2} className="flex-none text-m-muted" />}
-          <span className="min-w-0 truncate text-[0.875rem] font-semibold">{place?.name}</span>
+          <span dir="auto" className="min-w-0 truncate text-[0.875rem] font-semibold">{place?.name}</span>
           {bookingLines.length > 0 && (
             <span className="flex flex-none items-center gap-1 rounded-full bg-[color:var(--m-ic)] px-[7px] py-[2px] text-[0.5625rem] font-bold tracking-[.04em]">
               <Ticket size={10} strokeWidth={2.2} />
@@ -216,7 +217,7 @@ export function PlaceRow({ assignment, fullPlace, tour, linkedReservations, chro
         )}
         {bookingLines.slice(1).map(line => (
           <div key={line.id} className="mt-[2px] flex min-w-0 items-center gap-1.5">
-            <span className="min-w-0 truncate font-geist text-[0.71875rem] text-m-muted">{line.text}</span>
+            <span dir="auto" className="min-w-0 truncate font-geist text-[0.71875rem] text-m-muted">{line.text}</span>
             {line.code && <BlurredCode interactive={false} className={ROW_CODE}>{line.code}</BlurredCode>}
           </div>
         ))}
@@ -284,7 +285,7 @@ export function TransportRow({ res, dayId, chrome, reorder, drag, onOpen }: {
       <div className="flex min-w-0 flex-1 items-center gap-4 rounded-[13px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[11px] py-[7px]">
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-baseline gap-[7px]">
-            <span className="min-w-0 truncate text-[0.875rem] font-semibold">{res.title}</span>
+            <span dir="auto" className="min-w-0 truncate text-[0.875rem] font-semibold">{res.title}</span>
             {time && <span className={TIME_CHIP}>{time}</span>}
           </div>
           {sub && <div className="mt-px truncate font-geist text-[0.71875rem] text-m-muted">{sub}</div>}
@@ -376,7 +377,7 @@ function TransitLegRows({ legs, t }: { legs: TransitLegDisplay[]; t: Translation
                   <div className="flex items-center gap-1.5">
                     <LineBadge leg={leg} className="flex-none" />
                     <span className="truncate text-[0.78125rem] font-bold">
-                      {[leg.from?.name, leg.to?.name].filter(Boolean).join(' → ')}
+                      {flowText([leg.from?.name, leg.to?.name].filter((n): n is string => !!n))}
                     </span>
                   </div>
                   <div className="mt-[2px] font-geist text-[0.625rem] text-m-faint">
@@ -434,7 +435,7 @@ export function TransitRow({ res, transit, dayId, open, chrome, reorder, drag, o
         >
           <div className="flex items-center gap-[7px]">
             <span className="min-w-0 truncate text-[0.84375rem] font-bold">
-              {to ? `${from} → ${to}` : res.title}
+              {to ? flowText([from, to]) : res.title}
             </span>
             {start && (
               <span className="ms-auto flex-none whitespace-nowrap rounded-[6px] bg-[color:var(--m-ic)] px-[6px] py-px font-geist text-[0.6875rem] font-semibold tabular-nums">
@@ -475,8 +476,9 @@ function TravelLine({ seg }: { seg: RouteSegment }) {
       <span className="h-px flex-1 bg-[color:var(--m-rowbr)]" />
       <span className="inline-flex items-center gap-[6px] whitespace-nowrap rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-2.5 py-[3px] font-geist text-[0.6875rem] leading-none">
         <Icon size={12} strokeWidth={2.2} className="flex-none text-m-muted" />
-        <span className="font-semibold text-m-ink">{durationText}</span>
-        {seg.distanceText && <span className="text-m-muted">{seg.distanceText}</span>}
+        {/* Each figure in its own direction, so "5 km" does not turn into "km 5" in Arabic. */}
+        <span dir="auto" className="font-semibold text-m-ink">{durationText}</span>
+        {seg.distanceText && <span dir="auto" className="text-m-muted">{seg.distanceText}</span>}
         {/* Extra text a plugin route attached to this leg (e.g. "25 min charge"). */}
         {seg.noteText && (
           <span className="inline-flex items-center gap-[3px] text-m-muted">
@@ -540,7 +542,7 @@ export function HotelConnRow({ seg, name, placement }: {
   const hotel = (
     <div className="flex items-center justify-center gap-[5px] whitespace-nowrap font-geist text-[0.59375rem] font-semibold text-m-muted">
       <BedDouble size={11} strokeWidth={2} className="flex-none" />
-      <span className="min-w-0 truncate">{name}</span>
+      <span dir="auto" className="min-w-0 truncate">{name}</span>
     </div>
   )
   return (

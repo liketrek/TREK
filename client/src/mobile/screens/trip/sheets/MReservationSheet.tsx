@@ -218,6 +218,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
         <Eyebrow className="mb-[5px] mt-3 uppercase">{t('reservations.titleLabel')} *</Eyebrow>
         <input
           type="text"
+          dir="auto"
           value={form.title}
           onChange={e => set('title', e.target.value)}
           placeholder={t('reservations.titlePlaceholder')}
@@ -363,7 +364,8 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
 
         {/* LINK */}
         <Eyebrow className="mb-[5px] mt-3 uppercase">{t('reservations.urlLabel')}</Eyebrow>
-        <div className="relative">
+        {/* An address reads left to right in every language, icon and all. */}
+        <div className="relative" dir="ltr">
           <Link2 size={15} className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-m-faint" />
           <input
             type="url"

@@ -89,7 +89,7 @@ export default function MCollPlaceSheet({
               {held.category?.name && (
                 <span className={HERO_CAT_CHIP}>
                   <MapPin size={9} strokeWidth={2.6} className="flex-none" />
-                  <span className="truncate">{held.category.name}</span>
+                  <span dir="auto" className="truncate">{held.category.name}</span>
                 </span>
               )}
               {/* -me-1 keeps the buttons 14px off the edge, where close has always sat. */}

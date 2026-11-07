@@ -6,6 +6,7 @@ import {
 import MDancingTrek from '../../../components/MDancingTrek'
 import { useTranslation } from '../../../../i18n'
 import { formatMoney } from '../../../../utils/formatters'
+import { flowText } from '../../../../utils/flowText'
 import { openFile } from '../../../../utils/fileDownload'
 import MCostSheet from '../sheets/MCostSheet'
 import { ReceiptPreviewModal } from '../../../../components/Budget/ReceiptPreviewModal'
@@ -227,10 +228,10 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
               <div className="mt-[6px]">
                 {flows.map((f, i) => (
                   <div key={i} className="flex items-center gap-2 border-b border-[color:var(--m-rowbr)] py-2 last:border-b-0">
-                    <span className="min-w-0 flex-1 truncate text-[0.78125rem] font-semibold text-m-ink">{personName(f.from.user_id)}</span>
+                    <span dir="auto" className="min-w-0 flex-1 truncate text-[0.78125rem] font-semibold text-m-ink">{personName(f.from.user_id)}</span>
                     <ArrowRight size={12} strokeWidth={2.2} className="flex-none text-m-faint" />
-                    <span className="min-w-0 flex-1 truncate text-[0.78125rem] font-semibold text-m-ink">{personName(f.to.user_id)}</span>
-                    <span className="ms-auto flex-none font-geist text-[0.78125rem] font-extrabold tabular-nums text-m-ink">{formatMoney(f.amount, base, locale)}</span>
+                    <span dir="auto" className="min-w-0 flex-1 truncate text-[0.78125rem] font-semibold text-m-ink">{personName(f.to.user_id)}</span>
+                    <span dir="ltr" className="ms-auto flex-none font-geist text-[0.78125rem] font-extrabold tabular-nums text-m-ink">{formatMoney(f.amount, base, locale)}</span>
                   </div>
                 ))}
               </div>
@@ -245,7 +246,7 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
                 <div key={p.id} className="flex items-center gap-[9px] border-b border-[color:var(--m-rowbr)] py-[7px] last:border-b-0">
                   <MemberAvatar name={p.username} avatarUrl={p.avatar_url} variant="neutral" size={24} />
                   <span className="min-w-0 flex-1 truncate text-[0.78125rem] font-semibold text-m-ink">{p.id === me ? t('costs.you') : p.username}</span>
-                  <span className="ms-auto flex-none font-geist text-[0.75rem] font-extrabold tabular-nums" style={{ color: pos ? STATUS_COLOR.confirmed : neg ? STATUS_COLOR.danger : 'var(--m-faint)' }}>
+                  <span dir="ltr" className="ms-auto flex-none font-geist text-[0.75rem] font-extrabold tabular-nums" style={{ color: pos ? STATUS_COLOR.confirmed : neg ? STATUS_COLOR.danger : 'var(--m-faint)' }}>
                     {pos ? '+' : neg ? '−' : ''}
                     {formatMoney(Math.abs(balance), base, locale)}
                   </span>
@@ -273,8 +274,8 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
                 className="flex w-full items-center gap-[9px] py-[7px] text-start font-[inherit]"
               >
                 <MemberAvatar name={p.username} avatarUrl={p.avatar_url} variant="neutral" size={24} />
-                <span className="min-w-0 flex-1 truncate text-[0.78125rem] font-semibold text-m-ink">{personName(p.id)}</span>
-                <span className="ms-auto flex-none font-geist text-[0.75rem] font-extrabold tabular-nums text-m-ink">{formatMoney(row.final, base, locale)}</span>
+                <span dir="auto" className="min-w-0 flex-1 truncate text-[0.78125rem] font-semibold text-m-ink">{personName(p.id)}</span>
+                <span dir="ltr" className="ms-auto flex-none font-geist text-[0.75rem] font-extrabold tabular-nums text-m-ink">{formatMoney(row.final, base, locale)}</span>
                 {open
                   ? <ChevronUp size={13} strokeWidth={2.2} className="flex-none text-m-faint" />
                   : <ChevronDown size={13} strokeWidth={2.2} className="flex-none text-m-faint" />}
@@ -300,7 +301,7 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
                 <div className="flex items-center gap-[7px]">
                   <span className="h-2 w-2 flex-none rounded-full" style={{ background: meta.color }} />
                   <span className="min-w-0 flex-1 truncate font-geist text-[0.65625rem] font-semibold text-m-muted">{t(meta.labelKey)}</span>
-                  <span className="ms-auto flex-none font-geist text-[0.65625rem] font-bold tabular-nums text-m-ink">{formatMoney(c.amount, base, locale)}</span>
+                  <span dir="ltr" className="ms-auto flex-none font-geist text-[0.65625rem] font-bold tabular-nums text-m-ink">{formatMoney(c.amount, base, locale)}</span>
                 </div>
                 <div className="mt-1 h-1 overflow-hidden rounded-full bg-[color:var(--m-ic)]">
                   <span className="block h-full rounded-full" style={{ width: `${c.widthPct}%`, background: meta.color }} />
@@ -603,7 +604,7 @@ function ExpenseRow({ item, ctx, base, locale, t, canEdit, onEdit, onDelete, onT
         <div className="flex items-center gap-[10px]">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 min-w-0">
-              <span className="truncate text-[0.8125rem] font-bold text-m-ink">{item.name}</span>
+              <span dir="auto" className="truncate text-[0.8125rem] font-bold text-m-ink">{item.name}</span>
               {(item.receipts || []).length > 0 && (
                 <button
                   type="button"
@@ -620,7 +621,7 @@ function ExpenseRow({ item, ctx, base, locale, t, canEdit, onEdit, onDelete, onT
               )}
             </div>
             {line && (
-              <div className="mt-[1px] truncate font-geist text-[0.59375rem] text-m-faint">
+              <div dir="auto" className="mt-[1px] truncate font-geist text-[0.59375rem] text-m-faint">
                 {formatMoney(line.entered.amount, line.entered.currency, locale)} {'→'} {formatMoney(line.into.amount, line.into.currency, locale)}
               </div>
             )}
@@ -638,7 +639,7 @@ function ExpenseRow({ item, ctx, base, locale, t, canEdit, onEdit, onDelete, onT
                     }`}
                   >
                     <MemberAvatar name={m.username} avatarUrl={m.avatar_url} variant="accent" size={14} />
-                    <span className="font-geist text-[0.5625rem] font-bold tabular-nums text-m-ink">
+                    <span dir="ltr" className="font-geist text-[0.5625rem] font-bold tabular-nums text-m-ink">
                       {formatMoney(memberShareOf(item, m.user_id, ctx), base, locale)}
                     </span>
                   </button>
@@ -646,7 +647,7 @@ function ExpenseRow({ item, ctx, base, locale, t, canEdit, onEdit, onDelete, onT
               </div>
             )}
           </div>
-          <span className="flex-none rounded-full bg-[color:var(--m-ic)] px-[11px] py-1 font-geist text-[0.75rem] font-extrabold tabular-nums text-m-ink">
+          <span dir="ltr" className="flex-none rounded-full bg-[color:var(--m-ic)] px-[11px] py-1 font-geist text-[0.75rem] font-extrabold tabular-nums text-m-ink">
             {formatMoney(total, base, locale)}
           </span>
         </div>
@@ -716,7 +717,7 @@ function PaymentRow({ settlement, ctx, base, locale, t, personName, canEdit, onE
   // A transfer without a currency was entered in the display currency, not the trip's.
   const amount = paymentAmount(settlement, ctx)
   const line = paymentLineOf(settlement, ctx, amount)
-  const who = `${personName(settlement.from_user_id)} → ${personName(settlement.to_user_id)}`
+  const who = flowText([personName(settlement.from_user_id), personName(settlement.to_user_id)])
   return (
     <div className="mt-2 flex items-center gap-[6px]">
       <div className="relative min-w-0 flex-1 rounded-2xl border border-[color:var(--m-rowbr)] bg-m-card px-3 py-[12px]">
@@ -728,12 +729,12 @@ function PaymentRow({ settlement, ctx, base, locale, t, personName, canEdit, onE
             <div className="truncate text-[0.8125rem] font-bold text-m-ink">{t('costs.payment')}</div>
             <div className="truncate font-geist text-[0.65625rem] text-m-faint">{who}</div>
             {line && (
-              <div className="mt-[1px] truncate font-geist text-[0.59375rem] text-m-faint">
+              <div dir="auto" className="mt-[1px] truncate font-geist text-[0.59375rem] text-m-faint">
                 {formatMoney(line.entered.amount, line.entered.currency, locale)} {'→'} {formatMoney(line.into.amount, line.into.currency, locale)}
               </div>
             )}
           </div>
-          <span className="flex-none rounded-full bg-[color:var(--m-ic)] px-[11px] py-1 font-geist text-[0.75rem] font-extrabold tabular-nums text-m-ink">
+          <span dir="ltr" className="flex-none rounded-full bg-[color:var(--m-ic)] px-[11px] py-1 font-geist text-[0.75rem] font-extrabold tabular-nums text-m-ink">
             {formatMoney(amount, base, locale)}
           </span>
         </div>
@@ -771,7 +772,7 @@ function FinalBudgetBreakdown({ row, items, ctx, base, locale, t, personName }: 
 }) {
   const signed = (v: number) => (v < 0 ? '−' : '+') + formatMoney(Math.abs(v), base, locale)
   const { fronted, moved, outstanding } = finalBudgetSources(row, items)
-  const transfer = (fromId: number, toId: number) => `${personName(fromId)} → ${personName(toId)}`
+  const transfer = (fromId: number, toId: number) => flowText([personName(fromId), personName(toId)])
   // Beside a converted row's name, what was entered, as the list above names it (#2525).
   const nameOf = (itemId: number, name: string, shown: number) => {
     const e = items.find(i => i.id === itemId)
@@ -781,7 +782,7 @@ function FinalBudgetBreakdown({ row, items, ctx, base, locale, t, personName }: 
   const line = (key: string, label: string, value: string) => (
     <div key={key} className="flex items-baseline gap-2 py-[2px] font-geist text-[0.6875rem]">
       <span className="min-w-0 flex-1 truncate text-m-muted">{label}</span>
-      <span className="flex-none font-semibold tabular-nums text-m-ink">{value}</span>
+      <span dir="ltr" className="flex-none font-semibold tabular-nums text-m-ink">{value}</span>
     </div>
   )
   // Capped and scrollable so a long trip's list can't push the page away.

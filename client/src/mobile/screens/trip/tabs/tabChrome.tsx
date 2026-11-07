@@ -281,7 +281,7 @@ export function TravelerAvatars({ travelers, label }: {
               <span className="flex h-[20px] w-[20px] flex-none items-center justify-center overflow-hidden rounded-full bg-m-act text-[0.5625rem] font-extrabold text-m-actfg">
                 {src ? <img src={src} alt="" className="h-full w-full object-cover" /> : tv.username?.[0]?.toUpperCase()}
               </span>
-              <span className="truncate text-[0.71875rem] font-semibold text-m-ink">{tv.username}</span>
+              <span dir="auto" className="truncate text-[0.71875rem] font-semibold text-m-ink">{tv.username}</span>
               {!!tv.is_guest && <GuestBadge size="xs" />}
             </span>
           )

@@ -99,8 +99,8 @@ export default function MCollAddSheet({ open, collectionId, collectionName, list
                   <MapPin size={14} strokeWidth={2.2} />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[0.8125rem] font-semibold text-m-ink">{str(r.name)}</span>
-                  {str(r.address) && <span className="block truncate font-geist text-[0.625rem] text-m-muted">{str(r.address)}</span>}
+                  <span dir="auto" className="block truncate text-[0.8125rem] font-semibold text-m-ink">{str(r.name)}</span>
+                  {str(r.address) && <span dir="auto" className="block truncate font-geist text-[0.625rem] text-m-muted">{str(r.address)}</span>}
                 </span>
               </button>
             ))}

@@ -418,10 +418,10 @@ function MSpotlightCard({ trip, t, onOpen, actions }: {
             </span>
           )}
         </span>
-        <div className="mt-[7px] truncate text-[1.4375rem] font-bold">{trip.title}</div>
+        <div dir="auto" className="mt-[7px] truncate text-[1.4375rem] font-bold">{trip.title}</div>
         {ongoing && (
           <div className="relative mb-2 mt-[9px] h-1 rounded-full bg-white/25">
-            <span className="absolute bottom-0 left-0 top-0 rounded-full bg-white" style={{ width: `${progress}%` }} />
+            <span className="absolute bottom-0 start-0 top-0 rounded-full bg-white" style={{ width: `${progress}%` }} />
           </div>
         )}
         <div className={`flex flex-wrap gap-[6px] ${ongoing ? '' : 'mt-[9px]'}`}>
@@ -541,7 +541,7 @@ function MTripGridCard({ trip, locale, badge, pluginBadges, actions, onOpen }: {
       </div>
       <div className="p-[9px_12px_12px]">
         {/* The name has the card's whole width; the dates take the line under it. */}
-        <div className="truncate text-[0.875rem] font-semibold">{trip.title}</div>
+        <div dir="auto" className="truncate text-[0.875rem] font-semibold">{trip.title}</div>
         <span className="mt-[6px] inline-flex max-w-full items-center gap-[6px] rounded-full bg-[color:var(--m-ic)] px-[10px] py-1 font-geist text-[0.6875rem] font-semibold text-m-ink">
           <span className="truncate">{fullDate(trip.start_date, locale) ?? '—'}</span>
           <ArrowRight size={12} strokeWidth={2.2} className="flex-none text-m-faint" />
@@ -572,7 +572,7 @@ function MTripListCard({ trip, locale, t, badge, pluginBadges, actions, onOpen }
         <div className="absolute end-3 top-3 flex gap-[7px]">
           {actions.map(a => <CoverActionBtn key={a.key} action={a} />)}
         </div>
-        <div className="absolute bottom-[14px] inset-x-4 truncate text-[1.625rem] font-extrabold text-white [text-shadow:0_2px_12px_rgba(0,0,0,.4)]">
+        <div dir="auto" className="absolute bottom-[14px] inset-x-4 truncate text-[1.625rem] font-extrabold text-white [text-shadow:0_2px_12px_rgba(0,0,0,.4)]">
           {trip.title}
         </div>
       </div>

@@ -175,8 +175,9 @@ function TransportCard({ res, planner, shell, canEdit, compact }: {
               <div className="mt-2 flex flex-wrap items-center justify-center gap-2 rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-card px-[10px] py-2 text-[0.71875rem] font-semibold text-m-ink">
                 {eps.map((ep, i) => (
                   <span key={i} className="inline-flex min-w-0 items-center gap-2">
-                    {i > 0 && <TypeIcon size={12} strokeWidth={2.2} className="flex-none" style={{ color: typeColor }} />}
-                    <span className="truncate">{ep.name}</span>
+                    {/* The vehicle heads for the next stop, so it turns round with the reading direction. */}
+                    {i > 0 && <TypeIcon size={12} strokeWidth={2.2} className="flex-none rtl:-scale-x-100" style={{ color: typeColor }} />}
+                    <span dir="auto" className="truncate">{ep.name}</span>
                   </span>
                 ))}
               </div>

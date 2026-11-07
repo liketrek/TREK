@@ -265,7 +265,7 @@ function PollCardRow({ poll, canEdit, currentUserId, t, onVote, onClosePoll, onD
               onClick={() => onVote(poll.id, idx)}
               className="relative flex items-start gap-[8px] overflow-hidden rounded-[10px] bg-m-card px-[12px] py-[10px] text-start disabled:cursor-default"
             >
-              <span className="absolute inset-y-0 left-0" style={{ width: `${pct}%`, background: fillTint }} />
+              <span className="absolute inset-y-0 start-0" style={{ width: `${pct}%`, background: fillTint }} />
               <span
                 className={`relative flex h-5 w-5 flex-none items-center justify-center border-2 ${
                   poll.multiple_choice ? 'rounded-[6px]' : 'rounded-full'
@@ -276,7 +276,7 @@ function PollCardRow({ poll, canEdit, currentUserId, t, onVote, onClosePoll, onD
               </span>
               {/* No truncate: long or multiline options wrap fully (#2177) */}
               <span className={`relative min-w-0 flex-1 whitespace-pre-wrap break-words text-[0.8125rem] [overflow-wrap:anywhere] ${myVote || isWinner ? 'font-bold' : 'font-medium'} text-m-ink`}>
-                {opt.text}
+                <bdi>{opt.text}</bdi>
               </span>
               {(voted || closed) && count > 0 && (
                 <span className="relative flex flex-none [&>*+*]:-ms-1">

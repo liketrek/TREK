@@ -140,7 +140,7 @@ function MCurrencyWidget(): React.ReactElement {
         </div>
       </div>
       <div className="mt-[9px] font-geist text-[0.65625rem] text-m-muted">
-        {rate != null ? `1 ${from} = ${rate.toFixed(4)} ${to}` : t('dashboard.fx.unavailable')}
+        {rate != null ? <span dir="ltr">{`1 ${from} = ${rate.toFixed(4)} ${to}`}</span> : t('dashboard.fx.unavailable')}
       </div>
     </WidgetPanel>
   )
@@ -195,7 +195,7 @@ function MCollectionsWidget(): React.ReactElement {
             className="mt-[11px] flex w-full items-center rounded-[14px] p-[15px_14px] text-start text-white"
             style={{ background: list.color || entityGradient(list.id) }}
           >
-            <span className="min-w-0 flex-1 truncate text-[0.875rem] font-bold">{list.name}</span>
+            <span dir="auto" className="min-w-0 flex-1 truncate text-[0.875rem] font-bold">{list.name}</span>
             <span className="ms-auto flex flex-none items-center gap-1 rounded-full bg-white/[.22] px-[10px] py-[3px] font-geist text-[0.625rem] font-bold">
               <MapPin size={10} strokeWidth={2.4} />
               {list.place_count ?? 0}
@@ -307,7 +307,7 @@ function MUpcomingWidget({ items }: { items: UpcomingReservation[] }): React.Rea
             </span>
             <div className="min-w-0 flex-1">
               <div className="flex min-w-0 items-center gap-1.5">
-                <span className="truncate text-[0.8125rem] font-semibold">{r.title}</span>
+                <span dir="auto" className="truncate text-[0.8125rem] font-semibold">{r.title}</span>
                 {r.status === 'pending' && (
                   <span className="flex-none rounded-full bg-[color:var(--m-ic)] px-[6px] py-px font-geist text-[0.5625rem] font-bold uppercase tracking-[.08em] text-m-muted">
                     {t('reservations.pending')}

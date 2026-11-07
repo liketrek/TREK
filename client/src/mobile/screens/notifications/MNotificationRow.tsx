@@ -3,6 +3,7 @@ import { ArrowRight, Bell, Check, Mail, Trash2, X } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
 import type { InAppNotification } from '../../../store/inAppNotificationStore'
 import { compactTime, useNotificationItemActions } from '../../../components/Notifications/useNotificationItemActions'
+import { localizedParams } from '../../../components/Notifications/notificationModel'
 import MChip from '../../components/MChip'
 
 interface MNotificationRowProps {
@@ -15,11 +16,11 @@ interface MNotificationRowProps {
  * render as chips below the text, per-row delete sits in the trailing column.
  */
 export default function MNotificationRow({ notification }: MNotificationRowProps) {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   const { handleRespond, handleNavigate, markRead, markUnread, deleteNotification } = useNotificationItemActions(notification)
 
   const title = t(notification.title_key, notification.title_params)
-  const body = t(notification.text_key, notification.text_params)
+  const body = t(notification.text_key, localizedParams(notification.text_params, locale))
 
   // Tapping an unread row marks it read; a row that is already read carries no
   // action, so it neither takes focus nor claims a role. It stays a div because

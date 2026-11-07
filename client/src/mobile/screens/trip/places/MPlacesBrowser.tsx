@@ -324,7 +324,7 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
                         />
                       )}
                       <CatIcon size={12} strokeWidth={2.2} className="flex-none" style={{ color: cat?.color || 'var(--m-muted)' }} />
-                      <span className="truncate text-[0.8125rem] font-semibold text-m-ink">{place.name}</span>
+                      <span dir="auto" className="truncate text-[0.8125rem] font-semibold text-m-ink">{place.name}</span>
                     </span>
                     {sub && (
                       <MarkdownText clamp className="mt-px font-geist text-[0.65625rem] text-m-muted">{sub}</MarkdownText>

@@ -3,7 +3,7 @@ import { Check, X, ArrowRight, Trash2, CheckCheck, Mail } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import type { InAppNotification } from '../../store/inAppNotificationStore'
 import { compactTime, useNotificationItemActions } from './useNotificationItemActions'
-import { KIND_LOOK, createdAt, kindOf } from './notificationModel'
+import { KIND_LOOK, createdAt, kindOf, localizedParams } from './notificationModel'
 
 interface NotificationItemProps {
   notification: InAppNotification
@@ -55,7 +55,7 @@ export default function InAppNotificationItem({ notification, onClose }: Notific
     useNotificationItemActions(notification, onClose)
 
   const titleText = t(notification.title_key, notification.title_params)
-  const bodyText = t(notification.text_key, notification.text_params)
+  const bodyText = t(notification.text_key, localizedParams(notification.text_params, locale))
   const unread = !notification.is_read
   const answered = notification.response !== null
   const { positive_text_key: yesKey, negative_text_key: noKey, navigate_text_key: goKey } = notification

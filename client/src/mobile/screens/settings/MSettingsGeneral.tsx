@@ -137,9 +137,10 @@ export default function MSettingsGeneral() {
         <MSetSegments
           value={settings.temperature_unit || 'celsius'}
           onChange={(v) => save('temperature_unit', v)}
+          // The unit names are Latin in every language: isolated, so Arabic keeps "°F Fahrenheit" whole.
           options={[
-            { value: 'celsius', label: '°C Celsius' },
-            { value: 'fahrenheit', label: '°F Fahrenheit' },
+            { value: 'celsius', label: <bdi>°C Celsius</bdi> },
+            { value: 'fahrenheit', label: <bdi>°F Fahrenheit</bdi> },
           ]}
         />
 
@@ -148,8 +149,8 @@ export default function MSettingsGeneral() {
           value={settings.distance_unit || 'metric'}
           onChange={(v) => save('distance_unit', v)}
           options={[
-            { value: 'metric', label: 'km Metric' },
-            { value: 'imperial', label: 'mi Imperial' },
+            { value: 'metric', label: <bdi>km Metric</bdi> },
+            { value: 'imperial', label: <bdi>mi Imperial</bdi> },
           ]}
         />
 

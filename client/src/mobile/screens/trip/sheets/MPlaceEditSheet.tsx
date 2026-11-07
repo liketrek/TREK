@@ -362,6 +362,7 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
         <Eyebrow className="mb-[5px] mt-3 uppercase">{t('places.formWebsite')}</Eyebrow>
         <input
           type="url"
+          dir="ltr"
           value={form.website}
           onChange={e => handleChange('website', e.target.value)}
           placeholder="https://"

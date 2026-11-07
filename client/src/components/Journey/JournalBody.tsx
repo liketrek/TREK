@@ -15,13 +15,14 @@ export default function JournalBody({ text, dark }: Props) {
       lineHeight: 1.6,
       color: 'inherit',
     }}>
+      {/* Each paragraph in its own direction (bdi): a Latin story in the Arabic UI keeps its full stop at its end. */}
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkBreaks]}
         components={{
-          h1: ({ children }) => <p style={{ margin: '0 0 6px' }}>{children}</p>,
-          h2: ({ children }) => <p style={{ margin: '0 0 6px' }}>{children}</p>,
-          h3: ({ children }) => <p style={{ margin: '0 0 6px' }}>{children}</p>,
-          p: ({ children }) => <p style={{ margin: '0 0 6px' }}>{children}</p>,
+          h1: ({ children }) => <p style={{ margin: '0 0 6px' }}><bdi>{children}</bdi></p>,
+          h2: ({ children }) => <p style={{ margin: '0 0 6px' }}><bdi>{children}</bdi></p>,
+          h3: ({ children }) => <p style={{ margin: '0 0 6px' }}><bdi>{children}</bdi></p>,
+          p: ({ children }) => <p style={{ margin: '0 0 6px' }}><bdi>{children}</bdi></p>,
           blockquote: ({ children }) => (
             <blockquote style={{
               borderInlineStart: `3px solid var(--journal-accent)`,

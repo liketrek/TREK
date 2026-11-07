@@ -162,9 +162,10 @@ export default function MJourneyEntrySheet({
             name is the one thing that makes an entry findable later, and it is one
             line to type, so it comes first here too. */}
         {readOnly ? (
-          <div className="pb-[10px] pt-1 text-[1.25rem] font-extrabold">{title || t('journey.editor.titlePlaceholder')}</div>
+          <div className="pb-[10px] pt-1 text-[1.25rem] font-extrabold"><bdi>{title || t('journey.editor.titlePlaceholder')}</bdi></div>
         ) : (
           <input
+            dir="auto"
             value={title}
             onChange={e => setTitle(e.target.value)}
             placeholder={t('journey.editor.titlePlaceholder')}
@@ -404,6 +405,7 @@ export default function MJourneyEntrySheet({
         {captureOnly && !readOnly && (
           <textarea
             rows={2}
+            dir="auto"
             value={story}
             onChange={e => setStory(e.target.value)}
             placeholder={t('journey.editor.writeStory')}
@@ -422,6 +424,7 @@ export default function MJourneyEntrySheet({
             <textarea
               ref={storyRef}
               rows={3}
+              dir="auto"
               value={story}
               onChange={e => setStory(e.target.value)}
               placeholder={t('journey.editor.writeStory')}
@@ -547,6 +550,7 @@ export default function MJourneyEntrySheet({
           <div className={`${eyebrow} mb-[5px]`}>{t('journey.editor.location')}</div>
           <div className={`flex items-center gap-2 px-3 py-[10px] ${fieldShell}`}>
             <input
+              dir="auto"
               value={locationQuery || locationName}
               readOnly={readOnly}
               onChange={e => searchLocation(e.target.value)}
@@ -580,8 +584,8 @@ export default function MJourneyEntrySheet({
                 >
                   <MapPin size={13} className="mt-[2px] flex-none text-m-faint" />
                   <span className="min-w-0">
-                    <span className="block truncate text-[0.78125rem] font-semibold">{r.name}</span>
-                    {r.address && <span className="block truncate font-geist text-[0.65625rem] text-m-muted">{r.address}</span>}
+                    <span dir="auto" className="block truncate text-[0.78125rem] font-semibold">{r.name}</span>
+                    {r.address && <span dir="auto" className="block truncate font-geist text-[0.65625rem] text-m-muted">{r.address}</span>}
                   </span>
                 </button>
               ))}

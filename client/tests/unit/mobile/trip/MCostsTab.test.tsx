@@ -945,4 +945,27 @@ describe('MCostsTab', () => {
     expect(within(expenses).getByPlaceholderText('costs.searchPlaceholder')).toBeInTheDocument()
     expect(within(expenses).getByRole('heading', { name: 'costs.expenses' })).toBeInTheDocument()
   })
+
+  it('FE-MOB-COSTT-055: in Arabic a signed balance and an amount read as one left-to-right run, and a payment names who paid whom in reading order', async () => {
+    const payment = { id: 503, from_user_id: 3, to_user_id: 1, amount: 15, currency: 'USD', created_at: '2026-06-15T09:00:00Z' }
+    serveSettlement({ ...SETTLEMENT, settlements: [payment] })
+    // The page reads right to left for the whole render (the translation provider
+    // would otherwise set it back to the test's English).
+    Object.defineProperty(document.documentElement, 'dir', { configurable: true, get: () => 'rtl', set: () => {} })
+    try {
+      await renderTab()
+      const settle = up(screen.getByText('costs.settleUp'), 3)
+      // The sign stays in front of the figure instead of trailing it.
+      expect(within(settle).getByText('+$12.50')).toHaveAttribute('dir', 'ltr')
+      expect(within(settle).getByText('−$7.25')).toHaveAttribute('dir', 'ltr')
+      expect(within(settle).getByText('$40.00')).toHaveAttribute('dir', 'ltr')
+      // Names keep their own direction, so a Latin one loses its end when cut.
+      expect(within(settle).getByText('Ghost')).toHaveAttribute('dir', 'auto')
+      // Each name isolated, the arrow pointing left from the payer to the payee.
+      expect(screen.getByText('\u2068Bob\u2069 ← \u2068costs.you\u2069')).toBeInTheDocument()
+    } finally {
+      // Back to the prototype's reflected attribute.
+      delete (document.documentElement as { dir?: string }).dir
+    }
+  })
 })

@@ -282,7 +282,7 @@ function NoteCardRow({ note, color, canEdit, onTap, onTogglePin, onDelete, t }: 
       <div className="flex items-center gap-[7px] px-3 py-[10px]" style={{ background: `${color}0d` }}>
         {!!note.pinned && <Pin size={11} strokeWidth={2.4} style={{ color }} className="flex-none" />}
         <button type="button" onClick={onTap} className="flex min-w-0 flex-1 items-center gap-[7px] text-start">
-          <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-bold text-m-ink">{note.title}</span>
+          <span dir="auto" className="min-w-0 flex-1 truncate text-[0.8125rem] font-bold text-m-ink">{note.title}</span>
           {note.category && (
             <span
               className="flex-none rounded-full px-2 py-[2px] font-geist text-[0.5625rem] font-bold uppercase tracking-[.03em]"
@@ -335,7 +335,7 @@ function NoteCardRow({ note, color, canEdit, onTap, onTogglePin, onDelete, t }: 
           <span className="flex h-4 w-4 flex-none items-center justify-center rounded-full bg-m-card font-geist text-[0.5rem] font-bold text-m-muted">
             {initial}
           </span>
-          <span className="min-w-0 flex-1 truncate font-geist text-[0.625rem] text-m-faint">{note.username}</span>
+          <span dir="auto" className="min-w-0 flex-1 truncate font-geist text-[0.625rem] text-m-faint">{note.username}</span>
           {note.attachments.length > 0 && (
             <span className="flex flex-none items-center gap-[3px] font-geist text-[0.625rem] font-semibold text-m-faint">
               <Paperclip size={10} strokeWidth={2.2} />
@@ -435,6 +435,7 @@ function NoteFormSheet({ open, target, categories, colorMap, canUploadFiles, onC
         <Eyebrow className="mb-[5px] mt-2 uppercase">{t('common.title')} *</Eyebrow>
         <input
           type="text"
+          dir="auto"
           value={title}
           onChange={e => setTitle(e.target.value)}
           maxLength={200}
@@ -444,6 +445,7 @@ function NoteFormSheet({ open, target, categories, colorMap, canUploadFiles, onC
 
         <Eyebrow className="mb-[5px] mt-3 uppercase">{t('collab.notes.content')}</Eyebrow>
         <textarea
+          dir="auto"
           value={content}
           onChange={e => setContent(e.target.value)}
           rows={5}
@@ -506,6 +508,7 @@ function NoteFormSheet({ open, target, categories, colorMap, canUploadFiles, onC
         <input
           type="url"
           inputMode="url"
+          dir="ltr"
           value={website}
           onChange={e => setWebsite(e.target.value)}
           placeholder={t('collab.notes.websitePlaceholder')}

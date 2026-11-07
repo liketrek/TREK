@@ -80,6 +80,34 @@ export function createdAt(value: string): Date {
 
 const dayStart = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 
+const BARE_DAY = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/**
+ * The parameters of a notification's text as the reader's language writes
+ * them. A day the server sends (a todo's due date) arrives as YYYY-MM-DD, which
+ * would stand as "2026-11-05" in a German or Arabic sentence; it becomes the
+ * short date of the language ("5. Nov.", "٥ نوفمبر"), with the year only when
+ * it is not this one. Everything else passes through as it came.
+ */
+export function localizedParams(
+  params: Record<string, string> | null | undefined,
+  locale: string,
+  now: Date = new Date()
+): Record<string, string> {
+  const out: Record<string, string> = { ...params };
+  for (const [key, value] of Object.entries(out)) {
+    const day = BARE_DAY.exec(value);
+    if (!day) continue;
+    const date = new Date(Number(day[1]), Number(day[2]) - 1, Number(day[3]));
+    out[key] = new Intl.DateTimeFormat(locale, {
+      day: 'numeric',
+      month: 'short',
+      ...(date.getFullYear() === now.getFullYear() ? {} : { year: 'numeric' }),
+    }).format(date);
+  }
+  return out;
+}
+
 /**
  * The heading of the day a notification belongs to, in the reader's language:
  * today and yesterday by name, the rest of the week by weekday, anything older

@@ -78,7 +78,7 @@ export default function MFileMenuSheet({ planner, file, onClose, onOpenLinks }: 
         <div className="flex-none px-[18px] pt-4">
           <TileHeader
             icon={<TypeIcon size={19} strokeWidth={1.8} style={{ color: meta.color }} />}
-            title={<span className="truncate">{shown.original_name}</span>}
+            title={<span dir="auto" className="truncate">{shown.original_name}</span>}
             sub={[formatSize(shown.file_size), formatFileDate(shown.created_at, locale)].filter(Boolean).join(' · ')}
             onClose={onClose}
             closeLabel={t('common.close')}

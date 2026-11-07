@@ -59,11 +59,11 @@ export default function MCollPlaceRow({
           {selected ? <Check size={17} strokeWidth={2.4} /> : <TileIcon size={17} strokeWidth={2.2} />}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[0.78125rem] font-bold text-m-ink">{place.name}</span>
+          <span dir="auto" className="block truncate text-[0.78125rem] font-bold text-m-ink">{place.name}</span>
           {place.address && (
             <span className="mt-[2px] flex items-center gap-[3px] truncate font-geist text-[0.625rem] text-m-muted">
               <MapPin size={9} strokeWidth={2.2} className="flex-none" />
-              <span className="truncate">{place.address}</span>
+              <span dir="auto" className="truncate">{place.address}</span>
             </span>
           )}
         </span>
@@ -84,7 +84,7 @@ export default function MCollPlaceRow({
         {cat && place.category?.name && (
           <span className={pill} style={pillStyle(cat.color)}>
             <TileIcon size={9} strokeWidth={2.6} className="flex-none" />
-            <span className="truncate">{place.category.name}</span>
+            <span dir="auto" className="truncate">{place.category.name}</span>
           </span>
         )}
       </div>

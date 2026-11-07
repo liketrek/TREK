@@ -92,7 +92,7 @@ export default function MFileTrashSheet({ planner, open, onClose }: MFileTrashSh
                       <TypeIcon size={15} strokeWidth={2} />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-[0.78125rem] font-semibold text-m-ink">{file.original_name}</div>
+                      <div dir="auto" className="truncate text-[0.78125rem] font-semibold text-m-ink">{file.original_name}</div>
                       <div className="mt-[2px] font-geist text-[0.625rem] text-m-faint">
                         {[formatSize(file.file_size), formatFileDate(file.created_at, locale)].filter(Boolean).join(' · ')}
                       </div>

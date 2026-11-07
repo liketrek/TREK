@@ -118,7 +118,7 @@ export function FileTile({ file, selected, canStar, onPick, onStar, onMenu, t }:
           )}
         </span>
         <span className="flex flex-1 flex-col gap-[6px] px-3 pb-[10px] pt-2">
-          <span className="line-clamp-2 break-words text-[length:calc(12.5px*var(--fs-scale-body,1))] font-bold leading-[1.3] text-m-ink">
+          <span dir="auto" className="line-clamp-2 break-words text-[length:calc(12.5px*var(--fs-scale-body,1))] font-bold leading-[1.3] text-m-ink">
             {file.original_name}
           </span>
           <span className="mt-auto flex flex-wrap items-center gap-1">
@@ -160,7 +160,8 @@ export function FileTile({ file, selected, canStar, onPick, onStar, onMenu, t }:
 
 function Badge({ children }: { children: ReactNode }) {
   return (
-    <span className="whitespace-nowrap rounded-full bg-[color:var(--m-ic)] px-[7px] py-[2px] font-geist text-[length:calc(9px*var(--fs-scale-caption,1))] font-bold text-m-muted">
+    // A size, a date or a name, each in its own direction ("46.1 KB" stays so in Arabic).
+    <span dir="auto" className="whitespace-nowrap rounded-full bg-[color:var(--m-ic)] px-[7px] py-[2px] font-geist text-[length:calc(9px*var(--fs-scale-caption,1))] font-bold text-m-muted">
       {children}
     </span>
   );
@@ -220,7 +221,7 @@ export function FilePreviewPane({ file, planner, onOpen, onStar, onLinks, onMenu
 
       <div>
         <h3 className="break-words text-[length:calc(16px*var(--fs-scale-subtitle,1))] font-extrabold leading-[1.3] text-m-ink">
-          {file.original_name}
+          <bdi>{file.original_name}</bdi>
         </h3>
         <div className="mt-[6px] flex flex-wrap items-center gap-1">
           <span

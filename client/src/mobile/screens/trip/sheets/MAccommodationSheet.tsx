@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Check, Hotel, MapPin, X } from 'lucide-react'
+import { ArrowRight, Check, Hotel, MapPin, X } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import MIconBtn from '../../../components/MIconBtn'
 import CustomSelect from '../../../../components/shared/CustomSelect'
@@ -140,7 +140,7 @@ export default function MAccommodationSheet({ planner, shell }: MTripSheetsProps
               size="sm"
             />
           </div>
-          <span className="flex-none text-m-faint">→</span>
+          <ArrowRight size={14} strokeWidth={2.2} aria-hidden="true" className="flex-none text-m-faint" />
           <div className="min-w-0 flex-1">
             <CustomSelect
               value={range.end}
@@ -224,8 +224,8 @@ export default function MAccommodationSheet({ planner, shell }: MTripSheetsProps
                     {p.image_url ? <img src={p.image_url} alt="" className="h-full w-full object-cover" /> : <MapPin size={14} className="text-m-faint" />}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-[0.8125rem] font-semibold text-m-ink">{p.name}</div>
-                    {p.address && <div className="truncate font-geist text-[0.65625rem] text-m-muted">{p.address}</div>}
+                    <div dir="auto" className="truncate text-[0.8125rem] font-semibold text-m-ink">{p.name}</div>
+                    {p.address && <div dir="auto" className="truncate font-geist text-[0.65625rem] text-m-muted">{p.address}</div>}
                   </div>
                   {sel && (
                     <span className="flex h-[22px] w-[22px] flex-none items-center justify-center rounded-full bg-m-act text-m-actfg">

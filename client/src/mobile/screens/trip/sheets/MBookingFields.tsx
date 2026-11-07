@@ -96,6 +96,7 @@ export function MBookingNotes({
     <>
       <Eyebrow className="mb-[5px] mt-3 uppercase">{t('reservations.notes')}</Eyebrow>
       <textarea
+        dir="auto"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         rows={2}

@@ -151,7 +151,7 @@ function HeroCard({ journey, onOpen }: { journey: JourneyListItem; onOpen: () =>
             {t('mobileJourney.latestJourney')}
           </span>
         </span>
-        <div className="mt-[7px] truncate text-[1.4375rem] font-bold">{journey.title}</div>
+        <div dir="auto" className="mt-[7px] truncate text-[1.4375rem] font-bold">{journey.title}</div>
         <div className="mt-[9px] flex gap-[6px]">
           <HeroPill icon={<NotebookPen size={10} strokeWidth={2.2} />} label={t('mobileJourney.entriesCount', { count: journey.entry_count ?? 0 })} />
           <HeroPill icon={<Image size={10} strokeWidth={2.2} />} label={t('mobileJourney.photosCount', { count: journey.photo_count ?? 0 })} />
@@ -186,7 +186,7 @@ function GridCard({ journey, onOpen }: { journey: JourneyListItem; onOpen: () =>
     >
       <div className="h-[74px]" style={journeyCoverStyle(journey)} />
       <div className="px-3 pb-[13px] pt-[11px]">
-        <div className="truncate text-[0.875rem] font-extrabold">{journey.title}</div>
+        <div dir="auto" className="truncate text-[0.875rem] font-extrabold">{journey.title}</div>
         {hasStats && (
           <div className="mt-[9px] flex gap-[5px]">
             <span className="inline-flex items-center gap-[3px] rounded-full bg-[color:var(--m-ic)] px-[7px] py-[2px] font-geist text-[0.5625rem] font-bold text-m-muted">

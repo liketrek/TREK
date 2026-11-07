@@ -502,7 +502,7 @@ function PackingCategoryCard({
             className="min-w-0 flex-1 border-b border-[color:var(--m-rowbr)] bg-transparent text-[0.875rem] font-bold text-m-ink outline-none"
           />
         ) : (
-          <span className="min-w-0 flex-1 truncate text-[0.875rem] font-bold text-m-ink">{group.category}</span>
+          <span dir="auto" className="min-w-0 flex-1 truncate text-[0.875rem] font-bold text-m-ink">{group.category}</span>
         )}
         {editMode && (
           <button

@@ -172,7 +172,7 @@ function BookingCard({ res, planner, canEdit, compact }: {
             {res.location && (
               <div className="mt-2 flex items-center gap-[6px] rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-card px-[10px] py-[7px]">
                 <MapPin size={12} strokeWidth={2} className="flex-none text-m-muted" />
-                <span className="truncate text-[0.71875rem] font-semibold text-m-ink">{res.location}</span>
+                <span dir="auto" className="truncate text-[0.71875rem] font-semibold text-m-ink">{res.location}</span>
               </div>
             )}
 

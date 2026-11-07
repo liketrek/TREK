@@ -86,7 +86,7 @@ export default function PlFileAttach({ planner, files, onAdd, onRemove, hideHint
               className={ITEM_CLS}
             >
               <FileText size={11} strokeWidth={2} className="flex-none text-m-faint" />
-              <span className="min-w-0 flex-1 truncate font-geist text-[0.6875rem] text-m-ink">{file.original_name}</span>
+              <span dir="auto" className="min-w-0 flex-1 truncate font-geist text-[0.6875rem] text-m-ink">{file.original_name}</span>
               <Link2 size={12} strokeWidth={2.2} className="flex-none text-m-faint" />
             </button>
           ))}
@@ -99,14 +99,14 @@ export default function PlFileAttach({ planner, files, onAdd, onRemove, hideHint
               {isWalletPass(file.mime_type, file.original_name)
                 ? <Wallet size={11} strokeWidth={2} className="flex-none text-m-ink" />
                 : <FileText size={11} strokeWidth={2} className="flex-none text-m-faint" />}
-              <span className="min-w-0 flex-1 truncate font-geist text-[0.6875rem] font-medium text-m-ink">{file.original_name}</span>
+              <span dir="auto" className="min-w-0 flex-1 truncate font-geist text-[0.6875rem] font-medium text-m-ink">{file.original_name}</span>
               <ExternalLink size={11} strokeWidth={2} className="flex-none text-m-faint" />
             </button>
           ))}
           {files.map((file, idx) => (
             <div key={`${file.name}-${idx}`} className={ITEM_CLS}>
               <Paperclip size={11} strokeWidth={2} className="flex-none text-m-faint" />
-              <span className="min-w-0 flex-1 truncate font-geist text-[0.6875rem] text-m-muted">{file.name}</span>
+              <span dir="auto" className="min-w-0 flex-1 truncate font-geist text-[0.6875rem] text-m-muted">{file.name}</span>
               <button
                 type="button"
                 onClick={() => onRemove(idx)}

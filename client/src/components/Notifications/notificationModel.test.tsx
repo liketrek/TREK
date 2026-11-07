@@ -1,5 +1,5 @@
 /**
- * FE-NOTIF-MODEL-001 to FE-NOTIF-MODEL-007
+ * FE-NOTIF-MODEL-001 to FE-NOTIF-MODEL-009
  *
  * What a notification's tile shows, how the server's time is read, and how the
  * list is cut into days under headings in the reader's language.
@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { render, screen } from '../../../tests/helpers/render';
 import type { InAppNotification } from '../../store/inAppNotificationStore';
 import NotificationDayList from './NotificationDayList';
-import { KIND_LOOK, createdAt, dayLabel, groupByDay, kindOf } from './notificationModel';
+import { KIND_LOOK, createdAt, dayLabel, groupByDay, kindOf, localizedParams } from './notificationModel';
 
 const note = (id: number, created_at: string, title_key = 'notif.trip_invite.title'): InAppNotification => ({
   id,
@@ -87,5 +87,23 @@ describe('NotificationDayList', () => {
     expect(screen.getByRole('heading', { name: 'Today' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Yesterday' })).toBeInTheDocument();
     expect(screen.getAllByRole('region')).toHaveLength(2);
+  });
+});
+
+describe('localizedParams', () => {
+  const NOW = new Date(2026, 10, 7, 12);
+
+  it('FE-NOTIF-MODEL-008: a due day sent as YYYY-MM-DD reads as the short date of the language', () => {
+    const params = { todo: 'Exchange the JR Pass', trip: 'Kyoto', due: '2026-11-05' };
+    expect(localizedParams(params, 'de', NOW)).toEqual({ todo: 'Exchange the JR Pass', trip: 'Kyoto', due: '5. Nov.' });
+    expect(localizedParams(params, 'en-US', NOW).due).toBe('Nov 5');
+    expect(localizedParams(params, 'ru', NOW).due).toBe('5 нояб.');
+    // Another year names it.
+    expect(localizedParams({ due: '2027-01-02' }, 'en-US', NOW).due).toBe('Jan 2, 2027');
+  });
+
+  it('FE-NOTIF-MODEL-009: anything that is not a bare date passes through, and no params stay none', () => {
+    expect(localizedParams({ trip: '2026-11-05 at noon', n: '3' }, 'de', NOW)).toEqual({ trip: '2026-11-05 at noon', n: '3' });
+    expect(localizedParams(undefined, 'de', NOW)).toEqual({});
   });
 });

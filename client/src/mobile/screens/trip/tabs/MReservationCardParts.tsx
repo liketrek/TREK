@@ -37,7 +37,7 @@ export function CardTitleButton({
         <TypeIcon size={10} strokeWidth={2.2} style={{ color: typeColor }} />
         {t(`reservations.type.${res.type}`)}
       </span>
-      <span className="min-w-0 flex-1 truncate text-[0.78125rem] font-bold text-m-ink wide:line-clamp-2 wide:whitespace-normal">
+      <span dir="auto" className="min-w-0 flex-1 truncate text-[0.78125rem] font-bold text-m-ink wide:line-clamp-2 wide:whitespace-normal">
         {res.title}
       </span>
       {!!res.needs_review && (
@@ -105,7 +105,7 @@ export function CardWhenAndCode({
           <Field label={t('reservations.date')} className="flex-[1.4]">
             {dayDate ? (
               <span className="flex min-w-0 items-center justify-center gap-1.5">
-                <span className="min-w-0 truncate">{dayValue}</span>
+                <span dir="auto" className="min-w-0 truncate">{dayValue}</span>
                 <span className="flex-none font-medium text-m-faint">{dayDate}</span>
               </span>
             ) : (
@@ -166,7 +166,7 @@ export function CardFiles({ files, card, t }: { files: ReturnType<typeof filesFo
             className="flex items-center gap-[6px] rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-card px-[10px] py-[7px]"
           >
             <FileText size={12} strokeWidth={2} className="flex-none text-m-muted" />
-            <span className="truncate font-geist text-[0.65625rem] font-semibold text-m-muted">{f.original_name}</span>
+            <span dir="auto" className="truncate font-geist text-[0.65625rem] font-semibold text-m-muted">{f.original_name}</span>
           </span>
         ))}
       </div>

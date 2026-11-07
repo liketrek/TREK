@@ -109,6 +109,18 @@ describe('MDashboard', () => {
     expect(screen.getByText('Lisbon')).toBeInTheDocument();
   });
 
+  it('FE-MOB-DASH-040: the spotlight title keeps its own direction and its progress fills from the start edge', () => {
+    mocks.dash = buildDash({ spotlight: buildTrip() });
+    render(<MDashboard />);
+    // dir="auto": a Latin title in the Arabic UI is cut at its end, not its beginning.
+    expect(screen.getAllByText('Japan 2026')[0]).toHaveAttribute('dir', 'auto');
+    const fill = document.querySelector('span[style*="width"].rounded-full.bg-white') as HTMLElement;
+    expect(fill).not.toBeNull();
+    // start-0, not left-0: in Arabic the bar fills from the right like every other bar.
+    expect(fill).toHaveClass('start-0');
+    expect(fill.className).not.toMatch(/\bleft-0\b/);
+  });
+
   it('FE-MOB-DASH-002: archived filter swaps card actions to restore + permanent delete', () => {
     const handleUnarchive = vi.fn();
     mocks.dash = buildDash({

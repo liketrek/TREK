@@ -19,6 +19,7 @@ import { useBookingLink } from '../../../../hooks/useBookingLink'
 import { bookingFacts, stayStats } from '../../../../components/Planner/bookings/bookingFacts'
 import { parseMeta } from '../../../../components/Planner/bookings/bookingsModel'
 import { Eyebrow, INNER_CLS, StatBox, TileHeader, displayTime } from './MTripSheetUi'
+import { flowText } from '../../../../utils/flowText'
 
 interface TransportSheetPayload {
   reservationId?: number
@@ -147,8 +148,8 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
   if (airline) subParts.push(airline)
   if (flightNumber) subParts.push(flightNumber)
   if (trainNumber) subParts.push(trainNumber)
-  if (leg && (leg.from || leg.to)) subParts.push([leg.from, leg.to].filter(Boolean).join(' → '))
-  else if (from?.name && to?.name) subParts.push(`${from.name} → ${to.name}`)
+  if (leg && (leg.from || leg.to)) subParts.push(flowText([leg.from, leg.to].filter((n): n is string => !!n)))
+  else if (from?.name && to?.name) subParts.push(flowText([from.name, to.name]))
   else if (date) subParts.push(bookingDayLabel(date, locale))
 
   // A flight's legs carry no seat or platform of their own, so those stay the booking's.
@@ -210,7 +211,7 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
       <div className="flex-none px-[18px] pt-4">
         <TileHeader
           icon={<ResIcon size={19} strokeWidth={1.8} />}
-          title={<span className="truncate text-[1rem]">{res.title}</span>}
+          title={<span dir="auto" className="truncate text-[1rem]">{res.title}</span>}
           sub={subParts.length > 0 ? subParts.join(' · ') : undefined}
           onClose={shell.closeSheet}
           closeLabel={t('common.close')}
@@ -266,9 +267,9 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
                         <span className="text-m-muted">{t('transit.walkTo', { name: leg.to?.name || '' })}</span>
                       ) : (
                         <>
-                          <span className="truncate">{leg.from?.name}</span>
+                          <span dir="auto" className="truncate">{leg.from?.name}</span>
                           <ArrowRight size={10} strokeWidth={2} className="flex-none text-m-faint" />
-                          <span className="truncate">{leg.to?.name}</span>
+                          <span dir="auto" className="truncate">{leg.to?.name}</span>
                         </>
                       )}
                     </div>
@@ -358,7 +359,7 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
               className={`flex max-w-[150px] items-center gap-[5px] rounded-full px-3 py-[7px] text-[0.75rem] font-semibold ${INNER_CLS}`}
             >
               <Paperclip size={13} strokeWidth={2} className="flex-none" />
-              <span className="truncate">{f.original_name}</span>
+              <span dir="auto" className="truncate">{f.original_name}</span>
             </button>
           ))}
           {canEditDays && (
