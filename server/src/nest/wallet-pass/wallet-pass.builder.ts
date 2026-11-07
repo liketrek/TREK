@@ -14,7 +14,7 @@ import tzLookup from 'tz-lookup';
 export type WalletPassKind =
   'flight' | 'train' | 'bus' | 'boat' | 'car' | 'hotel' | 'restaurant' | 'event' | 'tour' | 'other';
 
-export interface WalletPassField {
+interface WalletPassField {
   label: string;
   value: string;
 }
