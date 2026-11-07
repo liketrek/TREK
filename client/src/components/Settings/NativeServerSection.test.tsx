@@ -36,7 +36,7 @@ describe.each([
     vi.mocked(nativeServerHost).mockReturnValue('trek.example.com');
     render(<Section />);
     const link = screen.getByRole('link', { name: 'Privacy policy' });
-    expect(link).toHaveAttribute('href', 'https://liketrek.com/privacy');
+    expect(link).toHaveAttribute('href', 'https://liketrek.com/privacy?app=1');
     expect(link).toHaveAttribute('target', '_blank');
   });
 });
