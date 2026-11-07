@@ -4,19 +4,53 @@ import Foundation
 /// so the views also render outside a widget (the preview renderer in
 /// client/ios/WidgetPreviews draws every size to a PNG on the CI's Mac).
 enum TrekFamily: String, CaseIterable {
-    case small, medium, large, circular, rectangular, inline
+    case small, medium, large, extraLarge, circular, rectangular, inline
 
     var isAccessory: Bool { self == .circular || self == .rectangular || self == .inline }
 
-    /// The point size of the family on a 6.1" iPhone, for the renderer.
+    /// A home-screen widget as tall as a large one: the large and the iPad's
+    /// extra large, which have room for a list with a foot under it.
+    var isTall: Bool { self == .large || self == .extraLarge }
+
+    /// The point size of the family on a 6.1" iPhone, for the renderer. The
+    /// extra large exists on an iPad only; its size is that of an 11" iPad.
     var previewSize: CGSize {
         switch self {
         case .small: return CGSize(width: 170, height: 170)
         case .medium: return CGSize(width: 364, height: 170)
         case .large: return CGSize(width: 364, height: 382)
+        case .extraLarge: return CGSize(width: 715.5, height: 342)
         case .circular: return CGSize(width: 76, height: 76)
         case .rectangular: return CGSize(width: 172, height: 76)
         case .inline: return CGSize(width: 250, height: 26)
+        }
+    }
+}
+
+/// The iPads the renderer draws the home-screen widgets for, with the sizes
+/// iPadOS gives each family there (Human Interface Guidelines, Widgets). An
+/// iPad mini's small widget is smaller than an iPhone's, a 13" iPad's medium
+/// and large are wider.
+enum TrekPad: String, CaseIterable {
+    case ipad13, ipad11, ipadMini
+
+    /// The small widget's side, the medium's and large's width, the extra large's width.
+    private var metrics: (small: CGFloat, wide: CGFloat, extraWide: CGFloat) {
+        switch self {
+        case .ipad13: return (170, 378.5, 795)
+        case .ipad11: return (155, 342, 715.5)
+        case .ipadMini: return (141, 305.5, 634.5)
+        }
+    }
+
+    func size(_ family: TrekFamily) -> CGSize {
+        let m = metrics
+        switch family {
+        case .small: return CGSize(width: m.small, height: m.small)
+        case .medium: return CGSize(width: m.wide, height: m.small)
+        case .large: return CGSize(width: m.wide, height: m.wide)
+        case .extraLarge: return CGSize(width: m.extraWide, height: m.wide)
+        default: return family.previewSize
         }
     }
 }

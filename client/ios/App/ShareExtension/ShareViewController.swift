@@ -9,6 +9,24 @@ import UIKit
 final class ShareViewController: UIViewController {
     private let model = ShareModel()
 
+    // On an iPad the system would put the extension in a form sheet, a box in the
+    // middle of the screen with this sheet's own dimming and card inside it. Over
+    // the full screen instead, the card stands centred over the app that shared,
+    // the way an iPad presents a small form.
+    override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
+        super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
+        presentOverFullScreenOnPad()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        presentOverFullScreenOnPad()
+    }
+
+    private func presentOverFullScreenOnPad() {
+        if UIDevice.current.userInterfaceIdiom == .pad { modalPresentationStyle = .overFullScreen }
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .clear

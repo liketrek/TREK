@@ -85,6 +85,53 @@ struct TripContent: View {
                 }
                 .frame(width: 96, height: 96)
             }
+        case .extraLarge:
+            // The iPad's wide widget: the trip and its countdown on the left, the
+            // bookings ahead in a column on the right.
+            HStack(alignment: .top, spacing: 20) {
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(alignment: .top) {
+                        Text(snapshot.labels.nextTrip).trekEyebrowOnPhoto()
+                        Spacer(minLength: 0)
+                        if let weather = snapshot.weather { WeatherChip(weather: weather, onPhoto: true) }
+                    }
+                    Spacer(minLength: 0)
+                    HStack(alignment: .bottom, spacing: 12) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(trip.title)
+                                .font(.system(size: 28, weight: .heavy))
+                                .foregroundStyle(.white)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.75)
+                            if let place = trip.place {
+                                Label(place, systemImage: "location.fill")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(.white.opacity(0.85))
+                                    .lineLimit(1)
+                            }
+                        }
+                        Spacer(minLength: 0)
+                        countdown(days, snapshot.labels, size: 54)
+                    }
+                    RouteArc(progress: progress, color: .white)
+                        .frame(height: 34)
+                        .padding(.top, 10)
+                        .padding(.bottom, 12)
+                    TripFacts(snapshot: snapshot, onPhoto: true)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                if let bookings = snapshot.bookings, !bookings.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(snapshot.labels.bookings ?? "").trekEyebrowOnPhoto()
+                        ForEach(Array(bookings.prefix(4).enumerated()), id: \.offset) { _, booking in
+                            NextBookingStrip(booking: booking, labels: snapshot.labels, now: now)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .frame(width: 290)
+                    .frame(maxHeight: .infinity, alignment: .top)
+                }
+            }
         default:
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .top) {
@@ -200,6 +247,44 @@ struct TripContent: View {
                     StopList(stops: today.stops, nowMinutes: nowMinutes, limit: 3, onPhoto: true, nothing: snapshot.labels.nothingPlanned, nowLabel: snapshot.labels.now)
                 }
                 .frame(width: 176)
+            }
+        case .extraLarge:
+            // The iPad's wide widget: the day on the left, its stops beside it.
+            HStack(alignment: .top, spacing: 20) {
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(alignment: .top) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(trip.title).trekEyebrowOnPhoto()
+                            Text(today.dayLabel)
+                                .font(.system(size: 26, weight: .heavy))
+                                .foregroundStyle(.white)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
+                        }
+                        Spacer(minLength: 0)
+                        if let weather = snapshot.weather { BigWeather(weather: weather) }
+                    }
+                    DaySegments(index: index, total: total, color: .white, track: .white.opacity(0.25)).padding(.top, 10)
+                    Spacer(minLength: 8)
+                    if let next {
+                        Text(next.time ?? snapshot.labels.today)
+                            .font(Trek.number(30, .heavy))
+                            .foregroundStyle(.white)
+                        Text(next.name)
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                            .padding(.bottom, 10)
+                    }
+                    if let booking = snapshot.bookings?.first {
+                        NextBookingStrip(booking: booking, labels: snapshot.labels, now: now)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                GlassPanel {
+                    StopList(stops: today.stops, nowMinutes: nowMinutes, limit: 7, onPhoto: true, nothing: snapshot.labels.nothingPlanned, nowLabel: snapshot.labels.now)
+                }
+                .frame(width: 300)
             }
         default:
             VStack(alignment: .leading, spacing: 0) {

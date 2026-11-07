@@ -29,6 +29,7 @@ struct BookingsContent: View {
             switch family {
             case .small: hero(first, labels)
             case .medium: list(Array(bookings.prefix(2)), labels, featureFirst: true)
+            case .extraLarge: wide(bookings, labels)
             default: list(Array(bookings.prefix(5)), labels, featureFirst: true)
             }
         } else {
@@ -74,7 +75,7 @@ struct BookingsContent: View {
     // MARK: Medium and large: a list, the first one featured
 
     private func list(_ bookings: [WidgetSnapshot.Booking], _ labels: WidgetSnapshot.Labels, featureFirst: Bool) -> some View {
-        VStack(alignment: .leading, spacing: family == .large ? 8 : 7) {
+        VStack(alignment: .leading, spacing: family.isTall ? 8 : 7) {
             HStack {
                 Text(labels.bookings ?? "").trekEyebrow(scheme)
                 Spacer(minLength: 0)
@@ -89,7 +90,33 @@ struct BookingsContent: View {
                     }
                 }
             }
-            if family == .large { Spacer(minLength: 0) }
+            if family.isTall { Spacer(minLength: 0) }
+        }
+    }
+
+    // MARK: Extra large (iPad): the next one as a card, the rest beside it
+
+    private func wide(_ bookings: [WidgetSnapshot.Booking], _ labels: WidgetSnapshot.Labels) -> some View {
+        let first = bookings[0]
+        let look = Trek.booking(first.kind)
+        let rest = Array(bookings.dropFirst().prefix(5))
+        return HStack(alignment: .top, spacing: 18) {
+            RowLink(path: first.path) {
+                hero(first, labels)
+                    .padding(14)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .fill(LinearGradient(colors: [look.color.opacity(scheme == .dark ? 0.24 : 0.14), look.color.opacity(scheme == .dark ? 0.08 : 0.04)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(look.color.opacity(0.25), lineWidth: 0.8))
+            }
+            .frame(maxWidth: rest.isEmpty ? CGFloat.infinity : 240)
+            if !rest.isEmpty {
+                list(rest, labels, featureFirst: false)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            }
         }
     }
 

@@ -6,16 +6,24 @@ import SwiftUI
 struct ShareView: View {
     @ObservedObject var model: ShareModel
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.horizontalSizeClass) private var widthClass
     @State private var shown = false
 
+    /// An iPad window of regular width: the card stands centred over the dimmed
+    /// app, as a form does there, instead of rising from the bottom edge. A
+    /// narrow Split View or Slide Over window keeps the iPhone's bottom card.
+    private var centred: Bool { widthClass == .regular }
+
     var body: some View {
-        ZStack(alignment: .bottom) {
-            Color.black.opacity(shown ? 0.28 : 0)
+        ZStack(alignment: centred ? .center : .bottom) {
+            Color.black.opacity(shown ? (centred ? 0.36 : 0.28) : 0)
                 .ignoresSafeArea()
                 .onTapGesture { dismiss() }
 
             card
-                .offset(y: shown ? 0 : 520)
+                .offset(y: shown ? 0 : (centred ? 40 : 520))
+                .opacity(centred && !shown ? 0 : 1)
+                .padding(.vertical, centred ? 24 : 0)
         }
         .onAppear {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.86)) { shown = true }
@@ -31,14 +39,17 @@ struct ShareView: View {
 
     private var card: some View {
         VStack(spacing: 0) {
-            Capsule()
-                .fill(ShareStyle.faint(scheme).opacity(0.5))
-                .frame(width: 38, height: 5)
-                .padding(.top, 8)
+            // The grabber belongs to a card that rises from the bottom edge.
+            if !centred {
+                Capsule()
+                    .fill(ShareStyle.faint(scheme).opacity(0.5))
+                    .frame(width: 38, height: 5)
+                    .padding(.top, 8)
+            }
 
             header
                 .padding(.horizontal, 20)
-                .padding(.top, 14)
+                .padding(.top, centred ? 22 : 14)
 
             Group {
                 switch model.phase {
@@ -50,7 +61,7 @@ struct ShareView: View {
             }
             .padding(.top, 16)
         }
-        .padding(.bottom, 12)
+        .padding(.bottom, centred ? 20 : 12)
         .frame(maxWidth: 560)
         .background(
             RoundedRectangle(cornerRadius: 32, style: .continuous)
@@ -60,9 +71,9 @@ struct ShareView: View {
                         .strokeBorder(ShareStyle.edge(scheme), lineWidth: 1)
                 )
                 .shadow(color: .black.opacity(0.25), radius: 30, y: 10)
-                .ignoresSafeArea(edges: .bottom)
+                .ignoresSafeArea(edges: centred ? [] : .bottom)
         )
-        .padding(.horizontal, 6)
+        .padding(.horizontal, centred ? 24 : 6)
     }
 
     private var header: some View {

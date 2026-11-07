@@ -51,6 +51,7 @@ extension TrekFamily {
         switch family {
         case .systemSmall: self = .small
         case .systemMedium: self = .medium
+        case .systemExtraLarge: self = .extraLarge
         case .accessoryCircular: self = .circular
         case .accessoryRectangular: self = .rectangular
         case .accessoryInline: self = .inline
@@ -92,7 +93,8 @@ struct NextTripWidget: Widget {
         }
         .configurationDisplayName("widget.trip.name")
         .description("widget.trip.description")
-        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryCircular, .accessoryRectangular, .accessoryInline])
+        // systemExtraLarge is the iPad's; an iPhone leaves it out of its gallery.
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .systemExtraLarge, .accessoryCircular, .accessoryRectangular, .accessoryInline])
     }
 }
 
@@ -123,7 +125,7 @@ struct TodayWidget: Widget {
         }
         .configurationDisplayName("widget.today.name")
         .description("widget.today.description")
-        .supportedFamilies([.systemMedium, .systemLarge])
+        .supportedFamilies([.systemMedium, .systemLarge, .systemExtraLarge])
     }
 }
 
@@ -146,7 +148,7 @@ struct BookingsWidget: Widget {
         }
         .configurationDisplayName("widget.bookings.name")
         .description("widget.bookings.description")
-        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryRectangular, .accessoryInline])
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .systemExtraLarge, .accessoryRectangular, .accessoryInline])
     }
 }
 
