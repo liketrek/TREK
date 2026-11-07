@@ -88,7 +88,7 @@ export async function keepOfflineShellFresh(fetchImpl: typeof fetch = fetch, lan
   if (!response.ok) return;
   const files = manifestFiles(await response.json(), language);
   // The build and the language together: a new language needs its own chunk.
-  const build = `${[...files].sort().find((f) => /index-[^/]+\.js$/.test(f)) ?? files.length}:${language ?? 'en'}`;
+  const build = `${[...files].sort((a, b) => a.localeCompare(b)).find((f) => /index-[^/]+\.js$/.test(f)) ?? files.length}:${language ?? 'en'}`;
   if (warmedBuild() === build) return;
   const complete = await warmCache(files, (path) =>
     fetchImpl(path, { priority: 'low' } as RequestInit).then((r) => r.blob())
