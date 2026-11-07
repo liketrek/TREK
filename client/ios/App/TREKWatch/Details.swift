@@ -470,6 +470,7 @@ struct ChecklistView: View {
                 }
             }
         }
+        .listSectionSpacing(.compact)
         .navigationTitle(title)
         .sensoryFeedback(.success, trigger: ticks)
         .containerBackground(WatchLook.tint(color), for: .navigation)

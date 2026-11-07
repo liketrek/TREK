@@ -599,7 +599,7 @@ struct MenuRow: View {
             Text(title)
                 .font(.system(compact ? .callout : .body, design: .rounded).weight(.semibold))
                 .lineLimit(1)
-                .minimumScaleFactor(0.78)
+                .minimumScaleFactor(0.65)
                 .allowsTightening(true)
             Spacer(minLength: 2)
             if let value {
