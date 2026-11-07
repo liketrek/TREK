@@ -62,6 +62,11 @@ interface Props {
   /** The public journey page serves photos through a share token. */
   photoUrlFor?: (photoId: number) => string
   tone?: 'app' | 'mobile'
+  /**
+   * large: the card a wide window shows (an iPad, a foldable unfolded), with
+   * the room for a two-line name and the whole place under it.
+   */
+  size?: 'regular' | 'large'
 }
 
 export default function JourneyEntryCover({
@@ -73,7 +78,9 @@ export default function JourneyEntryCover({
   showWeather = true,
   photoUrlFor,
   tone = 'app',
+  size = 'regular',
 }: Props) {
+  const large = size === 'large'
   const { t, locale } = useTranslation()
   const isSuggestion = entry.type === 'skeleton'
 
@@ -108,7 +115,9 @@ export default function JourneyEntryCover({
       // growing its box moved every card after it once a swipe had landed, and the
       // snap then pulled the strip again, which read as a jolt (carousels keep the
       // room for it with their gap and top padding).
-      className={`relative h-[152px] w-[136px] flex-none origin-bottom overflow-hidden rounded-[18px] text-start transition-[transform,box-shadow] duration-200 ease-[cubic-bezier(.2,.8,.2,1)] motion-reduce:transition-none ${
+      // White on the root: every mark and line on the card is white, over a photo or
+      // over the day's colour alike.
+      className={`relative text-white ${large ? 'h-[196px] w-[176px]' : 'h-[152px] w-[136px]'} flex-none origin-bottom overflow-hidden rounded-[18px] text-start transition-[transform,box-shadow] duration-200 ease-[cubic-bezier(.2,.8,.2,1)] motion-reduce:transition-none ${
         isActive ? 'z-[1] scale-[1.18] shadow-[0_18px_40px_-16px_rgba(0,0,0,.55)]' : 'scale-100 shadow-[0_10px_24px_-14px_rgba(0,0,0,.5)]'
       } ${src ? '' : emptyGround} ${isSuggestion ? 'opacity-90' : ''}`}
       // backgroundImage, not background: the shorthand would drop the opaque colour
@@ -122,7 +131,9 @@ export default function JourneyEntryCover({
       // ring lost its top edge to that clip.
       style={{
         boxShadow: `inset 0 0 0 ${isActive ? 2.5 : 1.5}px ${dayColor}${isActive ? '' : 'b3'}`,
-        ...(src ? null : { backgroundImage: `linear-gradient(160deg, ${dayColor}2e, ${dayColor}0d)` }),
+        // Without a photograph the card is the day's colour, deep enough to carry
+        // the white name like a photo does, rather than a grey that read as empty.
+        ...(src ? null : { backgroundImage: `linear-gradient(160deg, ${dayColor}d9, ${dayColor}8c 55%, ${dayColor}59)` }),
       }}
     >
       {src ? (
@@ -130,8 +141,8 @@ export default function JourneyEntryCover({
       ) : (
         <span className="absolute inset-0 flex items-center justify-center">
           {posterless
-            ? <Play size={24} strokeWidth={1.8} fill="currentColor" style={{ color: dayColor }} className="ml-0.5 opacity-60" />
-            : <MapPin size={24} strokeWidth={1.8} style={{ color: dayColor }} className="opacity-60" />}
+            ? <Play size={24} strokeWidth={1.8} fill="currentColor" className="ml-0.5 -mt-6 opacity-80" />
+            : <MapPin size={24} strokeWidth={1.8} className="-mt-6 opacity-80" />}
         </span>
       )}
 
@@ -155,7 +166,7 @@ export default function JourneyEntryCover({
           italic, dimmed title carries the rest. */}
       {isSuggestion && (
         <span
-          className={`absolute top-2 ${entry.country_code ? 'start-[30px]' : 'start-2'} ${badgeDot} text-white`}
+          className={`absolute top-2 ${entry.country_code ? 'start-[30px]' : 'start-2'} ${badgeDot}`}
           title={t('journey.entry.suggestion')}
           aria-label={t('journey.entry.suggestion')}
         >
@@ -172,7 +183,7 @@ export default function JourneyEntryCover({
           </span>
         )}
         {weather && (
-          <span className={`${badgeDot} text-white`}>
+          <span className={`${badgeDot}`}>
             <weather.icon size={11} strokeWidth={2.4} />
           </span>
         )}
@@ -181,11 +192,11 @@ export default function JourneyEntryCover({
 
       {/* Bottom: the name gets the room the thumbnail layout never had. */}
       <span className="absolute inset-x-0 bottom-0 flex flex-col gap-[1px] px-[10px] pb-[10px]">
-        <span className={`line-clamp-2 text-[13px] leading-[1.25] font-bold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,.6)] ${isSuggestion ? 'italic' : ''}`}>
+        <span className={`line-clamp-2 text-[13px] leading-[1.25] font-bold drop-shadow-[0_1px_3px_rgba(0,0,0,.6)] ${isSuggestion ? 'italic' : ''}`}>
           {title}
         </span>
         {place && (
-          <span className="truncate text-[10.5px] leading-[1.3] font-medium text-white/80 drop-shadow-[0_1px_3px_rgba(0,0,0,.6)]">
+          <span className={`${large ? 'line-clamp-2' : 'truncate'} text-[10.5px] leading-[1.3] font-medium text-white/80 drop-shadow-[0_1px_3px_rgba(0,0,0,.6)]`}>
             {place}
           </span>
         )}

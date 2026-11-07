@@ -112,5 +112,10 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.maps': 'الخرائط',
   'mobileTrip.openRouteIn': 'افتح اليوم في',
   'mobileTrip.firstStopOnly': 'المحطة الأولى فقط',
+  'mobileTrip.sections': 'أقسام الرحلة',
+  'mobileTrip.hidePane': 'إخفاء الشريط الجانبي',
+  'mobileTrip.showPane': 'إظهار الشريط الجانبي',
+  'mobileTrip.previousDay': 'اليوم السابق',
+  'mobileTrip.nextDay': 'اليوم التالي',
 };
 export default mobileTrip;

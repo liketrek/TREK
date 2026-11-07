@@ -27,6 +27,7 @@ import MSettingsIntegrations from './MSettingsIntegrations'
 import MSettingsAccount from './MSettingsAccount'
 import MSettingsAbout from './MSettingsAbout'
 import MSettingsServer from './MSettingsServer'
+import { useIsSplit } from '../../../hooks/sizeClass'
 
 interface SectionTab {
   id: string
@@ -45,6 +46,9 @@ export default function MSettings() {
   const navigate = useNavigate()
   const { hasIntegrations, hasPlugins, appVersion, activeTab, setActiveTab, managed } = useSettings()
   const [dropOpen, setDropOpen] = useState(false)
+  // With room for two panes the sections stand in a list of their own beside
+  // the page, the way Settings on an iPad does, instead of behind a dropdown.
+  const split = useIsSplit()
 
   const tabs: SectionTab[] = [
     { id: 'display', label: t('settings.tabs.display'), icon: SlidersHorizontal },
@@ -65,9 +69,42 @@ export default function MSettings() {
 
   const active = tabs.find((tab) => tab.id === activeTab) || tabs[0]
 
+  const sectionRow = (tab: SectionTab, onPick: () => void) => (
+    <button
+      key={tab.id}
+      type="button"
+      onClick={onPick}
+      aria-current={split && tab.id === active.id ? 'page' : undefined}
+      className={`flex w-full items-center gap-[10px] rounded-[11px] p-[10px] text-start text-[0.8125rem] font-semibold text-m-ink outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--m-act)] ${
+        tab.id === active.id ? 'bg-[color:var(--m-ic)]' : 'hover:bg-[color:var(--m-ic)]'
+      }`}
+    >
+      <tab.icon size={15} strokeWidth={2} className="flex-none" />
+      {tab.label}
+    </button>
+  )
+
   return (
-    <div className="px-4 pb-[calc(var(--bottom-nav-h,84px)+16px)] pt-[var(--m-safe-top,12px)]">
+    <div className="px-4 pb-[calc(var(--bottom-nav-h,84px)+16px)] pt-[var(--m-safe-top,12px)] wide:px-6 split:mx-auto split:grid split:max-w-[1120px] split:grid-cols-[260px_minmax(0,1fr)] split:items-start split:gap-8">
+      {split && (
+        <nav aria-label={t('settings.title')} className="sticky top-[var(--m-safe-top,12px)] flex flex-col gap-1 rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] p-[6px] shadow-[0_16px_40px_-24px_rgba(0,0,0,.3)]">
+          <div className="mb-1 flex items-center gap-2 p-[4px]">
+            <button
+              type="button"
+              aria-label={t('common.back')}
+              onClick={() => void navigate('/dashboard')}
+              className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-full text-m-ink hover:bg-[color:var(--m-ic)]"
+            >
+              <ChevronLeft size={18} strokeWidth={2.2} className="rtl:-scale-x-100" />
+            </button>
+            <span className="min-w-0 truncate text-subtitle font-bold text-m-ink">{t('settings.title')}</span>
+          </div>
+          {tabs.map((tab) => sectionRow(tab, () => setActiveTab(tab.id)))}
+        </nav>
+      )}
+      <div className="min-w-0 wide:mx-auto wide:w-full wide:max-w-[720px] split:mx-0">
       {/* Header: back + section switcher pill */}
+      {!split && (
       <div className="mb-3 flex items-center gap-2">
         <button
           type="button"
@@ -88,26 +125,17 @@ export default function MSettings() {
           <ChevronDown size={13} strokeWidth={2} className="flex-none text-m-faint" />
         </button>
       </div>
+      )}
 
       {/* Section dropdown, in flow (pushes the content down like the demo) */}
-      {dropOpen && (
+      {dropOpen && !split && (
         <div className="m-pop-in -mt-[6px] mb-3 rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] p-[6px] shadow-[0_16px_40px_-20px_rgba(0,0,0,.4)]">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => {
-                setActiveTab(tab.id)
-                setDropOpen(false)
-              }}
-              className={`flex w-full items-center gap-[10px] rounded-[11px] p-[10px] text-start text-[0.8125rem] font-semibold text-m-ink ${
-                tab.id === active.id ? 'bg-[color:var(--m-ic)]' : ''
-              }`}
-            >
-              <tab.icon size={15} strokeWidth={2} className="flex-none" />
-              {tab.label}
-            </button>
-          ))}
+          {tabs.map((tab) =>
+            sectionRow(tab, () => {
+              setActiveTab(tab.id)
+              setDropOpen(false)
+            }),
+          )}
         </div>
       )}
 
@@ -135,6 +163,7 @@ export default function MSettings() {
           </a>
         </p>
       )}
+      </div>
     </div>
   )
 }

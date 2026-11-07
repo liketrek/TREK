@@ -100,5 +100,10 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.maps': 'Карти',
   'mobileTrip.openRouteIn': 'Відкрити день у',
   'mobileTrip.firstStopOnly': 'Лише перша зупинка',
+  'mobileTrip.sections': 'Розділи подорожі',
+  'mobileTrip.hidePane': 'Сховати бічну панель',
+  'mobileTrip.showPane': 'Показати бічну панель',
+  'mobileTrip.previousDay': 'Попередній день',
+  'mobileTrip.nextDay': 'Наступний день',
 };
 export default mobileTrip;

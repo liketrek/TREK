@@ -83,5 +83,10 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.maps': 'Kaarten',
   'mobileTrip.openRouteIn': 'Dag openen in',
   'mobileTrip.firstStopOnly': 'Alleen de eerste stop',
+  'mobileTrip.sections': 'Onderdelen van de reis',
+  'mobileTrip.hidePane': 'Zijbalk verbergen',
+  'mobileTrip.showPane': 'Zijbalk tonen',
+  'mobileTrip.previousDay': 'Vorige dag',
+  'mobileTrip.nextDay': 'Volgende dag',
 };
 export default mobileTrip;

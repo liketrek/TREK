@@ -76,5 +76,10 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.maps': 'Bản đồ',
   'mobileTrip.openRouteIn': 'Mở ngày này trong',
   'mobileTrip.firstStopOnly': 'Chỉ điểm dừng đầu tiên',
+  'mobileTrip.sections': 'Các mục của chuyến đi',
+  'mobileTrip.hidePane': 'Ẩn thanh bên',
+  'mobileTrip.showPane': 'Hiện thanh bên',
+  'mobileTrip.previousDay': 'Ngày trước',
+  'mobileTrip.nextDay': 'Ngày sau',
 };
 export default mobileTrip;

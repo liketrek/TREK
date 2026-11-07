@@ -83,5 +83,10 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.maps': 'Kartor',
   'mobileTrip.openRouteIn': 'Öppna dagen i',
   'mobileTrip.firstStopOnly': 'Bara första stoppet',
+  'mobileTrip.sections': 'Resans delar',
+  'mobileTrip.hidePane': 'Dölj sidofältet',
+  'mobileTrip.showPane': 'Visa sidofältet',
+  'mobileTrip.previousDay': 'Föregående dag',
+  'mobileTrip.nextDay': 'Nästa dag',
 };
 export default mobileTrip;

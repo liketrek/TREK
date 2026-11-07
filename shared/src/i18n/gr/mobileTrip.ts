@@ -84,5 +84,10 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.maps': 'Χάρτες',
   'mobileTrip.openRouteIn': 'Άνοιγμα της ημέρας σε',
   'mobileTrip.firstStopOnly': 'Μόνο η πρώτη στάση',
+  'mobileTrip.sections': 'Ενότητες ταξιδιού',
+  'mobileTrip.hidePane': 'Απόκρυψη πλαϊνής στήλης',
+  'mobileTrip.showPane': 'Εμφάνιση πλαϊνής στήλης',
+  'mobileTrip.previousDay': 'Προηγούμενη ημέρα',
+  'mobileTrip.nextDay': 'Επόμενη ημέρα',
 };
 export default mobileTrip;

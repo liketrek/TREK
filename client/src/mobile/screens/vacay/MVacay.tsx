@@ -192,7 +192,7 @@ export default function MVacay() {
             onSelectDay={v.selectYear}
             describeDay={i => String(v.years[i] ?? '')}
             renderDay={pageYear => (
-          <div className="grid grid-cols-2 gap-[10px]">
+          <div className="grid grid-cols-2 gap-[10px] wide:grid-cols-3 split:grid-cols-4">
             {/* Twelve months from the window start (#737) — Jan–Dec on a calendar
                 year, Jul–Jun once the leave year is shifted. */}
             {v.monthsFor(pageYear ?? v.selectedYear).map(({ year, month }, slot) => (
@@ -277,7 +277,7 @@ export default function MVacay() {
 
       {/* Mode switch (edit only) */}
       {edit && v.selectedUser && (
-        <div className="fixed inset-x-0 z-[30] flex justify-center bottom-[calc(var(--bottom-nav-h,84px)+2px)]">
+        <div className="m-span-x fixed z-[30] flex justify-center bottom-[calc(var(--bottom-nav-h,84px)+2px)] wide:bottom-[calc(env(safe-area-inset-bottom,0px)+84px)]">
           <div className="flex items-center gap-[5px] rounded-full border border-[color:var(--m-shbr)] bg-[color:var(--m-sheet)] p-[5px] shadow-[0_12px_30px_-12px_rgba(0,0,0,.4)]">
             <button
               type="button"
@@ -347,7 +347,7 @@ export default function MVacay() {
         type="button"
         onClick={v.toggleView}
         aria-label={edit ? t('mobileVacay.viewYear') : t('mobileVacay.editCalendar')}
-        className={`fixed left-1/2 z-50 flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-full transition-[background,color] duration-300 ease-in-out bottom-[calc(env(safe-area-inset-bottom,0px)+15px)] ${
+        className={`fixed start-[calc(50%+var(--m-rail-w,0px)/2-28px)] z-50 flex h-14 w-14 items-center justify-center rounded-full transition-[background,color] duration-300 ease-in-out bottom-[calc(env(safe-area-inset-bottom,0px)+15px)] ${
           edit
             ? 'border-2 border-[color:var(--m-act)] bg-[color:var(--m-sheetop)] text-m-ink'
             : 'bg-m-act text-m-actfg shadow-[0_8px_20px_-6px_rgba(0,0,0,.4)]'

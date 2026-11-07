@@ -84,6 +84,11 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.maps': 'Xəritələr',
   'mobileTrip.openRouteIn': 'Günü burada aç',
   'mobileTrip.firstStopOnly': 'Yalnız ilk dayanacaq',
+  'mobileTrip.sections': 'Səfər bölmələri',
+  'mobileTrip.hidePane': 'Yan paneli gizlət',
+  'mobileTrip.showPane': 'Yan paneli göstər',
+  'mobileTrip.previousDay': 'Əvvəlki gün',
+  'mobileTrip.nextDay': 'Növbəti gün',
 };
 
 export default mobileTrip;

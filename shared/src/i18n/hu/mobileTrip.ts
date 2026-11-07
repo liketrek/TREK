@@ -84,5 +84,10 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.maps': 'Térképek',
   'mobileTrip.openRouteIn': 'Nap megnyitása ebben',
   'mobileTrip.firstStopOnly': 'Csak az első megálló',
+  'mobileTrip.sections': 'Az utazás részei',
+  'mobileTrip.hidePane': 'Oldalsáv elrejtése',
+  'mobileTrip.showPane': 'Oldalsáv megjelenítése',
+  'mobileTrip.previousDay': 'Előző nap',
+  'mobileTrip.nextDay': 'Következő nap',
 };
 export default mobileTrip;

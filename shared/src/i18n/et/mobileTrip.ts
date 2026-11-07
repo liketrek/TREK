@@ -84,5 +84,10 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.maps': 'Kaardid',
   'mobileTrip.openRouteIn': 'Ava päev rakenduses',
   'mobileTrip.firstStopOnly': 'Ainult esimene peatus',
+  'mobileTrip.sections': 'Reisi jaotised',
+  'mobileTrip.hidePane': 'Peida külgriba',
+  'mobileTrip.showPane': 'Näita külgriba',
+  'mobileTrip.previousDay': 'Eelmine päev',
+  'mobileTrip.nextDay': 'Järgmine päev',
 };
 export default mobileTrip;

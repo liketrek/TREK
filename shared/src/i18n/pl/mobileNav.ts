@@ -4,6 +4,7 @@ const mobileNav: TranslationStrings = {
   'mobileNav.journeySub': 'Dziennik podróży',
   'mobileNav.collectionsSub': 'Zapisane miejsca',
   'mobileNav.more': 'Więcej',
+  'mobileNav.navigation': 'Nawigacja',
 };
 
 export default mobileNav;

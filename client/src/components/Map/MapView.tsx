@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useMemo, useCallback, memo, type Component
 import DOM from 'react-dom'
 import { categoryIconSvg } from './categoryIconSvg'
 import { MapContainer, TileLayer, Marker, Polyline, CircleMarker, Circle, useMap, Tooltip } from 'react-leaflet'
+import ContainerResizeWatcher, { MapCameraSnapshot } from './ContainerResizeWatcher'
 import MarkerClusterGroup from 'react-leaflet-cluster'
 import { makeMarkerDraggable } from './markerDrag'
 import { CLUSTER_OPTIONS, createClusterIcon, revealInCluster, type ClusterGroupLike } from './markerCluster'
@@ -241,20 +242,6 @@ function CameraHoverGuard({ movingRef, onMoveStart, onZoom }: { movingRef: { cur
     map.on('moveend zoomend', end)
     return () => { map.off('movestart zoomstart', start); map.off('moveend zoomend', end) }
   }, [map, movingRef, onMoveStart, onZoom])
-  return null
-}
-
-function MapCameraSnapshot({ onChange }: { onChange: (center: [number, number], zoom: number) => void }) {
-  const map = useMap()
-  useEffect(() => {
-    const save = () => {
-      const center = map.getCenter()
-      onChange([center.lat, center.lng], map.getZoom())
-    }
-    map.whenReady(save)
-    map.on('moveend zoomend', save)
-    return () => { map.off('moveend zoomend', save) }
-  }, [map, onChange])
   return null
 }
 
@@ -952,6 +939,7 @@ export const MapView = memo(function MapView({
       {/* First, so a fit or a camera request in the same commit starts from the trip's world copy. */}
       <LngFrameFollower />
       <MapController center={center} zoom={zoom} />
+      <ContainerResizeWatcher />
       {hasViewBaseLayer && <MapCameraSnapshot onChange={saveCameraSnapshot} />}
       <BoundsController places={dayPlaces.length > 0 ? dayPlaces : places} routeCoords={dayPlaces.length > 0 ? routeCoords : []} fitKey={fitKey} paddingOpts={paddingOpts} framedOnMount={initialView.framed} focusPoints={focusPoints} focusKey={focusKey} fitPadding={fitPadding} follow={followSelection} />
       <SelectionController follow={followSelection} places={places} selectedPlaceId={selectedPlaceId} dayPlaces={dayPlaces} selectedPlace={selectedPlace} paddingBox={paddingBox} />

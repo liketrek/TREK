@@ -123,6 +123,18 @@ export interface TrekShellPlugin {
     event: 'storeTransaction',
     listener: (payload: StoreRestoreResult) => void
   ): Promise<{ remove: () => Promise<void> }>;
+  /**
+   * Feature keyCommands (iOS, Android): the shortcuts a hardware keyboard has right now,
+   * with their names in the UI's language. The app lists them in the overlay a
+   * held Command key shows and in the iPadOS menu bar, Android in its
+   * keyboard shortcuts list.
+   */
+  setKeyCommands(options: { commands: NativeKeyCommand[] }): Promise<void>;
+  /** Feature keyCommands: one of those shortcuts was pressed. */
+  addListener(
+    event: 'keyCommand',
+    listener: (payload: { id: string }) => void
+  ): Promise<{ remove: () => Promise<void> }>;
 }
 
 /** What Google Play Billing answers a restore with (Android, feature playBilling), beside iOS's `jws`. */
@@ -131,6 +143,16 @@ export interface StoreRestoreResult {
   purchaseToken?: string;
   productId?: string;
   transactionId?: string;
+}
+
+/** A keyboard shortcut as the app registers it (UIKeyCommand on iOS, a KeyboardShortcutInfo on Android). */
+export interface NativeKeyCommand {
+  id: string;
+  title: string;
+  /** The key: a character, or one of 'left', 'right', 'up', 'down', 'escape'. */
+  input: string;
+  /** Any of 'command', 'shift', 'option', 'control'. */
+  modifiers: string[];
 }
 
 /** A document shared to TREK, as the native side reads it. */
