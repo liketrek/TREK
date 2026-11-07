@@ -105,10 +105,28 @@ enum WatchLook {
     static let packing = Color(hex: 0x2FA37A)
     static let todo = Color(hex: 0x4A7DDB)
 
+    /// The lights a trip's pages can have: clear, saturated hues that stay
+    /// clean when they fade into black (no ochre or olive, which turn muddy).
+    static let palette: [(Color, Color)] = [
+        (Color(hex: 0x3D6FD8), Color(hex: 0x1C2E73)),
+        (Color(hex: 0x2BA59A), Color(hex: 0x0E4E5A)),
+        (Color(hex: 0x7A5AE0), Color(hex: 0x2E1F6B)),
+        (Color(hex: 0xD2557A), Color(hex: 0x5C1A3A)),
+        (Color(hex: 0x2E8BC0), Color(hex: 0x113A5C)),
+        (Color(hex: 0xE0703C), Color(hex: 0x5E2414)),
+        (Color(hex: 0x3FA866), Color(hex: 0x134A2C)),
+    ]
+
+    /// A trip's own two colours, picked by its id, so they do not change with
+    /// its title or the language it is shown in.
+    static func tripColors(_ trip: WatchSnapshot.Trip?) -> (Color, Color) {
+        palette[(trip?.id ?? 1) % palette.count]
+    }
+
     /// A trip's page light: its first colour at the top, fading into black.
-    static func tripGradient(_ title: String) -> LinearGradient {
-        let (first, second) = Trek.tripHues(title)
-        return LinearGradient(colors: [first.opacity(0.85), second.opacity(0.55), .black], startPoint: .top, endPoint: .bottom)
+    static func tripGradient(_ trip: WatchSnapshot.Trip?) -> LinearGradient {
+        let (first, second) = tripColors(trip)
+        return LinearGradient(colors: [first.opacity(0.85), second.opacity(0.6), .black], startPoint: .top, endPoint: .bottom)
     }
 
     static func tint(_ color: Color) -> LinearGradient {
@@ -144,6 +162,14 @@ struct WatchEyebrow: ViewModifier {
 }
 
 extension View {
+    /// Text a person wrote (a place, a booking, an item): when it is in Latin
+    /// letters it is set as such, so in a Chinese, Japanese or Korean interface
+    /// it still breaks between words rather than inside one.
+    func userText(_ text: String?) -> some View {
+        let latin = (text ?? "").unicodeScalars.allSatisfy { $0.value < 0x0250 || $0.properties.isWhitespace || $0.properties.generalCategory == .dashPunctuation || $0.properties.generalCategory == .otherPunctuation }
+        return typesettingLanguage(Locale.Language(identifier: "en"), isEnabled: latin)
+    }
+
     func watchEyebrow(_ color: Color = WatchLook.muted) -> some View { modifier(WatchEyebrow(color: color)) }
 
     /// A card of glass on watchOS 26, of frosted white before.
@@ -210,10 +236,13 @@ struct FactTile: View {
     let label: String
     let value: String
     var mono = false
+    /// Laid out at its natural width, so a ViewThatFits can tell when a row of them is too wide.
+    var fits = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
             Text(label).watchEyebrow(WatchLook.faint)
+                .fixedSize(horizontal: fits, vertical: false)
             Text(value)
                 .font(mono ? .system(.body, design: .monospaced).weight(.semibold) : .system(.body, design: .rounded).weight(.semibold))
                 .foregroundStyle(WatchLook.ink)

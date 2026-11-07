@@ -114,10 +114,23 @@ faces faces running -
 MAIN="today booking countdown trip lists packing day"
 LANGS="ar az ca cs de el en es et fr he hu id it ja ko nl pl pt-BR ru sk sv th tr uk vi zh-Hans zh-Hant"
 
+# The watch draws its corner clock in its own region's format, not the app's:
+# English goes first on a 12 hour clock, then the watch is switched to 24
+# hours, as the other languages read it, and restarted for the clock to follow.
+use_24_hours() {
+  local udid=$1
+  xcrun simctl spawn "$udid" defaults write -g AppleICUForce24HourTime -bool YES
+  xcrun simctl spawn "$udid" defaults write -g AppleLocale de_DE
+  xcrun simctl shutdown "$udid"
+  xcrun simctl boot "$udid"
+  xcrun simctl bootstatus "$udid" -b >/dev/null
+}
+
 EXPECTED=()
 run() {
   local size=$1 udid=$2 lang shotname screen scenario clock
   for lang in en de ru; do
+    [ "$lang" = de ] && use_24_hours "$udid"
     while read -r shotname screen scenario clock; do
       [ -n "$shotname" ] || continue
       EXPECTED+=("$size-$lang-$shotname.png")

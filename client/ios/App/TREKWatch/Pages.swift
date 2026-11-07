@@ -49,7 +49,7 @@ struct TodayPage: View {
             }
         }
         .contentMargins(.horizontal, 5, for: .scrollContent)
-        .containerBackground(WatchLook.tripGradient(snapshot.trip?.title ?? "TREK"), for: .tabView)
+        .containerBackground(WatchLook.tripGradient(snapshot.trip), for: .tabView)
         .toolbar {
             if let weather = snapshot.weather {
                 ToolbarItem(placement: .topBarTrailing) { WeatherBadge(weather: weather) }
@@ -69,7 +69,7 @@ struct TodayPage: View {
                             .font(.system(size: 9, weight: .heavy))
                             .foregroundStyle(WatchLook.muted)
                     }
-                    Text(snapshot.trip?.title ?? "")
+                    Text(snapshot.trip?.title ?? "").userText((snapshot.trip?.title ?? ""))
                         .font(.system(.footnote, design: .rounded).weight(.semibold))
                         .foregroundStyle(WatchLook.muted)
                         .lineLimit(1)
@@ -101,7 +101,7 @@ struct FocusCard: View {
                     .watchEyebrow(isNow ? Trek.confirmed : WatchLook.muted)
                 Spacer(minLength: 0)
             }
-            Text(stop.name)
+            Text(stop.name).userText(stop.name)
                 .font(.system(WatchScreen.compact ? .headline : .title3, design: .rounded).weight(.bold))
                 .foregroundStyle(WatchLook.ink)
                 .lineLimit(2)
@@ -132,7 +132,7 @@ struct FocusCard: View {
                         Text(WatchFormat.time(minutes: minutes, hour12: hour12)).monospacedDigit()
                             .foregroundStyle(WatchLook.muted)
                     }
-                    Text(then.name)
+                    Text(then.name).userText(then.name)
                         .foregroundStyle(WatchLook.ink.opacity(0.85))
                         .lineLimit(1)
                 }
@@ -189,7 +189,7 @@ struct CompactStopRow: View {
     var body: some View {
         HStack(spacing: 8) {
             StopGlyph(stop: stop, size: 20)
-            Text(stop.name)
+            Text(stop.name).userText(stop.name)
                 .font(.system(.footnote, design: .rounded).weight(.semibold))
                 .foregroundStyle(WatchLook.ink)
                 .lineLimit(1)
@@ -217,7 +217,7 @@ struct DoneCard: View {
                 .symbolRenderingMode(.multicolor)
                 .foregroundStyle(Trek.confirmed)
             Text(title).font(.system(.headline, design: .rounded)).foregroundStyle(WatchLook.ink)
-            Text(detail).font(.footnote).foregroundStyle(WatchLook.muted)
+            Text(detail).userText(detail).font(.footnote).foregroundStyle(WatchLook.muted)
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -251,6 +251,8 @@ struct CountdownPage: View {
         let trip = snapshot.trip
         VStack(alignment: .leading, spacing: 2) {
             Text(L("countdown.title")).watchEyebrow(.white.opacity(0.85))
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text("\(days)")
@@ -263,7 +265,7 @@ struct CountdownPage: View {
                     .minimumScaleFactor(0.6)
             }
             .foregroundStyle(.white)
-            Text(trip?.title ?? "")
+            Text(trip?.title ?? "").userText((trip?.title ?? ""))
                 .font(.system(.headline, design: .rounded))
                 .foregroundStyle(.white)
                 .lineLimit(2)
@@ -289,7 +291,16 @@ struct CountdownPage: View {
         .accessibilityElement(children: .combine)
         .padding(.horizontal, 5)
         .containerBackground(for: .tabView) {
-            TripBackdrop(trip: widgetTrip(trip), shade: 0.7)
+            if trip?.cover != nil {
+                TripBackdrop(trip: widgetTrip(trip), shade: 0.7)
+            } else {
+                let (first, second) = WatchLook.tripColors(trip)
+                ZStack {
+                    LinearGradient(colors: [first, second, .black], startPoint: .topLeading, endPoint: .bottom)
+                    ContourLines(seed: UInt64(trip?.id ?? 1) % 997, rings: 11)
+                        .stroke(Color.white.opacity(0.12), lineWidth: 0.9)
+                }
+            }
         }
         .toolbar {
             if let weather = snapshot.weather {
@@ -358,7 +369,7 @@ struct BookingSummary: View {
                     .foregroundStyle(WatchLook.muted)
                     .lineLimit(1)
             } else {
-                Text(booking.title)
+                Text(booking.title).userText(booking.title)
                     .font(.system(.title3, design: .rounded).weight(.bold))
                     .lineLimit(2)
                     .minimumScaleFactor(0.75)
@@ -378,14 +389,18 @@ struct BookingSummary: View {
         let clock = running ? booking.checkOut ?? booking.endTime : booking.time
         if let moment {
             // The day goes first when the line is too short for all three.
+            let label = running ? L("booking.checkOut") : dayLabel(moment)
             ViewThatFits(in: .horizontal) {
-                timeLine(clock: clock, label: running ? L("booking.checkOut") : dayLabel(moment), moment: moment)
-                timeLine(clock: clock, label: nil, moment: moment)
+                timeLine(clock: clock, label: label, moment: moment, pill: true)
+                VStack(alignment: .leading, spacing: 4) {
+                    timeLine(clock: clock, label: label, moment: moment, pill: false)
+                    countdownPill(moment)
+                }
             }
         }
     }
 
-    private func timeLine(clock: String?, label: String?, moment: Date) -> some View {
+    private func timeLine(clock: String?, label: String?, moment: Date, pill: Bool) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 5) {
             if let clock, let minutes = TrekDate.minutes(clock) {
                 Text(WatchFormat.time(minutes: minutes, hour12: hour12))
@@ -398,17 +413,23 @@ struct BookingSummary: View {
                     .foregroundStyle(WatchLook.muted)
                     .fixedSize()
             }
-            Spacer(minLength: 2)
-            if moment > now {
-                Text(WatchFormat.relative(moment, now: now))
-                    .font(.system(.caption2, design: .rounded).weight(.bold))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3)
-                    .background(Capsule().fill(Trek.booking(booking.kind).color.opacity(0.85)))
+            if pill {
+                Spacer(minLength: 4)
+                countdownPill(moment)
             }
+        }
+    }
+
+    @ViewBuilder
+    private func countdownPill(_ moment: Date) -> some View {
+        if moment > now {
+            Text(WatchFormat.relative(moment, now: now))
+                .font(.system(.caption2, design: .rounded).weight(.bold))
+                .foregroundStyle(.white)
+                .fixedSize()
+                .padding(.horizontal, 7)
+                .padding(.vertical, 3)
+                .background(Capsule().fill(Trek.booking(booking.kind).color.opacity(0.85)))
         }
     }
 
@@ -434,11 +455,13 @@ struct BookingSummary: View {
     private var facts: some View {
         let tiles = factTiles
         if compactFacts {
-            HStack(spacing: 6) {
-                if let code = booking.code { FactTile(label: L("booking.ref"), value: code, mono: true) }
-                if let first = tiles.first {
-                    FactTile(label: first.label, value: first.value)
-                        .frame(maxWidth: booking.code == nil ? .infinity : 64)
+            let row = [booking.code.map { (L("booking.ref"), $0, true) }, tiles.first.map { ($0.label, $0.value, false) }].compactMap { $0 }
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 6) {
+                    ForEach(row, id: \.0) { FactTile(label: $0.0, value: $0.1, mono: $0.2, fits: true) }
+                }
+                VStack(spacing: 6) {
+                    ForEach(row, id: \.0) { FactTile(label: $0.0, value: $0.1, mono: $0.2) }
                 }
             }
         } else {
@@ -493,7 +516,7 @@ struct TripPage: View {
                     .frame(width: 46, height: 46)
                     .accessibilityLabel(index > 0 ? WatchFormat.dayOf(index, total) : "\(total) \(WatchFormat.daysUnit(total))")
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(trip?.title ?? "")
+                        Text(trip?.title ?? "").userText((trip?.title ?? ""))
                             .font(.system(.headline, design: .rounded))
                             .lineLimit(2)
                             .minimumScaleFactor(0.8)
@@ -528,7 +551,7 @@ struct TripPage: View {
             .foregroundStyle(WatchLook.ink)
         }
         .contentMargins(.horizontal, 5, for: .scrollContent)
-        .containerBackground(WatchLook.tripGradient(trip?.title ?? "TREK"), for: .tabView)
+        .containerBackground(WatchLook.tripGradient(trip), for: .tabView)
 
     }
 }
@@ -549,8 +572,8 @@ struct MenuRow: View {
                 .background(Circle().fill(color.gradient))
             Text(title)
                 .font(.system(.body, design: .rounded).weight(.semibold))
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 4)
             if let value {
                 Text(value)
@@ -593,7 +616,7 @@ struct ListsPage: View {
             if let next = snapshot.packing?.items.first(where: { !$0.done }) {
                 HStack(spacing: 6) {
                     Image(systemName: "circle").foregroundStyle(WatchLook.packing)
-                    Text(next.name).lineLimit(1)
+                    Text(next.name).userText(next.name).lineLimit(1)
                     Spacer(minLength: 0)
                 }
                 .font(.system(.footnote, design: .rounded).weight(.medium))
@@ -625,7 +648,7 @@ struct ListRing: View {
                     if let of {
                         Text(of).font(.system(size: 10, weight: .bold, design: .rounded)).foregroundStyle(WatchLook.muted)
                     } else {
-                        Text(detail).font(.system(size: 9, weight: .bold, design: .rounded)).foregroundStyle(WatchLook.muted).lineLimit(1).minimumScaleFactor(0.6)
+                        Text(detail).userText(detail).font(.system(size: 9, weight: .bold, design: .rounded)).foregroundStyle(WatchLook.muted).lineLimit(1).minimumScaleFactor(0.6)
                     }
                 }
                 .padding(6)

@@ -23,7 +23,7 @@ struct DaysListView: View {
                             Text(day.title ?? day.dateValue.map { WatchFormat.day($0) } ?? WatchFormat.dayOf(day.number, snapshot.days.count))
                                 .font(.system(.body, design: .rounded).weight(.semibold))
                                 .lineLimit(1)
-                            Text(summary(day))
+                            Text(summary(day)).userText(summary(day))
                                 .font(.system(.caption2, design: .rounded))
                                 .foregroundStyle(WatchLook.muted)
                                 .lineLimit(1)
@@ -35,7 +35,7 @@ struct DaysListView: View {
             }
         }
         .navigationTitle(L("trip.days"))
-        .containerBackground(WatchLook.tripGradient(snapshot.trip?.title ?? "TREK"), for: .navigation)
+        .containerBackground(WatchLook.tripGradient(snapshot.trip), for: .navigation)
     }
 
     private func summary(_ day: WatchSnapshot.Day) -> String {
@@ -60,10 +60,6 @@ struct DayView: View {
         let day = snapshot.days.indices.contains(index) ? snapshot.days[index] : nil
         let isToday = day?.date == TrekDate.iso(now)
         let nowMinutes = isToday ? TrekDate.minutesOfDay(now) : (isPastDay(day) ? 24 * 60 : -1)
-        let stopsOfDay = day?.stops ?? []
-        // Today opens at the stop that is on or next, with the one before it for context.
-        let focus = isToday ? stopsOfDay.firstIndex { ($0.endMinutes ?? $0.minutes ?? -1) > nowMinutes } : nil
-        ScrollViewReader { proxy in
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 VStack(alignment: .leading, spacing: 1) {
@@ -91,16 +87,11 @@ struct DayView: View {
                         )
                     }
                     .buttonStyle(.plain)
-                    .id(offset)
                 }
             }
         }
-        .onAppear {
-            if let focus, focus > 1 { proxy.scrollTo(focus - 1, anchor: .top) }
-        }
-        }
         .navigationTitle(day?.dateValue.map { WatchFormat.weekday($0) } ?? L("trip.days"))
-        .containerBackground(WatchLook.tripGradient(snapshot.trip?.title ?? "TREK"), for: .navigation)
+        .containerBackground(WatchLook.tripGradient(snapshot.trip), for: .navigation)
     }
 
     private func isPastDay(_ day: WatchSnapshot.Day?) -> Bool {
@@ -144,13 +135,13 @@ struct TimelineRow: View {
                 }
             }
             VStack(alignment: .leading, spacing: 1) {
-                Text(stop.name)
+                Text(stop.name).userText(stop.name)
                     .font(.system(.footnote, design: .rounded).weight(state == .now ? .bold : .semibold))
                     .foregroundStyle(state == .past ? WatchLook.muted : WatchLook.ink)
                     .lineLimit(2)
                 // The street, whole: the first part of the address, on up to two lines.
                 if let detail = stop.booking.map(WatchLook.kindName) ?? stop.address?.split(separator: ",").first.map(String.init) {
-                    Text(detail)
+                    Text(detail).userText(detail)
                         .font(.system(.caption2, design: .rounded))
                         .foregroundStyle(WatchLook.faint)
                         .lineLimit(2)
@@ -185,7 +176,7 @@ struct StopDetailView: View {
                     HStack(alignment: .top, spacing: 8) {
                         StopGlyph(stop: item, size: 26)
                         VStack(alignment: .leading, spacing: 1) {
-                            Text(item.name)
+                            Text(item.name).userText(item.name)
                                 .font(.system(.headline, design: .rounded))
                                 .lineLimit(3)
                             if let start = item.minutes {
@@ -197,12 +188,12 @@ struct StopDetailView: View {
                         }
                     }
                     if let address = item.address {
-                        Text(address)
+                        Text(address).userText(address)
                             .font(.footnote)
                             .foregroundStyle(WatchLook.muted)
                     }
                     if let note = item.note {
-                        Text(note)
+                        Text(note).userText(note)
                             .font(.footnote)
                             .padding(8)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -287,7 +278,7 @@ struct BookingDetailView: View {
                         FactTile(label: L("booking.checkOut"), value: [TrekDate.day(booking.endDate).map { WatchFormat.day($0) }, WatchFormat.time(minutes: checkOut, hour12: snapshot.hour12)].compactMap { $0 }.joined(separator: " "))
                     }
                     if let location = booking.location, booking.route == nil {
-                        Text(location)
+                        Text(location).userText(location)
                             .font(.footnote)
                             .foregroundStyle(WatchLook.muted)
                     }
@@ -314,7 +305,7 @@ struct LegRow: View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 1) {
                 Text(label).watchEyebrow(WatchLook.faint)
-                Text(point.name)
+                Text(point.name).userText(point.name)
                     .font(.system(.footnote, design: .rounded).weight(.semibold))
                     .lineLimit(1)
             }
@@ -353,7 +344,7 @@ struct BookingsListView: View {
                     HStack(spacing: 8) {
                         KindBadge(kind: booking.kind, size: 24)
                         VStack(alignment: .leading, spacing: 1) {
-                            Text(booking.route ?? booking.title)
+                            Text(booking.route ?? booking.title).userText((booking.route ?? booking.title))
                                 .font(.system(.footnote, design: .rounded).weight(.semibold))
                                 .lineLimit(1)
                             Text(when(booking))
@@ -367,7 +358,7 @@ struct BookingsListView: View {
             }
         }
         .navigationTitle(L("booking.all"))
-        .containerBackground(WatchLook.tripGradient(snapshot.trip?.title ?? "TREK"), for: .navigation)
+        .containerBackground(WatchLook.tripGradient(snapshot.trip), for: .navigation)
     }
 
     private func when(_ booking: WatchSnapshot.Booking) -> String {
@@ -435,6 +426,12 @@ struct ChecklistView: View {
 
     var body: some View {
         List {
+            if let summary {
+                Text(summary)
+                    .font(.system(.title3, design: .rounded).weight(.heavy).monospacedDigit())
+                    .foregroundStyle(color)
+                    .listRowBackground(Color.clear)
+            }
             if open.isEmpty {
                 Label(allDone, systemImage: "checkmark.circle.fill")
                     .foregroundStyle(color)
@@ -460,15 +457,6 @@ struct ChecklistView: View {
             }
         }
         .navigationTitle(title)
-        .toolbar {
-            if let summary {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Text(summary)
-                        .font(.system(.footnote, design: .rounded).weight(.bold).monospacedDigit())
-                        .foregroundStyle(color)
-                }
-            }
-        }
         .sensoryFeedback(.success, trigger: ticks)
         .containerBackground(WatchLook.tint(color), for: .navigation)
     }
@@ -495,7 +483,7 @@ struct ChecklistView: View {
                     .foregroundStyle(item.done ? color : WatchLook.faint)
                     .contentTransition(.symbolEffect(.replace))
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(item.name)
+                    Text(item.name).userText(item.name)
                         .font(.system(.body, design: .rounded).weight(.medium))
                         .strikethrough(item.done, color: WatchLook.faint)
                         .foregroundStyle(item.done ? WatchLook.muted : WatchLook.ink)
