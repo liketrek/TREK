@@ -74,7 +74,13 @@ const native: TranslationStrings = {
   'native.plans.restoreFailed': 'Váš TREK se nepodařilo obnovit. Zkuste to znovu.',
   'native.plans.legal':
     'Platba se strhne z vašeho Apple ID při potvrzení. Předplatné se automaticky obnovuje, pokud jej nezrušíte alespoň 24 hodin před koncem období. Spravovat nebo zrušit jej můžete v nastavení účtu App Store.',
-  'native.plans.terms': 'Podmínky použití',
+  'native.plans.terms': 'Podmínky použití Apple (EULA)',
+  'native.plans.ourTerms': 'Podmínky TREK Cloud',
+  'native.plans.legalAndroid':
+    'Platba se při potvrzení strhne z vašeho účtu Google. Předplatné se automaticky obnovuje, pokud je nezrušíte před koncem období. Spravovat nebo zrušit ho můžete v Google Play v části Profil, Platby a odběry, Odběry.',
+  'native.plans.restoreNoneAndroid': 'Pro tento účet Google nebylo nalezeno žádné aktivní předplatné.',
+  'native.claim.agree':
+    'Předplacením se na poskytování vaší instance vztahují podmínky TREK Cloud (poskytovatel: Maurice Bötger, Rostock). Nákup, platbu a vrácení peněz vyřizuje obchod.',
   'native.claim.pending': 'Váš nákup čeká na schválení. Jakmile projde, klepněte na Obnovit nákupy.',
   'native.provisioning.title': 'Připravujeme váš TREK',
   'native.provisioning.sub': 'Připravujeme {host}. Zabere to jen minutu.',

@@ -75,7 +75,13 @@ const native: TranslationStrings = {
   'native.plans.restoreFailed': 'TREK’inizi geri yükleyemedik. Lütfen tekrar deneyin.',
   'native.plans.legal':
     'Ödeme, onayladığınızda Apple Kimliğinizden alınır. Abonelik, dönem bitmeden en az 24 saat önce iptal edilmezse otomatik olarak yenilenir. Aboneliği App Store hesap ayarlarınızdan yönetebilir veya iptal edebilirsiniz.',
-  'native.plans.terms': 'Kullanım koşulları',
+  'native.plans.terms': 'Apple kullanım koşulları (EULA)',
+  'native.plans.ourTerms': 'TREK Cloud koşulları',
+  'native.plans.legalAndroid':
+    "Ödeme, onayladığınızda Google hesabınızdan tahsil edilir. Abonelik, dönem bitmeden iptal etmezseniz otomatik olarak yenilenir. Google Play'de Profil, Ödemeler ve abonelikler, Abonelikler bölümünden yönetebilir veya iptal edebilirsiniz.",
+  'native.plans.restoreNoneAndroid': 'Bu Google hesabında etkin abonelik bulunamadı.',
+  'native.claim.agree':
+    'Abone olduğunuzda örneğinizin sağlanmasına TREK Cloud koşulları uygulanır (sağlayıcı: Maurice Bötger, Rostock). Satın alma, ödeme ve iadeleri mağaza yürütür.',
   'native.claim.pending': 'Satın alımınız onay bekliyor. Tamamlandığında Satın alımları geri yükle’ye dokunun.',
   'native.provisioning.title': 'TREK’iniz hazırlanıyor',
   'native.provisioning.sub': '{host} hazırlanıyor. Bu yalnızca bir dakika sürer.',

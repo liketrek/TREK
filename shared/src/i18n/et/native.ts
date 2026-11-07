@@ -74,7 +74,13 @@ const native: TranslationStrings = {
   'native.plans.restoreFailed': 'Me ei saanud sinu TREK-i taastada. Proovi uuesti.',
   'native.plans.legal':
     'Makse võetakse kinnitamisel sinu Apple ID-lt. Tellimus pikeneb automaatselt, kui sa ei tühista seda vähemalt 24 tundi enne perioodi lõppu. Halda või tühista seda oma App Store’i konto seadetes.',
-  'native.plans.terms': 'Kasutustingimused',
+  'native.plans.terms': "Apple'i kasutustingimused (EULA)",
+  'native.plans.ourTerms': 'TREK Cloudi tingimused',
+  'native.plans.legalAndroid':
+    "Makse võetakse kinnitamisel sinu Google'i kontolt. Tellimus uueneb automaatselt, kui sa ei tühista seda enne perioodi lõppu. Halda või tühista seda Google Plays: Profiil, Maksed ja tellimused, Tellimused.",
+  'native.plans.restoreNoneAndroid': "Selle Google'i kontoga ei leitud aktiivset tellimust.",
+  'native.claim.agree':
+    'Tellides kehtivad sinu eksemplari pakkumisele TREK Cloudi tingimused (pakkuja: Maurice Bötger, Rostock). Ostu, makset ja tagasimakseid haldab pood.',
   'native.claim.pending': 'Sinu ost ootab kinnitust. Kui see on läbi, puuduta Taasta ostud.',
   'native.provisioning.title': 'Seadistame sinu TREK-i',
   'native.provisioning.sub': 'Valmistame ette aadressi {host}. See võtab vaid minuti.',

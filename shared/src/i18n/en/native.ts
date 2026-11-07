@@ -74,7 +74,13 @@ const native: TranslationStrings = {
   'native.plans.restoreFailed': 'We could not restore your TREK. Please try again.',
   'native.plans.legal':
     'Payment is charged to your Apple ID when you confirm. The subscription renews automatically unless you cancel it at least 24 hours before the period ends. Manage or cancel it in your App Store account settings.',
-  'native.plans.terms': 'Terms of use',
+  'native.plans.terms': 'Apple terms of use (EULA)',
+  'native.plans.ourTerms': 'TREK Cloud terms',
+  'native.plans.legalAndroid':
+    'Payment is charged to your Google account when you confirm. The subscription renews automatically unless you cancel it before the period ends. Manage or cancel it in Google Play under Profile, Payments and subscriptions, Subscriptions.',
+  'native.plans.restoreNoneAndroid': 'No active subscription found on this Google account.',
+  'native.claim.agree':
+    'By subscribing, the TREK Cloud terms apply to providing your instance (provider: Maurice Bötger, Rostock). The store handles the purchase, payment and refunds.',
   'native.claim.pending': 'Your purchase is waiting for approval. Once it goes through, tap Restore purchases.',
   'native.provisioning.title': 'Setting up your TREK',
   'native.provisioning.sub': 'Getting {host} ready. This only takes a minute.',

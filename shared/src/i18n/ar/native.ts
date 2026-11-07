@@ -73,7 +73,13 @@ const native: TranslationStrings = {
   'native.plans.restoreFailed': 'تعذّرت استعادة TREK الخاص بك. حاول مرة أخرى.',
   'native.plans.legal':
     'يُخصم المبلغ من معرّف Apple عند التأكيد. يتجدد الاشتراك تلقائيًا ما لم تلغه قبل 24 ساعة على الأقل من نهاية الفترة. يمكنك إدارته أو إلغاؤه من إعدادات حسابك في App Store.',
-  'native.plans.terms': 'شروط الاستخدام',
+  'native.plans.terms': 'شروط استخدام Apple (EULA)',
+  'native.plans.ourTerms': 'شروط TREK Cloud',
+  'native.plans.legalAndroid':
+    'يُخصم المبلغ من حساب Google الخاص بك عند التأكيد. يتجدد الاشتراك تلقائيًا ما لم تلغِه قبل نهاية الفترة. يمكنك إدارته أو إلغاؤه في Google Play من الملف الشخصي، الدفعات والاشتراكات، الاشتراكات.',
+  'native.plans.restoreNoneAndroid': 'لم يُعثر على اشتراك نشط في حساب Google هذا.',
+  'native.claim.agree':
+    'بالاشتراك تسري شروط TREK Cloud على توفير نسختك (المزوّد: Maurice Bötger، روستوك). يتولى المتجر الشراء والدفع والاسترداد.',
   'native.claim.pending': 'عملية الشراء بانتظار الموافقة. عند اكتمالها، اضغط على استعادة المشتريات.',
   'native.provisioning.title': 'جارٍ إعداد TREK الخاص بك',
   'native.provisioning.sub': 'نُحضّر {host}. يستغرق هذا دقيقة واحدة فقط.',

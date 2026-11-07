@@ -75,7 +75,13 @@ const native: TranslationStrings = {
   'native.plans.restoreFailed': 'Nem sikerült visszaállítani a TREK-edet. Próbáld újra.',
   'native.plans.legal':
     'A fizetést megerősítéskor az Apple ID-d terheli. Az előfizetés automatikusan megújul, hacsak nem mondod le legalább 24 órával az időszak vége előtt. Kezelni vagy lemondani az App Store-fiókod beállításaiban tudod.',
-  'native.plans.terms': 'Felhasználási feltételek',
+  'native.plans.terms': 'Az Apple felhasználási feltételei (EULA)',
+  'native.plans.ourTerms': 'A TREK Cloud feltételei',
+  'native.plans.legalAndroid':
+    'A díjat a megerősítéskor a Google-fiókodra terheljük. Az előfizetés automatikusan megújul, ha nem mondod le az időszak vége előtt. Kezelni vagy lemondani a Google Playben tudod: Profil, Fizetések és előfizetések, Előfizetések.',
+  'native.plans.restoreNoneAndroid': 'Ehhez a Google-fiókhoz nem található aktív előfizetés.',
+  'native.claim.agree':
+    'Előfizetéssel a példányod biztosítására a TREK Cloud feltételei érvényesek (szolgáltató: Maurice Bötger, Rostock). A vásárlást, a fizetést és a visszatérítést az áruház intézi.',
   'native.claim.pending': 'A vásárlásod jóváhagyásra vár. Ha teljesült, koppints a Vásárlások visszaállítása gombra.',
   'native.provisioning.title': 'A TREK-edet állítjuk be',
   'native.provisioning.sub': 'A(z) {host} előkészítése. Csak egy percet vesz igénybe.',

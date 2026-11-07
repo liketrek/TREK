@@ -73,7 +73,13 @@ const native: TranslationStrings = {
   'native.plans.restoreFailed': '無法恢復你的 TREK。請重試。',
   'native.plans.legal':
     '確認後將透過你的 Apple ID 付款。除非在目前週期結束前至少 24 小時取消，否則訂閱會自動續訂。可在 App Store 帳號設定中管理或取消。',
-  'native.plans.terms': '使用條款',
+  'native.plans.terms': 'Apple 使用條款（EULA）',
+  'native.plans.ourTerms': 'TREK Cloud 條款',
+  'native.plans.legalAndroid':
+    '確認後將從你的 Google 帳號扣款。除非你在期滿前取消，訂閱會自動續訂。可在 Google Play 的「個人資料」「付款和訂閱」「訂閱」中管理或取消。',
+  'native.plans.restoreNoneAndroid': '此 Google 帳號沒有有效的訂閱。',
+  'native.claim.agree':
+    '訂閱後，你的執行個體的提供適用 TREK Cloud 條款（提供者：Maurice Bötger，羅斯托克）。購買、付款和退款由商店處理。',
   'native.claim.pending': '你的購買正在等待核准。完成後，請點一下「恢復購買項目」。',
   'native.provisioning.title': '正在設定你的 TREK',
   'native.provisioning.sub': '正在準備 {host}。只需一分鐘。',

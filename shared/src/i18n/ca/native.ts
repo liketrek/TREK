@@ -74,7 +74,13 @@ const native: TranslationStrings = {
   'native.plans.restoreFailed': 'No hem pogut restaurar el teu TREK. Torna-ho a provar.',
   'native.plans.legal':
     'El pagament es carrega al teu ID d’Apple en confirmar. La subscripció es renova automàticament si no la cancel·les com a mínim 24 hores abans que acabi el període. Gestiona-la o cancel·la-la a la configuració del teu compte de l’App Store.',
-  'native.plans.terms': 'Condicions d’ús',
+  'native.plans.terms': 'Condicions d’ús d’Apple (EULA)',
+  'native.plans.ourTerms': 'Condicions de TREK Cloud',
+  'native.plans.legalAndroid':
+    'El pagament es carrega al teu compte de Google en confirmar. La subscripció es renova automàticament si no la cancel·les abans que acabi el període. Gestiona-la o cancel·la-la a Google Play, a Perfil, Pagaments i subscripcions, Subscripcions.',
+  'native.plans.restoreNoneAndroid': 'No s’ha trobat cap subscripció activa en aquest compte de Google.',
+  'native.claim.agree':
+    'En subscriure’t, s’apliquen les condicions de TREK Cloud a la provisió de la teva instància (proveïdor: Maurice Bötger, Rostock). La botiga gestiona la compra, el pagament i els reemborsaments.',
   'native.claim.pending': 'La teva compra està pendent d’aprovació. Quan es completi, toca Restaura les compres.',
   'native.provisioning.title': 'Preparant el teu TREK',
   'native.provisioning.sub': 'Preparant {host}. Només triga un minut.',

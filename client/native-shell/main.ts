@@ -1,4 +1,4 @@
-import { CapacitorHttp } from '@capacitor/core';
+import { Capacitor, CapacitorHttp } from '@capacitor/core';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { StatusBar, Style } from '@capacitor/status-bar';
@@ -6,7 +6,7 @@ import logoUrl from '../public/icons/icon-white.svg';
 import logoBlack from '../public/logo-dark.svg'; // #000 wordmark, for light backgrounds
 import logoWhite from '../public/logo-light.svg'; // #fff wordmark, for dark backgrounds
 import { fakeIapClient, getIapClient, productIdFor, type Purchase } from '../src/native/iap';
-import { CLOUD_URL, PRIVACY_URL, SERVER_DOCS_URL, STORE_TERMS_URL } from '../src/native/links';
+import { CLOUD_TERMS_URL, CLOUD_URL, PRIVACY_URL, SERVER_DOCS_URL, STORE_TERMS_URL } from '../src/native/links';
 import { probeDemo, probeServer, type ProbeFailure, type ProbeGet } from '../src/native/serverAddress';
 import { TrekShell } from '../src/native/trekShell';
 import { pickLocale, translator } from './i18n';
@@ -20,6 +20,8 @@ import './shell.css';
  */
 
 const locale = pickLocale(navigator.languages?.length ? navigator.languages : [navigator.language]);
+/** Google Play sells on Android, the App Store everywhere else: the store's own words in the legal texts. */
+const onPlay = Capacitor.getPlatform() === 'android';
 const t = translator(locale);
 document.documentElement.lang = locale;
 document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr';
@@ -362,7 +364,8 @@ async function fetchPlans(): Promise<CloudPlans | null> {
     const res = await get(`${CLOUD_URL}/api/plans`);
     const data = typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
     const body = (data ?? {}) as { plans?: CloudPlan[]; ordering?: string };
-    if (Array.isArray(body.plans) && body.plans.length) return { plans: body.plans, closed: body.ordering === 'closed' };
+    if (Array.isArray(body.plans) && body.plans.length)
+      return { plans: body.plans, closed: body.ordering === 'closed' };
   } catch {
     // Fall through to the preview fallback.
   }
@@ -459,7 +462,7 @@ function planFooter(offer: Offer, plans: CloudPlan[]): Node[] {
     const purchase = await iap.restore();
     if (!purchase) {
       restore.disabled = false;
-      status.textContent = t('native.plans.restoreNone');
+      status.textContent = t(onPlay ? 'native.plans.restoreNoneAndroid' : 'native.plans.restoreNone');
       return;
     }
     // A restore finds the instance the purchase was first redeemed for; address and email are not asked again.
@@ -490,11 +493,12 @@ function planFooter(offer: Offer, plans: CloudPlan[]): Node[] {
   return [
     restore,
     status,
-    el('p', { className: 'note' }, t('native.plans.legal')),
+    el('p', { className: 'note' }, t(onPlay ? 'native.plans.legalAndroid' : 'native.plans.legal')),
     el(
       'div',
       { className: 'foot-links' },
-      externalLink(t('native.plans.terms'), STORE_TERMS_URL),
+      externalLink(t('native.plans.ourTerms'), CLOUD_TERMS_URL),
+      ...(onPlay ? [] : [externalLink(t('native.plans.terms'), STORE_TERMS_URL)]),
       externalLink(t('native.privacy'), PRIVACY_URL)
     ),
   ];
@@ -598,7 +602,15 @@ async function redeemPurchase(slug: string, email: string, purchase: Purchase): 
       headers: { 'content-type': 'application/json' },
       connectTimeout: PROBE_TIMEOUT_MS,
       readTimeout: PROBE_TIMEOUT_MS,
-      data: { platform: purchase.platform, productId: purchase.productId, receipt: purchase.receipt, slug, email },
+      // The language of the contract confirmation mail.
+      data: {
+        platform: purchase.platform,
+        productId: purchase.productId,
+        receipt: purchase.receipt,
+        slug,
+        email,
+        locale,
+      },
     });
     const data = typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
     const body = (data ?? {}) as { instanceUrl?: string; code?: string };
@@ -615,7 +627,7 @@ function showClaim(
   plan: CloudPlan,
   interval: 'month' | 'year',
   price: string,
-  opts: { back?: boolean; bought?: Purchase } = {},
+  opts: { back?: boolean; bought?: Purchase } = {}
 ): void {
   /** A purchase that went through but whose redeem did not: a retry redeems it again instead of buying twice. */
   let bought: Purchase | null = opts.bought ?? null;
@@ -653,11 +665,7 @@ function showClaim(
   emailInput.setAttribute('aria-label', t('native.claim.emailLabel'));
   const emailField = el('div', { className: 'field' }, emailInput);
 
-  const submit = el(
-    'button',
-    { type: 'submit', className: 'btn' },
-    t('native.claim.subscribe', { price })
-  );
+  const submit = el('button', { type: 'submit', className: 'btn' }, t('native.claim.subscribe', { price }));
   const error = el('p', { className: 'error', role: 'alert' });
   const form = el(
     'form',
@@ -666,6 +674,14 @@ function showClaim(
     slugNote,
     emailField,
     el('p', { className: 'hint' }, t('native.claim.emailHint')),
+    // Our terms govern the instance (terms § 5a): named before the purchase, not only in the confirmation mail.
+    el(
+      'p',
+      { className: 'note' },
+      t('native.claim.agree'),
+      ' ',
+      externalLink(t('native.plans.ourTerms'), CLOUD_TERMS_URL)
+    ),
     submit,
     error
   );

@@ -74,7 +74,13 @@ const native: TranslationStrings = {
   'native.plans.restoreFailed': 'We konden je TREK niet herstellen. Probeer het opnieuw.',
   'native.plans.legal':
     'De betaling wordt bij bevestiging via je Apple ID afgeschreven. Het abonnement wordt automatisch verlengd, tenzij je het minstens 24 uur voor het einde van de periode opzegt. Beheer of annuleer het in de instellingen van je App Store-account.',
-  'native.plans.terms': 'Gebruiksvoorwaarden',
+  'native.plans.terms': 'Gebruiksvoorwaarden van Apple (EULA)',
+  'native.plans.ourTerms': 'Voorwaarden van TREK Cloud',
+  'native.plans.legalAndroid':
+    'De betaling wordt bij bevestiging via je Google-account in rekening gebracht. Het abonnement wordt automatisch verlengd, tenzij je het vóór het einde van de periode opzegt. Beheer of zeg het op in Google Play onder Profiel, Betalingen en abonnementen, Abonnementen.',
+  'native.plans.restoreNoneAndroid': 'Geen actief abonnement gevonden voor dit Google-account.',
+  'native.claim.agree':
+    'Door je te abonneren gelden voor het leveren van je instantie de voorwaarden van TREK Cloud (aanbieder: Maurice Bötger, Rostock). De store regelt aankoop, betaling en terugbetaling.',
   'native.claim.pending': 'Je aankoop wacht op goedkeuring. Zodra die rond is, tik je op Aankopen herstellen.',
   'native.provisioning.title': 'Je TREK wordt klaargezet',
   'native.provisioning.sub': '{host} wordt klaargemaakt. Dit duurt maar een minuut.',

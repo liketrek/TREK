@@ -74,7 +74,13 @@ const native: TranslationStrings = {
   'native.plans.restoreFailed': 'Kami tidak dapat memulihkan TREK Anda. Silakan coba lagi.',
   'native.plans.legal':
     'Pembayaran ditagihkan ke Apple ID Anda saat konfirmasi. Langganan diperpanjang otomatis kecuali dibatalkan setidaknya 24 jam sebelum periode berakhir. Kelola atau batalkan di pengaturan akun App Store Anda.',
-  'native.plans.terms': 'Ketentuan penggunaan',
+  'native.plans.terms': 'Ketentuan penggunaan Apple (EULA)',
+  'native.plans.ourTerms': 'Ketentuan TREK Cloud',
+  'native.plans.legalAndroid':
+    'Pembayaran ditagihkan ke akun Google Anda saat konfirmasi. Langganan diperpanjang otomatis kecuali Anda membatalkannya sebelum periode berakhir. Kelola atau batalkan di Google Play pada Profil, Pembayaran & langganan, Langganan.',
+  'native.plans.restoreNoneAndroid': 'Tidak ditemukan langganan aktif di akun Google ini.',
+  'native.claim.agree':
+    'Dengan berlangganan, ketentuan TREK Cloud berlaku untuk penyediaan instans Anda (penyedia: Maurice Bötger, Rostock). Pembelian, pembayaran, dan pengembalian dana ditangani oleh toko.',
   'native.claim.pending': 'Pembelian Anda menunggu persetujuan. Setelah selesai, ketuk Pulihkan pembelian.',
   'native.provisioning.title': 'Menyiapkan TREK Anda',
   'native.provisioning.sub': 'Menyiapkan {host}. Ini hanya perlu satu menit.',

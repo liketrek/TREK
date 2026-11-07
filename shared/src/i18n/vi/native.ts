@@ -75,7 +75,13 @@ const native: TranslationStrings = {
   'native.plans.restoreFailed': 'Chúng tôi không thể khôi phục TREK của bạn. Vui lòng thử lại.',
   'native.plans.legal':
     'Khoản thanh toán được tính vào Apple ID của bạn khi xác nhận. Gói đăng ký tự động gia hạn trừ khi bạn hủy ít nhất 24 giờ trước khi kỳ hạn kết thúc. Quản lý hoặc hủy trong cài đặt tài khoản App Store của bạn.',
-  'native.plans.terms': 'Điều khoản sử dụng',
+  'native.plans.terms': 'Điều khoản sử dụng của Apple (EULA)',
+  'native.plans.ourTerms': 'Điều khoản TREK Cloud',
+  'native.plans.legalAndroid':
+    'Khoản thanh toán được tính vào tài khoản Google của bạn khi xác nhận. Gói đăng ký tự động gia hạn trừ khi bạn hủy trước khi hết kỳ. Quản lý hoặc hủy trong Google Play tại Hồ sơ, Thanh toán và gói thuê bao, Gói thuê bao.',
+  'native.plans.restoreNoneAndroid': 'Không tìm thấy gói đăng ký đang hoạt động trên tài khoản Google này.',
+  'native.claim.agree':
+    'Khi đăng ký, việc cung cấp phiên bản của bạn tuân theo điều khoản TREK Cloud (nhà cung cấp: Maurice Bötger, Rostock). Cửa hàng xử lý việc mua, thanh toán và hoàn tiền.',
   'native.claim.pending': 'Giao dịch mua của bạn đang chờ phê duyệt. Khi hoàn tất, hãy chạm Khôi phục giao dịch mua.',
   'native.provisioning.title': 'Đang thiết lập TREK của bạn',
   'native.provisioning.sub': 'Đang chuẩn bị {host}. Chỉ mất một phút.',

@@ -74,7 +74,13 @@ const native: TranslationStrings = {
   'native.plans.restoreFailed': 'TREKを復元できませんでした。もう一度お試しください。',
   'native.plans.legal':
     'お支払いは確認時にApple IDに請求されます。期間終了の24時間前までに解約しない限り、サブスクリプションは自動更新されます。管理や解約はApp Storeのアカウント設定から行えます。',
-  'native.plans.terms': '利用規約',
+  'native.plans.terms': 'Apple の利用規約（EULA）',
+  'native.plans.ourTerms': 'TREK Cloud 利用規約',
+  'native.plans.legalAndroid':
+    '確認時に Google アカウントに請求されます。期間終了前に解約しない限り、サブスクリプションは自動更新されます。Google Play の［プロフィール］［お支払いと定期購入］［定期購入］で管理または解約できます。',
+  'native.plans.restoreNoneAndroid': 'この Google アカウントには有効なサブスクリプションがありません。',
+  'native.claim.agree':
+    '登録すると、インスタンスの提供には TREK Cloud 利用規約が適用されます（提供者: Maurice Bötger、ロストック）。購入、支払い、返金はストアが行います。',
   'native.claim.pending': '購入は承認待ちです。完了したら「購入を復元」をタップしてください。',
   'native.provisioning.title': 'TREKを準備中',
   'native.provisioning.sub': '{host} を準備しています。1分ほどで完了します。',

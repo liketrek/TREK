@@ -74,7 +74,13 @@ const native: TranslationStrings = {
   'native.plans.restoreFailed': 'TREK-inizi bərpa edə bilmədik. Zəhmət olmasa yenidən cəhd edin.',
   'native.plans.legal':
     'Ödəniş təsdiq zamanı Apple ID-nizdən tutulur. Dövrün bitməsinə ən azı 24 saat qalmış ləğv etməsəniz, abunə avtomatik yenilənir. Onu App Store hesab ayarlarınızda idarə edə və ya ləğv edə bilərsiniz.',
-  'native.plans.terms': 'İstifadə şərtləri',
+  'native.plans.terms': 'Apple istifadə şərtləri (EULA)',
+  'native.plans.ourTerms': 'TREK Cloud şərtləri',
+  'native.plans.legalAndroid':
+    'Ödəniş təsdiq etdikdə Google hesabınızdan tutulur. Abunəlik dövr bitməzdən əvvəl ləğv etməsəniz avtomatik yenilənir. Onu Google Play-də Profil, Ödənişlər və abunəliklər, Abunəliklər bölməsində idarə edə və ya ləğv edə bilərsiniz.',
+  'native.plans.restoreNoneAndroid': 'Bu Google hesabında aktiv abunəlik tapılmadı.',
+  'native.claim.agree':
+    'Abunə olmaqla nümunənizin təqdim edilməsinə TREK Cloud şərtləri tətbiq olunur (təchizatçı: Maurice Bötger, Rostok). Alış, ödəniş və geri qaytarmanı mağaza həyata keçirir.',
   'native.claim.pending': 'Alışınız təsdiq gözləyir. Tamamlandıqdan sonra Alışları bərpa et düyməsinə toxunun.',
   'native.provisioning.title': 'TREK-iniz hazırlanır',
   'native.provisioning.sub': '{host} hazırlanır. Bu yalnız bir dəqiqə çəkir.',

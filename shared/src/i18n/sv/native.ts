@@ -75,7 +75,13 @@ const native: TranslationStrings = {
   'native.plans.restoreFailed': 'Vi kunde inte återställa din TREK. Försök igen.',
   'native.plans.legal':
     'Betalningen debiteras ditt Apple-ID när du bekräftar. Prenumerationen förnyas automatiskt om du inte avslutar den minst 24 timmar före periodens slut. Hantera eller avsluta den i inställningarna för ditt App Store-konto.',
-  'native.plans.terms': 'Användarvillkor',
+  'native.plans.terms': 'Apples användarvillkor (EULA)',
+  'native.plans.ourTerms': 'Villkor för TREK Cloud',
+  'native.plans.legalAndroid':
+    'Betalningen debiteras ditt Google-konto när du bekräftar. Prenumerationen förnyas automatiskt om du inte säger upp den innan perioden tar slut. Hantera eller säg upp den i Google Play under Profil, Betalningar och prenumerationer, Prenumerationer.',
+  'native.plans.restoreNoneAndroid': 'Ingen aktiv prenumeration hittades för det här Google-kontot.',
+  'native.claim.agree':
+    'När du prenumererar gäller villkoren för TREK Cloud för tillhandahållandet av din instans (leverantör: Maurice Bötger, Rostock). Butiken sköter köp, betalning och återbetalning.',
   'native.claim.pending': 'Ditt köp väntar på godkännande. När det har gått igenom trycker du på Återställ köp.',
   'native.provisioning.title': 'Gör i ordning din TREK',
   'native.provisioning.sub': 'Gör i ordning {host}. Det tar bara en minut.',

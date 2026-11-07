@@ -21,3 +21,5 @@ export const CLOUD_URL = 'https://liketrek.com';
  * store rules ask for it next to the purchase, together with the privacy policy.
  */
 export const STORE_TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
+/** Our terms for TREK Cloud (§ 5a covers a purchase in the app), as the app opens them: without the site's sales header. */
+export const CLOUD_TERMS_URL = 'https://liketrek.com/terms?app=1';

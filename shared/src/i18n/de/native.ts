@@ -75,7 +75,13 @@ const native: TranslationStrings = {
   'native.plans.restoreFailed': 'Wir konnten deine TREK nicht wiederherstellen. Bitte versuch es erneut.',
   'native.plans.legal':
     'Die Zahlung wird bei Bestätigung über deine Apple-ID abgerechnet. Das Abo verlängert sich automatisch, wenn du es nicht mindestens 24 Stunden vor Ablauf des Zeitraums kündigst. Verwalten und kündigen kannst du es in den Einstellungen deines App-Store-Accounts.',
-  'native.plans.terms': 'Nutzungsbedingungen',
+  'native.plans.terms': 'Nutzungsbedingungen von Apple (EULA)',
+  'native.plans.ourTerms': 'AGB von TREK Cloud',
+  'native.plans.legalAndroid':
+    'Die Zahlung wird bei Bestätigung über dein Google-Konto abgerechnet. Das Abo verlängert sich automatisch, wenn du es nicht vor Ablauf des Zeitraums kündigst. Verwalten und kündigen kannst du es in Google Play unter Profil, Zahlungen und Abos, Abos.',
+  'native.plans.restoreNoneAndroid': 'Für dieses Google-Konto wurde kein aktives Abo gefunden.',
+  'native.claim.agree':
+    'Mit dem Abonnieren gelten für die Bereitstellung deiner Instanz die AGB von TREK Cloud (Anbieter: Maurice Bötger, Rostock). Kauf, Zahlung und Erstattung wickelt der Store ab.',
   'native.claim.pending':
     'Dein Kauf wartet noch auf eine Freigabe. Sobald er durch ist, tippe auf Käufe wiederherstellen.',
   'native.provisioning.title': 'Deine TREK wird eingerichtet',

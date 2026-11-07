@@ -73,7 +73,13 @@ const native: TranslationStrings = {
   'native.plans.restoreFailed': 'TREK을 복원하지 못했습니다. 다시 시도하세요.',
   'native.plans.legal':
     '결제는 확인 시 Apple ID로 청구됩니다. 기간 종료 최소 24시간 전에 해지하지 않으면 구독이 자동으로 갱신됩니다. App Store 계정 설정에서 관리하거나 해지할 수 있습니다.',
-  'native.plans.terms': '이용 약관',
+  'native.plans.terms': 'Apple 이용 약관(EULA)',
+  'native.plans.ourTerms': 'TREK Cloud 약관',
+  'native.plans.legalAndroid':
+    '확인 시 Google 계정으로 결제됩니다. 기간이 끝나기 전에 취소하지 않으면 구독이 자동으로 갱신됩니다. Google Play의 프로필, 결제 및 정기 결제, 정기 결제에서 관리하거나 취소할 수 있습니다.',
+  'native.plans.restoreNoneAndroid': '이 Google 계정에서 활성 구독을 찾을 수 없습니다.',
+  'native.claim.agree':
+    '구독하면 인스턴스 제공에 TREK Cloud 약관이 적용됩니다(제공자: Maurice Bötger, 로스토크). 구매, 결제, 환불은 스토어가 처리합니다.',
   'native.claim.pending': '구입이 승인을 기다리고 있습니다. 완료되면 구입 내역 복원을 탭하세요.',
   'native.provisioning.title': 'TREK 준비 중',
   'native.provisioning.sub': '{host}을(를) 준비하고 있습니다. 1분이면 됩니다.',

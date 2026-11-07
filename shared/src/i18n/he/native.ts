@@ -73,7 +73,13 @@ const native: TranslationStrings = {
   'native.plans.restoreFailed': 'לא הצלחנו לשחזר את ה-TREK שלך. אנא נסו שוב.',
   'native.plans.legal':
     'התשלום מחויב ב-Apple ID שלך בעת האישור. המינוי מתחדש אוטומטית אלא אם מבטלים אותו לפחות 24 שעות לפני סוף התקופה. אפשר לנהל או לבטל אותו בהגדרות חשבון ה-App Store.',
-  'native.plans.terms': 'תנאי שימוש',
+  'native.plans.terms': 'תנאי השימוש של Apple (EULA)',
+  'native.plans.ourTerms': 'התנאים של TREK Cloud',
+  'native.plans.legalAndroid':
+    'התשלום יחויב בחשבון Google שלכם עם האישור. המינוי מתחדש אוטומטית אלא אם תבטלו אותו לפני סוף התקופה. אפשר לנהל או לבטל אותו ב-Google Play תחת פרופיל, תשלומים ומינויים, מינויים.',
+  'native.plans.restoreNoneAndroid': 'לא נמצא מינוי פעיל בחשבון Google הזה.',
+  'native.claim.agree':
+    'בהרשמה חלים על אספקת המופע שלכם התנאים של TREK Cloud (ספק: Maurice Bötger, רוסטוק). החנות מטפלת ברכישה, בתשלום ובהחזרים.',
   'native.claim.pending': 'הרכישה שלך ממתינה לאישור. כשהיא תושלם, הקישו על שחזור רכישות.',
   'native.provisioning.title': 'מכינים את ה-TREK שלכם',
   'native.provisioning.sub': 'מכינים את {host}. זה לוקח רק דקה.',
