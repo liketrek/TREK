@@ -211,7 +211,15 @@ vi.mock('../../services/photoService', () => ({
 const shell = vi.hoisted(() => ({ phone: undefined as boolean | undefined }))
 vi.mock('../../mobile/useIsPhone', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../mobile/useIsPhone')>()
-  return { ...actual, useIsPhone: () => shell.phone ?? actual.useIsPhone() }
+  // The real hook runs every time, so a test that changes the answer never changes the
+  // number of hooks a mounted map has (React throws on that).
+  return {
+    ...actual,
+    useIsPhone: () => {
+      const real = actual.useIsPhone()
+      return shell.phone ?? real
+    },
+  }
 })
 
 vi.mock('./gcj02Crs', () => ({
