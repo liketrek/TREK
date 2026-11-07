@@ -14,6 +14,9 @@ import type { ConfigType } from '@nestjs/config';
 const PASSES_PER_MINUTE = 20;
 const RATE_WINDOW_MS = 60_000;
 const TIMEOUT_MS = 10_000;
+/** The signer's answer for Google Wallet: a JSON object with one signed link. */
+const MAX_GOOGLE_ANSWER_BYTES = 16 * 1024;
+const GOOGLE_SAVE_PREFIX = 'https://pay.google.com/gp/v/save/';
 /** A pass is its texts plus TREK's icon and wordmark: some 25 KB. */
 const MAX_PASS_BYTES = 512 * 1024;
 const PKPASS = 'application/vnd.apple.pkpass';
@@ -45,6 +48,27 @@ export class WalletPassService {
   }
 
   async passFor(userId: number, tripId: number, reservationId: number, language: string): Promise<WalletPass> {
+    const { request, title } = await this.requestFor(userId, tripId, reservationId, language);
+    return { bytes: await this.sign(request), filename: `${filenameOf(title)}.pkpass` };
+  }
+
+  /**
+   * The booking as a Google Wallet pass: the same request the Apple signer takes,
+   * sent to the signer's Google route (�/v1/wallet/google beside �/v1/wallet/pass),
+   * which answers with a save link signed for liketrek's Wallet issuer.
+   */
+  async googleSaveUrlFor(userId: number, tripId: number, reservationId: number, language: string): Promise<string> {
+    const { request } = await this.requestFor(userId, tripId, reservationId, language);
+    return this.signGoogle(request);
+  }
+
+  /** The signer's request for a booking the user can reach, after the switch and the rate limit. */
+  private async requestFor(
+    userId: number,
+    tripId: number,
+    reservationId: number,
+    language: string,
+  ): Promise<{ request: object; title: string }> {
     if (!this.enabled()) throw new DomainError(404, 'Wallet passes are off on this server');
     const allowed = await this.rateLimit.check(
       'wallet-pass',
@@ -85,8 +109,51 @@ export class WalletPassService {
       await loadWalletWords(language),
     );
     if (!request) throw new DomainError(422, 'A booking needs a date for a Wallet pass');
+    return { request, title: row.title };
+  }
 
-    return { bytes: await this.sign(request), filename: `${filenameOf(row.title)}.pkpass` };
+  private async signGoogle(request: object): Promise<string> {
+    let response: Response;
+    try {
+      response = await safeFetchAdminConfigured(
+        googleSignerUrl(this.config.walletPassUrl),
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(request),
+          signal: AbortSignal.timeout(TIMEOUT_MS),
+        },
+        0,
+        undefined,
+        MAX_GOOGLE_ANSWER_BYTES,
+      );
+    } catch (err) {
+      logWarn(`[Wallet pass] Google signer unreachable: ${err instanceof Error ? err.message : String(err)}`);
+      throw new DomainError(502, 'The Wallet pass service did not answer');
+    }
+    if (response.status === 429) throw new DomainError(429, 'Too many Wallet passes, try again in a minute');
+    // The TREK services answer 404 while liketrek has no Google Wallet issuer yet.
+    if (response.status === 404) throw new DomainError(404, 'Google Wallet passes are not available yet');
+    const { bytes, truncated } = await readCapped(response, MAX_GOOGLE_ANSWER_BYTES).catch(() => ({
+      bytes: Buffer.alloc(0),
+      truncated: true,
+    }));
+    let saveUrl: unknown;
+    try {
+      saveUrl = (JSON.parse(bytes.toString('utf8')) as { saveUrl?: unknown }).saveUrl;
+    } catch {
+      saveUrl = undefined;
+    }
+    if (
+      response.status !== 200 ||
+      truncated ||
+      typeof saveUrl !== 'string' ||
+      !saveUrl.startsWith(GOOGLE_SAVE_PREFIX)
+    ) {
+      logWarn(`[Wallet pass] Google signer answered ${response.status}`);
+      throw new DomainError(502, 'The Wallet pass service could not make this pass');
+    }
+    return saveUrl;
   }
 
   private async sign(request: object): Promise<Buffer> {
@@ -124,6 +191,11 @@ export class WalletPassService {
     }
     return bytes;
   }
+}
+
+/** The signer's Google route beside its Apple one: �/v1/wallet/pass becomes �/v1/wallet/google. */
+function googleSignerUrl(passUrl: string): string {
+  return passUrl.replace(/\/pass\/?$/, '/google');
 }
 
 function stringOrNull(value: unknown): string | null {

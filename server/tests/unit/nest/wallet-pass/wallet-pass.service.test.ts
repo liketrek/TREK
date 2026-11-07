@@ -189,4 +189,34 @@ describe('WalletPassService', () => {
     expect(words.seat).toBe('Sitzplatz');
     expect((await loadWalletWords('xx')).seat).toBe('Seat');
   });
+
+  it('WALLET-S-008: Google Wallet gets the same request at the Google route of the signer and answers its save link', async () => {
+    make();
+    const saveUrl = 'https://pay.google.com/gp/v/save/eyJhbGciOi.payload.sig';
+    signerAnswers(200, JSON.stringify({ saveUrl }), 'application/json');
+    await expect(service.googleSaveUrlFor(1, 42, 7, 'de')).resolves.toBe(saveUrl);
+    const [url, init] = safeFetchAdminConfigured.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://push.liketrek.com/v1/wallet/google');
+    const body = JSON.parse(String(init.body));
+    expect(body.kind).toBe('hotel');
+    expect(body.title).toBe('Hotel Granvia Kyoto');
+  });
+
+  it('WALLET-S-009: Google Wallet refusals: off, not set up yet, busy, or a link that is not from Google', async () => {
+    make('off');
+    expect(await refusal(service.googleSaveUrlFor(1, 42, 7, 'en'))).toBe(404);
+    make();
+    signerAnswers(404, 'not found', 'text/plain');
+    expect(await refusal(service.googleSaveUrlFor(1, 42, 7, 'en'))).toBe(404);
+    signerAnswers(429, 'slow down', 'text/plain');
+    expect(await refusal(service.googleSaveUrlFor(1, 42, 7, 'en'))).toBe(429);
+    signerAnswers(200, JSON.stringify({ saveUrl: 'https://evil.example/save' }), 'application/json');
+    expect(await refusal(service.googleSaveUrlFor(1, 42, 7, 'en'))).toBe(502);
+    signerAnswers(200, 'not json', 'application/json');
+    expect(await refusal(service.googleSaveUrlFor(1, 42, 7, 'en'))).toBe(502);
+    safeFetchAdminConfigured.mockRejectedValueOnce(new Error('ECONNREFUSED'));
+    expect(await refusal(service.googleSaveUrlFor(1, 42, 7, 'en'))).toBe(502);
+    reservations.getReservationWithJoins.mockResolvedValueOnce({ ...ROW, trip_id: 99 });
+    expect(await refusal(service.googleSaveUrlFor(1, 42, 7, 'en'))).toBe(404);
+  });
 });

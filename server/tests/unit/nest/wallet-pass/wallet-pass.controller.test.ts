@@ -53,4 +53,13 @@ describe('WalletPassController', () => {
     await expect(controller.pass(user, 42, 7, 'klingon', response() as never)).rejects.toBeInstanceOf(DomainError);
     expect(passFor).toHaveBeenCalledWith(5, 42, 7, 'en');
   });
+
+  it('WALLET-C-003: Google Wallet answers the save link as JSON, in the asked language', async () => {
+    const googleSaveUrlFor = vi.fn(async () => 'https://pay.google.com/gp/v/save/abc');
+    const controller = new WalletPassController({ googleSaveUrlFor } as never);
+    await expect(controller.google(user, 42, 7, 'fr')).resolves.toEqual({
+      saveUrl: 'https://pay.google.com/gp/v/save/abc',
+    });
+    expect(googleSaveUrlFor).toHaveBeenCalledWith(5, 42, 7, 'fr');
+  });
 });

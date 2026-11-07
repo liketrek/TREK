@@ -188,6 +188,7 @@ describe('WebPushService delivery', () => {
       body: MSG.body,
       url: '/trips/12',
       tag: 'collab_message:/trips/12',
+      event: 'collab_message',
     });
 
     const [row] = await rows(user.id);
@@ -477,11 +478,13 @@ describe('buildPushPayload', () => {
       body: MSG.body,
       url: '/trips/12',
       tag: 'collab_message:/trips/12',
+      event: 'collab_message',
     });
     // Without a trip to collapse on there is no tag at all, never one for every chat everywhere.
     expect(buildPushPayload({ ...MSG, navigateTarget: undefined })).toEqual({
       title: MSG.title,
       body: MSG.body,
+      event: 'collab_message',
     });
   });
 
@@ -490,7 +493,7 @@ describe('buildPushPayload', () => {
     expect(others.length).toBeGreaterThan(5);
     for (const event of others) {
       const payload = buildPushPayload({ ...MSG, event });
-      expect(payload, event).toEqual({ title: MSG.title, body: MSG.body, url: '/trips/12' });
+      expect(payload, event).toEqual({ title: MSG.title, body: MSG.body, url: '/trips/12', event });
       expect(payload, event).not.toHaveProperty('tag');
     }
   });

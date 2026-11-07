@@ -85,6 +85,7 @@ function payloadBytes(payload: PushPayload): number {
  * chat messages carry a tag, `collab_message:<trip path>`, so a burst of them in
  * one trip shows as one notification that keeps updating instead of a pile of
  * them. Everything else has no tag and never replaces an earlier notification.
+ * The event goes along so the Android app can sort it into a channel.
  *
  * The body is cut, at a character boundary and with an ellipsis, until the
  * JSON fits MAX_PUSH_PAYLOAD_BYTES. The title and the path are capped first, so
@@ -99,6 +100,8 @@ export function buildPushPayload(
     body: '',
     ...(url ? { url } : {}),
     ...(url && msg.event === COLLAPSING_EVENT ? { tag: `${COLLAPSING_EVENT}:${url}` } : {}),
+    // The Android app files it under a channel by event; a browser ignores it.
+    ...(msg.event ? { event: msg.event } : {}),
   };
   const full = { ...base, body: msg.body };
   if (payloadBytes(full) <= MAX_PUSH_PAYLOAD_BYTES) return full;

@@ -402,3 +402,13 @@ export const bookingImportConfirmResponseSchema = z.object({
   created: z.array(reservationSchema),
 });
 export type BookingImportConfirmResponse = z.infer<typeof bookingImportConfirmResponseSchema>;
+
+/**
+ * GET /api/trips/:tripId/reservations/:id/wallet-pass/google: the booking as a
+ * Google Wallet pass, by the save link the TREK services signed. The Android app
+ * opens it, and Google Wallet adds the pass (native/wallet.ts).
+ */
+export const googleWalletSaveResponseSchema = z.object({
+  saveUrl: z.string().url().startsWith('https://pay.google.com/gp/v/save/'),
+});
+export type GoogleWalletSaveResponse = z.infer<typeof googleWalletSaveResponseSchema>;
