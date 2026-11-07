@@ -40,6 +40,7 @@ const common: TranslationStrings = {
   'common.unsavedMessage': '你在這裡輸入的內容尚未儲存。',
   'common.keepEditing': '繼續編輯',
   'common.name': '名稱',
+  'common.title': '標題',
   'common.email': '郵箱',
   'common.password': '密碼',
   'common.saving': '儲存中...',

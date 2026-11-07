@@ -1,34 +1,51 @@
+import { ArrowLeftRight } from 'lucide-react';
 import { NOTE_MAX } from '../../../../components/Budget/CostsPanel.helpers';
 import { currencyOptions, type CostsSettlement } from '../../../../components/Budget/costsModel';
 import { useSettlementForm } from '../../../../components/Budget/useSettlementForm';
-import { CustomDatePicker } from '../../../../components/shared/CustomDateTimePicker';
 import CustomSelect from '../../../../components/shared/CustomSelect';
 import type { TripMember } from '../../../../types';
 import { localizeAmountInput, zeroAmountInput } from '../../../../utils/formatters';
 import MChip from '../../../components/MChip';
 import MSheet from '../../../components/MSheet';
-import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome';
+import {
+  AMOUNT_FIELD_CLS,
+  Eyebrow,
+  FIELD_AREA_CLS,
+  FormSheetBody,
+  FormSheetFooter,
+  FormSheetHeader,
+  SheetDateField,
+} from '../sheets/PlSheetChrome';
 
 type TFn = (key: string, params?: Record<string, string | number>) => string;
 
 // The costs tab's member avatar and its payment sheet, apart from the tab so it
 // keeps to the size a source file may have.
 
-/** Avatar or initials circle; `variant` picks the accent (member chips) or neutral (balances) tone. */
+const AVATAR_TONE = {
+  accent: 'bg-m-act text-m-actfg',
+  neutral: 'bg-[color:var(--m-ic)] text-m-ink',
+  // On a chip that is itself filled with the accent: the circle turns over, or
+  // it vanishes into the chip.
+  onAccent: 'bg-m-actfg text-m-act',
+} as const;
+
+/**
+ * Avatar or initials circle; `variant` picks the accent (member chips), the
+ * neutral (balances) tone, or the inverse one for a selected chip. The initial
+ * is the member's own, yours included: "You" is the label beside the circle,
+ * and the word squeezed into it read "Du Du" or ran out of it in Arabic.
+ */
 export function MemberAvatar({
   name,
   avatarUrl,
-  isMe,
   variant,
   size,
-  t,
 }: {
   name: string;
   avatarUrl?: string | null;
-  isMe: boolean;
-  variant: 'accent' | 'neutral';
+  variant: keyof typeof AVATAR_TONE;
   size: number;
-  t: TFn;
 }) {
   if (avatarUrl) {
     return (
@@ -40,11 +57,10 @@ export function MemberAvatar({
       />
     );
   }
-  const initial = isMe ? t('costs.youShort') : (name || '?').charAt(0).toUpperCase();
-  const toneCls = variant === 'accent' ? 'bg-m-act text-m-actfg' : 'bg-[color:var(--m-ic)] text-m-ink';
+  const initial = (name || '?').charAt(0).toUpperCase();
   return (
     <span
-      className={`flex flex-none items-center justify-center rounded-full font-geist font-extrabold ${toneCls}`}
+      className={`flex flex-none items-center justify-center rounded-full font-geist font-extrabold ${AVATAR_TONE[variant]}`}
       style={{ width: size, height: size, fontSize: Math.max(8, size * 0.42) }}
     >
       {initial}
@@ -122,20 +138,18 @@ export function AddPaymentSheet({
   const title = editing ? t('costs.editPayment') : t('costs.addPayment');
 
   return (
-    <MSheet open={open} onClose={onClose} ariaLabel={title}>
-      <FormSheetHeader title={title} onClose={onClose} closeLabel={t('common.close')} />
-      <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[6px] pt-1">
-        <Eyebrow className="mb-[7px] uppercase">{t('costs.from')}</Eyebrow>
+    <MSheet open={open} onClose={onClose} ariaLabel={title} form>
+      <FormSheetHeader icon={ArrowLeftRight} title={title} onClose={onClose} closeLabel={t('common.close')} />
+      <FormSheetBody>
+        <Eyebrow className="mb-[7px] mt-2 uppercase">{t('costs.from')}</Eyebrow>
         <div className="flex flex-wrap gap-[6px]">
           {people.map((p) => (
             <MChip key={p.id} active={fromId === p.id} onClick={() => setFromId(p.id)}>
               <MemberAvatar
                 name={p.username}
                 avatarUrl={p.avatar_url}
-                isMe={p.id === me}
-                variant={fromId === p.id ? 'accent' : 'neutral'}
+                variant={fromId === p.id ? 'onAccent' : 'neutral'}
                 size={16}
-                t={t}
               />
               {p.id === me ? t('costs.you') : p.username}
             </MChip>
@@ -149,10 +163,8 @@ export function AddPaymentSheet({
               <MemberAvatar
                 name={p.username}
                 avatarUrl={p.avatar_url}
-                isMe={p.id === me}
-                variant={toId === p.id ? 'accent' : 'neutral'}
+                variant={toId === p.id ? 'onAccent' : 'neutral'}
                 size={16}
-                t={t}
               />
               {p.id === me ? t('costs.you') : p.username}
             </MChip>
@@ -160,20 +172,23 @@ export function AddPaymentSheet({
         </div>
 
         <Eyebrow className="mb-[7px] mt-[14px] uppercase">{t('costs.amount')}</Eyebrow>
-        <div className="flex items-center gap-2">
+        {/* The currency sits inside the field, after the amount, like the
+            expense's total: one box, not a field with a code floating beside it. */}
+        <div className={AMOUNT_FIELD_CLS}>
           <input
             type="text"
             inputMode="decimal"
             value={localizeAmountInput(amount, currency)}
             onChange={(e) => setAmount(e.target.value)}
             placeholder={zeroAmountInput(currency)}
-            className={FIELD_CLS}
+            aria-label={t('costs.amount')}
+            className="min-w-0 flex-1 border-0 bg-transparent p-0 text-[0.84375rem] font-semibold text-m-ink outline-none [font-variant-numeric:tabular-nums] placeholder:font-normal placeholder:text-m-faint"
           />
           <span className="flex-none font-geist text-caption font-bold text-m-faint">{currency}</span>
         </div>
 
-        <div className="mt-[14px] flex gap-2">
-          <div className="min-w-0 flex-1">
+        <div className="mt-[14px] grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-2">
+          <div className="min-w-0">
             <Eyebrow className="mb-[7px] uppercase">{t('costs.currency')}</Eyebrow>
             <CustomSelect
               value={currency}
@@ -184,9 +199,9 @@ export function AddPaymentSheet({
               style={{ width: '100%' }}
             />
           </div>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0">
             <Eyebrow className="mb-[7px] uppercase">{t('costs.day')}</Eyebrow>
-            <CustomDatePicker value={day} onChange={setDay} style={{ width: '100%' }} />
+            <SheetDateField value={day} onChange={setDay} />
           </div>
         </div>
 
@@ -199,7 +214,7 @@ export function AddPaymentSheet({
           placeholder={t('costs.paymentNotePlaceholder')}
           className={FIELD_AREA_CLS}
         />
-      </div>
+      </FormSheetBody>
       <FormSheetFooter
         onCancel={onClose}
         cancelLabel={t('common.cancel')}

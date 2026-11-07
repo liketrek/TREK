@@ -413,6 +413,21 @@ describe('MTripShell', () => {
     expect(shellApi.sheet).toBeNull()
   })
 
+  it('FE-MOB-SHELL-097: while More is open the dock marks More, not the tab under it', () => {
+    renderShell()
+    const more = screen.getByRole('button', { name: 'mobileTrip.more' })
+    const plan = screen.getByRole('button', { name: 'Plan' })
+    expect(plan).toHaveAttribute('aria-current', 'page')
+    expect(more).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(more)
+    expect(more).toHaveAttribute('aria-expanded', 'true')
+    expect(more).toHaveClass('bg-m-act')
+    expect(plan).not.toHaveAttribute('aria-current')
+    act(() => { shellApi.closeSheet() })
+    expect(plan).toHaveAttribute('aria-current', 'page')
+    expect(more).not.toHaveClass('bg-m-act')
+  })
+
   it('FE-MOB-SHELL-026: a non-plan tab replaces the plan chrome with its panel', () => {
     renderShell({ activeTab: 'dateien' } as Partial<TripPlanner>)
     expect(screen.getByTestId('tab-panel')).toHaveTextContent('dateien')

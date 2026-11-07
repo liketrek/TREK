@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Check, Copy, HandHelping, Share2, UserRound, Users } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
-import { Eyebrow, FIELD_CLS, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
+import { Eyebrow, FIELD_CLS, FormSheetBody, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
 import { avatarSrc } from '../../../../utils/avatarSrc'
 import type { PackingItem, TripMember } from '../../../../types'
 import type { TripPlanner } from '../MTripShell'
@@ -109,7 +109,7 @@ export default function MPackItemSheet({
     }`
 
   return (
-    <MSheet open={open} onClose={onClose} ariaLabel={t('packing.editItem')}>
+    <MSheet open={open} onClose={onClose} form ariaLabel={t('packing.editItem')}>
       <FormSheetHeader
         title={t('packing.editItem')}
         subtitle={item.category || t('packing.defaultCategory')}
@@ -117,7 +117,7 @@ export default function MPackItemSheet({
         closeLabel={t('common.close')}
       />
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[6px] pt-1">
+      <FormSheetBody>
         <Eyebrow className="mb-[5px] uppercase">{t('packing.itemName')}</Eyebrow>
         <input
           type="text"
@@ -228,7 +228,7 @@ export default function MPackItemSheet({
             )}
           </>
         )}
-      </div>
+      </FormSheetBody>
 
       <FormSheetFooter
         onCancel={onClose}

@@ -102,7 +102,8 @@ describe('MCostSheet', () => {
     expect(screen.getByRole('dialog', { name: 'Add expense' })).toBeInTheDocument()
     expect(nameField()).toHaveValue('')
     expect(catTrigger()).toHaveTextContent('Food & drink')
-    expect(screen.getByRole('button', { name: 'Y You' })).toBeInTheDocument()
+    // Your row shows your own initial ("alice"), the label beside it says "You".
+    expect(screen.getByRole('button', { name: 'A You' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'B bob' })).toBeInTheDocument()
     expect(submit()).toBeDisabled()
     expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
@@ -224,7 +225,7 @@ describe('MCostSheet', () => {
   it('FE-MOB-COSTSH-005: an expense nobody shares is saved without members but keeps its payer', async () => {
     renderSheet()
     fillBasics('Souvenir', '12')
-    fireEvent.click(screen.getByRole('button', { name: 'Y You' }))
+    fireEvent.click(screen.getByRole('button', { name: 'A You' }))
     fireEvent.click(screen.getByRole('button', { name: 'B bob' }))
 
     fireEvent.click(submit())
@@ -332,7 +333,7 @@ describe('MCostSheet', () => {
     fillBasics('Group ticket', '100')
     fireEvent.click(screen.getByRole('button', { name: 'Multiple people paid' }))
     fireEvent.click(screen.getAllByRole('button', { name: 'B bob' })[0])
-    fireEvent.click(screen.getAllByRole('button', { name: 'Y You' })[0])
+    fireEvent.click(screen.getAllByRole('button', { name: 'A You' })[0])
     fireEvent.click(screen.getByRole('button', { name: 'One person paid' }))
 
     expect(screen.getByRole('button', { name: 'bob' })).toBeInTheDocument()
@@ -371,7 +372,7 @@ describe('MCostSheet', () => {
     fireEvent.change(share, { target: { value: '30,5' } })
     expect(screen.getByDisplayValue('30,5')).toBe(share)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Y You' }))
+    fireEvent.click(screen.getByRole('button', { name: 'A You' }))
     fireEvent.click(screen.getByRole('button', { name: 'Tap to include' }))
     expect(screen.getAllByPlaceholderText('50,00')[0]).toHaveValue('')
   })
@@ -412,7 +413,7 @@ describe('MCostSheet', () => {
     expect(footerSubmit()).toBeEnabled()
 
     // Un-ticking everyone makes the item unsplittable again.
-    fireEvent.click(screen.getByRole('button', { name: 'Y You' }))
+    fireEvent.click(screen.getByRole('button', { name: 'A You' }))
     fireEvent.click(screen.getByRole('button', { name: 'B bob' }))
     expect(footerSubmit()).toBeDisabled()
   })

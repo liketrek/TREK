@@ -299,7 +299,8 @@ describe('MCostsTab', () => {
     expect(chips).toHaveLength(2)
     expect(chips[0]).toHaveAttribute('aria-pressed', 'true')
     expect(chips[1]).toHaveAttribute('aria-pressed', 'false')
-    expect(chips.map(c => c.textContent)).toEqual(['costs.youShort$40.00', '$40.00'])
+    // Your own chip carries your initial too, not the word "You" squeezed into the circle.
+    expect(chips.map(c => c.textContent)).toEqual(['M$40.00', '$40.00'])
   })
 
   it('FE-MOB-COSTT-017: toggles a member chip to paid', async () => {

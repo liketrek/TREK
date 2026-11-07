@@ -40,6 +40,7 @@ const common: TranslationStrings = {
   'common.unsavedMessage': 'Wat je hier hebt ingevuld, is nog niet opgeslagen.',
   'common.keepEditing': 'Verder bewerken',
   'common.name': 'Naam',
+  'common.title': 'Titel',
   'common.email': 'E-mail',
   'common.password': 'Wachtwoord',
   'common.saving': 'Opslaan...',

@@ -40,6 +40,7 @@ const common: TranslationStrings = {
   'common.unsavedMessage': 'To, co jste zde zadali, ještě není uložené.',
   'common.keepEditing': 'Pokračovat v úpravách',
   'common.name': 'Jméno',
+  'common.title': 'Název',
   'common.email': 'E-mail',
   'common.password': 'Heslo',
   'common.saving': 'Ukládání...',

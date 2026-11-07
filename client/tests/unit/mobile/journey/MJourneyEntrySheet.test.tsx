@@ -392,9 +392,11 @@ describe('MJourneyEntrySheet full editor', () => {
     await user.type(screen.getByPlaceholderText('Give this moment a name...'), 'Rome');
     await user.type(screen.getByPlaceholderText('Write your story...'), 'Great day');
     // Through the picker's manual entry — the calendar's own path would depend
-    // on which month it opens on.
+    // on which month it opens on. The keyboard button sits in the picker's
+    // popup, so the date keeps the field's width: open the calendar first.
     // The keyboard button and the input it opens share a name — they never
     // exist at the same time, so the same query reaches first one, then the other.
+    fireEvent.click(screen.getAllByRole('button').find(b => b.getAttribute('aria-haspopup') === 'dialog')!);
     fireEvent.click(screen.getByLabelText('Enter date manually'));
     const manual = screen.getByLabelText('Enter date manually');
     fireEvent.change(manual, { target: { value: '18.03.2026' } });

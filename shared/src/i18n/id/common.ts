@@ -40,6 +40,7 @@ const common: TranslationStrings = {
   'common.unsavedMessage': 'Yang kamu masukkan di sini belum disimpan.',
   'common.keepEditing': 'Lanjut mengedit',
   'common.name': 'Nama',
+  'common.title': 'Judul',
   'common.email': 'Email', // same-as-en
   'common.password': 'Kata sandi',
   'common.saving': 'Menyimpan...',

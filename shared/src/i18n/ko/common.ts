@@ -40,6 +40,7 @@ const common: TranslationStrings = {
   'common.unsavedMessage': '여기에 입력한 내용은 아직 저장되지 않았습니다.',
   'common.keepEditing': '계속 편집',
   'common.name': '이름',
+  'common.title': '제목',
   'common.email': '이메일',
   'common.password': '비밀번호',
   'common.saving': '저장 중...',

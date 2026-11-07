@@ -5,14 +5,13 @@ import { useCanDo } from '../../../store/permissionsStore'
 import { useSettingsStore } from '../../../store/settingsStore'
 import { useAuthStore } from '../../../store/authStore'
 import MChip from '../../components/MChip'
-import { CustomDatePicker } from '../../../components/shared/CustomDateTimePicker'
 import CustomSelect from '../../../components/shared/CustomSelect'
 import { currenciesWith, SYMBOLS } from '../../../components/Budget/BudgetPanel.constants'
 import type { DashboardTrip } from '../../../pages/dashboard/dashboardModel'
 import { MAX_TRIP_DAYS, type Trip, type TripCreateRequest } from '@trek/shared'
 import MSheet from '../../components/MSheet'
-import { FIELD_AREA_CLS } from '../trip/sheets/PlSheetChrome'
-import { Eyebrow, SHEET_FIELD, SHEET_PRIMARY, SHEET_ROUND_PRIMARY, SHEET_SECONDARY, SheetSection, TileHeader } from '../trip/sheets/MTripSheetUi'
+import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetBody, FormSheetFooter, FormSheetHeader, SheetDateField } from '../trip/sheets/PlSheetChrome'
+import { SHEET_FIELD, SHEET_ROUND_PRIMARY, SHEET_SECONDARY } from '../trip/sheets/MTripSheetUi'
 import MDayImpactList from '../../components/MDayImpactList'
 import MConfirmSheet from '../settings/MConfirmSheet'
 import { useTripRangeGuard, type RangeRemoval } from '../../../hooks/useTripRangeGuard'
@@ -30,9 +29,6 @@ interface MNewTripSheetProps {
   /** Edit mode only: archives (or restores) the trip — the grid cards have no archive button. */
   onArchive?: () => void
 }
-
-/** A date picker in the sheets' round field. */
-const DATE_FIELD = 'flex h-[42px] items-center rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[14px]'
 
 /** The reminder presets the desktop form offers; anything else is a custom number of days. */
 const REMINDER_PRESETS = [0, 1, 3, 9]
@@ -151,108 +147,100 @@ export default function MNewTripSheet({ open, trip: tripProp, onClose, onSave, o
 
   return (
     <>
-    <MSheet open={open} onClose={onClose} variant="card" material="glass" ariaLabel={isEditing ? t('dashboard.editTrip') : t('dashboard.createTrip')}>
-      <div className="flex-none px-[18px] pt-4">
-        <TileHeader
-          icon={<Luggage size={19} strokeWidth={1.8} />}
-          title={isEditing ? t('dashboard.editTrip') : t('dashboard.createTrip')}
-          sub={isEditing ? trip?.title : undefined}
-          onClose={onClose}
-          closeLabel={t('common.cancel')}
-        />
-      </div>
+    <MSheet open={open} onClose={onClose} form ariaLabel={isEditing ? t('dashboard.editTrip') : t('dashboard.createTrip')}>
+      <FormSheetHeader
+        icon={Luggage}
+        title={isEditing ? t('dashboard.editTrip') : t('dashboard.createTrip')}
+        subtitle={isEditing ? trip?.title : undefined}
+        onClose={onClose}
+        closeLabel={t('common.cancel')}
+      />
 
-      <div className="m-scroll-fade mt-2 flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-[18px] pb-[18px] pt-[14px]">
+      {/* Flat fields under their labels, as in every other form sheet: no
+          cards inside the card. */}
+      <FormSheetBody>
         {error && (
-          <div className="flex-none rounded-[14px] bg-[color:var(--m-ic)] px-3 py-[10px] text-caption font-semibold text-[color:var(--m-st-danger)]">
+          <div className="mt-2 rounded-[14px] bg-[color:var(--m-ic)] px-3 py-[10px] text-caption font-semibold text-[color:var(--m-st-danger)]">
             {error}
           </div>
         )}
 
-        <SheetSection title={t('dashboard.tripTitle')}>
-          <input
-            value={title}
-            onChange={e => { if (canEditTrip) { setError(''); setTitle(e.target.value) } }}
-            readOnly={!canEditTrip}
-            placeholder={t('dashboard.tripTitlePlaceholder')}
-            aria-label={t('dashboard.tripTitle')}
-            className={`${SHEET_FIELD} w-full flex-none font-semibold`}
-          />
-          <Eyebrow className="mt-1 uppercase">{t('dashboard.tripDescription')}</Eyebrow>
-          <textarea
-            value={description}
-            onChange={e => { if (canEditTrip) { setError(''); setDescription(e.target.value) } }}
-            readOnly={!canEditTrip}
-            placeholder={t('dashboard.tripDescriptionPlaceholder')}
-            aria-label={t('dashboard.tripDescription')}
-            rows={2}
-            className={FIELD_AREA_CLS}
-          />
-        </SheetSection>
+        <Eyebrow className="mb-[5px] mt-2 uppercase">{t('dashboard.tripTitle')}</Eyebrow>
+        <input
+          value={title}
+          onChange={e => { if (canEditTrip) { setError(''); setTitle(e.target.value) } }}
+          readOnly={!canEditTrip}
+          placeholder={t('dashboard.tripTitlePlaceholder')}
+          aria-label={t('dashboard.tripTitle')}
+          className={`${FIELD_CLS} font-semibold`}
+        />
+        <Eyebrow className="mb-[5px] mt-3 uppercase">{t('dashboard.tripDescription')}</Eyebrow>
+        <textarea
+          value={description}
+          onChange={e => { if (canEditTrip) { setError(''); setDescription(e.target.value) } }}
+          readOnly={!canEditTrip}
+          placeholder={t('dashboard.tripDescriptionPlaceholder')}
+          aria-label={t('dashboard.tripDescription')}
+          rows={2}
+          className={FIELD_AREA_CLS}
+        />
 
-        <SheetSection>
-          <div className="flex gap-2">
-            <div className="min-w-0 flex-1">
-              <Eyebrow className="mb-[5px] uppercase">{t('dashboard.startDate')}</Eyebrow>
-              <div className={DATE_FIELD}>
-                <CustomDatePicker
-                  value={startDate}
-                  onChange={v => { if (canEditTrip) changeStart(v) }}
-                  placeholder={t('dashboard.startDate')}
-                  borderless
-                />
-              </div>
-            </div>
-            <div className="min-w-0 flex-1">
-              <Eyebrow className="mb-[5px] uppercase">{t('dashboard.endDate')}</Eyebrow>
-              <div className={DATE_FIELD}>
-                <CustomDatePicker
-                  value={endDate}
-                  onChange={v => { if (canEditTrip) { setError(''); setEndDate(v) } }}
-                  placeholder={t('dashboard.endDate')}
-                  borderless
-                />
-              </div>
-            </div>
+        {/* Side by side. A placeholder longer than its field ("Дата окончания")
+            ends in an ellipsis inside it rather than running past its edge. */}
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <div className="min-w-0">
+            <Eyebrow className="mb-[5px] truncate uppercase">{t('dashboard.startDate')}</Eyebrow>
+            <SheetDateField
+              value={startDate}
+              onChange={v => { if (canEditTrip) changeStart(v) }}
+              placeholder={t('dashboard.startDate')}
+            />
           </div>
-          {!startDate && !endDate && (
-            <>
-              <Eyebrow className="mt-1 uppercase">{t('dashboard.dayCount')}</Eyebrow>
-              <input
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={MAX_TRIP_DAYS}
-                value={dayCount}
-                onChange={e => {
-                  if (!canEditTrip) return
-                  setError('')
-                  const raw = e.target.value
-                  setDayCount(raw === '' ? '' : Math.min(MAX_TRIP_DAYS, Math.max(1, Math.floor(Number(raw)) || 1)))
-                }}
-                readOnly={!canEditTrip}
-                aria-label={t('dashboard.dayCount')}
-                className={`${SHEET_FIELD} w-full flex-none`}
-              />
-              {!isEditing && <p className="px-1 font-geist text-[length:calc(10px*var(--fs-scale-caption,1))] text-m-faint">{t('dashboard.noDateHint')}</p>}
-            </>
-          )}
-        </SheetSection>
+          <div className="min-w-0">
+            <Eyebrow className="mb-[5px] truncate uppercase">{t('dashboard.endDate')}</Eyebrow>
+            <SheetDateField
+              value={endDate}
+              onChange={v => { if (canEditTrip) { setError(''); setEndDate(v) } }}
+              placeholder={t('dashboard.endDate')}
+            />
+          </div>
+        </div>
+        {!startDate && !endDate && (
+          <>
+            <Eyebrow className="mb-[5px] mt-3 uppercase">{t('dashboard.dayCount')}</Eyebrow>
+            <input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={MAX_TRIP_DAYS}
+              value={dayCount}
+              onChange={e => {
+                if (!canEditTrip) return
+                setError('')
+                const raw = e.target.value
+                setDayCount(raw === '' ? '' : Math.min(MAX_TRIP_DAYS, Math.max(1, Math.floor(Number(raw)) || 1)))
+              }}
+              readOnly={!canEditTrip}
+              aria-label={t('dashboard.dayCount')}
+              className={FIELD_CLS}
+            />
+            {!isEditing && <p className="mt-[6px] px-1 font-geist text-[length:calc(10px*var(--fs-scale-caption,1))] text-m-faint">{t('dashboard.noDateHint')}</p>}
+          </>
+        )}
 
-        <SheetSection title={t('dashboard.currency')}>
-          <CustomSelect
-            value={currency}
-            onChange={v => { if (canEditTrip) { setError(''); setCurrency(String(v)) } }}
-            disabled={!canEditTrip}
-            searchable
-            size="sm"
-            options={currenciesWith(currency).map(c => ({ value: c, label: `${c} (${SYMBOLS[c] || c})` }))}
-            style={{ width: '100%' }}
-          />
-        </SheetSection>
+        <Eyebrow className="mb-[5px] mt-3 uppercase">{t('dashboard.currency')}</Eyebrow>
+        <CustomSelect
+          value={currency}
+          onChange={v => { if (canEditTrip) { setError(''); setCurrency(String(v)) } }}
+          disabled={!canEditTrip}
+          searchable
+          size="sm"
+          options={currenciesWith(currency).map(c => ({ value: c, label: `${c} (${SYMBOLS[c] || c})` }))}
+          style={{ width: '100%' }}
+        />
 
         {showReminder && (
-          <SheetSection>
+          <div className="mt-3">
             <ReminderField
               enabled={remindersEnabled}
               days={reminderDays}
@@ -261,35 +249,35 @@ export default function MNewTripSheet({ open, trip: tripProp, onClose, onSave, o
               onCustom={() => { setCustomReminder(true); if (REMINDER_PRESETS.includes(reminderDays)) setReminderDays(7) }}
               onDays={setReminderDays}
             />
-          </SheetSection>
+          </div>
         )}
 
         {canUploadCover && (
-          <SheetSection>
+          <>
+            <Eyebrow className="mt-3 uppercase">{t('dashboard.coverImage')}</Eyebrow>
             <CoverField cover={cover} title={title} />
-          </SheetSection>
+          </>
         )}
 
         {isEditing && onArchive && (
           <button
             type="button"
             onClick={() => { onArchive(); onClose() }}
-            className={`${SHEET_SECONDARY} flex-none`}
+            className={`${SHEET_SECONDARY} mt-4 w-full`}
           >
             {trip?.is_archived ? <ArchiveRestore size={14} strokeWidth={2.2} /> : <Archive size={14} strokeWidth={2.2} />}
             {trip?.is_archived ? t('dashboard.restore') : t('dashboard.archive')}
           </button>
         )}
-      </div>
+      </FormSheetBody>
 
-      <div className="flex flex-none items-center gap-2 border-t border-[color:var(--m-rowbr)] px-[18px] pb-4 pt-3">
-        <button type="button" onClick={onClose} className={`${SHEET_SECONDARY} ms-auto`}>
-          {t('common.cancel')}
-        </button>
-        <button type="button" onClick={handleSave} disabled={busy} className={SHEET_PRIMARY}>
-          {busy ? t('common.saving') : isEditing ? t('common.update') : t('dashboard.createTrip')}
-        </button>
-      </div>
+      <FormSheetFooter
+        onCancel={onClose}
+        cancelLabel={t('common.cancel')}
+        onSubmit={handleSave}
+        submitLabel={busy ? t('common.saving') : isEditing ? t('common.update') : t('dashboard.createTrip')}
+        submitDisabled={busy}
+      />
     </MSheet>
 
     {/* After the sheet, so it opens on top of it. */}

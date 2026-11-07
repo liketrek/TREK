@@ -112,6 +112,46 @@ describe('reservation form fields', () => {
     });
   });
 
+  it('FE-PLANNER-RESFORM-017: a hotel booking without its own times shows the ones its stay keeps', () => {
+    // The stay's check-in and check-out live on the accommodation; a booking that
+    // never had them written into its own metadata showed the "15:00" hint as if
+    // it were the saved time.
+    const acc = {
+      id: 9,
+      place_id: 4,
+      start_day_id: 2,
+      end_day_id: 3,
+      check_in: '15:00',
+      check_in_end: '22:00',
+      check_out: '11:00',
+    } as Accommodation;
+    const res = buildReservation({
+      type: 'hotel',
+      accommodation_id: 9,
+      metadata: JSON.stringify({ price: '2184' }),
+    } as Partial<Reservation>);
+    expect(reservationFieldsFrom(res, [acc], [], false)).toMatchObject({
+      meta_check_in_time: '15:00',
+      meta_check_out_time: '11:00',
+    });
+    expect(reservationFieldsFrom(res, [acc], [], true)).toMatchObject({ meta_check_in_end_time: '22:00' });
+    // The booking's own times still win.
+    const own = buildReservation({
+      type: 'hotel',
+      accommodation_id: 9,
+      metadata: JSON.stringify({ check_in_time: '14:00', check_out_time: '10:00' }),
+    } as Partial<Reservation>);
+    expect(reservationFieldsFrom(own, [acc], [], false)).toMatchObject({
+      meta_check_in_time: '14:00',
+      meta_check_out_time: '10:00',
+    });
+    // Nothing anywhere stays empty, so the hint shows as a hint.
+    expect(reservationFieldsFrom(buildReservation({ type: 'hotel' }), [], [], false)).toMatchObject({
+      meta_check_in_time: '',
+      meta_check_out_time: '',
+    });
+  });
+
   it('FE-PLANNER-RESFORM-004: an import under review resolves its stay days and keeps its source details', () => {
     const pf = {
       title: 'Inn',

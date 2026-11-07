@@ -40,6 +40,7 @@ const common: TranslationStrings = {
   'common.unsavedMessage': 'Burada daxil etdikləriniz hələ yadda saxlanmayıb.',
   'common.keepEditing': 'Redaktəyə davam et',
   'common.name': 'Ad',
+  'common.title': 'Başlıq',
   'common.email': 'E-poçt',
   'common.password': 'Parol',
   'common.saving': 'Saxlanılır...',

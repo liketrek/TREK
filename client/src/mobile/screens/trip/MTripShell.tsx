@@ -893,7 +893,8 @@ export default function MTripShell({
       {/* ── Bottom dock (replaces the global bottom nav on this screen) ── */}
       {!wide && <nav className="absolute inset-x-4 z-40 flex h-[62px] items-center justify-around rounded-[31px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-[14px] shadow-[0_16px_44px_-14px_rgba(0,0,0,.35)] backdrop-blur-[30px] backdrop-saturate-[1.8] bottom-[calc(env(safe-area-inset-bottom,0px)+12px)]">
         {dockTabs.map(({ id, icon: Icon }) => {
-          const active = trTab === id
+          // While More is open the dock points at More, not at the tab under it.
+          const active = trTab === id && sheet?.id !== 'mehr'
           return (
             <button
               key={id}
@@ -913,7 +914,10 @@ export default function MTripShell({
           type="button"
           onClick={() => openSheet('mehr')}
           aria-label={t('mobileTrip.more')}
-          className="flex h-[42px] w-[42px] flex-none items-center justify-center rounded-full text-m-muted"
+          aria-expanded={sheet?.id === 'mehr'}
+          className={`flex h-[42px] w-[42px] flex-none items-center justify-center rounded-full ${
+            sheet?.id === 'mehr' ? 'bg-m-act text-m-actfg' : 'text-m-muted'
+          }`}
         >
           <MoreHorizontal size={19} strokeWidth={2.2} />
         </button>

@@ -40,6 +40,7 @@ const common: TranslationStrings = {
   'common.unsavedMessage': 'ここで入力した内容はまだ保存されていません。',
   'common.keepEditing': '編集を続ける',
   'common.name': '名前',
+  'common.title': 'タイトル',
   'common.email': 'メールアドレス',
   'common.password': 'パスワード',
   'common.saving': '保存中…',

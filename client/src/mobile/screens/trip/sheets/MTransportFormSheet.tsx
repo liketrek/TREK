@@ -19,7 +19,7 @@ import { useTransportForm } from '../../../../components/Planner/useTransportFor
 import { expenseRequestAfterSave, travelerIdsOf, filesNeedConnection, type BookingSaveSteps } from '../../../../components/Planner/bookingFormModel'
 import { useBookingFollowUp } from '../../../../components/Planner/useBookingFollowUp'
 import { useBookingExpenseIntent } from '../../../../components/Planner/useBookingExpenseIntent'
-import { Eyebrow, FIELD_CLS, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
+import { Eyebrow, FIELD_CLS, FormSheetBody, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
 import MBookingFilesCosts from './MBookingFilesCosts'
 import type { Place, Reservation } from '../../../../types'
 import type { BookingReviewDraft } from '../../../../components/Planner/parsedItemToDraft'
@@ -163,7 +163,7 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
     <MSheet
       open={showTransportModal}
       onClose={handleClose}
-      material="glass"
+      form
       ariaLabel={headerTitle}
       discardGuard={showTransportModal ? { form, waypoints, trainWaypoints, carStops, files: pendingFiles.length, travelers: [...travelerIds] } : undefined}
     >
@@ -199,7 +199,7 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
         </div>
       )}
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[6px] pt-[2px]">
+      <FormSheetBody>
         {automated ? (
           /* ── Automated: public transit search ── */
           <>
@@ -307,15 +307,15 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
                         >
                           <div className="mt-2 flex gap-2">
                             <div className="min-w-0 flex-[1.2]">
-                              <Eyebrow className="mb-[5px] uppercase">{t('reservations.meta.airline')}</Eyebrow>
+                              <Eyebrow className="mb-[5px] truncate uppercase">{t('reservations.meta.airline')}</Eyebrow>
                               <input type="text" value={wp.airline} onChange={e => updateWp({ airline: e.target.value })} placeholder="Lufthansa" className={FIELD_CLS} />
                             </div>
                             <div className="min-w-0 flex-1">
-                              <Eyebrow className="mb-[5px] uppercase">{t('reservations.meta.flightNumber')}</Eyebrow>
+                              <Eyebrow className="mb-[5px] truncate uppercase">{t('reservations.meta.flightNumber')}</Eyebrow>
                               <input type="text" value={wp.flight_number} onChange={e => updateWp({ flight_number: e.target.value })} placeholder="LH 123" className={FIELD_CLS} />
                             </div>
                             <div className="min-w-0 flex-[0.7]">
-                              <Eyebrow className="mb-[5px] uppercase">{t('reservations.meta.seat')}</Eyebrow>
+                              <Eyebrow className="mb-[5px] truncate uppercase">{t('reservations.meta.seat')}</Eyebrow>
                               <input type="text" value={wp.seat} onChange={e => updateWp({ seat: e.target.value })} placeholder="12A" className={FIELD_CLS} />
                             </div>
                           </div>
@@ -372,15 +372,15 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
                         >
                           {!cruise && <div className="mt-2 flex gap-2">
                             <div className="min-w-0 flex-[1.2]">
-                              <Eyebrow className="mb-[5px] uppercase">{t('reservations.meta.trainNumber')}</Eyebrow>
+                              <Eyebrow className="mb-[5px] truncate uppercase">{t('reservations.meta.trainNumber')}</Eyebrow>
                               <input type="text" value={wp.train_number} onChange={e => updateWp({ train_number: e.target.value })} placeholder="ICE 123" className={FIELD_CLS} />
                             </div>
                             <div className="min-w-0 flex-1">
-                              <Eyebrow className="mb-[5px] uppercase">{t('reservations.meta.platform')}</Eyebrow>
+                              <Eyebrow className="mb-[5px] truncate uppercase">{t('reservations.meta.platform')}</Eyebrow>
                               <input type="text" value={wp.platform} onChange={e => updateWp({ platform: e.target.value })} placeholder="12" className={FIELD_CLS} />
                             </div>
                             <div className="min-w-0 flex-[0.7]">
-                              <Eyebrow className="mb-[5px] uppercase">{t('reservations.meta.seat')}</Eyebrow>
+                              <Eyebrow className="mb-[5px] truncate uppercase">{t('reservations.meta.seat')}</Eyebrow>
                               <input type="text" value={wp.seat} onChange={e => updateWp({ seat: e.target.value })} placeholder="42A" className={FIELD_CLS} />
                             </div>
                           </div>}
@@ -540,10 +540,10 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
             />
           </>
         )}
-      </div>
+      </FormSheetBody>
 
       {automated ? (
-        <div className="flex flex-none items-center gap-2 border-t border-[color:var(--m-rowbr)] px-[18px] pb-4 pt-3">
+        <div className="m-fs-foot flex flex-none items-center gap-2 border-t border-[color:var(--m-rowbr)] px-[18px] pb-4 pt-3">
           <button
             type="button"
             onClick={handleClose}

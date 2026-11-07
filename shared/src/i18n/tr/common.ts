@@ -40,6 +40,7 @@ const common: TranslationStrings = {
   'common.unsavedMessage': 'Buraya girdikleriniz henüz kaydedilmedi.',
   'common.keepEditing': 'Düzenlemeye devam et',
   'common.name': 'Ad',
+  'common.title': 'Başlık',
   'common.email': 'E-posta',
   'common.password': 'Şifre',
   'common.saving': 'Kaydediliyor...',

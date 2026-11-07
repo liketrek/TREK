@@ -40,6 +40,7 @@ const common: TranslationStrings = {
   'common.unsavedMessage': 'Amit itt megadtál, még nincs elmentve.',
   'common.keepEditing': 'Szerkesztés folytatása',
   'common.name': 'Név',
+  'common.title': 'Cím',
   'common.email': 'E-mail',
   'common.password': 'Jelszó',
   'common.saving': 'Mentés...',

@@ -97,9 +97,13 @@ export function reservationFieldsFrom(
     url: res.url || '',
     place_id: res.place_id || '',
     accommodation_id: res.accommodation_id || '',
-    meta_check_in_time: meta.check_in_time || '',
-    ...(withCheckInEnd ? { meta_check_in_end_time: meta.check_in_end_time || '' } : {}),
-    meta_check_out_time: meta.check_out_time || '',
+    // The stay's own times when the booking carries none: a hotel booked before
+    // the times were written on it, or whose stay was edited from the plan,
+    // keeps them on the accommodation, and the empty field showed the
+    // "15:00" hint as if it were the saved check-in.
+    meta_check_in_time: meta.check_in_time || acc?.check_in || '',
+    ...(withCheckInEnd ? { meta_check_in_end_time: meta.check_in_end_time || acc?.check_in_end || '' } : {}),
+    meta_check_out_time: meta.check_out_time || acc?.check_out || '',
     hotel_place_id: acc?.place_id || '',
     hotel_start_day: acc?.start_day_id || '',
     hotel_end_day: acc?.end_day_id || '',

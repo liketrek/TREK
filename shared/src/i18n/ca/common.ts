@@ -40,6 +40,7 @@ const common: TranslationStrings = {
   'common.unsavedMessage': "El que has introduït aquí encara no s'ha desat.",
   'common.keepEditing': 'Continua editant',
   'common.name': 'Nom',
+  'common.title': 'Títol',
   'common.email': 'Correu',
   'common.password': 'Contrasenya',
   'common.saving': 'Desant...',

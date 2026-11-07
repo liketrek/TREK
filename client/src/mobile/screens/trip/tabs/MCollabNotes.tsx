@@ -10,7 +10,7 @@ import { announceNoteFilesChanged, useCollabNotesData } from '../../../../compon
 import { openFile } from '../../../../utils/fileDownload'
 import { safeExternalHref } from '../../../../utils/safeUrl'
 import MSheet from '../../../components/MSheet'
-import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
+import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetBody, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
 import MConfirmSheet from '../../settings/MConfirmSheet'
 import type { TripPlanner } from '../MTripShell'
 import { TabScroller } from './tabChrome'
@@ -423,7 +423,7 @@ function NoteFormSheet({ open, target, categories, colorMap, canUploadFiles, onC
   }
 
   return (
-    <MSheet open={open} onClose={onClose} ariaLabel={isEdit ? t('collab.notes.edit') : t('collab.notes.new')}>
+    <MSheet open={open} onClose={onClose} form ariaLabel={isEdit ? t('collab.notes.edit') : t('collab.notes.new')}>
       <FormSheetHeader
         icon={StickyNote}
         title={isEdit ? t('collab.notes.edit') : t('collab.notes.new')}
@@ -431,8 +431,8 @@ function NoteFormSheet({ open, target, categories, colorMap, canUploadFiles, onC
         closeLabel={t('common.close')}
       />
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[6px] pt-1">
-        <Eyebrow className="mb-[5px] uppercase">{t('collab.notes.title')} *</Eyebrow>
+      <FormSheetBody>
+        <Eyebrow className="mb-[5px] mt-2 uppercase">{t('common.title')} *</Eyebrow>
         <input
           type="text"
           value={title}
@@ -573,7 +573,7 @@ function NoteFormSheet({ open, target, categories, colorMap, canUploadFiles, onC
             </div>
           </>
         )}
-      </div>
+      </FormSheetBody>
 
       <FormSheetFooter
         onCancel={onClose}

@@ -4,7 +4,7 @@ import type { TodoCreateItemRequest } from '@trek/shared'
 import MSheet from '../../../components/MSheet'
 import { CustomDatePicker } from '../../../../components/shared/CustomDateTimePicker'
 import MarkdownEditable from '../../../../components/shared/MarkdownEditable'
-import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
+import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetBody, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
 import { avatarSrc } from '../../../../utils/avatarSrc'
 import type { TodoItem, TripMember } from '../../../../types'
 import type { TripPlanner } from '../MTripShell'
@@ -91,10 +91,10 @@ export default function MTaskSheet({ planner, open, itemId, categories, members,
     }`
 
   return (
-    <MSheet open={open} onClose={onClose} ariaLabel={item ? t('todo.detail.title') : t('todo.newItem')}>
+    <MSheet open={open} onClose={onClose} form ariaLabel={item ? t('todo.detail.title') : t('todo.newItem')}>
       <FormSheetHeader title={item ? t('todo.detail.title') : t('todo.newItem')} onClose={onClose} closeLabel={t('common.close')} />
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[6px] pt-1">
+      <FormSheetBody>
         <input
           type="text"
           value={name}
@@ -220,7 +220,7 @@ export default function MTaskSheet({ planner, open, itemId, categories, members,
             )
           })}
         </div>
-      </div>
+      </FormSheetBody>
 
       <FormSheetFooter
         onDelete={item ? handleDelete : undefined}

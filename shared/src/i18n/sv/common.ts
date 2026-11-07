@@ -52,6 +52,7 @@ const common: TranslationStrings = {
   'common.unsavedMessage': 'Det du har fyllt i här är inte sparat än.',
   'common.keepEditing': 'Fortsätt redigera',
   'common.name': 'Namn',
+  'common.title': 'Titel',
   'common.email': 'E-post',
   'common.password': 'Lösenord',
   'common.saving': 'Sparar...',

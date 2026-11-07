@@ -40,6 +40,7 @@ const common: TranslationStrings = {
   'common.unsavedMessage': 'Siia sisestatu pole veel salvestatud.',
   'common.keepEditing': 'Jätka muutmist',
   'common.name': 'Nimi',
+  'common.title': 'Pealkiri',
   'common.email': 'E-post',
   'common.password': 'Parool',
   'common.saving': 'Salvestamine...',

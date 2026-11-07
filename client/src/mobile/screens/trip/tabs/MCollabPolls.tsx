@@ -11,7 +11,7 @@ import ToggleSwitch from '../../../../components/Settings/ToggleSwitch'
 import { CustomDateTimePicker } from '../../../../components/shared/CustomDateTimePicker'
 import { localIsoDate } from '../../../../utils/localDate'
 import MSheet from '../../../components/MSheet'
-import { Eyebrow, FIELD_AREA_CLS, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
+import { Eyebrow, FIELD_AREA_CLS, FormSheetBody, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
 import MConfirmSheet from '../../settings/MConfirmSheet'
 import type { TripPlanner } from '../MTripShell'
 import { CardGrid, SectionHeader, TabScroller } from './tabChrome'
@@ -360,10 +360,10 @@ function PollFormSheet({ open, onClose, onSubmit, t }: {
   }
 
   return (
-    <MSheet open={open} onClose={onClose} ariaLabel={t('collab.polls.new')}>
+    <MSheet open={open} onClose={onClose} form ariaLabel={t('collab.polls.new')}>
       <FormSheetHeader icon={BarChart3} title={t('collab.polls.new')} onClose={onClose} closeLabel={t('common.close')} />
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[6px] pt-1">
+      <FormSheetBody>
         <Eyebrow className="mb-[5px] uppercase">{t('collab.polls.question')} *</Eyebrow>
         <textarea
           rows={4}
@@ -432,7 +432,7 @@ function PollFormSheet({ open, onClose, onSubmit, t }: {
             </button>
           )}
         </div>
-      </div>
+      </FormSheetBody>
 
       <FormSheetFooter
         onCancel={onClose}

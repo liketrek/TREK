@@ -40,6 +40,7 @@ const common: TranslationStrings = {
   'common.unsavedMessage': 'Όσα καταχωρίσατε εδώ δεν έχουν αποθηκευτεί ακόμη.',
   'common.keepEditing': 'Συνέχεια επεξεργασίας',
   'common.name': 'Όνομα',
+  'common.title': 'Τίτλος',
   'common.email': 'Email',
   'common.password': 'Κωδικός',
   'common.saving': 'Αποθήκευση...',

@@ -29,7 +29,7 @@ export function Stars({ value, size = 15, onRate, myRating = null, ariaLabel }: 
       role={onRate ? 'radiogroup' : undefined}
       aria-label={ariaLabel}
       style={{ display: 'inline-flex', gap: 2, cursor: onRate ? 'pointer' : 'default' }}
-      onMouseLeave={() => setHover(null)}
+      onPointerLeave={() => setHover(null)}
     >
       {[1, 2, 3, 4, 5].map(i => {
         // Fractional fill for averages: full below, empty above, clipped between.
@@ -52,7 +52,11 @@ export function Stars({ value, size = 15, onRate, myRating = null, ariaLabel }: 
             role="radio"
             aria-checked={myRating === i}
             aria-label={`${i}`}
-            onMouseEnter={() => setHover(i)}
+            // A preview for a pointer that hovers (a mouse, a trackpad, a pen held
+            // above the screen). A finger has no hover: the enter it fires on a
+            // tap has no leave after it, so the preview stuck and an unrated
+            // place showed five full stars beside "Not rated yet".
+            onPointerEnter={e => { if (e.pointerType !== 'touch') setHover(i) }}
             onFocus={() => setHover(i)}
             onBlur={() => setHover(null)}
             onClick={() => onRate(myRating === i ? null : i)}

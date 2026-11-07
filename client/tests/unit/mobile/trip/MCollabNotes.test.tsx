@@ -244,6 +244,9 @@ describe('MCollabNotes', () => {
     fireEvent.click(screen.getByRole('button', { name: /collab\.notes\.new/ }))
     const dialog = screen.getByRole('dialog', { name: 'collab.notes.new' })
     expect(screen.getByRole('button', { name: 'collab.notes.create' })).toBeDisabled()
+    // The title field is labelled "Title", not "Notes" as if it were a second content field.
+    expect(within(dialog).getByText('common.title *')).toBeInTheDocument()
+    expect(within(dialog).queryByText('collab.notes.title *')).not.toBeInTheDocument()
 
     fireEvent.change(screen.getByPlaceholderText('collab.notes.titlePlaceholder'), { target: { value: '  Insurance  ' } })
     fireEvent.change(screen.getByPlaceholderText('collab.notes.contentPlaceholder'), { target: { value: ' call the hotline ' } })

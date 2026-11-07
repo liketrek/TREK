@@ -46,7 +46,9 @@ export default function MNotifications() {
           <ArrowLeft size={18} strokeWidth={2} />
         </MIconBtn>
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <h1 className="truncate text-[0.9375rem] font-bold text-m-ink">{t('notifications.title')}</h1>
+          {/* Two lines, hyphenated, before an ellipsis: "Benachrichtigungen" was
+              cut to "Benachrichtigu…" beside the badge and two buttons. */}
+          <h1 className="line-clamp-2 min-w-0 break-words text-[0.9375rem] font-bold leading-tight text-m-ink [hyphens:auto]">{t('notifications.title')}</h1>
           {unreadCount > 0 && (
             <span className="flex-none rounded-full bg-m-act px-[7px] py-[2px] font-geist text-[0.625rem] font-bold text-m-actfg">
               {unreadCount}

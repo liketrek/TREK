@@ -40,6 +40,7 @@ const common: TranslationStrings = {
   'common.unsavedMessage': 'Введённое здесь ещё не сохранено.',
   'common.keepEditing': 'Продолжить',
   'common.name': 'Имя',
+  'common.title': 'Название',
   'common.email': 'Эл. почта',
   'common.password': 'Пароль',
   'common.saving': 'Сохранение...',

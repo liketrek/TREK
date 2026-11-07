@@ -2,9 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { Check, ChevronDown, Plus, Trash2, Wallet, Receipt, Paperclip } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import CustomSelect from '../../../../components/shared/CustomSelect'
-import { CustomDatePicker } from '../../../../components/shared/CustomDateTimePicker'
 import { NumericInput } from '../../../../components/shared/NumericInput'
-import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
+import { AMOUNT_FIELD_CLS, Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetBody, FormSheetFooter, FormSheetHeader, SELECT_FIELD_CLS, SheetDateField } from './PlSheetChrome'
 import { useTranslation } from '../../../../i18n'
 import { useToast } from '../../../../components/shared/Toast'
 import { useTripStore } from '../../../../store/tripStore'
@@ -99,7 +98,9 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
     }
   }
 
-  const initialOf = (p: TripMember) => (p.id === me ? t('costs.youShort') : (p.username || '?').charAt(0)).toUpperCase()
+  // The member's own initial, yours too: "You" is the label beside it, and the
+  // word squeezed into the circle read "Du Du" or ran out of it ("أنت").
+  const initialOf = (p: TripMember) => (p.username || '?').charAt(0).toUpperCase()
 
   const Avatar = ({ p, idx, size = 22, dim = false }: { p: TripMember; idx: number; size?: number; dim?: boolean }) =>
     p.avatar_url
@@ -122,7 +123,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
     <MSheet
       open={open}
       onClose={requestClose}
-      material="glass"
+      form
       ariaLabel={editing ? t('costs.editExpense') : t('costs.addExpense')}
     >
       <FormSheetHeader
@@ -132,7 +133,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
         closeLabel={t('common.close')}
       />
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[6px] pt-[2px]">
+      <FormSheetBody>
         {/* NAME */}
         <Eyebrow className="mb-[5px] mt-2 uppercase">{t('costs.whatFor')} *</Eyebrow>
         <input
@@ -145,8 +146,8 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
 
         {/* TOTAL AMOUNT */}
         <Eyebrow className="mb-[5px] mt-3 uppercase">{t('costs.totalAmount')}</Eyebrow>
-        <div className={`flex items-center gap-1 rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[10px] ${isTicketMode ? 'opacity-60' : ''}`}>
-          <span className="text-[0.84375rem] font-medium text-m-faint">{sym(currency)}</span>
+        <div className={`${AMOUNT_FIELD_CLS} ${isTicketMode ? 'opacity-60' : ''}`}>
+          <span className="flex-none text-[0.84375rem] font-medium text-m-faint">{sym(currency)}</span>
           <NumericInput
             mode="signed-decimal"
             signToggleLabel={t('costs.toggleSign')}
@@ -158,9 +159,10 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
           />
         </div>
 
-        {/* CURRENCY + DAY */}
-        <div className="mt-3 flex gap-2">
-          <div className="min-w-0 flex-1">
+        {/* CURRENCY + DAY. The day gets the room: the currency only ever shows a
+            code and a symbol, and a date cut to "Nov 7, 20…" says nothing. */}
+        <div className="mt-3 grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-2">
+          <div className="min-w-0">
             <Eyebrow className="mb-[5px] uppercase">{t('costs.currency')}</Eyebrow>
             <CustomSelect
               value={currency}
@@ -171,9 +173,9 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
               style={{ width: '100%' }}
             />
           </div>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0">
             <Eyebrow className="mb-[5px] uppercase">{t('costs.day')}</Eyebrow>
-            <CustomDatePicker value={day} onChange={setDay} style={{ width: '100%' }} />
+            <SheetDateField value={day} onChange={setDay} />
           </div>
         </div>
 
@@ -201,7 +203,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
           type="button"
           aria-expanded={catOpen}
           onClick={() => setCatOpen(v => !v)}
-          className="flex w-full items-center gap-[10px] overflow-hidden rounded-xl border border-[color:var(--m-rowbr)] bg-m-card px-[13px] py-[11px] text-start"
+          className={`${SELECT_FIELD_CLS} gap-[10px] text-start`}
         >
           {(() => {
             const meta = catMeta(cat)
@@ -521,7 +523,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
             ))}
           </div>
         )}
-      </div>
+      </FormSheetBody>
 
       <FormSheetFooter
         onDelete={editing ? handleDelete : undefined}

@@ -4,9 +4,10 @@ import MSheet from '../../components/MSheet'
 import MIconBtn from '../../components/MIconBtn'
 import MToggle from '../../components/MToggle'
 import { SHEET_PRIMARY, SHEET_SECONDARY } from '../trip/sheets/MTripSheetUi'
+import { FormSheetBody, SheetDateField } from '../trip/sheets/PlSheetChrome'
+import { useAutoGrow } from '../../../hooks/useAutoGrow'
 import { useTranslation } from '../../../i18n'
 import CustomTimePicker from '../../../components/shared/CustomTimePicker'
-import { CustomDatePicker } from '../../../components/shared/CustomDateTimePicker'
 import { isVideoFile } from '../../../utils/videoPoster'
 import type { ResilientResult, UploadProgress } from '../../../utils/uploadQueue'
 import type { JourneyEntry, JourneyPhoto, GalleryPhoto, JourneyTrip } from '../../../store/journeyStore'
@@ -108,6 +109,9 @@ export default function MJourneyEntrySheet({
   const [captureOnly, setCaptureOnly] = useState(quickCapture)
   const fileRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
+  // The story grows with its lines instead of slicing the fourth one in half.
+  const storyRef = useRef<HTMLTextAreaElement>(null)
+  useAutoGrow(storyRef, story)
 
   const activeProvider = externalProvider || providers[0]?.id || null
   const providerExistingAssetIds = providerAssetIds(activeProvider)
@@ -125,15 +129,15 @@ export default function MJourneyEntrySheet({
       open
       onClose={handleClose}
       variant="card"
-      material="glass"
+      form
       ariaLabel={entry.id === 0 ? t('journey.detail.newEntry') : t('journey.detail.editEntry')}
     >
-      {/* TileHeader's shape, with the move buttons between the title and the close. */}
-      <div className="flex flex-none items-center gap-3 px-[18px] pb-1 pt-4">
+      {/* FormSheetHeader's shape, with the move buttons between the title and the close. */}
+      <div className="m-fs-head flex flex-none items-center gap-3 px-[18px] pb-2 pt-4">
         <span className="flex h-10 w-10 flex-none items-center justify-center rounded-[13px] bg-[color:var(--m-ic)] text-m-ink">
           <NotebookPen size={19} strokeWidth={1.8} />
         </span>
-        <span className="min-w-0 flex-1 truncate text-[1.0625rem] font-bold leading-tight">
+        <span className="line-clamp-2 min-w-0 flex-1 break-words text-[1.0625rem] font-bold leading-tight">
           {entry.id === 0 ? t('journey.detail.newEntry') : t('journey.detail.editEntry')}
         </span>
         {(onMoveEarlier || onMoveLater) && (
@@ -146,12 +150,12 @@ export default function MJourneyEntrySheet({
             </MIconBtn>
           </span>
         )}
-        <MIconBtn variant="neutral" size={34} onClick={handleClose} ariaLabel={t('common.cancel')}>
+        <MIconBtn variant="neutral" size={34} onClick={handleClose} ariaLabel={t('common.cancel')} className="m-fs-close">
           <X size={15} strokeWidth={2.2} />
         </MIconBtn>
       </div>
 
-      <div className="m-scroll-fade mt-2 min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px] pt-[14px]">
+      <FormSheetBody>
         {/* Quick capture had no title field at all: it asked for a note and nothing
             else, so every entry caught on the move arrived nameless and the day's
             list read as a column of identical placeholders (discussion #2299). The
@@ -416,6 +420,7 @@ export default function MJourneyEntrySheet({
             )
           ) : (
             <textarea
+              ref={storyRef}
               rows={3}
               value={story}
               onChange={e => setStory(e.target.value)}
@@ -512,7 +517,7 @@ export default function MJourneyEntrySheet({
             {/* TREK's own picker, like the time field beside it: a native
                 `<input type="date">` paints itself from the OS locale and takes
                 no theme, so the two sat in one row looking like two apps. */}
-            <CustomDatePicker value={entryDate} onChange={setEntryDate} disabled={readOnly} />
+            <SheetDateField value={entryDate} onChange={setEntryDate} disabled={readOnly} />
           </div>
           <div className="min-w-0">
             <div className={`${eyebrow} mb-[5px]`}>{t('mobileJourney.time')}</div>
@@ -693,27 +698,26 @@ export default function MJourneyEntrySheet({
             </div>
           </>
         )}
-      </div>
+        {/* A suggestion is not deleted, it is put down: the row survives so the trip
+            sync does not offer the same place again (discussion #2299).
 
-      {/* A suggestion is not deleted, it is put down: the row survives so the trip
-          sync does not offer the same place again (discussion #2299).
+            Its own row at the foot of the fields rather than among the buttons: the
+            sentence is longer than a button label and wrapped into two lines between
+            Delete and Cancel. Full width, it reads as what it is, an alternative to
+            saving this suggestion rather than a fourth thing competing with them. */}
+        {!readOnly && onDismiss && (
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="mt-4 flex w-full items-center gap-[9px] rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[13px] py-[10px] text-start"
+          >
+            <EyeOff size={15} strokeWidth={2} className="flex-none text-m-muted" />
+            <span className="min-w-0 flex-1 text-[0.8125rem] font-semibold">{t('journey.suggestions.dismiss')}</span>
+          </button>
+        )}
+      </FormSheetBody>
 
-          Its own row above the buttons rather than among them: the sentence is
-          longer than a button label and wrapped into two lines between Delete and
-          Cancel. Full width, it reads as what it is, an alternative to saving this
-          suggestion rather than a fourth thing competing with them. */}
-      {!readOnly && onDismiss && (
-        <button
-          type="button"
-          onClick={onDismiss}
-          className="mx-[18px] mt-1 mb-[10px] flex flex-none items-center gap-[9px] rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[13px] py-[10px] text-start"
-        >
-          <EyeOff size={15} strokeWidth={2} className="flex-none text-m-muted" />
-          <span className="min-w-0 flex-1 text-[0.8125rem] font-semibold">{t('journey.suggestions.dismiss')}</span>
-        </button>
-      )}
-
-      <div className="flex flex-none items-center gap-2 border-t border-[color:var(--m-rowbr)] px-[18px] pb-4 pt-3">
+      <div className="m-fs-foot flex flex-none items-center gap-2 border-t border-[color:var(--m-rowbr)] px-[18px] pb-4 pt-3">
         {!readOnly && onDelete && (
           <button
             type="button"

@@ -12,7 +12,7 @@ import {
   type PlaceFormData,
 } from '../../../../components/Planner/PlaceFormModal.helpers'
 import { usePlaceForm } from '../../../../components/Planner/usePlaceForm'
-import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
+import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetBody, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
 import { useAddonStore } from '../../../../store/addonStore'
 import type { BookingExpenseRequest } from '../../../../components/Planner/BookingCostsSection.types'
 import PlPlaceSearch, { type PlSearchPick } from './PlPlaceSearch'
@@ -233,7 +233,7 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
     <MSheet
       open={showPlaceForm}
       onClose={handleClose}
-      material="glass"
+      form
       ariaLabel={sheetPlace ? t('places.editPlace') : t('places.addPlace')}
       discardGuard={showPlaceForm ? { form, files: pendingFiles.length } : undefined}
     >
@@ -244,7 +244,7 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
         closeLabel={t('common.close')}
       />
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[6px] pt-[2px]" onPaste={handlePaste}>
+      <FormSheetBody onPaste={handlePaste}>
         <PlPlaceSearch
           planner={planner}
           locationBias={locationBias}
@@ -387,7 +387,7 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
             onEdit={item => onOpenExpense({ editItem: item })}
           />
         )}
-      </div>
+      </FormSheetBody>
 
       <FormSheetFooter
         onDelete={sheetPlace ? handleDelete : undefined}

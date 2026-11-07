@@ -40,6 +40,7 @@ const common: TranslationStrings = {
   'common.unsavedMessage': 'สิ่งที่คุณกรอกไว้ที่นี่ยังไม่ได้บันทึก',
   'common.keepEditing': 'แก้ไขต่อ',
   'common.name': 'ชื่อ',
+  'common.title': 'ชื่อเรื่อง',
   'common.email': 'อีเมล',
   'common.password': 'รหัสผ่าน',
   'common.saving': 'กำลังบันทึก...',
