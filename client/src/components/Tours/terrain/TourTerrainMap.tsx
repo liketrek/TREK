@@ -88,7 +88,7 @@ export default function TourTerrainMap(props: TourTerrainMapProps) {
   const touchShell = useIsWide();
   const legend =
     terrain.canReplay && !props.water ? (
-      <GradeLegend stats={stats} unit={unit} onLayout={props.onLegendLayout} />
+      <GradeLegend stats={stats} unit={unit} onLayout={props.onLegendLayout} compact={fit === 'side'} />
     ) : null;
   const legendAbove = fit === 'stacked' || fit === 'side';
   const layerSwitcher = (vertical: boolean) => (
@@ -344,14 +344,42 @@ function PreloadRing({ share, label }: { share: number; label: string }) {
 }
 
 /** The grade mix as a pill like the dock; it unfolds upwards into the bands. */
+/** The highest point and the steepest grade, as the legend's soft pills. */
+function LegendFacts({ stats, unit }: { stats: TerrainStats; unit: DistanceUnit }) {
+  const { t } = useTranslation();
+  return (
+    <>
+      {stats.summit && (
+        <SoftPill icon={<TrendingUp size={11} strokeWidth={2} className="flex-none" />}>
+          {formatElevation(stats.summit.elevationMeters, unit)}
+        </SoftPill>
+      )}
+      {stats.steepest && (
+        <SoftPill
+          tone={stats.steepest.grade >= 27 ? 'danger' : stats.steepest.grade >= 18 ? 'warning' : 'neutral'}
+          icon={<Gauge size={11} strokeWidth={2} className="flex-none" />}
+        >
+          {t('tours.terrain.steepestShort', { grade: Math.round(stats.steepest.grade) })}
+        </SoftPill>
+      )}
+    </>
+  );
+}
+
+/**
+ * `compact` (the map's side, on a narrow 3D map): the bar and the chevron
+ * only; the highest point and the steepest grade move into the opened card.
+ */
 function GradeLegend({
   stats,
   unit,
   onLayout,
+  compact = false,
 }: {
   stats: TerrainStats;
   unit: DistanceUnit;
   onLayout?: (layout: TerrainLegendLayout | null) => void;
+  compact?: boolean;
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -381,9 +409,14 @@ function GradeLegend({
         <div
           ref={panelRef}
           id="tour-terrain-grades"
-          className="absolute inset-x-0 bottom-full mb-2 rounded-2xl p-3"
+          className={`absolute bottom-full mb-2 rounded-2xl p-3 ${compact ? 'end-0 w-[240px]' : 'inset-x-0'}`}
           style={GLASS}
         >
+          {compact && (
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              <LegendFacts stats={stats} unit={unit} />
+            </div>
+          )}
           <ul className="flex flex-col gap-1">
             {GRADE_BANDS.map((band) => (
               <li key={band.key} className="flex items-center gap-2 text-content-secondary" style={fs(11)}>
@@ -414,19 +447,7 @@ function GradeLegend({
             <span key={band.key} style={{ width: width(band.key), background: band.paint }} />
           ))}
         </span>
-        {stats.summit && (
-          <SoftPill icon={<TrendingUp size={11} strokeWidth={2} className="flex-none" />}>
-            {formatElevation(stats.summit.elevationMeters, unit)}
-          </SoftPill>
-        )}
-        {stats.steepest && (
-          <SoftPill
-            tone={stats.steepest.grade >= 27 ? 'danger' : stats.steepest.grade >= 18 ? 'warning' : 'neutral'}
-            icon={<Gauge size={11} strokeWidth={2} className="flex-none" />}
-          >
-            {t('tours.terrain.steepestShort', { grade: Math.round(stats.steepest.grade) })}
-          </SoftPill>
-        )}
+        {!compact && <LegendFacts stats={stats} unit={unit} />}
         <span className="flex h-[26px] w-[26px] items-center justify-center rounded-full text-content-muted">
           {open ? <ChevronDown size={14} strokeWidth={2.2} /> : <ChevronUp size={14} strokeWidth={2.2} />}
         </span>
