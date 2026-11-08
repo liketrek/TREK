@@ -68,6 +68,8 @@ const native: TranslationStrings = {
   'native.claim.cancelled': 'Ost tühistatud.',
   'native.claim.failed': 'Ost ei õnnestunud. Proovi uuesti.',
   'native.claim.redeemFailed': 'Me ei saanud sinu TREK-i seadistada. Proovi uuesti.',
+  'native.claim.closedRefund':
+    'TREK Cloud avatakse peagi. Google Play maksab selle ostu raha kolme päeva jooksul automaatselt tagasi.',
   'native.plans.restore': 'Taasta ostud',
   'native.plans.restoring': 'Kontrollime sinu oste…',
   'native.plans.restoreNone': 'Selle Apple ID jaoks ei leitud aktiivset tellimust.',

@@ -70,6 +70,8 @@ const native: TranslationStrings = {
   'native.claim.cancelled': 'Đã hủy mua.',
   'native.claim.failed': 'Giao dịch mua không thành công. Vui lòng thử lại.',
   'native.claim.redeemFailed': 'Chúng tôi không thể thiết lập TREK của bạn. Vui lòng thử lại.',
+  'native.claim.closedRefund':
+    'TREK Cloud sắp ra mắt. Google Play sẽ tự động hoàn tiền giao dịch mua này trong vòng ba ngày.',
   'native.plans.restore': 'Khôi phục giao dịch mua',
   'native.plans.restoring': 'Đang kiểm tra giao dịch mua của bạn…',
   'native.plans.restoreNone': 'Không tìm thấy gói đăng ký đang hoạt động cho Apple ID này.',

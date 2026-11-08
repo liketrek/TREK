@@ -67,6 +67,7 @@ const native: TranslationStrings = {
   'native.claim.cancelled': '已取消購買。',
   'native.claim.failed': '購買未成功。請重試。',
   'native.claim.redeemFailed': '我們無法為你設定 TREK。請重試。',
+  'native.claim.closedRefund': 'TREK Cloud 即將開放。Google Play 會在三天內自動退還這筆購買的款項。',
   'native.plans.restore': '恢復購買項目',
   'native.plans.restoring': '正在檢查你的購買項目…',
   'native.plans.restoreNone': '此 Apple ID 沒有找到有效的訂閱。',

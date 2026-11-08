@@ -71,6 +71,8 @@ const native: TranslationStrings = {
   'native.claim.cancelled': 'Η αγορά ακυρώθηκε.',
   'native.claim.failed': 'Η αγορά δεν ολοκληρώθηκε. Δοκιμάστε ξανά.',
   'native.claim.redeemFailed': 'Δεν μπορέσαμε να ετοιμάσουμε το TREK σας. Δοκιμάστε ξανά.',
+  'native.claim.closedRefund':
+    'Το TREK Cloud ανοίγει σύντομα. Το Google Play σας επιστρέφει αυτόματα τα χρήματα αυτής της αγοράς μέσα σε τρεις ημέρες.',
   'native.plans.restore': 'Επαναφορά αγορών',
   'native.plans.restoring': 'Έλεγχος των αγορών σας…',
   'native.plans.restoreNone': 'Δεν βρέθηκε ενεργή συνδρομή για αυτό το Apple ID.',

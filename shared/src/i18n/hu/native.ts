@@ -69,6 +69,8 @@ const native: TranslationStrings = {
   'native.claim.cancelled': 'Vásárlás megszakítva.',
   'native.claim.failed': 'A vásárlás nem sikerült. Próbáld újra.',
   'native.claim.redeemFailed': 'Nem sikerült beállítani a TREK-edet. Próbáld újra.',
+  'native.claim.closedRefund':
+    'A TREK Cloud hamarosan nyit. A Google Play három napon belül automatikusan visszatéríti ezt a vásárlást.',
   'native.plans.restore': 'Vásárlások visszaállítása',
   'native.plans.restoring': 'Vásárlásaid ellenőrzése…',
   'native.plans.restoreNone': 'Ehhez az Apple ID-hoz nem található aktív előfizetés.',

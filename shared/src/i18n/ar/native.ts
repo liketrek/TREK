@@ -67,6 +67,7 @@ const native: TranslationStrings = {
   'native.claim.cancelled': 'تم إلغاء الشراء.',
   'native.claim.failed': 'لم تتم عملية الشراء. حاول مرة أخرى.',
   'native.claim.redeemFailed': 'تعذّر علينا إعداد TREK الخاص بك. حاول مرة أخرى.',
+  'native.claim.closedRefund': 'يفتح TREK Cloud قريبًا. سيرد Google Play ثمن هذا الشراء تلقائيًا خلال ثلاثة أيام.',
   'native.plans.restore': 'استعادة المشتريات',
   'native.plans.restoring': 'جارٍ التحقق من مشترياتك…',
   'native.plans.restoreNone': 'لم يُعثر على اشتراك نشط لمعرّف Apple هذا.',

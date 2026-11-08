@@ -69,6 +69,8 @@ const native: TranslationStrings = {
   'native.claim.cancelled': 'Alış ləğv edildi.',
   'native.claim.failed': 'Alış baş tutmadı. Zəhmət olmasa yenidən cəhd edin.',
   'native.claim.redeemFailed': 'TREK-inizi hazırlaya bilmədik. Zəhmət olmasa yenidən cəhd edin.',
+  'native.claim.closedRefund':
+    'TREK Cloud tezliklə açılır. Google Play bu alışın pulunu üç gün ərzində avtomatik qaytarır.',
   'native.plans.restore': 'Alışları bərpa et',
   'native.plans.restoring': 'Alışlarınız yoxlanılır…',
   'native.plans.restoreNone': 'Bu Apple ID üçün aktiv abunə tapılmadı.',

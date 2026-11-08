@@ -67,6 +67,7 @@ const native: TranslationStrings = {
   'native.claim.cancelled': '구매가 취소되었습니다.',
   'native.claim.failed': '구매가 완료되지 않았습니다. 다시 시도하세요.',
   'native.claim.redeemFailed': 'TREK을 준비하지 못했습니다. 다시 시도하세요.',
+  'native.claim.closedRefund': 'TREK Cloud가 곧 문을 엽니다. Google Play에서 3일 이내에 이 구매를 자동으로 환불합니다.',
   'native.plans.restore': '구입 내역 복원',
   'native.plans.restoring': '구입 내역을 확인하는 중…',
   'native.plans.restoreNone': '이 Apple ID에서 활성 구독을 찾을 수 없습니다.',

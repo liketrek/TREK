@@ -68,6 +68,8 @@ const native: TranslationStrings = {
   'native.claim.cancelled': 'Compra cancelada.',
   'native.claim.failed': 'A compra não foi concluída. Tente novamente.',
   'native.claim.redeemFailed': 'Não conseguimos preparar seu TREK. Tente novamente.',
+  'native.claim.closedRefund':
+    'O TREK Cloud abre em breve. O Google Play reembolsa esta compra automaticamente em até três dias.',
   'native.plans.restore': 'Restaurar compras',
   'native.plans.restoring': 'Verificando suas compras…',
   'native.plans.restoreNone': 'Nenhuma assinatura ativa encontrada neste ID Apple.',

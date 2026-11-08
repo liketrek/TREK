@@ -68,6 +68,8 @@ const native: TranslationStrings = {
   'native.claim.cancelled': 'Pembelian dibatalkan.',
   'native.claim.failed': 'Pembelian tidak berhasil. Silakan coba lagi.',
   'native.claim.redeemFailed': 'Kami tidak dapat menyiapkan TREK Anda. Silakan coba lagi.',
+  'native.claim.closedRefund':
+    'TREK Cloud segera dibuka. Google Play mengembalikan dana pembelian ini secara otomatis dalam tiga hari.',
   'native.plans.restore': 'Pulihkan pembelian',
   'native.plans.restoring': 'Memeriksa pembelian Anda…',
   'native.plans.restoreNone': 'Tidak ada langganan aktif untuk Apple ID ini.',

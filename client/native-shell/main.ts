@@ -5,6 +5,7 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import logoUrl from '../public/icons/icon-white.svg';
 import logoBlack from '../public/logo-dark.svg'; // #000 wordmark, for light backgrounds
 import logoWhite from '../public/logo-light.svg'; // #fff wordmark, for dark backgrounds
+import { opensSoon, refundedBeforeOpening } from '../src/native/cloudOrders';
 import { fakeIapClient, getIapClient, productIdFor, type Purchase } from '../src/native/iap';
 import { CLOUD_TERMS_URL, CLOUD_URL, PRIVACY_URL, SERVER_DOCS_URL, STORE_TERMS_URL } from '../src/native/links';
 import { probeDemo, probeServer, type ProbeFailure, type ProbeGet } from '../src/native/serverAddress';
@@ -429,12 +430,14 @@ function offerFor(offer: Offer, plan: CloudPlan, interval: 'month' | 'year'): { 
 
 async function loadOffer(list: CloudPlans): Promise<Offer> {
   const available = await iapReady;
-  // Closed: a store purchase would be refused at the cloud, so only a test build may buy.
-  const opensSoon = available && list.closed && !(await iap.isSandbox().catch(() => false));
-  const canBuy = available && !opensSoon;
-  if (!canBuy || iap === fakeIapClient) return { canBuy, storePrices: null, opensSoon };
+  // Closed: a real purchase is refused at the cloud, so only a test build may buy on iOS;
+  // Android keeps the button for the licence testers (see cloudOrders.ts).
+  const sandbox = list.closed && !onPlay ? await iap.isSandbox().catch(() => false) : false;
+  const soon = opensSoon({ available, closed: list.closed, sandbox, onPlay });
+  const canBuy = available && !soon;
+  if (!canBuy || iap === fakeIapClient) return { canBuy, storePrices: null, opensSoon: soon };
   const ids = list.plans.flatMap((p) => [productIdFor(p.id, 'month'), productIdFor(p.id, 'year')]);
-  return { canBuy, storePrices: await iap.prices(ids), opensSoon };
+  return { canBuy, storePrices: await iap.prices(ids), opensSoon: soon };
 }
 
 function planCard(plan: CloudPlan, interval: 'month' | 'year', offer: Offer): HTMLElement {
@@ -526,7 +529,10 @@ function planFooter(offer: Offer, plans: CloudPlan[]): Node[] {
     void notify(NotificationType.Error);
     restore.disabled = false;
     status.className = 'hint bad';
-    status.textContent = t('native.plans.restoreFailed');
+    // Bought before the opening: refused, unacknowledged, and refunded by Google Play.
+    status.textContent = refundedBeforeOpening(redeemed.code, onPlay)
+      ? t('native.claim.closedRefund')
+      : t('native.plans.restoreFailed');
   });
 
   // A payment that was pending (cash, some carrier billing) and has cleared since:
@@ -838,7 +844,9 @@ function showClaim(
       slugNote.textContent = t('native.claim.taken');
       slugNote.className = 'hint bad';
     } else {
-      error.textContent = t('native.claim.redeemFailed');
+      error.textContent = refundedBeforeOpening(redeemed.code, onPlay)
+        ? t('native.claim.closedRefund')
+        : t('native.claim.redeemFailed');
     }
   });
 

@@ -67,6 +67,7 @@ const native: TranslationStrings = {
   'native.claim.cancelled': 'הרכישה בוטלה.',
   'native.claim.failed': 'הרכישה לא הושלמה. אנא נסו שוב.',
   'native.claim.redeemFailed': 'לא הצלחנו להכין את ה-TREK שלכם. אנא נסו שוב.',
+  'native.claim.closedRefund': 'TREK Cloud ייפתח בקרוב. Google Play יחזיר לכם את הרכישה הזו אוטומטית תוך שלושה ימים.',
   'native.plans.restore': 'שחזור רכישות',
   'native.plans.restoring': 'בודקים את הרכישות שלך…',
   'native.plans.restoreNone': 'לא נמצא מינוי פעיל עבור Apple ID זה.',
