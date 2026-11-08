@@ -258,7 +258,7 @@ function VehicleCard({ tripId, readOnly, onSave }: CardProps) {
   const rangeShown = rangeKm ? Math.round(convertDistance(rangeKm, imperial ? 'imperial' : 'metric')) : undefined;
   const rangeLabel = t(vehicleKind === 'electric' ? 'roadtrip.limit.rangeLabelCharge' : 'roadtrip.limit.rangeLabel');
   return (
-    <EditCard label={t('roadtrip.limit.sectionVehicle')}>
+    <EditCard label={t('roadtrip.limit.vehicleLabel')}>
       <div className="pb-1.5 pt-1">
         <Choice
           readOnly={readOnly}
